@@ -2095,7 +2095,13 @@ class Perl6::Actions is HLL::Actions {
     }
 
     method trait_mod:sym<handles>($/) {
-
+        # The term may be fairly complex. Thus we make it into a thunk
+        # which the trait handler can use to get the term and work with
+        # it.
+        my $thunk := make_thunk($<term>.ast, $/);
+        make -> $declarand {
+            $*ST.apply_trait('&trait_mod:<handles>', $declarand, $thunk);
+        };
     }
 
     method postop($/) {

@@ -92,6 +92,50 @@ multi trait_mod:<as>(Parameter:D $param, $type) {
     $param.set_coercion($type);
 }
 
+my class Pair { ... }
+proto trait_mod:<handles>(|$) { * }
+multi trait_mod:<handles>(Attribute:D $target, $thunk) {
+    $target does role {
+        has $.handles;
+        
+        method set_handles($expr) {
+            $!handles := $expr;
+        }
+        
+        method add_delegator_method($attr: $pkg, $meth_name, $call_name) {
+            $pkg.HOW.add_method($pkg, $meth_name, method (**@pos, *%named) {
+                $attr.get_value(self)."$call_name"(|@pos, |%named)
+            });
+        }
+        
+        method apply_handles(Mu $pkg) {
+            sub applier($expr) {
+                if $expr.defined() {
+                    if $expr ~~ Str {
+                        self.add_delegator_method($pkg, $expr, $expr);
+                    }
+                    elsif $expr ~~ Pair {
+                        self.add_delegator_method($pkg, $expr.key, $expr.value);
+                    }
+                    elsif $expr ~~ Positional {
+                        for $expr.list {
+                            applier($_);
+                        }
+                    }
+                    else {
+                        # XXX Matcher.
+                    }
+                }
+                else {
+                    # XXX Todo.
+                }
+            }
+            applier($!handles);
+        }
+    };
+    $target.set_handles($thunk());
+}
+
 proto trait_mod:<will>(|$) { * }
 multi trait_mod:<will>(Attribute $attr, Block $closure, :$build!) {
     $attr.set_build($closure)

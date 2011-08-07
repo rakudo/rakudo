@@ -66,6 +66,13 @@ my class Attribute {
                 $package.HOW.add_method($package, $meth_name, $meth);
             }
         }
+        
+        # Apply any handles trait we may have.
+        self.apply_handles($package);
+    }
+    
+    method apply_handles(Mu $pkg) {
+        # None by default.
     }
     
     method get_value(Mu $obj) {

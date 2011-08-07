@@ -1,6 +1,6 @@
 # Roadmap for "nom" Branch
 
-Last Updated 6 Aug 2011
+Last Updated 7 Aug 2011
 
 ## Punch list for nom->master and nom distribution
 
@@ -12,7 +12,6 @@ branch and distribution, an estimate of the difficulty
 (\* == easy, \*\*\*\* = hard), and any identified 
 responsible parties.
 
-* Method delegation (2, 2, \*\*\*, jnthn)
 * Parametric roles (2, 2, \*\*\*, jnthn)
 * Enums to level of master (2, 1, ???, ???)
 * Grammars, qregex, other regex stuff (1, 1, \*\*\*, pmichaud)
@@ -65,7 +64,6 @@ Many things are working, some are not...
 
 ## Missing object model bits
 * Some support for augment
-* handles
 
 ## Custom Operators
 Get these working again.

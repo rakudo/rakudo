@@ -58,12 +58,12 @@ class Perl6::ModuleLoader {
                 my %cand;
                 %cand<key> := "$prefix/$pm_path";
                 %cand<pm>  := "$prefix/$pm_path";
-                # XXX Add PIR or PBC here *only* if it was modified later
-                # than the .pm source.
-                if $have_pir {
+                if $have_pir && pir::stat__ISI("$prefix/$pir_path", 7)
+                             >= pir::stat__ISI("$prefix/$pm_path", 7) {
                     %cand<load> := "$prefix/$pir_path";
                 }
-                elsif $have_pbc {
+                elsif $have_pbc && pir::stat__ISI("$prefix/$pbc_path", 7)
+                                >= pir::stat__ISI("$prefix/$pm_path", 7) {
                     %cand<load> := "$prefix/$pbc_path";
                 }
                 @candidates.push(%cand);

@@ -560,7 +560,7 @@ S32-str/samecase.t                                         # icu
 S32-str/split.t
 S32-str/sprintf.t
 # S32-str/substr.t # err: Method 'capitalize' not found for invocant of class 'Str'
-# S32-str/trim.t # err: Could not find sub &trim
+S32-str/trim.t
 S32-str/uc.t                                               # icu
 S32-str/ucfirst.t                                          # icu
 # S32-str/unpack.t # err: Default constructor only takes named arguments

@@ -404,6 +404,23 @@ my class Str does Stringy {
         );
         self.substr($pos);
     }
+
+
+    method trim-trailing(Str:D:) {
+        my Int $pos = self.chars - 1;
+        --$pos while $pos >= 0 && nqp::p6bool(
+                nqp::iscclass(
+                    pir::const::CCLASS_WHITESPACE,
+                    nqp::unbox_s(self),
+                    nqp::unbox_i($pos)
+                )
+            );
+        $pos < 0 ?? '' !!  self.substr(0, $pos + 1);
+    }
+
+    method trim(Str:D:) {
+        self.trim-leading.trim-trailing;
+    }
 }
 
 
@@ -471,3 +488,8 @@ multi sub ords(Str $s) {
     my str $ns = nqp::unbox_s($s);
     (^$c).map: { nqp::p6box_i(nqp::ord(nqp::substr($ns, $_, 1))) }
 }
+
+# TODO: Cool  variants
+sub trim         (Str:D $s) { $s.trim }
+sub trim-leading (Str:D $s) { $s.trim-leading }
+sub trim-trailing(Str:D $s) { $s.trim-trailing }

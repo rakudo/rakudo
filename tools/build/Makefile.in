@@ -197,6 +197,7 @@ CORE_SOURCES = \
   src/core/Grammar.pm \
   src/core/Regex.pm \
   src/core/CallFrame.pm \
+  src/core/Main.pm \
   src/core/tai-utc.pm \
   src/core/Instant.pm \
   src/core/Duration.pm \

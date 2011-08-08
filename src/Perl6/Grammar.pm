@@ -1111,8 +1111,8 @@ grammar Perl6::Grammar is HLL::Grammar {
                         
                         # Install it in the symbol table if needed.
                         if $longname {
-                            $*ST.install_package($/, $longname, $*SCOPE, $*PKGDECL,
-                                $*OUTERPACKAGE, $outer, $*PACKAGE);
+                            $*ST.install_package_longname($/, $longname, $*SCOPE,
+                                $*PKGDECL, $*OUTERPACKAGE, $outer, $*PACKAGE);
                         }
                     }
                 }

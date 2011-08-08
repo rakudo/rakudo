@@ -244,25 +244,66 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
         1;
     }
     
-    # Factors out deciding where to install package-y things.
-    method install_package($/, $longname, $scope, $pkgdecl, $package, $outer, $symbol) {
-        if $scope eq 'my' {
-            if +$longname<name><morename> == 0 {
-                self.install_lexical_symbol($outer, ~$longname<name>, $symbol);
-            }
-            else {
-                $/.CURSOR.panic("Cannot use multi-part package name with 'my' scope");
-            }
-        }
-        elsif $scope eq 'our' {
-            self.install_package_symbol($package, ~$longname<name>, $symbol);
-            if +$longname<name><morename> == 0 {
-                self.install_lexical_symbol($outer, ~$longname<name>, $symbol);
-            }
-        }
-        else {
+    # Factors out installation of package-y things, based on a longname.
+    method install_package_longname($/, $longname, $scope, $pkgdecl, $package, $outer, $symbol) {
+        my @name := pir::split('::', ~$longname);
+        self.install_package($/, @name, $scope, $pkgdecl, $package, $outer, $symbol)
+    }
+    
+    # Installs something package-y in the right place, creating the nested
+    # pacakges as needed.
+    method install_package($/, @name_orig, $scope, $pkgdecl, $package, $outer, $symbol) {
+        my @parts := pir::clone(@name_orig);
+        my $name  := @parts.pop();
+        my $create_scope := $scope;
+        my $cur_pkg := $package;
+        my $cur_lex := $outer;
+        
+        # Can only install packages as our or my scope.
+        unless $create_scope eq 'my' || $create_scope eq 'our' {
             $/.CURSOR.panic("Cannot use $*SCOPE scope with $pkgdecl");
         }
+        
+        # If we have a multi-part name, see if we know the opening
+        # chunk already. If so, use it for that part of the name.
+        if +@parts {
+            try {
+                $cur_pkg := $*ST.find_symbol([@parts[0]]);
+                $cur_lex := 0;
+                $create_scope := 'our';
+                @parts.shift();
+            }
+        }
+        
+        # Chase down the name, creating stub packages as needed.
+        while +@parts {
+            my $part := @parts.shift;
+            if pir::exists($cur_pkg.WHO, $part) {
+                $cur_pkg := ($cur_pkg.WHO){$part};
+            }
+            else {
+                my $new_pkg := self.pkg_create_mo(%*HOW<package>, :name($part));
+                self.pkg_compose($new_pkg);
+                if $create_scope eq 'my' || $cur_lex {
+                    self.install_lexical_symbol($cur_lex, $part, $new_pkg);
+                }
+                else {
+                    self.install_package_symbol($cur_pkg, $part, $new_pkg);
+                }
+                $cur_pkg := $new_pkg;
+                $create_scope := 'our';
+                $cur_lex := 0;
+            }
+        }
+        
+        # Install final part of the symbol.
+        if $create_scope eq 'my' || $cur_lex {
+            self.install_lexical_symbol($cur_lex, $name, $symbol);
+        }
+        if $create_scope eq 'our' {
+            self.install_package_symbol($cur_pkg, $name, $symbol);
+        }
+        
         1;
     }
     
@@ -387,7 +428,7 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
         ($target.WHO){$name} := $obj;
         
         # Add deserialization installation of the symbol.
-        my $path := self.get_slot_past_for_object($package);
+        my $path := self.get_object_sc_ref_past($package);
         for @sym {
             $path := PAST::Op.new(:pirop('perl6_get_package_through_who PPs'), $path, ~$_);
         }
@@ -398,7 +439,7 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
                 PAST::Op.new( :pirop('get_who PP'), $path ),
                 $name
             ),
-            self.get_slot_past_for_object($obj)
+            self.get_object_sc_ref_past($obj)
         )));
         1;
     }

@@ -1617,7 +1617,7 @@ class Perl6::Actions is HLL::Actions {
         }
         $*ST.pkg_compose($type_obj);
         if $<variable> { $/.CURSOR.panic("Variable case of enums not yet implemented"); }
-        $*ST.install_package($/, $<longname>, ($*SCOPE || 'our'),
+        $*ST.install_package_longname($/, $<longname>, ($*SCOPE || 'our'),
             'enum', $*PACKAGE, $*ST.cur_lexpad(), $type_obj);
 
         # Get list of either values or pairs; fail if we can't.
@@ -1705,7 +1705,7 @@ class Perl6::Actions is HLL::Actions {
 
         # Install it as needed.
         if $<longname> {
-            $*ST.install_package($/, $<longname>[0], ($*SCOPE || 'our'),
+            $*ST.install_package_longname($/, $<longname>[0], ($*SCOPE || 'our'),
                 'subset', $*PACKAGE, $*ST.cur_lexpad(), $subset);
         }
 

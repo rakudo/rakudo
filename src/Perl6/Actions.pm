@@ -1746,16 +1746,8 @@ class Perl6::Actions is HLL::Actions {
             }
 
             # Install.
-            if $*SCOPE eq '' || $*SCOPE eq 'our' {
-                $*ST.install_lexical_symbol($*ST.cur_lexpad(), $name, $value);
-                $*ST.install_package_symbol($*PACKAGE, $name, $value);
-            }
-            elsif $*SCOPE eq 'my' {
-                $*ST.install_lexical_symbol($*ST.cur_lexpad(), $name, $value);
-            }
-            else {
-                $/.CURSOR.panic("$*SCOPE scoped constants are not yet implemented");
-            }
+            $*ST.install_package($/, [$name], ($*SCOPE || 'our'),
+                'constant', $*PACKAGE, $*ST.cur_lexpad(), $value);
 
             # Evaluate to the constant.
             return $*ST.get_object_sc_ref_past($value);

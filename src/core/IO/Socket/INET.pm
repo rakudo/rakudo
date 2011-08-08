@@ -1,4 +1,4 @@
-my class INET does Socket {
+my class IO::Socket::INET does IO::Socket {
     my module PIO {
         constant PF_LOCAL       = 0;
         constant PF_UNIX        = 1;

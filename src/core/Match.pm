@@ -16,4 +16,5 @@ my class Match is Capture {
     multi method Bool(Match:D:) {
         $!to >= $!from
     }
+    multi method ACCEPTS(Match:D: Any $) { self }
 }

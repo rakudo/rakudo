@@ -219,6 +219,44 @@ class Perl6::Actions is HLL::Actions {
         make $outer;
     }
 
+    method install_doc_phaser($/) {
+        # Add a default DOC INIT phaser
+        if %*COMPILING<%?OPTIONS><doc> {
+            my $block := $*ST.push_lexpad($/);
+            # loading and importing
+            # TODO: Skip importing and use a symbol_lookup when the
+            # Pod::foo modules bug gets fixed
+            my $module := $*ST.load_module('Pod::To::Text', $*GLOBALish);
+            if pir::exists($module, 'EXPORT') {
+                my $EXPORT := $module<EXPORT>.WHO;
+                if pir::exists($EXPORT, 'DEFAULT') {
+                    $*ST.import($EXPORT<DEFAULT>);
+                }
+            }
+
+            #my $pod2text := $*ST.symbol_lookup(
+            #    ['Pod','To','Text','&pod2text'], $/
+            #);
+            my $pod2text := PAST::Op.new(
+                :pasttype<call>, :node($/), :name<&pod2text>,
+            );
+
+            $pod2text.push(PAST::Var.new(:name<$=POD>, :node($/)));
+
+            $block.push(
+                PAST::Op.new(
+                    :pasttype<call>, :node($/),
+                    :name('&print'), $pod2text,
+                ),
+            );
+            $*ST.pop_lexpad();
+            $*ST.add_phaser(
+                $/, make_simple_code_object($block, 'Block'), 'INIT'
+            );
+        }
+    }
+
+
     method pod_content_toplevel($/) {
         my $child := $<pod_block>.ast;
         # make sure we don't push the same thing twice

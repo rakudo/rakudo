@@ -296,6 +296,8 @@ grammar Perl6::Grammar is HLL::Grammar {
         # TODO: Also Semantic blocks one day
     }
 
+    token install_doc_phaser { <?> }
+
     ## Top-level rules
 
     token comp_unit {
@@ -388,6 +390,8 @@ grammar Perl6::Grammar is HLL::Grammar {
         
         <.finishpad>
         <statementlist>
+
+        <.install_doc_phaser>
         
         [ $ || <.panic: 'Confused'> ]
         

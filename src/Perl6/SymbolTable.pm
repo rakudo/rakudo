@@ -416,28 +416,18 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
     
     # Installs a symbol into the package. Does so immediately, and
     # makes sure this happens on deserialization also.
-    method install_package_symbol($package, $symbol, $obj) {
-        my @sym := pir::split('::', $symbol);
-        my $name := ~@sym.pop();
-        
+    method install_package_symbol($package, $name, $obj) {
         # Install symbol immediately.
-        my $target := $package;
-        for @sym {
-            $target := pir::perl6_get_package_through_who__PPs($target, $_);
-        }
-        ($target.WHO){$name} := $obj;
+        ($package.WHO){$name} := $obj;
         
         # Add deserialization installation of the symbol.
-        my $path := self.get_object_sc_ref_past($package);
-        for @sym {
-            $path := PAST::Op.new(:pirop('perl6_get_package_through_who PPs'), $path, ~$_);
-        }
+        my $package_ref := self.get_object_sc_ref_past($package);
         self.add_event(:deserialize_past(PAST::Op.new(
             :pasttype('bind_6model'),
             PAST::Var.new(
                 :scope('keyed'),
-                PAST::Op.new( :pirop('get_who PP'), $path ),
-                $name
+                PAST::Op.new( :pirop('get_who PP'), $package_ref ),
+                ~$name
             ),
             self.get_object_sc_ref_past($obj)
         )));

@@ -38,9 +38,7 @@ multi trait_mod:<is>(Parameter:D $param, :$copy!) {
 # full-blown serialization, though.
 multi trait_mod:<is>(Routine:D \$r, :$export!) {
     if %*COMPILING {
-        if $r.multi {
-            die "Cannot export an individual multi candidate; export the proto instead";
-        }
+        my $to_export := $r.multi ?? $r.dispatcher !! $r;
         my @tags = 'ALL', 'DEFAULT';
         for @tags -> $tag {
             my $exp_name := '&' ~ $r.name;
@@ -54,9 +52,11 @@ multi trait_mod:<is>(Routine:D \$r, :$export!) {
                 $*ST.install_package_symbol($*EXPORT, $tag, $install_in);
             }
             if $install_in.WHO.exists($exp_name) {
-                die "A symbol $exp_name has already been exported";
+                unless ($install_in.WHO){$exp_name} =:= $to_export {
+                    die "A symbol $exp_name has already been exported";
+                }
             }
-            $*ST.install_package_symbol($install_in, $exp_name, $r);
+            $*ST.install_package_symbol($install_in, $exp_name, $to_export);
         }
     }
 }
@@ -110,9 +110,11 @@ multi trait_mod:<handles>(Attribute:D $target, $thunk) {
         }
         
         method add_delegator_method($attr: $pkg, $meth_name, $call_name) {
-            $pkg.HOW.add_method($pkg, $meth_name, method (**@pos, *%named) is rw {
+            my $meth := method (**@pos, *%named) is rw {
                 $attr.get_value(self)."$call_name"(|@pos, |%named)
-            });
+            };
+            $meth.set_name($meth_name);
+            $pkg.HOW.add_method($pkg, $meth_name, $meth);
         }
         
         method apply_handles($attr: Mu $pkg) {

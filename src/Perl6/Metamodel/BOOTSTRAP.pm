@@ -390,7 +390,7 @@ Code.HOW.add_method(Code, 'name', sub ($self) {
         ~pir::getattribute__PPPs(pir::perl6_decontainerize__PP($self),
             Code, '$!do')
     });
-Code.HOW.add_method(Code, '!set_name', sub ($self, $name) {
+Code.HOW.add_method(Code, 'set_name', sub ($self, $name) {
         pir::assign__vPS(
             pir::getattribute__PPPs(pir::perl6_decontainerize__PP($self), Code, '$!do'),
             $name)

@@ -91,7 +91,7 @@ role Perl6::Metamodel::MultiMethodContainer {
                     # No proto found, so we'll generate one here.
                     my $proto := $autogen_proto.instantiate_generic(
                         hash( T => $obj ));
-                    $proto."!set_name"($name);
+                    $proto.set_name($name);
                     $proto.add_dispatchee($code);
                     self.add_method($obj, $name, $proto);
                 }

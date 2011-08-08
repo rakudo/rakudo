@@ -63,6 +63,7 @@ my class Attribute {
                         }
 
                 }
+                $meth.set_name($meth_name);
                 $package.HOW.add_method($package, $meth_name, $meth);
             }
         }

@@ -288,7 +288,7 @@ S05-substitution/match.t
 # S05-substitution/subst.t # hangs
 # S05-transliteration/trans.t # err: Method 'trans' not found for invocant of class 'Str'
 # S05-transliteration/with-closure.t # err: Method 'trans' not found for invocant of class 'Str'
-# S06-advanced_subroutine_features/callframe.t # err: Could not find sub &callframe
+S06-advanced_subroutine_features/callframe.t
 S06-advanced_subroutine_features/lexical-subs.t
 S06-advanced_subroutine_features/recurse.t
 S06-advanced_subroutine_features/return.t

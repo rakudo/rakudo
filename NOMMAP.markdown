@@ -22,7 +22,6 @@ responsible parties.
 * Define new operators (2, 1, \*\*, pmichaud) (awaiting other regex updates)
 * Whatever currying (2, 1, ???, ???) (*.method case still missing, return type is not WhateverCode)
 * MAIN (2, 1, ???, ???)
-* callframe (3, 1, ???, ???)
 * modules working with nom (3, 1, ???, ???)
 * fix meta-dispatchers to not flatten positionals (3, 2, ???, ???)
 

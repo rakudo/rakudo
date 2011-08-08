@@ -109,6 +109,9 @@ my class Cool {
     method samecase(Cool:D: Cool $pattern) { self.Stringy.samecase($pattern) }
 
     method IO() { IO.new(:path(self)) }
+    method trim         () { self.Stringy.trim          };
+    method trim-leading () { self.Stringy.trim-leading  };
+    method trim-trailing() { self.Stringy.trim-trailing };
 }
 
 sub chop($s)                  { $s.chop }

@@ -421,6 +421,10 @@ my class Str does Stringy {
     method trim(Str:D:) {
         self.trim-leading.trim-trailing;
     }
+
+    method words(Str:D: Int $limit = *) {
+        self.comb( / \S+ /, $limit );
+    }
 }
 
 

@@ -564,7 +564,7 @@ S32-str/trim.t
 S32-str/uc.t                                               # icu
 S32-str/ucfirst.t                                          # icu
 # S32-str/unpack.t # err: Default constructor only takes named arguments
-# S32-str/words.t # err: Method 'words' not found for invocant of class 'Str' #icu
+S32-str/words.t
 # S32-temporal/calendar.t # err: Could not find sub &Date
 # S32-temporal/Date.t # err: Could not find sub &Date
 # S32-temporal/DateTime.t # err: Could not find sub &DateTime

@@ -174,7 +174,7 @@ S03-smartmatch/any-callable.t
 S03-smartmatch/any-complex.t
 S03-smartmatch/any-hash-pair.t
 S03-smartmatch/any-hash-slice.t
-# S03-smartmatch/any-method.t # err: No applicable candidates found to dispatch to for 'Numeric'
+S03-smartmatch/any-method.t
 S03-smartmatch/any-num.t
 S03-smartmatch/any-pair.t
 S03-smartmatch/any-str.t
@@ -186,7 +186,7 @@ S03-smartmatch/array-array.t
 S03-smartmatch/disorganized.t
 # S03-smartmatch/hash-hash.t # err: No applicable candidates found to dispatch to for 'ACCEPTS'.
 # S03-smartmatch/regex-hash.t # err: No applicable candidates found to dispatch to for 'ACCEPTS'.
-# S03-smartmatch/scalar-hash.t # err: No applicable candidates found to dispatch to for 'ACCEPTS'
+S03-smartmatch/scalar-hash.t
 # S04-blocks-and-statements/pointy-rw.t # err: Missing block
 S04-blocks-and-statements/pointy.t
 S04-phasers/end.t

@@ -2,14 +2,22 @@ my class EnumMap does Associative {
     # declared in BOOTSTRAP.pm:
     #   has $!storage;         # Parrot Hash PMC of key->value mappings
 
-    method Bool() {
+    multi method Bool(EnumMap:D:) {
         nqp::p6bool(pir::defined($!storage) ?? nqp::elems($!storage) !! 0)
     }
-    method elems() {
+    method elems(EnumMap:D:) {
         pir::defined($!storage) ?? nqp::p6box_i(nqp::elems($!storage)) !! 0
     }
+
+    multi method ACCEPTS(EnumMap:D: Any $topic) {
+        so self.exists($topic.any);
+    }
+
+    multi method ACCEPTS(EnumMap:D: Cool:D $topic) {
+        so self.exists($topic);
+    }
     
-    method exists(Str \$key) {
+    method exists(EnumMap:D: Str \$key) {
         nqp::p6bool(
             pir::defined($!storage)
             && nqp::existskey($!storage, nqp::unbox_s($key))

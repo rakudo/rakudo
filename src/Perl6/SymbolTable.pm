@@ -247,6 +247,8 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
     # Factors out installation of package-y things, based on a longname.
     method install_package_longname($/, $longname, $scope, $pkgdecl, $package, $outer, $symbol) {
         my @name := pir::split('::', ~$longname);
+        my @adv  := pir::split(':', @name[+@name - 1]);
+        @name[+@name - 1] := @adv[0];
         self.install_package($/, @name, $scope, $pkgdecl, $package, $outer, $symbol)
     }
     
@@ -287,7 +289,7 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
                 if $create_scope eq 'my' || $cur_lex {
                     self.install_lexical_symbol($cur_lex, $part, $new_pkg);
                 }
-                else {
+                if $create_scope eq 'our' {
                     self.install_package_symbol($cur_pkg, $part, $new_pkg);
                 }
                 $cur_pkg := $new_pkg;
@@ -1310,9 +1312,9 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
     # Checks if a symbol has already been declared in the current
     # scope, and thus may not be redeclared.
     method already_declared($scope, $curpackage, $curpad, @name) {
-        if $scope eq 'my' {
+        if $scope eq 'my' && +@name == 1 {
             my %sym := $curpad.symbol(@name[0]);
-            if %sym { %sym<value>;
+            if %sym {
                 return %sym<value>.HOW.HOW.name(%sym<value>.HOW) ne 'Perl6::Metamodel::PackageHOW';
             }
             return 0;

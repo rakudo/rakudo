@@ -585,11 +585,29 @@ grammar Perl6::Grammar is HLL::Grammar {
         | <version>
         | <module_name>
         ] ** ','
+        {
+            for $<module_name> {
+                $*ST.load_module(~$_<longname>, $*GLOBALish);
+            }
+        }
     }
 
     token statement_control:sym<import> {
         <sym> <.ws>
         <module_name> [ <.spacey> <arglist> ]? <.ws>
+        {
+            my @name := parse_name(~$<module_name><longname>);
+            my $module;
+            my $found := 0;
+            try { $module := $*ST.find_symbol(@name); $found := 1; }
+            if $found {
+                do_import($module.WHO, $<arglist>);
+            }
+            else {
+                $/.CURSOR.panic("Could not find module " ~ ~$<module_name> ~
+                    " to import symbols from");
+            }
+        }
     }
 
     token statement_control:sym<use> {
@@ -623,18 +641,22 @@ grammar Perl6::Grammar is HLL::Grammar {
             || { 
                     if $longname {
                         my $module := $*ST.load_module(~$longname, $*GLOBALish);
-                        if pir::exists($module, 'EXPORT') {
-                            my $EXPORT := $module<EXPORT>.WHO;
-                            if pir::exists($EXPORT, 'DEFAULT') {
-                                $*ST.import($EXPORT<DEFAULT>);
-                            }
-                        }
+                        do_import($module, $<arglist>);
                         $/.CURSOR.import_EXPORTHOW($module);
                     }
                 }
             ]
         ]
         <.ws>
+    }
+    
+    sub do_import($module, $arglist) {
+        if pir::exists($module, 'EXPORT') {
+            my $EXPORT := $module<EXPORT>.WHO;
+            if pir::exists($EXPORT, 'DEFAULT') {
+                $*ST.import($EXPORT<DEFAULT>);
+            }
+        }
     }
 
     rule statement_control:sym<require> {

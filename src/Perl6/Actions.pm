@@ -612,15 +612,14 @@ class Perl6::Actions is HLL::Actions {
 
     method statement_control:sym<need>($/) {
         my $past := PAST::Stmts.new( :node($/) );
-        for $<module_name> {
-            need($_);
+        for $<version> {
+            # XXX TODO: Version checks.
         }
         make $past;
     }
 
     method statement_control:sym<import>($/) {
         my $past := PAST::Stmts.new( :node($/) );
-        import($/);
         make $past;
     }
 

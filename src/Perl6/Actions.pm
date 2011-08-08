@@ -167,20 +167,14 @@ class Perl6::Actions is HLL::Actions {
                        'obscure_ops', 'os', 'file');
 
         # If the unit defines &MAIN, add a &MAIN_HELPER.
-        my $mainparam := PAST::Var.new(:name('$MAIN'), :scope('parameter'),
-                             :viviself( PAST::Val.new( :value(0) ) ) );
-        $unit.symbol('$MAIN', :scope<lexical_6model>);
         if $unit.symbol('&MAIN') {
-            $mainline :=
+            $mainline.push(
                 PAST::Op.new(
                     :pasttype('call'),
                     :name('&MAIN_HELPER'),
                     $mainline,
-                    $mainparam
-                );
-        }
-        else {
-            $unit.push($mainparam);
+                )
+            );
         }
 
         # If our caller wants to know the mainline ctx, provide it here.

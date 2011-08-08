@@ -1265,7 +1265,7 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
         }
     }
     
-    # Checks if a given symbol is declared and also a type object.
+    # Checks if a given symbol is declared.
     method is_name(@name) {
         my $is_name := 0;
         try {
@@ -1320,12 +1320,12 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
     method find_symbol(@name) {
         # Make sure it's not an empty name.
         unless +@name { pir::die("Cannot look up empty name"); }
-        
+
         # GLOBAL is current view of global.
         if +@name == 1 && @name[0] eq 'GLOBAL' {
             return $*GLOBALish;
         }
-        
+
         # If it's a single-part name, look through the lexical
         # scopes.
         if +@name == 1 {

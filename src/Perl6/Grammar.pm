@@ -431,6 +431,7 @@ grammar Perl6::Grammar is HLL::Grammar {
 
     token statement {
         :my $*QSIGIL := '';
+        :my $*SCOPE := '';
         <!before <[\])}]> | $ >
         [
         | <statement_control>

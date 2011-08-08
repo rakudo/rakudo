@@ -17,10 +17,17 @@ my class EnumMap does Associative {
         so self.exists($topic);
     }
     
-    method exists(EnumMap:D: Str \$key) {
+    proto method exists(|$) {*}
+    multi method exists(EnumMap:D: Str:D \$key) {
         nqp::p6bool(
             pir::defined($!storage)
             && nqp::existskey($!storage, nqp::unbox_s($key))
+        )
+    }
+    multi method exists(EnumMap:D: \$key) {
+        nqp::p6bool(
+            pir::defined($!storage)
+            && nqp::existskey($!storage, nqp::unbox_s($key.Stringy))
         )
     }
 

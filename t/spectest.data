@@ -26,7 +26,7 @@ S02-builtin_data_types/hash_ref.t
 S02-builtin_data_types/hash.t
 S02-builtin_data_types/infinity.t
 S02-builtin_data_types/instants-and-durations.t
-# S02-builtin_data_types/lists.t # err: Cannot use augment scope with class
+S02-builtin_data_types/lists.t
 S02-builtin_data_types/mixed_multi_dimensional.t
 S02-builtin_data_types/multi_dimensional_array.t
 S02-builtin_data_types/nan.t
@@ -66,7 +66,7 @@ S02-literals/sub-calls.t
 S02-literals/subscript.t
 S02-literals/types.t
 S02-literals/underscores.t
-# S02-magicals/args.t # err: Nominal type check failed for parameter '$input'; expected Str but got Hash instead
+# S02-magicals/args.t # err: Command line arguments may not contain single or double quotes
 S02-magicals/config.t
 S02-magicals/dollar_bang.t
 S02-magicals/dollar-underscore.t
@@ -245,7 +245,7 @@ S04-statements/while.t
 # S05-mass/named-chars.t # err: No applicable candidates found to dispatch to for 'ACCEPTS'.
 # S05-mass/properties-block.t # err: Method 'isInAlphabeticPresentationForms' not found for invocant of class 'Cursor'
 # S05-mass/properties-derived.t # err: Method 'isASCIIHexDigit' not found for invocant of class 'Cursor'
-# S05-mass/properties-general.t # err: Method 'isL' not found for invocant of class 'Cursor'
+# S05-mass/properties-general.t # hangs
 # S05-mass/properties-script.t # err: Method 'isBidiL' not found for invocant of class 'Cursor'
 # S05-mass/rx.t # err: Null PMC access in invoke()
 # S05-mass/recursive.t # err: Method 'rxtype' not found for invocant of class 'PAST;Regex'
@@ -302,14 +302,14 @@ S06-multi/syntax.t
 # S06-multi/type-based.t # err: No applicable candidates found to dispatch to for 'foo'
 S06-multi/value-based.t
 S06-multi/unpackability.t
-# S06-operator-overloading/imported-subs.t # err: Nominal type check failed for parameter '$a'; expected NotANumber but got Int instead
-# S06-operator-overloading/methods.t # err: Nominal type check failed for parameter '$input'; expected Str but got Hash instead
+S06-operator-overloading/imported-subs.t
+S06-operator-overloading/methods.t
 # S06-operator-overloading/sub.t # err: Unable to parse postcircumfix:sym<( )>
 # S06-operator-overloading/workout.t # err: Unable to parse postcircumfix:sym<( )>
 S06-other/anon-hashes-vs-blocks.t
 # S06-other/main.t # err: Could not find sub &MAIN_HELPER
 S06-other/main-eval.t
-# S06-other/main-usage.t # err: Nominal type check failed for parameter '$input'; expected Str but got Hash instead
+# S06-other/main-usage.t # err: Command line arguments may not contain single or double quotes
 S06-other/misc.t
 S06-routine-modifiers/scoped-named-subs.t
 S06-signature/arity.t
@@ -351,7 +351,7 @@ S09-subscript_slice/slice.t
 # S09-typed-arrays/arrays.t # err: Cannot put a type constraint on an 'our'-scoped variable
 # S09-typed-arrays/hashes.t # err: Method 'of' not found for invocant of class 'Hash'
 # S10-packages/basic.t # err: Unable to parse blockoid, couldn't find final '}' at line 107
-# S10-packages/use-with-class.t # err: Illegal redeclaration of class 'Stupid::Class'
+# S10-packages/use-with-class.t # err: get_attr_str() not implemented in class 'Undef'
 # S11-modules/export.t # err: Could not find symbol 'Foo::&Foo_exp_parens
 # S11-modules/import.t # err: Could not find sub import
 # S11-modules/import-tag.t # err: arglist case of use not yet implemented
@@ -452,15 +452,15 @@ S16-filehandles/io_in_for_loops.t
 S16-filehandles/io_in_while_loops.t
 S16-filehandles/open.t
 S16-filehandles/unlink.t
-# S16-io/bare-say.t # err: Nominal type check failed for parameter '$input'; expected Str but got Hash instead
+# S16-io/bare-say.t # err: No applicable candidates found to dispatch to for 'infix:<eq>'
 S16-io/basic-open.t
 # S16-io/say.t # err: o k 3 - say with multiple parameters (2)
 S16-io/say-and-ref.t
 # S16-io/getc.t # err: Could not find sub &getc
 S16-unfiled/rebindstdhandles.t
 S16-unfiled/slurp.t
-# S19-command-line/dash-e.t # err: Nominal type check failed for parameter '$input'; expected Str but got Hash instead
-# S19-command-line/help.t # err: Nominal type check failed for parameter '$input'; expected Str but got Hash instead
+# S19-command-line/dash-e.t # err: Command line arguments may not contain single or double quotes
+# S19-command-line/help.t # err: Command line arguments may not contain single or double quotes
 # S28-named-variables/cwd.t # err: Dynamic variable $*CWD not found
 S28-named-variables/inc.t
 S29-any/cmp.t
@@ -486,7 +486,7 @@ S32-array/push.t
 S32-array/shift.t
 # S32-array/splice.t # err: Could not find sub &splice
 S32-array/unshift.t
-# S32-basics/warn.t # err: Nominal type check failed for parameter '$input'; expected Str but got Hash instead
+S32-basics/warn.t
 # S32-container/zip.t # err: Cannot assign to a non-container
 S32-hash/exists.t
 # S32-hash/delete.t # err: Too many positional parameters passed
@@ -498,7 +498,7 @@ S32-hash/slice.t
 # S32-io/dir.t # err: Could not find sub &dir
 # S32-io/chdir.t # err: Method 'd' not found for invocant of class 'Str'
 S32-io/file-tests.t
-# S32-io/note.t # err: Nominal type check failed for parameter '$input'; expected Str but got Hash instead
+S32-io/note.t
 # S32-io/IO-Socket-INET.t # err: Useless declaration of a has-scoped method in mainline
 S32-list/classify.t
 S32-list/create.t
@@ -534,7 +534,7 @@ S32-num/sign.t
 S32-num/sqrt.t
 S32-num/unpolar.t
 S32-scalar/defined.t
-# S32-scalar/undef.t # err: Nominal type check failed for parameter '$input'; expected Str but got Hash instead
+S32-scalar/undef.t
 S32-str/append.t
 S32-str/bool.t
 # S32-str/capitalize.t  # err: Could not find sub &capitalize #icu
@@ -617,7 +617,7 @@ integration/advent2009-day15.t
 integration/advent2009-day23.t
 integration/advent2010-day04.t
 integration/code-blocks-as-sub-args.t
-# integration/error-reporting.t # err: Nominal type check failed for parameter '$input'; expected Str but got Hash instead
+integration/error-reporting.t
 integration/lexical-array-in-inner-block.t
 integration/lexicals-and-attributes.t
 integration/man-or-boy.t
@@ -631,4 +631,4 @@ integration/role-composition-vs-attribute.t
 # integration/rule-in-class-Str.t # err: Adverb 'P5' not allowed on m
 integration/say-crash.t
 integration/substr-after-match-in-gather-in-for.t
-# integration/weird-errors.t # err: Nominal type check failed for parameter '$input'; expected Str but got Hash instead
+integration/weird-errors.t

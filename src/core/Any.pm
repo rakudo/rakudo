@@ -112,7 +112,7 @@ my class Any {
                    ?? { last if $_ >= self.gimme($_ + 1); self[$_] }
                    !! { self[$_] }).eager.Parcel;
     }
-    multi method postcircumfix:<[ ]>(WhateverCode $block) is rw {
+    multi method postcircumfix:<[ ]>(Callable $block) is rw {
         self[$block(|(self.elems xx $block.count))]
     }
     multi method postcircumfix:<[ ]>(Whatever) is rw {

@@ -61,10 +61,12 @@ multi trait_mod:<is>(Mu:D $docee, $doc, :$docs!) {
         method set_docs($d) { $!WHY = $d }
     }
     $docee.set_docs($doc);
+    $doc.set_docee($docee);
 }
 
 multi trait_mod:<is>(Mu:U $docee, $doc, :$docs!) {
     $docee.HOW.set_docs($doc);
+    $doc.set_docee($docee);
 }
 
 

@@ -1,6 +1,7 @@
 use NQPP6Regex;
 use QRegex;
 use Perl6::SymbolTable;
+use Perl6::Pod;
 
 grammar Perl6::Grammar is HLL::Grammar {
     method TOP() {
@@ -142,6 +143,24 @@ grammar Perl6::Grammar is HLL::Grammar {
     token comment:sym<#=> {
         '#=' \h+ $<attachment>=[\N*]
         { $*DECLARATOR_DOCS := ~$<attachment> }
+    }
+
+    token attach_docs {
+        {
+            $*DECLARATOR_DOCS := '';
+            if $*DOC ne '' {
+                my $cont  := Perl6::Pod::serialize_aos(
+                    [$*DOC]
+                )<compile_time_value>;
+                my $block := $*ST.add_constant(
+                    'Pod::Block::Declarator', 'type_new',
+                    :nocache, :content($cont),
+                );
+                $*DOCEE := $block<compile_time_value>;
+                $*POD_BLOCKS.push($*DOCEE);
+            }
+        }
+        <?>
     }
 
     token pod_content_toplevel {
@@ -1051,7 +1070,8 @@ grammar Perl6::Grammar is HLL::Grammar {
         :my $*IN_DECL := 'package';
         :my $*CURPAD;
         :my $*DOC := $*DECLARATOR_DOCS;
-        { $*DECLARATOR_DOCS := '' }
+        :my $*DOCEE;
+        <.attach_docs>
         
         # Meta-object will live in here; also set default REPR (a trait
         # may override this, e.g. is repr('...')).
@@ -1215,8 +1235,10 @@ grammar Perl6::Grammar is HLL::Grammar {
 
     rule scoped($*SCOPE) {<.end_keyword> [
         :my $*TYPENAME := '';
+
         :my $*DOC := $*DECLARATOR_DOCS;
-        { $*DECLARATOR_DOCS := '' }
+        :my $*DOCEE;
+        <.attach_docs>
         [
         | <DECL=variable_declarator>
         | <DECL=routine_declarator>
@@ -1271,7 +1293,8 @@ grammar Perl6::Grammar is HLL::Grammar {
         :my $*IN_DECL := $d;
         :my $*METHODTYPE;
         :my $*DOC := $*DECLARATOR_DOCS;
-        { $*DECLARATOR_DOCS := '' }
+        :my $*DOCEE;
+        <.attach_docs>
         <deflongname>?
         <.newpad>
         [ '(' <multisig> ')' ]?
@@ -1287,7 +1310,8 @@ grammar Perl6::Grammar is HLL::Grammar {
         :my $*IN_DECL := $d;
         :my $*METHODTYPE := $d;
         :my $*DOC := $*DECLARATOR_DOCS;
-        { $*DECLARATOR_DOCS := '' }
+        :my $*DOCEE;
+        <.attach_docs>
         [
             <.newpad>
             [

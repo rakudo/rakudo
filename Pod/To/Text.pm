@@ -53,7 +53,7 @@ sub declarator2text($pod) {
         when nqp::p6bool(nqp::istype($_.HOW, Metamodel::ModuleHOW)) {
             'module'
         }
-    } ~ ' ' ~ $pod.WHEREFORE.perl ~ ': ' ~ $pod.WHEREFORE.WHY ~ "\n"
+    } ~ ' ' ~ $pod.WHEREFORE.perl ~ ': ' ~ $pod.WHEREFORE.WHY.content ~ "\n"
 }
 
 # vim: ft=perl6

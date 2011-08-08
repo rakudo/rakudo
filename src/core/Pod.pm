@@ -18,6 +18,9 @@ my package Pod {
 
     class Block::Declarator is Block {
         has $.WHEREFORE;
+        method set_docee($d) {
+            $!WHEREFORE = $d
+        }
     }
 
     class Block::Table is Block {

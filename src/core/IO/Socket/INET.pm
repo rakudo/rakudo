@@ -1,21 +1,21 @@
-my module PIO {
-    constant PF_LOCAL       = 0;
-    constant PF_UNIX        = 1;
-    constant PF_INET        = 2;
-    constant PF_INET6       = 3;
-    constant PF_MAX         = 4;
-    constant SOCK_PACKET    = 0;
-    constant SOCK_STREAM    = 1;
-    constant SOCK_DGRAM     = 2;
-    constant SOCK_RAW       = 3;
-    constant SOCK_RDM       = 4;
-    constant SOCK_SEQPACKET = 5;
-    constant SOCK_MAX       = 6;
-    constant PROTO_TCP      = 6;
-    constant PROTO_UDP      = 17;
-}
-
 my class INET does Socket {
+    my module PIO {
+        constant PF_LOCAL       = 0;
+        constant PF_UNIX        = 1;
+        constant PF_INET        = 2;
+        constant PF_INET6       = 3;
+        constant PF_MAX         = 4;
+        constant SOCK_PACKET    = 0;
+        constant SOCK_STREAM    = 1;
+        constant SOCK_DGRAM     = 2;
+        constant SOCK_RAW       = 3;
+        constant SOCK_RDM       = 4;
+        constant SOCK_SEQPACKET = 5;
+        constant SOCK_MAX       = 6;
+        constant PROTO_TCP      = 6;
+        constant PROTO_UDP      = 17;
+    }
+
     has Str $.host;
     has Int $.port = 80;
     has Str $.localhost;
@@ -57,10 +57,10 @@ my class INET does Socket {
         }
 
         #TODO: Learn what protocols map to which socket types and then determine which is needed.
-        self.bless(*, |%args);
+        self.bless(*, |%args)!initialize()
     }
-
-    submethod BUILD {
+    
+    method !initialize() {
         my $PIO := Q:PIR { %r = root_new ['parrot';'Socket'] };
         $PIO.socket($.family, $.type, $.proto);        
         
@@ -75,7 +75,7 @@ my class INET does Socket {
         if $.listen { 
             $PIO.listen($.listen);
         }
-        elsif $.type == PIO::SOCK_STREAM() {
+        elsif $.type == PIO::SOCK_STREAM {
             my $addr := $PIO.sockaddr($.host, $.port);
             $PIO.connect($addr);
         }

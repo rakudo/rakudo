@@ -201,6 +201,7 @@ CORE_SOURCES = \
   src/core/tai-utc.pm \
   src/core/Instant.pm \
   src/core/Duration.pm \
+  src/core/Temporal.pm \
   src/core/EXPORTHOW.pm \
   src/core/Pod.pm \
   src/core/operators.pm \

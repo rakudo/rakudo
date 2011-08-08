@@ -43,7 +43,7 @@ sub METAOP_ZIP(\$op) {
             my $loop = 1;
             while $loop {
                 my @z = @l.map({ $loop = 0 unless $_; .shift });
-                take $rop(|@z) if $loop;
+                take-rw $rop(|@z) if $loop;
             }
         }
     }
@@ -138,7 +138,7 @@ multi sub hyper(\$op, \$a, \$b, :$dwim-left, :$dwim-right) {
                     ?? $y.new(hyper($op, $x, $y, :$dwim-left, :$dwim-right)).item
                     !! $op($x, $y))
         }
-    )
+    ).eager
 }
 
 multi sub hyper(\$op, \$a) {

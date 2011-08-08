@@ -131,7 +131,7 @@ class List does Positional {
         }
     }
 
-    method pop() {
+    method pop() is rw {
         my $elems = self.elems;
         fail '.pop from an infinite list NYI' if $!nextiter.defined;
         $elems > 0
@@ -168,7 +168,7 @@ class List does Positional {
         $rlist;
     }
 
-    method shift() {
+    method shift() is rw {
         # make sure we have at least one item, then shift+return it
         self.gimme(1) 
           ?? nqp::shift($!items) 

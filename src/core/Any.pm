@@ -139,10 +139,10 @@ my class Any {
     multi method postcircumfix:<{ }>($key) is rw {
         self.at_key($key)
     }
-    multi method postcircumfix:<{ }>(Positional $key) {
-        $key.map({ self{$_ } }).eager.Parcel
+    multi method postcircumfix:<{ }>(Positional $key) is rw {
+        $key.map({ self{$_} }).eager.Parcel
     }
-    multi method postcircumfix:<{ }>(Whatever) {
+    multi method postcircumfix:<{ }>(Whatever) is rw {
         self{self.keys}
     }
 

@@ -1,5 +1,10 @@
 my class RoleToRoleApplier {
     method apply($target, @roles) {
+        # Ensure we actually have something to appply.
+        unless +@roles {
+            return [];
+        }
+        
         # Aggregate all of the methods sharing names, eliminating
         # any duplicates (a method can't collide with itself).
         my %meth_info;

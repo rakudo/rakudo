@@ -1,5 +1,5 @@
 use Test;
-plan 45;
+plan 46;
 my $r;
 
 =begin pod
@@ -142,3 +142,12 @@ is $r.content[4].content[0].content, 'and this is not';
 
 isa_ok $r.content[5].content[0], Pod::Block::Code;
 is $r.content[5].content[0].content, 'and this is!';
+
+=begin code
+    foo foo
+    =begin code
+    =end code
+=end code
+
+$r = $=POD[6];
+isa_ok $r, Pod::Block::Code;

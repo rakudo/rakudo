@@ -202,19 +202,21 @@ grammar Perl6::Grammar is HLL::Grammar {
         <pod_newline>+
         [
          <pod_content> *
-         ^^ \h* '=end' \h+ $<type> <pod_newline>
+         ^^ $<spaces> '=end' \h+ $<type> <pod_newline>
          ||  <.panic: '=begin without matching =end'>
         ]
     }
 
     token pod_block:sym<delimited_raw> {
-        ^^ \h* '=begin' \h+ <!before 'END'>
+        ^^
+        $<spaces> = [ \h* ]
+        '=begin' \h+ <!before 'END'>
                         $<type>=[ 'code' || 'comment' ]
                         [ \h <colonpair> ]?
                         <pod_newline>+
         [
          $<pod_content> = [ .*? ]
-         ^^ \h* '=end' \h+ $<type> <pod_newline>
+         ^^ $<spaces> '=end' \h+ $<type> <pod_newline>
          ||  <.panic: '=begin without matching =end'>
         ]
     }

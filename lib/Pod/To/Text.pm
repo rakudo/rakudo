@@ -7,9 +7,11 @@ sub pod2text($pod) is export {
         when Pod::Block::Code  { code2text($pod)                }
         when Pod::Block::Named { named2text($pod)               }
         when Pod::Block::Para  { para2text($pod)                }
+        when Pod::Block::Table { table2text($pod)               }
         when Pod::Block::Declarator { declarator2text($pod)     }
         when Pod::Item         { item2text($pod)                }
         when Positional        { $pod.map({pod2text($_)}).join("\n\n")}
+        when Pod::Block::Comment { }
         default                { $pod.Str                       }
     }
 }
@@ -31,11 +33,18 @@ sub item2text($pod) {
 }
 
 sub named2text($pod) {
-    $pod.name eq 'pod' ?? pod2text($pod.content) !! para2text($pod)
+    $pod.name eq 'pod' ?? pod2text($pod.content)
+                       !! $pod.name ~ "\n" ~ pod2text($pod.content)
 }
 
 sub para2text($pod) {
     $pod.content.join("\n")
+}
+
+sub table2text($pod) {
+    ($pod.caption // '')
+    ~ ($pod.headers ?? $pod.headers.join("\t") ~ "\n" !! '')
+    ~ ($pod.content.map({ $_.join("\t") }).join("\n"))
 }
 
 sub declarator2text($pod) {

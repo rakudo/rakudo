@@ -1021,12 +1021,12 @@ grammar Perl6::Grammar is HLL::Grammar {
     token sigil { <[$@%&]> }
 
     proto token twigil { <...> }
-    token twigil:sym<.> { <sym> }
-    token twigil:sym<!> { <sym> }
+    token twigil:sym<.> { <sym> <?before \w> }
+    token twigil:sym<!> { <sym> <?before \w> }
     token twigil:sym<^> { <sym> <?before \w> }
     token twigil:sym<:> { <sym> <?before \w> }
-    token twigil:sym<*> { <sym> }
-    token twigil:sym<?> { <sym> }
+    token twigil:sym<*> { <sym> <?before \w> }
+    token twigil:sym<?> { <sym> <?before \w> }
     token twigil:sym<=> { <sym> <?before \w> }
 
     proto token package_declarator { <...> }

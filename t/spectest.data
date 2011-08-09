@@ -299,7 +299,7 @@ S06-multi/lexical-multis.t
 S06-multi/positional-vs-named.t
 # S06-multi/proto.t # err: Illegal redeclaration of routine 'bar'
 S06-multi/syntax.t
-# S06-multi/type-based.t # err: No applicable candidates found to dispatch to for 'foo'
+S06-multi/type-based.t
 S06-multi/value-based.t
 S06-multi/unpackability.t
 S06-operator-overloading/imported-subs.t

@@ -303,7 +303,7 @@ my class Str does Stringy {
 
     multi method subst($matcher, $replacement,
                        :ii(:$samecase), :ss(:$samespace), *%options) {
-        die ":samespace not yet implemented" if $samecase;
+        die ":samespace not yet implemented" if $samespace;
         my @matches = self.match($matcher, |%options);
         return self unless @matches;
         return self if @matches == 1 && !@matches[0];

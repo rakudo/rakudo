@@ -28,7 +28,7 @@ my class BOOTSTRAPATTR {
     method box_target() { $!box_target }
     method has_accessor() { 0 }
     method build() { }
-    method is_generic() { $!type.HOW.is_generic($!type) }
+    method is_generic() { $!type.HOW.archetypes.generic }
     method instantiate_generic($type_environment) {
         my $ins := $!type.HOW.instantiate_generic($!type, $type_environment);
         self.new(:name($!name), :box_target($!box_target), :type($ins))
@@ -163,7 +163,7 @@ Attribute.HOW.add_method(Attribute, 'build', sub ($self) {
 Attribute.HOW.add_method(Attribute, 'is_generic', sub ($self) {
         my $type := pir::getattribute__PPPs(pir::perl6_decontainerize__PP($self),
             Attribute, '$!type');
-        pir::perl6_booleanize__PI($type.HOW.is_generic($type));
+        pir::perl6_booleanize__PI($type.HOW.archetypes.generic);
     });
 Attribute.HOW.add_method(Attribute, 'instantiate_generic', sub ($self, $type_environment) {
         my $dcself   := pir::perl6_decontainerize__PP($self);
@@ -288,7 +288,7 @@ Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!attr_package>, 
 Parameter.HOW.add_method(Parameter, 'is_generic', sub ($self) {
         # If nonimnal type is generic, so are we.
         my $type := pir::getattribute__PPPs($self, Parameter, '$!nominal_type');
-        pir::perl6_booleanize__PI($type.HOW.is_generic($type))
+        pir::perl6_booleanize__PI($type.HOW.archetypes.generic)
     });
 Parameter.HOW.add_method(Parameter, 'instantiate_generic', sub ($self, $type_environment) {
         # Clone with the type instantiated.

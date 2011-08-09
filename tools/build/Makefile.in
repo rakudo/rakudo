@@ -84,13 +84,13 @@ PMC_SOURCES = \
 OPS_SOURCE   = perl6.ops
 
 METAMODEL_SOURCES = \
+  src/Perl6/Metamodel/Archetypes.pm \
   src/Perl6/Metamodel/Naming.pm \
   src/Perl6/Metamodel/Documenting.pm \
   src/Perl6/Metamodel/Stashing.pm \
   src/Perl6/Metamodel/Versioning.pm \
   src/Perl6/Metamodel/TypePretence.pm \
   src/Perl6/Metamodel/MethodDelegation.pm \
-  src/Perl6/Metamodel/NonGeneric.pm \
   src/Perl6/Metamodel/PackageHOW.pm \
   src/Perl6/Metamodel/ModuleHOW.pm \
   src/Perl6/Metamodel/GenericHOW.pm \

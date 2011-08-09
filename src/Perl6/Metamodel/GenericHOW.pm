@@ -5,6 +5,11 @@
 class Perl6::Metamodel::GenericHOW
     does Perl6::Metamodel::Naming
 {
+    my $archetypes := Perl6::Metamodel::Archetypes.new( :generic(1) );
+    method archetypes() {
+        $archetypes
+    }
+    
     # The name we're created with is both the name we'll claim
     # to be if asked, but also the name we'll look up in a
     # supplied type environment when we want to instantiate
@@ -12,11 +17,7 @@ class Perl6::Metamodel::GenericHOW
     method new_type(:$name) {
         pir::repr_type_object_for__PPS(self.new(:name($name)), 'Uninstantiable')
     }
-    
-    method is_generic($obj) {
-        1
-    }
-    
+
     method instantiate_generic($obj, $type_environment) {
         my $name := self.name($obj);
         pir::exists($type_environment, $name) ?? $type_environment{$name} !! $obj

@@ -13,7 +13,6 @@ class Perl6::Metamodel::EnumHOW
     does Perl6::Metamodel::MROBasedMethodDispatch
     does Perl6::Metamodel::MROBasedTypeChecking
     does Perl6::Metamodel::BUILDPLAN
-    does Perl6::Metamodel::NonGeneric
     does Perl6::Metamodel::ParrotInterop
 {
     # Hash representing enumeration keys to values.
@@ -24,6 +23,11 @@ class Perl6::Metamodel::EnumHOW
     
     # Roles that we do.
     has @!does_list;
+
+    my $archetypes := Perl6::Metamodel::Archetypes.new( :nominal(1), :composalizable(1) );
+    method archetypes() {
+        $archetypes
+    }
     
     method new_type(:$name!, :$base_type!) {
         my $meta := self.new(:name($name));
@@ -79,6 +83,10 @@ class Perl6::Metamodel::EnumHOW
         self.create_BUILDPLAN($obj);
 
         $obj
+    }
+    
+    method composalize($obj) {
+        pir::die("Cannot yet turn an enum into a role");
     }
     
     method does_list($obj) {

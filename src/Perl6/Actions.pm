@@ -3751,7 +3751,7 @@ class Perl6::Actions is HLL::Actions {
     sub instantiated_type(@name, $/) {
         my $type := $*ST.find_symbol(@name);
         my $is_generic := 0;
-        try { $is_generic := $type.HOW.is_generic($type) }
+        try { $is_generic := $type.HOW.archetypes.generic }
         my $past := $is_generic ??
             $*ST.symbol_lookup(@name, $/) !!
             $*ST.get_object_sc_ref_past($type);

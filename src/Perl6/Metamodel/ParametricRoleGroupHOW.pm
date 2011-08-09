@@ -12,10 +12,14 @@
 # a particular candidate.
 class Perl6::Metamodel::ParametricRoleGroupHOW
     does Perl6::Metamodel::Naming
-    does Perl6::Metamodel::NonGeneric
 {
     has @!possibilities;
     has $!selector;
+
+    my $archetypes := Perl6::Metamodel::Archetypes.new( :nominal(1), :composable(1), :parametric(1) );
+    method archetypes() {
+        $archetypes
+    }
     
     method new_type(:$name!) {
         my $meta := self.new(:name($name));

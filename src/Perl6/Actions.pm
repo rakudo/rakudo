@@ -1956,7 +1956,7 @@ class Perl6::Actions is HLL::Actions {
                 }
                 elsif $type.HOW.archetypes.generic {
                     %*PARAM_INFO<nominal_type> := $type;
-                    %*PARAM_INFO<generic> := 1;
+                    %*PARAM_INFO<nominal_generic> := 1;
                 }
                 elsif $type.HOW.archetypes.nominalizable {
                     my $nom := $type.HOW.nominalize($type);

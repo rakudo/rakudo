@@ -22,6 +22,7 @@ my $SIG_ELEM_IS_CAPTURE          := 32768;
 my $SIG_ELEM_UNDEFINED_ONLY      := 65536;
 my $SIG_ELEM_DEFINED_ONLY        := 131072;
 my $SIG_ELEM_METHOD_SLURPY_NAMED := 262144;
+my $SIG_ELEM_NOMINAL_GENERIC     := 524288;
 
 # This builds upon the SerializationContextBuilder to add the specifics
 # needed by Rakudo Perl 6.
@@ -514,6 +515,9 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
         }
         if %param_info<default_from_outer> {
             $flags := $flags + $SIG_ELEM_DEFAULT_FROM_OUTER;
+        }
+        if %param_info<nominal_generic> {
+            $flags := $flags + $SIG_ELEM_NOMINAL_GENERIC;
         }
         pir::repr_bind_attr_int__vPPsI($parameter, $par_type, '$!flags', $flags);
         $set_attrs.push(self.set_attribute_typed($parameter, $par_type,

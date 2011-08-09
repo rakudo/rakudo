@@ -98,7 +98,31 @@ sub METAOP_REDUCE_RIGHT(\$op, :$triangle) {
 
 
 sub METAOP_REDUCE_CHAIN(\$op, :$triangle) {
-    NYI "chaining reduce NYI";
+    $triangle
+        ??  sub (*@values) {
+                my Mu $current = @values.shift;
+                my $state = $op();
+                gather {
+                    take $state;
+                    while $state && @values {
+                        $state = $op($current, @values[0]);
+                        take $state;
+                        $current = @values.shift;
+                    }
+                    take False for @values;
+                }
+
+            }
+        !! sub (*@values) {
+                my $state = $op();
+                my Mu $current = @values.shift;
+                while @values {
+                    $state = $op($current, @values[0]);
+                    $current = @values.shift;
+                    return $state unless $state;
+                }
+                $state;
+            }
 }
 
 

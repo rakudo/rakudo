@@ -238,7 +238,7 @@ S04-statements/while.t
 # S05-grammar/parse_and_parsefile.t # err: Could not locate compile-time value for symbol No::Such::Grammar
 # S05-grammar/protoregex.t # err: Quantifier quantifies nothing
 # S05-grammar/protos.t # err: Null PMC access in set_pmc_keyed()
-# S05-grammar/signatures.t # err: Method 'list' not found for invocant of class 'Undef'
+# S05-grammar/signatures.t # err: Null PMC access in set_pmc_keyed()
 # S05-grammar/ws.t # err: regex assertion not terminated by angle bracket
 # S05-interpolation/lexicals.t # err: Method 'rxtype' not found for invocant of class 'PAST;Regex'
 # S05-interpolation/regex-in-variable.t # err: Null PMC access in invoke()

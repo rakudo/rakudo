@@ -198,7 +198,7 @@ grammar Perl6::Grammar is HLL::Grammar {
             <pod_code_parent> { $*ALLOW_CODE := 1 }
             || <identifier>
         ]
-        [ \h <colonpair> ]?
+        [ \h+ <colonpair> ]?
         <pod_newline>+
         [
          <pod_content> *
@@ -212,7 +212,7 @@ grammar Perl6::Grammar is HLL::Grammar {
         $<spaces> = [ \h* ]
         '=begin' \h+ <!before 'END'>
                         $<type>=[ 'code' || 'comment' ]
-                        [ \h <colonpair> ]?
+                        [ \h+ <colonpair> ]?
                         <pod_newline>+
         [
          $<pod_content> = [ .*? ]
@@ -222,7 +222,7 @@ grammar Perl6::Grammar is HLL::Grammar {
     }
 
     token pod_block:sym<delimited_table> {
-        ^^ \h* '=begin' \h+ 'table' [ \h <colonpair> ]? <pod_newline>+
+        ^^ \h* '=begin' \h+ 'table' [ \h+ <colonpair> ]? <pod_newline>+
         [
          <table_row>*
          ^^ \h* '=end' \h+ 'table' <pod_newline>
@@ -252,7 +252,7 @@ grammar Perl6::Grammar is HLL::Grammar {
         :my $*ALLOW_CODE := 0;
         '=for' \h+ <!before 'END'>
         $<type> = <identifier>
-        [ \h <colonpair> ]?
+        [ \h+ <colonpair> ]?
         <pod_newline>
         $<pod_content> = <pod_textcontent>?
     }
@@ -260,13 +260,13 @@ grammar Perl6::Grammar is HLL::Grammar {
     token pod_block:sym<paragraph_raw> {
         ^^ \h* '=for' \h+ <!before 'END'>
                           $<type>=[ 'code' || 'comment' ]
-                          [ \h <colonpair> ]?
+                          [ \h+ <colonpair> ]?
                           <pod_newline>
         $<pod_content> = [ \h* <!before '=' \w> \N+ \n ]+
     }
 
     token pod_block:sym<paragraph_table> {
-        ^^ \h* '=for' \h+ 'table' [ \h <colonpair> ]? <pod_newline>
+        ^^ \h* '=for' \h+ 'table' [ \h+ <colonpair> ]? <pod_newline>
         [ <!before \h* \n> <table_row>]*
     }
 
@@ -278,19 +278,19 @@ grammar Perl6::Grammar is HLL::Grammar {
         :my $*ALLOW_CODE := 0;
         '=' <!before begin || end || for || END>
         $<type> = <identifier>
-        [ \h <colonpair> ]?
+        [ \h+ <colonpair> ]?
         \s
         $<pod_content> = <pod_textcontent>?
     }
 
     token pod_block:sym<abbreviated_raw> {
         ^^ \h* '=' $<type>=[ 'code' || 'comment' ]
-        [ \h <colonpair> ]?\s
+        [ \h+ <colonpair> ]?\s
         $<pod_content> = [ \h* <!before '=' \w> \N+ \n ]*
     }
 
     token pod_block:sym<abbreviated_table> {
-        ^^ \h* '=table' [ \h <colonpair> ]? <pod_newline>
+        ^^ \h* '=table' [ \h+ <colonpair> ]? <pod_newline>
         [ <!before \h* \n> <table_row>]*
     }
 

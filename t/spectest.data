@@ -249,8 +249,8 @@ S05-mass/named-chars.t
 # S05-mass/properties-script.t # err: Method 'isBidiL' not found for invocant of class 'Cursor'
 # S05-mass/rx.t # err: Null PMC access in invoke()
 # S05-mass/recursive.t # err: Method 'rxtype' not found for invocant of class 'PAST;Regex'
-# S05-mass/stdrules.t # err: Method 'graph' not found for invocant of class 'Cursor'
-S05-match/arrayhash.t 
+S05-mass/stdrules.t
+S05-match/arrayhash.t
 S05-match/blocks.t
 # S05-match/capturing-contexts.t # err: Method 'rxtype' not found for invocant of class 'PAST;Regex'
 # S05-match/non-capturing.t # err: Method 'rxtype' not found for invocant of class 'PAST;Regex'
@@ -285,7 +285,7 @@ S05-modifier/pos.t
 S05-modifier/repetition.t
 S05-modifier/sigspace.t
 S05-substitution/match.t
-# S05-substitution/subst.t # hangs
+S05-substitution/subst.t
 # S05-transliteration/trans.t # err: Method 'trans' not found for invocant of class 'Str'
 # S05-transliteration/with-closure.t # err: Method 'trans' not found for invocant of class 'Str'
 S06-advanced_subroutine_features/callframe.t

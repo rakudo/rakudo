@@ -246,7 +246,7 @@ class Perl6::Actions is HLL::Actions {
             $block.push(
                 PAST::Op.new(
                     :pasttype<call>, :node($/),
-                    :name('&print'), $pod2text,
+                    :name('&say'), $pod2text,
                 ),
             );
             $*ST.pop_lexpad();

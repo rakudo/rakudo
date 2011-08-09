@@ -10,7 +10,7 @@ my class Match is Capture {
     multi method Str(Match:D:) {
         $!to > $!from ?? $!orig.substr($!from, $!to-$!from) !! ''
     }
-    method Numeric(Match:D:) {
+    multi method Numeric(Match:D:) {
         self.Str.Numeric
     }
     multi method Bool(Match:D:) {

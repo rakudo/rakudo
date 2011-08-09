@@ -3,7 +3,7 @@ my role Enumeration {
     has $.key;
     has $.value;
     
-    method Numeric(Enumeration:D:) { $!value.Numeric }
+    multi method Numeric(::?CLASS:D:) { $!value.Numeric }
     
     method enums() {
         self.^enum_values
@@ -13,9 +13,9 @@ my role Enumeration {
         self.^name ~ '::' ~ $!key
     }
     
-    method kv(Enumeration:D:) { ($!key, $!value) }
+    method kv(::?CLASS:D:) { ($!key, $!value) }
     
-    method pair(Enumeration:D:) { $!key => $!value }
+    method pair(::?CLASS:D:) { $!key => $!value }
     
     method perl() {
         self.defined ??

@@ -145,7 +145,7 @@ S03-operators/misc.t
 S03-operators/names.t
 # S03-operators/nesting.t # err: Unable to parse blockoid
 S03-operators/not.t
-# S03-operators/overflow.t # err: NYI form of number litereal encountered
+# S03-operators/overflow.t # err: :base($number) conversion NYI
 S03-operators/precedence.t
 S03-operators/range-basic.t
 S03-operators/range-int.t                       # stress
@@ -403,7 +403,7 @@ S12-introspection/parents.t
 S12-methods/attribute-params.t
 # S12-methods/calling_sets.t # err: Cannot access attributes in a type object
 S12-methods/calling_syntax.t
-# S12-methods/chaining.t # err: chaining reduce NYI
+S12-methods/chaining.t
 S12-methods/class-and-instance.t
 # S12-methods/default-trait.t # err: No applicable candidates found to dispatch to for 'trait_mod:<is>'
 S12-methods/defer-call.t
@@ -541,7 +541,7 @@ S32-str/bool.t
 S32-str/chomp.t
 S32-str/chop.t
 S32-str/comb.t                                             # icu
-# S32-str/encode.t # err: Invalid character 'c' in number literal
+# S32-str/encode.t # err: Method 'encode' not found for invocant of class 'Str'
 S32-str/flip.t
 # S32-str/indent.t # err: Method 'indent' not found for invocant of class 'Str'
 S32-str/index.t
@@ -594,10 +594,10 @@ integration/99problems-31-to-40.t
 # integration/99problems-51-to-60.t # err: Nominal type check failed for parameter '$obj'
 # integration/99problems-61-to-70.t # err: Nominal type check failed for parameter '$tree'; expected Any but got Mu instead
 integration/advent2009-day01.t
-# integration/advent2009-day02.t # err: Invalid character 'f' in number literal
+# integration/advent2009-day02.t # err: Method 'Int' not found for invocant of class 'Parcel'
 integration/advent2009-day03.t
 integration/advent2009-day04.t
-# integration/advent2009-day05.t # err: chaining reduce NYI
+integration/advent2009-day05.t
 integration/advent2009-day06.t
 integration/advent2009-day07.t
 # integration/advent2009-day08.t # err: Nominal type check failed for parameter '$a'; expected Any but got Mu

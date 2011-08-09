@@ -621,8 +621,7 @@ grammar Perl6::Grammar is HLL::Grammar {
         :my $longname;
         :my $*IN_DECL := 'use';
         :my $*SCOPE   := 'use';
-        :my $*DOC_USE := 0;
-        [ 'DOC' \h+ { $*DOC_USE := 1 } ]?
+        $<doc>=[ 'DOC' \h+ ]?
         <sym> <.ws>
         [
         | <version>
@@ -648,7 +647,7 @@ grammar Perl6::Grammar is HLL::Grammar {
                     $/.CURSOR.panic("arglist case of use not yet implemented");
                 }
             || { 
-                    unless $*DOC_USE && !%*COMPILING<%?OPTIONS><doc> {
+                    unless ?$<doc> && !%*COMPILING<%?OPTIONS><doc> {
                         if $longname {
                             my $module := $*ST.load_module(~$longname,
                                                            $*GLOBALish);

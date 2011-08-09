@@ -3002,7 +3002,12 @@ class Perl6::Actions is HLL::Actions {
             my $base     := $<base> ?? +($<base>[0].Str) !! 0;
             my $exp      := $<exp> ?? +($<exp>[0].Str) !! 0;
 
-            make radcalc($radix, $intfrac, $base, $exp);
+            my $error;
+            try {
+                make radcalc($radix, $intfrac, $base, $exp);
+                CATCH { $error := $_ }
+            }
+            $/.CURSOR.panic($error) if pir::defined($error);
         }
     }
 
@@ -3832,7 +3837,7 @@ class Perl6::Actions is HLL::Actions {
         my int $seen_dot := 0;
         while $idx < nqp::chars($number) - 1 {
             $idx++;
-            my $current := nqp::substr($number, $idx, 1);
+            my $current := nqp::uc(nqp::substr($number, $idx, 1));
             next if $current eq '_';
             if $current eq '.' {
                 $seen_dot := 1;

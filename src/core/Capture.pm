@@ -68,7 +68,7 @@ my class Capture {
         self
     }
     
-    method Numeric(Capture:D:) {
+    multi method Numeric(Capture:D:) {
         self.elems
     }
     

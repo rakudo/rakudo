@@ -2,7 +2,7 @@ class Complex { ... }
 
 # XXX role Numeric { ... }
 my class Numeric {
-    method Numeric() { self }
+    multi method Numeric(Numeric:D:) { self }
 
     multi method ACCEPTS(Numeric:D: $a) { $a == self }
 

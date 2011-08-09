@@ -647,7 +647,7 @@ grammar Perl6::Grammar is HLL::Grammar {
                     $/.CURSOR.panic("arglist case of use not yet implemented");
                 }
             || { 
-                    unless ?$<doc> && !%*COMPILING<%?OPTIONS><doc> {
+                    unless ~$<doc> && !%*COMPILING<%?OPTIONS><doc> {
                         if $longname {
                             my $module := $*ST.load_module(~$longname,
                                                            $*GLOBALish);

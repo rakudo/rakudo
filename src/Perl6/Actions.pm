@@ -1950,7 +1950,26 @@ class Perl6::Actions is HLL::Actions {
                 if pir::exists(%*PARAM_INFO, 'nominal_type') {
                     $/.CURSOR.panic('Parameter may only have one prefix type constraint');
                 }
-                %*PARAM_INFO<nominal_type> := $<typename>.ast;
+                my $type := $<typename>.ast;
+                if $type.HOW.archetypes.nominal {
+                    %*PARAM_INFO<nominal_type> := $type;
+                }
+                elsif $type.HOW.archetypes.generic {
+                    %*PARAM_INFO<nominal_type> := $type;
+                    %*PARAM_INFO<generic> := 1;
+                }
+                elsif $type.HOW.archetypes.nominalizable {
+                    my $nom := $type.HOW.nominalize($type);
+                    %*PARAM_INFO<nominal_type> := $nom;
+                    unless %*PARAM_INFO<post_constraints> {
+                        %*PARAM_INFO<post_constraints> := [];
+                    }
+                    %*PARAM_INFO<post_constraints>.push($type);
+                }
+                else {
+                    $/.CURSOR.panic("Type " ~ ~$<typename><longname> ~
+                        " cannot be used as a nominal type on a parameter");
+                }
                 for ($<typename><longname> ?? $<typename><longname><colonpair> !! $<typename><colonpair>) {
                     if $_<identifier> {
                         if $_<identifier>.Str eq 'D' {

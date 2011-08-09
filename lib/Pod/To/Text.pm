@@ -33,8 +33,15 @@ sub item2text($pod) {
 }
 
 sub named2text($pod) {
-    $pod.name eq 'pod' ?? pod2text($pod.content)
-                       !! $pod.name ~ "\n" ~ pod2text($pod.content)
+    given $pod.name {
+        when 'pod'  { pod2text($pod.content)     }
+        when 'para' { para2text($pod.content[0]) }
+        when 'defn' { pod2text($pod.content[0]) ~ "\n"
+                    ~ pod2text($pod.content[1..*-1]) }
+        when 'config' { }
+        when 'nested' { }
+        default     { $pod.name ~ "\n" ~ pod2text($pod.content) }
+    }
 }
 
 sub para2text($pod) {

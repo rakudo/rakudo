@@ -181,11 +181,11 @@ S03-smartmatch/any-str.t
 S03-smartmatch/any-sub.t
 S03-smartmatch/any-type.t
 S03-smartmatch/array-array.t
-# S03-smartmatch/array-hash.t # err: No applicable candidates found to dispatch to for 'ACCEPTS'
+S03-smartmatch/array-hash.t
 # S03-smartmatch/capture-signature.t # err: Method 'make_signature' not found for invocant of class 'Perl6::SymbolTable'
 S03-smartmatch/disorganized.t
-# S03-smartmatch/hash-hash.t # err: No applicable candidates found to dispatch to for 'ACCEPTS'.
-# S03-smartmatch/regex-hash.t # err: No applicable candidates found to dispatch to for 'ACCEPTS'.
+S03-smartmatch/hash-hash.t
+S03-smartmatch/regex-hash.t
 S03-smartmatch/scalar-hash.t
 # S04-blocks-and-statements/pointy-rw.t # err: Missing block
 S04-blocks-and-statements/pointy.t
@@ -231,40 +231,40 @@ S04-statements/while.t
 # S05-capture/dot.t # err: Useless declaration of a has-scoped method in mainline
 # S05-capture/named.t # err: Method 'rxtype' not found for invocant of class 'PAST;Regex'
 # S05-capture/subrule.t # err: Method 'rxtype' not found for invocant of class 'PAST;Regex'
-# S05-grammar/action-stubs.t # err: Method 'parse' not found for invocant of class
-# S05-grammar/inheritance.t # err: No applicable candidates found to dispatch to for 'trait_mod:<is>'.
+# S05-grammar/action-stubs.t # err: Null PMC access in set_pmc_keyed()
+# S05-grammar/inheritance.t # err: Null PMC access in set_pmc_keyed()
 # S05-grammar/methods.t # err: Null PMC access in invoke()
 # S05-grammar/namespace.t # err: Useless declaration of a has-scoped method in mainline
 # S05-grammar/parse_and_parsefile.t # err: Could not locate compile-time value for symbol No::Such::Grammar
 # S05-grammar/protoregex.t # err: Quantifier quantifies nothing
-# S05-grammar/protos.t # err: protoregexes not yet implemented
+# S05-grammar/protos.t # err: Null PMC access in set_pmc_keyed()
 # S05-grammar/signatures.t # err: Method 'list' not found for invocant of class 'Undef'
 # S05-grammar/ws.t # err: regex assertion not terminated by angle bracket
 # S05-interpolation/lexicals.t # err: Method 'rxtype' not found for invocant of class 'PAST;Regex'
 # S05-interpolation/regex-in-variable.t # err: Null PMC access in invoke()
-# S05-mass/named-chars.t # err: No applicable candidates found to dispatch to for 'ACCEPTS'.
+S05-mass/named-chars.t
 # S05-mass/properties-block.t # err: Method 'isInAlphabeticPresentationForms' not found for invocant of class 'Cursor'
 # S05-mass/properties-derived.t # err: Method 'isASCIIHexDigit' not found for invocant of class 'Cursor'
 # S05-mass/properties-general.t # hangs
 # S05-mass/properties-script.t # err: Method 'isBidiL' not found for invocant of class 'Cursor'
 # S05-mass/rx.t # err: Null PMC access in invoke()
 # S05-mass/recursive.t # err: Method 'rxtype' not found for invocant of class 'PAST;Regex'
-# S05-mass/stdrules.t # err: No applicable candidates found to dispatch to for 'ACCEPTS'
+# S05-mass/stdrules.t # err: Method 'graph' not found for invocant of class 'Cursor'
 S05-match/arrayhash.t 
 S05-match/blocks.t
 # S05-match/capturing-contexts.t # err: Method 'rxtype' not found for invocant of class 'PAST;Regex'
 # S05-match/non-capturing.t # err: Method 'rxtype' not found for invocant of class 'PAST;Regex'
 # S05-match/perl.t # err: Method 'rxtype' not found for invocant of class 'PAST;Regex'
-# S05-match/positions.t # err: No applicable candidates found to dispatch to for 'ACCEPTS'
+# S05-match/positions.t # err: Method 'chars' not found for invocant of class 'Match'
 # S05-metachars/closure.t # err: Null PMC access in invoke()
-# S05-metachars/line-anchors.t # err: No applicable candidates found to dispatch to for 'ACCEPTS'
-# S05-metachars/newline.t # err: No applicable candidates found to dispatch to for 'ACCEPTS'.
+S05-metachars/line-anchors.t
+S05-metachars/newline.t
 # S05-metachars/tilde.t # err: Method 'rxtype' not found for invocant of class 'PAST;Regex'
 # S05-metasyntax/angle-brackets.t # err: Method 'rxtype' not found for invocant of class 'PAST;Regex'
 S05-metasyntax/changed.t
-# S05-metasyntax/charset.t # err: No applicable candidates found to dispatch to for 'ACCEPTS'.
+# S05-metasyntax/charset.t # err: Cannot assign to a non-container
 # S05-metasyntax/lookaround.t # err: Useless declaration of a has-scoped method in mainline
-# S05-metasyntax/null.t # err: No applicable candidates found to dispatch to for 'ACCEPTS'.
+S05-metasyntax/null.t
 # S05-metasyntax/regex.t # err: Useless declaration of a has-scoped method in mainline
 # S05-metasyntax/repeat.t # err: Null PMC access in invoke()
 # S05-metasyntax/sequential-alternation.t # err: Method 'rxtype' not found for invocant of class 'PAST;Regex'
@@ -281,9 +281,9 @@ S05-modifier/overlapping.t
 # S05-modifier/perl5_2.t # err: Adverb 'P5' not allowed on m
 # S05-modifier/perl5_7.t # err: Adverb 'P5' not allowed on m
 # S05-modifier/perl5_8.t # err: Adverb 'P5' not allowed on m
-# S05-modifier/pos.t # err: No applicable candidates found to dispatch to for 'ACCEPTS'
+S05-modifier/pos.t
 S05-modifier/repetition.t
-# S05-modifier/sigspace.t # err: No applicable candidates found to dispatch to for 'ACCEPTS'.
+S05-modifier/sigspace.t
 S05-substitution/match.t
 # S05-substitution/subst.t # hangs
 # S05-transliteration/trans.t # err: Method 'trans' not found for invocant of class 'Str'
@@ -307,7 +307,7 @@ S06-operator-overloading/methods.t
 # S06-operator-overloading/sub.t # err: Unable to parse postcircumfix:sym<( )>
 # S06-operator-overloading/workout.t # err: Unable to parse postcircumfix:sym<( )>
 S06-other/anon-hashes-vs-blocks.t
-# S06-other/main.t # err: Could not find sub &MAIN_HELPER
+# S06-other/main.t # err: maximum recursion depth exceeded
 S06-other/main-eval.t
 # S06-other/main-usage.t # err: Command line arguments may not contain single or double quotes
 S06-other/misc.t
@@ -353,10 +353,10 @@ S09-subscript_slice/slice.t
 # S10-packages/basic.t # err: Unable to parse blockoid, couldn't find final '}' at line 107
 # S10-packages/use-with-class.t # err: get_attr_str() not implemented in class 'Undef'
 # S11-modules/export.t # err: Could not find symbol 'Foo::&Foo_exp_parens
-# S11-modules/import.t # err: Could not find sub import
+# S11-modules/import.t # err: Illegal redeclaration of module 'B'
 # S11-modules/import-tag.t # err: arglist case of use not yet implemented
 S11-modules/lexical.t
-# S11-modules/need.t # err: Could not find sub need
+S11-modules/need.t
 # S11-modules/nested.t
 # S11-modules/require.t # err: Could not find symbol 'Fancy::Utilities::&lolgreet'
 # S12-attributes/class.t # err: Method 'bar' not found for invocant of class 'Foo'
@@ -565,11 +565,11 @@ S32-str/uc.t                                               # icu
 S32-str/ucfirst.t                                          # icu
 # S32-str/unpack.t # err: Default constructor only takes named arguments
 S32-str/words.t
-# S32-temporal/calendar.t # err: Could not find sub &Date
-# S32-temporal/Date.t # err: Could not find sub &Date
-# S32-temporal/DateTime.t # err: Could not find sub &DateTime
-# S32-temporal/DateTime-Instant-Duration.t # err: Could not find sub &DateTime
-# S32-temporal/local.t # err: Could not find sub &DateTime
+# S32-temporal/calendar.t # err: Method 'truncated-to' not found for invocant of class 'Date'
+# S32-temporal/Date.t # err: Default constructor only takes named arguments
+# S32-temporal/DateTime.t # err: Default constructor only takes named arguments
+# S32-temporal/DateTime-Instant-Duration.t # err: Method 'Instant' not found for invocant of class 'DateTime'
+# S32-temporal/local.t # err: Method 'now' not found for invocant of class 'DateTime'
 S32-trig/e.t
 # S32-trig/pi.t # err: Could not find sub &atan
 # S32-trig/sin.t # err: Method 'sin' not found for invocant of class 'Complex'
@@ -578,7 +578,7 @@ S32-trig/e.t
 # S32-trig/sec.t # err: Method 'sec' not found for invocant of class 'Rat'
 # S32-trig/cosec.t # err: Method 'cosec' not found for invocant of class 'Rat'
 # S32-trig/cotan.t # err: Method 'cotan' not found for invocant of class 'Rat'
-# S32-trig/atan2.t # err: No applicable candidates found to dispatch to for 'atan2'
+# S32-trig/atan2.t # err: Too many positional parameters passed
 # S32-trig/sinh.t # err: Method 'sinh' not found for invocant of class 'Complex'
 # S32-trig/cosh.t # err: Method 'cosh' not found for invocant of class 'Complex'
 # S32-trig/tanh.t # err: Could not find sub &cosh
@@ -608,7 +608,7 @@ integration/advent2009-day12.t
 integration/advent2009-day13.t
 integration/advent2009-day14.t
 integration/advent2009-day15.t
-# integration/advent2009-day16.t # err: No applicable candidates found to dispatch to for 'ACCEPTS'.
+integration/advent2009-day16.t
 # integration/advent2009-day17.t # err: Unable to parse blockoid # stress
 # integration/advent2009-day18.t # err: Could not instantiate role 'Cup'
 # integration/advent2009-day19.t # err: Method 'succ' not found for invocant of class 'Whatever'

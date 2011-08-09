@@ -2992,7 +2992,7 @@ class Perl6::Actions is HLL::Actions {
     method rad_number($/) {
         my $radix    := +($<radix>.Str);
         if $<circumfix> {
-            pir::die('NYI form of number litereal encountered');
+            pir::die(':base($number) conversion NYI');
             make PAST::Op.new(:name('&radcalc'), :pasttype('call'),
                 $radix, $<circumfix>.ast);
         } else {

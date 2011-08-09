@@ -104,7 +104,7 @@ S03-junctions/misc.t
 S03-metaops/eager-hyper.t
 S03-metaops/hyper.t
 S03-metaops/not.t
-# S03-metaops/reduce.t # err: chaining reduce NYI
+S03-metaops/reduce.t
 S03-metaops/reverse.t
 S03-metaops/zip.t
 S03-operators/also.t

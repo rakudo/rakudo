@@ -27,6 +27,7 @@ my class BOOTSTRAPATTR {
     method type() { $!type }
     method box_target() { $!box_target }
     method has_accessor() { 0 }
+    method has-accessor() { 0 }
     method build() { }
     method is_generic() { $!type.HOW.archetypes.generic }
     method instantiate_generic($type_environment) {
@@ -290,15 +291,23 @@ Parameter.HOW.add_method(Parameter, 'is_generic', sub ($self) {
         my $type := pir::getattribute__PPPs($self, Parameter, '$!nominal_type');
         pir::perl6_booleanize__PI($type.HOW.archetypes.generic)
     });
-Parameter.HOW.add_method(Parameter, 'instantiate_generic', sub ($self, $type_environment) {
-        # Clone with the type instantiated.
-        my $ins  := pir::repr_clone__PP($self);
-        my $type := pir::getattribute__PPPs($self, Parameter, '$!nominal_type');
-        pir::setattribute__0PPsP($ins, Parameter, '$!nominal_type',
-            $type.HOW.instantiate_generic($type, $type_environment))
-    });
 my $SIG_ELEM_IS_RW   := 256;
 my $SIG_ELEM_IS_COPY := 512;
+my $SIG_ELEM_NOMINAL_GENERIC := 524288;
+Parameter.HOW.add_method(Parameter, 'instantiate_generic', sub ($self, $type_environment) {
+        # Clone with the type instantiated.
+        my $ins      := pir::repr_clone__PP($self);
+        my $type     := pir::getattribute__PPPs($self, Parameter, '$!nominal_type');
+        my $ins_type := $type.HOW.instantiate_generic($type, $type_environment);
+        unless $ins_type.HOW.archetypes.generic {
+            my $flags := pir::repr_get_attr_int__IPPs($ins, Parameter, '$!flags');
+            if $flags +& $SIG_ELEM_NOMINAL_GENERIC {
+                pir::repr_bind_attr_int__0PPsI($ins, Parameter, '$!flags',
+                    $flags - $SIG_ELEM_NOMINAL_GENERIC)
+            }
+        }
+        pir::setattribute__0PPsP($ins, Parameter, '$!nominal_type', $ins_type)
+    });
 Parameter.HOW.add_method(Parameter, 'set_rw', sub ($self) {
         my $dcself := pir::perl6_decontainerize__PP($self);
         my $cd     := pir::getattribute__PPPs($dcself, Parameter, '$!container_descriptor');

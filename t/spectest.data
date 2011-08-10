@@ -572,7 +572,7 @@ S32-str/words.t
 # S32-temporal/local.t # err: Method 'now' not found for invocant of class 'DateTime'
 S32-trig/e.t
 # S32-trig/pi.t # err: Could not find sub &atan
-# S32-trig/sin.t # err: Method 'sin' not found for invocant of class 'Complex'
+S32-trig/sin.t
 # S32-trig/cos.t # err: Method 'cos' not found for invocant of class 'Complex'
 # S32-trig/tan.t # err: Method 'sin' not found for invocant of class 'Complex'
 # S32-trig/sec.t # err: Method 'sec' not found for invocant of class 'Rat'

@@ -1425,6 +1425,11 @@ class Perl6::Actions is HLL::Actions {
         my $outer := $*ST.cur_lexpad();
         $outer[0].push($past);
 
+        # Apply traits.
+        for $<trait> {
+            if $_.ast { ($_.ast)($code) }
+        }
+
         # Install method.
         if $<longname> {
             install_method($/, $<longname>.Str, $*SCOPE, $code, $outer,
@@ -1432,11 +1437,6 @@ class Perl6::Actions is HLL::Actions {
         }
         elsif $*MULTINESS {
             $/.CURSOR.panic('Cannot put ' ~ $*MULTINESS ~ ' on anonymous method');
-        }
-
-        # Apply traits.
-        for $<trait> {
-            if $_.ast { ($_.ast)($code) }
         }
 
         my $closure := block_closure(reference_to_code_object($code, $past));

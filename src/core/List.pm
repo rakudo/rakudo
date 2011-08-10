@@ -49,7 +49,7 @@ class List does Positional {
         $pos = $pos.Int;
         self.exists($pos)
           ?? nqp::atpos($!items, nqp::unbox_i($pos))
-          !! Mu
+          !! Nil
     }
 
     method eager() { self.gimme(*); self }

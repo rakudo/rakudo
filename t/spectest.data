@@ -333,7 +333,7 @@ S06-signature/slurpy-and-interpolation.t
 S06-signature/slurpy-placeholders.t
 S06-signature/sub-ref.t
 S06-signature/tree-node-parameters.t
-# S06-signature/type-capture.t # err: Nominal type check failed for parameter '$y'
+# S06-signature/type-capture.t # err: Type check failed in assignment to '$y'; expected 'T' but got 'Rat'
 # S06-signature/types.t # err: Malformed block
 S06-signature/unpack-array.t
 S06-signature/unspecified.t
@@ -571,14 +571,14 @@ S32-str/words.t
 # S32-temporal/DateTime-Instant-Duration.t # err: Method 'Instant' not found for invocant of class 'DateTime'
 # S32-temporal/local.t # err: Method 'now' not found for invocant of class 'DateTime'
 S32-trig/e.t
-# S32-trig/pi.t # err: Could not find sub &atan
+S32-trig/pi.t
 S32-trig/sin.t
 S32-trig/cos.t
 S32-trig/tan.t
 # S32-trig/sec.t # err: Method 'sec' not found for invocant of class 'Rat'
 # S32-trig/cosec.t # err: Method 'cosec' not found for invocant of class 'Rat'
 # S32-trig/cotan.t # err: Method 'cotan' not found for invocant of class 'Rat'
-# S32-trig/atan2.t # err: Too many positional parameters passed
+# S32-trig/atan2.t # err: No applicable candidates found to dispatch to for 'atan2'
 # S32-trig/sinh.t # err: Method 'sinh' not found for invocant of class 'Complex'
 # S32-trig/cosh.t # err: Method 'cosh' not found for invocant of class 'Complex'
 # S32-trig/tanh.t # err: Could not find sub &cosh

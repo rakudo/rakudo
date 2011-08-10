@@ -14,25 +14,25 @@ class BackTraceLine {
 }
 
 class BackTrace is List {
-    method new(Int $offset = 1) {
-        my $new = self.bless(*);
-        my $bt = nqp::atkey(pir::getinterp, 'context').backtrace;
-        for $offset .. $bt.elems - 1 {
-            next if pir::isnull($bt[$_]<sub>);
+    # a parrot BT is a ResizablePMCArray, so mappted to a Parcel
+    has $!parrot_bt;
+    method init(BackTrace:D: Int $offset = 0) {
+        for $offset .. $!parrot_bt.elems - 1 {
+            next if pir::isnull($!parrot_bt[$_]<sub>);
             my Mu $p6sub =
-                pir::perl6_code_object_from_parrot_sub__PP($bt[$_]<sub>);
-            my $line     = $bt[$_]<annotations><line>;
-            my $file     = $bt[$_]<annotations><file>;
-            my $subname  = nqp::p6box_s($bt[$_]<sub>);
+                pir::perl6_code_object_from_parrot_sub__PP($!parrot_bt[$_]<sub>);
+            my $line     = $!parrot_bt[$_]<annotations><line>;
+            my $file     = $!parrot_bt[$_]<annotations><file>;
+            my $subname  = nqp::p6box_s($!parrot_bt[$_]<sub>);
             $subname = '<anon>' if $subname.substr(0, 6) eq '_block';
-            $new.push: BackTraceLine.new(
+            selfw.push: BackTraceLine.new(
                 :$line,
                 :$file,
                 :$subname,
                 :code($p6sub),
             );
         }
-        $new;
+        self
     }
 
     method concise() {

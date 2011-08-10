@@ -8,6 +8,8 @@ my class Cool {
     method asin() { self.Numeric.asin }
     method cos()  { self.Numeric.cos }
     method acos() { self.Numeric.acos }
+    method tan()  { self.Numeric.tan }
+    method atan() { self.Numeric.atan }
     
     ## string methods
 

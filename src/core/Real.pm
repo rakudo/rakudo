@@ -13,6 +13,7 @@ my class Real {
     method cos()  { self.Bridge.cos }
     method acos() { self.Bridge.acos }
     method tan()  { self.Bridge.tan }
+    method atan() { self.Bridge.atan }
     method sinh() { self.Bridge.sinh }
     method cosh() { self.Bridge.cosh }
     method tanh() { self.Bridge.tanh }

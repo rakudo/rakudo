@@ -72,6 +72,10 @@ proto sub tan(|$) {*}
 multi sub tan(Numeric \$x) { $x.tan }
 multi sub tan(Cool \$x)    { $x.Numeric.tan }
 
+proto sub atan(|$) {*}
+multi sub atan(Numeric \$x) { $x.atan }
+multi sub atan(Cool \$x)    { $x.Numeric.atan }
+
 proto sub sqrt(|$) {*}
 multi sub sqrt(Numeric \$x) { $x.sqrt }
 multi sub sqrt(Cool \$x)    { $x.Numeric.sqrt }

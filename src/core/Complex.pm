@@ -106,38 +106,38 @@ my class Complex is Numeric {
         (pi / 2) - self.asin;
     }
     
-    # method tan(Complex:D:) {
-    #     self.sin / self.cos;
-    # }
-    # 
-    # method atan(Complex:D:) {
-    #     ((log(1 - (self)i) - log(1 + (self)i))i / 2);
-    # }
-    # 
-    # method sec(Complex:D:) {
-    #     1 / self.cos;
-    # }
-    # 
-    # method asec(Complex:D:) {
-    #     (1 / self).acos;
-    # }
-    # 
-    # method cosec(Complex:D:) {
-    #     1 / self.sin;
-    # }
-    # 
-    # method acosec(Complex:D:) {
-    #     (1 / self).asin;
-    # }
-    # 
-    # method cotan(Complex:D:) {
-    #     self.cos / self.sin;
-    # }
-    # 
-    # method acotan(Complex:D:) {
-    #     (1 / self).atan;
-    # }
-    # 
+    method tan(Complex:D:) {
+        self.sin / self.cos;
+    }
+    
+    method atan(Complex:D:) {
+        ((log(1 - (self)i) - log(1 + (self)i))i / 2);
+    }
+
+    method sec(Complex:D:) {
+        1 / self.cos;
+    }
+
+    method asec(Complex:D:) {
+        (1 / self).acos;
+    }
+
+    method cosec(Complex:D:) {
+        1 / self.sin;
+    }
+
+    method acosec(Complex:D:) {
+        (1 / self).asin;
+    }
+
+    method cotan(Complex:D:) {
+        self.cos / self.sin;
+    }
+
+    method acotan(Complex:D:) {
+        (1 / self).atan;
+    }
+
     # method sinh(Complex:D:) {
     #     -((Complex.new(0, 1) * self).sin)i;
     # }

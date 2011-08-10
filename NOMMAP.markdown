@@ -24,6 +24,7 @@ responsible parties.
 * MAIN (2, 1, ???, ???)
 * modules working with nom (3, 1, ???, ???)
 * fix meta-dispatchers to not flatten positionals (3, 2, ???, ???)
+* Perl 6 level backtraces (2, 1, \*\*, moritz)
 
 ## Other NOMMAP notes
 
@@ -75,5 +76,9 @@ Same for my %h and hashes.
 
 ## Phasers
 * END in pre-compiled mainline case
+
+
+## Switch Numeric and Real to be roles
+They are classes right now, which is wrong.
 
 ## fix segfaults

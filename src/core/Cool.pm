@@ -4,6 +4,8 @@ my class Cool {
 
     method rand() { self.Num.rand }
     method truncate() { self.Numeric.truncate }
+    method sin()  { self.Numeric.sin }
+    method asin() { self.Numeric.asin }
     
     ## string methods
 

@@ -56,6 +56,10 @@ proto sub sin(|$) {*}
 multi sub sin(Numeric \$x) { $x.sin }
 multi sub sin(Cool \$x)    { $x.Numeric.sin }
 
+proto sub asin(|$) {*}
+multi sub asin(Numeric \$x) { $x.asin }
+multi sub asin(Cool \$x)    { $x.Numeric.asin }
+
 proto sub cos(|$) {*}
 multi sub cos(Numeric \$x) { $x.cos }
 multi sub cos(Cool \$x)    { $x.Numeric.cos }

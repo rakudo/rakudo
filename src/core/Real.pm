@@ -9,6 +9,7 @@ my class Real {
     multi method sign(Real:D:) { self < 0 ?? -1 !! self == 0 ?? 0 !! 1 }
     method sqrt() { self.Bridge.sqrt }
     method sin()  { self.Bridge.sin }
+    method asin() { self.Bridge.asin }
     method cos()  { self.Bridge.cos }
     method tan()  { self.Bridge.tan }
     method sinh() { self.Bridge.sinh }

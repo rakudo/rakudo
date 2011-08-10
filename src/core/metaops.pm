@@ -165,10 +165,17 @@ multi sub hyper(\$op, \$a, \$b, :$dwim-left, :$dwim-right) {
     ).eager
 }
 
-multi sub hyper(\$op, \$a) {
-    $a.map( { Iterable.ACCEPTS($_)
-                ?? $_.new(hyper($op, $_)).item
-                !! $op($_) } ).eager
+multi sub hyper(\$op, \$obj) {
+    my Mu $rpa := nqp::list();
+    my $a := $obj.flat.eager;
+    for (^$a.elems).pick(*) {
+        my $o := $a.at_pos($_);
+        nqp::bindpos($rpa, nqp::unbox_i($_),
+            Iterable.ACCEPTS($o)
+              ?? $o.new(hyper($op, $o)).item
+              !! $op($o));
+    }
+    nqp::p6parcel($rpa, Nil);
 }
 
 multi sub hyper(\$op, Associative \$h) {

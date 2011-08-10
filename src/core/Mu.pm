@@ -227,9 +227,7 @@ my class Mu {
     }
 
     method dispatch:<hyper>($name, *@pos, *%named) {
-        my @results = (^self.elems).pick(*);
-        @results[@results] = self[@results].map( { $_."$name"(|@pos, |%named) } );
-        @results;
+        hyper( -> \$obj { $obj."$name"(|@pos, |%named) }, self )
     }
 }
 

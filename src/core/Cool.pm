@@ -6,6 +6,8 @@ my class Cool {
     method truncate() { self.Numeric.truncate }
     method sin()  { self.Numeric.sin }
     method asin() { self.Numeric.asin }
+    method cos()  { self.Numeric.cos }
+    method acos() { self.Numeric.acos }
     
     ## string methods
 

@@ -64,6 +64,10 @@ proto sub cos(|$) {*}
 multi sub cos(Numeric \$x) { $x.cos }
 multi sub cos(Cool \$x)    { $x.Numeric.cos }
 
+proto sub acos(|$) {*}
+multi sub acos(Numeric \$x) { $x.acos }
+multi sub acos(Cool \$x)    { $x.Numeric.acos }
+
 proto sub tan(|$) {*}
 multi sub tan(Numeric \$x) { $x.tan }
 multi sub tan(Cool \$x)    { $x.Numeric.tan }

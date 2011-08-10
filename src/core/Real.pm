@@ -11,6 +11,7 @@ my class Real {
     method sin()  { self.Bridge.sin }
     method asin() { self.Bridge.asin }
     method cos()  { self.Bridge.cos }
+    method acos() { self.Bridge.acos }
     method tan()  { self.Bridge.tan }
     method sinh() { self.Bridge.sinh }
     method cosh() { self.Bridge.cosh }

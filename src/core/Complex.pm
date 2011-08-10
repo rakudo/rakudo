@@ -98,14 +98,14 @@ my class Complex is Numeric {
         (Complex.new(0, -1) * log((self)i + sqrt(1 - self * self)));
     }
 
-    # method cos(Complex:D:) {
-    #     $!re.cos * $!im.cosh - ($!re.sin * $!im.sinh)i;
-    # }
-    # 
-    # method acos(Complex:D:) {
-    #     (pi / 2) - self.asin;
-    # }
-    # 
+    method cos(Complex:D:) {
+        $!re.cos * $!im.cosh - ($!re.sin * $!im.sinh)i;
+    }
+    
+    method acos(Complex:D:) {
+        (pi / 2) - self.asin;
+    }
+    
     # method tan(Complex:D:) {
     #     self.sin / self.cos;
     # }

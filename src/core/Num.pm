@@ -83,7 +83,7 @@ my class Num {
         nqp::p6box_n(pir::rand__NN(nqp::unbox_n(self)));
     }
 
-    method ceil(Num:D: ) {
+    method ceiling(Num:D: ) {
         nqp::p6box_n(pir::ceil__NN(nqp::unbox_n(self)));
     }
     method floor(Num:D: ) {

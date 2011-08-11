@@ -88,6 +88,10 @@ proto sub floor(|$)          { * }
 multi sub floor($a)          { $a.Numeric.floor }
 multi sub floor(Numeric $a)  { $a.floor }
 
+proto sub ceiling(|$)          { * }
+multi sub ceiling($a)          { $a.Numeric.ceiling }
+multi sub ceiling(Numeric $a)  { $a.ceiling }
+
 proto infix:<+>($a?, $b?)    { * }
 multi infix:<+>($x = 0)      { $x.Numeric }
 multi infix:<+>(\$a, \$b)    { $a.Numeric + $b.Numeric }

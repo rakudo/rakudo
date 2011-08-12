@@ -3201,13 +3201,7 @@ class Perl6::Actions is HLL::Actions {
 #        my $regex :=  block_closure($rx_coderef);
 
         # Quote needs to be closure-i-fied.
-        my $closure_ast := PAST::Block.new(
-            PAST::Stmts.new(),
-            PAST::Stmts.new(
-                $<quote_EXPR> ?? $<quote_EXPR>.ast !! $<EXPR>.ast
-            )
-        );
-        my $closure := block_closure($closure_ast);
+        my $closure := block_closure(make_thunk_ref($<quote_EXPR> ?? $<quote_EXPR>.ast !! $<EXPR>.ast, $/));
 
         # make $_ = $_.subst(...)
         my $past := PAST::Op.new(
@@ -3217,9 +3211,9 @@ class Perl6::Actions is HLL::Actions {
             $rx_coderef, $closure
         );
         self.handle_and_check_adverbs($/, %SUBST_ALLOWED_ADVERBS, 'substitution', $past);
-#        if $/[0] {
-#            pir::push__vPP($past, PAST::Val.new(:named('samespace'), :value(1)));
-#        }
+        if $/[0] {
+            $past.push(PAST::Val.new(:named('samespace'), :value(1)));
+        }
 
         $past := PAST::Op.new(
             :node($/),

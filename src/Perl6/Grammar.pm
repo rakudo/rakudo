@@ -1862,6 +1862,9 @@ grammar Perl6::Grammar is HLL::Grammar {
     token quote:sym<s> {
         <sym> (s)? >>
         :my %*RX;
+        {
+            %*RX<s> := 1 if $/[0]
+        }
         <rx_adverbs>
         [
         | '/' <p6regex=.LANG('Regex','nibbler')> <?[/]> <quote_EXPR: ':qq'> <.old_rx_mods>?

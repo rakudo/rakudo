@@ -42,10 +42,6 @@ class BackTrace is List {
                 :$code,
             );
         }
-        # another evil hack:
-        # it seems that the backtrace always starts at line 1
-        # of the script, but we're not interested in that
-        $new.pop if $new[*-1].line == 1;
         $new;
     }
 

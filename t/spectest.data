@@ -162,7 +162,7 @@ S03-operators/ternary.t
 S03-operators/so.t
 S03-operators/value_equivalence.t
 S03-sequence/arity0.t
-# S03-sequence/arity-2-or-more.t # err: Method 'succ' not found for invocant of class 'Failure'
+S03-sequence/arity-2-or-more.t
 S03-sequence/basic.t
 # S03-sequence/limit-arity-2-or-more.t # err: Not enough positional parameters passed; got 1 but expected 2
 # S03-sequence/nonnumeric.t # err: Method 'pred' not found for invocant of class 'Failure'
@@ -262,7 +262,7 @@ S05-metachars/newline.t
 # S05-metachars/tilde.t # err: Method 'rxtype' not found for invocant of class 'PAST;Regex'
 # S05-metasyntax/angle-brackets.t # err: Method 'rxtype' not found for invocant of class 'PAST;Regex'
 S05-metasyntax/changed.t
-# S05-metasyntax/charset.t # err: Cannot assign to a non-container
+S05-metasyntax/charset.t
 # S05-metasyntax/lookaround.t # err: Useless declaration of a has-scoped method in mainline
 S05-metasyntax/null.t
 # S05-metasyntax/regex.t # err: Useless declaration of a has-scoped method in mainline
@@ -420,7 +420,7 @@ S12-methods/submethods.t
 S12-methods/syntax.t
 S12-methods/topic.t
 S12-methods/typed-attributes.t
-# S12-methods/what.t # err: Not enough positional parameters passed
+S12-methods/what.t
 S12-subset/multi-dispatch.t
 S12-subset/subtypes.t
 S13-type-casting/methods.t

@@ -24,9 +24,6 @@ use TAP::Harness;
 use TAP::Parser::Aggregator 3.01;
 
 use File::Find;
-use Data::Dumper;
-
-my $parrot = -d 'parrot' ? 'parrot/parrot' : '../../parrot';
 
 my %not_process = map { $_ => 1 } read_specfile('t/spectest.data');
 

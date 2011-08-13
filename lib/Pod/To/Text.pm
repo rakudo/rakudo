@@ -56,7 +56,7 @@ sub table2text($pod) {
 
 sub declarator2text($pod) {
     next unless $pod.WHEREFORE.WHY;
-    do given $pod.WHEREFORE {
+    my $type = do given $pod.WHEREFORE {
         when Method {
             'method'
         }
@@ -72,7 +72,11 @@ sub declarator2text($pod) {
         when nqp::p6bool(nqp::istype($_.HOW, Metamodel::PackageHOW)) {
             'package'
         }
-    } ~ ' ' ~ $pod.WHEREFORE.perl  ~ ': ' ~ $pod.WHEREFORE.WHY
+        default {
+            ''
+        }
+    }
+    return "$type {$pod.WHEREFORE.perl}: {$pod.WHEREFORE.WHY}"
 }
 
 # vim: ft=perl6

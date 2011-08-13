@@ -1,5 +1,5 @@
 use Test;
-plan 46;
+plan 50;
 my $r;
 
 =begin pod
@@ -93,8 +93,12 @@ $r = $=POD[4];
 is $r.content.elems, 3;
 isa_ok $r.content[0], Pod::Block;
 is $r.content[0].content[0].content, 'A heading';
-is $r.content[1].content,
-   'This is Pod too. Specifically, this is a simple C<para> block';
+is $r.content[1].content[0],
+   'This is Pod too. Specifically, this is a simple ';
+isa_ok $r.content[1].content[1], Pod::FormattingCode;
+is $r.content[1].content[1].type, 'C';
+is $r.content[1].content[1].content, 'para';
+is $r.content[1].content[2], ' block';
 isa_ok $r.content[2], Pod::Block::Code;
 is $r.content[2].content,
    q[$this = pod('also');  # Specifically, a code block];

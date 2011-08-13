@@ -25,6 +25,10 @@ my package Pod {
         has @.headers; # optional, may be empty
     }
 
+    class FormattingCode is Block {
+        has $.type;
+    }
+
     class Heading is Block {
         has $.level;
     }

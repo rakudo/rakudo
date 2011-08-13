@@ -172,7 +172,7 @@ grammar Perl6::Grammar is HLL::Grammar {
              || ($<spaces>.to - $<spaces>.from) <= $*VMARGIN }>
 
         $<text> = [
-            \h* <!before '=' \w> \N+ <pod_newline>
+            \h* <!before '=' \w> <pod_string> <pod_newline>
         ] +
     }
 
@@ -182,6 +182,24 @@ grammar Perl6::Grammar is HLL::Grammar {
             && ($<spaces>.to - $<spaces>.from) > $*VMARGIN }>
         $<text> = [
             [<!before '=' \w> \N+] ** [<pod_newline> $<spaces>]
+        ]
+    }
+
+    token pod_formatting_code {
+        $<code>=<[A..Z]>
+        '<' { $*POD_IN_FORMATTINGCODE := 1 }
+        $<content>=[ <!before '>'> <pod_string_character> ]+
+        '>' { $*POD_IN_FORMATTINGCODE := 0 }
+    }
+
+    token pod_string {
+        <pod_string_character>+
+    }
+
+    token pod_string_character {
+        <pod_formatting_code> || $<char>=[ \N || [
+            <?{ $*POD_IN_FORMATTINGCODE == 1}> \n <!before \h* '=' \w>
+            ]
         ]
     }
 
@@ -328,6 +346,7 @@ grammar Perl6::Grammar is HLL::Grammar {
         :my $*TYPENAME := '';
         :my $*VMARGIN    := 0;                     # pod stuff
         :my $*ALLOW_CODE := 0;                     # pod stuff
+        :my $*POD_IN_FORMATTINGCODE := 0;          # pod stuff
         
         # Various interesting scopes we'd like to keep to hand.
         :my $*GLOBALish;

@@ -14,6 +14,7 @@ class Perl6::Metamodel::ParametricRoleGroupHOW
     does Perl6::Metamodel::Naming
 {
     has @!possibilities;
+    has @!add_to_selector;
     has $!selector;
 
     my $archetypes := Perl6::Metamodel::Archetypes.new( :nominal(1), :composable(1), :parametric(1) );
@@ -21,14 +22,14 @@ class Perl6::Metamodel::ParametricRoleGroupHOW
         $archetypes
     }
     
-    method new_type(:$name!) {
-        my $meta := self.new(:name($name));
+    method new_type(:$name!, :$selector!, :$repr) {
+        my $meta := self.new(:name($name), :selector($selector));
         pir::repr_type_object_for__PPS($meta, 'Uninstantiable');
     }
     
     method add_possibility($obj, $possible) {
         @!possibilities.push($possible);
-        $!selector := 0;
+        @!add_to_selector.push($possible);
     }
     
     method specialize($obj, *@pos_args, *%named_args) {
@@ -47,8 +48,11 @@ class Perl6::Metamodel::ParametricRoleGroupHOW
     }
     
     method get_selector($obj) {
-        unless $!selector {
-            
+        if @!add_to_selector {
+            for @!add_to_selector {
+                $!selector.add_dispatchee($_.HOW.body_block($_));
+            }
+            @!add_to_selector := [];
         }
         $!selector
     }

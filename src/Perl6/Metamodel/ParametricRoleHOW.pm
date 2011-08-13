@@ -30,6 +30,10 @@ class Perl6::Metamodel::ParametricRoleHOW
         $!body_block := $block
     }
     
+    method body_block($obj) {
+        $!body_block
+    }
+    
     method compose($obj) {
         $!composed := 1;
         $obj

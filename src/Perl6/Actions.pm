@@ -61,7 +61,7 @@ class Perl6::Actions is HLL::Actions {
         block_immediate($pblock<uninstall_if_immediately_used>.shift);
     }
 
-    sub block_immediate($block) {
+    our sub block_immediate($block) {
         $block.blocktype('immediate');
         $block;
     }
@@ -323,9 +323,11 @@ class Perl6::Actions is HLL::Actions {
     }
 
     method pod_textcontent:sym<regular>($/) {
-        my $t    := Perl6::Pod::formatted_text($<text>.Str);
-        # is only one string now, will be a twine
-        my $twine := Perl6::Pod::serialize_aos([$t])<compile_time_value>;
+        my @t;
+        for $<pod_string> {
+            nqp::splice(@t, $_.ast, +@t, 0)
+        }
+        my $twine := Perl6::Pod::serialize_array(@t)<compile_time_value>;
         make Perl6::Pod::serialize_object(
             'Pod::Block::Para', :content($twine)
         )<compile_time_value>
@@ -340,6 +342,68 @@ class Perl6::Actions is HLL::Actions {
             :content(Perl6::Pod::serialize_aos([$t])<compile_time_value>),
         );
         make $past<compile_time_value>;
+    }
+
+    method pod_formatting_code($/) {
+        my @content := [];
+        for $<pod_string_character> {
+            @content.push($_.ast)
+        }
+        my @t    := self.build_pod_string(@content);
+        my $past := Perl6::Pod::serialize_object(
+            'Pod::FormattingCode',
+            :type(
+                $*ST.add_constant('Str', 'str', ~$<code>)<compile_time_value>
+            ),
+            :content(Perl6::Pod::serialize_array(@t)<compile_time_value>),
+        );
+        make $past<compile_time_value>;
+    }
+
+    method pod_string($/) {
+        my @content := [];
+        for $<pod_string_character> {
+            @content.push($_.ast)
+        }
+        make self.build_pod_string(@content);
+    }
+
+    method build_pod_string(@content) {
+        sub push_strings(@strings, @where) {
+            my $s := subst(pir::join('', @strings), /\s+/, ' ', :global);
+            my $t := $*ST.add_constant(
+                'Str', 'str', $s
+            )<compile_time_value>;
+            @where.push($t);
+        }
+
+        my @res  := [];
+        my @strs := [];
+        for @content -> $elem {
+            if pir::typeof($elem) eq 'String' {
+                # don't push the leading whitespace
+                if +@res + @strs == 0 && $elem eq ' ' {
+
+                } else {
+                    @strs.push($elem);
+                }
+            } else {
+                push_strings(@strs, @res);
+                @strs := [];
+                @res.push($elem);
+            }
+        }
+        push_strings(@strs, @res);
+
+        return @res;
+    }
+
+    method pod_string_character($/) {
+        if $<pod_formatting_code> {
+            make $<pod_formatting_code>.ast
+        } else {
+            make ~$<char>;
+        }
     }
 
     method table_row($/) {
@@ -1568,6 +1632,10 @@ class Perl6::Actions is HLL::Actions {
 
     sub regex_coderef($/, $qast, $scope, $name, @params, $block) {
         # create a code reference from a regex qast tree
+        $block[1].push(PAST::Var.new(:name<$¢>, :scope<lexical_6model>, :isdecl(1)));
+        $block[1].push(PAST::Var.new(:name<$/>, :scope<lexical_6model>, :isdecl(1)));
+        $block.symbol('$¢', :scope<lexical_6model>);
+        $block.symbol('$/', :scope<lexical_6model>);
         my $past := QRegex::P6Regex::Actions::buildsub($qast, $block);
         $past.name($name);
         $past.blocktype("declaration");
@@ -3888,12 +3956,12 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions {
 
     method metachar:sym<:my>($/) {
         my $past := $<statement>.ast;
-        make PAST::Regex.new( $past, :pasttype('pastnode') );
+        make QAST::Regex.new( $past, :rxtype('pastnode') );
     }
 
     method metachar:sym<{ }>($/) {
-        make PAST::Regex.new( $<codeblock>.ast,
-                              :pasttype<pastnode>, :node($/) );
+        make QAST::Regex.new( $<codeblock>.ast,
+                              :rxtype<pastnode>, :node($/) );
     }
 
     method metachar:sym<rakvar>($/) {
@@ -3908,9 +3976,9 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions {
     }
 
     method assertion:sym<?{ }>($/) {
-        make PAST::Regex.new( $<codeblock>.ast,
+        make QAST::Regex.new( $<codeblock>.ast,
                               :subtype<zerowidth>, :negate( $<zw> eq '!' ),
-                              :pasttype<pastnode>, :node($/) );
+                              :rxtype<pastnode>, :node($/) );
     }
 
     method assertion:sym<var>($/) {
@@ -3920,19 +3988,19 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions {
     }
 
     method codeblock($/) {
-        my $block := Perl6::Actions::block_immediate($<block>.ast);
+        my $blockref := $<block>.ast;
         my $past :=
             PAST::Stmts.new(
                 PAST::Op.new(
-                    PAST::Var.new( :name('$/') ),
+                    PAST::Var.new( :name('$/'), :scope<lexical_6model> ),
                     PAST::Op.new(
-                        PAST::Var.new( :name('$¢') ),
+                        PAST::Var.new( :name('$¢'), :scope<lexical_6model> ),
                         :name('MATCH'),
                         :pasttype('callmethod')
                     ),
                     :pasttype('bind_6model')
                 ),
-                $block
+                PAST::Op.new(:pasttype<call>, $blockref)
             );
         make $past;
     }

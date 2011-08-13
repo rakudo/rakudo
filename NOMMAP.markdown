@@ -17,7 +17,6 @@ responsible parties.
 * Grammars, qregex, other regex stuff (1, 1, \*\*\*, pmichaud)
 * Buf (2, 1, **, pmichaud)
 * DateTime, Date (2, 1, \*\*, ???)
-* Code constraints on multidispatch (2, 1, \*\*\*, jnthn)
 * Operator overloading (2, 1, \*, ???)   (may be done already)
 * Define new operators (2, 1, \*\*, pmichaud) (awaiting other regex updates)
 * Whatever currying (2, 1, ???, ???) (*.method case still missing, return type is not WhateverCode)

@@ -1723,7 +1723,8 @@ class Perl6::Actions is HLL::Actions {
                 $value := $rhs_ast<compile_time_value>;
             }
             else {
-                $/.CURSOR.panic("Cannot handle constant with non-literal value yet");
+                my $name := ~($<identifier> // $<variable>);
+                $/.CURSOR.panic("Cannot handle constant $name with non-literal value yet");
             }
 
             # Get name to install it as.

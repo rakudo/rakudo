@@ -20,6 +20,8 @@ my class Real {
     proto method atan2(|$) {*}
     multi method atan2(Real $x = 1e0) { self.Bridge.atan2($x.Bridge) }
     multi method atan2(Cool $x = 1e0) { self.Bridge.atan2($x.Numeric.Bridge) }
+    method sec() { self.Bridge.sec }
+    method asec() { self.Bridge.asec }
     method floor() { self.Bridge.floor }
     method ceiling() { self.Bridge.ceiling }
     method unpolar(Real $angle) {

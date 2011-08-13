@@ -61,7 +61,7 @@ class Perl6::Actions is HLL::Actions {
         block_immediate($pblock<uninstall_if_immediately_used>.shift);
     }
 
-    sub block_immediate($block) {
+    our sub block_immediate($block) {
         $block.blocktype('immediate');
         $block;
     }
@@ -1565,6 +1565,10 @@ class Perl6::Actions is HLL::Actions {
 
     sub regex_coderef($/, $qast, $scope, $name, @params, $block) {
         # create a code reference from a regex qast tree
+        $block[1].push(PAST::Var.new(:name<$¢>, :scope<lexical_6model>, :isdecl(1)));
+        $block[1].push(PAST::Var.new(:name<$/>, :scope<lexical_6model>, :isdecl(1)));
+        $block.symbol('$¢', :scope<lexical_6model>);
+        $block.symbol('$/', :scope<lexical_6model>);
         my $past := QRegex::P6Regex::Actions::buildsub($qast, $block);
         $past.name($name);
         $past.blocktype("declaration");
@@ -3885,12 +3889,12 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions {
 
     method metachar:sym<:my>($/) {
         my $past := $<statement>.ast;
-        make PAST::Regex.new( $past, :pasttype('pastnode') );
+        make QAST::Regex.new( $past, :rxtype('pastnode') );
     }
 
     method metachar:sym<{ }>($/) {
-        make PAST::Regex.new( $<codeblock>.ast,
-                              :pasttype<pastnode>, :node($/) );
+        make QAST::Regex.new( $<codeblock>.ast,
+                              :rxtype<pastnode>, :node($/) );
     }
 
     method metachar:sym<rakvar>($/) {
@@ -3905,9 +3909,9 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions {
     }
 
     method assertion:sym<?{ }>($/) {
-        make PAST::Regex.new( $<codeblock>.ast,
+        make QAST::Regex.new( $<codeblock>.ast,
                               :subtype<zerowidth>, :negate( $<zw> eq '!' ),
-                              :pasttype<pastnode>, :node($/) );
+                              :rxtype<pastnode>, :node($/) );
     }
 
     method assertion:sym<var>($/) {
@@ -3917,19 +3921,19 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions {
     }
 
     method codeblock($/) {
-        my $block := Perl6::Actions::block_immediate($<block>.ast);
+        my $blockref := $<block>.ast;
         my $past :=
             PAST::Stmts.new(
                 PAST::Op.new(
-                    PAST::Var.new( :name('$/') ),
+                    PAST::Var.new( :name('$/'), :scope<lexical_6model> ),
                     PAST::Op.new(
-                        PAST::Var.new( :name('$¢') ),
+                        PAST::Var.new( :name('$¢'), :scope<lexical_6model> ),
                         :name('MATCH'),
                         :pasttype('callmethod')
                     ),
                     :pasttype('bind_6model')
                 ),
-                $block
+                PAST::Op.new(:pasttype<call>, $blockref)
             );
         make $past;
     }

@@ -1152,7 +1152,7 @@ grammar Perl6::Grammar is HLL::Grammar {
                 else {
                     # Augment. Ensure we can.
                     unless $*MONKEY_TYPING {
-                        $/.CURSOR.panic("augment not allowed without 'use MONEKY_TYPING'");
+                        $/.CURSOR.panic("augment not allowed without 'use MONKEY_TYPING'");
                     }
                     if $*PKGDECL eq 'role' {
                         $/.CURSOR.panic("Can not augment a role, since roles are immutable");

@@ -15,7 +15,7 @@ my class Int {
         nqp::p6box_n(nqp::unbox_i(self));
     }
 
-    method Rat(Int:D:) {
+    method Rat(Int:D: $?) {
         Rat.new(self, 1);
     }
 

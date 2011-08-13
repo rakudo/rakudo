@@ -42,7 +42,6 @@ pir::perl6_set_type_packagehow__vP(Perl6::Metamodel::PackageHOW);
 
 # class Mu { ... }
 my stub Mu metaclass Perl6::Metamodel::ClassHOW { ... };
-pir::perl6_set_type_mu__vP(Mu);
 
 # XXX Move out of bootstrap when possible.
 Mu.HOW.add_parrot_vtable_mapping(Mu, 'get_bool',
@@ -66,6 +65,7 @@ Mu.HOW.add_parrot_vtable_mapping(Mu, 'defined',
 my stub Any metaclass Perl6::Metamodel::ClassHOW { ... };
 Any.HOW.add_parent(Any, Mu);
 Perl6::Metamodel::ClassHOW.set_default_parent_type(Any);
+pir::perl6_set_types_mu_any__vP(Mu, Any);
 
 # class Cool is Any { ... }
 my stub Cool metaclass Perl6::Metamodel::ClassHOW { ... };

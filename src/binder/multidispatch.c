@@ -195,7 +195,13 @@ static Rakudo_md_candidate_info** sort_candidates(PARROT_INTERP, PMC *candidates
             }
 
             /* Record type info for this parameter. */
-            info->types[significant_param]       = param->nominal_type;
+            if (param->flags & SIG_ELEM_NOMINAL_GENERIC) {
+                info->bind_check = 1;
+                info->types[significant_param] = Rakudo_types_any_get();
+            }
+            else {
+                info->types[significant_param] = param->nominal_type;
+            }
             info->constraints[significant_param] = param->post_constraints;
             if (!PMC_IS_NULL(info->constraints[significant_param]))
                 info->bind_check = 1;
@@ -425,7 +431,7 @@ static PMC* find_best_candidate(PARROT_INTERP, Rakudo_md_candidate_info **candid
                         PMC      *lexpad = Parrot_pcc_get_lex_pad(interp, CURRENT_CONTEXT(interp));
                         PMC      *sig    = possibles[i]->signature;
                         INTVAL bind_check_result = Rakudo_binding_bind(interp, lexpad,
-                              sig, capture, 1, NULL);
+                              sig, capture, 0, NULL);
                         where = VTABLE_invoke(interp, Parrot_pcc_get_continuation(interp, CURRENT_CONTEXT(interp)), where);
 
                         /* If we haven't got a possibles storage space, allocate it now. */

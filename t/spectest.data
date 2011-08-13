@@ -574,10 +574,10 @@ S32-trig/pi.t
 S32-trig/sin.t
 S32-trig/cos.t
 S32-trig/tan.t
-# S32-trig/sec.t # err: Method 'sec' not found for invocant of class 'Rat'
+S32-trig/sec.t
 # S32-trig/cosec.t # err: Method 'cosec' not found for invocant of class 'Rat'
 # S32-trig/cotan.t # err: Method 'cotan' not found for invocant of class 'Rat'
-# S32-trig/atan2.t # err: No applicable candidates found to dispatch to for 'atan2'
+S32-trig/atan2.t
 # S32-trig/sinh.t # err: Method 'sinh' not found for invocant of class 'Complex'
 # S32-trig/cosh.t # err: Method 'cosh' not found for invocant of class 'Complex'
 # S32-trig/tanh.t # err: Could not find sub &cosh

@@ -238,15 +238,16 @@ inline op bind_signature() :base_core {
 
 /*
 
-=item perl6_set_type_mu(in PMC)
+=item perl6_set_types_mu_any(in PMC, in PMC)
 
 Sets the top type.
 
 =cut
 
 */
-inline op perl6_set_type_mu(in PMC) :base_core {
+inline op perl6_set_types_mu_any(in PMC, in PMC) :base_core {
     Rakudo_types_mu_set($1);
+    Rakudo_types_any_set($2);
 }
 
 

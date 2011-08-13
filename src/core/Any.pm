@@ -43,7 +43,7 @@ my class Any {
         MapIter.new(:list((self,).flat), :block($block)).list
     }
 
-    method min($by = { $^a cmp $^b }) {
+    method min($by = &infix:<cmp>) {
         my $cmp = $by.arity == 2 ?? $by !! { $by($^a) cmp $by($^b) }
         my $min = +$Inf;
         for self { 
@@ -52,7 +52,7 @@ my class Any {
         $min;
     }
 
-    method max($by = { $^a cmp $^b }) {
+    method max($by = &infix:<cmp>) {
         my $cmp = $by.arity == 2 ?? $by !! { $by($^a) cmp $by($^b) }
         my $max = -$Inf;
         for self { 
@@ -62,7 +62,7 @@ my class Any {
     }
 
 
-    method minmax($by = { $^a cmp $^b}) {
+    method minmax($by = &infix:<cmp>) {
         my $cmp = $by.arity == 2 ?? $by !! { $by($^a) cmp $by($^b) };
 
         my $min = +$Inf;
@@ -73,7 +73,7 @@ my class Any {
         for @.list {
             .defined or next;
 
-            if .^isa(Range) {
+            if .isa(Range) {
                 if $cmp($_.min, $min) < 0 {
                     $min = $_;
                     $excludes_min = $_.excludes_min;
@@ -223,15 +223,18 @@ multi postfix:<-->(Mu:U \$a is rw) { $a = -1; 0 }
 
 proto infix:<min>(|$)     { * }
 multi infix:<min>(*@args) { @args.min }
-sub min(*@args, :&by = { $^a cmp $^b }) { @args.min(&by) }
+proto sub min(*@args) { @args.min() }
+multi sub min(*@args, :&by) { @args.min(&by) }
 
 proto infix:<max>(|$)     { * }
 multi infix:<max>(*@args) { @args.max }
-sub max(*@args, :&by = { $^a cmp $^b }) { @args.max(&by) }
+proto sub max(*@args) { @args.max() }
+multi sub max(*@args, :&by) { @args.max(&by) }
 
 proto infix:<minmax>(|$)     { * }
 multi infix:<minmax>(*@args) { @args.minmax }
-sub minmax(*@args, :&by = { $^a cmp $^b }) { @args.minmax(&by) }
+proto sub minmax(*@args) { @args.minmax() }
+multi sub minmax(*@args, :&by) { @args.minmax(&by) }
 
 proto map(|$) {*}
 multi map(&code, *@values) { @values.map(&code) }

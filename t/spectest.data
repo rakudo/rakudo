@@ -506,7 +506,7 @@ S32-list/end.t
 S32-list/grep.t
 S32-list/join.t
 S32-list/map_function_return_values.t
-# S32-list/map.t # err: splice() not implemented in class 'Mu'
+S32-list/map.t
 # S32-list/minmax.t # err: Cannot access attributes in a type object
 S32-list/pick.t
 S32-list/reduce.t
@@ -558,7 +558,7 @@ S32-str/samecase.t                                         # icu
 # S32-str/split-simple.t # err: No applicable candidates found to dispatch to for 'split'.
 S32-str/split.t
 S32-str/sprintf.t
-# S32-str/substr.t # err: Method 'capitalize' not found for invocant of class 'Str'
+S32-str/substr.t
 S32-str/trim.t
 S32-str/uc.t                                               # icu
 S32-str/ucfirst.t                                          # icu

@@ -421,24 +421,12 @@ static PMC* find_best_candidate(PARROT_INTERP, Rakudo_md_candidate_info **candid
                     if (possibles[i]->bind_check) {
                         /* We'll invoke the sub (but not re-enter the runloop)
                          * and then attempt to bind the signature. */
-                        /*opcode_t *where  = VTABLE_invoke(interp, possibles[i]->sub, next);
+                        opcode_t *where  = VTABLE_invoke(interp, possibles[i]->sub, next);
                         PMC      *lexpad = Parrot_pcc_get_lex_pad(interp, CURRENT_CONTEXT(interp));
                         PMC      *sig    = possibles[i]->signature;
                         INTVAL bind_check_result = Rakudo_binding_bind(interp, lexpad,
                               sig, capture, 1, NULL);
-                        */
-                        /* XXX In the future, we can actually keep the context if we only
-                         * need one candidate, and then hand back the current PC and mark
-                         * the context as not needing a bind. Just needs some code re-org.
-                         * For now, we always clean up the ret-cont again. */
-                        /*where = VTABLE_invoke(interp, Parrot_pcc_get_continuation(interp, CURRENT_CONTEXT(interp)), where);*/
-                        
-                        /* XXX Review the above to see if it's really needed. For now, we
-                         * can try the following. */
-                        PMC *sig      = possibles[i]->signature;
-                        PMC *fake_pad = pmc_new(interp, enum_class_Hash);
-                        INTVAL bind_check_result = Rakudo_binding_bind(interp, fake_pad,
-                              sig, capture, 1, NULL);
+                        where = VTABLE_invoke(interp, Parrot_pcc_get_continuation(interp, CURRENT_CONTEXT(interp)), where);
 
                         /* If we haven't got a possibles storage space, allocate it now. */
                         if (!new_possibles)

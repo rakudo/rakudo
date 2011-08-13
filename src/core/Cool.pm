@@ -10,6 +10,7 @@ my class Cool {
     method acos() { self.Numeric.acos }
     method tan()  { self.Numeric.tan }
     method atan() { self.Numeric.atan }
+    method atan2($y = 1e0) { self.Numeric.atan2($y.Numeric) }
     
     ## string methods
 

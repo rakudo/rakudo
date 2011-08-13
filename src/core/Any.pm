@@ -73,7 +73,7 @@ my class Any {
         for @.list {
             .defined or next;
 
-            if .^isa(Range) {
+            if .isa(Range) {
                 if $cmp($_.min, $min) < 0 {
                     $min = $_;
                     $excludes_min = $_.excludes_min;

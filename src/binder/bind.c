@@ -422,6 +422,7 @@ Rakudo_binding_bind_one_param(PARROT_INTERP, PMC *lexpad, Rakudo_Signature *sign
     /* Handle any constraint types (note that they may refer to the parameter by
      * name, so we need to have bound it already). */
     if (!PMC_IS_NULL(param->post_constraints)) {
+        PMC * code_type         = Rakudo_types_code_get();
         PMC * const constraints = param->post_constraints;
         INTVAL num_constraints  = VTABLE_elements(interp, constraints);
         INTVAL i;
@@ -431,6 +432,9 @@ Rakudo_binding_bind_one_param(PARROT_INTERP, PMC *lexpad, Rakudo_Signature *sign
             PMC *accepts_meth = VTABLE_find_method(interp, cons_type, ACCEPTS);
             PMC *old_ctx      = Parrot_pcc_get_signature(interp, CURRENT_CONTEXT(interp));
             PMC *cappy        = Parrot_pmc_new(interp, enum_class_CallContext);
+            if (STABLE(cons_type)->type_check(interp, cons_type, code_type))
+                Parrot_sub_capture_lex(interp,
+                    VTABLE_get_attr_keyed(interp, cons_type, code_type, DO_str));
             VTABLE_push_pmc(interp, cappy, cons_type);
             VTABLE_push_pmc(interp, cappy, value);
             Parrot_pcc_invoke_from_sig_object(interp, accepts_meth, cappy);

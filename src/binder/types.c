@@ -22,6 +22,7 @@ static PMC * LoL        = NULL;
 static PMC * EnumMap    = NULL;
 static PMC * _Hash      = NULL;
 static PMC * Capture    = NULL;
+static PMC * Code       = NULL;
 static PMC * BoolFalse  = NULL;
 static PMC * BoolTrue   = NULL;
 static PMC * PackageHOW = NULL;
@@ -68,6 +69,9 @@ PMC * Rakudo_types_hash_get(void) { return _Hash; }
 
 void Rakudo_types_capture_set(PMC * type) { Capture = type; }
 PMC * Rakudo_types_capture_get(void) { return Capture; }
+
+void Rakudo_types_code_set(PMC * type) { Code = type; }
+PMC * Rakudo_types_code_get(void) { return Code; }
 
 void Rakudo_types_bool_false_set(PMC * type) { BoolFalse = type; }
 PMC * Rakudo_types_bool_false_get(void) { return BoolFalse; }

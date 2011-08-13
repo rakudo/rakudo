@@ -408,7 +408,8 @@ Code.HOW.add_method(Code, 'dispatcher', sub ($self) {
         pir::getattribute__PPPs(pir::perl6_decontainerize__PP($self),
             Code, '$!dispatcher')
     });
-
+pir::perl6_set_type_code__vP(Code);
+    
 # Need to actually run the code block. Also need this available before we finish
 # up the stub.
 Code.HOW.add_parrot_vtable_mapping(Code, 'invoke', nqp::null());

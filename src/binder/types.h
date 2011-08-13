@@ -43,6 +43,9 @@ PMC * Rakudo_types_hash_get(void);
 void Rakudo_types_capture_set(PMC * type);
 PMC * Rakudo_types_capture_get(void);
 
+void Rakudo_types_code_set(PMC * type);
+PMC * Rakudo_types_code_get(void);
+
 void Rakudo_types_bool_false_set(PMC * type);
 PMC * Rakudo_types_bool_false_get(void);
 

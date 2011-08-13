@@ -634,7 +634,19 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
             my $p6_pns := $rns{'perl6'};
             $p6_pns{'GLOBAL'} := $*GLOBALish;
             unless $precomp {
+                # Compile the block.
                 $precomp := self.compile_in_context($code_past, $code_type);
+
+                # Also compile the candidates if this is a proto.
+                if $is_dispatcher {
+                    for nqp::getattr($code, $code_type, '$!dispatchees') {
+                        my $stub := nqp::getattr($_, $code_type, '$!do');
+                        my $past := pir::getprop__PsP('PAST_BLOCK', $stub);
+                        if $past {
+                            self.compile_in_context($past, $code_type);
+                        }
+                    }
+                }
             }
             $precomp(|@pos, |%named);
         };
@@ -669,6 +681,9 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
                         self.get_object_sc_ref_past($clone)
                     )));
             });
+			
+			# Attach the PAST block to the stub.
+			pir::setprop__vPsP($stub, 'PAST_BLOCK', $code_past);
         }
         
         # Desserialization should do the actual creation and just put the right

@@ -47,7 +47,7 @@ my class Any {
         my $cmp = $by.arity == 2 ?? $by !! { $by($^a) cmp $by($^b) }
         my $min = +$Inf;
         for self { 
-            $min = $_ if .defined && $_ cmp $min < 0;
+            $min = $_ if .defined && $cmp($_, $min) < 0;
         }
         $min;
     }
@@ -56,7 +56,7 @@ my class Any {
         my $cmp = $by.arity == 2 ?? $by !! { $by($^a) cmp $by($^b) }
         my $max = -$Inf;
         for self { 
-            $max = $_ if .defined && $_ cmp $max > 0;
+            $max = $_ if .defined && $cmp($_, $max) > 0;
         }
         $max;
     }

@@ -1415,10 +1415,10 @@ class Perl6::Actions is HLL::Actions {
     }
     
     method autogenerate_proto($/, $name, $install_in) {
-        my $p_past := PAST::Block.new(
-            :name($name), :nsentry(''),
-            PAST::Stmts.new(),
-            PAST::Op.new( :pirop('perl6_enter_multi_dispatch_from_onlystar_block P') ));
+        my $p_past := $*ST.push_lexpad($/);
+        $p_past.name('AUTOGEN-PROTO');
+        $p_past.push(PAST::Op.new( :pirop('perl6_enter_multi_dispatch_from_onlystar_block P') ));
+        $*ST.pop_lexpad();
         $install_in.push(PAST::Stmt.new($p_past));
         my @p_params := [hash(is_capture => 1, nominal_type => $*ST.find_symbol(['Mu']) )];
         my $p_sig := $*ST.create_signature([$*ST.create_parameter(@p_params[0])]);

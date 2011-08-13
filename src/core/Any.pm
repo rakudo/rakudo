@@ -223,18 +223,21 @@ multi postfix:<-->(Mu:U \$a is rw) { $a = -1; 0 }
 
 proto infix:<min>(|$)     { * }
 multi infix:<min>(*@args) { @args.min }
-proto sub min(*@args) { @args.min() }
-multi sub min(*@args, :&by) { @args.min(&by) }
+proto sub min(|$)     { * }
+multi sub min(*@args) { @args.min() }
+multi sub min(*@args, :&by!) { @args.min(&by) }
 
 proto infix:<max>(|$)     { * }
 multi infix:<max>(*@args) { @args.max }
-proto sub max(*@args) { @args.max() }
-multi sub max(*@args, :&by) { @args.max(&by) }
+proto sub max(|$) { * }
+multi sub max(*@args) { @args.max() }
+multi sub max(*@args, :&by!) { @args.max(&by) }
 
 proto infix:<minmax>(|$)     { * }
 multi infix:<minmax>(*@args) { @args.minmax }
-proto sub minmax(*@args) { @args.minmax() }
-multi sub minmax(*@args, :&by) { @args.minmax(&by) }
+proto sub minmax(|$) { * }
+multi sub minmax(*@args) { @args.minmax() }
+multi sub minmax(*@args, :&by!) { @args.minmax(&by) }
 
 proto map(|$) {*}
 multi map(&code, *@values) { @values.map(&code) }

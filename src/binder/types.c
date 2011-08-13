@@ -9,6 +9,7 @@
 #include "bind.h"
 
 static PMC * Mu         = NULL;
+static PMC * Any        = NULL;
 static PMC * Junction   = NULL;
 static PMC * Int        = NULL;
 static PMC * Num        = NULL;
@@ -30,6 +31,9 @@ static PMC * JunctionThreader = NULL;
 
 void Rakudo_types_mu_set(PMC * type) { Mu = type; }
 PMC * Rakudo_types_mu_get(void) { return Mu; }
+
+void Rakudo_types_any_set(PMC * type) { Any = type; }
+PMC * Rakudo_types_any_get(void) { return Any; }
 
 void Rakudo_types_junction_set(PMC * type) { Junction = type; }
 PMC * Rakudo_types_junction_get(void) { return Junction; }

@@ -43,7 +43,7 @@ my class Any {
         MapIter.new(:list((self,).flat), :block($block)).list
     }
 
-    method min($by = { $^a cmp $^b }) {
+    method min($by = &infix:<cmp>) {
         my $cmp = $by.arity == 2 ?? $by !! { $by($^a) cmp $by($^b) }
         my $min = +$Inf;
         for self { 
@@ -52,7 +52,7 @@ my class Any {
         $min;
     }
 
-    method max($by = { $^a cmp $^b }) {
+    method max($by = &infix:<cmp>) {
         my $cmp = $by.arity == 2 ?? $by !! { $by($^a) cmp $by($^b) }
         my $max = -$Inf;
         for self { 

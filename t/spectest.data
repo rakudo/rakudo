@@ -140,7 +140,7 @@ S03-operators/increment.t
 S03-operators/is-divisible-by.t
 S03-operators/lcm.t
 S03-operators/list-quote-junction.t
-# S03-operators/minmax.t # err: Cannot access attributes in a type object
+S03-operators/minmax.t
 S03-operators/misc.t
 S03-operators/names.t
 # S03-operators/nesting.t # err: Unable to parse blockoid
@@ -227,54 +227,54 @@ S04-statements/try.t
 S04-statements/unless.t
 S04-statements/until.t
 S04-statements/while.t
-# S05-capture/caps.t # err: Method 'rxtype' not found for invocant of class 'PAST;Regex'
-# S05-capture/dot.t # err: Useless declaration of a has-scoped method in mainline
-# S05-capture/named.t # err: Method 'rxtype' not found for invocant of class 'PAST;Regex'
-# S05-capture/subrule.t # err: Method 'rxtype' not found for invocant of class 'PAST;Regex'
-# S05-grammar/action-stubs.t # err: Null PMC access in set_pmc_keyed()
+# S05-capture/caps.t # err: Method 'push' not found for invocant of class 'Undef'
+# S05-capture/dot.t # err: Method 'push' not found for invocant of class 'Undef'
+# S05-capture/named.t # err: Method 'push' not found for invocant of class 'Undef'
+# S05-capture/subrule.t # err: Method 'push' not found for invocant of class 'Undef'
+# S05-grammar/action-stubs.t # err: Method 'push' not found for invocant of class 'Undef'
 # S05-grammar/inheritance.t # err: Null PMC access in set_pmc_keyed()
-# S05-grammar/methods.t # err: Null PMC access in invoke()
-# S05-grammar/namespace.t # err: Useless declaration of a has-scoped method in mainline
-# S05-grammar/parse_and_parsefile.t # err: Could not locate compile-time value for symbol No::Such::Grammar
-# S05-grammar/protoregex.t # err: Quantifier quantifies nothing
+# S05-grammar/methods.t # err: Method 'push' not found for invocant of class 'Undef'
+# S05-grammar/namespace.t # err: Method 'push' not found for invocant of class 'Undef'
+# S05-grammar/parse_and_parsefile.t # err: Method 'push' not found for invocant of class 'Undef'
+# S05-grammar/protoregex.t # err: Method 'push' not found for invocant of class 'Undef'
 # S05-grammar/protos.t # err: Null PMC access in set_pmc_keyed()
 # S05-grammar/signatures.t # err: Null PMC access in set_pmc_keyed()
-# S05-grammar/ws.t # err: regex assertion not terminated by angle bracket
-# S05-interpolation/lexicals.t # err: Method 'rxtype' not found for invocant of class 'PAST;Regex'
-# S05-interpolation/regex-in-variable.t # err: Null PMC access in invoke()
+# S05-grammar/ws.t # err: Method 'push' not found for invocant of class 'Undef'
+# S05-interpolation/lexicals.t # err: Method 'push' not found for invocant of class 'Undef'
+# S05-interpolation/regex-in-variable.t # err: Method 'rxtype' not found for invocant of class 'PAST;Regex'
 S05-mass/named-chars.t
 # S05-mass/properties-block.t # err: Method 'isInAlphabeticPresentationForms' not found for invocant of class 'Cursor'
 # S05-mass/properties-derived.t # err: Method 'isASCIIHexDigit' not found for invocant of class 'Cursor'
 # S05-mass/properties-general.t # hangs
 # S05-mass/properties-script.t # err: Method 'isBidiL' not found for invocant of class 'Cursor'
-# S05-mass/rx.t # err: Null PMC access in invoke()
+# S05-mass/rx.t # err: Method 'before' not found for invocant of class 'Cursor'
 # S05-mass/recursive.t # err: Method 'rxtype' not found for invocant of class 'PAST;Regex'
 S05-mass/stdrules.t
 S05-match/arrayhash.t
 S05-match/blocks.t
-# S05-match/capturing-contexts.t # err: Method 'rxtype' not found for invocant of class 'PAST;Regex'
-# S05-match/non-capturing.t # err: Method 'rxtype' not found for invocant of class 'PAST;Regex'
-# S05-match/perl.t # err: Method 'rxtype' not found for invocant of class 'PAST;Regex'
-# S05-match/positions.t # err: Method 'chars' not found for invocant of class 'Match'
-# S05-metachars/closure.t # err: Null PMC access in invoke()
+# S05-match/capturing-contexts.t # err: Method 'push' not found for invocant of class 'Undef'
+# S05-match/non-capturing.t # err: Method 'push' not found for invocant of class 'Undef'
+# S05-match/perl.t # err: Method 'push' not found for invocant of class 'Undef'
+# S05-match/positions.t # err: Method 'push' not found for invocant of class 'Undef'
+# S05-metachars/closure.t # err: Method 'nqpattr' not found for invocant of class 'Undef'
 S05-metachars/line-anchors.t
 S05-metachars/newline.t
-# S05-metachars/tilde.t # err: Method 'rxtype' not found for invocant of class 'PAST;Regex'
+# S05-metachars/tilde.t # err: Method 'push' not found for invocant of class 'Undef'
 # S05-metasyntax/angle-brackets.t # err: Method 'rxtype' not found for invocant of class 'PAST;Regex'
 S05-metasyntax/changed.t
 S05-metasyntax/charset.t
-# S05-metasyntax/lookaround.t # err: Useless declaration of a has-scoped method in mainline
+# S05-metasyntax/lookaround.t # err: Method 'push' not found for invocant of class 'Undef'
 S05-metasyntax/null.t
-# S05-metasyntax/regex.t # err: Useless declaration of a has-scoped method in mainline
-# S05-metasyntax/repeat.t # err: Null PMC access in invoke()
+# S05-metasyntax/regex.t # err: Method 'push' not found for invocant of class 'Undef'
+# S05-metasyntax/repeat.t # err: Method 'push' not found for invocant of class 'Undef'
 # S05-metasyntax/sequential-alternation.t # err: Method 'rxtype' not found for invocant of class 'PAST;Regex'
-# S05-metasyntax/single-quotes.t # err: Null PMC access in invoke()
+S05-metasyntax/single-quotes.t
 S05-metasyntax/unknown.t
-# S05-modifier/continue.t # err: Method 'rxtype' not found for invocant of class 'PAST;Regex'
+# S05-modifier/continue.t # err: Method 'push' not found for invocant of class 'Undef'
 S05-modifier/counted-match.t
 S05-modifier/global.t
 S05-modifier/ii.t
-# S05-modifier/ignorecase.t # err: Method 'rxtype' not found for invocant of class 'PAST;Regex' #icu
+# S05-modifier/ignorecase.t # err: Method 'push' not found for invocant of class 'Undef'
 S05-modifier/overlapping.t
 # S05-modifier/perl5_1.t # err: Adverb 'P5' not allowed on m
 # S05-modifier/perl5_2.t # err: Adverb 'P5' not allowed on m
@@ -349,7 +349,7 @@ S09-autovivification/autoincrement.t
 S09-subscript_slice/slice.t
 # S09-typed-arrays/arrays.t # err: Cannot put a type constraint on an 'our'-scoped variable
 # S09-typed-arrays/hashes.t # err: Method 'of' not found for invocant of class 'Hash'
-# S10-packages/basic.t # err: Unable to parse blockoid, couldn't find final '}' at line 107
+# S10-packages/basic.t # err: Method 'push' not found for invocant of class 'Undef'
 S10-packages/use-with-class.t
 # S11-modules/export.t # err: Could not find symbol 'Foo::&Foo_exp_parens
 # S11-modules/import.t # err: Illegal redeclaration of module 'B'
@@ -377,7 +377,7 @@ S12-class/inheritance.t
 S12-class/instantiate.t
 # S12-class/interface-consistency.t # err: No applicable candidates found to dispatch to for 'trait_mod:<is>'.
 S12-class/lexical.t
-# S12-class/namespaced.t # err: regex assertion not terminated by angle bracket at line 54, near "::D::test>"
+# S12-class/namespaced.t # err: Method 'push' not found for invocant of class 'Undef'
 S12-class/open.t
 # S12-class/parent_attributes.t # err: Method 'at_key' not found for invocant of class 'Foo'
 S12-class/rw.t
@@ -398,7 +398,7 @@ S12-introspection/meta-class.t
 S12-introspection/methods.t
 S12-introspection/parents.t
 # S12-introspection/roles.t # err: Method 'roles' not found for invocant of class 'Perl6::Metamodel::ClassHOW'
-# S12-introspection/walk.t # err: Useless declaration of a has-scoped method in mainline
+# S12-introspection/walk.t # err: Method 'push' not found for invocant of class 'Undef'
 S12-methods/attribute-params.t
 # S12-methods/calling_sets.t # err: Cannot access attributes in a type object
 S12-methods/calling_syntax.t
@@ -498,7 +498,7 @@ S32-hash/slice.t
 # S32-io/chdir.t # err: Method 'd' not found for invocant of class 'Str'
 S32-io/file-tests.t
 S32-io/note.t
-# S32-io/IO-Socket-INET.t # err: Useless declaration of a has-scoped method in mainline
+# S32-io/IO-Socket-INET.t # err: Method 'push' not found for invocant of class 'Undef'
 S32-list/classify.t
 S32-list/create.t
 S32-list/end.t
@@ -507,7 +507,7 @@ S32-list/grep.t
 S32-list/join.t
 S32-list/map_function_return_values.t
 S32-list/map.t
-# S32-list/minmax.t # err: Cannot access attributes in a type object
+# S32-list/minmax.t # err: Too many positional parameters passed
 S32-list/pick.t
 S32-list/reduce.t
 S32-list/reverse.t
@@ -599,9 +599,9 @@ integration/advent2009-day04.t
 integration/advent2009-day05.t
 integration/advent2009-day06.t
 integration/advent2009-day07.t
-# integration/advent2009-day08.t # err: Nominal type check failed for parameter '$a'; expected Any but got Mu
+# integration/advent2009-day08.t # err: Method 'chr' not found for invocant of class 'Str'
 # integration/advent2009-day09.t # err: Not enough positional parameters passed
-# integration/advent2009-day10.t # err: Method 'parse' not found for invocant of class 'Inventory'
+# integration/advent2009-day10.t # err: Method 'push' not found for invocant of class 'Undef'
 integration/advent2009-day11.t
 integration/advent2009-day12.t
 integration/advent2009-day13.t

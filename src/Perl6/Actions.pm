@@ -323,14 +323,27 @@ class Perl6::Actions is HLL::Actions {
     }
 
     method pod_textcontent:sym<regular>($/) {
-        my @t;
-        for $<pod_string> {
-            nqp::splice(@t, $_.ast, +@t, 0)
-        }
+        my @t     := self.merge_twines($<pod_string>);
         my $twine := Perl6::Pod::serialize_array(@t)<compile_time_value>;
         make Perl6::Pod::serialize_object(
             'Pod::Block::Para', :content($twine)
         )<compile_time_value>
+    }
+
+    method merge_twines(@twines) {
+        my @ret := [];
+        @ret.push($*ST.add_constant('Str', 'str', '')<compile_time_value>);
+        for @twines {
+            my @cur   := $_.ast;
+            @ret.push(
+                $*ST.add_constant(
+                    'Str', 'str',
+                    nqp::unbox_s(@ret.pop) ~ nqp::unbox_s(@cur.shift)
+                )<compile_time_value>,
+            );
+            nqp::splice(@ret, @cur, +@ret, 0);
+        }
+        return @ret;
     }
 
     method pod_textcontent:sym<code>($/) {

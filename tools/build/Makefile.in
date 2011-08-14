@@ -334,7 +334,7 @@ $(PERL6_M_PBC): $(NQP_EXE) $(DYNEXT_DYNPMC) $(DYNEXT_DYNOPS) $(METAMODEL_SOURCES
     
 $(SETTING): $(PERL6_M_PBC) $(PERL6_EXE) $(CORE_SOURCES)
 	$(PERL) $(GEN_CAT) $(CORE_SOURCES) > src/gen/CORE.setting
-	./$(PERL6_EXE) --setting=NULL --target=pir --output=$(SETTING_PIR) src/gen/CORE.setting
+	./$(PERL6_EXE) --setting=NULL --target=pir $(STAGESTATS) --output=$(SETTING_PIR) src/gen/CORE.setting
 	$(PARROT) $(PARROT_ARGS) -o $(SETTING) $(SETTING_PIR)
 
 ##  testing targets

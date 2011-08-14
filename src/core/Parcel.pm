@@ -6,6 +6,7 @@ my class Parcel does Positional {
     multi method Bool(Parcel:D:)           { nqp::p6bool($!storage) }
     multi method Numeric(Parcel:D:)        { self.flat.elems }
     multi method Str(Parcel:D:)            { self.flat.Str }
+#    multi method Int(Parcel:D:)            { self.flat.elems }
     multi method ACCEPTS(Parcel:D: $topic) { self.list.ACCEPTS($topic) }
 
     method Capture() {

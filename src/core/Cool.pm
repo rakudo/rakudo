@@ -54,6 +54,8 @@ my class Cool {
         $self-str eq '' ?? '' !! $self-str.substr(0, 1).lc ~ $self-str.substr(1)
     }
 
+    method capitalize() { self.Stringy.capitalize }
+
     method chomp() {
         self.Str.chomp;
     }
@@ -144,6 +146,10 @@ multi sub ords(Cool $s)       { ords($s.Stringy) }
 
 proto sub comb(|$)            { * }
 multi sub comb(Regex $matcher, Cool $input) { $input.comb($matcher) }
+
+proto sub capitalize(|$)       { * }
+multi sub capitalize(Str:D $x) {$x.capitalize }
+multi sub capitalize(Cool $x)  {$x.Stringy.capitalize }
 
 sub sprintf(Cool $format, *@args) {
     @args.gimme(*);

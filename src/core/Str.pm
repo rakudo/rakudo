@@ -433,6 +433,10 @@ my class Str does Stringy {
     method words(Str:D: Int $limit = *) {
         self.comb( / \S+ /, $limit );
     }
+
+    method capitalize(Str:D:) {
+        self.subst(:g, rx/\w+/, -> $_ { .Str.lc.ucfirst });
+    }
 }
 
 

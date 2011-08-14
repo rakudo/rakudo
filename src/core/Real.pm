@@ -22,6 +22,8 @@ my class Real {
     multi method atan2(Cool $x = 1e0) { self.Bridge.atan2($x.Numeric.Bridge) }
     method sec() { self.Bridge.sec }
     method asec() { self.Bridge.asec }
+    method cosec() { self.Bridge.cosec }
+    method acosec() { self.Bridge.acosec }
     method floor() { self.Bridge.floor }
     method ceiling() { self.Bridge.ceiling }
     method unpolar(Real $angle) {

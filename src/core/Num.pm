@@ -122,6 +122,12 @@ my class Num {
     multi method asec(Num:D: ) {
         nqp::p6box_n(pir::asec__NN(nqp::unbox_n(self)));
     }
+    method cosec(Num:D:) {
+        nqp::p6box_n(nqp::div_n(1, pir::sin__NN(nqp::unbox_n(self))));
+    }
+    method acosec(Num:D:) {
+        nqp::p6box_n(pir::asin__NN(nqp::div_n(1, nqp::unbox_n(self))));
+    }
     proto method sinh(|$) {*}
     multi method sinh(Num:D: ) {
         nqp::p6box_n(pir::sinh__NN(nqp::unbox_n(self)));
@@ -254,4 +260,11 @@ sub srand(Int $seed) {
 
 multi sub atan2(Num:D $a, Num:D $b = 1e0) {
     nqp::p6box_n(pir::atan__NNn(nqp::unbox_n($a), nqp::unbox_n($b)));
+}
+
+multi sub cosec(Num:D \$x) {
+    nqp::p6box_n(nqp::div_n(1, pir::sin__NN(nqp::unbox_n($x))));
+}
+multi sub acosec(Num:D \$x) {
+    nqp::p6box_n(pir::asin__NN(nqp::div_n(1, nqp::unbox_n($x))));
 }

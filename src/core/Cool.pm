@@ -13,6 +13,8 @@ my class Cool {
     method atan2($y = 1e0) { self.Numeric.atan2($y.Numeric) }
     method sec()  { self.Numeric.sec }
     method asec() { self.Numeric.asec }
+    method cosec()  { self.Numeric.cosec }
+    method acosec() { self.Numeric.acosec }
     
     ## string methods
 

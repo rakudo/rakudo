@@ -84,6 +84,14 @@ proto sub asec(|$) {*}
 multi sub asec(Numeric \$x)  { $x.asec }
 multi sub asec(Cool \$x)     { $x.Numeric.asec }
 
+proto sub cosec(|$) {*}
+multi sub cosec(Numeric \$x)  { $x.cosec }
+multi sub cosec(Cool \$x)     { $x.Numeric.cosec }
+
+proto sub acosec(|$) {*}
+multi sub acosec(Numeric \$x)  { $x.acosec }
+multi sub acosec(Cool \$x)     { $x.Numeric.acosec }
+
 proto sub sqrt(|$) {*}
 multi sub sqrt(Numeric \$x) { $x.sqrt }
 multi sub sqrt(Cool \$x)    { $x.Numeric.sqrt }

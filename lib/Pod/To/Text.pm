@@ -10,6 +10,7 @@ sub pod2text($pod) is export {
         when Pod::Block::Table { table2text($pod)               }
         when Pod::Block::Declarator { declarator2text($pod)     }
         when Pod::Item         { item2text($pod)                }
+        when Pod::FormattingCode { formatting2text($pod)        }
         when Positional        { $pod.map({pod2text($_)}).join("\n\n")}
         when Pod::Block::Comment { }
         default                { $pod.Str                       }
@@ -45,7 +46,7 @@ sub named2text($pod) {
 }
 
 sub para2text($pod) {
-    $pod.content.join("\n")
+    twine2text($pod.content)
 }
 
 sub table2text($pod) {
@@ -77,6 +78,20 @@ sub declarator2text($pod) {
         }
     }
     return "$type {$pod.WHEREFORE.perl}: {$pod.WHEREFORE.WHY}"
+}
+
+sub formatting2text($pod) {
+    twine2text($pod.content)
+}
+
+sub twine2text($twine) {
+    return '' unless $twine.elems;
+    my $r = $twine[0];
+    for $twine[1..*] -> $f, $s {
+        $r ~= twine2text($f.content);
+        $r ~= $s;
+    }
+    return $r;
 }
 
 # vim: ft=perl6

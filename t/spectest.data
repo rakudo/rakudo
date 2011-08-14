@@ -227,7 +227,7 @@ S04-statements/try.t
 S04-statements/unless.t
 S04-statements/until.t
 S04-statements/while.t
-# S05-capture/caps.t # err: Method 'push' not found for invocant of class 'Undef'
+S05-capture/caps.t
 # S05-capture/dot.t # err: Method 'push' not found for invocant of class 'Undef'
 # S05-capture/named.t # err: Method 'push' not found for invocant of class 'Undef'
 # S05-capture/subrule.t # err: Method 'push' not found for invocant of class 'Undef'

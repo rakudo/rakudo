@@ -29,4 +29,18 @@ my class Match is Capture {
         }
         @caps.sort: -> $p { $p.value.from }
     }
+
+    method chunks(Match:D:) {
+        my $prev = $!from;
+        gather {
+            for self.caps {
+                if .value.from > $prev {
+                    take '~' => $!orig.substr($prev, .value.from - $prev)
+                }
+                take $_;
+                $prev = .value.to;
+            }
+            take '~' => $!orig.substr($prev, $!to - $prev) if $prev < $!to;
+        }
+    }
 }

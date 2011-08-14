@@ -331,14 +331,13 @@ class Perl6::Actions is HLL::Actions {
     }
 
     method merge_twines(@twines) {
-        my @ret := [];
-        @ret.push($*ST.add_constant('Str', 'str', '')<compile_time_value>);
+        my @ret := @twines.shift.ast;
         for @twines {
             my @cur   := $_.ast;
             @ret.push(
                 $*ST.add_constant(
                     'Str', 'str',
-                    nqp::unbox_s(@ret.pop) ~ nqp::unbox_s(@cur.shift)
+                    nqp::unbox_s(@ret.pop) ~ ' ' ~ nqp::unbox_s(@cur.shift)
                 )<compile_time_value>,
             );
             nqp::splice(@ret, @cur, +@ret, 0);

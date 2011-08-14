@@ -1632,8 +1632,8 @@ class Perl6::Actions is HLL::Actions {
 
     sub regex_coderef($/, $qast, $scope, $name, @params, $block) {
         # create a code reference from a regex qast tree
-        $block[1].push(PAST::Var.new(:name<$¢>, :scope<lexical_6model>, :isdecl(1)));
-        $block[1].push(PAST::Var.new(:name<$/>, :scope<lexical_6model>, :isdecl(1)));
+        $block[0].push(PAST::Var.new(:name<$¢>, :scope<lexical_6model>, :isdecl(1)));
+        $block[0].push(PAST::Var.new(:name<$/>, :scope<lexical_6model>, :isdecl(1)));
         $block.symbol('$¢', :scope<lexical_6model>);
         $block.symbol('$/', :scope<lexical_6model>);
         my $past := QRegex::P6Regex::Actions::buildsub($qast, $block);

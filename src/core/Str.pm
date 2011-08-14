@@ -303,7 +303,6 @@ my class Str does Stringy {
 
     multi method subst($matcher, $replacement,
                        :ii(:$samecase), :ss(:$samespace), *%options) {
-        die ":samespace not yet implemented" if $samespace;
         my @matches = self.match($matcher, |%options);
         return self unless @matches;
         return self if @matches == 1 && !@matches[0];
@@ -391,6 +390,15 @@ my class Str does Stringy {
                       !! $s;
         }
         @chars.join('');
+    }
+
+    method samespace(Str:D: Str:D $pat) {
+        my @self-chunks  = self.split(rx/\s+/, :all);
+        my @pat-chunks  := $pat.split(rx/\s+/, :all);
+        loop (my $i = 1; $i < @pat-chunks && $i < @self-chunks; $i += 2) {
+            @self-chunks[$i] = @pat-chunks[$i];
+        }
+        @self-chunks.join;
     }
 
     method trim-leading(Str:D:) {

@@ -25,6 +25,8 @@ my class Cool {
     method atanh() { self.Numeric.atanh }
     method sech()  { self.Numeric.sech }
     method asech() { self.Numeric.asech }
+    method cosech()  { self.Numeric.cosech }
+    method acosech() { self.Numeric.acosech }
     
     ## string methods
 

@@ -132,6 +132,14 @@ proto sub asech(|$) {*}
 multi sub asech(Numeric \$x) { $x.asech }
 multi sub asech(Cool \$x)    { $x.Numeric.asech }
 
+proto sub cosech(|$) {*}
+multi sub cosech(Numeric \$x) { $x.cosech }
+multi sub cosech(Cool \$x)    { $x.Numeric.cosech }
+
+proto sub acosech(|$) {*}
+multi sub acosech(Numeric \$x) { $x.acosech }
+multi sub acosech(Cool \$x)    { $x.Numeric.acosech }
+
 proto sub sqrt(|$) {*}
 multi sub sqrt(Numeric \$x) { $x.sqrt }
 multi sub sqrt(Cool \$x)    { $x.Numeric.sqrt }

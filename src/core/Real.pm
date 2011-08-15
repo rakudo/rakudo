@@ -31,6 +31,8 @@ my class Real {
     method atanh() { self.Bridge.atanh }
     method sech() { self.Bridge.sech }
     method asech() { self.Bridge.asech }
+    method cosech() { self.Bridge.cosech }
+    method acosech() { self.Bridge.acosech }
     method floor() { self.Bridge.floor }
     method ceiling() { self.Bridge.ceiling }
     method unpolar(Real $angle) {

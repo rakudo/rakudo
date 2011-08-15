@@ -170,14 +170,14 @@ my class Complex is Numeric {
         (1 / self).acosh;
     }
     
-    # method cosech(Complex:D:) {
-    #     1 / self.sinh;
-    # }
-    # 
-    # method acosech(Complex:D:) {
-    #     (1 / self).asinh;
-    # }
-    # 
+    method cosech(Complex:D:) {
+        1 / self.sinh;
+    }
+    
+    method acosech(Complex:D:) {
+        (1 / self).asinh;
+    }
+    
     # method cotanh(Complex:D:) {
     #     1 / self.tanh;
     # }

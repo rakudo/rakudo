@@ -323,26 +323,11 @@ class Perl6::Actions is HLL::Actions {
     }
 
     method pod_textcontent:sym<regular>($/) {
-        my @t     := self.merge_twines($<pod_string>);
+        my @t     := Perl6::Pod::merge_twines($<pod_string>);
         my $twine := Perl6::Pod::serialize_array(@t)<compile_time_value>;
         make Perl6::Pod::serialize_object(
             'Pod::Block::Para', :content($twine)
         )<compile_time_value>
-    }
-
-    method merge_twines(@twines) {
-        my @ret := @twines.shift.ast;
-        for @twines {
-            my @cur   := $_.ast;
-            @ret.push(
-                $*ST.add_constant(
-                    'Str', 'str',
-                    nqp::unbox_s(@ret.pop) ~ ' ' ~ nqp::unbox_s(@cur.shift)
-                )<compile_time_value>,
-            );
-            nqp::splice(@ret, @cur, +@ret, 0);
-        }
-        return @ret;
     }
 
     method pod_textcontent:sym<code>($/) {
@@ -361,7 +346,7 @@ class Perl6::Actions is HLL::Actions {
         for $<pod_string_character> {
             @content.push($_.ast)
         }
-        my @t    := self.build_pod_string(@content);
+        my @t    := Perl6::Pod::build_pod_string(@content);
         my $past := Perl6::Pod::serialize_object(
             'Pod::FormattingCode',
             :type(
@@ -377,37 +362,7 @@ class Perl6::Actions is HLL::Actions {
         for $<pod_string_character> {
             @content.push($_.ast)
         }
-        make self.build_pod_string(@content);
-    }
-
-    method build_pod_string(@content) {
-        sub push_strings(@strings, @where) {
-            my $s := subst(pir::join('', @strings), /\s+/, ' ', :global);
-            my $t := $*ST.add_constant(
-                'Str', 'str', $s
-            )<compile_time_value>;
-            @where.push($t);
-        }
-
-        my @res  := [];
-        my @strs := [];
-        for @content -> $elem {
-            if pir::typeof($elem) eq 'String' {
-                # don't push the leading whitespace
-                if +@res + @strs == 0 && $elem eq ' ' {
-
-                } else {
-                    @strs.push($elem);
-                }
-            } else {
-                push_strings(@strs, @res);
-                @strs := [];
-                @res.push($elem);
-            }
-        }
-        push_strings(@strs, @res);
-
-        return @res;
+        make Perl6::Pod::build_pod_string(@content);
     }
 
     method pod_string_character($/) {

@@ -247,6 +247,52 @@ class Perl6::Pod {
         return @result;
     }
 
+    our sub merge_twines(@twines) {
+        my @ret := @twines.shift.ast;
+        for @twines {
+            my @cur   := $_.ast;
+            @ret.push(
+                $*ST.add_constant(
+                    'Str', 'str',
+                    nqp::unbox_s(@ret.pop) ~ ' ' ~ nqp::unbox_s(@cur.shift)
+                )<compile_time_value>,
+            );
+            nqp::splice(@ret, @cur, +@ret, 0);
+        }
+        return @ret;
+    }
+
+    our sub build_pod_string(@content) {
+        sub push_strings(@strings, @where) {
+            my $s := subst(pir::join('', @strings), /\s+/, ' ', :global);
+            my $t := $*ST.add_constant(
+                'Str', 'str', $s
+            )<compile_time_value>;
+            @where.push($t);
+        }
+
+        my @res  := [];
+        my @strs := [];
+        for @content -> $elem {
+            if pir::typeof($elem) eq 'String' {
+                # don't push the leading whitespace
+                if +@res + @strs == 0 && $elem eq ' ' {
+
+                } else {
+                    @strs.push($elem);
+                }
+            } else {
+                push_strings(@strs, @res);
+                @strs := [];
+                @res.push($elem);
+            }
+        }
+        push_strings(@strs, @res);
+
+        return @res;
+    }
+
+
     # takes an array of strings (rows of a table)
     # returns array of arrays of strings (cells)
     our sub splitrows(@rows) {

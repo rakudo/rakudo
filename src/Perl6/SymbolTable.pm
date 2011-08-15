@@ -445,19 +445,27 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
         my $slot      := self.add_object($parameter);
         
         # Create PAST to make it when deserializing.
-        my $set_attrs := PAST::Stmts.new();
+        my $obj_reg := PAST::Var.new( :name('$P0'), :scope('register') );
+        my $class_reg := PAST::Var.new( :name('$P1'), :scope('register') );
+        my $set_attrs := PAST::Stmts.new( );
         self.add_event(:deserialize_past(PAST::Stmts.new(
-            self.set_slot_past($slot, self.set_cur_sc(PAST::Op.new(
-                :pirop('repr_instance_of PP'),
+            PAST::Op.new(
+                :pasttype('bind'), $class_reg,
                 self.get_object_sc_ref_past($par_type)
-            ))),
+            ),
+            self.set_slot_past($slot, self.set_cur_sc(PAST::Op.new(
+                :pasttype('bind_6model'), $obj_reg,
+                PAST::Op.new(
+                    :pirop('repr_instance_of PP'),
+                    $class_reg
+                )))),
             $set_attrs
         )));
         
         # Set name if there is one.
         if pir::exists(%param_info, 'variable_name') {
             pir::repr_bind_attr_str__vPPsS($parameter, $par_type, '$!variable_name', %param_info<variable_name>);
-            $set_attrs.push(self.set_attribute_typed($parameter, $par_type,
+            $set_attrs.push(self.set_attribute_typed($obj_reg, $class_reg,
                 '$!variable_name', %param_info<variable_name>, str));
         }
         
@@ -520,7 +528,7 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
             $flags := $flags + $SIG_ELEM_NOMINAL_GENERIC;
         }
         pir::repr_bind_attr_int__vPPsI($parameter, $par_type, '$!flags', $flags);
-        $set_attrs.push(self.set_attribute_typed($parameter, $par_type,
+        $set_attrs.push(self.set_attribute_typed($obj_reg, $class_reg,
             '$!flags', $flags, int));
         
         # Set named names up, for named parameters.
@@ -766,12 +774,20 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
         my $slot    := self.add_object($cd);
         
         # Create PAST to make it when deserializing.
+        my $obj_reg := PAST::Var.new( :name('$P0'), :scope('register') );
+        my $class_reg := PAST::Var.new( :name('$P1'), :scope('register') );
         my $set_attrs := PAST::Stmts.new();
         self.add_event(:deserialize_past(PAST::Stmts.new(
-            self.set_slot_past($slot, self.set_cur_sc(PAST::Op.new(
-                :pirop('repr_instance_of PP'),
+            PAST::Op.new(
+                :pasttype('bind'), $class_reg,
                 self.get_object_sc_ref_past($cd_type)
-            ))),
+            ),
+            self.set_slot_past($slot, self.set_cur_sc(PAST::Op.new(
+                :pasttype('bind'), $obj_reg,
+                PAST::Op.new(
+                    :pirop('repr_instance_of PP'),
+                    $class_reg
+                )))),
             $set_attrs
         )));
         
@@ -780,9 +796,9 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
         $set_attrs.push(self.set_attribute($cd, $cd_type, '$!of',
             self.get_object_sc_ref_past($of)));
         pir::repr_bind_attr_int__vPPsI($cd, $cd_type, '$!rw', $rw);
-        $set_attrs.push(self.set_attribute_typed($cd, $cd_type, '$!rw', $rw, int));
+        $set_attrs.push(self.set_attribute_typed($obj_reg, $class_reg, '$!rw', $rw, int));
         pir::repr_bind_attr_str__vPPsS($cd, $cd_type, '$!name', $name);
-        $set_attrs.push(self.set_attribute_typed($cd, $cd_type, '$!name', $name, str));
+        $set_attrs.push(self.set_attribute_typed($obj_reg, $class_reg, '$!name', $name, str));
         
         $cd
     }
@@ -805,14 +821,13 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
     
     # Helper to make PAST for setting a typed attribute to a value. Value should
     # be a PAST tree.
-    method set_attribute_typed($obj, $class, $name, $value_past, $type) {
+    method set_attribute_typed($obj_reg, $class_reg, $name, $value_past, $type) {
         PAST::Stmt.new(
             PAST::Op.new(
                 :pasttype('bind_6model'),
                 PAST::Var.new(
                     :name($name), :scope('attribute_6model'), :type($type),
-                    self.get_object_sc_ref_past($obj), 
-                    self.get_object_sc_ref_past($class)
+                    $obj_reg, $class_reg
                 ),
                 $value_past
             )

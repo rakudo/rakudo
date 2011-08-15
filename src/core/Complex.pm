@@ -138,14 +138,14 @@ my class Complex is Numeric {
         (1 / self).atan;
     }
 
-    # method sinh(Complex:D:) {
-    #     -((Complex.new(0, 1) * self).sin)i;
-    # }
-    # 
-    # method asinh(Complex:D:) {
-    #     (self + sqrt(1 + self * self)).log;
-    # }
-    # 
+    method sinh(Complex:D:) {
+        -((Complex.new(0, 1) * self).sin)i;
+    }
+    
+    method asinh(Complex:D:) {
+        (self + sqrt(1 + self * self)).log;
+    }
+    
     # method cosh(Complex:D:) {
     #     (Complex.new(0, 1) * self).cos;
     # }

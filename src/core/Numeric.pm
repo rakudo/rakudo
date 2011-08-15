@@ -100,6 +100,14 @@ proto sub acotan(|$) {*}
 multi sub acotan(Numeric \$x)  { $x.acotan }
 multi sub acotan(Cool \$x)     { $x.Numeric.acotan }
 
+proto sub sinh(|$) {*}
+multi sub sinh(Numeric \$x) { $x.sinh }
+multi sub sinh(Cool \$x)    { $x.Numeric.sinh }
+
+proto sub asinh(|$) {*}
+multi sub asinh(Numeric \$x) { $x.asinh }
+multi sub asinh(Cool \$x)    { $x.Numeric.asinh }
+
 proto sub sqrt(|$) {*}
 multi sub sqrt(Numeric \$x) { $x.sqrt }
 multi sub sqrt(Cool \$x)    { $x.Numeric.sqrt }

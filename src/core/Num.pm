@@ -138,6 +138,10 @@ my class Num {
     multi method sinh(Num:D: ) {
         nqp::p6box_n(pir::sinh__NN(nqp::unbox_n(self)));
     }
+    proto method asinh(|$) {*}
+    multi method asinh(Num:D: ) {
+        (self + (self * self + 1).sqrt).log;
+    }
     proto method cosh(|$) {*}
     multi method cosh(Num:D: ) {
         nqp::p6box_n(pir::cosh__NN(nqp::unbox_n(self)));

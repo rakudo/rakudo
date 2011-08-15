@@ -17,8 +17,11 @@ my class Real {
     method cotan()  { self.Bridge.cotan }
     method acotan() { self.Bridge.acotan }
     method sinh() { self.Bridge.sinh }
+    method asinh() { self.Bridge.asinh }
     method cosh() { self.Bridge.cosh }
+    method acosh() { self.Bridge.acosh }
     method tanh() { self.Bridge.tanh }
+    method atanh() { self.Bridge.atanh }
     proto method atan2(|$) {*}
     multi method atan2(Real $x = 1e0) { self.Bridge.atan2($x.Bridge) }
     multi method atan2(Cool $x = 1e0) { self.Bridge.atan2($x.Numeric.Bridge) }

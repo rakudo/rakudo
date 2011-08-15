@@ -146,6 +146,10 @@ my class Num {
     multi method cosh(Num:D: ) {
         nqp::p6box_n(pir::cosh__NN(nqp::unbox_n(self)));
     }
+    proto method acosh(|$) {*}
+    multi method acosh(Num:D: ) {
+        (self + (self * self - 1).sqrt).log;
+    }
     proto method tanh(|$) {*}
     multi method tanh(Num:D: ) {
         nqp::p6box_n(pir::tanh__NN(nqp::unbox_n(self)));

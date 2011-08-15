@@ -108,6 +108,14 @@ proto sub asinh(|$) {*}
 multi sub asinh(Numeric \$x) { $x.asinh }
 multi sub asinh(Cool \$x)    { $x.Numeric.asinh }
 
+proto sub cosh(|$) {*}
+multi sub cosh(Numeric \$x) { $x.cosh }
+multi sub cosh(Cool \$x)    { $x.Numeric.cosh }
+
+proto sub acosh(|$) {*}
+multi sub acosh(Numeric \$x) { $x.acosh }
+multi sub acosh(Cool \$x)    { $x.Numeric.acosh }
+
 proto sub sqrt(|$) {*}
 multi sub sqrt(Numeric \$x) { $x.sqrt }
 multi sub sqrt(Cool \$x)    { $x.Numeric.sqrt }

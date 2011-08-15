@@ -146,14 +146,14 @@ my class Complex is Numeric {
         (self + sqrt(1 + self * self)).log;
     }
     
-    # method cosh(Complex:D:) {
-    #     (Complex.new(0, 1) * self).cos;
-    # }
-    # 
-    # method acosh(Complex:D:) {
-    #     ($x + sqrt(self * self - 1)).log;
-    # }
-    # 
+    method cosh(Complex:D:) {
+        (Complex.new(0, 1) * self).cos;
+    }
+    
+    method acosh(Complex:D:) {
+        (self + sqrt(self * self - 1)).log;
+    }
+    
     # method tanh(Complex:D:) {
     #     -((Complex.new(0, 1) * self).tan)i;
     # }

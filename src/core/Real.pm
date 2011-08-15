@@ -14,6 +14,13 @@ my class Real {
     method acos() { self.Bridge.acos }
     method tan()  { self.Bridge.tan }
     method atan() { self.Bridge.atan }
+    proto method atan2(|$) {*}
+    multi method atan2(Real $x = 1e0) { self.Bridge.atan2($x.Bridge) }
+    multi method atan2(Cool $x = 1e0) { self.Bridge.atan2($x.Numeric.Bridge) }
+    method sec() { self.Bridge.sec }
+    method asec() { self.Bridge.asec }
+    method cosec() { self.Bridge.cosec }
+    method acosec() { self.Bridge.acosec }
     method cotan()  { self.Bridge.cotan }
     method acotan() { self.Bridge.acotan }
     method sinh() { self.Bridge.sinh }
@@ -22,13 +29,8 @@ my class Real {
     method acosh() { self.Bridge.acosh }
     method tanh() { self.Bridge.tanh }
     method atanh() { self.Bridge.atanh }
-    proto method atan2(|$) {*}
-    multi method atan2(Real $x = 1e0) { self.Bridge.atan2($x.Bridge) }
-    multi method atan2(Cool $x = 1e0) { self.Bridge.atan2($x.Numeric.Bridge) }
-    method sec() { self.Bridge.sec }
-    method asec() { self.Bridge.asec }
-    method cosec() { self.Bridge.cosec }
-    method acosec() { self.Bridge.acosec }
+    method sech() { self.Bridge.sech }
+    method asech() { self.Bridge.asech }
     method floor() { self.Bridge.floor }
     method ceiling() { self.Bridge.ceiling }
     method unpolar(Real $angle) {

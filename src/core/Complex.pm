@@ -162,14 +162,14 @@ my class Complex is Numeric {
         (((1 + self) / (1 - self)).log / 2);
     }
     
-    # method sech(Complex:D:) {
-    #     1 / self.cosh;
-    # }
-    # 
-    # method asech(Complex:D:) {
-    #     (1 / self).acosh;
-    # }
-    # 
+    method sech(Complex:D:) {
+        1 / self.cosh;
+    }
+    
+    method asech(Complex:D:) {
+        (1 / self).acosh;
+    }
+    
     # method cosech(Complex:D:) {
     #     1 / self.sinh;
     # }

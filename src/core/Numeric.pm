@@ -124,6 +124,14 @@ proto sub atanh(|$) {*}
 multi sub atanh(Numeric \$x) { $x.atanh }
 multi sub atanh(Cool \$x)    { $x.Numeric.atanh }
 
+proto sub sech(|$) {*}
+multi sub sech(Numeric \$x) { $x.sech }
+multi sub sech(Cool \$x)    { $x.Numeric.sech }
+
+proto sub asech(|$) {*}
+multi sub asech(Numeric \$x) { $x.asech }
+multi sub asech(Cool \$x)    { $x.Numeric.asech }
+
 proto sub sqrt(|$) {*}
 multi sub sqrt(Numeric \$x) { $x.sqrt }
 multi sub sqrt(Cool \$x)    { $x.Numeric.sqrt }

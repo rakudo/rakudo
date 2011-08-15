@@ -162,6 +162,10 @@ my class Num {
     multi method sech(Num:D: ) {
         nqp::p6box_n(pir::sech__NN(nqp::unbox_n(self)));
     }
+    proto method asech(|$) {*}
+    multi method asech(Num:D: ) {
+        (1 / self).acosh;
+    }
 }
 
 my constant pi = 3.14159265e0;

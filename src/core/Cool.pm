@@ -23,6 +23,8 @@ my class Cool {
     method acosh() { self.Numeric.acosh }
     method tanh()  { self.Numeric.tanh }
     method atanh() { self.Numeric.atanh }
+    method sech()  { self.Numeric.sech }
+    method asech() { self.Numeric.asech }
     
     ## string methods
 

@@ -583,8 +583,8 @@ S32-trig/sinh.t
 # S32-trig/tanh.t # err: Could not find sub &cosh
 # S32-trig/sech.t # err: Could not find sub &cosh
 S32-trig/simple.t
-# S32-trig/cosech.t # err: Could not find sub &sinh
-# S32-trig/cotanh.t # err: Could not find sub &sinh
+# S32-trig/cosech.t # err: Method 'cosech' not found for invocant of class 'Rat'
+# S32-trig/cotanh.t # err: Could not find sub &cosh
 integration/99problems-01-to-10.t
 # integration/99problems-11-to-20.t # err: Method 'splice' not found for invocant of class 'Array'
 # integration/99problems-21-to-30.t # err: Method 'splice' not found for invocant of class 'Array'

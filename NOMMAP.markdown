@@ -79,3 +79,8 @@ Same for my %h and hashes.
 They are classes right now, which is wrong.
 
 ## fix segfaults
+
+    wget https://github.com/colomon/mandelbrot/raw/master/bin/mandelbrot-color.pl
+    ./perl6 mandelbrot-color.pl 201
+
+segfaults repeatably after about 1 minute

@@ -178,13 +178,13 @@ my class Complex is Numeric {
         (1 / self).asinh;
     }
     
-    # method cotanh(Complex:D:) {
-    #     1 / self.tanh;
-    # }
-    # 
-    # method acotanh(Complex:D:) {
-    #     (1 / self).atanh;
-    # }
+    method cotanh(Complex:D:) {
+        1 / self.tanh;
+    }
+    
+    method acotanh(Complex:D:) {
+        (1 / self).atanh;
+    }
 }
 
 multi sub prefix:<->(Complex:D \$a) {

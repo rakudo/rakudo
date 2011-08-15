@@ -140,6 +140,14 @@ proto sub acosech(|$) {*}
 multi sub acosech(Numeric \$x) { $x.acosech }
 multi sub acosech(Cool \$x)    { $x.Numeric.acosech }
 
+proto sub cotanh(|$) {*}
+multi sub cotanh(Numeric \$x) { $x.cotanh }
+multi sub cotanh(Cool \$x)    { $x.Numeric.cotanh }
+
+proto sub acotanh(|$) {*}
+multi sub acotanh(Numeric \$x) { $x.acotanh }
+multi sub acotanh(Cool \$x)    { $x.Numeric.acotanh }
+
 proto sub sqrt(|$) {*}
 multi sub sqrt(Numeric \$x) { $x.sqrt }
 multi sub sqrt(Cool \$x)    { $x.Numeric.sqrt }

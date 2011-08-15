@@ -174,6 +174,14 @@ my class Num {
     multi method acosech(Num:D: ) {
         (1 / self).asinh;
     }
+    proto method cotanh(|$) {*}
+    multi method cotanh(Num:D: ) {
+        nqp::p6box_n(nqp::div_n(1, pir::tanh__NN(nqp::unbox_n(self))));
+    }
+    proto method acotanh(|$) {*}
+    multi method acotanh(Num:D: ) {
+        (1 / self).atanh;
+    }
 }
 
 my constant pi = 3.14159265e0;

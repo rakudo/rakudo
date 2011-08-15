@@ -256,7 +256,7 @@ S05-match/blocks.t
 # S05-match/non-capturing.t # err: Method 'rxtype' not found for invocant of class 'PAST;Regex'
 # S05-match/perl.t # err: Method 'rxtype' not found for invocant of class 'PAST;Regex'
 # S05-match/positions.t # err: Method 'chars' not found for invocant of class 'Match'
-# S05-metachars/closure.t # err: Method 'nqpattr' not found for invocant of class 'Undef'
+S05-metachars/closure.t
 S05-metachars/line-anchors.t
 S05-metachars/newline.t
 # S05-metachars/tilde.t # err: Method 'rxtype' not found for invocant of class 'PAST;Regex'

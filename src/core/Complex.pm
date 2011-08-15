@@ -154,14 +154,14 @@ my class Complex is Numeric {
         (self + sqrt(self * self - 1)).log;
     }
     
-    # method tanh(Complex:D:) {
-    #     -((Complex.new(0, 1) * self).tan)i;
-    # }
-    # 
-    # method atanh(Complex:D:) {
-    #     (((1 + self) / (1 - self)).log / 2);
-    # }
-    # 
+    method tanh(Complex:D:) {
+        -((Complex.new(0, 1) * self).tan)i;
+    }
+    
+    method atanh(Complex:D:) {
+        (((1 + self) / (1 - self)).log / 2);
+    }
+    
     # method sech(Complex:D:) {
     #     1 / self.cosh;
     # }

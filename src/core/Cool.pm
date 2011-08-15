@@ -21,6 +21,8 @@ my class Cool {
     method asinh() { self.Numeric.asinh }
     method cosh()  { self.Numeric.cosh }
     method acosh() { self.Numeric.acosh }
+    method tanh()  { self.Numeric.tanh }
+    method atanh() { self.Numeric.atanh }
     
     ## string methods
 

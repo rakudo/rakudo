@@ -154,6 +154,10 @@ my class Num {
     multi method tanh(Num:D: ) {
         nqp::p6box_n(pir::tanh__NN(nqp::unbox_n(self)));
     }
+    proto method atanh(|$) {*}
+    multi method atanh(Num:D: ) {
+        ((1 + self) / (1 - self)).log / 2;
+    }
     proto method sech(|$) {*}
     multi method sech(Num:D: ) {
         nqp::p6box_n(pir::sech__NN(nqp::unbox_n(self)));

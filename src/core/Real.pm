@@ -14,6 +14,8 @@ my class Real {
     method acos() { self.Bridge.acos }
     method tan()  { self.Bridge.tan }
     method atan() { self.Bridge.atan }
+    method cotan()  { self.Bridge.cotan }
+    method acotan() { self.Bridge.acotan }
     method sinh() { self.Bridge.sinh }
     method cosh() { self.Bridge.cosh }
     method tanh() { self.Bridge.tanh }

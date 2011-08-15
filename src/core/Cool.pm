@@ -15,6 +15,8 @@ my class Cool {
     method asec() { self.Numeric.asec }
     method cosec()  { self.Numeric.cosec }
     method acosec() { self.Numeric.acosec }
+    method cotan()  { self.Numeric.cotan }
+    method acotan() { self.Numeric.acotan }
     
     ## string methods
 

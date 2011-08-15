@@ -128,6 +128,12 @@ my class Num {
     method acosec(Num:D:) {
         nqp::p6box_n(pir::asin__NN(nqp::div_n(1, nqp::unbox_n(self))));
     }
+    method cotan(Num:D:) {
+        nqp::p6box_n(nqp::div_n(1, pir::tan__NN(nqp::unbox_n(self))));
+    }
+    method acotan(Num:D:) {
+        nqp::p6box_n(pir::atan__NN(nqp::div_n(1, nqp::unbox_n(self))));
+    }
     proto method sinh(|$) {*}
     multi method sinh(Num:D: ) {
         nqp::p6box_n(pir::sinh__NN(nqp::unbox_n(self)));

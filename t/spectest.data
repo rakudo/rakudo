@@ -579,9 +579,9 @@ S32-trig/cosec.t
 S32-trig/cotan.t
 S32-trig/atan2.t
 S32-trig/sinh.t
-# S32-trig/cosh.t # err: Method 'cosh' not found for invocant of class 'Complex'
-# S32-trig/tanh.t # err: Could not find sub &cosh
-# S32-trig/sech.t # err: Could not find sub &cosh
+S32-trig/cosh.t
+S32-trig/tanh.t
+S32-trig/sech.t
 S32-trig/simple.t
 # S32-trig/cosech.t # err: Method 'cosech' not found for invocant of class 'Rat'
 # S32-trig/cotanh.t # err: Could not find sub &cosh

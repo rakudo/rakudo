@@ -159,6 +159,23 @@ my class Str does Stringy {
             $pos = nqp::atpos($parse, 2);
             fail "missing digits after radix prefix" if nqp::islt_i($pos, 0);
             return nqp::p6bigint(nqp::atpos($parse, 0)) unless $tailfail();
+        } elsif nqp::iseq_s(nqp::substr($str, $pos, 1), ':') {
+            # a string of form :16<DEAD_BEEF>
+            $pos = nqp::add_i($pos, 1);
+            $parse := nqp::radix(10, $str, $pos, 0);
+            $radix = nqp::atpos($parse, 0);
+            $pos = nqp::atpos($parse, 2);
+            fail "not a number" if nqp::iseq_i($pos, -1);
+            fail "malformed radix number, expecting '<' after the base"
+                unless nqp::iseq_s(nqp::substr($str, $pos, 1), '<');
+            $pos = nqp::add_i($pos, 1);
+            $parse := nqp::radix($radix, $str, $pos, 0);
+            $pos = nqp::atpos($parse, 2);
+            fail "malformed radix number" if nqp::iseq_i($pos, -1);
+            fail "malformed radix number, expecting '>' after the body"
+                unless nqp::iseq_s(nqp::substr($str, $pos, 1), '>');
+            $pos = nqp::add_i($pos, 1);
+            return nqp::p6bigint(nqp::atpos($parse, 0)) unless $tailfail();
         }
 
         # handle 'Inf'
@@ -509,3 +526,12 @@ multi sub ords(Str $s) {
 sub trim         (Str:D $s) { $s.trim }
 sub trim-leading (Str:D $s) { $s.trim-leading }
 sub trim-trailing(Str:D $s) { $s.trim-trailing }
+
+# the opposite of Real.base, used for :16($hex_str)
+sub unbase(Int:D $base, Cool:D $str) {
+    if $str.substr(0, 2) eq any(<0x 0d 0o 0b>) {
+        $str.Numeric;
+    } else {
+        ":{$base}<$str>".Numeric;
+    }
+}

@@ -3050,9 +3050,8 @@ class Perl6::Actions is HLL::Actions {
     method rad_number($/) {
         my $radix    := +($<radix>.Str);
         if $<circumfix> {
-            pir::die(':base($number) conversion NYI');
-            make PAST::Op.new(:name('&radcalc'), :pasttype('call'),
-                $radix, $<circumfix>.ast);
+            make PAST::Op.new(:name('&unbase'), :pasttype('call'),
+                $*ST.add_constant('Int', 'int', $radix), $<circumfix>.ast);
         } else {
             my $intpart  := $<intpart>.Str;
             my $fracpart := $<fracpart> ?? $<fracpart>.Str !! "0";

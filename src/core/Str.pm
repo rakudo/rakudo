@@ -169,7 +169,7 @@ my class Str does Stringy {
             fail "malformed radix number, expecting '<' after the base"
                 unless nqp::iseq_s(nqp::substr($str, $pos, 1), '<');
             $pos = nqp::add_i($pos, 1);
-            $parse := nqp::radix($radix, $str, $pos, 0);
+            $parse := nqp::radix($radix, $str, $pos, $neg);
             $pos = nqp::atpos($parse, 2);
             fail "malformed radix number" if nqp::iseq_i($pos, -1);
             fail "malformed radix number, expecting '>' after the body"

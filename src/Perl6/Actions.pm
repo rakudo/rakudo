@@ -1592,13 +1592,7 @@ class Perl6::Actions is HLL::Actions {
             $/.CURSOR.panic('protoregexes not yet implemented');
         } else {
             my @params := $<signature> ?? $<signature>.ast !! [];
-            $coderef := regex_coderef($/, $<p6regex>.ast, $*SCOPE, $name, @params, $*CURPAD);
-        }
-
-        # Apply traits.
-        my $code := $coderef<code_object>;
-        for $<trait> {
-            if $_.ast { ($_.ast)($code) }
+            $coderef := regex_coderef($/, $<p6regex>.ast, $*SCOPE, $name, @params, $*CURPAD, $<trait>);
         }
 
         # Return closure if not in sink context.
@@ -1607,7 +1601,7 @@ class Perl6::Actions is HLL::Actions {
         make $closure;
     }
 
-    sub regex_coderef($/, $qast, $scope, $name, @params, $block) {
+    sub regex_coderef($/, $qast, $scope, $name, @params, $block, $traits?) {
         # create a code reference from a regex qast tree
         $block[0].push(PAST::Var.new(:name<$¢>, :scope<lexical_6model>, :isdecl(1)));
         $block[0].push(PAST::Var.new(:name<$/>, :scope<lexical_6model>, :isdecl(1)));
@@ -1630,7 +1624,14 @@ class Perl6::Actions is HLL::Actions {
         # Install PAST block so that it gets capture_lex'd correctly.
         my $outer := $*ST.cur_lexpad();
         $outer[0].push($past);
-
+        
+        # Apply traits.
+        if $traits {
+            for $traits {
+                if $_.ast { ($_.ast)($code) }
+            }
+        }
+        
         # Install in needed scopes.
         install_method($/, $name, $scope, $code, $outer);
 

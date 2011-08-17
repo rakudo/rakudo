@@ -81,6 +81,9 @@ my class Cool {
     method ord() {
         nqp::p6box_i(nqp::ord(nqp::unbox_s(self.Str)))
     }
+    method chr() {
+        self.Int.chr;
+    }
 
     method flip() {
         nqp::p6box_s(pir::box__PS(nqp::unbox_s(self.Str)).reverse)

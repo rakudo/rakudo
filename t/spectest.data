@@ -599,7 +599,7 @@ integration/advent2009-day04.t
 integration/advent2009-day05.t
 integration/advent2009-day06.t
 integration/advent2009-day07.t
-# integration/advent2009-day08.t # err: Method 'chr' not found for invocant of class 'Str'
+integration/advent2009-day08.t
 # integration/advent2009-day09.t # err: Not enough positional parameters passed
 # integration/advent2009-day10.t # err: Method 'at_key' not found for invocant of class 'Any'
 integration/advent2009-day11.t

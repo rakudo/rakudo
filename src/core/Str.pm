@@ -358,6 +358,7 @@ my class Str does Stringy {
 
     multi method split(Str:D: Regex $pat, $limit = *, :$all) {
         my $l = $limit ~~ Whatever ?? $Inf !! $limit - 1;
+        return ().list if $l < 0;
         my @matches := self.match($pat, :x(1..$l), :g);
         gather {
             my $prev-pos = 0;
@@ -374,6 +375,7 @@ my class Str does Stringy {
         return if self eq '' && $delimiter eq '';
         my $c = 0;
         my $l = $limit ~~ Whatever ?? $Inf !! $limit - 1;
+        return ().list if $l < 0;
         if $l >= 0 {
             gather {
                 while $l-- > 0 {

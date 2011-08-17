@@ -118,6 +118,9 @@ my class Cool {
     multi method split(Regex $pat, $limit = $Inf, :$all) {
         self.Stringy.split($pat, $limit, :$all);
     }
+    multi method split(Cool $pat, $limit = $Inf, :$all) {
+        self.Stringy.split($pat.Stringy, $limit, :$all);
+    }
     proto method match(|$) {*}
     multi method match(Cool:D: $target, *%adverbs) {
         self.Stringy.match($target, |%adverbs)

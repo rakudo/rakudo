@@ -145,7 +145,7 @@ S03-operators/misc.t
 S03-operators/names.t
 # S03-operators/nesting.t # err: Unable to parse blockoid
 S03-operators/not.t
-# S03-operators/overflow.t # err: :base($number) conversion NYI
+S03-operators/overflow.t
 S03-operators/precedence.t
 S03-operators/range-basic.t
 S03-operators/range-int.t                       # stress

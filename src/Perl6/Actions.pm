@@ -2165,7 +2165,12 @@ class Perl6::Actions is HLL::Actions {
     }
 
     method trait_mod:sym<will>($/) {
-
+        my %arg;
+        %arg{~$<identifier>} := ($*ST.add_constant('Int', 'int', 1))<compile_time_value>;
+        make -> $declarand {
+            $*ST.apply_trait('&trait_mod:<will>', $declarand,
+                ($<pblock>.ast)<code_object>, |%arg);
+        };
     }
 
     method trait_mod:sym<of>($/) {

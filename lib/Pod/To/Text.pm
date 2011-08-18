@@ -50,9 +50,20 @@ sub para2text($pod) {
 }
 
 sub table2text($pod) {
-    ($pod.caption // '')
-    ~ ($pod.headers ?? $pod.headers.join("\t") ~ "\n" !! '')
-    ~ ($pod.content.map({ $_.join("\t") }).join("\n"))
+    my @rows = $pod.content;
+    @rows.unshift($pod.headers.item) if $pod.headers;
+    my @maxes;
+    for 0..(@rows[1].elems - 1) -> $i {
+        @maxes.push([max] @rows.map({ $_[$i].chars }));
+    }
+    my $ret = $pod.caption // '';
+    for @rows -> $row {
+        for 0..($row.elems - 1) -> $i {
+            $ret ~= $row[$i].fmt("%{@maxes[$i]}s") ~ "  ";
+        }
+        $ret ~= "\n";
+    }
+    return $ret;
 }
 
 sub declarator2text($pod) {

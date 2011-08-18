@@ -456,30 +456,8 @@ my class Str does Stringy {
     method capitalize(Str:D:) {
         self.subst(:g, rx/\w+/, -> $_ { .Str.lc.ucfirst });
     }
-
-    method p5chop(Str:D \$self:) {
-        my Int $c := $self.chars;
-        return '' unless $c;
-        my str $last = nqp::substr(
-            nqp::unbox_s(pir::perl6_decontainerize__PP($self)),
-            nqp::sub_i(nqp::unbox_i($c), 1)
-        );
-        $self = nqp::p6box_s(
-                pir::chopn__Ssi(
-                    nqp::unbox_s(pir::perl6_decontainerize__PP($self)),
-                    1
-                )
-            );
-        nqp::p6box_s $last;
-    }
-
-    method p5chomp(Str:D \$self:) {
-        my Str $chomped := $self.chomp;
-        my Int $num_chomped = self.chars - $chomped.chars;
-        $self = $chomped;
-        $num_chomped;
-    }
 }
+
 
 multi prefix:<~>(Str:D \$a) { $a }
 
@@ -551,14 +529,6 @@ sub trim         (Str:D $s) { $s.trim }
 sub trim-leading (Str:D $s) { $s.trim-leading }
 sub trim-trailing(Str:D $s) { $s.trim-trailing }
 
-sub p5chomp(Str:D \$s) {
-    $s.p5chomp;
-}
-
-sub p5chop(Str:D \$s) {
-    $s.p5chop;
-}
-
 # the opposite of Real.base, used for :16($hex_str)
 sub unbase(Int:D $base, Cool:D $str) {
     if $str.substr(0, 2) eq any(<0x 0d 0o 0b>) {
@@ -567,4 +537,3 @@ sub unbase(Int:D $base, Cool:D $str) {
         ":{$base}<$str>".Numeric;
     }
 }
-

@@ -549,8 +549,8 @@ S32-str/lcfirst.t                                          # icu
 S32-str/lines.t
 S32-str/numeric.t
 S32-str/ords.t
-S32-str/p5chomp.t
-S32-str/p5chop.t
+# S32-str/p5chomp.t # err: Could not find sub &p5chomp
+# S32-str/p5chop.t # err: Could not find sub &p5chop
 # S32-str/pack.t # err: Could not find sub &pack
 S32-str/pos.t
 S32-str/rindex.t

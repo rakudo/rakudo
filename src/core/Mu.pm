@@ -244,6 +244,26 @@ sub infix:<=:=>(Mu \$x, Mu \$y) {
     nqp::p6bool(nqp::iseq_i(nqp::where($x), nqp::where($y)));
 }
 
+proto infix:<===>(Mu $a?, Mu $b?) { * }
+multi infix:<===>(Mu $a?)         { Bool::True }
+multi infix:<===>(Mu $a, Mu $b)   { $a.defined eq $b.defined && $a.WHICH === $b.WHICH }
+
+proto sub infix:<eqv>(Mu $, Mu $) { * }
+multi sub infix:<eqv>(Mu $a, Mu $b) {
+    $a.WHAT === $b.WHAT && $a === $b
+}
+
+multi sub infix:<eqv>(@a, @b) {
+    unless @a.WHAT === @b.WHAT && @a.elems == @b.elems {
+        return Bool::False
+    }
+    for ^@a -> $i {
+        unless @a[$i] eqv @b[$i] {
+            return Bool::False;
+        }
+    }
+    Bool::True
+}
 
 sub DUMP(|$) {
     my Mu $args := pir::perl6_current_args_rpa__P();

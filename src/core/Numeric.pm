@@ -22,6 +22,9 @@ my class Numeric {
     multi method gist(Numeric:D:) { self.Str }
 }
 
+multi sub infix:<eqv>(Numeric $a, Numeric $b) {
+    $a.WHAT === $b.WHAT && ($a cmp $b) == 0
+}
 
 ## arithmetic operators
 

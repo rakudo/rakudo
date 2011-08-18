@@ -86,3 +86,14 @@ my class EnumMap does Associative {
         $!storage 
     }
 }
+
+multi sub infix:<eqv>(EnumMap $a, EnumMap $b) {
+    if +$a != +$b { return Bool::False }
+    for $a.kv -> $k, $v {
+        unless $b.exists($k) && $b{$k} eqv $v {
+            return Bool::False;
+        }
+    }
+    Bool::True;
+}
+

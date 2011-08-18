@@ -88,3 +88,8 @@ my class Capture {
         (self.list.kv, self.hash.kv).flat
     }
 }
+
+multi sub infix:<eqv>(Capture $a, Capture $b) {
+    $a.WHAT === $b.WHAT && $a.list eqv $b.list && $a.hash eqv $b.hash
+}
+

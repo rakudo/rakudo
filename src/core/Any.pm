@@ -165,47 +165,6 @@ proto infix:<after>(|$)        { * }
 multi infix:<after>($x?)       { Bool::True }
 multi infix:<after>(\$a, \$b)  { ($a cmp $b) > 0 }
 
-proto infix:<===>(Mu $a?, Mu $b?) { * }
-multi infix:<===>(Mu $a?)         { Bool::True }
-multi infix:<===>(Mu $a, Mu $b)   { $a.defined eq $b.defined && $a.WHICH === $b.WHICH }
-
-proto sub infix:<eqv>(Mu $, Mu $) { * }
-multi sub infix:<eqv>(Mu $a, Mu $b) {
-    $a.WHAT === $b.WHAT && $a === $b
-}
-multi sub infix:<eqv>(Enum:D $a, Enum:D $b) {
-    $a.WHAT === $b.WHAT && $a.key eqv $b.key && $a.value eqv $b.value
-}
-multi sub infix:<eqv>(@a, @b) {
-    unless @a.WHAT === @b.WHAT && @a.elems == @b.elems {
-        return Bool::False
-    }
-    for ^@a -> $i {
-        unless @a[$i] eqv @b[$i] {
-            return Bool::False;
-        }
-    }
-    Bool::True
-}
-multi sub infix:<eqv>(EnumMap $a, EnumMap $b) {
-    if +$a != +$b { return Bool::False }
-    for $a.kv -> $k, $v {
-        unless $b.exists($k) && $b{$k} eqv $v {
-            return Bool::False;
-        }
-    }
-    Bool::True;
-}
-multi sub infix:<eqv>(Numeric $a, Numeric $b) {
-    $a.WHAT === $b.WHAT && ($a cmp $b) == 0
-}
-multi sub infix:<eqv>(Stringy $a, Stringy $b) {
-    $a.WHAT === $b.WHAT && ($a cmp $b) == 0
-}
-multi sub infix:<eqv>(Capture $a, Capture $b) {
-    $a.WHAT === $b.WHAT && $a.list eqv $b.list && $a.hash eqv $b.hash
-}
-
 # XXX: should really be '$a is rw' (no \) in the next four operators
 proto prefix:<++>(|$)             { * }
 multi prefix:<++>(Mu:D \$a is rw) { $a = $a.succ }

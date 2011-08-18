@@ -1,4 +1,4 @@
-class Nil { ... }
+my class Nil { ... }
 
 my &THROW :=
     -> |$ {

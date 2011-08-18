@@ -1,5 +1,6 @@
-class MapIter { ... }
-class Parcel { ... }
+my class MapIter { ... }
+my class Whatever { ... }
+my class Range { ... }
 
 my class Any {
 

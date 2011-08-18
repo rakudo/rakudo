@@ -1,4 +1,4 @@
-class Rat { ... }
+my class Rat { ... }
 
 my class Int {
     multi method Bool(Int:D:) {

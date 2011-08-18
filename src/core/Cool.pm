@@ -1,3 +1,5 @@
+my class IO { ... }
+
 my class Cool {
 
     ## numeric methods

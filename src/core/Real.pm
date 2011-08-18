@@ -1,4 +1,4 @@
-class Complex { ... }
+my class Complex { ... }
 
 # XxX role Real does Numeric { ... }
 my class Real {

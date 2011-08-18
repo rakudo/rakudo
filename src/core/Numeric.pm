@@ -1,5 +1,3 @@
-class Complex { ... }
-
 # XXX role Numeric { ... }
 my class Numeric {
     multi method Numeric(Numeric:D:) { self }

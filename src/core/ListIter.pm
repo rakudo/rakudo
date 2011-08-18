@@ -1,4 +1,4 @@
-class List { ... }
+my class List { ... }
 
 my class ListIter {
     # Attributes defined in BOOTSTRAP.pm:

@@ -1,5 +1,3 @@
-class Range { ... }
-
 my class List does Positional {
     # declared in BOOTSTRAP.pm:
     #   is Iterable;           # parent class

@@ -1,2 +1,2 @@
-my class WhateverCode {
+my class WhateverCode is Code {
 }

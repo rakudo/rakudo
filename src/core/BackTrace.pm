@@ -1,4 +1,6 @@
-class BackTraceLine {
+my class Exception { ... }
+
+my class BackTraceLine {
     has Str $.file;
     has Int $.line;
     has Mu  $.code;
@@ -14,7 +16,7 @@ class BackTraceLine {
     method is-setting { $!file eq 'src/gen/CORE.setting' }
 }
 
-class BackTrace is List {
+my class BackTrace is List {
     proto method new(|$) {*}
 
     multi method new(Exception $e, Int $offset = 0) {

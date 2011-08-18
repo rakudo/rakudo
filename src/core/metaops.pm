@@ -142,7 +142,7 @@ proto sub hyper(|$) { * }
 multi sub hyper(\$op, \$a, \$b, :$dwim-left, :$dwim-right) { 
     my @alist := $a.flat;
     my @blist := $b.flat;
-    my $elems;
+    my $elems = 0;
     if $dwim-left && $dwim-right { $elems = max(@alist.elems, @blist.elems) }
     elsif $dwim-left { $elems = @blist.elems }
     elsif $dwim-right { $elems = @alist.elems }

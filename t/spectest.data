@@ -80,7 +80,7 @@ S02-names_and_variables/fmt.t
 S02-names_and_variables/list_array_perl.t
 # S02-names_and_variables/signature.t # err: Method 'make_signature' not found for invocant of class 'Perl6::SymbolTable'
 S02-names_and_variables/variables-and-packages.t
-# S02-names_and_variables/varnames.t # err: Cannot use bind operator with this LHS
+S02-names_and_variables/varnames.t
 S02-names/identifier.t
 S02-names/our.t
 S02-names/symbolic-deref.t
@@ -100,7 +100,7 @@ S03-junctions/associative.t
 S03-junctions/autothreading.t
 S03-junctions/boolean-context.t
 S03-junctions/misc.t
-# S03-metaops/cross.t # err: Nominal type check failed for parameter '$op'; expected Any but got Mu instead
+S03-metaops/cross.t
 S03-metaops/eager-hyper.t
 S03-metaops/hyper.t
 S03-metaops/not.t
@@ -229,6 +229,7 @@ S04-statements/until.t
 S04-statements/while.t
 S05-capture/caps.t
 # S05-capture/dot.t # err: Useless declaration of a has-scoped method in mainline
+S05-capture/match-object.t
 # S05-capture/named.t # err: Method 'rxtype' not found for invocant of class 'PAST;Regex'
 # S05-capture/subrule.t # err: Method 'rxtype' not found for invocant of class 'PAST;Regex'
 # S05-grammar/action-stubs.t # err: Null PMC access in set_pmc_keyed()

@@ -18,6 +18,13 @@ my class Match is Capture {
     }
     multi method ACCEPTS(Match:D: Any $) { self }
 
+    method prematch(Match:D:) {
+        $!orig.substr(0, $!from);
+    }
+    method postmatch(Match:D:) {
+        $!orig.substr($!to)
+    }
+
     method caps(Match:D:) {
         my @caps;
         for self.pairs -> $p {

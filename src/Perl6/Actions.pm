@@ -1416,7 +1416,7 @@ class Perl6::Actions is HLL::Actions {
     
     method autogenerate_proto($/, $name, $install_in) {
         my $p_past := $*ST.push_lexpad($/);
-        $p_past.name('AUTOGEN-PROTO');
+        $p_past.name(~$name);
         $p_past.push(PAST::Op.new( :pirop('perl6_enter_multi_dispatch_from_onlystar_block P') ));
         $*ST.pop_lexpad();
         $install_in.push(PAST::Stmt.new($p_past));

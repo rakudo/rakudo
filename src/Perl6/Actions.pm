@@ -342,19 +342,27 @@ class Perl6::Actions is HLL::Actions {
     }
 
     method pod_formatting_code($/) {
-        my @content := [];
-        for $<pod_string_character> {
-            @content.push($_.ast)
+        if ~$<code> eq 'V' {
+            make ~$<content>;
+        } else {
+            my @content := [];
+            for $<pod_string_character> {
+                @content.push($_.ast)
+            }
+            my @t    := Perl6::Pod::build_pod_string(@content);
+            my $past := Perl6::Pod::serialize_object(
+                'Pod::FormattingCode',
+                :type(
+                    $*ST.add_constant(
+                        'Str', 'str', ~$<code>
+                    )<compile_time_value>
+                ),
+                :content(
+                    Perl6::Pod::serialize_array(@t)<compile_time_value>
+                )
+            );
+            make $past<compile_time_value>;
         }
-        my @t    := Perl6::Pod::build_pod_string(@content);
-        my $past := Perl6::Pod::serialize_object(
-            'Pod::FormattingCode',
-            :type(
-                $*ST.add_constant('Str', 'str', ~$<code>)<compile_time_value>
-            ),
-            :content(Perl6::Pod::serialize_array(@t)<compile_time_value>),
-        );
-        make $past<compile_time_value>;
     }
 
     method pod_string($/) {

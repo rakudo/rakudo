@@ -246,7 +246,7 @@ S05-grammar/methods.t
 S05-mass/named-chars.t
 # S05-mass/properties-block.t # err: Method 'isInAlphabeticPresentationForms' not found for invocant of class 'Cursor'
 # S05-mass/properties-derived.t # err: Method 'isASCIIHexDigit' not found for invocant of class 'Cursor'
-# S05-mass/properties-general.t # hangs
+# S05-mass/properties-general.t # err: Method 'isL' not found for invocant of class 'Cursor'
 # S05-mass/properties-script.t # err: Method 'isBidiL' not found for invocant of class 'Cursor'
 # S05-mass/rx.t # err: Method 'before' not found for invocant of class 'Cursor'
 # S05-mass/recursive.t # err: Method 'rxtype' not found for invocant of class 'PAST;Regex'
@@ -309,7 +309,7 @@ S06-operator-overloading/methods.t
 S06-other/anon-hashes-vs-blocks.t
 # S06-other/main.t # err: maximum recursion depth exceeded
 S06-other/main-eval.t
-# S06-other/main-usage.t # hangs 
+# S06-other/main-usage.t # err: Command line arguments may not contain single or double quotes
 S06-other/misc.t
 S06-routine-modifiers/scoped-named-subs.t
 S06-signature/arity.t
@@ -493,7 +493,7 @@ S32-hash/exists.t
 S32-hash/invert.t
 S32-hash/keys_values.t
 S32-hash/pairs.t
-# S32-hash/push.t # hangs
+# S32-hash/push.t # err: Cannot assign a non-Perl 6 value to a Perl 6 container
 S32-hash/slice.t
 # S32-io/dir.t # err: Could not find sub &dir
 # S32-io/chdir.t # err: Method 'd' not found for invocant of class 'Str'

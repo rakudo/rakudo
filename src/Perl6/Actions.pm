@@ -168,12 +168,10 @@ class Perl6::Actions is HLL::Actions {
 
         # If the unit defines &MAIN, add a &MAIN_HELPER.
         if $unit.symbol('&MAIN') {
-            $mainline.push(
-                PAST::Op.new(
-                    :pasttype('call'),
-                    :name('&MAIN_HELPER'),
-                    $mainline,
-                )
+            $mainline := PAST::Op.new(
+                :pasttype('call'),
+                :name('&MAIN_HELPER'),
+                $mainline,
             );
         }
 

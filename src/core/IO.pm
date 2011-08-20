@@ -175,6 +175,15 @@ multi sub slurp($filename) {
     $contents
 }
 
+proto sub cwd(|$) { * }
+multi sub cwd() {
+    my $pwd;
+    try {
+        $pwd = pir::new__Ps('OS').cwd();
+    }
+    $! ?? fail($!) !! $pwd;
+}
+
 $PROCESS::IN  = open('-');
 $PROCESS::OUT = open('-', :w);
 $PROCESS::ERR = IO.new;

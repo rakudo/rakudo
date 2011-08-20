@@ -187,7 +187,7 @@ S03-smartmatch/disorganized.t
 S03-smartmatch/hash-hash.t
 S03-smartmatch/regex-hash.t
 S03-smartmatch/scalar-hash.t
-# S04-blocks-and-statements/pointy-rw.t # err: Missing block
+S04-blocks-and-statements/pointy-rw.t
 S04-blocks-and-statements/pointy.t
 S04-phasers/end.t
 # S04-phasers/rvalue.t # err: Cannot assign a non-Perl 6 value to a Perl 6 container

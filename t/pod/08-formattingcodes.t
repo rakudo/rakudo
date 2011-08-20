@@ -71,8 +71,7 @@ isa_ok $r.content[2], Pod::Block::Code;
 is $r.content[2].content,
    q[$this = pod('also');  # Specifically, a code block];
 
-=pod
-    V<C<boo> B<bar> asd>
+=pod V<C<boo> B<bar> asd>
 
 $r = $=POD[4];
 is $r.content[0].content, 'C<boo> B<bar> asd';

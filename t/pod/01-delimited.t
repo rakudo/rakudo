@@ -1,5 +1,5 @@
 use Test;
-plan 33;
+plan 39;
 my $r;
 
 =begin foo
@@ -132,4 +132,29 @@ XXX: chop(%has)   should return a  hash  of chopped strings?
 $r = $=POD[8];
 isa_ok $r, Pod::Block;
 
-done;
+=begin pod
+    =head1 This is a heading block
+
+    This is an ordinary paragraph.
+    Its text  will   be     squeezed     and
+    short lines filled. It is terminated by
+    the first blank line.
+
+    This is another ordinary paragraph.
+    Its     text    will  also be squeezed and
+    short lines filled. It is terminated by
+    the trailing directive on the next line.
+        =head2 This is another heading block
+
+        This is yet another ordinary paragraph,
+        at the first virtual column set by the
+        previous directive
+=end pod
+
+$r = $=POD[9];
+isa_ok $r.content[0], Pod::Heading;
+isa_ok $r.content[1], Pod::Block::Para;
+isa_ok $r.content[2], Pod::Block::Para;
+isa_ok $r.content[3], Pod::Heading;
+isa_ok $r.content[4], Pod::Block::Para;
+is $r.content.elems, 5;

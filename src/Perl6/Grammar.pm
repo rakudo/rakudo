@@ -209,8 +209,9 @@ grammar Perl6::Grammar is HLL::Grammar {
         ^^
         $<spaces> = [ \h* ]
         '=begin' \h+ <!before 'END'>
-        {}
-        :my $*VMARGIN := $<spaces>.to - $<spaces>.from;
+        {
+            $*VMARGIN    := $<spaces>.to - $<spaces>.from;
+        }
         :my $*ALLOW_CODE := 0;
         $<type> = [
             <pod_code_parent> { $*ALLOW_CODE := 1 }
@@ -265,11 +266,15 @@ grammar Perl6::Grammar is HLL::Grammar {
     token pod_block:sym<paragraph> {
         ^^
         $<spaces> = [ \h* ]
-        {}
-        :my $*VMARGIN := $<spaces>.to - $<spaces>.from;
-        :my $*ALLOW_CODE := 0;
         '=for' \h+ <!before 'END'>
-        $<type> = <identifier>
+        {
+            $*VMARGIN := $<spaces>.to - $<spaces>.from;
+        }
+        :my $*ALLOW_CODE := 0;
+        $<type> = [
+            <pod_code_parent> { $*ALLOW_CODE := 1 }
+            || <identifier>
+        ]
         [ \h+ <colonpair> ]?
         <pod_newline>
         $<pod_content> = <pod_textcontent>?
@@ -291,11 +296,15 @@ grammar Perl6::Grammar is HLL::Grammar {
     token pod_block:sym<abbreviated> {
         ^^
         $<spaces> = [ \h* ]
-        {}
-        :my $*VMARGIN := $<spaces>.to - $<spaces>.from;
-        :my $*ALLOW_CODE := 0;
         '=' <!before begin || end || for || END>
-        $<type> = <identifier>
+        {
+            $*VMARGIN := $<spaces>.to - $<spaces>.from;
+        }
+        :my $*ALLOW_CODE := 0;
+        $<type> = [
+            <pod_code_parent> { $*ALLOW_CODE := 1 }
+            || <identifier>
+        ]
         [ \h+ <colonpair> ]?
         \s
         $<pod_content> = <pod_textcontent>?

@@ -495,7 +495,7 @@ S32-hash/keys_values.t
 S32-hash/pairs.t
 # S32-hash/push.t # err: Cannot assign a non-Perl 6 value to a Perl 6 container
 S32-hash/slice.t
-# S32-io/dir.t # err: Could not find sub &dir
+S32-io/dir.t
 # S32-io/chdir.t # err: Method 'd' not found for invocant of class 'Str'
 S32-io/file-tests.t
 S32-io/note.t

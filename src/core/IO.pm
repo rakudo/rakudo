@@ -184,6 +184,19 @@ multi sub cwd() {
     $! ?? fail($!) !! $pwd;
 }
 
+sub dir($path = '.', Mu :$test = none('.', '..')) {
+    my Mu $RSA := pir::new__PS('OS').readdir(nqp::unbox_s($path.Stringy));
+    my Int $elems := nqp::p6box_i(pir::set__IP($RSA));
+    my @res;
+    loop (my Int $i = 0; $i < $elems; $i++) {
+        my Str $item := nqp::p6box_s(nqp::atpos($RSA, nqp::unbox_i($i)));
+        @res.push: $item if $test.ACCEPTS($item);
+    }
+    say $elems;
+    @res;
+
+}
+
 $PROCESS::IN  = open('-');
 $PROCESS::OUT = open('-', :w);
 $PROCESS::ERR = IO.new;

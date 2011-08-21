@@ -168,6 +168,7 @@ CORE_SOURCES = \
   src/core/Attribute.pm \
   src/core/Routine.pm \
   src/core/Sub.pm \
+  src/core/Macro.pm \
   src/core/Method.pm \
   src/core/Submethod.pm \
   src/core/Junction.pm \
@@ -213,6 +214,7 @@ CORE_SOURCES = \
   src/core/Cursor.pm \
   src/core/Grammar.pm \
   src/core/Regex.pm \
+  src/core/AST.pm \
   src/core/CallFrame.pm \
   src/core/Main.pm \
   src/core/tai-utc.pm \

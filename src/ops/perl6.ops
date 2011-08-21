@@ -1780,6 +1780,31 @@ inline op perl6_capture_lex(in PMC) {
 }
 
 /*
+
+=item perl6_get_outer_ctx
+
+Returns the OUTER context of a Perl 6 code object. Needed for the fixups
+that macros do.
+
+=cut
+
+*/
+inline op perl6_get_outer_ctx(out PMC, in PMC) {
+    if ($2->vtable->base_type == smo_id) {
+        Rakudo_Code *code_obj = (Rakudo_Code *)PMC_data(Rakudo_cont_decontainerize(interp, $2));
+        if (code_obj->_do->vtable->base_type != enum_class_Sub)
+            Parrot_ex_throw_from_c_args(interp, NULL, EXCEPTION_INVALID_OPERATION,
+                "perl6_get_outer_ctx did not get a Parrot Sub as expected, got %Ss",
+                VTABLE_name(interp, VTABLE_get_class(interp, $2)));
+        $1 = PARROT_SUB(code_obj->_do)->outer_ctx;
+    }
+    else {
+        Parrot_ex_throw_from_c_args(interp, NULL, EXCEPTION_INVALID_OPERATION,
+            "Can only use perl6_get_outer_ctx with a SixModelObject");
+    }
+}
+
+/*
  * Local variables:
  *   c-file-style: "parrot"
  * End:

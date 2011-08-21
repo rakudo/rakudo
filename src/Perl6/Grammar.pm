@@ -1494,8 +1494,7 @@ grammar Perl6::Grammar is HLL::Grammar {
     token routine_declarator:sym<submethod>
         { <sym> <.end_keyword> <method_def('submethod')> }
     token routine_declarator:sym<macro>
-        { <sym> <.end_keyword>
-          <.NYI: "Macros"> }
+        { <sym> <.end_keyword> <macro_def()> }
 
     rule routine_def($d) {
         :my $*IN_DECL := $d;
@@ -1555,6 +1554,35 @@ grammar Perl6::Grammar is HLL::Grammar {
             | <blockoid>
             ]
         ] || <.malformed('method')>
+    }
+
+    rule macro_def() {
+        :my $*IN_DECL := 'macro';
+        :my $*METHODTYPE;
+        :my $*IMPLICIT := 0;
+        :my $*DOC := $*DECLARATOR_DOCS;
+        :my $*DOCEE;
+        <.attach_docs>
+        <deflongname>?
+        {
+            if $<deflongname> && $<deflongname>[0]<colonpair> {
+                # It's an (potentially new) operator, circumfix, etc. that we
+                # need to tweak into the grammar.
+                my $category := $<deflongname>[0]<name>.Str;
+                my $opname := ~$<deflongname>[0]<colonpair>[0]<circumfix><quote_EXPR><quote_delimited><quote_atom>[0];
+                my $canname := $category ~ ":sym<" ~ $opname ~ ">";
+                $/.CURSOR.gen_op($category, $opname, $canname, $<deflongname>[0].ast)
+                    unless pir::can__IPs($/.CURSOR, $canname);
+            }
+        }
+        <.newpad>
+        [ '(' <multisig> ')' ]?
+        <trait>*
+        { $*IN_DECL := ''; }
+        [
+        | <onlystar>
+        | <blockoid>
+        ]
     }
     
     token onlystar {
@@ -2140,6 +2168,10 @@ grammar Perl6::Grammar is HLL::Grammar {
             elsif $m eq 'e' { $/.CURSOR.obs('/e','interpolated {...} or s{} = ... form'); }
             else            { $/.CURSOR.obs('suffix regex modifiers','prefix adverbs');   }
         }
+    }
+
+    token quote:sym<quasi> {
+        <sym> <.ws> <!before '('> <block>
     }
 
     token quote_escape:sym<$> {

@@ -726,6 +726,27 @@ class Perl6::World is HLL::World {
         self.add_fixup_task(:deserialize_past($des), :fixup_past($fixups));
         $code;
     }
+
+    method add_quasi_fixups($quasi_ast, $block) {
+        $quasi_ast := pir::nqp_decontainerize__PP($quasi_ast);
+        self.add_object($quasi_ast);
+        unless $quasi_ast.is_quasi_ast {
+            return "";
+        }
+        my $fixups := PAST::Op.new(:name<set_outer_ctx>, :pasttype<callmethod>,
+                                   PAST::Val.new(:value($block)),
+                                   PAST::Op.new(
+                                        :pirop<perl6_get_outer_ctx__PP>,
+                                        PAST::Var.new(
+                                            :scope<attribute_6model>,
+                                            :name<$!quasi_context>,
+                                            self.get_ref($quasi_ast),
+                                            self.get_ref(self.find_symbol(['AST']))
+                                        )
+                                   )
+                        );
+        self.add_fixup_task(:fixup_past($fixups));
+    }
     
     # Adds any extra code needing for handling phasers.
     method add_phasers_handling_code($code, $code_past) {
@@ -1525,7 +1546,7 @@ class Perl6::World is HLL::World {
             }
         }
     }
-    
+
     # Generates a series of PAST operations that will build this context if
     # it doesn't exist, and fix it up if it already does.
     method to_past() {

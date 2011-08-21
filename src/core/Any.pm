@@ -30,6 +30,12 @@ my class Any {
     method grep(Mu $test) is rw {
         self.map({ $_ if $_ ~~ $test });
     }
+    method first(Mu $test) is rw {
+        for self.list {
+            return $_ if $test.ACCEPTS($_);
+        }
+        fail 'No values matched';
+    }
 
     method join($separator = '') {
         my $list = (self,).flat.eager;
@@ -210,6 +216,9 @@ multi map(&code, *@values) { @values.map(&code) }
 
 proto grep(|$) {*}
 multi grep(Mu $test, *@values) { @values.grep($test) }
+
+proto first(|$) {*}
+multi first(Mu $test, *@values) { @values.first($test) }
 
 proto join(|$) { * }
 multi join($sep = '', *@values) { @values.join($sep) }

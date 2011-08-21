@@ -503,7 +503,7 @@ S32-io/note.t
 S32-list/classify.t
 S32-list/create.t
 S32-list/end.t
-# S32-list/first.t # err: Could not find sub &first
+S32-list/first.t
 S32-list/grep.t
 S32-list/join.t
 S32-list/map_function_return_values.t

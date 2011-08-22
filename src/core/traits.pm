@@ -23,7 +23,6 @@ multi trait_mod:<is>(Attribute:D $attr, :$readonly!) {
 multi trait_mod:<is>(Routine:D $r, :$rw!) {
     $r.set_rw();
 }
-
 multi trait_mod:<is>(Parameter:D $param, :$readonly!) {
     # This is the default.
 }
@@ -88,6 +87,13 @@ multi trait_mod:<of>(Mu:U $target, Mu:U $type) {
 multi trait_mod:<of>(Routine:D $target, Mu:U $type) {
     $target.signature.set_returns($type)
 }
+
+multi trait_mod:<is>(Routine:D $r, :$hidden_from_backtrace!) {
+    $r.HOW.mixin($r, role {
+        method is_hidden_from_backtrace { True }
+    });
+}
+
 
 proto trait_mod:<returns>(|$) { * }
 multi trait_mod:<returns>(Routine:D $target, Mu:U $type) {

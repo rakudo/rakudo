@@ -142,6 +142,7 @@ CORE_SOURCES = \
   src/core/Callable.pm \
   src/core/stubs.pm \
   src/core/natives.pm \
+  src/core/Sub.pm \
   src/core/control.pm \
   src/core/Mu.pm \
   src/core/Stringy.pm \
@@ -150,7 +151,6 @@ CORE_SOURCES = \
   src/core/WhateverCode.pm \
   src/core/Block.pm \
   src/core/Routine.pm \
-  src/core/Sub.pm \
   src/core/Method.pm \
   src/core/Submethod.pm \
   src/core/Attribute.pm \

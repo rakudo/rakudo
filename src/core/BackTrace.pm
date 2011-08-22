@@ -12,6 +12,7 @@ my class BackTraceLine {
         "  in $.subtype $.subname at {$.file}:$.line\n"
     }
 
+    method is-hidden  { $!code.?is_hidden_from_backtrace }
     method is-routine { $!code ~~ Routine }
     method is-setting { $!file eq 'src/gen/CORE.setting' }
 }
@@ -49,11 +50,11 @@ my class BackTrace is List {
     }
 
     method concise(BackTrace:D:) {
-        self.grep({ .is-routine && !.is-setting }).join
+        self.grep({ !.is-hidden && .is-routine && !.is-setting }).join
     }
 
     multi method Str(BackTrace:D:) {
-        self.grep({ .is-routine || !.is-setting }).join
+        self.grep({ !.is-hidden && (.is-routine || !.is-setting )}).join
     }
 
     method full(BackTrace:D:) {

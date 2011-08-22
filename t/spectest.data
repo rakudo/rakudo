@@ -518,7 +518,7 @@ S32-list/roll.t
 S32-num/abs.t
 S32-num/base.t
 S32-num/complex.t
-# S32-num/cool-num.t # err: Method 'abs' not found for invocant of class 'Str'
+S32-num/cool-num.t
 S32-num/exp.t
 S32-num/int.t
 S32-num/log.t

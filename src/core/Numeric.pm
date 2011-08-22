@@ -11,7 +11,7 @@ my class Numeric {
     method log10() { self.log / 10e0.log }
 
     proto method exp(|$) {*}
-    multi method exp(Numeric $base) {
+    multi method exp($base) {
         $base ** self;
     }
     method roots(Cool $n) { self.Complex.roots($n.Int) }

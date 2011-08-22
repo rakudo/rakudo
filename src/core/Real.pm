@@ -7,6 +7,7 @@ my class Real {
     proto method sign(|$) {*}
     multi method sign(Real:U:) { Mu }
     multi method sign(Real:D:) { self < 0 ?? -1 !! self == 0 ?? 0 !! 1 }
+    method conjugate(Real:D:) { self }
     method sqrt() { self.Bridge.sqrt }
     method sin()  { self.Bridge.sin }
     method asin() { self.Bridge.asin }
@@ -37,6 +38,9 @@ my class Real {
     method acotanh() { self.Bridge.acotanh }
     method floor() { self.Bridge.floor }
     method ceiling() { self.Bridge.ceiling }
+    # causes "get_string() not implemented in class 'Int'"
+    # if commented out, but should be there
+#    method round($scale = 1) { (self / $scale + 0.5).floor * $scale }
     method unpolar(Real $angle) {
         Complex.new(self * $angle.cos, self * $angle.sin);
     }

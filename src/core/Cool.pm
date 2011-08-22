@@ -4,8 +4,11 @@ my class Cool {
 
     ## numeric methods
 
+    method abs()  { self.Numeric.abs }
+    method conjugate()  { self.Numeric.conjugate }
+    method sqrt()  { self.Numeric.sqrt }
+    method sign()  { self.Numeric.sign }
     method rand() { self.Num.rand }
-    method truncate() { self.Numeric.truncate }
     method sin()  { self.Numeric.sin }
     method asin() { self.Numeric.asin }
     method cos()  { self.Numeric.cos }
@@ -31,7 +34,26 @@ my class Cool {
     method acosech() { self.Numeric.acosech }
     method cotanh()  { self.Numeric.cotanh }
     method acotanh() { self.Numeric.acotanh }
+    method cis()     { self.Numeric.cis }
     
+    proto method log(|$) {*}
+    multi method log()      { self.Numeric.log          }
+    multi method log($base) { self.Numeric.log($base.Numeric) }
+
+    proto method exp(|$) {*}
+    multi method exp()      { self.Numeric.exp          }
+    multi method exp($base) { self.Numeric.exp($base.Numeric) }
+
+
+    method roots(Cool $n)   { self.Numeric.roots($n)    }
+    method log10()          { self.Numeric.log10        }
+    method unpolar($n)      { self.Numeric.unpolar($n.Numeric) }
+
+    method round($base = 1) { self.Numeric.round($base) }
+    method floor()          { self.Numeric.floor        }
+    method ceiling()        { self.Numeric.ceiling      }
+    method truncate()       { self.Numeric.truncate     }
+
     ## string methods
 
     method bytes() {

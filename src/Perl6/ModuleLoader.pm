@@ -44,14 +44,22 @@ class Perl6::ModuleLoader {
         my $pbc_path  := $base_path ~ '.pbc';
         my $pir_path  := $base_path ~ '.pir';
         my $pm_path   := $base_path ~ '.pm';
+        my $pm6_path  := $base_path ~ '.pm6';
         
         # Go through the prefixes and build a candidate list.
         my @candidates;
         for @prefixes -> $prefix {
             $prefix := ~$prefix;
             my $have_pm  := pir::stat__isi("$prefix/$pm_path", 0);
+            my $have_pm6 := pir::stat__isi("$prefix/$pm6_path", 0);
             my $have_pir := pir::stat__isi("$prefix/$pir_path", 0);
             my $have_pbc := pir::stat__isi("$prefix/$pbc_path", 0);
+            if $have_pm6 {
+                # if there are both .pm and .pm6 we assume that
+                # the former is a Perl 5 module and use the latter
+                $have_pm := 1;
+                $pm_path := $pm6_path;
+            }
             if $have_pm {
                 my %cand;
                 %cand<key> := "$prefix/$pm_path";

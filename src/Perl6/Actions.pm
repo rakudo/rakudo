@@ -311,6 +311,10 @@ class Perl6::Actions is HLL::Actions {
     method pod_block:sym<end>($/) {
     }
 
+    method pod_content:sym<config>($/) {
+        make Perl6::Pod::config($/);
+    }
+
     method pod_content:sym<text>($/) {
         my @ret := [];
         for $<pod_textcontent> {

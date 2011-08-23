@@ -163,6 +163,13 @@ grammar Perl6::Grammar is HLL::Grammar {
         <pod_newline>*
     }
 
+    # not a block, just a directive
+    token pod_content:sym<config> {
+        <pod_newline>*
+        ^^ \h* '=config' \h+ $<type>=<identifier> [ \h+ <colonpair> ]+
+        <pod_newline>+
+    }
+
     proto token pod_textcontent { <...> }
 
     # text not being code
@@ -296,7 +303,7 @@ grammar Perl6::Grammar is HLL::Grammar {
     token pod_block:sym<abbreviated> {
         ^^
         $<spaces> = [ \h* ]
-        '=' <!before begin || end || for || END>
+        '=' <!before begin || end || for || END || config>
         {
             $*VMARGIN := $<spaces>.to - $<spaces>.from;
         }

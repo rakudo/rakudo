@@ -12,12 +12,12 @@ isa_ok $r, Pod::Block::Code;
 is $r.config<allow>, 'B';
 
 =begin pod
-    =head2 :like<head1> :formatted<I>
+    =config head2  :like<head1> :formatted<I>
 =end pod
 
 $r = $=POD[1].content[0];
-isa_ok $r, Pod::Heading;
-is $r.level, 2;
+isa_ok $r, Pod::Config;
+is $r.type, 'head2';
 is $r.config<like>, 'head1';
 is $r.config<formatted>, 'I';
 

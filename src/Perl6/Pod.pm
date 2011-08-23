@@ -77,6 +77,14 @@ class Perl6::Pod {
         return $past<compile_time_value>;
     }
 
+    our sub config($/) {
+        my $type := $*ST.add_constant('Str', 'str', ~$<identifier>);
+        return serialize_object(
+            'Pod::Config', :type($type<compile_time_value>),
+            :config(make_config($/))
+        )<compile_time_value>
+    }
+
     our sub make_config($/) {
         my @pairs;
         for $<colonpair> -> $colonpair {

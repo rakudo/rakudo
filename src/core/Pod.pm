@@ -37,6 +37,11 @@ my package Pod {
     class Item is Block {
         has $.level;
     }
+
+    class Config {
+        has $.type;
+        has %.config;
+    }
 }
 
 # vim: ft=perl6

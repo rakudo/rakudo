@@ -1,5 +1,6 @@
 my package Pod {
     class Block {
+        has %.config;
         has @.content;
     }
 

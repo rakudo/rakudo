@@ -21,6 +21,7 @@ class Perl6::Pod {
         my @children := [];
         my $type;
         my $leveled;
+        my $config := make_config($/);
 
         if $<type>.Str ~~ /^item \d*$/ {
             $type    := 'Pod::Item';
@@ -49,7 +50,7 @@ class Perl6::Pod {
             }
 
             my $past := serialize_object(
-                $type, :level($level_past),
+                $type, :level($level_past), :config($config),
                 :content($content<compile_time_value>)
             );
             return $past<compile_time_value>;
@@ -58,20 +59,55 @@ class Perl6::Pod {
         my $name := $*ST.add_constant('Str', 'str', $<type>.Str);
         my $past := serialize_object(
             'Pod::Block::Named', :name($name<compile_time_value>),
-            :content($content<compile_time_value>),
+            :config($config), :content($content<compile_time_value>),
         );
         return $past<compile_time_value>;
     }
 
     our sub raw_block($/) {
+        my $config := make_config($/);
         my $str := $*ST.add_constant('Str', 'str', ~$<pod_content>);
         my $content := serialize_array([$str<compile_time_value>]);
         my $type := $<type>.Str eq 'code' ?? 'Pod::Block::Code'
                                           !! 'Pod::Block::Comment';
         my $past := serialize_object(
-            $type, :content($content<compile_time_value>)
+            $type, :config($config),
+            :content($content<compile_time_value>),
         );
         return $past<compile_time_value>;
+    }
+
+    our sub make_config($/) {
+        my @pairs;
+        for $<colonpair> -> $colonpair {
+            my $key := $colonpair<identifier>;
+            my $val;
+            # This is a cheaty and evil hack. This is also the only way
+            # I can obtain this information without reimplementing
+            # <colonpair> entirely
+            if $colonpair<circumfix> {
+                $val := $colonpair<circumfix>;
+                if $val<quote_EXPR> {
+                    $val := pir::join('', $val<quote_EXPR><quote_delimited><quote_atom>);
+                } else {
+                    $val := ~$val<semilist>;
+                }
+            } else {
+                # and this is the worst hack of them all.
+                # Hide your kids, hide your wife!
+                my $truth := pir::substr($colonpair, 1, 1) ne '!';
+
+                $val := $*ST.add_constant('Int', 'int', $truth)<compile_time_value>;
+            }
+            $key := $*ST.add_constant('Str', 'str', $key)<compile_time_value>;
+            $val := $*ST.add_constant('Str', 'str', $val)<compile_time_value>;
+            @pairs.push(
+                serialize_object(
+                    'Pair', :key($key), :value($val)
+                )<compile_time_value>
+            );
+        }
+        return serialize_object('Hash', |@pairs)<compile_time_value>;
     }
 
     our sub formatted_text($a) {

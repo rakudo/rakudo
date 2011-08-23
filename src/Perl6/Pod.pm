@@ -78,7 +78,7 @@ class Perl6::Pod {
     }
 
     our sub config($/) {
-        my $type := $*ST.add_constant('Str', 'str', ~$<identifier>);
+        my $type := $*ST.add_constant('Str', 'str', ~$<type>);
         return serialize_object(
             'Pod::Config', :type($type<compile_time_value>),
             :config(make_config($/))

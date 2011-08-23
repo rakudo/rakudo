@@ -446,7 +446,7 @@ S14-roles/submethods.t
 # S14-traits/package.t # err: Invalid typename in parameter declaration
 # S14-traits/routines.t # err: Could not find sub &description
 # S14-traits/variables.t # err: Invalid typename in parameter declaration
-# S16-filehandles/filetest.t # err: Method 'z' not found for invocant of class 'IO'
+# S16-filehandles/filetest.t # err: Nominal type check failed for parameter '&call'; expected Callable but got Sub instead
 S16-filehandles/io.t
 S16-filehandles/io_in_for_loops.t
 S16-filehandles/io_in_while_loops.t

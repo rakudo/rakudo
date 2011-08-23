@@ -1,5 +1,5 @@
 use Test;
-plan 9; # ha ha
+plan 12;
 my $r;
 
 =begin pod
@@ -29,3 +29,13 @@ $r = $=POD[2].content[0];
 is $r.config<number>, 42;
 is $r.config<zebras>.Bool, True;
 is $r.config<sheep>.Bool, False;
+
+=begin pod
+=for DESCRIPTION :title<presentation template>
+=                :author<John Brown> :pubdate(2011)
+=end pod
+
+$r = $=POD[3].content[0];
+is $r.config<title>, 'presentation template';
+is $r.config<author>, 'John Brown';
+is $r.config<pubdate>, 2011;

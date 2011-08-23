@@ -166,7 +166,7 @@ grammar Perl6::Grammar is HLL::Grammar {
     # not a block, just a directive
     token pod_content:sym<config> {
         <pod_newline>*
-        ^^ \h* '=config' \h+ $<type>=<identifier> [ \h+ <colonpair> ]+
+        ^^ \h* '=config' \h+ $<type>=\S+ [ \h+ <colonpair> ]+
         <pod_newline>+
     }
 

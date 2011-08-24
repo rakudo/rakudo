@@ -165,7 +165,7 @@ my class Cool {
     method printf (*@args) {  printf(self, @args) };
     method samecase(Cool:D: Cool $pattern) { self.Stringy.samecase($pattern) }
 
-    method IO() { IO.new(:path(self)) }
+    method IO() { IO.new(:path(self.Stringy)) }
     method trim         () { self.Stringy.trim          };
     method trim-leading () { self.Stringy.trim-leading  };
     method trim-trailing() { self.Stringy.trim-trailing };

@@ -192,7 +192,6 @@ sub dir($path = '.', Mu :$test = none('.', '..')) {
         my Str $item := nqp::p6box_s(nqp::atpos($RSA, nqp::unbox_i($i)));
         @res.push: $item if $test.ACCEPTS($item);
     }
-    say $elems;
     @res;
 
 }

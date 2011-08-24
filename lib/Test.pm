@@ -12,6 +12,7 @@ my $todo_reason         = '';
 my $num_of_tests_planned;
 my $no_plan = 1;
 my $die_on_fail;
+my $perl6_test_times = ? %*ENV<PERL6_TEST_TIMES>;
 
 ## If done_testing hasn't been run when we hit our END block, we need to know
 ## so that it can be run. This allows compatibility with old tests that use
@@ -45,8 +46,8 @@ multi sub plan($number_of_tests) {
     }
     # Emit two successive timestamps to measure the measurment overhead,
     # and to eliminate cacheing bias, if it exists, from the first test.
-    #say '# t=' ~ pir::time__N if %*ENV{'PERL6_TEST_TIMES'};
-    #say '# t=' ~ pir::time__N if %*ENV{'PERL6_TEST_TIMES'};
+    say '# t=' ~ nqp::p6box_s(pir::time__n) if $perl6_test_times;
+    say '# t=' ~ nqp::p6box_s(pir::time__n) if $perl6_test_times;
     # Ideally the time readings above could be made with the expression
     # now.to-posix[0], but the execution time showed by the difference
     # between the two successive readings is far slower than when the
@@ -247,7 +248,7 @@ sub proclaim($cond, $desc) {
         print $todo_reason;
     }
     print "\n";
-    #say '# t=' ~ pir::time__N if %*ENV{'PERL6_TEST_TIMES'};
+    say '# t=' ~ nqp::p6box_s(pir::time__n) if $perl6_test_times;
 
     if !$cond && $die_on_fail && !$todo_reason {
         die "Test failed.  Stopping test";

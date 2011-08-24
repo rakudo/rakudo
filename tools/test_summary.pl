@@ -18,10 +18,13 @@ use strict;
 use warnings;
 use Time::Local;
 use Time::HiRes;
+use Getopt::Long;
 
+my $timing;
+GetOptions('timing', \$timing);
 my $benchmark;
 # Comment out the next line to skip benchmarking; see docs below
-$benchmark = Simple::Relative::Benchmarking::begin();    # defined below
+$benchmark = Simple::Relative::Benchmarking::begin() if $timing;
 
 # Build the list of test scripts to run in @tfiles
 my $testlist = $ARGV[0] || 't/spectest.data';

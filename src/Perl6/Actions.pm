@@ -2328,15 +2328,15 @@ class Perl6::Actions is HLL::Actions {
     }
 
     method term:sym<...>($/) {
-        make PAST::Op.new( :pasttype('call'), :name('&fail'), 'Stub code executed', :node($/) );
+        make PAST::Op.new( :pasttype('call'), :name('&fail'), $*ST.add_constant('Str', 'str', 'Stub code executed'), :node($/) );
     }
 
     method term:sym<???>($/) {
-        make PAST::Op.new( :pasttype('call'), :name('&warn'), 'Stub code executed', :node($/) );
+        make PAST::Op.new( :pasttype('call'), :name('&warn'), $*ST.add_constant('Str', 'str', 'Stub code executed'), :node($/) );
     }
 
     method term:sym<!!!>($/) {
-        make PAST::Op.new( :pasttype('call'), :name('&die'), 'Stub code executed', :node($/) );
+        make PAST::Op.new( :pasttype('call'), :name('&die'), $*ST.add_constant('Str', 'str', 'Stub code executed'), :node($/) );
     }
 
     method term:sym<dotty>($/) {

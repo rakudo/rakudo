@@ -24,6 +24,7 @@ responsible parties.
 * fix meta-dispatchers to not flatten positionals (3, 2, ???, ???)
 * fix huge memory leak in simple while loop (2, 1, ???, ???)
 * <!before> (2, 1, *, pmichaud)
+* <&lexical-regex> (2, 1, ???, pmichaud)
 
 ## Other NOMMAP notes
 

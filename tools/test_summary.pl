@@ -9,8 +9,10 @@
 ##  passed, failed, todoed, skipped, executed and planned test results.
 ##
 ##  Usage:
-##     tools/test_summary.pl [testlist]
+##     tools/test_summary.pl [--timing] [testlist]
 ##
+##  The --timing option enables microsecond timing per test saved
+##  in docs/test_summary.times.
 ##  If supplied, C<testlist> identifies an alternate list of tests
 ##  to use (e.g., t/localtest.data).
 
@@ -199,21 +201,20 @@ for my $syn (sort keys %syn) {
         # Extract the filename and plan count from that if possible.
         if ( m/ ^ ([^:]*) : \d+ : plan (.*) $ /x ) {
             my ( $filename, $planexpression ) = ( $1, $2 );
-            my $script_planned_tests;
-            if ( $planexpression =~ m/ ^ \s* (\d+) \s* ; $ /x ) {
-                # A conventional 'plan 42;' type of line
-                $script_planned_tests = $1;
-            }
-            else {
-                # It is some other plan argument, either * or variables.
-                # A workaround is to get the actual number of tests run
-                # from the output and just assume is the same number,
-                # but sometimes that is missing too.
-                if ( exists $plan_per_file{$filename} ) {
-                    $script_planned_tests = $plan_per_file{$filename};
+            my $script_planned_tests = 0;
+            if ( $filename =~ m/\.t$/ ) {
+                if ( $planexpression =~ m/ ^ \s* (\d+) \s* ; $ /x ) {
+                    # A conventional 'plan 42;' type of line
+                    $script_planned_tests = $1;
                 }
                 else {
-                    $script_planned_tests = 0; # sorry!
+                    # It is some other plan argument, either * or variables.
+                    # A workaround is to get the actual number of tests run
+                    # from the output and just assume is the same number,
+                    # but sometimes that is missing too.
+                    if ( exists $plan_per_file{$filename} ) {
+                        $script_planned_tests = $plan_per_file{$filename};
+                    }
                 }
             }
             $total_tests_planned_per_synopsis += $script_planned_tests;

@@ -196,6 +196,22 @@ sub dir($path = '.', Mu :$test = none('.', '..')) {
 
 }
 
+proto sub chdir(|$) { * }
+multi sub chdir($path as Str) {
+    try {
+        pir::new__PS('OS').chdir($path)
+    }
+    $! ?? fail($!) !! True
+}
+
+proto sub mkdir(|$) { * }
+multi sub mkdir($path as Str, $mode = 0o777) {
+    try {
+        pir::new__PS('OS').mkdir($path, $mode)
+    }
+    $! ?? fail($!) !! True
+}
+
 $PROCESS::IN  = open('-');
 $PROCESS::OUT = open('-', :w);
 $PROCESS::ERR = IO.new;

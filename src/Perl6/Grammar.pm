@@ -215,7 +215,12 @@ grammar Perl6::Grammar is HLL::Grammar {
     token pod_block:sym<delimited> {
         ^^
         $<spaces> = [ \h* ]
-        '=begin' \h+ <!before 'END'>
+        '=begin'
+        [ <!before <pod_newline>>
+          || <.panic('=begin must be followed by an identifier; '
+                   ~ '(did you mean "=begin pod"?)')>
+        ]
+        \h+ <!before 'END'>
         {
             $*VMARGIN    := $<spaces>.to - $<spaces>.from;
         }

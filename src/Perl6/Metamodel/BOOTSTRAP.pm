@@ -649,6 +649,9 @@ Perl6::Metamodel::ClassHOW.add_stash(Num);
 Perl6::Metamodel::ClassHOW.add_stash(Scalar);
 Perl6::Metamodel::ClassHOW.add_stash(Bool);
 Perl6::Metamodel::ClassHOW.add_stash(Stash);
+Perl6::Metamodel::ClassHOW.add_stash(List);
+Perl6::Metamodel::ClassHOW.add_stash(Array);
+Perl6::Metamodel::ClassHOW.add_stash(Hash);
 
 # Make Parrot invoke v-table construct a capture and delegate off
 # to postcircumfix:<( )>.

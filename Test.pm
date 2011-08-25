@@ -13,6 +13,7 @@ our $todo_reason         = '';
 our $num_of_tests_planned;
 our $no_plan = 1;
 our $die_on_fail;
+our $perl6_test_times = ? %*ENV<PERL6_TEST_TIMES>;
 
 our $GLOBAL::WARNINGS = 0;
 
@@ -40,6 +41,11 @@ multi sub plan($number_of_tests) is export(:DEFAULT) {
     $no_plan = 0;
 
     say '1..' ~ $number_of_tests;
+    # Emit two successive timestamps to measure the measurment overhead,
+    # and to eliminate cacheing bias, if it exists, from the first test.
+    say '# t=' ~ time() if $perl6_test_times;
+    say '# t=' ~ time() if $perl6_test_times;
+    # The time() function changed in later Rakudos to now.to-posix[0]
 }
 
 multi sub pass($desc) is export(:DEFAULT) {
@@ -242,6 +248,7 @@ sub proclaim($cond, $desc) {
         print $todo_reason;
     }
     print "\n";
+    say '# t=' ~ time() if $perl6_test_times;
 
     if !$cond && $die_on_fail && !$todo_reason {
         die "Test failed.  Stopping test";

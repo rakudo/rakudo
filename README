@@ -57,6 +57,9 @@ Once you have a copy of Rakudo, build it as follows:
     $ perl Configure.pl --gen-parrot
     $ make
 
+Note: this no longer works.  See "Loss of the Subversion Repositories"
+below for a workaround.
+
 This will create a "perl6" or "perl6.exe" executable in the
 current (rakudo) directory.  Programs can then be run from
 the build directory using a command like:
@@ -137,6 +140,42 @@ You can also use "make" to run an individual test from the command line:
 If you want to run the tests in parallel, you need to install a
 fairly recent version of the Perl 5 module L<Test::Harness> (3.16
 works for sure).
+
+=head3 Loss of the Subversion Repositories
+
+Since early 2010, Parrot and the Perl 6 test suite have moved from their
+respective Subversion repositories to Github.  The Subversion servers
+are offline, so Rakudo's Configure.pl --gen-parrot and make testable
+procedures in Rakudo/alpha no longer work.  Patches are welcome to adapt
+them to Git.  In the meantime those wanting to build Rakudo/alpha should
+download a tarball from https://github.com/rakudo/rakudo/downloads or
+manually performs steps such as the following.
+
+    git clone git://github.com/rakudo/rakudo.git alpha
+    cd alpha
+    git checkout -b alpha --track remotes/origin/alpha
+    # The last Parrot 2.0.0 revision on which Rakudo/alpha was developed
+    # is r43487 from https://svn.parrot.org/parrot/trunk (now offline)
+    # which mapped to commit 8ebe2eaef15fc7724d67b953e7886f5d3db388ea
+    # according to the git log from https://github.com/parrot/parrot.
+    git clone git://github.com/parrot/parrot.git parrot
+    cd parrot
+    git reset --hard 8ebe2eaef15fc7724d67b953e7886f5d3db388ea
+    perl Configure.pl --prefix=`cd ..;pwd`/parrot_install
+    make install # Parrot
+    cd ..
+    perl Configure.pl --parrot-config=parrot_install/bin/parrot_config
+    make install # Rakudo
+    # The last Perl 6 spec tests on Rakudo/alpha were rev 29188 from
+    # http://svn.pugscode.org/pugs/t/spec (now offline) which mapped to
+    # commit 99adbfb2c7ddf7837994d59c48e18aafaee666ee according to the
+    # git log from https://github.com/perl6/roast.
+    git clone git://github.com/perl6/roast t/spec
+    cd t/spec
+    git reset --hard 99adbfb2c7ddf7837994d59c48e18aafaee666ee
+    cd ../..
+    # Optionally do some spectesting and benchmarking
+    time perl tools/test_summary.pl --timing
 
 =head2 Where to get help or answers to questions
 

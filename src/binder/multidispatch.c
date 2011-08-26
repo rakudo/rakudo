@@ -292,6 +292,8 @@ static Rakudo_md_candidate_info** sort_candidates(PARROT_INTERP, PMC *candidates
         if (info) {
             if (info->types)
                 mem_sys_free(info->types);
+            if (info->definednesses)
+                mem_sys_free(info->definednesses);
             if (info->constraints)
                 mem_sys_free(info->constraints);
             mem_sys_free(info);
@@ -535,8 +537,10 @@ static PMC* find_best_candidate(PARROT_INTERP, Rakudo_md_candidate_info **candid
     }
     
     /* If we were looking for many candidates, we're done now. */
-    if (many)
+    if (many) {
+        mem_sys_free(possibles);
         return many_res;
+    }
 
     /* Check is default trait if we still have multiple options and we want one. */
     if (possibles_count > 1) {

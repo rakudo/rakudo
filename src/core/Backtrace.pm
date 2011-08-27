@@ -1,23 +1,28 @@
 my class Exception { ... }
 
-my class BackTraceLine {
-    has Str $.file;
-    has Int $.line;
-    has Mu  $.code;
-    has Str $.subname;
 
-    method subtype { $!code.WHAT.perl.lc }
+my class Backtrace is List {
+    class Frame {
+        has Str $.file;
+        has Int $.line;
+        has Mu  $.code;
+        has Str $.subname;
 
-    multi method Str(BackTraceLine:D:) {
-        "  in $.subtype $.subname at {$.file}:$.line\n"
+        method subtype {
+            my $s = $!code.WHAT.perl.lc;
+            $s eq 'mu' ?? '' !! $s;
+        }
+
+        multi method Str(Backtrace::Frame:D:) {
+            my $s = $.subtype;
+            $s ~= ' ' if $s.chars;
+            "  in {$s}$.subname at {$.file}:$.line\n"
+        }
+
+        method is-hidden  { $!code.?is_hidden_from_backtrace }
+        method is-routine { $!code ~~ Routine }
+        method is-setting { $!file eq 'src/gen/CORE.setting' }
     }
-
-    method is-hidden  { $!code.?is_hidden_from_backtrace }
-    method is-routine { $!code ~~ Routine }
-    method is-setting { $!file eq 'src/gen/CORE.setting' }
-}
-
-my class BackTrace is List {
     proto method new(|$) {*}
 
     multi method new(Exception $e, Int $offset = 0) {
@@ -39,7 +44,7 @@ my class BackTrace is List {
             last if $file eq 'src/stage2/gen/NQPHLL.pm';
             my $subname  = nqp::p6box_s($bt[$_]<sub>);
             $subname = '<anon>' if $subname.substr(0, 6) eq '_block';
-            $new.push: BackTraceLine.new(
+            $new.push: Backtrace::Frame.new(
                 :$line,
                 :$file,
                 :$subname,
@@ -49,15 +54,15 @@ my class BackTrace is List {
         $new;
     }
 
-    method concise(BackTrace:D:) {
+    method concise(Backtrace:D:) {
         self.grep({ !.is-hidden && .is-routine && !.is-setting }).join
     }
 
-    multi method Str(BackTrace:D:) {
+    multi method Str(Backtrace:D:) {
         self.grep({ !.is-hidden && (.is-routine || !.is-setting )}).join
     }
 
-    method full(BackTrace:D:) {
+    method full(Backtrace:D:) {
         self.join
     }
 }

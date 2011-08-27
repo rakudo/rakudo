@@ -188,7 +188,7 @@ CORE_SOURCES = \
   src/core/IO/Socket/INET.pm \
   src/core/Rat.pm \
   src/core/Complex.pm \
-  src/core/BackTrace.pm \
+  src/core/Backtrace.pm \
   src/core/Exception.pm \
   src/core/Failure.pm \
   src/core/Exceptions.pm \

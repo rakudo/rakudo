@@ -75,7 +75,7 @@ S02-magicals/pid.t
 S02-magicals/progname.t
 S02-names_and_variables/contextual.t
 S02-names_and_variables/fmt.t
-# S02-names_and_variables/names.t # needs fudging
+S02-names_and_variables/names.t
 # S02-names_and_variables/perl.t # err: Method 'Seq' not found for invocant of class 'Parcel' #icu
 S02-names_and_variables/list_array_perl.t
 # S02-names_and_variables/signature.t # err: Method 'make_signature' not found for invocant of class 'Perl6::SymbolTable'

@@ -500,6 +500,7 @@ S32-io/dir.t
 S32-io/file-tests.t
 S32-io/note.t
 # S32-io/IO-Socket-INET.t # err: Useless declaration of a has-scoped method in mainline
+S32-list/categorize.t
 S32-list/classify.t
 S32-list/create.t
 S32-list/end.t

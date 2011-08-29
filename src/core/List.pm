@@ -239,6 +239,18 @@ my class List does Positional {
         %result.pairs;
     }
 
+    method categorize(&test) {
+        my %result;
+        for @.list {
+            my @k = test $_;
+            for @k -> $k {
+                %result{$k} //= [];
+                %result{$k}.push: $_;
+            }
+        }
+        %result.pairs;
+    }
+
     multi method gist(List:D:) { self.Str }
     multi method perl(List:D \$self:) {
         self.gimme(*);
@@ -329,3 +341,4 @@ multi sub push(@a, *@elems) { @a.push: @elems }
 sub reverse(*@a)            { @a.reverse }
 sub rotate(@a, Int $n = 1)  { @a.rotate($n) }
 sub reduce (&with, *@list)  { @list.reduce(&with) }
+sub categorize(&mapper, *@a){ @a.categorize(&mapper)}

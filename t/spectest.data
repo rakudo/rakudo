@@ -446,7 +446,7 @@ S14-roles/submethods.t
 # S14-traits/package.t # err: Invalid typename in parameter declaration
 # S14-traits/routines.t # err: Could not find sub &description
 # S14-traits/variables.t # err: Invalid typename in parameter declaration
-# S16-filehandles/filetest.t # err: Nominal type check failed for parameter '&call'; expected Callable but got Sub instead
+# S16-filehandles/filetest.t # err: Method 'z' not found for invocant of class 'IO'
 S16-filehandles/io.t
 S16-filehandles/io_in_for_loops.t
 S16-filehandles/io_in_while_loops.t
@@ -493,7 +493,7 @@ S32-hash/exists.t
 S32-hash/invert.t
 S32-hash/keys_values.t
 S32-hash/pairs.t
-# S32-hash/push.t # err: Cannot assign a non-Perl 6 value to a Perl 6 container
+# S32-hash/push.t # hangs
 S32-hash/slice.t
 S32-io/dir.t
 # S32-io/chdir.t # err: Method 'd' not found for invocant of class 'Str'

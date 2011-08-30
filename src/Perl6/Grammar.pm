@@ -216,10 +216,10 @@ grammar Perl6::Grammar is HLL::Grammar {
         ^^
         $<spaces> = [ \h* ]
         '=begin'
-        [ <!before <pod_newline>>
-          || <.panic('=begin must be followed by an identifier; '
+        [ <?before <pod_newline>>
+          <.panic('=begin must be followed by an identifier; '
                    ~ '(did you mean "=begin pod"?)')>
-        ]
+        ]?
         \h+ <!before 'END'>
         {
             $*VMARGIN    := $<spaces>.to - $<spaces>.from;

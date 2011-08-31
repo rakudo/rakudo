@@ -113,14 +113,11 @@ for my $tfile (@tfiles) {
     for (@results) {
         # Pass over the optional line containing "1..$planned"
         if    (/^1\.\.(\d+)/)      { $plan = $1 if $1 > 0; next; }
-        # Handle lines containing timestamps
-        if    (/^# t=(\d+\.\d+)/)  {
-            # Calculate the execution time of each test
-            $time2 = $time1;
-            $time1 = $1;
-            my $microseconds = int( ($time1 - $time2) * 1_000_000 );
+        # Handle lines containing test times
+        if    (/^# t=(\d+)/)  {
+            my $microseconds = $1;
             if ( $testnumber > 0 ) {
-                # Do this only if the timestamp was after a test result
+                # Do this only if the time was after a test result
                 $times[   $testnumber] = $microseconds;
                 $comments[$testnumber] = $test_comment;
                 $testnumber = 0;  # must see require another "ok $n" first

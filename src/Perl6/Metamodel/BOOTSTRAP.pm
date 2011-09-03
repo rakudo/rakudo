@@ -480,6 +480,8 @@ Regex.HOW.publish_parrot_vtable_mapping(Regex);
 my stub Str metaclass Perl6::Metamodel::ClassHOW { ... };
 Str.HOW.add_parent(Str, Cool);
 Str.HOW.add_attribute(Str, BOOTSTRAPATTR.new(:name<$!value>, :type(str), :box_target(1)));
+Str.HOW.set_boolification_mode(Str, 4);
+Str.HOW.publish_boolification_spec(Str);
 
 # XXX: Numeric and Real are really roles; this stubs them in as classes for now.
 # class Numeric is Cool { ... }
@@ -497,6 +499,8 @@ Real.HOW.add_parent(Real, Numeric);
 my stub Int metaclass Perl6::Metamodel::ClassHOW { ... };
 Int.HOW.add_parent(Int, Real);
 Int.HOW.add_attribute(Int, BOOTSTRAPATTR.new(:name<$!value>, :type(int), :box_target(1)));
+Int.HOW.set_boolification_mode(Int, 1);
+Int.HOW.publish_boolification_spec(Int);
 
 # class Num is (Cool does) Real {
 #     has num $!value is box_target;
@@ -505,6 +509,8 @@ Int.HOW.add_attribute(Int, BOOTSTRAPATTR.new(:name<$!value>, :type(int), :box_ta
 my stub Num metaclass Perl6::Metamodel::ClassHOW { ... };
 Num.HOW.add_parent(Num, Real);
 Num.HOW.add_attribute(Num, BOOTSTRAPATTR.new(:name<$!value>, :type(num), :box_target(1)));
+Num.HOW.set_boolification_mode(Num, 2);
+Num.HOW.publish_boolification_spec(Num);
 
 # Stash these common types for box ops.
 pir::perl6_set_types_ins__vPPP(Int, Num, Str);

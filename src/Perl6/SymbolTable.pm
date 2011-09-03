@@ -703,61 +703,70 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
         # Fixup will install the real thing, unless we're in a role, in
         # which case pre-comp will have sorted it out.
         unless $*PKGDECL eq 'role' {
-            $fixups.push(PAST::Stmts.new(
-                self.set_attribute($code, $code_type, '$!do', PAST::Val.new( :value($code_past) )),
-                PAST::Op.new(
-                    :pirop('perl6_associate_sub_code_object vPP'),
-                    PAST::Val.new( :value($code_past) ),
-                    self.get_object_sc_ref_past($code)
-                )));
-            
-            # If we clone the stub, then we must remember to do a fixup
-            # of it also.
-            pir::setprop__vPsP($stub, 'CLONE_CALLBACK', sub ($orig, $clone) {
-                self.add_object($clone);
+            unless self.is_precompilation_mode() {
                 $fixups.push(PAST::Stmts.new(
-                    PAST::Op.new( :pasttype('bind'),
-                        PAST::Var.new( :name('$P0'), :scope('register') ),
-                        PAST::Op.new( :pirop('clone PP'), PAST::Val.new( :value($code_past) ) )
-                    ),
-                    self.set_attribute($clone, $code_type, '$!do',
-                        PAST::Var.new( :name('$P0'), :scope('register') )),
+                    self.set_attribute($code, $code_type, '$!do', PAST::Val.new( :value($code_past) )),
                     PAST::Op.new(
                         :pirop('perl6_associate_sub_code_object vPP'),
-                        PAST::Var.new( :name('$P0'), :scope('register') ),
-                        self.get_object_sc_ref_past($clone)
+                        PAST::Val.new( :value($code_past) ),
+                        self.get_object_sc_ref_past($code)
                     )));
-            });
-			
+                
+                # If we clone the stub, then we must remember to do a fixup
+                # of it also.
+                pir::setprop__vPsP($stub, 'CLONE_CALLBACK', sub ($orig, $clone) {
+                    self.add_object($clone);
+                    $fixups.push(PAST::Stmts.new(
+                        PAST::Op.new( :pasttype('bind'),
+                            PAST::Var.new( :name('$P0'), :scope('register') ),
+                            PAST::Op.new( :pirop('clone PP'), PAST::Val.new( :value($code_past) ) )
+                        ),
+                        self.set_attribute($clone, $code_type, '$!do',
+                            PAST::Var.new( :name('$P0'), :scope('register') )),
+                        PAST::Op.new(
+                            :pirop('perl6_associate_sub_code_object vPP'),
+                            PAST::Var.new( :name('$P0'), :scope('register') ),
+                            self.get_object_sc_ref_past($clone)
+                        )));
+                });
+            }
+
 			# Attach the PAST block to the stub.
 			pir::setprop__vPsP($stub, 'PAST_BLOCK', $code_past);
         }
         
         # Desserialization should do the actual creation and just put the right
         # code in there in the first place.
-        $des.push(self.add_object_to_cur_sc_past($slot, PAST::Op.new(
-            :pirop('repr_instance_of PP'),
-            self.get_object_sc_ref_past($type_obj)
-        )));
-        $des.push(self.set_attribute($code, $code_type, '$!do', PAST::Val.new( :value($code_past) )));
-        
+        if self.is_precompilation_mode() {
+            $des.push(self.add_object_to_cur_sc_past($slot, PAST::Op.new(
+                :pirop('repr_instance_of PP'),
+                self.get_object_sc_ref_past($type_obj)
+            )));
+            $des.push(self.set_attribute($code, $code_type, '$!do', PAST::Val.new( :value($code_past) )));
+        }
         # Install signauture now and add to deserialization.
         pir::setattribute__vPPsP($code, $code_type, '$!signature', $signature);
-        $des.push(self.set_attribute($code, $code_type, '$!signature', self.get_object_sc_ref_past($signature)));
+        if self.is_precompilation_mode() {
+            $des.push(self.set_attribute($code, $code_type, '$!signature', self.get_object_sc_ref_past($signature)));
+        }
         
         # If this is a dispatcher, install dispatchee list that we can
         # add the candidates too.
         if $is_dispatcher {
             pir::setattribute__vPPsP($code, $code_type, '$!dispatchees', []);
-            $des.push(self.set_attribute($code, $code_type, '$!dispatchees',
-                PAST::Op.new( :pasttype('list') )));
+            if self.is_precompilation_mode() {
+                $des.push(self.set_attribute($code, $code_type, '$!dispatchees',
+                    PAST::Op.new( :pasttype('list') )));
+            }
         }
         
         # Deserialization also needs to give the Parrot sub its backlink.
-        $des.push(PAST::Op.new(
-            :pirop('perl6_associate_sub_code_object vPP'),
-            PAST::Val.new( :value($code_past) ),
-            self.get_object_sc_ref_past($code)));
+        if self.is_precompilation_mode() {
+            $des.push(PAST::Op.new(
+                :pirop('perl6_associate_sub_code_object vPP'),
+                PAST::Val.new( :value($code_past) ),
+                self.get_object_sc_ref_past($code)));
+        }
 
         # If it's a routine, flag that it needs fresh magicals.
         if pir::type_check__IPP($code, self.find_symbol(['Routine'])) {

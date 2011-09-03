@@ -586,7 +586,8 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
             # Set type captures up.
             if %param_info<type_captures> {
                 my @type_names := %param_info<type_captures>;
-                pir::setattribute__vPPsP($parameter, $par_type, '$!type_captures', @type_names);
+                $set_attrs.push(self.set_attribute_reg($obj_reg, $class_reg, '$!type_captures',
+                    PAST::Op.new( :pasttype('list'), |@type_names )));
             }
             
             # Post constraints.

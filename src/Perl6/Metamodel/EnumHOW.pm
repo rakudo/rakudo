@@ -13,6 +13,7 @@ class Perl6::Metamodel::EnumHOW
     does Perl6::Metamodel::MROBasedMethodDispatch
     does Perl6::Metamodel::MROBasedTypeChecking
     does Perl6::Metamodel::BUILDPLAN
+    does Perl6::Metamodel::BoolificationProtocol
     does Perl6::Metamodel::ParrotInterop
 {
     # Hash representing enumeration keys to values.
@@ -78,6 +79,7 @@ class Perl6::Metamodel::EnumHOW
         # Install Parrot v-table mappings.
         self.publish_parrot_vtable_mapping($obj);
 		self.publish_parrot_vtable_handler_mapping($obj);
+        self.publish_boolification_spec($obj);
         
         # Create BUILDPLAN.
         self.create_BUILDPLAN($obj);

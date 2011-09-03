@@ -471,7 +471,7 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
         
         # Set nominal type.
         pir::setattribute__vPPsP($parameter, $par_type, '$!nominal_type', %param_info<nominal_type>);
-        $set_attrs.push(self.set_attribute($parameter, $par_type, '$!nominal_type',
+        $set_attrs.push(self.set_attribute_reg($obj_reg, $class_reg, '$!nominal_type',
             self.get_object_sc_ref_past(%param_info<nominal_type>)));
         
         # Calculate and set flags.
@@ -535,7 +535,7 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
         if %param_info<named_names> {
             my @names := %param_info<named_names>;
             pir::setattribute__vPPsP($parameter, $par_type, '$!named_names', @names);
-            $set_attrs.push(self.set_attribute($parameter, $par_type, '$!named_names',
+            $set_attrs.push(self.set_attribute_reg($obj_reg, $class_reg, '$!named_names',
                 PAST::Op.new( :pasttype('list'), |@names )));
         }
         
@@ -543,7 +543,7 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
         if %param_info<type_captures> {
             my @type_names := %param_info<type_captures>;
             pir::setattribute__vPPsP($parameter, $par_type, '$!type_captures', @type_names);
-            $set_attrs.push(self.set_attribute($parameter, $par_type, '$!type_captures',
+            $set_attrs.push(self.set_attribute_reg($obj_reg, $class_reg, '$!type_captures',
                 PAST::Op.new( :pasttype('list'), |@type_names )));
         }
         
@@ -551,7 +551,7 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
         if %param_info<post_constraints> {
             pir::setattribute__vPPsP($parameter, $par_type, '$!post_constraints',
                 %param_info<post_constraints>);
-            $set_attrs.push(self.set_attribute($parameter, $par_type, '$!post_constraints',
+            $set_attrs.push(self.set_attribute_reg($obj_reg, $class_reg, '$!post_constraints',
                 (my $con_list := PAST::Op.new( :pasttype('list') ))));
             for %param_info<post_constraints> {
                 $con_list.push(self.get_object_sc_ref_past($_));
@@ -561,28 +561,28 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
         # Set default value thunk up, if there is one.
         if pir::exists(%param_info, 'default_closure') {
             pir::setattribute__vPPsP($parameter, $par_type, '$!default_closure', %param_info<default_closure>);
-            $set_attrs.push(self.set_attribute($parameter, $par_type, '$!default_closure',
+            $set_attrs.push(self.set_attribute_reg($obj_reg, $class_reg, '$!default_closure',
                 self.get_object_sc_ref_past(%param_info<default_closure>)));
         }
         
         # Set container descriptor, if there is one.
         if pir::exists(%param_info, 'container_descriptor') {
             pir::setattribute__vPPsP($parameter, $par_type, '$!container_descriptor', %param_info<container_descriptor>);
-            $set_attrs.push(self.set_attribute($parameter, $par_type, '$!container_descriptor',
+            $set_attrs.push(self.set_attribute_reg($obj_reg, $class_reg, '$!container_descriptor',
                 self.get_object_sc_ref_past(%param_info<container_descriptor>)));
         }
         
         # Set attributive bind package up, if there is one.
         if pir::exists(%param_info, 'attr_package') {
             pir::setattribute__vPPsP($parameter, $par_type, '$!attr_package', %param_info<attr_package>);
-            $set_attrs.push(self.set_attribute($parameter, $par_type, '$!attr_package',
+            $set_attrs.push(self.set_attribute_reg($obj_reg, $class_reg, '$!attr_package',
                 self.get_object_sc_ref_past(%param_info<attr_package>)));
         }
         
         # Set sub-signature up, if there is one.
         if pir::exists(%param_info, 'sub_signature') {
             pir::setattribute__vPPsP($parameter, $par_type, '$!sub_signature', %param_info<sub_signature>);
-            $set_attrs.push(self.set_attribute($parameter, $par_type, '$!sub_signature',
+            $set_attrs.push(self.set_attribute_reg($obj_reg, $class_reg, '$!sub_signature',
                 self.get_object_sc_ref_past(%param_info<sub_signature>)));
         }
         
@@ -792,6 +792,19 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
                 :name($name), :scope('attribute_6model'),
                 self.get_object_sc_ref_past($obj), 
                 self.get_object_sc_ref_past($class)
+            ),
+            $value_past
+        )
+    }
+    
+    # Helper to make PAST for setting an attribute to a value. Value should
+    # be a PAST tree. Expects to be given registers with object and class in.
+    method set_attribute_reg($obj_reg, $class_reg, $name, $value_past) {
+        PAST::Op.new(
+            :pasttype('bind_6model'),
+            PAST::Var.new(
+                :name($name), :scope('attribute_6model'),
+                $obj_reg, $class_reg
             ),
             $value_past
         )

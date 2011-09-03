@@ -770,67 +770,44 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
     method create_container_descriptor($of, $rw, $name) {
         # Create descriptor object now.
         my $cd_type := self.find_symbol(['ContainerDescriptor']);
-        my $cd      := pir::repr_instance_of__PP($cd_type);
+        my $cd      := pir::perl6_create_container_descriptor__PPPis($cd_type, $of, $rw, $name);
         my $slot    := self.add_object($cd);
         
         # Create PAST to make it when deserializing.
-        my $obj_reg := PAST::Var.new( :name('$P0'), :scope('register') );
-        my $class_reg := PAST::Var.new( :name('$P1'), :scope('register') );
-        my $set_attrs := PAST::Stmts.new();
-        self.add_event(:deserialize_past(PAST::Stmts.new(
-            PAST::Op.new(
-                :pasttype('bind'), $class_reg,
-                self.get_object_sc_ref_past($cd_type)
-            ),
+        self.add_event(:deserialize_past(
             self.set_slot_past($slot, self.set_cur_sc(PAST::Op.new(
-                :pasttype('bind'), $obj_reg,
-                PAST::Op.new(
-                    :pirop('repr_instance_of PP'),
-                    $class_reg
-                )))),
-            $set_attrs
-        )));
-        
-        # Set attributes.
-        pir::setattribute__vPPsP($cd, $cd_type, '$!of', $of);
-        $set_attrs.push(self.set_attribute($cd, $cd_type, '$!of',
-            self.get_object_sc_ref_past($of)));
-        pir::repr_bind_attr_int__vPPsI($cd, $cd_type, '$!rw', $rw);
-        $set_attrs.push(self.set_attribute_typed($obj_reg, $class_reg, '$!rw', $rw, int));
-        pir::repr_bind_attr_str__vPPsS($cd, $cd_type, '$!name', $name);
-        $set_attrs.push(self.set_attribute_typed($obj_reg, $class_reg, '$!name', $name, str));
-        
+                :pirop('perl6_create_container_descriptor PPPis'),
+                self.get_object_sc_ref_past($cd_type),
+                self.get_object_sc_ref_past($of),
+                $rw, $name)))));
+
         $cd
     }
     
     # Helper to make PAST for setting an attribute to a value. Value should
     # be a PAST tree.
     method set_attribute($obj, $class, $name, $value_past) {
-        PAST::Stmt.new(
-            PAST::Op.new(
-                :pasttype('bind_6model'),
-                PAST::Var.new(
-                    :name($name), :scope('attribute_6model'),
-                    self.get_object_sc_ref_past($obj), 
-                    self.get_object_sc_ref_past($class)
-                ),
-                $value_past
-            )
+        PAST::Op.new(
+            :pasttype('bind_6model'),
+            PAST::Var.new(
+                :name($name), :scope('attribute_6model'),
+                self.get_object_sc_ref_past($obj), 
+                self.get_object_sc_ref_past($class)
+            ),
+            $value_past
         )
     }
     
     # Helper to make PAST for setting a typed attribute to a value. Value should
     # be a PAST tree.
     method set_attribute_typed($obj_reg, $class_reg, $name, $value_past, $type) {
-        PAST::Stmt.new(
-            PAST::Op.new(
-                :pasttype('bind_6model'),
-                PAST::Var.new(
-                    :name($name), :scope('attribute_6model'), :type($type),
-                    $obj_reg, $class_reg
-                ),
-                $value_past
-            )
+        PAST::Op.new(
+            :pasttype('bind_6model'),
+            PAST::Var.new(
+                :name($name), :scope('attribute_6model'), :type($type),
+                $obj_reg, $class_reg
+            ),
+            $value_past
         )
     }
 

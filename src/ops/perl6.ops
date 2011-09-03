@@ -536,6 +536,22 @@ inline op perl6_container_store_unchecked(in PMC, in PMC) :base_core {
 
 /*
 
+=item perl6_create_container_descriptor
+
+Creates a container descriptor and puts in in $1. $2 is the type of the
+descriptor to create. $3 is the 'of' type, $4 is the rw flag and $5 is
+the name.
+
+=cut
+
+*/
+inline op perl6_create_container_descriptor(out PMC, in PMC, in PMC, in INT, in STR) :base_core {
+    $1 = Rakudo_create_container_descriptor(interp, $2, $3, $4, $5);
+}
+
+
+/*
+
 =item perl6_assert_bind_ok(in PMC, in PMC)
 
 Takes a potential value to bind in $1 and a container descriptor in $2

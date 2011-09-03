@@ -458,37 +458,7 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
         my $parameter := pir::repr_instance_of__PP($par_type);
         my $slot      := self.add_object($parameter);
         
-        # Create PAST to make it when deserializing.
-        my $obj_reg := PAST::Var.new( :name('$P0'), :scope('register') );
-        my $class_reg := PAST::Var.new( :name('$P1'), :scope('register') );
-        my $set_attrs := PAST::Stmts.new( );
-        self.add_event(:deserialize_past(PAST::Stmts.new(
-            PAST::Op.new(
-                :pasttype('bind'), $class_reg,
-                self.get_object_sc_ref_past($par_type)
-            ),
-            self.add_object_to_cur_sc_past($slot, PAST::Op.new(
-                :pasttype('bind_6model'), $obj_reg,
-                PAST::Op.new(
-                    :pirop('repr_instance_of PP'),
-                    $class_reg
-                ))),
-            $set_attrs
-        )));
-        
-        # Set name if there is one.
-        if pir::exists(%param_info, 'variable_name') {
-            pir::repr_bind_attr_str__vPPsS($parameter, $par_type, '$!variable_name', %param_info<variable_name>);
-            $set_attrs.push(self.set_attribute_typed($obj_reg, $class_reg,
-                '$!variable_name', %param_info<variable_name>, str));
-        }
-        
-        # Set nominal type.
-        pir::setattribute__vPPsP($parameter, $par_type, '$!nominal_type', %param_info<nominal_type>);
-        $set_attrs.push(self.set_attribute_reg($obj_reg, $class_reg, '$!nominal_type',
-            self.get_object_sc_ref_past(%param_info<nominal_type>)));
-        
-        # Calculate and set flags.
+        # Calculate flags.
         my $flags := 0;
         if %param_info<optional> {
             $flags := $flags + $SIG_ELEM_IS_OPTIONAL;
@@ -541,65 +511,118 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
         if %param_info<nominal_generic> {
             $flags := $flags + $SIG_ELEM_NOMINAL_GENERIC;
         }
-        pir::repr_bind_attr_int__vPPsI($parameter, $par_type, '$!flags', $flags);
-        $set_attrs.push(self.set_attribute_typed($obj_reg, $class_reg,
-            '$!flags', $flags, int));
         
-        # Set named names up, for named parameters.
+        # Populate it.
+        if pir::exists(%param_info, 'variable_name') {
+            pir::repr_bind_attr_str__vPPsS($parameter, $par_type, '$!variable_name', %param_info<variable_name>);
+        }
+        pir::setattribute__vPPsP($parameter, $par_type, '$!nominal_type', %param_info<nominal_type>);
+        pir::repr_bind_attr_int__vPPsI($parameter, $par_type, '$!flags', $flags);
         if %param_info<named_names> {
             my @names := %param_info<named_names>;
             pir::setattribute__vPPsP($parameter, $par_type, '$!named_names', @names);
-            $set_attrs.push(self.set_attribute_reg($obj_reg, $class_reg, '$!named_names',
-                PAST::Op.new( :pasttype('list'), |@names )));
         }
-        
-        # Set type captures up.
         if %param_info<type_captures> {
             my @type_names := %param_info<type_captures>;
             pir::setattribute__vPPsP($parameter, $par_type, '$!type_captures', @type_names);
-            $set_attrs.push(self.set_attribute_reg($obj_reg, $class_reg, '$!type_captures',
-                PAST::Op.new( :pasttype('list'), |@type_names )));
         }
-        
-        # Post constraints.
         if %param_info<post_constraints> {
             pir::setattribute__vPPsP($parameter, $par_type, '$!post_constraints',
                 %param_info<post_constraints>);
-            $set_attrs.push(self.set_attribute_reg($obj_reg, $class_reg, '$!post_constraints',
-                (my $con_list := PAST::Op.new( :pasttype('list') ))));
-            for %param_info<post_constraints> {
-                $con_list.push(self.get_object_sc_ref_past($_));
-            }
         }
-        
-        # Set default value thunk up, if there is one.
         if pir::exists(%param_info, 'default_closure') {
             pir::setattribute__vPPsP($parameter, $par_type, '$!default_closure', %param_info<default_closure>);
-            $set_attrs.push(self.set_attribute_reg($obj_reg, $class_reg, '$!default_closure',
-                self.get_object_sc_ref_past(%param_info<default_closure>)));
         }
-        
-        # Set container descriptor, if there is one.
         if pir::exists(%param_info, 'container_descriptor') {
             pir::setattribute__vPPsP($parameter, $par_type, '$!container_descriptor', %param_info<container_descriptor>);
-            $set_attrs.push(self.set_attribute_reg($obj_reg, $class_reg, '$!container_descriptor',
-                self.get_object_sc_ref_past(%param_info<container_descriptor>)));
         }
-        
-        # Set attributive bind package up, if there is one.
         if pir::exists(%param_info, 'attr_package') {
             pir::setattribute__vPPsP($parameter, $par_type, '$!attr_package', %param_info<attr_package>);
-            $set_attrs.push(self.set_attribute_reg($obj_reg, $class_reg, '$!attr_package',
-                self.get_object_sc_ref_past(%param_info<attr_package>)));
         }
-        
-        # Set sub-signature up, if there is one.
         if pir::exists(%param_info, 'sub_signature') {
             pir::setattribute__vPPsP($parameter, $par_type, '$!sub_signature', %param_info<sub_signature>);
-            $set_attrs.push(self.set_attribute_reg($obj_reg, $class_reg, '$!sub_signature',
-                self.get_object_sc_ref_past(%param_info<sub_signature>)));
         }
         
+        # Create PAST to make it when deserializing.
+        if self.is_precompilation_mode() {
+            my $obj_reg := PAST::Var.new( :name('$P0'), :scope('register') );
+            my $class_reg := PAST::Var.new( :name('$P1'), :scope('register') );
+            my $set_attrs := PAST::Stmts.new( );
+            self.add_event(:deserialize_past(PAST::Stmts.new(
+                PAST::Op.new(
+                    :pasttype('bind'), $class_reg,
+                    self.get_object_sc_ref_past($par_type)
+                ),
+                self.add_object_to_cur_sc_past($slot, PAST::Op.new(
+                    :pasttype('bind_6model'), $obj_reg,
+                    PAST::Op.new(
+                        :pirop('repr_instance_of PP'),
+                        $class_reg
+                    ))),
+                $set_attrs
+            )));
+            
+            # Set name if there is one.
+            if pir::exists(%param_info, 'variable_name') {
+                $set_attrs.push(self.set_attribute_typed($obj_reg, $class_reg,
+                    '$!variable_name', %param_info<variable_name>, str));
+            }
+            
+            # Set nominal type.
+            $set_attrs.push(self.set_attribute_reg($obj_reg, $class_reg, '$!nominal_type',
+                self.get_object_sc_ref_past(%param_info<nominal_type>)));
+            
+            # Set flags.
+            $set_attrs.push(self.set_attribute_typed($obj_reg, $class_reg,
+                '$!flags', $flags, int));
+            
+            # Set named names up, for named parameters.
+            if %param_info<named_names> {
+                my @names := %param_info<named_names>;
+                $set_attrs.push(self.set_attribute_reg($obj_reg, $class_reg, '$!named_names',
+                    PAST::Op.new( :pasttype('list'), |@names )));
+            }
+            
+            # Set type captures up.
+            if %param_info<type_captures> {
+                my @type_names := %param_info<type_captures>;
+                pir::setattribute__vPPsP($parameter, $par_type, '$!type_captures', @type_names);
+            }
+            
+            # Post constraints.
+            if %param_info<post_constraints> {
+                $set_attrs.push(self.set_attribute_reg($obj_reg, $class_reg, '$!post_constraints',
+                    (my $con_list := PAST::Op.new( :pasttype('list') ))));
+                for %param_info<post_constraints> {
+                    $con_list.push(self.get_object_sc_ref_past($_));
+                }
+            }
+            
+            # Set default value thunk up, if there is one.
+            if pir::exists(%param_info, 'default_closure') {
+                $set_attrs.push(self.set_attribute_reg($obj_reg, $class_reg, '$!default_closure',
+                    self.get_object_sc_ref_past(%param_info<default_closure>)));
+            }
+            
+            # Set container descriptor, if there is one.
+            if pir::exists(%param_info, 'container_descriptor') {
+                $set_attrs.push(self.set_attribute_reg($obj_reg, $class_reg, '$!container_descriptor',
+                    self.get_object_sc_ref_past(%param_info<container_descriptor>)));
+            }
+            
+            # Set attributive bind package up, if there is one.
+            if pir::exists(%param_info, 'attr_package') {
+                $set_attrs.push(self.set_attribute_reg($obj_reg, $class_reg, '$!attr_package',
+                    self.get_object_sc_ref_past(%param_info<attr_package>)));
+            }
+            
+            # Set sub-signature up, if there is one.
+            if pir::exists(%param_info, 'sub_signature') {
+                $set_attrs.push(self.set_attribute_reg($obj_reg, $class_reg, '$!sub_signature',
+                    self.get_object_sc_ref_past(%param_info<sub_signature>)));
+            }
+        }
+
         # Return created parameter.
         $parameter
     }

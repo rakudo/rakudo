@@ -63,6 +63,8 @@ PERL6_G       = src/gen/perl6-grammar.pir
 PERL6_G_PBC   = blib/Perl6/Grammar.pbc
 PERL6_A       = src/gen/perl6-actions.pir
 PERL6_A_PBC   = blib/Perl6/Actions.pbc
+PERL6_O       = src/gen/perl6-optimizer.pir
+PERL6_O_PBC   = blib/Perl6/Optimizer.pbc
 PERL6_P       = src/gen/perl6-pod.pir
 PERL6_P_PBC   = blib/Perl6/Pod.pbc
 PERL6_C       = src/gen/perl6-compiler.pir
@@ -262,6 +264,7 @@ install: all
 	$(CP) $(PERL6_ST_PBC)         $(DESTDIR)$(NQP_LANG_DIR)/lib/Perl6/SymbolTable.pbc
 	$(CP) $(PERL6_G_PBC)          $(DESTDIR)$(NQP_LANG_DIR)/lib/Perl6/Grammar.pbc
 	$(CP) $(PERL6_A_PBC)          $(DESTDIR)$(NQP_LANG_DIR)/lib/Perl6/Actions.pbc
+	$(CP) $(PERL6_O_PBC)          $(DESTDIR)$(NQP_LANG_DIR)/lib/Perl6/Optimizer.pbc
 	$(CP) $(PERL6_P_PBC)          $(DESTDIR)$(NQP_LANG_DIR)/lib/Perl6/Pod.pbc
 	$(CP) $(PERL6_C_PBC)          $(DESTDIR)$(NQP_LANG_DIR)/lib/Perl6/Compiler.pbc
 	$(CP) $(PERL6_M_PBC)          $(DESTDIR)$(NQP_LANG_DIR)/lib/Perl6/Metamodel.pbc
@@ -317,12 +320,17 @@ $(PERL6_A_PBC): $(NQP_EXE) $(DYNEXT_DYNPMC) $(DYNEXT_DYNOPS) src/Perl6/Actions.p
 	    src/Perl6/Actions.pm
 	$(PARROT) $(PARROT_ARGS) -o $(PERL6_A_PBC) $(PERL6_A)
 
+$(PERL6_O_PBC): $(NQP_EXE) $(DYNEXT_DYNPMC) $(DYNEXT_DYNOPS) src/Perl6/Optimizer.pm
+	$(NQP_EXE) --vmlibs=perl6_group,perl6_ops  --target=pir --output=$(PERL6_O) --encoding=utf8 \
+	    src/Perl6/Optimizer.pm
+	$(PARROT) $(PARROT_ARGS) -o $(PERL6_O_PBC) $(PERL6_O)
+    
 $(PERL6_P_PBC): $(NQP_EXE) $(DYNEXT_DYNPMC) $(DYNEXT_DYNOPS) src/Perl6/Pod.pm
 	$(NQP_EXE) --vmlibs=perl6_group,perl6_ops  --target=pir --output=$(PERL6_P) --encoding=utf8 \
 	    src/Perl6/Pod.pm
 	$(PARROT) $(PARROT_ARGS) -o $(PERL6_P_PBC) $(PERL6_P)
 
-$(PERL6_C_PBC): $(NQP_EXE) $(DYNEXT_DYNPMC) $(DYNEXT_DYNOPS) src/Perl6/Compiler.nqp
+$(PERL6_C_PBC): $(NQP_EXE) $(DYNEXT_DYNPMC) $(DYNEXT_DYNOPS) $(PERL6_O_PBC) src/Perl6/Compiler.nqp
 	$(NQP_EXE) --target=pir --output=$(PERL6_C) --encoding=utf8 \
 	    src/Perl6/Compiler.nqp
 	$(PARROT) $(PARROT_ARGS) -o $(PERL6_C_PBC) $(PERL6_C)

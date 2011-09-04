@@ -19,6 +19,11 @@ class Perl6::Metamodel::CurriedRoleHOW {
     has $!curried_role;
     has @!pos_args;
     has %!named_args;
+
+    my $archetypes := Perl6::Metamodel::Archetypes.new( :nominal(1), :composable(1), :parametric(1) );
+    method archetypes() {
+        $archetypes
+    }
     
     method new_type($curried_role, *@pos_args, *%named_args) {
         my $meta := self.new(:curried_role($curried_role), :pos_args(@pos_args),

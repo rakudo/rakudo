@@ -25,3 +25,4 @@ void Rakudo_cont_store(PARROT_INTERP, PMC *cont, PMC *value, INTVAL type_check, 
 PMC * Rakudo_cont_scalar_from_descriptor(PARROT_INTERP, PMC *container_descriptor);
 PMC * Rakudo_cont_scalar_with_value_no_descriptor(PARROT_INTERP, PMC *value);
 INTVAL Rakudo_cont_is_rw_scalar(PARROT_INTERP, PMC *check);
+PMC * Rakudo_create_container_descriptor(PARROT_INTERP, PMC *type, PMC *of, INTVAL rw, STRING *name);

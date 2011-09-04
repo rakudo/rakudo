@@ -43,7 +43,7 @@ sub METAOP_ZIP(\$op) {
             my $loop = 1;
             while $loop {
                 my @z = @l.map({ $loop = 0 unless $_; .shift });
-                take $rop(|@z) if $loop;
+                take-rw $rop(|@z) if $loop;
             }
         }
     }
@@ -98,7 +98,31 @@ sub METAOP_REDUCE_RIGHT(\$op, :$triangle) {
 
 
 sub METAOP_REDUCE_CHAIN(\$op, :$triangle) {
-    NYI "chaining reduce NYI";
+    $triangle
+        ??  sub (*@values) {
+                my Mu $current = @values.shift;
+                my $state = $op();
+                gather {
+                    take $state;
+                    while $state && @values {
+                        $state = $op($current, @values[0]);
+                        take $state;
+                        $current = @values.shift;
+                    }
+                    take False for @values;
+                }
+
+            }
+        !! sub (*@values) {
+                my $state = $op();
+                my Mu $current = @values.shift;
+                while @values {
+                    $state = $op($current, @values[0]);
+                    $current = @values.shift;
+                    return $state unless $state;
+                }
+                $state;
+            }
 }
 
 
@@ -116,30 +140,64 @@ sub METAOP_HYPER_PREFIX(\$op, \$obj) { hyper($op, $obj) }
 
 proto sub hyper(|$) { * }
 multi sub hyper(\$op, \$a, \$b, :$dwim-left, :$dwim-right) { 
-    my @alist := $a.elems < $b.elems && $dwim-left
-                   ?? ($a xx *).munch($b.elems)
-                   !! $a.flat;
-    my @blist := $b.elems < $a.elems && $dwim-right
-                   ?? ($b xx *).munch($a.elems)
-                   !! $b.flat;
-    die "Sorry, lists on both sides of non-dwimmy hyperop are not of same length:\n"
-        ~ "    left: @alist.elems() elements, right: @blist.elems() elements\n"
-      if @alist != @blist;
+    my @alist := $a.flat;
+    my @blist := $b.flat;
+    my $elems = 0;
+    if $dwim-left && $dwim-right { $elems = max(@alist.elems, @blist.elems) }
+    elsif $dwim-left { $elems = @blist.elems }
+    elsif $dwim-right { $elems = @alist.elems }
+    else { 
+        die "Sorry, lists on both sides of non-dwimmy hyperop are not of same length:\n"
+            ~ "    left: @alist.elems() elements, right: @blist.elems() elements\n"
+          if @alist.elems != @blist.elems
+    }
+    @alist := (@alist xx *).munch($elems) if @alist.elems < $elems;
+    @blist := (@blist xx *).munch($elems) if @blist.elems < $elems;
 
     (@alist Z @blist).map(
-        -> $x, $y {
+        -> \$x, \$y {
             Iterable.ACCEPTS($x)
               ?? $x.new(hyper($op, $x, $y, :$dwim-left, :$dwim-right)).item
               !! (Iterable.ACCEPTS($y)
                     ?? $y.new(hyper($op, $x, $y, :$dwim-left, :$dwim-right)).item
                     !! $op($x, $y))
         }
-    )
+    ).eager
 }
 
-multi sub hyper(\$op, \$a) {
-    $a.map( { Iterable.ACCEPTS($_)
-                ?? $_.new(hyper($op, $_)).item
-                !! $op($_) } ).eager
+multi sub hyper(\$op, \$obj) {
+    my Mu $rpa := nqp::list();
+    my $a := $obj.flat.eager;
+    for (^$a.elems).pick(*) {
+        my $o := $a.at_pos($_);
+        nqp::bindpos($rpa, nqp::unbox_i($_),
+            Iterable.ACCEPTS($o)
+              ?? $o.new(hyper($op, $o)).item
+              !! $op($o));
+    }
+    nqp::p6parcel($rpa, Nil);
+}
+
+multi sub hyper(\$op, Associative \$h) {
+    my @keys = $h.keys;
+    hash @keys Z hyper($op, $h{@keys})
+}
+
+multi sub hyper(\$op, Associative \$a, Associative \$b, :$dwim-left, :$dwim-right) {
+    my %k;
+    for $a.keys { %k{$_} = 1 if !$dwim-left || $b.exists($_) }
+    for $b.keys { %k{$_} = 1 if !$dwim-right }
+    my @keys = %k.keys;
+    hash @keys Z hyper($op, $a{@keys}, $b{@keys}, :$dwim-left, :$dwim-right)
+}
+
+multi sub hyper(\$op, Associative \$a, \$b, :$dwim-left, :$dwim-right) {
+    my @keys = $a.keys;
+    hash @keys Z hyper($op, $a{@keys}, $b, :$dwim-left, :$dwim-right);
+}
+
+multi sub hyper(\$op, \$a, Associative \$b, :$dwim-left, :$dwim-right) {
+    my @keys = $b.keys;
+    hash @keys Z hyper($op, $a, $b{@keys}, :$dwim-left, :$dwim-right);
 }
 

@@ -1,5 +1,5 @@
 use Test;
-plan 45;
+plan 50;
 my $r;
 
 =begin pod
@@ -24,7 +24,7 @@ This is an ordinary paragraph
 
     =head1 Mumble mumble
 
-    Suprisingly, this is a code block again
+    Suprisingly, this is not a code block
         (with fancy indentation too)
 
 But this is just a text. Again
@@ -38,9 +38,9 @@ isa_ok $r.content[1], Pod::Block::Code;
 is $r.content[1].content, "While this is not\nThis is a code block";
 isa_ok $r.content[2], Pod::Block;
 is $r.content[2].content[0].content, 'Mumble mumble';
-isa_ok $r.content[3], Pod::Block::Code;
-is $r.content[3].content, "Suprisingly, this is a code block again\n"
-                        ~ "    (with fancy indentation too)";
+isa_ok $r.content[3], Pod::Block::Para;
+is $r.content[3].content, "Suprisingly, this is not a code block"
+                        ~ " (with fancy indentation too)";
 is $r.content[4].content, "But this is just a text. Again";
 
 =begin pod
@@ -93,8 +93,12 @@ $r = $=POD[4];
 is $r.content.elems, 3;
 isa_ok $r.content[0], Pod::Block;
 is $r.content[0].content[0].content, 'A heading';
-is $r.content[1].content,
-   'This is Pod too. Specifically, this is a simple C<para> block';
+is $r.content[1].content[0],
+   'This is Pod too. Specifically, this is a simple ';
+isa_ok $r.content[1].content[1], Pod::FormattingCode;
+is $r.content[1].content[1].type, 'C';
+is $r.content[1].content[1].content, 'para';
+is $r.content[1].content[2], ' block';
 isa_ok $r.content[2], Pod::Block::Code;
 is $r.content[2].content,
    q[$this = pod('also');  # Specifically, a code block];
@@ -105,7 +109,7 @@ is $r.content[2].content,
     =for podcast
         this is not
 
-    this is code
+    this is not code either
 
     =begin itemization
         this is not
@@ -129,8 +133,8 @@ isa_ok $r.content[1], Pod::Block::Named;
 is $r.content[1].name, 'podcast';
 is $r.content[1].content[0].content, 'this is not';
 
-isa_ok $r.content[2], Pod::Block::Code;
-is $r.content[2].content, 'this is code';
+isa_ok $r.content[2], Pod::Block::Para;
+is $r.content[2].content, 'this is not code either';
 
 isa_ok $r.content[3], Pod::Block::Named;
 is $r.content[3].name, 'itemization';
@@ -142,3 +146,12 @@ is $r.content[4].content[0].content, 'and this is not';
 
 isa_ok $r.content[5].content[0], Pod::Block::Code;
 is $r.content[5].content[0].content, 'and this is!';
+
+=begin code
+    foo foo
+    =begin code
+    =end code
+=end code
+
+$r = $=POD[6];
+isa_ok $r, Pod::Block::Code;

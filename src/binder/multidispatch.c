@@ -195,7 +195,13 @@ static Rakudo_md_candidate_info** sort_candidates(PARROT_INTERP, PMC *candidates
             }
 
             /* Record type info for this parameter. */
-            info->types[significant_param]       = param->nominal_type;
+            if (param->flags & SIG_ELEM_NOMINAL_GENERIC) {
+                info->bind_check = 1;
+                info->types[significant_param] = Rakudo_types_any_get();
+            }
+            else {
+                info->types[significant_param] = param->nominal_type;
+            }
             info->constraints[significant_param] = param->post_constraints;
             if (!PMC_IS_NULL(info->constraints[significant_param]))
                 info->bind_check = 1;
@@ -286,6 +292,8 @@ static Rakudo_md_candidate_info** sort_candidates(PARROT_INTERP, PMC *candidates
         if (info) {
             if (info->types)
                 mem_sys_free(info->types);
+            if (info->definednesses)
+                mem_sys_free(info->definednesses);
             if (info->constraints)
                 mem_sys_free(info->constraints);
             mem_sys_free(info);
@@ -421,24 +429,12 @@ static PMC* find_best_candidate(PARROT_INTERP, Rakudo_md_candidate_info **candid
                     if (possibles[i]->bind_check) {
                         /* We'll invoke the sub (but not re-enter the runloop)
                          * and then attempt to bind the signature. */
-                        /*opcode_t *where  = VTABLE_invoke(interp, possibles[i]->sub, next);
+                        opcode_t *where  = VTABLE_invoke(interp, possibles[i]->sub, next);
                         PMC      *lexpad = Parrot_pcc_get_lex_pad(interp, CURRENT_CONTEXT(interp));
                         PMC      *sig    = possibles[i]->signature;
                         INTVAL bind_check_result = Rakudo_binding_bind(interp, lexpad,
-                              sig, capture, 1, NULL);
-                        */
-                        /* XXX In the future, we can actually keep the context if we only
-                         * need one candidate, and then hand back the current PC and mark
-                         * the context as not needing a bind. Just needs some code re-org.
-                         * For now, we always clean up the ret-cont again. */
-                        /*where = VTABLE_invoke(interp, Parrot_pcc_get_continuation(interp, CURRENT_CONTEXT(interp)), where);*/
-                        
-                        /* XXX Review the above to see if it's really needed. For now, we
-                         * can try the following. */
-                        PMC *sig      = possibles[i]->signature;
-                        PMC *fake_pad = pmc_new(interp, enum_class_Hash);
-                        INTVAL bind_check_result = Rakudo_binding_bind(interp, fake_pad,
-                              sig, capture, 1, NULL);
+                              sig, capture, 0, NULL);
+                        where = VTABLE_invoke(interp, Parrot_pcc_get_continuation(interp, CURRENT_CONTEXT(interp)), where);
 
                         /* If we haven't got a possibles storage space, allocate it now. */
                         if (!new_possibles)
@@ -541,8 +537,10 @@ static PMC* find_best_candidate(PARROT_INTERP, Rakudo_md_candidate_info **candid
     }
     
     /* If we were looking for many candidates, we're done now. */
-    if (many)
+    if (many) {
+        mem_sys_free(possibles);
         return many_res;
+    }
 
     /* Check is default trait if we still have multiple options and we want one. */
     if (possibles_count > 1) {

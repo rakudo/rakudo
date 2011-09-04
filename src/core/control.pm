@@ -1,4 +1,4 @@
-class Nil { ... }
+my class Nil { ... }
 
 my &THROW :=
     -> |$ {
@@ -133,7 +133,7 @@ my &lastcall := -> {
     True
 };
 
-sub die(*@msg) { pir::die__0P(@msg.join('')) }
+sub die(*@msg) is hidden_from_backtrace { pir::die__0P(@msg.join('')) }
 
 sub eval(Str $code, :$lang = 'perl6') {
     my $caller_ctx := Q:PIR {

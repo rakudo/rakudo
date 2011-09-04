@@ -68,10 +68,28 @@ my class Capture {
         self
     }
     
-    method Numeric(Capture:D:) {
+    multi method Numeric(Capture:D:) {
         self.elems
     }
     
     # XXX TODO: Should include the hash part too...
     method ARGLIST_FLATTENABLE() { $!list }
+
+    method pairs(Capture:D:) {
+        (self.list.pairs, self.hash.pairs).flat
+    }
+    method values(Capture:D:) {
+        (self.list.values, self.hash.values).flat
+    }
+    method keys(Capture:D:) {
+        (self.list.keys, self.hash.keys).flat
+    }
+    method kv(Capture:D:) {
+        (self.list.kv, self.hash.kv).flat
+    }
 }
+
+multi sub infix:<eqv>(Capture $a, Capture $b) {
+    $a.WHAT === $b.WHAT && $a.list eqv $b.list && $a.hash eqv $b.hash
+}
+

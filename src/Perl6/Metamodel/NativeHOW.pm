@@ -5,9 +5,13 @@ class Perl6::Metamodel::NativeHOW
     does Perl6::Metamodel::Stashing
     does Perl6::Metamodel::MultipleInheritance
     does Perl6::Metamodel::C3MRO
-    does Perl6::Metamodel::NonGeneric
 {
     has $!composed;
+
+    my $archetypes := Perl6::Metamodel::Archetypes.new( :nominal(1), :inheritable(1) );
+    method archetypes() {
+        $archetypes
+    }
 
     method new_type(:$name = '<anon>', :$repr = 'P6opaque', :$ver, :$auth) {
         my $metaclass := self.new(:name($name), :ver($ver), :auth($auth));

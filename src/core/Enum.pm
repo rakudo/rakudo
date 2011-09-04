@@ -30,3 +30,7 @@ my class Enum {
     multi method perl(Enum:D:) { $.key.perl ~ ' => ' ~ $.value.perl }
 }
 
+multi sub infix:<eqv>(Enum:D $a, Enum:D $b) {
+    $a.WHAT === $b.WHAT && $a.key eqv $b.key && $a.value eqv $b.value
+}
+

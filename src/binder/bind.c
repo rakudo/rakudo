@@ -35,6 +35,7 @@ static STRING *ARRAY_SIGIL_str  = NULL;
 static STRING *BANG_TWIGIL_str  = NULL;
 static STRING *SCALAR_SIGIL_str = NULL;
 static STRING *NAMED_str        = NULL;
+static STRING *INSTANTIATE_GENERIC_str = NULL;
 
 /* Initializes our cached versions of some strings and type IDs that we
  * use very commonly. For strings, this should mean we only compute their
@@ -58,7 +59,8 @@ static void setup_binder_statics(PARROT_INTERP) {
     BANG_TWIGIL_str  = Parrot_str_new_constant(interp, "!");
     SCALAR_SIGIL_str = Parrot_str_new_constant(interp, "$");
     NAMED_str        = Parrot_str_new_constant(interp, "named");
-
+    INSTANTIATE_GENERIC_str = Parrot_str_new_constant(interp, "instantiate_generic");
+    
     smo_id = pmc_type(interp, Parrot_str_new(interp, "SixModelObject", 0));
     p6l_id = pmc_type(interp, Parrot_str_new(interp, "Perl6LexPad", 0));
 }
@@ -275,20 +277,35 @@ Rakudo_binding_bind_one_param(PARROT_INTERP, PMC *lexpad, Rakudo_Signature *sign
     
     /* Skip nominal type check if not needed. */
     if (!no_nom_type_check) {
+        PMC *nom_type;
+        
+        /* Is the nominal type generic and in need of instantiation? (This
+         * can happen in (::T, T) where we didn't learn about the type until
+         * during the signature bind). */
+        if (param->flags & SIG_ELEM_NOMINAL_GENERIC) {
+            PMC *HOW = STABLE(param->nominal_type)->HOW;
+            PMC *ig  = VTABLE_find_method(interp, HOW, INSTANTIATE_GENERIC_str);
+            Parrot_ext_call(interp, ig, "PiPP->P", HOW, param->nominal_type,
+                lexpad, &nom_type);
+        }
+        else {
+            nom_type = param->nominal_type;
+        }
+
         /* If not, do the check. If the wanted nominal type is Mu, then
 		 * anything goes. */
-        if (param->nominal_type != Rakudo_types_mu_get() &&
+        if (nom_type != Rakudo_types_mu_get() &&
                 (decont_value->vtable->base_type != smo_id ||
-                 !STABLE(decont_value)->type_check(interp, decont_value, param->nominal_type))) {
+                 !STABLE(decont_value)->type_check(interp, decont_value, nom_type))) {
             /* Type check failed; produce error if needed. */
             if (error) {
                 PMC    * got_how       = STABLE(decont_value)->HOW;
-                PMC    * exp_how       = STABLE(param->nominal_type)->HOW;
+                PMC    * exp_how       = STABLE(nom_type)->HOW;
                 PMC    * got_name_meth = VTABLE_find_method(interp, got_how, NAME_str);
                 PMC    * exp_name_meth = VTABLE_find_method(interp, exp_how, NAME_str);
                 STRING * expected, * got;
                 Parrot_ext_call(interp, got_name_meth, "PiP->S", got_how, value, &got);
-                Parrot_ext_call(interp, exp_name_meth, "PiP->S", exp_how, param->nominal_type, &expected);
+                Parrot_ext_call(interp, exp_name_meth, "PiP->S", exp_how, nom_type, &expected);
                 *error = Parrot_sprintf_c(interp, "Nominal type check failed for parameter '%S'; expected %S but got %S instead",
                             param->variable_name, expected, got);
             }
@@ -405,6 +422,7 @@ Rakudo_binding_bind_one_param(PARROT_INTERP, PMC *lexpad, Rakudo_Signature *sign
     /* Handle any constraint types (note that they may refer to the parameter by
      * name, so we need to have bound it already). */
     if (!PMC_IS_NULL(param->post_constraints)) {
+        PMC * code_type         = Rakudo_types_code_get();
         PMC * const constraints = param->post_constraints;
         INTVAL num_constraints  = VTABLE_elements(interp, constraints);
         INTVAL i;
@@ -414,6 +432,9 @@ Rakudo_binding_bind_one_param(PARROT_INTERP, PMC *lexpad, Rakudo_Signature *sign
             PMC *accepts_meth = VTABLE_find_method(interp, cons_type, ACCEPTS);
             PMC *old_ctx      = Parrot_pcc_get_signature(interp, CURRENT_CONTEXT(interp));
             PMC *cappy        = Parrot_pmc_new(interp, enum_class_CallContext);
+            if (STABLE(cons_type)->type_check(interp, cons_type, code_type))
+                Parrot_sub_capture_lex(interp,
+                    VTABLE_get_attr_keyed(interp, cons_type, code_type, DO_str));
             VTABLE_push_pmc(interp, cappy, cons_type);
             VTABLE_push_pmc(interp, cappy, value);
             Parrot_pcc_invoke_from_sig_object(interp, accepts_meth, cappy);

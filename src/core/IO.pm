@@ -175,6 +175,43 @@ multi sub slurp($filename) {
     $contents
 }
 
+proto sub cwd(|$) { * }
+multi sub cwd() {
+    my $pwd;
+    try {
+        $pwd = pir::new__Ps('OS').cwd();
+    }
+    $! ?? fail($!) !! $pwd;
+}
+
+sub dir($path = '.', Mu :$test = none('.', '..')) {
+    my Mu $RSA := pir::new__PS('OS').readdir(nqp::unbox_s($path.Stringy));
+    my Int $elems := nqp::p6box_i(pir::set__IP($RSA));
+    my @res;
+    loop (my Int $i = 0; $i < $elems; $i++) {
+        my Str $item := nqp::p6box_s(nqp::atpos($RSA, nqp::unbox_i($i)));
+        @res.push: $item if $test.ACCEPTS($item);
+    }
+    @res;
+
+}
+
+proto sub chdir(|$) { * }
+multi sub chdir($path as Str) {
+    try {
+        pir::new__PS('OS').chdir($path)
+    }
+    $! ?? fail($!) !! True
+}
+
+proto sub mkdir(|$) { * }
+multi sub mkdir($path as Str, $mode = 0o777) {
+    try {
+        pir::new__PS('OS').mkdir($path, $mode)
+    }
+    $! ?? fail($!) !! True
+}
+
 $PROCESS::IN  = open('-');
 $PROCESS::OUT = open('-', :w);
 $PROCESS::ERR = IO.new;

@@ -7,7 +7,6 @@ class Perl6::Metamodel::ConcreteRoleHOW
     does Perl6::Metamodel::AttributeContainer
     does Perl6::Metamodel::RoleContainer
     does Perl6::Metamodel::MultipleInheritance
-    does Perl6::Metamodel::NonGeneric
 {
     # Any collisions to resolve.
     has @!collisions;
@@ -17,6 +16,11 @@ class Perl6::Metamodel::ConcreteRoleHOW
     
     # Full flat list of "does" roles.
     has @!does_list;
+
+    my $archetypes := Perl6::Metamodel::Archetypes.new( :nominal(1), :composable(1) );
+    method archetypes() {
+        $archetypes
+    }
     
     my class Collision {
         has $!name;

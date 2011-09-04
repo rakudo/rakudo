@@ -10,12 +10,16 @@ class Perl6::Metamodel::ParametricRoleHOW
     does Perl6::Metamodel::RoleContainer
     does Perl6::Metamodel::MultipleInheritance
     does Perl6::Metamodel::Stashing
-    does Perl6::Metamodel::NonGeneric
     does Perl6::Metamodel::TypePretence
     does Perl6::Metamodel::RolePunning
 {
     has $!composed;
     has $!body_block;
+
+    my $archetypes := Perl6::Metamodel::Archetypes.new( :nominal(1), :composable(1), :parametric(1) );
+    method archetypes() {
+        $archetypes
+    }
 
     method new_type(:$name = '<anon>', :$ver, :$auth, :$repr) {
         my $metarole := self.new(:name($name), :ver($ver), :auth($auth));
@@ -24,6 +28,10 @@ class Perl6::Metamodel::ParametricRoleHOW
     
     method set_body_block($obj, $block) {
         $!body_block := $block
+    }
+    
+    method body_block($obj) {
+        $!body_block
     }
     
     method compose($obj) {
@@ -50,13 +58,6 @@ class Perl6::Metamodel::ParametricRoleHOW
             }
         }
         0
-    }
-    
-    method curry($obj, *@pos_args, *%named_args) {
-        # XXX We really want to keep a cache here of previously
-        # seen curryings.
-        Perl6::Metamodel::CurriedRoleHOW.new_type(:curried_role($obj),
-            :pos_args(@pos_args), |named_args(%named_args))
     }
     
     method specialize($obj, *@pos_args, *%named_args) {

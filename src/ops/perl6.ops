@@ -238,15 +238,16 @@ inline op bind_signature() :base_core {
 
 /*
 
-=item perl6_set_type_mu(in PMC)
+=item perl6_set_types_mu_any(in PMC, in PMC)
 
 Sets the top type.
 
 =cut
 
 */
-inline op perl6_set_type_mu(in PMC) :base_core {
+inline op perl6_set_types_mu_any(in PMC, in PMC) :base_core {
     Rakudo_types_mu_set($1);
+    Rakudo_types_any_set($2);
 }
 
 
@@ -325,6 +326,20 @@ Sets the Capture type.
 */
 inline op perl6_set_type_capture(in PMC) :base_core {
     Rakudo_types_capture_set($1);
+}
+
+
+/*
+
+=item perl6_set_type_code(in PMC)
+
+Sets the Code type.
+
+=cut
+
+*/
+inline op perl6_set_type_code(in PMC) :base_core {
+    Rakudo_types_code_set($1);
 }
 
 
@@ -516,6 +531,22 @@ already decided that it's safe).
 */
 inline op perl6_container_store_unchecked(in PMC, in PMC) :base_core {
     Rakudo_cont_store(interp, $1, $2, 0, 0);
+}
+
+
+/*
+
+=item perl6_create_container_descriptor
+
+Creates a container descriptor and puts in in $1. $2 is the type of the
+descriptor to create. $3 is the 'of' type, $4 is the rw flag and $5 is
+the name.
+
+=cut
+
+*/
+inline op perl6_create_container_descriptor(out PMC, in PMC, in PMC, in INT, in STR) :base_core {
+    $1 = Rakudo_create_container_descriptor(interp, $2, $3, $4, $5);
 }
 
 

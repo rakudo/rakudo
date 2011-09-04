@@ -1,10 +1,59 @@
+my class IO { ... }
+
 my class Cool {
 
     ## numeric methods
 
+    method abs()  { self.Numeric.abs }
+    method conjugate()  { self.Numeric.conjugate }
+    method sqrt()  { self.Numeric.sqrt }
+    method sign()  { self.Numeric.sign }
     method rand() { self.Num.rand }
-    method truncate() { self.Numeric.truncate }
+    method sin()  { self.Numeric.sin }
+    method asin() { self.Numeric.asin }
+    method cos()  { self.Numeric.cos }
+    method acos() { self.Numeric.acos }
+    method tan()  { self.Numeric.tan }
+    method atan() { self.Numeric.atan }
+    method atan2($y = 1e0) { self.Numeric.atan2($y.Numeric) }
+    method sec()  { self.Numeric.sec }
+    method asec() { self.Numeric.asec }
+    method cosec()  { self.Numeric.cosec }
+    method acosec() { self.Numeric.acosec }
+    method cotan()  { self.Numeric.cotan }
+    method acotan() { self.Numeric.acotan }
+    method sinh()  { self.Numeric.sinh }
+    method asinh() { self.Numeric.asinh }
+    method cosh()  { self.Numeric.cosh }
+    method acosh() { self.Numeric.acosh }
+    method tanh()  { self.Numeric.tanh }
+    method atanh() { self.Numeric.atanh }
+    method sech()  { self.Numeric.sech }
+    method asech() { self.Numeric.asech }
+    method cosech()  { self.Numeric.cosech }
+    method acosech() { self.Numeric.acosech }
+    method cotanh()  { self.Numeric.cotanh }
+    method acotanh() { self.Numeric.acotanh }
+    method cis()     { self.Numeric.cis }
     
+    proto method log(|$) {*}
+    multi method log()      { self.Numeric.log          }
+    multi method log($base) { self.Numeric.log($base.Numeric) }
+
+    proto method exp(|$) {*}
+    multi method exp()      { self.Numeric.exp          }
+    multi method exp($base) { self.Numeric.exp($base.Numeric) }
+
+
+    method roots(Cool $n)   { self.Numeric.roots($n)    }
+    method log10()          { self.Numeric.log10        }
+    method unpolar($n)      { self.Numeric.unpolar($n.Numeric) }
+
+    method round($base = 1) { self.Numeric.round($base) }
+    method floor()          { self.Numeric.floor        }
+    method ceiling()        { self.Numeric.ceiling      }
+    method truncate()       { self.Numeric.truncate     }
+
     ## string methods
 
     method bytes() {
@@ -43,6 +92,8 @@ my class Cool {
         $self-str eq '' ?? '' !! $self-str.substr(0, 1).lc ~ $self-str.substr(1)
     }
 
+    method capitalize() { self.Stringy.capitalize }
+
     method chomp() {
         self.Str.chomp;
     }
@@ -53,6 +104,9 @@ my class Cool {
 
     method ord() {
         nqp::p6box_i(nqp::ord(nqp::unbox_s(self.Str)))
+    }
+    method chr() {
+        self.Int.chr;
     }
 
     method flip() {
@@ -91,9 +145,12 @@ my class Cool {
     multi method split(Regex $pat, $limit = $Inf, :$all) {
         self.Stringy.split($pat, $limit, :$all);
     }
+    multi method split(Cool $pat, $limit = $Inf, :$all) {
+        self.Stringy.split($pat.Stringy, $limit, :$all);
+    }
     proto method match(|$) {*}
-    multi method match(Cool:D: Cool $target, *%adverbs) {
-        self.Str.match($target.Stringy, |%adverbs)
+    multi method match(Cool:D: $target, *%adverbs) {
+        self.Stringy.match($target, |%adverbs)
     }
 
     proto method comb(|$) {*}
@@ -108,7 +165,10 @@ my class Cool {
     method printf (*@args) {  printf(self, @args) };
     method samecase(Cool:D: Cool $pattern) { self.Stringy.samecase($pattern) }
 
-    method IO() { IO.new(:path(self)) }
+    method IO() { IO.new(:path(self.Stringy)) }
+    method trim         () { self.Stringy.trim          };
+    method trim-leading () { self.Stringy.trim-leading  };
+    method trim-trailing() { self.Stringy.trim-trailing };
 }
 
 sub chop($s)                  { $s.chop }
@@ -130,6 +190,10 @@ multi sub ords(Cool $s)       { ords($s.Stringy) }
 
 proto sub comb(|$)            { * }
 multi sub comb(Regex $matcher, Cool $input) { $input.comb($matcher) }
+
+proto sub capitalize(|$)       { * }
+multi sub capitalize(Str:D $x) {$x.capitalize }
+multi sub capitalize(Cool $x)  {$x.Stringy.capitalize }
 
 sub sprintf(Cool $format, *@args) {
     @args.gimme(*);

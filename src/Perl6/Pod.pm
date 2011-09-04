@@ -11,6 +11,7 @@ class Perl6::Pod {
         my @children := [];
         my $type;
         my $leveled;
+        my $config := make_config($/);
 
         if $<type>.Str ~~ /^item \d*$/ {
             $type    := 'Pod::Item';
@@ -39,7 +40,7 @@ class Perl6::Pod {
             }
 
             my $past := serialize_object(
-                $type, :level($level_past),
+                $type, :level($level_past), :config($config),
                 :content($content<compile_time_value>)
             );
             return $past<compile_time_value>;
@@ -48,20 +49,63 @@ class Perl6::Pod {
         my $name := $*ST.add_constant('Str', 'str', $<type>.Str);
         my $past := serialize_object(
             'Pod::Block::Named', :name($name<compile_time_value>),
-            :content($content<compile_time_value>),
+            :config($config), :content($content<compile_time_value>),
         );
         return $past<compile_time_value>;
     }
 
     our sub raw_block($/) {
+        my $config := make_config($/);
         my $str := $*ST.add_constant('Str', 'str', ~$<pod_content>);
         my $content := serialize_array([$str<compile_time_value>]);
         my $type := $<type>.Str eq 'code' ?? 'Pod::Block::Code'
                                           !! 'Pod::Block::Comment';
         my $past := serialize_object(
-            $type, :content($content<compile_time_value>)
+            $type, :config($config),
+            :content($content<compile_time_value>),
         );
         return $past<compile_time_value>;
+    }
+
+    our sub config($/) {
+        my $type := $*ST.add_constant('Str', 'str', ~$<type>);
+        return serialize_object(
+            'Pod::Config', :type($type<compile_time_value>),
+            :config(make_config($/))
+        )<compile_time_value>
+    }
+
+    our sub make_config($/) {
+        my @pairs;
+        for $<colonpair> -> $colonpair {
+            my $key := $colonpair<identifier>;
+            my $val;
+            # This is a cheaty and evil hack. This is also the only way
+            # I can obtain this information without reimplementing
+            # <colonpair> entirely
+            if $colonpair<circumfix> {
+                $val := $colonpair<circumfix>;
+                if $val<quote_EXPR> {
+                    $val := pir::join('', $val<quote_EXPR><quote_delimited><quote_atom>);
+                } else {
+                    $val := ~$val<semilist>;
+                }
+            } else {
+                # and this is the worst hack of them all.
+                # Hide your kids, hide your wife!
+                my $truth := pir::substr($colonpair, 1, 1) ne '!';
+
+                $val := $*ST.add_constant('Int', 'int', $truth)<compile_time_value>;
+            }
+            $key := $*ST.add_constant('Str', 'str', $key)<compile_time_value>;
+            $val := $*ST.add_constant('Str', 'str', $val)<compile_time_value>;
+            @pairs.push(
+                serialize_object(
+                    'Pair', :key($key), :value($val)
+                )<compile_time_value>
+            );
+        }
+        return serialize_object('Hash', |@pairs)<compile_time_value>;
     }
 
     our sub formatted_text($a) {
@@ -169,6 +213,8 @@ class Perl6::Pod {
     }
 
     our sub process_rows(@rows) {
+        # remove trailing blank lines
+        @rows.pop while @rows[+@rows - 1] ~~ /^ \s* $/;
         # find the longest leading whitespace and strip it
         # from every row, also remove trailing \n
         my $w := -1; # the longest leading whitespace
@@ -236,6 +282,52 @@ class Perl6::Pod {
         }
         return @result;
     }
+
+    our sub merge_twines(@twines) {
+        my @ret := @twines.shift.ast;
+        for @twines {
+            my @cur   := $_.ast;
+            @ret.push(
+                $*ST.add_constant(
+                    'Str', 'str',
+                    nqp::unbox_s(@ret.pop) ~ ' ' ~ nqp::unbox_s(@cur.shift)
+                )<compile_time_value>,
+            );
+            nqp::splice(@ret, @cur, +@ret, 0);
+        }
+        return @ret;
+    }
+
+    our sub build_pod_string(@content) {
+        sub push_strings(@strings, @where) {
+            my $s := subst(pir::join('', @strings), /\s+/, ' ', :global);
+            my $t := $*ST.add_constant(
+                'Str', 'str', $s
+            )<compile_time_value>;
+            @where.push($t);
+        }
+
+        my @res  := [];
+        my @strs := [];
+        for @content -> $elem {
+            if pir::typeof($elem) eq 'String' {
+                # don't push the leading whitespace
+                if +@res + @strs == 0 && $elem eq ' ' {
+
+                } else {
+                    @strs.push($elem);
+                }
+            } else {
+                push_strings(@strs, @res);
+                @strs := [];
+                @res.push($elem);
+            }
+        }
+        push_strings(@strs, @res);
+
+        return @res;
+    }
+
 
     # takes an array of strings (rows of a table)
     # returns array of arrays of strings (cells)

@@ -12,6 +12,9 @@ my $todo_reason         = '';
 my $num_of_tests_planned;
 my $no_plan = 1;
 my $die_on_fail;
+my $perl6_test_times = ? %*ENV<PERL6_TEST_TIMES>;
+my $time_before = 0E0;
+my $time_after  = 0E0;
 
 ## If done_testing hasn't been run when we hit our END block, we need to know
 ## so that it can be run. This allows compatibility with old tests that use
@@ -43,10 +46,14 @@ multi sub plan($number_of_tests) {
 
         say '1..' ~ $number_of_tests;
     }
-    # Emit two successive timestamps to measure the measurment overhead,
-    # and to eliminate cacheing bias, if it exists, from the first test.
-    #say '# t=' ~ pir::time__N if %*ENV{'PERL6_TEST_TIMES'};
-    #say '# t=' ~ pir::time__N if %*ENV{'PERL6_TEST_TIMES'};
+    # Get two successive timestamps to measure the measurement overhead,
+    # and to reduce bias, if it exists, from the first test time.
+    $time_before = nqp::p6box_n(pir::time__N);
+    $time_after  = nqp::p6box_n(pir::time__N);
+    say '# between two timestamps ' ~
+        ceiling(($time_after-$time_before)*1_000_000) ~ ' microseconds'
+        if $perl6_test_times;
+    $time_before = nqp::p6box_n(pir::time__N);
     # Ideally the time readings above could be made with the expression
     # now.to-posix[0], but the execution time showed by the difference
     # between the two successive readings is far slower than when the
@@ -234,6 +241,8 @@ sub eval_exception($code) {
 }
 
 sub proclaim($cond, $desc) {
+    # exclude the time spent in proclaim from the test time
+    $time_after = nqp::p6box_n(pir::time__N);
     $num_of_tests_run = $num_of_tests_run + 1;
 
     unless $cond {
@@ -247,7 +256,8 @@ sub proclaim($cond, $desc) {
         print $todo_reason;
     }
     print "\n";
-    #say '# t=' ~ pir::time__N if %*ENV{'PERL6_TEST_TIMES'};
+    print "# t=" ~ ceiling(($time_after-$time_before)*1_000_000) ~ "\n"
+        if $perl6_test_times;
 
     if !$cond && $die_on_fail && !$todo_reason {
         die "Test failed.  Stopping test";
@@ -255,6 +265,8 @@ sub proclaim($cond, $desc) {
     # must clear this between tests
     if $todo_upto_test_num == $num_of_tests_run { $todo_reason = '' }
     $cond;
+    # exclude the time spent in proclaim from the test time
+    $time_before = nqp::p6box_n(pir::time__N);
 }
 
 sub done_testing() is export {

@@ -79,7 +79,7 @@ if ($archive) {
 
 if (eval "require $tap_harness_class;") {
     my %harness_options = (
-        exec        => ['./perl6'],
+        exec        => [$ENV{HARNESS_PERL}],
         verbosity   => 0+$Test::Harness::verbose,
         jobs        => $jobs || $ENV{TEST_JOBS} || 1,
         ignore_exit => 1,

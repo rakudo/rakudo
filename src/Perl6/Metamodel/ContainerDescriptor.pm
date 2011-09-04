@@ -11,7 +11,7 @@ class Perl6::Metamodel::ContainerDescriptor {
     method set_rw($rw) { $!rw := $rw }
     
     method is_generic() {
-        $!of.HOW.is_generic($!of)
+        $!of.HOW.archetypes.generic
     }
     
     method instantiate_generic($type_environment) {

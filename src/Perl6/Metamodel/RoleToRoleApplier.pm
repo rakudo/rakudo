@@ -1,5 +1,10 @@
 my class RoleToRoleApplier {
     method apply($target, @roles) {
+        # Ensure we actually have something to appply.
+        unless +@roles {
+            return [];
+        }
+        
         # Aggregate all of the methods sharing names, eliminating
         # any duplicates (a method can't collide with itself).
         my %meth_info;
@@ -8,7 +13,9 @@ my class RoleToRoleApplier {
             my $role := $_;
             my @methods := $_.HOW.methods($_, :local(1));
             for @methods {
-                my $name := ~$_;
+                my $name;
+                try { $name := $_.name }
+                unless $name { $name := ~$_ }
                 my $meth := $_;
                 my @meth_list;
                 my @meth_providers;
@@ -37,7 +44,10 @@ my class RoleToRoleApplier {
         my %target_meth_info;
         my @target_meths := $target.HOW.methods($target, :local(1));
         for @target_meths {
-            %target_meth_info{~$_} := $_;
+            my $name;
+            try { $name := $_.name }
+            unless $name { $name := ~$_ }
+            %target_meth_info{$name} := $_;
         }
 
         # Process method list.

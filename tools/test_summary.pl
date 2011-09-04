@@ -9,8 +9,10 @@
 ##  passed, failed, todoed, skipped, executed and planned test results.
 ##
 ##  Usage:
-##     tools/test_summary.pl [testlist]
+##     tools/test_summary.pl [--timing] [testlist]
 ##
+##  The --timing option enables microsecond timing per test saved
+##  in docs/test_summary.times.
 ##  If supplied, C<testlist> identifies an alternate list of tests
 ##  to use (e.g., t/localtest.data).
 
@@ -18,10 +20,13 @@ use strict;
 use warnings;
 use Time::Local;
 use Time::HiRes;
+use Getopt::Long;
 
+my $timing;
+GetOptions('timing', \$timing);
 my $benchmark;
 # Comment out the next line to skip benchmarking; see docs below
-$benchmark = Simple::Relative::Benchmarking::begin();    # defined below
+$benchmark = Simple::Relative::Benchmarking::begin() if $timing;
 
 # Build the list of test scripts to run in @tfiles
 my $testlist = $ARGV[0] || 't/spectest.data';
@@ -108,14 +113,11 @@ for my $tfile (@tfiles) {
     for (@results) {
         # Pass over the optional line containing "1..$planned"
         if    (/^1\.\.(\d+)/)      { $plan = $1 if $1 > 0; next; }
-        # Handle lines containing timestamps
-        if    (/^# t=(\d+\.\d+)/)  {
-            # Calculate the execution time of each test
-            $time2 = $time1;
-            $time1 = $1;
-            my $microseconds = int( ($time1 - $time2) * 1_000_000 );
+        # Handle lines containing test times
+        if    (/^# t=(\d+)/)  {
+            my $microseconds = $1;
             if ( $testnumber > 0 ) {
-                # Do this only if the timestamp was after a test result
+                # Do this only if the time was after a test result
                 $times[   $testnumber] = $microseconds;
                 $comments[$testnumber] = $test_comment;
                 $testnumber = 0;  # must see require another "ok $n" first
@@ -196,21 +198,20 @@ for my $syn (sort keys %syn) {
         # Extract the filename and plan count from that if possible.
         if ( m/ ^ ([^:]*) : \d+ : plan (.*) $ /x ) {
             my ( $filename, $planexpression ) = ( $1, $2 );
-            my $script_planned_tests;
-            if ( $planexpression =~ m/ ^ \s* (\d+) \s* ; $ /x ) {
-                # A conventional 'plan 42;' type of line
-                $script_planned_tests = $1;
-            }
-            else {
-                # It is some other plan argument, either * or variables.
-                # A workaround is to get the actual number of tests run
-                # from the output and just assume is the same number,
-                # but sometimes that is missing too.
-                if ( exists $plan_per_file{$filename} ) {
-                    $script_planned_tests = $plan_per_file{$filename};
+            my $script_planned_tests = 0;
+            if ( $filename =~ m/\.t$/ ) {
+                if ( $planexpression =~ m/ ^ \s* (\d+) \s* ; $ /x ) {
+                    # A conventional 'plan 42;' type of line
+                    $script_planned_tests = $1;
                 }
                 else {
-                    $script_planned_tests = 0; # sorry!
+                    # It is some other plan argument, either * or variables.
+                    # A workaround is to get the actual number of tests run
+                    # from the output and just assume is the same number,
+                    # but sometimes that is missing too.
+                    if ( exists $plan_per_file{$filename} ) {
+                        $script_planned_tests = $plan_per_file{$filename};
+                    }
                 }
             }
             $total_tests_planned_per_synopsis += $script_planned_tests;

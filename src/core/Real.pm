@@ -1,22 +1,46 @@
-class Complex { ... }
+my class Complex { ... }
 
 # XxX role Real does Numeric { ... }
 my class Real {
+    method Rat(Real:D: Real $epsilon = 1.0e-6) { self.Bridge.Rat($epsilon) }
     method abs()  { self < 0 ?? -self !! self }
     proto method sign(|$) {*}
     multi method sign(Real:U:) { Mu }
     multi method sign(Real:D:) { self < 0 ?? -1 !! self == 0 ?? 0 !! 1 }
+    method conjugate(Real:D:) { self }
     method sqrt() { self.Bridge.sqrt }
     method sin()  { self.Bridge.sin }
+    method asin() { self.Bridge.asin }
     method cos()  { self.Bridge.cos }
+    method acos() { self.Bridge.acos }
     method tan()  { self.Bridge.tan }
-    method sinh() { self.Bridge.sinh }
-    method cosh() { self.Bridge.cosh }
-    method tanh() { self.Bridge.tanh }
+    method atan() { self.Bridge.atan }
     proto method atan2(|$) {*}
     multi method atan2(Real $x = 1e0) { self.Bridge.atan2($x.Bridge) }
+    multi method atan2(Cool $x = 1e0) { self.Bridge.atan2($x.Numeric.Bridge) }
+    method sec() { self.Bridge.sec }
+    method asec() { self.Bridge.asec }
+    method cosec() { self.Bridge.cosec }
+    method acosec() { self.Bridge.acosec }
+    method cotan()  { self.Bridge.cotan }
+    method acotan() { self.Bridge.acotan }
+    method sinh() { self.Bridge.sinh }
+    method asinh() { self.Bridge.asinh }
+    method cosh() { self.Bridge.cosh }
+    method acosh() { self.Bridge.acosh }
+    method tanh() { self.Bridge.tanh }
+    method atanh() { self.Bridge.atanh }
+    method sech() { self.Bridge.sech }
+    method asech() { self.Bridge.asech }
+    method cosech() { self.Bridge.cosech }
+    method acosech() { self.Bridge.acosech }
+    method cotanh() { self.Bridge.cotanh }
+    method acotanh() { self.Bridge.acotanh }
     method floor() { self.Bridge.floor }
     method ceiling() { self.Bridge.ceiling }
+    # causes "get_string() not implemented in class 'Int'"
+    # if commented out, but should be there
+#    method round($scale = 1) { (self / $scale + 0.5).floor * $scale }
     method unpolar(Real $angle) {
         Complex.new(self * $angle.cos, self * $angle.sin);
     }
@@ -51,6 +75,8 @@ my class Real {
         # if $int_part is 0, $int_part.base doesn't see the sign of self
         $int_part == 0 && self < 0 ?? '-' ~ $r !! $r;
     }
+
+    method Real(Real:D:) { self }
 }
 
 proto sub cis(|$) {*}
@@ -100,5 +126,8 @@ multi sub truncate(Cool:D $x) { $x.Numeric.truncate }
 
 proto sub atan2(|$)    { * }
 multi sub atan2(Real \$a, Real \$b = 1e0) { $a.Bridge.atan2($b.Bridge) }
-multi sub atan2(Cool \$a, Cool \$b = 1e0) { $a.Real.atan2($b.Real) }
+# should really be (Cool, Cool), and then (Cool, Real) and (Real, Cool)
+# candidates, but since Int both conforms to Cool and Real, we'd get lots
+# of ambiguous dispatches. So just go with (Any, Any) for now.
+multi sub atan2(     \$a,      \$b = 1e0) { $a.Numeric.atan2($b.Numeric) }
 

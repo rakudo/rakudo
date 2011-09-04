@@ -22,7 +22,7 @@ my class MapIter is Iterator {
             $argc = 1 if $argc < 1;
             my $count;
             if nqp::istype($n, Whatever) {
-                $count = ($!list.gimme(*).Num / $argc).ceil.Int
+                $count = ($!list.gimme(*).Num / $argc).ceiling.Int
             }
             else {
                 $count = $n.Int; $!list.gimme($argc * $count);

@@ -28,6 +28,20 @@ typedef struct {
     PMC                 *fetch_method;
 } ContainerSpec;
 
+/* How do we turn something of this type into a boolean? */
+typedef struct {
+    INTVAL mode;
+    PMC *  method;
+} BoolificationSpec;
+
+/* Boolification mode flags. */
+#define BOOL_MODE_CALL_METHOD                   0
+#define BOOL_MODE_UNBOX_INT                     1
+#define BOOL_MODE_UNBOX_NUM                     2
+#define BOOL_MODE_UNBOX_STR_NOT_EMPTY           3
+#define BOOL_MODE_UNBOX_STR_NOT_EMPTY_OR_ZERO   4
+#define BOOL_MODE_NOT_TYPE_OBJECT               5
+
 /* Controls the way that type checks are performed. By default, if there is
  * a type check cache we treat it as definitive. However, it's possible to
  * declare that in the case the type check cache has no entry we should fall
@@ -92,6 +106,10 @@ typedef struct {
      * order to fetch the value in it. If not, it'll be null, which can
      * be taken as a "not a container" indication. */
     ContainerSpec *container_spec;
+    
+    /* Information - if any - about how we can turn something of this type
+     * into a boolean. */
+    BoolificationSpec *boolification_spec;
     
     /* The underlying package stash. */
     PMC *WHO;

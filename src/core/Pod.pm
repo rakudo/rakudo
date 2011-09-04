@@ -1,5 +1,6 @@
 my package Pod {
     class Block {
+        has %.config;
         has @.content;
     }
 
@@ -28,12 +29,21 @@ my package Pod {
         has @.headers; # optional, may be empty
     }
 
+    class FormattingCode is Block {
+        has $.type;
+    }
+
     class Heading is Block {
         has $.level;
     }
 
     class Item is Block {
         has $.level;
+    }
+
+    class Config {
+        has $.type;
+        has %.config;
     }
 }
 

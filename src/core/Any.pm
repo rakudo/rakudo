@@ -1,5 +1,6 @@
-class MapIter { ... }
-class Parcel { ... }
+my class MapIter { ... }
+my class Whatever { ... }
+my class Range { ... }
 
 my class Any {
 
@@ -29,6 +30,12 @@ my class Any {
     method grep(Mu $test) is rw {
         self.map({ $_ if $_ ~~ $test });
     }
+    method first(Mu $test) is rw {
+        for self.list {
+            return $_ if $test.ACCEPTS($_);
+        }
+        fail 'No values matched';
+    }
 
     method join($separator = '') {
         my $list = (self,).flat.eager;
@@ -43,26 +50,26 @@ my class Any {
         MapIter.new(:list((self,).flat), :block($block)).list
     }
 
-    method min($by = { $^a cmp $^b }) {
+    method min($by = &infix:<cmp>) {
         my $cmp = $by.arity == 2 ?? $by !! { $by($^a) cmp $by($^b) }
         my $min = +$Inf;
         for self { 
-            $min = $_ if .defined && $_ cmp $min < 0;
+            $min = $_ if .defined && $cmp($_, $min) < 0;
         }
         $min;
     }
 
-    method max($by = { $^a cmp $^b }) {
+    method max($by = &infix:<cmp>) {
         my $cmp = $by.arity == 2 ?? $by !! { $by($^a) cmp $by($^b) }
         my $max = -$Inf;
         for self { 
-            $max = $_ if .defined && $_ cmp $max > 0;
+            $max = $_ if .defined && $cmp($_, $max) > 0;
         }
         $max;
     }
 
 
-    method minmax($by = { $^a cmp $^b}) {
+    method minmax($by = &infix:<cmp>) {
         my $cmp = $by.arity == 2 ?? $by !! { $by($^a) cmp $by($^b) };
 
         my $min = +$Inf;
@@ -73,7 +80,7 @@ my class Any {
         for @.list {
             .defined or next;
 
-            if .^isa(Range) {
+            if .isa(Range) {
                 if $cmp($_.min, $min) < 0 {
                     $min = $_;
                     $excludes_min = $_.excludes_min;
@@ -112,7 +119,7 @@ my class Any {
                    ?? { last if $_ >= self.gimme($_ + 1); self[$_] }
                    !! { self[$_] }).eager.Parcel;
     }
-    multi method postcircumfix:<[ ]>(WhateverCode $block) is rw {
+    multi method postcircumfix:<[ ]>(Callable $block) is rw {
         self[$block(|(self.elems xx $block.count))]
     }
     multi method postcircumfix:<[ ]>(Whatever) is rw {
@@ -139,10 +146,10 @@ my class Any {
     multi method postcircumfix:<{ }>($key) is rw {
         self.at_key($key)
     }
-    multi method postcircumfix:<{ }>(Positional $key) {
-        $key.map({ self{$_ } }).eager.Parcel
+    multi method postcircumfix:<{ }>(Positional $key) is rw {
+        $key.map({ self{$_} }).eager.Parcel
     }
-    multi method postcircumfix:<{ }>(Whatever) {
+    multi method postcircumfix:<{ }>(Whatever) is rw {
         self{self.keys}
     }
 
@@ -165,47 +172,6 @@ proto infix:<after>(|$)        { * }
 multi infix:<after>($x?)       { Bool::True }
 multi infix:<after>(\$a, \$b)  { ($a cmp $b) > 0 }
 
-proto infix:<===>(Mu $a?, Mu $b?) { * }
-multi infix:<===>(Mu $a?)         { Bool::True }
-multi infix:<===>(Mu $a, Mu $b)   { $a.defined eq $b.defined && $a.WHICH === $b.WHICH }
-
-proto sub infix:<eqv>(Mu $, Mu $) { * }
-multi sub infix:<eqv>(Mu $a, Mu $b) {
-    $a.WHAT === $b.WHAT && $a === $b
-}
-multi sub infix:<eqv>(Enum:D $a, Enum:D $b) {
-    $a.WHAT === $b.WHAT && $a.key eqv $b.key && $a.value eqv $b.value
-}
-multi sub infix:<eqv>(@a, @b) {
-    unless @a.WHAT === @b.WHAT && @a.elems == @b.elems {
-        return Bool::False
-    }
-    for ^@a -> $i {
-        unless @a[$i] eqv @b[$i] {
-            return Bool::False;
-        }
-    }
-    Bool::True
-}
-multi sub infix:<eqv>(EnumMap $a, EnumMap $b) {
-    if +$a != +$b { return Bool::False }
-    for $a.kv -> $k, $v {
-        unless $b.exists($k) && $b{$k} eqv $v {
-            return Bool::False;
-        }
-    }
-    Bool::True;
-}
-multi sub infix:<eqv>(Numeric $a, Numeric $b) {
-    $a.WHAT === $b.WHAT && ($a cmp $b) == 0
-}
-multi sub infix:<eqv>(Stringy $a, Stringy $b) {
-    $a.WHAT === $b.WHAT && ($a cmp $b) == 0
-}
-multi sub infix:<eqv>(Capture $a, Capture $b) {
-    $a.WHAT === $b.WHAT && $a.list eqv $b.list && $a.hash eqv $b.hash
-}
-
 # XXX: should really be '$a is rw' (no \) in the next four operators
 proto prefix:<++>(|$)             { * }
 multi prefix:<++>(Mu:D \$a is rw) { $a = $a.succ }
@@ -223,21 +189,36 @@ multi postfix:<-->(Mu:U \$a is rw) { $a = -1; 0 }
 
 proto infix:<min>(|$)     { * }
 multi infix:<min>(*@args) { @args.min }
-sub min(*@args, :&by = { $^a cmp $^b }) { @args.min(&by) }
+# XXX the multi version suffers from a multi dispatch bug
+# where the mandatory named is ignored in the presence of a slurpy
+#proto sub min(|$)     { * }
+#multi sub min(*@args) { @args.min() }
+#multi sub min(*@args, :&by!) { @args.min(&by) }
+sub min(*@args, :&by = &infix:<cmp>) { @args.min(&by) }
+
 
 proto infix:<max>(|$)     { * }
 multi infix:<max>(*@args) { @args.max }
-sub max(*@args, :&by = { $^a cmp $^b }) { @args.max(&by) }
+#proto sub max(|$) { * }
+#multi sub max(*@args) { @args.max() }
+#multi sub max(*@args, :&by!) { @args.max(&by) }
+sub max(*@args, :&by = &infix:<cmp>) { @args.max(&by) }
 
 proto infix:<minmax>(|$)     { * }
 multi infix:<minmax>(*@args) { @args.minmax }
-sub minmax(*@args, :&by = { $^a cmp $^b }) { @args.minmax(&by) }
+#proto sub minmax(|$) { * }
+#multi sub minmax(*@args) { @args.minmax() }
+#multi sub minmax(*@args, :&by!) { @args.minmax(&by) }
+sub minmax(*@args, :&by = &infix:<cmp>) { @args.minmax(&by) }
 
 proto map(|$) {*}
 multi map(&code, *@values) { @values.map(&code) }
 
 proto grep(|$) {*}
 multi grep(Mu $test, *@values) { @values.grep($test) }
+
+proto first(|$) {*}
+multi first(Mu $test, *@values) { @values.first($test) }
 
 proto join(|$) { * }
 multi join($sep = '', *@values) { @values.join($sep) }

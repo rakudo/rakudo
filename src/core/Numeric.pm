@@ -1,8 +1,6 @@
-class Complex { ... }
-
 # XXX role Numeric { ... }
 my class Numeric {
-    method Numeric() { self }
+    multi method Numeric(Numeric:D:) { self }
 
     multi method ACCEPTS(Numeric:D: $a) { $a == self }
 
@@ -13,7 +11,7 @@ my class Numeric {
     method log10() { self.log / 10e0.log }
 
     proto method exp(|$) {*}
-    multi method exp(Numeric $base) {
+    multi method exp($base) {
         $base ** self;
     }
     method roots(Cool $n) { self.Complex.roots($n.Int) }
@@ -22,6 +20,9 @@ my class Numeric {
     multi method gist(Numeric:D:) { self.Str }
 }
 
+multi sub infix:<eqv>(Numeric $a, Numeric $b) {
+    $a.WHAT === $b.WHAT && ($a cmp $b) == 0
+}
 
 ## arithmetic operators
 
@@ -56,13 +57,97 @@ proto sub sin(|$) {*}
 multi sub sin(Numeric \$x) { $x.sin }
 multi sub sin(Cool \$x)    { $x.Numeric.sin }
 
+proto sub asin(|$) {*}
+multi sub asin(Numeric \$x) { $x.asin }
+multi sub asin(Cool \$x)    { $x.Numeric.asin }
+
 proto sub cos(|$) {*}
 multi sub cos(Numeric \$x) { $x.cos }
 multi sub cos(Cool \$x)    { $x.Numeric.cos }
 
+proto sub acos(|$) {*}
+multi sub acos(Numeric \$x) { $x.acos }
+multi sub acos(Cool \$x)    { $x.Numeric.acos }
+
 proto sub tan(|$) {*}
 multi sub tan(Numeric \$x) { $x.tan }
 multi sub tan(Cool \$x)    { $x.Numeric.tan }
+
+proto sub atan(|$) {*}
+multi sub atan(Numeric \$x) { $x.atan }
+multi sub atan(Cool \$x)    { $x.Numeric.atan }
+
+proto sub sec(|$) {*}
+multi sub sec(Numeric \$x)  { $x.sec }
+multi sub sec(Cool \$x)     { $x.Numeric.sec }
+
+proto sub asec(|$) {*}
+multi sub asec(Numeric \$x)  { $x.asec }
+multi sub asec(Cool \$x)     { $x.Numeric.asec }
+
+proto sub cosec(|$) {*}
+multi sub cosec(Numeric \$x)  { $x.cosec }
+multi sub cosec(Cool \$x)     { $x.Numeric.cosec }
+
+proto sub acosec(|$) {*}
+multi sub acosec(Numeric \$x)  { $x.acosec }
+multi sub acosec(Cool \$x)     { $x.Numeric.acosec }
+
+proto sub cotan(|$) {*}
+multi sub cotan(Numeric \$x)  { $x.cotan }
+multi sub cotan(Cool \$x)     { $x.Numeric.cotan }
+
+proto sub acotan(|$) {*}
+multi sub acotan(Numeric \$x)  { $x.acotan }
+multi sub acotan(Cool \$x)     { $x.Numeric.acotan }
+
+proto sub sinh(|$) {*}
+multi sub sinh(Numeric \$x) { $x.sinh }
+multi sub sinh(Cool \$x)    { $x.Numeric.sinh }
+
+proto sub asinh(|$) {*}
+multi sub asinh(Numeric \$x) { $x.asinh }
+multi sub asinh(Cool \$x)    { $x.Numeric.asinh }
+
+proto sub cosh(|$) {*}
+multi sub cosh(Numeric \$x) { $x.cosh }
+multi sub cosh(Cool \$x)    { $x.Numeric.cosh }
+
+proto sub acosh(|$) {*}
+multi sub acosh(Numeric \$x) { $x.acosh }
+multi sub acosh(Cool \$x)    { $x.Numeric.acosh }
+
+proto sub tanh(|$) {*}
+multi sub tanh(Numeric \$x) { $x.tanh }
+multi sub tanh(Cool \$x)    { $x.Numeric.tanh }
+
+proto sub atanh(|$) {*}
+multi sub atanh(Numeric \$x) { $x.atanh }
+multi sub atanh(Cool \$x)    { $x.Numeric.atanh }
+
+proto sub sech(|$) {*}
+multi sub sech(Numeric \$x) { $x.sech }
+multi sub sech(Cool \$x)    { $x.Numeric.sech }
+
+proto sub asech(|$) {*}
+multi sub asech(Numeric \$x) { $x.asech }
+multi sub asech(Cool \$x)    { $x.Numeric.asech }
+
+proto sub cosech(|$) {*}
+multi sub cosech(Numeric \$x) { $x.cosech }
+multi sub cosech(Cool \$x)    { $x.Numeric.cosech }
+
+proto sub acosech(|$) {*}
+multi sub acosech(Numeric \$x) { $x.acosech }
+multi sub acosech(Cool \$x)    { $x.Numeric.acosech }
+
+proto sub cotanh(|$) {*}
+multi sub cotanh(Numeric \$x) { $x.cotanh }
+multi sub cotanh(Cool \$x)    { $x.Numeric.cotanh }
+
+proto sub acotanh(|$) {*}
+multi sub acotanh(Numeric \$x) { $x.acotanh }
+multi sub acotanh(Cool \$x)    { $x.Numeric.acotanh }
 
 proto sub sqrt(|$) {*}
 multi sub sqrt(Numeric \$x) { $x.sqrt }
@@ -75,6 +160,10 @@ multi sub roots($x, Numeric $n) { $x.Numeric.Complex.roots($n.Int) }
 proto sub floor(|$)          { * }
 multi sub floor($a)          { $a.Numeric.floor }
 multi sub floor(Numeric $a)  { $a.floor }
+
+proto sub ceiling(|$)          { * }
+multi sub ceiling($a)          { $a.Numeric.ceiling }
+multi sub ceiling(Numeric $a)  { $a.ceiling }
 
 proto infix:<+>($a?, $b?)    { * }
 multi infix:<+>($x = 0)      { $x.Numeric }

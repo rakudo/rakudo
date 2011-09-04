@@ -84,13 +84,14 @@ PMC_SOURCES = \
 OPS_SOURCE   = perl6.ops
 
 METAMODEL_SOURCES = \
+  src/Perl6/Metamodel/Archetypes.pm \
   src/Perl6/Metamodel/Naming.pm \
   src/Perl6/Metamodel/Documenting.pm \
   src/Perl6/Metamodel/Stashing.pm \
   src/Perl6/Metamodel/Versioning.pm \
   src/Perl6/Metamodel/TypePretence.pm \
   src/Perl6/Metamodel/MethodDelegation.pm \
-  src/Perl6/Metamodel/NonGeneric.pm \
+  src/Perl6/Metamodel/BoolificationProtocol.pm \
   src/Perl6/Metamodel/PackageHOW.pm \
   src/Perl6/Metamodel/ModuleHOW.pm \
   src/Perl6/Metamodel/GenericHOW.pm \
@@ -144,9 +145,15 @@ CORE_SOURCES = \
   src/core/natives.pm \
   src/core/control.pm \
   src/core/Mu.pm \
+  src/core/Stringy.pm \
   src/core/Any.pm \
   src/core/Code.pm \
   src/core/WhateverCode.pm \
+  src/core/Block.pm \
+  src/core/Routine.pm \
+  src/core/Sub.pm \
+  src/core/Method.pm \
+  src/core/Submethod.pm \
   src/core/Attribute.pm \
   src/core/Junction.pm \
   src/core/Cool.pm \
@@ -157,45 +164,45 @@ CORE_SOURCES = \
   src/core/Real.pm \
   src/core/Int.pm \
   src/core/Num.pm \
-  src/core/Stringy.pm \
   src/core/Str.pm \
   src/core/Capture.pm \
   src/core/Parcel.pm \
   src/core/Iterable.pm \
   src/core/Iterator.pm \
   src/core/Nil.pm \
+  src/core/Range.pm \
   src/core/ListIter.pm \
   src/core/MapIter.pm \
   src/core/GatherIter.pm \
   src/core/List.pm \
   src/core/LoL.pm \
   src/core/Array.pm \
-  src/core/Range.pm \
   src/core/Enum.pm \
   src/core/Pair.pm \
   src/core/EnumMap.pm \
   src/core/Hash.pm \
   src/core/Parameter.pm \
   src/core/Signature.pm \
-  src/core/Block.pm \
-  src/core/Routine.pm \
-  src/core/Sub.pm \
-  src/core/Method.pm \
   src/core/IO.pm \
   src/core/IO/ArgFiles.pm \
+  src/core/IO/Socket.pm \
+  src/core/IO/Socket/INET.pm \
   src/core/Rat.pm \
   src/core/Complex.pm \
+  src/core/Backtrace.pm \
   src/core/Exception.pm \
   src/core/Failure.pm \
-  src/core/BackTrace.pm \
   src/core/Exceptions.pm \
   src/core/Match.pm \
   src/core/Cursor.pm \
   src/core/Grammar.pm \
   src/core/Regex.pm \
+  src/core/CallFrame.pm \
+  src/core/Main.pm \
   src/core/tai-utc.pm \
   src/core/Instant.pm \
   src/core/Duration.pm \
+  src/core/Temporal.pm \
   src/core/EXPORTHOW.pm \
   src/core/Pod.pm \
   src/core/operators.pm \
@@ -214,7 +221,8 @@ CLEANUPS = \
   perl6.c \
   perl6$(O) \
   perl6_group.* \
-  Test.pir \
+  lib/Test.pir \
+  lib/Pod/To/Text.pir \
   rakudo_test_run.tar.gz \
   $(DYNEXT_DIR)/*$(LOAD_EXT) \
   src/gen/core.pm \
@@ -245,7 +253,7 @@ HARNESS_WITH_FUDGE = $(PERL) t/harness --fudge --keep-exit-code --icu=$(HAS_ICU)
 STAGESTATS = @stagestats@
 
 # the default target, TODO: make libraries in 'lib' a variable.
-all: check-versions $(PERL6_EXE) $(SETTING) Test.pir Pod/To/Text.pir
+all: check-versions $(PERL6_EXE) $(SETTING) lib/Test.pir lib/Pod/To/Text.pir
 
 # the install target
 install: all
@@ -259,9 +267,9 @@ install: all
 	$(CP) $(PERL6_M_PBC)          $(DESTDIR)$(NQP_LANG_DIR)/lib/Perl6/Metamodel.pbc
 	$(MKPATH)                     $(DESTDIR)$(PERL6_LANG_DIR)/lib
 	$(CP)     perl6.pbc           $(DESTDIR)$(PERL6_LANG_DIR)
-	$(CP)     Test.pm             $(DESTDIR)$(PERL6_LANG_DIR)/lib
+	$(CP)     lib/Test.pm         $(DESTDIR)$(PERL6_LANG_DIR)/lib
 	$(MKPATH) 					  $(DESTDIR)$(PERL6_LANG_DIR)/lib/Pod/To
-	$(CP)     Pod/To/Text.pm      $(DESTDIR)$(PERL6_LANG_DIR)/lib/Pod/To
+	$(CP)     lib/Pod/To/Text.pm  $(DESTDIR)$(PERL6_LANG_DIR)/lib/Pod/To
 	$(CP)     CORE.setting.pbc    $(DESTDIR)$(PERL6_LANG_DIR)/lib/CORE.setting.pbc
 	$(MKPATH)                     $(DESTDIR)$(PARROT_LIB_DIR)/dynext
 	$(CP)     $(DYNPMC) $(DYNOPS) $(DESTDIR)$(PARROT_LIB_DIR)/dynext
@@ -327,15 +335,15 @@ $(PERL6_M_PBC): $(NQP_EXE) $(DYNEXT_DYNPMC) $(DYNEXT_DYNOPS) $(METAMODEL_SOURCES
     
 $(SETTING): $(PERL6_M_PBC) $(PERL6_EXE) $(CORE_SOURCES)
 	$(PERL) $(GEN_CAT) $(CORE_SOURCES) > src/gen/CORE.setting
-	./$(PERL6_EXE) --setting=NULL --target=pir --output=$(SETTING_PIR) src/gen/CORE.setting
+	./$(PERL6_EXE) --setting=NULL --target=pir $(STAGESTATS) --output=$(SETTING_PIR) src/gen/CORE.setting
 	$(PARROT) $(PARROT_ARGS) -o $(SETTING) $(SETTING_PIR)
 
 ##  testing targets
-Test.pir: Test.pm $(PERL6_EXE) $(SETTING)
-	./$(PERL6_EXE) --target=pir --output=Test.pir Test.pm
+lib/Test.pir: lib/Test.pm $(PERL6_EXE) $(SETTING)
+	./$(PERL6_EXE) --target=pir --output=lib/Test.pir lib/Test.pm
 
-Pod/To/Text.pir: Pod/To/Text.pm $(PERL6_EXE) $(SETTING)
-	./$(PERL6_EXE) --target=pir --output=Pod/To/Text.pir Pod/To/Text.pm
+lib/Pod/To/Text.pir: lib/Pod/To/Text.pm $(PERL6_EXE) $(SETTING)
+	./$(PERL6_EXE) --target=pir --output=lib/Pod/To/Text.pir lib/Pod/To/Text.pm
 
 test    : coretest
 
@@ -344,7 +352,7 @@ fulltest: coretest stresstest
 coretest: all
 	$(PERL) t/harness t/00-parrot t/01-sanity t/02-embed
 
-podtest: Test.pir
+podtest: lib/Test.pir
 	$(PERL) t/harness t/pod
 
 # Run the spectests that we know work.

@@ -8,6 +8,11 @@ class Perl6::Metamodel::SubsetHOW
     # The block implementing the refinement.
     has $!refinement;
 
+    my $archetypes := Perl6::Metamodel::Archetypes.new( :nominalizable(1) );
+    method archetypes() {
+        $archetypes
+    }
+
     method new_type(:$name = '<anon>', :$refinee!, :$refinement!) {
         my $metasubset := self.new(:name($name), :refinee($refinee),
             :refinement($refinement));
@@ -16,7 +21,12 @@ class Perl6::Metamodel::SubsetHOW
     }
     
     method set_of($obj, $refinee) {
-        $!refinee := $refinee
+        my $archetypes := $!refinee.HOW.archetypes;
+        unless $archetypes.nominal || $archetypes.nominalizable {
+            pir::die("The 'of' type of a subset must either be a valid nominal " ~
+                "type or a type that can provide one");
+        }
+        $!refinee := pir::nqp_decontainerize__PP($refinee);
     }
     
     method refinee($obj) {
@@ -25,6 +35,12 @@ class Perl6::Metamodel::SubsetHOW
     
     method refinement($obj) {
         $!refinement
+    }
+    
+    method nominalize($obj) {
+        $!refinee.HOW.archetypes.nominal ??
+            $!refinee !!
+            $!refinee.HOW.nominalize($!refinee)
     }
     
     # Should have the same methods of the (eventually nominal) type

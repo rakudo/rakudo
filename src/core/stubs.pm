@@ -3,17 +3,12 @@
 # Code/Block/Routine/Sub/Method and Str/Int/Num. They are built in BOOTSTRAP.pm
 # in Perl6::Metamodel for now, though should be a BEGIN block in CORE.setting
 # in the end.
-my class Whatever is Cool { ... }
-my class WhateverCode is Code { ... }
-my role Stringy { ... }
-my class IO { ... }
-my class Enum { ... }
+my class Whatever { ... }
 my class Bag is Iterable does Associative { }
 my class Buf is Iterable does Positional { }
 my class Set is Iterable does Associative { }
 my class KeyHash is Iterable does Associative { }
 my class Seq is List does Positional { }
-my class Range { ... }
 
 sub DYNAMIC(\$name) is rw { 
     my Mu $x := pir::find_dynamic_lex__Ps(nqp::unbox_s($name));

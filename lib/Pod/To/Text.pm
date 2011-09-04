@@ -88,7 +88,7 @@ sub declarator2text($pod) {
             ''
         }
     }
-    return "$type {$pod.WHEREFORE.perl}: {$pod.WHEREFORE.WHY}"
+    return "$type {$pod.WHEREFORE.perl}: {$pod.WHEREFORE.WHY.content}"
 }
 
 sub formatting2text($pod) {

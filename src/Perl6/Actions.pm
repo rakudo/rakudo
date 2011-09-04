@@ -214,6 +214,7 @@ class Perl6::Actions is HLL::Actions {
             $outer.unshift(PAST::Op.new(:inline(".annotate 'file', '" ~ $file ~ "'")));
         }
 
+        $outer<UNIT> := $unit;
         make $outer;
     }
 

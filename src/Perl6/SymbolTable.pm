@@ -671,6 +671,9 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
         my $code      := pir::repr_instance_of__PP($type_obj);
         my $slot      := self.add_object($code);
         
+        # Attach code object to PAST node.
+        $code_past<code_object> := $code;
+        
         # Stash it under the PAST block sub ID.
         %!sub_id_to_code_object{$code_past.subid()} := $code;
         

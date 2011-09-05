@@ -3496,7 +3496,7 @@ class Perl6::Actions is HLL::Actions {
             ),
             $past);
         ($*ST.cur_lexpad())[0].push($block);
-        my $param := hash(:variable_name('$_'), :nominal_type($*ST.find_symbol(['Mu'])));
+        my $param := hash( :variable_name('$_'), :nominal_type($*ST.find_symbol(['Mu'])), :is_parcel(1) );
         my $sig := $*ST.create_signature([$*ST.create_parameter($param)]);
         add_signature_binding_code($block, $sig, [$param]);
         return reference_to_code_object(

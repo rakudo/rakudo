@@ -163,7 +163,11 @@ sub exit($status = 0) {
     $status;
 }
 
-sub run($cmd) {
+sub run(*@) {
+    die 'run() is not yet implemented, please use shell() for now';
+}
+
+sub shell($cmd) {
     my $status = 255;
     try {
         $status = 

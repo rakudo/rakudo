@@ -11,7 +11,7 @@ class Perl6::Optimizer {
     # Entry point for the optimization process.
     method optimize($past, *%adverbs) {
         # Initialize.
-        @!block_stack := [];
+        @!block_stack := [$past];
         $!pres_topic_counter := 0;
         
         # We'll start walking over UNIT (we wouldn't find it by going
@@ -55,38 +55,7 @@ class Perl6::Optimizer {
             # do something in that case. However, it's non-trivial as
             # the static lexpad entries will need twiddling with.
             if +@sigsyms == 0 {
-                # Extract interesting parts of block.
-                my $decls := $block.shift;
-                my $stmts := $block.shift;
-                
-                # Turn block into an "optimized out" stub (deserialization
-                # or fixup will still want it to be there).
-                $block.blocktype('declaration');
-                $block[0] := PAST::Op.new( :pirop('die vs'),
-                    'INTERNAL ERROR: Execution of block eliminated by optimizer');                
-                $outer[0].push($block);
-                
-                # Copy over interesting stuff in declaration section.
-                for @($decls) {
-                    if $_.isa(PAST::Op) && $_.pirop eq 'bind_signature vP' {
-                        # Don't copy this binder call.
-                    }
-                    elsif $_.isa(PAST::Var) && ($_.name eq '$/' || $_.name eq '$!' ||
-                            $_.name eq '$_' || $_.name eq 'call_sig') {
-                        # Don't copy this variable node.
-                    }
-                    else {
-                        $outer[0].push($_);
-                    }
-                }
-                
-                # Hand back the statements, but be sure to preserve $_
-                # around them.
-                # XXX $_ preservation not complete.
-                $!pres_topic_counter := $!pres_topic_counter + 1;
-                $outer[0].push(PAST::Var.new( :scope('register'),
-                    :name("pres_topic_$!pres_topic_counter"), :isdecl(1) ));
-                return $stmts;
+                return self.inline_immediate_block($block, $outer);
             }
         }
         
@@ -96,6 +65,30 @@ class Perl6::Optimizer {
     # Called when we encounter a PAST::Op in the tree. Produces either
     # the op itself or some replacement opcode to put in the tree.
     method visit_op($op) {
+        # Calls are especially interesting as we may wish to do some
+        # kind of inlining.
+        my $pasttype := $op.pasttype;
+        if ($pasttype eq 'call' || $pasttype eq '') && $op.name ne '' {
+            # See if we can find the thing we're going to call.
+            my $obj;
+            my $found;
+            try {
+                $obj := self.find_lexical($op.name);
+                $found := 1;
+            }
+            if $found {
+                # If it's an onlystar proto, we can avoid the overhead
+                # of actually doing the proto call.
+                my $dispatcher;
+                try { if $obj.is_dispatcher { $dispatcher := 1 } }
+                if $dispatcher {
+                    self.visit_children($op);
+                    return self.inline_proto($op, $obj);
+                }
+            }
+        }
+        
+        # If we end up here, just visit children and leave op as is.
         self.visit_children($op);
         $op
     }
@@ -121,5 +114,75 @@ class Perl6::Optimizer {
             }
             $i := $i + 1;
         }
+    }
+    
+    # Locates a lexical symbol and returns it. Dies if it does not exist.
+    method find_lexical($name) {
+        my $i := +@!block_stack;
+        while $i > 0 {
+            $i := $i - 1;
+            my $block := @!block_stack[$i];
+            my %sym := $block.symbol($name);
+            if +%sym {
+                if pir::exists(%sym, 'value') {
+                    return %sym<value>;
+                }
+                else {
+                    pir::die("Optimizer: No lexical compile time value for $name");
+                }
+            }
+        }
+        pir::die("Optimizer: No lexical $name found");
+    }
+    
+    # Inlines an immediate block.
+    method inline_immediate_block($block, $outer) {
+        # Extract interesting parts of block.
+        my $decls := $block.shift;
+        my $stmts := $block.shift;
+        
+        # Turn block into an "optimized out" stub (deserialization
+        # or fixup will still want it to be there).
+        $block.blocktype('declaration');
+        $block[0] := PAST::Op.new( :pirop('die vs'),
+            'INTERNAL ERROR: Execution of block eliminated by optimizer');                
+        $outer[0].push($block);
+        
+        # Copy over interesting stuff in declaration section.
+        for @($decls) {
+            if $_.isa(PAST::Op) && $_.pirop eq 'bind_signature vP' {
+                # Don't copy this binder call.
+            }
+            elsif $_.isa(PAST::Var) && ($_.name eq '$/' || $_.name eq '$!' ||
+                    $_.name eq '$_' || $_.name eq 'call_sig') {
+                # Don't copy this variable node.
+            }
+            else {
+                $outer[0].push($_);
+            }
+        }
+        
+        # Hand back the statements, but be sure to preserve $_
+        # around them.
+        $!pres_topic_counter := $!pres_topic_counter + 1;
+        $outer[0].push(PAST::Var.new( :scope('register'),
+            :name("pres_topic_$!pres_topic_counter"), :isdecl(1) ));
+        return PAST::Stmts.new(
+            PAST::Op.new( :pasttype('bind_6model'),
+                PAST::Var.new( :name("pres_topic_$!pres_topic_counter"), :scope('register') ),
+                PAST::Var.new( :name('$_'), :scope('lexical') )
+            ),
+            $stmts,
+            PAST::Op.new( :pasttype('bind_6model'),
+                PAST::Var.new( :name('$_'), :scope('lexical') ),
+                PAST::Var.new( :name("pres_topic_$!pres_topic_counter"), :scope('register') )
+            )
+        );
+    }
+    
+    # Inlines a proto.
+    method inline_proto($call, $proto) {
+        #say("# found proto to inline");
+        $call
     }
 }

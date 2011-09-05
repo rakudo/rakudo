@@ -168,6 +168,7 @@ class Perl6::Optimizer {
         $outer[0].push(PAST::Var.new( :scope('register'),
             :name("pres_topic_$!pres_topic_counter"), :isdecl(1) ));
         return PAST::Stmts.new(
+            :signature('1PPP'),
             PAST::Op.new( :pasttype('bind_6model'),
                 PAST::Var.new( :name("pres_topic_$!pres_topic_counter"), :scope('register') ),
                 PAST::Var.new( :name('$_'), :scope('lexical') )

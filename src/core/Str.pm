@@ -345,14 +345,15 @@ my class Str does Stringy {
         (^$c).map: { nqp::p6box_i(nqp::ord(nqp::substr($ns, $_, 1))) }
     }
 
-    method lines(Str:D:) {
+    method lines(Str:D: $limit = $Inf) {
         my $prev_pos = -1;
+        my $l = 0;
         gather {
-            while defined(my $current_pos = self.index("\n", $prev_pos + 1)) {
+            while defined(my $current_pos = self.index("\n", $prev_pos + 1)) && $l++ < $limit {
                 take self.substr($prev_pos + 1, $current_pos - $prev_pos - 1);
                 $prev_pos = $current_pos;
             }
-            take self.substr($prev_pos + 1) if $prev_pos + 1 < self.chars;
+            take self.substr($prev_pos + 1) if $prev_pos + 1 < self.chars && $l <= $limit;
         }
     }
 

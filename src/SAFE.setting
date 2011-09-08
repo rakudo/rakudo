@@ -2,9 +2,11 @@ sub restricted($what) {
     die "$what is disallowed in safe mode"
 }
 
-sub open(|$) { restricted('open') }
+sub open(|$)   { restricted('open') }
 sub unlink(|$) { restricted('unlink') }
-sub system(|$) { restricted('system') }
+sub shell(|$)  { restricted('shell') }
+sub run(|$)    { restricted('run') }
+sub QX(|$)     { restricted('qx, qqx') }
 
 my class IO { }
 IO.^add_fallback(

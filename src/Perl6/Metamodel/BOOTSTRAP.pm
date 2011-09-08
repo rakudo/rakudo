@@ -191,6 +191,17 @@ Scalar.HOW.add_parent(Scalar, Any);
 Scalar.HOW.add_attribute(Scalar, BOOTSTRAPATTR.new(:name<$!descriptor>, :type(Mu)));
 Scalar.HOW.add_attribute(Scalar, BOOTSTRAPATTR.new(:name<$!value>, :type(Mu)));
 Scalar.HOW.add_attribute(Scalar, BOOTSTRAPATTR.new(:name<$!whence>, :type(Mu)));
+Scalar.HOW.add_method(Scalar, 'is_generic', sub ($self) {
+    my $dcself := pir::perl6_decontainerize__PP($self);
+    nqp::getattr($dcself, Scalar, '$!descriptor').is_generic()
+});
+Scalar.HOW.add_method(Scalar, 'instantiate_generic', sub ($self, $type_environment) {
+    my $dcself := pir::perl6_decontainerize__PP($self);
+    nqp::bindattr($dcself, Scalar, '$!descriptor',
+        nqp::getattr($dcself, Scalar, '$!descriptor').instantiate_generic(
+            $type_environment));
+    $self
+});
 pir::set_scalar_container_type__vP(Scalar);
 
 # Scalar needs to be registered as a container type.

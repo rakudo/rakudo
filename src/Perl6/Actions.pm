@@ -1244,9 +1244,9 @@ class Perl6::Actions is HLL::Actions {
         elsif $*SCOPE eq 'my' || $*SCOPE eq 'state' {
             # Create a container descriptor. Default to rw and set a
             # type if we have one; a trait may twiddle with that later.
+            my $type_cons := $*TYPENAME ?? $*TYPENAME.ast !! $*ST.find_symbol(['Mu']);
             my $descriptor := $*ST.create_container_descriptor(
-                $*TYPENAME ?? $*TYPENAME.ast !! $*ST.find_symbol(['Mu']),
-                1, $name);
+                $type_cons, 1, $name);
 
             # Install the container. Scalars default to Any if untyped.
             if $sigil eq '$' || $sigil eq '&' {
@@ -1259,11 +1259,19 @@ class Perl6::Actions is HLL::Actions {
                     :state($*SCOPE eq 'state'));
             }
 
-            # Set scope and type on container.
+            # Set scope and type on container, and if needed emit code to
+            # reify a generic type.
             if $past.isa(PAST::Var) {
                 $past.scope('lexical_6model');
                 $past.type($descriptor.of);
                 $past := box_native_if_needed($past, $descriptor.of);
+                if $type_cons.HOW.archetypes.generic {
+                    $past := PAST::Op.new(
+                        :pasttype('callmethod'), :name('instantiate_generic'),
+                        PAST::Op.new( :pirop('perl6_var PP'), $past ),
+                        PAST::Op.new( :pirop('set PQPs'),
+                            PAST::Op.new( :pirop('getinterp P') ), 'lexpad'));
+                }
             }
         }
         elsif $*SCOPE eq 'our' {

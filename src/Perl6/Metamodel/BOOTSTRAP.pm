@@ -200,6 +200,11 @@ Scalar.HOW.add_method(Scalar, 'instantiate_generic', sub ($self, $type_environme
     nqp::bindattr($dcself, Scalar, '$!descriptor',
         nqp::getattr($dcself, Scalar, '$!descriptor').instantiate_generic(
             $type_environment));
+    my $val := nqp::getattr($dcself, Scalar, '$!value');
+    if $val.HOW.archetypes.generic {
+        nqp::bindattr($dcself, Scalar, '$!value',
+            $val.HOW.instantiate_generic($val, $type_environment));
+    }
     $self
 });
 pir::set_scalar_container_type__vP(Scalar);

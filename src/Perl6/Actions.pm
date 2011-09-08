@@ -26,18 +26,12 @@ INIT {
 
 
 class Perl6::Actions is HLL::Actions {
-    our @PACKAGE;
-    our $TRUE;
     our @MAX_PERL_VERSION;
 
     our $FORBID_PIR;
     our $STATEMENT_PRINT;
 
     INIT {
-        # initialize @PACKAGE
-        our @PACKAGE := Q:PIR { %r = root_new ['parrot';'ResizablePMCArray'] };
-        our $TRUE := PAST::Var.new( :name('true'), :scope('register') );
-
         # Tell PAST::Var how to encode Perl6Str and Str values
         my %valflags :=
             Q:PIR { %r = get_hll_global ['PAST';'Compiler'], '%valflags' };

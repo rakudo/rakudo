@@ -1,19 +1,18 @@
 # Bind the HOWs into the EXPORTHOW package under the package declarator
 # names.
-# XXX Workarounds: no binding yet, no string literals yet!
 my module EXPORTHOW {
-    pir::set__vQsPP($?PACKAGE.WHO, Q:PIR{ %r = box 'package' }, Perl6::Metamodel::PackageHOW);
-    pir::set__vQsPP($?PACKAGE.WHO, Q:PIR{ %r = box 'module' }, Perl6::Metamodel::ModuleHOW);
-    pir::set__vQsPP($?PACKAGE.WHO, Q:PIR{ %r = box 'generic' }, Perl6::Metamodel::GenericHOW);
-    pir::set__vQsPP($?PACKAGE.WHO, Q:PIR{ %r = box 'class' }, Perl6::Metamodel::ClassHOW);
-    pir::set__vQsPP($?PACKAGE.WHO, Q:PIR{ %r = box 'class-attr' }, Attribute);
-    pir::set__vQsPP($?PACKAGE.WHO, Q:PIR{ %r = box 'role' }, Perl6::Metamodel::ParametricRoleHOW);
-    pir::set__vQsPP($?PACKAGE.WHO, Q:PIR{ %r = box 'role-attr' }, Attribute);
-    pir::set__vQsPP($?PACKAGE.WHO, Q:PIR{ %r = box 'role-group' }, Perl6::Metamodel::ParametricRoleGroupHOW);
-    pir::set__vQsPP($?PACKAGE.WHO, Q:PIR{ %r = box 'role-curried' }, Perl6::Metamodel::CurriedRoleHOW);
-    pir::set__vQsPP($?PACKAGE.WHO, Q:PIR{ %r = box 'grammar' }, Perl6::Metamodel::GrammarHOW);
-    pir::set__vQsPP($?PACKAGE.WHO, Q:PIR{ %r = box 'grammar-attr' }, Attribute);
-    pir::set__vQsPP($?PACKAGE.WHO, Q:PIR{ %r = box 'native' }, Perl6::Metamodel::NativeHOW);
-    pir::set__vQsPP($?PACKAGE.WHO, Q:PIR{ %r = box 'subset' }, Perl6::Metamodel::SubsetHOW);
-    pir::set__vQsPP($?PACKAGE.WHO, Q:PIR{ %r = box 'enum' }, Perl6::Metamodel::EnumHOW);
+    nqp::bindkey($?PACKAGE.WHO, 'package', Perl6::Metamodel::PackageHOW);
+    nqp::bindkey($?PACKAGE.WHO, 'module', Perl6::Metamodel::ModuleHOW);
+    nqp::bindkey($?PACKAGE.WHO, 'generic', Perl6::Metamodel::GenericHOW);
+    nqp::bindkey($?PACKAGE.WHO, 'class', Perl6::Metamodel::ClassHOW);
+    nqp::bindkey($?PACKAGE.WHO, 'class-attr', Attribute);
+    nqp::bindkey($?PACKAGE.WHO, 'role', Perl6::Metamodel::ParametricRoleHOW);
+    nqp::bindkey($?PACKAGE.WHO, 'role-attr', Attribute);
+    nqp::bindkey($?PACKAGE.WHO, 'role-group', Perl6::Metamodel::ParametricRoleGroupHOW);
+    nqp::bindkey($?PACKAGE.WHO, 'role-curried', Perl6::Metamodel::CurriedRoleHOW);
+    nqp::bindkey($?PACKAGE.WHO, 'grammar', Perl6::Metamodel::GrammarHOW);
+    nqp::bindkey($?PACKAGE.WHO, 'grammar-attr', Attribute);
+    nqp::bindkey($?PACKAGE.WHO, 'native', Perl6::Metamodel::NativeHOW);
+    nqp::bindkey($?PACKAGE.WHO, 'subset', Perl6::Metamodel::SubsetHOW);
+    nqp::bindkey($?PACKAGE.WHO, 'enum', Perl6::Metamodel::EnumHOW);
 }

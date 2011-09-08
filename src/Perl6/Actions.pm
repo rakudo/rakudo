@@ -2404,9 +2404,33 @@ class Perl6::Actions is HLL::Actions {
             # type, since we can statically resolve them.
             my @name := Perl6::Grammar::parse_name(~$<longname>);
             if $<arglist> {
-                $/.CURSOR.panic("Parametric roles not yet implemented");
+                # Ensure arguments are allowed.
+                my $role := $*ST.find_symbol(@name);
+                unless $role.HOW.archetypes.parametric() {
+                    $/.CURSOR.panic("Cannot put type arguments on " ~
+                        ~$<longname> ~ " because it is not a parametric type");
+                }
+                
+                # Do we know all the arguments at compile time?
+                my $all_compile_time := 1;
+                for @($<arglist>[0].ast) {
+                    unless $_<has_compile_time_value> {
+                        $all_compile_time := 0;
+                    }
+                }
+                if $all_compile_time {
+                    $past := $*ST.get_object_sc_ref_past($*ST.curry_role(
+                        %*HOW<role-curried>, $role, $<arglist>, $/));
+                }
+                else {
+                    $past := $<arglist>[0].ast;
+                    $past.pasttype('callmethod');
+                    $past.name('new_type');
+                    $past.unshift(self.get_object_sc_ref_past($role));
+                    $past.unshift(self.get_object_sc_ref_past(%*HOW<role-curried>));
+                }
             }
-            if ~$<longname> eq 'GLOBAL' {
+            elsif ~$<longname> eq 'GLOBAL' {
                 $past := $*ST.symbol_lookup(@name, $/);
             }
             else {

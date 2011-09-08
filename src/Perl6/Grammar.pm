@@ -396,25 +396,17 @@ grammar Perl6::Grammar is HLL::Grammar {
             $*UNIT_OUTER := $*ST.push_lexpad($/);
             $*UNIT := $*ST.push_lexpad($/);
             
-            # If we already have a specified outer context, then we'll mostly
-            # just steal stuff from it.
-            if pir::defined(%*COMPILING<%?OPTIONS><outer_ctx>) {
-                # Locate its EXPORTHOW, if any, and import from it.
-                $/.CURSOR.unitstart();
-                #try {
-                    my $EXPORTHOW := $*ST.find_symbol(['EXPORTHOW']);
-                    for $EXPORTHOW.WHO {
-                        %*HOW{$_.key} := $_.value;
-                    }
-                #}
-            }
-            else {
-                # Load setting and import any meta-objects.
+            # If we already have a specified outer context, then that's
+            # our setting. Otherwise, load one.
+            unless pir::defined(%*COMPILING<%?OPTIONS><outer_ctx>) {
                 $*SETTING := $*ST.load_setting(%*COMPILING<%?OPTIONS><setting> // 'CORE');
-                unless %*COMPILING<%?OPTIONS><setting> eq 'NULL' {
-                    $/.CURSOR.import_EXPORTHOW($*SETTING);
+            }
+            $/.CURSOR.unitstart();
+            try {
+                my $EXPORTHOW := $*ST.find_symbol(['EXPORTHOW']);
+                for $EXPORTHOW.WHO {
+                    %*HOW{$_.key} := $_.value;
                 }
-                $/.CURSOR.unitstart();
             }
             
             # Create GLOBAL(ish).

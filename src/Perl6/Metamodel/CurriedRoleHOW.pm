@@ -15,7 +15,10 @@
 # instantiation of it. This meta-object represents those "partial types"
 # as both a way to curry on your way to a full specialization, but also
 # as a way to do type-checking or punning.
-class Perl6::Metamodel::CurriedRoleHOW {
+class Perl6::Metamodel::CurriedRoleHOW
+    does Perl6::Metamodel::RolePunning
+    does Perl6::Metamodel::TypePretence
+{
     has $!curried_role;
     has @!pos_args;
     has %!named_args;

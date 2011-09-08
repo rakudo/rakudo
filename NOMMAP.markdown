@@ -1,6 +1,6 @@
 # Roadmap for "nom" Branch
 
-Last Updated 7 Aug 2011
+Last Updated 8 Sep 2011
 
 ## Punch list for nom->master and nom distribution
 
@@ -52,7 +52,6 @@ Get ::= correcter, and a bit more stuff on := also.
 
 ## Finish up parametric roles
 Many things are working, some are not...
-* Generically typed variables (also for the ::T case in roles)
 * role R1[::T] does R2[T] { ... }
 * Multiple variants of a single role
 * Role subtype checking

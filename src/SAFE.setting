@@ -1,0 +1,12 @@
+sub restricted($what) {
+    die "$what is disallowed in safe mode"
+}
+
+sub open(|$) { restricted('open') }
+sub unlink(|$) { restricted('unlink') }
+sub system(|$) { restricted('system') }
+
+my class IO { }
+IO.^add_fallback(
+    -> $, $ { True },
+    -> $, $ { restricted('IO') });

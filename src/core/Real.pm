@@ -54,6 +54,7 @@ my class Real {
     method truncate(Real:D:) {
         self == 0 ?? 0 !! self < 0  ?? self.ceiling !! self.floor
     }
+    method isNaN { Bool::False }
 
     method base(Int:D $base) {
         my Int $int_part = self.Int;

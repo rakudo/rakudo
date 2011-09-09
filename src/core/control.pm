@@ -179,6 +179,17 @@ sub shell($cmd) {
     $status;
 }
 
+sub sleep($seconds = $Inf) {         # fractional seconds also allowed
+    my $time1 = time;
+    if $seconds ~~ $Inf {
+        pir::sleep__vN(1e16) while True;
+    } else {
+        pir::sleep__vN($seconds);
+    }
+    my $time2 = time;
+    return $time2 - $time1;
+}
+
 sub QX($cmd) {
     my Mu $pio := pir::open__Pss(nqp::unbox_s($cmd), 'rp');
     fail "Unable to execute '$cmd'" unless $pio;

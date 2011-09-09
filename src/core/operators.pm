@@ -100,8 +100,9 @@ sub SEQUENCE($left, $right, :$exclude_end) {
             elsif $tail.elems == 0 {
                 $code = {()}
             }
-            fail "unable to deduce sequence" unless $code.defined;
-            $value = generate($code);
+            $value = $code.defined 
+                       ?? generate($code) 
+                       !! (sub { fail "unable to deduce sequence" })();
         }
         take $value unless $exclude_end;
     }, :$infinite), @right).list;

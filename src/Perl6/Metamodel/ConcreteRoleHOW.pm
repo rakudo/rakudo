@@ -11,11 +11,12 @@ class Perl6::Metamodel::ConcreteRoleHOW
     # Any collisions to resolve.
     has @!collisions;
     
-    # The parametric role(s) that this concrete one was derived from.
-    has @!parametrics;
+    # The (parametric) role(s) that this concrete one was directly derived
+    # from.
+    has @!roles;
     
-    # Full flat list of "does" roles.
-    has @!does_list;
+    # Full flat list of done roles.
+    has @!role_typecheck_list;
 
     my $archetypes := Perl6::Metamodel::Archetypes.new( :nominal(1), :composable(1) );
     method archetypes() {
@@ -29,8 +30,8 @@ class Perl6::Metamodel::ConcreteRoleHOW
         method roles() { @!roles }
     }
     
-    method new_type(:@parametrics, :$name = '<anon>', :$ver, :$auth, :$repr) {
-        my $metarole := self.new(:parametrics(@parametrics), :name($name), :ver($ver), :auth($auth));
+    method new_type(:@roles, :$name = '<anon>', :$ver, :$auth, :$repr) {
+        my $metarole := self.new(:roles(@roles), :name($name), :ver($ver), :auth($auth));
         pir::repr_type_object_for__PPS($metarole, 'Uninstantiable');
     }
     
@@ -41,10 +42,14 @@ class Perl6::Metamodel::ConcreteRoleHOW
     }
 
     method compose($obj) {
-        @!does_list := RoleToRoleApplier.apply($obj, self.roles_to_compose($obj));
-        for @!parametrics {
-            @!does_list.push($_);
+        RoleToRoleApplier.apply($obj, self.roles_to_compose($obj));
+        for @!roles {
+            @!role_typecheck_list[+@!role_typecheck_list] := $_;
+            for $_.HOW.role_typecheck_list($_) {
+                @!role_typecheck_list[+@!role_typecheck_list] := $_;
+            }
         }
+        self.publish_type_cache($obj);
         $obj
     }
     
@@ -52,7 +57,41 @@ class Perl6::Metamodel::ConcreteRoleHOW
         @!collisions
     }
     
-    method does_list($obj) {
-        @!does_list
+    method roles($obj, :$transitive) {
+        if $transitive {
+            my @trans;
+            for @!roles {
+                @trans.push($_);
+                for $_.HOW.roles($_) {
+                    @trans.push($_);
+                }
+            }
+        }
+        else {
+            @!roles
+        }
+    }
+    
+    method role_typecheck_list($obj) {
+        @!role_typecheck_list
+    }
+    
+    method type_check($obj, $checkee) {
+        my $decont := pir::perl6_decontainerize__PP($checkee);
+        if $decont =:= $obj.WHAT {
+            return 1;
+        }
+        for @!role_typecheck_list {
+            if pir::perl6_decontainerize__PP($_) =:= $decont {
+                return 1;
+            }
+        }
+        0
+    }
+    
+    method publish_type_cache($obj) {
+        my @types := [$obj.WHAT];
+        for @!role_typecheck_list { @types.push($_) }
+        pir::publish_type_check_cache($obj, @types)
     }
 }

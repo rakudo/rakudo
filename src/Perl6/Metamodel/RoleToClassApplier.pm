@@ -84,6 +84,6 @@ my class RoleToClassApplier {
             $target.HOW.add_attribute($target, $_);
         }
         
-        return $to_compose_meta.does_list($to_compose);
+        1;
     }
 }

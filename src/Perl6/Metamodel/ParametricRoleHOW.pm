@@ -15,6 +15,7 @@ class Perl6::Metamodel::ParametricRoleHOW
 {
     has $!composed;
     has $!body_block;
+    has @!role_typecheck_list;
 
     my $archetypes := Perl6::Metamodel::Archetypes.new( :nominal(1), :composable(1), :inheritalizable(1), :parametric(1) );
     method archetypes() {
@@ -35,6 +36,14 @@ class Perl6::Metamodel::ParametricRoleHOW
     }
     
     method compose($obj) {
+        my @rtl;
+        for self.roles_to_compose($obj) {
+            @rtl.push($_);
+            for $_.HOW.role_typecheck_list($_) {
+                @rtl.push($_);
+            }
+        }
+        @!role_typecheck_list := @rtl;
         $!composed := 1;
         $obj
     }
@@ -43,12 +52,33 @@ class Perl6::Metamodel::ParametricRoleHOW
         $!composed
     }
     
+    method roles($obj, :$transitive) {
+        if $transitive {
+            my @result;
+            for self.roles_to_compose($obj) {
+                @result.push($_);
+                for $_.HOW.roles($_, :transitive(1)) {
+                    @result.push($_)
+                }
+            }
+            @result
+        }
+        else {
+            self.roles_to_compose($obj)
+        }
+    }
+    
+    method role_typecheck_list($obj) {
+        @!role_typecheck_list
+    }
+    
     method type_check($obj, $checkee) {
-        if $obj =:= $checkee {
+        my $decont := pir::perl6_decontainerize__PP($checkee);
+        if $decont =:= $obj.WHAT {
             return 1;
         }
         for self.prentending_to_be() {
-            if $checkee =:= $_ {
+            if $decont =:= pir::perl6_decontainerize__PP($_) {
                 return 1;
             }
         }
@@ -75,7 +105,7 @@ class Perl6::Metamodel::ParametricRoleHOW
         }
         
         # Create a concrete role.
-        my $conc := $concrete.new_type(:parametrics([$obj]), :name(self.name($obj)));
+        my $conc := $concrete.new_type(:roles([$obj]), :name(self.name($obj)));
         
         # Go through attributes, reifying as needed and adding to
         # the concrete role.

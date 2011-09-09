@@ -19,7 +19,8 @@ class Perl6::Metamodel::ClassHOW
     does Perl6::Metamodel::BoolificationProtocol
     does Perl6::Metamodel::ParrotInterop
 {
-    has @!does_list;
+    has @!roles;
+    has @!role_typecheck_list;
     has @!fallbacks;
     has $!composed;
 
@@ -56,9 +57,19 @@ class Perl6::Metamodel::ClassHOW
             my @ins_roles;
             while @roles_to_compose {
                 my $r := @roles_to_compose.pop();
+                @!roles[+@!roles] := $r;
                 @ins_roles.push($r.HOW.specialize($r, $obj))
             }
-            @!does_list := RoleToClassApplier.apply($obj, @ins_roles)
+            RoleToClassApplier.apply($obj, @ins_roles);
+            
+            # Add them to the typecheck list, and pull in their
+            # own type check lists also.
+            for @ins_roles {
+                @!role_typecheck_list[+@!role_typecheck_list] := $_;
+                for $_.HOW.role_typecheck_list($_) {
+                    @!role_typecheck_list[+@!role_typecheck_list] := $_;
+                }
+            }
         }
 
         # Some things we only do if we weren't already composed once, like
@@ -92,8 +103,33 @@ class Perl6::Metamodel::ClassHOW
         $obj
     }
     
-    method does_list($obj) {
-        @!does_list
+    method roles($obj, :$local, :$transitive) {
+        my @result;
+        for @!roles {
+            @result.push($_);
+            if $transitive {
+                for $_.HOW.roles($_, :transitive(1)) {
+                    @result.push($_);
+                }
+            }
+        }
+        unless $local {
+            my $first := 1;
+            for self.mro($obj) {
+                if $first {
+                    $first := 0;
+                    next;
+                }
+                for $_.HOW.roles($_, :transitive($transitive), :local(1)) {
+                    @result.push($_);
+                }
+            }
+        }
+        @result
+    }
+    
+    method role_typecheck_list($obj) {
+        @!role_typecheck_list
     }
     
     method is_composed($obj) {

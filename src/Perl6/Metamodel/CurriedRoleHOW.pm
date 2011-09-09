@@ -42,4 +42,12 @@ class Perl6::Metamodel::CurriedRoleHOW
     method name($obj) {
         $!curried_role.HOW.name($!curried_role)
     }
+    
+    method roles($obj, :$transitive) {
+        $!curried_role.HOW.roles($obj, :transitive($transitive))
+    }
+    
+    method role_typecheck_list($obj) {
+        $!curried_role.HOW.role_typecheck_list($obj)
+    }
 }

@@ -509,7 +509,7 @@ S32-list/grep.t
 S32-list/join.t
 S32-list/map_function_return_values.t
 S32-list/map.t
-# S32-list/minmax.t # err: Too many positional parameters passed
+# S32-list/minmax.t # err: splice() not implemented in class 'Mu'
 S32-list/pick.t
 S32-list/reduce.t
 S32-list/reverse.t

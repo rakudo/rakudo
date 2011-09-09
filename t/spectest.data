@@ -228,14 +228,14 @@ S04-statements/unless.t
 S04-statements/until.t
 S04-statements/while.t
 S05-capture/caps.t
-# S05-capture/dot.t # err: Useless declaration of a has-scoped method in mainline
+# S05-capture/dot.t # err: regex assertion not terminated by angle bracket at line 94, near "::name> | "
 S05-capture/match-object.t
 # S05-capture/named.t # err: Method 'rxtype' not found for invocant of class 'PAST;Regex'
 # S05-capture/subrule.t # err: Method 'rxtype' not found for invocant of class 'PAST;Regex'
 # S05-grammar/action-stubs.t # err: Null PMC access in set_pmc_keyed()
 # S05-grammar/inheritance.t # err: Null PMC access in set_pmc_keyed()
 S05-grammar/methods.t
-# S05-grammar/namespace.t # err: Useless declaration of a has-scoped method in mainline
+# S05-grammar/namespace.t # err: Null PMC access in set_pmc_keyed()
 # S05-grammar/parse_and_parsefile.t # err: Could not locate compile-time value for symbol No::Such::Grammar
 # S05-grammar/protoregex.t # err: Quantifier quantifies nothing
 # S05-grammar/protos.t # err: Null PMC access in set_pmc_keyed()
@@ -264,10 +264,10 @@ S05-metachars/newline.t
 # S05-metasyntax/angle-brackets.t # err: Method 'rxtype' not found for invocant of class 'PAST;Regex'
 S05-metasyntax/changed.t
 S05-metasyntax/charset.t
-# S05-metasyntax/lookaround.t # err: Useless declaration of a has-scoped method in mainline
+# S05-metasyntax/lookaround.t # err: Method 'after' not found for invocant of class 'Cursor'
 S05-metasyntax/null.t
-# S05-metasyntax/regex.t # err: Useless declaration of a has-scoped method in mainline
-# S05-metasyntax/repeat.t # err: Useless declaration of a has-scoped method in mainline
+# S05-metasyntax/regex.t # err: Could not find sub &o
+# S05-metasyntax/repeat.t # err: Cannot assign to a non-container
 # S05-metasyntax/sequential-alternation.t # err: Method 'rxtype' not found for invocant of class 'PAST;Regex'
 S05-metasyntax/single-quotes.t
 S05-metasyntax/unknown.t
@@ -399,7 +399,7 @@ S12-introspection/meta-class.t
 S12-introspection/methods.t
 S12-introspection/parents.t
 # S12-introspection/roles.t # err: Method 'roles' not found for invocant of class 'Perl6::Metamodel::ClassHOW'
-# S12-introspection/walk.t # err: Useless declaration of a has-scoped method in mainline
+# S12-introspection/walk.t # err: Method 'WALK' not found for invocant of class 'E'
 S12-methods/attribute-params.t
 # S12-methods/calling_sets.t # err: Cannot access attributes in a type object
 S12-methods/calling_syntax.t
@@ -433,14 +433,14 @@ S13-overloading/operators.t
 # S14-roles/composition.t # err: Method 'foo' must be resolved by class DD because it exists in multiple roles
 S14-roles/conflicts.t
 S14-roles/crony.t
-# S14-roles/instantiation.t # err: Parametric roles not yet implemented
+# S14-roles/instantiation.t # err: Method 'parrot_vtable_mappings' not found for invocant of class 'Perl6::Metamodel::ParametricRoleHOW'
 S14-roles/lexical.t
 S14-roles/mixin.t
 S14-roles/namespaced.t 
 # S14-roles/parameter-subtyping.t # err: Illegal redeclaration of role 'R1'
 # S14-roles/parameterized-basic.t # err: Illegal redeclaration of role 'AritySelection'
-# S14-roles/parameterized-mixin.t # err: Parametric roles not yet implemented
-# S14-roles/parameterized-type.t # err: Parametric roles not yet implemented
+# S14-roles/parameterized-mixin.t # err: No applicable candidates found to dispatch to for 'infix:<eq>'
+# S14-roles/parameterized-type.t # err: Cannot use 'R2[Int]' as an argument to a parametric role as its value is not known at compile time
 S14-roles/submethods.t
 # S14-traits/attributes.t # err: Invalid typename in parameter declaration
 # S14-traits/package.t # err: Invalid typename in parameter declaration
@@ -499,7 +499,7 @@ S32-io/dir.t
 # S32-io/chdir.t # err: Method 'd' not found for invocant of class 'Str'
 S32-io/file-tests.t
 S32-io/note.t
-# S32-io/IO-Socket-INET.t # err: Useless declaration of a has-scoped method in mainline
+# S32-io/IO-Socket-INET.t # err: Could not find sub &sleep
 S32-list/categorize.t
 S32-list/classify.t
 S32-list/create.t

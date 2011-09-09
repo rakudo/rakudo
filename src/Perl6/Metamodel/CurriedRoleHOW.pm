@@ -31,7 +31,8 @@ class Perl6::Metamodel::CurriedRoleHOW
     method new_type($curried_role, *@pos_args, *%named_args) {
         my $meta := self.new(:curried_role($curried_role), :pos_args(@pos_args),
             :named_args(%named_args));
-        pir::repr_type_object_for__PPS($meta, 'Uninstantiable');
+        my $type := pir::repr_type_object_for__PPS($meta, 'Uninstantiable');
+        pir::stable_set_type_check_mode__0PI($type, 2)
     }
     
     method specialize($obj, $first_arg) {
@@ -43,11 +44,68 @@ class Perl6::Metamodel::CurriedRoleHOW
         $!curried_role.HOW.name($!curried_role)
     }
     
+    method curried_role($obj) {
+        $!curried_role
+    }
+    
+    method role_arguments($obj) {
+        @!pos_args
+    }
+    
     method roles($obj, :$transitive) {
         $!curried_role.HOW.roles($obj, :transitive($transitive))
     }
     
     method role_typecheck_list($obj) {
         $!curried_role.HOW.role_typecheck_list($obj)
+    }
+    
+    method type_check($obj, $checkee) {
+        $!curried_role.HOW.type_check($!curried_role, $checkee)
+    }
+    
+    method accepts_type($obj, $checkee) {
+        # First, we locate candidate curryings to check against. If
+        # the checkee is itself a curried role, it also goes in. Note
+        # that we only want those that have the same parametric role
+        # as us.
+        my @cands;
+        my $crdc := pir::perl6_decontainerize__PP($!curried_role);
+        if nqp::istype($checkee.HOW, self.WHAT) {
+            if pir::perl6_decontainerize__PP($checkee.HOW.curried_role($checkee)) =:= $crdc {
+                @cands.push($checkee);
+            }
+        }
+        for $checkee.HOW.role_typecheck_list($checkee) {
+            if nqp::istype($_.HOW, self.WHAT) {
+                if pir::perl6_decontainerize__PP($_.HOW.curried_role($_)) =:= $crdc {
+                    @cands.push($_);
+                }
+            }
+        }
+        
+        # Provided we have some candidates, check the arguments.
+        my $num_args := +@!pos_args;
+        if @cands {
+            for @cands {
+                my @try_args := $_.HOW.role_arguments($_);
+                if +@try_args == $num_args {
+                    my $i := 0;
+                    my $ok := 1;
+                    while $i < +$num_args {
+                        if !@!pos_args[$i].ACCEPTS(@try_args[$i]) {
+                            $ok := 0;
+                            $i := $num_args;
+                        }
+                        $i := $i + 1;
+                    }
+                    if $ok {
+                        return 1;
+                    }
+                }
+            }
+        }
+        
+        0;
     }
 }

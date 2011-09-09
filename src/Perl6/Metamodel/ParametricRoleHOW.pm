@@ -16,7 +16,7 @@ class Perl6::Metamodel::ParametricRoleHOW
     has $!composed;
     has $!body_block;
 
-    my $archetypes := Perl6::Metamodel::Archetypes.new( :nominal(1), :composable(1), :parametric(1) );
+    my $archetypes := Perl6::Metamodel::Archetypes.new( :nominal(1), :composable(1), :inheritalizable(1), :parametric(1) );
     method archetypes() {
         $archetypes
     }

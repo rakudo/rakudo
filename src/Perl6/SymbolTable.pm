@@ -321,10 +321,25 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
     # the object to install. Does an immediate installation in the
     # compile-time block symbol table, and ensures that the installation
     # gets fixed up at runtime too.
-    method install_lexical_symbol($block, $name, $obj) {
+    method install_lexical_symbol($block, $name, $obj, :$clone) {
         # Install the object directly as a block symbol.
         $block.symbol($name, :scope('lexical_6model'), :value($obj));
         $block[0].push(PAST::Var.new( :scope('lexical_6model'), :name($name), :isdecl(1) ));
+        
+        # Add a clone if needed.
+        # XXX Horrible workaround here. We don't have proper serialization
+        # yet, and if we look up a cloned trait_mod (e.g. from the setting)
+        # then the serialization will blow up when we apply the trait. For
+        # now we just skip these, until the serializer lands.
+        if $clone && pir::substr($name, 0, 11) ne '&trait_mod:' {
+            $block[0].push(PAST::Op.new(
+                :pasttype('bind_6model'),
+                PAST::Var.new( :name($name), :scope('lexical_6model') ),
+                PAST::Op.new(
+                    :pasttype('callmethod'), :name('clone'),
+                    PAST::Var.new( :name($name), :scope('lexical_6model') )
+                )));
+        }
         
         # Add to static lexpad, and generate deserialization code.
         my $slp := self.get_static_lexpad($block);

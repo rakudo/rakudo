@@ -433,7 +433,7 @@ S13-overloading/operators.t
 # S14-roles/composition.t # err: Method 'foo' must be resolved by class DD because it exists in multiple roles
 S14-roles/conflicts.t
 S14-roles/crony.t
-# S14-roles/instantiation.t # err: Method 'parrot_vtable_mappings' not found for invocant of class 'Perl6::Metamodel::ParametricRoleHOW'
+S14-roles/instantiation.t
 S14-roles/lexical.t
 S14-roles/mixin.t
 S14-roles/namespaced.t 

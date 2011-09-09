@@ -104,6 +104,11 @@ class Perl6::Metamodel::ParametricRoleHOW
             pir::die("Could not instantiate role '" ~ self.name($obj) ~ "':\n$error")
         }
         
+        # Use it to build concrete role.
+        self.specialize_with($obj, $type_env, @pos_args)
+    }
+    
+    method specialize_with($obj, $type_env, @pos_args) {
         # Create a concrete role.
         my $conc := $concrete.new_type(:roles([$obj]), :name(self.name($obj)));
         
@@ -126,7 +131,7 @@ class Perl6::Metamodel::ParametricRoleHOW
             $conc.HOW.add_multi_method($conc, $_.name, $_.code.instantiate_generic($type_env))
         }
         
-        # Roles down by this role need fully specializing also; all
+        # Roles done by this role need fully specializing also; all
         # they'll be missing is the target class (e.g. our first arg).
         for self.roles_to_compose($obj) {
             $conc.HOW.add_role($conc, $_.HOW.specialize($_, @pos_args[0]));

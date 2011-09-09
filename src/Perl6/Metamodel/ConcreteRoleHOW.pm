@@ -43,6 +43,12 @@ class Perl6::Metamodel::ConcreteRoleHOW
 
     method compose($obj) {
         RoleToRoleApplier.apply($obj, self.roles_to_compose($obj));
+        for self.roles_to_compose($obj) {
+            @!role_typecheck_list[+@!role_typecheck_list] := $_;
+            for $_.HOW.role_typecheck_list($_) {
+                @!role_typecheck_list[+@!role_typecheck_list] := $_;
+            }
+        }
         for @!roles {
             @!role_typecheck_list[+@!role_typecheck_list] := $_;
             for $_.HOW.role_typecheck_list($_) {

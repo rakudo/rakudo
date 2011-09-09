@@ -58,6 +58,7 @@ class Perl6::Metamodel::ClassHOW
             while @roles_to_compose {
                 my $r := @roles_to_compose.pop();
                 @!roles[+@!roles] := $r;
+                @!role_typecheck_list[+@!role_typecheck_list] := $r;
                 @ins_roles.push($r.HOW.specialize($r, $obj))
             }
             RoleToClassApplier.apply($obj, @ins_roles);

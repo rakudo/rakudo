@@ -3139,6 +3139,10 @@ class Perl6::Actions is HLL::Actions {
                 if $<arglist> {
                     $type := $*ST.curry_role(%*HOW<role-curried>, $type, $<arglist>, $/);
                 }
+                if $<typename> {
+                    $type := $*ST.curry_role_with_args(%*HOW<role-curried>, $type,
+                        [$<typename>[0].ast], hash());
+                }
                 make $type;
             }
             else {

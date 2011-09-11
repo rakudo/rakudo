@@ -1241,7 +1241,7 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
         }
     }
     
-    # Builds a curried role with the specified arguments.
+    # Builds a curried role based on a parsed argument list.
     method curry_role($curryhow, $role, $arglist, $/) {
         # Build a list of compile time arguments to the role; whine if
         # we find something without one.
@@ -1261,6 +1261,11 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
             }
         }
         
+        self.curry_role_with_args($curryhow, $role, @pos_args, %named_args);
+    }
+    
+    # Curries a role with the specified arguments.
+    method curry_role_with_args($curryhow, $role, @pos_args, %named_args) {
         # Make the curry right away and add it to the SC.
         my $curried := $curryhow.new_type($role, |@pos_args, |%named_args);
         my $slot := self.add_object($curried);

@@ -1129,7 +1129,7 @@ class Perl6::Actions is HLL::Actions {
             # Add this role to the group if needed.
             my $group := $*PACKAGE.HOW.group($*PACKAGE);
             unless $group =:= $*PACKAGE {
-                $*ST.add_role_group_possibility($group, $*PACKAGE);
+                $*ST.pkg_add_role_group_possibility($group, $*PACKAGE);
             }
         }
 

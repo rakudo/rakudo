@@ -405,7 +405,7 @@ S12-methods/attribute-params.t
 S12-methods/calling_syntax.t
 S12-methods/chaining.t
 S12-methods/class-and-instance.t
-# S12-methods/default-trait.t # err: No applicable candidates found to dispatch to for 'trait_mod:<is>'
+S12-methods/default-trait.t
 S12-methods/defer-call.t
 S12-methods/defer-next.t
 S12-methods/how.t

@@ -158,9 +158,12 @@ Attribute.HOW.add_method(Attribute, 'build', sub ($self) {
             Attribute, '$!build_closure');
     });
 Attribute.HOW.add_method(Attribute, 'is_generic', sub ($self) {
-        my $type := pir::getattribute__PPPs(pir::perl6_decontainerize__PP($self),
+        my $dcself   := pir::perl6_decontainerize__PP($self);
+        my $type := pir::getattribute__PPPs(pir::perl6_decontainerize__PP($dcself),
             Attribute, '$!type');
-        pir::perl6_booleanize__PI($type.HOW.archetypes.generic);
+        my $build := pir::getattribute__PPPs(pir::perl6_decontainerize__PP($dcself),
+            Attribute, '$!build_closure');
+        pir::perl6_booleanize__PI($type.HOW.archetypes.generic || pir::defined__IP($build));
     });
 Attribute.HOW.add_method(Attribute, 'instantiate_generic', sub ($self, $type_environment) {
         my $dcself   := pir::perl6_decontainerize__PP($self);
@@ -168,16 +171,22 @@ Attribute.HOW.add_method(Attribute, 'instantiate_generic', sub ($self, $type_env
         my $cd       := pir::getattribute__PPPs($dcself, Attribute, '$!container_descriptor');
         my $pkg      := pir::getattribute__PPPs($dcself, Attribute, '$!package');
         my $avc      := pir::getattribute__PPPs($dcself, Attribute, '$!auto_viv_container');
-        my $type_ins := $type.HOW.instantiate_generic($type, $type_environment);
-        my $cd_ins   := $cd.instantiate_generic($type_environment);
-        my $pkg_ins   := $pkg.HOW.instantiate_generic($pkg, $type_environment);
-        my $avc_copy := pir::repr_clone__PP(pir::perl6_var__PP($avc));
+        my $bc       := pir::getattribute__PPPs($dcself, Attribute, '$!build_closure');
         my $ins      := pir::repr_clone__PP($dcself);
-        pir::setattribute__vPPsP($ins, Attribute, '$!type', $type_ins);
-        pir::setattribute__vPPsP($ins, Attribute, '$!container_descriptor', $cd_ins);
-        pir::setattribute__vPPsP($ins, Attribute, '$!package', $pkg_ins);
-        pir::setattribute__vPPsP($ins, Attribute, '$!auto_viv_container',
-            pir::setattribute__0PPsP($avc_copy, (pir::perl6_var__PP($avc_copy)).WHAT, '$!descriptor', $cd_ins));
+        if $type.HOW.archetypes.generic {
+            pir::setattribute__vPPsP($ins, Attribute, '$!type',
+                $type.HOW.instantiate_generic($type, $type_environment));
+            pir::setattribute__vPPsP($ins, Attribute, '$!package',
+                $pkg.HOW.instantiate_generic($pkg, $type_environment));
+            my $cd_ins := $cd.instantiate_generic($type_environment);
+            pir::setattribute__vPPsP($ins, Attribute, '$!container_descriptor', $cd_ins);
+            my $avc_copy := pir::repr_clone__PP(pir::perl6_var__PP($avc));
+            pir::setattribute__vPPsP($ins, Attribute, '$!auto_viv_container',
+                pir::setattribute__0PPsP($avc_copy, (pir::perl6_var__PP($avc_copy)).WHAT, '$!descriptor', $cd_ins));
+        }
+        if pir::defined__IP($bc) {
+            pir::setattribute__vPPsP($ins, Attribute, '$!build_closure', $bc.clone());
+        }
         $ins
     });
 
@@ -375,9 +384,10 @@ Code.HOW.add_method(Code, 'add_dispatchee', sub ($self, $dispatchee) {
         }
     });
 Code.HOW.add_method(Code, 'clone', sub ($self) {
-        my $cloned := pir::repr_clone__PP($self);
+        my $dcself := pir::perl6_decontainerize__PP($self);
+        my $cloned := pir::repr_clone__PP($dcself);
         Q:PIR {
-            $P0 = find_lex '$self'
+            $P0 = find_lex '$dcself'
             $P1 = find_lex 'Code'
             $P0 = getattribute $P0, $P1, '$!do'
             $P1 = getprop 'CLONE_CALLBACK', $P0
@@ -388,7 +398,7 @@ Code.HOW.add_method(Code, 'clone', sub ($self) {
         };
         pir::setattribute__0PPSP($cloned, Code, '$!do',
             pir::perl6_associate_sub_code_object__0PP(
-                pir::clone__PP(pir::getattribute__PPPS($self, Code, '$!do')),
+                pir::clone__PP(pir::getattribute__PPPS($dcself, Code, '$!do')),
                 $cloned))
     });
 Code.HOW.add_method(Code, 'derive_dispatcher', sub ($self) {
@@ -436,9 +446,10 @@ Block.HOW.add_attribute(Block, BOOTSTRAPATTR.new(:name<$!state_vars>, :type(Mu))
 Block.HOW.publish_parrot_vtable_handler_mapping(Block);
 Block.HOW.publish_parrot_vtable_mapping(Block);
 Block.HOW.add_method(Block, 'clone', sub ($self) {
-        my $cloned := pir::repr_clone__PP($self);
+        my $dcself := pir::perl6_decontainerize__PP($self);
+        my $cloned := pir::repr_clone__PP($dcself);
         Q:PIR {
-            $P0 = find_lex '$self'
+            $P0 = find_lex '$dcself'
             $P1 = find_lex 'Code'
             $P0 = getattribute $P0, $P1, '$!do'
             $P1 = getprop 'CLONE_CALLBACK', $P0
@@ -450,7 +461,7 @@ Block.HOW.add_method(Block, 'clone', sub ($self) {
         pir::setattribute__0PPSP($cloned, Block, '$!state_vars', nqp::null());
         pir::setattribute__0PPSP($cloned, Code, '$!do',
             pir::perl6_associate_sub_code_object__0PP(
-                pir::clone__PP(pir::getattribute__PPPS($self, Code, '$!do')),
+                pir::clone__PP(pir::getattribute__PPPS($dcself, Code, '$!do')),
                 $cloned))
     });
 

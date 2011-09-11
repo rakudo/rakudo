@@ -1071,6 +1071,9 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
         if pir::exists(%extra, 'base_type') {
             %args<base_type> := %extra<base_type>;
         }
+        if pir::exists(%extra, 'group') {
+            %args<group> := %extra<group>;
+        }
         my $mo := $how.new_type(|%args);
         my $slot := self.add_object($mo);
         
@@ -1090,6 +1093,10 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
             if pir::exists(%extra, 'base_type') {
                 $setup_call.push(my $ref := self.get_object_sc_ref_past(%extra<base_type>));
                 $ref.named('base_type');
+            }
+            if pir::exists(%extra, 'group') {
+                $setup_call.push(my $ref := self.get_object_sc_ref_past(%extra<group>));
+                $ref.named('group');
             }
             self.add_event(:deserialize_past(
                 self.add_object_to_cur_sc_past($slot, $setup_call)));

@@ -15,6 +15,8 @@ class Perl6::Metamodel::ParametricRoleHOW
 {
     has $!composed;
     has $!body_block;
+    has $!in_group;
+    has $!group;
     has @!role_typecheck_list;
 
     my $archetypes := Perl6::Metamodel::Archetypes.new( :nominal(1), :composable(1), :inheritalizable(1), :parametric(1) );
@@ -22,9 +24,13 @@ class Perl6::Metamodel::ParametricRoleHOW
         $archetypes
     }
 
-    method new_type(:$name = '<anon>', :$ver, :$auth, :$repr) {
+    method new_type(:$name = '<anon>', :$ver, :$auth, :$repr, *%extra) {
         my $metarole := self.new(:name($name), :ver($ver), :auth($auth));
-        self.add_stash(pir::repr_type_object_for__PPS($metarole, 'Uninstantiable'));
+        my $type := pir::repr_type_object_for__PPS($metarole, 'Uninstantiable');
+        if pir::exists(%extra, 'group') {
+            $metarole.set_group($type, %extra<group>);
+        }
+        self.add_stash($type);
     }
     
     method set_body_block($obj, $block) {
@@ -35,8 +41,20 @@ class Perl6::Metamodel::ParametricRoleHOW
         $!body_block
     }
     
+    method set_group($obj, $group) {
+        $!group := $group;
+        $!in_group := 1;
+    }
+    
+    method group($obj) {
+        $!in_group ?? $!group !! $obj
+    }
+    
     method compose($obj) {
         my @rtl;
+        if $!in_group {
+            @rtl.push($!group);
+        }
         for self.roles_to_compose($obj) {
             @rtl.push($_);
             for $_.HOW.role_typecheck_list($_) {

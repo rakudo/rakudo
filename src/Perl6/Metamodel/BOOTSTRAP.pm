@@ -709,6 +709,10 @@ pir::perl6_set_bools__vPP($false, $true);
 
 # Roles pretend to be narrower than certain types for the purpose
 # of type checking. Also, they pun to classes.
+Perl6::Metamodel::ParametricRoleGroupHOW.pretend_to_be([Cool, Any, Mu]);
+Perl6::Metamodel::ParametricRoleGroupHOW.configure_punning(
+    Perl6::Metamodel::ClassHOW,
+    hash( ACCEPTS => Mu ));
 Perl6::Metamodel::ParametricRoleHOW.pretend_to_be([Cool, Any, Mu]);
 Perl6::Metamodel::ParametricRoleHOW.configure_punning(
     Perl6::Metamodel::ClassHOW,

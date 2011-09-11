@@ -13,12 +13,15 @@
 class Perl6::Metamodel::ParametricRoleGroupHOW
     does Perl6::Metamodel::Naming
     does Perl6::Metamodel::Stashing
+    does Perl6::Metamodel::TypePretence
+    does Perl6::Metamodel::RolePunning
 {
     has @!possibilities;
     has @!add_to_selector;
     has $!selector;
+    has @!role_typecheck_list;
 
-    my $archetypes := Perl6::Metamodel::Archetypes.new( :nominal(1), :composable(1), :parametric(1) );
+    my $archetypes := Perl6::Metamodel::Archetypes.new( :nominal(1), :composable(1), :inheritalizable(1), :parametric(1) );
     method archetypes() {
         $archetypes
     }
@@ -36,6 +39,7 @@ class Perl6::Metamodel::ParametricRoleGroupHOW
     method add_possibility($obj, $possible) {
         @!possibilities[+@!possibilities] := $possible;
         @!add_to_selector[+@!add_to_selector] := $possible;
+        self.update_role_typecheck_list($obj);
     }
     
     method specialize($obj, *@pos_args, *%named_args) {
@@ -66,5 +70,35 @@ class Perl6::Metamodel::ParametricRoleGroupHOW
             @!add_to_selector := [];
         }
         $!selector
+    }
+    
+    method update_role_typecheck_list($obj) {
+        for @!possibilities {
+            if !$_.HOW.signatured($_) {
+                @!role_typecheck_list := $_.HOW.role_typecheck_list($_);
+            }
+        }
+    }
+    
+    method role_typecheck_list($obj) {
+        @!role_typecheck_list
+    }
+    
+    method type_check($obj, $checkee) {
+        my $decont := pir::perl6_decontainerize__PP($checkee);
+        if $decont =:= $obj.WHAT {
+            return 1;
+        }
+        for self.prentending_to_be() {
+            if $decont =:= pir::perl6_decontainerize__PP($_) {
+                return 1;
+            }
+        }
+        for @!role_typecheck_list {
+            if $decont =:= pir::perl6_decontainerize__PP($_) {
+                return 1;
+            }
+        }
+        0;
     }
 }

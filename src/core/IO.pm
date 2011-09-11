@@ -58,6 +58,9 @@ class IO {
     }
 
     method get() {
+        unless $!PIO {
+            self.open($.path, :chomp($.chomp));
+        }
         my Str $x = nqp::p6box_s($!PIO.readline);
         # XXX don't fail() as long as it's fatal
         # fail('end of file') if self.eof && $x eq '';

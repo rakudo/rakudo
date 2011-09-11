@@ -645,6 +645,8 @@ Perl6::Metamodel::ModuleHOW.set_stash_type(Stash, EnumMap);
 Perl6::Metamodel::NativeHOW.set_stash_type(Stash, EnumMap);
 Perl6::Metamodel::ClassHOW.set_stash_type(Stash, EnumMap);
 Perl6::Metamodel::GrammarHOW.set_stash_type(Stash, EnumMap);
+Perl6::Metamodel::ParametricRoleHOW.set_stash_type(Stash, EnumMap);
+Perl6::Metamodel::ParametricRoleGroupHOW.set_stash_type(Stash, EnumMap);
 
 # Give everything we've set up so far a Stash.
 Perl6::Metamodel::ClassHOW.add_stash(Mu);

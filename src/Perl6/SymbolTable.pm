@@ -1195,6 +1195,23 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
         self.compile_in_context($past, self.find_symbol(['Code']));
     }
     
+    # Adds a possible role to a role group.
+    method pkg_add_role_group_possibility($group, $role) {
+        # Do it immediately.
+        $group.HOW.add_possibility($group, $role);
+    
+        # Add call to do it at deserialization time.
+        if self.is_precompilation_mode() {
+            my $slot_past := self.get_object_sc_ref_past($group);
+            self.add_event(:deserialize_past(PAST::Op.new(
+                :pasttype('callmethod'), :name('add_possibility'),
+                PAST::Op.new( :pirop('get_how PP'), $slot_past ),
+                $slot_past,
+                self.get_object_sc_ref_past($role)
+            )));
+        }
+    }
+    
     # Composes the package, and stores an event for this action.
     method pkg_compose($obj) {
         # Compose.

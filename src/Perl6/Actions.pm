@@ -1111,11 +1111,16 @@ class Perl6::Actions is HLL::Actions {
             $block.push($*ST.create_lexical_capture_fixup());
 
             # As its last act, it should grab the current lexpad so that
-            # we have the type environment.
+            # we have the type environment, and also return the parametric
+            # role we're in (because if we land it through a multi-dispatch,
+            # we won't know).
             $block.push(PAST::Op.new(
-                :pirop('set PQPS'),
-                PAST::Op.new( :pirop('getinterp P') ),
-                'lexpad'));
+                :pasttype('list'),
+                $*ST.get_object_sc_ref_past($*PACKAGE),
+                PAST::Op.new(
+                    :pirop('set PQPS'),
+                    PAST::Op.new( :pirop('getinterp P') ),
+                    'lexpad')));
 
             # Create code object and add it as the role's body block.
             my $code := $*ST.create_code_object($block, 'Block', $sig);

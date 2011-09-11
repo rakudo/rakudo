@@ -91,11 +91,13 @@ class Perl6::Metamodel::ParametricRoleHOW
     }
     
     method specialize($obj, *@pos_args, *%named_args) {
-        # Run the body block to get the type environment.
+        # Run the body block to get the type environment (we know
+        # the role in this csae).
         my $type_env;
         my $error;
         try {
-            $type_env := $!body_block(|@pos_args, |%named_args);
+            my @result := $!body_block(|@pos_args, |%named_args);
+            $type_env := @result[1];
             CATCH {
                 $error := $!
             }

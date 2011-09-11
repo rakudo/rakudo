@@ -22,8 +22,13 @@ class Perl6::Metamodel::ParametricRoleGroupHOW
         $archetypes
     }
     
-    method new_type(:$name!, :$selector!, :$repr) {
-        my $meta := self.new(:name($name), :selector($selector));
+    my $selector_creator;
+    method set_selector_creator($sc) {
+        $selector_creator := $sc;
+    }
+    
+    method new_type(:$name!, :$repr) {
+        my $meta := self.new(:name($name), :selector($selector_creator));
         pir::repr_type_object_for__PPS($meta, 'Uninstantiable');
     }
     

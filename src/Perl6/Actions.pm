@@ -2440,8 +2440,11 @@ class Perl6::Actions is HLL::Actions {
                     }
                 }
                 if $all_compile_time {
-                    $past := $*ST.get_object_sc_ref_past($*ST.curry_role(
-                        %*HOW<role-curried>, $role, $<arglist>, $/));
+                    my $curried := $*ST.curry_role(%*HOW<role-curried>,
+                        $role, $<arglist>, $/);
+                    $past := $*ST.get_object_sc_ref_past($curried);
+                    $past<has_compile_time_value> := 1;
+                    $past<compile_time_value> := $curried;
                 }
                 else {
                     $past := $<arglist>[0].ast;

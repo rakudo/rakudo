@@ -2447,8 +2447,8 @@ class Perl6::Actions is HLL::Actions {
                     $past := $<arglist>[0].ast;
                     $past.pasttype('callmethod');
                     $past.name('new_type');
-                    $past.unshift(self.get_object_sc_ref_past($role));
-                    $past.unshift(self.get_object_sc_ref_past(%*HOW<role-curried>));
+                    $past.unshift($*ST.get_object_sc_ref_past($role));
+                    $past.unshift($*ST.get_object_sc_ref_past(%*HOW<role-curried>));
                 }
             }
             elsif ~$<longname> eq 'GLOBAL' {

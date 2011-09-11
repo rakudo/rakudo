@@ -1158,16 +1158,20 @@ grammar Perl6::Grammar is HLL::Grammar {
                             $exists := 1;
                         }
                     }
-                    
+
                     # If it exists already, then it's either uncomposed (in which
-                    # case we just stubbed it) or else an illegal redecl.
-                    if $exists {
+                    # case we just stubbed it), a role (in which case multiple
+                    # variants are OK) or else an illegal redecl.
+                    if $exists && $*PKGDECL ne 'role' {
                         if $*PACKAGE.HOW.is_composed($*PACKAGE) {
                             $/.CURSOR.panic("Illegal redeclaration of $*PKGDECL '" ~
                                 ~$longname<name> ~ "'");
                         }
                     }
-                    else {
+                    
+                    # If it's not a role, or it is a role but one with no name,
+                    # then just needs meta-object construction and installation.
+                    elsif $*PKGDECL ne 'role' || !$longname {
                         # Construct meta-object for this package.
                         my %args;
                         if $longname {
@@ -1181,6 +1185,26 @@ grammar Perl6::Grammar is HLL::Grammar {
                             $*ST.install_package_longname($/, $longname, $*SCOPE,
                                 $*PKGDECL, $*OUTERPACKAGE, $outer, $*PACKAGE);
                         }
+                    }
+                    
+                    # If it's a named role, a little trickier. We need to make
+                    # a parametric role group for it (unless we got one), and
+                    # then install it in that.
+                    else {
+                        # If the group doesn't exist, create it.
+                        my $group;
+                        if $exists {
+                            $group := $*PACKAGE;
+                        }
+                        else {
+                            $group := $*ST.pkg_create_mo(%*HOW{'role-group'}, :name(~$longname<name>));                            
+                            $*ST.install_package_longname($/, $longname, $*SCOPE,
+                                $*PKGDECL, $*OUTERPACKAGE, $outer, $group);
+                        }
+
+                        # Construct role meta-object with group.
+                        $*PACKAGE := $*ST.pkg_create_mo(%*HOW{$*PKGDECL}, :name(~$longname<name>),
+                            :group($group), :signatured($<signature> ?? 1 !! 0));
                     }
                 }
                 else {

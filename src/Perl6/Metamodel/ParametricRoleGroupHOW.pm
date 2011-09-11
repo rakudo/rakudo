@@ -33,10 +33,11 @@ class Perl6::Metamodel::ParametricRoleGroupHOW
     }
     
     method specialize($obj, *@pos_args, *%named_args) {
+        # Locate correct parametric role and type environment.
         my $error;
-        my $result;
+        my @result;
         try {
-            $result := (self.get_selector($obj))(|@pos_args, |%named_args);
+            @result := (self.get_selector($obj))(|@pos_args, |%named_args);
             CATCH { $error := $! }
         }
         if $error {
@@ -44,7 +45,11 @@ class Perl6::Metamodel::ParametricRoleGroupHOW
                 self.name($obj) ~ "' matched the arguments supplied.\n" ~
                 $error);
         }
-        $result
+        
+        # Having picked the appropraite one, specialize it.
+        my $prole := @result[0];
+        my $type_env := @result[1];
+        $prole.HOW.specialize_with($prole, $type_env, @pos_args)
     }
     
     method get_selector($obj) {

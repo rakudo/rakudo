@@ -438,7 +438,7 @@ S14-roles/lexical.t
 S14-roles/mixin.t
 S14-roles/namespaced.t 
 # S14-roles/parameter-subtyping.t # err: Illegal redeclaration of role 'R1'
-# S14-roles/parameterized-basic.t # err: Illegal redeclaration of role 'AritySelection'
+S14-roles/parameterized-basic.t
 # S14-roles/parameterized-mixin.t # err: No applicable candidates found to dispatch to for 'infix:<eq>'
 # S14-roles/parameterized-type.t # err: Cannot use 'R2[Int]' as an argument to a parametric role as its value is not known at compile time
 S14-roles/submethods.t

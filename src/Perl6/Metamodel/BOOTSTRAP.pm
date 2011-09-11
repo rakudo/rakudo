@@ -723,7 +723,7 @@ Perl6::Metamodel::ParametricRoleGroupHOW.set_selector_creator({
         pir::perl6_enter_multi_dispatch_from_onlystar_block__P();
     };
     pir::perl6_associate_sub_code_object__vPP($onlystar, $sel);
-    nqp::bindattr($sel, Code, '$!dispatchees', $onlystar);
+    nqp::bindattr($sel, Code, '$!do', $onlystar);
     nqp::bindattr($sel, Code, '$!dispatchees', []);
     $sel
 });

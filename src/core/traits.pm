@@ -32,6 +32,10 @@ multi trait_mod:<is>(Attribute:D $attr, :$readonly!) {
 multi trait_mod:<is>(Routine:D $r, :$rw!) {
     $r.set_rw();
 }
+multi trait_mod:<is>(Routine:D $r, :$default!) {
+    $r does role { method default() { True } }
+}
+
 multi trait_mod:<is>(Parameter:D $param, :$readonly!) {
     # This is the default.
 }

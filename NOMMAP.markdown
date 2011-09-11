@@ -53,7 +53,6 @@ Get ::= correcter, and a bit more stuff on := also.
 ## Finish up parametric roles
 Many things are working, some are not...
 * role R1[::T] does R2[T] { ... }
-* Multiple variants of a single role
 * Be sure to do a BUILD after mix-in
 
 ## Custom Operators

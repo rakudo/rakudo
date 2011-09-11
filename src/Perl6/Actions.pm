@@ -1086,7 +1086,9 @@ class Perl6::Actions is HLL::Actions {
         # then just evaluate to the type object. Don't need to do any more
         # just yet.
         if pir::substr__Ssii($<blockoid><statementlist><statement>[0], 0, 3) eq '...' {
-            $*ST.add_stub_to_check($*PACKAGE);
+            unless $*PKGDECL eq 'role' {
+                $*ST.add_stub_to_check($*PACKAGE);
+            }
             $block.blocktype('declaration');
             make PAST::Stmts.new( $block, $*ST.get_object_sc_ref_past($*PACKAGE) );
             return 1;

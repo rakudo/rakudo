@@ -1074,6 +1074,9 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
         if pir::exists(%extra, 'group') {
             %args<group> := %extra<group>;
         }
+        if pir::exists(%extra, 'signatured') {
+            %args<signatured> := %extra<signatured>;
+        }
         my $mo := $how.new_type(|%args);
         my $slot := self.add_object($mo);
         
@@ -1097,6 +1100,9 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
             if pir::exists(%extra, 'group') {
                 $setup_call.push(my $ref := self.get_object_sc_ref_past(%extra<group>));
                 $ref.named('group');
+            }
+            if pir::exists(%extra, 'signatured') && %extra<signatured> {
+                $setup_call.push(PAST::Val.new( :value(1), :named('signatured') ));
             }
             self.add_event(:deserialize_past(
                 self.add_object_to_cur_sc_past($slot, $setup_call)));

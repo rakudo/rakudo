@@ -17,6 +17,7 @@ class Perl6::Metamodel::ParametricRoleHOW
     has $!body_block;
     has $!in_group;
     has $!group;
+    has $!signatured;
     has @!role_typecheck_list;
 
     my $archetypes := Perl6::Metamodel::Archetypes.new( :nominal(1), :composable(1), :inheritalizable(1), :parametric(1) );
@@ -24,8 +25,8 @@ class Perl6::Metamodel::ParametricRoleHOW
         $archetypes
     }
 
-    method new_type(:$name = '<anon>', :$ver, :$auth, :$repr, *%extra) {
-        my $metarole := self.new(:name($name), :ver($ver), :auth($auth));
+    method new_type(:$name = '<anon>', :$ver, :$auth, :$repr, :$signatured, *%extra) {
+        my $metarole := self.new(:name($name), :ver($ver), :auth($auth), :signatured($signatured));
         my $type := pir::repr_type_object_for__PPS($metarole, 'Uninstantiable');
         if pir::exists(%extra, 'group') {
             $metarole.set_group($type, %extra<group>);
@@ -39,6 +40,10 @@ class Perl6::Metamodel::ParametricRoleHOW
     
     method body_block($obj) {
         $!body_block
+    }
+    
+    method signatured($obj) {
+        $!signatured
     }
     
     method set_group($obj, $group) {

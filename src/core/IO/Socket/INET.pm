@@ -80,12 +80,12 @@ my class IO::Socket::INET does IO::Socket {
             $PIO.connect($addr);
         }
         
-        nqp::bindattr(self, INET, '$!PIO', $PIO);
+        nqp::bindattr(self, $?CLASS, '$!PIO', $PIO);
         self;
     }
 
     method get() {
-        nqp::p6box_s(nqp::getattr(self, INET, '$!PIO').readline).chomp
+        nqp::p6box_s(nqp::getattr(self, $?CLASS, '$!PIO').readline).chomp
     }
 
     method lines() {
@@ -93,14 +93,14 @@ my class IO::Socket::INET does IO::Socket {
     }
 
     method accept() {
-        return nqp::p6bool(nqp::getattr(self, INET, '$!PIO').accept());
+        return nqp::p6bool(nqp::getattr(self, $?CLASS, '$!PIO').accept());
     }
 
     method remote_address() {
-        return nqp::p6box_s(nqp::getattr(self, INET, '$!PIO').remote_address());
+        return nqp::p6box_s(nqp::getattr(self, $?CLASS, '$!PIO').remote_address());
     }
 
     method local_address() {
-        return nqp::p6box_s(nqp::getattr(self, INET, '$!PIO').local_address());
+        return nqp::p6box_s(nqp::getattr(self, $?CLASS, '$!PIO').local_address());
     }
 }

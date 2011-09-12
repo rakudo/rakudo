@@ -228,7 +228,7 @@ S04-statements/unless.t
 S04-statements/until.t
 S04-statements/while.t
 S05-capture/caps.t
-# S05-capture/dot.t # err: regex assertion not terminated by angle bracket at line 94, near "::name> | "
+# S05-capture/dot.t # err: regex assertion not terminated by angle bracket
 S05-capture/match-object.t
 # S05-capture/named.t # err: Method 'rxtype' not found for invocant of class 'PAST;Regex'
 # S05-capture/subrule.t # err: Method 'rxtype' not found for invocant of class 'PAST;Regex'
@@ -266,7 +266,7 @@ S05-metasyntax/changed.t
 S05-metasyntax/charset.t
 # S05-metasyntax/lookaround.t # err: Method 'after' not found for invocant of class 'Cursor'
 S05-metasyntax/null.t
-# S05-metasyntax/regex.t # err: Could not find sub &o
+S05-metasyntax/regex.t
 # S05-metasyntax/repeat.t # err: Cannot assign to a non-container
 # S05-metasyntax/sequential-alternation.t # err: Method 'rxtype' not found for invocant of class 'PAST;Regex'
 S05-metasyntax/single-quotes.t
@@ -390,7 +390,7 @@ S12-construction/construction.t
 S12-construction/named-params-in-BUILD.t
 S12-construction/new.t
 # S12-enums/anonymous.t # err: Could not find sub &ANON_ENUM
-# S12-enums/as-role.t # err: Method 'specialize' not found 
+# S12-enums/as-role.t # err: Cannot yet turn an enum into a role
 S12-enums/basic.t
 # S12-enums/thorough.t # err: Could not find sub &day
 S12-introspection/attributes.t
@@ -528,7 +528,7 @@ S32-num/polar.t
 S32-num/power.t
 S32-num/rand.t
 S32-num/rat.t
-# S32-num/real-bridge.t # err: Method 'specialize' not found for invocant of class 'Perl6::Metamodel::ClassHOW'
+# S32-num/real-bridge.t # err: Fixed2 cannot compose Real because it is not composable
 S32-num/roots.t
 # S32-num/rounders.t # err: Could not find sub &round
 S32-num/sign.t
@@ -609,7 +609,7 @@ integration/advent2009-day14.t
 integration/advent2009-day15.t
 integration/advent2009-day16.t
 # integration/advent2009-day17.t # err: Unable to parse blockoid # stress
-# integration/advent2009-day18.t # err: Could not instantiate role 'Cup'
+integration/advent2009-day18.t
 # integration/advent2009-day19.t # err: Method 'succ' not found for invocant of class 'Whatever'
 # integration/advent2009-day20.t # err: exists_keyed_str() not implemented in class 'Mu'
 # integration/advent2009-day22.t # err: Cannot negate , because it is not iffy enough

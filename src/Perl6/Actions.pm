@@ -1839,7 +1839,11 @@ class Perl6::Actions is HLL::Actions {
     }
 
     method fakesignature($/) {
-        make $*ST.get_slot_past_for_object($*ST.make_signature($<signature>.ast));
+        my $sig := $*ST.create_signature($<signature>.ast);
+        my $past := $*ST.get_slot_past_for_object($sig);
+        $past<has_compile_time_value> := 1;
+        $past<compile_time_value> := $sig;
+        make $past;
     }
 
     method signature($/) {

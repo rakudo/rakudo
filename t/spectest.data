@@ -243,7 +243,7 @@ S05-grammar/methods.t
 # S05-grammar/ws.t # err: regex assertion not terminated by angle bracket
 # S05-interpolation/lexicals.t # err: Method 'rxtype' not found for invocant of class 'PAST;Regex'
 # S05-interpolation/regex-in-variable.t # err: Method 'rxtype' not found for invocant of class 'PAST;Regex'
-S05-mass/named-chars.t
+S05-mass/named-chars.t                                     # icu
 # S05-mass/properties-block.t # err: Method 'isInAlphabeticPresentationForms' not found for invocant of class 'Cursor'
 # S05-mass/properties-derived.t # err: Method 'isASCIIHexDigit' not found for invocant of class 'Cursor'
 # S05-mass/properties-general.t # err: Method 'isL' not found for invocant of class 'Cursor'
@@ -538,7 +538,7 @@ S32-scalar/defined.t
 S32-scalar/undef.t
 S32-str/append.t
 S32-str/bool.t
-S32-str/capitalize.t
+S32-str/capitalize.t                                       # icu
 S32-str/chomp.t
 S32-str/chop.t
 S32-str/comb.t                                             # icu
@@ -563,7 +563,7 @@ S32-str/trim.t
 S32-str/uc.t                                               # icu
 S32-str/ucfirst.t                                          # icu
 # S32-str/unpack.t # err: Default constructor only takes named arguments
-S32-str/words.t
+S32-str/words.t                                            # icu
 # S32-temporal/calendar.t # err: Method 'truncated-to' not found for invocant of class 'Date'
 # S32-temporal/Date.t # err: Default constructor only takes named arguments
 # S32-temporal/DateTime.t # err: Default constructor only takes named arguments

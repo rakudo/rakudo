@@ -85,6 +85,10 @@ my class EnumMap does Associative {
             nqp::bindattr(self, EnumMap, '$!storage', nqp::hash());
         $!storage 
     }
+
+    method fmt($format = "%s\t\%s", $sep = "\n") {
+        self.pairs.fmt($format, $sep);
+    }
 }
 
 multi sub infix:<eqv>(EnumMap $a, EnumMap $b) {

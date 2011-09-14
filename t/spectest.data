@@ -78,7 +78,7 @@ S02-names_and_variables/fmt.t
 S02-names_and_variables/names.t
 # S02-names_and_variables/perl.t # err: Method 'Seq' not found for invocant of class 'Parcel' #icu
 S02-names_and_variables/list_array_perl.t
-# S02-names_and_variables/signature.t # err: Method 'make_signature' not found for invocant of class 'Perl6::SymbolTable'
+# S02-names_and_variables/signature.t # err: Cannot use bind operator with this LHS
 S02-names_and_variables/variables-and-packages.t
 S02-names_and_variables/varnames.t
 S02-names/identifier.t
@@ -168,7 +168,7 @@ S03-sequence/basic.t
 # S03-sequence/nonnumeric.t # err: Method 'pred' not found for invocant of class 'Failure'
 # S03-smartmatch/any-any.t # err: No applicable candidates found to dispatch to for 'ACCEPTS'.
 S03-smartmatch/any-array-slice.t
-# S03-smartmatch/any-array.t # err: Could not find a proto for multi 'list' in package 'TestArraySmartmatch'
+S03-smartmatch/any-array.t
 S03-smartmatch/any-bool.t
 S03-smartmatch/any-callable.t
 S03-smartmatch/any-complex.t
@@ -182,7 +182,7 @@ S03-smartmatch/any-sub.t
 S03-smartmatch/any-type.t
 S03-smartmatch/array-array.t
 S03-smartmatch/array-hash.t
-# S03-smartmatch/capture-signature.t # err: Method 'make_signature' not found for invocant of class 'Perl6::SymbolTable'
+# S03-smartmatch/capture-signature.t # err: No applicable candidates found to dispatch to for 'ACCEPTS'
 S03-smartmatch/disorganized.t
 S03-smartmatch/hash-hash.t
 S03-smartmatch/regex-hash.t
@@ -350,7 +350,7 @@ S09-autovivification/autoincrement.t
 S09-subscript_slice/slice.t
 # S09-typed-arrays/arrays.t # err: Cannot put a type constraint on an 'our'-scoped variable
 # S09-typed-arrays/hashes.t # err: Method 'of' not found for invocant of class 'Hash'
-# S10-packages/basic.t # err: Unable to parse blockoid
+# S10-packages/basic.t # err: Method 'rxtype' not found for invocant of class 'PAST;Regex'
 S10-packages/use-with-class.t
 # S11-modules/export.t # err: Could not find symbol 'Foo::&Foo_exp_parens
 # S11-modules/import.t # err: Illegal redeclaration of module 'B'
@@ -413,7 +413,7 @@ S12-methods/indirect_notation.t
 S12-methods/instance.t
 S12-methods/lastcall.t
 S12-methods/method-vs-sub.t 
-# S12-methods/multi.t # err: Could not find a proto for multi 'b' in package 'C4'
+# S12-methods/multi.t # err: No applicable candidates found to dispatch to for 'prefix:<~>'
 # S12-methods/parallel-dispatch.t # err: Method 'find_private_method' not found for invocant of class 'Perl6::Metamodel::PackageHOW'
 S12-methods/private.t
 S12-methods/submethods.t
@@ -429,7 +429,7 @@ S13-overloading/typecasting-long.t
 S13-overloading/operators.t
 # S14-roles/anonymous.t # err: No applicable candidates found to dispatch to for 'infix:<eq>'
 # S14-roles/attributes.t # err: Attribute $!a1 not declared in class C1
-# S14-roles/basic.t # err: Method 'specialize' not found for invocant of class 'Perl6::Metamodel::ClassHOW'
+# S14-roles/basic.t # err: C67768 cannot compose List because it is not composable
 # S14-roles/composition.t # err: Method 'foo' must be resolved by class DD because it exists in multiple roles
 S14-roles/conflicts.t
 S14-roles/crony.t
@@ -437,7 +437,7 @@ S14-roles/instantiation.t
 S14-roles/lexical.t
 S14-roles/mixin.t
 S14-roles/namespaced.t 
-# S14-roles/parameter-subtyping.t # err: Illegal redeclaration of role 'R1'
+# S14-roles/parameter-subtyping.t # err: Typed arrays/hashes/callables not yet implemented
 S14-roles/parameterized-basic.t
 # S14-roles/parameterized-mixin.t # err: No applicable candidates found to dispatch to for 'infix:<eq>'
 S14-roles/parameterized-type.t
@@ -593,7 +593,7 @@ integration/99problems-31-to-40.t
 # integration/99problems-51-to-60.t # err: Nominal type check failed for parameter '$obj'
 # integration/99problems-61-to-70.t # err: Nominal type check failed for parameter '$tree'; expected Any but got Mu instead
 integration/advent2009-day01.t
-# integration/advent2009-day02.t # err: Method 'Int' not found for invocant of class 'Parcel'
+integration/advent2009-day02.t
 integration/advent2009-day03.t
 integration/advent2009-day04.t
 integration/advent2009-day05.t

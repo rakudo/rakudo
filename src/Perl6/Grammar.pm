@@ -1045,7 +1045,7 @@ grammar Perl6::Grammar is HLL::Grammar {
             | <sigil> <twigil>? <desigilname>
             | <special_variable>
             | <sigil> $<index>=[\d+] [ <?{ $*IN_DECL}> <.panic: "Cannot declare a numeric variable">]?
-            | <sigil> <?[<[]> <postcircumfix>
+            | <sigil> <?[<[]> [ <?{ $*IN_DECL }> <.panic('Cannot declare a match variable')> ]?  <postcircumfix>
             | $<sigil>=['$'] $<desigilname>=[<[/_!]>]
             | <sigil> <?{ $*IN_DECL }>
             | <!{ $*QSIGIL }> <.panic("Non-declarative sigil is missing its name")>

@@ -59,9 +59,8 @@ class Perl6::Optimizer {
         @!block_stack.pop();
         
         # If the block is immediate, we may be able to inline it.
-        if $block.blocktype eq 'immediate' {
-            my $outer := @!block_stack[+@!block_stack - 1];
-
+        my $outer := @!block_stack[+@!block_stack - 1];
+        if $block.blocktype eq 'immediate' && !$outer.handlers() {
             # Scan symbols for any non-interesting ones.
             # XXX Shouldn't have to care about $/ and $! here...
             my @sigsyms;

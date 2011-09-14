@@ -111,8 +111,11 @@ class Perl6::Optimizer {
             }
             else {
                 # We really should find routines; failure to do so is a CHECK
-                # time error.
-                @!deadly.push("Undefined routine '" ~ $op.name ~ "' called");
+                # time error. Check that it's not just compile-time unknown,
+                # however (shows up in e.g. sub foo(&x) { x() }).
+                unless self.is_lexical_declared($op.name) {
+                    @!deadly.push("Undefined routine '" ~ $op.name ~ "' called");
+                }
             }
         }
         
@@ -144,7 +147,8 @@ class Perl6::Optimizer {
         }
     }
     
-    # Locates a lexical symbol and returns it. Dies if it does not exist.
+    # Locates a lexical symbol and returns its compile time value. Dies if
+    # it does not exist.
     method find_lexical($name) {
         my $i := +@!block_stack;
         while $i > 0 {
@@ -161,6 +165,21 @@ class Perl6::Optimizer {
             }
         }
         pir::die("Optimizer: No lexical $name found");
+    }
+    
+    # Checks if a given lexical is declared, though it needn't have a compile
+    # time known value.
+    method is_lexical_declared($name) {
+        my $i := +@!block_stack;
+        while $i > 0 {
+            $i := $i - 1;
+            my $block := @!block_stack[$i];
+            my %sym := $block.symbol($name);
+            if +%sym {
+                return 1;
+            }
+        }
+        0
     }
     
     # Inlines an immediate block.

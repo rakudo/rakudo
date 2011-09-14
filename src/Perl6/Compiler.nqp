@@ -19,8 +19,8 @@ class Perl6::Compiler is HLL::Compiler {
     }
     
     method optimize($past, *%adverbs) {
-        %adverbs<optimize> ??
-            Perl6::Optimizer.new.optimize($past, |%adverbs) !!
-            $past
+        %adverbs<optimize> eq '0' ??
+            $past !!
+            Perl6::Optimizer.new.optimize($past, |%adverbs)
     }
 }

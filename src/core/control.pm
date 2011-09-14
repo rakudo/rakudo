@@ -138,6 +138,9 @@ my &lastcall := -> {
 
 sub die(*@msg) is hidden_from_backtrace { pir::die__0P(@msg.join('')) }
 
+# XXX TODO: Should really throw a warning exception.
+sub warn(*@msg) is hidden_from_backtrace { $*ERR.say(@msg.join('')) }
+
 sub eval(Str $code, :$lang = 'perl6') {
     my $caller_ctx := Q:PIR {
         $P0 = getinterp

@@ -93,7 +93,12 @@ my class IO::Socket::INET does IO::Socket {
     }
 
     method accept() {
-        return nqp::p6bool(nqp::getattr(self, $?CLASS, '$!PIO').accept());
+        #my $new_sock := nqp::create($?CLASS);
+        ## A solution as proposed by moritz
+        my $new_sock := $?CLASS.bless(*, :$!family, :$!proto, :$!type);
+        nqp::getattr($new_sock, $?CLASS, '$!buffer') = '';
+        nqp::bindattr($new_sock, $?CLASS, '$!PIO', nqp::getattr(self, $?CLASS, '$!PIO').accept());
+        return $new_sock;
     }
 
     method remote_address() {

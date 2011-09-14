@@ -22,12 +22,14 @@ role Perl6::Metamodel::MROBasedMethodDispatch {
         # Walk MRO and add methods to cache, unless another method
         # lower in the class hierarchy "shadowed" it.
         my %cache;
+        my @mro_reversed;
         for self.mro($obj) {
+            @mro_reversed.unshift($_);
+        }
+        for @mro_reversed {
             my %methods := $_.HOW.method_table($_);
             for %methods {
-                unless %cache{$_.key} {
-                    %cache{$_.key} := $_.value;
-                }
+                %cache{$_.key} := $_.value;
             }
         }
         

@@ -1,6 +1,6 @@
 my class Enum {
-    has $!key;
-    has $!value;
+    has $.key;
+    has $.value;
 
     method new(:$key, Mu :$value) { self.CREATE.BUILD($key, $value) }
     method BUILD(\$key, Mu \$value) { $!key = $key; $!value = $value; self }

@@ -5,14 +5,25 @@ use NQPP6Regex;
 # Thus we're allowed to assume that lexpads are immutable, declarations are
 # over and done with, multi candidate lists won't change and so forth.
 class Perl6::Optimizer {
+    # Tracks the nested blocks we're in; it's the lexical chain, essentially.
     has @!block_stack;
+    
+    # Unique ID for topic ($_) preservation registers.
     has $!pres_topic_counter;
+    
+    # List of things that should cause compilation to fail.
+    has @!deadly;
+    
+    # List of things that should be warned about.
+    has @!worrying;
     
     # Entry point for the optimization process.
     method optimize($past, *%adverbs) {
         # Initialize.
         @!block_stack := [$past];
         $!pres_topic_counter := 0;
+        @!deadly := [];
+        @!worrying := [];
         
         # We'll start walking over UNIT (we wouldn't find it by going
         # over OUTER since we don't walk loadinits).
@@ -21,6 +32,18 @@ class Perl6::Optimizer {
             pir::die("Optimizer could not find UNIT");
         }
         self.visit_block($unit);
+        
+        # Die if we failed check in any way; otherwise, print any warnings.
+        if +@!deadly {
+            pir::die("CHECK FAILED:\n" ~ pir::join("\n", @!deadly))
+        }
+        if +@!worrying {
+            pir::printerr__vs("WARNINGS:\n");
+            for @!worrying {
+                pir::printerr__vs($_ ~ "\n");
+            }
+        }
+        
         $past
     }
     
@@ -85,6 +108,11 @@ class Perl6::Optimizer {
                     self.visit_children($op);
                     return self.inline_proto($op, $obj);
                 }
+            }
+            else {
+                # We really should find routines; failure to do so is a CHECK
+                # time error.
+                @!deadly.push("Undefined routine '" ~ $op.name ~ "' called");
             }
         }
         

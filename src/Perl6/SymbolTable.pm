@@ -321,10 +321,25 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
     # the object to install. Does an immediate installation in the
     # compile-time block symbol table, and ensures that the installation
     # gets fixed up at runtime too.
-    method install_lexical_symbol($block, $name, $obj) {
+    method install_lexical_symbol($block, $name, $obj, :$clone) {
         # Install the object directly as a block symbol.
         $block.symbol($name, :scope('lexical_6model'), :value($obj));
         $block[0].push(PAST::Var.new( :scope('lexical_6model'), :name($name), :isdecl(1) ));
+        
+        # Add a clone if needed.
+        # XXX Horrible workaround here. We don't have proper serialization
+        # yet, and if we look up a cloned trait_mod (e.g. from the setting)
+        # then the serialization will blow up when we apply the trait. For
+        # now we just skip these, until the serializer lands.
+        if $clone && pir::substr($name, 0, 11) ne '&trait_mod:' {
+            $block[0].push(PAST::Op.new(
+                :pasttype('bind_6model'),
+                PAST::Var.new( :name($name), :scope('lexical_6model') ),
+                PAST::Op.new(
+                    :pasttype('callmethod'), :name('clone'),
+                    PAST::Var.new( :name($name), :scope('lexical_6model') )
+                )));
+        }
         
         # Add to static lexpad, and generate deserialization code.
         my $slp := self.get_static_lexpad($block);
@@ -1059,6 +1074,12 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
         if pir::exists(%extra, 'base_type') {
             %args<base_type> := %extra<base_type>;
         }
+        if pir::exists(%extra, 'group') {
+            %args<group> := %extra<group>;
+        }
+        if pir::exists(%extra, 'signatured') {
+            %args<signatured> := %extra<signatured>;
+        }
         my $mo := $how.new_type(|%args);
         my $slot := self.add_object($mo);
         
@@ -1078,6 +1099,13 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
             if pir::exists(%extra, 'base_type') {
                 $setup_call.push(my $ref := self.get_object_sc_ref_past(%extra<base_type>));
                 $ref.named('base_type');
+            }
+            if pir::exists(%extra, 'group') {
+                $setup_call.push(my $ref := self.get_object_sc_ref_past(%extra<group>));
+                $ref.named('group');
+            }
+            if pir::exists(%extra, 'signatured') && %extra<signatured> {
+                $setup_call.push(PAST::Val.new( :value(1), :named('signatured') ));
             }
             self.add_event(:deserialize_past(
                 self.add_object_to_cur_sc_past($slot, $setup_call)));
@@ -1183,6 +1211,23 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
         self.compile_in_context($past, self.find_symbol(['Code']));
     }
     
+    # Adds a possible role to a role group.
+    method pkg_add_role_group_possibility($group, $role) {
+        # Do it immediately.
+        $group.HOW.add_possibility($group, $role);
+    
+        # Add call to do it at deserialization time.
+        if self.is_precompilation_mode() {
+            my $slot_past := self.get_object_sc_ref_past($group);
+            self.add_event(:deserialize_past(PAST::Op.new(
+                :pasttype('callmethod'), :name('add_possibility'),
+                PAST::Op.new( :pirop('get_how PP'), $slot_past ),
+                $slot_past,
+                self.get_object_sc_ref_past($role)
+            )));
+        }
+    }
+    
     # Composes the package, and stores an event for this action.
     method pkg_compose($obj) {
         # Compose.
@@ -1199,7 +1244,7 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
         }
     }
     
-    # Builds a curried role with the specified arguments.
+    # Builds a curried role based on a parsed argument list.
     method curry_role($curryhow, $role, $arglist, $/) {
         # Build a list of compile time arguments to the role; whine if
         # we find something without one.
@@ -1219,6 +1264,11 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
             }
         }
         
+        self.curry_role_with_args($curryhow, $role, @pos_args, %named_args);
+    }
+    
+    # Curries a role with the specified arguments.
+    method curry_role_with_args($curryhow, $role, @pos_args, %named_args) {
         # Make the curry right away and add it to the SC.
         my $curried := $curryhow.new_type($role, |@pos_args, |%named_args);
         my $slot := self.add_object($curried);

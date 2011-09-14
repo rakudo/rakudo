@@ -9,10 +9,11 @@
 ##  passed, failed, todoed, skipped, executed and planned test results.
 ##
 ##  Usage:
-##     tools/test_summary.pl [--timing] [testlist]
+##     tools/test_summary.pl [--timing | --view] [testlist]
 ##
 ##  The --timing option enables microsecond timing per test saved
-##  in docs/test_summary.times.
+##      in docs/test_summary.times.
+##  The --view option renders docs/test_summary.times in various reports
 ##  If supplied, C<testlist> identifies an alternate list of tests
 ##  to use (e.g., t/localtest.data).
 
@@ -23,7 +24,12 @@ use Time::HiRes;
 use Getopt::Long;
 
 my $timing;
-GetOptions('timing', \$timing);
+my $view;
+unless (GetOptions('timing' => \$timing, 'view' => \$view)) {
+    die "$0 cannot handle the unknown option\n";
+}
+if ($view) { Simple::Relative::Benchmarking::view(); exit(0); }
+
 my $benchmark;
 # Comment out the next line to skip benchmarking; see docs below
 $benchmark = Simple::Relative::Benchmarking::begin() if $timing;
@@ -279,7 +285,9 @@ else {
 
 package Simple::Relative::Benchmarking;
 
-sub begin {       # this constructor starts simple relative benchmarking
+# begin
+# Initialize simple relative benchmarking.  Called before the first test
+sub begin {
     my $timings = shift || 5;    # number of timings to keep (default 5)
     my $self = {};
     my @test_history;
@@ -393,6 +401,7 @@ sub log_script_times {
         qq'\n  ]';
 }
 
+# Finish simple relative benchmarking.  Called after the first test
 sub end {
     my $self = shift;
     my $file_in  = $self->{'file_in'};
@@ -402,6 +411,74 @@ sub end {
     close $file_in or warn $!;
     unlink 'docs/test_summary.times';
     rename 'docs/test_summary.times.tmp', 'docs/test_summary.times';
+}
+
+# Report on simple relative benchmarking.  Does the --view option
+sub view
+{
+    my $choice = '1'; my $choiceA; my $choiceB;
+    do {
+        my ($input, $output, $t, @timings, $script, @z, @sorted, @runs);
+        my @ordername = ('', 'sorted by time', 'sorted by %change', 'sorted by time change', 'in test order' );
+        open($input, '<', 'docs/test_summary.times') or die "$0 cannot open docs/test_summary.times\n";
+        while (<$input>) {  # custom parser to avoid dependency on JSON.pm
+            # a commit identification line
+            if (/^\s\s\[\"([^"]*)\",\d+,\"([^"]*)\"/) { push @runs, { 'time'=>$1, 'comment'=>$2 }; }
+            # test script name
+            if (/^\s\s\"(.+)\":\[$/x) { $script = $1; }
+            # individual test times
+            if (/^\s\s\s\[(\d+),\[([0-9,]+)\],\"(.*)\"\],/x) {
+                unless (defined $choiceA) { $choiceB = $#runs; $choiceA = $choiceB-1; }
+                my $testnumber = $1;
+                my @times = split /,/, $2;
+                push @times, 0 while @times < 5;
+                my $testcomment = $3;
+                if ($times[$choiceA] > 0 && $times[$choiceB] > 0) {
+                    push @timings, [ [@times], $testcomment, $testnumber, $script];
+                }
+            }
+        }
+        close($input);
+        @z=();  # Prepare to sort using a Schwartzian transform
+        if ($choice eq '1') { # by execution time
+            for my $t ( @timings ) { push @z, $$t[0][$choiceB]; }
+        }
+        elsif ($choice eq '2') { # by relative speedup/slowdown
+            for my $t ( @timings ) { push @z, ($$t[0][$choiceB]-$$t[0][$choiceA])/$$t[0][$choiceA]; }
+        }
+        elsif ($choice eq '3') { # by absolute speedup/slowdown
+            for my $t ( @timings ) { push @z, ($$t[0][$choiceB]-$$t[0][$choiceA]); }
+        }
+        else {
+            @sorted = @timings; # choice '4' is unsorted, meaning in order of execution
+        }
+        @sorted = @timings[ sort { $z[$a] <=> $z[$b] } 0..$#timings ] if @z;
+        # Send the results to 'less' for viewing
+        open $output, ">", "/tmp/test_summary.$$" or die "$0 cannot output to 'less'\n";
+        print $output "Microseconds and relative change of spec tests $ordername[$choice].  Commits:\n";
+        print $output "A: $runs[$choiceA]{'time'} $runs[$choiceA]{'comment'}\n";
+        print $output "B: $runs[$choiceB]{'time'} $runs[$choiceB]{'comment'}\n";
+        print $output "     A     B  Chg Test description (script#test)\n";
+        for $t (@sorted) {
+            printf $output "%6d %5d %+3.0f%% %s (%s#%d)\n", $$t[0][$choiceA], $$t[0][$choiceB],
+                ($$t[0][$choiceB]-$$t[0][$choiceA])*100/$$t[0][$choiceA], $$t[1], $$t[3], $$t[2];
+        }
+        close $output;
+        system "less --chop-long-lines /tmp/test_summary.$$";
+        do {  # Prompt for user choice of sort order or commits
+            print 'view: sort by 1)time 2)%change 3)change 4)none, other 5)commits q)uit> ';
+            $choice = <STDIN>; chomp $choice;
+            if ($choice eq '5') {  # choose a commit
+                for (my $r=0; $r<@runs; ++$r) {
+                    print "$r: $runs[$r]{'time'} $runs[$r]{'comment'}\n";
+                }
+                print 'commit for column A: ';
+                $choiceA = <STDIN>; chomp $choiceA;
+                print 'commit for column B: ';
+                $choiceB = <STDIN>; chomp $choiceB;
+            }
+        } while index('5', $choice) >= 0;  # if user chose commits, must still choose sort order
+    } while index('1234', $choice) >= 0;   # if valid sort order (not 'q') then do another report
 }
 
 package main;

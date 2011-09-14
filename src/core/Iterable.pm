@@ -4,6 +4,10 @@ my class Iterable {
     method elems()    { self.list.elems }
     method infinite() { Mu }
     method item($self:) { $self }
+    
+    method fmt($format = '%s', $separator = ' ') {
+        self.list.fmt($format, $separator)
+    }
 
     method Int()      { self.elems }
     method Num()      { self.elems.Num }

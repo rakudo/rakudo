@@ -78,7 +78,7 @@ S02-names_and_variables/fmt.t
 S02-names_and_variables/names.t
 # S02-names_and_variables/perl.t # err: Method 'Seq' not found for invocant of class 'Parcel' #icu
 S02-names_and_variables/list_array_perl.t
-# S02-names_and_variables/signature.t # err: Method 'make_signature' not found for invocant of class 'Perl6::SymbolTable'
+# S02-names_and_variables/signature.t # err: Cannot use bind operator with this LHS
 S02-names_and_variables/variables-and-packages.t
 S02-names_and_variables/varnames.t
 S02-names/identifier.t
@@ -168,7 +168,7 @@ S03-sequence/basic.t
 # S03-sequence/nonnumeric.t # err: Method 'pred' not found for invocant of class 'Failure'
 # S03-smartmatch/any-any.t # err: No applicable candidates found to dispatch to for 'ACCEPTS'.
 S03-smartmatch/any-array-slice.t
-# S03-smartmatch/any-array.t # err: Could not find a proto for multi 'list' in package 'TestArraySmartmatch'
+S03-smartmatch/any-array.t
 S03-smartmatch/any-bool.t
 S03-smartmatch/any-callable.t
 S03-smartmatch/any-complex.t
@@ -182,7 +182,7 @@ S03-smartmatch/any-sub.t
 S03-smartmatch/any-type.t
 S03-smartmatch/array-array.t
 S03-smartmatch/array-hash.t
-# S03-smartmatch/capture-signature.t # err: Method 'make_signature' not found for invocant of class 'Perl6::SymbolTable'
+# S03-smartmatch/capture-signature.t # err: No applicable candidates found to dispatch to for 'ACCEPTS'
 S03-smartmatch/disorganized.t
 S03-smartmatch/hash-hash.t
 S03-smartmatch/regex-hash.t
@@ -228,14 +228,14 @@ S04-statements/unless.t
 S04-statements/until.t
 S04-statements/while.t
 S05-capture/caps.t
-# S05-capture/dot.t # err: Useless declaration of a has-scoped method in mainline
+# S05-capture/dot.t # err: regex assertion not terminated by angle bracket
 S05-capture/match-object.t
 # S05-capture/named.t # err: Method 'rxtype' not found for invocant of class 'PAST;Regex'
 # S05-capture/subrule.t # err: Method 'rxtype' not found for invocant of class 'PAST;Regex'
 # S05-grammar/action-stubs.t # err: Null PMC access in set_pmc_keyed()
 # S05-grammar/inheritance.t # err: Null PMC access in set_pmc_keyed()
 S05-grammar/methods.t
-# S05-grammar/namespace.t # err: Useless declaration of a has-scoped method in mainline
+# S05-grammar/namespace.t # err: Null PMC access in set_pmc_keyed()
 # S05-grammar/parse_and_parsefile.t # err: Could not locate compile-time value for symbol No::Such::Grammar
 # S05-grammar/protoregex.t # err: Quantifier quantifies nothing
 # S05-grammar/protos.t # err: Null PMC access in set_pmc_keyed()
@@ -243,7 +243,7 @@ S05-grammar/methods.t
 # S05-grammar/ws.t # err: regex assertion not terminated by angle bracket
 # S05-interpolation/lexicals.t # err: Method 'rxtype' not found for invocant of class 'PAST;Regex'
 # S05-interpolation/regex-in-variable.t # err: Method 'rxtype' not found for invocant of class 'PAST;Regex'
-S05-mass/named-chars.t
+S05-mass/named-chars.t                                     # icu
 # S05-mass/properties-block.t # err: Method 'isInAlphabeticPresentationForms' not found for invocant of class 'Cursor'
 # S05-mass/properties-derived.t # err: Method 'isASCIIHexDigit' not found for invocant of class 'Cursor'
 # S05-mass/properties-general.t # err: Method 'isL' not found for invocant of class 'Cursor'
@@ -264,10 +264,10 @@ S05-metachars/newline.t
 # S05-metasyntax/angle-brackets.t # err: Method 'rxtype' not found for invocant of class 'PAST;Regex'
 S05-metasyntax/changed.t
 S05-metasyntax/charset.t
-# S05-metasyntax/lookaround.t # err: Useless declaration of a has-scoped method in mainline
+# S05-metasyntax/lookaround.t # err: Method 'after' not found for invocant of class 'Cursor'
 S05-metasyntax/null.t
-# S05-metasyntax/regex.t # err: Useless declaration of a has-scoped method in mainline
-# S05-metasyntax/repeat.t # err: Useless declaration of a has-scoped method in mainline
+S05-metasyntax/regex.t
+# S05-metasyntax/repeat.t # err: Cannot assign to a non-container
 # S05-metasyntax/sequential-alternation.t # err: Method 'rxtype' not found for invocant of class 'PAST;Regex'
 S05-metasyntax/single-quotes.t
 S05-metasyntax/unknown.t
@@ -350,7 +350,7 @@ S09-autovivification/autoincrement.t
 S09-subscript_slice/slice.t
 # S09-typed-arrays/arrays.t # err: Cannot put a type constraint on an 'our'-scoped variable
 # S09-typed-arrays/hashes.t # err: Method 'of' not found for invocant of class 'Hash'
-# S10-packages/basic.t # err: Unable to parse blockoid
+# S10-packages/basic.t # err: Method 'rxtype' not found for invocant of class 'PAST;Regex'
 S10-packages/use-with-class.t
 # S11-modules/export.t # err: Could not find symbol 'Foo::&Foo_exp_parens
 # S11-modules/import.t # err: Illegal redeclaration of module 'B'
@@ -390,7 +390,7 @@ S12-construction/construction.t
 S12-construction/named-params-in-BUILD.t
 S12-construction/new.t
 # S12-enums/anonymous.t # err: Could not find sub &ANON_ENUM
-# S12-enums/as-role.t # err: Method 'specialize' not found 
+# S12-enums/as-role.t # err: Cannot yet turn an enum into a role
 S12-enums/basic.t
 # S12-enums/thorough.t # err: Could not find sub &day
 S12-introspection/attributes.t
@@ -398,22 +398,22 @@ S12-introspection/can.t
 S12-introspection/meta-class.t
 S12-introspection/methods.t
 S12-introspection/parents.t
-# S12-introspection/roles.t # err: Method 'roles' not found for invocant of class 'Perl6::Metamodel::ClassHOW'
-# S12-introspection/walk.t # err: Useless declaration of a has-scoped method in mainline
+S12-introspection/roles.t
+# S12-introspection/walk.t # err: Method 'WALK' not found for invocant of class 'E'
 S12-methods/attribute-params.t
 # S12-methods/calling_sets.t # err: Cannot access attributes in a type object
 S12-methods/calling_syntax.t
 S12-methods/chaining.t
 S12-methods/class-and-instance.t
-# S12-methods/default-trait.t # err: No applicable candidates found to dispatch to for 'trait_mod:<is>'
+S12-methods/default-trait.t
 S12-methods/defer-call.t
 S12-methods/defer-next.t
 S12-methods/how.t
 S12-methods/indirect_notation.t
 S12-methods/instance.t
-# S12-methods/lastcall.t # err: Could not find a proto for multi 'doit' in package 'BazLastCallNext'
+S12-methods/lastcall.t
 S12-methods/method-vs-sub.t 
-# S12-methods/multi.t # err: Could not find a proto for multi 'b' in package 'C4'
+# S12-methods/multi.t # err: No applicable candidates found to dispatch to for 'prefix:<~>'
 # S12-methods/parallel-dispatch.t # err: Method 'find_private_method' not found for invocant of class 'Perl6::Metamodel::PackageHOW'
 S12-methods/private.t
 S12-methods/submethods.t
@@ -429,24 +429,24 @@ S13-overloading/typecasting-long.t
 S13-overloading/operators.t
 # S14-roles/anonymous.t # err: No applicable candidates found to dispatch to for 'infix:<eq>'
 # S14-roles/attributes.t # err: Attribute $!a1 not declared in class C1
-# S14-roles/basic.t # err: Method 'specialize' not found for invocant of class 'Perl6::Metamodel::ClassHOW'
+# S14-roles/basic.t # err: C67768 cannot compose List because it is not composable
 # S14-roles/composition.t # err: Method 'foo' must be resolved by class DD because it exists in multiple roles
 S14-roles/conflicts.t
 S14-roles/crony.t
-# S14-roles/instantiation.t # err: Parametric roles not yet implemented
+S14-roles/instantiation.t
 S14-roles/lexical.t
 S14-roles/mixin.t
 S14-roles/namespaced.t 
-# S14-roles/parameter-subtyping.t # err: Illegal redeclaration of role 'R1'
-# S14-roles/parameterized-basic.t # err: Illegal redeclaration of role 'AritySelection'
-# S14-roles/parameterized-mixin.t # err: Parametric roles not yet implemented
-# S14-roles/parameterized-type.t # err: Parametric roles not yet implemented
+# S14-roles/parameter-subtyping.t # err: Typed arrays/hashes/callables not yet implemented
+S14-roles/parameterized-basic.t
+# S14-roles/parameterized-mixin.t # err: No applicable candidates found to dispatch to for 'infix:<eq>'
+S14-roles/parameterized-type.t
 S14-roles/submethods.t
 # S14-traits/attributes.t # err: Invalid typename in parameter declaration
 # S14-traits/package.t # err: Invalid typename in parameter declaration
 # S14-traits/routines.t # err: Could not find sub &description
 # S14-traits/variables.t # err: Invalid typename in parameter declaration
-# S16-filehandles/filetest.t # err: Nominal type check failed for parameter '&call'; expected Callable but got Sub instead
+# S16-filehandles/filetest.t # err: Method 'z' not found for invocant of class 'IO'
 S16-filehandles/io.t
 S16-filehandles/io_in_for_loops.t
 S16-filehandles/io_in_while_loops.t
@@ -468,7 +468,7 @@ S29-any/isa.t
 # S29-context/die.t # segmentation fault
 S29-context/eval.t
 S29-context/exit.t
-# S29-context/sleep.t # err: Could not find sub &sleep
+S29-context/sleep.t
 S29-conversions/hash.t
 S29-conversions/ord_and_chr.t                              #icu
 S32-array/bool.t
@@ -493,13 +493,13 @@ S32-hash/exists.t
 S32-hash/invert.t
 S32-hash/keys_values.t
 S32-hash/pairs.t
-# S32-hash/push.t # err: Cannot assign a non-Perl 6 value to a Perl 6 container
+# S32-hash/push.t # hangs
 S32-hash/slice.t
 S32-io/dir.t
 # S32-io/chdir.t # err: Method 'd' not found for invocant of class 'Str'
 S32-io/file-tests.t
 S32-io/note.t
-# S32-io/IO-Socket-INET.t # err: Useless declaration of a has-scoped method in mainline
+# S32-io/IO-Socket-INET.t # err: Could not find sub &sleep
 S32-list/categorize.t
 S32-list/classify.t
 S32-list/create.t
@@ -509,7 +509,7 @@ S32-list/grep.t
 S32-list/join.t
 S32-list/map_function_return_values.t
 S32-list/map.t
-# S32-list/minmax.t # err: Too many positional parameters passed
+# S32-list/minmax.t # err: splice() not implemented in class 'Mu'
 S32-list/pick.t
 S32-list/reduce.t
 S32-list/reverse.t
@@ -528,7 +528,7 @@ S32-num/polar.t
 S32-num/power.t
 S32-num/rand.t
 S32-num/rat.t
-# S32-num/real-bridge.t # err: Method 'specialize' not found for invocant of class 'Perl6::Metamodel::ClassHOW'
+# S32-num/real-bridge.t # err: Fixed2 cannot compose Real because it is not composable
 S32-num/roots.t
 # S32-num/rounders.t # err: Could not find sub &round
 S32-num/sign.t
@@ -538,7 +538,7 @@ S32-scalar/defined.t
 S32-scalar/undef.t
 S32-str/append.t
 S32-str/bool.t
-S32-str/capitalize.t
+S32-str/capitalize.t                                       # icu
 S32-str/chomp.t
 S32-str/chop.t
 S32-str/comb.t                                             # icu
@@ -563,7 +563,7 @@ S32-str/trim.t
 S32-str/uc.t                                               # icu
 S32-str/ucfirst.t                                          # icu
 # S32-str/unpack.t # err: Default constructor only takes named arguments
-S32-str/words.t
+S32-str/words.t                                            # icu
 # S32-temporal/calendar.t # err: Method 'truncated-to' not found for invocant of class 'Date'
 # S32-temporal/Date.t # err: Default constructor only takes named arguments
 # S32-temporal/DateTime.t # err: Default constructor only takes named arguments
@@ -593,7 +593,7 @@ integration/99problems-31-to-40.t
 # integration/99problems-51-to-60.t # err: Nominal type check failed for parameter '$obj'
 # integration/99problems-61-to-70.t # err: Nominal type check failed for parameter '$tree'; expected Any but got Mu instead
 integration/advent2009-day01.t
-# integration/advent2009-day02.t # err: Method 'Int' not found for invocant of class 'Parcel'
+integration/advent2009-day02.t
 integration/advent2009-day03.t
 integration/advent2009-day04.t
 integration/advent2009-day05.t
@@ -609,7 +609,7 @@ integration/advent2009-day14.t
 integration/advent2009-day15.t
 integration/advent2009-day16.t
 # integration/advent2009-day17.t # err: Unable to parse blockoid # stress
-# integration/advent2009-day18.t # err: Could not instantiate role 'Cup'
+integration/advent2009-day18.t
 # integration/advent2009-day19.t # err: Method 'succ' not found for invocant of class 'Whatever'
 # integration/advent2009-day20.t # err: exists_keyed_str() not implemented in class 'Mu'
 # integration/advent2009-day22.t # err: Cannot negate , because it is not iffy enough

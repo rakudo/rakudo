@@ -79,11 +79,6 @@ role Perl6::Metamodel::MultiMethodContainer {
                             self.add_method($obj, $name, $copy);
                             $found := 1;
                         }
-                        else {
-                            pir::die("Could not find a proto for multi '" ~ $name ~
-                                "' in package '" ~ self.name($obj) ~
-                                "' (it may exist, but an only is hiding it if so)");
-                        }
                     }
                     $j := $j + 1;
                 }

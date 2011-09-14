@@ -621,7 +621,7 @@ inline op find_method_null_ok(out PMC, in PMC, in STR) :base_core {
 
 =item perl6_associate_sub_code_object()
 
-Takes a Parrot Sub in $2 and a code object in $1 and associates the two.
+Takes a Parrot Sub in $1 and a code object in $2 and associates the two.
 Actually, it uses a field in the Parrot Sub PMC that Rakudo never makes
 use of. Evil, but saves a prophash for every single code object.
 

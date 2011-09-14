@@ -7,7 +7,16 @@ my role Callable { ... }
 
 proto trait_mod:<is>(|$) { * }
 multi trait_mod:<is>(Mu:U $child, Mu:U $parent) {
-    $child.HOW.add_parent($child, $parent);
+    if $parent.HOW.archetypes.inheritable() {
+        $child.HOW.add_parent($child, $parent);
+    }
+    elsif $parent.HOW.archetypes.inheritalizable() {
+        $child.HOW.add_parent($child, $parent.HOW.inheritalize($parent))
+    }
+    else {
+        die $child.HOW.name($child) ~ " cannot inherit from " ~
+            $parent.HOW.name($parent) ~ " because it is not inheritable"
+    }
 }
 multi trait_mod:<is>(Mu:U $type, :$rw!) {
     $type.HOW.set_rw($type);
@@ -23,6 +32,10 @@ multi trait_mod:<is>(Attribute:D $attr, :$readonly!) {
 multi trait_mod:<is>(Routine:D $r, :$rw!) {
     $r.set_rw();
 }
+multi trait_mod:<is>(Routine:D $r, :$default!) {
+    $r does role { method default() { True } }
+}
+
 multi trait_mod:<is>(Parameter:D $param, :$readonly!) {
     # This is the default.
 }
@@ -76,7 +89,16 @@ multi trait_mod:<is>(Mu:U $docee, $doc, :$docs!) {
 
 proto trait_mod:<does>(|$) { * }
 multi trait_mod:<does>(Mu:U $doee, Mu:U $role) {
-    $doee.HOW.add_role($doee, $role)
+    if $role.HOW.archetypes.composable() {
+        $doee.HOW.add_role($doee, $role)
+    }
+    elsif $role.HOW.archetypes.composalizable() {
+        $doee.HOW.add_role($doee, $role.HOW.composalize($role))
+    }
+    else {
+        die $doee.HOW.name($doee) ~ " cannot compose " ~
+            $role.HOW.name($role) ~ " because it is not composable"
+    }
 }
 
 proto trait_mod:<of>(|$) { * }

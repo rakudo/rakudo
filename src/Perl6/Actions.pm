@@ -26,18 +26,12 @@ INIT {
 
 
 class Perl6::Actions is HLL::Actions {
-    our @PACKAGE;
-    our $TRUE;
     our @MAX_PERL_VERSION;
 
     our $FORBID_PIR;
     our $STATEMENT_PRINT;
 
     INIT {
-        # initialize @PACKAGE
-        our @PACKAGE := Q:PIR { %r = root_new ['parrot';'ResizablePMCArray'] };
-        our $TRUE := PAST::Var.new( :name('true'), :scope('register') );
-
         # Tell PAST::Var how to encode Perl6Str and Str values
         my %valflags :=
             Q:PIR { %r = get_hll_global ['PAST';'Compiler'], '%valflags' };
@@ -1093,7 +1087,9 @@ class Perl6::Actions is HLL::Actions {
         # then just evaluate to the type object. Don't need to do any more
         # just yet.
         if pir::substr__Ssii($<blockoid><statementlist><statement>[0], 0, 3) eq '...' {
-            $*ST.add_stub_to_check($*PACKAGE);
+            unless $*PKGDECL eq 'role' {
+                $*ST.add_stub_to_check($*PACKAGE);
+            }
             $block.blocktype('declaration');
             make PAST::Stmts.new( $block, $*ST.get_object_sc_ref_past($*PACKAGE) );
             return 1;
@@ -1118,15 +1114,26 @@ class Perl6::Actions is HLL::Actions {
             $block.push($*ST.create_lexical_capture_fixup());
 
             # As its last act, it should grab the current lexpad so that
-            # we have the type environment.
+            # we have the type environment, and also return the parametric
+            # role we're in (because if we land it through a multi-dispatch,
+            # we won't know).
             $block.push(PAST::Op.new(
-                :pirop('set PQPS'),
-                PAST::Op.new( :pirop('getinterp P') ),
-                'lexpad'));
+                :pasttype('list'),
+                $*ST.get_object_sc_ref_past($*PACKAGE),
+                PAST::Op.new(
+                    :pirop('set PQPS'),
+                    PAST::Op.new( :pirop('getinterp P') ),
+                    'lexpad')));
 
             # Create code object and add it as the role's body block.
             my $code := $*ST.create_code_object($block, 'Block', $sig);
             $*ST.pkg_set_role_body_block($*PACKAGE, $code, $block);
+            
+            # Add this role to the group if needed.
+            my $group := $*PACKAGE.HOW.group($*PACKAGE);
+            unless $group =:= $*PACKAGE {
+                $*ST.pkg_add_role_group_possibility($group, $*PACKAGE);
+            }
         }
 
         # Compose.
@@ -1251,9 +1258,9 @@ class Perl6::Actions is HLL::Actions {
         elsif $*SCOPE eq 'my' || $*SCOPE eq 'state' {
             # Create a container descriptor. Default to rw and set a
             # type if we have one; a trait may twiddle with that later.
+            my $type_cons := $*TYPENAME ?? $*TYPENAME.ast !! $*ST.find_symbol(['Mu']);
             my $descriptor := $*ST.create_container_descriptor(
-                $*TYPENAME ?? $*TYPENAME.ast !! $*ST.find_symbol(['Mu']),
-                1, $name);
+                $type_cons, 1, $name);
 
             # Install the container. Scalars default to Any if untyped.
             if $sigil eq '$' || $sigil eq '&' {
@@ -1266,11 +1273,19 @@ class Perl6::Actions is HLL::Actions {
                     :state($*SCOPE eq 'state'));
             }
 
-            # Set scope and type on container.
+            # Set scope and type on container, and if needed emit code to
+            # reify a generic type.
             if $past.isa(PAST::Var) {
                 $past.scope('lexical_6model');
                 $past.type($descriptor.of);
                 $past := box_native_if_needed($past, $descriptor.of);
+                if $type_cons.HOW.archetypes.generic {
+                    $past := PAST::Op.new(
+                        :pasttype('callmethod'), :name('instantiate_generic'),
+                        PAST::Op.new( :pirop('perl6_var PP'), $past ),
+                        PAST::Op.new( :pirop('set PQPs'),
+                            PAST::Op.new( :pirop('getinterp P') ), 'lexpad'));
+                }
             }
         }
         elsif $*SCOPE eq 'our' {
@@ -1393,12 +1408,12 @@ class Perl6::Actions is HLL::Actions {
                         ~$<deflongname>[0].ast ~ "'");
                 }
                 if $*SCOPE eq '' || $*SCOPE eq 'my' {
-                    $*ST.install_lexical_symbol($outer, $name, $code);
+                    $*ST.install_lexical_symbol($outer, $name, $code, :clone(1));
                 }
                 elsif $*SCOPE eq 'our' {
                     # Install in lexpad and in package, and set up code to
                     # re-bind it per invocation of its outer.
-                    $*ST.install_lexical_symbol($outer, $name, $code);
+                    $*ST.install_lexical_symbol($outer, $name, $code, :clone(1));
                     $*ST.install_package_symbol($*PACKAGE, $name, $code);
                     $outer[0].push(PAST::Op.new(
                         :pasttype('bind_6model'),
@@ -1553,10 +1568,10 @@ class Perl6::Actions is HLL::Actions {
 
         # May also need it in lexpad and/or package.
         if $*SCOPE eq 'my' {
-            $*ST.install_lexical_symbol($outer, '&' ~ $name, $code);
+            $*ST.install_lexical_symbol($outer, '&' ~ $name, $code, :clone(1));
         }
         elsif $*SCOPE eq 'our' {
-            $*ST.install_lexical_symbol($outer, '&' ~ $name, $code);
+            $*ST.install_lexical_symbol($outer, '&' ~ $name, $code, :clone(1));
             $*ST.install_package_symbol($*PACKAGE, '&' ~ $name, $code);
         }
     }
@@ -1825,7 +1840,11 @@ class Perl6::Actions is HLL::Actions {
     }
 
     method fakesignature($/) {
-        make $*ST.get_slot_past_for_object($*ST.make_signature($<signature>.ast));
+        my $sig := $*ST.create_signature($<signature>.ast);
+        my $past := $*ST.get_slot_past_for_object($sig);
+        $past<has_compile_time_value> := 1;
+        $past<compile_time_value> := $sig;
+        make $past;
     }
 
     method signature($/) {
@@ -2411,9 +2430,36 @@ class Perl6::Actions is HLL::Actions {
             # type, since we can statically resolve them.
             my @name := Perl6::Grammar::parse_name(~$<longname>);
             if $<arglist> {
-                $/.CURSOR.panic("Parametric roles not yet implemented");
+                # Ensure arguments are allowed.
+                my $role := $*ST.find_symbol(@name);
+                unless $role.HOW.archetypes.parametric() {
+                    $/.CURSOR.panic("Cannot put type arguments on " ~
+                        ~$<longname> ~ " because it is not a parametric type");
+                }
+                
+                # Do we know all the arguments at compile time?
+                my $all_compile_time := 1;
+                for @($<arglist>[0].ast) {
+                    unless $_<has_compile_time_value> {
+                        $all_compile_time := 0;
+                    }
+                }
+                if $all_compile_time {
+                    my $curried := $*ST.curry_role(%*HOW<role-curried>,
+                        $role, $<arglist>, $/);
+                    $past := $*ST.get_object_sc_ref_past($curried);
+                    $past<has_compile_time_value> := 1;
+                    $past<compile_time_value> := $curried;
+                }
+                else {
+                    $past := $<arglist>[0].ast;
+                    $past.pasttype('callmethod');
+                    $past.name('new_type');
+                    $past.unshift($*ST.get_object_sc_ref_past($role));
+                    $past.unshift($*ST.get_object_sc_ref_past(%*HOW<role-curried>));
+                }
             }
-            if ~$<longname> eq 'GLOBAL' {
+            elsif ~$<longname> eq 'GLOBAL' {
                 $past := $*ST.symbol_lookup(@name, $/);
             }
             else {
@@ -3097,6 +3143,10 @@ class Perl6::Actions is HLL::Actions {
                     Perl6::Grammar::canonical_type_longname($<longname>)));
                 if $<arglist> {
                     $type := $*ST.curry_role(%*HOW<role-curried>, $type, $<arglist>, $/);
+                }
+                if $<typename> {
+                    $type := $*ST.curry_role_with_args(%*HOW<role-curried>, $type,
+                        [$<typename>[0].ast], hash());
                 }
                 make $type;
             }

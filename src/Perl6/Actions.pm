@@ -349,9 +349,7 @@ class Perl6::Actions is HLL::Actions {
             my $past := Perl6::Pod::serialize_object(
                 'Pod::FormattingCode',
                 :type(
-                    $*ST.add_constant(
-                        'Str', 'str', ~$<code>
-                    )<compile_time_value>
+                    $*ST.add_string_constant(~$<code>)<compile_time_value>
                 ),
                 :content(
                     Perl6::Pod::serialize_array(@t)<compile_time_value>
@@ -933,7 +931,7 @@ class Perl6::Actions is HLL::Actions {
     }
 
     sub make_pair($key_str, $value) {
-        my $key := $*ST.add_constant('Str', 'str', $key_str);
+        my $key := $*ST.add_string_constant($key_str);
         $key.named('key');
         $value.named('value');
         PAST::Op.new(
@@ -982,7 +980,7 @@ class Perl6::Actions is HLL::Actions {
         my $past := PAST::Var.new( :name(@name[+@name - 1]), :node($/));
         if $twigil eq '*' {
             $past := PAST::Op.new(
-                $*ST.add_constant('Str', 'str', ~$past.name()),
+                $*ST.add_string_constant(~$past.name()),
                 :pasttype('call'), :name('&DYNAMIC'), :lvalue(0) );
         }
         elsif $twigil eq '!' {
@@ -2231,7 +2229,7 @@ class Perl6::Actions is HLL::Actions {
         unless $past.isa(PAST::Op) && $past.pasttype() eq 'callmethod' {
             $/.CURSOR.panic("Cannot use " ~ $<sym>.Str ~ " on a non-identifier method call");
         }
-        $past.unshift($*ST.add_constant('Str', 'str', $past.name));
+        $past.unshift($*ST.add_string_constant($past.name));
         $past.name('dispatch:<' ~ ~$<sym> ~ '>');
         make $past;
     }
@@ -2267,7 +2265,7 @@ class Perl6::Actions is HLL::Actions {
             }
             else {
                 $past.unshift($*ST.get_object_sc_ref_past($*PACKAGE));
-                $past.unshift($*ST.add_constant('Str', 'str', $name));
+                $past.unshift($*ST.add_string_constant($name));
             }
             $past.name('dispatch:<!>');
         }
@@ -2292,7 +2290,7 @@ class Perl6::Actions is HLL::Actions {
             my $name := @parts.pop;
             if +@parts {
                 $past.unshift($*ST.symbol_lookup(@parts, $/));
-                $past.unshift($*ST.add_constant('Str', 'str', $name));
+                $past.unshift($*ST.add_string_constant($name));
                 $past.name('dispatch:<::>');
             }
             elsif $name eq 'WHAT' {
@@ -2347,15 +2345,15 @@ class Perl6::Actions is HLL::Actions {
     }
 
     method term:sym<...>($/) {
-        make PAST::Op.new( :pasttype('call'), :name('&fail'), $*ST.add_constant('Str', 'str', 'Stub code executed'), :node($/) );
+        make PAST::Op.new( :pasttype('call'), :name('&fail'), $*ST.add_string_constant('Stub code executed'), :node($/) );
     }
 
     method term:sym<???>($/) {
-        make PAST::Op.new( :pasttype('call'), :name('&warn'), $*ST.add_constant('Str', 'str', 'Stub code executed'), :node($/) );
+        make PAST::Op.new( :pasttype('call'), :name('&warn'), $*ST.add_string_constant('Stub code executed'), :node($/) );
     }
 
     method term:sym<!!!>($/) {
-        make PAST::Op.new( :pasttype('call'), :name('&die'), $*ST.add_constant('Str', 'str', 'Stub code executed'), :node($/) );
+        make PAST::Op.new( :pasttype('call'), :name('&die'), $*ST.add_string_constant('Stub code executed'), :node($/) );
     }
 
     method term:sym<dotty>($/) {
@@ -2384,15 +2382,15 @@ class Perl6::Actions is HLL::Actions {
             :pasttype<call>,
             :name<&INDIRECT_NAME_LOOKUP>,
         );
-        $past.push($*ST.add_constant('Str', 'str', $sigil)) if $sigil;
-        $past.push($*ST.add_constant('Str', 'str', ~$longname<name><identifier>))
+        $past.push($*ST.add_string_constant($sigil)) if $sigil;
+        $past.push($*ST.add_string_constant(~$longname<name><identifier>))
             if $longname<name><identifier>;
 
         for $longname<name><morename> {
             if $_<EXPR> {
                 $past.push($_<EXPR>[0].ast);
             } else {
-                $past.push($*ST.add_constant('Str', 'str', ~$_<identifier>));
+                $past.push($*ST.add_string_constant(~$_<identifier>));
             }
         }
         $past;
@@ -3356,7 +3354,7 @@ class Perl6::Actions is HLL::Actions {
         }
         my $nab_back := pir::substr__SSI($/, $pos + 1);
         if $nab_back {
-            PAST::Op.new( :pasttype('call'), :name('&infix:<~>'), $expr, $*ST.add_constant('Str', 'str', ~$nab_back) )
+            PAST::Op.new( :pasttype('call'), :name('&infix:<~>'), $expr, $*ST.add_string_constant(~$nab_back) )
         }
         else {
             $expr
@@ -3379,11 +3377,11 @@ class Perl6::Actions is HLL::Actions {
                 compile_time_value_str($past, ":w list", $/));
             if +@words != 1 {
                 $past := PAST::Op.new( :name('&infix:<,>'), :node($/) );
-                for @words { $past.push($*ST.add_constant('Str', 'str', ~$_)); }
+                for @words { $past.push($*ST.add_string_constant(~$_)); }
                 $past := PAST::Stmts.new($past);
             }
             else {
-                $past := $*ST.add_constant('Str', 'str', ~@words[0]);
+                $past := $*ST.add_string_constant(~@words[0]);
             }
         }
         make $past;
@@ -3402,16 +3400,16 @@ class Perl6::Actions is HLL::Actions {
             }
             else {
                 if $lastlit gt '' {
-                    @parts.push($*ST.add_constant('Str', 'str', $lastlit));
+                    @parts.push($*ST.add_string_constant($lastlit));
                 }
                 @parts.push($ast);
                 $lastlit := '';
             }
         }
         if $lastlit gt '' || !@parts {
-            @parts.push($*ST.add_constant('Str', 'str', $lastlit));
+            @parts.push($*ST.add_string_constant($lastlit));
         }
-        my $past := @parts ?? @parts.shift !! $*ST.add_constant('Str', 'str', '');
+        my $past := @parts ?? @parts.shift !! $*ST.add_string_constant('');
         while @parts {
             $past := PAST::Op.new(
                 :pasttype('call'), :name('&infix:<~>'),
@@ -3641,7 +3639,7 @@ class Perl6::Actions is HLL::Actions {
     }
 
     sub make_dot_equals($target, $call) {
-        $call.unshift($*ST.add_constant('Str', 'str', $call.name));
+        $call.unshift($*ST.add_string_constant($call.name));
         $call.unshift($target);
         $call.name('dispatch:<.=>');
         $call.pasttype('callmethod');

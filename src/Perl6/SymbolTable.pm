@@ -1078,6 +1078,16 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
         $past<compile_time_value>     := $const<compile_time_value>;
         $past;
     }
+    
+    # Adds a string constant value to the constants table.
+    # Returns PAST to do the lookup of the constant.
+    method add_string_constant($value) {
+        my $const := self.add_constant('Str', 'str', $value);
+        my $past  := PAST::Want.new($const, 'Ss', $value);
+        $past<has_compile_time_value> := 1;
+        $past<compile_time_value>     := $const<compile_time_value>;
+        $past;
+    }
 
     # Creates a meta-object for a package, adds it to the root objects and
     # stores an event for the action. Returns the created object.

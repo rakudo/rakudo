@@ -632,6 +632,33 @@ static PMC* find_best_candidate(PARROT_INTERP, Rakudo_md_candidate_info **candid
 
 /*
 
+=item C<static Rakudo_md_candidate_info ** obtain_candidate_list(PARROT_INTERP,
+        INTVAL has_cache, Rakudo_Code *code_obj)>
+
+Gets the sorted candiate list (either from cache, or by producing it).
+
+=cut
+
+*/
+static Rakudo_md_candidate_info ** obtain_candidate_list(PARROT_INTERP,
+        INTVAL has_cache, PMC *dispatcher, Rakudo_Code *code_obj) {
+    if (has_cache) {
+        return ((Rakudo_md_cache *)VTABLE_get_pointer(interp,
+            code_obj->dispatcher_cache))->candidates;
+    }
+    else {
+        Rakudo_md_cache *cache = mem_allocate_zeroed_typed(Rakudo_md_cache);
+        cache->candidates = sort_candidates(interp, code_obj->dispatchees);
+        code_obj->dispatcher_cache = pmc_new(interp, enum_class_Pointer);
+        VTABLE_set_pointer(interp, code_obj->dispatcher_cache, cache);
+        PARROT_GC_WRITE_BARRIER(interp, dispatcher);
+        return cache->candidates;
+    }
+}
+
+
+/*
+
 =item C<PMC * Rakudo_md_dispatch(PARROT_INTERP, PMC *dispatcher, opcode_t *next)>
 
 Gets the candidate list, does sorting if we didn't already do so, and
@@ -642,21 +669,22 @@ enters the multi dispatcher.
 */
 PMC *
 Rakudo_md_dispatch(PARROT_INTERP, PMC *dispatcher, PMC *capture, opcode_t *next) {
-    Rakudo_Code *code_obj  = (Rakudo_Code *)PMC_data(dispatcher);
-    INTVAL       num_cands = VTABLE_elements(interp, code_obj->dispatchees);
+    INTVAL num_cands;
     Rakudo_md_candidate_info **cands;
-    if (PMC_IS_NULL(code_obj->dispatcher_cache)) {
-        cands = sort_candidates(interp, code_obj->dispatchees);
-        code_obj->dispatcher_cache = pmc_new(interp, enum_class_Pointer);
-        VTABLE_set_pointer(interp, code_obj->dispatcher_cache, cands);
-        PARROT_GC_WRITE_BARRIER(interp, dispatcher);
+    
+    /* Sane to look in the cache? */
+    Rakudo_Code *code_obj  = (Rakudo_Code *)PMC_data(dispatcher);
+    INTVAL       num_args  = VTABLE_elements(interp, capture);
+    INTVAL       has_cache = !PMC_IS_NULL(code_obj->dispatcher_cache);
+    if (num_args <= MD_CACHE_MAX_ARITY && has_cache) {
     }
-    else {
-        cands = (Rakudo_md_candidate_info **)VTABLE_get_pointer(interp,
-            code_obj->dispatcher_cache);
-    }
+    
+    /* No cache hit, so we need to do a full dispatch. */
+    num_cands = VTABLE_elements(interp, code_obj->dispatchees);
+    cands     = obtain_candidate_list(interp, has_cache, dispatcher, code_obj);
     return find_best_candidate(interp, cands, num_cands, capture, next, dispatcher, 0);
 }
+
 
 /*
 
@@ -672,17 +700,9 @@ PMC *
 Rakudo_md_get_all_matches(PARROT_INTERP, PMC *dispatcher, PMC *capture) {
     Rakudo_Code *code_obj  = (Rakudo_Code *)PMC_data(dispatcher);
     INTVAL       num_cands = VTABLE_elements(interp, code_obj->dispatchees);
-    Rakudo_md_candidate_info **cands;
-    if (PMC_IS_NULL(code_obj->dispatcher_cache)) {
-        cands = sort_candidates(interp, code_obj->dispatchees);
-        code_obj->dispatcher_cache = pmc_new(interp, enum_class_Pointer);
-        VTABLE_set_pointer(interp, code_obj->dispatcher_cache, cands);
-        PARROT_GC_WRITE_BARRIER(interp, dispatcher);
-    }
-    else {
-        cands = (Rakudo_md_candidate_info **)VTABLE_get_pointer(interp,
-            code_obj->dispatcher_cache);
-    }
+    INTVAL       has_cache = !PMC_IS_NULL(code_obj->dispatcher_cache);
+    Rakudo_md_candidate_info **cands = obtain_candidate_list(interp, has_cache,
+        dispatcher, code_obj);
     return find_best_candidate(interp, cands, num_cands, capture, NULL, dispatcher, 1);
 }
 

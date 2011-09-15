@@ -34,12 +34,36 @@ typedef struct {
                             * argument, as is the common case for traits. */
 } Rakudo_md_candidate_info;
 
-/* Overall multi-dispatcher info, which we will hang off the dispatcher
- * info slot in a dispatcher sub. */
+/* Maximum positional arity we cache up to. (Good to make it a
+ * power of 2, minus 1.) */
+#define MD_CACHE_MAX_ARITY 3
+
+/* Maximum entries we cache per arity. (Good to make it a
+ * power of 2, minus 1.) */
+#define MD_CACHE_MAX_ENTRIES 15
+
+/* The cached info that we keep per arity. */
 typedef struct {
+    /* The number of entries in the cache. */
+    INTVAL num_entries;
+
+    /* This is a bunch of type IDs. We allocate it arity * MAX_ENTRIES
+     * big and go through it in arity sized chunks. */
+    INTVAL *type_ids;
+
+    /* The results we return from the cache. */
+    PMC **results;
+} Rakudo_md_arity_cache;
+
+/* Multi-dispatcher cache info, which we will hang off the dispatcher
+ * cache slot in a dispatcher sub. */
+typedef struct {
+    /* The sorted candidate list. */
     Rakudo_md_candidate_info **candidates;
-    /* XXX TODO: Cache goes here also. */
-} Rakudo_md_info;
+
+    /* The fast, per-arity cache. */
+    Rakudo_md_arity_cache arity_caches[MD_CACHE_MAX_ARITY];
+} Rakudo_md_cache;
 
 /* Represents the produced information about a candidate as well as the graph
  * edges originating from it. The edges array contains pointers to the edges

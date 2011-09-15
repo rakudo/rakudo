@@ -463,7 +463,7 @@ my class Str does Stringy {
 multi prefix:<~>(Str:D \$a) { $a }
 
 multi infix:<~>(Str:D \$a, Str:D \$b) {
-    nqp::p6box_s(nqp::concat(nqp::unbox_s($a), nqp::unbox_s($b)))
+    nqp::p6box_s(nqp::concat_s(nqp::unbox_s($a), nqp::unbox_s($b)))
 }
 
 multi infix:<x>(Str:D $s, Int:D $repetition) {

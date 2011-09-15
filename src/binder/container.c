@@ -15,7 +15,7 @@ PMC *Rakudo_cont_decontainerize(PARROT_INTERP, PMC *var) {
     ContainerSpec *spec;
     
     /* Fast path for Perl 6 Scalar containers. */
-    if (STABLE(var)->WHAT == scalar_type)
+    if (STABLE(var)->WHAT == scalar_type && REPR(var)->defined(interp, var))
         return ((Rakudo_Scalar *)PMC_data(var))->value;
     
     /* Otherwise, fall back to the usual API. */

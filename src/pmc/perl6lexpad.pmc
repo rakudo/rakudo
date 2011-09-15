@@ -7,7 +7,6 @@
 typedef struct {
     PMC    *st;                 /* S-table, though we don't care about that here. */
     PMC    *sc;                 /* Serialization context, though we don't care about that here. */
-    PMC    *spill;              /* Attribute spill storage. */
     PMC    *static_values;      /* The set of static values (hash names => values). */
     PMC    *flags;              /* Flags for how we handle those (hash names => flags). */
     INTVAL  changed;            /* Has anything in here changed since we last saw it? */

@@ -70,7 +70,6 @@ my class RoleToRoleApplier {
         }
 
         # Now do the other bits.
-        my @all_roles;
         for @roles {
             my $how := $_.HOW;
 
@@ -103,14 +102,8 @@ my class RoleToRoleApplier {
                     $target.HOW.add_multi_method($target, $_.name, $_.code);
                 }
             }
-
-            # Build up full list of roles that this one does.
-            @all_roles.push($_);
-            for $how.does_list($_) {
-                @all_roles.push($_);
-            }
         }
 
-        return @all_roles;
+        1;
     }
 }

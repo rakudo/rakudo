@@ -91,7 +91,7 @@ my role Dateish {
 
     method check-value($val is rw, $name, $range, :$allow-nonint) {
         $val = $allow-nonint ?? +$val !! $val.Int;
-        $val ~~ $range or
+        $val ~~ $range
             or die "$name must be in {$range.perl}\n";
     }
   

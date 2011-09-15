@@ -1,6 +1,6 @@
 # Roadmap for "nom" Branch
 
-Last Updated 7 Aug 2011
+Last Updated 8 Sep 2011
 
 ## Punch list for nom->master and nom distribution
 
@@ -22,7 +22,6 @@ responsible parties.
 * MAIN (2, 1, ???, ???)
 * modules working with nom (3, 1, ???, ???)
 * fix meta-dispatchers to not flatten positionals (3, 2, ???, ???)
-* fix huge memory leak in simple while loop (2, 1, ???, ???)
 * <!before> (2, 1, *, pmichaud)
 * <&lexical-regex> (2, 1, ???, pmichaud)
 
@@ -53,10 +52,8 @@ Get ::= correcter, and a bit more stuff on := also.
 
 ## Finish up parametric roles
 Many things are working, some are not...
-* Generically typed variables (also for the ::T case in roles)
 * role R1[::T] does R2[T] { ... }
-* Multiple variants of a single role
-* Role subtype checking
+* Be sure to do a BUILD after mix-in
 
 ## Custom Operators
 Get these working again.

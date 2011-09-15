@@ -99,6 +99,10 @@ my class Parcel does Positional {
     }
     
     method ARGLIST_FLATTENABLE() { $!storage }
+
+    method fmt($format = '%s', $separator = ' ') {
+        self.list.fmt($format, $separator);
+    }
 }
 
 

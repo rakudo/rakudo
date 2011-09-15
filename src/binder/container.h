@@ -2,7 +2,6 @@
 typedef struct {
     PMC    *st;                 /* S-table, though we don't care about that here. */
     PMC    *sc;                 /* Serialization context, though we don't care about that here. */
-    PMC    *spill;              /* Attribute spill storage. */
     PMC    *of;                 /* Type of value. */
     INTVAL  rw;                 /* Non-zero if we can write. */
     STRING *name;               /* The name of the container, if any. */
@@ -12,7 +11,6 @@ typedef struct {
 typedef struct {
     PMC    *st;                 /* S-table, though we don't care about that here. */
     PMC    *sc;                 /* Serialization context, though we don't care about that here. */
-    PMC    *spill;              /* Attribute spill storage. */
     PMC    *descriptor;         /* Container descriptor. */
     PMC    *value;              /* The currently held value. */
     PMC    *whence;             /* Any whence property */

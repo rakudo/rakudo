@@ -158,9 +158,12 @@ Attribute.HOW.add_method(Attribute, 'build', sub ($self) {
             Attribute, '$!build_closure');
     });
 Attribute.HOW.add_method(Attribute, 'is_generic', sub ($self) {
-        my $type := pir::getattribute__PPPs(pir::perl6_decontainerize__PP($self),
+        my $dcself   := pir::perl6_decontainerize__PP($self);
+        my $type := pir::getattribute__PPPs(pir::perl6_decontainerize__PP($dcself),
             Attribute, '$!type');
-        pir::perl6_booleanize__PI($type.HOW.archetypes.generic);
+        my $build := pir::getattribute__PPPs(pir::perl6_decontainerize__PP($dcself),
+            Attribute, '$!build_closure');
+        pir::perl6_booleanize__PI($type.HOW.archetypes.generic || pir::defined__IP($build));
     });
 Attribute.HOW.add_method(Attribute, 'instantiate_generic', sub ($self, $type_environment) {
         my $dcself   := pir::perl6_decontainerize__PP($self);
@@ -168,16 +171,22 @@ Attribute.HOW.add_method(Attribute, 'instantiate_generic', sub ($self, $type_env
         my $cd       := pir::getattribute__PPPs($dcself, Attribute, '$!container_descriptor');
         my $pkg      := pir::getattribute__PPPs($dcself, Attribute, '$!package');
         my $avc      := pir::getattribute__PPPs($dcself, Attribute, '$!auto_viv_container');
-        my $type_ins := $type.HOW.instantiate_generic($type, $type_environment);
-        my $cd_ins   := $cd.instantiate_generic($type_environment);
-        my $pkg_ins   := $pkg.HOW.instantiate_generic($pkg, $type_environment);
-        my $avc_copy := pir::repr_clone__PP(pir::perl6_var__PP($avc));
+        my $bc       := pir::getattribute__PPPs($dcself, Attribute, '$!build_closure');
         my $ins      := pir::repr_clone__PP($dcself);
-        pir::setattribute__vPPsP($ins, Attribute, '$!type', $type_ins);
-        pir::setattribute__vPPsP($ins, Attribute, '$!container_descriptor', $cd_ins);
-        pir::setattribute__vPPsP($ins, Attribute, '$!package', $pkg_ins);
-        pir::setattribute__vPPsP($ins, Attribute, '$!auto_viv_container',
-            pir::setattribute__0PPsP($avc_copy, (pir::perl6_var__PP($avc_copy)).WHAT, '$!descriptor', $cd_ins));
+        if $type.HOW.archetypes.generic {
+            pir::setattribute__vPPsP($ins, Attribute, '$!type',
+                $type.HOW.instantiate_generic($type, $type_environment));
+            pir::setattribute__vPPsP($ins, Attribute, '$!package',
+                $pkg.HOW.instantiate_generic($pkg, $type_environment));
+            my $cd_ins := $cd.instantiate_generic($type_environment);
+            pir::setattribute__vPPsP($ins, Attribute, '$!container_descriptor', $cd_ins);
+            my $avc_copy := pir::repr_clone__PP(pir::perl6_var__PP($avc));
+            pir::setattribute__vPPsP($ins, Attribute, '$!auto_viv_container',
+                pir::setattribute__0PPsP($avc_copy, (pir::perl6_var__PP($avc_copy)).WHAT, '$!descriptor', $cd_ins));
+        }
+        if pir::defined__IP($bc) {
+            pir::setattribute__vPPsP($ins, Attribute, '$!build_closure', $bc.clone());
+        }
         $ins
     });
 
@@ -191,6 +200,22 @@ Scalar.HOW.add_parent(Scalar, Any);
 Scalar.HOW.add_attribute(Scalar, BOOTSTRAPATTR.new(:name<$!descriptor>, :type(Mu)));
 Scalar.HOW.add_attribute(Scalar, BOOTSTRAPATTR.new(:name<$!value>, :type(Mu)));
 Scalar.HOW.add_attribute(Scalar, BOOTSTRAPATTR.new(:name<$!whence>, :type(Mu)));
+Scalar.HOW.add_method(Scalar, 'is_generic', sub ($self) {
+    my $dcself := pir::perl6_decontainerize__PP($self);
+    nqp::getattr($dcself, Scalar, '$!descriptor').is_generic()
+});
+Scalar.HOW.add_method(Scalar, 'instantiate_generic', sub ($self, $type_environment) {
+    my $dcself := pir::perl6_decontainerize__PP($self);
+    nqp::bindattr($dcself, Scalar, '$!descriptor',
+        nqp::getattr($dcself, Scalar, '$!descriptor').instantiate_generic(
+            $type_environment));
+    my $val := nqp::getattr($dcself, Scalar, '$!value');
+    if $val.HOW.archetypes.generic {
+        nqp::bindattr($dcself, Scalar, '$!value',
+            $val.HOW.instantiate_generic($val, $type_environment));
+    }
+    $self
+});
 pir::set_scalar_container_type__vP(Scalar);
 
 # Scalar needs to be registered as a container type.
@@ -359,9 +384,10 @@ Code.HOW.add_method(Code, 'add_dispatchee', sub ($self, $dispatchee) {
         }
     });
 Code.HOW.add_method(Code, 'clone', sub ($self) {
-        my $cloned := pir::repr_clone__PP($self);
+        my $dcself := pir::perl6_decontainerize__PP($self);
+        my $cloned := pir::repr_clone__PP($dcself);
         Q:PIR {
-            $P0 = find_lex '$self'
+            $P0 = find_lex '$dcself'
             $P1 = find_lex 'Code'
             $P0 = getattribute $P0, $P1, '$!do'
             $P1 = getprop 'CLONE_CALLBACK', $P0
@@ -372,7 +398,7 @@ Code.HOW.add_method(Code, 'clone', sub ($self) {
         };
         pir::setattribute__0PPSP($cloned, Code, '$!do',
             pir::perl6_associate_sub_code_object__0PP(
-                pir::clone__PP(pir::getattribute__PPPS($self, Code, '$!do')),
+                pir::clone__PP(pir::getattribute__PPPS($dcself, Code, '$!do')),
                 $cloned))
     });
 Code.HOW.add_method(Code, 'derive_dispatcher', sub ($self) {
@@ -420,9 +446,10 @@ Block.HOW.add_attribute(Block, BOOTSTRAPATTR.new(:name<$!state_vars>, :type(Mu))
 Block.HOW.publish_parrot_vtable_handler_mapping(Block);
 Block.HOW.publish_parrot_vtable_mapping(Block);
 Block.HOW.add_method(Block, 'clone', sub ($self) {
-        my $cloned := pir::repr_clone__PP($self);
+        my $dcself := pir::perl6_decontainerize__PP($self);
+        my $cloned := pir::repr_clone__PP($dcself);
         Q:PIR {
-            $P0 = find_lex '$self'
+            $P0 = find_lex '$dcself'
             $P1 = find_lex 'Code'
             $P0 = getattribute $P0, $P1, '$!do'
             $P1 = getprop 'CLONE_CALLBACK', $P0
@@ -434,7 +461,7 @@ Block.HOW.add_method(Block, 'clone', sub ($self) {
         pir::setattribute__0PPSP($cloned, Block, '$!state_vars', nqp::null());
         pir::setattribute__0PPSP($cloned, Code, '$!do',
             pir::perl6_associate_sub_code_object__0PP(
-                pir::clone__PP(pir::getattribute__PPPS($self, Code, '$!do')),
+                pir::clone__PP(pir::getattribute__PPPS($dcself, Code, '$!do')),
                 $cloned))
     });
 
@@ -629,6 +656,8 @@ Perl6::Metamodel::ModuleHOW.set_stash_type(Stash, EnumMap);
 Perl6::Metamodel::NativeHOW.set_stash_type(Stash, EnumMap);
 Perl6::Metamodel::ClassHOW.set_stash_type(Stash, EnumMap);
 Perl6::Metamodel::GrammarHOW.set_stash_type(Stash, EnumMap);
+Perl6::Metamodel::ParametricRoleHOW.set_stash_type(Stash, EnumMap);
+Perl6::Metamodel::ParametricRoleGroupHOW.set_stash_type(Stash, EnumMap);
 
 # Give everything we've set up so far a Stash.
 Perl6::Metamodel::ClassHOW.add_stash(Mu);
@@ -691,10 +720,30 @@ pir::perl6_set_bools__vPP($false, $true);
 
 # Roles pretend to be narrower than certain types for the purpose
 # of type checking. Also, they pun to classes.
+Perl6::Metamodel::ParametricRoleGroupHOW.pretend_to_be([Cool, Any, Mu]);
+Perl6::Metamodel::ParametricRoleGroupHOW.configure_punning(
+    Perl6::Metamodel::ClassHOW,
+    hash( ACCEPTS => Mu ));
 Perl6::Metamodel::ParametricRoleHOW.pretend_to_be([Cool, Any, Mu]);
 Perl6::Metamodel::ParametricRoleHOW.configure_punning(
     Perl6::Metamodel::ClassHOW,
     hash( ACCEPTS => Mu ));
+Perl6::Metamodel::CurriedRoleHOW.pretend_to_be([Cool, Any, Mu]);
+Perl6::Metamodel::CurriedRoleHOW.configure_punning(
+    Perl6::Metamodel::ClassHOW,
+    hash( ACCEPTS => Mu ));
+
+# Need to tell parametric role groups how to create a dispatcher.
+Perl6::Metamodel::ParametricRoleGroupHOW.set_selector_creator({
+    my $sel := nqp::create(Sub);
+    my $onlystar := -> *@pos, *%named {
+        pir::perl6_enter_multi_dispatch_from_onlystar_block__P();
+    };
+    pir::perl6_associate_sub_code_object__vPP($onlystar, $sel);
+    nqp::bindattr($sel, Code, '$!do', $onlystar);
+    nqp::bindattr($sel, Code, '$!dispatchees', []);
+    $sel
+});
     
 # Similar for packages and modules, but just has methods from Any.
 Perl6::Metamodel::PackageHOW.pretend_to_be([Any, Mu]);

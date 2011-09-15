@@ -21,7 +21,7 @@ sub MAIN(@ARGS) {
     @clo.push('n');
     @clo.push('p');
     @clo.push('doc=s?');
-    @clo.push('optimize');
+    @clo.push('optimize=s?');
     
     # Set up END block list, which we'll run at exit.
     my @*END_PHASERS := [];

@@ -316,6 +316,36 @@ static Rakudo_md_candidate_info** sort_candidates(PARROT_INTERP, PMC *candidates
 
 /*
 
+=item C<static PMC * find_in_cache(PARROT_INTERP, Rakudo_md_arity_cache cache, PMC *capture, INTVAL num_args)>
+
+Looks for an entry in the multi-dispatch cache.
+
+=cut
+
+*/
+static PMC *
+find_in_cache(PARROT_INTERP, Rakudo_md_arity_cache cache, PMC *capture, INTVAL num_args) {
+    return NULL;
+}
+
+
+/*
+
+=item C<static void add_to_cache(PARROT_INTERP, Rakudo_md_cache *cache, PMC *capture, INTVAL num_args)>
+
+Adds an entry to the multi-dispatch cache.
+
+=cut
+
+*/
+static void
+add_to_cache(PARROT_INTERP, Rakudo_md_cache *cache, PMC *capture, INTVAL num_args) {
+    
+}
+
+
+/*
+
 =item C<static INTVAL has_junctional_args(PARROT_INTERP, PMC *args)>
 
 Checks if any of the args are junctional.
@@ -575,7 +605,10 @@ static PMC* find_best_candidate(PARROT_INTERP, Rakudo_md_candidate_info **candid
     /* If we're at a single candidate here, and we also know there's no
      * type constraints that follow, we can cache the result. */
     if (possibles_count == 1 && pure_type_result) {
-        /* XXX TODO: Cache! */
+        Rakudo_Code *code_obj  = (Rakudo_Code *)PMC_data(dispatcher);
+        Rakudo_md_cache *cache = (Rakudo_md_cache *)VTABLE_get_pointer(interp,
+            code_obj->dispatcher_cache);
+        add_to_cache(interp, cache, capture, num_args);
     }
 
     /* Perhaps we found nothing but have junctional arguments? */
@@ -677,6 +710,13 @@ Rakudo_md_dispatch(PARROT_INTERP, PMC *dispatcher, PMC *capture, opcode_t *next)
     INTVAL       num_args  = VTABLE_elements(interp, capture);
     INTVAL       has_cache = !PMC_IS_NULL(code_obj->dispatcher_cache);
     if (num_args <= MD_CACHE_MAX_ARITY && has_cache) {
+        Rakudo_md_cache *cache = (Rakudo_md_cache *)VTABLE_get_pointer(interp,
+            code_obj->dispatcher_cache);
+        if (cache->arity_caches[num_args].num_entries) {
+            PMC *cache_result = find_in_cache(interp, cache->arity_caches[num_args], capture, num_args);
+            if (cache_result)
+                return cache_result;
+        }
     }
     
     /* No cache hit, so we need to do a full dispatch. */

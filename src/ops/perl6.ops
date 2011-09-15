@@ -765,10 +765,13 @@ Creates a multi-dispatch thunk for the specified onlystar dispatcher.
 
 */
 inline op perl6_multi_dispatch_thunk(out PMC, in PMC) :base_core {
-    PMC *md_thunk = pmc_new(interp, pmc_type(interp, Parrot_str_new(interp, "MDThunk", 0)));
-    VTABLE_set_pointer(interp, md_thunk, &Rakudo_md_dispatch);
-    VTABLE_set_pmc(interp, md_thunk, Rakudo_cont_decontainerize(interp, $2));
-    $1 = md_thunk;
+    Rakudo_Code *code_obj = (Rakudo_Code *)PMC_data($2);
+    if (PMC_IS_NULL(code_obj->md_thunk)) {
+        code_obj->md_thunk = pmc_new(interp, pmc_type(interp, Parrot_str_new(interp, "MDThunk", 0)));
+        VTABLE_set_pointer(interp, code_obj->md_thunk, &Rakudo_md_dispatch);
+        VTABLE_set_pmc(interp, code_obj->md_thunk, $2);
+    }
+    $1 = code_obj->md_thunk;
 }
 
 

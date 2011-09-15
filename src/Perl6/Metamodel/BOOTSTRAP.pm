@@ -469,6 +469,7 @@ Block.HOW.add_method(Block, 'clone', sub ($self) {
 my stub Routine metaclass Perl6::Metamodel::ClassHOW { ... };
 Routine.HOW.add_parent(Routine, Block);
 Routine.HOW.add_attribute(Routine, BOOTSTRAPATTR.new(:name<$!rw>, :type(int)));
+Routine.HOW.add_attribute(Routine, BOOTSTRAPATTR.new(:name<$!md_thunk>, :type(Mu)));
 Routine.HOW.publish_parrot_vtable_handler_mapping(Routine);
 Routine.HOW.publish_parrot_vtable_mapping(Routine);
 Routine.HOW.add_method(Routine, 'set_rw', sub ($self) {

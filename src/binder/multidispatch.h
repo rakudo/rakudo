@@ -7,7 +7,6 @@
 typedef struct {
     PMC    *st;                 /* S-table, though we don't care about that here. */
     PMC    *sc;                 /* Serialization context, though we don't care about that here. */
-    PMC    *spill;              /* Attribute spill storage. */
     PMC    *_do;                /* Lower-level code object. */
     PMC    *signature;          /* Signature object. */
     PMC    *dispatchees;        /* List of dispatchees, if any. */

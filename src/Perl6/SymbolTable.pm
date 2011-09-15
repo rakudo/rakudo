@@ -311,10 +311,26 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
             self.install_lexical_symbol($cur_lex, $name, $symbol);
         }
         if $create_scope eq 'our' {
+            if pir::exists($cur_pkg.WHO, $name) {
+                self.steal_WHO($symbol, ($cur_pkg.WHO){$name});
+            }
             self.install_package_symbol($cur_pkg, $name, $symbol);
         }
         
         1;
+    }
+    
+    # If we declare class A::B { }, then class A { }, then A.WHO must be the
+    # .WHO we already created for the stub package A.
+    method steal_WHO($thief, $victim) {
+        pir::set_who__vP($thief, $victim.WHO);
+        if self.is_precompilation_mode() {
+            self.add_event(:deserialize_past(PAST::Op.new(
+                :pirop('set_who vP'),
+                self.get_object_sc_ref_past($thief),
+                PAST::Op.new( :pirop('get_who PP'),
+                    self.get_object_sc_ref_past($victim)))));
+        }
     }
     
     # Installs a lexical symbol. Takes a PAST::Block object, name and
@@ -323,8 +339,10 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
     # gets fixed up at runtime too.
     method install_lexical_symbol($block, $name, $obj, :$clone) {
         # Install the object directly as a block symbol.
+        unless $block.symbol($name) {
+            $block[0].push(PAST::Var.new( :scope('lexical_6model'), :name($name), :isdecl(1) ));
+        }
         $block.symbol($name, :scope('lexical_6model'), :value($obj));
-        $block[0].push(PAST::Var.new( :scope('lexical_6model'), :name($name), :isdecl(1) ));
         
         # Add a clone if needed.
         # XXX Horrible workaround here. We don't have proper serialization

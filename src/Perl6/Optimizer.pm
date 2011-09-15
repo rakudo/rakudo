@@ -229,7 +229,10 @@ class Perl6::Optimizer {
     
     # Inlines a proto.
     method inline_proto($call, $proto) {
-        #say("# found proto to inline");
+        $call.unshift(PAST::Op.new(
+            :pirop('perl6_multi_dispatch_thunk PP'),
+            PAST::Var.new( :name($call.name), :scope('lexical_6model') )));
+        $call.name(nqp::null());
         $call
     }
 }

@@ -39,8 +39,10 @@ Does various setup tasks on behalf of all of the other dynops.
 
 */
 inline op rakudo_dynop_setup() :base_core {
+    /* Get 6model object type ID. */
     smo_id = pmc_type(interp, Parrot_str_new(interp, "SixModelObject", 0));
 }
+
 
 /*
 
@@ -718,7 +720,7 @@ inline op perl6_type_check_return_value(in PMC) :base_core {
 
 /*
 
-=item perl6_enter_multi_dispatch()
+=item perl6_enter_multi_dispatch_from_onlystar_block()
 
 Entry point to multi-dispatch over the dispatchee list in the specified
 candidate.
@@ -751,6 +753,24 @@ inline op perl6_enter_multi_dispatch_from_onlystar_block(out PMC) :base_core {
                 "Internal error: multiple dispatcher returned a null candidate");
     }
 }
+
+
+/*
+
+=item perl6_multi_dispatch_thunk()
+
+Creates a multi-dispatch thunk for the specified onlystar dispatcher.
+
+=cut
+
+*/
+inline op perl6_multi_dispatch_thunk(out PMC, in PMC) :base_core {
+    PMC *md_thunk = pmc_new(interp, pmc_type(interp, Parrot_str_new(interp, "MDThunk", 0)));
+    VTABLE_set_pointer(interp, md_thunk, &Rakudo_md_dispatch);
+    VTABLE_set_pmc(interp, md_thunk, Rakudo_cont_decontainerize(interp, $2));
+    $1 = md_thunk;
+}
+
 
 /*
 

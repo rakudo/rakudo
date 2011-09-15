@@ -1,0 +1,51 @@
+/* Implements a thunk that calls into the multi-dispatcher and then invokes the
+ * result. Used by the optimizer for onlystar protos to avoid the callframe for
+ * the proto. Note that we create just one of these per thread. */
+
+/* The dispatcher. */
+static PMC * (*dispatcher)  (PARROT_INTERP, PMC *dispatcher, PMC *capture, opcode_t *next);
+ 
+pmclass MDThunk
+    auto_attrs
+    dynpmc group perl6
+    hll perl6
+{
+    ATTR PMC *cur_dispatcher;
+    
+    VTABLE void init() {
+        PObj_custom_mark_SET(SELF);
+    }
+    
+    VTABLE void set_pmc(PMC *disp) {
+        SET_ATTR_cur_dispatcher(interp, SELF, disp);
+    }
+    
+    VTABLE void set_pointer(void *ptr) {
+        dispatcher = ptr;
+    }
+    
+    VTABLE opcode_t* invoke(void *next) {
+        /* Need to make sure some stuff doesn't get destroyed. */
+        PMC      * const ctx         = CURRENT_CONTEXT(interp);
+        PMC      * const saved_ccont = interp->current_cont;
+        PMC      * const args        = Parrot_pcc_get_signature(interp, ctx);
+        opcode_t * const current_pc  = Parrot_pcc_get_pc(interp, ctx);
+        
+        /* Choose candidate. */
+        PMC *disp, *cand;
+        GET_ATTR_cur_dispatcher(interp, SELF, disp);
+        cand = dispatcher(interp, disp, args, NULL);
+        
+        /* Restore state and call invoke. */
+        interp->current_cont    = saved_ccont;
+        Parrot_pcc_set_signature(interp, ctx, args);
+        Parrot_pcc_set_pc(interp, ctx, current_pc);
+        return VTABLE_invoke(interp, cand, next);
+    }
+    
+    VTABLE void mark() {
+        PMC *disp;
+        GET_ATTR_cur_dispatcher(interp, SELF, disp);
+        Parrot_gc_mark_PMC_alive(INTERP, disp);
+    }
+}

@@ -42,7 +42,7 @@ my class Any {
         my Mu $rsa := pir::new__Ps('ResizableStringArray');
         nqp::push($rsa, nqp::unbox_s($list.shift.Stringy)) 
             while $list.gimme(0);
-        nqp::push($rsa, '...') if $list.infinite;
+        nqp::push($rsa, nqp::unbox_s('...')) if $list.infinite;
         nqp::p6box_s(nqp::join(nqp::unbox_s($separator.Stringy), $rsa))
     }
 

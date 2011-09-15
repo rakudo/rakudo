@@ -582,7 +582,7 @@ static PMC* find_best_candidate(PARROT_INTERP, Rakudo_md_candidate_info **candid
     if (possibles_count == 0 && has_junctional_args(interp, capture)) {
         /* Unshift the proto onto the start of the args and hand back
          * the threader. */
-        VTABLE_unshift_pmc(interp, CURRENT_CONTEXT(interp), dispatcher);
+        VTABLE_unshift_pmc(interp, capture, dispatcher);
         junctional_res = Rakudo_types_junction_threader_get();
     }
 

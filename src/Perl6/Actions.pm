@@ -2886,6 +2886,10 @@ class Perl6::Actions is HLL::Actions {
         my $past;
         my $lhs_ast := $/[0].ast;
         my $rhs_ast := $/[1].ast;
+        my $var_sigil;
+        if $lhs_ast.isa(PAST::Var) {
+            $var_sigil := pir::substr($lhs_ast.name, 0, 1);
+        }
         if $lhs_ast && $lhs_ast<attribute_declarand> {
             Perl6::Actions.install_attr_init($/);
             $past := PAST::Stmts.new();
@@ -2898,6 +2902,14 @@ class Perl6::Actions is HLL::Actions {
             # level. We grab the thing we want out of the PAST::Want
             # node.
             $past := PAST::Op.new(:pasttype('bind_6model'), $lhs_ast[2], $rhs_ast);
+        }
+        elsif $var_sigil eq '@' || $var_sigil eq '%' {
+            # While the scalar container store op would end up calling .STORE,
+            # it does it in a nested runloop, which gets pricey. This is a
+            # simple heuristic check to try and avoid that by calling .STORE.
+            $past := PAST::Op.new(
+                :pasttype('callmethod'), :name('STORE'),
+                $lhs_ast, $rhs_ast);
         }
         else {
             $past := PAST::Op.new(:pirop('perl6_container_store__0PP'),

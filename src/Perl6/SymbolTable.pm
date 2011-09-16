@@ -961,7 +961,10 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
         
         # Compile it, set wrapper's static lexpad, then invoke the wrapper,
         # which fixes up the lexicals.
-        my $precomp := PAST::Compiler.compile($wrapper);
+        my $p6comp  := pir::compreg__Ps('perl6');
+        my $post    := $p6comp.post($wrapper);
+        my $pir     := $p6comp.pir($post);
+        my $precomp := $p6comp.evalpmc($pir);
         $precomp[0].get_lexinfo.set_static_lexpad($slp);
         $precomp();
         

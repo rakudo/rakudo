@@ -56,19 +56,12 @@ typedef struct {
     PMC    *rtype;              /* Return type. */
 } Rakudo_Signature;
 
-/* Flags we can set on the Context PMC.
- *
- * ALREADY_CHECKED indicates that we have determined that all of the arguments
- * can be bound to positional parameters without any further type checking
- * (because the multi-dispatch cache told us so) and any named parameters are
- * automatically going into the named slurpy variable.
- *
- * ALREADY_BOUND indicates that the variables have already been bound into the
- * lexpad and means the bind_signature op is thus a no-op. This happens if we
- * had to do a bindability check in the multi-dispatch anyway.
+/* 
+ * ALREADY_CHECKED can be flagged on a CallContext, and indicates that we have
+ * determined that all of the arguments can be bound to positional parameters
+ * without any further type checking (because the multi-dispatch told us so).
  */
-#define PObj_P6S_ALREADY_CHECKED_FLAG   PObj_private0_FLAG
-#define PObj_P6S_ALREADY_BOUND_FLAG     PObj_private1_FLAG
+#define PObj_P6BINDER_ALREADY_CHECKED_FLAG PObj_private0_FLAG
 
 /* Gets the ID of a 6model object PMC. */
 INTVAL Rakudo_smo_id(void);

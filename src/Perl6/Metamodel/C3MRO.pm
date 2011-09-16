@@ -9,14 +9,18 @@ role Perl6::Metamodel::C3MRO {
         # Provided we have immediate parents...
         my @result;
         if +@immediate_parents {
-            # Build merge list of lineraizations of all our parents, add
-            # immediate parents and merge.
-            my @merge_list;
-            for @immediate_parents {
-                @merge_list.push(self.compute_mro($_));
+            if +@immediate_parents == 1 {
+                @result := nqp::clone(@immediate_parents[0].HOW.mro(@immediate_parents[0]));
+            } else {
+                # Build merge list of lineraizations of all our parents, add
+                # immediate parents and merge.
+                my @merge_list;
+                for @immediate_parents {
+                    @merge_list.push($_.HOW.mro($_));
+                }
+                @merge_list.push(@immediate_parents);
+                @result := c3_merge(@merge_list);
             }
-            @merge_list.push(@immediate_parents);
-            @result := c3_merge(@merge_list);
         }
 
         # Put this class on the start of the list, and we're done.

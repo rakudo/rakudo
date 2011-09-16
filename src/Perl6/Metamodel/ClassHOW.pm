@@ -16,15 +16,36 @@ class Perl6::Metamodel::ClassHOW
     does Perl6::Metamodel::Trusting
     does Perl6::Metamodel::BUILDPLAN
     does Perl6::Metamodel::Mixins
-    does Perl6::Metamodel::NonGeneric
+    does Perl6::Metamodel::BoolificationProtocol
     does Perl6::Metamodel::ParrotInterop
 {
-    has @!does_list;
+    has @!roles;
+    has @!role_typecheck_list;
+    has @!fallbacks;
     has $!composed;
+
+    my $archetypes := Perl6::Metamodel::Archetypes.new( :nominal(1), :inheritable(1) );
+    method archetypes() {
+        $archetypes
+    }
 
     method new_type(:$name = '<anon>', :$repr = 'P6opaque', :$ver, :$auth) {
         my $metaclass := self.new(:name($name), :ver($ver), :auth($auth));
-        self.add_stash(pir::repr_type_object_for__PPS($metaclass, $repr));
+        my $obj := pir::repr_type_object_for__PPS($metaclass, $repr);
+        self.add_stash($obj);
+        pir::set_boolification_spec__0PiP($obj, 5, pir::null__P());
+        $obj
+    }
+    
+    # Adds a new fallback for method dispatch. Expects the specified
+    # condition to have been met (passes it the object and method name),
+    # and if it is calls $calculator with the object and method name to
+    # calculate an invokable object.
+    method add_fallback($obj, $condition, $calculator) {
+        my %desc;
+        %desc<cond> := $condition;
+        %desc<calc> := $calculator;
+        @!fallbacks[+@!fallbacks] := %desc;
     }
 
     method compose($obj) {
@@ -36,9 +57,20 @@ class Perl6::Metamodel::ClassHOW
             my @ins_roles;
             while @roles_to_compose {
                 my $r := @roles_to_compose.pop();
+                @!roles[+@!roles] := $r;
+                @!role_typecheck_list[+@!role_typecheck_list] := $r;
                 @ins_roles.push($r.HOW.specialize($r, $obj))
             }
-            @!does_list := RoleToClassApplier.apply($obj, @ins_roles)
+            RoleToClassApplier.apply($obj, @ins_roles);
+            
+            # Add them to the typecheck list, and pull in their
+            # own type check lists also.
+            for @ins_roles {
+                @!role_typecheck_list[+@!role_typecheck_list] := $_;
+                for $_.HOW.role_typecheck_list($_) {
+                    @!role_typecheck_list[+@!role_typecheck_list] := $_;
+                }
+            }
         }
 
         # Some things we only do if we weren't already composed once, like
@@ -60,6 +92,7 @@ class Perl6::Metamodel::ClassHOW
         # Publish type and method caches.
         self.publish_type_cache($obj);
         self.publish_method_cache($obj);
+        self.publish_boolification_spec($obj);
         
         # Install Parrot v-table mappings.
         self.publish_parrot_vtable_mapping($obj);
@@ -71,8 +104,33 @@ class Perl6::Metamodel::ClassHOW
         $obj
     }
     
-    method does_list($obj) {
-        @!does_list
+    method roles($obj, :$local, :$transitive) {
+        my @result;
+        for @!roles {
+            @result.push($_);
+            if $transitive {
+                for $_.HOW.roles($_, :transitive(1)) {
+                    @result.push($_);
+                }
+            }
+        }
+        unless $local {
+            my $first := 1;
+            for self.mro($obj) {
+                if $first {
+                    $first := 0;
+                    next;
+                }
+                for $_.HOW.roles($_, :transitive($transitive), :local(1)) {
+                    @result.push($_);
+                }
+            }
+        }
+        @result
+    }
+    
+    method role_typecheck_list($obj) {
+        @!role_typecheck_list
     }
     
     method is_composed($obj) {
@@ -107,6 +165,13 @@ class Perl6::Metamodel::ClassHOW
             return -> *@pos_args, *%named_args {
                 $junction_autothreader($p6name, |@pos_args, |%named_args)
             };
+        }
+        
+        # Consider other fallbacks, if we have any.
+        for @!fallbacks {
+            if ($_<cond>)($obj, $name) {
+                return ($_<calc>)($obj, $name);
+            }
         }
 
         # Otherwise, didn't find anything.

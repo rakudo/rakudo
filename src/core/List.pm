@@ -1,6 +1,4 @@
-class Range { ... }
-
-class List does Positional {
+my class List does Positional {
     # declared in BOOTSTRAP.pm:
     #   is Iterable;           # parent class
     #   has Mu $!items;        # RPA of our reified elements
@@ -15,9 +13,10 @@ class List does Positional {
 
     method Bool()       { self.gimme(1).Bool }
     method Int()        { self.elems }
-    method Numeric()    { self.elems }
     method end()        { self.elems - 1 }
-    multi method Str(List:D:) { self.join(' ') }
+    multi method Numeric(List:D:)  { self.elems }
+    multi method Str(List:D:)      { self.join(' ') }
+
     method fmt($format = '%s', $separator = ' ') {
         self.map({ .fmt($format) }).join($separator);
     }
@@ -48,7 +47,7 @@ class List does Positional {
         $pos = $pos.Int;
         self.exists($pos)
           ?? nqp::atpos($!items, nqp::unbox_i($pos))
-          !! Mu
+          !! Nil
     }
 
     method eager() { self.gimme(*); self }
@@ -130,7 +129,7 @@ class List does Positional {
         }
     }
 
-    method pop() {
+    method pop() is rw {
         my $elems = self.elems;
         fail '.pop from an infinite list NYI' if $!nextiter.defined;
         $elems > 0
@@ -167,7 +166,23 @@ class List does Positional {
         $rlist;
     }
 
-    method shift() {
+    method rotate(Int $n is copy = 1) {
+        self.gimme(*);
+        fail 'Cannot rotate an infinite list' if self.infinite;
+        my Mu $res := nqp::clone($!items);
+        $n %= nqp::p6box_i(nqp::elems($!items));
+        if $n > 0 {
+            nqp::push($res, nqp::shift($res)) while $n--;
+        }
+        elsif $n < 0 {
+            nqp::unshift($res, nqp::pop($res)) while $n++;
+        }
+        my $rlist := nqp::create(self.WHAT);
+        nqp::bindattr($rlist, List, '$!items', $res);
+        $rlist;
+    }
+
+    method shift() is rw {
         # make sure we have at least one item, then shift+return it
         self.gimme(1) 
           ?? nqp::shift($!items) 
@@ -220,6 +235,18 @@ class List does Positional {
             my $k = test $_;
             %result{$k} //= [];
             %result{$k}.push: $_;
+        }
+        %result.pairs;
+    }
+
+    method categorize(&test) {
+        my %result;
+        for @.list {
+            my @k = test $_;
+            for @k -> $k {
+                %result{$k} //= [];
+                %result{$k}.push: $_;
+            }
         }
         %result.pairs;
     }
@@ -312,4 +339,6 @@ proto sub push(|$) {*}
 multi sub push(@a, *@elems) { @a.push: @elems }
 
 sub reverse(*@a)            { @a.reverse }
+sub rotate(@a, Int $n = 1)  { @a.rotate($n) }
 sub reduce (&with, *@list)  { @list.reduce(&with) }
+sub categorize(&mapper, *@a){ @a.categorize(&mapper)}

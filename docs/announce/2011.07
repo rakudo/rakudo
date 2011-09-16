@@ -1,0 +1,58 @@
+    Announce: Rakudo Perl 6 compiler development release #43 ("Beijing")
+
+On behalf of the Rakudo development team, I'm happy to announce the
+July 2011 release of Rakudo Perl #43 "Beijing".  Rakudo is an 
+implementation of Perl 6 on the Parrot Virtual Machine (see 
+<http://www.parrot.org>). The tarball for the July 2011 release
+is available from <http://github.com/rakudo/rakudo/downloads>.
+
+Please note: This announcement is not for the Rakudo Star distribution --
+it's announcing a new release of the compiler only.  For the latest
+Rakudo Star release, see <http://github.com/rakudo/star/downloads>.
+
+The Rakudo Perl compiler follows a monthly release cycle, with each release
+named after a Perl Mongers group. The July 2011 release is code named
+"Beijing" after the host of the Beijing Perl Workshop 2011, which featured
+several Perl 6 related talks.
+
+This will be the last compiler release made from the current "master"
+branch of Rakudo.  For the past several months, Rakudo compiler
+development has primarily occurred in the "nom" branch of the
+Rakudo repository (over 1200 commits since the 2011.05 release).
+Shortly after this release, the "nom" branch will become the new
+"master" branch and will be the source for future releases,
+including the 2011.08 release.  We expect there will be several
+releases in the near future -- watch http://rakudo.org/ for
+details.
+
+Some of the specific changes and improvements occurring in the
+master branch with this release include:
+
+* Fix bug in exponentation of negative numbers
+* Fix build on systems with little RAM
+
+For a more detailed list of changes, see "docs/ChangeLog".
+
+The development team thanks all of our contributors and sponsors for
+making Rakudo Perl possible, as well as those people who worked on 
+Parrot, the Perl 6 test suite and the specification.
+
+The following people contributed to this release:
+
+Moritz Lenz, Patrick R. Michaud, atrodo, Solomon Foster, bacek and others.
+
+If you would like to contribute, see <http://rakudo.org/how-to-help>, ask on
+the perl6-compiler@perl.org mailing list, or ask on IRC #perl6 on freenode.
+
+Rakudo has traditionally released two days after each Parrot
+monthly release.  Because the new version of the compiler has
+additional dependencies beyond Parrot, starting in August 2011 
+we will make releases sometime in the week following each monthly
+Parrot release.  (Parrot releases occur on the third Tuesday of 
+each month.) Thus the next regular release of Rakudo will occur 
+sometime before August 23, 2011.  We also expect to have additional
+"pre-release" versions of Rakudo and Rakudo Star prior to that date.
+
+A list of the other planned release dates and code names for 2011
+is available in the "docs/release_guide.pod" file.
+

@@ -4,9 +4,13 @@ class Perl6::Metamodel::PackageHOW
     does Perl6::Metamodel::Stashing
     does Perl6::Metamodel::TypePretence
     does Perl6::Metamodel::MethodDelegation
-    does Perl6::Metamodel::NonGeneric
 {
     has $!composed;
+
+    my $archetypes := Perl6::Metamodel::Archetypes.new( );
+    method archetypes() {
+        $archetypes
+    }
     
     method new_type(:$name = '<anon>', :$repr = 'P6opaque', :$ver, :$auth) {
         my $metaclass := self.new(:name($name));

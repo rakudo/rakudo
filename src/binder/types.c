@@ -9,6 +9,7 @@
 #include "bind.h"
 
 static PMC * Mu         = NULL;
+static PMC * Any        = NULL;
 static PMC * Junction   = NULL;
 static PMC * Int        = NULL;
 static PMC * Num        = NULL;
@@ -16,11 +17,13 @@ static PMC * Str        = NULL;
 static PMC * Parcel     = NULL;
 static PMC * List       = NULL;
 static PMC * ListIter   = NULL;
+static PMC * Nil        = NULL;
 static PMC * Array      = NULL;
 static PMC * LoL        = NULL;
 static PMC * EnumMap    = NULL;
 static PMC * _Hash      = NULL;
 static PMC * Capture    = NULL;
+static PMC * Code       = NULL;
 static PMC * BoolFalse  = NULL;
 static PMC * BoolTrue   = NULL;
 static PMC * PackageHOW = NULL;
@@ -28,6 +31,9 @@ static PMC * JunctionThreader = NULL;
 
 void Rakudo_types_mu_set(PMC * type) { Mu = type; }
 PMC * Rakudo_types_mu_get(void) { return Mu; }
+
+void Rakudo_types_any_set(PMC * type) { Any = type; }
+PMC * Rakudo_types_any_get(void) { return Any; }
 
 void Rakudo_types_junction_set(PMC * type) { Junction = type; }
 PMC * Rakudo_types_junction_get(void) { return Junction; }
@@ -50,6 +56,9 @@ PMC * Rakudo_types_list_get(void) { return List; }
 void Rakudo_types_listiter_set(PMC * type) { ListIter = type; }
 PMC * Rakudo_types_listiter_get(void) { return ListIter; }
 
+void Rakudo_types_nil_set(PMC * type) { Nil = type; }
+PMC * Rakudo_types_nil_get(void) { return Nil; }
+
 void Rakudo_types_array_set(PMC * type) { Array = type; }
 PMC * Rakudo_types_array_get(void) { return Array; }
 
@@ -64,6 +73,9 @@ PMC * Rakudo_types_hash_get(void) { return _Hash; }
 
 void Rakudo_types_capture_set(PMC * type) { Capture = type; }
 PMC * Rakudo_types_capture_get(void) { return Capture; }
+
+void Rakudo_types_code_set(PMC * type) { Code = type; }
+PMC * Rakudo_types_code_get(void) { return Code; }
 
 void Rakudo_types_bool_false_set(PMC * type) { BoolFalse = type; }
 PMC * Rakudo_types_bool_false_get(void) { return BoolFalse; }

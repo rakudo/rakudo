@@ -1,5 +1,7 @@
 my class Hash {
     # Has attributes and parent EnumMap declared in BOOTSTRAP
+
+    method new(*@args) { @args.hash }
     
     method at_key($key is copy) is rw {
         $key = $key.Str;

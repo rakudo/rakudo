@@ -1,6 +1,6 @@
 my class Enum {
-    has $!key;
-    has $!value;
+    has $.key;
+    has $.value;
 
     method new(:$key, Mu :$value) { self.CREATE.BUILD($key, $value) }
     method BUILD(\$key, Mu \$value) { $!key = $key; $!value = $value; self }
@@ -13,6 +13,10 @@ my class Enum {
         my $method = $.key;
         $topic."$method"() === $.value;
     }
+    
+    method invert() {
+        $.value => $.key;
+    }
 
     method key(Enum:D:)   { $!key }
     method kv(Enum:D:)    { $!key, $!value }
@@ -24,5 +28,13 @@ my class Enum {
 
     multi method Str(Enum:D:) { $.key ~ "\t" ~ $.value }
     multi method perl(Enum:D:) { $.key.perl ~ ' => ' ~ $.value.perl }
+
+    method fmt($format = "%s\t%s") {
+        sprintf($format, $.key, $.value);
+    }
+}
+
+multi sub infix:<eqv>(Enum:D $a, Enum:D $b) {
+    $a.WHAT === $b.WHAT && $a.key eqv $b.key && $a.value eqv $b.value
 }
 

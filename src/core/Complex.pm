@@ -78,7 +78,8 @@ my class Complex is Numeric {
         Complex.new($mag * $!im.cos, $mag * $!im.sin);
     }
 
-    method roots(Complex:D: Int $n) {
+    method roots(Complex:D: $an) {
+        my Int $n = $an.Int;
         return $NaN if $n < 1;
         return self if $n == 1;
         for $!re, $!im {
@@ -88,6 +89,102 @@ my class Complex is Numeric {
         my ($mag, $angle) = self.polar;
         $mag **= 1e0 / $n;
         (^$n).map: { $mag.unpolar( ($angle + $_ * 2e0 * pi) / $n) };
+    }
+    
+    method sin(Complex:D:) {
+        $!re.sin * $!im.cosh + ($!re.cos * $!im.sinh)i;
+    }
+    
+    method asin(Complex:D:) {
+        (Complex.new(0, -1) * log((self)i + sqrt(1 - self * self)));
+    }
+
+    method cos(Complex:D:) {
+        $!re.cos * $!im.cosh - ($!re.sin * $!im.sinh)i;
+    }
+    
+    method acos(Complex:D:) {
+        (pi / 2) - self.asin;
+    }
+    
+    method tan(Complex:D:) {
+        self.sin / self.cos;
+    }
+    
+    method atan(Complex:D:) {
+        ((log(1 - (self)i) - log(1 + (self)i))i / 2);
+    }
+
+    method sec(Complex:D:) {
+        1 / self.cos;
+    }
+
+    method asec(Complex:D:) {
+        (1 / self).acos;
+    }
+
+    method cosec(Complex:D:) {
+        1 / self.sin;
+    }
+
+    method acosec(Complex:D:) {
+        (1 / self).asin;
+    }
+
+    method cotan(Complex:D:) {
+        self.cos / self.sin;
+    }
+
+    method acotan(Complex:D:) {
+        (1 / self).atan;
+    }
+
+    method sinh(Complex:D:) {
+        -((Complex.new(0, 1) * self).sin)i;
+    }
+    
+    method asinh(Complex:D:) {
+        (self + sqrt(1 + self * self)).log;
+    }
+    
+    method cosh(Complex:D:) {
+        (Complex.new(0, 1) * self).cos;
+    }
+    
+    method acosh(Complex:D:) {
+        (self + sqrt(self * self - 1)).log;
+    }
+    
+    method tanh(Complex:D:) {
+        -((Complex.new(0, 1) * self).tan)i;
+    }
+    
+    method atanh(Complex:D:) {
+        (((1 + self) / (1 - self)).log / 2);
+    }
+    
+    method sech(Complex:D:) {
+        1 / self.cosh;
+    }
+    
+    method asech(Complex:D:) {
+        (1 / self).acosh;
+    }
+    
+    method cosech(Complex:D:) {
+        1 / self.sinh;
+    }
+    
+    method acosech(Complex:D:) {
+        (1 / self).asinh;
+    }
+    
+    method cotanh(Complex:D:) {
+        1 / self.tanh;
+    }
+    
+    method acotanh(Complex:D:) {
+        (1 / self).atanh;
     }
 }
 
@@ -291,5 +388,6 @@ proto postfix:<i>(|$) { * }
 multi postfix:<i>(Real      \$a) { Complex.new(0e0, $a);     }
 multi postfix:<i>(Complex:D \$a) { Complex.new(-$a.im, $a.re) }
 multi postfix:<i>(Numeric   \$a) { $a * Complex.new(0e0, 1e0) }
+multi postfix:<i>(Cool      \$a) { $a.Numeric * Complex.new(0e0, 1e0) }
 
 # vim: ft=perl6

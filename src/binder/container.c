@@ -3,6 +3,7 @@
 #include "parrot/extend.h"
 #include "container.h"
 #include "sixmodelobject.h"
+#include "bind.h"
 
 static PMC *scalar_type = NULL;
 void Rakudo_cont_set_scalar_type(PMC *type) { scalar_type = type; }
@@ -11,7 +12,14 @@ void Rakudo_cont_set_scalar_type(PMC *type) { scalar_type = type; }
  * enough was configured to take an optimal slot-access path, just does
  * that. */
 PMC *Rakudo_cont_decontainerize(PARROT_INTERP, PMC *var) {
-    ContainerSpec *spec = STABLE(var)->container_spec;
+    ContainerSpec *spec;
+    
+    /* Fast path for Perl 6 Scalar containers. */
+    if (STABLE(var)->WHAT == scalar_type && REPR(var)->defined(interp, var))
+        return ((Rakudo_Scalar *)PMC_data(var))->value;
+    
+    /* Otherwise, fall back to the usual API. */
+    spec = STABLE(var)->container_spec;
     if (spec) {
         if (!PMC_IS_NULL(spec->value_slot.class_handle)) {
             /* Just get slot. */
@@ -51,6 +59,11 @@ static STRING * typename(PARROT_INTERP, PMC *obj) {
  * it only really skips them if it's Scalar. */
 void Rakudo_cont_store(PARROT_INTERP, PMC *cont, PMC *value,
                        INTVAL type_check, INTVAL rw_check) {
+    /* Ensure the value we're storing is a 6model type. */
+    if (value->vtable->base_type != Rakudo_smo_id())
+        Parrot_ex_throw_from_c_args(interp, NULL, EXCEPTION_INVALID_OPERATION,
+            "Cannot assign a non-Perl 6 value to a Perl 6 container");
+    
     /* If it's a scalar container, optimized path. */
     if (STABLE(cont)->WHAT == scalar_type) {
         Rakudo_Scalar *scalar = (Rakudo_Scalar *)PMC_data(cont);
@@ -136,4 +149,14 @@ PMC * Rakudo_cont_scalar_with_value_no_descriptor(PARROT_INTERP, PMC *value) {
     ((Rakudo_Scalar *)PMC_data(new_scalar))->value = value;
     PARROT_GC_WRITE_BARRIER(interp, new_scalar);
     return new_scalar;
+}
+
+/* Creates and populates a new container descriptor. */
+PMC * Rakudo_create_container_descriptor(PARROT_INTERP, PMC *type, PMC *of, INTVAL rw, STRING *name) {
+    PMC *result = REPR(type)->instance_of(interp, type);
+    Rakudo_ContainerDescriptor *desc = (Rakudo_ContainerDescriptor *)PMC_data(result);
+    desc->of = of;
+    desc->rw = rw;
+    desc->name = name;
+    return result;
 }

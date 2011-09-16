@@ -1,5 +1,5 @@
 use Test;
-plan 37;
+plan 38;
 my $r;
 
 =begin table
@@ -125,3 +125,13 @@ is $r.content.elems, 3;
 is $r.content[0].join(','), 'X,O,';
 is $r.content[1].join(','), ',X,O';
 is $r.content[2].join(','), ',,X';
+
+=begin table
+
+foo
+bar
+
+=end table
+
+$r = $=POD[8];
+is $r.content.elems, 2;

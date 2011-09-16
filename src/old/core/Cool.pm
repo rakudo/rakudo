@@ -1,1 +1,0 @@
-# augment class Cool { ... }

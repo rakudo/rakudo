@@ -33,16 +33,6 @@ sub SEQUENCE($left, $right, :$exclude_end) {
     my $tail := ().list;
 
     my sub generate($code) {
-        my $count = $code.count;
-        my $value;
-        while 1 {
-            $tail.munch($tail.elems - $count);
-            $value := $code(|$tail);
-            last if $value ~~ $endpoint;
-            $tail.push($value);
-            take $value;
-        }
-        $value;
     }
 
     my sub succpred($cmp) {
@@ -100,8 +90,20 @@ sub SEQUENCE($left, $right, :$exclude_end) {
             elsif $tail.elems == 0 {
                 $code = {()}
             }
-            fail "unable to deduce sequence" unless $code.defined;
-            $value = generate($code);
+
+            if $code.defined {
+                my $count = $code.count;
+                while 1 {
+                    $tail.munch($tail.elems - $count);
+                    $value := $code(|$tail);
+                    last if $value ~~ $endpoint;
+                    $tail.push($value);
+                    take $value;
+                }
+            }
+            else {
+                $value = (sub { fail "unable to deduce sequence" })();
+            }
         }
         take $value unless $exclude_end;
     }, :$infinite), @right).list;

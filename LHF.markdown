@@ -15,9 +15,6 @@ Make S03-operators/minmax.t pass
 See S03-smartmatch tests, especially array-array.t, hash-hash.t and
 so forth. The regex ones are probably also good candidates now.
 
-## Basic IO
-get() and lines()
-
 ## Nil assignment
 my Int $b = 3;  $b = Nil;   
 

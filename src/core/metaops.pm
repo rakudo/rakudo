@@ -43,7 +43,7 @@ sub METAOP_ZIP(\$op) {
             my $loop = 1;
             while $loop {
                 my @z = @l.map({ $loop = 0 unless $_; .shift });
-                take $rop(|@z) if $loop;
+                take-rw $rop(|@z) if $loop;
             }
         }
     }
@@ -53,8 +53,8 @@ sub METAOP_REDUCE(\$op, :$triangle) {
     my $x :=
     sub (*@values) {
         if $triangle {
+            return () unless @values;
             GATHER({
-                return unless @values;
                 my $result := @values.shift;
                 take $result;
                 take ($result := $op($result, @values.shift))
@@ -77,8 +77,8 @@ sub METAOP_REDUCE_RIGHT(\$op, :$triangle) {
     sub (*@values) {
         my $list = @values.reverse;
         if $triangle {
+            return () unless $list;
             gather {
-                return unless $list;
                 my $result := $list.shift;
                 take $result;
                 take ($result := $op($list.shift, $result))
@@ -98,7 +98,31 @@ sub METAOP_REDUCE_RIGHT(\$op, :$triangle) {
 
 
 sub METAOP_REDUCE_CHAIN(\$op, :$triangle) {
-    NYI "chaining reduce NYI";
+    $triangle
+        ??  sub (*@values) {
+                my Mu $current = @values.shift;
+                my $state = $op();
+                gather {
+                    take $state;
+                    while $state && @values {
+                        $state = $op($current, @values[0]);
+                        take $state;
+                        $current = @values.shift;
+                    }
+                    take False for @values;
+                }
+
+            }
+        !! sub (*@values) {
+                my $state = $op();
+                my Mu $current = @values.shift;
+                while @values {
+                    $state = $op($current, @values[0]);
+                    $current = @values.shift;
+                    return $state unless $state;
+                }
+                $state;
+            }
 }
 
 
@@ -106,4 +130,74 @@ sub METAOP_REDUCE_XOR(\$op, :$triangle) {
     NYI "xor reduce NYI";
 }
 
+sub METAOP_HYPER(\$op, *%opt) {
+    -> Mu \$a, Mu \$b { hyper($op, $a, $b, |%opt) }
+}
+
+sub METAOP_HYPER_POSTFIX(\$obj, \$op) { hyper($op, $obj) }
+
+sub METAOP_HYPER_PREFIX(\$op, \$obj) { hyper($op, $obj) }
+
+proto sub hyper(|$) { * }
+multi sub hyper(\$op, \$a, \$b, :$dwim-left, :$dwim-right) { 
+    my @alist := $a.flat;
+    my @blist := $b.flat;
+    my $elems = 0;
+    if $dwim-left && $dwim-right { $elems = max(@alist.elems, @blist.elems) }
+    elsif $dwim-left { $elems = @blist.elems }
+    elsif $dwim-right { $elems = @alist.elems }
+    else { 
+        die "Sorry, lists on both sides of non-dwimmy hyperop are not of same length:\n"
+            ~ "    left: @alist.elems() elements, right: @blist.elems() elements\n"
+          if @alist.elems != @blist.elems
+    }
+    @alist := (@alist xx *).munch($elems) if @alist.elems < $elems;
+    @blist := (@blist xx *).munch($elems) if @blist.elems < $elems;
+
+    (@alist Z @blist).map(
+        -> \$x, \$y {
+            Iterable.ACCEPTS($x)
+              ?? $x.new(hyper($op, $x, $y, :$dwim-left, :$dwim-right)).item
+              !! (Iterable.ACCEPTS($y)
+                    ?? $y.new(hyper($op, $x, $y, :$dwim-left, :$dwim-right)).item
+                    !! $op($x, $y))
+        }
+    ).eager
+}
+
+multi sub hyper(\$op, \$obj) {
+    my Mu $rpa := nqp::list();
+    my $a := $obj.flat.eager;
+    for (^$a.elems).pick(*) {
+        my $o := $a.at_pos($_);
+        nqp::bindpos($rpa, nqp::unbox_i($_),
+            Iterable.ACCEPTS($o)
+              ?? $o.new(hyper($op, $o)).item
+              !! $op($o));
+    }
+    nqp::p6parcel($rpa, Nil);
+}
+
+multi sub hyper(\$op, Associative \$h) {
+    my @keys = $h.keys;
+    hash @keys Z hyper($op, $h{@keys})
+}
+
+multi sub hyper(\$op, Associative \$a, Associative \$b, :$dwim-left, :$dwim-right) {
+    my %k;
+    for $a.keys { %k{$_} = 1 if !$dwim-left || $b.exists($_) }
+    for $b.keys { %k{$_} = 1 if !$dwim-right }
+    my @keys = %k.keys;
+    hash @keys Z hyper($op, $a{@keys}, $b{@keys}, :$dwim-left, :$dwim-right)
+}
+
+multi sub hyper(\$op, Associative \$a, \$b, :$dwim-left, :$dwim-right) {
+    my @keys = $a.keys;
+    hash @keys Z hyper($op, $a{@keys}, $b, :$dwim-left, :$dwim-right);
+}
+
+multi sub hyper(\$op, \$a, Associative \$b, :$dwim-left, :$dwim-right) {
+    my @keys = $b.keys;
+    hash @keys Z hyper($op, $a, $b{@keys}, :$dwim-left, :$dwim-right);
+}
 

@@ -1,5 +1,6 @@
 my class Cursor {... }
 my class Range  {... }
+my class Match  {... }
 
 my class Str does Stringy {
     multi method Bool(Str:D:) { self ne '' && self ne '0' }
@@ -117,7 +118,7 @@ my class Str does Stringy {
         $str;
     }
 
-    method Numeric(Str:D:) {
+    multi method Numeric(Str:D:) {
         return nqp::p6box_n(pir::set__Ns('NaN')) if self eq 'NaN';
         my str $str = nqp::unbox_s(self);
         my int $eos = nqp::chars($str);
@@ -157,6 +158,23 @@ my class Str does Stringy {
             $parse := nqp::radix($radix, $str, nqp::add_i($pos, 2), $neg);
             $pos = nqp::atpos($parse, 2);
             fail "missing digits after radix prefix" if nqp::islt_i($pos, 0);
+            return nqp::p6bigint(nqp::atpos($parse, 0)) unless $tailfail();
+        } elsif nqp::iseq_s(nqp::substr($str, $pos, 1), ':') {
+            # a string of form :16<DEAD_BEEF>
+            $pos = nqp::add_i($pos, 1);
+            $parse := nqp::radix(10, $str, $pos, 0);
+            $radix = nqp::atpos($parse, 0);
+            $pos = nqp::atpos($parse, 2);
+            fail "not a number" if nqp::iseq_i($pos, -1);
+            fail "malformed radix number, expecting '<' after the base"
+                unless nqp::iseq_s(nqp::substr($str, $pos, 1), '<');
+            $pos = nqp::add_i($pos, 1);
+            $parse := nqp::radix($radix, $str, $pos, $neg);
+            $pos = nqp::atpos($parse, 2);
+            fail "malformed radix number" if nqp::iseq_i($pos, -1);
+            fail "malformed radix number, expecting '>' after the body"
+                unless nqp::iseq_s(nqp::substr($str, $pos, 1), '>');
+            $pos = nqp::add_i($pos, 1);
             return nqp::p6bigint(nqp::atpos($parse, 0)) unless $tailfail();
         }
 
@@ -248,8 +266,20 @@ my class Str does Stringy {
             !! self.match(:g, :x(1..$limit), $pat).map: { .Str }
     }
 
+    # TODO: should be private
+    proto method ll-match(Str:D: $, *%) {*}
+    multi method ll-match(Str:D: Regex:D $pat, *%opts) {
+        $pat(Cursor.'!cursor_init'(self, |%opts)).MATCH
+    }
+    multi method ll-match(Str:D: Cool:D $pat, *%opts) {
+        my Int $from = %opts<p> // %opts<c> // 0;
+        my $idx = self.index($pat, $from);
+        defined $idx
+          ?? Match.new(orig => self, from => $idx, to => ($idx + $pat.chars))
+          !! Match.new(orig => self, from => 0,    to => -3);
+    }
 
-    multi method match(Str:D: Regex $pat, :continue(:$c), :pos(:$p), :global(:$g), :ov(:$overlap), :$x) {
+    multi method match(Str:D: $pat, :continue(:$c), :pos(:$p), :global(:$g), :ov(:$overlap), :$x) {
         # XXX initialization is a workaround for a nom bug
         my %opts := {};
         if $c.defined {
@@ -267,7 +297,7 @@ my class Str does Stringy {
         }
         if $g  || $overlap || $x.defined {
             my @r;
-            while my $m = $pat(Cursor.'!cursor_init'(self, |%opts)).MATCH {
+            while my $m = self.ll-match($pat, |%opts) {
                 # XXX a bug in the regex engine means that we can
                 # match a zero-width match past the end of the string.
                 # This is the workaround:
@@ -284,13 +314,12 @@ my class Str does Stringy {
             return if $x.defined && @r.elems !~~ $x;
             return @r;
         } else {
-            $pat(Cursor.'!cursor_init'(self, |%opts)).MATCH;
+            self.ll-match($pat, |%opts)
         }
     }
 
     multi method subst($matcher, $replacement,
                        :ii(:$samecase), :ss(:$samespace), *%options) {
-        die ":samespace not yet implemented" if $samecase;
         my @matches = self.match($matcher, |%options);
         return self unless @matches;
         return self if @matches == 1 && !@matches[0];
@@ -316,19 +345,21 @@ my class Str does Stringy {
         (^$c).map: { nqp::p6box_i(nqp::ord(nqp::substr($ns, $_, 1))) }
     }
 
-    method lines(Str:D:) {
+    method lines(Str:D: $limit = $Inf) {
         my $prev_pos = -1;
+        my $l = 0;
         gather {
-            while defined(my $current_pos = self.index("\n", $prev_pos + 1)) {
+            while defined(my $current_pos = self.index("\n", $prev_pos + 1)) && $l++ < $limit {
                 take self.substr($prev_pos + 1, $current_pos - $prev_pos - 1);
                 $prev_pos = $current_pos;
             }
-            take self.substr($prev_pos + 1) if $prev_pos + 1 < self.chars;
+            take self.substr($prev_pos + 1) if $prev_pos + 1 < self.chars && $l <= $limit;
         }
     }
 
     multi method split(Str:D: Regex $pat, $limit = *, :$all) {
         my $l = $limit ~~ Whatever ?? $Inf !! $limit - 1;
+        return ().list if $l < 0;
         my @matches := self.match($pat, :x(1..$l), :g);
         gather {
             my $prev-pos = 0;
@@ -345,6 +376,7 @@ my class Str does Stringy {
         return if self eq '' && $delimiter eq '';
         my $c = 0;
         my $l = $limit ~~ Whatever ?? $Inf !! $limit - 1;
+        return ().list if $l < 0;
         if $l >= 0 {
             gather {
                 while $l-- > 0 {
@@ -379,13 +411,59 @@ my class Str does Stringy {
         }
         @chars.join('');
     }
+
+    method samespace(Str:D: Str:D $pat) {
+        my @self-chunks  = self.split(rx/\s+/, :all);
+        my @pat-chunks  := $pat.split(rx/\s+/, :all);
+        loop (my $i = 1; $i < @pat-chunks && $i < @self-chunks; $i += 2) {
+            @self-chunks[$i] = @pat-chunks[$i];
+        }
+        @self-chunks.join;
+    }
+
+    method trim-leading(Str:D:) {
+        my Int $pos = nqp::p6box_i(
+            pir::find_not_cclass__IiSii(
+                pir::const::CCLASS_WHITESPACE,
+                nqp::unbox_s(self),
+                0,
+                nqp::unbox_i(self.chars)
+            )
+        );
+        self.substr($pos);
+    }
+
+
+    method trim-trailing(Str:D:) {
+        my Int $pos = self.chars - 1;
+        --$pos while $pos >= 0 && nqp::p6bool(
+                nqp::iscclass(
+                    pir::const::CCLASS_WHITESPACE,
+                    nqp::unbox_s(self),
+                    nqp::unbox_i($pos)
+                )
+            );
+        $pos < 0 ?? '' !!  self.substr(0, $pos + 1);
+    }
+
+    method trim(Str:D:) {
+        self.trim-leading.trim-trailing;
+    }
+
+    method words(Str:D: Int $limit = *) {
+        self.comb( / \S+ /, $limit );
+    }
+
+    method capitalize(Str:D:) {
+        self.subst(:g, rx/\w+/, -> $_ { .Str.lc.ucfirst });
+    }
 }
 
 
 multi prefix:<~>(Str:D \$a) { $a }
 
 multi infix:<~>(Str:D \$a, Str:D \$b) {
-    nqp::p6box_s(nqp::concat(nqp::unbox_s($a), nqp::unbox_s($b)))
+    nqp::p6box_s(nqp::concat_s(nqp::unbox_s($a), nqp::unbox_s($b)))
 }
 
 multi infix:<x>(Str:D $s, Int:D $repetition) {
@@ -445,4 +523,18 @@ multi sub ords(Str $s) {
     my Int $c  = $s.chars;
     my str $ns = nqp::unbox_s($s);
     (^$c).map: { nqp::p6box_i(nqp::ord(nqp::substr($ns, $_, 1))) }
+}
+
+# TODO: Cool  variants
+sub trim         (Str:D $s) { $s.trim }
+sub trim-leading (Str:D $s) { $s.trim-leading }
+sub trim-trailing(Str:D $s) { $s.trim-trailing }
+
+# the opposite of Real.base, used for :16($hex_str)
+sub unbase(Int:D $base, Cool:D $str) {
+    if $str.substr(0, 2) eq any(<0x 0d 0o 0b>) {
+        $str.Numeric;
+    } else {
+        ":{$base}<$str>".Numeric;
+    }
 }

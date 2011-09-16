@@ -1,5 +1,6 @@
 my package Pod {
     class Block {
+        has %.config;
         has @.content;
     }
 
@@ -16,9 +17,20 @@ my package Pod {
         has @.allowed;
     }
 
+    class Block::Declarator is Block {
+        has $.WHEREFORE;
+        method set_docee($d) {
+            $!WHEREFORE = $d
+        }
+    }
+
     class Block::Table is Block {
         has $.caption;
         has @.headers; # optional, may be empty
+    }
+
+    class FormattingCode is Block {
+        has $.type;
     }
 
     class Heading is Block {
@@ -27,6 +39,11 @@ my package Pod {
 
     class Item is Block {
         has $.level;
+    }
+
+    class Config {
+        has $.type;
+        has %.config;
     }
 }
 

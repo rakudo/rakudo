@@ -28,6 +28,20 @@ typedef struct {
     PMC                 *fetch_method;
 } ContainerSpec;
 
+/* How do we turn something of this type into a boolean? */
+typedef struct {
+    INTVAL mode;
+    PMC *  method;
+} BoolificationSpec;
+
+/* Boolification mode flags. */
+#define BOOL_MODE_CALL_METHOD                   0
+#define BOOL_MODE_UNBOX_INT                     1
+#define BOOL_MODE_UNBOX_NUM                     2
+#define BOOL_MODE_UNBOX_STR_NOT_EMPTY           3
+#define BOOL_MODE_UNBOX_STR_NOT_EMPTY_OR_ZERO   4
+#define BOOL_MODE_NOT_TYPE_OBJECT               5
+
 /* Controls the way that type checks are performed. By default, if there is
  * a type check cache we treat it as definitive. However, it's possible to
  * declare that in the case the type check cache has no entry we should fall
@@ -39,6 +53,10 @@ typedef struct {
 #define TYPE_CHECK_CACHE_DEFINITIVE    0
 #define TYPE_CHECK_CACHE_THEN_METHOD   1
 #define TYPE_CHECK_NEEDS_ACCEPTS       2
+#define TYPE_CHECK_CACHE_FLAG_MASK     3
+
+/* This flag is set if we consider the method cche authoritative. */
+#define METHOD_CACHE_AUTHORITATIVE     4
 
 /* S-Tables (short for Shared Table) contains the commonalities shared between
  * a (HOW, REPR) pairing (for example, (HOW for the class Dog, P6Opaque). */
@@ -79,8 +97,9 @@ typedef struct {
     /* The length of the type check cache. */
     INTVAL type_check_cache_length;
     
-    /* The type checking mode (see flags for this above). */
-    INTVAL type_check_mode;
+    /* The type checking mode and method cache mode (see flags for this
+     * above). */
+    INTVAL mode_flags;
 
     /* An ID solely for use in caches that last a VM instance. Thus it
      * should never, ever be serialized and you should NEVER make a
@@ -92,6 +111,10 @@ typedef struct {
      * order to fetch the value in it. If not, it'll be null, which can
      * be taken as a "not a container" indication. */
     ContainerSpec *container_spec;
+    
+    /* Information - if any - about how we can turn something of this type
+     * into a boolean. */
+    BoolificationSpec *boolification_spec;
     
     /* The underlying package stash. */
     PMC *WHO;
@@ -152,7 +175,7 @@ struct SixModel_REPROps {
     void (*bind_attribute_str) (PARROT_INTERP, PMC *Object, PMC *ClassHandle, STRING *Name, INTVAL Hint, STRING *Value);
 
     /* Gets the hint for the given attribute ID. */
-    INTVAL (*hint_for) (PARROT_INTERP, PMC *ClassHandle, STRING *Name);
+    INTVAL (*hint_for) (PARROT_INTERP, PMC *Object, PMC *ClassHandle, STRING *Name);
 
     /* Clones the object, optionally cloning any containers in its
      * attributes. */

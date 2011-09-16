@@ -1,4 +1,4 @@
-class Nil { ... }
+my class Nil { ... }
 
 my &THROW :=
     -> |$ {
@@ -100,13 +100,14 @@ my &callwith := -> *@pos, *%named {
 
 my &nextwith := -> *@pos, *%named {
     my Mu $dispatcher := pir::perl6_find_dispatcher__P();
-    my $parcel := $dispatcher.exhausted ?? Nil !!
-        $dispatcher.call_with_args(|@pos, |%named);
-    my Mu $return := pir::find_caller_lex__Ps('RETURN');
-    nqp::isnull($return)
-        ?? die "Attempt to return outside of any Routine"
-        !! $return(pir::perl6_decontainerize__PP($parcel));
-    $parcel
+    my Mu $return     := pir::find_caller_lex__Ps('RETURN');
+    unless $dispatcher.exhausted {
+        nqp::isnull($return)
+            ?? die "Attempt to return outside of any Routine"
+            !! $return(pir::perl6_decontainerize__PP(
+                $dispatcher.call_with_args(|@pos, |%named)))
+    }
+    Nil
 };
 
 my &callsame := -> {
@@ -118,14 +119,16 @@ my &callsame := -> {
 
 my &nextsame := -> {
     my Mu $dispatcher := pir::perl6_find_dispatcher__P();
-    my $parcel := $dispatcher.exhausted ?? Nil !!
-        $dispatcher.call_with_capture(
-            pir::perl6_args_for_dispatcher__PP($dispatcher));
-    my Mu $return := pir::find_caller_lex__Ps('RETURN');
-    nqp::isnull($return)
-        ?? die "Attempt to return outside of any Routine"
-        !! $return(pir::perl6_decontainerize__PP($parcel));
-    $parcel
+    my Mu $return     := pir::find_caller_lex__Ps('RETURN');
+    unless $dispatcher.exhausted {
+        nqp::isnull($return)
+            ?? die "Attempt to return outside of any Routine"
+            !! $return(pir::perl6_decontainerize__PP(
+                $dispatcher.call_with_capture(
+                    pir::perl6_args_for_dispatcher__PP($dispatcher))))
+    
+    }
+    Nil
 };
 
 my &lastcall := -> {
@@ -133,9 +136,11 @@ my &lastcall := -> {
     True
 };
 
-proto sub die(|$) {*};
-multi sub die(Exception $e) { pir::say('throwing an  Exception'); $e.throw }
+proto sub die(|$) is hidden_from_backtrace {*};
+multi sub die(Exception $e) { $e.throw }
 multi sub die(*@msg) { pir::die__0P(@msg.join('')) }
+# XXX TODO: Should really throw a warning exception.
+sub warn(*@msg) is hidden_from_backtrace { $*ERR.say(@msg.join('')) }
 
 sub eval(Str $code, :$lang = 'perl6') {
     my $caller_ctx := Q:PIR {
@@ -165,7 +170,11 @@ sub exit($status = 0) {
     $status;
 }
 
-sub run($cmd) {
+sub run(*@) {
+    die 'run() is not yet implemented, please use shell() for now';
+}
+
+sub shell($cmd) {
     my $status = 255;
     try {
         $status = 
@@ -175,6 +184,17 @@ sub run($cmd) {
                     8));
     }
     $status;
+}
+
+sub sleep($seconds = $Inf) {         # fractional seconds also allowed
+    my $time1 = time;
+    if $seconds ~~ $Inf {
+        pir::sleep__vN(1e16) while True;
+    } else {
+        pir::sleep__vN($seconds);
+    }
+    my $time2 = time;
+    return $time2 - $time1;
 }
 
 sub QX($cmd) {

@@ -50,8 +50,11 @@ my class RoleToClassApplier {
         # Compose in any methods.
         my @methods := $to_compose_meta.methods($to_compose, :local(1));
         for @methods {
-            unless has_method($target, ~$_, 0) {
-                $target.HOW.add_method($target, ~$_, $_);
+            my $name;
+            try { $name := $_.name }
+            unless $name { $name := ~$_ }
+            unless has_method($target, $name, 0) {
+                $target.HOW.add_method($target, $name, $_);
             }
         }
         if pir::can__IPs($to_compose_meta, 'private_method_table') {
@@ -81,6 +84,6 @@ my class RoleToClassApplier {
             $target.HOW.add_attribute($target, $_);
         }
         
-        return $to_compose_meta.does_list($to_compose);
+        1;
     }
 }

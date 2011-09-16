@@ -12,33 +12,42 @@
 # a particular candidate.
 class Perl6::Metamodel::ParametricRoleGroupHOW
     does Perl6::Metamodel::Naming
-    does Perl6::Metamodel::NonGeneric
+    does Perl6::Metamodel::Stashing
+    does Perl6::Metamodel::TypePretence
+    does Perl6::Metamodel::RolePunning
 {
     has @!possibilities;
+    has @!add_to_selector;
     has $!selector;
+    has @!role_typecheck_list;
+
+    my $archetypes := Perl6::Metamodel::Archetypes.new( :nominal(1), :composable(1), :inheritalizable(1), :parametric(1) );
+    method archetypes() {
+        $archetypes
+    }
     
-    method new_type(:$name!) {
-        my $meta := self.new(:name($name));
-        pir::repr_type_object_for__PPS($meta, 'Uninstantiable');
+    my $selector_creator;
+    method set_selector_creator($sc) {
+        $selector_creator := $sc;
+    }
+    
+    method new_type(:$name!, :$repr) {
+        my $meta := self.new(:name($name), :selector($selector_creator()));
+        self.add_stash(pir::repr_type_object_for__PPS($meta, 'Uninstantiable'));
     }
     
     method add_possibility($obj, $possible) {
-        @!possibilities.push($possible);
-        $!selector := 0;
-    }
-    
-    method curry($obj, *@pos_args, *%named_args) {
-        # XXX We really want to keep a cache here of previously
-        # seen curryings.
-        Perl6::Metamodel::CurriedRoleHOW.new_type(:curried_role($obj),
-            :pos_args(@pos_args), |named_args(%named_args))
+        @!possibilities[+@!possibilities] := $possible;
+        @!add_to_selector[+@!add_to_selector] := $possible;
+        self.update_role_typecheck_list($obj);
     }
     
     method specialize($obj, *@pos_args, *%named_args) {
+        # Locate correct parametric role and type environment.
         my $error;
-        my $result;
+        my @result;
         try {
-            $result := (self.get_selector($obj))(|@pos_args, |%named_args);
+            @result := (self.get_selector($obj))(|@pos_args, |%named_args);
             CATCH { $error := $! }
         }
         if $error {
@@ -46,13 +55,50 @@ class Perl6::Metamodel::ParametricRoleGroupHOW
                 self.name($obj) ~ "' matched the arguments supplied.\n" ~
                 $error);
         }
-        $result
+        
+        # Having picked the appropraite one, specialize it.
+        my $prole := @result[0];
+        my $type_env := @result[1];
+        $prole.HOW.specialize_with($prole, $type_env, @pos_args)
     }
     
     method get_selector($obj) {
-        unless $!selector {
-            
+        if @!add_to_selector {
+            for @!add_to_selector {
+                $!selector.add_dispatchee($_.HOW.body_block($_));
+            }
+            @!add_to_selector := [];
         }
         $!selector
+    }
+    
+    method update_role_typecheck_list($obj) {
+        for @!possibilities {
+            if !$_.HOW.signatured($_) {
+                @!role_typecheck_list := $_.HOW.role_typecheck_list($_);
+            }
+        }
+    }
+    
+    method role_typecheck_list($obj) {
+        @!role_typecheck_list
+    }
+    
+    method type_check($obj, $checkee) {
+        my $decont := pir::perl6_decontainerize__PP($checkee);
+        if $decont =:= $obj.WHAT {
+            return 1;
+        }
+        for self.prentending_to_be() {
+            if $decont =:= pir::perl6_decontainerize__PP($_) {
+                return 1;
+            }
+        }
+        for @!role_typecheck_list {
+            if $decont =:= pir::perl6_decontainerize__PP($_) {
+                return 1;
+            }
+        }
+        0;
     }
 }

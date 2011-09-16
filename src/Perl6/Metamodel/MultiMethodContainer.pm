@@ -79,11 +79,6 @@ role Perl6::Metamodel::MultiMethodContainer {
                             self.add_method($obj, $name, $copy);
                             $found := 1;
                         }
-                        else {
-                            pir::die("Could not find a proto for multi '" ~ $name ~
-                                "' in package '" ~ self.name($obj) ~
-                                "' (it may exist, but an only is hiding it if so)");
-                        }
                     }
                     $j := $j + 1;
                 }
@@ -91,12 +86,13 @@ role Perl6::Metamodel::MultiMethodContainer {
                     # No proto found, so we'll generate one here.
                     my $proto := $autogen_proto.instantiate_generic(
                         hash( T => $obj ));
-                    $proto."!set_name"($name);
+                    $proto.set_name($name);
                     $proto.add_dispatchee($code);
                     self.add_method($obj, $name, $proto);
                 }
             }
             $i := $i + 1;
         }
+        @!multi_methods_to_incorporate := [];
     }
 }

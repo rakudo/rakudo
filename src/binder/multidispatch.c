@@ -59,6 +59,8 @@ static INTVAL is_narrower(PARROT_INTERP, Rakudo_md_candidate_info *a, Rakudo_md_
         types_to_check = a->num_types;
     else if (a->min_arity == b->min_arity)
         types_to_check = a->num_types > b->num_types ? b->num_types : a->num_types;
+    else if (a->max_arity != SLURPY_ARITY && b->max_arity == SLURPY_ARITY)
+        return 1;
     else
         return 0;
 
@@ -98,8 +100,10 @@ static INTVAL is_narrower(PARROT_INTERP, Rakudo_md_candidate_info *a, Rakudo_md_
         return 0;
 
     /* Otherwise, we see if one has a slurpy and the other not. A lack of
-     * slurpiness makes the candidate narrower. Otherwise, they're tied. */
-    return a->max_arity != SLURPY_ARITY && b->max_arity == SLURPY_ARITY;
+     * slurpiness makes the candidate narrower. Also narrower if the first
+     * needs a bind check and the second doesn't. Otherwise, they're tied. */
+    return (a->max_arity != SLURPY_ARITY && b->max_arity == SLURPY_ARITY) ||
+        (a->bind_check && !(b->bind_check));
 }
 
 
@@ -191,7 +195,13 @@ static Rakudo_md_candidate_info** sort_candidates(PARROT_INTERP, PMC *candidates
             }
 
             /* Record type info for this parameter. */
-            info->types[significant_param]       = param->nominal_type;
+            if (param->flags & SIG_ELEM_NOMINAL_GENERIC) {
+                info->bind_check = 1;
+                info->types[significant_param] = Rakudo_types_any_get();
+            }
+            else {
+                info->types[significant_param] = param->nominal_type;
+            }
             info->constraints[significant_param] = param->post_constraints;
             if (!PMC_IS_NULL(info->constraints[significant_param]))
                 info->bind_check = 1;
@@ -282,6 +292,8 @@ static Rakudo_md_candidate_info** sort_candidates(PARROT_INTERP, PMC *candidates
         if (info) {
             if (info->types)
                 mem_sys_free(info->types);
+            if (info->definednesses)
+                mem_sys_free(info->definednesses);
             if (info->constraints)
                 mem_sys_free(info->constraints);
             mem_sys_free(info);
@@ -299,6 +311,97 @@ static Rakudo_md_candidate_info** sort_candidates(PARROT_INTERP, PMC *candidates
     }
 
     return result;
+}
+
+
+/*
+
+=item C<static PMC * find_in_cache(PARROT_INTERP, Rakudo_md_arity_cache cache, PMC *capture, INTVAL num_args)>
+
+Looks for an entry in the multi-dispatch cache.
+
+=cut
+
+*/
+static PMC *
+find_in_cache(PARROT_INTERP, Rakudo_md_cache *cache, PMC *capture, INTVAL num_args) {
+    INTVAL arg_tup[MD_CACHE_MAX_ARITY];
+    INTVAL i, j, entries, t_pos;
+    
+    /* If it's zero-arity, return result right off. */
+    if (num_args == 0)
+        return cache->zero_arity;
+
+    /* Create arg tuple. */
+    for (i = 0; i < num_args; i++) {
+        PMC *arg = VTABLE_get_pmc_keyed_int(interp, capture, i);
+        arg_tup[i] = STABLE(arg)->type_cache_id | (REPR(arg)->defined(interp, arg) ? 1 : 0);
+    }
+
+    /* Look through entries. */
+    entries = cache->arity_caches[num_args - 1].num_entries;
+    t_pos = 0;
+    for (i = 0; i < entries; i++) {
+        INTVAL match = 1;
+        for (j = 0; j < num_args; j++) {
+            if (cache->arity_caches[num_args - 1].type_ids[t_pos + j] != arg_tup[j]) {
+                match = 0;
+                break;
+            }
+        }
+        if (match)
+            return cache->arity_caches[num_args - 1].results[i];
+        t_pos += num_args;
+    }
+
+    return NULL;
+}
+
+
+/*
+
+=item C<static void add_to_cache(PARROT_INTERP, Rakudo_md_cache *cache, PMC *capture, INTVAL num_args)>
+
+Adds an entry to the multi-dispatch cache.
+
+=cut
+
+*/
+static void
+add_to_cache(PARROT_INTERP, Rakudo_md_cache *cache, PMC *capture, INTVAL num_args, PMC *result) {
+    INTVAL arg_tup[MD_CACHE_MAX_ARITY];
+    INTVAL i, entries, ins_type;
+    
+    /* If it's zero arity, just stick it in that slot. */
+    if (num_args == 0) {
+        cache->zero_arity = result;
+        return;
+    }
+    
+    /* If the cache is saturated, don't do anything (we could instead do a random
+     * replacement). */
+    entries = cache->arity_caches[num_args - 1].num_entries;
+    if (entries == MD_CACHE_MAX_ENTRIES)
+        return;
+    
+    /* Create arg tuple. */
+    for (i = 0; i < num_args; i++) {
+        PMC *arg = VTABLE_get_pmc_keyed_int(interp, capture, i);
+        arg_tup[i] = STABLE(arg)->type_cache_id | (REPR(arg)->defined(interp, arg) ? 1 : 0);
+    }
+
+    /* If there's no entries yet, need to do some allocation. */
+    if (entries == 0) {
+        cache->arity_caches[num_args - 1].type_ids = mem_sys_allocate(num_args * sizeof(INTVAL) * MD_CACHE_MAX_ENTRIES);
+        cache->arity_caches[num_args - 1].results  = mem_sys_allocate(sizeof(PMC *) * MD_CACHE_MAX_ENTRIES);
+    }
+
+    /* Add entry. */
+    ins_type = entries * num_args;
+    for (i = 0; i < num_args; i++)
+        cache->arity_caches[num_args - 1].type_ids[ins_type + i] = arg_tup[i];
+    cache->arity_caches[num_args - 1].results[entries] = result;
+    cache->arity_caches[num_args - 1].num_entries = entries + 1;
 }
 
 
@@ -406,7 +509,6 @@ static PMC* find_best_candidate(PARROT_INTERP, Rakudo_md_candidate_info **candid
                              * it right here. Flag that we've built a list of
                              * new possibles, and that this was not a pure
                              * type-based result that we can cache. */
-
                             if (!new_possibles)
                                 new_possibles = mem_allocate_n_typed(num_candidates, Rakudo_md_candidate_info *);
                             pure_type_result = 0;
@@ -418,24 +520,12 @@ static PMC* find_best_candidate(PARROT_INTERP, Rakudo_md_candidate_info **candid
                     if (possibles[i]->bind_check) {
                         /* We'll invoke the sub (but not re-enter the runloop)
                          * and then attempt to bind the signature. */
-                        /*opcode_t *where  = VTABLE_invoke(interp, possibles[i]->sub, next);
+                        opcode_t *where  = VTABLE_invoke(interp, possibles[i]->sub, next);
                         PMC      *lexpad = Parrot_pcc_get_lex_pad(interp, CURRENT_CONTEXT(interp));
                         PMC      *sig    = possibles[i]->signature;
                         INTVAL bind_check_result = Rakudo_binding_bind(interp, lexpad,
-                              sig, capture, 1, NULL);
-                        */
-                        /* XXX In the future, we can actually keep the context if we only
-                         * need one candidate, and then hand back the current PC and mark
-                         * the context as not needing a bind. Just needs some code re-org.
-                         * For now, we always clean up the ret-cont again. */
-                        /*where = VTABLE_invoke(interp, Parrot_pcc_get_continuation(interp, CURRENT_CONTEXT(interp)), where);*/
-                        
-                        /* XXX Review the above to see if it's really needed. For now, we
-                         * can try the following. */
-                        PMC *sig      = possibles[i]->signature;
-                        PMC *fake_pad = pmc_new(interp, enum_class_Hash);
-                        INTVAL bind_check_result = Rakudo_binding_bind(interp, fake_pad,
-                              sig, capture, 1, NULL);
+                              sig, capture, 0, NULL);
+                        where = VTABLE_invoke(interp, Parrot_pcc_get_continuation(interp, CURRENT_CONTEXT(interp)), where);
 
                         /* If we haven't got a possibles storage space, allocate it now. */
                         if (!new_possibles)
@@ -451,6 +541,14 @@ static PMC* find_best_candidate(PARROT_INTERP, Rakudo_md_candidate_info **candid
                         /* Since we had to do a bindability check, this is not
                          * a result we can cache on nominal type. */
                         pure_type_result = 0;
+                    }
+                    
+                    /* Otherwise, it's just nominal; accept it. */
+                    else {
+                        if (!new_possibles)
+                            new_possibles = mem_allocate_n_typed(num_candidates, Rakudo_md_candidate_info *);
+                        new_possibles[new_possibles_count] = possibles[i];
+                        new_possibles_count++;
                     }
                 }
 
@@ -530,8 +628,10 @@ static PMC* find_best_candidate(PARROT_INTERP, Rakudo_md_candidate_info **candid
     }
     
     /* If we were looking for many candidates, we're done now. */
-    if (many)
+    if (many) {
+        mem_sys_free(possibles);
         return many_res;
+    }
 
     /* Check is default trait if we still have multiple options and we want one. */
     if (possibles_count > 1) {
@@ -565,8 +665,11 @@ static PMC* find_best_candidate(PARROT_INTERP, Rakudo_md_candidate_info **candid
 
     /* If we're at a single candidate here, and we also know there's no
      * type constraints that follow, we can cache the result. */
-    if (possibles_count == 1 && pure_type_result) {
-        /* XXX TODO: Cache! */
+    if (possibles_count == 1 && pure_type_result && num_args <= MD_CACHE_MAX_ARITY) {
+        Rakudo_Code *code_obj  = (Rakudo_Code *)PMC_data(dispatcher);
+        Rakudo_md_cache *cache = (Rakudo_md_cache *)VTABLE_get_pointer(interp,
+            code_obj->dispatcher_cache);
+        add_to_cache(interp, cache, capture, num_args, possibles[0]->sub);
     }
 
     /* Perhaps we found nothing but have junctional arguments? */
@@ -623,6 +726,33 @@ static PMC* find_best_candidate(PARROT_INTERP, Rakudo_md_candidate_info **candid
 
 /*
 
+=item C<static Rakudo_md_candidate_info ** obtain_candidate_list(PARROT_INTERP,
+        INTVAL has_cache, Rakudo_Code *code_obj)>
+
+Gets the sorted candiate list (either from cache, or by producing it).
+
+=cut
+
+*/
+static Rakudo_md_candidate_info ** obtain_candidate_list(PARROT_INTERP,
+        INTVAL has_cache, PMC *dispatcher, Rakudo_Code *code_obj) {
+    if (has_cache) {
+        return ((Rakudo_md_cache *)VTABLE_get_pointer(interp,
+            code_obj->dispatcher_cache))->candidates;
+    }
+    else {
+        Rakudo_md_cache *cache = mem_allocate_zeroed_typed(Rakudo_md_cache);
+        cache->candidates = sort_candidates(interp, code_obj->dispatchees);
+        code_obj->dispatcher_cache = pmc_new(interp, enum_class_Pointer);
+        VTABLE_set_pointer(interp, code_obj->dispatcher_cache, cache);
+        PARROT_GC_WRITE_BARRIER(interp, dispatcher);
+        return cache->candidates;
+    }
+}
+
+
+/*
+
 =item C<PMC * Rakudo_md_dispatch(PARROT_INTERP, PMC *dispatcher, opcode_t *next)>
 
 Gets the candidate list, does sorting if we didn't already do so, and
@@ -633,21 +763,29 @@ enters the multi dispatcher.
 */
 PMC *
 Rakudo_md_dispatch(PARROT_INTERP, PMC *dispatcher, PMC *capture, opcode_t *next) {
-    Rakudo_Code *code_obj  = (Rakudo_Code *)PMC_data(dispatcher);
-    INTVAL       num_cands = VTABLE_elements(interp, code_obj->dispatchees);
+    INTVAL num_cands;
     Rakudo_md_candidate_info **cands;
-    if (PMC_IS_NULL(code_obj->dispatcher_cache)) {
-        cands = sort_candidates(interp, code_obj->dispatchees);
-        code_obj->dispatcher_cache = pmc_new(interp, enum_class_Pointer);
-        VTABLE_set_pointer(interp, code_obj->dispatcher_cache, cands);
-        PARROT_GC_WRITE_BARRIER(interp, dispatcher);
-    }
-    else {
-        cands = (Rakudo_md_candidate_info **)VTABLE_get_pointer(interp,
+    
+    /* Sane to look in the cache? */
+    Rakudo_Code *code_obj  = (Rakudo_Code *)PMC_data(dispatcher);
+    INTVAL       num_args  = VTABLE_elements(interp, capture);
+    INTVAL       has_cache = !PMC_IS_NULL(code_obj->dispatcher_cache);
+    /*if (num_args <= MD_CACHE_MAX_ARITY && has_cache) {
+        Rakudo_md_cache *cache = (Rakudo_md_cache *)VTABLE_get_pointer(interp,
             code_obj->dispatcher_cache);
-    }
+        if (num_args == 0 || cache->arity_caches[num_args - 1].num_entries) {
+            PMC *cache_result = find_in_cache(interp, cache, capture, num_args);
+            if (cache_result)
+                return cache_result;
+        }
+    }*/
+    
+    /* No cache hit, so we need to do a full dispatch. */
+    num_cands = VTABLE_elements(interp, code_obj->dispatchees);
+    cands     = obtain_candidate_list(interp, has_cache, dispatcher, code_obj);
     return find_best_candidate(interp, cands, num_cands, capture, next, dispatcher, 0);
 }
+
 
 /*
 
@@ -663,17 +801,9 @@ PMC *
 Rakudo_md_get_all_matches(PARROT_INTERP, PMC *dispatcher, PMC *capture) {
     Rakudo_Code *code_obj  = (Rakudo_Code *)PMC_data(dispatcher);
     INTVAL       num_cands = VTABLE_elements(interp, code_obj->dispatchees);
-    Rakudo_md_candidate_info **cands;
-    if (PMC_IS_NULL(code_obj->dispatcher_cache)) {
-        cands = sort_candidates(interp, code_obj->dispatchees);
-        code_obj->dispatcher_cache = pmc_new(interp, enum_class_Pointer);
-        VTABLE_set_pointer(interp, code_obj->dispatcher_cache, cands);
-        PARROT_GC_WRITE_BARRIER(interp, dispatcher);
-    }
-    else {
-        cands = (Rakudo_md_candidate_info **)VTABLE_get_pointer(interp,
-            code_obj->dispatcher_cache);
-    }
+    INTVAL       has_cache = !PMC_IS_NULL(code_obj->dispatcher_cache);
+    Rakudo_md_candidate_info **cands = obtain_candidate_list(interp, has_cache,
+        dispatcher, code_obj);
     return find_best_candidate(interp, cands, num_cands, capture, NULL, dispatcher, 1);
 }
 

@@ -63,9 +63,17 @@ my class Attribute {
                         }
 
                 }
+                $meth.set_name($meth_name);
                 $package.HOW.add_method($package, $meth_name, $meth);
             }
         }
+        
+        # Apply any handles trait we may have.
+        self.apply_handles($package);
+    }
+    
+    method apply_handles(Mu $pkg) {
+        # None by default.
     }
     
     method get_value(Mu $obj) {
@@ -77,4 +85,17 @@ my class Attribute {
             when 3 { nqp::p6box_s(nqp::getattr_s($decont, $!package, $!name)) }
         }
     }
+    
+    method set_value(Mu $obj, Mu \$value) {
+        my $decont := pir::perl6_decontainerize__PP($obj);
+        given nqp::p6box_i(pir::repr_get_primitive_type_spec__IP($!type)) {
+            when 0 { nqp::bindattr($decont, $!package, $!name, $value) }
+            when 1 { nqp::p6box_i(nqp::bindattr_i($decont, $!package, $!name, $value)) }
+            when 2 { nqp::p6box_n(nqp::bindattr_n($decont, $!package, $!name, $value)) }
+            when 3 { nqp::p6box_s(nqp::bindattr_s($decont, $!package, $!name, $value)) }
+        }
+    }
+    
+    method has-accessor() { ?$!has_accessor }
+    method readonly() { !self.rw }
 }

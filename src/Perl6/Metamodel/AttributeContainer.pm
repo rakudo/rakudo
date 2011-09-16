@@ -40,21 +40,24 @@ role Perl6::Metamodel::AttributeContainer {
     # This is called by the parser so it should only return attributes
     # that are visible inside the current package.
     method get_attribute_for_usage($obj, $name) {
+        unless pir::exists(%!attribute_lookup, $name) {
+            pir::die("No $name attribute in " ~ self.name($obj))
+        }
         %!attribute_lookup{$name}
     }
 
     # Introspect attributes.
     method attributes($obj, :$local) {
-        # Always add local ones.
         my @attrs;
-        for @!attributes {
-            @attrs.push($_);
+        
+        if $local {
+            for @!attributes {
+                @attrs.push($_);
+            }
         }
-
-        # Also may need ones from parents.
-        unless $local {
-            for self.parents($obj) {
-                for $_.HOW.attributes($_) {
+        else {
+            for self.mro($obj) {
+                for $_.HOW.attributes($_, :local(1)) {
                     @attrs.push($_);
                 }
             }

@@ -3,10 +3,17 @@ my class Parcel does Positional {
     #    is Cool;              # parent class
     #    has $!storage;        # RPA of Parcel's elements
 
-    multi method Str(Parcel:D:) { self.flat.Str }
+    multi method Bool(Parcel:D:)           { nqp::p6bool($!storage) }
+    multi method Numeric(Parcel:D:)        { self.flat.elems }
+    multi method Str(Parcel:D:)            { self.flat.Str }
+#    multi method Int(Parcel:D:)            { self.flat.elems }
     multi method ACCEPTS(Parcel:D: $topic) { self.list.ACCEPTS($topic) }
-    method Numeric()            { self.flat.elems }
-    method Capture()            { self }  # XXX CHEAT CHEAT CHEAT
+
+    method Capture() {
+        my $cap := nqp::create(Capture);
+        nqp::bindattr($cap, Capture, '$!list', $!storage);
+        $cap
+    }
 
     method flat() {
         nqp::p6list(nqp::clone($!storage), List, Bool::True)
@@ -22,7 +29,7 @@ my class Parcel does Positional {
         nqp::p6list(nqp::clone($!storage), LoL, Mu)
     }
 
-    method at_pos(Parcel:D: \$x) { self.flat.at_pos($x); }
+    method at_pos(Parcel:D: \$x) is rw { self.flat.at_pos($x); }
 
     method postcircumfix:<[ ]>(Parcel:D: \$x) { self.flat.[$x] }
 
@@ -92,6 +99,10 @@ my class Parcel does Positional {
     }
     
     method ARGLIST_FLATTENABLE() { $!storage }
+
+    method fmt($format = '%s', $separator = ' ') {
+        self.list.fmt($format, $separator);
+    }
 }
 
 

@@ -41,6 +41,12 @@ my class Junction is Mu {
     multi method perl(Junction:D:) { 
         $!type ~ '(' ~ $!storage.map({$_.perl}).join(', ') ~ ')'
     }
+    
+    method postcircumfix:<( )>($c) {
+        AUTOTHREAD(
+            -> $obj, **@cpos, *%cnamed { $obj(|@cpos, |%cnamed) },
+            self, |$c);
+    }
 }
 
 sub any(*@values) { Junction.new(@values, :type<any>); }
@@ -92,7 +98,7 @@ sub AUTOTHREAD(&call, **@pos, *%named) {
 
 sub AUTOTHREAD_METHOD($name, **@pos, *%named) {
     AUTOTHREAD(
-        -> $obj, *@cpos, *%cnamed { $obj."$name"(|@cpos, |%cnamed) },
+        -> $obj, **@cpos, *%cnamed { $obj."$name"(|@cpos, |%cnamed) },
         |@pos, |%named);
 }
 

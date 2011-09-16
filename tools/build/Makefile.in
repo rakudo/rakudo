@@ -32,6 +32,7 @@ POD2MAN       = @pod2man@
 # locations of parrot and nqp resources
 PARROT           = $(PARROT_BIN_DIR)/parrot$(EXE)
 NQP_EXE          = $(PARROT_BIN_DIR)/nqp$(EXE)
+NQP_LANG_DIR     = $(PARROT_LIB_DIR)/languages/nqp
 PBC_TO_EXE       = $(PARROT_BIN_DIR)/pbc_to_exe$(EXE)
 PARROT_TOOLS_DIR = $(PARROT_LIB_DIR)/tools
 PARROT_PERL_LIB  = $(PARROT_TOOLS_DIR)/lib
@@ -70,9 +71,12 @@ PERL6_M       = src/gen/perl6-metamodel.pir
 PERL6_M_PBC   = blib/Perl6/Metamodel.pbc
 SETTING_PIR   = src/gen/CORE.setting.pir
 SETTING       = CORE.setting.pbc
+S_SETTING_PIR = src/gen/SAFE.setting.pir
+S_SETTING     = SAFE.setting.pbc
 GROUP         = perl6_group
 OPS           = perl6_ops
-DYNEXT_TARGET = $(DYNEXT_DIR)/$(GROUP)$(LOAD_EXT)
+DYNEXT_DYNPMC = $(DYNEXT_DIR)/$(GROUP)$(LOAD_EXT)
+DYNEXT_DYNOPS = $(DYNEXT_DIR)/$(OPS)$(LOAD_EXT)
 DYNPMC        = $(PMC_DIR)/$(GROUP)$(LOAD_EXT)
 DYNOPS        = $(OPS_DIR)/$(OPS)$(LOAD_EXT)
 
@@ -82,13 +86,14 @@ PMC_SOURCES = \
 OPS_SOURCE   = perl6.ops
 
 METAMODEL_SOURCES = \
+  src/Perl6/Metamodel/Archetypes.pm \
   src/Perl6/Metamodel/Naming.pm \
   src/Perl6/Metamodel/Documenting.pm \
   src/Perl6/Metamodel/Stashing.pm \
   src/Perl6/Metamodel/Versioning.pm \
   src/Perl6/Metamodel/TypePretence.pm \
   src/Perl6/Metamodel/MethodDelegation.pm \
-  src/Perl6/Metamodel/NonGeneric.pm \
+  src/Perl6/Metamodel/BoolificationProtocol.pm \
   src/Perl6/Metamodel/PackageHOW.pm \
   src/Perl6/Metamodel/ModuleHOW.pm \
   src/Perl6/Metamodel/GenericHOW.pm \
@@ -142,9 +147,15 @@ CORE_SOURCES = \
   src/core/natives.pm \
   src/core/control.pm \
   src/core/Mu.pm \
+  src/core/Stringy.pm \
   src/core/Any.pm \
   src/core/Code.pm \
   src/core/WhateverCode.pm \
+  src/core/Block.pm \
+  src/core/Routine.pm \
+  src/core/Sub.pm \
+  src/core/Method.pm \
+  src/core/Submethod.pm \
   src/core/Attribute.pm \
   src/core/Junction.pm \
   src/core/Cool.pm \
@@ -155,42 +166,45 @@ CORE_SOURCES = \
   src/core/Real.pm \
   src/core/Int.pm \
   src/core/Num.pm \
-  src/core/Stringy.pm \
   src/core/Str.pm \
   src/core/Capture.pm \
   src/core/Parcel.pm \
   src/core/Iterable.pm \
   src/core/Iterator.pm \
   src/core/Nil.pm \
+  src/core/Range.pm \
   src/core/ListIter.pm \
   src/core/MapIter.pm \
   src/core/GatherIter.pm \
   src/core/List.pm \
   src/core/LoL.pm \
   src/core/Array.pm \
-  src/core/Range.pm \
   src/core/Enum.pm \
   src/core/Pair.pm \
   src/core/EnumMap.pm \
   src/core/Hash.pm \
   src/core/Parameter.pm \
   src/core/Signature.pm \
-  src/core/Block.pm \
-  src/core/Routine.pm \
-  src/core/Sub.pm \
-  src/core/Method.pm \
   src/core/IO.pm \
   src/core/IO/ArgFiles.pm \
+  src/core/IO/Socket.pm \
+  src/core/IO/Socket/INET.pm \
   src/core/Rat.pm \
   src/core/Complex.pm \
+  src/core/Backtrace.pm \
   src/core/Exception.pm \
   src/core/Failure.pm \
-  src/core/BackTrace.pm \
   src/core/Exceptions.pm \
   src/core/Match.pm \
   src/core/Cursor.pm \
   src/core/Grammar.pm \
   src/core/Regex.pm \
+  src/core/CallFrame.pm \
+  src/core/Main.pm \
+  src/core/tai-utc.pm \
+  src/core/Instant.pm \
+  src/core/Duration.pm \
+  src/core/Temporal.pm \
   src/core/EXPORTHOW.pm \
   src/core/Pod.pm \
   src/core/operators.pm \
@@ -209,7 +223,8 @@ CLEANUPS = \
   perl6.c \
   perl6$(O) \
   perl6_group.* \
-  Test.pir \
+  lib/Test.pir \
+  lib/Pod/To/Text.pir \
   rakudo_test_run.tar.gz \
   $(DYNEXT_DIR)/*$(LOAD_EXT) \
   src/gen/core.pm \
@@ -232,6 +247,7 @@ CLEANUPS = \
   $(OPS_DIR)/*$(LOAD_EXT) \
   src/binder/*$(O) \
   CORE.setting.pbc \
+  SAFE.setting.pbc \
 
 # NOTE: eventually, we should remove --keep-exit-code and --fudge
 #       as the goal is that all tests must pass without fudge
@@ -240,42 +256,52 @@ HARNESS_WITH_FUDGE = $(PERL) t/harness --fudge --keep-exit-code --icu=$(HAS_ICU)
 STAGESTATS = @stagestats@
 
 # the default target, TODO: make libraries in 'lib' a variable.
-all: check-versions $(PERL6_EXE) $(SETTING) Test.pir Pod/To/Text.pir
+all: check-versions $(PERL6_EXE) $(SETTING) $(S_SETTING) lib/Test.pir lib/Pod/To/Text.pir
 
 # the install target
 install: all
+	$(MKPATH)                     $(DESTDIR)$(NQP_LANG_DIR)/lib/Perl6
+	$(CP) $(PERL6_ML_PBC)         $(DESTDIR)$(NQP_LANG_DIR)/lib/Perl6/ModuleLoader.pbc
+	$(CP) $(PERL6_ST_PBC)         $(DESTDIR)$(NQP_LANG_DIR)/lib/Perl6/SymbolTable.pbc
+	$(CP) $(PERL6_G_PBC)          $(DESTDIR)$(NQP_LANG_DIR)/lib/Perl6/Grammar.pbc
+	$(CP) $(PERL6_A_PBC)          $(DESTDIR)$(NQP_LANG_DIR)/lib/Perl6/Actions.pbc
+	$(CP) $(PERL6_P_PBC)          $(DESTDIR)$(NQP_LANG_DIR)/lib/Perl6/Pod.pbc
+	$(CP) $(PERL6_C_PBC)          $(DESTDIR)$(NQP_LANG_DIR)/lib/Perl6/Compiler.pbc
+	$(CP) $(PERL6_M_PBC)          $(DESTDIR)$(NQP_LANG_DIR)/lib/Perl6/Metamodel.pbc
 	$(MKPATH)                     $(DESTDIR)$(PERL6_LANG_DIR)/lib
 	$(CP)     perl6.pbc           $(DESTDIR)$(PERL6_LANG_DIR)
-	$(CP)     Test.pm             $(DESTDIR)$(PERL6_LANG_DIR)/lib
-	$(CP)     Test.pir            $(DESTDIR)$(PERL6_LANG_DIR)/lib
-
+	$(CP)     lib/Test.pm         $(DESTDIR)$(PERL6_LANG_DIR)/lib
+	$(MKPATH) 					  $(DESTDIR)$(PERL6_LANG_DIR)/lib/Pod/To
+	$(CP)     lib/Pod/To/Text.pm  $(DESTDIR)$(PERL6_LANG_DIR)/lib/Pod/To
+	$(CP)     CORE.setting.pbc    $(DESTDIR)$(PERL6_LANG_DIR)/lib/CORE.setting.pbc
+	$(CP)     SAFE.setting.pbc    $(DESTDIR)$(PERL6_LANG_DIR)/lib/SAFE.setting.pbc
 	$(MKPATH)                     $(DESTDIR)$(PARROT_LIB_DIR)/dynext
 	$(CP)     $(DYNPMC) $(DYNOPS) $(DESTDIR)$(PARROT_LIB_DIR)/dynext
 	$(MKPATH)                     $(DESTDIR)$(PARROT_BIN_DIR)
 	$(CP)     $(PERL6_EXE)        $(DESTDIR)$(PARROT_BIN_DIR)
 	$(CHMOD)  755                 $(DESTDIR)$(PARROT_BIN_DIR)/$(PERL6_EXE)
-	$(MKPATH) 		      $(DESTDIR)$(DOCDIR)/rakudo
-	$(MKPATH) 		      $(DESTDIR)$(DOCDIR)/rakudo/announce
+	$(MKPATH) 		              $(DESTDIR)$(DOCDIR)/rakudo
+	$(MKPATH) 		              $(DESTDIR)$(DOCDIR)/rakudo/announce
 	$(CP)     $(DOCS)             $(DESTDIR)$(DOCDIR)/rakudo
 	$(CP)     $(DOCS)/announce    $(DESTDIR)$(DOCDIR)/rakudo/announce
 	$(MKPATH) $(DESTDIR)$(MANDIR)/man1
 	-$(POD2MAN) docs/running.pod --name=perl6 > $(DESTDIR)$(MANDIR)/man1/perl6.1
 	-$(POD2MAN) docs/running.pod --name=rakudo > $(DESTDIR)$(MANDIR)/man1/rakudo.1
 
-xmas: $(PERL6_EXE) $(SETTING)
+xmas: $(PERL6_EXE) $(SETTING) $(S_SETTING)
 
 ##  targets for building a standalone perl6 executable.
 $(PERL6_EXE): $(PERL6_PBC)
 	$(PBC_TO_EXE) $(PERL6_PBC)
 
-# the complete compiler, including core/setting
+# the complete compiler
 $(PERL6_PBC): $(PERL6_G_PBC) $(PERL6_A_PBC) $(PERL6_C_PBC) $(PERL6_P_PBC) src/main.nqp
 	$(PERL) tools/build/gen-version.pl >src/gen/main-version.nqp
 	$(NQP_EXE) --vmlibs=perl6_group,perl6_ops --target=pir --output=src/gen/perl6.pir \
 	    --combine src/main.nqp src/gen/main-version.nqp
 	$(PARROT) $(PARROT_ARGS) -o $(PERL6_PBC) src/gen/perl6.pir
 
-$(PERL6_ML_PBC): $(NQP_EXE) $(DYNEXT_TARGET) src/Perl6/ModuleLoader.pm
+$(PERL6_ML_PBC): $(NQP_EXE) $(DYNEXT_DYNPMC) $(DYNEXT_DYNOPS) src/Perl6/ModuleLoader.pm
 	$(NQP_EXE) --target=pir --output=$(PERL6_ML) --encoding=utf8 \
 	    src/Perl6/ModuleLoader.pm
 	$(PARROT) $(PARROT_ARGS) -o $(PERL6_ML_PBC) $(PERL6_ML)
@@ -285,27 +311,27 @@ $(PERL6_ST_PBC): $(NQP_EXE) $(PERL6_ML_PBC) src/Perl6/SymbolTable.pm
 	    src/Perl6/SymbolTable.pm
 	$(PARROT) $(PARROT_ARGS) -o $(PERL6_ST_PBC) $(PERL6_ST)
     
-$(PERL6_G_PBC): $(NQP_EXE) $(PERL6_ST_PBC) src/Perl6/Grammar.pm
+$(PERL6_G_PBC): $(NQP_EXE) $(PERL6_ST_PBC) src/Perl6/Grammar.pm $(PERL6_P_PBC)
 	$(NQP_EXE) --target=pir --output=$(PERL6_G) --encoding=utf8 \
 	    src/Perl6/Grammar.pm
 	$(PARROT) $(PARROT_ARGS) -o $(PERL6_G_PBC) $(PERL6_G)
 
-$(PERL6_A_PBC): $(NQP_EXE) $(DYNEXT_TARGET) src/Perl6/Actions.pm $(PERL6_P_PBC)
+$(PERL6_A_PBC): $(NQP_EXE) $(DYNEXT_DYNPMC) $(DYNEXT_DYNOPS) src/Perl6/Actions.pm $(PERL6_P_PBC)
 	$(NQP_EXE) --vmlibs=perl6_group,perl6_ops  --target=pir --output=$(PERL6_A) --encoding=utf8 \
 	    src/Perl6/Actions.pm
 	$(PARROT) $(PARROT_ARGS) -o $(PERL6_A_PBC) $(PERL6_A)
 
-$(PERL6_P_PBC): $(NQP_EXE) $(DYNEXT_TARGET) src/Perl6/Pod.pm
+$(PERL6_P_PBC): $(NQP_EXE) $(DYNEXT_DYNPMC) $(DYNEXT_DYNOPS) src/Perl6/Pod.pm
 	$(NQP_EXE) --vmlibs=perl6_group,perl6_ops  --target=pir --output=$(PERL6_P) --encoding=utf8 \
 	    src/Perl6/Pod.pm
 	$(PARROT) $(PARROT_ARGS) -o $(PERL6_P_PBC) $(PERL6_P)
 
-$(PERL6_C_PBC): $(NQP_EXE) $(DYNEXT_TARGET) src/Perl6/Compiler.nqp
+$(PERL6_C_PBC): $(NQP_EXE) $(DYNEXT_DYNPMC) $(DYNEXT_DYNOPS) src/Perl6/Compiler.nqp
 	$(NQP_EXE) --target=pir --output=$(PERL6_C) --encoding=utf8 \
 	    src/Perl6/Compiler.nqp
 	$(PARROT) $(PARROT_ARGS) -o $(PERL6_C_PBC) $(PERL6_C)
 
-$(PERL6_M_PBC): $(NQP_EXE) $(DYNEXT_TARGET) $(METAMODEL_SOURCES)
+$(PERL6_M_PBC): $(NQP_EXE) $(DYNEXT_DYNPMC) $(DYNEXT_DYNOPS) $(METAMODEL_SOURCES)
 	$(PERL) $(GEN_CAT) $(METAMODEL_SOURCES) > src/gen/Metamodel.pm
 	$(NQP_EXE) --target=pir --output=$(PERL6_M) --encoding=utf8 \
 	    --vmlibs=perl6_ops src/gen/Metamodel.pm
@@ -313,15 +339,19 @@ $(PERL6_M_PBC): $(NQP_EXE) $(DYNEXT_TARGET) $(METAMODEL_SOURCES)
     
 $(SETTING): $(PERL6_M_PBC) $(PERL6_EXE) $(CORE_SOURCES)
 	$(PERL) $(GEN_CAT) $(CORE_SOURCES) > src/gen/CORE.setting
-	./$(PERL6_EXE) --setting=NULL --target=pir --output=$(SETTING_PIR) src/gen/CORE.setting
+	./$(PERL6_EXE) --setting=NULL --target=pir $(STAGESTATS) --output=$(SETTING_PIR) src/gen/CORE.setting
 	$(PARROT) $(PARROT_ARGS) -o $(SETTING) $(SETTING_PIR)
 
+$(S_SETTING): $(PERL6_M_PBC) $(PERL6_EXE) $(SETTING)
+	./$(PERL6_EXE) --target=pir $(STAGESTATS) --output=$(S_SETTING_PIR) src/SAFE.setting
+	$(PARROT) $(PARROT_ARGS) -o $(S_SETTING) $(S_SETTING_PIR)
+    
 ##  testing targets
-Test.pir: Test.pm $(PERL6_EXE) $(SETTING)
-	./$(PERL6_EXE) --target=pir --output=Test.pir Test.pm
+lib/Test.pir: lib/Test.pm $(PERL6_EXE) $(SETTING)
+	./$(PERL6_EXE) --target=pir --output=lib/Test.pir lib/Test.pm
 
-Pod/To/Text.pir: Pod/To/Text.pm $(PERL6_EXE) $(SETTING)
-	./$(PERL6_EXE) --target=pir --output=Pod/To/Text.pir Pod/To/Text.pm
+lib/Pod/To/Text.pir: lib/Pod/To/Text.pm $(PERL6_EXE) $(SETTING)
+	./$(PERL6_EXE) --target=pir --output=lib/Pod/To/Text.pir lib/Pod/To/Text.pm
 
 test    : coretest
 
@@ -330,7 +360,7 @@ fulltest: coretest stresstest
 coretest: all
 	$(PERL) t/harness t/00-parrot t/01-sanity t/02-embed
 
-podtest: Test.pir
+podtest: lib/Test.pir
 	$(PERL) t/harness t/pod
 
 # Run the spectests that we know work.
@@ -358,7 +388,7 @@ rakudo_test_run.tar.gz: testable t/spectest.data
 	- $(HARNESS_WITH_FUDGE) --tests-from-file=t/spectest.data --archive rakudo_test_run.tar.gz --parrot_revision @revision@
 
 spectest_smolder: rakudo_test_run.tar.gz
-	./perl6 -e "run qqx[git log -1 --pretty=format:%H].fmt(qq[curl -F architecture=@cpuarch@ -F platform=@osname@ -F revision=%s -F report_file=@rakudo_test_run.tar.gz -F username=parrot-autobot -F password=qa_rocks http://smolder.parrot.org/app/projects/process_add_report/5])"
+	./perl6 -e "shell qqx[git log -1 --pretty=format:%H].fmt(qq[curl -F architecture=@cpuarch@ -F platform=@osname@ -F revision=%s -F report_file=@rakudo_test_run.tar.gz -F username=parrot-autobot -F password=qa_rocks http://smolder.parrot.org/app/projects/process_add_report/5])"
 
 testable : all spectest_checkout spectest_update
 
@@ -456,10 +486,13 @@ release: manifest
 	    tar -zcv -T - -f rakudo-$(VERSION).tar.gz
 	rm rakudo-$(VERSION)
 
-$(DYNEXT_TARGET): $(DYNPMC) $(DYNOPS)
-	$(CP) $(DYNPMC) $(DYNOPS) $(DYNEXT_DIR)
-	$(CHMOD) 755 $(DYNEXT_TARGET)
-	$(CHMOD) 755 $(DYNEXT_DIR)/$(OPS)$(LOAD_EXT)
+$(DYNEXT_DYNPMC): $(DYNPMC)
+	$(CP) $(DYNPMC) $(DYNEXT_DIR)
+	$(CHMOD) 755 $(DYNEXT_DYNPMC)
+
+$(DYNEXT_DYNOPS): $(DYNOPS)
+	$(CP) $(DYNOPS) $(DYNEXT_DIR)
+	$(CHMOD) 755 $(DYNEXT_DYNOPS)
 
 # (at)cc_o_out(at) and (at)ld_out(at) below cannot be assigned to
 # makefile macros, because some make utilities drop the trailing

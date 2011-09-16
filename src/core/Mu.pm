@@ -13,7 +13,7 @@ my class Mu {
     }
 
     method WHY() {
-        self.HOW.docs
+        self.HOW.docs // Any
     }
     
     proto method Bool(|$) {*}
@@ -151,6 +151,19 @@ my class Mu {
         $cloned
     }
     
+    method Capture() {
+        my %attrs;
+        for self.^attributes -> $attr {
+            if $attr.has-accessor {
+                my $name = $attr.name.substr(2);
+                unless %attrs.exists($name) {
+                    %attrs{$name} = self."$name"();
+                }
+            }
+        }
+        %attrs.Capture
+    }
+    
     # XXX TODO: Handle positional case.
     method dispatch:<var>($var, *@pos, *%named) {
         $var(self, |@pos, |%named)
@@ -212,6 +225,10 @@ my class Mu {
         }
         &infix:<,>(|@results)
     }
+
+    method dispatch:<hyper>($name, *@pos, *%named) {
+        hyper( -> \$obj { $obj."$name"(|@pos, |%named) }, self )
+    }
 }
 
 
@@ -227,6 +244,26 @@ sub infix:<=:=>(Mu \$x, Mu \$y) {
     nqp::p6bool(nqp::iseq_i(nqp::where($x), nqp::where($y)));
 }
 
+proto infix:<===>(Mu $a?, Mu $b?) { * }
+multi infix:<===>(Mu $a?)         { Bool::True }
+multi infix:<===>(Mu $a, Mu $b)   { $a.defined eq $b.defined && $a.WHICH === $b.WHICH }
+
+proto sub infix:<eqv>(Mu $, Mu $) { * }
+multi sub infix:<eqv>(Mu $a, Mu $b) {
+    $a.WHAT === $b.WHAT && $a === $b
+}
+
+multi sub infix:<eqv>(@a, @b) {
+    unless @a.WHAT === @b.WHAT && @a.elems == @b.elems {
+        return Bool::False
+    }
+    for ^@a -> $i {
+        unless @a[$i] eqv @b[$i] {
+            return Bool::False;
+        }
+    }
+    Bool::True
+}
 
 sub DUMP(|$) {
     my Mu $args := pir::perl6_current_args_rpa__P();

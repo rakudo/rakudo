@@ -2,17 +2,32 @@ my class EnumMap does Associative {
     # declared in BOOTSTRAP.pm:
     #   has $!storage;         # Parrot Hash PMC of key->value mappings
 
-    method Bool() {
+    multi method Bool(EnumMap:D:) {
         nqp::p6bool(pir::defined($!storage) ?? nqp::elems($!storage) !! 0)
     }
-    method elems() {
+    method elems(EnumMap:D:) {
         pir::defined($!storage) ?? nqp::p6box_i(nqp::elems($!storage)) !! 0
     }
+
+    multi method ACCEPTS(EnumMap:D: Any $topic) {
+        so self.exists($topic.any);
+    }
+
+    multi method ACCEPTS(EnumMap:D: Cool:D $topic) {
+        so self.exists($topic);
+    }
     
-    method exists(Str \$key) {
+    proto method exists(|$) {*}
+    multi method exists(EnumMap:D: Str:D \$key) {
         nqp::p6bool(
             pir::defined($!storage)
             && nqp::existskey($!storage, nqp::unbox_s($key))
+        )
+    }
+    multi method exists(EnumMap:D: \$key) {
+        nqp::p6bool(
+            pir::defined($!storage)
+            && nqp::existskey($!storage, nqp::unbox_s($key.Stringy))
         )
     }
 
@@ -70,4 +85,19 @@ my class EnumMap does Associative {
             nqp::bindattr(self, EnumMap, '$!storage', nqp::hash());
         $!storage 
     }
+
+    method fmt($format = "%s\t\%s", $sep = "\n") {
+        self.pairs.fmt($format, $sep);
+    }
 }
+
+multi sub infix:<eqv>(EnumMap $a, EnumMap $b) {
+    if +$a != +$b { return Bool::False }
+    for $a.kv -> $k, $v {
+        unless $b.exists($k) && $b{$k} eqv $v {
+            return Bool::False;
+        }
+    }
+    Bool::True;
+}
+

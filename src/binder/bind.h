@@ -21,6 +21,7 @@
 #define SIG_ELEM_DEFINED_ONLY        131072
 #define SIG_ELEM_DEFINEDNES_CHECK    (SIG_ELEM_UNDEFINED_ONLY | SIG_ELEM_DEFINED_ONLY)
 #define SIG_ELEM_METHOD_SLURPY_NAMED 262144
+#define SIG_ELEM_NOMINAL_GENERIC     524288
 
 /* This is how a parameter looks on the inside. Actually, this is a C struct
  * that should match the computed object layout by P6opaque for the type
@@ -28,7 +29,6 @@
 typedef struct {
     PMC    *st;                   /* S-table, though we don't care about that here. */
     PMC    *sc;                   /* Serialization context, though we don't care about that here. */
-    PMC    *spill;                /* Attribute spill storage. */
     STRING *variable_name;        /* The name in the lexpad to bind to, if any. */
     PMC    *named_names;          /* List of the name(s) that a named parameter has. */
     PMC    *type_captures;        /* Name(s) that we bind the type of a parameter to. */
@@ -51,7 +51,6 @@ typedef struct {
 typedef struct {
     PMC    *st;                 /* S-table, though we don't care about that here. */
     PMC    *sc;                 /* Serialization context, though we don't care about that here. */
-    PMC    *spill;              /* Attribute spill storage. */
     PMC    *params;             /* Array of objects that are all parameters. */
     PMC    *rtype;              /* Return type. */
 } Rakudo_Signature;
@@ -70,6 +69,8 @@ typedef struct {
 #define PObj_P6S_ALREADY_CHECKED_FLAG   PObj_private0_FLAG
 #define PObj_P6S_ALREADY_BOUND_FLAG     PObj_private1_FLAG
 
+/* Gets the ID of a 6model object PMC. */
+INTVAL Rakudo_smo_id(void);
 
 /* Functions we want to share to provide the interface to the binder. */
 INTVAL Rakudo_binding_bind(PARROT_INTERP, PMC *lexpad, PMC *sig_pmc,

@@ -29,7 +29,7 @@ my class Rat is Real {
     method Int() { self.Num.Int }
 
     method Bridge() { self.Num }
-    method Rat() { self }
+    method Rat(Rat:D: Real $?) { self }
     multi method Str(Rat:D:) {
         self.Num.Str
     }

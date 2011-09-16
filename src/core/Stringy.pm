@@ -1,5 +1,9 @@
 my role Stringy { }
 
+multi sub infix:<eqv>(Stringy $a, Stringy $b) {
+    $a.WHAT === $b.WHAT && ($a cmp $b) == 0
+}
+
 proto prefix:<~>(|$) { * }
 multi prefix:<~>(\$a)          { $a.Stringy }
 

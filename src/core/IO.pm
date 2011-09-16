@@ -58,6 +58,9 @@ class IO {
     }
 
     method get() {
+        unless $!PIO {
+            self.open($.path, :chomp($.chomp));
+        }
         my Str $x = nqp::p6box_s($!PIO.readline);
         # XXX don't fail() as long as it's fatal
         # fail('end of file') if self.eof && $x eq '';
@@ -91,6 +94,10 @@ class IO {
         nqp::shift($args);
         self.print: nqp::shift($args).gist while $args;
         self.print: "\n";
+    }
+    
+    method slurp() {
+        nqp::p6box_s($!PIO.readall());
     }
 
     method d() {
@@ -151,6 +158,61 @@ multi sub open($path, :$r, :$w, :$a, :$bin, :$chomp = Bool::True) {
 proto sub lines(|$) { * }
 multi sub lines($fh = $*ARGFILES, $limit = $Inf) { 
     $fh.lines($limit) 
+}
+
+proto sub get(|$) { * }
+multi sub get($fh = $*ARGFILES) {
+    $fh.get()
+}
+
+proto sub close(|$) { * }
+multi sub close($fh) {
+    $fh.close()
+}
+
+proto sub slurp(|$) { * }
+multi sub slurp($filename) {
+    my $handle = open($filename, :r);
+    my $contents = $handle.slurp();
+    $handle.close();
+    $contents
+}
+
+proto sub cwd(|$) { * }
+multi sub cwd() {
+    my $pwd;
+    try {
+        $pwd = pir::new__Ps('OS').cwd();
+    }
+    $! ?? fail($!) !! $pwd;
+}
+
+sub dir($path = '.', Mu :$test = none('.', '..')) {
+    my Mu $RSA := pir::new__PS('OS').readdir(nqp::unbox_s($path.Stringy));
+    my Int $elems := nqp::p6box_i(pir::set__IP($RSA));
+    my @res;
+    loop (my Int $i = 0; $i < $elems; $i++) {
+        my Str $item := nqp::p6box_s(nqp::atpos($RSA, nqp::unbox_i($i)));
+        @res.push: $item if $test.ACCEPTS($item);
+    }
+    @res;
+
+}
+
+proto sub chdir(|$) { * }
+multi sub chdir($path as Str) {
+    try {
+        pir::new__PS('OS').chdir($path)
+    }
+    $! ?? fail($!) !! True
+}
+
+proto sub mkdir(|$) { * }
+multi sub mkdir($path as Str, $mode = 0o777) {
+    try {
+        pir::new__PS('OS').mkdir($path, $mode)
+    }
+    $! ?? fail($!) !! True
 }
 
 $PROCESS::IN  = open('-');

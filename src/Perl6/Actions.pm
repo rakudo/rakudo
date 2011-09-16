@@ -1921,7 +1921,14 @@ class Perl6::Actions is HLL::Actions {
             if $quant eq '!' {
                 $/.CURSOR.panic("Cannot put default on required parameter");
             }
-            %*PARAM_INFO<default_closure> := $<default_value>[0].ast;
+            my $val := $<default_value>[0].ast;
+            if $val<has_compile_time_value> {
+                %*PARAM_INFO<default_value> := $val<compile_time_value>;
+                %*PARAM_INFO<default_is_literal> := 1;
+            }
+            else {
+                %*PARAM_INFO<default_value> := make_thunk($val, $<default_value>[0]);
+            }
         }
 
         # Set up various flags.
@@ -2031,8 +2038,7 @@ class Perl6::Actions is HLL::Actions {
     }
 
     method default_value($/) {
-        # Turn into a thunk.
-        make make_thunk($<EXPR>.ast, $/);
+        make $<EXPR>.ast;
     }
 
     method type_constraint($/) {

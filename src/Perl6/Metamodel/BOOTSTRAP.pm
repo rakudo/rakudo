@@ -288,7 +288,7 @@ Signature.HOW.add_method(Signature, 'set_returns', sub ($self, $type) {
 #     has $!coerce_type
 #     has str $!coerce_method
 #     has $!sub_signature
-#     has $!default_closure
+#     has $!default_value
 #     has $!container_descriptor;
 #     has $!attr_package;
 #     ... # Uncomposed
@@ -304,7 +304,7 @@ Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!post_constraint
 Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!coerce_type>, :type(Mu)));
 Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!coerce_method>, :type(str)));
 Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!sub_signature>, :type(Mu)));
-Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!default_closure>, :type(Mu)));
+Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!default_value>, :type(Mu)));
 Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!container_descriptor>, :type(Mu)));
 Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!attr_package>, :type(Mu)));
 Parameter.HOW.add_method(Parameter, 'is_generic', sub ($self) {

@@ -23,6 +23,7 @@ my $SIG_ELEM_UNDEFINED_ONLY      := 65536;
 my $SIG_ELEM_DEFINED_ONLY        := 131072;
 my $SIG_ELEM_METHOD_SLURPY_NAMED := 262144;
 my $SIG_ELEM_NOMINAL_GENERIC     := 524288;
+my $SIG_ELEM_DEFAULT_IS_LITERAL  := 1048576;
 
 # This builds upon the SerializationContextBuilder to add the specifics
 # needed by Rakudo Perl 6.
@@ -544,6 +545,9 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
         if %param_info<nominal_generic> {
             $flags := $flags + $SIG_ELEM_NOMINAL_GENERIC;
         }
+        if %param_info<default_is_literal> {
+            $flags := $flags + $SIG_ELEM_DEFAULT_IS_LITERAL;
+        }
         
         # Populate it.
         if pir::exists(%param_info, 'variable_name') {
@@ -563,8 +567,8 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
             pir::setattribute__vPPsP($parameter, $par_type, '$!post_constraints',
                 %param_info<post_constraints>);
         }
-        if pir::exists(%param_info, 'default_closure') {
-            pir::setattribute__vPPsP($parameter, $par_type, '$!default_closure', %param_info<default_closure>);
+        if pir::exists(%param_info, 'default_value') {
+            pir::setattribute__vPPsP($parameter, $par_type, '$!default_value', %param_info<default_value>);
         }
         if pir::exists(%param_info, 'container_descriptor') {
             pir::setattribute__vPPsP($parameter, $par_type, '$!container_descriptor', %param_info<container_descriptor>);
@@ -633,9 +637,9 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
             }
             
             # Set default value thunk up, if there is one.
-            if pir::exists(%param_info, 'default_closure') {
-                $set_attrs.push(self.set_attribute_reg($obj_reg, $class_reg, '$!default_closure',
-                    self.get_object_sc_ref_past(%param_info<default_closure>)));
+            if pir::exists(%param_info, 'default_value') {
+                $set_attrs.push(self.set_attribute_reg($obj_reg, $class_reg, '$!default_value',
+                    self.get_object_sc_ref_past(%param_info<default_value>)));
             }
             
             # Set container descriptor, if there is one.

@@ -22,6 +22,7 @@
 #define SIG_ELEM_DEFINEDNES_CHECK    (SIG_ELEM_UNDEFINED_ONLY | SIG_ELEM_DEFINED_ONLY)
 #define SIG_ELEM_METHOD_SLURPY_NAMED 262144
 #define SIG_ELEM_NOMINAL_GENERIC     524288
+#define SIG_ELEM_DEFAULT_IS_LITERAL  1048576
 
 /* This is how a parameter looks on the inside. Actually, this is a C struct
  * that should match the computed object layout by P6opaque for the type
@@ -40,7 +41,7 @@ typedef struct {
     PMC    *coerce_type;          /* The type to coerce the value to, if any. */
     STRING *coerce_method;        /* Name of the method to call to coerce; for X we do $val.X. */
     PMC    *sub_llsig;            /* Any nested signature. */
-    PMC    *default_closure;      /* The default value closure. */
+    PMC    *default_value;        /* The default value or a thunk producing it. */
     PMC    *container_descriptor; /* Descriptor for the container we bind into, if any. */
     PMC    *attr_package;         /* Package part of an attributive binding. */
 } Rakudo_Parameter;

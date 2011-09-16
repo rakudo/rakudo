@@ -513,15 +513,20 @@ Rakudo_binding_handle_optional(PARROT_INTERP, Rakudo_Parameter *param, PMC *lexp
         return VTABLE_get_pmc_keyed_str(interp, outer_lexpad, param->variable_name);
     }
 
-    /* Do we have a default value closure? */
-    else if (!PMC_IS_NULL(param->default_closure)) {
-        /* Run it to get a value. */
-        PMC *old_ctx = Parrot_pcc_get_signature(interp, CURRENT_CONTEXT(interp));
-        PMC *cappy   = Parrot_pmc_new(interp, enum_class_CallContext);
-        Parrot_pcc_invoke_from_sig_object(interp, param->default_closure, cappy);
-        cappy = Parrot_pcc_get_signature(interp, CURRENT_CONTEXT(interp));
-        Parrot_pcc_set_signature(interp, CURRENT_CONTEXT(interp), old_ctx);
-        return VTABLE_get_pmc_keyed_int(interp, cappy, 0);
+    /* Do we have a default value or value closure? */
+    else if (!PMC_IS_NULL(param->default_value)) {
+        if (param->flags & SIG_ELEM_DEFAULT_IS_LITERAL) {
+            return param->default_value;
+        }
+        else {
+            /* Thunk; run it to get a value. */
+            PMC *old_ctx = Parrot_pcc_get_signature(interp, CURRENT_CONTEXT(interp));
+            PMC *cappy   = Parrot_pmc_new(interp, enum_class_CallContext);
+            Parrot_pcc_invoke_from_sig_object(interp, param->default_value, cappy);
+            cappy = Parrot_pcc_get_signature(interp, CURRENT_CONTEXT(interp));
+            Parrot_pcc_set_signature(interp, CURRENT_CONTEXT(interp), old_ctx);
+            return VTABLE_get_pmc_keyed_int(interp, cappy, 0);
+        }
     }
 
     /* Otherwise, go by sigil to pick the correct default type of value. */

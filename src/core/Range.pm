@@ -6,16 +6,13 @@ class Range is Iterable does Positional {
 
     proto method new(|$) { * }
     multi method new($min, $max, :$excludes_min, :$excludes_max) {
-        my $new = self.CREATE;
-        $new.BUILD($min, $max, $excludes_min, $excludes_max)
+        nqp::create(self).BUILD($min, $max, $excludes_min, $excludes_max)
     }
     multi method new($min, Whatever $max, :$excludes_min, :$excludes_max) {
-        my $new = self.CREATE;
-        $new.BUILD($min, $Inf, $excludes_min, $excludes_max)
+        nqp::create(self).BUILD($min, $Inf, $excludes_min, $excludes_max)
     }
     multi method new(Whatever $min, $max, :$excludes_min, :$excludes_max) {
-        my $new = self.CREATE;
-        $new.BUILD(-$Inf, $max, $excludes_min, $excludes_max)
+        nqp::create(self).BUILD(-$Inf, $max, $excludes_min, $excludes_max)
     }
     multi method new(Whatever $min, Whatever $max, :$excludes_min, :$excludes_max) {
         fail "*..* is not a valid range";
@@ -107,7 +104,7 @@ class Range is Iterable does Positional {
         if ($value cmp $!max) < $cmpstop {
             nqp::push($rpa,
                 ($value.succ cmp $!max < $cmpstop)
-                   ?? self.CREATE.BUILD($value, $!max, 0, $!excludes_max)
+                   ?? nqp::create(self).BUILD($value, $!max, 0, $!excludes_max)
                    !! $value);
         }
         nqp::p6parcel($rpa, nqp::null());

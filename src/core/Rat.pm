@@ -4,7 +4,7 @@ my class Rat is Real {
     has $.denominator;
 
     method new(Int \$nu = 0, Int \$de = 1) {
-        my $new := self.CREATE;
+        my $new := nqp::create(self);
         my $gcd         = $nu gcd $de;
         my $numerator   = $nu div $gcd;
         my $denominator = $de div $gcd;

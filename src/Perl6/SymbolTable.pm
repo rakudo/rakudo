@@ -928,7 +928,7 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
         # Ensure that we have the appropriate op libs loaded and correct
         # HLL.
         my $wrapper := PAST::Block.new(PAST::Stmts.new(), $past);
-        $wrapper.loadlibs('perl6_group', 'perl6_ops');
+        self.add_libs($wrapper);
         $wrapper.hll('perl6');
         $wrapper.namespace('');
         
@@ -1472,6 +1472,13 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
         else {
             $/.CURSOR.panic("$phaser phaser not yet implemented");
         }
+    }
+    
+    # Adds required libraries to a compilation unit.
+    method add_libs($comp_unit) {
+        $comp_unit.loadlibs('nqp_group', 'nqp_ops', 'perl6_group', 'perl6_ops',
+                            'bit_ops', 'math_ops', 'trans_ops', 'io_ops',
+                            'obscure_ops', 'os', 'file', 'sys_ops');
     }
     
     # Checks if a given symbol is declared.

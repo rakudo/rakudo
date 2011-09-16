@@ -1312,9 +1312,13 @@ class Perl6::Actions is HLL::Actions {
         else {
             $block := $<blockoid>.ast;
             $block.blocktype('declaration');
-            unless is_clearly_returnless($block) {
+            if is_clearly_returnless($block) {
+                $block[1] := PAST::Op.new(
+                    :pirop('perl6_decontainerize_return_value PP'),
+                    $block[1]);
+            }
+            else {
                 $block[1] := wrap_return_handler($block[1]);
-                # $block.control('return_pir');
             }
         }
 
@@ -1455,9 +1459,13 @@ class Perl6::Actions is HLL::Actions {
         else {
             $past := $<blockoid>.ast;
             $past.blocktype('declaration');
-            unless is_clearly_returnless($past) {
+            if is_clearly_returnless($past) {
+                $past[1] := PAST::Op.new(
+                    :pirop('perl6_decontainerize_return_value PP'),
+                    $past[1]);
+            }
+            else {
                 $past[1] := wrap_return_handler($past[1]);
-                # $past.control('return_pir');
             }
         }
         $past.name($<longname> ?? $<longname>.Str !! '<anon>');
@@ -1572,8 +1580,40 @@ class Perl6::Actions is HLL::Actions {
     }
 
     sub is_clearly_returnless($block) {
-        # If the only thing is a pirop, can assume no return
-        +$block[1].list == 1 && $block[1][0].isa(PAST::Op) && $block[1][0].pirop()
+        sub returnless_past($past) {
+            return 0 unless
+                # It's a low-level op or method call.
+                $past.isa(PAST::Op) && ($past.pirop() || $past.pasttype eq 'callmethod') ||
+                # Just a variable lookup.
+                $past.isa(PAST::Var);
+            for @($past) {
+                if pir::isa($_, PAST::Node) {
+                    if !returnless_past($_) {
+                        return 0;
+                    }
+                }
+            }
+            1;
+        }
+        
+        # Only analyse things with a single simple statement.
+        if +$block[1].list == 1 && $block[1][0].isa(PAST::Stmt) && +$block[1][0].list == 1 {
+            # Ensure there's no nested blocks.
+            for @($block[0]) {
+                if $_.isa(PAST::Block) { return 0; }
+                if $_.isa(PAST::Stmts) {
+                    for @($_) {
+                        if $_.isa(PAST::Block) { return 0; }
+                    }
+                }
+            }
+
+            # Ensure that the PAST is whitelisted things.
+            returnless_past($block[1][0][0])
+        }
+        else {
+            0
+        }
     }
 
     method onlystar($/) {

@@ -35,12 +35,12 @@ typedef struct {
 } Rakudo_md_candidate_info;
 
 /* Maximum positional arity we cache up to. (Good to make it a
- * power of 2, minus 1.) */
-#define MD_CACHE_MAX_ARITY 3
+ * power of 2.) */
+#define MD_CACHE_MAX_ARITY 4
 
 /* Maximum entries we cache per arity. (Good to make it a
- * power of 2, minus 1.) */
-#define MD_CACHE_MAX_ENTRIES 15
+ * power of 2.) */
+#define MD_CACHE_MAX_ENTRIES 16
 
 /* The cached info that we keep per arity. */
 typedef struct {
@@ -63,6 +63,9 @@ typedef struct {
 
     /* The fast, per-arity cache. */
     Rakudo_md_arity_cache arity_caches[MD_CACHE_MAX_ARITY];
+
+    /* Zero-arity cached result. */
+    PMC *zero_arity;
 } Rakudo_md_cache;
 
 /* Represents the produced information about a candidate as well as the graph

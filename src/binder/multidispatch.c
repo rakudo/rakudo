@@ -324,7 +324,36 @@ Looks for an entry in the multi-dispatch cache.
 
 */
 static PMC *
-find_in_cache(PARROT_INTERP, Rakudo_md_arity_cache cache, PMC *capture, INTVAL num_args) {
+find_in_cache(PARROT_INTERP, Rakudo_md_cache *cache, PMC *capture, INTVAL num_args) {
+    INTVAL arg_tup[MD_CACHE_MAX_ARITY];
+    INTVAL i, j, entries, t_pos;
+    
+    /* If it's zero-arity, return result right off. */
+    if (num_args == 0)
+        return cache->zero_arity;
+
+    /* Create arg tuple. */
+    for (i = 0; i < num_args; i++) {
+        PMC *arg = VTABLE_get_pmc_keyed_int(interp, capture, i);
+        arg_tup[i] = STABLE(arg)->type_cache_id | (REPR(arg)->defined(interp, arg) ? 1 : 0);
+    }
+
+    /* Look through entries. */
+    entries = cache->arity_caches[num_args - 1].num_entries;
+    t_pos = 0;
+    for (i = 0; i < entries; i++) {
+        INTVAL match = 1;
+        for (j = 0; j < num_args; j++) {
+            if (cache->arity_caches[num_args - 1].type_ids[t_pos + j] != arg_tup[j]) {
+                match = 0;
+                break;
+            }
+        }
+        if (match)
+            return cache->arity_caches[num_args - 1].results[i];
+        t_pos += num_args;
+    }
+
     return NULL;
 }
 
@@ -339,8 +368,40 @@ Adds an entry to the multi-dispatch cache.
 
 */
 static void
-add_to_cache(PARROT_INTERP, Rakudo_md_cache *cache, PMC *capture, INTVAL num_args) {
+add_to_cache(PARROT_INTERP, Rakudo_md_cache *cache, PMC *capture, INTVAL num_args, PMC *result) {
+    INTVAL arg_tup[MD_CACHE_MAX_ARITY];
+    INTVAL i, entries, ins_type;
     
+    /* If it's zero arity, just stick it in that slot. */
+    if (num_args == 0) {
+        cache->zero_arity = result;
+        return;
+    }
+    
+    /* If the cache is saturated, don't do anything (we could instead do a random
+     * replacement). */
+    entries = cache->arity_caches[num_args - 1].num_entries;
+    if (entries == MD_CACHE_MAX_ENTRIES)
+        return;
+    
+    /* Create arg tuple. */
+    for (i = 0; i < num_args; i++) {
+        PMC *arg = VTABLE_get_pmc_keyed_int(interp, capture, i);
+        arg_tup[i] = STABLE(arg)->type_cache_id | (REPR(arg)->defined(interp, arg) ? 1 : 0);
+    }
+
+    /* If there's no entries yet, need to do some allocation. */
+    if (entries == 0) {
+        cache->arity_caches[num_args - 1].type_ids = mem_sys_allocate(num_args * sizeof(INTVAL) * MD_CACHE_MAX_ENTRIES);
+        cache->arity_caches[num_args - 1].results  = mem_sys_allocate(sizeof(PMC *) * MD_CACHE_MAX_ENTRIES);
+    }
+
+    /* Add entry. */
+    ins_type = entries * num_args;
+    for (i = 0; i < num_args; i++)
+        cache->arity_caches[num_args - 1].type_ids[ins_type + i] = arg_tup[i];
+    cache->arity_caches[num_args - 1].results[entries] = result;
+    cache->arity_caches[num_args - 1].num_entries = entries + 1;
 }
 
 
@@ -604,11 +665,11 @@ static PMC* find_best_candidate(PARROT_INTERP, Rakudo_md_candidate_info **candid
 
     /* If we're at a single candidate here, and we also know there's no
      * type constraints that follow, we can cache the result. */
-    if (possibles_count == 1 && pure_type_result) {
+    if (possibles_count == 1 && pure_type_result && num_args <= MD_CACHE_MAX_ARITY) {
         Rakudo_Code *code_obj  = (Rakudo_Code *)PMC_data(dispatcher);
         Rakudo_md_cache *cache = (Rakudo_md_cache *)VTABLE_get_pointer(interp,
             code_obj->dispatcher_cache);
-        add_to_cache(interp, cache, capture, num_args);
+        add_to_cache(interp, cache, capture, num_args, possibles[0]->sub);
     }
 
     /* Perhaps we found nothing but have junctional arguments? */
@@ -709,15 +770,15 @@ Rakudo_md_dispatch(PARROT_INTERP, PMC *dispatcher, PMC *capture, opcode_t *next)
     Rakudo_Code *code_obj  = (Rakudo_Code *)PMC_data(dispatcher);
     INTVAL       num_args  = VTABLE_elements(interp, capture);
     INTVAL       has_cache = !PMC_IS_NULL(code_obj->dispatcher_cache);
-    if (num_args <= MD_CACHE_MAX_ARITY && has_cache) {
+    /*if (num_args <= MD_CACHE_MAX_ARITY && has_cache) {
         Rakudo_md_cache *cache = (Rakudo_md_cache *)VTABLE_get_pointer(interp,
             code_obj->dispatcher_cache);
-        if (cache->arity_caches[num_args].num_entries) {
-            PMC *cache_result = find_in_cache(interp, cache->arity_caches[num_args], capture, num_args);
+        if (num_args == 0 || cache->arity_caches[num_args - 1].num_entries) {
+            PMC *cache_result = find_in_cache(interp, cache, capture, num_args);
             if (cache_result)
                 return cache_result;
         }
-    }
+    }*/
     
     /* No cache hit, so we need to do a full dispatch. */
     num_cands = VTABLE_elements(interp, code_obj->dispatchees);

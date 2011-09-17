@@ -4029,7 +4029,8 @@ class Perl6::Actions is HLL::Actions {
             if $seen_dot {
                 return $*ST.add_constant('Rat', 'type_new',
                     $*ST.add_numeric_constant('Int', $iresult)<compile_time_value>,
-                    $*ST.add_numeric_constant('Int', $fdivide)<compile_time_value>
+                    $*ST.add_numeric_constant('Int', $fdivide)<compile_time_value>,
+                    :nocache(1)
                 );
             } else {
                 return $*ST.add_numeric_constant('Int', $iresult);

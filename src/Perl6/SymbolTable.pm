@@ -1043,16 +1043,32 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
         }
         elsif $primitive eq 'type_new' {
             $constant := $type_obj.new(|@value, |%named);
-            $des := PAST::Op.new(
-                :pasttype('callmethod'), :name('new'),
-                $type_obj_lookup
-            );
-            $des.push(self.get_object_sc_ref_past(nqp::shift(@value)))
-                while @value;
-            for %named {
-                my $x := self.get_object_sc_ref_past($_.value);
-                $x.named($_.key);
-                $des.push($x);
+            if $type eq 'Rat' {
+                my $int_lookup := self.get_object_sc_ref_past(self.find_symbol(['Int']));
+                my $nu := nqp::unbox_i(nqp::getattr($constant, $type_obj, '$!numerator'));
+                my $de := nqp::unbox_i(nqp::getattr($constant, $type_obj, '$!denominator'));
+                $des := PAST::Op.new(
+                    :pirop('repr_bind_attr_obj 0PPsP'),
+                    PAST::Op.new(
+                        :pirop('repr_bind_attr_obj 0PPsP'),
+                        PAST::Op.new( :pirop('repr_instance_of PP'), $type_obj_lookup ),
+                        $type_obj_lookup, '$!numerator',
+                        PAST::Op.new( :pirop('repr_box_int PiP'), $nu, $int_lookup )),
+                    $type_obj_lookup, '$!denominator',
+                    PAST::Op.new( :pirop('repr_box_int PiP'), $de, $int_lookup ));
+            }
+            else {
+                $des := PAST::Op.new(
+                    :pasttype('callmethod'), :name('new'),
+                    $type_obj_lookup
+                );
+                $des.push(self.get_object_sc_ref_past(nqp::shift(@value)))
+                    while @value;
+                for %named {
+                    my $x := self.get_object_sc_ref_past($_.value);
+                    $x.named($_.key);
+                    $des.push($x);
+                }
             }
         }
         else {

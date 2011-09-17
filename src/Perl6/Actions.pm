@@ -1215,7 +1215,7 @@ class Perl6::Actions is HLL::Actions {
             my $attrname   := ~$sigil ~ '!' ~ $desigilname;
             my $type       := $*TYPENAME ?? $*TYPENAME.ast !! $*ST.find_symbol(['Mu']);
             my $descriptor := $*ST.create_container_descriptor($type, 1, $attrname);
-            my @default    := $sigil eq '$' ?? [$type] !! [];
+            my @default    := $sigil eq '$' || $sigil eq '&' ?? [$type] !! [];
 
             # Create meta-attribute and add it.
             my $metaattr := %*HOW{$*PKGDECL ~ '-attr'};

@@ -89,7 +89,7 @@ my role Dateish {
 #        [+] $.day, map { self.days-in-month($.year, $^m) }, 1 ..^ $.month
 #    }
 
-    method check-value($val is rw, $name, $range, :$allow-nonint) {
+    method check-value($val is copy, $name, $range, :$allow-nonint) {
         $val = $allow-nonint ?? +$val !! $val.Int;
         $val ~~ $range
             or die "$name must be in {$range.perl}\n";
@@ -419,7 +419,7 @@ my class Date does Dateish {
      multi method new(Str $date) {
          $date ~~ /^ \d\d\d\d '-' \d\d '-' \d\d $/
              or die 'Invalid Date string; please use the format "yyyy-mm-dd"';
-         self.new(|$date.split('-').map(*.Int));
+         self.new(|$date.split('-').map({.Int}));
      }
  
      multi method new(DateTime $dt) {

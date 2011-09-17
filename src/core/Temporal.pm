@@ -221,7 +221,7 @@ my class DateTime does Dateish {
 
     multi method new(Instant $i, :$timezone=0, :&formatter=&default-formatter) {
         my ($p, $leap-second) = $i.to-posix;
-        my $dt = self.new: floor($p - $leap-second), :&formatter;
+        my $dt = self.new: floor($p - $leap-second).Int, :&formatter;
         $dt.clone(second => $dt.second + $p % 1 + $leap-second
             ).in-timezone($timezone);
     }
@@ -416,55 +416,55 @@ my class Date does Dateish {
         self.new(:$year, :$month, :$day);
     }
 
-     multi method new(Str $date) {
-         $date ~~ /^ \d\d\d\d '-' \d\d '-' \d\d $/
-             or die 'Invalid Date string; please use the format "yyyy-mm-dd"';
-         self.new(|$date.split('-').map({.Int}));
-     }
- 
-     multi method new(DateTime $dt) {
-         self.bless(*, 
-             :year($dt.year), :month($dt.month), :day($dt.day),
-             :daycount(self.daycount-from-ymd($dt.year,$dt.month,$dt.day))
-         );
-     }
- 
-     method new-from-daycount($daycount) {
-         my ($year, $month, $day) = self.ymd-from-daycount($daycount);
-         self.bless(*, :$daycount, :$year, :$month, :$day);
-     }
- 
-     method today() {
-         self.new(DateTime.now);
-     }
- 
-     method truncated-to(*%args) {
-         %args.keys == 1
-             or die "Date.truncated-to: exactly one named argument needed.";
-         my $unit = %args.keys[0];
-         $unit eq any(<week month year>)
-             or die "DateTime.truncated-to: Unknown truncation unit '$unit'";
-         self.clone(|self.truncate-parts($unit));
-     }
- 
-     method clone(*%_) {
-         self.new(:$!year, :$!month, :$!day, |%_)
-     }
- 
-     method succ() {
-         Date.new-from-daycount($!daycount + 1);
-     }
-     method pred() {
-         Date.new-from-daycount($!daycount - 1);
-     }
- 
-     multi method Str(Date:D:) {
-         sprintf '%04d-%02d-%02d', $.year, $.month, $.day;
-     }
- 
-     multi method perl(Date:D:) {
-         "Date.new($.year.perl(), $.month.perl(), $.day.perl())";
-     } 
+    multi method new(Str $date) {
+        $date ~~ /^ \d\d\d\d '-' \d\d '-' \d\d $/
+            or die 'Invalid Date string; please use the format "yyyy-mm-dd"';
+        self.new(|$date.split('-').map({.Int}));
+    }
+
+    multi method new(DateTime $dt) {
+        self.bless(*, 
+            :year($dt.year), :month($dt.month), :day($dt.day),
+            :daycount(self.daycount-from-ymd($dt.year,$dt.month,$dt.day))
+        );
+    }
+
+    method new-from-daycount($daycount) {
+        my ($year, $month, $day) = self.ymd-from-daycount($daycount);
+        self.bless(*, :$daycount, :$year, :$month, :$day);
+    }
+
+    method today() {
+        self.new(DateTime.now);
+    }
+
+    method truncated-to(*%args) {
+        %args.keys == 1
+            or die "Date.truncated-to: exactly one named argument needed.";
+        my $unit = %args.keys[0];
+        $unit eq any(<week month year>)
+            or die "DateTime.truncated-to: Unknown truncation unit '$unit'";
+        self.clone(|self.truncate-parts($unit));
+    }
+
+    method clone(*%_) {
+        self.new(:$!year, :$!month, :$!day, |%_)
+    }
+
+    method succ() {
+        Date.new-from-daycount($!daycount + 1);
+    }
+    method pred() {
+        Date.new-from-daycount($!daycount - 1);
+    }
+
+    multi method Str(Date:D:) {
+        sprintf '%04d-%02d-%02d', $.year, $.month, $.day;
+    }
+
+    multi method perl(Date:D:) {
+        "Date.new($.year.perl(), $.month.perl(), $.day.perl())";
+    }
 }
  
 multi infix:<+>(Date:D $d, Int:D $x) {

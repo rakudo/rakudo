@@ -102,7 +102,7 @@ my role Dateish {
     }
 
     method truncate-parts($unit, %parts is copy = ()) {
-    # Helper for DateTime.truncated-to and Date.truncated-to.
+        # Helper for DateTime.truncated-to and Date.truncated-to.
         if $unit eq 'week' {
             my $dc = self.get-daycount;
             my $new-dc = $dc - self.day-of-week($dc) + 1;
@@ -272,9 +272,9 @@ my class DateTime does Dateish {
             :$second, :$timezone, :&formatter);
     }
 
-#    multi method now(:$timezone=$*TZ, :&formatter=&default-formatter) {
-#        self.new(now, :$timezone, :&formatter)
-#    }
+    method now(:$timezone=$*TZ, :&formatter=&default-formatter) {
+        self.new(now, :$timezone, :&formatter)
+    }
 
     method clone(*%_) {
         self.new(:$!year, :$!month, :$!day,
@@ -405,106 +405,105 @@ my class Date does Dateish {
 
     method get-daycount { $!daycount }
 
-#    multi method new(:$year!, :$month, :$day) {
-#        my $d = self.bless(*, :$year, :$month, :$day);
-#        $d.check-date;
-#        $d!set-daycount(self.daycount-from-ymd($year,$month,$day));
-#        $d;
-#    }
-#
-#    multi method new($year, $month, $day) {
-#        self.new(:$year, :$month, :$day);
-#    }
-#
-#     multi method new(Str $date) {
-#         $date ~~ /^ \d\d\d\d '-' \d\d '-' \d\d $/
-#             or die 'Invalid Date string; please use the format "yyyy-mm-dd"';
-#         self.new(|$date.split('-').map(*.Int));
-#     }
-# 
-#     multi method new(DateTime $dt) {
-#         self.bless(*, 
-#             :year($dt.year), :month($dt.month), :day($dt.day),
-#             :daycount(self.daycount-from-ymd($dt.year,$dt.month,$dt.day))
-#         );
-#     }
-# 
-#     multi method new-from-daycount($daycount) {
-#         my ($year, $month, $day) = self.ymd-from-daycount($daycount);
-#         self.bless(*, :$daycount, :$year, :$month, :$day);
-#     }
-# 
-#     method today() {
-#         self.new(DateTime.now);
-#     }
-# 
-#     method truncated-to(*%args) {
-#         %args.keys == 1
-#             or die "Date.truncated-to: exactly one named argument needed.";
-#         my $unit = %args.keys[0];
-#         $unit eq any(<week month year>)
-#             or die "DateTime.truncated-to: Unknown truncation unit '$unit'";
-#         self.clone(|self.truncate-parts($unit));
-#     }
-# 
-#     method clone(*%_) {
-#         self.new(:$!year, :$!month, :$!day, |%_)
-#     }
-# 
-#     method succ() {
-#         Date.new-from-daycount($!daycount + 1);
-#     }
-#     method pred() {
-#         Date.new-from-daycount($!daycount - 1);
-#     }
-# 
-#     multi method Str(Date:D:) {
-#         sprintf '%04d-%02d-%02d', $.year, $.month, $.day;
-#     }
-# 
-#     multi method perl(Date:D:) {
-#         "Date.new($.year.perl(), $.month.perl(), $.day.perl())";
-#     }
-# 
+    multi method new(:$year!, :$month, :$day) {
+        my $d = self.bless(*, :$year, :$month, :$day);
+        $d.check-date;
+        $d!set-daycount(self.daycount-from-ymd($year,$month,$day));
+        $d;
+    }
+
+    multi method new($year, $month, $day) {
+        self.new(:$year, :$month, :$day);
+    }
+
+     multi method new(Str $date) {
+         $date ~~ /^ \d\d\d\d '-' \d\d '-' \d\d $/
+             or die 'Invalid Date string; please use the format "yyyy-mm-dd"';
+         self.new(|$date.split('-').map(*.Int));
+     }
+ 
+     multi method new(DateTime $dt) {
+         self.bless(*, 
+             :year($dt.year), :month($dt.month), :day($dt.day),
+             :daycount(self.daycount-from-ymd($dt.year,$dt.month,$dt.day))
+         );
+     }
+ 
+     method new-from-daycount($daycount) {
+         my ($year, $month, $day) = self.ymd-from-daycount($daycount);
+         self.bless(*, :$daycount, :$year, :$month, :$day);
+     }
+ 
+     method today() {
+         self.new(DateTime.now);
+     }
+ 
+     method truncated-to(*%args) {
+         %args.keys == 1
+             or die "Date.truncated-to: exactly one named argument needed.";
+         my $unit = %args.keys[0];
+         $unit eq any(<week month year>)
+             or die "DateTime.truncated-to: Unknown truncation unit '$unit'";
+         self.clone(|self.truncate-parts($unit));
+     }
+ 
+     method clone(*%_) {
+         self.new(:$!year, :$!month, :$!day, |%_)
+     }
+ 
+     method succ() {
+         Date.new-from-daycount($!daycount + 1);
+     }
+     method pred() {
+         Date.new-from-daycount($!daycount - 1);
+     }
+ 
+     multi method Str(Date:D:) {
+         sprintf '%04d-%02d-%02d', $.year, $.month, $.day;
+     }
+ 
+     multi method perl(Date:D:) {
+         "Date.new($.year.perl(), $.month.perl(), $.day.perl())";
+     } 
 }
-# 
-# multi infix:<+>(Date:D $d, Int:D $x) is export {
-#     Date.new-from-daycount($d.daycount + $x)
-# }
-# multi infix:<+>(Int:D $x, Date:D $d) is export {
-#     Date.new-from-daycount($d.daycount + $x)
-# }
-# multi infix:<->(Date:D $d, Int:D $x) is export {
-#     Date.new-from-daycount($d.daycount - $x)
-# }
-# multi infix:<->(Date:D $a, Date:D $b) is export {
-#     $a.daycount - $b.daycount;
-# }
-# multi infix:<cmp>(Date:D $a, Date:D $b) is export {
-#     $a.daycount cmp $b.daycount
-# }
-# multi infix:«<=>»(Date:D $a, Date:D $b) is export {
-#     $a.daycount <=> $b.daycount
-# }
-# multi infix:<==>(Date:D $a, Date:D $b) is export {
-#     $a.daycount == $b.daycount
-# }
-# multi infix:<!=>(Date:D $a, Date:D $b) is export {
-#     $a.daycount != $b.daycount
-# }
-# multi infix:«<=»(Date:D $a, Date:D $b) is export {
-#     $a.daycount <= $b.daycount
-# }
-# multi infix:«<»(Date:D $a, Date:D $b) is export {
-#     $a.daycount < $b.daycount
-# }
-# multi infix:«>=»(Date:D $a, Date:D $b) is export {
-#     $a.daycount >= $b.daycount
-# }
-# multi infix:«>»(Date:D $a, Date:D $b) is export {
-#     $a.daycount > $b.daycount
-# }
-# 
+ 
+multi infix:<+>(Date:D $d, Int:D $x) is export {
+    Date.new-from-daycount($d.daycount + $x)
+}
+multi infix:<+>(Int:D $x, Date:D $d) is export {
+    Date.new-from-daycount($d.daycount + $x)
+}
+multi infix:<->(Date:D $d, Int:D $x) is export {
+    Date.new-from-daycount($d.daycount - $x)
+}
+multi infix:<->(Date:D $a, Date:D $b) is export {
+    $a.daycount - $b.daycount;
+}
+multi infix:<cmp>(Date:D $a, Date:D $b) is export {
+    $a.daycount cmp $b.daycount
+}
+multi infix:«<=>»(Date:D $a, Date:D $b) is export {
+    $a.daycount <=> $b.daycount
+}
+multi infix:<==>(Date:D $a, Date:D $b) is export {
+    $a.daycount == $b.daycount
+}
+multi infix:<!=>(Date:D $a, Date:D $b) is export {
+    $a.daycount != $b.daycount
+}
+multi infix:«<=»(Date:D $a, Date:D $b) is export {
+    $a.daycount <= $b.daycount
+}
+multi infix:«<»(Date:D $a, Date:D $b) is export {
+    $a.daycount < $b.daycount
+}
+multi infix:«>=»(Date:D $a, Date:D $b) is export {
+    $a.daycount >= $b.daycount
+}
+multi infix:«>»(Date:D $a, Date:D $b) is export {
+    $a.daycount > $b.daycount
+}
+
 # =begin pod
 # 
 # =head1 SEE ALSO

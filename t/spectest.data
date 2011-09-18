@@ -66,7 +66,7 @@ S02-literals/sub-calls.t
 S02-literals/subscript.t
 S02-literals/types.t
 S02-literals/underscores.t
-# S02-magicals/args.t # err: Command line arguments may not contain single or double quotes
+S02-magicals/args.t
 S02-magicals/config.t
 S02-magicals/dollar_bang.t
 S02-magicals/dollar-underscore.t
@@ -310,7 +310,7 @@ S06-operator-overloading/methods.t
 S06-other/anon-hashes-vs-blocks.t
 # S06-other/main.t # err: Odd number of elements found where hash expected
 S06-other/main-eval.t
-# S06-other/main-usage.t # err: Command line arguments may not contain single or double quotes
+S06-other/main-usage.t
 S06-other/misc.t
 S06-routine-modifiers/scoped-named-subs.t
 S06-signature/arity.t
@@ -460,8 +460,8 @@ S16-io/say-and-ref.t
 # S16-io/getc.t # err: Could not find sub &getc
 S16-unfiled/rebindstdhandles.t
 S16-unfiled/slurp.t
-# S19-command-line/dash-e.t # err: Command line arguments may not contain single or double quotes
-# S19-command-line/help.t # err: Command line arguments may not contain single or double quotes
+S19-command-line/dash-e.t
+S19-command-line/help.t
 # S28-named-variables/cwd.t # err: Dynamic variable $*CWD not found
 S28-named-variables/inc.t
 S29-any/cmp.t
@@ -567,9 +567,9 @@ S32-str/ucfirst.t                                          # icu
 S32-str/words.t                                            # icu
 S32-temporal/calendar.t
 S32-temporal/Date.t
-# S32-temporal/DateTime.t # err: duplicate named argument in call
-# S32-temporal/DateTime-Instant-Duration.t # err: duplicate named argument in call
-# S32-temporal/local.t # err: FixedIntegerArray: index out of bounds!
+S32-temporal/DateTime.t
+# S32-temporal/DateTime-Instant-Duration.t # err: Method 'eval' not found for invocant of class 'Str'
+S32-temporal/local.t
 S32-trig/e.t
 S32-trig/pi.t
 S32-trig/sin.t
@@ -611,7 +611,7 @@ integration/advent2009-day15.t
 integration/advent2009-day16.t
 # integration/advent2009-day17.t # err: Unable to parse blockoid # stress
 integration/advent2009-day18.t
-# integration/advent2009-day19.t # err: Method 'succ' not found for invocant of class 'Whatever'
+integration/advent2009-day19.t
 # integration/advent2009-day20.t # err: exists_keyed_str() not implemented in class 'Mu'
 # integration/advent2009-day22.t # err: Cannot negate , because it is not iffy enough
 integration/advent2009-day23.t

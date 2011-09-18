@@ -444,7 +444,8 @@ my class Date does Dateish {
     }
 
     method clone(*%_) {
-        self.new(:$!year, :$!month, :$!day, |%_)
+        my %args = { :$!year, :$!month, :$!day, %_ };
+        self.new(|%args);
     }
 
     method succ() {

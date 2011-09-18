@@ -566,7 +566,7 @@ S32-str/ucfirst.t                                          # icu
 # S32-str/unpack.t # err: Default constructor only takes named arguments
 S32-str/words.t                                            # icu
 # S32-temporal/calendar.t # err: Method 'truncated-to' not found for invocant of class 'Date'
-# S32-temporal/Date.t # err: Default constructor only takes named arguments
+S32-temporal/Date.t
 # S32-temporal/DateTime.t # err: Default constructor only takes named arguments
 # S32-temporal/DateTime-Instant-Duration.t # err: Method 'Instant' not found for invocant of class 'DateTime'
 # S32-temporal/local.t # err: Method 'now' not found for invocant of class 'DateTime'

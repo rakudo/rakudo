@@ -2779,11 +2779,11 @@ class Perl6::Actions is HLL::Actions {
             $past.push(PAST::Var.new(:named<false>, :scope<lexical_6model>, :name<Nil>));
         }
         if $key eq 'PREFIX' || $key eq 'INFIX' || $key eq 'POSTFIX' {
-            $past := whatever_curry($/, $past, $key eq 'INFIX' ?? 2 !! 1);
-        }
-        if $return_map {
-            $past := PAST::Op.new($past,
-                :pirop('perl6ize_type PP'), :returns($past.returns()));
+            $past := whatever_curry($/, (my $orig := $past), $key eq 'INFIX' ?? 2 !! 1);
+            if $return_map && $orig =:= $past {
+                $past := PAST::Op.new($past,
+                    :pirop('perl6ize_type PP'), :returns($past.returns()));
+            }
         }
         make $past;
     }

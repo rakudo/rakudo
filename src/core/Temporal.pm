@@ -148,6 +148,7 @@ my class DateTime-local-timezone does Callable {
         # return the difference. Surprisingly, this actually works!
         if $to-utc {
             my Mu $fia := pir::new__PS('FixedIntegerArray');
+            pir::set__vPI($fia, 9);
             nqp::bindpos($fia, 0, nqp::unbox_i($dt.whole-second));
             nqp::bindpos($fia, 1, nqp::unbox_i($dt.minute));
             nqp::bindpos($fia, 2, nqp::unbox_i($dt.hour));

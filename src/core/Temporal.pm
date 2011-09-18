@@ -159,13 +159,13 @@ my class DateTime-local-timezone does Callable {
         } else {
             my $p = $dt.posix;
             my ($year, $month, $day, $hour, $minute, $second);
-            my Mu $fia := pir::decodelocaltime__PI(nqp::unbox_i($p));
-            $second = nqp::atpos($fia, 0);
-            $minute = nqp::atpos($fia, 1);
-            $hour   = nqp::atpos($fia, 2);
-            $day    = nqp::atpos($fia, 3);
-            $month  = nqp::atpos($fia, 4);
-            $year   = nqp::atpos($fia, 5);
+            my Mu $fia := pir::decodelocaltime__PI(nqp::unbox_i($p.Int));
+            $second = nqp::p6box_i(nqp::atpos($fia, 0));
+            $minute = nqp::p6box_i(nqp::atpos($fia, 1));
+            $hour   = nqp::p6box_i(nqp::atpos($fia, 2));
+            $day    = nqp::p6box_i(nqp::atpos($fia, 3));
+            $month  = nqp::p6box_i(nqp::atpos($fia, 4));
+            $year   = nqp::p6box_i(nqp::atpos($fia, 5));
             DateTime\
                 .new(:$year, :$month, :$day, :$hour, :$minute, :$second)\
                 .posix - $p;
@@ -222,7 +222,7 @@ my class DateTime does Dateish {
     multi method new(Instant $i, :$timezone=0, :&formatter=&default-formatter) {
         my ($p, $leap-second) = $i.to-posix;
         my $dt = self.new: floor($p - $leap-second).Int, :&formatter;
-        $dt.clone(second => $dt.second + $p % 1 + $leap-second
+        $dt.clone(second => ($dt.second + $p % 1 + $leap-second)
             ).in-timezone($timezone);
     }
 
@@ -277,19 +277,15 @@ my class DateTime does Dateish {
     }
 
     method clone(*%_) {
-        self.new(:$!year, :$!month, :$!day,
-            :$!hour, :$!minute, :$!second,
-            timezone => $!timezone,
-            formatter => &!formatter,
-            |%_)
+        my %args = { :$!year, :$!month, :$!day, :$!hour, :$!minute,
+                     :$!second, :$!timezone, :&!formatter, %_ };
+        self.new(|%args);
     }
 
     method clone-without-validating(*%_) { # A premature optimization.
-        self.bless(*, :$!year, :$!month, :$!day,
-            :$!hour, :$!minute, :$!second,
-            timezone => $!timezone,
-            formatter => &!formatter,
-            |%_)
+        my %args = { :$!year, :$!month, :$!day, :$!hour, :$!minute,
+                     :$!second, :$!timezone, :&!formatter, %_ };
+        self.bless(*, |%args);
     }
 
     method Instant() {
@@ -353,11 +349,11 @@ my class DateTime does Dateish {
         # I don't know, but it passes the tests!
         my $a = ($!second >= 60 ?? 59 !! $!second)
             + $new-offset - $old-offset;
-        %parts<second> = $!second >= 60 ?? $!second !! $a % 60;
+        %parts<second> = $!second >= 60 ?? $!second !! ($a % 60).Int;
         my $b = $!minute + floor $a / 60;
-        %parts<minute> = $b % 60;
+        %parts<minute> = ($b % 60).Int;
         my $c = $!hour + floor $b / 60;
-        %parts<hour> = $c % 24;
+        %parts<hour> = ($c % 24).Int;
         # Let Dateish handle any further rollover.
         floor $c / 24 and %parts<year month day> =
            self.ymd-from-daycount\
@@ -503,6 +499,8 @@ multi infix:«>=»(Date:D $a, Date:D $b) {
 multi infix:«>»(Date:D $a, Date:D $b) {
     $a.daycount > $b.daycount
 }
+
+$PROCESS::TZ = DateTime-local-timezone.new;
 
 # =begin pod
 # 

@@ -87,7 +87,7 @@ my class Num {
         nqp::p6box_n(pir::ceil__NN(nqp::unbox_n(self)));
     }
     method floor(Num:D: ) {
-        nqp::p6box_n(pir::floor__NN(nqp::unbox_n(self)));
+        nqp::p6bigint(pir::floor__NN(nqp::unbox_n(self)));
     }
 
     proto method sin(|$) {*}

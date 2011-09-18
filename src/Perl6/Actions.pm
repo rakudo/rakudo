@@ -2720,6 +2720,7 @@ class Perl6::Actions is HLL::Actions {
         unless $key { return 0; }
         my $past := $/.ast // $<OPER>.ast;
         my $sym := ~$<infix><sym>;
+        my $return_map := 0;
         if !$past && $sym eq '.=' {
             make make_dot_equals($/[0].ast, $/[1].ast);
             return 1;
@@ -2768,7 +2769,7 @@ class Perl6::Actions is HLL::Actions {
             # values may need type mapping into Perl 6 land.
             $past.unshift($/[0].ast);
             if $past.isa(PAST::Op) && $past.pasttype eq 'callmethod' {
-                $past := PAST::Op.new( :pirop('perl6ize_type PP'), $past );
+                $return_map := 1;
             }
         }
         else {
@@ -2779,6 +2780,10 @@ class Perl6::Actions is HLL::Actions {
         }
         if $key eq 'PREFIX' || $key eq 'INFIX' || $key eq 'POSTFIX' {
             $past := whatever_curry($/, $past, $key eq 'INFIX' ?? 2 !! 1);
+        }
+        if $return_map {
+            $past := PAST::Op.new($past,
+                :pirop('perl6ize_type PP'), :returns($past.returns()));
         }
         make $past;
     }

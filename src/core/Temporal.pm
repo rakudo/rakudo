@@ -85,9 +85,9 @@ my role Dateish {
         ($.day - 1) div 7 + 1
     }
 
-#    method day-of-year() {
-#        [+] $.day, map { self.days-in-month($.year, $^m) }, 1 ..^ $.month
-#    }
+    method day-of-year() {
+        [+] $.day, map { self.days-in-month($.year, $^m) }, 1 ..^ $.month
+    }
 
     method check-value($val is copy, $name, $range, :$allow-nonint) {
         $val = $allow-nonint ?? +$val !! $val.Int;

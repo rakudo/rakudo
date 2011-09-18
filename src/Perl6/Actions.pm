@@ -2582,35 +2582,48 @@ class Perl6::Actions is HLL::Actions {
     }
 
     method arglist($/) {
-        # Build up argument list, hanlding nameds and flattens
-        # as we go.
-        my $past := PAST::Op.new( :pasttype('call'), :node($/) );
+        my $past := PAST::Op.new( :pasttype('call'), :node($/) );        
         if $<EXPR> {
+            # Make first pass over arguments, finding any duplicate named
+            # arguments.
             my $expr := $<EXPR>.ast;
-            if $expr.name eq '&infix:<,>' {
-                for $expr.list { $past.push(handle_parameter($_, $/)); }
+            my @args := $expr.name eq '&infix:<,>' ?? $expr.list !! [$expr];
+            my %named_counts;
+            for @args {
+                if $_ ~~ PAST::Op && $_.returns eq 'Pair' {
+                    my $name := compile_time_value_str($_[1], 'LHS of pair', $/);
+                    %named_counts{$name} := +%named_counts{$name} + 1;
+                    $_[2].named($name);
+                }
             }
-            else { $past.push(handle_parameter($expr, $/)); }
+
+            # Make result.
+            for @args {
+                if $_ ~~ PAST::Op && $_.returns eq 'Pair' {
+                    my $name := $_[2].named();
+                    if %named_counts{$name} == 1 {
+                        $past.push($_[2]);
+                        $_[2]<before_promotion> := $_;
+                    }
+                    else {
+                        %named_counts{$name} := %named_counts{$name} - 1;
+                    }
+                }
+                elsif $_ ~~ PAST::Op && $_.name eq '&prefix:<|>' {
+                    $past.push(PAST::Op.new(
+                        :pasttype('callmethod'), :name('FLATTENABLE_LIST'),
+                        $_[0], :flat(1)));
+                    $past.push(PAST::Op.new(
+                        :pasttype('callmethod'), :name('FLATTENABLE_HASH'),
+                        $_[0], :flat(1), :named(1)));
+                }
+                else {
+                    $past.push($_);
+                }
+            }
         }
 
         make $past;
-    }
-
-    sub handle_parameter($arg, $/) {
-        if $arg ~~ PAST::Op && $arg.returns eq 'Pair' {
-            my $result := $arg[2];
-            $result.named(compile_time_value_str($arg[1], 'LHS of pair', $/));
-            $result<before_promotion> := $arg;
-            $result;
-        }
-        elsif $arg ~~ PAST::Op && $arg.name eq '&prefix:<|>' {
-            PAST::Op.new(
-                :pasttype('callmethod'), :name('ARGLIST_FLATTENABLE'),
-                :flat(1), $arg[0]);
-        }
-        else {
-            $arg;
-        }
     }
 
     method term:sym<value>($/) { make $<value>.ast; }

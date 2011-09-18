@@ -43,7 +43,7 @@ S02-types/sigils-and-types.t
 S02-types/subscripts_and_context.t
 S02-types/type.t
 S02-types/undefined-types.t
-# S02-types/whatever.t # err: Unable to parse blockoid, couldn't find final '}'
+S02-types/whatever.t
 S02-lexical-conventions/unicode.t                          # icu
 S02-literals/array-interpolation.t
 S02-literals/autoref.t

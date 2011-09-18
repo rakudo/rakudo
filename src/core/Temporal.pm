@@ -55,7 +55,7 @@ my role Dateish {
     }
 
     method week() { # algorithm from Claus Tøndering
-        my $a = $.year - ($.month <= 2).floor;
+        my $a = $.year - ($.month <= 2).floor.Int;
         my $b = $a div 4 - $a div 100 + $a div 400;
         my $c = ($a - 1) div 4 - ($a - 1) div 100 + ($a - 1) div 400;
         my $s = $b - $c;
@@ -148,7 +148,7 @@ my class DateTime-local-timezone does Callable {
         # return the difference. Surprisingly, this actually works!
         if $to-utc {
             my Mu $fia := pir::new__PS('FixedIntegerArray');
-            nqp::bindpos($fia, 0, nqp::unbox_i($dt.hole-second));
+            nqp::bindpos($fia, 0, nqp::unbox_i($dt.whole-second));
             nqp::bindpos($fia, 1, nqp::unbox_i($dt.minute));
             nqp::bindpos($fia, 2, nqp::unbox_i($dt.hour));
             nqp::bindpos($fia, 3, nqp::unbox_i($dt.day));
@@ -335,7 +335,7 @@ my class DateTime does Dateish {
     }
 
     method whole-second() {
-        floor $.second
+        floor($.second).Int
     }
 
     method in-timezone($timezone) {

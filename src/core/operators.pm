@@ -10,19 +10,19 @@ sub infix:<=>(Mu \$a, Mu \$b) is rw {
 proto infix:<does>(|$) { * }
 multi infix:<does>(Mu \$obj, Mu:U \$role) is rw {
     # XXX Mutability check.
-    $obj.HOW.mixin($obj, $role);
+    $obj.HOW.mixin($obj, $role).BUILD_LEAST_DERIVED({});
 }
 multi infix:<does>(Mu \$obj, @roles) is rw {
     # XXX Mutability check.
-    $obj.HOW.mixin($obj, |@roles);
+    $obj.HOW.mixin($obj, |@roles).BUILD_LEAST_DERIVED({});
 }
 
 proto infix:<but>(|$) { * }
 multi infix:<but>(Mu \$obj, Mu:U \$role) {
-    $obj.HOW.mixin($obj.clone(), $role);
+    $obj.HOW.mixin($obj.clone(), $role).BUILD_LEAST_DERIVED({});
 }
 multi infix:<but>(Mu \$obj, @roles) {
-    $obj.HOW.mixin($obj.clone(), |@roles);
+    $obj.HOW.mixin($obj.clone(), |@roles).BUILD_LEAST_DERIVED({});
 }
 
 sub SEQUENCE($left, $right, :$exclude_end) {

@@ -538,3 +538,7 @@ sub unbase(Int:D $base, Cool:D $str) {
         ":{$base}<$str>".Numeric;
     }
 }
+
+sub chrs(*@c) {
+    @c.map({.chr}).join('');
+}

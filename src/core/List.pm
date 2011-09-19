@@ -268,7 +268,8 @@ my class List does Positional {
         nqp::bindpos($!items, nqp::unbox_i($pos), $v)
     }
 
-    method ARGLIST_FLATTENABLE() { self.gimme(*); $!items }
+    method FLATTENABLE_LIST() { self.gimme(*); $!items }
+    method FLATTENABLE_HASH() { nqp::hash() }
 
     multi method DUMP(List:D:) {
         self.DUMP-ID() ~ '('

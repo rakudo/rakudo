@@ -254,7 +254,7 @@ multi sub lives_ok(Callable $closure, $reason){
     try {
         $closure();
     }
-    proclaim((not defined $!), $reason);
+    proclaim((not defined $!), $reason) or diag($!);
     $time_before = nqp::p6box_n(pir::time__N);
 }
 multi sub lives_ok(Callable $closure) {

@@ -72,8 +72,8 @@ my class Capture {
         self.elems
     }
     
-    # XXX TODO: Should include the hash part too...
-    method ARGLIST_FLATTENABLE() { $!list }
+    method FLATTENABLE_LIST() { $!list ?? $!list !! nqp::list() }
+    method FLATTENABLE_HASH() { $!hash ?? $!hash !! nqp::hash() }
 
     method pairs(Capture:D:) {
         (self.list.pairs, self.hash.pairs).flat

@@ -8,8 +8,6 @@ Note - do not just copy stuff from the master setting! Often things
 need to be done differently in the "nom" branch, to take advantage of
 new possible performance.
 
-## Implement minmax operator
-Make S03-operators/minmax.t pass
 
 ## More Smart-matching
 See S03-smartmatch tests, especially array-array.t, hash-hash.t and

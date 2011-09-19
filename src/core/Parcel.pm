@@ -98,7 +98,8 @@ my class Parcel does Positional {
         self.DUMP-ID() ~ '(:storage(' ~ DUMP($!storage) ~ '))'
     }
     
-    method ARGLIST_FLATTENABLE() { $!storage }
+    method FLATTENABLE_LIST() { $!storage }
+    method FLATTENABLE_HASH() { nqp::hash() }
 
     method fmt($format = '%s', $separator = ' ') {
         self.list.fmt($format, $separator);

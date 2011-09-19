@@ -1,6 +1,6 @@
 # Roadmap for "nom" Branch
 
-Last Updated 8 Sep 2011
+Last Updated 18 Sep 2011
 
 ## Punch list for nom->master and nom distribution
 
@@ -18,7 +18,6 @@ responsible parties.
 * Buf (2, 1, **, pmichaud)
 * DateTime, Date (2, 1, \*\*, ???)
 * Define new operators (2, 1, \*\*, pmichaud) (awaiting other regex updates)
-* Whatever currying (2, 1, ???, ???) (*.method case still missing, return type is not WhateverCode)
 * MAIN (2, 1, ???, ???)
 * modules working with nom (3, 1, ???, ???)
 * fix meta-dispatchers to not flatten positionals (3, 2, ???, ???)

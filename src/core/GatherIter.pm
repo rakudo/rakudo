@@ -12,7 +12,7 @@ class GatherIter is Iterator {
             $P1($P0)
         };
         pir::setattribute__0PPsP(
-            pir::setattribute__0PPsP(self.CREATE, GatherIter, '$!coro', $coro),
+            pir::setattribute__0PPsP(nqp::create(self), GatherIter, '$!coro', $coro),
             GatherIter, '$!infinite', $infinite);
     }
 
@@ -36,7 +36,7 @@ class GatherIter is Iterator {
             nqp::push($rpa, 
                 pir::setattribute__0PPsP(
                     pir::setattribute__0PPsP(
-                        self.CREATE, GatherIter, '$!coro', $!coro),
+                        nqp::create(self), GatherIter, '$!coro', $!coro),
                     GatherIter, '$!infinite', $!infinite))
                 unless $end;
             $!reified := nqp::p6parcel($rpa, nqp::null());

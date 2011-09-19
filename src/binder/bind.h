@@ -22,6 +22,7 @@
 #define SIG_ELEM_DEFINEDNES_CHECK    (SIG_ELEM_UNDEFINED_ONLY | SIG_ELEM_DEFINED_ONLY)
 #define SIG_ELEM_METHOD_SLURPY_NAMED 262144
 #define SIG_ELEM_NOMINAL_GENERIC     524288
+#define SIG_ELEM_DEFAULT_IS_LITERAL  1048576
 
 /* This is how a parameter looks on the inside. Actually, this is a C struct
  * that should match the computed object layout by P6opaque for the type
@@ -40,7 +41,7 @@ typedef struct {
     PMC    *coerce_type;          /* The type to coerce the value to, if any. */
     STRING *coerce_method;        /* Name of the method to call to coerce; for X we do $val.X. */
     PMC    *sub_llsig;            /* Any nested signature. */
-    PMC    *default_closure;      /* The default value closure. */
+    PMC    *default_value;        /* The default value or a thunk producing it. */
     PMC    *container_descriptor; /* Descriptor for the container we bind into, if any. */
     PMC    *attr_package;         /* Package part of an attributive binding. */
 } Rakudo_Parameter;
@@ -55,19 +56,12 @@ typedef struct {
     PMC    *rtype;              /* Return type. */
 } Rakudo_Signature;
 
-/* Flags we can set on the Context PMC.
- *
- * ALREADY_CHECKED indicates that we have determined that all of the arguments
- * can be bound to positional parameters without any further type checking
- * (because the multi-dispatch cache told us so) and any named parameters are
- * automatically going into the named slurpy variable.
- *
- * ALREADY_BOUND indicates that the variables have already been bound into the
- * lexpad and means the bind_signature op is thus a no-op. This happens if we
- * had to do a bindability check in the multi-dispatch anyway.
+/* 
+ * ALREADY_CHECKED can be flagged on a CallContext, and indicates that we have
+ * determined that all of the arguments can be bound to positional parameters
+ * without any further type checking (because the multi-dispatch told us so).
  */
-#define PObj_P6S_ALREADY_CHECKED_FLAG   PObj_private0_FLAG
-#define PObj_P6S_ALREADY_BOUND_FLAG     PObj_private1_FLAG
+#define PObj_P6BINDER_ALREADY_CHECKED_FLAG PObj_private0_FLAG
 
 /* Gets the ID of a 6model object PMC. */
 INTVAL Rakudo_smo_id(void);

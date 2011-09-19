@@ -4,7 +4,7 @@ my class MapIter is Iterator {
     has $!block;               # the block we're applying
 
     method new(:$list!, :$block!) { 
-        my $new := self.CREATE.BUILD($list, $block);
+        my $new := nqp::create(self).BUILD($list, $block);
         $new;
     }
 
@@ -76,7 +76,7 @@ my class MapIter is Iterator {
                 %r = args
             };
             # create the next MapIter if we haven't reached the end
-            nqp::push($rpa, self.CREATE.BUILD($!list, $!block))
+            nqp::push($rpa, nqp::create(self).BUILD($!list, $!block))
               if $args;
             $!reified := nqp::p6parcel($rpa, nqp::null());
             $!list = Any;

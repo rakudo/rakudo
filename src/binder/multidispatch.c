@@ -334,7 +334,8 @@ find_in_cache(PARROT_INTERP, Rakudo_md_cache *cache, PMC *capture, INTVAL num_ar
 
     /* Create arg tuple. */
     for (i = 0; i < num_args; i++) {
-        PMC *arg = VTABLE_get_pmc_keyed_int(interp, capture, i);
+        PMC *arg = Rakudo_cont_decontainerize(interp,
+            VTABLE_get_pmc_keyed_int(interp, capture, i));
         arg_tup[i] = STABLE(arg)->type_cache_id | (REPR(arg)->defined(interp, arg) ? 1 : 0);
     }
 
@@ -386,7 +387,8 @@ add_to_cache(PARROT_INTERP, Rakudo_md_cache *cache, PMC *capture, INTVAL num_arg
     
     /* Create arg tuple. */
     for (i = 0; i < num_args; i++) {
-        PMC *arg = VTABLE_get_pmc_keyed_int(interp, capture, i);
+        PMC *arg = Rakudo_cont_decontainerize(interp,
+            VTABLE_get_pmc_keyed_int(interp, capture, i));
         arg_tup[i] = STABLE(arg)->type_cache_id | (REPR(arg)->defined(interp, arg) ? 1 : 0);
     }
 
@@ -770,7 +772,7 @@ Rakudo_md_dispatch(PARROT_INTERP, PMC *dispatcher, PMC *capture, opcode_t *next)
     Rakudo_Code *code_obj  = (Rakudo_Code *)PMC_data(dispatcher);
     INTVAL       num_args  = VTABLE_elements(interp, capture);
     INTVAL       has_cache = !PMC_IS_NULL(code_obj->dispatcher_cache);
-    /*if (num_args <= MD_CACHE_MAX_ARITY && has_cache) {
+    if (num_args <= MD_CACHE_MAX_ARITY && has_cache) {
         Rakudo_md_cache *cache = (Rakudo_md_cache *)VTABLE_get_pointer(interp,
             code_obj->dispatcher_cache);
         if (num_args == 0 || cache->arity_caches[num_args - 1].num_entries) {
@@ -778,7 +780,7 @@ Rakudo_md_dispatch(PARROT_INTERP, PMC *dispatcher, PMC *capture, opcode_t *next)
             if (cache_result)
                 return cache_result;
         }
-    }*/
+    }
     
     /* No cache hit, so we need to do a full dispatch. */
     num_cands = VTABLE_elements(interp, code_obj->dispatchees);

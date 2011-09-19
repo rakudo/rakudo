@@ -559,7 +559,10 @@ class Perl6::Actions is HLL::Actions {
         # Perl6LexPad will generate containers (and maybe fill them with
         # the outer's value) on demand.
         my $BLOCK := $*ST.cur_lexpad();
-        for <$_ $/ $!> {
+        my $type := $BLOCK<IN_DECL>;
+        my $is_routine := $type eq 'sub' || $type eq 'method' ||
+                          $type eq 'submethod' || $type eq 'mainline';
+        for ($is_routine ?? <$_ $/ $!> !! ['$_']) {
             # Generate the lexical variable except if...
             #   (1) the block already has one, or
             #   (2) the variable is '$_' and $*IMPLICIT is set
@@ -815,14 +818,14 @@ class Perl6::Actions is HLL::Actions {
 
             # On failure, capture the exception object into $!.
             $past.push(
-                PAST::Op.new(:pasttype<bind_6model>,
+                PAST::Op.new(:pirop('perl6_container_store__0PP'),
                     PAST::Var.new(:name<$!>, :scope<lexical_6model>),
                     PAST::Op.new(:name<&EXCEPTION>, :pasttype<call>,
                         PAST::Op.new(:inline("    .get_results (%r)\n    finalize %r")))));
 
             # Otherwise, put Mu into $!.
             $past.push(
-                PAST::Op.new(:pasttype<bind_6model>,
+                PAST::Op.new(:pirop('perl6_container_store__0PP'),
                     PAST::Var.new( :name<$!>, :scope<lexical_6model> ),
                     PAST::Var.new( :name<Mu>, :scope<lexical_6model> )));
         }
@@ -3352,7 +3355,7 @@ class Perl6::Actions is HLL::Actions {
             block_closure($coderef)
         );
         self.handle_and_check_adverbs($/, %MATCH_ALLOWED_ADVERBS, 'm', $past);
-        make PAST::Op.new( :pasttype('bind_6model'),
+        make PAST::Op.new( :pirop('perl6_container_store__0PP'),
             PAST::Var.new(:name('$/'), :scope('lexical_6model')),
             $past
         );

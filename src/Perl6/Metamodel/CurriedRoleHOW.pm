@@ -23,9 +23,22 @@ class Perl6::Metamodel::CurriedRoleHOW
     has @!pos_args;
     has %!named_args;
 
-    my $archetypes := Perl6::Metamodel::Archetypes.new( :nominal(1), :composable(1), :inheritalizable(1), :parametric(1) );
+    my $archetypes_g := Perl6::Metamodel::Archetypes.new( :composable(1), :inheritalizable(1), :parametric(1), :generic(1) );
+    my $archetypes_ng := Perl6::Metamodel::Archetypes.new( :nominal(1), :composable(1), :inheritalizable(1), :parametric(1) );
     method archetypes() {
-        $archetypes
+        if pir::repr_defined__IP(self) {
+            for @!pos_args {
+                if $_.HOW.archetypes.generic {
+                    return $archetypes_g;
+                }
+            }
+            for %!named_args {
+                if $_.value.HOW.archetypes.generic {
+                    return $archetypes_g;
+                }
+            }
+        }
+        $archetypes_ng
     }
     
     method new_type($curried_role, *@pos_args, *%named_args) {
@@ -33,6 +46,22 @@ class Perl6::Metamodel::CurriedRoleHOW
             :named_args(%named_args));
         my $type := pir::repr_type_object_for__PPS($meta, 'Uninstantiable');
         pir::stable_set_type_check_mode__0PI($type, 2)
+    }
+    
+    method instantiate_generic($obj, $type_env) {
+        my @new_pos;
+        my %new_named;
+        for @!pos_args {
+            @new_pos.push($_.HOW.archetypes.generic ??
+                $_.HOW.instantiate_generic($_, $type_env) !!
+                $_);
+        }
+        for %!named_args {
+            %new_named{$_.key} := $_.value.HOW.archetypes.generic ??
+                $_.value.HOW.instantiate_generic($_.value, $type_env) !!
+                $_.value;
+        }
+        self.new_type($!curried_role, |@new_pos, |%new_named)
     }
     
     method specialize($obj, $first_arg) {

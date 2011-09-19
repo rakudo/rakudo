@@ -51,7 +51,7 @@ my class Mu {
         # Get the build plan. Note that we do this "low level" to
         # avoid the NQP type getting mapped to a Rakudo one, which
         # would get expensive.
-        my $build_plan := pir::find_method__PPs(self.HOW, 'BUILDPLAN')(self.HOW, self);
+        my $build_plan := pir::find_method__PPs(self.HOW, 'BUILDALLPLAN')(self.HOW, self);
         my int $count   = nqp::elems($build_plan);
         my int $i       = 0;
         while nqp::islt_i($i, $count) {
@@ -80,7 +80,7 @@ my class Mu {
                 }
             }
             else {
-                die "Invalid BUILDPLAN";
+                die "Invalid BUILDALLPLAN";
             }
         }
         self

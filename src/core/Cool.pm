@@ -170,6 +170,10 @@ my class Cool {
     method trim         () { self.Stringy.trim          };
     method trim-leading () { self.Stringy.trim-leading  };
     method trim-trailing() { self.Stringy.trim-trailing };
+
+    method eval(*%opts) {
+        eval(self.Stringy, |%opts);
+    }
 }
 
 sub chop($s)                  { $s.chop }

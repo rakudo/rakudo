@@ -440,7 +440,7 @@ S14-roles/mixin.t
 S14-roles/namespaced.t 
 # S14-roles/parameter-subtyping.t # err: Typed arrays/hashes/callables not yet implemented
 S14-roles/parameterized-basic.t
-# S14-roles/parameterized-mixin.t # err: No applicable candidates found to dispatch to for 'infix:<eq>'
+S14-roles/parameterized-mixin.t
 S14-roles/parameterized-type.t
 S14-roles/submethods.t
 # S14-traits/attributes.t # err: Invalid typename in parameter declaration

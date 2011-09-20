@@ -522,10 +522,21 @@ static PMC* find_best_candidate(PARROT_INTERP, Rakudo_md_candidate_info **candid
                     if (possibles[i]->bind_check) {
                         /* We'll invoke the sub (but not re-enter the runloop)
                          * and then attempt to bind the signature. */
-                        opcode_t *where  = VTABLE_invoke(interp, possibles[i]->sub, next);
-                        PMC      *lexpad = Parrot_pcc_get_lex_pad(interp, CURRENT_CONTEXT(interp));
-                        PMC      *sig    = possibles[i]->signature;
-                        INTVAL bind_check_result = Rakudo_binding_bind(interp, lexpad,
+                        PMC      *cthunk, *lexpad, *sig;
+                        opcode_t *where;
+                        INTVAL    bind_check_result;
+                        Rakudo_Code *code_obj = (Rakudo_Code *)PMC_data(possibles[i]->sub);
+                        cthunk = VTABLE_getprop(interp, code_obj->_do,
+                            Parrot_str_new(interp, "COMPILER_THUNK", 0));
+                        if (!PMC_IS_NULL(cthunk)) {
+                            /* We need to do the tie-break on something not yet compiled.
+                             * Get it compiled. */
+                            Parrot_ext_call(interp, cthunk, "->");
+                        }
+                        where  = VTABLE_invoke(interp, possibles[i]->sub, next);
+                        lexpad = Parrot_pcc_get_lex_pad(interp, CURRENT_CONTEXT(interp));
+                        sig    = possibles[i]->signature;
+                        bind_check_result = Rakudo_binding_bind(interp, lexpad,
                               sig, capture, 0, NULL);
                         where = VTABLE_invoke(interp, Parrot_pcc_get_continuation(interp, CURRENT_CONTEXT(interp)), where);
 

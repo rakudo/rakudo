@@ -714,27 +714,33 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
         # For now, install stub that will dynamically compile the code if
         # we ever try to run it during compilation.
         my $precomp;
-        my $stub := sub (*@pos, *%named) {
+        my $compiler_thunk := {
+            # Fix up GLOBAL.
             my $rns    := pir::get_root_namespace__P();
             my $p6_pns := $rns{'perl6'};
             $p6_pns{'GLOBAL'} := $*GLOBALish;
-            unless $precomp {
-                # Compile the block.
-                $precomp := self.compile_in_context($code_past, $code_type);
+            
+            # Compile the block.
+            $precomp := self.compile_in_context($code_past, $code_type);
 
-                # Also compile the candidates if this is a proto.
-                if $is_dispatcher {
-                    for nqp::getattr($code, $code_type, '$!dispatchees') {
-                        my $stub := nqp::getattr($_, $code_type, '$!do');
-                        my $past := pir::getprop__PsP('PAST_BLOCK', $stub);
-                        if $past {
-                            self.compile_in_context($past, $code_type);
-                        }
+            # Also compile the candidates if this is a proto.
+            if $is_dispatcher {
+                for nqp::getattr($code, $code_type, '$!dispatchees') {
+                    my $stub := nqp::getattr($_, $code_type, '$!do');
+                    my $past := pir::getprop__PsP('PAST_BLOCK', $stub);
+                    if $past {
+                        self.compile_in_context($past, $code_type);
                     }
                 }
             }
+        };
+        my $stub := sub (*@pos, *%named) {
+            unless $precomp {
+                $compiler_thunk();
+            }
             $precomp(|@pos, |%named);
         };
+        pir::setprop__vPsP($stub, 'COMPILER_THUNK', $compiler_thunk);
         pir::set__vPS($stub, $code_past.name);
         pir::setattribute__vPPsP($code, $code_type, '$!do', $stub);
         

@@ -267,7 +267,7 @@ S05-metasyntax/charset.t
 # S05-metasyntax/lookaround.t # err: Method 'after' not found for invocant of class 'Cursor'
 S05-metasyntax/null.t
 S05-metasyntax/regex.t
-# S05-metasyntax/repeat.t # err: Cannot assign to a non-container
+S05-metasyntax/repeat.t
 # S05-metasyntax/sequential-alternation.t # err: Method 'rxtype' not found for invocant of class 'PAST;Regex'
 S05-metasyntax/single-quotes.t
 S05-metasyntax/unknown.t

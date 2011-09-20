@@ -286,7 +286,7 @@ Return the LexInfo PMC, if any or a Null PMC.
     }
 
     VTABLE PMC *get_pmc_keyed_str(STRING *name) {
-        const Hash *hash;
+        Hash *hash;
         INTVAL  reg;
         PMC    *ctx;
         PMC    *result;
@@ -328,7 +328,7 @@ Return the LexInfo PMC, if any or a Null PMC.
     }
     
     VTABLE INTVAL get_integer_keyed_str(STRING *name) {
-        const Hash *hash;
+        Hash *hash;
         INTVAL  reg;
         PMC    *ctx;
 
@@ -341,7 +341,7 @@ Return the LexInfo PMC, if any or a Null PMC.
     }
     
     VTABLE FLOATVAL get_number_keyed_str(STRING *name) {
-        const Hash *hash;
+        Hash *hash;
         INTVAL  reg;
         PMC    *ctx;
 
@@ -354,7 +354,7 @@ Return the LexInfo PMC, if any or a Null PMC.
     }
     
     VTABLE STRING *get_string_keyed_str(STRING *name) {
-        const Hash *hash;
+        Hash *hash;
         INTVAL  reg;
         PMC    *ctx;
 
@@ -387,7 +387,7 @@ Return the LexInfo PMC, if any or a Null PMC.
     }
 
     VTABLE void set_pmc_keyed_str(STRING *name, PMC *value) {
-        const Hash *hash;
+        Hash *hash;
         INTVAL  reg;
         PMC    *ctx;
 
@@ -399,7 +399,7 @@ Return the LexInfo PMC, if any or a Null PMC.
     }
     
     VTABLE void set_integer_keyed_str(STRING *name, INTVAL value) {
-        const Hash *hash;
+        Hash *hash;
         INTVAL  reg;
         PMC    *ctx;
 
@@ -410,7 +410,7 @@ Return the LexInfo PMC, if any or a Null PMC.
     }
     
     VTABLE void set_number_keyed_str(STRING *name, FLOATVAL value) {
-        const Hash *hash;
+        Hash *hash;
         INTVAL  reg;
         PMC    *ctx;
 
@@ -421,7 +421,7 @@ Return the LexInfo PMC, if any or a Null PMC.
     }
     
     VTABLE void set_string_keyed_str(STRING *name, STRING *value) {
-        const Hash *hash;
+        Hash *hash;
         INTVAL  reg;
         PMC    *ctx;
 

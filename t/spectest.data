@@ -21,6 +21,7 @@ S02-types/bool.t
 S02-types/capture.t
 S02-types/catch_type_cast_mismatch.t
 S02-types/declare.t
+S02-types/enum.t
 S02-types/flattening.t
 S02-types/hash_ref.t
 S02-types/hash.t

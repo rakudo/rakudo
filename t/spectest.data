@@ -511,12 +511,12 @@ S32-list/grep.t
 S32-list/join.t
 S32-list/map_function_return_values.t
 S32-list/map.t
-# S32-list/minmax.t # err: splice() not implemented in class 'Mu'
+S32-list/minmax.t
 S32-list/pick.t
 S32-list/reduce.t
 S32-list/reverse.t
 S32-list/roll.t
-# S32-list/sort.t # err: Ambiguous dispatch to multi 'sort'.
+S32-list/sort.t
 # S32-list/uniq.t # err: Method 'uniq' not found for invocant of class 'Array'
 S32-num/abs.t
 S32-num/base.t

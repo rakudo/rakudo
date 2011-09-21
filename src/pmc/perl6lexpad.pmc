@@ -28,6 +28,7 @@ static PMC * fresh_scalar(PARROT_INTERP, PMC *cont_desc) {
     Rakudo_Scalar *cont = (Rakudo_Scalar *)PMC_data(fresh);
     cont->descriptor    = cont_desc;
     cont->value         = Any;
+    PARROT_GC_WRITE_BARRIER(interp, fresh);
     return fresh;
 }
 

@@ -1127,15 +1127,20 @@ class Perl6::Actions is HLL::Actions {
             my $code := $*ST.create_code_object($block, 'Block', $sig);
             $*ST.pkg_set_role_body_block($*PACKAGE, $code, $block);
             
+            # Compose before we add the role to the group, so the group sees
+            # it composed.
+            $*ST.pkg_compose($*PACKAGE);
+            
             # Add this role to the group if needed.
             my $group := $*PACKAGE.HOW.group($*PACKAGE);
             unless $group =:= $*PACKAGE {
                 $*ST.pkg_add_role_group_possibility($group, $*PACKAGE);
             }
         }
-
-        # Compose.
-        $*ST.pkg_compose($*PACKAGE);
+        else {
+            # Compose.
+            $*ST.pkg_compose($*PACKAGE);
+        }
 
         # Document
         Perl6::Pod::document($*PACKAGE, $*DOC);

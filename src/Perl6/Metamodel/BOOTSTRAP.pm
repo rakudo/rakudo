@@ -431,8 +431,8 @@ Code.HOW.add_method(Code, 'dispatcher', sub ($self) {
             Code, '$!dispatcher')
     });
 Code.HOW.add_method(Code, 'id', sub ($self) {
-        pir::getattribute__PPPs(pir::perl6_decontainerize__PP($self),
-            Code, '$!do').start_offs()
+        nqp::where(pir::getattribute__PPPs(pir::perl6_decontainerize__PP($self),
+            Code, '$!do'))
     });
 pir::perl6_set_type_code__vP(Code);
     

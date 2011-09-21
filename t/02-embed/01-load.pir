@@ -21,7 +21,7 @@ Tests the loading of perl6.pbc . This file is used by t/02-embed/01-load.t
 .end
 
 .sub test_load
-    lives_ok(<<'CODE',"can load_bytecode perl6.pbc")
+    lives_ok(<<'CODE',"can load_bytecode perl6.pbc", 'todo' => 'embedding')
 .sub main
     load_bytecode "perl6.pbc"
 .end

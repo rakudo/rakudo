@@ -143,17 +143,6 @@ Rakudo_binding_create_hash(PARROT_INTERP, PMC *storage) {
 }
 
 
-/* Creates a Perl 6 object of the type given by C<classname> */
-static PMC *
-Rakudo_binding_create(PARROT_INTERP, STRING *classname) {
-    PMC *ns        = Parrot_hll_get_ctx_HLL_namespace(interp);
-    PMC *class_ns  = Parrot_ns_get_namespace_keyed_str(interp, ns, classname);
-    PMC *class_obj = VTABLE_get_class(interp, class_ns);
-    PMC *result    = VTABLE_instantiate(interp, class_obj, PMCNULL);
-    return result;
-}
-
-
 static STRING *
 Rakudo_binding_arity_fail(PARROT_INTERP, PMC *params, INTVAL num_params,
                           INTVAL num_pos_args, INTVAL too_many) {

@@ -32,6 +32,9 @@ my class RoleToRoleApplier {
                     if $meth =:= $_ {
                         $found := 1;
                     }
+                    elsif pir::can($meth, 'id') && pir::can($_, 'id') {
+                        $found := $meth.id == $_.id;
+                    }
                 }
                 unless $found {
                     @meth_list.push($meth);

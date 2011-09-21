@@ -430,6 +430,10 @@ Code.HOW.add_method(Code, 'dispatcher', sub ($self) {
         pir::getattribute__PPPs(pir::perl6_decontainerize__PP($self),
             Code, '$!dispatcher')
     });
+Code.HOW.add_method(Code, 'id', sub ($self) {
+        pir::getattribute__PPPs(pir::perl6_decontainerize__PP($self),
+            Code, '$!do').start_offs()
+    });
 pir::perl6_set_type_code__vP(Code);
     
 # Need to actually run the code block. Also need this available before we finish

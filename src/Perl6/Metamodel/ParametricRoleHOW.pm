@@ -166,7 +166,15 @@ class Perl6::Metamodel::ParametricRoleHOW
             $conc.HOW.add_role($conc, $r.HOW.specialize($r, @pos_args[0]));
         }
         
-        # XXX More to copy/instantiate
+        # Pass along any parents that have been added, resolving them in
+        # the case they're generic (role Foo[::T] is T { })
+        for self.parents($obj, :local(1)) {
+            my $p := $_;
+            if $_.HOW.archetypes.generic {
+                $p := $p.HOW.instantiate_generic($p, $type_env);
+            }
+            $conc.HOW.add_parent($conc, $p);
+        }
         
         $conc.HOW.compose($conc);
         return $conc;

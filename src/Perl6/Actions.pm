@@ -3554,15 +3554,14 @@ class Perl6::Actions is HLL::Actions {
 
         # Otherwise, put it in correct lexicographic position.
         else {
-            my @shifted;
+            my $insert_at := 0;
             for @params {
                 last if $_<pos_slurpy> || $_<named_slurpy> ||
                         $_<named_names> ||
                         pir::substr__SSi($_<variable_name>, 1) gt $ident;
-                @shifted.push(@params.shift);
+                $insert_at := $insert_at + 1;
             }
-            @params.unshift(%param_info);
-            while @shifted { @params.unshift(@shifted.pop) }
+            nqp::splice(@params, [%param_info], $insert_at, 0);
         }
 
         # Add variable declaration, and evaluate to a lookup of it.

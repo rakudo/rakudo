@@ -1,10 +1,11 @@
 New in 2011.09
 + Rewritten meta object protocol and object storage
 + many speedups
++ Int, Num and Str are now far more lightweight
 + much more robust handling of infinite list
 + basic LoL (List of Lists) support
 + :U and :D type modifiers
-+ protos now conform to the new spec
++ protos and multis now conform to the new spec
 + improved enum support
 + basic 'constant' declarator
 + .WHAT and friends as macros
@@ -16,6 +17,18 @@ New in 2011.09
 + recording and reporting of test timings (tools/test_summary.pl)
 + Pod parsing and --pod=text option
 + basic support for .WHY
++ greatly improved BEGIN-time support
++ traits applied at BEGIN time for packages, routines and attributes
++ parametric roles reify types properly, fixing many bugs
++ better handling of type variables
++ support $?CLASS, which is generic in roles
++ support import/export of custom meta-objects for built in package declarators
++ custom meta-objects can override method dispatch
++ faster, allocation-free multi-dispatch cache
++ a custom BUILD does not suppress default values
++ undeclared attributes detected and reported at compile time
++ basic support for native int/num types on lexical variables
++ int/num as attributes are stored compactly in the object body
 
 New in 2011.07
 + fractional powers of negative numbers now result in Complex numbers

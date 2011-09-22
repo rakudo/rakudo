@@ -2,7 +2,7 @@ my role IO::Socket {
     has $!PIO;
     has $!buffer = '';
 
-    method recv (Int $bufsize = $Inf) {
+    method recv (Cool $bufsize as Int = $Inf) {
         fail('Socket not available') unless $!PIO;
         my $received;
         while $bufsize > $!buffer.bytes {
@@ -20,7 +20,7 @@ my role IO::Socket {
         return $received;
     }
 
-    method read(IO::Socket:D: Int:D $bufsize) {
+    method read(IO::Socket:D: Cool $bufsize as Int) {
         fail('Socket not available') unless $!PIO;
         my $buf := nqp::create(Buf);
         my Mu $parrot_buf := pir::new__PS('ByteBuffer');
@@ -29,7 +29,7 @@ my role IO::Socket {
         $buf;
     }
 
-    method send (Str $string) {
+    method send (Cool $string as Str) {
         fail("Not connected") unless $!PIO;
         return nqp::p6bool($!PIO.send($string));
     }

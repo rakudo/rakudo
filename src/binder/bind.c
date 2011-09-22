@@ -220,7 +220,7 @@ Rakudo_binding_bind_type_captures(PARROT_INTERP, PMC *lexpad, Rakudo_Parameter *
 /* Assigns an attributive parameter to the desired attribute. */
 static INTVAL
 Rakudo_binding_assign_attributive(PARROT_INTERP, PMC *lexpad, Rakudo_Parameter *param,
-                                  Rakudo_BindVal value, STRING **error) {
+                                  Rakudo_BindVal value, PMC *decont_value, STRING **error) {
     PMC *assignee = PMCNULL;
     PMC *assigner;
 
@@ -263,7 +263,7 @@ Rakudo_binding_assign_attributive(PARROT_INTERP, PMC *lexpad, Rakudo_Parameter *
         Parrot_ext_call(interp, meth, "Pi->P", self, &assignee);
     }
 
-    Rakudo_cont_store(interp, assignee, value.val.o, 1, 1);
+    Rakudo_cont_store(interp, assignee, decont_value, 1, 1);
     return BIND_RESULT_OK;
 }
 
@@ -274,86 +274,125 @@ Rakudo_binding_assign_attributive(PARROT_INTERP, PMC *lexpad, Rakudo_Parameter *
 static INTVAL
 Rakudo_binding_bind_one_param(PARROT_INTERP, PMC *lexpad, Rakudo_Signature *signature, Rakudo_Parameter *param,
                               PMC *value, INTVAL no_nom_type_check, STRING **error) {
-    PMC *decont_value;
-    Rakudo_BindVal bv;
+    PMC            *decont_value = NULL;
+    INTVAL          desired_native;
+    Rakudo_BindVal  bv;
+    /* XXX Start: This bit is what we'll be passed soon once refactors are done. */
+    Rakudo_BindVal orig_bv;
+    orig_bv.val.o = value;
+    orig_bv.type = BIND_VAL_OBJ;
+    /* XXX End: This bit is what we'll be passed soon once refactors are done. */
     
-    /* Ensure the value is a 6model object; if not, marshall it to one. */
-    if (value->vtable->base_type != smo_id) {
-        value = Rakudo_types_parrot_map(interp, value);
-        if (value->vtable->base_type != smo_id) {
-            *error = Parrot_sprintf_c(interp, "Unmarshallable foreign language value passed for parameter '%S'",
-                    param->variable_name);
-            return BIND_RESULT_FAIL;
+    /* Check if boxed/unboxed expections are met. */
+    desired_native = param->flags & SIG_ELEM_NATIVE_VALUE;
+    if (desired_native == 0 && orig_bv.type == BIND_VAL_OBJ ||
+        desired_native == SIG_ELEM_NATIVE_INT_VALUE && orig_bv.type == BIND_VAL_INT ||
+        desired_native == SIG_ELEM_NATIVE_NUM_VALUE && orig_bv.type == BIND_VAL_NUM ||
+        desired_native == SIG_ELEM_NATIVE_STR_VALUE && orig_bv.type == BIND_VAL_STR)
+    {
+        /* We have what we want. */
+        bv = orig_bv;
+    }
+    else if (desired_native == 0) {
+        /* We need to do a boxing operation. */
+        PMC *box_type_obj = box_type(orig_bv);
+        bv.type = BIND_VAL_OBJ;
+        bv.val.o = REPR(box_type_obj)->instance_of(interp, box_type_obj);
+        switch (orig_bv.type) {
+            case BIND_VAL_INT:
+                REPR(bv.val.o)->set_int(interp, bv.val.o, orig_bv.val.i);
+                break;
+            case BIND_VAL_NUM:
+                REPR(bv.val.o)->set_num(interp, bv.val.o, orig_bv.val.n);
+                break;
+            case BIND_VAL_STR:
+                REPR(bv.val.o)->set_str(interp, bv.val.o, orig_bv.val.s);
+                break;
         }
     }
+    else {
+        *error = Parrot_sprintf_c(interp, "Auto-unboxing to natives not yet implemented in binding");
+        return BIND_RESULT_FAIL;
+    }
     
-    /* We pretty much always need to de-containerized value, so get it
-     * right off. */
-    decont_value = Rakudo_cont_decontainerize(interp, value);
-    
-    /* XXX We'll be passed this eventually. */
-    bv.val.o = decont_value;
-    bv.type = BIND_VAL_OBJ;
-    
-    /* Skip nominal type check if not needed. */
-    if (!no_nom_type_check) {
-        PMC *nom_type;
-        
-        /* Is the nominal type generic and in need of instantiation? (This
-         * can happen in (::T, T) where we didn't learn about the type until
-         * during the signature bind). */
-        if (param->flags & SIG_ELEM_NOMINAL_GENERIC) {
-            PMC *HOW = STABLE(param->nominal_type)->HOW;
-            PMC *ig  = VTABLE_find_method(interp, HOW, INSTANTIATE_GENERIC_str);
-            Parrot_ext_call(interp, ig, "PiPP->P", HOW, param->nominal_type,
-                lexpad, &nom_type);
-        }
-        else {
-            nom_type = param->nominal_type;
+    /* By this point, we'll either have an object that we might be able to
+     * bind if it passes the type check, or a native value that needs no
+     * further checking. */
+    if (bv.type == BIND_VAL_OBJ) {
+        /* Ensure the value is a 6model object; if not, marshall it to one. */
+        if (bv.val.o->vtable->base_type != smo_id) {
+            bv.val.o = Rakudo_types_parrot_map(interp, bv.val.o);
+            if (bv.val.o->vtable->base_type != smo_id) {
+                *error = Parrot_sprintf_c(interp, "Unmarshallable foreign language value passed for parameter '%S'",
+                        param->variable_name);
+                return BIND_RESULT_FAIL;
+            }
         }
 
-        /* If not, do the check. If the wanted nominal type is Mu, then
-		 * anything goes. */
-        if (nom_type != Rakudo_types_mu_get() &&
-                (decont_value->vtable->base_type != smo_id ||
-                 !STABLE(decont_value)->type_check(interp, decont_value, nom_type))) {
-            /* Type check failed; produce error if needed. */
-            if (error) {
-                PMC    * got_how       = STABLE(decont_value)->HOW;
-                PMC    * exp_how       = STABLE(nom_type)->HOW;
-                PMC    * got_name_meth = VTABLE_find_method(interp, got_how, NAME_str);
-                PMC    * exp_name_meth = VTABLE_find_method(interp, exp_how, NAME_str);
-                STRING * expected, * got;
-                Parrot_ext_call(interp, got_name_meth, "PiP->S", got_how, value, &got);
-                Parrot_ext_call(interp, exp_name_meth, "PiP->S", exp_how, nom_type, &expected);
-                *error = Parrot_sprintf_c(interp, "Nominal type check failed for parameter '%S'; expected %S but got %S instead",
-                            param->variable_name, expected, got);
+        /* We pretty much always need to de-containerized value, so get it
+         * right off. */
+        decont_value = Rakudo_cont_decontainerize(interp, bv.val.o);
+    
+        /* Skip nominal type check if not needed. */
+        if (!no_nom_type_check) {
+            PMC *nom_type;
+            
+            /* Is the nominal type generic and in need of instantiation? (This
+             * can happen in (::T, T) where we didn't learn about the type until
+             * during the signature bind). */
+            if (param->flags & SIG_ELEM_NOMINAL_GENERIC) {
+                PMC *HOW = STABLE(param->nominal_type)->HOW;
+                PMC *ig  = VTABLE_find_method(interp, HOW, INSTANTIATE_GENERIC_str);
+                Parrot_ext_call(interp, ig, "PiPP->P", HOW, param->nominal_type,
+                    lexpad, &nom_type);
+            }
+            else {
+                nom_type = param->nominal_type;
+            }
+
+            /* If not, do the check. If the wanted nominal type is Mu, then
+             * anything goes. */
+            if (nom_type != Rakudo_types_mu_get() &&
+                    (decont_value->vtable->base_type != smo_id ||
+                     !STABLE(decont_value)->type_check(interp, decont_value, nom_type))) {
+                /* Type check failed; produce error if needed. */
+                if (error) {
+                    PMC    * got_how       = STABLE(decont_value)->HOW;
+                    PMC    * exp_how       = STABLE(nom_type)->HOW;
+                    PMC    * got_name_meth = VTABLE_find_method(interp, got_how, NAME_str);
+                    PMC    * exp_name_meth = VTABLE_find_method(interp, exp_how, NAME_str);
+                    STRING * expected, * got;
+                    Parrot_ext_call(interp, got_name_meth, "PiP->S", got_how, bv.val.o, &got);
+                    Parrot_ext_call(interp, exp_name_meth, "PiP->S", exp_how, nom_type, &expected);
+                    *error = Parrot_sprintf_c(interp, "Nominal type check failed for parameter '%S'; expected %S but got %S instead",
+                                param->variable_name, expected, got);
+                }
+                
+                /* Report junction failure mode if it's a junction. */
+                if (decont_value->vtable->base_type == smo_id &&
+                        STABLE(decont_value)->WHAT == Rakudo_types_junction_get())
+                    return BIND_RESULT_JUNCTION;
+                else
+                    return BIND_RESULT_FAIL;
             }
             
-            /* Report junction failure mode if it's a junction. */
-            if (decont_value->vtable->base_type == smo_id &&
-                    STABLE(decont_value)->WHAT == Rakudo_types_junction_get())
-                return BIND_RESULT_JUNCTION;
-            else
-                return BIND_RESULT_FAIL;
-        }
-        
-        /* Also enforce definedness constraints. */
-        if (param->flags & SIG_ELEM_DEFINEDNES_CHECK) {
-            INTVAL defined = REPR(decont_value)->defined(interp, decont_value);
-            if (defined && param->flags & SIG_ELEM_UNDEFINED_ONLY) {
-                if (error)
-                    *error = Parrot_sprintf_c(interp,
-                        "Parameter '%S' requires a type object, but an object instance was passed",
-                        param->variable_name);
-                return BIND_RESULT_FAIL;
-            }
-            if (!defined && param->flags & SIG_ELEM_DEFINED_ONLY) {
-                if (error)
-                    *error = Parrot_sprintf_c(interp,
-                        "Parameter '%S' requires an instance, but a type object was passed",
-                        param->variable_name);
-                return BIND_RESULT_FAIL;
+            /* Also enforce definedness constraints. */
+            if (param->flags & SIG_ELEM_DEFINEDNES_CHECK) {
+                INTVAL defined = REPR(decont_value)->defined(interp, decont_value);
+                if (defined && param->flags & SIG_ELEM_UNDEFINED_ONLY) {
+                    if (error)
+                        *error = Parrot_sprintf_c(interp,
+                            "Parameter '%S' requires a type object, but an object instance was passed",
+                            param->variable_name);
+                    return BIND_RESULT_FAIL;
+                }
+                if (!defined && param->flags & SIG_ELEM_DEFINED_ONLY) {
+                    if (error)
+                        *error = Parrot_sprintf_c(interp,
+                            "Parameter '%S' requires an instance, but a type object was passed",
+                            param->variable_name);
+                    return BIND_RESULT_FAIL;
+                }
             }
         }
     }
@@ -365,6 +404,14 @@ Rakudo_binding_bind_one_param(PARROT_INTERP, PMC *lexpad, Rakudo_Signature *sign
 
     /* Do a coercion, if one is needed. */
     if (!PMC_IS_NULL(param->coerce_type)) {
+        /* Coercing natives not possible - nothing to call a method on. */
+        if (bv.type != BIND_VAL_OBJ) {
+            *error = Parrot_sprintf_c(interp,
+                "Unable to coerce natively typed parameter '%S'",
+                param->variable_name);
+            return BIND_RESULT_FAIL;
+        }
+
         /* Only coerce if we don't already have the correct type. */
         if (!STABLE(decont_value)->type_check(interp, decont_value, param->coerce_type)) {
             PMC *coerce_meth = VTABLE_find_method(interp, decont_value, param->coerce_method);
@@ -390,15 +437,30 @@ Rakudo_binding_bind_one_param(PARROT_INTERP, PMC *lexpad, Rakudo_Signature *sign
     /* If it's not got attributive binding, we'll go about binding it into the
      * lex pad. */
     if (!(param->flags & SIG_ELEM_BIND_ATTRIBUTIVE) && !STRING_IS_NULL(param->variable_name)) {
-        /* Is it "is rw"? */
-        if (param->flags & SIG_ELEM_IS_RW) {
+        /* Is it native? If so, just go ahead and bind it. */
+        if (bv.type != BIND_VAL_OBJ) {
+            switch (bv.type) {
+                case BIND_VAL_INT:
+                    VTABLE_set_integer_keyed_str(interp, lexpad, param->variable_name, bv.val.i);
+                    break;
+                case BIND_VAL_NUM:
+                    VTABLE_set_number_keyed_str(interp, lexpad, param->variable_name, bv.val.n);
+                    break;
+                case BIND_VAL_STR:
+                    VTABLE_set_string_keyed_str(interp, lexpad, param->variable_name, bv.val.s);
+                    break;
+            }
+        }
+        
+        /* Otherwise it's some objecty case. */
+        else if (param->flags & SIG_ELEM_IS_RW) {
             /* XXX TODO Check if rw flag is set; also need to have a
              * wrapper container that carries extra constraints. */
-            VTABLE_set_pmc_keyed_str(interp, lexpad, param->variable_name, value);
+            VTABLE_set_pmc_keyed_str(interp, lexpad, param->variable_name, bv.val.o);
         }
         else if (param->flags & SIG_ELEM_IS_PARCEL) {
             /* Just bind the thing as is into the lexpad. */
-            VTABLE_set_pmc_keyed_str(interp, lexpad, param->variable_name, value);
+            VTABLE_set_pmc_keyed_str(interp, lexpad, param->variable_name, bv.val.o);
         }
         else {
             /* If it's an array, copy means make a new one and store,
@@ -457,7 +519,20 @@ Rakudo_binding_bind_one_param(PARROT_INTERP, PMC *lexpad, Rakudo_Signature *sign
                 Parrot_sub_capture_lex(interp,
                     VTABLE_get_attr_keyed(interp, cons_type, code_type, DO_str));
             VTABLE_push_pmc(interp, cappy, cons_type);
-            VTABLE_push_pmc(interp, cappy, value);
+            switch (bv.type) {
+                case BIND_VAL_OBJ:
+                    VTABLE_push_pmc(interp, cappy, bv.val.o);
+                    break;
+                case BIND_VAL_INT:
+                    VTABLE_push_integer(interp, cappy, bv.val.i);
+                    break;
+                case BIND_VAL_NUM:
+                    VTABLE_push_float(interp, cappy, bv.val.n);
+                    break;
+                case BIND_VAL_STR:
+                    VTABLE_push_string(interp, cappy, bv.val.s);
+                    break;
+            }
             Parrot_pcc_invoke_from_sig_object(interp, accepts_meth, cappy);
             cappy = Parrot_pcc_get_signature(interp, CURRENT_CONTEXT(interp));
             Parrot_pcc_set_signature(interp, CURRENT_CONTEXT(interp), old_ctx);
@@ -472,13 +547,13 @@ Rakudo_binding_bind_one_param(PARROT_INTERP, PMC *lexpad, Rakudo_Signature *sign
 
     /* If it's attributive, now we assign it. */
     if (param->flags & SIG_ELEM_BIND_ATTRIBUTIVE) {
-        INTVAL result = Rakudo_binding_assign_attributive(interp, lexpad, param, bv, error);
+        INTVAL result = Rakudo_binding_assign_attributive(interp, lexpad, param, bv, decont_value, error);
         if (result != BIND_RESULT_OK)
             return result;
     }
 
     /* If it has a sub-signature, bind that. */
-    if (!PMC_IS_NULL(param->sub_llsig)) {
+    if (!PMC_IS_NULL(param->sub_llsig) && bv.type == BIND_VAL_OBJ) {
         /* Turn value into a capture, unless we already have one. */
         PMC *capture = PMCNULL;
         INTVAL result;
@@ -573,7 +648,8 @@ Rakudo_binding_handle_optional(PARROT_INTERP, Rakudo_Parameter *param, PMC *lexp
 INTVAL
 Rakudo_binding_bind(PARROT_INTERP, PMC *lexpad, PMC *sig_pmc, PMC *capture,
                     INTVAL no_nom_type_check, STRING **error) {
-    INTVAL            i, bind_fail, num_pos_args;
+    INTVAL            i, num_pos_args;
+    INTVAL            bind_fail   = 0;
     INTVAL            cur_pos_arg = 0;
     Rakudo_Signature *sig         = (Rakudo_Signature *)PMC_data(sig_pmc);
     PMC              *params      = sig->params;

@@ -70,6 +70,22 @@ static void setup_binder_statics(PARROT_INTERP) {
 INTVAL Rakudo_smo_id(void) { return smo_id; }
 
 
+/* Return the type we'd box a native value to. */
+static PMC *
+box_type(Rakudo_BindVal bv) {
+    switch (bv.type) {
+        case BIND_VAL_INT:
+            return Rakudo_types_int_get();
+        case BIND_VAL_NUM:
+            return Rakudo_types_num_get();
+        case BIND_VAL_STR:
+            return Rakudo_types_str_get();
+        default:
+            return Rakudo_types_mu_get();
+    }
+}
+
+
 /* Creates a Parcel from a RPA, filling PMCNULL elements if needed. */
 /* This function gets shared with perl6.ops for the perl6_parcel_from_rpa op. */
 PMC *
@@ -189,8 +205,10 @@ Rakudo_binding_arity_fail(PARROT_INTERP, PMC *params, INTVAL num_params,
 
 /* Binds any type captures a variable has. */
 static void
-Rakudo_binding_bind_type_captures(PARROT_INTERP, PMC *lexpad, Rakudo_Parameter *param, PMC *value) {
-    PMC * type_obj = STABLE(value)->WHAT;
+Rakudo_binding_bind_type_captures(PARROT_INTERP, PMC *lexpad, Rakudo_Parameter *param, Rakudo_BindVal value) {
+    PMC * type_obj = value.type == BIND_VAL_OBJ ?
+        STABLE(value.val.o)->WHAT :
+        box_type(value);
     PMC * iter     = VTABLE_get_iter(interp, param->type_captures);
     while (VTABLE_get_bool(interp, iter)) {
         STRING *name = VTABLE_shift_string(interp, iter);
@@ -202,7 +220,7 @@ Rakudo_binding_bind_type_captures(PARROT_INTERP, PMC *lexpad, Rakudo_Parameter *
 /* Assigns an attributive parameter to the desired attribute. */
 static INTVAL
 Rakudo_binding_assign_attributive(PARROT_INTERP, PMC *lexpad, Rakudo_Parameter *param,
-                                  PMC *value, STRING **error) {
+                                  Rakudo_BindVal value, STRING **error) {
     PMC *assignee = PMCNULL;
     PMC *assigner;
 
@@ -214,6 +232,14 @@ Rakudo_binding_assign_attributive(PARROT_INTERP, PMC *lexpad, Rakudo_Parameter *
             *error = Parrot_sprintf_c(interp,
                     "Unable to bind attributive parameter '%S' - could not find self",
                     param->variable_name);
+        return BIND_RESULT_FAIL;
+    }
+    
+    /* Ensure it's not native; NYI. */
+    if (value.type != BIND_VAL_OBJ) {
+        *error = Parrot_sprintf_c(interp,
+            "Binding to natively typed attributive parameter '%S' not supported",
+            param->variable_name);
         return BIND_RESULT_FAIL;
     }
 
@@ -237,7 +263,7 @@ Rakudo_binding_assign_attributive(PARROT_INTERP, PMC *lexpad, Rakudo_Parameter *
         Parrot_ext_call(interp, meth, "Pi->P", self, &assignee);
     }
 
-    Rakudo_cont_store(interp, assignee, value, 1, 1);
+    Rakudo_cont_store(interp, assignee, value.val.o, 1, 1);
     return BIND_RESULT_OK;
 }
 
@@ -249,6 +275,7 @@ static INTVAL
 Rakudo_binding_bind_one_param(PARROT_INTERP, PMC *lexpad, Rakudo_Signature *signature, Rakudo_Parameter *param,
                               PMC *value, INTVAL no_nom_type_check, STRING **error) {
     PMC *decont_value;
+    Rakudo_BindVal bv;
     
     /* Ensure the value is a 6model object; if not, marshall it to one. */
     if (value->vtable->base_type != smo_id) {
@@ -263,6 +290,10 @@ Rakudo_binding_bind_one_param(PARROT_INTERP, PMC *lexpad, Rakudo_Signature *sign
     /* We pretty much always need to de-containerized value, so get it
      * right off. */
     decont_value = Rakudo_cont_decontainerize(interp, value);
+    
+    /* XXX We'll be passed this eventually. */
+    bv.val.o = decont_value;
+    bv.type = BIND_VAL_OBJ;
     
     /* Skip nominal type check if not needed. */
     if (!no_nom_type_check) {
@@ -328,8 +359,9 @@ Rakudo_binding_bind_one_param(PARROT_INTERP, PMC *lexpad, Rakudo_Signature *sign
     }
 
     /* Do we have any type captures to bind? */
-    if (!PMC_IS_NULL(param->type_captures))
-        Rakudo_binding_bind_type_captures(interp, lexpad, param, decont_value);
+    if (!PMC_IS_NULL(param->type_captures)) {
+        Rakudo_binding_bind_type_captures(interp, lexpad, param, bv);
+    }
 
     /* Do a coercion, if one is needed. */
     if (!PMC_IS_NULL(param->coerce_type)) {
@@ -440,7 +472,7 @@ Rakudo_binding_bind_one_param(PARROT_INTERP, PMC *lexpad, Rakudo_Signature *sign
 
     /* If it's attributive, now we assign it. */
     if (param->flags & SIG_ELEM_BIND_ATTRIBUTIVE) {
-        INTVAL result = Rakudo_binding_assign_attributive(interp, lexpad, param, decont_value, error);
+        INTVAL result = Rakudo_binding_assign_attributive(interp, lexpad, param, bv, error);
         if (result != BIND_RESULT_OK)
             return result;
     }

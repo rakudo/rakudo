@@ -411,9 +411,15 @@ Code.HOW.add_method(Code, 'is_generic', sub ($self) {
         pir::getattribute__PPPs($self, Code, '$!signature').is_generic()
     });
 Code.HOW.add_method(Code, 'instantiate_generic', sub ($self, $type_environment) {
-        # Clone the code object, then instantiate the generic signature.
+        # Clone the code object, then instantiate the generic signature. Also
+        # need to clone dispatchees list.
+        my $dcself := pir::perl6_decontainerize__PP($self);
         my $ins := $self.clone();
-        my $sig := pir::getattribute__PPPs($self, Code, '$!signature');
+        if pir::defined(nqp::getattr($dcself, Code, '$!dispatchees')) {
+            nqp::bindattr($ins, Code, '$!dispatchees',
+                pir::clone__PP(nqp::getattr($dcself, Code, '$!dispatchees')));
+        }
+        my $sig := pir::getattribute__PPPs($dcself, Code, '$!signature');
         pir::setattribute__0PPsP($ins, Code, '$!signature',
             $sig.instantiate_generic($type_environment))
     });

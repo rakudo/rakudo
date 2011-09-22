@@ -156,7 +156,7 @@ static Rakudo_md_candidate_info** sort_candidates(PARROT_INTERP, PMC *candidates
 
         /* Type information. */
         info->types         = mem_allocate_n_zeroed_typed(num_params + 1, PMC*);
-        info->definednesses = mem_allocate_n_zeroed_typed(num_params + 1, INTVAL);
+        info->type_flags    = mem_allocate_n_zeroed_typed(num_params + 1, INTVAL);
         info->constraints   = mem_allocate_n_zeroed_typed(num_params + 1, PMC*);
         significant_param = 0;
 
@@ -208,9 +208,15 @@ static Rakudo_md_candidate_info** sort_candidates(PARROT_INTERP, PMC *candidates
             if (param->flags & SIG_ELEM_MULTI_INVOCANT)
                 info->num_types++;
             if (param->flags & SIG_ELEM_DEFINED_ONLY)
-                info->definednesses[significant_param] = DEFCON_DEFINED;
+                info->type_flags[significant_param] = DEFCON_DEFINED;
             else if (param->flags & SIG_ELEM_UNDEFINED_ONLY)
-                info->definednesses[significant_param] = DEFCON_UNDEFINED;
+                info->type_flags[significant_param] = DEFCON_UNDEFINED;
+            if (param->flags & SIG_ELEM_NATIVE_INT_VALUE)
+                info->type_flags[significant_param] += TYPE_NATIVE_INT;
+            else if (param->flags & SIG_ELEM_NATIVE_NUM_VALUE)
+                info->type_flags[significant_param] += TYPE_NATIVE_NUM;
+            else if (param->flags & SIG_ELEM_NATIVE_STR_VALUE)
+                info->type_flags[significant_param] += TYPE_NATIVE_STR;
             significant_param++;
         }
 
@@ -292,8 +298,8 @@ static Rakudo_md_candidate_info** sort_candidates(PARROT_INTERP, PMC *candidates
         if (info) {
             if (info->types)
                 mem_sys_free(info->types);
-            if (info->definednesses)
-                mem_sys_free(info->definednesses);
+            if (info->type_flags)
+                mem_sys_free(info->type_flags);
             if (info->constraints)
                 mem_sys_free(info->constraints);
             mem_sys_free(info);
@@ -618,9 +624,9 @@ static PMC* find_best_candidate(PARROT_INTERP, Rakudo_md_candidate_info **candid
                 type_mismatch = 1;
                 break;
             }
-            else if ((*cur_candidate)->definednesses[i]) {
+            else if ((*cur_candidate)->type_flags[i] & DEFCON_MASK) {
                 INTVAL defined = REPR(param)->defined(interp, param);
-                INTVAL desired = (*cur_candidate)->definednesses[i];
+                INTVAL desired = (*cur_candidate)->type_flags[i] & DEFCON_MASK;
                 if ((defined && desired == DEFCON_UNDEFINED) ||
                         (!defined && desired == DEFCON_DEFINED)) {
                     type_mismatch = 1;

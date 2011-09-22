@@ -3,8 +3,9 @@ class Perl6::Metamodel::NativeHOW
     does Perl6::Metamodel::Documenting
     does Perl6::Metamodel::Versioning
     does Perl6::Metamodel::Stashing
-    does Perl6::Metamodel::MultipleInheritance
+    does Perl6::Metamodel::MultipleInheritance    
     does Perl6::Metamodel::C3MRO
+    does Perl6::Metamodel::MROBasedMethodDispatch
 {
     has $!composed;
 
@@ -19,12 +20,16 @@ class Perl6::Metamodel::NativeHOW
     }
 
     method compose($obj) {
+        self.publish_method_cache($obj);
         $!composed := 1;
     }
     
     method is_composed($obj) {
         $!composed
     }
+    
+    method method_table($obj) { nqp::hash() }
+    method submethod_table($obj) { nqp::hash() }
 
     method type_check($obj, $checkee) {
         # The only time we end up in here is if the type check cache was

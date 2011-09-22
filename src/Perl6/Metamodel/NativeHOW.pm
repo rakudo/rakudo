@@ -8,6 +8,7 @@ class Perl6::Metamodel::NativeHOW
     does Perl6::Metamodel::MROBasedMethodDispatch
     does Perl6::Metamodel::MROBasedTypeChecking
 {
+    has $!nativesize;
     has $!composed;
 
     my $archetypes := Perl6::Metamodel::Archetypes.new( :nominal(1), :inheritable(1) );
@@ -16,7 +17,7 @@ class Perl6::Metamodel::NativeHOW
     }
 
     method new_type(:$name = '<anon>', :$repr = 'P6opaque', :$ver, :$auth) {
-        my $metaclass := self.new(:name($name), :ver($ver), :auth($auth));
+        my $metaclass := self.new(:name($name), :ver($ver), :auth($auth), :nativesize(0));
         self.add_stash(pir::repr_type_object_for__PPS($metaclass, $repr));
     }
 
@@ -28,6 +29,14 @@ class Perl6::Metamodel::NativeHOW
     
     method is_composed($obj) {
         $!composed
+    }
+    
+    method set_nativesize($obj, $nativesize) {
+        $!nativesize := $nativesize;
+    }
+    
+    method nativesize($obj) {
+        $!nativesize
     }
     
     method method_table($obj) { nqp::hash() }

@@ -20,6 +20,15 @@ my role IO::Socket {
         return $received;
     }
 
+    method read(IO::Socket:D: Int:D $bufsize) {
+        fail('Socket not available') unless $!PIO;
+        my $buf := nqp::create(Buf);
+        my Mu $parrot_buf := pir::new__PS('ByteBuffer');
+        pir::set__vPS($parrot_buf, $!PIO.read(nqp::unbox_i($bufsize)));
+        nqp::bindattr($buf, Buf, '$!buffer', $parrot_buf);
+        $buf;
+    }
+
     method send (Str $string) {
         fail("Not connected") unless $!PIO;
         return nqp::p6bool($!PIO.send($string));

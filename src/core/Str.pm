@@ -1,6 +1,7 @@
 my class Cursor {... }
 my class Range  {... }
 my class Match  {... }
+my class Buf    {... }
 
 my class Str does Stringy {
     multi method Bool(Str:D:) { self ne '' && self ne '0' }
@@ -452,6 +453,17 @@ my class Str does Stringy {
 
     method words(Str:D: Int $limit = *) {
         self.comb( / \S+ /, $limit );
+    }
+
+    method encode(Str:D $encoding = 'utf8') {
+        my $buf := Buf.new;
+        pir::set__vPs(nqp::getattr($buf, Buf, '$!buffer'),
+            pir::trans_encoding__ssi(
+                nqp::unbox_s(self),
+                pir::find_encoding__is(nqp::unbox_s(pir::perl6_decontainerize__PP($encoding.lc)))
+            )
+        );
+        $buf;
     }
 
     method capitalize(Str:D:) {

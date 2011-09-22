@@ -185,6 +185,7 @@ CORE_SOURCES = \
   src/core/Hash.pm \
   src/core/Parameter.pm \
   src/core/Signature.pm \
+  src/core/Buf.pm \
   src/core/IO.pm \
   src/core/IO/ArgFiles.pm \
   src/core/IO/Socket.pm \

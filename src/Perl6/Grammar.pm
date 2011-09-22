@@ -2266,6 +2266,7 @@ grammar Perl6::Grammar is HLL::Grammar {
     token prefix:sym<?>   { <!before '???'> <sym>  <O('%symbolic_unary')> }
     token prefix:sym<!>   { <!before '!!!'> <sym>  <O('%symbolic_unary')> }
     token prefix:sym<+^>  { <sym>  <O('%symbolic_unary')> }
+    token prefix:sym<~^>  { <sym>  <O('%symbolic_unary')> }
     token prefix:sym<^>   { <sym>  <O('%symbolic_unary')> }
     token prefix:sym<|>   { <sym>  <O('%symbolic_unary')> }
 

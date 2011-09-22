@@ -25,6 +25,13 @@ class Buf does Positional {
         nqp::p6box_i(pir::set__IQi($!buffer, nqp::unbox_i($idx)));
     }
 
+    method elems(Buf:D:) {
+        nqp::p6box_i(nqp::elems($!buffer));
+    }
+
+    method Numeric { self.elems }
+    method Int     { self.elems }
+
     method list() {
         my @l;
         for ^nqp::p6box_i(nqp::elems($!buffer)) -> $k {
@@ -46,4 +53,7 @@ class Buf does Positional {
 
 multi infix:<eqv>(Buf:D $a, Buf:D $b) {
     $a.WHAT === $b.WHAT && $a.list eqv $b.list;
+}
+multi prefix:<~^>(Buf:D $a) {
+    Buf.new($a.list.map: 255 - *);
 }

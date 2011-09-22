@@ -15,6 +15,16 @@ my class Routine {
             (self,)
     }
     
+    method candidates_matching(|$c) {
+        sub checker(|$) {
+            my Mu $cap := pir::find_lex__Ps('call_sig');
+            self.is_dispatcher ??
+                pir::perl6ize_type__PP(pir::perl6_get_matching_multis__PPP(self, $cap)) !!
+                (self,)
+        }
+        checker(|$c);
+    }
+    
     method multi() {
         self.dispatcher.defined
     }

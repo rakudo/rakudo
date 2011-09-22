@@ -319,8 +319,45 @@ Rakudo_binding_bind_one_param(PARROT_INTERP, PMC *lexpad, Rakudo_Signature *sign
         }
     }
     else {
-        *error = Parrot_sprintf_c(interp, "Auto-unboxing to natives not yet implemented in binding");
-        return BIND_RESULT_FAIL;
+        storage_spec spec = REPR(orig_bv.val.o)->get_storage_spec(interp, STABLE(orig_bv.val.o));
+        switch (desired_native) {
+            case SIG_ELEM_NATIVE_INT_VALUE:
+                if (spec.can_box & STORAGE_SPEC_CAN_BOX_INT) {
+                    bv.type = BIND_VAL_INT;
+                    bv.val.i = REPR(orig_bv.val.o)->get_int(interp, orig_bv.val.o);
+                }
+                else {
+                    if (error)
+                        *error = Parrot_sprintf_c(interp, "Cannot unbox argument to '%S' as a native int",
+                            param->variable_name);
+                    return BIND_RESULT_FAIL;
+                }
+                break;
+            case SIG_ELEM_NATIVE_NUM_VALUE:
+                if (spec.can_box & STORAGE_SPEC_CAN_BOX_NUM) {
+                    bv.type = BIND_VAL_NUM;
+                    bv.val.n = REPR(orig_bv.val.o)->get_num(interp, orig_bv.val.o);
+                }
+                else {
+                    if (error)
+                        *error = Parrot_sprintf_c(interp, "Cannot unbox argument to '%S' as a native num",
+                            param->variable_name);
+                    return BIND_RESULT_FAIL;
+                }
+                break;
+            case SIG_ELEM_NATIVE_STR_VALUE:
+                if (spec.can_box & STORAGE_SPEC_CAN_BOX_STR) {
+                    bv.type = BIND_VAL_STR;
+                    bv.val.s = REPR(orig_bv.val.o)->get_str(interp, orig_bv.val.o);
+                }
+                else {
+                    if (error)
+                        *error = Parrot_sprintf_c(interp, "Cannot unbox argument to '%S' as a native str",
+                            param->variable_name);
+                    return BIND_RESULT_FAIL;
+                }
+                break;
+        }
     }
     
     /* By this point, we'll either have an object that we might be able to

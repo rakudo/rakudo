@@ -19,6 +19,9 @@ typedef struct {
      * primitive type and can unbox, this says what primitive type
      * that they unbox to. */
     INTVAL boxed_primitive;
+    
+    /* The types that this one can box/unbox to. */
+    INTVAL can_box;
 } storage_spec;
 
 /* Inlined or not. */
@@ -30,5 +33,10 @@ typedef struct {
 #define STORAGE_SPEC_BP_INT     1
 #define STORAGE_SPEC_BP_NUM     2
 #define STORAGE_SPEC_BP_STR     3
+
+/* can_box bit field values. */
+#define STORAGE_SPEC_CAN_BOX_INT     1
+#define STORAGE_SPEC_CAN_BOX_NUM     2
+#define STORAGE_SPEC_CAN_BOX_STR     4
 
 #endif

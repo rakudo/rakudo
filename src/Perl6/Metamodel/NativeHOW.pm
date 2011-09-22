@@ -6,6 +6,7 @@ class Perl6::Metamodel::NativeHOW
     does Perl6::Metamodel::MultipleInheritance    
     does Perl6::Metamodel::C3MRO
     does Perl6::Metamodel::MROBasedMethodDispatch
+    does Perl6::Metamodel::MROBasedTypeChecking
 {
     has $!composed;
 
@@ -21,6 +22,7 @@ class Perl6::Metamodel::NativeHOW
 
     method compose($obj) {
         self.publish_method_cache($obj);
+        self.publish_type_cache($obj);
         $!composed := 1;
     }
     
@@ -30,16 +32,4 @@ class Perl6::Metamodel::NativeHOW
     
     method method_table($obj) { nqp::hash() }
     method submethod_table($obj) { nqp::hash() }
-
-    method type_check($obj, $checkee) {
-        # The only time we end up in here is if the type check cache was
-        # not yet published, which means the class isn't yet fully composed.
-        # Just hunt through MRO.
-        for self.mro($obj) {
-            if $_ =:= $checkee {
-                return 1;
-            }
-        }
-        0
-    }
 }

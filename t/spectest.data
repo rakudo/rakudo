@@ -125,7 +125,7 @@ S03-operators/binding-scalars.t
 S03-operators/bit.t
 S03-operators/boolean-bitwise.t
 S03-operators/brainos.t
-# S03-operators/buf.t # err: Method 'encode' not found for invocant of class 'Str'
+S03-operators/buf.t
 S03-operators/chained-declarators.t
 S03-operators/cmp.t
 # S03-operators/comparison.t # err: Could not find symbol 'Order::&Increase'
@@ -444,7 +444,7 @@ S14-roles/parameterized-basic.t
 S14-roles/parameterized-mixin.t
 S14-roles/parameterized-type.t
 S14-roles/submethods.t
-# S14-traits/attributes.t # err: Invalid typename in parameter declaration
+# S14-traits/attributes.t # err: Method 'container' not found for invocant of class 'Attribute'
 # S14-traits/package.t # err: Invalid typename in parameter declaration
 # S14-traits/routines.t # err: Could not find sub &description
 # S14-traits/variables.t # err: Invalid typename in parameter declaration
@@ -544,7 +544,7 @@ S32-str/capitalize.t                                       # icu
 S32-str/chomp.t
 S32-str/chop.t
 S32-str/comb.t                                             # icu
-# S32-str/encode.t # err: Method 'encode' not found for invocant of class 'Str'
+# S32-str/encode.t # err: encoding 'utf-8' not found
 S32-str/flip.t
 # S32-str/indent.t # err: Method 'indent' not found for invocant of class 'Str'
 S32-str/index.t
@@ -564,7 +564,7 @@ S32-str/substr.t
 S32-str/trim.t
 S32-str/uc.t                                               # icu
 S32-str/ucfirst.t                                          # icu
-# S32-str/unpack.t # err: Default constructor only takes named arguments
+# S32-str/unpack.t # err: This type cannot unbox to a native integer
 S32-str/words.t                                            # icu
 S32-temporal/calendar.t
 S32-temporal/Date.t

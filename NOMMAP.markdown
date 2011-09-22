@@ -14,7 +14,6 @@ responsible parties.
 
 * Enums to level of master (2, 1, ???, ???)
 * Grammars, qregex, other regex stuff (1, 1, \*\*\*, pmichaud)
-* Buf (2, 1, **, pmichaud)
 * DateTime, Date (2, 1, \*\*, ???)
 * Define new operators (2, 1, \*\*, pmichaud) (awaiting other regex updates)
 * MAIN (2, 1, ???, ???)
@@ -70,10 +69,3 @@ Same for my %h and hashes.
 
 ## Switch Numeric and Real to be roles
 They are classes right now, which is wrong.
-
-## fix segfaults
-
-    wget https://github.com/colomon/mandelbrot/raw/master/bin/mandelbrot-color.pl
-    ./perl6 mandelbrot-color.pl 201
-
-segfaults repeatably after about 1 minute

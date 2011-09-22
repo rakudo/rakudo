@@ -87,6 +87,16 @@ class IO {
         $buf;
     }
 
+    method write(IO:D: Buf:D $buf) {
+        my Mu $b := nqp::getattr(
+                        pir::perl6_decontainerize__PP($buf),
+                        Buf,
+                        '$!buffer'
+                    );
+        $!PIO.print($b.get_string('binary'));
+        True;
+    }
+
     method opened() {
         nqp::p6bool(nqp::istrue($!PIO));
     }

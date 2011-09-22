@@ -32,9 +32,18 @@ class Buf does Positional {
         }
         @l;
     }
+
+    method gist() {
+        'Buf:0x<' ~ self.list.fmt('%02x', ' ') ~ '>'
+    }
+
     method decode(Str:D $encoding = 'utf8') {
         nqp::p6box_s $!buffer.get_string(
             nqp::unbox_s $encoding.lc
         );
     }
+}
+
+multi infix:<eqv>(Buf:D $a, Buf:D $b) {
+    $a.WHAT === $b.WHAT && $a.list eqv $b.list;
 }

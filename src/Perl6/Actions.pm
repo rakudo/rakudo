@@ -2006,7 +2006,12 @@ class Perl6::Actions is HLL::Actions {
                     if $cur_pad.symbol(~$/) {
                         $/.CURSOR.panic("Redeclaration of symbol ", ~$/);
                     }
-                    $cur_pad[0].push(PAST::Var.new( :name(~$/), :scope('lexical_6model'), :isdecl(1) ));
+                    if pir::exists(%*PARAM_INFO, 'nominal_type') {
+                        $cur_pad[0].push(PAST::Var.new( :name(~$/), :scope('lexical_6model'),
+                            :isdecl(1), :type(%*PARAM_INFO<nominal_type>) ));
+                    } else {
+                        $cur_pad[0].push(PAST::Var.new( :name(~$/), :scope('lexical_6model'), :isdecl(1) ));
+                    }
                     $cur_pad.symbol(~$/, :scope('lexical_6model'));
                 }
             }

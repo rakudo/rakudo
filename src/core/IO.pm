@@ -80,6 +80,13 @@ class IO {
         }
     }
 
+    method read(IO:D: Int:D $bytes) {
+        my Mu $parrot_buffer := $!PIO.read_bytes(nqp::unbox_i($bytes));
+        my $buf := nqp::create(Buf);
+        nqp::bindattr($buf, Buf, '$!buffer', $parrot_buffer);
+        $buf;
+    }
+
     method opened() {
         nqp::p6bool(nqp::istrue($!PIO));
     }

@@ -16,7 +16,7 @@ so forth. The regex ones are probably also good candidates now.
 ## Nil assignment
 my Int $b = 3;  $b = Nil;   
 
-## Built-in functions
-Often builtins are only added as methods, even when the corresponding function
-should exist. Go through src/core/ and write functions that re-dispatch to the
-methods where necessary
+## Buf operators
+Implement bitwise operators for Buf, so that t/spec/S03-operators/buf.t
+passes. Much of the implementation can be stolen from the 2011.07
+release (though you need .list instead of .contents)

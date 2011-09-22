@@ -22,7 +22,7 @@ class Buf does Positional {
     }
 
     method at_key(Buf:D: Int:D $idx) {
-        nqp::p6box_i(pir::set__IQi($!buffer, nqp::unbox_i(pir::perl6_decontainerize__PP($idx))));
+        nqp::p6box_i(pir::set__IQi($!buffer, nqp::unbox_i($idx)));
     }
 
     method list() {
@@ -34,7 +34,7 @@ class Buf does Positional {
     }
     method decode(Str:D $encoding = 'utf8') {
         nqp::p6box_s $!buffer.get_string(
-            nqp::unbox_s pir::perl6_decontainerize__PP($encoding.lc)
+            nqp::unbox_s $encoding.lc
         );
     }
 }

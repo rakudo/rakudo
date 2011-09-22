@@ -69,3 +69,16 @@ multi infix:<eqv>(Buf:D $a, Buf:D $b) {
 multi prefix:<~^>(Buf:D $a) {
     Buf.new($a.list.map: 255 - *);
 }
+multi infix:<~>(Buf:D $a, Buf:D $b) {
+    my Buf $r := nqp::create(Buf);
+    my Mu $br := pir::new__PS('ByteBuffer');
+
+    my Mu $ba := nqp::getattr(pir::perl6_decontainerize__PP($a), Buf, '$!buffer');
+    my Mu $bb := nqp::getattr(pir::perl6_decontainerize__PP($b), Buf, '$!buffer');
+    pir::set__vPs($br, nqp::concat_s($ba.get_string('binary'), $bb.get_string('binary')));
+    nqp::bindattr($r, Buf, '$!buffer', $br);
+    $r;
+}
+multi infix:<~=>(Buf:D $a is rw, Buf:D $b) {
+    $a.append_inplace($b)
+}

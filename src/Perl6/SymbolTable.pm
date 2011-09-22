@@ -24,6 +24,9 @@ my $SIG_ELEM_DEFINED_ONLY        := 131072;
 my $SIG_ELEM_METHOD_SLURPY_NAMED := 262144;
 my $SIG_ELEM_NOMINAL_GENERIC     := 524288;
 my $SIG_ELEM_DEFAULT_IS_LITERAL  := 1048576;
+my $SIG_ELEM_NATIVE_INT_VALUE    := 2097152;
+my $SIG_ELEM_NATIVE_NUM_VALUE    := 4194304;
+my $SIG_ELEM_NATIVE_STR_VALUE    := 8388608;
 
 # This builds upon the SerializationContextBuilder to add the specifics
 # needed by Rakudo Perl 6.
@@ -547,6 +550,16 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
         }
         if %param_info<default_is_literal> {
             $flags := $flags + $SIG_ELEM_DEFAULT_IS_LITERAL;
+        }
+        my $primspec := pir::repr_get_primitive_type_spec__IP(%param_info<nominal_type>);
+        if $primspec == 1 {
+            $flags := $flags + $SIG_ELEM_NATIVE_INT_VALUE;
+        }
+        elsif $primspec == 2 {
+            $flags := $flags + $SIG_ELEM_NATIVE_NUM_VALUE;
+        }
+        elsif $primspec == 3 {
+            $flags := $flags + $SIG_ELEM_NATIVE_STR_VALUE;
         }
         
         # Populate it.

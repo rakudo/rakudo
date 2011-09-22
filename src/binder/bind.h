@@ -23,6 +23,10 @@
 #define SIG_ELEM_METHOD_SLURPY_NAMED 262144
 #define SIG_ELEM_NOMINAL_GENERIC     524288
 #define SIG_ELEM_DEFAULT_IS_LITERAL  1048576
+#define SIG_ELEM_NATIVE_INT_VALUE    2097152
+#define SIG_ELEM_NATIVE_NUM_VALUE    4194304
+#define SIG_ELEM_NATIVE_STR_VALUE    8388608
+#define SIG_ELEM_NATIVE_VALUE        (SIG_ELEM_NATIVE_INT_VALUE | SIG_ELEM_NATIVE_NUM_VALUE | SIG_ELEM_NATIVE_STR_VALUE)
 
 /* This is how a parameter looks on the inside. Actually, this is a C struct
  * that should match the computed object layout by P6opaque for the type

@@ -2009,6 +2009,9 @@ class Perl6::Actions is HLL::Actions {
                     if pir::exists(%*PARAM_INFO, 'nominal_type') {
                         $cur_pad[0].push(PAST::Var.new( :name(~$/), :scope('lexical_6model'),
                             :isdecl(1), :type(%*PARAM_INFO<nominal_type>) ));
+                        %*PARAM_INFO<container_descriptor> := $*ST.create_container_descriptor(
+                            %*PARAM_INFO<nominal_type>, 0, %*PARAM_INFO<variable_name>);
+                        $cur_pad.symbol(%*PARAM_INFO<variable_name>, :descriptor(%*PARAM_INFO<container_descriptor>));
                     } else {
                         $cur_pad[0].push(PAST::Var.new( :name(~$/), :scope('lexical_6model'), :isdecl(1) ));
                     }
@@ -2172,7 +2175,7 @@ class Perl6::Actions is HLL::Actions {
             # Add variable as needed.
             if $_<variable_name> {
                 my %sym := $lexpad.symbol($_<variable_name>);
-                if +%sym {
+                if +%sym && !pir::exists(%sym, 'descriptor') {
                     $_<container_descriptor> := $*ST.create_container_descriptor(
                         $_<nominal_type>, $_<is_rw> ?? 1 !! 0, $_<variable_name>);
                     $lexpad.symbol($_<variable_name>, :descriptor($_<container_descriptor>));

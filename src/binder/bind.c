@@ -13,6 +13,19 @@ Copyright (C) 2009-2011, The Perl Foundation.
 #include "types.h"
 #include "sixmodelobject.h"
 
+/* Nabbed from Parrot, since it's not exposed and it's the only way
+ * (so far as I can tell) to get at the underlying primitive type
+ * being passed. */
+typedef struct Pcc_cell
+{
+    union u {
+        PMC     *p;
+        STRING  *s;
+        INTVAL   i;
+        FLOATVAL n;
+    } u;
+    INTVAL type;
+} Pcc_cell;
 
 /* Cache of Parrot type IDs and some strings. */
 static INTVAL smo_id            = 0;
@@ -273,15 +286,10 @@ Rakudo_binding_assign_attributive(PARROT_INTERP, PMC *lexpad, Rakudo_Parameter *
  * re-enters the binder. Returns one of the BIND_RESULT_* codes. */
 static INTVAL
 Rakudo_binding_bind_one_param(PARROT_INTERP, PMC *lexpad, Rakudo_Signature *signature, Rakudo_Parameter *param,
-                              PMC *value, INTVAL no_nom_type_check, STRING **error) {
+                              Rakudo_BindVal orig_bv, INTVAL no_nom_type_check, STRING **error) {
     PMC            *decont_value = NULL;
     INTVAL          desired_native;
     Rakudo_BindVal  bv;
-    /* XXX Start: This bit is what we'll be passed soon once refactors are done. */
-    Rakudo_BindVal orig_bv;
-    orig_bv.val.o = value;
-    orig_bv.type = BIND_VAL_OBJ;
-    /* XXX End: This bit is what we'll be passed soon once refactors are done. */
     
     /* Check if boxed/unboxed expections are met. */
     desired_native = param->flags & SIG_ELEM_NATIVE_VALUE;
@@ -424,7 +432,7 @@ Rakudo_binding_bind_one_param(PARROT_INTERP, PMC *lexpad, Rakudo_Signature *sign
                     PMC    * got_how       = STABLE(decont_value)->HOW;
                     PMC    * got_name_meth = VTABLE_find_method(interp, got_how, NAME_str);
                     STRING * got;
-                    Parrot_ext_call(interp, got_name_meth, "PiP->S", got_how, value, &got);
+                    Parrot_ext_call(interp, got_name_meth, "PiP->S", got_how, decont_value, &got);
                     *error = Parrot_sprintf_c(interp,
                             "Unable to coerce value for '%S' from %S to %S; no coercion method defined",
                             param->variable_name, got, param->coerce_method);
@@ -654,6 +662,7 @@ Rakudo_binding_bind(PARROT_INTERP, PMC *lexpad, PMC *sig_pmc, PMC *capture,
     Rakudo_Signature *sig         = (Rakudo_Signature *)PMC_data(sig_pmc);
     PMC              *params      = sig->params;
     INTVAL            num_params  = VTABLE_elements(interp, params);
+    Rakudo_BindVal    cur_bv;
 
     /* If we do have some named args, we want to make a clone of the hash
      * to work on. We'll delete stuff from it as we bind, and what we have
@@ -664,6 +673,11 @@ Rakudo_binding_bind(PARROT_INTERP, PMC *lexpad, PMC *sig_pmc, PMC *capture,
     /* If we have a |$foo that's followed by slurpies, then we can suppress
      * any future arity checks. */
     INTVAL suppress_arity_fail = 0;
+    
+    /* If it's a Parrot capture, it may contain natively typed arguments.
+     * NOTE: This is a really an encapsulation breakage; if Parrot folks
+     * change stuff and this breaks, it's not Parrot's fault. */
+    struct Pcc_cell * pc_positionals = NULL;
 
     /* Set up statics. */
     if (!smo_id)
@@ -683,6 +697,7 @@ Rakudo_binding_bind(PARROT_INTERP, PMC *lexpad, PMC *sig_pmc, PMC *capture,
                         VTABLE_get_pmc_keyed_str(interp, capture, name));
             }
         }
+        GETATTR_CallContext_positionals(interp, capture, pc_positionals);
     }
     else if (capture->vtable->base_type == smo_id &&
             STABLE(capture)->type_check(interp, capture, Rakudo_types_capture_get())) {
@@ -739,7 +754,9 @@ Rakudo_binding_bind(PARROT_INTERP, PMC *lexpad, PMC *sig_pmc, PMC *capture,
                             VTABLE_get_pmc_keyed_str(interp, named_args_copy, name));
                     }
                 }
-                bind_fail = Rakudo_binding_bind_one_param(interp, lexpad, sig, param, capsnap,
+                cur_bv.type = BIND_VAL_OBJ;
+                cur_bv.val.o = capsnap;
+                bind_fail = Rakudo_binding_bind_one_param(interp, lexpad, sig, param, cur_bv,
                         no_nom_type_check, error);
             }
             if (bind_fail) {
@@ -774,8 +791,10 @@ Rakudo_binding_bind(PARROT_INTERP, PMC *lexpad, PMC *sig_pmc, PMC *capture,
                 PMC *slurpy = PMC_IS_NULL(named_args_copy) ?
                         pmc_new(interp, enum_class_Hash) :
                         named_args_copy;
+                cur_bv.type = BIND_VAL_OBJ;
+                cur_bv.val.o = Rakudo_binding_create_hash(interp, slurpy);
                 bind_fail = Rakudo_binding_bind_one_param(interp, lexpad, sig, param,
-                        Rakudo_binding_create_hash(interp, slurpy), no_nom_type_check, error);
+                        cur_bv, no_nom_type_check, error);
                 if (bind_fail)
                     return bind_fail;
             }
@@ -796,11 +815,12 @@ Rakudo_binding_bind(PARROT_INTERP, PMC *lexpad, PMC *sig_pmc, PMC *capture,
                     VTABLE_push_pmc(interp, temp, VTABLE_get_pmc_keyed_int(interp, capture, cur_pos_arg));
                     cur_pos_arg++;
                 }
+                cur_bv.type = BIND_VAL_OBJ;
+                cur_bv.val.o = param->flags & SIG_ELEM_SLURPY_POS ?
+                    Rakudo_binding_create_positional(interp, temp) :
+                    Rakudo_binding_create_lol(interp, temp);
                 bind_fail = Rakudo_binding_bind_one_param(interp, lexpad, sig, param,
-                        (param->flags & SIG_ELEM_SLURPY_POS ?
-                            Rakudo_binding_create_positional(interp, temp) :
-                            Rakudo_binding_create_lol(interp, temp)),
-                        no_nom_type_check, error);
+                        cur_bv, no_nom_type_check, error);
                 if (bind_fail)
                     return bind_fail;
             }
@@ -810,9 +830,31 @@ Rakudo_binding_bind(PARROT_INTERP, PMC *lexpad, PMC *sig_pmc, PMC *capture,
                 /* Do we have a value?. */
                 if (cur_pos_arg < num_pos_args) {
                     /* Easy - just bind that. */
-                    PMC *arg = VTABLE_get_pmc_keyed_int(interp, capture, cur_pos_arg);
+                    if (pc_positionals) {
+                        switch (pc_positionals[cur_pos_arg].type) {
+                            case BIND_VAL_INT:
+                                cur_bv.type = BIND_VAL_INT;
+                                cur_bv.val.i = pc_positionals[cur_pos_arg].u.i;
+                                break;
+                            case BIND_VAL_NUM:
+                                cur_bv.type = BIND_VAL_NUM;
+                                cur_bv.val.n = pc_positionals[cur_pos_arg].u.n;
+                                break;
+                            case BIND_VAL_STR:
+                                cur_bv.type = BIND_VAL_STR;
+                                cur_bv.val.s = pc_positionals[cur_pos_arg].u.s;
+                                break;
+                            default:
+                                cur_bv.type = BIND_VAL_OBJ;
+                                cur_bv.val.o = pc_positionals[cur_pos_arg].u.p;
+                        }
+                    }
+                    else {
+                        cur_bv.type = BIND_VAL_OBJ;
+                        cur_bv.val.o = VTABLE_get_pmc_keyed_int(interp, capture, cur_pos_arg);
+                    }
                     bind_fail = Rakudo_binding_bind_one_param(interp, lexpad, sig, param,
-                            arg, no_nom_type_check, error);
+                            cur_bv, no_nom_type_check, error);
                     if (bind_fail)
                         return bind_fail;
                     cur_pos_arg++;
@@ -822,9 +864,10 @@ Rakudo_binding_bind(PARROT_INTERP, PMC *lexpad, PMC *sig_pmc, PMC *capture,
                      * if not, we're screwed. Note that we never nominal type check
                      * an optional with no value passed. */
                     if (param->flags & SIG_ELEM_IS_OPTIONAL) {
-                        PMC *value = Rakudo_binding_handle_optional(interp, param, lexpad);
+                        cur_bv.type = BIND_VAL_OBJ;
+                        cur_bv.val.o = Rakudo_binding_handle_optional(interp, param, lexpad);
                         bind_fail = Rakudo_binding_bind_one_param(interp, lexpad, sig, param,
-                                value, 1, error);
+                                cur_bv, 1, error);
                         if (bind_fail)
                             return bind_fail;
                     }
@@ -859,9 +902,10 @@ Rakudo_binding_bind(PARROT_INTERP, PMC *lexpad, PMC *sig_pmc, PMC *capture,
             if (PMC_IS_NULL(value)) {
                 /* Nope. We'd better hope this param was optional... */
                 if (param->flags & SIG_ELEM_IS_OPTIONAL) {
-                    value = Rakudo_binding_handle_optional(interp, param, lexpad);
+                    cur_bv.type = BIND_VAL_OBJ;
+                    cur_bv.val.o = Rakudo_binding_handle_optional(interp, param, lexpad);
                     bind_fail = Rakudo_binding_bind_one_param(interp, lexpad, sig, param,
-                            value, 1, error);
+                            cur_bv, 1, error);
                 }
                 else if (!suppress_arity_fail) {
                     if (error)
@@ -871,8 +915,10 @@ Rakudo_binding_bind(PARROT_INTERP, PMC *lexpad, PMC *sig_pmc, PMC *capture,
                 }
             }
             else {
+                cur_bv.type = BIND_VAL_OBJ;
+                cur_bv.val.o = value;
                 bind_fail = Rakudo_binding_bind_one_param(interp, lexpad, sig, param,
-                        value, 0, error);
+                        cur_bv, 0, error);
             }
 
             /* If we got a binding failure, return it. */

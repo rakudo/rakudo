@@ -2202,20 +2202,32 @@ class Perl6::Actions is HLL::Actions {
         }
         else
         {
+            # If we have an argument, get its compile time value.
+            my @trait_arg;
+            if $<circumfix> {
+                my $arg := $<circumfix>[0].ast[0];
+                if $arg<has_compile_time_value> {
+                    @trait_arg[0] := $arg<compile_time_value>;
+                }
+                else {
+                    # XXX Should complain, or go compile it.
+                }
+            }
+        
             # If we have a type name then we need to dispatch with that type; otherwise
             # we need to dispatch with it as a named argument.
             my @name := Perl6::Grammar::parse_name(~$<longname>);
             if $*ST.is_name(@name) {
                 my $trait := $*ST.find_symbol(@name);
                 make -> $declarand {
-                    $*ST.apply_trait('&trait_mod:<is>', $declarand, $trait);
+                    $*ST.apply_trait('&trait_mod:<is>', $declarand, $trait, |@trait_arg);
                 };
             }
             else {
                 my %arg;
                 %arg{~$<longname>} := ($*ST.add_constant('Int', 'int', 1))<compile_time_value>;
                 make -> $declarand {
-                    $*ST.apply_trait('&trait_mod:<is>', $declarand, |%arg);
+                    $*ST.apply_trait('&trait_mod:<is>', $declarand, |@trait_arg, |%arg);
                 };
             }
         }

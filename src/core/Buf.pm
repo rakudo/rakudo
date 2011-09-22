@@ -49,6 +49,18 @@ class Buf does Positional {
             nqp::unbox_s $encoding.lc
         );
     }
+
+    # append_inplace is a big hack, but seems to be necessary
+    # performance wise for reading binary data in chunks
+    method append_inplace(Buf:D: Buf:D $other) {
+        my Mu $other_buf := nqp::getattr(pir::perl6_decontainerize__PP($other), Buf, '$!buffer');
+        pir::set__vPs($!buffer, nqp::concat_s(
+                  $!buffer.get_string('binary'),
+                $other_buf.get_string('binary')
+            )
+        );
+        self;
+    }
 }
 
 multi infix:<eqv>(Buf:D $a, Buf:D $b) {

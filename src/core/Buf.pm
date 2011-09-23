@@ -67,3 +67,28 @@ multi infix:<~>(Buf:D $a, Buf:D $b) {
     nqp::bindattr($r, Buf, '$!buffer', $br);
     $r;
 }
+multi sub infix:<~&>(Buf:D $a, Buf:D $b) {
+    my $minlen := $a.elems min $b.elems;
+    my @anded-contents = $a.list[^$minlen] >>+&<< $b.list[^$minlen];
+    @anded-contents.push: 0 xx ($a.elems - @anded-contents.elems);
+    @anded-contents.push: 0 xx ($b.elems - @anded-contents.elems);
+    Buf.new(@anded-contents);
+}
+
+
+multi sub infix:<~|>(Buf:D $a, Buf:D $b) {
+    my $minlen = $a.elems min $b.elems;
+    my @ored-contents = $a.list[^$minlen] «+|» $b.list[^$minlen];
+    @ored-contents.push: $a.list[@ored-contents.elems ..^ $a.elems];
+    @ored-contents.push: $b.list[@ored-contents.elems ..^ $b.elems];
+    Buf.new(@ored-contents);
+}
+
+multi sub infix:<~^>(Buf:D $a, Buf:D $b) {
+    my $minlen = $a.elems min $b.elems;
+    my @xored-contents = $a.list[^$minlen] «+^» $b.list[^$minlen];
+    @xored-contents.push: $a.list[@xored-contents.elems ..^ $a.elems];
+    @xored-contents.push: $b.list[@xored-contents.elems ..^ $b.elems];
+    Buf.new(@xored-contents);
+}
+

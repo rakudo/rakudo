@@ -15,8 +15,3 @@ so forth. The regex ones are probably also good candidates now.
 
 ## Nil assignment
 my Int $b = 3;  $b = Nil;   
-
-## Buf operators
-Implement bitwise operators for Buf, so that t/spec/S03-operators/buf.t
-passes. Much of the implementation can be stolen from the 2011.07
-release (though you need .list instead of .contents)

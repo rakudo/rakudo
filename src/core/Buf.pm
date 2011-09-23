@@ -67,6 +67,3 @@ multi infix:<~>(Buf:D $a, Buf:D $b) {
     nqp::bindattr($r, Buf, '$!buffer', $br);
     $r;
 }
-multi infix:<~=>(Buf:D $a is rw, Buf:D $b) {
-    $a.append_inplace($b)
-}

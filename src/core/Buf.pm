@@ -28,6 +28,8 @@ class Buf does Positional {
     method elems(Buf:D:) {
         nqp::p6box_i(nqp::elems($!buffer));
     }
+    method bytes(Buf:D:) { self.elems }
+    method chars()       { die "Buf doesn't know about characters" }
 
     method Numeric { self.elems }
     method Int     { self.elems }

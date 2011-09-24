@@ -21,7 +21,6 @@ S02-types/bool.t
 S02-types/capture.t
 S02-types/catch_type_cast_mismatch.t
 S02-types/declare.t
-S02-types/enum.t
 S02-types/flattening.t
 S02-types/hash_ref.t
 S02-types/hash.t
@@ -394,6 +393,7 @@ S12-construction/new.t
 # S12-enums/anonymous.t # err: Could not find sub &ANON_ENUM
 # S12-enums/as-role.t # err: Cannot yet turn an enum into a role
 S12-enums/basic.t
+S12-enums/misc.t
 # S12-enums/thorough.t # err: Could not find sub &day
 S12-introspection/attributes.t
 S12-introspection/can.t

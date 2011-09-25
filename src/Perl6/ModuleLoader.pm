@@ -16,7 +16,7 @@ class Perl6::ModuleLoader {
         if pir::exists($hll_ns, 'PROCESS') && pir::exists($hll_ns<PROCESS>.WHO, '@INC') {
             my $INC := ($hll_ns<PROCESS>.WHO)<@INC>;
             if pir::defined($INC) {
-                my @INC := $INC.ARGLIST_FLATTENABLE();
+                my @INC := $INC.FLATTENABLE_LIST();
                 if +@INC {
                     return @INC;
                 }

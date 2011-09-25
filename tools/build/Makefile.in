@@ -188,6 +188,7 @@ CORE_SOURCES = \
   src/core/Hash.pm \
   src/core/Parameter.pm \
   src/core/Signature.pm \
+  src/core/Buf.pm \
   src/core/IO.pm \
   src/core/IO/ArgFiles.pm \
   src/core/IO/Socket.pm \
@@ -315,7 +316,7 @@ $(PERL6_ST_PBC): $(NQP_EXE) $(PERL6_ML_PBC) src/Perl6/SymbolTable.pm
 	    src/Perl6/SymbolTable.pm
 	$(PARROT) $(PARROT_ARGS) -o $(PERL6_ST_PBC) $(PERL6_ST)
     
-$(PERL6_G_PBC): $(NQP_EXE) $(PERL6_ST_PBC) src/Perl6/Grammar.pm
+$(PERL6_G_PBC): $(NQP_EXE) $(PERL6_ST_PBC) src/Perl6/Grammar.pm $(PERL6_P_PBC)
 	$(NQP_EXE) --target=pir --output=$(PERL6_G) --encoding=utf8 \
 	    src/Perl6/Grammar.pm
 	$(PARROT) $(PARROT_ARGS) -o $(PERL6_G_PBC) $(PERL6_G)

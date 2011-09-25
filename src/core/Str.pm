@@ -1,6 +1,7 @@
 my class Cursor {... }
 my class Range  {... }
 my class Match  {... }
+my class Buf    {... }
 
 my class Str does Stringy {
     multi method Bool(Str:D:) { self ne '' && self ne '0' }
@@ -454,6 +455,17 @@ my class Str does Stringy {
         self.comb( / \S+ /, $limit );
     }
 
+    method encode(Str:D $encoding = 'utf8') {
+        my $buf := Buf.new;
+        pir::set__vPs(nqp::getattr($buf, Buf, '$!buffer'),
+            pir::trans_encoding__ssi(
+                nqp::unbox_s(self),
+                pir::find_encoding__is(nqp::unbox_s(pir::perl6_decontainerize__PP($encoding.lc)))
+            )
+        );
+        $buf;
+    }
+
     method capitalize(Str:D:) {
         self.subst(:g, rx/\w+/, -> $_ { .Str.lc.ucfirst });
     }
@@ -463,7 +475,7 @@ my class Str does Stringy {
 multi prefix:<~>(Str:D \$a) { $a }
 
 multi infix:<~>(Str:D \$a, Str:D \$b) {
-    nqp::p6box_s(nqp::concat(nqp::unbox_s($a), nqp::unbox_s($b)))
+    nqp::p6box_s(nqp::concat_s(nqp::unbox_s($a), nqp::unbox_s($b)))
 }
 
 multi infix:<x>(Str:D $s, Int:D $repetition) {
@@ -537,4 +549,8 @@ sub unbase(Int:D $base, Cool:D $str) {
     } else {
         ":{$base}<$str>".Numeric;
     }
+}
+
+sub chrs(*@c) {
+    @c.map({.chr}).join('');
 }

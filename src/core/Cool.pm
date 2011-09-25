@@ -154,6 +154,7 @@ my class Cool {
     }
 
     proto method comb(|$) {*}
+    multi method comb() { self.Str.comb() }
     multi method comb(Regex $matcher, $limit = $Inf) { self.Str.comb($matcher, $limit) }
 
     proto method subst(|$) {*}

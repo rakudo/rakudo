@@ -5,7 +5,7 @@ plan 12;
 class Simple {
 }
 
-is Simple.WHY, 'simple case';
+is Simple.WHY.content, 'simple case';
 
 #= giraffe
 class Outer {
@@ -14,8 +14,8 @@ class Outer {
     }
 }
 
-is Outer.WHY, 'giraffe';
-is Outer::Inner.WHY, 'zebra';
+is Outer.WHY.content, 'giraffe';
+is Outer::Inner.WHY.content, 'zebra';
 
 #= a module
 module foo {
@@ -27,17 +27,17 @@ module foo {
     }
 }
 
-is foo.WHY,           'a module';
-is foo::bar.WHY,      'a package';
-is foo::bar::baz.WHY, 'and a class';
+is foo.WHY.content,           'a module';
+is foo::bar.WHY.content,      'a package';
+is foo::bar::baz.WHY.content, 'and a class';
 
 #= yellow
 sub marine {}
-is &marine.WHY, 'yellow';
+is &marine.WHY.content, 'yellow';
 
 #= pink
 sub panther {}
-is &panther.WHY, 'pink';
+is &panther.WHY.content, 'pink';
 
 #= a sheep
 class Sheep {
@@ -48,10 +48,10 @@ class Sheep {
     method roar { 'roar!' }
 }
 
-is Sheep.WHY, 'a sheep';
+is Sheep.WHY.content, 'a sheep';
 skip 'segfault', 1;
 #is Sheep.^attributes.grep({ .name eq '$!wool' }).WHY, 'usually white';
-is Sheep.^find_method('roar').WHY, 'not too scary';
+is Sheep.^find_method('roar').WHY.content, 'not too scary';
 
 sub routine {}
 is &routine.WHY.defined, False;

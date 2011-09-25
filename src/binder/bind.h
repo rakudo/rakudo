@@ -22,6 +22,11 @@
 #define SIG_ELEM_DEFINEDNES_CHECK    (SIG_ELEM_UNDEFINED_ONLY | SIG_ELEM_DEFINED_ONLY)
 #define SIG_ELEM_METHOD_SLURPY_NAMED 262144
 #define SIG_ELEM_NOMINAL_GENERIC     524288
+#define SIG_ELEM_DEFAULT_IS_LITERAL  1048576
+#define SIG_ELEM_NATIVE_INT_VALUE    2097152
+#define SIG_ELEM_NATIVE_NUM_VALUE    4194304
+#define SIG_ELEM_NATIVE_STR_VALUE    8388608
+#define SIG_ELEM_NATIVE_VALUE        (SIG_ELEM_NATIVE_INT_VALUE | SIG_ELEM_NATIVE_NUM_VALUE | SIG_ELEM_NATIVE_STR_VALUE)
 
 /* This is how a parameter looks on the inside. Actually, this is a C struct
  * that should match the computed object layout by P6opaque for the type
@@ -29,7 +34,6 @@
 typedef struct {
     PMC    *st;                   /* S-table, though we don't care about that here. */
     PMC    *sc;                   /* Serialization context, though we don't care about that here. */
-    PMC    *spill;                /* Attribute spill storage. */
     STRING *variable_name;        /* The name in the lexpad to bind to, if any. */
     PMC    *named_names;          /* List of the name(s) that a named parameter has. */
     PMC    *type_captures;        /* Name(s) that we bind the type of a parameter to. */
@@ -41,7 +45,7 @@ typedef struct {
     PMC    *coerce_type;          /* The type to coerce the value to, if any. */
     STRING *coerce_method;        /* Name of the method to call to coerce; for X we do $val.X. */
     PMC    *sub_llsig;            /* Any nested signature. */
-    PMC    *default_closure;      /* The default value closure. */
+    PMC    *default_value;        /* The default value or a thunk producing it. */
     PMC    *container_descriptor; /* Descriptor for the container we bind into, if any. */
     PMC    *attr_package;         /* Package part of an attributive binding. */
 } Rakudo_Parameter;
@@ -52,24 +56,16 @@ typedef struct {
 typedef struct {
     PMC    *st;                 /* S-table, though we don't care about that here. */
     PMC    *sc;                 /* Serialization context, though we don't care about that here. */
-    PMC    *spill;              /* Attribute spill storage. */
     PMC    *params;             /* Array of objects that are all parameters. */
     PMC    *rtype;              /* Return type. */
 } Rakudo_Signature;
 
-/* Flags we can set on the Context PMC.
- *
- * ALREADY_CHECKED indicates that we have determined that all of the arguments
- * can be bound to positional parameters without any further type checking
- * (because the multi-dispatch cache told us so) and any named parameters are
- * automatically going into the named slurpy variable.
- *
- * ALREADY_BOUND indicates that the variables have already been bound into the
- * lexpad and means the bind_signature op is thus a no-op. This happens if we
- * had to do a bindability check in the multi-dispatch anyway.
+/* 
+ * ALREADY_CHECKED can be flagged on a CallContext, and indicates that we have
+ * determined that all of the arguments can be bound to positional parameters
+ * without any further type checking (because the multi-dispatch told us so).
  */
-#define PObj_P6S_ALREADY_CHECKED_FLAG   PObj_private0_FLAG
-#define PObj_P6S_ALREADY_BOUND_FLAG     PObj_private1_FLAG
+#define PObj_P6BINDER_ALREADY_CHECKED_FLAG PObj_private0_FLAG
 
 /* Gets the ID of a 6model object PMC. */
 INTVAL Rakudo_smo_id(void);
@@ -91,3 +87,32 @@ PMC * Rakudo_binding_list_from_rpa(PARROT_INTERP, PMC *rpa, PMC *type, PMC *flat
 #define BIND_RESULT_OK       0
 #define BIND_RESULT_FAIL     1
 #define BIND_RESULT_JUNCTION 2
+
+/* The value we're going to bind. */
+#define BIND_VAL_INT 1
+#define BIND_VAL_NUM 2
+#define BIND_VAL_STR 3
+#define BIND_VAL_OBJ 4
+typedef struct {    
+    union {
+        PMC      *o;
+        INTVAL    i;
+        FLOATVAL  n;
+        STRING   *s;
+    } val;
+    char type;
+} Rakudo_BindVal;
+
+/* Nabbed from Parrot, since it's not exposed and it's the only way
+ * (so far as I can tell) to get at the underlying primitive type
+ * being passed. */
+typedef struct Pcc_cell
+{
+    union u {
+        PMC     *p;
+        STRING  *s;
+        INTVAL   i;
+        FLOATVAL n;
+    } u;
+    INTVAL type;
+} Pcc_cell;

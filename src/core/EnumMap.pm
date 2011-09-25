@@ -80,10 +80,11 @@ my class EnumMap does Associative {
         $cap
     }
     
-    method ARGLIST_FLATTENABLE() { 
+    method FLATTENABLE_LIST() { nqp::list() }
+    method FLATTENABLE_HASH() {
         pir::defined($!storage) ||
             nqp::bindattr(self, EnumMap, '$!storage', nqp::hash());
-        $!storage 
+        $!storage
     }
 
     method fmt($format = "%s\t\%s", $sep = "\n") {

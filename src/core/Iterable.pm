@@ -13,4 +13,7 @@ my class Iterable {
     method Num()      { self.elems.Num }
     multi method Numeric(Iterable:D:)  { self.elems }
     multi method Str(Iterable:D:)      { self.list.Str }
+    method chrs(Iterable:D:) {
+        self>>.chr.join;
+    }
 }

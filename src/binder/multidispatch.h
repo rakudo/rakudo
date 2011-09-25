@@ -1,13 +1,18 @@
+/* Flags we have on types. */
 #define DEFCON_NONE      0
 #define DEFCON_DEFINED   1
 #define DEFCON_UNDEFINED 2
+#define DEFCON_MASK      (DEFCON_DEFINED | DEFCON_UNDEFINED)
+#define TYPE_NATIVE_INT  4
+#define TYPE_NATIVE_NUM  8
+#define TYPE_NATIVE_STR  16
+#define TYPE_NATIVE_MASK (TYPE_NATIVE_INT | TYPE_NATIVE_NUM | TYPE_NATIVE_STR)
 
 /* This is how a Code looks on the inside. Once again, C struct that should
  * match what P6opaque computes for the Code class. */
 typedef struct {
     PMC    *st;                 /* S-table, though we don't care about that here. */
     PMC    *sc;                 /* Serialization context, though we don't care about that here. */
-    PMC    *spill;              /* Attribute spill storage. */
     PMC    *_do;                /* Lower-level code object. */
     PMC    *signature;          /* Signature object. */
     PMC    *dispatchees;        /* List of dispatchees, if any. */
@@ -25,7 +30,7 @@ typedef struct {
     PMC    *sub;           /* The sub that is the candidate. */
     PMC    *signature;     /* The signature of the sub. */
     PMC   **types;         /* Class or role type constraints for each parameter. */
-    INTVAL *definednesses; /* Definedness flags for each of the types. */
+    INTVAL *type_flags;    /* Definedness and native flags for each of the types. */
     PMC   **constraints;   /* Refinement type constraints for each parameter. */
     INTVAL  num_types;     /* Number of entries in the above two arrays. */
     INTVAL  min_arity;     /* Number of required positional arguments. */
@@ -36,12 +41,39 @@ typedef struct {
                             * argument, as is the common case for traits. */
 } Rakudo_md_candidate_info;
 
-/* Overall multi-dispatcher info, which we will hang off the dispatcher
- * info slot in a dispatcher sub. */
+/* Maximum positional arity we cache up to. (Good to make it a
+ * power of 2.) */
+#define MD_CACHE_MAX_ARITY 4
+
+/* Maximum entries we cache per arity. (Good to make it a
+ * power of 2.) */
+#define MD_CACHE_MAX_ENTRIES 16
+
+/* The cached info that we keep per arity. */
 typedef struct {
+    /* The number of entries in the cache. */
+    INTVAL num_entries;
+
+    /* This is a bunch of type IDs. We allocate it arity * MAX_ENTRIES
+     * big and go through it in arity sized chunks. */
+    INTVAL *type_ids;
+
+    /* The results we return from the cache. */
+    PMC **results;
+} Rakudo_md_arity_cache;
+
+/* Multi-dispatcher cache info, which we will hang off the dispatcher
+ * cache slot in a dispatcher sub. */
+typedef struct {
+    /* The sorted candidate list. */
     Rakudo_md_candidate_info **candidates;
-    /* XXX TODO: Cache goes here also. */
-} Rakudo_md_info;
+
+    /* The fast, per-arity cache. */
+    Rakudo_md_arity_cache arity_caches[MD_CACHE_MAX_ARITY];
+
+    /* Zero-arity cached result. */
+    PMC *zero_arity;
+} Rakudo_md_cache;
 
 /* Represents the produced information about a candidate as well as the graph
  * edges originating from it. The edges array contains pointers to the edges

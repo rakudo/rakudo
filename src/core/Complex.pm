@@ -5,7 +5,7 @@ my class Complex is Numeric {
 
     proto method new(|$) { * }
     multi method new(Real \$re, Real \$im) {
-        my $new = self.CREATE;
+        my $new = nqp::create(self);
         $new.BUILD($re.Num, $im.Num);
         $new;
     }

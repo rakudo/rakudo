@@ -156,9 +156,7 @@ class Perl6::Actions is HLL::Actions {
 
         # Set HLL and load the needed libraries.
         $outer.hll('perl6');
-        $unit.loadlibs('nqp_group', 'nqp_ops', 'perl6_group', 'perl6_ops',
-                       'bit_ops', 'math_ops', 'trans_ops', 'io_ops',
-                       'obscure_ops', 'os', 'file', 'sys_ops');
+        $*ST.add_libs($unit);
 
         # If the unit defines &MAIN, add a &MAIN_HELPER.
         if $unit.symbol('&MAIN') {
@@ -350,9 +348,7 @@ class Perl6::Actions is HLL::Actions {
             my $past := Perl6::Pod::serialize_object(
                 'Pod::FormattingCode',
                 :type(
-                    $*ST.add_constant(
-                        'Str', 'str', ~$<code>
-                    )<compile_time_value>
+                    $*ST.add_string_constant(~$<code>)<compile_time_value>
                 ),
                 :content(
                     Perl6::Pod::serialize_array(@t)<compile_time_value>
@@ -564,7 +560,10 @@ class Perl6::Actions is HLL::Actions {
         # Perl6LexPad will generate containers (and maybe fill them with
         # the outer's value) on demand.
         my $BLOCK := $*ST.cur_lexpad();
-        for <$_ $/ $!> {
+        my $type := $BLOCK<IN_DECL>;
+        my $is_routine := $type eq 'sub' || $type eq 'method' ||
+                          $type eq 'submethod' || $type eq 'mainline';
+        for ($is_routine ?? <$_ $/ $!> !! ['$_']) {
             # Generate the lexical variable except if...
             #   (1) the block already has one, or
             #   (2) the variable is '$_' and $*IMPLICIT is set
@@ -820,14 +819,14 @@ class Perl6::Actions is HLL::Actions {
 
             # On failure, capture the exception object into $!.
             $past.push(
-                PAST::Op.new(:pasttype<bind_6model>,
+                PAST::Op.new(:pirop('perl6_container_store__0PP'),
                     PAST::Var.new(:name<$!>, :scope<lexical_6model>),
                     PAST::Op.new(:name<&EXCEPTION>, :pasttype<call>,
                         PAST::Op.new(:inline("    .get_results (%r)\n    finalize %r")))));
 
             # Otherwise, put Mu into $!.
             $past.push(
-                PAST::Op.new(:pasttype<bind_6model>,
+                PAST::Op.new(:pirop('perl6_container_store__0PP'),
                     PAST::Var.new( :name<$!>, :scope<lexical_6model> ),
                     PAST::Var.new( :name<Mu>, :scope<lexical_6model> )));
         }
@@ -934,7 +933,7 @@ class Perl6::Actions is HLL::Actions {
     }
 
     sub make_pair($key_str, $value) {
-        my $key := $*ST.add_constant('Str', 'str', $key_str);
+        my $key := $*ST.add_string_constant($key_str);
         $key.named('key');
         $value.named('value');
         PAST::Op.new(
@@ -983,7 +982,7 @@ class Perl6::Actions is HLL::Actions {
         my $past := PAST::Var.new( :name(@name[+@name - 1]), :node($/));
         if $twigil eq '*' {
             $past := PAST::Op.new(
-                $*ST.add_constant('Str', 'str', ~$past.name()),
+                $*ST.add_string_constant(~$past.name()),
                 :pasttype('call'), :name('&DYNAMIC'), :lvalue(0) );
         }
         elsif $twigil eq '!' {
@@ -1129,15 +1128,20 @@ class Perl6::Actions is HLL::Actions {
             my $code := $*ST.create_code_object($block, 'Block', $sig);
             $*ST.pkg_set_role_body_block($*PACKAGE, $code, $block);
             
+            # Compose before we add the role to the group, so the group sees
+            # it composed.
+            $*ST.pkg_compose($*PACKAGE);
+            
             # Add this role to the group if needed.
             my $group := $*PACKAGE.HOW.group($*PACKAGE);
             unless $group =:= $*PACKAGE {
                 $*ST.pkg_add_role_group_possibility($group, $*PACKAGE);
             }
         }
-
-        # Compose.
-        $*ST.pkg_compose($*PACKAGE);
+        else {
+            # Compose.
+            $*ST.pkg_compose($*PACKAGE);
+        }
 
         # Document
         Perl6::Pod::document($*PACKAGE, $*DOC);
@@ -1220,7 +1224,7 @@ class Perl6::Actions is HLL::Actions {
             my $attrname   := ~$sigil ~ '!' ~ $desigilname;
             my $type       := $*TYPENAME ?? $*TYPENAME.ast !! $*ST.find_symbol(['Mu']);
             my $descriptor := $*ST.create_container_descriptor($type, 1, $attrname);
-            my @default    := $sigil eq '$' ?? [$type] !! [];
+            my @default    := $sigil eq '$' || $sigil eq '&' ?? [$type] !! [];
 
             # Create meta-attribute and add it.
             my $metaattr := %*HOW{$*PKGDECL ~ '-attr'};
@@ -1317,9 +1321,13 @@ class Perl6::Actions is HLL::Actions {
         else {
             $block := $<blockoid>.ast;
             $block.blocktype('declaration');
-            unless is_clearly_returnless($block) {
+            if is_clearly_returnless($block) {
+                $block[1] := PAST::Op.new(
+                    :pirop('perl6_decontainerize_return_value PP'),
+                    $block[1]);
+            }
+            else {
                 $block[1] := wrap_return_handler($block[1]);
-                # $block.control('return_pir');
             }
         }
 
@@ -1460,9 +1468,13 @@ class Perl6::Actions is HLL::Actions {
         else {
             $past := $<blockoid>.ast;
             $past.blocktype('declaration');
-            unless is_clearly_returnless($past) {
+            if is_clearly_returnless($past) {
+                $past[1] := PAST::Op.new(
+                    :pirop('perl6_decontainerize_return_value PP'),
+                    $past[1]);
+            }
+            else {
                 $past[1] := wrap_return_handler($past[1]);
-                # $past.control('return_pir');
             }
         }
         $past.name($<longname> ?? $<longname>.Str !! '<anon>');
@@ -1577,8 +1589,40 @@ class Perl6::Actions is HLL::Actions {
     }
 
     sub is_clearly_returnless($block) {
-        # If the only thing is a pirop, can assume no return
-        +$block[1].list == 1 && $block[1][0].isa(PAST::Op) && $block[1][0].pirop()
+        sub returnless_past($past) {
+            return 0 unless
+                # It's a low-level op or method call.
+                $past.isa(PAST::Op) && ($past.pirop() || $past.pasttype eq 'callmethod') ||
+                # Just a variable lookup.
+                $past.isa(PAST::Var);
+            for @($past) {
+                if pir::isa($_, PAST::Node) {
+                    if !returnless_past($_) {
+                        return 0;
+                    }
+                }
+            }
+            1;
+        }
+        
+        # Only analyse things with a single simple statement.
+        if +$block[1].list == 1 && $block[1][0].isa(PAST::Stmt) && +$block[1][0].list == 1 {
+            # Ensure there's no nested blocks.
+            for @($block[0]) {
+                if $_.isa(PAST::Block) { return 0; }
+                if $_.isa(PAST::Stmts) {
+                    for @($_) {
+                        if $_.isa(PAST::Block) { return 0; }
+                    }
+                }
+            }
+
+            # Ensure that the PAST is whitelisted things.
+            returnless_past($block[1][0][0])
+        }
+        else {
+            0
+        }
     }
 
     method onlystar($/) {
@@ -1886,7 +1930,14 @@ class Perl6::Actions is HLL::Actions {
             if $quant eq '!' {
                 $/.CURSOR.panic("Cannot put default on required parameter");
             }
-            %*PARAM_INFO<default_closure> := $<default_value>[0].ast;
+            my $val := $<default_value>[0].ast;
+            if $val<has_compile_time_value> {
+                %*PARAM_INFO<default_value> := $val<compile_time_value>;
+                %*PARAM_INFO<default_is_literal> := 1;
+            }
+            else {
+                %*PARAM_INFO<default_value> := make_thunk($val, $<default_value>[0]);
+            }
         }
 
         # Set up various flags.
@@ -1956,7 +2007,15 @@ class Perl6::Actions is HLL::Actions {
                     if $cur_pad.symbol(~$/) {
                         $/.CURSOR.panic("Redeclaration of symbol ", ~$/);
                     }
-                    $cur_pad[0].push(PAST::Var.new( :name(~$/), :scope('lexical_6model'), :isdecl(1) ));
+                    if pir::exists(%*PARAM_INFO, 'nominal_type') {
+                        $cur_pad[0].push(PAST::Var.new( :name(~$/), :scope('lexical_6model'),
+                            :isdecl(1), :type(%*PARAM_INFO<nominal_type>) ));
+                        %*PARAM_INFO<container_descriptor> := $*ST.create_container_descriptor(
+                            %*PARAM_INFO<nominal_type>, 0, %*PARAM_INFO<variable_name>);
+                        $cur_pad.symbol(%*PARAM_INFO<variable_name>, :descriptor(%*PARAM_INFO<container_descriptor>));
+                    } else {
+                        $cur_pad[0].push(PAST::Var.new( :name(~$/), :scope('lexical_6model'), :isdecl(1) ));
+                    }
                     $cur_pad.symbol(~$/, :scope('lexical_6model'));
                 }
             }
@@ -1996,8 +2055,7 @@ class Perl6::Actions is HLL::Actions {
     }
 
     method default_value($/) {
-        # Turn into a thunk.
-        make make_thunk($<EXPR>.ast, $/);
+        make $<EXPR>.ast;
     }
 
     method type_constraint($/) {
@@ -2118,7 +2176,7 @@ class Perl6::Actions is HLL::Actions {
             # Add variable as needed.
             if $_<variable_name> {
                 my %sym := $lexpad.symbol($_<variable_name>);
-                if +%sym {
+                if +%sym && !pir::exists(%sym, 'descriptor') {
                     $_<container_descriptor> := $*ST.create_container_descriptor(
                         $_<nominal_type>, $_<is_rw> ?? 1 !! 0, $_<variable_name>);
                     $lexpad.symbol($_<variable_name>, :descriptor($_<container_descriptor>));
@@ -2153,20 +2211,32 @@ class Perl6::Actions is HLL::Actions {
         }
         else
         {
+            # If we have an argument, get its compile time value.
+            my @trait_arg;
+            if $<circumfix> {
+                my $arg := $<circumfix>[0].ast[0];
+                if $arg<has_compile_time_value> {
+                    @trait_arg[0] := $arg<compile_time_value>;
+                }
+                else {
+                    # XXX Should complain, or go compile it.
+                }
+            }
+        
             # If we have a type name then we need to dispatch with that type; otherwise
             # we need to dispatch with it as a named argument.
             my @name := Perl6::Grammar::parse_name(~$<longname>);
             if $*ST.is_name(@name) {
                 my $trait := $*ST.find_symbol(@name);
                 make -> $declarand {
-                    $*ST.apply_trait('&trait_mod:<is>', $declarand, $trait);
+                    $*ST.apply_trait('&trait_mod:<is>', $declarand, $trait, |@trait_arg);
                 };
             }
             else {
                 my %arg;
                 %arg{~$<longname>} := ($*ST.add_constant('Int', 'int', 1))<compile_time_value>;
                 make -> $declarand {
-                    $*ST.apply_trait('&trait_mod:<is>', $declarand, |%arg);
+                    $*ST.apply_trait('&trait_mod:<is>', $declarand, |@trait_arg, |%arg);
                 };
             }
         }
@@ -2232,7 +2302,7 @@ class Perl6::Actions is HLL::Actions {
         unless $past.isa(PAST::Op) && $past.pasttype() eq 'callmethod' {
             $/.CURSOR.panic("Cannot use " ~ $<sym>.Str ~ " on a non-identifier method call");
         }
-        $past.unshift($*ST.add_constant('Str', 'str', $past.name));
+        $past.unshift($*ST.add_string_constant($past.name));
         $past.name('dispatch:<' ~ ~$<sym> ~ '>');
         make $past;
     }
@@ -2268,7 +2338,7 @@ class Perl6::Actions is HLL::Actions {
             }
             else {
                 $past.unshift($*ST.get_object_sc_ref_past($*PACKAGE));
-                $past.unshift($*ST.add_constant('Str', 'str', $name));
+                $past.unshift($*ST.add_string_constant($name));
             }
             $past.name('dispatch:<!>');
         }
@@ -2293,7 +2363,7 @@ class Perl6::Actions is HLL::Actions {
             my $name := @parts.pop;
             if +@parts {
                 $past.unshift($*ST.symbol_lookup(@parts, $/));
-                $past.unshift($*ST.add_constant('Str', 'str', $name));
+                $past.unshift($*ST.add_string_constant($name));
                 $past.name('dispatch:<::>');
             }
             elsif $name eq 'WHAT' {
@@ -2348,15 +2418,15 @@ class Perl6::Actions is HLL::Actions {
     }
 
     method term:sym<...>($/) {
-        make PAST::Op.new( :pasttype('call'), :name('&fail'), $*ST.add_constant('Str', 'str', 'Stub code executed'), :node($/) );
+        make PAST::Op.new( :pasttype('call'), :name('&fail'), $*ST.add_string_constant('Stub code executed'), :node($/) );
     }
 
     method term:sym<???>($/) {
-        make PAST::Op.new( :pasttype('call'), :name('&warn'), $*ST.add_constant('Str', 'str', 'Stub code executed'), :node($/) );
+        make PAST::Op.new( :pasttype('call'), :name('&warn'), $*ST.add_string_constant('Stub code executed'), :node($/) );
     }
 
     method term:sym<!!!>($/) {
-        make PAST::Op.new( :pasttype('call'), :name('&die'), $*ST.add_constant('Str', 'str', 'Stub code executed'), :node($/) );
+        make PAST::Op.new( :pasttype('call'), :name('&die'), $*ST.add_string_constant('Stub code executed'), :node($/) );
     }
 
     method term:sym<dotty>($/) {
@@ -2385,15 +2455,15 @@ class Perl6::Actions is HLL::Actions {
             :pasttype<call>,
             :name<&INDIRECT_NAME_LOOKUP>,
         );
-        $past.push($*ST.add_constant('Str', 'str', $sigil)) if $sigil;
-        $past.push($*ST.add_constant('Str', 'str', ~$longname<name><identifier>))
+        $past.push($*ST.add_string_constant($sigil)) if $sigil;
+        $past.push($*ST.add_string_constant(~$longname<name><identifier>))
             if $longname<name><identifier>;
 
         for $longname<name><morename> {
             if $_<EXPR> {
                 $past.push($_<EXPR>[0].ast);
             } else {
-                $past.push($*ST.add_constant('Str', 'str', ~$_<identifier>));
+                $past.push($*ST.add_string_constant(~$_<identifier>));
             }
         }
         $past;
@@ -2541,35 +2611,48 @@ class Perl6::Actions is HLL::Actions {
     }
 
     method arglist($/) {
-        # Build up argument list, hanlding nameds and flattens
-        # as we go.
-        my $past := PAST::Op.new( :pasttype('call'), :node($/) );
+        my $past := PAST::Op.new( :pasttype('call'), :node($/) );        
         if $<EXPR> {
+            # Make first pass over arguments, finding any duplicate named
+            # arguments.
             my $expr := $<EXPR>.ast;
-            if $expr.name eq '&infix:<,>' {
-                for $expr.list { $past.push(handle_parameter($_, $/)); }
+            my @args := $expr.name eq '&infix:<,>' ?? $expr.list !! [$expr];
+            my %named_counts;
+            for @args {
+                if $_ ~~ PAST::Op && $_.returns eq 'Pair' {
+                    my $name := compile_time_value_str($_[1], 'LHS of pair', $/);
+                    %named_counts{$name} := +%named_counts{$name} + 1;
+                    $_[2].named($name);
+                }
             }
-            else { $past.push(handle_parameter($expr, $/)); }
+
+            # Make result.
+            for @args {
+                if $_ ~~ PAST::Op && $_.returns eq 'Pair' {
+                    my $name := $_[2].named();
+                    if %named_counts{$name} == 1 {
+                        $past.push($_[2]);
+                        $_[2]<before_promotion> := $_;
+                    }
+                    else {
+                        %named_counts{$name} := %named_counts{$name} - 1;
+                    }
+                }
+                elsif $_ ~~ PAST::Op && $_.name eq '&prefix:<|>' {
+                    $past.push(PAST::Op.new(
+                        :pasttype('callmethod'), :name('FLATTENABLE_LIST'),
+                        $_[0], :flat(1)));
+                    $past.push(PAST::Op.new(
+                        :pasttype('callmethod'), :name('FLATTENABLE_HASH'),
+                        $_[0], :flat(1), :named(1)));
+                }
+                else {
+                    $past.push($_);
+                }
+            }
         }
 
         make $past;
-    }
-
-    sub handle_parameter($arg, $/) {
-        if $arg ~~ PAST::Op && $arg.returns eq 'Pair' {
-            my $result := $arg[2];
-            $result.named(compile_time_value_str($arg[1], 'LHS of pair', $/));
-            $result<before_promotion> := $arg;
-            $result;
-        }
-        elsif $arg ~~ PAST::Op && $arg.name eq '&prefix:<|>' {
-            PAST::Op.new(
-                :pasttype('callmethod'), :name('ARGLIST_FLATTENABLE'),
-                :flat(1), $arg[0]);
-        }
-        else {
-            $arg;
-        }
     }
 
     method term:sym<value>($/) { make $<value>.ast; }
@@ -2666,6 +2749,7 @@ class Perl6::Actions is HLL::Actions {
         unless $key { return 0; }
         my $past := $/.ast // $<OPER>.ast;
         my $sym := ~$<infix><sym>;
+        my $return_map := 0;
         if !$past && $sym eq '.=' {
             make make_dot_equals($/[0].ast, $/[1].ast);
             return 1;
@@ -2714,7 +2798,7 @@ class Perl6::Actions is HLL::Actions {
             # values may need type mapping into Perl 6 land.
             $past.unshift($/[0].ast);
             if $past.isa(PAST::Op) && $past.pasttype eq 'callmethod' {
-                $past := PAST::Op.new( :pirop('perl6ize_type PP'), $past );
+                $return_map := 1;
             }
         }
         else {
@@ -2724,7 +2808,11 @@ class Perl6::Actions is HLL::Actions {
             $past.push(PAST::Var.new(:named<false>, :scope<lexical_6model>, :name<Nil>));
         }
         if $key eq 'PREFIX' || $key eq 'INFIX' || $key eq 'POSTFIX' {
-            $past := whatever_curry($/, $past, $key eq 'INFIX' ?? 2 !! 1);
+            $past := whatever_curry($/, (my $orig := $past), $key eq 'INFIX' ?? 2 !! 1);
+            if $return_map && $orig =:= $past {
+                $past := PAST::Op.new($past,
+                    :pirop('perl6ize_type PP'), :returns($past.returns()));
+            }
         }
         make $past;
     }
@@ -2889,6 +2977,10 @@ class Perl6::Actions is HLL::Actions {
         my $past;
         my $lhs_ast := $/[0].ast;
         my $rhs_ast := $/[1].ast;
+        my $var_sigil;
+        if $lhs_ast.isa(PAST::Var) {
+            $var_sigil := pir::substr($lhs_ast.name, 0, 1);
+        }
         if $lhs_ast && $lhs_ast<attribute_declarand> {
             Perl6::Actions.install_attr_init($/);
             $past := PAST::Stmts.new();
@@ -2901,6 +2993,14 @@ class Perl6::Actions is HLL::Actions {
             # level. We grab the thing we want out of the PAST::Want
             # node.
             $past := PAST::Op.new(:pasttype('bind_6model'), $lhs_ast[2], $rhs_ast);
+        }
+        elsif $var_sigil eq '@' || $var_sigil eq '%' {
+            # While the scalar container store op would end up calling .STORE,
+            # it does it in a nested runloop, which gets pricey. This is a
+            # simple heuristic check to try and avoid that by calling .STORE.
+            $past := PAST::Op.new(
+                :pasttype('callmethod'), :name('STORE'),
+                $lhs_ast, $rhs_ast);
         }
         else {
             $past := PAST::Op.new(:pirop('perl6_container_store__0PP'),
@@ -3281,7 +3381,7 @@ class Perl6::Actions is HLL::Actions {
             block_closure($coderef)
         );
         self.handle_and_check_adverbs($/, %MATCH_ALLOWED_ADVERBS, 'm', $past);
-        make PAST::Op.new( :pasttype('bind_6model'),
+        make PAST::Op.new( :pirop('perl6_container_store__0PP'),
             PAST::Var.new(:name('$/'), :scope('lexical_6model')),
             $past
         );
@@ -3357,7 +3457,7 @@ class Perl6::Actions is HLL::Actions {
         }
         my $nab_back := pir::substr__SSI($/, $pos + 1);
         if $nab_back {
-            PAST::Op.new( :pasttype('call'), :name('&infix:<~>'), $expr, $*ST.add_constant('Str', 'str', ~$nab_back) )
+            PAST::Op.new( :pasttype('call'), :name('&infix:<~>'), $expr, $*ST.add_string_constant(~$nab_back) )
         }
         else {
             $expr
@@ -3380,11 +3480,11 @@ class Perl6::Actions is HLL::Actions {
                 compile_time_value_str($past, ":w list", $/));
             if +@words != 1 {
                 $past := PAST::Op.new( :name('&infix:<,>'), :node($/) );
-                for @words { $past.push($*ST.add_constant('Str', 'str', ~$_)); }
+                for @words { $past.push($*ST.add_string_constant(~$_)); }
                 $past := PAST::Stmts.new($past);
             }
             else {
-                $past := $*ST.add_constant('Str', 'str', ~@words[0]);
+                $past := $*ST.add_string_constant(~@words[0]);
             }
         }
         make $past;
@@ -3403,16 +3503,16 @@ class Perl6::Actions is HLL::Actions {
             }
             else {
                 if $lastlit gt '' {
-                    @parts.push($*ST.add_constant('Str', 'str', $lastlit));
+                    @parts.push($*ST.add_string_constant($lastlit));
                 }
                 @parts.push($ast);
                 $lastlit := '';
             }
         }
         if $lastlit gt '' || !@parts {
-            @parts.push($*ST.add_constant('Str', 'str', $lastlit));
+            @parts.push($*ST.add_string_constant($lastlit));
         }
-        my $past := @parts ?? @parts.shift !! $*ST.add_constant('Str', 'str', '');
+        my $past := @parts ?? @parts.shift !! $*ST.add_string_constant('');
         while @parts {
             $past := PAST::Op.new(
                 :pasttype('call'), :name('&infix:<~>'),
@@ -3459,7 +3559,8 @@ class Perl6::Actions is HLL::Actions {
         my %param_info := hash(
             variable_name => $name,
             pos_slurpy    => $pos_slurpy,
-            named_slurpy  => $named_slurpy);
+            named_slurpy  => $named_slurpy,
+            sigil         => ~$sigil);
 
         # If it's slurpy, just goes on the end.
         if $pos_slurpy || $named_slurpy {
@@ -3480,15 +3581,14 @@ class Perl6::Actions is HLL::Actions {
 
         # Otherwise, put it in correct lexicographic position.
         else {
-            my @shifted;
+            my $insert_at := 0;
             for @params {
                 last if $_<pos_slurpy> || $_<named_slurpy> ||
                         $_<named_names> ||
                         pir::substr__SSi($_<variable_name>, 1) gt $ident;
-                @shifted.push(@params.shift);
+                $insert_at := $insert_at + 1;
             }
-            @params.unshift(%param_info);
-            while @shifted { @params.unshift(@shifted.pop) }
+            nqp::splice(@params, [%param_info], $insert_at, 0);
         }
 
         # Add variable declaration, and evaluate to a lookup of it.
@@ -3642,7 +3742,7 @@ class Perl6::Actions is HLL::Actions {
     }
 
     sub make_dot_equals($target, $call) {
-        $call.unshift($*ST.add_constant('Str', 'str', $call.name));
+        $call.unshift($*ST.add_string_constant($call.name));
         $call.unshift($target);
         $call.name('dispatch:<.=>');
         $call.pasttype('callmethod');
@@ -3782,9 +3882,10 @@ class Perl6::Actions is HLL::Actions {
         %curried{'&infix:<~~>'}   := 0;
         %curried{'&infix:<=>'}    := 0;
         %curried{'&infix:<:=>'}   := 0;
-        %curried{'WHAT'}          := 0;
-        %curried{'HOW'}           := 0;
-        %curried{'WHO'}           := 0;
+        %curried{'get_what PP'}   := 0;
+        %curried{'get_how PP'}    := 0;
+        %curried{'get_who PP'}    := 0;
+        %curried{'perl6_var PP'}  := 0;
         %curried{'WHERE'}         := 0;
         %curried{'&infix:<..>'}   := 1;
         %curried{'&infix:<..^>'}  := 1;
@@ -3795,7 +3896,7 @@ class Perl6::Actions is HLL::Actions {
     sub whatever_curry($/, $past, $upto_arity) {
         my $curried := $past.isa(PAST::Op)
                        && ($past<pasttype> ne 'call' || pir::index($past.name, '&infix:') == 0)
-                       && (%curried{$past.name} // 2);
+                       && (%curried{$past.name // $past.pirop} // 2);
         my $i := 0;
         my $whatevers := 0;
         while $curried && $i < $upto_arity {
@@ -3976,7 +4077,8 @@ class Perl6::Actions is HLL::Actions {
             if $seen_dot {
                 return $*ST.add_constant('Rat', 'type_new',
                     $*ST.add_numeric_constant('Int', $iresult)<compile_time_value>,
-                    $*ST.add_numeric_constant('Int', $fdivide)<compile_time_value>
+                    $*ST.add_numeric_constant('Int', $fdivide)<compile_time_value>,
+                    :nocache(1)
                 );
             } else {
                 return $*ST.add_numeric_constant('Int', $iresult);

@@ -84,6 +84,14 @@ my class RoleToClassApplier {
             $target.HOW.add_attribute($target, $_);
         }
         
+        # Compose in any parents.
+        if pir::can($to_compose_meta, 'parents') {
+            my @parents := $to_compose_meta.parents($to_compose, :local(1));
+            for @parents {
+                $target.HOW.add_parent($target, $_);
+            }
+        }
+        
         1;
     }
 }

@@ -7,7 +7,6 @@
 typedef struct {
     PMC    *st;                 /* S-table, though we don't care about that here. */
     PMC    *sc;                 /* Serialization context, though we don't care about that here. */
-    PMC    *spill;              /* Attribute spill storage. */
     PMC    *static_values;      /* The set of static values (hash names => values). */
     PMC    *flags;              /* Flags for how we handle those (hash names => flags). */
     INTVAL  changed;            /* Has anything in here changed since we last saw it? */
@@ -29,6 +28,7 @@ static PMC * fresh_scalar(PARROT_INTERP, PMC *cont_desc) {
     Rakudo_Scalar *cont = (Rakudo_Scalar *)PMC_data(fresh);
     cont->descriptor    = cont_desc;
     cont->value         = Any;
+    PARROT_GC_WRITE_BARRIER(interp, fresh);
     return fresh;
 }
 
@@ -43,21 +43,9 @@ static PMC * steal_outer(PARROT_INTERP, PMC *cur_ctx, STRING *name) {
 
 /* Locates the register number for getting the specified name
  * and type of lexical. */
-static INTVAL register_number_for_get(PARROT_INTERP, PMC *self,
-        PMC *info, STRING *name, INTVAL reg_type) {
-    PMC        *name_map;
-    const Hash *hash;
-    HashBucket *b;
-
-    if (info->vtable->base_type != enum_class_LexInfo) {
-        GETATTR_Perl6LexInfo_name_to_register_map(interp, info, name_map);
-        hash = (const Hash *)VTABLE_get_pointer(interp, name_map);
-    }
-    else {
-        hash = (const Hash *)VTABLE_get_pointer(interp, info);
-    }
-
-    b = Parrot_hash_get_bucket(interp, hash, name);
+static INTVAL register_number_for_get(PARROT_INTERP, Hash *hash,
+        STRING *name, INTVAL reg_type) {
+    HashBucket *b = Parrot_hash_get_bucket(interp, hash, name);
     if (!b)
         return -1;
     if (((INTVAL)b->value & 3) != reg_type)
@@ -69,21 +57,9 @@ static INTVAL register_number_for_get(PARROT_INTERP, PMC *self,
 
 /* Locates the register number for setting the specified name
  * and type of lexical. */
-static INTVAL register_number_for_set(PARROT_INTERP, PMC *self,
-        PMC *info, STRING *name, INTVAL reg_type) {
-    PMC        *name_map;
-    const Hash *hash;
-    HashBucket *b;
-
-    if (info->vtable->base_type != enum_class_LexInfo) {
-        GETATTR_Perl6LexInfo_name_to_register_map(interp, info, name_map);
-        hash = (const Hash *)VTABLE_get_pointer(interp, name_map);
-    }
-    else {
-        hash = (const Hash *)VTABLE_get_pointer(interp, info);
-    }
-
-    b = Parrot_hash_get_bucket(interp, hash, name);
+static INTVAL register_number_for_set(PARROT_INTERP, Hash *hash,
+        STRING *name, INTVAL reg_type) {
+    HashBucket *b = Parrot_hash_get_bucket(interp, hash, name);
     if (!b)
         Parrot_ex_throw_from_c_args(interp, NULL, EXCEPTION_LEX_NOT_FOUND,
             "Lexical '%Ss' not found", name);
@@ -103,6 +79,10 @@ pmclass Perl6LexPad
 {
     /* The static lexical info. */
     ATTR PMC *lexinfo;
+    
+    /* Cache of the hash from the static lex info, so we needn't look it up
+     * every time. */
+    ATTR Hash *lexinfo_hash;
     
     /* The current context, including the registers. */
     ATTR PMC *ctx;
@@ -177,11 +157,20 @@ Return the LexInfo PMC, if any or a Null PMC.
     }
 
     VTABLE void set_pointer(void *ctx) {
-        /* Check if we need to put any static values in place. */
         PMC *info;
+        Hash *hash;
         GET_ATTR_lexinfo(INTERP, SELF, info);
+        if (info->vtable->base_type != enum_class_LexInfo) {
+            PMC *name_map;
+            GETATTR_Perl6LexInfo_name_to_register_map(INTERP, info, name_map);
+            hash = (Hash *)VTABLE_get_pointer(INTERP, name_map);
+        }
+        else {
+            hash = (Hash *)VTABLE_get_pointer(INTERP, info);
+        }
+        SET_ATTR_lexinfo_hash(INTERP, SELF, hash);
         
-        /* Stash the context pointer. */
+        /* Stash the context pointer and hash. */
         SET_ATTR_ctx(INTERP, SELF, (PMC *)ctx);
         
         /* Static lexpad handling. */
@@ -285,17 +274,8 @@ Return the LexInfo PMC, if any or a Null PMC.
     }
 
     VTABLE INTVAL exists_keyed_str(STRING *name) {
-        PMC *info, *name_map;
         const Hash *hash;
-        GET_ATTR_lexinfo(INTERP, SELF, info);
-        if (info->vtable->base_type != enum_class_LexInfo) {
-            GETATTR_Perl6LexInfo_name_to_register_map(INTERP, info, name_map);
-            hash = (const Hash *)VTABLE_get_pointer(INTERP, name_map);
-        }
-        else {
-            hash = (const Hash *)VTABLE_get_pointer(INTERP, info);
-        }
-
+        GET_ATTR_lexinfo_hash(INTERP, SELF, hash);
         return hash->entries
             ? (Parrot_hash_get_bucket(INTERP, hash, name) != 0)
             : 0;
@@ -307,13 +287,13 @@ Return the LexInfo PMC, if any or a Null PMC.
     }
 
     VTABLE PMC *get_pmc_keyed_str(STRING *name) {
-        PMC    *info;
+        Hash *hash;
         INTVAL  reg;
         PMC    *ctx;
         PMC    *result;
 
-        GET_ATTR_lexinfo(INTERP, SELF, info);
-        reg = register_number_for_get(INTERP, SELF, info, name, REGNO_PMC);
+        GET_ATTR_lexinfo_hash(INTERP, SELF, hash);
+        reg = register_number_for_get(INTERP, hash, name, REGNO_PMC);
         if (reg < 0)
             return PMCNULL;
         GET_ATTR_ctx(INTERP, SELF, ctx);
@@ -321,19 +301,19 @@ Return the LexInfo PMC, if any or a Null PMC.
         
         if (PMC_IS_NULL(result)) {
             /* We lazily handle things like $_, $! and $/. */
-            INTVAL fresh_magicals;
-            GETATTR_Perl6LexInfo_fresh_magicals(INTERP, info, fresh_magicals);
+            PMC    *info;
+            INTVAL  fresh_topic;
+            GET_ATTR_lexinfo(INTERP, SELF, info);
+            GETATTR_Perl6LexInfo_fresh_magicals(INTERP, info, fresh_topic);
             if (Parrot_str_equal(interp, name, CONST_STRING(interp, "$_"))) {
-                result = fresh_magicals ? fresh_scalar(interp, topic_cd)
+                result = fresh_topic ? fresh_scalar(interp, topic_cd)
                                         : steal_outer(interp, ctx, name);
             }
             else if (Parrot_str_equal(interp, name, CONST_STRING(interp, "$!"))) {
-                result = fresh_magicals ? fresh_scalar(interp, error_cd)
-                                        : steal_outer(interp, ctx, name);
+                result = fresh_scalar(interp, error_cd);
             }
             else if (Parrot_str_equal(interp, name, CONST_STRING(interp, "$/"))) {
-                result = fresh_magicals ? fresh_scalar(interp, match_cd)
-                                        : steal_outer(interp, ctx, name);
+                result = fresh_scalar(interp, match_cd);
             }
             else if (Parrot_str_equal(interp, name, CONST_STRING(interp, "%_"))) {
                 PMC *storage;
@@ -349,12 +329,12 @@ Return the LexInfo PMC, if any or a Null PMC.
     }
     
     VTABLE INTVAL get_integer_keyed_str(STRING *name) {
-        PMC    *info;
+        Hash *hash;
         INTVAL  reg;
         PMC    *ctx;
 
-        GET_ATTR_lexinfo(INTERP, SELF, info);
-        reg = register_number_for_get(INTERP, SELF, info, name, REGNO_INT);
+        GET_ATTR_lexinfo_hash(INTERP, SELF, hash);
+        reg = register_number_for_get(INTERP, hash, name, REGNO_INT);
         if (reg < 0)
             return 0;
         GET_ATTR_ctx(INTERP, SELF, ctx);
@@ -362,12 +342,12 @@ Return the LexInfo PMC, if any or a Null PMC.
     }
     
     VTABLE FLOATVAL get_number_keyed_str(STRING *name) {
-        PMC    *info;
+        Hash *hash;
         INTVAL  reg;
         PMC    *ctx;
 
-        GET_ATTR_lexinfo(INTERP, SELF, info);
-        reg = register_number_for_get(INTERP, SELF, info, name, REGNO_NUM);
+        GET_ATTR_lexinfo_hash(INTERP, SELF, hash);
+        reg = register_number_for_get(INTERP, hash, name, REGNO_NUM);
         if (reg < 0)
             return 0.0;
         GET_ATTR_ctx(INTERP, SELF, ctx);
@@ -375,12 +355,12 @@ Return the LexInfo PMC, if any or a Null PMC.
     }
     
     VTABLE STRING *get_string_keyed_str(STRING *name) {
-        PMC    *info;
+        Hash *hash;
         INTVAL  reg;
         PMC    *ctx;
 
-        GET_ATTR_lexinfo(INTERP, SELF, info);
-        reg = register_number_for_get(INTERP, SELF, info, name, REGNO_STR);
+        GET_ATTR_lexinfo_hash(INTERP, SELF, hash);
+        reg = register_number_for_get(INTERP, hash, name, REGNO_STR);
         if (reg < 0)
             return STRINGNULL;
         GET_ATTR_ctx(INTERP, SELF, ctx);
@@ -408,46 +388,46 @@ Return the LexInfo PMC, if any or a Null PMC.
     }
 
     VTABLE void set_pmc_keyed_str(STRING *name, PMC *value) {
-        PMC    *info;
+        Hash *hash;
         INTVAL  reg;
         PMC    *ctx;
 
-        GET_ATTR_lexinfo(INTERP, SELF, info);
-        reg = register_number_for_set(INTERP, SELF, info, name, REGNO_PMC);
+        GET_ATTR_lexinfo_hash(INTERP, SELF, hash);
+        reg = register_number_for_set(INTERP, hash, name, REGNO_PMC);
         GET_ATTR_ctx(INTERP, SELF, ctx);
         CTX_REG_PMC(interp, ctx, reg) = value;
         PARROT_GC_WRITE_BARRIER(INTERP, ctx);
     }
     
     VTABLE void set_integer_keyed_str(STRING *name, INTVAL value) {
-        PMC    *info;
+        Hash *hash;
         INTVAL  reg;
         PMC    *ctx;
 
-        GET_ATTR_lexinfo(INTERP, SELF, info);
-        reg = register_number_for_set(INTERP, SELF, info, name, REGNO_INT);
+        GET_ATTR_lexinfo_hash(INTERP, SELF, hash);
+        reg = register_number_for_set(INTERP, hash, name, REGNO_INT);
         GET_ATTR_ctx(INTERP, SELF, ctx);
         CTX_REG_INT(interp, ctx, reg) = value;
     }
     
     VTABLE void set_number_keyed_str(STRING *name, FLOATVAL value) {
-        PMC    *info;
+        Hash *hash;
         INTVAL  reg;
         PMC    *ctx;
 
-        GET_ATTR_lexinfo(INTERP, SELF, info);
-        reg = register_number_for_set(INTERP, SELF, info, name, REGNO_NUM);
+        GET_ATTR_lexinfo_hash(INTERP, SELF, hash);
+        reg = register_number_for_set(INTERP, hash, name, REGNO_NUM);
         GET_ATTR_ctx(INTERP, SELF, ctx);
         CTX_REG_NUM(interp, ctx, reg) = value;
     }
     
     VTABLE void set_string_keyed_str(STRING *name, STRING *value) {
-        PMC    *info;
+        Hash *hash;
         INTVAL  reg;
         PMC    *ctx;
 
-        GET_ATTR_lexinfo(INTERP, SELF, info);
-        reg = register_number_for_set(INTERP, SELF, info, name, REGNO_STR);
+        GET_ATTR_lexinfo_hash(INTERP, SELF, hash);
+        reg = register_number_for_set(INTERP, hash, name, REGNO_STR);
         GET_ATTR_ctx(INTERP, SELF, ctx);
         CTX_REG_STR(interp, ctx, reg) = value;
         PARROT_GC_WRITE_BARRIER(INTERP, ctx);

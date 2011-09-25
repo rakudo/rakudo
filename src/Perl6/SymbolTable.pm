@@ -23,6 +23,10 @@ my $SIG_ELEM_UNDEFINED_ONLY      := 65536;
 my $SIG_ELEM_DEFINED_ONLY        := 131072;
 my $SIG_ELEM_METHOD_SLURPY_NAMED := 262144;
 my $SIG_ELEM_NOMINAL_GENERIC     := 524288;
+my $SIG_ELEM_DEFAULT_IS_LITERAL  := 1048576;
+my $SIG_ELEM_NATIVE_INT_VALUE    := 2097152;
+my $SIG_ELEM_NATIVE_NUM_VALUE    := 4194304;
+my $SIG_ELEM_NATIVE_STR_VALUE    := 8388608;
 
 # This builds upon the SerializationContextBuilder to add the specifics
 # needed by Rakudo Perl 6.
@@ -311,10 +315,26 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
             self.install_lexical_symbol($cur_lex, $name, $symbol);
         }
         if $create_scope eq 'our' {
+            if pir::exists($cur_pkg.WHO, $name) {
+                self.steal_WHO($symbol, ($cur_pkg.WHO){$name});
+            }
             self.install_package_symbol($cur_pkg, $name, $symbol);
         }
         
         1;
+    }
+    
+    # If we declare class A::B { }, then class A { }, then A.WHO must be the
+    # .WHO we already created for the stub package A.
+    method steal_WHO($thief, $victim) {
+        pir::set_who__vP($thief, $victim.WHO);
+        if self.is_precompilation_mode() {
+            self.add_event(:deserialize_past(PAST::Op.new(
+                :pirop('set_who vP'),
+                self.get_object_sc_ref_past($thief),
+                PAST::Op.new( :pirop('get_who PP'),
+                    self.get_object_sc_ref_past($victim)))));
+        }
     }
     
     # Installs a lexical symbol. Takes a PAST::Block object, name and
@@ -323,8 +343,10 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
     # gets fixed up at runtime too.
     method install_lexical_symbol($block, $name, $obj, :$clone) {
         # Install the object directly as a block symbol.
+        unless $block.symbol($name) {
+            $block[0].push(PAST::Var.new( :scope('lexical_6model'), :name($name), :isdecl(1) ));
+        }
         $block.symbol($name, :scope('lexical_6model'), :value($obj));
-        $block[0].push(PAST::Var.new( :scope('lexical_6model'), :name($name), :isdecl(1) ));
         
         # Add a clone if needed.
         # XXX Horrible workaround here. We don't have proper serialization
@@ -526,6 +548,19 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
         if %param_info<nominal_generic> {
             $flags := $flags + $SIG_ELEM_NOMINAL_GENERIC;
         }
+        if %param_info<default_is_literal> {
+            $flags := $flags + $SIG_ELEM_DEFAULT_IS_LITERAL;
+        }
+        my $primspec := pir::repr_get_primitive_type_spec__IP(%param_info<nominal_type>);
+        if $primspec == 1 {
+            $flags := $flags + $SIG_ELEM_NATIVE_INT_VALUE;
+        }
+        elsif $primspec == 2 {
+            $flags := $flags + $SIG_ELEM_NATIVE_NUM_VALUE;
+        }
+        elsif $primspec == 3 {
+            $flags := $flags + $SIG_ELEM_NATIVE_STR_VALUE;
+        }
         
         # Populate it.
         if pir::exists(%param_info, 'variable_name') {
@@ -545,8 +580,8 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
             pir::setattribute__vPPsP($parameter, $par_type, '$!post_constraints',
                 %param_info<post_constraints>);
         }
-        if pir::exists(%param_info, 'default_closure') {
-            pir::setattribute__vPPsP($parameter, $par_type, '$!default_closure', %param_info<default_closure>);
+        if pir::exists(%param_info, 'default_value') {
+            pir::setattribute__vPPsP($parameter, $par_type, '$!default_value', %param_info<default_value>);
         }
         if pir::exists(%param_info, 'container_descriptor') {
             pir::setattribute__vPPsP($parameter, $par_type, '$!container_descriptor', %param_info<container_descriptor>);
@@ -615,9 +650,9 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
             }
             
             # Set default value thunk up, if there is one.
-            if pir::exists(%param_info, 'default_closure') {
-                $set_attrs.push(self.set_attribute_reg($obj_reg, $class_reg, '$!default_closure',
-                    self.get_object_sc_ref_past(%param_info<default_closure>)));
+            if pir::exists(%param_info, 'default_value') {
+                $set_attrs.push(self.set_attribute_reg($obj_reg, $class_reg, '$!default_value',
+                    self.get_object_sc_ref_past(%param_info<default_value>)));
             }
             
             # Set container descriptor, if there is one.
@@ -695,27 +730,33 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
         # For now, install stub that will dynamically compile the code if
         # we ever try to run it during compilation.
         my $precomp;
-        my $stub := sub (*@pos, *%named) {
+        my $compiler_thunk := {
+            # Fix up GLOBAL.
             my $rns    := pir::get_root_namespace__P();
             my $p6_pns := $rns{'perl6'};
             $p6_pns{'GLOBAL'} := $*GLOBALish;
-            unless $precomp {
-                # Compile the block.
-                $precomp := self.compile_in_context($code_past, $code_type);
+            
+            # Compile the block.
+            $precomp := self.compile_in_context($code_past, $code_type);
 
-                # Also compile the candidates if this is a proto.
-                if $is_dispatcher {
-                    for nqp::getattr($code, $code_type, '$!dispatchees') {
-                        my $stub := nqp::getattr($_, $code_type, '$!do');
-                        my $past := pir::getprop__PsP('PAST_BLOCK', $stub);
-                        if $past {
-                            self.compile_in_context($past, $code_type);
-                        }
+            # Also compile the candidates if this is a proto.
+            if $is_dispatcher {
+                for nqp::getattr($code, $code_type, '$!dispatchees') {
+                    my $stub := nqp::getattr($_, $code_type, '$!do');
+                    my $past := pir::getprop__PsP('PAST_BLOCK', $stub);
+                    if $past {
+                        self.compile_in_context($past, $code_type);
                     }
                 }
             }
+        };
+        my $stub := sub (*@pos, *%named) {
+            unless $precomp {
+                $compiler_thunk();
+            }
             $precomp(|@pos, |%named);
         };
+        pir::setprop__vPsP($stub, 'COMPILER_THUNK', $compiler_thunk);
         pir::set__vPS($stub, $code_past.name);
         pir::setattribute__vPPsP($code, $code_type, '$!do', $stub);
         
@@ -913,7 +954,7 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
         # Ensure that we have the appropriate op libs loaded and correct
         # HLL.
         my $wrapper := PAST::Block.new(PAST::Stmts.new(), $past);
-        $wrapper.loadlibs('perl6_group', 'perl6_ops');
+        self.add_libs($wrapper);
         $wrapper.hll('perl6');
         $wrapper.namespace('');
         
@@ -946,7 +987,10 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
         
         # Compile it, set wrapper's static lexpad, then invoke the wrapper,
         # which fixes up the lexicals.
-        my $precomp := PAST::Compiler.compile($wrapper);
+        my $p6comp  := pir::compreg__Ps('perl6');
+        my $post    := $p6comp.post($wrapper);
+        my $pir     := $p6comp.pir($post);
+        my $precomp := $p6comp.evalpmc($pir);
         $precomp[0].get_lexinfo.set_static_lexpad($slp);
         $precomp();
         
@@ -1021,16 +1065,32 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
         }
         elsif $primitive eq 'type_new' {
             $constant := $type_obj.new(|@value, |%named);
-            $des := PAST::Op.new(
-                :pasttype('callmethod'), :name('new'),
-                $type_obj_lookup
-            );
-            $des.push(self.get_object_sc_ref_past(nqp::shift(@value)))
-                while @value;
-            for %named {
-                my $x := self.get_object_sc_ref_past($_.value);
-                $x.named($_.key);
-                $des.push($x);
+            if $type eq 'Rat' {
+                my $int_lookup := self.get_object_sc_ref_past(self.find_symbol(['Int']));
+                my $nu := nqp::unbox_i(nqp::getattr($constant, $type_obj, '$!numerator'));
+                my $de := nqp::unbox_i(nqp::getattr($constant, $type_obj, '$!denominator'));
+                $des := PAST::Op.new(
+                    :pirop('repr_bind_attr_obj 0PPsP'),
+                    PAST::Op.new(
+                        :pirop('repr_bind_attr_obj 0PPsP'),
+                        PAST::Op.new( :pirop('repr_instance_of PP'), $type_obj_lookup ),
+                        $type_obj_lookup, '$!numerator',
+                        PAST::Op.new( :pirop('repr_box_int PiP'), $nu, $int_lookup )),
+                    $type_obj_lookup, '$!denominator',
+                    PAST::Op.new( :pirop('repr_box_int PiP'), $de, $int_lookup ));
+            }
+            else {
+                $des := PAST::Op.new(
+                    :pasttype('callmethod'), :name('new'),
+                    $type_obj_lookup
+                );
+                $des.push(self.get_object_sc_ref_past(nqp::shift(@value)))
+                    while @value;
+                for %named {
+                    my $x := self.get_object_sc_ref_past($_.value);
+                    $x.named($_.key);
+                    $des.push($x);
+                }
             }
         }
         else {
@@ -1059,6 +1119,16 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
     method add_numeric_constant($type, $value) {
         my $const := self.add_constant($type, nqp::lc($type), $value);
         my $past  := PAST::Want.new($const, 'IiNn', $value);
+        $past<has_compile_time_value> := 1;
+        $past<compile_time_value>     := $const<compile_time_value>;
+        $past;
+    }
+    
+    # Adds a string constant value to the constants table.
+    # Returns PAST to do the lookup of the constant.
+    method add_string_constant($value) {
+        my $const := self.add_constant('Str', 'str', $value);
+        my $past  := PAST::Want.new($const, 'Ss', $value);
         $past<has_compile_time_value> := 1;
         $past<compile_time_value>     := $const<compile_time_value>;
         $past;
@@ -1447,6 +1517,13 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
         else {
             $/.CURSOR.panic("$phaser phaser not yet implemented");
         }
+    }
+    
+    # Adds required libraries to a compilation unit.
+    method add_libs($comp_unit) {
+        $comp_unit.loadlibs('nqp_group', 'nqp_ops', 'perl6_group', 'perl6_ops',
+                            'bit_ops', 'math_ops', 'trans_ops', 'io_ops',
+                            'obscure_ops', 'os', 'file', 'sys_ops');
     }
     
     # Checks if a given symbol is declared.

@@ -1,6 +1,6 @@
 # Roadmap for "nom" Branch
 
-Last Updated 8 Sep 2011
+Last Updated 20 Sep 2011
 
 ## Punch list for nom->master and nom distribution
 
@@ -12,13 +12,10 @@ branch and distribution, an estimate of the difficulty
 (\* == easy, \*\*\*\* = hard), and any identified 
 responsible parties.
 
-* Parametric roles (2, 2, \*\*\*, jnthn)
 * Enums to level of master (2, 1, ???, ???)
 * Grammars, qregex, other regex stuff (1, 1, \*\*\*, pmichaud)
-* Buf (2, 1, **, pmichaud)
 * DateTime, Date (2, 1, \*\*, ???)
 * Define new operators (2, 1, \*\*, pmichaud) (awaiting other regex updates)
-* Whatever currying (2, 1, ???, ???) (*.method case still missing, return type is not WhateverCode)
 * MAIN (2, 1, ???, ???)
 * modules working with nom (3, 1, ???, ???)
 * fix meta-dispatchers to not flatten positionals (3, 2, ???, ???)
@@ -50,11 +47,6 @@ when needs to properly find use correct outer scope
 ## Fix up binding some more
 Get ::= correcter, and a bit more stuff on := also.
 
-## Finish up parametric roles
-Many things are working, some are not...
-* role R1[::T] does R2[T] { ... }
-* Be sure to do a BUILD after mix-in
-
 ## Custom Operators
 Get these working again.
 
@@ -77,10 +69,3 @@ Same for my %h and hashes.
 
 ## Switch Numeric and Real to be roles
 They are classes right now, which is wrong.
-
-## fix segfaults
-
-    wget https://github.com/colomon/mandelbrot/raw/master/bin/mandelbrot-color.pl
-    ./perl6 mandelbrot-color.pl 201
-
-segfaults repeatably after about 1 minute

@@ -49,16 +49,16 @@ my class Capture {
     }
     
     multi method Str(Capture:D:) {
-        my Mu $str := nqp::list();
+        my Mu $str := pir::new__Ps('ResizableStringArray');
         if $!list {
             my Mu $iter := nqp::iterator($!list);
-            nqp::push($str, nqp::unbox_s(nqp::shift($iter).Str)) while $iter;
+            nqp::push_s($str, nqp::unbox_s(nqp::shift($iter).Str)) while $iter;
         }
         if $!hash {
             my Mu $iter := nqp::iterator($!hash);
             while $iter {
                 my $kv := nqp::shift($iter);
-                nqp::push($str, nqp::unbox_s((nqp::p6box_s($kv) => $kv.value).Str));
+                nqp::push_s($str, nqp::unbox_s((nqp::p6box_s($kv) => $kv.value).Str));
             }
         }
         nqp::p6box_s(nqp::join(' ', $str))
@@ -72,8 +72,8 @@ my class Capture {
         self.elems
     }
     
-    # XXX TODO: Should include the hash part too...
-    method ARGLIST_FLATTENABLE() { $!list }
+    method FLATTENABLE_LIST() { $!list ?? $!list !! nqp::list() }
+    method FLATTENABLE_HASH() { $!hash ?? $!hash !! nqp::hash() }
 
     method pairs(Capture:D:) {
         (self.list.pairs, self.hash.pairs).flat

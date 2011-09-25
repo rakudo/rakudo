@@ -8,8 +8,6 @@ Note - do not just copy stuff from the master setting! Often things
 need to be done differently in the "nom" branch, to take advantage of
 new possible performance.
 
-## Implement minmax operator
-Make S03-operators/minmax.t pass
 
 ## More Smart-matching
 See S03-smartmatch tests, especially array-array.t, hash-hash.t and
@@ -17,8 +15,3 @@ so forth. The regex ones are probably also good candidates now.
 
 ## Nil assignment
 my Int $b = 3;  $b = Nil;   
-
-## Built-in functions
-Often builtins are only added as methods, even when the corresponding function
-should exist. Go through src/core/ and write functions that re-dispatch to the
-methods where necessary

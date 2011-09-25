@@ -21,6 +21,9 @@ multi trait_mod:<is>(Mu:U $child, Mu:U $parent) {
 multi trait_mod:<is>(Mu:U $type, :$rw!) {
     $type.HOW.set_rw($type);
 }
+multi trait_mod:<is>(Mu:U $type, $size, :$nativesize!) {
+    $type.HOW.set_nativesize($type, $size);
+}
 
 multi trait_mod:<is>(Attribute:D $attr, :$rw!) {
     $attr.set_rw();
@@ -80,10 +83,12 @@ multi trait_mod:<is>(Mu:D $docee, $doc, :$docs!) {
         method set_docs($d) { $!WHY = $d }
     }
     $docee.set_docs($doc);
+    $doc.set_docee($docee);
 }
 
 multi trait_mod:<is>(Mu:U $docee, $doc, :$docs!) {
     $docee.HOW.set_docs($doc);
+    $doc.set_docee($docee);
 }
 
 

@@ -170,7 +170,19 @@ This is emitted into a sub to cause it's Perl 6 signature to be bound.
 
 */
 inline op bind_signature() :base_core {
-    PMC * const ctx         = CURRENT_CONTEXT(interp);
+    /* Need to make sure some stuff doesn't get destroyed. */
+    PMC      * const ctx         = CURRENT_CONTEXT(interp);
+    PMC      * const saved_ccont = interp->current_cont;
+    PMC      * const saved_sig   = Parrot_pcc_get_signature(interp, ctx);
+    opcode_t * const current_pc  = Parrot_pcc_get_pc(interp, ctx);
+    
+    /* Obtain lexpad and other settings. */
+    PMC * const lexpad        = Parrot_pcc_get_lex_pad(interp, ctx);
+    const INTVAL noms_checked = PObj_flag_TEST(P6BINDER_ALREADY_CHECKED, ctx);
+    STRING * error            = STRINGNULL;
+    INTVAL bind_error;
+    
+    /* Look up signature to bind. */
     PMC * const parrot_sub  = Parrot_pcc_get_sub(interp, ctx);
     PMC *perl6_code, *signature;
     GETATTR_Sub_multi_signature(interp, parrot_sub, perl6_code);
@@ -179,61 +191,44 @@ inline op bind_signature() :base_core {
                 "Could not locate Perl 6 code object");
     signature = ((Rakudo_Code *)PMC_data(perl6_code))->signature;
 
-    /* If we aren't already bound, enter the appropriate binder. */
-    if (!PObj_flag_TEST(P6S_ALREADY_BOUND, ctx)) {
-        /* Need to make sure some stuff doesn't get destroyed. */
-        PMC      * const saved_ccont = interp->current_cont;
-        PMC      * const saved_sig   = Parrot_pcc_get_signature(interp, ctx);
-        opcode_t * const current_pc  = Parrot_pcc_get_pc(interp, ctx);
-        
-        /* Obtain lexpad and other settings. */
-        PMC * const lexpad        = Parrot_pcc_get_lex_pad(interp, ctx);
-        const INTVAL noms_checked = PObj_flag_TEST(P6S_ALREADY_CHECKED, ctx);
-        STRING * error            = STRINGNULL;
-        INTVAL bind_error;
+    /* Call signature binder. */
+    bind_error = Rakudo_binding_bind(interp, lexpad, signature, ctx,
+        noms_checked, &error);
 
-        /* Call signature binder. */
-        bind_error = Rakudo_binding_bind(interp, lexpad, signature, ctx,
-            noms_checked, &error);
-
-        /* Bind ok? */
-        if (!bind_error) {
-            /* Re-instate anything we may have damaged. */
-            CURRENT_CONTEXT(interp) = ctx;
-            interp->current_cont    = saved_ccont;
-            Parrot_pcc_set_signature(interp, ctx, saved_sig);
-            Parrot_pcc_set_pc(interp, ctx, current_pc);
-            goto NEXT();
-        }
-        else {
-            /* Maybe we need to auto-thread... */
-            if (bind_error == BIND_RESULT_JUNCTION) {
-                /* Find dispatcher and call it. */
-                PMC * const dispatcher = Rakudo_types_junction_threader_get();
-                PMC * const sub        = Parrot_pcc_get_sub(interp, ctx);
-                PMC * call_ctx         = VTABLE_clone(interp, ctx);
-                PMC * ret_cont         = Parrot_pcc_get_continuation(interp, ctx);
-                PMC * p6sub;
-                opcode_t *next;
-
-                GETATTR_Sub_multi_signature(interp, sub, p6sub);
-                VTABLE_unshift_pmc(interp, call_ctx, p6sub);
-                Parrot_pcc_invoke_from_sig_object(interp, dispatcher, call_ctx);
-
-                /* Invoke the original return continuation, to return junction result. */
-                next = VTABLE_invoke(interp, ret_cont, expr NEXT());
-                goto ADDRESS(next);
-            }
-            else {
-                /* Nope, just normal fail... */
-                opcode_t * const handler = Parrot_ex_throw_from_op_args(interp, NULL,
-                        EXCEPTION_INVALID_OPERATION, "%Ss", error);
-                goto ADDRESS(handler);
-            }
-        }
+    /* Bind ok? */
+    if (!bind_error) {
+        /* Re-instate anything we may have damaged. */
+        CURRENT_CONTEXT(interp) = ctx;
+        interp->current_cont    = saved_ccont;
+        Parrot_pcc_set_signature(interp, ctx, saved_sig);
+        Parrot_pcc_set_pc(interp, ctx, current_pc);
+        goto NEXT();
     }
     else {
-        goto NEXT();
+        /* Maybe we need to auto-thread... */
+        if (bind_error == BIND_RESULT_JUNCTION) {
+            /* Find dispatcher and call it. */
+            PMC * const dispatcher = Rakudo_types_junction_threader_get();
+            PMC * const sub        = Parrot_pcc_get_sub(interp, ctx);
+            PMC * call_ctx         = VTABLE_clone(interp, ctx);
+            PMC * ret_cont         = Parrot_pcc_get_continuation(interp, ctx);
+            PMC * p6sub;
+            opcode_t *next;
+
+            GETATTR_Sub_multi_signature(interp, sub, p6sub);
+            VTABLE_unshift_pmc(interp, call_ctx, p6sub);
+            Parrot_pcc_invoke_from_sig_object(interp, dispatcher, call_ctx);
+
+            /* Invoke the original return continuation, to return junction result. */
+            next = VTABLE_invoke(interp, ret_cont, expr NEXT());
+            goto ADDRESS(next);
+        }
+        else {
+            /* Nope, just normal fail... */
+            opcode_t * const handler = Parrot_ex_throw_from_op_args(interp, NULL,
+                    EXCEPTION_INVALID_OPERATION, "%Ss", error);
+            goto ADDRESS(handler);
+        }
     }
 }
 
@@ -746,6 +741,7 @@ inline op perl6_enter_multi_dispatch_from_onlystar_block(out PMC) :base_core {
         interp->current_cont = Parrot_pcc_get_continuation(interp, cur_ctx);
         addr = VTABLE_invoke(interp, chosen, expr NEXT());
         Parrot_pcc_set_caller_ctx(interp, cur_ctx, orig_caller);
+        PObj_flag_SET(P6BINDER_ALREADY_CHECKED, cur_ctx);
         goto ADDRESS(addr);
     }
     else {

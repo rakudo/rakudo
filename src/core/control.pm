@@ -146,10 +146,6 @@ sub eval(Str $code, :$lang = 'perl6') {
         $P0 = getinterp
         %r = $P0['context';1]
     };
-    my $caller_lexpad := Q:PIR {
-        $P0 = getinterp
-        %r = $P0['lexpad';1]
-    };
     my $result;
     my $success;
     try {
@@ -159,7 +155,7 @@ sub eval(Str $code, :$lang = 'perl6') {
         $result := $pbc();
         $success = 1;
     }
-    nqp::bindkey($caller_lexpad, '$!', $!);
+    pir::find_caller_lex__Ps('$!') = $!;
     $success ?? $result !! Any # XXX fail($!)
 }
 

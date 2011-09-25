@@ -80,6 +80,23 @@ class IO {
         }
     }
 
+    method read(IO:D: Int:D $bytes) {
+        my Mu $parrot_buffer := $!PIO.read_bytes(nqp::unbox_i($bytes));
+        my $buf := nqp::create(Buf);
+        nqp::bindattr($buf, Buf, '$!buffer', $parrot_buffer);
+        $buf;
+    }
+
+    method write(IO:D: Buf:D $buf) {
+        my Mu $b := nqp::getattr(
+                        pir::perl6_decontainerize__PP($buf),
+                        Buf,
+                        '$!buffer'
+                    );
+        $!PIO.print($b.get_string('binary'));
+        True;
+    }
+
     method opened() {
         nqp::p6bool(nqp::istrue($!PIO));
     }

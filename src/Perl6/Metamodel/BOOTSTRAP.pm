@@ -288,7 +288,7 @@ Signature.HOW.add_method(Signature, 'set_returns', sub ($self, $type) {
 #     has $!coerce_type
 #     has str $!coerce_method
 #     has $!sub_signature
-#     has $!default_closure
+#     has $!default_value
 #     has $!container_descriptor;
 #     has $!attr_package;
 #     ... # Uncomposed
@@ -304,7 +304,7 @@ Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!post_constraint
 Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!coerce_type>, :type(Mu)));
 Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!coerce_method>, :type(str)));
 Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!sub_signature>, :type(Mu)));
-Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!default_closure>, :type(Mu)));
+Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!default_value>, :type(Mu)));
 Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!container_descriptor>, :type(Mu)));
 Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!attr_package>, :type(Mu)));
 Parameter.HOW.add_method(Parameter, 'is_generic', sub ($self) {
@@ -411,9 +411,15 @@ Code.HOW.add_method(Code, 'is_generic', sub ($self) {
         pir::getattribute__PPPs($self, Code, '$!signature').is_generic()
     });
 Code.HOW.add_method(Code, 'instantiate_generic', sub ($self, $type_environment) {
-        # Clone the code object, then instantiate the generic signature.
+        # Clone the code object, then instantiate the generic signature. Also
+        # need to clone dispatchees list.
+        my $dcself := pir::perl6_decontainerize__PP($self);
         my $ins := $self.clone();
-        my $sig := pir::getattribute__PPPs($self, Code, '$!signature');
+        if pir::defined(nqp::getattr($dcself, Code, '$!dispatchees')) {
+            nqp::bindattr($ins, Code, '$!dispatchees',
+                pir::clone__PP(nqp::getattr($dcself, Code, '$!dispatchees')));
+        }
+        my $sig := pir::getattribute__PPPs($dcself, Code, '$!signature');
         pir::setattribute__0PPsP($ins, Code, '$!signature',
             $sig.instantiate_generic($type_environment))
     });
@@ -429,6 +435,10 @@ Code.HOW.add_method(Code, 'set_name', sub ($self, $name) {
 Code.HOW.add_method(Code, 'dispatcher', sub ($self) {
         pir::getattribute__PPPs(pir::perl6_decontainerize__PP($self),
             Code, '$!dispatcher')
+    });
+Code.HOW.add_method(Code, 'id', sub ($self) {
+        nqp::where(pir::getattribute__PPPs(pir::perl6_decontainerize__PP($self),
+            Code, '$!do'))
     });
 pir::perl6_set_type_code__vP(Code);
     

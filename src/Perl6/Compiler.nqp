@@ -17,10 +17,20 @@ class Perl6::Compiler is HLL::Compiler {
         %*COMPILING<%?OPTIONS> := %options;
         $super(self, |@args, |%options);
     }
-    
+
     method optimize($past, *%adverbs) {
         %adverbs<optimize> eq '0' ??
             $past !!
             Perl6::Optimizer.new.optimize($past, |%adverbs)
+    }
+
+    method autoprint($value) {
+        unless pir::getinterp__P().stdout_handle().tell() > $*AUTOPRINTPOS {
+            if pir::can($value, 'gist') {
+                nqp::say(nqp::unbox_s($value.gist));
+            } else {
+                nqp::say(~$value);
+            }
+        }
     }
 }

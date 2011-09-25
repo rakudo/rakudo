@@ -1,4 +1,5 @@
 role Perl6::Metamodel::BUILDPLAN {
+    has @!BUILDALLPLAN;
     has @!BUILDPLAN;
     
     # Creates the plan for building up the object. This works
@@ -11,6 +12,7 @@ role Perl6::Metamodel::BUILDPLAN {
     #   2 class attr_name code = call default value closure if needed
     method create_BUILDPLAN($obj) {
         # Get MRO, then work from least derived to most derived.
+        my @all_plan;
         my @plan;
         my @mro := self.mro($obj);
         my $i := +@mro;
@@ -24,7 +26,11 @@ role Perl6::Metamodel::BUILDPLAN {
             my $build := $class.HOW.find_method($class, 'BUILD', :no_fallback(1));
             if $build {
                 # We'll call the custom one.
-                @plan[+@plan] := [0, $build];
+                my $entry := [0, $build];
+                @all_plan[+@all_plan] := $entry;
+                if $i == 0 {
+                    @plan[+@plan] := $entry;
+                }
             }
             else {
                 # No custom BUILD. Rather than having an actual BUILD
@@ -34,7 +40,11 @@ role Perl6::Metamodel::BUILDPLAN {
                     if $_.has_accessor {
                         my $attr_name := $_.name;
                         my $name      := pir::substr__SSi($attr_name, 2);
-                        @plan[+@plan] := [1, $class, $name, $attr_name];
+                        my $entry     := [1, $class, $name, $attr_name];
+                        @all_plan[+@all_plan] := $entry;
+                        if $i == 0 {
+                            @plan[+@plan] := $entry;
+                        }
                     }
                 }
             }
@@ -44,15 +54,24 @@ role Perl6::Metamodel::BUILDPLAN {
                 if pir::can__IPs($_, 'build') {
                     my $default := $_.build;
                     if $default {
-                        @plan[+@plan] := [2, $class, $_.name, $default];
+                        my $entry := [2, $class, $_.name, $default];
+                        @all_plan[+@all_plan] := $entry;
+                        if $i == 0 {
+                            @plan[+@plan] := $entry;
+                        }
                     }
                 }
             }
         }
         @!BUILDPLAN := @plan;
+        @!BUILDALLPLAN := @all_plan;
     }
     
     method BUILDPLAN($obj) {
         @!BUILDPLAN
+    }
+    
+    method BUILDALLPLAN($obj) {
+        @!BUILDALLPLAN
     }
 }

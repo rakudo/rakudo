@@ -415,7 +415,7 @@ add_to_cache(PARROT_INTERP, Rakudo_md_cache *cache, PMC *capture, INTVAL num_arg
 
 /*
 
-=item C<static INTVAL has_junctional_args(PARROT_INTERP, PMC *args)>
+=item C<static INTVAL has_junctional_args(PARROT_INTERP, INTVAL num_args, struct Pcc_cell * pc_positionals)>
 
 Checks if any of the args are junctional.
 
@@ -423,15 +423,15 @@ Checks if any of the args are junctional.
 
 */
 
-static INTVAL has_junctional_args(PARROT_INTERP, PMC *args) {
-    const INTVAL num_args = VTABLE_elements(interp, args);
+static INTVAL has_junctional_args(PARROT_INTERP, INTVAL num_args, struct Pcc_cell * pc_positionals) {
     INTVAL i;
 
     for (i = 0; i < num_args; i++) {
-        PMC * const arg = Rakudo_cont_decontainerize(interp,
-            VTABLE_get_pmc_keyed_int(interp, args, i));
-        if (STABLE(arg)->type_check(interp, arg, Rakudo_types_junction_get()))
-            return 1;
+        if (pc_positionals[i].type == BIND_VAL_OBJ) {
+            PMC * const arg = Rakudo_cont_decontainerize(interp, pc_positionals[i].u.p);
+            if (STABLE(arg)->type_check(interp, arg, Rakudo_types_junction_get()))
+                return 1;
+        }
     }
     
     return 0;
@@ -490,7 +490,18 @@ static PMC* find_best_candidate(PARROT_INTERP, Rakudo_md_candidate_info **candid
     INTVAL                     pure_type_result = 1;
     INTVAL                     type_check_count;
     INTVAL                     type_mismatch;
-    
+
+    /* We expect a Parrot capture in the multi-dispatcher, always. */
+    struct Pcc_cell * pc_positionals = NULL;
+    if (capture->vtable->base_type == enum_class_CallContext) {
+        GETATTR_CallContext_positionals(interp, capture, pc_positionals);
+    }
+    else {
+        mem_sys_free(possibles);
+        Parrot_ex_throw_from_c_args(interp, next, 1,
+            "INTERNAL ERROR: multi-dispatcher must be given a low level capture");
+    }
+
     /* Iterate over the candidates and collect best ones; terminate
      * when we see two nulls (may break out earlier). */
     while (1) {
@@ -692,7 +703,7 @@ static PMC* find_best_candidate(PARROT_INTERP, Rakudo_md_candidate_info **candid
     }
 
     /* Perhaps we found nothing but have junctional arguments? */
-    if (possibles_count == 0 && has_junctional_args(interp, capture)) {
+    if (possibles_count == 0 && has_junctional_args(interp, num_args, pc_positionals)) {
         /* Unshift the proto onto the start of the args and hand back
          * the threader. */
         VTABLE_unshift_pmc(interp, CURRENT_CONTEXT(interp), dispatcher);

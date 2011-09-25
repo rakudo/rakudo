@@ -89,10 +89,10 @@ PMC * Rakudo_binding_list_from_rpa(PARROT_INTERP, PMC *rpa, PMC *type, PMC *flat
 #define BIND_RESULT_JUNCTION 2
 
 /* The value we're going to bind. */
-#define BIND_VAL_OBJ 0
 #define BIND_VAL_INT 1
 #define BIND_VAL_NUM 2
 #define BIND_VAL_STR 3
+#define BIND_VAL_OBJ 4
 typedef struct {    
     union {
         PMC      *o;

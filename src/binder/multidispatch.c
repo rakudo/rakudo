@@ -333,16 +333,25 @@ static PMC *
 find_in_cache(PARROT_INTERP, Rakudo_md_cache *cache, PMC *capture, INTVAL num_args) {
     INTVAL arg_tup[MD_CACHE_MAX_ARITY];
     INTVAL i, j, entries, t_pos;
+    struct Pcc_cell * pc_positionals;
     
     /* If it's zero-arity, return result right off. */
     if (num_args == 0)
         return cache->zero_arity;
 
     /* Create arg tuple. */
+    if (capture->vtable->base_type == enum_class_CallContext)
+        GETATTR_CallContext_positionals(interp, capture, pc_positionals);
+    else
+        return NULL;
     for (i = 0; i < num_args; i++) {
-        PMC *arg = Rakudo_cont_decontainerize(interp,
-            VTABLE_get_pmc_keyed_int(interp, capture, i));
-        arg_tup[i] = STABLE(arg)->type_cache_id | (REPR(arg)->defined(interp, arg) ? 1 : 0);
+        if (pc_positionals[i].type == BIND_VAL_OBJ) {
+            PMC *arg = Rakudo_cont_decontainerize(interp, pc_positionals[i].u.p);
+            arg_tup[i] = STABLE(arg)->type_cache_id | (REPR(arg)->defined(interp, arg) ? 1 : 0);
+        }
+        else {
+            arg_tup[i] = (pc_positionals[i].type << 1) | 1;
+        }
     }
 
     /* Look through entries. */
@@ -378,6 +387,7 @@ static void
 add_to_cache(PARROT_INTERP, Rakudo_md_cache *cache, PMC *capture, INTVAL num_args, PMC *result) {
     INTVAL arg_tup[MD_CACHE_MAX_ARITY];
     INTVAL i, entries, ins_type;
+    struct Pcc_cell * pc_positionals;
     
     /* If it's zero arity, just stick it in that slot. */
     if (num_args == 0) {
@@ -392,10 +402,18 @@ add_to_cache(PARROT_INTERP, Rakudo_md_cache *cache, PMC *capture, INTVAL num_arg
         return;
     
     /* Create arg tuple. */
+    if (capture->vtable->base_type == enum_class_CallContext)
+        GETATTR_CallContext_positionals(interp, capture, pc_positionals);
+    else
+        return;
     for (i = 0; i < num_args; i++) {
-        PMC *arg = Rakudo_cont_decontainerize(interp,
-            VTABLE_get_pmc_keyed_int(interp, capture, i));
-        arg_tup[i] = STABLE(arg)->type_cache_id | (REPR(arg)->defined(interp, arg) ? 1 : 0);
+        if (pc_positionals[i].type == BIND_VAL_OBJ) {
+            PMC *arg = Rakudo_cont_decontainerize(interp, pc_positionals[i].u.p);
+            arg_tup[i] = STABLE(arg)->type_cache_id | (REPR(arg)->defined(interp, arg) ? 1 : 0);
+        }
+        else {
+            arg_tup[i] = (pc_positionals[i].type << 1) | 1;
+        }
     }
 
     /* If there's no entries yet, need to do some allocation. */

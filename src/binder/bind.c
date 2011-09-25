@@ -13,20 +13,6 @@ Copyright (C) 2009-2011, The Perl Foundation.
 #include "types.h"
 #include "sixmodelobject.h"
 
-/* Nabbed from Parrot, since it's not exposed and it's the only way
- * (so far as I can tell) to get at the underlying primitive type
- * being passed. */
-typedef struct Pcc_cell
-{
-    union u {
-        PMC     *p;
-        STRING  *s;
-        INTVAL   i;
-        FLOATVAL n;
-    } u;
-    INTVAL type;
-} Pcc_cell;
-
 /* Cache of Parrot type IDs and some strings. */
 static INTVAL smo_id            = 0;
 static INTVAL p6l_id            = 0;

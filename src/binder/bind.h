@@ -102,3 +102,17 @@ typedef struct {
     } val;
     char type;
 } Rakudo_BindVal;
+
+/* Nabbed from Parrot, since it's not exposed and it's the only way
+ * (so far as I can tell) to get at the underlying primitive type
+ * being passed. */
+typedef struct Pcc_cell
+{
+    union u {
+        PMC     *p;
+        STRING  *s;
+        INTVAL   i;
+        FLOATVAL n;
+    } u;
+    INTVAL type;
+} Pcc_cell;

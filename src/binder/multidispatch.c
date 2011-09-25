@@ -878,6 +878,156 @@ Rakudo_md_get_all_matches(PARROT_INTERP, PMC *dispatcher, PMC *capture) {
     return find_best_candidate(interp, cands, num_cands, capture, NULL, dispatcher, 1);
 }
 
+
+/*
+
+=item C<PMC * Rakudo_md_ct_dispatch(PARROT_INTERP, PMC *dispatcher, PMC *capture, PMC **result)>
+
+Tries to resolve a multi-dispatch at compile time. Returns a flag
+and, if a dispatch is possible, sets the result.
+
+=cut
+
+*/
+
+INTVAL
+Rakudo_md_ct_dispatch(PARROT_INTERP, PMC *dispatcher, PMC *capture, PMC **result) {
+    /* Get hold of the candidates. */
+    Rakudo_Code *code_obj  = (Rakudo_Code *)PMC_data(dispatcher);
+    INTVAL       num_cands = VTABLE_elements(interp, code_obj->dispatchees);
+    INTVAL       has_cache = !PMC_IS_NULL(code_obj->dispatcher_cache);
+    Rakudo_md_candidate_info **cands = obtain_candidate_list(interp, has_cache,
+        dispatcher, code_obj);
+    
+    /* Current dispatch state. */
+    Rakudo_md_candidate_info **cur_candidate = cands;
+    INTVAL type_mismatch, type_check_count;
+    INTVAL all_native = 1;
+    INTVAL seen_all = 0;
+    PMC *cur_result = PMCNULL;
+    
+    /* Grab positionals. */
+    struct Pcc_cell * pc_positionals;
+    INTVAL num_args = VTABLE_elements(interp, capture);
+    if (capture->vtable->base_type == enum_class_CallContext)
+        GETATTR_CallContext_positionals(interp, capture, pc_positionals);
+    else
+        return MD_CT_NOT_SURE;
+    
+    /* Look through the candidates. If we see anything that needs a bind
+     * check or a definedness check, we can't decide it at compile time,
+     * so bail out immediately. */
+    while (1) {
+        INTVAL i;
+
+        /* Did we reach the end of a tied group? If so, note we can only
+         * consider the narrowest group, *unless* they are all natively
+         * typed candidates in which case we can look a bit further.
+         * We also exit if we found something. */
+        if (*cur_candidate == NULL) {
+            if (cur_candidate[1] && all_native && !PMC_IS_NULL(cur_result)) {
+                cur_candidate++;
+                continue;
+            }
+            else {
+                seen_all = cur_candidate[1] == NULL;
+                break;
+            }
+        }
+
+        /* Check if it's admissable by arity. */
+        if (num_args < (*cur_candidate)->min_arity
+        ||  num_args > (*cur_candidate)->max_arity) {
+            cur_candidate++;
+            continue;
+        }
+
+        /* Check if it's admissable by type. */
+        type_check_count = (*cur_candidate)->num_types > num_args ?
+                           num_args :
+                           (*cur_candidate)->num_types;
+        type_mismatch = 0;
+
+        for (i = 0; i < type_check_count; i++) {
+            PMC * const type_obj = (*cur_candidate)->types[i];
+            INTVAL type_flags    = (*cur_candidate)->type_flags[i];
+            INTVAL got_prim      = pc_positionals[i].type;
+            if (type_flags & TYPE_NATIVE_MASK) {
+                /* Looking for a natively typed value. Did we get one? */
+                if (got_prim == BIND_VAL_OBJ) {
+                    /* Object; won't do. */
+                    type_mismatch = 1;
+                    break;
+                }
+                if ((type_flags & TYPE_NATIVE_INT) && got_prim != BIND_VAL_INT ||
+                    (type_flags & TYPE_NATIVE_NUM) && got_prim != BIND_VAL_NUM ||
+                    (type_flags & TYPE_NATIVE_STR) && got_prim != BIND_VAL_STR) {
+                    /* Mismatch. */
+                    type_mismatch = 1;
+                    break;
+                }
+            }
+            else {
+                /* Work out parameter. */
+                PMC * const param =
+                    got_prim == BIND_VAL_OBJ ? pc_positionals[i].u.p :
+                    got_prim == BIND_VAL_INT ? Rakudo_types_int_get() :
+                    got_prim == BIND_VAL_NUM ? Rakudo_types_num_get() :
+                                               Rakudo_types_str_get();
+                
+                /* If we're here, it's a non-native. */
+                all_native = 0;
+                
+                /* Check type. If that doesn't rule it out, then check if it's
+                 * got definedness constraints. If it does, we can't decide. */
+                if (type_obj != Rakudo_types_mu_get() &&
+                        !STABLE(param)->type_check(interp, param, type_obj)) {
+                    type_mismatch = 1;
+                    break;
+                }
+                else if ((*cur_candidate)->type_flags[i] & DEFCON_MASK) {
+                    return MD_CT_NOT_SURE;
+                }
+            }
+        }
+        if (type_mismatch) {
+            cur_candidate++;
+            continue;
+        }
+        
+        /* If it's possible but needs a bind check, we're not going to be
+         * able to decide it. */
+        if ((*cur_candidate)->bind_check)
+            return MD_CT_NOT_SURE;
+
+        /* If we get here, it's the result. Well, unless we already had one,
+         * in which case we're in bother 'cus we don't know how to disambiguate
+         * at compile time. */
+        if (PMC_IS_NULL(cur_result)) {
+            cur_result = (*cur_candidate)->sub;
+            cur_candidate++;
+        }
+        else {
+            return MD_CT_NOT_SURE;
+        }
+    }
+    
+    /* If we saw all the candidates, and got no result, and we got this far,
+     * then the dispatch could never work. */
+    if (seen_all && PMC_IS_NULL(cur_result)) {
+        return MD_CT_NO_WAY;
+    }
+    
+    /* If we got a result, return it. */
+    if (!PMC_IS_NULL(cur_result)) {
+        *result = cur_result;
+        return MD_CT_DECIDED;
+    }
+
+    /* Otherwise, dunno...we'll have to find out at runtime. */
+    return MD_CT_NOT_SURE;
+}
+
 /*
 
 =back

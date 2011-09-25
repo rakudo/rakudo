@@ -8,6 +8,11 @@
 #define TYPE_NATIVE_STR  16
 #define TYPE_NATIVE_MASK (TYPE_NATIVE_INT | TYPE_NATIVE_NUM | TYPE_NATIVE_STR)
 
+/* Compile time dispatch result. */
+#define MD_CT_NOT_SURE  0   /* Needs a runtime dispatch. */
+#define MD_CT_DECIDED   1   /* Worked it out; see result. */
+#define MD_CT_NO_WAY    -1  /* Proved it'd never manage to dispatch. */
+
 /* This is how a Code looks on the inside. Once again, C struct that should
  * match what P6opaque computes for the Code class. */
 typedef struct {
@@ -93,3 +98,8 @@ Rakudo_md_dispatch(PARROT_INTERP, PMC *dispatcher, PMC *capture, opcode_t *next)
 /* This gets all matches for a given capture. */
 PMC *
 Rakudo_md_get_all_matches(PARROT_INTERP, PMC *dispatcher, PMC *capture);
+
+/* Tries to resolve a multi-dispatch at compile time. Returns a flag
+ * and, if a dispatch is possible, sets the result. */
+INTVAL
+Rakudo_md_ct_dispatch(PARROT_INTERP, PMC *dispatcher, PMC *capture, PMC **result);

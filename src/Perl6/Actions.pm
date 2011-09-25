@@ -3558,7 +3558,8 @@ class Perl6::Actions is HLL::Actions {
         my %param_info := hash(
             variable_name => $name,
             pos_slurpy    => $pos_slurpy,
-            named_slurpy  => $named_slurpy);
+            named_slurpy  => $named_slurpy,
+            sigil         => ~$sigil);
 
         # If it's slurpy, just goes on the end.
         if $pos_slurpy || $named_slurpy {

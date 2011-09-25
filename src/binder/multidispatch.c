@@ -627,21 +627,44 @@ static PMC* find_best_candidate(PARROT_INTERP, Rakudo_md_candidate_info **candid
         type_mismatch = 0;
 
         for (i = 0; i < type_check_count; i++) {
-            PMC * const param        = Rakudo_cont_decontainerize(interp,
-                VTABLE_get_pmc_keyed_int(interp, capture, i));
-            PMC * const type_obj     = (*cur_candidate)->types[i];
-            if (type_obj != Rakudo_types_mu_get() &&
-                    !STABLE(param)->type_check(interp, param, type_obj)) {
-                type_mismatch = 1;
-                break;
-            }
-            else if ((*cur_candidate)->type_flags[i] & DEFCON_MASK) {
-                INTVAL defined = REPR(param)->defined(interp, param);
-                INTVAL desired = (*cur_candidate)->type_flags[i] & DEFCON_MASK;
-                if ((defined && desired == DEFCON_UNDEFINED) ||
-                        (!defined && desired == DEFCON_DEFINED)) {
+            PMC * const type_obj = (*cur_candidate)->types[i];
+            INTVAL type_flags    = (*cur_candidate)->type_flags[i];
+            INTVAL got_prim      = pc_positionals[i].type;
+            if (type_flags & TYPE_NATIVE_MASK) {
+                /* Looking for a natively typed value. Did we get one? */
+                if (got_prim == BIND_VAL_OBJ) {
+                    /* Object; won't do. */
                     type_mismatch = 1;
                     break;
+                }
+                if ((type_flags & TYPE_NATIVE_INT) && got_prim != BIND_VAL_INT ||
+                    (type_flags & TYPE_NATIVE_NUM) && got_prim != BIND_VAL_NUM ||
+                    (type_flags & TYPE_NATIVE_STR) && got_prim != BIND_VAL_STR) {
+                    /* Mismatch. */
+                    type_mismatch = 1;
+                    break;
+                }
+            }
+            else {
+                PMC * const param =
+                    got_prim == BIND_VAL_OBJ ?
+                        Rakudo_cont_decontainerize(interp, pc_positionals[i].u.p) :
+                    got_prim == BIND_VAL_INT ? Rakudo_types_int_get() :
+                    got_prim == BIND_VAL_NUM ? Rakudo_types_num_get() :
+                                               Rakudo_types_str_get();
+                if (type_obj != Rakudo_types_mu_get() &&
+                        !STABLE(param)->type_check(interp, param, type_obj)) {
+                    type_mismatch = 1;
+                    break;
+                }
+                else if ((*cur_candidate)->type_flags[i] & DEFCON_MASK) {
+                    INTVAL defined = got_prim != BIND_VAL_OBJ || REPR(param)->defined(interp, param);
+                    INTVAL desired = (*cur_candidate)->type_flags[i] & DEFCON_MASK;
+                    if ((defined && desired == DEFCON_UNDEFINED) ||
+                            (!defined && desired == DEFCON_DEFINED)) {
+                        type_mismatch = 1;
+                        break;
+                    }
                 }
             }
         }

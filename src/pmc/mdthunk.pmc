@@ -1,10 +1,13 @@
 /* Implements a thunk that calls into the multi-dispatcher and then invokes the
  * result. Used by the optimizer for onlystar protos to avoid the callframe for
- * the proto. Note that we create just one of these per thread. */
+ * the proto. Note that we create just one of these per dispatcher and cache it. */
 
 /* The dispatcher. */
 static PMC * (*dispatcher)  (PARROT_INTERP, PMC *dispatcher, PMC *capture, opcode_t *next);
- 
+
+/* Flag for not re-checking types in the binder. */
+#define PObj_P6BINDER_ALREADY_CHECKED_FLAG PObj_private0_FLAG
+
 pmclass MDThunk
     auto_attrs
     dynpmc group perl6
@@ -30,6 +33,7 @@ pmclass MDThunk
         PMC      * const saved_ccont = interp->current_cont;
         PMC      * const args        = Parrot_pcc_get_signature(interp, ctx);
         opcode_t * const current_pc  = Parrot_pcc_get_pc(interp, ctx);
+        opcode_t * result;
         
         /* Choose candidate. */
         PMC *disp, *cand;
@@ -40,7 +44,9 @@ pmclass MDThunk
         interp->current_cont    = saved_ccont;
         Parrot_pcc_set_signature(interp, ctx, args);
         Parrot_pcc_set_pc(interp, ctx, current_pc);
-        return VTABLE_invoke(interp, cand, next);
+        result = VTABLE_invoke(interp, cand, next);
+        PObj_flag_SET(P6BINDER_ALREADY_CHECKED, CURRENT_CONTEXT(interp));
+        return result;
     }
     
     VTABLE void mark() {

@@ -386,6 +386,7 @@ S12-class/open.t
 S12-class/rw.t
 S12-class/self-inheritance.t
 # S12-class/stubs.t # err: use scoped variables not yet implemented
+S12-class/type-object.t
 S12-construction/autopairs.t
 S12-construction/BUILD.t
 S12-construction/construction.t

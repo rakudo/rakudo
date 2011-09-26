@@ -764,6 +764,7 @@ inline op perl6_multi_dispatch_thunk(out PMC, in PMC) :base_core {
     Rakudo_Code *code_obj = (Rakudo_Code *)PMC_data($2);
     if (PMC_IS_NULL(code_obj->md_thunk)) {
         code_obj->md_thunk = pmc_new(interp, pmc_type(interp, Parrot_str_new(interp, "MDThunk", 0)));
+        PARROT_GC_WRITE_BARRIER(interp, $2);
         VTABLE_set_pointer(interp, code_obj->md_thunk, &Rakudo_md_dispatch);
         VTABLE_set_pmc(interp, code_obj->md_thunk, $2);
     }
@@ -788,6 +789,7 @@ inline op perl6_multi_dispatch_cand_thunk(out PMC, in PMC, in INT) :base_core {
     Rakudo_Code *code_obj = (Rakudo_Code *)PMC_data(chosen);
     if (PMC_IS_NULL(code_obj->md_thunk)) {
         code_obj->md_thunk = pmc_new(interp, pmc_type(interp, Parrot_str_new(interp, "CTMThunk", 0)));
+        PARROT_GC_WRITE_BARRIER(interp, chosen);
         VTABLE_set_pmc(interp, code_obj->md_thunk, chosen);
     }
     $1 = code_obj->md_thunk;

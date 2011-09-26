@@ -99,12 +99,72 @@ class Perl6::Optimizer {
                 $found := 1;
             }
             if $found {
-                # If it's an onlystar proto, we can avoid the overhead
-                # of actually doing the proto call.
+                # If it's an onlystar proto, we have a couple of options.
+                # The first is that we may be able to work out what to
+                # call at compile time. Failing that, we can at least inline
+                # the proto.
                 my $dispatcher;
                 try { if $obj.is_dispatcher { $dispatcher := 1 } }
                 if $dispatcher {
+                    # Visit the children.
                     self.visit_children($op);
+                    
+                    # Try to do compile-time multi-dispatch.
+                    my @types;
+                    my @flags;
+                    my $possible := 1;
+                    for @($op) {
+                        # Can't cope with flattening or named.
+                        if $_.flat || $_.named ne '' {
+                            $possible := 0;
+                            last;
+                        }
+                        
+                        # See if we know the node's type.
+                        if $_<boxable_native> {
+                            @types.push(nqp::null());
+                            @flags.push($_<boxable_native>);
+                        }
+                        elsif pir::can__IPs($_, 'type') && !pir::isnull__IP($_.type) {
+                            my $type := $_.type();
+                            if pir::isa($type, 'Undef') {
+                                $possible := 0;
+                            }
+                            else {
+                                my $prim := pir::repr_get_primitive_type_spec__IP($type);
+                                @types.push($type);
+                                @flags.push($prim);
+                            }
+                        }
+                        else {
+                            $possible := 0;
+                            last;
+                        }
+                    }
+                    if $possible {
+                        my @ct_result := pir::perl6_multi_dispatch_ct__PPPP($obj, @types, @flags);
+                        if @ct_result[0] == 1 {
+                            # XXX We know which to call!
+                        }
+                        elsif @ct_result[0] == -1 {
+                            my @arg_names;
+                            my $i := 0;
+                            while $i < +@types {
+                                @arg_names.push(
+                                    @flags[$i] == 1 ?? 'int' !!
+                                    @flags[$i] == 2 ?? 'num' !!
+                                    @flags[$i] == 3 ?? 'str' !!
+                                    @types[$i].HOW.name(@types[$i]));
+                                $i := $i + 1;
+                            }
+                            @!deadly.push("Dispatch to '" ~ $obj.name ~
+                                "' could never work with the arguments of types (" ~
+                                pir::join(', ', @arg_names) ~
+                                ')');
+                        }
+                    }
+                    
+                    # Otherwise, inline the proto.
                     return self.inline_proto($op, $obj);
                 }
             }

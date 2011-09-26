@@ -786,6 +786,73 @@ inline op perl6_get_matching_multis(out PMC, in PMC, in PMC) :base_core {
     $1 = Rakudo_md_get_all_matches(interp, $2, $3);
 }
 
+
+/*
+
+=item perl6_multi_dispatch_ct(out PMC, in PMC, in PMC, in PMC)
+
+Does a "compile time" multi-dispatch. Used by the optimizer to try to
+decide some multiple dispatches at compile time.
+
+    $0 is an array of two elements. The first is a flag indicating the
+    outcome. 0 means could not decide, 1 means decided on a candidate,
+    -1 means that the dispatch is doomed to fail.
+    
+    $1 is the dispatcher
+    
+    $2 is the argument array
+    
+    $3 is a set of flags for native types. 0 = object, 1 = native int,
+    2 = native num, 3 = native str.
+
+=cut
+
+*/
+inline op perl6_multi_dispatch_ct(out PMC, in PMC, in PMC, in PMC) :base_core {
+    /* Build up a capture with sample arguments. */
+    PMC *result     = PMCNULL;
+    PMC *capture    = pmc_new(interp, enum_class_CallContext);
+    INTVAL num_args = VTABLE_elements(interp, $3);
+    INTVAL args_ok  = 1;
+    INTVAL i;
+    for (i = 0; i < num_args; i++) {
+        INTVAL native = VTABLE_get_integer_keyed_int(interp, $4, i);
+        PMC *obj;
+        switch (native) {
+            case BIND_VAL_INT:
+                VTABLE_push_integer(interp, capture, 0);
+                break;
+            case BIND_VAL_NUM:
+                VTABLE_push_float(interp, capture, 0.0);
+                break;
+            case BIND_VAL_STR:
+                VTABLE_push_string(interp, capture, STRINGNULL);
+                break;
+            default:
+                obj = VTABLE_get_pmc_keyed_int(interp, $3, i);
+                if (obj->vtable->base_type == smo_id) {
+                    VTABLE_push_pmc(interp, capture, obj);
+                }
+                else {
+                    args_ok = 0;
+                    break;
+                }
+        }
+    }
+    
+    /* Use the capture to do a compile time trial dispatch. */
+    $1 = pmc_new(interp, enum_class_ResizablePMCArray);
+    if (args_ok) {
+        VTABLE_set_integer_keyed_int(interp, $1, 0,
+            Rakudo_md_ct_dispatch(interp, $2, capture, &result));
+        VTABLE_set_pmc_keyed_int(interp, $1, 1, result);
+    }
+    else {
+        VTABLE_set_integer_keyed_int(interp, $1, 0, MD_CT_NOT_SURE);
+    }
+}
+
+
 /*
 
 =item perl6_get_package_through_who

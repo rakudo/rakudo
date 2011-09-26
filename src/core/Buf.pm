@@ -21,7 +21,7 @@ class Buf does Positional {
         self;
     }
 
-    method at_key(Buf:D: Int:D $idx) {
+    method at_pos(Buf:D: Int:D $idx) {
         nqp::p6box_i(pir::set__IQi($!buffer, nqp::unbox_i($idx)));
     }
 
@@ -37,7 +37,7 @@ class Buf does Positional {
     method list() {
         my @l;
         for ^nqp::p6box_i(nqp::elems($!buffer)) -> $k {
-            @l.push: self.at_key($k);
+            @l.push: self.at_pos($k);
         }
         @l;
     }

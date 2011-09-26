@@ -2122,8 +2122,7 @@ class Perl6::Actions is HLL::Actions {
             unless %*PARAM_INFO<post_constraints> {
                 %*PARAM_INFO<post_constraints> := [];
             }
-            %*PARAM_INFO<post_constraints>.push(make_where_block(
-                $*ST.get_object_sc_ref_past($val)));
+            %*PARAM_INFO<post_constraints>.push($val);
         }
         else {
             $/.CURSOR.panic('Cannot do non-typename cases of type_constraint yet');

@@ -16,11 +16,17 @@ my class Routine {
     }
     
     method candidates_matching(|$c) {
+        my $disp;
+        if self.is_dispatcher {
+            $disp := self;
+        }
+        else {
+            $disp := nqp::create(self);
+            nqp::bindattr($disp, Code, '$!dispatchees', nqp::list(self));
+        }
         sub checker(|$) {
             my Mu $cap := pir::find_lex__Ps('call_sig');
-            self.is_dispatcher ??
-                pir::perl6ize_type__PP(pir::perl6_get_matching_multis__PPP(self, $cap)) !!
-                (self,)
+            pir::perl6ize_type__PP(pir::perl6_get_matching_multis__PPP($disp, $cap))
         }
         checker(|$c);
     }

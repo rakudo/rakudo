@@ -501,7 +501,7 @@ S32-io/dir.t
 # S32-io/chdir.t # err: Method 'd' not found for invocant of class 'Str'
 S32-io/file-tests.t
 S32-io/note.t
-# S32-io/IO-Socket-INET.t # err: Could not find sub &sleep
+S32-io/IO-Socket-INET.t
 S32-list/categorize.t
 S32-list/classify.t
 S32-list/create.t

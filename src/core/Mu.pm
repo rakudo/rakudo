@@ -253,7 +253,7 @@ my class Mu {
                 $meth = ($obj.HOW.submethod_table($obj)){$name};
             }
             if $meth {
-                @results.push($meth($obj, |@pos, |%named));
+                @results.push($meth(self, |@pos, |%named));
             }
             $i++;
         }

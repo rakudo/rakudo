@@ -773,6 +773,29 @@ inline op perl6_multi_dispatch_thunk(out PMC, in PMC) :base_core {
 
 /*
 
+=item perl6_multi_dispatch_cand_thunk()
+
+Creates a multi-dispatch thunk for calling the candidate at the specified
+index in the dispatchee list (for when we decided the candidate at compile
+time). Also implies that we won't re-do the type check in the binder.
+
+=cut
+
+*/
+inline op perl6_multi_dispatch_cand_thunk(out PMC, in PMC, in INT) :base_core {
+    Rakudo_Code *disp_obj = (Rakudo_Code *)PMC_data($2);
+    PMC         *chosen   = VTABLE_get_pmc_keyed_int(interp, disp_obj->dispatchees, $3);
+    Rakudo_Code *code_obj = (Rakudo_Code *)PMC_data(chosen);
+    if (PMC_IS_NULL(code_obj->md_thunk)) {
+        code_obj->md_thunk = pmc_new(interp, pmc_type(interp, Parrot_str_new(interp, "CTMThunk", 0)));
+        VTABLE_set_pmc(interp, code_obj->md_thunk, chosen);
+    }
+    $1 = code_obj->md_thunk;
+}
+
+
+/*
+
 =item perl6_get_matching_multis()
 
 Gets the multi dispatcher to find all candidates under the control of

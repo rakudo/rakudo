@@ -84,7 +84,7 @@ DYNOPS        = $(OPS_DIR)/$(OPS)$(LOAD_EXT)
 
 PMC_SOURCES = \
   $(PMC_DIR)/perl6lexinfo.pmc $(PMC_DIR)/perl6lexpad.pmc \
-  $(PMC_DIR)/mdthunk.pmc \
+  $(PMC_DIR)/mdthunk.pmc $(PMC_DIR)/ctmthunk.pmc \
 
 OPS_SOURCE   = perl6.ops
 

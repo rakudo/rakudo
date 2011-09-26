@@ -1,0 +1,42 @@
+/* Implements a thunk that calls a candidate from a multi, where the candidate
+ * to call was determined at compile time. */
+
+#include "../binder/multidispatch.h"
+ 
+/* Flag for not re-checking types in the binder. */
+#define PObj_P6BINDER_ALREADY_CHECKED_FLAG PObj_private0_FLAG
+
+pmclass CTMThunk
+    auto_attrs
+    dynpmc group perl6
+    hll perl6
+{
+    ATTR PMC *candidate;
+ 
+    VTABLE void init() {
+        PObj_custom_mark_SET(SELF);
+    }
+    
+    VTABLE void set_pmc(PMC *cand) {
+        SET_ATTR_candidate(interp, SELF, cand);
+    }
+
+    VTABLE opcode_t* invoke(void *next) {
+        PMC *cand;
+        opcode_t *result;
+        
+        /* Extract candidate. */
+        GET_ATTR_candidate(interp, SELF, cand);
+        
+        /* Invoke it and mark it already checked. */
+        result = VTABLE_invoke(interp, cand, next);
+        PObj_flag_SET(P6BINDER_ALREADY_CHECKED, CURRENT_CONTEXT(interp));
+        return result;
+    }
+    
+    VTABLE void mark() {
+        PMC *cand;
+        GET_ATTR_candidate(interp, SELF, cand);
+        Parrot_gc_mark_PMC_alive(INTERP, cand);
+    }
+}

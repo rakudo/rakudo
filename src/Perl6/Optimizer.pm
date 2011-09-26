@@ -144,7 +144,7 @@ class Perl6::Optimizer {
                     if $possible {
                         my @ct_result := pir::perl6_multi_dispatch_ct__PPPP($obj, @types, @flags);
                         if @ct_result[0] == 1 {
-                            # XXX We know which to call!
+                            return self.call_ct_chosen_multi($op, $obj, @ct_result[1]);
                         }
                         elsif @ct_result[0] == -1 {
                             my @arg_names;
@@ -293,6 +293,25 @@ class Perl6::Optimizer {
             :pirop('perl6_multi_dispatch_thunk PP'),
             PAST::Var.new( :name($call.name), :scope('lexical_6model') )));
         $call.name(nqp::null());
+        $call
+    }
+    
+    # If we decide a dispatch at compile time, this emits the direct call.
+    method call_ct_chosen_multi($call, $proto, $chosen) {
+        my @cands := $proto.dispatchees();
+        my $idx := 0;
+        for @cands {
+            if $_ =:= $chosen {
+                $call.unshift(PAST::Op.new(
+                    :pirop('perl6_multi_dispatch_cand_thunk PPi'),
+                    PAST::Var.new( :name($call.name), :scope('lexical_6model') ),
+                    $idx));
+                $call.name(nqp::null());
+                #say("# Compile-time resolved a call to " ~ $proto.name);
+                last;
+            }
+            $idx := $idx + 1;
+        }
         $call
     }
 }

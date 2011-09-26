@@ -436,6 +436,10 @@ Code.HOW.add_method(Code, 'dispatcher', sub ($self) {
         pir::getattribute__PPPs(pir::perl6_decontainerize__PP($self),
             Code, '$!dispatcher')
     });
+Code.HOW.add_method(Code, 'dispatchees', sub ($self) {
+        pir::getattribute__PPPs(pir::perl6_decontainerize__PP($self),
+            Code, '$!dispatchees')
+    });
 Code.HOW.add_method(Code, 'id', sub ($self) {
         nqp::where(pir::getattribute__PPPs(pir::perl6_decontainerize__PP($self),
             Code, '$!do'))

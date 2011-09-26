@@ -894,7 +894,6 @@ INTVAL
 Rakudo_md_ct_dispatch(PARROT_INTERP, PMC *dispatcher, PMC *capture, PMC **result) {
     /* Get hold of the candidates. */
     Rakudo_Code *code_obj  = (Rakudo_Code *)PMC_data(dispatcher);
-    INTVAL       num_cands = VTABLE_elements(interp, code_obj->dispatchees);
     INTVAL       has_cache = !PMC_IS_NULL(code_obj->dispatcher_cache);
     Rakudo_md_candidate_info **cands = obtain_candidate_list(interp, has_cache,
         dispatcher, code_obj);
@@ -902,8 +901,9 @@ Rakudo_md_ct_dispatch(PARROT_INTERP, PMC *dispatcher, PMC *capture, PMC **result
     /* Current dispatch state. */
     Rakudo_md_candidate_info **cur_candidate = cands;
     INTVAL type_mismatch, type_check_count;
-    INTVAL all_native = 1;
-    INTVAL seen_all = 0;
+    INTVAL all_native  = 1;
+    INTVAL seen_all    = 0;
+    INTVAL arity_match = 0;
     PMC *cur_result = PMCNULL;
     
     /* Grab positionals. */
@@ -941,6 +941,9 @@ Rakudo_md_ct_dispatch(PARROT_INTERP, PMC *dispatcher, PMC *capture, PMC **result
             cur_candidate++;
             continue;
         }
+        
+        /* If we got this far, something at least matched on arity. */
+        arity_match = 1;
 
         /* Check if it's admissable by type. */
         type_check_count = (*cur_candidate)->num_types > num_args ?
@@ -1012,9 +1015,21 @@ Rakudo_md_ct_dispatch(PARROT_INTERP, PMC *dispatcher, PMC *capture, PMC **result
         }
     }
     
-    /* If we saw all the candidates, and got no result, and we got this far,
-     * then the dispatch could never work. */
-    if (seen_all && PMC_IS_NULL(cur_result)) {
+    /* If we saw all the candidates, and got no result, and the arity never
+     * matched, then there's no way this could dispatch.
+     * Note: it's tempting to do some type based "could never work" analysis
+     * here also. However, it's non-trivial. When we get a type in here, it's
+     * a widest type. That's why we never go looking more than one group, or
+     * a native group and then one more, up the set of possible candidates -
+     * because we'd end up picking the wrong one. The "could never work"
+     * analysis suffers a similar issue here. At best, we can do some kind of
+     * "silly casts" style analysis. Given we have a candidate that wants an 
+     * Int:
+     *   * If we get Mu, we know Int ~~ Mu so it's at least plausbile
+     *   * If we get Str, we know Int !~~ Str, so it's impossible.
+     * So should be possible to do something in this space.
+     */
+    if (seen_all && !arity_match && PMC_IS_NULL(cur_result)) {
         return MD_CT_NO_WAY;
     }
     

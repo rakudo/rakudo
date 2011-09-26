@@ -405,7 +405,7 @@ S12-introspection/parents.t
 S12-introspection/roles.t
 # S12-introspection/walk.t # err: Method 'WALK' not found for invocant of class 'E'
 S12-methods/attribute-params.t
-# S12-methods/calling_sets.t # err: Cannot access attributes in a type object
+S12-methods/calling_sets.t
 S12-methods/calling_syntax.t
 S12-methods/chaining.t
 S12-methods/class-and-instance.t

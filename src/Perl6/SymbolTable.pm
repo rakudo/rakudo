@@ -1121,6 +1121,12 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
         my $past  := PAST::Want.new($const, 'IiNn', $value);
         $past<has_compile_time_value> := 1;
         $past<compile_time_value>     := $const<compile_time_value>;
+        if $type eq 'Int' {
+            $past<boxable_native> := 1;
+        }
+        elsif $type eq 'Num' {
+            $past<boxable_native> := 2;
+        }
         $past;
     }
     
@@ -1131,6 +1137,7 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
         my $past  := PAST::Want.new($const, 'Ss', $value);
         $past<has_compile_time_value> := 1;
         $past<compile_time_value>     := $const<compile_time_value>;
+        $past<boxable_native>         := 3;
         $past;
     }
 

@@ -7,7 +7,7 @@ grammar Perl6::Grammar is HLL::Grammar {
     method TOP() {
         # Language braid.
         my %*LANG;
-        %*LANG<Regex>         := Perl6::Regex;
+        %*LANG<Regex>         := Perl6::RegexGrammar;
         %*LANG<Regex-actions> := Perl6::RegexActions;
         %*LANG<MAIN>          := Perl6::Grammar;
         %*LANG<MAIN-actions>  := Perl6::Actions;
@@ -2606,7 +2606,7 @@ grammar Perl6::Grammar is HLL::Grammar {
     }
 }
 
-grammar Perl6::Regex is QRegex::P6Regex::Grammar {
+grammar Perl6::RegexGrammar is QRegex::P6Regex::Grammar {
     token metachar:sym<:my> {
         ':' <?before 'my'> <statement=.LANG('MAIN', 'statement')> <.ws> ';'
     }

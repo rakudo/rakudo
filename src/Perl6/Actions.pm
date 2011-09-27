@@ -4107,9 +4107,9 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions {
     }
 
     method assertion:sym<{ }>($/) {
-        make PAST::Regex.new( '!INTERPOLATE',
-                 PAST::Op.new( :name<!MAKE_REGEX>, $<codeblock>.ast ),
-                 :pasttype<subrule>, :subtype<method>, :node($/));
+        make QAST::Regex.new( 
+                 PAST::Node.new('INTERPOLATE', PAST::Op.new( :name<&MAKE_REGEX>, $<codeblock>.ast )),
+                 :rxtype<subrule>, :subtype<method>, :node($/));
     }
 
     method assertion:sym<?{ }>($/) {
@@ -4119,9 +4119,9 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions {
     }
 
     method assertion:sym<var>($/) {
-        make PAST::Regex.new( '!INTERPOLATE',
-                 PAST::Op.new( :name<!MAKE_REGEX>, $<var>.ast ),
-                 :pasttype<subrule>, :subtype<method>, :node($/));
+        make QAST::Regex.new( 
+                 PAST::Node.new('INTERPOLATE', PAST::Op.new( :name<&MAKE_REGEX>, $<var>.ast )),
+                 :rxtype<subrule>, :subtype<method>, :node($/));
     }
 
     method codeblock($/) {

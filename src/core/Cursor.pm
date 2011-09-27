@@ -30,4 +30,11 @@ my class Cursor does NQPCursorRole {
     method INTERPOLATE($var) {
         $var ~~ Callable ?? $var(self) !! self."!LITERAL"($var)
     }
+
 }
+
+sub MAKE_REGEX($arg) {
+    $arg ~~ Regex ?? $arg !! eval("my \$x = anon regex \{ $arg \}")
+}
+
+

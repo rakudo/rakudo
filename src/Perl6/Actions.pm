@@ -391,7 +391,10 @@ class Perl6::Actions is HLL::Actions {
                 my $ast := $_.ast;
                 if $ast {
                     if $ast<sink_past> {
-                        $ast := $ast<sink_past>;
+                        $ast := PAST::Want.new($ast, 'v', $ast<sink_past>);
+                    }
+                    elsif $ast<bare_block> {
+                        $ast := $ast<bare_block>;
                     }
                     $ast := PAST::Stmt.new($ast) if $ast ~~ PAST::Node;
                     $past.push( $ast );
@@ -2724,7 +2727,7 @@ class Perl6::Actions is HLL::Actions {
         }
         else {
             $past := block_closure($past);
-            $past<sink_past> := PAST::Op.new(
+            $past<bare_block> := PAST::Op.new(
                 :pasttype('call'),
                 PAST::Val.new( :value($past<past_block>) ));
         }

@@ -18,14 +18,11 @@ my class Exception {
 
 sub EXCEPTION(|$) {
     my Mu $parrot_ex := nqp::shift(pir::perl6_current_args_rpa__P());
-    if nqp::p6bool(nqp::iseq_i(nqp::atkey($parrot_ex, 'type'), pir::const::CONTROL_ERROR)) {
-
-        my Mu $payload   := nqp::atkey($parrot_ex, 'payload');
-        my $ex := pir::defined($payload) ?? $payload !! nqp::create(Exception);
-        nqp::bindattr($ex, Exception, '$!ex', $parrot_ex);
-        $ex;
+    my Mu $payload   := nqp::atkey($parrot_ex, 'payload');
+    if nqp::p6bool(pir::type_check__IPP($payload, Exception)) {
+        nqp::bindattr($payload, Exception, '$!ex', $parrot_ex);
+        $payload;
     } else {
-        nqp::say("Caught exception of unknown type -- this probably should not happen");
         my $ex := nqp::create(Exception);
         nqp::bindattr($ex, Exception, '$!ex', $parrot_ex);
         $ex;

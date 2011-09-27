@@ -136,8 +136,9 @@ my &lastcall := -> {
     True
 };
 
-sub die(*@msg) is hidden_from_backtrace { pir::die__0P(@msg.join('')) }
-
+proto sub die(|$) is hidden_from_backtrace {*};
+multi sub die(Exception $e) { $e.throw }
+multi sub die(*@msg) { pir::die__0P(@msg.join('')) }
 # XXX TODO: Should really throw a warning exception.
 sub warn(*@msg) is hidden_from_backtrace { $*ERR.say(@msg.join('')) }
 

@@ -1,0 +1,70 @@
+    Announce: Rakudo Perl 6 compiler development release #44 ("CodeName")
+
+On behalf of the Rakudo development team, I'm happy to announce the
+September 2011 release of Rakudo Perl #44 "CodeName".  Rakudo is an 
+implementation of Perl 6 on the Parrot Virtual Machine (see 
+<http://www.parrot.org>). The tarball for this release
+is available from <http://github.com/rakudo/rakudo/downloads>.
+
+Please note: This announcement is not for the Rakudo Star distribution --
+it's announcing a new release of the compiler only.  For the latest
+Rakudo Star release, see <http://github.com/rakudo/star/downloads>.
+
+The Rakudo Perl compiler follows a monthly release cycle, with each release
+named after a Perl Mongers group. The September 2011 release is code named
+after XXX
+
+This release marks the transition to a different development branch called
+"nom" (New Object Model).
+
+Some of the specific changes and improvements occurring with this
+release include:
+
+* numerous speedups
+* Int, Num and Str are now for more lightweight
+* int/num as attributes are stored compactly in the object body
+* meta objects are now much easier to modify
+* much more robust handling of infinite list
+* basic LoL (List of Lists) support
+* :U and :D type modifiers
+* protos and multis now conform to the new spec
+* improved enum support
+* basic 'constant' declarator
+* .WHAT and friends as macros
+* support for .gist
+* run() has been renamed to shell() to conform to current spec
+* hyper methods now descend into nested data structures
+* basic safe mode (through --seting=SAFE)
+* many bug fixes in parametric roles
+* a custom BUILD does not suppress default values
+* undeclared attributes detected and reported at compile time
+* basic support for native int/num types on lexical variables
+* a new regex engine
+
+There are also a number of regressions, which we hope to fix in
+the next release. Most notably the following features are not
+yet implemented in the new regex engine, and thus not available to
+the user:
+
+* proto tokens 
+* variable interpolation into regexes
+* action methods
+
+For a more detailed list of changes, see "docs/ChangeLog".
+
+The development team thanks all of our contributors and sponsors for
+making Rakudo Perl possible, as well as those people who worked on 
+Parrot, the Perl 6 test suite and the specification.
+
+The following people contributed to this release:
+
+If you would like to contribute, see <http://rakudo.org/how-to-help>, ask on
+the perl6-compiler@perl.org mailing list, or ask on IRC #perl6 on freenode.
+
+The next release of Rakudo (#45) is scheduled for October 20, 2011.
+A list of the other planned release dates and code names for 2011 is
+available in the "docs/release_guide.pod" file.  In general, Rakudo
+development releases are scheduled to occur two days after each
+Parrot monthly release.  Parrot releases the third Tuesday of each month.
+
+Have fun!

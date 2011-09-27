@@ -57,7 +57,6 @@ new regex engine, and thus not yet available to the user:
 
 * proto tokens 
 * variable interpolation into regexes
-* action methods
 
 For a more detailed list of changes, see "docs/ChangeLog".
 

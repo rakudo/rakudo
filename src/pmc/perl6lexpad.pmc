@@ -28,6 +28,7 @@ static PMC * fresh_scalar(PARROT_INTERP, PMC *cont_desc) {
     Rakudo_Scalar *cont = (Rakudo_Scalar *)PMC_data(fresh);
     cont->descriptor    = cont_desc;
     cont->value         = Any;
+    PARROT_GC_WRITE_BARRIER(interp, fresh);
     return fresh;
 }
 
@@ -286,7 +287,7 @@ Return the LexInfo PMC, if any or a Null PMC.
     }
 
     VTABLE PMC *get_pmc_keyed_str(STRING *name) {
-        const Hash *hash;
+        Hash *hash;
         INTVAL  reg;
         PMC    *ctx;
         PMC    *result;
@@ -301,20 +302,18 @@ Return the LexInfo PMC, if any or a Null PMC.
         if (PMC_IS_NULL(result)) {
             /* We lazily handle things like $_, $! and $/. */
             PMC    *info;
-            INTVAL  fresh_magicals;
+            INTVAL  fresh_topic;
             GET_ATTR_lexinfo(INTERP, SELF, info);
-            GETATTR_Perl6LexInfo_fresh_magicals(INTERP, info, fresh_magicals);
+            GETATTR_Perl6LexInfo_fresh_magicals(INTERP, info, fresh_topic);
             if (Parrot_str_equal(interp, name, CONST_STRING(interp, "$_"))) {
-                result = fresh_magicals ? fresh_scalar(interp, topic_cd)
+                result = fresh_topic ? fresh_scalar(interp, topic_cd)
                                         : steal_outer(interp, ctx, name);
             }
             else if (Parrot_str_equal(interp, name, CONST_STRING(interp, "$!"))) {
-                result = fresh_magicals ? fresh_scalar(interp, error_cd)
-                                        : steal_outer(interp, ctx, name);
+                result = fresh_scalar(interp, error_cd);
             }
             else if (Parrot_str_equal(interp, name, CONST_STRING(interp, "$/"))) {
-                result = fresh_magicals ? fresh_scalar(interp, match_cd)
-                                        : steal_outer(interp, ctx, name);
+                result = fresh_scalar(interp, match_cd);
             }
             else if (Parrot_str_equal(interp, name, CONST_STRING(interp, "%_"))) {
                 PMC *storage;
@@ -330,7 +329,7 @@ Return the LexInfo PMC, if any or a Null PMC.
     }
     
     VTABLE INTVAL get_integer_keyed_str(STRING *name) {
-        const Hash *hash;
+        Hash *hash;
         INTVAL  reg;
         PMC    *ctx;
 
@@ -343,7 +342,7 @@ Return the LexInfo PMC, if any or a Null PMC.
     }
     
     VTABLE FLOATVAL get_number_keyed_str(STRING *name) {
-        const Hash *hash;
+        Hash *hash;
         INTVAL  reg;
         PMC    *ctx;
 
@@ -356,7 +355,7 @@ Return the LexInfo PMC, if any or a Null PMC.
     }
     
     VTABLE STRING *get_string_keyed_str(STRING *name) {
-        const Hash *hash;
+        Hash *hash;
         INTVAL  reg;
         PMC    *ctx;
 
@@ -389,7 +388,7 @@ Return the LexInfo PMC, if any or a Null PMC.
     }
 
     VTABLE void set_pmc_keyed_str(STRING *name, PMC *value) {
-        const Hash *hash;
+        Hash *hash;
         INTVAL  reg;
         PMC    *ctx;
 
@@ -401,7 +400,7 @@ Return the LexInfo PMC, if any or a Null PMC.
     }
     
     VTABLE void set_integer_keyed_str(STRING *name, INTVAL value) {
-        const Hash *hash;
+        Hash *hash;
         INTVAL  reg;
         PMC    *ctx;
 
@@ -412,7 +411,7 @@ Return the LexInfo PMC, if any or a Null PMC.
     }
     
     VTABLE void set_number_keyed_str(STRING *name, FLOATVAL value) {
-        const Hash *hash;
+        Hash *hash;
         INTVAL  reg;
         PMC    *ctx;
 
@@ -423,7 +422,7 @@ Return the LexInfo PMC, if any or a Null PMC.
     }
     
     VTABLE void set_string_keyed_str(STRING *name, STRING *value) {
-        const Hash *hash;
+        Hash *hash;
         INTVAL  reg;
         PMC    *ctx;
 

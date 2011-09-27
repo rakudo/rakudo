@@ -7,6 +7,10 @@ role Perl6::Metamodel::MROBasedTypeChecking {
         0
     }
     
+    method does($obj, $type) {
+        pir::perl6_booleanize__Pi(nqp::istype($obj, $type))
+    }
+    
     method type_check($obj, $checkee) {
         # The only time we end up in here is if the type check cache was
         # not yet published, which means the class isn't yet fully composed.

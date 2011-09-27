@@ -1,6 +1,12 @@
+/* Flags we have on types. */
 #define DEFCON_NONE      0
 #define DEFCON_DEFINED   1
 #define DEFCON_UNDEFINED 2
+#define DEFCON_MASK      (DEFCON_DEFINED | DEFCON_UNDEFINED)
+#define TYPE_NATIVE_INT  4
+#define TYPE_NATIVE_NUM  8
+#define TYPE_NATIVE_STR  16
+#define TYPE_NATIVE_MASK (TYPE_NATIVE_INT | TYPE_NATIVE_NUM | TYPE_NATIVE_STR)
 
 /* This is how a Code looks on the inside. Once again, C struct that should
  * match what P6opaque computes for the Code class. */
@@ -23,7 +29,7 @@ typedef struct {
     PMC    *sub;           /* The sub that is the candidate. */
     PMC    *signature;     /* The signature of the sub. */
     PMC   **types;         /* Class or role type constraints for each parameter. */
-    INTVAL *definednesses; /* Definedness flags for each of the types. */
+    INTVAL *type_flags;    /* Definedness and native flags for each of the types. */
     PMC   **constraints;   /* Refinement type constraints for each parameter. */
     INTVAL  num_types;     /* Number of entries in the above two arrays. */
     INTVAL  min_arity;     /* Number of required positional arguments. */

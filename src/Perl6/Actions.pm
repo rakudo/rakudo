@@ -559,7 +559,10 @@ class Perl6::Actions is HLL::Actions {
         # Perl6LexPad will generate containers (and maybe fill them with
         # the outer's value) on demand.
         my $BLOCK := $*ST.cur_lexpad();
-        for <$_ $/ $!> {
+        my $type := $BLOCK<IN_DECL>;
+        my $is_routine := $type eq 'sub' || $type eq 'method' ||
+                          $type eq 'submethod' || $type eq 'mainline';
+        for ($is_routine ?? <$_ $/ $!> !! ['$_']) {
             # Generate the lexical variable except if...
             #   (1) the block already has one, or
             #   (2) the variable is '$_' and $*IMPLICIT is set
@@ -815,14 +818,14 @@ class Perl6::Actions is HLL::Actions {
 
             # On failure, capture the exception object into $!.
             $past.push(
-                PAST::Op.new(:pasttype<bind_6model>,
+                PAST::Op.new(:pirop('perl6_container_store__0PP'),
                     PAST::Var.new(:name<$!>, :scope<lexical_6model>),
                     PAST::Op.new(:name<&EXCEPTION>, :pasttype<call>,
                         PAST::Op.new(:inline("    .get_results (%r)\n    finalize %r")))));
 
             # Otherwise, put Mu into $!.
             $past.push(
-                PAST::Op.new(:pasttype<bind_6model>,
+                PAST::Op.new(:pirop('perl6_container_store__0PP'),
                     PAST::Var.new( :name<$!>, :scope<lexical_6model> ),
                     PAST::Var.new( :name<Mu>, :scope<lexical_6model> )));
         }
@@ -1124,15 +1127,20 @@ class Perl6::Actions is HLL::Actions {
             my $code := $*ST.create_code_object($block, 'Block', $sig);
             $*ST.pkg_set_role_body_block($*PACKAGE, $code, $block);
             
+            # Compose before we add the role to the group, so the group sees
+            # it composed.
+            $*ST.pkg_compose($*PACKAGE);
+            
             # Add this role to the group if needed.
             my $group := $*PACKAGE.HOW.group($*PACKAGE);
             unless $group =:= $*PACKAGE {
                 $*ST.pkg_add_role_group_possibility($group, $*PACKAGE);
             }
         }
-
-        # Compose.
-        $*ST.pkg_compose($*PACKAGE);
+        else {
+            # Compose.
+            $*ST.pkg_compose($*PACKAGE);
+        }
 
         # Document
         Perl6::Pod::document($*PACKAGE, $*DOC);
@@ -1998,7 +2006,15 @@ class Perl6::Actions is HLL::Actions {
                     if $cur_pad.symbol(~$/) {
                         $/.CURSOR.panic("Redeclaration of symbol ", ~$/);
                     }
-                    $cur_pad[0].push(PAST::Var.new( :name(~$/), :scope('lexical_6model'), :isdecl(1) ));
+                    if pir::exists(%*PARAM_INFO, 'nominal_type') {
+                        $cur_pad[0].push(PAST::Var.new( :name(~$/), :scope('lexical_6model'),
+                            :isdecl(1), :type(%*PARAM_INFO<nominal_type>) ));
+                        %*PARAM_INFO<container_descriptor> := $*ST.create_container_descriptor(
+                            %*PARAM_INFO<nominal_type>, 0, %*PARAM_INFO<variable_name>);
+                        $cur_pad.symbol(%*PARAM_INFO<variable_name>, :descriptor(%*PARAM_INFO<container_descriptor>));
+                    } else {
+                        $cur_pad[0].push(PAST::Var.new( :name(~$/), :scope('lexical_6model'), :isdecl(1) ));
+                    }
                     $cur_pad.symbol(~$/, :scope('lexical_6model'));
                 }
             }
@@ -2106,8 +2122,7 @@ class Perl6::Actions is HLL::Actions {
             unless %*PARAM_INFO<post_constraints> {
                 %*PARAM_INFO<post_constraints> := [];
             }
-            %*PARAM_INFO<post_constraints>.push(make_where_block(
-                $*ST.get_object_sc_ref_past($val)));
+            %*PARAM_INFO<post_constraints>.push($val);
         }
         else {
             $/.CURSOR.panic('Cannot do non-typename cases of type_constraint yet');
@@ -2159,7 +2174,7 @@ class Perl6::Actions is HLL::Actions {
             # Add variable as needed.
             if $_<variable_name> {
                 my %sym := $lexpad.symbol($_<variable_name>);
-                if +%sym {
+                if +%sym && !pir::exists(%sym, 'descriptor') {
                     $_<container_descriptor> := $*ST.create_container_descriptor(
                         $_<nominal_type>, $_<is_rw> ?? 1 !! 0, $_<variable_name>);
                     $lexpad.symbol($_<variable_name>, :descriptor($_<container_descriptor>));
@@ -2194,20 +2209,32 @@ class Perl6::Actions is HLL::Actions {
         }
         else
         {
+            # If we have an argument, get its compile time value.
+            my @trait_arg;
+            if $<circumfix> {
+                my $arg := $<circumfix>[0].ast[0];
+                if $arg<has_compile_time_value> {
+                    @trait_arg[0] := $arg<compile_time_value>;
+                }
+                else {
+                    # XXX Should complain, or go compile it.
+                }
+            }
+        
             # If we have a type name then we need to dispatch with that type; otherwise
             # we need to dispatch with it as a named argument.
             my @name := Perl6::Grammar::parse_name(~$<longname>);
             if $*ST.is_name(@name) {
                 my $trait := $*ST.find_symbol(@name);
                 make -> $declarand {
-                    $*ST.apply_trait('&trait_mod:<is>', $declarand, $trait);
+                    $*ST.apply_trait('&trait_mod:<is>', $declarand, $trait, |@trait_arg);
                 };
             }
             else {
                 my %arg;
                 %arg{~$<longname>} := ($*ST.add_constant('Int', 'int', 1))<compile_time_value>;
                 make -> $declarand {
-                    $*ST.apply_trait('&trait_mod:<is>', $declarand, |%arg);
+                    $*ST.apply_trait('&trait_mod:<is>', $declarand, |@trait_arg, |%arg);
                 };
             }
         }
@@ -3352,7 +3379,7 @@ class Perl6::Actions is HLL::Actions {
             block_closure($coderef)
         );
         self.handle_and_check_adverbs($/, %MATCH_ALLOWED_ADVERBS, 'm', $past);
-        make PAST::Op.new( :pasttype('bind_6model'),
+        make PAST::Op.new( :pirop('perl6_container_store__0PP'),
             PAST::Var.new(:name('$/'), :scope('lexical_6model')),
             $past
         );
@@ -3530,7 +3557,8 @@ class Perl6::Actions is HLL::Actions {
         my %param_info := hash(
             variable_name => $name,
             pos_slurpy    => $pos_slurpy,
-            named_slurpy  => $named_slurpy);
+            named_slurpy  => $named_slurpy,
+            sigil         => ~$sigil);
 
         # If it's slurpy, just goes on the end.
         if $pos_slurpy || $named_slurpy {
@@ -3551,15 +3579,14 @@ class Perl6::Actions is HLL::Actions {
 
         # Otherwise, put it in correct lexicographic position.
         else {
-            my @shifted;
+            my $insert_at := 0;
             for @params {
                 last if $_<pos_slurpy> || $_<named_slurpy> ||
                         $_<named_names> ||
                         pir::substr__SSi($_<variable_name>, 1) gt $ident;
-                @shifted.push(@params.shift);
+                $insert_at := $insert_at + 1;
             }
-            @params.unshift(%param_info);
-            while @shifted { @params.unshift(@shifted.pop) }
+            nqp::splice(@params, [%param_info], $insert_at, 0);
         }
 
         # Add variable declaration, and evaluate to a lookup of it.

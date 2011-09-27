@@ -1,6 +1,6 @@
 # Roadmap for "nom" Branch
 
-Last Updated 18 Sep 2011
+Last Updated 20 Sep 2011
 
 ## Punch list for nom->master and nom distribution
 
@@ -12,10 +12,8 @@ branch and distribution, an estimate of the difficulty
 (\* == easy, \*\*\*\* = hard), and any identified 
 responsible parties.
 
-* Parametric roles (2, 2, \*\*\*, jnthn)
 * Enums to level of master (2, 1, ???, ???)
 * Grammars, qregex, other regex stuff (1, 1, \*\*\*, pmichaud)
-* Buf (2, 1, **, pmichaud)
 * DateTime, Date (2, 1, \*\*, ???)
 * Define new operators (2, 1, \*\*, pmichaud) (awaiting other regex updates)
 * MAIN (2, 1, ???, ???)
@@ -48,11 +46,6 @@ when needs to properly find use correct outer scope
 
 ## Fix up binding some more
 Get ::= correcter, and a bit more stuff on := also.
-
-## Finish up parametric roles
-Many things are working, some are not...
-* role R1[::T] does R2[T] { ... }
-* Be sure to do a BUILD after mix-in
 
 ## Custom Operators
 Get these working again.

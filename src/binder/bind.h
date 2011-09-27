@@ -23,6 +23,10 @@
 #define SIG_ELEM_METHOD_SLURPY_NAMED 262144
 #define SIG_ELEM_NOMINAL_GENERIC     524288
 #define SIG_ELEM_DEFAULT_IS_LITERAL  1048576
+#define SIG_ELEM_NATIVE_INT_VALUE    2097152
+#define SIG_ELEM_NATIVE_NUM_VALUE    4194304
+#define SIG_ELEM_NATIVE_STR_VALUE    8388608
+#define SIG_ELEM_NATIVE_VALUE        (SIG_ELEM_NATIVE_INT_VALUE | SIG_ELEM_NATIVE_NUM_VALUE | SIG_ELEM_NATIVE_STR_VALUE)
 
 /* This is how a parameter looks on the inside. Actually, this is a C struct
  * that should match the computed object layout by P6opaque for the type
@@ -83,3 +87,32 @@ PMC * Rakudo_binding_list_from_rpa(PARROT_INTERP, PMC *rpa, PMC *type, PMC *flat
 #define BIND_RESULT_OK       0
 #define BIND_RESULT_FAIL     1
 #define BIND_RESULT_JUNCTION 2
+
+/* The value we're going to bind. */
+#define BIND_VAL_INT 1
+#define BIND_VAL_NUM 2
+#define BIND_VAL_STR 3
+#define BIND_VAL_OBJ 4
+typedef struct {    
+    union {
+        PMC      *o;
+        INTVAL    i;
+        FLOATVAL  n;
+        STRING   *s;
+    } val;
+    char type;
+} Rakudo_BindVal;
+
+/* Nabbed from Parrot, since it's not exposed and it's the only way
+ * (so far as I can tell) to get at the underlying primitive type
+ * being passed. */
+typedef struct Pcc_cell
+{
+    union u {
+        PMC     *p;
+        STRING  *s;
+        INTVAL   i;
+        FLOATVAL n;
+    } u;
+    INTVAL type;
+} Pcc_cell;

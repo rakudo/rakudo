@@ -414,6 +414,7 @@ grammar Perl6::Grammar is HLL::Grammar {
             # from e.g. REPL) and the real UNIT.
             $*UNIT_OUTER := $*ST.push_lexpad($/);
             $*UNIT := $*ST.push_lexpad($/);
+            $*UNIT<IN_DECL> := 'mainline';
             
             # If we already have a specified outer context, then that's
             # our setting. Otherwise, load one.
@@ -2265,6 +2266,7 @@ grammar Perl6::Grammar is HLL::Grammar {
     token prefix:sym<?>   { <!before '???'> <sym>  <O('%symbolic_unary')> }
     token prefix:sym<!>   { <!before '!!!'> <sym>  <O('%symbolic_unary')> }
     token prefix:sym<+^>  { <sym>  <O('%symbolic_unary')> }
+    token prefix:sym<~^>  { <sym>  <O('%symbolic_unary')> }
     token prefix:sym<^>   { <sym>  <O('%symbolic_unary')> }
     token prefix:sym<|>   { <sym>  <O('%symbolic_unary')> }
 

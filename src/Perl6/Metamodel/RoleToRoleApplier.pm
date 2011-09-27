@@ -32,6 +32,9 @@ my class RoleToRoleApplier {
                     if $meth =:= $_ {
                         $found := 1;
                     }
+                    elsif pir::can($meth, 'id') && pir::can($_, 'id') {
+                        $found := $meth.id == $_.id;
+                    }
                 }
                 unless $found {
                     @meth_list.push($meth);
@@ -100,6 +103,14 @@ my class RoleToRoleApplier {
                 my @multis := $how.multi_methods_to_incorporate($_);
                 for @multis {
                     $target.HOW.add_multi_method($target, $_.name, $_.code);
+                }
+            }
+            
+            # Any parents can also just be copied over.
+            if pir::can__IPs($how, 'parents') {
+                my @parents := $how.parents($_, :local(1));
+                for @parents {
+                    $target.HOW.add_parent($target, $_);
                 }
             }
         }

@@ -17,6 +17,9 @@ class Perl6::Metamodel::ConcreteRoleHOW
     
     # Full flat list of done roles.
     has @!role_typecheck_list;
+    
+    # Are we composed yet?
+    has $!composed;
 
     my $archetypes := Perl6::Metamodel::Archetypes.new( :nominal(1), :composable(1) );
     method archetypes() {
@@ -56,7 +59,12 @@ class Perl6::Metamodel::ConcreteRoleHOW
             }
         }
         self.publish_type_cache($obj);
+        $!composed := 1;
         $obj
+    }
+    
+    method is_composed($obj) {
+        $!composed ?? 1 !! 0
     }
     
     method collisions($obj) {

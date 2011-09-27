@@ -20,7 +20,7 @@ my class IO::Socket::INET does IO::Socket {
     has Int $.port = 80;
     has Str $.localhost;
     has Int $.localport;
-    has Int $.listen;
+    has Bool $.listen;
     has $.family = PIO::PF_INET;
     has $.proto = PIO::PROTO_TCP;
     has $.type = PIO::SOCK_STREAM;
@@ -55,6 +55,8 @@ my class IO::Socket::INET does IO::Socket {
                 %args<localhost> = $peer;
             }
         }
+
+        %args<listen>.=Bool if %args.exists('listen');
 
         #TODO: Learn what protocols map to which socket types and then determine which is needed.
         self.bless(*, |%args)!initialize()

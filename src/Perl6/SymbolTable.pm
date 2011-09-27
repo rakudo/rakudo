@@ -24,6 +24,9 @@ my $SIG_ELEM_DEFINED_ONLY        := 131072;
 my $SIG_ELEM_METHOD_SLURPY_NAMED := 262144;
 my $SIG_ELEM_NOMINAL_GENERIC     := 524288;
 my $SIG_ELEM_DEFAULT_IS_LITERAL  := 1048576;
+my $SIG_ELEM_NATIVE_INT_VALUE    := 2097152;
+my $SIG_ELEM_NATIVE_NUM_VALUE    := 4194304;
+my $SIG_ELEM_NATIVE_STR_VALUE    := 8388608;
 
 # This builds upon the SerializationContextBuilder to add the specifics
 # needed by Rakudo Perl 6.
@@ -548,6 +551,16 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
         if %param_info<default_is_literal> {
             $flags := $flags + $SIG_ELEM_DEFAULT_IS_LITERAL;
         }
+        my $primspec := pir::repr_get_primitive_type_spec__IP(%param_info<nominal_type>);
+        if $primspec == 1 {
+            $flags := $flags + $SIG_ELEM_NATIVE_INT_VALUE;
+        }
+        elsif $primspec == 2 {
+            $flags := $flags + $SIG_ELEM_NATIVE_NUM_VALUE;
+        }
+        elsif $primspec == 3 {
+            $flags := $flags + $SIG_ELEM_NATIVE_STR_VALUE;
+        }
         
         # Populate it.
         if pir::exists(%param_info, 'variable_name') {
@@ -714,27 +727,33 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
         # For now, install stub that will dynamically compile the code if
         # we ever try to run it during compilation.
         my $precomp;
-        my $stub := sub (*@pos, *%named) {
+        my $compiler_thunk := {
+            # Fix up GLOBAL.
             my $rns    := pir::get_root_namespace__P();
             my $p6_pns := $rns{'perl6'};
             $p6_pns{'GLOBAL'} := $*GLOBALish;
-            unless $precomp {
-                # Compile the block.
-                $precomp := self.compile_in_context($code_past, $code_type);
+            
+            # Compile the block.
+            $precomp := self.compile_in_context($code_past, $code_type);
 
-                # Also compile the candidates if this is a proto.
-                if $is_dispatcher {
-                    for nqp::getattr($code, $code_type, '$!dispatchees') {
-                        my $stub := nqp::getattr($_, $code_type, '$!do');
-                        my $past := pir::getprop__PsP('PAST_BLOCK', $stub);
-                        if $past {
-                            self.compile_in_context($past, $code_type);
-                        }
+            # Also compile the candidates if this is a proto.
+            if $is_dispatcher {
+                for nqp::getattr($code, $code_type, '$!dispatchees') {
+                    my $stub := nqp::getattr($_, $code_type, '$!do');
+                    my $past := pir::getprop__PsP('PAST_BLOCK', $stub);
+                    if $past {
+                        self.compile_in_context($past, $code_type);
                     }
                 }
             }
+        };
+        my $stub := sub (*@pos, *%named) {
+            unless $precomp {
+                $compiler_thunk();
+            }
             $precomp(|@pos, |%named);
         };
+        pir::setprop__vPsP($stub, 'COMPILER_THUNK', $compiler_thunk);
         pir::set__vPS($stub, $code_past.name);
         pir::setattribute__vPPsP($code, $code_type, '$!do', $stub);
         

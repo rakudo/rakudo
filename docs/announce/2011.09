@@ -14,8 +14,14 @@ The Rakudo Perl compiler follows a monthly release cycle, with each release
 named after a Perl Mongers group. The September 2011 release is code named
 after XXX
 
-This release marks the transition to a different development branch called
-"nom" (New Object Model).
+This is the first compiler release from the latest development branch
+of Rakudo. It brings many exciting improvements, but also some
+regressions, which we are working on. If your primary interest is that
+your existing code running on Rakudo Perl continues to work, we
+suggest sticking with the Rakudo Star distribution release for a
+little longer. If instead you want to play with the latest in Rakudo
+development - including meta-programming and performance improvements
+- try this release.
 
 Some of the specific changes and improvements occurring with this
 release include:

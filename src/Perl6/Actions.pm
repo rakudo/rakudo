@@ -1696,7 +1696,7 @@ class Perl6::Actions is HLL::Actions {
         }
         
         # Install in needed scopes.
-        install_method($/, $name, $scope, $code, $outer);
+        install_method($/, $name, $scope, $code, $outer) if $name ne '';
 
         # Return a reference to the code object
         reference_to_code_object($code, $past);

@@ -41,10 +41,9 @@ release include:
 * basic support for native int/num types on lexical variables
 * a new regex engine
 
-There are also a number of regressions, which we hope to fix in
-the next release. Most notably the following features are not
-yet implemented in the new regex engine, and thus not available to
-the user:
+We briefly regress on a few features since the previous release.
+Most notably, the following features are not yet implemented in the
+new regex engine, and thus not yet available to the user:
 
 * proto tokens 
 * variable interpolation into regexes

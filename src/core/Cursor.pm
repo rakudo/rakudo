@@ -26,5 +26,8 @@ my class Cursor does NQPCursorRole {
         nqp::bindattr($match, Capture, '$!hash', $hash);
         $match;
     }
-}
 
+    method INTERPOLATE($var) {
+        $var ~~ Callable ?? $var(self) !! self."!LITERAL"($var)
+    }
+}

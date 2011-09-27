@@ -4099,8 +4099,8 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions {
     }
 
     method metachar:sym<rakvar>($/) {
-        make PAST::Regex.new( '!INTERPOLATE', $<var>.ast,
-                              :pasttype<subrule>, :subtype<method>, :node($/));
+        make QAST::Regex.new( PAST::Node.new('INTERPOLATE', $<var>.ast),
+                              :rxtype<subrule>, :subtype<method>, :node($/));
     }
 
     method assertion:sym<{ }>($/) {

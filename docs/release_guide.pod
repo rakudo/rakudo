@@ -224,7 +224,7 @@ Make sure any locally modified files have been pushed back to github.
 
 Create a tarball by entering C<make release VERSION=YYYY.MM>,
 where YYYY.MM is the month for which the release is being made.
-This will create a tarball file named <rakudo-YYYY.MM.tar.gz>.
+This will create a tarball file named C<rakudo-YYYY.MM.tar.gz>.
 
 B<Caution>: this step removes any untracked files in F<t/spec>.
 So please make a backup if you have any important data in there.

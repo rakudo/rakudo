@@ -1646,6 +1646,7 @@ class Perl6::Actions is HLL::Actions {
     method regex_def($/) {
         my $coderef;
         my $name := ~$<deflongname>[0];
+        %*RX<name> := $name;
 
         if $*MULTINESS eq 'proto' {
             $/.CURSOR.panic('protoregexes not yet implemented');

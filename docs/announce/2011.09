@@ -31,7 +31,8 @@ release include:
 * Int, Num and Str are now for more lightweight
 * int/num as attributes are stored compactly in the object body
 * meta objects are now much easier to modify
-* pod is now parsed, and can be attached to objects and printed with --pod
+* a Pod parser capable of attaching documentation to objects
+* --doc command line option producing formatted documentation
 * much more robust handling of infinite list
 * basic LoL (List of Lists) support
 * :U and :D type modifiers

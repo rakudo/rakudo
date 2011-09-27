@@ -1604,12 +1604,19 @@ grammar Perl6::Grammar is HLL::Grammar {
         <sym>
         :my %*RX;
         :my $*METHODTYPE := 'rule';
+        {
+            %*RX<s> := 1;
+            %*RX<r> := 1;
+        }
         <regex_def>
     }
     token regex_declarator:sym<token> {
         <sym>
         :my %*RX;
         :my $*METHODTYPE := 'token';
+        {
+            %*RX<r> := 1;
+        }
         <regex_def>
     }
     token regex_declarator:sym<regex> {

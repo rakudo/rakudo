@@ -38,6 +38,9 @@ multi trait_mod:<is>(Routine:D $r, :$rw!) {
 multi trait_mod:<is>(Routine:D $r, :$default!) {
     $r does role { method default() { True } }
 }
+multi trait_mod:<is>(Routine:D $r, $info, :$inlinable!) {
+    $r.set_inline_info($info);
+}
 
 multi trait_mod:<is>(Parameter:D $param, :$readonly!) {
     # This is the default.

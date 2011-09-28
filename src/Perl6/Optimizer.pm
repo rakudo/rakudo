@@ -156,7 +156,10 @@ class Perl6::Optimizer {
                     if $possible {
                         my @ct_result := pir::perl6_multi_dispatch_ct__PPPP($obj, @types, @flags);
                         if @ct_result[0] == 1 {
-                            return self.call_ct_chosen_multi($op, $obj, @ct_result[1]);
+                            my $chosen := @ct_result[1];
+                            return pir::can($chosen, 'inline_info') && $chosen.inline_info ne ''
+                                ?? self.inline_call($op, $chosen)
+                                !! self.call_ct_chosen_multi($op, $obj, $chosen);
                         }
                         elsif @ct_result[0] == -1 {
                             my @arg_names;
@@ -306,6 +309,38 @@ class Perl6::Optimizer {
             PAST::Var.new( :name($call.name), :scope('lexical_6model') )));
         $call.name(nqp::null());
         $call
+    }
+    
+    # Inlines a call to a sub.
+    method inline_call($call, $code_obj) {
+        my $inline := $code_obj.inline_info();
+        my @tokens := pir::split(' ', $inline);
+        my @stack := [PAST::Stmt.new()];
+        while +@tokens {
+            my $cur_tok := @tokens.shift;
+            if $cur_tok eq ')' {
+                my $popped := @stack.pop();
+                @stack[+@stack - 1].push($popped);
+            }
+            elsif $cur_tok eq 'ARG' {
+                @stack[+@stack - 1].push($call[+@tokens.shift()]);
+            }
+            elsif $cur_tok eq 'PIROP' {
+                @stack.push(PAST::Op.new( :pirop(@tokens.shift()) ));
+                unless @tokens.shift() eq '(' {
+                    pir::die("INTERNAL ERROR: Inline corrupt; expected ')'");
+                }
+            }
+            else {
+                pir::die("INTERNAL ERROR: Unexpected inline token: " ~ $cur_tok);
+                return $call;
+            }
+        }
+        if +@stack != 1 {
+            pir::die("INTERNAL ERROR: Non-empty inline stack")
+        }
+        #say("# inlined a call to " ~ $call.name);
+        @stack[0]
     }
     
     # If we decide a dispatch at compile time, this emits the direct call.

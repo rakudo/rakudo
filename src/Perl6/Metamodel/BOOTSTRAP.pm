@@ -484,11 +484,22 @@ my stub Routine metaclass Perl6::Metamodel::ClassHOW { ... };
 Routine.HOW.add_parent(Routine, Block);
 Routine.HOW.add_attribute(Routine, BOOTSTRAPATTR.new(:name<$!rw>, :type(int)));
 Routine.HOW.add_attribute(Routine, BOOTSTRAPATTR.new(:name<$!md_thunk>, :type(Mu)));
+Routine.HOW.add_attribute(Routine, BOOTSTRAPATTR.new(:name<$!inline_info>, :type(str)));
 Routine.HOW.publish_parrot_vtable_handler_mapping(Routine);
 Routine.HOW.publish_parrot_vtable_mapping(Routine);
 Routine.HOW.add_method(Routine, 'set_rw', sub ($self) {
         my $dcself := pir::perl6_decontainerize__PP($self);
         pir::repr_bind_attr_int__0PPsi($dcself, Routine, '$!rw', 1);
+    });
+Routine.HOW.add_method(Routine, 'set_inline_info', sub ($self, $info) {
+        my $dcself := pir::perl6_decontainerize__PP($self);
+        pir::repr_bind_attr_str__0PPss($dcself, Routine, '$!inline_info',
+            pir::repr_unbox_str__sP($info));
+    });
+
+Routine.HOW.add_method(Routine, 'inline_info', sub ($self) {
+        my $dcself := pir::perl6_decontainerize__PP($self);
+        pir::repr_get_attr_str__SPPs($dcself, Routine, '$!inline_info')
     });
 
 # class Sub is Routine { ... }

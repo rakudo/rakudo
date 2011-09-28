@@ -1444,6 +1444,11 @@ class Perl6::Actions is HLL::Actions {
         for $<trait> {
             if $_.ast { ($_.ast)($code) }
         }
+        
+        # Add inlining information if it's inlinable.
+        if $<deflongname> {
+            self.add_inlining_info_if_possible($code, $block, @params);
+        }
 
         my $closure := block_closure(reference_to_code_object($code, $past));
         $closure<sink_past> := PAST::Op.new( :pasttype('null') );
@@ -1460,6 +1465,73 @@ class Perl6::Actions is HLL::Actions {
         my $p_sig := $*ST.create_signature([$*ST.create_parameter(@p_params[0])]);
         add_signature_binding_code($p_past, $p_sig, @p_params);
         $*ST.create_code_object($p_past, 'Sub', $p_sig, 1);
+    }
+    
+    method add_inlining_info_if_possible($code, $past, @params) {
+        # Only consider things with single statements.
+        unless +$past[1].list == 1 {
+            return 0;
+        }
+        my $stmt := $past[1][0];
+        
+        # Ensure all parameters are simple and build information about them.
+        my %arg_pos;
+        my %arg_used;
+        for @params {
+            return 0 if $_<optional> || $_<is_capture> || $_<pos_slurpy> ||
+                $_<named_slurpy> || $_<pos_lol> || $_<bind_attr> ||
+                $_<bind_accessor> || $_<nominal_generic> || $_<named_names> ||
+                $_<type_captures> || $_<post_constraints>;
+            %arg_pos{$_<variable_name>} := +%arg_pos;
+            %arg_used{$_<variable_name>} := 0;
+        }
+        
+        # Ensure nothing extra is declared.
+        for @($past[0]) {
+            if $_.isa(PAST::Var) {
+                my $name := $_.name;
+                return 0 if $name ne 'call_sig' && $name ne '$_' &&
+                    $name ne '$/' && $name ne '$!' && $name ne '&?ROUTINE' &&
+                    $name ne '$*DISPATCHER' && !pir::exists(%arg_pos, $name);
+            }
+        }
+        
+        # If all is well, we can try to build inline info. In the future, we
+        # would just walk the PAST and see all is well; for now, we generate
+        # a simple representation of the op tree for very restricted cases.
+        my $node_walker := -> $node {
+            if pir::isa($node, 'Integer') || pir::isa($node, 'String') {
+                return 0;
+            }
+            if ($node.isa(PAST::Stmt) || $node.isa(PAST::Stmts)) && +@($node) == 1 {
+                $node_walker($node[0])
+            }
+            elsif $node.isa(PAST::Var) && ($node.scope eq 'lexical_6model' || $node.scope eq '') {
+                if pir::exists(%arg_pos, $node.name) && %arg_used{$node.name} == 0 {
+                    %arg_used{$node.name} := 1;
+                    "ARG " ~ %arg_pos{$node.name}
+                }
+                else {
+                    return 0;
+                }
+            }
+            elsif $node.isa(PAST::Op) && $node.pirop {
+                my @children;
+                for @($node) {
+                    @children.push($node_walker($_));
+                }
+                "PIROP " ~ $node.pirop ~ " ( " ~ pir::join(' ', @children) ~ " )"
+            }
+            else {
+                return 0;
+            }
+        };
+        my $inline_info := $node_walker($stmt);
+        
+        # Attach inlining information.
+        $*ST.apply_trait('&trait_mod:<is>', $code,
+            ($*ST.add_string_constant($inline_info))<compile_time_value>,
+            inlinable => ($*ST.add_numeric_constant('Int', 1))<compile_time_value>)
     }
 
     method method_def($/) {

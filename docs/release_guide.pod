@@ -43,12 +43,12 @@ part of monthly Parrot releases.
   2011-06-23   Rakudo #42 "Bruxelles"          (jdhore)
   2011-07-21   Rakudo #43 "Beijing"            (mberends,moritz)
   2011-08-18    -- none --
+  2011-09-30   Rakudo #44 "Riga"               (tadzik)
 
 =head2 Planned 2011 releases
 
 Dates are based on Parrot's expected release schedule.
 
-  2011-09-22   Rakudo #44                      -vacant-
   2011-10-20   Rakudo #45                      (duff)
   2011-11-17   Rakudo #46                      -vacant-
   2011-12-22   Rakudo #47                      -vacant-

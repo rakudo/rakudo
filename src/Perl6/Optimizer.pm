@@ -139,6 +139,9 @@ class Perl6::Optimizer {
                             if pir::isa($type, 'Undef') {
                                 $possible := 0;
                             }
+                            elsif $type.HOW.archetypes.generic {
+                                $possible := 0;
+                            }
                             else {
                                 my $prim := pir::repr_get_primitive_type_spec__IP($type);
                                 @types.push($type);

@@ -57,7 +57,6 @@ Dates are based on Parrot's expected release schedule.
 
   MadMongers    (YAPC::NA 2012)
   Columbus      (YAPC::NA 2011, p6 track and hackathon)
-  Riga          (YAPC::EU 2011, p6 track and hackathon)
   Houston       (YAPC::NA 2007, p6 hackathon)
   Brazos Valley (YAPC::NA 2007, p6 hackathon)
   Toronto       (YAPC::NA 2005, p6 hackathon)

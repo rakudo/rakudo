@@ -5,9 +5,6 @@ my class Match is Capture {
     has $.CURSOR;
     has $.ast;
 
-    multi method gist(Match:D:) {
-        $!to > $!from ?? $!orig.substr($!from, $!to-$!from) !! ''
-    }
     multi method Str(Match:D:) {
         $!to > $!from ?? $!orig.substr($!from, $!to-$!from) !! ''
     }
@@ -61,6 +58,14 @@ my class Match is Capture {
         'Match.perl('
             ~ %attrs.fmt('%s => %s', ', ')
             ~ ')'
+    }
+    multi method gist (Match:D: $d = 0) {
+        my $s = ' ' x ($d + 1);
+        my $r = "=> <{self}>\n";
+        for @.caps {
+            $r ~= $s ~ (.key // '?') ~ ' ' ~ .value.gist($d + 1)
+        }
+        $r;
     }
 }
 

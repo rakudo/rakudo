@@ -233,7 +233,7 @@ S05-capture/match-object.t
 # S05-capture/named.t # err: Method 'rxtype' not found for invocant of class 'PAST;Regex'
 # S05-capture/subrule.t # err: Method 'rxtype' not found for invocant of class 'PAST;Regex'
 S05-grammar/action-stubs.t
-# S05-grammar/inheritance.t # err: Null PMC access in set_pmc_keyed()
+S05-grammar/inheritance.t
 S05-grammar/methods.t
 # S05-grammar/namespace.t # err: Null PMC access in set_pmc_keyed()
 # S05-grammar/parse_and_parsefile.t # err: Could not locate compile-time value for symbol No::Such::Grammar
@@ -241,7 +241,7 @@ S05-grammar/methods.t
 # S05-grammar/protos.t # err: Null PMC access in set_pmc_keyed()
 # S05-grammar/signatures.t # err: Null PMC access in set_pmc_keyed()
 # S05-grammar/ws.t # err: regex assertion not terminated by angle bracket
-# S05-interpolation/lexicals.t # err: Method 'rxtype' not found for invocant of class 'PAST;Regex'
+S05-interpolation/lexicals.t
 # S05-interpolation/regex-in-variable.t # err: Method 'rxtype' not found for invocant of class 'PAST;Regex'
 S05-mass/named-chars.t                                     # icu
 # S05-mass/properties-block.t # err: Method 'isInAlphabeticPresentationForms' not found for invocant of class 'Cursor'

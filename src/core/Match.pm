@@ -51,6 +51,17 @@ my class Match is Capture {
             take '~' => $!orig.substr($prev, $!to - $prev) if $prev < $!to;
         }
     }
+
+    method perl(Match:D:) {
+        my %attrs;
+        for <orig from to ast list hash> {
+            %attrs{$_} = self."$_"().perl;
+        }
+
+        'Match.perl('
+            ~ %attrs.fmt('%s => %s', ', ')
+            ~ ')'
+    }
 }
 
 sub make(Mu $ast) {

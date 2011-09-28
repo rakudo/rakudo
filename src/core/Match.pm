@@ -3,6 +3,7 @@ my class Match is Capture {
     has $.from;
     has $.to;
     has $.CURSOR;
+    has $.ast;
 
     multi method gist(Match:D:) {
         $!to > $!from ?? $!orig.substr($!from, $!to-$!from) !! ''
@@ -51,3 +52,13 @@ my class Match is Capture {
         }
     }
 }
+
+sub make(Mu $ast) {
+    nqp::bindattr(
+        pir::perl6_decontainerize__PP(pir::find_caller_lex__Ps('$/')),
+        Match,
+        '$!ast',
+        $ast
+    );
+}
+

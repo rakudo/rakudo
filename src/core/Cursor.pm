@@ -1,6 +1,8 @@
-my class Cursor does NQPCursorRole { 
+my class Cursor does NQPCursorRole {
     method MATCH() {
-        my $match := Match.new(
+        my $match := nqp::getattr(self, Cursor, '$!match');
+        return $match if pir::type_check__IPP($match, Match) && $match.defined;
+        $match := Match.new(
             orig   => nqp::getattr(self, Cursor, '$!orig'),
             from   => nqp::p6box_i(nqp::getattr_i(self, Cursor, '$!from')),
             to     => nqp::p6box_i(nqp::getattr_i(self, Cursor, '$!pos')),
@@ -24,6 +26,7 @@ my class Cursor does NQPCursorRole {
         }
         nqp::bindattr($match, Capture, '$!list', $list);
         nqp::bindattr($match, Capture, '$!hash', $hash);
+        nqp::bindattr(self, Cursor, '$!match', $match);
         $match;
     }
 

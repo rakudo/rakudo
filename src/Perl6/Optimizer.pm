@@ -11,19 +11,21 @@ class Perl6::Optimizer {
     # Unique ID for topic ($_) preservation registers.
     has $!pres_topic_counter;
     
-    # List of things that should cause compilation to fail.
-    has @!deadly;
+    # Things that should cause compilation to fail; keys are errors, value is
+    # array of line numbers.
+    has %!deadly;
     
-    # List of things that should be warned about.
-    has @!worrying;
+    # Things that should be warned about; keys are warnings, value is an array
+    # of line numbers.
+    has %!worrying;
     
     # Entry point for the optimization process.
     method optimize($past, *%adverbs) {
         # Initialize.
         @!block_stack := [$past];
         $!pres_topic_counter := 0;
-        @!deadly := [];
-        @!worrying := [];
+        %!deadly := nqp::hash();
+        %!worrying := nqp::hash();
         
         # We'll start walking over UNIT (we wouldn't find it by going
         # over OUTER since we don't walk loadinits).
@@ -34,13 +36,20 @@ class Perl6::Optimizer {
         self.visit_block($unit);
         
         # Die if we failed check in any way; otherwise, print any warnings.
-        if +@!deadly {
-            pir::die("CHECK FAILED:\n" ~ pir::join("\n", @!deadly))
+        if +%!deadly {
+            my @fails;
+            for %!deadly {
+                @fails.push($_.key ~ " (line" ~ (+$_.value == 1 ?? ' ' !! 's ') ~
+                    pir::join(', ', $_.value) ~ ")");
+            }
+            pir::die("CHECK FAILED:\n" ~ pir::join("\n", @fails))
         }
-        if +@!worrying {
+        if +%!worrying {
             pir::printerr__vs("WARNINGS:\n");
-            for @!worrying {
-                pir::printerr__vs($_ ~ "\n");
+            my @fails;
+            for %!worrying {
+                pir::printerr__vs($_.key ~ " (line" ~ (+$_.value == 1 ?? ' ' !! 's ') ~
+                    pir::join(', ', $_.value) ~ ")\n");
             }
         }
         
@@ -157,7 +166,7 @@ class Perl6::Optimizer {
                                     @types[$i].HOW.name(@types[$i]));
                                 $i := $i + 1;
                             }
-                            @!deadly.push("Dispatch to '" ~ $obj.name ~
+                            self.add_deadly($op, "Dispatch to '" ~ $obj.name ~
                                 "' could never work with the arguments of types (" ~
                                 pir::join(', ', @arg_names) ~
                                 ')');
@@ -173,7 +182,7 @@ class Perl6::Optimizer {
                 # time error. Check that it's not just compile-time unknown,
                 # however (shows up in e.g. sub foo(&x) { x() }).
                 unless self.is_lexical_declared($op.name) {
-                    @!deadly.push("Undefined routine '" ~ $op.name ~ "' called");
+                    self.add_deadly($op, "Undefined routine '" ~ $op.name ~ "' called");
                 }
             }
         }
@@ -313,5 +322,14 @@ class Perl6::Optimizer {
             $idx := $idx + 1;
         }
         $call
+    }
+    
+    # Adds an entry to the list of things that would cause a check fail.
+    method add_deadly($past_node, $message) {
+        my $line := PAST::Compiler.lineof($past_node<source>, $past_node<pos>);
+        unless %!deadly{$message} {
+            %!deadly{$message} := [];
+        }
+        %!deadly{$message}.push($line);
     }
 }

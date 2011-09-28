@@ -49,7 +49,7 @@ my class Match is Capture {
         }
     }
 
-    method perl(Match:D:) {
+    multi method perl(Match:D:) {
         my %attrs;
         for <orig from to ast list hash> {
             %attrs{$_} = self."$_"().perl;

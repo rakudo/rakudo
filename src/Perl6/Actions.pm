@@ -247,7 +247,6 @@ class Perl6::Actions is HLL::Actions {
         }
     }
 
-
     method pod_content_toplevel($/) {
         my $child := $<pod_block>.ast;
         # make sure we don't push the same thing twice
@@ -2405,7 +2404,7 @@ class Perl6::Actions is HLL::Actions {
     }
 
     method term:sym<self>($/) {
-        make PAST::Var.new( :name('self'), :node($/) );
+        make PAST::Var.new( :name('self'), :type($*PACKAGE), :node($/) );
     }
 
     method term:sym<now>($/) {

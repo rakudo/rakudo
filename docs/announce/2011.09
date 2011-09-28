@@ -28,7 +28,7 @@ Some of the specific changes and improvements occurring with this
 release include:
 
 * numerous speedups
-* Int, Num and Str are now for more lightweight
+* Int, Num and Str are now far more lightweight
 * int/num as attributes are stored compactly in the object body
 * meta objects are now much easier to modify
 * a Pod parser capable of attaching documentation to objects
@@ -55,7 +55,7 @@ We briefly regress on a few features since the previous release.
 Most notably, the following features are not yet implemented in the
 new regex engine, and thus not yet available to the user:
 
-* proto tokens 
+* proto regexes 
 * make() and $/.ast
 
 For a more detailed list of changes, see "docs/ChangeLog".

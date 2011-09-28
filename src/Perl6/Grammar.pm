@@ -441,11 +441,12 @@ grammar Perl6::Grammar is HLL::Grammar {
             $*PACKAGE := $*GLOBALish;
             
             # Install unless we've no setting, in which case we've likely no
-            # static lexpad class yet either.
+            # static lexpad class yet either. Also, UNIT needs a code object.
             unless %*COMPILING<%?OPTIONS><setting> eq 'NULL' {
                 $*ST.install_lexical_symbol($*UNIT, 'GLOBALish', $*GLOBALish);
                 $*ST.install_lexical_symbol($*UNIT, 'EXPORT', $*EXPORT);
                 $*ST.install_lexical_symbol($*UNIT, '$?PACKAGE', $*PACKAGE);
+                $*ST.create_code_object($*UNIT, 'Block', $*ST.create_signature([]));
             }
         }
         

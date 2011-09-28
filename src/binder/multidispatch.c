@@ -918,6 +918,7 @@ Rakudo_md_ct_dispatch(PARROT_INTERP, PMC *dispatcher, PMC *capture, PMC **result
      * check or a definedness check, we can't decide it at compile time,
      * so bail out immediately. */
     while (1) {
+        INTVAL used_defcon = 0;
         INTVAL i;
 
         /* Did we reach the end of a tied group? If so, note we can only
@@ -977,19 +978,21 @@ Rakudo_md_ct_dispatch(PARROT_INTERP, PMC *dispatcher, PMC *capture, PMC **result
                     got_prim == BIND_VAL_INT ? Rakudo_types_int_get() :
                     got_prim == BIND_VAL_NUM ? Rakudo_types_num_get() :
                                                Rakudo_types_str_get();
-                
+
                 /* If we're here, it's a non-native. */
                 all_native = 0;
                 
                 /* Check type. If that doesn't rule it out, then check if it's
-                 * got definedness constraints. If it does, we can't decide. */
+                 * got definedness constraints. If it does, note that; if we
+                 * match but depend on definedness constraints we can't do
+                 * any more. */
                 if (type_obj != Rakudo_types_mu_get() &&
                         !STABLE(param)->type_check(interp, param, type_obj)) {
                     type_mismatch = 1;
                     break;
                 }
                 else if ((*cur_candidate)->type_flags[i] & DEFCON_MASK) {
-                    return MD_CT_NOT_SURE;
+                    used_defcon = 1;
                 }
             }
         }
@@ -997,7 +1000,9 @@ Rakudo_md_ct_dispatch(PARROT_INTERP, PMC *dispatcher, PMC *capture, PMC **result
             cur_candidate++;
             continue;
         }
-        
+        if (used_defcon)
+            return MD_CT_NOT_SURE;
+
         /* If it's possible but needs a bind check, we're not going to be
          * able to decide it. */
         if ((*cur_candidate)->bind_check)

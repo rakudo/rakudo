@@ -7,7 +7,7 @@ grammar Perl6::Grammar is HLL::Grammar {
     method TOP() {
         # Language braid.
         my %*LANG;
-        %*LANG<Regex>         := Perl6::Regex;
+        %*LANG<Regex>         := Perl6::RegexGrammar;
         %*LANG<Regex-actions> := Perl6::RegexActions;
         %*LANG<MAIN>          := Perl6::Grammar;
         %*LANG<MAIN-actions>  := Perl6::Actions;
@@ -441,11 +441,12 @@ grammar Perl6::Grammar is HLL::Grammar {
             $*PACKAGE := $*GLOBALish;
             
             # Install unless we've no setting, in which case we've likely no
-            # static lexpad class yet either.
+            # static lexpad class yet either. Also, UNIT needs a code object.
             unless %*COMPILING<%?OPTIONS><setting> eq 'NULL' {
                 $*ST.install_lexical_symbol($*UNIT, 'GLOBALish', $*GLOBALish);
                 $*ST.install_lexical_symbol($*UNIT, 'EXPORT', $*EXPORT);
                 $*ST.install_lexical_symbol($*UNIT, '$?PACKAGE', $*PACKAGE);
+                $*ST.create_code_object($*UNIT, 'Block', $*ST.create_signature([]));
             }
         }
         
@@ -1604,12 +1605,19 @@ grammar Perl6::Grammar is HLL::Grammar {
         <sym>
         :my %*RX;
         :my $*METHODTYPE := 'rule';
+        {
+            %*RX<s> := 1;
+            %*RX<r> := 1;
+        }
         <regex_def>
     }
     token regex_declarator:sym<token> {
         <sym>
         :my %*RX;
         :my $*METHODTYPE := 'token';
+        {
+            %*RX<r> := 1;
+        }
         <regex_def>
     }
     token regex_declarator:sym<regex> {
@@ -2599,7 +2607,7 @@ grammar Perl6::Grammar is HLL::Grammar {
     }
 }
 
-grammar Perl6::Regex is QRegex::P6Regex::Grammar {
+grammar Perl6::RegexGrammar is QRegex::P6Regex::Grammar {
     token metachar:sym<:my> {
         ':' <?before 'my'> <statement=.LANG('MAIN', 'statement')> <.ws> ';'
     }

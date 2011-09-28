@@ -31,6 +31,12 @@ my class EnumMap does Associative {
         )
     }
 
+    multi method perl(EnumMap:D:) {
+        'EnumMap.new('
+            ~ self.keys.map({ .perl ~ ', ' ~ self.at_key($_).perl ~ ', '}).join
+            ~ ')';
+    }
+
     method iterator() { self.pairs.iterator }
     method list() { self.pairs }
 

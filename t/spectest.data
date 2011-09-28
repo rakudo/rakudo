@@ -232,8 +232,8 @@ S05-capture/caps.t
 S05-capture/match-object.t
 # S05-capture/named.t # err: Method 'rxtype' not found for invocant of class 'PAST;Regex'
 # S05-capture/subrule.t # err: Method 'rxtype' not found for invocant of class 'PAST;Regex'
-# S05-grammar/action-stubs.t # err: Null PMC access in set_pmc_keyed()
-# S05-grammar/inheritance.t # err: Null PMC access in set_pmc_keyed()
+S05-grammar/action-stubs.t
+S05-grammar/inheritance.t
 S05-grammar/methods.t
 # S05-grammar/namespace.t # err: Null PMC access in set_pmc_keyed()
 # S05-grammar/parse_and_parsefile.t # err: Could not locate compile-time value for symbol No::Such::Grammar
@@ -241,7 +241,7 @@ S05-grammar/methods.t
 # S05-grammar/protos.t # err: Null PMC access in set_pmc_keyed()
 # S05-grammar/signatures.t # err: Null PMC access in set_pmc_keyed()
 # S05-grammar/ws.t # err: regex assertion not terminated by angle bracket
-# S05-interpolation/lexicals.t # err: Method 'rxtype' not found for invocant of class 'PAST;Regex'
+S05-interpolation/lexicals.t
 # S05-interpolation/regex-in-variable.t # err: Method 'rxtype' not found for invocant of class 'PAST;Regex'
 S05-mass/named-chars.t                                     # icu
 # S05-mass/properties-block.t # err: Method 'isInAlphabeticPresentationForms' not found for invocant of class 'Cursor'
@@ -298,7 +298,7 @@ S06-currying/assuming-and-mmd.t
 S06-currying/named.t
 S06-multi/lexical-multis.t
 S06-multi/positional-vs-named.t
-# S06-multi/proto.t # err: Illegal redeclaration of routine 'bar'
+S06-multi/proto.t
 S06-multi/syntax.t
 S06-multi/type-based.t
 S06-multi/value-based.t
@@ -337,6 +337,7 @@ S06-signature/tree-node-parameters.t
 S06-signature/type-capture.t
 # S06-signature/types.t # err: Malformed block
 S06-signature/unpack-array.t
+S06-signature/unpack-object.t
 S06-signature/unspecified.t
 S06-traits/as.t
 S06-traits/is-copy.t
@@ -385,6 +386,7 @@ S12-class/open.t
 S12-class/rw.t
 S12-class/self-inheritance.t
 # S12-class/stubs.t # err: use scoped variables not yet implemented
+S12-class/type-object.t
 S12-construction/autopairs.t
 S12-construction/BUILD.t
 S12-construction/construction.t
@@ -403,7 +405,7 @@ S12-introspection/parents.t
 S12-introspection/roles.t
 # S12-introspection/walk.t # err: Method 'WALK' not found for invocant of class 'E'
 S12-methods/attribute-params.t
-# S12-methods/calling_sets.t # err: Cannot access attributes in a type object
+S12-methods/calling_sets.t
 S12-methods/calling_syntax.t
 S12-methods/chaining.t
 S12-methods/class-and-instance.t
@@ -501,7 +503,7 @@ S32-io/dir.t
 # S32-io/chdir.t # err: Method 'd' not found for invocant of class 'Str'
 S32-io/file-tests.t
 S32-io/note.t
-# S32-io/IO-Socket-INET.t # err: Could not find sub &sleep
+S32-io/IO-Socket-INET.t
 S32-list/categorize.t
 S32-list/classify.t
 S32-list/create.t

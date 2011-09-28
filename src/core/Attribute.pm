@@ -98,4 +98,5 @@ my class Attribute {
     
     method has-accessor() { ?$!has_accessor }
     method readonly() { !self.rw }
+    multi method Str(Attribute:D:) { self.name }
 }

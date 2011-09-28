@@ -38,24 +38,28 @@ part of monthly Parrot releases.
   2011-01-20   Rakudo #37 "BristolBath"        (tadzik)
   2011-02-17   Rakudo #38 "Toulouse"           (arnsholt)
   2011-03-17   Rakudo #39 "Orlando"            (jdhore)
-  2011-04-21   Rakudo #40 "ZA"                 (duff) 
+  2011-04-21   Rakudo #40 "ZA"                 (duff)
+  2011-05-19   Rakudo #41 "Dahut"              (jdhore)
+  2011-06-23   Rakudo #42 "Bruxelles"          (jdhore)
+  2011-07-21   Rakudo #43 "Beijing"            (mberends,moritz)
+  2011-08-18    -- none --
+  2011-09-30   Rakudo #44 "Riga"               (tadzik)
 
 =head2 Planned 2011 releases
 
 Dates are based on Parrot's expected release schedule.
 
-  2011-05-19   Rakudo #41                      (jdhore)
-  2011-06-23   Rakudo #42                      -vacant-
-  2011-07-21   Rakudo #43                      -vacant-
-  2011-08-18   Rakudo #44                      -vacant-
-  2011-09-22   Rakudo #45                      -vacant-
-  2011-10-20   Rakudo #46                      -vacant-
-  2011-11-17   Rakudo #47                      -vacant-
-  2011-12-22   Rakudo #48                      -vacant-
+  2011-10-20   Rakudo #45                      (duff)
+  2011-11-17   Rakudo #46                      -vacant-
+  2011-12-22   Rakudo #47                      -vacant-
 
 =head2 Suggested .pm group names for future releases
 
- (none yet)
+  MadMongers    (YAPC::NA 2012)
+  Columbus      (YAPC::NA 2011, p6 track and hackathon)
+  Houston       (YAPC::NA 2007, p6 hackathon)
+  Brazos Valley (YAPC::NA 2007, p6 hackathon)
+  Toronto       (YAPC::NA 2005, p6 hackathon)
 
 More names can be gotten from L<http://www.pm.org> if you 
 can't think of one with any particular significance to Perl 
@@ -125,7 +129,7 @@ The short period following the Parrot release until the
 Rakudo release is generally intended for fixing bugs,
 updating documentation, and so on.
 
-=item 3.
+=item 4.
 
 Update Rakudo's leap-second tables:
 
@@ -139,7 +143,7 @@ commit the new version:
 But probably there won't be any new leap seconds, in which case the file
 will be unchanged.
 
-=item 4.
+=item 5.
 
 As the actual release date nears, review the git log history
 to see if any additional items need to be added to the ChangeLog.
@@ -147,7 +151,7 @@ This can be conveniently done with  "git log --since=yyyy-mm-dd --reverse".
 
   $ git commit docs/ChangeLog
 
-=item 5.
+=item 6.
 
 When it's time to cut the release, create a new release announcement
 in docs/announce/YYYY.MM.  It's often a good idea to use the
@@ -169,7 +173,7 @@ Please check the result manually for duplicates and other errors.
   $ git add docs/announce/YYYY.MM
   $ git commit docs
 
-=item 6.
+=item 7.
 
 Update the release dates and names at the top of this file
 (F<docs/release_guide.pod>).  Also improve these instructions if
@@ -177,7 +181,7 @@ you find any steps that are missing.
 
   $ git commit docs/release_guide.pod
 
-=item 7.
+=item 8.
 
 Make sure everything compiles and runs from a known clean state:
 
@@ -201,49 +205,49 @@ Often this means fixing a bug, fudging a test, or (temporarily?)
 commenting out a test file in t/spectest.data .  Use your best
 judgment or ask others if uncertain what to do here.
 
-=item 8. 
+=item 9. 
 
 Enter the new version into the F<VERSION> file, and commit the changes:
 
   $ echo 2010.09 > VERSION
   $ git commit -m '[release] bump VERSION' VERSION
 
-=item 9.
+=item 10.
 
 Make sure any locally modified files have been pushed back to github.
 
   $ git status
   $ git push
 
-=item 10.
+=item 11.
 
 Create a tarball by entering C<make release VERSION=YYYY.MM>,
 where YYYY.MM is the month for which the release is being made.
-This will create a tarball file named <rakudo-YYYY.MM.tar.gz>.
+This will create a tarball file named C<rakudo-YYYY.MM.tar.gz>.
 
 B<Caution>: this step removes any untracked files in F<t/spec>.
 So please make a backup if you have any important data in there.
 
-=item 11.
+=item 12.
 
 Unpack the tar file into another area, and test that it
 builds and runs properly using the same process in step 7.  
 If there are any problems, fix them and go back to step 7.
 
-=item 12.
+=item 13.
 
-Tag the release by its release month ("MMMM.YY") and its code name.
+Tag the release by its release month ("YYYY.MM") and its code name.
 
-  $ git tag -a -m"tag release #nn" MMMM.YY    # e.g., 2010.02
+  $ git tag -a -m"tag release #nn" YYYY.MM    # e.g., 2010.02
   $ git tag -a -m"tag release #nn" CODENAME   # e.g., "Bratislava"
   $ git push --tags
 
-=item 13.
+=item 14.
 
 Upload the release tarball to github's download area at
 L<http://github.com/rakudo/rakudo/downloads>.
 
-=item 14.
+=item 15.
 
 To avoid public confusion with Rakudo Star releases, we now publish 
 compiler release announcements ONLY to perl6-compiler@perl.org.  
@@ -251,11 +255,11 @@ compiler release announcements ONLY to perl6-compiler@perl.org.
 once they are known, or we may begin publishing a single
 announcement for both.)
 
-=item 15.
+=item 16.
 
 Update the Wikipedia entry at L<http://en.wikipedia.org/wiki/Rakudo>.
 
-=item 16.
+=item 17.
 
 You're done!  Celebrate with the appropriate amount of fun.
 

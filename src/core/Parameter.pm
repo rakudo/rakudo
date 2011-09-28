@@ -21,6 +21,11 @@ my class Parameter {
     method name() {
         $!variable_name
     }
+    
+    method constraints() {
+        pir::isnull($!post_constraints) ?? () !!
+            pir::perl6ize_type__PP($!post_constraints)
+    }
 
     method type() {
         $!nominal_type.HOW.name($!nominal_type)
@@ -31,7 +36,18 @@ my class Parameter {
     }
 
     method named_names() {
-        pir::perl6ize_type__PP($!named_names) // ().list
+        if !pir::isnull($!named_names) {
+            my Int $count = nqp::p6box_i(nqp::elems($!named_names));
+            my Int $i = 0;
+            my @res;
+            while $i < $count {
+                @res.push: nqp::p6box_s(nqp::atpos($!named_names, nqp::unbox_i($i)));
+                $i++;
+            }
+            @res;
+        } else {
+            ().list
+        }
     }
     
     method positional() {

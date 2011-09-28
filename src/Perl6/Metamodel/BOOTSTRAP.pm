@@ -781,6 +781,7 @@ pir::new__PsP('Perl6LexPad', hash()).configure_magicals(
 use QRegex;
 my stub Grammar metaclass Perl6::Metamodel::ClassHOW { ... };
 Perl6::Metamodel::GrammarHOW.set_default_parent_type(Grammar);
+Perl6::Metamodel::ClassHOW.add_stash(Grammar);
 
 # Export the metamodel bits to a Metamodel namespace so it's available
 # from user land.
@@ -789,6 +790,7 @@ Perl6::Metamodel::PackageHOW.add_stash(Metamodel);
 for Perl6::Metamodel.WHO {
     (Metamodel.WHO){$_.key} := $_.value;
 }
+
 
 # Build up EXPORT::DEFAULT.
 my module EXPORT {

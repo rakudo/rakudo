@@ -392,7 +392,10 @@ class Perl6::Actions is HLL::Actions {
                 my $ast := $_.ast;
                 if $ast {
                     if $ast<sink_past> {
-                        $ast := $ast<sink_past>;
+                        $ast := PAST::Want.new($ast, 'v', $ast<sink_past>);
+                    }
+                    elsif $ast<bare_block> {
+                        $ast := $ast<bare_block>;
                     }
                     $ast := PAST::Stmt.new($ast) if $ast ~~ PAST::Node;
                     $past.push( $ast );
@@ -1647,6 +1650,7 @@ class Perl6::Actions is HLL::Actions {
     method regex_def($/) {
         my $coderef;
         my $name := ~$<deflongname>[0];
+        %*RX<name> := $name;
 
         if $*MULTINESS eq 'proto' {
             $/.CURSOR.panic('protoregexes not yet implemented');
@@ -1693,7 +1697,7 @@ class Perl6::Actions is HLL::Actions {
         }
         
         # Install in needed scopes.
-        install_method($/, $name, $scope, $code, $outer);
+        install_method($/, $name, $scope, $code, $outer) if $name ne '';
 
         # Return a reference to the code object
         reference_to_code_object($code, $past);
@@ -2123,8 +2127,7 @@ class Perl6::Actions is HLL::Actions {
             unless %*PARAM_INFO<post_constraints> {
                 %*PARAM_INFO<post_constraints> := [];
             }
-            %*PARAM_INFO<post_constraints>.push(make_where_block(
-                $*ST.get_object_sc_ref_past($val)));
+            %*PARAM_INFO<post_constraints>.push($val);
         }
         else {
             $/.CURSOR.panic('Cannot do non-typename cases of type_constraint yet');
@@ -2725,7 +2728,7 @@ class Perl6::Actions is HLL::Actions {
         }
         else {
             $past := block_closure($past);
-            $past<sink_past> := PAST::Op.new(
+            $past<bare_block> := PAST::Op.new(
                 :pasttype('call'),
                 PAST::Val.new( :value($past<past_block>) ));
         }
@@ -4100,14 +4103,14 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions {
     }
 
     method metachar:sym<rakvar>($/) {
-        make PAST::Regex.new( '!INTERPOLATE', $<var>.ast,
-                              :pasttype<subrule>, :subtype<method>, :node($/));
+        make QAST::Regex.new( PAST::Node.new('INTERPOLATE', $<var>.ast),
+                              :rxtype<subrule>, :subtype<method>, :node($/));
     }
 
     method assertion:sym<{ }>($/) {
-        make PAST::Regex.new( '!INTERPOLATE',
-                 PAST::Op.new( :name<!MAKE_REGEX>, $<codeblock>.ast ),
-                 :pasttype<subrule>, :subtype<method>, :node($/));
+        make QAST::Regex.new( 
+                 PAST::Node.new('INTERPOLATE', PAST::Op.new( :name<&MAKE_REGEX>, $<codeblock>.ast )),
+                 :rxtype<subrule>, :subtype<method>, :node($/));
     }
 
     method assertion:sym<?{ }>($/) {
@@ -4117,9 +4120,9 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions {
     }
 
     method assertion:sym<var>($/) {
-        make PAST::Regex.new( '!INTERPOLATE',
-                 PAST::Op.new( :name<!MAKE_REGEX>, $<var>.ast ),
-                 :pasttype<subrule>, :subtype<method>, :node($/));
+        make QAST::Regex.new( 
+                 PAST::Node.new('INTERPOLATE', PAST::Op.new( :name<&MAKE_REGEX>, $<var>.ast )),
+                 :rxtype<subrule>, :subtype<method>, :node($/));
     }
 
     method codeblock($/) {

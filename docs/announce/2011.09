@@ -1,0 +1,83 @@
+    Announce: Rakudo Perl 6 compiler development release #44 ("Riga")
+
+On behalf of the Rakudo development team, I'm happy to announce the
+September 2011 release of Rakudo Perl #44 "Riga".  Rakudo is an 
+implementation of Perl 6 on the Parrot Virtual Machine (see 
+<http://www.parrot.org>). The tarball for this release
+is available from <http://github.com/rakudo/rakudo/downloads>.
+
+Please note: This announcement is not for the Rakudo Star distribution --
+it's announcing a new release of the compiler only.  For the latest
+Rakudo Star release, see <http://github.com/rakudo/star/downloads>.
+
+The Rakudo Perl compiler follows a monthly release cycle, with each release
+named after a Perl Mongers group. The September 2011 release is code named
+after the host city of the YAPC::EU 2011 conference, which included a
+very successful Perl 6 track and hackathon.
+
+This is the first compiler release from the latest development branch
+of Rakudo. It brings many exciting improvements, but also some
+regressions, which we are working on. If your primary interest is that
+your existing code running on Rakudo Perl continues to work, we
+suggest sticking with the Rakudo Star distribution release for a
+little longer. If instead you want to play with the latest in Rakudo
+development - including meta-programming and performance improvements
+- try this release.
+
+Some of the specific changes and improvements occurring with this
+release include:
+
+* numerous speedups
+* Int, Num and Str are now far more lightweight
+* int/num as attributes are stored compactly in the object body
+* meta objects are now much easier to modify
+* a Pod parser capable of attaching documentation to objects
+* --doc command line option producing formatted documentation
+* much more robust handling of infinite list
+* basic LoL (List of Lists) support
+* :U and :D type modifiers
+* improved handling of BEGIN phasers
+* protos and multis now conform to the new spec
+* improved enum support
+* basic 'constant' declarator
+* .WHAT and friends as macros
+* support for .gist
+* run() has been renamed to shell() to conform to current spec
+* hyper methods now descend into nested data structures
+* basic safe mode (through --seting=SAFE)
+* many bug fixes in parametric roles
+* a custom BUILD does not suppress default values
+* undeclared attributes detected and reported at compile time
+* basic support for native int/num types on lexical variables
+* a new regex engine
+
+We briefly regress on a few features since the previous release.
+Most notably, new regex engine has not implemented proto regexes
+yet, and only integer-based enums are available.
+
+For a more detailed list of changes, see "docs/ChangeLog".
+
+The development team thanks all of our contributors and sponsors for
+making Rakudo Perl possible, as well as those people who worked on 
+Parrot, the Perl 6 test suite and the specification.
+
+The following people contributed to this release:
+Jonathan Worthington, Moritz Lenz, Patrick R. Michaud, Tadeusz Sośnierz, Will
+"Coke" Coleda, Solomon Foster, Kodi Arfer, Carl Mäsak, Martin Berends, kboga,
+Jonathan Scott Duff, Michael Schröder, JD Horelick, TimToady, Arne Skjærholt,
+Kyle Hasselbacher, flussence, Dave Whipp, William Orr, Jimmy Zhuo, Andy
+Lester, Patrick Abi Salloum, Fitz Elliott, snarkyboojum, Ruslan Zakirov,
+Vasily Chekalkin, kristof, Stefan O'Rear, Geoff Broadwell, Martin
+Kjeldsen, supernovus, Timothy Totten, Felix Herrmann, Jarrod, mikehh,
+Michael Stapelberg, baest, Erik Johansen, bbkr
+
+If you would like to contribute, see <http://rakudo.org/how-to-help>, ask on
+the perl6-compiler@perl.org mailing list, or ask on IRC #perl6 on freenode.
+
+The next release of Rakudo (#45) is scheduled for October 20, 2011.
+A list of the other planned release dates and code names for 2011 is
+available in the "docs/release_guide.pod" file.  In general, Rakudo
+development releases are scheduled to occur two days after each
+Parrot monthly release.  Parrot releases the third Tuesday of each month.
+
+Have fun!

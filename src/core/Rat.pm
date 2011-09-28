@@ -15,7 +15,7 @@ my class Rat is Real {
         $new.BUILD($numerator, $denominator);
         $new;
     }
-    method BUILD(Int \$nu, Int \$de) {
+    submethod BUILD(Int \$nu, Int \$de) {
         $!numerator   = $nu;
         $!denominator = $de;
     }

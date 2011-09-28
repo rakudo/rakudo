@@ -21,7 +21,7 @@ class Buf does Positional {
         self;
     }
 
-    method at_key(Buf:D: Int:D $idx) {
+    method at_pos(Buf:D: Int:D $idx) {
         nqp::p6box_i(pir::set__IQi($!buffer, nqp::unbox_i($idx)));
     }
 
@@ -37,7 +37,7 @@ class Buf does Positional {
     method list() {
         my @l;
         for ^nqp::p6box_i(nqp::elems($!buffer)) -> $k {
-            @l.push: self.at_key($k);
+            @l.push: self.at_pos($k);
         }
         @l;
     }
@@ -94,11 +94,8 @@ multi sub infix:<~^>(Buf:D $a, Buf:D $b) {
     Buf.new(@xored-contents);
 }
 
-multi sub infix:«<=>»(Buf:D $a, Buf:D $b) {
-    [||] $a.list Z<=> $b.list or $a.elems <=> $b.elems
-}
 multi sub infix:<cmp>(Buf:D $a, Buf:D $b) {
-    $a <=> $b
+    [||] $a.list Z<=> $b.list or $a.elems <=> $b.elems
 }
 multi sub infix:<eq>(Buf:D $a, Buf:D $b) {
     $a.elems == $b.elems && $a.list eq $b.list
@@ -107,14 +104,14 @@ multi sub infix:<ne>(Buf:D $a, Buf:D $b) {
     not $a eq $b;
 }
 multi sub infix:<lt>(Buf:D $a, Buf:D $b) {
-    ($a <=> $b) == -1
+    ($a cmp $b) == -1
 }
 multi sub infix:<gt>(Buf:D $a, Buf:D $b) {
-    ($a <=> $b) ==  1
+    ($a cmp $b) ==  1
 }
 multi sub infix:<le>(Buf:D $a, Buf:D $b) {
-    ($a <=> $b) !=  1
+    ($a cmp $b) !=  1
 }
 multi sub infix:<ge>(Buf:D $a, Buf:D $b) {
-    ($a <=> $b) != -1
+    ($a cmp $b) != -1
 }

@@ -6,6 +6,9 @@ my class Exception {
     }
 
     method throw() {
+        nqp::bindattr(self, Exception, '$!ex', pir::new('Exception'))
+            unless pir::defined($!ex);
+        pir::setattribute__vPsP($!ex, 'payload', pir::perl6_decontainerize__PP(self));
         pir::throw__0P($!ex)
     }
     method rethrow() {
@@ -14,10 +17,16 @@ my class Exception {
 }
 
 sub EXCEPTION(|$) {
-    my $ex := nqp::create(Exception);
-    nqp::bindattr($ex, Exception, '$!ex', 
-        nqp::shift(pir::perl6_current_args_rpa__P()));
-    $ex;
+    my Mu $parrot_ex := nqp::shift(pir::perl6_current_args_rpa__P());
+    my Mu $payload   := nqp::atkey($parrot_ex, 'payload');
+    if nqp::p6bool(pir::type_check__IPP($payload, Exception)) {
+        nqp::bindattr($payload, Exception, '$!ex', $parrot_ex);
+        $payload;
+    } else {
+        my $ex := nqp::create(Exception);
+        nqp::bindattr($ex, Exception, '$!ex', $parrot_ex);
+        $ex;
+    }
 }
 
 

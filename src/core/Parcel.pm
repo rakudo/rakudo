@@ -9,6 +9,7 @@ my class Parcel does Positional {
 #    multi method Int(Parcel:D:)            { self.flat.elems }
     multi method ACCEPTS(Parcel:D: $topic) { self.list.ACCEPTS($topic) }
 
+    method Parcel()  { self }
     method Capture() {
         my $cap := nqp::create(Capture);
         nqp::bindattr($cap, Capture, '$!list', $!storage);

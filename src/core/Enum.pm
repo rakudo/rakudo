@@ -32,6 +32,10 @@ my class Enum {
     method fmt($format = "%s\t%s") {
         sprintf($format, $.key, $.value);
     }
+    
+    method at_key($key) {
+        $key eq $!key ?? $!value !! Mu
+    }
 }
 
 multi sub infix:<eqv>(Enum:D $a, Enum:D $b) {

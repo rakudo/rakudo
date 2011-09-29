@@ -231,38 +231,86 @@ multi prefix:<->(num $a) {
 multi prefix:<abs>(Num:D \$a) {
     nqp::p6box_n(nqp::abs_n(nqp::unbox_n($a)))
 }
+multi prefix:<abs>(num $a) {
+    nqp::want(
+        nqp::p6box_n(nqp::abs_n($a)),
+        'Nn', nqp::abs_n($a)
+    );
+}
 
 multi infix:<+>(Num:D \$a, Num:D \$b) {
     nqp::p6box_n(nqp::add_n(nqp::unbox_n($a), nqp::unbox_n($b)))
+}
+multi infix:<+>(num $a, num $b) {
+    nqp::want(
+        nqp::p6box_n(nqp::add_n($a, $b)),
+        'Nn', nqp::add_n($a, $b)
+    );
 }
 
 multi infix:<->(Num:D \$a, Num:D \$b) {
     nqp::p6box_n(nqp::sub_n(nqp::unbox_n($a), nqp::unbox_n($b)))
 }
+multi infix:<->(num $a, num $b) {
+    nqp::want(
+        nqp::p6box_n(nqp::sub_n($a, $b)),
+        'Nn', nqp::sub_n($a, $b)
+    );
+}
 
 multi infix:<*>(Num:D \$a, Num:D \$b) {
     nqp::p6box_n(nqp::mul_n(nqp::unbox_n($a), nqp::unbox_n($b)))
+}
+multi infix:<*>(num \$a, num \$b) {
+    nqp::want(
+        nqp::p6box_n(nqp::mul_n($a, $b)),
+        'Nn', nqp::mul_n($a, $b)
+    );
 }
 
 multi infix:</>(Num:D \$a, Num:D \$b) {
     nqp::p6box_n(nqp::div_n(nqp::unbox_n($a), nqp::unbox_n($b)))
 }
+multi infix:</>(num $a, num $b) {
+    nqp::want(
+        nqp::p6box_n(nqp::div_n($a, $b)),
+        'Nn', nqp::div_n($a, $b)
+    );
+}
 
 multi infix:<%>(Num:D \$a, Num:D \$b) {
     nqp::p6box_n(nqp::mod_n(nqp::unbox_n($a), nqp::unbox_n($b)))
+}
+multi infix:<%>(num $a, num $b) {
+    nqp::want(
+        nqp::p6box_n(nqp::mod_n($a, $b)),
+        'Nn', nqp::mod_n($a, $b)
+    );
 }
 
 multi infix:<**>(Num:D \$a, Num:D \$b) {
     nqp::p6box_n(nqp::pow_n(nqp::unbox_n($a), nqp::unbox_n($b)))
 }
+multi infix:<**>(num $a, num $b) {
+    nqp::want(
+        nqp::p6box_n(nqp::pow_n($a, $b)),
+        'Nn', nqp::pow_n($a, $b)
+    );
+}
 
 
 multi infix:<cmp>(Num:D \$a, Num:D \$b) {
-    nqp::p6box_n(nqp::cmp_n(nqp::unbox_n($a), nqp::unbox_n($b)))
+    nqp::p6box_i(nqp::cmp_n(nqp::unbox_n($a), nqp::unbox_n($b)))
+}
+multi infix:<cmp>(num $a, num $b) {
+    nqp::want(
+        nqp::p6box_i(nqp::cmp_n($a, $b)),
+        'Ii', nqp::cmp_n($a, $b)
+    );
 }
 
 multi infix:«<=>»(Num:D \$a, Num:D \$b) {
-    nqp::p6box_n(nqp::cmp_n(nqp::unbox_n($a), nqp::unbox_n($b)))
+    nqp::p6box_i(nqp::cmp_n(nqp::unbox_n($a), nqp::unbox_n($b)))
 }
 
 multi infix:<===>(Num:D \$a, Num:D \$b) {

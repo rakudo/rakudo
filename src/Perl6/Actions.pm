@@ -2304,7 +2304,9 @@ class Perl6::Actions is HLL::Actions {
         unless $past.isa(PAST::Op) && $past.pasttype() eq 'callmethod' {
             $/.CURSOR.panic("Cannot use " ~ $<sym>.Str ~ " on a non-identifier method call");
         }
-        $past.unshift($*ST.add_string_constant($past.name));
+        $past.unshift(pir::isa($past.name, 'String') ??
+            $*ST.add_string_constant($past.name) !!
+            $past.name);
         $past.name('dispatch:<' ~ ~$<sym> ~ '>');
         make $past;
     }

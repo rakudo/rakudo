@@ -2339,6 +2339,10 @@ class Perl6::Actions is HLL::Actions {
                 }
             }
             else {
+                unless pir::can($*PACKAGE.HOW, 'find_private_method') {
+                    $/.CURSOR.panic("Private method call to '$name' must be fully " ~
+                        "qualified with the package containing the method");
+                }
                 $past.unshift($*ST.get_object_sc_ref_past($*PACKAGE));
                 $past.unshift($*ST.add_string_constant($name));
             }

@@ -93,7 +93,7 @@ class Range is Iterable does Positional {
                 goto loop
               done:
                 $P0 = perl6_box_num value
-                '&infix:<=>'(value_pmc, $P0)
+                perl6_container_store value_pmc, $P0
                 %r = rpa
             };
         }    

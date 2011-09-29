@@ -78,6 +78,11 @@ static INTVAL is_narrower(PARROT_INTERP, Rakudo_md_candidate_info *a, Rakudo_md_
                     (!PMC_IS_NULL(a->constraints[i]) && !PMC_IS_NULL(b->constraints[i])))
                 tied++;
         }
+        else if ((a->type_flags[i] & TYPE_NATIVE_MASK) && !(b->type_flags[i] & TYPE_NATIVE_MASK))
+        {
+            /* Narrower because natives always are. */
+            narrower++;
+        }
         else {
             if (STABLE(type_obj_a)->type_check(interp, type_obj_a, type_obj_b)) {
                 /* Narrower - note it and we're done. */
@@ -926,7 +931,7 @@ Rakudo_md_ct_dispatch(PARROT_INTERP, PMC *dispatcher, PMC *capture, PMC **result
          * typed candidates in which case we can look a bit further.
          * We also exit if we found something. */
         if (*cur_candidate == NULL) {
-            if (cur_candidate[1] && all_native && !PMC_IS_NULL(cur_result)) {
+            if (cur_candidate[1] && all_native && PMC_IS_NULL(cur_result)) {
                 cur_candidate++;
                 continue;
             }

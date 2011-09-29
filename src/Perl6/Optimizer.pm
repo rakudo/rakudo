@@ -145,20 +145,7 @@ class Perl6::Optimizer {
                                 !! self.call_ct_chosen_multi($op, $obj, $chosen);
                         }
                         elsif @ct_result[0] == -1 {
-                            my @arg_names;
-                            my $i := 0;
-                            while $i < +@types {
-                                @arg_names.push(
-                                    @flags[$i] == 1 ?? 'int' !!
-                                    @flags[$i] == 2 ?? 'num' !!
-                                    @flags[$i] == 3 ?? 'str' !!
-                                    @types[$i].HOW.name(@types[$i]));
-                                $i := $i + 1;
-                            }
-                            self.add_deadly($op, "Dispatch to '" ~ $obj.name ~
-                                "' could never work with the arguments of types (" ~
-                                pir::join(', ', @arg_names) ~
-                                ')');
+                            self.report_innevitable_dispatch_failure($op, @types, @flags, $obj);
                         }
                     }
                     
@@ -166,9 +153,26 @@ class Perl6::Optimizer {
                     if $op.pasttype eq 'chain' { $!chain_depth := $!chain_depth - 1 }
                     return self.inline_proto($op, $obj);
                 }
-                else {
+                elsif pir::can($obj, 'signature') {
                     # It's an only; we can at least know the return type.
                     $op.type($obj.returns) if pir::can($obj, 'returns');
+                    
+                    # If we know enough about the arguments, do a "trial bind".
+                    my @ct_arg_info := analyze_args_for_ct_call($op);
+                    if +@ct_arg_info {
+                        my @types := @ct_arg_info[0];
+                        my @flags := @ct_arg_info[1];
+                        my $ct_result := pir::perl6_trial_bind_ct__IPPP($obj.signature, @types, @flags);
+                        if $ct_result == 1 {
+                            if $op.pasttype eq 'chain' { $!chain_depth := $!chain_depth - 1 }
+                            return pir::can($obj, 'inline_info') && $obj.inline_info ne ''
+                                ?? self.inline_call($op, $obj)
+                                !! $op;
+                        }
+                        elsif $ct_result == -1 {
+                            self.report_innevitable_dispatch_failure($op, @types, @flags, $obj);
+                        }
+                    }
                 }
             }
             else {
@@ -223,6 +227,23 @@ class Perl6::Optimizer {
             }
         }
         [@types, @flags]
+    }
+    
+    method report_innevitable_dispatch_failure($op, @types, @flags, $obj) {
+        my @arg_names;
+        my $i := 0;
+        while $i < +@types {
+            @arg_names.push(
+                @flags[$i] == 1 ?? 'int' !!
+                @flags[$i] == 2 ?? 'num' !!
+                @flags[$i] == 3 ?? 'str' !!
+                @types[$i].HOW.name(@types[$i]));
+            $i := $i + 1;
+        }
+        self.add_deadly($op, "Dispatch to '" ~ $obj.name ~
+            "' could never work with the arguments of types (" ~
+            pir::join(', ', @arg_names) ~
+            ')');
     }
     
     # Visits all of a nodes children, and dispatches appropriately.

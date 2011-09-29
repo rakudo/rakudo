@@ -312,8 +312,9 @@ Parameter.HOW.add_method(Parameter, 'is_generic', sub ($self) {
         my $type := pir::getattribute__PPPs($self, Parameter, '$!nominal_type');
         pir::perl6_booleanize__PI($type.HOW.archetypes.generic)
     });
-my $SIG_ELEM_IS_RW   := 256;
-my $SIG_ELEM_IS_COPY := 512;
+my $SIG_ELEM_IS_RW           := 256;
+my $SIG_ELEM_IS_COPY         := 512;
+my $SIG_ELEM_IS_OPTIONAL     := 2048;
 my $SIG_ELEM_NOMINAL_GENERIC := 524288;
 Parameter.HOW.add_method(Parameter, 'instantiate_generic', sub ($self, $type_environment) {
         # Clone with the type instantiated.
@@ -342,6 +343,14 @@ Parameter.HOW.add_method(Parameter, 'set_copy', sub ($self) {
         if $cd { $cd.set_rw(1) }
         pir::repr_bind_attr_int__0PPsI($dcself, Parameter, '$!flags',
             pir::repr_get_attr_int__IPPs($dcself, Parameter, '$!flags') + $SIG_ELEM_IS_COPY);
+    });
+Parameter.HOW.add_method(Parameter, 'set_required', sub ($self) {
+        my $dcself := pir::perl6_decontainerize__PP($self);
+        my $flags := pir::repr_get_attr_int__IPPs($dcself, Parameter, '$!flags');
+        if $flags +& $SIG_ELEM_IS_OPTIONAL {
+            pir::repr_bind_attr_int__0PPsI($dcself, Parameter, '$!flags',
+                $flags - $SIG_ELEM_IS_OPTIONAL);
+        }
     });
 Parameter.HOW.add_method(Parameter, 'set_coercion', sub ($self, $type) {
         my $dcself := pir::perl6_decontainerize__PP($self);

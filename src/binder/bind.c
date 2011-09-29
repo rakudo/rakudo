@@ -991,7 +991,54 @@ Rakudo_binding_bind(PARROT_INTERP, PMC *lexpad, PMC *sig_pmc, PMC *capture,
 /* Compile time trial binding; tries to determine at compile time whether
  * certain binds will/won't work. */
 INTVAL Rakudo_binding_trial_bind(PARROT_INTERP, PMC *sig_pmc, PMC *capture) {
-    /* TODO: Implement this! */
+    INTVAL            i, num_pos_args;
+    INTVAL            cur_pos_arg = 0;
+    Rakudo_Signature *sig         = (Rakudo_Signature *)PMC_data(sig_pmc);
+    PMC              *params      = sig->params;
+    INTVAL            num_params  = VTABLE_elements(interp, params);
+
+    /* Grab arguments. */
+    struct Pcc_cell * pc_positionals = NULL;
+    if (capture->vtable->base_type == enum_class_CallContext)
+        GETATTR_CallContext_positionals(interp, capture, pc_positionals);
+    else
+        return TRIAL_BIND_NOT_SURE;
+
+    /* Set up statics. */
+    if (!smo_id)
+        setup_binder_statics(interp);
+        
+    /* Walk through the signature and consider the parameters. */
+    num_pos_args = VTABLE_elements(interp, capture);
+    for (i = 0; i < num_params; i++) {
+        Rakudo_Parameter *param = (Rakudo_Parameter *)PMC_data(
+                VTABLE_get_pmc_keyed_int(interp, params, i));
+        
+        /* If the parameter is anything other than a boring old
+         * required positional parameter, we won't analyze it. */
+        if (param->flags & ~(
+                SIG_ELEM_MULTI_INVOCANT | SIG_ELEM_IS_PARCEL |
+                SIG_ELEM_IS_COPY | SIG_ELEM_ARRAY_SIGIL |
+                SIG_ELEM_HASH_SIGIL | SIG_ELEM_NATIVE_VALUE))
+            return TRIAL_BIND_NOT_SURE;
+
+        /* Did we pass too few required arguments? If so, fail. */
+        if (cur_pos_arg >= num_pos_args)
+            return TRIAL_BIND_NO_WAY;
+            
+        /* Otherwise, need to consider type. */
+        /* XXX TODO. */
+
+        /* Continue to next argument. */
+        cur_pos_arg++;
+    }
+
+    /* If we have any left over arguments, it's a binding fail. */
+    if (cur_pos_arg < num_pos_args)
+        return TRIAL_BIND_NO_WAY;
+
+    /* Otherwise, if we get there, all is well. */
+    /* XXX TODO: Change to accepted, once type analysis done. */
     return TRIAL_BIND_NOT_SURE;
 }
 

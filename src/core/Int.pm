@@ -83,6 +83,9 @@ multi prefix:<abs>(Int \$a) {
 multi infix:<+>(Int \$a, Int \$b) {
     nqp::p6box_i(nqp::add_i(nqp::unbox_i($a), nqp::unbox_i($b)))
 }
+multi infix:<+>(int $a, int $b) {
+    nqp::add_i($a, $b)
+}
 
 multi infix:<->(Int \$a, Int \$b) {
     nqp::p6box_i(nqp::sub_i(nqp::unbox_i($a), nqp::unbox_i($b)))
@@ -138,6 +141,9 @@ multi infix:<!=>(Int:D \$a, Int:D \$b) {
 
 multi infix:«<»(Int:D \$a, Int:D \$b) {
     nqp::p6bool(nqp::islt_i(nqp::unbox_i($a), nqp::unbox_i($b)))
+}
+multi infix:«<»(int $a, int $b) {
+    nqp::p6bool(nqp::islt_i($a, $b))
 }
 
 multi infix:«<=»(Int:D \$a, Int:D \$b) {

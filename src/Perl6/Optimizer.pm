@@ -110,6 +110,9 @@ class Perl6::Optimizer {
                 !($op[1].isa(PAST::Op) && $op[1].pasttype eq 'chain');
         }
         
+        # Visit the children.
+        self.visit_children($op);
+        
         # Calls are especially interesting as we may wish to do some
         # kind of inlining.
         if ($pasttype eq 'call' || $pasttype eq '') && $op.name ne '' {
@@ -128,45 +131,11 @@ class Perl6::Optimizer {
                 my $dispatcher;
                 try { if $obj.is_dispatcher { $dispatcher := 1 } }
                 if $dispatcher {
-                    # Visit the children.
-                    self.visit_children($op);
-                    
                     # Try to do compile-time multi-dispatch.
-                    my @types;
-                    my @flags;
-                    my $possible := 1;
-                    for @($op) {
-                        # Can't cope with flattening or named.
-                        if $_.flat || $_.named ne '' {
-                            $possible := 0;
-                            last;
-                        }
-                        
-                        # See if we know the node's type.
-                        if $_<boxable_native> {
-                            @types.push(nqp::null());
-                            @flags.push($_<boxable_native>);
-                        }
-                        elsif pir::can__IPs($_, 'type') && !pir::isnull__IP($_.type) {
-                            my $type := $_.type();
-                            if pir::isa($type, 'Undef') {
-                                $possible := 0;
-                            }
-                            elsif $type.HOW.archetypes.generic {
-                                $possible := 0;
-                            }
-                            else {
-                                my $prim := pir::repr_get_primitive_type_spec__IP($type);
-                                @types.push($type);
-                                @flags.push($prim);
-                            }
-                        }
-                        else {
-                            $possible := 0;
-                            last;
-                        }
-                    }
-                    if $possible {
+                    my @ct_arg_info := analyze_args_for_ct_call($op);
+                    if +@ct_arg_info {
+                        my @types := @ct_arg_info[0];
+                        my @flags := @ct_arg_info[1];
                         my @ct_result := pir::perl6_multi_dispatch_ct__PPPP($obj, @types, @flags);
                         if @ct_result[0] == 1 {
                             my $chosen := @ct_result[1];
@@ -199,7 +168,6 @@ class Perl6::Optimizer {
                 }
                 else {
                     # It's an only; we can at least know the return type.
-                    # XXX Consider inlining it too.
                     $op.type($obj.returns) if pir::can($obj, 'returns');
                 }
             }
@@ -213,12 +181,48 @@ class Perl6::Optimizer {
             }
         }
         
-        # If we end up here, just visit children and leave op as is.
-        self.visit_children($op);
+        # If we end up here, just leave op as is.
         if $op.pasttype eq 'chain' {
             $!chain_depth := $!chain_depth - 1;
         }
         $op
+    }
+    
+    # Checks arguments to see if we're going to be able to do compile
+    # time analysis of the call.
+    sub analyze_args_for_ct_call($op) {
+        my @types;
+        my @flags;
+        for @($op) {
+            # Can't cope with flattening or named.
+            if $_.flat || $_.named ne '' {
+                return [];
+            }
+            
+            # See if we know the node's type.
+            if $_<boxable_native> {
+                @types.push(nqp::null());
+                @flags.push($_<boxable_native>);
+            }
+            elsif pir::can__IPs($_, 'type') && !pir::isnull__IP($_.type) {
+                my $type := $_.type();
+                if pir::isa($type, 'Undef') {
+                    return [];
+                }
+                elsif $type.HOW.archetypes.generic {
+                    return [];
+                }
+                else {
+                    my $prim := pir::repr_get_primitive_type_spec__IP($type);
+                    @types.push($type);
+                    @flags.push($prim);
+                }
+            }
+            else {
+                return [];
+            }
+        }
+        [@types, @flags]
     }
     
     # Visits all of a nodes children, and dispatches appropriately.

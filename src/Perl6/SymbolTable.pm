@@ -1119,7 +1119,10 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
     method add_numeric_constant($type, $value) {
         my $const := self.add_constant($type, nqp::lc($type), $value);
         my $tflag := $type eq 'Int' ?? 'Ii' !! 'Nn';
-        my $past  := PAST::Want.new($const, $tflag, $value);
+        my $past  := PAST::Want.new($const, $tflag,
+            $value eq 'Inf' || $value eq '-Inf' || $value eq 'NaN' ??
+                PAST::Op.new( :pirop('set Ns'), ~$value ) !!
+                $value);
         $past<has_compile_time_value> := 1;
         $past<compile_time_value>     := $const<compile_time_value>;
         if $type eq 'Int' {

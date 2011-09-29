@@ -21,6 +21,8 @@ INIT {
         find_method  => 'find_method__PPs',
         create       => 'repr_instance_of__PP',
         exit         => 'exit__vi',
+        
+        want         => nqp::hash('WHAT', PAST::Want),
     );
 }
 
@@ -1528,12 +1530,19 @@ class Perl6::Actions is HLL::Actions {
                 }
                 "PIROP " ~ $node.pirop ~ " ( " ~ pir::join(' ', @children) ~ " )"
             }
+            elsif $node.isa(PAST::Want) && +@($node) == 3 {
+                my %backup := nqp::clone(%arg_used);
+                my $normal := $node_walker($node[0]);
+                %arg_used := %backup;
+                my $typed  := $node_walker($node[2]);
+                "WANT ( " ~ $normal ~ " WANTSPEC " ~ ~$node[1] ~ " " ~ $typed ~ " )"
+            }
             else {
                 return 0;
             }
         };
         my $inline_info := $node_walker($stmt);
-        
+
         # Attach inlining information.
         $*ST.apply_trait('&trait_mod:<is>', $code,
             ($*ST.add_string_constant($inline_info))<compile_time_value>,
@@ -1674,7 +1683,9 @@ class Perl6::Actions is HLL::Actions {
                 # It's a low-level op or method call.
                 $past.isa(PAST::Op) && ($past.pirop() || $past.pasttype eq 'callmethod') ||
                 # Just a variable lookup.
-                $past.isa(PAST::Var);
+                $past.isa(PAST::Var) ||
+                # Just a PAST::Want
+                $past.isa(PAST::Want);
             for @($past) {
                 if pir::isa($_, PAST::Node) {
                     if !returnless_past($_) {
@@ -2646,6 +2657,9 @@ class Perl6::Actions is HLL::Actions {
     method term:sym<nqp::op>($/) {
         my $op    := ~$<op>;
         my $args  := $<args> ?? $<args>[0].ast.list !! [];
+        if $op eq 'want' {
+            $args[1] := compile_time_value_str($args[1], 'want specification', $/);
+        }
         my $past  := PAST::Node.'map_node'(|$args, :map<nqp>, :op($op),
                                            :node($/));
 

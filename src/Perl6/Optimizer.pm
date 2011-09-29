@@ -337,6 +337,15 @@ class Perl6::Optimizer {
                     pir::die("INTERNAL ERROR: Inline corrupt; expected ')'");
                 }
             }
+            elsif $cur_tok eq 'WANT' {
+                @stack.push(PAST::Want.new());
+                unless @tokens.shift() eq '(' {
+                    pir::die("INTERNAL ERROR: Inline corrupt; expected ')'");
+                }
+            }
+            elsif $cur_tok eq 'WANTSPEC' {
+                @stack[+@stack - 1].push(~@tokens.shift());
+            }
             else {
                 pir::die("INTERNAL ERROR: Unexpected inline token: " ~ $cur_tok);
                 return $call;

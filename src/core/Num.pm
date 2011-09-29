@@ -221,6 +221,12 @@ multi postfix:<-->(Num:U \$a is rw) {   # XXX
 multi prefix:<->(Num:D \$a) {
     nqp::p6box_n(nqp::neg_n(nqp::unbox_n($a)))
 }
+multi prefix:<->(num $a) {
+    nqp::want(
+        nqp::p6box_n(nqp::neg_n($a)),
+        'Nn', nqp::neg_n($a),
+    );
+}
 
 multi prefix:<abs>(Num:D \$a) {
     nqp::p6box_n(nqp::abs_n(nqp::unbox_n($a)))

@@ -214,9 +214,10 @@ my class Mu {
     
     method dispatch:<!>($name, Mu $type, *@pos, *%named) {
         my $meth := $type.HOW.find_private_method($type, $name);
-        nqp::isnull($meth) ??
-            die("Private method '$name' not found on type " ~ $type.HOW.name($type)) !!
-            $meth(self, |@pos, |%named)
+        $meth ??
+            $meth(self, |@pos, |%named) !!
+            die("Private method '$name' not found on type " ~ $type.HOW.name($type))
+            
     }
     
     method dispatch:<.^>($name, *@pos, *%named) {

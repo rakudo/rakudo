@@ -8,6 +8,9 @@ class Perl6::Optimizer {
     # Tracks the nested blocks we're in; it's the lexical chain, essentially.
     has @!block_stack;
     
+    # How deep a chain we're in, for chaining operators.
+    has $!chain_depth;
+    
     # Unique ID for topic ($_) preservation registers.
     has $!pres_topic_counter;
     
@@ -23,6 +26,7 @@ class Perl6::Optimizer {
     method optimize($past, *%adverbs) {
         # Initialize.
         @!block_stack := [$past];
+        $!chain_depth := 0;
         $!pres_topic_counter := 0;
         %!deadly := nqp::hash();
         %!worrying := nqp::hash();
@@ -98,8 +102,11 @@ class Perl6::Optimizer {
     method visit_op($op) {
         # A chain with exactly two children can become the op itself.
         my $pasttype := $op.pasttype;
-        if $pasttype eq 'chain' && $op.name ne '' && +@($op) == 2 {
-            $pasttype := 'call';
+        if $pasttype eq 'chain' {
+            $!chain_depth := $!chain_depth + 1;
+            $pasttype := 'call' if $!chain_depth == 1 &&
+                !($op[0].isa(PAST::Op) && $op[0].pasttype eq 'chain') &&
+                !($op[1].isa(PAST::Op) && $op[1].pasttype eq 'chain');
         }
         
         # Calls are especially interesting as we may wish to do some
@@ -162,6 +169,7 @@ class Perl6::Optimizer {
                         my @ct_result := pir::perl6_multi_dispatch_ct__PPPP($obj, @types, @flags);
                         if @ct_result[0] == 1 {
                             my $chosen := @ct_result[1];
+                            if $op.pasttype eq 'chain' { $!chain_depth := $!chain_depth - 1 }
                             return pir::can($chosen, 'inline_info') && $chosen.inline_info ne ''
                                 ?? self.inline_call($op, $chosen)
                                 !! self.call_ct_chosen_multi($op, $obj, $chosen);
@@ -185,6 +193,7 @@ class Perl6::Optimizer {
                     }
                     
                     # Otherwise, inline the proto.
+                    if $op.pasttype eq 'chain' { $!chain_depth := $!chain_depth - 1 }
                     return self.inline_proto($op, $obj);
                 }
             }
@@ -200,6 +209,9 @@ class Perl6::Optimizer {
         
         # If we end up here, just visit children and leave op as is.
         self.visit_children($op);
+        if $op.pasttype eq 'chain' {
+            $!chain_depth := $!chain_depth - 1;
+        }
         $op
     }
     

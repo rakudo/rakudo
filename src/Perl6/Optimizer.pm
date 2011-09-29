@@ -96,9 +96,14 @@ class Perl6::Optimizer {
     # Called when we encounter a PAST::Op in the tree. Produces either
     # the op itself or some replacement opcode to put in the tree.
     method visit_op($op) {
+        # A chain with exactly two children can become the op itself.
+        my $pasttype := $op.pasttype;
+        if $pasttype eq 'chain' && $op.name ne '' && +@($op) == 2 {
+            $pasttype := 'call';
+        }
+        
         # Calls are especially interesting as we may wish to do some
         # kind of inlining.
-        my $pasttype := $op.pasttype;
         if ($pasttype eq 'call' || $pasttype eq '') && $op.name ne '' {
             # See if we can find the thing we're going to call.
             my $obj;
@@ -308,6 +313,7 @@ class Perl6::Optimizer {
             :pirop('perl6_multi_dispatch_thunk PP'),
             PAST::Var.new( :name($call.name), :scope('lexical_6model') )));
         $call.name(nqp::null());
+        $call.pasttype('call');
         $call
     }
     
@@ -354,6 +360,7 @@ class Perl6::Optimizer {
                     PAST::Var.new( :name($call.name), :scope('lexical_6model') ),
                     $idx));
                 $call.name(nqp::null());
+                $call.pasttype('call');
                 #say("# Compile-time resolved a call to " ~ $proto.name);
                 last;
             }

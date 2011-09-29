@@ -84,7 +84,8 @@ multi infix:<+>(Int \$a, Int \$b) {
     nqp::p6box_i(nqp::add_i(nqp::unbox_i($a), nqp::unbox_i($b)))
 }
 multi infix:<+>(int $a, int $b) {
-    nqp::add_i($a, $b)
+    nqp::want(nqp::p6box_i(nqp::add_i($a, $b)),
+        'IiNn', nqp::add_i($a, $b))
 }
 
 multi infix:<->(Int \$a, Int \$b) {

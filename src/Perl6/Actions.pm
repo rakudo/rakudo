@@ -1515,6 +1515,12 @@ class Perl6::Actions is HLL::Actions {
                     return 0;
                 }
             }
+            elsif $node<boxable_native> && +@($node) == 3 {
+                my $try := $node[2];
+                return 0 if pir::isa($try, 'Integer') || pir::isa($try, 'Float') ||
+                    pir::isa($try, 'String') || !$try.isa(PAST::Var);
+                $node_walker($try)
+            }
             elsif $node.isa(PAST::Op) && $node.pirop {
                 my @children;
                 for @($node) {

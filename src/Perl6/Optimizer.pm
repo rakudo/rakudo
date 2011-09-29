@@ -34,6 +34,7 @@ class Perl6::Optimizer {
         # We'll start walking over UNIT (we wouldn't find it by going
         # over OUTER since we don't walk loadinits).
         my $unit := $past<UNIT>;
+        my $*GLOBALish := $past<GLOBALish>;
         unless $unit.isa(PAST::Block) {
             pir::die("Optimizer could not find UNIT");
         }
@@ -195,6 +196,11 @@ class Perl6::Optimizer {
                     # Otherwise, inline the proto.
                     if $op.pasttype eq 'chain' { $!chain_depth := $!chain_depth - 1 }
                     return self.inline_proto($op, $obj);
+                }
+                else {
+                    # It's an only; we can at least know the return type.
+                    # XXX Consider inlining it too.
+                    $op.type($obj.returns) if pir::can($obj, 'returns');
                 }
             }
             else {
@@ -369,6 +375,7 @@ class Perl6::Optimizer {
         if $call.named ne '' {
             @stack[0].named($call.named);
         }
+        @stack[0].type($code_obj.returns) if pir::can($code_obj, 'returns');
         #say("# inlined a call to " ~ $call.name);
         @stack[0]
     }
@@ -390,6 +397,7 @@ class Perl6::Optimizer {
             }
             $idx := $idx + 1;
         }
+        $call.type($chosen.returns) if pir::can($chosen, 'returns');
         $call
     }
     

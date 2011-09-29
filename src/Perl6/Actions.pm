@@ -209,6 +209,7 @@ class Perl6::Actions is HLL::Actions {
         }
 
         $outer<UNIT> := $unit;
+        $outer<GLOBALish> := $*GLOBALish;
         make $outer;
     }
 

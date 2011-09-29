@@ -718,6 +718,7 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
         # Create code object now.
         my $type_obj  := self.find_symbol([$type]);
         my $code_type := self.find_symbol(['Code']);
+        my $slp_type  := self.find_symbol(['StaticLexPad']);
         my $code      := pir::repr_instance_of__PP($type_obj);
         my $slot      := self.add_object($code);
         
@@ -737,7 +738,7 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
             $p6_pns{'GLOBAL'} := $*GLOBALish;
             
             # Compile the block.
-            $precomp := self.compile_in_context($code_past, $code_type);
+            $precomp := self.compile_in_context($code_past, $code_type, $slp_type);
 
             # Also compile the candidates if this is a proto.
             if $is_dispatcher {
@@ -745,7 +746,7 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
                     my $stub := nqp::getattr($_, $code_type, '$!do');
                     my $past := pir::getprop__PsP('PAST_BLOCK', $stub);
                     if $past {
-                        self.compile_in_context($past, $code_type);
+                        self.compile_in_context($past, $code_type, $slp_type);
                     }
                 }
             }
@@ -950,7 +951,7 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
     # Takes a PAST::Block and compiles it for running during "compile time".
     # We need to do this for BEGIN but also for things that get called in
     # the compilation process, like user defined traits.
-    method compile_in_context($past, $code_type) {
+    method compile_in_context($past, $code_type, $slp_type) {
         # Ensure that we have the appropriate op libs loaded and correct
         # HLL.
         my $wrapper := PAST::Block.new(PAST::Stmts.new(), $past);
@@ -962,8 +963,8 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
         # we can be a bit smarter here some day. But for now we just make a
         # single frame and copy all the visible things into it.
         my %seen;
-        my $slp       := nqp::create(self.find_symbol(['StaticLexPad']));
-        my $mu        := self.find_symbol(['Mu']);
+        my $slp       := nqp::create($slp_type);
+        my $mu        := try { self.find_symbol(['Mu']) };
         my $cur_block := $past;
         while $cur_block {
             my %symbols := $cur_block.symtable();
@@ -1289,7 +1290,8 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
         # Compile it immediately (we always compile role bodies as
         # early as possible, but then assume they don't need to be
         # re-compiled and re-fixed up at startup).
-        self.compile_in_context($past, self.find_symbol(['Code']));
+        self.compile_in_context($past, self.find_symbol(['Code']),
+            self.find_symbol(['StaticLexPad']));
     }
     
     # Adds a possible role to a role group.

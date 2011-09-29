@@ -91,17 +91,33 @@ multi infix:<+>(int $a, int $b) {
 multi infix:<->(Int \$a, Int \$b) {
     nqp::p6box_i(nqp::sub_i(nqp::unbox_i($a), nqp::unbox_i($b)))
 }
+multi infix:<->(int $a, int $b) {
+    nqp::want(nqp::p6box_i(nqp::sub_i($a, $b)),
+        'Ii', nqp::sub_i($a, $b))
+}
 
 multi infix:<*>(Int \$a, Int \$b) {
     nqp::p6box_i(nqp::mul_i(nqp::unbox_i($a), nqp::unbox_i($b)))
+}
+multi infix:<*>(int $a, int $b) {
+    nqp::want(nqp::p6box_i(nqp::mul_i($a, $b)),
+        'Ii', nqp::mul_i($a, $b))
 }
 
 multi infix:<div>(Int \$a, Int \$b) {
     nqp::p6box_i(nqp::div_i(nqp::unbox_i($a), nqp::unbox_i($b)))
 }
+multi infix:<div>(int $a, int $b) {
+    nqp::want(nqp::p6box_i(nqp::div_i($a, $b)),
+        'Ii', nqp::div_i($a, $b))
+}
 
 multi infix:<%>(Int \$a, Int \$b) {
     nqp::p6box_i(nqp::mod_i(nqp::unbox_i($a), nqp::unbox_i($b)))
+}
+multi infix:<%>(int $a, int $b) {
+    nqp::want(nqp::p6box_i(nqp::mod_i($a, $b)),
+        'Ii', nqp::mod_i($a, $b))
 }
 
 multi infix:<**>(Int \$a, Int \$b) {
@@ -115,9 +131,17 @@ multi infix:<**>(Int \$a, Int \$b) {
 multi infix:<lcm>(Int:D \$a, Int:D \$b) {
     nqp::p6box_i(nqp::lcm_i(nqp::unbox_i($a), nqp::unbox_i($b)))
 }
+multi infix:<lcm>(int $a, int $b) {
+    nqp::want(nqp::p6box_i(nqp::lcm_i($a, $b)),
+        'Ii', nqp::lcm_i($a, $b))
+}
 
 multi infix:<gcd>(Int:D \$a, Int:D \$b) {
     nqp::p6box_i(nqp::gcd_i(nqp::unbox_i($a), nqp::unbox_i($b)))
+}
+multi infix:<gcd>(int $a, int $b) {
+    nqp::want(nqp::p6box_i(nqp::gcd_i($a, $b)),
+        'Ii', nqp::gcd_i($a, $b))
 }
 
 multi infix:<cmp>(Int:D \$a, Int:D \$b) {

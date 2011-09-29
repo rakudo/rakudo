@@ -312,37 +312,67 @@ multi infix:<cmp>(num $a, num $b) {
 multi infix:«<=>»(Num:D \$a, Num:D \$b) {
     nqp::p6box_i(nqp::cmp_n(nqp::unbox_n($a), nqp::unbox_n($b)))
 }
+multi infix:«<=>»(num $a, num $b) {
+    nqp::want(
+        nqp::p6box_i(nqp::cmp_n($a, $b)),
+        'Ii', nqp::cmp_n($a, $b)
+    );
+}
 
 multi infix:<===>(Num:D \$a, Num:D \$b) {
     nqp::p6bool(nqp::iseq_n(nqp::unbox_n($a), nqp::unbox_n($b)))
+}
+multi infix:<===>(num $a, num $b) {
+    nqp::p6bool(nqp::iseq_n($a, $b))
 }
 
 multi infix:<==>(Num:D \$a, Num:D \$b) {
     nqp::p6bool(nqp::iseq_n(nqp::unbox_n($a), nqp::unbox_n($b)))
 }
+multi infix:<==>(num $a, num $b) {
+    nqp::p6bool(nqp::iseq_n($a, $b))
+}
 
 multi infix:<!=>(Num:D \$a, Num:D \$b) {
     nqp::p6bool(nqp::isne_n(nqp::unbox_n($a), nqp::unbox_n($b)))
+}
+multi infix:<!=>(num $a, num $b) {
+    nqp::p6bool(nqp::isne_n($a, $b))
 }
 
 multi infix:«<»(Num:D \$a, Num:D \$b) {
     nqp::p6bool(nqp::islt_n(nqp::unbox_n($a), nqp::unbox_n($b)))
 }
+multi infix:«<»(num $a, num $b) {
+    nqp::p6bool(nqp::islt_n($a, $b))
+}
 
 multi infix:«<=»(Num:D \$a, Num:D \$b) {
     nqp::p6bool(nqp::isle_n(nqp::unbox_n($a), nqp::unbox_n($b)))
+}
+multi infix:«<=»(num $a, num $b) {
+    nqp::p6bool(nqp::isle_n($a, $b))
 }
 
 multi infix:«>»(Num:D \$a, Num:D \$b) {
     nqp::p6bool(nqp::isgt_n(nqp::unbox_n($a), nqp::unbox_n($b)))
 }
+multi infix:«>»(num $a, num $b) {
+    nqp::p6bool(nqp::isgt_n($a, $b))
+}
 
 multi infix:«>=»(Num:D \$a, Num:D \$b) {
     nqp::p6bool(nqp::isge_n(nqp::unbox_n($a), nqp::unbox_n($b)))
 }
+multi infix:«>=»(num $a, num $b) {
+    nqp::p6bool(nqp::isge_n($a, $b))
+}
 
 sub rand() {
-    nqp::p6box_n(pir::rand__NN(1));
+    nqp::want(
+        nqp::p6box_n(pir::rand__NN(1)),
+        'Nn', pir::rand__NN(1),
+    );
 }
 
 # TODO: default seed of 'time'

@@ -366,6 +366,9 @@ class Perl6::Optimizer {
         if +@stack != 1 {
             pir::die("INTERNAL ERROR: Non-empty inline stack")
         }
+        if $call.named ne '' {
+            @stack[0].named($call.named);
+        }
         #say("# inlined a call to " ~ $call.name);
         @stack[0]
     }

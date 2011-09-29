@@ -116,3 +116,9 @@ typedef struct Pcc_cell
     } u;
     INTVAL type;
 } Pcc_cell;
+
+/* Compile time trial binding function and result flags. */
+#define TRIAL_BIND_NOT_SURE  0   /* Plausible, but need to check at runtime. */
+#define TRIAL_BIND_OK        1   /* Bind will always work out. */
+#define TRIAL_BIND_NO_WAY   -1   /* Bind could never work out. */
+INTVAL Rakudo_binding_trial_bind(PARROT_INTERP, PMC *sig_pmc, PMC *capture);

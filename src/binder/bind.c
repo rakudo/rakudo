@@ -988,6 +988,13 @@ Rakudo_binding_bind(PARROT_INTERP, PMC *lexpad, PMC *sig_pmc, PMC *capture,
     return BIND_RESULT_OK;
 }
 
+/* Compile time trial binding; tries to determine at compile time whether
+ * certain binds will/won't work. */
+INTVAL Rakudo_binding_trial_bind(PARROT_INTERP, PMC *sig_pmc, PMC *capture) {
+    /* TODO: Implement this! */
+    return TRIAL_BIND_NOT_SURE;
+}
+
 /*
  * Local variables:
  *   c-file-style: "parrot"

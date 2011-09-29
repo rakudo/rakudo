@@ -235,6 +235,61 @@ inline op bind_signature() :base_core {
 
 /*
 
+=item perl6_trial_bind_ct()
+
+Sees if we could potentially bind a signature.
+
+    $0 is a flag indicating the outcome. 0 means could not decide, 1 means
+    decided that we will be able to bind, -1 means that it'd never work
+    
+    $1 is the signature object
+    
+    $2 is the argument array
+    
+    $3 is a set of flags for native types. 0 = object, 1 = native int,
+    2 = native num, 3 = native str.
+
+=cut
+
+*/
+inline op perl6_trial_bind_ct(out INT, in PMC, in PMC, in PMC) :base_core {
+    /* Build up a capture with sample arguments. */
+    PMC *capture    = pmc_new(interp, enum_class_CallContext);
+    INTVAL num_args = VTABLE_elements(interp, $3);
+    INTVAL args_ok  = 1;
+    INTVAL i;
+    for (i = 0; i < num_args; i++) {
+        INTVAL native = VTABLE_get_integer_keyed_int(interp, $4, i);
+        PMC *obj;
+        switch (native) {
+            case BIND_VAL_INT:
+                VTABLE_push_integer(interp, capture, 0);
+                break;
+            case BIND_VAL_NUM:
+                VTABLE_push_float(interp, capture, 0.0);
+                break;
+            case BIND_VAL_STR:
+                VTABLE_push_string(interp, capture, STRINGNULL);
+                break;
+            default:
+                obj = VTABLE_get_pmc_keyed_int(interp, $3, i);
+                if (obj->vtable->base_type == smo_id) {
+                    VTABLE_push_pmc(interp, capture, obj);
+                }
+                else {
+                    args_ok = 0;
+                    break;
+                }
+        }
+    }
+    
+    /* Do trial bind. */
+    $1 = Rakudo_binding_trial_bind(interp, $2, capture);
+}
+
+
+/*
+
 =item perl6_set_types_mu_any(in PMC, in PMC)
 
 Sets the top type.

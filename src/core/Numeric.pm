@@ -190,12 +190,12 @@ proto infix:<div>($a?, $b?)  { * }
 proto infix:<%>($a?, $b?)    { * }
 multi infix:<%>()            { fail "No zero-arg meaning for infix:<%>" }
 multi infix:<%>($x)          { $x }
-multi infix:<%>(\$a, \$b)    { $a.Numeric % $b.Numeric }
+multi infix:<%>(\$a, \$b)    { $a.Real % $b.Real }
 
 proto infix:<%%>($a?, $b?)   { * }
 multi infix:<%%>()           { fail "No zero-arg meaning for infix:<%%>" }
 multi infix:<%%>($x)         { Bool::True }
-multi infix:<%%>(\$a, \$b)   { $a.Numeric % $b.Numeric == 0 }
+multi infix:<%%>(\$a, \$b)   { $a.Real % $b.Real == 0 }
 
 proto infix:<lcm>($a?, $b?)   { * }
 multi infix:<lcm>(Int $x = 1) { $x }

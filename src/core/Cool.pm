@@ -174,6 +174,8 @@ my class Cool {
     method eval(*%opts) {
         eval(self.Stringy, |%opts);
     }
+
+    method Real() { self.Numeric.Real }
 }
 
 sub chop($s)                  { $s.chop }

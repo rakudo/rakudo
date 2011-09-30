@@ -463,7 +463,7 @@ S16-io/say-and-ref.t
 # S16-io/getc.t # err: Could not find sub &getc
 S16-unfiled/rebindstdhandles.t
 S16-unfiled/slurp.t
-S19-command-line/dash-e.t # icu
+#S19-command-line/dash-e.t # icu
 S19-command-line/help.t
 # S28-named-variables/cwd.t # err: Dynamic variable $*CWD not found
 S28-named-variables/inc.t

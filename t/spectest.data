@@ -253,7 +253,7 @@ S05-mass/recursive.t
 S05-mass/stdrules.t
 S05-match/arrayhash.t
 S05-match/blocks.t
-# S05-match/capturing-contexts.t # err: Cannot use bind operator with this LHS
+S05-match/capturing-contexts.t
 # S05-match/non-capturing.t # err: Negative length argument (-1) to .substr
 # S05-match/perl.t # err: Method 'at_key' not found for invocant of class 'Str'
 # S05-match/positions.t # err: Method 'chars' not found for invocant of class 'Match'

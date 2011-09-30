@@ -365,7 +365,7 @@ S11-modules/need.t
 S12-attributes/clone.t
 S12-attributes/delegation.t
 S12-attributes/inheritance.t
-# S12-attributes/instance.t # err: Symbol 'self' not predeclared in <anonymous> 
+S12-attributes/instance.t
 # S12-attributes/mutators.t # err: Cannot put a type constraint on an 'our'-scoped variable
 S12-attributes/recursive.t
 S12-attributes/undeclared.t

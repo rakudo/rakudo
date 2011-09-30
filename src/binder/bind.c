@@ -1021,6 +1021,12 @@ INTVAL Rakudo_binding_trial_bind(PARROT_INTERP, PMC *sig_pmc, PMC *capture) {
                 SIG_ELEM_IS_COPY | SIG_ELEM_ARRAY_SIGIL |
                 SIG_ELEM_HASH_SIGIL | SIG_ELEM_NATIVE_VALUE))
             return TRIAL_BIND_NOT_SURE;
+        if (!PMC_IS_NULL(param->named_names))
+            return TRIAL_BIND_NOT_SURE;
+        if (!PMC_IS_NULL(param->post_constraints))
+            return TRIAL_BIND_NOT_SURE;
+        if (!PMC_IS_NULL(param->type_captures))
+            return TRIAL_BIND_NOT_SURE;
 
         /* Did we pass too few required arguments? If so, fail. */
         if (cur_pos_arg >= num_pos_args)

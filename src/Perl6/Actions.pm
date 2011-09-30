@@ -1529,7 +1529,8 @@ class Perl6::Actions is HLL::Actions {
                 for @($node) {
                     @children.push($node_walker($_));
                 }
-                "PIROP " ~ $node.pirop ~ " ( " ~ pir::join(' ', @children) ~ " )"
+                my $safe_name := pir::join('__', pir::split(' ', $node.pirop));
+                "PIROP $safe_name ( " ~ pir::join(' ', @children) ~ " )"
             }
             elsif $node.isa(PAST::Want) && +@($node) == 3 {
                 my %backup := nqp::clone(%arg_used);

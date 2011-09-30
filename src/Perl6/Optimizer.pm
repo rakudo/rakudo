@@ -165,6 +165,7 @@ class Perl6::Optimizer {
                         my $ct_result := pir::perl6_trial_bind_ct__IPPP($obj.signature, @types, @flags);
                         if $ct_result == 1 {
                             if $op.pasttype eq 'chain' { $!chain_depth := $!chain_depth - 1 }
+                            #say("# trial bind worked!");
                             return pir::can($obj, 'inline_info') && $obj.inline_info ne ''
                                 ?? self.inline_call($op, $obj)
                                 !! $op;
@@ -363,8 +364,9 @@ class Perl6::Optimizer {
     # Inlines a call to a sub.
     method inline_call($call, $code_obj) {
         my $inline := $code_obj.inline_info();
+        my $name   := $call.name;
         my @tokens := pir::split(' ', $inline);
-        my @stack := [PAST::Stmt.new()];
+        my @stack  := [PAST::Stmt.new()];
         while +@tokens {
             my $cur_tok := @tokens.shift;
             if $cur_tok eq ')' {
@@ -377,31 +379,31 @@ class Perl6::Optimizer {
             elsif $cur_tok eq 'PIROP' {
                 @stack.push(PAST::Op.new( :pirop(@tokens.shift()) ));
                 unless @tokens.shift() eq '(' {
-                    pir::die("INTERNAL ERROR: Inline corrupt; expected ')'");
+                    pir::die("INTERNAL ERROR: Inline corrupt for $name; expected '('");
                 }
             }
             elsif $cur_tok eq 'WANT' {
                 @stack.push(PAST::Want.new());
                 unless @tokens.shift() eq '(' {
-                    pir::die("INTERNAL ERROR: Inline corrupt; expected ')'");
+                    pir::die("INTERNAL ERROR: Inline corrupt for $name; expected '('");
                 }
             }
             elsif $cur_tok eq 'WANTSPEC' {
                 @stack[+@stack - 1].push(~@tokens.shift());
             }
-            else {
-                pir::die("INTERNAL ERROR: Unexpected inline token: " ~ $cur_tok);
+            elsif $cur_tok ne '' {
+                pir::die("INTERNAL ERROR: Unexpected inline token for $name: " ~ $cur_tok);
                 return $call;
             }
         }
         if +@stack != 1 {
-            pir::die("INTERNAL ERROR: Non-empty inline stack")
+            pir::die("INTERNAL ERROR: Non-empty inline stack for $name")
         }
         if $call.named ne '' {
             @stack[0].named($call.named);
         }
         @stack[0].type($code_obj.returns) if pir::can($code_obj, 'returns');
-        #say("# inlined a call to " ~ $call.name);
+        #say("# inlined a call to $name");
         @stack[0]
     }
     

@@ -25,8 +25,7 @@ my class Complex is Numeric {
         if $!im == 0 {
             $!re;
         } else {
-#            fail "You can only coerce a Complex to Real if the imaginary part is zero"
-            Real
+            fail "You can only coerce a Complex to Real if the imaginary part is zero"
         }
     }
 

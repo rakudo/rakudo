@@ -78,6 +78,7 @@ my class Real {
     }
 
     method Real(Real:D:) { self }
+    method Bridge(Real:D:) { self.Num }
 }
 
 proto sub cis(|$) {*}

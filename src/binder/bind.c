@@ -991,7 +991,7 @@ Rakudo_binding_bind(PARROT_INTERP, PMC *lexpad, PMC *sig_pmc, PMC *capture,
 /* Compile time trial binding; tries to determine at compile time whether
  * certain binds will/won't work. */
 INTVAL Rakudo_binding_trial_bind(PARROT_INTERP, PMC *sig_pmc, PMC *capture) {
-    INTVAL            i, num_pos_args;
+    INTVAL            i, num_pos_args, got_prim;
     INTVAL            cur_pos_arg = 0;
     Rakudo_Signature *sig         = (Rakudo_Signature *)PMC_data(sig_pmc);
     PMC              *params      = sig->params;
@@ -1027,7 +1027,52 @@ INTVAL Rakudo_binding_trial_bind(PARROT_INTERP, PMC *sig_pmc, PMC *capture) {
             return TRIAL_BIND_NO_WAY;
             
         /* Otherwise, need to consider type. */
-        /* XXX TODO. */
+        got_prim = pc_positionals[cur_pos_arg].type;
+        if (param->flags & SIG_ELEM_NATIVE_VALUE) {
+            if (got_prim == BIND_VAL_OBJ) {
+                /* We got an object; if we aren't sure we can unbox, we can't
+                 * be sure about the dispatch. */
+                PMC *arg = pc_positionals[cur_pos_arg].u.p;
+                storage_spec spec = REPR(arg)->get_storage_spec(interp, STABLE(arg));
+                switch (param->flags & SIG_ELEM_NATIVE_VALUE) {
+                    case SIG_ELEM_NATIVE_INT_VALUE:
+                        if (!(spec.can_box & STORAGE_SPEC_CAN_BOX_INT))
+                            return TRIAL_BIND_NOT_SURE;
+                        break;
+                    case SIG_ELEM_NATIVE_NUM_VALUE:
+                        if (!(spec.can_box & STORAGE_SPEC_CAN_BOX_NUM))
+                            return TRIAL_BIND_NOT_SURE;
+                        break;
+                    case SIG_ELEM_NATIVE_STR_VALUE:
+                        if (!(spec.can_box & STORAGE_SPEC_CAN_BOX_STR))
+                            return TRIAL_BIND_NOT_SURE;
+                        break;
+                    default:
+                        /* WTF... */
+                        return TRIAL_BIND_NOT_SURE;
+                }
+            }
+            else {
+                /* If it's the wrong type of native, there's no way it
+                 * can ever bind. */
+                if ((param->flags & SIG_ELEM_NATIVE_INT_VALUE) && got_prim != BIND_VAL_INT ||
+                    (param->flags & SIG_ELEM_NATIVE_NUM_VALUE) && got_prim != BIND_VAL_NUM ||
+                    (param->flags & SIG_ELEM_NATIVE_STR_VALUE) && got_prim != BIND_VAL_STR)
+                    return TRIAL_BIND_NO_WAY;
+            }
+        }
+        else {
+            /* Work out a parameter type to consider. If there's a mis-match,
+             * assume we don't know (we maybe can be smarter about this later). */
+            PMC * const arg =
+                got_prim == BIND_VAL_OBJ ? pc_positionals[cur_pos_arg].u.p :
+                got_prim == BIND_VAL_INT ? Rakudo_types_int_get() :
+                got_prim == BIND_VAL_NUM ? Rakudo_types_num_get() :
+                                           Rakudo_types_str_get();
+            if (param->nominal_type != Rakudo_types_mu_get() &&
+                    !STABLE(arg)->type_check(interp, arg, param->nominal_type))
+                return TRIAL_BIND_NOT_SURE;
+        }
 
         /* Continue to next argument. */
         cur_pos_arg++;
@@ -1038,8 +1083,7 @@ INTVAL Rakudo_binding_trial_bind(PARROT_INTERP, PMC *sig_pmc, PMC *capture) {
         return TRIAL_BIND_NO_WAY;
 
     /* Otherwise, if we get there, all is well. */
-    /* XXX TODO: Change to accepted, once type analysis done. */
-    return TRIAL_BIND_NOT_SURE;
+    return TRIAL_BIND_OK;
 }
 
 /*

@@ -236,7 +236,7 @@ S05-grammar/action-stubs.t
 S05-grammar/inheritance.t
 S05-grammar/methods.t
 # S05-grammar/namespace.t # err: regex assertion not terminated by angle bracket at line 50, near "::Deep::fo"
-# S05-grammar/parse_and_parsefile.t # err: Could not locate compile-time value for symbol No::Such::Grammar
+S05-grammar/parse_and_parsefile.t
 # S05-grammar/protoregex.t # err: Quantifier quantifies nothing
 # S05-grammar/protos.t # err: protoregexes not yet implemented at line 16, near "token fred"
 # S05-grammar/signatures.t # err: Method 'list' not found for invocant of class 'Undef'

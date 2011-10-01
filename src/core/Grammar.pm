@@ -3,4 +3,10 @@ my class Grammar is Cursor {
         my $*ACTIONS = $actions;
         self."!cursor_init"($target, |%opt)."$rule"().MATCH;
     }
+    method parsefile(Cool $filename as Str, *%opts) {
+        my $fh    := open($filename);
+        my $match := self.parse($fh.slurp, |%opts);
+        $fh.close;
+        $match;
+    }
 }

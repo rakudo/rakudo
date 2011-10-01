@@ -3551,8 +3551,14 @@ class Perl6::Actions is HLL::Actions {
 
     # Adds a placeholder parameter to this block's signature.
     sub add_placeholder_parameter($/, $sigil, $ident, :$named, :$pos_slurpy, :$named_slurpy) {
-        # Obtain/create placeholder parameter list.
+        # Ensure we're not trying to put a placeholder in the mainline.
         my $block := $*ST.cur_lexpad();
+        if $block<IN_DECL> eq 'mainline' {
+            $/.CURSOR.panic("Cannot declare placeholder parameter $sigil" ~
+                ($named ?? ':' !! '^') ~ "$ident in the mainline");
+        }
+        
+        # Obtain/create placeholder parameter list.
         my @params := $block<placeholder_sig> || ($block<placeholder_sig> := []);
 
         # If we already declared this as a placeholder, we're done.

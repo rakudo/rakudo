@@ -10,9 +10,9 @@ class Array {
     method at_pos($pos is copy) is rw {
         $pos = $pos.Int;
         self.exists($pos)
-          ?? pir::find_method__PPs(List, 'at_pos')(self, $pos)
+          ?? nqp::atpos(nqp::getattr(self, List, '$!items'), nqp::unbox_i($pos))
           !! pir::setattribute__0PPsP(my $v, Scalar, '$!whence',
-                 -> { pir::find_method__PPs(List, 'STORE_AT_POS')(self, $pos, $v) } )
+                 -> { nqp::bindpos(nqp::getattr(self, List, '$!items'), nqp::unbox_i($pos), $v) } )
     }
 
     method flattens() { 1 }

@@ -36,7 +36,7 @@ my class List does Positional {
     }
 
     method Parcel() {
-        pir::defined($!items) or 
+        nqp::islist($!items) or 
             nqp::bindattr(self, List, '$!items', nqp::list());
         my Mu $rpa := nqp::clone($!items);
         nqp::push($rpa, $!nextiter) if $!nextiter.defined;
@@ -66,7 +66,7 @@ my class List does Positional {
 
     method gimme($n) {
         # create $!items RPA if it doesn't already exist
-        pir::defined($!items) or 
+        nqp::islist($!items) or 
             nqp::bindattr(self, List, '$!items', nqp::list());
 
         # loop through iterators until we have at least $n elements
@@ -98,7 +98,7 @@ my class List does Positional {
 
     method munch(\$n) {
         self.gimme($n) if nqp::not_i(nqp::istype($n, Int))
-                          || nqp::not_i(pir::defined($!items))
+                          || nqp::not_i(nqp::islist($!items))
                           || nqp::islt_i(nqp::elems($!items), nqp::unbox_i($n));
         nqp::p6parcel(
             pir::perl6_shiftpush__0PPi(nqp::list(), $!items, nqp::unbox_i($n)),

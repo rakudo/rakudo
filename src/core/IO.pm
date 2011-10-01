@@ -113,12 +113,12 @@ class IO {
         nqp::p6bool(nqp::istrue($!PIO));
     }
 
-    method print(*@list) {
+    method print(IO:D: *@list) {
         $!PIO.print(nqp::unbox_s(@list.shift.Str)) while @list.gimme(1);
         Bool::True
     }
 
-    method say(|$) {
+    method say(IO:D: |$) {
         my Mu $args := pir::perl6_current_args_rpa__P();
         nqp::shift($args);
         self.print: nqp::shift($args).gist while $args;

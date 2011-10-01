@@ -140,6 +140,7 @@ my class Mu {
     method item() { self }
     
     method say() { say(self) }
+    method print() { print(self) }
 
     proto method gist(|$) { * }
     multi method gist(Mu:U:) { self.HOW.name(self) ~ '()' }

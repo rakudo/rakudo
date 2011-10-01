@@ -9,7 +9,7 @@ my class ListIter {
     
     method reify($n = 1, :$sink) {
         if !$!reified.defined {
-            my $eager = Whatever.ACCEPTS($n);
+            my $eager = nqp::p6bool(nqp::istype($n, Whatever));
             my $flattens = $!list.defined && $!list.flattens;
             my $count = $eager ?? 100000 !! $n.Int;
             my $rpa := nqp::list();

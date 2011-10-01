@@ -71,7 +71,7 @@ my class List does Positional {
 
         # loop through iterators until we have at least $n elements
         my $count = nqp::p6box_i(nqp::elems($!items));
-        my $eager = Whatever.ACCEPTS($n);
+        my $eager = nqp::p6bool(nqp::istype($n, Whatever));
         while $!nextiter.defined && ($eager 
                                        ?? !$!nextiter.infinite 
                                        !! ($count < $n)) {
@@ -323,7 +323,7 @@ proto infix:<xx>(|$)     { * }
 multi infix:<xx>()       { fail "No zero-arg meaning for infix:<xx>" }
 multi infix:<xx>(Mu \$x) { $x }
 multi infix:<xx>(Mu \$x, $n is copy) {
-    $n = $Inf if Whatever.ACCEPTS($n);
+    $n = $Inf if nqp::p6bool(nqp::istype($n, Whatever));
     GatherIter.new({ take $x while $n-- > 0; }, :infinite($n == $Inf)).list
 }
 

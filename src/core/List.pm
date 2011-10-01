@@ -184,7 +184,7 @@ my class List does Positional {
 
     method shift() is rw {
         # make sure we have at least one item, then shift+return it
-        self.gimme(1) 
+        nqp::islist($!items) && nqp::existspos($!items, 0) || self.gimme(1)
           ?? nqp::shift($!items) 
           !! fail 'Element shifted from empty list';
     }

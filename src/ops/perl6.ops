@@ -946,6 +946,34 @@ inline op perl6_current_args_rpa(out PMC) :base_core {
 
 /*
 
+=item perl6_is_list(out INT, in PMC)
+
+Checks if the passed object is a RPA.
+
+=cut
+
+*/
+inline op perl6_is_list(out INT, in PMC) :base_core {
+    $1 = $2->vtable->base_type == enum_class_ResizablePMCArray;
+}
+
+
+/*
+
+=item perl6_is_hash(out INT, in PMC)
+
+Checks if the passed object is a (VM) hash.
+
+=cut
+
+*/
+inline op perl6_is_hash(out INT, in PMC) :base_core {
+    $1 = $2->vtable->base_type == enum_class_Hash;
+}
+
+
+/*
+
 =item perl6_parcel_from_rpa(out PMC, in PMC, in PMC)
 
 Creates a Perl 6 Parcel object from the RPA in $2, replacing

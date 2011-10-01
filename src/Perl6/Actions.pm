@@ -16,6 +16,8 @@ INIT {
         attrinited   => 'repr_is_attr_initialized__IPPs',
 
         istype       => 'type_check__IPP',
+        islist       => 'perl6_is_list__IP',
+        ishash       => 'perl6_is_hash__IP',
         lcm_i        => 'lcm__Iii',
         gcd_i        => 'gcd__Iii',
         find_method  => 'find_method__PPs',

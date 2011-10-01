@@ -890,7 +890,7 @@ Rakudo_binding_bind(PARROT_INTERP, PMC *lexpad, PMC *sig_pmc, PMC *capture,
                         cur_bv.type = BIND_VAL_OBJ;
                         cur_bv.val.o = Rakudo_binding_handle_optional(interp, param, lexpad);
                         bind_fail = Rakudo_binding_bind_one_param(interp, lexpad, sig, param,
-                                cur_bv, 1, error);
+                                cur_bv, 0, error);
                         if (bind_fail)
                             return bind_fail;
                     }
@@ -928,7 +928,7 @@ Rakudo_binding_bind(PARROT_INTERP, PMC *lexpad, PMC *sig_pmc, PMC *capture,
                     cur_bv.type = BIND_VAL_OBJ;
                     cur_bv.val.o = Rakudo_binding_handle_optional(interp, param, lexpad);
                     bind_fail = Rakudo_binding_bind_one_param(interp, lexpad, sig, param,
-                            cur_bv, 1, error);
+                            cur_bv, 0, error);
                 }
                 else if (!suppress_arity_fail) {
                     if (error)

@@ -946,6 +946,12 @@ class Perl6::Actions is HLL::Actions {
             $key, $value
         )
     }
+    
+    method desigilname($/) {
+        if $<variable> {
+            make PAST::Op.new( :pasttype('callmethod'), $<variable>.ast );
+        }
+    }
 
     method variable($/) {
         my $past;
@@ -963,6 +969,12 @@ class Perl6::Actions is HLL::Actions {
         }
         elsif $<infixish> {
             $past := PAST::Op.new( :pirop('find_sub_not_null__Ps'), '&infix:<' ~ $<infixish>.Str ~ '>' );
+        }
+        elsif $<desigilname><variable> {
+            $past := $<desigilname>.ast;
+            $past.name(~$<sigil> eq '@' ?? 'list' !!
+                       ~$<sigil> eq '%' ?? 'hash' !!
+                                           'item');
         }
         else {
             if $<desigilname> && $<desigilname><longname> && self.is_indirect_lookup($<desigilname><longname>) {

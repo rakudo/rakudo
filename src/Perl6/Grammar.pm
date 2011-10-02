@@ -1043,10 +1043,12 @@ grammar Perl6::Grammar is HLL::Grammar {
         <.obs('$? variable as child error', '$!')>
     }
 
-
     token desigilname {
         [
-    #    | <?before '$' > <variable>
+        | <?before '$' >
+            [ <?{ $*IN_DECL }> <.panic: "Cannot declare an indirect variable name"> ]?
+            <variable>
+        | <?before <[\@\%\&]> <sigil>* \w > <.panic: "Invalid hard reference syntax">
         | <longname>
         ]
     }

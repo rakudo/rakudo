@@ -1494,13 +1494,15 @@ class Perl6::Actions is HLL::Actions {
         # Ensure all parameters are simple and build information about them.
         my %arg_pos;
         my %arg_used;
+        my $arg_num := 0;
         for @params {
             return 0 if $_<optional> || $_<is_capture> || $_<pos_slurpy> ||
                 $_<named_slurpy> || $_<pos_lol> || $_<bind_attr> ||
                 $_<bind_accessor> || $_<nominal_generic> || $_<named_names> ||
                 $_<type_captures> || $_<post_constraints>;
-            %arg_pos{$_<variable_name>} := +%arg_pos;
+            %arg_pos{$_<variable_name>} := $arg_num;
             %arg_used{$_<variable_name>} := 0;
+            $arg_num := $arg_num + 1;
         }
         
         # Ensure nothing extra is declared.

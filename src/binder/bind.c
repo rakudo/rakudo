@@ -1068,8 +1068,7 @@ INTVAL Rakudo_binding_trial_bind(PARROT_INTERP, PMC *sig_pmc, PMC *capture) {
             }
         }
         else {
-            /* Work out a parameter type to consider. If there's a mis-match,
-             * assume we don't know (we maybe can be smarter about this later). */
+            /* Work out a parameter type to consider, and see if it matches. */
             PMC * const arg =
                 got_prim == BIND_VAL_OBJ ? pc_positionals[cur_pos_arg].u.p :
                 got_prim == BIND_VAL_INT ? Rakudo_types_int_get() :
@@ -1077,7 +1076,13 @@ INTVAL Rakudo_binding_trial_bind(PARROT_INTERP, PMC *sig_pmc, PMC *capture) {
                                            Rakudo_types_str_get();
             if (param->nominal_type != Rakudo_types_mu_get() &&
                     !STABLE(arg)->type_check(interp, arg, param->nominal_type))
-                return TRIAL_BIND_NOT_SURE;
+                /* It failed to, but that doesn't mean it can't work at runtime;
+                 * we perhaps want an Int, and the most we know is we have an Any,
+                 * which would include Int. However, the Int ~~ Str case can be
+                 * rejected now, as there's no way it'd ever match. Basically, we
+                 * just flip the type check around. */
+                return STABLE(param->nominal_type)->type_check(interp, param->nominal_type, arg) ?
+                    TRIAL_BIND_NOT_SURE : TRIAL_BIND_NO_WAY;
         }
 
         /* Continue to next argument. */

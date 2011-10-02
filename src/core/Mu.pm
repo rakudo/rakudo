@@ -282,7 +282,7 @@ sub infix:<=:=>(Mu \$x, Mu \$y) {
 
 proto sub infix:<eqv>(Mu $, Mu $) { * }
 multi sub infix:<eqv>(Mu $a, Mu $b) {
-    $a.WHAT === $b.WHAT && $a === $b
+    $a.WHICH eq $b.WHICH
 }
 
 multi sub infix:<eqv>(@a, @b) {

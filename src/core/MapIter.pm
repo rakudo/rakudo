@@ -28,20 +28,26 @@ my class MapIter is Iterator {
                 $count = $n.Int; $!list.gimme($argc * $count);
             }
             $count = 1 if $count < 1;
-            my Mu $rpa := nqp::list();
-            my $block := pir::perl6_decontainerize__PP($!block); ### TODO: Why?
-            my $list := pir::perl6_decontainerize__PP($!list);
+            my Mu $rpa  := nqp::list();
+            my $list    := pir::perl6_decontainerize__PP($!list);
+            my $block   := pir::perl6_decontainerize__PP($!block); ### TODO: Why?
+            my $munched := $!list.munch($argc * $count);
             my Mu $args := Q:PIR {
-                .local int count
-                .local pmc rpa, block, argc, list, Parcel, List, result
-                rpa    = find_lex '$rpa'
-                block  = find_lex '$block'
-                argc   = find_lex '$argc'
-                list   = find_lex '$list'
-                Parcel = find_lex 'Parcel'
-                List   = find_lex 'List'
-                $P0    = find_lex '$count'
-                count  = repr_unbox_int $P0
+                .local int count, argc, munchpos
+                .local pmc rpa, args, block, list, munched, result, Parcel, List
+                rpa      = find_lex '$rpa'
+                list     = find_lex '$list'
+                block    = find_lex '$block'
+                $P0      = find_lex '$argc'
+                argc     = repr_unbox_int $P0
+                List     = find_lex 'List'
+                Parcel   = find_lex 'Parcel'
+                $P0      = find_lex '$munched'
+                munched  = getattribute $P0, Parcel, '$!storage'
+                $P0      = find_lex '$count'
+                count    = repr_unbox_int $P0
+                munchpos = 0
+                args     = root_new ['parrot';'ResizablePMCArray']
                 .local pmc handler
                 handler = root_new ['parrot';'ExceptionHandler']
                 set_addr handler, catch
@@ -50,9 +56,18 @@ my class MapIter is Iterator {
               next:
                 $I0 = elements rpa
                 unless $I0 < count goto done
-                .local pmc args
-                args = list.'munch'(argc)
-                args = getattribute args, Parcel, '$!storage'
+                args = 0
+                $I0 = 0
+              arg_list_loop:
+                if $I0 == argc goto arg_list_loop_end
+                $I1 = exists munched[munchpos]
+                unless $I1 goto arg_list_loop_end
+                $P0 = munched[munchpos]
+                args[$I0] = $P0
+                inc munchpos
+                inc $I0
+                goto arg_list_loop
+              arg_list_loop_end:
                 unless args goto done
                 result = block(args :flat)
                 push rpa, result
@@ -66,12 +81,18 @@ my class MapIter is Iterator {
                 if type == .CONTROL_LOOP_LAST goto last
                 if type != .CONTROL_LOOP_REDO goto next
               redo:
-                $P0 = getattribute list, List, '$!items'
-                splice $P0, args, 0, 0
+                $I0 = elements args
+                munchpos -= $I0
                 goto next
               last:
                 args = perl6_booleanize 0
               done:
+                null $P0
+                perl6_shiftpush $P0, munched, munchpos
+                unless munched goto uneaten_saved
+                $P0 = getattribute list, List, '$!items'
+                splice $P0, munched, 0, 0
+              uneaten_saved:
                 pop_eh
                 %r = args
             };

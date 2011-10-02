@@ -165,7 +165,7 @@ S03-sequence/arity0.t
 S03-sequence/arity-2-or-more.t
 S03-sequence/basic.t
 # S03-sequence/limit-arity-2-or-more.t # err: Not enough positional parameters passed; got 1 but expected 2
-# S03-sequence/nonnumeric.t # err: Method 'pred' not found for invocant of class 'Failure'
+# S03-sequence/nonnumeric.t # err: Decrement out of range
 # S03-smartmatch/any-any.t # err: No applicable candidates found to dispatch to for 'ACCEPTS'.
 S03-smartmatch/any-array-slice.t
 S03-smartmatch/any-array.t
@@ -448,7 +448,7 @@ S14-roles/parameterized-type.t
 S14-roles/submethods.t
 # S14-traits/attributes.t # err: Method 'container' not found for invocant of class 'Attribute'
 # S14-traits/package.t # err: Invalid typename in parameter declaration
-# S14-traits/routines.t # err: Could not find sub &description
+# S14-traits/routines.t # all skipped
 # S14-traits/variables.t # err: Invalid typename in parameter declaration
 # S16-filehandles/filetest.t # err: Method 'z' not found for invocant of class 'IO'
 S16-filehandles/io.t
@@ -594,7 +594,7 @@ integration/99problems-01-to-10.t
 # integration/99problems-21-to-30.t # err: Method 'splice' not found for invocant of class 'Array'
 integration/99problems-31-to-40.t
 # integration/99problems-41-to-50.t # err: Ambiguous dispatch to multi 'sort'.
-# integration/99problems-51-to-60.t # err: Nominal type check failed for parameter '$obj'
+# integration/99problems-51-to-60.t # err: No applicable candidates found to dispatch to for 'mirror'
 # integration/99problems-61-to-70.t # err: Nominal type check failed for parameter '$tree'; expected Any but got Mu instead
 integration/advent2009-day01.t
 integration/advent2009-day02.t

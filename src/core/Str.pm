@@ -452,7 +452,7 @@ my class Str does Stringy {
         self.trim-leading.trim-trailing;
     }
 
-    method words(Str:D: Int $limit = *) {
+    method words(Str:D: $limit = *) {
         self.comb( / \S+ /, $limit );
     }
 

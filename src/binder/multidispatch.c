@@ -905,10 +905,11 @@ Rakudo_md_ct_dispatch(PARROT_INTERP, PMC *dispatcher, PMC *capture, PMC **result
     
     /* Current dispatch state. */
     Rakudo_md_candidate_info **cur_candidate = cands;
-    INTVAL type_mismatch, type_check_count;
-    INTVAL all_native  = 1;
-    INTVAL seen_all    = 0;
-    INTVAL arity_match = 0;
+    INTVAL type_mismatch, type_check_count, type_match_possible;
+    INTVAL all_native     = 1;
+    INTVAL seen_all       = 0;
+    INTVAL arity_possible = 0;
+    INTVAL type_possible  = 0;
     PMC *cur_result = PMCNULL;
     
     /* Grab positionals. */
@@ -949,13 +950,14 @@ Rakudo_md_ct_dispatch(PARROT_INTERP, PMC *dispatcher, PMC *capture, PMC **result
         }
         
         /* If we got this far, something at least matched on arity. */
-        arity_match = 1;
+        arity_possible = 1;
 
         /* Check if it's admissable by type. */
         type_check_count = (*cur_candidate)->num_types > num_args ?
                            num_args :
                            (*cur_candidate)->num_types;
         type_mismatch = 0;
+        type_match_possible = 1;
 
         for (i = 0; i < type_check_count; i++) {
             PMC * const type_obj = (*cur_candidate)->types[i];
@@ -973,6 +975,7 @@ Rakudo_md_ct_dispatch(PARROT_INTERP, PMC *dispatcher, PMC *capture, PMC **result
                     (type_flags & TYPE_NATIVE_STR) && got_prim != BIND_VAL_STR) {
                     /* Mismatch. */
                     type_mismatch = 1;
+                    type_match_possible = 0;
                     break;
                 }
             }
@@ -994,13 +997,22 @@ Rakudo_md_ct_dispatch(PARROT_INTERP, PMC *dispatcher, PMC *capture, PMC **result
                 if (type_obj != Rakudo_types_mu_get() &&
                         !STABLE(param)->type_check(interp, param, type_obj)) {
                     type_mismatch = 1;
-                    break;
+                    
+                    /* We didn't match, but that doesn't mean we cannot at
+                     * runtime (e.g. the most we know about the type could
+                     * be that it's Any, but at runtime that feasibly could
+                     * be Int). In some cases we never could though (Str
+                     * passed to an Int parameter). */
+                    if (!STABLE(type_obj)->type_check(interp, type_obj, param))
+                        type_match_possible = 0;
                 }
                 else if ((*cur_candidate)->type_flags[i] & DEFCON_MASK) {
                     used_defcon = 1;
                 }
             }
         }
+        if (type_match_possible)
+            type_possible = 1;
         if (type_mismatch) {
             cur_candidate++;
             continue;
@@ -1026,20 +1038,9 @@ Rakudo_md_ct_dispatch(PARROT_INTERP, PMC *dispatcher, PMC *capture, PMC **result
     }
     
     /* If we saw all the candidates, and got no result, and the arity never
-     * matched, then there's no way this could dispatch.
-     * Note: it's tempting to do some type based "could never work" analysis
-     * here also. However, it's non-trivial. When we get a type in here, it's
-     * a widest type. That's why we never go looking more than one group, or
-     * a native group and then one more, up the set of possible candidates -
-     * because we'd end up picking the wrong one. The "could never work"
-     * analysis suffers a similar issue here. At best, we can do some kind of
-     * "silly casts" style analysis. Given we have a candidate that wants an 
-     * Int:
-     *   * If we get Mu, we know Int ~~ Mu so it's at least plausbile
-     *   * If we get Str, we know Int !~~ Str, so it's impossible.
-     * So should be possible to do something in this space.
-     */
-    if (seen_all && !arity_match && PMC_IS_NULL(cur_result)) {
+     * matched or when it did there was no way any candidates could get
+     * passed matching types, then we know it would never work. */
+    if (seen_all && (!arity_possible || !type_possible) && PMC_IS_NULL(cur_result)) {
         return MD_CT_NO_WAY;
     }
     

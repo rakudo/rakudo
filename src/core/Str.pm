@@ -56,16 +56,17 @@ my class Str does Stringy {
         my $pos = $str.chars;
         while $pos > 0 {
             $pos--;
-            my $ch = $str.substr($pos, 1);
-            if $RANGECHAR.index($ch).defined {
+            my str $ch = nqp::substr(nqp::unbox_s($str), nqp::unbox_i($pos), 1);
+            if nqp::isge_i(nqp::index(nqp::unbox_s($RANGECHAR), $ch, 0), 0) {
                 my $end = $pos;
                 while $pos > 0 {
                     $pos--;
-                    $ch = $str.substr($pos, 1);
-                    last if $ch eq '.';
-                    return ($pos+1, $end) unless $RANGECHAR.index($ch).defined;
+                    $ch = nqp::substr(nqp::unbox_s($str), nqp::unbox_i($pos), 1);
+                    last if nqp::iseq_s($ch, '.');
+                    return ($pos+1, $end)
+                        unless nqp::isge_i(nqp::index(nqp::unbox_s($RANGECHAR), $ch, 0), 0);
                 }
-                return ($pos, $end) unless $ch eq '.';
+                return ($pos, $end) unless nqp::iseq_s($ch, '.');
             }
         }
         return (0, -1);
@@ -451,7 +452,7 @@ my class Str does Stringy {
         self.trim-leading.trim-trailing;
     }
 
-    method words(Str:D: Int $limit = *) {
+    method words(Str:D: $limit = *) {
         self.comb( / \S+ /, $limit );
     }
 

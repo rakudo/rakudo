@@ -1116,6 +1116,34 @@ inline op perl6_current_args_rpa(out PMC) :base_core {
 
 /*
 
+=item perl6_is_list(out INT, in PMC)
+
+Checks if the passed object is a RPA.
+
+=cut
+
+*/
+inline op perl6_is_list(out INT, in PMC) :base_core {
+    $1 = $2->vtable->base_type == enum_class_ResizablePMCArray;
+}
+
+
+/*
+
+=item perl6_is_hash(out INT, in PMC)
+
+Checks if the passed object is a (VM) hash.
+
+=cut
+
+*/
+inline op perl6_is_hash(out INT, in PMC) :base_core {
+    $1 = $2->vtable->base_type == enum_class_Hash;
+}
+
+
+/*
+
 =item perl6_parcel_from_rpa(out PMC, in PMC, in PMC)
 
 Creates a Perl 6 Parcel object from the RPA in $2, replacing
@@ -1206,21 +1234,18 @@ simply discarded.
 inline op perl6_shiftpush(inout PMC, in PMC, in INT) :base_core {
     INTVAL count = $3;
     INTVAL elems = VTABLE_elements(interp, $2);
-
     if (count > elems) count = elems;
 
     if (!PMC_IS_NULL($1)) {
+        INTVAL pos = 0;
         while (count > 0) {
-            VTABLE_push_pmc(interp, $1, VTABLE_shift_pmc(interp, $2));
+            VTABLE_push_pmc(interp, $1, VTABLE_get_pmc_keyed_int(interp, $2, pos));
             count--;
+            pos++;
         }
     }
-    else {
-        while (count > 0) {
-            VTABLE_shift_pmc(interp, $2);
-            count--;
-        }
-    }
+    if ($3 > 0)
+        VTABLE_splice(interp, $2, pmc_new(interp, enum_class_ResizablePMCArray), 0, $3);
 }
 
 

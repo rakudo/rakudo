@@ -16,6 +16,8 @@ INIT {
         attrinited   => 'repr_is_attr_initialized__IPPs',
 
         istype       => 'type_check__IPP',
+        islist       => 'perl6_is_list__IP',
+        ishash       => 'perl6_is_hash__IP',
         lcm_i        => 'lcm__Iii',
         gcd_i        => 'gcd__Iii',
         find_method  => 'find_method__PPs',
@@ -947,6 +949,12 @@ class Perl6::Actions is HLL::Actions {
             $key, $value
         )
     }
+    
+    method desigilname($/) {
+        if $<variable> {
+            make PAST::Op.new( :pasttype('callmethod'), $<variable>.ast );
+        }
+    }
 
     method variable($/) {
         my $past;
@@ -964,6 +972,12 @@ class Perl6::Actions is HLL::Actions {
         }
         elsif $<infixish> {
             $past := PAST::Op.new( :pirop('find_sub_not_null__Ps'), '&infix:<' ~ $<infixish>.Str ~ '>' );
+        }
+        elsif $<desigilname><variable> {
+            $past := $<desigilname>.ast;
+            $past.name(~$<sigil> eq '@' ?? 'list' !!
+                       ~$<sigil> eq '%' ?? 'hash' !!
+                                           'item');
         }
         else {
             if $<desigilname> && $<desigilname><longname> && self.is_indirect_lookup($<desigilname><longname>) {
@@ -2395,7 +2409,9 @@ class Perl6::Actions is HLL::Actions {
         unless $past.isa(PAST::Op) && $past.pasttype() eq 'callmethod' {
             $/.CURSOR.panic("Cannot use " ~ $<sym>.Str ~ " on a non-identifier method call");
         }
-        $past.unshift($*ST.add_string_constant($past.name));
+        $past.unshift(pir::isa($past.name, 'String') ??
+            $*ST.add_string_constant($past.name) !!
+            $past.name);
         $past.name('dispatch:<' ~ ~$<sym> ~ '>');
         make $past;
     }
@@ -2430,6 +2446,10 @@ class Perl6::Actions is HLL::Actions {
                 }
             }
             else {
+                unless pir::can($*PACKAGE.HOW, 'find_private_method') {
+                    $/.CURSOR.panic("Private method call to '$name' must be fully " ~
+                        "qualified with the package containing the method");
+                }
                 $past.unshift($*ST.get_object_sc_ref_past($*PACKAGE));
                 $past.unshift($*ST.add_string_constant($name));
             }
@@ -3639,8 +3659,14 @@ class Perl6::Actions is HLL::Actions {
 
     # Adds a placeholder parameter to this block's signature.
     sub add_placeholder_parameter($/, $sigil, $ident, :$named, :$pos_slurpy, :$named_slurpy) {
-        # Obtain/create placeholder parameter list.
+        # Ensure we're not trying to put a placeholder in the mainline.
         my $block := $*ST.cur_lexpad();
+        if $block<IN_DECL> eq 'mainline' {
+            $/.CURSOR.panic("Cannot declare placeholder parameter $sigil" ~
+                ($named ?? ':' !! '^') ~ "$ident in the mainline");
+        }
+        
+        # Obtain/create placeholder parameter list.
         my @params := $block<placeholder_sig> || ($block<placeholder_sig> := []);
 
         # If we already declared this as a placeholder, we're done.

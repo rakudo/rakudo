@@ -190,21 +190,21 @@ proto infix:<div>($a?, $b?)  { * }
 proto infix:<%>($a?, $b?)    { * }
 multi infix:<%>()            { fail "No zero-arg meaning for infix:<%>" }
 multi infix:<%>($x)          { $x }
-multi infix:<%>(\$a, \$b)    { $a.Numeric % $b.Numeric }
+multi infix:<%>(\$a, \$b)    { $a.Real % $b.Real }
 
 proto infix:<%%>($a?, $b?)   { * }
 multi infix:<%%>()           { fail "No zero-arg meaning for infix:<%%>" }
 multi infix:<%%>($x)         { Bool::True }
-multi infix:<%%>(\$a, \$b)   { $a.Numeric % $b.Numeric == 0 }
+multi infix:<%%>(\$a, \$b)   { $a.Real % $b.Real == 0 }
 
 proto infix:<lcm>($a?, $b?)   { * }
 multi infix:<lcm>(Int $x = 1) { $x }
-multi infix:<lcm>(\$a, \$b)   { $a.Numeric lcm $b.Numeric }
+multi infix:<lcm>(\$a, \$b)   { $a.Int lcm $b.Int }
 
 proto infix:<gcd>($a?, $b?)  { * }
 multi infix:<gcd>()          { fail 'No zero-arg meaning for infix:<gcd>' }
 multi infix:<gcd>(Int $x)    { $x }
-multi infix:<gcd>(\$a, \$b)  { $a.Numeric gcd $b.Numeric }
+multi infix:<gcd>(\$a, \$b)  { $a.Int gcd $b.Int }
 
 proto infix:<**>($a?, $b?)   { * }
 multi infix:<**>($x = 1)     { $x.Numeric }

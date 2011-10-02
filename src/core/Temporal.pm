@@ -101,7 +101,7 @@ my role Dateish {
             1 .. self.days-in-month);
     }
 
-    method truncate-parts($unit, %parts is copy = ()) {
+    method truncate-parts($unit, %parts? is copy) {
         # Helper for DateTime.truncated-to and Date.truncated-to.
         if $unit eq 'week' {
             my $dc = self.get-daycount;

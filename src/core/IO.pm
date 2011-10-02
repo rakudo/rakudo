@@ -86,6 +86,18 @@ class IO {
         nqp::bindattr($buf, Buf, '$!buffer', $parrot_buffer);
         $buf;
     }
+    # first arguemnt should probably be an enum
+    # valid values for $whence:
+    #   0 -- seek from beginning of file
+    #   1 -- seek relative to current position
+    #   2 -- seek from the end of the file
+    method seek(IO:D: Int:D $whence, Int:D $offset) {
+        $!PIO.seek(nqp::unbox_i($whence), nqp::unbox_i($offset));
+        True;
+    }
+    method tell(IO:D:) returns Int {
+        nqp::p6box_i($!PIO.tell);
+    }
 
     method write(IO:D: Buf:D $buf) {
         my Mu $b := nqp::getattr(
@@ -101,12 +113,12 @@ class IO {
         nqp::p6bool(nqp::istrue($!PIO));
     }
 
-    method print(*@list) {
+    method print(IO:D: *@list) {
         $!PIO.print(nqp::unbox_s(@list.shift.Str)) while @list.gimme(1);
         Bool::True
     }
 
-    method say(|$) {
+    method say(IO:D: |$) {
         my Mu $args := pir::perl6_current_args_rpa__P();
         nqp::shift($args);
         self.print: nqp::shift($args).gist while $args;

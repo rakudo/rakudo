@@ -88,6 +88,23 @@ class Perl6::Metamodel::ClassHOW
 
         # Compose attributes.
         self.compose_attributes($obj);
+        
+        # See if we have a Bool method other than the one in the top type.
+        # If not, all it does is check if we have the type object.
+        unless self.get_boolification_mode($obj) != 0 {
+            my $i := 0;
+            my @mro := self.mro($obj);
+            while $i < +@mro {
+                my %meths := @mro[$i].HOW.method_table(@mro[$i]);
+                if pir::exists(%meths, 'Bool') {
+                    last;
+                }
+                $i := $i + 1;
+            }
+            if $i + 1 == +@mro {
+                self.set_boolification_mode($obj, 5)
+            }
+        }
 
         # Publish type and method caches.
         self.publish_type_cache($obj);

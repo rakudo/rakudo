@@ -36,7 +36,7 @@ my class List does Positional {
     }
 
     method Parcel() {
-        pir::defined($!items) or 
+        nqp::islist($!items) or 
             nqp::bindattr(self, List, '$!items', nqp::list());
         my Mu $rpa := nqp::clone($!items);
         nqp::push($rpa, $!nextiter) if $!nextiter.defined;
@@ -66,12 +66,12 @@ my class List does Positional {
 
     method gimme($n) {
         # create $!items RPA if it doesn't already exist
-        pir::defined($!items) or 
+        nqp::islist($!items) or 
             nqp::bindattr(self, List, '$!items', nqp::list());
 
         # loop through iterators until we have at least $n elements
         my $count = nqp::p6box_i(nqp::elems($!items));
-        my $eager = Whatever.ACCEPTS($n);
+        my $eager = nqp::p6bool(nqp::istype($n, Whatever));
         while $!nextiter.defined && ($eager 
                                        ?? !$!nextiter.infinite 
                                        !! ($count < $n)) {
@@ -98,7 +98,7 @@ my class List does Positional {
 
     method munch(\$n) {
         self.gimme($n) if nqp::not_i(nqp::istype($n, Int))
-                          || nqp::not_i(pir::defined($!items))
+                          || nqp::not_i(nqp::islist($!items))
                           || nqp::islt_i(nqp::elems($!items), nqp::unbox_i($n));
         nqp::p6parcel(
             pir::perl6_shiftpush__0PPi(nqp::list(), $!items, nqp::unbox_i($n)),
@@ -184,7 +184,7 @@ my class List does Positional {
 
     method shift() is rw {
         # make sure we have at least one item, then shift+return it
-        self.gimme(1) 
+        nqp::islist($!items) && nqp::existspos($!items, 0) || self.gimme(1)
           ?? nqp::shift($!items) 
           !! fail 'Element shifted from empty list';
     }
@@ -323,7 +323,7 @@ proto infix:<xx>(|$)     { * }
 multi infix:<xx>()       { fail "No zero-arg meaning for infix:<xx>" }
 multi infix:<xx>(Mu \$x) { $x }
 multi infix:<xx>(Mu \$x, $n is copy) {
-    $n = $Inf if Whatever.ACCEPTS($n);
+    $n = $Inf if nqp::p6bool(nqp::istype($n, Whatever));
     GatherIter.new({ take $x while $n-- > 0; }, :infinite($n == $Inf)).list
 }
 

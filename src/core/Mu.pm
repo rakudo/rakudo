@@ -140,6 +140,7 @@ my class Mu {
     method item() { self }
     
     method say() { say(self) }
+    method print() { print(self) }
 
     proto method gist(|$) { * }
     multi method gist(Mu:U:) { self.HOW.name(self) ~ '()' }
@@ -214,9 +215,10 @@ my class Mu {
     
     method dispatch:<!>($name, Mu $type, *@pos, *%named) {
         my $meth := $type.HOW.find_private_method($type, $name);
-        nqp::isnull($meth) ??
-            die("Private method '$name' not found on type " ~ $type.HOW.name($type)) !!
-            $meth(self, |@pos, |%named)
+        $meth ??
+            $meth(self, |@pos, |%named) !!
+            die("Private method '$name' not found on type " ~ $type.HOW.name($type))
+            
     }
     
     method dispatch:<.^>($name, *@pos, *%named) {
@@ -278,13 +280,9 @@ sub infix:<=:=>(Mu \$x, Mu \$y) {
     nqp::p6bool(nqp::iseq_i(nqp::where($x), nqp::where($y)));
 }
 
-proto infix:<===>(Mu $a?, Mu $b?) { * }
-multi infix:<===>(Mu $a?)         { Bool::True }
-multi infix:<===>(Mu $a, Mu $b)   { $a.defined eq $b.defined && $a.WHICH === $b.WHICH }
-
 proto sub infix:<eqv>(Mu $, Mu $) { * }
 multi sub infix:<eqv>(Mu $a, Mu $b) {
-    $a.WHAT === $b.WHAT && $a === $b
+    $a.WHICH eq $b.WHICH
 }
 
 multi sub infix:<eqv>(@a, @b) {

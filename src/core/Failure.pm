@@ -24,6 +24,13 @@ my class Failure {
     method Int(Failure:D:) { $!handled ?? 0 !! $!exception.rethrow; }
     method Num(Failure:D:) { $!handled ?? 0e0 !! $!exception.rethrow; }
     multi method Str(Failure:D:) { $!handled ?? '' !! $!exception.rethrow; }
+
+    Failure.^add_fallback(
+        -> $, $ { True },
+        method ($name) {
+            die $!exception;
+        }
+    );
 }
 
 

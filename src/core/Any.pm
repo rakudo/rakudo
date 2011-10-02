@@ -156,6 +156,9 @@ my class Any {
     method reduce(&with) { self.list.reduce(&with) }
 }
 
+proto infix:<===>($?, $?) { * }
+multi infix:<===>($a?)    { Bool::True }
+multi infix:<===>($a, $b) { $a.defined eq $b.defined && $a.WHICH === $b.WHICH }
 
 proto infix:<cmp>($, $) { * }
 multi infix:<cmp>(\$a, \$b) { 

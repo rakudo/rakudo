@@ -88,7 +88,7 @@ S02-one-pass-parsing/less-than.t
 S02-types/subset.t
 S02-lexical-conventions/begin_end_pod.t
 S02-lexical-conventions/end-pod.t
-# S02-lexical-conventions/comments.t # err: You can't backslash that at line 79, near "#`((( comm"
+# S02-lexical-conventions/comments.t # err: You can't backslash that at line 80, near "#`((( comm"
 S02-lexical-conventions/minimal-whitespace.t
 S02-lexical-conventions/one-pass-parsing.t
 S02-lexical-conventions/pod-in-multi-line-exprs.t
@@ -165,7 +165,7 @@ S03-sequence/arity0.t
 S03-sequence/arity-2-or-more.t
 S03-sequence/basic.t
 # S03-sequence/limit-arity-2-or-more.t # err: Not enough positional parameters passed; got 1 but expected 2
-# S03-sequence/nonnumeric.t # err: Method 'pred' not found for invocant of class 'Failure'
+# S03-sequence/nonnumeric.t # err: Decrement out of range
 # S03-smartmatch/any-any.t # err: No applicable candidates found to dispatch to for 'ACCEPTS'.
 S03-smartmatch/any-array-slice.t
 S03-smartmatch/any-array.t
@@ -230,52 +230,52 @@ S04-statements/while.t
 S05-capture/caps.t
 # S05-capture/dot.t # err: regex assertion not terminated by angle bracket
 S05-capture/match-object.t
-# S05-capture/named.t # err: Method 'rxtype' not found for invocant of class 'PAST;Regex'
-# S05-capture/subrule.t # err: Method 'rxtype' not found for invocant of class 'PAST;Regex'
+# S05-capture/named.t # err: Malformed regex at line 32, near "fishy2 { $
+S05-capture/subrule.t
 S05-grammar/action-stubs.t
 S05-grammar/inheritance.t
 S05-grammar/methods.t
-# S05-grammar/namespace.t # err: Null PMC access in set_pmc_keyed()
-# S05-grammar/parse_and_parsefile.t # err: Could not locate compile-time value for symbol No::Such::Grammar
+# S05-grammar/namespace.t # err: regex assertion not terminated by angle bracket at line 50, near "::Deep::fo"
+S05-grammar/parse_and_parsefile.t
 # S05-grammar/protoregex.t # err: Quantifier quantifies nothing
-# S05-grammar/protos.t # err: Null PMC access in set_pmc_keyed()
-# S05-grammar/signatures.t # err: Null PMC access in set_pmc_keyed()
+# S05-grammar/protos.t # err: protoregexes not yet implemented at line 16, near "token fred"
+# S05-grammar/signatures.t # err: Method 'list' not found for invocant of class 'Undef'
 # S05-grammar/ws.t # err: regex assertion not terminated by angle bracket
 S05-interpolation/lexicals.t
-# S05-interpolation/regex-in-variable.t # err: Method 'rxtype' not found for invocant of class 'PAST;Regex'
+# S05-interpolation/regex-in-variable.t # err: Null PMC access in find_method('MATCH')
 S05-mass/named-chars.t                                     # icu
 # S05-mass/properties-block.t # err: Method 'isInAlphabeticPresentationForms' not found for invocant of class 'Cursor'
 # S05-mass/properties-derived.t # err: Method 'isASCIIHexDigit' not found for invocant of class 'Cursor'
 # S05-mass/properties-general.t # err: Method 'isL' not found for invocant of class 'Cursor'
 # S05-mass/properties-script.t # err: Method 'isBidiL' not found for invocant of class 'Cursor'
 # S05-mass/rx.t # err: Method 'before' not found for invocant of class 'Cursor'
-# S05-mass/recursive.t # err: Method 'rxtype' not found for invocant of class 'PAST;Regex'
+S05-mass/recursive.t
 S05-mass/stdrules.t
 S05-match/arrayhash.t
 S05-match/blocks.t
-# S05-match/capturing-contexts.t # err: Method 'rxtype' not found for invocant of class 'PAST;Regex'
-# S05-match/non-capturing.t # err: Method 'rxtype' not found for invocant of class 'PAST;Regex'
-# S05-match/perl.t # err: Method 'rxtype' not found for invocant of class 'PAST;Regex'
+S05-match/capturing-contexts.t
+# S05-match/non-capturing.t # err: Negative length argument (-1) to .substr
+# S05-match/perl.t # err: Method 'at_key' not found for invocant of class 'Str'
 # S05-match/positions.t # err: Method 'chars' not found for invocant of class 'Match'
 S05-metachars/closure.t
 S05-metachars/line-anchors.t
 S05-metachars/newline.t
-# S05-metachars/tilde.t # err: Method 'rxtype' not found for invocant of class 'PAST;Regex'
-# S05-metasyntax/angle-brackets.t # err: Method 'rxtype' not found for invocant of class 'PAST;Regex'
+S05-metachars/tilde.t
+# S05-metasyntax/angle-brackets.t # err: Null PMC access in find_method('MATCH')
 S05-metasyntax/changed.t
 S05-metasyntax/charset.t
 # S05-metasyntax/lookaround.t # err: Method 'after' not found for invocant of class 'Cursor'
 S05-metasyntax/null.t
 S05-metasyntax/regex.t
 S05-metasyntax/repeat.t
-# S05-metasyntax/sequential-alternation.t # err: Method 'rxtype' not found for invocant of class 'PAST;Regex'
+S05-metasyntax/sequential-alternation.t
 S05-metasyntax/single-quotes.t
 S05-metasyntax/unknown.t
-# S05-modifier/continue.t # err: Method 'rxtype' not found for invocant of class 'PAST;Regex'
+S05-modifier/continue.t
 S05-modifier/counted-match.t
 S05-modifier/global.t
 S05-modifier/ii.t
-# S05-modifier/ignorecase.t # err: Method 'rxtype' not found for invocant of class 'PAST;Regex'
+S05-modifier/ignorecase.t
 S05-modifier/overlapping.t
 # S05-modifier/perl5_1.t # err: Adverb 'P5' not allowed on m
 # S05-modifier/perl5_2.t # err: Adverb 'P5' not allowed on m
@@ -330,7 +330,7 @@ S06-signature/positional-placeholders.t
 S06-signature/positional.t
 S06-signature/scalar-type.t
 S06-signature/slurpy-and-interpolation.t
-# S06-signature/slurpy-params.t # err: No applicable candidates found to dispatch to for 'trait_mod:<is>'
+S06-signature/slurpy-params.t
 S06-signature/slurpy-placeholders.t
 S06-signature/sub-ref.t
 S06-signature/tree-node-parameters.t
@@ -352,7 +352,7 @@ S09-autovivification/autoincrement.t
 S09-subscript/slice.t
 # S09-typed-arrays/arrays.t # err: Cannot put a type constraint on an 'our'-scoped variable
 # S09-typed-arrays/hashes.t # err: Method 'of' not found for invocant of class 'Hash'
-# S10-packages/basic.t # err: Method 'rxtype' not found for invocant of class 'PAST;Regex'
+S10-packages/basic.t
 S10-packages/use-with-class.t
 # S11-modules/export.t # err: Could not find symbol 'Foo::&Foo_exp_parens
 # S11-modules/import.t # err: Illegal redeclaration of module 'B'
@@ -365,7 +365,7 @@ S11-modules/need.t
 S12-attributes/clone.t
 S12-attributes/delegation.t
 S12-attributes/inheritance.t
-# S12-attributes/instance.t # err: Symbol 'self' not predeclared in <anonymous> 
+S12-attributes/instance.t
 # S12-attributes/mutators.t # err: Cannot put a type constraint on an 'our'-scoped variable
 S12-attributes/recursive.t
 S12-attributes/undeclared.t
@@ -418,7 +418,7 @@ S12-methods/instance.t
 S12-methods/lastcall.t
 S12-methods/method-vs-sub.t 
 S12-methods/multi.t
-# S12-methods/parallel-dispatch.t # err: Method 'find_private_method' not found for invocant of class 'Perl6::Metamodel::PackageHOW'
+S12-methods/parallel-dispatch.t
 S12-methods/private.t
 S12-methods/submethods.t
 S12-methods/syntax.t
@@ -448,7 +448,7 @@ S14-roles/parameterized-type.t
 S14-roles/submethods.t
 # S14-traits/attributes.t # err: Method 'container' not found for invocant of class 'Attribute'
 # S14-traits/package.t # err: Invalid typename in parameter declaration
-# S14-traits/routines.t # err: Could not find sub &description
+# S14-traits/routines.t # all skipped
 # S14-traits/variables.t # err: Invalid typename in parameter declaration
 # S16-filehandles/filetest.t # err: Method 'z' not found for invocant of class 'IO'
 S16-filehandles/io.t
@@ -463,7 +463,7 @@ S16-io/say-and-ref.t
 # S16-io/getc.t # err: Could not find sub &getc
 S16-unfiled/rebindstdhandles.t
 S16-unfiled/slurp.t
-S19-command-line/dash-e.t
+#S19-command-line/dash-e.t # icu
 S19-command-line/help.t
 # S28-named-variables/cwd.t # err: Dynamic variable $*CWD not found
 S28-named-variables/inc.t
@@ -500,7 +500,7 @@ S32-hash/pairs.t
 # S32-hash/push.t # hangs
 S32-hash/slice.t
 S32-io/dir.t
-# S32-io/chdir.t # err: Method 'd' not found for invocant of class 'Str'
+# S32-io/chdir.t # err: Dynamic variable $*CWD not found
 S32-io/file-tests.t
 S32-io/note.t
 S32-io/IO-Socket-INET.t
@@ -571,7 +571,7 @@ S32-str/words.t                                            # icu
 S32-temporal/calendar.t
 S32-temporal/Date.t
 S32-temporal/DateTime.t
-# S32-temporal/DateTime-Instant-Duration.t # err: Method 'eval' not found for invocant of class 'Str'
+S32-temporal/DateTime-Instant-Duration.t
 S32-temporal/local.t
 S32-trig/e.t
 S32-trig/pi.t
@@ -594,7 +594,7 @@ integration/99problems-01-to-10.t
 # integration/99problems-21-to-30.t # err: Method 'splice' not found for invocant of class 'Array'
 integration/99problems-31-to-40.t
 # integration/99problems-41-to-50.t # err: Ambiguous dispatch to multi 'sort'.
-# integration/99problems-51-to-60.t # err: Nominal type check failed for parameter '$obj'
+# integration/99problems-51-to-60.t # err: No applicable candidates found to dispatch to for 'mirror'
 # integration/99problems-61-to-70.t # err: Nominal type check failed for parameter '$tree'; expected Any but got Mu instead
 integration/advent2009-day01.t
 integration/advent2009-day02.t

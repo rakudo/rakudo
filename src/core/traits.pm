@@ -51,6 +51,9 @@ multi trait_mod:<is>(Parameter:D $param, :$rw!) {
 multi trait_mod:<is>(Parameter:D $param, :$copy!) {
     $param.set_copy();
 }
+multi trait_mod:<is>(Parameter:D $param, :$required!) {
+    $param.set_required();
+}
 
 # TODO: Make this much less cheaty. That'll probably need the
 # full-blown serialization, though.

@@ -1043,10 +1043,12 @@ grammar Perl6::Grammar is HLL::Grammar {
         <.obs('$? variable as child error', '$!')>
     }
 
-
     token desigilname {
         [
-    #    | <?before '$' > <variable>
+        | <?before '$' >
+            [ <?{ $*IN_DECL }> <.panic: "Cannot declare an indirect variable name"> ]?
+            <variable>
+        | <?before <[\@\%\&]> <sigil>* \w > <.panic: "Invalid hard reference syntax">
         | <longname>
         ]
     }
@@ -1186,8 +1188,8 @@ grammar Perl6::Grammar is HLL::Grammar {
                     # variants are OK) or else an illegal redecl.
                     if $exists && $*PKGDECL ne 'role' {
                         if $*PACKAGE.HOW.is_composed($*PACKAGE) {
-                            $/.CURSOR.panic("Illegal redeclaration of $*PKGDECL '" ~
-                                ~$longname<name> ~ "'");
+                            $/.CURSOR.panic("Illegal redeclaration of symbol " ~
+                                ~$longname<name>);
                         }
                     }
                     
@@ -1561,6 +1563,7 @@ grammar Perl6::Grammar is HLL::Grammar {
         | <sigil> <twigil>?
           [
           || <name=.identifier>
+          || <name=.decint> <.panic: "Cannot declare a numeric parameter">
           || $<name>=[<[/!]>]
           ]?
     }
@@ -1647,6 +1650,13 @@ grammar Perl6::Grammar is HLL::Grammar {
         <sym> <.ws>
         [
         | <longname>
+            {
+                my @name := parse_name(~$<longname><name>);
+                if $*ST.already_declared($*SCOPE, $*PACKAGE, $*ST.cur_lexpad(), @name) {
+                    $/.CURSOR.panic("Illegal redeclaration of symbol " ~
+                        ~$<longname><name>);
+                }
+            }
         | <variable>
         | <?>
         ]
@@ -1662,7 +1672,16 @@ grammar Perl6::Grammar is HLL::Grammar {
         :s
         [
             [
-                [ <longname> ]?
+                [
+                    <longname>
+                    {
+                        my @name := parse_name(~$<longname><name>);
+                        if $*ST.already_declared($*SCOPE, $*PACKAGE, $*ST.cur_lexpad(), @name) {
+                            $/.CURSOR.panic("Illegal redeclaration of symbol " ~
+                                ~$<longname><name>);
+                        }
+                    }
+                ]?
                 { $*IN_DECL := '' }
                 <trait>*
                 [ where <EXPR('e=')> ]?

@@ -1,6 +1,8 @@
 my class Exception {
     has $!ex;
 
+    method backtrace() { Backtrace.new(self) }
+
     method Str() {
         nqp::p6box_s(nqp::atkey($!ex, 'message'))
     }

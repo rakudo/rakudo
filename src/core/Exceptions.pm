@@ -1,7 +1,6 @@
 # XXX should really be my X::Base eventually
 my package X {
     class Base is Exception {
-        has $.backtrace;
         has $.message;
 
         multi method Str(Base:D:) {

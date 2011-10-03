@@ -14,7 +14,7 @@ multi infix:<~>(\$a, \$b)      { $a.Stringy ~ $b.Stringy }
 proto infix:<x>(|$)            { * }
 multi infix:<x>()              { fail "No zero-arg meaning for infix:<x>" }
 multi infix:<x>($x)            { $x.Stringy }
-multi infix:<x>($s, $n)        { $s.Stringy x $n.Numeric }
+multi infix:<x>($s, $n)        { $s.Stringy x $n.Int }
 
 proto infix:<leg>(|$) { * }
 multi infix:<leg>(\$a, \$b)    { $a.Stringy cmp $b.Stringy }

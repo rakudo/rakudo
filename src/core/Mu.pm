@@ -21,7 +21,8 @@ my class Mu {
         self.defined
     }
 
-    method so() { self.Bool }
+    method so()  { self.Bool }
+    method not() { self ?? False !! True }
     
     method defined() {
         nqp::p6bool(pir::repr_defined__IP(self))

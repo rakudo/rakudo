@@ -888,6 +888,9 @@ class Perl6::Actions is HLL::Actions {
     method module_name($/) {
         # XXX Needs re-doing.
         my @name := Perl6::Grammar::parse_name(~$<longname>);
+        unless nqp::elems(@name) {
+            $/.CURSOR.panic('Cannot deal with an empty module name here');
+        }
         my $var := PAST::Var.new(
             :name(@name.pop),
             :namespace(@name),

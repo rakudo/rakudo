@@ -1038,16 +1038,19 @@ class Perl6::Actions is HLL::Actions {
             $past.unshift(PAST::Var.new( :name('self'), :scope('lexical_6model') ));
         }
         elsif $twigil eq '^' || $twigil eq ':' {
-            $past := add_placeholder_parameter($/, $sigil, $desigilname, :named($twigil eq ':'));
+            $past := add_placeholder_parameter($/, $sigil, $desigilname,
+                                :named($twigil eq ':'), :full_name($name));
         }
         elsif $name eq '@_' {
             unless $*ST.nearest_signatured_block_declares('@_') {
-                $past := add_placeholder_parameter($/, '@', '_', :pos_slurpy(1));
+                $past := add_placeholder_parameter($/, '@', '_',
+                                :pos_slurpy(1), :full_name($name));
             }
         }
         elsif $name eq '%_' {
             unless $*ST.nearest_signatured_block_declares('%_') || $*METHODTYPE {
-                $past := add_placeholder_parameter($/, '%', '_', :named_slurpy(1));
+                $past := add_placeholder_parameter($/, '%', '_', :named_slurpy(1),
+                                :full_name($name));
             }
         }
         elsif +@name > 1 {
@@ -3567,12 +3570,11 @@ class Perl6::Actions is HLL::Actions {
     }
 
     # Adds a placeholder parameter to this block's signature.
-    sub add_placeholder_parameter($/, $sigil, $ident, :$named, :$pos_slurpy, :$named_slurpy) {
+    sub add_placeholder_parameter($/, $sigil, $ident, :$named, :$pos_slurpy, :$named_slurpy, :$full_name) {
         # Ensure we're not trying to put a placeholder in the mainline.
         my $block := $*ST.cur_lexpad();
         if $block<IN_DECL> eq 'mainline' {
-            $/.CURSOR.panic("Cannot use placeholder parameter $sigil" ~
-                ($named ?? ':' !! '^') ~ "$ident in the mainline");
+            $/.CURSOR.panic("Cannot use placeholder parameter $full_name in the mainline");
         }
         
         # Obtain/create placeholder parameter list.
@@ -3625,7 +3627,7 @@ class Perl6::Actions is HLL::Actions {
         # Add variable declaration, and evaluate to a lookup of it.
         my %existing := $block.symbol($name);
         if +%existing && !%existing<placeholder_parameter> {
-            $/.CURSOR.panic("Redeclaration of symbol $name as a placeholder parameter");
+            $/.CURSOR.panic("Redeclaration of symbol $full_name as a placeholder parameter");
         }
         $block[0].push(PAST::Var.new( :name($name), :scope('lexical_6model'), :isdecl(1) ));
         $block.symbol($name, :scope('lexical_6model'), :placeholder_parameter(1));

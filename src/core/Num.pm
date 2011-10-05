@@ -390,3 +390,36 @@ multi sub cosec(Num:D \$x) {
 multi sub acosec(Num:D \$x) {
     nqp::p6box_n(pir::asin__NN(nqp::div_n(1, nqp::unbox_n($x))));
 }
+
+multi sub sin(num $x) {
+    nqp::want(nqp::p6box_n(pir::sin__NN($x)),
+            'Nn', pir::sin__NN($x));
+}
+multi sub asin(num $x) {
+    nqp::want(nqp::p6box_n(pir::asin__NN($x)),
+            'Nn', pir::asin__NN($x));
+}
+multi sub cos(num $x) {
+    nqp::want(nqp::p6box_n(pir::cos__NN($x)),
+            'Nn', pir::cos__NN($x));
+}
+multi sub acos(num $x) {
+    nqp::want(nqp::p6box_n(pir::acos__NN($x)),
+            'Nn', pir::acos__NN($x));
+}
+multi sub tan(num $x) {
+    nqp::want(nqp::p6box_n(pir::tan__NN($x)),
+            'Nn', pir::tan__NN($x));
+}
+multi sub atan(num $x) {
+    nqp::want(nqp::p6box_n(pir::atan__NN($x)),
+            'Nn', pir::atan__NN($x));
+}
+multi sub sec(num $x) {
+    nqp::want(nqp::p6box_n(pir::sec__NN($x)),
+            'Nn', pir::sec__NN($x));
+}
+multi sub asec(num $x) {
+    nqp::want(nqp::p6box_n(pir::asec__NN($x)),
+            'Nn', pir::asec__NN($x));
+}

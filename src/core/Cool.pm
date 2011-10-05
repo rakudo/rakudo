@@ -176,6 +176,9 @@ my class Cool {
     }
 
     method Real() { self.Numeric.Real }
+    method Int()  { self.Numeric.Int }
+    method Num()  { self.Numeric.Num }
+    method Rat()  { self.Numeric.Rat }
 }
 
 sub chop($s)                  { $s.chop }

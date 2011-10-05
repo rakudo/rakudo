@@ -162,13 +162,14 @@ my class Mu {
     }
     multi method isa(Str:D $name) {
         my @mro = self.HOW.mro(self);
-        my $i = 0;
-        while $i < +@mro {
+        my int $mro_count = +@mro;
+        my int $i = 0;
+        while $i < $mro_count {
             my $obj = @mro[$i];
             if $obj.HOW.name($obj) eq $name {
                 return Bool::True;
             }
-            $i++;
+            $i = $i + 1;
         }
         Bool::False
     }
@@ -247,9 +248,10 @@ my class Mu {
     
     method dispatch:<.*>($name, *@pos, *%named) {
         my @mro = self.HOW.mro(self);
+        my int $mro_count = +@mro;
         my @results;
-        my $i = 0;
-        while $i < +@mro {
+        my int $i = 0;
+        while $i < $mro_count {
             my $obj = @mro[$i];
             my $meth = ($obj.HOW.method_table($obj)){$name};
             if !$meth && $i == 0 {
@@ -258,7 +260,7 @@ my class Mu {
             if $meth {
                 @results.push($meth(self, |@pos, |%named));
             }
-            $i++;
+            $i = $i + 1;
         }
         &infix:<,>(|@results)
     }

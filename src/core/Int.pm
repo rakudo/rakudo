@@ -39,16 +39,16 @@ my class Int {
 
     method base(Cool $base) {
         fail("base must be between 2 and 36, got $base") unless 2 <= $base <= 36;
-        my Int $b = $base.Int;
+        my int $b = $base.Int;
         my @conversion = qw/0 1 2 3 4 5 6 7 8 9
                             A B C D E F G H I J
                             K L M N O P Q R S T
                             U V W X Y Z/;
         my @res;
-        my $n = self.abs;
+        my int $n = self.abs;
         repeat {
             push @res, @conversion[$n % $b];
-            $n div= $b;
+            $n = $n div $b;
         } while $n > 0;
         push @res, '-' if self < 0;
         join '', @res.reverse;

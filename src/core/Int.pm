@@ -72,35 +72,35 @@ multi postfix:<-->(Int:D \$a is rw) {  # XXX
     $b
 }
 
-multi prefix:<->(Int \$a) {
+multi prefix:<->(Int:D \$a) {
     nqp::p6box_i(nqp::neg_i(nqp::unbox_i($a)))
 }
 
-multi prefix:<abs>(Int \$a) {
+multi prefix:<abs>(Int:D \$a) {
     nqp::p6box_i(nqp::abs_i(nqp::unbox_i($a)))
 }
 
-multi infix:<+>(Int \$a, Int \$b) {
+multi infix:<+>(Int:D \$a, Int:D \$b) {
     nqp::p6box_i(nqp::add_i(nqp::unbox_i($a), nqp::unbox_i($b)))
 }
 
-multi infix:<->(Int \$a, Int \$b) {
+multi infix:<->(Int:D \$a, Int:D \$b) {
     nqp::p6box_i(nqp::sub_i(nqp::unbox_i($a), nqp::unbox_i($b)))
 }
 
-multi infix:<*>(Int \$a, Int \$b) {
+multi infix:<*>(Int:D \$a, Int:D \$b) {
     nqp::p6box_i(nqp::mul_i(nqp::unbox_i($a), nqp::unbox_i($b)))
 }
 
-multi infix:<div>(Int \$a, Int \$b) {
+multi infix:<div>(Int:D \$a, Int:D \$b) {
     nqp::p6box_i(nqp::div_i(nqp::unbox_i($a), nqp::unbox_i($b)))
 }
 
-multi infix:<%>(Int \$a, Int \$b) {
+multi infix:<%>(Int:D \$a, Int:D \$b) {
     nqp::p6box_i(nqp::mod_i(nqp::unbox_i($a), nqp::unbox_i($b)))
 }
 
-multi infix:<**>(Int \$a, Int \$b) {
+multi infix:<**>(Int:D \$a, Int:D \$b) {
     if $b >= 0 {
         nqp::p6box_i(nqp::pow_n(nqp::unbox_i($a), nqp::unbox_i($b)))
     } else {

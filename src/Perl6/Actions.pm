@@ -3571,7 +3571,7 @@ class Perl6::Actions is HLL::Actions {
         # Ensure we're not trying to put a placeholder in the mainline.
         my $block := $*ST.cur_lexpad();
         if $block<IN_DECL> eq 'mainline' {
-            $/.CURSOR.panic("Cannot declare placeholder parameter $sigil" ~
+            $/.CURSOR.panic("Cannot use placeholder parameter $sigil" ~
                 ($named ?? ':' !! '^') ~ "$ident in the mainline");
         }
         

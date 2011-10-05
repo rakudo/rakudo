@@ -308,7 +308,7 @@ S06-operator-overloading/methods.t
 # S06-operator-overloading/sub.t # err: Unable to parse postcircumfix:sym<( )>
 # S06-operator-overloading/workout.t # err: Unable to parse postcircumfix:sym<( )>
 S06-other/anon-hashes-vs-blocks.t
-# S06-other/main.t # err: Odd number of elements found where hash expected
+S06-other/main.t
 S06-other/main-eval.t
 S06-other/main-usage.t
 S06-other/misc.t
@@ -353,9 +353,10 @@ S09-subscript/slice.t
 # S09-typed-arrays/arrays.t # err: Cannot put a type constraint on an 'our'-scoped variable
 # S09-typed-arrays/hashes.t # err: Method 'of' not found for invocant of class 'Hash'
 S10-packages/basic.t
+S10-packages/joined-namespaces.t
 S10-packages/use-with-class.t
 # S11-modules/export.t # err: Could not find symbol 'Foo::&Foo_exp_parens
-# S11-modules/import.t # err: Illegal redeclaration of module 'B'
+# S11-modules/import.t # err: Illegal redeclaration of symbol B
 # S11-modules/import-tag.t # err: arglist case of use not yet implemented
 S11-modules/lexical.t
 S11-modules/need.t
@@ -458,7 +459,7 @@ S16-filehandles/open.t
 S16-filehandles/unlink.t
 # S16-io/bare-say.t # err: No applicable candidates found to dispatch to for 'infix:<eq>'
 S16-io/basic-open.t
-# S16-io/say.t # err: o k 3 - say with multiple parameters (2)
+S16-io/say.t
 S16-io/say-and-ref.t
 # S16-io/getc.t # err: Could not find sub &getc
 S16-unfiled/rebindstdhandles.t

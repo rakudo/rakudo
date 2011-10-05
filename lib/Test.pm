@@ -269,7 +269,7 @@ multi sub eval_dies_ok(Str $code, $reason) {
     my $ee = eval_exception($code);
     if defined $ee {
         # XXX no regexes yet in nom
-        my $bad_death = 0; #"$ee" ~~ / ^ 'Null PMC access ' /;
+        my $bad_death = $ee.Str.index('Null PMC access ').defined;
         if $bad_death {
             diag "wrong way to die: '$ee'";
         }

@@ -1,6 +1,8 @@
 my class Exception {
     has $!ex;
 
+    method backtrace() { Backtrace.new(self) }
+
     method Str() {
         nqp::p6box_s(nqp::atkey($!ex, 'message'))
     }
@@ -58,8 +60,10 @@ do {
             );
             if is_runtime($ex.backtrace) {
                 my $e := EXCEPTION($ex);
-                say $e;
-                say Backtrace.new($e);
+                my Mu $err := pir::getstderr__P();
+                $err.print: $e;
+                $err.print: "\n";
+                $err.print: Backtrace.new($e);
             } else {
                 my Mu $err := pir::getstderr__P();
                 $err.print: "===SORRY!===\n";

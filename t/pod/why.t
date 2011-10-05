@@ -1,11 +1,12 @@
 use Test;
-plan 12;
+plan 13;
 
 #= simple case
 class Simple {
 }
 
 is Simple.WHY.content, 'simple case';
+is ~Simple.WHY, 'simple case', 'stringifies correctly';
 
 #= giraffe
 class Outer {

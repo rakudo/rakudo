@@ -60,8 +60,10 @@ do {
             );
             if is_runtime($ex.backtrace) {
                 my $e := EXCEPTION($ex);
-                say $e;
-                say Backtrace.new($e);
+                my Mu $err := pir::getstderr__P();
+                $err.print: $e;
+                $err.print: "\n";
+                $err.print: Backtrace.new($e);
             } else {
                 my Mu $err := pir::getstderr__P();
                 $err.print: "===SORRY!===\n";

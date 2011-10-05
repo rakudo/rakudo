@@ -1566,6 +1566,13 @@ class Perl6::Actions is HLL::Actions {
             }
         };
         my $inline_info := $node_walker($stmt);
+        
+        # Ensure we used all arguments.
+        for %arg_used {
+            if $_.value == 0 {
+                return 0;
+            }
+        }
 
         # Attach inlining information.
         $*ST.apply_trait('&trait_mod:<is>', $code,

@@ -353,6 +353,7 @@ S09-subscript/slice.t
 # S09-typed-arrays/arrays.t # err: Cannot put a type constraint on an 'our'-scoped variable
 # S09-typed-arrays/hashes.t # err: Method 'of' not found for invocant of class 'Hash'
 S10-packages/basic.t
+S10-packages/joined-namespaces.t
 S10-packages/use-with-class.t
 # S11-modules/export.t # err: Could not find symbol 'Foo::&Foo_exp_parens
 # S11-modules/import.t # err: Illegal redeclaration of symbol B

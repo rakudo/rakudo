@@ -228,7 +228,7 @@ CLEANUPS = \
   lib/Pod/To/Text.pir \
   rakudo_test_run.tar.gz \
   $(DYNEXT_DIR)/*$(LOAD_EXT) \
-  src/gen/core.pm \
+  src/gen/CORE.setting \
   src/gen/*.pir \
   src/gen/*.pbc \
   src/gen/*.pm \

@@ -48,8 +48,11 @@ class Perl6::Optimizer {
         if +%!deadly {
             my @fails;
             for %!deadly {
-                @fails.push($_.key ~ " (line" ~ (+$_.value == 1 ?? ' ' !! 's ') ~
-                    pir::join(', ', $_.value) ~ ")");
+                my @parts := pir::split("\n", $_.key);
+                my $headline := @parts.shift();
+                @fails.push("$headline (line" ~ (+$_.value == 1 ?? ' ' !! 's ') ~
+                    pir::join(', ', $_.value) ~ ")" ~
+                    (+@parts ?? "\n" ~ pir::join("\n", @parts) !! ""));
             }
             pir::die("CHECK FAILED:\n" ~ pir::join("\n", @fails))
         }
@@ -253,10 +256,23 @@ class Perl6::Optimizer {
                 @types[$i].HOW.name(@types[$i]));
             $i := $i + 1;
         }
-        self.add_deadly($op, "Dispatch to '" ~ $obj.name ~
-            "' could never work with the arguments of types (" ~
-            pir::join(', ', @arg_names) ~
-            ')');
+        self.add_deadly($op,
+            "Calling '" ~ $obj.name ~ "' will never work with " ~
+            (+@arg_names == 0 ??
+                "no arguments" !!
+                "arguments (" ~ pir::join(', ', @arg_names) ~ ")"),
+            $obj.is_dispatcher ??
+                multi_sig_list($obj) !!
+                ["    Expected: " ~ $obj.signature.perl]);
+    }
+    
+    # Signature list for multis.
+    sub multi_sig_list($dispatcher) {
+        my @sigs := ["    Expected any of:"];
+        for $dispatcher.dispatchees {
+            @sigs.push("    " ~ $_.signature.perl);
+        }
+        @sigs
     }
     
     # Visits all of a nodes children, and dispatches appropriately.
@@ -441,11 +457,12 @@ class Perl6::Optimizer {
     }
     
     # Adds an entry to the list of things that would cause a check fail.
-    method add_deadly($past_node, $message) {
+    method add_deadly($past_node, $message, @extras?) {
         my $line := PAST::Compiler.lineof($past_node<source>, $past_node<pos>);
-        unless %!deadly{$message} {
-            %!deadly{$message} := [];
+        my $key := $message ~ (+@extras ?? "\n" ~ pir::join("\n", @extras) !! "");
+        unless %!deadly{$key} {
+            %!deadly{$key} := [];
         }
-        %!deadly{$message}.push($line);
+        %!deadly{$key}.push($line);
     }
 }

@@ -2566,6 +2566,7 @@ class Perl6::Actions is HLL::Actions {
     method term:sym<identifier>($/) {
         my $past := capture_or_parcel($<args>.ast, ~$<identifier>);
         $past.name('&' ~ $<identifier>);
+        $past.node($/);
         make $past;
     }
 

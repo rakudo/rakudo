@@ -391,6 +391,11 @@ multi sub acosec(Num:D \$x) {
     nqp::p6box_n(pir::asin__NN(nqp::div_n(1, nqp::unbox_n($x))));
 }
 
+multi sub log(num $x) {
+    nqp::want(nqp::p6box_n(pir::ln__NN($x)),
+            'Nn', pir::ln__NN($x));
+}
+
 multi sub sin(num $x) {
     nqp::want(nqp::p6box_n(pir::sin__NN($x)),
             'Nn', pir::sin__NN($x));
@@ -422,4 +427,54 @@ multi sub sec(num $x) {
 multi sub asec(num $x) {
     nqp::want(nqp::p6box_n(pir::asec__NN($x)),
             'Nn', pir::asec__NN($x));
+}
+
+multi sub cotan(num $x) {
+    nqp::want(nqp::p6box_n(nqp::div_n(1, pir::tan__NN($x))),
+        'Nn', nqp::div_n(1, pir::tan__NN($x)));
+}
+multi sub acotan(num $x) {
+    nqp::want(nqp::p6box_n(nqp::div_n(1, pir::tan__NN($x))),
+        'Nn', nqp::div_n(1, pir::atan__NN($x)));
+}
+multi sub sinh(num $x) {
+    nqp::want(nqp::p6box_n(pir::sinh__NN($x)),
+            'Nn', pir::sinh__NN($x));
+}
+multi sub asinh(num $x) {
+    log($x + ($x * $x + 1e0));
+}
+
+multi sub cosh(num $x) {
+    nqp::want(nqp::p6box_n(pir::cosh__NN($x)),
+            'Nn', pir::cosh__NN($x));
+}
+multi sub acosh(num $x) {
+    log($x + ($x * $x - 1e0))
+}
+multi sub tanh(num $x) {
+    nqp::want(nqp::p6box_n(pir::tanh__NN($x)),
+            'Nn', pir::tanh__NN($x));
+}
+multi sub atanh(num $x) {
+    log((1 + $x) / (1 - $x)) / 2e0;
+}
+multi sub sech(num $x) {
+    nqp::want(nqp::p6box_n(pir::sech__NN($x)),
+            'Nn', pir::sech__NN($x));
+}
+multi sub asech(num $x) {
+    acosh(1e0 / $x);
+}
+multi sub cosech(num $x) {
+    1e0 / sinh($x)
+}
+multi sub acosech(num $x) {
+    asinh(1e0 / $x);
+}
+multi sub cotanh(num $x) {
+    1e0 / tanh($x);
+}
+multi sub acotanh(num $x) {
+    atanh(1e0 / $x)
 }

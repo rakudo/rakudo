@@ -31,6 +31,10 @@ class Perl6::Optimizer {
         %!deadly := nqp::hash();
         %!worrying := nqp::hash();
         
+        # Work out optimization level.
+        my $*LEVEL := pir::exists(%adverbs, 'optimize') ??
+            +%adverbs<optimize> !! 2;
+        
         # We'll start walking over UNIT (we wouldn't find it by going
         # over OUTER since we don't walk loadinits).
         my $unit := $past<UNIT>;
@@ -91,7 +95,9 @@ class Perl6::Optimizer {
             # do something in that case. However, it's non-trivial as
             # the static lexpad entries will need twiddling with.
             if +@sigsyms == 0 {
-                return self.inline_immediate_block($block, $outer);
+                if $*LEVEL >= 3 {
+                    return self.inline_immediate_block($block, $outer);
+                }
             }
         }
         
@@ -140,9 +146,11 @@ class Perl6::Optimizer {
                         if @ct_result[0] == 1 {
                             my $chosen := @ct_result[1];
                             if $op.pasttype eq 'chain' { $!chain_depth := $!chain_depth - 1 }
-                            return pir::can($chosen, 'inline_info') && $chosen.inline_info ne ''
-                                ?? self.inline_call($op, $chosen)
-                                !! self.call_ct_chosen_multi($op, $obj, $chosen);
+                            if $*LEVEL >= 2 {
+                                return pir::can($chosen, 'inline_info') && $chosen.inline_info ne ''
+                                    ?? self.inline_call($op, $chosen)
+                                    !! self.call_ct_chosen_multi($op, $obj, $chosen);
+                            }
                         }
                         elsif @ct_result[0] == -1 {
                             self.report_innevitable_dispatch_failure($op, @types, @flags, $obj);
@@ -151,7 +159,9 @@ class Perl6::Optimizer {
                     
                     # Otherwise, inline the proto.
                     if $op.pasttype eq 'chain' { $!chain_depth := $!chain_depth - 1 }
-                    return self.inline_proto($op, $obj);
+                    if $*LEVEL >= 2 {
+                        return self.inline_proto($op, $obj);
+                    }
                 }
                 elsif pir::can($obj, 'signature') {
                     # It's an only; we can at least know the return type.
@@ -166,9 +176,11 @@ class Perl6::Optimizer {
                         if $ct_result == 1 {
                             if $op.pasttype eq 'chain' { $!chain_depth := $!chain_depth - 1 }
                             #say("# trial bind worked!");
-                            return pir::can($obj, 'inline_info') && $obj.inline_info ne ''
-                                ?? self.inline_call($op, $obj)
-                                !! $op;
+                            if $*LEVEL >= 2 {
+                                return pir::can($obj, 'inline_info') && $obj.inline_info ne ''
+                                    ?? self.inline_call($op, $obj)
+                                    !! $op;
+                            }
                         }
                         elsif $ct_result == -1 {
                             self.report_innevitable_dispatch_failure($op, @types, @flags, $obj);

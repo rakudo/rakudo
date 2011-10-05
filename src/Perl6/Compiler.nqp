@@ -19,7 +19,7 @@ class Perl6::Compiler is HLL::Compiler {
     }
 
     method optimize($past, *%adverbs) {
-        %adverbs<optimize> eq '0' ??
+        %adverbs<optimize> eq 'off' ??
             $past !!
             Perl6::Optimizer.new.optimize($past, |%adverbs)
     }

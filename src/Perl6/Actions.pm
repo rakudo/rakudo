@@ -1226,7 +1226,7 @@ class Perl6::Actions is HLL::Actions {
         my $sigil := $<variable><sigil>;
         my $twigil := $<variable><twigil>[0];
         my $name := ~$sigil ~ ~$twigil ~ ~$<variable><desigilname>;
-        if $*ST.cur_lexpad().symbol($name) {
+        if $<variable><desigilname> && $*ST.cur_lexpad().symbol($name) {
             $/.CURSOR.panic("Redeclaration of symbol ", $name);
         }
         make declare_variable($/, $past, ~$sigil, ~$twigil, ~$<variable><desigilname>, $<trait>);

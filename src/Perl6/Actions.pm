@@ -3891,53 +3891,64 @@ class Perl6::Actions is HLL::Actions {
 
     # XXX This isn't quite right yet... need to evaluate these semantics
     sub push_block_handler($/, $block, $handler) {
-        unless $block.handlers() {
-            $block.handlers([]);
-        }
-        $handler := PAST::Block.new(
-            :blocktype('declaration'),
-            PAST::Var.new( :scope('parameter'), :name('$_') ),
-            PAST::Op.new( :pasttype('bind_6model'),
-                PAST::Var.new( :scope('lexical_6model'), :name('$_') ),
-                PAST::Op.new(
-                    :name('&EXCEPTION'),
-                    PAST::Var.new( :scope('lexical_6model'), :name('$_') ),
-                ),
+        # unshift handler preamble: create exception object and store it into $_
+        my $handler_preamble := PAST::Stmts.new(
+            PAST::Op.new( :pasttype('bind'),
+                PAST::Var.new( :scope('register'), :name('exception'), :isdecl(1) ),
+                PAST::Var.new( :scope('parameter') ),
             ),
+            PAST::Op.new( :pasttype('bind_6model'),
+                PAST::Var.new( :scope('lexical_6model'), :name('$_'), :isdecl(1) ),
+                PAST::Op.new( :name('&EXCEPTION'), PAST::Var.new( :scope('register'), :name('exception') ) ),
+            ),
+            PAST::Op.new( :pirop('perl6_container_store__0PP'),
+                PAST::Op.new( :pirop('find_lex_skip_current__Ps'), '$!'),
+                PAST::Var.new( :scope('lexical_6model'), :name('$_') ),
+            ),
+            PAST::Var.new( :scope('lexical_6model'), :name('$!'), :isdecl(1) ),
             PAST::Var.new( :scope('lexical_6model'), :name('$/'), :isdecl(1) ),
-            PAST::Op.new( :pasttype('bind_6model'),
-                PAST::Var.new( :scope('lexical_6model'), :name('$!'), :isdecl(1) ),
-                PAST::Var.new( :scope('lexical_6model'), :name('$_') ),
-            ),
-            PAST::Op.new( :pasttype('call'),
-                $handler,
-            ));
-        $handler.symbol('$_', :scope('lexical_6model'));
-        $handler.symbol('$!', :scope('lexical_6model'));
+        );
+        $handler<past_block>[1].unshift($handler_preamble);
+
+        # rethrow the exception if we reach the end of the handler
+        # (if a when {} clause matches this will get skipped due
+        # to the BREAK exception)
+        $handler<past_block>[1].push(PAST::Op.new( :inline("    perl6_rethrow_skipnextctx exception")));
+
+        # set up a generic exception rethrow, so that exception
+        # handlers from unwanted frames will get skipped if the
+        # code in our handler throws an exception.
+        unless $handler<past_block>.handlers() {
+            $handler<past_block>.handlers([]);
+        }
+        $handler<past_block>.handlers.unshift(
+            PAST::Op.new( :pirop('perl6_rethrow_skipnextctx__vP'),
+                PAST::Op.new(:inline("    .get_results (%r)"))
+            )
+        );
+
+        # create code that calls our handler with the parrot
+        # exception as argument and returns the result.
         $handler := PAST::Stmts.new(
-            PAST::Op.new( :pasttype('call'),
+            :node($/),
+            PAST::Op.new( :pasttype('bind'),
+                PAST::Var.new( :scope('register'), :name('exception'), :isdecl(1)),
+                PAST::Op.new( :inline("    .get_results (%r)") ),
+            ),
+            PAST::Op.new( :pirop('perl6_invoke_catchhandler__vPP'),
                 $handler,
                 PAST::Var.new( :scope('register'), :name('exception') ),
             ),
-            # XXX Rakudo needs to set this when $! is inspected
-            # We just cheat for now.  Call .rethrow() if you want it rethrown.
-            PAST::Op.new( :pasttype('bind_6model'),
-                PAST::Var.new( :scope('keyed'),
-                    PAST::Var.new( :scope('register'), :name('exception')),
-                    'handled'
-                ),
-                1
-            ),
             PAST::Op.new( :pirop('finalize vP'),
-                PAST::Var.new( :scope('register'), :name('exception')))
+                PAST::Var.new( :scope('register'), :name('exception'))),
+            PAST::Op.new(:inline("    .get_results (%r)\n    perl6_type_check_return_value %r\n    .return (%r)"))
         );
 
-        $block.handlers.unshift(
-            PAST::Control.new(
-                :node($/),
-                $handler,
-            )
-        );
+        #install handler
+        unless $block.handlers() {
+            $block.handlers([]);
+        }
+        $block.handlers.unshift($handler);
     }
 
     sub has_block_handler($block, $type, :$except) {

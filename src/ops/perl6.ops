@@ -11,6 +11,8 @@ BEGIN_OPS_PREAMBLE
 #include "pmc_class.h"
 #include "pmc_callcontext.h"
 #include "pmc_sub.h"
+#include "pmc_continuation.h"
+#include "pmc_exception.h"
 #include "../binder/bind.h"
 #include "../binder/multidispatch.h"
 #include "../binder/container.h"
@@ -1320,6 +1322,95 @@ inline op encodelocaltime(out INT, in PMC) :base_core {
 
     $1 = mktime(&tm);
 }
+
+
+/*
+
+=item perl6_rethrow_skipnextctx(in PMC)
+
+Rethrow an exception, but skip the remaining handlers of the current
+context plus all handlers of the caller context. We use this to bypass
+the original handler when en exception occures in an CATCH/CONTROL
+block.
+
+=cut
+
+*/
+inline op perl6_rethrow_skipnextctx(in PMC) :base_core {
+    PMC      *except = $1;
+    opcode_t *dest;
+    STRING   *handler_iter_str = Parrot_str_new_constant(interp, "handler_iter");
+    PMC      *ctx = CURRENT_CONTEXT(interp);
+    PMC      *cont = Parrot_pcc_get_continuation(interp, ctx);
+    PMC      *next_ctx = PMCNULL;
+    /* this used to be simply Parrot_pcc_get_caller_ctx(interp, ctx)
+     * with the invoke_catchhandler opcode, we have to use the context from
+     * the return continuation, as it may be different from the caller
+     */
+    if (!PMC_IS_NULL(cont))
+        GETATTR_Continuation_to_ctx(interp, cont, next_ctx);
+    if (PMC_IS_NULL(next_ctx))
+        next_ctx = Parrot_pcc_get_caller_ctx(interp, ctx);
+    VTABLE_set_attr_str(interp, except, handler_iter_str, PMCNULL);
+    VTABLE_set_pointer(interp, except, next_ctx);
+    dest = Parrot_ex_rethrow_from_op(interp, except);
+    goto ADDRESS(dest);
+}
+
+
+/*
+
+=item perl6_invoke_catchhandler(invar PMC, in PMC)
+
+Works like invoke, but takes a parrot exception as second argument.
+The perl6 spec says that the catchhandler's call chain must include
+the callframes from the exception, so we do some context fiddling
+here. When the catchhandler returns, it uses the continuation that
+points to the original callchain.
+Note that exceptions in the catchhandler must be caught and
+possibly rethrown with rethrow_skipnextctx, otherwise the handlers
+from the exception will pick them up.
+
+=cut
+
+*/
+inline op perl6_invoke_catchhandler(invar PMC, in PMC) :flow {
+    PMC      * p        = $1;
+    PMC      * ctx      = CURRENT_CONTEXT(interp);
+    opcode_t * dest     = expr NEXT();
+    PMC      * call_obj = Parrot_pcc_build_call_from_c_args(interp, PMCNULL, "P", $2);
+    PMC      * cont     = pmc_new(interp, enum_class_Continuation);
+    PMC      * ectx     = PMCNULL;
+
+    VTABLE_set_pointer(interp, cont, dest);
+    Parrot_pcc_set_pc(interp, ctx, dest);
+    /* now the tricky part, restore exception context */
+    GETATTR_Exception_thrower(interp, $2, ectx);
+    if (!PMC_IS_NULL(ectx) && ectx != ctx) {
+        /* make sure that the current context is reachable, just in case... */
+        PMC *cctx = ectx;
+        for (; !PMC_IS_NULL(cctx); cctx = Parrot_pcc_get_caller_ctx(interp, cctx))
+            if (cctx == ctx)
+                break;
+        if (cctx == ctx) {
+            /* ok, found it. now change the current context */
+            Parrot_pcc_set_context(interp, ectx);
+        }
+    } else {
+        ectx = ctx;
+    }
+    if (PMC_IS_NULL(p)) {
+        /* no function provided, return immediately */
+        Parrot_pcc_set_context(interp, ctx);
+        goto NEXT();
+    } else {
+        interp->current_cont = cont;
+        Parrot_pcc_set_signature(interp, ectx, call_obj);
+        dest = VTABLE_invoke(interp, p, dest);
+        goto ADDRESS(dest);
+    }
+}
+
 
 /*
  * Local variables:

@@ -7,6 +7,10 @@ my class Exception {
         nqp::p6box_s(nqp::atkey($!ex, 'message'))
     }
 
+    multi method Numeric(Exception:D:) {
+	self.Str.Numeric()
+    }
+
     method throw() {
         nqp::bindattr(self, Exception, '$!ex', pir::new('Exception'))
             unless pir::defined($!ex);

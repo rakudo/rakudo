@@ -806,7 +806,7 @@ class Perl6::Actions is HLL::Actions {
             $past := PAST::Op.new( :pasttype('call'), $block );
         } else {
             $block := PAST::Op.new(:pasttype<call>, $block); # XXX should be immediate
-            $past := PAST::Op.new( :pasttype('try'), $block );
+            $past := PAST::Op.new( :pasttype('try'), :handle_types_except('CONTROL'), $block );
 
             # On failure, capture the exception object into $!.
             $past.push(

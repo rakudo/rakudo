@@ -732,7 +732,7 @@ class Perl6::Actions is HLL::Actions {
         # Add exception handler to the block so we fall out of the enclosing block
         # after it's executed.
         $pblock := pblock_immediate($pblock);
-        when_handler_helper($pblock);
+        $pblock := when_handler_helper($pblock);
 
         # Handle the smart-match. XXX Need to handle syntactic cases too.
         my $match_past := PAST::Op.new( :pasttype('call'), :name('&infix:<~~>'),
@@ -750,8 +750,8 @@ class Perl6::Actions is HLL::Actions {
         # We always execute this, so just need the block, however we also
         # want to make sure we break after running it.
         my $block := $<block>.ast;
-        when_handler_helper($block<past_block>);
-        make PAST::Op.new($block);
+        $block := when_handler_helper($block);
+        make $block;
     }
 
     method statement_control:sym<CATCH>($/) {
@@ -3845,49 +3845,45 @@ class Perl6::Actions is HLL::Actions {
         unless $BLOCK.handlers() {
             my @handlers;
             @handlers.push(
-                PAST::Control.new(
-                    PAST::Op.new(
-                        :pasttype('pirop'),
-                        :pirop('return'),
-                        PAST::Var.new(
-                            :scope('keyed'),
-                            PAST::Var.new( :name('exception'), :scope('register') ),
-                            'payload',
-                        ),
+                PAST::Op.new(
+                    :handle_types('BREAK'),
+                    :inline("    perl6_type_check_return_value %0\n    .return (%0)"),
+                    PAST::Var.new(
+                        :scope('keyed'),
+                        PAST::Op.new(:inline("    .get_results (%r)\n    finalize %r")),
+                        'payload',
                     ),
-                    :handle_types('BREAK')
                 )
             );
             $BLOCK.handlers(@handlers);
         }
 
-        # push a control exception throw onto the end of the block so we
-        # exit the innermost block in which $_ was set.
-        my $last := $block.pop();
-        $block.push(
-            PAST::Op.new(
-                :pasttype('call'),
-                :name('&succeed'),
-                $last
-            )
-        );
-
-        # Push a handler onto the block to handle CONTINUE exceptions so we can
-        # skip throwing the BREAK exception
-        my @handlers;
-        if $block.handlers() {
-            @handlers := $block.handlers();
+        # if this is not an immediate block create a call
+        if ($block<past_block>) {
+            $block := PAST::Op.new( :pasttype('call'), $block);
         }
-        @handlers.push(
-            PAST::Control.new(
-                PAST::Op.new(
-                    :pasttype('pirop'),
-                    :pirop('return'),
-                ),
-                :handle_types('CONTINUE')
-            )
+
+        # call succeed with the block return value, succeed will throw
+        # a BREAK exception to be caught by the above handler
+        $block := PAST::Op.new(
+            :pasttype('call'),
+            :name('&succeed'),
+            $block,
         );
-        $block.handlers(@handlers);
+        
+        # wrap it in a try pirop so that we can use a CONTINUE exception
+        # to skip the succeed call
+        $block := PAST::Op.new(
+            :pasttype('try'),
+            :handle_types('CONTINUE'),
+            $block,
+            PAST::Var.new(
+                :scope('keyed'),
+                PAST::Op.new(:inline("    .get_results (%r)\n    finalize %r")),
+                'payload',
+            ),
+        );
+        $block;
     }
 
     sub make_dot_equals($target, $call) {

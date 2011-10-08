@@ -1,4 +1,4 @@
-my class Match is Capture {
+my class Match is Capture is Cool {
     has $.orig;
     has $.from;
     has $.to;

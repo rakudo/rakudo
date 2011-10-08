@@ -1426,7 +1426,7 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
                 PAST::Op.new(
                     :pasttype('callmethod'), :name('add_enum_value'),
                     PAST::Op.new( :pirop('get_how PP'), $enum_type_obj_ref ),
-                    $enum_type_obj_ref, $val
+                    $enum_type_obj_ref, $val_ref
                 ))));
         }
 

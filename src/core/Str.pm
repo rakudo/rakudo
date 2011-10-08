@@ -4,6 +4,10 @@ my class Match  {... }
 my class Buf    {... }
 
 my class Str does Stringy {
+    submethod BUILD(:$value as Str = '') {
+        nqp::bindattr_s(self, Str, '$!value', nqp::unbox_s($value))
+    }
+
     multi method Bool(Str:D:) { self ne '' && self ne '0' }
     
     multi method Str(Str:D:) { self }

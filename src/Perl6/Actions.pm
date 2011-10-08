@@ -3290,9 +3290,16 @@ class Perl6::Actions is HLL::Actions {
         }
     }
 
-    our %SUBST_ALLOWED_ADVERBS;
+    our %SUBST_ALLOWED_ADVERBS ;
     our %SHARED_ALLOWED_ADVERBS;
     our %MATCH_ALLOWED_ADVERBS;
+    our %MATCH_ADVERBS_MULTIPLE := hash(
+        x       => 1,
+        g       => 1,
+        global  => 1,
+        ov      => 1,
+        overlap => 1,
+    );
     INIT {
         my $mods := 'i ignorecase s sigspace r ratchet';
         for nqp::split(' ', $mods) {
@@ -3304,8 +3311,7 @@ class Perl6::Actions is HLL::Actions {
             %SUBST_ALLOWED_ADVERBS{$_} := 1;
         }
 
-        # TODO: add g global ov overlap  once they actually work
-        $mods := 'x c continue p pos nth th st nd rd';
+        $mods := 'x c continue p pos nth th st nd rd g global ov overlap';
         for nqp::split(' ', $mods) {
             %MATCH_ALLOWED_ADVERBS{$_} := 1;
         }
@@ -3408,15 +3414,24 @@ class Perl6::Actions is HLL::Actions {
             PAST::Var.new( :name('$_'), :scope('lexical_6model') ),
             block_closure($coderef)
         );
-        self.handle_and_check_adverbs($/, %MATCH_ALLOWED_ADVERBS, 'm', $past);
-        make PAST::Op.new( :pirop('perl6_container_store__0PP'),
-            PAST::Var.new(:name('$/'), :scope('lexical_6model')),
-            $past
-        );
+        if self.handle_and_check_adverbs($/, %MATCH_ALLOWED_ADVERBS, 'm', $past) {
+            # if this match returns a list of matches instead of a single
+            # match, don't assing to $/ (which imposes item context)
+            make $past;
+        } else {
+            make PAST::Op.new( :pirop('perl6_container_store__0PP'),
+                PAST::Var.new(:name('$/'), :scope('lexical_6model')),
+                $past
+            );
+        }
     }
 
+    # returns 1 if the adverbs indicate that the return value of the
+    # match will be a List of matches rather than a single match
     method handle_and_check_adverbs($/, %adverbs, $what, $past?) {
+        my $multiple := 0;
         for $<rx_adverbs>.ast {
+            $multiple := 1 if %MATCH_ADVERBS_MULTIPLE{$_.named};
             unless %SHARED_ALLOWED_ADVERBS{$_.named} || %adverbs{$_.named} {
                 $/.CURSOR.panic("Adverb '" ~ $_.named ~ "' not allowed on " ~ $what);
             }
@@ -3424,6 +3439,7 @@ class Perl6::Actions is HLL::Actions {
                 $past.push($_);
             }
         }
+        $multiple;
     }
 
     method quote:sym<s>($/) {

@@ -13,9 +13,10 @@ class Perl6::Metamodel::ModuleHOW
         $archetypes
     }
 
-    method new_type(:$name = '<anon>', :$repr = 'P6opaque', :$ver, :$auth) {
+    method new_type(:$name = '<anon>', :$repr, :$ver, :$auth) {
+        if $repr { pir::die("'module' does not support custom representations") }
         my $metaclass := self.new(:name($name), :ver($ver), :auth($auth));
-        self.add_stash(pir::repr_type_object_for__PPS($metaclass, $repr));
+        self.add_stash(pir::repr_type_object_for__PPS($metaclass, 'Uninstantiable'));
     }
 
     method compose($obj) {

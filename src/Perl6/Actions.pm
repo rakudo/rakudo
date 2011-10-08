@@ -3463,6 +3463,7 @@ class Perl6::Actions is HLL::Actions {
         if $/[0] {
             $past.push(PAST::Val.new(:named('samespace'), :value(1)));
         }
+        $past.push(PAST::Val.new(:named('SET_CALLER_DOLLAR_SLASH'), :value(1)));
 
         $past := PAST::Op.new(
             :node($/),

@@ -341,6 +341,7 @@ S06-signature/unpack-object.t
 S06-signature/unspecified.t
 S06-traits/as.t
 S06-traits/is-copy.t
+S06-traits/is-readonly.t
 S06-traits/is-rw.t
 # S06-traits/misc.t # err: Unable to parse blockoid
 

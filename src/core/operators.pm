@@ -21,6 +21,16 @@ proto infix:<but>(|$) { * }
 multi infix:<but>(Mu \$obj, Mu:U \$role) {
     $obj.HOW.mixin($obj.clone(), $role).BUILD_LEAST_DERIVED({});
 }
+multi infix:<but>(Mu \$obj, Mu:D $val) is rw {
+    my $role := Metamodel::ParametricRoleHOW.new_type();
+    my $meth := method () { $val };
+    $meth.set_name($val.^name);
+    $role.HOW.add_method($role, $meth.name, $meth);
+    $role.HOW.set_body_block($role,
+        -> |$c { nqp::list($role, nqp::hash('$?CLASS', $c<$?CLASS>)) });
+    $role.HOW.compose($role);
+    $obj.HOW.mixin($obj.clone(), $role);
+}
 multi infix:<but>(Mu \$obj, @roles) {
     $obj.HOW.mixin($obj.clone(), |@roles).BUILD_LEAST_DERIVED({});
 }

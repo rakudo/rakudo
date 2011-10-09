@@ -147,17 +147,10 @@ sub eval(Str $code, :$lang = 'perl6') {
         $P0 = getinterp
         %r = $P0['context';1]
     };
-    my $result;
-    my $success;
-    try {
-        my $compiler := pir::compreg__PS($lang);
-        my $pbc      := $compiler.compile($code, :outer_ctx($caller_ctx));
-        nqp::atpos($pbc, 0).set_outer_ctx($caller_ctx);
-        $result := $pbc();
-        $success = 1;
-    }
-    pir::find_caller_lex__Ps('$!') = $!;
-    $success ?? $result !! Any # XXX fail($!)
+    my $compiler := pir::compreg__PS($lang);
+    my $pbc      := $compiler.compile($code, :outer_ctx($caller_ctx));
+    nqp::atpos($pbc, 0).set_outer_ctx($caller_ctx);
+    $pbc();
 }
 
 

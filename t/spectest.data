@@ -303,7 +303,7 @@ S06-multi/syntax.t
 S06-multi/type-based.t
 S06-multi/value-based.t
 S06-multi/unpackability.t
-S06-operator-overloading/imported-subs.t
+# S06-operator-overloading/imported-subs.t
 S06-operator-overloading/methods.t
 # S06-operator-overloading/sub.t # err: Unable to parse postcircumfix:sym<( )>
 # S06-operator-overloading/workout.t # err: Unable to parse postcircumfix:sym<( )>

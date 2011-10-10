@@ -55,12 +55,12 @@ role Perl6::Metamodel::C3MRO {
                         }
                     }
 
-                    # If we didn't reject it, this candidate will do.
-                    unless $rejected {
-                        $accepted := $cand_class;
-                        $something_accepted := 1;
-                        last;
-                    }
+                }
+                # If we didn't reject it, this candidate will do.
+                unless $rejected {
+                    $accepted := $cand_class;
+                    $something_accepted := 1;
+                    last;
                 }
             }
         }

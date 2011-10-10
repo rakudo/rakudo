@@ -70,13 +70,13 @@ my class List does Positional {
             nqp::bindattr(self, List, '$!items', nqp::list());
 
         # loop through iterators until we have at least $n elements
-        my $count = nqp::p6box_i(nqp::elems($!items));
+        my int $count = nqp::elems($!items);
         my $eager = nqp::p6bool(nqp::istype($n, Whatever));
         while $!nextiter.defined && ($eager 
                                        ?? !$!nextiter.infinite 
                                        !! ($count < $n)) {
             $!nextiter.reify($eager ?? Whatever !! $n - $count);
-            $count = nqp::p6box_i(nqp::elems($!items));
+            $count = nqp::elems($!items);
         }
 
         # return the number of elements we have now

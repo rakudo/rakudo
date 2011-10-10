@@ -11,29 +11,27 @@ my class ListIter {
         if !$!reified.defined {
             my $eager = nqp::p6bool(nqp::istype($n, Whatever));
             my $flattens = $!list.defined && $!list.flattens;
-            my $count = $eager ?? 100000 !! $n.Int;
+            my int $count = $eager ?? 100000 !! $n.Int;
             my $rpa := nqp::list();
             my Mu $x;
-            my $index;
+            my int $index;
             pir::perl6_shiftpush__0PPI($rpa, $!rest, nqp::elems($!rest))
                 if nqp::istype($!list, LoL);
-            while $!rest && nqp::islt_i(nqp::elems($rpa), nqp::unbox_i($count)) {
-                $index = nqp::p6box_i(
-                             pir::perl6_rpa_find_type__IPPii(
-                                 $!rest, Iterable, 0, nqp::unbox_i($count)));
-                $index = nqp::p6box_i(
-                             pir::perl6_rpa_find_type__IPPii(
-                                 $!rest, Parcel, 0, nqp::unbox_i($index)))
+            while $!rest && nqp::islt_i(nqp::elems($rpa), $count) {
+                $index = pir::perl6_rpa_find_type__IPPii(
+                                 $!rest, Iterable, 0, $count);
+                $index = pir::perl6_rpa_find_type__IPPii(
+                                 $!rest, Parcel, 0, $index)
                     if $flattens;
-                pir::perl6_shiftpush__0PPi($rpa, $!rest, nqp::unbox_i($index));
-                if $!rest && nqp::islt_i(nqp::elems($rpa), nqp::unbox_i($count)) {
+                pir::perl6_shiftpush__0PPi($rpa, $!rest, $index);
+                if $!rest && nqp::islt_i(nqp::elems($rpa), $count) {
                     $x := nqp::shift($!rest);
                     if nqp::isconcrete($x) {
                         (nqp::unshift($!rest, $x); last) if $eager && $x.infinite;
                         $x := $x.iterator.reify(
                                   $eager 
                                     ?? Whatever 
-                                    !! nqp::p6box_i(nqp::sub_i(nqp::unbox_i($count),
+                                    !! nqp::p6box_i(nqp::sub_i($count,
                                                                nqp::elems($rpa))))
                             if nqp::istype($x, Iterable);
                         nqp::splice($!rest, nqp::getattr($x, Parcel, '$!storage'), 0, 0);

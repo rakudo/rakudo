@@ -55,11 +55,12 @@ my class Match is Capture is Cool {
             %attrs{$_} = self."$_"().perl;
         }
 
-        'Match.perl('
+        'Match.new('
             ~ %attrs.fmt('%s => %s', ', ')
             ~ ')'
     }
     multi method gist (Match:D: $d = 0) {
+        return "#<failed match>" unless self;
         my $s = ' ' x ($d + 1);
         my $r = "=> <{self}>\n";
         for @.caps {

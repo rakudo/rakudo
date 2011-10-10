@@ -80,7 +80,7 @@ multi prefix:<->(int $a) returns int {
         'Ii', nqp::neg_i($a))
 }
 
-multi prefix:<abs>(Int \$a) returns Int {
+multi prefix:<abs>(Int:D \$a) returns Int {
     nqp::p6box_i(nqp::abs_i(nqp::unbox_i($a)))
 }
 multi prefix:<->(int $a) returns int {
@@ -88,7 +88,7 @@ multi prefix:<->(int $a) returns int {
         'Ii', nqp::abs_i($a))
 }
 
-multi infix:<+>(Int \$a, Int \$b) returns Int {
+multi infix:<+>(Int:D \$a, Int:D \$b) returns Int {
     nqp::p6box_i(nqp::add_i(nqp::unbox_i($a), nqp::unbox_i($b)))
 }
 multi infix:<+>(int $a, int $b) returns int {
@@ -96,7 +96,7 @@ multi infix:<+>(int $a, int $b) returns int {
         'Ii', nqp::add_i($a, $b))
 }
 
-multi infix:<->(Int \$a, Int \$b) returns Int {
+multi infix:<->(Int:D \$a, Int:D \$b) returns Int {
     nqp::p6box_i(nqp::sub_i(nqp::unbox_i($a), nqp::unbox_i($b)))
 }
 multi infix:<->(int $a, int $b) returns int {
@@ -104,7 +104,7 @@ multi infix:<->(int $a, int $b) returns int {
         'Ii', nqp::sub_i($a, $b))
 }
 
-multi infix:<*>(Int \$a, Int \$b) returns Int {
+multi infix:<*>(Int:D \$a, Int:D \$b) returns Int {
     nqp::p6box_i(nqp::mul_i(nqp::unbox_i($a), nqp::unbox_i($b)))
 }
 multi infix:<*>(int $a, int $b) returns int {
@@ -112,7 +112,7 @@ multi infix:<*>(int $a, int $b) returns int {
         'Ii', nqp::mul_i($a, $b))
 }
 
-multi infix:<div>(Int \$a, Int \$b) returns Int {
+multi infix:<div>(Int:D \$a, Int:D \$b) returns Int {
     nqp::p6box_i(nqp::div_i(nqp::unbox_i($a), nqp::unbox_i($b)))
 }
 multi infix:<div>(int $a, int $b) returns int {
@@ -120,7 +120,7 @@ multi infix:<div>(int $a, int $b) returns int {
         'Ii', nqp::div_i($a, $b))
 }
 
-multi infix:<%>(Int \$a, Int \$b) returns Int {
+multi infix:<%>(Int:D \$a, Int:D \$b) returns Int {
     nqp::p6box_i(nqp::mod_i(nqp::unbox_i($a), nqp::unbox_i($b)))
 }
 multi infix:<%>(int $a, int $b) returns int {
@@ -128,7 +128,7 @@ multi infix:<%>(int $a, int $b) returns int {
         'Ii', nqp::mod_i($a, $b))
 }
 
-multi infix:<**>(Int \$a, Int \$b) {
+multi infix:<**>(Int:D \$a, Int:D \$b) {
     if $b >= 0 {
         nqp::p6box_i(nqp::pow_n(nqp::unbox_i($a), nqp::unbox_i($b)))
     } else {

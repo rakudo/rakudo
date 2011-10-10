@@ -16,6 +16,8 @@ my class Exception {
     method rethrow() {
         pir::rethrow__0P($!ex)
     }
+
+    method Bool() { False }
 }
 
 sub EXCEPTION(|$) {

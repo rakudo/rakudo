@@ -1236,12 +1236,16 @@ inline op perl6_shiftpush(inout PMC, in PMC, in INT) :base_core {
     INTVAL elems = VTABLE_elements(interp, $2);
     if (count > elems) count = elems;
 
-    if (!PMC_IS_NULL($1)) {
-        INTVAL pos = 0;
+    if (!PMC_IS_NULL($1) && $3 > 0) {
+        INTVAL get_pos = 0;
+        INTVAL set_pos = VTABLE_elements(interp, $1);
+        VTABLE_set_integer_native(interp, $1, set_pos + count);
         while (count > 0) {
-            VTABLE_push_pmc(interp, $1, VTABLE_get_pmc_keyed_int(interp, $2, pos));
+            VTABLE_set_pmc_keyed_int(interp, $1, set_pos,
+                VTABLE_get_pmc_keyed_int(interp, $2, get_pos));
             count--;
-            pos++;
+            get_pos++;
+            set_pos++;
         }
     }
     if ($3 > 0)

@@ -324,7 +324,9 @@ sub _is_deeply(Mu $got, Mu $expected) {
 ## 'private' subs
 
 sub eval_exception($code) {
-    eval ($code);
+    try {
+        eval ($code);
+    }
     $!;
 }
 

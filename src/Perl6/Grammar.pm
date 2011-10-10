@@ -1152,7 +1152,7 @@ grammar Perl6::Grammar is HLL::Grammar {
         # Meta-object will live in here; also set default REPR (a trait
         # may override this, e.g. is repr('...')).
         :my $*PACKAGE;
-        :my $*REPR := 'P6opaque';
+        :my $*REPR;
         
         # Default to our scoped.
         { unless $*SCOPE { $*SCOPE := 'our'; } }
@@ -1201,7 +1201,9 @@ grammar Perl6::Grammar is HLL::Grammar {
                         if $longname {
                             %args<name> := ~$longname<name>;
                         }
-                        %args<repr> := $*REPR;
+                        if $*REPR ne '' {
+                            %args<repr> := $*REPR;
+                        }
                         $*PACKAGE := $*ST.pkg_create_mo(%*HOW{$*PKGDECL}, |%args);
                         
                         # Install it in the symbol table if needed.

@@ -256,7 +256,7 @@ S05-match/blocks.t
 S05-match/capturing-contexts.t
 # S05-match/non-capturing.t # err: Negative length argument (-1) to .substr
 # S05-match/perl.t # err: Method 'at_key' not found for invocant of class 'Str'
-# S05-match/positions.t # err: Method 'chars' not found for invocant of class 'Match'
+S05-match/positions.t
 S05-metachars/closure.t
 S05-metachars/line-anchors.t
 S05-metachars/newline.t
@@ -303,7 +303,7 @@ S06-multi/syntax.t
 S06-multi/type-based.t
 S06-multi/value-based.t
 S06-multi/unpackability.t
-S06-operator-overloading/imported-subs.t
+# S06-operator-overloading/imported-subs.t
 S06-operator-overloading/methods.t
 # S06-operator-overloading/sub.t # err: Unable to parse postcircumfix:sym<( )>
 # S06-operator-overloading/workout.t # err: Unable to parse postcircumfix:sym<( )>
@@ -341,6 +341,7 @@ S06-signature/unpack-object.t
 S06-signature/unspecified.t
 S06-traits/as.t
 S06-traits/is-copy.t
+S06-traits/is-readonly.t
 S06-traits/is-rw.t
 # S06-traits/misc.t # err: Unable to parse blockoid
 

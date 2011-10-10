@@ -4,6 +4,10 @@ my class Match  {... }
 my class Buf    {... }
 
 my class Str does Stringy {
+    submethod BUILD(:$value as Str = '') {
+        nqp::bindattr_s(self, Str, '$!value', nqp::unbox_s($value))
+    }
+
     multi method Bool(Str:D:) { self ne '' && self ne '0' }
     
     multi method Str(Str:D:) { self }
@@ -321,15 +325,18 @@ my class Str does Stringy {
     }
 
     multi method subst($matcher, $replacement,
-                       :ii(:$samecase), :ss(:$samespace), *%options) {
+                       :ii(:$samecase), :ss(:$samespace),
+                       :$SET_CALLER_DOLLAR_SLASH, *%options) {
         my @matches = self.match($matcher, |%options);
         return self unless @matches;
         return self if @matches == 1 && !@matches[0];
+        my $caller_dollar_slash := pir::find_caller_lex__Ps('$/');
         my $prev = 0;
         my $result = '';
         for @matches -> $m {
             $result ~= self.substr($prev, $m.from - $prev);
 
+            $caller_dollar_slash = $m if $SET_CALLER_DOLLAR_SLASH;
             my $real_replacement = ~($replacement ~~ Callable ?? $replacement($m) !! $replacement);
             $real_replacement    = $real_replacement.samecase(~$m) if $samecase;
             $real_replacement    = $real_replacement.samespace(~$m) if $samespace;

@@ -248,14 +248,14 @@ S05-mass/named-chars.t                                     # icu
 # S05-mass/properties-derived.t # err: Method 'isASCIIHexDigit' not found for invocant of class 'Cursor'
 # S05-mass/properties-general.t # err: Method 'isL' not found for invocant of class 'Cursor'
 # S05-mass/properties-script.t # err: Method 'isBidiL' not found for invocant of class 'Cursor'
-# S05-mass/rx.t # err: Method 'before' not found for invocant of class 'Cursor'
+# S05-mass/rx.t # err: Unsupported use of - as character range;in Perl 6 please use ..
 S05-mass/recursive.t
 S05-mass/stdrules.t
 S05-match/arrayhash.t
 S05-match/blocks.t
 S05-match/capturing-contexts.t
 # S05-match/non-capturing.t # err: Negative length argument (-1) to .substr
-# S05-match/perl.t # err: Method 'at_key' not found for invocant of class 'Str'
+# S05-match/perl.t # err: SixModelObject does not support the clone v-table; consider using the repr_clone op instead
 S05-match/positions.t
 S05-metachars/closure.t
 S05-metachars/line-anchors.t
@@ -459,7 +459,7 @@ S16-filehandles/io_in_for_loops.t
 S16-filehandles/io_in_while_loops.t
 S16-filehandles/open.t
 S16-filehandles/unlink.t
-# S16-io/bare-say.t # err: No applicable candidates found to dispatch to for 'infix:<eq>'
+S16-io/bare-say.t
 S16-io/basic-open.t
 S16-io/say.t
 S16-io/say-and-ref.t
@@ -494,7 +494,7 @@ S32-array/shift.t
 # S32-array/splice.t # err: Could not find sub &splice
 S32-array/unshift.t
 S32-basics/warn.t
-# S32-container/zip.t # err: Cannot assign to a non-container
+# S32-container/zip.t # err: Could not find sub &Seq
 S32-hash/exists.t
 # S32-hash/delete.t # err: Too many positional parameters passed
 S32-hash/invert.t

@@ -248,7 +248,7 @@ S05-mass/named-chars.t                                     # icu
 # S05-mass/properties-derived.t # err: Method 'isASCIIHexDigit' not found for invocant of class 'Cursor'
 # S05-mass/properties-general.t # err: Method 'isL' not found for invocant of class 'Cursor'
 # S05-mass/properties-script.t # err: Method 'isBidiL' not found for invocant of class 'Cursor'
-# S05-mass/rx.t # err: Unsupported use of - as character range;in Perl 6 please use ..
+S05-mass/rx.t
 S05-mass/recursive.t
 S05-mass/stdrules.t
 S05-match/arrayhash.t

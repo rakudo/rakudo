@@ -13,6 +13,7 @@ role Perl6::Metamodel::Mixins {
         for @roles {
             $new_type.HOW.add_role($new_type, $_);
         }
+        $new_type.HOW.set_boolification_mode($new_type, self.get_boolification_mode($obj));
         $new_type.HOW.compose($new_type);
         
         # Call low-level op to do the actual mixing in.

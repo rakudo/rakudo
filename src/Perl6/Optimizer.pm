@@ -260,7 +260,7 @@ class Perl6::Optimizer {
             "Calling '" ~ $obj.name ~ "' will never work with " ~
             (+@arg_names == 0 ??
                 "no arguments" !!
-                "arguments (" ~ pir::join(', ', @arg_names) ~ ")"),
+                "argument types (" ~ pir::join(', ', @arg_names) ~ ")"),
             $obj.is_dispatcher ??
                 multi_sig_list($obj) !!
                 ["    Expected: " ~ $obj.signature.perl]);

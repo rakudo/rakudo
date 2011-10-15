@@ -1075,7 +1075,12 @@ INTVAL Rakudo_binding_trial_bind(PARROT_INTERP, PMC *sig_pmc, PMC *capture) {
                 got_prim == BIND_VAL_NUM ? Rakudo_types_num_get() :
                                            Rakudo_types_str_get();
             if (param->nominal_type != Rakudo_types_mu_get() &&
-                    !STABLE(arg)->type_check(interp, arg, param->nominal_type))
+                    !STABLE(arg)->type_check(interp, arg, param->nominal_type)) {
+                /* If it failed because we got a junction, may auto-thread;
+                 * hand back "not sure" for now. */
+                if (STABLE(arg)->WHAT == Rakudo_types_junction_get())
+                    return TRIAL_BIND_NOT_SURE;
+                
                 /* It failed to, but that doesn't mean it can't work at runtime;
                  * we perhaps want an Int, and the most we know is we have an Any,
                  * which would include Int. However, the Int ~~ Str case can be
@@ -1083,6 +1088,7 @@ INTVAL Rakudo_binding_trial_bind(PARROT_INTERP, PMC *sig_pmc, PMC *capture) {
                  * just flip the type check around. */
                 return STABLE(param->nominal_type)->type_check(interp, param->nominal_type, arg) ?
                     TRIAL_BIND_NOT_SURE : TRIAL_BIND_NO_WAY;
+            }
         }
 
         /* Continue to next argument. */

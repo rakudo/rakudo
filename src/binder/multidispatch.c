@@ -452,7 +452,7 @@ static INTVAL has_junctional_args(PARROT_INTERP, INTVAL num_args, struct Pcc_cel
     for (i = 0; i < num_args; i++) {
         if (pc_positionals[i].type == BIND_VAL_OBJ) {
             PMC * const arg = Rakudo_cont_decontainerize(interp, pc_positionals[i].u.p);
-            if (STABLE(arg)->type_check(interp, arg, Rakudo_types_junction_get()))
+            if (STABLE(arg)->WHAT == Rakudo_types_junction_get())
                 return 1;
         }
     }
@@ -1041,7 +1041,10 @@ Rakudo_md_ct_dispatch(PARROT_INTERP, PMC *dispatcher, PMC *capture, PMC **result
      * matched or when it did there was no way any candidates could get
      * passed matching types, then we know it would never work. */
     if (seen_all && (!arity_possible || !type_possible) && PMC_IS_NULL(cur_result)) {
-        return MD_CT_NO_WAY;
+        /* Ensure no junctional args before we flag the failure. */
+        return has_junctional_args(interp, num_args, pc_positionals) ?
+            MD_CT_NOT_SURE :
+            MD_CT_NO_WAY;
     }
     
     /* If we got a result, return it. */

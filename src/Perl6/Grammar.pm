@@ -1176,7 +1176,7 @@ grammar Perl6::Grammar is HLL::Grammar {
                     # Locate any existing symbol. Note that it's only a match
                     # with "my" if we already have a declaration in this scope.
                     my $exists := 0;
-                    if $longname {
+                    if $longname && $*SCOPE ne 'anon' {
                         my @name := parse_name(~$longname<name>);
                         if $*ST.already_declared($*SCOPE, $*OUTERPACKAGE, $outer, @name) {
                             $*PACKAGE := $*ST.find_symbol(@name);

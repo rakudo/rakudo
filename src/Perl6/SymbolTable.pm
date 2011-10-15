@@ -267,6 +267,7 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
     # Installs something package-y in the right place, creating the nested
     # pacakges as needed.
     method install_package($/, @name_orig, $scope, $pkgdecl, $package, $outer, $symbol) {
+        if $scope eq 'anon' { return 1 }
         my @parts := pir::clone(@name_orig);
         my $name  := @parts.pop();
         my $create_scope := $scope;

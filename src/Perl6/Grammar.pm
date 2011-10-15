@@ -1163,6 +1163,7 @@ grammar Perl6::Grammar is HLL::Grammar {
             
             [ #:dba('generic role')
             <?{ ($*PKGDECL//'') eq 'role' }>
+            { $*PACKAGE := $*OUTERPACKAGE } # in case signature tries to declare a package
             '[' ~ ']' <signature>
             { $*IN_DECL := ''; }
             ]?

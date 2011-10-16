@@ -293,7 +293,7 @@ my class List does Positional {
     }
 
     method reduce(List:D: &with) {
-        fail('can only reduce with arity 2 for now')
+        fail('can only reduce with arity 2')
             unless &with.arity <= 2 <= &with.count;
         my Mu $val;
         for self.keys {

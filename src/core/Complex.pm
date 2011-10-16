@@ -187,7 +187,7 @@ my class Complex is Numeric {
     }
 }
 
-multi sub prefix:<->(Complex:D \$a) {
+multi sub prefix:<->(Complex:D \$a) returns Complex:D {
     my $new := nqp::create(Complex);
     nqp::bindattr_n( $new, Complex, '$!re',
         nqp::neg_n(
@@ -200,6 +200,13 @@ multi sub prefix:<->(Complex:D \$a) {
         )
     );
     $new;
+}
+
+multi sub prefix:<abs>(Complex:D \$a) {
+    my num $re = nqp::getattr_n(pir::perl6_decontainerize__PP($a), Complex, '$!re');
+    my num $im = nqp::getattr_n(pir::perl6_decontainerize__PP($a), Complex, '$!im');
+    my num $res = pir::sqrt__NN(nqp::add_n(nqp::mul_n($re, $re), nqp::mul_n($im, $im)));
+    nqp::want(nqp::p6box_n($res), 'Nn', $res);
 }
 
 multi sub infix:<+>(Complex:D \$a, Complex:D \$b) {

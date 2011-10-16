@@ -1,16 +1,23 @@
 # TODO:
+# * Align number parsing to STD
+#   * Rakudo's .Numeric
+#     * complex numbers
+#     * nums with no integer part (e.g. '.5')
+#     * any radix number beyond most basic:
+#       - ratios: '0xfeed/0xf00d' or ':16(feed)/:16(f00d)'
+#       - nums:   ':16<feed.f00d>'
+#       - * base ** exp
+#   * Rakudo's grammar
+#   * val()
 # * Strengthen val()
-#   * Radix-notated Int
+#   * Check that number in ':30<foo>' radix notation is sane
+#   * Make parsing match Rakudo (and STD, where possible)
 #   * Make val() available globally
 # * $?USAGE
 #   * Create $?USAGE at compile time
 #   * Make $?USAGE available globally
 # * Command-line parsing
-#   * Like -- , first non-switch kills option parsing
-#   * Allow : as option indicator (XXXX: no spaces before argument?)
-#   * Single-dash options (don't allow spaces before argument)
 #   * Allow both = and space before argument of double-dash args
-#   * Non-Bool options that get negated become "but False"
 #   * Comma-separated list values
 #   * Allow exact Perl 6 forms, quoted away from shell
 # * Fix remaining XXXX
@@ -25,26 +32,49 @@ my sub MAIN_HELPER($retval = 0) {
         # Convert to native type if appropriate
         my grammar CLIVal {
             token TOP     { ^ <numlike> $ }
+
             token numlike {
                 [
-                | <[\-+]>? \d+ '/' <[\-+]>? \d+
-                | <[\-+]>? \d+ '.' \d+ 'e' <[\-+]>? \d+
-                | <[\-+]>? \d+ 'e' <[\-+]>? \d+
-                | <[\-+]>? \d+ '.' \d+
-                | <[\-+]>? \d+
+                | <[+\-]>? <decint> '/' <[+\-]>? <decint>
+                | <[+\-]>? <decint> '.' <decint> <escale>
+                | <[+\-]>? <decint>              <escale>
+                | <[+\-]>? <decint> '.' <decint>
+                | <[+\-]>? <integer>
+                | <[+\-]>? ':' \d+ '<' <alnumint> '>'
+                | <[+\-]>? 'Inf'
+                | 'NaN'
+                ]
+            }
+
+            token binint   { <[ 0..1 ]>+ [ _ <[ 0..1 ]>+ ]* }
+            token octint   { <[ 0..7 ]>+ [ _ <[ 0..7 ]>+ ]* }
+            token hexint   { <[ 0..9 a..f A..F ]>+ [ _ <[ 0..9 a..f A..F ]>+ ]* }
+            token alnumint { <[ 0..9 a..z A..Z ]>+ [ _ <[ 0..9 a..z A..Z ]>+ ]* }
+            token decint   { \d+ [ _ \d+ ]* }
+            token escale   { <[Ee]> <[+\-]>? <decint> }
+
+            token integer {
+                [
+                | 0 [ b '_'? <binint>
+                    | o '_'? <octint>
+                    | x '_'? <hexint>
+                    | d '_'? <decint>
+                    ]
+                | <decint>
                 ]
             }
         };
 
         my $val;
-        if   CLIVal.parse($v) { $val := +$v }
-        else                  { $val :=  $v }
-        return $val if $val ~~ Str;
+        if    $v ~~ /^ 'Bool::'?'False' $/ { $val := Bool::False }
+        elsif $v ~~ /^ 'Bool::'?'True'  $/ { $val := Bool::True  }
+        elsif CLIVal.parse($v)             { $val := +$v }
+        else                               { return $v   }
 
         # Mix in original stringifications
         my role orig-string[$orig] {
-            method Str  { $orig.Str  }
-            method gist { $orig.gist }
+            multi method Str  (Mu:D:) { $orig.Str  }
+            multi method gist (Mu:D:) { $orig.gist }
         };
         return $val but orig-string[$v];
     }
@@ -53,35 +83,26 @@ my sub MAIN_HELPER($retval = 0) {
     my sub process-cmd-args (@args is copy) {
         my (@positional-arguments, %named-arguments);
         while (@args) {
-            my $passed_value = @args.shift;
-            my $negate = False;
-            if $passed_value.substr(0, 2) eq '--' {
-                my $arg = $passed_value.substr(2);
-                if $arg.substr(0, 1) eq '/' {
-                    $arg .= substr(1) ;
-                    $negate = True;
-                }
+            my $passed-value = @args.shift;
+            if $passed-value ~~ /^ ( '--' | '-' | ':' ) ('/'?) (.+) $/ {
+                my ($switch, $negate, $arg) = (~$0, ?((~$1).chars), ~$2);
 
-                if $arg eq '' {
-                    @positional-arguments.push: @args.map: &hack-val;
-                    last;
-                } elsif $arg.index('=').defined  {
-                    my ($name , $value) = $arg.split('=', 2);
-                    if $negate {
-                        note "Trouble while parsing comand line argument '$arg': Cannot negate something which has an explicit value - ignoring the argument.\n";
-                        next;
-                    }
-                    %named-arguments.push: $name => hack-val($value);
+                if $arg.index('=').defined  {
+                    my ($name, $value) = $arg.split('=', 2);
+                    $value = hack-val($value);
+                    $value = $value but False if $negate;
+                    %named-arguments.push: $name => $value;
                 } else {
                     %named-arguments.push: $arg => !$negate;
                 }
             } else {
-                # TODO: warn if argument starts with single '-'?
-                @positional-arguments.push: hack-val($passed_value);
+                @args.unshift($passed-value) unless $passed-value eq '--';
+                @positional-arguments.push: @args.map: &hack-val;
+                last;
             }
         }
 
-        return @positional-arguments, %named-arguments
+        return @positional-arguments, %named-arguments;
     }
 
     # Generate $?USAGE string (default usage info for MAIN)
@@ -94,7 +115,7 @@ my sub MAIN_HELPER($retval = 0) {
                 my $argument;
                 if $param.named {
                     my @names  = $param.named_names.reverse;
-                    $argument  = @names.map('--' ~ *).join('|');
+                    $argument  = @names.map({($^n.chars == 1 ?? '-' !! '--') ~ $^n}).join('|');
                     my $type   = $param.type;
                     $argument ~= "=<$type>" unless $type ~~ 'Bool';
                     if $param.optional {
@@ -106,9 +127,9 @@ my sub MAIN_HELPER($retval = 0) {
                 }
                 else {
                     my $constraints  = ~$param.constraints;
-                    my $simple_const = $constraints && $constraints !~~ /^_block/;
+                    my $simple-const = $constraints && $constraints !~~ /^_block/;
                     $argument = $param.name   ?? '<' ~ $param.name.substr(1) ~ '>' !!
-                                $simple_const ??       $constraints                !!
+                                $simple-const ??       $constraints                !!
                                                  '<' ~ $param.type           ~ '>' ;
 
                     $argument = "[$argument ...]" if $param.slurpy;

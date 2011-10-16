@@ -1,4 +1,7 @@
 New in 2011.10
++ operators and functions with native type arguments
++ detection of call to undefined routines at CHECK time
++ various optimizations: inlining of operators, CHECK time dispatch decisions
 + performance improvements of MapIter
 + support @$foo style derefencing/coercion
 + Exception.backtrace

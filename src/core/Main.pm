@@ -73,7 +73,7 @@ my sub MAIN_HELPER($retval = 0) {
 
         # Mix in original stringifications
         my role orig-string[$orig] {
-            multi method Str  (Mu:D:) { $orig.Str  }
+                  method Str  ()      { $orig.Str  }
             multi method gist (Mu:D:) { $orig.gist }
         };
         return $val but orig-string[$v];

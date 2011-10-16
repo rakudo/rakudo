@@ -38,7 +38,7 @@ S02-types/pair.t
 S02-types/parcel.t
 S02-types/parsing-bool.t
 S02-types/range.t
-# S02-types/set.t # err: Could not find sub &set
+# S02-types/set.t # err: Undefined routine '&set' called
 S02-types/sigils-and-types.t
 S02-types/subscripts_and_context.t
 S02-types/type.t
@@ -190,8 +190,8 @@ S03-smartmatch/scalar-hash.t
 S04-blocks-and-statements/pointy-rw.t
 S04-blocks-and-statements/pointy.t
 S04-phasers/end.t
-# S04-phasers/rvalue.t # err: Cannot assign a non-Perl 6 value to a Perl 6 container
-# S04-phasers/start.t # err: Could not find sub &START
+# S04-phasers/rvalue.t # err: Method 'isa' not found for invocant of class 'Undef'
+# S04-phasers/start.t # err: Undefined routine '&START' called
 S04-declarations/constant.t
 S04-declarations/implicit-parameter.t
 S04-declarations/multiple.t
@@ -345,7 +345,7 @@ S06-traits/is-readonly.t
 S06-traits/is-rw.t
 # S06-traits/misc.t # err: Unable to parse blockoid
 
-# S07-iterators/range-iterator.t # err: Could not find sub &RangeIter
+# S07-iterators/range-iterator.t # err: Undefined routine '&RangeIter' called 
 # follows obsolete version of spec.
 
 S09-autovivification/autoincrement.t
@@ -395,11 +395,11 @@ S12-construction/BUILD.t
 S12-construction/construction.t
 S12-construction/named-params-in-BUILD.t
 S12-construction/new.t
-# S12-enums/anonymous.t # err: Could not find sub &ANON_ENUM
+# S12-enums/anonymous.t # err: Undefined routine '&ANON_ENUM' called
 # S12-enums/as-role.t # err: Cannot yet turn an enum into a role
 S12-enums/basic.t
 S12-enums/misc.t
-# S12-enums/thorough.t # err: Could not find sub &day
+# S12-enums/thorough.t # err: Undefined routine '&day' called
 S12-introspection/attributes.t
 S12-introspection/can.t
 S12-introspection/meta-class.t
@@ -463,7 +463,7 @@ S16-io/bare-say.t
 S16-io/basic-open.t
 S16-io/say.t
 S16-io/say-and-ref.t
-# S16-io/getc.t # err: Could not find sub &getc
+# S16-io/getc.t # err: Undefined routine '&getc' called
 S16-unfiled/rebindstdhandles.t
 S16-unfiled/slurp.t
 #S19-command-line/dash-e.t # icu
@@ -491,10 +491,10 @@ S32-array/pop.t
 S32-array/push.t
 S32-array/rotate.t
 S32-array/shift.t
-# S32-array/splice.t # err: Could not find sub &splice
+# S32-array/splice.t # err: Undefined routine '&splice' called
 S32-array/unshift.t
 S32-basics/warn.t
-# S32-container/zip.t # err: Could not find sub &Seq
+# S32-container/zip.t # err: Undefined routine '&Seq' called
 S32-hash/exists.t
 # S32-hash/delete.t # err: Too many positional parameters passed
 S32-hash/invert.t
@@ -503,7 +503,7 @@ S32-hash/pairs.t
 # S32-hash/push.t # hangs
 S32-hash/slice.t
 S32-io/dir.t
-# S32-io/chdir.t # err: Dynamic variable $*CWD not found
+# S32-io/chdir.t # err: Calling 'chdir' will never work with no arguments
 S32-io/file-tests.t
 S32-io/note.t
 S32-io/IO-Socket-INET.t
@@ -522,7 +522,7 @@ S32-list/reduce.t
 S32-list/reverse.t
 S32-list/roll.t
 S32-list/sort.t
-# S32-list/uniq.t # err: Method 'uniq' not found for invocant of class 'Array'
+# S32-list/uniq.t # err: Undefined routine '&uniq' called
 S32-num/abs.t
 S32-num/base.t
 S32-num/complex.t
@@ -537,7 +537,7 @@ S32-num/rand.t
 S32-num/rat.t
 # S32-num/real-bridge.t # err: Fixed2 cannot compose Real because it is not composable
 S32-num/roots.t
-# S32-num/rounders.t # err: Could not find sub &round
+# S32-num/rounders.t # err: Undefined routine '&round' called
 S32-num/sign.t
 S32-num/sqrt.t
 S32-num/unpolar.t
@@ -558,7 +558,7 @@ S32-str/lcfirst.t                                          # icu
 S32-str/lines.t
 S32-str/numeric.t
 S32-str/ords.t
-# S32-str/pack.t # err: Could not find sub &pack
+# S32-str/pack.t # err: Undefined routine '&pack' called
 S32-str/pos.t
 S32-str/rindex.t
 S32-str/samecase.t                                         # icu

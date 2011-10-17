@@ -148,8 +148,17 @@ my class Mu {
     multi method gist(Mu:D:) { self.perl }
 
     proto method perl(|$) { * }
-    multi method perl(Mu:D:) { self.Str }
     multi method perl(Mu:U:) { self.HOW.name(self) }
+    multi method perl(Mu:D:) {
+        my @attrs;
+        for self.^attributes().grep: { .has_accessor } -> $attr {
+            my $name := $attr.Str.substr(2);
+            @attrs.push: $name
+                        ~ ' => '
+                        ~ self."$name"().perl
+        }
+        self.^name() ~ '.new(' ~  @attrs.join(', ') ~ ')';
+    }
 
     proto method DUMP(|$) { * }
     multi method DUMP(Mu:D:) { self.perl }

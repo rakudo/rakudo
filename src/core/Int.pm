@@ -1,6 +1,9 @@
 my class Rat { ... }
 
 my class Int {
+    multi method perl(Int:D:) {
+        self.Str;
+    }
     multi method Bool(Int:D:) {
         nqp::p6bool(nqp::isne_i(nqp::unbox_i(self), 0))
     }

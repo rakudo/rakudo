@@ -13,6 +13,15 @@ my class Num {
         nqp::p6box_i(nqp::unbox_n(self));
     }
 
+    multi method perl(Num:D:) {
+        my $res = self.Str;
+        if $res.index('e').defined {
+            $res;
+        } else {
+            $res ~ 'e0';
+        }
+    }
+
     method Rat(Num:D: Real $epsilon = 1.0e-6) {
         my sub modf($num) { my $q = $num.Int; $num - $q, $q; }
 

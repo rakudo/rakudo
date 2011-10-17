@@ -17,19 +17,19 @@ sub METAOP_CROSS(\$op) {
         my @l;
         my @v;
         @l[0] = (@lol[0].flat,).list;
-        my $i = 0;
-        my $n = @lol.elems - 1;
+        my int $i = 0;
+        my int $n = @lol.elems - 1;
         gather {
             while $i >= 0 {
                 if @l[$i] {
                     @v[$i] = @l[$i].shift;
                     if $i >= $n { my @x = @v; take $rop(|@x); }
                     else {
-                        $i++;
+                        $i = $i + 1;
                         @l[$i] = (@lol[$i].flat,).list;
                     }
                 }
-                else { $i--; }
+                else { $i = $i - 1; }
             }
         }
     }

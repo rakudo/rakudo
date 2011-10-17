@@ -19,7 +19,7 @@ class Range is Iterable does Positional {
     }
     
 
-    method BUILD($min, $max, $excludes_min, $excludes_max) {
+    submethod BUILD($min, $max, $excludes_min, $excludes_max) {
         $!min = $min;
         $!max = $max;
         $!excludes_min = $excludes_min.Bool;

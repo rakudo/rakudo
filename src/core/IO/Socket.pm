@@ -26,6 +26,13 @@ my role IO::Socket {
         $buf;
     }
 
+    method poll(Int $bitmask, $seconds) {
+        $!PIO.poll(
+            nqp::unbox_i($bitmask), nqp::unbox_i($seconds.floor),
+            nqp::unbox_i((($seconds - $seconds.floor) * 1000).Int)
+        );
+    }
+
     method send (Cool $string as Str) {
         fail("Not connected") unless $!PIO;
         return nqp::p6bool($!PIO.send($string));

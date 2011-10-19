@@ -1348,8 +1348,10 @@ class Perl6::Actions is HLL::Actions {
             $block.blocktype('declaration');
             if is_clearly_returnless($block) {
                 $block[1] := PAST::Op.new(
-                    :pirop('perl6_decontainerize_return_value PP'),
-                    $block[1]);
+                    :pirop('perl6_type_check_return_value 0P'),
+                    PAST::Op.new(
+                        :pirop('perl6_decontainerize_return_value PP'),
+                        $block[1]));
             }
             else {
                 $block[1] := wrap_return_handler($block[1]);
@@ -1590,8 +1592,10 @@ class Perl6::Actions is HLL::Actions {
             $past.blocktype('declaration');
             if is_clearly_returnless($past) {
                 $past[1] := PAST::Op.new(
-                    :pirop('perl6_decontainerize_return_value PP'),
-                    $past[1]);
+                    :pirop('perl6_type_check_return_value 0P'),
+                        PAST::Op.new(
+                        :pirop('perl6_decontainerize_return_value PP'),
+                        $past[1]));
             }
             else {
                 $past[1] := wrap_return_handler($past[1]);

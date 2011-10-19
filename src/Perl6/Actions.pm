@@ -707,16 +707,11 @@ class Perl6::Actions is HLL::Actions {
         my $name_past := $<module_name>
                         ?? PAST::Val.new(:value($<module_name><longname><name>.Str))
                         !! $<EXPR>[0].ast;
-        my @module_loader := Perl6::Grammar::parse_name('Perl6::Module::Loader');
-        my $past := PAST::Op.new(
-            :node($/),
-            :pasttype('callmethod'),
-            :name('need'),
-            PAST::Var.new( :name(@module_loader.pop),
-                           :namespace(@module_loader), :scope('package') ),
-            $name_past
+        make PAST::Op.new(
+            :pasttype('callmethod'), :name('load_module'),
+            PAST::Var.new( :name('ModuleLoader'), :namespace([]), :scope('package') ),
+            $name_past, $*ST.symbol_lookup(['GLOBAL'], $/)
         );
-        make $past;
     }
 
     method statement_control:sym<given>($/) {

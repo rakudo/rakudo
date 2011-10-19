@@ -682,21 +682,12 @@ class Perl6::Actions is HLL::Actions {
 #            }
         } elsif $<module_name> {
             if ~$<module_name> eq 'fatal' {
-                declare_variable($/, PAST::Stmts.new(), '$', '*', 'FATAL', 0);
+                my $*SCOPE := 'my';
+                declare_variable($/, PAST::Stmts.new(), '$', '*', 'FATAL', []);
                 $past := PAST::Op.new(
-                    :name('&infix:<=>'),
-                    :node($/),
-                    PAST::Op.new(
-                        :name('&DYNAMIC'),
-                        :pasttype('call'),
-                        :lvalue(0),
-                        '$*FATAL',
-                    ),
-                    PAST::Var.new(
-                        :name('True'),
-                        :namespace(['Bool']),
-                        :scope('package'),
-                    )
+                    :pirop('perl6_container_store__0PP'), :node($/),
+                    PAST::Var.new( :name('$*FATAL'), :scope('lexical_6model') ),
+                    PAST::Op.new( :pirop('perl6_booleanize PI'), 1 )
                 );
             }
             elsif ~$<module_name> eq 'FORBID_PIR' {

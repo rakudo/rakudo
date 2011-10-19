@@ -1419,6 +1419,7 @@ grammar Perl6::Grammar is HLL::Grammar {
     rule routine_def($d) {
         :my $*IN_DECL := $d;
         :my $*METHODTYPE;
+        :my $*IMPLICIT := 0;
         :my $*DOC := $*DECLARATOR_DOCS;
         :my $*DOCEE;
         <.attach_docs>
@@ -1426,7 +1427,7 @@ grammar Perl6::Grammar is HLL::Grammar {
         <.newpad>
         [ '(' <multisig> ')' ]?
         <trait>*
-        { $*IN_DECL := ''; $*IMPLICIT := 0; }
+        { $*IN_DECL := ''; }
         [
         | <onlystar>
         | <blockoid>

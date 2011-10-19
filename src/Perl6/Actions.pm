@@ -653,7 +653,7 @@ class Perl6::Actions is HLL::Actions {
     }
 
     method statement_control:sym<need>($/) {
-        my $past := PAST::Stmts.new( :node($/) );
+        my $past := PAST::Var.new( :name('Nil'), :scope('lexical') );
         for $<version> {
             # XXX TODO: Version checks.
         }
@@ -661,12 +661,12 @@ class Perl6::Actions is HLL::Actions {
     }
 
     method statement_control:sym<import>($/) {
-        my $past := PAST::Stmts.new( :node($/) );
+        my $past := PAST::Var.new( :name('Nil'), :scope('lexical') );
         make $past;
     }
 
     method statement_control:sym<use>($/) {
-        my $past := PAST::Stmts.new( :node($/) );
+        my $past := PAST::Var.new( :name('Nil'), :scope('lexical') );
         if $<version> {
             # TODO: replace this by code that doesn't always die with
             # a useless error message
@@ -696,7 +696,7 @@ class Perl6::Actions is HLL::Actions {
                         :name('True'),
                         :namespace(['Bool']),
                         :scope('package'),
-                    ),
+                    )
                 );
             }
             elsif ~$<module_name> eq 'FORBID_PIR' {

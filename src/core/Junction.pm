@@ -54,9 +54,9 @@ sub all(*@values) { Junction.new(@values, :type<all>); }
 sub one(*@values) { Junction.new(@values, :type<one>); }
 sub none(*@values) { Junction.new(@values, :type<none>); }
 
-sub infix:<|>(*@values) { Junction.new(@values, :type<any>); }
-sub infix:<&>(*@values) { Junction.new(@values, :type<all>); }
-sub infix:<^>(*@values) { Junction.new(@values, :type<one>); }
+sub infix:<|>(**@values) { Junction.new(@values, :type<any>); }
+sub infix:<&>(**@values) { Junction.new(@values, :type<all>); }
+sub infix:<^>(**@values) { Junction.new(@values, :type<one>); }
 
 sub AUTOTHREAD(&call, **@pos, *%named) {
     # Look for a junctional arg in the positionals.

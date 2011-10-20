@@ -27,7 +27,11 @@ my class List does Positional {
     }
     method list() { self }
     method flattens() { $!flattens }
-    
+
+    method tree() {
+        MapIter.new(:list(self), :block({ my $ = $_ })).list;
+    }
+
     method Capture() {
         self.gimme(*);
         my $cap := nqp::create(Capture);

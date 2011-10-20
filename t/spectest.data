@@ -198,7 +198,7 @@ S04-declarations/multiple.t
 S04-declarations/my.t
 S04-declarations/state.t
 S04-exception-handlers/catch.t
-# S04-exceptions/fail.t  # err: use scoped variables not yet implemented
+S04-exceptions/fail.t
 S04-statement-modifiers/for.t
 S04-statement-modifiers/given.t 
 S04-statement-modifiers/if.t
@@ -362,7 +362,7 @@ S10-packages/use-with-class.t
 S11-modules/lexical.t
 S11-modules/need.t
 # S11-modules/nested.t
-# S11-modules/require.t # err: Could not find symbol 'Fancy::Utilities::&lolgreet'
+S11-modules/require.t
 # S12-attributes/class.t # err: Method 'bar' not found for invocant of class 'Foo'
 S12-attributes/clone.t
 S12-attributes/delegation.t
@@ -388,7 +388,7 @@ S12-class/open.t
 # S12-class/parent_attributes.t # err: Method 'at_key' not found for invocant of class 'Foo'
 S12-class/rw.t
 S12-class/self-inheritance.t
-# S12-class/stubs.t # err: use scoped variables not yet implemented
+S12-class/stubs.t
 S12-class/type-object.t
 S12-construction/autopairs.t
 S12-construction/BUILD.t

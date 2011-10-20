@@ -109,18 +109,13 @@ the release announcement).
 
 =item 2.
 
-Once Parrot issues its monthly release, edit Rakudo's
-F<build/PARROT_REVISION> file to contain the C<git describe --tags>
-output corresponding to Parrot's monthly release.
-Once C<build/PARROT_REVISION>
-has been set to the Parrot release, it must not be changed until
-after the Rakudo release.  In other words, we want each
-monthly release of Rakudo to be able to be built using
-the immediately prior release of Parrot.
+Once Parrot issues its monthly release, tag NQP for release
+according to the year and month of the release:
 
-(Old releases required you to add both the version and the
-C<git describe> output to the PARROT_REVISION file. This is
-not necessary anymore).
+    $ git clone https://github.com/perl6/nqp.git
+    $ cd nqp
+
+Follow the steps in NQP's F<docs/release_guide.pod>.
 
 =item 3.
 

@@ -172,7 +172,8 @@ static Rakudo_md_candidate_info** sort_candidates(PARROT_INTERP, PMC *candidates
             /* If it's named (and not slurpy) don't need its type info but we
              * will need a bindability check during the dispatch for it. */
             if (!PMC_IS_NULL(param->named_names)) {
-                if (!(param->flags & SIG_ELEM_IS_OPTIONAL))
+                if (!(param->flags & SIG_ELEM_IS_OPTIONAL) &&
+                        VTABLE_elements(interp, param->named_names) == 1)
                     info->req_named = VTABLE_get_string_keyed_int(interp, param->named_names, 0);
                 info->bind_check = 1;
                 continue;

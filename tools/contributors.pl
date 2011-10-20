@@ -22,8 +22,10 @@ while (my $line = <$c>) {
     while ($msg =~ /\(([^)]+)\)\+\+/g) {
         $contrib{nick_to_name($1)}++;
     }
-    while ($msg =~ /([^\s()]+)\+\+/g) {
-        $contrib{nick_to_name($1)}++;
+    while ($msg =~ /([^\s():]+)\+\+/g) {
+        my $nick = $1;
+        next if $nick =~ /^[\$\@]/;
+        $contrib{nick_to_name($nick)}++;
     }
     while ($msg =~ /courtesy of:?\s*(\S.*)/gi) {
         $contrib{nick_to_name($1)}++;

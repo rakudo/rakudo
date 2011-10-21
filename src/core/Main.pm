@@ -84,7 +84,7 @@ my sub MAIN_HELPER($retval = 0) {
         my (@positional-arguments, %named-arguments);
         while (@args) {
             my $passed-value = @args.shift;
-            if $passed-value ~~ /^ ( '--' | '-' | ':' ) ('/'?) (.+) $/ {
+            if $passed-value ~~ /^ ( '--' | '-' | ':' ) ('/'?) (<-[0..9\.]> .*) $/ {
                 my ($switch, $negate, $arg) = (~$0, ?((~$1).chars), ~$2);
 
                 if $arg.index('=').defined  {

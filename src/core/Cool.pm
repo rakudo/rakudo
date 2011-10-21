@@ -181,16 +181,16 @@ my class Cool {
     method Rat()  { self.Numeric.Rat }
 }
 
-sub chop($s)                  { $s.chop }
-sub chomp($s)                 { $s.chomp }
-sub flip($s)                  { $s.flip }
-sub index($s,$needle,$pos=0)  { $s.index($needle,$pos) }
-sub lc($s)                    { $s.lc }
-sub lcfirst($s)               { $s.lcfirst }
-sub ord($s)                   { $s.ord }
-sub substr($s,$pos,$chars?)   { $s.substr($pos,$chars) }
-sub uc($s)                    { $s.uc }
-sub ucfirst($s)               { $s.ucfirst }
+sub chop(Cool $s)                  { $s.chop }
+sub chomp(Cool $s)                 { $s.chomp }
+sub flip(Cool $s)                  { $s.flip }
+sub index(Cool $s,$needle,$pos=0)  { $s.index($needle,$pos) }
+sub lc(Cool $s)                    { $s.lc }
+sub lcfirst(Cool $s)               { $s.lcfirst }
+sub ord(Cool $s)                   { $s.ord }
+sub substr(Cool $s,$pos,$chars?)   { $s.substr($pos,$chars) }
+sub uc(Cool $s)                    { $s.uc }
+sub ucfirst(Cool $s)               { $s.ucfirst }
 proto sub rindex(|$) { * };
 multi sub rindex(Cool $s, Cool $needle, Cool $pos) { $s.rindex($needle, $pos) };
 multi sub rindex(Cool $s, Cool $needle)            { $s.rindex($needle) };

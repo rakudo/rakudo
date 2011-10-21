@@ -349,6 +349,7 @@ $(PERL6_M_PBC): $(NQP_EXE) $(DYNEXT_DYNPMC) $(DYNEXT_DYNOPS) $(METAMODEL_SOURCES
     
 $(SETTING): $(PERL6_M_PBC) $(PERL6_EXE) $(CORE_SOURCES)
 	$(PERL) $(GEN_CAT) $(CORE_SOURCES) > src/gen/CORE.setting
+	@echo "The following step can take a long time, please be patient."
 	./$(PERL6_EXE) --setting=NULL --optimize=3 --target=pir $(STAGESTATS) --output=$(SETTING_PIR) src/gen/CORE.setting
 	$(PARROT) $(PARROT_ARGS) -o $(SETTING) $(SETTING_PIR)
 

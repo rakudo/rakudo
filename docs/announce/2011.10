@@ -6,9 +6,10 @@ implementation of Perl 6 on the Parrot Virtual Machine (see
 <http://www.parrot.org>). The tarball for this release
 is available from <http://github.com/rakudo/rakudo/downloads>.
 
-Please note: This announcement is not for the Rakudo Star distribution[*] --
-it's announcing a new release of the compiler only.  For the latest
-Rakudo Star release, see <http://github.com/rakudo/star/downloads>.
+Please note: This announcement is not for the Rakudo Star
+distribution[*] -- it's announcing a new release of the compiler only.
+For the latest Rakudo Star release, see
+<http://github.com/rakudo/star/downloads>.
 
 The Rakudo Perl compiler follows a monthly release cycle, with each
 release named after a Perl Mongers group.  The October 2011 release is
@@ -17,23 +18,26 @@ city in Texas and because Perl 6 could always use more features from
 Texas.  Oh ... and Houston also hosted YAPC::NA 2007 and had a nice Perl 6
 hackathon.  :-)
 
-This is the first compiler release from the latest development branch
-of Rakudo. It brings many exciting improvements, but also some
-regressions, which we are working on. 
-
-If your primary interest is that
-your existing code running on Rakudo Perl continues to work, we
-suggest sticking with the Rakudo Star distribution release for a
-little longer. If instead you want to play with the latest in Rakudo
-development - including meta-programming and performance improvements
-- try this release.
+This compiler release is from the latest development branch of Rakudo.
+It brings many exciting improvements, but also some regressions, which
+we are working on. If your primary interest is that your existing code
+running on Rakudo Perl continues to work, we suggest sticking with the
+Rakudo Star distribution release for a little longer. If instead you
+want to play with the latest in Rakudo development - including meta-
+programming and performance improvements - try this release.
 
 Some of the specific changes and improvements occurring with this
 release include:
 
-We briefly regress on a few features since the previous release.
-Most notably, new regex engine has not implemented proto regexes
-yet, and only integer-based enums are available.
+* Optimizations tuneable from the command line
+* native types on various operators
+* Fix start up error when $HOME environment variable isn't set
+* Fix C3 MRO bug
+* Start at implementing global matching (m:g//)
+* Various performance improvements
+
+We are still regressed on a few features just as in the previous
+release. These regressions should be rectified in coming releases.
 
 For a more detailed list of changes, see "docs/ChangeLog".
 
@@ -43,11 +47,15 @@ Parrot, the Perl 6 test suite and the specification.
 
 The following people contributed to this release:
 
+Jonathan Worthington, Moritz Lenz, Will "Coke" Coleda, Tadeusz
+Sośnierz, Patrick R. Michaud, Jonathan Scott Duff, Carl Masak, Geoffrey
+Broadwell, mls, snarkyboojum, gfldex, TimToady, TiMBuS, JimmyZ
+
 If you would like to contribute, see <http://rakudo.org/how-to-help>,
-ask on the perl6-compiler@perl.org mailing list, or ask on irc #perl6
+ask on the perl6-compiler@perl.org mailing list, or ask on IRC #perl6
 on freenode.
 
-The next release of Rakudo (#46) is scheduled for November 20, 2011. a
+The next release of Rakudo (#46) is scheduled for November 17, 2011. A
 list of the other planned release dates and code names for 2011 is
 available in the "docs/release_guide.pod" file.  In general, Rakudo
 development releases are scheduled to occur soon after each Parrot
@@ -59,7 +67,7 @@ As always ...  Have fun!
 [*] What's the difference between the Rakudo compiler and the Rakudo
     Star distribution?  
 
-    The Rakudo compiler is just the compiler for the  Perl 6 language.
+    The Rakudo compiler is just the compiler for the Perl 6 language.
     Nothing else.
 
     The Rakudo Star distribution is the Rakudo compiler plus a selection

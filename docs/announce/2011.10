@@ -67,7 +67,7 @@ As always ...  Have fun!
 [*] What's the difference between the Rakudo compiler and the Rakudo
     Star distribution?  
 
-    The Rakudo compiler is just the compiler for the Perl 6 language.
+    The Rakudo compiler is a compiler for the Perl 6 language.
     Nothing else.
 
     The Rakudo Star distribution is the Rakudo compiler plus a selection

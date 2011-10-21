@@ -194,8 +194,8 @@ my class List does Positional {
     }
 
     method unshift(*@elems) {
-        while @elems.pop -> $e {
-            nqp::unshift($!items, $e)
+        while @elems {
+            nqp::unshift($!items, @elems.pop)
         }
         self
     }

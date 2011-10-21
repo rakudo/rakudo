@@ -201,10 +201,38 @@ judgment or ask others if uncertain what to do here.
 
 =item 9. 
 
+=over 4
+
+=item *
+
+Go to the NQP repository, tag it and push the tags
+
+  $ git tag -a -m"tag release YYYY.MM" YYYY.MM    # e.g., 2010.02
+
+Check the NQP revision
+
+  $ git describe  # should come out as YYYY.MM
+                  # if not, contact your local git vendor or #perl6
+
+If you got the same version back as you entered, proceed with
+
+  $ git push --tags
+
+=item *
+
+Go back to the Rakudo repository, and update the NQP dependency:
+
+  $ echo YYYY.MM > tools/build/NQP_REVISION
+  $ git commit -m '[release] bump NQP revision' tools/build/NQP_REVISION
+
+=item *
+
 Enter the new version into the F<VERSION> file, and commit the changes:
 
   $ echo 2010.09 > VERSION
   $ git commit -m '[release] bump VERSION' VERSION
+
+=back
 
 =item 10.
 

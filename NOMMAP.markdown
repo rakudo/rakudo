@@ -1,6 +1,6 @@
 # Roadmap for "nom" Branch
 
-Last Updated 20 Sep 2011
+Last Updated 21 Oct 2011
 
 ## Punch list for nom->master and nom distribution
 
@@ -14,13 +14,12 @@ responsible parties.
 
 * Enums to level of master (2, 1, ???, ???)
 * Grammars, qregex, other regex stuff (1, 1, \*\*\*, pmichaud)
-* DateTime, Date (2, 1, \*\*, ???)
+* fix term:<now> (hangs on 32bit platforms)
 * Define new operators (2, 1, \*\*, pmichaud) (awaiting other regex updates)
 * `MAIN` (2, 1, ???, ???)
 * modules working with nom (3, 1, ???, ???)
 * fix meta-dispatchers to not flatten positionals (3, 2, ???, ???)
 * `<!before>` (2, 1, \*, pmichaud)
-* `<&lexical-regex>` (2, 1, ???, pmichaud)
 
 ## Other NOMMAP notes
 
@@ -36,7 +35,7 @@ Things that aren't blockers but might be worth knowing about:
 * attribute `:=` doesn't work in CORE.setting (works outside of setting, though)
   (initial digging suggets it's a BOOTSTRAPATTR issue, thus why we only see it
   in the setting)
-* no rw-accessors for natively typed attributes (yet?)
+* no rw-accessors for natively typed attributes (yet? spec isn't clear)
 
 ## Lexical Multi-Part names
 For `my X::Base { ... }`, `my Foo::Bar { ... }` etc. The our-scoped ones work.
@@ -49,10 +48,6 @@ Get `::=` correcter, and a bit more stuff on `:=` also.
 
 ## Custom Operators
 Get these working again.
-
-## Work towards nom being master
-Get enough of the spectests passing for us to be ready to make nom into
-the master branch
 
 ## Enumerations
 * Enums as roles

@@ -1,5 +1,5 @@
 use Test;
-plan 14;
+plan 16;
 
 #= simple case
 class Simple {
@@ -60,3 +60,13 @@ is &routine.WHY.defined, False;
 #= our works too
 our sub oursub {}
 is &oursub.WHY, 'our works too', 'works for our subs';
+
+# two subs in a row
+
+#= one
+sub one {}
+
+#= two
+sub two {}
+is &one.WHY.content, 'one';
+is &two.WHY.content, 'two';

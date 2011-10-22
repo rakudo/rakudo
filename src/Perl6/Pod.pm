@@ -4,7 +4,13 @@ class Perl6::Pod {
         if $with ne '' {
             my $true := $*ST.add_constant('Int', 'int', 1)<compile_time_value>;
             $*ST.apply_trait('&trait_mod:<is>', $what, $*DOCEE, :docs($true));
-            $*DECLARATOR_DOCS := '';
+            # don't reset it if it already holds docs for another element
+            # we assume two consequent object will not be documented with
+            # the same string, which is obviously LTA, but it's the best
+            # I can figure out at the moment
+            if $*DOC eq $*DECLARATOR_DOCS {
+                $*DECLARATOR_DOCS := '';
+            }
         }
     }
 

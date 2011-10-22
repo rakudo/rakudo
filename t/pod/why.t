@@ -1,5 +1,5 @@
 use Test;
-plan 16;
+plan 18;
 
 #= simple case
 class Simple {
@@ -70,3 +70,12 @@ sub one {}
 sub two {}
 is &one.WHY.content, 'one';
 is &two.WHY.content, 'two';
+
+#= that will break
+sub first {}
+
+#= that will break
+sub second {}
+
+is &first.WHY.content, 'that will break';
+is &second.WHY.content, 'that will break';

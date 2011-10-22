@@ -4,6 +4,7 @@ class Perl6::Pod {
         if $with ne '' {
             my $true := $*ST.add_constant('Int', 'int', 1)<compile_time_value>;
             $*ST.apply_trait('&trait_mod:<is>', $what, $*DOCEE, :docs($true));
+            $*DECLARATOR_DOCS := '';
         }
     }
 

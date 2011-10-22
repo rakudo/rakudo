@@ -1,5 +1,5 @@
 use Test;
-plan 13;
+plan 14;
 
 #= simple case
 class Simple {
@@ -56,3 +56,7 @@ is Sheep.^find_method('roar').WHY.content, 'not too scary';
 
 sub routine {}
 is &routine.WHY.defined, False;
+
+#= our works too
+our sub oursub {}
+is &oursub.WHY, 'our works too', 'works for our subs';

@@ -147,7 +147,6 @@ grammar Perl6::Grammar is HLL::Grammar {
 
     token attach_docs {
         {
-            $*DECLARATOR_DOCS := '';
             if $*DOC ne '' {
                 my $cont  := Perl6::Pod::serialize_aos(
                     [$*DOC]

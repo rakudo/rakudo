@@ -68,27 +68,27 @@ sub table2text($pod) {
 
 sub declarator2text($pod) {
     next unless $pod.WHEREFORE.WHY;
-    my $type = do given $pod.WHEREFORE {
+    my $what = do given $pod.WHEREFORE {
         when Method {
-            'method'
+            'method ' ~ $_.name
         }
         when Sub {
-            'sub'
+            'sub ' ~ $_.name
         }
         when nqp::p6bool(nqp::istype($_.HOW, Metamodel::ClassHOW)) {
-            'class'
+            'class ' ~ $_.perl
         }
         when nqp::p6bool(nqp::istype($_.HOW, Metamodel::ModuleHOW)) {
-            'module'
+            'module ' ~ $_.perl
         }
         when nqp::p6bool(nqp::istype($_.HOW, Metamodel::PackageHOW)) {
-            'package'
+            'package ' ~ $_.perl
         }
         default {
             ''
         }
     }
-    return "$type {$pod.WHEREFORE.perl}: {$pod.WHEREFORE.WHY.content}"
+    return "$what: {$pod.WHEREFORE.WHY.content}"
 }
 
 sub formatting2text($pod) {

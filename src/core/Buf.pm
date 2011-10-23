@@ -14,15 +14,18 @@ class Buf does Positional {
         $new;
     }
     method !set_codes(*@codes) {
-        pir::set__vPI($!buffer, nqp::unbox_i(@codes.elems));
-        for @codes.keys -> $k {
-            pir::set__1Qii($!buffer, nqp::unbox_i($k), nqp::unbox_i(@codes[$k]));
+        my int $bytes = @codes.elems;
+        pir::set__vPI($!buffer, $bytes);
+        my int $i = 0;
+        while $i < $bytes {
+            nqp::bindpos_i($!buffer, $i, nqp::unbox_i(@codes[$i]));
+            $i = $i + 1;
         }
         self;
     }
 
     method at_pos(Buf:D: Int:D $idx) {
-        nqp::p6box_i(pir::set__IQi($!buffer, nqp::unbox_i($idx)));
+        nqp::p6box_i(nqp::atpos_i($!buffer, nqp::unbox_i($idx)));
     }
 
     method elems(Buf:D:) {
@@ -36,8 +39,11 @@ class Buf does Positional {
 
     method list() {
         my @l;
-        for ^nqp::p6box_i(nqp::elems($!buffer)) -> $k {
-            @l.push: self.at_pos($k);
+        my int $bytes = nqp::elems($!buffer);
+        my int $i = 0;
+        while $i < $bytes {
+            @l.push: nqp::p6box_i(nqp::atpos_i($!buffer, $i));
+            $i = $i + 1;
         }
         @l;
     }

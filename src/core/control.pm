@@ -44,7 +44,7 @@ my &return := -> |$ {
     my Mu $return := pir::find_caller_lex__Ps('RETURN');
     nqp::isnull($return)
         ?? die "Attempt to return outside of any Routine"
-        !! $return(nqp::p6decont($parcel));
+        !! $return(nqp::p6recont_ro($parcel));
     $parcel
 };
 
@@ -56,6 +56,8 @@ my &take-rw := -> |$ {
 my &take := -> |$ { 
     my $parcel := 
         &RETURN-PARCEL(nqp::p6parcel(pir::perl6_current_args_rpa__PP(), Nil));
+    # XXX Should be nqp::p6recont_ro, but it's currently masking a bug
+    # where [...] doesn't decontainerize enough.
     THROW(nqp::p6decont($parcel), 
           pir::const::CONTROL_TAKE) 
 };
@@ -104,7 +106,7 @@ my &nextwith := -> *@pos, *%named {
     unless $dispatcher.exhausted {
         nqp::isnull($return)
             ?? die "Attempt to return outside of any Routine"
-            !! $return(nqp::p6decont(
+            !! $return(nqp::p6recont_ro(
                 $dispatcher.call_with_args(|@pos, |%named)))
     }
     Nil
@@ -123,7 +125,7 @@ my &nextsame := -> {
     unless $dispatcher.exhausted {
         nqp::isnull($return)
             ?? die "Attempt to return outside of any Routine"
-            !! $return(nqp::p6decont(
+            !! $return(nqp::p6recont_ro(
                 $dispatcher.call_with_capture(
                     pir::perl6_args_for_dispatcher__PP($dispatcher))))
     

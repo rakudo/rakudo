@@ -53,20 +53,20 @@ sub METAOP_REDUCE(\$op, :$triangle) {
     my $x :=
     sub (*@values) {
         if $triangle {
-            return () unless @values;
+            return () unless @values.gimme(1);
             GATHER({
                 my $result := @values.shift;
                 take $result;
                 take ($result := $op($result, @values.shift))
-                    while @values;
+                    while @values.gimme(1);
             }, :infinite(@values.infinite))
         }
         else {
-            return $op() unless @values;
+            return $op() unless @values.gimme(1);
             my $result := @values.shift;
-            return $op($result) unless @values;
+            return $op($result) unless @values.gimme(1);
             $result := $op($result, @values.shift)
-                while @values;
+                while @values.gimme(1);
             $result;
         }
     }
@@ -77,20 +77,20 @@ sub METAOP_REDUCE_RIGHT(\$op, :$triangle) {
     sub (*@values) {
         my $list = @values.reverse;
         if $triangle {
-            return () unless $list;
+            return () unless $list.gimme(1);
             gather {
                 my $result := $list.shift;
                 take $result;
                 take ($result := $op($list.shift, $result))
-                    while $list;
+                    while $list.gimme(1);
             }
         }
         else {
-            return $op() unless $list;
+            return $op() unless $list.gimme(1);
             my $result := $list.shift;
-            return $op($result) unless $list;
+            return $op($result) unless $list.gimme(1);
             $result := $op($list.shift, $result)
-                while $list;
+                while $list.gimme(1);
             $result;
         }
     }
@@ -104,7 +104,7 @@ sub METAOP_REDUCE_CHAIN(\$op, :$triangle) {
                 my $state = $op();
                 gather {
                     take $state;
-                    while $state && @values {
+                    while $state && @values.gimme(1) {
                         $state = $op($current, @values[0]);
                         take $state;
                         $current = @values.shift;
@@ -116,7 +116,7 @@ sub METAOP_REDUCE_CHAIN(\$op, :$triangle) {
         !! sub (*@values) {
                 my $state = $op();
                 my Mu $current = @values.shift;
-                while @values {
+                while @values.gimme(1) {
                     $state = $op($current, @values[0]);
                     $current = @values.shift;
                     return $state unless $state;

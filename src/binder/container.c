@@ -162,5 +162,6 @@ PMC * Rakudo_create_container_descriptor(PARROT_INTERP, PMC *type, PMC *of, INTV
     desc->of = of;
     desc->rw = rw;
     desc->name = name;
+    PARROT_GC_WRITE_BARRIER(interp, result);
     return result;
 }

@@ -452,6 +452,7 @@ inline op perl6_box_str(out PMC, in STR) :base_core {
     PMC *type = Rakudo_types_str_get();
     $1 = REPR(type)->instance_of(interp, type);
     REPR($1)->set_str(interp, $1, $2);
+    PARROT_GC_WRITE_BARRIER(interp, $1);
 }
 
 

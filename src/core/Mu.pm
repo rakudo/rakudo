@@ -211,43 +211,43 @@ my class Mu {
     }
     
     # XXX TODO: Handle positional case.
-    method dispatch:<var>($var, *@pos, *%named) {
-        $var(self, |@pos, |%named)
+    method dispatch:<var>($var, |$c) {
+        $var(self, |$c)
     }
     
-    method dispatch:<::>($name, Mu $type, *@pos, *%named) {
+    method dispatch:<::>($name, Mu $type, |$c) {
         unless nqp::istype(self, $type) {
             die "Cannot dispatch to a method on " ~ $type.WHAT.perl ~
                 " because it is not inherited or done by " ~
                 self.WHAT.perl;
         }
-        pir::find_method__PPS($type, $name)(self, |@pos, |%named)
+        pir::find_method__PPS($type, $name)(self, |$c)
     }
     
-    method dispatch:<!>($name, Mu $type, *@pos, *%named) {
+    method dispatch:<!>($name, Mu $type, |$c) {
         my $meth := $type.HOW.find_private_method($type, $name);
         $meth ??
-            $meth(self, |@pos, |%named) !!
+            $meth(self, |$c) !!
             die("Private method '$name' not found on type " ~ $type.HOW.name($type))
             
     }
     
-    method dispatch:<.^>($name, *@pos, *%named) {
-        self.HOW."$name"(self, |@pos, |%named)
+    method dispatch:<.^>($name, |$c) {
+        self.HOW."$name"(self, |$c)
     }
     
-    method dispatch:<.=>(\$mutate: $name, *@pos, *%named) {
-        $mutate = $mutate."$name"(|@pos, |%named)
+    method dispatch:<.=>(\$mutate: $name, |$c) {
+        $mutate = $mutate."$name"(|$c)
     }
     
-    method dispatch:<.?>($name, *@pos, *%named) {
+    method dispatch:<.?>($name, |$c) {
         pir::can__IPS(self, $name) ??
-            self."$name"(|@pos, |%named) !!
+            self."$name"(|$c) !!
             Nil
     }
     
-    method dispatch:<.+>($name, *@pos, *%named) {
-        my @result := self.dispatch:<.*>($name, |@pos, |%named);
+    method dispatch:<.+>($name, |$c) {
+        my @result := self.dispatch:<.*>($name, |$c);
         if @result.elems == 0 {
             die "Method '$name' not found for invocant of type '" ~
                 self.WHAT.perl ~ "'";
@@ -255,7 +255,7 @@ my class Mu {
         @result
     }
     
-    method dispatch:<.*>($name, *@pos, *%named) {
+    method dispatch:<.*>($name, |$c) {
         my @mro = self.HOW.mro(self);
         my int $mro_count = +@mro;
         my @results;
@@ -267,15 +267,15 @@ my class Mu {
                 $meth = ($obj.HOW.submethod_table($obj)){$name};
             }
             if $meth {
-                @results.push($meth(self, |@pos, |%named));
+                @results.push($meth(self, |$c));
             }
             $i = $i + 1;
         }
         &infix:<,>(|@results)
     }
 
-    method dispatch:<hyper>($name, *@pos, *%named) {
-        hyper( -> \$obj { $obj."$name"(|@pos, |%named) }, self )
+    method dispatch:<hyper>($name, |$c) {
+        hyper( -> \$obj { $obj."$name"(|$c) }, self )
     }
 }
 

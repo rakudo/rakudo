@@ -13,7 +13,7 @@ class Buf does Positional {
         $new!set_codes(@codes);
         $new;
     }
-    method !set_codes(*@codes) {
+    method !set_codes(@codes) {
         my int $bytes = @codes.elems;
         pir::set__vPI($!buffer, $bytes);
         my int $i = 0;

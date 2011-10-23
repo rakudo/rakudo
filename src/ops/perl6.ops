@@ -557,6 +557,25 @@ inline op perl6_decontainerize(out PMC, in PMC) :base_core {
 
 /*
 
+=item perl6_recontainerize_to_ro()
+
+If the passed value is an rw scalar, re-wrap it. Otherwise, just
+hand it on back.
+
+=cut
+
+*/
+inline op perl6_recontainerize_to_ro(out PMC, in PMC) :base_core {
+    if ($2->vtable->base_type == smo_id && Rakudo_cont_is_rw_scalar(interp, $2))
+        $1 = Rakudo_cont_scalar_with_value_no_descriptor(interp, 
+            Rakudo_cont_decontainerize(interp, $2));
+    else
+        $1 = $2;
+}
+
+
+/*
+
 =item perl6_container_store(in PMC, in PMC)
 
 Stores a value in a container. If it's Scalar, there's a fast path;

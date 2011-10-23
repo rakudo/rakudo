@@ -101,7 +101,7 @@ class IO {
 
     method write(IO:D: Buf:D $buf) {
         my Mu $b := nqp::getattr(
-                        pir::perl6_decontainerize__PP($buf),
+                        nqp::p6decont($buf),
                         Buf,
                         '$!buffer'
                     );
@@ -247,7 +247,7 @@ multi sub mkdir($path as Str, $mode = 0o777) {
 $PROCESS::IN  = open('-');
 $PROCESS::OUT = open('-', :w);
 $PROCESS::ERR = IO.new;
-nqp::bindattr(pir::perl6_decontainerize__PP($PROCESS::ERR),
+nqp::bindattr(nqp::p6decont($PROCESS::ERR),
         IO, '$!PIO', pir::getstderr__P());
 
 

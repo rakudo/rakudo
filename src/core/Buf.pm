@@ -69,8 +69,8 @@ multi infix:<~>(Buf:D $a, Buf:D $b) {
     my Buf $r := nqp::create(Buf);
     my Mu $br := pir::new__PS('ByteBuffer');
 
-    my Mu $ba := nqp::getattr(pir::perl6_decontainerize__PP($a), Buf, '$!buffer');
-    my Mu $bb := nqp::getattr(pir::perl6_decontainerize__PP($b), Buf, '$!buffer');
+    my Mu $ba := nqp::getattr(nqp::p6decont($a), Buf, '$!buffer');
+    my Mu $bb := nqp::getattr(nqp::p6decont($b), Buf, '$!buffer');
     pir::set__vPs($br, nqp::concat_s($ba.get_string('binary'), $bb.get_string('binary')));
     nqp::bindattr($r, Buf, '$!buffer', $br);
     $r;

@@ -191,20 +191,20 @@ multi sub prefix:<->(Complex:D \$a) returns Complex:D {
     my $new := nqp::create(Complex);
     nqp::bindattr_n( $new, Complex, '$!re',
         nqp::neg_n(
-            nqp::getattr_n(pir::perl6_decontainerize__PP($a), Complex, '$!re')
+            nqp::getattr_n(nqp::p6decont($a), Complex, '$!re')
         )
     );
     nqp::bindattr_n( $new, Complex, '$!im',
         nqp::neg_n(
-            nqp::getattr_n(pir::perl6_decontainerize__PP($a), Complex, '$!im')
+            nqp::getattr_n(nqp::p6decont($a), Complex, '$!im')
         )
     );
     $new;
 }
 
 multi sub prefix:<abs>(Complex:D \$a) {
-    my num $re = nqp::getattr_n(pir::perl6_decontainerize__PP($a), Complex, '$!re');
-    my num $im = nqp::getattr_n(pir::perl6_decontainerize__PP($a), Complex, '$!im');
+    my num $re = nqp::getattr_n(nqp::p6decont($a), Complex, '$!re');
+    my num $im = nqp::getattr_n(nqp::p6decont($a), Complex, '$!im');
     my num $res = pir::sqrt__NN(nqp::add_n(nqp::mul_n($re, $re), nqp::mul_n($im, $im)));
     nqp::want(nqp::p6box_n($res), 'Nn', $res);
 }
@@ -213,14 +213,14 @@ multi sub infix:<+>(Complex:D \$a, Complex:D \$b) returns Complex:D {
     my $new := nqp::create(Complex);
     nqp::bindattr_n( $new, Complex, '$!re',
         nqp::add_n(
-            nqp::getattr_n(pir::perl6_decontainerize__PP($a), Complex, '$!re'),
-            nqp::getattr_n(pir::perl6_decontainerize__PP($b), Complex, '$!re'),
+            nqp::getattr_n(nqp::p6decont($a), Complex, '$!re'),
+            nqp::getattr_n(nqp::p6decont($b), Complex, '$!re'),
         )
     );
     nqp::bindattr_n( $new, Complex, '$!im',
         nqp::add_n(
-            nqp::getattr_n(pir::perl6_decontainerize__PP($a), Complex, '$!im'),
-            nqp::getattr_n(pir::perl6_decontainerize__PP($b), Complex, '$!im'),
+            nqp::getattr_n(nqp::p6decont($a), Complex, '$!im'),
+            nqp::getattr_n(nqp::p6decont($b), Complex, '$!im'),
         )
     );
     $new;
@@ -230,12 +230,12 @@ multi sub infix:<+>(Complex:D \$a, Real \$b) returns Complex:D {
     my $new := nqp::create(Complex);
     nqp::bindattr_n( $new, Complex, '$!re',
         nqp::add_n(
-            nqp::getattr_n(pir::perl6_decontainerize__PP($a), Complex, '$!re'),
+            nqp::getattr_n(nqp::p6decont($a), Complex, '$!re'),
             nqp::unbox_n($b.Num)
         )
     );
     nqp::bindattr_n($new, Complex, '$!im',
-        nqp::getattr_n(pir::perl6_decontainerize__PP($a), Complex, '$!im'),
+        nqp::getattr_n(nqp::p6decont($a), Complex, '$!im'),
     );
     $new
 }
@@ -245,11 +245,11 @@ multi sub infix:<+>(Real \$a, Complex:D \$b) returns Complex:D {
     nqp::bindattr_n($new, Complex, '$!re',
         nqp::add_n(
             nqp::unbox_n($a.Num),
-            nqp::getattr_n(pir::perl6_decontainerize__PP($b), Complex, '$!re'),
+            nqp::getattr_n(nqp::p6decont($b), Complex, '$!re'),
         )
     );
     nqp::bindattr_n($new, Complex, '$!im',
-        nqp::getattr_n(pir::perl6_decontainerize__PP($b), Complex, '$!im'),
+        nqp::getattr_n(nqp::p6decont($b), Complex, '$!im'),
     );
     $new;
 }
@@ -258,14 +258,14 @@ multi sub infix:<->(Complex:D \$a, Complex:D \$b) returns Complex:D {
     my $new := nqp::create(Complex);
     nqp::bindattr_n( $new, Complex, '$!re',
         nqp::sub_n(
-            nqp::getattr_n(pir::perl6_decontainerize__PP($a), Complex, '$!re'),
-            nqp::getattr_n(pir::perl6_decontainerize__PP($b), Complex, '$!re'),
+            nqp::getattr_n(nqp::p6decont($a), Complex, '$!re'),
+            nqp::getattr_n(nqp::p6decont($b), Complex, '$!re'),
         )
     );
     nqp::bindattr_n($new, Complex, '$!im',
         nqp::sub_n(
-            nqp::getattr_n(pir::perl6_decontainerize__PP($a), Complex, '$!im'),
-            nqp::getattr_n(pir::perl6_decontainerize__PP($b), Complex, '$!im'),
+            nqp::getattr_n(nqp::p6decont($a), Complex, '$!im'),
+            nqp::getattr_n(nqp::p6decont($b), Complex, '$!im'),
         )
     );
     $new
@@ -275,12 +275,12 @@ multi sub infix:<->(Complex:D \$a, Real \$b) returns Complex:D {
     my $new := nqp::create(Complex);
     nqp::bindattr_n( $new, Complex, '$!re',
         nqp::sub_n(
-            nqp::getattr_n(pir::perl6_decontainerize__PP($a), Complex, '$!re'),
+            nqp::getattr_n(nqp::p6decont($a), Complex, '$!re'),
             $b.Num,
         )
     );
     nqp::bindattr_n($new, Complex, '$!im',
-        nqp::getattr_n(pir::perl6_decontainerize__PP($a), Complex, '$!im')
+        nqp::getattr_n(nqp::p6decont($a), Complex, '$!im')
     );
     $new
 }
@@ -290,22 +290,22 @@ multi sub infix:<->(Real \$a, Complex:D \$b) returns Complex:D {
     nqp::bindattr_n( $new, Complex, '$!re',
         nqp::sub_n(
             $a.Num,
-            nqp::getattr_n(pir::perl6_decontainerize__PP($b), Complex, '$!re'),
+            nqp::getattr_n(nqp::p6decont($b), Complex, '$!re'),
         )
     );
     nqp::bindattr_n($new, Complex, '$!im',
         nqp::neg_n(
-            nqp::getattr_n(pir::perl6_decontainerize__PP($b), Complex, '$!im')
+            nqp::getattr_n(nqp::p6decont($b), Complex, '$!im')
         )
     );
     $new
 }
 
 multi sub infix:<*>(Complex:D \$a, Complex:D \$b) returns Complex:D {
-    my num $a_re = nqp::getattr_n(pir::perl6_decontainerize__PP($a), Complex, '$!re');
-    my num $a_im = nqp::getattr_n(pir::perl6_decontainerize__PP($a), Complex, '$!im');
-    my num $b_re = nqp::getattr_n(pir::perl6_decontainerize__PP($b), Complex, '$!re');
-    my num $b_im = nqp::getattr_n(pir::perl6_decontainerize__PP($b), Complex, '$!im');
+    my num $a_re = nqp::getattr_n(nqp::p6decont($a), Complex, '$!re');
+    my num $a_im = nqp::getattr_n(nqp::p6decont($a), Complex, '$!im');
+    my num $b_re = nqp::getattr_n(nqp::p6decont($b), Complex, '$!re');
+    my num $b_im = nqp::getattr_n(nqp::p6decont($b), Complex, '$!im');
     my $new := nqp::create(Complex);
     nqp::bindattr_n($new, Complex, '$!re',
         nqp::sub_n(nqp::mul_n($a_re, $b_re), nqp::mul_n($a_im, $b_im)),
@@ -321,13 +321,13 @@ multi sub infix:<*>(Complex:D \$a, Real \$b) returns Complex:D {
     my num $b_num = $b.Num;
     nqp::bindattr_n($new, Complex, '$!re',
         nqp::mul_n(
-            nqp::getattr_n(pir::perl6_decontainerize__PP($a), Complex, '$!re'),
+            nqp::getattr_n(nqp::p6decont($a), Complex, '$!re'),
             $b_num,
         )
     );
     nqp::bindattr_n($new, Complex, '$!im',
         nqp::mul_n(
-            nqp::getattr_n(pir::perl6_decontainerize__PP($a), Complex, '$!im'),
+            nqp::getattr_n(nqp::p6decont($a), Complex, '$!im'),
             $b_num,
         )
     );
@@ -340,23 +340,23 @@ multi sub infix:<*>(Real \$a, Complex:D \$b) returns Complex:D {
     nqp::bindattr_n($new, Complex, '$!re',
         nqp::mul_n(
             $a_num,
-            nqp::getattr_n(pir::perl6_decontainerize__PP($b), Complex, '$!re'),
+            nqp::getattr_n(nqp::p6decont($b), Complex, '$!re'),
         )
     );
     nqp::bindattr_n($new, Complex, '$!im',
         nqp::mul_n(
             $a_num,
-            nqp::getattr_n(pir::perl6_decontainerize__PP($b), Complex, '$!im'),
+            nqp::getattr_n(nqp::p6decont($b), Complex, '$!im'),
         )
     );
     $new
 }
 
 multi sub infix:</>(Complex:D \$a, Complex:D \$b) returns Complex:D {
-    my num $a_re = nqp::getattr_n(pir::perl6_decontainerize__PP($a), Complex, '$!re');
-    my num $a_im = nqp::getattr_n(pir::perl6_decontainerize__PP($a), Complex, '$!im');
-    my num $b_re = nqp::getattr_n(pir::perl6_decontainerize__PP($b), Complex, '$!re');
-    my num $b_im = nqp::getattr_n(pir::perl6_decontainerize__PP($b), Complex, '$!im');
+    my num $a_re = nqp::getattr_n(nqp::p6decont($a), Complex, '$!re');
+    my num $a_im = nqp::getattr_n(nqp::p6decont($a), Complex, '$!im');
+    my num $b_re = nqp::getattr_n(nqp::p6decont($b), Complex, '$!re');
+    my num $b_im = nqp::getattr_n(nqp::p6decont($b), Complex, '$!im');
     my num $d    = nqp::add_n(nqp::mul_n($b_re, $b_re), nqp::mul_n($b_im, $b_im));
     my $new := nqp::create(Complex);
     nqp::bindattr_n($new, Complex, '$!re',

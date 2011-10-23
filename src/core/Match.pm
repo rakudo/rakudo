@@ -72,7 +72,7 @@ my class Match is Capture is Cool {
 
 sub make(Mu $ast) {
     nqp::bindattr(
-        pir::perl6_decontainerize__PP(pir::find_caller_lex__Ps('$/')),
+        nqp::p6decont(pir::find_caller_lex__Ps('$/')),
         Match,
         '$!ast',
         $ast

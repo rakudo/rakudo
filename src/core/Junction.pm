@@ -63,7 +63,7 @@ sub AUTOTHREAD(&call, **@pos, *%named) {
     loop (my $i = 0; $i < +@pos; $i++) {
         # Junctional positional argument?
         if @pos[$i] ~~ Junction {
-            my @states := nqp::getattr(pir::perl6_decontainerize__PP(@pos[$i]), Junction, '$!storage');
+            my @states := nqp::getattr(nqp::p6decont(@pos[$i]), Junction, '$!storage');
             my @pre    := @pos[0 ..^ $i];
             my @post   := @pos[$i + 1 ..^ +@pos];
             my @result;
@@ -71,7 +71,7 @@ sub AUTOTHREAD(&call, **@pos, *%named) {
                 push @result, call(|@pre, $s, |@post, |%named);
             }
             return Junction.new(@result,
-                :type(nqp::getattr(pir::perl6_decontainerize__PP(@pos[$i]), Junction, '$!type')));
+                :type(nqp::getattr(nqp::p6decont(@pos[$i]), Junction, '$!type')));
         }
     }
     
@@ -82,13 +82,13 @@ sub AUTOTHREAD(&call, **@pos, *%named) {
             for %named.kv -> $kk, $vk {
                 if $kk ne $k { %other_nameds{$kk} = $vk }
             }
-            my @states := nqp::getattr(pir::perl6_decontainerize__PP($v), Junction, '$!storage');
+            my @states := nqp::getattr(nqp::p6decont($v), Junction, '$!storage');
             my @result;
             for @states -> $s {
                 push @result, call(|@pos, |{ $k => $s }, |%other_nameds);
             }
             return Junction.new(@result,
-                :type(nqp::getattr(pir::perl6_decontainerize__PP($v), Junction, '$!type')));
+                :type(nqp::getattr(nqp::p6decont($v), Junction, '$!type')));
         }
     }
     

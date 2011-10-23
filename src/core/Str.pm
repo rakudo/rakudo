@@ -468,7 +468,7 @@ my class Str does Stringy {
         pir::set__vPs(nqp::getattr($buf, Buf, '$!buffer'),
             pir::trans_encoding__ssi(
                 nqp::unbox_s(self),
-                pir::find_encoding__is(nqp::unbox_s(pir::perl6_decontainerize__PP($encoding.lc)))
+                pir::find_encoding__is(nqp::unbox_s(nqp::p6decont($encoding.lc)))
             )
         );
         $buf;

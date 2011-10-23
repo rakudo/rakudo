@@ -192,7 +192,7 @@ my class Mu {
     }
     
     method clone() {
-        my $cloned := pir::repr_clone__PP(pir::perl6_decontainerize__PP(self));
+        my $cloned := pir::repr_clone__PP(nqp::p6decont(self));
         # XXX Probably need to clone containery things a level deeper.
         $cloned
     }

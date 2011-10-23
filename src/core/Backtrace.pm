@@ -26,7 +26,7 @@ my class Backtrace is List {
     proto method new(|$) {*}
 
     multi method new(Exception $e, Int $offset = 0) {
-        self.new(nqp::getattr(pir::perl6_decontainerize__PP($e), Exception, '$!ex').backtrace, $offset);
+        self.new(nqp::getattr(nqp::p6decont($e), Exception, '$!ex').backtrace, $offset);
     }
 
     # note that parrot backtraces are RPAs, marshalled to us as Parcel

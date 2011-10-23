@@ -6,7 +6,7 @@ my class Attribute {
             my $name      := self.name;
             my $meth_name := nqp::substr(nqp::unbox_s($name), 2);
             unless $package.HOW.declares_method($package, $meth_name) {
-                my $dcpkg := pir::perl6_decontainerize__PP($package);
+                my $dcpkg := nqp::p6decont($package);
                 my $meth;
                 my int $attr_type = pir::repr_get_primitive_type_spec__IP($!type);
                 if self.rw {
@@ -14,7 +14,7 @@ my class Attribute {
                         ??
                         method (Mu $self:) is rw {
                             nqp::getattr(
-                                pir::perl6_decontainerize__PP($self),
+                                nqp::p6decont($self),
                                 $dcpkg,
                                 nqp::unbox_s($name))
                         }
@@ -26,7 +26,7 @@ my class Attribute {
                         ??
                         method (Mu $self:) {
                             nqp::getattr(
-                                pir::perl6_decontainerize__PP($self),
+                                nqp::p6decont($self),
                                 $dcpkg,
                                 nqp::unbox_s($name))
                         }
@@ -36,7 +36,7 @@ my class Attribute {
                         method (Mu $self:) {
                             nqp::p6box_i(
                                 nqp::getattr_i(
-                                    pir::perl6_decontainerize__PP($self),
+                                    nqp::p6decont($self),
                                     $dcpkg,
                                     nqp::unbox_s($name))
                             );
@@ -47,7 +47,7 @@ my class Attribute {
                         method (Mu $self:) {
                             nqp::p6box_n(
                                 nqp::getattr_n(
-                                    pir::perl6_decontainerize__PP($self),
+                                    nqp::p6decont($self),
                                     $dcpkg,
                                     nqp::unbox_s($name))
                             );
@@ -56,7 +56,7 @@ my class Attribute {
                         method (Mu $self:) {
                             nqp::p6box_s(
                                 nqp::getattr_s(
-                                    pir::perl6_decontainerize__PP($self),
+                                    nqp::p6decont($self),
                                     $dcpkg,
                                     nqp::unbox_s($name))
                             );
@@ -77,7 +77,7 @@ my class Attribute {
     }
     
     method get_value(Mu $obj) {
-        my $decont := pir::perl6_decontainerize__PP($obj);
+        my $decont := nqp::p6decont($obj);
         given nqp::p6box_i(pir::repr_get_primitive_type_spec__IP($!type)) {
             when 0 { nqp::getattr($decont, $!package, $!name) }
             when 1 { nqp::p6box_i(nqp::getattr_i($decont, $!package, $!name)) }
@@ -87,7 +87,7 @@ my class Attribute {
     }
     
     method set_value(Mu $obj, Mu \$value) {
-        my $decont := pir::perl6_decontainerize__PP($obj);
+        my $decont := nqp::p6decont($obj);
         given nqp::p6box_i(pir::repr_get_primitive_type_spec__IP($!type)) {
             when 0 { nqp::bindattr($decont, $!package, $!name, $value) }
             when 1 { nqp::p6box_i(nqp::bindattr_i($decont, $!package, $!name, $value)) }

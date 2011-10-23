@@ -29,8 +29,8 @@ my class MapIter is Iterator {
             }
             $count = 1 if $count < 1;
             my Mu $rpa  := nqp::list();
-            my $list    := pir::perl6_decontainerize__PP($!list);
-            my $block   := pir::perl6_decontainerize__PP($!block); ### TODO: Why?
+            my $list    := nqp::p6decont($!list);
+            my $block   := nqp::p6decont($!block); ### TODO: Why?
             my $munched := $!list.munch($argc * $count);
             my Mu $args := Q:PIR {
                 .local int count, argc, munchpos

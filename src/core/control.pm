@@ -44,7 +44,7 @@ my &return := -> |$ {
     my Mu $return := pir::find_caller_lex__Ps('RETURN');
     nqp::isnull($return)
         ?? die "Attempt to return outside of any Routine"
-        !! $return(pir::perl6_decontainerize__PP($parcel));
+        !! $return(nqp::p6decont($parcel));
     $parcel
 };
 
@@ -56,35 +56,35 @@ my &take-rw := -> |$ {
 my &take := -> |$ { 
     my $parcel := 
         &RETURN-PARCEL(nqp::p6parcel(pir::perl6_current_args_rpa__PP(), Nil));
-    THROW(pir::perl6_decontainerize__PP($parcel), 
+    THROW(nqp::p6decont($parcel), 
           pir::const::CONTROL_TAKE) 
 };
 
 my &last := -> |$ { 
     my $parcel := 
         &RETURN-PARCEL(nqp::p6parcel(pir::perl6_current_args_rpa__PP(), Nil));
-    THROW(pir::perl6_decontainerize__PP($parcel), 
+    THROW(nqp::p6decont($parcel), 
           pir::const::CONTROL_LOOP_LAST) 
 };
 
 my &next := -> |$ { 
     my $parcel := 
         &RETURN-PARCEL(nqp::p6parcel(pir::perl6_current_args_rpa__PP(), Nil));
-    THROW(pir::perl6_decontainerize__PP($parcel), 
+    THROW(nqp::p6decont($parcel), 
           pir::const::CONTROL_LOOP_NEXT) 
 };
 
 my &redo := -> |$ { 
     my $parcel := 
         &RETURN-PARCEL(nqp::p6parcel(pir::perl6_current_args_rpa__PP(), Nil));
-    THROW(pir::perl6_decontainerize__PP($parcel), 
+    THROW(nqp::p6decont($parcel), 
           pir::const::CONTROL_LOOP_REDO) 
 };
 
 my &succeed := -> |$ { 
     my $parcel := 
         &RETURN-PARCEL(nqp::p6parcel(pir::perl6_current_args_rpa__PP(), Nil));
-    THROW(pir::perl6_decontainerize__PP($parcel), 
+    THROW(nqp::p6decont($parcel), 
           pir::const::CONTROL_BREAK) 
 };
 
@@ -104,7 +104,7 @@ my &nextwith := -> *@pos, *%named {
     unless $dispatcher.exhausted {
         nqp::isnull($return)
             ?? die "Attempt to return outside of any Routine"
-            !! $return(pir::perl6_decontainerize__PP(
+            !! $return(nqp::p6decont(
                 $dispatcher.call_with_args(|@pos, |%named)))
     }
     Nil
@@ -123,7 +123,7 @@ my &nextsame := -> {
     unless $dispatcher.exhausted {
         nqp::isnull($return)
             ?? die "Attempt to return outside of any Routine"
-            !! $return(pir::perl6_decontainerize__PP(
+            !! $return(nqp::p6decont(
                 $dispatcher.call_with_capture(
                     pir::perl6_args_for_dispatcher__PP($dispatcher))))
     

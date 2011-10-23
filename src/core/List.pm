@@ -144,7 +144,7 @@ my class List does Positional {
     method push(*@values) {
         my $pos = self.elems;
         fail '.push on infinite lists NYI' if $!nextiter.defined;
-        self.STORE_AT_POS($pos++, @values.shift) while @values;
+        self.STORE_AT_POS($pos++, @values.shift) while @values.gimme(1);
         self;
     }
 

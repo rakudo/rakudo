@@ -42,7 +42,7 @@ class Buf does Positional {
         my int $bytes = nqp::elems($!buffer);
         my int $i = 0;
         while $i < $bytes {
-            @l.push: nqp::p6box_i(nqp::atpos_i($!buffer, $i));
+            @l[$i] = nqp::p6box_i(nqp::atpos_i($!buffer, $i));
             $i = $i + 1;
         }
         @l;

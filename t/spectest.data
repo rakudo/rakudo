@@ -136,14 +136,14 @@ S03-operators/eqv.t
 S03-operators/gcd.t
 # S03-operators/identity.t # err: Cannot use bind operator with this LHS
 S03-operators/increment.t
-# S03-operators/inplace.t # err: Method '' not found for invocant of class 'Str'
+S03-operators/inplace.t
 S03-operators/is-divisible-by.t
 S03-operators/lcm.t
 S03-operators/list-quote-junction.t
 S03-operators/minmax.t
 S03-operators/misc.t
 S03-operators/names.t
-# S03-operators/nesting.t # err: Unable to parse blockoid
+S03-operators/nesting.t
 S03-operators/not.t
 S03-operators/overflow.t
 S03-operators/precedence.t
@@ -165,7 +165,7 @@ S03-sequence/arity0.t
 S03-sequence/arity-2-or-more.t
 S03-sequence/basic.t
 # S03-sequence/limit-arity-2-or-more.t # err: Not enough positional parameters passed; got 1 but expected 2
-# S03-sequence/nonnumeric.t # err: Decrement out of range
+S03-sequence/nonnumeric.t
 # S03-smartmatch/any-any.t # err: No applicable candidates found to dispatch to for 'ACCEPTS'.
 S03-smartmatch/any-array-slice.t
 S03-smartmatch/any-array.t
@@ -261,7 +261,7 @@ S05-metachars/closure.t
 S05-metachars/line-anchors.t
 S05-metachars/newline.t
 S05-metachars/tilde.t
-# S05-metasyntax/angle-brackets.t # err: Null PMC access in find_method('MATCH')
+S05-metasyntax/angle-brackets.t
 S05-metasyntax/changed.t
 S05-metasyntax/charset.t
 # S05-metasyntax/lookaround.t # err: Method 'after' not found for invocant of class 'Cursor'

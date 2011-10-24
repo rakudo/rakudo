@@ -85,6 +85,26 @@ box_type(Rakudo_BindVal bv) {
 }
 
 
+/* Boxes a native value. */
+static PMC *
+create_box(PARROT_INTERP, Rakudo_BindVal bv) {
+    PMC *box_type_obj = box_type(bv);
+    PMC *boxed = REPR(box_type_obj)->instance_of(interp, box_type_obj);
+    switch (bv.type) {
+        case BIND_VAL_INT:
+            REPR(boxed)->set_int(interp, boxed, bv.val.i);
+            break;
+        case BIND_VAL_NUM:
+            REPR(boxed)->set_num(interp, boxed, bv.val.n);
+            break;
+        case BIND_VAL_STR:
+            REPR(boxed)->set_str(interp, boxed, bv.val.s);
+            break;
+    }
+    return boxed;
+}
+
+
 /* Creates a Parcel from a RPA, filling PMCNULL elements if needed. */
 /* This function gets shared with perl6.ops for the perl6_parcel_from_rpa op. */
 PMC *
@@ -289,20 +309,8 @@ Rakudo_binding_bind_one_param(PARROT_INTERP, PMC *lexpad, Rakudo_Signature *sign
     }
     else if (desired_native == 0) {
         /* We need to do a boxing operation. */
-        PMC *box_type_obj = box_type(orig_bv);
         bv.type = BIND_VAL_OBJ;
-        bv.val.o = REPR(box_type_obj)->instance_of(interp, box_type_obj);
-        switch (orig_bv.type) {
-            case BIND_VAL_INT:
-                REPR(bv.val.o)->set_int(interp, bv.val.o, orig_bv.val.i);
-                break;
-            case BIND_VAL_NUM:
-                REPR(bv.val.o)->set_num(interp, bv.val.o, orig_bv.val.n);
-                break;
-            case BIND_VAL_STR:
-                REPR(bv.val.o)->set_str(interp, bv.val.o, orig_bv.val.s);
-                break;
-        }
+        bv.val.o = create_box(interp, orig_bv);
     }
     else {
         storage_spec spec = REPR(orig_bv.val.o)->get_storage_spec(interp, STABLE(orig_bv.val.o));
@@ -671,6 +679,37 @@ Rakudo_binding_handle_optional(PARROT_INTERP, Rakudo_Parameter *param, PMC *lexp
 }
 
 
+/* Extracts bind value information for a positional parameter. */
+static Rakudo_BindVal
+get_positional_bind_val(PARROT_INTERP, struct Pcc_cell *pc_positionals, PMC *capture, INTVAL cur_pos_arg) {
+    Rakudo_BindVal cur_bv;
+    if (pc_positionals) {
+        switch (pc_positionals[cur_pos_arg].type) {
+            case BIND_VAL_INT:
+                cur_bv.type = BIND_VAL_INT;
+                cur_bv.val.i = pc_positionals[cur_pos_arg].u.i;
+                break;
+            case BIND_VAL_NUM:
+                cur_bv.type = BIND_VAL_NUM;
+                cur_bv.val.n = pc_positionals[cur_pos_arg].u.n;
+                break;
+            case BIND_VAL_STR:
+                cur_bv.type = BIND_VAL_STR;
+                cur_bv.val.s = pc_positionals[cur_pos_arg].u.s;
+                break;
+            default:
+                cur_bv.type = BIND_VAL_OBJ;
+                cur_bv.val.o = pc_positionals[cur_pos_arg].u.p;
+        }
+    }
+    else {
+        cur_bv.type = BIND_VAL_OBJ;
+        cur_bv.val.o = VTABLE_get_pmc_keyed_int(interp, capture, cur_pos_arg);
+    }
+    return cur_bv;
+}
+
+
 /* Takes a signature along with positional and named arguments and binds them
  * into the provided lexpad (actually, anything that has a Hash interface will
  * do). Returns BIND_RESULT_OK if binding works out, BIND_RESULT_FAIL if there
@@ -766,9 +805,12 @@ Rakudo_binding_bind(PARROT_INTERP, PMC *lexpad, PMC *sig_pmc, PMC *capture,
                 INTVAL k;
                 VTABLE_set_attr_keyed(interp, capsnap, captype, LIST_str, pos_args);
                 VTABLE_set_attr_keyed(interp, capsnap, captype, HASH_str, named_args);
-                for (k = cur_pos_arg; k < num_pos_args; k++)
-                    VTABLE_push_pmc(interp, pos_args,
-                        VTABLE_get_pmc_keyed_int(interp, capture, k));
+                for (k = cur_pos_arg; k < num_pos_args; k++) {
+                    cur_bv = get_positional_bind_val(interp, pc_positionals, capture, k);
+                    VTABLE_push_pmc(interp, pos_args, cur_bv.type == BIND_VAL_OBJ ?
+                        cur_bv.val.o :
+                        create_box(interp, cur_bv));
+                }
                 if (!PMC_IS_NULL(named_args_copy)) {
                     PMC *iter = VTABLE_get_iter(interp, named_args_copy);
                     while (VTABLE_get_bool(interp, iter)) {
@@ -835,7 +877,10 @@ Rakudo_binding_bind(PARROT_INTERP, PMC *lexpad, PMC *sig_pmc, PMC *capture,
                  * store it. */
                 PMC *temp = pmc_new(interp, enum_class_ResizablePMCArray);
                 while (cur_pos_arg < num_pos_args) {
-                    VTABLE_push_pmc(interp, temp, VTABLE_get_pmc_keyed_int(interp, capture, cur_pos_arg));
+                    cur_bv = get_positional_bind_val(interp, pc_positionals, capture, cur_pos_arg);
+                    VTABLE_push_pmc(interp, temp, cur_bv.type == BIND_VAL_OBJ ?
+                        cur_bv.val.o :
+                        create_box(interp, cur_bv));
                     cur_pos_arg++;
                 }
                 cur_bv.type = BIND_VAL_OBJ;
@@ -853,29 +898,7 @@ Rakudo_binding_bind(PARROT_INTERP, PMC *lexpad, PMC *sig_pmc, PMC *capture,
                 /* Do we have a value?. */
                 if (cur_pos_arg < num_pos_args) {
                     /* Easy - just bind that. */
-                    if (pc_positionals) {
-                        switch (pc_positionals[cur_pos_arg].type) {
-                            case BIND_VAL_INT:
-                                cur_bv.type = BIND_VAL_INT;
-                                cur_bv.val.i = pc_positionals[cur_pos_arg].u.i;
-                                break;
-                            case BIND_VAL_NUM:
-                                cur_bv.type = BIND_VAL_NUM;
-                                cur_bv.val.n = pc_positionals[cur_pos_arg].u.n;
-                                break;
-                            case BIND_VAL_STR:
-                                cur_bv.type = BIND_VAL_STR;
-                                cur_bv.val.s = pc_positionals[cur_pos_arg].u.s;
-                                break;
-                            default:
-                                cur_bv.type = BIND_VAL_OBJ;
-                                cur_bv.val.o = pc_positionals[cur_pos_arg].u.p;
-                        }
-                    }
-                    else {
-                        cur_bv.type = BIND_VAL_OBJ;
-                        cur_bv.val.o = VTABLE_get_pmc_keyed_int(interp, capture, cur_pos_arg);
-                    }
+                    cur_bv = get_positional_bind_val(interp, pc_positionals, capture, cur_pos_arg);
                     bind_fail = Rakudo_binding_bind_one_param(interp, lexpad, sig, param,
                             cur_bv, no_nom_type_check, error);
                     if (bind_fail)

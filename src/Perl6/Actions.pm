@@ -729,29 +729,25 @@ class Perl6::Actions is HLL::Actions {
         my $sm_exp := $xblock.shift;
         my $pblock := $xblock.shift;
 
-        # Add exception handler to the block so we fall out of the enclosing block
-        # after it's executed.
-        $pblock := pblock_immediate($pblock);
-        $pblock := when_handler_helper($pblock);
-
-        # Handle the smart-match. XXX Need to handle syntactic cases too.
+        # Handle the smart-match.
         my $match_past := PAST::Op.new( :pasttype('call'), :name('&infix:<~~>'),
             PAST::Var.new( :name('$_'), :scope('lexical_6model') ),
             $sm_exp
         );
 
-        # Use the smartmatch result as the condition for running the block.
+        # Use the smartmatch result as the condition for running the block,
+        # and ensure continue/succeed handlers are in place and that a
+        # succeed happens after the block.
+        $pblock := pblock_immediate($pblock);
         make PAST::Op.new( :pasttype('if'), :node( $/ ),
-            $match_past, $pblock,
+            $match_past, when_handler_helper($pblock)
         );
     }
 
     method statement_control:sym<default>($/) {
         # We always execute this, so just need the block, however we also
-        # want to make sure we break after running it.
-        my $block := $<block>.ast;
-        $block := when_handler_helper($block);
-        make $block;
+        # want to make sure we succeed after running it.
+        make when_handler_helper($<block>.ast);
     }
 
     method statement_control:sym<CATCH>($/) {
@@ -3839,10 +3835,10 @@ class Perl6::Actions is HLL::Actions {
         $block.symbol($name, :scope('lexical_6model') );
     }
 
-    sub when_handler_helper($block) {
-        my $BLOCK := $*ST.cur_lexpad();
+    sub when_handler_helper($when_block) {
+        my $enclosing_block := $*ST.cur_lexpad();
         # XXX TODO: This isn't quite the right way to check this...
-        unless $BLOCK.handlers() {
+        unless $enclosing_block.handlers() {
             my @handlers;
             @handlers.push(
                 PAST::Op.new(
@@ -3855,35 +3851,34 @@ class Perl6::Actions is HLL::Actions {
                     ),
                 )
             );
-            $BLOCK.handlers(@handlers);
+            $enclosing_block.handlers(@handlers);
         }
 
         # if this is not an immediate block create a call
-        if ($block<past_block>) {
-            $block := PAST::Op.new( :pasttype('call'), $block);
+        if ($when_block<past_block>) {
+            $when_block := PAST::Op.new( :pasttype('call'), $when_block);
         }
 
         # call succeed with the block return value, succeed will throw
         # a BREAK exception to be caught by the above handler
-        $block := PAST::Op.new(
+        my $result := PAST::Op.new(
             :pasttype('call'),
             :name('&succeed'),
-            $block,
+            $when_block,
         );
         
         # wrap it in a try pirop so that we can use a CONTINUE exception
         # to skip the succeed call
-        $block := PAST::Op.new(
+        return PAST::Op.new(
             :pasttype('try'),
             :handle_types('CONTINUE'),
-            $block,
+            $result,
             PAST::Var.new(
                 :scope('keyed'),
                 PAST::Op.new(:inline("    .get_results (%r)\n    finalize %r")),
                 'payload',
             ),
         );
-        $block;
     }
 
     sub make_dot_equals($target, $call) {

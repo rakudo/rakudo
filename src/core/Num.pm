@@ -85,7 +85,7 @@ my class Num {
 
     proto method sqrt(|$) {*}
     multi method sqrt(Num:D: ) {
-        nqp::p6box_n(pir::sqrt__NN(nqp::unbox_n(self)));
+        nqp::p6box_n(nqp::sqrt_n(nqp::unbox_n(self)));
     }
 
     method rand(Num:D: ) {

@@ -3941,7 +3941,7 @@ class Perl6::Actions is HLL::Actions {
             ),
             PAST::Op.new( :pirop('finalize vP'),
                 PAST::Var.new( :scope('register'), :name('exception'))),
-            PAST::Op.new(:inline("    .get_results (%r)\n    perl6_type_check_return_value %r\n    .return (%r)"))
+            PAST::Var.new( :scope('lexical_6model'), :name('$!') )
         );
 
         #install handler

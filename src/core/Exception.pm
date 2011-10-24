@@ -8,7 +8,7 @@ my class Exception {
     }
 
     multi method Numeric(Exception:D:) {
-	self.Str.Numeric()
+        self.Str.Numeric()
     }
 
     method throw() {

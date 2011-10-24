@@ -149,8 +149,8 @@ multi trait_mod:<handles>(Attribute:D $target, $thunk) {
         }
         
         method add_delegator_method($attr: $pkg, $meth_name, $call_name) {
-            my $meth := method (**@pos, *%named) is rw {
-                $attr.get_value(self)."$call_name"(|@pos, |%named)
+            my $meth := method (|$c) is rw {
+                $attr.get_value(self)."$call_name"(|$c)
             };
             $meth.set_name($meth_name);
             $pkg.HOW.add_method($pkg, $meth_name, $meth);
@@ -176,8 +176,8 @@ multi trait_mod:<handles>(Attribute:D $target, $thunk) {
                                 ?($name ~~ $expr)
                             },
                             -> $obj, $name {
-                                -> $self, **@pos, *%named {
-                                    $attr.get_value($self)."$name"(|@pos, |%named)
+                                -> $self, |$c {
+                                    $attr.get_value($self)."$name"(|$c)
                                 }
                             });
                     }
@@ -188,8 +188,8 @@ multi trait_mod:<handles>(Attribute:D $target, $thunk) {
                             ?$expr.can($name)
                         },
                         -> $obj, $name {
-                            -> $self, **@pos, *%named {
-                                $attr.get_value($self)."$name"(|@pos, |%named)
+                            -> $self, |$c {
+                                $attr.get_value($self)."$name"(|$c)
                             }
                         });
                 }

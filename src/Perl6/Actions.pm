@@ -533,9 +533,11 @@ class Perl6::Actions is HLL::Actions {
         if $block<placeholder_sig> {
             $/.CURSOR.panic("Cannot use placeholder parameters in this kind of block");
         }
-        make reference_to_code_object(
-            make_simple_code_object($block, 'Block'),
-            $block);
+        ($*ST.cur_lexpad())[0].push(my $uninst := PAST::Stmts.new($block));
+        my $code := $*ST.create_code_object($block, 'Block', $*ST.create_signature([]));
+        my $ref := reference_to_code_object($code, $block);
+        $ref<uninstall_if_immediately_used> := $uninst;
+        make $ref;
     }
 
     method blockoid($/) {
@@ -643,7 +645,7 @@ class Perl6::Actions is HLL::Actions {
     }
 
     method statement_control:sym<loop>($/) {
-        my $block := PAST::Op.new($<block>.ast);
+        my $block := pblock_immediate($<block>.ast);
         my $cond := $<e2> ?? $<e2>[0].ast !! 1;
         my $loop := PAST::Op.new( $cond, $block, :pasttype('while'), :node($/) );
         if $<e3> {

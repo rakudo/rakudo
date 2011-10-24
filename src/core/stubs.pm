@@ -13,9 +13,9 @@ my class Exception { ... }
 sub DYNAMIC(\$name) is rw { 
     my Mu $x := pir::find_dynamic_lex__Ps(nqp::unbox_s($name));
     if nqp::isnull($x) {
-        my $pkgname = nqp::p6box_s(pir::replace__Ssiis(nqp::unbox_s($name), 1, 1, ''));
-        if GLOBAL.WHO.exists($pkgname) { $x := GLOBAL.WHO{$pkgname} }
-        elsif PROCESS.WHO.exists($pkgname) { $x := PROCESS.WHO{$pkgname} }
+        my str $pkgname = pir::replace__Ssiis(nqp::unbox_s($name), 1, 1, '');
+        if nqp::existskey(GLOBAL.WHO, $pkgname) { $x := nqp::atkey(GLOBAL.WHO, $pkgname) }
+        elsif nqp::existskey(PROCESS.WHO, $pkgname) { $x := nqp::atkey(PROCESS.WHO, $pkgname) }
         else { fail "Dynamic variable $name not found" }
     }
     $x

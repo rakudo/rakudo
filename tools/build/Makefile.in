@@ -146,8 +146,8 @@ CORE_SOURCES = \
   src/core/Positional.pm \
   src/core/Associative.pm \
   src/core/Callable.pm \
-  src/core/stubs.pm \
   src/core/natives.pm \
+  src/core/stubs.pm \
   src/core/control.pm \
   src/core/Mu.pm \
   src/core/Stringy.pm \

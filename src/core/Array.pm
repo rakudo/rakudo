@@ -7,12 +7,18 @@ class Array {
         nqp::p6list($args, self.WHAT, Bool::True);
     }
     
-    method at_pos($pos is copy) is rw {
+    multi method at_pos($pos is copy) is rw {
         $pos = $pos.Int;
         self.exists($pos)
           ?? nqp::atpos(nqp::getattr(self, List, '$!items'), nqp::unbox_i($pos))
           !! pir::setattribute__0PPsP(my $v, Scalar, '$!whence',
                  -> { nqp::bindpos(nqp::getattr(self, List, '$!items'), nqp::unbox_i($pos), $v) } )
+    }
+    multi method at_pos(int $pos ) is rw {
+        self.exists($pos)
+          ?? nqp::atpos(nqp::getattr(self, List, '$!items'), $pos)
+          !! pir::setattribute__0PPsP(my $v, Scalar, '$!whence',
+                 -> { nqp::bindpos(nqp::getattr(self, List, '$!items'), $pos, $v) } )
     }
 
     method flattens() { 1 }

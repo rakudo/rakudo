@@ -280,7 +280,7 @@ class Perl6::Optimizer {
         my $i := 0;
         while $i < +@($node) {
             my $visit := $node[$i];
-            unless pir::isa($visit, 'String') || pir::isa($visit, 'Integer') {
+            unless pir::isa($visit, 'String') || pir::isa($visit, 'Integer') || pir::isa($visit, 'Float') {
                 if $visit.isa(PAST::Op) {
                     $node[$i] := self.visit_op($visit)
                 }

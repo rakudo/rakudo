@@ -47,11 +47,17 @@ my class List does Positional {
         nqp::p6parcel($rpa, Any);
     }
 
-    method at_pos($pos is copy) is rw {
+    proto method at_pos($) { * }
+    multi method at_pos($pos is copy) is rw {
         $pos = $pos.Int;
         self.exists($pos)
           ?? nqp::atpos($!items, nqp::unbox_i($pos))
           !! Nil
+    }
+    multi method at_pos(int $pos) is rw {
+        self.exists($pos)
+            ?? nqp::atpos($!items, $pos)
+            !! Nil;
     }
 
     method eager() { self.gimme(*); self }

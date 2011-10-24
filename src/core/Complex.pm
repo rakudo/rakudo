@@ -52,11 +52,12 @@ my class Complex is Numeric {
     }
 
     method abs(Complex $x:) {
-        nqp::p6box_n(nqp::add_n(
+        nqp::p6box_n(nqp::sqrt_n(
+            nqp::add_n(
                 nqp::mul_n($!re, $!re),
                 nqp::mul_n($!im, $!im),
             )
-        ).sqrt;
+        ))
     }
 
     method polar() {

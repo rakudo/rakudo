@@ -27,7 +27,7 @@ my class Int {
     }
 
     method Bridge(Int:D:) {
-        self.Num;
+        nqp::p6box_n(nqp::unbox_i(self));
     }
 
     method chr(Int:D:) {

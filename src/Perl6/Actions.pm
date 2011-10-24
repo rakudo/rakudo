@@ -22,6 +22,7 @@ INIT {
         ishash       => 'perl6_is_hash__IP',
         lcm_i        => 'lcm__Iii',
         gcd_i        => 'gcd__Iii',
+        sqrt_n       => 'sqrt__NN',
         find_method  => 'find_method__PPs',
         create       => 'repr_instance_of__PP',
         exit         => 'exit__vi',

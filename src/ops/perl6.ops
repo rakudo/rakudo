@@ -551,7 +551,9 @@ Strips away any outer container, if one exists. Otherwise, no-op.
 
 */
 inline op perl6_decontainerize(out PMC, in PMC) :base_core {
-    $1 = Rakudo_cont_decontainerize(interp, $2);
+    $1 = $2->vtable->base_type == smo_id ?
+        Rakudo_cont_decontainerize(interp, $2) :
+        $2;
 }
 
 

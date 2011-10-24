@@ -112,6 +112,10 @@ my class Any {
         fail "Cannot use negative index $pos on {self.WHAT.perl}" if $pos < 0;
         self.at_pos($pos)
     }
+    multi method postcircumfix:<[ ]>(int $pos) is rw {
+        fail "Cannot use negative index $pos on {self.WHAT.perl}" if $pos < 0;
+        self.at_pos($pos)
+    }
     multi method postcircumfix:<[ ]>(Positional $pos) is rw {
         my $list = $pos.flat;
         $list.gimme(*);

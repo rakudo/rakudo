@@ -3248,7 +3248,10 @@ class Perl6::Actions is HLL::Actions {
 
     method postcircumfix:sym<[ ]>($/) {
         my $past := PAST::Op.new( :name('postcircumfix:<[ ]>'), :pasttype('callmethod'), :node($/) );
-        if $<semilist><statement> { $past.push($<semilist>.ast); }
+        if $<semilist><statement> {
+            my $slast := $<semilist>.ast;
+            $past.push(+@($slast) == 1 && $slast[0]<boxable_native> ?? $slast[0][2] !! $slast);
+        }
         make $past;
     }
 

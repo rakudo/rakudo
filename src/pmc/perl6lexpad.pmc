@@ -1,6 +1,7 @@
 #include "pmc_perl6lexinfo.h"
 #include "../binder/sixmodelobject.h"
 #include "../binder/container.h"
+#include "../binder/bind.h"
 #include "pmc_sub.h"
 
 /* How StatixLexPad looks on the inside. */
@@ -244,6 +245,7 @@ Return the LexInfo PMC, if any or a Null PMC.
                         if (PMC_IS_NULL(state_stash)) {
                             state_stash = pmc_new(interp, enum_class_Hash);
                             VTABLE_set_attr_keyed(interp, p6sub, Block, CONST_STRING(interp, "$!state_vars"), state_stash);
+                            PObj_flag_SET(P6LEXPAD_STATE_INIT, (PMC *)ctx);
                         }
                         else {
                             cur_state = VTABLE_get_pmc_keyed_str(interp, state_stash, state);

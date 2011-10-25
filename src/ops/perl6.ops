@@ -1140,6 +1140,22 @@ inline op perl6_current_args_rpa(out PMC) :base_core {
 
 /*
 
+=item perl6_state_needs_init(out INT)
+
+Returns a non-zero value if state variables need their initialization
+and START blocks should run.
+
+=cut
+
+*/
+inline op perl6_state_needs_init(out INT) :base_core {
+    PMC *cur_ctx = CURRENT_CONTEXT(interp);
+    $1 = PObj_flag_TEST(P6LEXPAD_STATE_INIT, cur_ctx)
+}
+
+
+/*
+
 =item perl6_is_list(out INT, in PMC)
 
 Checks if the passed object is a RPA.

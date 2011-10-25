@@ -1303,6 +1303,11 @@ class Perl6::Actions is HLL::Actions {
                             PAST::Op.new( :pirop('getinterp P') ), 'lexpad'));
                 }
             }
+            
+            # Flag state declarators.
+            if $*SCOPE eq 'state' {
+                $past<state_declarator> := 1;
+            }
         }
         elsif $*SCOPE eq 'our' {
             if $*TYPENAME {
@@ -3128,6 +3133,11 @@ class Perl6::Actions is HLL::Actions {
         else {
             $past := PAST::Op.new(:pirop('perl6_container_store__0PP'),
                 $lhs_ast, $rhs_ast);
+        }
+        if $lhs_ast<state_declarator> {
+            $past := PAST::Op.new( :pasttype('if'),
+                PAST::Op.new( :pirop('perl6_state_needs_init I') ),
+                $past);
         }
         return $past;
     }

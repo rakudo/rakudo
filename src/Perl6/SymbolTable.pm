@@ -383,16 +383,25 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
     method install_lexical_container($block, $name, $type_name, $descriptor, :$state, *@default_value) {
         # Add to block, if needed. Note that it doesn't really have
         # a compile time value.
+        my $var;
         unless $block.symbol($name) {
+            $var := PAST::Var.new( :scope('lexical_6model'), :name($name),
+                :isdecl(1), :type($descriptor.of) );
             $block.symbol($name, :scope('lexical_6model'), :descriptor($descriptor));
-            $block[0].push(PAST::Var.new( :scope('lexical_6model'), :name($name),
-                :isdecl(1), :type($descriptor.of) ));
+            $block[0].push($var);
         }
             
         # If it's a native type, we're done - no container
-        # as we inline natives straight into registers.
-        if pir::repr_get_primitive_type_spec__IP($descriptor.of) {
+        # as we inline natives straight into registers. Do
+        # need to take care of initial value though.
+        my $prim := pir::repr_get_primitive_type_spec__IP($descriptor.of);
+        if $prim {
             if $state { pir::die("Natively typed state variables not yet implemented") }
+            if $var {
+                if $prim == 1    { $var.viviself(PAST::Val.new( :value(0) )) }
+                elsif $prim == 2 { $var.viviself(PAST::Op.new( :pirop('set__Ns'), 'NaN' )) }
+                elsif $prim == 3 { $var.viviself(PAST::Val.new( :value('') )) }
+            }
             return 1;
         }
         

@@ -30,6 +30,7 @@ S02-types/lists.t
 S02-types/mixed_multi_dimensional.t
 S02-types/multi_dimensional_array.t
 S02-types/nan.t
+S02-types/native.t
 S02-types/nested_arrays.t
 S02-types/nested_pairs.t
 S02-types/nil.t

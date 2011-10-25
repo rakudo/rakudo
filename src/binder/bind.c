@@ -313,12 +313,14 @@ Rakudo_binding_bind_one_param(PARROT_INTERP, PMC *lexpad, Rakudo_Signature *sign
         bv.val.o = create_box(interp, orig_bv);
     }
     else {
-        storage_spec spec = REPR(orig_bv.val.o)->get_storage_spec(interp, STABLE(orig_bv.val.o));
+        storage_spec spec;
+        decont_value = Rakudo_cont_decontainerize(interp, orig_bv.val.o);
+        spec = REPR(decont_value)->get_storage_spec(interp, STABLE(decont_value));
         switch (desired_native) {
             case SIG_ELEM_NATIVE_INT_VALUE:
                 if (spec.can_box & STORAGE_SPEC_CAN_BOX_INT) {
                     bv.type = BIND_VAL_INT;
-                    bv.val.i = REPR(orig_bv.val.o)->get_int(interp, orig_bv.val.o);
+                    bv.val.i = REPR(decont_value)->get_int(interp, decont_value);
                 }
                 else {
                     if (error)
@@ -330,7 +332,7 @@ Rakudo_binding_bind_one_param(PARROT_INTERP, PMC *lexpad, Rakudo_Signature *sign
             case SIG_ELEM_NATIVE_NUM_VALUE:
                 if (spec.can_box & STORAGE_SPEC_CAN_BOX_NUM) {
                     bv.type = BIND_VAL_NUM;
-                    bv.val.n = REPR(orig_bv.val.o)->get_num(interp, orig_bv.val.o);
+                    bv.val.n = REPR(decont_value)->get_num(interp, decont_value);
                 }
                 else {
                     if (error)
@@ -342,7 +344,7 @@ Rakudo_binding_bind_one_param(PARROT_INTERP, PMC *lexpad, Rakudo_Signature *sign
             case SIG_ELEM_NATIVE_STR_VALUE:
                 if (spec.can_box & STORAGE_SPEC_CAN_BOX_STR) {
                     bv.type = BIND_VAL_STR;
-                    bv.val.s = REPR(orig_bv.val.o)->get_str(interp, orig_bv.val.o);
+                    bv.val.s = REPR(decont_value)->get_str(interp, decont_value);
                 }
                 else {
                     if (error)
@@ -351,7 +353,13 @@ Rakudo_binding_bind_one_param(PARROT_INTERP, PMC *lexpad, Rakudo_Signature *sign
                     return BIND_RESULT_FAIL;
                 }
                 break;
+            default:
+                if (error)
+                    *error = Parrot_sprintf_c(interp, "Cannot unbox argument to '%S' as a native type",
+                        param->variable_name);
+                return BIND_RESULT_FAIL;
         }
+        decont_value = NULL;
     }
     
     /* By this point, we'll either have an object that we might be able to

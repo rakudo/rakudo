@@ -3117,10 +3117,11 @@ class Perl6::Actions is HLL::Actions {
             $past := $lhs_ast<constant_declarator>($rhs_ast);
         }
         elsif $lhs_ast && $lhs_ast<boxable_native> {
-            # Native assignment is actually really a bind at low
-            # level. We grab the thing we want out of the PAST::Want
-            # node.
-            $past := PAST::Op.new(:pasttype('bind_6model'), $lhs_ast[2], $rhs_ast);
+            # Native assignment is actually really a bind at low level
+            # We grab the thing we want out of the PAST::Want node.
+            $past := box_native_if_needed(
+                PAST::Op.new(:pasttype('bind_6model'), $lhs_ast[2], $rhs_ast),
+                $lhs_ast.type);
         }
         elsif $var_sigil eq '@' || $var_sigil eq '%' {
             # While the scalar container store op would end up calling .STORE,
@@ -4164,6 +4165,7 @@ class Perl6::Actions is HLL::Actions {
                 PAST::Op.new( :pirop(@prim_spec_ops[$primspec]), $past ),
                 @prim_spec_flags[$primspec], $past);
             $want<boxable_native> := $primspec;
+            $want.type($type);
             return $want;
         }
         else {

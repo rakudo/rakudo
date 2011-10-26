@@ -22,6 +22,7 @@ class Perl6::Metamodel::NativeHOW
     }
 
     method compose($obj) {
+        self.compute_mro($obj);
         self.publish_method_cache($obj);
         self.publish_type_cache($obj);
         $!composed := 1;

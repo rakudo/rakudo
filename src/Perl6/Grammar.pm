@@ -1093,42 +1093,42 @@ grammar Perl6::Grammar is HLL::Grammar {
     token package_declarator:sym<package> {
         :my $*OUTERPACKAGE := $*PACKAGE;
         :my $*PKGDECL := 'package';
-        <sym> <package_def> 
+        <sym> <.end_keyword> <package_def>
     }
     token package_declarator:sym<module> {
         :my $*OUTERPACKAGE := $*PACKAGE;
         :my $*PKGDECL := 'module';
-        <sym> <package_def> 
+        <sym> <.end_keyword> <package_def>
     }
     token package_declarator:sym<class> {
         :my $*OUTERPACKAGE := $*PACKAGE;
         :my $*PKGDECL := 'class';
-        <sym> <package_def> 
+        <sym> <.end_keyword> <package_def>
     }
     token package_declarator:sym<grammar> {
         :my $*OUTERPACKAGE := $*PACKAGE;
         :my $*PKGDECL := 'grammar';
-        <sym> <package_def> 
+        <sym> <.end_keyword> <package_def>
     }
     token package_declarator:sym<role> {
         :my $*OUTERPACKAGE := $*PACKAGE;
         :my $*PKGDECL := 'role';
-        <sym> <package_def> 
+        <sym> <.end_keyword> <package_def>
     }
     token package_declarator:sym<knowhow> {
         :my $*OUTERPACKAGE := $*PACKAGE;
         :my $*PKGDECL := 'knowhow';
-        <sym> <package_def> 
+        <sym> <.end_keyword> <package_def>
     }
     token package_declarator:sym<native> {
         :my $*OUTERPACKAGE := $*PACKAGE;
         :my $*PKGDECL := 'native';
-        <sym> <package_def> 
+        <sym> <.end_keyword> <package_def>
     }
     token package_declarator:sym<slang> {
         :my $*OUTERPACKAGE := $*PACKAGE;
         :my $*PKGDECL := 'slang';
-        <sym> <package_def>
+        <sym> <.end_keyword> <package_def>
     }
     token package_declarator:sym<trusts> {
         <sym> <.ws> <typename>
@@ -1138,7 +1138,7 @@ grammar Perl6::Grammar is HLL::Grammar {
         [ <trait>+ || <.panic: "No valid trait found after also"> ]
     }
 
-    rule package_def {<.end_keyword>
+    rule package_def {
         :my $longname;
         :my $outer := $*ST.cur_lexpad();
         :my $*DECLARAND;

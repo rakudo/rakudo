@@ -1,3 +1,8 @@
+New in 2011.11
++ CATCH blocks are now much closer to spec.
++ correct default values for natively typed variables
++ fixed initialization of state variables
+
 New in 2011.10
 + operators and functions with native type arguments
 + detection of call to undefined routines at CHECK time

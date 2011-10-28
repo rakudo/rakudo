@@ -391,6 +391,8 @@ stresstest: testable t/spectest.data
 spectest_checkout : t/spec
 t/spec :
 	git clone git://github.com/perl6/roast.git t/spec
+	-cd t/spec/ && git config remote.origin.pushurl git@github.com:perl6/roast.git
+
 
 spectest_update :
 	-cd t/spec && git pull

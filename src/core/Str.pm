@@ -9,9 +9,9 @@ my class Str does Stringy {
     }
 
     multi method Bool(Str:D:) { self ne '' && self ne '0' }
-    
+
     multi method Str(Str:D:) { self }
-    
+
     method Int(Str:D:) { self.Numeric.Int; }
     method Num(Str:D:) { self.Numeric.Num; }
 
@@ -44,10 +44,10 @@ my class Str does Stringy {
             nqp::unbox_s(self),
             nqp::unbox_i($start.Int),
             nqp::unbox_i($length)));
-    } 
+    }
 
     # chars used to handle ranges for pred/succ
-    my $RANGECHAR = 
+    my $RANGECHAR =
         "01234567890"                                # arabic digits
         ~ "ABCDEFGHIJKLMNOPQRSTUVWXYZA"              # latin uppercase
         ~ "abcdefghijklmnopqrstuvwxyza"              # latin lowercase
@@ -86,8 +86,8 @@ my class Str does Stringy {
             my $ch1 = $RANGECHAR.substr($ipos-1, 1);
             $str = nqp::p6box_s(
                        pir::replace__Ssiis(
-                           nqp::unbox_s($str), 
-                           $r1, 1, 
+                           nqp::unbox_s($str),
+                           $r1, 1,
                            nqp::unbox_s($ch1)));
             # return if no carry
             return $str if $ch0 gt $ch1;
@@ -107,8 +107,8 @@ my class Str does Stringy {
             my $ch1  = $RANGECHAR.substr($ipos+1, 1);
             $str = nqp::p6box_s(
                        pir::replace__Ssiis(
-                           nqp::unbox_s($str), 
-                           $r1, 1, 
+                           nqp::unbox_s($str),
+                           $r1, 1,
                            nqp::unbox_s($ch1)));
             return $str if $ch1 gt $ch0;
             # carry to previous position
@@ -134,10 +134,10 @@ my class Str does Stringy {
         # skip leading whitespace
         my int $pos   = pir::find_not_cclass__Iisii(pir::const::CCLASS_WHITESPACE, $str, 0, $eos);
 
-        my $tailfail = 
+        my $tailfail =
              -> { fail "trailing characters after number in conversion"
                       if nqp::islt_i(
-                          pir::find_not_cclass__Iisii(pir::const::CCLASS_WHITESPACE, 
+                          pir::find_not_cclass__Iisii(pir::const::CCLASS_WHITESPACE,
                                                       $str, $pos, $eos),
                           $eos);
                   0;
@@ -146,7 +146,7 @@ my class Str does Stringy {
         # objects for managing the parse and results
         my Mu $parse;
         my $result;
-    
+
         # get any leading +/- sign
         my int $ch = nqp::islt_i($pos, $eos) && nqp::ord($str, $pos);
         my int $neg = nqp::iseq_i($ch, 45);
@@ -222,7 +222,7 @@ my class Str does Stringy {
             $base = nqp::atpos($parse, 1);
             $ch = nqp::islt_i($pos, $eos) && nqp::ord($str, $pos);
         }
-    
+
         # handle exponent if 'E' or 'e' are present
         if nqp::iseq_i($ch, 69) || nqp::iseq_i($ch, 101) {
             $parse := nqp::radix(10, $str, nqp::add_i($pos, 1), 2);
@@ -257,7 +257,7 @@ my class Str does Stringy {
             $result ~= %esc{$ch} // (pir::is_cclass__Iisi(
                                             pir::const::CCLASS_PRINTING,
                                             nqp::unbox_s($ch), 0)
-                                      ?? $ch 
+                                      ?? $ch
                                       !! $ch.ord.fmt('\x[%x]'));
         }
         $result ~ '"'

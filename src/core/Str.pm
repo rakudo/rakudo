@@ -47,7 +47,7 @@ my class Str does Stringy {
     }
 
     # chars used to handle ranges for pred/succ
-    my $RANGECHAR =
+    my str $RANGECHAR =
         "01234567890"                                # arabic digits
         ~ "ABCDEFGHIJKLMNOPQRSTUVWXYZA"              # latin uppercase
         ~ "abcdefghijklmnopqrstuvwxyza"              # latin lowercase
@@ -56,19 +56,19 @@ my class Str does Stringy {
         ~ "\x[2680,2681,2682,2683,2684,2685,2680]";  # die faces
 
     # calculate the beginning and ending positions of <!after '.'><rangechar+>
-    my sub RANGEPOS($str) {
-        my $pos = $str.chars;
+    my sub RANGEPOS(str $str) {
+        my int $pos = nqp::chars($str);
         while $pos > 0 {
-            $pos--;
-            my str $ch = nqp::substr(nqp::unbox_s($str), nqp::unbox_i($pos), 1);
-            if nqp::isge_i(nqp::index(nqp::unbox_s($RANGECHAR), $ch, 0), 0) {
-                my $end = $pos;
+            $pos = $pos - 1;
+            my str $ch = nqp::substr($str, $pos, 1);
+            if nqp::isge_i(nqp::index($RANGECHAR, $ch, 0), 0) {
+                my int $end = $pos;
                 while $pos > 0 {
-                    $pos--;
-                    $ch = nqp::substr(nqp::unbox_s($str), nqp::unbox_i($pos), 1);
+                    $pos = $pos - 1;
+                    $ch = nqp::substr($str, $pos, 1);
                     last if nqp::iseq_s($ch, '.');
                     return ($pos+1, $end)
-                        unless nqp::isge_i(nqp::index(nqp::unbox_s($RANGECHAR), $ch, 0), 0);
+                        unless nqp::isge_i(nqp::index($RANGECHAR, $ch, 0), 0);
                 }
                 return ($pos, $end) unless nqp::iseq_s($ch, '.');
             }
@@ -77,48 +77,41 @@ my class Str does Stringy {
     }
 
     method pred(Str:D:) {
-        my $str = self;
-        my ($r0, $r1) = RANGEPOS($str);
+        my str $str = self;
+        my Int ($Ir0, $Ir1) = RANGEPOS($str);
+        my int $r0 = $Ir0;
+        my int $r1 = $Ir1;
         while $r1 >= $r0 {
-            my $ch0  = $str.substr($r1, 1);
-            my $ipos = $RANGECHAR.index($ch0);
+            my str $ch0  = nqp::substr($str, $r1, 1);
+            my int $ipos = nqp::index($RANGECHAR, $ch0);
             $ipos = $RANGECHAR.index($ch0, $ipos+1) // $ipos;
-            my $ch1 = $RANGECHAR.substr($ipos-1, 1);
-            $str = nqp::p6box_s(
-                       pir::replace__Ssiis(
-                           nqp::unbox_s($str),
-                           $r1, 1,
-                           nqp::unbox_s($ch1)));
+            my str $ch1 = nqp::substr($RANGECHAR, $ipos-1, 1);
+            $str = pir::replace__Ssiis($str, $r1, 1, $ch1);
             # return if no carry
             return $str if $ch0 gt $ch1;
             # carry to previous position
-            $r1--;
+            $r1 = $r1 - 1;
         }
         # cannot carry beyond first rangechar position
         fail('Decrement out of range');
     }
 
     method succ(Str:D:) {
-        my $str = self;
-        my ($r0, $r1) = RANGEPOS($str);
+        my str $str = self;
+        my Int ($Ir0, $Ir1) = RANGEPOS($str);
+        my int $r0 = $Ir0;
+        my int $r1 = $Ir1;
         while $r1 >= $r0 {
-            my $ch0  = $str.substr($r1, 1);
-            my $ipos = $RANGECHAR.index($ch0);
-            my $ch1  = $RANGECHAR.substr($ipos+1, 1);
-            $str = nqp::p6box_s(
-                       pir::replace__Ssiis(
-                           nqp::unbox_s($str),
-                           $r1, 1,
-                           nqp::unbox_s($ch1)));
+            my str $ch0  = nqp::substr($str, $r1, 1);
+            my int $ipos = nqp::index($RANGECHAR, $ch0);
+            my str $ch1  = nqp::substr($RANGECHAR, $ipos+1, 1);
+            $str = pir::replace__Ssiis($str, $r1, 1, $ch1);
             return $str if $ch1 gt $ch0;
             # carry to previous position
-            $r1--;
+            $r1 = $r1 - 1;
             # extend string if carried past first rangechar position
-            $str = nqp::p6box_s(
-                       pir::replace__Ssiis(
-                           nqp::unbox_s($str),
-                           $r0, 0,
-                       $ch1 eq '0' ?? '1' !! nqp::unbox_s($ch1)))  # XXX other digits?
+            $str = pir::replace__Ssiis($str, $r0, 0,
+                       $ch1 eq '0' ?? '1' !! $ch1)  # XXX other digits?
                 if $r1 < $r0;
         }
         $str;

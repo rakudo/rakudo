@@ -2767,12 +2767,18 @@ class Perl6::Actions is HLL::Actions {
                     }
                 }
                 elsif $_ ~~ PAST::Op && $_.name eq '&prefix:<|>' {
+                    my $reg := $past.unique('flattening_');
                     $past.push(PAST::Op.new(
                         :pasttype('callmethod'), :name('FLATTENABLE_LIST'),
-                        $_[0], :flat(1)));
+                        PAST::Op.new(
+                            :pasttype('bind'),
+                            PAST::Var.new( :name($reg), :scope('register'), :isdecl(1) ),
+                            $_[0]),
+                        :flat(1) ));
                     $past.push(PAST::Op.new(
                         :pasttype('callmethod'), :name('FLATTENABLE_HASH'),
-                        $_[0], :flat(1), :named(1)));
+                        PAST::Var.new( :name($reg), :scope('register') ),
+                        :flat(1), :named(1) ));
                 }
                 else {
                     $past.push($_);

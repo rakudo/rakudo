@@ -1229,7 +1229,11 @@ class Perl6::Actions is HLL::Actions {
         if $*SCOPE eq 'has' {
             # Ensure current package can take attributes.
             unless pir::can($*PACKAGE.HOW, 'add_attribute') {
-                $/.CURSOR.panic("A $*PKGDECL cannot have attributes");
+                if $*PKGDECL {
+                    $/.CURSOR.panic("A $*PKGDECL cannot have attributes");
+                } else {
+                    $/.CURSOR.panic("You can't declare an attribute here; maybe you'd like a class or a role?");
+                }
             }
 
             # Create container descriptor and decide on any default value..

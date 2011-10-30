@@ -72,7 +72,7 @@ my class RoleToRoleApplier {
                     1;
                 }
                 # No methods in the target role. If only one, it's easy...
-                if +@add_meths == 1 || all_the_same(add_meths) {
+                if +@add_meths == 1 || all_the_same(@add_meths) {
                     $target.HOW.add_method($target, $name, @add_meths[0]);
                 }
                 else {

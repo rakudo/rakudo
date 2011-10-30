@@ -61,8 +61,18 @@ my class RoleToRoleApplier {
             # Do we already have a method of this name? If so, ignore all of the
             # methods we have from elsewhere.
             unless pir::exists(%target_meth_info, $name) {
+                sub all_the_same(@a) {
+                    my $elems := nqp::elems(@a);
+                    my $where_first := nqp::where(@a[0]);
+                    my $i := 1;
+                    while $i < $elems {
+                        return 0 if $where_first != nqp::where(@a[$i]);
+                        $i++;
+                    }
+                    1;
+                }
                 # No methods in the target role. If only one, it's easy...
-                if +@add_meths == 1 {
+                if +@add_meths == 1 || all_the_same(add_meths) {
                     $target.HOW.add_method($target, $name, @add_meths[0]);
                 }
                 else {

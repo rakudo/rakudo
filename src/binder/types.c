@@ -93,22 +93,23 @@ PMC * Rakudo_types_parrot_map(PARROT_INTERP, PMC * to_map) {
     PMC *result;
     switch (to_map->vtable->base_type) {
         case enum_class_String:
-            result = REPR(Str)->instance_of(interp, Str);
-            REPR(result)->set_str(interp, result, VTABLE_get_string(interp, to_map));
+            result = REPR(Str)->allocate(interp, STABLE(Str));
+            REPR(result)->set_str(interp, STABLE(result), OBJECT_BODY(result), VTABLE_get_string(interp, to_map));
+            PARROT_GC_WRITE_BARRIER(interp, result);
             break;
         case enum_class_Integer:
-            result = REPR(Int)->instance_of(interp, Int);
-            REPR(result)->set_int(interp, result, VTABLE_get_integer(interp, to_map));
+            result = REPR(Int)->allocate(interp, STABLE(Int));
+            REPR(result)->set_int(interp, STABLE(result), OBJECT_BODY(result), VTABLE_get_integer(interp, to_map));
             break;
         case enum_class_Float:
-            result = REPR(Num)->instance_of(interp, Num);
-            REPR(result)->set_num(interp, result, VTABLE_get_number(interp, to_map));
+            result = REPR(Num)->allocate(interp, STABLE(Num));
+            REPR(result)->set_num(interp, STABLE(result), OBJECT_BODY(result), VTABLE_get_number(interp, to_map));
             break;
         case enum_class_ResizablePMCArray:
             result = Rakudo_binding_parcel_from_rpa(interp, to_map, Mu);
             break;
         case enum_class_Hash:
-            result = REPR(_Hash)->instance_of(interp, _Hash);
+            result = REPR(_Hash)->allocate(interp, STABLE(_Hash));
             VTABLE_set_attr_keyed(interp, result, EnumMap, Parrot_str_new_constant(interp, "$!storage"), to_map);
             break;
         case enum_class_Null:

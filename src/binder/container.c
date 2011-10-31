@@ -15,7 +15,7 @@ PMC *Rakudo_cont_decontainerize(PARROT_INTERP, PMC *var) {
     ContainerSpec *spec;
     
     /* Fast path for Perl 6 Scalar containers. */
-    if (STABLE(var)->WHAT == scalar_type && REPR(var)->defined(interp, var))
+    if (STABLE(var)->WHAT == scalar_type && IS_CONCRETE(var))
         return ((Rakudo_Scalar *)PMC_data(var))->value;
     
     /* Otherwise, fall back to the usual API. */
@@ -140,7 +140,8 @@ INTVAL Rakudo_cont_is_rw_scalar(PARROT_INTERP, PMC *check) {
 /* Creates a new Scalar container with the associated container
  * descriptor. */
 PMC * Rakudo_cont_scalar_from_descriptor(PARROT_INTERP, PMC *descriptor) {
-    PMC *new_scalar = REPR(scalar_type)->instance_of(interp, scalar_type);
+    PMC *new_scalar = REPR(scalar_type)->allocate(interp, STABLE(scalar_type));
+    REPR(new_scalar)->initialize(interp, STABLE(new_scalar), OBJECT_BODY(new_scalar));
     ((Rakudo_Scalar *)PMC_data(new_scalar))->descriptor = descriptor;
     PARROT_GC_WRITE_BARRIER(interp, new_scalar);
     return new_scalar;
@@ -149,7 +150,8 @@ PMC * Rakudo_cont_scalar_from_descriptor(PARROT_INTERP, PMC *descriptor) {
 /* Creates a new Scalar container with the associated container
  * descriptor. */
 PMC * Rakudo_cont_scalar_with_value_no_descriptor(PARROT_INTERP, PMC *value) {
-    PMC *new_scalar = REPR(scalar_type)->instance_of(interp, scalar_type);
+    PMC *new_scalar = REPR(scalar_type)->allocate(interp, STABLE(scalar_type));
+    REPR(new_scalar)->initialize(interp, STABLE(new_scalar), OBJECT_BODY(new_scalar));
     ((Rakudo_Scalar *)PMC_data(new_scalar))->value = value;
     PARROT_GC_WRITE_BARRIER(interp, new_scalar);
     return new_scalar;
@@ -157,8 +159,9 @@ PMC * Rakudo_cont_scalar_with_value_no_descriptor(PARROT_INTERP, PMC *value) {
 
 /* Creates and populates a new container descriptor. */
 PMC * Rakudo_create_container_descriptor(PARROT_INTERP, PMC *type, PMC *of, INTVAL rw, STRING *name) {
-    PMC *result = REPR(type)->instance_of(interp, type);
+    PMC *result = REPR(type)->allocate(interp, STABLE(type));
     Rakudo_ContainerDescriptor *desc = (Rakudo_ContainerDescriptor *)PMC_data(result);
+    REPR(result)->initialize(interp, STABLE(result), OBJECT_BODY(result));
     desc->of = of;
     desc->rw = rw;
     desc->name = name;

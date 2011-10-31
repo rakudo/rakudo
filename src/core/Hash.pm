@@ -74,7 +74,8 @@ my class Hash {
             if self.{$key} ~~ Array {
                 self.{$key}.push($value);
             } else {
-                self.{$key} = [ self.{$key}, $value];
+                my Mu $tmp = self.{$key};
+                self.{$key} = [ $tmp, $value];
             }
         } else {
             self.{$key} = $value;

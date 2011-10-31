@@ -25,8 +25,10 @@ static PMC *Block    = NULL;
 
 /* Creates a fresh scalar container with the specified descriptor. */
 static PMC * fresh_scalar(PARROT_INTERP, PMC *cont_desc) {
-    PMC *fresh          = REPR(Scalar)->instance_of(interp, Scalar);
+    STable *st          = STABLE(Scalar);
+    PMC *fresh          = st->REPR->allocate(interp, st);
     Rakudo_Scalar *cont = (Rakudo_Scalar *)PMC_data(fresh);
+    st->REPR->initialize(interp, st, OBJECT_BODY(fresh));
     cont->descriptor    = cont_desc;
     cont->value         = Any;
     PARROT_GC_WRITE_BARRIER(interp, fresh);
@@ -251,8 +253,12 @@ Return the LexInfo PMC, if any or a Null PMC.
                             cur_state = VTABLE_get_pmc_keyed_str(interp, state_stash, state);
                         }
                         if (PMC_IS_NULL(cur_state)) {
-                            if (clone)
-                                value = REPR(value)->clone(interp, value);
+                            if (clone) {
+                                PMC *cloned = REPR(value)->allocate(interp, STABLE(value));
+                                REPR(value)->copy_to(interp, STABLE(value), OBJECT_BODY(value), OBJECT_BODY(cloned));
+                                PARROT_GC_WRITE_BARRIER(INTERP, cloned);
+                                value = cloned;
+                            }
                             VTABLE_set_pmc_keyed_str(interp, state_stash, state, value);
                         }
                         else {
@@ -260,7 +266,10 @@ Return the LexInfo PMC, if any or a Null PMC.
                         }
                     }
                     else if (clone) {
-                        value = REPR(value)->clone(interp, value);
+                        PMC *cloned = REPR(value)->allocate(interp, STABLE(value));
+                        REPR(value)->copy_to(interp, STABLE(value), OBJECT_BODY(value), OBJECT_BODY(cloned));
+                        PARROT_GC_WRITE_BARRIER(INTERP, cloned);
+                        value = cloned;
                     }
                     CTX_REG_PMC(interp, (PMC *)ctx, slot >> 2) = value;
                 }
@@ -320,7 +329,8 @@ Return the LexInfo PMC, if any or a Null PMC.
             else if (Parrot_str_equal(interp, name, CONST_STRING(interp, "%_"))) {
                 PMC *storage;
                 GET_ATTR_default_named_slurpy(INTERP, SELF, storage);
-                result = REPR(_Hash)->instance_of(interp, _Hash);
+                result = REPR(_Hash)->allocate(interp, STABLE(_Hash));
+                REPR(_Hash)->initialize(interp, STABLE(_Hash), OBJECT_BODY(result));
                 if (!PMC_IS_NULL(storage))
                     VTABLE_set_attr_keyed(interp, result, EnumMap, CONST_STRING(interp, "$!storage"), storage);
             }

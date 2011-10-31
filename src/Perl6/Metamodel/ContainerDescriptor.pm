@@ -10,6 +10,18 @@ class Perl6::Metamodel::ContainerDescriptor {
     method set_of($of) { $!of := $of }
     method set_rw($rw) { $!rw := $rw }
     
+    method new(:$of, :$rw, :$name) {
+        my $cd := nqp::create(self);
+        $cd.BUILD($of, $rw, $name);
+    }
+    
+    method BUILD($of, $rw, $name) {
+        $!of := $of;
+        $!rw := $rw;
+        $!name := $name;
+        self
+    }
+    
     method is_generic() {
         $!of.HOW.archetypes.generic
     }

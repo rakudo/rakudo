@@ -353,7 +353,7 @@ find_in_cache(PARROT_INTERP, Rakudo_md_cache *cache, PMC *capture, INTVAL num_ar
     for (i = 0; i < num_args; i++) {
         if (pc_positionals[i].type == BIND_VAL_OBJ) {
             PMC *arg = Rakudo_cont_decontainerize(interp, pc_positionals[i].u.p);
-            arg_tup[i] = STABLE(arg)->type_cache_id | (REPR(arg)->defined(interp, arg) ? 1 : 0);
+            arg_tup[i] = STABLE(arg)->type_cache_id | (IS_CONCRETE(arg) ? 1 : 0);
         }
         else {
             arg_tup[i] = (pc_positionals[i].type << 1) | 1;
@@ -415,7 +415,7 @@ add_to_cache(PARROT_INTERP, Rakudo_md_cache *cache, PMC *capture, INTVAL num_arg
     for (i = 0; i < num_args; i++) {
         if (pc_positionals[i].type == BIND_VAL_OBJ) {
             PMC *arg = Rakudo_cont_decontainerize(interp, pc_positionals[i].u.p);
-            arg_tup[i] = STABLE(arg)->type_cache_id | (REPR(arg)->defined(interp, arg) ? 1 : 0);
+            arg_tup[i] = STABLE(arg)->type_cache_id | (IS_CONCRETE(arg) ? 1 : 0);
         }
         else {
             arg_tup[i] = (pc_positionals[i].type << 1) | 1;
@@ -482,7 +482,7 @@ static STRING* dump_signature(PARROT_INTERP, STRING *so_far, PMC *sub) {
     perl_meth = VTABLE_find_method(interp, sig_obj, perl_name);
     Parrot_ext_call(interp, perl_meth, "Pi->P", sig_obj, &sig_perl);
     so_far = Parrot_str_concat(interp, so_far,
-        REPR(sig_perl)->get_str(interp, sig_perl));
+        REPR(sig_perl)->get_str(interp, STABLE(sig_perl), OBJECT_BODY(sig_perl)));
     so_far = Parrot_str_concat(interp, so_far, newline);
     return so_far;
 }
@@ -540,7 +540,7 @@ static PMC* find_best_candidate(PARROT_INTERP, Rakudo_md_candidate_info **candid
                 INTVAL i;
 
                 for (i = 0; i < possibles_count; i++) {
-                    interp->current_cont = NEED_CONTINUATION;
+                    interp->current_cont = (PMC *)NEED_CONTINUATION;
                     Parrot_pcc_set_signature(interp, CURRENT_CONTEXT(interp), NULL);
 
                     /* First, if there's a required named parameter and it was
@@ -682,7 +682,7 @@ static PMC* find_best_candidate(PARROT_INTERP, Rakudo_md_candidate_info **candid
                     break;
                 }
                 else if ((*cur_candidate)->type_flags[i] & DEFCON_MASK) {
-                    INTVAL defined = got_prim != BIND_VAL_OBJ || REPR(param)->defined(interp, param);
+                    INTVAL defined = got_prim != BIND_VAL_OBJ || IS_CONCRETE(param);
                     INTVAL desired = (*cur_candidate)->type_flags[i] & DEFCON_MASK;
                     if ((defined && desired == DEFCON_UNDEFINED) ||
                             (!defined && desired == DEFCON_DEFINED)) {

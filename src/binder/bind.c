@@ -89,16 +89,16 @@ box_type(Rakudo_BindVal bv) {
 static PMC *
 create_box(PARROT_INTERP, Rakudo_BindVal bv) {
     PMC *box_type_obj = box_type(bv);
-    PMC *boxed = REPR(box_type_obj)->instance_of(interp, box_type_obj);
+    PMC *boxed = REPR(box_type_obj)->allocate(interp, STABLE(box_type_obj));
     switch (bv.type) {
         case BIND_VAL_INT:
-            REPR(boxed)->set_int(interp, boxed, bv.val.i);
+            REPR(boxed)->set_int(interp, STABLE(boxed), OBJECT_BODY(boxed), bv.val.i);
             break;
         case BIND_VAL_NUM:
-            REPR(boxed)->set_num(interp, boxed, bv.val.n);
+            REPR(boxed)->set_num(interp, STABLE(boxed), OBJECT_BODY(boxed), bv.val.n);
             break;
         case BIND_VAL_STR:
-            REPR(boxed)->set_str(interp, boxed, bv.val.s);
+            REPR(boxed)->set_str(interp, STABLE(boxed), OBJECT_BODY(boxed), bv.val.s);
             break;
     }
     return boxed;
@@ -110,7 +110,7 @@ create_box(PARROT_INTERP, Rakudo_BindVal bv) {
 PMC *
 Rakudo_binding_parcel_from_rpa(PARROT_INTERP, PMC *rpa, PMC *fill) {
     PMC *type = Rakudo_types_parcel_get();
-    PMC *parcel = REPR(type)->instance_of(interp, type);
+    PMC *parcel = REPR(type)->allocate(interp, STABLE(type));
     VTABLE_set_attr_keyed(interp, parcel, type, STORAGE_str, rpa);
 
     if (!PMC_IS_NULL(fill)) {
@@ -131,7 +131,7 @@ Rakudo_binding_parcel_from_rpa(PARROT_INTERP, PMC *rpa, PMC *fill) {
 PMC *
 Rakudo_binding_iter_from_rpa(PARROT_INTERP, PMC *rpa, PMC *list) {
     PMC *type = Rakudo_types_listiter_get();
-    PMC *iter = REPR(type)->instance_of(interp, type);
+    PMC *iter = REPR(type)->allocate(interp, STABLE(type));
     VTABLE_set_attr_keyed(interp, iter, type, REST_str, rpa);
     VTABLE_set_attr_keyed(interp, iter, type, LIST_str, list);
     return iter;
@@ -142,7 +142,7 @@ Rakudo_binding_iter_from_rpa(PARROT_INTERP, PMC *rpa, PMC *list) {
 /* This function gets shared with perl6.ops for the perl6_list_from_rpa op. */
 PMC *
 Rakudo_binding_list_from_rpa(PARROT_INTERP, PMC *rpa, PMC *type, PMC *flattens) {
-    PMC *list = REPR(type)->instance_of(interp, type);
+    PMC *list = REPR(type)->allocate(interp, STABLE(type));
     PMC *List = Rakudo_types_list_get();
     if (!PMC_IS_NULL(rpa)) 
         VTABLE_set_attr_keyed(interp, list, List, NEXTITER_str,
@@ -172,7 +172,7 @@ Rakudo_binding_create_lol(PARROT_INTERP, PMC *rpa) {
 static PMC *
 Rakudo_binding_create_hash(PARROT_INTERP, PMC *storage) {
     PMC *type = Rakudo_types_hash_get();
-    PMC *hash = REPR(type)->instance_of(interp, type);
+    PMC *hash = REPR(type)->allocate(interp, STABLE(type));
     VTABLE_set_attr_keyed(interp, hash, Rakudo_types_enummap_get(), STORAGE_str, storage);
     return hash;
 }
@@ -320,7 +320,7 @@ Rakudo_binding_bind_one_param(PARROT_INTERP, PMC *lexpad, Rakudo_Signature *sign
             case SIG_ELEM_NATIVE_INT_VALUE:
                 if (spec.can_box & STORAGE_SPEC_CAN_BOX_INT) {
                     bv.type = BIND_VAL_INT;
-                    bv.val.i = REPR(decont_value)->get_int(interp, decont_value);
+                    bv.val.i = REPR(decont_value)->get_int(interp, STABLE(decont_value), OBJECT_BODY(decont_value));
                 }
                 else {
                     if (error)
@@ -332,7 +332,7 @@ Rakudo_binding_bind_one_param(PARROT_INTERP, PMC *lexpad, Rakudo_Signature *sign
             case SIG_ELEM_NATIVE_NUM_VALUE:
                 if (spec.can_box & STORAGE_SPEC_CAN_BOX_NUM) {
                     bv.type = BIND_VAL_NUM;
-                    bv.val.n = REPR(decont_value)->get_num(interp, decont_value);
+                    bv.val.n = REPR(decont_value)->get_num(interp, STABLE(decont_value), OBJECT_BODY(decont_value));
                 }
                 else {
                     if (error)
@@ -344,7 +344,7 @@ Rakudo_binding_bind_one_param(PARROT_INTERP, PMC *lexpad, Rakudo_Signature *sign
             case SIG_ELEM_NATIVE_STR_VALUE:
                 if (spec.can_box & STORAGE_SPEC_CAN_BOX_STR) {
                     bv.type = BIND_VAL_STR;
-                    bv.val.s = REPR(decont_value)->get_str(interp, decont_value);
+                    bv.val.s = REPR(decont_value)->get_str(interp, STABLE(decont_value), OBJECT_BODY(decont_value));
                 }
                 else {
                     if (error)
@@ -425,7 +425,7 @@ Rakudo_binding_bind_one_param(PARROT_INTERP, PMC *lexpad, Rakudo_Signature *sign
             
             /* Also enforce definedness constraints. */
             if (param->flags & SIG_ELEM_DEFINEDNES_CHECK) {
-                INTVAL defined = REPR(decont_value)->defined(interp, decont_value);
+                INTVAL defined = IS_CONCRETE(decont_value);
                 if (defined && param->flags & SIG_ELEM_UNDEFINED_ONLY) {
                     if (error)
                         *error = Parrot_sprintf_c(interp,
@@ -807,7 +807,7 @@ Rakudo_binding_bind(PARROT_INTERP, PMC *lexpad, PMC *sig_pmc, PMC *capture,
             }
             else {
                 PMC *captype    = Rakudo_types_capture_get();
-                PMC *capsnap    = REPR(captype)->instance_of(interp, captype);
+                PMC *capsnap    = REPR(captype)->allocate(interp, STABLE(captype));
                 PMC *pos_args   = pmc_new(interp, enum_class_ResizablePMCArray);
                 PMC *named_args = pmc_new(interp, enum_class_Hash);
                 INTVAL k;

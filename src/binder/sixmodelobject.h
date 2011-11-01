@@ -14,6 +14,13 @@ typedef struct {
     PMC *sc;      /* Serialization context. */
 } SixModelObjectCommonalities;
 
+/* An example object, mostly used to compute the offset of the data part of
+ * a 6model object. */
+typedef struct {
+    SixModelObjectCommonalities common;
+    void *data;
+} SixModelObjectStooge;
+
 /* This is used to identify an attribute for various types of cache. */
 typedef struct {
     PMC    *class_handle;   /* Class handle */
@@ -46,7 +53,7 @@ typedef struct {
  * a type check cache we treat it as definitive. However, it's possible to
  * declare that in the case the type check cache has no entry we should fall
  * back to asking the .HOW.type_check method (set TYPE_CHECK_CACHE_THEN_METHOD).
- * While a normal type check asks a value if it suppots another type, the
+ * While a normal type check asks a value if it supports another type, the
  * TYPE_CHECK_NEEDS_ACCEPTS flag results in a call to .accepts_type on the
  * HOW of the thing we're checking the value against, giving it a chance to
  * decide answer. */
@@ -125,6 +132,9 @@ typedef struct {
 
 	/* Parrot-specific set of v-table to object method mappings. */
 	AttributeIdentifier *parrot_vtable_handler_mapping;
+    
+    /* The PMC that wraps this s-table. */
+    PMC *stable_pmc;
 } STable;
 
 /* A representation is what controls the layout of an object and storage of
@@ -143,85 +153,97 @@ struct SixModel_REPROps {
      * representation instance if needed. */
     PMC * (*type_object_for) (PARROT_INTERP, PMC *HOW);
 
-    /* Creates a new instance based on the type object. */
-    PMC * (*instance_of) (PARROT_INTERP, PMC *WHAT);
+    /* Allocates a new, but uninitialized object, based on the
+     * specified s-table. */
+    PMC * (*allocate) (PARROT_INTERP, STable *st);
 
-    /* Checks if a given object is defined (from the point of
-     * view of the representation). */
-    INTVAL (*defined) (PARROT_INTERP, PMC *Obj);
+    /* Used to initialize the body of an object representing the type
+     * describe by the specified s-table. DATA points to the body. It
+     * may recursively call initialize for any flattened objects. */
+    void (*initialize) (PARROT_INTERP, STable *st, void *data);
+    
+    /* For the given type, copies the object data from the source memory
+     * location to the destination one. Note that it may actually be more
+     * involved than a straightforward bit of copying; what's important is
+     * that the representation knows about that. Note that it may have to
+     * call copy_to recursively on representations of any flattened objects
+     * within its body. */
+    void (*copy_to) (PARROT_INTERP, STable *st, void *src, void *dest);
 
-    /* Gets the current value for an object attribute. */
-    PMC * (*get_attribute) (PARROT_INTERP, PMC *Object, PMC *ClassHandle, STRING *Name, INTVAL Hint);
+    /* Gets the current value for an object attribute. For non-flattened
+     * objects - that is, reference types - this just returns the object
+     * stored in the attribute. For the flattened case, this will auto-box. */
+    PMC * (*get_attribute_boxed) (PARROT_INTERP, STable *st, void *data,
+        PMC *class_handle, STRING *name, INTVAL hint);
 
-    /* Gets the current value for a native int attribute. */
-    INTVAL (*get_attribute_int) (PARROT_INTERP, PMC *Object, PMC *ClassHandle, STRING *Name, INTVAL Hint);
+    /* Gets a reference to the memory location of an attribute. Note
+     * that this is only valid so long as the object itself is alive. */
+    void * (*get_attribute_ref) (PARROT_INTERP, STable *st, void *data,
+        PMC *class_handle, STRING *name, INTVAL hint);
 
-    /* Gets the current value for a native num attribute. */
-    FLOATVAL (*get_attribute_num) (PARROT_INTERP, PMC *Object, PMC *ClassHandle, STRING *Name, INTVAL Hint);
+    /* Binds the given object value to the specified attribute. If it's
+     * a reference type attribute, this just simply sets the value in 
+     * place. If instead it's some other flattened in representation, then
+     * the value should be a boxed form of the data to store.*/
+    void (*bind_attribute_boxed) (PARROT_INTERP, STable *st, void *data,
+        PMC *class_handle, STRING *name, INTVAL hint, PMC *value);
 
-    /* Gets the current value for a native str attribute. */
-    STRING * (*get_attribute_str) (PARROT_INTERP, PMC *Object, PMC *ClassHandle, STRING *Name, INTVAL Hint);
-
-    /* Binds the given object value to the specified attribute. */
-    void (*bind_attribute) (PARROT_INTERP, PMC *Object, PMC *ClassHandle, STRING *Name, INTVAL Hint, PMC *Value);
-
-    /* Binds the given int value to the specified attribute. */
-    void (*bind_attribute_int) (PARROT_INTERP, PMC *Object, PMC *ClassHandle, STRING *Name, INTVAL Hint, INTVAL Value);
-
-    /* Binds the given num value to the specified attribute. */
-    void (*bind_attribute_num) (PARROT_INTERP, PMC *Object, PMC *ClassHandle, STRING *Name, INTVAL Hint, FLOATVAL Value);
-
-    /* Binds the given str value to the specified attribute. */
-    void (*bind_attribute_str) (PARROT_INTERP, PMC *Object, PMC *ClassHandle, STRING *Name, INTVAL Hint, STRING *Value);
+    /* Binds a flattened in attribute to the value at the passed reference.
+     * Like with the get_attribute_ref function, presumably the thing calling
+     * this knows about the type of the attribute it is supplying data for.
+     * copy_to will be used to copy the data in to place. */
+    void (*bind_attribute_ref) (PARROT_INTERP, STable *st, void *data,
+        PMC *class_handle, STRING *name, INTVAL hint, void *value);
 
     /* Gets the hint for the given attribute ID. */
-    INTVAL (*hint_for) (PARROT_INTERP, PMC *Object, PMC *ClassHandle, STRING *Name);
+    INTVAL (*hint_for) (PARROT_INTERP, STable *st, PMC *class_handle, STRING *name);
 
-    /* Clones the object, optionally cloning any containers in its
-     * attributes. */
-    PMC * (*clone) (PARROT_INTERP, PMC *to_clone);
-    
     /* Used with boxing. Sets an integer value, for representations that
      * can hold one. */
-    void (*set_int) (PARROT_INTERP, PMC *Object, INTVAL Value);
+    void (*set_int) (PARROT_INTERP, STable *st, void *data, INTVAL value);
 
     /* Used with boxing. Gets an integer value, for representations that
      * can hold one. */
-    INTVAL (*get_int) (PARROT_INTERP, PMC *Object);
+    INTVAL (*get_int) (PARROT_INTERP, STable *st, void *data);
 
     /* Used with boxing. Sets a floating point value, for representations that
      * can hold one. */
-    void (*set_num) (PARROT_INTERP, PMC *Object, FLOATVAL Value);
+    void (*set_num) (PARROT_INTERP, STable *st, void *data, FLOATVAL value);
 
     /* Used with boxing. Gets a floating point value, for representations that
      * can hold one. */
-    FLOATVAL (*get_num) (PARROT_INTERP, PMC *Object);
+    FLOATVAL (*get_num) (PARROT_INTERP, STable *st, void *data);
 
     /* Used with boxing. Sets a string value, for representations that
      * can hold one. */
-    void (*set_str) (PARROT_INTERP, PMC *Object, STRING *Value);
+    void (*set_str) (PARROT_INTERP, STable *st, void *data, STRING *value);
 
     /* Used with boxing. Gets a string value, for representations that
      * can hold one. */
-    STRING * (*get_str) (PARROT_INTERP, PMC *Object);
+    STRING * (*get_str) (PARROT_INTERP, STable *st, void *data);
 
     /* This Parrot-specific addition to the API is used to mark an object. */
-    void (*gc_mark) (PARROT_INTERP, PMC *Object);
+    void (*gc_mark) (PARROT_INTERP, STable *st, void *data);
 
     /* This Parrot-specific addition to the API is used to free an object. */
-    void (*gc_free) (PARROT_INTERP, PMC *Object);
+    void (*gc_free) (PARROT_INTERP, PMC *object);
+
+    /* This is called to do any cleanup of resources when an object gets
+     * embedded inside another one. Never called on a top-level object. */
+    void (*gc_cleanup) (PARROT_INTERP, STable *st, void *data);
 
     /* This Parrot-specific addition to the API is used to mark a REPR instance. */
-    void (*gc_mark_repr) (PARROT_INTERP, STable *st);
+    void (*gc_mark_repr_data) (PARROT_INTERP, STable *st);
 
     /* This Parrot-specific addition to the API is used to free a REPR instance. */
-    void (*gc_free_repr) (PARROT_INTERP, STable *st);
+    void (*gc_free_repr_data) (PARROT_INTERP, STable *st);
 
     /* Gets the storage specification for this representation. */
     storage_spec (*get_storage_spec) (PARROT_INTERP, STable *st);
     
     /* Checks if an attribute has been initialized. */
-    INTVAL (*is_attribute_initialized) (PARROT_INTERP, PMC *Object, PMC *ClassHandle, STRING *Name, INTVAL Hint);
+    INTVAL (*is_attribute_initialized) (PARROT_INTERP, STable *st, void *data,
+        PMC *class_handle, STRING *name, INTVAL hint);
     
     /* Handles an object changing its type. The representation is responsible
      * for doing any changes to the underlying data structure, and may reject
@@ -243,6 +265,11 @@ struct SixModel_REPROps {
 #define SC_PMC(o)        (((SixModelObjectCommonalities *)PMC_data(o))->sc)
 #define STABLE_STRUCT(p) ((STable *)PMC_data(p))
 #define REPR(o)          (STABLE(o)->REPR)
+#define OBJECT_BODY(o)   (&(((SixModelObjectStooge *)PMC_data(o))->data))
+
+/* Macro for getting/setting type-objectness. */
+#define IS_CONCRETE(o)         (!PObj_flag_TEST(private0, (o)))
+#define MARK_AS_TYPE_OBJECT(o) PObj_flag_SET(private0, (o))
 
 /* Object model initialization. */
 void SixModelObject_initialize(PARROT_INTERP, PMC **knowhow, PMC **knowhow_attribute);

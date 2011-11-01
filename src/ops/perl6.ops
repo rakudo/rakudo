@@ -452,8 +452,8 @@ Box a native string to a Perl 6 Str.
 */
 inline op perl6_box_str(out PMC, in STR) :base_core {
     PMC *type = Rakudo_types_str_get();
-    $1 = REPR(type)->instance_of(interp, type);
-    REPR($1)->set_str(interp, $1, $2);
+    $1 = REPR(type)->allocate(interp, STABLE(type));
+    REPR($1)->set_str(interp, STABLE($1), OBJECT_BODY($1), $2);
     PARROT_GC_WRITE_BARRIER(interp, $1);
 }
 
@@ -469,8 +469,8 @@ Box a native int to a Perl 6 Int.
 */
 inline op perl6_box_int(out PMC, in INT) :base_core {
     PMC *type = Rakudo_types_int_get();
-    $1 = REPR(type)->instance_of(interp, type);
-    REPR($1)->set_int(interp, $1, $2);    
+    $1 = REPR(type)->allocate(interp, STABLE(type));
+    REPR($1)->set_int(interp, STABLE($1), OBJECT_BODY($1), $2);    
 }
 
 
@@ -485,8 +485,8 @@ Box a native floating point number to a Perl 6 Num.
 */
 inline op perl6_box_num(out PMC, in NUM) :base_core {
     PMC *type = Rakudo_types_num_get();
-    $1 = REPR(type)->instance_of(interp, type);
-    REPR($1)->set_num(interp, $1, $2);
+    $1 = REPR(type)->allocate(interp, STABLE(type));
+    REPR($1)->set_num(interp, STABLE($1), OBJECT_BODY($1), $2);
 }
 
 
@@ -502,13 +502,13 @@ Return a Perl 6 Int if $2 will fit, otherwise return a Perl 6 Num.
 inline op perl6_box_bigint(out PMC, in NUM) :base_core {
     if ((INTVAL)$2 == $2) {
         PMC *type = Rakudo_types_int_get();
-        $1 = REPR(type)->instance_of(interp, type);
-        REPR($1)->set_int(interp, $1, $2);    
+        $1 = REPR(type)->allocate(interp, STABLE(type));
+        REPR($1)->set_int(interp, STABLE($1), OBJECT_BODY($1), $2);    
     }
     else {
         PMC *type = Rakudo_types_num_get();
-        $1 = REPR(type)->instance_of(interp, type);
-        REPR($1)->set_num(interp, $1, $2);
+        $1 = REPR(type)->allocate(interp, STABLE(type));
+        REPR($1)->set_num(interp, STABLE($1), OBJECT_BODY($1), $2);
     }
 }
 
@@ -1053,7 +1053,7 @@ inline op perl6_find_dispatcher(out PMC) :base_core {
         PMC *lexpad = Parrot_pcc_get_lex_pad(interp, ctx);
         if (!PMC_IS_NULL(lexpad) && VTABLE_exists_keyed_str(interp, lexpad, dispatcher_str)) {
             dispatcher = VTABLE_get_pmc_keyed_str(interp, lexpad, dispatcher_str);
-            if (!REPR(dispatcher)->defined(interp, dispatcher)) {
+            if (!IS_CONCRETE(dispatcher)) {
                 /* Need to vivify it. */
                 PMC *old_ctx = Parrot_pcc_get_signature(interp, CURRENT_CONTEXT(interp));
                 PMC *meth    = VTABLE_find_method(interp, dispatcher, Parrot_str_new_constant(interp, "vivify_for"));

@@ -1,7 +1,6 @@
-# XXX Relatively cheaty, just to get us able to output something.
-# But you should see what USED to be here! O.O
-sub print(*@list) {
-    $*OUT.print(@list.shift) while @list.gimme(1);
+sub print(|$) {
+    my $args := pir::perl6_current_args_rpa__P();
+    $*OUT.print(nqp::shift($args)) while $args;
     Bool::True
 }
 
@@ -11,7 +10,7 @@ sub say(|$) {
     $*OUT.print("\n");
 }
 
-sub note(*@list) {
+sub note(|$) {
     my $args := pir::perl6_current_args_rpa__P();
     $*ERR.print(nqp::shift($args).gist) while $args;
     $*ERR.print("\n");
@@ -113,7 +112,12 @@ class IO {
         nqp::p6bool(nqp::istrue($!PIO));
     }
 
-    method print(IO:D: *@list) {
+    proto method print(|$) { * }
+    multi method print(IO:D: Str:D $value) {
+        $!PIO.print(nqp::unbox_s($value));
+        Bool::True
+    }
+    multi method print(IO:D: *@list) {
         $!PIO.print(nqp::unbox_s(@list.shift.Str)) while @list.gimme(1);
         Bool::True
     }

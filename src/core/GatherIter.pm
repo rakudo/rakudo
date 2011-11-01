@@ -20,15 +20,10 @@ class GatherIter is Iterator {
         if !$!reified.defined {
             my Mu $rpa := nqp::list();
             my Mu $parcel;
-            my $end;
+            my $end = Bool::False;
             my $count = nqp::istype($n, Whatever) ?? 1 !! $n;
             while !$end && $count > 0 {
-                $parcel := Q:PIR {
-                    $P0 = find_lex 'self'
-                    $P1 = find_lex 'GatherIter'
-                    $P2 = getattribute $P0, $P1, '$!coro'
-                    %r = $P2()
-                };
+                $parcel := $!coro();
                 $end = nqp::p6bool(nqp::isnull($parcel));
                 nqp::push($rpa, $parcel) unless $end;
                 $count = $count - 1;

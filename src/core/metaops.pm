@@ -21,7 +21,7 @@ sub METAOP_CROSS(\$op) {
         my int $n = @lol.elems - 1;
         gather {
             while $i >= 0 {
-                if @l[$i] {
+                if @l[$i].gimme(1) {
                     @v[$i] = @l[$i].shift;
                     if $i >= $n { my @x = @v; take $rop(|@x); }
                     else {
@@ -50,9 +50,8 @@ sub METAOP_ZIP(\$op) {
 }
 
 sub METAOP_REDUCE(\$op, :$triangle) {
-    my $x :=
-    sub (*@values) {
-        if $triangle {
+    my $x := $triangle ??
+        (sub (*@values) {
             return () unless @values.gimme(1);
             GATHER({
                 my $result := @values.shift;
@@ -60,16 +59,15 @@ sub METAOP_REDUCE(\$op, :$triangle) {
                 take ($result := $op($result, @values.shift))
                     while @values.gimme(1);
             }, :infinite(@values.infinite))
-        }
-        else {
+        }) !!
+        (sub (*@values) {
             return $op() unless @values.gimme(1);
             my $result := @values.shift;
             return $op($result) unless @values.gimme(1);
             $result := $op($result, @values.shift)
                 while @values.gimme(1);
             $result;
-        }
-    }
+        })
 }
 
 sub METAOP_REDUCE_RIGHT(\$op, :$triangle) {

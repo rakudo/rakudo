@@ -4,8 +4,7 @@ my package X {
         has $.message;
 
         multi method Str(Base:D:) {
-            # Just a stub so far.
-            $!message.Str // 'Something went wrong'
+            $.message.Str // 'Something went wrong'
         }
         method ID() { ... }
     }
@@ -19,7 +18,8 @@ my package X {
         has $.column;
     }
 
-    role NYI {
+    class NYI is Base {
+        method message() { "$.feature not yet implemented. Sorry. " }
         has $.feature;
     }
 

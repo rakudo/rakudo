@@ -48,7 +48,7 @@ my class CallFrame {
     }
 
     method callframe(Int $level = 0) {
-        die "not yet implemented";
+        die X::NYI.new(feature => 'Callframe.callframe');
     }
 }
 

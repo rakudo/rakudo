@@ -13,6 +13,9 @@ my class Num {
         nqp::p6box_i(nqp::unbox_n(self));
     }
 
+    multi method new() { nqp::p6box_n(0) }
+    multi method new($n as Num) { $n }
+    
     multi method perl(Num:D:) {
         my $res = self.Str;
         if $res.index('e').defined {

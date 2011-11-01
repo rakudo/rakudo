@@ -11,13 +11,13 @@ my class Exception {
         self.Str.Numeric()
     }
 
-    method throw() {
+    method throw() is hidden_from_backtrace {
         nqp::bindattr(self, Exception, '$!ex', pir::new('Exception'))
             unless pir::defined($!ex);
         pir::setattribute__vPsP($!ex, 'payload', nqp::p6decont(self));
         pir::throw__0P($!ex)
     }
-    method rethrow() {
+    method rethrow() is hidden_from_backtrace {
         pir::rethrow__0P($!ex)
     }
 

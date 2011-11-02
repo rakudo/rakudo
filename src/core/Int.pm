@@ -31,7 +31,7 @@ my class Int {
     }
 
     method chr(Int:D:) {
-        nqp::p6box_s(pir::chr(nqp::unbox_i(self)));
+        nqp::p6box_s(nqp::chr(nqp::unbox_i(self)));
     }
 
     method succ(Int:D:) { self + 1 }
@@ -79,16 +79,14 @@ multi prefix:<->(Int \$a) returns Int {
     nqp::p6box_i(nqp::neg_i(nqp::unbox_i($a)))
 }
 multi prefix:<->(int $a) returns int {
-    nqp::want(nqp::p6box_i(nqp::neg_i($a)),
-        'Ii', nqp::neg_i($a))
+    nqp::neg_i($a)
 }
 
 multi prefix:<abs>(Int:D \$a) returns Int {
     nqp::p6box_i(nqp::abs_i(nqp::unbox_i($a)))
 }
 multi prefix:<->(int $a) returns int {
-    nqp::want(nqp::p6box_i(nqp::abs_i($a)),
-        'Ii', nqp::abs_i($a))
+    nqp::abs_i($a)
 }
 
 multi infix:<+>(Int:D \$a, Int:D \$b) returns Int {
@@ -213,60 +211,50 @@ multi infix:«>=»(int $a, int $b) {
 }
 
 multi infix:<+|>(Int:D \$a, Int:D \$b) {
-    nqp::p6box_i(pir::bor__III(nqp::unbox_i($a), nqp::unbox_i($b)))
+    nqp::p6box_i(nqp::bitor_i(nqp::unbox_i($a), nqp::unbox_i($b)))
 }
 multi infix:<+|>(int $a, int $b) {
-    nqp::want(nqp::p6box_i(pir::bor__III($a, $b)),
-        'Ii', pir::bor__III($a, $b)
-    );
+    nqp::bitor_i($a, $b)
 }
 
 multi infix:<+&>(Int:D \$a, Int:D \$b) {
-    nqp::p6box_i(pir::band__III(nqp::unbox_i($a), nqp::unbox_i($b)))
+    nqp::p6box_i(nqp::bitand_i(nqp::unbox_i($a), nqp::unbox_i($b)))
 }
 multi infix:<+&>(int $a, int $b) {
-    nqp::want(nqp::p6box_i(pir::band__III($a, $b)),
-        'Ii', pir::band__III($a, $b)
-    );
+    nqp::bitand_i($a, $b)
 }
 
 multi infix:<+^>(Int:D \$a, Int:D \$b) {
-    nqp::p6box_i(pir::bxor__III(nqp::unbox_i($a), nqp::unbox_i($b)))
+    nqp::p6box_i(nqp::bitxor_i(nqp::unbox_i($a), nqp::unbox_i($b)))
 }
 multi infix:<+^>(int $a, int $b) {
-    nqp::want(nqp::p6box_i(pir::bxor__III($a, $b)),
-        'Ii', pir::bxor__III($a, $b)
-    );
+    nqp::bitxor_i($a, $b);
 }
 
 multi infix:«+<»(Int:D \$a, Int:D \$b) {
-    nqp::p6box_i(pir::shl__III(nqp::unbox_i($a), nqp::unbox_i($b)))
+    nqp::p6box_i(nqp::bitshiftl_i(nqp::unbox_i($a), nqp::unbox_i($b)))
 }
 multi infix:«+<»(int $a, int $b) {
-    nqp::want(nqp::p6box_i(pir::shl__III($a, $b)),
-                'Ii', pir::shl__III($a, $b))
+    nqp::bitshiftl_i($a, $b);
 }
 
 multi infix:«+>»(Int:D \$a, Int:D \$b) {
-    nqp::p6box_i(pir::shr__III(nqp::unbox_i($a), nqp::unbox_i($b)))
+    nqp::p6box_i(nqp::bitshiftr_i(nqp::unbox_i($a), nqp::unbox_i($b)))
 }
 multi infix:«+>»(int $a, int $b) {
-    nqp::want(nqp::p6box_i(pir::shr__III($a, $b)),
-                'Ii', pir::shr__III($a, $b))
+    nqp::bitshiftr_i($a, $b)
 }
 
 multi prefix:<+^>(Int:D \$a) {
-    nqp::p6box_i(pir::bnot__II(nqp::unbox_i($a)))
+    nqp::p6box_i(nqp::bitneg_i(nqp::unbox_i($a)))
 }
 multi prefix:<+^>(int $a) {
-    nqp::want(nqp::p6box_i(pir::bnot__II($a)),
-            'Ii', pir::bnot__II($a));
+    nqp::bitneg_i($a);
 }
 
 proto sub chr($) {*}
-multi sub chr(Int:D  \$x) { $x.chr     }
-multi sub chr(Cool \$x) { $x.Int.chr }
-multi sub chr(int $x)   {
-    nqp::want(nqp::p6box_s(nqp::chr($x)),
-                'Ss', nqp::chr($x));
+multi sub chr(Int:D  \$x) returns Str:D { $x.chr     }
+multi sub chr(Cool \$x) returns Str:D { $x.Int.chr }
+multi sub chr(int $x) returns str {
+    nqp::chr($x);
 }

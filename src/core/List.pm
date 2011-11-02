@@ -206,6 +206,17 @@ my class List does Positional {
         self
     }
 
+    method splice($offset is copy = 0, $size? is copy, *@values) {
+        $offset += self.elems if ($offset < 0);
+        $size //= self.elems - $offset;
+        $size = self.elems + $size - $offset if ($size < 0);
+        my @ret = self[$offset..($offset + $size - 1)];
+        nqp::splice($!items,
+                    nqp::getattr(@values.eager, List, '$!items'),
+                    $offset, $size);
+        @ret;
+    }
+
     method sort($by = &infix:<cmp>) {
         # We defer to Parrot's ResizablePMCArray.sort method here.
         # Instead of sorting elements directly, we sort a Parcel of
@@ -353,3 +364,6 @@ sub reverse(*@a)            { @a.reverse }
 sub rotate(@a, Int $n = 1)  { @a.rotate($n) }
 sub reduce (&with, *@list)  { @list.reduce(&with) }
 sub categorize(&mapper, *@a){ @a.categorize(&mapper)}
+sub splice(@arr, $offset = 0, $size?, *@values) {
+    @arr.splice($offset, $size, @values)
+}

@@ -493,7 +493,7 @@ S32-array/pop.t
 S32-array/push.t
 S32-array/rotate.t
 S32-array/shift.t
-# S32-array/splice.t # err: Undefined routine '&splice' called
+S32-array/splice.t
 S32-array/unshift.t
 S32-basics/warn.t
 # S32-container/zip.t # err: Undefined routine '&Seq' called

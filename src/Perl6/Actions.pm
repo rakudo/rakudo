@@ -1212,10 +1212,10 @@ class Perl6::Actions is HLL::Actions {
     }
 
     method variable_declarator($/) {
-        my $past := $<variable>.ast;
-        my $sigil := $<variable><sigil>;
+        my $past   := $<variable>.ast;
+        my $sigil  := $<variable><sigil>;
         my $twigil := $<variable><twigil>[0];
-        my $name := ~$sigil ~ ~$twigil ~ ~$<variable><desigilname>;
+        my $name   := ~$sigil ~ ~$twigil ~ ~$<variable><desigilname>;
         if $<variable><desigilname> && $*ST.cur_lexpad().symbol($name) {
             $/.CURSOR.panic("Redeclaration of symbol ", $name);
         }

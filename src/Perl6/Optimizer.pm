@@ -83,11 +83,10 @@ class Perl6::Optimizer {
         my $outer := @!block_stack[+@!block_stack - 1];
         if $block.blocktype eq 'immediate' && !$block.handlers() && !$outer.handlers() {
             # Scan symbols for any non-interesting ones.
-            # XXX Shouldn't have to care about $/ and $! here...
             my @sigsyms;
             for $block.symtable() {
                 my $name := $_.key;
-                if $name ne '$/' && $name ne '$!' && $name ne '$_' && $name ne 'call_sig' {
+                if $name ne '$_' && $name ne 'call_sig' {
                     @sigsyms.push($name);
                 }
             }

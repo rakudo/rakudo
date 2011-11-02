@@ -208,6 +208,18 @@ class Perl6::Optimizer {
         $op
     }
     
+    # Handles visiting a PAST::Want node.
+    method visit_want($want) {
+        # Just visit the children for now. We ignore the literal strings, so
+        # it all works out.
+        self.visit_children($want)
+    }
+    
+    # Handles visit a variable node.
+    method visit_var($var) {
+        # Nothing to do yet.
+    }
+    
     # Checks arguments to see if we're going to be able to do compile
     # time analysis of the call.
     sub analyze_args_for_ct_call($op) {
@@ -292,6 +304,12 @@ class Perl6::Optimizer {
                 }
                 elsif $visit.isa(PAST::Stmt) {
                     self.visit_children($visit);
+                }
+                elsif $visit.isa(PAST::Want) {
+                    self.visit_want($visit);
+                }
+                elsif $visit.isa(PAST::Var) {
+                    self.visit_var($visit);
                 }
             }
             $i := $i + 1;

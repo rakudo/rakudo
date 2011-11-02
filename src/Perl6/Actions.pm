@@ -1360,11 +1360,15 @@ class Perl6::Actions is HLL::Actions {
             $block := $<blockoid>.ast;
             $block.blocktype('declaration');
             if is_clearly_returnless($block) {
-                $block[1] := PAST::Op.new(
-                    :pirop('perl6_type_check_return_value 0P'),
-                    PAST::Op.new(
+                if pir::repr_get_primitive_type_spec__IP($block[1].type) {
+                    $block[1] := box_native_if_needed($block[1], $block[1].type);
+                }
+                else {
+                    $block[1] := PAST::Op.new(
                         :pirop('perl6_decontainerize_return_value PP'),
-                        $block[1]));
+                        $block[1]);
+                }
+                $block[1] := PAST::Op.new( :pirop('perl6_type_check_return_value 0P'), $block[1] );
             }
             else {
                 $block[1] := wrap_return_handler($block[1]);
@@ -1554,12 +1558,6 @@ class Perl6::Actions is HLL::Actions {
                 else {
                     return 0;
                 }
-            }
-            elsif $node<boxable_native> && +@($node) == 3 {
-                my $try := $node[2];
-                return 0 if pir::isa($try, 'Integer') || pir::isa($try, 'Float') ||
-                    pir::isa($try, 'String') || !$try.isa(PAST::Var);
-                $node_walker($try)
             }
             elsif $node.isa(PAST::Op) && $node.pirop {
                 my @children;
@@ -2722,7 +2720,7 @@ class Perl6::Actions is HLL::Actions {
             $/.CURSOR.panic("Unrecognized nqp:: opcode 'nqp::$op'");
             
         if $past.isa(PAST::Op) && $past.pirop ne '' {
-            my $ret_type := nqp::substr(nqp::split('__', $past.pirop), 0, 1);
+            my $ret_type := nqp::substr(nqp::split('__', $past.pirop)[1], 0, 1);
             if $ret_type eq 'I' {
                 $past.type($*ST.find_symbol(['int']));
             }

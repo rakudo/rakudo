@@ -404,12 +404,17 @@ class Perl6::Actions is HLL::Actions {
                     elsif $ast<bare_block> {
                         $ast := $ast<bare_block>;
                     }
-                    $ast := PAST::Stmt.new($ast) if $ast ~~ PAST::Node;
+                    $ast := PAST::Stmt.new($ast, :type($ast.type)) if $ast ~~ PAST::Node;
                     $past.push( $ast );
                 }
             }
         }
-        $past.push(PAST::Var.new(:name('Nil'), :scope('lexical_6model'))) if +$past.list < 1;
+        if +$past.list < 1 {
+            $past.push(PAST::Var.new(:name('Nil'), :scope('lexical_6model')));
+        }
+        else {
+            $past.type($past[+@($past) - 1].type);
+        }
         make $past;
     }
 
@@ -2715,6 +2720,20 @@ class Perl6::Actions is HLL::Actions {
 
         pir::defined($past) ||
             $/.CURSOR.panic("Unrecognized nqp:: opcode 'nqp::$op'");
+            
+        if $past.isa(PAST::Op) && $past.pirop ne '' {
+            my $ret_type := nqp::substr(nqp::split('__', $past.pirop), 0, 1);
+            if $ret_type eq 'I' {
+                $past.type($*ST.find_symbol(['int']));
+            }
+            elsif $ret_type eq 'N' {
+                $past.type($*ST.find_symbol(['num']));
+            }
+            elsif $ret_type eq 'S' {
+                $past.type($*ST.find_symbol(['str']));
+            }
+        }
+        
         make $past;
     }
 

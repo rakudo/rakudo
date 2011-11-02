@@ -177,6 +177,14 @@ sub shell($cmd) {
     $status;
 }
 
+# XXX: Temporary definition of $Inf and $NaN until we have constants ava
+# need to come pretty early, because we use it in lots of setting files
+# constant Inf = ...
+# constant NaN = ...
+my $Inf = nqp::p6box_n(pir::set__Ns('Inf'));
+my $NaN = nqp::p6box_n(pir::set__Ns('NaN'));
+
+
 sub sleep($seconds = $Inf) {         # fractional seconds also allowed
     my $time1 = time;
     if $seconds ~~ $Inf {

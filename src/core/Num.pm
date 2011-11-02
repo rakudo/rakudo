@@ -1,10 +1,4 @@
 
-# XXX: Temporary definition of $Inf and $NaN until we have constants available
-# constant Inf = ...
-# constant NaN = ...
-my $Inf = nqp::p6box_n(pir::set__Ns('Inf'));
-my $NaN = nqp::p6box_n(pir::set__Ns('NaN'));
-
 my class Num {
     method Num() { self }
     method Bridge(Num:D:) { self }

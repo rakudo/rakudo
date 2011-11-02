@@ -28,7 +28,10 @@ grammar Perl6::Grammar is HLL::Grammar {
         my $*ST := pir::isnull($file) ??
             Perl6::SymbolTable.new(:handle(~pir::time__N())) !!
             Perl6::SymbolTable.new(:handle(~pir::time__N()), :description($file));
-            
+
+        # XXX Hack: clear any marks.
+        pir::set_hll_global__vPsP(['HLL', 'Grammar'], '%!MARKHASH', nqp::null());
+
         self.comp_unit;
     }
 

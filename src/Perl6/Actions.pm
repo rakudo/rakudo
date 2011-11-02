@@ -1053,6 +1053,18 @@ class Perl6::Actions is HLL::Actions {
             $past.unshift(PAST::Var.new( :name('self'), :scope('lexical_6model') ));
         }
         elsif $*IN_DECL ne 'variable' {
+            # the $*QSGIL part is a hack:
+            # when we parse double-quoted strings like "@a", the @a is
+            # first parsed as a variable, and thus checked. So it throws
+            # an exception even if turns out not to end in a postcircumfix
+            #
+            # I don't know what the correct solution is. Disabling the check
+            # inside double quotes fixes the most common case, but fails to
+            # catch undeclared variables in double-quoted strings.
+            if $sigil ne '&' && !$*IN_DECL && ($*QSIGIL eq '' || $*QSIGIL eq '$') && !$*ST.is_lexical($name) {
+                $/.CURSOR.panic("Variable $name is not predeclared");
+            }
+
             # Expect variable to have been declared somewhere.
             # Locate descriptor and thus type.
             try {

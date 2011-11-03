@@ -85,7 +85,7 @@ multi prefix:<->(int $a) returns int {
 multi prefix:<abs>(Int:D \$a) returns Int {
     nqp::p6box_i(nqp::abs_i(nqp::unbox_i($a)))
 }
-multi prefix:<->(int $a) returns int {
+multi prefix:<abs>(int $a) returns int {
     nqp::abs_i($a)
 }
 

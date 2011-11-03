@@ -2,6 +2,12 @@ New in 2011.11
 + CATCH blocks are now much closer to spec.
 + correct default values for natively typed variables
 + fixed initialization of state variables
++ improved support for natively typed variables
++ catch more uses of undeclared variables
++ splice() is now implemented
++ several runtime errors now throw properly typed error objects
++ various performance improvements, for example to the X meta op and Str.succ
++ improved support for MAIN argument parsing
 
 New in 2011.10
 + operators and functions with native type arguments

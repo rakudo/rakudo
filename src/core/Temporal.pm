@@ -92,7 +92,11 @@ my role Dateish {
     method check-value($val is copy, $name, $range, :$allow-nonint) {
         $val = $allow-nonint ?? +$val !! $val.Int;
         $val ~~ $range
-            or die "$name must be in {$range.perl}\n";
+            or die X::OutOfRange.new(
+                        what    => $name,
+                        got     => $val,
+                        range   => $range.perl,
+                   );
     }
   
     method check-date { 

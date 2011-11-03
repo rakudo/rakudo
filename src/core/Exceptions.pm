@@ -23,4 +23,12 @@ my package X {
         has $.feature;
     }
 
+    class OutOfRange is Base {
+        has $.what = 'Argument';
+        has $.got = '<unknown>';
+        has $.range = '<unknown>';
+        method message() {
+            "$.what out of range. Is: $.got, should be in $.range"
+        }
+    }
 }

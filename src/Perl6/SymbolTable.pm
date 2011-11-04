@@ -574,33 +574,33 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
         
         # Populate it.
         if pir::exists(%param_info, 'variable_name') {
-            pir::repr_bind_attr_str__vPPsS($parameter, $par_type, '$!variable_name', %param_info<variable_name>);
+            nqp::bindattr_s($parameter, $par_type, '$!variable_name', %param_info<variable_name>);
         }
-        pir::setattribute__vPPsP($parameter, $par_type, '$!nominal_type', %param_info<nominal_type>);
-        pir::repr_bind_attr_int__vPPsI($parameter, $par_type, '$!flags', $flags);
+        nqp::bindattr($parameter, $par_type, '$!nominal_type', %param_info<nominal_type>);
+        nqp::bindattr_i($parameter, $par_type, '$!flags', $flags);
         if %param_info<named_names> {
             my @names := %param_info<named_names>;
-            pir::setattribute__vPPsP($parameter, $par_type, '$!named_names', @names);
+            nqp::bindattr($parameter, $par_type, '$!named_names', @names);
         }
         if %param_info<type_captures> {
             my @type_names := %param_info<type_captures>;
-            pir::setattribute__vPPsP($parameter, $par_type, '$!type_captures', @type_names);
+            nqp::bindattr($parameter, $par_type, '$!type_captures', @type_names);
         }
         if %param_info<post_constraints> {
-            pir::setattribute__vPPsP($parameter, $par_type, '$!post_constraints',
+            nqp::bindattr($parameter, $par_type, '$!post_constraints',
                 %param_info<post_constraints>);
         }
         if pir::exists(%param_info, 'default_value') {
-            pir::setattribute__vPPsP($parameter, $par_type, '$!default_value', %param_info<default_value>);
+            nqp::bindattr($parameter, $par_type, '$!default_value', %param_info<default_value>);
         }
         if pir::exists(%param_info, 'container_descriptor') {
-            pir::setattribute__vPPsP($parameter, $par_type, '$!container_descriptor', %param_info<container_descriptor>);
+            nqp::bindattr($parameter, $par_type, '$!container_descriptor', %param_info<container_descriptor>);
         }
         if pir::exists(%param_info, 'attr_package') {
-            pir::setattribute__vPPsP($parameter, $par_type, '$!attr_package', %param_info<attr_package>);
+            nqp::bindattr($parameter, $par_type, '$!attr_package', %param_info<attr_package>);
         }
         if pir::exists(%param_info, 'sub_signature') {
-            pir::setattribute__vPPsP($parameter, $par_type, '$!sub_signature', %param_info<sub_signature>);
+            nqp::bindattr($parameter, $par_type, '$!sub_signature', %param_info<sub_signature>);
         }
         
         # Create PAST to make it when deserializing.

@@ -2089,6 +2089,9 @@ class Perl6::Actions is HLL::Actions {
         # Stash any traits.
         %*PARAM_INFO<traits> := $<trait>;
 
+        # save the source code for introspection
+        %*PARAM_INFO<perl>   := ~$/;
+
         # Result is the parameter info hash.
         make %*PARAM_INFO;
     }

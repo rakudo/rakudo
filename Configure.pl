@@ -10,7 +10,7 @@ use Cwd;
 use lib "tools/lib";
 use NQP::Configure qw(sorry slurp cmp_rev gen_nqp read_config 
                       fill_template_text fill_template_file
-                      verify_install);
+                      system_or_die verify_install);
 
 my $lang = 'Rakudo';
 my $lclang = lc $lang;

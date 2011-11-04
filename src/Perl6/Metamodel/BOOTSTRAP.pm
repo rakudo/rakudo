@@ -291,6 +291,7 @@ Signature.HOW.add_method(Signature, 'set_returns', sub ($self, $type) {
 #     has $!default_value
 #     has $!container_descriptor;
 #     has $!attr_package;
+#     has $!perl;
 #     ... # Uncomposed
 # }
 my stub Parameter metaclass Perl6::Metamodel::ClassHOW { ... };
@@ -307,6 +308,7 @@ Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!sub_signature>,
 Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!default_value>, :type(Mu)));
 Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!container_descriptor>, :type(Mu)));
 Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!attr_package>, :type(Mu)));
+Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!perl>, :type(str)));
 Parameter.HOW.add_method(Parameter, 'is_generic', sub ($self) {
         # If nonimnal type is generic, so are we.
         my $type := pir::getattribute__PPPs($self, Parameter, '$!nominal_type');

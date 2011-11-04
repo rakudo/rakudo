@@ -576,6 +576,7 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
         if pir::exists(%param_info, 'variable_name') {
             nqp::bindattr_s($parameter, $par_type, '$!variable_name', %param_info<variable_name>);
         }
+        nqp::bindattr_s($parameter, $par_type, '$!perl', %param_info<vperl> // %param_info<variable_name> // '');
         nqp::bindattr($parameter, $par_type, '$!nominal_type', %param_info<nominal_type>);
         nqp::bindattr_i($parameter, $par_type, '$!flags', $flags);
         if %param_info<named_names> {
@@ -627,6 +628,10 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
                 $set_attrs.push(self.set_attribute_typed($obj_reg, $class_reg,
                     '$!variable_name', %param_info<variable_name>, str));
             }
+
+            # set the perl source
+            $set_attrs.push(self.set_attribute_typed($obj_reg, $class_reg,
+                '$!perl', %param_info<perl> // %param_info<variable_name> // '', str));
             
             # Set nominal type.
             $set_attrs.push(self.set_attribute_reg($obj_reg, $class_reg, '$!nominal_type',

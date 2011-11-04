@@ -48,6 +48,7 @@ typedef struct {
     PMC    *default_value;        /* The default value or a thunk producing it. */
     PMC    *container_descriptor; /* Descriptor for the container we bind into, if any. */
     PMC    *attr_package;         /* Package part of an attributive binding. */
+    STRING *perl;                 /* The perl representation of the parameter */
 } Rakudo_Parameter;
 
 /* This is how a signature looks on the inside. Actually, this is a C struct

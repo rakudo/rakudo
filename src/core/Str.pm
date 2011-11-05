@@ -184,16 +184,23 @@ my class Str does Stringy {
         }
 
         # We have some sort of number, get leading integer part
-        my int $p = $pos;
-        $parse := nqp::radix(10, $str, $pos, $neg);
-        $pos = nqp::atpos($parse, 2);
-        # XXX: return 0 if ...
-        #     We should really fail here instead of returning 0,
-        #     but we need to first need to figure out better ways
-        #     to handle failure results.
-        return 0 if nqp::iseq_i($p, 0) && nqp::islt_i($pos, 0);
-        fail "malformed numeric string" if nqp::islt_i($pos, 0);
-        $int = nqp::atpos($parse, 0);
+        # First check if leading character is '.' ...
+        $ch = nqp::islt_i($pos, $eos) && nqp::ord($str, $pos);
+        if nqp::iseq_i($ch, 46) {
+            $int = 0;
+        }
+        else {
+            my int $p = $pos;
+            $parse := nqp::radix(10, $str, $pos, $neg);
+            $pos = nqp::atpos($parse, 2);
+            # XXX: return 0 if ...
+            #     We should really fail here instead of returning 0,
+            #     but we need to first need to figure out better ways
+            #     to handle failure results.
+            return 0 if nqp::iseq_i($p, 0) && nqp::islt_i($pos, 0);
+            fail "malformed numeric string" if nqp::islt_i($pos, 0);
+            $int = nqp::atpos($parse, 0);
+        }
 
         # if there's a slash, get a denominator and make a Rat
         $ch = nqp::islt_i($pos, $eos) && nqp::ord($str, $pos);

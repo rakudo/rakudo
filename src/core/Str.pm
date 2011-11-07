@@ -431,32 +431,31 @@ my class Str does Stringy {
     }
 
     method trim-leading(Str:D:) {
-        my Int $pos = nqp::p6box_i(
-            pir::find_not_cclass__IiSii(
-                pir::const::CCLASS_WHITESPACE,
-                nqp::unbox_s(self),
-                0,
-                nqp::unbox_i(self.chars)
-            )
-        );
-        self.substr($pos);
+        my str $str = nqp::unbox_s(self);
+        my int $pos = pir::find_not_cclass__IiSii(
+                          pir::const::CCLASS_WHITESPACE,
+                          $str, 0, nqp::chars($str));
+        nqp::p6box_s(nqp::substr($str, $pos));
     }
 
-
     method trim-trailing(Str:D:) {
-        my Int $pos = self.chars - 1;
-        --$pos while $pos >= 0 && nqp::p6bool(
-                nqp::iscclass(
-                    pir::const::CCLASS_WHITESPACE,
-                    nqp::unbox_s(self),
-                    nqp::unbox_i($pos)
-                )
-            );
-        $pos < 0 ?? '' !!  self.substr(0, $pos + 1);
+        my str $str = nqp::unbox_s(self);
+        my int $pos = nqp::chars($str) - 1;
+        $pos = $pos - 1
+            while nqp::isge_i($pos, 0)
+               && nqp::iscclass(pir::const::CCLASS_WHITESPACE, $str, $pos);
+        nqp::islt_i($pos, 0) ?? '' !! nqp::p6box_s(nqp::substr($str, 0, $pos + 1));
     }
 
     method trim(Str:D:) {
-        self.trim-leading.trim-trailing;
+        my str $str  = nqp::unbox_s(self);
+        my int $pos  = nqp::chars($str) - 1;
+        my int $left = pir::find_not_cclass__IiSii(
+                           pir::const::CCLASS_WHITESPACE, $str, 0, $pos + 1);
+        $pos = $pos - 1
+            while nqp::isge_i($pos, $left)
+               && nqp::iscclass(pir::const::CCLASS_WHITESPACE, $str, $pos);
+        nqp::islt_i($pos, $left) ?? '' !! nqp::p6box_s(nqp::substr($str, $left, $pos + 1 - $left));
     }
 
     method words(Str:D: $limit = *) {

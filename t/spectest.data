@@ -167,7 +167,7 @@ S03-sequence/arity-2-or-more.t
 S03-sequence/basic.t
 # S03-sequence/limit-arity-2-or-more.t # err: Not enough positional parameters passed; got 1 but expected 2
 S03-sequence/nonnumeric.t
-# S03-smartmatch/any-any.t # err: No applicable candidates found to dispatch to for 'ACCEPTS'.
+S03-smartmatch/any-any.t
 S03-smartmatch/any-array-slice.t
 S03-smartmatch/any-array.t
 S03-smartmatch/any-bool.t

@@ -3,6 +3,7 @@ my class Whatever { ... }
 my class Range { ... }
 
 my class Any {
+    multi method ACCEPTS(Any:D: Mu \$a) { self === $a }
 
     ########
     # List-like methods for Any.

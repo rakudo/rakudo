@@ -287,6 +287,15 @@ Rakudo_binding_assign_attributive(PARROT_INTERP, PMC *lexpad, Rakudo_Parameter *
 }
 
 
+/* Returns an appropriate failure mode (junction fail or normal fail). */
+static INTVAL junc_or_fail(PARROT_INTERP, PMC *value) {
+    if (value->vtable->base_type == smo_id && STABLE(value)->WHAT == Rakudo_types_junction_get())
+        return BIND_RESULT_JUNCTION;
+    else
+        return BIND_RESULT_FAIL;
+}
+
+
 /* Binds a single argument into the lexpad, after doing any checks that are
  * needed. Also handles any type captures. If there is a sub signature, then
  * re-enters the binder. Returns one of the BIND_RESULT_* codes. */
@@ -416,11 +425,7 @@ Rakudo_binding_bind_one_param(PARROT_INTERP, PMC *lexpad, Rakudo_Signature *sign
                 }
                 
                 /* Report junction failure mode if it's a junction. */
-                if (decont_value->vtable->base_type == smo_id &&
-                        STABLE(decont_value)->WHAT == Rakudo_types_junction_get())
-                    return BIND_RESULT_JUNCTION;
-                else
-                    return BIND_RESULT_FAIL;
+                return junc_or_fail(interp, decont_value);
             }
             
             /* Also enforce definedness constraints. */
@@ -431,14 +436,14 @@ Rakudo_binding_bind_one_param(PARROT_INTERP, PMC *lexpad, Rakudo_Signature *sign
                         *error = Parrot_sprintf_c(interp,
                             "Parameter '%S' requires a type object, but an object instance was passed",
                             param->variable_name);
-                    return BIND_RESULT_FAIL;
+                    return junc_or_fail(interp, decont_value);
                 }
                 if (!defined && param->flags & SIG_ELEM_DEFINED_ONLY) {
                     if (error)
                         *error = Parrot_sprintf_c(interp,
                             "Parameter '%S' requires an instance, but a type object was passed",
                             param->variable_name);
-                    return BIND_RESULT_FAIL;
+                    return junc_or_fail(interp, decont_value);
                 }
             }
         }

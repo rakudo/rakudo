@@ -3,6 +3,24 @@ my class Range  {... }
 my class Match  {... }
 my class Buf    {... }
 
+sub PARROT_ENCODING(Str:D $s) {
+    my %map = (
+        'utf-8'             => 'utf8',
+        # according to http://de.wikipedia.org/wiki/ISO-8859-1
+        'iso_8859-1:1987'   => 'iso-8859-1',
+        'iso_8859-1'        => 'iso-8859-1',
+        'iso-ir-100'        => 'iso-8859-1',
+        'latin1'            => 'iso-8859-1',
+        'latin-1'           => 'iso-8859-1',
+        'csisolatin1'       => 'iso-8859-1',
+        'l1'                => 'iso-8859-1',
+        'ibm819'            => 'iso-8859-1',
+        'cp819'             => 'iso-8859-1',
+    );
+    my Str $lc = lc($s);
+    %map{$lc} // $lc;
+}
+
 my class Str does Stringy {
     submethod BUILD(:$value as Str = '') {
         nqp::bindattr_s(self, Str, '$!value', nqp::unbox_s($value))
@@ -467,7 +485,7 @@ my class Str does Stringy {
         pir::set__vPs(nqp::getattr($buf, Buf, '$!buffer'),
             pir::trans_encoding__ssi(
                 nqp::unbox_s(self),
-                pir::find_encoding__is(nqp::unbox_s(nqp::p6decont($encoding.lc)))
+                pir::find_encoding__is(nqp::unbox_s(PARROT_ENCODING($encoding)))
             )
         );
         $buf;

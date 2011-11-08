@@ -222,6 +222,11 @@ struct SixModel_REPROps {
      * can hold one. */
     STRING * (*get_str) (PARROT_INTERP, STable *st, void *data);
 
+    /* Some objects serve primarily as boxes of others, inlining them. This gets
+     * gets the reference to such things, using the representation ID to distinguish
+     * them. */
+    void * (*get_boxed_ref) (PARROT_INTERP, STable *st, void *data, INTVAL repr_id);
+
     /* This Parrot-specific addition to the API is used to mark an object. */
     void (*gc_mark) (PARROT_INTERP, STable *st, void *data);
 
@@ -253,6 +258,9 @@ struct SixModel_REPROps {
      * out, the representation probably knows more about timing issues and
      * thread safety requirements. */
     void (*change_type) (PARROT_INTERP, PMC *Object, PMC *NewType);
+    
+    /* The representation's ID. */
+    INTVAL ID;
 };
 
 /* Hint value to indicate the absence of an attribute lookup or method
@@ -278,5 +286,13 @@ void SixModelObject_initialize(PARROT_INTERP, PMC **knowhow, PMC **knowhow_attri
 PMC * wrap_object(PARROT_INTERP, void *obj);
 PMC * create_stable(PARROT_INTERP, REPROps *REPR, PMC *HOW);
 PMC * decontainerize(PARROT_INTERP, PMC *var);
+
+/* Dynamic representation registration. */
+typedef INTVAL (* rf) (PARROT_INTERP, STRING *name, REPROps * (*reg) (PARROT_INTERP, void *, void *));
+#define REGISTER_DYNAMIC_REPR(interp, name, reg_func) \
+    ((rf) \
+        VTABLE_get_pointer(interp, \
+            VTABLE_get_pmc_keyed_str(interp, interp->root_namespace, \
+                Parrot_str_new_constant(interp, "_REGISTER_REPR"))))(interp, name, reg_func)
 
 #endif

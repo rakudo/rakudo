@@ -1546,7 +1546,8 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
     method add_libs($comp_unit) {
         $comp_unit.loadlibs('nqp_group', 'nqp_ops', 'perl6_group', 'perl6_ops',
                             'bit_ops', 'math_ops', 'trans_ops', 'io_ops',
-                            'obscure_ops', 'os', 'file', 'sys_ops');
+                            'obscure_ops', 'os', 'file', 'sys_ops',
+                            'nqp_bigint_ops');
     }
     
     # Checks if a given symbol is declared.
@@ -1797,6 +1798,7 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
             ),
             PAST::Stmts.new(
                 PAST::Op.new( :pirop('nqp_dynop_setup v') ),
+                PAST::Op.new( :pirop('nqp_bigint_setup v') ),
                 PAST::Op.new( :pirop('rakudo_dynop_setup v') ),
                 PAST::Op.new(
                     :pasttype('callmethod'), :name('hll_map'),

@@ -11,7 +11,7 @@ my class Int {
     method Int() { self }
     
     multi method Str(Int:D:) {
-        nqp::p6box_s(pir::nqp_bigint_to_str__SP(nqp::p6decont self));
+        nqp::p6box_s(pir::nqp_bigint_to_str__SP(self));
     }
     
     method Num(Int:D:) {
@@ -231,22 +231,22 @@ multi infix:<+^>(int $a, int $b) {
     nqp::bitxor_i($a, $b);
 }
 
-multi infix:«+<»(Int:D \$a, Int:D \$b) {
-    nqp::p6box_i(nqp::bitshiftl_i(nqp::unbox_i($a), nqp::unbox_i($b)))
+multi infix:«+<»(Int:D \$a, Int:D \$b) returns Int:D {
+    nqp::bitshiftl_i(nqp::p6decont($a), nqp::unbox_i($b));
 }
 multi infix:«+<»(int $a, int $b) {
     nqp::bitshiftl_i($a, $b);
 }
 
-multi infix:«+>»(Int:D \$a, Int:D \$b) {
-    nqp::p6box_i(nqp::bitshiftr_i(nqp::unbox_i($a), nqp::unbox_i($b)))
+multi infix:«+>»(Int:D \$a, Int:D \$b) returns Int:D {
+    nqp::bitshiftr_i(nqp::p6decont($a), nqp::unbox_i($b));
 }
 multi infix:«+>»(int $a, int $b) {
     nqp::bitshiftr_i($a, $b)
 }
 
 multi prefix:<+^>(Int:D \$a) {
-    nqp::p6box_i(nqp::bitneg_i(nqp::unbox_i($a)))
+    nqp::bitneg_I(nqp::p6decont($a));
 }
 multi prefix:<+^>(int $a) {
     nqp::bitneg_i($a);

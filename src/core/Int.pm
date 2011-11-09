@@ -5,13 +5,13 @@ my class Int {
         self.Str;
     }
     multi method Bool(Int:D:) {
-        nqp::p6bool(nqp::isne_i(nqp::unbox_i(self), 0))
+        nqp::p6bool(nqp::bool_I(self));
     }
     
     method Int() { self }
     
     multi method Str(Int:D:) {
-        nqp::p6box_s(nqp::unbox_i(self));
+        nqp::p6box_s(pir::nqp_bigint_to_str__SP(self));
     }
     
     method Num(Int:D:) {
@@ -23,7 +23,7 @@ my class Int {
     }
 
     method abs(Int:D:) {
-        nqp::p6box_i(nqp::abs_i(nqp::unbox_i(self)));
+        nqp::abs_I(self)
     }
 
     method Bridge(Int:D:) {
@@ -59,66 +59,66 @@ my class Int {
 }
 
 multi prefix:<++>(Int:D \$a is rw) {   # XXX
-    $a = nqp::p6box_i(nqp::add_i(nqp::unbox_i($a), 1))
+    $a = nqp::add_I(nqp::p6decont($a), 1);
 }
 multi prefix:<-->(Int:D \$a is rw) {   # XXX
-    $a = nqp::p6box_i(nqp::sub_i(nqp::unbox_i($a), 1))
+    $a = nqp::sub_I(nqp::p6decont($a), 1);
 }
 multi postfix:<++>(Int:D \$a is rw) {  # XXX
-    my $b = $a;
-    $a = nqp::p6box_i(nqp::add_i(nqp::unbox_i($a), 1));
+    my Int:D $b = $a;
+    $a = nqp::add_I(nqp::p6decont($a), 1);
     $b
 }
 multi postfix:<-->(Int:D \$a is rw) {  # XXX
-    my $b = $a;
-    $a = nqp::p6box_i(nqp::sub_i(nqp::unbox_i($a), 1));
+    my Int:D $b = $a;
+    $a = nqp::sub_I(nqp::p6decont($a), 1);
     $b
 }
 
 multi prefix:<->(Int \$a) returns Int {
-    nqp::p6box_i(nqp::neg_i(nqp::unbox_i($a)))
+    nqp::neg_I(nqp::p6decont $a);
 }
 multi prefix:<->(int $a) returns int {
     nqp::neg_i($a)
 }
 
-multi prefix:<abs>(Int:D \$a) returns Int {
-    nqp::p6box_i(nqp::abs_i(nqp::unbox_i($a)))
+multi prefix:<abs>(Int:D \$a) returns Int:D {
+    nqp::abs_I(nqp::p6decont $a);
 }
 multi prefix:<abs>(int $a) returns int {
     nqp::abs_i($a)
 }
 
-multi infix:<+>(Int:D \$a, Int:D \$b) returns Int {
-    nqp::p6box_i(nqp::add_i(nqp::unbox_i($a), nqp::unbox_i($b)))
+multi infix:<+>(Int:D \$a, Int:D \$b) returns Int:D {
+    nqp::add_I(nqp::p6decont($a), nqp::p6decont($b));
 }
 multi infix:<+>(int $a, int $b) returns int {
     nqp::add_i($a, $b)
 }
 
-multi infix:<->(Int:D \$a, Int:D \$b) returns Int {
-    nqp::p6box_i(nqp::sub_i(nqp::unbox_i($a), nqp::unbox_i($b)))
+multi infix:<->(Int:D \$a, Int:D \$b) returns Int:D {
+    nqp::sub_I(nqp::p6decont($a), nqp::p6decont($b));
 }
 multi infix:<->(int $a, int $b) returns int {
     nqp::sub_i($a, $b)
 }
 
 multi infix:<*>(Int:D \$a, Int:D \$b) returns Int {
-    nqp::p6box_i(nqp::mul_i(nqp::unbox_i($a), nqp::unbox_i($b)))
+    nqp::mul_I(nqp::p6decont($a), nqp::p6decont($b));
 }
 multi infix:<*>(int $a, int $b) returns int {
     nqp::mul_i($a, $b)
 }
 
 multi infix:<div>(Int:D \$a, Int:D \$b) returns Int {
-    nqp::p6box_i(nqp::div_i(nqp::unbox_i($a), nqp::unbox_i($b)))
+    nqp::div_I(nqp::p6decont($a), nqp::p6decont($b));
 }
 multi infix:<div>(int $a, int $b) returns int {
     nqp::div_i($a, $b)
 }
 
 multi infix:<%>(Int:D \$a, Int:D \$b) returns Int {
-    nqp::p6box_i(nqp::mod_i(nqp::unbox_i($a), nqp::unbox_i($b)))
+    nqp::mod_I(nqp::p6decont($a), nqp::p6decont($b));
 }
 multi infix:<%>(int $a, int $b) returns int {
     nqp::mod_i($a, $b)
@@ -133,35 +133,35 @@ multi infix:<**>(Int:D \$a, Int:D \$b) {
 }
 
 multi infix:<lcm>(Int:D \$a, Int:D \$b) returns Int {
-    nqp::p6box_i(nqp::lcm_i(nqp::unbox_i($a), nqp::unbox_i($b)))
+    nqp::lcm_I(nqp::p6decont($a), nqp::p6decont($b));
 }
 multi infix:<lcm>(int $a, int $b) returns int {
     nqp::lcm_i($a, $b)
 }
 
 multi infix:<gcd>(Int:D \$a, Int:D \$b) returns Int {
-    nqp::p6box_i(nqp::gcd_i(nqp::unbox_i($a), nqp::unbox_i($b)))
+    nqp::gcd_I(nqp::p6decont($a), nqp::p6decont($b));
 }
 multi infix:<gcd>(int $a, int $b) returns int {
     nqp::gcd_i($a, $b)
 }
 
-multi infix:<cmp>(Int:D \$a, Int:D \$b) {
-    nqp::p6box_i(nqp::cmp_i(nqp::unbox_i($a), nqp::unbox_i($b)))
+multi infix:<cmp>(Int:D \$a, Int:D \$b) returns Int:D {
+    nqp::p6box_i(nqp::cmp_I(nqp::p6decont($a), nqp::p6decont($b)))
 }
 multi infix:<cmp>(int $a, int $b) {
     nqp::cmp_i($a, $b)
 }
 
-multi infix:«<=>»(Int:D \$a, Int:D \$b) {
-    nqp::p6box_i(nqp::cmp_i(nqp::unbox_i($a), nqp::unbox_i($b)))
+multi infix:«<=>»(Int:D \$a, Int:D \$b) returns Int:D {
+    nqp::p6box_i(nqp::cmp_I(nqp::p6decont($a), nqp::p6decont($b)))
 }
-multi infix:«<=>»(int $a, int $b) {
+multi infix:«<=>»(int $a, int $b) returns int {
     nqp::cmp_i($a, $b)
 }
 
 multi infix:<===>(Int:D \$a, Int:D \$b) {
-    nqp::p6bool(nqp::iseq_i(nqp::unbox_i($a), nqp::unbox_i($b)))
+    nqp::p6bool(nqp::iseq_I(nqp::p6decont($a), nqp::p6decont($b)))
 }
 multi infix:<===>(int $a, int $b) {
     # hey, the optimizer is smart enough to figure that one out for us, no?
@@ -169,63 +169,63 @@ multi infix:<===>(int $a, int $b) {
 }
 
 multi infix:<==>(Int:D \$a, Int:D \$b) {
-    nqp::p6bool(nqp::iseq_i(nqp::unbox_i($a), nqp::unbox_i($b)))
+    nqp::p6bool(nqp::iseq_I(nqp::p6decont($a), nqp::p6decont($b)))
 }
 multi infix:<==>(int $a, int $b) {
     nqp::p6bool(nqp::iseq_i($a, $b))
 }
 
 multi infix:<!=>(Int:D \$a, Int:D \$b) {
-    nqp::p6bool(nqp::isne_i(nqp::unbox_i($a), nqp::unbox_i($b)))
+    nqp::p6bool(nqp::isne_I(nqp::p6decont($a), nqp::p6decont($b)))
 }
 multi infix:<!=>(int \$a, int \$b) {
     nqp::p6bool(nqp::isne_i($a, $b))
 }
 
 multi infix:«<»(Int:D \$a, Int:D \$b) {
-    nqp::p6bool(nqp::islt_i(nqp::unbox_i($a), nqp::unbox_i($b)))
+    nqp::p6bool(nqp::islt_I(nqp::p6decont($a), nqp::p6decont($b)))
 }
 multi infix:«<»(int $a, int $b) {
     nqp::p6bool(nqp::islt_i($a, $b))
 }
 
 multi infix:«<=»(Int:D \$a, Int:D \$b) {
-    nqp::p6bool(nqp::isle_i(nqp::unbox_i($a), nqp::unbox_i($b)))
+    nqp::p6bool(nqp::isle_I(nqp::p6decont($a), nqp::p6decont($b)))
 }
 multi infix:«<=»(int $a, int $b) {
     nqp::p6bool(nqp::isle_i($a, $b))
 }
 
 multi infix:«>»(Int:D \$a, Int:D \$b) {
-    nqp::p6bool(nqp::isgt_i(nqp::unbox_i($a), nqp::unbox_i($b)))
+    nqp::p6bool(nqp::isgt_I(nqp::p6decont($a), nqp::p6decont($b)))
 }
 multi infix:«>»(int $a, int $b) {
     nqp::p6bool(nqp::isgt_i($a, $b))
 }
 
 multi infix:«>=»(Int:D \$a, Int:D \$b) {
-    nqp::p6bool(nqp::isge_i(nqp::unbox_i($a), nqp::unbox_i($b)))
+    nqp::p6bool(nqp::isge_I(nqp::p6decont($a), nqp::p6decont($b)))
 }
 multi infix:«>=»(int $a, int $b) {
     nqp::p6bool(nqp::isge_i($a, $b))
 }
 
 multi infix:<+|>(Int:D \$a, Int:D \$b) {
-    nqp::p6box_i(nqp::bitor_i(nqp::unbox_i($a), nqp::unbox_i($b)))
+    nqp::p6bool(nqp::bitor_I(nqp::p6decont($a), nqp::p6decont($b)))
 }
 multi infix:<+|>(int $a, int $b) {
     nqp::bitor_i($a, $b)
 }
 
 multi infix:<+&>(Int:D \$a, Int:D \$b) {
-    nqp::p6box_i(nqp::bitand_i(nqp::unbox_i($a), nqp::unbox_i($b)))
+    nqp::p6bool(nqp::bitand_I(nqp::p6decont($a), nqp::p6decont($b)))
 }
 multi infix:<+&>(int $a, int $b) {
     nqp::bitand_i($a, $b)
 }
 
 multi infix:<+^>(Int:D \$a, Int:D \$b) {
-    nqp::p6box_i(nqp::bitxor_i(nqp::unbox_i($a), nqp::unbox_i($b)))
+    nqp::p6bool(nqp::bitxor_I(nqp::p6decont($a), nqp::p6decont($b)))
 }
 multi infix:<+^>(int $a, int $b) {
     nqp::bitxor_i($a, $b);

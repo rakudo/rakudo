@@ -211,21 +211,21 @@ multi infix:«>=»(int $a, int $b) {
 }
 
 multi infix:<+|>(Int:D \$a, Int:D \$b) {
-    nqp::p6bool(nqp::bitor_I(nqp::p6decont($a), nqp::p6decont($b)))
+    nqp::bitor_I(nqp::p6decont($a), nqp::p6decont($b))
 }
 multi infix:<+|>(int $a, int $b) {
     nqp::bitor_i($a, $b)
 }
 
 multi infix:<+&>(Int:D \$a, Int:D \$b) {
-    nqp::p6bool(nqp::bitand_I(nqp::p6decont($a), nqp::p6decont($b)))
+    nqp::bitand_I(nqp::p6decont($a), nqp::p6decont($b))
 }
 multi infix:<+&>(int $a, int $b) {
     nqp::bitand_i($a, $b)
 }
 
 multi infix:<+^>(Int:D \$a, Int:D \$b) {
-    nqp::p6bool(nqp::bitxor_I(nqp::p6decont($a), nqp::p6decont($b)))
+    nqp::bitxor_I(nqp::p6decont($a), nqp::p6decont($b))
 }
 multi infix:<+^>(int $a, int $b) {
     nqp::bitxor_i($a, $b);

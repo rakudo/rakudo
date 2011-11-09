@@ -1,7 +1,7 @@
 # XXX: should also be Cool, but attributes and MI don't seem to mix yet
 my class Rat is Real {
-    has $.numerator;
-    has $.denominator;
+    has Int $.numerator;
+    has Int $.denominator;
 
     method new(Int \$nu = 0, Int \$de = 1) {
         my $new := nqp::create(self);
@@ -26,7 +26,7 @@ my class Rat is Real {
           ?? ($!numerator < 0 ?? -$Inf !! $Inf)
           !!  $!numerator.Num / $!denominator.Num
     }
-    method Int() { self.Num.Int }
+    method Int() { $!numerator div $!denominator }
 
     method Bridge() { self.Num }
     method Rat(Rat:D: Real $?) { self }

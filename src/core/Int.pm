@@ -11,7 +11,7 @@ my class Int {
     method Int() { self }
     
     multi method Str(Int:D:) {
-        nqp::p6box_s(pir::nqp_bigint_to_str__SP(self));
+        nqp::p6box_s(pir::nqp_bigint_to_str__SP(nqp::p6decont self));
     }
     
     method Num(Int:D:) {
@@ -59,19 +59,19 @@ my class Int {
 }
 
 multi prefix:<++>(Int:D \$a is rw) {   # XXX
-    $a = nqp::add_I(nqp::p6decont($a), 1);
+    $a = nqp::add_I(nqp::p6decont($a), nqp::p6box_i(1));
 }
 multi prefix:<-->(Int:D \$a is rw) {   # XXX
-    $a = nqp::sub_I(nqp::p6decont($a), 1);
+    $a = nqp::sub_I(nqp::p6decont($a), nqp::p6box_i(1));
 }
 multi postfix:<++>(Int:D \$a is rw) {  # XXX
     my Int:D $b = $a;
-    $a = nqp::add_I(nqp::p6decont($a), 1);
+    $a = nqp::add_I(nqp::p6decont($a), nqp::p6box_i(1));
     $b
 }
 multi postfix:<-->(Int:D \$a is rw) {  # XXX
     my Int:D $b = $a;
-    $a = nqp::sub_I(nqp::p6decont($a), 1);
+    $a = nqp::sub_I(nqp::p6decont($a), nqp::p6box_i(1));
     $b
 }
 

@@ -139,9 +139,9 @@ my class Str does Stringy {
         return nqp::p6box_n(pir::set__Ns('NaN')) if self eq 'NaN';
         my str $str = nqp::unbox_s(self);
         my int $eos = nqp::chars($str);
-        my num $int;
-        my num $frac = 0;
-        my num $base = 0;
+        my Int $int;
+        my Int $frac = 0;
+        my Int $base = 0;
         # skip leading whitespace
         my int $pos   = pir::find_not_cclass__Iisii(pir::const::CCLASS_WHITESPACE, $str, 0, $eos);
 
@@ -172,27 +172,27 @@ my class Str does Stringy {
               !! nqp::iseq_s($rpref, '0b') ?? 2
               !! 0;
         if $radix {
-            $parse := nqp::radix($radix, $str, nqp::add_i($pos, 2), $neg);
+            $parse := nqp::radix_I($radix, $str, nqp::add_i($pos, 2), $neg, Int);
             $pos = nqp::atpos($parse, 2);
             fail "missing digits after radix prefix" if nqp::islt_i($pos, 0);
-            return nqp::p6bigint(nqp::atpos($parse, 0)) unless $tailfail();
+            return nqp::atpos($parse, 0) unless $tailfail();
         } elsif nqp::iseq_s(nqp::substr($str, $pos, 1), ':') {
             # a string of form :16<DEAD_BEEF>
             $pos = nqp::add_i($pos, 1);
-            $parse := nqp::radix(10, $str, $pos, 0);
+            $parse := nqp::radix_I(10, $str, $pos, 0, Int);
             $radix = nqp::atpos($parse, 0);
             $pos = nqp::atpos($parse, 2);
             fail "not a number" if nqp::iseq_i($pos, -1);
             fail "malformed radix number, expecting '<' after the base"
                 unless nqp::iseq_s(nqp::substr($str, $pos, 1), '<');
             $pos = nqp::add_i($pos, 1);
-            $parse := nqp::radix($radix, $str, $pos, $neg);
+            $parse := nqp::radix_I($radix, $str, $pos, $neg, Int);
             $pos = nqp::atpos($parse, 2);
             fail "malformed radix number" if nqp::iseq_i($pos, -1);
             fail "malformed radix number, expecting '>' after the body"
                 unless nqp::iseq_s(nqp::substr($str, $pos, 1), '>');
             $pos = nqp::add_i($pos, 1);
-            return nqp::p6bigint(nqp::atpos($parse, 0)) unless $tailfail();
+            return nqp::atpos($parse, 0) unless $tailfail();
         }
 
         # handle 'Inf'
@@ -209,7 +209,7 @@ my class Str does Stringy {
         }
         else {
             my int $p = $pos;
-            $parse := nqp::radix(10, $str, $pos, $neg);
+            $parse := nqp::radix_I(10, $str, $pos, $neg, Int);
             $pos = nqp::atpos($parse, 2);
             # XXX: return 0 if ...
             #     We should really fail here instead of returning 0,
@@ -223,17 +223,17 @@ my class Str does Stringy {
         # if there's a slash, get a denominator and make a Rat
         $ch = nqp::islt_i($pos, $eos) && nqp::ord($str, $pos);
         if nqp::iseq_i($ch, 47) {
-            $parse := nqp::radix(10, $str, nqp::add_i($pos, 1), 0);
+            $parse := nqp::radix_I(10, $str, nqp::add_i($pos, 1), 0, Int);
             $pos = nqp::atpos($parse, 2);
             fail "Slash must be followed by denominator" if nqp::islt_i($pos, 0);
-            return Rat.new(nqp::p6bigint($int), nqp::p6bigint(nqp::atpos($parse, 0)))
+            return Rat.new($int, nqp::atpos($parse, 0))
                 unless $tailfail();
         }
 
         # check for decimal fraction or number
         # parse an optional decimal point and value
         if nqp::iseq_i($ch, 46) {
-            $parse := nqp::radix(10, $str, nqp::add_i($pos, 1), nqp::add_i(4,$neg));
+            $parse := nqp::radix_I(10, $str, nqp::add_i($pos, 1), nqp::add_i(4,$neg), Int);
             $pos = nqp::atpos($parse, 2);
             fail "Decimal point must be followed by digit" if nqp::islt_i($pos, 0);
             $frac = nqp::atpos($parse, 0);
@@ -254,12 +254,12 @@ my class Str does Stringy {
 
         # if we got a decimal point above, it's a Rat
         if $base {
-            my num $numerator = nqp::add_n(nqp::mul_n($int, $base), $frac);
-            return Rat.new(nqp::p6bigint($numerator), nqp::p6bigint($base))
+            my Int $numerator = $int * $base.Int + $frac;
+            return Rat.new($numerator, $base.Int)
                 unless $tailfail();
         }
 
-        nqp::p6bigint($int) unless $tailfail();
+        $int unless $tailfail();
     }
 
     my %esc = (

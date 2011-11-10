@@ -254,8 +254,8 @@ my class Str does Stringy {
 
         # if we got a decimal point above, it's a Rat
         if $base {
-            my Int $numerator = $int * $base.Int + $frac;
-            return Rat.new($numerator, $base.Int)
+            my Int $numerator = $int * $base + $frac;
+            return Rat.new($numerator, $base)
                 unless $tailfail();
         }
 

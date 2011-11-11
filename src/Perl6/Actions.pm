@@ -3419,7 +3419,7 @@ class Perl6::Actions is HLL::Actions {
         my $radix    := +($<radix>.Str);
         if $<circumfix> {
             make PAST::Op.new(:name('&unbase'), :pasttype('call'),
-                $*ST.add_constant('Int', 'int', $radix), $<circumfix>.ast);
+                $*ST.add_numeric_constant('Int', $radix), $<circumfix>.ast);
         } else {
             my $intpart  := $<intpart>.Str;
             my $fracpart := $<fracpart> ?? $<fracpart>.Str !! "0";

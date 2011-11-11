@@ -3424,8 +3424,12 @@ class Perl6::Actions is HLL::Actions {
             my $intpart  := $<intpart>.Str;
             my $fracpart := $<fracpart> ?? $<fracpart>.Str !! "0";
             my $intfrac  := $intpart ~ $fracpart; #the dot is a part of $fracpart, so no need for ~ "." ~
-            my $base     := $<base> ?? +($<base>[0].Str) !! 0;
-            my $exp      := $<exp> ?? +($<exp>[0].Str) !! 0;
+
+            # radcalc cares about undefined value vs. 0 for exp
+            my $base;
+            my $exp;
+            $base   := +($<base>[0].Str) if $<base>;
+            $exp    := +($<exp>[0].Str)  if $<exp>;
 
             my $error;
             try {

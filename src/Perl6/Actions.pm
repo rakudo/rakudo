@@ -53,6 +53,19 @@ class Perl6::Actions is HLL::Actions {
         $STATEMENT_PRINT := 0;
     }
 
+    method ints_to_string($ints) {
+        if pir::does($ints, 'array') {
+            my $result := '';
+            for $ints {
+                $result := $result ~ pir::chr(nqp::unbox_i($_.ast));
+            }
+            $result;
+        } else {
+            pir::chr(nqp::unbox_i($ints.ast));
+        }
+    }
+
+
     # TODO: inline string_to_bigint?
     our sub string_to_bigint($src, $base) {
         my $res := nqp::radix_I($base, ~$src, 0, 2, $*ST.find_symbol(['Int']));
@@ -3384,7 +3397,9 @@ class Perl6::Actions is HLL::Actions {
     }
 
     method escale($/) {
-        make $<sign> eq '-' ?? -$<decint>.ast !! $<decint>.ast;
+        make $<sign> eq '-'
+            ??  nqp::mul_I($<decint>.ast, nqp::box_i(-1, $*ST.find_symbol(['Int'])))
+            !! $<decint>.ast;
     }
 
     method dec_number($/) {
@@ -3394,7 +3409,7 @@ class Perl6::Actions is HLL::Actions {
         if $<escale> {
             my $e := pir::isa($<escale>, 'ResizablePMCArray') ?? $<escale>[0] !! $<escale>;
 #            pir::say('dec_number exponent: ' ~ ~$e.ast);
-            make radcalc(10, $<coeff>, 10, $e.ast);
+            make radcalc(10, $<coeff>, 10, nqp::unbox_i($e.ast));
         } else {
             make radcalc(10, $<coeff>);
         }
@@ -4293,9 +4308,8 @@ class Perl6::Actions is HLL::Actions {
         $iresult := nqp::mul_I($iresult, nqp::box_i($sign, $Int));
 
         if pir::defined($exponent) {
-            # TODO: better way to get floats out of $iresult, $fdivide and
-            # $exponent
-            my num $result := nqp::mul_n(nqp::div_n(nqp::unbox_i($iresult), nqp::unbox_i($fdivide)), nqp::pow_n($base, nqp::unbox_i($exponent)));
+            # TODO: better way to get floats out of $iresult and $fdivide 
+            my num $result := nqp::mul_n(nqp::div_n(nqp::unbox_i($iresult), nqp::unbox_i($fdivide)), nqp::pow_n($base, $exponent));
             return $*ST.add_numeric_constant('Num', $result);
         } else {
             if $seen_dot {

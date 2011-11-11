@@ -125,11 +125,7 @@ multi infix:<%>(int $a, int $b) returns int {
 }
 
 multi infix:<**>(Int:D \$a, Int:D \$b) {
-    if $b >= 0 {
-        nqp::p6box_i(nqp::pow_n(nqp::unbox_i($a), nqp::unbox_i($b)))
-    } else {
-        nqp::p6box_n(nqp::pow_n(nqp::unbox_i($a), nqp::unbox_i($b)))
-    }
+    nqp::pow_I(nqp::p6decont($a), nqp::p6decont($b), Num);
 }
 
 multi infix:<lcm>(Int:D \$a, Int:D \$b) returns Int {

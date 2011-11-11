@@ -4249,6 +4249,9 @@ class Perl6::Actions is HLL::Actions {
         $n;
     }
 
+    # radix, $base, $exponent: parrot numbers (Integer or Float)
+    # $number: parrot string
+    # return value: PAST for Int, Rat or Num
     sub radcalc($radix, $number, $base?, $exponent?) {
         my int $sign := 1;
         pir::die("Radix '$radix' out of range (2..36)")
@@ -4286,7 +4289,6 @@ class Perl6::Actions is HLL::Actions {
         my $Int := $*ST.find_symbol(['Int']);
 
         my $iresult      := nqp::box_i(0, $Int);
-        my $fresult      := nqp::box_i(0, $Int);
         my $fdivide      := nqp::box_i(1, $Int);
         my $radixInt     := nqp::box_i($radix, $Int);
         my int $idx      := -1;

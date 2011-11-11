@@ -53,6 +53,14 @@ class Perl6::Actions is HLL::Actions {
         $STATEMENT_PRINT := 0;
     }
 
+    # TODO: inline string_to_bigint?
+    our sub string_to_bigint($src, $base) {
+        my $res := nqp::radix_I($base, ~$src, 0, 2, $*ST.find_symbol(['Int']));
+        $src.CURSOR.panic("'$src' is not a valid number")
+            unless nqp::iseq_i(nqp::unbox_i(nqp::atkey($res, 2)), nqp::chars($src));
+        nqp::atkey($res, 0);
+    }
+
     sub xblock_immediate($xblock) {
         $xblock[1] := pblock_immediate($xblock[1]);
         $xblock;
@@ -3334,6 +3342,12 @@ class Perl6::Actions is HLL::Actions {
     method value:sym<number>($/) {
         make $<number>.ast;
     }
+
+    method decint($/) { make string_to_bigint( $/, 10); }
+    method hexint($/) { make string_to_bigint( $/, 16); }
+    method octint($/) { make string_to_bigint( $/, 8 ); }
+    method binint($/) { make string_to_bigint( $/, 2 ); }
+
 
     method number:sym<complex>($/) {
         my $re := $*ST.add_constant('Num', 'num', 0e0);

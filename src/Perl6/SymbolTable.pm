@@ -1042,9 +1042,13 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
                 $namedkey := $namedkey ~ $_.key ~ ',' ~ $_.value ~ ';'
                     if pir::defined($_.value);
             }
-            $cache_key := "$type,$primitive,"
-                ~ pir::join(',', @value)
-                ~ $namedkey;
+            if $primitive eq 'bigint' {
+                $cache_key := "$type,bigint," ~ nqp::tostr_I(@value[0]);
+            } else {
+                $cache_key := "$type,$primitive,"
+                    ~ pir::join(',', @value)
+                    ~ $namedkey;
+            }
             if pir::exists(%!const_cache, $cache_key) {
                 my $past := self.get_slot_past_for_object(%!const_cache{$cache_key});
                 $past<has_compile_time_value> := 1;
@@ -1077,6 +1081,7 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
         elsif $primitive eq 'type_new' {
             $constant := $type_obj.new(|@value, |%named);
             if $type eq 'Rat' {
+                # BIGINT TODO: fix for bigint
                 my $int_lookup := self.get_object_sc_ref_past(self.find_symbol(['Int']));
                 my $nu := nqp::unbox_i(nqp::getattr($constant, $type_obj, '$!numerator'));
                 my $de := nqp::unbox_i(nqp::getattr($constant, $type_obj, '$!denominator'));
@@ -1128,6 +1133,23 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
     # Adds a numeric constant value (int or num) to the constants table.
     # Returns PAST to do  the lookup of the constant.
     method add_numeric_constant($type, $value) {
+        if $type eq 'Int' && pir::typeof__SP($value) eq 'Int' {
+            if nqp::isbig_I($value) {
+                # cannot unbox to int without loss of information
+                my $const := self.add_constant('Int', 'bigint', $value);
+                my $past  := PAST::Op(
+                    :pirop('nqp_bigint_from_str PPs'),
+                    $*ST.get_object_sc_ref_past($*ST.find_symbol(['Int'])),
+                    nqp::tostr_I($value)
+                );
+                $past<has_compile_time_value> := 1;
+                $past<compile_time_value>     := $value;
+                return $past;
+            }
+            # since Int doesn't have any vtables yet (at least while compiling
+            # the setting), it is inconvenient to work with, so unbox
+            $value := nqp::unbox_i($value);
+        }
         my $const := self.add_constant($type, nqp::lc($type), $value);
         my $tflag := $type eq 'Int' ?? 'Ii' !! 'Nn';
         my $past  := PAST::Want.new($const, $tflag,

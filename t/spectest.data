@@ -505,7 +505,7 @@ S32-hash/pairs.t
 S32-hash/push.t
 S32-hash/slice.t
 S32-io/dir.t
-# S32-io/chdir.t # err: Calling 'chdir' will never work with no arguments
+# S32-io/chdir.t # err: Dynamic variable $*CWD not found
 S32-io/file-tests.t
 S32-io/note.t
 S32-io/IO-Socket-INET.t

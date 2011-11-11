@@ -4268,9 +4268,12 @@ class Perl6::Actions is HLL::Actions {
 
         $number := strip_trailing_zeros($number);
 
-        my int $iresult  := 0;
-        my int $fresult  := 0;
-        my int $fdivide  := 1;
+        my $Int := $*ST.find_symbol(['Int']);
+
+        my $iresult      := nqp::box_i(0, $Int);
+        my $fresult      := nqp::box_i(0, $Int);
+        my $fdivide      := nqp::box_i(1, $Int);
+        my $radixInt     := nqp::box_i($radix, $Int);
         my int $idx      := -1;
         my int $seen_dot := 0;
         while $idx < nqp::chars($number) - 1 {
@@ -4283,14 +4286,16 @@ class Perl6::Actions is HLL::Actions {
             }
             my $i := pir::index('0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ', $current);
             pir::die("Invalid character '$current' in number literal") if $i < 0 || $i >= $radix;
-            $iresult := $iresult * $radix + $i;
-            $fdivide := $fdivide * $radix if $seen_dot;
+            $iresult := nqp::add_I(nqp::mul_I($iresult, $radixInt), nqp::box_i($i, $Int));
+            $fdivide := nqp::mul_I($fdivide, $radixInt) if $seen_dot;
         }
 
-        $iresult := $iresult * $sign;
+        $iresult := nqp::mul_I($iresult, nqp::box_i($sign, $Int));
 
         if pir::defined($exponent) {
-            my num $result := nqp::mul_n(nqp::div_n($iresult, $fdivide), nqp::pow_n($base, $exponent));
+            # TODO: better way to get floats out of $iresult, $fdivide and
+            # $exponent
+            my num $result := nqp::mul_n(nqp::div_n(nqp::unbox_i($iresult), nqp::unbox_i($fdivide)), nqp::pow_n($base, nqp::unbox_i($exponent)));
             return $*ST.add_numeric_constant('Num', $result);
         } else {
             if $seen_dot {

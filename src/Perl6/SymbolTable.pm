@@ -1078,6 +1078,13 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
             $constant := pir::repr_box_num__PnP(@value[0], $type_obj);
             $des := PAST::Op.new( :pirop('repr_box_num PnP'), @value[0], $type_obj_lookup );
         }
+        elsif $primitive eq 'bigint' {
+            $constant := @value[0];
+            $des := PAST::Op.new( :pirop('nqp_bigint_from_str PPs'),
+                    $type_obj_lookup,
+                    nqp::tostr_I(@value[0])
+                );
+        }
         elsif $primitive eq 'type_new' {
             $constant := $type_obj.new(|@value, |%named);
             if $type eq 'Rat' {
@@ -1136,12 +1143,7 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
         if $type eq 'Int' && pir::typeof__SP($value) eq 'Int' {
             if nqp::isbig_I($value) {
                 # cannot unbox to int without loss of information
-                my $const := self.add_constant('Int', 'bigint', $value);
-                my $past  := PAST::Op(
-                    :pirop('nqp_bigint_from_str PPs'),
-                    $*ST.get_object_sc_ref_past($*ST.find_symbol(['Int'])),
-                    nqp::tostr_I($value)
-                );
+                my $past := self.add_constant('Int', 'bigint', $value);
                 $past<has_compile_time_value> := 1;
                 $past<compile_time_value>     := $value;
                 return $past;

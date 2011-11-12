@@ -4,20 +4,17 @@ my class Rat is Real {
     has Int $.denominator;
 
     method new(Int \$nu = 0, Int \$de = 1) {
-        my $new := nqp::create(self);
-        my $gcd         = $nu gcd $de;
+        my Rat $new     := nqp::create(self);
+        my Int $gcd     := $nu gcd $de;
         my $numerator   = $nu div $gcd;
         my $denominator = $de div $gcd;
         if $denominator < 0 {
             $numerator   = -$numerator;
             $denominator = -$denominator;
         }
-        $new.BUILD($numerator, $denominator);
+        nqp::bindattr($new, self.WHAT, '$!numerator',     nqp::p6decont($numerator));
+        nqp::bindattr($new, self.WHAT, '$!denominator',   nqp::p6decont($denominator));
         $new;
-    }
-    submethod BUILD(Int \$nu, Int \$de) {
-        $!numerator   = $nu;
-        $!denominator = $de;
     }
 
     method nude() { $!numerator, $!denominator }

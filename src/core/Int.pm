@@ -15,7 +15,7 @@ my class Int {
     }
     
     method Num(Int:D:) {
-        nqp::p6box_n(nqp::unbox_i(self));
+        nqp::p6box_n(nqp::tonum_I(self));
     }
 
     method Rat(Int:D: $?) {
@@ -27,7 +27,7 @@ my class Int {
     }
 
     method Bridge(Int:D:) {
-        nqp::p6box_n(nqp::unbox_i(self));
+        nqp::p6box_n(nqp::tonum_I(self));
     }
 
     method chr(Int:D:) {
@@ -38,7 +38,7 @@ my class Int {
 
     method pred(Int:D:) { self - 1 }
 
-    method sqrt(Int:D:) { self.Num.sqrt }
+    method sqrt(Int:D:) { nqp::p6box_n(nqp::sqrt_n(nqp::tonum_I(self))) }
 
     method base(Cool $base) {
         fail("base must be between 2 and 36, got $base") unless 2 <= $base <= 36;

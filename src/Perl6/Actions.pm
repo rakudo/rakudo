@@ -3398,7 +3398,7 @@ class Perl6::Actions is HLL::Actions {
 
     method escale($/) {
         make $<sign> eq '-'
-            ??  nqp::mul_I($<decint>.ast, nqp::box_i(-1, $*ST.find_symbol(['Int'])))
+            ??  nqp::neg_I($<decint>.ast)
             !! $<decint>.ast;
     }
 

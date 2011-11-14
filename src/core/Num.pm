@@ -4,7 +4,7 @@ my class Num {
     method Bridge(Num:D:) { self }
     
     method Int(Num:D:) {
-        nqp::p6box_i(nqp::unbox_n(self));
+        nqp::fromnum_I(nqp::unbox_n(self), Int);
     }
 
     multi method new() { nqp::p6box_n(0) }

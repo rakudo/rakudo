@@ -4,7 +4,9 @@ my class Num {
     method Bridge(Num:D:) { self }
     
     method Int(Num:D:) {
-        nqp::fromnum_I(nqp::unbox_n(self), Int);
+        self == $Inf ??
+            fail("Cannot coerce NaN to an Int") !!
+            nqp::fromnum_I(nqp::unbox_n(self), Int);
     }
 
     multi method new() { nqp::p6box_n(0) }
@@ -22,6 +24,8 @@ my class Num {
     method Rat(Num:D: Real $epsilon = 1.0e-6) {
         my sub modf($num) { my $q = $num.Int; $num - $q, $q; }
 
+        self == $Inf && fail("Cannot coerce NaN to a Rat");
+        
         my Num $num = self;
         my Int $signum = $num < 0 ?? -1 !! 1;
         $num = -$num if $signum == -1;

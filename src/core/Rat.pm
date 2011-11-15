@@ -1,23 +1,20 @@
 # XXX: should also be Cool, but attributes and MI don't seem to mix yet
 my class Rat is Real {
-    has $.numerator;
-    has $.denominator;
+    has Int $.numerator;
+    has Int $.denominator;
 
     method new(Int \$nu = 0, Int \$de = 1) {
-        my $new := nqp::create(self);
-        my $gcd         = $nu gcd $de;
+        my Rat $new     := nqp::create(self);
+        my Int $gcd     := $nu gcd $de;
         my $numerator   = $nu div $gcd;
         my $denominator = $de div $gcd;
         if $denominator < 0 {
             $numerator   = -$numerator;
             $denominator = -$denominator;
         }
-        $new.BUILD($numerator, $denominator);
+        nqp::bindattr($new, self.WHAT, '$!numerator',     nqp::p6decont($numerator));
+        nqp::bindattr($new, self.WHAT, '$!denominator',   nqp::p6decont($denominator));
         $new;
-    }
-    submethod BUILD(Int \$nu, Int \$de) {
-        $!numerator   = $nu;
-        $!denominator = $de;
     }
 
     method nude() { $!numerator, $!denominator }
@@ -26,7 +23,7 @@ my class Rat is Real {
           ?? ($!numerator < 0 ?? -$Inf !! $Inf)
           !!  $!numerator.Num / $!denominator.Num
     }
-    method Int() { self.Num.Int }
+    method Int() { $!numerator div $!denominator }
 
     method Bridge() { self.Num }
     method Rat(Rat:D: Real $?) { self }

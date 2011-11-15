@@ -1042,9 +1042,13 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
                 $namedkey := $namedkey ~ $_.key ~ ',' ~ $_.value ~ ';'
                     if pir::defined($_.value);
             }
-            $cache_key := "$type,$primitive,"
-                ~ pir::join(',', @value)
-                ~ $namedkey;
+            if $primitive eq 'bigint' {
+                $cache_key := "$type,bigint," ~ nqp::tostr_I(@value[0]);
+            } else {
+                $cache_key := "$type,$primitive,"
+                    ~ pir::join(',', @value)
+                    ~ $namedkey;
+            }
             if pir::exists(%!const_cache, $cache_key) {
                 my $past := self.get_slot_past_for_object(%!const_cache{$cache_key});
                 $past<has_compile_time_value> := 1;
@@ -1074,21 +1078,28 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
             $constant := pir::repr_box_num__PnP(@value[0], $type_obj);
             $des := PAST::Op.new( :pirop('repr_box_num PnP'), @value[0], $type_obj_lookup );
         }
+        elsif $primitive eq 'bigint' {
+            $constant := @value[0];
+            $des := PAST::Op.new( :pirop('nqp_bigint_from_str PPs'),
+                    $type_obj_lookup,
+                    nqp::tostr_I(@value[0])
+                );
+        }
         elsif $primitive eq 'type_new' {
             $constant := $type_obj.new(|@value, |%named);
             if $type eq 'Rat' {
                 my $int_lookup := self.get_object_sc_ref_past(self.find_symbol(['Int']));
-                my $nu := nqp::unbox_i(nqp::getattr($constant, $type_obj, '$!numerator'));
-                my $de := nqp::unbox_i(nqp::getattr($constant, $type_obj, '$!denominator'));
+                my $nu := nqp::tostr_I(nqp::getattr($constant, $type_obj, '$!numerator'));
+                my $de := nqp::tostr_I(nqp::getattr($constant, $type_obj, '$!denominator'));
                 $des := PAST::Op.new(
                     :pirop('repr_bind_attr_obj 0PPsP'),
                     PAST::Op.new(
                         :pirop('repr_bind_attr_obj 0PPsP'),
                         PAST::Op.new( :pirop('repr_instance_of PP'), $type_obj_lookup ),
                         $type_obj_lookup, '$!numerator',
-                        PAST::Op.new( :pirop('repr_box_int PiP'), $nu, $int_lookup )),
+                        PAST::Op.new( :pirop('nqp_bigint_from_str PPs'), $int_lookup, $nu )),
                     $type_obj_lookup, '$!denominator',
-                    PAST::Op.new( :pirop('repr_box_int PiP'), $de, $int_lookup ));
+                    PAST::Op.new( :pirop('nqp_bigint_from_str PPs'), $int_lookup, $de ));
             }
             else {
                 $des := PAST::Op.new(
@@ -1128,6 +1139,18 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
     # Adds a numeric constant value (int or num) to the constants table.
     # Returns PAST to do  the lookup of the constant.
     method add_numeric_constant($type, $value) {
+        if $type eq 'Int' && pir::typeof__SP($value) eq 'Int' {
+            if nqp::isbig_I($value) {
+                # cannot unbox to int without loss of information
+                my $past := self.add_constant('Int', 'bigint', $value);
+                $past<has_compile_time_value> := 1;
+                $past<compile_time_value>     := $value;
+                return $past;
+            }
+            # since Int doesn't have any vtables yet (at least while compiling
+            # the setting), it is inconvenient to work with, so unbox
+            $value := nqp::unbox_i($value);
+        }
         my $const := self.add_constant($type, nqp::lc($type), $value);
         my $tflag := $type eq 'Int' ?? 'Ii' !! 'Nn';
         my $past  := PAST::Want.new($const, $tflag,
@@ -1546,7 +1569,8 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
     method add_libs($comp_unit) {
         $comp_unit.loadlibs('nqp_group', 'nqp_ops', 'perl6_group', 'perl6_ops',
                             'bit_ops', 'math_ops', 'trans_ops', 'io_ops',
-                            'obscure_ops', 'os', 'file', 'sys_ops');
+                            'obscure_ops', 'os', 'file', 'sys_ops',
+                            'nqp_bigint_ops');
     }
     
     # Checks if a given symbol is declared.
@@ -1797,6 +1821,7 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
             ),
             PAST::Stmts.new(
                 PAST::Op.new( :pirop('nqp_dynop_setup v') ),
+                PAST::Op.new( :pirop('nqp_bigint_setup v') ),
                 PAST::Op.new( :pirop('rakudo_dynop_setup v') ),
                 PAST::Op.new(
                     :pasttype('callmethod'), :name('hll_map'),

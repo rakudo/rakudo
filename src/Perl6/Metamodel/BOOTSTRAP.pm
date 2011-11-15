@@ -558,9 +558,10 @@ Real.HOW.add_parent(Real, Numeric);
 #     has int $!value is box_target;
 #     ...
 # }
+my knowhow bigint is repr('P6bigint') { }
 my stub Int metaclass Perl6::Metamodel::ClassHOW { ... };
 Int.HOW.add_parent(Int, Real);
-Int.HOW.add_attribute(Int, BOOTSTRAPATTR.new(:name<$!value>, :type(int), :box_target(1)));
+Int.HOW.add_attribute(Int, BOOTSTRAPATTR.new(:name<$!value>, :type(bigint), :box_target(1)));
 Int.HOW.set_boolification_mode(Int, 1);
 Int.HOW.publish_boolification_spec(Int);
 

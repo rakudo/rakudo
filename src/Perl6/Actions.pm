@@ -53,6 +53,27 @@ class Perl6::Actions is HLL::Actions {
         $STATEMENT_PRINT := 0;
     }
 
+    method ints_to_string($ints) {
+        if pir::does($ints, 'array') {
+            my $result := '';
+            for $ints {
+                $result := $result ~ pir::chr(nqp::unbox_i($_.ast));
+            }
+            $result;
+        } else {
+            pir::chr(nqp::unbox_i($ints.ast));
+        }
+    }
+
+
+    # TODO: inline string_to_bigint?
+    our sub string_to_bigint($src, $base) {
+        my $res := nqp::radix_I($base, ~$src, 0, 2, $*ST.find_symbol(['Int']));
+        $src.CURSOR.panic("'$src' is not a valid number")
+            unless nqp::iseq_i(nqp::unbox_i(nqp::atkey($res, 2)), nqp::chars($src));
+        nqp::atkey($res, 0);
+    }
+
     sub xblock_immediate($xblock) {
         $xblock[1] := pblock_immediate($xblock[1]);
         $xblock;
@@ -3335,6 +3356,12 @@ class Perl6::Actions is HLL::Actions {
         make $<number>.ast;
     }
 
+    method decint($/) { make string_to_bigint( $/, 10); }
+    method hexint($/) { make string_to_bigint( $/, 16); }
+    method octint($/) { make string_to_bigint( $/, 8 ); }
+    method binint($/) { make string_to_bigint( $/, 2 ); }
+
+
     method number:sym<complex>($/) {
         my $re := $*ST.add_constant('Num', 'num', 0e0);
         my $im := $*ST.add_constant('Num', 'num', +~$<im>);
@@ -3370,7 +3397,9 @@ class Perl6::Actions is HLL::Actions {
     }
 
     method escale($/) {
-        make $<sign> eq '-' ?? -$<decint>.ast !! $<decint>.ast;
+        make $<sign> eq '-'
+            ??  nqp::neg_I($<decint>.ast)
+            !! $<decint>.ast;
     }
 
     method dec_number($/) {
@@ -3380,7 +3409,7 @@ class Perl6::Actions is HLL::Actions {
         if $<escale> {
             my $e := pir::isa($<escale>, 'ResizablePMCArray') ?? $<escale>[0] !! $<escale>;
 #            pir::say('dec_number exponent: ' ~ ~$e.ast);
-            make radcalc(10, $<coeff>, 10, $e.ast);
+            make radcalc(10, $<coeff>, 10, nqp::unbox_i($e.ast), :num);
         } else {
             make radcalc(10, $<coeff>);
         }
@@ -3390,13 +3419,16 @@ class Perl6::Actions is HLL::Actions {
         my $radix    := +($<radix>.Str);
         if $<circumfix> {
             make PAST::Op.new(:name('&unbase'), :pasttype('call'),
-                $*ST.add_constant('Int', 'int', $radix), $<circumfix>.ast);
+                $*ST.add_numeric_constant('Int', $radix), $<circumfix>.ast);
         } else {
             my $intpart  := $<intpart>.Str;
             my $fracpart := $<fracpart> ?? $<fracpart>.Str !! "0";
             my $intfrac  := $intpart ~ $fracpart; #the dot is a part of $fracpart, so no need for ~ "." ~
-            my $base     := $<base> ?? +($<base>[0].Str) !! 0;
-            my $exp      := $<exp> ?? +($<exp>[0].Str) !! 0;
+
+            my $base;
+            my $exp;
+            $base   := +($<base>[0].Str) if $<base>;
+            $exp    := +($<exp>[0].Str)  if $<exp>;
 
             my $error;
             try {
@@ -3811,6 +3843,7 @@ class Perl6::Actions is HLL::Actions {
             :pasttype('callmethod'), :name('clone'),
             $code
         );
+        $closure := PAST::Op.new( :pirop('perl6_capture_lex__0P'), $closure);
         $closure<past_block> := $code<past_block>;
         $closure<code_object> := $code<code_object>;
         return $closure;
@@ -4220,7 +4253,10 @@ class Perl6::Actions is HLL::Actions {
         $n;
     }
 
-    sub radcalc($radix, $number, $base?, $exponent?) {
+    # radix, $base, $exponent: parrot numbers (Integer or Float)
+    # $number: parrot string
+    # return value: PAST for Int, Rat or Num
+    sub radcalc($radix, $number, $base?, $exponent?, :$num) {
         my int $sign := 1;
         pir::die("Radix '$radix' out of range (2..36)")
             if $radix < 2 || $radix > 36;
@@ -4254,9 +4290,11 @@ class Perl6::Actions is HLL::Actions {
 
         $number := strip_trailing_zeros($number);
 
-        my int $iresult  := 0;
-        my int $fresult  := 0;
-        my int $fdivide  := 1;
+        my $Int := $*ST.find_symbol(['Int']);
+
+        my $iresult      := nqp::box_i(0, $Int);
+        my $fdivide      := nqp::box_i(1, $Int);
+        my $radixInt     := nqp::box_i($radix, $Int);
         my int $idx      := -1;
         my int $seen_dot := 0;
         while $idx < nqp::chars($number) - 1 {
@@ -4269,16 +4307,27 @@ class Perl6::Actions is HLL::Actions {
             }
             my $i := pir::index('0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ', $current);
             pir::die("Invalid character '$current' in number literal") if $i < 0 || $i >= $radix;
-            $iresult := $iresult * $radix + $i;
-            $fdivide := $fdivide * $radix if $seen_dot;
+            $iresult := nqp::add_I(nqp::mul_I($iresult, $radixInt), nqp::box_i($i, $Int));
+            $fdivide := nqp::mul_I($fdivide, $radixInt) if $seen_dot;
         }
 
-        $iresult := $iresult * $sign;
+        $iresult := nqp::mul_I($iresult, nqp::box_i($sign, $Int));
 
-        if pir::defined($exponent) {
-            my num $result := nqp::mul_n(nqp::div_n($iresult, $fdivide), nqp::pow_n($base, $exponent));
+        if $num {
+            # TODO: better way to get floats out of $iresult and $fdivide 
+            my num $result := nqp::mul_n(nqp::div_n(nqp::tonum_I($iresult), nqp::tonum_I($fdivide)), nqp::pow_n($base, $exponent));
             return $*ST.add_numeric_constant('Num', $result);
         } else {
+            if pir::defined($exponent) {
+                $iresult := nqp::mul_I(
+                            $iresult,
+                            nqp::pow_I(
+                                nqp::box_i($base,     $iresult),
+                                nqp::box_i($exponent, $iresult),
+                                $*ST.find_symbol(['Num'])
+                           )
+                        );
+            }
             if $seen_dot {
                 return $*ST.add_constant('Rat', 'type_new',
                     $*ST.add_numeric_constant('Int', $iresult)<compile_time_value>,

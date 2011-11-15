@@ -60,8 +60,8 @@ static void setup_binder_statics(PARROT_INTERP) {
     NAMED_str        = Parrot_str_new_constant(interp, "named");
     INSTANTIATE_GENERIC_str = Parrot_str_new_constant(interp, "instantiate_generic");
     
-    smo_id = pmc_type(interp, Parrot_str_new(interp, "SixModelObject", 0));
-    p6l_id = pmc_type(interp, Parrot_str_new(interp, "Perl6LexPad", 0));
+    smo_id = Parrot_pmc_get_type_str(interp, Parrot_str_new(interp, "SixModelObject", 0));
+    p6l_id = Parrot_pmc_get_type_str(interp, Parrot_str_new(interp, "Perl6LexPad", 0));
 }
 
 
@@ -522,7 +522,7 @@ Rakudo_binding_bind_one_param(PARROT_INTERP, PMC *lexpad, Rakudo_Signature *sign
                 PMC *bindee = decont_value;
                 if (param->flags & SIG_ELEM_IS_COPY) {
                     bindee = Rakudo_binding_create_positional(interp,
-                        pmc_new(interp, enum_class_ResizablePMCArray));
+                        Parrot_pmc_new(interp, enum_class_ResizablePMCArray));
                     Rakudo_cont_store(interp, bindee, decont_value, 0, 0);
                 }
                 VTABLE_set_pmc_keyed_str(interp, lexpad, param->variable_name, bindee);
@@ -533,7 +533,7 @@ Rakudo_binding_bind_one_param(PARROT_INTERP, PMC *lexpad, Rakudo_Signature *sign
                 PMC *bindee = decont_value;
                 if (param->flags & SIG_ELEM_IS_COPY) {
                     bindee = Rakudo_binding_create_hash(interp,
-                        pmc_new(interp, enum_class_Hash));
+                        Parrot_pmc_new(interp, enum_class_Hash));
                     Rakudo_cont_store(interp, bindee, decont_value, 0, 0);
                 }
                 VTABLE_set_pmc_keyed_str(interp, lexpad, param->variable_name, bindee);
@@ -683,7 +683,7 @@ Rakudo_binding_handle_optional(PARROT_INTERP, Rakudo_Parameter *param, PMC *lexp
             return Rakudo_binding_create_positional(interp, PMCNULL);
         }
         else if (param->flags & SIG_ELEM_HASH_SIGIL) {
-            return Rakudo_binding_create_hash(interp, pmc_new(interp, enum_class_Hash));
+            return Rakudo_binding_create_hash(interp, Parrot_pmc_new(interp, enum_class_Hash));
         }
         else {
             return param->nominal_type;
@@ -765,7 +765,7 @@ Rakudo_binding_bind(PARROT_INTERP, PMC *lexpad, PMC *sig_pmc, PMC *capture,
         PMC *named_names = VTABLE_get_attr_str(interp, capture, NAMED_str);
         if (!PMC_IS_NULL(named_names)) {
             PMC *iter = VTABLE_get_iter(interp, named_names);
-            named_args_copy = pmc_new(interp, enum_class_Hash);
+            named_args_copy = Parrot_pmc_new(interp, enum_class_Hash);
             while (VTABLE_get_bool(interp, iter)) {
                 STRING *name = VTABLE_shift_string(interp, iter);
                 VTABLE_set_pmc_keyed_str(interp, named_args_copy, name,
@@ -780,10 +780,10 @@ Rakudo_binding_bind(PARROT_INTERP, PMC *lexpad, PMC *sig_pmc, PMC *capture,
         PMC *list_part = VTABLE_get_attr_keyed(interp, capture, captype, LIST_str);
         PMC *hash_part = VTABLE_get_attr_keyed(interp, capture, captype, HASH_str);
         capture = list_part->vtable->base_type == enum_class_ResizablePMCArray ?
-                list_part : pmc_new(interp, enum_class_ResizablePMCArray);
+                list_part : Parrot_pmc_new(interp, enum_class_ResizablePMCArray);
         if (hash_part->vtable->base_type == enum_class_Hash) {
             PMC *iter = VTABLE_get_iter(interp, hash_part);
-            named_args_copy = pmc_new(interp, enum_class_Hash);
+            named_args_copy = Parrot_pmc_new(interp, enum_class_Hash);
             while (VTABLE_get_bool(interp, iter)) {
                 STRING *arg_copy_name = VTABLE_shift_string(interp, iter);
                 VTABLE_set_pmc_keyed_str(interp, named_args_copy, arg_copy_name,
@@ -813,8 +813,8 @@ Rakudo_binding_bind(PARROT_INTERP, PMC *lexpad, PMC *sig_pmc, PMC *capture,
             else {
                 PMC *captype    = Rakudo_types_capture_get();
                 PMC *capsnap    = REPR(captype)->allocate(interp, STABLE(captype));
-                PMC *pos_args   = pmc_new(interp, enum_class_ResizablePMCArray);
-                PMC *named_args = pmc_new(interp, enum_class_Hash);
+                PMC *pos_args   = Parrot_pmc_new(interp, enum_class_ResizablePMCArray);
+                PMC *named_args = Parrot_pmc_new(interp, enum_class_Hash);
                 INTVAL k;
                 VTABLE_set_attr_keyed(interp, capsnap, captype, LIST_str, pos_args);
                 VTABLE_set_attr_keyed(interp, capsnap, captype, HASH_str, named_args);
@@ -867,7 +867,7 @@ Rakudo_binding_bind(PARROT_INTERP, PMC *lexpad, PMC *sig_pmc, PMC *capture,
                  * will by definition contain all unbound named parameters and use
                  * that, or just create an empty one. */
                 PMC *slurpy = PMC_IS_NULL(named_args_copy) ?
-                        pmc_new(interp, enum_class_Hash) :
+                        Parrot_pmc_new(interp, enum_class_Hash) :
                         named_args_copy;
                 cur_bv.type = BIND_VAL_OBJ;
                 cur_bv.val.o = Rakudo_binding_create_hash(interp, slurpy);
@@ -888,7 +888,7 @@ Rakudo_binding_bind(PARROT_INTERP, PMC *lexpad, PMC *sig_pmc, PMC *capture,
             if (param->flags & (SIG_ELEM_SLURPY_POS | SIG_ELEM_SLURPY_LOL)) {
                 /* Create Perl 6 array, create RPA of all remaining things, then
                  * store it. */
-                PMC *temp = pmc_new(interp, enum_class_ResizablePMCArray);
+                PMC *temp = Parrot_pmc_new(interp, enum_class_ResizablePMCArray);
                 while (cur_pos_arg < num_pos_args) {
                     cur_bv = get_positional_bind_val(interp, pc_positionals, capture, cur_pos_arg);
                     VTABLE_push_pmc(interp, temp, cur_bv.type == BIND_VAL_OBJ ?

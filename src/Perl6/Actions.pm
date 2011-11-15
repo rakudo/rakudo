@@ -3409,7 +3409,7 @@ class Perl6::Actions is HLL::Actions {
         if $<escale> {
             my $e := pir::isa($<escale>, 'ResizablePMCArray') ?? $<escale>[0] !! $<escale>;
 #            pir::say('dec_number exponent: ' ~ ~$e.ast);
-            make radcalc(10, $<coeff>, 10, nqp::unbox_i($e.ast));
+            make radcalc(10, $<coeff>, 10, nqp::unbox_i($e.ast), :num);
         } else {
             make radcalc(10, $<coeff>);
         }
@@ -3425,7 +3425,6 @@ class Perl6::Actions is HLL::Actions {
             my $fracpart := $<fracpart> ?? $<fracpart>.Str !! "0";
             my $intfrac  := $intpart ~ $fracpart; #the dot is a part of $fracpart, so no need for ~ "." ~
 
-            # radcalc cares about undefined value vs. 0 for exp
             my $base;
             my $exp;
             $base   := +($<base>[0].Str) if $<base>;
@@ -4256,7 +4255,7 @@ class Perl6::Actions is HLL::Actions {
     # radix, $base, $exponent: parrot numbers (Integer or Float)
     # $number: parrot string
     # return value: PAST for Int, Rat or Num
-    sub radcalc($radix, $number, $base?, $exponent?) {
+    sub radcalc($radix, $number, $base?, $exponent?, :$num) {
         my int $sign := 1;
         pir::die("Radix '$radix' out of range (2..36)")
             if $radix < 2 || $radix > 36;
@@ -4313,11 +4312,21 @@ class Perl6::Actions is HLL::Actions {
 
         $iresult := nqp::mul_I($iresult, nqp::box_i($sign, $Int));
 
-        if pir::defined($exponent) {
+        if $num {
             # TODO: better way to get floats out of $iresult and $fdivide 
             my num $result := nqp::mul_n(nqp::div_n(nqp::tonum_I($iresult), nqp::tonum_I($fdivide)), nqp::pow_n($base, $exponent));
             return $*ST.add_numeric_constant('Num', $result);
         } else {
+            if pir::defined($exponent) {
+                $iresult := nqp::mul_I(
+                            $iresult,
+                            nqp::pow_I(
+                                nqp::box_i($base,     $iresult),
+                                nqp::box_i($exponent, $iresult),
+                                $*ST.find_symbol(['Num'])
+                           )
+                        );
+            }
             if $seen_dot {
                 return $*ST.add_constant('Rat', 'type_new',
                     $*ST.add_numeric_constant('Int', $iresult)<compile_time_value>,

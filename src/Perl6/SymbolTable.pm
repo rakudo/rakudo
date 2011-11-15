@@ -1088,19 +1088,18 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
         elsif $primitive eq 'type_new' {
             $constant := $type_obj.new(|@value, |%named);
             if $type eq 'Rat' {
-                # BIGINT TODO: fix for bigint
                 my $int_lookup := self.get_object_sc_ref_past(self.find_symbol(['Int']));
-                my $nu := nqp::unbox_i(nqp::getattr($constant, $type_obj, '$!numerator'));
-                my $de := nqp::unbox_i(nqp::getattr($constant, $type_obj, '$!denominator'));
+                my $nu := nqp::tostr_I(nqp::getattr($constant, $type_obj, '$!numerator'));
+                my $de := nqp::tostr_I(nqp::getattr($constant, $type_obj, '$!denominator'));
                 $des := PAST::Op.new(
                     :pirop('repr_bind_attr_obj 0PPsP'),
                     PAST::Op.new(
                         :pirop('repr_bind_attr_obj 0PPsP'),
                         PAST::Op.new( :pirop('repr_instance_of PP'), $type_obj_lookup ),
                         $type_obj_lookup, '$!numerator',
-                        PAST::Op.new( :pirop('repr_box_int PiP'), $nu, $int_lookup )),
+                        PAST::Op.new( :pirop('nqp_bigint_from_str PPs'), $int_lookup, $nu )),
                     $type_obj_lookup, '$!denominator',
-                    PAST::Op.new( :pirop('repr_box_int PiP'), $de, $int_lookup ));
+                    PAST::Op.new( :pirop('nqp_bigint_from_str PPs'), $int_lookup, $de ));
             }
             else {
                 $des := PAST::Op.new(

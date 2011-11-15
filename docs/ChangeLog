@@ -1,5 +1,6 @@
 New in 2011.11
-+ CATCH blocks are now much closer to spec.
++ CATCH blocks are now much closer to spec
++ Big integer support
 + correct default values for natively typed variables
 + fixed initialization of state variables
 + improved support for natively typed variables
@@ -8,6 +9,7 @@ New in 2011.11
 + several runtime errors now throw properly typed error objects
 + various performance improvements, for example to the X meta op and Str.succ
 + improved support for MAIN argument parsing
++ fixed lexicals/recursion bug
 
 New in 2011.10
 + operators and functions with native type arguments

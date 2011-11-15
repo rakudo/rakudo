@@ -4329,10 +4329,10 @@ class Perl6::Actions is HLL::Actions {
                         );
             }
             if $seen_dot {
+                # add_constant special-cases Rat, so there is
+                # no need to add $iresult and $fdivide first
                 return $*ST.add_constant('Rat', 'type_new',
-                    $*ST.add_numeric_constant('Int', $iresult)<compile_time_value>,
-                    $*ST.add_numeric_constant('Int', $fdivide)<compile_time_value>,
-                    :nocache(1)
+                    $iresult, $fdivide, :nocache(1)
                 );
             } else {
                 return $*ST.add_numeric_constant('Int', $iresult);

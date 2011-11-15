@@ -4315,7 +4315,7 @@ class Perl6::Actions is HLL::Actions {
 
         if pir::defined($exponent) {
             # TODO: better way to get floats out of $iresult and $fdivide 
-            my num $result := nqp::mul_n(nqp::div_n(nqp::unbox_i($iresult), nqp::unbox_i($fdivide)), nqp::pow_n($base, $exponent));
+            my num $result := nqp::mul_n(nqp::div_n(nqp::tonum_I($iresult), nqp::tonum_I($fdivide)), nqp::pow_n($base, $exponent));
             return $*ST.add_numeric_constant('Num', $result);
         } else {
             if $seen_dot {

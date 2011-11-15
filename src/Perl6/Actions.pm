@@ -3843,6 +3843,7 @@ class Perl6::Actions is HLL::Actions {
             :pasttype('callmethod'), :name('clone'),
             $code
         );
+        $closure := PAST::Op.new( :pirop('perl6_capture_lex__0P'), $closure);
         $closure<past_block> := $code<past_block>;
         $closure<code_object> := $code<code_object>;
         return $closure;

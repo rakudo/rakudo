@@ -1428,6 +1428,27 @@ inline op perl6_invoke_catchhandler(invar PMC, in PMC) :flow {
 }
 
 
+
+/*
+
+=item perl6_capture_lex
+
+Does a lexical capture, but based on a Perl 6 code object.
+
+=cut
+
+*/
+inline op perl6_capture_lex(in PMC) {
+    if ($1->vtable->base_type == smo_id) {
+        Rakudo_Code *code_obj = (Rakudo_Code *)PMC_data($1);
+        Parrot_sub_capture_lex(interp, code_obj->_do);
+    }
+    else {
+        Parrot_ex_throw_from_c_args(interp, NULL, EXCEPTION_INVALID_OPERATION,
+            "Can only use perl6_capture_lex with a SixModelObject");
+    }
+}
+
 /*
  * Local variables:
  *   c-file-style: "parrot"

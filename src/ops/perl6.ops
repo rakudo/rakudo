@@ -42,7 +42,7 @@ Does various setup tasks on behalf of all of the other dynops.
 */
 inline op rakudo_dynop_setup() :base_core {
     /* Get 6model object type ID. */
-    smo_id = pmc_type(interp, Parrot_str_new(interp, "SixModelObject", 0));
+    smo_id = Parrot_pmc_get_type_str(interp, Parrot_str_new(interp, "SixModelObject", 0));
 }
 
 
@@ -256,7 +256,7 @@ Sees if we could potentially bind a signature.
 */
 inline op perl6_trial_bind_ct(out INT, in PMC, in PMC, in PMC) :base_core {
     /* Build up a capture with sample arguments. */
-    PMC *capture    = pmc_new(interp, enum_class_CallContext);
+    PMC *capture    = Parrot_pmc_new(interp, enum_class_CallContext);
     INTVAL num_args = VTABLE_elements(interp, $3);
     INTVAL args_ok  = 1;
     INTVAL i;
@@ -842,7 +842,7 @@ Creates a multi-dispatch thunk for the specified onlystar dispatcher.
 inline op perl6_multi_dispatch_thunk(out PMC, in PMC) :base_core {
     Rakudo_Code *code_obj = (Rakudo_Code *)PMC_data($2);
     if (PMC_IS_NULL(code_obj->md_thunk)) {
-        code_obj->md_thunk = pmc_new(interp, pmc_type(interp, Parrot_str_new(interp, "MDThunk", 0)));
+        code_obj->md_thunk = Parrot_pmc_new(interp, Parrot_pmc_get_type_str(interp, Parrot_str_new(interp, "MDThunk", 0)));
         PARROT_GC_WRITE_BARRIER(interp, $2);
         VTABLE_set_pointer(interp, code_obj->md_thunk, &Rakudo_md_dispatch);
         VTABLE_set_pmc(interp, code_obj->md_thunk, $2);
@@ -867,7 +867,7 @@ inline op perl6_multi_dispatch_cand_thunk(out PMC, in PMC, in INT) :base_core {
     PMC         *chosen   = VTABLE_get_pmc_keyed_int(interp, disp_obj->dispatchees, $3);
     Rakudo_Code *code_obj = (Rakudo_Code *)PMC_data(chosen);
     if (PMC_IS_NULL(code_obj->md_thunk)) {
-        code_obj->md_thunk = pmc_new(interp, pmc_type(interp, Parrot_str_new(interp, "CTMThunk", 0)));
+        code_obj->md_thunk = Parrot_pmc_new(interp, Parrot_pmc_get_type_str(interp, Parrot_str_new(interp, "CTMThunk", 0)));
         PARROT_GC_WRITE_BARRIER(interp, chosen);
         VTABLE_set_pmc(interp, code_obj->md_thunk, chosen);
     }
@@ -915,7 +915,7 @@ decide some multiple dispatches at compile time.
 inline op perl6_multi_dispatch_ct(out PMC, in PMC, in PMC, in PMC) :base_core {
     /* Build up a capture with sample arguments. */
     PMC *result     = PMCNULL;
-    PMC *capture    = pmc_new(interp, enum_class_CallContext);
+    PMC *capture    = Parrot_pmc_new(interp, enum_class_CallContext);
     INTVAL num_args = VTABLE_elements(interp, $3);
     INTVAL args_ok  = 1;
     INTVAL i;
@@ -945,7 +945,7 @@ inline op perl6_multi_dispatch_ct(out PMC, in PMC, in PMC, in PMC) :base_core {
     }
     
     /* Use the capture to do a compile time trial dispatch. */
-    $1 = pmc_new(interp, enum_class_ResizablePMCArray);
+    $1 = Parrot_pmc_new(interp, enum_class_ResizablePMCArray);
     if (args_ok) {
         VTABLE_set_integer_keyed_int(interp, $1, 0,
             Rakudo_md_ct_dispatch(interp, $2, capture, &result));
@@ -1128,7 +1128,7 @@ current block.
 */
 inline op perl6_current_args_rpa(out PMC) :base_core {
     PMC   *cur_ctx = CURRENT_CONTEXT(interp);
-    PMC   *result  = pmc_new(interp, enum_class_ResizablePMCArray);
+    PMC   *result  = Parrot_pmc_new(interp, enum_class_ResizablePMCArray);
     INTVAL args    = VTABLE_elements(interp, cur_ctx);
     INTVAL i;
     for (i = 0; i < args; i++)
@@ -1289,7 +1289,7 @@ inline op perl6_shiftpush(inout PMC, in PMC, in INT) :base_core {
         }
     }
     if ($3 > 0)
-        VTABLE_splice(interp, $2, pmc_new(interp, enum_class_ResizablePMCArray), 0, $3);
+        VTABLE_splice(interp, $2, Parrot_pmc_new(interp, enum_class_ResizablePMCArray), 0, $3);
 }
 
 
@@ -1395,7 +1395,7 @@ inline op perl6_invoke_catchhandler(invar PMC, in PMC) :flow {
     PMC      * ctx      = CURRENT_CONTEXT(interp);
     opcode_t * dest     = expr NEXT();
     PMC      * call_obj = Parrot_pcc_build_call_from_c_args(interp, PMCNULL, "P", $2);
-    PMC      * cont     = pmc_new(interp, enum_class_Continuation);
+    PMC      * cont     = Parrot_pmc_new(interp, enum_class_Continuation);
     PMC      * ectx     = PMCNULL;
 
     VTABLE_set_pointer(interp, cont, dest);

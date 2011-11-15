@@ -508,7 +508,7 @@ static PMC* find_best_candidate(PARROT_INTERP, Rakudo_md_candidate_info **candid
     Rakudo_md_candidate_info **cur_candidate    = candidates;
     Rakudo_md_candidate_info **possibles        = mem_allocate_n_typed(num_candidates + 1, Rakudo_md_candidate_info *);
     PMC                       *junctional_res   = PMCNULL;
-    PMC                       *many_res         = many ? pmc_new(interp, enum_class_ResizablePMCArray) : PMCNULL;
+    PMC                       *many_res         = many ? Parrot_pmc_new(interp, enum_class_ResizablePMCArray) : PMCNULL;
     const INTVAL               num_args         = VTABLE_elements(interp, capture);
     INTVAL                     possibles_count  = 0;
     INTVAL                     pure_type_result = 1;
@@ -820,7 +820,7 @@ static Rakudo_md_candidate_info ** obtain_candidate_list(PARROT_INTERP,
     else {
         Rakudo_md_cache *cache = mem_allocate_zeroed_typed(Rakudo_md_cache);
         cache->candidates = sort_candidates(interp, code_obj->dispatchees);
-        code_obj->dispatcher_cache = pmc_new(interp, enum_class_Pointer);
+        code_obj->dispatcher_cache = Parrot_pmc_new(interp, enum_class_Pointer);
         VTABLE_set_pointer(interp, code_obj->dispatcher_cache, cache);
         PARROT_GC_WRITE_BARRIER(interp, dispatcher);
         return cache->candidates;

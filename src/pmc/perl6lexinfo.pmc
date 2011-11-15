@@ -42,7 +42,7 @@ pmclass Perl6LexInfo
 
     VTABLE void init_pmc(PMC *sub) {
         /* Set up the lex info storage. */
-        PMC *name_to_register_map = pmc_new(interp, enum_class_Hash);
+        PMC *name_to_register_map = Parrot_pmc_new(interp, enum_class_Hash);
         VTABLE_init_int(interp, name_to_register_map, (INTVAL)enum_type_INTVAL);
         SET_ATTR_name_to_register_map(INTERP, SELF, name_to_register_map);
 

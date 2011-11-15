@@ -191,10 +191,10 @@ Return the LexInfo PMC, if any or a Null PMC.
             /* Compute the caches if needed. */
             if (static_lexpad->changed || PMC_IS_NULL(static_slots_cache)) {
                 /* (Re-)build caches. */
-                PMC *slots       = pmc_new(interp, enum_class_ResizableIntegerArray);
-                PMC *values      = pmc_new(interp, enum_class_ResizablePMCArray);
-                PMC *clone_flags = pmc_new(interp, enum_class_ResizableIntegerArray);
-                PMC *state_flags = pmc_new(interp, enum_class_ResizableStringArray);
+                PMC *slots       = Parrot_pmc_new(interp, enum_class_ResizableIntegerArray);
+                PMC *values      = Parrot_pmc_new(interp, enum_class_ResizablePMCArray);
+                PMC *clone_flags = Parrot_pmc_new(interp, enum_class_ResizableIntegerArray);
+                PMC *state_flags = Parrot_pmc_new(interp, enum_class_ResizableStringArray);
                 PMC *iter        = VTABLE_get_iter(interp, static_lexpad->static_values);
                 while (VTABLE_get_bool(interp, iter)) {
                     STRING *name  = VTABLE_shift_string(interp, iter);
@@ -245,7 +245,7 @@ Return the LexInfo PMC, if any or a Null PMC.
                         GETATTR_Sub_multi_signature(interp, sub, p6sub);
                         state_stash = VTABLE_get_attr_keyed(interp, p6sub, Block, CONST_STRING(interp, "$!state_vars"));
                         if (PMC_IS_NULL(state_stash)) {
-                            state_stash = pmc_new(interp, enum_class_Hash);
+                            state_stash = Parrot_pmc_new(interp, enum_class_Hash);
                             VTABLE_set_attr_keyed(interp, p6sub, Block, CONST_STRING(interp, "$!state_vars"), state_stash);
                             PObj_flag_SET(P6LEXPAD_STATE_INIT, (PMC *)ctx);
                         }

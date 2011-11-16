@@ -505,7 +505,6 @@ Routine.HOW.add_method(Routine, 'set_inline_info', sub ($self, $info) {
         pir::repr_bind_attr_str__0PPss($dcself, Routine, '$!inline_info',
             pir::repr_unbox_str__sP($info));
     });
-
 Routine.HOW.add_method(Routine, 'inline_info', sub ($self) {
         my $dcself := pir::perl6_decontainerize__PP($self);
         pir::repr_get_attr_str__SPPs($dcself, Routine, '$!inline_info')
@@ -534,6 +533,9 @@ my stub Regex metaclass Perl6::Metamodel::ClassHOW { ... };
 Regex.HOW.add_parent(Regex, Method);
 Regex.HOW.publish_parrot_vtable_handler_mapping(Regex);
 Regex.HOW.publish_parrot_vtable_mapping(Regex);
+Regex.HOW.add_method(Regex, 'nqpattr', sub ($self, $key) {
+        nqp::getattr(pir::perl6_decontainerize__PP($self), Code, '$!do').nqpattr($key)
+    });
 
 # class Str is Cool {
 #     has str $!value is box_target;

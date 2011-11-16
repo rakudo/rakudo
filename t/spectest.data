@@ -571,7 +571,7 @@ S32-str/substr.t
 S32-str/trim.t
 S32-str/uc.t                                               # icu
 S32-str/ucfirst.t                                          # icu
-# S32-str/unpack.t # err: This type cannot unbox to a native integer
+# S32-str/unpack.t # err: Method 'unpack' not found for invocant of class 'Buf'
 S32-str/words.t                                            # icu
 S32-temporal/calendar.t
 S32-temporal/Date.t

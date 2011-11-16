@@ -1807,10 +1807,17 @@ class Perl6::Actions is HLL::Actions {
         my $name := ~$<deflongname>[0];
         %*RX<name> := $name;
 
+        my @params := $<signature> ?? $<signature>.ast !! [];
         if $*MULTINESS eq 'proto' {
-            $/.CURSOR.panic('protoregexes not yet implemented');
+            unless $<onlystar> {
+                $/.CURSOR.panic("Proto regex body must be \{*\} (or <*> or <...>, which are deprecated)");
+            }
+            my $proto_body := PAST::Op.new(
+                :pasttype('callmethod'), :name('!protoregex'),
+                PAST::Var.new( :name('self'), :scope('register') ),
+                $name);
+            $coderef := regex_coderef($/, $proto_body, $*SCOPE, $name, @params, $*CURPAD, $<trait>, :proto(1));
         } else {
-            my @params := $<signature> ?? $<signature>.ast !! [];
             $coderef := regex_coderef($/, $<p6regex>.ast, $*SCOPE, $name, @params, $*CURPAD, $<trait>);
         }
 
@@ -1820,13 +1827,20 @@ class Perl6::Actions is HLL::Actions {
         make $closure;
     }
 
-    sub regex_coderef($/, $qast, $scope, $name, @params, $block, $traits?) {
+    sub regex_coderef($/, $qast, $scope, $name, @params, $block, $traits?, :$proto) {
         # create a code reference from a regex qast tree
-        $block[0].push(PAST::Var.new(:name<$¢>, :scope<lexical_6model>, :isdecl(1)));
-        $block[0].push(PAST::Var.new(:name<$/>, :scope<lexical_6model>, :isdecl(1)));
-        $block.symbol('$¢', :scope<lexical_6model>);
-        $block.symbol('$/', :scope<lexical_6model>);
-        my $past := QRegex::P6Regex::Actions::buildsub($qast, $block);
+        my $past;
+        if $proto {
+            $block[1] := $qast;
+            $past := $block;
+        }
+        else {
+            $block[0].push(PAST::Var.new(:name<$¢>, :scope<lexical_6model>, :isdecl(1)));
+            $block[0].push(PAST::Var.new(:name<$/>, :scope<lexical_6model>, :isdecl(1)));
+            $block.symbol('$¢', :scope<lexical_6model>);
+            $block.symbol('$/', :scope<lexical_6model>);
+            $past := QRegex::P6Regex::Actions::buildsub($qast, $block);
+        }
         $past.name($name);
         $past.blocktype("declaration");
 

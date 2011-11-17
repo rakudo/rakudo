@@ -1,7 +1,7 @@
 New in 2011.11
 + CATCH blocks are now much closer to spec
-+ Big integer support
-+ Basic protoregex support with NFA-driven LTM for some declarative constructs
++ big integer support
++ basic protoregex support with NFA-driven LTM for some declarative constructs
 + correct default values for natively typed variables
 + fixed initialization of state variables
 + improved support for natively typed variables

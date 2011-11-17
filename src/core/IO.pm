@@ -184,6 +184,13 @@ class IO {
         }
         $! ?? fail($!) !! True
     }
+
+    method chmod($mode) {
+        try {
+            pir::new__PS('OS').chmod(nqp::unbox_s(~$.path), nqp::unbox_i($mode.Int));
+        }
+        $! ?? fail($!) !! True
+    }
 }
 
 sub unlink($path) {

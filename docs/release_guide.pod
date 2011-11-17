@@ -50,7 +50,7 @@ part of monthly Parrot releases.
 
 Dates are based on Parrot's expected release schedule.
 
-  2011-11-17   Rakudo #46                      -vacant-
+  2011-11-17   Rakudo #46 "London"             -vacant-
   2011-12-22   Rakudo #47                      -vacant-
 
 =head2 Suggested .pm group names for future releases

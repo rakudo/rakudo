@@ -1,7 +1,7 @@
-    Announce: Rakudo Perl 6 compiler development release #46 ("XXX")
+    Announce: Rakudo Perl 6 compiler development release #46 ("London")
 
 On behalf of the Rakudo development team, I'm happy to announce the
-November 2011 release of Rakudo Perl #46 "XXX".  Rakudo is an 
+November 2011 release of Rakudo Perl #46 "London".  Rakudo is an 
 implementation of Perl 6 on the Parrot Virtual Machine (see 
 <http://www.parrot.org>). The tarball for this release
 is available from <http://github.com/rakudo/rakudo/downloads>.
@@ -13,7 +13,10 @@ For the latest Rakudo Star release, see
 
 The Rakudo Perl compiler follows a monthly release cycle, with each
 release named after a Perl Mongers group.  The November 2011 release is
-code named after the XXX Perl Mongers because XXX.
+code named after the London Perl Mongers, organizers of many London Perl
+Workshops, including the 2011 edition that took place this month. Over
+200 people showed up for this great event, which had some Perl 6 talks
+amongst the schedule.
 
 This compiler release is from the latest development branch of Rakudo.
 It brings many exciting improvements, but also some regressions compared

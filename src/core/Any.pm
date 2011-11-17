@@ -13,6 +13,7 @@ my class Any {
     method elems() { self.list.elems }
     method end()   { self.list.end }
     method classify(&t) { self.list.classify(&t) }
+    method uniq() { self.list.uniq }
     method infinite() { Mu }
     method flat() { nqp::p6list(nqp::list(self), List, Bool::True) }
     method hash() { my %h = self }
@@ -257,6 +258,9 @@ multi end($a) { $a.end }
 
 proto classify(|$) { * }
 multi classify(&test, *@items) { @items.classify(&test) }
+
+proto uniq(|$) { * }
+multi uniq(*@values) { @values.uniq }
 
 proto sub sort(|$) {*}
 multi sub sort(&by, *@values) { @values.sort(&by) }

@@ -272,6 +272,20 @@ my class List does Positional {
         %result.pairs;
     }
 
+    # This needs a way of taking a user-defined comparison
+    # specifier, but AFAIK nothing has been spec'd yet.
+    # CHEAT: Almost certainly should be hashed on something
+    # other than the stringification of the objects.
+    method uniq() {
+        my %seen;
+        gather for @.list {
+             unless %seen{$_} {
+                 take $_;
+                 %seen{$_} = 1;
+             }
+        }
+    }
+
     multi method gist(List:D:) { self.Str }
     multi method perl(List:D \$self:) {
         self.gimme(*);

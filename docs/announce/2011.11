@@ -48,7 +48,9 @@ Parrot, the Perl 6 test suite and the specification.
 
 The following people contributed to this release:
 
-XXX
+Jonathan Worthington, Moritz Lenz, Will "Coke" Coleda, Tadeusz Sośnierz, 
+Geoffrey Broadwell, Solomon Foster, Jonathan Scott Duff,
+Michael Schroeder, Carl Masak, Geoff Broadwell, not_gerd and coto
 
 If you would like to contribute, see <http://rakudo.org/how-to-help>,
 ask on the perl6-compiler@perl.org mailing list, or ask on IRC #perl6
@@ -60,7 +62,7 @@ available in the "docs/release_guide.pod" file.  In general, Rakudo
 development releases are scheduled to occur soon after each Parrot
 monthly release.  Parrot releases the third Tuesday of each month.
 
-As always ...  Have fun!
+Have a great deal of fun!
 
 
 [*] What's the difference between the Rakudo compiler and the Rakudo

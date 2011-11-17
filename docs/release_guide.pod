@@ -45,12 +45,12 @@ part of monthly Parrot releases.
   2011-08-18    -- none --
   2011-09-30   Rakudo #44 "Riga"               (tadzik)
   2011-10-20   Rakudo #45 "Houston"            (duff)
+  2011-11-17   Rakudo #46 "London"             (tadzik)
 
 =head2 Planned 2011 releases
 
 Dates are based on Parrot's expected release schedule.
 
-  2011-11-17   Rakudo #46 "London"             -vacant-
   2011-12-22   Rakudo #47                      -vacant-
 
 =head2 Suggested .pm group names for future releases

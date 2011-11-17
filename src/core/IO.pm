@@ -173,7 +173,17 @@ class IO {
     method x() {
         nqp::p6bool(pir::new__Ps('OS').can_execute(nqp::unbox_s($!path)))
     }
-    
+
+    # not spec'd
+    method copy($dest) {
+        if self.d() {
+            die "Cannot copy '$.path': Is a directory"
+        }
+        try {
+            pir::new__PS('File').copy(nqp::unbox_s(~$.path), nqp::unbox_s(~$dest));
+        }
+        $! ?? fail($!) !! True
+    }
 }
 
 sub unlink($path) {

@@ -55,6 +55,7 @@ my class Str does Stringy {
     method substr(Str:D: $start, $length? is copy) {
         fail "Negative start argument ($start) to .substr" if $start < 0;
         fail "Start of substr ($start) beyond end of string" if $start > self.chars;
+        $length = $length(self.chars - $start) if $length ~~ Callable;
         $length = $length.defined ?? $length.Int !! self.chars - $start.Int;
         fail "Negative length argument ($length) to .substr" if $length < 0;
 

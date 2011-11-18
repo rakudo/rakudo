@@ -4359,7 +4359,7 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions {
 
     method metachar:sym<:my>($/) {
         my $past := $<statement>.ast;
-        make QAST::Regex.new( $past, :rxtype('pastnode') );
+        make QAST::Regex.new( $past, :rxtype('pastnode'), :subtype('declarative') );
     }
 
     method metachar:sym<{ }>($/) {

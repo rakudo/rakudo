@@ -255,7 +255,7 @@ S05-mass/stdrules.t
 S05-match/arrayhash.t
 S05-match/blocks.t
 S05-match/capturing-contexts.t
-# S05-match/non-capturing.t # err: Negative length argument (-1) to .substr
+S05-match/non-capturing.t
 # S05-match/perl.t # err: SixModelObject does not support the clone v-table; consider using the repr_clone op instead
 S05-match/positions.t
 S05-metachars/closure.t

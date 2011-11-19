@@ -92,7 +92,7 @@ class Range is Iterable does Positional {
                 dec count
                 goto loop
               done:
-                $P0 = perl6_box_num value
+                $P0 = perl6_box_bigint value
                 perl6_container_store value_pmc, $P0
                 %r = rpa
             };

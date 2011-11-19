@@ -391,6 +391,7 @@ grammar Perl6::Grammar is HLL::Grammar {
         :my $*VMARGIN    := 0;                     # pod stuff
         :my $*ALLOW_CODE := 0;                     # pod stuff
         :my $*POD_IN_FORMATTINGCODE := 0;          # pod stuff
+        :my $*IN_REGEX_ASSERTION := 0;
         
         # Various interesting scopes we'd like to keep to hand.
         :my $*GLOBALish;
@@ -570,6 +571,7 @@ grammar Perl6::Grammar is HLL::Grammar {
     token terminator:sym<)> { <?[)]> }
     token terminator:sym<]> { <?[\]]> }
     token terminator:sym<}> { <?[}]> }
+    token terminator:sym<ang> { <?[>]> <?{ $*IN_REGEX_ASSERTION }> }
     token terminator:sym<if>     { 'if'     <.end_keyword> }
     token terminator:sym<unless> { 'unless' <.end_keyword> }
     token terminator:sym<while>  { 'while'  <.end_keyword> }
@@ -2118,6 +2120,7 @@ grammar Perl6::Grammar is HLL::Grammar {
     }
 
     token infixish {
+        <!stdstopper>
         [
         | '[' ~ ']' <infixish> <OPER=.copyOPER('infixish')>
         | <OPER=infix_circumfix_meta_operator>
@@ -2665,6 +2668,7 @@ grammar Perl6::RegexGrammar is QRegex::P6Regex::Grammar {
     }
 
     token arglist {
+        :my $*IN_REGEX_ASSERTION := 1;
         <arglist=.LANG('MAIN','arglist')>
     }
 }

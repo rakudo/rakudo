@@ -47,6 +47,11 @@ my class Instant is Real {
     multi method perl(Instant:D:) {
         "Instant.new(x => $.x.perl())";
     }
+    method Bridge(Instant:D:) { $.x.Bridge }
+    method Num   (Instant:D:) { $.x.Num    }
+    method Int   (Instant:D:) { $.x.Int    }
+
+
 
 #    TODO: should be the new .gist, probably
 #    method Str() {

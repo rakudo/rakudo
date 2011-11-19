@@ -1355,7 +1355,7 @@ block.
 inline op perl6_rethrow_skipnextctx(in PMC) :base_core {
     PMC      *except = $1;
     opcode_t *dest;
-    STRING   *handler_iter_str = Parrot_str_new_constant(interp, "handler_iter");
+    STRING   *handlers_left_str = Parrot_str_new_constant(interp, "handlers_left");
     PMC      *ctx = CURRENT_CONTEXT(interp);
     PMC      *cont = Parrot_pcc_get_continuation(interp, ctx);
     PMC      *next_ctx = PMCNULL;
@@ -1367,7 +1367,7 @@ inline op perl6_rethrow_skipnextctx(in PMC) :base_core {
         GETATTR_Continuation_to_ctx(interp, cont, next_ctx);
     if (PMC_IS_NULL(next_ctx))
         next_ctx = Parrot_pcc_get_caller_ctx(interp, ctx);
-    VTABLE_set_attr_str(interp, except, handler_iter_str, PMCNULL);
+    VTABLE_set_integer_keyed_str(interp, except, handlers_left_str, 0);
     VTABLE_set_pointer(interp, except, next_ctx);
     dest = Parrot_ex_rethrow_from_op(interp, except);
     goto ADDRESS(dest);

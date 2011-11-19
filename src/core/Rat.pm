@@ -1,47 +1,4 @@
-# XXX: should also be Cool, but attributes and MI don't seem to mix yet
-my class Rat is Real {
-    has Int $.numerator;
-    has Int $.denominator;
-
-    method new(Int \$nu = 0, Int \$de = 1) {
-        my Rat $new     := nqp::create(self);
-        my Int $gcd     := $nu gcd $de;
-        my $numerator   = $nu div $gcd;
-        my $denominator = $de div $gcd;
-        if $denominator < 0 {
-            $numerator   = -$numerator;
-            $denominator = -$denominator;
-        }
-        nqp::bindattr($new, self.WHAT, '$!numerator',     nqp::p6decont($numerator));
-        nqp::bindattr($new, self.WHAT, '$!denominator',   nqp::p6decont($denominator));
-        $new;
-    }
-
-    method nude() { $!numerator, $!denominator }
-    method Num() {
-        $!denominator == 0
-          ?? ($!numerator < 0 ?? -$Inf !! $Inf)
-          !!  $!numerator.Num / $!denominator.Num
-    }
-    method Int() { $!numerator div $!denominator }
-
-    method Bridge() { self.Num }
-    method Rat(Rat:D: Real $?) { self }
-    multi method Str(Rat:D:) {
-        self.Num.Str
-    }
-    multi method perl(Rat:D:) {
-        $!numerator ~ '/' ~ $!denominator
-    }
-    method succ {
-        Rat.new($!numerator + $!denominator, $!denominator);
-    }
-
-    method pred {
-        Rat.new($!numerator - $!denominator, $!denominator);
-    }
-}
-
+my class Rat does Rational { }
 multi prefix:<->(Rat \$a) {
     Rat.new(-$a.numerator, $a.denominator);
 }

@@ -1,5 +1,4 @@
 # Copyright (C) 2006-2011, The Perl Foundation.
-# $Id$
 
 SHELL            = @shell@
 PARROT_ARGS      =
@@ -168,6 +167,7 @@ CORE_SOURCES = \
   src/core/Numeric.pm \
   src/core/Real.pm \
   src/core/Int.pm \
+  src/core/UInt64.pm \
   src/core/Num.pm \
   src/core/Str.pm \
   src/core/Capture.pm \

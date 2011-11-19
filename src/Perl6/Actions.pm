@@ -1807,7 +1807,7 @@ class Perl6::Actions is HLL::Actions {
         my $name := ~$<deflongname>[0];
         %*RX<name> := $name;
 
-        my @params := $<signature> ?? $<signature>.ast !! [];
+        my @params := $<signature> ?? $<signature>[0].ast !! [];
         if $*MULTINESS eq 'proto' {
             unless $<onlystar> {
                 $/.CURSOR.panic("Proto regex body must be \{*\} (or <*> or <...>, which are deprecated)");
@@ -4408,11 +4408,10 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions {
         make $past;
     }
 
-    method p6arglist($/) {
+    method arglist($/) {
         my $arglist := $<arglist>.ast;
         make $arglist;
     }
-
 }
 
 # vim: ft=perl6

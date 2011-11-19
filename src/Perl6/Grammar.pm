@@ -2664,18 +2664,7 @@ grammar Perl6::RegexGrammar is QRegex::P6Regex::Grammar {
         <block=.LANG('MAIN','block')>
     }
 
-    token assertion:sym<name> {
-        $<longname>=[\w+]
-            [
-            | <?before '>'>
-            | '=' <assertion>
-            | ':' <arglist>
-            | '(' <arglist=p6arglist> ')'
-            | <.normspace> <nibbler>
-            ]?
-    }
-
-    token p6arglist {
+    token arglist {
         <arglist=.LANG('MAIN','arglist')>
     }
 }

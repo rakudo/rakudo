@@ -240,7 +240,7 @@ S05-grammar/methods.t
 S05-grammar/parse_and_parsefile.t
 S05-grammar/protoregex.t
 S05-grammar/protos.t
-# S05-grammar/signatures.t # err: Method 'list' not found for invocant of class 'Undef'
+S05-grammar/signatures.t
 # S05-grammar/ws.t # err: regex assertion not terminated by angle bracket
 S05-interpolation/lexicals.t
 # S05-interpolation/regex-in-variable.t # err: Null PMC access in find_method('MATCH')

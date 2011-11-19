@@ -5,6 +5,9 @@ role Perl6::Metamodel::MethodContainer {
 
     # The order that the methods were added in.
     has @!method_order;
+    
+    # Cache that expires when we add methods (primarily to support NFA stuff).
+    has %!cache;
 
     # Add a method.
     method add_method($obj, $name, $code_obj) {
@@ -25,6 +28,7 @@ role Perl6::Metamodel::MethodContainer {
         else {
             %!methods{$name} := $code_obj;
         }
+        %!cache := {};
         @!method_order[+@!method_order] := $code_obj;
     }
 
@@ -66,5 +70,13 @@ role Perl6::Metamodel::MethodContainer {
     # method. Checks submethods also.
     method declares_method($obj, $name) {
         %!methods{$name} || %!submethods{$name} ?? 1 !! 0
+    }
+
+    # Caches or updates a cached value.
+    method cache($obj, $key, $value_generator) {
+        %!cache || (%!cache := {});
+        pir::exists(%!cache, $key) ??
+            %!cache{$key} !!
+            (%!cache{$key} := $value_generator())
     }
 }

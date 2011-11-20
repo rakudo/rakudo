@@ -1,7 +1,7 @@
 my class Cursor does NQPCursorRole {
     method MATCH() {
         my $match := nqp::getattr(self, Cursor, '$!match');
-        return $match if pir::type_check__IPP($match, Match) && $match.defined;
+        return $match if nqp::istype($match, Match) && nqp::isconcrete($match);
         $match := nqp::create(Match);
         nqp::bindattr($match, Match, '$!orig', nqp::getattr(self, Cursor, '$!orig'));
         nqp::bindattr($match, Match, '$!from', nqp::p6box_i(nqp::getattr_i(self, Cursor, '$!from')));

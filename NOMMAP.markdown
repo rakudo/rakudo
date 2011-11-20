@@ -1,8 +1,8 @@
 # Roadmap for "nom" Branch
 
-Last Updated 21 Oct 2011
+Last Updated 20 Nov 2011
 
-## Punch list for nom->master and nom distribution
+## Punch list for nom distribution
 
 This is the "punch list" of items that need addressing before
 switching nom to be the new 'master' branch, and before releasing
@@ -13,13 +13,8 @@ branch and distribution, an estimate of the difficulty
 responsible parties.
 
 * Enums to level of master (2, 1, ???, ???)
-* Grammars, qregex, other regex stuff (1, 1, \*\*\*, pmichaud)
-* fix term:<now> (hangs on 32bit platforms)
 * Define new operators (2, 1, \*\*, pmichaud) (awaiting other regex updates)
-* `MAIN` (2, 1, ???, ???)
 * modules working with nom (3, 1, ???, ???)
-* fix meta-dispatchers to not flatten positionals (3, 2, ???, ???)
-* `<!before>` (2, 1, \*, pmichaud)
 
 ## Other NOMMAP notes
 
@@ -27,9 +22,7 @@ Note that this isn't strictly in order, though things nearer to the top
 are likely to get focus sooner.
 
 Current fails that people are likely to encounter (no particular order):
-* core constants (e.g., `Inf`, `Order::Decrease`)
-* `is export` on methods
-    - should work outside the setting; note here if it doesn't
+* Order enumeration
 
 Things that aren't blockers but might be worth knowing about:
 * attribute `:=` doesn't work in CORE.setting (works outside of setting, though)
@@ -37,17 +30,11 @@ Things that aren't blockers but might be worth knowing about:
   in the setting)
 * no rw-accessors for natively typed attributes (yet? spec isn't clear)
 
-## Lexical Multi-Part names
-For `my X::Base { ... }`, `my Foo::Bar { ... }` etc. The our-scoped ones work.
-
 ## when statements
 when needs to properly find use correct outer scope
 
 ## Fix up binding some more
 Get `::=` correcter, and a bit more stuff on `:=` also.
-
-## Custom Operators
-Get these working again.
 
 ## Enumerations
 * Enums as roles

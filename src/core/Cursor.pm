@@ -2,12 +2,11 @@ my class Cursor does NQPCursorRole {
     method MATCH() {
         my $match := nqp::getattr(self, Cursor, '$!match');
         return $match if pir::type_check__IPP($match, Match) && $match.defined;
-        $match := Match.new(
-            orig   => nqp::getattr(self, Cursor, '$!orig'),
-            from   => nqp::p6box_i(nqp::getattr_i(self, Cursor, '$!from')),
-            to     => nqp::p6box_i(nqp::getattr_i(self, Cursor, '$!pos')),
-            cursor => self,
-        );
+        $match := nqp::create(Match);
+        nqp::bindattr($match, Match, '$!orig', nqp::getattr(self, Cursor, '$!orig'));
+        nqp::bindattr($match, Match, '$!from', nqp::p6box_i(nqp::getattr_i(self, Cursor, '$!from')));
+        nqp::bindattr($match, Match, '$!to', nqp::p6box_i(nqp::getattr_i(self, Cursor, '$!pos')));
+        nqp::bindattr($match, Match, '$!CURSOR', self);
         my Mu $list := nqp::list();
         my Mu $hash := nqp::hash();
         if $match.Bool {

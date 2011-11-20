@@ -3744,7 +3744,7 @@ class Perl6::Actions is HLL::Actions {
                 if $lastlit gt '' {
                     @parts.push($*ST.add_string_constant($lastlit));
                 }
-                @parts.push($ast);
+                @parts.push(PAST::Op.new( :pasttype('callmethod'), :name('Stringy'), $ast ));
                 $lastlit := '';
             }
         }

@@ -1,4 +1,4 @@
-my class Rat does Rational { }
+my class Rat does Rational[Int, UInt64] { }
 multi prefix:<->(Rat \$a) {
     Rat.new(-$a.numerator, $a.denominator);
 }

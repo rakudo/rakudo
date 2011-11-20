@@ -1,10 +1,10 @@
-my role Rational is Real {
-    has Int $.numerator;
-    has Int $.denominator;
+my role Rational[::NuT, ::DeT] is Real {
+    has NuT $.numerator;
+    has DeT $.denominator;
 
-    method new(Int \$nu = 0, Int \$de = 1) {
+    method new(NuT \$nu = 0, DeT \$de = 1) {
         my $new     := nqp::create(self);
-        my Int $gcd     := $nu gcd $de;
+        my $gcd     := $nu gcd $de;
         my $numerator   = $nu div $gcd;
         my $denominator = $de div $gcd;
         if $denominator < 0 {

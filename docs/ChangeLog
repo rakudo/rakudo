@@ -1,3 +1,10 @@
+New in 2011.12
++ improved protoregex support, including NFA caching
++ <before ...> and <after ...> (lookahead and lookbehind)
++ backslash sequences in character classes
++ fixed quantified captures and :r interaction bug
++ optimized match object construction
+
 New in 2011.11
 + CATCH blocks are now much closer to spec
 + big integer support

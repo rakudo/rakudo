@@ -174,9 +174,7 @@ class Perl6::Actions is HLL::Actions {
         # Mainline should have fresh lexicals.
         $unit.loadinit().push(PAST::Op.new(
             :pasttype('callmethod'), :name('set_fresh_magicals'),
-            PAST::Op.new(
-                :pasttype('callmethod'), :name('get_lexinfo'),
-                PAST::Val.new( :value($unit) ))));
+            PAST::Val.new( :value($unit), :returns('LexInfo'))));
 
         # Get the block for the entire compilation unit.
         my $outer := $*UNIT_OUTER;

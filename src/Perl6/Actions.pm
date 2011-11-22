@@ -782,8 +782,7 @@ class Perl6::Actions is HLL::Actions {
             $/.CURSOR.panic("only one CATCH block allowed");
         }
         my $block := $<block>.ast;
-        push_block_handler($/, $*ST.cur_lexpad(), $block);
-        $*ST.cur_lexpad().handlers()[0].handle_types_except('CONTROL');
+        push_block_handler($/, $*ST.cur_lexpad(), $block, 'CONTROL', :except(1));
         make PAST::Var.new( :name('Nil'), :scope('lexical') );
     }
 
@@ -792,8 +791,7 @@ class Perl6::Actions is HLL::Actions {
             $/.CURSOR.panic("only one CONTROL block allowed");
         }
         my $block := $<block>.ast;
-        push_block_handler($/, $*ST.cur_lexpad(), $block);
-        $*ST.cur_lexpad().handlers()[0].handle_types('CONTROL');
+        push_block_handler($/, $*ST.cur_lexpad(), $block, 'CONTROL');
         make PAST::Var.new( :name('Nil'), :scope('lexical') );
     }
 
@@ -840,7 +838,7 @@ class Perl6::Actions is HLL::Actions {
                 PAST::Op.new(:pirop('perl6_container_store__0PP'),
                     PAST::Var.new(:name<$!>, :scope<lexical_6model>),
                     PAST::Op.new(:name<&EXCEPTION>, :pasttype<call>,
-                        PAST::Op.new(:inline("    .get_results (%r)\n    finalize %r")))));
+                        PAST::Op.new(:inline("    .get_results (%r)")))));
 
             # Otherwise, put Mu into $!.
             $past.push(
@@ -3941,10 +3939,10 @@ class Perl6::Actions is HLL::Actions {
             @handlers.push(
                 PAST::Op.new(
                     :handle_types('BREAK'),
-                    :inline("    perl6_type_check_return_value %0\n    .return (%0)"),
+                    :pirop('perl6_type_check_return_value__0P'),
                     PAST::Var.new(
                         :scope('keyed'),
-                        PAST::Op.new(:inline("    .get_results (%r)\n    finalize %r")),
+                        PAST::Op.new(:inline("    .get_results (%r)")),
                         'payload',
                     ),
                 )
@@ -3973,7 +3971,7 @@ class Perl6::Actions is HLL::Actions {
             $result,
             PAST::Var.new(
                 :scope('keyed'),
-                PAST::Op.new(:inline("    .get_results (%r)\n    finalize %r")),
+                PAST::Op.new(:inline("    .get_results (%r)")),
                 'payload',
             ),
         );
@@ -3988,16 +3986,17 @@ class Perl6::Actions is HLL::Actions {
     }
 
     # XXX This isn't quite right yet... need to evaluate these semantics
-    sub push_block_handler($/, $block, $handler) {
+    sub push_block_handler($/, $block, $handler, $type?, :$except) {
         # unshift handler preamble: create exception object and store it into $_
+        my $exceptionreg := $block.unique('exception_');
         my $handler_preamble := PAST::Stmts.new(
             PAST::Op.new( :pasttype('bind'),
-                PAST::Var.new( :scope('register'), :name('exception'), :isdecl(1) ),
+                PAST::Var.new( :scope('register'), :name($exceptionreg), :isdecl(1) ),
                 PAST::Var.new( :scope('parameter') ),
             ),
             PAST::Op.new( :pasttype('bind_6model'),
                 PAST::Var.new( :scope('lexical_6model'), :name('$_'), :isdecl(1) ),
-                PAST::Op.new( :name('&EXCEPTION'), PAST::Var.new( :scope('register'), :name('exception') ) ),
+                PAST::Op.new( :name('&EXCEPTION'), PAST::Var.new( :scope('register'), :name($exceptionreg) ) ),
             ),
             PAST::Op.new( :pirop('perl6_container_store__0PP'),
                 PAST::Op.new( :pirop('find_lex_skip_current__Ps'), '$!'),
@@ -4011,7 +4010,7 @@ class Perl6::Actions is HLL::Actions {
         # rethrow the exception if we reach the end of the handler
         # (if a when {} clause matches this will get skipped due
         # to the BREAK exception)
-        $handler<past_block>[1].push(PAST::Op.new( :inline("    perl6_rethrow_skipnextctx exception")));
+        $handler<past_block>[1].push(PAST::Op.new( :inline("    rethrow $exceptionreg")));
 
         # set up a generic exception rethrow, so that exception
         # handlers from unwanted frames will get skipped if the
@@ -4020,33 +4019,53 @@ class Perl6::Actions is HLL::Actions {
             $handler<past_block>.handlers([]);
         }
         $handler<past_block>.handlers.unshift(
-            PAST::Op.new( :pirop('perl6_rethrow_skipnextctx__vP'),
-                PAST::Op.new(:inline("    .get_results (%r)"))
+            PAST::Op.new( :pirop('perl6_based_rethrow__vPP'),
+                PAST::Op.new(:inline("    .get_results (%r)")),
+                PAST::Var.new( :scope('register'), :name($exceptionreg))
             )
         );
 
+        my $ex := PAST::Op.new( :inline("    .get_results (%r)"));
+
         # create code that calls our handler with the parrot
         # exception as argument and returns the result.
+
+        # install handler at the front except if there's a already a CATCH/CONTROL
+        # handler. In that case, put it right after it and make a rethrow skip
+        # the first handler.
+        my $firsthandler;
+        my $firsthandlertype;
+        my @handlers := $block.handlers();
+        if pir::defined($type) && $type eq 'CONTROL' && @handlers && @handlers[0] {
+            $firsthandlertype := $except ?? @handlers[0].handle_types() !! @handlers[0].handle_types_except();
+            if pir::defined($firsthandlertype) && $firsthandlertype eq $type {
+                $firsthandler := @handlers.shift();
+                $ex := PAST::Op.new( :pirop('perl6_skip_handlers_in_rethrow__0Pi'), $ex, 1);
+            }
+        }
         $handler := PAST::Stmts.new(
             :node($/),
-            PAST::Op.new( :pasttype('bind'),
-                PAST::Var.new( :scope('register'), :name('exception'), :isdecl(1)),
-                PAST::Op.new( :inline("    .get_results (%r)") ),
-            ),
-            PAST::Op.new( :pirop('perl6_invoke_catchhandler__vPP'),
-                $handler,
-                PAST::Var.new( :scope('register'), :name('exception') ),
-            ),
-            PAST::Op.new( :pirop('finalize vP'),
-                PAST::Var.new( :scope('register'), :name('exception'))),
+            PAST::Op.new( :pirop('perl6_invoke_catchhandler__vPP'), $handler, $ex),
             PAST::Var.new( :scope('lexical_6model'), :name('$!') )
         );
+        if pir::defined($type) {
+            if $except {
+                $handler.handle_types_except($type);
+            } else {
+                $handler.handle_types($type);
+            }
+        }
 
-        #install handler
+        #install new handler
         unless $block.handlers() {
             $block.handlers([]);
         }
         $block.handlers.unshift($handler);
+
+        # put old catch/control handler back to the front
+        if $firsthandler {
+            $block.handlers.unshift($firsthandler);
+        }
     }
 
     sub has_block_handler($block, $type, :$except) {

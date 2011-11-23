@@ -16,7 +16,7 @@ my class Bool {
 
     multi method ACCEPTS(Bool:D: Mu \$topic) { self }
 
-    multi method gist(Bool:D:) { self ?? 'Bool::True' !! 'Bool::False' }
+    multi method perl(Bool:D:) { self ?? 'Bool::True' !! 'Bool::False' }
 }
 
 

@@ -38,6 +38,10 @@ my class Junction is Mu {
 
     submethod BUILD(:$!storage, :$!type) { }
 
+    multi method gist(Junction:D:) {
+        $!type ~ '(' ~ $!storage.map({$_.gist}).join(', ') ~ ')'
+    }
+    
     multi method perl(Junction:D:) { 
         $!type ~ '(' ~ $!storage.map({$_.perl}).join(', ') ~ ')'
     }

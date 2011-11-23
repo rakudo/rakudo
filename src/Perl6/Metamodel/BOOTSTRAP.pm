@@ -721,13 +721,15 @@ Perl6::Metamodel::ClassHOW.add_stash(Hash);
 
 # Make Parrot invoke v-table construct a capture and delegate off
 # to postcircumfix:<( )>.
-Mu.HOW.add_parrot_vtable_mapping(Mu, 'invoke',
+my $invoke_forwarder :=
     sub ($self, *@pos, *%named) {
         my $c := nqp::create(Capture);
         nqp::bindattr($c, Capture, '$!list', @pos);
         nqp::bindattr($c, Capture, '$!hash', %named);
         $self.postcircumfix:<( )>($c);
-    });
+    }
+Perl6::Metamodel::ClassHOW.set_invoke_forwarder($invoke_forwarder);
+Mu.HOW.add_parrot_vtable_mapping(Mu, 'invoke', $invoke_forwarder);
 Mu.HOW.publish_parrot_vtable_mapping(Mu);
 
 # If we don't already have a PROCESS, set it up.

@@ -23,6 +23,11 @@ class Perl6::Metamodel::ClassHOW
     has @!role_typecheck_list;
     has @!fallbacks;
     has $!composed;
+    
+    my $invoke_forwarder;
+    method set_invoke_forwarder($f) {
+        $invoke_forwarder := $f;
+    }
 
     my $archetypes := Perl6::Metamodel::Archetypes.new( :nominal(1), :inheritable(1) );
     method archetypes() {
@@ -110,6 +115,12 @@ class Perl6::Metamodel::ClassHOW
         self.publish_type_cache($obj);
         self.publish_method_cache($obj);
         self.publish_boolification_spec($obj);
+        
+        # Check if we have a postcircumfix:<( )>, and if so install a
+        # v-table forwarder.
+        if pir::exists(self.method_table($obj), 'postcircumfix:<( )>') {
+            self.add_parrot_vtable_mapping($obj, 'invoke', $invoke_forwarder);
+        }
         
         # Install Parrot v-table mappings.
         self.publish_parrot_vtable_mapping($obj);

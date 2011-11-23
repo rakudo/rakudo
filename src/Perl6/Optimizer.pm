@@ -81,7 +81,7 @@ class Perl6::Optimizer {
         
         # If the block is immediate, we may be able to inline it.
         my $outer := @!block_stack[+@!block_stack - 1];
-        if $block.blocktype eq 'immediate' && !$block.handlers() && !$outer.handlers() {
+        if $block.blocktype eq 'immediate' && !$block<do_not_inline> {
             # Scan symbols for any non-interesting ones.
             my @sigsyms;
             for $block.symtable() {
@@ -375,6 +375,14 @@ class Perl6::Optimizer {
             else {
                 $outer[0].push($_);
             }
+        }
+
+        # Copy over block handlers
+        my $handlers := $block.handlers();
+        if $handlers {
+            $stmts := PAST::Stmts.new($stmts);
+            $stmts.handlers($handlers);
+            $block.handlers(pir::new__Ps('Undef'));
         }
         
         # Hand back the statements, but be sure to preserve $_

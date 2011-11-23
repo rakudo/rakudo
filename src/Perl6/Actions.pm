@@ -4006,6 +4006,7 @@ class Perl6::Actions is HLL::Actions {
             PAST::Var.new( :scope('lexical_6model'), :name('$/'), :isdecl(1) ),
         );
         $handler<past_block>[1].unshift($handler_preamble);
+        $handler<past_block><do_not_inline> := 1;
 
         # rethrow the exception if we reach the end of the handler
         # (if a when {} clause matches this will get skipped due

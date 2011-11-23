@@ -81,7 +81,7 @@ class Perl6::Optimizer {
         
         # If the block is immediate, we may be able to inline it.
         my $outer := @!block_stack[+@!block_stack - 1];
-        if $block.blocktype eq 'immediate' && !$block<do_not_inline> {
+        if $block.blocktype eq 'immediate' {
             # Scan symbols for any non-interesting ones.
             my @sigsyms;
             for $block.symtable() {

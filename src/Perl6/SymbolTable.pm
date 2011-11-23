@@ -89,9 +89,7 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
         ));
         my $fix := PAST::Op.new(
             :pasttype('callmethod'), :name('set_static_lexpad'),
-            PAST::Op.new(
-                :pasttype('callmethod'), :name('get_lexinfo'),
-                PAST::Val.new( :value($pad) )),
+            PAST::Val.new( :value($pad), :returns('LexInfo')),
             self.get_object_sc_ref_past($slp));
         self.add_event(:deserialize_past(PAST::Stmts.new($des, $fix)), :fixup_past($fix));
         
@@ -843,9 +841,7 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
         if pir::type_check__IPP($code, self.find_symbol(['Routine'])) {
             my $set := PAST::Op.new(
                 :pasttype('callmethod'), :name('set_fresh_magicals'),
-                PAST::Op.new(
-                    :pasttype('callmethod'), :name('get_lexinfo'),
-                    PAST::Val.new( :value($code_past) )));
+                PAST::Val.new( :value($code_past), :returns('LexInfo')));
             $des.push($set);
             $fixups.push($set);
         }

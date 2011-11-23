@@ -57,13 +57,9 @@ do {
         return False;
     }
 
-    my Mu $comp := pir::compreg__Ps('perl6');
-    $comp.HOW.add_method($comp, 'handle-exception',
-        method (|$) {
-            my Mu $ex := nqp::atpos(
-                pir::perl6_current_args_rpa__P(),
-                1
-            );
+    sub print_exception(|$) is hidden_from_backtrace {
+        my Mu $ex := nqp::atpos(pir::perl6_current_args_rpa__P(), 0);
+        try {
             if is_runtime($ex.backtrace) {
                 my $e := EXCEPTION($ex);
                 my Mu $err := pir::getstderr__P();
@@ -76,8 +72,63 @@ do {
                 $err.print: $ex;
                 $err.print: "\n";
             }
+        }
+        if $! {
+            pir::perl6_based_rethrow__vPP(nqp::getattr($!, Exception, '$!ex'), $ex);
+        }
+    }
+
+    sub print_control(|$) is hidden_from_backtrace {
+        my Mu $ex := nqp::atpos(pir::perl6_current_args_rpa__P(), 0);
+        my $type = nqp::p6box_i(nqp::atkey($ex, 'type'));
+        if ($type == nqp::p6box_i(pir::const::CONTROL_OK)) {
+            my Mu $err := pir::getstderr__P();
+            my $msg = nqp::p6box_s(nqp::atkey($ex, 'message'));
+            $err.print: $msg ?? "$msg\n" !! "Warning\n";
+            my $resume := nqp::atkey($ex, 'resume');
+            if ($resume) {
+                $resume();
+            }
+        }
+        if ($type == nqp::p6box_i(pir::const::CONTROL_RETURN)) {
+            die("stray return control exception");
+        }
+        if ($type == nqp::p6box_i(pir::const::CONTROL_LOOP_LAST)) {
+            die("last without loop construct");
+        }
+        if ($type == nqp::p6box_i(pir::const::CONTROL_LOOP_NEXT)) {
+            die("next without loop construct");
+        }
+        if ($type == nqp::p6box_i(pir::const::CONTROL_LOOP_REDO)) {
+            die("redo without loop construct");
+        }
+        if ($type == nqp::p6box_i(pir::const::CONTROL_CONTINUE)) {
+            die("proceed without when clause");
+        }
+        if ($type == nqp::p6box_i(pir::const::CONTROL_BREAK)) {
+            # XXX: should work like leave() ?
+            die("succeed without when clause");
+        }
+        if ($type == nqp::p6box_i(pir::const::CONTROL_TAKE)) {
+            die("stray take statement");
+        }
+    }
+            
+    my Mu $comp := pir::compreg__Ps('perl6');
+    $comp.HOW.add_method($comp, 'handle-exception',
+        method (|$) {
+            my Mu $ex := nqp::atpos(pir::perl6_current_args_rpa__P(), 1);
+            pir::perl6_invoke_catchhandler(&print_exception, $ex);
             pir::exit(1);
             0;
         }
     );
+    $comp.HOW.add_method($comp, 'handle-control',
+        method (|$) {
+            my Mu $ex := nqp::atpos(pir::perl6_current_args_rpa__P(), 1);
+            pir::perl6_invoke_catchhandler(&print_control, $ex);
+            pir::rethrow__0P($ex);
+        }
+    );
+
 }

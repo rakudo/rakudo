@@ -31,6 +31,9 @@ multi trait_mod:<is>(Attribute:D $attr, :$rw!) {
 multi trait_mod:<is>(Attribute:D $attr, :$readonly!) {
     $attr.set_readonly();
 }
+multi trait_mod:<is>(Attribute:D $attr, :$box_target!) {
+    $attr.set_box_target();
+}
 
 multi trait_mod:<is>(Routine:D $r, :$rw!) {
     $r.set_rw();

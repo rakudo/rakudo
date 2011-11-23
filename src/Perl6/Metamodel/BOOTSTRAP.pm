@@ -89,6 +89,7 @@ Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!container_descr
 Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!auto_viv_container>, :type(Mu)));
 Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!build_closure>, :type(Mu)));
 Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!package>, :type(Mu)));
+Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!box_target>, :type(int)));
 Attribute.HOW.publish_parrot_vtable_mapping(Attribute);
 
 # XXX Need new and accessor methods for Attribute in here for now.
@@ -156,6 +157,15 @@ Attribute.HOW.add_method(Attribute, 'set_build', sub ($self, $closure) {
 Attribute.HOW.add_method(Attribute, 'build', sub ($self) {
         pir::getattribute__PPPs(pir::perl6_decontainerize__PP($self),
             Attribute, '$!build_closure');
+    });
+Attribute.HOW.add_method(Attribute, 'set_box_target', sub ($self) {
+        pir::repr_bind_attr_int__vPPsi(pir::perl6_decontainerize__PP($self),
+            Attribute, '$!box_target', 1);
+        pir::perl6_booleanize__PI(1)
+    });
+Attribute.HOW.add_method(Attribute, 'box_target', sub ($self) {
+        pir::repr_get_attr_int__iPPs(pir::perl6_decontainerize__PP($self),
+            Attribute, '$!box_target')
     });
 Attribute.HOW.add_method(Attribute, 'is_generic', sub ($self) {
         my $dcself   := pir::perl6_decontainerize__PP($self);

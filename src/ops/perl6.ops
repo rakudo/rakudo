@@ -1395,7 +1395,7 @@ the callframes from the exception, so we do some context fiddling
 here. When the catchhandler returns, it uses the continuation that
 points to the original callchain.
 Note that exceptions in the catchhandler must be caught and
-possibly rethrown with rethrow_skipnextctx, otherwise the handlers
+possibly rethrown with perl6_based_rethrow, otherwise the handlers
 from the exception will pick them up.
 
 =cut
@@ -1413,19 +1413,10 @@ inline op perl6_invoke_catchhandler(invar PMC, in PMC) :flow {
     Parrot_pcc_set_pc(interp, ctx, dest);
     /* now the tricky part, restore exception context */
     GETATTR_Exception_thrower(interp, $2, ectx);
-    if (!PMC_IS_NULL(ectx) && ectx != ctx) {
-        /* make sure that the current context is reachable, just in case... */
-        PMC *cctx = ectx;
-        for (; !PMC_IS_NULL(cctx); cctx = Parrot_pcc_get_caller_ctx(interp, cctx))
-            if (cctx == ctx)
-                break;
-        if (cctx == ctx) {
-            /* ok, found it. now change the current context */
-            Parrot_pcc_set_context(interp, ectx);
-        }
-    } else {
-        ectx = ctx;
-    }
+    if (PMC_IS_NULL(ectx))
+       ectx = ctx;
+    if (ectx != ctx)
+        Parrot_pcc_set_context(interp, ectx);
     if (PMC_IS_NULL(p)) {
         /* no function provided, return immediately */
         Parrot_pcc_set_context(interp, ctx);

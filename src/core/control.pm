@@ -141,8 +141,15 @@ my &lastcall := -> {
 proto sub die(|$) is hidden_from_backtrace {*};
 multi sub die(Exception $e) is hidden_from_backtrace { $e.throw }
 multi sub die(*@msg) is hidden_from_backtrace { pir::die__0P(@msg.join('')) }
-# XXX TODO: Should really throw a warning exception.
-sub warn(*@msg) is hidden_from_backtrace { $*ERR.say(@msg.join('')) }
+
+multi sub warn(*@msg) is hidden_from_backtrace {
+    my $ex := pir::new('Exception');
+    pir::setattribute__0PPsP($ex, Exception, 'message', @msg.join(''));
+    pir::setattribute__0PPsP($ex, Exception, 'type', nqp::p6box_i(pir::const::CONTROL_OK));
+    pir::setattribute__0PPsP($ex, Exception, 'severity', nqp::p6box_i(pir::const::EXCEPT_WARNING));
+    pir::throw($ex);
+    0;
+}
 
 sub eval(Str $code, :$lang = 'perl6') {
     my $caller_ctx := Q:PIR {

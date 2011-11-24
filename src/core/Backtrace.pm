@@ -29,6 +29,11 @@ my class Backtrace is List {
         self.new(nqp::getattr(nqp::p6decont($e), Exception, '$!ex').backtrace, $offset);
     }
 
+    multi method new() {
+        try { die() };
+        self.new($!, 3);
+    }
+
     # note that parrot backtraces are RPAs, marshalled to us as Parcel
     multi method new(Parcel $bt, Int $offset = 0) {
         my $new = self.bless(*);

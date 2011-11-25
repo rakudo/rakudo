@@ -53,16 +53,16 @@ my class Str does Stringy {
     }
 
     method substr(Str:D: $start, $length? is copy) {
-        fail "Negative start argument ($start) to .substr" if $start < 0;
-        fail "Start of substr ($start) beyond end of string" if $start > self.chars;
-        $length = $length(self.chars - $start) if $length ~~ Callable;
-        $length = $length.defined ?? $length.Int !! self.chars - $start.Int;
-        fail "Negative length argument ($length) to .substr" if $length < 0;
+        my str $sself  = self;
+        my int $istart = $start.Int;
+        my int $ichars = nqp::chars($sself);
+        fail "Negative start argument ($start) to .substr" if $istart < 0;
+        fail "Start of substr ($start) beyond end of string" if $istart > $ichars;
+        $length = $length($ichars - $istart) if nqp::istype($length, Callable);
+        my int $ilength = $length.defined ?? $length.Int !! $ichars - $istart;
+        fail "Negative length argument ($length) to .substr" if $ilength < 0;
 
-        nqp::p6box_s(nqp::substr(
-            nqp::unbox_s(self),
-            nqp::unbox_i($start.Int),
-            nqp::unbox_i($length)));
+        nqp::p6box_s(nqp::substr($sself, $istart, $ilength));
     }
 
     # chars used to handle ranges for pred/succ

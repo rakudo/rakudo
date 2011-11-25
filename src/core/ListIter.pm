@@ -8,10 +8,10 @@ my class ListIter {
     #   has $!list;            # List object associated with this iterator
     
     method reify($n = 1, :$sink) {
-        if !$!reified.defined {
+        unless nqp::isconcrete($!reified) {
             my $eager = nqp::p6bool(nqp::istype($n, Whatever));
-            my $flattens = $!list.defined && $!list.flattens;
-            my int $count = $eager ?? 100000 !! $n.Int;
+            my $flattens = nqp::isconcrete($!list) && $!list.flattens;
+            my int $count = $eager ?? 100000 !! (nqp::istype($n, Int) ?? $n !! $n.Int);
             my $rpa := nqp::list();
             my Mu $x;
             my int $index;
@@ -43,7 +43,7 @@ my class ListIter {
                 }
             }
             my $reified := nqp::p6parcel($rpa, Any);
-            $reified := $!list.REIFY($reified) if $!list.defined && !$sink;
+            $reified := $!list.REIFY($reified) if nqp::isconcrete($!list) && !$sink;
             nqp::push(
                     nqp::getattr($reified, Parcel, '$!storage'),
                     nqp::bindattr(self, ListIter, '$!nextiter',
@@ -51,7 +51,7 @@ my class ListIter {
                 if $!rest;
             nqp::bindattr(self, ListIter, '$!reified', $reified);
             # update $!list's nextiter
-            nqp::bindattr($!list, List, '$!nextiter', $!nextiter) if $!list.defined;
+            nqp::bindattr($!list, List, '$!nextiter', $!nextiter) if nqp::isconcrete($!list);
             # free up $!list and $!rest
             nqp::bindattr(self, ListIter, '$!list', Mu);
             nqp::bindattr(self, ListIter, '$!rest', Mu);

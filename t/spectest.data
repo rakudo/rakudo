@@ -294,7 +294,7 @@ S06-advanced/callsame.t
 S06-advanced/lexical-subs.t
 S06-advanced/recurse.t
 S06-advanced/return.t
-# S06-advanced/wrap.t # err: Method 'wrap' not found for invocant of class 'Sub
+S06-advanced/wrap.t
 S06-currying/assuming-and-mmd.t
 S06-currying/named.t
 S06-multi/lexical-multis.t

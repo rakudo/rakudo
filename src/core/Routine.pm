@@ -40,7 +40,7 @@ my class Routine {
             has $!dispatcher;
             has $!wrapper;
             method unwrap() {
-                $!dispatcher.remove($!wrapper);
+                nqp::p6bool($!dispatcher.remove($!wrapper));
             }
         }
         my role Wrapped {
@@ -72,5 +72,10 @@ my class Routine {
 
         # Add this wrapper.
         self.UNSHIFT_WRAPPER(&wrapper);
+    }
+    
+    method unwrap($handle) {
+        $handle.can('unwrap') && $handle.unwrap() ||
+            die("Invalid wrap handle passed to routine")
     }
 }

@@ -94,7 +94,16 @@ class Perl6::Metamodel::WrapDispatcher is Perl6::Metamodel::BaseDispatcher {
     }
     
     method remove($wrapper) {
-        pir::die("Unwrap not yet implemented");
+        my @cands := self.candidates;
+        my $i := 0;
+        while $i < +@cands {
+            if pir::perl6_decontainerize__PP(@cands[$i]) =:= pir::perl6_decontainerize__PP($wrapper) {
+                nqp::splice(@cands, [], $i, 1);
+                return 1;
+            }
+            $i := $i + 1;
+        }
+        return 0;
     }
     
     method enter(*@pos, *%named) {

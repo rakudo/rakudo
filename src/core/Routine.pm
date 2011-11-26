@@ -39,7 +39,7 @@ my class Routine {
         my class WrapHandle {
             has $!dispatcher;
             has $!wrapper;
-            method unwrap() {
+            method restore() {
                 nqp::p6bool($!dispatcher.remove($!wrapper));
             }
         }
@@ -75,7 +75,7 @@ my class Routine {
     }
     
     method unwrap($handle) {
-        $handle.can('unwrap') && $handle.unwrap() ||
+        $handle.can('restore') && $handle.restore() ||
             die("Invalid wrap handle passed to routine")
     }
 }

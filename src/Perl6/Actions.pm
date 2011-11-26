@@ -542,6 +542,10 @@ class Perl6::Actions is HLL::Actions {
             set_default_parameter_type(@params, 'Mu');
             my $signature := create_signature_object(@params, $block);
             add_signature_binding_code($block, $signature, @params);
+            
+            # Add a slot for a $*DISPATCHER, and a call to take one.
+            add_implicit_var($block, '$*DISPATCHER');
+            $block[0].unshift(PAST::Op.new(:pirop('perl6_take_dispatcher v')));
 
             # We'll install PAST in current block so it gets capture_lex'd.
             # Then evaluate to a reference to the block (non-closure - higher
@@ -1407,8 +1411,14 @@ class Perl6::Actions is HLL::Actions {
         my $signature := create_signature_object(@params, $block);
         add_signature_binding_code($block, $signature, @params);
 
-        # Needs a slot that can hold a (potentially unvivified) dispatcher.
-        $*ST.install_lexical_symbol($block, '$*DISPATCHER', $*ST.find_symbol(['MultiDispatcher']));
+        # Needs a slot that can hold a (potentially unvivified) dispatcher;
+        # if this is a multi then we'll need it to vivify to a MultiDispatcher.
+        if $*MULTINESS eq 'multi' {
+            $*ST.install_lexical_symbol($block, '$*DISPATCHER', $*ST.find_symbol(['MultiDispatcher']));
+        }
+        else {
+            add_implicit_var($block, '$*DISPATCHER');
+        }
         $block[0].unshift(PAST::Op.new(:pirop('perl6_take_dispatcher v')));
 
         # Create code object.

@@ -3713,8 +3713,9 @@ class Perl6::Actions is HLL::Actions {
     method quote_escape:sym<{ }>($/) {
         make PAST::Op.new(
             :pasttype('callmethod'), :name('Stringy'),
-            PAST::Op.new( $<block>.ast ), :node($/)
-        );
+            PAST::Op.new(
+                PAST::Op.new( :pirop('perl6_capture_lex__0P'), $<block>.ast ),
+                :node($/)));
     }
 
     # overrides versions from HLL::Actions to handle Perl6Str

@@ -126,6 +126,11 @@ my class Mu {
         note 'Use of uninitialized value in numeric context';
         0
     }
+    proto method Real(|$) { * }
+    multi method Real(Mu:U:) {
+        note 'Use of uninitialized value in numeric context';
+        0
+    }
     
     proto method Str(|$) { * }
     multi method Str(Mu:U:) {

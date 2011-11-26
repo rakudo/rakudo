@@ -21,7 +21,7 @@ my class Complex is Numeric {
         self.re.isNaN || self.im.isNaN;
     }
 
-    method Real(Complex:D:) {
+    multi method Real(Complex:D:) {
         if $!im == 0 {
             $!re;
         } else {

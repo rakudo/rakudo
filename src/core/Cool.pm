@@ -175,7 +175,7 @@ my class Cool {
         eval(self.Stringy, |%opts);
     }
 
-    method Real() { self.Numeric.Real }
+    multi method Real() { self.Numeric.Real }
     method Int()  { self.Numeric.Int }
     method Num()  { self.Numeric.Num }
     method Rat()  { self.Numeric.Rat }

@@ -200,6 +200,8 @@ my class List does Positional {
     }
 
     method unshift(*@elems) {
+        nqp::bindattr(self, List, '$!items', nqp::list())
+            unless nqp::islist($!items);
         while @elems {
             nqp::unshift($!items, @elems.pop)
         }

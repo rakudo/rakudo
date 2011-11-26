@@ -35,11 +35,11 @@ my role IO::Socket {
 
     method send (Cool $string as Str) {
         fail("Not connected") unless $!PIO;
-        return nqp::p6bool($!PIO.send($string));
+        $!PIO.send(nqp::unbox_s($string)).Bool;
     }
 
     method close () {
         fail("Not connected!") unless $!PIO;
-        return nqp::p6bool($!PIO.close());
+        $!PIO.close().Bool
     }
 }

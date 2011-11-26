@@ -87,7 +87,7 @@ my class IO::Socket::INET does IO::Socket {
     }
 
     method get() {
-        nqp::p6box_s(nqp::getattr(self, $?CLASS, '$!PIO').readline).chomp
+        nqp::getattr(self, $?CLASS, '$!PIO').readline.chomp
     }
 
     method lines() {

@@ -232,8 +232,10 @@ class Perl6::Actions is HLL::Actions {
             $outer.unshift(PAST::Op.new(:inline(".annotate 'file', '" ~ $file ~ "'")));
         }
 
-        $outer<UNIT> := $unit;
+        # Pass some extra bits along to the optimizer.
+        $outer<UNIT>      := $unit;
         $outer<GLOBALish> := $*GLOBALish;
+        $outer<ST>        := $*ST;
         make $outer;
     }
 
@@ -2505,6 +2507,7 @@ class Perl6::Actions is HLL::Actions {
                         $methpkg.HOW.name($methpkg) ~ " because it does not trust " ~
                         $*PACKAGE.HOW.name($*PACKAGE));
                 }
+                $past[1].type($methpkg);
             }
             else {
                 unless pir::can($*PACKAGE.HOW, 'find_private_method') {
@@ -2512,6 +2515,7 @@ class Perl6::Actions is HLL::Actions {
                         "qualified with the package containing the method");
                 }
                 $past.unshift($*ST.get_object_sc_ref_past($*PACKAGE));
+                $past[0].type($*PACKAGE);
                 $past.unshift($*ST.add_string_constant($name));
             }
             $past.name('dispatch:<!>');

@@ -39,6 +39,7 @@ class Perl6::Optimizer {
         # over OUTER since we don't walk loadinits).
         my $unit := $past<UNIT>;
         my $*GLOBALish := $past<GLOBALish>;
+        my $*ST := $past<ST>;
         unless $unit.isa(PAST::Block) {
             pir::die("Optimizer could not find UNIT");
         }
@@ -196,6 +197,30 @@ class Perl6::Optimizer {
                 # however (shows up in e.g. sub foo(&x) { x() }).
                 unless self.is_lexical_declared($op.name) {
                     self.add_deadly($op, "Undefined routine '" ~ $op.name ~ "' called");
+                }
+            }
+        }
+        
+        # If it's a private method call, we can sometimes resolve it at
+        # compile time. If so, we can reduce it to a sub call in some cases.
+        elsif $*LEVEL >= 3 && $op.pasttype eq 'callmethod' && $op.name eq 'dispatch:<!>' {
+            if $op[1]<has_compile_time_value> && $op[1]<boxable_native> == 3 {
+                my $name := $op[1][2];   # get raw string name
+                my $pkg  := $op[2].type; # actions always sets this
+                my $meth := $pkg.HOW.find_private_method($pkg, $name);
+                if $meth {
+                    try {
+                        my $call := $*ST.get_object_sc_ref_past($meth); # may fail, thus the try
+                        my $inv  := $op.shift;
+                        $op.shift; $op.shift; # name, package (both pre-resolved now)
+                        $op.unshift($inv);
+                        $op.unshift($call);
+                        $op.pasttype('call');
+                        $op.name(nqp::null());
+                    }
+                }
+                else {
+                    self.add_deadly($op, "Undefined private method '" ~ $name ~ "' called");
                 }
             }
         }

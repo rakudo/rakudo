@@ -47,11 +47,16 @@ class Array {
         # get arguments, shift off invocant
         my $args := pir::perl6_current_args_rpa__P();
         nqp::shift($args);
-        # clear our current items, and create a flattening iterator
-        # that will bring in values from $args
+        # make an array from them (we can't just use ourself for this,
+        # or @a = @a will go terribly wrong); make it eager
+        my $list := nqp::p6list($args, Array, Mu);
+        nqp::bindattr($list, List, '$!flattens', True);
+        $list.eager;
+        # clear our items and set our next iterator to be one over
+        # the array we just created
         nqp::bindattr(self, List, '$!items', Mu);
-        nqp::bindattr(self, List, '$!nextiter', nqp::p6listiter($args, self));
-        self.eager
+        nqp::bindattr(self, List, '$!nextiter', nqp::p6listiter(nqp::list($list), self));
+        self
     }
 
 }

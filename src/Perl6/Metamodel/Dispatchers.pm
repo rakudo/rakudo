@@ -2,6 +2,8 @@ class Perl6::Metamodel::BaseDispatcher {
     has @!candidates;
     has $!idx;
     
+    method candidates() { @!candidates }
+    
     method exhausted() { $!idx >= +@!candidates }
     
     method last()      { @!candidates := [] }
@@ -81,9 +83,24 @@ class Perl6::Metamodel::MultiDispatcher is Perl6::Metamodel::BaseDispatcher {
 }
 
 class Perl6::Metamodel::WrapDispatcher is Perl6::Metamodel::BaseDispatcher {
-    method new(@wrappers) {
-        self.bless(:candidates(@wrappers), :idx(0))
+    method new() {
+        self.bless(:candidates([]), :idx(1))
     }
 
     method has_invocant() { 0 }
+    
+    method add($wrapper) {
+        self.candidates.unshift($wrapper)
+    }
+    
+    method remove($wrapper) {
+        pir::die("Unwrap not yet implemented");
+    }
+    
+    method enter(*@pos, *%named) {
+        my $fresh := pir::repr_clone__PP(self);
+        my $first := self.candidates[0];
+        pir::perl6_set_dispatcher_for_callee__vP($fresh);
+        $first(|@pos, |%named)
+    }
 }

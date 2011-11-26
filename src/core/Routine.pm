@@ -34,4 +34,43 @@ my class Routine {
     method multi() {
         self.dispatcher.defined
     }
+    
+    method wrap(&wrapper) {
+        my class WrapHandle {
+            has $!dispatcher;
+            has $!wrapper;
+            method unwrap() {
+                $!dispatcher.remove($!wrapper);
+            }
+        }
+        my role Wrapped {
+            has $!dispatcher;
+            method UNSHIFT_WRAPPER(&wrapper) {
+                # Add candidate.
+                $!dispatcher := WrapDispatcher.new()
+                    unless nqp::isconcrete($!dispatcher);
+                $!dispatcher.add(&wrapper);
+                
+                # Return a handle.
+                my $handle := nqp::create(WrapHandle);
+                nqp::bindattr($handle, WrapHandle, '$!dispatcher', $!dispatcher);
+                nqp::bindattr($handle, WrapHandle, '$!wrapper', &wrapper);
+                $handle
+            }
+            method postcircumfix:<( )>($c) {
+                $!dispatcher.enter(|$c);
+            }
+        }
+        
+        # If we're not wrapped already, do the initial dispatcher
+        # creation.
+        unless nqp::istype(self, Wrapped) {
+            my $orig = self.clone();
+            self does Wrapped;
+            self.UNSHIFT_WRAPPER($orig);
+        }
+
+        # Add this wrapper.
+        self.UNSHIFT_WRAPPER(&wrapper);
+    }
 }

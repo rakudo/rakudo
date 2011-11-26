@@ -36,14 +36,15 @@ my class Str does Stringy {
     multi method ACCEPTS(Str:D: $other) { $other eq self }
 
     method chomp(Str:D:) {
-        my int $chars = self.chars;
+        my str $sself = nqp::unbox_s(self);
+        my int $chars = nqp::chars($sself);
         return '' if $chars == 0;
-        my str $last = nqp::substr(nqp::unbox_s(self), $chars - 1);
+        my str $last = nqp::substr($sself, $chars - 1);
         my int $to_remove = 0;
         $to_remove = 1 if $last eq "\n" || $last eq "\r";
         $to_remove = 2 if $chars > 1
-            && nqp::p6box_s(nqp::substr(nqp::unbox_s(self), $chars - 2)) eq "\r\n";
-        nqp::p6box_s(pir::chopn__Ssi(nqp::unbox_s(self), $to_remove))
+            && nqp::p6box_s(nqp::substr($sself, $chars - 2)) eq "\r\n";
+        nqp::p6box_s(pir::chopn__Ssi($sself, $to_remove))
     }
 
     method chop(Str:D:) {
@@ -53,7 +54,7 @@ my class Str does Stringy {
     }
 
     method substr(Str:D: $start, $length? is copy) {
-        my str $sself  = self;
+        my str $sself  = nqp::unbox_s(self);
         my int $istart = $start.Int;
         my int $ichars = nqp::chars($sself);
         fail "Negative start argument ($start) to .substr" if $istart < 0;

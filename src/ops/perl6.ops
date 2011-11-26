@@ -1052,25 +1052,28 @@ inline op perl6_find_dispatcher(out PMC) :base_core {
         /* Do we have a dispatcher here? */
         PMC *lexpad = Parrot_pcc_get_lex_pad(interp, ctx);
         if (!PMC_IS_NULL(lexpad) && VTABLE_exists_keyed_str(interp, lexpad, dispatcher_str)) {
-            dispatcher = VTABLE_get_pmc_keyed_str(interp, lexpad, dispatcher_str);
-            if (!IS_CONCRETE(dispatcher)) {
-                /* Need to vivify it. */
-                PMC *old_ctx = Parrot_pcc_get_signature(interp, CURRENT_CONTEXT(interp));
-                PMC *meth    = VTABLE_find_method(interp, dispatcher, Parrot_str_new_constant(interp, "vivify_for"));
-                PMC *cappy   = Parrot_pmc_new(interp, enum_class_CallContext);
-                PMC *sub     = Parrot_pcc_get_sub(interp, ctx);
-                PMC *p6sub;
-                VTABLE_push_pmc(interp, cappy, dispatcher);
-                GETATTR_Sub_multi_signature(interp, sub, p6sub);
-                VTABLE_push_pmc(interp, cappy, p6sub);
-                VTABLE_push_pmc(interp, cappy, lexpad);
-                Parrot_pcc_invoke_from_sig_object(interp, meth, cappy);
-                cappy = Parrot_pcc_get_signature(interp, CURRENT_CONTEXT(interp));
-                Parrot_pcc_set_signature(interp, CURRENT_CONTEXT(interp), old_ctx);
-                dispatcher = VTABLE_get_pmc_keyed_int(interp, cappy, 0);
-                VTABLE_set_pmc_keyed_str(interp, lexpad, dispatcher_str, dispatcher);
+            PMC *maybe_dispatcher = VTABLE_get_pmc_keyed_str(interp, lexpad, dispatcher_str);
+            if (!PMC_IS_NULL(maybe_dispatcher)) {
+                dispatcher = maybe_dispatcher;
+                if (!PMC_IS_NULL(dispatcher) && !IS_CONCRETE(dispatcher)) {
+                    /* Need to vivify it. */
+                    PMC *old_ctx = Parrot_pcc_get_signature(interp, CURRENT_CONTEXT(interp));
+                    PMC *meth    = VTABLE_find_method(interp, dispatcher, Parrot_str_new_constant(interp, "vivify_for"));
+                    PMC *cappy   = Parrot_pmc_new(interp, enum_class_CallContext);
+                    PMC *sub     = Parrot_pcc_get_sub(interp, ctx);
+                    PMC *p6sub;
+                    VTABLE_push_pmc(interp, cappy, dispatcher);
+                    GETATTR_Sub_multi_signature(interp, sub, p6sub);
+                    VTABLE_push_pmc(interp, cappy, p6sub);
+                    VTABLE_push_pmc(interp, cappy, lexpad);
+                    Parrot_pcc_invoke_from_sig_object(interp, meth, cappy);
+                    cappy = Parrot_pcc_get_signature(interp, CURRENT_CONTEXT(interp));
+                    Parrot_pcc_set_signature(interp, CURRENT_CONTEXT(interp), old_ctx);
+                    dispatcher = VTABLE_get_pmc_keyed_int(interp, cappy, 0);
+                    VTABLE_set_pmc_keyed_str(interp, lexpad, dispatcher_str, dispatcher);
+                }
+                break;
             }
-            break;
         }
 
         /* Follow dynamic chain. */

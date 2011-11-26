@@ -3,7 +3,8 @@ New in 2011.12
 + <before ...> and <after ...> (lookahead and lookbehind)
 + backslash sequences in character classes
 + fixed quantified captures and :r interaction bug
-+ optimized match object construction
++ optimized match object construction, ListIter and substr
++ optimizer detects missing private methods and simplifies calls (level 3 only)
 
 New in 2011.11
 + CATCH blocks are now much closer to spec

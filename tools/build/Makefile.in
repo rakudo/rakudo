@@ -155,11 +155,11 @@ CORE_SOURCES = \
   src/core/Code.pm \
   src/core/WhateverCode.pm \
   src/core/Block.pm \
+  src/core/Attribute.pm \
   src/core/Routine.pm \
   src/core/Sub.pm \
   src/core/Method.pm \
   src/core/Submethod.pm \
-  src/core/Attribute.pm \
   src/core/Junction.pm \
   src/core/Cool.pm \
   src/core/Enumeration.pm \

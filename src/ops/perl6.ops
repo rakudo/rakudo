@@ -680,6 +680,32 @@ inline op perl6_var(out PMC, in PMC) :base_core {
 
 /*
 
+=item perl6_repr_name
+
+Takes an object and returns a string containing the name of its representation.
+
+=cut
+
+*/
+inline op perl6_repr_name(out PMC, in PMC) :base_core {
+    PMC *val = Rakudo_cont_decontainerize(interp, $2);
+    if (val->vtable->base_type == smo_id) {
+        PMC    *type = Rakudo_types_str_get();
+        STRING *name = REPR(val)->name;
+        PMC    *res  = REPR(type)->allocate(interp, STABLE(type));
+        REPR(res)->set_str(interp, STABLE(res), OBJECT_BODY(res), name);
+        PARROT_GC_WRITE_BARRIER(interp, res);
+        $1 = res;
+    }
+    else {
+        Parrot_ex_throw_from_c_args(interp, NULL, EXCEPTION_INVALID_OPERATION,
+            "Can only use perl6_repr_name with a SixModelObject");
+    }
+}
+
+
+/*
+
 =item find_method_null_ok(out PMC, in PMC, in STR)
 
 Like Parrot's find_method, but returns PMCNULL in $1 if $2 doesn't have a

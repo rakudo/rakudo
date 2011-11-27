@@ -2556,6 +2556,10 @@ class Perl6::Actions is HLL::Actions {
                 $past.pasttype('pirop');
                 $past.pirop('perl6_var PP');
             }
+            elsif $name eq 'REPR' {
+                $past.pasttype('pirop');
+                $past.pirop('perl6_repr_name PP');
+            }
             else {
                 $past.name( $name );
             }

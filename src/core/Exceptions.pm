@@ -1,34 +1,39 @@
 # XXX should really be my X::Base eventually
-my package X {
-    class Base is Exception {
-        has $.message;
+my class X::Base is Exception {
+    has $.message;
 
-        multi method Str(Base:D:) {
-            $.message.Str // 'Something went wrong'
-        }
-        method ID() { ... }
+    multi method Str(X::Base:D:) {
+        $.message.Str // 'Something went wrong'
     }
-    role OS {
-        has $.os-error;
-    }
+    method ID() { ... }
+}
+my role X::OS {
+    has $.os-error;
+}
 
-    role Comp {
-        has $.filename;
-        has $.line;
-        has $.column;
-    }
+my role X::Comp {
+    has $.filename;
+    has $.line;
+    has $.column;
+}
 
-    class NYI is Base {
-        method message() { "$.feature not yet implemented. Sorry. " }
-        has $.feature;
-    }
+my class X::NYI is X::Base {
+    method message() { "$.feature not yet implemented. Sorry. " }
+    has $.feature;
+}
 
-    class OutOfRange is Base {
-        has $.what = 'Argument';
-        has $.got = '<unknown>';
-        has $.range = '<unknown>';
-        method message() {
-            "$.what out of range. Is: $.got, should be in $.range"
-        }
+my class X::OutOfRange is X::Base {
+    has $.what = 'Argument';
+    has $.got = '<unknown>';
+    has $.range = '<unknown>';
+    method message() {
+        "$.what out of range. Is: $.got, should be in $.range"
+    }
+}
+
+my class X::Buf::AsStr {
+    has $.method;
+    method message() {
+        "Cannot use a Buf as a string, but you called the $.method method on it";
     }
 }

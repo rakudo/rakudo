@@ -1417,19 +1417,18 @@ inline op perl6_invoke_catchhandler(invar PMC, in PMC) :flow {
     /* now the tricky part, restore exception context */
     GETATTR_Exception_thrower(interp, $2, ectx);
     if (PMC_IS_NULL(ectx))
-       ectx = ctx;
-    if (ectx != ctx)
-        Parrot_pcc_set_context(interp, ectx);
-    if (PMC_IS_NULL(p)) {
-        /* no function provided, return immediately */
-        Parrot_pcc_set_context(interp, ctx);
-        goto NEXT();
-    } else {
+        ectx = ctx;
+    if (!PMC_IS_NULL(p)) {
         interp->current_cont = cont;
-        Parrot_pcc_set_signature(interp, ectx, call_obj);
+        Parrot_pcc_set_signature(interp, ctx, call_obj);
         dest = VTABLE_invoke(interp, p, dest);
-        goto ADDRESS(dest);
+        if (ectx != ctx) {
+            PMC * nctx = CURRENT_CONTEXT(interp);
+            Parrot_pcc_set_caller_ctx(interp, nctx, ectx);
+            Parrot_pcc_set_signature(interp, ectx, call_obj);
+        }
     }
+    goto ADDRESS(dest);
 }
 
 

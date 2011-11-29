@@ -288,7 +288,7 @@ S05-modifier/sigspace.t
 S05-substitution/match.t
 S05-substitution/subst.t
 S05-transliteration/trans.t
-# S05-transliteration/with-closure.t # err: Method 'trans' not found for invocant of class 'Str'
+S05-transliteration/with-closure.t
 S06-advanced/callframe.t
 S06-advanced/callsame.t
 S06-advanced/lexical-subs.t

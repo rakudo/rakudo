@@ -245,10 +245,10 @@ S05-grammar/signatures.t
 S05-interpolation/lexicals.t
 S05-interpolation/regex-in-variable.t
 S05-mass/named-chars.t                                     # icu
-# S05-mass/properties-block.t # err: Unable to parse postcircumfix:sym<( )>
-# S05-mass/properties-derived.t # err: Unable to parse postcircumfix:sym<( )>
-# S05-mass/properties-general.t # err: Unable to parse postcircumfix:sym<( )>
-# S05-mass/properties-script.t # err: Unable to parse postcircumfix:sym<( )>
+S05-mass/properties-block.t
+S05-mass/properties-derived.t
+S05-mass/properties-general.t
+S05-mass/properties-script.t
 S05-mass/rx.t
 S05-mass/recursive.t
 S05-mass/stdrules.t

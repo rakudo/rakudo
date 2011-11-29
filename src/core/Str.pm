@@ -496,6 +496,125 @@ my class Str does Stringy {
     method capitalize(Str:D:) {
         self.subst(:g, rx/\w+/, -> $_ { .Str.lc.ucfirst });
     }
+
+
+    my class LSM {
+        has Str $!source;
+        has @!substitutions;
+
+        has int $!index;
+        has int $!next_match;
+        has $!next_substitution;
+        has $!substitution_length;
+
+        has str $.unsubstituted_text;
+        has str $.substituted_text;
+        
+        submethod BUILD(:$!source) { }
+
+        method add_substitution($key, $value) {
+            push @!substitutions, $key => $value;
+        }
+
+        submethod compare_substitution($substitution, Int $pos, Int $length) {
+            if $!next_match > $pos
+               || $!next_match == $pos && $!substitution_length < $length {
+
+                $!next_match = $pos;
+                $!substitution_length = $length;
+                $!next_substitution = $substitution;
+            }
+        }
+
+        proto method triage_substitution(|$) {*}
+        multi method triage_substitution($_ where { .key ~~ Regex }) {
+            my $key = .key;
+            return unless $!source.substr($!index) ~~ $key;
+            self.compare_substitution($_, $!index + $/.from, $/.to - $/.from);
+        }
+
+        multi method triage_substitution($_ where { .key ~~ Cool }) {
+            return unless defined index($!source, .key, $!index);
+            self.compare_substitution($_,
+                                      index($!source, .key, $!index),
+                                      .key.chars);
+        }
+
+        multi method triage_substitution($_) {
+            die "Don't know how to handle a {.WHAT.gist} as a substitution key";
+        }
+
+        proto method increment_index(|$) {*}
+        multi method increment_index(Regex $s) {
+            $!source.substr($!index) ~~ $s;
+            $!index = $!next_match + $/.chars;
+        }
+
+        multi method increment_index(Cool $s) {
+            $!index = $!next_match + nqp::chars($s.Str);
+        }
+
+        method next_substitution() {
+            $!next_match = $!source.chars;
+
+            for @!substitutions {
+                self.triage_substitution($_);
+            }
+
+            $!unsubstituted_text # = nqp::substr(nqp::unbox_s($!source), $!index, 
+                = $!source.substr($!index, $!next_match - $!index);
+            if defined $!next_substitution {
+                my $result = $!next_substitution.value;
+                $!substituted_text
+                    = nqp::unbox_s(($result ~~ Callable ?? $result() !! $result).Str);
+                self.increment_index($!next_substitution.key);
+            }
+
+            return $!next_match < $!source.chars;
+        }
+    }
+
+    method trans(Str:D: *@changes) {
+        my sub expand($s) {
+            return $s.list if $s ~~ Iterable|Positional;
+            gather for $s.comb(/ (\w) '..' (\w) | . /, :match) {
+                if .[0] {
+                    take $_ for ~.[0] .. ~.[1];
+                } else {
+                    take ~$_;
+                }
+            }
+        }
+
+        my $lsm = LSM.new(:source(self));
+        for (@changes) -> $p {
+            die "$p.perl() is not a Pair" unless $p ~~ Pair;
+            if $p.key ~~ Regex {
+                $lsm.add_substitution($p.key, $p.value);
+            }
+            elsif $p.value ~~ Callable {
+                my @from = expand $p.key;
+                for @from -> $f {
+                    $lsm.add_substitution($f, $p.value);
+                }
+            }
+            else {
+                my @from = expand $p.key;
+                my @to = expand $p.value;
+                for @from Z (@to ?? @to xx ceiling(@from / @to) !! '' xx @from) -> $f, $t {
+                    $lsm.add_substitution($f, $t);
+                }
+            }
+        }
+
+        my $r = "";
+        while $lsm.next_substitution {
+            $r ~= $lsm.unsubstituted_text ~ $lsm.substituted_text;
+        }
+        $r ~= $lsm.unsubstituted_text;
+
+        return $r;
+    }
 }
 
 

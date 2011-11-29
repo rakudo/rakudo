@@ -112,6 +112,7 @@ my class Cool {
     method flip() {
         nqp::p6box_s(pir::box__PS(nqp::unbox_s(self.Str)).reverse)
     }
+    method trans(*@a) { self.Str.trans(@a) }
 
     proto method index(|$) {*}
     multi method index(Cool $needle, Cool $pos = 0) {

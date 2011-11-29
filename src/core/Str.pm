@@ -607,11 +607,12 @@ my class Str does Stringy {
             }
         }
 
-        my $r = "";
+        my str $r;
         while $lsm.next_substitution {
-            $r ~= $lsm.unsubstituted_text ~ $lsm.substituted_text;
+            $r = $r ~ nqp::unbox_s($lsm.unsubstituted_text)
+                    ~ nqp::unbox_s($lsm.substituted_text);
         }
-        $r ~= $lsm.unsubstituted_text;
+        $r = $r ~ nqp::unbox_s($lsm.unsubstituted_text);
 
         return $r;
     }

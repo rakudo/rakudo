@@ -287,7 +287,7 @@ S05-modifier/repetition.t
 S05-modifier/sigspace.t
 S05-substitution/match.t
 S05-substitution/subst.t
-# S05-transliteration/trans.t # err: Method 'trans' not found for invocant of class 'Str'
+S05-transliteration/trans.t
 # S05-transliteration/with-closure.t # err: Method 'trans' not found for invocant of class 'Str'
 S06-advanced/callframe.t
 S06-advanced/callsame.t
@@ -634,7 +634,7 @@ integration/no-indirect-new.t
 integration/packages.t
 integration/pair-in-array.t
 integration/passing-pair-class-to-sub.t
-# integration/real-strings.t # err: Method 'trans' not found for invocant of class 'Str'
+integration/real-strings.t
 integration/role-composition-vs-attribute.t
 # integration/rule-in-class-Str.t # err: Adverb 'P5' not allowed on m
 integration/say-crash.t

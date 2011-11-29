@@ -31,6 +31,9 @@ multi trait_mod:<is>(Attribute:D $attr, :$rw!) {
 multi trait_mod:<is>(Attribute:D $attr, :$readonly!) {
     $attr.set_readonly();
 }
+multi trait_mod:<is>(Attribute:D $attr, :$box_target!) {
+    $attr.set_box_target();
+}
 
 multi trait_mod:<is>(Routine:D $r, :$rw!) {
     $r.set_rw();
@@ -57,28 +60,38 @@ multi trait_mod:<is>(Parameter:D $param, :$required!) {
 
 # TODO: Make this much less cheaty. That'll probably need the
 # full-blown serialization, though.
+sub EXPORT_SYMBOL(\$exp_name, @tags, Mu \$sym) {
+    for @tags -> $tag {
+        my $install_in;
+        if $*EXPORT.WHO.exists($tag) {
+            $install_in := $*EXPORT.WHO.{$tag};
+        }
+        else {
+            $install_in := $*ST.pkg_create_mo((package { }).HOW.WHAT, :name($tag));
+            $*ST.pkg_compose($install_in);
+            $*ST.install_package_symbol($*EXPORT, $tag, $install_in);
+        }
+        if $install_in.WHO.exists($exp_name) {
+            unless ($install_in.WHO){$exp_name} =:= $sym {
+                die "A symbol $exp_name has already been exported";
+            }
+        }
+        $*ST.install_package_symbol($install_in, $exp_name, $sym);
+    }
+}
 multi trait_mod:<is>(Routine:D \$r, :$export!) {
     if %*COMPILING {
         my $to_export := $r.multi ?? $r.dispatcher !! $r;
+        my $exp_name  := '&' ~ $r.name;
         my @tags = 'ALL', 'DEFAULT';
-        for @tags -> $tag {
-            my $exp_name := '&' ~ $r.name;
-            my $install_in;
-            if $*EXPORT.WHO.exists($tag) {
-                $install_in := $*EXPORT.WHO.{$tag};
-            }
-            else {
-                $install_in := $*ST.pkg_create_mo((package { }).HOW.WHAT, :name($tag));
-                $*ST.pkg_compose($install_in);
-                $*ST.install_package_symbol($*EXPORT, $tag, $install_in);
-            }
-            if $install_in.WHO.exists($exp_name) {
-                unless ($install_in.WHO){$exp_name} =:= $to_export {
-                    die "A symbol $exp_name has already been exported";
-                }
-            }
-            $*ST.install_package_symbol($install_in, $exp_name, $to_export);
-        }
+        EXPORT_SYMBOL($exp_name, @tags, $to_export);
+    }
+}
+multi trait_mod:<is>(Mu:U \$type, :$export!) {
+    if %*COMPILING {
+        my $exp_name := $type.HOW.name($type);
+        my @tags = 'ALL', 'DEFAULT';
+        EXPORT_SYMBOL($exp_name, @tags, $type);
     }
 }
 

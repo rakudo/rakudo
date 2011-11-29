@@ -28,7 +28,7 @@ my class Parameter {
     }
 
     method type() {
-        $!nominal_type.HOW.name($!nominal_type)
+        $!nominal_type
     }
 
     method named() {

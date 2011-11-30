@@ -254,6 +254,9 @@ sub tests_ok {
     $agg->start();
     $harness->aggregate_tests($agg, $fn);
     $agg->stop();
+
+    print "Exit status " . $agg->exit  . "\n" if $debug;
+
     return !$agg->has_errors;
 }
 

@@ -38,6 +38,11 @@ my role IO::Socket {
         $!PIO.send(nqp::unbox_s($string)).Bool;
     }
 
+    method write(Buf:D $buf) {
+        fail('Socket not available') unless $!PIO;
+        $!PIO.send(nqp::getattr(nqp::p6decont($buf), Buf, '$!buffer').get_string('binary'));
+    }
+
     method close () {
         fail("Not connected!") unless $!PIO;
         $!PIO.close().Bool

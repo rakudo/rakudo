@@ -104,7 +104,10 @@ class IO {
                         Buf,
                         '$!buffer'
                     );
+        my str $encoding = $!PIO.encoding;
+        $!PIO.encoding('binary');
         $!PIO.print($b.get_string('binary'));
+        $!PIO.encoding($encoding) unless $encoding eq 'binary';
         True;
     }
 

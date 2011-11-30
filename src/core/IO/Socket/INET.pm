@@ -24,6 +24,8 @@ my class IO::Socket::INET does IO::Socket {
     has $.family = PIO::PF_INET;
     has $.proto = PIO::PROTO_TCP;
     has $.type = PIO::SOCK_STREAM;
+    has Str $.input-line-separator is rw = "\n";
+    has Int $.ins = 0;
 
     my sub v4-split($uri) {
         return $uri.split(':', 2);
@@ -87,7 +89,8 @@ my class IO::Socket::INET does IO::Socket {
     }
 
     method get() {
-        nqp::getattr(self, $?CLASS, '$!PIO').readline.chomp
+        ++$!ins;
+        nqp::getattr(self, $?CLASS, '$!PIO').readline(nqp::unbox_s($!input-line-separator)).chomp
     }
 
     method lines() {

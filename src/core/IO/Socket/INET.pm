@@ -90,7 +90,13 @@ my class IO::Socket::INET does IO::Socket {
 
     method get() {
         ++$!ins;
-        nqp::getattr(self, $?CLASS, '$!PIO').readline(nqp::unbox_s($!input-line-separator)).chomp
+        my str $line = nqp::getattr(self, $?CLASS, '$!PIO').readline(nqp::unbox_s($!input-line-separator));
+        my str $sep = $!input-line-separator;
+        my int $len  = nqp::chars($line);
+        my int $sep-len = nqp::chars($sep);
+        $len >= $sep-len && nqp::substr($line, $len - $sep-len) eq nqp::unbox_s($sep)
+            ?? nqp::p6box_s(nqp::substr($line, 0, $len - $sep-len))
+            !! nqp::p6box_s($line);
     }
 
     method lines() {

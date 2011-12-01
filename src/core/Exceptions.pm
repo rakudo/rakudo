@@ -38,12 +38,6 @@ my class X::Buf::AsStr is X::Base {
     }
 }
 
-my role X::Comp {
-    has $.filename;
-    has $.line;
-    has $.column;
-}
-
 my class X::Signature::Placeholder is X::Base does X::Comp {
     method message() {
         'Placeholder variable cannot override existing signature';

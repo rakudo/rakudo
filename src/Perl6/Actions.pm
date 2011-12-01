@@ -54,16 +54,23 @@ class Perl6::Actions is HLL::Actions {
     }
 
     method throw($/, $ex_type, *%opts) {
-        my $file        := pir::find_caller_lex__ps('$?FILES');
-        %opts<line>     := HLL::Compiler.lineof($/.orig, $/.from);
-        %opts<filename> := pir::isnull($file)
-                            ?? '<unknown file>'
-                            !! $file;
         # TODO: provide context
         my $type_found := 1;
-        my $ex      := try { $*ST.find_symbol($ex_type); CATCH { $type_found := 0 } };
+        my $ex := try {
+            CATCH { $type_found := 0 };
+            $*ST.find_symbol($ex_type);
+        };
         if $type_found {
             $ex.new(|%opts).throw;
+            my $file        := pir::find_caller_lex__ps('$?FILES');
+            %opts<line>     := nqp::box_i(
+                HLL::Compiler.lineof($/.orig, $/.from),
+                $*ST.find_symbol(['Int'])
+            );
+            %opts<filename> := nqp::box_s(
+                pir::isnull($file) ?? '<unknown file>' !! $file,
+                $*ST.find_symbol(['Str'])
+            );
         } else {
             my @err := ['Error while compiling, type ', nqp::join('::', $ex_type),  "\n"];
             for %opts -> $key {
@@ -1425,7 +1432,7 @@ class Perl6::Actions is HLL::Actions {
         # Obtain parameters, create signature object and generate code to
         # call binder.
         if $block<placeholder_sig> && $<multisig> {
-            $/.CURSOR.panic('Placeholder variable cannot override existing signature');
+            self.throw($/, ['X', 'Signature', 'Placeholder']);
         }
         my @params :=
                 $<multisig>             ?? $<multisig>[0].ast      !!

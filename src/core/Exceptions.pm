@@ -18,8 +18,8 @@ my role X::Comp {
 }
 
 my class X::NYI is X::Base {
-    method message() { "$.feature not yet implemented. Sorry. " }
     has $.feature;
+    method message() { "$.feature not yet implemented. Sorry. " }
 }
 
 my class X::OutOfRange is X::Base {
@@ -31,7 +31,7 @@ my class X::OutOfRange is X::Base {
     }
 }
 
-my class X::Buf::AsStr {
+my class X::Buf::AsStr is X::Base {
     has $.method;
     method message() {
         "Cannot use a Buf as a string, but you called the $.method method on it";

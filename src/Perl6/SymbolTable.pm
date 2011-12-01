@@ -1610,7 +1610,7 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
             if +@name > 1 {
                 my @restname := pir::clone(@name);
                 @restname.shift;
-                return self.already_declared($scope, $first_sym, PAST::Block.new(), @restname);
+                return self.already_declared('our', $first_sym, PAST::Block.new(), @restname);
             }
             else {
                 return $first_sym.HOW.HOW.name($first_sym.HOW) ne 'Perl6::Metamodel::PackageHOW';

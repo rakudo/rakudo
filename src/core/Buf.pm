@@ -2,7 +2,9 @@
 # this is merely a placeholder until people who know their stuff build
 # the Real Thing.
 
-class Buf does Positional {
+my class X::Buf::AsStr { ... };
+
+my class Buf does Positional {
     has Mu $!buffer;
     method BUILD() {
         $!buffer := pir::new__PS('ByteBuffer');
@@ -32,7 +34,9 @@ class Buf does Positional {
         nqp::p6box_i(nqp::elems($!buffer));
     }
     method bytes(Buf:D:) { self.elems }
-    method chars()       { die "Buf doesn't know about characters" }
+    method chars()       { die X::Buf::AsStr.new(method => 'chars') }
+    multi method Str()   { die X::Buf::AsStr.new(method => 'Str'  ) }
+
 
     method Numeric { self.elems }
     method Int     { self.elems }

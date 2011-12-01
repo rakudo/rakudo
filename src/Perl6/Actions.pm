@@ -4361,9 +4361,12 @@ class Perl6::Actions is HLL::Actions {
         $iresult := nqp::mul_I($iresult, nqp::box_i($sign, $Int));
 
         if $num {
-            # TODO: better way to get floats out of $iresult and $fdivide 
-            my num $result := nqp::mul_n(nqp::div_n(nqp::tonum_I($iresult), nqp::tonum_I($fdivide)), nqp::pow_n($base, $exponent));
-            return $*ST.add_numeric_constant('Num', $result);
+            if nqp::bool_I($iresult) {
+                my num $result := nqp::mul_n(nqp::div_n(nqp::tonum_I($iresult), nqp::tonum_I($fdivide)), nqp::pow_n($base, $exponent));
+                return $*ST.add_numeric_constant('Num', $result);
+            } else {
+                return $*ST.add_numeric_constant('Num', 0e0);
+            }
         } else {
             if pir::defined($exponent) {
                 $iresult := nqp::mul_I(

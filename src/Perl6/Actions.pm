@@ -54,13 +54,11 @@ class Perl6::Actions is HLL::Actions {
     }
 
     method throw($/, $ex_type, *%opts) {
-        %opts<line> := HLL::Compiler.lineof($/.orig, $/.from);
-        %opts<pos>  := $/.from;
-
-        my $file    := pir::find_caller_lex__ps('$?FILES');
-        %opts<file> := pir::isnull($file)
-                        ?? '<unknown file>'
-                        !! $file;
+        my $file        := pir::find_caller_lex__ps('$?FILES');
+        %opts<line>     := HLL::Compiler.lineof($/.orig, $/.from);
+        %opts<filename> := pir::isnull($file)
+                            ?? '<unknown file>'
+                            !! $file;
         # TODO: provide context
         my $type_found := 1;
         my $ex      := try { $*ST.find_symbol($ex_type); CATCH { $type_found := 0 } };
@@ -540,7 +538,7 @@ class Perl6::Actions is HLL::Actions {
             my @params;
             my $block := $<blockoid>.ast;
             if $block<placeholder_sig> && $<signature> {
-                $/.CURSOR.panic('Placeholder variable cannot override existing signature');
+                self.throw($/, ['X', 'Signature', 'Placeholder']);
             }
             elsif $block<placeholder_sig> {
                 @params := $block<placeholder_sig>;

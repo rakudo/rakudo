@@ -37,3 +37,15 @@ my class X::Buf::AsStr is X::Base {
         "Cannot use a Buf as a string, but you called the $.method method on it";
     }
 }
+
+my role X::Comp {
+    has $.filename;
+    has $.line;
+    has $.column;
+}
+
+my class X::Signature::Placeholder is X::Base does X::Comp {
+    method message() {
+        'Placeholder variable cannot override existing signature';
+    }
+}

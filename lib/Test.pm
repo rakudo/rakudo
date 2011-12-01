@@ -231,14 +231,8 @@ multi sub dies_ok(Callable $closure, $reason) {
     try {
         $closure();
         $death = 0;
-        # XXX no regexes, catch yet in nom
-        #CATCH {
-            #when / ^ 'Null PMC access ' / {
-            #    diag "wrong way to die: '$!'";
-            #    $bad_death = 1;
-            #}
-        #}
     }
+    $bad_death = 1 if $death && $!.Str.index('Null PMC Access');
     proclaim( $death && !$bad_death, $reason );
     $time_before = nqp::p6box_n(pir::time__N);
 }

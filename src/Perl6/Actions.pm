@@ -53,6 +53,32 @@ class Perl6::Actions is HLL::Actions {
         $STATEMENT_PRINT := 0;
     }
 
+    method throw($/, $ex_type, *%opts) {
+        %opts<line> := HLL::Compiler.lineof($/.orig, $/.from);
+        %opts<pos>  := $/.from;
+
+        my $file    := pir::find_caller_lex__ps('$?FILES');
+        %opts<file> := pir::isnull($file)
+                        ?? '<unknown file>'
+                        !! $file;
+        # TODO: provide context
+        my $type_found := 1;
+        my $ex      := try { $*ST.find_symbol($ex_type); CATCH { $type_found := 0 } };
+        if $type_found {
+            $ex.new(|%opts).throw;
+        } else {
+            my @err := ['Error while compiling, type ', nqp::join('::', $ex_type),  "\n"];
+            for %opts -> $key {
+                @err.push: '  ';
+                @err.push: $key;
+                @err.push: ': ';
+                @err.push: %opts{$key};
+                @err.push: "\n";
+            }
+            $/.CURSOR.panic(nqp::join('', @err));
+        }
+    }
+
     method ints_to_string($ints) {
         if pir::does($ints, 'array') {
             my $result := '';

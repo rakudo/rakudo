@@ -138,39 +138,15 @@ typedef struct {
     PMC *stable_pmc;
 } STable;
 
-/* A representation is what controls the layout of an object and storage of
- * attributes, as well as how it boxes/unboxes to the three primitive types
- * INTVAL, FLOATVAL and STRING * (if it can).
+/* A representation is what controls the layout of an object and access and
+ * manipulation of the memory it manages. This includes attribute storage
+ * for objects in the usual OO sense. However, representations may also
+ * represent other things, such as pointers and arrays.
  *
- * This struct defines the set of operations that a representation
- * should implement to fulfil the representation API. Note that a
- * representation may also store some per-type data in the repr_data
- * slot of the s-table. That aside, representations are singletons,
- * and code being compiled with a known representation could even
- * inline the lookups. */
-struct SixModel_REPROps {
-    /* Creates a new type object of this representation, and
-     * associates it with the given HOW. Also sets up a new
-     * representation instance if needed. */
-    PMC * (*type_object_for) (PARROT_INTERP, PMC *HOW);
-
-    /* Allocates a new, but uninitialized object, based on the
-     * specified s-table. */
-    PMC * (*allocate) (PARROT_INTERP, STable *st);
-
-    /* Used to initialize the body of an object representing the type
-     * describe by the specified s-table. DATA points to the body. It
-     * may recursively call initialize for any flattened objects. */
-    void (*initialize) (PARROT_INTERP, STable *st, void *data);
-    
-    /* For the given type, copies the object data from the source memory
-     * location to the destination one. Note that it may actually be more
-     * involved than a straightforward bit of copying; what's important is
-     * that the representation knows about that. Note that it may have to
-     * call copy_to recursively on representations of any flattened objects
-     * within its body. */
-    void (*copy_to) (PARROT_INTERP, STable *st, void *src, void *dest);
-
+ * The following structs define the representation API. There are some
+ * things that all representations have. There are some others that a
+ * representation will only implement if it plays that "role".*/
+typedef struct SixModel_REPROps_Attribute {
     /* Gets the current value for an object attribute. For non-flattened
      * objects - that is, reference types - this just returns the object
      * stored in the attribute. For the flattened case, this will auto-box. */
@@ -199,6 +175,11 @@ struct SixModel_REPROps {
     /* Gets the hint for the given attribute ID. */
     INTVAL (*hint_for) (PARROT_INTERP, STable *st, PMC *class_handle, STRING *name);
 
+    /* Checks if an attribute has been initialized. */
+    INTVAL (*is_attribute_initialized) (PARROT_INTERP, STable *st, void *data,
+        PMC *class_handle, STRING *name, INTVAL hint);
+} REPROps_Attribute;
+typedef struct SixModel_REPROps_Boxing {
     /* Used with boxing. Sets an integer value, for representations that
      * can hold one. */
     void (*set_int) (PARROT_INTERP, STable *st, void *data, INTVAL value);
@@ -227,7 +208,48 @@ struct SixModel_REPROps {
      * gets the reference to such things, using the representation ID to distinguish
      * them. */
     void * (*get_boxed_ref) (PARROT_INTERP, STable *st, void *data, INTVAL repr_id);
+} REPROps_Boxing;
+struct SixModel_REPROps {
+    /* Creates a new type object of this representation, and
+     * associates it with the given HOW. Also sets up a new
+     * representation instance if needed. */
+    PMC * (*type_object_for) (PARROT_INTERP, PMC *HOW);
 
+    /* Allocates a new, but uninitialized object, based on the
+     * specified s-table. */
+    PMC * (*allocate) (PARROT_INTERP, STable *st);
+
+    /* Used to initialize the body of an object representing the type
+     * describe by the specified s-table. DATA points to the body. It
+     * may recursively call initialize for any flattened objects. */
+    void (*initialize) (PARROT_INTERP, STable *st, void *data);
+    
+    /* For the given type, copies the object data from the source memory
+     * location to the destination one. Note that it may actually be more
+     * involved than a straightforward bit of copying; what's important is
+     * that the representation knows about that. Note that it may have to
+     * call copy_to recursively on representations of any flattened objects
+     * within its body. */
+    void (*copy_to) (PARROT_INTERP, STable *st, void *src, void *dest);
+
+    /* Attribute access REPR function table. */
+    struct SixModel_REPROps_Attribute *attr_funcs;
+    
+    /* Boxing REPR function table. */
+    struct SixModel_REPROps_Boxing *box_funcs;
+    
+    /* Gets the storage specification for this representation. */
+    storage_spec (*get_storage_spec) (PARROT_INTERP, STable *st);
+    
+    /* Handles an object changing its type. The representation is responsible
+     * for doing any changes to the underlying data structure, and may reject
+     * changes that it's not willing to do (for example, a representation may
+     * choose to only handle switching to a subclass). It is also left to update
+     * the S-Table pointer as needed; while in theory this could be factored
+     * out, the representation probably knows more about timing issues and
+     * thread safety requirements. */
+    void (*change_type) (PARROT_INTERP, PMC *Object, PMC *NewType);
+    
     /* This Parrot-specific addition to the API is used to mark an object. */
     void (*gc_mark) (PARROT_INTERP, STable *st, void *data);
 
@@ -243,22 +265,6 @@ struct SixModel_REPROps {
 
     /* This Parrot-specific addition to the API is used to free a REPR instance. */
     void (*gc_free_repr_data) (PARROT_INTERP, STable *st);
-
-    /* Gets the storage specification for this representation. */
-    storage_spec (*get_storage_spec) (PARROT_INTERP, STable *st);
-    
-    /* Checks if an attribute has been initialized. */
-    INTVAL (*is_attribute_initialized) (PARROT_INTERP, STable *st, void *data,
-        PMC *class_handle, STRING *name, INTVAL hint);
-    
-    /* Handles an object changing its type. The representation is responsible
-     * for doing any changes to the underlying data structure, and may reject
-     * changes that it's not willing to do (for example, a representation may
-     * choose to only handle switching to a subclass). It is also left to update
-     * the S-Table pointer as needed; while in theory this could be factored
-     * out, the representation probably knows more about timing issues and
-     * thread safety requirements. */
-    void (*change_type) (PARROT_INTERP, PMC *Object, PMC *NewType);
     
     /* The representation's ID. */
     INTVAL ID;

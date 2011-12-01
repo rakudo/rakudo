@@ -482,7 +482,7 @@ static STRING* dump_signature(PARROT_INTERP, STRING *so_far, PMC *sub) {
     perl_meth = VTABLE_find_method(interp, sig_obj, perl_name);
     Parrot_ext_call(interp, perl_meth, "Pi->P", sig_obj, &sig_perl);
     so_far = Parrot_str_concat(interp, so_far,
-        REPR(sig_perl)->get_str(interp, STABLE(sig_perl), OBJECT_BODY(sig_perl)));
+        REPR(sig_perl)->box_funcs->get_str(interp, STABLE(sig_perl), OBJECT_BODY(sig_perl)));
     so_far = Parrot_str_concat(interp, so_far, newline);
     return so_far;
 }

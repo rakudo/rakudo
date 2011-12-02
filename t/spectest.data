@@ -598,7 +598,7 @@ integration/99problems-01-to-10.t
 integration/99problems-11-to-20.t
 integration/99problems-21-to-30.t
 integration/99problems-31-to-40.t
-# integration/99problems-41-to-50.t # err: Ambiguous dispatch to multi 'sort'.
+integration/99problems-41-to-50.t
 # integration/99problems-51-to-60.t # err: No applicable candidates found to dispatch to for 'mirror'
 # integration/99problems-61-to-70.t # err: Nominal type check failed for parameter '$tree'; expected Any but got Mu instead
 integration/advent2009-day01.t

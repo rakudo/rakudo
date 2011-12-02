@@ -137,131 +137,211 @@ my class Str does Stringy {
         $str;
     }
 
+
+    # TODO:
+    # * Additional numeric styles:
+    #   + exponents in radix notation:     :2<10.1*2**8>
+    #   + recursively parsed exponents:    :2«10.1*:2<10>**:2<1000>»
+    #   + fractions in [] radix notation:  :100[10,'.',53]
+    #   + complex numbers:                 5.2+1e42i
+    # * Performance tuning
+    # * Fix remaining XXXX
+
     multi method Numeric(Str:D:) {
-        return nqp::p6box_n(pir::set__Ns('NaN')) if self eq 'NaN';
         my str $str = nqp::unbox_s(self);
         my int $eos = nqp::chars($str);
-        my Int $int;
-        my Int $frac = 0;
-        my Int $base = 0;
-        # skip leading whitespace
-        my int $pos   = pir::find_not_cclass__Iisii(pir::const::CCLASS_WHITESPACE, $str, 0, $eos);
 
-        my $tailfail =
-             -> { fail "trailing characters after number in conversion"
-                      if nqp::islt_i(
-                          pir::find_not_cclass__Iisii(pir::const::CCLASS_WHITESPACE,
-                                                      $str, $pos, $eos),
-                          $eos);
-                  0;
-             };
+        # S02:3276-3277: Ignore leading and trailing whitespace
+        my int $pos = pir::find_not_cclass__Iisii(pir::const::CCLASS_WHITESPACE,
+                                                  $str, 0, $eos);
+        my int $end = nqp::sub_i($eos, 1);
 
-        # objects for managing the parse and results
-        my Mu $parse;
-        my $result;
+        $end = nqp::sub_i($end, 1)
+            while nqp::isge_i($end, $pos)
+               && nqp::iscclass(pir::const::CCLASS_WHITESPACE, $str, $end);
 
-        # get any leading +/- sign
-        my int $ch = nqp::islt_i($pos, $eos) && nqp::ord($str, $pos);
-        my int $neg = nqp::iseq_i($ch, 45);
-        $pos = nqp::add_i($pos, 1) if nqp::iseq_i($ch, 45) || nqp::iseq_i($ch, 43);
+        # Return 0 if no non-whitespace characters in string
+        return 0 if nqp::islt_i($end, $pos);
 
-        # handle 0x, 0d, etc. prefixes, if present
-        my str $rpref = nqp::substr($str, $pos, 2);
-        my int $radix =
-            nqp::iseq_s($rpref, '0x') ?? 16
-              !! nqp::iseq_s($rpref, '0d') ?? 10
-              !! nqp::iseq_s($rpref, '0o') ?? 8
-              !! nqp::iseq_s($rpref, '0b') ?? 2
-              !! 0;
-        if $radix {
-            $parse := nqp::radix_I($radix, $str, nqp::add_i($pos, 2), $neg, Int);
-            $pos = nqp::atpos($parse, 2);
-            fail "missing digits after radix prefix" if nqp::islt_i($pos, 0);
-            return nqp::atpos($parse, 0) unless $tailfail();
-        } elsif nqp::iseq_s(nqp::substr($str, $pos, 1), ':') {
-            # a string of form :16<DEAD_BEEF>
+        # Reset end-of-string after trimming
+        $eos = nqp::add_i($end, 1);
+
+        my sub parse-simple-number () {
+            # Handle NaN here, to make later parsing simpler
+            if nqp::iseq_s(nqp::substr($str, $pos, 3), 'NaN') {
+                $pos = nqp::add_i($pos, 3);
+                return nqp::p6box_n(pir::set__Ns('NaN'));
+            }
+
+            # Handle any leading +/- sign
+            my int $ch  = nqp::ord($str, $pos);
+            my int $neg = nqp::iseq_i($ch, 45);                # '-'
+            if nqp::iseq_i($ch, 45) || nqp::iseq_i($ch, 43) {  # '-', '+'
+                $pos = nqp::add_i($pos, 1);
+                $ch  = nqp::islt_i($pos, $eos) && nqp::ord($str, $pos);
+            }
+
+            # nqp::radix_I parse results, and helper values
+            my Mu  $parse;
+            my str $prefix;
+            my int $radix;
+
+            my sub parse-int-frac-exp () {
+                # Integer part, if any
+                my Int:D $int := 0;
+                if nqp::isne_i($ch, 46) {  # '.'
+                    $parse := nqp::radix_I($radix, $str, $pos, $neg, Int);
+                    $pos    = nqp::atpos($parse, 2);
+                    fail "base-$radix number must begin with digits or '.'"
+                        if nqp::iseq_i($pos, -1);
+                    $int   := nqp::atpos($parse, 0);
+                    $ch     = nqp::islt_i($pos, $eos) && nqp::ord($str, $pos);
+                }
+
+                # Fraction, if any
+                my Int:D $frac := 0;
+                my Int:D $base := 0;
+                if nqp::iseq_i($ch, 46) {  # '.'
+                    $parse := nqp::radix_I($radix, $str, nqp::add_i($pos, 1),
+                                           nqp::add_i($neg, 4), Int);
+                    $pos    = nqp::atpos($parse, 2);
+                    fail 'radix point must be followed by one or more digits'
+                        if nqp::iseq_i($pos, -1);
+                    $frac  := nqp::atpos($parse, 0);
+                    $base  := nqp::atpos($parse, 1);
+                    $ch     = nqp::islt_i($pos, $eos) && nqp::ord($str, $pos);
+                }
+
+                # Exponent, if 'E' or 'e' are present (forces return type Num)
+                if nqp::iseq_i($ch, 69) || nqp::iseq_i($ch, 101) {
+                    fail "'E' or 'e' style exponent only allowed on decimal (base-10) numbers, not base-$radix"
+                        unless nqp::iseq_i($radix, 10);
+
+                    $parse := nqp::radix_I(10, $str, nqp::add_i($pos, 1), 2, Int);
+                    $pos    = nqp::atpos($parse, 2);
+                    fail "'E' or 'e' must be followed by decimal (base-10) integer"
+                        if nqp::iseq_i($pos, -1);
+
+                    my num $exp  = nqp::atpos($parse, 0);
+                    my num $coef = $frac ?? nqp::add_n($int, nqp::div_n($frac, $base)) !! $int;
+                    return nqp::p6box_n(nqp::mul_n($coef, nqp::pow_n(10, $exp)));
+                }
+
+                # Return an Int if there was no radix point
+                # XXXX: Work around http://irclog.perlgeek.de/perl6/2011-11-16#i_4711616
+                return $int if !$base;
+
+                # Otherwise, return a Rat
+                my Int:D $numerator := $int * $base + $frac;
+                return Rat.new($numerator, $base);
+            }
+
+            # Look for radix specifiers
+            if nqp::iseq_i($ch, 58) {  # ':'
+                # A string of the form :16<FE_ED.F0_0D> or :60[12,34,56]
+                $parse := nqp::radix_I(10, $str, nqp::add_i($pos, 1), 0, Int);
+                $radix  = nqp::atpos($parse, 0);
+                $pos    = nqp::atpos($parse, 2);
+                fail "radix (in decimal) expected after ':'" if nqp::iseq_i($pos, -1);
+
+                $ch = nqp::islt_i($pos, $eos) && nqp::ord($str, $pos);
+                if    nqp::iseq_i($ch, 60) {  # '<'
+                    $pos = nqp::add_i($pos, 1);
+
+                    my Mu $result := parse-int-frac-exp();
+                    return $result unless $result.defined;
+
+                    fail "malformed ':$radix<>' style radix number, expecting '>' after the body"
+                        unless nqp::islt_i($pos, $eos) && nqp::iseq_i(nqp::ord($str, $pos), 62);  # '>'
+                    $pos = nqp::add_i($pos, 1);
+                    return $result;
+                }
+                elsif nqp::iseq_i($ch, 91) {  # '['
+                    $pos = nqp::add_i($pos, 1);
+                    my Int:D $result := 0;
+                    my Int:D $digit  := 0;
+                    while nqp::islt_i($pos, $eos)
+                       && nqp::isne_i(nqp::ord($str, $pos), 93) {  # ']'
+                        $parse := nqp::radix_I(10, $str, $pos, 0, Int);
+                        $pos    = nqp::atpos($parse, 2);
+                        fail "malformed ':$radix[]' style radix number, expecting comma separated decimal values after opening '['"
+                            if nqp::iseq_i($pos, -1);
+
+                        $digit := nqp::atpos($parse, 0);
+                        fail "digit is larger than radix in ':$radix[]' style radix number"
+                            if $digit >= $radix;
+
+                        $result := $result * $radix + $digit;
+                        $pos     = nqp::add_i($pos, 1)
+                            if nqp::islt_i($pos, $eos) && nqp::iseq_i(nqp::ord($str, $pos), 44);  # ','
+                    }
+                    fail "malformed ':$radix[]' style radix number, expecting ']' after the body"
+                        unless nqp::islt_i($pos, $eos) && nqp::iseq_i(nqp::ord($str, $pos), 93);  # ']'
+                    $pos = nqp::add_i($pos, 1);
+
+                    # XXXX: Handle fractions!
+                    # XXXX: Handle exponents!
+                    return $neg ?? -$result !! $result;
+                }
+                else {
+                    fail "malformed ':$radix' style radix number, expecting '<' or '[' after the base";
+                }
+            }
+            elsif nqp::iseq_i($ch, 48)  # '0'
+              and $radix = pir::index('  b     o d     x',
+                                      nqp::substr($str, nqp::add_i($pos, 1), 1))
+              and nqp::isge_i($radix, 2) {
+                # A string starting with 0x, 0d, 0o, or 0b, followed by one optional '_'
+                $pos   = nqp::add_i($pos, 2);
+                $pos   = nqp::add_i($pos, 1)
+                    if nqp::islt_i($pos, $eos) && nqp::iseq_i(nqp::ord($str, $pos), 95);  # '_'
+
+                return parse-int-frac-exp();
+            }
+            elsif nqp::iseq_s(nqp::substr($str, $pos, 3), 'Inf') {
+                # 'Inf'
+                $pos = nqp::add_i($pos, 3);
+                return $neg ?? -$Inf !! $Inf;
+            }
+            else {
+                # Last chance: a simple decimal number
+                $radix = 10;
+                return parse-int-frac-exp();
+            }
+        }
+
+        # Parse a simple number or a Rat numerator
+        my Mu $result := parse-simple-number();
+        return $result if nqp::iseq_i($pos, $eos) || !$result.defined;
+
+        # # Parse a simple number or a Rat numerator
+        # my int $p      = $pos;
+        # my Mu $result := parse-simple-number();
+        # # XXXX: Total failure to make progress in string
+        # if nqp::isle_i($pos, $p) && !$result.defined {
+        #     try { die };
+        #     print $!.backtrace;
+        #     return 0;
+        # }
+        # return $result if nqp::iseq_i($pos, $eos) || !$result.defined;
+
+        # Check for '/' indicating Rat denominator
+        if nqp::iseq_i(nqp::ord($str, $pos), 47) {  # '/'
             $pos = nqp::add_i($pos, 1);
-            $parse := nqp::radix_I(10, $str, $pos, 0, Int);
-            $radix = nqp::atpos($parse, 0);
-            $pos = nqp::atpos($parse, 2);
-            fail "not a number" if nqp::iseq_i($pos, -1);
-            fail "malformed radix number, expecting '<' after the base"
-                unless nqp::iseq_s(nqp::substr($str, $pos, 1), '<');
-            $pos = nqp::add_i($pos, 1);
-            $parse := nqp::radix_I($radix, $str, $pos, $neg, Int);
-            $pos = nqp::atpos($parse, 2);
-            fail "malformed radix number" if nqp::iseq_i($pos, -1);
-            fail "malformed radix number, expecting '>' after the body"
-                unless nqp::iseq_s(nqp::substr($str, $pos, 1), '>');
-            $pos = nqp::add_i($pos, 1);
-            return nqp::atpos($parse, 0) unless $tailfail();
+            fail "denominator expected after '/'" unless nqp::islt_i($pos, $eos);
+
+            my Mu $denom := parse-simple-number();
+            return $denom unless $denom.defined;
+
+            $result := $result.WHAT === Int && $denom.WHAT === Int
+                    ?? Rat.new($result, $denom)
+                    !! $result / $denom;
         }
 
-        # handle 'Inf'
-        if nqp::iseq_s(nqp::substr($str, $pos, 3), 'Inf') {
-            $pos = nqp::add_n($pos, 3);
-            return ($neg ?? -$Inf !! $Inf) unless $tailfail();
-        }
+        # Check for trailing garbage
+        fail "trailing characters after number" if nqp::islt_i($pos, $eos);
 
-        # We have some sort of number, get leading integer part
-        # First check if leading character is '.' ...
-        $ch = nqp::islt_i($pos, $eos) && nqp::ord($str, $pos);
-        if nqp::iseq_i($ch, 46) {
-            $int = 0;
-        }
-        else {
-            my int $p = $pos;
-            $parse := nqp::radix_I(10, $str, $pos, $neg, Int);
-            $pos = nqp::atpos($parse, 2);
-            # XXX: return 0 if ...
-            #     We should really fail here instead of returning 0,
-            #     but we need to first need to figure out better ways
-            #     to handle failure results.
-            return 0 if nqp::iseq_i($p, 0) && nqp::islt_i($pos, 0);
-            fail "malformed numeric string" if nqp::islt_i($pos, 0);
-            $int = nqp::atpos($parse, 0);
-        }
-
-        # if there's a slash, get a denominator and make a Rat
-        $ch = nqp::islt_i($pos, $eos) && nqp::ord($str, $pos);
-        if nqp::iseq_i($ch, 47) {
-            $parse := nqp::radix_I(10, $str, nqp::add_i($pos, 1), 0, Int);
-            $pos = nqp::atpos($parse, 2);
-            fail "Slash must be followed by denominator" if nqp::islt_i($pos, 0);
-            return Rat.new($int, nqp::atpos($parse, 0))
-                unless $tailfail();
-        }
-
-        # check for decimal fraction or number
-        # parse an optional decimal point and value
-        if nqp::iseq_i($ch, 46) {
-            $parse := nqp::radix_I(10, $str, nqp::add_i($pos, 1), nqp::add_i(4,$neg), Int);
-            $pos = nqp::atpos($parse, 2);
-            fail "Decimal point must be followed by digit" if nqp::islt_i($pos, 0);
-            $frac = nqp::atpos($parse, 0);
-            $base = nqp::atpos($parse, 1);
-            $ch = nqp::islt_i($pos, $eos) && nqp::ord($str, $pos);
-        }
-
-        # handle exponent if 'E' or 'e' are present
-        if nqp::iseq_i($ch, 69) || nqp::iseq_i($ch, 101) {
-            $parse := nqp::radix(10, $str, nqp::add_i($pos, 1), 2);
-            $pos = nqp::atpos($parse, 2);
-            fail "'E' or 'e' must be followed by integer" if nqp::islt_i($pos, 0);
-            my num $exp = nqp::atpos($parse, 0);
-            my num $coef = $frac ?? nqp::add_n($int, nqp::div_n($frac, $base)) !! $int;
-            return nqp::p6box_n(nqp::mul_n($coef, nqp::pow_n(10, $exp)))
-                unless $tailfail();
-        }
-
-        # if we got a decimal point above, it's a Rat
-        if $base {
-            my Int $numerator = $int * $base + $frac;
-            return Rat.new($numerator, $base)
-                unless $tailfail();
-        }
-
-        $int unless $tailfail();
+        return $result;
     }
 
     my %esc = (

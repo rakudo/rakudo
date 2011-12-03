@@ -8,18 +8,27 @@ sub infix:<=>(Mu \$a, Mu \$b) is rw {
 }
 
 proto infix:<does>(|$) { * }
-multi infix:<does>(Mu \$obj, Mu:U \$role) is rw {
+multi infix:<does>(Mu:D \$obj, Mu:U \$role) is rw {
     # XXX Mutability check.
     $obj.HOW.mixin($obj, $role).BUILD_LEAST_DERIVED({});
 }
-multi infix:<does>(Mu \$obj, @roles) is rw {
+multi infix:<does>(Mu:U \$obj, Mu:U \$role) is rw {
+    die "Cannot use 'does' operator with a type object"
+}
+multi infix:<does>(Mu:D \$obj, @roles) is rw {
     # XXX Mutability check.
     $obj.HOW.mixin($obj, |@roles).BUILD_LEAST_DERIVED({});
 }
+multi infix:<does>(Mu:U \$obj, @roles) is rw {
+    die "Cannot use 'does' operator with a type object"
+}
 
 proto infix:<but>(|$) { * }
-multi infix:<but>(Mu \$obj, Mu:U \$role) {
+multi infix:<but>(Mu:D \$obj, Mu:U \$role) {
     $obj.HOW.mixin($obj.clone(), $role).BUILD_LEAST_DERIVED({});
+}
+multi infix:<but>(Mu:U \$obj, Mu:U \$role) {
+    $obj.HOW.mixin($obj.clone(), $role);
 }
 multi infix:<but>(Mu \$obj, Mu:D $val) is rw {
     my $role := Metamodel::ParametricRoleHOW.new_type();
@@ -31,8 +40,11 @@ multi infix:<but>(Mu \$obj, Mu:D $val) is rw {
     $role.HOW.compose($role);
     $obj.HOW.mixin($obj.clone(), $role);
 }
-multi infix:<but>(Mu \$obj, @roles) {
+multi infix:<but>(Mu:D \$obj, @roles) {
     $obj.HOW.mixin($obj.clone(), |@roles).BUILD_LEAST_DERIVED({});
+}
+multi infix:<but>(Mu:U \$obj, @roles) {
+    $obj.HOW.mixin($obj.clone(), |@roles)
 }
 
 sub SEQUENCE($left, $right, :$exclude_end) {

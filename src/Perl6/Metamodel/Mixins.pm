@@ -16,7 +16,10 @@ role Perl6::Metamodel::Mixins {
         $new_type.HOW.set_boolification_mode($new_type, self.get_boolification_mode($obj));
         $new_type.HOW.compose($new_type);
         
-        # Call low-level op to do the actual mixing in.
-        pir::repr_change_type__0PP($obj, $new_type)
+        # If the original object was concrete, change its type by calling a
+        # low level op. Otherwise, we just return the new type object
+        nqp::isconcrete($obj) ??
+            pir::repr_change_type__0PP($obj, $new_type) !!
+            $new_type
     }
 }

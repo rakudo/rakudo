@@ -209,6 +209,41 @@ typedef struct SixModel_REPROps_Boxing {
      * them. */
     void * (*get_boxed_ref) (PARROT_INTERP, STable *st, void *data, INTVAL repr_id);
 } REPROps_Boxing;
+typedef struct SixModel_REPROps_Indexing {
+    /* Get the address of the element at the specified position. May return null if
+     * nothing is there, or throw to indicate out of bounds, or vivify. */
+    void * (*at_pos_ref) (PARROT_INTERP, STable *st, void *data, INTVAL index);
+
+    /* Get a boxed object representing the element at the specified position. If the
+     * object is already a reference type, simply returns that. */
+    PMC * (*at_pos_boxed) (PARROT_INTERP, STable *st, void *data, INTVAL index);
+
+    /* Binds the value at the specified address into the array at the specified index.
+     * may auto-vivify or throw. */
+    void (*bind_pos_ref) (PARROT_INTERP, STable *st, void *data, INTVAL index, void *addr);
+
+    /* Binds the object at the specified address into the array at the specified index.
+     * For arrays of non-reference types, expects a compatible type. */
+    void (*bind_pos_boxed) (PARROT_INTERP, STable *st, void *data, INTVAL index, PMC *obj);
+
+    /* Gets the number of elements. */
+    INTVAL (*elems) (PARROT_INTERP, STable *st, void *data);
+
+    /* Pre-allocates the specified number of slots. */
+    void (*preallocate) (PARROT_INTERP, STable *st, void *data, INTVAL count);
+
+    /* Trim to the specified number of slots. */
+    void (*trim_to) (PARROT_INTERP, STable *st, void *data, INTVAL count);
+
+    /* Make a "hole" the specified number of elements in size at the specified index.
+     * Used for implementing things like unshift, splice, etc. */
+    void (*make_hole) (PARROT_INTERP, STable *st, void *data, INTVAL at_index, INTVAL count);
+
+    /* Delete the specified number of elements (that is, actually shuffle the ones
+     * after them into their place). Used for implementing things like shift, splice,
+     * etc. */
+    void (*delete_elems) (PARROT_INTERP, STable *st, void *data, INTVAL at_index, INTVAL count);
+} REPROps_Indexing;
 struct SixModel_REPROps {
     /* Creates a new type object of this representation, and
      * associates it with the given HOW. Also sets up a new
@@ -237,6 +272,9 @@ struct SixModel_REPROps {
     
     /* Boxing REPR function table. */
     struct SixModel_REPROps_Boxing *box_funcs;
+
+    /* Indexing REPR function table. */
+    struct SixModel_REPROps_Indexing *idx_funcs;
     
     /* Gets the storage specification for this representation. */
     storage_spec (*get_storage_spec) (PARROT_INTERP, STable *st);

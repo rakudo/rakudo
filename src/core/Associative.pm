@@ -1,2 +1,3 @@
-my role Associative {
+my role Associative[::T = Mu] {
+    method of() { T }
 }

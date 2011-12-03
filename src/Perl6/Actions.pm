@@ -2168,7 +2168,8 @@ class Perl6::Actions is HLL::Actions {
             }
             if $need_role {
                 if pir::exists(%*PARAM_INFO, 'nominal_type') {
-                    $/.CURSOR.panic("Typed arrays/hashes/callables not yet implemented");
+                    %*PARAM_INFO<nominal_type> := $*ST.parameterize_type_with_args(
+                        $role_type, [%*PARAM_INFO<nominal_type>], nqp::hash());
                 }
                 else {
                     %*PARAM_INFO<nominal_type> := $role_type;

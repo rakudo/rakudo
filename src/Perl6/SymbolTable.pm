@@ -1357,7 +1357,7 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
     }
     
     # Builds a curried role based on a parsed argument list.
-    method curry_role($curryhow, $role, $arglist, $/) {
+    method parameterize_type($role, $arglist, $/) {
         # Build a list of compile time arguments to the role; whine if
         # we find something without one.
         my @pos_args;
@@ -1376,21 +1376,22 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
             }
         }
         
-        self.curry_role_with_args($curryhow, $role, @pos_args, %named_args);
+        self.parameterize_type_with_args($role, @pos_args, %named_args);
     }
     
     # Curries a role with the specified arguments.
-    method curry_role_with_args($curryhow, $role, @pos_args, %named_args) {
+    method parameterize_type_with_args($role, @pos_args, %named_args) {
         # Make the curry right away and add it to the SC.
-        my $curried := $curryhow.new_type($role, |@pos_args, |%named_args);
+        my $curried := $role.HOW.parameterize($role, |@pos_args, |%named_args);
         my $slot := self.add_object($curried);
         
         # Serialize call.
         if self.is_precompilation_mode() {
+            my $rref := self.get_object_sc_ref_past($role);
             my $setup_call := PAST::Op.new(
-                :pasttype('callmethod'), :name('new_type'),
-                self.get_object_sc_ref_past($curryhow),
-                self.get_object_sc_ref_past($role)
+                :pasttype('callmethod'), :name('parameterize'),
+                PAST::Op.new( :pirop('get_how PP'), $rref ),
+                $rref
             );
             for @pos_args {
                 $setup_call.push(self.get_object_sc_ref_past($_));

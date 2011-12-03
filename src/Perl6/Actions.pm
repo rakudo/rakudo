@@ -2705,18 +2705,18 @@ class Perl6::Actions is HLL::Actions {
                     }
                 }
                 if $all_compile_time {
-                    my $curried := $*ST.curry_role(%*HOW<role-curried>,
-                        $role, $<arglist>, $/);
+                    my $curried := $*ST.parameterize_type($role, $<arglist>, $/);
                     $past := $*ST.get_object_sc_ref_past($curried);
                     $past<has_compile_time_value> := 1;
                     $past<compile_time_value> := $curried;
                 }
                 else {
+                    my $rref := $*ST.get_object_sc_ref_past($role);
                     $past := $<arglist>[0].ast;
                     $past.pasttype('callmethod');
-                    $past.name('new_type');
-                    $past.unshift($*ST.get_object_sc_ref_past($role));
-                    $past.unshift($*ST.get_object_sc_ref_past(%*HOW<role-curried>));
+                    $past.name('parameterize');
+                    $past.unshift($rref);
+                    $past.unshift(PAST::Op.new( :pirop('get_how PP'), $rref ));
                 }
             }
             elsif ~$<longname> eq 'GLOBAL' {
@@ -3475,10 +3475,10 @@ class Perl6::Actions is HLL::Actions {
                 my $type := $*ST.find_symbol(Perl6::Grammar::parse_name(
                     Perl6::Grammar::canonical_type_longname($<longname>)));
                 if $<arglist> {
-                    $type := $*ST.curry_role(%*HOW<role-curried>, $type, $<arglist>, $/);
+                    $type := $*ST.parameterize_type($type, $<arglist>, $/);
                 }
                 if $<typename> {
-                    $type := $*ST.curry_role_with_args(%*HOW<role-curried>, $type,
+                    $type := $*ST.parameterize_type_with_args($type,
                         [$<typename>[0].ast], hash());
                 }
                 make $type;

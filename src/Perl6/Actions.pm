@@ -89,9 +89,11 @@ class Perl6::Actions is HLL::Actions {
     }
 
     sub sigiltype($sigil) {
-        $sigil eq '%' ?? 'Hash'   !!
-        $sigil eq '@' ?? 'Array'  !!
-                         'Scalar'
+        $*ST.find_symbol([
+            $sigil eq '%' ?? 'Hash'   !!
+            $sigil eq '@' ?? 'Array'  !!
+                             'Scalar'
+        ])
     }
 
     method deflongname($/) {

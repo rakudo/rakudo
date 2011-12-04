@@ -378,7 +378,7 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
     
     # Installs a lexical symbol. Takes a PAST::Block object, name and
     # the type of container to install.
-    method install_lexical_container($block, $name, $type_name, $descriptor, :$state, *@default_value) {
+    method install_lexical_container($block, $name, $cont_type_obj, $descriptor, :$state, *@default_value) {
         # Add to block, if needed. Note that it doesn't really have
         # a compile time value.
         my $var;
@@ -404,8 +404,7 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
         }
         
         # Build container, as well as code to deserialize it.
-        my $cont_code := self.build_container_past($type_name, $descriptor, |@default_value);
-        my $cont_type_obj := self.find_symbol([$type_name]);
+        my $cont_code := self.build_container_past($cont_type_obj, $descriptor, |@default_value);
         my $cont := pir::repr_instance_of__PP($cont_type_obj);
         pir::setattribute__vPPsP($cont, $cont_type_obj, '$!descriptor', $descriptor);
         if +@default_value {
@@ -429,9 +428,8 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
     }
     
     # Builds PAST that constructs a container.
-    method build_container_past($type_name, $descriptor, *@default_value) {
+    method build_container_past($type_obj, $descriptor, *@default_value) {
         # Create container.
-        my $type_obj := self.find_symbol([$type_name]);
         my $cont_code := PAST::Op.new(
             :pirop('repr_instance_of PP'),
             self.get_object_sc_ref_past($type_obj)
@@ -1232,10 +1230,9 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
     # as named arguments, but where these passed objects also live in a
     # serialization context. The type would be passed in this way.
     method pkg_add_attribute($obj, $meta_attr, %lit_args, %obj_args,
-            $cont_type, $descriptor, *@default_value) {
+            $cont_type_obj, $descriptor, *@default_value) {
         # Build container, and create container PAST for deserialize.
-        my $cont_past := self.build_container_past($cont_type, $descriptor, |@default_value);
-        my $cont_type_obj := self.find_symbol([$cont_type]);
+        my $cont_past := self.build_container_past($cont_type_obj, $descriptor, |@default_value);
         my $cont := pir::repr_instance_of__PP($cont_type_obj);
         pir::setattribute__vPPsP($cont, $cont_type_obj, '$!descriptor', $descriptor);
         if +@default_value {

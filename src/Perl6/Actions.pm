@@ -88,12 +88,67 @@ class Perl6::Actions is HLL::Actions {
         $block;
     }
 
-    sub sigiltype($sigil) {
-        $*ST.find_symbol([
-            $sigil eq '%' ?? 'Hash'   !!
-            $sigil eq '@' ?? 'Array'  !!
-                             'Scalar'
-        ])
+    # Given a sigil and the the value type specified, works out the
+    # container type (what should we instantiate and bind into the
+    # attribute/lexpad), bind constraint (what could we bind to this
+    # slot later), and if specified a constraint on the inner value
+    # and a default value.
+    sub container_type_info($sigil, @value_type) {
+        my %info;
+        if $sigil eq '@' {
+            %info<container_base>  := $*ST.find_symbol(['Array']);
+            %info<bind_constraint> := $*ST.find_symbol(['Positional']);
+            if @value_type {
+                %info<container_type>  := $*ST.parameterize_type_with_args(
+                    %info<container_base>, [@value_type[0]], nqp::hash());
+                %info<bind_constraint> := $*ST.parameterize_type_with_args(
+                    %info<bind_constraint>, [@value_type[0]], nqp::hash());
+            }
+            else {
+                %info<container_type> := %info<container_base>;
+                %info<value_type>     := $*ST.find_symbol(['Mu']);
+            }
+        }
+        elsif $sigil eq '%' {
+            %info<container_base>  := $*ST.find_symbol(['Hash']);
+            %info<bind_constraint> := $*ST.find_symbol(['Associative']);
+            if @value_type {
+                %info<container_type>  := $*ST.parameterize_type_with_args(
+                    %info<container_base>, [@value_type[0]], nqp::hash());
+                %info<bind_constraint> := $*ST.parameterize_type_with_args(
+                    %info<bind_constraint>, [@value_type[0]], nqp::hash());
+            }
+            else {
+                %info<container_type> := %info<container_base>;
+                %info<value_type>     := $*ST.find_symbol(['Mu']);
+            }
+        }
+        elsif $sigil eq '&' {
+            %info<container_base>  := $*ST.find_symbol(['Scalar']);
+            %info<container_type>  := %info<container_base>;
+            %info<bind_constraint> := $*ST.find_symbol(['Callable']);
+            if @value_type {
+                %info<bind_constraint> := $*ST.parameterize_type_with_args(
+                    %info<bind_constraint>, [@value_type[0]], nqp::hash());
+            }
+            %info<value_type>     := %info<bind_constraint>;
+            %info<default_value>   := $*ST.find_symbol(['Any']);
+        }
+        else {
+            %info<container_base>     := $*ST.find_symbol(['Scalar']);
+            %info<container_type>     := %info<container_base>;
+            if @value_type {
+                %info<bind_constraint> := @value_type[0];
+                %info<value_type>      := @value_type[0];
+                %info<default_value>   := @value_type[0];
+            }
+            else {
+                %info<bind_constraint> := $*ST.find_symbol(['Mu']);
+                %info<value_type>      := $*ST.find_symbol(['Mu']);
+                %info<default_value>   := $*ST.find_symbol(['Any']);
+            }
+        }
+        %info
     }
 
     method deflongname($/) {
@@ -1231,10 +1286,10 @@ class Perl6::Actions is HLL::Actions {
                     }
                 }
                 else {
+                    my %cont_info := container_type_info($_<sigil> || '$', []);
                     $list.push($*ST.build_container_past(
-                        sigiltype($_<sigil> || '$'),
-                        $*ST.create_container_descriptor(
-                            $*ST.find_symbol(['Mu']), 1, 'anon')));
+                        %cont_info,
+                        $*ST.create_container_descriptor(%cont_info<value_type>, 1, 'anon')));
                 }
             }
             make $list;
@@ -1280,9 +1335,8 @@ class Perl6::Actions is HLL::Actions {
 
             # Create container descriptor and decide on any default value..
             my $attrname   := ~$sigil ~ '!' ~ $desigilname;
-            my $type       := $*TYPENAME ?? $*TYPENAME.ast !! $*ST.find_symbol(['Mu']);
-            my $descriptor := $*ST.create_container_descriptor($type, 1, $attrname);
-            my @default    := $sigil eq '$' || $sigil eq '&' ?? [$type] !! [];
+            my %cont_info  := container_type_info($sigil, $*TYPENAME ?? [$*TYPENAME.ast] !! []);
+            my $descriptor := $*ST.create_container_descriptor(%cont_info<value_type>, 1, $attrname);
 
             # Create meta-attribute and add it.
             my $metaattr := %*HOW{$*PKGDECL ~ '-attr'};
@@ -1293,9 +1347,9 @@ class Perl6::Actions is HLL::Actions {
                 ),
                 hash(
                     container_descriptor => $descriptor,
-                    type => $type,
+                    type => %cont_info<bind_constraint>,
                     package => $*ST.find_symbol(['$?CLASS'])),
-                sigiltype($sigil), $descriptor, |@default);
+                %cont_info, $descriptor);
 
             # Document it
             # Perl6::Pod::document($attr, $*DOC); #XXX var traits NYI
@@ -1320,28 +1374,20 @@ class Perl6::Actions is HLL::Actions {
         elsif $*SCOPE eq 'my' || $*SCOPE eq 'state' {
             # Create a container descriptor. Default to rw and set a
             # type if we have one; a trait may twiddle with that later.
-            my $type_cons := $*TYPENAME ?? $*TYPENAME.ast !! $*ST.find_symbol(['Mu']);
-            my $descriptor := $*ST.create_container_descriptor(
-                $type_cons, 1, $name);
+            my %cont_info := container_type_info($sigil, $*TYPENAME ?? [$*TYPENAME.ast] !! []);
+            my $descriptor := $*ST.create_container_descriptor(%cont_info<value_type>, 1, $name);
 
-            # Install the container. Scalars default to Any if untyped.
-            if $sigil eq '$' || $sigil eq '&' {
-                $*ST.install_lexical_container($BLOCK, $name, sigiltype($sigil), $descriptor,
-                    $*TYPENAME ?? $*TYPENAME.ast !! $*ST.find_symbol(['Any']),
-                    :state($*SCOPE eq 'state'));
-            }
-            else {
-                $*ST.install_lexical_container($BLOCK, $name, sigiltype($sigil), $descriptor,
-                    :state($*SCOPE eq 'state'));
-            }
+            # Install the container.
+            $*ST.install_lexical_container($BLOCK, $name, %cont_info, $descriptor,
+                :state($*SCOPE eq 'state'));
 
             # Set scope and type on container, and if needed emit code to
             # reify a generic type.
             if $past.isa(PAST::Var) {
                 $past.scope('lexical_6model');
-                $past.type($descriptor.of);
-                $past := box_native_if_needed($past, $descriptor.of);
-                if $type_cons.HOW.archetypes.generic {
+                $past.type(%cont_info<bind_constraint>);
+                $past := box_native_if_needed($past, %cont_info<bind_constraint>);
+                if %cont_info<bind_constraint>.HOW.archetypes.generic {
                     $past := PAST::Op.new(
                         :pasttype('callmethod'), :name('instantiate_generic'),
                         PAST::Op.new( :pirop('perl6_var PP'), $past ),

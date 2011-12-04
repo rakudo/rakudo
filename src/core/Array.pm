@@ -59,6 +59,12 @@ class Array {
         self
     }
 
+    my role TypedArray[::TValue] does Positional[TValue] {
+        # XXX some methods to come here...
+    }
+    method PARAMETERIZE_TYPE(Mu $t) {
+        self but TypedArray[$t.WHAT]
+    }
 }
 
 

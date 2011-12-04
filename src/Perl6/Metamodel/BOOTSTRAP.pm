@@ -190,9 +190,13 @@ Attribute.HOW.add_method(Attribute, 'instantiate_generic', sub ($self, $type_env
                 $pkg.HOW.instantiate_generic($pkg, $type_environment));
             my $cd_ins := $cd.instantiate_generic($type_environment);
             pir::setattribute__vPPsP($ins, Attribute, '$!container_descriptor', $cd_ins);
-            my $avc_copy := pir::repr_clone__PP(pir::perl6_var__PP($avc));
+            my $avc_var  := pir::perl6_var__PP($avc);
+            my $avc_copy := pir::repr_clone__PP($avc_var);
+            my @avc_mro  := $avc_var.HOW.mro($avc_var);
+            my $i := 0;
+            $i := $i + 1 while @avc_mro[$i].HOW.is_mixin(@avc_mro[$i]);
             pir::setattribute__vPPsP($ins, Attribute, '$!auto_viv_container',
-                pir::setattribute__0PPsP($avc_copy, (pir::perl6_var__PP($avc_copy)).WHAT, '$!descriptor', $cd_ins));
+                pir::setattribute__0PPsP($avc_copy, @avc_mro[$i], '$!descriptor', $cd_ins));
         }
         if pir::defined__IP($bc) {
             pir::setattribute__vPPsP($ins, Attribute, '$!build_closure', $bc.clone());

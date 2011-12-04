@@ -1,4 +1,8 @@
 role Perl6::Metamodel::Mixins {
+    has $!is_mixin;
+    method set_is_mixin($obj) { $!is_mixin := 1 }
+    method is_mixin($obj) { $!is_mixin }
+
     method mixin($obj, *@roles) {
         # Work out a type name for the post-mixed-in role.
         my @role_names;
@@ -9,6 +13,7 @@ role Perl6::Metamodel::Mixins {
         # Create new type, derive it from ourself and then add
         # all the roles we're mixing it.
         my $new_type := self.new_type(:name($new_name));
+        $new_type.HOW.set_is_mixin($new_type);
         $new_type.HOW.add_parent($new_type, $obj.WHAT);
         for @roles {
             $new_type.HOW.add_role($new_type, $_);

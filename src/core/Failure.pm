@@ -1,3 +1,5 @@
+$PROCESS::FATAL = False;
+
 my class Failure {
     has $!exception;
     has $!handled;
@@ -36,6 +38,7 @@ my class Failure {
 
 my &fail := -> *@msg {
     my $value = @msg.join('');
+    die $value if $*FATAL;
     my Mu $ex := Q:PIR {
                      # throw and immediately catch an exception, to capture
                      # the location at the point of the fail()

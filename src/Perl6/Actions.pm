@@ -103,6 +103,7 @@ class Perl6::Actions is HLL::Actions {
                     %info<container_base>, [@value_type[0]], nqp::hash());
                 %info<bind_constraint> := $*ST.parameterize_type_with_args(
                     %info<bind_constraint>, [@value_type[0]], nqp::hash());
+                %info<value_type>      := @value_type[0];
             }
             else {
                 %info<container_type> := %info<container_base>;
@@ -117,6 +118,7 @@ class Perl6::Actions is HLL::Actions {
                     %info<container_base>, [@value_type[0]], nqp::hash());
                 %info<bind_constraint> := $*ST.parameterize_type_with_args(
                     %info<bind_constraint>, [@value_type[0]], nqp::hash());
+                %info<value_type>      := @value_type[0];
             }
             else {
                 %info<container_type> := %info<container_base>;

@@ -185,6 +185,10 @@ class IO {
     method x() {
         nqp::p6bool(pir::new__Ps('OS').can_execute(nqp::unbox_s($!path)))
     }
+    
+    method z() {
+        self.e && self.s == 0;
+    }
 
     # not spec'd
     method copy($dest) {

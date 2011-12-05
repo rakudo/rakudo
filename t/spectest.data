@@ -446,7 +446,7 @@ S14-roles/instantiation.t
 S14-roles/lexical.t
 S14-roles/mixin.t
 S14-roles/namespaced.t 
-# S14-roles/parameter-subtyping.t # err: Calling 'modify' will never work with argument types (C2)
+# S14-roles/parameter-subtyping.t # err: Calling 's' will never work with argument types (C2)
 S14-roles/parameterized-basic.t
 S14-roles/parameterized-mixin.t
 S14-roles/parameterized-type.t

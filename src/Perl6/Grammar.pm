@@ -1658,7 +1658,7 @@ grammar Perl6::Grammar is HLL::Grammar {
     token type_declarator:sym<enum> {
         :my $*IN_DECL := 'enum';
         :my $*DECLARAND;
-        <sym> <.ws>
+        <sym>  <.end_keyword> <.ws>
         [
         | <longname>
             {

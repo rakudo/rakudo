@@ -140,8 +140,6 @@ my class Str does Stringy {
 
     # TODO:
     # * Additional numeric styles:
-    #   + exponents in radix notation:     :2<10.1*2**8>
-    #   + recursively parsed exponents:    :2«10.1*:2<10>**:2<1000>»
     #   + fractions in [] radix notation:  :100[10,'.',53]
     #   + complex numbers:                 5.2+1e42i
     # * Performance tuning
@@ -223,7 +221,7 @@ my class Str does Stringy {
                 }
 
                 # Exponent, if 'E' or 'e' are present (forces return type Num)
-                if nqp::iseq_i($ch, 69) || nqp::iseq_i($ch, 101) {
+                if nqp::iseq_i($ch, 69) || nqp::iseq_i($ch, 101) {  # 'E', 'e'
                     parse_fail "'E' or 'e' style exponent only allowed on decimal (base-10) numbers, not base-$radix"
                         unless nqp::iseq_i($radix, 10);
 
@@ -237,6 +235,30 @@ my class Str does Stringy {
                     my num $exp  = nqp::atpos($parse, 0);
                     my num $coef = $frac ?? nqp::add_n($int, nqp::div_n($frac, $base)) !! $int;
                     return nqp::p6box_n(nqp::mul_n($coef, nqp::pow_n(10, $exp)));
+                }
+
+                # Multiplier with exponent, if single '*' is present
+                # (but skip if current token is '**', as otherwise we
+                # get recursive multiplier parsing stupidity)
+                if nqp::iseq_i($ch, 42)
+                && nqp::isne_s(substr($str, $pos, 2), '**') {  # '*'
+                    $pos           = nqp::add_i($pos, 1);
+                    my $mult_base := parse-simple-number();
+
+                    parse_fail "'*' multiplier base must be an integer"
+                        unless $mult_base.WHAT === Int;
+                    parse_fail "'*' multiplier base must be followed by '**' and exponent"
+                        unless nqp::iseq_s(nqp::substr($str, $pos, 2), '**');
+
+                    $pos           = nqp::add_i($pos, 2);
+                    my $mult_exp  := parse-simple-number();
+
+                    parse_fail "'**' multiplier exponent must be an integer"
+                        unless $mult_exp.WHAT === Int;
+
+                    my $mult := $mult_base ** $mult_exp;
+                    $int     := $int  * $mult;
+                    $frac    := $frac * $mult;
                 }
 
                 # Return an Int if there was no radix point
@@ -267,6 +289,18 @@ my class Str does Stringy {
                     parse_fail "malformed ':$radix<>' style radix number, expecting '>' after the body"
                         unless nqp::islt_i($pos, $eos)
                             && nqp::iseq_i(nqp::ord($str, $pos), 62);  # '>'
+
+                    $pos = nqp::add_i($pos, 1);
+                    return $result;
+                }
+                elsif nqp::iseq_i($ch, 171) {  # '«'
+                    $pos = nqp::add_i($pos, 1);
+
+                    my $result := parse-int-frac-exp();
+
+                    parse_fail "malformed ':$radix«»' style radix number, expecting '»' after the body"
+                        unless nqp::islt_i($pos, $eos)
+                            && nqp::iseq_i(nqp::ord($str, $pos), 187);  # '»'
 
                     $pos = nqp::add_i($pos, 1);
                     return $result;

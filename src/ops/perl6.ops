@@ -638,7 +638,7 @@ and asserts that the bind is allowed to take place.
 */
 inline op perl6_assert_bind_ok(in PMC, in PMC) :base_core {
     if ($2->vtable->base_type == smo_id) {
-        PMC *type = ((Rakudo_ContainerDescriptor *)PMC_data($2))->of;
+        PMC *type = $2;
         if (type != Rakudo_types_mu_get()) {
             INTVAL ok = 0;
             if ($1->vtable->base_type == smo_id) {

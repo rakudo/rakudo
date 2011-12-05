@@ -454,15 +454,15 @@ class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
         $cont_code
     }
     
-    # Hunts through scopes to find a container descriptor for a lexical.
-    method find_lexical_container_descriptor($name) {
+    # Hunts through scopes to find the type of a lexical.
+    method find_lexical_container_type($name) {
         my $i := +@!BLOCKS;
         while $i > 0 {
             $i := $i - 1;
             my %sym := @!BLOCKS[$i].symbol($name);
             if +%sym {
-                if pir::exists(%sym, 'descriptor') {
-                    return %sym<descriptor>;
+                if pir::exists(%sym, 'type') {
+                    return %sym<type>;
                 }
                 else {
                     $i := 0;

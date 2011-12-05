@@ -1155,10 +1155,10 @@ class Perl6::Actions is HLL::Actions {
             # Expect variable to have been declared somewhere.
             # Locate descriptor and thus type.
             try {
-                my $cd := $*ST.find_lexical_container_descriptor($past.name);
+                my $type := $*ST.find_lexical_container_type($past.name);
                 $past.scope('lexical_6model');
-                $past.type($cd.of);
-                $past := box_native_if_needed($past, $cd.of);
+                $past.type($type);
+                $past := box_native_if_needed($past, $type);
             }
         }
         $past
@@ -2241,7 +2241,8 @@ class Perl6::Actions is HLL::Actions {
                             :isdecl(1), :type(%*PARAM_INFO<nominal_type>) ));
                         %*PARAM_INFO<container_descriptor> := $*ST.create_container_descriptor(
                             %*PARAM_INFO<nominal_type>, 0, %*PARAM_INFO<variable_name>);
-                        $cur_pad.symbol(%*PARAM_INFO<variable_name>, :descriptor(%*PARAM_INFO<container_descriptor>));
+                        $cur_pad.symbol(%*PARAM_INFO<variable_name>, :descriptor(%*PARAM_INFO<container_descriptor>),
+                            :type(%*PARAM_INFO<nominal_type>));
                     } else {
                         $cur_pad[0].push(PAST::Var.new( :name(~$/), :scope('lexical_6model'), :isdecl(1) ));
                     }
@@ -3208,16 +3209,16 @@ class Perl6::Actions is HLL::Actions {
                 }
                 $source := PAST::Op.new(
                     :pirop('perl6_assert_bind_ok 0PP'),
-                    $source, $*ST.get_object_sc_ref_past($meta_attr.container_descriptor))
+                    $source, $*ST.get_object_sc_ref_past($meta_attr.type))
             }
             else {
                 # Probably a lexical.
                 my $was_lexical := 0;
                 try {
-                    my $descriptor := $*ST.find_lexical_container_descriptor($target.name);
+                    my $type := $*ST.find_lexical_container_type($target.name);
                     $source := PAST::Op.new(
                         :pirop('perl6_assert_bind_ok 0PP'),
-                        $source, $*ST.get_object_sc_ref_past($descriptor));
+                        $source, $*ST.get_object_sc_ref_past($type));
                     $was_lexical := 1;
                 }
                 unless $was_lexical {

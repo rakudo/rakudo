@@ -89,7 +89,7 @@ S02-one-pass-parsing/less-than.t
 S02-types/subset.t
 S02-lexical-conventions/begin_end_pod.t
 S02-lexical-conventions/end-pod.t
-# S02-lexical-conventions/comments.t # err: =begin without matching =end
+# S02-lexical-conventions/comments.t # err: Whitespace character is not allowed as a delimiter
 S02-lexical-conventions/minimal-whitespace.t
 S02-lexical-conventions/one-pass-parsing.t
 S02-lexical-conventions/pod-in-multi-line-exprs.t
@@ -317,7 +317,7 @@ S06-routine-modifiers/scoped-named-subs.t
 S06-signature/arity.t
 S06-signature/closure-over-parameters.t
 S06-signature/closure-parameters.t
-# S06-signature/code.t # err: Typed arrays/hashes/callables not yet implemented
+# S06-signature/code.t # err: Calling 'tester2' will never work with argument types (int)
 S06-signature/defaults.t
 S06-signature/errors.t
 # S06-signature/introspection.t # err: No applicable candidates found to dispatch to for 'trait_mod:<is>'
@@ -446,7 +446,7 @@ S14-roles/instantiation.t
 S14-roles/lexical.t
 S14-roles/mixin.t
 S14-roles/namespaced.t 
-# S14-roles/parameter-subtyping.t # err: Typed arrays/hashes/callables not yet implemented
+# S14-roles/parameter-subtyping.t # err: Calling 'modify' will never work with argument types (C2)
 S14-roles/parameterized-basic.t
 S14-roles/parameterized-mixin.t
 S14-roles/parameterized-type.t

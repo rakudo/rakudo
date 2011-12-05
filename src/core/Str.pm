@@ -389,7 +389,7 @@ my class Str does Stringy {
     multi method split(Str:D: Regex $pat, $limit = *, :$all) {
         my $l = $limit ~~ Whatever ?? $Inf !! $limit - 1;
         return ().list if $l < 0;
-        my @matches := self.match($pat, :x(1..$l), :g);
+        my @matches = self.match($pat, :x(1..$l), :g);
         gather {
             my $prev-pos = 0;
             for @matches {

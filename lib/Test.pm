@@ -232,7 +232,10 @@ multi sub dies_ok(Callable $closure, $reason) {
         $closure();
         $death = 0;
     }
-    $bad_death = 1 if $death && $!.Str.index('Null PMC Access');
+    if $death && $!.Str.index('Null PMC access') {
+        $bad_death = 1;
+        diag("Wrong way to die: '$!'");
+    }
     proclaim( $death && !$bad_death, $reason );
     $time_before = nqp::p6box_n(pir::time__N);
 }

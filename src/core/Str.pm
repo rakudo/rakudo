@@ -166,6 +166,10 @@ my class Str does Stringy {
         # Reset end-of-string after trimming
         $eos = nqp::add_i($end, 1);
 
+        # Fail all the way out when parse failures occur
+        my &parse_fail := -> $msg { fail $msg, ' at position ',
+                                    $pos, " of '", ~$str, "'" };
+
         my sub parse-simple-number () {
             # Handle NaN here, to make later parsing simpler
             if nqp::iseq_s(nqp::substr($str, $pos, 3), 'NaN') {
@@ -185,15 +189,18 @@ my class Str does Stringy {
             my Mu  $parse;
             my str $prefix;
             my int $radix;
+            my int $p;
 
             my sub parse-int-frac-exp () {
                 # Integer part, if any
                 my Int:D $int := 0;
                 if nqp::isne_i($ch, 46) {  # '.'
                     $parse := nqp::radix_I($radix, $str, $pos, $neg, Int);
-                    $pos    = nqp::atpos($parse, 2);
-                    fail "base-$radix number must begin with digits or '.'"
-                        if nqp::iseq_i($pos, -1);
+                    $p      = nqp::atpos($parse, 2);
+                    parse_fail "base-$radix number must begin with valid digits or '.'"
+                        if nqp::iseq_i($p, -1);
+                    $pos    = $p;
+
                     $int   := nqp::atpos($parse, 0);
                     $ch     = nqp::islt_i($pos, $eos) && nqp::ord($str, $pos);
                 }
@@ -202,11 +209,14 @@ my class Str does Stringy {
                 my Int:D $frac := 0;
                 my Int:D $base := 0;
                 if nqp::iseq_i($ch, 46) {  # '.'
-                    $parse := nqp::radix_I($radix, $str, nqp::add_i($pos, 1),
+                    $pos    = nqp::add_i($pos, 1);
+                    $parse := nqp::radix_I($radix, $str, $pos,
                                            nqp::add_i($neg, 4), Int);
-                    $pos    = nqp::atpos($parse, 2);
-                    fail 'radix point must be followed by one or more digits'
-                        if nqp::iseq_i($pos, -1);
+                    $p      = nqp::atpos($parse, 2);
+                    parse_fail 'radix point must be followed by one or more valid digits'
+                        if nqp::iseq_i($p, -1);
+                    $pos    = $p;
+
                     $frac  := nqp::atpos($parse, 0);
                     $base  := nqp::atpos($parse, 1);
                     $ch     = nqp::islt_i($pos, $eos) && nqp::ord($str, $pos);
@@ -214,13 +224,15 @@ my class Str does Stringy {
 
                 # Exponent, if 'E' or 'e' are present (forces return type Num)
                 if nqp::iseq_i($ch, 69) || nqp::iseq_i($ch, 101) {
-                    fail "'E' or 'e' style exponent only allowed on decimal (base-10) numbers, not base-$radix"
+                    parse_fail "'E' or 'e' style exponent only allowed on decimal (base-10) numbers, not base-$radix"
                         unless nqp::iseq_i($radix, 10);
 
-                    $parse := nqp::radix_I(10, $str, nqp::add_i($pos, 1), 2, Int);
-                    $pos    = nqp::atpos($parse, 2);
-                    fail "'E' or 'e' must be followed by decimal (base-10) integer"
-                        if nqp::iseq_i($pos, -1);
+                    $pos    = nqp::add_i($pos, 1);
+                    $parse := nqp::radix_I(10, $str, $pos, 2, Int);
+                    $p      = nqp::atpos($parse, 2);
+                    parse_fail "'E' or 'e' must be followed by decimal (base-10) integer"
+                        if nqp::iseq_i($p, -1);
+                    $pos    = $p;
 
                     my num $exp  = nqp::atpos($parse, 0);
                     my num $coef = $frac ?? nqp::add_n($int, nqp::div_n($frac, $base)) !! $int;
@@ -238,20 +250,24 @@ my class Str does Stringy {
             # Look for radix specifiers
             if nqp::iseq_i($ch, 58) {  # ':'
                 # A string of the form :16<FE_ED.F0_0D> or :60[12,34,56]
-                $parse := nqp::radix_I(10, $str, nqp::add_i($pos, 1), 0, Int);
-                $radix  = nqp::atpos($parse, 0);
-                $pos    = nqp::atpos($parse, 2);
-                fail "radix (in decimal) expected after ':'" if nqp::iseq_i($pos, -1);
+                $pos    = nqp::add_i($pos, 1);
+                $parse := nqp::radix_I(10, $str, $pos, 0, Int);
+                $p      = nqp::atpos($parse, 2);
+                parse_fail "radix (in decimal) expected after ':'"
+                    if nqp::iseq_i($p, -1);
+                $pos    = $p;
 
-                $ch = nqp::islt_i($pos, $eos) && nqp::ord($str, $pos);
+                $radix  = nqp::atpos($parse, 0);
+                $ch     = nqp::islt_i($pos, $eos) && nqp::ord($str, $pos);
                 if    nqp::iseq_i($ch, 60) {  # '<'
                     $pos = nqp::add_i($pos, 1);
 
-                    my Mu $result := parse-int-frac-exp();
-                    return $result unless $result.defined;
+                    my $result := parse-int-frac-exp();
 
-                    fail "malformed ':$radix<>' style radix number, expecting '>' after the body"
-                        unless nqp::islt_i($pos, $eos) && nqp::iseq_i(nqp::ord($str, $pos), 62);  # '>'
+                    parse_fail "malformed ':$radix<>' style radix number, expecting '>' after the body"
+                        unless nqp::islt_i($pos, $eos)
+                            && nqp::iseq_i(nqp::ord($str, $pos), 62);  # '>'
+
                     $pos = nqp::add_i($pos, 1);
                     return $result;
                 }
@@ -262,20 +278,23 @@ my class Str does Stringy {
                     while nqp::islt_i($pos, $eos)
                        && nqp::isne_i(nqp::ord($str, $pos), 93) {  # ']'
                         $parse := nqp::radix_I(10, $str, $pos, 0, Int);
-                        $pos    = nqp::atpos($parse, 2);
-                        fail "malformed ':$radix[]' style radix number, expecting comma separated decimal values after opening '['"
-                            if nqp::iseq_i($pos, -1);
+                        $p      = nqp::atpos($parse, 2);
+                        parse_fail "malformed ':$radix[]' style radix number, expecting comma separated decimal values after opening '['"
+                            if nqp::iseq_i($p, -1);
+                        $pos    = $p;
 
                         $digit := nqp::atpos($parse, 0);
-                        fail "digit is larger than radix in ':$radix[]' style radix number"
+                        parse_fail "digit is larger than radix in ':$radix[]' style radix number"
                             if $digit >= $radix;
 
                         $result := $result * $radix + $digit;
                         $pos     = nqp::add_i($pos, 1)
-                            if nqp::islt_i($pos, $eos) && nqp::iseq_i(nqp::ord($str, $pos), 44);  # ','
+                            if nqp::islt_i($pos, $eos)
+                            && nqp::iseq_i(nqp::ord($str, $pos), 44);  # ','
                     }
-                    fail "malformed ':$radix[]' style radix number, expecting ']' after the body"
-                        unless nqp::islt_i($pos, $eos) && nqp::iseq_i(nqp::ord($str, $pos), 93);  # ']'
+                    parse_fail "malformed ':$radix[]' style radix number, expecting ']' after the body"
+                        unless nqp::islt_i($pos, $eos)
+                            && nqp::iseq_i(nqp::ord($str, $pos), 93);  # ']'
                     $pos = nqp::add_i($pos, 1);
 
                     # XXXX: Handle fractions!
@@ -283,17 +302,19 @@ my class Str does Stringy {
                     return $neg ?? -$result !! $result;
                 }
                 else {
-                    fail "malformed ':$radix' style radix number, expecting '<' or '[' after the base";
+                    parse_fail "malformed ':$radix' style radix number, expecting '<' or '[' after the base";
                 }
             }
             elsif nqp::iseq_i($ch, 48)  # '0'
               and $radix = pir::index('  b     o d     x',
                                       nqp::substr($str, nqp::add_i($pos, 1), 1))
               and nqp::isge_i($radix, 2) {
-                # A string starting with 0x, 0d, 0o, or 0b, followed by one optional '_'
+                # A string starting with 0x, 0d, 0o, or 0b,
+                # followed by one optional '_'
                 $pos   = nqp::add_i($pos, 2);
                 $pos   = nqp::add_i($pos, 1)
-                    if nqp::islt_i($pos, $eos) && nqp::iseq_i(nqp::ord($str, $pos), 95);  # '_'
+                    if nqp::islt_i($pos, $eos)
+                    && nqp::iseq_i(nqp::ord($str, $pos), 95);  # '_'
 
                 return parse-int-frac-exp();
             }
@@ -310,16 +331,16 @@ my class Str does Stringy {
         }
 
         # Parse a simple number or a Rat numerator
-        my Mu $result := parse-simple-number();
-        return $result if nqp::iseq_i($pos, $eos) || !$result.defined;
+        my $result := parse-simple-number();
+        return $result if nqp::iseq_i($pos, $eos);
 
         # Check for '/' indicating Rat denominator
         if nqp::iseq_i(nqp::ord($str, $pos), 47) {  # '/'
             $pos = nqp::add_i($pos, 1);
-            fail "denominator expected after '/'" unless nqp::islt_i($pos, $eos);
+            parse_fail "denominator expected after '/'"
+                unless nqp::islt_i($pos, $eos);
 
-            my Mu $denom := parse-simple-number();
-            return $denom unless $denom.defined;
+            my $denom := parse-simple-number();
 
             $result := $result.WHAT === Int && $denom.WHAT === Int
                     ?? Rat.new($result, $denom)
@@ -327,7 +348,8 @@ my class Str does Stringy {
         }
 
         # Check for trailing garbage
-        fail "trailing characters after number" if nqp::islt_i($pos, $eos);
+        parse_fail "trailing characters after number"
+            if nqp::islt_i($pos, $eos);
 
         return $result;
     }

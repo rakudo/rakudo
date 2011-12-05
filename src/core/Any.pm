@@ -268,3 +268,5 @@ multi sub sort(*@values)      {
         ?? do { my $cmp := @values.shift; @values.sort($cmp) }
         !!  @values.sort;
 }
+
+sub item(*@a) { my $ = @a }

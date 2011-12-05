@@ -71,6 +71,15 @@ class IO {
 #        $!chomp ?? $x.chomp !! $x;
         $x.chomp;
     }
+    
+    method getc() {
+        unless $!PIO {
+            self.open($.path, :chomp($.chomp));
+        }
+        my $c = nqp::p6box_s($!PIO.read(1));
+        fail if $c eq '';
+        $c;
+    }
 
     method lines($limit = $Inf) {
         my $count = 0;
@@ -216,6 +225,11 @@ multi sub lines($fh = $*ARGFILES, $limit = $Inf) {
 proto sub get(|$) { * }
 multi sub get($fh = $*ARGFILES) {
     $fh.get()
+}
+
+proto sub getc(|$) { * }
+multi sub getc($fh = $*ARGFILES) {
+    $fh.getc()
 }
 
 proto sub close(|$) { * }

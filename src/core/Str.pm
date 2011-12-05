@@ -228,8 +228,7 @@ my class Str does Stringy {
                 }
 
                 # Return an Int if there was no radix point
-                # XXXX: Work around http://irclog.perlgeek.de/perl6/2011-11-16#i_4711616
-                return $int if !$base;
+                return $int unless $base;
 
                 # Otherwise, return a Rat
                 my Int:D $numerator := $int * $base + $frac;
@@ -313,17 +312,6 @@ my class Str does Stringy {
         # Parse a simple number or a Rat numerator
         my Mu $result := parse-simple-number();
         return $result if nqp::iseq_i($pos, $eos) || !$result.defined;
-
-        # # Parse a simple number or a Rat numerator
-        # my int $p      = $pos;
-        # my Mu $result := parse-simple-number();
-        # # XXXX: Total failure to make progress in string
-        # if nqp::isle_i($pos, $p) && !$result.defined {
-        #     try { die };
-        #     print $!.backtrace;
-        #     return 0;
-        # }
-        # return $result if nqp::iseq_i($pos, $eos) || !$result.defined;
 
         # Check for '/' indicating Rat denominator
         if nqp::iseq_i(nqp::ord($str, $pos), 47) {  # '/'

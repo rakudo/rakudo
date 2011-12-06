@@ -539,7 +539,7 @@ S32-num/rand.t
 S32-num/rat.t
 # S32-num/real-bridge.t # err: Fixed2 cannot compose Real because it is not composable
 S32-num/roots.t
-# S32-num/rounders.t # err: Undefined routine '&round' called
+S32-num/rounders.t
 S32-num/sign.t
 S32-num/sqrt.t
 S32-num/unpolar.t

@@ -94,9 +94,12 @@ my class Num {
     }
 
     method ceiling(Num:D: ) {
-        nqp::p6box_n(pir::ceil__NN(nqp::unbox_n(self)));
+        # TODO: should check if self is -Inf/Inf/NaN, and otherwise
+        # use nqp::fromnum_I
+        nqp::p6bigint(pir::ceil__NN(nqp::unbox_n(self)));
     }
     method floor(Num:D: ) {
+        # TODO same as in ceiling()
         nqp::p6bigint(pir::floor__NN(nqp::unbox_n(self)));
     }
 

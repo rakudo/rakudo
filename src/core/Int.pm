@@ -45,6 +45,10 @@ my class Int {
         my int $b = nqp::unbox_i($base.Int);
         nqp::p6box_s(nqp::base_I(self, $b));
     }
+
+    method floor(Int:D:) { self }
+    method round(Int:D:) { self }
+    method ceiling(Int:D:) { self }
 }
 
 multi prefix:<++>(Int:D \$a is rw) {   # XXX

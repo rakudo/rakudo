@@ -1324,6 +1324,22 @@ inline op perl6_shiftpush(inout PMC, in PMC, in INT) :base_core {
 
 /*
 
+=item perl6_caller_location(out INT)
+
+Gets a unique ID representing the place the current routine was
+called from. Used for implementing flip-flops.
+
+=cut
+
+*/
+inline op perl6_callerid(out INT) :base_core {
+    PMC *cur_ctx    = CURRENT_CONTEXT(interp);
+    PMC *caller_ctx = Parrot_pcc_get_caller_ctx(interp, cur_ctx);
+    $1 = Parrot_pcc_get_pc(interp, caller_ctx);
+}
+
+/*
+
 =item capture_all_outers(in PMC)
 
 Takes all the specified contexts and sets their outer pointers

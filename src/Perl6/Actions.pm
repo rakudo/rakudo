@@ -16,6 +16,7 @@ INIT {
         p6decont     => 'perl6_decontainerize__PP',
         p6recont_ro  => 'perl6_recontainerize_to_ro__PP',
         attrinited   => 'repr_is_attr_initialized__IPPs',
+        callerid     => 'perl6_callerid__I',
 
         istype       => 'type_check__IPP',
         islist       => 'perl6_is_list__IP',

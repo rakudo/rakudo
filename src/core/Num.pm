@@ -14,7 +14,7 @@ my class Num {
     
     multi method perl(Num:D:) {
         my $res = self.Str;
-        if $res.index('e').defined {
+        if nqp::isnanorinf(nqp::unbox_n(self)) || $res.index('e').defined {
             $res;
         } else {
             $res ~ 'e0';

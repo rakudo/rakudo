@@ -1428,6 +1428,17 @@ grammar Perl6::Grammar is HLL::Grammar {
         :my $*DOCEE;
         <.attach_docs>
         <deflongname>?
+        {
+            if $<deflongname> && $<deflongname>[0]<colonpair> {
+                # It's an (potentially new) operator, circumfix, etc. that we
+                # need to tweak into the grammar.
+                my $category := $<deflongname>[0]<name>.Str;
+                my $opname := ~$<deflongname>[0]<colonpair>[0]<circumfix><quote_EXPR><quote_delimited><quote_atom>[0];
+                my $canname := $category ~ ":sym<" ~ $opname ~ ">";
+                $/.CURSOR.gen_op($category, $opname, $canname, $<deflongname>[0].ast)
+                    unless pir::can__IPs($/.CURSOR, $canname);
+            }
+        }
         <.newpad>
         [ '(' <multisig> ')' ]?
         <trait>*
@@ -2559,7 +2570,7 @@ grammar Perl6::Grammar is HLL::Grammar {
             pir::die("Cannot add tokens of category '$category' with a sub");
         }
 
-        # Nope, so we need to modify the grammar. Build code to parse it.
+        # We need to modify the grammar. Build code to parse it.
         my $parse := PAST::Regex.new(
             :pasttype('concat')
         );
@@ -2607,20 +2618,16 @@ grammar Perl6::Grammar is HLL::Grammar {
             ));
         }
         $parse := Regex::P6Regex::Actions::buildsub($parse);
-
-        # Needs to go into the Perl6::Grammar namespace.
         $parse.name($canname);
-        $parse.namespace(pir::split('::', 'Perl6::Grammar'));
 
-        # Compile and then install the two produced methods into the
+        # Compile and then install the produced method into the
         # Perl6::Grammar methods table.
         my $compiled := PAST::Compiler.compile($parse);
         $self.HOW.add_method($self, ~$compiled[0], $compiled[0]);
-        $self.HOW.add_method($self, ~$compiled[1], $compiled[1]);
 
         # May also need to add to the actions.
         if $category eq 'circumfix' {
-            Perl6::Actions.HOW.add_method(Perl6::Actions, $canname, sub ($self, $/) {
+            $*ACTIONS.HOW.add_method($*ACTIONS, $canname, sub ($self, $/) {
                 make PAST::Op.new(
                     :pasttype('call'), :name($subname),
                     $<EXPR>.ast
@@ -2629,10 +2636,7 @@ grammar Perl6::Grammar is HLL::Grammar {
         }
 
         # Mark proto-regex table as needing re-generation.
-        Q:PIR {
-            $P0 = find_lex '$self'
-            $P0.'!protoregex_generation'()
-        };
+        $self.'!protoregex_generation'();
 
         return 1;
     }

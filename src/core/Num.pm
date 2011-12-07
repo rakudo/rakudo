@@ -94,12 +94,12 @@ my class Num {
     }
 
     method ceiling(Num:D: ) {
-        pir::is_inf_or_nan__IN(nqp::unbox_n(self))
+        nqp::isnanorinf(nqp::unbox_n(self))
             ?? self
             !! nqp::p6bigint(pir::ceil__NN(nqp::unbox_n(self)));
     }
     method floor(Num:D: ) {
-        pir::is_inf_or_nan__IN(nqp::unbox_n(self))
+        nqp::isnanorinf(nqp::unbox_n(self))
             ?? self
             !! nqp::p6bigint(pir::floor__NN(nqp::unbox_n(self)));
     }

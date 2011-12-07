@@ -94,13 +94,14 @@ my class Num {
     }
 
     method ceiling(Num:D: ) {
-        # TODO: should check if self is -Inf/Inf/NaN, and otherwise
-        # use nqp::fromnum_I
-        nqp::p6bigint(pir::ceil__NN(nqp::unbox_n(self)));
+        pir::is_inf_or_nan__IN(nqp::unbox_n(self))
+            ?? self
+            !! nqp::p6bigint(pir::ceil__NN(nqp::unbox_n(self)));
     }
     method floor(Num:D: ) {
-        # TODO same as in ceiling()
-        nqp::p6bigint(pir::floor__NN(nqp::unbox_n(self)));
+        pir::is_inf_or_nan__IN(nqp::unbox_n(self))
+            ?? self
+            !! nqp::p6bigint(pir::floor__NN(nqp::unbox_n(self)));
     }
 
     proto method sin(|$) {*}

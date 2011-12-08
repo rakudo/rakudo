@@ -77,8 +77,8 @@ S02-magicals/progname.t
 S02-names-vars/contextual.t
 S02-names-vars/fmt.t
 S02-names-vars/names.t
-# S02-names-vars/perl.t # err: Method 'perl' not found for invocant of class 'Perl6::Metamodel::ClassHOW
-S02-names-vars/list_array_perl.t
+S02-names-vars/perl.t
+>>>>>>> a7eed04... run perl.t
 # S02-names-vars/signature.t # err: Cannot use bind operator with this LHS
 S02-names-vars/variables-and-packages.t
 S02-names-vars/varnames.t

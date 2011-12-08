@@ -96,12 +96,12 @@ my class Num {
     method ceiling(Num:D: ) {
         nqp::isnanorinf(nqp::unbox_n(self))
             ?? self
-            !! nqp::p6bigint(pir::ceil__NN(nqp::unbox_n(self)));
+            !! nqp::fromnum_I(pir::ceil__NN(nqp::unbox_n(self)), Int);
     }
     method floor(Num:D: ) {
         nqp::isnanorinf(nqp::unbox_n(self))
             ?? self
-            !! nqp::p6bigint(pir::floor__NN(nqp::unbox_n(self)));
+            !! nqp::fromnum_I(pir::floor__NN(nqp::unbox_n(self)), Int);
     }
 
     proto method sin(|$) {*}

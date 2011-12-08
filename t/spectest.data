@@ -249,7 +249,7 @@ S05-mass/properties-block.t                                # icu
 S05-mass/properties-derived.t                              # icu
 S05-mass/properties-general.t                              # icu
 S05-mass/properties-script.t                               # icu
-S05-mass/rx.t
+S05-mass/rx.t                                              # icu
 S05-mass/recursive.t
 S05-mass/stdrules.t
 S05-match/arrayhash.t
@@ -276,7 +276,7 @@ S05-modifier/continue.t
 S05-modifier/counted-match.t
 S05-modifier/global.t
 S05-modifier/ii.t
-S05-modifier/ignorecase.t
+S05-modifier/ignorecase.t  # icu
 S05-modifier/overlapping.t
 # S05-modifier/perl5_1.t # err: Adverb 'P5' not allowed on m
 # S05-modifier/perl5_2.t # err: Adverb 'P5' not allowed on m
@@ -286,7 +286,7 @@ S05-modifier/pos.t
 S05-modifier/repetition.t
 S05-modifier/sigspace.t
 S05-substitution/match.t
-S05-substitution/subst.t
+S05-substitution/subst.t # icu
 S05-transliteration/trans.t
 S05-transliteration/with-closure.t
 S06-advanced/callframe.t
@@ -625,7 +625,7 @@ integration/advent2009-day19.t
 integration/advent2009-day23.t
 integration/advent2010-day04.t
 integration/code-blocks-as-sub-args.t
-integration/error-reporting.t
+integration/error-reporting.t  # icu
 integration/lexical-array-in-inner-block.t
 integration/lexicals-and-attributes.t
 integration/man-or-boy.t

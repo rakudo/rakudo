@@ -2629,7 +2629,7 @@ grammar Perl6::Grammar is HLL::Grammar {
         if $category eq 'circumfix' {
             $*ACTIONS.HOW.add_method($*ACTIONS, $canname, sub ($self, $/) {
                 make PAST::Op.new(
-                    :pasttype('call'), :name($subname),
+                    :pasttype('call'), :name('&' ~ $subname),
                     $<EXPR>.ast
                 );
             });

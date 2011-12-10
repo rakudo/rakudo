@@ -123,18 +123,18 @@ my class Mu {
     
     proto method Numeric(|$) { * }
     multi method Numeric(Mu:U:) {
-        note 'Use of uninitialized value in numeric context';
+        note 'Use of uninitialized value of type {self.^name} in numeric context';
         0
     }
     proto method Real(|$) { * }
     multi method Real(Mu:U:) {
-        note 'Use of uninitialized value in numeric context';
+        note 'Use of uninitialized value in of type {self.^name} numeric context';
         0
     }
     
     proto method Str(|$) { * }
     multi method Str(Mu:U:) {
-        note 'Use of uninitialized value in string context';
+        note 'Use of uninitialized value in of type {self.^name} string context';
         ''
     }
     multi method Str(Mu:D:) {

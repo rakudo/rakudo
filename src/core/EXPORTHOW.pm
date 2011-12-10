@@ -9,7 +9,6 @@ my module EXPORTHOW {
     nqp::bindkey($?PACKAGE.WHO, 'role', Perl6::Metamodel::ParametricRoleHOW);
     nqp::bindkey($?PACKAGE.WHO, 'role-attr', Attribute);
     nqp::bindkey($?PACKAGE.WHO, 'role-group', Perl6::Metamodel::ParametricRoleGroupHOW);
-    nqp::bindkey($?PACKAGE.WHO, 'role-curried', Perl6::Metamodel::CurriedRoleHOW);
     nqp::bindkey($?PACKAGE.WHO, 'grammar', Perl6::Metamodel::GrammarHOW);
     nqp::bindkey($?PACKAGE.WHO, 'grammar-attr', Attribute);
     nqp::bindkey($?PACKAGE.WHO, 'native', Perl6::Metamodel::NativeHOW);

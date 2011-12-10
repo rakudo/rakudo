@@ -16,6 +16,7 @@ INIT {
         p6decont     => 'perl6_decontainerize__PP',
         p6recont_ro  => 'perl6_recontainerize_to_ro__PP',
         attrinited   => 'repr_is_attr_initialized__IPPs',
+        callerid     => 'perl6_callerid__I',
 
         istype       => 'type_check__IPP',
         islist       => 'perl6_is_list__IP',
@@ -119,10 +120,69 @@ class Perl6::Actions is HLL::Actions {
         $block;
     }
 
-    sub sigiltype($sigil) {
-        $sigil eq '%' ?? 'Hash'   !!
-        $sigil eq '@' ?? 'Array'  !!
-                         'Scalar'
+    # Given a sigil and the the value type specified, works out the
+    # container type (what should we instantiate and bind into the
+    # attribute/lexpad), bind constraint (what could we bind to this
+    # slot later), and if specified a constraint on the inner value
+    # and a default value.
+    sub container_type_info($sigil, @value_type) {
+        my %info;
+        if $sigil eq '@' {
+            %info<container_base>  := $*ST.find_symbol(['Array']);
+            %info<bind_constraint> := $*ST.find_symbol(['Positional']);
+            if @value_type {
+                %info<container_type>  := $*ST.parameterize_type_with_args(
+                    %info<container_base>, [@value_type[0]], nqp::hash());
+                %info<bind_constraint> := $*ST.parameterize_type_with_args(
+                    %info<bind_constraint>, [@value_type[0]], nqp::hash());
+                %info<value_type>      := @value_type[0];
+            }
+            else {
+                %info<container_type> := %info<container_base>;
+                %info<value_type>     := $*ST.find_symbol(['Mu']);
+            }
+        }
+        elsif $sigil eq '%' {
+            %info<container_base>  := $*ST.find_symbol(['Hash']);
+            %info<bind_constraint> := $*ST.find_symbol(['Associative']);
+            if @value_type {
+                %info<container_type>  := $*ST.parameterize_type_with_args(
+                    %info<container_base>, [@value_type[0]], nqp::hash());
+                %info<bind_constraint> := $*ST.parameterize_type_with_args(
+                    %info<bind_constraint>, [@value_type[0]], nqp::hash());
+                %info<value_type>      := @value_type[0];
+            }
+            else {
+                %info<container_type> := %info<container_base>;
+                %info<value_type>     := $*ST.find_symbol(['Mu']);
+            }
+        }
+        elsif $sigil eq '&' {
+            %info<container_base>  := $*ST.find_symbol(['Scalar']);
+            %info<container_type>  := %info<container_base>;
+            %info<bind_constraint> := $*ST.find_symbol(['Callable']);
+            if @value_type {
+                %info<bind_constraint> := $*ST.parameterize_type_with_args(
+                    %info<bind_constraint>, [@value_type[0]], nqp::hash());
+            }
+            %info<value_type>     := %info<bind_constraint>;
+            %info<default_value>   := $*ST.find_symbol(['Any']);
+        }
+        else {
+            %info<container_base>     := $*ST.find_symbol(['Scalar']);
+            %info<container_type>     := %info<container_base>;
+            if @value_type {
+                %info<bind_constraint> := @value_type[0];
+                %info<value_type>      := @value_type[0];
+                %info<default_value>   := @value_type[0];
+            }
+            else {
+                %info<bind_constraint> := $*ST.find_symbol(['Mu']);
+                %info<value_type>      := $*ST.find_symbol(['Mu']);
+                %info<default_value>   := $*ST.find_symbol(['Any']);
+            }
+        }
+        %info
     }
 
     method deflongname($/) {
@@ -1127,10 +1187,10 @@ class Perl6::Actions is HLL::Actions {
             # Expect variable to have been declared somewhere.
             # Locate descriptor and thus type.
             try {
-                my $cd := $*ST.find_lexical_container_descriptor($past.name);
+                my $type := $*ST.find_lexical_container_type($past.name);
                 $past.scope('lexical_6model');
-                $past.type($cd.of);
-                $past := box_native_if_needed($past, $cd.of);
+                $past.type($type);
+                $past := box_native_if_needed($past, $type);
             }
         }
         $past
@@ -1260,10 +1320,10 @@ class Perl6::Actions is HLL::Actions {
                     }
                 }
                 else {
+                    my %cont_info := container_type_info($_<sigil> || '$', []);
                     $list.push($*ST.build_container_past(
-                        sigiltype($_<sigil> || '$'),
-                        $*ST.create_container_descriptor(
-                            $*ST.find_symbol(['Mu']), 1, 'anon')));
+                        %cont_info,
+                        $*ST.create_container_descriptor(%cont_info<value_type>, 1, 'anon')));
                 }
             }
             make $list;
@@ -1309,9 +1369,8 @@ class Perl6::Actions is HLL::Actions {
 
             # Create container descriptor and decide on any default value..
             my $attrname   := ~$sigil ~ '!' ~ $desigilname;
-            my $type       := $*TYPENAME ?? $*TYPENAME.ast !! $*ST.find_symbol(['Mu']);
-            my $descriptor := $*ST.create_container_descriptor($type, 1, $attrname);
-            my @default    := $sigil eq '$' || $sigil eq '&' ?? [$type] !! [];
+            my %cont_info  := container_type_info($sigil, $*TYPENAME ?? [$*TYPENAME.ast] !! []);
+            my $descriptor := $*ST.create_container_descriptor(%cont_info<value_type>, 1, $attrname);
 
             # Create meta-attribute and add it.
             my $metaattr := %*HOW{$*PKGDECL ~ '-attr'};
@@ -1322,9 +1381,9 @@ class Perl6::Actions is HLL::Actions {
                 ),
                 hash(
                     container_descriptor => $descriptor,
-                    type => $type,
+                    type => %cont_info<bind_constraint>,
                     package => $*ST.find_symbol(['$?CLASS'])),
-                sigiltype($sigil), $descriptor, |@default);
+                %cont_info, $descriptor);
 
             # Document it
             # Perl6::Pod::document($attr, $*DOC); #XXX var traits NYI
@@ -1349,28 +1408,20 @@ class Perl6::Actions is HLL::Actions {
         elsif $*SCOPE eq 'my' || $*SCOPE eq 'state' {
             # Create a container descriptor. Default to rw and set a
             # type if we have one; a trait may twiddle with that later.
-            my $type_cons := $*TYPENAME ?? $*TYPENAME.ast !! $*ST.find_symbol(['Mu']);
-            my $descriptor := $*ST.create_container_descriptor(
-                $type_cons, 1, $name);
+            my %cont_info := container_type_info($sigil, $*TYPENAME ?? [$*TYPENAME.ast] !! []);
+            my $descriptor := $*ST.create_container_descriptor(%cont_info<value_type>, 1, $name);
 
-            # Install the container. Scalars default to Any if untyped.
-            if $sigil eq '$' || $sigil eq '&' {
-                $*ST.install_lexical_container($BLOCK, $name, sigiltype($sigil), $descriptor,
-                    $*TYPENAME ?? $*TYPENAME.ast !! $*ST.find_symbol(['Any']),
-                    :state($*SCOPE eq 'state'));
-            }
-            else {
-                $*ST.install_lexical_container($BLOCK, $name, sigiltype($sigil), $descriptor,
-                    :state($*SCOPE eq 'state'));
-            }
+            # Install the container.
+            $*ST.install_lexical_container($BLOCK, $name, %cont_info, $descriptor,
+                :state($*SCOPE eq 'state'));
 
             # Set scope and type on container, and if needed emit code to
             # reify a generic type.
             if $past.isa(PAST::Var) {
                 $past.scope('lexical_6model');
-                $past.type($descriptor.of);
-                $past := box_native_if_needed($past, $descriptor.of);
-                if $type_cons.HOW.archetypes.generic {
+                $past.type(%cont_info<bind_constraint>);
+                $past := box_native_if_needed($past, %cont_info<bind_constraint>);
+                if %cont_info<bind_constraint>.HOW.archetypes.generic {
                     $past := PAST::Op.new(
                         :pasttype('callmethod'), :name('instantiate_generic'),
                         PAST::Op.new( :pirop('perl6_var PP'), $past ),
@@ -2199,7 +2250,8 @@ class Perl6::Actions is HLL::Actions {
             }
             if $need_role {
                 if pir::exists(%*PARAM_INFO, 'nominal_type') {
-                    $/.CURSOR.panic("Typed arrays/hashes/callables not yet implemented");
+                    %*PARAM_INFO<nominal_type> := $*ST.parameterize_type_with_args(
+                        $role_type, [%*PARAM_INFO<nominal_type>], nqp::hash());
                 }
                 else {
                     %*PARAM_INFO<nominal_type> := $role_type;
@@ -2221,7 +2273,8 @@ class Perl6::Actions is HLL::Actions {
                             :isdecl(1), :type(%*PARAM_INFO<nominal_type>) ));
                         %*PARAM_INFO<container_descriptor> := $*ST.create_container_descriptor(
                             %*PARAM_INFO<nominal_type>, 0, %*PARAM_INFO<variable_name>);
-                        $cur_pad.symbol(%*PARAM_INFO<variable_name>, :descriptor(%*PARAM_INFO<container_descriptor>));
+                        $cur_pad.symbol(%*PARAM_INFO<variable_name>, :descriptor(%*PARAM_INFO<container_descriptor>),
+                            :type(%*PARAM_INFO<nominal_type>));
                     } else {
                         $cur_pad[0].push(PAST::Var.new( :name(~$/), :scope('lexical_6model'), :isdecl(1) ));
                     }
@@ -2736,18 +2789,18 @@ class Perl6::Actions is HLL::Actions {
                     }
                 }
                 if $all_compile_time {
-                    my $curried := $*ST.curry_role(%*HOW<role-curried>,
-                        $role, $<arglist>, $/);
+                    my $curried := $*ST.parameterize_type($role, $<arglist>, $/);
                     $past := $*ST.get_object_sc_ref_past($curried);
                     $past<has_compile_time_value> := 1;
                     $past<compile_time_value> := $curried;
                 }
                 else {
+                    my $rref := $*ST.get_object_sc_ref_past($role);
                     $past := $<arglist>[0].ast;
                     $past.pasttype('callmethod');
-                    $past.name('new_type');
-                    $past.unshift($*ST.get_object_sc_ref_past($role));
-                    $past.unshift($*ST.get_object_sc_ref_past(%*HOW<role-curried>));
+                    $past.name('parameterize');
+                    $past.unshift($rref);
+                    $past.unshift(PAST::Op.new( :pirop('get_how PP'), $rref ));
                 }
             }
             elsif ~$<longname> eq 'GLOBAL' {
@@ -3188,16 +3241,16 @@ class Perl6::Actions is HLL::Actions {
                 }
                 $source := PAST::Op.new(
                     :pirop('perl6_assert_bind_ok 0PP'),
-                    $source, $*ST.get_object_sc_ref_past($meta_attr.container_descriptor))
+                    $source, $*ST.get_object_sc_ref_past($meta_attr.type))
             }
             else {
                 # Probably a lexical.
                 my $was_lexical := 0;
                 try {
-                    my $descriptor := $*ST.find_lexical_container_descriptor($target.name);
+                    my $type := $*ST.find_lexical_container_type($target.name);
                     $source := PAST::Op.new(
                         :pirop('perl6_assert_bind_ok 0PP'),
-                        $source, $*ST.get_object_sc_ref_past($descriptor));
+                        $source, $*ST.get_object_sc_ref_past($type));
                     $was_lexical := 1;
                 }
                 unless $was_lexical {
@@ -3506,10 +3559,10 @@ class Perl6::Actions is HLL::Actions {
                 my $type := $*ST.find_symbol(Perl6::Grammar::parse_name(
                     Perl6::Grammar::canonical_type_longname($<longname>)));
                 if $<arglist> {
-                    $type := $*ST.curry_role(%*HOW<role-curried>, $type, $<arglist>, $/);
+                    $type := $*ST.parameterize_type($type, $<arglist>, $/);
                 }
                 if $<typename> {
-                    $type := $*ST.curry_role_with_args(%*HOW<role-curried>, $type,
+                    $type := $*ST.parameterize_type_with_args($type,
                         [$<typename>[0].ast], hash());
                 }
                 make $type;

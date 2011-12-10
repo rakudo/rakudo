@@ -162,6 +162,7 @@ class Perl6::Metamodel::ParametricRoleHOW
             my $r := $_;
             if $_.HOW.archetypes.generic {
                 $r := $r.HOW.instantiate_generic($r, $type_env);
+                $conc.HOW.add_to_role_typecheck_list($conc, $r);
             }
             $conc.HOW.add_role($conc, $r.HOW.specialize($r, @pos_args[0]));
         }

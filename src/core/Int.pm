@@ -40,22 +40,15 @@ my class Int {
 
     method sqrt(Int:D:) { nqp::p6box_n(nqp::sqrt_n(nqp::tonum_I(self))) }
 
-    method base(Cool $base) {
+    method base(Int:D: Cool $base) {
         fail("base must be between 2 and 36, got $base") unless 2 <= $base <= 36;
-        my int $b = $base.Int;
-        my @conversion = qw/0 1 2 3 4 5 6 7 8 9
-                            A B C D E F G H I J
-                            K L M N O P Q R S T
-                            U V W X Y Z/;
-        my @res;
-        my int $n = self.abs;
-        repeat {
-            push @res, @conversion[$n % $b];
-            $n = $n div $b;
-        } while $n > 0;
-        push @res, '-' if self < 0;
-        join '', @res.reverse;
+        my int $b = nqp::unbox_i($base.Int);
+        nqp::p6box_s(nqp::base_I(self, $b));
     }
+
+    method floor(Int:D:) { self }
+    method round(Int:D:) { self }
+    method ceiling(Int:D:) { self }
 }
 
 multi prefix:<++>(Int:D \$a is rw) {   # XXX

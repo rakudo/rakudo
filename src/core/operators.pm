@@ -8,18 +8,27 @@ sub infix:<=>(Mu \$a, Mu \$b) is rw {
 }
 
 proto infix:<does>(|$) { * }
-multi infix:<does>(Mu \$obj, Mu:U \$role) is rw {
+multi infix:<does>(Mu:D \$obj, Mu:U \$role) is rw {
     # XXX Mutability check.
     $obj.HOW.mixin($obj, $role).BUILD_LEAST_DERIVED({});
 }
-multi infix:<does>(Mu \$obj, @roles) is rw {
+multi infix:<does>(Mu:U \$obj, Mu:U \$role) is rw {
+    die "Cannot use 'does' operator with a type object"
+}
+multi infix:<does>(Mu:D \$obj, @roles) is rw {
     # XXX Mutability check.
     $obj.HOW.mixin($obj, |@roles).BUILD_LEAST_DERIVED({});
 }
+multi infix:<does>(Mu:U \$obj, @roles) is rw {
+    die "Cannot use 'does' operator with a type object"
+}
 
 proto infix:<but>(|$) { * }
-multi infix:<but>(Mu \$obj, Mu:U \$role) {
+multi infix:<but>(Mu:D \$obj, Mu:U \$role) {
     $obj.HOW.mixin($obj.clone(), $role).BUILD_LEAST_DERIVED({});
+}
+multi infix:<but>(Mu:U \$obj, Mu:U \$role) {
+    $obj.HOW.mixin($obj.clone(), $role);
 }
 multi infix:<but>(Mu \$obj, Mu:D $val) is rw {
     my $role := Metamodel::ParametricRoleHOW.new_type();
@@ -31,8 +40,11 @@ multi infix:<but>(Mu \$obj, Mu:D $val) is rw {
     $role.HOW.compose($role);
     $obj.HOW.mixin($obj.clone(), $role);
 }
-multi infix:<but>(Mu \$obj, @roles) {
+multi infix:<but>(Mu:D \$obj, @roles) {
     $obj.HOW.mixin($obj.clone(), |@roles).BUILD_LEAST_DERIVED({});
+}
+multi infix:<but>(Mu:U \$obj, @roles) {
+    $obj.HOW.mixin($obj.clone(), |@roles)
 }
 
 sub SEQUENCE($left, $right, :$exclude_end) {
@@ -133,6 +145,60 @@ multi sub infix:<...^>($a, $b) { SEQUENCE($a, $b, :exclude_end(1)) }
 sub undefine(Mu \$x) {
     my $undefined;
     $x = $undefined;
+}
+
+sub infix:<ff>($a as Bool, $b as Bool) {
+    my $pos := nqp::p6box_s(nqp::callerid());
+    state %ffv;
+    if %ffv{$pos} {
+        %ffv{$pos} = False if $b;
+        True;
+    }
+    elsif $a {
+        %ffv{$pos} = $a
+    }
+    else {
+        False
+    }
+}
+
+sub infix:<ff^>($a as Bool, $b as Bool) {
+    my $pos := nqp::p6box_s(nqp::callerid());
+    state %ffv;
+    if %ffv{$pos} {
+        $b ?? (%ffv{$pos} = False) !! True
+    }
+    elsif $a {
+        %ffv{$pos} = $a
+    }
+    else {
+        False
+    }
+}
+
+sub infix:<^ff>($a as Bool, $b as Bool) {
+    my $pos := nqp::p6box_s(nqp::callerid());
+    state %ffv;
+    if %ffv{$pos} {
+        %ffv{$pos} = False if $b;
+        True
+    }
+    else {
+        %ffv{$pos} = True if $a;
+        False
+    }
+}
+
+sub infix:<^ff^>($a as Bool, $b as Bool) {
+    my $pos := nqp::p6box_s(nqp::callerid());
+    state %ffv;
+    if %ffv{$pos} {
+        $b ?? (%ffv{$pos} = False) !! True
+    }
+    else {
+        %ffv{$pos} = True if $a;
+        False
+    }
 }
 
 # not sure where this should go

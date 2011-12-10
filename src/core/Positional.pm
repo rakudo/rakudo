@@ -1,2 +1,3 @@
-my role Positional {
+my role Positional[::T = Mu] {
+    method of() { T }
 }

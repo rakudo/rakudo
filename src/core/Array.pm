@@ -59,6 +59,25 @@ class Array {
         self
     }
 
+    my role TypedArray[::TValue] does Positional[TValue] {
+        multi method at_pos($pos is copy, TValue $v? is copy) is rw {
+            $pos = $pos.Int;
+            self.exists($pos)
+              ?? nqp::atpos(nqp::getattr(self, List, '$!items'), nqp::unbox_i($pos))
+              !! pir::setattribute__0PPsP($v, Scalar, '$!whence',
+                     -> { nqp::bindpos(nqp::getattr(self, List, '$!items'), nqp::unbox_i($pos), $v) } )
+        }
+        multi method at_pos(int $pos, TValue $v? is copy) is rw {
+            self.exists($pos)
+              ?? nqp::atpos(nqp::getattr(self, List, '$!items'), $pos)
+              !! pir::setattribute__0PPsP($v, Scalar, '$!whence',
+                     -> { nqp::bindpos(nqp::getattr(self, List, '$!items'), $pos, $v) } )
+        }
+        # XXX some methods to come here...
+    }
+    method PARAMETERIZE_TYPE(Mu $t) {
+        self but TypedArray[$t.WHAT]
+    }
 }
 
 

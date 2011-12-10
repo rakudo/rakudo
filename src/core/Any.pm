@@ -263,5 +263,10 @@ proto uniq(|$) { * }
 multi uniq(*@values) { @values.uniq }
 
 proto sub sort(|$) {*}
-multi sub sort(&by, *@values) { @values.sort(&by) }
-multi sub sort(*@values)      { @values.sort      }
+multi sub sort(*@values)      {
+    @values.at_pos(0).^does(Callable)
+        ?? do { my $cmp := @values.shift; @values.sort($cmp) }
+        !!  @values.sort;
+}
+
+sub item(*@a) { my $ = @a }

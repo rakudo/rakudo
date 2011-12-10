@@ -81,6 +81,22 @@ my class Hash {
             self.{$key} = $value;
         }
     }
+    
+    my role TypedHash[::TValue] does Associative[TValue] {
+        method at_key($key is copy, TValue $v? is copy) is rw {
+            $key = $key.Str;
+            self.exists($key)
+              ?? pir::find_method__PPs(EnumMap, 'at_key')(self, $key)
+              !! pir::setattribute__0PPsP($v, Scalar, '$!whence',
+                     -> { pir::find_method__PPs(EnumMap, 'STORE_AT_KEY')(self, $key, $v) } )
+        }
+        method STORE_AT_KEY(Str \$key, TValue $x is copy) is rw {
+            pir::find_method__PPs(EnumMap, 'STORE_AT_KEY')(self, $key, $x);
+        }
+    }
+    method PARAMETERIZE_TYPE(Mu $t) {
+        self but TypedHash[$t.WHAT]
+    }
 }
 
 

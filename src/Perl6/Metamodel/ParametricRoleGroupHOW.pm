@@ -10,6 +10,7 @@
 # group of those, and know how to specialize to a certain parameter
 # list by multi-dispatching over the set of possibilities to pick
 # a particular candidate.
+my $currier := Perl6::Metamodel::CurriedRoleHOW;
 class Perl6::Metamodel::ParametricRoleGroupHOW
     does Perl6::Metamodel::Naming
     does Perl6::Metamodel::Stashing
@@ -36,6 +37,10 @@ class Perl6::Metamodel::ParametricRoleGroupHOW
         self.add_stash(pir::repr_type_object_for__PPS($meta, 'Uninstantiable'));
     }
     
+    method parameterize($obj, *@pos_args, *%named_args) {
+        $currier.new_type($obj, |@pos_args, |%named_args)
+    }
+    
     method add_possibility($obj, $possible) {
         @!possibilities[+@!possibilities] := $possible;
         @!add_to_selector[+@!add_to_selector] := $possible;
@@ -46,10 +51,10 @@ class Perl6::Metamodel::ParametricRoleGroupHOW
         # Locate correct parametric role and type environment.
         my $error;
         my @result;
-        try {
+        #try {
             @result := (self.get_selector($obj))(|@pos_args, |%named_args);
-            CATCH { $error := $! }
-        }
+        #    CATCH { $error := $! }
+        #}
         if $error {
             pir::die("None of the parametric role variants for '" ~
                 self.name($obj) ~ "' matched the arguments supplied.\n" ~

@@ -453,7 +453,7 @@ Box a native string to a Perl 6 Str.
 inline op perl6_box_str(out PMC, in STR) :base_core {
     PMC *type = Rakudo_types_str_get();
     $1 = REPR(type)->allocate(interp, STABLE(type));
-    REPR($1)->set_str(interp, STABLE($1), OBJECT_BODY($1), $2);
+    REPR($1)->box_funcs->set_str(interp, STABLE($1), OBJECT_BODY($1), $2);
     PARROT_GC_WRITE_BARRIER(interp, $1);
 }
 
@@ -470,7 +470,7 @@ Box a native int to a Perl 6 Int.
 inline op perl6_box_int(out PMC, in INT) :base_core {
     PMC *type = Rakudo_types_int_get();
     $1 = REPR(type)->allocate(interp, STABLE(type));
-    REPR($1)->set_int(interp, STABLE($1), OBJECT_BODY($1), $2);    
+    REPR($1)->box_funcs->set_int(interp, STABLE($1), OBJECT_BODY($1), $2);    
 }
 
 
@@ -486,7 +486,7 @@ Box a native floating point number to a Perl 6 Num.
 inline op perl6_box_num(out PMC, in NUM) :base_core {
     PMC *type = Rakudo_types_num_get();
     $1 = REPR(type)->allocate(interp, STABLE(type));
-    REPR($1)->set_num(interp, STABLE($1), OBJECT_BODY($1), $2);
+    REPR($1)->box_funcs->set_num(interp, STABLE($1), OBJECT_BODY($1), $2);
 }
 
 
@@ -503,12 +503,12 @@ inline op perl6_box_bigint(out PMC, in NUM) :base_core {
     if ((INTVAL)$2 == $2) {
         PMC *type = Rakudo_types_int_get();
         $1 = REPR(type)->allocate(interp, STABLE(type));
-        REPR($1)->set_int(interp, STABLE($1), OBJECT_BODY($1), $2);    
+        REPR($1)->box_funcs->set_int(interp, STABLE($1), OBJECT_BODY($1), $2);    
     }
     else {
         PMC *type = Rakudo_types_num_get();
         $1 = REPR(type)->allocate(interp, STABLE(type));
-        REPR($1)->set_num(interp, STABLE($1), OBJECT_BODY($1), $2);
+        REPR($1)->box_funcs->set_num(interp, STABLE($1), OBJECT_BODY($1), $2);
     }
 }
 
@@ -638,7 +638,7 @@ and asserts that the bind is allowed to take place.
 */
 inline op perl6_assert_bind_ok(in PMC, in PMC) :base_core {
     if ($2->vtable->base_type == smo_id) {
-        PMC *type = ((Rakudo_ContainerDescriptor *)PMC_data($2))->of;
+        PMC *type = $2;
         if (type != Rakudo_types_mu_get()) {
             INTVAL ok = 0;
             if ($1->vtable->base_type == smo_id) {
@@ -693,7 +693,7 @@ inline op perl6_repr_name(out PMC, in PMC) :base_core {
         PMC    *type = Rakudo_types_str_get();
         STRING *name = REPR(val)->name;
         PMC    *res  = REPR(type)->allocate(interp, STABLE(type));
-        REPR(res)->set_str(interp, STABLE(res), OBJECT_BODY(res), name);
+        REPR(res)->box_funcs->set_str(interp, STABLE(res), OBJECT_BODY(res), name);
         PARROT_GC_WRITE_BARRIER(interp, res);
         $1 = res;
     }
@@ -1321,6 +1321,22 @@ inline op perl6_shiftpush(inout PMC, in PMC, in INT) :base_core {
         VTABLE_splice(interp, $2, Parrot_pmc_new(interp, enum_class_ResizablePMCArray), 0, $3);
 }
 
+
+/*
+
+=item perl6_caller_location(out INT)
+
+Gets a unique ID representing the place the current routine was
+called from. Used for implementing flip-flops.
+
+=cut
+
+*/
+inline op perl6_callerid(out INT) :base_core {
+    PMC *cur_ctx    = CURRENT_CONTEXT(interp);
+    PMC *caller_ctx = Parrot_pcc_get_caller_ctx(interp, cur_ctx);
+    $1 = Parrot_pcc_get_pc(interp, caller_ctx);
+}
 
 /*
 

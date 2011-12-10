@@ -86,6 +86,10 @@ class Perl6::Metamodel::ConcreteRoleHOW
         }
     }
     
+    method add_to_role_typecheck_list($obj, $type) {
+        @!role_typecheck_list[+@!role_typecheck_list] := $type;
+    }
+    
     method role_typecheck_list($obj) {
         @!role_typecheck_list
     }

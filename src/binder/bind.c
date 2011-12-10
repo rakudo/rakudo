@@ -92,13 +92,13 @@ create_box(PARROT_INTERP, Rakudo_BindVal bv) {
     PMC *boxed = REPR(box_type_obj)->allocate(interp, STABLE(box_type_obj));
     switch (bv.type) {
         case BIND_VAL_INT:
-            REPR(boxed)->set_int(interp, STABLE(boxed), OBJECT_BODY(boxed), bv.val.i);
+            REPR(boxed)->box_funcs->set_int(interp, STABLE(boxed), OBJECT_BODY(boxed), bv.val.i);
             break;
         case BIND_VAL_NUM:
-            REPR(boxed)->set_num(interp, STABLE(boxed), OBJECT_BODY(boxed), bv.val.n);
+            REPR(boxed)->box_funcs->set_num(interp, STABLE(boxed), OBJECT_BODY(boxed), bv.val.n);
             break;
         case BIND_VAL_STR:
-            REPR(boxed)->set_str(interp, STABLE(boxed), OBJECT_BODY(boxed), bv.val.s);
+            REPR(boxed)->box_funcs->set_str(interp, STABLE(boxed), OBJECT_BODY(boxed), bv.val.s);
             break;
     }
     return boxed;
@@ -329,7 +329,7 @@ Rakudo_binding_bind_one_param(PARROT_INTERP, PMC *lexpad, Rakudo_Signature *sign
             case SIG_ELEM_NATIVE_INT_VALUE:
                 if (spec.can_box & STORAGE_SPEC_CAN_BOX_INT) {
                     bv.type = BIND_VAL_INT;
-                    bv.val.i = REPR(decont_value)->get_int(interp, STABLE(decont_value), OBJECT_BODY(decont_value));
+                    bv.val.i = REPR(decont_value)->box_funcs->get_int(interp, STABLE(decont_value), OBJECT_BODY(decont_value));
                 }
                 else {
                     if (error)
@@ -341,7 +341,7 @@ Rakudo_binding_bind_one_param(PARROT_INTERP, PMC *lexpad, Rakudo_Signature *sign
             case SIG_ELEM_NATIVE_NUM_VALUE:
                 if (spec.can_box & STORAGE_SPEC_CAN_BOX_NUM) {
                     bv.type = BIND_VAL_NUM;
-                    bv.val.n = REPR(decont_value)->get_num(interp, STABLE(decont_value), OBJECT_BODY(decont_value));
+                    bv.val.n = REPR(decont_value)->box_funcs->get_num(interp, STABLE(decont_value), OBJECT_BODY(decont_value));
                 }
                 else {
                     if (error)
@@ -353,7 +353,7 @@ Rakudo_binding_bind_one_param(PARROT_INTERP, PMC *lexpad, Rakudo_Signature *sign
             case SIG_ELEM_NATIVE_STR_VALUE:
                 if (spec.can_box & STORAGE_SPEC_CAN_BOX_STR) {
                     bv.type = BIND_VAL_STR;
-                    bv.val.s = REPR(decont_value)->get_str(interp, STABLE(decont_value), OBJECT_BODY(decont_value));
+                    bv.val.s = REPR(decont_value)->box_funcs->get_str(interp, STABLE(decont_value), OBJECT_BODY(decont_value));
                 }
                 else {
                     if (error)

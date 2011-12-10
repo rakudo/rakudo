@@ -122,19 +122,28 @@ my class Mu {
     }
     
     proto method Numeric(|$) { * }
-    multi method Numeric(Mu:U:) {
-        note "Use of uninitialized value of type {self.^name} in numeric context";
+    multi method Numeric(Mu:U \$v:) {
+        my $varname := $v.VAR.?name;
+        note "Use of uninitialized " ~ 
+            ($varname ?? "variable $varname" !! "value") ~
+            " of type {self.^name} in numeric context";
         0
     }
     proto method Real(|$) { * }
-    multi method Real(Mu:U:) {
-        note "Use of uninitialized value in of type {self.^name} numeric context";
+    multi method Real(Mu:U \$v:) {
+        my $varname := $v.VAR.?name;
+        note "Use of uninitialized " ~ 
+            ($varname ?? "variable $varname" !! "value") ~
+            " of type {self.^name} in numeric context";
         0
     }
     
     proto method Str(|$) { * }
-    multi method Str(Mu:U:) {
-        note "Use of uninitialized value in of type {self.^name} string context";
+    multi method Str(Mu:U \$v:) {
+        my $varname := $v.VAR.?name;
+        note "Use of uninitialized " ~ 
+            ($varname ?? "variable $varname" !! "value") ~
+            " of type {self.^name} in string context";
         ''
     }
     multi method Str(Mu:D:) {

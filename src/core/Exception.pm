@@ -38,7 +38,7 @@ sub EXCEPTION(|$) {
 }
 
 
-my role X::Comp { ... }
+my class X::Base { ... }
 
 do {
     sub is_runtime($bt) {
@@ -70,10 +70,8 @@ do {
                 $err.print: "\n";
                 $err.print: Backtrace.new($e);
             }
-            elsif X::Comp.ACCEPTS($e) {
-                $err.print: "===SORRY!===\n";
-                $err.print: $e.message;
-                $err.print: "\nat line $e.line()\n";
+            elsif X::Base.ACCEPTS($e) {
+                $err.say: $e;
             }
             else {
                 my Mu $err := pir::getstderr__P();

@@ -6,15 +6,21 @@ my class X::Base is Exception {
         $.message.Str // 'Something went wrong'
     }
     method ID() { ... }
+    multi method gist(X::Base:D:) {
+        $.message ~ "\n" ~ $.backtrace;
+    }
 }
 my role X::OS {
     has $.os-error;
 }
 
-my role X::Comp {
+my class X::Comp is X::Base {
     has $.filename;
     has $.line;
     has $.column;
+    multi method gist(X::Comp:D:) {
+        "===SORRY!===\n$.message\nat $.filename():$.line";
+    }
 }
 
 my class X::NYI is X::Base {
@@ -38,7 +44,7 @@ my class X::Buf::AsStr is X::Base {
     }
 }
 
-my class X::Signature::Placeholder is X::Base does X::Comp {
+my class X::Signature::Placeholder is X::Comp {
     method message() {
         'Placeholder variable cannot override existing signature';
     }

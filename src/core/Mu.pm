@@ -171,11 +171,11 @@ my class Mu {
     method DUMP-ID() { self.HOW.name(self) ~ '<' ~ self.WHERE ~ '>' }
     
     proto method isa(|$) { * }
-    multi method isa(Mu $type) {
-        nqp::p6bool(self.HOW.isa(self, $type.WHAT))
+    multi method isa(Mu \$self: Mu $type) {
+        nqp::p6bool($self.HOW.isa($self, $type.WHAT))
     }
-    multi method isa(Str:D $name) {
-        my @mro = self.HOW.mro(self);
+    multi method isa(Mu \$self: Str:D $name) {
+        my @mro = $self.HOW.mro($self);
         my int $mro_count = +@mro;
         my int $i = 0;
         while $i < $mro_count {
@@ -188,12 +188,12 @@ my class Mu {
         Bool::False
     }
     
-    method does(Mu $type) {
-        nqp::p6bool(nqp::istype(self, $type.WHAT))
+    method does(Mu \$self: Mu $type) {
+        nqp::p6bool(nqp::istype($self, $type.WHAT))
     }
     
-    method can($name) {
-        self.HOW.can(self, $name)
+    method can(Mu \$self: $name) {
+        $self.HOW.can($self, $name)
     }
     
     method clone() {
@@ -216,52 +216,52 @@ my class Mu {
     }
     
     # XXX TODO: Handle positional case.
-    method dispatch:<var>($var, |$c) {
-        $var(self, |$c)
+    method dispatch:<var>(Mu \$self: $var, |$c) {
+        $var($self, |$c)
     }
     
-    method dispatch:<::>($name, Mu $type, |$c) {
-        unless nqp::istype(self, $type) {
+    method dispatch:<::>(Mu \$self: $name, Mu $type, |$c) {
+        unless nqp::istype($self, $type) {
             die "Cannot dispatch to a method on " ~ $type.WHAT.perl ~
                 " because it is not inherited or done by " ~
-                self.WHAT.perl;
+                $self.WHAT.perl;
         }
-        pir::find_method__PPS($type, $name)(self, |$c)
+        pir::find_method__PPS($type, $name)($self, |$c)
     }
     
-    method dispatch:<!>($name, Mu $type, |$c) {
+    method dispatch:<!>(Mu \$self: $name, Mu $type, |$c) {
         my $meth := $type.HOW.find_private_method($type, $name);
         $meth ??
-            $meth(self, |$c) !!
+            $meth($self, |$c) !!
             die("Private method '$name' not found on type " ~ $type.HOW.name($type))
             
     }
     
-    method dispatch:<.^>($name, |$c) {
-        self.HOW."$name"(self, |$c)
+    method dispatch:<.^>(Mu \$self: $name, |$c) {
+        self.HOW."$name"($self, |$c)
     }
     
     method dispatch:<.=>(\$mutate: $name, |$c) {
         $mutate = $mutate."$name"(|$c)
     }
     
-    method dispatch:<.?>($name, |$c) {
-        pir::can__IPS(self, $name) ??
-            self."$name"(|$c) !!
+    method dispatch:<.?>(Mu \$self: $name, |$c) {
+        pir::can__IPS($self, $name) ??
+            $self."$name"(|$c) !!
             Nil
     }
     
-    method dispatch:<.+>($name, |$c) {
-        my @result := self.dispatch:<.*>($name, |$c);
+    method dispatch:<.+>(Mu \$self: $name, |$c) {
+        my @result := $self.dispatch:<.*>($name, |$c);
         if @result.elems == 0 {
             die "Method '$name' not found for invocant of type '" ~
-                self.WHAT.perl ~ "'";
+                $self.WHAT.perl ~ "'";
         }
         @result
     }
     
-    method dispatch:<.*>($name, |$c) {
-        my @mro = self.HOW.mro(self);
+    method dispatch:<.*>(Mu \$self: $name, |$c) {
+        my @mro = $self.HOW.mro($self);
         my int $mro_count = +@mro;
         my @results;
         my int $i = 0;
@@ -272,15 +272,15 @@ my class Mu {
                 $meth = ($obj.HOW.submethod_table($obj)){$name};
             }
             if $meth {
-                @results.push($meth(self, |$c));
+                @results.push($meth($self, |$c));
             }
             $i = $i + 1;
         }
         &infix:<,>(|@results)
     }
 
-    method dispatch:<hyper>($name, |$c) {
-        hyper( -> \$obj { $obj."$name"(|$c) }, self )
+    method dispatch:<hyper>(Mu \$self: $name, |$c) {
+        hyper( -> \$obj { $obj."$name"(|$c) }, $self )
     }
     
     method WALK(:$name!, :$canonical, :$ascendant, :$descendant, :$preorder, :$breadth,

@@ -71,10 +71,10 @@ do {
                 $err.print: Backtrace.new($e);
             }
             elsif X::Base.ACCEPTS($e) {
-                $err.say: $e;
+                $err.print: $e.gist;
+                $err.print: "\n";
             }
             else {
-                my Mu $err := pir::getstderr__P();
                 $err.print: "===SORRY!===\n";
                 $err.print: $ex;
                 $err.print: "\n";

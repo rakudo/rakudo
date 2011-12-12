@@ -64,9 +64,7 @@ class Perl6::Actions is HLL::Actions {
         if $type_found {
             my $file        := pir::find_caller_lex__ps('$?FILES');
             %opts<line>     := nqp::box_i(
-                # XXX the + 1 seems necessary here.
-                # TODO: investigate if that's a bug in lineof, or intended API
-                HLL::Compiler.lineof($/.orig, $/.from) + 1,
+                HLL::Compiler.lineof($/.orig, $/.from),
                 $*ST.find_symbol(['Int'])
             );
             %opts<filename> := nqp::box_s(

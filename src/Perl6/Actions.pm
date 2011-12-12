@@ -62,7 +62,6 @@ class Perl6::Actions is HLL::Actions {
             $*ST.find_symbol($ex_type);
         };
         if $type_found {
-            $ex.new(|%opts).throw;
             my $file        := pir::find_caller_lex__ps('$?FILES');
             %opts<line>     := nqp::box_i(
                 HLL::Compiler.lineof($/.orig, $/.from),
@@ -72,6 +71,7 @@ class Perl6::Actions is HLL::Actions {
                 pir::isnull($file) ?? '<unknown file>' !! $file,
                 $*ST.find_symbol(['Str'])
             );
+            $ex.new(|%opts).throw;
         } else {
             my @err := ['Error while compiling, type ', nqp::join('::', $ex_type),  "\n"];
             for %opts -> $key {

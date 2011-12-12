@@ -508,7 +508,7 @@ class Perl6::Optimizer {
     
     # Adds an entry to the list of things that would cause a check fail.
     method add_deadly($past_node, $message, @extras?) {
-        my $line := PAST::Compiler.lineof($past_node<source>, $past_node<pos>) + 1;
+        my $line := HLL::Compiler.lineof($past_node<source>, $past_node<pos>);
         my $key := $message ~ (+@extras ?? "\n" ~ pir::join("\n", @extras) !! "");
         unless %!deadly{$key} {
             %!deadly{$key} := [];

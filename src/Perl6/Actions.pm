@@ -54,6 +54,37 @@ class Perl6::Actions is HLL::Actions {
         $STATEMENT_PRINT := 0;
     }
 
+    method throw($/, $ex_type, *%opts) {
+        # TODO: provide context
+        my $type_found := 1;
+        my $ex := try {
+            CATCH { $type_found := 0 };
+            $*ST.find_symbol($ex_type);
+        };
+        if $type_found {
+            my $file        := pir::find_caller_lex__ps('$?FILES');
+            %opts<line>     := nqp::box_i(
+                HLL::Compiler.lineof($/.orig, $/.from),
+                $*ST.find_symbol(['Int'])
+            );
+            %opts<filename> := nqp::box_s(
+                pir::isnull($file) ?? '<unknown file>' !! $file,
+                $*ST.find_symbol(['Str'])
+            );
+            $ex.new(|%opts).throw;
+        } else {
+            my @err := ['Error while compiling, type ', nqp::join('::', $ex_type),  "\n"];
+            for %opts -> $key {
+                @err.push: '  ';
+                @err.push: $key;
+                @err.push: ': ';
+                @err.push: %opts{$key};
+                @err.push: "\n";
+            }
+            $/.CURSOR.panic(nqp::join('', @err));
+        }
+    }
+
     method ints_to_string($ints) {
         if pir::does($ints, 'array') {
             my $result := '';
@@ -574,7 +605,7 @@ class Perl6::Actions is HLL::Actions {
             my @params;
             my $block := $<blockoid>.ast;
             if $block<placeholder_sig> && $<signature> {
-                $/.CURSOR.panic('Placeholder variable cannot override existing signature');
+                self.throw($/, ['X', 'Signature', 'Placeholder']);
             }
             elsif $block<placeholder_sig> {
                 @params := $block<placeholder_sig>;
@@ -1452,7 +1483,7 @@ class Perl6::Actions is HLL::Actions {
         # Obtain parameters, create signature object and generate code to
         # call binder.
         if $block<placeholder_sig> && $<multisig> {
-            $/.CURSOR.panic('Placeholder variable cannot override existing signature');
+            self.throw($/, ['X', 'Signature', 'Placeholder']);
         }
         my @params :=
                 $<multisig>             ?? $<multisig>[0].ast      !!

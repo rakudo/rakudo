@@ -49,3 +49,12 @@ my class X::Signature::Placeholder is X::Comp {
         'Placeholder variable cannot override existing signature';
     }
 }
+
+my class X::Attribute::Undeclared is X::Comp {
+    has $.name;
+    has $.package-type;
+    has $.package-name;
+    method message() {
+        "Attribute $.name not declared in $.package-type $.package-name";
+    }
+}

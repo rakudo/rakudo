@@ -54,7 +54,11 @@ class Perl6::Actions is HLL::Actions {
         $STATEMENT_PRINT := 0;
     }
 
-    method throw($/, $ex_type, *%opts) {
+    sub p6box_s($s) {
+        nqp::box_s($s, $*ST.find_symbol(['Str']));
+    }
+
+    our sub throw($/, $ex_type, *%opts) {
         # TODO: provide context
         my $type_found := 1;
         my $ex := try {
@@ -67,9 +71,8 @@ class Perl6::Actions is HLL::Actions {
                 HLL::Compiler.lineof($/.orig, $/.from),
                 $*ST.find_symbol(['Int'])
             );
-            %opts<filename> := nqp::box_s(
+            %opts<filename> := p6box_s(
                 pir::isnull($file) ?? '<unknown file>' !! $file,
-                $*ST.find_symbol(['Str'])
             );
             $ex.new(|%opts).throw;
         } else {
@@ -605,7 +608,7 @@ class Perl6::Actions is HLL::Actions {
             my @params;
             my $block := $<blockoid>.ast;
             if $block<placeholder_sig> && $<signature> {
-                self.throw($/, ['X', 'Signature', 'Placeholder']);
+                throw($/, ['X', 'Signature', 'Placeholder']);
             }
             elsif $block<placeholder_sig> {
                 @params := $block<placeholder_sig>;
@@ -1116,7 +1119,7 @@ class Perl6::Actions is HLL::Actions {
         elsif $twigil eq '!' {
             # In a declaration, don't produce anything here.
             if $*IN_DECL ne 'variable' {
-                # Ensure attribute actaully exists before emitting lookup.
+                # Ensure attribute actually exists before emitting lookup.
                 unless pir::can($*PACKAGE.HOW, 'get_attribute_for_usage') {
                     $/.CURSOR.panic("Cannot understand $name in this context");
                 }
@@ -1134,8 +1137,11 @@ class Perl6::Actions is HLL::Actions {
                     $past := box_native_if_needed($past, $attr.type);
                 }
                 else {
-                    $/.CURSOR.panic("Attribute $name not declared in $*PKGDECL " ~
-                        $*PACKAGE.HOW.name($*PACKAGE));
+                    throw($/, ['X', 'Attribute', 'Undeclared'],
+                            name         => p6box_s($name),
+                            package-type => p6box_s($*PKGDECL),
+                            package-name => p6box_s($*PACKAGE.HOW.name($*PACKAGE)),
+                    );
                 }
             }
         }

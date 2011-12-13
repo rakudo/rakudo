@@ -60,6 +60,8 @@ Built-ins/Data Structures
 2 **    Rat/FatRat/Rational cleanup
 2 ***   other S02 data types -- KeySet, KeyBag
 2 **    sized/shaped arrays (jnthn)
+2 **    Str.Numeric rewrite (japhb, str-numeric branch)
+2 ***   val() (japhb)
 3 ***   arrays with custom keys
 3 ***   complete Buf implementation
 3 ***   complete LoL and slice context implementation
@@ -79,6 +81,8 @@ Language Features
 2 **    import/export tags
 2 **    missing bits of enums
 2 ***   new syntax/semantics for coercion (jnthn)
+2 **    MAIN and USAGE (japhb)
+2 **    Failure changes (japhb)
 3 ***   domain specific languages -- slang and grammar tweaks
 3 ****  more advanced Perl 5 interop (lexical embedding, etc.)
 3 ***   temp variables

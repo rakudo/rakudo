@@ -87,9 +87,9 @@ Optimizer (jnthn)
 2 **    ro/rw variable tracking, related transforms
 2 **    context/non-context variable tracking
 2 ***   :D/:U constraint tracking and integration with dispatch analysis
-2 **    inlining of method calls
+2 **    inlining of routines that do method calls
 2 *     topic preservation elimination on simple block inlines
-2 ***   method call inlining
+2 ***   inlining calls to methods
 3 ***   guard lifting for method call inlining
 
 STD Convergence (needs more exploration)

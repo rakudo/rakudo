@@ -857,9 +857,9 @@ class Perl6::Actions is HLL::Actions {
         my $pblock := $xblock.shift;
 
         # Handle the smart-match.
-        my $match_past := PAST::Op.new( :pasttype('call'), :name('&infix:<~~>'),
-            PAST::Var.new( :name('$_'), :scope('lexical_6model') ),
-            $sm_exp
+        my $match_past := PAST::Op.new( :pasttype('callmethod'), :name('ACCEPTS'),
+            $sm_exp,
+            PAST::Var.new( :name('$_'), :scope('lexical_6model') )
         );
 
         # Use the smartmatch result as the condition for running the block,
@@ -967,9 +967,9 @@ class Perl6::Actions is HLL::Actions {
 
     method statement_mod_cond:sym<when>($/) {
         make PAST::Op.new( :pasttype<if>,
-            PAST::Op.new( :name('&infix:<~~>'),
-                          PAST::Var.new( :name('$_') ),
-                          $<modifier_expr>.ast ),
+            PAST::Op.new( :name('ACCEPTS'), :pasttype('callmethod'),
+                          $<modifier_expr>.ast, 
+                          PAST::Var.new( :name('$_') ) ),
             :node($/)
         );
     }

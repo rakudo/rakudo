@@ -1,117 +1,100 @@
 Rakudo Roadmap
 --------------
 
-Last updated: 2010-08-09
+Last updated: 2011-12-13
 
-This document identifies the major tasks planned for Rakudo
-development as of August 2010.
+This document serves as a guide to the major goals for Rakudo
+development, as things stood in December 2011. They have been
+roughly categorized. Each has been given a 1-3 priority
+indicator, where 1 is "fairly pressing", 2 is "desirable",
+and 3 is "wanted, but not a key goal right now".  Each item
+also has from one to five asterisks indicating the estimated
+"degree of effort" required for the item.
 
-The items below are given a 1-3 priority indicator for the
-item, where 1 is "really important", 2 is "ought to have",
-and 3 is "nice to have".  Each item also has from one to
-five asterisks indicating the estimated "degree of effort"
-required for the item.  Some items also have additional
-notes (A-Z) of larger-scale issues or considerations for
-the item.  Finally, we've also provided an indication of
-the person(s) most likely to be working on the item; this
-is not intended to preclude or discourage others from doing so.
+A lower priority does not mean, "don't work on this". If you
+want to hack on a priority 3 item, go right ahead. It is, after
+all, wanted. And things that are priority 3 now will eventually
+work their way up to the top anyway. Mostly, -Ofun.
 
-Patches to this document are welcome.
+Some items are marked with the names of people likely to either
+work on them OR serve as a "contact person" for the goal. Again,
+don't let a name already being against a goal stop you working
+on it - though it would be wise that you check where the marked
+person is at with it to avoid any duplicated effort, or to pick
+up hints about how to jump in. :-)
 
-Really important items
-1 **    speed issues and profiling (C, all)
-1 **    core code review and refactoring (pmichaud)
-1 ?     module installer
-1 ?     documentation tools / S26 (A, masak)
+Patches to this document are welcome - to add missing goals,
+remove completed ones, re-prioritize, volunteer for a goal,
+rescue yourself from a goal, etc.
 
-Ought to have items
-2 ?     'constant' declarator
-2 ?     operator precedence traits (pmichaud)
-2 **    basic Buf implementation (A, masak)
-2 **    regex modifiers (B, moritz, pmichaud)
-2 ***   installation standards (A)
-2 ***   heredocs (B)
-2 **    Rat, BigNum, numification improvements (C, colomon)
-2 ***   temp variables (C)
-2 ****  better longest token matching in regexes (A, D, pmichaud)
-2 ?     other S02 data types -- KeySet, KeyBag (A)
-2 ?     specialized Unicode bits -- .codes, .graphs, .bytes (A, C)
+Compiler Performance/Portability Improvements (jnthn)
+1 ***   get NQP bootstrapped with QRegex engine
+1 **    LTM and other updates to Rakudo grammar to work on QRegex
+2 ***** design, implement and switch to QAST
+2 ****  full-blown bounded serialization
+2 **    finish up any remaining s/pir::/nqp::/
+2 ?     re-organize Rakudo, build process, etc. for multi-backend
 
-Nice to have items
-3 ****  ports to other virtual machines
-3 ***   WHENCE (pmichaud, jnthn)
-3 ****  module versioning and download (A, jnthn, mberends, masak, others)
-3 ****  ENTER/LEAVE/LAST/NEXT/FIRST/REDO control blocks (C, Z4)
-3 ****  Perl 5 interop (Z5, sorear)
-3 ***   Pseudo-packages MY, CONTEXT, OUTER, $?LINE, etc. (jnthn)
-3 **    feed operators (jnthn, pmichaud)
-3 ****  macros (B, Z, sorear)
-3 ***   pod heredocs (B)
-3 ***   complete Buf implementation (C)
-3 ***   slice context (A, B, Z3)
-3 **    native calling interface (A, C, Z4)
-3 ***   domain specific languages -- slang and grammar tweaks (A, B, D)
-3 ?     sized types -- int32, int8 (C)
-3 ?     native typed scalars (C)
-3 ?     packed arrays (C)
-3 ?     compact structures (C)
-3 ****  full s/// including s[\d+] += 42 (B) (basic version is there; needs
-        attributes and making $/ available on the RHS)
-3 **    operator adverbs (B, pmichaud)
+Macros (masak)
+2 ***   macro declarations and invocation; Rudimentary quasiquotes
+2 ***   quasiquote splicing
+2 **    hygienic macros and the COMPILING:: pseudopackage
+2 ****  "delayed" declarations of routines and types within quasiquotes
+3 ?     Textual macros
 
-Notes:
-A.  Involves Perl 6 spec updates/revisions:  Some items
-involve or require substantial updates or revisions to
-the synopses in order to progress.
+Operators
+2 *     precedence traits for user defined operators
+2 ***   missing native operators, including ++/-- (jnthn)
+3 **    logical cascades
+3 **    operator adverbs
 
-B.  Requires some improvements to the grammar or grammar engine.
+Regexes
+1 **    LTM for alternations
 
-C.  Some Parrot-level support and/or development needed.
+Built-ins/Data Structures
+1 **    ObjAt (jnthn)
+1 **    object hashes (jnthn)
+2 ***   throwing typed exceptions (moritz)
+2 ***   packed arrays (jnthn)
+2 ***** NFG strings, .codes, .graphs, etc.
+2 **    Rat/FatRat/Rational cleanup
+2 ***   other S02 data types -- KeySet, KeyBag
+2 **    sized/shaped arrays (jnthn)
+3 ***   arrays with custom keys
+3 ***   complete Buf implementation
+3 ***   complete LoL and slice context implementation
+3 ***   Cat and stream matching
 
-D.  Some NQP-level support and/or development needed.
+Phasers
+2 ***   ENTER and LEAVE
+2 **    LAST/NEXT/FIRST/REDO
+2 ?     PRE/POST
+3 ?     KEEP/UNDO
 
-Z.  Explicitly postponed items:  Some items we explicitly
-postpone until later in Rakudo development.  There are generally
-a variety of reasons we might do this:
-  (Z1) it's not an immediately pressing issue and there's
-       little penalty or some benefit from delaying work on it
-  (Z2) the spec is vague or non-existent on the topic
-  (Z3) we expect the spec or STD.pm to change or evolve substantially
-  (Z4) we expect Parrot or the compiler environment to change substantially
-  (Z5) the item appears to be Really Hard "right now"
-  (Z6) other blockers
+Language Features
+1 ***   basic Perl 5 interop (use, eval, etc.)
+2 **    pseudo-packages MY, CONTEXT, OUTER, etc. (jnthn)
+2 ***   heredocs
+2 **    module versioning
+2 **    import/export tags
+2 **    missing bits of enums
+2 ***   new syntax/semantics for coercion (jnthn)
+3 ***   domain specific languages -- slang and grammar tweaks
+3 ****  more advanced Perl 5 interop (lexical embedding, etc.)
+3 ***   temp variables
 
-Completed ROADMAP items:
-  - better return value checking
-  - clean up subtypes in multi-dispatch
-  - maintain candidate lists in lexicals
-  - overloadable postcircumfix:<[ ]> and postcircumfix:<{ }>
-  - proper trait definition and usage (need to fix edge cases)
-  - binding named arguments to positional parameters
-  - using STD.pm (or close analog) for parsing
-  - lexicals refactor
-  - embedded closures in regexes
-  - declare contextual and lexical vars in regexes
-  - return multiple values from a sub
-  - unpacking arguments
-  - nested signatures
-  - captures in signatures and return values
-  - array/hash element vivification via Proxy
-  - better gather/take handling of arguments
-  - lazy gather/take
-  - basic s///
-  - protoregexes in grammars
-  - item assignment
-  - lexical classes and roles
-  - lexical variables in regexes
-  - REPL actually prints
-  - import module symbols into current lexical scope
-  - complete lazy lists in Seq and Array
-  - working closures
-  - array/hash vivification
-  - REPL remembers the variable from the last line
-  - operator overloading -- infix:, prefix:, postfix:
-  - custom operators for circumfix:, postcircumfix:
-  - true hyper/cross/reverse/other metaoperators
-  - synopsis 19 handling
-  - other REPL improvements
+Optimizer (jnthn)
+2 **    ro/rw variable tracking, related transforms
+2 **    context/non-context variable tracking
+2 ***   :D/:U constraint tracking and integration with dispatch analysis
+2 **    inlining of method calls
+2 *     topic preservation elimination on simple block inlines
+2 ***   method call inlining
+3 ***   guard lifting for method call inlining
+
+STD Convergence (needs more exploration)
+2 ***   adopt STD's highwater error handling
+2 **    align error handling approach more with STDs
+2 ***   using mixins for derived languages
+2 ***   more of STDs TTIAR error handling
+3 **    work on convergence with STD's quote parsing

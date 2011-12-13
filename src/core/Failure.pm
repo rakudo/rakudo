@@ -23,9 +23,9 @@ my class Failure {
     }
     multi method Bool(Failure:D:) { $!handled = 1; Bool::False; }
 
-    method Int(Failure:D:) { $!handled ?? 0 !! $!exception.rethrow; }
-    method Num(Failure:D:) { $!handled ?? 0e0 !! $!exception.rethrow; }
-    multi method Str(Failure:D:) { $!handled ?? '' !! $!exception.rethrow; }
+    method Int(Failure:D:) { $!handled ?? 0 !! $!exception.throw; }
+    method Num(Failure:D:) { $!handled ?? 0e0 !! $!exception.throw; }
+    multi method Str(Failure:D:) { $!handled ?? '' !! $!exception.throw; }
 
     Failure.^add_fallback(
         -> $, $ { True },

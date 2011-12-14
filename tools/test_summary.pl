@@ -1,7 +1,6 @@
 #! perl
 
 # Copyright (C) 2004-2010, The Perl Foundation.
-# $Id$
 
 ##  The "make spectest" target tells us how many tests we failed
 ##  (hopefully zero!), but doesn't say how many were actually passed.
@@ -22,6 +21,8 @@ use warnings;
 use Time::Local;
 use Time::HiRes;
 use Getopt::Long;
+
+my $implementation = "rakudo";
 
 my $timing;
 my $view;
@@ -49,9 +50,9 @@ close $fh or die $!;
 
 # Fudge any Rakudo specific tests by running the fudgeall script
 {
-    my $cmd = join ' ', $^X, 't/spec/fudgeall', 'rakudo', @tfiles;
+    my $cmd = join ' ', $^X, 't/spec/fudgeall', $implementation, @tfiles;
     # Fudgeall prints the name of each test script, but changes the name
-    # ending to .rakudo instead of .t if tests were fudged.
+    # ending to match the implementation instead of .t if tests were fudged.
     print "$cmd\n";
     @tfiles = split ' ', `$cmd`; # execute fudgeall, collect test names
 }
@@ -165,7 +166,7 @@ for my $tfile (@tfiles) {
     $sum{'plan'} += $plan;  $sum{"$syn-plan"} += $plan;
     {
         my $f = $tfile;
-        $f =~ s/\.rakudo$/.t/;
+        $f =~ s/\.$implementation$/.t/;
         $plan_per_file{$f} = $plan;
     }
     for (keys %skip) {
@@ -313,15 +314,15 @@ sub begin {
     }
     open( $self->{'file_out'}, '>', 'docs/test_summary.times.tmp') or die "cannot create docs/test_summary.times.tmp: $!";
     my $parrot_version = qx{./perl6 -e'print \$*VM<config><revision>'};
-    my $rakudo_version = qx{git log --pretty=oneline --abbrev-commit --max-count=1 .}; chomp $rakudo_version;
-    $rakudo_version =~ s/^([0-9a-f])+\.\.\./$1/; # delete possible ... 
-    $rakudo_version =~ s/\\/\\\\/g; # escape all backslashes
-    $rakudo_version =~ s/\"/\\\"/g; # escape all double quotes
+    my $impl_version = qx{git log --pretty=oneline --abbrev-commit --max-count=1 .}; chomp $impl_version;
+    $impl_version =~ s/^([0-9a-f])+\.\.\./$1/; # delete possible ... 
+    $impl_version =~ s/\\/\\\\/g; # escape all backslashes
+    $impl_version =~ s/\"/\\\"/g; # escape all double quotes
     my $file_out = $self->{'file_out'};
     my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = gmtime(time());
     push @test_history, sprintf("[\"%4d-%02d-%02d %02d:%02d:%02d\",%d,\"%s\"]",
         $year+1900, $mon+1, $mday, $hour, $min, $sec,
-        $parrot_version, $rakudo_version );
+        $parrot_version, $impl_version );
     # Delete the oldest test test_history if there are too many.
     while ( @test_history > $self->{'Timings'} ) { shift @test_history; }
     print $file_out qq!{"test_history":[\n!;

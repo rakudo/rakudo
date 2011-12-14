@@ -609,7 +609,7 @@ integration/advent2009-day05.t
 integration/advent2009-day06.t
 integration/advent2009-day07.t
 integration/advent2009-day08.t
-# integration/advent2009-day09.t # err: Calling 'namen' will never work with argument types (Positional)
+integration/advent2009-day09.t
 # integration/advent2009-day10.t # err: Method 'at_key' not found for invocant of class 'Any'
 integration/advent2009-day11.t
 integration/advent2009-day12.t

@@ -8,8 +8,18 @@ my class Mu {
         nqp::p6box_i(nqp::where(self))
     }
 
-    method WHICH() {
-        nqp::p6box_i(nqp::where(self))
+    proto method WHICH(|$) {*}
+    multi method WHICH(Mu:U:) {
+        nqp::box_s(nqp::unbox_s(self.^name), ObjAt);
+    }
+    multi method WHICH(Mu:D:) {
+        nqp::box_s(
+            nqp::concat_s(
+                nqp::concat_s(nqp::unbox_s(self.^name), '|'),
+                nqp::where(self)
+            ),
+            ObjAt
+        )
     }
 
     method WHY() {

@@ -52,7 +52,6 @@ Regexes
 1 **    LTM for alternations
 
 Built-ins/Data Structures
-1 **    ObjAt (jnthn)
 1 **    object hashes (jnthn)
 2 ***   throwing typed exceptions (moritz)
 2 ***   packed arrays (jnthn)

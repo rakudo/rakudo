@@ -693,6 +693,10 @@ Bool.HOW.add_attribute(Bool, BOOTSTRAPATTR.new(:name<$!value>, :type(int), :box_
 Bool.HOW.set_boolification_mode(Bool, 1);
 Bool.HOW.publish_boolification_spec(Bool);
 
+my stub ObjAt metaclass Perl6::Metamodel::ClassHOW { ... };
+ObjAt.HOW.add_attribute(ObjAt, BOOTSTRAPATTR.new(:name<$!value>, :type(str), :box_target(1)));
+
+
 # Set up Stash type, using a Parrot hash under the hood for storage.
 my stub Stash metaclass Perl6::Metamodel::ClassHOW { ... };
 Stash.HOW.add_parent(Stash, Hash);
@@ -735,6 +739,7 @@ Perl6::Metamodel::ClassHOW.add_stash(Stash);
 Perl6::Metamodel::ClassHOW.add_stash(List);
 Perl6::Metamodel::ClassHOW.add_stash(Array);
 Perl6::Metamodel::ClassHOW.add_stash(Hash);
+Perl6::Metamodel::ClassHOW.add_stash(ObjAt);
 
 # Make Parrot invoke v-table construct a capture and delegate off
 # to postcircumfix:<( )>.
@@ -865,6 +870,7 @@ my module EXPORT {
         $?PACKAGE.WHO<EnumMap>   := EnumMap;
         $?PACKAGE.WHO<Hash>      := Hash;
         $?PACKAGE.WHO<Capture>   := Capture;
+        $?PACKAGE.WHO<ObjAt>     := ObjAt;
         $?PACKAGE.WHO<Stash>     := Stash;
         $?PACKAGE.WHO<Scalar>    := Scalar;
         $?PACKAGE.WHO<Grammar>   := Grammar;

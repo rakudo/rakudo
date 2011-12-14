@@ -22,6 +22,15 @@ sub PARROT_ENCODING(Str:D $s) {
 }
 
 my class Str does Stringy {
+    multi method WHICH(Str:D:) {
+        nqp::box_s(
+            nqp::concat_s(
+                nqp::concat_s(nqp::unbox_s(self.^name), '|'),
+                $!value
+            ),
+            ObjAt
+        );
+    }
     submethod BUILD(:$value as Str = '') {
         nqp::bindattr_s(self, Str, '$!value', nqp::unbox_s($value))
     }

@@ -1,5 +1,14 @@
 
 my class Num {
+    multi method WHICH(Num:D:) {
+        nqp::box_s(
+            nqp::concat_s(
+                nqp::concat_s(nqp::unbox_s(self.^name), '|'),
+                nqp::unbox_n(self)
+            ),
+            ObjAt
+        );
+    }
     method Num() { self }
     method Bridge(Num:D:) { self }
     

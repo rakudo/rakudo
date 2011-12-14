@@ -165,8 +165,7 @@ my class Any {
 proto infix:<===>($?, $?) { * }
 multi infix:<===>($a?)    { Bool::True }
 multi infix:<===>($a, $b) {
-    $a.defined eq $b.defined
-    && nqp::p6bool(nqp::iseq_s(nqp::unbox_s($a.WHICH), nqp::unbox_s($b.WHICH)))
+    nqp::p6bool(nqp::iseq_s(nqp::unbox_s($a.WHICH), nqp::unbox_s($b.WHICH)))
 }
 
 proto infix:<cmp>($, $) { * }

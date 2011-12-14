@@ -1,6 +1,15 @@
 my class Rat { ... }
 
 my class Int {
+    multi method WHICH(Int:D:) {
+        nqp::box_s(
+            nqp::concat_s(
+                nqp::concat_s(nqp::unbox_s(self.^name), '|'),
+                nqp::tostr_I(self)
+            ),
+            ObjAt
+        );
+    }
     multi method perl(Int:D:) {
         self.Str;
     }
@@ -11,7 +20,7 @@ my class Int {
     method Int() { self }
     
     multi method Str(Int:D:) {
-        nqp::p6box_s(pir::nqp_bigint_to_str__SP(self));
+        nqp::p6box_s(nqp::tostr_I(self));
     }
     
     method Num(Int:D:) {

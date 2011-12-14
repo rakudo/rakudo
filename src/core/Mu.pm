@@ -9,7 +9,13 @@ my class Mu {
     }
 
     method WHICH() {
-        nqp::p6box_i(nqp::where(self))
+        nqp::box_s(
+            nqp::concat_s(
+                nqp::concat_s(nqp::unbox_s(self.^name), '|'),
+                nqp::where(self)
+            ),
+            ObjAt
+        )
     }
 
     method WHY() {

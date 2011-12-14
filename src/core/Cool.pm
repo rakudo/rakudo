@@ -220,3 +220,5 @@ sub samecase(Cool $string, Cool $pattern) { $string.samecase($pattern) }
 sub split($pat, Cool $target, $limit = $Inf, :$all) {
     $target.split($pat, $limit, :$all);
 }
+
+sub chars(Cool $x) { $x.Str.chars }

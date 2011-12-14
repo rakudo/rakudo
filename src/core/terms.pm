@@ -24,6 +24,9 @@ sub term:<time>() { nqp::p6box_i(pir::time__I()) }
     }
     nqp::bindkey(pir::get_who__PP(PROCESS), '$VM', $VM);
 
+    my $CWD = nqp::p6box_s(pir::new__PS('OS').cwd);
+    nqp::bindkey(pir::get_who__PP(PROCESS), '$CWD', $CWD);
+
     my @INC;
     @INC.push('lib');
     @INC.push(%ENV<PERL6LIB>.split($VM<config><osname> eq 'MSWin32' ?? ';' !! ':')) if %ENV<PERL6LIB>;

@@ -496,7 +496,7 @@ S32-array/shift.t
 S32-array/splice.t
 S32-array/unshift.t
 S32-basics/warn.t
-# S32-container/zip.t # err: Undefined routine '&Seq' called
+S32-container/zip.t
 S32-hash/exists.t
 # S32-hash/delete.t # err: Too many positional parameters passed
 S32-hash/invert.t
@@ -505,7 +505,7 @@ S32-hash/pairs.t
 S32-hash/push.t
 S32-hash/slice.t
 S32-io/dir.t
-# S32-io/chdir.t # err: Dynamic variable $*CWD not found
+S32-io/chdir.t
 S32-io/file-tests.t
 S32-io/note.t
 S32-io/IO-Socket-INET.t

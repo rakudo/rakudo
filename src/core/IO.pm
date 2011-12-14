@@ -273,8 +273,9 @@ sub dir($path = '.', Mu :$test = none('.', '..')) {
 proto sub chdir(|$) { * }
 multi sub chdir($path as Str) {
     try {
-        pir::new__PS('OS').chdir($path)
+        pir::new__PS('OS').chdir(nqp::unbox_s($path))
     }
+    $*CWD = nqp::p6box_s(pir::new__PS('OS').cwd);
     $! ?? fail($!) !! True
 }
 

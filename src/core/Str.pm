@@ -55,12 +55,16 @@ my class Str does Stringy {
 
     method substr(Str:D: $start, $length? is copy) {
         my str $sself  = nqp::unbox_s(self);
-        my int $istart = $start.Int;
+        my int $istart = nqp::unbox_i(
+            $start.^does(Callable)
+                ??  $start(nqp::p6box_i(nqp::chars($sself)))
+                !! $start.Int
+            );
         my int $ichars = nqp::chars($sself);
         fail "Negative start argument ($start) to .substr" if $istart < 0;
         fail "Start of substr ($start) beyond end of string" if $istart > $ichars;
         $length = $length($ichars - $istart) if nqp::istype($length, Callable);
-        my int $ilength = $length.defined ?? $length.Int !! $ichars - $istart;
+        my int $ilength = $length.defined ??  $length.Int !! $ichars - $istart;
         fail "Negative length argument ($length) to .substr" if $ilength < 0;
 
         nqp::p6box_s(nqp::substr($sself, $istart, $ilength));

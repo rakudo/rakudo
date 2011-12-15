@@ -2666,7 +2666,12 @@ class Perl6::Actions is HLL::Actions {
             }
         }
         elsif $<quote> {
-            $past.name( $<quote>.ast );
+            $past.name(
+                PAST::Op.new(
+                    :pirop<repr_unbox_str__SP>,
+                    $<quote>.ast
+                )
+            );
         }
         elsif $<variable> {
             $past.unshift($<variable>.ast);

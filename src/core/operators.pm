@@ -28,7 +28,7 @@ multi infix:<but>(Mu:D \$obj, Mu:U \$role) {
     $obj.HOW.mixin($obj.clone(), $role).BUILD_LEAST_DERIVED({});
 }
 multi infix:<but>(Mu:U \$obj, Mu:U \$role) {
-    $obj.HOW.mixin($obj.clone(), $role);
+    $obj.HOW.mixin($obj, $role);
 }
 multi infix:<but>(Mu \$obj, Mu:D $val) is rw {
     my $role := Metamodel::ParametricRoleHOW.new_type();
@@ -44,7 +44,7 @@ multi infix:<but>(Mu:D \$obj, @roles) {
     $obj.HOW.mixin($obj.clone(), |@roles).BUILD_LEAST_DERIVED({});
 }
 multi infix:<but>(Mu:U \$obj, @roles) {
-    $obj.HOW.mixin($obj.clone(), |@roles)
+    $obj.HOW.mixin($obj, |@roles)
 }
 
 sub SEQUENCE($left, $right, :$exclude_end) {

@@ -1239,7 +1239,7 @@ class Perl6::Actions is HLL::Actions {
                 $*W.add_stub_to_check($*PACKAGE);
             }
             $block.blocktype('declaration');
-            make PAST::Stmts.new( $block, $*W.get_object_sc_ref_past($*PACKAGE) );
+            make PAST::Stmts.new( $block, $*W.get_ref($*PACKAGE) );
             return 1;
         }
 
@@ -1267,7 +1267,7 @@ class Perl6::Actions is HLL::Actions {
             # we won't know).
             $block.push(PAST::Op.new(
                 :pasttype('list'),
-                $*W.get_object_sc_ref_past($*PACKAGE),
+                $*W.get_ref($*PACKAGE),
                 PAST::Op.new(
                     :pirop('set PQPS'),
                     PAST::Op.new( :pirop('getinterp P') ),
@@ -1296,7 +1296,7 @@ class Perl6::Actions is HLL::Actions {
         Perl6::Pod::document($*PACKAGE, $*DOC);
 
         make PAST::Stmts.new(
-            $block, $*W.get_object_sc_ref_past($*PACKAGE)
+            $block, $*W.get_ref($*PACKAGE)
         );
     }
 
@@ -2055,7 +2055,7 @@ class Perl6::Actions is HLL::Actions {
         }
 
         # We evaluate to the enum type object.
-        make $*W.get_object_sc_ref_past($type_obj);
+        make $*W.get_ref($type_obj);
     }
 
     method type_declarator:sym<subset>($/) {
@@ -2084,7 +2084,7 @@ class Perl6::Actions is HLL::Actions {
         }
 
         # We evaluate to the refinement type object.
-        make $*W.get_object_sc_ref_past($subset);
+        make $*W.get_ref($subset);
     }
 
     method type_declarator:sym<constant>($/) {
@@ -2117,7 +2117,7 @@ class Perl6::Actions is HLL::Actions {
             else {
                 # Nothing to install, just return a PAST node to
                 # get hold of the constant.
-                return $*W.get_object_sc_ref_past($value);
+                return $*W.get_ref($value);
             }
 
             # Install.
@@ -2125,7 +2125,7 @@ class Perl6::Actions is HLL::Actions {
                 'constant', $*PACKAGE, $*W.cur_lexpad(), $value);
 
             # Evaluate to the constant.
-            return $*W.get_object_sc_ref_past($value);
+            return $*W.get_ref($value);
         };
         make $past;
     }
@@ -2611,14 +2611,14 @@ class Perl6::Actions is HLL::Actions {
                     $/.CURSOR.panic("Private method call to '$name' must be fully " ~
                         "qualified with the package containing the method");
                 }
-                $past.unshift($*W.get_object_sc_ref_past($*PACKAGE));
+                $past.unshift($*W.get_ref($*PACKAGE));
                 $past[0].type($*PACKAGE);
                 $past.unshift($*W.add_string_constant($name));
             }
             $past.name('dispatch:<!>');
         }
         elsif $<methodop><quote> {
-            $past.unshift($*W.get_object_sc_ref_past($*PACKAGE));
+            $past.unshift($*W.get_ref($*PACKAGE));
             $past.unshift($<methodop><quote>.ast);
             $past.name('dispatch:<!>');
         }
@@ -2801,12 +2801,12 @@ class Perl6::Actions is HLL::Actions {
                 }
                 if $all_compile_time {
                     my $curried := $*W.parameterize_type($role, $<arglist>, $/);
-                    $past := $*W.get_object_sc_ref_past($curried);
+                    $past := $*W.get_ref($curried);
                     $past<has_compile_time_value> := 1;
                     $past<compile_time_value> := $curried;
                 }
                 else {
-                    my $rref := $*W.get_object_sc_ref_past($role);
+                    my $rref := $*W.get_ref($role);
                     $past := $<arglist>[0].ast;
                     $past.pasttype('callmethod');
                     $past.name('parameterize');
@@ -3252,7 +3252,7 @@ class Perl6::Actions is HLL::Actions {
                 }
                 $source := PAST::Op.new(
                     :pirop('perl6_assert_bind_ok 0PP'),
-                    $source, $*W.get_object_sc_ref_past($meta_attr.type))
+                    $source, $*W.get_ref($meta_attr.type))
             }
             else {
                 # Probably a lexical.
@@ -3261,7 +3261,7 @@ class Perl6::Actions is HLL::Actions {
                     my $type := $*W.find_lexical_container_type($target.name);
                     $source := PAST::Op.new(
                         :pirop('perl6_assert_bind_ok 0PP'),
-                        $source, $*W.get_object_sc_ref_past($type));
+                        $source, $*W.get_ref($type));
                     $was_lexical := 1;
                 }
                 unless $was_lexical {
@@ -3953,7 +3953,7 @@ class Perl6::Actions is HLL::Actions {
     }
 
     sub reference_to_code_object($code_obj, $past_block) {
-        my $ref := $*W.get_object_sc_ref_past($code_obj);
+        my $ref := $*W.get_ref($code_obj);
         $ref<past_block> := $past_block;
         $ref<code_object> := $code_obj;
         return $ref;
@@ -4352,7 +4352,7 @@ class Perl6::Actions is HLL::Actions {
         try { $is_generic := $type.HOW.archetypes.generic }
         my $past := $is_generic ??
             $*W.symbol_lookup(@name, $/) !!
-            $*W.get_object_sc_ref_past($type);
+            $*W.get_ref($type);
         $past<has_compile_time_value> := 1;
         $past<compile_time_value> := $type;
         return $past;

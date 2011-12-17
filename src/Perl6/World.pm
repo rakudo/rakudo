@@ -202,7 +202,7 @@ class Perl6::World is HLL::Compiler::SerializationContextBuilder {
                         'ModuleLoader'),
                     1),
                 'Perl6::ModuleLoader',
-                self.get_slot_past_for_object($*ST.pkg_create_mo(pir::get_knowhow__P()))
+                self.get_slot_past_for_object($*W.pkg_create_mo(pir::get_knowhow__P()))
             ))
     }
     
@@ -281,7 +281,7 @@ class Perl6::World is HLL::Compiler::SerializationContextBuilder {
         # chunk already. If so, use it for that part of the name.
         if +@parts {
             try {
-                $cur_pkg := $*ST.find_symbol([@parts[0]]);
+                $cur_pkg := $*W.find_symbol([@parts[0]]);
                 $cur_lex := 0;
                 $create_scope := 'our';
                 @parts.shift();
@@ -1482,7 +1482,7 @@ class Perl6::World is HLL::Compiler::SerializationContextBuilder {
     # Applies a trait.
     method apply_trait($trait_sub_name, *@pos_args, *%named_args) {
         # Locate the trait sub to apply.
-        my $trait_sub := $*ST.find_symbol([$trait_sub_name]);
+        my $trait_sub := $*W.find_symbol([$trait_sub_name]);
         
         # Call it right away.
         $trait_sub(|@pos_args, |%named_args);

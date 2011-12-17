@@ -39,7 +39,7 @@ class Perl6::Optimizer {
         # over OUTER since we don't walk loadinits).
         my $unit := $past<UNIT>;
         my $*GLOBALish := $past<GLOBALish>;
-        my $*ST := $past<ST>;
+        my $*W := $past<W>;
         unless $unit.isa(PAST::Block) {
             pir::die("Optimizer could not find UNIT");
         }
@@ -210,7 +210,7 @@ class Perl6::Optimizer {
                 my $meth := $pkg.HOW.find_private_method($pkg, $name);
                 if $meth {
                     try {
-                        my $call := $*ST.get_object_sc_ref_past($meth); # may fail, thus the try
+                        my $call := $*W.get_object_sc_ref_past($meth); # may fail, thus the try
                         my $inv  := $op.shift;
                         $op.shift; $op.shift; # name, package (both pre-resolved now)
                         $op.unshift($inv);

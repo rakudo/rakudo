@@ -67,16 +67,16 @@ sub EXPORT_SYMBOL(\$exp_name, @tags, Mu \$sym) {
             $install_in := $*EXPORT.WHO.{$tag};
         }
         else {
-            $install_in := $*ST.pkg_create_mo((package { }).HOW.WHAT, :name($tag));
-            $*ST.pkg_compose($install_in);
-            $*ST.install_package_symbol($*EXPORT, $tag, $install_in);
+            $install_in := $*W.pkg_create_mo((package { }).HOW.WHAT, :name($tag));
+            $*W.pkg_compose($install_in);
+            $*W.install_package_symbol($*EXPORT, $tag, $install_in);
         }
         if $install_in.WHO.exists($exp_name) {
             unless ($install_in.WHO){$exp_name} =:= $sym {
                 die "A symbol $exp_name has already been exported";
             }
         }
-        $*ST.install_package_symbol($install_in, $exp_name, $sym);
+        $*W.install_package_symbol($install_in, $exp_name, $sym);
     }
 }
 multi trait_mod:<is>(Routine:D \$r, :$export!) {

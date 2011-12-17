@@ -768,15 +768,15 @@ else {
 }
 
 # Bool::False and Bool::True.
-# XXX $*ST calls here are deeply evil.
+# XXX $*W calls here are deeply evil.
 # XXX Maybe Bool is an enum, so we do it with EnumHOW?
 my $false := pir::repr_instance_of__PP(Bool);
 pir::repr_bind_attr_int__vPPsI($false, Bool, '$!value', 0);
-$*ST.add_object($false);
+$*W.add_object($false);
 (Bool.WHO)<False> := $false;
 my $true := pir::repr_instance_of__PP(Bool);
 pir::repr_bind_attr_int__vPPsI($true, Bool, '$!value', 1);
-$*ST.add_object($true);
+$*W.add_object($true);
 (Bool.WHO)<True> := $true;
 pir::perl6_set_bools__vPP($false, $true);
 

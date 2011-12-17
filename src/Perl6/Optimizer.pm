@@ -87,7 +87,7 @@ class Perl6::Optimizer {
             my @sigsyms;
             for $block.symtable() {
                 my $name := $_.key;
-                if $name ne '$_' && $name ne 'call_sig' {
+                if $name ne '$_' && $name ne 'call_sig' && $name ne '$*DISPATCHER' {
                     @sigsyms.push($name);
                 }
             }
@@ -394,7 +394,7 @@ class Perl6::Optimizer {
                 # Don't copy this binder call.
             }
             elsif $_.isa(PAST::Var) && ($_.name eq '$/' || $_.name eq '$!' ||
-                    $_.name eq '$_' || $_.name eq 'call_sig') {
+                    $_.name eq '$_' || $_.name eq 'call_sig' || $_.name eq '$*DISPATCHER') {
                 # Don't copy this variable node.
             }
             else {

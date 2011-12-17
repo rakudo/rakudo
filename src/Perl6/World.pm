@@ -1836,4 +1836,36 @@ class Perl6::World is HLL::World {
             $fix
         );
     }
+
+    # throws a typed exception
+    method throw($/, $ex_type, *%opts) {
+        # TODO: provide context
+        my $type_found := 1;
+        my $ex := try {
+            CATCH { $type_found := 0 };
+            self.find_symbol($ex_type);
+        };
+        if $type_found {
+            my $file        := pir::find_caller_lex__ps('$?FILES');
+            %opts<line>     := nqp::box_i(
+                HLL::Compiler.lineof($/.orig, $/.from),
+                $*W.find_symbol(['Int'])
+            );
+            %opts<filename> := nqp::box_s(
+                pir::isnull($file) ?? '<unknown file>' !! $file,
+                self.find_symbol(['Str'])
+            );
+            $ex.new(|%opts).throw;
+        } else {
+            my @err := ['Error while compiling, type ', nqp::join('::', $ex_type),  "\n"];
+            for %opts -> $key {
+                @err.push: '  ';
+                @err.push: $key;
+                @err.push: ': ';
+                @err.push: %opts{$key};
+                @err.push: "\n";
+            }
+            $/.CURSOR.panic(nqp::join('', @err));
+        }
+    }
 }

@@ -58,36 +58,6 @@ class Perl6::Actions is HLL::Actions {
         nqp::box_s($s, $*W.find_symbol(['Str']));
     }
 
-    our sub throw($/, $ex_type, *%opts) {
-        # TODO: provide context
-        my $type_found := 1;
-        my $ex := try {
-            CATCH { $type_found := 0 };
-            $*W.find_symbol($ex_type);
-        };
-        if $type_found {
-            my $file        := pir::find_caller_lex__ps('$?FILES');
-            %opts<line>     := nqp::box_i(
-                HLL::Compiler.lineof($/.orig, $/.from),
-                $*W.find_symbol(['Int'])
-            );
-            %opts<filename> := p6box_s(
-                pir::isnull($file) ?? '<unknown file>' !! $file,
-            );
-            $ex.new(|%opts).throw;
-        } else {
-            my @err := ['Error while compiling, type ', nqp::join('::', $ex_type),  "\n"];
-            for %opts -> $key {
-                @err.push: '  ';
-                @err.push: $key;
-                @err.push: ': ';
-                @err.push: %opts{$key};
-                @err.push: "\n";
-            }
-            $/.CURSOR.panic(nqp::join('', @err));
-        }
-    }
-
     method ints_to_string($ints) {
         if pir::does($ints, 'array') {
             my $result := '';
@@ -608,7 +578,7 @@ class Perl6::Actions is HLL::Actions {
             my @params;
             my $block := $<blockoid>.ast;
             if $block<placeholder_sig> && $<signature> {
-                throw($/, ['X', 'Signature', 'Placeholder']);
+                $*W.throw($/, ['X', 'Signature', 'Placeholder']);
             }
             elsif $block<placeholder_sig> {
                 @params := $block<placeholder_sig>;
@@ -1137,7 +1107,7 @@ class Perl6::Actions is HLL::Actions {
                     $past := box_native_if_needed($past, $attr.type);
                 }
                 else {
-                    throw($/, ['X', 'Attribute', 'Undeclared'],
+                    $*W.throw($/, ['X', 'Attribute', 'Undeclared'],
                             name         => p6box_s($name),
                             package-type => p6box_s($*PKGDECL),
                             package-name => p6box_s($*PACKAGE.HOW.name($*PACKAGE)),
@@ -1489,7 +1459,7 @@ class Perl6::Actions is HLL::Actions {
         # Obtain parameters, create signature object and generate code to
         # call binder.
         if $block<placeholder_sig> && $<multisig> {
-            self.throw($/, ['X', 'Signature', 'Placeholder']);
+            $*W.throw($/, ['X', 'Signature', 'Placeholder']);
         }
         my @params :=
                 $<multisig>             ?? $<multisig>[0].ast      !!

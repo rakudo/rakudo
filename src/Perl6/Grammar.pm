@@ -1,6 +1,6 @@
 use NQPP6Regex;
 use QRegex;
-use Perl6::SymbolTable;
+use Perl6::World;
 use Perl6::Pod;
 
 grammar Perl6::Grammar is HLL::Grammar {
@@ -26,8 +26,8 @@ grammar Perl6::Grammar is HLL::Grammar {
         # associated with this compilation unit.
         my $file := pir::find_caller_lex__ps('$?FILES');
         my $*ST := pir::isnull($file) ??
-            Perl6::SymbolTable.new(:handle(~pir::time__N())) !!
-            Perl6::SymbolTable.new(:handle(~pir::time__N()), :description($file));
+            Perl6::World.new(:handle(~pir::time__N())) !!
+            Perl6::World.new(:handle(~pir::time__N()), :description($file));
 
         # XXX Hack: clear any marks.
         pir::set_hll_global__vPsP(['HLL', 'Grammar'], '%!MARKHASH', nqp::null());

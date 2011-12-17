@@ -30,7 +30,7 @@ my $SIG_ELEM_NATIVE_STR_VALUE    := 8388608;
 
 # This builds upon the SerializationContextBuilder to add the specifics
 # needed by Rakudo Perl 6.
-class Perl6::SymbolTable is HLL::Compiler::SerializationContextBuilder {
+class Perl6::World is HLL::Compiler::SerializationContextBuilder {
     # The stack of lexical pads, actually as PAST::Block objects. The
     # outermost frame is at the bottom, the latest frame is on top.
     has @!BLOCKS;

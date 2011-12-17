@@ -14,11 +14,11 @@ my role X::OS {
     has $.os-error;
 }
 
-my class X::Comp is X::Base {
+my role X::Comp {
     has $.filename;
     has $.line;
     has $.column;
-    multi method gist(X::Comp:D:) {
+    multi method gist(::?CLASS:D:) {
         "===SORRY!===\n$.message\nat $.filename():$.line";
     }
 }
@@ -44,17 +44,24 @@ my class X::Buf::AsStr is X::Base {
     }
 }
 
-my class X::Signature::Placeholder is X::Comp {
+my class X::Signature::Placeholder is X::Base does X::Comp {
     method message() {
         'Placeholder variable cannot override existing signature';
     }
 }
 
-my class X::Attribute::Undeclared is X::Comp {
+my class X::Attribute::Undeclared is X::Base does X::Comp {
     has $.name;
     has $.package-type;
     has $.package-name;
     method message() {
         "Attribute $.name not declared in $.package-type $.package-name";
     }
+}
+
+my class X::Obsolete is X::Base does X::Comp {
+    has $.old;
+    has $.new;
+    has $.when = 'in Perl 6';
+    method message() { "Unsupported use of $.old; $.when please use $.new" }
 }

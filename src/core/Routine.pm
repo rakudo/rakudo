@@ -78,4 +78,8 @@ my class Routine {
         $handle.can('restore') && $handle.restore() ||
             die("Invalid wrap handle passed to routine")
     }
+    
+    method yada() {
+        nqp::p6bool(nqp::getattr_i(self, Routine, '$!yada'))
+    }
 }

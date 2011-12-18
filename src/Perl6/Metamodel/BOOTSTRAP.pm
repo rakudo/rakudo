@@ -537,6 +537,7 @@ Routine.HOW.add_parent(Routine, Block);
 Routine.HOW.add_attribute(Routine, BOOTSTRAPATTR.new(:name<$!rw>, :type(int)));
 Routine.HOW.add_attribute(Routine, BOOTSTRAPATTR.new(:name<$!md_thunk>, :type(Mu)));
 Routine.HOW.add_attribute(Routine, BOOTSTRAPATTR.new(:name<$!inline_info>, :type(str)));
+Routine.HOW.add_attribute(Routine, BOOTSTRAPATTR.new(:name<$!yada>, :type(int)));
 Routine.HOW.publish_parrot_vtable_handler_mapping(Routine);
 Routine.HOW.publish_parrot_vtable_mapping(Routine);
 Routine.HOW.add_method(Routine, 'set_rw', sub ($self) {

@@ -1485,7 +1485,7 @@ class Perl6::Actions is HLL::Actions {
             $block.nsentry('');
         }
         my $code := $*W.create_code_object($block, 'Sub', $signature,
-            $*MULTINESS eq 'proto');
+            $*MULTINESS eq 'proto', :yada(is_yada($/)));
 
         # Document it
         Perl6::Pod::document($code, $*DOC);
@@ -1704,7 +1704,7 @@ class Perl6::Actions is HLL::Actions {
         my $inv_type  := $*W.find_symbol([
             $<longname> && $*W.is_lexical('$?CLASS') ?? '$?CLASS' !! 'Mu']);
         my $code_type := $*METHODTYPE eq 'submethod' ?? 'Submethod' !! 'Method';
-        my $code := methodize_block($/, $past, @params, $inv_type, $code_type);
+        my $code := methodize_block($/, $past, @params, $inv_type, $code_type, :yada(is_yada($/)));
 
         # Document it
         Perl6::Pod::document($code, $*DOC);
@@ -1735,7 +1735,7 @@ class Perl6::Actions is HLL::Actions {
         make $closure;
     }
 
-    sub methodize_block($/, $past, @params, $invocant_type, $code_type) {
+    sub methodize_block($/, $past, @params, $invocant_type, $code_type, :$yada) {
         # Get signature and ensure it has an invocant and *%_.
         if $past<placeholder_sig> {
             $/.CURSOR.panic('Placeholder variables cannot be used in a method');
@@ -1773,7 +1773,7 @@ class Perl6::Actions is HLL::Actions {
 
         # Create code object.
         return $*W.create_code_object($past, $code_type, $signature,
-            $*MULTINESS eq 'proto');
+            $*MULTINESS eq 'proto', :yada($yada));
     }
 
     # Installs a method into the various places it needs to go.
@@ -1844,6 +1844,16 @@ class Perl6::Actions is HLL::Actions {
         else {
             0
         }
+    }
+    
+    sub is_yada($/) {
+        if $<blockoid><statementlist> && +$<blockoid><statementlist><statement> == 1 {
+            my $btxt := ~$<blockoid><statementlist><statement>[0];
+            if $btxt ~~ /^ \s* ['...'|'???'|'!!!'] \s* $/ {
+                return 1;
+            }
+        }
+        0
     }
 
     method onlystar($/) {

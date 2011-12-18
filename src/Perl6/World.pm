@@ -718,7 +718,7 @@ class Perl6::World is HLL::World {
     # body at fixup time; during the deserialize we just set the already compiled
     # output right into place. If we get a request to run the code before we did
     # really compiling it, we can do that - we just dynamically compile it.
-    method create_code_object($code_past, $type, $signature, $is_dispatcher = 0) {
+    method create_code_object($code_past, $type, $signature, $is_dispatcher = 0, :$yada) {
         my $fixups := PAST::Stmts.new();
         my $des    := PAST::Stmts.new();
         
@@ -812,6 +812,7 @@ class Perl6::World is HLL::World {
             )));
             $des.push(self.set_attribute($code, $code_type, '$!do', PAST::Val.new( :value($code_past) )));
         }
+
         # Install signauture now and add to deserialization.
         pir::setattribute__vPPsP($code, $code_type, '$!signature', $signature);
         if self.is_precompilation_mode() {
@@ -828,6 +829,17 @@ class Perl6::World is HLL::World {
             }
         }
         
+        # Set yada flag if needed.
+        if $yada {
+            my $rtype := self.find_symbol(['Routine']);
+            nqp::bindattr_i($code, $rtype, '$!yada', 1);
+            if self.is_precompilation_mode() {
+                $des.push(PAST::Op.new(
+                    :pirop('repr_bind_attr_int__vPPsi'),
+                    self.get_ref($code), self.get_ref($rtype), '$!yada', 1));
+            }
+        }
+
         # Deserialization also needs to give the Parrot sub its backlink.
         if self.is_precompilation_mode() {
             $des.push(PAST::Op.new(

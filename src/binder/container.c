@@ -110,7 +110,9 @@ void Rakudo_cont_store(PARROT_INTERP, PMC *cont, PMC *value,
     
     /* Otherwise, use STORE call. */
     else {
-        PMC *meth    = VTABLE_find_method(interp, cont, Parrot_str_new(interp, "STORE", 0));
+        PMC *meth = STABLE(cont)->container_spec ?
+            STABLE(cont)->find_method(interp, cont, Parrot_str_new(interp, "STORE", 0), NO_HINT) :
+            VTABLE_find_method(interp, cont, Parrot_str_new(interp, "STORE", 0));
         if (!PMC_IS_NULL(meth)) {
             PMC *old_ctx = Parrot_pcc_get_signature(interp, CURRENT_CONTEXT(interp));
             PMC *cappy   = Parrot_pmc_new(interp, enum_class_CallContext);

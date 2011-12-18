@@ -2755,12 +2755,8 @@ class Perl6::Actions is HLL::Actions {
             # type, since we can statically resolve them.
             my @name := Perl6::Grammar::parse_name(~$<longname>);
             if $<arglist> {
-                # Ensure arguments are allowed.
-                my $role := $*W.find_symbol(@name);
-                unless $role.HOW.archetypes.parametric() {
-                    $/.CURSOR.panic("Cannot put type arguments on " ~
-                        ~$<longname> ~ " because it is not a parametric type");
-                }
+                # Look up parametric type.
+                my $ptype := $*W.find_symbol(@name);
                 
                 # Do we know all the arguments at compile time?
                 my $all_compile_time := 1;
@@ -2770,18 +2766,18 @@ class Perl6::Actions is HLL::Actions {
                     }
                 }
                 if $all_compile_time {
-                    my $curried := $*W.parameterize_type($role, $<arglist>, $/);
+                    my $curried := $*W.parameterize_type($ptype, $<arglist>, $/);
                     $past := $*W.get_ref($curried);
                     $past<has_compile_time_value> := 1;
                     $past<compile_time_value> := $curried;
                 }
                 else {
-                    my $rref := $*W.get_ref($role);
+                    my $ptref := $*W.get_ref($ptype);
                     $past := $<arglist>[0].ast;
                     $past.pasttype('callmethod');
                     $past.name('parameterize');
-                    $past.unshift($rref);
-                    $past.unshift(PAST::Op.new( :pirop('get_how PP'), $rref ));
+                    $past.unshift($ptref);
+                    $past.unshift(PAST::Op.new( :pirop('get_how PP'), $ptref ));
                 }
             }
             elsif ~$<longname> eq 'GLOBAL' {

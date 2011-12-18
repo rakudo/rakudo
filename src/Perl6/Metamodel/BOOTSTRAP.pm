@@ -235,6 +235,32 @@ pir::set_scalar_container_type__vP(Scalar);
 # Scalar needs to be registered as a container type.
 pir::set_container_spec__vPPsP(Scalar, Scalar, '$!value', pir::null__P());
 
+# class Proxy is Any {
+#    has &!FETCH;
+#    has &!STORE;
+#    method FETCH() { ... }
+#    method STORE(\$v) { ... }
+# }
+my $PROXY_FETCH;
+my stub Proxy metaclass Perl6::Metamodel::ClassHOW { ... };
+Proxy.HOW.add_parent(Proxy, Any);
+Proxy.HOW.add_attribute(Proxy, BOOTSTRAPATTR.new(:name<&!FETCH>, :type(Mu)));
+Proxy.HOW.add_attribute(Proxy, BOOTSTRAPATTR.new(:name<&!STORE>, :type(Mu)));
+Proxy.HOW.add_method(Proxy, 'FETCH', ($PROXY_FETCH := sub ($cont) {
+    nqp::getattr($cont, Proxy, '&!FETCH')(pir::perl6_var__PP($cont))
+}));
+Proxy.HOW.add_method(Proxy, 'STORE', sub ($cont, $val) {
+    nqp::getattr($cont, Proxy, '&!STORE')(pir::perl6_var__PP($cont), $val)
+});
+Proxy.HOW.add_method(Proxy, 'new', sub ($type, :$FETCH, :$STORE) {
+    my $cont := nqp::create(Proxy);
+    nqp::bindattr($cont, Proxy, '&!FETCH', $FETCH);
+    nqp::bindattr($cont, Proxy, '&!STORE', $STORE);
+    $cont
+});
+Proxy.HOW.compose(Proxy);
+pir::set_container_spec__vPPsP(Proxy, nqp::null(), '', $PROXY_FETCH);
+
 # Helper for creating a scalar attribute. Sets it up as a real Perl 6
 # Attribute instance, complete with container desciptor and auto-viv
 # container.
@@ -873,6 +899,7 @@ my module EXPORT {
         $?PACKAGE.WHO<ObjAt>     := ObjAt;
         $?PACKAGE.WHO<Stash>     := Stash;
         $?PACKAGE.WHO<Scalar>    := Scalar;
+        $?PACKAGE.WHO<Proxy>     := Proxy;
         $?PACKAGE.WHO<Grammar>   := Grammar;
         $?PACKAGE.WHO<PROCESS>   := $PROCESS;
         $?PACKAGE.WHO<Bool>      := Bool;

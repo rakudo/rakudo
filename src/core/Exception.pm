@@ -65,14 +65,14 @@ do {
             my $e := EXCEPTION($ex);
             my Mu $err := pir::getstderr__P();
 
-            if is_runtime($ex.backtrace) {
+            if X::Base.ACCEPTS($e) {
+                $err.print: $e.gist;
+                $err.print: "\n";
+            }
+            elsif is_runtime($ex.backtrace) {
                 $err.print: $e;
                 $err.print: "\n";
                 $err.print: Backtrace.new($e);
-            }
-            elsif X::Base.ACCEPTS($e) {
-                $err.print: $e.gist;
-                $err.print: "\n";
             }
             else {
                 $err.print: "===SORRY!===\n";

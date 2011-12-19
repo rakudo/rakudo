@@ -801,7 +801,8 @@ class Perl6::Actions is HLL::Actions {
 
     method statement_control:sym<require>($/) {
         if $<module_name> && $<EXPR> {
-            $/.CURSOR.panic("require with argument list not yet implemented");
+            $*W.throw($/, ['X', 'NYI'],
+                feature => p6box_s('require with argument list'));
         }
         my $name_past := $<module_name>
                         ?? PAST::Val.new(:value($<module_name><longname><name>.Str))
@@ -1185,7 +1186,7 @@ class Perl6::Actions is HLL::Actions {
     }
 
     method package_declarator:sym<also>($/) {
-        $/.CURSOR.panic("also not yet implemented");
+        $*W.throw($/, ['X', 'NYI'], feature => p6box_s('also'));
     }
 
     method package_def($/) {
@@ -1421,7 +1422,8 @@ class Perl6::Actions is HLL::Actions {
             $BLOCK.symbol($name, :scope('lexical'));
         }
         else {
-            $/.CURSOR.panic("$*SCOPE scoped variables not yet implemented");
+            $*W.throw($/, ['X', 'NYI'],
+                feature => p6box_s("$*SCOPE scoped variables"));
         }
 
         return $past;
@@ -1970,7 +1972,11 @@ class Perl6::Actions is HLL::Actions {
             ($_.ast)($type_obj) if $_.ast;
         }
         $*W.pkg_compose($type_obj);
-        if $<variable> { $/.CURSOR.panic("Variable case of enums not yet implemented"); }
+        if $<variable> {
+            $*W.throw($/, ['X', 'NYI'],
+                feature => p6box_s("Variable case of enums")
+            );
+        }
         $*W.install_package_longname($/, $<longname>, ($*SCOPE || 'our'),
             'enum', $*PACKAGE, $*W.cur_lexpad(), $type_obj);
 
@@ -2090,7 +2096,9 @@ class Perl6::Actions is HLL::Actions {
             elsif $<variable> {
                 # Don't handle twigil'd case yet.
                 if $<variable><twigil> {
-                    $/.CURSOR.panic("Twigil-variable constants not yet implemented");
+                    $*W.throw($/, ['X', 'NYI'],
+                        feature => p6box_s("Twigil-Variable constants")
+                    );
                 }
                 $name := ~$<variable>;
             }
@@ -3111,7 +3119,9 @@ class Perl6::Actions is HLL::Actions {
             for @($/) { @stages.unshift($_.ast); }
         }
         else {
-            $/.CURSOR.panic('Sorry, the ' ~ $/<infix> ~ ' feed operator is not yet implemented');
+            $*W.throw($/, ['X', 'NYI'],
+                feature => p6box_s($/<infix> ~ " feed operator")
+            );
         }
 
         # Check what's in each stage and make a chain of blocks

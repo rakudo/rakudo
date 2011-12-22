@@ -26,6 +26,7 @@ New in 2011.12
 + stubbed methods from roles now require those methods to be implemented
 + updated docs/ROADMAP
 + .WHICH now returns ObjAt objects
++ defining new operators
 
 New in 2011.11
 + CATCH blocks are now much closer to spec

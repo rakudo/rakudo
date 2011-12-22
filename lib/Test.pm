@@ -134,7 +134,8 @@ multi sub isnt(Mu $got, Mu $expected) {
 proto sub is_approx(|$) is export { * }
 multi sub is_approx(Mu $got, Mu $expected, $desc) {
     $time_after = nqp::p6box_n(pir::time__N);
-    my $test = ($got - $expected).abs <= 1/100000;
+    my $tol = $expected.abs < 1e-6 ?? 1e-5 !! $expected.abs * 1e-6;
+    my $test = ($got - $expected).abs <= $tol;
     proclaim(?$test, $desc);
     unless $test {
         diag("got:      $got");

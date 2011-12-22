@@ -1,7 +1,7 @@
 $PROCESS::FATAL = False;
 
 my class Failure {
-    has $!exception;
+    has $.exception;
     has $!handled;
 
     method new($ex) {

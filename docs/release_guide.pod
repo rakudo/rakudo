@@ -46,17 +46,22 @@ part of monthly Parrot releases.
   2011-09-30   Rakudo #44 "Riga"               (tadzik)
   2011-10-20   Rakudo #45 "Houston"            (duff)
   2011-11-17   Rakudo #46 "London"             (tadzik)
+  2011-12-22   Rakudo #47 "Columbus"           (moritz)
 
-=head2 Planned 2011 releases
+=head2 Planned 2012 releases
 
 Dates are based on Parrot's expected release schedule.
 
-  2011-12-22   Rakudo #47                      -vacant-
+  2012-01-19   #48
+  2012-02-23   #49
+  2012-03-22   #50
+  2012-04-19   #51
+  2012-05-17   #52
+  2012-06-21   #53
 
 =head2 Suggested .pm group names for future releases
 
   MadMongers    (YAPC::NA 2012)
-  Columbus      (YAPC::NA 2011, p6 track and hackathon)
   Brazos Valley (YAPC::NA 2007, p6 hackathon)
   Toronto       (YAPC::NA 2005, p6 hackathon)
 

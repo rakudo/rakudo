@@ -21,7 +21,7 @@ Some of the specific changes and improvements occurring with this
 release include:
 
 * Many regex improvements, including escapes in character classes
-  look-around assetions and many bug fixes
+  look-around assertions and many bug fixes
 * Several performance improvements
 * Defining new operators, flip flop operators, and the Proxy class
   are now supported

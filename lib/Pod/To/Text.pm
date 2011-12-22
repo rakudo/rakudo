@@ -59,7 +59,7 @@ sub table2text($pod) {
     my $ret = $pod.caption // '';
     for @rows -> $row {
         for 0..($row.elems - 1) -> $i {
-            $ret ~= $row[$i].fmt("%{@maxes[$i]}s") ~ "  ";
+            $ret ~= $row[$i].fmt("%-{@maxes[$i]}s") ~ "  ";
         }
         $ret ~= "\n";
     }

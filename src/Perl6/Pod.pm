@@ -119,6 +119,8 @@ class Perl6::Pod {
         return $r;
     }
     our sub table($/) {
+        my $config := make_config($/);
+
         my @rows := [];
         for $<table_row> {
             @rows.push($_.ast);
@@ -209,7 +211,7 @@ class Perl6::Pod {
         }
 
         my $past := serialize_object(
-            'Pod::Block::Table',
+            'Pod::Block::Table', :config($config),
             :headers(serialize_aos($headers)<compile_time_value>),
             :content(serialize_aoaos($content)<compile_time_value>),
         );

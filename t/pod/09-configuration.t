@@ -1,5 +1,5 @@
 use Test;
-plan 12;
+plan 14;
 my $r;
 
 =begin pod
@@ -39,3 +39,12 @@ $r = $=POD[3].content[0];
 is $r.config<title>, 'presentation template';
 is $r.config<author>, 'John Brown';
 is $r.config<pubdate>, 2011;
+
+=begin pod
+=for table :caption<Table of contents>
+    foo bar
+=end pod
+
+$r = $=POD[4].content[0];
+isa_ok $r, Pod::Block::Table;
+is $r.config<caption>, 'Table of contents';

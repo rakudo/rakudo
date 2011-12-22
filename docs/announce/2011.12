@@ -13,8 +13,8 @@ For the latest Rakudo Star release, see
 
 The Rakudo Perl compiler follows a monthly release cycle, with each
 release named after a Perl Mongers group.  The December 2011 release is
-code named after the Columbus Perl Mongers, organizers of YAPC::NA, which
-featured a Perl 6 track and hackahton.
+code named after the Columbus Perl Mongers, organizers of YAPC::NA 2010,
+which featured a Perl 6 track and hackathon.
 
 
 Some of the specific changes and improvements occurring with this

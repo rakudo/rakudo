@@ -21,6 +21,11 @@ New in 2011.12
 + implemented .WALK
 + implemented ff, ^ff, ff^ and ^ff^
 + implemented .REPR macro
++ implemented Proxy class
++ some typed errors are now thrown from within the compiler
++ stubbed methods from roles now require those methods to be implemented
++ updated docs/ROADMAP
++ .WHICH now returns ObjAt objects
 
 New in 2011.11
 + CATCH blocks are now much closer to spec

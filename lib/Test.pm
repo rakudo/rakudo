@@ -289,14 +289,14 @@ multi sub eval_lives_ok(Str $code, $reason) {
     $time_after = nqp::p6box_n(pir::time__N);
     my $ee = eval_exception($code);
     proclaim((not defined $ee), $reason)
-        or note("Error: $ee");
+        or diag("Error: $ee");
     $time_before = nqp::p6box_n(pir::time__N);
 }
 multi sub eval_lives_ok(Str $code) {
     $time_after = nqp::p6box_n(pir::time__N);
     my $ee = eval_exception($code);
     proclaim((not defined $ee), '')
-        or note("Error: $ee");
+        or diag("Error: $ee");
     $time_before = nqp::p6box_n(pir::time__N);
 }
 

@@ -126,7 +126,8 @@ class Perl6::ModuleLoader {
                 
                 # Get the compiler and compile the code, then run it
                 # (which runs the mainline and captures UNIT).
-                my $eval := pir::compreg__Ps('perl6').compile($source);
+                my $?FILES   := %chosen<pm>;
+                my $eval     := pir::compreg__Ps('perl6').compile($source);
                 my $*CTXSAVE := self;
                 my $*MAIN_CTX;
                 $eval();

@@ -1,0 +1,71 @@
+    Announce: Rakudo Perl 6 compiler development release #47 ("Columbus")
+
+On behalf of the Rakudo development team, I'm happy to announce the
+November 2011 release of Rakudo Perl #47 "Columbus".  Rakudo is an 
+implementation of Perl 6 on the Parrot Virtual Machine (see 
+<http://www.parrot.org>). The tarball for this release
+is available from <http://github.com/rakudo/rakudo/downloads>.
+
+Please note: This announcement is not for the Rakudo Star
+distribution[*] -- it's announcing a new release of the compiler only.
+For the latest Rakudo Star release, see
+<http://github.com/rakudo/star/downloads>.
+
+The Rakudo Perl compiler follows a monthly release cycle, with each
+release named after a Perl Mongers group.  The December 2011 release is
+code named after the Columbus Perl Mongers, organizers of YAPC::NA 2010,
+which featured a Perl 6 track and hackathon.
+
+
+Some of the specific changes and improvements occurring with this
+release include:
+
+* Many regex improvements, including escapes in character classes
+  look-around assertions and many bug fixes
+* Several performance improvements
+* Defining new operators, flip flop operators, and the Proxy class
+  are now supported
+
+We are still regressed on a few features compared to the 2011.07 release of
+Rakudo, the most notable of which is autovivification. 
+These regressions should be rectified in coming releases.
+
+For a more detailed list of changes, see "docs/ChangeLog".
+
+The development team thanks all of our contributors and sponsors for
+making Rakudo Perl possible, as well as those people who worked on 
+Parrot, the Perl 6 test suite and the specification.
+
+The following people contributed to this release:
+
+Jonathan Worthington, Moritz Lenz, Will "Coke" Coleda, Michael Schroeder,
+Tadeusz Sośnierz, Solomon Foster, Zohar Kelrich, diakopter, JimmyZ,
+Jonathan Scott Duff, Geoffrey Broadwell, Woodi
+
+If you would like to contribute, see <http://rakudo.org/how-to-help>,
+ask on the perl6-compiler@perl.org mailing list, or ask on IRC #perl6
+on freenode.
+
+The next release of Rakudo (#48) is scheduled for January 19, 2012. A
+list of the other planned release dates and code names for 2012 is
+available in the "docs/release_guide.pod" file.  In general, Rakudo
+development releases are scheduled to occur soon after each Parrot
+monthly release.  Parrot releases the third Tuesday of each month.
+
+Have a great deal of fun!
+
+
+[*] What's the difference between the Rakudo compiler and the Rakudo
+    Star distribution?  
+
+    The Rakudo compiler is a compiler for the Perl 6 language.
+    Nothing else.
+
+    The Rakudo Star distribution is the Rakudo compiler plus a selection
+    of useful Perl 6 modules, the most recent incarnation of the "Using
+    Perl 6" book, and other software that can be used with the Rakudo
+    compiler to enchance its utility.  Rakudo Star is meant for early
+    adopters who wish to explore what's possible with Rakudo Perl 6 and
+    provide feedback on what works, what doesn't, and what else they
+    would like to see included in the distribution.
+

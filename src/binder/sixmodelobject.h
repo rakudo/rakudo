@@ -243,6 +243,9 @@ typedef struct SixModel_REPROps_Indexing {
      * after them into their place). Used for implementing things like shift, splice,
      * etc. */
     void (*delete_elems) (PARROT_INTERP, STable *st, void *data, INTVAL at_index, INTVAL count);
+
+    /* Gets the STable representing the declared element type. */
+    STable * (*get_elem_stable) (PARROT_INTERP, STable *st);
 } REPROps_Indexing;
 struct SixModel_REPROps {
     /* Creates a new type object of this representation, and

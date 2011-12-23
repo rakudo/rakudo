@@ -235,6 +235,32 @@ pir::set_scalar_container_type__vP(Scalar);
 # Scalar needs to be registered as a container type.
 pir::set_container_spec__vPPsP(Scalar, Scalar, '$!value', pir::null__P());
 
+# class Proxy is Any {
+#    has &!FETCH;
+#    has &!STORE;
+#    method FETCH() { ... }
+#    method STORE(\$v) { ... }
+# }
+my $PROXY_FETCH;
+my stub Proxy metaclass Perl6::Metamodel::ClassHOW { ... };
+Proxy.HOW.add_parent(Proxy, Any);
+Proxy.HOW.add_attribute(Proxy, BOOTSTRAPATTR.new(:name<&!FETCH>, :type(Mu)));
+Proxy.HOW.add_attribute(Proxy, BOOTSTRAPATTR.new(:name<&!STORE>, :type(Mu)));
+Proxy.HOW.add_method(Proxy, 'FETCH', ($PROXY_FETCH := sub ($cont) {
+    nqp::getattr($cont, Proxy, '&!FETCH')(pir::perl6_var__PP($cont))
+}));
+Proxy.HOW.add_method(Proxy, 'STORE', sub ($cont, $val) {
+    nqp::getattr($cont, Proxy, '&!STORE')(pir::perl6_var__PP($cont), $val)
+});
+Proxy.HOW.add_method(Proxy, 'new', sub ($type, :$FETCH, :$STORE) {
+    my $cont := nqp::create(Proxy);
+    nqp::bindattr($cont, Proxy, '&!FETCH', $FETCH);
+    nqp::bindattr($cont, Proxy, '&!STORE', $STORE);
+    $cont
+});
+Proxy.HOW.compose(Proxy);
+pir::set_container_spec__vPPsP(Proxy, nqp::null(), '', $PROXY_FETCH);
+
 # Helper for creating a scalar attribute. Sets it up as a real Perl 6
 # Attribute instance, complete with container desciptor and auto-viv
 # container.
@@ -511,6 +537,7 @@ Routine.HOW.add_parent(Routine, Block);
 Routine.HOW.add_attribute(Routine, BOOTSTRAPATTR.new(:name<$!rw>, :type(int)));
 Routine.HOW.add_attribute(Routine, BOOTSTRAPATTR.new(:name<$!md_thunk>, :type(Mu)));
 Routine.HOW.add_attribute(Routine, BOOTSTRAPATTR.new(:name<$!inline_info>, :type(str)));
+Routine.HOW.add_attribute(Routine, BOOTSTRAPATTR.new(:name<$!yada>, :type(int)));
 Routine.HOW.publish_parrot_vtable_handler_mapping(Routine);
 Routine.HOW.publish_parrot_vtable_mapping(Routine);
 Routine.HOW.add_method(Routine, 'set_rw', sub ($self) {
@@ -693,6 +720,10 @@ Bool.HOW.add_attribute(Bool, BOOTSTRAPATTR.new(:name<$!value>, :type(int), :box_
 Bool.HOW.set_boolification_mode(Bool, 1);
 Bool.HOW.publish_boolification_spec(Bool);
 
+my stub ObjAt metaclass Perl6::Metamodel::ClassHOW { ... };
+ObjAt.HOW.add_attribute(ObjAt, BOOTSTRAPATTR.new(:name<$!value>, :type(str), :box_target(1)));
+
+
 # Set up Stash type, using a Parrot hash under the hood for storage.
 my stub Stash metaclass Perl6::Metamodel::ClassHOW { ... };
 Stash.HOW.add_parent(Stash, Hash);
@@ -735,6 +766,7 @@ Perl6::Metamodel::ClassHOW.add_stash(Stash);
 Perl6::Metamodel::ClassHOW.add_stash(List);
 Perl6::Metamodel::ClassHOW.add_stash(Array);
 Perl6::Metamodel::ClassHOW.add_stash(Hash);
+Perl6::Metamodel::ClassHOW.add_stash(ObjAt);
 
 # Make Parrot invoke v-table construct a capture and delegate off
 # to postcircumfix:<( )>.
@@ -763,15 +795,15 @@ else {
 }
 
 # Bool::False and Bool::True.
-# XXX $*ST calls here are deeply evil.
+# XXX $*W calls here are deeply evil.
 # XXX Maybe Bool is an enum, so we do it with EnumHOW?
 my $false := pir::repr_instance_of__PP(Bool);
 pir::repr_bind_attr_int__vPPsI($false, Bool, '$!value', 0);
-$*ST.add_object($false);
+$*W.add_object($false);
 (Bool.WHO)<False> := $false;
 my $true := pir::repr_instance_of__PP(Bool);
 pir::repr_bind_attr_int__vPPsI($true, Bool, '$!value', 1);
-$*ST.add_object($true);
+$*W.add_object($true);
 (Bool.WHO)<True> := $true;
 pir::perl6_set_bools__vPP($false, $true);
 
@@ -865,8 +897,10 @@ my module EXPORT {
         $?PACKAGE.WHO<EnumMap>   := EnumMap;
         $?PACKAGE.WHO<Hash>      := Hash;
         $?PACKAGE.WHO<Capture>   := Capture;
+        $?PACKAGE.WHO<ObjAt>     := ObjAt;
         $?PACKAGE.WHO<Stash>     := Stash;
         $?PACKAGE.WHO<Scalar>    := Scalar;
+        $?PACKAGE.WHO<Proxy>     := Proxy;
         $?PACKAGE.WHO<Grammar>   := Grammar;
         $?PACKAGE.WHO<PROCESS>   := $PROCESS;
         $?PACKAGE.WHO<Bool>      := Bool;

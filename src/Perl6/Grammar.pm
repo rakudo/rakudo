@@ -1,6 +1,6 @@
 use NQPP6Regex;
 use QRegex;
-use Perl6::SymbolTable;
+use Perl6::World;
 use Perl6::Pod;
 
 grammar Perl6::Grammar is HLL::Grammar {
@@ -25,9 +25,10 @@ grammar Perl6::Grammar is HLL::Grammar {
         # objects that cross the compile-time/run-time boundary that are
         # associated with this compilation unit.
         my $file := pir::find_caller_lex__ps('$?FILES');
-        my $*ST := pir::isnull($file) ??
-            Perl6::SymbolTable.new(:handle(~pir::time__N())) !!
-            Perl6::SymbolTable.new(:handle(~pir::time__N()), :description($file));
+        my $source_id := nqp::sha1(nqp::getattr(self, Regex::Cursor, '$!target'));
+        my $*W := pir::isnull($file) ??
+            Perl6::World.new(:handle($source_id)) !!
+            Perl6::World.new(:handle($source_id), :description($file));
 
         # XXX Hack: clear any marks.
         pir::set_hll_global__vPsP(['HLL', 'Grammar'], '%!MARKHASH', nqp::null());
@@ -154,7 +155,7 @@ grammar Perl6::Grammar is HLL::Grammar {
                 my $cont  := Perl6::Pod::serialize_aos(
                     [~$*DOC]
                 )<compile_time_value>;
-                my $block := $*ST.add_constant(
+                my $block := $*W.add_constant(
                     'Pod::Block::Declarator', 'type_new',
                     :nocache, :content($cont),
                 );
@@ -415,30 +416,30 @@ grammar Perl6::Grammar is HLL::Grammar {
         {
             # Create unit outer (where we assemble any lexicals accumulated
             # from e.g. REPL) and the real UNIT.
-            $*UNIT_OUTER := $*ST.push_lexpad($/);
-            $*UNIT := $*ST.push_lexpad($/);
+            $*UNIT_OUTER := $*W.push_lexpad($/);
+            $*UNIT := $*W.push_lexpad($/);
             $*UNIT<IN_DECL> := 'mainline';
             
             # If we already have a specified outer context, then that's
             # our setting. Otherwise, load one.
             unless pir::defined(%*COMPILING<%?OPTIONS><outer_ctx>) {
-                $*SETTING := $*ST.load_setting(%*COMPILING<%?OPTIONS><setting> // 'CORE');
+                $*SETTING := $*W.load_setting(%*COMPILING<%?OPTIONS><setting> // 'CORE');
             }
             $/.CURSOR.unitstart();
             try {
-                my $EXPORTHOW := $*ST.find_symbol(['EXPORTHOW']);
+                my $EXPORTHOW := $*W.find_symbol(['EXPORTHOW']);
                 for $EXPORTHOW.WHO {
                     %*HOW{$_.key} := $_.value;
                 }
             }
             
             # Create GLOBAL(ish).
-            $*GLOBALish := $*ST.pkg_create_mo(%*HOW<package>, :name('GLOBAL'));
-            $*ST.pkg_compose($*GLOBALish);
+            $*GLOBALish := $*W.pkg_create_mo(%*HOW<package>, :name('GLOBAL'));
+            $*W.pkg_compose($*GLOBALish);
                 
             # Create EXPORT.
-            $*EXPORT := $*ST.pkg_create_mo(%*HOW<package>, :name('EXPORT'));
-            $*ST.pkg_compose($*EXPORT);
+            $*EXPORT := $*W.pkg_create_mo(%*HOW<package>, :name('EXPORT'));
+            $*W.pkg_compose($*EXPORT);
                 
             # We start with the current package as that also.
             $*PACKAGE := $*GLOBALish;
@@ -446,10 +447,10 @@ grammar Perl6::Grammar is HLL::Grammar {
             # Install unless we've no setting, in which case we've likely no
             # static lexpad class yet either. Also, UNIT needs a code object.
             unless %*COMPILING<%?OPTIONS><setting> eq 'NULL' {
-                $*ST.install_lexical_symbol($*UNIT, 'GLOBALish', $*GLOBALish);
-                $*ST.install_lexical_symbol($*UNIT, 'EXPORT', $*EXPORT);
-                $*ST.install_lexical_symbol($*UNIT, '$?PACKAGE', $*PACKAGE);
-                $*ST.create_code_object($*UNIT, 'Block', $*ST.create_signature([]));
+                $*W.install_lexical_symbol($*UNIT, 'GLOBALish', $*GLOBALish);
+                $*W.install_lexical_symbol($*UNIT, 'EXPORT', $*EXPORT);
+                $*W.install_lexical_symbol($*UNIT, '$?PACKAGE', $*PACKAGE);
+                $*W.create_code_object($*UNIT, 'Block', $*W.create_signature([]));
             }
         }
         
@@ -461,14 +462,14 @@ grammar Perl6::Grammar is HLL::Grammar {
         [ $ || <.panic: 'Confused'> ]
         
         {
-            $*POD_PAST := $*ST.add_constant(
+            $*POD_PAST := $*W.add_constant(
                 'Array', 'type_new', |$*POD_BLOCKS
             );
-            $*ST.install_lexical_symbol(
+            $*W.install_lexical_symbol(
                 $*UNIT, '$=POD', $*POD_PAST<compile_time_value>
             );
-            $*ST.pop_lexpad(); # UNIT
-            $*ST.pop_lexpad(); # UNIT_OUTER
+            $*W.pop_lexpad(); # UNIT
+            $*W.pop_lexpad(); # UNIT_OUTER
         }
         
         # CHECK time.
@@ -557,12 +558,12 @@ grammar Perl6::Grammar is HLL::Grammar {
         | <?terminator> <.panic: 'Missing block'>
         | <?> <.panic: 'Malformed block'>
         ]
-        { $*CURPAD := $*ST.pop_lexpad() }
+        { $*CURPAD := $*W.pop_lexpad() }
     }
 
     token unitstart { <?> }
     token you_are_here { <?> }
-    token newpad { <?> { $*ST.push_lexpad($/) } }
+    token newpad { <?> { $*W.push_lexpad($/) } }
     token finishpad { <?> }
 
     proto token terminator { <...> }
@@ -653,7 +654,7 @@ grammar Perl6::Grammar is HLL::Grammar {
         ] ** ','
         {
             for $<module_name> {
-                $*ST.load_module(~$_<longname>, $*GLOBALish);
+                $*W.load_module(~$_<longname>, $*GLOBALish);
             }
         }
     }
@@ -665,7 +666,7 @@ grammar Perl6::Grammar is HLL::Grammar {
             my @name := parse_name(~$<module_name><longname>);
             my $module;
             my $found := 0;
-            try { $module := $*ST.find_symbol(@name); $found := 1; }
+            try { $module := $*W.find_symbol(@name); $found := 1; }
             if $found {
                 do_import($module.WHO, $<arglist>);
             }
@@ -708,7 +709,7 @@ grammar Perl6::Grammar is HLL::Grammar {
             || { 
                     unless ~$<doc> && !%*COMPILING<%?OPTIONS><doc> {
                         if $longname {
-                            my $module := $*ST.load_module(~$longname,
+                            my $module := $*W.load_module(~$longname,
                                                            $*GLOBALish);
                             do_import($module, $<arglist>);
                             $/.CURSOR.import_EXPORTHOW($module);
@@ -724,7 +725,7 @@ grammar Perl6::Grammar is HLL::Grammar {
         if pir::exists($module, 'EXPORT') {
             my $EXPORT := $module<EXPORT>.WHO;
             if pir::exists($EXPORT, 'DEFAULT') {
-                $*ST.import($EXPORT<DEFAULT>);
+                $*W.import($EXPORT<DEFAULT>);
             }
         }
     }
@@ -1145,7 +1146,7 @@ grammar Perl6::Grammar is HLL::Grammar {
 
     rule package_def {
         :my $longname;
-        :my $outer := $*ST.cur_lexpad();
+        :my $outer := $*W.cur_lexpad();
         :my $*DECLARAND;
         :my $*IN_DECL := 'package';
         :my $*CURPAD;
@@ -1182,8 +1183,8 @@ grammar Perl6::Grammar is HLL::Grammar {
                     my $exists := 0;
                     if $longname && $*SCOPE ne 'anon' {
                         my @name := parse_name(~$longname<name>);
-                        if $*ST.already_declared($*SCOPE, $*OUTERPACKAGE, $outer, @name) {
-                            $*PACKAGE := $*ST.find_symbol(@name);
+                        if $*W.already_declared($*SCOPE, $*OUTERPACKAGE, $outer, @name) {
+                            $*PACKAGE := $*W.find_symbol(@name);
                             $exists := 1;
                         }
                     }
@@ -1209,11 +1210,11 @@ grammar Perl6::Grammar is HLL::Grammar {
                         if $*REPR ne '' {
                             %args<repr> := $*REPR;
                         }
-                        $*PACKAGE := $*ST.pkg_create_mo(%*HOW{$*PKGDECL}, |%args);
+                        $*PACKAGE := $*W.pkg_create_mo(%*HOW{$*PKGDECL}, |%args);
                         
                         # Install it in the symbol table if needed.
                         if $longname {
-                            $*ST.install_package_longname($/, $longname, $*SCOPE,
+                            $*W.install_package_longname($/, $longname, $*SCOPE,
                                 $*PKGDECL, $*OUTERPACKAGE, $outer, $*PACKAGE);
                         }
                     }
@@ -1228,13 +1229,13 @@ grammar Perl6::Grammar is HLL::Grammar {
                             $group := $*PACKAGE;
                         }
                         else {
-                            $group := $*ST.pkg_create_mo(%*HOW{'role-group'}, :name(~$longname<name>));                            
-                            $*ST.install_package_longname($/, $longname, $*SCOPE,
+                            $group := $*W.pkg_create_mo(%*HOW{'role-group'}, :name(~$longname<name>));                            
+                            $*W.install_package_longname($/, $longname, $*SCOPE,
                                 $*PKGDECL, $*OUTERPACKAGE, $outer, $group);
                         }
 
                         # Construct role meta-object with group.
-                        $*PACKAGE := $*ST.pkg_create_mo(%*HOW{$*PKGDECL}, :name(~$longname<name>),
+                        $*PACKAGE := $*W.pkg_create_mo(%*HOW{$*PKGDECL}, :name(~$longname<name>),
                             :group($group), :signatured($<signature> ?? 1 !! 0));
                     }
                 }
@@ -1253,7 +1254,7 @@ grammar Perl6::Grammar is HLL::Grammar {
                     # Locate type.
                     my $found;
                     my @name := parse_name(~$longname<name>);
-                    try { $*PACKAGE := $*ST.find_symbol(@name); $found := 1 }
+                    try { $*PACKAGE := $*W.find_symbol(@name); $found := 1 }
                     unless $found {
                         $/.CURSOR.panic("Could not find a $*PKGDECL " ~
                             ~$longname<name> ~ " to augment");
@@ -1261,19 +1262,19 @@ grammar Perl6::Grammar is HLL::Grammar {
                 }
                 
                 # Install $?PACKAGE, $?ROLE, $?CLASS, ::?CLASS as needed.
-                my $curpad := $*ST.cur_lexpad();
+                my $curpad := $*W.cur_lexpad();
                 unless $curpad.symbol('$?PACKAGE') {
-                    $*ST.install_lexical_symbol($curpad, '$?PACKAGE', $*PACKAGE);
+                    $*W.install_lexical_symbol($curpad, '$?PACKAGE', $*PACKAGE);
                     if $*PKGDECL eq 'class' || $*PKGDECL eq 'grammar' {
-                        $*ST.install_lexical_symbol($curpad, '$?CLASS', $*PACKAGE);
-                        $*ST.install_lexical_symbol($curpad, '::?CLASS', $*PACKAGE);
+                        $*W.install_lexical_symbol($curpad, '$?CLASS', $*PACKAGE);
+                        $*W.install_lexical_symbol($curpad, '::?CLASS', $*PACKAGE);
                     }
                     elsif $*PKGDECL eq 'role' {
-                        $*ST.install_lexical_symbol($curpad, '$?ROLE', $*PACKAGE);
-                        $*ST.install_lexical_symbol($curpad, '$?CLASS',
-                            $*ST.pkg_create_mo(%*HOW<generic>, :name('$?CLASS')));
-                        $*ST.install_lexical_symbol($curpad, '::?CLASS',
-                            $*ST.pkg_create_mo(%*HOW<generic>, :name('::?CLASS')));
+                        $*W.install_lexical_symbol($curpad, '$?ROLE', $*PACKAGE);
+                        $*W.install_lexical_symbol($curpad, '$?CLASS',
+                            $*W.pkg_create_mo(%*HOW<generic>, :name('$?CLASS')));
+                        $*W.install_lexical_symbol($curpad, '::?CLASS',
+                            $*W.pkg_create_mo(%*HOW<generic>, :name('::?CLASS')));
                     }
                 }
                 
@@ -1317,7 +1318,7 @@ grammar Perl6::Grammar is HLL::Grammar {
                     { $*IN_DECL := ''; }
                     <.finishpad>
                     <statementlist>     # whole rest of file, presumably
-                    { $*CURPAD := $*ST.pop_lexpad() }
+                    { $*CURPAD := $*W.pop_lexpad() }
                 || <.panic: "Too late for semicolon form of $*PKGDECL definition">
                 ]
             || <.panic: "Unable to parse $*PKGDECL definition">
@@ -1428,6 +1429,17 @@ grammar Perl6::Grammar is HLL::Grammar {
         :my $*DOCEE;
         <.attach_docs>
         <deflongname>?
+        {
+            if $<deflongname> && $<deflongname>[0]<colonpair> {
+                # It's an (potentially new) operator, circumfix, etc. that we
+                # need to tweak into the grammar.
+                my $category := $<deflongname>[0]<name>.Str;
+                my $opname := ~$<deflongname>[0]<colonpair>[0]<circumfix><quote_EXPR><quote_delimited><quote_atom>[0];
+                my $canname := $category ~ ":sym<" ~ $opname ~ ">";
+                $/.CURSOR.gen_op($category, $opname, $canname, $<deflongname>[0].ast)
+                    unless pir::can__IPs($/.CURSOR, $canname);
+            }
+        }
         <.newpad>
         [ '(' <multisig> ')' ]?
         <trait>*
@@ -1465,7 +1477,7 @@ grammar Perl6::Grammar is HLL::Grammar {
         '{' <.ws> '*' <.ws> '}'
         <?ENDSTMT>
         <.finishpad>
-        { $*CURPAD := $*ST.pop_lexpad() }
+        { $*CURPAD := $*W.pop_lexpad() }
     }
 
     ###########################
@@ -1498,7 +1510,7 @@ grammar Perl6::Grammar is HLL::Grammar {
     token fakesignature {
         <.newpad>
         <signature>
-        { $*ST.pop_lexpad() }
+        { $*W.pop_lexpad() }
     }
 
     token signature {
@@ -1649,7 +1661,7 @@ grammar Perl6::Grammar is HLL::Grammar {
           '{'[
             | ['*'|'<...>'|'<*>'] <?{ $*MULTINESS eq 'proto' }> $<onlystar>={1}
             |<p6regex=.LANG('Regex','nibbler')>]'}'<?ENDSTMT>
-          { $*CURPAD := $*ST.pop_lexpad() }
+          { $*CURPAD := $*W.pop_lexpad() }
         ] || <.panic: "Malformed regex">
     ] }
 
@@ -1658,12 +1670,12 @@ grammar Perl6::Grammar is HLL::Grammar {
     token type_declarator:sym<enum> {
         :my $*IN_DECL := 'enum';
         :my $*DECLARAND;
-        <sym> <.ws>
+        <sym>  <.end_keyword> <.ws>
         [
         | <longname>
             {
                 my @name := parse_name(~$<longname><name>);
-                if $*ST.already_declared($*SCOPE, $*PACKAGE, $*ST.cur_lexpad(), @name) {
+                if $*W.already_declared($*SCOPE, $*PACKAGE, $*W.cur_lexpad(), @name) {
                     $/.CURSOR.panic("Illegal redeclaration of symbol " ~
                         ~$<longname><name>);
                 }
@@ -1687,7 +1699,7 @@ grammar Perl6::Grammar is HLL::Grammar {
                     <longname>
                     {
                         my @name := parse_name(~$<longname><name>);
-                        if $*ST.already_declared($*SCOPE, $*PACKAGE, $*ST.cur_lexpad(), @name) {
+                        if $*W.already_declared($*SCOPE, $*PACKAGE, $*W.cur_lexpad(), @name) {
                             $/.CURSOR.panic("Illegal redeclaration of symbol " ~
                                 ~$<longname><name>);
                         }
@@ -1771,7 +1783,7 @@ grammar Perl6::Grammar is HLL::Grammar {
         [
         ||  <?{
                 my $longname := $<longname>.Str;
-                pir::substr($longname, 0, 2) eq '::' || $*ST.is_name(parse_name($longname))
+                pir::substr($longname, 0, 2) eq '::' || $*W.is_name(parse_name($longname))
             }>
             <.unsp>? [ <?before '['> '[' ~ ']' <arglist> ]?
         || <args>
@@ -1885,7 +1897,7 @@ grammar Perl6::Grammar is HLL::Grammar {
             my $longname := canonical_type_longname($<longname>);
             pir::substr($longname, 0, 2) eq '::' ??
                 1 !! # ::T introduces a type, so always is one
-                $*ST.is_name(parse_name($longname))
+                $*W.is_name(parse_name($longname))
           }>
         ]
         # parametric type?
@@ -2449,10 +2461,10 @@ grammar Perl6::Grammar is HLL::Grammar {
 
     token infix:sym<?>    { <sym> {} <!before '?'> <?before <-[;]>*?':'> <.obs('?: for the conditional operator', '??!!')> <O('%conditional')> }
 
-    token infix:sym<ff> { <sym> <.panic('Flip flop operators are not yet implemented')> }
-    token infix:sym<^ff> { <sym> <.panic('Flip flop operators are not yet implemented')> }
-    token infix:sym<ff^> { <sym> <.panic('Flip flop operators are not yet implemented')> }
-    token infix:sym<^ff^> { <sym> <.panic('Flip flop operators are not yet implemented')> }
+    token infix:sym<ff> { <sym> <O('%conditional')> }
+    token infix:sym<^ff> { <sym> <O('%conditional')> }
+    token infix:sym<ff^> { <sym> <O('%conditional')> }
+    token infix:sym<^ff^> { <sym> <O('%conditional')> }
 
     token infix:sym<=> {
         <sym>
@@ -2559,7 +2571,7 @@ grammar Perl6::Grammar is HLL::Grammar {
             pir::die("Cannot add tokens of category '$category' with a sub");
         }
 
-        # Nope, so we need to modify the grammar. Build code to parse it.
+        # We need to modify the grammar. Build code to parse it.
         my $parse := PAST::Regex.new(
             :pasttype('concat')
         );
@@ -2607,32 +2619,25 @@ grammar Perl6::Grammar is HLL::Grammar {
             ));
         }
         $parse := Regex::P6Regex::Actions::buildsub($parse);
-
-        # Needs to go into the Perl6::Grammar namespace.
         $parse.name($canname);
-        $parse.namespace(pir::split('::', 'Perl6::Grammar'));
 
-        # Compile and then install the two produced methods into the
+        # Compile and then install the produced method into the
         # Perl6::Grammar methods table.
         my $compiled := PAST::Compiler.compile($parse);
         $self.HOW.add_method($self, ~$compiled[0], $compiled[0]);
-        $self.HOW.add_method($self, ~$compiled[1], $compiled[1]);
 
         # May also need to add to the actions.
         if $category eq 'circumfix' {
-            Perl6::Actions.HOW.add_method(Perl6::Actions, $canname, sub ($self, $/) {
+            $*ACTIONS.HOW.add_method($*ACTIONS, $canname, sub ($self, $/) {
                 make PAST::Op.new(
-                    :pasttype('call'), :name($subname),
+                    :pasttype('call'), :name('&' ~ $subname),
                     $<EXPR>.ast
                 );
             });
         }
 
         # Mark proto-regex table as needing re-generation.
-        Q:PIR {
-            $P0 = find_lex '$self'
-            $P0.'!protoregex_generation'()
-        };
+        $self.'!protoregex_generation'();
 
         return 1;
     }

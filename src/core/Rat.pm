@@ -3,6 +3,19 @@ my class Rat is Real {
     has Int $.numerator;
     has Int $.denominator;
 
+    multi method WHICH(Rat:D:) {
+        nqp::box_s(
+            nqp::concat_s(
+                nqp::concat_s(nqp::unbox_s(self.^name), '|'),
+                nqp::concat_s(
+                    nqp::tostr_I($!numerator),
+                    nqp::concat_s('/', nqp::tostr_I($!denominator))
+                )
+            ),
+            ObjAt
+        );
+    }
+
     method new(Int \$nu = 0, Int \$de = 1) {
         my Rat $new     := nqp::create(self);
         my Int $gcd     := $nu gcd $de;

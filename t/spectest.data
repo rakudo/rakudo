@@ -77,7 +77,7 @@ S02-magicals/progname.t
 S02-names-vars/contextual.t
 S02-names-vars/fmt.t
 S02-names-vars/names.t
-# S02-names-vars/perl.t # err: Method 'Seq' not found for invocant of class 'Parcel' #icu
+S02-names-vars/perl.t
 S02-names-vars/list_array_perl.t
 # S02-names-vars/signature.t # err: Cannot use bind operator with this LHS
 S02-names-vars/variables-and-packages.t
@@ -89,7 +89,7 @@ S02-one-pass-parsing/less-than.t
 S02-types/subset.t
 S02-lexical-conventions/begin_end_pod.t
 S02-lexical-conventions/end-pod.t
-# S02-lexical-conventions/comments.t # err: =begin without matching =end
+# S02-lexical-conventions/comments.t # err: Whitespace character is not allowed as a delimiter
 S02-lexical-conventions/minimal-whitespace.t
 S02-lexical-conventions/one-pass-parsing.t
 S02-lexical-conventions/pod-in-multi-line-exprs.t
@@ -174,7 +174,7 @@ S03-smartmatch/any-bool.t
 S03-smartmatch/any-callable.t
 S03-smartmatch/any-complex.t
 S03-smartmatch/any-hash-pair.t
-S03-smartmatch/any-hash-slice.t
+S03-smartmatch/any-hash.t
 S03-smartmatch/any-method.t
 S03-smartmatch/any-num.t
 S03-smartmatch/any-pair.t
@@ -249,7 +249,7 @@ S05-mass/properties-block.t                                # icu
 S05-mass/properties-derived.t                              # icu
 S05-mass/properties-general.t                              # icu
 S05-mass/properties-script.t                               # icu
-S05-mass/rx.t
+S05-mass/rx.t                                              # icu
 S05-mass/recursive.t
 S05-mass/stdrules.t
 S05-match/arrayhash.t
@@ -276,7 +276,7 @@ S05-modifier/continue.t
 S05-modifier/counted-match.t
 S05-modifier/global.t
 S05-modifier/ii.t
-S05-modifier/ignorecase.t
+S05-modifier/ignorecase.t  # icu
 S05-modifier/overlapping.t
 # S05-modifier/perl5_1.t # err: Adverb 'P5' not allowed on m
 # S05-modifier/perl5_2.t # err: Adverb 'P5' not allowed on m
@@ -286,7 +286,7 @@ S05-modifier/pos.t
 S05-modifier/repetition.t
 S05-modifier/sigspace.t
 S05-substitution/match.t
-S05-substitution/subst.t
+S05-substitution/subst.t # icu
 S05-transliteration/trans.t
 S05-transliteration/with-closure.t
 S06-advanced/callframe.t
@@ -306,18 +306,19 @@ S06-multi/value-based.t
 S06-multi/unpackability.t
 # S06-operator-overloading/imported-subs.t
 S06-operator-overloading/methods.t
-# S06-operator-overloading/sub.t # err: Unable to parse postcircumfix:sym<( )>
+S06-operator-overloading/sub.t
 # S06-operator-overloading/workout.t # err: Unable to parse postcircumfix:sym<( )>
 S06-other/anon-hashes-vs-blocks.t
 S06-other/main.t
 S06-other/main-eval.t
 S06-other/main-usage.t
 S06-other/misc.t
+S06-routine-modifiers/proxy.t
 S06-routine-modifiers/scoped-named-subs.t
 S06-signature/arity.t
 S06-signature/closure-over-parameters.t
 S06-signature/closure-parameters.t
-# S06-signature/code.t # err: Typed arrays/hashes/callables not yet implemented
+S06-signature/code.t
 S06-signature/defaults.t
 S06-signature/errors.t
 # S06-signature/introspection.t # err: No applicable candidates found to dispatch to for 'trait_mod:<is>'
@@ -337,7 +338,7 @@ S06-signature/slurpy-placeholders.t
 S06-signature/sub-ref.t
 S06-signature/tree-node-parameters.t
 S06-signature/type-capture.t
-# S06-signature/types.t # err: Malformed block
+S06-signature/types.t
 S06-signature/unpack-array.t
 S06-signature/unpack-object.t
 S06-signature/unspecified.t
@@ -345,7 +346,7 @@ S06-traits/as.t
 S06-traits/is-copy.t
 S06-traits/is-readonly.t
 S06-traits/is-rw.t
-# S06-traits/misc.t # err: Unable to parse blockoid
+S06-traits/misc.t
 
 # S07-iterators/range-iterator.t # err: Undefined routine '&RangeIter' called 
 # follows obsolete version of spec.
@@ -408,7 +409,7 @@ S12-introspection/meta-class.t
 S12-introspection/methods.t
 S12-introspection/parents.t
 S12-introspection/roles.t
-# S12-introspection/walk.t # err: Method 'WALK' not found for invocant of class 'E'
+S12-introspection/walk.t
 S12-methods/attribute-params.t
 S12-methods/calling_sets.t
 S12-methods/calling_syntax.t
@@ -428,13 +429,14 @@ S12-methods/private.t
 S12-methods/submethods.t
 S12-methods/syntax.t
 S12-methods/topic.t
+S12-methods/trusts.t
 S12-methods/typed-attributes.t
 S12-methods/what.t
 S12-subset/multi-dispatch.t
 S12-subset/subtypes.t
 S13-type-casting/methods.t
 S13-overloading/typecasting-long.t
-# S13-overloading/metaoperators.t # err: Confused
+S13-overloading/metaoperators.t
 S13-overloading/operators.t
 # S14-roles/anonymous.t # err: No applicable candidates found to dispatch to for 'infix:<eq>'
 # S14-roles/attributes.t # err: Attribute $!a1 not declared in class C1
@@ -446,16 +448,17 @@ S14-roles/instantiation.t
 S14-roles/lexical.t
 S14-roles/mixin.t
 S14-roles/namespaced.t 
-# S14-roles/parameter-subtyping.t # err: Typed arrays/hashes/callables not yet implemented
+S14-roles/parameter-subtyping.t
 S14-roles/parameterized-basic.t
 S14-roles/parameterized-mixin.t
 S14-roles/parameterized-type.t
+S14-roles/stubs.t
 S14-roles/submethods.t
 # S14-traits/attributes.t # err: Method 'container' not found for invocant of class 'Attribute'
 # S14-traits/package.t # err: Invalid typename in parameter declaration
 # S14-traits/routines.t # all skipped
 # S14-traits/variables.t # err: Invalid typename in parameter declaration
-# S16-filehandles/filetest.t # err: Method 'z' not found for invocant of class 'IO'
+S16-filehandles/filetest.t
 S16-filehandles/io.t
 S16-filehandles/io_in_for_loops.t
 S16-filehandles/io_in_while_loops.t
@@ -465,10 +468,10 @@ S16-io/bare-say.t
 S16-io/basic-open.t
 S16-io/say.t
 S16-io/say-and-ref.t
-# S16-io/getc.t # err: Undefined routine '&getc' called
+S16-io/getc.t
 S16-unfiled/rebindstdhandles.t
 S16-unfiled/slurp.t
-#S19-command-line/dash-e.t # icu
+S19-command-line/dash-e.t # icu
 S19-command-line/help.t
 # S28-named-variables/cwd.t # err: Dynamic variable $*CWD not found
 S28-named-variables/inc.t
@@ -496,7 +499,8 @@ S32-array/shift.t
 S32-array/splice.t
 S32-array/unshift.t
 S32-basics/warn.t
-# S32-container/zip.t # err: Undefined routine '&Seq' called
+S32-container/zip.t
+S32-exceptions/misc.t
 S32-hash/exists.t
 # S32-hash/delete.t # err: Too many positional parameters passed
 S32-hash/invert.t
@@ -505,7 +509,7 @@ S32-hash/pairs.t
 S32-hash/push.t
 S32-hash/slice.t
 S32-io/dir.t
-# S32-io/chdir.t # err: Dynamic variable $*CWD not found
+S32-io/chdir.t
 S32-io/file-tests.t
 S32-io/note.t
 S32-io/IO-Socket-INET.t
@@ -539,7 +543,7 @@ S32-num/rand.t
 S32-num/rat.t
 # S32-num/real-bridge.t # err: Fixed2 cannot compose Real because it is not composable
 S32-num/roots.t
-# S32-num/rounders.t # err: Undefined routine '&round' called
+S32-num/rounders.t
 S32-num/sign.t
 S32-num/sqrt.t
 S32-num/unpolar.t
@@ -609,7 +613,7 @@ integration/advent2009-day05.t
 integration/advent2009-day06.t
 integration/advent2009-day07.t
 integration/advent2009-day08.t
-# integration/advent2009-day09.t # err: Not enough positional parameters passed
+integration/advent2009-day09.t
 # integration/advent2009-day10.t # err: Method 'at_key' not found for invocant of class 'Any'
 integration/advent2009-day11.t
 integration/advent2009-day12.t
@@ -625,7 +629,7 @@ integration/advent2009-day19.t
 integration/advent2009-day23.t
 integration/advent2010-day04.t
 integration/code-blocks-as-sub-args.t
-integration/error-reporting.t
+integration/error-reporting.t  # icu
 integration/lexical-array-in-inner-block.t
 integration/lexicals-and-attributes.t
 integration/man-or-boy.t

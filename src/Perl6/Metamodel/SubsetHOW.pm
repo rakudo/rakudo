@@ -47,7 +47,7 @@ class Perl6::Metamodel::SubsetHOW
     # that we refine. (For the performance win, work out a way to
     # steal its method cache.)
     method find_method($obj, $name) {
-        pir::find_method__PPS($!refinee, $name)
+        $!refinee.HOW.find_method($!refinee, $name)
     }
     
     # Do check when we're on LHS of smartmatch (e.g. Even ~~ Int).

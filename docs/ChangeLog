@@ -8,6 +8,25 @@ New in 2011.12
 + optimizer detects missing private methods and simplifies calls (level 3 only)
 + fixed some issues when an array was assigned to itself, maybe using .=
 + implemented .wrap and .unwrap, plus wrap handles with a .restore method
++ implemented .trans on strings
++ unicode properties can be matched against in regexes
++ binding to @, % and & sigils now checks for the appropriate role
++ assignments to variables declared with the & sigil now checked for Callable
++ typed hashes, partial support for typed arrays
++ some parametric role fixes
++ can now use but operator with a type object
++ smartmatching of regexes against arrays and hashes
++ socket IO now implements .write and custom input line separators
++ implemented getc
++ implemented .WALK
++ implemented ff, ^ff, ff^ and ^ff^
++ implemented .REPR macro
++ implemented Proxy class
++ some typed errors are now thrown from within the compiler
++ stubbed methods from roles now require those methods to be implemented
++ updated docs/ROADMAP
++ .WHICH now returns ObjAt objects
++ defining new operators
 
 New in 2011.11
 + CATCH blocks are now much closer to spec

@@ -57,8 +57,8 @@ PERL6_PBC     = perl6.pbc
 PERL6_EXE     = perl6$(EXE)
 PERL6_ML      = src/gen/perl6-moduleloader.pir
 PERL6_ML_PBC  = blib/Perl6/ModuleLoader.pbc
-PERL6_ST      = src/gen/perl6-symboltable.pir
-PERL6_ST_PBC  = blib/Perl6/SymbolTable.pbc
+PERL6_W       = src/gen/perl6-symboltable.pir
+PERL6_W_PBC   = blib/Perl6/World.pbc
 PERL6_G       = src/gen/perl6-grammar.pir
 PERL6_G_PBC   = blib/Perl6/Grammar.pbc
 PERL6_A       = src/gen/perl6-actions.pir
@@ -152,6 +152,7 @@ CORE_SOURCES = \
   src/core/Mu.pm \
   src/core/Stringy.pm \
   src/core/Any.pm \
+  src/core/Scalar.pm \
   src/core/Code.pm \
   src/core/WhateverCode.pm \
   src/core/Block.pm \
@@ -211,6 +212,7 @@ CORE_SOURCES = \
   src/core/Temporal.pm \
   src/core/EXPORTHOW.pm \
   src/core/Pod.pm \
+  src/core/ObjAt.pm \
   src/core/operators.pm \
   src/core/metaops.pm \
   src/core/terms.pm \
@@ -266,7 +268,7 @@ all: check-versions $(PERL6_EXE) $(SETTING) $(S_SETTING) lib/Test.pir lib/Pod/To
 install: all
 	$(MKPATH)                     $(DESTDIR)$(NQP_LANG_DIR)/lib/Perl6
 	$(CP) $(PERL6_ML_PBC)         $(DESTDIR)$(NQP_LANG_DIR)/lib/Perl6/ModuleLoader.pbc
-	$(CP) $(PERL6_ST_PBC)         $(DESTDIR)$(NQP_LANG_DIR)/lib/Perl6/SymbolTable.pbc
+	$(CP) $(PERL6_W_PBC)          $(DESTDIR)$(NQP_LANG_DIR)/lib/Perl6/World.pbc
 	$(CP) $(PERL6_G_PBC)          $(DESTDIR)$(NQP_LANG_DIR)/lib/Perl6/Grammar.pbc
 	$(CP) $(PERL6_A_PBC)          $(DESTDIR)$(NQP_LANG_DIR)/lib/Perl6/Actions.pbc
 	$(CP) $(PERL6_O_PBC)          $(DESTDIR)$(NQP_LANG_DIR)/lib/Perl6/Optimizer.pbc
@@ -311,12 +313,12 @@ $(PERL6_ML_PBC): $(NQP_EXE) $(DYNEXT_DYNPMC) $(DYNEXT_DYNOPS) src/Perl6/ModuleLo
 	    src/Perl6/ModuleLoader.pm
 	$(PARROT) $(PARROT_ARGS) -o $(PERL6_ML_PBC) $(PERL6_ML)
 
-$(PERL6_ST_PBC): $(NQP_EXE) $(PERL6_ML_PBC) src/Perl6/SymbolTable.pm
-	$(NQP_EXE) --vmlibs=perl6_group,perl6_ops --target=pir --output=$(PERL6_ST) --encoding=utf8 \
-	    src/Perl6/SymbolTable.pm
-	$(PARROT) $(PARROT_ARGS) -o $(PERL6_ST_PBC) $(PERL6_ST)
+$(PERL6_W_PBC): $(NQP_EXE) $(PERL6_ML_PBC) src/Perl6/World.pm
+	$(NQP_EXE) --vmlibs=perl6_group,perl6_ops --target=pir --output=$(PERL6_W) --encoding=utf8 \
+	    src/Perl6/World.pm
+	$(PARROT) $(PARROT_ARGS) -o $(PERL6_W_PBC) $(PERL6_W)
     
-$(PERL6_G_PBC): $(NQP_EXE) $(PERL6_ST_PBC) src/Perl6/Grammar.pm $(PERL6_P_PBC)
+$(PERL6_G_PBC): $(NQP_EXE) $(PERL6_W_PBC) src/Perl6/Grammar.pm $(PERL6_P_PBC)
 	$(NQP_EXE) --target=pir --output=$(PERL6_G) --encoding=utf8 \
 	    src/Perl6/Grammar.pm
 	$(PARROT) $(PARROT_ARGS) -o $(PERL6_G_PBC) $(PERL6_G)

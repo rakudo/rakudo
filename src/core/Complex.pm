@@ -382,9 +382,15 @@ multi sub infix:</>(Real \$a, Complex:D \$b) returns Complex:D {
     Complex.new($a, 0) / $b;
 }
 
-multi sub infix:<**>(Complex:D \$a, Complex:D \$b) returns Complex:D { ($b * $a.log).exp}
-multi sub infix:<**>(Real      \$a, Complex:D \$b) returns Complex:D { ($b * $a.log).exp}
-multi sub infix:<**>(Complex:D \$a, Real      \$b) returns Complex:D { ($b * $a.log).exp}
+multi sub infix:<**>(Complex:D \$a, Complex:D \$b) returns Complex:D {
+    ($a.re == 0e0 && $a.im == 0e0) ?? Complex.new(0e0, 0e0) !! ($b * $a.log).exp
+}
+multi sub infix:<**>(Real      \$a, Complex:D \$b) returns Complex:D {
+    $a == 0 ?? Complex.new(0e0, 0e0) !! ($b * $a.log).exp 
+}
+multi sub infix:<**>(Complex:D \$a, Real      \$b) returns Complex:D {
+    ($b * $a.log).exp
+}
 
 multi sub infix:<==>(Complex:D \$a, Complex:D \$b) returns Bool:D { $a.re == $b.re && $a.im == $b.im }
 multi sub infix:<==>(Complex:D \$a, Real      \$b) returns Bool:D { $a.re == $b    && $a.im == 0e0   }

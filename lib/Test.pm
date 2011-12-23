@@ -134,7 +134,8 @@ multi sub isnt(Mu $got, Mu $expected) {
 proto sub is_approx(|$) is export { * }
 multi sub is_approx(Mu $got, Mu $expected, $desc) {
     $time_after = nqp::p6box_n(pir::time__N);
-    my $test = ($got - $expected).abs <= 1/100000;
+    my $tol = $expected.abs < 1e-6 ?? 1e-5 !! $expected.abs * 1e-6;
+    my $test = ($got - $expected).abs <= $tol;
     proclaim(?$test, $desc);
     unless $test {
         diag("got:      $got");
@@ -232,7 +233,10 @@ multi sub dies_ok(Callable $closure, $reason) {
         $closure();
         $death = 0;
     }
-    $bad_death = 1 if $death && $!.Str.index('Null PMC Access');
+    if $death && $!.Str.index('Null PMC access') {
+        $bad_death = 1;
+        diag("Wrong way to die: '$!'");
+    }
     proclaim( $death && !$bad_death, $reason );
     $time_before = nqp::p6box_n(pir::time__N);
 }
@@ -283,12 +287,16 @@ multi sub eval_dies_ok(Str $code) {
 proto sub eval_lives_ok(|$) is export { * }
 multi sub eval_lives_ok(Str $code, $reason) {
     $time_after = nqp::p6box_n(pir::time__N);
-    proclaim((not defined eval_exception($code)), $reason);
+    my $ee = eval_exception($code);
+    proclaim((not defined $ee), $reason)
+        or note("Error: $ee");
     $time_before = nqp::p6box_n(pir::time__N);
 }
 multi sub eval_lives_ok(Str $code) {
     $time_after = nqp::p6box_n(pir::time__N);
-    proclaim((not defined eval_exception($code)), '');
+    my $ee = eval_exception($code);
+    proclaim((not defined $ee), '')
+        or note("Error: $ee");
     $time_before = nqp::p6box_n(pir::time__N);
 }
 

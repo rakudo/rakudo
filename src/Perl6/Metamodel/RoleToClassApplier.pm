@@ -1,12 +1,23 @@
 my class RoleToClassApplier {
     sub has_method($target, $name, $local) {
-        my %mt := $target.HOW.method_table($target);
-        return pir::exists(%mt, $name)
+        if $local {
+            my %mt := $target.HOW.method_table($target);
+            return nqp::existskey(%mt, $name);
+        }
+        else {
+            for $target.HOW.mro($target) {
+                my %mt := $_.HOW.method_table($_);
+                if nqp::existskey(%mt, $name) {
+                    return 1;
+                }
+            }
+            return 0;
+        }
     }
     
     sub has_private_method($target, $name) {
         my %pmt := $target.HOW.private_method_table($target);
-        return pir::exists(%pmt, $name)
+        return nqp::existskey(%pmt, $name)
     }
 
     sub has_attribute($target, $name) {
@@ -51,9 +62,18 @@ my class RoleToClassApplier {
         my @methods := $to_compose_meta.methods($to_compose, :local(1));
         for @methods {
             my $name;
+            my $yada := 0;
             try { $name := $_.name }
             unless $name { $name := ~$_ }
-            unless has_method($target, $name, 0) {
+            try { $yada := $_.yada }
+            if $yada {
+                unless has_method($target, $name, 0) {
+                    pir::die("Method '$name' must be implemented by " ~
+                    $target.HOW.name($target) ~
+                    " because it is required by a role");
+                }
+            }
+            elsif !has_method($target, $name, 1) {
                 $target.HOW.add_method($target, $name, $_);
             }
         }

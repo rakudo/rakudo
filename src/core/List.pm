@@ -360,7 +360,7 @@ proto infix:<xx>(|$)     { * }
 multi infix:<xx>()       { fail "No zero-arg meaning for infix:<xx>" }
 multi infix:<xx>(Mu \$x) { $x }
 multi infix:<xx>(Mu \$x, $n is copy) {
-    $n = $Inf if nqp::p6bool(nqp::istype($n, Whatever));
+    $n = nqp::p6bool(nqp::istype($n, Whatever)) ?? $Inf !! $n.Int;
     GatherIter.new({ take $x while $n-- > 0; }, :infinite($n == $Inf)).list
 }
 

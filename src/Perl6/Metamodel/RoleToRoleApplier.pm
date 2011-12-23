@@ -66,8 +66,29 @@ my class RoleToRoleApplier {
                     $target.HOW.add_method($target, $name, @add_meths[0]);
                 }
                 else {
-                    # More than one - add to collisions list.
-                    $target.HOW.add_collision($target, $name, %meth_providers{$name});
+                    # Find if any of the methods are actually requirements, not
+                    # implementations.
+                    my @impl_meths;
+                    for @add_meths {
+                        my $yada := 0;
+                        try { $yada := $_.yada; }
+                        unless $yada {
+                            @impl_meths.push($_);
+                        }
+                    }
+                    
+                    # If there's still more than one possible - add to collisions list.
+                    # If we got down to just one, add it. If they were all requirements,
+                    # just choose one.
+                    if +@impl_meths == 1 {
+                        $target.HOW.add_method($target, $name, @impl_meths[0]);
+                    }
+                    elsif +@impl_meths == 0 {
+                        $target.HOW.add_method($target, $name, @add_meths[0]);
+                    }
+                    else {
+                        $target.HOW.add_collision($target, $name, %meth_providers{$name});
+                    }
                 }
             }
         }

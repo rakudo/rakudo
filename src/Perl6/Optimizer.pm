@@ -39,7 +39,7 @@ class Perl6::Optimizer {
         # over OUTER since we don't walk loadinits).
         my $unit := $past<UNIT>;
         my $*GLOBALish := $past<GLOBALish>;
-        my $*ST := $past<ST>;
+        my $*W := $past<W>;
         unless $unit.isa(PAST::Block) {
             pir::die("Optimizer could not find UNIT");
         }
@@ -87,7 +87,7 @@ class Perl6::Optimizer {
             my @sigsyms;
             for $block.symtable() {
                 my $name := $_.key;
-                if $name ne '$_' && $name ne 'call_sig' {
+                if $name ne '$_' && $name ne 'call_sig' && $name ne '$*DISPATCHER' {
                     @sigsyms.push($name);
                 }
             }
@@ -210,7 +210,7 @@ class Perl6::Optimizer {
                 my $meth := $pkg.HOW.find_private_method($pkg, $name);
                 if $meth {
                     try {
-                        my $call := $*ST.get_object_sc_ref_past($meth); # may fail, thus the try
+                        my $call := $*W.get_object_sc_ref_past($meth); # may fail, thus the try
                         my $inv  := $op.shift;
                         $op.shift; $op.shift; # name, package (both pre-resolved now)
                         $op.unshift($inv);
@@ -394,7 +394,7 @@ class Perl6::Optimizer {
                 # Don't copy this binder call.
             }
             elsif $_.isa(PAST::Var) && ($_.name eq '$/' || $_.name eq '$!' ||
-                    $_.name eq '$_' || $_.name eq 'call_sig') {
+                    $_.name eq '$_' || $_.name eq 'call_sig' || $_.name eq '$*DISPATCHER') {
                 # Don't copy this variable node.
             }
             else {
@@ -508,7 +508,7 @@ class Perl6::Optimizer {
     
     # Adds an entry to the list of things that would cause a check fail.
     method add_deadly($past_node, $message, @extras?) {
-        my $line := PAST::Compiler.lineof($past_node<source>, $past_node<pos>) + 1;
+        my $line := HLL::Compiler.lineof($past_node<source>, $past_node<pos>);
         my $key := $message ~ (+@extras ?? "\n" ~ pir::join("\n", @extras) !! "");
         unless %!deadly{$key} {
             %!deadly{$key} := [];

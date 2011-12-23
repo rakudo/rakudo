@@ -28,7 +28,7 @@ multi infix:<but>(Mu:D \$obj, Mu:U \$role) {
     $obj.HOW.mixin($obj.clone(), $role).BUILD_LEAST_DERIVED({});
 }
 multi infix:<but>(Mu:U \$obj, Mu:U \$role) {
-    $obj.HOW.mixin($obj.clone(), $role);
+    $obj.HOW.mixin($obj, $role);
 }
 multi infix:<but>(Mu \$obj, Mu:D $val) is rw {
     my $role := Metamodel::ParametricRoleHOW.new_type();
@@ -44,7 +44,7 @@ multi infix:<but>(Mu:D \$obj, @roles) {
     $obj.HOW.mixin($obj.clone(), |@roles).BUILD_LEAST_DERIVED({});
 }
 multi infix:<but>(Mu:U \$obj, @roles) {
-    $obj.HOW.mixin($obj.clone(), |@roles)
+    $obj.HOW.mixin($obj, |@roles)
 }
 
 sub SEQUENCE($left, $right, :$exclude_end) {
@@ -145,6 +145,60 @@ multi sub infix:<...^>($a, $b) { SEQUENCE($a, $b, :exclude_end(1)) }
 sub undefine(Mu \$x) {
     my $undefined;
     $x = $undefined;
+}
+
+sub infix:<ff>($a as Bool, $b as Bool) {
+    my $pos := nqp::p6box_s(nqp::callerid());
+    state %ffv;
+    if %ffv{$pos} {
+        %ffv{$pos} = False if $b;
+        True;
+    }
+    elsif $a {
+        %ffv{$pos} = $a
+    }
+    else {
+        False
+    }
+}
+
+sub infix:<ff^>($a as Bool, $b as Bool) {
+    my $pos := nqp::p6box_s(nqp::callerid());
+    state %ffv;
+    if %ffv{$pos} {
+        $b ?? (%ffv{$pos} = False) !! True
+    }
+    elsif $a {
+        %ffv{$pos} = $a
+    }
+    else {
+        False
+    }
+}
+
+sub infix:<^ff>($a as Bool, $b as Bool) {
+    my $pos := nqp::p6box_s(nqp::callerid());
+    state %ffv;
+    if %ffv{$pos} {
+        %ffv{$pos} = False if $b;
+        True
+    }
+    else {
+        %ffv{$pos} = True if $a;
+        False
+    }
+}
+
+sub infix:<^ff^>($a as Bool, $b as Bool) {
+    my $pos := nqp::p6box_s(nqp::callerid());
+    state %ffv;
+    if %ffv{$pos} {
+        $b ?? (%ffv{$pos} = False) !! True
+    }
+    else {
+        %ffv{$pos} = True if $a;
+        False
+    }
 }
 
 # not sure where this should go

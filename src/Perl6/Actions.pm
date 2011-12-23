@@ -16,6 +16,7 @@ INIT {
         p6decont     => 'perl6_decontainerize__PP',
         p6recont_ro  => 'perl6_recontainerize_to_ro__PP',
         attrinited   => 'repr_is_attr_initialized__IPPs',
+        callerid     => 'perl6_callerid__I',
 
         istype       => 'type_check__IPP',
         islist       => 'perl6_is_list__IP',
@@ -53,6 +54,10 @@ class Perl6::Actions is HLL::Actions {
         $STATEMENT_PRINT := 0;
     }
 
+    sub p6box_s($s) {
+        nqp::box_s($s, $*W.find_symbol(['Str']));
+    }
+
     method ints_to_string($ints) {
         if pir::does($ints, 'array') {
             my $result := '';
@@ -68,7 +73,7 @@ class Perl6::Actions is HLL::Actions {
 
     # TODO: inline string_to_bigint?
     our sub string_to_bigint($src, $base) {
-        my $res := nqp::radix_I($base, ~$src, 0, 2, $*ST.find_symbol(['Int']));
+        my $res := nqp::radix_I($base, ~$src, 0, 2, $*W.find_symbol(['Int']));
         $src.CURSOR.panic("'$src' is not a valid number")
             unless nqp::iseq_i(nqp::unbox_i(nqp::atkey($res, 2)), nqp::chars($src));
         nqp::atkey($res, 0);
@@ -96,48 +101,48 @@ class Perl6::Actions is HLL::Actions {
     sub container_type_info($sigil, @value_type) {
         my %info;
         if $sigil eq '@' {
-            %info<container_base>  := $*ST.find_symbol(['Array']);
-            %info<bind_constraint> := $*ST.find_symbol(['Positional']);
+            %info<container_base>  := $*W.find_symbol(['Array']);
+            %info<bind_constraint> := $*W.find_symbol(['Positional']);
             if @value_type {
-                %info<container_type>  := $*ST.parameterize_type_with_args(
+                %info<container_type>  := $*W.parameterize_type_with_args(
                     %info<container_base>, [@value_type[0]], nqp::hash());
-                %info<bind_constraint> := $*ST.parameterize_type_with_args(
+                %info<bind_constraint> := $*W.parameterize_type_with_args(
                     %info<bind_constraint>, [@value_type[0]], nqp::hash());
                 %info<value_type>      := @value_type[0];
             }
             else {
                 %info<container_type> := %info<container_base>;
-                %info<value_type>     := $*ST.find_symbol(['Mu']);
+                %info<value_type>     := $*W.find_symbol(['Mu']);
             }
         }
         elsif $sigil eq '%' {
-            %info<container_base>  := $*ST.find_symbol(['Hash']);
-            %info<bind_constraint> := $*ST.find_symbol(['Associative']);
+            %info<container_base>  := $*W.find_symbol(['Hash']);
+            %info<bind_constraint> := $*W.find_symbol(['Associative']);
             if @value_type {
-                %info<container_type>  := $*ST.parameterize_type_with_args(
+                %info<container_type>  := $*W.parameterize_type_with_args(
                     %info<container_base>, [@value_type[0]], nqp::hash());
-                %info<bind_constraint> := $*ST.parameterize_type_with_args(
+                %info<bind_constraint> := $*W.parameterize_type_with_args(
                     %info<bind_constraint>, [@value_type[0]], nqp::hash());
                 %info<value_type>      := @value_type[0];
             }
             else {
                 %info<container_type> := %info<container_base>;
-                %info<value_type>     := $*ST.find_symbol(['Mu']);
+                %info<value_type>     := $*W.find_symbol(['Mu']);
             }
         }
         elsif $sigil eq '&' {
-            %info<container_base>  := $*ST.find_symbol(['Scalar']);
+            %info<container_base>  := $*W.find_symbol(['Scalar']);
             %info<container_type>  := %info<container_base>;
-            %info<bind_constraint> := $*ST.find_symbol(['Callable']);
+            %info<bind_constraint> := $*W.find_symbol(['Callable']);
             if @value_type {
-                %info<bind_constraint> := $*ST.parameterize_type_with_args(
+                %info<bind_constraint> := $*W.parameterize_type_with_args(
                     %info<bind_constraint>, [@value_type[0]], nqp::hash());
             }
             %info<value_type>     := %info<bind_constraint>;
-            %info<default_value>   := $*ST.find_symbol(['Any']);
+            %info<default_value>   := $*W.find_symbol(['Any']);
         }
         else {
-            %info<container_base>     := $*ST.find_symbol(['Scalar']);
+            %info<container_base>     := $*W.find_symbol(['Scalar']);
             %info<container_type>     := %info<container_base>;
             if @value_type {
                 %info<bind_constraint> := @value_type[0];
@@ -145,9 +150,9 @@ class Perl6::Actions is HLL::Actions {
                 %info<default_value>   := @value_type[0];
             }
             else {
-                %info<bind_constraint> := $*ST.find_symbol(['Mu']);
-                %info<value_type>      := $*ST.find_symbol(['Mu']);
-                %info<default_value>   := $*ST.find_symbol(['Any']);
+                %info<bind_constraint> := $*W.find_symbol(['Mu']);
+                %info<value_type>      := $*W.find_symbol(['Mu']);
+                %info<default_value>   := $*W.find_symbol(['Any']);
             }
         }
         %info
@@ -201,7 +206,7 @@ class Perl6::Actions is HLL::Actions {
         our $?RAKUDO_HLL;
 
         # Checks.
-        $*ST.assert_stubs_defined();
+        $*W.assert_stubs_defined();
 
         # Get the block for the unit mainline code.
         my $unit := $*UNIT;
@@ -219,7 +224,7 @@ class Perl6::Actions is HLL::Actions {
 
         # Unit needs to have a load-init holding the deserialization or
         # fixup code for this compilation unit.
-        $unit.loadinit().push($*ST.to_past());
+        $unit.loadinit().push($*W.to_past());
 
         # We'll install our view of GLOBAL as the main one; any other
         # compilation unit that is using this one will then replace it
@@ -227,7 +232,7 @@ class Perl6::Actions is HLL::Actions {
         $unit.loadinit().push(PAST::Op.new(
             :pasttype('bind_6model'),
             PAST::Var.new( :name('GLOBAL'), :namespace([]), :scope('package') ),
-            $*ST.get_slot_past_for_object($*GLOBALish)
+            $*W.get_slot_past_for_object($*GLOBALish)
         ));
 
         # Mainline should have fresh lexicals.
@@ -241,7 +246,7 @@ class Perl6::Actions is HLL::Actions {
 
         # Set HLL and load the needed libraries.
         $outer.hll('perl6');
-        $*ST.add_libs($unit);
+        $*W.add_libs($unit);
 
         # If the unit defines &MAIN, add a &MAIN_HELPER.
         if $unit.symbol('&MAIN') {
@@ -294,26 +299,26 @@ class Perl6::Actions is HLL::Actions {
         # Pass some extra bits along to the optimizer.
         $outer<UNIT>      := $unit;
         $outer<GLOBALish> := $*GLOBALish;
-        $outer<ST>        := $*ST;
+        $outer<W>        := $*W;
         make $outer;
     }
 
     method install_doc_phaser($/) {
         # Add a default DOC INIT phaser
         if %*COMPILING<%?OPTIONS><doc> {
-            my $block := $*ST.push_lexpad($/);
+            my $block := $*W.push_lexpad($/);
             # loading and importing
             # TODO: Skip importing and use a symbol_lookup when the
             # Pod::foo modules bug gets fixed
-            my $module := $*ST.load_module('Pod::To::Text', $*GLOBALish);
+            my $module := $*W.load_module('Pod::To::Text', $*GLOBALish);
             if pir::exists($module, 'EXPORT') {
                 my $EXPORT := $module<EXPORT>.WHO;
                 if pir::exists($EXPORT, 'DEFAULT') {
-                    $*ST.import($EXPORT<DEFAULT>);
+                    $*W.import($EXPORT<DEFAULT>);
                 }
             }
 
-            #my $pod2text := $*ST.symbol_lookup(
+            #my $pod2text := $*W.symbol_lookup(
             #    ['Pod','To','Text','&pod2text'], $/
             #);
             my $pod2text := PAST::Op.new(
@@ -328,8 +333,8 @@ class Perl6::Actions is HLL::Actions {
                     :name('&say'), $pod2text,
                 ),
             );
-            $*ST.pop_lexpad();
-            $*ST.add_phaser(
+            $*W.pop_lexpad();
+            $*W.add_phaser(
                 $/, make_simple_code_object($block, 'Block'), 'INIT'
             );
         }
@@ -435,7 +440,7 @@ class Perl6::Actions is HLL::Actions {
             my $past := Perl6::Pod::serialize_object(
                 'Pod::FormattingCode',
                 :type(
-                    $*ST.add_string_constant(~$<code>)<compile_time_value>
+                    $*W.add_string_constant(~$<code>)<compile_time_value>
                 ),
                 :content(
                     Perl6::Pod::serialize_array(@t)<compile_time_value>
@@ -573,7 +578,7 @@ class Perl6::Actions is HLL::Actions {
             my @params;
             my $block := $<blockoid>.ast;
             if $block<placeholder_sig> && $<signature> {
-                $/.CURSOR.panic('Placeholder variable cannot override existing signature');
+                $*W.throw($/, ['X', 'Signature', 'Placeholder']);
             }
             elsif $block<placeholder_sig> {
                 @params := $block<placeholder_sig>;
@@ -586,7 +591,7 @@ class Perl6::Actions is HLL::Actions {
                     if $*IMPLICIT {
                         @params.push(hash(
                             :variable_name('$_'), :optional(1),
-                            :nominal_type($*ST.find_symbol(['Mu'])),
+                            :nominal_type($*W.find_symbol(['Mu'])),
                             :default_from_outer(1), :is_parcel(1),
                         ));
                     }
@@ -609,8 +614,8 @@ class Perl6::Actions is HLL::Actions {
             # We'll install PAST in current block so it gets capture_lex'd.
             # Then evaluate to a reference to the block (non-closure - higher
             # up stuff does that if it wants to).
-            ($*ST.cur_lexpad())[0].push(my $uninst := PAST::Stmts.new($block));
-            my $code := $*ST.create_code_object($block, 'Block', $signature);
+            ($*W.cur_lexpad())[0].push(my $uninst := PAST::Stmts.new($block));
+            my $code := $*W.create_code_object($block, 'Block', $signature);
             my $ref := reference_to_code_object($code, $block);
             $ref<uninstall_if_immediately_used> := $uninst;
             make $ref;
@@ -622,8 +627,8 @@ class Perl6::Actions is HLL::Actions {
         if $block<placeholder_sig> {
             $/.CURSOR.panic("Cannot use placeholder parameters in this kind of block");
         }
-        ($*ST.cur_lexpad())[0].push(my $uninst := PAST::Stmts.new($block));
-        my $code := $*ST.create_code_object($block, 'Block', $*ST.create_signature([]));
+        ($*W.cur_lexpad())[0].push(my $uninst := PAST::Stmts.new($block));
+        my $code := $*W.create_code_object($block, 'Block', $*W.create_signature([]));
         my $ref := reference_to_code_object($code, $block);
         $ref<uninstall_if_immediately_used> := $uninst;
         make $ref;
@@ -651,7 +656,7 @@ class Perl6::Actions is HLL::Actions {
     }
 
     method newpad($/) {
-        my $new_block := $*ST.cur_lexpad();
+        my $new_block := $*W.cur_lexpad();
         $new_block<IN_DECL> := $*IN_DECL;
     }
 
@@ -660,7 +665,7 @@ class Perl6::Actions is HLL::Actions {
         # declared. We don't actually give them a value, but rather the
         # Perl6LexPad will generate containers (and maybe fill them with
         # the outer's value) on demand.
-        my $BLOCK := $*ST.cur_lexpad();
+        my $BLOCK := $*W.cur_lexpad();
         my $type := $BLOCK<IN_DECL>;
         my $is_routine := $type eq 'sub' || $type eq 'method' ||
                           $type eq 'submethod' || $type eq 'mainline';
@@ -796,7 +801,8 @@ class Perl6::Actions is HLL::Actions {
 
     method statement_control:sym<require>($/) {
         if $<module_name> && $<EXPR> {
-            $/.CURSOR.panic("require with argument list not yet implemented");
+            $*W.throw($/, ['X', 'NYI'],
+                feature => p6box_s('require with argument list'));
         }
         my $name_past := $<module_name>
                         ?? PAST::Val.new(:value($<module_name><longname><name>.Str))
@@ -804,7 +810,7 @@ class Perl6::Actions is HLL::Actions {
         make PAST::Op.new(
             :pasttype('callmethod'), :name('load_module'),
             PAST::Var.new( :name('ModuleLoader'), :namespace([]), :scope('package') ),
-            $name_past, $*ST.symbol_lookup(['GLOBAL'], $/)
+            $name_past, $*W.symbol_lookup(['GLOBAL'], $/)
         );
     }
 
@@ -822,9 +828,9 @@ class Perl6::Actions is HLL::Actions {
         my $pblock := $xblock.shift;
 
         # Handle the smart-match.
-        my $match_past := PAST::Op.new( :pasttype('call'), :name('&infix:<~~>'),
-            PAST::Var.new( :name('$_'), :scope('lexical_6model') ),
-            $sm_exp
+        my $match_past := PAST::Op.new( :pasttype('callmethod'), :name('ACCEPTS'),
+            $sm_exp,
+            PAST::Var.new( :name('$_'), :scope('lexical_6model') )
         );
 
         # Use the smartmatch result as the condition for running the block,
@@ -843,30 +849,30 @@ class Perl6::Actions is HLL::Actions {
     }
 
     method statement_control:sym<CATCH>($/) {
-        if has_block_handler($*ST.cur_lexpad(), 'CONTROL', :except(1)) {
+        if has_block_handler($*W.cur_lexpad(), 'CONTROL', :except(1)) {
             $/.CURSOR.panic("only one CATCH block allowed");
         }
         my $block := $<block>.ast;
-        push_block_handler($/, $*ST.cur_lexpad(), $block, 'CONTROL', :except(1));
+        push_block_handler($/, $*W.cur_lexpad(), $block, 'CONTROL', :except(1));
         make PAST::Var.new( :name('Nil'), :scope('lexical') );
     }
 
     method statement_control:sym<CONTROL>($/) {
-        if has_block_handler($*ST.cur_lexpad(), 'CONTROL') {
+        if has_block_handler($*W.cur_lexpad(), 'CONTROL') {
             $/.CURSOR.panic("only one CONTROL block allowed");
         }
         my $block := $<block>.ast;
-        push_block_handler($/, $*ST.cur_lexpad(), $block, 'CONTROL');
+        push_block_handler($/, $*W.cur_lexpad(), $block, 'CONTROL');
         make PAST::Var.new( :name('Nil'), :scope('lexical') );
     }
 
-    method statement_prefix:sym<BEGIN>($/) { $*ST.add_phaser($/, ($<blorst>.ast)<code_object>, 'BEGIN'); }
-    method statement_prefix:sym<CHECK>($/) { $*ST.add_phaser($/, ($<blorst>.ast)<code_object>, 'CHECK'); }
-    method statement_prefix:sym<INIT>($/)  { $*ST.add_phaser($/, ($<blorst>.ast)<code_object>, 'INIT'); }
-    method statement_prefix:sym<END>($/)   { $*ST.add_phaser($/, ($<blorst>.ast)<code_object>, 'END'); }
+    method statement_prefix:sym<BEGIN>($/) { $*W.add_phaser($/, ($<blorst>.ast)<code_object>, 'BEGIN'); }
+    method statement_prefix:sym<CHECK>($/) { $*W.add_phaser($/, ($<blorst>.ast)<code_object>, 'CHECK'); }
+    method statement_prefix:sym<INIT>($/)  { $*W.add_phaser($/, ($<blorst>.ast)<code_object>, 'INIT'); }
+    method statement_prefix:sym<END>($/)   { $*W.add_phaser($/, ($<blorst>.ast)<code_object>, 'END'); }
 
     method statement_prefix:sym<DOC>($/)   {
-        $*ST.add_phaser($/, ($<blorst>.ast)<code_object>, ~$<phase>)
+        $*W.add_phaser($/, ($<blorst>.ast)<code_object>, ~$<phase>)
             if %*COMPILING<%?OPTIONS><doc>;
     }
 
@@ -932,9 +938,9 @@ class Perl6::Actions is HLL::Actions {
 
     method statement_mod_cond:sym<when>($/) {
         make PAST::Op.new( :pasttype<if>,
-            PAST::Op.new( :name('&infix:<~~>'),
-                          PAST::Var.new( :name('$_') ),
-                          $<modifier_expr>.ast ),
+            PAST::Op.new( :name('ACCEPTS'), :pasttype('callmethod'),
+                          $<modifier_expr>.ast, 
+                          PAST::Var.new( :name('$_') ) ),
             :node($/)
         );
     }
@@ -1017,7 +1023,7 @@ class Perl6::Actions is HLL::Actions {
     }
 
     sub make_pair($key_str, $value) {
-        my $key := $*ST.add_string_constant($key_str);
+        my $key := $*W.add_string_constant($key_str);
         $key.named('key');
         $value.named('value');
         PAST::Op.new(
@@ -1040,7 +1046,7 @@ class Perl6::Actions is HLL::Actions {
                 :pasttype('callmethod'),
                 :name('postcircumfix:<[ ]>'),
                 PAST::Var.new(:name('$/'), :scope('lexical_6model')),
-                $*ST.add_constant('Int', 'int', +$<index>),
+                $*W.add_constant('Int', 'int', +$<index>),
             );
         }
         elsif $<postcircumfix> {
@@ -1078,13 +1084,13 @@ class Perl6::Actions is HLL::Actions {
         my $past := PAST::Var.new( :name(@name[+@name - 1]), :node($/));
         if $twigil eq '*' {
             $past := PAST::Op.new(
-                $*ST.add_string_constant(~$past.name()),
+                $*W.add_string_constant(~$past.name()),
                 :pasttype('call'), :name('&DYNAMIC'), :lvalue(0) );
         }
         elsif $twigil eq '!' {
             # In a declaration, don't produce anything here.
             if $*IN_DECL ne 'variable' {
-                # Ensure attribute actaully exists before emitting lookup.
+                # Ensure attribute actually exists before emitting lookup.
                 unless pir::can($*PACKAGE.HOW, 'get_attribute_for_usage') {
                     $/.CURSOR.panic("Cannot understand $name in this context");
                 }
@@ -1102,8 +1108,11 @@ class Perl6::Actions is HLL::Actions {
                     $past := box_native_if_needed($past, $attr.type);
                 }
                 else {
-                    $/.CURSOR.panic("Attribute $name not declared in $*PKGDECL " ~
-                        $*PACKAGE.HOW.name($*PACKAGE));
+                    $*W.throw($/, ['X', 'Attribute', 'Undeclared'],
+                            name         => p6box_s($name),
+                            package-type => p6box_s($*PKGDECL),
+                            package-name => p6box_s($*PACKAGE.HOW.name($*PACKAGE)),
+                    );
                 }
             }
         }
@@ -1119,21 +1128,21 @@ class Perl6::Actions is HLL::Actions {
                                 :named($twigil eq ':'), :full_name($name));
         }
         elsif $name eq '@_' {
-            unless $*ST.nearest_signatured_block_declares('@_') {
+            unless $*W.nearest_signatured_block_declares('@_') {
                 $past := add_placeholder_parameter($/, '@', '_',
                                 :pos_slurpy(1), :full_name($name));
             }
         }
         elsif $name eq '%_' {
-            unless $*ST.nearest_signatured_block_declares('%_') || $*METHODTYPE {
+            unless $*W.nearest_signatured_block_declares('%_') || $*METHODTYPE {
                 $past := add_placeholder_parameter($/, '%', '_', :named_slurpy(1),
                                 :full_name($name));
             }
         }
         elsif +@name > 1 {
-            $past := $*ST.symbol_lookup(@name, $/, :lvalue(1));
+            $past := $*W.symbol_lookup(@name, $/, :lvalue(1));
         }
-        elsif (my $attr_alias := $*ST.is_attr_alias($past.name)) {
+        elsif (my $attr_alias := $*W.is_attr_alias($past.name)) {
             $past.name($attr_alias);
             $past.scope('attribute_6model');
             $past.unshift(instantiated_type(['$?CLASS'], $/));
@@ -1148,17 +1157,17 @@ class Perl6::Actions is HLL::Actions {
             # I don't know what the correct solution is. Disabling the check
             # inside double quotes fixes the most common case, but fails to
             # catch undeclared variables in double-quoted strings.
-            if $sigil ne '&' && !$*IN_DECL && ($*QSIGIL eq '' || $*QSIGIL eq '$') && !$*ST.is_lexical($name) {
+            if $sigil ne '&' && !$*IN_DECL && ($*QSIGIL eq '' || $*QSIGIL eq '$') && !$*W.is_lexical($name) {
                 $/.CURSOR.panic("Variable $name is not predeclared");
             }
 
             # Expect variable to have been declared somewhere.
             # Locate descriptor and thus type.
             try {
-                my $cd := $*ST.find_lexical_container_descriptor($past.name);
+                my $type := $*W.find_lexical_container_type($past.name);
                 $past.scope('lexical_6model');
-                $past.type($cd.of);
-                $past := box_native_if_needed($past, $cd.of);
+                $past.type($type);
+                $past := box_native_if_needed($past, $type);
             }
         }
         $past
@@ -1173,11 +1182,11 @@ class Perl6::Actions is HLL::Actions {
     method package_declarator:sym<native>($/)  { make $<package_def>.ast; }
 
     method package_declarator:sym<trusts>($/) {
-        $*ST.apply_trait('&trait_mod:<trusts>', $*PACKAGE, $<typename>.ast);
+        $*W.apply_trait('&trait_mod:<trusts>', $*PACKAGE, $<typename>.ast);
     }
 
     method package_declarator:sym<also>($/) {
-        $/.CURSOR.panic("also not yet implemented");
+        $*W.throw($/, ['X', 'NYI'], feature => p6box_s('also'));
     }
 
     method package_def($/) {
@@ -1198,10 +1207,10 @@ class Perl6::Actions is HLL::Actions {
         # just yet.
         if pir::substr__Ssii($<blockoid><statementlist><statement>[0], 0, 3) eq '...' {
             unless $*PKGDECL eq 'role' {
-                $*ST.add_stub_to_check($*PACKAGE);
+                $*W.add_stub_to_check($*PACKAGE);
             }
             $block.blocktype('declaration');
-            make PAST::Stmts.new( $block, $*ST.get_object_sc_ref_past($*PACKAGE) );
+            make PAST::Stmts.new( $block, $*W.get_ref($*PACKAGE) );
             return 1;
         }
 
@@ -1221,7 +1230,7 @@ class Perl6::Actions is HLL::Actions {
 
             # Need to ensure we get lexical outers fixed up
             # properly.
-            $block.push($*ST.create_lexical_capture_fixup());
+            $block.push($*W.create_lexical_capture_fixup());
 
             # As its last act, it should grab the current lexpad so that
             # we have the type environment, and also return the parametric
@@ -1229,36 +1238,36 @@ class Perl6::Actions is HLL::Actions {
             # we won't know).
             $block.push(PAST::Op.new(
                 :pasttype('list'),
-                $*ST.get_object_sc_ref_past($*PACKAGE),
+                $*W.get_ref($*PACKAGE),
                 PAST::Op.new(
                     :pirop('set PQPS'),
                     PAST::Op.new( :pirop('getinterp P') ),
                     'lexpad')));
 
             # Create code object and add it as the role's body block.
-            my $code := $*ST.create_code_object($block, 'Block', $sig);
-            $*ST.pkg_set_role_body_block($*PACKAGE, $code, $block);
+            my $code := $*W.create_code_object($block, 'Block', $sig);
+            $*W.pkg_set_role_body_block($*PACKAGE, $code, $block);
             
             # Compose before we add the role to the group, so the group sees
             # it composed.
-            $*ST.pkg_compose($*PACKAGE);
+            $*W.pkg_compose($*PACKAGE);
             
             # Add this role to the group if needed.
             my $group := $*PACKAGE.HOW.group($*PACKAGE);
             unless $group =:= $*PACKAGE {
-                $*ST.pkg_add_role_group_possibility($group, $*PACKAGE);
+                $*W.pkg_add_role_group_possibility($group, $*PACKAGE);
             }
         }
         else {
             # Compose.
-            $*ST.pkg_compose($*PACKAGE);
+            $*W.pkg_compose($*PACKAGE);
         }
 
         # Document
         Perl6::Pod::document($*PACKAGE, $*DOC);
 
         make PAST::Stmts.new(
-            $block, $*ST.get_object_sc_ref_past($*PACKAGE)
+            $block, $*W.get_ref($*PACKAGE)
         );
     }
 
@@ -1289,9 +1298,9 @@ class Perl6::Actions is HLL::Actions {
                 }
                 else {
                     my %cont_info := container_type_info($_<sigil> || '$', []);
-                    $list.push($*ST.build_container_past(
+                    $list.push($*W.build_container_past(
                         %cont_info,
-                        $*ST.create_container_descriptor(%cont_info<value_type>, 1, 'anon')));
+                        $*W.create_container_descriptor(%cont_info<value_type>, 1, 'anon')));
                 }
             }
             make $list;
@@ -1315,7 +1324,7 @@ class Perl6::Actions is HLL::Actions {
         my $sigil  := $<variable><sigil>;
         my $twigil := $<variable><twigil>[0];
         my $name   := ~$sigil ~ ~$twigil ~ ~$<variable><desigilname>;
-        if $<variable><desigilname> && $*ST.cur_lexpad().symbol($name) {
+        if $<variable><desigilname> && $*W.cur_lexpad().symbol($name) {
             $/.CURSOR.panic("Redeclaration of symbol ", $name);
         }
         make declare_variable($/, $past, ~$sigil, ~$twigil, ~$<variable><desigilname>, $<trait>);
@@ -1323,7 +1332,7 @@ class Perl6::Actions is HLL::Actions {
 
     sub declare_variable($/, $past, $sigil, $twigil, $desigilname, $trait_list) {
         my $name  := $sigil ~ $twigil ~ $desigilname;
-        my $BLOCK := $*ST.cur_lexpad();
+        my $BLOCK := $*W.cur_lexpad();
 
         if $*SCOPE eq 'has' {
             # Ensure current package can take attributes.
@@ -1338,11 +1347,11 @@ class Perl6::Actions is HLL::Actions {
             # Create container descriptor and decide on any default value..
             my $attrname   := ~$sigil ~ '!' ~ $desigilname;
             my %cont_info  := container_type_info($sigil, $*TYPENAME ?? [$*TYPENAME.ast] !! []);
-            my $descriptor := $*ST.create_container_descriptor(%cont_info<value_type>, 1, $attrname);
+            my $descriptor := $*W.create_container_descriptor(%cont_info<value_type>, 1, $attrname);
 
             # Create meta-attribute and add it.
             my $metaattr := %*HOW{$*PKGDECL ~ '-attr'};
-            my $attr := $*ST.pkg_add_attribute($*PACKAGE, $metaattr,
+            my $attr := $*W.pkg_add_attribute($*PACKAGE, $metaattr,
                 hash(
                     name => $attrname,
                     has_accessor => $twigil eq '.'
@@ -1350,7 +1359,7 @@ class Perl6::Actions is HLL::Actions {
                 hash(
                     container_descriptor => $descriptor,
                     type => %cont_info<bind_constraint>,
-                    package => $*ST.find_symbol(['$?CLASS'])),
+                    package => $*W.find_symbol(['$?CLASS'])),
                 %cont_info, $descriptor);
 
             # Document it
@@ -1377,10 +1386,10 @@ class Perl6::Actions is HLL::Actions {
             # Create a container descriptor. Default to rw and set a
             # type if we have one; a trait may twiddle with that later.
             my %cont_info := container_type_info($sigil, $*TYPENAME ?? [$*TYPENAME.ast] !! []);
-            my $descriptor := $*ST.create_container_descriptor(%cont_info<value_type>, 1, $name);
+            my $descriptor := $*W.create_container_descriptor(%cont_info<value_type>, 1, $name);
 
             # Install the container.
-            $*ST.install_lexical_container($BLOCK, $name, %cont_info, $descriptor,
+            $*W.install_lexical_container($BLOCK, $name, %cont_info, $descriptor,
                 :state($*SCOPE eq 'state'));
 
             # Set scope and type on container, and if needed emit code to
@@ -1409,11 +1418,12 @@ class Perl6::Actions is HLL::Actions {
             }
             $BLOCK[0].push(PAST::Var.new(
                 :name($name), :scope('lexical'), :isdecl(1),
-                :viviself($*ST.symbol_lookup([$name], $/, :package_only(1), :lvalue(1)))));
+                :viviself($*W.symbol_lookup([$name], $/, :package_only(1), :lvalue(1)))));
             $BLOCK.symbol($name, :scope('lexical'));
         }
         else {
-            $/.CURSOR.panic("$*SCOPE scoped variables not yet implemented");
+            $*W.throw($/, ['X', 'NYI'],
+                feature => p6box_s("$*SCOPE scoped variables"));
         }
 
         return $past;
@@ -1451,7 +1461,7 @@ class Perl6::Actions is HLL::Actions {
         # Obtain parameters, create signature object and generate code to
         # call binder.
         if $block<placeholder_sig> && $<multisig> {
-            $/.CURSOR.panic('Placeholder variable cannot override existing signature');
+            $*W.throw($/, ['X', 'Signature', 'Placeholder']);
         }
         my @params :=
                 $<multisig>             ?? $<multisig>[0].ast      !!
@@ -1464,7 +1474,7 @@ class Perl6::Actions is HLL::Actions {
         # Needs a slot that can hold a (potentially unvivified) dispatcher;
         # if this is a multi then we'll need it to vivify to a MultiDispatcher.
         if $*MULTINESS eq 'multi' {
-            $*ST.install_lexical_symbol($block, '$*DISPATCHER', $*ST.find_symbol(['MultiDispatcher']));
+            $*W.install_lexical_symbol($block, '$*DISPATCHER', $*W.find_symbol(['MultiDispatcher']));
         }
         else {
             add_implicit_var($block, '$*DISPATCHER');
@@ -1476,19 +1486,19 @@ class Perl6::Actions is HLL::Actions {
             $block.name(~$<deflongname>[0].ast);
             $block.nsentry('');
         }
-        my $code := $*ST.create_code_object($block, 'Sub', $signature,
-            $*MULTINESS eq 'proto');
+        my $code := $*W.create_code_object($block, 'Sub', $signature,
+            $*MULTINESS eq 'proto', :yada(is_yada($/)));
 
         # Document it
         Perl6::Pod::document($code, $*DOC);
 
         # Install PAST block so that it gets capture_lex'd correctly and also
         # install it in the lexpad.
-        my $outer := $*ST.cur_lexpad();
+        my $outer := $*W.cur_lexpad();
         $outer[0].push(PAST::Stmt.new($block));
 
         # Install &?ROUTINE.
-        $*ST.install_lexical_symbol($block, '&?ROUTINE', $code);
+        $*W.install_lexical_symbol($block, '&?ROUTINE', $code);
 
         my $past;
         if $<deflongname> {
@@ -1506,18 +1516,18 @@ class Perl6::Actions is HLL::Actions {
                     # None; search outer scopes.
                     my $new_proto;
                     try {
-                        $proto := $*ST.find_symbol([$name]);
+                        $proto := $*W.find_symbol([$name]);
                     }
                     if $proto && $proto.is_dispatcher {
                         # Found in outer scope. Need to derive.
-                        $new_proto := $*ST.derive_dispatcher($proto);
+                        $new_proto := $*W.derive_dispatcher($proto);
                     }
                     else {
                         $new_proto := self.autogenerate_proto($/, $block.name, $outer[0]);
                     }
 
                     # Install in current scope.
-                    $*ST.install_lexical_symbol($outer, $name, $new_proto);
+                    $*W.install_lexical_symbol($outer, $name, $new_proto);
                     $proto := $new_proto;
                 }
 
@@ -1527,7 +1537,7 @@ class Perl6::Actions is HLL::Actions {
                 }
 
                 # Install the candidate.
-                $*ST.add_dispatchee_to_proto($proto, $code);
+                $*W.add_dispatchee_to_proto($proto, $code);
             }
             else {
                 # Install.
@@ -1536,16 +1546,16 @@ class Perl6::Actions is HLL::Actions {
                         ~$<deflongname>[0].ast ~ "'");
                 }
                 if $*SCOPE eq '' || $*SCOPE eq 'my' {
-                    $*ST.install_lexical_symbol($outer, $name, $code, :clone(1));
+                    $*W.install_lexical_symbol($outer, $name, $code, :clone(1));
                 }
                 elsif $*SCOPE eq 'our' {
                     # Install in lexpad and in package, and set up code to
                     # re-bind it per invocation of its outer.
-                    $*ST.install_lexical_symbol($outer, $name, $code, :clone(1));
-                    $*ST.install_package_symbol($*PACKAGE, $name, $code);
+                    $*W.install_lexical_symbol($outer, $name, $code, :clone(1));
+                    $*W.install_package_symbol($*PACKAGE, $name, $code);
                     $outer[0].push(PAST::Op.new(
                         :pasttype('bind_6model'),
-                        $*ST.symbol_lookup([$name], $/, :package_only(1)),
+                        $*W.symbol_lookup([$name], $/, :package_only(1)),
                         PAST::Var.new( :name($name), :scope('lexical_6model') )
                     ));
                 }
@@ -1574,15 +1584,15 @@ class Perl6::Actions is HLL::Actions {
     }
     
     method autogenerate_proto($/, $name, $install_in) {
-        my $p_past := $*ST.push_lexpad($/);
+        my $p_past := $*W.push_lexpad($/);
         $p_past.name(~$name);
         $p_past.push(PAST::Op.new( :pirop('perl6_enter_multi_dispatch_from_onlystar_block P') ));
-        $*ST.pop_lexpad();
+        $*W.pop_lexpad();
         $install_in.push(PAST::Stmt.new($p_past));
-        my @p_params := [hash(is_capture => 1, nominal_type => $*ST.find_symbol(['Mu']) )];
-        my $p_sig := $*ST.create_signature([$*ST.create_parameter(@p_params[0])]);
+        my @p_params := [hash(is_capture => 1, nominal_type => $*W.find_symbol(['Mu']) )];
+        my $p_sig := $*W.create_signature([$*W.create_parameter(@p_params[0])]);
         add_signature_binding_code($p_past, $p_sig, @p_params);
-        $*ST.create_code_object($p_past, 'Sub', $p_sig, 1);
+        $*W.create_code_object($p_past, 'Sub', $p_sig, 1);
     }
     
     method add_inlining_info_if_possible($code, $past, @params) {
@@ -1664,9 +1674,9 @@ class Perl6::Actions is HLL::Actions {
         }
 
         # Attach inlining information.
-        $*ST.apply_trait('&trait_mod:<is>', $code,
-            ($*ST.add_string_constant($inline_info))<compile_time_value>,
-            inlinable => ($*ST.add_numeric_constant('Int', 1))<compile_time_value>)
+        $*W.apply_trait('&trait_mod:<is>', $code,
+            ($*W.add_string_constant($inline_info))<compile_time_value>,
+            inlinable => ($*W.add_numeric_constant('Int', 1))<compile_time_value>)
     }
 
     method method_def($/) {
@@ -1693,19 +1703,19 @@ class Perl6::Actions is HLL::Actions {
 
         # Do the various tasks to trun the block into a method code object.
         my @params    := $<multisig> ?? $<multisig>[0].ast !! [];
-        my $inv_type  := $*ST.find_symbol([
-            $<longname> && $*ST.is_lexical('$?CLASS') ?? '$?CLASS' !! 'Mu']);
+        my $inv_type  := $*W.find_symbol([
+            $<longname> && $*W.is_lexical('$?CLASS') ?? '$?CLASS' !! 'Mu']);
         my $code_type := $*METHODTYPE eq 'submethod' ?? 'Submethod' !! 'Method';
-        my $code := methodize_block($/, $past, @params, $inv_type, $code_type);
+        my $code := methodize_block($/, $past, @params, $inv_type, $code_type, :yada(is_yada($/)));
 
         # Document it
         Perl6::Pod::document($code, $*DOC);
 
         # Install &?ROUTINE.
-        $*ST.install_lexical_symbol($past, '&?ROUTINE', $code);
+        $*W.install_lexical_symbol($past, '&?ROUTINE', $code);
 
         # Install PAST block so that it gets capture_lex'd correctly.
-        my $outer := $*ST.cur_lexpad();
+        my $outer := $*W.cur_lexpad();
         $outer[0].push($past);
 
         # Apply traits.
@@ -1727,7 +1737,7 @@ class Perl6::Actions is HLL::Actions {
         make $closure;
     }
 
-    sub methodize_block($/, $past, @params, $invocant_type, $code_type) {
+    sub methodize_block($/, $past, @params, $invocant_type, $code_type, :$yada) {
         # Get signature and ensure it has an invocant and *%_.
         if $past<placeholder_sig> {
             $/.CURSOR.panic('Placeholder variables cannot be used in a method');
@@ -1742,7 +1752,7 @@ class Perl6::Actions is HLL::Actions {
         unless @params[+@params - 1]<named_slurpy> {
             @params.push(hash(
                 variable_name => '%_',
-                nominal_type => $*ST.find_symbol(['Mu']),
+                nominal_type => $*W.find_symbol(['Mu']),
                 named_slurpy => 1,
                 is_multi_invocant => 1,
                 is_method_named_slurpy => 1
@@ -1759,13 +1769,13 @@ class Perl6::Actions is HLL::Actions {
         $past.symbol('self', :scope('lexical_6model'));
 
         # Needs a slot to hold a multi or method dispatcher.
-        $*ST.install_lexical_symbol($past, '$*DISPATCHER',
-            $*ST.find_symbol([$*MULTINESS eq 'multi' ?? 'MultiDispatcher' !! 'MethodDispatcher']));
+        $*W.install_lexical_symbol($past, '$*DISPATCHER',
+            $*W.find_symbol([$*MULTINESS eq 'multi' ?? 'MultiDispatcher' !! 'MethodDispatcher']));
         $past[0].unshift(PAST::Op.new(:pirop('perl6_take_dispatcher v')));
 
         # Create code object.
-        return $*ST.create_code_object($past, $code_type, $signature,
-            $*MULTINESS eq 'proto');
+        return $*W.create_code_object($past, $code_type, $signature,
+            $*MULTINESS eq 'proto', :yada($yada));
     }
 
     # Installs a method into the various places it needs to go.
@@ -1781,7 +1791,7 @@ class Perl6::Actions is HLL::Actions {
             $meta_meth := $*MULTINESS eq 'multi' ?? 'add_multi_method' !! 'add_method';
         }
         if $scope ne 'anon' && pir::can($*PACKAGE.HOW, $meta_meth) {
-            $*ST.pkg_add_method($*PACKAGE, $meta_meth, $name, $code);
+            $*W.pkg_add_method($*PACKAGE, $meta_meth, $name, $code);
         }
         elsif $scope eq '' || $scope eq 'has' {
             my $nocando := $*MULTINESS eq 'multi' ?? 'multi-method' !! 'method';
@@ -1791,11 +1801,11 @@ class Perl6::Actions is HLL::Actions {
 
         # May also need it in lexpad and/or package.
         if $*SCOPE eq 'my' {
-            $*ST.install_lexical_symbol($outer, '&' ~ $name, $code, :clone(1));
+            $*W.install_lexical_symbol($outer, '&' ~ $name, $code, :clone(1));
         }
         elsif $*SCOPE eq 'our' {
-            $*ST.install_lexical_symbol($outer, '&' ~ $name, $code, :clone(1));
-            $*ST.install_package_symbol($*PACKAGE, '&' ~ $name, $code);
+            $*W.install_lexical_symbol($outer, '&' ~ $name, $code, :clone(1));
+            $*W.install_package_symbol($*PACKAGE, '&' ~ $name, $code);
         }
     }
 
@@ -1836,6 +1846,16 @@ class Perl6::Actions is HLL::Actions {
         else {
             0
         }
+    }
+    
+    sub is_yada($/) {
+        if $<blockoid><statementlist> && +$<blockoid><statementlist><statement> == 1 {
+            my $btxt := ~$<blockoid><statementlist><statement>[0];
+            if $btxt ~~ /^ \s* ['...'|'???'|'!!!'] \s* $/ {
+                return 1;
+            }
+        }
+        0
     }
 
     method onlystar($/) {
@@ -1900,8 +1920,8 @@ class Perl6::Actions is HLL::Actions {
         $past.blocktype("declaration");
 
         # Do the various tasks to turn the block into a method code object.
-        my $inv_type  := $*ST.find_symbol([ # XXX Maybe Cursor below, not Mu...
-            $name && $*ST.is_lexical('$?CLASS') ?? '$?CLASS' !! 'Mu']);
+        my $inv_type  := $*W.find_symbol([ # XXX Maybe Cursor below, not Mu...
+            $name && $*W.is_lexical('$?CLASS') ?? '$?CLASS' !! 'Mu']);
         my $code := methodize_block($/, $past, @params, $inv_type, 'Regex');
 
         # Need to put self into a register for the regex engine.
@@ -1910,7 +1930,7 @@ class Perl6::Actions is HLL::Actions {
             :viviself(PAST::Var.new( :name('self'), :scope('lexical_6model') ))));
 
         # Install PAST block so that it gets capture_lex'd correctly.
-        my $outer := $*ST.cur_lexpad();
+        my $outer := $*W.cur_lexpad();
         $outer[0].push($past);
         
         # Apply traits.
@@ -1937,24 +1957,28 @@ class Perl6::Actions is HLL::Actions {
 
         # Get, or find, enumeration base type and create type object with
         # correct base type.
-        my $base_type := $*TYPENAME ?? $*TYPENAME.ast !! $*ST.find_symbol(['Int']);
+        my $base_type := $*TYPENAME ?? $*TYPENAME.ast !! $*W.find_symbol(['Int']);
         my $name      := $<longname> ?? ~$<longname> !! $<variable><desigilname>;
-        my $type_obj  := $*ST.pkg_create_mo(%*HOW<enum>, :name($name), :base_type($base_type));
+        my $type_obj  := $*W.pkg_create_mo(%*HOW<enum>, :name($name), :base_type($base_type));
 
         # Add roles (which will provide the enum-related methods).
-        $*ST.apply_trait('&trait_mod:<does>', $type_obj, $*ST.find_symbol(['Enumeration']));
-        if pir::type_check__IPP($type_obj, $*ST.find_symbol(['Numeric'])) {
-            $*ST.apply_trait('&trait_mod:<does>', $type_obj, $*ST.find_symbol(['NumericEnumeration']));
+        $*W.apply_trait('&trait_mod:<does>', $type_obj, $*W.find_symbol(['Enumeration']));
+        if pir::type_check__IPP($type_obj, $*W.find_symbol(['Numeric'])) {
+            $*W.apply_trait('&trait_mod:<does>', $type_obj, $*W.find_symbol(['NumericEnumeration']));
         }
 
         # Apply traits, compose and install package.
         for $<trait> {
             ($_.ast)($type_obj) if $_.ast;
         }
-        $*ST.pkg_compose($type_obj);
-        if $<variable> { $/.CURSOR.panic("Variable case of enums not yet implemented"); }
-        $*ST.install_package_longname($/, $<longname>, ($*SCOPE || 'our'),
-            'enum', $*PACKAGE, $*ST.cur_lexpad(), $type_obj);
+        $*W.pkg_compose($type_obj);
+        if $<variable> {
+            $*W.throw($/, ['X', 'NYI'],
+                feature => p6box_s("Variable case of enums")
+            );
+        }
+        $*W.install_package_longname($/, $<longname>, ($*SCOPE || 'our'),
+            'enum', $*PACKAGE, $*W.cur_lexpad(), $type_obj);
 
         # Get list of either values or pairs; fail if we can't.
         my @values;
@@ -2003,13 +2027,13 @@ class Perl6::Actions is HLL::Actions {
             }
 
             # Create and install value.
-            my $val_obj := $*ST.create_enum_value($type_obj, $cur_key, $cur_value);
-            $*ST.install_package_symbol($type_obj, ~$cur_key, $val_obj);
+            my $val_obj := $*W.create_enum_value($type_obj, $cur_key, $cur_value);
+            $*W.install_package_symbol($type_obj, ~$cur_key, $val_obj);
             if $*SCOPE ne 'anon' {
-                $*ST.install_lexical_symbol($*ST.cur_lexpad(), ~$cur_key, $val_obj);
+                $*W.install_lexical_symbol($*W.cur_lexpad(), ~$cur_key, $val_obj);
             }
             if $*SCOPE eq '' || $*SCOPE eq 'our' {
-                $*ST.install_package_symbol($*PACKAGE, ~$cur_key, $val_obj);
+                $*W.install_package_symbol($*PACKAGE, ~$cur_key, $val_obj);
             }
 
             # Increment for next value.
@@ -2017,12 +2041,12 @@ class Perl6::Actions is HLL::Actions {
         }
 
         # We evaluate to the enum type object.
-        make $*ST.get_object_sc_ref_past($type_obj);
+        make $*W.get_ref($type_obj);
     }
 
     method type_declarator:sym<subset>($/) {
         # We refine Any by default; "of" may override.
-        my $refinee := $*ST.find_symbol(['Any']);
+        my $refinee := $*W.find_symbol(['Any']);
 
         # If we have a refinement, make sure it's thunked if needed. If none,
         # just always true.
@@ -2031,8 +2055,8 @@ class Perl6::Actions is HLL::Actions {
 
         # Create the meta-object.
         my $subset := $<longname> ??
-            $*ST.create_subset(%*HOW<subset>, $refinee, $refinement, :name($<longname>[0].Str)) !!
-            $*ST.create_subset(%*HOW<subset>, $refinee, $refinement);
+            $*W.create_subset(%*HOW<subset>, $refinee, $refinement, :name($<longname>[0].Str)) !!
+            $*W.create_subset(%*HOW<subset>, $refinee, $refinement);
 
         # Apply traits.
         for $<trait> {
@@ -2041,12 +2065,12 @@ class Perl6::Actions is HLL::Actions {
 
         # Install it as needed.
         if $<longname> {
-            $*ST.install_package_longname($/, $<longname>[0], ($*SCOPE || 'our'),
-                'subset', $*PACKAGE, $*ST.cur_lexpad(), $subset);
+            $*W.install_package_longname($/, $<longname>[0], ($*SCOPE || 'our'),
+                'subset', $*PACKAGE, $*W.cur_lexpad(), $subset);
         }
 
         # We evaluate to the refinement type object.
-        make $*ST.get_object_sc_ref_past($subset);
+        make $*W.get_ref($subset);
     }
 
     method type_declarator:sym<constant>($/) {
@@ -2072,22 +2096,24 @@ class Perl6::Actions is HLL::Actions {
             elsif $<variable> {
                 # Don't handle twigil'd case yet.
                 if $<variable><twigil> {
-                    $/.CURSOR.panic("Twigil-variable constants not yet implemented");
+                    $*W.throw($/, ['X', 'NYI'],
+                        feature => p6box_s("Twigil-Variable constants")
+                    );
                 }
                 $name := ~$<variable>;
             }
             else {
                 # Nothing to install, just return a PAST node to
                 # get hold of the constant.
-                return $*ST.get_object_sc_ref_past($value);
+                return $*W.get_ref($value);
             }
 
             # Install.
-            $*ST.install_package($/, [$name], ($*SCOPE || 'our'),
-                'constant', $*PACKAGE, $*ST.cur_lexpad(), $value);
+            $*W.install_package($/, [$name], ($*SCOPE || 'our'),
+                'constant', $*PACKAGE, $*W.cur_lexpad(), $value);
 
             # Evaluate to the constant.
-            return $*ST.get_object_sc_ref_past($value);
+            return $*W.get_ref($value);
         };
         make $past;
     }
@@ -2112,8 +2138,8 @@ class Perl6::Actions is HLL::Actions {
     }
 
     method fakesignature($/) {
-        my $sig := $*ST.create_signature($<signature>.ast);
-        my $past := $*ST.get_slot_past_for_object($sig);
+        my $sig := $*W.create_signature($<signature>.ast);
+        my $past := $*W.get_slot_past_for_object($sig);
         $past<has_compile_time_value> := 1;
         $past<compile_time_value> := $sig;
         make $past;
@@ -2142,7 +2168,7 @@ class Perl6::Actions is HLL::Actions {
         }
 
         # Mark current block as having a signature.
-        $*ST.mark_cur_lexpad_signatured();
+        $*W.mark_cur_lexpad_signatured();
 
         # Result is set of parameter descriptors.
         make @parameter_infos;
@@ -2205,20 +2231,20 @@ class Perl6::Actions is HLL::Actions {
             my $need_role;
             my $role_type;
             if $sigil eq '@' {
-                $role_type := $*ST.find_symbol(['Positional']);
+                $role_type := $*W.find_symbol(['Positional']);
                 $need_role := 1;
             }
             elsif $sigil eq '%' {
-                $role_type := $*ST.find_symbol(['Associative']);
+                $role_type := $*W.find_symbol(['Associative']);
                 $need_role := 1;
             }
             elsif $sigil eq '&' {
-                $role_type := $*ST.find_symbol(['Callable']);
+                $role_type := $*W.find_symbol(['Callable']);
                 $need_role := 1;
             }
             if $need_role {
                 if pir::exists(%*PARAM_INFO, 'nominal_type') {
-                    %*PARAM_INFO<nominal_type> := $*ST.parameterize_type_with_args(
+                    %*PARAM_INFO<nominal_type> := $*W.parameterize_type_with_args(
                         $role_type, [%*PARAM_INFO<nominal_type>], nqp::hash());
                 }
                 else {
@@ -2232,16 +2258,17 @@ class Perl6::Actions is HLL::Actions {
             if $twigil eq '' || $twigil eq '*' {
                 # Need to add the name.
                 if $<name> {
-                    my $cur_pad := $*ST.cur_lexpad();
+                    my $cur_pad := $*W.cur_lexpad();
                     if $cur_pad.symbol(~$/) {
                         $/.CURSOR.panic("Redeclaration of symbol ", ~$/);
                     }
                     if pir::exists(%*PARAM_INFO, 'nominal_type') {
                         $cur_pad[0].push(PAST::Var.new( :name(~$/), :scope('lexical_6model'),
                             :isdecl(1), :type(%*PARAM_INFO<nominal_type>) ));
-                        %*PARAM_INFO<container_descriptor> := $*ST.create_container_descriptor(
+                        %*PARAM_INFO<container_descriptor> := $*W.create_container_descriptor(
                             %*PARAM_INFO<nominal_type>, 0, %*PARAM_INFO<variable_name>);
-                        $cur_pad.symbol(%*PARAM_INFO<variable_name>, :descriptor(%*PARAM_INFO<container_descriptor>));
+                        $cur_pad.symbol(%*PARAM_INFO<variable_name>, :descriptor(%*PARAM_INFO<container_descriptor>),
+                            :type(%*PARAM_INFO<nominal_type>));
                     } else {
                         $cur_pad[0].push(PAST::Var.new( :name(~$/), :scope('lexical_6model'), :isdecl(1) ));
                     }
@@ -2300,7 +2327,7 @@ class Perl6::Actions is HLL::Actions {
                 # Install type variable in the static lexpad. Of course,
                 # we'll find the real thing at runtime, but in the static
                 # view it's a type variable to be reified.
-                $*ST.install_lexical_symbol($*ST.cur_lexpad(), $desigilname,
+                $*W.install_lexical_symbol($*W.cur_lexpad(), $desigilname,
                     $<typename>.ast);
             }
             else {
@@ -2379,7 +2406,7 @@ class Perl6::Actions is HLL::Actions {
 
     # Sets the default parameter type for a signature.
     sub set_default_parameter_type(@parameter_infos, $type_name) {
-        my $type := $*ST.find_symbol([$type_name]);
+        my $type := $*W.find_symbol([$type_name]);
         for @parameter_infos {
             unless pir::exists($_, 'nominal_type') {
                 $_<nominal_type> := $type;
@@ -2405,14 +2432,14 @@ class Perl6::Actions is HLL::Actions {
             if $_<variable_name> {
                 my %sym := $lexpad.symbol($_<variable_name>);
                 if +%sym && !pir::exists(%sym, 'descriptor') {
-                    $_<container_descriptor> := $*ST.create_container_descriptor(
+                    $_<container_descriptor> := $*W.create_container_descriptor(
                         $_<nominal_type>, $_<is_rw> ?? 1 !! 0, $_<variable_name>);
                     $lexpad.symbol($_<variable_name>, :descriptor($_<container_descriptor>));
                 }
             }
 
             # Create parameter object and apply any traits.
-            my $param_obj := $*ST.create_parameter($_);
+            my $param_obj := $*W.create_parameter($_);
             for $_<traits> {
                 ($_.ast)($param_obj) if $_.ast;
             }
@@ -2420,7 +2447,7 @@ class Perl6::Actions is HLL::Actions {
             # Add it to the signature.
             @parameters.push($param_obj);
         }
-        $*ST.create_signature(@parameters)
+        $*W.create_signature(@parameters)
     }
 
     method trait($/) {
@@ -2454,17 +2481,17 @@ class Perl6::Actions is HLL::Actions {
             # If we have a type name then we need to dispatch with that type; otherwise
             # we need to dispatch with it as a named argument.
             my @name := Perl6::Grammar::parse_name(~$<longname>);
-            if $*ST.is_name(@name) {
-                my $trait := $*ST.find_symbol(@name);
+            if $*W.is_name(@name) {
+                my $trait := $*W.find_symbol(@name);
                 make -> $declarand {
-                    $*ST.apply_trait('&trait_mod:<is>', $declarand, $trait, |@trait_arg);
+                    $*W.apply_trait('&trait_mod:<is>', $declarand, $trait, |@trait_arg);
                 };
             }
             else {
                 my %arg;
-                %arg{~$<longname>} := ($*ST.add_constant('Int', 'int', 1))<compile_time_value>;
+                %arg{~$<longname>} := ($*W.add_constant('Int', 'int', 1))<compile_time_value>;
                 make -> $declarand {
-                    $*ST.apply_trait('&trait_mod:<is>', $declarand, |@trait_arg, |%arg);
+                    $*W.apply_trait('&trait_mod:<is>', $declarand, |@trait_arg, |%arg);
                 };
             }
         }
@@ -2472,40 +2499,40 @@ class Perl6::Actions is HLL::Actions {
 
     method trait_mod:sym<hides>($/) {
         make -> $declarand {
-            $*ST.apply_trait('&trait_mod:<hides>', $declarand, $<typename>.ast);
+            $*W.apply_trait('&trait_mod:<hides>', $declarand, $<typename>.ast);
         };
     }
 
     method trait_mod:sym<does>($/) {
         make -> $declarand {
-            $*ST.apply_trait('&trait_mod:<does>', $declarand, $<typename>.ast);
+            $*W.apply_trait('&trait_mod:<does>', $declarand, $<typename>.ast);
         };
     }
 
     method trait_mod:sym<will>($/) {
         my %arg;
-        %arg{~$<identifier>} := ($*ST.add_constant('Int', 'int', 1))<compile_time_value>;
+        %arg{~$<identifier>} := ($*W.add_constant('Int', 'int', 1))<compile_time_value>;
         make -> $declarand {
-            $*ST.apply_trait('&trait_mod:<will>', $declarand,
+            $*W.apply_trait('&trait_mod:<will>', $declarand,
                 ($<pblock>.ast)<code_object>, |%arg);
         };
     }
 
     method trait_mod:sym<of>($/) {
         make -> $declarand {
-            $*ST.apply_trait('&trait_mod:<of>', $declarand, $<typename>.ast);
+            $*W.apply_trait('&trait_mod:<of>', $declarand, $<typename>.ast);
         };
     }
 
     method trait_mod:sym<as>($/) {
         make -> $declarand {
-            $*ST.apply_trait('&trait_mod:<as>', $declarand, $<typename>.ast);
+            $*W.apply_trait('&trait_mod:<as>', $declarand, $<typename>.ast);
         };
     }
 
     method trait_mod:sym<returns>($/) {
         make -> $declarand {
-            $*ST.apply_trait('&trait_mod:<returns>', $declarand, $<typename>.ast);
+            $*W.apply_trait('&trait_mod:<returns>', $declarand, $<typename>.ast);
         };
     }
 
@@ -2515,7 +2542,7 @@ class Perl6::Actions is HLL::Actions {
         # it.
         my $thunk := make_thunk($<term>.ast, $/);
         make -> $declarand {
-            $*ST.apply_trait('&trait_mod:<handles>', $declarand, $thunk);
+            $*W.apply_trait('&trait_mod:<handles>', $declarand, $thunk);
         };
     }
 
@@ -2531,7 +2558,7 @@ class Perl6::Actions is HLL::Actions {
             $/.CURSOR.panic("Cannot use " ~ $<sym>.Str ~ " on a non-identifier method call");
         }
         $past.unshift(pir::isa($past.name, 'String') ??
-            $*ST.add_string_constant($past.name) !!
+            $*W.add_string_constant($past.name) !!
             $past.name);
         $past.name('dispatch:<' ~ ~$<sym> ~ '>');
         make $past;
@@ -2559,7 +2586,7 @@ class Perl6::Actions is HLL::Actions {
             my @parts   := Perl6::Grammar::parse_name(~$<methodop><longname>);
             my $name    := @parts.pop;
             if @parts {
-                my $methpkg := $*ST.find_symbol(@parts);
+                my $methpkg := $*W.find_symbol(@parts);
                 unless $methpkg.HOW.is_trusted($methpkg, $*PACKAGE) {
                     $/.CURSOR.panic("Cannot call private method '$name' on package " ~
                         $methpkg.HOW.name($methpkg) ~ " because it does not trust " ~
@@ -2572,14 +2599,14 @@ class Perl6::Actions is HLL::Actions {
                     $/.CURSOR.panic("Private method call to '$name' must be fully " ~
                         "qualified with the package containing the method");
                 }
-                $past.unshift($*ST.get_object_sc_ref_past($*PACKAGE));
+                $past.unshift($*W.get_ref($*PACKAGE));
                 $past[0].type($*PACKAGE);
-                $past.unshift($*ST.add_string_constant($name));
+                $past.unshift($*W.add_string_constant($name));
             }
             $past.name('dispatch:<!>');
         }
         elsif $<methodop><quote> {
-            $past.unshift($*ST.get_object_sc_ref_past($*PACKAGE));
+            $past.unshift($*W.get_ref($*PACKAGE));
             $past.unshift($<methodop><quote>.ast);
             $past.name('dispatch:<!>');
         }
@@ -2598,8 +2625,8 @@ class Perl6::Actions is HLL::Actions {
             my @parts := Perl6::Grammar::parse_name(~$<longname>);
             my $name := @parts.pop;
             if +@parts {
-                $past.unshift($*ST.symbol_lookup(@parts, $/));
-                $past.unshift($*ST.add_string_constant($name));
+                $past.unshift($*W.symbol_lookup(@parts, $/));
+                $past.unshift($*W.add_string_constant($name));
                 $past.name('dispatch:<::>');
             }
             elsif $name eq 'WHAT' {
@@ -2627,7 +2654,12 @@ class Perl6::Actions is HLL::Actions {
             }
         }
         elsif $<quote> {
-            $past.name( $<quote>.ast );
+            $past.name(
+                PAST::Op.new(
+                    :pirop<repr_unbox_str__SP>,
+                    $<quote>.ast
+                )
+            );
         }
         elsif $<variable> {
             $past.unshift($<variable>.ast);
@@ -2658,15 +2690,15 @@ class Perl6::Actions is HLL::Actions {
     }
 
     method term:sym<...>($/) {
-        make PAST::Op.new( :pasttype('call'), :name('&fail'), $*ST.add_string_constant('Stub code executed'), :node($/) );
+        make PAST::Op.new( :pasttype('call'), :name('&fail'), $*W.add_string_constant('Stub code executed'), :node($/) );
     }
 
     method term:sym<???>($/) {
-        make PAST::Op.new( :pasttype('call'), :name('&warn'), $*ST.add_string_constant('Stub code executed'), :node($/) );
+        make PAST::Op.new( :pasttype('call'), :name('&warn'), $*W.add_string_constant('Stub code executed'), :node($/) );
     }
 
     method term:sym<!!!>($/) {
-        make PAST::Op.new( :pasttype('call'), :name('&die'), $*ST.add_string_constant('Stub code executed'), :node($/) );
+        make PAST::Op.new( :pasttype('call'), :name('&die'), $*W.add_string_constant('Stub code executed'), :node($/) );
     }
 
     method term:sym<dotty>($/) {
@@ -2696,15 +2728,15 @@ class Perl6::Actions is HLL::Actions {
             :pasttype<call>,
             :name<&INDIRECT_NAME_LOOKUP>,
         );
-        $past.push($*ST.add_string_constant($sigil)) if $sigil;
-        $past.push($*ST.add_string_constant(~$longname<name><identifier>))
+        $past.push($*W.add_string_constant($sigil)) if $sigil;
+        $past.push($*W.add_string_constant(~$longname<name><identifier>))
             if $longname<name><identifier>;
 
         for $longname<name><morename> {
             if $_<EXPR> {
                 $past.push($_<EXPR>[0].ast);
             } else {
-                $past.push($*ST.add_string_constant(~$_<identifier>));
+                $past.push($*W.add_string_constant(~$_<identifier>));
             }
         }
         $past;
@@ -2733,7 +2765,7 @@ class Perl6::Actions is HLL::Actions {
                 $past.name(@name[0]);
             }
             else {
-                $past.unshift($*ST.symbol_lookup(@name, $/));
+                $past.unshift($*W.symbol_lookup(@name, $/));
             }
         }
         else {
@@ -2741,12 +2773,8 @@ class Perl6::Actions is HLL::Actions {
             # type, since we can statically resolve them.
             my @name := Perl6::Grammar::parse_name(~$<longname>);
             if $<arglist> {
-                # Ensure arguments are allowed.
-                my $role := $*ST.find_symbol(@name);
-                unless $role.HOW.archetypes.parametric() {
-                    $/.CURSOR.panic("Cannot put type arguments on " ~
-                        ~$<longname> ~ " because it is not a parametric type");
-                }
+                # Look up parametric type.
+                my $ptype := $*W.find_symbol(@name);
                 
                 # Do we know all the arguments at compile time?
                 my $all_compile_time := 1;
@@ -2756,22 +2784,22 @@ class Perl6::Actions is HLL::Actions {
                     }
                 }
                 if $all_compile_time {
-                    my $curried := $*ST.parameterize_type($role, $<arglist>, $/);
-                    $past := $*ST.get_object_sc_ref_past($curried);
+                    my $curried := $*W.parameterize_type($ptype, $<arglist>, $/);
+                    $past := $*W.get_ref($curried);
                     $past<has_compile_time_value> := 1;
                     $past<compile_time_value> := $curried;
                 }
                 else {
-                    my $rref := $*ST.get_object_sc_ref_past($role);
+                    my $ptref := $*W.get_ref($ptype);
                     $past := $<arglist>[0].ast;
                     $past.pasttype('callmethod');
                     $past.name('parameterize');
-                    $past.unshift($rref);
-                    $past.unshift(PAST::Op.new( :pirop('get_how PP'), $rref ));
+                    $past.unshift($ptref);
+                    $past.unshift(PAST::Op.new( :pirop('get_how PP'), $ptref ));
                 }
             }
             elsif ~$<longname> eq 'GLOBAL' {
-                $past := $*ST.symbol_lookup(@name, $/);
+                $past := $*W.symbol_lookup(@name, $/);
             }
             else {
                 $past := instantiated_type(@name, $/);
@@ -2819,13 +2847,13 @@ class Perl6::Actions is HLL::Actions {
         if $past.isa(PAST::Op) && $past.pirop ne '' {
             my $ret_type := nqp::substr(nqp::split('__', $past.pirop)[1], 0, 1);
             if $ret_type eq 'I' {
-                $past.type($*ST.find_symbol(['int']));
+                $past.type($*W.find_symbol(['int']));
             }
             elsif $ret_type eq 'N' {
-                $past.type($*ST.find_symbol(['num']));
+                $past.type($*W.find_symbol(['num']));
             }
             elsif $ret_type eq 'S' {
-                $past.type($*ST.find_symbol(['str']));
+                $past.type($*W.find_symbol(['str']));
             }
         }
         
@@ -3091,7 +3119,9 @@ class Perl6::Actions is HLL::Actions {
             for @($/) { @stages.unshift($_.ast); }
         }
         else {
-            $/.CURSOR.panic('Sorry, the ' ~ $/<infix> ~ ' feed operator is not yet implemented');
+            $*W.throw($/, ['X', 'NYI'],
+                feature => p6box_s($/<infix> ~ " feed operator")
+            );
         }
 
         # Check what's in each stage and make a chain of blocks
@@ -3208,16 +3238,16 @@ class Perl6::Actions is HLL::Actions {
                 }
                 $source := PAST::Op.new(
                     :pirop('perl6_assert_bind_ok 0PP'),
-                    $source, $*ST.get_object_sc_ref_past($meta_attr.container_descriptor))
+                    $source, $*W.get_ref($meta_attr.type))
             }
             else {
                 # Probably a lexical.
                 my $was_lexical := 0;
                 try {
-                    my $descriptor := $*ST.find_lexical_container_descriptor($target.name);
+                    my $type := $*W.find_lexical_container_type($target.name);
                     $source := PAST::Op.new(
                         :pirop('perl6_assert_bind_ok 0PP'),
-                        $source, $*ST.get_object_sc_ref_past($descriptor));
+                        $source, $*W.get_ref($type));
                     $was_lexical := 1;
                 }
                 unless $was_lexical {
@@ -3338,7 +3368,7 @@ class Perl6::Actions is HLL::Actions {
         elsif $base<OPER><O><pasttype> eq 'xor' { $metaop := '&METAOP_REDUCE_XOR' }
         my $metapast := PAST::Op.new( :pasttype<call>, :name($metaop), $basepast);
         if $<triangle> {
-            my $tri := $*ST.add_constant('Int', 'int', 1);
+            my $tri := $*W.add_constant('Int', 'int', 1);
             $tri.named('triangle');
             $metapast.push($tri);
         }
@@ -3362,12 +3392,12 @@ class Perl6::Actions is HLL::Actions {
                                            :scope<lexical_6model>);
         my $hpast    := PAST::Op.new(:pasttype<call>, :name<&METAOP_HYPER>, $basepast);
         if $<opening> eq '<<' || $<opening> eq '«' {
-            my $dwim := $*ST.add_constant('Int', 'int', 1);
+            my $dwim := $*W.add_constant('Int', 'int', 1);
             $dwim.named('dwim-left');
             $hpast.push($dwim);
         }
         if $<closing> eq '>>' || $<closing> eq '»' {
-            my $dwim := $*ST.add_constant('Int', 'int', 1);
+            my $dwim := $*W.add_constant('Int', 'int', 1);
             $dwim.named('dwim-right');
             $hpast.push($dwim);
         }
@@ -3439,9 +3469,9 @@ class Perl6::Actions is HLL::Actions {
 
 
     method number:sym<complex>($/) {
-        my $re := $*ST.add_constant('Num', 'num', 0e0);
-        my $im := $*ST.add_constant('Num', 'num', +~$<im>);
-        make $*ST.add_constant('Complex', 'type_new', $re<compile_time_value>, $im<compile_time_value>);
+        my $re := $*W.add_constant('Num', 'num', 0e0);
+        my $im := $*W.add_constant('Num', 'num', +~$<im>);
+        make $*W.add_constant('Complex', 'type_new', $re<compile_time_value>, $im<compile_time_value>);
     }
 
     method number:sym<numish>($/) {
@@ -3450,12 +3480,12 @@ class Perl6::Actions is HLL::Actions {
 
     method numish($/) {
         if $<integer> {
-            make $*ST.add_numeric_constant('Int', $<integer>.ast);
+            make $*W.add_numeric_constant('Int', $<integer>.ast);
         }
         elsif $<dec_number> { make $<dec_number>.ast; }
         elsif $<rad_number> { make $<rad_number>.ast; }
         else {
-            make $*ST.add_numeric_constant('Num', +$/);
+            make $*W.add_numeric_constant('Num', +$/);
         }
     }
 
@@ -3495,7 +3525,7 @@ class Perl6::Actions is HLL::Actions {
         my $radix    := +($<radix>.Str);
         if $<circumfix> {
             make PAST::Op.new(:name('&unbase'), :pasttype('call'),
-                $*ST.add_numeric_constant('Int', $radix), $<circumfix>.ast);
+                $*W.add_numeric_constant('Int', $radix), $<circumfix>.ast);
         } else {
             my $intpart  := $<intpart>.Str;
             my $fracpart := $<fracpart> ?? $<fracpart>.Str !! "0";
@@ -3523,13 +3553,13 @@ class Perl6::Actions is HLL::Actions {
         # GenericHOW, though whether/how it's used depends on context.
         if $<longname> {
             if pir::substr(~$<longname>, 0, 2) ne '::' {
-                my $type := $*ST.find_symbol(Perl6::Grammar::parse_name(
+                my $type := $*W.find_symbol(Perl6::Grammar::parse_name(
                     Perl6::Grammar::canonical_type_longname($<longname>)));
                 if $<arglist> {
-                    $type := $*ST.parameterize_type($type, $<arglist>, $/);
+                    $type := $*W.parameterize_type($type, $<arglist>, $/);
                 }
                 if $<typename> {
-                    $type := $*ST.parameterize_type_with_args($type,
+                    $type := $*W.parameterize_type_with_args($type,
                         [$<typename>[0].ast], hash());
                 }
                 make $type;
@@ -3538,11 +3568,11 @@ class Perl6::Actions is HLL::Actions {
                 if $<arglist> || $<typename> {
                     $/.CURSOR.panic("Cannot put type parameters on a type capture");
                 }
-                make $*ST.pkg_create_mo(%*HOW<generic>, :name(pir::substr(~$<longname>, 2)));
+                make $*W.pkg_create_mo(%*HOW<generic>, :name(pir::substr(~$<longname>, 2)));
             }
         }
         else {
-            make $*ST.find_symbol(['::?' ~ ~$<identifier>]);
+            make $*W.find_symbol(['::?' ~ ~$<identifier>]);
         }
     }
 
@@ -3758,7 +3788,7 @@ class Perl6::Actions is HLL::Actions {
         }
         my $nab_back := pir::substr__SSI($/, $pos + 1);
         if $nab_back {
-            PAST::Op.new( :pasttype('call'), :name('&infix:<~>'), $expr, $*ST.add_string_constant(~$nab_back) )
+            PAST::Op.new( :pasttype('call'), :name('&infix:<~>'), $expr, $*W.add_string_constant(~$nab_back) )
         }
         else {
             $expr
@@ -3782,11 +3812,11 @@ class Perl6::Actions is HLL::Actions {
                 compile_time_value_str($past, ":w list", $/));
             if +@words != 1 {
                 $past := PAST::Op.new( :name('&infix:<,>'), :node($/) );
-                for @words { $past.push($*ST.add_string_constant(~$_)); }
+                for @words { $past.push($*W.add_string_constant(~$_)); }
                 $past := PAST::Stmts.new($past);
             }
             else {
-                $past := $*ST.add_string_constant(~@words[0]);
+                $past := $*W.add_string_constant(~@words[0]);
             }
         }
         make $past;
@@ -3805,16 +3835,16 @@ class Perl6::Actions is HLL::Actions {
             }
             else {
                 if $lastlit gt '' {
-                    @parts.push($*ST.add_string_constant($lastlit));
+                    @parts.push($*W.add_string_constant($lastlit));
                 }
                 @parts.push(PAST::Op.new( :pasttype('callmethod'), :name('Stringy'), $ast ));
                 $lastlit := '';
             }
         }
         if $lastlit gt '' || !@parts {
-            @parts.push($*ST.add_string_constant($lastlit));
+            @parts.push($*W.add_string_constant($lastlit));
         }
-        my $past := @parts ?? @parts.shift !! $*ST.add_string_constant('');
+        my $past := @parts ?? @parts.shift !! $*W.add_string_constant('');
         while @parts {
             $past := PAST::Op.new(
                 :pasttype('call'), :name('&infix:<~>'),
@@ -3846,7 +3876,7 @@ class Perl6::Actions is HLL::Actions {
     # Adds a placeholder parameter to this block's signature.
     sub add_placeholder_parameter($/, $sigil, $ident, :$named, :$pos_slurpy, :$named_slurpy, :$full_name) {
         # Ensure we're not trying to put a placeholder in the mainline.
-        my $block := $*ST.cur_lexpad();
+        my $block := $*W.cur_lexpad();
         if $block<IN_DECL> eq 'mainline' {
             $/.CURSOR.panic("Cannot use placeholder parameter $full_name in the mainline");
         }
@@ -3909,7 +3939,7 @@ class Perl6::Actions is HLL::Actions {
     }
 
     sub reference_to_code_object($code_obj, $past_block) {
-        my $ref := $*ST.get_object_sc_ref_past($code_obj);
+        my $ref := $*W.get_ref($code_obj);
         $ref<past_block> := $past_block;
         $ref<code_object> := $code_obj;
         return $ref;
@@ -3927,25 +3957,25 @@ class Perl6::Actions is HLL::Actions {
     }
 
     sub make_thunk($to_thunk, $/) {
-        my $block := $*ST.push_lexpad($/);
+        my $block := $*W.push_lexpad($/);
         $block.push($to_thunk);
-        $*ST.pop_lexpad();
+        $*W.pop_lexpad();
         make_simple_code_object($block, 'Code');
     }
 
     sub make_thunk_ref($to_thunk, $/) {
-        my $block := $*ST.push_lexpad($/);
+        my $block := $*W.push_lexpad($/);
         $block.push($to_thunk);
-        $*ST.pop_lexpad();
+        $*W.pop_lexpad();
         reference_to_code_object(
             make_simple_code_object($block, 'Code'),
             $block);
     }
 
     sub make_simple_code_object($block, $type) {
-        ($*ST.cur_lexpad())[0].push($block);
-        my $sig := $*ST.create_signature([]);
-        return $*ST.create_code_object($block, $type, $sig);
+        ($*W.cur_lexpad())[0].push($block);
+        my $sig := $*W.create_signature([]);
+        return $*W.create_code_object($block, $type, $sig);
     }
 
     sub make_topic_block_ref($past) {
@@ -3954,12 +3984,12 @@ class Perl6::Actions is HLL::Actions {
                 PAST::Var.new( :name('$_'), :scope('lexical_6model'), :isdecl(1) )
             ),
             $past);
-        ($*ST.cur_lexpad())[0].push($block);
-        my $param := hash( :variable_name('$_'), :nominal_type($*ST.find_symbol(['Mu'])), :is_parcel(1) );
-        my $sig := $*ST.create_signature([$*ST.create_parameter($param)]);
+        ($*W.cur_lexpad())[0].push($block);
+        my $param := hash( :variable_name('$_'), :nominal_type($*W.find_symbol(['Mu'])), :is_parcel(1) );
+        my $sig := $*W.create_signature([$*W.create_parameter($param)]);
         add_signature_binding_code($block, $sig, [$param]);
         return reference_to_code_object(
-            $*ST.create_code_object($block, 'Block', $sig),
+            $*W.create_code_object($block, 'Block', $sig),
             $block);
     }
 
@@ -3981,16 +4011,16 @@ class Perl6::Actions is HLL::Actions {
                     $expr,
                     PAST::Var.new( :name('$_'), :scope('lexical_6model') )
                 )));
-        ($*ST.cur_lexpad())[0].push($past);
+        ($*W.cur_lexpad())[0].push($past);
 
         # Give it a signature and create code object.
         my $param := hash(
             variable_name => '$_',
-            nominal_type => $*ST.find_symbol(['Mu']));
-        my $sig := $*ST.create_signature([
-            $*ST.create_parameter($param)]);
+            nominal_type => $*W.find_symbol(['Mu']));
+        my $sig := $*W.create_signature([
+            $*W.create_parameter($param)]);
         add_signature_binding_code($past, $sig, [$param]);
-        return $*ST.create_code_object($past, 'Block', $sig);
+        return $*W.create_code_object($past, 'Block', $sig);
     }
 
     sub add_implicit_var($block, $name) {
@@ -3999,7 +4029,7 @@ class Perl6::Actions is HLL::Actions {
     }
 
     sub when_handler_helper($when_block) {
-        my $enclosing_block := $*ST.cur_lexpad();
+        my $enclosing_block := $*W.cur_lexpad();
         # XXX TODO: This isn't quite the right way to check this...
         unless $enclosing_block.handlers() {
             my @handlers;
@@ -4045,7 +4075,7 @@ class Perl6::Actions is HLL::Actions {
     }
 
     sub make_dot_equals($target, $call) {
-        $call.unshift($*ST.add_string_constant($call.name));
+        $call.unshift($*W.add_string_constant($call.name));
         $call.unshift($target);
         $call.name('dispatch:<.=>');
         $call.pasttype('callmethod');
@@ -4155,11 +4185,11 @@ class Perl6::Actions is HLL::Actions {
         # Construct signature and anonymous method.
         my @params := [
             hash( is_invocant => 1, nominal_type => $*PACKAGE),
-            hash( variable_name => '$_', nominal_type => $*ST.find_symbol(['Mu']))
+            hash( variable_name => '$_', nominal_type => $*W.find_symbol(['Mu']))
         ];
-        my $sig := $*ST.create_signature([
-            $*ST.create_parameter(@params[0]),
-            $*ST.create_parameter(@params[1])
+        my $sig := $*W.create_signature([
+            $*W.create_parameter(@params[0]),
+            $*W.create_parameter(@params[1])
         ]);
         my $block := PAST::Block.new(
             PAST::Stmts.new(
@@ -4169,14 +4199,14 @@ class Perl6::Actions is HLL::Actions {
             PAST::Stmts.new( $/[1].ast ));
         $block.symbol('self', :scope('lexical_6model'));
         add_signature_binding_code($block, $sig, @params);
-        my $code := $*ST.create_code_object($block, 'Method', $sig);
+        my $code := $*W.create_code_object($block, 'Method', $sig);
 
         # Block should go in current lexpad, in correct lexical context.
-        ($*ST.cur_lexpad())[0].push($block);
+        ($*W.cur_lexpad())[0].push($block);
 
         # Dispatch trait. XXX Should really be Bool::True, not Int here...
-        my $true := ($*ST.add_constant('Int', 'int', 1))<compile_time_value>;
-        $*ST.apply_trait('&trait_mod:<will>', $attr, $code, :build($true));
+        my $true := ($*W.add_constant('Int', 'int', 1))<compile_time_value>;
+        $*W.apply_trait('&trait_mod:<will>', $attr, $code, :build($true));
     }
 
     # This is the hook where, in the future, we'll use this as the hook to check
@@ -4243,7 +4273,7 @@ class Perl6::Actions is HLL::Actions {
             my $i := 0;
             my @params;
             my $block := PAST::Block.new(PAST::Stmts.new(), $past);
-            $*ST.cur_lexpad()[0].push($block);
+            $*W.cur_lexpad()[0].push($block);
             while $i < $upto_arity {
                 my $old := $past[$i];
                 if $old.returns eq 'WhateverCode' {
@@ -4253,7 +4283,7 @@ class Perl6::Actions is HLL::Actions {
                         my $pname := '$x' ~ (+@params);
                         @params.push(hash(
                             :variable_name($pname),
-                            :nominal_type($*ST.find_symbol(['Mu'])),
+                            :nominal_type($*W.find_symbol(['Mu'])),
                             :is_parcel(1),
                         ));
                         $block[0].push(PAST::Var.new(:name($pname), :scope<lexical_6model>, :isdecl(1)));
@@ -4266,7 +4296,7 @@ class Perl6::Actions is HLL::Actions {
                     my $pname := '$x' ~ (+@params);
                     @params.push(hash(
                         :variable_name($pname),
-                        :nominal_type($*ST.find_symbol(['Mu'])),
+                        :nominal_type($*W.find_symbol(['Mu'])),
                         :is_parcel(1),
                     ));
                     $block[0].push(PAST::Var.new(:name($pname), :scope<lexical_6model>, :isdecl(1)));
@@ -4276,7 +4306,7 @@ class Perl6::Actions is HLL::Actions {
             }
             my $signature := create_signature_object(@params, $block);
             add_signature_binding_code($block, $signature, @params);
-            my $code := $*ST.create_code_object($block, 'WhateverCode', $signature);
+            my $code := $*W.create_code_object($block, 'WhateverCode', $signature);
             $past := block_closure(reference_to_code_object($code, $block));
             $past.returns('WhateverCode');
             $past.arity(+@params);
@@ -4303,12 +4333,12 @@ class Perl6::Actions is HLL::Actions {
     # Works out how to look up a type. If it's not generic we statically
     # resolve it. Otherwise, we punt to a runtime lexical lookup.
     sub instantiated_type(@name, $/) {
-        my $type := $*ST.find_symbol(@name);
+        my $type := $*W.find_symbol(@name);
         my $is_generic := 0;
         try { $is_generic := $type.HOW.archetypes.generic }
         my $past := $is_generic ??
-            $*ST.symbol_lookup(@name, $/) !!
-            $*ST.get_object_sc_ref_past($type);
+            $*W.symbol_lookup(@name, $/) !!
+            $*W.get_ref($type);
         $past<has_compile_time_value> := 1;
         $past<compile_time_value> := $type;
         return $past;
@@ -4388,7 +4418,7 @@ class Perl6::Actions is HLL::Actions {
 
         $number := strip_trailing_zeros($number);
 
-        my $Int := $*ST.find_symbol(['Int']);
+        my $Int := $*W.find_symbol(['Int']);
 
         my $iresult      := nqp::box_i(0, $Int);
         my $fdivide      := nqp::box_i(1, $Int);
@@ -4414,9 +4444,9 @@ class Perl6::Actions is HLL::Actions {
         if $num {
             if nqp::bool_I($iresult) {
                 my num $result := nqp::mul_n(nqp::div_n(nqp::tonum_I($iresult), nqp::tonum_I($fdivide)), nqp::pow_n($base, $exponent));
-                return $*ST.add_numeric_constant('Num', $result);
+                return $*W.add_numeric_constant('Num', $result);
             } else {
-                return $*ST.add_numeric_constant('Num', 0e0);
+                return $*W.add_numeric_constant('Num', 0e0);
             }
         } else {
             if pir::defined($exponent) {
@@ -4425,18 +4455,18 @@ class Perl6::Actions is HLL::Actions {
                             nqp::pow_I(
                                 nqp::box_i($base,     $iresult),
                                 nqp::box_i($exponent, $iresult),
-                                $*ST.find_symbol(['Num'])
+                                $*W.find_symbol(['Num'])
                            )
                         );
             }
             if $seen_dot {
                 # add_constant special-cases Rat, so there is
                 # no need to add $iresult and $fdivide first
-                return $*ST.add_constant('Rat', 'type_new',
+                return $*W.add_constant('Rat', 'type_new',
                     $iresult, $fdivide, :nocache(1)
                 );
             } else {
-                return $*ST.add_numeric_constant('Int', $iresult);
+                return $*W.add_numeric_constant('Int', $iresult);
             }
         }
     }

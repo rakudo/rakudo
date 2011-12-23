@@ -1,5 +1,14 @@
 
 my class Num {
+    multi method WHICH(Num:D:) {
+        nqp::box_s(
+            nqp::concat_s(
+                nqp::concat_s(nqp::unbox_s(self.^name), '|'),
+                nqp::unbox_n(self)
+            ),
+            ObjAt
+        );
+    }
     method Num() { self }
     method Bridge(Num:D:) { self }
     
@@ -14,7 +23,7 @@ my class Num {
     
     multi method perl(Num:D:) {
         my $res = self.Str;
-        if $res.index('e').defined {
+        if nqp::isnanorinf(nqp::unbox_n(self)) || $res.index('e').defined {
             $res;
         } else {
             $res ~ 'e0';
@@ -94,10 +103,14 @@ my class Num {
     }
 
     method ceiling(Num:D: ) {
-        nqp::p6box_n(pir::ceil__NN(nqp::unbox_n(self)));
+        nqp::isnanorinf(nqp::unbox_n(self))
+            ?? self
+            !! nqp::fromnum_I(pir::ceil__NN(nqp::unbox_n(self)), Int);
     }
     method floor(Num:D: ) {
-        nqp::p6bigint(pir::floor__NN(nqp::unbox_n(self)));
+        nqp::isnanorinf(nqp::unbox_n(self))
+            ?? self
+            !! nqp::fromnum_I(pir::floor__NN(nqp::unbox_n(self)), Int);
     }
 
     proto method sin(|$) {*}

@@ -38,9 +38,8 @@ my class Real {
     method acotanh() { self.Bridge.acotanh }
     method floor() { self.Bridge.floor }
     method ceiling() { self.Bridge.ceiling }
-    # causes "get_string() not implemented in class 'Int'"
-    # if commented out, but should be there
-#    method round($scale = 1) { (self / $scale + 0.5).floor * $scale }
+    # cannot use '0.5' here, because Rat isn't initialized yet
+    method round($scale = 1) { (self / $scale + 1/2).floor * $scale }
     method unpolar(Real $angle) {
         Complex.new(self * $angle.cos, self * $angle.sin);
     }

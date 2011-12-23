@@ -11,7 +11,9 @@ my class ListIter {
         unless nqp::isconcrete($!reified) {
             my $eager = nqp::p6bool(nqp::istype($n, Whatever));
             my $flattens = nqp::isconcrete($!list) && $!list.flattens;
-            my int $count = $eager ?? 100000 !! (nqp::istype($n, Int) ?? $n !! $n.Int);
+            my int $count = $eager
+                ?? 100000
+                !! nqp::unbox_i(nqp::istype($n, Int) ?? $n !! $n.Int);
             my $rpa := nqp::list();
             my Mu $x;
             my int $index;

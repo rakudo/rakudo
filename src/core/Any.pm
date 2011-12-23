@@ -164,7 +164,9 @@ my class Any {
 
 proto infix:<===>($?, $?) { * }
 multi infix:<===>($a?)    { Bool::True }
-multi infix:<===>($a, $b) { $a.defined eq $b.defined && $a.WHICH === $b.WHICH }
+multi infix:<===>($a, $b) {
+    nqp::p6bool(nqp::iseq_s(nqp::unbox_s($a.WHICH), nqp::unbox_s($b.WHICH)))
+}
 
 proto infix:<cmp>($, $) { * }
 multi infix:<cmp>(\$a, \$b) { 
@@ -268,3 +270,5 @@ multi sub sort(*@values)      {
         ?? do { my $cmp := @values.shift; @values.sort($cmp) }
         !!  @values.sort;
 }
+
+sub item(*@a) { my $ = @a }

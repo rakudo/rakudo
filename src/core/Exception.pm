@@ -38,6 +38,8 @@ sub EXCEPTION(|$) {
 }
 
 
+my class X::Base { ... }
+
 do {
     sub is_runtime($bt) {
         for $bt.keys {
@@ -60,14 +62,19 @@ do {
     sub print_exception(|$) is hidden_from_backtrace {
         my Mu $ex := nqp::atpos(pir::perl6_current_args_rpa__P(), 0);
         try {
-            if is_runtime($ex.backtrace) {
-                my $e := EXCEPTION($ex);
-                my Mu $err := pir::getstderr__P();
+            my $e := EXCEPTION($ex);
+            my Mu $err := pir::getstderr__P();
+
+            if X::Base.ACCEPTS($e) {
+                $err.print: $e.gist;
+                $err.print: "\n";
+            }
+            elsif is_runtime($ex.backtrace) {
                 $err.print: $e;
                 $err.print: "\n";
                 $err.print: Backtrace.new($e);
-            } else {
-                my Mu $err := pir::getstderr__P();
+            }
+            else {
                 $err.print: "===SORRY!===\n";
                 $err.print: $ex;
                 $err.print: "\n";

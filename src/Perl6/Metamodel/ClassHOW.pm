@@ -78,6 +78,7 @@ class Perl6::Metamodel::ClassHOW
                 @!role_typecheck_list[+@!role_typecheck_list] := $r;
                 @ins_roles.push($r.HOW.specialize($r, $obj))
             }
+            self.compute_mro($obj); # to the best of our knowledge, because the role applier wants it.
             RoleToClassApplier.apply($obj, @ins_roles);
             
             # Add them to the typecheck list, and pull in their

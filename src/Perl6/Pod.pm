@@ -2,8 +2,8 @@
 class Perl6::Pod {
     our sub document($what, $with) {
         if ~$with ne '' {
-            my $true := $*ST.add_constant('Int', 'int', 1)<compile_time_value>;
-            $*ST.apply_trait('&trait_mod:<is>', $what, $*DOCEE, :docs($true));
+            my $true := $*W.add_constant('Int', 'int', 1)<compile_time_value>;
+            $*W.apply_trait('&trait_mod:<is>', $what, $*DOCEE, :docs($true));
             # don't reset it if it already holds docs for another element
             if $*DECLARATOR_DOCS && $*DOC.to == $*DECLARATOR_DOCS.to {
                 $*DECLARATOR_DOCS := '';
@@ -36,11 +36,11 @@ class Perl6::Pod {
             my $level := nqp::substr($<type>.Str, 4);
             my $level_past;
             if $level ne '' {
-                $level_past := $*ST.add_constant(
+                $level_past := $*W.add_constant(
                     'Int', 'int', +$level,
                 )<compile_time_value>;
             } else {
-                $level_past := $*ST.find_symbol(['Mu']);
+                $level_past := $*W.find_symbol(['Mu']);
             }
 
             my $past := serialize_object(
@@ -50,7 +50,7 @@ class Perl6::Pod {
             return $past<compile_time_value>;
         }
 
-        my $name := $*ST.add_constant('Str', 'str', $<type>.Str);
+        my $name := $*W.add_constant('Str', 'str', $<type>.Str);
         my $past := serialize_object(
             'Pod::Block::Named', :name($name<compile_time_value>),
             :config($config), :content($content<compile_time_value>),
@@ -60,7 +60,7 @@ class Perl6::Pod {
 
     our sub raw_block($/) {
         my $config := make_config($/);
-        my $str := $*ST.add_constant('Str', 'str', ~$<pod_content>);
+        my $str := $*W.add_constant('Str', 'str', ~$<pod_content>);
         my $content := serialize_array([$str<compile_time_value>]);
         my $type := $<type>.Str eq 'code' ?? 'Pod::Block::Code'
                                           !! 'Pod::Block::Comment';
@@ -72,7 +72,7 @@ class Perl6::Pod {
     }
 
     our sub config($/) {
-        my $type := $*ST.add_constant('Str', 'str', ~$<type>);
+        my $type := $*W.add_constant('Str', 'str', ~$<type>);
         return serialize_object(
             'Pod::Config', :type($type<compile_time_value>),
             :config(make_config($/))
@@ -99,10 +99,10 @@ class Perl6::Pod {
                 # Hide your kids, hide your wife!
                 my $truth := pir::substr($colonpair, 1, 1) ne '!';
 
-                $val := $*ST.add_constant('Int', 'int', $truth)<compile_time_value>;
+                $val := $*W.add_constant('Int', 'int', $truth)<compile_time_value>;
             }
-            $key := $*ST.add_constant('Str', 'str', $key)<compile_time_value>;
-            $val := $*ST.add_constant('Str', 'str', $val)<compile_time_value>;
+            $key := $*W.add_constant('Str', 'str', $key)<compile_time_value>;
+            $val := $*W.add_constant('Str', 'str', $val)<compile_time_value>;
             @pairs.push(
                 serialize_object(
                     'Pair', :key($key), :value($val)
@@ -119,6 +119,8 @@ class Perl6::Pod {
         return $r;
     }
     our sub table($/) {
+        my $config := make_config($/);
+
         my @rows := [];
         for $<table_row> {
             @rows.push($_.ast);
@@ -209,7 +211,7 @@ class Perl6::Pod {
         }
 
         my $past := serialize_object(
-            'Pod::Block::Table',
+            'Pod::Block::Table', :config($config),
             :headers(serialize_aos($headers)<compile_time_value>),
             :content(serialize_aoaos($content)<compile_time_value>),
         );
@@ -292,7 +294,7 @@ class Perl6::Pod {
         for @twines {
             my @cur   := $_.ast;
             @ret.push(
-                $*ST.add_constant(
+                $*W.add_constant(
                     'Str', 'str',
                     nqp::unbox_s(@ret.pop) ~ ' ' ~ nqp::unbox_s(@cur.shift)
                 )<compile_time_value>,
@@ -305,7 +307,7 @@ class Perl6::Pod {
     our sub build_pod_string(@content) {
         sub push_strings(@strings, @where) {
             my $s := subst(pir::join('', @strings), /\s+/, ' ', :global);
-            my $t := $*ST.add_constant(
+            my $t := $*W.add_constant(
                 'Str', 'str', $s
             )<compile_time_value>;
             @where.push($t);
@@ -416,14 +418,14 @@ class Perl6::Pod {
 
     # serializes the given array
     our sub serialize_array(@arr) {
-        return $*ST.add_constant('Array', 'type_new', |@arr);
+        return $*W.add_constant('Array', 'type_new', |@arr);
     }
 
     # serializes an array of strings
     our sub serialize_aos(@arr) {
         my @cells := [];
         for @arr -> $cell {
-            my $p := $*ST.add_constant('Str', 'str', ~$cell);
+            my $p := $*W.add_constant('Str', 'str', ~$cell);
             @cells.push($p<compile_time_value>);
         }
         return serialize_array(@cells);
@@ -434,14 +436,14 @@ class Perl6::Pod {
         my @content := [];
         for @rows -> $row {
             my $p := serialize_aos($row);
-            @content.push($*ST.scalar_wrap($p<compile_time_value>));
+            @content.push($*W.scalar_wrap($p<compile_time_value>));
         }
         return serialize_array(@content);
     }
 
     # serializes object of the given type
     our sub serialize_object($type, *@pos, *%named) {
-        return $*ST.add_constant($type, 'type_new', |@pos, |%named);
+        return $*W.add_constant($type, 'type_new', |@pos, |%named);
     }
 }
 

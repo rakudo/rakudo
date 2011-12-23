@@ -22,6 +22,15 @@ sub PARROT_ENCODING(Str:D $s) {
 }
 
 my class Str does Stringy {
+    multi method WHICH(Str:D:) {
+        nqp::box_s(
+            nqp::concat_s(
+                nqp::concat_s(nqp::unbox_s(self.^name), '|'),
+                $!value
+            ),
+            ObjAt
+        );
+    }
     submethod BUILD(:$value as Str = '') {
         nqp::bindattr_s(self, Str, '$!value', nqp::unbox_s($value))
     }
@@ -55,12 +64,16 @@ my class Str does Stringy {
 
     method substr(Str:D: $start, $length? is copy) {
         my str $sself  = nqp::unbox_s(self);
-        my int $istart = $start.Int;
+        my int $istart = nqp::unbox_i(
+            $start.^does(Callable)
+                ??  $start(nqp::p6box_i(nqp::chars($sself)))
+                !! $start.Int
+            );
         my int $ichars = nqp::chars($sself);
         fail "Negative start argument ($start) to .substr" if $istart < 0;
         fail "Start of substr ($start) beyond end of string" if $istart > $ichars;
         $length = $length($ichars - $istart) if nqp::istype($length, Callable);
-        my int $ilength = $length.defined ?? $length.Int !! $ichars - $istart;
+        my int $ilength = $length.defined ??  $length.Int !! $ichars - $istart;
         fail "Negative length argument ($length) to .substr" if $ilength < 0;
 
         nqp::p6box_s(nqp::substr($sself, $istart, $ilength));
@@ -513,7 +526,7 @@ my class Str does Stringy {
     multi method split(Str:D: Regex $pat, $limit = *, :$all) {
         my $l = $limit ~~ Whatever ?? $Inf !! $limit - 1;
         return ().list if $l < 0;
-        my @matches := self.match($pat, :x(1..$l), :g);
+        my @matches = self.match($pat, :x(1..$l), :g);
         gather {
             my $prev-pos = 0;
             for @matches {

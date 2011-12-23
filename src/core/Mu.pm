@@ -8,8 +8,18 @@ my class Mu {
         nqp::p6box_i(nqp::where(self))
     }
 
-    method WHICH() {
-        nqp::p6box_i(nqp::where(self))
+    proto method WHICH(|$) {*}
+    multi method WHICH(Mu:U:) {
+        nqp::box_s(nqp::unbox_s(self.^name), ObjAt);
+    }
+    multi method WHICH(Mu:D:) {
+        nqp::box_s(
+            nqp::concat_s(
+                nqp::concat_s(nqp::unbox_s(self.^name), '|'),
+                nqp::where(self)
+            ),
+            ObjAt
+        )
     }
 
     method WHY() {
@@ -122,19 +132,28 @@ my class Mu {
     }
     
     proto method Numeric(|$) { * }
-    multi method Numeric(Mu:U:) {
-        note 'Use of uninitialized value in numeric context';
+    multi method Numeric(Mu:U \$v:) {
+        note (nqp::iscont($v)
+              ?? "use of uninitialized variable { $v.VAR.name }"
+              !! "use of uninitialized value")
+            ~ " of type {self.^name} in numeric context";
         0
     }
     proto method Real(|$) { * }
-    multi method Real(Mu:U:) {
-        note 'Use of uninitialized value in numeric context';
+    multi method Real(Mu:U \$v:) {
+        note (nqp::iscont($v)
+              ?? "use of uninitialized variable { $v.VAR.name }"
+              !! "use of uninitialized value")
+            ~ " of type {self.^name} in numeric context";
         0
     }
     
     proto method Str(|$) { * }
-    multi method Str(Mu:U:) {
-        note 'Use of uninitialized value in string context';
+    multi method Str(Mu:U \$v:) {
+        note (nqp::iscont($v)
+              ?? "use of uninitialized variable { $v.VAR.name }"
+              !! "use of uninitialized value")
+            ~ " of type {self.^name} in string context";
         ''
     }
     multi method Str(Mu:D:) {
@@ -171,11 +190,11 @@ my class Mu {
     method DUMP-ID() { self.HOW.name(self) ~ '<' ~ self.WHERE ~ '>' }
     
     proto method isa(|$) { * }
-    multi method isa(Mu $type) {
-        nqp::p6bool(self.HOW.isa(self, $type.WHAT))
+    multi method isa(Mu \$self: Mu $type) {
+        nqp::p6bool($self.HOW.isa($self, $type.WHAT))
     }
-    multi method isa(Str:D $name) {
-        my @mro = self.HOW.mro(self);
+    multi method isa(Mu \$self: Str:D $name) {
+        my @mro = $self.HOW.mro($self);
         my int $mro_count = +@mro;
         my int $i = 0;
         while $i < $mro_count {
@@ -188,12 +207,12 @@ my class Mu {
         Bool::False
     }
     
-    method does(Mu $type) {
-        nqp::p6bool(nqp::istype(self, $type.WHAT))
+    method does(Mu \$self: Mu $type) {
+        nqp::p6bool(nqp::istype($self, $type.WHAT))
     }
     
-    method can($name) {
-        self.HOW.can(self, $name)
+    method can(Mu \$self: $name) {
+        $self.HOW.can($self, $name)
     }
     
     method clone() {
@@ -216,52 +235,52 @@ my class Mu {
     }
     
     # XXX TODO: Handle positional case.
-    method dispatch:<var>($var, |$c) {
-        $var(self, |$c)
+    method dispatch:<var>(Mu \$self: $var, |$c) {
+        $var($self, |$c)
     }
     
-    method dispatch:<::>($name, Mu $type, |$c) {
-        unless nqp::istype(self, $type) {
+    method dispatch:<::>(Mu \$self: $name, Mu $type, |$c) {
+        unless nqp::istype($self, $type) {
             die "Cannot dispatch to a method on " ~ $type.WHAT.perl ~
                 " because it is not inherited or done by " ~
-                self.WHAT.perl;
+                $self.WHAT.perl;
         }
-        pir::find_method__PPS($type, $name)(self, |$c)
+        pir::find_method__PPS($type, $name)($self, |$c)
     }
     
-    method dispatch:<!>($name, Mu $type, |$c) {
+    method dispatch:<!>(Mu \$self: $name, Mu $type, |$c) {
         my $meth := $type.HOW.find_private_method($type, $name);
         $meth ??
-            $meth(self, |$c) !!
+            $meth($self, |$c) !!
             die("Private method '$name' not found on type " ~ $type.HOW.name($type))
             
     }
     
-    method dispatch:<.^>($name, |$c) {
-        self.HOW."$name"(self, |$c)
+    method dispatch:<.^>(Mu \$self: $name, |$c) {
+        self.HOW."$name"($self, |$c)
     }
     
     method dispatch:<.=>(\$mutate: $name, |$c) {
         $mutate = $mutate."$name"(|$c)
     }
     
-    method dispatch:<.?>($name, |$c) {
-        pir::can__IPS(self, $name) ??
-            self."$name"(|$c) !!
+    method dispatch:<.?>(Mu \$self: $name, |$c) {
+        pir::can__IPS($self, $name) ??
+            $self."$name"(|$c) !!
             Nil
     }
     
-    method dispatch:<.+>($name, |$c) {
-        my @result := self.dispatch:<.*>($name, |$c);
+    method dispatch:<.+>(Mu \$self: $name, |$c) {
+        my @result := $self.dispatch:<.*>($name, |$c);
         if @result.elems == 0 {
             die "Method '$name' not found for invocant of type '" ~
-                self.WHAT.perl ~ "'";
+                $self.WHAT.perl ~ "'";
         }
         @result
     }
     
-    method dispatch:<.*>($name, |$c) {
-        my @mro = self.HOW.mro(self);
+    method dispatch:<.*>(Mu \$self: $name, |$c) {
+        my @mro = $self.HOW.mro($self);
         my int $mro_count = +@mro;
         my @results;
         my int $i = 0;
@@ -272,15 +291,81 @@ my class Mu {
                 $meth = ($obj.HOW.submethod_table($obj)){$name};
             }
             if $meth {
-                @results.push($meth(self, |$c));
+                @results.push($meth($self, |$c));
             }
             $i = $i + 1;
         }
         &infix:<,>(|@results)
     }
 
-    method dispatch:<hyper>($name, |$c) {
-        hyper( -> \$obj { $obj."$name"(|$c) }, self )
+    method dispatch:<hyper>(Mu \$self: $name, |$c) {
+        hyper( -> \$obj { $obj."$name"(|$c) }, $self )
+    }
+    
+    method WALK(:$name!, :$canonical, :$ascendant, :$descendant, :$preorder, :$breadth,
+                :$super, :$omit, :$include) {
+        # First, build list of classes in the order we'll need them.
+        my @classes;
+        if $super {
+            @classes = self.^parents(:local);
+        }
+        elsif $breadth {
+            my @search_list = self.WHAT;
+            while @search_list {
+                push @classes, @search_list;
+                my @new_search_list;
+                for @search_list -> $current {
+                    for $current.^parents(:local) -> $next {
+                        unless @new_search_list.grep({ $^c.WHAT =:= $next.WHAT }) {
+                            push @new_search_list, $next;
+                        }
+                    }
+                }
+                @search_list = @new_search_list;
+            }
+        } elsif $ascendant | $preorder {
+            sub build_ascendent(Mu $class) {
+                unless @classes.grep({ $^c.WHAT =:= $class.WHAT }) {
+                    push @classes, $class;
+                    for $class.^parents(:local) {
+                        build_ascendent($^parent);
+                    }
+                }
+            }
+            build_ascendent(self.WHAT);
+        } elsif $descendant {
+            sub build_descendent(Mu $class) {
+                unless @classes.grep({ $^c.WHAT =:= $class.WHAT }) {
+                    for $class.^parents(:local) {
+                        build_descendent($^parent);
+                    }
+                    push @classes, $class;
+                }
+            }
+            build_descendent(self.WHAT);
+        } else {
+            # Canonical, the default (just whatever the meta-class says) with us
+            # on the start.
+            @classes = self.^mro();
+        }
+
+        # Now we have classes, build method list.
+        my @methods;
+        for @classes -> $class {
+            if (!defined($include) || $include.ACCEPTS($class)) &&
+              (!defined($omit) || !$omit.ACCEPTS($class)) {
+                try {
+                    for $class.^methods(:local) -> $method {
+                        my $check_name = $method.?name;
+                        if $check_name.defined && $check_name eq $name {
+                            @methods.push($method);
+                        }
+                    }
+                }
+            }
+        }
+
+        return @methods;
     }
 }
 

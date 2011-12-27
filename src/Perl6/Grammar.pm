@@ -1770,9 +1770,9 @@ grammar Perl6::Grammar is HLL::Grammar {
         [ <?before '()'> <.obs('rand()', 'rand')> ]?
     }
 
-    token term:sym<...> { <sym> <args>? }
-    token term:sym<???> { <sym> <args>? }
-    token term:sym<!!!> { <sym> <args>? }
+    token term:sym<...> { <sym> <args> }
+    token term:sym<???> { <sym> <args> }
+    token term:sym<!!!> { <sym> <args> }
 
     token term:sym<identifier> {
         <identifier> <?[(]> <args>

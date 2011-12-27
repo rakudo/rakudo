@@ -2097,15 +2097,18 @@ grammar Perl6::Grammar is HLL::Grammar {
     token termish {
         :my $*SCOPE := "";
         :my $*MULTINESS := "";
-        <prefixish>*
-        <term>
         [
-        || <?{ $*QSIGIL }>
+        || <prefixish>* <term>
             [
-            || <?{ $*QSIGIL eq '$' }> [ <postfixish>+! <?{ bracket_ending($<postfixish>) }> ]?
-            ||                          <postfixish>+! <?{ bracket_ending($<postfixish>) }>
+            || <?{ $*QSIGIL }>
+                [
+                || <?{ $*QSIGIL eq '$' }> [ <postfixish>+! <?{ bracket_ending($<postfixish>) }> ]?
+                ||                          <postfixish>+! <?{ bracket_ending($<postfixish>) }>
+                ]
+            || <!{ $*QSIGIL }> <postfixish>*
             ]
-        || <!{ $*QSIGIL }> <postfixish>*
+        || <!{ $*QSIGIL }> <?before <infixish> { $/.CURSOR.panic("Preceding context expects a term, but found infix " ~ ~$<infixish> ~ " instead"); } >
+        || <!>
         ]
     }
 

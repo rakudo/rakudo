@@ -2689,16 +2689,26 @@ class Perl6::Actions is HLL::Actions {
         make PAST::Op.new(:name('&rand'), :node($/) );
     }
 
+    sub make_yada($name, $/) {
+	    my $past := $<args>.ast;
+	    $past.name($name);
+	    $past.node($/);
+	    unless +$past.list() {
+            $past.push($*W.add_string_constant('Stub code executed'));
+	    }
+        return $past;
+    }
+
     method term:sym<...>($/) {
-        make PAST::Op.new( :pasttype('call'), :name('&fail'), $*W.add_string_constant('Stub code executed'), :node($/) );
+        make make_yada('&fail', $/);
     }
 
     method term:sym<???>($/) {
-        make PAST::Op.new( :pasttype('call'), :name('&warn'), $*W.add_string_constant('Stub code executed'), :node($/) );
+        make make_yada('&warn', $/);
     }
 
     method term:sym<!!!>($/) {
-        make PAST::Op.new( :pasttype('call'), :name('&die'), $*W.add_string_constant('Stub code executed'), :node($/) );
+        make make_yada('&die', $/);
     }
 
     method term:sym<dotty>($/) {

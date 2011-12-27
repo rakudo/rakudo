@@ -72,7 +72,7 @@ grammar Perl6::Grammar is HLL::Grammar {
     }
 
     token longname {
-        <name> {} [ <?before ':' <[ a..z A..Z _ \< \[ \« ]>> <colonpair> ]*
+        <name> {} [ <?before ':' <+alpha+[\< \[ \« ]>> <colonpair> ]*
     }
 
     token deflongname {

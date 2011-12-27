@@ -72,7 +72,7 @@ grammar Perl6::Grammar is HLL::Grammar {
     }
 
     token longname {
-        <name> <colonpair>*
+        <name> {} [ <?before ':' <[ a..z A..Z _ \< \[ \« ]>> <colonpair> ]*
     }
 
     token deflongname {
@@ -2260,7 +2260,7 @@ grammar Perl6::Grammar is HLL::Grammar {
         [
             [
             | <?[(]> <args>
-            | ':' \s <!{ $*QSIGIL }> <args=.arglist>
+            | ':' <?before \s | '{'> <!{ $*QSIGIL }> <args=.arglist>
             ]
             || <!{ $*QSIGIL }> <?>
             || <?{ $*QSIGIL }> <?['.']> <?>

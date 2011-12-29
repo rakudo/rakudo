@@ -64,7 +64,7 @@ Have a great deal of fun!
     The Rakudo Star distribution is the Rakudo compiler plus a selection
     of useful Perl 6 modules, the most recent incarnation of the "Using
     Perl 6" book, and other software that can be used with the Rakudo
-    compiler to enchance its utility.  Rakudo Star is meant for early
+    compiler to enhance its utility.  Rakudo Star is meant for early
     adopters who wish to explore what's possible with Rakudo Perl 6 and
     provide feedback on what works, what doesn't, and what else they
     would like to see included in the distribution.

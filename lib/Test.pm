@@ -129,9 +129,7 @@ sub skip_rest($reason = '<unknown>') is export {
 
 sub diag($message) is export {
     $time_after = nqp::p6box_n(pir::time__N);
-    # XXX No regexes yet in nom
-    #say $message.subst(rx/^^/, '# ', :g);
-    say "# " ~ $message;
+    say $message.Str.subst(rx/^^/, '# ', :g);
     $time_before = nqp::p6box_n(pir::time__N);
 }
 
@@ -177,8 +175,7 @@ multi sub eval_dies_ok(Str $code, $reason = '') is export {
     $time_after = nqp::p6box_n(pir::time__N);
     my $ee = eval_exception($code);
     if defined $ee {
-        # XXX no regexes yet in nom
-        my $bad_death = $ee.Str.index('Null PMC access ').defined;
+        my $bad_death = $ee.Str ~~ rx/Null PMC access/;
         if $bad_death {
             diag "wrong way to die: '$ee'";
         }

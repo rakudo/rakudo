@@ -63,7 +63,7 @@ multi sub pass($desc = '') is export {
 
 multi sub ok(Mu $cond, $desc = '') is export {
     $time_after = nqp::p6box_n(pir::time__N);
-    proclaim(?$cond, '');
+    proclaim(?$cond, $desc);
     $time_before = nqp::p6box_n(pir::time__N);
 }
 
@@ -141,20 +141,14 @@ multi sub flunk($reason) is export {
     $time_before = nqp::p6box_n(pir::time__N);
 }
 
-multi sub isa_ok(Mu $var, Mu $type) is export {
-    $time_after = nqp::p6box_n(pir::time__N);
-    ok($var.isa($type), "The object is-a '" ~ $type.perl ~ "'")
-        or diag('Actual type: ' ~ $var.WHAT);
-    $time_before = nqp::p6box_n(pir::time__N);
-}
-multi sub isa_ok(Mu $var, Mu $type, $msg) is export {
+multi sub isa_ok(Mu $var, Mu $type, $msg = ("The object is-a '" ~ $type.perl ~ "'")) is export {
     $time_after = nqp::p6box_n(pir::time__N);
     ok($var.isa($type), $msg)
         or diag('Actual type: ' ~ $var.WHAT);
     $time_before = nqp::p6box_n(pir::time__N);
 }
 
-multi sub dies_ok(Callable $closure, $reason) is export {
+multi sub dies_ok(Callable $closure, $reason = '') is export {
     $time_after = nqp::p6box_n(pir::time__N);
     my $death = 1;
     my $bad_death = 0;
@@ -167,11 +161,6 @@ multi sub dies_ok(Callable $closure, $reason) is export {
         diag("Wrong way to die: '$!'");
     }
     proclaim( $death && !$bad_death, $reason );
-    $time_before = nqp::p6box_n(pir::time__N);
-}
-multi sub dies_ok(Callable $closure) is export {
-    $time_after = nqp::p6box_n(pir::time__N);
-    dies_ok($closure, '');
     $time_before = nqp::p6box_n(pir::time__N);
 }
 

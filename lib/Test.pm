@@ -129,9 +129,7 @@ sub skip_rest($reason = '<unknown>') is export {
 
 sub diag($message) is export {
     $time_after = nqp::p6box_n(pir::time__N);
-    # XXX No regexes yet in nom
-    #say $message.subst(rx/^^/, '# ', :g);
-    say "# " ~ $message;
+    say $message.Str.subst(rx/^^/, '# ', :g);
     $time_before = nqp::p6box_n(pir::time__N);
 }
 

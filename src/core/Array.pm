@@ -81,4 +81,4 @@ class Array {
 }
 
 
-sub circumfix:<[ ]>(*@elems) is rw { my $x = @elems }
+sub circumfix:<[ ]>(*@elems) is rw { my $x = @elems.eager }

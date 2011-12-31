@@ -69,11 +69,37 @@ my class Parameter {
         ?($!flags +& $SIG_ELEM_IS_OPTIONAL)
     }
     
-    # XXX TODO: Many more bits :-)
+    # XXX TODO: A few more bits :-)
     multi method perl(Parameter:D:) {
         my $perl = $!nominal_type.HOW.name($!nominal_type);
+        if $!flags +& $SIG_ELEM_DEFINED_ONLY {
+            $perl ~= ':D';
+        } elsif $!flags +& $SIG_ELEM_UNDEFINED_ONLY {
+            $perl ~= ':U';
+        }
         if $!variable_name {
-            $perl = $perl ~ " " ~ $!variable_name;
+            my $name = $!variable_name;
+            if $!flags +& $SIG_ELEM_IS_CAPTURE {
+                $perl = '|' ~ $name;
+            } elsif $!flags +& $SIG_ELEM_IS_PARCEL {
+                $perl = '\\' ~ $name;
+            } else {
+                if self.named {
+                    my @names := self.named_names;
+                    $name = ':' ~ @names.pop ~ '(' ~ $name ~ ')' while +@names;
+                    $name ~= '!' unless self.optional;
+                } elsif self.optional {
+                    $name ~= '?';
+                } elsif self.slurpy {
+                    $name = '*' ~ $name;
+                }
+                $perl = $perl ~ ' ' ~ $name;
+                if $!flags +& $SIG_ELEM_IS_RW {
+                    $perl ~= ' is rw';
+                } elsif $!flags +& $SIG_ELEM_IS_COPY {
+                    $perl ~= ' is copy';
+                }
+            }
         }
         $perl
     }

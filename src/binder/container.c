@@ -15,26 +15,28 @@ PMC *Rakudo_cont_decontainerize(PARROT_INTERP, PMC *var) {
     ContainerSpec *spec;
     
     /* Fast path for Perl 6 Scalar containers. */
-    if (STABLE(var)->WHAT == scalar_type && IS_CONCRETE(var))
-        return ((Rakudo_Scalar *)PMC_data(var))->value;
-    
-    /* Otherwise, fall back to the usual API. */
-    spec = STABLE(var)->container_spec;
-    if (spec) {
-        if (!PMC_IS_NULL(spec->value_slot.class_handle)) {
-            /* Just get slot. */
-            return VTABLE_get_attr_keyed(interp, var, spec->value_slot.class_handle,
-                spec->value_slot.attr_name);
-        }
-        else {
-            /* Invoke FETCH method. */
-            PMC *old_ctx = Parrot_pcc_get_signature(interp, CURRENT_CONTEXT(interp));
-            PMC *cappy   = Parrot_pmc_new(interp, enum_class_CallContext);
-            VTABLE_push_pmc(interp, cappy, var);
-            Parrot_pcc_invoke_from_sig_object(interp, spec->fetch_method, cappy);
-            cappy = Parrot_pcc_get_signature(interp, CURRENT_CONTEXT(interp));
-            Parrot_pcc_set_signature(interp, CURRENT_CONTEXT(interp), old_ctx);
-            return VTABLE_get_pmc_keyed_int(interp, cappy, 0);
+    if (IS_CONCRETE(var)) {
+        if (STABLE(var)->WHAT == scalar_type)
+            return ((Rakudo_Scalar *)PMC_data(var))->value;
+        
+        /* Otherwise, fall back to the usual API. */
+        spec = STABLE(var)->container_spec;
+        if (spec) {
+            if (!PMC_IS_NULL(spec->value_slot.class_handle)) {
+                /* Just get slot. */
+                return VTABLE_get_attr_keyed(interp, var, spec->value_slot.class_handle,
+                    spec->value_slot.attr_name);
+            }
+            else {
+                /* Invoke FETCH method. */
+                PMC *old_ctx = Parrot_pcc_get_signature(interp, CURRENT_CONTEXT(interp));
+                PMC *cappy   = Parrot_pmc_new(interp, enum_class_CallContext);
+                VTABLE_push_pmc(interp, cappy, var);
+                Parrot_pcc_invoke_from_sig_object(interp, spec->fetch_method, cappy);
+                cappy = Parrot_pcc_get_signature(interp, CURRENT_CONTEXT(interp));
+                Parrot_pcc_set_signature(interp, CURRENT_CONTEXT(interp), old_ctx);
+                return VTABLE_get_pmc_keyed_int(interp, cappy, 0);
+            }
         }
     }
     return var;

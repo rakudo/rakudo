@@ -17,7 +17,7 @@
 # as a way to do type-checking or punning.
 class Perl6::Metamodel::CurriedRoleHOW
     does Perl6::Metamodel::RolePunning
-    does Perl6::Metamodel::TypePretence
+    does Perl6::Metamodel::TypePretense
 {
     has $!curried_role;
     has @!pos_args;

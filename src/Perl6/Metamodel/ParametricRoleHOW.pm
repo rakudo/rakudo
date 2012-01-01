@@ -10,7 +10,7 @@ class Perl6::Metamodel::ParametricRoleHOW
     does Perl6::Metamodel::RoleContainer
     does Perl6::Metamodel::MultipleInheritance
     does Perl6::Metamodel::Stashing
-    does Perl6::Metamodel::TypePretence
+    does Perl6::Metamodel::TypePretense
     does Perl6::Metamodel::RolePunning
 {
     has $!composed;

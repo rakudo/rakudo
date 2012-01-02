@@ -113,6 +113,11 @@ multi sub todo($reason, $count = 1) is export {
     $time_before = nqp::p6box_n(pir::time__N);
 }
 
+multi sub skip() {
+    $time_after = nqp::p6box_n(pir::time__N);
+    proclaim(1, "# SKIP");
+    $time_before = nqp::p6box_n(pir::time__N);
+}
 multi sub skip($reason, $count = 1) is export {
     $time_after = nqp::p6box_n(pir::time__N);
     die "skip() was passed a non-numeric number of tests.  Did you get the arguments backwards?" if $count !~~ Numeric;

@@ -11,6 +11,7 @@ sub MAIN(@ARGS) {
     $comp.language('perl6');
     $comp.parsegrammar(Perl6::Grammar);
     $comp.parseactions(Perl6::Actions);
+    $comp.addstage('syntaxcheck', :before<past>);
     $comp.addstage('optimize', :before<post>);
     hll-config($comp.config);
     
@@ -22,6 +23,7 @@ sub MAIN(@ARGS) {
     @clo.push('p');
     @clo.push('doc=s?');
     @clo.push('optimize=s?');
+    @clo.push('c');
     
     # Set up END block list, which we'll run at exit.
     my @*END_PHASERS := [];

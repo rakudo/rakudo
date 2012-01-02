@@ -52,10 +52,10 @@ my class Hash {
         my $has_previous;
         for @values -> $e {
             if $has_previous {
-                self._push_construct($previous.Stringy, $e);
+                self!_push_construct($previous.Str, $e);
                 $has_previous = 0;
-            } elsif $e ~~ Pair {
-                self._push_construct($e.key.Stringy, $e.value);
+            } elsif $e.^isa(Enum) {
+                self!_push_construct($e.key.Str, $e.value);
             } else {
                 $previous = $e;
                 $has_previous = 1;
@@ -64,14 +64,13 @@ my class Hash {
         if $has_previous {
             warn "Trailing item in Hash.push";
         }
-        return %(self);
+        self
     }
 
     # push a value onto a hash slot, constructing an array if necessary
-    # XXX should be a private method
-    method _push_construct(Str $key, Mu $value) {
+    method !_push_construct(Str $key, Mu $value) {
         if self.exists($key) {
-            if self.{$key} ~~ Array {
+            if self.{$key}.^isa(Array) {
                 self.{$key}.push($value);
             } else {
                 my Mu $tmp = self.{$key};

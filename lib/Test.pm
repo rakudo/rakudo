@@ -31,12 +31,7 @@ sub die_on_fail($fail=1) {
 
 # "plan 'no_plan';" is now "plan *;"
 # It is also the default if nobody calls plan at all
-# multi sub plan(Whatever $plan) is export {
-#     $no_plan = 1;
-# }
-
-proto sub plan(|$) is export { * }
-multi sub plan($number_of_tests) {
+multi sub plan($number_of_tests) is export {
     if $number_of_tests ~~ ::Whatever {
         $no_plan = 1;
     }
@@ -60,39 +55,25 @@ multi sub plan($number_of_tests) {
     $time_before = nqp::p6box_n(pir::time__N);
 }
 
-proto sub pass(|$) is export { * }
-multi sub pass($desc) {
+multi sub pass($desc = '') is export {
     $time_after = nqp::p6box_n(pir::time__N);
     proclaim(1, $desc);
     $time_before = nqp::p6box_n(pir::time__N);
 }
 
-proto sub ok(|$) is export { * }
-multi sub ok(Mu $cond, $desc) {
+multi sub ok(Mu $cond, $desc = '') is export {
     $time_after = nqp::p6box_n(pir::time__N);
     proclaim(?$cond, $desc);
     $time_before = nqp::p6box_n(pir::time__N);
 }
-multi sub ok(Mu $cond) {
-    $time_after = nqp::p6box_n(pir::time__N);
-    proclaim(?$cond, '');
-    $time_before = nqp::p6box_n(pir::time__N);
-}
 
-proto sub nok(|$) is export { * }
-multi sub nok(Mu $cond, $desc) {
+multi sub nok(Mu $cond, $desc = '') is export {
     $time_after = nqp::p6box_n(pir::time__N);
     proclaim(!$cond, $desc);
     $time_before = nqp::p6box_n(pir::time__N);
 }
-multi sub nok(Mu $cond) {
-    $time_after = nqp::p6box_n(pir::time__N);
-    proclaim(!$cond, '');
-    $time_before = nqp::p6box_n(pir::time__N);
-}
 
-proto sub is(|$) is export { * }
-multi sub is(Mu $got, Mu $expected, $desc) {
+multi sub is(Mu $got, Mu $expected, $desc = '') is export {
     $time_after = nqp::p6box_n(pir::time__N);
     $got.defined; # Hack to deal with Failures
     my $test = $got eq $expected;
@@ -104,35 +85,15 @@ multi sub is(Mu $got, Mu $expected, $desc) {
     $test;
     $time_before = nqp::p6box_n(pir::time__N);
 }
-multi sub is(Mu $got, Mu $expected) {
-    $time_after = nqp::p6box_n(pir::time__N);
-    $got.defined; # Hack to deal with Failures
-    my $test = $got eq $expected;
-    proclaim(?$test, '');
-    if !$test {
-        diag "     got: '$got'";
-        diag "expected: '$expected'";
-    }
-    $test;
-    $time_before = nqp::p6box_n(pir::time__N);
-}
 
-proto sub isnt(|$) is export { * }
-multi sub isnt(Mu $got, Mu $expected, $desc) {
+multi sub isnt(Mu $got, Mu $expected, $desc = '') is export {
     $time_after = nqp::p6box_n(pir::time__N);
     my $test = !($got eq $expected);
     proclaim($test, $desc);
     $time_before = nqp::p6box_n(pir::time__N);
 }
-multi sub isnt(Mu $got, Mu $expected) {
-    $time_after = nqp::p6box_n(pir::time__N);
-    my $test = !($got eq $expected);
-    proclaim($test, '');
-    $time_before = nqp::p6box_n(pir::time__N);
-}
 
-proto sub is_approx(|$) is export { * }
-multi sub is_approx(Mu $got, Mu $expected, $desc) {
+multi sub is_approx(Mu $got, Mu $expected, $desc = '') is export {
     $time_after = nqp::p6box_n(pir::time__N);
     my $tol = $expected.abs < 1e-6 ?? 1e-5 !! $expected.abs * 1e-6;
     my $test = ($got - $expected).abs <= $tol;
@@ -144,44 +105,20 @@ multi sub is_approx(Mu $got, Mu $expected, $desc) {
     ?$test;
     $time_before = nqp::p6box_n(pir::time__N);
 }
-multi sub is_approx(Mu $got, Mu $expected) {
-    $time_after = nqp::p6box_n(pir::time__N);
-    my $test = ($got - $expected).abs <= 1/100000;
-    proclaim(?$test, '');
-    unless $test {
-        diag("got:      $got");
-        diag("expected: $expected");
-    }
-    ?$test;
-    $time_before = nqp::p6box_n(pir::time__N);
-}
 
-proto sub todo(|$) is export { * }
-multi sub todo($reason, $count) {
+multi sub todo($reason, $count = 1) is export {
     $time_after = nqp::p6box_n(pir::time__N);
     $todo_upto_test_num = $num_of_tests_run + $count;
     $todo_reason = '# TODO ' ~ $reason;
     $time_before = nqp::p6box_n(pir::time__N);
 }
-multi sub todo($reason) {
-    $time_after = nqp::p6box_n(pir::time__N);
-    $todo_upto_test_num = $num_of_tests_run + 1;
-    $todo_reason = '# TODO ' ~ $reason;
-    $time_before = nqp::p6box_n(pir::time__N);
-}
 
-proto sub skip(|$) is export { * }
 multi sub skip() {
     $time_after = nqp::p6box_n(pir::time__N);
     proclaim(1, "# SKIP");
     $time_before = nqp::p6box_n(pir::time__N);
 }
-multi sub skip($reason) {
-    $time_after = nqp::p6box_n(pir::time__N);
-    proclaim(1, "# SKIP " ~ $reason);
-    $time_before = nqp::p6box_n(pir::time__N);
-}
-multi sub skip($reason, $count) {
+multi sub skip($reason, $count = 1) is export {
     $time_after = nqp::p6box_n(pir::time__N);
     die "skip() was passed a non-numeric number of tests.  Did you get the arguments backwards?" if $count !~~ Numeric;
     my $i = 1;
@@ -197,35 +134,24 @@ sub skip_rest($reason = '<unknown>') is export {
 
 sub diag($message) is export {
     $time_after = nqp::p6box_n(pir::time__N);
-    # XXX No regexes yet in nom
-    #say $message.subst(rx/^^/, '# ', :g);
-    say "# " ~ $message;
+    say $message.Str.subst(rx/^^/, '# ', :g);
     $time_before = nqp::p6box_n(pir::time__N);
 }
 
-proto sub flunk(|$) is export { * }
-multi sub flunk($reason) {
+multi sub flunk($reason) is export {
     $time_after = nqp::p6box_n(pir::time__N);
     proclaim(0, "flunk $reason");
     $time_before = nqp::p6box_n(pir::time__N);
 }
 
-proto sub isa_ok(|$) is export { * }
-multi sub isa_ok(Mu $var, Mu $type) {
-    $time_after = nqp::p6box_n(pir::time__N);
-    ok($var.isa($type), "The object is-a '" ~ $type.perl ~ "'")
-        or diag('Actual type: ' ~ $var.WHAT);
-    $time_before = nqp::p6box_n(pir::time__N);
-}
-multi sub isa_ok(Mu $var, Mu $type, $msg) {
+multi sub isa_ok(Mu $var, Mu $type, $msg = ("The object is-a '" ~ $type.perl ~ "'")) is export {
     $time_after = nqp::p6box_n(pir::time__N);
     ok($var.isa($type), $msg)
         or diag('Actual type: ' ~ $var.WHAT);
     $time_before = nqp::p6box_n(pir::time__N);
 }
 
-proto sub dies_ok(|$) is export { * }
-multi sub dies_ok(Callable $closure, $reason) {
+multi sub dies_ok(Callable $closure, $reason = '') is export {
     $time_after = nqp::p6box_n(pir::time__N);
     my $death = 1;
     my $bad_death = 0;
@@ -240,14 +166,8 @@ multi sub dies_ok(Callable $closure, $reason) {
     proclaim( $death && !$bad_death, $reason );
     $time_before = nqp::p6box_n(pir::time__N);
 }
-multi sub dies_ok(Callable $closure) {
-    $time_after = nqp::p6box_n(pir::time__N);
-    dies_ok($closure, '');
-    $time_before = nqp::p6box_n(pir::time__N);
-}
 
-proto sub lives_ok(|$) is export { * }
-multi sub lives_ok(Callable $closure, $reason){
+multi sub lives_ok(Callable $closure, $reason = '') is export {
     $time_after = nqp::p6box_n(pir::time__N);
     try {
         $closure();
@@ -255,14 +175,8 @@ multi sub lives_ok(Callable $closure, $reason){
     proclaim((not defined $!), $reason) or diag($!);
     $time_before = nqp::p6box_n(pir::time__N);
 }
-multi sub lives_ok(Callable $closure) {
-    $time_after = nqp::p6box_n(pir::time__N);
-    lives_ok($closure, '');
-    $time_before = nqp::p6box_n(pir::time__N);
-}
 
-proto sub eval_dies_ok(|$) is export { * }
-multi sub eval_dies_ok(Str $code, $reason) {
+multi sub eval_dies_ok(Str $code, $reason = '') is export {
     $time_after = nqp::p6box_n(pir::time__N);
     my $ee = eval_exception($code);
     if defined $ee {
@@ -278,30 +192,16 @@ multi sub eval_dies_ok(Str $code, $reason) {
     }
     $time_before = nqp::p6box_n(pir::time__N);
 }
-multi sub eval_dies_ok(Str $code) {
-    $time_after = nqp::p6box_n(pir::time__N);
-    eval_dies_ok($code, '');
-    $time_before = nqp::p6box_n(pir::time__N);
-}
 
-proto sub eval_lives_ok(|$) is export { * }
-multi sub eval_lives_ok(Str $code, $reason) {
+multi sub eval_lives_ok(Str $code, $reason = '') is export {
     $time_after = nqp::p6box_n(pir::time__N);
     my $ee = eval_exception($code);
     proclaim((not defined $ee), $reason)
-        or note("Error: $ee");
-    $time_before = nqp::p6box_n(pir::time__N);
-}
-multi sub eval_lives_ok(Str $code) {
-    $time_after = nqp::p6box_n(pir::time__N);
-    my $ee = eval_exception($code);
-    proclaim((not defined $ee), '')
-        or note("Error: $ee");
+        or diag("Error: $ee");
     $time_before = nqp::p6box_n(pir::time__N);
 }
 
-proto sub is_deeply(|$) is export { * }
-multi sub is_deeply(Mu $got, Mu $expected, $reason = '')
+multi sub is_deeply(Mu $got, Mu $expected, $reason = '') is export
 {
     $time_after = nqp::p6box_n(pir::time__N);
     my $test = _is_deeply( $got, $expected );

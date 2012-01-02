@@ -1,4 +1,4 @@
-role Perl6::Metamodel::TypePretence {
+role Perl6::Metamodel::TypePretense {
     my @pretending;
     
     method pretend_to_be(@types) {

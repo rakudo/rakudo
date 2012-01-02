@@ -54,28 +54,28 @@ my class Any {
 
     method min($by = &infix:<cmp>) {
         my $cmp = $by.arity == 2 ?? $by !! { $by($^a) cmp $by($^b) }
-        my $min = +$Inf;
+        my $min;
         for self { 
-            $min = $_ if .defined && $cmp($_, $min) < 0;
+            $min = $_ if .defined and !$min.defined || $cmp($_, $min) < 0;
         }
-        $min;
+        $min // +$Inf;
     }
 
     method max($by = &infix:<cmp>) {
         my $cmp = $by.arity == 2 ?? $by !! { $by($^a) cmp $by($^b) }
-        my $max = -$Inf;
+        my $max;
         for self { 
-            $max = $_ if .defined && $cmp($_, $max) > 0;
+            $max = $_ if .defined and !$max.defined || $cmp($_, $max) > 0;
         }
-        $max;
+        $max // -$Inf;
     }
 
 
     method minmax($by = &infix:<cmp>) {
         my $cmp = $by.arity == 2 ?? $by !! { $by($^a) cmp $by($^b) };
 
-        my $min = +$Inf;
-        my $max = -$Inf;
+        my $min;
+        my $max;
         my $excludes_min = Bool::False;
         my $excludes_max = Bool::False;
 
@@ -83,27 +83,27 @@ my class Any {
             .defined or next;
 
             if .isa(Range) {
-                if $cmp($_.min, $min) < 0 {
+                if !$min.defined || $cmp($_.min, $min) < 0 {
                     $min = $_;
                     $excludes_min = $_.excludes_min;
                 }
-                if $cmp($_.max, $max) > 0 {
+                if !$max.defined || $cmp($_.max, $max) > 0 {
                     $max = $_;
                     $excludes_max = $_.excludes_max;
                 }
             } else {
-                if $cmp($_, $min) < 0 {
+                if !$min.defined || $cmp($_, $min) < 0 {
                     $min = $_;
                     $excludes_min = Bool::False;
                 }
-                if $cmp($_, $max) > 0 {
+                if !$max.defined || $cmp($_, $max) > 0 {
                     $max = $_;
                     $excludes_max = Bool::False;
                 }
             }
         }
-        Range.new($min,
-                  $max,
+        Range.new($min // +$Inf,
+                  $max // -$Inf,
                   :excludes_min($excludes_min),
                   :excludes_max($excludes_max));
     }

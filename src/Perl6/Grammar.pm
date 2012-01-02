@@ -72,7 +72,7 @@ grammar Perl6::Grammar is HLL::Grammar {
     }
 
     token longname {
-        <name> <colonpair>*
+        <name> {} [ <?before ':' <+alpha+[\< \[ \« ]>> <colonpair> ]*
     }
 
     token deflongname {
@@ -1770,9 +1770,9 @@ grammar Perl6::Grammar is HLL::Grammar {
         [ <?before '()'> <.obs('rand()', 'rand')> ]?
     }
 
-    token term:sym<...> { <sym> <args>? }
-    token term:sym<???> { <sym> <args>? }
-    token term:sym<!!!> { <sym> <args>? }
+    token term:sym<...> { <sym> <args> }
+    token term:sym<???> { <sym> <args> }
+    token term:sym<!!!> { <sym> <args> }
 
     token term:sym<identifier> {
         <identifier> <?[(]> <args>
@@ -2097,15 +2097,18 @@ grammar Perl6::Grammar is HLL::Grammar {
     token termish {
         :my $*SCOPE := "";
         :my $*MULTINESS := "";
-        <prefixish>*
-        <term>
         [
-        || <?{ $*QSIGIL }>
+        || <prefixish>* <term>
             [
-            || <?{ $*QSIGIL eq '$' }> [ <postfixish>+! <?{ bracket_ending($<postfixish>) }> ]?
-            ||                          <postfixish>+! <?{ bracket_ending($<postfixish>) }>
+            || <?{ $*QSIGIL }>
+                [
+                || <?{ $*QSIGIL eq '$' }> [ <postfixish>+! <?{ bracket_ending($<postfixish>) }> ]?
+                ||                          <postfixish>+! <?{ bracket_ending($<postfixish>) }>
+                ]
+            || <!{ $*QSIGIL }> <postfixish>*
             ]
-        || <!{ $*QSIGIL }> <postfixish>*
+        || <!{ $*QSIGIL }> <?before <infixish> { $/.CURSOR.panic("Preceding context expects a term, but found infix " ~ ~$<infixish> ~ " instead"); } >
+        || <!>
         ]
     }
 
@@ -2260,7 +2263,7 @@ grammar Perl6::Grammar is HLL::Grammar {
         [
             [
             | <?[(]> <args>
-            | ':' \s <!{ $*QSIGIL }> <args=.arglist>
+            | ':' <?before \s | '{'> <!{ $*QSIGIL }> <args=.arglist>
             ]
             || <!{ $*QSIGIL }> <?>
             || <?{ $*QSIGIL }> <?['.']> <?>

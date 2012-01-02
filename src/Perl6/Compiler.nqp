@@ -24,6 +24,14 @@ class Perl6::Compiler is HLL::Compiler {
             Perl6::Optimizer.new.optimize($past, |%adverbs)
     }
 
+    method syntaxcheck($past, *%adverbs) {
+        if %adverbs<c> {
+            say("Syntax OK");
+            pir::exit__vi(0);
+        }
+        $past;
+    }
+
     method autoprint($value) {
         unless pir::getinterp__P().stdout_handle().tell() > $*AUTOPRINTPOS {
             if pir::can($value, 'gist') {

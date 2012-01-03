@@ -2149,7 +2149,7 @@ grammar Perl6::Grammar is HLL::Grammar {
         # last whitespace didn't end here
         <!MARKED('ws')>
 
-        [ <.unsp> | '\\' ]?
+        [ <!{ $*QSIGIL }> [ <.unsp> | '\\' ] ]?
 
         <postfix_prefix_meta_operator>?
         [

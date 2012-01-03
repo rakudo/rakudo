@@ -86,7 +86,12 @@ my class Parameter {
             } else {
                 if self.named {
                     my @names := self.named_names;
-                    $name = ':' ~ @names.pop ~ '(' ~ $name ~ ')' while +@names;
+                    my $/ := $name ~~ / ^^ $<sigil>=<[$@%&]> $<desigil>=(@names) $$ /;
+                    $name = ':' ~ $name if $/;
+                    for @names {
+                        next if $/ and $_ eq $<desigil>;
+                        $name = ':' ~ $_ ~ '(' ~ $name ~ ')';
+                    }
                     $name ~= '!' unless self.optional;
                 } elsif self.optional {
                     $name ~= '?';

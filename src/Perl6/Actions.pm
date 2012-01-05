@@ -1142,7 +1142,7 @@ class Perl6::Actions is HLL::Actions {
         elsif +@name > 1 {
             $past := $*W.symbol_lookup(@name, $/, :lvalue(1));
         }
-        elsif (my $attr_alias := $*W.is_attr_alias($past.name)) {
+        elsif $*IN_DECL ne 'variable' && (my $attr_alias := $*W.is_attr_alias($past.name)) {
             $past.name($attr_alias);
             $past.scope('attribute_6model');
             $past.unshift(instantiated_type(['$?CLASS'], $/));

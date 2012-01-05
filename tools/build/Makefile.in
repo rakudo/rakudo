@@ -258,6 +258,7 @@ CLEANUPS = \
   $(OPS_DIR)/*$(LOAD_EXT) \
   src/binder/*$(O) \
   CORE.setting.pbc \
+  CORE2.setting.pbc \
   SAFE.setting.pbc \
 
 # NOTE: eventually, we should remove --keep-exit-code and --fudge
@@ -286,6 +287,7 @@ install: all
 	$(MKPATH) 					  $(DESTDIR)$(PERL6_LANG_DIR)/lib/Pod/To
 	$(CP)     lib/Pod/To/Text.pm  $(DESTDIR)$(PERL6_LANG_DIR)/lib/Pod/To
 	$(CP)     CORE.setting.pbc    $(DESTDIR)$(PERL6_LANG_DIR)/lib/CORE.setting.pbc
+	$(CP)     CORE2.setting.pbc   $(DESTDIR)$(PERL6_LANG_DIR)/lib/CORE2.setting.pbc
 	$(CP)     SAFE.setting.pbc    $(DESTDIR)$(PERL6_LANG_DIR)/lib/SAFE.setting.pbc
 	$(MKPATH)                     $(DESTDIR)$(PARROT_LIB_DIR)/dynext
 	$(CP)     $(DYNPMC) $(DYNOPS) $(DESTDIR)$(PARROT_LIB_DIR)/dynext
@@ -365,7 +367,7 @@ $(SETTING2): $(SETTING) $(CORE2_SOURCES)
 	./$(PERL6_EXE) --setting=CORE --optimize=3 --target=pir $(STAGESTATS) --output=$(SETTING2_PIR) src/gen/CORE2.setting
 	$(PARROT) $(PARROT_ARGS) -o $(SETTING2) $(SETTING2_PIR)
 
-$(S_SETTING): $(PERL6_M_PBC) $(PERL6_EXE) $(SETTING)
+$(S_SETTING): $(PERL6_M_PBC) $(PERL6_EXE) $(SETTING2)
 	./$(PERL6_EXE) --target=pir $(STAGESTATS) --output=$(S_SETTING_PIR) src/SAFE.setting
 	$(PARROT) $(PARROT_ARGS) -o $(S_SETTING) $(S_SETTING_PIR)
     

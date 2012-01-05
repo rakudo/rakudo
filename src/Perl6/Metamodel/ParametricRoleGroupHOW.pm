@@ -16,6 +16,7 @@ class Perl6::Metamodel::ParametricRoleGroupHOW
     does Perl6::Metamodel::Stashing
     does Perl6::Metamodel::TypePretense
     does Perl6::Metamodel::RolePunning
+    does Perl6::Metamodel::BoolificationProtocol
 {
     has @!possibilities;
     has @!add_to_selector;
@@ -34,7 +35,10 @@ class Perl6::Metamodel::ParametricRoleGroupHOW
     
     method new_type(:$name!, :$repr) {
         my $meta := self.new(:name($name), :selector($selector_creator()));
-        self.add_stash(pir::repr_type_object_for__PPS($meta, 'Uninstantiable'));
+        my $type_obj := self.add_stash(pir::repr_type_object_for__PPS($meta, 'Uninstantiable'));
+        $meta.set_boolification_mode($type_obj, 5);
+        $meta.publish_boolification_spec($type_obj);
+        $type_obj
     }
     
     method parameterize($obj, *@pos_args, *%named_args) {
@@ -51,10 +55,10 @@ class Perl6::Metamodel::ParametricRoleGroupHOW
         # Locate correct parametric role and type environment.
         my $error;
         my @result;
-        #try {
+        try {
             @result := (self.get_selector($obj))(|@pos_args, |%named_args);
-        #    CATCH { $error := $! }
-        #}
+            CATCH { $error := $! }
+        }
         if $error {
             pir::die("None of the parametric role variants for '" ~
                 self.name($obj) ~ "' matched the arguments supplied.\n" ~

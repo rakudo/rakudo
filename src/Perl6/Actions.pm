@@ -2335,7 +2335,15 @@ class Perl6::Actions is HLL::Actions {
                     $/.CURSOR.panic('Parameter may only have one prefix type constraint');
                 }
                 my $type := $<typename>.ast;
-                if $type.HOW.archetypes.nominal {
+                if nqp::isconcrete($type) {
+                    # Actual a value that parses type-ish.
+                    %*PARAM_INFO<nominal_type> := $type.WHAT;
+                    unless %*PARAM_INFO<post_constraints> {
+                        %*PARAM_INFO<post_constraints> := [];
+                    }
+                    %*PARAM_INFO<post_constraints>.push($type);
+                }
+                elsif $type.HOW.archetypes.nominal {
                     %*PARAM_INFO<nominal_type> := $type;
                 }
                 elsif $type.HOW.archetypes.generic {

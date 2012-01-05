@@ -116,8 +116,7 @@ my sub MAIN_HELPER($retval = 0) {
                 if $param.named {
                     my @names  = $param.named_names.reverse;
                     $argument  = @names.map({($^n.chars == 1 ?? '-' !! '--') ~ $^n}).join('|');
-                    my $type   = $param.type;
-                    $argument ~= "=<$type>" unless $type ~~ 'Bool';
+                    $argument ~= "=<{$param.type.^name}>" unless $param.type === Bool;
                     if $param.optional {
                         @optional-named.push("[$argument]");
                     }
@@ -130,7 +129,7 @@ my sub MAIN_HELPER($retval = 0) {
                     my $simple-const = $constraints && $constraints !~~ /^_block/;
                     $argument = $param.name   ?? '<' ~ $param.name.substr(1) ~ '>' !!
                                 $simple-const ??       $constraints                !!
-                                                 '<' ~ $param.type           ~ '>' ;
+                                                 '<' ~ $param.type.^name     ~ '>' ;
 
                     $argument = "[$argument ...]" if $param.slurpy;
                     $argument = "[$argument]"     if $param.optional;

@@ -73,6 +73,8 @@ PERL6_M       = src/gen/perl6-metamodel.pir
 PERL6_M_PBC   = blib/Perl6/Metamodel.pbc
 SETTING_PIR   = src/gen/CORE.setting.pir
 SETTING       = CORE.setting.pbc
+SETTING2_PIR  = src/gen/CORE2.setting.pir
+SETTING2      = CORE2.setting.pbc
 S_SETTING_PIR = src/gen/SAFE.setting.pir
 S_SETTING     = SAFE.setting.pbc
 GROUP         = perl6_group
@@ -219,6 +221,9 @@ CORE_SOURCES = \
   src/core/NYI.pm \
   src/core/you_are_here.pm \
 
+CORE2_SOURCES = \
+  src/core2/fixups.pm
+
 DOCS = README CREDITS LICENSE docs/*
 
 CLEANUPS = \
@@ -354,6 +359,11 @@ $(SETTING): $(PERL6_M_PBC) $(PERL6_EXE) $(CORE_SOURCES)
 	@echo "The following step can take a long time, please be patient."
 	./$(PERL6_EXE) --setting=NULL --optimize=3 --target=pir $(STAGESTATS) --output=$(SETTING_PIR) src/gen/CORE.setting
 	$(PARROT) $(PARROT_ARGS) -o $(SETTING) $(SETTING_PIR)
+
+$(SETTING2): $(SETTING) $(CORE2_SOURCES)
+	$(PERL) $(GEN_CAT) $(CORE2_SOURCES) > src/gen/CORE2.setting
+	./$(PERL6_EXE) --setting=CORE --optimize=3 --target=pir $(STAGESTATS) --output=$(SETTING2_PIR) src/gen/CORE2.setting
+	$(PARROT) $(PARROT_ARGS) -o $(SETTING2) $(SETTING2_PIR)
 
 $(S_SETTING): $(PERL6_M_PBC) $(PERL6_EXE) $(SETTING)
 	./$(PERL6_EXE) --target=pir $(STAGESTATS) --output=$(S_SETTING_PIR) src/SAFE.setting

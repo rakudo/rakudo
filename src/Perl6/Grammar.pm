@@ -423,7 +423,7 @@ grammar Perl6::Grammar is HLL::Grammar {
             # If we already have a specified outer context, then that's
             # our setting. Otherwise, load one.
             unless pir::defined(%*COMPILING<%?OPTIONS><outer_ctx>) {
-                $*SETTING := $*W.load_setting(%*COMPILING<%?OPTIONS><setting> // 'CORE');
+                $*SETTING := $*W.load_setting(%*COMPILING<%?OPTIONS><setting> // 'CORE2');
             }
             $/.CURSOR.unitstart();
             try {

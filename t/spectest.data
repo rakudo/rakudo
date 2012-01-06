@@ -441,6 +441,7 @@ S13-overloading/operators.t
 # S14-roles/anonymous.t # err: No applicable candidates found to dispatch to for 'infix:<eq>'
 # S14-roles/attributes.t # err: Attribute $!a1 not declared in class C1
 # S14-roles/basic.t # err: C67768 cannot compose List because it is not composable
+S14-roles/bool.t
 S14-roles/composition.t
 S14-roles/conflicts.t
 S14-roles/crony.t

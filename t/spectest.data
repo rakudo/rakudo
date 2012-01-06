@@ -117,7 +117,7 @@ S03-operators/autoincrement.t
 S03-operators/autovivification.t
 S03-operators/basic-types.t
 S03-operators/binding-attributes.t
-# S03-operators/binding-arrays.t # err: Cannot use bind operator with this LHS
+S03-operators/binding-arrays.t
 S03-operators/binding-closure.t
 # S03-operators/binding-hashes.t # err: Cannot use bind operator with this LHS
 S03-operators/binding-ro.t

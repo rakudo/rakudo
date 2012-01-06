@@ -604,7 +604,7 @@ class Perl6::Actions is HLL::Actions {
                 for @params { $_<is_rw> := 1 }
             }
             set_default_parameter_type(@params, 'Mu');
-            my $signature := create_signature_object(@params, $block);
+            my $signature := create_signature_object($<signature>, @params, $block);
             add_signature_binding_code($block, $signature, @params);
             
             # Add a slot for a $*DISPATCHER, and a call to take one.
@@ -1224,7 +1224,7 @@ class Perl6::Actions is HLL::Actions {
                 type_captures     => ['$?CLASS', '::?CLASS']
             ));
             set_default_parameter_type(@params, 'Mu');
-            my $sig := create_signature_object(@params, $block);
+            my $sig := create_signature_object($<signature>, @params, $block);
             add_signature_binding_code($block, $sig, @params);
             $block.blocktype('declaration');
 
@@ -1468,7 +1468,7 @@ class Perl6::Actions is HLL::Actions {
                 $block<placeholder_sig> ?? $block<placeholder_sig> !!
                 [];
         set_default_parameter_type(@params, 'Any');
-        my $signature := create_signature_object(@params, $block);
+        my $signature := create_signature_object($<multisig>, @params, $block);
         add_signature_binding_code($block, $signature, @params);
 
         # Needs a slot that can hold a (potentially unvivified) dispatcher;
@@ -1761,7 +1761,7 @@ class Perl6::Actions is HLL::Actions {
             $past.symbol('%_', :scope('lexical_6model'));
         }
         set_default_parameter_type(@params, 'Any');
-        my $signature := create_signature_object(@params, $past);
+        my $signature := create_signature_object($/, @params, $past);
         add_signature_binding_code($past, $signature, @params);
 
         # Place to store invocant.
@@ -2428,12 +2428,23 @@ class Perl6::Actions is HLL::Actions {
     # Create Parameter objects, along with container descriptors
     # if needed. Parameters will be bound into the specified
     # lexpad.
-    sub create_signature_object(@parameter_infos, $lexpad) {
+    sub create_signature_object($/, @parameter_infos, $lexpad) {
         my @parameters;
+        my %seen_names;
         for @parameter_infos {
+            # Check we don't have duplicated named parameter names.
+            if $_<named_names> {
+                for $_<named_names> {
+                    if %seen_names{$_} {
+                        $/.CURSOR.panic("Name '$_' used for more than one named parameter");
+                    }
+                    %seen_names{$_} := 1;
+                }
+            }
+            
             # If we have a sub-signature, create that.
             if $_<sub_signature_params> {
-                $_<sub_signature> := create_signature_object($_<sub_signature_params>, $lexpad);
+                $_<sub_signature> := create_signature_object($/, $_<sub_signature_params>, $lexpad);
             }
             
             # Add variable as needed.
@@ -4322,7 +4333,7 @@ class Perl6::Actions is HLL::Actions {
                 }
                 $i++;
             }
-            my $signature := create_signature_object(@params, $block);
+            my $signature := create_signature_object($/, @params, $block);
             add_signature_binding_code($block, $signature, @params);
             my $code := $*W.create_code_object($block, 'WhateverCode', $signature);
             $past := block_closure(reference_to_code_object($code, $block));

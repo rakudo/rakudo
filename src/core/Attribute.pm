@@ -98,6 +98,7 @@ my class Attribute {
     
     method has-accessor() { ?$!has_accessor }
     method readonly() { !self.rw }
+    method package() { $!package }
     multi method Str(Attribute:D:) { self.name }
     multi method gist(Attribute:D:) { self.name }
 }

@@ -88,7 +88,7 @@ class IO {
         }
     }
 
-    method read(IO:D: Cool:D $bytes) {
+    method read(IO:D: Cool:D $bytes as Int) {
         my Mu $parrot_buffer := $!PIO.read_bytes(nqp::unbox_i($bytes));
         my $buf := nqp::create(Buf);
         nqp::bindattr($buf, Buf, '$!buffer', $parrot_buffer);

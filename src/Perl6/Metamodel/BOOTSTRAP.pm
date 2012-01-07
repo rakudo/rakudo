@@ -23,9 +23,11 @@ my class BOOTSTRAPATTR {
     has $!name;
     has $!type;
     has $!box_target;
+    has $!package;
     method name() { $!name }
     method type() { $!type }
     method box_target() { $!box_target }
+    method package() { $!package }
     method has_accessor() { 0 }
     method has-accessor() { 0 }
     method build() { }
@@ -80,16 +82,16 @@ Cool.HOW.add_parent(Cool, Any);
 # }
 my stub Attribute metaclass Perl6::Metamodel::ClassHOW { ... };
 Attribute.HOW.add_parent(Attribute, Any);
-Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!name>, :type(str)));
-Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!rw>, :type(int)));
-Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!ro>, :type(int)));
-Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!has_accessor>, :type(int)));
-Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!type>, :type(Mu)));
-Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!container_descriptor>, :type(Mu)));
-Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!auto_viv_container>, :type(Mu)));
-Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!build_closure>, :type(Mu)));
-Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!package>, :type(Mu)));
-Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!box_target>, :type(int)));
+Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!name>, :type(str), :package(Attribute)));
+Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!rw>, :type(int), :package(Attribute)));
+Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!ro>, :type(int), :package(Attribute)));
+Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!has_accessor>, :type(int), :package(Attribute)));
+Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!type>, :type(Mu), :package(Attribute)));
+Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!container_descriptor>, :type(Mu), :package(Attribute)));
+Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!auto_viv_container>, :type(Mu), :package(Attribute)));
+Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!build_closure>, :type(Mu), :package(Attribute)));
+Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!package>, :type(Mu), :package(Attribute)));
+Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!box_target>, :type(int), :package(Attribute)));
 Attribute.HOW.publish_parrot_vtable_mapping(Attribute);
 
 # XXX Need new and accessor methods for Attribute in here for now.
@@ -211,9 +213,9 @@ Attribute.HOW.add_method(Attribute, 'instantiate_generic', sub ($self, $type_env
 # }
 my stub Scalar metaclass Perl6::Metamodel::ClassHOW { ... };
 Scalar.HOW.add_parent(Scalar, Any);
-Scalar.HOW.add_attribute(Scalar, BOOTSTRAPATTR.new(:name<$!descriptor>, :type(Mu)));
-Scalar.HOW.add_attribute(Scalar, BOOTSTRAPATTR.new(:name<$!value>, :type(Mu)));
-Scalar.HOW.add_attribute(Scalar, BOOTSTRAPATTR.new(:name<$!whence>, :type(Mu)));
+Scalar.HOW.add_attribute(Scalar, BOOTSTRAPATTR.new(:name<$!descriptor>, :type(Mu), :package(Scalar)));
+Scalar.HOW.add_attribute(Scalar, BOOTSTRAPATTR.new(:name<$!value>, :type(Mu), :package(Scalar)));
+Scalar.HOW.add_attribute(Scalar, BOOTSTRAPATTR.new(:name<$!whence>, :type(Mu), :package(Scalar)));
 Scalar.HOW.add_method(Scalar, 'is_generic', sub ($self) {
     my $dcself := pir::perl6_decontainerize__PP($self);
     nqp::getattr($dcself, Scalar, '$!descriptor').is_generic()
@@ -244,8 +246,8 @@ pir::set_container_spec__vPPsP(Scalar, Scalar, '$!value', pir::null__P());
 my $PROXY_FETCH;
 my stub Proxy metaclass Perl6::Metamodel::ClassHOW { ... };
 Proxy.HOW.add_parent(Proxy, Any);
-Proxy.HOW.add_attribute(Proxy, BOOTSTRAPATTR.new(:name<&!FETCH>, :type(Mu)));
-Proxy.HOW.add_attribute(Proxy, BOOTSTRAPATTR.new(:name<&!STORE>, :type(Mu)));
+Proxy.HOW.add_attribute(Proxy, BOOTSTRAPATTR.new(:name<&!FETCH>, :type(Mu), :package(Proxy)));
+Proxy.HOW.add_attribute(Proxy, BOOTSTRAPATTR.new(:name<&!STORE>, :type(Mu), :package(Proxy)));
 Proxy.HOW.add_method(Proxy, 'FETCH', ($PROXY_FETCH := sub ($cont) {
     nqp::getattr($cont, Proxy, '&!FETCH')(pir::perl6_var__PP($cont))
 }));
@@ -264,13 +266,13 @@ pir::set_container_spec__vPPsP(Proxy, nqp::null(), '', $PROXY_FETCH);
 # Helper for creating a scalar attribute. Sets it up as a real Perl 6
 # Attribute instance, complete with container desciptor and auto-viv
 # container.
-sub scalar_attr($name, $type) {
+sub scalar_attr($name, $type, $package) {
     my $cd := Perl6::Metamodel::ContainerDescriptor.new(
         :of($type), :rw(1), :name($name));
     my $scalar := pir::repr_instance_of__PP(Scalar);
     pir::setattribute__vPPsP($scalar, Scalar, '$!descriptor', $cd);
     pir::setattribute__vPPsP($scalar, Scalar, '$!value', $type);
-    return Attribute.new( :name($name), :type($type),
+    return Attribute.new( :name($name), :type($type), :package($package),
         :container_descriptor($cd), :auto_viv_container($scalar));
 }
     
@@ -283,10 +285,10 @@ sub scalar_attr($name, $type) {
 # }
 my stub Signature metaclass Perl6::Metamodel::ClassHOW { ... };
 Signature.HOW.add_parent(Signature, Any);
-Signature.HOW.add_attribute(Signature, BOOTSTRAPATTR.new(:name<$!params>, :type(Mu)));
-Signature.HOW.add_attribute(Signature, BOOTSTRAPATTR.new(:name<$!returns>, :type(Mu)));
-Signature.HOW.add_attribute(Signature, BOOTSTRAPATTR.new(:name<$!arity>, :type(Mu)));
-Signature.HOW.add_attribute(Signature, BOOTSTRAPATTR.new(:name<$!count>, :type(Mu)));
+Signature.HOW.add_attribute(Signature, BOOTSTRAPATTR.new(:name<$!params>, :type(Mu), :package(Signature)));
+Signature.HOW.add_attribute(Signature, BOOTSTRAPATTR.new(:name<$!returns>, :type(Mu), :package(Signature)));
+Signature.HOW.add_attribute(Signature, BOOTSTRAPATTR.new(:name<$!arity>, :type(Mu), :package(Signature)));
+Signature.HOW.add_attribute(Signature, BOOTSTRAPATTR.new(:name<$!count>, :type(Mu), :package(Signature)));
 Signature.HOW.add_method(Signature, 'is_generic', sub ($self) {
         # If any parameter is generic, so are we.
         my @params := pir::getattribute__PPPs($self, Signature, '$!params');
@@ -335,18 +337,18 @@ Signature.HOW.add_method(Signature, 'set_returns', sub ($self, $type) {
 # }
 my stub Parameter metaclass Perl6::Metamodel::ClassHOW { ... };
 Parameter.HOW.add_parent(Parameter, Any);
-Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!variable_name>, :type(str)));
-Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!named_names>, :type(Mu)));
-Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!type_captures>, :type(Mu)));
-Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!flags>, :type(int)));
-Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!nominal_type>, :type(Mu)));
-Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!post_constraints>, :type(Mu)));
-Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!coerce_type>, :type(Mu)));
-Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!coerce_method>, :type(str)));
-Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!sub_signature>, :type(Mu)));
-Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!default_value>, :type(Mu)));
-Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!container_descriptor>, :type(Mu)));
-Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!attr_package>, :type(Mu)));
+Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!variable_name>, :type(str), :package(Parameter)));
+Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!named_names>, :type(Mu), :package(Parameter)));
+Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!type_captures>, :type(Mu), :package(Parameter)));
+Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!flags>, :type(int), :package(Parameter)));
+Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!nominal_type>, :type(Mu), :package(Parameter)));
+Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!post_constraints>, :type(Mu), :package(Parameter)));
+Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!coerce_type>, :type(Mu), :package(Parameter)));
+Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!coerce_method>, :type(str), :package(Parameter)));
+Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!sub_signature>, :type(Mu), :package(Parameter)));
+Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!default_value>, :type(Mu), :package(Parameter)));
+Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!container_descriptor>, :type(Mu), :package(Parameter)));
+Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!attr_package>, :type(Mu), :package(Parameter)));
 Parameter.HOW.add_method(Parameter, 'is_generic', sub ($self) {
         # If nonimnal type is generic, so are we.
         my $type := pir::getattribute__PPPs($self, Parameter, '$!nominal_type');
@@ -410,11 +412,11 @@ Parameter.HOW.add_method(Parameter, 'set_coercion', sub ($self, $type) {
 # }
 my stub Code metaclass Perl6::Metamodel::ClassHOW { ... };
 Code.HOW.add_parent(Code, Any);
-Code.HOW.add_attribute(Code, BOOTSTRAPATTR.new(:name<$!do>, :type(Mu)));
-Code.HOW.add_attribute(Code, BOOTSTRAPATTR.new(:name<$!signature>, :type(Mu)));
-Code.HOW.add_attribute(Code, BOOTSTRAPATTR.new(:name<$!dispatchees>, :type(Mu)));
-Code.HOW.add_attribute(Code, BOOTSTRAPATTR.new(:name<$!dispatcher_cache>, :type(Mu)));
-Code.HOW.add_attribute(Code, BOOTSTRAPATTR.new(:name<$!dispatcher>, :type(Mu)));
+Code.HOW.add_attribute(Code, BOOTSTRAPATTR.new(:name<$!do>, :type(Mu), :package(Code)));
+Code.HOW.add_attribute(Code, BOOTSTRAPATTR.new(:name<$!signature>, :type(Mu), :package(Code)));
+Code.HOW.add_attribute(Code, BOOTSTRAPATTR.new(:name<$!dispatchees>, :type(Mu), :package(Code)));
+Code.HOW.add_attribute(Code, BOOTSTRAPATTR.new(:name<$!dispatcher_cache>, :type(Mu), :package(Code)));
+Code.HOW.add_attribute(Code, BOOTSTRAPATTR.new(:name<$!dispatcher>, :type(Mu), :package(Code)));
 
 # Need multi-dispatch related methods and clone in here, plus
 # generics instantiation.
@@ -508,7 +510,7 @@ Code.HOW.publish_parrot_vtable_mapping(Code);
 # class Block is Code { ... }
 my stub Block metaclass Perl6::Metamodel::ClassHOW { ... };
 Block.HOW.add_parent(Block, Code);
-Block.HOW.add_attribute(Block, BOOTSTRAPATTR.new(:name<$!state_vars>, :type(Mu)));
+Block.HOW.add_attribute(Block, BOOTSTRAPATTR.new(:name<$!state_vars>, :type(Mu), :package(Block)));
 Block.HOW.publish_parrot_vtable_handler_mapping(Block);
 Block.HOW.publish_parrot_vtable_mapping(Block);
 Block.HOW.add_method(Block, 'clone', sub ($self) {
@@ -534,10 +536,10 @@ Block.HOW.add_method(Block, 'clone', sub ($self) {
 # class Routine is Block { ... }
 my stub Routine metaclass Perl6::Metamodel::ClassHOW { ... };
 Routine.HOW.add_parent(Routine, Block);
-Routine.HOW.add_attribute(Routine, BOOTSTRAPATTR.new(:name<$!rw>, :type(int)));
-Routine.HOW.add_attribute(Routine, BOOTSTRAPATTR.new(:name<$!md_thunk>, :type(Mu)));
-Routine.HOW.add_attribute(Routine, BOOTSTRAPATTR.new(:name<$!inline_info>, :type(str)));
-Routine.HOW.add_attribute(Routine, BOOTSTRAPATTR.new(:name<$!yada>, :type(int)));
+Routine.HOW.add_attribute(Routine, BOOTSTRAPATTR.new(:name<$!rw>, :type(int), :package(Routine)));
+Routine.HOW.add_attribute(Routine, BOOTSTRAPATTR.new(:name<$!md_thunk>, :type(Mu), :package(Routine)));
+Routine.HOW.add_attribute(Routine, BOOTSTRAPATTR.new(:name<$!inline_info>, :type(str), :package(Routine)));
+Routine.HOW.add_attribute(Routine, BOOTSTRAPATTR.new(:name<$!yada>, :type(int), :package(Routine)));
 Routine.HOW.publish_parrot_vtable_handler_mapping(Routine);
 Routine.HOW.publish_parrot_vtable_mapping(Routine);
 Routine.HOW.add_method(Routine, 'set_rw', sub ($self) {
@@ -587,7 +589,7 @@ Regex.HOW.add_method(Regex, 'nqpattr', sub ($self, $key) {
 # }
 my stub Str metaclass Perl6::Metamodel::ClassHOW { ... };
 Str.HOW.add_parent(Str, Cool);
-Str.HOW.add_attribute(Str, BOOTSTRAPATTR.new(:name<$!value>, :type(str), :box_target(1)));
+Str.HOW.add_attribute(Str, BOOTSTRAPATTR.new(:name<$!value>, :type(str), :box_target(1), :package(Str)));
 Str.HOW.set_boolification_mode(Str, 4);
 Str.HOW.publish_boolification_spec(Str);
 
@@ -607,7 +609,7 @@ Real.HOW.add_parent(Real, Numeric);
 my knowhow bigint is repr('P6bigint') { }
 my stub Int metaclass Perl6::Metamodel::ClassHOW { ... };
 Int.HOW.add_parent(Int, Real);
-Int.HOW.add_attribute(Int, BOOTSTRAPATTR.new(:name<$!value>, :type(bigint), :box_target(1)));
+Int.HOW.add_attribute(Int, BOOTSTRAPATTR.new(:name<$!value>, :type(bigint), :box_target(1), :package(Int)));
 Int.HOW.set_boolification_mode(Int, 6);
 Int.HOW.publish_boolification_spec(Int);
 
@@ -617,7 +619,7 @@ Int.HOW.publish_boolification_spec(Int);
 # }
 my stub Num metaclass Perl6::Metamodel::ClassHOW { ... };
 Num.HOW.add_parent(Num, Real);
-Num.HOW.add_attribute(Num, BOOTSTRAPATTR.new(:name<$!value>, :type(num), :box_target(1)));
+Num.HOW.add_attribute(Num, BOOTSTRAPATTR.new(:name<$!value>, :type(num), :box_target(1), :package(Num)));
 Num.HOW.set_boolification_mode(Num, 2);
 Num.HOW.publish_boolification_spec(Num);
 
@@ -629,7 +631,7 @@ pir::perl6_set_types_ins__vPPP(Int, Num, Str);
 # }
 my stub Parcel metaclass Perl6::Metamodel::ClassHOW { ... };
 Parcel.HOW.add_parent(Parcel, Cool);
-Parcel.HOW.add_attribute(Parcel, scalar_attr('$!storage', Mu));
+Parcel.HOW.add_attribute(Parcel, scalar_attr('$!storage', Mu, Parcel));
 
 # class Iterable is Cool {
 #     ...
@@ -653,10 +655,10 @@ Iterator.HOW.add_parent(Iterator, Iterable);
 # }
 my stub ListIter metaclass Perl6::Metamodel::ClassHOW { ... };
 ListIter.HOW.add_parent(ListIter, Iterator);
-ListIter.HOW.add_attribute(ListIter, scalar_attr('$!reified', Mu));
-ListIter.HOW.add_attribute(ListIter, scalar_attr('$!nextiter', Mu));
-ListIter.HOW.add_attribute(ListIter, scalar_attr('$!rest', Mu));
-ListIter.HOW.add_attribute(ListIter, scalar_attr('$!list', Mu));
+ListIter.HOW.add_attribute(ListIter, scalar_attr('$!reified', Mu, ListIter));
+ListIter.HOW.add_attribute(ListIter, scalar_attr('$!nextiter', Mu, ListIter));
+ListIter.HOW.add_attribute(ListIter, scalar_attr('$!rest', Mu, ListIter));
+ListIter.HOW.add_attribute(ListIter, scalar_attr('$!list', Mu, ListIter));
 
 # class List is Iterable {
 #     has $!items;
@@ -666,9 +668,9 @@ ListIter.HOW.add_attribute(ListIter, scalar_attr('$!list', Mu));
 # }
 my stub List metaclass Perl6::Metamodel::ClassHOW { ... };
 List.HOW.add_parent(List, Iterable);
-List.HOW.add_attribute(List, scalar_attr('$!items', Mu));
-List.HOW.add_attribute(List, scalar_attr('$!flattens', Mu));
-List.HOW.add_attribute(List, scalar_attr('$!nextiter', Mu));
+List.HOW.add_attribute(List, scalar_attr('$!items', Mu, List));
+List.HOW.add_attribute(List, scalar_attr('$!flattens', Mu, List));
+List.HOW.add_attribute(List, scalar_attr('$!nextiter', Mu, List));
 
 # class Array is List {
 #     has $!descriptor;
@@ -676,7 +678,7 @@ List.HOW.add_attribute(List, scalar_attr('$!nextiter', Mu));
 # }
 my stub Array metaclass Perl6::Metamodel::ClassHOW { ... };
 Array.HOW.add_parent(Array, List);
-Array.HOW.add_attribute(Array, BOOTSTRAPATTR.new(:name<$!descriptor>, :type(Mu)));
+Array.HOW.add_attribute(Array, BOOTSTRAPATTR.new(:name<$!descriptor>, :type(Mu), :package(Array)));
 
 # class LoL is List {
 #     has $!descriptor;
@@ -684,7 +686,7 @@ Array.HOW.add_attribute(Array, BOOTSTRAPATTR.new(:name<$!descriptor>, :type(Mu))
 # }
 my stub LoL metaclass Perl6::Metamodel::ClassHOW { ... };
 LoL.HOW.add_parent(LoL, List);
-LoL.HOW.add_attribute(LoL, BOOTSTRAPATTR.new(:name<$!descriptor>, :type(Mu)));
+LoL.HOW.add_attribute(LoL, BOOTSTRAPATTR.new(:name<$!descriptor>, :type(Mu), :package(Array)));
 
 # my class EnumMap is Iterable {
 #     has $!storage;
@@ -692,7 +694,7 @@ LoL.HOW.add_attribute(LoL, BOOTSTRAPATTR.new(:name<$!descriptor>, :type(Mu)));
 # }
 my stub EnumMap metaclass Perl6::Metamodel::ClassHOW { ... };
 EnumMap.HOW.add_parent(EnumMap, Iterable);
-EnumMap.HOW.add_attribute(EnumMap, scalar_attr('$!storage', Mu));
+EnumMap.HOW.add_attribute(EnumMap, scalar_attr('$!storage', Mu, EnumMap));
 
 # my class Hash is EnumMap {
 #     has $!descriptor;
@@ -700,7 +702,7 @@ EnumMap.HOW.add_attribute(EnumMap, scalar_attr('$!storage', Mu));
 # }
 my stub Hash metaclass Perl6::Metamodel::ClassHOW { ... };
 Hash.HOW.add_parent(Hash, EnumMap);
-Hash.HOW.add_attribute(Hash, BOOTSTRAPATTR.new(:name<$!descriptor>, :type(Mu)));
+Hash.HOW.add_attribute(Hash, BOOTSTRAPATTR.new(:name<$!descriptor>, :type(Mu), :package(Hash)));
 
 # class Capture {
 #     ...
@@ -716,13 +718,12 @@ pir::perl6_set_type_capture__vP(Capture);
 # XXX Quick and dirty Bool. Probably done by EnumHOW in the end.
 my stub Bool metaclass Perl6::Metamodel::ClassHOW { ... };
 Bool.HOW.add_parent(Bool, Cool);
-Bool.HOW.add_attribute(Bool, BOOTSTRAPATTR.new(:name<$!value>, :type(int), :box_target(1)));
+Bool.HOW.add_attribute(Bool, BOOTSTRAPATTR.new(:name<$!value>, :type(int), :box_target(1), :package(Bool)));
 Bool.HOW.set_boolification_mode(Bool, 1);
 Bool.HOW.publish_boolification_spec(Bool);
 
 my stub ObjAt metaclass Perl6::Metamodel::ClassHOW { ... };
-ObjAt.HOW.add_attribute(ObjAt, BOOTSTRAPATTR.new(:name<$!value>, :type(str), :box_target(1)));
-
+ObjAt.HOW.add_attribute(ObjAt, BOOTSTRAPATTR.new(:name<$!value>, :type(str), :box_target(1), :package(ObjAt)));
 
 # Set up Stash type, using a Parrot hash under the hood for storage.
 my stub Stash metaclass Perl6::Metamodel::ClassHOW { ... };

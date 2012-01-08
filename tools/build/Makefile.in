@@ -204,7 +204,6 @@ CORE_SOURCES = \
   src/core/Exceptions.pm \
   src/core/Match.pm \
   src/core/Cursor.pm \
-  src/core/Grammar.pm \
   src/core/Regex.pm \
   src/core/CallFrame.pm \
   src/core/tai-utc.pm \
@@ -220,6 +219,7 @@ CORE_SOURCES = \
   src/core/you_are_here.pm \
 
 CORE2_SOURCES = \
+  src/core/Grammar.pm \
   src/core2/Main.pm \
   src/core2/Pod.pm \
   src/core2/fixups.pm \

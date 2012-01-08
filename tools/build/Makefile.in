@@ -220,6 +220,7 @@ CORE_SOURCES = \
 
 CORE2_SOURCES = \
   src/core/Grammar.pm \
+  src/core2/Temporal-ops.pm \
   src/core2/Main.pm \
   src/core2/Pod.pm \
   src/core2/fixups.pm \

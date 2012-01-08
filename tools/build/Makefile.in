@@ -213,7 +213,6 @@ CORE_SOURCES = \
   src/core/Duration.pm \
   src/core/Temporal.pm \
   src/core/EXPORTHOW.pm \
-  src/core/Pod.pm \
   src/core/ObjAt.pm \
   src/core/operators.pm \
   src/core/metaops.pm \
@@ -222,7 +221,8 @@ CORE_SOURCES = \
   src/core/you_are_here.pm \
 
 CORE2_SOURCES = \
-  src/core2/fixups.pm
+  src/core2/Pod.pm \
+  src/core2/fixups.pm \
 
 DOCS = README CREDITS LICENSE docs/*
 
@@ -268,7 +268,7 @@ HARNESS_WITH_FUDGE = $(PERL) t/harness --fudge --keep-exit-code --icu=$(HAS_ICU)
 STAGESTATS = @stagestats@
 
 # the default target, TODO: make libraries in 'lib' a variable.
-all: check-versions $(PERL6_EXE) $(SETTING) $(S_SETTING) lib/Test.pir lib/Pod/To/Text.pir
+all: check-versions $(PERL6_EXE) $(SETTING2) $(S_SETTING) lib/Test.pir lib/Pod/To/Text.pir
 
 # the install target
 install: all
@@ -302,7 +302,7 @@ install: all
 	-$(POD2MAN) docs/running.pod --name=perl6 > $(DESTDIR)$(MANDIR)/man1/perl6.1
 	-$(POD2MAN) docs/running.pod --name=rakudo > $(DESTDIR)$(MANDIR)/man1/rakudo.1
 
-xmas: $(PERL6_EXE) $(SETTING) $(S_SETTING)
+xmas: $(PERL6_EXE) $(SETTING2) $(S_SETTING)
 
 ##  targets for building a standalone perl6 executable.
 $(PERL6_EXE): $(PERL6_PBC)
@@ -372,10 +372,10 @@ $(S_SETTING): $(PERL6_M_PBC) $(PERL6_EXE) $(SETTING2)
 	$(PARROT) $(PARROT_ARGS) -o $(S_SETTING) $(S_SETTING_PIR)
     
 ##  testing targets
-lib/Test.pir: lib/Test.pm $(PERL6_EXE) $(SETTING)
+lib/Test.pir: lib/Test.pm $(PERL6_EXE) $(SETTING2)
 	./$(PERL6_EXE) --target=pir --output=lib/Test.pir lib/Test.pm
 
-lib/Pod/To/Text.pir: lib/Pod/To/Text.pm $(PERL6_EXE) $(SETTING)
+lib/Pod/To/Text.pir: lib/Pod/To/Text.pm $(PERL6_EXE) $(SETTING2)
 	./$(PERL6_EXE) --target=pir --output=lib/Pod/To/Text.pir lib/Pod/To/Text.pm
 
 test    : coretest

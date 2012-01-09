@@ -421,7 +421,8 @@ Code.HOW.add_attribute(Code, BOOTSTRAPATTR.new(:name<$!dispatcher>, :type(Mu), :
 # Need multi-dispatch related methods and clone in here, plus
 # generics instantiation.
 Code.HOW.add_method(Code, 'is_dispatcher', sub ($self) {
-        my $disp_list := pir::getattribute__PPPsP($self, Code, '$!dispatchees');
+        my $dc_self   := pir::perl6_decontainerize__PP($self);
+        my $disp_list := pir::getattribute__PPPsP($dc_self, Code, '$!dispatchees');
         pir::perl6_booleanize__PI(pir::defined__IP($disp_list));
     });
 Code.HOW.add_method(Code, 'add_dispatchee', sub ($self, $dispatchee) {
@@ -462,7 +463,8 @@ Code.HOW.add_method(Code, 'derive_dispatcher', sub ($self) {
     });
 Code.HOW.add_method(Code, 'is_generic', sub ($self) {
         # Delegate to signature, since it contains all the type info.
-        pir::getattribute__PPPs($self, Code, '$!signature').is_generic()
+        my $dc_self := pir::perl6_decontainerize__PP($self);
+        pir::getattribute__PPPs($dc_self, Code, '$!signature').is_generic()
     });
 Code.HOW.add_method(Code, 'instantiate_generic', sub ($self, $type_environment) {
         # Clone the code object, then instantiate the generic signature. Also

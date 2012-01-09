@@ -161,6 +161,7 @@ my class Any {
 
     method reduce(&with) { self.list.reduce(&with) }
 }
+Metamodel::ClassHOW.exclude_parent(Any);
 
 proto infix:<===>($?, $?) { * }
 multi infix:<===>($a?)    { Bool::True }

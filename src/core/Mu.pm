@@ -432,4 +432,4 @@ sub DUMP(|$) {
           !! $topic.DUMP()
     }
 };
-
+Metamodel::ClassHOW.exclude_parent(Mu);

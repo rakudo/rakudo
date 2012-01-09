@@ -20,6 +20,26 @@ class Array {
           !! pir::setattribute__0PPsP(my $v, Scalar, '$!whence',
                  -> { nqp::bindpos(nqp::getattr(self, List, '$!items'), $pos, $v) } )
     }
+    
+    method delete(@array is rw: *@indices) {
+        my $elems = @array.elems;
+        my @result;
+        for @indices -> $index {
+            my $i = $index ~~ Callable
+                        ?? $index($elems)
+                        !! +$index;
+            @result.push(@array[$i]);
+            undefine @array[$i];
+
+            # next seems unnecessary but handles an obscure
+            # edge case
+            if $i == (@array - 1) {
+                @array.pop;
+            }
+        }
+        @array.pop while ?@array && !defined @array[@array.elems - 1];
+        return @result;
+    }
 
     method flattens() { 1 }
 

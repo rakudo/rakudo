@@ -1546,12 +1546,12 @@ class Perl6::Actions is HLL::Actions {
                         ~$<deflongname>[0].ast ~ "'");
                 }
                 if $*SCOPE eq '' || $*SCOPE eq 'my' {
-                    $*W.install_lexical_symbol($outer, $name, $code, :clone(1));
+                    $*W.install_lexical_symbol($outer, $name, $code, :clone(!$*W.in_UNIT()));
                 }
                 elsif $*SCOPE eq 'our' {
                     # Install in lexpad and in package, and set up code to
                     # re-bind it per invocation of its outer.
-                    $*W.install_lexical_symbol($outer, $name, $code, :clone(1));
+                    $*W.install_lexical_symbol($outer, $name, $code, :clone(!$*W.in_UNIT()));
                     $*W.install_package_symbol($*PACKAGE, $name, $code);
                     $outer[0].push(PAST::Op.new(
                         :pasttype('bind_6model'),

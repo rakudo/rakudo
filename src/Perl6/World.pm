@@ -69,6 +69,11 @@ class Perl6::World is HLL::World {
         @!BLOCKS[+@!BLOCKS - 1]
     }
     
+    # Checks if we're in UNIT.
+    method in_UNIT() {
+        @!BLOCKS == 2
+    }
+    
     # Gets (and creates if needed) the static lexpad object for a PAST block.
     method get_static_lexpad($pad) {
         my $pad_id := $pad.subid();

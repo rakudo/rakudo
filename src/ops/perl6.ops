@@ -714,7 +714,8 @@ Takes an object and returns a boolean determining whether it is concrete.
 
 */
 inline op perl6_definite(out PMC, in PMC) :base_core {
-    $1 = IS_CONCRETE($2) ?
+    PMC *val = Rakudo_cont_decontainerize(interp, $2);
+    $1 = IS_CONCRETE(val) ?
         Rakudo_types_bool_true_get() :
         Rakudo_types_bool_false_get();
 }

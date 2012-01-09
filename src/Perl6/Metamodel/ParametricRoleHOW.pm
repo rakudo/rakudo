@@ -146,8 +146,8 @@ class Perl6::Metamodel::ParametricRoleHOW
         
         # Go through methods and instantiate them; we always do this
         # unconditionally, since we need the clone anyway.
-        for self.methods($obj, :local(1)) {
-            $conc.HOW.add_method($conc, $_.name, $_.instantiate_generic($type_env))
+        for self.method_table($obj) {
+            $conc.HOW.add_method($conc, $_.key, $_.value.instantiate_generic($type_env))
         }
         for self.private_method_table($obj) {
             $conc.HOW.add_private_method($conc, $_.key, $_.value.instantiate_generic($type_env));

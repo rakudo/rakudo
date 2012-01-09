@@ -11,12 +11,10 @@ my class RoleToRoleApplier {
         my %meth_providers;
         for @roles {
             my $role := $_;
-            my @methods := $_.HOW.methods($_, :local(1));
+            my @methods := $_.HOW.method_table($_);
             for @methods {
-                my $name;
-                try { $name := $_.name }
-                unless $name { $name := ~$_ }
-                my $meth := $_;
+                my $name := $_.key;
+                my $meth := $_.value;
                 my @meth_list;
                 my @meth_providers;
                 if pir::exists(%meth_info, $name) {
@@ -44,14 +42,7 @@ my class RoleToRoleApplier {
         }
 
         # Also need methods of target.
-        my %target_meth_info;
-        my @target_meths := $target.HOW.methods($target, :local(1));
-        for @target_meths {
-            my $name;
-            try { $name := $_.name }
-            unless $name { $name := ~$_ }
-            %target_meth_info{$name} := $_;
-        }
+        my %target_meth_info := $target.HOW.method_table($target);
 
         # Process method list.
         for %meth_info {

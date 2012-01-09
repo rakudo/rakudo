@@ -59,13 +59,11 @@ my class RoleToClassApplier {
         }
 
         # Compose in any methods.
-        my @methods := $to_compose_meta.methods($to_compose, :local(1));
+        my @methods := $to_compose_meta.method_table($to_compose);
         for @methods {
-            my $name;
+            my $name := $_.key;
             my $yada := 0;
-            try { $name := $_.name }
-            unless $name { $name := ~$_ }
-            try { $yada := $_.yada }
+            try { $yada := $_.value.yada }
             if $yada {
                 unless has_method($target, $name, 0) {
                     pir::die("Method '$name' must be implemented by " ~
@@ -74,7 +72,7 @@ my class RoleToClassApplier {
                 }
             }
             elsif !has_method($target, $name, 1) {
-                $target.HOW.add_method($target, $name, $_);
+                $target.HOW.add_method($target, $name, $_.value);
             }
         }
         if pir::can__IPs($to_compose_meta, 'private_method_table') {

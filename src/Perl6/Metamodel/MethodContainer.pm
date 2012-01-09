@@ -40,13 +40,11 @@ role Perl6::Metamodel::MethodContainer {
             @meths.push($_);
         }
 
-        # If local flag was not passed, include those from next thing
-        # in MRO.
+        # If local flag was not passed, include those from parents.
         unless $local {
             for self.parents($obj) {
-                my @parent_meths := $_.HOW.methods($_, :local(1));
-                for @parent_meths {
-                    @meths.push($_);
+                for $_.HOW.method_table($_) {
+                    @meths.push($_.value);
                 }
             }
         }

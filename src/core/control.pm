@@ -197,7 +197,8 @@ sub sleep($seconds = $Inf) {         # fractional seconds also allowed
     } else {
         pir::sleep__vN($seconds);
     }
-    nqp::p6box_n(pir::time__N - $time1);
+    my num $time2 = pir::time__N;
+    $time2 - $time1
 }
 
 sub QX($cmd) {

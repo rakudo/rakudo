@@ -706,6 +706,22 @@ inline op perl6_repr_name(out PMC, in PMC) :base_core {
 
 /*
 
+=item perl6_definite
+
+Takes an object and returns a boolean determining whether it is concrete.
+
+=cut
+
+*/
+inline op perl6_definite(out PMC, in PMC) :base_core {
+    $1 = IS_CONCRETE($2) ?
+        Rakudo_types_bool_true_get() :
+        Rakudo_types_bool_false_get();
+}
+
+
+/*
+
 =item find_method_null_ok(out PMC, in PMC, in STR)
 
 Like Parrot's find_method, but returns PMCNULL in $1 if $2 doesn't have a

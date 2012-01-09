@@ -2668,6 +2668,10 @@ class Perl6::Actions is HLL::Actions {
                 $past.pasttype('pirop');
                 $past.pirop('perl6_repr_name PP');
             }
+            elsif $name eq 'DEFINITE' {
+                $past.pasttype('pirop');
+                $past.pirop('perl6_definite PP');
+            }
             else {
                 $past.name( $name );
             }

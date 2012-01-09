@@ -1,3 +1,13 @@
+New in 2012.01
++ -c command line option re-implemented
++ take flattening bug fixed
++ duplicate named parameter names detected
++ fixed clone being too shallow with regard to containers
++ fixed negative modulo for bigint
++ better Routine.perl
++ .DEFINITE macro implemented
++ .^methods, .^attributes and .^parents now support :excl (the default) and :all
+
 New in 2011.12
 + improved protoregex support, including NFA caching
 + <before ...> and <after ...> (lookahead and lookbehind)

@@ -38,13 +38,20 @@ my class Hash {
         self
     }
 
-    method delete($key as Str) {
+    proto method delete(|$) { * }
+    multi method delete($key as Str) {
         my Mu $val = self.at_key($key);
         pir::delete(
             nqp::getattr(self, EnumMap, '$!storage'),
             nqp::unbox_s($key)
         );
         $val;
+    }
+    multi method delete(@keys) {
+        @keys.map({ self.delete($^key) })
+    }
+    multi method delete(*@keys) {
+        @keys.map({ self.delete($^key) })
     }
 
     method push(*@values) {

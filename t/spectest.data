@@ -505,7 +505,7 @@ S32-basics/warn.t
 S32-container/zip.t
 S32-exceptions/misc.t
 S32-hash/exists.t
-# S32-hash/delete.t # err: Too many positional parameters passed
+S32-hash/delete.t
 S32-hash/invert.t
 S32-hash/keys_values.t
 S32-hash/pairs.t

@@ -206,10 +206,6 @@ CORE_SOURCES = \
   src/core/Cursor.pm \
   src/core/Regex.pm \
   src/core/CallFrame.pm \
-  src/core/tai-utc.pm \
-  src/core/Instant.pm \
-  src/core/Duration.pm \
-  src/core/Temporal.pm \
   src/core/EXPORTHOW.pm \
   src/core/ObjAt.pm \
   src/core/operators.pm \
@@ -220,6 +216,10 @@ CORE_SOURCES = \
 
 CORE2_SOURCES = \
   src/core/Grammar.pm \
+  src/core/tai-utc.pm \
+  src/core/Instant.pm \
+  src/core/Duration.pm \
+  src/core/Temporal.pm \
   src/core2/Temporal-ops.pm \
   src/core2/Main.pm \
   src/core2/Pod.pm \

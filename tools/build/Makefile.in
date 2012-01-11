@@ -223,6 +223,7 @@ CORE2_SOURCES = \
   src/core2/Temporal-ops.pm \
   src/core2/Main.pm \
   src/core2/Pod.pm \
+  src/core2/operators.pm \
   src/core2/fixups.pm \
 
 DOCS = README CREDITS LICENSE docs/*

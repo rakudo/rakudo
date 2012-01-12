@@ -1468,7 +1468,7 @@ class Perl6::Actions is HLL::Actions {
                 $block<placeholder_sig> ?? $block<placeholder_sig> !!
                 [];
         set_default_parameter_type(@params, 'Any');
-        my $signature := create_signature_object($<multisig>, @params, $block);
+        my $signature := create_signature_object($<multisig> ?? $<multisig>[0] !! $/, @params, $block);
         add_signature_binding_code($block, $signature, @params);
 
         # Needs a slot that can hold a (potentially unvivified) dispatcher;

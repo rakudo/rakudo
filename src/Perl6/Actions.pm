@@ -166,8 +166,7 @@ class Perl6::Actions is HLL::Actions {
 
     # Turn $code into "for lines() { $code }"
     sub wrap_option_n_code($/, $code) {
-        $code := make_topic_block_ref($code);
-        # TODO: apply 'is copy' trait
+        $code := make_topic_block_ref($code, copy => 1);
         return PAST::Op.new(:name<&eager>,
             PAST::Op.new(:pasttype<callmethod>, :name<map>,
                 PAST::Op.new( :name<&flat>,
@@ -4006,14 +4005,19 @@ class Perl6::Actions is HLL::Actions {
         return $*W.create_code_object($block, $type, $sig);
     }
 
-    sub make_topic_block_ref($past) {
+    sub make_topic_block_ref($past, :$copy) {
         my $block := PAST::Block.new(
             PAST::Stmts.new(
                 PAST::Var.new( :name('$_'), :scope('lexical_6model'), :isdecl(1) )
             ),
             $past);
         ($*W.cur_lexpad())[0].push($block);
-        my $param := hash( :variable_name('$_'), :nominal_type($*W.find_symbol(['Mu'])), :is_parcel(1) );
+        my $param := hash( :variable_name('$_'), :nominal_type($*W.find_symbol(['Mu'])));
+        if $copy {
+            $param<is_copy> := 1;
+        } else {
+            $param<is_parcel> := 1;
+        }
         my $sig := $*W.create_signature([$*W.create_parameter($param)]);
         add_signature_binding_code($block, $sig, [$param]);
         return reference_to_code_object(

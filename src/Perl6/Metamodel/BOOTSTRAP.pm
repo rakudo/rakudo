@@ -356,6 +356,7 @@ Parameter.HOW.add_method(Parameter, 'is_generic', sub ($self) {
     });
 my $SIG_ELEM_IS_RW           := 256;
 my $SIG_ELEM_IS_COPY         := 512;
+my $SIG_ELEM_IS_PARCEL       := 1024;
 my $SIG_ELEM_IS_OPTIONAL     := 2048;
 my $SIG_ELEM_NOMINAL_GENERIC := 524288;
 Parameter.HOW.add_method(Parameter, 'instantiate_generic', sub ($self, $type_environment) {
@@ -395,6 +396,14 @@ Parameter.HOW.add_method(Parameter, 'set_required', sub ($self) {
         if $flags +& $SIG_ELEM_IS_OPTIONAL {
             pir::repr_bind_attr_int__0PPsI($dcself, Parameter, '$!flags',
                 $flags - $SIG_ELEM_IS_OPTIONAL);
+        }
+    });
+Parameter.HOW.add_method(Parameter, 'set_parcel', sub ($self) {
+        my $dcself := pir::perl6_decontainerize__PP($self);
+        my $flags := pir::repr_get_attr_int__IPPs($dcself, Parameter, '$!flags');
+        unless $flags +& $SIG_ELEM_IS_PARCEL {
+            pir::repr_bind_attr_int__0PPsI($dcself, Parameter, '$!flags',
+                $flags + $SIG_ELEM_IS_PARCEL);
         }
     });
 Parameter.HOW.add_method(Parameter, 'set_coercion', sub ($self, $type) {

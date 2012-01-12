@@ -32,7 +32,8 @@ my class Parameter {
     }
 
     method named() {
-        !nqp::p6bool(nqp::isnull($!named_names))
+        !nqp::p6bool(nqp::isnull($!named_names)) ||
+            nqp::p6bool($!flags +& $SIG_ELEM_SLURPY_NAMED)
     }
 
     method named_names() {
@@ -67,6 +68,26 @@ my class Parameter {
     
     method optional() {
         ?($!flags +& $SIG_ELEM_IS_OPTIONAL)
+    }
+    
+    method parcel() {
+        ?($!flags +& $SIG_ELEM_IS_PARCEL)
+    }
+    
+    method rw() {
+        ?($!flags +& $SIG_ELEM_IS_RW)
+    }
+    
+    method copy() {
+        ?($!flags +& $SIG_ELEM_IS_COPY)
+    }
+    
+    method readonly() {
+        !($.rw || $.copy || $.parcel)
+    }
+    
+    method invocant() {
+        ?($!flags +& $SIG_ELEM_INVOCANT)
     }
     
     # XXX TODO: A few more bits :-)

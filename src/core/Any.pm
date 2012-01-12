@@ -149,14 +149,24 @@ my class Any {
     ########
     proto method postcircumfix:<{ }>(|$) { * }
     multi method postcircumfix:<{ }>() { self.values }
+    multi method postcircumfix:<{ }>(:$BIND!) { die "Cannot bind to a zen hash slice" }
     multi method postcircumfix:<{ }>($key) is rw {
         self.at_key($key)
+    }
+    multi method postcircumfix:<{ }>($key, :$BIND! is parcel) is rw {
+        self.bind_key($key, $BIND)
     }
     multi method postcircumfix:<{ }>(Positional $key) is rw {
         $key.map({ self{$_} }).eager.Parcel
     }
+    multi method postcircumfix:<{ }>(Positional $key, :$!BIND) is rw {
+        die "Cannot bind to a hash slice"
+    }
     multi method postcircumfix:<{ }>(Whatever) is rw {
         self{self.keys}
+    }
+    multi method postcircumfix:<{ }>(Whatever, :$BIND!) is rw {
+        die "Cannot bind to a whatever hash slice"
     }
 
     method reduce(&with) { self.list.reduce(&with) }

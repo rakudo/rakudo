@@ -11,6 +11,15 @@ my class Hash {
                  -> { pir::find_method__PPs(EnumMap, 'STORE_AT_KEY')(self, $key, $v) } )
     }
 
+    method bind_key($key, \$bindval) is rw {
+        pir::defined(nqp::getattr(self, EnumMap, '$!storage')) ||
+            nqp::bindattr(self, EnumMap, '$!storage', pir::new__Ps('Hash'));
+        nqp::bindkey(
+            nqp::getattr(self, EnumMap, '$!storage'),
+            nqp::unbox_s($key.Str),
+            $bindval)
+    }
+
     multi method perl(Hash:D \$self:) {
         nqp::iscont($self)
           ?? '{' ~ self.pairs.map({.perl}).join(', ') ~ '}'
@@ -98,6 +107,14 @@ my class Hash {
         }
         method STORE_AT_KEY(Str \$key, TValue $x is copy) is rw {
             pir::find_method__PPs(EnumMap, 'STORE_AT_KEY')(self, $key, $x);
+        }
+        method bind_key($key, TValue \$bindval) is rw {
+            pir::defined(nqp::getattr(self, EnumMap, '$!storage')) ||
+                nqp::bindattr(self, EnumMap, '$!storage', pir::new__Ps('Hash'));
+            nqp::bindkey(
+                nqp::getattr(self, EnumMap, '$!storage'),
+                nqp::unbox_s($key.Str),
+                $bindval)
         }
     }
     method PARAMETERIZE_TYPE(Mu $t) {

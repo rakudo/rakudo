@@ -166,6 +166,7 @@ class Perl6::Actions is HLL::Actions {
 
     # Turn $code into "for lines() { $code }"
     sub wrap_option_n_code($/, $code) {
+        $code := PAST::Block.new($code);
         my %param;
         %param<sigil>         := '_';
         %param<variable_name> := '$_';

@@ -2138,8 +2138,10 @@ class Perl6::Actions is HLL::Actions {
     }
 
     method fakesignature($/) {
-        my $sig := $*W.create_signature($<signature>.ast);
-        my $past := $*W.get_slot_past_for_object($sig);
+        my @params := $<signature>.ast;
+        set_default_parameter_type(@params, 'Mu');
+        my $sig := create_signature_object($/, @params, $*FAKE_PAD);
+        my $past := $*W.get_ref($sig);
         $past<has_compile_time_value> := 1;
         $past<compile_time_value> := $sig;
         make $past;

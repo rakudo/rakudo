@@ -1508,9 +1508,10 @@ grammar Perl6::Grammar is HLL::Grammar {
     }
 
     token fakesignature {
+        :my $*FAKE_PAD;
         <.newpad>
         <signature>
-        { $*W.pop_lexpad() }
+        { $*FAKE_PAD := $*W.pop_lexpad() }
     }
 
     token signature {

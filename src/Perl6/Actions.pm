@@ -166,13 +166,7 @@ class Perl6::Actions is HLL::Actions {
 
     # Turn $code into "for lines() { $code }"
     sub wrap_option_n_code($/, $code) {
-        $code := PAST::Block.new($code);
-        my %param;
-        %param<sigil>         := '_';
-        %param<variable_name> := '$_';
-        my $signature := create_signature_object($/, [%param], $code);
-        add_signature_binding_code($code, $signature, [%param]);
-
+        $code := make_topic_block_ref($code);
         # TODO: apply 'is copy' trait
         return PAST::Op.new(:name<&eager>,
             PAST::Op.new(:pasttype<callmethod>, :name<map>,

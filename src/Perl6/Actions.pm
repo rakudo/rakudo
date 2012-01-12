@@ -165,7 +165,14 @@ class Perl6::Actions is HLL::Actions {
     }
 
     # Turn $code into "for lines() { $code }"
-    sub wrap_option_n_code($code) {
+    sub wrap_option_n_code($/, $code) {
+        my %param;
+        %param<sigil>         := '_';
+        %param<variable_name> := '$_';
+        my $signature := create_signature_object($/, [%param], $code);
+        add_signature_binding_code($code, $signature, [%param]);
+
+        # TODO: apply 'is copy' trait
         return PAST::Op.new(:name<&eager>,
             PAST::Op.new(:pasttype<callmethod>, :name<map>,
                 PAST::Op.new( :name<&flat>,
@@ -176,14 +183,7 @@ class Perl6::Actions is HLL::Actions {
                         )
                     )
                 ),
-                make_block_from(
-                    Perl6::Compiler::Signature.new(
-                        Perl6::Compiler::Parameter.new(
-                            :var_name('$_'), :is_copy(1)
-                        )
-                    ),
-                    $code
-                )
+                $code
             )
         );
     }
@@ -191,8 +191,8 @@ class Perl6::Actions is HLL::Actions {
     # Turn $code into "for lines() { $code; say $_ }"
     # &wrap_option_n_code already does the C<for> loop, so we just add the
     # C<say> call here
-    sub wrap_option_p_code($code) {
-        return wrap_option_n_code(
+    sub wrap_option_p_code($/, $code) {
+        return wrap_option_n_code($/,
             PAST::Stmts.new(
                 $code,
                 PAST::Op.new(:name<&say>, :pasttype<call>,
@@ -216,10 +216,10 @@ class Perl6::Actions is HLL::Actions {
         );
 
         if %*COMPILING<%?OPTIONS><p> { # also covers the -np case, like Perl 5
-            $mainline := wrap_option_p_code($mainline);
+            $mainline := wrap_option_p_code($/, $mainline);
         }
         elsif %*COMPILING<%?OPTIONS><n> {
-            $mainline := wrap_option_n_code($mainline);
+            $mainline := wrap_option_n_code($/, $mainline);
         }
 
         # Unit needs to have a load-init holding the deserialization or

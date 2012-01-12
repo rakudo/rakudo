@@ -3293,10 +3293,17 @@ class Perl6::Actions is HLL::Actions {
             # Finally, just need to make a bind.
             make PAST::Op.new( :pasttype('bind_6model'), $target, $source );
         }
-        # XXX Several more cases to do...
         elsif $target<boxable_native> {
             $/.CURSOR.panic("Cannot bind to a natively typed variable; use assignment instead");
         }
+        elsif $target.isa(PAST::Op) && $target.pirop eq 'perl6ize_type PP' &&
+                $target[0].isa(PAST::Op) && $target[0].pasttype eq 'callmethod' &&
+                ($target[0].name eq 'postcircumfix:<[ ]>' || $target[0].name eq 'postcircumfix:<{ }>') {
+            $source.named('BIND');
+            $target[0].push($source);
+            make $target;
+        }
+        # XXX Several more cases to do...
         else {
             $/.CURSOR.panic("Cannot use bind operator with this LHS");
         }

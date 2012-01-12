@@ -23,8 +23,8 @@ my class Parameter {
     }
     
     method constraints() {
-        pir::isnull($!post_constraints) ?? () !!
-            pir::perl6ize_type__PP($!post_constraints)
+        all(pir::isnull($!post_constraints) ?? () !!
+            pir::perl6ize_type__PP($!post_constraints))
     }
 
     method type() {
@@ -74,6 +74,10 @@ my class Parameter {
         ?($!flags +& $SIG_ELEM_IS_PARCEL)
     }
     
+    method capture() {
+        ?($!flags +& $SIG_ELEM_IS_CAPTURE)
+    }
+    
     method rw() {
         ?($!flags +& $SIG_ELEM_IS_RW)
     }
@@ -88,6 +92,26 @@ my class Parameter {
     
     method invocant() {
         ?($!flags +& $SIG_ELEM_INVOCANT)
+    }
+    
+    method default() {
+        nqp::isnull($!default_value) ?? Any !!
+            $!default_value ~~ Code ?? $!default_value !! { $!default_value }
+    }
+    
+    method type_captures() {
+        if !pir::isnull($!type_captures) {
+            my Int $count = nqp::p6box_i(nqp::elems($!type_captures));
+            my Int $i = 0;
+            my @res;
+            while $i < $count {
+                @res.push: nqp::p6box_s(nqp::atpos($!type_captures, nqp::unbox_i($i)));
+                $i++;
+            }
+            @res;
+        } else {
+            ().list
+        }
     }
     
     # XXX TODO: A few more bits :-)
@@ -124,6 +148,9 @@ my class Parameter {
                     $perl ~= ' is rw';
                 } elsif $!flags +& $SIG_ELEM_IS_COPY {
                     $perl ~= ' is copy';
+                }
+                unless nqp::isnull($!sub_signature) {
+                    $perl ~= ' ' ~ $!sub_signature.perl();
                 }
             }
         }

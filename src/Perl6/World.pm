@@ -385,9 +385,9 @@ class Perl6::World is HLL::World {
         unless $block.symbol($name) {
             $var := PAST::Var.new( :scope('lexical_6model'), :name($name),
                 :isdecl(1), :type(%cont_info<bind_constraint>) );
-            $block.symbol($name, :scope('lexical_6model'), :type(%cont_info<bind_constraint>), :descriptor($descriptor));
             $block[0].push($var);
         }
+        $block.symbol($name, :scope('lexical_6model'), :type(%cont_info<bind_constraint>), :descriptor($descriptor));
             
         # If it's a native type, we're done - no container
         # as we inline natives straight into registers. Do

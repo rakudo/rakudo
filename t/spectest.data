@@ -42,6 +42,7 @@ S02-types/range.t
 # S02-types/set.t # err: Undefined routine '&set' called
 S02-types/sigils-and-types.t
 S02-types/subscripts_and_context.t
+S02-types/subset.t
 S02-types/type.t
 S02-types/undefined-types.t
 S02-types/whatever.t
@@ -86,7 +87,6 @@ S02-names/identifier.t
 S02-names/our.t
 S02-names/symbolic-deref.t
 S02-one-pass-parsing/less-than.t
-S02-types/subset.t
 S02-lexical-conventions/begin_end_pod.t
 S02-lexical-conventions/end-pod.t
 S02-lexical-conventions/comments.t

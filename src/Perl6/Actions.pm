@@ -3546,7 +3546,7 @@ class Perl6::Actions is HLL::Actions {
 
     method escale($/) {
         make $<sign> eq '-'
-            ??  nqp::neg_I($<decint>.ast)
+            ??  nqp::neg_I($<decint>.ast, $<decint>.ast)
             !! $<decint>.ast;
     }
 
@@ -4477,11 +4477,11 @@ class Perl6::Actions is HLL::Actions {
             }
             my $i := pir::index('0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ', $current);
             pir::die("Invalid character '$current' in number literal") if $i < 0 || $i >= $radix;
-            $iresult := nqp::add_I(nqp::mul_I($iresult, $radixInt), nqp::box_i($i, $Int));
-            $fdivide := nqp::mul_I($fdivide, $radixInt) if $seen_dot;
+            $iresult := nqp::add_I(nqp::mul_I($iresult, $radixInt, $Int), nqp::box_i($i, $Int), $Int);
+            $fdivide := nqp::mul_I($fdivide, $radixInt, $Int) if $seen_dot;
         }
 
-        $iresult := nqp::mul_I($iresult, nqp::box_i($sign, $Int));
+        $iresult := nqp::mul_I($iresult, nqp::box_i($sign, $Int), $Int);
 
         if $num {
             if nqp::bool_I($iresult) {
@@ -4497,8 +4497,10 @@ class Perl6::Actions is HLL::Actions {
                             nqp::pow_I(
                                 nqp::box_i($base,     $iresult),
                                 nqp::box_i($exponent, $iresult),
-                                $*W.find_symbol(['Num'])
-                           )
+                                $*W.find_symbol(['Num']),
+                                $Int,
+                           ),
+                           $Int,
                         );
             }
             if $seen_dot {

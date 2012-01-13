@@ -1087,9 +1087,9 @@ class Perl6::World is HLL::World {
         }
         elsif $primitive eq 'bigint' {
             $constant := @value[0];
-            $des := PAST::Op.new( :pirop('nqp_bigint_from_str PPs'),
+            $des := PAST::Op.new( :pirop('nqp_bigint_from_str PsP'),
+                    nqp::tostr_I(@value[0]),
                     $type_obj_lookup,
-                    nqp::tostr_I(@value[0])
                 );
         }
         elsif $primitive eq 'type_new' {
@@ -1104,9 +1104,9 @@ class Perl6::World is HLL::World {
                         :pirop('repr_bind_attr_obj 0PPsP'),
                         PAST::Op.new( :pirop('repr_instance_of PP'), $type_obj_lookup ),
                         $type_obj_lookup, '$!numerator',
-                        PAST::Op.new( :pirop('nqp_bigint_from_str PPs'), $int_lookup, $nu )),
+                        PAST::Op.new( :pirop('nqp_bigint_from_str PsP'), $nu, $int_lookup)),
                     $type_obj_lookup, '$!denominator',
-                    PAST::Op.new( :pirop('nqp_bigint_from_str PPs'), $int_lookup, $de ));
+                    PAST::Op.new( :pirop('nqp_bigint_from_str PsP'), $de, $int_lookup));
             }
             else {
                 $des := PAST::Op.new(

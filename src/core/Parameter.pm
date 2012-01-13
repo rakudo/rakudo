@@ -125,9 +125,9 @@ my class Parameter {
         if $!variable_name {
             my $name = $!variable_name;
             if $!flags +& $SIG_ELEM_IS_CAPTURE {
-                $perl = '|' ~ $name;
+                $perl ~= '|' ~ $name;
             } elsif $!flags +& $SIG_ELEM_IS_PARCEL {
-                $perl = '\\' ~ $name;
+                $perl ~= '\\' ~ $name;
             } else {
                 if self.named {
                     my @names := self.named_names;

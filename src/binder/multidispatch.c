@@ -188,7 +188,7 @@ static Rakudo_md_candidate_info** sort_candidates(PARROT_INTERP, PMC *candidates
                 break;
 
             /* Otherwise, positional or slurpy and contributes to arity. */
-            if (param->flags & SIG_ELEM_SLURPY_POS) {
+            if (param->flags & SIG_ELEM_SLURPY_POS || param->flags & SIG_ELEM_IS_CAPTURE) {
                 info->max_arity = SLURPY_ARITY;
                 break;
             }

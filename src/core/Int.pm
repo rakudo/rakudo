@@ -32,7 +32,7 @@ my class Int {
     }
 
     method abs(Int:D:) {
-        nqp::abs_I(self)
+        nqp::abs_I(self, Int)
     }
 
     method Bridge(Int:D:) {
@@ -61,84 +61,84 @@ my class Int {
 }
 
 multi prefix:<++>(Int:D \$a is rw) {   # XXX
-    $a = nqp::add_I(nqp::p6decont($a), nqp::p6box_i(1));
+    $a = nqp::add_I(nqp::p6decont($a), nqp::p6box_i(1), Int);
 }
 multi prefix:<-->(Int:D \$a is rw) {   # XXX
-    $a = nqp::sub_I(nqp::p6decont($a), nqp::p6box_i(1));
+    $a = nqp::sub_I(nqp::p6decont($a), nqp::p6box_i(1), Int);
 }
 multi postfix:<++>(Int:D \$a is rw) {  # XXX
     my Int:D $b = $a;
-    $a = nqp::add_I(nqp::p6decont($a), nqp::p6box_i(1));
+    $a = nqp::add_I(nqp::p6decont($a), nqp::p6box_i(1), Int);
     $b
 }
 multi postfix:<-->(Int:D \$a is rw) {  # XXX
     my Int:D $b = $a;
-    $a = nqp::sub_I(nqp::p6decont($a), nqp::p6box_i(1));
+    $a = nqp::sub_I(nqp::p6decont($a), nqp::p6box_i(1), Int);
     $b
 }
 
 multi prefix:<->(Int \$a) returns Int {
-    nqp::neg_I(nqp::p6decont $a);
+    nqp::neg_I(nqp::p6decont($a), Int);
 }
 multi prefix:<->(int $a) returns int {
     nqp::neg_i($a)
 }
 
 multi prefix:<abs>(Int:D \$a) returns Int:D {
-    nqp::abs_I(nqp::p6decont $a);
+    nqp::abs_I(nqp::p6decont($a), Int);
 }
 multi prefix:<abs>(int $a) returns int {
     nqp::abs_i($a)
 }
 
 multi infix:<+>(Int:D \$a, Int:D \$b) returns Int:D {
-    nqp::add_I(nqp::p6decont($a), nqp::p6decont($b));
+    nqp::add_I(nqp::p6decont($a), nqp::p6decont($b), Int);
 }
 multi infix:<+>(int $a, int $b) returns int {
     nqp::add_i($a, $b)
 }
 
 multi infix:<->(Int:D \$a, Int:D \$b) returns Int:D {
-    nqp::sub_I(nqp::p6decont($a), nqp::p6decont($b));
+    nqp::sub_I(nqp::p6decont($a), nqp::p6decont($b), Int);
 }
 multi infix:<->(int $a, int $b) returns int {
     nqp::sub_i($a, $b)
 }
 
 multi infix:<*>(Int:D \$a, Int:D \$b) returns Int {
-    nqp::mul_I(nqp::p6decont($a), nqp::p6decont($b));
+    nqp::mul_I(nqp::p6decont($a), nqp::p6decont($b), Int);
 }
 multi infix:<*>(int $a, int $b) returns int {
     nqp::mul_i($a, $b)
 }
 
 multi infix:<div>(Int:D \$a, Int:D \$b) returns Int {
-    nqp::div_I(nqp::p6decont($a), nqp::p6decont($b));
+    nqp::div_I(nqp::p6decont($a), nqp::p6decont($b), Int);
 }
 multi infix:<div>(int $a, int $b) returns int {
     nqp::div_i($a, $b)
 }
 
 multi infix:<%>(Int:D \$a, Int:D \$b) returns Int {
-    nqp::mod_I(nqp::p6decont($a), nqp::p6decont($b));
+    nqp::mod_I(nqp::p6decont($a), nqp::p6decont($b), Int);
 }
 multi infix:<%>(int $a, int $b) returns int {
     nqp::mod_i($a, $b)
 }
 
 multi infix:<**>(Int:D \$a, Int:D \$b) {
-    nqp::pow_I(nqp::p6decont($a), nqp::p6decont($b), Num);
+    nqp::pow_I(nqp::p6decont($a), nqp::p6decont($b), Num, Int);
 }
 
 multi infix:<lcm>(Int:D \$a, Int:D \$b) returns Int {
-    nqp::lcm_I(nqp::p6decont($a), nqp::p6decont($b));
+    nqp::lcm_I(nqp::p6decont($a), nqp::p6decont($b), Int);
 }
 multi infix:<lcm>(int $a, int $b) returns int {
     nqp::lcm_i($a, $b)
 }
 
 multi infix:<gcd>(Int:D \$a, Int:D \$b) returns Int {
-    nqp::gcd_I(nqp::p6decont($a), nqp::p6decont($b));
+    nqp::gcd_I(nqp::p6decont($a), nqp::p6decont($b), Int);
 }
 multi infix:<gcd>(int $a, int $b) returns int {
     nqp::gcd_i($a, $b)
@@ -209,21 +209,21 @@ multi infix:«>=»(int $a, int $b) {
 }
 
 multi infix:<+|>(Int:D \$a, Int:D \$b) {
-    nqp::bitor_I(nqp::p6decont($a), nqp::p6decont($b))
+    nqp::bitor_I(nqp::p6decont($a), nqp::p6decont($b), Int)
 }
 multi infix:<+|>(int $a, int $b) {
     nqp::bitor_i($a, $b)
 }
 
 multi infix:<+&>(Int:D \$a, Int:D \$b) {
-    nqp::bitand_I(nqp::p6decont($a), nqp::p6decont($b))
+    nqp::bitand_I(nqp::p6decont($a), nqp::p6decont($b), Int)
 }
 multi infix:<+&>(int $a, int $b) {
     nqp::bitand_i($a, $b)
 }
 
 multi infix:<+^>(Int:D \$a, Int:D \$b) {
-    nqp::bitxor_I(nqp::p6decont($a), nqp::p6decont($b))
+    nqp::bitxor_I(nqp::p6decont($a), nqp::p6decont($b), Int)
 }
 multi infix:<+^>(int $a, int $b) {
     nqp::bitxor_i($a, $b);
@@ -244,7 +244,7 @@ multi infix:«+>»(int $a, int $b) {
 }
 
 multi prefix:<+^>(Int:D \$a) {
-    nqp::bitneg_I(nqp::p6decont($a));
+    nqp::bitneg_I(nqp::p6decont($a), Int);
 }
 multi prefix:<+^>(int $a) {
     nqp::bitneg_i($a);

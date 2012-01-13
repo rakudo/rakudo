@@ -83,6 +83,11 @@ static INTVAL is_narrower(PARROT_INTERP, Rakudo_md_candidate_info *a, Rakudo_md_
             /* Narrower because natives always are. */
             narrower++;
         }
+        else if ((b->type_flags[i] & TYPE_NATIVE_MASK) && !(a->type_flags[i] & TYPE_NATIVE_MASK))
+        {
+            /* Wider; skip over here so we don't go counting this as tied in
+             * the next branch. */
+        }
         else {
             if (STABLE(type_obj_a)->type_check(interp, type_obj_a, type_obj_b)) {
                 /* Narrower - note it and we're done. */

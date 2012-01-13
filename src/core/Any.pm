@@ -134,21 +134,21 @@ my class Any {
                    ?? { last if $_ >= self.gimme($_ + 1); self[$_] }
                    !! { self[$_] }).eager.Parcel;
     }
-#    multi method postcircumfix:<[ ]>(Positional $pos, :$BIND!) is rw {
-#        die "Cannot bind to an array slice"
-#    }
+    multi method postcircumfix:<[ ]>(Positional $pos, :$BIND!) is rw {
+        die "Cannot bind to an array slice"
+    }
     multi method postcircumfix:<[ ]>(Callable $block) is rw {
         self[$block(|(self.elems xx $block.count))]
     }
-#    multi method postcircumfix:<[ ]>(Callable $block, :$BIND!) is rw {
-#        die "Cannot bind to a callable array slice"; # WhateverCode?
-#    }
+    multi method postcircumfix:<[ ]>(Callable $block, :$BIND!) is rw {
+        die "Cannot bind to a callable array slice"; # WhateverCode?
+    }
     multi method postcircumfix:<[ ]>(Whatever) is rw {
         self[^self.elems]
     }
-#    multi method postcircumfix:<[ ]>(Whatever, :$BIND!) is rw {
-#        die "Cannot bind to a whatever array slice"
-#    }
+    multi method postcircumfix:<[ ]>(Whatever, :$BIND!) is rw {
+        die "Cannot bind to a whatever array slice"
+    }
 
     method at_pos($pos) is rw {
         if self.defined {

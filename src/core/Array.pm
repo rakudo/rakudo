@@ -24,11 +24,11 @@ class Array {
     proto method bind_pos(|$) { * }
     multi method bind_pos($pos is copy, \$bindval) is rw {
         $pos = $pos.Int;
-        self.gimme($pos);
+        self.gimme($pos + 1);
         nqp::bindpos(nqp::getattr(self, List, '$!items'), nqp::unbox_i($pos), $bindval);
     }
     multi method bind_pos(int $pos, \$bindval) is rw {
-        self.gimme($pos);
+        self.gimme($pos + 1);
         nqp::bindpos(nqp::getattr(self, List, '$!items'), $pos, $bindval)
     }
     
@@ -106,11 +106,11 @@ class Array {
         }
         multi method bind_pos($pos is copy, TValue \$bindval) is rw {
             $pos = $pos.Int;
-            self.gimme($pos);
+            self.gimme($pos + 1);
             nqp::bindpos(nqp::getattr(self, List, '$!items'), nqp::unbox_i($pos), $bindval)
         }
         multi method bind_pos(int $pos, TValue \$bindval) is rw {
-            self.gimme($pos);
+            self.gimme($pos + 1);
             nqp::bindpos(nqp::getattr(self, List, '$!items'), $pos, $bindval)
         }
         # XXX some methods to come here...

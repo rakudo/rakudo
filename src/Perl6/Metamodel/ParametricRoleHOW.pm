@@ -149,6 +149,9 @@ class Perl6::Metamodel::ParametricRoleHOW
         for self.method_table($obj) {
             $conc.HOW.add_method($conc, $_.key, $_.value.instantiate_generic($type_env))
         }
+        for self.submethod_table($obj) {
+            $conc.HOW.add_method($conc, $_.key, $_.value.instantiate_generic($type_env))
+        }
         for self.private_method_table($obj) {
             $conc.HOW.add_private_method($conc, $_.key, $_.value.instantiate_generic($type_env));
         }

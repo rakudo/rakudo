@@ -2,11 +2,17 @@ my class RoleToClassApplier {
     sub has_method($target, $name, $local) {
         if $local {
             my %mt := $target.HOW.method_table($target);
+            return 1 if nqp::existskey(%mt, $name);
+            %mt := $target.HOW.submethod_table($target);
             return nqp::existskey(%mt, $name);
         }
         else {
             for $target.HOW.mro($target) {
                 my %mt := $_.HOW.method_table($_);
+                if nqp::existskey(%mt, $name) {
+                    return 1;
+                }
+                %mt := $_.HOW.submethod_table($_);
                 if nqp::existskey(%mt, $name) {
                     return 1;
                 }
@@ -59,22 +65,26 @@ my class RoleToClassApplier {
         }
 
         # Compose in any methods.
-        my @methods := $to_compose_meta.method_table($to_compose);
-        for @methods {
-            my $name := $_.key;
-            my $yada := 0;
-            try { $yada := $_.value.yada }
-            if $yada {
-                unless has_method($target, $name, 0) {
-                    pir::die("Method '$name' must be implemented by " ~
-                    $target.HOW.name($target) ~
-                    " because it is required by a role");
+        sub compose_method_table(%methods) {
+            for %methods {
+                my $name := $_.key;
+                my $yada := 0;
+                try { $yada := $_.value.yada }
+                if $yada {
+                    unless has_method($target, $name, 0) {
+                        pir::die("Method '$name' must be implemented by " ~
+                        $target.HOW.name($target) ~
+                        " because it is required by a role");
+                    }
+                }
+                elsif !has_method($target, $name, 1) {
+                    $target.HOW.add_method($target, $name, $_.value);
                 }
             }
-            elsif !has_method($target, $name, 1) {
-                $target.HOW.add_method($target, $name, $_.value);
-            }
         }
+        compose_method_table($to_compose_meta.method_table($to_compose));
+        compose_method_table($to_compose_meta.submethod_table($to_compose))
+            if pir::can__IPs($to_compose_meta, 'submethod_table');
         if pir::can__IPs($to_compose_meta, 'private_method_table') {
             for $to_compose_meta.private_method_table($to_compose) {
                 unless has_private_method($target, $_.key) {

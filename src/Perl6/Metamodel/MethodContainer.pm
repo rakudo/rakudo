@@ -46,6 +46,9 @@ role Perl6::Metamodel::MethodContainer {
                 for $_.HOW.method_table($_) {
                     @meths.push($_.value);
                 }
+                for $_.HOW.submethod_table($_) {
+                    @meths.push($_.value);
+                }
             }
         }
         

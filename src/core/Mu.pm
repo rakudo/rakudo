@@ -164,7 +164,8 @@ my class Mu {
     
     method item() { self }
     
-    method say() { say(self) }
+    proto method say(|$) { * }
+    multi method say() { say(self) }
     method print() { print(self) }
 
     proto method gist(|$) { * }

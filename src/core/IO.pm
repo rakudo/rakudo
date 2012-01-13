@@ -134,7 +134,7 @@ class IO {
         Bool::True
     }
 
-    method say(IO:D: |$) {
+    multi method say(IO:D: |$) {
         my Mu $args := pir::perl6_current_args_rpa__P();
         nqp::shift($args);
         self.print: nqp::shift($args).gist while $args;

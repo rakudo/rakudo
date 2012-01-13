@@ -118,6 +118,7 @@ S03-operators/autovivification.t
 S03-operators/basic-types.t
 S03-operators/binding-attributes.t
 S03-operators/binding-arrays.t
+S03-operators/binding-nested.t
 S03-operators/binding-closure.t
 S03-operators/binding-hashes.t
 S03-operators/binding-ro.t

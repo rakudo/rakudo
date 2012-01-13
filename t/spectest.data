@@ -191,6 +191,7 @@ S03-smartmatch/regex-hash.t
 S03-smartmatch/scalar-hash.t
 S04-blocks-and-statements/pointy-rw.t
 S04-blocks-and-statements/pointy.t
+S04-phasers/begin.t
 S04-phasers/end.t
 # S04-phasers/rvalue.t # err: Method 'isa' not found for invocant of class 'Undef'
 # S04-phasers/start.t # err: Undefined routine '&START' called

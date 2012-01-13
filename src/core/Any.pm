@@ -159,7 +159,7 @@ my class Any {
     multi method postcircumfix:<{ }>(Positional $key) is rw {
         $key.map({ self{$_} }).eager.Parcel
     }
-    multi method postcircumfix:<{ }>(Positional $key, :$!BIND!) is rw {
+    multi method postcircumfix:<{ }>(Positional $key, :$BIND!) is rw {
         die "Cannot bind to a hash slice"
     }
     multi method postcircumfix:<{ }>(Whatever) is rw {

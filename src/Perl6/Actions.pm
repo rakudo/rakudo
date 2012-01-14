@@ -2028,12 +2028,12 @@ class Perl6::Actions is HLL::Actions {
 
             # Create and install value.
             my $val_obj := $*W.create_enum_value($type_obj, $cur_key, $cur_value);
-            $*W.install_package_symbol($type_obj, ~$cur_key, $val_obj);
+            $*W.install_package_symbol($type_obj, nqp::unbox_s($cur_key), $val_obj);
             if $*SCOPE ne 'anon' {
-                $*W.install_lexical_symbol($*W.cur_lexpad(), ~$cur_key, $val_obj);
+                $*W.install_lexical_symbol($*W.cur_lexpad(), nqp::unbox_s($cur_key), $val_obj);
             }
             if $*SCOPE eq '' || $*SCOPE eq 'our' {
-                $*W.install_package_symbol($*PACKAGE, ~$cur_key, $val_obj);
+                $*W.install_package_symbol($*PACKAGE, nqp::unbox_s($cur_key), $val_obj);
             }
 
             # Increment for next value.

@@ -38,7 +38,7 @@ class Perl6::Metamodel::EnumHOW
     }
     
     method add_enum_value($obj, $value) {
-        %!values{~$value.key} := $value.value;
+        %!values{nqp::unbox_s($value.key)} := $value.value;
         @!enum_value_list[+@!enum_value_list] := $value;
     }
     

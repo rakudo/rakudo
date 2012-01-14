@@ -1,5 +1,4 @@
-# XXX should also be Cool
-my class Complex is Numeric {
+my class Complex is Cool does Numeric {
     has num $.re;
     has num $.im;
 

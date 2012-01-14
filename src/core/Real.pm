@@ -1,7 +1,7 @@
 my class Complex { ... }
 
 # XxX role Real does Numeric { ... }
-my class Real {
+my class Real does Numeric {
     method Rat(Real:D: Real $epsilon = 1.0e-6) { self.Bridge.Rat($epsilon) }
     method abs()  { self < 0 ?? -self !! self }
     proto method sign(|$) {*}

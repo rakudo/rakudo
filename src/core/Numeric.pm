@@ -1,5 +1,4 @@
-# XXX role Numeric { ... }
-my class Numeric {
+my role Numeric {
     multi method Numeric(Numeric:D:) { self }
 
     multi method ACCEPTS(Numeric:D: $a) {

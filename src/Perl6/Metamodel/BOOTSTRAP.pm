@@ -607,14 +607,9 @@ Str.HOW.add_attribute(Str, BOOTSTRAPATTR.new(:name<$!value>, :type(str), :box_ta
 Str.HOW.set_boolification_mode(Str, 4);
 Str.HOW.publish_boolification_spec(Str);
 
-# XXX: Numeric and Real are really roles; this stubs them in as classes for now.
-# class Numeric is Cool { ... }
-my stub Numeric metaclass Perl6::Metamodel::ClassHOW { ... };
-Numeric.HOW.add_parent(Numeric, Cool);
-
 # class Real is Numeric { ... }
 my stub Real metaclass Perl6::Metamodel::ClassHOW { ... };
-Real.HOW.add_parent(Real, Numeric);
+Real.HOW.add_parent(Real, Cool);
 
 # class Int is (Cool does) Real {
 #     has int $!value is box_target;
@@ -898,7 +893,6 @@ my module EXPORT {
         $?PACKAGE.WHO<Submethod> := Submethod;
         $?PACKAGE.WHO<Regex>     := Regex;
         $?PACKAGE.WHO<Str>       := Str;
-        $?PACKAGE.WHO<Numeric>   := Numeric;
         $?PACKAGE.WHO<Real>      := Real;
         $?PACKAGE.WHO<Int>       := Int;
         $?PACKAGE.WHO<Num>       := Num;

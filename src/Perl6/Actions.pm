@@ -1,5 +1,6 @@
 use NQPP6Regex;
 use Perl6::Pod;
+use Perl6::ConstantFolder;
 use QRegex;
 
 INIT {
@@ -1988,7 +1989,7 @@ class Perl6::Actions is HLL::Actions {
         }
         if $term_ast.isa(PAST::Op) && $term_ast.name eq '&infix:<,>' {
             for @($term_ast) {
-                if $_.returns() eq 'Pair' && $_[1]<has_compile_time_value> && $_[2]<has_compile_time_value> {
+                if $_.returns() eq 'Pair' && $_[1]<has_compile_time_value> {
                     @values.push($_);
                 }
                 elsif $_<has_compile_time_value> {
@@ -2002,11 +2003,11 @@ class Perl6::Actions is HLL::Actions {
         elsif $term_ast<has_compile_time_value> {
             @values.push($term_ast);
         }
-        elsif $term_ast.returns() eq 'Pair' && $term_ast[1]<has_compile_time_value> && $term_ast[2]<has_compile_time_value> {
+        elsif $term_ast.returns() eq 'Pair' && $term_ast[1]<has_compile_time_value> {
             @values.push($term_ast);
         }
         else {
-            $<term>.CURSOR.panic("Enumeration values must be known at compile time");
+            $<term>.CURSOR.panic("Enumeration values must be known or constant-foldable at compile time");
         }
 
         # Now we have them, we can go about computing the value
@@ -2020,7 +2021,22 @@ class Perl6::Actions is HLL::Actions {
             my $cur_key;
             if $_.returns() eq 'Pair' {
                 $cur_key   := $_[1]<compile_time_value>;
-                $cur_value := nqp::unbox_i($_[2]<compile_time_value>);
+                if $_[2]<has_compile_time_value> {
+                    $cur_value := nqp::unbox_i($_[2]<compile_time_value>);
+                }
+                else {
+                    my $ok;
+                    try {
+                        $cur_value := nqp::unbox_i(
+                            Perl6::ConstantFolder.fold(
+                                $_[2], $*W.cur_lexpad(), $*W
+                            )<compile_time_value>);
+                        $ok := 1;
+                    }
+                    unless $ok {
+                        $/.CURSOR.panic("Enumeration values must be known or constant-foldable at compile time");
+                    }
+                }
             }
             else {
                 $cur_key := $_<compile_time_value>;

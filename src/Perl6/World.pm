@@ -1185,6 +1185,15 @@ class Perl6::World is HLL::World {
         $past<boxable_native>         := 3;
         $past;
     }
+    
+    # XXX This needs doing properly...though it'd be trivial if we had
+    # proper serialization.
+    method add_constant_folded_result($r) {
+        my $result := PAST::Op.new();
+        $result<has_compile_time_value> := 1;
+        $result<compile_time_value> := $r;
+        $result
+    }
 
     # Creates a meta-object for a package, adds it to the root objects and
     # stores an event for the action. Returns the created object.

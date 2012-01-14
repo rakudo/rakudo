@@ -145,7 +145,7 @@ multi infix:<gcd>(int $a, int $b) returns int {
 }
 
 ## Order enumeration, for cmp and <=>
-my enum Order (:Decrease(-1), :Same(0), :Increase(1));
+my enum Order (:Increase(-1), :Same(0), :Decrease(1));
 
 multi infix:<cmp>(Int:D \$a, Int:D \$b) returns Int:D {
     nqp::p6box_i(nqp::cmp_I(nqp::p6decont($a), nqp::p6decont($b)))

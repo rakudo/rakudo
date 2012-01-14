@@ -11,7 +11,7 @@ class Perl6::ConstantFolder {
             # my involve recursively folding).
             my @args;
             for @($expr) {
-                my $arg := self.fold($_);
+                my $arg := self.fold($_, $scope, $world);
                 if $arg<has_compile_time_value> {
                     @args.push($arg<compile_time_value>)
                 }

@@ -1,4 +1,4 @@
-# Copyright (C) 2006-2011, The Perl Foundation.
+# Copyright (C) 2006-2012, The Perl Foundation.
 # $Id$
 
 SHELL            = @shell@
@@ -57,6 +57,8 @@ PERL6_PBC     = perl6.pbc
 PERL6_EXE     = perl6$(EXE)
 PERL6_ML      = src/gen/perl6-moduleloader.pir
 PERL6_ML_PBC  = blib/Perl6/ModuleLoader.pbc
+PERL6_CF      = src/gen/perl6-constantfolder.pir
+PERL6_CF_PBC  = blib/Perl6/ConstantFolder.pbc
 PERL6_W       = src/gen/perl6-symboltable.pir
 PERL6_W_PBC   = blib/Perl6/World.pbc
 PERL6_G       = src/gen/perl6-grammar.pir
@@ -268,6 +270,7 @@ all: check-versions $(PERL6_EXE) $(SETTING) $(S_SETTING) lib/Test.pir lib/Pod/To
 install: all
 	$(MKPATH)                     $(DESTDIR)$(NQP_LANG_DIR)/lib/Perl6
 	$(CP) $(PERL6_ML_PBC)         $(DESTDIR)$(NQP_LANG_DIR)/lib/Perl6/ModuleLoader.pbc
+	$(CP) $(PERL6_CF_PBC)         $(DESTDIR)$(NQP_LANG_DIR)/lib/Perl6/ConstantFolder.pbc
 	$(CP) $(PERL6_W_PBC)          $(DESTDIR)$(NQP_LANG_DIR)/lib/Perl6/World.pbc
 	$(CP) $(PERL6_G_PBC)          $(DESTDIR)$(NQP_LANG_DIR)/lib/Perl6/Grammar.pbc
 	$(CP) $(PERL6_A_PBC)          $(DESTDIR)$(NQP_LANG_DIR)/lib/Perl6/Actions.pbc
@@ -313,6 +316,11 @@ $(PERL6_ML_PBC): $(NQP_EXE) $(DYNEXT_DYNPMC) $(DYNEXT_DYNOPS) src/Perl6/ModuleLo
 	    src/Perl6/ModuleLoader.pm
 	$(PARROT) $(PARROT_ARGS) -o $(PERL6_ML_PBC) $(PERL6_ML)
 
+$(PERL6_CF_PBC): $(NQP_EXE) $(DYNEXT_DYNPMC) $(DYNEXT_DYNOPS) src/Perl6/ConstantFolder.pm
+	$(NQP_EXE) --target=pir --output=$(PERL6_CF) --encoding=utf8 \
+	    src/Perl6/ConstantFolder.pm
+	$(PARROT) $(PARROT_ARGS) -o $(PERL6_CF_PBC) $(PERL6_CF)
+
 $(PERL6_W_PBC): $(NQP_EXE) $(PERL6_ML_PBC) src/Perl6/World.pm
 	$(NQP_EXE) --vmlibs=perl6_group,perl6_ops --target=pir --output=$(PERL6_W) --encoding=utf8 \
 	    src/Perl6/World.pm
@@ -323,7 +331,7 @@ $(PERL6_G_PBC): $(NQP_EXE) $(PERL6_W_PBC) src/Perl6/Grammar.pm $(PERL6_P_PBC)
 	    src/Perl6/Grammar.pm
 	$(PARROT) $(PARROT_ARGS) -o $(PERL6_G_PBC) $(PERL6_G)
 
-$(PERL6_A_PBC): $(NQP_EXE) $(DYNEXT_DYNPMC) $(DYNEXT_DYNOPS) src/Perl6/Actions.pm $(PERL6_P_PBC)
+$(PERL6_A_PBC): $(NQP_EXE) $(DYNEXT_DYNPMC) $(DYNEXT_DYNOPS) src/Perl6/Actions.pm $(PERL6_P_PBC) $(PERL6_CF_PBC)
 	$(NQP_EXE) --vmlibs=perl6_group,perl6_ops  --target=pir --output=$(PERL6_A) --encoding=utf8 \
 	    src/Perl6/Actions.pm
 	$(PARROT) $(PARROT_ARGS) -o $(PERL6_A_PBC) $(PERL6_A)

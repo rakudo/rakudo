@@ -450,6 +450,7 @@ grammar Perl6::Grammar is HLL::Grammar {
                 $*W.install_lexical_symbol($*UNIT, 'GLOBALish', $*GLOBALish);
                 $*W.install_lexical_symbol($*UNIT, 'EXPORT', $*EXPORT);
                 $*W.install_lexical_symbol($*UNIT, '$?PACKAGE', $*PACKAGE);
+                $*W.install_lexical_symbol($*UNIT, '::?PACKAGE', $*PACKAGE);
                 $*W.create_code_object($*UNIT, 'Block', $*W.create_signature([]));
             }
         }
@@ -1265,16 +1266,18 @@ grammar Perl6::Grammar is HLL::Grammar {
                     }
                 }
                 
-                # Install $?PACKAGE, $?ROLE, $?CLASS, ::?CLASS as needed.
+                # Install $?PACKAGE, $?ROLE, $?CLASS, and :: variants as needed.
                 my $curpad := $*W.cur_lexpad();
                 unless $curpad.symbol('$?PACKAGE') {
                     $*W.install_lexical_symbol($curpad, '$?PACKAGE', $*PACKAGE);
+                    $*W.install_lexical_symbol($curpad, '::?PACKAGE', $*PACKAGE);
                     if $*PKGDECL eq 'class' || $*PKGDECL eq 'grammar' {
                         $*W.install_lexical_symbol($curpad, '$?CLASS', $*PACKAGE);
                         $*W.install_lexical_symbol($curpad, '::?CLASS', $*PACKAGE);
                     }
                     elsif $*PKGDECL eq 'role' {
                         $*W.install_lexical_symbol($curpad, '$?ROLE', $*PACKAGE);
+                        $*W.install_lexical_symbol($curpad, '::?ROLE', $*PACKAGE);
                         $*W.install_lexical_symbol($curpad, '$?CLASS',
                             $*W.pkg_create_mo(%*HOW<generic>, :name('$?CLASS')));
                         $*W.install_lexical_symbol($curpad, '::?CLASS',

@@ -100,6 +100,9 @@ class Perl6::Metamodel::ParametricRoleHOW
         if $decont =:= $obj.WHAT {
             return 1;
         }
+        if $!in_group && $decont =:= $!group {
+            return 1;
+        }
         for self.prentending_to_be() {
             if $decont =:= pir::perl6_decontainerize__PP($_) {
                 return 1;

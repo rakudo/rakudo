@@ -2713,6 +2713,10 @@ class Perl6::Actions is HLL::Actions {
     method term:sym<boolean>($/) {
         make PAST::Op.new(:pirop<perl6_booleanize__Pi>, $<value> eq 'True');
     }
+    
+    method term:sym<::?IDENT>($/) {
+        make instantiated_type([~$/], $/);
+    }
 
     method term:sym<self>($/) {
         make PAST::Var.new( :name('self'), :type($*PACKAGE), :node($/) );

@@ -147,18 +147,18 @@ multi infix:<gcd>(int $a, int $b) returns int {
 ## Order enumeration, for cmp and <=>
 my enum Order (:Increase(-1), :Same(0), :Decrease(1));
 
-multi infix:<cmp>(Int:D \$a, Int:D \$b) returns Int:D {
-    nqp::p6box_i(nqp::cmp_I(nqp::p6decont($a), nqp::p6decont($b)))
+multi infix:<cmp>(Int:D \$a, Int:D \$b) {
+    Order.(nqp::p6box_i(nqp::cmp_I(nqp::p6decont($a), nqp::p6decont($b))))
 }
 multi infix:<cmp>(int $a, int $b) {
-    nqp::cmp_i($a, $b)
+    Order.(nqp::p6box_i(nqp::cmp_i($a, $b)))
 }
 
-multi infix:«<=>»(Int:D \$a, Int:D \$b) returns Int:D {
-    nqp::p6box_i(nqp::cmp_I(nqp::p6decont($a), nqp::p6decont($b)))
+multi infix:«<=>»(Int:D \$a, Int:D \$b) {
+    Order.(nqp::p6box_i(nqp::cmp_I(nqp::p6decont($a), nqp::p6decont($b))))
 }
-multi infix:«<=>»(int $a, int $b) returns int {
-    nqp::cmp_i($a, $b)
+multi infix:«<=>»(int $a, int $b) {
+    Order.(nqp::p6box_i(nqp::cmp_i($a, $b)))
 }
 
 multi infix:<===>(Int:D \$a, Int:D \$b) {

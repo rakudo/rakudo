@@ -33,6 +33,10 @@ my role Enumeration {
     method Int(::?CLASS:D:) {
         self.value.Int
     }
+
+    method postcircumfix:<( )>($x as Str) {
+        self.enums.invert.hash{$x}
+    }
 }
 
 # Methods that we also have if the base type of an enumeration is

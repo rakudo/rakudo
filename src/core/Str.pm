@@ -645,7 +645,7 @@ multi infix:<x>(Str:D $s, Int:D $repetition) {
 }
 
 multi infix:<cmp>(Str:D \$a, Str:D \$b) {
-    nqp::p6box_i(nqp::cmp_s(nqp::unbox_s($a), nqp::unbox_s($b)))
+    Order.(nqp::p6box_i(nqp::cmp_s(nqp::unbox_s($a), nqp::unbox_s($b))))
 }
 
 multi infix:<===>(Str:D \$a, Str:D \$b) {
@@ -653,7 +653,7 @@ multi infix:<===>(Str:D \$a, Str:D \$b) {
 }
 
 multi infix:<leg>(Str:D \$a, Str:D \$b) {
-    nqp::p6box_i(nqp::cmp_s(nqp::unbox_s($a), nqp::unbox_s($b)))
+    Order.(nqp::p6box_i(nqp::cmp_s(nqp::unbox_s($a), nqp::unbox_s($b))))
 }
 
 multi infix:<eq>(Str:D \$a, Str:D \$b) {

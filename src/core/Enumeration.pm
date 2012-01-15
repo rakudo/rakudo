@@ -34,8 +34,8 @@ my role Enumeration {
         self.value.Int
     }
 
-    method postcircumfix:<( )>($x as Str) {
-        self.enums.invert.hash{$x}
+    method postcircumfix:<( )>($x) {
+        self.^enum_from_value($x)
     }
 }
 

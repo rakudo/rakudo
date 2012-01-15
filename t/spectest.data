@@ -75,6 +75,7 @@ S02-magicals/dollar-underscore.t
 S02-magicals/env.t
 S02-magicals/pid.t
 S02-magicals/progname.t
+S02-magicals/sub.t
 S02-names-vars/contextual.t
 S02-names-vars/fmt.t
 S02-names-vars/names.t

@@ -1332,7 +1332,7 @@ class Perl6::Actions is HLL::Actions {
     }
 
     sub declare_variable($/, $past, $sigil, $twigil, $desigilname, $trait_list) {
-        my $name  := $sigil ~ $twigil ~ $desigilname;
+        my $name  := $sigil ~ $desigilname;
         my $BLOCK := $*W.cur_lexpad();
 
         if $*SCOPE eq 'has' {
@@ -1396,6 +1396,7 @@ class Perl6::Actions is HLL::Actions {
             # Set scope and type on container, and if needed emit code to
             # reify a generic type.
             if $past.isa(PAST::Var) {
+                $past.name($name);
                 $past.scope('lexical_6model');
                 $past.type(%cont_info<bind_constraint>);
                 $past := box_native_if_needed($past, %cont_info<bind_constraint>);
@@ -1412,15 +1413,32 @@ class Perl6::Actions is HLL::Actions {
             if $*SCOPE eq 'state' {
                 $past<state_declarator> := 1;
             }
+            
+            # Twigil handling.
+            if $twigil eq '.' {
+                add_lexical_accessor($/, $past, $desigilname, $*W.cur_lexpad());
+            }
+            elsif $twigil ne '' {
+                $/.CURSOR.panic("Cannot use $twigil twigil on $*SCOPE variable");
+            }
         }
         elsif $*SCOPE eq 'our' {
             if $*TYPENAME {
                 $/.CURSOR.panic("Cannot put a type constraint on an 'our'-scoped variable");
             }
+            $past.name($name);
             $BLOCK[0].push(PAST::Var.new(
                 :name($name), :scope('lexical'), :isdecl(1),
                 :viviself($*W.symbol_lookup([$name], $/, :package_only(1), :lvalue(1)))));
             $BLOCK.symbol($name, :scope('lexical'));
+            
+            # Twigil handling.
+            if $twigil eq '.' {
+                add_lexical_accessor($/, $past, $desigilname, $*W.cur_lexpad());
+            }
+            elsif $twigil ne '' {
+                $/.CURSOR.panic("Cannot use $twigil twigil on $*SCOPE variable");
+            }
         }
         else {
             $*W.throw($/, ['X', 'NYI'],
@@ -1428,6 +1446,20 @@ class Perl6::Actions is HLL::Actions {
         }
 
         return $past;
+    }
+    
+    sub add_lexical_accessor($/, $var_past, $meth_name, $install_in) {
+        # Generate and install code block for accessor.
+        my $a_past := $*W.push_lexpad($/);
+        $a_past.name($meth_name);
+        $a_past.push($var_past);
+        $*W.pop_lexpad();
+        $install_in.push(PAST::Stmt.new($a_past));
+
+        # Produce a code object and install it.
+        my $invocant_type := $*W.find_symbol([$*W.is_lexical('$?CLASS') ?? '$?CLASS' !! 'Mu']);
+        my $code := methodize_block($/, $a_past, [], $invocant_type, 'Method');
+        install_method($/, $meth_name, 'has', $code, $install_in);
     }
 
     method routine_declarator:sym<sub>($/) { make $<routine_def>.ast; }

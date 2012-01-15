@@ -33,7 +33,10 @@ grammar Perl6::Grammar is HLL::Grammar {
         # XXX Hack: clear any marks.
         pir::set_hll_global__vPsP(['HLL', 'Grammar'], '%!MARKHASH', nqp::null());
 
-        self.comp_unit;
+        my $cursor := self.comp_unit;
+        $*W.pop_lexpad(); # UNIT
+        $*W.pop_lexpad(); # UNIT_OUTER
+        $cursor;
     }
 
     # "when" arg assumes more things will become obsolete after Perl 6 comes out...
@@ -469,8 +472,6 @@ grammar Perl6::Grammar is HLL::Grammar {
             $*W.install_lexical_symbol(
                 $*UNIT, '$=POD', $*POD_PAST<compile_time_value>
             );
-            $*W.pop_lexpad(); # UNIT
-            $*W.pop_lexpad(); # UNIT_OUTER
         }
         
         # CHECK time.

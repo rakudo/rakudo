@@ -388,6 +388,7 @@ S12-class/inheritance.t
 S12-class/instantiate.t
 # S12-class/interface-consistency.t # err: No applicable candidates found to dispatch to for 'trait_mod:<is>'.
 S12-class/lexical.t
+S12-class/magical-vars.t
 S12-class/mro.t
 # S12-class/namespaced.t # err: regex assertion not terminated by angle bracket
 S12-class/open.t

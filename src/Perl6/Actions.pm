@@ -3509,11 +3509,16 @@ class Perl6::Actions is HLL::Actions {
                 $past.name('dispatch:<hyper>');
             }
             elsif $past.isa(PAST::Op) && $past.pasttype() eq 'call' {
-                my $basepast := $past.name 
-                                  ?? PAST::Var.new( :name($past.name), :scope<lexical_6model>)
-                                  !! $past[0];
-                $past.push($basepast);
-                $past.name('&METAOP_HYPER_POSTFIX');
+                if $<dotty> {
+                    $past.name('&METAOP_HYPER_CALL');
+                }
+                else {
+                    my $basepast := $past.name 
+                                    ?? PAST::Var.new( :name($past.name), :scope<lexical_6model>)
+                                    !! $past[0];
+                    $past.push($basepast);
+                    $past.name('&METAOP_HYPER_POSTFIX');
+                }
             }
             make $past;
         }

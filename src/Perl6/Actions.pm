@@ -1332,7 +1332,7 @@ class Perl6::Actions is HLL::Actions {
     }
 
     sub declare_variable($/, $past, $sigil, $twigil, $desigilname, $trait_list) {
-        my $name  := $sigil ~ $desigilname;
+        my $name  := $sigil ~ $twigil ~ $desigilname;
         my $BLOCK := $*W.cur_lexpad();
 
         if $*SCOPE eq 'has' {
@@ -1383,7 +1383,16 @@ class Perl6::Actions is HLL::Actions {
             $past := PAST::Op.new( :pasttype('null') );
             $past<attribute_declarand> := $attr;
         }
-        elsif $*SCOPE eq 'my' || $*SCOPE eq 'state' {
+        elsif $*SCOPE eq 'my' || $*SCOPE eq 'state' {            
+            # Twigil handling.
+            if $twigil eq '.' {
+                add_lexical_accessor($/, $past, $desigilname, $*W.cur_lexpad());
+                $name := $sigil ~ $desigilname;
+            }
+            elsif $twigil eq '!' {
+                $/.CURSOR.panic("Cannot use $twigil twigil on $*SCOPE variable");
+            }
+
             # Create a container descriptor. Default to rw and set a
             # type if we have one; a trait may twiddle with that later.
             my %cont_info := container_type_info($sigil, $*TYPENAME ?? [$*TYPENAME.ast] !! []);
@@ -1413,32 +1422,25 @@ class Perl6::Actions is HLL::Actions {
             if $*SCOPE eq 'state' {
                 $past<state_declarator> := 1;
             }
-            
+        }
+        elsif $*SCOPE eq 'our' {            
             # Twigil handling.
             if $twigil eq '.' {
                 add_lexical_accessor($/, $past, $desigilname, $*W.cur_lexpad());
+                $name := $sigil ~ $desigilname;
+                $past.name($name);
             }
-            elsif $twigil ne '' {
+            elsif $twigil eq '!' {
                 $/.CURSOR.panic("Cannot use $twigil twigil on $*SCOPE variable");
             }
-        }
-        elsif $*SCOPE eq 'our' {
+
             if $*TYPENAME {
                 $/.CURSOR.panic("Cannot put a type constraint on an 'our'-scoped variable");
             }
-            $past.name($name);
             $BLOCK[0].push(PAST::Var.new(
                 :name($name), :scope('lexical'), :isdecl(1),
                 :viviself($*W.symbol_lookup([$name], $/, :package_only(1), :lvalue(1)))));
             $BLOCK.symbol($name, :scope('lexical'));
-            
-            # Twigil handling.
-            if $twigil eq '.' {
-                add_lexical_accessor($/, $past, $desigilname, $*W.cur_lexpad());
-            }
-            elsif $twigil ne '' {
-                $/.CURSOR.panic("Cannot use $twigil twigil on $*SCOPE variable");
-            }
         }
         else {
             $*W.throw($/, ['X', 'NYI'],

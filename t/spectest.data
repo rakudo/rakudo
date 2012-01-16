@@ -489,6 +489,7 @@ S29-any/isa.t
 S29-context/die.t
 S29-context/eval.t
 S29-context/exit.t
+S29-context/exit-in-if.t
 S29-context/sleep.t
 S29-conversions/hash.t
 S29-conversions/ord_and_chr.t                              #icu

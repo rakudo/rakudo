@@ -116,11 +116,22 @@ my class Parameter {
     
     # XXX TODO: A few more bits :-)
     multi method perl(Parameter:D:) {
-        my $perl = $!nominal_type.HOW.name($!nominal_type);
-        if $!flags +& $SIG_ELEM_DEFINED_ONLY {
-            $perl ~= ':D';
-        } elsif $!flags +& $SIG_ELEM_UNDEFINED_ONLY {
-            $perl ~= ':U';
+        my $perl = '';
+        my $type = $!nominal_type.HOW.name($!nominal_type);
+        if $!flags +& $SIG_ELEM_ARRAY_SIGIL {
+            # XXX Need inner type
+        }
+        elsif $!flags +& $SIG_ELEM_HASH_SIGIL {
+            # XXX Need inner type
+        }
+        else {
+            $perl = $type;
+            if $!flags +& $SIG_ELEM_DEFINED_ONLY {
+                $perl ~= ':D';
+            } elsif $!flags +& $SIG_ELEM_UNDEFINED_ONLY {
+                $perl ~= ':U';
+            }
+            $perl ~= ' ';
         }
         if $!variable_name {
             my $name = $!variable_name;
@@ -129,6 +140,7 @@ my class Parameter {
             } elsif $!flags +& $SIG_ELEM_IS_PARCEL {
                 $perl ~= '\\' ~ $name;
             } else {
+                my $default = self.default();
                 if self.named {
                     my @names := self.named_names;
                     my $/ := $name ~~ / ^^ $<sigil>=<[$@%&]> $<desigil>=(@names) $$ /;
@@ -138,17 +150,18 @@ my class Parameter {
                         $name = ':' ~ $_ ~ '(' ~ $name ~ ')';
                     }
                     $name ~= '!' unless self.optional;
-                } elsif self.optional {
+                } elsif self.optional && !$default {
                     $name ~= '?';
                 } elsif self.slurpy {
                     $name = '*' ~ $name;
                 }
-                $perl = $perl ~ ' ' ~ $name;
+                $perl ~= $name;
                 if $!flags +& $SIG_ELEM_IS_RW {
                     $perl ~= ' is rw';
                 } elsif $!flags +& $SIG_ELEM_IS_COPY {
                     $perl ~= ' is copy';
                 }
+                $perl ~= ' = { ... }' if $default;
                 unless nqp::isnull($!sub_signature) {
                     $perl ~= ' ' ~ $!sub_signature.perl();
                 }

@@ -436,9 +436,14 @@ grammar Perl6::Grammar is HLL::Grammar {
                 }
             }
             
-            # Create GLOBAL(ish).
-            $*GLOBALish := $*W.pkg_create_mo(%*HOW<package>, :name('GLOBAL'));
-            $*W.pkg_compose($*GLOBALish);
+            # Create GLOBAL(ish), unless we were given one.
+            if pir::exists(%*COMPILING<%?OPTIONS>, 'global') {
+                $*GLOBALish := %*COMPILING<%?OPTIONS><global>;
+            }
+            else {
+                $*GLOBALish := $*W.pkg_create_mo(%*HOW<package>, :name('GLOBAL'));
+                $*W.pkg_compose($*GLOBALish);
+            }
                 
             # Create EXPORT.
             $*EXPORT := $*W.pkg_create_mo(%*HOW<package>, :name('EXPORT'));

@@ -227,7 +227,7 @@ class Perl6::Actions is HLL::Actions {
         $unit.loadinit().push(PAST::Op.new(
             :pasttype('bind_6model'),
             PAST::Var.new( :name('GLOBAL'), :namespace([]), :scope('package') ),
-            $*W.get_slot_past_for_object($*GLOBALish)
+            $*W.get_ref($*GLOBALish)
         ));
 
         # Mainline should have fresh lexicals.

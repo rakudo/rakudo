@@ -155,7 +155,7 @@ sub eval(Str $code, :$lang = 'perl6') {
         %r = $P0['context';1]
     };
     my $compiler := pir::compreg__PS($lang);
-    my $pbc      := $compiler.compile($code, :outer_ctx($caller_ctx));
+    my $pbc      := $compiler.compile($code, :outer_ctx($caller_ctx), :global(GLOBAL));
     nqp::atpos($pbc, 0).set_outer_ctx($caller_ctx);
     $pbc();
 }

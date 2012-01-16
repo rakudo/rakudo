@@ -12,7 +12,19 @@ my class Parcel does Positional {
     method Parcel()  { self }
     method Capture() {
         my $cap := nqp::create(Capture);
-        nqp::bindattr($cap, Capture, '$!list', $!storage);
+        my Mu $list := nqp::list();
+        my Mu $hash := nqp::hash();
+        my int $c = nqp::elems($!storage);
+        my int $i = 0;
+        while $i < $c {
+            my $v := nqp::atpos($!storage, $i);
+            nqp::istype($v, Pair) ??
+                nqp::bindkey($hash, nqp::unbox_s($v.key), $v.value) !!
+                nqp::push($list, $v);
+            $i = $i + 1;
+        }
+        nqp::bindattr($cap, Capture, '$!list', $list);
+        nqp::bindattr($cap, Capture, '$!hash', $hash);
         $cap
     }
 

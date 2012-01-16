@@ -39,8 +39,10 @@ my class Complex is Cool does Numeric {
 
     method Complex() { self }
     multi method Str(Complex:D:) {
-        my $op = $.im < 0 ?? ' - ' !! ' + ';
-        $!re.Str ~ $op ~ $!im.abs ~ 'i';
+        my Str $i = nqp::isnanorinf($!im) ?? '\\i' !! 'i';
+        $!im < 0e0
+            ?? nqp::p6box_s($!re) ~ '-' ~ nqp::p6box_s(nqp::abs_n($!im)) ~ $i
+            !! nqp::p6box_s($!re) ~ '+' ~ nqp::p6box_s($!im) ~ $i;
     }
 
     multi method perl(Complex:D:) {

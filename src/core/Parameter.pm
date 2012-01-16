@@ -22,6 +22,11 @@ my class Parameter {
         $!variable_name
     }
     
+    method constraint_list() {
+        pir::isnull($!post_constraints) ?? () !!
+            pir::perl6ize_type__PP($!post_constraints)
+    }
+    
     method constraints() {
         all(pir::isnull($!post_constraints) ?? () !!
             pir::perl6ize_type__PP($!post_constraints))

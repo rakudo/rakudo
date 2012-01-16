@@ -125,11 +125,7 @@ my sub MAIN_HELPER($retval = 0) {
                     }
                 }
                 else {
-                    # XXX ugly hack to get the eigentstates of the
-                    # junction returned by $param.constraints;
-                    my @c; sub autothread($x) { @c.push: $x };
-                    autothread($param.constraints);
-                    my $constraints  = ~@c;
+                    my $constraints  = ~$param.constraint_list;
                     my $simple-const = $constraints && $constraints !~~ /^_block/;
                     $argument = $param.name   ?? '<' ~ $param.name.substr(1) ~ '>' !!
                                 $simple-const ??       $constraints                !!

@@ -464,9 +464,9 @@ S14-roles/parameterized-mixin.t
 S14-roles/parameterized-type.t
 S14-roles/stubs.t
 S14-roles/submethods.t
-# S14-traits/attributes.t # err: Method 'container' not found for invocant of class 'Attribute'
+S14-traits/attributes.t
 # S14-traits/package.t # err: Invalid typename in parameter declaration
-# S14-traits/routines.t # all skipped
+S14-traits/routines.t
 # S14-traits/variables.t # err: Invalid typename in parameter declaration
 S16-filehandles/filetest.t
 S16-filehandles/io.t

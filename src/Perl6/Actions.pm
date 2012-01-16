@@ -3153,6 +3153,10 @@ class Perl6::Actions is HLL::Actions {
             make bind_op($/, 1);
             return 1;
         }
+        elsif $sym eq 'does' || $sym eq 'but' {
+            make mixin_op($/, $sym);
+            return 1;
+        }
         unless $past {
             $past := PAST::Op.new( :node($/) );
             if $<OPER><O><pasttype> { $past.pasttype( ~$<OPER><O><pasttype> ); }
@@ -3397,6 +3401,37 @@ class Perl6::Actions is HLL::Actions {
                 $past);
         }
         return $past;
+    }
+    
+    sub mixin_op($/, $sym) {
+        my $rhs  := $/[1].ast;
+        my $past := PAST::Op.new(
+            :pasttype('call'), :name('&infix:<' ~ $sym ~ '>'),
+            $/[0].ast);
+        if $rhs.isa(PAST::Op) && $rhs.pasttype eq 'call' {
+            if $rhs.name && +@($rhs) == 1 {
+                try {
+                    $past.push($*W.get_ref($*W.find_symbol([pir::substr__SSi($rhs.name, 1)])));
+                    $rhs[0].named('value');
+                    $past.push($rhs[0]);
+                    CATCH { $past.push($rhs); }
+                }
+            }
+            else {
+                if $rhs[0]<has_compile_time_value> && +@($rhs) == 2 {
+                    $past.push($rhs[0]);
+                    $rhs[1].named('value');
+                    $past.push($rhs[1]);
+                }
+                else {
+                    $past.push($rhs);
+                }
+            }
+        }
+        else {
+            $past.push($rhs);
+        }
+        $past
     }
 
     method prefixish($/) {

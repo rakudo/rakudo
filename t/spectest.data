@@ -318,6 +318,7 @@ S06-other/main.t
 S06-other/main-eval.t
 S06-other/main-usage.t
 S06-other/misc.t
+S06-routine-modifiers/lvalue-subroutines.t
 S06-routine-modifiers/proxy.t
 S06-routine-modifiers/scoped-named-subs.t
 S06-signature/arity.t
@@ -376,7 +377,7 @@ S12-attributes/clone.t
 S12-attributes/delegation.t
 S12-attributes/inheritance.t
 S12-attributes/instance.t
-# S12-attributes/mutators.t # err: Cannot put a type constraint on an 'our'-scoped variable
+S12-attributes/mutators.t
 S12-attributes/recursive.t
 S12-attributes/undeclared.t
 S12-class/anonymous.t
@@ -447,7 +448,7 @@ S13-overloading/metaoperators.t
 S13-overloading/operators.t
 S14-roles/anonymous.t
 # S14-roles/attributes.t # err: Attribute $!a1 not declared in class C1
-# S14-roles/basic.t # err: C67768 cannot compose List because it is not composable
+S14-roles/basic.t
 S14-roles/bool.t
 S14-roles/composition.t
 S14-roles/conflicts.t

@@ -4,7 +4,9 @@ my class Duration is Real {
 
     method new($x) { self.bless: *, x => $x.Rat }
 
-    method Bridge(Duration:D:) { $.x }
+    method Bridge(Duration:D:) { $!x.Num }
+    method Rat(Duration:D:)    { $!x     }
+    method Num(Duration:D:)    { $!x     }
 
     multi method Str(Duration:D:) { ~$.x }
 

@@ -1931,7 +1931,7 @@ class Perl6::Actions is HLL::Actions {
         make $closure;
     }
 
-    sub regex_coderef($/, $qast, $scope, $name, @params, $block, $traits?, :$proto) {
+    sub regex_coderef($/, $qast, $scope, $name, @params, $block, $traits?, :$proto, :$use_outer_match) {
         # create a code reference from a regex qast tree
         my $past;
         if $proto {
@@ -1940,9 +1940,11 @@ class Perl6::Actions is HLL::Actions {
         }
         else {
             $block[0].push(PAST::Var.new(:name<$¢>, :scope<lexical_6model>, :isdecl(1)));
-            $block[0].push(PAST::Var.new(:name<$/>, :scope<lexical_6model>, :isdecl(1)));
             $block.symbol('$¢', :scope<lexical_6model>);
-            $block.symbol('$/', :scope<lexical_6model>);
+            unless $use_outer_match {
+                $block[0].push(PAST::Var.new(:name<$/>, :scope<lexical_6model>, :isdecl(1)));
+                $block.symbol('$/', :scope<lexical_6model>);
+            }
             $past := QRegex::P6Regex::Actions::buildsub($qast, $block);
         }
         $past.name($name);
@@ -3807,7 +3809,7 @@ class Perl6::Actions is HLL::Actions {
     }
     method quote:sym</ />($/) {
         my $block := PAST::Block.new(PAST::Stmts.new, PAST::Stmts.new, :node($/));
-        my $coderef := regex_coderef($/, $<p6regex>.ast, 'anon', '', [], $block);
+        my $coderef := regex_coderef($/, $<p6regex>.ast, 'anon', '', [], $block, :use_outer_match(1));
         # Return closure if not in sink context.
         my $closure := block_closure($coderef);
         $closure<sink_past> := PAST::Op.new( :pasttype('null') );
@@ -3817,12 +3819,12 @@ class Perl6::Actions is HLL::Actions {
     method quote:sym<rx>($/) {
         my $block := PAST::Block.new(PAST::Stmts.new, PAST::Stmts.new, :node($/));
         self.handle_and_check_adverbs($/, %SHARED_ALLOWED_ADVERBS, 'm', $block);
-        my $coderef := regex_coderef($/, $<p6regex>.ast, 'anon', '', [], $block);
+        my $coderef := regex_coderef($/, $<p6regex>.ast, 'anon', '', [], $block, :use_outer_match(1));
         make block_closure($coderef);
     }
     method quote:sym<m>($/) {
         my $block := PAST::Block.new(PAST::Stmts.new, PAST::Stmts.new, :node($/));
-        my $coderef := regex_coderef($/, $<p6regex>.ast, 'anon', '', [], $block);
+        my $coderef := regex_coderef($/, $<p6regex>.ast, 'anon', '', [], $block, :use_outer_match(1));
 
         my $past := PAST::Op.new(
             :node($/),
@@ -3862,7 +3864,7 @@ class Perl6::Actions is HLL::Actions {
         # Build the regex.
 
         my $rx_block := PAST::Block.new(PAST::Stmts.new, PAST::Stmts.new, :node($/));
-        my $rx_coderef := regex_coderef($/, $<p6regex>.ast, 'anon', '', [], $rx_block);
+        my $rx_coderef := regex_coderef($/, $<p6regex>.ast, 'anon', '', [], $rx_block, :use_outer_match(1));
 #        my $regex :=  block_closure($rx_coderef);
 
         # Quote needs to be closure-i-fied.
@@ -4649,13 +4651,13 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions {
         my $past :=
             PAST::Stmts.new(
                 PAST::Op.new(
+                    :pirop('perl6_container_store__vPP'),
                     PAST::Var.new( :name('$/'), :scope<lexical_6model> ),
                     PAST::Op.new(
                         PAST::Var.new( :name('$¢'), :scope<lexical_6model> ),
                         :name('MATCH'),
                         :pasttype('callmethod')
-                    ),
-                    :pasttype('bind_6model')
+                    )
                 ),
                 PAST::Op.new(:pasttype<call>, $blockref)
             );

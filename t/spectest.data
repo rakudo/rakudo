@@ -109,6 +109,13 @@ S03-metaops/not.t
 S03-metaops/reduce.t
 S03-metaops/reverse.t
 S03-metaops/zip.t
+S03-binding/attributes.t
+S03-binding/arrays.t
+S03-binding/nested.t
+S03-binding/closure.t
+S03-binding/hashes.t
+S03-binding/ro.t
+S03-binding/scalars.t
 S03-operators/also.t
 S03-operators/arith.t
 S03-operators/assign-is-not-binding.t
@@ -117,13 +124,6 @@ S03-operators/autoincrement-range.t # icu
 S03-operators/autoincrement.t
 S03-operators/autovivification.t
 S03-operators/basic-types.t
-S03-operators/binding-attributes.t
-S03-operators/binding-arrays.t
-S03-operators/binding-nested.t
-S03-operators/binding-closure.t
-S03-operators/binding-hashes.t
-S03-operators/binding-ro.t
-S03-operators/binding-scalars.t
 S03-operators/bit.t
 S03-operators/boolean-bitwise.t
 S03-operators/brainos.t

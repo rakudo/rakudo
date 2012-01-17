@@ -77,5 +77,11 @@ sub make(Mu $ast) {
         '$!ast',
         $ast
     );
+    nqp::bindattr(
+        nqp::p6decont(pir::find_caller_lex__Ps('$/').CURSOR),
+        Cursor,
+        '$!ast',
+        $ast
+    );
 }
 

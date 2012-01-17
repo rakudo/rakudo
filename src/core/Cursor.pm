@@ -1,4 +1,6 @@
 my class Cursor does NQPCursorRole {
+    has $!ast; # Need it to survive re-creations of the match object.
+
     method MATCH() {
         my $match := nqp::getattr(self, Cursor, '$!match');
         return $match if nqp::istype($match, Match) && nqp::isconcrete($match);
@@ -6,6 +8,7 @@ my class Cursor does NQPCursorRole {
         nqp::bindattr($match, Match, '$!orig', nqp::getattr(self, Cursor, '$!orig'));
         nqp::bindattr($match, Match, '$!from', nqp::p6box_i(nqp::getattr_i(self, Cursor, '$!from')));
         nqp::bindattr($match, Match, '$!to', nqp::p6box_i(nqp::getattr_i(self, Cursor, '$!pos')));
+        nqp::bindattr($match, Match, '$!ast', nqp::getattr(self, Cursor, '$!ast'));
         nqp::bindattr($match, Match, '$!CURSOR', self);
         my Mu $list := nqp::list();
         my Mu $hash := nqp::hash();

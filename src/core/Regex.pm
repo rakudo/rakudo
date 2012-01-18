@@ -2,7 +2,7 @@ my class Regex {
     
     
     multi method ACCEPTS(Regex:D \$self: Mu \$topic) {
-        my $match = $self(Cursor."!cursor_init"($topic, :c(0))).MATCH;
+        my $match = $self(Cursor."!cursor_init"($topic.Str, :c(0))).MATCH;
         pir::find_caller_lex__Ps('$/') = $match;
         Cursor!Cursor::set_last_match(~$match) if $match;
         $match
@@ -22,7 +22,7 @@ my class Regex {
     multi method ACCEPTS(Regex:D \$self: %h) {
         my $dollar_slash := pir::find_caller_lex__Ps('$/');
         for %h.keys {
-            $dollar_slash = $self(Cursor.'!cursor_init'($_, :c(0))).MATCH;
+            $dollar_slash = $self(Cursor.'!cursor_init'(.Str, :c(0))).MATCH;
             if $dollar_slash {
                 Cursor!Cursor::set_last_match(~$dollar_slash);
                 return $dollar_slash;

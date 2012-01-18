@@ -138,7 +138,6 @@ class Range is Iterable does Positional {
         $elems ?? ($least + $elems.rand.floor) !! Any;
     }
     multi method roll(Cool $num as Int) {
-        say $!min.WHAT, ' ', $!max.WHAT;
         return self.list.roll($num) unless $!min.^isa(Int) && $!max.^isa(Int);
         return self.roll if $num == 1;
         my int $n = nqp::unbox_i($num);

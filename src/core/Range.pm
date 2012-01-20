@@ -28,7 +28,7 @@ class Range is Iterable does Positional {
     }
 
     method flat()     { nqp::p6list(nqp::list(self), List, Bool::True) }
-    method infinite() { $.max == $Inf }
+    method infinite() { $!max.^isa(Num) && $!max eq 'Inf' }
     method iterator() { self }
     method list()     { self.flat }
 

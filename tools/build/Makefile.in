@@ -6,6 +6,7 @@ PARROT_ARGS      =
 
 # values from parrot_config
 PARROT_BIN_DIR     = @bindir@
+PARROT_LIB_SHARED  = @libparrot_shared@
 PARROT_VERSION     = @versiondir@
 PARROT_INCLUDE_DIR = @includedir@$(PARROT_VERSION)
 PARROT_LIB_DIR     = @libdir@$(PARROT_VERSION)
@@ -31,6 +32,8 @@ POD2MAN       = @pod2man@
 
 # locations of parrot and nqp resources
 PARROT           = $(PARROT_BIN_DIR)/parrot$(EXE)
+PARROT_DLL        = @dll@
+PARROT_DLL_COPY   = @dllcopy@
 NQP_EXE          = $(PARROT_BIN_DIR)/nqp$(EXE)
 NQP_LANG_DIR     = $(PARROT_LIB_DIR)/languages/nqp
 PBC_TO_EXE       = $(PARROT_BIN_DIR)/pbc_to_exe$(EXE)
@@ -228,6 +231,7 @@ CLEANUPS = \
   *.pdb \
   $(PERL6_PBC) \
   $(PERL6_EXE) \
+  $(PARROT_DLL_COPY) \
   perl6.c \
   perl6$(O) \
   perl6_group.* \
@@ -301,8 +305,10 @@ install: all
 xmas: $(PERL6_EXE) $(SETTING) $(S_SETTING)
 
 ##  targets for building a standalone perl6 executable.
-$(PERL6_EXE): $(PERL6_PBC)
+$(PERL6_EXE): $(PERL6_PBC) $(PARROT_DLL_COPY)
 	$(PBC_TO_EXE) $(PERL6_PBC)
+
+@make_dllcopy@
 
 # the complete compiler
 $(PERL6_PBC): $(PERL6_G_PBC) $(PERL6_A_PBC) $(PERL6_C_PBC) $(PERL6_P_PBC) src/main.nqp

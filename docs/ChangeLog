@@ -6,7 +6,7 @@ New in 2012.01
 + fixed negative modulo for bigint
 + better Routine.perl
 + .DEFINITE macro implemented
-+ .^methods, .^attributes and .^parents now support :excl (the default) and :all
++ .^methods, .^attributes and .^parents now support :excl (the new default) and :all
 + Array.delete implemented
 + restored basic -n and -p functionality
 + improved parameter introspection
@@ -23,7 +23,8 @@ New in 2012.01
 + fixed various issues in scoping/handling of $/
 + fixed usage of make in a regex (previously, only worked in action methods)
 + optimized Range.roll and Range.pick for large ranges
-+ fixed non-numeric, no-Str ranges 
++ fixed non-numeric, no-Str ranges
++ fixed build on Cygwin
 
 New in 2011.12
 + improved protoregex support, including NFA caching

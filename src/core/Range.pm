@@ -151,6 +151,7 @@ class Range is Iterable does Positional {
     multi method pick(Whatever)  { self.list.pick(*) };
     multi method pick(Cool $n as Int) {
         return self.list.pick($n) unless $!min.^isa(Int) && $!max.^isa(Int);
+        return self.roll if $n == 1;
         my Int:D $least = $!excludes_min ?? $!min + 1 !! $!min;
         my Int:D $elems = 1 + ($!excludes_max ?? $!max - 1 !! $!max) - $least;
         return self.list.pick($n) unless $elems > 3 * $n;

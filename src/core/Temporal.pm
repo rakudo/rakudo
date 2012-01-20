@@ -430,6 +430,16 @@ my class Date does Dateish {
         );
     }
 
+    multi method WHICH(Date:D:) {
+        nqp::box_s(
+            nqp::concat_s(
+                nqp::concat_s(nqp::unbox_s(self.^name), '|'),
+                nqp::unbox_i($!daycount)
+            ),
+            ObjAt
+        );
+    }
+
     method new-from-daycount($daycount) {
         my ($year, $month, $day) = self.ymd-from-daycount($daycount);
         self.bless(*, :$daycount, :$year, :$month, :$day);

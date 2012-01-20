@@ -7,6 +7,23 @@ New in 2012.01
 + better Routine.perl
 + .DEFINITE macro implemented
 + .^methods, .^attributes and .^parents now support :excl (the default) and :all
++ Array.delete implemented
++ restored basic -n and -p functionality
++ improved parameter introspection
++ fixed operations on bigints when the first operand had been mixed in to
++ fixed multi-dispatch narrowness calculation for native types
++ binding to array and hash elements
++ added Order enumeration, and updated cmp and <=> to use it
++ adding various missing magicals, such as &?ROUTINE and ::?ROLE
++ accessor generation for my $.x and our $.x cases
++ fixed @x>>.() (hyper-invocation)
++ updated Complex.Str to match current spec
++ fixed eval to see GLOBAL properly
++ implemented 0 but Answer(42) style mix-ins
++ fixed various issues in scoping/handling of $/
++ fixed usage of make in a regex (previously, only worked in action methods)
++ optimized Range.roll and Range.pick for large ranges
++ fixed non-numeric, no-Str ranges 
 
 New in 2011.12
 + improved protoregex support, including NFA caching

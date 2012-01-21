@@ -470,6 +470,10 @@ my class Date does Dateish {
         Date.new-from-daycount($!daycount - 1);
     }
 
+    multi method gist(Date:D:) {
+        sprintf '%04d-%02d-%02d', $.year, $.month, $.day;
+    }
+
     multi method Str(Date:D:) {
         sprintf '%04d-%02d-%02d', $.year, $.month, $.day;
     }

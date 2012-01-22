@@ -100,6 +100,9 @@ class Perl6::Metamodel::ParametricRoleHOW
         if $decont =:= $obj.WHAT {
             return 1;
         }
+        if $!in_group && $decont =:= $!group {
+            return 1;
+        }
         for self.prentending_to_be() {
             if $decont =:= pir::perl6_decontainerize__PP($_) {
                 return 1;
@@ -146,8 +149,11 @@ class Perl6::Metamodel::ParametricRoleHOW
         
         # Go through methods and instantiate them; we always do this
         # unconditionally, since we need the clone anyway.
-        for self.methods($obj, :local(1)) {
-            $conc.HOW.add_method($conc, $_.name, $_.instantiate_generic($type_env))
+        for self.method_table($obj) {
+            $conc.HOW.add_method($conc, $_.key, $_.value.instantiate_generic($type_env))
+        }
+        for self.submethod_table($obj) {
+            $conc.HOW.add_method($conc, $_.key, $_.value.instantiate_generic($type_env))
         }
         for self.private_method_table($obj) {
             $conc.HOW.add_private_method($conc, $_.key, $_.value.instantiate_generic($type_env));

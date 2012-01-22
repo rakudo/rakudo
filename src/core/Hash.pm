@@ -4,11 +4,23 @@ my class Hash {
     method new(*@args) { @args.hash }
     
     method at_key($key is copy) is rw {
+        my Mu $storage := pir::defined(nqp::getattr(self, EnumMap, '$!storage')) ??
+            nqp::getattr(self, EnumMap, '$!storage') !!
+            nqp::bindattr(self, EnumMap, '$!storage', pir::new__Ps('Hash'));
         $key = $key.Str;
-        self.exists($key)
-          ?? pir::find_method__PPs(EnumMap, 'at_key')(self, $key)
+        nqp::existskey($storage, nqp::unbox_s($key))
+          ?? nqp::atkey($storage, nqp::unbox_s($key))
           !! pir::setattribute__0PPsP(my $v, Scalar, '$!whence',
-                 -> { pir::find_method__PPs(EnumMap, 'STORE_AT_KEY')(self, $key, $v) } )
+                 -> { nqp::bindkey($storage, nqp::unbox_s($key), $v) } )
+    }
+
+    method bind_key($key, \$bindval) is rw {
+        pir::defined(nqp::getattr(self, EnumMap, '$!storage')) ||
+            nqp::bindattr(self, EnumMap, '$!storage', pir::new__Ps('Hash'));
+        nqp::bindkey(
+            nqp::getattr(self, EnumMap, '$!storage'),
+            nqp::unbox_s($key.Str),
+            $bindval)
     }
 
     multi method perl(Hash:D \$self:) {
@@ -38,13 +50,20 @@ my class Hash {
         self
     }
 
-    method delete($key as Str) {
+    proto method delete(|$) { * }
+    multi method delete($key as Str) {
         my Mu $val = self.at_key($key);
         pir::delete(
             nqp::getattr(self, EnumMap, '$!storage'),
             nqp::unbox_s($key)
         );
         $val;
+    }
+    multi method delete(@keys) {
+        @keys.map({ self.delete($^key) })
+    }
+    multi method delete(*@keys) {
+        @keys.map({ self.delete($^key) })
     }
 
     method push(*@values) {
@@ -91,6 +110,14 @@ my class Hash {
         }
         method STORE_AT_KEY(Str \$key, TValue $x is copy) is rw {
             pir::find_method__PPs(EnumMap, 'STORE_AT_KEY')(self, $key, $x);
+        }
+        method bind_key($key, TValue \$bindval) is rw {
+            pir::defined(nqp::getattr(self, EnumMap, '$!storage')) ||
+                nqp::bindattr(self, EnumMap, '$!storage', pir::new__Ps('Hash'));
+            nqp::bindkey(
+                nqp::getattr(self, EnumMap, '$!storage'),
+                nqp::unbox_s($key.Str),
+                $bindval)
         }
     }
     method PARAMETERIZE_TYPE(Mu $t) {

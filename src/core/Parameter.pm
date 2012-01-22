@@ -22,9 +22,14 @@ my class Parameter {
         $!variable_name
     }
     
-    method constraints() {
+    method constraint_list() {
         pir::isnull($!post_constraints) ?? () !!
             pir::perl6ize_type__PP($!post_constraints)
+    }
+    
+    method constraints() {
+        all(pir::isnull($!post_constraints) ?? () !!
+            pir::perl6ize_type__PP($!post_constraints))
     }
 
     method type() {
@@ -32,7 +37,8 @@ my class Parameter {
     }
 
     method named() {
-        !nqp::p6bool(nqp::isnull($!named_names))
+        !nqp::p6bool(nqp::isnull($!named_names)) ||
+            nqp::p6bool($!flags +& $SIG_ELEM_SLURPY_NAMED)
     }
 
     method named_names() {
@@ -69,11 +75,102 @@ my class Parameter {
         ?($!flags +& $SIG_ELEM_IS_OPTIONAL)
     }
     
-    # XXX TODO: Many more bits :-)
+    method parcel() {
+        ?($!flags +& $SIG_ELEM_IS_PARCEL)
+    }
+    
+    method capture() {
+        ?($!flags +& $SIG_ELEM_IS_CAPTURE)
+    }
+    
+    method rw() {
+        ?($!flags +& $SIG_ELEM_IS_RW)
+    }
+    
+    method copy() {
+        ?($!flags +& $SIG_ELEM_IS_COPY)
+    }
+    
+    method readonly() {
+        !($.rw || $.copy || $.parcel)
+    }
+    
+    method invocant() {
+        ?($!flags +& $SIG_ELEM_INVOCANT)
+    }
+    
+    method default() {
+        nqp::isnull($!default_value) ?? Any !!
+            $!default_value ~~ Code ?? $!default_value !! { $!default_value }
+    }
+    
+    method type_captures() {
+        if !pir::isnull($!type_captures) {
+            my Int $count = nqp::p6box_i(nqp::elems($!type_captures));
+            my Int $i = 0;
+            my @res;
+            while $i < $count {
+                @res.push: nqp::p6box_s(nqp::atpos($!type_captures, nqp::unbox_i($i)));
+                $i++;
+            }
+            @res;
+        } else {
+            ().list
+        }
+    }
+    
+    # XXX TODO: A few more bits :-)
     multi method perl(Parameter:D:) {
-        my $perl = $!nominal_type.HOW.name($!nominal_type);
+        my $perl = '';
+        my $type = $!nominal_type.HOW.name($!nominal_type);
+        if $!flags +& $SIG_ELEM_ARRAY_SIGIL {
+            # XXX Need inner type
+        }
+        elsif $!flags +& $SIG_ELEM_HASH_SIGIL {
+            # XXX Need inner type
+        }
+        else {
+            $perl = $type;
+            if $!flags +& $SIG_ELEM_DEFINED_ONLY {
+                $perl ~= ':D';
+            } elsif $!flags +& $SIG_ELEM_UNDEFINED_ONLY {
+                $perl ~= ':U';
+            }
+            $perl ~= ' ';
+        }
         if $!variable_name {
-            $perl = $perl ~ " " ~ $!variable_name;
+            my $name = $!variable_name;
+            if $!flags +& $SIG_ELEM_IS_CAPTURE {
+                $perl ~= '|' ~ $name;
+            } elsif $!flags +& $SIG_ELEM_IS_PARCEL {
+                $perl ~= '\\' ~ $name;
+            } else {
+                my $default = self.default();
+                if self.named {
+                    my @names := self.named_names;
+                    my $/ := $name ~~ / ^^ $<sigil>=<[$@%&]> $<desigil>=(@names) $$ /;
+                    $name = ':' ~ $name if $/;
+                    for @names {
+                        next if $/ and $_ eq $<desigil>;
+                        $name = ':' ~ $_ ~ '(' ~ $name ~ ')';
+                    }
+                    $name ~= '!' unless self.optional;
+                } elsif self.optional && !$default {
+                    $name ~= '?';
+                } elsif self.slurpy {
+                    $name = '*' ~ $name;
+                }
+                $perl ~= $name;
+                if $!flags +& $SIG_ELEM_IS_RW {
+                    $perl ~= ' is rw';
+                } elsif $!flags +& $SIG_ELEM_IS_COPY {
+                    $perl ~= ' is copy';
+                }
+                $perl ~= ' = { ... }' if $default;
+                unless nqp::isnull($!sub_signature) {
+                    $perl ~= ' ' ~ $!sub_signature.perl();
+                }
+            }
         }
         $perl
     }

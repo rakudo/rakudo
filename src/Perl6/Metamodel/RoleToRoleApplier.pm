@@ -11,47 +11,42 @@ my class RoleToRoleApplier {
         my %meth_providers;
         for @roles {
             my $role := $_;
-            my @methods := $_.HOW.methods($_, :local(1));
-            for @methods {
-                my $name;
-                try { $name := $_.name }
-                unless $name { $name := ~$_ }
-                my $meth := $_;
-                my @meth_list;
-                my @meth_providers;
-                if pir::exists(%meth_info, $name) {
-                    @meth_list := %meth_info{$name};
-                    @meth_providers := %meth_providers{$name};
-                }
-                else {
-                    %meth_info{$name} := @meth_list;
-                    %meth_providers{$name} := @meth_providers;
-                }
-                my $found := 0;
-                for @meth_list {
-                    if $meth =:= $_ {
-                        $found := 1;
+            sub build_meth_info(%methods) {
+                for %methods {
+                    my $name := $_.key;
+                    my $meth := $_.value;
+                    my @meth_list;
+                    my @meth_providers;
+                    if pir::exists(%meth_info, $name) {
+                        @meth_list := %meth_info{$name};
+                        @meth_providers := %meth_providers{$name};
                     }
-                    elsif pir::can($meth, 'id') && pir::can($_, 'id') {
-                        $found := $meth.id == $_.id;
+                    else {
+                        %meth_info{$name} := @meth_list;
+                        %meth_providers{$name} := @meth_providers;
                     }
-                }
-                unless $found {
-                    @meth_list.push($meth);
-                    @meth_providers.push($role.HOW.name($role));
+                    my $found := 0;
+                    for @meth_list {
+                        if $meth =:= $_ {
+                            $found := 1;
+                        }
+                        elsif pir::can($meth, 'id') && pir::can($_, 'id') {
+                            $found := $meth.id == $_.id;
+                        }
+                    }
+                    unless $found {
+                        @meth_list.push($meth);
+                        @meth_providers.push($role.HOW.name($role));
+                    }
                 }
             }
+            build_meth_info($_.HOW.method_table($_));
+            build_meth_info($_.HOW.submethod_table($_))
+                if pir::can__IPs($_.HOW, 'submethod_table');
         }
 
         # Also need methods of target.
-        my %target_meth_info;
-        my @target_meths := $target.HOW.methods($target, :local(1));
-        for @target_meths {
-            my $name;
-            try { $name := $_.name }
-            unless $name { $name := ~$_ }
-            %target_meth_info{$name} := $_;
-        }
+        my %target_meth_info := $target.HOW.method_table($target);
 
         # Process method list.
         for %meth_info {

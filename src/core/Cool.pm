@@ -181,6 +181,7 @@ my class Cool {
     method Num()  { self.Numeric.Num }
     method Rat()  { self.Numeric.Rat }
 }
+Metamodel::ClassHOW.exclude_parent(Cool);
 
 sub chop(Cool $s)                  { $s.chop }
 sub chomp(Cool $s)                 { $s.chomp }

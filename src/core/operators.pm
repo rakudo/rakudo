@@ -12,6 +12,13 @@ multi infix:<does>(Mu:D \$obj, Mu:U \$role) is rw {
     # XXX Mutability check.
     $obj.HOW.mixin($obj, $role).BUILD_LEAST_DERIVED({});
 }
+multi infix:<does>(Mu:D \$obj, Mu:U \$role, :$value! is parcel) is rw {
+    # XXX Mutability check.
+    my @attrs = $role.^attributes().grep: { .has_accessor };
+    die "Can only supply an initialization value for a role if it has a single public attribute"
+        unless @attrs == 1;
+    $obj.HOW.mixin($obj, $role).BUILD_LEAST_DERIVED({ @attrs[0].Str.substr(2) => $value });
+}
 multi infix:<does>(Mu:U \$obj, Mu:U \$role) is rw {
     die "Cannot use 'does' operator with a type object"
 }
@@ -26,6 +33,12 @@ multi infix:<does>(Mu:U \$obj, @roles) is rw {
 proto infix:<but>(|$) { * }
 multi infix:<but>(Mu:D \$obj, Mu:U \$role) {
     $obj.HOW.mixin($obj.clone(), $role).BUILD_LEAST_DERIVED({});
+}
+multi infix:<but>(Mu:D \$obj, Mu:U \$role, :$value! is parcel) {
+    my @attrs = $role.^attributes().grep: { .has_accessor };
+    die "Can only supply an initialization value for a role if it has a single public attribute"
+        unless @attrs == 1;
+    $obj.HOW.mixin($obj.clone(), $role).BUILD_LEAST_DERIVED({ @attrs[0].Str.substr(2) => $value });
 }
 multi infix:<but>(Mu:U \$obj, Mu:U \$role) {
     $obj.HOW.mixin($obj, $role);

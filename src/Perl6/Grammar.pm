@@ -33,7 +33,10 @@ grammar Perl6::Grammar is HLL::Grammar {
         # XXX Hack: clear any marks.
         pir::set_hll_global__vPsP(['HLL', 'Grammar'], '%!MARKHASH', nqp::null());
 
-        self.comp_unit;
+        my $cursor := self.comp_unit;
+        $*W.pop_lexpad(); # UNIT
+        $*W.pop_lexpad(); # UNIT_OUTER
+        $cursor;
     }
 
     # "when" arg assumes more things will become obsolete after Perl 6 comes out...
@@ -433,9 +436,14 @@ grammar Perl6::Grammar is HLL::Grammar {
                 }
             }
             
-            # Create GLOBAL(ish).
-            $*GLOBALish := $*W.pkg_create_mo(%*HOW<package>, :name('GLOBAL'));
-            $*W.pkg_compose($*GLOBALish);
+            # Create GLOBAL(ish), unless we were given one.
+            if pir::exists(%*COMPILING<%?OPTIONS>, 'global') {
+                $*GLOBALish := %*COMPILING<%?OPTIONS><global>;
+            }
+            else {
+                $*GLOBALish := $*W.pkg_create_mo(%*HOW<package>, :name('GLOBAL'));
+                $*W.pkg_compose($*GLOBALish);
+            }
                 
             # Create EXPORT.
             $*EXPORT := $*W.pkg_create_mo(%*HOW<package>, :name('EXPORT'));
@@ -450,6 +458,7 @@ grammar Perl6::Grammar is HLL::Grammar {
                 $*W.install_lexical_symbol($*UNIT, 'GLOBALish', $*GLOBALish);
                 $*W.install_lexical_symbol($*UNIT, 'EXPORT', $*EXPORT);
                 $*W.install_lexical_symbol($*UNIT, '$?PACKAGE', $*PACKAGE);
+                $*W.install_lexical_symbol($*UNIT, '::?PACKAGE', $*PACKAGE);
                 $*W.create_code_object($*UNIT, 'Block', $*W.create_signature([]));
             }
         }
@@ -468,8 +477,6 @@ grammar Perl6::Grammar is HLL::Grammar {
             $*W.install_lexical_symbol(
                 $*UNIT, '$=POD', $*POD_PAST<compile_time_value>
             );
-            $*W.pop_lexpad(); # UNIT
-            $*W.pop_lexpad(); # UNIT_OUTER
         }
         
         # CHECK time.
@@ -817,6 +824,10 @@ grammar Perl6::Grammar is HLL::Grammar {
     # XXX temporary Bool::True/Bool::False until we can get a permanent definition
     token term:sym<boolean> { 'Bool::'? $<value>=[True|False] » }
 
+    token term:sym<::?IDENT> {
+        $<sym> = [ '::?' <identifier> ] »
+    }
+    
     token term:sym<undef> {
         <sym> >> {}
         [ <?before \h*'$/' >
@@ -1261,16 +1272,18 @@ grammar Perl6::Grammar is HLL::Grammar {
                     }
                 }
                 
-                # Install $?PACKAGE, $?ROLE, $?CLASS, ::?CLASS as needed.
+                # Install $?PACKAGE, $?ROLE, $?CLASS, and :: variants as needed.
                 my $curpad := $*W.cur_lexpad();
                 unless $curpad.symbol('$?PACKAGE') {
                     $*W.install_lexical_symbol($curpad, '$?PACKAGE', $*PACKAGE);
+                    $*W.install_lexical_symbol($curpad, '::?PACKAGE', $*PACKAGE);
                     if $*PKGDECL eq 'class' || $*PKGDECL eq 'grammar' {
                         $*W.install_lexical_symbol($curpad, '$?CLASS', $*PACKAGE);
                         $*W.install_lexical_symbol($curpad, '::?CLASS', $*PACKAGE);
                     }
                     elsif $*PKGDECL eq 'role' {
                         $*W.install_lexical_symbol($curpad, '$?ROLE', $*PACKAGE);
+                        $*W.install_lexical_symbol($curpad, '::?ROLE', $*PACKAGE);
                         $*W.install_lexical_symbol($curpad, '$?CLASS',
                             $*W.pkg_create_mo(%*HOW<generic>, :name('$?CLASS')));
                         $*W.install_lexical_symbol($curpad, '::?CLASS',
@@ -1508,9 +1521,10 @@ grammar Perl6::Grammar is HLL::Grammar {
     }
 
     token fakesignature {
+        :my $*FAKE_PAD;
         <.newpad>
         <signature>
-        { $*W.pop_lexpad() }
+        { $*FAKE_PAD := $*W.pop_lexpad() }
     }
 
     token signature {
@@ -2149,7 +2163,7 @@ grammar Perl6::Grammar is HLL::Grammar {
         # last whitespace didn't end here
         <!MARKED('ws')>
 
-        [ <.unsp> | '\\' ]?
+        [ <!{ $*QSIGIL }> [ <.unsp> | '\\' ] ]?
 
         <postfix_prefix_meta_operator>?
         [

@@ -28,7 +28,7 @@ class Range is Iterable does Positional {
     }
 
     method flat()     { nqp::p6list(nqp::list(self), List, Bool::True) }
-    method infinite() { $.max == $Inf }
+    method infinite() { $!max.^isa(Num) && $!max eq 'Inf' }
     method iterator() { self }
     method list()     { self.flat }
 
@@ -125,6 +125,46 @@ class Range is Iterable does Positional {
           ~ ':min(' ~ DUMP($!min) ~ '), '
           ~ ':max(' ~ DUMP($!max) ~ ')'
           ~ ')'
+    }
+
+    proto method roll(|$) { * }
+    multi method roll(Range:D: Whatever) {
+        gather loop { take self.roll }
+    }
+    multi method roll(Range:D:) {
+        return self.list.roll unless $!min.^isa(Int) && $!max.^isa(Int);
+        my Int:D $least = $!excludes_min ?? $!min + 1 !! $!min;
+        my Int:D $elems = 1 + ($!excludes_max ?? $!max - 1 !! $!max) - $least;
+        $elems ?? ($least + $elems.rand.floor) !! Any;
+    }
+    multi method roll(Cool $num as Int) {
+        return self.list.roll($num) unless $!min.^isa(Int) && $!max.^isa(Int);
+        return self.roll if $num == 1;
+        my int $n = nqp::unbox_i($num);
+        gather loop (my int $i = 0; $i < $n; $i = $i + 1) {
+            take self.roll;
+        }
+    }
+
+    proto method pick(|$)        { * }
+    multi method pick()          { self.roll };
+    multi method pick(Whatever)  { self.list.pick(*) };
+    multi method pick(Cool $n as Int) {
+        return self.list.pick($n) unless $!min.^isa(Int) && $!max.^isa(Int);
+        return self.roll if $n == 1;
+        my Int:D $least = $!excludes_min ?? $!min + 1 !! $!min;
+        my Int:D $elems = 1 + ($!excludes_max ?? $!max - 1 !! $!max) - $least;
+        return self.list.pick($n) unless $elems > 3 * $n;
+        my %seen;
+        my int $i_n = nqp::unbox_i($n);
+        gather while $i_n > 0 {
+            my Int $x = $least + $elems.rand.floor;
+            unless %seen{$x} {
+                %seen{$x} = 1;
+                $i_n = $i_n - 1;
+                take $x;
+            }
+        }
     }
 }
 

@@ -1,6 +1,12 @@
 role Perl6::Metamodel::MultipleInheritance {
     # Array of parents.
     has @!parents;
+    
+    # Classes to exclude from the parents list in introspection by default.
+    my @excluded;
+    method exclude_parent($parent) {
+        @excluded.push($parent);
+    }
 
     # Adds a parent.
     method add_parent($obj, $parent) {
@@ -21,7 +27,7 @@ role Perl6::Metamodel::MultipleInheritance {
     }
 
     # Introspects the parents.
-    method parents($obj, :$local, :$tree) {
+    method parents($obj, :$local, :$tree, :$excl, :$all) {
         if $local {
             @!parents
         }
@@ -40,7 +46,13 @@ role Perl6::Metamodel::MultipleInheritance {
             my @parents;
             my $i := 1;
             while $i < +@mro {
-                @parents.push(@mro[$i]);
+                my $exclude := 0;
+                unless $all {
+                    for @excluded {
+                        $exclude := 1 if @mro[$i] =:= $_;
+                    }
+                }
+                @parents.push(@mro[$i]) unless $exclude;
                 $i := $i + 1;
             }
             @parents

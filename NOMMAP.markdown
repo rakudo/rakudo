@@ -1,6 +1,6 @@
 # Roadmap for "nom" Branch
 
-Last Updated 20 Nov 2011
+Last Updated 14 jan 2011
 
 ## Punch list for nom distribution
 
@@ -13,8 +13,6 @@ branch and distribution, an estimate of the difficulty
 responsible parties.
 
 * Enums to level of master (2, 1, ???, ???)
-* Define new operators (2, 1, \*\*, pmichaud) (awaiting other regex updates)
-* modules working with nom (3, 1, ???, ???)
 
 ## Other NOMMAP notes
 
@@ -48,5 +46,5 @@ Same for my %h and hashes.
 ## Phasers
 * END in pre-compiled mainline case
 
-## Switch Numeric and Real to be roles
-They are classes right now, which is wrong.
+## Switch Real to be a role
+It's a class; work in real-trouble branch.

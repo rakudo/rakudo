@@ -164,7 +164,8 @@ my class Mu {
     
     method item() { self }
     
-    method say() { say(self) }
+    proto method say(|$) { * }
+    multi method say() { say(self) }
     method print() { print(self) }
 
     proto method gist(|$) { * }
@@ -215,9 +216,21 @@ my class Mu {
         $self.HOW.can($self, $name)
     }
     
-    method clone() {
+    method clone(*%twiddles) {
         my $cloned := pir::repr_clone__PP(nqp::p6decont(self));
-        # XXX Probably need to clone containery things a level deeper.
+        for self.^attributes() -> $attr {
+            my $name := $attr.name;
+            my $package := $attr.package;
+            unless pir::repr_get_primitive_type_spec__IP($attr.type) {
+                my $attr_val := nqp::getattr($cloned, $package, $name);
+                nqp::bindattr($cloned, $package, $name, pir::repr_clone__PP($attr_val.VAR))
+                    if nqp::iscont($attr_val);
+            }
+            my $acc_name := $name.substr(2);
+            if $attr.has-accessor && %twiddles.exists($acc_name) {
+                nqp::getattr($cloned, $package, $name) = %twiddles{$acc_name};
+            }
+        }
         $cloned
     }
     
@@ -420,4 +433,4 @@ sub DUMP(|$) {
           !! $topic.DUMP()
     }
 };
-
+Metamodel::ClassHOW.exclude_parent(Mu);

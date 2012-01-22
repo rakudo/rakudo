@@ -385,9 +385,9 @@ class Perl6::World is HLL::World {
         unless $block.symbol($name) {
             $var := PAST::Var.new( :scope('lexical_6model'), :name($name),
                 :isdecl(1), :type(%cont_info<bind_constraint>) );
-            $block.symbol($name, :scope('lexical_6model'), :type(%cont_info<bind_constraint>), :descriptor($descriptor));
             $block[0].push($var);
         }
+        $block.symbol($name, :scope('lexical_6model'), :type(%cont_info<bind_constraint>), :descriptor($descriptor));
             
         # If it's a native type, we're done - no container
         # as we inline natives straight into registers. Do
@@ -512,6 +512,9 @@ class Perl6::World is HLL::World {
         }
         if %param_info<is_multi_invocant> {
             $flags := $flags + $SIG_ELEM_MULTI_INVOCANT;
+        }
+        if %param_info<is_copy> {
+            $flags := $flags + $SIG_ELEM_IS_COPY;
         }
         if %param_info<is_parcel> {
             $flags := $flags + $SIG_ELEM_IS_PARCEL;
@@ -1087,9 +1090,9 @@ class Perl6::World is HLL::World {
         }
         elsif $primitive eq 'bigint' {
             $constant := @value[0];
-            $des := PAST::Op.new( :pirop('nqp_bigint_from_str PPs'),
+            $des := PAST::Op.new( :pirop('nqp_bigint_from_str PsP'),
+                    nqp::tostr_I(@value[0]),
                     $type_obj_lookup,
-                    nqp::tostr_I(@value[0])
                 );
         }
         elsif $primitive eq 'type_new' {
@@ -1104,9 +1107,9 @@ class Perl6::World is HLL::World {
                         :pirop('repr_bind_attr_obj 0PPsP'),
                         PAST::Op.new( :pirop('repr_instance_of PP'), $type_obj_lookup ),
                         $type_obj_lookup, '$!numerator',
-                        PAST::Op.new( :pirop('nqp_bigint_from_str PPs'), $int_lookup, $nu )),
+                        PAST::Op.new( :pirop('nqp_bigint_from_str PsP'), $nu, $int_lookup)),
                     $type_obj_lookup, '$!denominator',
-                    PAST::Op.new( :pirop('nqp_bigint_from_str PPs'), $int_lookup, $de ));
+                    PAST::Op.new( :pirop('nqp_bigint_from_str PsP'), $de, $int_lookup));
             }
             else {
                 $des := PAST::Op.new(
@@ -1184,6 +1187,15 @@ class Perl6::World is HLL::World {
         $past<compile_time_value>     := $const<compile_time_value>;
         $past<boxable_native>         := 3;
         $past;
+    }
+    
+    # XXX This needs doing properly...though it'd be trivial if we had
+    # proper serialization.
+    method add_constant_folded_result($r) {
+        my $result := PAST::Op.new();
+        $result<has_compile_time_value> := 1;
+        $result<compile_time_value> := $r;
+        $result
     }
 
     # Creates a meta-object for a package, adds it to the root objects and

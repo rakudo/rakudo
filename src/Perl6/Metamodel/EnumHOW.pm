@@ -19,6 +19,9 @@ class Perl6::Metamodel::EnumHOW
     # Hash representing enumeration keys to values.
     has %!values;
     
+    # Reverse mapping hash.
+    has %!value_to_enum;
+    
     # List of enum values (actual enum objects).
     has @!enum_value_list;
     
@@ -38,12 +41,21 @@ class Perl6::Metamodel::EnumHOW
     }
     
     method add_enum_value($obj, $value) {
-        %!values{~$value.key} := $value.value;
+        %!values{nqp::unbox_s($value.key)} := $value.value;
         @!enum_value_list[+@!enum_value_list] := $value;
     }
     
     method enum_values($obj) {
         %!values
+    }
+    
+    method enum_from_value($obj, $value) {
+        unless %!value_to_enum {
+            for @!enum_value_list {
+                %!value_to_enum{$_.value} := $_;
+            }
+        }
+        %!value_to_enum{$value}
     }
     
     method enum_value_list($obj) {

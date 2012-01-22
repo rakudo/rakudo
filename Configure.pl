@@ -109,11 +109,12 @@ MAIN: {
 
     $config{'makefile-timing'} = $options{'makefile-timing'};
     $config{'stagestats'} = '--stagestats' if $options{'makefile-timing'};
-    $config{'shell'} = 'sh';
-    if ($^O eq 'MSWin32') {
-        $config{'shell'} = 'cmd';
-        $config{'win32_libparrot_copy'} = 
-            'copy $(PARROT_BIN_DIR)\libparrot.dll .';
+    $config{'shell'} = $^O eq 'MSWin32' ? 'cmd' : 'sh';
+    if ($^O eq 'MSWin32' or $^O eq 'cygwin') {
+        $config{'dll'} = '$(PARROT_BIN_DIR)/$(PARROT_LIB_SHARED)';
+        $config{'dllcopy'} = '$(PARROT_LIB_SHARED)';
+        $config{'make_dllcopy'} =
+            '$(PARROT_DLL_COPY): $(PARROT_DLL)'."\n\t".'$(CP) $(PARROT_DLL) .';
     }
 
     my $make = fill_template_text('@make@', %config);

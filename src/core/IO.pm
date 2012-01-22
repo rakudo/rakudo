@@ -88,7 +88,7 @@ class IO {
         }
     }
 
-    method read(IO:D: Int:D $bytes) {
+    method read(IO:D: Cool:D $bytes as Int) {
         my Mu $parrot_buffer := $!PIO.read_bytes(nqp::unbox_i($bytes));
         my $buf := nqp::create(Buf);
         nqp::bindattr($buf, Buf, '$!buffer', $parrot_buffer);
@@ -134,7 +134,7 @@ class IO {
         Bool::True
     }
 
-    method say(IO:D: |$) {
+    multi method say(IO:D: |$) {
         my Mu $args := pir::perl6_current_args_rpa__P();
         nqp::shift($args);
         self.print: nqp::shift($args).gist while $args;

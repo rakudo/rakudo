@@ -35,6 +35,16 @@ my class Routine {
         self.dispatcher.defined
     }
     
+    multi method perl(Routine:D:) {
+        my $perl = self.^name.lc();
+        if self.name() -> $n {
+            $perl ~= " $n";
+        }
+        $perl ~= self.signature().perl.substr(1);
+        $perl ~= ' { ... }';
+        $perl
+    }
+    
     method wrap(&wrapper) {
         my class WrapHandle {
             has $!dispatcher;

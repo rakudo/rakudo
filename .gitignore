@@ -40,6 +40,7 @@ dynext/perl6_*.dll
 perl6_group.?
 perl6_group.obj
 libparrot.dll
+cygparrot*.dll
 src/binder/*.o
 src/binder/*.obj
 src/binder/*.bundle

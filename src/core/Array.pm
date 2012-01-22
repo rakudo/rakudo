@@ -14,11 +14,42 @@ class Array {
           !! pir::setattribute__0PPsP(my $v, Scalar, '$!whence',
                  -> { nqp::bindpos(nqp::getattr(self, List, '$!items'), nqp::unbox_i($pos), $v) } )
     }
-    multi method at_pos(int $pos ) is rw {
+    multi method at_pos(int $pos) is rw {
         self.exists($pos)
           ?? nqp::atpos(nqp::getattr(self, List, '$!items'), $pos)
           !! pir::setattribute__0PPsP(my $v, Scalar, '$!whence',
                  -> { nqp::bindpos(nqp::getattr(self, List, '$!items'), $pos, $v) } )
+    }
+
+    proto method bind_pos(|$) { * }
+    multi method bind_pos($pos is copy, \$bindval) is rw {
+        $pos = $pos.Int;
+        self.gimme($pos + 1);
+        nqp::bindpos(nqp::getattr(self, List, '$!items'), nqp::unbox_i($pos), $bindval);
+    }
+    multi method bind_pos(int $pos, \$bindval) is rw {
+        self.gimme($pos + 1);
+        nqp::bindpos(nqp::getattr(self, List, '$!items'), $pos, $bindval)
+    }
+    
+    method delete(@array is rw: *@indices) {
+        my $elems = @array.elems;
+        my @result;
+        for @indices -> $index {
+            my $i = $index ~~ Callable
+                        ?? $index($elems)
+                        !! +$index;
+            @result.push(@array[$i]);
+            undefine @array[$i];
+
+            # next seems unnecessary but handles an obscure
+            # edge case
+            if $i == (@array - 1) {
+                @array.pop;
+            }
+        }
+        @array.pop while ?@array && !defined @array[@array.elems - 1];
+        return @result;
     }
 
     method flattens() { 1 }
@@ -72,6 +103,15 @@ class Array {
               ?? nqp::atpos(nqp::getattr(self, List, '$!items'), $pos)
               !! pir::setattribute__0PPsP($v, Scalar, '$!whence',
                      -> { nqp::bindpos(nqp::getattr(self, List, '$!items'), $pos, $v) } )
+        }
+        multi method bind_pos($pos is copy, TValue \$bindval) is rw {
+            $pos = $pos.Int;
+            self.gimme($pos + 1);
+            nqp::bindpos(nqp::getattr(self, List, '$!items'), nqp::unbox_i($pos), $bindval)
+        }
+        multi method bind_pos(int $pos, TValue \$bindval) is rw {
+            self.gimme($pos + 1);
+            nqp::bindpos(nqp::getattr(self, List, '$!items'), $pos, $bindval)
         }
         # XXX some methods to come here...
     }

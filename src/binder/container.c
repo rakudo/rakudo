@@ -132,7 +132,7 @@ void Rakudo_cont_store(PARROT_INTERP, PMC *cont, PMC *value,
 
 /* Checks if the thing we have is a rw scalar. */
 INTVAL Rakudo_cont_is_rw_scalar(PARROT_INTERP, PMC *check) {
-    if (STABLE(check)->WHAT == scalar_type) {
+    if (IS_CONCRETE(check) && STABLE(check)->WHAT == scalar_type) {
         Rakudo_Scalar *scalar = (Rakudo_Scalar *)PMC_data(check);
         if (!PMC_IS_NULL(scalar->descriptor))
             return ((Rakudo_ContainerDescriptor *)PMC_data(scalar->descriptor))->rw;

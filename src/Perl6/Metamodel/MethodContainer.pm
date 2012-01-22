@@ -33,20 +33,21 @@ role Perl6::Metamodel::MethodContainer {
     }
 
     # Gets the method hierarchy.
-    method methods($obj, :$local) {
+    method methods($obj, :$local, :$excl, :$all) {
         # Always need local methods on the list.
         my @meths;
         for @!method_order {
             @meths.push($_);
         }
 
-        # If local flag was not passed, include those from next thing
-        # in MRO.
+        # If local flag was not passed, include those from parents.
         unless $local {
-            for self.parents($obj) {
-                my @parent_meths := $_.HOW.methods($_, :local(1));
-                for @parent_meths {
-                    @meths.push($_);
+            for self.parents($obj, :all($all), :excl($excl)) {
+                for $_.HOW.method_table($_) {
+                    @meths.push($_.value);
+                }
+                for $_.HOW.submethod_table($_) {
+                    @meths.push($_.value);
                 }
             }
         }

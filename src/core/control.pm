@@ -155,7 +155,7 @@ sub eval(Str $code, :$lang = 'perl6') {
         %r = $P0['context';1]
     };
     my $compiler := pir::compreg__PS($lang);
-    my $pbc      := $compiler.compile($code, :outer_ctx($caller_ctx));
+    my $pbc      := $compiler.compile($code, :outer_ctx($caller_ctx), :global(GLOBAL));
     nqp::atpos($pbc, 0).set_outer_ctx($caller_ctx);
     $pbc();
 }
@@ -195,7 +195,7 @@ sub sleep($seconds = $Inf) {         # fractional seconds also allowed
     if $seconds ~~ $Inf {
         pir::sleep__vN(1e16) while True;
     } else {
-        pir::sleep__vN($seconds);
+        pir::sleep__vN($seconds.Num);
     }
     my $time2 = time;
     return $time2 - $time1;

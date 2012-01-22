@@ -1,7 +1,7 @@
 Rakudo Roadmap
 --------------
 
-Last updated: 2011-12-13
+Last updated: 2012-01-22
 
 This document serves as a guide to the major goals for Rakudo
 development, as things stood in December 2011. They have been
@@ -51,13 +51,13 @@ Operators
 Regexes
 1 **    LTM for alternations
 1 ?     backtracking over subrules
-2 ?     array variable interpolation
-3 ?     <*foo>
-3 ?     <~~>, <prior>
-3 ?     <|w>, <|b>, ...
-3 ?     <(, )>
-3 ?     explicit backtracking control (::, :::)
-3 ?     <cut>
+2 **    array variable interpolation
+3 **    <*foo>
+3 *     <~~>, <prior>
+3 **    <|w>, <|b>, ...
+3 *     <(, )>
+3 **    explicit backtracking control (::, :::)
+3 **    <cut>
 3 *     :ignorecase alias for :i, :ratchet alias for :r etc.
 
 Built-ins/Data Structures
@@ -91,8 +91,8 @@ Language Features
 2 ***   new syntax/semantics for coercion (jnthn)
 2 **    MAIN and USAGE (japhb)
 2 **    Failure changes (japhb)
-2 ?     module versioning
-3 ?     constant declarators with non-literals
+2 ***   module versioning
+3 **    constant declarators with non-literals
 3 ***   domain specific languages -- slang and grammar tweaks
 3 ****  more advanced Perl 5 interop (lexical embedding, etc.)
 3 ***   temp variables

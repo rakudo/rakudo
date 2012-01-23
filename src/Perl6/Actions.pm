@@ -1590,8 +1590,10 @@ class Perl6::Actions is HLL::Actions {
             else {
                 # Install.
                 if $outer.symbol($name) {
-                    $/.CURSOR.panic("Illegal redeclaration of routine '" ~
-                        ~$<deflongname>[0].ast ~ "'");
+                    $*W.throw($/, ['X', 'Redeclaration'],
+                            symbol => p6box_s(~$<deflongname>[0].ast),
+                            what   => p6box_s('routine'),
+                    );
                 }
                 if $*SCOPE eq '' || $*SCOPE eq 'my' {
                     $*W.install_lexical_symbol($outer, $name, $code, :clone(1));

@@ -69,8 +69,9 @@ my class X::Attribute::Undeclared is X::Base does X::Comp {
 my class X::Redeclaration is X::Base does X::Comp {
     has $.symbol;
     has $.postfix = '';
+    has $.what    = 'symbol';
     method message() {
-        "Redeclaration of symbol $.symbol$.postfix";
+        "Redeclaration of $.what $.symbol$.postfix";
     }
 }
 

@@ -74,6 +74,11 @@ my class X::Redeclaration is X::Base does X::Comp {
     }
 }
 
+my class X::Phaser::Once is X::Base does X::Comp {
+    has $.block;
+    method message() { "Only one $.block block is allowed" }
+}
+
 my class X::Obsolete is X::Base does X::Comp {
     has $.old;
     has $.new;

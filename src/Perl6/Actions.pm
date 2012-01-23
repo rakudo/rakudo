@@ -853,7 +853,7 @@ class Perl6::Actions is HLL::Actions {
 
     method statement_control:sym<CATCH>($/) {
         if has_block_handler($*W.cur_lexpad(), 'CONTROL', :except(1)) {
-            $/.CURSOR.panic("only one CATCH block allowed");
+            $*W.throw($/, ['X', 'Phaser', 'Once'], block => p6box_s('CATCH'));
         }
         my $block := $<block>.ast;
         push_block_handler($/, $*W.cur_lexpad(), $block, 'CONTROL', :except(1));
@@ -862,7 +862,7 @@ class Perl6::Actions is HLL::Actions {
 
     method statement_control:sym<CONTROL>($/) {
         if has_block_handler($*W.cur_lexpad(), 'CONTROL') {
-            $/.CURSOR.panic("only one CONTROL block allowed");
+            $*W.throw($/, ['X', 'Phaser', 'Once'], block => p6box_s('CONTROL'));
         }
         my $block := $<block>.ast;
         push_block_handler($/, $*W.cur_lexpad(), $block, 'CONTROL');

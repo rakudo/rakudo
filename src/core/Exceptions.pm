@@ -53,7 +53,7 @@ my class X::Signature::Placeholder is X::Base does X::Comp {
 my class X::Placeholder::Block is X::Base does X::Comp {
     has $.placeholder;
     method message() {
-        "Plaecholder variable $.placeholder may not be usere because surround block takes no signature";
+        "Plaecholder variable $.placeholder may not be used here because the surrounding block takes no signature";
     }
 }
 

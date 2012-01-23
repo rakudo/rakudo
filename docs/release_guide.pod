@@ -47,7 +47,7 @@ part of monthly Parrot releases.
   2011-10-20   Rakudo #45 "Houston"            (duff)
   2011-11-17   Rakudo #46 "London"             (tadzik)
   2011-12-22   Rakudo #47 "Columbus"           (moritz)
-  2012-01-22   Rakudo #48 "Toronto"            (moritz)
+  2012-01-23   Rakudo #48 "Toronto"            (moritz)
 
 =head2 Planned 2012 releases
 
@@ -293,7 +293,7 @@ You're done!  Celebrate with the appropriate amount of fun.
 
 =head1 COPYRIGHT
 
-Copyright (C) 2009-2011, The Perl Foundation.
+Copyright (C) 2009-2012, The Perl Foundation.
 
 =cut
 

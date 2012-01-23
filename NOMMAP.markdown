@@ -5,8 +5,7 @@ Last Updated 14 jan 2011
 ## Punch list for nom distribution
 
 This is the "punch list" of items that need addressing before
-switching nom to be the new 'master' branch, and before releasing
-a nom-based distribution.  Each item below contains an importance
+releasing a nom-based distribution.  Each item below contains an importance
 (1 == must have, 2 == ought to have, 3 == nice to have) for
 branch and distribution, an estimate of the difficulty 
 (\* == easy, \*\*\*\* = hard), and any identified 

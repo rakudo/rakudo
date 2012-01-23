@@ -620,7 +620,7 @@ class Perl6::Actions is HLL::Actions {
     method block($/) {
         my $block := $<blockoid>.ast;
         if $block<placeholder_sig> {
-            $/.CURSOR.panic("Cannot use placeholder parameters in this kind of block");
+            $*W.throw($/, ['X', 'Placeholder', 'Block']);
         }
         ($*W.cur_lexpad())[0].push(my $uninst := PAST::Stmts.new($block));
         my $code := $*W.create_code_object($block, 'Block', $*W.create_signature([]));
@@ -1196,6 +1196,10 @@ class Perl6::Actions is HLL::Actions {
             $block.node($/);
         }
         $block.blocktype('immediate');
+
+        if $*PKGDECL ne 'role' && $block<placeholder_sig> {
+            $*W.throw($/, ['X', 'Placeholder', 'Block']);
+        }
 
         # If it's a stub, add it to the "must compose at some point" list,
         # then just evaluate to the type object. Don't need to do any more

@@ -50,6 +50,12 @@ my class X::Signature::Placeholder is X::Base does X::Comp {
     }
 }
 
+my class X::Placeholder::Block is X::Base does X::Comp {
+    method message() {
+        'Cannot use placeholder parameters in this kind of block';
+    }
+}
+
 my class X::Attribute::Undeclared is X::Base does X::Comp {
     has $.name;
     has $.package-type;

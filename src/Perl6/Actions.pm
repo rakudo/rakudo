@@ -620,7 +620,15 @@ class Perl6::Actions is HLL::Actions {
     method block($/) {
         my $block := $<blockoid>.ast;
         if $block<placeholder_sig> {
-            $*W.throw($/, ['X', 'Placeholder', 'Block']);
+            my $name := $block<placeholder_sig>[0]<variable_name>;
+            unless $name eq '%_' || $name eq '@_' {
+                $name := nqp::concat_s(nqp::substr($name, 0, 1),
+                        nqp::concat_s('^', nqp::substr($name, 1)));
+            }
+
+            $*W.throw( $/, ['X', 'Placeholder', 'Block'],
+                placeholder => p6box_s($name),
+            );
         }
         ($*W.cur_lexpad())[0].push(my $uninst := PAST::Stmts.new($block));
         my $code := $*W.create_code_object($block, 'Block', $*W.create_signature([]));
@@ -1198,7 +1206,14 @@ class Perl6::Actions is HLL::Actions {
         $block.blocktype('immediate');
 
         if $*PKGDECL ne 'role' && $block<placeholder_sig> {
-            $*W.throw($/, ['X', 'Placeholder', 'Block']);
+            my $name := $block<placeholder_sig>[0]<variable_name>;
+            unless $name eq '%_' || $name eq '@_' {
+                $name := nqp::concat_s(nqp::substr($name, 0, 1),
+                        nqp::concat_s('^', nqp::substr($name, 1)));
+            }
+            $*W.throw( $/, ['X', 'Placeholder', 'Block'],
+                placeholder => p6box_s($name),
+            );
         }
 
         # If it's a stub, add it to the "must compose at some point" list,

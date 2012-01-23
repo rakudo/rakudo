@@ -1339,7 +1339,7 @@ class Perl6::Actions is HLL::Actions {
         my $twigil := $<variable><twigil>[0];
         my $name   := ~$sigil ~ ~$twigil ~ ~$<variable><desigilname>;
         if $<variable><desigilname> && $*W.cur_lexpad().symbol($name) {
-            $/.CURSOR.panic("Redeclaration of symbol ", $name);
+            $*W.throw($/, ['X', 'Redeclaration'], symbol => p6box_s($name));
         }
         make declare_variable($/, $past, ~$sigil, ~$twigil, ~$<variable><desigilname>, $<trait>);
     }
@@ -2327,7 +2327,7 @@ class Perl6::Actions is HLL::Actions {
                 if $<name> {
                     my $cur_pad := $*W.cur_lexpad();
                     if $cur_pad.symbol(~$/) {
-                        $/.CURSOR.panic("Redeclaration of symbol ", ~$/);
+                        $*W.throw($/, ['X', 'Redeclaration'], symbol => p6box_s(~$/));
                     }
                     if pir::exists(%*PARAM_INFO, 'nominal_type') {
                         $cur_pad[0].push(PAST::Var.new( :name(~$/), :scope('lexical_6model'),
@@ -4082,7 +4082,10 @@ class Perl6::Actions is HLL::Actions {
         # Add variable declaration, and evaluate to a lookup of it.
         my %existing := $block.symbol($name);
         if +%existing && !%existing<placeholder_parameter> {
-            $/.CURSOR.panic("Redeclaration of symbol $full_name as a placeholder parameter");
+            $*W.throw($/, ['X', 'Redeclaration'],
+                symbol  => p6box_s(~$/),
+                postfix => p6box_s(' as a placeholder parameter'),
+            );
         }
         $block[0].push(PAST::Var.new( :name($name), :scope('lexical_6model'), :isdecl(1) ));
         $block.symbol($name, :scope('lexical_6model'), :placeholder_parameter(1));

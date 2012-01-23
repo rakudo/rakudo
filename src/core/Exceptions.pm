@@ -14,7 +14,7 @@ my role X::OS {
     has $.os-error;
 }
 
-my role X::Comp {
+my role X::Comp is X::Base {
     has $.filename;
     has $.line;
     has $.column;
@@ -44,20 +44,20 @@ my class X::Buf::AsStr is X::Base {
     }
 }
 
-my class X::Signature::Placeholder is X::Base does X::Comp {
+my class X::Signature::Placeholder does X::Comp {
     method message() {
         'Placeholder variable cannot override existing signature';
     }
 }
 
-my class X::Placeholder::Block is X::Base does X::Comp {
+my class X::Placeholder::Block does X::Comp {
     has $.placeholder;
     method message() {
         "Placeholder variable $.placeholder may not be used here because the surrounding block takes no signature";
     }
 }
 
-my class X::Attribute::Undeclared is X::Base does X::Comp {
+my class X::Attribute::Undeclared does X::Comp {
     has $.name;
     has $.package-type;
     has $.package-name;
@@ -66,7 +66,7 @@ my class X::Attribute::Undeclared is X::Base does X::Comp {
     }
 }
 
-my class X::Redeclaration is X::Base does X::Comp {
+my class X::Redeclaration does X::Comp {
     has $.symbol;
     has $.postfix = '';
     has $.what    = 'symbol';
@@ -75,12 +75,12 @@ my class X::Redeclaration is X::Base does X::Comp {
     }
 }
 
-my class X::Phaser::Once is X::Base does X::Comp {
+my class X::Phaser::Once does X::Comp {
     has $.block;
     method message() { "Only one $.block block is allowed" }
 }
 
-my class X::Obsolete is X::Base does X::Comp {
+my class X::Obsolete does X::Comp {
     has $.old;
     has $.new;
     has $.when = 'in Perl 6';

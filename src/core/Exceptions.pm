@@ -86,3 +86,8 @@ my class X::Obsolete does X::Comp {
     has $.when = 'in Perl 6';
     method message() { "Unsupported use of $.old; $.when please use $.new" }
 }
+
+my class X::Parameter::Default does X::Comp {
+    has $.how;
+    method message() { "Cannot put default on $.how parameter" };
+}

@@ -2248,10 +2248,10 @@ class Perl6::Actions is HLL::Actions {
         my $quant := $<quant>;
         if $<default_value> {
             if $quant eq '*' {
-                $/.CURSOR.panic("Cannot put default on slurpy parameter");
+                $*W.throw($/, ['X', 'Parameter', 'Default'], how => p6box_s('slurpy'));
             }
             if $quant eq '!' {
-                $/.CURSOR.panic("Cannot put default on required parameter");
+                $*W.throw($/, ['X', 'Parameter', 'Default'], how => p6box_s('required'));
             }
             my $val := $<default_value>[0].ast;
             if $val<has_compile_time_value> {

@@ -30,6 +30,10 @@ my class Buf does Positional {
         nqp::p6box_i(nqp::atpos_i($!buffer, nqp::unbox_i($idx)));
     }
 
+    multi method Bool(Buf:D:) {
+        nqp::p6bool(nqp::elems($!buffer));
+    }
+
     method elems(Buf:D:) {
         nqp::p6box_i(nqp::elems($!buffer));
     }

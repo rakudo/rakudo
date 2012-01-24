@@ -2360,13 +2360,16 @@ class Perl6::Actions is HLL::Actions {
             }
             else {
                 if $twigil eq ':' {
-                    $/.CURSOR.panic("In signature parameter, placeholder variables like " ~
-                        ~$/ ~ " are illegal\n" ~
-                        "you probably meant a named parameter: ':" ~ $<sigil> ~ ~$<name>[0] ~ "'");
+                    $*W.throw($/, ['X', 'Parameter', 'Placeholder'],
+                        parameter => p6box_s(~$/),
+                        right     => p6box_s(':' ~ $<sigil> ~ ~$<name>[0]),
+                    );
                 }
                 else {
-                    $/.CURSOR.panic("In signature parameter, '" ~ ~$/ ~
-                        "', it is illegal to use '" ~ $twigil ~ "' twigil");
+                    $*W.throw($/, ['X', 'Parameter', 'Twigil'],
+                        parameter => p6box_s(~$/),
+                        twigil    => p6box_s($twigil),
+                    );
                 }
             }
         }
@@ -2401,7 +2404,8 @@ class Perl6::Actions is HLL::Actions {
             }
             else {
                 if pir::exists(%*PARAM_INFO, 'nominal_type') {
-                    $/.CURSOR.panic('Parameter may only have one prefix type constraint');
+                    $*W.throw($/, ['X', 'Parameter', 'TypeConstraint'],
+                                parameter => p6box_s(~$/));
                 }
                 my $type := $<typename>.ast;
                 if nqp::isconcrete($type) {
@@ -2505,7 +2509,9 @@ class Perl6::Actions is HLL::Actions {
             if $_<named_names> {
                 for $_<named_names> {
                     if %seen_names{$_} {
-                        $/.CURSOR.panic("Name '$_' used for more than one named parameter");
+                        $*W.throw($/, ['X', 'Signature', 'NameClash'],
+                            named => p6box_s($_)
+                        );
                     }
                     %seen_names{$_} := 1;
                 }
@@ -4031,7 +4037,9 @@ class Perl6::Actions is HLL::Actions {
         # Ensure we're not trying to put a placeholder in the mainline.
         my $block := $*W.cur_lexpad();
         if $block<IN_DECL> eq 'mainline' {
-            $/.CURSOR.panic("Cannot use placeholder parameter $full_name in the mainline");
+            $*W.throw($/, ['X', 'Placeholder', 'Mainline'],
+                placeholder => p6box_s($full_name),
+            );
         }
         
         # Obtain/create placeholder parameter list.

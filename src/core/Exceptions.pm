@@ -57,6 +57,13 @@ my class X::Placeholder::Block does X::Comp {
     }
 }
 
+my class X::Placeholder::Mainline does X::Comp {
+    has $.placeholder;
+    method message() {
+        "Cannot use placeholder parameter $.placeholder in the mainline"
+    }
+}
+
 my class X::Attribute::Undeclared does X::Comp {
     has $.name;
     has $.package-type;
@@ -90,4 +97,35 @@ my class X::Obsolete does X::Comp {
 my class X::Parameter::Default does X::Comp {
     has $.how;
     method message() { "Cannot put default on $.how parameter" };
+}
+
+my class X::Parameter::Placeholder does X::Comp {
+    has $.parameter;
+    has $.right;
+    method message() {
+        "In signature parameter, placeholder variables like $.parameter are illegal\n"
+        ~ "you probably meant a named parameter: '$.right'";
+    }
+}
+
+my class X::Parameter::Twigil does X::Comp {
+    has $.parameter;
+    has $.twigil;
+    method message() {
+        "In signature parameter $.parameter, it is illegal to use the $.twigil twigil";
+    }
+}
+
+my class X::Parameter::TypeConstraint does X::Comp {
+    has $.parameter;
+    method message() {
+        "Parameter $.parameter may only have on prefix type constraint";
+    }
+}
+
+my class X::Signature::NameClash does X::Comp {
+    has $.name;
+    method message() {
+        "Name $.name used for more than one named parameter";
+    }
 }

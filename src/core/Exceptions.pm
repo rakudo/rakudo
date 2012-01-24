@@ -148,3 +148,8 @@ my class X::Method::Private::Qualified does X::Comp {
 my class X::Bind::WrongLHS does X::Comp {
     method message() { 'Cannot use bind operator with this left-hand side' }
 }
+my class X::Bind::NativeType does X::Comp {
+    method message() {
+        'Cannot bind to a natively typed variable; use assignment instead'
+    }
+}

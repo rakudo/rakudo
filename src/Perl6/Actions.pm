@@ -3377,6 +3377,7 @@ class Perl6::Actions is HLL::Actions {
             make PAST::Op.new( :pasttype('bind_6model'), $target, $source );
         }
         elsif $target<boxable_native> {
+            $*W.throw($/, ['X', 'Bind', 'NativeType']);
             $/.CURSOR.panic("Cannot bind to a natively typed variable; use assignment instead");
         }
         elsif $target.isa(PAST::Op) && $target.pirop eq 'perl6ize_type PP' &&

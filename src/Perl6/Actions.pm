@@ -2555,7 +2555,7 @@ class Perl6::Actions is HLL::Actions {
                 $*REPR := compile_time_value_str($<circumfix>[0].ast[0], "is repr(...) trait", $/);
             }
             else {
-                $/.cursor.panic("is repr(...) trait needs a parameter");
+                $/.CURSOR.panic("is repr(...) trait needs a parameter");
             }
         }
         else

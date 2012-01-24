@@ -2448,7 +2448,7 @@ class Perl6::Actions is HLL::Actions {
         }
         elsif $<value> {
             if pir::exists(%*PARAM_INFO, 'nominal_type') {
-                $/.CURSOR.panic('Parameter may only have one prefix type constraint');
+                $*W.throw($/, ['X', 'Parameter', 'TypeConstraint']);
             }
             my $ast := $<value>.ast;
             unless $ast<has_compile_time_value> {
@@ -2681,16 +2681,19 @@ class Perl6::Actions is HLL::Actions {
             if @parts {
                 my $methpkg := $*W.find_symbol(@parts);
                 unless $methpkg.HOW.is_trusted($methpkg, $*PACKAGE) {
-                    $/.CURSOR.panic("Cannot call private method '$name' on package " ~
-                        $methpkg.HOW.name($methpkg) ~ " because it does not trust " ~
-                        $*PACKAGE.HOW.name($*PACKAGE));
+                    $*W.throw($/, ['X', 'Method', 'Private', 'Permission'],
+                        :method(         p6box_s($name)),
+                        :source-package( p6box_s($methpkg.HOW.name($methpkg))),
+                        :calling-package(p6box_s( $*PACKAGE.HOW.name($*PACKAGE))),
+                    );
                 }
                 $past[1].type($methpkg);
             }
             else {
                 unless pir::can($*PACKAGE.HOW, 'find_private_method') {
-                    $/.CURSOR.panic("Private method call to '$name' must be fully " ~
-                        "qualified with the package containing the method");
+                    $*W.throw($/, ['X', 'Method', 'Private', 'Qualified'],
+                        :method(p6box_s($name)),
+                    );
                 }
                 $past.unshift($*W.get_ref($*PACKAGE));
                 $past[0].type($*PACKAGE);

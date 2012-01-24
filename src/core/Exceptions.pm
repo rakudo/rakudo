@@ -128,3 +128,19 @@ my class X::Signature::NameClash does X::Comp {
         "Name $.name used for more than one named parameter";
     }
 }
+
+my class X::Method::Private::Permission does X::Comp {
+    has $.method;
+    has $.source-package;
+    has $.calling-package;
+    method message() {
+        "Cannot call private method '$.method' on package $.source-package because it does not trust $.calling-package";
+    }
+}
+
+my class X::Method::Private::Qualified does X::Comp {
+    has $.method;
+    method message() {
+        "Private method call to $.method must be fully qualified with the package containing the method";
+    }
+}

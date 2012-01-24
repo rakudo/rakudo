@@ -117,9 +117,8 @@ my class X::Parameter::Twigil does X::Comp {
 }
 
 my class X::Parameter::TypeConstraint does X::Comp {
-    has $.parameter;
     method message() {
-        "Parameter $.parameter may only have on prefix type constraint";
+        "A parameter may only have on prefix type constraint";
     }
 }
 

@@ -2404,8 +2404,7 @@ class Perl6::Actions is HLL::Actions {
             }
             else {
                 if pir::exists(%*PARAM_INFO, 'nominal_type') {
-                    $*W.throw($/, ['X', 'Parameter', 'TypeConstraint'],
-                                parameter => p6box_s(~$/));
+                    $*W.throw($/, ['X', 'Parameter', 'TypeConstraint']);
                 }
                 my $type := $<typename>.ast;
                 if nqp::isconcrete($type) {

@@ -144,3 +144,7 @@ my class X::Method::Private::Qualified does X::Comp {
         "Private method call to $.method must be fully qualified with the package containing the method";
     }
 }
+
+my class X::Bind::WrongLHS does X::Comp {
+    method message() { 'Cannot use bind operator with this left-hand side' }
+}

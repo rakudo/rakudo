@@ -3369,7 +3369,7 @@ class Perl6::Actions is HLL::Actions {
                     $was_lexical := 1;
                 }
                 unless $was_lexical {
-                    $/.CURSOR.panic("Cannot use bind operator with this LHS");
+                    $*W.throw($/, ['X', 'Bind', 'WrongLHS']);
                 }
             }
 

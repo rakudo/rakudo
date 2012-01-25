@@ -3378,7 +3378,6 @@ class Perl6::Actions is HLL::Actions {
         }
         elsif $target<boxable_native> {
             $*W.throw($/, ['X', 'Bind', 'NativeType']);
-            $/.CURSOR.panic("Cannot bind to a natively typed variable; use assignment instead");
         }
         elsif $target.isa(PAST::Op) && $target.pirop eq 'perl6ize_type PP' &&
                 $target[0].isa(PAST::Op) && $target[0].pasttype eq 'callmethod' &&
@@ -3389,7 +3388,7 @@ class Perl6::Actions is HLL::Actions {
         }
         # XXX Several more cases to do...
         else {
-            $/.CURSOR.panic("Cannot use bind operator with this LHS");
+            $*W.throw($/, ['X', 'Bind', 'WrongLHS']);
         }
     }
 

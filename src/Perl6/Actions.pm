@@ -1093,30 +1093,12 @@ class Perl6::Actions is HLL::Actions {
         elsif $twigil eq '!' {
             # In a declaration, don't produce anything here.
             if $*IN_DECL ne 'variable' {
-                # Ensure attribute actually exists before emitting lookup.
-                unless pir::can($*PACKAGE.HOW, 'get_attribute_for_usage') {
-                    $/.CURSOR.panic("Cannot understand $name in this context");
-                }
-                my $attr;
-                my $found := 0;
-                try {
-                    $attr := $*PACKAGE.HOW.get_attribute_for_usage($*PACKAGE, $name);
-                    $found := 1;
-                }
-                if $found {
-                    $past.scope('attribute_6model');
-                    $past.type($attr.type);
-                    $past.unshift(instantiated_type(['$?CLASS'], $/));
-                    $past.unshift(PAST::Var.new( :name('self'), :scope('lexical_6model') ));
-                    $past := box_native_if_needed($past, $attr.type);
-                }
-                else {
-                    $*W.throw($/, ['X', 'Attribute', 'Undeclared'],
-                            name         => p6box_s($name),
-                            package-type => p6box_s($*PKGDECL),
-                            package-name => p6box_s($*PACKAGE.HOW.name($*PACKAGE)),
-                    );
-                }
+                my $attr := get_attribute_meta_object($/, $name);
+                $past.scope('attribute_6model');
+                $past.type($attr.type);
+                $past.unshift(instantiated_type(['$?CLASS'], $/));
+                $past.unshift(PAST::Var.new( :name('self'), :scope('lexical_6model') ));
+                $past := box_native_if_needed($past, $attr.type);
             }
         }
         elsif $twigil eq '.' && $*IN_DECL ne 'variable' {
@@ -1174,6 +1156,26 @@ class Perl6::Actions is HLL::Actions {
             }
         }
         $past
+    }
+    
+    sub get_attribute_meta_object($/, $name) {
+        unless pir::can($*PACKAGE.HOW, 'get_attribute_for_usage') {
+            $/.CURSOR.panic("Cannot understand $name in this context");
+        }
+        my $attr;
+        my $found := 0;
+        try {
+            $attr := $*PACKAGE.HOW.get_attribute_for_usage($*PACKAGE, $name);
+            $found := 1;
+        }
+        unless $found {
+            $*W.throw($/, ['X', 'Attribute', 'Undeclared'],
+                    name         => p6box_s($name),
+                    package-type => p6box_s($*PKGDECL),
+                    package-name => p6box_s($*PACKAGE.HOW.name($*PACKAGE)),
+            );
+        }
+        $attr
     }
 
     method package_declarator:sym<package>($/) { make $<package_def>.ast; }
@@ -2207,7 +2209,7 @@ class Perl6::Actions is HLL::Actions {
     method fakesignature($/) {
         my @params := $<signature>.ast;
         set_default_parameter_type(@params, 'Mu');
-        my $sig := create_signature_object($/, @params, $*FAKE_PAD);
+        my $sig := create_signature_object($/, @params, $*FAKE_PAD, :no_attr_check(1));
         my $past := $*W.get_ref($sig);
         $past<has_compile_time_value> := 1;
         $past<compile_time_value> := $sig;
@@ -2345,7 +2347,6 @@ class Perl6::Actions is HLL::Actions {
                 }
             }
             elsif $twigil eq '!' {
-                # XXX Can compile-time check name when we have attributes. :-)
                 %*PARAM_INFO<bind_attr> := 1;
                 %*PARAM_INFO<attr_package> := $*PACKAGE;
             }
@@ -2500,7 +2501,7 @@ class Perl6::Actions is HLL::Actions {
     # Create Parameter objects, along with container descriptors
     # if needed. Parameters will be bound into the specified
     # lexpad.
-    sub create_signature_object($/, @parameter_infos, $lexpad) {
+    sub create_signature_object($/, @parameter_infos, $lexpad, :$no_attr_check) {
         my @parameters;
         my %seen_names;
         for @parameter_infos {
@@ -2514,6 +2515,12 @@ class Perl6::Actions is HLL::Actions {
                     }
                     %seen_names{$_} := 1;
                 }
+            }
+            
+            # If it's !-twigil'd, ensure the attribute it mentions exists unless
+            # we're in a context where we should not do that.
+            if $_<bind_attr> && !$no_attr_check {
+                get_attribute_meta_object($/, $_<variable_name>);
             }
             
             # If we have a sub-signature, create that.

@@ -14,7 +14,7 @@ role Perl6::Metamodel::MethodContainer {
         # Ensure we haven't already got it.
         if %!methods{$name} || %!submethods{$name} {
             pir::die("Package '" ~ self.name($obj) ~ "' already has a method '" ~
-                $name ~ "'; did you mean to declare a multi-method?");
+                $name ~ "' (did you mean to declare a multi-method?)");
         }
         
         # Add to correct table depending on if it's a Submethod. Note, we

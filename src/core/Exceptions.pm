@@ -89,9 +89,9 @@ my class X::Phaser::Once does X::Comp {
 
 my class X::Obsolete does X::Comp {
     has $.old;
-    has $.new;
+    has $.replacement; # can't call it $.new, collides with constructor
     has $.when = 'in Perl 6';
-    method message() { "Unsupported use of $.old; $.when please use $.new" }
+    method message() { "Unsupported use of $.old; $.when please use $.replacement" }
 }
 
 my class X::Parameter::Default does X::Comp {

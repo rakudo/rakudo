@@ -853,7 +853,7 @@ class Perl6::Actions is HLL::Actions {
 
     method statement_control:sym<CATCH>($/) {
         if has_block_handler($*W.cur_lexpad(), 'CONTROL', :except(1)) {
-            $*W.throw($/, ['X', 'Phaser', 'Once'], block => p6box_s('CATCH'));
+            $*W.throw($/, ['X', 'Phaser', 'Multiple'], block => p6box_s('CATCH'));
         }
         my $block := $<block>.ast;
         push_block_handler($/, $*W.cur_lexpad(), $block, 'CONTROL', :except(1));
@@ -862,7 +862,7 @@ class Perl6::Actions is HLL::Actions {
 
     method statement_control:sym<CONTROL>($/) {
         if has_block_handler($*W.cur_lexpad(), 'CONTROL') {
-            $*W.throw($/, ['X', 'Phaser', 'Once'], block => p6box_s('CONTROL'));
+            $*W.throw($/, ['X', 'Phaser', 'Multiple'], block => p6box_s('CONTROL'));
         }
         my $block := $<block>.ast;
         push_block_handler($/, $*W.cur_lexpad(), $block, 'CONTROL');
@@ -2405,7 +2405,7 @@ class Perl6::Actions is HLL::Actions {
             }
             else {
                 if pir::exists(%*PARAM_INFO, 'nominal_type') {
-                    $*W.throw($/, ['X', 'Parameter', 'TypeConstraint']);
+                    $*W.throw($/, ['X', 'Parameter', 'MultipleTypeConstraints']);
                 }
                 my $type := $<typename>.ast;
                 if nqp::isconcrete($type) {
@@ -2449,7 +2449,7 @@ class Perl6::Actions is HLL::Actions {
         }
         elsif $<value> {
             if pir::exists(%*PARAM_INFO, 'nominal_type') {
-                $*W.throw($/, ['X', 'Parameter', 'TypeConstraint']);
+                $*W.throw($/, ['X', 'Parameter', 'MultipleTypeConstraints']);
             }
             my $ast := $<value>.ast;
             unless $ast<has_compile_time_value> {
@@ -2698,7 +2698,7 @@ class Perl6::Actions is HLL::Actions {
             }
             else {
                 unless pir::can($*PACKAGE.HOW, 'find_private_method') {
-                    $*W.throw($/, ['X', 'Method', 'Private', 'Qualified'],
+                    $*W.throw($/, ['X', 'Method', 'Private', 'Unqualified'],
                         :method(p6box_s($name)),
                     );
                 }

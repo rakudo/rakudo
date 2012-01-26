@@ -84,7 +84,7 @@ my class X::Redeclaration does X::Comp {
     }
 }
 
-my class X::Phaser::Once does X::Comp {
+my class X::Phaser::Multiple does X::Comp {
     has $.block;
     method message() { "Only one $.block block is allowed" }
 }
@@ -118,7 +118,7 @@ my class X::Parameter::Twigil does X::Comp {
     }
 }
 
-my class X::Parameter::TypeConstraint does X::Comp {
+my class X::Parameter::MultipleTypeConstraints does X::Comp {
     method message() {
         "A parameter may only have on prefix type constraint";
     }
@@ -140,7 +140,7 @@ my class X::Method::Private::Permission does X::Comp {
     }
 }
 
-my class X::Method::Private::Qualified does X::Comp {
+my class X::Method::Private::Unqualified does X::Comp {
     has $.method;
     method message() {
         "Private method call to $.method must be fully qualified with the package containing the method";
@@ -156,6 +156,6 @@ my class X::Bind::NativeType does X::Comp {
     }
 }
 
-my class X::Syntax::Name::NotNull does X::Syntax {
+my class X::Syntax::Name::Null does X::Syntax {
     method message() { 'Name component my not be null'; }
 }

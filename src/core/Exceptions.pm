@@ -23,6 +23,8 @@ my role X::Comp is X::Base {
     }
 }
 
+my role X::Syntax does X::Comp { }
+
 my class X::NYI is X::Base {
     has $.feature;
     method message() { "$.feature not yet implemented. Sorry. " }
@@ -152,4 +154,8 @@ my class X::Bind::NativeType does X::Comp {
     method message() {
         'Cannot bind to a natively typed variable; use assignment instead'
     }
+}
+
+my class X::Syntax::Name::NotNull does X::Syntax {
+    method message() { 'Name component my not be null'; }
 }

@@ -79,7 +79,7 @@ grammar Perl6::Grammar is HLL::Grammar {
             | <identifier>
             | '(' ~ ')' <EXPR>
             ]
-        || <?before '::'> <.panic: "Name component may not be null">
+        || <?before '::'> <.typed_panic: "X::Syntax::Name::NotNull">
         ]?
     }
 

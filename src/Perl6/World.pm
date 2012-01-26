@@ -1869,14 +1869,15 @@ class Perl6::World is HLL::World {
             CATCH { $type_found := 0 };
             self.find_symbol($ex_type);
         };
+
         if $type_found {
+             %opts<line>     := HLL::Compiler.lineof($/.orig, $/.from);
+            for %opts -> $p {
+                %opts{$p.key} := pir::perl6ize_type__PP($p.value);
+            }
             my $file        := pir::find_caller_lex__ps('$?FILES');
-            %opts<line>     := nqp::box_i(
-                HLL::Compiler.lineof($/.orig, $/.from),
-                $*W.find_symbol(['Int'])
-            );
             %opts<filename> := nqp::box_s(
-                pir::isnull($file) ?? '<unknown file>' !! $file,
+                (pir::isnull($file) ?? '<unknown file>' !! $file),
                 self.find_symbol(['Str'])
             );
             $ex.new(|%opts).throw;

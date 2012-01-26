@@ -45,11 +45,10 @@ grammar Perl6::Grammar is HLL::Grammar {
 
     # "when" arg assumes more things will become obsolete after Perl 6 comes out...
     method obs ($old, $new, $when = ' in Perl 6') {
-        my $str := $*W.find_symbol(['Str']);
         $*W.throw(self.MATCH(), ['X', 'Obsolete'],
-            old         => nqp::box_s($old,  $str),
-            replacement => nqp::box_s($new,  $str),
-            when        => nqp::box_s($when, $str),
+            old         => $old,
+            replacement => $new,
+            when        => $when,
         );
     }
 
@@ -1215,7 +1214,7 @@ grammar Perl6::Grammar is HLL::Grammar {
                     if $exists && $*PKGDECL ne 'role' {
                         if $*PACKAGE.HOW.is_composed($*PACKAGE) {
                             $*W.throw($/, ['X', 'Redeclaration'],
-                                symbol => nqp::box_s(~$longname<name>, $*W.find_symbol(['Str'])),
+                                symbol => ~$longname<name>,
                             );
                         }
                     }
@@ -1701,7 +1700,7 @@ grammar Perl6::Grammar is HLL::Grammar {
                 my @name := parse_name(~$<longname><name>);
                 if $*W.already_declared($*SCOPE, $*PACKAGE, $*W.cur_lexpad(), @name) {
                     $*W.throw($/, ['X', 'Redeclaration'],
-                        symbol => nqp::box_s(~$<longname><name>, $*W.find_symbol(['Str'])),
+                        symbol => ~$<longname><name>,
                     );
                 }
             }
@@ -1726,7 +1725,7 @@ grammar Perl6::Grammar is HLL::Grammar {
                         my @name := parse_name(~$<longname><name>);
                         if $*W.already_declared($*SCOPE, $*PACKAGE, $*W.cur_lexpad(), @name) {
                             $*W.throw($/, ['X', 'Redeclaration'],
-                                symbol => nqp::box_s(~$<longname><name>, $*W.find_symbol(['Str'])),
+                                symbol => ~$<longname><name>,
                             );
                         }
                     }

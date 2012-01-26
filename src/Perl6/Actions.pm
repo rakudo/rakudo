@@ -627,7 +627,7 @@ class Perl6::Actions is HLL::Actions {
             }
 
             $*W.throw( $/, ['X', 'Placeholder', 'Block'],
-                placeholder => p6box_s($name),
+                placeholder => $name,
             );
         }
         ($*W.cur_lexpad())[0].push(my $uninst := PAST::Stmts.new($block));
@@ -805,7 +805,7 @@ class Perl6::Actions is HLL::Actions {
     method statement_control:sym<require>($/) {
         if $<module_name> && $<EXPR> {
             $*W.throw($/, ['X', 'NYI'],
-                feature => p6box_s('require with argument list'));
+                feature => 'require with argument list');
         }
         my $name_past := $<module_name>
                         ?? PAST::Val.new(:value($<module_name><longname><name>.Str))
@@ -853,7 +853,7 @@ class Perl6::Actions is HLL::Actions {
 
     method statement_control:sym<CATCH>($/) {
         if has_block_handler($*W.cur_lexpad(), 'CONTROL', :except(1)) {
-            $*W.throw($/, ['X', 'Phaser', 'Multiple'], block => p6box_s('CATCH'));
+            $*W.throw($/, ['X', 'Phaser', 'Multiple'], block => 'CATCH');
         }
         my $block := $<block>.ast;
         push_block_handler($/, $*W.cur_lexpad(), $block, 'CONTROL', :except(1));
@@ -862,7 +862,7 @@ class Perl6::Actions is HLL::Actions {
 
     method statement_control:sym<CONTROL>($/) {
         if has_block_handler($*W.cur_lexpad(), 'CONTROL') {
-            $*W.throw($/, ['X', 'Phaser', 'Multiple'], block => p6box_s('CONTROL'));
+            $*W.throw($/, ['X', 'Phaser', 'Multiple'], block => 'CONTROL');
         }
         my $block := $<block>.ast;
         push_block_handler($/, $*W.cur_lexpad(), $block, 'CONTROL');
@@ -1170,9 +1170,9 @@ class Perl6::Actions is HLL::Actions {
         }
         unless $found {
             $*W.throw($/, ['X', 'Attribute', 'Undeclared'],
-                    name         => p6box_s($name),
-                    package-type => p6box_s($*PKGDECL),
-                    package-name => p6box_s($*PACKAGE.HOW.name($*PACKAGE)),
+                    name         => $name,
+                    package-type => $*PKGDECL,
+                    package-name => $*PACKAGE.HOW.name($*PACKAGE),
             );
         }
         $attr
@@ -1191,7 +1191,7 @@ class Perl6::Actions is HLL::Actions {
     }
 
     method package_declarator:sym<also>($/) {
-        $*W.throw($/, ['X', 'NYI'], feature => p6box_s('also'));
+        $*W.throw($/, ['X', 'NYI'], feature => 'also');
     }
 
     method package_def($/) {
@@ -1214,7 +1214,7 @@ class Perl6::Actions is HLL::Actions {
                         nqp::concat_s('^', nqp::substr($name, 1)));
             }
             $*W.throw( $/, ['X', 'Placeholder', 'Block'],
-                placeholder => p6box_s($name),
+                placeholder => $name,
             );
         }
 
@@ -1341,7 +1341,7 @@ class Perl6::Actions is HLL::Actions {
         my $twigil := $<variable><twigil>[0];
         my $name   := ~$sigil ~ ~$twigil ~ ~$<variable><desigilname>;
         if $<variable><desigilname> && $*W.cur_lexpad().symbol($name) {
-            $*W.throw($/, ['X', 'Redeclaration'], symbol => p6box_s($name));
+            $*W.throw($/, ['X', 'Redeclaration'], symbol => $name);
         }
         make declare_variable($/, $past, ~$sigil, ~$twigil, ~$<variable><desigilname>, $<trait>);
     }
@@ -1459,7 +1459,7 @@ class Perl6::Actions is HLL::Actions {
         }
         else {
             $*W.throw($/, ['X', 'NYI'],
-                feature => p6box_s("$*SCOPE scoped variables"));
+                feature => "$*SCOPE scoped variables");
         }
 
         return $past;
@@ -1593,8 +1593,8 @@ class Perl6::Actions is HLL::Actions {
                 # Install.
                 if $outer.symbol($name) {
                     $*W.throw($/, ['X', 'Redeclaration'],
-                            symbol => p6box_s(~$<deflongname>[0].ast),
-                            what   => p6box_s('routine'),
+                            symbol => ~$<deflongname>[0].ast,
+                            what   => 'routine',
                     );
                 }
                 if $*SCOPE eq '' || $*SCOPE eq 'my' {
@@ -2028,7 +2028,7 @@ class Perl6::Actions is HLL::Actions {
         $*W.pkg_compose($type_obj);
         if $<variable> {
             $*W.throw($/, ['X', 'NYI'],
-                feature => p6box_s("Variable case of enums")
+                feature => "Variable case of enums",
             );
         }
         $*W.install_package_longname($/, $<longname>, ($*SCOPE || 'our'),
@@ -2166,7 +2166,7 @@ class Perl6::Actions is HLL::Actions {
                 # Don't handle twigil'd case yet.
                 if $<variable><twigil> {
                     $*W.throw($/, ['X', 'NYI'],
-                        feature => p6box_s("Twigil-Variable constants")
+                        feature => "Twigil-Variable constants"
                     );
                 }
                 $name := ~$<variable>;
@@ -2250,10 +2250,10 @@ class Perl6::Actions is HLL::Actions {
         my $quant := $<quant>;
         if $<default_value> {
             if $quant eq '*' {
-                $*W.throw($/, ['X', 'Parameter', 'Default'], how => p6box_s('slurpy'));
+                $*W.throw($/, ['X', 'Parameter', 'Default'], how => 'slurpy');
             }
             if $quant eq '!' {
-                $*W.throw($/, ['X', 'Parameter', 'Default'], how => p6box_s('required'));
+                $*W.throw($/, ['X', 'Parameter', 'Default'], how => 'required');
             }
             my $val := $<default_value>[0].ast;
             if $val<has_compile_time_value> {
@@ -2331,7 +2331,7 @@ class Perl6::Actions is HLL::Actions {
                 if $<name> {
                     my $cur_pad := $*W.cur_lexpad();
                     if $cur_pad.symbol(~$/) {
-                        $*W.throw($/, ['X', 'Redeclaration'], symbol => p6box_s(~$/));
+                        $*W.throw($/, ['X', 'Redeclaration'], symbol => ~$/);
                     }
                     if pir::exists(%*PARAM_INFO, 'nominal_type') {
                         $cur_pad[0].push(PAST::Var.new( :name(~$/), :scope('lexical_6model'),
@@ -2362,14 +2362,14 @@ class Perl6::Actions is HLL::Actions {
             else {
                 if $twigil eq ':' {
                     $*W.throw($/, ['X', 'Parameter', 'Placeholder'],
-                        parameter => p6box_s(~$/),
-                        right     => p6box_s(':' ~ $<sigil> ~ ~$<name>[0]),
+                        parameter => ~$/,
+                        right     => ':' ~ $<sigil> ~ ~$<name>[0],
                     );
                 }
                 else {
                     $*W.throw($/, ['X', 'Parameter', 'Twigil'],
-                        parameter => p6box_s(~$/),
-                        twigil    => p6box_s($twigil),
+                        parameter => ~$/,
+                        twigil    => $twigil,
                     );
                 }
             }
@@ -2510,7 +2510,7 @@ class Perl6::Actions is HLL::Actions {
                 for $_<named_names> {
                     if %seen_names{$_} {
                         $*W.throw($/, ['X', 'Signature', 'NameClash'],
-                            named => p6box_s($_)
+                            named => $_
                         );
                     }
                     %seen_names{$_} := 1;
@@ -2689,9 +2689,9 @@ class Perl6::Actions is HLL::Actions {
                 my $methpkg := $*W.find_symbol(@parts);
                 unless $methpkg.HOW.is_trusted($methpkg, $*PACKAGE) {
                     $*W.throw($/, ['X', 'Method', 'Private', 'Permission'],
-                        :method(         p6box_s($name)),
-                        :source-package( p6box_s($methpkg.HOW.name($methpkg))),
-                        :calling-package(p6box_s( $*PACKAGE.HOW.name($*PACKAGE))),
+                        :method(         $name),
+                        :source-package( $methpkg.HOW.name($methpkg)),
+                        :calling-package( $*PACKAGE.HOW.name($*PACKAGE)),
                     );
                 }
                 $past[1].type($methpkg);
@@ -2699,7 +2699,7 @@ class Perl6::Actions is HLL::Actions {
             else {
                 unless pir::can($*PACKAGE.HOW, 'find_private_method') {
                     $*W.throw($/, ['X', 'Method', 'Private', 'Unqualified'],
-                        :method(p6box_s($name)),
+                        :method($name),
                     );
                 }
                 $past.unshift($*W.get_ref($*PACKAGE));
@@ -3245,7 +3245,7 @@ class Perl6::Actions is HLL::Actions {
         }
         else {
             $*W.throw($/, ['X', 'NYI'],
-                feature => p6box_s($/<infix> ~ " feed operator")
+                feature => $/<infix> ~ " feed operator"
             );
         }
 
@@ -4047,7 +4047,7 @@ class Perl6::Actions is HLL::Actions {
         my $block := $*W.cur_lexpad();
         if $block<IN_DECL> eq 'mainline' {
             $*W.throw($/, ['X', 'Placeholder', 'Mainline'],
-                placeholder => p6box_s($full_name),
+                placeholder => $full_name,
             );
         }
         
@@ -4102,8 +4102,8 @@ class Perl6::Actions is HLL::Actions {
         my %existing := $block.symbol($name);
         if +%existing && !%existing<placeholder_parameter> {
             $*W.throw($/, ['X', 'Redeclaration'],
-                symbol  => p6box_s(~$/),
-                postfix => p6box_s(' as a placeholder parameter'),
+                symbol  => ~$/,
+                postfix => ' as a placeholder parameter',
             );
         }
         $block[0].push(PAST::Var.new( :name($name), :scope('lexical_6model'), :isdecl(1) ));

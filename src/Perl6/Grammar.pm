@@ -1214,8 +1214,9 @@ grammar Perl6::Grammar is HLL::Grammar {
                     # variants are OK) or else an illegal redecl.
                     if $exists && $*PKGDECL ne 'role' {
                         if $*PACKAGE.HOW.is_composed($*PACKAGE) {
-                            $/.CURSOR.panic("Illegal redeclaration of symbol " ~
-                                ~$longname<name>);
+                            $*W.throw($/, ['X', 'Redeclaration'],
+                                symbol => nqp::box_s(~$longname<name>, $*W.find_symbol(['Str'])),
+                            );
                         }
                     }
                     
@@ -1699,8 +1700,9 @@ grammar Perl6::Grammar is HLL::Grammar {
             {
                 my @name := parse_name(~$<longname><name>);
                 if $*W.already_declared($*SCOPE, $*PACKAGE, $*W.cur_lexpad(), @name) {
-                    $/.CURSOR.panic("Illegal redeclaration of symbol " ~
-                        ~$<longname><name>);
+                    $*W.throw($/, ['X', 'Redeclaration'],
+                        symbol => nqp::box_s(~$<longname><name>, $*W.find_symbol(['Str'])),
+                    );
                 }
             }
         | <variable>
@@ -1723,8 +1725,9 @@ grammar Perl6::Grammar is HLL::Grammar {
                     {
                         my @name := parse_name(~$<longname><name>);
                         if $*W.already_declared($*SCOPE, $*PACKAGE, $*W.cur_lexpad(), @name) {
-                            $/.CURSOR.panic("Illegal redeclaration of symbol " ~
-                                ~$<longname><name>);
+                            $*W.throw($/, ['X', 'Redeclaration'],
+                                symbol => nqp::box_s(~$<longname><name>, $*W.find_symbol(['Str'])),
+                            );
                         }
                     }
                 ]?

@@ -232,9 +232,9 @@ S04-statements/unless.t
 S04-statements/until.t
 S04-statements/while.t
 S05-capture/caps.t
-# S05-capture/dot.t # err: Method 'dotdot' not found for invocant of class 'Cursor'
+S05-capture/dot.t
 S05-capture/match-object.t
-# S05-capture/named.t # err: Method 'fishy' not found for invocant of class 'Cursor'
+S05-capture/named.t
 S05-capture/subrule.t
 S05-grammar/action-stubs.t
 S05-grammar/inheritance.t
@@ -245,7 +245,7 @@ S05-grammar/polymorphism.t
 S05-grammar/protoregex.t
 S05-grammar/protos.t
 S05-grammar/signatures.t
-# S05-grammar/ws.t # err: Method 'T1' not found for invocant of class 'Cursor'
+S05-grammar/ws.t
 S05-interpolation/lexicals.t
 S05-interpolation/regex-in-variable.t
 S05-mass/named-chars.t                                     # icu

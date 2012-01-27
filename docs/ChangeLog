@@ -1,3 +1,12 @@
+New in 2012.02
++ catch duplicate accessor generation required of "has $.x; has @.x;"
++ more typed exceptions thrown
++ undeclared attributes mentioned in signatures now caught at compile time
++ empty Buf is now False in boolean context
++ implemented <prior>
++ implemented /<Foo::Bar::baz>/ syntax
++ /<x>/ can call a predeclared lexical regex x
+
 New in 2012.01
 + -c command line option re-implemented
 + take flattening bug fixed

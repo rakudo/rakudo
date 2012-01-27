@@ -2705,13 +2705,14 @@ grammar Perl6::RegexGrammar is QRegex::P6Regex::Grammar {
         <arglist=.LANG('MAIN','arglist')>
     }
     
-    token assertion:sym<longname> {
-        <before <.identifier> '::'>
+    token assertion:sym<name> {
         <longname=.LANG('MAIN','longname')>
-        [
-        | <?before '>'>
-        | ':' <arglist>
-        | '(' <arglist> ')'
-        ]?
+            [
+            | <?before '>'>
+            | '=' <assertion>
+            | ':' <arglist>
+            | '(' <arglist> ')'
+            | <.normspace> <nibbler>
+            ]?
     }
 }

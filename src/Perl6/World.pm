@@ -1642,6 +1642,16 @@ class Perl6::World is HLL::World {
         }
     }
     
+    # Checks if there is a regex in scope.
+    method regex_in_scope($name) {
+        my $result := 0;
+        try {
+            my $maybe_regex := self.find_symbol([$name]);
+            $result := nqp::istype($maybe_regex, self.find_symbol(['Regex']));
+        }
+        $result
+    }
+    
     # Finds a symbol that has a known value at compile time from the
     # perspective of the current scope. Checks for lexicals, then if
     # that fails tries package lookup.

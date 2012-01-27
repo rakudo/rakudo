@@ -94,7 +94,7 @@ my class List does Positional {
     }
 
     method infinite() { 
-        $!nextiter.defined && $!nextiter.infinite;
+        self.DEFINITE && $!nextiter.defined && $!nextiter.infinite;
     }
 
     method iterator() {

@@ -4686,6 +4686,19 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions {
                  PAST::Node.new('INTERPOLATE', PAST::Op.new( :name<&MAKE_REGEX>, $<var>.ast )),
                  :rxtype<subrule>, :subtype<method>, :node($/));
     }
+    
+    method assertion:sym<longname>($/) {
+        my @parts := Perl6::Grammar::parse_name(~$<longname>);
+        my $name  := @parts.pop();
+        my $gref := $*W.get_ref($*W.find_symbol(@parts));
+        my $qast := QAST::Regex.new(:rxtype<subrule>, :subtype<capture>,
+                                    :node($/), PAST::Node.new('OTHERGRAMMAR', $gref, $name),
+                                    :name($name) );
+        if $<arglist> {
+            for $<arglist>[0].ast.list { $qast[0].push( $_ ) }
+        }
+        make $qast;
+    }
 
     method codeblock($/) {
         my $blockref := $<block>.ast;

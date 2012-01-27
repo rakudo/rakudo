@@ -2704,4 +2704,14 @@ grammar Perl6::RegexGrammar is QRegex::P6Regex::Grammar {
         :my $*IN_REGEX_ASSERTION := 1;
         <arglist=.LANG('MAIN','arglist')>
     }
+    
+    token assertion:sym<longname> {
+        <before <.identifier> '::'>
+        <longname=.LANG('MAIN','longname')>
+        [
+        | <?before '>'>
+        | ':' <arglist>
+        | '(' <arglist> ')'
+        ]?
+    }
 }

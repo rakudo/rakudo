@@ -43,6 +43,11 @@ my class Cursor does NQPCursorRole {
             self."!cursor_start"()
     }
     
+    method OTHERGRAMMAR($grammar, $name, |$args) {
+        my $lang_cursor := $grammar.'!cursor_init'(self.target(), :p(self.pos()));
+        $lang_cursor."$name"(); 
+    }
+    
     method prior() {
         nqp::isconcrete($last_match) ??
             self."!LITERAL"(nqp::unbox_s(~$last_match)) !!

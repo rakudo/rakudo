@@ -272,6 +272,7 @@ S05-metasyntax/charset.t
 S05-metasyntax/interpolating-closure.t
 S05-metasyntax/lookaround.t
 S05-metasyntax/null.t
+S05-metasyntax/prior.t
 S05-metasyntax/regex.t
 S05-metasyntax/repeat.t
 S05-metasyntax/sequential-alternation.t

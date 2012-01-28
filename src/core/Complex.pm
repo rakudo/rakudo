@@ -48,7 +48,7 @@ my class Complex is Cool does Numeric {
     multi method perl(Complex:D:) {
         "Complex.new($.re, $.im)";
     }
-    method conjugate(Complex:D:) {
+    method conj(Complex:D:) {
         Complex.new($.re, -$.im);
     }
 

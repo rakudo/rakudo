@@ -232,19 +232,20 @@ S04-statements/unless.t
 S04-statements/until.t
 S04-statements/while.t
 S05-capture/caps.t
-# S05-capture/dot.t # err: Method 'dotdot' not found for invocant of class 'Cursor'
+S05-capture/dot.t
 S05-capture/match-object.t
-# S05-capture/named.t # err: Method 'fishy' not found for invocant of class 'Cursor'
+S05-capture/named.t
 S05-capture/subrule.t
 S05-grammar/action-stubs.t
 S05-grammar/inheritance.t
 S05-grammar/methods.t
 # S05-grammar/namespace.t # err: regex assertion not terminated by angle bracket
 S05-grammar/parse_and_parsefile.t
+S05-grammar/polymorphism.t
 S05-grammar/protoregex.t
 S05-grammar/protos.t
 S05-grammar/signatures.t
-# S05-grammar/ws.t # err: Method 'T1' not found for invocant of class 'Cursor'
+S05-grammar/ws.t
 S05-interpolation/lexicals.t
 S05-interpolation/regex-in-variable.t
 S05-mass/named-chars.t                                     # icu
@@ -396,7 +397,7 @@ S12-class/lexical.t
 S12-class/literal.t
 S12-class/magical-vars.t
 S12-class/mro.t
-# S12-class/namespaced.t # err: regex assertion not terminated by angle bracket
+S12-class/namespaced.t
 S12-class/open.t
 # S12-class/parent_attributes.t # err: Method 'at_key' not found for invocant of class 'Foo'
 S12-class/rw.t

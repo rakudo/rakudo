@@ -4686,7 +4686,55 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions {
                  PAST::Node.new('INTERPOLATE', PAST::Op.new( :name<&MAKE_REGEX>, $<var>.ast )),
                  :rxtype<subrule>, :subtype<method>, :node($/));
     }
-
+    
+    method assertion:sym<name>($/) {
+        my @parts := Perl6::Grammar::parse_name(~$<longname>);
+        my $name  := @parts.pop();
+        my $qast;
+        if $<assertion> {
+            if +@parts {
+                $/.CURSOR.panic("Can only alias to a short name (without '::')");
+            }
+            $qast := $<assertion>[0].ast;
+            self.subrule_alias($qast, $name);
+        }
+        elsif !@parts && $name eq 'sym' {
+            my $rxname := pir::chopn__Ssi( 
+                              nqp::substr(%*RX<name>,
+                                          nqp::index(%*RX<name>, ':sym<') + 5),
+                              1);
+            $qast := QAST::Regex.new(:name('sym'), :rxtype<subcapture>, :node($/),
+                QAST::Regex.new(:rxtype<literal>, $rxname, :node($/)));
+        }
+        else {
+            if +@parts {
+                my $gref := $*W.get_ref($*W.find_symbol(@parts));
+                $qast := QAST::Regex.new(:rxtype<subrule>, :subtype<capture>,
+                                         :node($/), PAST::Node.new('OTHERGRAMMAR', $gref, $name),
+                                         :name(~$<longname>) );
+            } elsif $*W.regex_in_scope('&' ~ $name) {
+                $qast := QAST::Regex.new(:rxtype<subrule>, :subtype<capture>,
+                                         :node($/), PAST::Node.new('INTERPOLATE',
+                                            PAST::Var.new( :name('&' ~ $name), :scope('lexical_6model') ) ), 
+                                         :name($name) );
+            }
+            else {
+                $qast := QAST::Regex.new(:rxtype<subrule>, :subtype<capture>,
+                                         :node($/), PAST::Node.new($name), 
+                                         :name($name) );
+            }
+            if $<arglist> {
+                for $<arglist>[0].ast.list { $qast[0].push( $_ ) }
+            }
+            elsif $<nibbler> {
+                $name eq 'after' ??
+                    $qast[0].push(QRegex::P6Regex::Actions::buildsub(self.flip_ast($<nibbler>[0].ast), :anon(1))) !!
+                    $qast[0].push(QRegex::P6Regex::Actions::buildsub($<nibbler>[0].ast, :anon(1)));
+            }
+        }
+        make $qast;
+    }
+    
     method codeblock($/) {
         my $blockref := $<block>.ast;
         my $past :=

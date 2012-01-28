@@ -612,7 +612,7 @@ grammar Perl6::Grammar is HLL::Grammar {
     token statement_control:sym<unless> {
         <sym> <.end_keyword> :s
         <xblock>
-        [ <!before 'else'> || <.panic: 'unless does not take "else", please rewrite using "if"'> ]
+        [ <!before 'else'> || <.typed_panic: 'X::Syntax::UnlessElse'> ]
     }
 
     token statement_control:sym<while> {
@@ -631,7 +631,7 @@ grammar Perl6::Grammar is HLL::Grammar {
     token statement_control:sym<for> {
         <sym> <.end_keyword> :s
         [ <?before 'my'? '$'\w+ '(' >
-            <.panic: "This appears to be Perl 5 code"> ]?
+            <.typed_panic: 'X::Syntax::P5'> ]?
         [ <?before '(' <.EXPR>? ';' <.EXPR>? ';' <.EXPR>? ')' >
             <.obs('C-style "for (;;)" loop', '"loop (;;)"')> ]?
         <xblock(1)>
@@ -862,7 +862,7 @@ grammar Perl6::Grammar is HLL::Grammar {
 
         ':'
         [
-        | '!' <identifier> [ <[ \[ \( \< \{ ]> <.panic: "Argument not allowed on negated pair"> ]?
+        | '!' <identifier> [ <[ \[ \( \< \{ ]> <.typed_panic: "X::Syntax::NegatedPair"> ]?
             { $*key := $<identifier>.Str; $*value := 0; }
         | <identifier>
             { $*key := $<identifier>.Str; }
@@ -1091,8 +1091,8 @@ grammar Perl6::Grammar is HLL::Grammar {
         ||  [
             | <sigil> <twigil>? <desigilname>
             | <special_variable>
-            | <sigil> $<index>=[\d+] [ <?{ $*IN_DECL}> <.panic: "Cannot declare a numeric variable">]?
-            | <sigil> <?[<[]> [ <?{ $*IN_DECL }> <.panic('Cannot declare a match variable')> ]?  <postcircumfix>
+            | <sigil> $<index>=[\d+] [ <?{ $*IN_DECL}> <.typed_panic: "X::Syntax::Variable::Numeric">]?
+            | <sigil> <?[<[]> [ <?{ $*IN_DECL }> <.typed_panic('X::Syntax::Variable::Match')>]?  <postcircumfix>
             | $<sigil>=['$'] $<desigilname>=[<[/_!]>]
             | <sigil> <?{ $*IN_DECL }>
             | <!{ $*QSIGIL }> <.panic("Non-declarative sigil is missing its name")>

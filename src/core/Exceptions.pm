@@ -159,3 +159,23 @@ my class X::Bind::NativeType does X::Comp {
 my class X::Syntax::Name::Null does X::Syntax {
     method message() { 'Name component my not be null'; }
 }
+
+my class X::Syntax::UnlessElse does X::Syntax {
+    method message() { 'unless does not take "else", please rewrite using "if"' }
+}
+
+my class X::Syntax::P5 does X::Syntax {
+    method message() { 'This appears to be Perl 5 code' }
+}
+
+my class X::Syntax::NegatedPair does X::Syntax {
+    method message() { 'Argument not allowed on negated pair' }
+}
+
+my class X::Syntax::Variable::Numeric does X::Syntax {
+    method message() { 'Cannot declare a numeric variable' }
+}
+
+my class X::Syntax::Variable::Match does X::Syntax {
+    method message() { 'Cannot declare a match variable' }
+}

@@ -124,6 +124,14 @@ my class X::Parameter::MultipleTypeConstraints does X::Comp {
     }
 }
 
+my class X::Parameter::WrongOrder does X::Comp {
+    has $.misplaced;
+    has $.after;
+    method message() {
+        "Cannot put $.misplaced parameter after $.after parameters";
+    }
+}
+
 my class X::Signature::NameClash does X::Comp {
     has $.name;
     method message() {
@@ -178,4 +186,16 @@ my class X::Syntax::Variable::Numeric does X::Syntax {
 
 my class X::Syntax::Variable::Match does X::Syntax {
     method message() { 'Cannot declare a match variable' }
+}
+
+my class X::Syntax::Variable::IndirectDeclaration does X::Syntax {
+    method message() { 'Cannot declare a variable by indirect name (use a hash instead?)' }
+}
+
+my class X::Syntax::Augment::WithoutMonkeyTyping does X::Syntax {
+    method message() { "augment not allowed without 'use MONKEY_TYPING'" };
+}
+
+my class X::Syntax::Augment::Role does X::Syntax {
+    method message() { "Cannot augment a role, since roles are immutable" };
 }

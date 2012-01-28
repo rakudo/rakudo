@@ -1070,7 +1070,7 @@ grammar Perl6::Grammar is HLL::Grammar {
     token desigilname {
         [
         | <?before '$' >
-            [ <?{ $*IN_DECL }> <.panic: "Cannot declare an indirect variable name"> ]?
+            [ <?{ $*IN_DECL }> <.typed_panic: 'X::Syntax::Variable::IndirectDeclaration'> ]?
             <variable>
         | <?before <[\@\%\&]> <sigil>* \w > <.panic: "Invalid hard reference syntax">
         | <longname>
@@ -1262,10 +1262,10 @@ grammar Perl6::Grammar is HLL::Grammar {
                 else {
                     # Augment. Ensure we can.
                     unless $*MONKEY_TYPING {
-                        $/.CURSOR.panic("augment not allowed without 'use MONKEY_TYPING'");
+                        $/.CURSOR.typed_panic('X::Syntax::Augment::WithoutMonkeyTyping');
                     }
                     if $*PKGDECL eq 'role' {
-                        $/.CURSOR.panic("Can not augment a role, since roles are immutable");
+                        $/.CURSOR.typed_panic('X::Syntax::Augment::Role');
                     }
                     unless $longname {
                         $/.CURSOR.panic("Can not augment the anonymous");
@@ -1580,10 +1580,10 @@ grammar Perl6::Grammar is HLL::Grammar {
                                                        '!';
             if $kind eq '!' {
                 if $*zone eq 'posopt' {
-                    $/.CURSOR.panic("Cannot put required parameter after optional parameters");
+                    $/.CURSOR.typed_panic('X::Parameter::WrongOrder', misplaced => 'required', after => 'optional');
                 }
                 elsif $*zone eq 'var' {
-                    $/.CURSOR.panic("Cannot put required parameter after variadic parameters");
+                    $/.CURSOR.typed_panic('X::Parameter::WrongOrder', misplaced => 'required', after => 'variadic');
                 }
             }
             elsif $kind eq '?' {
@@ -1591,7 +1591,7 @@ grammar Perl6::Grammar is HLL::Grammar {
                         $*zone := 'posopt';
                 }
                 elsif $*zone eq  'var' {
-                    $/.CURSOR.panic("Cannot put optional positional parameter after variadic parameters");
+                    $/.CURSOR.typed_panic('X::Parameter::WrongOrder', misplaced => 'optional positional', after => 'variadic');
                 }
             }
             elsif $kind eq '*' {

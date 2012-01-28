@@ -1068,7 +1068,7 @@ class Perl6::Actions is HLL::Actions {
         else {
             if $<desigilname> && $<desigilname><longname> && self.is_indirect_lookup($<desigilname><longname>) {
                 if $*IN_DECL {
-                    $/.CURSOR.panic("Variable variable names not allowed in declarations");
+                    $*W.throw($/, ['X', 'Syntax', 'Augment', 'WithoutMonkeyTyping']);
                 }
                 $past := self.make_indirect_lookup($<desigilname><longname>, ~$<sigil>);
             } else {

@@ -110,7 +110,7 @@ my sub MAIN_HELPER($retval = 0) {
         my @help-msgs;
         my $prog-name = $*PROGRAM_NAME eq '-e' ?? "-e '...'" !! $*PROGRAM_NAME;
         for $m.candidates -> $sub {
-            my (@required-named, @optional-named, @positional);
+            my (@required-named, @optional-named, @positional, $docs);
             for $sub.signature.params -> $param {
                 my $argument;
                 if $param.named {
@@ -136,7 +136,10 @@ my sub MAIN_HELPER($retval = 0) {
                     @positional.push($argument);
                 }
             }
-            my $msg = join(' ', $prog-name, @required-named, @optional-named, @positional);
+            if $sub.WHY {
+                $docs = '-- ' ~ $sub.WHY.content
+            }
+            my $msg = join(' ', $prog-name, @required-named, @optional-named, @positional, $docs // '');
             @help-msgs.push($msg);
         }
         my $usage = "Usage:\n" ~ @help-msgs.map('  ' ~ *).join("\n");

@@ -199,3 +199,13 @@ my class X::Syntax::Augment::WithoutMonkeyTyping does X::Syntax {
 my class X::Syntax::Augment::Role does X::Syntax {
     method message() { "Cannot augment a role, since roles are immutable" };
 }
+
+my class X::Syntax::Comment::Embedded does X::Syntax {
+    method message() { "Opening bracket required for #` comment" }
+}
+
+my class X::Syntax::Pod::BeginWithoutIdentifier does X::Syntax {
+    method message() {
+        '=begin must be followed by an identifier; (did you mean "=begin pod"?)'
+    }
+}

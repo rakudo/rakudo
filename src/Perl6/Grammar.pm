@@ -148,7 +148,7 @@ grammar Perl6::Grammar is HLL::Grammar {
 
     token comment:sym<#`(...)> {
         '#`' {}
-        [ <quote_EXPR> || <.panic: "Opening bracket is required for #` comment"> ]
+        [ <quote_EXPR> || <.typed_panic: 'X::Syntax::Comment::Embedded'> ]
     }
 
     token comment:sym<#=(...)> {
@@ -250,8 +250,7 @@ grammar Perl6::Grammar is HLL::Grammar {
         $<spaces> = [ \h* ]
         '=begin'
         [ <?before <pod_newline>>
-          <.panic('=begin must be followed by an identifier; '
-                   ~ '(did you mean "=begin pod"?)')>
+          <.typed_panic('X::Syntax::Pod::BeginWithoutIdentifier')>
         ]?
         \h+ <!before 'END'>
         {

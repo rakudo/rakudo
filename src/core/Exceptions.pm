@@ -189,6 +189,12 @@ my class X::Syntax::Variable::Match does X::Syntax {
     method message() { 'Cannot declare a match variable' }
 }
 
+my class X::Syntax::Variable::Twigil does X::Syntax {
+    has $.twigil;
+    has $.scope;
+    method message() { "Cannot use $.twigil twigil on $.scope variable" }
+}
+
 my class X::Syntax::Variable::IndirectDeclaration does X::Syntax {
     method message() { 'Cannot declare a variable by indirect name (use a hash instead?)' }
 }

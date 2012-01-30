@@ -1405,7 +1405,10 @@ class Perl6::Actions is HLL::Actions {
                 $name := $sigil ~ $desigilname;
             }
             elsif $twigil eq '!' {
-                $/.CURSOR.panic("Cannot use $twigil twigil on $*SCOPE variable");
+                $*W.throw($/, ['X', 'Syntax', 'Variable', 'Twigil'],
+                    twigil => $twigil,
+                    scope  => $*SCOPE,
+                );
             }
 
             # Create a container descriptor. Default to rw and set a
@@ -1446,7 +1449,10 @@ class Perl6::Actions is HLL::Actions {
                 $past.name($name);
             }
             elsif $twigil eq '!' {
-                $/.CURSOR.panic("Cannot use $twigil twigil on $*SCOPE variable");
+                $*W.throw($/, ['X', 'Syntax', 'Variable', 'Twigil'],
+                    twigil => $twigil,
+                    scope  => $*SCOPE,
+                );
             }
 
             if $*TYPENAME {

@@ -266,7 +266,7 @@ grammar Perl6::Grammar is HLL::Grammar {
         [
          <pod_content> *
          ^^ $<spaces> '=end' \h+ $<type> <pod_newline>
-         ||  <.panic: '=begin without matching =end'>
+         ||  <.typed_panic: 'X::Syntax::Pod::BeginWithoutEnd'>
         ]
     }
 
@@ -280,7 +280,7 @@ grammar Perl6::Grammar is HLL::Grammar {
         [
          $<pod_content> = [ .*? ]
          ^^ $<spaces> '=end' \h+ $<type> <pod_newline>
-         ||  <.panic: '=begin without matching =end'>
+         ||  <.typed_panic: 'X::Syntax::Pod::BeginWithoutEnd'>
         ]
     }
 
@@ -290,7 +290,7 @@ grammar Perl6::Grammar is HLL::Grammar {
         [
          <table_row>*
          ^^ \h* '=end' \h+ 'table' <pod_newline>
-         ||  <.panic: '=begin without matching =end'>
+         ||  <.typed_panic: 'X::Syntax::Pod::BeginWithoutEnd'>
         ]
     }
 
@@ -475,7 +475,7 @@ grammar Perl6::Grammar is HLL::Grammar {
 
         <.install_doc_phaser>
         
-        [ $ || <.panic: 'Confused'> ]
+        [ $ || <.typed_panic: 'X::Syntax::Confused'> ]
         
         {
             $*POD_PAST := $*W.add_constant(
@@ -1094,7 +1094,7 @@ grammar Perl6::Grammar is HLL::Grammar {
             | <sigil> <?[<[]> [ <?{ $*IN_DECL }> <.typed_panic('X::Syntax::Variable::Match')>]?  <postcircumfix>
             | $<sigil>=['$'] $<desigilname>=[<[/_!]>]
             | <sigil> <?{ $*IN_DECL }>
-            | <!{ $*QSIGIL }> <.panic("Non-declarative sigil is missing its name")>
+            | <!{ $*QSIGIL }> <.typed_panic: 'X::Syntax::SigilWithoutName'>
             ]
         ]
         [ <?{ $<twigil> && $<twigil>[0] eq '.' }>

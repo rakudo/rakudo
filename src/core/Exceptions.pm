@@ -24,6 +24,7 @@ my role X::Comp is X::Base {
 }
 
 my role X::Syntax does X::Comp { }
+my role X::Pod                 { }
 
 my class X::NYI is X::Base {
     has $.feature;
@@ -204,8 +205,20 @@ my class X::Syntax::Comment::Embedded does X::Syntax {
     method message() { "Opening bracket required for #` comment" }
 }
 
-my class X::Syntax::Pod::BeginWithoutIdentifier does X::Syntax {
+my class X::Syntax::Pod::BeginWithoutIdentifier does X::Syntax does X::Pod {
     method message() {
         '=begin must be followed by an identifier; (did you mean "=begin pod"?)'
     }
+}
+
+my class X::Syntax::Pod::BeginWithoutEnd does X::Syntax does X::Pod {
+    method message() { '=begin without matching =end' }
+}
+
+my class X::Syntax::Confused does X::Syntax {
+    method message() { 'Confused' }
+}
+
+my class X::Syntax::SigilWithoutName does X::Syntax {
+    method message() { 'Non-declarative sigil is missing its name' }
 }

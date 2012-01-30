@@ -10,7 +10,7 @@ my role Enumeration {
     }
     
     multi method gist(::?CLASS:D:) {
-        self.^name ~ '::' ~ $!key
+        $!key
     }
     
     method kv(::?CLASS:D:) { ($!key, $!value) }

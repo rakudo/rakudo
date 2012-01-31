@@ -387,6 +387,7 @@ grammar Perl6::Grammar is HLL::Grammar {
         :my $*MULTINESS := '';                     # which multi declarator we're under
         :my $*QSIGIL := '';                        # sigil of current interpolation
         :my $*IN_DECL;                             # what declaration we're in
+        :my $*HAS_SELF := '';                      # is 'self' available? (for $.foo style calls)
         :my $*MONKEY_TYPING := 0;                  # whether augment/supersede are allowed
         :my $*begin_compunit := 1;                 # whether we're at start of a compilation unit
         :my $*DECLARAND;                           # the current thingy we're declaring, and subject of traits
@@ -676,6 +677,7 @@ grammar Perl6::Grammar is HLL::Grammar {
     token statement_control:sym<import> {
         <sym> <.ws>
         <module_name> [ <.spacey> <arglist> ]? <.ws>
+        :my $*HAS_SELF := '';
         {
             my @name := parse_name(~$<module_name><longname>);
             my $module;
@@ -694,6 +696,7 @@ grammar Perl6::Grammar is HLL::Grammar {
     token statement_control:sym<use> {
         :my $longname;
         :my $*IN_DECL := 'use';
+        :my $*HAS_SELF := '';
         :my $*SCOPE   := 'use';
         $<doc>=[ 'DOC' \h+ ]?
         <sym> <.ws>
@@ -1167,6 +1170,7 @@ grammar Perl6::Grammar is HLL::Grammar {
         :my $outer := $*W.cur_lexpad();
         :my $*DECLARAND;
         :my $*IN_DECL := 'package';
+        :my $*HAS_SELF := '';
         :my $*CURPAD;
         :my $*DOC := $*DECLARATOR_DOCS;
         :my $*DOCEE;
@@ -1378,7 +1382,11 @@ grammar Perl6::Grammar is HLL::Grammar {
     proto token scope_declarator { <...> }
     token scope_declarator:sym<my>        { <sym> <scoped('my')> }
     token scope_declarator:sym<our>       { <sym> <scoped('our')> }
-    token scope_declarator:sym<has>       { <sym> <scoped('has')> }
+    token scope_declarator:sym<has>       {
+        <sym>
+        :my $*HAS_SELF := 'partial';
+        <scoped('has')>
+    }
     token scope_declarator:sym<augment>   { <sym> <scoped('augment')> }
     token scope_declarator:sym<anon>      { <sym> <scoped('anon')> }
     token scope_declarator:sym<state>     { <sym> <scoped('state')> }
@@ -1474,6 +1482,7 @@ grammar Perl6::Grammar is HLL::Grammar {
     rule method_def($d) {
         :my $*IN_DECL := $d;
         :my $*METHODTYPE := $d;
+        :my $*HAS_SELF := $d eq 'submethod' ?? 'partial' !! 'complete';
         :my $*DOC := $*DECLARATOR_DOCS;
         :my $*DOCEE;
         <.attach_docs>
@@ -1674,6 +1683,7 @@ grammar Perl6::Grammar is HLL::Grammar {
 
     rule regex_def {<.end_keyword> [
         :my $*CURPAD;
+        :my $*HAS_SELF := 'complete';
         [
           { $*IN_DECL := '' }
           <deflongname>?
@@ -1781,7 +1791,12 @@ grammar Perl6::Grammar is HLL::Grammar {
 
     proto token term { <...> }
 
-    token term:sym<self> { <sym> <.end_keyword> }
+    token term:sym<self> {
+        <sym> <.end_keyword>
+        {
+            $*HAS_SELF || $*W.throw($/, ['X', 'Syntax', 'Self', 'WithoutObject'])
+        }
+    }
 
     token term:sym<now> { <sym> <.end_keyword> }
 

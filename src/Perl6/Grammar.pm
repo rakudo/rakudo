@@ -1417,18 +1417,41 @@ grammar Perl6::Grammar is HLL::Grammar {
 
     token variable_declarator {
         :my $*IN_DECL := 'variable';
+        :my $var;
         <variable>
-        { $*IN_DECL := '' }
+        {
+            $var := $<variable>.Str;
+            $*IN_DECL := '';
+        }
         [
             <.unsp>?
             $<shape>=[
             | '(' ~ ')' <signature>
+                {
+                    my $sigil := nqp::substr($var, 0, 1);
+                    if $sigil eq '&' {
+                        $/.CURSOR.panic("The () shape syntax in routine declarations is reserved (maybe use :() to declare a longname?)");
+                    }
+                    elsif $sigil eq '@' {
+                        $/.CURSOR.panic("The () shape syntax in array declarations is reserved");
+                    }
+                    elsif $sigil eq '%' {
+                        $/.CURSOR.panic("The () shape syntax in hash declarations is reserved");
+                    }
+                    else {
+                        $/.CURSOR.panic("The () shape syntax in variable declarations is reserved");
+                    }
+                }
             | '[' ~ ']' <semilist>
             | '{' ~ '}' <semilist>
+            | <?before '<'> <postcircumfix>
             ]+
             <.panic: "Shaped variable declarations are not yet implemented">
         ]?
+        <.ws>
+        
         <trait>*
+        <post_constraint>*
     }
 
     proto token routine_declarator { <...> }

@@ -93,13 +93,13 @@ my &proceed := -> {
 }
 
 my &callwith := -> *@pos, *%named {
-    my Mu $dispatcher := pir::perl6_find_dispatcher__P();
+    my Mu $dispatcher := pir::perl6_find_dispatcher__Ps('callwith');
     $dispatcher.exhausted ?? Nil !!
         $dispatcher.call_with_args(|@pos, |%named)
 };
 
 my &nextwith := -> *@pos, *%named {
-    my Mu $dispatcher := pir::perl6_find_dispatcher__P();
+    my Mu $dispatcher := pir::perl6_find_dispatcher__Ps('nextwith');
     my Mu $return     := pir::find_caller_lex__Ps('RETURN');
     unless $dispatcher.exhausted {
         nqp::isnull($return)
@@ -111,14 +111,14 @@ my &nextwith := -> *@pos, *%named {
 };
 
 my &callsame := -> {
-    my Mu $dispatcher := pir::perl6_find_dispatcher__P();
+    my Mu $dispatcher := pir::perl6_find_dispatcher__Ps('callsame');
     $dispatcher.exhausted ?? Nil !!
         $dispatcher.call_with_capture(
             pir::perl6_args_for_dispatcher__PP($dispatcher))
 };
 
 my &nextsame := -> {
-    my Mu $dispatcher := pir::perl6_find_dispatcher__P();
+    my Mu $dispatcher := pir::perl6_find_dispatcher__Ps('nextsame');
     my Mu $return     := pir::find_caller_lex__Ps('RETURN');
     unless $dispatcher.exhausted {
         nqp::isnull($return)
@@ -132,7 +132,7 @@ my &nextsame := -> {
 };
 
 my &lastcall := -> {
-    pir::perl6_find_dispatcher__P().last();
+    pir::perl6_find_dispatcher__Ps('lastcall').last();
     True
 };
 

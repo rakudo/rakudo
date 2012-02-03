@@ -1298,6 +1298,7 @@ class Perl6::Actions is HLL::Actions {
         if    $<variable_declarator> { make $<variable_declarator>.ast }
         elsif $<routine_declarator>  { make $<routine_declarator>.ast  }
         elsif $<regex_declarator>    { make $<regex_declarator>.ast    }
+        elsif $<type_declarator>     { make $<type_declarator>.ast     }
         elsif $<signature> {
             # Go over the params and declare the variable defined
             # in them.

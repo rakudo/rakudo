@@ -1776,15 +1776,14 @@ grammar Perl6::Grammar is HLL::Grammar {
         <trait>*
 
         [
-        || <?before '='>
-        || <?before <-[\n=]>*'='> <.panic: "Malformed constant"> # probable initializer later
-        || <.panic: "Missing initializer on constant declaration">
+        || <initializer>
+        || <.sorry: "Missing initializer on constant declaration">
         ]
     }
 
     proto token initializer { <...> }
     token initializer:sym<=> {
-        <sym>
+        <sym> <.ws>
         [
         || <?{ $*LEFTSIGIL eq '$' }> <EXPR('i=')>
         || <EXPR('e=')>
@@ -1792,13 +1791,13 @@ grammar Perl6::Grammar is HLL::Grammar {
         || <.panic: "Malformed initializer">
     }
     token initializer:sym<:=> {
-        <sym> <EXPR('e=')> || <.panic: "Malformed binding">
+        <sym> <.ws> <EXPR('e=')> || <.panic: "Malformed binding">
     }
     token initializer:sym<::=> {
-        <sym> <EXPR('e=')> || <.panic: "Malformed binding">
+        <sym> <.ws> <EXPR('e=')> || <.panic: "Malformed binding">
     }
     token initializer:sym<.=> {
-        <sym> <dottyopish> || <.panic: "Malformed mutator method call">
+        <sym> <.ws> <dottyopish> || <.panic: "Malformed mutator method call">
     }
 
     rule trait {

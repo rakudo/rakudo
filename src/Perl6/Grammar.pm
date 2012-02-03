@@ -1386,18 +1386,19 @@ grammar Perl6::Grammar is HLL::Grammar {
         <sym> <scoped('supersede')> <.panic: '"supersede" not yet implemented'>
     }
 
-    rule scoped($*SCOPE) {<.end_keyword> [
+    token scoped($*SCOPE) {
+        <.end_keyword>
+        [
         :my $*TYPENAME := '';
-
         :my $*DOC := $*DECLARATOR_DOCS;
         :my $*DOCEE;
         <.attach_docs>
+        <.ws>
         [
-        | <DECL=variable_declarator>
-        | <DECL=routine_declarator>
+        | <DECL=declarator>
+        | <DECL=regex_declarator>
         | <DECL=package_declarator>
-        | <DECL=type_declarator>
-        | <typename>+
+        | [<typename><.ws>]+
           {
             if +$<typename> > 1 {
                 $/.CURSOR.panic("Multiple prefix constraints not yet supported");
@@ -1406,14 +1407,15 @@ grammar Perl6::Grammar is HLL::Grammar {
           }
           <DECL=multi_declarator>
         | <DECL=multi_declarator>
-        ]
+        ] <.ws>
         || <?before <[A..Z]>><longname>{
                 my $t := $<longname>.Str;
                 $/.CURSOR.panic("In \"$*SCOPE\" declaration, typename $t must be predeclared (or marked as declarative with :: prefix)");
             }
             <!> # drop through
         || { $/.CURSOR.panic("Malformed $*SCOPE") }
-    ] }
+        ]
+    }
 
     token variable_declarator {
         :my $*IN_DECL := 'variable';

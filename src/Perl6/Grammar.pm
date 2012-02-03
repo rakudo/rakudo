@@ -1782,6 +1782,25 @@ grammar Perl6::Grammar is HLL::Grammar {
         ]
     }
 
+    proto token initializer { <...> }
+    token initializer:sym<=> {
+        <sym>
+        [
+        || <?{ $*LEFTSIGIL eq '$' }> <EXPR('i=')>
+        || <EXPR('e=')>
+        ]
+        || <.panic: "Malformed initializer">
+    }
+    token initializer:sym<:=> {
+        <sym> <EXPR('e=')> || <.panic: "Malformed binding">
+    }
+    token initializer:sym<::=> {
+        <sym> <EXPR('e=')> || <.panic: "Malformed binding">
+    }
+    token initializer:sym<.=> {
+        <sym> <dottyopish> || <.panic: "Malformed mutator method call">
+    }
+
     rule trait {
         :my $*IN_DECL := '';
         [

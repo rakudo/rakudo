@@ -1362,7 +1362,7 @@ class Perl6::Actions is HLL::Actions {
 
             # Create container descriptor and decide on any default value..
             my $attrname   := ~$sigil ~ '!' ~ $desigilname;
-            my %cont_info  := container_type_info($sigil, $*TYPENAME ?? [$*TYPENAME.ast] !! []);
+            my %cont_info  := container_type_info($sigil, $*OFTYPE ?? [$*OFTYPE.ast] !! []);
             my $descriptor := $*W.create_container_descriptor(%cont_info<value_type>, 1, $attrname);
 
             # Create meta-attribute and add it.
@@ -1413,7 +1413,7 @@ class Perl6::Actions is HLL::Actions {
 
             # Create a container descriptor. Default to rw and set a
             # type if we have one; a trait may twiddle with that later.
-            my %cont_info := container_type_info($sigil, $*TYPENAME ?? [$*TYPENAME.ast] !! []);
+            my %cont_info := container_type_info($sigil, $*OFTYPE ?? [$*OFTYPE.ast] !! []);
             my $descriptor := $*W.create_container_descriptor(%cont_info<value_type>, 1, $name);
 
             # Install the container.
@@ -1455,7 +1455,7 @@ class Perl6::Actions is HLL::Actions {
                 );
             }
 
-            if $*TYPENAME {
+            if $*OFTYPE {
                 $/.CURSOR.panic("Cannot put a type constraint on an 'our'-scoped variable");
             }
             $BLOCK[0].push(PAST::Var.new(
@@ -2017,7 +2017,7 @@ class Perl6::Actions is HLL::Actions {
 
         # Get, or find, enumeration base type and create type object with
         # correct base type.
-        my $base_type := $*TYPENAME ?? $*TYPENAME.ast !! $*W.find_symbol(['Int']);
+        my $base_type := $*OFTYPE ?? $*OFTYPE.ast !! $*W.find_symbol(['Int']);
         my $name      := $<longname> ?? ~$<longname> !! $<variable><desigilname>;
         my $type_obj  := $*W.pkg_create_mo(%*HOW<enum>, :name($name), :base_type($base_type));
 

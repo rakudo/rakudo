@@ -398,7 +398,7 @@ grammar Perl6::Grammar is HLL::Grammar {
         :my $*IMPLICIT;                            # whether we allow an implicit param
         :my $*FORBID_PIR := 0;                     # whether pir::op and Q:PIR { } are disallowed
         :my $*HAS_YOU_ARE_HERE := 0;               # whether {YOU_ARE_HERE} has shown up
-        :my $*TYPENAME := '';
+        :my $*OFTYPE;
         :my $*VMARGIN    := 0;                     # pod stuff
         :my $*ALLOW_CODE := 0;                     # pod stuff
         :my $*POD_IN_FORMATTINGCODE := 0;          # pod stuff
@@ -1389,7 +1389,6 @@ grammar Perl6::Grammar is HLL::Grammar {
     token scoped($*SCOPE) {
         <.end_keyword>
         [
-        :my $*TYPENAME := '';
         :my $*DOC := $*DECLARATOR_DOCS;
         :my $*DOCEE;
         <.attach_docs>
@@ -1403,7 +1402,7 @@ grammar Perl6::Grammar is HLL::Grammar {
             if +$<typename> > 1 {
                 $/.CURSOR.panic("Multiple prefix constraints not yet supported");
             }
-            $*TYPENAME := $<typename>[0];
+            $*OFTYPE := $<typename>[0];
           }
           <DECL=multi_declarator>
         | <DECL=multi_declarator>
@@ -2146,6 +2145,7 @@ grammar Perl6::Grammar is HLL::Grammar {
     token termish {
         :my $*SCOPE := "";
         :my $*MULTINESS := "";
+        :my $*OFTYPE;
         [
         || <prefixish>* <term>
             [

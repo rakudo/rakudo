@@ -1422,6 +1422,7 @@ grammar Perl6::Grammar is HLL::Grammar {
         <variable>
         {
             $var := $<variable>.Str;
+            $/.CURSOR.add_variable($var);
             $*IN_DECL := '';
         }
         [
@@ -2610,6 +2611,12 @@ grammar Perl6::Grammar is HLL::Grammar {
         @result;
     }
 
+    method add_variable($name) {
+        my $categorical := $name ~~ /^'&'((\w+)':<'\s*(\S+?)\s*'>')$/;
+        if $categorical {
+            self.gen_op(~$categorical[0][0], ~$categorical[0][1], ~$categorical[0], $name);
+        }
+    }
 
     # This method is used to augment the grammar with new ops at parse time.
     method gen_op($category, $opname, $canname, $subname) {

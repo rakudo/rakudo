@@ -164,7 +164,7 @@ grammar Perl6::Grammar is HLL::Grammar {
         {
             if ~$*DOC ne '' {
                 my $cont  := Perl6::Pod::serialize_aos(
-                    [~$*DOC]
+                    [Perl6::Pod::formatted_text(~$*DOC)]
                 )<compile_time_value>;
                 my $block := $*W.add_constant(
                     'Pod::Block::Declarator', 'type_new',

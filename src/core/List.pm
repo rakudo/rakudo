@@ -29,7 +29,7 @@ my class List does Positional {
     method flattens() { $!flattens }
 
     method tree() {
-        MapIter.new(:list(self), :block({ my $ = $_ })).list;
+        MapIter.new(:list(self), :block({.elems == 1 ?? $_ !! [.list] })).list;
     }
 
     method Capture() {

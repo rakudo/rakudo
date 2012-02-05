@@ -47,6 +47,7 @@ S02-types/type.t
 S02-types/undefined-types.t
 S02-types/whatever.t
 S02-lexical-conventions/unicode.t                          # icu
+S02-lists/tree.t
 S02-literals/array-interpolation.t
 S02-literals/autoref.t
 S02-literals/char-by-name.t # icu

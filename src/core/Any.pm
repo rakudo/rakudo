@@ -16,7 +16,7 @@ my class Any {
     method uniq() { self.list.uniq }
     method infinite() { Mu }
     method flat() { nqp::p6list(nqp::list(self), List, Bool::True) }
-    method tree() { self.list.tree }
+    method tree(*@a) { self.list.tree(|@a) }
     method hash() { my %h = self }
     method list() { nqp::p6list(nqp::list(self), List, Mu) }
     method pick($n = 1) { self.list.pick($n) }

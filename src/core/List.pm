@@ -28,9 +28,27 @@ my class List does Positional {
     method list() { self }
     method flattens() { $!flattens }
 
-    method tree() {
-        MapIter.new(:list(self), :block({.elems == 1 ?? $_ !! [.list] })).list;
+    my &itemify = { .elems == 1 ?? $_ !! [.list] };
+    proto method tree(|$) {*}
+    multi method tree(List:U:) { self }
+    multi method tree(List:D:) {
+        MapIter.new(:list(self), :block(&itemify)).list;
     }
+    multi method tree(List:D: Cool $count as Int) {
+           $count <= 0 ?? self
+        !! $count == 1 ?? self.tree
+        !!  MapIter.new(
+                :list(self),
+                :block({.elems == 1 ?? $_ !! [.tree($count - 1)]})
+            ).list;
+    }
+    multi method tree(List:D: &c) {
+        MapIter.new(:list(self), :block(&c)).list;
+    }
+    # uncommenting causes "Circularity detected in multi sub types"
+#    multi method tree(List:D: *@ [$first, *@rest] where {.elems >= 2 }) {
+#        MapIter.new(:list(self), :block(*.list(|@rest))).list.tree($first)
+#    }
 
     method Capture() {
         self.gimme(*);

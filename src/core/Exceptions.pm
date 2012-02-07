@@ -14,6 +14,14 @@ my role X::OS {
     has $.os-error;
 }
 
+my class X::IO::Rename does X::OS is X::Base {
+    has $.from;
+    has $.to;
+    method message() {
+        "Failed to rename file from '$.from' to '$.to': $.os-error"
+    }
+}
+
 my role X::Comp is X::Base {
     has $.filename;
     has $.line;

@@ -293,4 +293,21 @@ $PROCESS::ERR = IO.new;
 nqp::bindattr(nqp::p6decont($PROCESS::ERR),
         IO, '$!PIO', pir::getstderr__P());
 
-
+my class X::IO::Rename { ... }
+sub rename(Cool $from as Str, Cool $to as Str) {
+    pir::new__PS('OS').rename(nqp::unbox_s($from), nqp::unbox_s($to));
+    Nil;
+    CATCH {
+        default {
+            if .Str ~~ /'rename failed: '(.*)/ {
+                X::IO::Rename.new(
+                    :$from,
+                    :$to,
+                    os-error => $0.Str,
+                ).throw;
+            } else {
+                die "Unexpected error: $_";
+            }
+        }
+    }
+}

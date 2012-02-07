@@ -18,7 +18,7 @@ my class X::IO::Rename does X::OS is X::Base {
     has $.from;
     has $.to;
     method message() {
-        "Failed to rename file from '$.from' to '$.to': $.os-error"
+        "Failed to rename '$.from' to '$.to': $.os-error"
     }
 }
 
@@ -26,7 +26,7 @@ my class X::IO::Copy does X::OS is X::Base {
     has $.from;
     has $.to;
     method message() {
-        "Failed to copy file from '$.from' to '$.to': $.os-error"
+        "Failed to copy '$.from' to '$.to': $.os-error"
     }
 }
 

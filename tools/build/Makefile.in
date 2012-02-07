@@ -369,7 +369,7 @@ $(SETTING): $(PERL6_M_PBC) $(PERL6_EXE) $(CORE_SOURCES)
 	./$(PERL6_EXE) --setting=NULL --optimize=3 --target=pir $(STAGESTATS) --output=$(SETTING_PIR) src/gen/CORE.setting
 	$(PARROT) $(PARROT_ARGS) -o $(SETTING) $(SETTING_PIR)
 
-$(S_SETTING): $(PERL6_M_PBC) $(PERL6_EXE) $(SETTING)
+$(S_SETTING): $(PERL6_M_PBC) $(PERL6_EXE) $(SETTING) src/SAFE.setting
 	./$(PERL6_EXE) --target=pir $(STAGESTATS) --output=$(S_SETTING_PIR) src/SAFE.setting
 	$(PARROT) $(PARROT_ARGS) -o $(S_SETTING) $(S_SETTING_PIR)
     

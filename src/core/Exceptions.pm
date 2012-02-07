@@ -101,6 +101,14 @@ my class X::Redeclaration does X::Comp {
     }
 }
 
+my class X::Undeclared does X::Comp {
+    has $.what = 'Variable';
+    has $.symbol;
+    method message() {
+        "$.what $.symbol is not declared";
+    }
+}
+
 my class X::Phaser::Multiple does X::Comp {
     has $.block;
     method message() { "Only one $.block block is allowed" }

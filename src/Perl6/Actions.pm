@@ -1143,7 +1143,7 @@ class Perl6::Actions is HLL::Actions {
             # inside double quotes fixes the most common case, but fails to
             # catch undeclared variables in double-quoted strings.
             if $sigil ne '&' && !$*IN_DECL && ($*QSIGIL eq '' || $*QSIGIL eq '$') && !$*W.is_lexical($name) {
-                $/.CURSOR.panic("Variable $name is not predeclared");
+                $*W.throw($/, ['X', 'Undeclared'], symbol => $name);
             }
 
             # Expect variable to have been declared somewhere.

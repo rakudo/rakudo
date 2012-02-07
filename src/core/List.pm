@@ -139,6 +139,7 @@ my class List does Positional {
         ## replace picked elements with elements from the end
         ## of the list, resulting in an O(n) algorithm.
         my $elems = self.elems;
+        return unless $elems;
         fail ".pick from infinite list NYI" if $!nextiter.defined;
         $n = +$Inf if nqp::istype($n, Whatever);
         $n = $elems if $n > $elems;
@@ -174,6 +175,7 @@ my class List does Positional {
 
     method roll($n is copy = 1) {
         my $elems = self.elems;
+        return unless $elems;
         fail ".roll from infinite list NYI" if $!nextiter.defined;
         $n = +$Inf if nqp::istype($n, Whatever);
         return self.at_pos($elems.rand.floor) if $n == 1;

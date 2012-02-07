@@ -311,6 +311,7 @@ sub rename(Cool $from as Str, Cool $to as Str) {
         }
     }
 }
+my class X::IO::Copy { ... }
 sub copy(Cool $from as Str, Cool $to as Str) {
     pir::new__PS('File').copy(nqp::unbox_s($from), nqp::unbox_s($to));
     Nil;

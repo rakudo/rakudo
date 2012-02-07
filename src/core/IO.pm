@@ -316,7 +316,7 @@ sub copy(Cool $from as Str, Cool $to as Str) {
     Nil;
     CATCH {
         default {
-            X::IO::Rename.new(
+            X::IO::Copy.new(
                 :$from,
                 :$to,
                 os-error => .Str,

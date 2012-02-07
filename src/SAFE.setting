@@ -9,6 +9,7 @@ sub run(|$)    { restricted('run') }
 sub QX(|$)     { restricted('qx, qqx') }
 sub mkdir(|$)  { restricted('mkdir')   }
 sub rename(|$) { restricted('rename')  }
+sub copy(|$)   { restricted('copy')    }
 
 my class IO { }
 IO.^add_fallback(

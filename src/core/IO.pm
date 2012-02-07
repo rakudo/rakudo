@@ -311,3 +311,17 @@ sub rename(Cool $from as Str, Cool $to as Str) {
         }
     }
 }
+sub copy(Cool $from as Str, Cool $to as Str) {
+    pir::new__PS('File').copy(nqp::unbox_s($from), nqp::unbox_s($to));
+    Nil;
+    CATCH {
+        default {
+            X::IO::Rename.new(
+                :$from,
+                :$to,
+                os-error => .Str,
+            ).throw;
+        }
+    }
+}
+

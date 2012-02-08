@@ -1301,8 +1301,16 @@ class Perl6::Actions is HLL::Actions {
         elsif $<variable_declarator> {
             my $past := $<variable_declarator>.ast;
             if $<initializer> {
-                say("in new init code");
-                if $<initializer>[0]<sym> eq '=' {
+                if $*SCOPE eq 'has' {
+                    if $<initializer>[0]<sym> eq '=' {
+                        self.install_attr_init($past<metaattr>, $<initializer>[0].ast);
+                    }
+                    else {
+                        $/.CURSOR.panic("Cannot use " ~ $<initializer>[0]<sym> ~
+                            " to initialize an attribute");
+                    }
+                }
+                elsif $<initializer>[0]<sym> eq '=' {
                     $past := assign_op($/, $past, $<initializer>[0].ast);
                 }
                 elsif $<initializer>[0]<sym> eq '.=' {
@@ -1424,11 +1432,9 @@ class Perl6::Actions is HLL::Actions {
                 if $applier { $applier($attr); }
             }
 
-            # Nothing to emit here; just hand back an empty node but
-            # annotated with the attribute object in case we get a
-            # default vlaue "assigned".
-            $past := PAST::Op.new( :pasttype('null') );
-            $past<attribute_declarand> := $attr;
+            # Nothing to emit here; hand back a Nil.
+            $past := PAST::Var.new(:name('Nil'), :scope('lexical_6model'));
+            $past<metaattr> := $attr;
         }
         elsif $*SCOPE eq 'my' || $*SCOPE eq 'state' {            
             # Twigil handling.
@@ -3443,11 +3449,7 @@ class Perl6::Actions is HLL::Actions {
         if $lhs_ast.isa(PAST::Var) {
             $var_sigil := pir::substr($lhs_ast.name, 0, 1);
         }
-        if $lhs_ast && $lhs_ast<attribute_declarand> {
-            Perl6::Actions.install_attr_init($/);
-            $past := PAST::Stmts.new();
-        }
-        elsif $lhs_ast && $lhs_ast<boxable_native> {
+        if $lhs_ast && $lhs_ast<boxable_native> {
             # Native assignment is actually really a bind at low level
             # We grab the thing we want out of the PAST::Want node.
             $past := box_native_if_needed(
@@ -4389,10 +4391,7 @@ class Perl6::Actions is HLL::Actions {
 
     # Handles the case where we have a default value closure for an
     # attribute.
-    method install_attr_init($/) {
-        # Locate attribute.
-        my $attr := ($/[0].ast)<attribute_declarand>;
-
+    method install_attr_init($attr, $initializer) {
         # Construct signature and anonymous method.
         my @params := [
             hash( is_invocant => 1, nominal_type => $*PACKAGE),
@@ -4407,7 +4406,7 @@ class Perl6::Actions is HLL::Actions {
                 PAST::Var.new( :name('self'), :scope('lexical_6model'), :isdecl(1) ),
                 PAST::Var.new( :name('$_'), :scope('lexical_6model'), :isdecl(1) )
             ),
-            PAST::Stmts.new( $/[1].ast ));
+            PAST::Stmts.new( $initializer ));
         $block.symbol('self', :scope('lexical_6model'));
         add_signature_binding_code($block, $sig, @params);
         my $code := $*W.create_code_object($block, 'Method', $sig);

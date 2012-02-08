@@ -10,7 +10,7 @@ my class Exception {
         self.?message.Str // 'Something went wrong'
     }
     multi method gist(Exception:D:) {
-        self.?message ~ "\n" ~ $.backtrace;
+        self.?message ~ "\n" ~ $.backtrace.concise;
     }
 
     method throw() is hidden_from_backtrace {
@@ -80,14 +80,9 @@ do {
             my $e := EXCEPTION($ex);
             my Mu $err := pir::getstderr__P();
 
-            if X::Comp.ACCEPTS($e) {
+            if X::Comp.ACCEPTS($e) || is_runtime($ex.backtrace) {
                 $err.print: $e.gist;
                 $err.print: "\n";
-            }
-            elsif is_runtime($ex.backtrace) {
-                $err.print: $e;
-                $err.print: "\n";
-                $err.print: Backtrace.new($e);
             }
             else {
                 $err.print: "===SORRY!===\n";

@@ -189,6 +189,11 @@ my class X::Bind::NativeType does X::Comp {
     }
 }
 
+my class X::Value::Dynamic does X::Comp {
+    has $.what;
+    method message() { "$.what value must be known at compile time" }
+}
+
 my class X::Syntax::Name::Null does X::Syntax {
     method message() { 'Name component my not be null'; }
 }

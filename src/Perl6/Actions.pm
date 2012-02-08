@@ -2058,7 +2058,7 @@ class Perl6::Actions is HLL::Actions {
                     @values.push($_);
                 }
                 else {
-                    $<term>.CURSOR.panic("Enumeration values must be known at compile time");
+                    $*W.throw($<term>, ['X', 'Value', 'Dynamic'], what => 'Enumeration');
                 }
             }
         }
@@ -2069,7 +2069,7 @@ class Perl6::Actions is HLL::Actions {
             @values.push($term_ast);
         }
         else {
-            $<term>.CURSOR.panic("Enumeration values must be known or constant-foldable at compile time");
+            $*W.throw($<term>, ['X', 'Value', 'Dynamic'], what => 'Enumeration');
         }
 
         # Now we have them, we can go about computing the value
@@ -2096,7 +2096,7 @@ class Perl6::Actions is HLL::Actions {
                         $ok := 1;
                     }
                     unless $ok {
-                        $/.CURSOR.panic("Enumeration values must be known or constant-foldable at compile time");
+                        $*W.throw($/, ['X', 'Value', 'Dynamic'], what => 'Enumeration');
                     }
                 }
             }
@@ -3823,7 +3823,7 @@ class Perl6::Actions is HLL::Actions {
         }
         else {
             if %SHARED_ALLOWED_ADVERBS{$key} {
-                $/.CURSOR.panic('Value of adverb :' ~ $key ~ ' must be known at compile time');
+                $*W.throw($/, ['X', 'Value', 'Dynamic'], what => "Adverb $key");
             }
         }
         %*RX{$key} := $value;
@@ -4539,7 +4539,7 @@ class Perl6::Actions is HLL::Actions {
             nqp::unbox_s($past<compile_time_value>);
         }
         else {
-            $/.CURSOR.panic("$usage must have a value known at compile time");
+            $*W.throw($/, ['X', 'Value', 'Dynamic'], what => $usage);
         }
     }
 

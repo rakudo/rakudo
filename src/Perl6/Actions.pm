@@ -3190,15 +3190,15 @@ class Perl6::Actions is HLL::Actions {
             return 1;
         }
         elsif $sym eq '=' {
-            make assign_op($/);
+            make assign_op($/, $/[0].ast, $/[1].ast);
             return 1;
         }
         elsif $sym eq ':=' {
-            make bind_op($/, 0);
+            make bind_op($/, $/[0].ast, $/[1].ast, 0);
             return 1;
         }
         elsif $sym eq '::=' {
-            make bind_op($/, 1);
+            make bind_op($/, $/[0].ast, $/[1].ast, 1);
             return 1;
         }
         elsif $sym eq 'does' || $sym eq 'but' {
@@ -3350,10 +3350,7 @@ class Perl6::Actions is HLL::Actions {
         ));
     }
 
-    sub bind_op($/, $sigish) {
-        my $target := $/[0].ast;
-        my $source := $/[1].ast;
-
+    sub bind_op($/, $target, $source, $sigish) {
         # Check we know how to bind to the thing on the LHS.
         if $target.isa(PAST::Var) {
             # We may need to decontainerize the right, depending on sigil.
@@ -3409,10 +3406,8 @@ class Perl6::Actions is HLL::Actions {
         }
     }
 
-    sub assign_op($/) {
+    sub assign_op($/, $lhs_ast, $rhs_ast) {
         my $past;
-        my $lhs_ast := $/[0].ast;
-        my $rhs_ast := $/[1].ast;
         my $var_sigil;
         if $lhs_ast.isa(PAST::Var) {
             $var_sigil := pir::substr($lhs_ast.name, 0, 1);

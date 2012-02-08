@@ -1295,10 +1295,26 @@ class Perl6::Actions is HLL::Actions {
     method scope_declarator:sym<state>($/)   { make $<scoped>.ast; }
 
     method declarator($/) {
-        if    $<variable_declarator> { make $<variable_declarator>.ast }
-        elsif $<routine_declarator>  { make $<routine_declarator>.ast  }
+        if    $<routine_declarator>  { make $<routine_declarator>.ast  }
         elsif $<regex_declarator>    { make $<regex_declarator>.ast    }
         elsif $<type_declarator>     { make $<type_declarator>.ast     }
+        elsif $<variable_declarator> {
+            my $past := $<variable_declarator>.ast;
+            if $<initializer> {
+                say("in new init code");
+                if $<initializer>[0]<sym> eq '=' {
+                    $past := assign_op($/, $past, $<initializer>[0].ast);
+                }
+                elsif $<initializer>[0]<sym> eq '.=' {
+                    $past := make_dot_equals($past, $<initializer>[0].ast);
+                }
+                else {
+                    $past := bind_op($/, $past, $<initializer>[0].ast,
+                        $<initializer>[0]<sym> eq '::=');
+                }
+            }
+            make $past;
+        }
         elsif $<signature> {
             # Go over the params and declare the variable defined
             # in them.
@@ -1320,6 +1336,21 @@ class Perl6::Actions is HLL::Actions {
                         $*W.create_container_descriptor(%cont_info<value_type>, 1, 'anon')));
                 }
             }
+            
+            if $<initializer> {
+                if $<initializer>[0]<sym> eq '=' {
+                    $/.CURSOR.panic("Cannot assign to a list of 'has' scoped declarations")
+                        if $*SCOPE eq 'has';
+                    $list := assign_op($list, $<initializer>[0].ast);
+                }
+                elsif $<initializer>[0]<sym> eq '.=' {
+                    $/.CURSOR.panic("Cannot use .= initializer with a list of declarations");
+                }
+                else {
+                    $/.CURSOR.panic("Binding to signatures in $*SCOPE declarations not yet implemented");
+                }
+            }
+            
             make $list;
         }
         else {

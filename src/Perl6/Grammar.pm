@@ -1349,8 +1349,8 @@ grammar Perl6::Grammar is HLL::Grammar {
 
     token declarator {
         [
-        | <variable_declarator>
-        | '(' ~ ')' <signature> <trait>*
+        | <variable_declarator> <initializer>?
+        | '(' ~ ')' <signature> <trait>* <initializer>?
         | <routine_declarator>
         | <regex_declarator>
         | <type_declarator>
@@ -1784,21 +1784,24 @@ grammar Perl6::Grammar is HLL::Grammar {
 
     proto token initializer { <...> }
     token initializer:sym<=> {
-        <sym> <.ws>
+        <sym>
         [
-        || <?{ $*LEFTSIGIL eq '$' }> <EXPR('i=')>
-        || <EXPR('e=')>
+            <.ws>
+            [
+            || <?{ $*LEFTSIGIL eq '$' }> <EXPR('i=')>
+            || <EXPR('e=')>
+            ]
+            || <.panic: "Malformed initializer">
         ]
-        || <.panic: "Malformed initializer">
     }
     token initializer:sym<:=> {
-        <sym> <.ws> <EXPR('e=')> || <.panic: "Malformed binding">
+        <sym> [ <.ws> <EXPR('e=')> || <.panic: "Malformed binding"> ]
     }
     token initializer:sym<::=> {
-        <sym> <.ws> <EXPR('e=')> || <.panic: "Malformed binding">
+        <sym> [ <.ws> <EXPR('e=')> || <.panic: "Malformed binding"> ]
     }
     token initializer:sym<.=> {
-        <sym> <.ws> <dottyopish> || <.panic: "Malformed mutator method call">
+        <sym> [ <.ws> <dottyopish> || <.panic: "Malformed mutator method call"> ]
     }
 
     rule trait {

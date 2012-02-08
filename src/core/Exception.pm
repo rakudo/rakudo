@@ -1,14 +1,16 @@
+my role X::Comp { ... }
+
 my class Exception {
     has $!ex;
 
     method backtrace() { Backtrace.new(self) }
 
-    method Str() {
-        nqp::p6box_s(nqp::atkey($!ex, 'message'))
-    }
 
-    multi method Numeric(Exception:D:) {
-        self.Str.Numeric()
+    multi method Str(Exception:D:) {
+        self.?message.Str // 'Something went wrong'
+    }
+    multi method gist(Exception:D:) {
+        self.?message ~ "\n" ~ $.backtrace;
     }
 
     method throw() is hidden_from_backtrace {
@@ -27,6 +29,17 @@ my class Exception {
     method Bool() { False }
 }
 
+my class X::AdHoc is Exception {
+    method message() {
+        nqp::p6box_s(
+            pir::getattribute__PPs(
+                nqp::getattr(self, Exception, '$!ex'),
+                'message'
+            )
+        );
+    }
+}
+
 sub EXCEPTION(|$) {
     my Mu $parrot_ex := nqp::shift(pir::perl6_current_args_rpa__P());
     my Mu $payload   := nqp::atkey($parrot_ex, 'payload');
@@ -34,14 +47,12 @@ sub EXCEPTION(|$) {
         nqp::bindattr($payload, Exception, '$!ex', $parrot_ex);
         $payload;
     } else {
-        my $ex := nqp::create(Exception);
+        my $ex := nqp::create(X::AdHoc);
         nqp::bindattr($ex, Exception, '$!ex', $parrot_ex);
         $ex;
     }
 }
 
-
-my class X::Base { ... }
 
 do {
     sub is_runtime($bt) {
@@ -62,13 +73,14 @@ do {
         return False;
     }
 
+
     sub print_exception(|$) is hidden_from_backtrace {
         my Mu $ex := nqp::atpos(pir::perl6_current_args_rpa__P(), 0);
         try {
             my $e := EXCEPTION($ex);
             my Mu $err := pir::getstderr__P();
 
-            if X::Base.ACCEPTS($e) {
+            if X::Comp.ACCEPTS($e) {
                 $err.print: $e.gist;
                 $err.print: "\n";
             }

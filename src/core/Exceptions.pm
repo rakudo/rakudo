@@ -1,20 +1,8 @@
-# XXX should really be my X::Base eventually
-my class X::Base is Exception {
-    has $.message;
-
-    multi method Str(X::Base:D:) {
-        $.message.Str // 'Something went wrong'
-    }
-    method ID() { ... }
-    multi method gist(X::Base:D:) {
-        $.message ~ "\n" ~ $.backtrace;
-    }
-}
 my role X::OS {
     has $.os-error;
 }
 
-my class X::IO::Rename does X::OS is X::Base {
+my class X::IO::Rename does X::OS is Exception {
     has $.from;
     has $.to;
     method message() {
@@ -22,7 +10,7 @@ my class X::IO::Rename does X::OS is X::Base {
     }
 }
 
-my class X::IO::Copy does X::OS is X::Base {
+my class X::IO::Copy does X::OS is Exception {
     has $.from;
     has $.to;
     method message() {
@@ -30,7 +18,7 @@ my class X::IO::Copy does X::OS is X::Base {
     }
 }
 
-my role X::Comp is X::Base {
+my role X::Comp is Exception {
     has $.filename;
     has $.line;
     has $.column;
@@ -42,12 +30,12 @@ my role X::Comp is X::Base {
 my role X::Syntax does X::Comp { }
 my role X::Pod                 { }
 
-my class X::NYI is X::Base {
+my class X::NYI is Exception {
     has $.feature;
     method message() { "$.feature not yet implemented. Sorry. " }
 }
 
-my class X::OutOfRange is X::Base {
+my class X::OutOfRange is Exception {
     has $.what = 'Argument';
     has $.got = '<unknown>';
     has $.range = '<unknown>';
@@ -56,7 +44,7 @@ my class X::OutOfRange is X::Base {
     }
 }
 
-my class X::Buf::AsStr is X::Base {
+my class X::Buf::AsStr is Exception {
     has $.method;
     method message() {
         "Cannot use a Buf as a string, but you called the $.method method on it";

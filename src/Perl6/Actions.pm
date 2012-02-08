@@ -1589,7 +1589,10 @@ class Perl6::Actions is HLL::Actions {
 
                 # Ensure it's actually a dispatcher.
                 unless $proto.is_dispatcher {
-                    $/.CURSOR.panic("Cannot declare a multi when an only is in scope");
+                    $*W.throw($/, ['X', 'Redeclaration'],
+                        what    => 'routine',
+                        symbol  => ~$<deflongname>[0].ast,
+                    );
                 }
 
                 # Install the candidate.

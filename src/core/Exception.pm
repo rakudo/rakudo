@@ -38,6 +38,7 @@ my class X::AdHoc is Exception {
             )
         );
     }
+    method Numeric() { $.message.Numeric }
 }
 
 sub EXCEPTION(|$) {

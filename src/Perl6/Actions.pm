@@ -1311,7 +1311,7 @@ class Perl6::Actions is HLL::Actions {
                     }
                 }
                 elsif $<initializer>[0]<sym> eq '=' {
-                    $past := assign_op($/, $past, $<initializer>[0].ast);
+                    $past := assign_op($past, $<initializer>[0].ast);
                 }
                 elsif $<initializer>[0]<sym> eq '.=' {
                     $past := make_dot_equals($past, $<initializer>[0].ast);
@@ -3227,7 +3227,7 @@ class Perl6::Actions is HLL::Actions {
             return 1;
         }
         elsif $sym eq '=' {
-            make assign_op($/, $/[0].ast, $/[1].ast);
+            make assign_op($/[0].ast, $/[1].ast);
             return 1;
         }
         elsif $sym eq ':=' {
@@ -3443,7 +3443,7 @@ class Perl6::Actions is HLL::Actions {
         }
     }
 
-    sub assign_op($/, $lhs_ast, $rhs_ast) {
+    sub assign_op($lhs_ast, $rhs_ast) {
         my $past;
         my $var_sigil;
         if $lhs_ast.isa(PAST::Var) {

@@ -73,10 +73,11 @@ class Range is Iterable does Positional {
             # Q:PIR optimized for int/num ranges
             $value = $value.Num;
             my $max = $!max.Num;
+            my $box_int = $!min.^isa(Int);
             Q:PIR {
                 .local pmc rpa, value_pmc, count_pmc
                 .local num value, count, max
-                .local int cmpstop
+                .local int cmpstop, box_int
                 rpa = find_lex '$rpa'
                 value_pmc = find_lex '$value'
                 value = repr_unbox_num value_pmc
@@ -86,11 +87,18 @@ class Range is Iterable does Positional {
                 max = repr_unbox_num $P0
                 $P0 = find_lex '$cmpstop'
                 cmpstop = repr_unbox_int $P0
+                $P0 = find_lex '$box_int'
+                box_int = repr_unbox_int $P0
               loop:
                 unless count > 0 goto done
                 $I0 = cmp value, max
                 unless $I0 < cmpstop goto done
+                unless box_int goto box_num
                 $P0 = perl6_box_bigint value
+                goto box_done
+             box_num:
+                $P0 = perl6_box_num value
+             box_done:
                 push rpa, $P0
                 inc value
                 dec count

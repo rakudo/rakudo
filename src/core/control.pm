@@ -138,7 +138,12 @@ my &lastcall := -> {
 
 proto sub die(|$) is hidden_from_backtrace {*};
 multi sub die(Exception $e) is hidden_from_backtrace { $e.throw }
-multi sub die(*@msg) is hidden_from_backtrace { pir::die__0P(@msg.join('')) }
+multi sub die($payload) is hidden_from_backtrace {
+    X::AdHoc.new(:$payload).throw
+}
+multi sub die(*@msg) is hidden_from_backtrace {
+    X::AdHoc.new(payload => @msg.join).throw
+}
 
 multi sub warn(*@msg) is hidden_from_backtrace {
     my $ex := pir::new('Exception');

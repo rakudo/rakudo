@@ -64,8 +64,12 @@ class Range is Iterable does Positional {
               if $count == $Inf && self.infinite;
         }
         my $cmpstop = $!excludes_max ?? 0 !! 1;
+        my $realmax = $!min.^does(Numeric) && !$!max.^does(Callable) && !$!max.^isa(Whatever)
+                      ?? $!max.Numeric
+                      !! $!max;
         my Mu $rpa := nqp::list();
-        if Int.ACCEPTS($value) || Num.ACCEPTS($value) {
+        if $value.^isa(Int) && $!max.^isa(Int) && !nqp::isbig_I(nqp::p6decont $!max)
+           || $value.^isa(Num) {
             # Q:PIR optimized for int/num ranges
             $value = $value.Num;
             my $max = $!max.Num;
@@ -99,7 +103,7 @@ class Range is Iterable does Positional {
         }    
         else {
           (nqp::push($rpa, $value++); $count--)
-              while $count > 0 && ($value cmp $!max) < $cmpstop;
+              while $count > 0 && ($value cmp $realmax) < $cmpstop;
         }
         if ($value cmp $!max) < $cmpstop {
             nqp::push($rpa,

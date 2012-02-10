@@ -387,6 +387,7 @@ grammar Perl6::Grammar is HLL::Grammar {
         :my $*MULTINESS := '';                     # which multi declarator we're under
         :my $*QSIGIL := '';                        # sigil of current interpolation
         :my $*IN_DECL;                             # what declaration we're in
+        :my $*HAS_SELF := '';                      # is 'self' available? (for $.foo style calls)
         :my $*MONKEY_TYPING := 0;                  # whether augment/supersede are allowed
         :my $*begin_compunit := 1;                 # whether we're at start of a compilation unit
         :my $*DECLARAND;                           # the current thingy we're declaring, and subject of traits
@@ -398,7 +399,7 @@ grammar Perl6::Grammar is HLL::Grammar {
         :my $*IMPLICIT;                            # whether we allow an implicit param
         :my $*FORBID_PIR := 0;                     # whether pir::op and Q:PIR { } are disallowed
         :my $*HAS_YOU_ARE_HERE := 0;               # whether {YOU_ARE_HERE} has shown up
-        :my $*TYPENAME := '';
+        :my $*OFTYPE;
         :my $*VMARGIN    := 0;                     # pod stuff
         :my $*ALLOW_CODE := 0;                     # pod stuff
         :my $*POD_IN_FORMATTINGCODE := 0;          # pod stuff
@@ -676,6 +677,7 @@ grammar Perl6::Grammar is HLL::Grammar {
     token statement_control:sym<import> {
         <sym> <.ws>
         <module_name> [ <.spacey> <arglist> ]? <.ws>
+        :my $*HAS_SELF := '';
         {
             my @name := parse_name(~$<module_name><longname>);
             my $module;
@@ -694,6 +696,7 @@ grammar Perl6::Grammar is HLL::Grammar {
     token statement_control:sym<use> {
         :my $longname;
         :my $*IN_DECL := 'use';
+        :my $*HAS_SELF := '';
         :my $*SCOPE   := 'use';
         $<doc>=[ 'DOC' \h+ ]?
         <sym> <.ws>
@@ -822,7 +825,7 @@ grammar Perl6::Grammar is HLL::Grammar {
     token term:sym<routine_declarator> { <routine_declarator> }
     token term:sym<multi_declarator>   { <?before 'multi'|'proto'|'only'> <multi_declarator> }
     token term:sym<regex_declarator>   { <regex_declarator> }
-    token term:sym<circumfix>          { <circumfix> }
+    token term:sym<circumfix>          { <!before '[' \\? <.infixish> ']'> <circumfix> }
     token term:sym<statement_prefix>   { <statement_prefix> }
     token term:sym<**>                 { <sym> <.panic('HyperWhatever (**) not yet implemented')> }
     token term:sym<*>                  { <sym> }
@@ -1167,6 +1170,7 @@ grammar Perl6::Grammar is HLL::Grammar {
         :my $outer := $*W.cur_lexpad();
         :my $*DECLARAND;
         :my $*IN_DECL := 'package';
+        :my $*HAS_SELF := '';
         :my $*CURPAD;
         :my $*DOC := $*DECLARATOR_DOCS;
         :my $*DOCEE;
@@ -1349,8 +1353,8 @@ grammar Perl6::Grammar is HLL::Grammar {
 
     token declarator {
         [
-        | <variable_declarator>
-        | '(' ~ ')' <signature> <trait>*
+        | <variable_declarator> <initializer>?
+        | '(' ~ ')' <signature> <trait>* <initializer>?
         | <routine_declarator>
         | <regex_declarator>
         | <type_declarator>
@@ -1378,7 +1382,11 @@ grammar Perl6::Grammar is HLL::Grammar {
     proto token scope_declarator { <...> }
     token scope_declarator:sym<my>        { <sym> <scoped('my')> }
     token scope_declarator:sym<our>       { <sym> <scoped('our')> }
-    token scope_declarator:sym<has>       { <sym> <scoped('has')> }
+    token scope_declarator:sym<has>       {
+        <sym>
+        :my $*HAS_SELF := 'partial';
+        <scoped('has')>
+    }
     token scope_declarator:sym<augment>   { <sym> <scoped('augment')> }
     token scope_declarator:sym<anon>      { <sym> <scoped('anon')> }
     token scope_declarator:sym<state>     { <sym> <scoped('state')> }
@@ -1386,49 +1394,74 @@ grammar Perl6::Grammar is HLL::Grammar {
         <sym> <scoped('supersede')> <.panic: '"supersede" not yet implemented'>
     }
 
-    rule scoped($*SCOPE) {<.end_keyword> [
-        :my $*TYPENAME := '';
-
+    token scoped($*SCOPE) {
+        <.end_keyword>
+        [
         :my $*DOC := $*DECLARATOR_DOCS;
         :my $*DOCEE;
         <.attach_docs>
+        <.ws>
         [
-        | <DECL=variable_declarator>
-        | <DECL=routine_declarator>
+        | <DECL=declarator>
+        | <DECL=regex_declarator>
         | <DECL=package_declarator>
-        | <DECL=type_declarator>
-        | <typename>+
+        | [<typename><.ws>]+
           {
             if +$<typename> > 1 {
                 $/.CURSOR.panic("Multiple prefix constraints not yet supported");
             }
-            $*TYPENAME := $<typename>[0];
+            $*OFTYPE := $<typename>[0];
           }
           <DECL=multi_declarator>
         | <DECL=multi_declarator>
-        ]
+        ] <.ws>
         || <?before <[A..Z]>><longname>{
                 my $t := $<longname>.Str;
                 $/.CURSOR.panic("In \"$*SCOPE\" declaration, typename $t must be predeclared (or marked as declarative with :: prefix)");
             }
             <!> # drop through
         || { $/.CURSOR.panic("Malformed $*SCOPE") }
-    ] }
+        ]
+    }
 
     token variable_declarator {
         :my $*IN_DECL := 'variable';
+        :my $var;
         <variable>
-        { $*IN_DECL := '' }
+        {
+            $var := $<variable>.Str;
+            $/.CURSOR.add_variable($var);
+            $*IN_DECL := '';
+        }
         [
             <.unsp>?
             $<shape>=[
             | '(' ~ ')' <signature>
+                {
+                    my $sigil := nqp::substr($var, 0, 1);
+                    if $sigil eq '&' {
+                        $/.CURSOR.panic("The () shape syntax in routine declarations is reserved (maybe use :() to declare a longname?)");
+                    }
+                    elsif $sigil eq '@' {
+                        $/.CURSOR.panic("The () shape syntax in array declarations is reserved");
+                    }
+                    elsif $sigil eq '%' {
+                        $/.CURSOR.panic("The () shape syntax in hash declarations is reserved");
+                    }
+                    else {
+                        $/.CURSOR.panic("The () shape syntax in variable declarations is reserved");
+                    }
+                }
             | '[' ~ ']' <semilist>
             | '{' ~ '}' <semilist>
+            | <?before '<'> <postcircumfix>
             ]+
             <.panic: "Shaped variable declarations are not yet implemented">
         ]?
+        <.ws>
+        
         <trait>*
+        <post_constraint>*
     }
 
     proto token routine_declarator { <...> }
@@ -1474,6 +1507,7 @@ grammar Perl6::Grammar is HLL::Grammar {
     rule method_def($d) {
         :my $*IN_DECL := $d;
         :my $*METHODTYPE := $d;
+        :my $*HAS_SELF := $d eq 'submethod' ?? 'partial' !! 'complete';
         :my $*DOC := $*DECLARATOR_DOCS;
         :my $*DOCEE;
         <.attach_docs>
@@ -1674,6 +1708,7 @@ grammar Perl6::Grammar is HLL::Grammar {
 
     rule regex_def {<.end_keyword> [
         :my $*CURPAD;
+        :my $*HAS_SELF := 'complete';
         [
           { $*IN_DECL := '' }
           <deflongname>?
@@ -1752,10 +1787,31 @@ grammar Perl6::Grammar is HLL::Grammar {
         <trait>*
 
         [
-        || <?before '='>
-        || <?before <-[\n=]>*'='> <.panic: "Malformed constant"> # probable initializer later
-        || <.panic: "Missing initializer on constant declaration">
+        || <initializer>
+        || <.sorry: "Missing initializer on constant declaration">
         ]
+    }
+
+    proto token initializer { <...> }
+    token initializer:sym<=> {
+        <sym>
+        [
+            <.ws>
+            [
+            || <?{ $*LEFTSIGIL eq '$' }> <EXPR('i=')>
+            || <EXPR('e=')>
+            ]
+            || <.panic: "Malformed initializer">
+        ]
+    }
+    token initializer:sym<:=> {
+        <sym> [ <.ws> <EXPR('e=')> || <.panic: "Malformed binding"> ]
+    }
+    token initializer:sym<::=> {
+        <sym> [ <.ws> <EXPR('e=')> || <.panic: "Malformed binding"> ]
+    }
+    token initializer:sym<.=> {
+        <sym> [ <.ws> <dottyopish> || <.panic: "Malformed mutator method call"> ]
     }
 
     rule trait {
@@ -1781,7 +1837,12 @@ grammar Perl6::Grammar is HLL::Grammar {
 
     proto token term { <...> }
 
-    token term:sym<self> { <sym> <.end_keyword> }
+    token term:sym<self> {
+        <sym> <.end_keyword>
+        {
+            $*HAS_SELF || $*W.throw($/, ['X', 'Syntax', 'Self', 'WithoutObject'])
+        }
+    }
 
     token term:sym<now> { <sym> <.end_keyword> }
 
@@ -2121,6 +2182,7 @@ grammar Perl6::Grammar is HLL::Grammar {
     token termish {
         :my $*SCOPE := "";
         :my $*MULTINESS := "";
+        :my $*OFTYPE;
         [
         || <prefixish>* <term>
             [
@@ -2201,11 +2263,11 @@ grammar Perl6::Grammar is HLL::Grammar {
     proto token postfix_prefix_meta_operator { <...> }
 
     proto token prefix_postfix_meta_operator { <...> }
-
-    regex prefix_circumfix_meta_operator:sym<reduce> {
+    
+    regex term:sym<reduce> {
         :my $*IN_REDUCE := 1;
         <?before '['\S+']'>
-
+        
         '['
         [
         || <op=.infixish> <?before ']'>
@@ -2214,7 +2276,7 @@ grammar Perl6::Grammar is HLL::Grammar {
         ]
         ']'
 
-        <O('%list_prefix, :assoc<unary>, :uassoc<left>')>
+        <args>
     }
 
     token postfix_prefix_meta_operator:sym<»> {
@@ -2567,6 +2629,12 @@ grammar Perl6::Grammar is HLL::Grammar {
         @result;
     }
 
+    method add_variable($name) {
+        my $categorical := $name ~~ /^'&'((\w+)':<'\s*(\S+?)\s*'>')$/;
+        if $categorical {
+            self.gen_op(~$categorical[0][0], ~$categorical[0][1], ~$categorical[0], $name);
+        }
+    }
 
     # This method is used to augment the grammar with new ops at parse time.
     method gen_op($category, $opname, $canname, $subname) {

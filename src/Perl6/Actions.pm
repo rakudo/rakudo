@@ -1093,6 +1093,9 @@ class Perl6::Actions is HLL::Actions {
         elsif $twigil eq '!' {
             # In a declaration, don't produce anything here.
             if $*IN_DECL ne 'variable' {
+                unless $*HAS_SELF {
+                    $/.CURSOR.panic("Variable $name used where no 'self' is available");
+                }
                 my $attr := get_attribute_meta_object($/, $name);
                 $past.scope('attribute_6model');
                 $past.type($attr.type);
@@ -1102,6 +1105,11 @@ class Perl6::Actions is HLL::Actions {
             }
         }
         elsif $twigil eq '.' && $*IN_DECL ne 'variable' {
+            if !$*HAS_SELF {
+                $/.CURSOR.panic("Variable $name used where no 'self' available");
+            } elsif $*HAS_SELF eq 'partial' {
+                $/.CURSOR.panic("Virtual call $name may not be used on partially constructed objects");
+            }
             # Need to transform this to a method call.
             $past := $<arglist> ?? $<arglist>[0].ast !! PAST::Op.new();
             $past.pasttype('callmethod');
@@ -1295,9 +1303,34 @@ class Perl6::Actions is HLL::Actions {
     method scope_declarator:sym<state>($/)   { make $<scoped>.ast; }
 
     method declarator($/) {
-        if    $<variable_declarator> { make $<variable_declarator>.ast }
-        elsif $<routine_declarator>  { make $<routine_declarator>.ast  }
+        if    $<routine_declarator>  { make $<routine_declarator>.ast  }
         elsif $<regex_declarator>    { make $<regex_declarator>.ast    }
+        elsif $<type_declarator>     { make $<type_declarator>.ast     }
+        elsif $<variable_declarator> {
+            my $past := $<variable_declarator>.ast;
+            if $<initializer> {
+                if $*SCOPE eq 'has' {
+                    if $<initializer>[0]<sym> eq '=' {
+                        self.install_attr_init($past<metaattr>, $<initializer>[0].ast);
+                    }
+                    else {
+                        $/.CURSOR.panic("Cannot use " ~ $<initializer>[0]<sym> ~
+                            " to initialize an attribute");
+                    }
+                }
+                elsif $<initializer>[0]<sym> eq '=' {
+                    $past := assign_op($past, $<initializer>[0].ast);
+                }
+                elsif $<initializer>[0]<sym> eq '.=' {
+                    $past := make_dot_equals($past, $<initializer>[0].ast);
+                }
+                else {
+                    $past := bind_op($/, $past, $<initializer>[0].ast,
+                        $<initializer>[0]<sym> eq '::=');
+                }
+            }
+            make $past;
+        }
         elsif $<signature> {
             # Go over the params and declare the variable defined
             # in them.
@@ -1319,6 +1352,21 @@ class Perl6::Actions is HLL::Actions {
                         $*W.create_container_descriptor(%cont_info<value_type>, 1, 'anon')));
                 }
             }
+            
+            if $<initializer> {
+                if $<initializer>[0]<sym> eq '=' {
+                    $/.CURSOR.panic("Cannot assign to a list of 'has' scoped declarations")
+                        if $*SCOPE eq 'has';
+                    $list := assign_op($list, $<initializer>[0].ast);
+                }
+                elsif $<initializer>[0]<sym> eq '.=' {
+                    $/.CURSOR.panic("Cannot use .= initializer with a list of declarations");
+                }
+                else {
+                    $/.CURSOR.panic("Binding to signatures in $*SCOPE declarations not yet implemented");
+                }
+            }
+            
             make $list;
         }
         else {
@@ -1362,7 +1410,7 @@ class Perl6::Actions is HLL::Actions {
 
             # Create container descriptor and decide on any default value..
             my $attrname   := ~$sigil ~ '!' ~ $desigilname;
-            my %cont_info  := container_type_info($sigil, $*TYPENAME ?? [$*TYPENAME.ast] !! []);
+            my %cont_info  := container_type_info($sigil, $*OFTYPE ?? [$*OFTYPE.ast] !! []);
             my $descriptor := $*W.create_container_descriptor(%cont_info<value_type>, 1, $attrname);
 
             # Create meta-attribute and add it.
@@ -1392,11 +1440,9 @@ class Perl6::Actions is HLL::Actions {
                 if $applier { $applier($attr); }
             }
 
-            # Nothing to emit here; just hand back an empty node but
-            # annotated with the attribute object in case we get a
-            # default vlaue "assigned".
-            $past := PAST::Op.new( :pasttype('null') );
-            $past<attribute_declarand> := $attr;
+            # Nothing to emit here; hand back a Nil.
+            $past := PAST::Var.new(:name('Nil'), :scope('lexical_6model'));
+            $past<metaattr> := $attr;
         }
         elsif $*SCOPE eq 'my' || $*SCOPE eq 'state' {            
             # Twigil handling.
@@ -1413,7 +1459,7 @@ class Perl6::Actions is HLL::Actions {
 
             # Create a container descriptor. Default to rw and set a
             # type if we have one; a trait may twiddle with that later.
-            my %cont_info := container_type_info($sigil, $*TYPENAME ?? [$*TYPENAME.ast] !! []);
+            my %cont_info := container_type_info($sigil, $*OFTYPE ?? [$*OFTYPE.ast] !! []);
             my $descriptor := $*W.create_container_descriptor(%cont_info<value_type>, 1, $name);
 
             # Install the container.
@@ -1455,7 +1501,7 @@ class Perl6::Actions is HLL::Actions {
                 );
             }
 
-            if $*TYPENAME {
+            if $*OFTYPE {
                 $/.CURSOR.panic("Cannot put a type constraint on an 'our'-scoped variable");
             }
             $BLOCK[0].push(PAST::Var.new(
@@ -2020,7 +2066,7 @@ class Perl6::Actions is HLL::Actions {
 
         # Get, or find, enumeration base type and create type object with
         # correct base type.
-        my $base_type := $*TYPENAME ?? $*TYPENAME.ast !! $*W.find_symbol(['Int']);
+        my $base_type := $*OFTYPE ?? $*OFTYPE.ast !! $*W.find_symbol(['Int']);
         my $name      := $<longname> ?? ~$<longname> !! $<variable><desigilname>;
         my $type_obj  := $*W.pkg_create_mo(%*HOW<enum>, :name($name), :base_type($base_type));
 
@@ -2152,48 +2198,51 @@ class Perl6::Actions is HLL::Actions {
     }
 
     method type_declarator:sym<constant>($/) {
-        # We make an empty PAST node, but attach a callback to it
-        # that we'll have made when we see the =.
-        my $past := PAST::Op.new( :pasttype('null') );
-        $past<constant_declarator> := -> $rhs_ast {
-            # Get constant value.
-            my $value;
-            if $rhs_ast<has_compile_time_value> {
-                $value := $rhs_ast<compile_time_value>;
-            }
-            else {
-                my $name := ~($<identifier> // $<variable>);
-                $/.CURSOR.panic("Cannot handle constant $name with non-literal value yet");
-            }
+        # Get constant value.
+        my $value_ast := $<initializer>.ast;
+        my $value;
+        if $value_ast<has_compile_time_value> {
+            $value := $value_ast<compile_time_value>;
+        }
+        else {
+            my $name := ~($<identifier> // $<variable>);
+            $/.CURSOR.panic("Cannot handle constant $name with non-literal value yet");
+        }
 
-            # Get name to install it as.
-            my $name;
-            if $<identifier> {
-                $name := ~$<identifier>;
+        # Provided it's named, install it.
+        my $name;
+        if $<identifier> {
+            $name := ~$<identifier>;
+        }
+        elsif $<variable> {
+            # Don't handle twigil'd case yet.
+            if $<variable><twigil> {
+                $*W.throw($/, ['X', 'NYI'],
+                    feature => "Twigil-Variable constants"
+                );
             }
-            elsif $<variable> {
-                # Don't handle twigil'd case yet.
-                if $<variable><twigil> {
-                    $*W.throw($/, ['X', 'NYI'],
-                        feature => "Twigil-Variable constants"
-                    );
-                }
-                $name := ~$<variable>;
-            }
-            else {
-                # Nothing to install, just return a PAST node to
-                # get hold of the constant.
-                return $*W.get_ref($value);
-            }
-
-            # Install.
+            $name := ~$<variable>;
+        }
+        if $name {
             $*W.install_package($/, [$name], ($*SCOPE || 'our'),
                 'constant', $*PACKAGE, $*W.cur_lexpad(), $value);
+        }
 
-            # Evaluate to the constant.
-            return $*W.get_ref($value);
-        };
-        make $past;
+        # Evaluate to the constant.
+        make $*W.get_ref($value);
+    }
+    
+    method initializer:sym<=>($/) {
+        make $<EXPR>.ast;
+    }
+    method initializer:sym<:=>($/) {
+        make $<EXPR>.ast;
+    }
+    method initializer:sym<::=>($/) {
+        make $<EXPR>.ast;
+    }
+    method initializer:sym<.=>($/) {
+        make $<dottyopish><term>.ast;
     }
 
     method capterm($/) {
@@ -3189,15 +3238,15 @@ class Perl6::Actions is HLL::Actions {
             return 1;
         }
         elsif $sym eq '=' {
-            make assign_op($/);
+            make assign_op($/[0].ast, $/[1].ast);
             return 1;
         }
         elsif $sym eq ':=' {
-            make bind_op($/, 0);
+            make bind_op($/, $/[0].ast, $/[1].ast, 0);
             return 1;
         }
         elsif $sym eq '::=' {
-            make bind_op($/, 1);
+            make bind_op($/, $/[0].ast, $/[1].ast, 1);
             return 1;
         }
         elsif $sym eq 'does' || $sym eq 'but' {
@@ -3349,10 +3398,7 @@ class Perl6::Actions is HLL::Actions {
         ));
     }
 
-    sub bind_op($/, $sigish) {
-        my $target := $/[0].ast;
-        my $source := $/[1].ast;
-
+    sub bind_op($/, $target, $source, $sigish) {
         # Check we know how to bind to the thing on the LHS.
         if $target.isa(PAST::Var) {
             # We may need to decontainerize the right, depending on sigil.
@@ -3408,22 +3454,13 @@ class Perl6::Actions is HLL::Actions {
         }
     }
 
-    sub assign_op($/) {
+    sub assign_op($lhs_ast, $rhs_ast) {
         my $past;
-        my $lhs_ast := $/[0].ast;
-        my $rhs_ast := $/[1].ast;
         my $var_sigil;
         if $lhs_ast.isa(PAST::Var) {
             $var_sigil := pir::substr($lhs_ast.name, 0, 1);
         }
-        if $lhs_ast && $lhs_ast<attribute_declarand> {
-            Perl6::Actions.install_attr_init($/);
-            $past := PAST::Stmts.new();
-        }
-        elsif $lhs_ast<constant_declarator> {
-            $past := $lhs_ast<constant_declarator>($rhs_ast);
-        }
-        elsif $lhs_ast && $lhs_ast<boxable_native> {
+        if $lhs_ast && $lhs_ast<boxable_native> {
             # Native assignment is actually really a bind at low level
             # We grab the thing we want out of the PAST::Want node.
             $past := box_native_if_needed(
@@ -3528,7 +3565,7 @@ class Perl6::Actions is HLL::Actions {
         }
     }
 
-    method prefix_circumfix_meta_operator:sym<reduce>($/) {
+    method term:sym<reduce>($/) {
         my $base     := $<op>;
         my $basepast := $base.ast
                           ?? $base.ast[0]
@@ -3544,7 +3581,9 @@ class Perl6::Actions is HLL::Actions {
             $tri.named('triangle');
             $metapast.push($tri);
         }
-        make PAST::Op.new(:node($/), :pasttype<call>, $metapast);
+        my $args := $<args>.ast;
+        $args.name('&infix:<,>');
+        make PAST::Op.new(:node($/), :pasttype<call>, $metapast, $args);
     }
 
     method infix_circumfix_meta_operator:sym«<< >>»($/) {
@@ -4365,10 +4404,7 @@ class Perl6::Actions is HLL::Actions {
 
     # Handles the case where we have a default value closure for an
     # attribute.
-    method install_attr_init($/) {
-        # Locate attribute.
-        my $attr := ($/[0].ast)<attribute_declarand>;
-
+    method install_attr_init($attr, $initializer) {
         # Construct signature and anonymous method.
         my @params := [
             hash( is_invocant => 1, nominal_type => $*PACKAGE),
@@ -4383,7 +4419,7 @@ class Perl6::Actions is HLL::Actions {
                 PAST::Var.new( :name('self'), :scope('lexical_6model'), :isdecl(1) ),
                 PAST::Var.new( :name('$_'), :scope('lexical_6model'), :isdecl(1) )
             ),
-            PAST::Stmts.new( $/[1].ast ));
+            PAST::Stmts.new( $initializer ));
         $block.symbol('self', :scope('lexical_6model'));
         add_signature_binding_code($block, $sig, @params);
         my $code := $*W.create_code_object($block, 'Method', $sig);

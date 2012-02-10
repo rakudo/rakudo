@@ -1311,7 +1311,7 @@ class Perl6::Actions is HLL::Actions {
             if $<initializer> {
                 if $*SCOPE eq 'has' {
                     if $<initializer>[0]<sym> eq '=' {
-                        self.install_attr_init($past<metaattr>, $<initializer>[0].ast);
+                        self.install_attr_init($past<metaattr>, $<initializer>[0].ast, $*ATTR_INIT_BLOCK);
                     }
                     else {
                         $/.CURSOR.panic("Cannot use " ~ $<initializer>[0]<sym> ~
@@ -4416,7 +4416,7 @@ class Perl6::Actions is HLL::Actions {
 
     # Handles the case where we have a default value closure for an
     # attribute.
-    method install_attr_init($attr, $initializer) {
+    method install_attr_init($attr, $initializer, $block) {
         # Construct signature and anonymous method.
         my @params := [
             hash( is_invocant => 1, nominal_type => $*PACKAGE),
@@ -4426,12 +4426,9 @@ class Perl6::Actions is HLL::Actions {
             $*W.create_parameter(@params[0]),
             $*W.create_parameter(@params[1])
         ]);
-        my $block := PAST::Block.new(
-            PAST::Stmts.new(
-                PAST::Var.new( :name('self'), :scope('lexical_6model'), :isdecl(1) ),
-                PAST::Var.new( :name('$_'), :scope('lexical_6model'), :isdecl(1) )
-            ),
-            PAST::Stmts.new( $initializer ));
+        $block[0].push(PAST::Var.new( :name('self'), :scope('lexical_6model'), :isdecl(1) ));
+        $block[0].push(PAST::Var.new( :name('$_'), :scope('lexical_6model'), :isdecl(1) ));
+        $block.push(PAST::Stmts.new( $initializer ));
         $block.symbol('self', :scope('lexical_6model'));
         add_signature_binding_code($block, $sig, @params);
         my $code := $*W.create_code_object($block, 'Method', $sig);

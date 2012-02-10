@@ -1353,7 +1353,11 @@ grammar Perl6::Grammar is HLL::Grammar {
 
     token declarator {
         [
-        | <variable_declarator> <initializer>?
+        | <variable_declarator>
+          [
+          || <?{ $*SCOPE eq 'has' }> <.newpad> <initializer>? { $*ATTR_INIT_BLOCK := $*W.pop_lexpad() }
+          || <initializer>?
+          ]
         | '(' ~ ')' <signature> <trait>* <initializer>?
         | <routine_declarator>
         | <regex_declarator>
@@ -1385,6 +1389,7 @@ grammar Perl6::Grammar is HLL::Grammar {
     token scope_declarator:sym<has>       {
         <sym>
         :my $*HAS_SELF := 'partial';
+        :my $*ATTR_INIT_BLOCK;
         <scoped('has')>
     }
     token scope_declarator:sym<augment>   { <sym> <scoped('augment')> }

@@ -1,7 +1,7 @@
 Rakudo Roadmap
 --------------
 
-Last updated: 2012-02-09
+Last updated: 2012-02-10
 
 This document serves as a guide to the major goals for Rakudo
 development, as things stood in December 2011. They have been
@@ -82,6 +82,9 @@ Phasers
 
 Language Features
 1 ***   basic Perl 5 interop (use, eval, etc.)
+1 **    non-Numeric enums
+2 *     anonymous enums
+2 **    enumerations as roles
 2 **    pseudo-packages MY, CONTEXT, OUTER, etc. (jnthn)
 2 ***   heredocs
 2 **    module versioning

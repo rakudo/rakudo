@@ -379,9 +379,9 @@ sub list(|$) {
 proto infix:<xx>(|$)     { * }
 multi infix:<xx>()       { fail "No zero-arg meaning for infix:<xx>" }
 multi infix:<xx>(Mu \$x) { $x }
-multi infix:<xx>(Mu \$x, $n is copy) {
+multi infix:<xx>(Mu \$x, $n is copy, :$thunked) {
     $n = nqp::p6bool(nqp::istype($n, Whatever)) ?? $Inf !! $n.Int;
-    GatherIter.new({ take $x while $n-- > 0; }, :infinite($n == $Inf)).list
+    GatherIter.new({ take ($thunked ?? $x() !! $x) while $n-- > 0; }, :infinite($n == $Inf)).list
 }
 
 proto sub pop(|$) {*}

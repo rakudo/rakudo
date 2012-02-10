@@ -3249,8 +3249,12 @@ class Perl6::Actions is HLL::Actions {
             make bind_op($/, $/[0].ast, $/[1].ast, 1);
             return 1;
         }
-        elsif $sym eq 'does' || $sym eq 'but' {
+        elsif !$past && ($sym eq 'does' || $sym eq 'but') {
             make mixin_op($/, $sym);
+            return 1;
+        }
+        elsif !$past && $sym eq 'xx' {
+            make xx_op($/, $/[0].ast, $/[1].ast);
             return 1;
         }
         unless $past {
@@ -3516,6 +3520,14 @@ class Perl6::Actions is HLL::Actions {
             $past.push($rhs);
         }
         $past
+    }
+    
+    sub xx_op($/, $lhs, $rhs) {
+        PAST::Op.new(
+            :name('&infix:<xx>'), :node($/),
+            block_closure(make_thunk_ref($lhs, $/)),
+            $rhs,
+            PAST::Op.new( :pirop('perl6_booleanize__Pi'), 1, :named('thunked') ))
     }
 
     method prefixish($/) {

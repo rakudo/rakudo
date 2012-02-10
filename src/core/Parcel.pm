@@ -44,9 +44,9 @@ my class Parcel does Positional {
 
     method at_pos(Parcel:D: \$x) is rw { self.flat.at_pos($x); }
 
-    proto method postcircumfix:<[ ]>(|$)            { * }
-    multi method postcircumfix:<[ ]>()              { self.flat }
-    multi method postcircumfix:<[ ]>(Parcel:D: \$x) { self.flat.[$x] }
+    proto method postcircumfix:<[ ]>(|$)                  { * }
+    multi method postcircumfix:<[ ]>() is rw              { self.flat }
+    multi method postcircumfix:<[ ]>(Parcel:D: \$x) is rw { self.flat.[$x] }
 
     multi method gist(Parcel:D:) {
         my Mu $gist := nqp::list();

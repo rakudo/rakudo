@@ -2745,7 +2745,7 @@ grammar Perl6::Grammar is HLL::Grammar {
 
 grammar Perl6::RegexGrammar is QRegex::P6Regex::Grammar {
     token metachar:sym<:my> {
-        ':' <?before 'my'> <statement=.LANG('MAIN', 'statement')> <.ws> ';'
+        ':' <?before 'my'|'constant'|'state'|'our'> <statement=.LANG('MAIN', 'statement')> <.ws> ';'
     }
 
     token metachar:sym<{ }> {

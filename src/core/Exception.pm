@@ -30,15 +30,9 @@ my class Exception {
 }
 
 my class X::AdHoc is Exception {
-    method message() {
-        nqp::p6box_s(
-            pir::getattribute__PPs(
-                nqp::getattr(self, Exception, '$!ex'),
-                'message'
-            )
-        );
-    }
-    method Numeric() { $.message.Numeric }
+    has $.payload;
+    method message() { $.payload.Str     }
+    method Numeric() { $.payload.Numeric }
 }
 
 sub EXCEPTION(|$) {
@@ -50,6 +44,7 @@ sub EXCEPTION(|$) {
     } else {
         my $ex := nqp::create(X::AdHoc);
         nqp::bindattr($ex, Exception, '$!ex', $parrot_ex);
+        nqp::bindattr($ex, X::AdHoc, '$!payload', nqp::p6box_s(nqp::atkey($parrot_ex, 'message')));
         $ex;
     }
 }

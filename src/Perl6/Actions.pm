@@ -3562,7 +3562,7 @@ class Perl6::Actions is HLL::Actions {
         }
     }
 
-    method prefix_circumfix_meta_operator:sym<reduce>($/) {
+    method term:sym<reduce>($/) {
         my $base     := $<op>;
         my $basepast := $base.ast
                           ?? $base.ast[0]
@@ -3578,7 +3578,9 @@ class Perl6::Actions is HLL::Actions {
             $tri.named('triangle');
             $metapast.push($tri);
         }
-        make PAST::Op.new(:node($/), :pasttype<call>, $metapast);
+        my $args := $<args>.ast;
+        $args.name('&infix:<,>');
+        make PAST::Op.new(:node($/), :pasttype<call>, $metapast, $args);
     }
 
     method infix_circumfix_meta_operator:sym«<< >>»($/) {

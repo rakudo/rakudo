@@ -825,7 +825,7 @@ grammar Perl6::Grammar is HLL::Grammar {
     token term:sym<routine_declarator> { <routine_declarator> }
     token term:sym<multi_declarator>   { <?before 'multi'|'proto'|'only'> <multi_declarator> }
     token term:sym<regex_declarator>   { <regex_declarator> }
-    token term:sym<circumfix>          { <circumfix> }
+    token term:sym<circumfix>          { <!before '[' \\? <.infixish> ']'> <circumfix> }
     token term:sym<statement_prefix>   { <statement_prefix> }
     token term:sym<**>                 { <sym> <.panic('HyperWhatever (**) not yet implemented')> }
     token term:sym<*>                  { <sym> }
@@ -2263,11 +2263,11 @@ grammar Perl6::Grammar is HLL::Grammar {
     proto token postfix_prefix_meta_operator { <...> }
 
     proto token prefix_postfix_meta_operator { <...> }
-
-    regex prefix_circumfix_meta_operator:sym<reduce> {
+    
+    regex term:sym<reduce> {
         :my $*IN_REDUCE := 1;
         <?before '['\S+']'>
-
+        
         '['
         [
         || <op=.infixish> <?before ']'>
@@ -2276,7 +2276,7 @@ grammar Perl6::Grammar is HLL::Grammar {
         ]
         ']'
 
-        <O('%list_prefix, :assoc<unary>, :uassoc<left>')>
+        <args>
     }
 
     token postfix_prefix_meta_operator:sym<»> {

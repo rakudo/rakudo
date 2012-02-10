@@ -378,6 +378,7 @@ S11-modules/need.t
 S11-modules/require.t
 S12-attributes/class.t
 S12-attributes/clone.t
+S12-attributes/defaults.t
 S12-attributes/delegation.t
 S12-attributes/inheritance.t
 S12-attributes/instance.t

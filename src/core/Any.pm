@@ -167,7 +167,7 @@ my class Any {
     # Hash-like methods for Any.
     ########
     proto method postcircumfix:<{ }>(|$) { * }
-    multi method postcircumfix:<{ }>() { self.values }
+    multi method postcircumfix:<{ }>() { self }
     multi method postcircumfix:<{ }>(:$BIND!) { die "Cannot bind to a zen hash slice" }
     multi method postcircumfix:<{ }>($key) is rw {
         self.at_key($key)

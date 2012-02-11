@@ -1094,7 +1094,7 @@ class Perl6::Actions is HLL::Actions {
             # In a declaration, don't produce anything here.
             if $*IN_DECL ne 'variable' {
                 unless $*HAS_SELF {
-                    $/.CURSOR.panic("Variable $name used where no 'self' is available");
+                    $*W.throw($/, ['X', 'Syntax', 'NoSelf'], variable => $name);
                 }
                 my $attr := get_attribute_meta_object($/, $name);
                 $past.scope('attribute_6model');
@@ -1106,9 +1106,9 @@ class Perl6::Actions is HLL::Actions {
         }
         elsif $twigil eq '.' && $*IN_DECL ne 'variable' {
             if !$*HAS_SELF {
-                $/.CURSOR.panic("Variable $name used where no 'self' available");
+                $*W.throw($/, ['X', 'Syntax', 'NoSelf'], variable => $name);
             } elsif $*HAS_SELF eq 'partial' {
-                $/.CURSOR.panic("Virtual call $name may not be used on partially constructed objects");
+                $*W.throw($/, ['X', 'Syntax', 'VirtualCall'], call => $name);
             }
             # Need to transform this to a method call.
             $past := $<arglist> ?? $<arglist>[0].ast !! PAST::Op.new();

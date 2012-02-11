@@ -249,3 +249,11 @@ my class X::Syntax::SigilWithoutName does X::Syntax {
 my class X::Syntax::Self::WithoutObject does X::Syntax {
     method message() { "'self' used where no object is available" }
 }
+my class X::Syntax::VirtualCall does X::Syntax {
+    has $.call;
+    method message() { "Virtual call $.call may not be used on partially constructed objects" }
+}
+my class X::Syntax::NoSelf does X::Syntax {
+    has $.variable;
+    method message() { "Variable $.variable used where no 'self' is available" }
+}

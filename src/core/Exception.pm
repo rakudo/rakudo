@@ -10,7 +10,7 @@ my class Exception {
         self.?message.Str // 'Something went wrong'
     }
     multi method gist(Exception:D:) {
-        self.?message ~ "\n" ~ $.backtrace.concise;
+        self.?message ~ "\n" ~ $.backtrace
     }
 
     method throw() is hidden_from_backtrace {

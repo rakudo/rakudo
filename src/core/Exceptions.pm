@@ -246,6 +246,6 @@ my class X::Syntax::SigilWithoutName does X::Syntax {
     method message() { 'Non-declarative sigil is missing its name' }
 }
 
-my class X::Syntax::Self::WithoutObject {
+my class X::Syntax::Self::WithoutObject does X::Syntax {
     method message() { "'self' used where no object is available" }
 }

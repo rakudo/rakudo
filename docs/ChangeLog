@@ -8,7 +8,7 @@ New in 2012.02
 + /<x>/ can call a predeclared lexical regex x
 + conjugate is now called conj
 + enumeration values .gist to just the key, not the full name
-+ <!> fixed
++ <!> in regexes fixed
 + implemented Match.make(...) method
 + better error reporting for improper use of nextsame and friends
 + compile time error reporting when $!x and $.x are used in the wrong places
@@ -23,6 +23,10 @@ New in 2012.02
 + various range iteration fixes; Num ranges now produce Num lists
 + LHS of the xx operator is now thunked
 + can now declare state/constant/our in regexes (before, only :my worked)
++ improved backtraces
++ catch constructs that require an invocant but don't have one
++ catch uses of virtual method calls in submethods and attribute initializers
++ improved parsing and performance of reduction meta operators
 
 New in 2012.01
 + -c command line option re-implemented

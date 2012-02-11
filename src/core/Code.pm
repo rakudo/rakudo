@@ -10,4 +10,8 @@ my class Code does Callable {
     method signature(Code:D:) { $!signature }
     
     multi method Str(Code:D:) { self.name }
+
+    method outer(Code:D:) {
+        pir::perl6_code_object_from_parrot_sub__PP($!do.get_outer())
+    }
 }

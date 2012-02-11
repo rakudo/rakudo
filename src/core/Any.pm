@@ -301,4 +301,5 @@ multi sub sort(*@values)      {
         !!  @values.sort;
 }
 
-sub item(*@a) { my $ = @a }
+multi sub item(*@a) { my $ = @a }
+multi sub item(Mu $a) { $a }

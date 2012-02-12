@@ -122,21 +122,19 @@ multi sub infix:<+>(Int \$a, Rational \$b) {
 
 multi sub infix:<->(Rational \$a, Rational \$b) {
     my Int $gcd = $a.denominator gcd $b.denominator;
-    DIVIDE_NUMBERS(
-        ($a.numerator * ($b.denominator div $gcd) - $b.numerator * ($a.denominator div $gcd)),
-        (($a.denominator div $gcd) * $b.denominator),
+    DIVIDE_NUMBERS
+        $a.numerator * ($b.denominator div $gcd) - $b.numerator * ($a.denominator div $gcd),
+        ($a.denominator div $gcd) * $b.denominator,
         $a,
-        $b,
-    );
+        $b;
 }
 
 multi sub infix:<->(Rational \$a, Int \$b) {
-    DIVIDE_NUMBERS(
-        ($a.numerator - $b * $a.denominator),
+    DIVIDE_NUMBERS
+        $a.numerator - $b * $a.denominator,
         $a.denominator,
         $a,
-        $b,
-    );
+        $b;
 }
 
 multi sub infix:<->(Int \$a, Rational \$b) {

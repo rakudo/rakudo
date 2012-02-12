@@ -1,5 +1,4 @@
 my Int $UINT64_UPPER = nqp::pow_I(2, 64, Num, Int);
-subset UInt64 of Int where { 0 <= $_ < $UINT64_UPPER } 
 
 my role Rational is Real {
     has Int $.numerator;
@@ -74,7 +73,7 @@ sub DIVIDE_NUMBERS(Int:D \$nu, Int:D \$de, $t1, $t2) {
         nqp::bindattr($r, FatRat, '$!numerator',   nqp::p6decont($numerator));
         nqp::bindattr($r, FatRat, '$!denominator', nqp::p6decont($denominator));
         $r;
-    } elsif $denominator <= $UINT64_UPPER {
+    } elsif $denominator < $UINT64_UPPER {
         my $r := nqp::create(Rat);
         nqp::bindattr($r, Rat, '$!numerator',   nqp::p6decont($numerator));
         nqp::bindattr($r, Rat, '$!denominator', nqp::p6decont($denominator));
@@ -143,7 +142,7 @@ multi sub infix:<->(Rational \$a, Int \$b) {
 multi sub infix:<->(Int \$a, Rational \$b) {
     DIVIDE_NUMBERS
         $a * $b.denominator - $b.numerator,
-        $b.denominator
+        $b.denominator,
         $a,
         $b;
 }

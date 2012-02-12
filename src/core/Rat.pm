@@ -73,10 +73,12 @@ sub DIVIDE_NUMBERS(Int:D \$nu, Int:D \$de, $t1, $t2) {
         my $r := nqp::create(FatRat);
         nqp::bindattr($r, FatRat, '$!numerator',   nqp::p6decont($numerator));
         nqp::bindattr($r, FatRat, '$!denominator', nqp::p6decont($denominator));
+        $r;
     } elsif $denominator <= $UINT64_UPPER {
         my $r := nqp::create(Rat);
         nqp::bindattr($r, Rat, '$!numerator',   nqp::p6decont($numerator));
         nqp::bindattr($r, Rat, '$!denominator', nqp::p6decont($denominator));
+        $r;
     } else {
         nqp::p6box_n(nqp::div_n(
                 nqp::tonum_I(nqp::p6decont $numerator),

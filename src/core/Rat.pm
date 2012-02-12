@@ -89,27 +89,53 @@ sub DIVIDE_NUMBERS(Int:D \$nu, Int:D \$de, $t1, $t2) {
 multi prefix:<->(Rat \$a) {
     Rat.new(-$a.numerator, $a.denominator);
 }
-
-multi infix:<+>(Rat \$a, Rat \$b) {
-    my $gcd = $a.denominator gcd $b.denominator;
-    ($a.numerator * ($b.denominator div $gcd) + $b.numerator * ($a.denominator div $gcd))
-        / (($a.denominator div $gcd) * $b.denominator);
-}
-multi sub infix:<+>(Rat \$a, Int \$b) {
-    ($a.numerator + $b * $a.denominator) / $a.denominator;
-}
-multi sub infix:<+>(Int \$a, Rat \$b) {
-    ($a * $b.denominator + $b.numerator) / $b.denominator;
+multi prefix:<->(FatRat \$a) {
+    FatRat.new(-$a.numerator, $a.denominator);
 }
 
-multi sub infix:<->(Rat \$a, Rat \$b) {
-    my $gcd = $a.denominator gcd $b.denominator;
-    ($a.numerator * ($b.denominator div $gcd) - $b.numerator * ($a.denominator div $gcd))
-        / (($a.denominator div $gcd) * $b.denominator);
+multi infix:<+>(Rational \$a, Rational \$b) {
+    my Int $gcd := $a.denominator gcd $b.denominator;
+    DIVIDE_NUMBERS(
+        ($a.numerator * ($b.denominator div $gcd) + $b.numerator * ($a.denominator div $gcd)),
+        (($a.denominator div $gcd) * $b.denominator),
+        $a,
+        $b,
+    );
+}
+multi sub infix:<+>(Rational \$a, Int \$b) {
+    DIVIDE_NUMBERS(
+        ($a.numerator + $b * $a.denominator),
+        $a.denominator,
+        $a,
+        $b,
+    );
+}
+multi sub infix:<+>(Int \$a, Rational \$b) {
+    DIVIDE_NUMBERS(
+        ($a * $b.denominator + $b.numerator),
+        $b.denominator,
+        $a,
+        $b,
+    );
 }
 
-multi sub infix:<->(Rat \$a, Int \$b) {
-    ($a.numerator - $b * $a.denominator) / $a.denominator;
+multi sub infix:<->(Rational \$a, Rational \$b) {
+    my Int $gcd = $a.denominator gcd $b.denominator;
+    DIVIDE_NUMBERS(
+        ($a.numerator * ($b.denominator div $gcd) - $b.numerator * ($a.denominator div $gcd)),
+        (($a.denominator div $gcd) * $b.denominator),
+        $a,
+        $b,
+    );
+}
+
+multi sub infix:<->(Rational \$a, Int \$b) {
+    DIVIDE_NUMBERS(
+        ($a.numerator - $b * $a.denominator),
+        $a.denominator,
+        $a,
+        $b,
+    );
 }
 
 multi sub infix:<->(Int \$a, Rat \$b) {

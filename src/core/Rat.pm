@@ -19,7 +19,7 @@ my role Rational is Real {
     }
 
     method new(Int \$nu = 0, Int \$de = 1) {
-        my Rat $new     := nqp::create(self);
+        my $new         := nqp::create(self);
         my Int $gcd     := $nu gcd $de;
         my $numerator   = $nu div $gcd;
         my $denominator = $de div $gcd;
@@ -58,7 +58,7 @@ my role Rational is Real {
 }
 
 # XXX: should also be Cool
-my class Rat does Rational { }
+my class Rat    does Rational { }
 my class FatRat does Rational { }
 
 sub DIVIDE_NUMBERS(Int:D \$nu, Int:D \$de, $t1, $t2) {
@@ -69,7 +69,7 @@ sub DIVIDE_NUMBERS(Int:D \$nu, Int:D \$de, $t1, $t2) {
         $numerator   = -$numerator;
         $denominator = -$denominator;
     }
-    if nqp::istype($nu, FatRat) || nqp::istype($de, FatRat) {
+    if nqp::istype($t1, FatRat) || nqp::istype($t1, FatRat) {
         my $r := nqp::create(FatRat);
         nqp::bindattr($r, FatRat, '$!numerator',   nqp::p6decont($numerator));
         nqp::bindattr($r, FatRat, '$!denominator', nqp::p6decont($denominator));
@@ -78,7 +78,11 @@ sub DIVIDE_NUMBERS(Int:D \$nu, Int:D \$de, $t1, $t2) {
         nqp::bindattr($r, Rat, '$!numerator',   nqp::p6decont($numerator));
         nqp::bindattr($r, Rat, '$!denominator', nqp::p6decont($denominator));
     } else {
-
+        nqp::p6box_n(nqp::div_n(
+                nqp::tonum_I(nqp::p6decont $numerator),
+                nqp::tonum_I(nqp::p6decont $denominator)
+            )
+        );
     }
 }
 

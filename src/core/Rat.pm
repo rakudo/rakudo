@@ -138,39 +138,67 @@ multi sub infix:<->(Rational \$a, Int \$b) {
     );
 }
 
-multi sub infix:<->(Int \$a, Rat \$b) {
-    ($a * $b.denominator - $b.numerator) / $b.denominator;
+multi sub infix:<->(Int \$a, Rational \$b) {
+    DIVIDE_NUMBERS
+        $a * $b.denominator - $b.numerator,
+        $b.denominator
+        $a,
+        $b;
 }
 
-multi sub infix:<*>(Rat \$a, Rat \$b) {
-    ($a.numerator * $b.numerator) / ($a.denominator * $b.denominator);
+multi sub infix:<*>(Rational \$a, Rational \$b) {
+    DIVIDE_NUMBERS
+        $a.numerator * $b.numerator,
+        $a.denominator * $b.denominator,
+        $a,
+        $b;
 }
 
-multi sub infix:<*>(Rat \$a, Int \$b) {
-    ($a.numerator * $b) / $a.denominator;
+multi sub infix:<*>(Rational \$a, Int \$b) {
+    DIVIDE_NUMBERS
+        $a.numerator * $b,
+        $a.denominator,
+        $a,
+        $b;
 }
 
-multi sub infix:<*>(Int \$a, Rat \$b) {
-    ($a * $b.numerator) / $b.denominator;
+multi sub infix:<*>(Int \$a, Rational \$b) {
+    DIVIDE_NUMBERS
+        $a * $b.numerator,
+        $b.denominator,
+        $a,
+        $b;
 }
 
-multi sub infix:</>(Rat \$a, Rat \$b) {
-    ($a.numerator * $b.denominator) / ($a.denominator * $b.numerator);
+multi sub infix:</>(Rational \$a, Rational \$b) {
+    DIVIDE_NUMBERS
+        $a.numerator * $b.denominator,
+        $a.denominator * $b.numerator,
+        $a,
+        $b;
 }
 
-multi sub infix:</>(Rat \$a, Int \$b) {
+multi sub infix:</>(Rational \$a, Int \$b) {
     $a.numerator / ($a.denominator * $b);
 }
 
-multi sub infix:</>(Int \$a, Rat \$b) {
-    ($b.denominator * $a) / $b.numerator;
+multi sub infix:</>(Int \$a, Rational \$b) {
+    DIVIDE_NUMBERS
+        $b.denominator * $a,
+        $b.numerator,
+        $a,
+        $b;
 }
 
 multi sub infix:</>(Int \$a, Int \$b) {
-    Rat.new($a, $b);
+    DIVIDE_NUMBERS $a, $b, $a, $b
 }
 
-multi sub infix:<**>(Rat \$a, Int \$b) {
-    Rat.new($a.numerator ** $b,$a.denominator ** $b);
+multi sub infix:<**>(Rational \$a, Int \$b) {
+    DIVIDE_NUMBERS
+        $a.numerator ** $b,
+        $a.denominator ** $b,
+        $a,
+        $b;
 }
 

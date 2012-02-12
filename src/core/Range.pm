@@ -28,7 +28,7 @@ class Range is Iterable does Positional {
     }
 
     method flat()     { nqp::p6list(nqp::list(self), List, Bool::True) }
-    method infinite() { $!max.^isa(Num) && $!max eq 'Inf' }
+    method infinite() { nqp::p6bool(nqp::istype($!max, Num)) && $!max eq 'Inf' }
     method iterator() { self }
     method list()     { self.flat }
 
@@ -64,16 +64,16 @@ class Range is Iterable does Positional {
               if $count == $Inf && self.infinite;
         }
         my $cmpstop = $!excludes_max ?? 0 !! 1;
-        my $realmax = $!min.^does(Numeric) && !$!max.^does(Callable) && !$!max.^isa(Whatever)
+        my $realmax = nqp::istype($!min, Numeric) && !nqp::istype($!max, Callable) && !nqp::istype($!max, Whatever)
                       ?? $!max.Numeric
                       !! $!max;
         my Mu $rpa := nqp::list();
-        if $value.^isa(Int) && $!max.^isa(Int) && !nqp::isbig_I(nqp::p6decont $!max)
-           || $value.^isa(Num) {
+        if nqp::istype($value, Int) && nqp::istype($!max, Int) && !nqp::isbig_I(nqp::p6decont $!max)
+           || nqp::istype($value, Num) {
             # Q:PIR optimized for int/num ranges
             $value = $value.Num;
             my $max = $!max.Num;
-            my $box_int = $!min.^isa(Int);
+            my $box_int = nqp::p6bool(nqp::istype($!min, Int));
             Q:PIR {
                 .local pmc rpa, value_pmc, count_pmc
                 .local num value, count, max
@@ -144,13 +144,13 @@ class Range is Iterable does Positional {
         gather loop { take self.roll }
     }
     multi method roll(Range:D:) {
-        return self.list.roll unless $!min.^isa(Int) && $!max.^isa(Int);
+        return self.list.roll unless nqp::istype($!min, Int) && nqp::istype($!max, Int);
         my Int:D $least = $!excludes_min ?? $!min + 1 !! $!min;
         my Int:D $elems = 1 + ($!excludes_max ?? $!max - 1 !! $!max) - $least;
         $elems ?? ($least + $elems.rand.floor) !! Any;
     }
     multi method roll(Cool $num as Int) {
-        return self.list.roll($num) unless $!min.^isa(Int) && $!max.^isa(Int);
+        return self.list.roll($num) unless nqp::istype($!min, Int) && nqp::istype($!max, Int);
         return self.roll if $num == 1;
         my int $n = nqp::unbox_i($num);
         gather loop (my int $i = 0; $i < $n; $i = $i + 1) {
@@ -162,7 +162,7 @@ class Range is Iterable does Positional {
     multi method pick()          { self.roll };
     multi method pick(Whatever)  { self.list.pick(*) };
     multi method pick(Cool $n as Int) {
-        return self.list.pick($n) unless $!min.^isa(Int) && $!max.^isa(Int);
+        return self.list.pick($n) unless nqp::istype($!min, Int) && nqp::istype($!max, Int);
         return self.roll if $n == 1;
         my Int:D $least = $!excludes_min ?? $!min + 1 !! $!min;
         my Int:D $elems = 1 + ($!excludes_max ?? $!max - 1 !! $!max) - $least;

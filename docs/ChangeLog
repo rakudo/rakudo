@@ -11,8 +11,6 @@ New in 2012.02
 + <!> in regexes fixed
 + implemented Match.make(...) method
 + better error reporting for improper use of nextsame and friends
-+ compile time error reporting when $!x and $.x are used in the wrong places
-+ detection and complaining about $.x uses in submethods
 + initializers now parsed as part of a variable declarator
 + trailing whitespace now removed from Pod declarator blocks
 + List.tree made more useful

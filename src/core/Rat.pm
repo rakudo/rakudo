@@ -4,7 +4,7 @@ my role Rational is Real {
     has Int $.numerator;
     has Int $.denominator;
 
-    multi method WHICH(Rat:D:) {
+    multi method WHICH(Rational:D:) {
         nqp::box_s(
             nqp::concat_s(
                 nqp::concat_s(nqp::unbox_s(self.^name), '|'),
@@ -44,11 +44,11 @@ my role Rational is Real {
         self.Num.Str
     }
     method succ {
-        Rat.new($!numerator + $!denominator, $!denominator);
+        self.new($!numerator + $!denominator, $!denominator);
     }
 
     method pred {
-        Rat.new($!numerator - $!denominator, $!denominator);
+        self.new($!numerator - $!denominator, $!denominator);
     }
 }
 
@@ -191,7 +191,11 @@ multi sub infix:</>(Rational \$a, Rational \$b) {
 }
 
 multi sub infix:</>(Rational \$a, Int \$b) {
-    $a.numerator / ($a.denominator * $b);
+    DIVIDE_NUMBERS
+        $a.numerator,
+        $a.denominator * $b,
+        $a,
+        $b;
 }
 
 multi sub infix:</>(Int \$a, Rational \$b) {

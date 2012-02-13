@@ -25,6 +25,8 @@ New in 2012.02
 + catch constructs that require an invocant but don't have one
 + catch uses of virtual method calls in submethods and attribute initializers
 + improved parsing and performance of reduction meta operators
++ Rat arithmetic now properly defaults to Num if the denominator is too big
++ FatRat implemented
 
 New in 2012.01
 + -c command line option re-implemented

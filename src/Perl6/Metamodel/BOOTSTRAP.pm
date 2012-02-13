@@ -173,9 +173,11 @@ Attribute.HOW.add_method(Attribute, 'is_generic', sub ($self) {
         my $dcself   := pir::perl6_decontainerize__PP($self);
         my $type := pir::getattribute__PPPs(pir::perl6_decontainerize__PP($dcself),
             Attribute, '$!type');
+        my $package := pir::getattribute__PPPs(pir::perl6_decontainerize__PP($dcself),
+            Attribute, '$!package');
         my $build := pir::getattribute__PPPs(pir::perl6_decontainerize__PP($dcself),
             Attribute, '$!build_closure');
-        pir::perl6_booleanize__PI($type.HOW.archetypes.generic || pir::defined__IP($build));
+        pir::perl6_booleanize__PI($type.HOW.archetypes.generic || $package.HOW.archetypes.generic || pir::defined__IP($build));
     });
 Attribute.HOW.add_method(Attribute, 'instantiate_generic', sub ($self, $type_environment) {
         my $dcself   := pir::perl6_decontainerize__PP($self);
@@ -188,8 +190,6 @@ Attribute.HOW.add_method(Attribute, 'instantiate_generic', sub ($self, $type_env
         if $type.HOW.archetypes.generic {
             pir::setattribute__vPPsP($ins, Attribute, '$!type',
                 $type.HOW.instantiate_generic($type, $type_environment));
-            pir::setattribute__vPPsP($ins, Attribute, '$!package',
-                $pkg.HOW.instantiate_generic($pkg, $type_environment));
             my $cd_ins := $cd.instantiate_generic($type_environment);
             pir::setattribute__vPPsP($ins, Attribute, '$!container_descriptor', $cd_ins);
             my $avc_var  := pir::perl6_var__PP($avc);
@@ -199,6 +199,10 @@ Attribute.HOW.add_method(Attribute, 'instantiate_generic', sub ($self, $type_env
             $i := $i + 1 while @avc_mro[$i].HOW.is_mixin(@avc_mro[$i]);
             pir::setattribute__vPPsP($ins, Attribute, '$!auto_viv_container',
                 pir::setattribute__0PPsP($avc_copy, @avc_mro[$i], '$!descriptor', $cd_ins));
+        }
+        if $pkg.HOW.archetypes.generic {
+            pir::setattribute__vPPsP($ins, Attribute, '$!package',
+                $pkg.HOW.instantiate_generic($pkg, $type_environment));
         }
         if pir::defined__IP($bc) {
             pir::setattribute__vPPsP($ins, Attribute, '$!build_closure', $bc.clone());

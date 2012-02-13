@@ -77,7 +77,7 @@ sub DIVIDE_NUMBERS(Int:D \$nu, Int:D \$de, $t1, $t2) {
         $numerator   = -$numerator;
         $denominator = -$denominator;
     }
-    if nqp::istype($t1, FatRat) || nqp::istype($t1, FatRat) {
+    if nqp::istype($t1, FatRat) || nqp::istype($t2, FatRat) {
         my $r := nqp::create(FatRat);
         nqp::bindattr($r, FatRat, '$!numerator',   nqp::p6decont($numerator));
         nqp::bindattr($r, FatRat, '$!denominator', nqp::p6decont($denominator));

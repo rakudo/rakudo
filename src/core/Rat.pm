@@ -35,7 +35,10 @@ my role Rational is Real {
     method Num() {
         $!denominator == 0
           ?? ($!numerator < 0 ?? -$Inf !! $Inf)
-          !!  $!numerator.Num / $!denominator.Num
+          !! nqp::p6box_n(nqp::div_In(
+                nqp::p6decont($!numerator),
+                nqp::p6decont($!denominator)
+             ));
     }
     method Int() { $!numerator div $!denominator }
 
@@ -91,10 +94,9 @@ sub DIVIDE_NUMBERS(Int:D \$nu, Int:D \$de, $t1, $t2) {
         nqp::bindattr($r, Rat, '$!denominator', nqp::p6decont($denominator));
         $r;
     } else {
-        # TODO: be smarter here if both integers are big
-        nqp::p6box_n(nqp::div_n(
-                nqp::tonum_I(nqp::p6decont $numerator),
-                nqp::tonum_I(nqp::p6decont $denominator)
+        nqp::p6box_n(nqp::div_In(
+                nqp::p6decont($numerator),
+                nqp::p6decont($denominator)
             )
         );
     }

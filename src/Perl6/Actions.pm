@@ -3807,12 +3807,25 @@ class Perl6::Actions is HLL::Actions {
     our %SUBST_ALLOWED_ADVERBS ;
     our %SHARED_ALLOWED_ADVERBS;
     our %MATCH_ALLOWED_ADVERBS;
-    our %MATCH_ADVERBS_MULTIPLE := hash(
+        our %MATCH_ADVERBS_MULTIPLE := hash(
         x       => 1,
         g       => 1,
         global  => 1,
         ov      => 1,
         overlap => 1,
+    );
+    our %REGEX_ADVERBS_CANONICAL := hash(
+        ignorecase  => 'i',
+        ratchet     => 'r',
+        sigspace    => 's',
+        continue    => 'c',
+        pos         => 'p',
+        th          => 'nth',
+        st          => 'nth',
+        nd          => 'nth',
+        rd          => 'nth',
+        global      => 'g',
+        overlap     => 'ov',
     );
     INIT {
         my $mods := 'i ignorecase s sigspace r ratchet';
@@ -3877,6 +3890,7 @@ class Perl6::Actions is HLL::Actions {
                 $*W.throw($/, ['X', 'Value', 'Dynamic'], what => "Adverb $key");
             }
         }
+        $key := %REGEX_ADVERBS_CANONICAL{$key} // $key;
         %*RX{$key} := $value;
     }
 

@@ -40,11 +40,8 @@ my role Rational is Real {
     method Int() { $!numerator div $!denominator }
 
     method Bridge() { self.Num }
-    multi method Str(Rat:D:) {
+    multi method Str(Rational:D:) {
         self.Num.Str
-    }
-    multi method perl(Rat:D:) {
-        $!numerator ~ '/' ~ $!denominator
     }
     method succ {
         Rat.new($!numerator + $!denominator, $!denominator);
@@ -59,6 +56,9 @@ my role Rational is Real {
 my class Rat    does Rational { 
     method Rat   (Rat:D: Real $?) { self }
     method FatRat(Rat:D: Real $?) { FatRat.new($.numerator, $.denominator); }
+    multi method perl(Rat:D:) {
+        $.numerator ~ '/' ~ $.denominator
+    }
 }
 my class FatRat does Rational {
     method FatRat(FatRat:D: Real $?) { self }
@@ -66,6 +66,9 @@ my class FatRat does Rational {
         $.denominator < $UINT64_UPPER
             ?? Rat.new($.numerator, $.denominator)
             !! fail "Cannot convert from FatRat to Rat because denominator is too big";
+    }
+    multi method perl(FatRat:D:) {
+        "FatRat.new($.numerator, $.denominator)";
     }
 }
 

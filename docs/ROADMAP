@@ -57,7 +57,6 @@ Regexes
 3 *     <(, )>
 3 **    explicit backtracking control (::, :::)
 3 **    <cut>
-3 *     :ignorecase alias for :i, :ratchet alias for :r etc.
 
 Built-ins/Data Structures
 1 **    object hashes (jnthn)

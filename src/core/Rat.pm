@@ -55,7 +55,6 @@ my role Rational is Real {
     }
 }
 
-my class FatRat { ... }
 # XXX: should also be Cool
 my class Rat    does Rational { 
     method Rat   (Rat:D: Real $?) { self }

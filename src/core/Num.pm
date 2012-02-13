@@ -30,7 +30,7 @@ my class Num {
         }
     }
 
-    method Rat(Num:D: Real $epsilon = 1.0e-6) {
+    method Rat(Num:D: Real $epsilon = 1.0e-6, :$fat) {
         my sub modf($num) { my $q = $num.Int; $num - $q, $q; }
 
         (self == $Inf || self == -$Inf) && fail("Cannot coerce Inf to a Rat");
@@ -57,8 +57,10 @@ my class Num {
         # smaller denominator but it is not (necessarily) the Rational
         # with the smallest denominator that has less than $epsilon error.
         # However, to find that Rational would take more processing.
-
-        ($signum * $b) / $d;
+        $fat ?? FatRat.new($signum * $b, $d) !! ($signum * $b) / $d;
+    }
+    method FatRat(Num:D: Real $epsilon = 1.0e-6) {
+        self.Rat($epsilon, :fat);
     }
 
     multi method atan2(Num:D: Num:D $x = 1e0) {

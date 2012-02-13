@@ -30,6 +30,9 @@ my class Int {
     method Rat(Int:D: $?) {
         Rat.new(self, 1);
     }
+    method FatRat(Int:D: $?) {
+        FatRat.new(self, 1);
+    }
 
     method abs(Int:D:) {
         nqp::abs_I(self, Int)

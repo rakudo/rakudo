@@ -72,9 +72,10 @@ my class Backtrace is List {
         Int;
     }
 
-    method outer-caller-idx(Int $startidx) {
+    method outer-caller-idx(Int $startidx is copy) {
         my %print;
         my $start   = $.at_pos($startidx).code;
+        return $startidx.list unless $start;
         my $current = $start.outer;
         my %outers;
         while $current {

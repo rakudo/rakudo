@@ -10,7 +10,9 @@ my class Exception {
         self.?message.Str // 'Something went wrong'
     }
     multi method gist(Exception:D:) {
-        self.?message ~ "\n" ~ $.backtrace
+        my $str = try self.?message ~ "\n" ~ $.backtrace;
+        $! ?? "Error while creating error string: $!.message() $!.backtrace.full()" 
+           !! $str;
     }
 
     method throw() is hidden_from_backtrace {

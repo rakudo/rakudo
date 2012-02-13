@@ -40,7 +40,6 @@ my role Rational is Real {
     method Int() { $!numerator div $!denominator }
 
     method Bridge() { self.Num }
-    method Rat(Rat:D: Real $?) { self }
     multi method Str(Rat:D:) {
         self.Num.Str
     }
@@ -56,9 +55,20 @@ my role Rational is Real {
     }
 }
 
+my class FatRat { ... }
 # XXX: should also be Cool
-my class Rat    does Rational { }
-my class FatRat does Rational { }
+my class Rat    does Rational { 
+    method Rat   (Rat:D: Real $?) { self }
+    method FatRat(Rat:D: Real $?) { FatRat.new($.numerator, $.denominator); }
+}
+my class FatRat does Rational {
+    method FatRat(FatRat:D: Real $?) { self }
+    method Rat   (FatRat:D: Real $?) {
+        $.denominator < $UINT64_UPPER
+            ?? Rat.new($.numerator, $.denominator)
+            !! fail "Cannot convert from FatRat to Rat because denominator is too big";
+    }
+}
 
 sub DIVIDE_NUMBERS(Int:D \$nu, Int:D \$de, $t1, $t2) {
     my Int $gcd        := $nu gcd $de;
@@ -79,6 +89,7 @@ sub DIVIDE_NUMBERS(Int:D \$nu, Int:D \$de, $t1, $t2) {
         nqp::bindattr($r, Rat, '$!denominator', nqp::p6decont($denominator));
         $r;
     } else {
+        # TODO: be smarter here if both integers are big
         nqp::p6box_n(nqp::div_n(
                 nqp::tonum_I(nqp::p6decont $numerator),
                 nqp::tonum_I(nqp::p6decont $denominator)

@@ -18,8 +18,11 @@ role Perl6::Metamodel::Mixins {
         for @roles {
             $new_type.HOW.add_role($new_type, $_);
         }
-        $new_type.HOW.set_boolification_mode($new_type, self.get_boolification_mode($obj));
         $new_type.HOW.compose($new_type);
+        $new_type.HOW.set_boolification_mode($new_type,
+            pir::exists($new_type.HOW.method_table($new_type), 'Bool') ?? 0 !!
+                self.get_boolification_mode($obj));
+        $new_type.HOW.publish_boolification_spec($new_type);
         
         # If the original object was concrete, change its type by calling a
         # low level op. Otherwise, we just return the new type object

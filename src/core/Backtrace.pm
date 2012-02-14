@@ -67,7 +67,7 @@ my class Backtrace is List {
         # consider the last one
         loop (; $idx < $.end; ++$idx) {
             my $cand = $.at_pos($idx);
-            return $idx unless $cand.is-hidden || $cand.is-setting;
+            return $idx unless $cand.is-hidden;
         }
         Int;
     }

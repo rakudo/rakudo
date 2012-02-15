@@ -120,8 +120,77 @@ my class Hash {
                 $bindval)
         }
     }
-    method PARAMETERIZE_TYPE(Mu $t) {
-        self but TypedHash[$t.WHAT]
+    my role TypedHash[::TValue, ::TKey] does Associative[TValue] {
+        has $!keys;
+        method at_key(TKey \$key, TValue $v? is copy) is rw {
+            my $key_which = $key.WHICH;
+            self.exists($key_which)
+              ?? pir::find_method__PPs(EnumMap, 'at_key')(self, $key_which)
+              !! pir::setattribute__0PPsP($v, Scalar, '$!whence',
+                 -> {
+                        pir::defined(nqp::getattr(self, $?CLASS, '$!keys')) ||
+                            nqp::bindattr(self, $?CLASS, '$!keys', pir::new__Ps('Hash'));
+                        pir::defined(nqp::getattr(self, EnumMap, '$!storage')) ||
+                            nqp::bindattr(self, EnumMap, '$!storage', pir::new__Ps('Hash'));
+                        nqp::bindkey(
+                            nqp::getattr(self, $?CLASS, '$!keys'),
+                            nqp::unbox_s($key_which),
+                            $key);                        
+                        nqp::bindkey(
+                            nqp::getattr(self, EnumMap, '$!storage'),
+                            nqp::unbox_s($key_which),
+                            $v);
+                    })
+        }
+        method STORE_AT_KEY(TKey \$key, TValue $x is copy) is rw {
+            my $key_which = $key.WHICH;
+            pir::defined(nqp::getattr(self, $?CLASS, '$!keys')) ||
+                nqp::bindattr(self, $?CLASS, '$!keys', pir::new__Ps('Hash'));
+            pir::defined(nqp::getattr(self, EnumMap, '$!storage')) ||
+                nqp::bindattr(self, EnumMap, '$!storage', pir::new__Ps('Hash'));
+            nqp::bindkey(
+                nqp::getattr(self, $?CLASS, '$!keys'),
+                nqp::unbox_s($key_which),
+                $key);
+            nqp::bindkey(
+                nqp::getattr(self, EnumMap, '$!storage'),
+                nqp::unbox_s($key_which),
+                $x);
+        }
+        method bind_key(TKey $key, TValue \$bindval) is rw {
+            my $key_which = $key.WHICH;
+            pir::defined(nqp::getattr(self, $?CLASS, '$!keys')) ||
+                nqp::bindattr(self, $?CLASS, '$!keys', pir::new__Ps('Hash'));
+            pir::defined(nqp::getattr(self, EnumMap, '$!storage')) ||
+                nqp::bindattr(self, EnumMap, '$!storage', pir::new__Ps('Hash'));
+            nqp::bindkey(
+                nqp::getattr(self, $?CLASS, '$!keys'),
+                nqp::unbox_s($key_which),
+                $key);
+            nqp::bindkey(
+                nqp::getattr(self, EnumMap, '$!storage'),
+                nqp::unbox_s($key_which),
+                $bindval)
+        }
+        method pairs() {
+            return unless pir::defined(nqp::getattr(self, EnumMap, '$!storage'));
+            gather {
+                my Mu $iter := nqp::iterator(nqp::getattr(self, EnumMap, '$!storage'));
+                my Mu $pair;
+                my Mu $key;
+                while $iter {
+                    $pair := nqp::shift($iter);
+                    $key  := nqp::atkey(nqp::getattr(self, $?CLASS, '$!keys'), $pair.key);
+                    take Pair.new(:key($key), :value($pair.value));
+                }
+                Nil
+            }
+        }
+    }
+    method PARAMETERIZE_TYPE(Mu $t, |$c) {
+        $c.elems ??
+            self but TypedHash[$t.WHAT, $c[0]] !!
+            self but TypedHash[$t.WHAT]
     }
 }
 

@@ -9,7 +9,7 @@ my class Backtrace is List {
         has Str $.subname;
 
         method subtype {
-            my $s = $!code.WHAT.perl.lc;
+            my $s = $!code.^name.lc.split('+', 2)[0];
             $s eq 'mu' ?? '' !! $s;
         }
 

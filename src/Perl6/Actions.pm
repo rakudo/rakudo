@@ -99,7 +99,7 @@ class Perl6::Actions is HLL::Actions {
     # attribute/lexpad), bind constraint (what could we bind to this
     # slot later), and if specified a constraint on the inner value
     # and a default value.
-    sub container_type_info($sigil, @value_type) {
+    sub container_type_info($sigil, @value_type, $shape?) {
         my %info;
         if $sigil eq '@' {
             %info<container_base>  := $*W.find_symbol(['Array']);
@@ -115,15 +115,28 @@ class Perl6::Actions is HLL::Actions {
                 %info<container_type> := %info<container_base>;
                 %info<value_type>     := $*W.find_symbol(['Mu']);
             }
+            if $shape {
+                pir::die("Shaped arrays are not yet supported");
+            }
         }
         elsif $sigil eq '%' {
             %info<container_base>  := $*W.find_symbol(['Hash']);
             %info<bind_constraint> := $*W.find_symbol(['Associative']);
+            if $shape {
+                @value_type[0] := $*W.find_symbol(['Mu']) unless +@value_type;
+                my $shape_ast := $shape[0].ast;
+                if $shape_ast.isa(PAST::Stmts) && +@($shape_ast) == 1 && $shape_ast[0]<has_compile_time_value> {
+                    @value_type[1] := $shape_ast[0]<compile_time_value>;
+                }
+                else {
+                    pir::die("Invalid hash shape; type expected");
+                }
+            }
             if @value_type {
                 %info<container_type>  := $*W.parameterize_type_with_args(
-                    %info<container_base>, [@value_type[0]], nqp::hash());
+                    %info<container_base>, @value_type, nqp::hash());
                 %info<bind_constraint> := $*W.parameterize_type_with_args(
-                    %info<bind_constraint>, [@value_type[0]], nqp::hash());
+                    %info<bind_constraint>, @value_type, nqp::hash());
                 %info<value_type>      := @value_type[0];
             }
             else {
@@ -1391,10 +1404,10 @@ class Perl6::Actions is HLL::Actions {
         if $<variable><desigilname> && $*W.cur_lexpad().symbol($name) {
             $*W.throw($/, ['X', 'Redeclaration'], symbol => $name);
         }
-        make declare_variable($/, $past, ~$sigil, ~$twigil, ~$<variable><desigilname>, $<trait>);
+        make declare_variable($/, $past, ~$sigil, ~$twigil, ~$<variable><desigilname>, $<trait>, $<semilist>);
     }
 
-    sub declare_variable($/, $past, $sigil, $twigil, $desigilname, $trait_list) {
+    sub declare_variable($/, $past, $sigil, $twigil, $desigilname, $trait_list, $shape?) {
         my $name  := $sigil ~ $twigil ~ $desigilname;
         my $BLOCK := $*W.cur_lexpad();
 
@@ -1410,7 +1423,7 @@ class Perl6::Actions is HLL::Actions {
 
             # Create container descriptor and decide on any default value..
             my $attrname   := ~$sigil ~ '!' ~ $desigilname;
-            my %cont_info  := container_type_info($sigil, $*OFTYPE ?? [$*OFTYPE.ast] !! []);
+            my %cont_info  := container_type_info($sigil, $*OFTYPE ?? [$*OFTYPE.ast] !! [], $shape);
             my $descriptor := $*W.create_container_descriptor(%cont_info<value_type>, 1, $attrname);
 
             # Create meta-attribute and add it.
@@ -1459,7 +1472,7 @@ class Perl6::Actions is HLL::Actions {
 
             # Create a container descriptor. Default to rw and set a
             # type if we have one; a trait may twiddle with that later.
-            my %cont_info := container_type_info($sigil, $*OFTYPE ?? [$*OFTYPE.ast] !! []);
+            my %cont_info := container_type_info($sigil, $*OFTYPE ?? [$*OFTYPE.ast] !! [], $shape);
             my $descriptor := $*W.create_container_descriptor(%cont_info<value_type>, 1, $name);
 
             # Install the container.
@@ -1503,6 +1516,9 @@ class Perl6::Actions is HLL::Actions {
 
             if $*OFTYPE {
                 $/.CURSOR.panic("Cannot put a type constraint on an 'our'-scoped variable");
+            }
+            elsif $shape {
+                $/.CURSOR.panic("Cannot put a shape on an 'our'-scoped variable");
             }
             $BLOCK[0].push(PAST::Var.new(
                 :name($name), :scope('lexical'), :isdecl(1),

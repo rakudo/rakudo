@@ -1457,11 +1457,10 @@ grammar Perl6::Grammar is HLL::Grammar {
                         $/.CURSOR.panic("The () shape syntax in variable declarations is reserved");
                     }
                 }
-            | '[' ~ ']' <semilist>
+            | '[' ~ ']' <semilist> <.panic: "Shaped variable declarations are not yet implemented">
             | '{' ~ '}' <semilist>
-            | <?before '<'> <postcircumfix>
+            | <?before '<'> <postcircumfix> <.panic: "Shaped variable declarations are not yet implemented">
             ]+
-            <.panic: "Shaped variable declarations are not yet implemented">
         ]?
         <.ws>
         

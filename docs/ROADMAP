@@ -59,7 +59,6 @@ Regexes
 3 **    <cut>
 
 Built-ins/Data Structures
-1 **    object hashes (jnthn)
 2 ***   throwing typed exceptions (moritz)
 2 ***   packed arrays (jnthn)
 2 ***** NFG strings, .codes, .graphs, etc.

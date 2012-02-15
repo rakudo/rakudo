@@ -33,7 +33,7 @@ my class Hash {
         pir::find_method__PPs(EnumMap, 'STORE_AT_KEY')(self, $key, $x);
     }
 
-    method STORE(\$to_store) {
+    method STORE(\$to_store) is hidden_from_backtrace {
         my $items = ($to_store,).flat.eager;
         nqp::bindattr(self, EnumMap, '$!storage', pir::new__Ps('Hash'));
         while $items {

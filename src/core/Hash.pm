@@ -71,10 +71,10 @@ my class Hash {
         my $has_previous;
         for @values -> $e {
             if $has_previous {
-                self!_push_construct($previous.Str, $e);
+                self!_push_construct($previous, $e);
                 $has_previous = 0;
             } elsif $e.^isa(Enum) {
-                self!_push_construct($e.key.Str, $e.value);
+                self!_push_construct($e.key, $e.value);
             } else {
                 $previous = $e;
                 $has_previous = 1;
@@ -87,7 +87,7 @@ my class Hash {
     }
 
     # push a value onto a hash slot, constructing an array if necessary
-    method !_push_construct(Str $key, Mu $value) {
+    method !_push_construct(Mu $key, Mu $value) {
         if self.exists($key) {
             if self.{$key}.^isa(Array) {
                 self.{$key}.push($value);

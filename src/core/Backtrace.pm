@@ -84,7 +84,7 @@ my class Backtrace is List {
         }
         my @outers;
         loop (my Int $i = $startidx; $i < $.end; ++$i) {
-            if $.at_pos($i) && %outers{%.at_pos($i).code.static_id} {
+            if $.at_pos($i).code && %outers{%.at_pos($i).code.static_id} {
                 @outers.push: $i;
                 return @outers if $.at_pos($i).is-routine;
             }

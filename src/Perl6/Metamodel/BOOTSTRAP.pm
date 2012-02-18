@@ -788,9 +788,14 @@ my $invoke_forwarder :=
     sub ($self, *@pos, *%named) {
         if !nqp::isconcrete($self) && !pir::can__IPs($self, 'postcircumfix:<( )>') {
             my $coercer_name := $self.HOW.name($self);
-            +@pos == 1 ??
-                @pos[0]."$coercer_name"() !!
-                @pos # (should be marshalled to a Parcel by the binder...)
+            if +@pos == 1 {
+                @pos[0]."$coercer_name"()
+            }
+            else {
+                my $parcel := nqp::create(Parcel);
+                nqp::bindattr($parcel, Parcel, '$!storage', @pos);
+                $parcel."$coercer_name"()
+            }
         }
         else {
             my $c := nqp::create(Capture);

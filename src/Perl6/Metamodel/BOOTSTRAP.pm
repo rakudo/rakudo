@@ -786,10 +786,18 @@ Perl6::Metamodel::ClassHOW.add_stash(ObjAt);
 # to postcircumfix:<( )>.
 my $invoke_forwarder :=
     sub ($self, *@pos, *%named) {
-        my $c := nqp::create(Capture);
-        nqp::bindattr($c, Capture, '$!list', @pos);
-        nqp::bindattr($c, Capture, '$!hash', %named);
-        $self.postcircumfix:<( )>($c);
+        if !nqp::isconcrete($self) && !pir::can__IPs($self, 'postcircumfix:<( )>') {
+            my $coercer_name := $self.HOW.name($self);
+            +@pos == 1 ??
+                @pos[0]."$coercer_name"() !!
+                @pos # (should be marshalled to a Parcel by the binder...)
+        }
+        else {
+            my $c := nqp::create(Capture);
+            nqp::bindattr($c, Capture, '$!list', @pos);
+            nqp::bindattr($c, Capture, '$!hash', %named);
+            $self.postcircumfix:<( )>($c);
+        }
     }
 Perl6::Metamodel::ClassHOW.set_invoke_forwarder($invoke_forwarder);
 Mu.HOW.add_parrot_vtable_mapping(Mu, 'invoke', $invoke_forwarder);

@@ -1604,6 +1604,16 @@ class Perl6::World is HLL::World {
         $is_name
     }
     
+    # Checks if a given symbol is declared and a type object.
+    method is_type(@name) {
+        my $is_name := 0;
+        try {
+            # This throws if it's not a known name.
+            $is_name := !nqp::isconcrete(self.find_symbol(@name))
+        }
+        $is_name
+    }
+    
     # Checks if a symbol has already been declared in the current
     # scope, and thus may not be redeclared.
     method already_declared($scope, $curpackage, $curpad, @name) {

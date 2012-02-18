@@ -1864,7 +1864,7 @@ grammar Perl6::Grammar is HLL::Grammar {
     token term:sym<!!!> { <sym> <args> }
 
     token term:sym<identifier> {
-        <identifier> <?[(]> <args>
+        <identifier> <!{ $*W.is_type([~$<identifier>]) }> <?[(]> <args>
     }
 
     token term:sym<name> {

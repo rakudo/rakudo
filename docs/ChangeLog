@@ -27,6 +27,10 @@ New in 2012.02
 + improved parsing and performance of reduction meta operators
 + Rat arithmetic now properly defaults to Num if the denominator is too big
 + FatRat implemented
++ implemented long forms of regex adverbs (e.g. "ignorecase" maps to "i")
++ fixed "but True" and "but False"
++ object hashes, with the my %h{SomeObjectType} syntax
++ implemented Int($x) style coercions
 
 New in 2012.01
 + -c command line option re-implemented

@@ -57,6 +57,7 @@ Regexes
 3 *     <(, )>
 3 **    explicit backtracking control (::, :::)
 3 **    <cut>
+3 **    :exhaustive adverb
 
 Built-ins/Data Structures
 2 ***   throwing typed exceptions (moritz)

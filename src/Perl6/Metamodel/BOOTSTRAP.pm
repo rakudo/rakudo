@@ -845,7 +845,7 @@ BEGIN {
     # Need to tell parametric role groups how to create a dispatcher.
     Perl6::Metamodel::ParametricRoleGroupHOW.set_selector_creator({
         my $sel := nqp::create(Sub);
-        my $onlystar := -> *@pos, *%named {
+        my $onlystar := sub (*@pos, *%named) {
             pir::perl6_enter_multi_dispatch_from_onlystar_block__P();
         };
         pir::perl6_associate_sub_code_object__vPP($onlystar, $sel);

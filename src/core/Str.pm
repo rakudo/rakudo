@@ -338,6 +338,7 @@ my class Str does Stringy {
             gather {
                 my $m := self.ll-match($pat, |%opts);
                 while $m {
+                    last if $m.to > self.chars;
                     take $m;
                     $m := self.ll-match($pat, :c($m.from + 1));
                 }
@@ -348,7 +349,10 @@ my class Str does Stringy {
                 my $m := self.ll-match($pat, |%opts);
                 if $m {
                     take $m;
-                    take $m while $m := self.ll-match($pat, :c($m.to == $m.from ?? $m.to + 1 !! $m.to));
+                    while $m := self.ll-match($pat, :c($m.to == $m.from ?? $m.to + 1 !! $m.to)) {
+                        last if $m.to > self.chars;
+                        take $m;
+                    }
                 }
             }
         }

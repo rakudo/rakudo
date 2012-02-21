@@ -133,7 +133,6 @@ BEGIN {
     Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!build_closure>, :type(Mu), :package(Attribute)));
     Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!package>, :type(Mu), :package(Attribute)));
     Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!box_target>, :type(int), :package(Attribute)));
-    Attribute.HOW.publish_parrot_vtable_mapping(Attribute);
 
     # Need new and accessor methods for Attribute in here for now.
     Attribute.HOW.add_method(Attribute, 'new',
@@ -557,14 +556,10 @@ BEGIN {
     # up the stub.
     Code.HOW.add_parrot_vtable_mapping(Code, 'invoke', nqp::null());
     Code.HOW.add_parrot_vtable_handler_mapping(Code, 'invoke', '$!do');
-    Code.HOW.publish_parrot_vtable_handler_mapping(Code);
-    Code.HOW.publish_parrot_vtable_mapping(Code);
 
     # class Block is Code { ... }
     Block.HOW.add_parent(Block, Code);
     Block.HOW.add_attribute(Block, BOOTSTRAPATTR.new(:name<$!state_vars>, :type(Mu), :package(Block)));
-    Block.HOW.publish_parrot_vtable_handler_mapping(Block);
-    Block.HOW.publish_parrot_vtable_mapping(Block);
     Block.HOW.add_method(Block, 'clone', static(sub ($self) {
             my $dcself := pir::perl6_decontainerize__PP($self);
             my $cloned := pir::repr_clone__PP($dcself);
@@ -591,8 +586,6 @@ BEGIN {
     Routine.HOW.add_attribute(Routine, BOOTSTRAPATTR.new(:name<$!md_thunk>, :type(Mu), :package(Routine)));
     Routine.HOW.add_attribute(Routine, BOOTSTRAPATTR.new(:name<$!inline_info>, :type(str), :package(Routine)));
     Routine.HOW.add_attribute(Routine, BOOTSTRAPATTR.new(:name<$!yada>, :type(int), :package(Routine)));
-    Routine.HOW.publish_parrot_vtable_handler_mapping(Routine);
-    Routine.HOW.publish_parrot_vtable_mapping(Routine);
     Routine.HOW.add_method(Routine, 'set_rw', static(sub ($self) {
             my $dcself := pir::perl6_decontainerize__PP($self);
             pir::repr_bind_attr_int__0PPsi($dcself, Routine, '$!rw', 1);
@@ -609,23 +602,15 @@ BEGIN {
 
     # class Sub is Routine { ... }
     Sub.HOW.add_parent(Sub, Routine);
-    Sub.HOW.publish_parrot_vtable_handler_mapping(Sub);
-    Sub.HOW.publish_parrot_vtable_mapping(Sub);
 
     # class Method is Routine { ... }
     Method.HOW.add_parent(Method, Routine);
-    Method.HOW.publish_parrot_vtable_handler_mapping(Method);
-    Method.HOW.publish_parrot_vtable_mapping(Method);
 
     # class Submethod is Routine { ... }
     Submethod.HOW.add_parent(Submethod, Routine);
-    Submethod.HOW.publish_parrot_vtable_handler_mapping(Submethod);
-    Submethod.HOW.publish_parrot_vtable_mapping(Submethod);
 
     # class Regex is Method { ... }
     Regex.HOW.add_parent(Regex, Method);
-    Regex.HOW.publish_parrot_vtable_handler_mapping(Regex);
-    Regex.HOW.publish_parrot_vtable_mapping(Regex);
     Regex.HOW.add_method(Regex, 'nqpattr', static(sub ($self, $key) {
             nqp::getattr(pir::perl6_decontainerize__PP($self), Code, '$!do').nqpattr($key)
         }));
@@ -811,7 +796,6 @@ BEGIN {
         });
     Perl6::Metamodel::ClassHOW.set_invoke_forwarder($invoke_forwarder);
     Mu.HOW.add_parrot_vtable_mapping(Mu, 'invoke', $invoke_forwarder);
-    Mu.HOW.publish_parrot_vtable_mapping(Mu);
 
     # If we don't already have a PROCESS, set it up.
     my $PROCESS;
@@ -833,7 +817,6 @@ BEGIN {
     my $true := pir::repr_instance_of__PP(Bool);
     nqp::bindattr_i($true, Bool, '$!value', 1);
     (Bool.WHO)<True> := $true;
-    pir::perl6_set_bools__vPP($false, $true);
 
     # Roles pretend to be narrower than certain types for the purpose
     # of type checking. Also, they pun to classes.
@@ -913,6 +896,25 @@ BEGIN {
     EXPORT::DEFAULT.WHO<Metamodel>           := Metamodel;
 }
 
+# Publish Parrot v-table handler mappings.
+Mu.HOW.publish_parrot_vtable_mapping(Mu);
+Attribute.HOW.publish_parrot_vtable_mapping(Attribute);
+Code.HOW.publish_parrot_vtable_handler_mapping(Code);
+Code.HOW.publish_parrot_vtable_mapping(Code);
+Block.HOW.publish_parrot_vtable_handler_mapping(Block);
+Block.HOW.publish_parrot_vtable_mapping(Block);
+Routine.HOW.publish_parrot_vtable_handler_mapping(Routine);
+Routine.HOW.publish_parrot_vtable_mapping(Routine);
+Sub.HOW.publish_parrot_vtable_handler_mapping(Sub);
+Sub.HOW.publish_parrot_vtable_mapping(Sub);
+Method.HOW.publish_parrot_vtable_handler_mapping(Method);
+Method.HOW.publish_parrot_vtable_mapping(Method);
+Submethod.HOW.publish_parrot_vtable_handler_mapping(Submethod);
+Submethod.HOW.publish_parrot_vtable_mapping(Submethod);
+Regex.HOW.publish_parrot_vtable_handler_mapping(Regex);
+Regex.HOW.publish_parrot_vtable_mapping(Regex);
+Stash.HOW.publish_parrot_vtable_handler_mapping(Stash);
+
 # Set up various type mappings.
 pir::perl6_set_type_packagehow__vP(Perl6::Metamodel::PackageHOW);
 pir::perl6_set_types_mu_any__vP(Mu, Any);
@@ -921,6 +923,7 @@ pir::perl6_set_types_ins__vPPP(Int, Num, Str);
 pir::perl6_set_types_list_array_lol__vPP(List, ListIter, Array, LoL, Parcel);
 pir::perl6_set_types_enummap_hash__vPP(EnumMap, Hash);
 pir::perl6_set_type_capture__vP(Capture);
+pir::perl6_set_bools__vPP(Bool.WHO<False>, Bool.WHO<True>);
 
 # We'll build container descriptors for $_, $! and $/ that we can
 # share with all of the magically/lazily created scalars.

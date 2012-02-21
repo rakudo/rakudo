@@ -545,7 +545,6 @@ static PMC* find_best_candidate(PARROT_INTERP, Rakudo_md_candidate_info **candid
                 INTVAL i;
 
                 for (i = 0; i < possibles_count; i++) {
-                    interp->current_cont = (PMC *)NEED_CONTINUATION;
                     Parrot_pcc_set_signature(interp, CURRENT_CONTEXT(interp), NULL);
 
                     /* First, if there's a required named parameter and it was
@@ -579,6 +578,8 @@ static PMC* find_best_candidate(PARROT_INTERP, Rakudo_md_candidate_info **candid
                              * Get it compiled. */
                             Parrot_ext_call(interp, cthunk, "->");
                         }
+
+                        Parrot_pcc_reuse_continuation(interp, CURRENT_CONTEXT(interp), next);
                         where  = VTABLE_invoke(interp, possibles[i]->sub, next);
                         lexpad = Parrot_pcc_get_lex_pad(interp, CURRENT_CONTEXT(interp));
                         sig    = possibles[i]->signature;

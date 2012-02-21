@@ -300,9 +300,11 @@ my class Str does Stringy {
         (^self.chars).map({self.substr($_, 1) });
     }
     multi method comb(Str:D: Regex $pat, $limit = $Inf, :$match) {
+        my $x;
+        $x = (1..$limit) unless $limit.^isa(Whatever) || $limit == $Inf;
         $match
-            ?? self.match(:g, :x(1..$limit), $pat)
-            !! self.match(:g, :x(1..$limit), $pat).map: { .Str }
+            ?? self.match(:g, :$x, $pat)
+            !! self.match(:g, :$x, $pat).map: { .Str }
     }
 
     # TODO: should be private

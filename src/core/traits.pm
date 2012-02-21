@@ -1,4 +1,4 @@
-use Perl6::Metamodel;
+use Perl6::BOOTSTRAP;
 
 # Stub these or we can't use any sigil other than $.
 my role Positional { ... }

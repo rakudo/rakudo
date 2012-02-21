@@ -317,11 +317,7 @@ class Perl6::World is HLL::World {
         $block.symbol($name, :scope('lexical_6model'), :value($obj));
         
         # Add a clone if needed.
-        # XXX Horrible workaround here. We don't have proper serialization
-        # yet, and if we look up a cloned trait_mod (e.g. from the setting)
-        # then the serialization will blow up when we apply the trait. For
-        # now we just skip these, until the serializer lands.
-        if $clone && pir::substr($name, 0, 11) ne '&trait_mod:' {
+        if $clone {
             $block[0].push(PAST::Op.new(
                 :pasttype('bind_6model'),
                 PAST::Var.new( :name($name), :scope('lexical_6model') ),
@@ -331,16 +327,9 @@ class Perl6::World is HLL::World {
                 )));
         }
         
-        # Add to static lexpad, and generate deserialization code.
+        # Add to static lexpad.
         my $slp := self.get_static_lexpad($block);
         $slp.add_static_value(~$name, $obj, 0, 0);
-        if self.is_precompilation_mode() {
-            self.add_event(:deserialize_past(PAST::Stmt.new(PAST::Op.new(
-                :pasttype('callmethod'), :name('add_static_value'),
-                self.get_ref($slp), 
-                ~$name, self.get_ref($obj), 0, 0
-            ))));
-        }
 
         1;
     }

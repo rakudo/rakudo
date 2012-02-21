@@ -461,10 +461,10 @@ my class Str does Stringy {
     }
 
     multi method split(Str:D: Regex $pat, $limit = *, :$all) {
-        return ().list if $limit ~~ Numeric && $limit < 0;
+        return ().list if $limit ~~ Numeric && $limit <= 0;
         my @matches = $limit.^isa(Whatever)
                         ?? self.match($pat, :g)
-                        !! self.match($pat, :x(1..$limit), :g);
+                        !! self.match($pat, :x(1..$limit-1), :g);
         gather {
             my $prev-pos = 0;
             for @matches {

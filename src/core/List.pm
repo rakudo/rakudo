@@ -99,7 +99,7 @@ my class List does Positional {
 
         # loop through iterators until we have at least $n elements
         my int $count = nqp::elems($!items);
-        my $eager = nqp::p6bool(nqp::istype($n, Whatever));
+        my $eager = nqp::p6bool(nqp::istype($n, Whatever) || $n == $Inf);
         while $!nextiter.defined && ($eager 
                                        ?? !$!nextiter.infinite 
                                        !! ($count < $n)) {

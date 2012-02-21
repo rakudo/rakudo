@@ -680,7 +680,7 @@ class Perl6::World is HLL::World {
             $fixups.push($set);
         }
             
-        self.add_event(:deserialize_past($des), :fixup_past($fixups));
+        self.add_fixup_task(:deserialize_past($des), :fixup_past($fixups));
         $code;
     }
     

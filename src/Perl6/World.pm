@@ -654,38 +654,22 @@ class Perl6::World is HLL::World {
         # Desserialization should do the actual creation and just put the right
         # code in there in the first place.
         if self.is_precompilation_mode() {
-            $des.push(self.add_object_to_cur_sc_past($slot, PAST::Op.new(
-                :pirop('repr_instance_of PP'),
-                self.get_ref($type_obj)
-            )));
             $des.push(self.set_attribute($code, $code_type, '$!do', PAST::Val.new( :value($code_past) )));
         }
 
         # Install signauture now and add to deserialization.
         pir::setattribute__vPPsP($code, $code_type, '$!signature', $signature);
-        if self.is_precompilation_mode() {
-            $des.push(self.set_attribute($code, $code_type, '$!signature', self.get_ref($signature)));
-        }
         
         # If this is a dispatcher, install dispatchee list that we can
         # add the candidates too.
         if $is_dispatcher {
             pir::setattribute__vPPsP($code, $code_type, '$!dispatchees', []);
-            if self.is_precompilation_mode() {
-                $des.push(self.set_attribute($code, $code_type, '$!dispatchees',
-                    PAST::Op.new( :pasttype('list') )));
-            }
         }
         
         # Set yada flag if needed.
         if $yada {
             my $rtype := self.find_symbol(['Routine']);
             nqp::bindattr_i($code, $rtype, '$!yada', 1);
-            if self.is_precompilation_mode() {
-                $des.push(PAST::Op.new(
-                    :pirop('repr_bind_attr_int__vPPsi'),
-                    self.get_ref($code), self.get_ref($rtype), '$!yada', 1));
-            }
         }
 
         # Deserialization also needs to give the Parrot sub its backlink.

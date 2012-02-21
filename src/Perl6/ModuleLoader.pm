@@ -90,7 +90,7 @@ class Perl6::ModuleLoader {
         @candidates
     }
     
-    method load_module($module_name, $cur_GLOBALish) {
+    method load_module($module_name, *@GLOBALish) {
         # Locate all the things that we potentially could load. Choose
         # the first one for now (XXX need to filter by version and auth).
         my @prefixes   := self.search_path();
@@ -136,12 +136,14 @@ class Perl6::ModuleLoader {
             pir::set_hll_global__vsP('GLOBAL', $preserve_global);
         }
 
-        # Provided we have a mainline...
+        # Provided we have a mainline and need to do global merging...
         if pir::defined($module_ctx) {
             # Merge any globals.
-            my $UNIT := pir::getattribute__PPs($module_ctx, 'lex_pad');
-            unless pir::isnull($UNIT<GLOBALish>) {
-                merge_globals($cur_GLOBALish, $UNIT<GLOBALish>);
+            if +@GLOBALish {
+                my $UNIT := pir::getattribute__PPs($module_ctx, 'lex_pad');
+                unless pir::isnull($UNIT<GLOBALish>) {
+                    merge_globals(@GLOBALish[0], $UNIT<GLOBALish>);
+                }
             }
         }
 

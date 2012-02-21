@@ -145,7 +145,7 @@ class Perl6::World is HLL::World {
             my $setting := %*COMPILING<%?OPTIONS><outer_ctx>
                         := Perl6::ModuleLoader.load_setting($setting_name);
             
-            # Do load in code.
+            # Add a fixup and deserialization task also.
             my $fixup := PAST::Stmt.new(
                 self.perl6_module_loader_code(),
                 PAST::Op.new(
@@ -158,7 +158,7 @@ class Perl6::World is HLL::World {
                     )
                 )
             );
-            self.add_event(:deserialize_past($fixup), :fixup_past($fixup));
+            self.add_fixup_task(:deserialize_past($fixup), :fixup_past($fixup));
             
             return pir::getattribute__PPs($setting, 'lex_pad');
         }
@@ -170,15 +170,14 @@ class Perl6::World is HLL::World {
         # Immediate loading.
         my $module := Perl6::ModuleLoader.load_module($module_name, $cur_GLOBALish);
         
-        # Make sure we do the loading during deserialization.
+        # During deserialization, ensure that we get this module loaded.
         if self.is_precompilation_mode() {
-            self.add_event(:deserialize_past(PAST::Stmts.new(
+            self.add_load_dependency_task(:deserialize_past(PAST::Stmts.new(
                 self.perl6_module_loader_code(),
                 PAST::Op.new(
                    :pasttype('callmethod'), :name('load_module'),
                    PAST::Var.new( :name('ModuleLoader'), :namespace([]), :scope('package') ),
-                   $module_name,
-                   self.get_slot_past_for_object($cur_GLOBALish)
+                   $module_name
                 ))));
         }
 

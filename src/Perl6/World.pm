@@ -80,18 +80,15 @@ class Perl6::World is HLL::World {
         my $slp_type_obj     := self.find_symbol(['StaticLexPad']);
         my $slp_type_obj_ref := self.get_ref($slp_type_obj);
         my $slp              := nqp::create($slp_type_obj);
-        my $slot             := self.add_object($slp);
         
-        # Deserialization code creates the static lexpad. Both that and the
-        # fixup need to associate it with the low-level LexInfo.
-        my $des := self.add_object_to_cur_sc_past($slot, PAST::Op.new(
-            :pirop('repr_instance_of PP'), $slp_type_obj_ref
-        ));
-        my $fix := PAST::Op.new(
+        # Deserialization and fixup need to associate static lex pad with the
+        # low-level LexInfo.
+        self.add_object($slp);
+        my $fixup := PAST::Op.new(
             :pasttype('callmethod'), :name('set_static_lexpad'),
             PAST::Val.new( :value($pad), :returns('LexInfo')),
             self.get_ref($slp));
-        self.add_event(:deserialize_past(PAST::Stmts.new($des, $fix)), :fixup_past($fix));
+        self.add_fixup_task(:deserialize_past($fixup), :fixup_past($fixup));
         
         # Stash it under the PAST block sub ID.
         %!sub_id_to_static_lexpad{$pad.subid()} := $slp;

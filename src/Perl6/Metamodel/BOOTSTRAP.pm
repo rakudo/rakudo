@@ -83,21 +83,26 @@ my module EXPORT {
 # We stick all the declarative bits inside of a BEGIN, so they get
 # serialized.
 BEGIN {
+    # Maps code objects to their static self, avoiding them being closures.
+    sub static($code) {
+        $code.get_lexinfo().get_static_code()
+    }
+
     # class Mu { ... }
     Mu.HOW.add_parrot_vtable_mapping(Mu, 'get_integer',
-        sub ($self) {
+        static(sub ($self) {
             nqp::unbox_i($self.Int())
-        });
+        }));
     Mu.HOW.add_parrot_vtable_mapping(Mu, 'get_number',
-        sub ($self) {
+        static(sub ($self) {
             nqp::unbox_n($self.Num())
-        });
+        }));
     Mu.HOW.add_parrot_vtable_mapping(Mu, 'get_string',
-        sub ($self) {
+        static(sub ($self) {
             nqp::unbox_s($self.Str())
-        });
+        }));
     Mu.HOW.add_parrot_vtable_mapping(Mu, 'defined',
-        sub ($self) { pir::istrue__IP($self.defined()) });
+        static(sub ($self) { pir::istrue__IP($self.defined()) }));
 
     # class Any is Mu { ... }
     Any.HOW.add_parent(Any, Mu);
@@ -132,7 +137,7 @@ BEGIN {
 
     # Need new and accessor methods for Attribute in here for now.
     Attribute.HOW.add_method(Attribute, 'new',
-        sub ($self, :$name, :$type, :$container_descriptor, :$has_accessor, :$package, *%other) {
+        static(sub ($self, :$name, :$type, :$container_descriptor, :$has_accessor, :$package, *%other) {
             my $attr := pir::repr_instance_of__PP($self);
             nqp::bindattr_s($attr, Attribute, '$!name', $name);
             nqp::bindattr($attr, Attribute, '$!type', $type);
@@ -144,68 +149,68 @@ BEGIN {
                     %other<auto_viv_container>);
             }
             $attr
-        });
-    Attribute.HOW.add_method(Attribute, 'name', sub ($self) {
+        }));
+    Attribute.HOW.add_method(Attribute, 'name', static(sub ($self) {
             nqp::getattr_s(pir::perl6_decontainerize__PP($self),
                 Attribute, '$!name');
-        });
-    Attribute.HOW.add_method(Attribute, 'type', sub ($self) {
+        }));
+    Attribute.HOW.add_method(Attribute, 'type', static(sub ($self) {
             nqp::getattr(pir::perl6_decontainerize__PP($self),
                 Attribute, '$!type');
-        });
-    Attribute.HOW.add_method(Attribute, 'container_descriptor', sub ($self) {
+        }));
+    Attribute.HOW.add_method(Attribute, 'container_descriptor', static(sub ($self) {
             nqp::getattr(pir::perl6_decontainerize__PP($self),
                 Attribute, '$!container_descriptor');
-        });
-    Attribute.HOW.add_method(Attribute, 'auto_viv_container', sub ($self) {
+        }));
+    Attribute.HOW.add_method(Attribute, 'auto_viv_container', static(sub ($self) {
             nqp::getattr(pir::perl6_decontainerize__PP($self),
                 Attribute, '$!auto_viv_container');
-        });
-    Attribute.HOW.add_method(Attribute, 'has_accessor', sub ($self) {
+        }));
+    Attribute.HOW.add_method(Attribute, 'has_accessor', static(sub ($self) {
             pir::perl6_booleanize__PI(
                 nqp::getattr_i(pir::perl6_decontainerize__PP($self),
                     Attribute, '$!has_accessor'));
-        });
-    Attribute.HOW.add_method(Attribute, 'rw', sub ($self) {
+        }));
+    Attribute.HOW.add_method(Attribute, 'rw', static(sub ($self) {
             pir::perl6_booleanize__PI(
                 nqp::getattr_i(pir::perl6_decontainerize__PP($self),
                     Attribute, '$!rw'));
-        });
-    Attribute.HOW.add_method(Attribute, 'set_rw', sub ($self) {
+        }));
+    Attribute.HOW.add_method(Attribute, 'set_rw', static(sub ($self) {
             nqp::bindattr_i(pir::perl6_decontainerize__PP($self),
                 Attribute, '$!rw', 1);
             pir::perl6_booleanize__PI(1)
-        });
-    Attribute.HOW.add_method(Attribute, 'set_readonly', sub ($self) {
+        }));
+    Attribute.HOW.add_method(Attribute, 'set_readonly', static(sub ($self) {
             nqp::bindattr_i(pir::perl6_decontainerize__PP($self),
                 Attribute, '$!ro', 1);
             pir::perl6_booleanize__PI(1)
-        });
-    Attribute.HOW.add_method(Attribute, 'default_to_rw', sub ($self) {
+        }));
+    Attribute.HOW.add_method(Attribute, 'default_to_rw', static(sub ($self) {
             my $dcself := pir::perl6_decontainerize__PP($self);
             unless nqp::getattr_i($dcself, Attribute, '$!ro') {
                 nqp::bindattr_i($dcself, Attribute, '$!rw', 1);
             }
             pir::perl6_booleanize__PI(1)
-        });
-    Attribute.HOW.add_method(Attribute, 'set_build', sub ($self, $closure) {
+        }));
+    Attribute.HOW.add_method(Attribute, 'set_build', static(sub ($self, $closure) {
             pir::setattribute__0PPsP(pir::perl6_decontainerize__PP($self),
                 Attribute, '$!build_closure', $closure);
-        });
-    Attribute.HOW.add_method(Attribute, 'build', sub ($self) {
+        }));
+    Attribute.HOW.add_method(Attribute, 'build', static(sub ($self) {
             nqp::getattr(pir::perl6_decontainerize__PP($self),
                 Attribute, '$!build_closure');
-        });
-    Attribute.HOW.add_method(Attribute, 'set_box_target', sub ($self) {
+        }));
+    Attribute.HOW.add_method(Attribute, 'set_box_target', static(sub ($self) {
             nqp::bindattr_i(pir::perl6_decontainerize__PP($self),
                 Attribute, '$!box_target', 1);
             pir::perl6_booleanize__PI(1)
-        });
-    Attribute.HOW.add_method(Attribute, 'box_target', sub ($self) {
+        }));
+    Attribute.HOW.add_method(Attribute, 'box_target', static(sub ($self) {
             nqp::getattr_i(pir::perl6_decontainerize__PP($self),
                 Attribute, '$!box_target')
-        });
-    Attribute.HOW.add_method(Attribute, 'is_generic', sub ($self) {
+        }));
+    Attribute.HOW.add_method(Attribute, 'is_generic', static(sub ($self) {
             my $dcself   := pir::perl6_decontainerize__PP($self);
             my $type := nqp::getattr(pir::perl6_decontainerize__PP($dcself),
                 Attribute, '$!type');
@@ -214,8 +219,8 @@ BEGIN {
             my $build := nqp::getattr(pir::perl6_decontainerize__PP($dcself),
                 Attribute, '$!build_closure');
             pir::perl6_booleanize__PI($type.HOW.archetypes.generic || $package.HOW.archetypes.generic || pir::defined__IP($build));
-        });
-    Attribute.HOW.add_method(Attribute, 'instantiate_generic', sub ($self, $type_environment) {
+        }));
+    Attribute.HOW.add_method(Attribute, 'instantiate_generic', static(sub ($self, $type_environment) {
             my $dcself   := pir::perl6_decontainerize__PP($self);
             my $type     := nqp::getattr($dcself, Attribute, '$!type');
             my $cd       := nqp::getattr($dcself, Attribute, '$!container_descriptor');
@@ -244,7 +249,7 @@ BEGIN {
                 nqp::bindattr($ins, Attribute, '$!build_closure', $bc.clone());
             }
             $ins
-        });
+        }));
 
     # class Scalar is Any {
     #     has $!descriptor;
@@ -255,11 +260,11 @@ BEGIN {
     Scalar.HOW.add_attribute(Scalar, BOOTSTRAPATTR.new(:name<$!descriptor>, :type(Mu), :package(Scalar)));
     Scalar.HOW.add_attribute(Scalar, BOOTSTRAPATTR.new(:name<$!value>, :type(Mu), :package(Scalar)));
     Scalar.HOW.add_attribute(Scalar, BOOTSTRAPATTR.new(:name<$!whence>, :type(Mu), :package(Scalar)));
-    Scalar.HOW.add_method(Scalar, 'is_generic', sub ($self) {
+    Scalar.HOW.add_method(Scalar, 'is_generic', static(sub ($self) {
         my $dcself := pir::perl6_decontainerize__PP($self);
         nqp::getattr($dcself, Scalar, '$!descriptor').is_generic()
-    });
-    Scalar.HOW.add_method(Scalar, 'instantiate_generic', sub ($self, $type_environment) {
+    }));
+    Scalar.HOW.add_method(Scalar, 'instantiate_generic', static(sub ($self, $type_environment) {
         my $dcself := pir::perl6_decontainerize__PP($self);
         nqp::bindattr($dcself, Scalar, '$!descriptor',
             nqp::getattr($dcself, Scalar, '$!descriptor').instantiate_generic(
@@ -270,7 +275,7 @@ BEGIN {
                 $val.HOW.instantiate_generic($val, $type_environment));
         }
         $self
-    });
+    }));
     pir::set_scalar_container_type__vP(Scalar);
 
     # Scalar needs to be registered as a container type.
@@ -286,18 +291,18 @@ BEGIN {
     Proxy.HOW.add_parent(Proxy, Any);
     Proxy.HOW.add_attribute(Proxy, BOOTSTRAPATTR.new(:name<&!FETCH>, :type(Mu), :package(Proxy)));
     Proxy.HOW.add_attribute(Proxy, BOOTSTRAPATTR.new(:name<&!STORE>, :type(Mu), :package(Proxy)));
-    Proxy.HOW.add_method(Proxy, 'FETCH', ($PROXY_FETCH := sub ($cont) {
+    Proxy.HOW.add_method(Proxy, 'FETCH', ($PROXY_FETCH := static(sub ($cont) {
         nqp::getattr($cont, Proxy, '&!FETCH')(pir::perl6_var__PP($cont))
-    }));
-    Proxy.HOW.add_method(Proxy, 'STORE', sub ($cont, $val) {
+    })));
+    Proxy.HOW.add_method(Proxy, 'STORE', static(sub ($cont, $val) {
         nqp::getattr($cont, Proxy, '&!STORE')(pir::perl6_var__PP($cont), $val)
-    });
-    Proxy.HOW.add_method(Proxy, 'new', sub ($type, :$FETCH, :$STORE) {
+    }));
+    Proxy.HOW.add_method(Proxy, 'new', static(sub ($type, :$FETCH, :$STORE) {
         my $cont := nqp::create(Proxy);
         nqp::bindattr($cont, Proxy, '&!FETCH', $FETCH);
         nqp::bindattr($cont, Proxy, '&!STORE', $STORE);
         $cont
-    });
+    }));
     Proxy.HOW.compose(Proxy);
     pir::set_container_spec__vPPsP(Proxy, nqp::null(), '', $PROXY_FETCH);
 
@@ -326,7 +331,7 @@ BEGIN {
     Signature.HOW.add_attribute(Signature, BOOTSTRAPATTR.new(:name<$!returns>, :type(Mu), :package(Signature)));
     Signature.HOW.add_attribute(Signature, BOOTSTRAPATTR.new(:name<$!arity>, :type(Mu), :package(Signature)));
     Signature.HOW.add_attribute(Signature, BOOTSTRAPATTR.new(:name<$!count>, :type(Mu), :package(Signature)));
-    Signature.HOW.add_method(Signature, 'is_generic', sub ($self) {
+    Signature.HOW.add_method(Signature, 'is_generic', static(sub ($self) {
             # If any parameter is generic, so are we.
             my @params := nqp::getattr($self, Signature, '$!params');
             for @params {
@@ -334,8 +339,8 @@ BEGIN {
                 if $is_generic { return $is_generic }
             }
             return pir::perl6_booleanize__PI(0);
-        });
-    Signature.HOW.add_method(Signature, 'instantiate_generic', sub ($self, $type_environment) {
+        }));
+    Signature.HOW.add_method(Signature, 'instantiate_generic', static(sub ($self, $type_environment) {
             # Go through parameters, builidng new list. If any
             # are generic, instantiate them. Otherwise leave them
             # as they are.
@@ -351,11 +356,11 @@ BEGIN {
                 }
             }
             pir::setattribute__0PPsP($ins, Signature, '$!params', @ins_params)
-        });
-    Signature.HOW.add_method(Signature, 'set_returns', sub ($self, $type) {
+        }));
+    Signature.HOW.add_method(Signature, 'set_returns', static(sub ($self, $type) {
             nqp::bindattr(pir::perl6_decontainerize__PP($self),
                 Signature, '$!returns', pir::perl6_decontainerize__PP($type));
-        });
+        }));
         
     # class Parameter {
     #     has str $!variable_name
@@ -385,17 +390,17 @@ BEGIN {
     Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!default_value>, :type(Mu), :package(Parameter)));
     Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!container_descriptor>, :type(Mu), :package(Parameter)));
     Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!attr_package>, :type(Mu), :package(Parameter)));
-    Parameter.HOW.add_method(Parameter, 'is_generic', sub ($self) {
+    Parameter.HOW.add_method(Parameter, 'is_generic', static(sub ($self) {
             # If nonimnal type is generic, so are we.
             my $type := nqp::getattr($self, Parameter, '$!nominal_type');
             pir::perl6_booleanize__PI($type.HOW.archetypes.generic)
-        });
+        }));
     my $SIG_ELEM_IS_RW           := 256;
     my $SIG_ELEM_IS_COPY         := 512;
     my $SIG_ELEM_IS_PARCEL       := 1024;
     my $SIG_ELEM_IS_OPTIONAL     := 2048;
     my $SIG_ELEM_NOMINAL_GENERIC := 524288;
-    Parameter.HOW.add_method(Parameter, 'instantiate_generic', sub ($self, $type_environment) {
+    Parameter.HOW.add_method(Parameter, 'instantiate_generic', static(sub ($self, $type_environment) {
             # Clone with the type instantiated.
             my $ins      := pir::repr_clone__PP($self);
             my $type     := nqp::getattr($self, Parameter, '$!nominal_type');
@@ -411,8 +416,8 @@ BEGIN {
             }
             pir::setattribute__0PPsP($ins, Parameter, '$!nominal_type', $ins_type);
             pir::setattribute__0PPsP($ins, Parameter, '$!container_descriptor', $ins_cd)
-        });
-    Parameter.HOW.add_method(Parameter, 'set_rw', sub ($self) {
+        }));
+    Parameter.HOW.add_method(Parameter, 'set_rw', static(sub ($self) {
             my $dcself := pir::perl6_decontainerize__PP($self);
             my $flags  := nqp::getattr_i($dcself, Parameter, '$!flags');
             if $flags +& $SIG_ELEM_IS_OPTIONAL {
@@ -421,35 +426,35 @@ BEGIN {
             my $cd := nqp::getattr($dcself, Parameter, '$!container_descriptor');
             if $cd { $cd.set_rw(1) }
             pir::repr_bind_attr_int__0PPsI($dcself, Parameter, '$!flags', $flags + $SIG_ELEM_IS_RW);
-        });
-    Parameter.HOW.add_method(Parameter, 'set_copy', sub ($self) {
+        }));
+    Parameter.HOW.add_method(Parameter, 'set_copy', static(sub ($self) {
             my $dcself := pir::perl6_decontainerize__PP($self);
             my $cd     := nqp::getattr($dcself, Parameter, '$!container_descriptor');
             if $cd { $cd.set_rw(1) }
             pir::repr_bind_attr_int__0PPsI($dcself, Parameter, '$!flags',
                 nqp::getattr_i($dcself, Parameter, '$!flags') + $SIG_ELEM_IS_COPY);
-        });
-    Parameter.HOW.add_method(Parameter, 'set_required', sub ($self) {
+        }));
+    Parameter.HOW.add_method(Parameter, 'set_required', static(sub ($self) {
             my $dcself := pir::perl6_decontainerize__PP($self);
             my $flags := nqp::getattr_i($dcself, Parameter, '$!flags');
             if $flags +& $SIG_ELEM_IS_OPTIONAL {
                 pir::repr_bind_attr_int__0PPsI($dcself, Parameter, '$!flags',
                     $flags - $SIG_ELEM_IS_OPTIONAL);
             }
-        });
-    Parameter.HOW.add_method(Parameter, 'set_parcel', sub ($self) {
+        }));
+    Parameter.HOW.add_method(Parameter, 'set_parcel', static(sub ($self) {
             my $dcself := pir::perl6_decontainerize__PP($self);
             my $flags := nqp::getattr_i($dcself, Parameter, '$!flags');
             unless $flags +& $SIG_ELEM_IS_PARCEL {
                 pir::repr_bind_attr_int__0PPsI($dcself, Parameter, '$!flags',
                     $flags + $SIG_ELEM_IS_PARCEL);
             }
-        });
-    Parameter.HOW.add_method(Parameter, 'set_coercion', sub ($self, $type) {
+        }));
+    Parameter.HOW.add_method(Parameter, 'set_coercion', static(sub ($self, $type) {
             my $dcself := pir::perl6_decontainerize__PP($self);
             pir::repr_bind_attr_str__0PPsS($dcself, Parameter, '$!coerce_method', $type.HOW.name($type));
             pir::setattribute__0PPsP($dcself, Parameter, '$!coerce_type', $type);
-        });
+        }));
         
     # class Code {
     #     has $!do;                # Low level code object
@@ -467,12 +472,12 @@ BEGIN {
 
     # Need multi-dispatch related methods and clone in here, plus
     # generics instantiation.
-    Code.HOW.add_method(Code, 'is_dispatcher', sub ($self) {
+    Code.HOW.add_method(Code, 'is_dispatcher', static(sub ($self) {
             my $dc_self   := pir::perl6_decontainerize__PP($self);
             my $disp_list := nqp::getattr($dc_self, Code, '$!dispatchees');
             pir::perl6_booleanize__PI(pir::defined__IP($disp_list));
-        });
-    Code.HOW.add_method(Code, 'add_dispatchee', sub ($self, $dispatchee) {
+        }));
+    Code.HOW.add_method(Code, 'add_dispatchee', static(sub ($self, $dispatchee) {
             my $dc_self   := pir::perl6_decontainerize__PP($self);
             my $disp_list := nqp::getattr($dc_self, Code, '$!dispatchees');
             if pir::defined($disp_list) {
@@ -484,8 +489,8 @@ BEGIN {
             else {
                 pir::die("Cannot add a dispatchee to a non-dispatcher code object");
             }
-        });
-    Code.HOW.add_method(Code, 'clone', sub ($self) {
+        }));
+    Code.HOW.add_method(Code, 'clone', static(sub ($self) {
             my $dcself := pir::perl6_decontainerize__PP($self);
             my $cloned := pir::repr_clone__PP($dcself);
             Q:PIR {
@@ -502,18 +507,18 @@ BEGIN {
                 pir::perl6_associate_sub_code_object__0PP(
                     pir::clone__PP(nqp::getattr($dcself, Code, '$!do')),
                     $cloned))
-        });
-    Code.HOW.add_method(Code, 'derive_dispatcher', sub ($self) {
+        }));
+    Code.HOW.add_method(Code, 'derive_dispatcher', static(sub ($self) {
             my $clone := $self.clone();
             pir::setattribute__0PPSP($clone, Code, '$!dispatchees',
                 pir::clone__PP(nqp::getattr($self, Code, '$!dispatchees')))
-        });
-    Code.HOW.add_method(Code, 'is_generic', sub ($self) {
+        }));
+    Code.HOW.add_method(Code, 'is_generic', static(sub ($self) {
             # Delegate to signature, since it contains all the type info.
             my $dc_self := pir::perl6_decontainerize__PP($self);
             nqp::getattr($dc_self, Code, '$!signature').is_generic()
-        });
-    Code.HOW.add_method(Code, 'instantiate_generic', sub ($self, $type_environment) {
+        }));
+    Code.HOW.add_method(Code, 'instantiate_generic', static(sub ($self, $type_environment) {
             # Clone the code object, then instantiate the generic signature. Also
             # need to clone dispatchees list.
             my $dcself := pir::perl6_decontainerize__PP($self);
@@ -525,28 +530,28 @@ BEGIN {
             my $sig := nqp::getattr($dcself, Code, '$!signature');
             pir::setattribute__0PPsP($ins, Code, '$!signature',
                 $sig.instantiate_generic($type_environment))
-        });
-    Code.HOW.add_method(Code, 'name', sub ($self) {
+        }));
+    Code.HOW.add_method(Code, 'name', static(sub ($self) {
             ~nqp::getattr(pir::perl6_decontainerize__PP($self),
                 Code, '$!do')
-        });
-    Code.HOW.add_method(Code, 'set_name', sub ($self, $name) {
+        }));
+    Code.HOW.add_method(Code, 'set_name', static(sub ($self, $name) {
             pir::assign__vPS(
                 nqp::getattr(pir::perl6_decontainerize__PP($self), Code, '$!do'),
                 $name)
-        });
-    Code.HOW.add_method(Code, 'dispatcher', sub ($self) {
+        }));
+    Code.HOW.add_method(Code, 'dispatcher', static(sub ($self) {
             nqp::getattr(pir::perl6_decontainerize__PP($self),
                 Code, '$!dispatcher')
-        });
-    Code.HOW.add_method(Code, 'dispatchees', sub ($self) {
+        }));
+    Code.HOW.add_method(Code, 'dispatchees', static(sub ($self) {
             nqp::getattr(pir::perl6_decontainerize__PP($self),
                 Code, '$!dispatchees')
-        });
-    Code.HOW.add_method(Code, 'id', sub ($self) {
+        }));
+    Code.HOW.add_method(Code, 'id', static(sub ($self) {
             nqp::where(nqp::getattr(pir::perl6_decontainerize__PP($self),
                 Code, '$!do'))
-        });
+        }));
         
     # Need to actually run the code block. Also need this available before we finish
     # up the stub.
@@ -560,7 +565,7 @@ BEGIN {
     Block.HOW.add_attribute(Block, BOOTSTRAPATTR.new(:name<$!state_vars>, :type(Mu), :package(Block)));
     Block.HOW.publish_parrot_vtable_handler_mapping(Block);
     Block.HOW.publish_parrot_vtable_mapping(Block);
-    Block.HOW.add_method(Block, 'clone', sub ($self) {
+    Block.HOW.add_method(Block, 'clone', static(sub ($self) {
             my $dcself := pir::perl6_decontainerize__PP($self);
             my $cloned := pir::repr_clone__PP($dcself);
             Q:PIR {
@@ -578,7 +583,7 @@ BEGIN {
                 pir::perl6_associate_sub_code_object__0PP(
                     pir::clone__PP(nqp::getattr($dcself, Code, '$!do')),
                     $cloned))
-        });
+        }));
 
     # class Routine is Block { ... }
     Routine.HOW.add_parent(Routine, Block);
@@ -588,19 +593,19 @@ BEGIN {
     Routine.HOW.add_attribute(Routine, BOOTSTRAPATTR.new(:name<$!yada>, :type(int), :package(Routine)));
     Routine.HOW.publish_parrot_vtable_handler_mapping(Routine);
     Routine.HOW.publish_parrot_vtable_mapping(Routine);
-    Routine.HOW.add_method(Routine, 'set_rw', sub ($self) {
+    Routine.HOW.add_method(Routine, 'set_rw', static(sub ($self) {
             my $dcself := pir::perl6_decontainerize__PP($self);
             pir::repr_bind_attr_int__0PPsi($dcself, Routine, '$!rw', 1);
-        });
-    Routine.HOW.add_method(Routine, 'set_inline_info', sub ($self, $info) {
+        }));
+    Routine.HOW.add_method(Routine, 'set_inline_info', static(sub ($self, $info) {
             my $dcself := pir::perl6_decontainerize__PP($self);
             pir::repr_bind_attr_str__0PPss($dcself, Routine, '$!inline_info',
                 nqp::unbox_s($info));
-        });
-    Routine.HOW.add_method(Routine, 'inline_info', sub ($self) {
+        }));
+    Routine.HOW.add_method(Routine, 'inline_info', static(sub ($self) {
             my $dcself := pir::perl6_decontainerize__PP($self);
             nqp::getattr_s($dcself, Routine, '$!inline_info')
-        });
+        }));
 
     # class Sub is Routine { ... }
     Sub.HOW.add_parent(Sub, Routine);
@@ -621,9 +626,9 @@ BEGIN {
     Regex.HOW.add_parent(Regex, Method);
     Regex.HOW.publish_parrot_vtable_handler_mapping(Regex);
     Regex.HOW.publish_parrot_vtable_mapping(Regex);
-    Regex.HOW.add_method(Regex, 'nqpattr', sub ($self, $key) {
+    Regex.HOW.add_method(Regex, 'nqpattr', static(sub ($self, $key) {
             nqp::getattr(pir::perl6_decontainerize__PP($self), Code, '$!do').nqpattr($key)
-        });
+        }));
 
     # class Str is Cool {
     #     has str $!value is box_target;
@@ -728,7 +733,10 @@ BEGIN {
     # }
     Capture.HOW.add_parent(Capture, Any);
 
-    # XXX Quick and dirty Bool. Probably done by EnumHOW in the end.
+    # class Bool is Cool {
+    #     has int $!value;
+    #     ...
+    # }
     Bool.HOW.add_parent(Bool, Cool);
     Bool.HOW.add_attribute(Bool, BOOTSTRAPATTR.new(:name<$!value>, :type(int), :box_target(1), :package(Bool)));
     Bool.HOW.set_boolification_mode(Bool, 1);
@@ -782,7 +790,7 @@ BEGIN {
     # Make Parrot invoke v-table construct a capture and delegate off
     # to postcircumfix:<( )>.
     my $invoke_forwarder :=
-        sub ($self, *@pos, *%named) {
+        static(sub ($self, *@pos, *%named) {
             if !nqp::isconcrete($self) && !pir::can__IPs($self, 'postcircumfix:<( )>') {
                 my $coercer_name := $self.HOW.name($self);
                 if +@pos == 1 {
@@ -800,7 +808,7 @@ BEGIN {
                 nqp::bindattr($c, Capture, '$!hash', %named);
                 $self.postcircumfix:<( )>($c);
             }
-        }
+        });
     Perl6::Metamodel::ClassHOW.set_invoke_forwarder($invoke_forwarder);
     Mu.HOW.add_parrot_vtable_mapping(Mu, 'invoke', $invoke_forwarder);
     Mu.HOW.publish_parrot_vtable_mapping(Mu);

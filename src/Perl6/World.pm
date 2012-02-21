@@ -226,28 +226,8 @@ class Perl6::World is HLL::World {
         # Second pass: stick it in the actual static lexpad.
         my $slp     := self.get_static_lexpad($target);
         my $slp_ref := self.get_ref($slp);
-        my $des := PAST::Stmts.new();
         for %stash {
             $slp.add_static_value($_.key, $_.value, 0, 0);
-            if self.is_precompilation_mode() {
-                $des.push(PAST::Op.new(
-                    :pasttype('callmethod'), :name('add_static_value'),
-                    $slp_ref, $_.key,
-                    PAST::Var.new(
-                        :scope('keyed'),
-                        PAST::Op.new(
-                            :pirop('get_who PP'),
-                            self.get_ref($package)
-                        ),
-                        $_.key
-                    ),
-                    0, 0
-                ));
-            }
-        }
-        
-        if self.is_precompilation_mode() {
-            self.add_event(:deserialize_past($des));
         }
 
         1;

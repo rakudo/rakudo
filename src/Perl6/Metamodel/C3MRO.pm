@@ -19,7 +19,7 @@ role Perl6::Metamodel::C3MRO {
                     @merge_list.push($_.HOW.mro($_));
                 }
                 @merge_list.push(@immediate_parents);
-                @result := c3_merge(@merge_list);
+                @result := self.c3_merge(@merge_list);
             }
         }
 
@@ -29,7 +29,7 @@ role Perl6::Metamodel::C3MRO {
     }
 
     # C3 merge routine.
-    sub c3_merge(@merge_list) {
+    method c3_merge(@merge_list) {
         my @result;
         my $accepted;
         my $something_accepted := 0;
@@ -90,7 +90,7 @@ role Perl6::Metamodel::C3MRO {
 
         # Need to merge what remains of the list, then put what was accepted on
         # the start of the list, and we're done.
-        @result := c3_merge(@merge_list);
+        @result := self.c3_merge(@merge_list);
         @result.unshift($accepted);
         return @result;
     }

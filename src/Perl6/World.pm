@@ -880,71 +880,32 @@ class Perl6::World is HLL::World {
         }
         
         # Find type object for the box typed we'll create.
-        # On deserialization, we'll need to look it up too.
         my $type_obj := self.find_symbol(pir::split('::', $type));
-        my $type_obj_lookup := self.get_ref($type_obj);
         
         # Go by the primitive type we're boxing. Need to create
         # the boxed value and also code to produce it.
         my $constant;
-        my $des;
         if $primitive eq 'int' {
             $constant := pir::repr_box_int__PiP(@value[0], $type_obj);
-            $des := PAST::Op.new( :pirop('repr_box_int PiP'), @value[0], $type_obj_lookup );
         }
         elsif $primitive eq 'str' {
             $constant := pir::repr_box_str__PsP(@value[0], $type_obj);
-            $des := PAST::Op.new( :pirop('repr_box_str PsP'), @value[0], $type_obj_lookup );
         }
         elsif $primitive eq 'num' {
             $constant := pir::repr_box_num__PnP(@value[0], $type_obj);
-            $des := PAST::Op.new( :pirop('repr_box_num PnP'), @value[0], $type_obj_lookup );
         }
         elsif $primitive eq 'bigint' {
             $constant := @value[0];
-            $des := PAST::Op.new( :pirop('nqp_bigint_from_str PsP'),
-                    nqp::tostr_I(@value[0]),
-                    $type_obj_lookup,
-                );
         }
         elsif $primitive eq 'type_new' {
             $constant := $type_obj.new(|@value, |%named);
-            if $type eq 'Rat' {
-                my $int_lookup := self.get_ref(self.find_symbol(['Int']));
-                my $nu := nqp::tostr_I(nqp::getattr($constant, $type_obj, '$!numerator'));
-                my $de := nqp::tostr_I(nqp::getattr($constant, $type_obj, '$!denominator'));
-                $des := PAST::Op.new(
-                    :pirop('repr_bind_attr_obj 0PPsP'),
-                    PAST::Op.new(
-                        :pirop('repr_bind_attr_obj 0PPsP'),
-                        PAST::Op.new( :pirop('repr_instance_of PP'), $type_obj_lookup ),
-                        $type_obj_lookup, '$!numerator',
-                        PAST::Op.new( :pirop('nqp_bigint_from_str PsP'), $nu, $int_lookup)),
-                    $type_obj_lookup, '$!denominator',
-                    PAST::Op.new( :pirop('nqp_bigint_from_str PsP'), $de, $int_lookup));
-            }
-            else {
-                $des := PAST::Op.new(
-                    :pasttype('callmethod'), :name('new'),
-                    $type_obj_lookup
-                );
-                $des.push(self.get_ref(nqp::shift(@value)))
-                    while @value;
-                for %named {
-                    my $x := self.get_ref($_.value);
-                    $x.named($_.key);
-                    $des.push($x);
-                }
-            }
         }
         else {
             pir::die("Don't know how to build a $primitive constant");
         }
         
-        # Add to SC, finish up deserialization code.
-        my $slot := self.add_object($constant);
-        self.add_event(:deserialize_past(
-            self.add_object_to_cur_sc_past($slot, $des)));
+        # Add to SC.
+        self.add_object($constant);
         
         # Build PAST for getting the boxed constant from the constants
         # table, but also annotate it with the constant itself in case

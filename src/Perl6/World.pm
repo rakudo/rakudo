@@ -361,8 +361,7 @@ class Perl6::World is HLL::World {
             return 1;
         }
         
-        # Build container, as well as code to deserialize it.
-        my $cont_code := self.build_container_past(%cont_info, $descriptor);
+        # Build container.
         my $cont := pir::repr_instance_of__PP(%cont_info<container_type>);
         pir::setattribute__vPPsP($cont, %cont_info<container_base>, '$!descriptor', $descriptor);
         if pir::exists(%cont_info, 'default_value') {
@@ -371,17 +370,9 @@ class Perl6::World is HLL::World {
         }
         $block.symbol($name, :value($cont));
         
-        # Add container to static lexpad immediately, and make deserialization
-        # code to also do so.
+        # Add container to static lexpad.
         my $slp := self.get_static_lexpad($block);
         $slp.add_static_value(~$name, $cont, 1, ($state ?? 1 !! 0));
-        if self.is_precompilation_mode() {
-            self.add_event(:deserialize_past(PAST::Stmt.new(PAST::Op.new(
-                :pasttype('callmethod'), :name('add_static_value'),
-                self.get_ref($slp), 
-                ~$name, $cont_code, 1, ($state ?? 1 !! 0)
-            ))));
-        }
 
         1;
     }

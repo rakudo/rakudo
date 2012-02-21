@@ -39,11 +39,48 @@ my class BOOTSTRAPATTR {
     method compose($obj) { }
 }
 
+# Stub all types.
+my stub Mu metaclass Perl6::Metamodel::ClassHOW { ... };
+my stub Any metaclass Perl6::Metamodel::ClassHOW { ... };
+my stub Cool metaclass Perl6::Metamodel::ClassHOW { ... };
+my stub Attribute metaclass Perl6::Metamodel::ClassHOW { ... };
+my stub Scalar metaclass Perl6::Metamodel::ClassHOW { ... };
+my stub Proxy metaclass Perl6::Metamodel::ClassHOW { ... };
+my stub Signature metaclass Perl6::Metamodel::ClassHOW { ... };
+my stub Parameter metaclass Perl6::Metamodel::ClassHOW { ... };
+my stub Code metaclass Perl6::Metamodel::ClassHOW { ... };
+my stub Block metaclass Perl6::Metamodel::ClassHOW { ... };
+my stub Routine metaclass Perl6::Metamodel::ClassHOW { ... };
+my stub Sub metaclass Perl6::Metamodel::ClassHOW { ... };
+my stub Method metaclass Perl6::Metamodel::ClassHOW { ... };
+my stub Submethod metaclass Perl6::Metamodel::ClassHOW { ... };
+my stub Regex metaclass Perl6::Metamodel::ClassHOW { ... };
+my stub Str metaclass Perl6::Metamodel::ClassHOW { ... };
+my stub Real metaclass Perl6::Metamodel::ClassHOW { ... };
+my knowhow bigint is repr('P6bigint') { }
+my stub Int metaclass Perl6::Metamodel::ClassHOW { ... };
+my stub Num metaclass Perl6::Metamodel::ClassHOW { ... };
+my stub Parcel metaclass Perl6::Metamodel::ClassHOW { ... };
+my stub Iterable metaclass Perl6::Metamodel::ClassHOW { ... };
+my stub Iterator metaclass Perl6::Metamodel::ClassHOW { ... };
+my stub ListIter metaclass Perl6::Metamodel::ClassHOW { ... };
+my stub List metaclass Perl6::Metamodel::ClassHOW { ... };
+my stub Array metaclass Perl6::Metamodel::ClassHOW { ... };
+my stub LoL metaclass Perl6::Metamodel::ClassHOW { ... };
+my stub EnumMap metaclass Perl6::Metamodel::ClassHOW { ... };
+my stub Hash metaclass Perl6::Metamodel::ClassHOW { ... };
+my stub Capture metaclass Perl6::Metamodel::ClassHOW { ... };
+my stub Bool metaclass Perl6::Metamodel::ClassHOW { ... };
+my stub ObjAt metaclass Perl6::Metamodel::ClassHOW { ... };
+my stub Stash metaclass Perl6::Metamodel::ClassHOW { ... };
+my stub PROCESS metaclass Perl6::Metamodel::ModuleHOW { ... };
+my stub Grammar metaclass Perl6::Metamodel::ClassHOW { ... };
+my stub Metamodel metaclass Perl6::Metamodel::PackageHOW { ... };
+
 # Set package type for auto-viv when needed.
 pir::perl6_set_type_packagehow__vP(Perl6::Metamodel::PackageHOW);
 
 # class Mu { ... }
-my stub Mu metaclass Perl6::Metamodel::ClassHOW { ... };
 Mu.HOW.add_parrot_vtable_mapping(Mu, 'get_integer',
     sub ($self) {
         nqp::unbox_i($self.Int())
@@ -60,13 +97,11 @@ Mu.HOW.add_parrot_vtable_mapping(Mu, 'defined',
     sub ($self) { pir::istrue__IP($self.defined()) });
 
 # class Any is Mu { ... }
-my stub Any metaclass Perl6::Metamodel::ClassHOW { ... };
 Any.HOW.add_parent(Any, Mu);
 Perl6::Metamodel::ClassHOW.set_default_parent_type(Any);
 pir::perl6_set_types_mu_any__vP(Mu, Any);
 
 # class Cool is Any { ... }
-my stub Cool metaclass Perl6::Metamodel::ClassHOW { ... };
 Cool.HOW.add_parent(Cool, Any);
 
 # class Attribute {
@@ -80,7 +115,6 @@ Cool.HOW.add_parent(Cool, Any);
 #     has $!package;
 #     ... # Uncomposed
 # }
-my stub Attribute metaclass Perl6::Metamodel::ClassHOW { ... };
 Attribute.HOW.add_parent(Attribute, Any);
 Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!name>, :type(str), :package(Attribute)));
 Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!rw>, :type(int), :package(Attribute)));
@@ -215,7 +249,6 @@ Attribute.HOW.add_method(Attribute, 'instantiate_generic', sub ($self, $type_env
 #     has $!value;
 #     ...
 # }
-my stub Scalar metaclass Perl6::Metamodel::ClassHOW { ... };
 Scalar.HOW.add_parent(Scalar, Any);
 Scalar.HOW.add_attribute(Scalar, BOOTSTRAPATTR.new(:name<$!descriptor>, :type(Mu), :package(Scalar)));
 Scalar.HOW.add_attribute(Scalar, BOOTSTRAPATTR.new(:name<$!value>, :type(Mu), :package(Scalar)));
@@ -248,7 +281,6 @@ pir::set_container_spec__vPPsP(Scalar, Scalar, '$!value', pir::null__P());
 #    method STORE(\$v) { ... }
 # }
 my $PROXY_FETCH;
-my stub Proxy metaclass Perl6::Metamodel::ClassHOW { ... };
 Proxy.HOW.add_parent(Proxy, Any);
 Proxy.HOW.add_attribute(Proxy, BOOTSTRAPATTR.new(:name<&!FETCH>, :type(Mu), :package(Proxy)));
 Proxy.HOW.add_attribute(Proxy, BOOTSTRAPATTR.new(:name<&!STORE>, :type(Mu), :package(Proxy)));
@@ -287,7 +319,6 @@ sub scalar_attr($name, $type, $package) {
 #    has $!count;
 #     ... # Uncomposed
 # }
-my stub Signature metaclass Perl6::Metamodel::ClassHOW { ... };
 Signature.HOW.add_parent(Signature, Any);
 Signature.HOW.add_attribute(Signature, BOOTSTRAPATTR.new(:name<$!params>, :type(Mu), :package(Signature)));
 Signature.HOW.add_attribute(Signature, BOOTSTRAPATTR.new(:name<$!returns>, :type(Mu), :package(Signature)));
@@ -339,7 +370,6 @@ Signature.HOW.add_method(Signature, 'set_returns', sub ($self, $type) {
 #     has $!attr_package;
 #     ... # Uncomposed
 # }
-my stub Parameter metaclass Perl6::Metamodel::ClassHOW { ... };
 Parameter.HOW.add_parent(Parameter, Any);
 Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!variable_name>, :type(str), :package(Parameter)));
 Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!named_names>, :type(Mu), :package(Parameter)));
@@ -426,7 +456,6 @@ Parameter.HOW.add_method(Parameter, 'set_coercion', sub ($self, $type) {
 #     has $!dispatcher_cache;  # Stash for any extra dispatcher info.
 #     ... # Uncomposed
 # }
-my stub Code metaclass Perl6::Metamodel::ClassHOW { ... };
 Code.HOW.add_parent(Code, Any);
 Code.HOW.add_attribute(Code, BOOTSTRAPATTR.new(:name<$!do>, :type(Mu), :package(Code)));
 Code.HOW.add_attribute(Code, BOOTSTRAPATTR.new(:name<$!signature>, :type(Mu), :package(Code)));
@@ -526,7 +555,6 @@ Code.HOW.publish_parrot_vtable_handler_mapping(Code);
 Code.HOW.publish_parrot_vtable_mapping(Code);
 
 # class Block is Code { ... }
-my stub Block metaclass Perl6::Metamodel::ClassHOW { ... };
 Block.HOW.add_parent(Block, Code);
 Block.HOW.add_attribute(Block, BOOTSTRAPATTR.new(:name<$!state_vars>, :type(Mu), :package(Block)));
 Block.HOW.publish_parrot_vtable_handler_mapping(Block);
@@ -552,7 +580,6 @@ Block.HOW.add_method(Block, 'clone', sub ($self) {
     });
 
 # class Routine is Block { ... }
-my stub Routine metaclass Perl6::Metamodel::ClassHOW { ... };
 Routine.HOW.add_parent(Routine, Block);
 Routine.HOW.add_attribute(Routine, BOOTSTRAPATTR.new(:name<$!rw>, :type(int), :package(Routine)));
 Routine.HOW.add_attribute(Routine, BOOTSTRAPATTR.new(:name<$!md_thunk>, :type(Mu), :package(Routine)));
@@ -575,25 +602,21 @@ Routine.HOW.add_method(Routine, 'inline_info', sub ($self) {
     });
 
 # class Sub is Routine { ... }
-my stub Sub metaclass Perl6::Metamodel::ClassHOW { ... };
 Sub.HOW.add_parent(Sub, Routine);
 Sub.HOW.publish_parrot_vtable_handler_mapping(Sub);
 Sub.HOW.publish_parrot_vtable_mapping(Sub);
 
 # class Method is Routine { ... }
-my stub Method metaclass Perl6::Metamodel::ClassHOW { ... };
 Method.HOW.add_parent(Method, Routine);
 Method.HOW.publish_parrot_vtable_handler_mapping(Method);
 Method.HOW.publish_parrot_vtable_mapping(Method);
 
 # class Submethod is Routine { ... }
-my stub Submethod metaclass Perl6::Metamodel::ClassHOW { ... };
 Submethod.HOW.add_parent(Submethod, Routine);
 Submethod.HOW.publish_parrot_vtable_handler_mapping(Submethod);
 Submethod.HOW.publish_parrot_vtable_mapping(Submethod);
 
 # class Regex is Method { ... }
-my stub Regex metaclass Perl6::Metamodel::ClassHOW { ... };
 Regex.HOW.add_parent(Regex, Method);
 Regex.HOW.publish_parrot_vtable_handler_mapping(Regex);
 Regex.HOW.publish_parrot_vtable_mapping(Regex);
@@ -605,22 +628,18 @@ Regex.HOW.add_method(Regex, 'nqpattr', sub ($self, $key) {
 #     has str $!value is box_target;
 #     ...
 # }
-my stub Str metaclass Perl6::Metamodel::ClassHOW { ... };
 Str.HOW.add_parent(Str, Cool);
 Str.HOW.add_attribute(Str, BOOTSTRAPATTR.new(:name<$!value>, :type(str), :box_target(1), :package(Str)));
 Str.HOW.set_boolification_mode(Str, 4);
 Str.HOW.publish_boolification_spec(Str);
 
 # class Real is Numeric { ... }
-my stub Real metaclass Perl6::Metamodel::ClassHOW { ... };
 Real.HOW.add_parent(Real, Cool);
 
 # class Int is (Cool does) Real {
 #     has int $!value is box_target;
 #     ...
 # }
-my knowhow bigint is repr('P6bigint') { }
-my stub Int metaclass Perl6::Metamodel::ClassHOW { ... };
 Int.HOW.add_parent(Int, Real);
 Int.HOW.add_attribute(Int, BOOTSTRAPATTR.new(:name<$!value>, :type(bigint), :box_target(1), :package(Int)));
 Int.HOW.set_boolification_mode(Int, 6);
@@ -630,7 +649,6 @@ Int.HOW.publish_boolification_spec(Int);
 #     has num $!value is box_target;
 #     ...
 # }
-my stub Num metaclass Perl6::Metamodel::ClassHOW { ... };
 Num.HOW.add_parent(Num, Real);
 Num.HOW.add_attribute(Num, BOOTSTRAPATTR.new(:name<$!value>, :type(num), :box_target(1), :package(Num)));
 Num.HOW.set_boolification_mode(Num, 2);
@@ -642,22 +660,18 @@ pir::perl6_set_types_ins__vPPP(Int, Num, Str);
 # class Parcel is Cool {
 #     ...
 # }
-my stub Parcel metaclass Perl6::Metamodel::ClassHOW { ... };
 Parcel.HOW.add_parent(Parcel, Cool);
 Parcel.HOW.add_attribute(Parcel, scalar_attr('$!storage', Mu, Parcel));
 
 # class Iterable is Cool {
 #     ...
 # }
-my stub Iterable metaclass Perl6::Metamodel::ClassHOW { ... };
 Iterable.HOW.add_parent(Iterable, Cool);
 
 # class Iterator is Iterable {
 #     ...
 # }
-my stub Iterator metaclass Perl6::Metamodel::ClassHOW { ... };
 Iterator.HOW.add_parent(Iterator, Iterable);
-
 
 # class ListIter is Iterator {
 #     has $!reified;
@@ -666,7 +680,6 @@ Iterator.HOW.add_parent(Iterator, Iterable);
 #     has $!list;
 #    ...
 # }
-my stub ListIter metaclass Perl6::Metamodel::ClassHOW { ... };
 ListIter.HOW.add_parent(ListIter, Iterator);
 ListIter.HOW.add_attribute(ListIter, scalar_attr('$!reified', Mu, ListIter));
 ListIter.HOW.add_attribute(ListIter, scalar_attr('$!nextiter', Mu, ListIter));
@@ -679,7 +692,6 @@ ListIter.HOW.add_attribute(ListIter, scalar_attr('$!list', Mu, ListIter));
 #     has $!nextiter;
 #     ...
 # }
-my stub List metaclass Perl6::Metamodel::ClassHOW { ... };
 List.HOW.add_parent(List, Iterable);
 List.HOW.add_attribute(List, scalar_attr('$!items', Mu, List));
 List.HOW.add_attribute(List, scalar_attr('$!flattens', Mu, List));
@@ -689,7 +701,6 @@ List.HOW.add_attribute(List, scalar_attr('$!nextiter', Mu, List));
 #     has $!descriptor;
 #     ...
 # }
-my stub Array metaclass Perl6::Metamodel::ClassHOW { ... };
 Array.HOW.add_parent(Array, List);
 Array.HOW.add_attribute(Array, BOOTSTRAPATTR.new(:name<$!descriptor>, :type(Mu), :package(Array)));
 
@@ -697,7 +708,6 @@ Array.HOW.add_attribute(Array, BOOTSTRAPATTR.new(:name<$!descriptor>, :type(Mu),
 #     has $!descriptor;
 #     ...
 # }
-my stub LoL metaclass Perl6::Metamodel::ClassHOW { ... };
 LoL.HOW.add_parent(LoL, List);
 LoL.HOW.add_attribute(LoL, BOOTSTRAPATTR.new(:name<$!descriptor>, :type(Mu), :package(Array)));
 
@@ -705,7 +715,6 @@ LoL.HOW.add_attribute(LoL, BOOTSTRAPATTR.new(:name<$!descriptor>, :type(Mu), :pa
 #     has $!storage;
 #     ...
 # }
-my stub EnumMap metaclass Perl6::Metamodel::ClassHOW { ... };
 EnumMap.HOW.add_parent(EnumMap, Iterable);
 EnumMap.HOW.add_attribute(EnumMap, scalar_attr('$!storage', Mu, EnumMap));
 
@@ -713,14 +722,12 @@ EnumMap.HOW.add_attribute(EnumMap, scalar_attr('$!storage', Mu, EnumMap));
 #     has $!descriptor;
 #     ...
 # }
-my stub Hash metaclass Perl6::Metamodel::ClassHOW { ... };
 Hash.HOW.add_parent(Hash, EnumMap);
 Hash.HOW.add_attribute(Hash, BOOTSTRAPATTR.new(:name<$!descriptor>, :type(Mu), :package(Hash)));
 
 # class Capture {
 #     ...
 # }
-my stub Capture metaclass Perl6::Metamodel::ClassHOW { ... };
 Capture.HOW.add_parent(Capture, Any);
 
 # Configure declarative listy/hashy types.
@@ -729,17 +736,14 @@ pir::perl6_set_types_enummap_hash__vPP(EnumMap, Hash);
 pir::perl6_set_type_capture__vP(Capture);
 
 # XXX Quick and dirty Bool. Probably done by EnumHOW in the end.
-my stub Bool metaclass Perl6::Metamodel::ClassHOW { ... };
 Bool.HOW.add_parent(Bool, Cool);
 Bool.HOW.add_attribute(Bool, BOOTSTRAPATTR.new(:name<$!value>, :type(int), :box_target(1), :package(Bool)));
 Bool.HOW.set_boolification_mode(Bool, 1);
 Bool.HOW.publish_boolification_spec(Bool);
 
-my stub ObjAt metaclass Perl6::Metamodel::ClassHOW { ... };
 ObjAt.HOW.add_attribute(ObjAt, BOOTSTRAPATTR.new(:name<$!value>, :type(str), :box_target(1), :package(ObjAt)));
 
 # Set up Stash type, using a Parrot hash under the hood for storage.
-my stub Stash metaclass Perl6::Metamodel::ClassHOW { ... };
 Stash.HOW.add_parent(Stash, Hash);
 Stash.HOW.add_parrot_vtable_handler_mapping(EnumMap, 'get_pmc_keyed', '$!storage');
 Stash.HOW.add_parrot_vtable_handler_mapping(EnumMap, 'get_pmc_keyed_str', '$!storage');
@@ -815,7 +819,6 @@ if pir::exists($hll_ns, 'PROCESS') {
     $PROCESS := $hll_ns<PROCESS>;
 }
 else {
-    my stub PROCESS metaclass Perl6::Metamodel::ModuleHOW { ... };
     PROCESS.HOW.compose(PROCESS);
     Perl6::Metamodel::ModuleHOW.add_stash(PROCESS);
     $hll_ns<PROCESS> := $PROCESS := PROCESS;
@@ -880,18 +883,15 @@ pir::new__PsP('Perl6LexPad', hash()).configure_magicals(
 
 # Setup some regexy/grammary bits.
 use QRegex;
-my stub Grammar metaclass Perl6::Metamodel::ClassHOW { ... };
 Perl6::Metamodel::GrammarHOW.set_default_parent_type(Grammar);
 Perl6::Metamodel::ClassHOW.add_stash(Grammar);
 
 # Export the metamodel bits to a Metamodel namespace so it's available
 # from user land.
-my stub Metamodel metaclass Perl6::Metamodel::PackageHOW { ... };
 Perl6::Metamodel::PackageHOW.add_stash(Metamodel);
 for Perl6::Metamodel.WHO {
     (Metamodel.WHO){$_.key} := $_.value;
 }
-
 
 # Build up EXPORT::DEFAULT.
 my module EXPORT {

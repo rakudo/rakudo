@@ -849,18 +849,6 @@ BEGIN {
     Perl6::Metamodel::CurriedRoleHOW.configure_punning(
         Perl6::Metamodel::ClassHOW,
         hash( ACCEPTS => Mu ));
-
-    # Need to tell parametric role groups how to create a dispatcher.
-    Perl6::Metamodel::ParametricRoleGroupHOW.set_selector_creator({
-        my $sel := nqp::create(Sub);
-        my $onlystar := sub (*@pos, *%named) {
-            pir::perl6_enter_multi_dispatch_from_onlystar_block__P();
-        };
-        pir::perl6_associate_sub_code_object__vPP($onlystar, $sel);
-        nqp::bindattr($sel, Code, '$!do', $onlystar);
-        nqp::bindattr($sel, Code, '$!dispatchees', []);
-        $sel
-    });
         
     # Similar for packages and modules, but just has methods from Any.
     Perl6::Metamodel::PackageHOW.pretend_to_be([Any, Mu]);
@@ -944,3 +932,15 @@ my $match_cd := Perl6::Metamodel::ContainerDescriptor.new(
     :of(Mu), :rw(1), :name('$/'));
 pir::new__PsP('Perl6LexPad', hash()).configure_magicals(
     $topic_cd, $error_cd, $match_cd, Scalar, Any, EnumMap, Hash, Block);
+
+# Tell parametric role groups how to create a dispatcher.
+Perl6::Metamodel::ParametricRoleGroupHOW.set_selector_creator({
+    my $sel := nqp::create(Sub);
+    my $onlystar := sub (*@pos, *%named) {
+        pir::perl6_enter_multi_dispatch_from_onlystar_block__P();
+    };
+    pir::perl6_associate_sub_code_object__vPP($onlystar, $sel);
+    nqp::bindattr($sel, Code, '$!do', $onlystar);
+    nqp::bindattr($sel, Code, '$!dispatchees', []);
+    $sel
+});

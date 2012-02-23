@@ -1887,7 +1887,7 @@ class Perl6::World is HLL::World {
         my $type_found := 1;
         my $ex := try {
             CATCH { $type_found := 0 };
-            self.find_symbol($ex_type);
+            self.find_symbol(pir::does($ex_type, 'array') ?? $ex_type !! nqp::split('::', $ex_type));
         };
 
         if $type_found {

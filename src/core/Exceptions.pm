@@ -265,3 +265,11 @@ my class X::Attribute::Package does X::Comp {
 my class X::Attribute::NoPackage does X::Comp {
     method message() { "You cannot declare an attribute here; maybe you'd like a class or a role?" }
 }
+my class X::Sub::Scope does X::Comp {
+    has $.scope;
+    method message() { "Cannot use '$.scope' scope with a sub" }
+}
+my class X::Anon::Multi does X::Comp {
+    has $.multiness;
+    method message() { "Cannot put $.multiness on anonymous routine" }
+}

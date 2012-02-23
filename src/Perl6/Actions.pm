@@ -1685,12 +1685,12 @@ class Perl6::Actions is HLL::Actions {
                     ));
                 }
                 else {
-                    $/.CURSOR.panic("Cannot use '$*SCOPE' scope with a sub");
+                    $*W.throw($/, 'X::Sub::Scope', scope => $*SCOPE);
                 }
             }
         }
         elsif $*MULTINESS {
-            $/.CURSOR.panic('Cannot put ' ~ $*MULTINESS ~ ' on anonymous routine');
+            $*W.throw($/, 'X::Anon::Multi', multiness => $*MULTINESS);
         }
 
         # Apply traits.

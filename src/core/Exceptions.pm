@@ -242,6 +242,15 @@ my class X::Syntax::Confused does X::Syntax {
     method message() { 'Confused' }
 }
 
+my class X::Syntax::Malformed does X::Syntax {
+    has $.what;
+    method message() { "Malformed $.what" }
+}
+my class X::Syntax::Missing does X::Syntax {
+    has $.what;
+    method message() { "Missing $.what" }
+}
+
 my class X::Syntax::SigilWithoutName does X::Syntax {
     method message() { 'Non-declarative sigil is missing its name' }
 }

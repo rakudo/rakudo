@@ -553,13 +553,13 @@ grammar Perl6::Grammar is HLL::Grammar {
         | <?[{]>
             <.newpad>
             <blockoid>
-        | <.panic: 'Missing block'>
+        || { $*W.throw($/, 'X::Syntax::Missing', what =>'block') }
     }
 
     token lambda { '->' | '<->' }
 
     token block($*IMPLICIT = 0) {
-        [ <?[{]> || <.panic: 'Missing block'> ]
+        [ <?[{]> || { $*W.throw($/, 'X::Syntax::Missing', what =>'block') }]
         <.newpad>
         <blockoid>
     }
@@ -570,8 +570,8 @@ grammar Perl6::Grammar is HLL::Grammar {
         [
         | '{YOU_ARE_HERE}' <you_are_here>
         | '{' ~ '}' <statementlist> <?ENDSTMT>
-        | <?terminator> <.panic: 'Missing block'>
-        | <?> <.panic: 'Malformed block'>
+        | <?terminator> || { $*W.throw($/, 'X::Syntax::Missing', what =>'block') }
+        | <?> { $*W.throw($/, 'X::Syntax::Missing', what => 'block') }
         ]
         { $*CURPAD := $*W.pop_lexpad() }
     }
@@ -1348,7 +1348,7 @@ grammar Perl6::Grammar is HLL::Grammar {
                 ]
             || <.panic: "Unable to parse $*PKGDECL definition">
             ]
-        ] || <.panic: "Malformed $*PKGDECL">
+        ] || { $*W.throw($/, 'X::Syntax::Malformed', what => $*PKGDECL) }
     }
 
     token declarator {

@@ -258,6 +258,11 @@ my class X::Syntax::NoSelf does X::Syntax {
     method message() { "Variable $.variable used where no 'self' is available" }
 }
 
+my class X::Syntax::Number::RadixOutOfRange does X::Syntax {
+    has $.radix;
+    method mesage() { "Radix $.radix out of range (allowed: 2..36)" }
+}
+
 my class X::Attribute::Package does X::Comp {
     has $.package-type;
     method message() { "A $.package-type cannot have attributes" }
@@ -271,5 +276,6 @@ my class X::Sub::Scope does X::Comp {
 }
 my class X::Anon::Multi does X::Comp {
     has $.multiness;
-    method message() { "Cannot put $.multiness on anonymous routine" }
+    has $.routine-type = 'routine';
+    method message() { "Cannot put $.multiness on anonymous $.routine-type" }
 }

@@ -1854,7 +1854,10 @@ class Perl6::Actions is HLL::Actions {
                 :private($<specials> && ~$<specials> eq '!'));
         }
         elsif $*MULTINESS {
-            $/.CURSOR.panic('Cannot put ' ~ $*MULTINESS ~ ' on anonymous method');
+            $*W.throw($/, 'X::Anon::Multi',
+                multiness       => $*MULTINESS,
+                routine-type    => 'method',
+            );
         }
 
         my $closure := block_closure(reference_to_code_object($code, $past));
@@ -3761,9 +3764,9 @@ class Perl6::Actions is HLL::Actions {
         if $<escale> {
             my $e := pir::isa($<escale>, 'ResizablePMCArray') ?? $<escale>[0] !! $<escale>;
 #            pir::say('dec_number exponent: ' ~ ~$e.ast);
-            make radcalc(10, $<coeff>, 10, nqp::unbox_i($e.ast), :num);
+            make radcalc($/, 10, $<coeff>, 10, nqp::unbox_i($e.ast), :num);
         } else {
-            make radcalc(10, $<coeff>);
+            make radcalc($/, 10, $<coeff>);
         }
     }
 
@@ -3783,11 +3786,7 @@ class Perl6::Actions is HLL::Actions {
             $exp    := +($<exp>[0].Str)  if $<exp>;
 
             my $error;
-            try {
-                make radcalc($radix, $intfrac, $base, $exp);
-                CATCH { $error := $_ }
-            }
-            $/.CURSOR.panic($error) if pir::defined($error);
+            make radcalc($/, $radix, $intfrac, $base, $exp);
         }
     }
 
@@ -4648,9 +4647,9 @@ class Perl6::Actions is HLL::Actions {
     # radix, $base, $exponent: parrot numbers (Integer or Float)
     # $number: parrot string
     # return value: PAST for Int, Rat or Num
-    sub radcalc($radix, $number, $base?, $exponent?, :$num) {
+    sub radcalc($/, $radix, $number, $base?, $exponent?, :$num) {
         my int $sign := 1;
-        pir::die("Radix '$radix' out of range (2..36)")
+        $*W.throw($/, 'X::Syntax::Number::RadixOutOfRange', :$radix)
             if $radix < 2 || $radix > 36;
         pir::die("You gave us a base for the magnitude, but you forgot the exponent.")
             if pir::defined($base) && !pir::defined($exponent);

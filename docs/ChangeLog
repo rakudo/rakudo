@@ -31,6 +31,7 @@ New in 2012.02
 + fixed "but True" and "but False"
 + object hashes, with the my %h{SomeObjectType} syntax
 + implemented Int($x) style coercions
++ implemented Capture.perl
 
 New in 2012.01
 + -c command line option re-implemented

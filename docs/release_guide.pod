@@ -55,7 +55,7 @@ Dates are based on Parrot's expected release schedule.
 
   2012-02-23   #49                             (masak)
   2012-03-22   #50
-  2012-04-19   #51
+  2012-04-19   #51                             (Coke)
   2012-05-17   #52
   2012-06-21   #53
 

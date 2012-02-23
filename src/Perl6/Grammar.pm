@@ -42,6 +42,9 @@ grammar Perl6::Grammar is HLL::Grammar {
     method typed_panic($type_str, *%opts) {
         $*W.throw(self.MATCH(), nqp::split('::', $type_str), |%opts);
     }
+    method malformed($what) {
+        self.typed_panic('X::Syntax::Malformed', :$what);
+    }
 
     # "when" arg assumes more things will become obsolete after Perl 6 comes out...
     method obs ($old, $new, $when = ' in Perl 6') {
@@ -1348,7 +1351,7 @@ grammar Perl6::Grammar is HLL::Grammar {
                 ]
             || <.panic: "Unable to parse $*PKGDECL definition">
             ]
-        ] || { $*W.throw($/, 'X::Syntax::Malformed', what => $*PKGDECL) }
+        ] || { $/.CURSOR.malformed($*PKGDECL) }
     }
 
     token declarator {
@@ -1368,15 +1371,15 @@ grammar Perl6::Grammar is HLL::Grammar {
     proto token multi_declarator { <...> }
     token multi_declarator:sym<multi> {
         <sym> :my $*MULTINESS := 'multi'; <.end_keyword>
-        <.ws> [ <declarator> || <routine_def('sub')> || <.panic: 'Malformed multi'> ]
+        <.ws> [ <declarator> || <routine_def('sub')> || <.malformed('multi')> ]
     }
     token multi_declarator:sym<proto> {
         <sym> :my $*MULTINESS := 'proto'; <.end_keyword>
-        <.ws> [ <declarator> || <routine_def('sub')> || <.panic: 'Malformed proto'> ]
+        <.ws> [ <declarator> || <routine_def('sub')> || <.malformed('proto')> ]
     }
     token multi_declarator:sym<only> {
         <sym> :my $*MULTINESS := 'only'; <.end_keyword>
-        <.ws> [ <declarator> || <routine_def('sub')> || <.panic: 'Malformed only'> ]
+        <.ws> [ <declarator> || <routine_def('sub')> || <.malformed('only')>]
     }
     token multi_declarator:sym<null> {
         :my $*MULTINESS := '';
@@ -1425,7 +1428,7 @@ grammar Perl6::Grammar is HLL::Grammar {
                 $/.CURSOR.panic("In \"$*SCOPE\" declaration, typename $t must be predeclared (or marked as declarative with :: prefix)");
             }
             <!> # drop through
-        || { $/.CURSOR.panic("Malformed $*SCOPE") }
+        || <.malformed($*SCOPE)>
         ]
     }
 
@@ -1527,7 +1530,7 @@ grammar Perl6::Grammar is HLL::Grammar {
             | <onlystar>
             | <blockoid>
             ]
-        ] || <.panic: 'Malformed method'>
+        ] || <.malformed('method')>
     }
     
     token onlystar {
@@ -1580,7 +1583,7 @@ grammar Perl6::Grammar is HLL::Grammar {
         <.ws>
         [
         | <?before '-->' | ')' | ']' | '{' | ':'\s >
-        | [ <parameter> || <.panic: 'Malformed parameter'> ]
+        | [ <parameter> || <.malformed('parameter')> ]
         ] ** <param_sep>
         <.ws>
         { $*IN_DECL := ''; }
@@ -1723,7 +1726,7 @@ grammar Perl6::Grammar is HLL::Grammar {
             | ['*'|'<...>'|'<*>'] <?{ $*MULTINESS eq 'proto' }> $<onlystar>={1}
             |<p6regex=.LANG('Regex','nibbler')>]'}'<?ENDSTMT>
           { $*CURPAD := $*W.pop_lexpad() }
-        ] || <.panic: "Malformed regex">
+        ] || <.malformed('regex')>
     ] }
 
     proto token type_declarator { <...> }
@@ -1772,7 +1775,7 @@ grammar Perl6::Grammar is HLL::Grammar {
                 <trait>*
                 [ where <EXPR('e=')> ]?
             ]
-            || <.panic: 'Malformed subset'>
+            || <.malformed('subset')>
         ]
     }
 
@@ -1805,17 +1808,17 @@ grammar Perl6::Grammar is HLL::Grammar {
             || <?{ $*LEFTSIGIL eq '$' }> <EXPR('i=')>
             || <EXPR('e=')>
             ]
-            || <.panic: "Malformed initializer">
+            || <.malformed: 'initializer'>
         ]
     }
     token initializer:sym<:=> {
-        <sym> [ <.ws> <EXPR('e=')> || <.panic: "Malformed binding"> ]
+        <sym> [ <.ws> <EXPR('e=')> || <.malformed: 'binding'> ]
     }
     token initializer:sym<::=> {
-        <sym> [ <.ws> <EXPR('e=')> || <.panic: "Malformed binding"> ]
+        <sym> [ <.ws> <EXPR('e=')> || <.malformed: 'binding'> ]
     }
     token initializer:sym<.=> {
-        <sym> [ <.ws> <dottyopish> || <.panic: "Malformed mutator method call"> ]
+        <sym> [ <.ws> <dottyopish> || <.malformed: 'mutator method call'> ]
     }
 
     rule trait {
@@ -1961,7 +1964,7 @@ grammar Perl6::Grammar is HLL::Grammar {
            '>'
         # || <?before '['> <circumfix>
         || <?before '('> <circumfix>
-        || <.panic: "Malformed radix number">
+        || <.malformed: 'radix number'>
         ]
     }
 

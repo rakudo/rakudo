@@ -288,3 +288,7 @@ my class X::Anon::Multi does X::Comp {
     has $.routine-type = 'routine';
     method message() { "Cannot put $.multiness on anonymous $.routine-type" }
 }
+my class X::Anon::Augment does X::Comp {
+    has $.package-type;
+    method message() { "Cannot augment anonymous $.package-type" }
+}

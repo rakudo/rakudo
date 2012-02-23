@@ -1274,7 +1274,7 @@ grammar Perl6::Grammar is HLL::Grammar {
                         $/.CURSOR.typed_panic('X::Syntax::Augment::Role');
                     }
                     unless $longname {
-                        $/.CURSOR.panic("Can not augment the anonymous");
+                        $*W.throw($/, 'X::Anon::Augment', package-type => $*PKGDECL);
                     }
                     
                     # Locate type.

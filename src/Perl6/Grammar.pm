@@ -1282,8 +1282,10 @@ grammar Perl6::Grammar is HLL::Grammar {
                     my @name := parse_name(~$longname<name>);
                     try { $*PACKAGE := $*W.find_symbol(@name); $found := 1 }
                     unless $found {
-                        $/.CURSOR.panic("Could not find a $*PKGDECL " ~
-                            ~$longname<name> ~ " to augment");
+                        $*W.throw($/, 'X::Augment::NoSuchType',
+                            package-type => $*PKGDECL,
+                            package      => ~$longname<name>,
+                        );
                     }
                 }
                 

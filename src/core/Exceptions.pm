@@ -292,3 +292,8 @@ my class X::Anon::Augment does X::Comp {
     has $.package-type;
     method message() { "Cannot augment anonymous $.package-type" }
 }
+my class X::Augment::NoSuchType does X::Comp {
+    has $.package-type;
+    has $.package;
+    method message() { "You tried to agument $.package-type $.package, but it does not exist" }
+}

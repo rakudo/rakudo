@@ -257,3 +257,11 @@ my class X::Syntax::NoSelf does X::Syntax {
     has $.variable;
     method message() { "Variable $.variable used where no 'self' is available" }
 }
+
+my class X::Attribute::Package does X::Comp {
+    has $.package-type;
+    method message() { "A $.package-type cannot have attributes" }
+}
+my class X::Attribute::NoPackage does X::Comp {
+    method message() { "You cannot declare an attribute here; maybe you'd like a class or a role?" }
+}

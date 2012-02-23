@@ -1415,9 +1415,11 @@ class Perl6::Actions is HLL::Actions {
             # Ensure current package can take attributes.
             unless pir::can($*PACKAGE.HOW, 'add_attribute') {
                 if $*PKGDECL {
-                    $/.CURSOR.panic("A $*PKGDECL cannot have attributes");
+                    $*W.throw($/, ['X', 'Attribute', 'Package'],
+                        package-type => $*PKGDECL
+                    );
                 } else {
-                    $/.CURSOR.panic("You can't declare an attribute here; maybe you'd like a class or a role?");
+                    $*W.throw($/, ['X', 'Attribute', 'NoPackage']);
                 }
             }
 

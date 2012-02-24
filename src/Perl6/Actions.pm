@@ -99,7 +99,7 @@ class Perl6::Actions is HLL::Actions {
     # attribute/lexpad), bind constraint (what could we bind to this
     # slot later), and if specified a constraint on the inner value
     # and a default value.
-    sub container_type_info($sigil, @value_type, $shape?) {
+    sub container_type_info($/, $sigil, @value_type, $shape?) {
         my %info;
         if $sigil eq '@' {
             %info<container_base>  := $*W.find_symbol(['Array']);
@@ -116,7 +116,7 @@ class Perl6::Actions is HLL::Actions {
                 %info<value_type>     := $*W.find_symbol(['Mu']);
             }
             if $shape {
-                pir::die("Shaped arrays are not yet supported");
+                $*W.throw($/, 'X::Comp::NYI', feature => 'Shaped arrays');
             }
         }
         elsif $sigil eq '%' {
@@ -817,7 +817,7 @@ class Perl6::Actions is HLL::Actions {
 
     method statement_control:sym<require>($/) {
         if $<module_name> && $<EXPR> {
-            $*W.throw($/, ['X', 'NYI'],
+            $*W.throw($/, ['X', 'Comp', 'NYI'],
                 feature => 'require with argument list');
         }
         my $name_past := $<module_name>
@@ -1212,7 +1212,7 @@ class Perl6::Actions is HLL::Actions {
     }
 
     method package_declarator:sym<also>($/) {
-        $*W.throw($/, ['X', 'NYI'], feature => 'also');
+        $*W.throw($/, ['X', 'Comp', 'NYI'], feature => 'also');
     }
 
     method package_def($/) {
@@ -1359,7 +1359,7 @@ class Perl6::Actions is HLL::Actions {
                     }
                 }
                 else {
-                    my %cont_info := container_type_info($_<sigil> || '$', []);
+                    my %cont_info := container_type_info($/, $_<sigil> || '$', []);
                     $list.push($*W.build_container_past(
                         %cont_info,
                         $*W.create_container_descriptor(%cont_info<value_type>, 1, 'anon')));
@@ -1376,7 +1376,7 @@ class Perl6::Actions is HLL::Actions {
                     $/.CURSOR.panic("Cannot use .= initializer with a list of declarations");
                 }
                 else {
-                    $/.CURSOR.panic("Binding to signatures in $*SCOPE declarations not yet implemented");
+                    $*W.throw($/, 'X::Comp::NYI', feature => "Binding to signatures in $*SCOPE declarations");
                 }
             }
             
@@ -1425,7 +1425,7 @@ class Perl6::Actions is HLL::Actions {
 
             # Create container descriptor and decide on any default value..
             my $attrname   := ~$sigil ~ '!' ~ $desigilname;
-            my %cont_info  := container_type_info($sigil, $*OFTYPE ?? [$*OFTYPE.ast] !! [], $shape);
+            my %cont_info  := container_type_info($/, $sigil, $*OFTYPE ?? [$*OFTYPE.ast] !! [], $shape);
             my $descriptor := $*W.create_container_descriptor(%cont_info<value_type>, 1, $attrname);
 
             # Create meta-attribute and add it.
@@ -1474,7 +1474,7 @@ class Perl6::Actions is HLL::Actions {
 
             # Create a container descriptor. Default to rw and set a
             # type if we have one; a trait may twiddle with that later.
-            my %cont_info := container_type_info($sigil, $*OFTYPE ?? [$*OFTYPE.ast] !! [], $shape);
+            my %cont_info := container_type_info($/, $sigil, $*OFTYPE ?? [$*OFTYPE.ast] !! [], $shape);
             my $descriptor := $*W.create_container_descriptor(%cont_info<value_type>, 1, $name);
 
             # Install the container.
@@ -1528,7 +1528,7 @@ class Perl6::Actions is HLL::Actions {
             $BLOCK.symbol($name, :scope('lexical'));
         }
         else {
-            $*W.throw($/, ['X', 'NYI'],
+            $*W.throw($/, 'X::Comp::NYI',
                 feature => "$*SCOPE scoped variables");
         }
 
@@ -2103,7 +2103,7 @@ class Perl6::Actions is HLL::Actions {
         }
         $*W.pkg_compose($type_obj);
         if $<variable> {
-            $*W.throw($/, ['X', 'NYI'],
+            $*W.throw($/, 'X::Comp::NYI',
                 feature => "Variable case of enums",
             );
         }
@@ -2238,7 +2238,7 @@ class Perl6::Actions is HLL::Actions {
         elsif $<variable> {
             # Don't handle twigil'd case yet.
             if $<variable><twigil> {
-                $*W.throw($/, ['X', 'NYI'],
+                $*W.throw($/, 'X::Comp::NYI',
                     feature => "Twigil-Variable constants"
                 );
             }
@@ -3327,7 +3327,7 @@ class Perl6::Actions is HLL::Actions {
             for @($/) { @stages.unshift($_.ast); }
         }
         else {
-            $*W.throw($/, ['X', 'NYI'],
+            $*W.throw($/, 'X::Comp::NYI',
                 feature => $/<infix> ~ " feed operator"
             );
         }
@@ -3685,7 +3685,7 @@ class Perl6::Actions is HLL::Actions {
         my $past := PAST::Op.new( :name('postcircumfix:<{ }>'), :pasttype('callmethod'), :node($/) );
         if $<semilist><statement> {
             if +$<semilist><statement> > 1 {
-                $/.CURSOR.panic("Sorry, multi-dimensional indexes are not yet supported");
+                $*W.throw($/, 'X::Comp::NYI', feature => 'multi-dimensional indexes');
             }
             $past.push($<semilist>.ast);
         }

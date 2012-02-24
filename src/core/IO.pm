@@ -271,6 +271,16 @@ sub dir($path = '.', Mu :$test = none('.', '..')) {
 
 }
 
+sub rmdir($path) {
+    die "$path does not exist." unless $path.IO.e;
+    die "$path is not a directory." unless $path.IO.d;
+    die "$path directory is not empty." if dir $path;
+    try {
+        pir::new__PS('OS').rm($path);
+    }
+    $! ?? fail($!) !! Bool::True;
+}
+
 proto sub chdir(|$) { * }
 multi sub chdir($path as Str) {
     try {

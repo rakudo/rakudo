@@ -1450,16 +1450,23 @@ grammar Perl6::Grammar is HLL::Grammar {
                 {
                     my $sigil := nqp::substr($var, 0, 1);
                     if $sigil eq '&' {
-                        $/.CURSOR.panic("The () shape syntax in routine declarations is reserved (maybe use :() to declare a longname?)");
+                        $*W.throw($/, 'X::Syntax::Reserved',
+                            reserved => '() shape syntax in routine declarations',
+                            instead => ' (maybe use :() to declare a longname?)'
+                        );
                     }
                     elsif $sigil eq '@' {
-                        $/.CURSOR.panic("The () shape syntax in array declarations is reserved");
+
+                        $*W.throw($/, 'X::Syntax::Reserved',
+                            reserved => '() shape syntax in array declarations');
                     }
                     elsif $sigil eq '%' {
-                        $/.CURSOR.panic("The () shape syntax in hash declarations is reserved");
+                        $*W.throw($/, 'X::Syntax::Reserved',
+                            reserved => '() shape syntax in hash declarations');
                     }
                     else {
-                        $/.CURSOR.panic("The () shape syntax in variable declarations is reserved");
+                        $*W.throw($/, 'X::Syntax::Reserved',
+                            reserved => '() shape syntax in variable declarations');
                     }
                 }
             | '[' ~ ']' <semilist> <.panic: "Shaped variable declarations are not yet implemented">

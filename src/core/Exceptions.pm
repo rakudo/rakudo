@@ -187,7 +187,13 @@ my class X::Syntax::Name::Null does X::Syntax {
 }
 
 my class X::Syntax::UnlessElse does X::Syntax {
-    method message() { 'unless does not take "else", please rewrite using "if"' }
+    method message() { '"unless" does not take "else", please rewrite using "if"' }
+}
+
+my class X::Syntax::Reserved does X::Syntax {
+    has $.reserved;
+    has $.instead = '';
+    method message() { "The $.reserved is reserved$.instead" }
 }
 
 my class X::Syntax::P5 does X::Syntax {
@@ -200,7 +206,7 @@ my class X::Syntax::NegatedPair does X::Syntax {
 
 my class X::Syntax::Variable::Numeric does X::Syntax {
     has $.what = 'variable';
-    method message() { "Cannot declare a numeric $.what" }
+    method message() { "Cannot declare a numeric variable" }
 }
 
 my class X::Syntax::Variable::Match does X::Syntax {

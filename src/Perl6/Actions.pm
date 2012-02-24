@@ -3945,7 +3945,7 @@ class Perl6::Actions is HLL::Actions {
 
     method quote:sym<rx>($/) {
         my $block := PAST::Block.new(PAST::Stmts.new, PAST::Stmts.new, :node($/));
-        self.handle_and_check_adverbs($/, %SHARED_ALLOWED_ADVERBS, 'm', $block);
+        self.handle_and_check_adverbs($/, %SHARED_ALLOWED_ADVERBS, 'rx', $block);
         my $coderef := regex_coderef($/, $<p6regex>.ast, 'anon', '', [], $block, :use_outer_match(1));
         make block_closure($coderef);
     }
@@ -3978,7 +3978,10 @@ class Perl6::Actions is HLL::Actions {
         for $<rx_adverbs>.ast {
             $multiple := 1 if %MATCH_ADVERBS_MULTIPLE{$_.named};
             unless %SHARED_ALLOWED_ADVERBS{$_.named} || %adverbs{$_.named} {
-                $/.CURSOR.panic("Adverb '" ~ $_.named ~ "' not allowed on " ~ $what);
+                $*W.throw($/, 'X::Syntax::Regex::Adverb',
+                    adverb    => $_.named,
+                    construct => $what,
+                );
             }
             if $past {
                 $past.push($_);

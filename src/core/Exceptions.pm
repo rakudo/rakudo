@@ -280,6 +280,12 @@ my class X::Syntax::Number::RadixOutOfRange does X::Syntax {
     method mesage() { "Radix $.radix out of range (allowed: 2..36)" }
 }
 
+my class X::Syntax::Regex::Adverb does X::Syntax {
+    has $.adverb;
+    has $.construct;
+    method message() { "Adverb $.adverb not allowed on $.construct" }
+}
+
 my class X::Attribute::Package does X::Comp {
     has $.package-type;
     method message() { "A $.package-type cannot have attributes" }

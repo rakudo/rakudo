@@ -45,6 +45,9 @@ grammar Perl6::Grammar is HLL::Grammar {
     method malformed($what) {
         self.typed_panic('X::Syntax::Malformed', :$what);
     }
+    method NYI($feature) {
+        self.typed_panic('X::Comp::NYI', :$feature)
+    }
 
     # "when" arg assumes more things will become obsolete after Perl 6 comes out...
     method obs ($old, $new, $when = ' in Perl 6') {
@@ -723,9 +726,7 @@ grammar Perl6::Grammar is HLL::Grammar {
             }
             [
             || <.spacey> <arglist>
-                {
-                    $/.CURSOR.panic("arglist case of use not yet implemented");
-                }
+                <.NYI('arglist case of use')>
             || { 
                     unless ~$<doc> && !%*COMPILING<%?OPTIONS><doc> {
                         if $longname {
@@ -777,17 +778,17 @@ grammar Perl6::Grammar is HLL::Grammar {
     token statement_prefix:sym<INIT>  { <sym> <blorst> }
     token statement_prefix:sym<END>   { <sym> <blorst> }
     token statement_prefix:sym<FIRST> { <sym> <blorst>
-            <.panic("FIRST phaser not yet implemented")> }
+            <.NYI('FIRST phaser')> }
     token statement_prefix:sym<LAST>  { <sym> <blorst>
-            <.panic("LAST phaser not yet implemented")> }
+            <.NYI('LAST phaser')> }
     token statement_prefix:sym<ENTER> { <sym> <blorst>
-            <.panic("ENTER phaser not yet implemented")> }
+            <.NYI('ENTER phaser')> }
     token statement_prefix:sym<LEAVE> { <sym> <blorst>
-            <.panic("LEAVE phaser not yet implemented")> }
+            <.NYI('LEAVE phaser')> }
     token statement_prefix:sym<PRE> { <sym> <blorst>
-            <.panic("PRE phaser not yet implemented")> }
+            <.NYI('PRE phaser')> }
     token statement_prefix:sym<POST> { <sym> <blorst>
-            <.panic("POST phaser not yet implemented")> }
+            <.NYI('POST phaser')> }
     token statement_prefix:sym<sink>  { <sym> <blorst> }
     token statement_prefix:sym<try>   { <sym> <blorst> }
     token statement_prefix:sym<gather>{ <sym> <blorst> }
@@ -830,7 +831,7 @@ grammar Perl6::Grammar is HLL::Grammar {
     token term:sym<regex_declarator>   { <regex_declarator> }
     token term:sym<circumfix>          { <!before '[' \\? <.infixish> ']'> <circumfix> }
     token term:sym<statement_prefix>   { <statement_prefix> }
-    token term:sym<**>                 { <sym> <.panic('HyperWhatever (**) not yet implemented')> }
+    token term:sym<**>                 { <sym> <.NYI('HyperWhatever (**)')> }
     token term:sym<*>                  { <sym> }
     token term:sym<lambda>             { <?lambda> <pblock> }
 
@@ -1401,7 +1402,7 @@ grammar Perl6::Grammar is HLL::Grammar {
     token scope_declarator:sym<anon>      { <sym> <scoped('anon')> }
     token scope_declarator:sym<state>     { <sym> <scoped('state')> }
     token scope_declarator:sym<supersede> {
-        <sym> <scoped('supersede')> <.panic: '"supersede" not yet implemented'>
+        <sym> <scoped('supersede')> <.NYI('"supersede"')>
     }
 
     token scoped($*SCOPE) {
@@ -1418,7 +1419,7 @@ grammar Perl6::Grammar is HLL::Grammar {
         | [<typename><.ws>]+
           {
             if +$<typename> > 1 {
-                $/.CURSOR.panic("Multiple prefix constraints not yet supported");
+                $/.CURSOR.NYI('Multiple prefix constraints');
             }
             $*OFTYPE := $<typename>[0];
           }
@@ -1469,9 +1470,9 @@ grammar Perl6::Grammar is HLL::Grammar {
                             reserved => '() shape syntax in variable declarations');
                     }
                 }
-            | '[' ~ ']' <semilist> <.panic: "Shaped variable declarations are not yet implemented">
+            | '[' ~ ']' <semilist> <.NYI: "Shaped variable declarations">
             | '{' ~ '}' <semilist>
-            | <?before '<'> <postcircumfix> <.panic: "Shaped variable declarations are not yet implemented">
+            | <?before '<'> <postcircumfix> <.NYI: "Shaped variable declarations">
             ]+
         ]?
         <.ws>
@@ -1489,7 +1490,7 @@ grammar Perl6::Grammar is HLL::Grammar {
         { <sym> <.end_keyword> <method_def('submethod')> }
     token routine_declarator:sym<macro>
         { <sym> <.end_keyword>
-          <.panic: "Macros are not yet implemented"> }
+          <.NYI: "Macros"> }
 
     rule routine_def($d) {
         :my $*IN_DECL := $d;

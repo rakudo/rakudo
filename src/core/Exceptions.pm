@@ -34,6 +34,7 @@ my class X::NYI is Exception {
     has $.feature;
     method message() { "$.feature not yet implemented. Sorry. " }
 }
+my class X::Comp::NYI is X::NYI does X::Comp { };
 
 my class X::OutOfRange is Exception {
     has $.what = 'Argument';

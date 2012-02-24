@@ -210,7 +210,7 @@ class IO {
 }
 
 sub unlink($path) {
-	 die "$path is not a file." if $path.IO.d;
+    die "$path is not a file." if $path.IO.d;
     try {
         pir::new__PS('OS').rm($path);
     }

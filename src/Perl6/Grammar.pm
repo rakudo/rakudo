@@ -1648,7 +1648,7 @@ grammar Perl6::Grammar is HLL::Grammar {
         | <sigil> <twigil>?
           [
           || <name=.identifier>
-          || <name=.decint> <.panic: "Cannot declare a numeric parameter">
+          || <name=.decint> { $*W.throw($/, 'X::Syntax::Variable::Numeric', what => 'parameter') }
           || $<name>=[<[/!]>]
           ]?
     }

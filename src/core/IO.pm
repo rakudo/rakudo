@@ -210,6 +210,7 @@ class IO {
 }
 
 sub unlink($path) {
+    die "$path is not a file." if $path.IO.d;
     try {
         pir::new__PS('OS').unlink($path);
     }
@@ -275,6 +276,16 @@ sub dir($path = '.', Mu :$test = none('.', '..')) {
     }
     @res;
 
+}
+
+sub rmdir($path) {
+    die "$path does not exist." unless $path.IO.e;
+    die "$path is not a directory." unless $path.IO.d;
+    die "$path directory is not empty." if dir $path;
+    try {
+        pir::new__PS('OS').rm($path);
+    }
+    $! ?? fail($!) !! Bool::True;
 }
 
 proto sub chdir(|$) { * }

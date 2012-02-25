@@ -947,3 +947,13 @@ Perl6::Metamodel::ParametricRoleGroupHOW.set_selector_creator({
     nqp::bindattr($sel, Code, '$!dispatchees', []);
     $sel
 });
+
+# Set this Stash type for the various types of package (not persisted as it ends
+# up in a lexical...)
+Perl6::Metamodel::PackageHOW.set_stash_type(Stash, EnumMap);
+Perl6::Metamodel::ModuleHOW.set_stash_type(Stash, EnumMap);
+Perl6::Metamodel::NativeHOW.set_stash_type(Stash, EnumMap);
+Perl6::Metamodel::ClassHOW.set_stash_type(Stash, EnumMap);
+Perl6::Metamodel::GrammarHOW.set_stash_type(Stash, EnumMap);
+Perl6::Metamodel::ParametricRoleHOW.set_stash_type(Stash, EnumMap);
+Perl6::Metamodel::ParametricRoleGroupHOW.set_stash_type(Stash, EnumMap);

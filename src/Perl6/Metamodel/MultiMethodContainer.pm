@@ -84,6 +84,9 @@ role Perl6::Metamodel::MultiMethodContainer {
                 }
                 unless $found {
                     # No proto found, so we'll generate one here.
+                    unless $autogen_proto {
+                        pir::die("Cannot auto-generate a proto method in the setting");
+                    }
                     my $proto := $autogen_proto.instantiate_generic(
                         hash( T => $obj ));
                     $proto.set_name($name);

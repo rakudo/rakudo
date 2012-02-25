@@ -1404,19 +1404,16 @@ class Perl6::World is HLL::World {
     # Generates a series of PAST operations that will build this context if
     # it doesn't exist, and fix it up if it already does.
     method to_past() {
-        my $des := PAST::Stmts.new();
-        my $fix := PAST::Stmts.new();
-        for self.event_stream() {
-            $des.push(PAST::Stmt.new($_.deserialize_past())) if pir::defined($_.deserialize_past());
-            $fix.push(PAST::Stmt.new($_.fixup_past())) if pir::defined($_.fixup_past());
-        }
-        make PAST::Op.new(
-            :pasttype('if'),
-            PAST::Op.new(
-                :pirop('isnull IP'),
-                PAST::Op.new( :pirop('nqp_get_sc Ps'), self.handle() )
-            ),
-            PAST::Stmts.new(
+        if self.is_precompilation_mode() {
+            my $load_tasks := PAST::Stmts.new();
+            for self.load_dependency_tasks() {
+                $load_tasks.push(PAST::Stmt.new($_));
+            }
+            my $fixup_tasks := PAST::Stmts.new();
+            for self.fixup_tasks() {
+                $fixup_tasks.push(PAST::Stmt.new($_));
+            }
+            return PAST::Stmts.new(
                 PAST::Op.new( :pirop('nqp_dynop_setup v') ),
                 PAST::Op.new( :pirop('nqp_bigint_setup v') ),
                 PAST::Op.new( :pirop('nqp_native_call_setup v') ),
@@ -1432,10 +1429,26 @@ class Perl6::World is HLL::World {
                     PAST::Var.new( :name('cur_sc'), :scope('register'), :isdecl(1) ),
                     PAST::Op.new( :pirop('nqp_create_sc Ps'), self.handle() )
                 ),
-                $des
-            ),
-            $fix
-        );
+                PAST::Op.new(
+                    :pasttype('callmethod'), :name('set_description'),
+                    PAST::Var.new( :name('cur_sc'), :scope('register') ),
+                    self.sc.description
+                ),
+                $load_tasks,
+                self.serialize_and_produce_deserialization_past('cur_sc'),
+                $fixup_tasks
+            )
+        }
+        else {
+            my $tasks := PAST::Stmts.new();
+            for self.load_dependency_tasks() {
+                $tasks.push(PAST::Stmt.new($_));
+            }
+            for self.fixup_tasks() {
+                $tasks.push(PAST::Stmt.new($_));
+            }
+            return $tasks
+        }
     }
 
     # throws a typed exception

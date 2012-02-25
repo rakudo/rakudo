@@ -106,7 +106,6 @@ BEGIN {
 
     # class Any is Mu { ... }
     Any.HOW.add_parent(Any, Mu);
-    Perl6::Metamodel::ClassHOW.set_default_parent_type(Any);
 
     # class Cool is Any { ... }
     Cool.HOW.add_parent(Cool, Any);
@@ -839,7 +838,6 @@ BEGIN {
     Perl6::Metamodel::ModuleHOW.delegate_methods_to(Any);
 
     # Setup some regexy/grammary bits.
-    Perl6::Metamodel::GrammarHOW.set_default_parent_type(Grammar);
     Perl6::Metamodel::ClassHOW.add_stash(Grammar);
 
     # Export the metamodel bits to a Metamodel namespace so it's available
@@ -957,3 +955,7 @@ Perl6::Metamodel::ClassHOW.set_stash_type(Stash, EnumMap);
 Perl6::Metamodel::GrammarHOW.set_stash_type(Stash, EnumMap);
 Perl6::Metamodel::ParametricRoleHOW.set_stash_type(Stash, EnumMap);
 Perl6::Metamodel::ParametricRoleGroupHOW.set_stash_type(Stash, EnumMap);
+
+# Register default parent types.
+Perl6::Metamodel::ClassHOW.set_default_parent_type(Any);
+Perl6::Metamodel::GrammarHOW.set_default_parent_type(Grammar);

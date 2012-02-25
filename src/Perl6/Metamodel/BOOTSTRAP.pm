@@ -275,7 +275,6 @@ BEGIN {
         }
         $self
     }));
-    pir::set_scalar_container_type__vP(Scalar);
 
     # Scalar needs to be registered as a container type.
     pir::set_container_spec__vPPsP(Scalar, Scalar, '$!value', pir::null__P());
@@ -924,6 +923,7 @@ pir::perl6_set_types_list_array_lol__vPP(List, ListIter, Array, LoL, Parcel);
 pir::perl6_set_types_enummap_hash__vPP(EnumMap, Hash);
 pir::perl6_set_type_capture__vP(Capture);
 pir::perl6_set_bools__vPP(Bool.WHO<False>, Bool.WHO<True>);
+pir::set_scalar_container_type__vP(Scalar);
 
 # We'll build container descriptors for $_, $! and $/ that we can
 # share with all of the magically/lazily created scalars.

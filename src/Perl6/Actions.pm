@@ -1265,9 +1265,9 @@ class Perl6::Actions is HLL::Actions {
             add_signature_binding_code($block, $sig, @params);
             $block.blocktype('declaration');
 
-            # Need to ensure we get lexical outers fixed up
-            # properly.
-            $block.push($*W.create_lexical_capture_fixup());
+            # Need to ensure we get lexical outers fixed up properly.
+            # XXX disabled for now - needs redoing due to bs work.
+            #$block.push($*W.create_lexical_capture_fixup());
 
             # As its last act, it should grab the current lexpad so that
             # we have the type environment, and also return the parametric

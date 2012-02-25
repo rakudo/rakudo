@@ -42,6 +42,9 @@ class Perl6::World is HLL::World {
     # Mapping of sub IDs to their static lexpad objects.
     has %!sub_id_to_static_lexpad;
     
+    # Mapping of sub IDs to SC indexes of code stubs.
+    has %!sub_id_to_sc_idx;
+    
     # Array of stubs to check and the end of compilation.
     has @!stub_check;
     
@@ -597,15 +600,20 @@ class Perl6::World is HLL::World {
                 }
             }
         };
-        my $stub := sub (*@pos, *%named) {
+        my $stub := pir::nqp_fresh_stub__PP(sub (*@pos, *%named) {
             unless $precomp {
                 $compiler_thunk();
             }
             $precomp(|@pos, |%named);
-        };
+        });
         pir::setprop__vPsP($stub, 'COMPILER_THUNK', $compiler_thunk);
         pir::set__vPS($stub, $code_past.name);
         pir::setattribute__vPPsP($code, $code_type, '$!do', $stub);
+        
+        # Tag it as a static code ref and add it to the root code refs set.
+        pir::setprop__vPsP($stub, 'STATIC_CODE_REF', $stub);
+        my $code_ref_idx := self.add_root_code_ref($stub, $code_past);
+        %!sub_id_to_sc_idx{$code_past.subid()} := $code_ref_idx;
         
         # Fixup will install the real thing, unless we're in a role, in
         # which case pre-comp will have sorted it out.
@@ -818,6 +826,10 @@ class Perl6::World is HLL::World {
             }
             if pir::exists(%!sub_id_to_static_lexpad, $subid) {
                 $precomp[$i].get_lexinfo.set_static_lexpad(%!sub_id_to_static_lexpad{$subid});
+            }
+            if pir::exists(%!sub_id_to_sc_idx, $subid) {
+                pir::setprop__vPsP($precomp[$i], 'STATIC_CODE_REF', $precomp[$i]);
+                self.update_root_code_ref(%!sub_id_to_sc_idx{$subid}, $precomp[$i]);
             }
             $i := $i + 1;
         }

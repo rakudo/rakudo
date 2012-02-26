@@ -2306,7 +2306,7 @@ class Perl6::Actions is HLL::Actions {
             my $sep := @*seps[$param_idx];
             if ~$sep eq ':' {
                 if $param_idx != 0 {
-                    $/.CURSOR.panic("Can only use : in a signature after the first parameter");
+                    $*W.throw($/, 'X::Syntax::Signature::InvocantMarker')
                 }
                 %info<is_invocant> := 1;
             }

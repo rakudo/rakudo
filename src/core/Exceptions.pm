@@ -286,6 +286,12 @@ my class X::Syntax::Regex::Adverb does X::Syntax {
     method message() { "Adverb $.adverb not allowed on $.construct" }
 }
 
+my class X::Syntax::Signature::InvocantMarker does X::Syntax {
+    method message() {
+        "Can only use : as invocant marker in a signature after the first parameter"
+    }
+}
+
 my class X::Attribute::Package does X::Comp {
     has $.package-type;
     method message() { "A $.package-type cannot have attributes" }

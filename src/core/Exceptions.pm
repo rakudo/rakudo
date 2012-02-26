@@ -41,7 +41,7 @@ my class X::OutOfRange is Exception {
     has $.got = '<unknown>';
     has $.range = '<unknown>';
     method message() {
-        "$.what out of range. Is: $.got, should be in $.range"
+        "$.what out of range. Is: $.got, should be in $.range.gist()"
     }
 }
 

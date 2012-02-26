@@ -99,6 +99,7 @@ pmclass Perl6LexInfo
     
     VTABLE void visit(PMC *info) {
         VISIT_PMC_ATTR(INTERP, info, SELF, Perl6LexInfo, name_to_register_map);
+        VISIT_PMC_ATTR(INTERP, info, SELF, Perl6LexInfo, static_code);
         SUPER(info);
     }
     

@@ -490,6 +490,10 @@ BEGIN {
     Code.HOW.add_method(Code, 'clone', static(sub ($self) {
             my $dcself := pir::perl6_decontainerize__PP($self);
             my $cloned := pir::repr_clone__PP($dcself);
+            nqp::bindattr($cloned, Code, '$!do',
+                pir::perl6_associate_sub_code_object__0PP(
+                    pir::clone__PP(nqp::getattr($dcself, Code, '$!do')),
+                    $cloned));
             Q:PIR {
                 $P0 = find_lex '$dcself'
                 $P1 = find_lex 'Code'
@@ -500,10 +504,7 @@ BEGIN {
                 $P1($P0, $P2)
               no_callback:
             };
-            pir::setattribute__0PPSP($cloned, Code, '$!do',
-                pir::perl6_associate_sub_code_object__0PP(
-                    pir::clone__PP(nqp::getattr($dcself, Code, '$!do')),
-                    $cloned))
+            $cloned
         }));
     Code.HOW.add_method(Code, 'derive_dispatcher', static(sub ($self) {
             my $clone := $self.clone();
@@ -561,6 +562,10 @@ BEGIN {
     Block.HOW.add_method(Block, 'clone', static(sub ($self) {
             my $dcself := pir::perl6_decontainerize__PP($self);
             my $cloned := pir::repr_clone__PP($dcself);
+            nqp::bindattr($cloned, Code, '$!do',
+                pir::perl6_associate_sub_code_object__0PP(
+                    pir::clone__PP(nqp::getattr($dcself, Code, '$!do')),
+                    $cloned));
             Q:PIR {
                 $P0 = find_lex '$dcself'
                 $P1 = find_lex 'Code'
@@ -572,10 +577,7 @@ BEGIN {
               no_callback:
             };
             pir::setattribute__0PPSP($cloned, Block, '$!state_vars', nqp::null());
-            pir::setattribute__0PPSP($cloned, Code, '$!do',
-                pir::perl6_associate_sub_code_object__0PP(
-                    pir::clone__PP(nqp::getattr($dcself, Code, '$!do')),
-                    $cloned))
+            $cloned
         }));
 
     # class Routine is Block { ... }

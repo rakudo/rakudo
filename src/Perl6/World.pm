@@ -612,8 +612,20 @@ class Perl6::World is HLL::World {
         
         # Tag it as a static code ref and add it to the root code refs set.
         pir::setprop__vPsP($stub, 'STATIC_CODE_REF', $stub);
+        pir::setprop__vPsP($stub, 'COMPILER_STUB', $stub);
         my $code_ref_idx := self.add_root_code_ref($stub, $code_past);
         %!sub_id_to_sc_idx{$code_past.subid()} := $code_ref_idx;
+        
+        # If we clone the stub, need to mark it as a dynamic compilation
+        # boundary.
+        if self.is_precompilation_mode() {
+            my $clone_handler := sub ($orig, $clone) {
+                my $do := nqp::getattr($clone, $code_type, '$!do');
+                pir::setprop__vPsP($do, 'COMPILER_STUB', $do);
+                pir::setprop__vPsP($do, 'CLONE_CALLBACK', $clone_handler);
+            };
+            pir::setprop__vPsP($stub, 'CLONE_CALLBACK', $clone_handler);
+        }
         
         # Fixup will install the real thing, unless we're in a role, in
         # which case pre-comp will have sorted it out.

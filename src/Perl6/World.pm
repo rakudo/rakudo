@@ -200,8 +200,7 @@ class Perl6::World is HLL::World {
                             'nqp' ),
                         'ModuleLoader'),
                     1),
-                'Perl6::ModuleLoader',
-                self.get_slot_past_for_object($*W.pkg_create_mo(pir::get_knowhow__P()))
+                'Perl6::ModuleLoader'
             ))
     }
     

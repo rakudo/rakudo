@@ -717,7 +717,9 @@ BEGIN {
     #     ...
     # }
     Capture.HOW.add_parent(Capture, Any);
-
+    Capture.HOW.add_attribute(Capture, BOOTSTRAPATTR.new(:name<$!list>, :type(Mu), :package(Capture)));
+    Capture.HOW.add_attribute(Capture, BOOTSTRAPATTR.new(:name<$!hash>, :type(Mu), :package(Capture)));
+    
     # class Bool is Cool {
     #     has int $!value;
     #     ...

@@ -317,3 +317,7 @@ my class X::Augment::NoSuchType does X::Comp {
     has $.package;
     method message() { "You tried to agument $.package-type $.package, but it does not exist" }
 }
+
+my class X::Routine::Unwrap is Exception {
+    method message() { "Invalid wrap handle passed to routine" }
+}

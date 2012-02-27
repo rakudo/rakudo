@@ -319,5 +319,5 @@ my class X::Augment::NoSuchType does X::Comp {
 }
 
 my class X::Routine::Unwrap is Exception {
-    method message() { "Invalid wrap handle passed to routine" }
+    method message() { "Cannot unwrap routine: invalid wrap handle" }
 }

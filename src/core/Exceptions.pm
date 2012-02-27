@@ -321,3 +321,7 @@ my class X::Augment::NoSuchType does X::Comp {
 my class X::Routine::Unwrap is Exception {
     method message() { "Cannot unwrap routine: invalid wrap handle" }
 }
+
+my class X::Constructor::Positional is Exception {
+    method message() { "Default constructor only takes named arguments" }
+}

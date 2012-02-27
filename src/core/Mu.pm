@@ -1,3 +1,5 @@
+my class X::Constructor::Positional { ... }
+
 my class Mu {
     proto method ACCEPTS(|$) { * }
     multi method ACCEPTS(Mu:U: Mu \$topic) {
@@ -43,7 +45,7 @@ my class Mu {
         self.bless(*, |%attrinit);
     }
     multi method new($, *@) {
-        die "Default constructor only takes named arguments";
+        X::Constructor::Positional.new.throw;
     }
     
     method CREATE() {

@@ -223,8 +223,7 @@ class Perl6::World is HLL::World {
         }
         
         # Second pass: stick it in the actual static lexpad.
-        my $slp     := self.get_static_lexpad($target);
-        my $slp_ref := self.get_ref($slp);
+        my $slp := self.get_static_lexpad($target);
         for %stash {
             $slp.add_static_value($_.key, $_.value, 0, 0);
         }

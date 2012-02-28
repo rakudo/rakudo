@@ -820,27 +820,6 @@ BEGIN {
     nqp::bindattr_i($true, Bool, '$!value', 1);
     (Bool.WHO)<True> := $true;
 
-    # Roles pretend to be narrower than certain types for the purpose
-    # of type checking. Also, they pun to classes.
-    Perl6::Metamodel::ParametricRoleGroupHOW.pretend_to_be([Cool, Any, Mu]);
-    Perl6::Metamodel::ParametricRoleGroupHOW.configure_punning(
-        Perl6::Metamodel::ClassHOW,
-        hash( ACCEPTS => Mu ));
-    Perl6::Metamodel::ParametricRoleHOW.pretend_to_be([Cool, Any, Mu]);
-    Perl6::Metamodel::ParametricRoleHOW.configure_punning(
-        Perl6::Metamodel::ClassHOW,
-        hash( ACCEPTS => Mu ));
-    Perl6::Metamodel::CurriedRoleHOW.pretend_to_be([Cool, Any, Mu]);
-    Perl6::Metamodel::CurriedRoleHOW.configure_punning(
-        Perl6::Metamodel::ClassHOW,
-        hash( ACCEPTS => Mu ));
-        
-    # Similar for packages and modules, but just has methods from Any.
-    Perl6::Metamodel::PackageHOW.pretend_to_be([Any, Mu]);
-    Perl6::Metamodel::PackageHOW.delegate_methods_to(Any);
-    Perl6::Metamodel::ModuleHOW.pretend_to_be([Any, Mu]);
-    Perl6::Metamodel::ModuleHOW.delegate_methods_to(Any);
-
     # Setup some regexy/grammary bits.
     Perl6::Metamodel::ClassHOW.add_stash(Grammar);
 
@@ -949,6 +928,27 @@ Perl6::Metamodel::ParametricRoleGroupHOW.set_selector_creator({
     nqp::bindattr($sel, Code, '$!dispatchees', []);
     $sel
 });
+
+# Roles pretend to be narrower than certain types for the purpose
+# of type checking. Also, they pun to classes.
+Perl6::Metamodel::ParametricRoleGroupHOW.pretend_to_be([Cool, Any, Mu]);
+Perl6::Metamodel::ParametricRoleGroupHOW.configure_punning(
+    Perl6::Metamodel::ClassHOW,
+    hash( ACCEPTS => Mu ));
+Perl6::Metamodel::ParametricRoleHOW.pretend_to_be([Cool, Any, Mu]);
+Perl6::Metamodel::ParametricRoleHOW.configure_punning(
+    Perl6::Metamodel::ClassHOW,
+    hash( ACCEPTS => Mu ));
+Perl6::Metamodel::CurriedRoleHOW.pretend_to_be([Cool, Any, Mu]);
+Perl6::Metamodel::CurriedRoleHOW.configure_punning(
+    Perl6::Metamodel::ClassHOW,
+    hash( ACCEPTS => Mu ));
+    
+# Similar for packages and modules, but just has methods from Any.
+Perl6::Metamodel::PackageHOW.pretend_to_be([Any, Mu]);
+Perl6::Metamodel::PackageHOW.delegate_methods_to(Any);
+Perl6::Metamodel::ModuleHOW.pretend_to_be([Any, Mu]);
+Perl6::Metamodel::ModuleHOW.delegate_methods_to(Any);
 
 # Set this Stash type for the various types of package (not persisted as it ends
 # up in a lexical...)

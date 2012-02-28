@@ -204,7 +204,6 @@ CORE_SOURCES = \
   src/core/Backtrace.pm \
   src/core/Exception.pm \
   src/core/Failure.pm \
-  src/core/Exceptions.pm \
   src/core/Match.pm \
   src/core/Cursor.pm \
   src/core/Grammar.pm \

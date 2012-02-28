@@ -196,6 +196,7 @@ CORE_SOURCES = \
   src/core/Pair.pm \
   src/core/EnumMap.pm \
   src/core/Hash.pm \
+  src/core/Stash.pm \
   src/core/Parameter.pm \
   src/core/Signature.pm \
   src/core/Buf.pm \

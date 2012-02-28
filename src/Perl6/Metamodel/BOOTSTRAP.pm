@@ -963,3 +963,7 @@ Perl6::Metamodel::ParametricRoleGroupHOW.set_stash_type(Stash, EnumMap);
 # Register default parent types.
 Perl6::Metamodel::ClassHOW.set_default_parent_type(Any);
 Perl6::Metamodel::GrammarHOW.set_default_parent_type(Grammar);
+
+# Put PROCESS in place.
+my $hll_ns := pir::get_root_global__PS('perl6');
+$hll_ns<PROCESS> := PROCESS;

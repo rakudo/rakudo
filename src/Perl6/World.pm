@@ -769,7 +769,6 @@ class Perl6::World is HLL::World {
         my $scalar      := nqp::create($scalar_type);
         my $slot        := self.add_object($scalar);
         nqp::bindattr($scalar, $scalar_type, '$!value', $obj);
-        # XXX we do deserialization later...
         $scalar;
     }
     

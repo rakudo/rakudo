@@ -397,8 +397,8 @@ sub infix:<=:=>(Mu \$x, Mu \$y) {
     nqp::p6bool(nqp::iseq_i(nqp::where($x), nqp::where($y)));
 }
 
-proto sub infix:<eqv>(Mu $, Mu $) { * }
-multi sub infix:<eqv>(Mu $a, Mu $b) {
+proto sub infix:<eqv>(Any $, Any $) { * }
+multi sub infix:<eqv>(Any $a, Any $b) {
     $a.WHICH eq $b.WHICH
 }
 

@@ -1359,8 +1359,8 @@ inline op perl6_callerid(out INT) :base_core {
 
 =item capture_all_outers(in PMC)
 
-Takes all the specified contexts and sets their outer pointers
-to be this one.
+Takes a list of Code objects that map to closures, finds those closures outers
+can captures those contexts.
 
 =cut
 
@@ -1370,8 +1370,10 @@ inline op capture_all_outers(in PMC) :base_core {
     INTVAL  elems   = VTABLE_elements(interp, $1);
     INTVAL  i;
     for (i = 0; i < elems; i++) {
-        PMC *inner = VTABLE_get_pmc_keyed_int(interp, $1, i);
-        Parrot_pcc_set_outer_ctx_func(interp, inner, cur_ctx);
+        PMC *code_obj = VTABLE_get_pmc_keyed_int(interp, $1, i);
+        PMC *closure = ((Rakudo_Code *)PMC_data(code_obj))->_do;
+        PMC *ctx_to_diddle = PARROT_SUB(closure)->outer_ctx;
+        Parrot_pcc_set_outer_ctx_func(interp, ctx_to_diddle, cur_ctx);
     }
 }
 

@@ -1265,9 +1265,24 @@ class Perl6::Actions is HLL::Actions {
             add_signature_binding_code($block, $sig, @params);
             $block.blocktype('declaration');
 
-            # Need to ensure we get lexical outers fixed up properly.
-            # XXX disabled for now - needs redoing due to bs work.
-            #$block.push($*W.create_lexical_capture_fixup());
+            # Need to ensure we get lexical outers fixed up properly. To
+            # do this we make a list of closures, which each point to the
+            # outer context. These surive serialization and thus point at
+            # what has to be fixed up.
+            my $throwaway_block_past := PAST::Block.new( 
+                :blocktype('declaration'),
+                PAST::Var.new( :name('$_'), :scope('lexical'), :isdecl(1) )
+            );
+            $throwaway_block_past<outer> := $block;
+            $block[0].push($throwaway_block_past);
+            my $throwaway_block := $*W.create_code_object($throwaway_block_past,
+                'Block', $*W.create_signature([]));
+            my $fixup := $*W.create_lexical_capture_fixup();
+            $fixup.push(PAST::Op.new(
+                :pasttype('callmethod'), :name('clone'),
+                $*W.get_ref($throwaway_block)
+            ));
+            $block.push($fixup);
 
             # As its last act, it should grab the current lexpad so that
             # we have the type environment, and also return the parametric

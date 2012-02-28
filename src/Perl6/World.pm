@@ -1107,33 +1107,30 @@ class Perl6::World is HLL::World {
     }
     
     # Some things get cloned many times with a lexical scope that
-    # we never entered. This makes sure we capture them as needed.
-    # Yes, it's evil...find a vodka before reading, kthx.
+    # we never enter. This makes sure we capture them as needed.
     method create_lexical_capture_fixup() {
-        # Create an RPA and put it in the SC. Also code to build
-        # one and install it.
-        my $fixup_list := pir::new__Ps('ResizablePMCArray');
-        my $slot := self.add_code($fixup_list);
-        if self.is_precompilation_mode() {
-            self.add_event(:deserialize_past(
-                self.set_slot_past($slot, PAST::Op.new( :pasttype('list') ))));
-        }
+        # Create a list and put it in the SC.
+        my class FixupList { has $!list }
+        my $fixup_list := nqp::create(FixupList);
+        my $slot := self.add_object($fixup_list);
+        nqp::bindattr($fixup_list, FixupList, '$!list', nqp::list());
 
         # Set up capturing code.
         my $capturer := self.cur_lexpad();
         $capturer[0].push(PAST::Op.new(
             :pirop('capture_all_outers vP'),
-            self.get_slot_past_for_object($fixup_list)));
+            PAST::Var.new(
+                :name('$!list'), :scope('attribute_6model'),
+                self.get_ref($fixup_list),
+                self.get_ref(FixupList) )));
         
-        # Return code that adds current context to re-capture
-        # list.
+        # Return a PAST node that we can push the dummy closure
         return PAST::Op.new(
             :pirop('push vPP'),
-            self.get_slot_past_for_object($fixup_list),
-            PAST::Op.new(
-                :pirop('set PQPS'),
-                PAST::Op.new( :pirop('getinterp P') ),
-                'context'));
+            PAST::Var.new(
+                :name('$!list'), :scope('attribute_6model'),
+                self.get_ref($fixup_list),
+                self.get_ref(FixupList) ));
     }
     
     # Handles addition of a phaser.

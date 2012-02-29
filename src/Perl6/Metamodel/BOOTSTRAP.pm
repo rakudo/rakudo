@@ -797,7 +797,6 @@ BEGIN {
                 $self.postcircumfix:<( )>($c);
             }
         });
-    Perl6::Metamodel::ClassHOW.set_invoke_forwarder($invoke_forwarder);
     Mu.HOW.add_parrot_vtable_mapping(Mu, 'invoke', $invoke_forwarder);
 
     # If we don't already have a PROCESS, set it up.
@@ -950,6 +949,10 @@ Perl6::Metamodel::PackageHOW.pretend_to_be([Any, Mu]);
 Perl6::Metamodel::PackageHOW.delegate_methods_to(Any);
 Perl6::Metamodel::ModuleHOW.pretend_to_be([Any, Mu]);
 Perl6::Metamodel::ModuleHOW.delegate_methods_to(Any);
+
+# Let ClassHOW know about the invocation handler.
+Perl6::Metamodel::ClassHOW.set_invoke_forwarder(
+        Mu.HOW.parrot_vtable_mappings(Mu, :local(1))<invoke>);
 
 # Set this Stash type for the various types of package (not persisted as it ends
 # up in a lexical...)

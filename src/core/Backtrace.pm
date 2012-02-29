@@ -47,7 +47,8 @@ my class Backtrace is List {
             my $file     = $bt[$_]<annotations><file>;
             next unless $line && $file;
             # now *that's* an evil hack
-            last if $file eq 'src/stage2/gen/NQPHLL.pm';
+            last if $file eq 'src/stage2/gen/NQPHLL.pm' ||
+                    $file eq 'src\\stage2\\gen\\NQPHLL.pm';
             my $subname  = nqp::p6box_s($bt[$_]<sub>);
             $subname = '<anon>' if $subname.substr(0, 6) eq '_block';
             $new.push: Backtrace::Frame.new(

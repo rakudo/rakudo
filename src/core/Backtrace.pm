@@ -39,8 +39,9 @@ my class Backtrace is List {
         my $new = self.bless(*);
         for $offset .. $bt.elems - 1 {
             next if pir::isnull($bt[$_]<sub>);
-            my $code = try {
-                pir::perl6_code_object_from_parrot_sub__PP($bt[$_]<sub>);
+            my $code;
+            try {
+                $code = pir::perl6_code_object_from_parrot_sub__PP($bt[$_]<sub>);
             };
             my $line     = $bt[$_]<annotations><line>;
             my $file     = $bt[$_]<annotations><file>;

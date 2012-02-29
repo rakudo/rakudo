@@ -392,13 +392,9 @@ BEGIN {
             my $type := nqp::getattr($self, Parameter, '$!nominal_type');
             pir::perl6_booleanize__PI($type.HOW.archetypes.generic)
         }));
-    my $SIG_ELEM_IS_RW           := 256;
-    my $SIG_ELEM_IS_COPY         := 512;
-    my $SIG_ELEM_IS_PARCEL       := 1024;
-    my $SIG_ELEM_IS_OPTIONAL     := 2048;
-    my $SIG_ELEM_NOMINAL_GENERIC := 524288;
     Parameter.HOW.add_method(Parameter, 'instantiate_generic', static(sub ($self, $type_environment) {
             # Clone with the type instantiated.
+            my $SIG_ELEM_NOMINAL_GENERIC := 524288;
             my $ins      := pir::repr_clone__PP($self);
             my $type     := nqp::getattr($self, Parameter, '$!nominal_type');
             my $cd       := nqp::getattr($self, Parameter, '$!container_descriptor');
@@ -415,6 +411,8 @@ BEGIN {
             pir::setattribute__0PPsP($ins, Parameter, '$!container_descriptor', $ins_cd)
         }));
     Parameter.HOW.add_method(Parameter, 'set_rw', static(sub ($self) {
+            my $SIG_ELEM_IS_RW       := 256;
+            my $SIG_ELEM_IS_OPTIONAL := 2048;
             my $dcself := pir::perl6_decontainerize__PP($self);
             my $flags  := nqp::getattr_i($dcself, Parameter, '$!flags');
             if $flags +& $SIG_ELEM_IS_OPTIONAL {
@@ -425,6 +423,7 @@ BEGIN {
             pir::repr_bind_attr_int__0PPsI($dcself, Parameter, '$!flags', $flags + $SIG_ELEM_IS_RW);
         }));
     Parameter.HOW.add_method(Parameter, 'set_copy', static(sub ($self) {
+            my $SIG_ELEM_IS_COPY := 512;
             my $dcself := pir::perl6_decontainerize__PP($self);
             my $cd     := nqp::getattr($dcself, Parameter, '$!container_descriptor');
             if $cd { $cd.set_rw(1) }
@@ -432,6 +431,7 @@ BEGIN {
                 nqp::getattr_i($dcself, Parameter, '$!flags') + $SIG_ELEM_IS_COPY);
         }));
     Parameter.HOW.add_method(Parameter, 'set_required', static(sub ($self) {
+            my $SIG_ELEM_IS_OPTIONAL := 2048;
             my $dcself := pir::perl6_decontainerize__PP($self);
             my $flags := nqp::getattr_i($dcself, Parameter, '$!flags');
             if $flags +& $SIG_ELEM_IS_OPTIONAL {
@@ -440,6 +440,7 @@ BEGIN {
             }
         }));
     Parameter.HOW.add_method(Parameter, 'set_parcel', static(sub ($self) {
+            my $SIG_ELEM_IS_PARCEL := 1024;
             my $dcself := pir::perl6_decontainerize__PP($self);
             my $flags := nqp::getattr_i($dcself, Parameter, '$!flags');
             unless $flags +& $SIG_ELEM_IS_PARCEL {

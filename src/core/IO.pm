@@ -211,7 +211,14 @@ class IO {
 
 sub unlink($path) {
     try {
-        pir::new__PS('OS').rm($path);
+        pir::new__PS('OS').unlink($path);
+    }
+    $! ?? fail($!) !! Bool::True
+}
+
+sub rmdir($path) {
+    try {
+        pir::new__PS('OS').rmdir($path);
     }
     $! ?? fail($!) !! Bool::True
 }

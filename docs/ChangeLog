@@ -1,3 +1,8 @@
+New in 2012.03
++ updated to dyncall 0.7
++ infix:<eqv> now autothreads over junctions
++ more typed exceptions
+
 New in 2012.02
 + catch duplicate accessor generation required of "has $.x; has @.x;"
 + many more typed exceptions thrown
@@ -31,6 +36,7 @@ New in 2012.02
 + fixed "but True" and "but False"
 + object hashes, with the my %h{SomeObjectType} syntax
 + implemented Int($x) style coercions
++ implemented Capture.perl
 
 New in 2012.01
 + -c command line option re-implemented

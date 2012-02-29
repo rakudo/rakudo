@@ -353,7 +353,6 @@ S06-signature/types.t
 S06-signature/unpack-array.t
 S06-signature/unpack-object.t
 S06-signature/unspecified.t
-S06-traits/as.t
 S06-traits/is-copy.t
 S06-traits/is-readonly.t
 S06-traits/is-rw.t
@@ -479,6 +478,7 @@ S16-filehandles/filetest.t
 S16-filehandles/io.t
 S16-filehandles/io_in_for_loops.t
 S16-filehandles/io_in_while_loops.t
+S16-filehandles/mkdir_rmdir.t
 S16-filehandles/open.t
 S16-filehandles/unlink.t
 S16-io/bare-say.t

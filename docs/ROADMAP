@@ -34,6 +34,7 @@ Compiler Performance/Portability Improvements (jnthn)
 2 ****  full-blown bounded serialization
 2 **    finish up any remaining s/pir::/nqp::/
 2 ?     re-organize Rakudo, build process, etc. for multi-backend
+3 **    Optimizing multis for `[+] 1..10` and `[<=] 1..10` etc.
 
 Macros (masak)
 2 ***   macro declarations and invocation; Rudimentary quasiquotes

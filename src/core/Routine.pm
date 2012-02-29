@@ -1,3 +1,5 @@
+my class X::Routine::Unwrap { ... }
+
 my class Routine {
     method of() { self.signature.returns }
     method returns() { self.signature.returns }
@@ -86,7 +88,7 @@ my class Routine {
     
     method unwrap($handle) {
         $handle.can('restore') && $handle.restore() ||
-            die("Invalid wrap handle passed to routine")
+            die(X::Routine::Unwrap.new())
     }
     
     method yada() {

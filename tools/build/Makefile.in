@@ -221,6 +221,7 @@ CORE_SOURCES = \
   src/core/Temporal.pm \
   src/core/EXPORTHOW.pm \
   src/core/Pod.pm \
+  src/core/Set.pm \
   src/core/ObjAt.pm \
   src/core/operators.pm \
   src/core/metaops.pm \

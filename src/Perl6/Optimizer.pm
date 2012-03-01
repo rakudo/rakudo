@@ -210,7 +210,7 @@ class Perl6::Optimizer {
                 my $meth := $pkg.HOW.find_private_method($pkg, $name);
                 if $meth {
                     try {
-                        my $call := $*W.get_object_sc_ref_past($meth); # may fail, thus the try
+                        my $call := $*W.get_ref($meth); # may fail, thus the try
                         my $inv  := $op.shift;
                         $op.shift; $op.shift; # name, package (both pre-resolved now)
                         $op.unshift($inv);

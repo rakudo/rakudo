@@ -30,6 +30,7 @@ class Perl6::Optimizer {
         $!pres_topic_counter := 0;
         %!deadly := nqp::hash();
         %!worrying := nqp::hash();
+        my $*DYNAMICALLY_COMPILED := 0;
         
         # Work out optimization level.
         my $*LEVEL := pir::exists(%adverbs, 'optimize') ??
@@ -75,14 +76,20 @@ class Perl6::Optimizer {
         @!block_stack.push($block);
         
         # Visit children.
-        self.visit_children($block);
+        if $block<DYNAMICALLY_COMPILED> {
+            my $*DYNAMICALLY_COMPILED := 1;
+            self.visit_children($block);
+        }
+        else {
+            self.visit_children($block);
+        }
         
         # Pop block from block stack.
         @!block_stack.pop();
         
         # If the block is immediate, we may be able to inline it.
         my $outer := @!block_stack[+@!block_stack - 1];
-        if $block.blocktype eq 'immediate' {
+        if $block.blocktype eq 'immediate' && !$*DYNAMICALLY_COMPILED {
             # Scan symbols for any non-interesting ones.
             my @sigsyms;
             for $block.symtable() {
@@ -380,7 +387,7 @@ class Perl6::Optimizer {
         # Extract interesting parts of block.
         my $decls := $block.shift;
         my $stmts := $block.shift;
-        
+
         # Turn block into an "optimized out" stub (deserialization
         # or fixup will still want it to be there).
         $block.blocktype('declaration');

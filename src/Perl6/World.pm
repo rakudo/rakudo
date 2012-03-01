@@ -840,6 +840,9 @@ class Perl6::World is HLL::World {
             $i := $i + 1;
         }
         
+        # Flag block as dynamically compiled.
+        $past<DYNAMICALLY_COMPILED> := 1;
+        
         # Return the Parrot Sub that maps to the thing we were originally
         # asked to compile.
         $precomp[1]

@@ -1527,9 +1527,16 @@ grammar Perl6::Grammar is HLL::Grammar {
         [
             <.newpad>
             [
-                | $<specials>=[<[ ! ^ ]>?]<longname> [ '(' <multisig> ')' ]? <trait>*
-                | [ '(' <multisig> ')' ]? <trait>*
-                | <?>
+            | $<specials>=[<[ ! ^ ]>?]<longname> [ '(' <multisig> ')' ]? <trait>*
+            | '(' <multisig> ')' <trait>*
+            | <sigil>'.':!s
+                [
+                | '(' ~ ')' <multisig>
+                | '[' ~ ']' <multisig>
+                | '{' ~ '}' <multisig>
+                ]:s
+                <trait>*
+            | <?>
             ]
             { $*IN_DECL := ''; }
             [

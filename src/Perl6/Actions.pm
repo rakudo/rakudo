@@ -1836,7 +1836,20 @@ class Perl6::Actions is HLL::Actions {
                 $past[1] := wrap_return_handler($past[1]);
             }
         }
-        $past.name($<longname> ?? $<longname>.Str !! '<anon>');
+        
+        my $name;
+        if $<longname> {
+            $name := $<longname>.Str;
+        }
+        elsif $<sigil> {
+            if $<sigil> eq '@'    { $name := 'postcircumfix:<[ ]>' }
+            elsif $<sigil> eq '%' { $name := 'postcircumfix:<{ }>' }
+            elsif $<sigil> eq '&' { $name := 'postcircumfix:<( )>' }
+            else {
+                $/.CURSOR.panic("Cannot use " ~ $<sigil> ~ " sigil as a method name");
+            }
+        }
+        $past.name($name ?? $name !! '<anon>');
         $past.nsentry('');
 
         # Do the various tasks to trun the block into a method code object.
@@ -1862,8 +1875,8 @@ class Perl6::Actions is HLL::Actions {
         }
 
         # Install method.
-        if $<longname> {
-            install_method($/, $<longname>.Str, $*SCOPE, $code, $outer,
+        if $name {
+            install_method($/, $name, $*SCOPE, $code, $outer,
                 :private($<specials> && ~$<specials> eq '!'));
         }
         elsif $*MULTINESS {

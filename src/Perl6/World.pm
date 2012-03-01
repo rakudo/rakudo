@@ -80,9 +80,10 @@ class Perl6::World is HLL::World {
         }
         
         # Create it a static lexpad object.
-        my $slp_type_obj     := self.find_symbol(['StaticLexPad']);
-        my $slp_type_obj_ref := self.get_ref($slp_type_obj);
-        my $slp              := nqp::create($slp_type_obj);
+        my $slp_type_obj := self.find_symbol(['StaticLexPad']);
+        my $slp          := nqp::create($slp_type_obj);
+        nqp::bindattr($slp, $slp_type_obj, '%!static_values', nqp::hash());
+        nqp::bindattr($slp, $slp_type_obj, '%!flags', nqp::hash());
         
         # Deserialization and fixup need to associate static lex pad with the
         # low-level LexInfo.
@@ -691,11 +692,7 @@ class Perl6::World is HLL::World {
 
         # If it's a routine, flag that it needs fresh magicals.
         if pir::type_check__IPP($code, self.find_symbol(['Routine'])) {
-            my $set := PAST::Op.new(
-                :pasttype('callmethod'), :name('set_fresh_magicals'),
-                PAST::Val.new( :value($code_past), :returns('LexInfo')));
-            $des.push($set);
-            $fixups.push($set);
+            self.get_static_lexpad($code_past).set_fresh_magicals();
         }
             
         self.add_fixup_task(:deserialize_past($des), :fixup_past($fixups));

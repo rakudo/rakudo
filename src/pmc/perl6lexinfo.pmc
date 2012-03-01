@@ -135,10 +135,6 @@ compiler calls this method in response to a ".lex STRING, PREG" directive.
         SET_ATTR_static_lexpad(INTERP, SELF, slp);
     }
     
-    METHOD set_fresh_magicals() {
-        SET_ATTR_fresh_magicals(INTERP, SELF, 1);
-    }
-    
     METHOD get_static_code() {
         PMC *static_code;
         GET_ATTR_static_code(INTERP, SELF, static_code);

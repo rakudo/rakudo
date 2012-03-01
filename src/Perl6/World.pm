@@ -51,6 +51,9 @@ class Perl6::World is HLL::World {
     # Cached constants that we've built.
     has %!const_cache;
     
+    # List of CHECK blocks to run.
+    has @!CHECKs;
+    
     # Creates a new lexical scope and puts it on top of the stack.
     method push_lexpad($/) {
         # Create pad, link to outer and add to stack.
@@ -1139,7 +1142,10 @@ class Perl6::World is HLL::World {
             return self.add_constant_folded_result($result);
         }
         elsif $phaser eq 'CHECK' {
-            @*CHECK_PHASERS.unshift($block);
+            my $result_node := PAST::Stmt.new( PAST::Var.new( :name('Nil'), :scope('lexical_6model') ) );
+            @!CHECKs := [] unless @!CHECKs;
+            @!CHECKs.unshift([$block, $result_node]);
+            return $result_node;
         }
         elsif $phaser eq 'INIT' {
             $*UNIT[0].push(PAST::Op.new(
@@ -1156,6 +1162,14 @@ class Perl6::World is HLL::World {
         }
         else {
             $/.CURSOR.panic("$phaser phaser not yet implemented");
+        }
+    }
+    
+    # Runs the CHECK phasers and twiddles the PAST to look them up.
+    method CHECK() {
+        for @!CHECKs {
+            my $result := $_[0]();
+            $_[1][0] := self.add_constant_folded_result($result);
         }
     }
     

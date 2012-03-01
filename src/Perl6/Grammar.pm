@@ -425,10 +425,6 @@ grammar Perl6::Grammar is HLL::Grammar {
         :my $*POD_PAST;
         :my $*DECLARATOR_DOCS;
         
-        # CHECK phasers for this compilation unit we'll need at
-        # CHECK time.
-        :my @*CHECK_PHASERS := [];
-        
         # Setting loading and symbol setup.
         {
             # Create unit outer (where we assemble any lexicals accumulated
@@ -494,7 +490,7 @@ grammar Perl6::Grammar is HLL::Grammar {
         }
         
         # CHECK time.
-        { for @*CHECK_PHASERS { $_() } }
+        { $*W.CHECK(); }
     }
     
     method import_EXPORTHOW($UNIT) {    

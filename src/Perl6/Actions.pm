@@ -880,7 +880,7 @@ class Perl6::Actions is HLL::Actions {
         make PAST::Var.new( :name('Nil'), :scope('lexical') );
     }
 
-    method statement_prefix:sym<BEGIN>($/) { $*W.add_phaser($/, ($<blorst>.ast)<code_object>, 'BEGIN'); }
+    method statement_prefix:sym<BEGIN>($/) { make $*W.add_phaser($/, ($<blorst>.ast)<code_object>, 'BEGIN'); }
     method statement_prefix:sym<CHECK>($/) { $*W.add_phaser($/, ($<blorst>.ast)<code_object>, 'CHECK'); }
     method statement_prefix:sym<INIT>($/)  { $*W.add_phaser($/, ($<blorst>.ast)<code_object>, 'INIT'); }
     method statement_prefix:sym<END>($/)   { $*W.add_phaser($/, ($<blorst>.ast)<code_object>, 'END'); }

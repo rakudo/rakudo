@@ -1135,7 +1135,8 @@ class Perl6::World is HLL::World {
     method add_phaser($/, $block, $phaser) {
         if $phaser eq 'BEGIN' {
             # BEGIN phasers get run immediately.
-            $block();
+            my $result := $block();
+            return self.add_constant_folded_result($result);
         }
         elsif $phaser eq 'CHECK' {
             @*CHECK_PHASERS.unshift($block);

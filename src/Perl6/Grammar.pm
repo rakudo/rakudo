@@ -1882,12 +1882,15 @@ grammar Perl6::Grammar is HLL::Grammar {
 
     token term:sym<name> {
         <longname>
+        :my @longname;
+        { @longname := parse_name($<longname>.Str) }
         [
-        ||  <?{
-                my $longname := $<longname>.Str;
-                pir::substr($longname, 0, 2) eq '::' || $*W.is_name(parse_name($longname))
-            }>
-            <.unsp>? [ <?before '['> '[' ~ ']' <arglist> ]?
+        ||  <?{ pir::substr($<longname>.Str, 0, 2) eq '::' || $*W.is_name(@longname) }>
+            <.unsp>?
+            [
+                <?{ $*W.is_type(@longname) }>
+                <?before '['> '[' ~ ']' <arglist>
+            ]?
         || <args>
         ]
     }

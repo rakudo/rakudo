@@ -494,6 +494,16 @@ S16-unfiled/rebindstdhandles.t
 S16-unfiled/slurp.t
 S19-command-line/dash-e.t # icu
 S19-command-line/help.t
+S26-documentation/01-delimited.t
+S26-documentation/02-paragraph.t
+S26-documentation/03-abbreviated.t
+S26-documentation/04-code.t
+S26-documentation/05-comment.t
+S26-documentation/06-lists.t
+S26-documentation/07-tables.t
+S26-documentation/08-formattingcodes.t
+S26-documentation/09-configuration.t
+S26-documentation/why.t
 S28-named-variables/cwd.t
 S28-named-variables/inc.t
 S29-any/cmp.t

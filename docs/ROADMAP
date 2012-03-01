@@ -31,7 +31,6 @@ Compiler Performance/Portability Improvements (jnthn)
 1 ***   get NQP bootstrapped with QRegex engine
 1 **    LTM and other updates to Rakudo grammar to work on QRegex
 2 ***** design, implement and switch to QAST
-2 ****  full-blown bounded serialization
 2 **    finish up any remaining s/pir::/nqp::/
 2 ?     re-organize Rakudo, build process, etc. for multi-backend
 3 **    Optimizing multis for `[+] 1..10` and `[<=] 1..10` etc.

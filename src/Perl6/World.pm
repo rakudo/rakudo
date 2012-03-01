@@ -159,7 +159,7 @@ class Perl6::World is HLL::World {
                     )
                 )
             );
-            self.add_fixup_task(:deserialize_past($fixup), :fixup_past($fixup));
+            self.add_load_dependency_task(:deserialize_past($fixup), :fixup_past($fixup));
             
             return pir::getattribute__PPs($setting, 'lex_pad');
         }

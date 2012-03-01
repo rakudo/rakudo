@@ -5,7 +5,7 @@
 # in the end.
 my class Whatever { ... }
 my class Bag { ... }
-my class KeyBag is Iterable does Associative { }
+my class KeyBag { ... }
 my class KeySet is Iterable does Associative { }
 my class KeyHash is Iterable does Associative { }
 my class Seq is List does Positional { }

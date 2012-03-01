@@ -6,7 +6,7 @@
 my class Whatever { ... }
 my class Bag { ... }
 my class KeyBag { ... }
-my class KeySet is Iterable does Associative { }
+my class KeySet { ... }
 my class KeyHash is Iterable does Associative { }
 my class Seq is List does Positional { }
 my class Exception { ... }

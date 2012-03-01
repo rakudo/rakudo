@@ -60,7 +60,7 @@ sub set(*@args) {
     Set.new(@args);
 }
 
-class KeySet is Iterable does Associative {
+my class KeySet is Iterable does Associative {
     has %!elems;
 
     method keys { %!elems.keys }

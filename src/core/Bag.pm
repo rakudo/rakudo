@@ -50,7 +50,7 @@ sub bag(*@a) returns Bag {
     Bag.new(|@a);
 }
 
-class KeyBag does Associative does Baggy {
+my class KeyBag does Associative does Baggy {
     has %!elems; # should be UInt
 
     method keys { %!elems.keys }

@@ -40,7 +40,10 @@ S02-types/pair.t
 S02-types/parcel.t
 S02-types/parsing-bool.t
 S02-types/range.t
-# S02-types/set.t # err: Undefined routine '&set' called
+S02-types/set.t
+S02-types/bag.t
+S02-types/keyset.t
+S02-types/keybag.t
 S02-types/sigils-and-types.t
 S02-types/subscripts_and_context.t
 S02-types/subset.t

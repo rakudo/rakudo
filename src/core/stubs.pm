@@ -4,7 +4,7 @@
 # in Perl6::Metamodel for now, though should be a BEGIN block in CORE.setting
 # in the end.
 my class Whatever { ... }
-my class Bag is Iterable does Associative { }
+my class Bag { ... }
 my class KeyBag is Iterable does Associative { }
 my class KeySet is Iterable does Associative { }
 my class KeyHash is Iterable does Associative { }

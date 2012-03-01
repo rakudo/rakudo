@@ -289,7 +289,8 @@ BEGIN {
     Proxy.HOW.add_attribute(Proxy, BOOTSTRAPATTR.new(:name<&!FETCH>, :type(Mu), :package(Proxy)));
     Proxy.HOW.add_attribute(Proxy, BOOTSTRAPATTR.new(:name<&!STORE>, :type(Mu), :package(Proxy)));
     Proxy.HOW.add_method(Proxy, 'FETCH', ($PROXY_FETCH := static(sub ($cont) {
-        nqp::getattr($cont, Proxy, '&!FETCH')(pir::perl6_var__PP($cont))
+        pir::perl6_decontainerize__PP(
+            nqp::getattr($cont, Proxy, '&!FETCH')(pir::perl6_var__PP($cont)))
     })));
     Proxy.HOW.add_method(Proxy, 'STORE', static(sub ($cont, $val) {
         nqp::getattr($cont, Proxy, '&!STORE')(pir::perl6_var__PP($cont), $val)

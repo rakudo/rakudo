@@ -390,7 +390,7 @@ class Perl6::Optimizer {
         
         # Copy over interesting stuff in declaration section.
         for @($decls) {
-            if $_.isa(PAST::Op) && $_.pirop eq 'bind_signature vP' {
+            if $_.isa(PAST::Op) && $_.pirop eq 'bind_signature v' {
                 # Don't copy this binder call.
             }
             elsif $_.isa(PAST::Var) && ($_.name eq '$/' || $_.name eq '$!' ||

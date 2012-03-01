@@ -2239,8 +2239,9 @@ class Perl6::Actions is HLL::Actions {
             $value := $value_ast<compile_time_value>;
         }
         else {
-            my $name := ~($<identifier> // $<variable>);
-            $/.CURSOR.panic("Cannot handle constant $name with non-literal value yet");
+            my $value_thunk := make_thunk($value_ast, $/);
+            $value := $value_thunk();
+            $*W.add_constant_folded_result($value);
         }
 
         # Provided it's named, install it.

@@ -573,8 +573,10 @@ BEGIN {
         }));
     Routine.HOW.add_method(Routine, 'derive_dispatcher', static(sub ($self) {
             my $clone := $self.clone();
-            pir::setattribute__0PPSP($clone, Routine, '$!dispatchees',
-                pir::clone__PP(nqp::getattr($self, Routine, '$!dispatchees')))
+            nqp::bindattr($clone, Routine, '$!dispatchees',
+                pir::clone__PP(nqp::getattr($self, Routine, '$!dispatchees')));
+            nqp::bindattr($clone, Routine, '$!md_thunk', nqp::null());
+            $clone
         }));
     Routine.HOW.add_method(Routine, 'dispatcher', static(sub ($self) {
             nqp::getattr(pir::perl6_decontainerize__PP($self),

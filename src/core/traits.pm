@@ -83,19 +83,15 @@ sub EXPORT_SYMBOL(\$exp_name, @tags, Mu \$sym) {
     }
 }
 multi trait_mod:<is>(Routine:D \$r, :$export!) {
-    if %*COMPILING {
-        my $to_export := $r.multi ?? $r.dispatcher !! $r;
-        my $exp_name  := '&' ~ $r.name;
-        my @tags = 'ALL', 'DEFAULT';
-        EXPORT_SYMBOL($exp_name, @tags, $to_export);
-    }
+    my $to_export := $r.multi ?? $r.dispatcher !! $r;
+    my $exp_name  := '&' ~ $r.name;
+    my @tags = 'ALL', 'DEFAULT';
+    EXPORT_SYMBOL($exp_name, @tags, $to_export);
 }
 multi trait_mod:<is>(Mu:U \$type, :$export!) {
-    if %*COMPILING {
-        my $exp_name := $type.HOW.name($type);
-        my @tags = 'ALL', 'DEFAULT';
-        EXPORT_SYMBOL($exp_name, @tags, $type);
-    }
+    my $exp_name := $type.HOW.name($type);
+    my @tags = 'ALL', 'DEFAULT';
+    EXPORT_SYMBOL($exp_name, @tags, $type);
 }
 
 multi trait_mod:<is>(Mu:D $docee, $doc, :$docs!) {

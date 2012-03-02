@@ -237,6 +237,7 @@ sub INDIRECT_NAME_LOOKUP(*@chunks) is rw {
     my Mu $thing := pir::find_caller_lex__Ps(
         nqp::unbox_s($first)
     );
+    $thing := GLOBAL.WHO{$first} if nqp::isnull($thing) && nqp::existskey(GLOBAL.WHO, $first);
     fail("Symbol '$name' not found") if nqp::isnull($thing);
     for @parts {
         fail("Symbol '$name not found") unless $thing.WHO.exists($_);

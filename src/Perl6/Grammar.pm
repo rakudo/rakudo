@@ -572,7 +572,7 @@ grammar Perl6::Grammar is HLL::Grammar {
         [
         | '{YOU_ARE_HERE}' <you_are_here>
         | '{' ~ '}' <statementlist> <?ENDSTMT>
-        | <?terminator> || { $*W.throw($/, 'X::Syntax::Missing', what =>'block') }
+        | <?terminator> { $*W.throw($/, 'X::Syntax::Missing', what =>'block') }
         | <?> { $*W.throw($/, 'X::Syntax::Missing', what => 'block') }
         ]
         { $*CURPAD := $*W.pop_lexpad() }

@@ -2631,7 +2631,7 @@ class Perl6::Actions is HLL::Actions {
             }
             
             # If we have a sub-signature, create that.
-            if $_<sub_signature_params> {
+            if pir::exists($_, 'sub_signature_params') {
                 $_<sub_signature> := create_signature_object($/, $_<sub_signature_params>, $lexpad);
             }
             

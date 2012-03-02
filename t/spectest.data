@@ -40,7 +40,10 @@ S02-types/pair.t
 S02-types/parcel.t
 S02-types/parsing-bool.t
 S02-types/range.t
-# S02-types/set.t # err: Undefined routine '&set' called
+S02-types/set.t
+S02-types/bag.t
+S02-types/keyset.t
+S02-types/keybag.t
 S02-types/sigils-and-types.t
 S02-types/subscripts_and_context.t
 S02-types/subset.t
@@ -195,8 +198,9 @@ S03-smartmatch/scalar-hash.t
 S04-blocks-and-statements/pointy-rw.t
 S04-blocks-and-statements/pointy.t
 S04-phasers/begin.t
+S04-phasers/check.t
 S04-phasers/end.t
-# S04-phasers/rvalue.t # err: Method 'isa' not found for invocant of class 'Undef'
+S04-phasers/rvalue.t
 # S04-phasers/start.t # err: Undefined routine '&START' called
 S04-declarations/constant.t
 S04-declarations/implicit-parameter.t
@@ -353,7 +357,6 @@ S06-signature/types.t
 S06-signature/unpack-array.t
 S06-signature/unpack-object.t
 S06-signature/unspecified.t
-S06-traits/as.t
 S06-traits/is-copy.t
 S06-traits/is-readonly.t
 S06-traits/is-rw.t
@@ -452,6 +455,8 @@ S12-subset/multi-dispatch.t
 S12-subset/subtypes.t
 S13-type-casting/methods.t
 S13-overloading/typecasting-long.t
+S13-overloading/typecasting-mixed.t
+S13-overloading/typecasting-short.t
 S13-overloading/metaoperators.t
 S13-overloading/operators.t
 S14-roles/anonymous.t
@@ -479,6 +484,7 @@ S16-filehandles/filetest.t
 S16-filehandles/io.t
 S16-filehandles/io_in_for_loops.t
 S16-filehandles/io_in_while_loops.t
+S16-filehandles/mkdir_rmdir.t
 S16-filehandles/open.t
 S16-filehandles/unlink.t
 S16-io/bare-say.t
@@ -490,6 +496,16 @@ S16-unfiled/rebindstdhandles.t
 S16-unfiled/slurp.t
 S19-command-line/dash-e.t # icu
 S19-command-line/help.t
+S26-documentation/01-delimited.t
+S26-documentation/02-paragraph.t
+S26-documentation/03-abbreviated.t
+S26-documentation/04-code.t
+S26-documentation/05-comment.t
+S26-documentation/06-lists.t
+S26-documentation/07-tables.t
+S26-documentation/08-formattingcodes.t
+S26-documentation/09-configuration.t
+S26-documentation/why.t
 S28-named-variables/cwd.t
 S28-named-variables/inc.t
 S29-any/cmp.t

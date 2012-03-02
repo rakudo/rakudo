@@ -1,3 +1,5 @@
+my class X::Hash::Store::OddNumber { ... }
+
 my class Hash {
     # Has attributes and parent EnumMap declared in BOOTSTRAP
 
@@ -44,7 +46,7 @@ my class Hash {
             }
             elsif $items { self.STORE_AT_KEY($x.Str, $items.shift) }
             else {
-                die 'Odd number of elements found where hash expected'
+                die(X::Hash::Store::OddNumber.new())
             }
         }
         self

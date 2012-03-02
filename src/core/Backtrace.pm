@@ -39,14 +39,16 @@ my class Backtrace is List {
         my $new = self.bless(*);
         for $offset .. $bt.elems - 1 {
             next if pir::isnull($bt[$_]<sub>);
-            my $code = try {
-                pir::perl6_code_object_from_parrot_sub__PP($bt[$_]<sub>);
+            my $code;
+            try {
+                $code = pir::perl6_code_object_from_parrot_sub__PP($bt[$_]<sub>);
             };
             my $line     = $bt[$_]<annotations><line>;
             my $file     = $bt[$_]<annotations><file>;
             next unless $line && $file;
             # now *that's* an evil hack
-            last if $file eq 'src/stage2/gen/NQPHLL.pm';
+            last if $file eq 'src/stage2/gen/NQPHLL.pm' ||
+                    $file eq 'src\\stage2\\gen\\NQPHLL.pm';
             my $subname  = nqp::p6box_s($bt[$_]<sub>);
             $subname = '<anon>' if $subname.substr(0, 6) eq '_block';
             $new.push: Backtrace::Frame.new(

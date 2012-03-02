@@ -30,6 +30,7 @@ class Perl6::Optimizer {
         $!pres_topic_counter := 0;
         %!deadly := nqp::hash();
         %!worrying := nqp::hash();
+        my $*DYNAMICALLY_COMPILED := 0;
         
         # Work out optimization level.
         my $*LEVEL := pir::exists(%adverbs, 'optimize') ??
@@ -75,14 +76,20 @@ class Perl6::Optimizer {
         @!block_stack.push($block);
         
         # Visit children.
-        self.visit_children($block);
+        if $block<DYNAMICALLY_COMPILED> {
+            my $*DYNAMICALLY_COMPILED := 1;
+            self.visit_children($block);
+        }
+        else {
+            self.visit_children($block);
+        }
         
         # Pop block from block stack.
         @!block_stack.pop();
         
         # If the block is immediate, we may be able to inline it.
         my $outer := @!block_stack[+@!block_stack - 1];
-        if $block.blocktype eq 'immediate' {
+        if $block.blocktype eq 'immediate' && !$*DYNAMICALLY_COMPILED {
             # Scan symbols for any non-interesting ones.
             my @sigsyms;
             for $block.symtable() {
@@ -210,7 +217,7 @@ class Perl6::Optimizer {
                 my $meth := $pkg.HOW.find_private_method($pkg, $name);
                 if $meth {
                     try {
-                        my $call := $*W.get_object_sc_ref_past($meth); # may fail, thus the try
+                        my $call := $*W.get_ref($meth); # may fail, thus the try
                         my $inv  := $op.shift;
                         $op.shift; $op.shift; # name, package (both pre-resolved now)
                         $op.unshift($inv);
@@ -380,7 +387,7 @@ class Perl6::Optimizer {
         # Extract interesting parts of block.
         my $decls := $block.shift;
         my $stmts := $block.shift;
-        
+
         # Turn block into an "optimized out" stub (deserialization
         # or fixup will still want it to be there).
         $block.blocktype('declaration');
@@ -390,7 +397,7 @@ class Perl6::Optimizer {
         
         # Copy over interesting stuff in declaration section.
         for @($decls) {
-            if $_.isa(PAST::Op) && $_.pirop eq 'bind_signature vP' {
+            if $_.isa(PAST::Op) && $_.pirop eq 'bind_signature v' {
                 # Don't copy this binder call.
             }
             elsif $_.isa(PAST::Var) && ($_.name eq '$/' || $_.name eq '$!' ||

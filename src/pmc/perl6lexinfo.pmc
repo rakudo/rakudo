@@ -10,6 +10,9 @@ pmclass Perl6LexInfo
     hll perl6
     maps LexInfo
 {
+    /* The static (not closure cloned) sub that this is lexpad is used for. */
+    ATTR PMC *static_code;
+
     /* Hash mapping a name to the register that always holds its
      * value. */
     ATTR PMC *name_to_register_map;
@@ -45,6 +48,9 @@ pmclass Perl6LexInfo
         PMC *name_to_register_map = Parrot_pmc_new(interp, enum_class_Hash);
         VTABLE_init_int(interp, name_to_register_map, (INTVAL)enum_type_INTVAL);
         SET_ATTR_name_to_register_map(INTERP, SELF, name_to_register_map);
+        
+        /* Stash the sub. */
+        SET_ATTR_static_code(INTERP, SELF, sub);
 
         /* Need custom mark. */
         PObj_custom_mark_SET(SELF);
@@ -93,6 +99,7 @@ pmclass Perl6LexInfo
     
     VTABLE void visit(PMC *info) {
         VISIT_PMC_ATTR(INTERP, info, SELF, Perl6LexInfo, name_to_register_map);
+        VISIT_PMC_ATTR(INTERP, info, SELF, Perl6LexInfo, static_code);
         SUPER(info);
     }
     
@@ -128,8 +135,10 @@ compiler calls this method in response to a ".lex STRING, PREG" directive.
         SET_ATTR_static_lexpad(INTERP, SELF, slp);
     }
     
-    METHOD set_fresh_magicals() {
-        SET_ATTR_fresh_magicals(INTERP, SELF, 1);
+    METHOD get_static_code() {
+        PMC *static_code;
+        GET_ATTR_static_code(INTERP, SELF, static_code);
+        RETURN (PMC *static_code);
     }
 
 /*

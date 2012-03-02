@@ -32,7 +32,7 @@ role Perl6::Metamodel::ParrotInterop {
             my %map := $_.HOW.parrot_vtable_mappings($_, :local(1));
             for %map {
                 unless pir::exists(%mapping, $_.key) {
-                    if $_.value {
+                    if !nqp::isnull($_.value) && $_.value {
                         %mapping{$_.key} := $_.value;
                     }
                     else {
@@ -52,7 +52,7 @@ role Perl6::Metamodel::ParrotInterop {
             my %map := $_.HOW.parrot_vtable_handler_mappings($_, :local(1));
             for %map {
                 unless pir::exists(%mapping, $_.key) {
-                    if $_.value {
+                    if !nqp::isnull($_.value) && $_.value {
                         %mapping{$_.key} := $_.value;
                     }
                     else {

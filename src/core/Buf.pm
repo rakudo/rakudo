@@ -65,6 +65,17 @@ my class Buf does Positional {
             nqp::unbox_s PARROT_ENCODING($encoding)
         );
     }
+
+    method subbuf(Buf:D: $from = 0, $len = self.elems) {
+        my $ret := nqp::create(self);
+        nqp::bindattr($ret, Buf, '$!buffer',
+            nqp::substr($!buffer.get_string('binary'),
+                nqp::unbox_i($from.Int),
+                nqp::unbox_i($len.Int)
+            )
+        );
+        $ret;
+    }
 }
 
 multi infix:<eqv>(Buf:D $a, Buf:D $b) {

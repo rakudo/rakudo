@@ -1,7 +1,4 @@
 my class Capture {
-    has Mu $!list;
-    has Mu $!hash;
-
     submethod BUILD(:@list, :%hash) {
         nqp::bindattr(self, Capture, '$!list',
             nqp::getattr(nqp::p6decont(@list.Parcel), Parcel, '$!storage')

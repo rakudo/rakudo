@@ -42,6 +42,12 @@ grammar Perl6::Grammar is HLL::Grammar {
     method typed_panic($type_str, *%opts) {
         $*W.throw(self.MATCH(), nqp::split('::', $type_str), |%opts);
     }
+    method malformed($what) {
+        self.typed_panic('X::Syntax::Malformed', :$what);
+    }
+    method NYI($feature) {
+        self.typed_panic('X::Comp::NYI', :$feature)
+    }
 
     # "when" arg assumes more things will become obsolete after Perl 6 comes out...
     method obs ($old, $new, $when = ' in Perl 6') {
@@ -419,10 +425,6 @@ grammar Perl6::Grammar is HLL::Grammar {
         :my $*POD_PAST;
         :my $*DECLARATOR_DOCS;
         
-        # CHECK phasers for this compilation unit we'll need at
-        # CHECK time.
-        :my @*CHECK_PHASERS := [];
-        
         # Setting loading and symbol setup.
         {
             # Create unit outer (where we assemble any lexicals accumulated
@@ -488,7 +490,7 @@ grammar Perl6::Grammar is HLL::Grammar {
         }
         
         # CHECK time.
-        { for @*CHECK_PHASERS { $_() } }
+        { $*W.CHECK(); }
     }
     
     method import_EXPORTHOW($UNIT) {    
@@ -553,13 +555,13 @@ grammar Perl6::Grammar is HLL::Grammar {
         | <?[{]>
             <.newpad>
             <blockoid>
-        | <.panic: 'Missing block'>
+        || { $*W.throw($/, 'X::Syntax::Missing', what =>'block') }
     }
 
     token lambda { '->' | '<->' }
 
     token block($*IMPLICIT = 0) {
-        [ <?[{]> || <.panic: 'Missing block'> ]
+        [ <?[{]> || { $*W.throw($/, 'X::Syntax::Missing', what =>'block') }]
         <.newpad>
         <blockoid>
     }
@@ -570,8 +572,8 @@ grammar Perl6::Grammar is HLL::Grammar {
         [
         | '{YOU_ARE_HERE}' <you_are_here>
         | '{' ~ '}' <statementlist> <?ENDSTMT>
-        | <?terminator> <.panic: 'Missing block'>
-        | <?> <.panic: 'Malformed block'>
+        | <?terminator> || { $*W.throw($/, 'X::Syntax::Missing', what =>'block') }
+        | <?> { $*W.throw($/, 'X::Syntax::Missing', what => 'block') }
         ]
         { $*CURPAD := $*W.pop_lexpad() }
     }
@@ -720,9 +722,7 @@ grammar Perl6::Grammar is HLL::Grammar {
             }
             [
             || <.spacey> <arglist>
-                {
-                    $/.CURSOR.panic("arglist case of use not yet implemented");
-                }
+                <.NYI('arglist case of use')>
             || { 
                     unless ~$<doc> && !%*COMPILING<%?OPTIONS><doc> {
                         if $longname {
@@ -774,17 +774,17 @@ grammar Perl6::Grammar is HLL::Grammar {
     token statement_prefix:sym<INIT>  { <sym> <blorst> }
     token statement_prefix:sym<END>   { <sym> <blorst> }
     token statement_prefix:sym<FIRST> { <sym> <blorst>
-            <.panic("FIRST phaser not yet implemented")> }
+            <.NYI('FIRST phaser')> }
     token statement_prefix:sym<LAST>  { <sym> <blorst>
-            <.panic("LAST phaser not yet implemented")> }
+            <.NYI('LAST phaser')> }
     token statement_prefix:sym<ENTER> { <sym> <blorst>
-            <.panic("ENTER phaser not yet implemented")> }
+            <.NYI('ENTER phaser')> }
     token statement_prefix:sym<LEAVE> { <sym> <blorst>
-            <.panic("LEAVE phaser not yet implemented")> }
+            <.NYI('LEAVE phaser')> }
     token statement_prefix:sym<PRE> { <sym> <blorst>
-            <.panic("PRE phaser not yet implemented")> }
+            <.NYI('PRE phaser')> }
     token statement_prefix:sym<POST> { <sym> <blorst>
-            <.panic("POST phaser not yet implemented")> }
+            <.NYI('POST phaser')> }
     token statement_prefix:sym<sink>  { <sym> <blorst> }
     token statement_prefix:sym<try>   { <sym> <blorst> }
     token statement_prefix:sym<gather>{ <sym> <blorst> }
@@ -827,7 +827,7 @@ grammar Perl6::Grammar is HLL::Grammar {
     token term:sym<regex_declarator>   { <regex_declarator> }
     token term:sym<circumfix>          { <!before '[' \\? <.infixish> ']'> <circumfix> }
     token term:sym<statement_prefix>   { <statement_prefix> }
-    token term:sym<**>                 { <sym> <.panic('HyperWhatever (**) not yet implemented')> }
+    token term:sym<**>                 { <sym> <.NYI('HyperWhatever (**)')> }
     token term:sym<*>                  { <sym> }
     token term:sym<lambda>             { <?lambda> <pblock> }
 
@@ -1271,7 +1271,7 @@ grammar Perl6::Grammar is HLL::Grammar {
                         $/.CURSOR.typed_panic('X::Syntax::Augment::Role');
                     }
                     unless $longname {
-                        $/.CURSOR.panic("Can not augment the anonymous");
+                        $*W.throw($/, 'X::Anon::Augment', package-type => $*PKGDECL);
                     }
                     
                     # Locate type.
@@ -1279,8 +1279,10 @@ grammar Perl6::Grammar is HLL::Grammar {
                     my @name := parse_name(~$longname<name>);
                     try { $*PACKAGE := $*W.find_symbol(@name); $found := 1 }
                     unless $found {
-                        $/.CURSOR.panic("Could not find a $*PKGDECL " ~
-                            ~$longname<name> ~ " to augment");
+                        $*W.throw($/, 'X::Augment::NoSuchType',
+                            package-type => $*PKGDECL,
+                            package      => ~$longname<name>,
+                        );
                     }
                 }
                 
@@ -1348,7 +1350,7 @@ grammar Perl6::Grammar is HLL::Grammar {
                 ]
             || <.panic: "Unable to parse $*PKGDECL definition">
             ]
-        ] || <.panic: "Malformed $*PKGDECL">
+        ] || { $/.CURSOR.malformed($*PKGDECL) }
     }
 
     token declarator {
@@ -1368,15 +1370,15 @@ grammar Perl6::Grammar is HLL::Grammar {
     proto token multi_declarator { <...> }
     token multi_declarator:sym<multi> {
         <sym> :my $*MULTINESS := 'multi'; <.end_keyword>
-        <.ws> [ <declarator> || <routine_def('sub')> || <.panic: 'Malformed multi'> ]
+        <.ws> [ <declarator> || <routine_def('sub')> || <.malformed('multi')> ]
     }
     token multi_declarator:sym<proto> {
         <sym> :my $*MULTINESS := 'proto'; <.end_keyword>
-        <.ws> [ <declarator> || <routine_def('sub')> || <.panic: 'Malformed proto'> ]
+        <.ws> [ <declarator> || <routine_def('sub')> || <.malformed('proto')> ]
     }
     token multi_declarator:sym<only> {
         <sym> :my $*MULTINESS := 'only'; <.end_keyword>
-        <.ws> [ <declarator> || <routine_def('sub')> || <.panic: 'Malformed only'> ]
+        <.ws> [ <declarator> || <routine_def('sub')> || <.malformed('only')>]
     }
     token multi_declarator:sym<null> {
         :my $*MULTINESS := '';
@@ -1396,7 +1398,7 @@ grammar Perl6::Grammar is HLL::Grammar {
     token scope_declarator:sym<anon>      { <sym> <scoped('anon')> }
     token scope_declarator:sym<state>     { <sym> <scoped('state')> }
     token scope_declarator:sym<supersede> {
-        <sym> <scoped('supersede')> <.panic: '"supersede" not yet implemented'>
+        <sym> <scoped('supersede')> <.NYI('"supersede"')>
     }
 
     token scoped($*SCOPE) {
@@ -1413,7 +1415,7 @@ grammar Perl6::Grammar is HLL::Grammar {
         | [<typename><.ws>]+
           {
             if +$<typename> > 1 {
-                $/.CURSOR.panic("Multiple prefix constraints not yet supported");
+                $/.CURSOR.NYI('Multiple prefix constraints');
             }
             $*OFTYPE := $<typename>[0];
           }
@@ -1425,7 +1427,7 @@ grammar Perl6::Grammar is HLL::Grammar {
                 $/.CURSOR.panic("In \"$*SCOPE\" declaration, typename $t must be predeclared (or marked as declarative with :: prefix)");
             }
             <!> # drop through
-        || { $/.CURSOR.panic("Malformed $*SCOPE") }
+        || <.malformed($*SCOPE)>
         ]
     }
 
@@ -1445,21 +1447,28 @@ grammar Perl6::Grammar is HLL::Grammar {
                 {
                     my $sigil := nqp::substr($var, 0, 1);
                     if $sigil eq '&' {
-                        $/.CURSOR.panic("The () shape syntax in routine declarations is reserved (maybe use :() to declare a longname?)");
+                        $*W.throw($/, 'X::Syntax::Reserved',
+                            reserved => '() shape syntax in routine declarations',
+                            instead => ' (maybe use :() to declare a longname?)'
+                        );
                     }
                     elsif $sigil eq '@' {
-                        $/.CURSOR.panic("The () shape syntax in array declarations is reserved");
+
+                        $*W.throw($/, 'X::Syntax::Reserved',
+                            reserved => '() shape syntax in array declarations');
                     }
                     elsif $sigil eq '%' {
-                        $/.CURSOR.panic("The () shape syntax in hash declarations is reserved");
+                        $*W.throw($/, 'X::Syntax::Reserved',
+                            reserved => '() shape syntax in hash declarations');
                     }
                     else {
-                        $/.CURSOR.panic("The () shape syntax in variable declarations is reserved");
+                        $*W.throw($/, 'X::Syntax::Reserved',
+                            reserved => '() shape syntax in variable declarations');
                     }
                 }
-            | '[' ~ ']' <semilist> <.panic: "Shaped variable declarations are not yet implemented">
+            | '[' ~ ']' <semilist> <.NYI: "Shaped variable declarations">
             | '{' ~ '}' <semilist>
-            | <?before '<'> <postcircumfix> <.panic: "Shaped variable declarations are not yet implemented">
+            | <?before '<'> <postcircumfix> <.NYI: "Shaped variable declarations">
             ]+
         ]?
         <.ws>
@@ -1477,7 +1486,7 @@ grammar Perl6::Grammar is HLL::Grammar {
         { <sym> <.end_keyword> <method_def('submethod')> }
     token routine_declarator:sym<macro>
         { <sym> <.end_keyword>
-          <.panic: "Macros are not yet implemented"> }
+          <.NYI: "Macros"> }
 
     rule routine_def($d) {
         :my $*IN_DECL := $d;
@@ -1518,16 +1527,23 @@ grammar Perl6::Grammar is HLL::Grammar {
         [
             <.newpad>
             [
-                | $<specials>=[<[ ! ^ ]>?]<longname> [ '(' <multisig> ')' ]? <trait>*
-                | [ '(' <multisig> ')' ]? <trait>*
-                | <?>
+            | $<specials>=[<[ ! ^ ]>?]<longname> [ '(' <multisig> ')' ]? <trait>*
+            | '(' <multisig> ')' <trait>*
+            | <sigil>'.':!s
+                [
+                | '(' ~ ')' <multisig>
+                | '[' ~ ']' <multisig>
+                | '{' ~ '}' <multisig>
+                ]:s
+                <trait>*
+            | <?>
             ]
             { $*IN_DECL := ''; }
             [
             | <onlystar>
             | <blockoid>
             ]
-        ] || <.panic: 'Malformed method'>
+        ] || <.malformed('method')>
     }
     
     token onlystar {
@@ -1580,7 +1596,7 @@ grammar Perl6::Grammar is HLL::Grammar {
         <.ws>
         [
         | <?before '-->' | ')' | ']' | '{' | ':'\s >
-        | [ <parameter> || <.panic: 'Malformed parameter'> ]
+        | [ <parameter> || <.malformed('parameter')> ]
         ] ** <param_sep>
         <.ws>
         { $*IN_DECL := ''; }
@@ -1643,7 +1659,7 @@ grammar Perl6::Grammar is HLL::Grammar {
         | <sigil> <twigil>?
           [
           || <name=.identifier>
-          || <name=.decint> <.panic: "Cannot declare a numeric parameter">
+          || <name=.decint> { $*W.throw($/, 'X::Syntax::Variable::Numeric', what => 'parameter') }
           || $<name>=[<[/!]>]
           ]?
     }
@@ -1723,7 +1739,7 @@ grammar Perl6::Grammar is HLL::Grammar {
             | ['*'|'<...>'|'<*>'] <?{ $*MULTINESS eq 'proto' }> $<onlystar>={1}
             |<p6regex=.LANG('Regex','nibbler')>]'}'<?ENDSTMT>
           { $*CURPAD := $*W.pop_lexpad() }
-        ] || <.panic: "Malformed regex">
+        ] || <.malformed('regex')>
     ] }
 
     proto token type_declarator { <...> }
@@ -1772,7 +1788,7 @@ grammar Perl6::Grammar is HLL::Grammar {
                 <trait>*
                 [ where <EXPR('e=')> ]?
             ]
-            || <.panic: 'Malformed subset'>
+            || <.malformed('subset')>
         ]
     }
 
@@ -1805,17 +1821,17 @@ grammar Perl6::Grammar is HLL::Grammar {
             || <?{ $*LEFTSIGIL eq '$' }> <EXPR('i=')>
             || <EXPR('e=')>
             ]
-            || <.panic: "Malformed initializer">
+            || <.malformed: 'initializer'>
         ]
     }
     token initializer:sym<:=> {
-        <sym> [ <.ws> <EXPR('e=')> || <.panic: "Malformed binding"> ]
+        <sym> [ <.ws> <EXPR('e=')> || <.malformed: 'binding'> ]
     }
     token initializer:sym<::=> {
-        <sym> [ <.ws> <EXPR('e=')> || <.panic: "Malformed binding"> ]
+        <sym> [ <.ws> <EXPR('e=')> || <.malformed: 'binding'> ]
     }
     token initializer:sym<.=> {
-        <sym> [ <.ws> <dottyopish> || <.panic: "Malformed mutator method call"> ]
+        <sym> [ <.ws> <dottyopish> || <.malformed: 'mutator method call'> ]
     }
 
     rule trait {
@@ -1869,12 +1885,15 @@ grammar Perl6::Grammar is HLL::Grammar {
 
     token term:sym<name> {
         <longname>
+        :my @longname;
+        { @longname := parse_name($<longname>.Str) }
         [
-        ||  <?{
-                my $longname := $<longname>.Str;
-                pir::substr($longname, 0, 2) eq '::' || $*W.is_name(parse_name($longname))
-            }>
-            <.unsp>? [ <?before '['> '[' ~ ']' <arglist> ]?
+        ||  <?{ pir::substr($<longname>.Str, 0, 2) eq '::' || $*W.is_name(@longname) }>
+            <.unsp>?
+            [
+                <?{ $*W.is_type(@longname) }>
+                <?before '['> '[' ~ ']' <arglist>
+            ]?
         || <args>
         ]
     }
@@ -1961,7 +1980,7 @@ grammar Perl6::Grammar is HLL::Grammar {
            '>'
         # || <?before '['> <circumfix>
         || <?before '('> <circumfix>
-        || <.panic: "Malformed radix number">
+        || <.malformed: 'radix number'>
         ]
     }
 

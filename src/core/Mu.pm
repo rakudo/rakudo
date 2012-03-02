@@ -1,3 +1,5 @@
+my class X::Constructor::Positional { ... }
+
 my class Mu {
     proto method ACCEPTS(|$) { * }
     multi method ACCEPTS(Mu:U: Mu \$topic) {
@@ -43,7 +45,7 @@ my class Mu {
         self.bless(*, |%attrinit);
     }
     multi method new($, *@) {
-        die "Default constructor only takes named arguments";
+        X::Constructor::Positional.new.throw;
     }
     
     method CREATE() {
@@ -395,8 +397,8 @@ sub infix:<=:=>(Mu \$x, Mu \$y) {
     nqp::p6bool(nqp::iseq_i(nqp::where($x), nqp::where($y)));
 }
 
-proto sub infix:<eqv>(Mu $, Mu $) { * }
-multi sub infix:<eqv>(Mu $a, Mu $b) {
+proto sub infix:<eqv>(Any $, Any $) { * }
+multi sub infix:<eqv>(Any $a, Any $b) {
     $a.WHICH eq $b.WHICH
 }
 

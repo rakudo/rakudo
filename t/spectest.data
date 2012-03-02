@@ -321,7 +321,7 @@ S06-multi/unpackability.t
 # S06-operator-overloading/imported-subs.t
 S06-operator-overloading/methods.t
 S06-operator-overloading/sub.t
-# S06-operator-overloading/workout.t # err: Unable to parse postcircumfix:sym<( )>
+S06-operator-overloading/workout.t
 S06-other/anon-hashes-vs-blocks.t
 S06-other/main.t
 S06-other/main-eval.t

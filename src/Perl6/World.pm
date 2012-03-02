@@ -567,11 +567,12 @@ class Perl6::World is HLL::World {
         my $des    := PAST::Stmts.new();
         
         # Create code object now.
-        my $type_obj  := self.find_symbol([$type]);
-        my $code_type := self.find_symbol(['Code']);
-        my $slp_type  := self.find_symbol(['StaticLexPad']);
-        my $code      := pir::repr_instance_of__PP($type_obj);
-        my $slot      := self.add_object($code);
+        my $type_obj     := self.find_symbol([$type]);
+        my $code_type    := self.find_symbol(['Code']);
+        my $routine_type := self.find_symbol(['Routine']);
+        my $slp_type     := self.find_symbol(['StaticLexPad']);
+        my $code         := pir::repr_instance_of__PP($type_obj);
+        my $slot         := self.add_object($code);
         
         # Attach code object to PAST node.
         $code_past<code_object> := $code;
@@ -593,7 +594,7 @@ class Perl6::World is HLL::World {
 
             # Also compile the candidates if this is a proto.
             if $is_dispatcher {
-                for nqp::getattr($code, $code_type, '$!dispatchees') {
+                for nqp::getattr($code, $routine_type, '$!dispatchees') {
                     my $stub := nqp::getattr($_, $code_type, '$!do');
                     my $past := pir::getprop__PsP('PAST_BLOCK', $stub);
                     if $past {
@@ -676,7 +677,7 @@ class Perl6::World is HLL::World {
         # If this is a dispatcher, install dispatchee list that we can
         # add the candidates too.
         if $is_dispatcher {
-            pir::setattribute__vPPsP($code, $code_type, '$!dispatchees', []);
+            pir::setattribute__vPPsP($code, $routine_type, '$!dispatchees', []);
         }
         
         # Set yada flag if needed.

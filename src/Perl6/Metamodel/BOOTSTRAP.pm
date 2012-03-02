@@ -458,37 +458,13 @@ BEGIN {
     # class Code {
     #     has $!do;                # Low level code object
     #     has $!signature;         # Signature object
-    #     has $!dispatchees;       # If this is a dispatcher, the dispatchee list.
-    #     has $!dispatcher_cache;  # Stash for any extra dispatcher info.
     #     ... # Uncomposed
     # }
     Code.HOW.add_parent(Code, Any);
     Code.HOW.add_attribute(Code, BOOTSTRAPATTR.new(:name<$!do>, :type(Mu), :package(Code)));
     Code.HOW.add_attribute(Code, BOOTSTRAPATTR.new(:name<$!signature>, :type(Mu), :package(Code)));
-    Code.HOW.add_attribute(Code, BOOTSTRAPATTR.new(:name<$!dispatchees>, :type(Mu), :package(Code)));
-    Code.HOW.add_attribute(Code, BOOTSTRAPATTR.new(:name<$!dispatcher_cache>, :type(Mu), :package(Code)));
-    Code.HOW.add_attribute(Code, BOOTSTRAPATTR.new(:name<$!dispatcher>, :type(Mu), :package(Code)));
 
-    # Need multi-dispatch related methods and clone in here, plus
-    # generics instantiation.
-    Code.HOW.add_method(Code, 'is_dispatcher', static(sub ($self) {
-            my $dc_self   := pir::perl6_decontainerize__PP($self);
-            my $disp_list := nqp::getattr($dc_self, Code, '$!dispatchees');
-            pir::perl6_booleanize__PI(pir::defined__IP($disp_list));
-        }));
-    Code.HOW.add_method(Code, 'add_dispatchee', static(sub ($self, $dispatchee) {
-            my $dc_self   := pir::perl6_decontainerize__PP($self);
-            my $disp_list := nqp::getattr($dc_self, Code, '$!dispatchees');
-            if pir::defined($disp_list) {
-                $disp_list.push($dispatchee);
-                pir::setattribute__0PPsP(pir::perl6_decontainerize__PP($dispatchee),
-                    Code, '$!dispatcher', $dc_self);
-                pir::setattribute__0PPsP($dc_self, Code, '$!dispatcher_cache', pir::null__P());
-            }
-            else {
-                pir::die("Cannot add a dispatchee to a non-dispatcher code object");
-            }
-        }));
+    # Need clone in here, plus generics instantiation.
     Code.HOW.add_method(Code, 'clone', static(sub ($self) {
             my $dcself := pir::perl6_decontainerize__PP($self);
             my $cloned := pir::repr_clone__PP($dcself);
@@ -508,11 +484,6 @@ BEGIN {
             };
             $cloned
         }));
-    Code.HOW.add_method(Code, 'derive_dispatcher', static(sub ($self) {
-            my $clone := $self.clone();
-            pir::setattribute__0PPSP($clone, Code, '$!dispatchees',
-                pir::clone__PP(nqp::getattr($self, Code, '$!dispatchees')))
-        }));
     Code.HOW.add_method(Code, 'is_generic', static(sub ($self) {
             # Delegate to signature, since it contains all the type info.
             my $dc_self := pir::perl6_decontainerize__PP($self);
@@ -523,9 +494,9 @@ BEGIN {
             # need to clone dispatchees list.
             my $dcself := pir::perl6_decontainerize__PP($self);
             my $ins := $self.clone();
-            if pir::defined(nqp::getattr($dcself, Code, '$!dispatchees')) {
-                nqp::bindattr($ins, Code, '$!dispatchees',
-                    pir::clone__PP(nqp::getattr($dcself, Code, '$!dispatchees')));
+            if pir::defined(nqp::getattr($dcself, Routine, '$!dispatchees')) {
+                nqp::bindattr($ins, Routine, '$!dispatchees',
+                    pir::clone__PP(nqp::getattr($dcself, Routine, '$!dispatchees')));
             }
             my $sig := nqp::getattr($dcself, Code, '$!signature');
             pir::setattribute__0PPsP($ins, Code, '$!signature',
@@ -539,14 +510,6 @@ BEGIN {
             pir::assign__vPS(
                 nqp::getattr(pir::perl6_decontainerize__PP($self), Code, '$!do'),
                 $name)
-        }));
-    Code.HOW.add_method(Code, 'dispatcher', static(sub ($self) {
-            nqp::getattr(pir::perl6_decontainerize__PP($self),
-                Code, '$!dispatcher')
-        }));
-    Code.HOW.add_method(Code, 'dispatchees', static(sub ($self) {
-            nqp::getattr(pir::perl6_decontainerize__PP($self),
-                Code, '$!dispatchees')
         }));
     Code.HOW.add_method(Code, 'id', static(sub ($self) {
             nqp::where(nqp::getattr(pir::perl6_decontainerize__PP($self),
@@ -584,10 +547,43 @@ BEGIN {
 
     # class Routine is Block { ... }
     Routine.HOW.add_parent(Routine, Block);
-    Routine.HOW.add_attribute(Routine, BOOTSTRAPATTR.new(:name<$!rw>, :type(int), :package(Routine)));
+    Routine.HOW.add_attribute(Routine, BOOTSTRAPATTR.new(:name<$!dispatchees>, :type(Mu), :package(Routine)));
+    Routine.HOW.add_attribute(Routine, BOOTSTRAPATTR.new(:name<$!dispatcher_cache>, :type(Mu), :package(Routine)));
+    Routine.HOW.add_attribute(Routine, BOOTSTRAPATTR.new(:name<$!dispatcher>, :type(Mu), :package(Routine)));
     Routine.HOW.add_attribute(Routine, BOOTSTRAPATTR.new(:name<$!md_thunk>, :type(Mu), :package(Routine)));
+    Routine.HOW.add_attribute(Routine, BOOTSTRAPATTR.new(:name<$!rw>, :type(int), :package(Routine)));
     Routine.HOW.add_attribute(Routine, BOOTSTRAPATTR.new(:name<$!inline_info>, :type(str), :package(Routine)));
-    Routine.HOW.add_attribute(Routine, BOOTSTRAPATTR.new(:name<$!yada>, :type(int), :package(Routine)));
+    Routine.HOW.add_attribute(Routine, BOOTSTRAPATTR.new(:name<$!yada>, :type(int), :package(Routine)));Code.HOW.add_method(Code, 'is_dispatcher', static(sub ($self) {
+            my $dc_self   := pir::perl6_decontainerize__PP($self);
+            my $disp_list := nqp::getattr($dc_self, Routine, '$!dispatchees');
+            pir::perl6_booleanize__PI(pir::defined__IP($disp_list));
+        }));
+    Routine.HOW.add_method(Routine, 'add_dispatchee', static(sub ($self, $dispatchee) {
+            my $dc_self   := pir::perl6_decontainerize__PP($self);
+            my $disp_list := nqp::getattr($dc_self, Routine, '$!dispatchees');
+            if pir::defined($disp_list) {
+                $disp_list.push($dispatchee);
+                pir::setattribute__0PPsP(pir::perl6_decontainerize__PP($dispatchee),
+                    Routine, '$!dispatcher', $dc_self);
+                pir::setattribute__0PPsP($dc_self, Routine, '$!dispatcher_cache', pir::null__P());
+            }
+            else {
+                pir::die("Cannot add a dispatchee to a non-dispatcher code object");
+            }
+        }));
+    Routine.HOW.add_method(Routine, 'derive_dispatcher', static(sub ($self) {
+            my $clone := $self.clone();
+            pir::setattribute__0PPSP($clone, Routine, '$!dispatchees',
+                pir::clone__PP(nqp::getattr($self, Routine, '$!dispatchees')))
+        }));
+    Routine.HOW.add_method(Routine, 'dispatcher', static(sub ($self) {
+            nqp::getattr(pir::perl6_decontainerize__PP($self),
+                Routine, '$!dispatcher')
+        }));
+    Routine.HOW.add_method(Routine, 'dispatchees', static(sub ($self) {
+            nqp::getattr(pir::perl6_decontainerize__PP($self),
+                Routine, '$!dispatchees')
+        }));
     Routine.HOW.add_method(Routine, 'set_rw', static(sub ($self) {
             my $dcself := pir::perl6_decontainerize__PP($self);
             pir::repr_bind_attr_int__0PPsi($dcself, Routine, '$!rw', 1);
@@ -926,7 +922,7 @@ Perl6::Metamodel::ParametricRoleGroupHOW.set_selector_creator({
     };
     pir::perl6_associate_sub_code_object__vPP($onlystar, $sel);
     nqp::bindattr($sel, Code, '$!do', $onlystar);
-    nqp::bindattr($sel, Code, '$!dispatchees', []);
+    nqp::bindattr($sel, Routine, '$!dispatchees', []);
     $sel
 });
 

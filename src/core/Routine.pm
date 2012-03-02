@@ -13,7 +13,7 @@ my class Routine {
     
     method candidates() {
         self.is_dispatcher ??
-            pir::perl6ize_type__PP(nqp::getattr(self, Code, '$!dispatchees')) !!
+            pir::perl6ize_type__PP($!dispatchees) !!
             (self,)
     }
     
@@ -24,7 +24,7 @@ my class Routine {
         }
         else {
             $disp := nqp::create(self);
-            nqp::bindattr($disp, Code, '$!dispatchees', nqp::list(self));
+            nqp::bindattr($disp, Routine, '$!dispatchees', nqp::list(self));
         }
         sub checker(|$) {
             my Mu $cap := pir::find_lex__Ps('call_sig');

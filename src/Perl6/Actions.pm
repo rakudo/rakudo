@@ -1295,7 +1295,7 @@ class Perl6::Actions is HLL::Actions {
                     'lexpad')));
 
             # Create code object and add it as the role's body block.
-            my $code := $*W.create_code_object($block, 'Block', $sig);
+            my $code := $*W.create_code_object($block, 'Sub', $sig);
             $*W.pkg_set_role_body_block($*PACKAGE, $code, $block);
             
             # Compose before we add the role to the group, so the group sees

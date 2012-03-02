@@ -300,9 +300,11 @@ my class Str does Stringy {
         (^self.chars).map({self.substr($_, 1) });
     }
     multi method comb(Str:D: Regex $pat, $limit = $Inf, :$match) {
+        my $x;
+        $x = (1..$limit) unless $limit.^isa(Whatever) || $limit == $Inf;
         $match
-            ?? self.match(:g, :x(1..$limit), $pat)
-            !! self.match(:g, :x(1..$limit), $pat).map: { .Str }
+            ?? self.match(:g, :$x, $pat)
+            !! self.match(:g, :$x, $pat).map: { .Str }
     }
 
     # TODO: should be private
@@ -320,45 +322,101 @@ my class Str does Stringy {
           ?? Match.new(orig => self, from => $idx, to => ($idx + $pat.chars))
           !! Match.new(orig => self, from => 0,    to => -3);
     }
-
-    multi method match(Str:D: $pat, :continue(:$c), :pos(:$p), :global(:$g), :ov(:$overlap), :$x) {
-        # XXX initialization is a workaround for a nom bug
-        my %opts := {};
+    method match-list(Str:D: $pat, :$g, :$ov, :$ex, *%opts) {
+        if $ex && $pat.^does(Callable) {
+            gather {
+                my $m := self.ll-match($pat, |%opts);
+                if $m {
+                    take $m;
+                    while $m := $m.CURSOR.'!cursor_next'().MATCH {
+                        # next line written this way for reasons of circularity sawing
+                        Cursor.HOW.find_private_method(Cursor, 'set_last_match')(Cursor, $m) if $m;
+                        take $m;
+                    }
+                }
+            }
+        }
+        elsif $ov || $ex {
+            gather {
+                my $m := self.ll-match($pat, |%opts);
+                while $m {
+                    last if $m.to > self.chars;
+                    take $m;
+                    $m := self.ll-match($pat, :c($m.from + 1));
+                }
+            }
+        }
+        elsif $g {
+            gather {
+                my $m := self.ll-match($pat, |%opts);
+                if $m {
+                    take $m;
+                    while $m := self.ll-match($pat, :c($m.to == $m.from ?? $m.to + 1 !! $m.to)) {
+                        last if $m.to > self.chars;
+                        take $m;
+                    }
+                }
+            }
+        }
+        else {
+            (self.ll-match($pat, |%opts),).list;
+        }
+    }
+    multi method match(Str:D: $pat, :continue(:$c), :pos(:$p), :global(:$g), :overlap(:$ov), :exhaustive(:$ex), :$x, :st(:nd(:rd(:$nth)))) {
+        my %opts;
         if $c.defined {
             %opts<c> = $c
-        } elsif !$p.defined {
+        }
+        elsif !$p.defined {
             %opts<c> = 0;
         }
         %opts<p> = $p if $p.defined;
-        my $x_upper = -1;
-        if $x.defined {
-            return Nil if $x == 0;
-            $x_upper = $x ~~ Range
-                 ?? ( $x.excludes_max ?? $x.max - 1 !! $x )
-                 !! $x
-        }
-        if $g  || $overlap || $x.defined {
-            my @r;
-            while my $m = self.ll-match($pat, |%opts) {
-                # XXX a bug in the regex engine means that we can
-                # match a zero-width match past the end of the string.
-                # This is the workaround:
-                last if $m.to > self.chars;
-
-                @r.push: $m;
-                last if @r.elems == $x_upper;
-
-                %opts.delete('d');
-                %opts<c> = $overlap
-                        ?? $m.from +1
-                        !!  ($m.to == $m.from ?? $m.to + 1 !! $m.to);
+        my @matches := self.match-list($pat, :g($g || $x || $nth), :$ov, :$ex, |%opts);
+        if $nth.defined {
+            if $nth.^does(Positional) {
+                my @nth-monotonic := gather {
+                    my $max = 0;
+                    for $nth.list {
+                        if $_ > $max {
+                            # note that $nth is 1-based, but our array
+                            # indexes are 0-based. Hence the - 1
+                            take $_ - 1;
+                            $max = $_;
+                        }
+                    }
+                }
+                @matches := @matches[@nth-monotonic].list;
             }
-            return if $x.defined && @r.elems !~~ $x;
-            return @r;
-        } else {
-            self.ll-match($pat, |%opts)
+            else {
+                return () if $nth < 1;
+                @matches := @matches[$nth - 1].defined
+                    ?? (@matches[$nth - 1], ).list
+                    !! ().list;
+            }
+        }
+        if $x.defined {
+            if $x.^isa(Int) {
+                @matches.gimme($x) == $x
+                    ?? @matches[^$x]
+                    !! ().list;
+            }
+            elsif $x.^isa(Range) {
+                my $real-max := $x.excludes_max ?? $x.max - 1 !! $x.max;
+                @matches.gimme($real-max) ~~ $x
+                    ?? @matches[^$real-max].list
+                    !! ().list;
+            }
+            else {
+                die "Invalid argument to :x, must be Int or Range, got type {$x.^name}";
+
+            }
+        }
+        else {
+            @matches.gimme(2) == 1 ?? @matches[0] !! @matches;
         }
     }
+
+
 
     multi method subst($matcher, $replacement,
                        :ii(:$samecase), :ss(:$samespace),
@@ -403,9 +461,10 @@ my class Str does Stringy {
     }
 
     multi method split(Str:D: Regex $pat, $limit = *, :$all) {
-        my $l = $limit ~~ Whatever ?? $Inf !! $limit - 1;
-        return ().list if $l < 0;
-        my @matches = self.match($pat, :x(1..$l), :g);
+        return ().list if $limit ~~ Numeric && $limit <= 0;
+        my @matches = $limit.^isa(Whatever)
+                        ?? self.match($pat, :g)
+                        !! self.match($pat, :x(1..$limit-1), :g);
         gather {
             my $prev-pos = 0;
             for @matches {

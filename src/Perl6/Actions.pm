@@ -3857,6 +3857,8 @@ class Perl6::Actions is HLL::Actions {
         global  => 1,
         ov      => 1,
         overlap => 1,
+        ex      => 1,
+        exhaustive => 1,
     );
     our %REGEX_ADVERBS_CANONICAL := hash(
         ignorecase  => 'i',
@@ -3870,6 +3872,7 @@ class Perl6::Actions is HLL::Actions {
         rd          => 'nth',
         global      => 'g',
         overlap     => 'ov',
+        exhaustive  => 'ex',
     );
     INIT {
         my $mods := 'i ignorecase s sigspace r ratchet';
@@ -3882,7 +3885,7 @@ class Perl6::Actions is HLL::Actions {
             %SUBST_ALLOWED_ADVERBS{$_} := 1;
         }
 
-        $mods := 'x c continue p pos nth th st nd rd g global ov overlap';
+        $mods := 'x c continue p pos nth th st nd rd g global ov overlap ex exhaustive';
         for nqp::split(' ', $mods) {
             %MATCH_ALLOWED_ADVERBS{$_} := 1;
         }

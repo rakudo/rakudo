@@ -2394,6 +2394,7 @@ class Perl6::Actions is HLL::Actions {
             %*PARAM_INFO<sub_signature_params> := $<signature>.ast;
             if pir::substr(~$/, 0, 1) eq '[' {
                 %*PARAM_INFO<sigil> := '@';
+                %*PARAM_INFO<nominal_type> := $*W.find_symbol(['Positional']);
             }
         }
         else {

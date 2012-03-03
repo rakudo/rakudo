@@ -788,7 +788,7 @@ static PMC* find_best_candidate(PARROT_INTERP, Rakudo_md_candidate_info **candid
 
         mem_sys_free(possibles);
         Parrot_ex_throw_from_c_args(interp, next, 1,
-            "No applicable candidates found to dispatch to for '%Ss'. Available candidates are:\n%Ss",
+            "Cannot call '%Ss'; none of these signatures match:\n%Ss",
                 (candidates[0] ? VTABLE_get_string(interp, candidates[0]->sub) : STRINGNULL),
                 signatures);
     }
@@ -801,7 +801,7 @@ static PMC* find_best_candidate(PARROT_INTERP, Rakudo_md_candidate_info **candid
         
         mem_sys_free(possibles);
         Parrot_ex_throw_from_c_args(interp, next, 1,
-            "Ambiguous dispatch to multi '%Ss'. Ambiguous candidates had signatures:\n%Ss",
+            "Ambiguous call to '%Ss'; these signatures all matched:\n%Ss",
                 VTABLE_get_string(interp, candidates[0]->sub), signatures);
     }
 }

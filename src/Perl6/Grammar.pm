@@ -45,6 +45,9 @@ grammar Perl6::Grammar is HLL::Grammar {
     method malformed($what) {
         self.typed_panic('X::Syntax::Malformed', :$what);
     }
+    method missing($what) {
+        self.typed_panic('X::Syntax::Missing', :$what);
+    }
     method NYI($feature) {
         self.typed_panic('X::Comp::NYI', :$feature)
     }
@@ -555,13 +558,13 @@ grammar Perl6::Grammar is HLL::Grammar {
         | <?[{]>
             <.newpad>
             <blockoid>
-        || { $*W.throw($/, 'X::Syntax::Missing', what =>'block') }
+        || <.missing: 'block'>
     }
 
     token lambda { '->' | '<->' }
 
     token block($*IMPLICIT = 0) {
-        [ <?[{]> || { $*W.throw($/, 'X::Syntax::Missing', what =>'block') }]
+        [ <?[{]> || <.missing: 'block'>]
         <.newpad>
         <blockoid>
     }
@@ -1808,7 +1811,7 @@ grammar Perl6::Grammar is HLL::Grammar {
 
         [
         || <initializer>
-        || <.sorry: "Missing initializer on constant declaration">
+        || <.missing: "initializer on constant declaration">
         ]
     }
 
@@ -2110,7 +2113,7 @@ grammar Perl6::Grammar is HLL::Grammar {
         [
         | '/' <p6regex=.LANG('Regex','nibbler')> <?[/]> <quote_EXPR: ':qq'> <.old_rx_mods>?
         | '[' <p6regex=.LANG('Regex','nibbler')> ']'
-          <.ws> [ '=' || <.panic: "Missing assignment operator"> ]
+          <.ws> [ '=' || <.missing: "assignment operator"> ]
           <.ws> <EXPR('i')>
         ]
     }
@@ -2314,14 +2317,14 @@ grammar Perl6::Grammar is HLL::Grammar {
     token infix_circumfix_meta_operator:sym<« »> {
         $<opening>=[ '«' | '»' ]
         {} <infixish>
-        $<closing>=[ '«' | '»' || <.panic("Missing « or »")> ]
+        $<closing>=[ '«' | '»' || <.missing("« or »")> ]
         <O=.copyO('infixish')>
     }
 
     token infix_circumfix_meta_operator:sym«<< >>» {
         $<opening>=[ '<<' | '>>' ]
         {} <infixish>
-        $<closing>=[ '<<' | '>>' || <.panic("Missing << or >>")> ]
+        $<closing>=[ '<<' | '>>' || <.missing("<< or >>")> ]
         <O=.copyO('infixish')>
     }
 

@@ -135,16 +135,27 @@ BEGIN {
 
     # Need new and accessor methods for Attribute in here for now.
     Attribute.HOW.add_method(Attribute, 'new',
-        static(sub ($self, :$name, :$type, :$container_descriptor, :$has_accessor, :$package, *%other) {
+        static(sub ($self, :$name!, :$type!, :$package!, :$has_accessor, *%other) {
             my $attr := pir::repr_instance_of__PP($self);
             nqp::bindattr_s($attr, Attribute, '$!name', $name);
             nqp::bindattr($attr, Attribute, '$!type', $type);
             nqp::bindattr_i($attr, Attribute, '$!has_accessor', $has_accessor);
-            nqp::bindattr($attr, Attribute, '$!container_descriptor', $container_descriptor);
             nqp::bindattr($attr, Attribute, '$!package', $package);
-            if pir::exists(%other, 'auto_viv_container') {
-                nqp::bindattr($attr, Attribute, '$!auto_viv_container',
-                    %other<auto_viv_container>);
+            if pir::exists(%other, 'container_descriptor') {
+                nqp::bindattr($attr, Attribute, '$!container_descriptor', %other<container_descriptor>);
+                if pir::exists(%other, 'auto_viv_container') {
+                    nqp::bindattr($attr, Attribute, '$!auto_viv_container',
+                        %other<auto_viv_container>);
+                }
+            }
+            else {
+                my $cd := Metamodel::ContainerDescriptor.new(
+                    :of($type), :rw(1), :name($name));
+                my $scalar := pir::repr_instance_of__PP(Scalar);
+                nqp::bindattr($scalar, Scalar, '$!descriptor', $cd);
+                nqp::bindattr($scalar, Scalar, '$!value', $type);
+                nqp::bindattr($attr, Attribute, '$!container_descriptor', $cd);
+                nqp::bindattr($attr, Attribute, '$!auto_viv_container', $scalar);
             }
             $attr
         }));

@@ -4638,6 +4638,7 @@ class Perl6::Actions is HLL::Actions {
             $*W.get_ref($type);
         $past<has_compile_time_value> := 1;
         $past<compile_time_value> := $type;
+        $past.type($type.WHAT);
         return $past;
     }
 

@@ -571,7 +571,7 @@ static PMC* find_best_candidate(PARROT_INTERP, Rakudo_md_candidate_info **candid
                         opcode_t *where;
                         INTVAL    bind_check_result;
                         Rakudo_Code *code_obj = (Rakudo_Code *)PMC_data(possibles[i]->sub);
-                        cthunk = VTABLE_getprop(interp, code_obj->_do,
+                        cthunk = Parrot_pmc_getprop(interp, code_obj->_do,
                             Parrot_str_new(interp, "COMPILER_THUNK", 0));
                         if (!PMC_IS_NULL(cthunk)) {
                             /* We need to do the tie-break on something not yet compiled.

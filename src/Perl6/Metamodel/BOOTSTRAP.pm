@@ -535,6 +535,7 @@ BEGIN {
     # class Block is Code { ... }
     Block.HOW.add_parent(Block, Code);
     Block.HOW.add_attribute(Block, BOOTSTRAPATTR.new(:name<$!state_vars>, :type(Mu), :package(Block)));
+    Block.HOW.add_attribute(Block, BOOTSTRAPATTR.new(:name<$!phasers>, :type(Mu), :package(Block)));
     Block.HOW.add_method(Block, 'clone', static(sub ($self) {
             my $dcself := pir::perl6_decontainerize__PP($self);
             my $cloned := pir::repr_clone__PP($dcself);

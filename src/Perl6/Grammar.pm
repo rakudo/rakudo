@@ -781,8 +781,7 @@ grammar Perl6::Grammar is HLL::Grammar {
     token statement_prefix:sym<INIT>  { <sym> <blorst> }
     token statement_prefix:sym<START> { <sym> <blorst> }
     token statement_prefix:sym<ENTER> { <sym> <blorst> }
-    token statement_prefix:sym<FIRST> { <sym> <blorst>
-            <.NYI('FIRST phaser')> }
+    token statement_prefix:sym<FIRST> { <sym> <blorst> }
     
     token statement_prefix:sym<END>   { <sym> <blorst> }
     token statement_prefix:sym<LEAVE> { <sym> <blorst>
@@ -791,10 +790,8 @@ grammar Perl6::Grammar is HLL::Grammar {
             <.NYI('KEEP phaser')> }
     token statement_prefix:sym<UNDO> { <sym> <blorst>
             <.NYI('UNDO phaser')> }
-    token statement_prefix:sym<NEXT>  { <sym> <blorst>
-            <.NYI('NEXT phaser')> }
-    token statement_prefix:sym<LAST>  { <sym> <blorst>
-            <.NYI('LAST phaser')> }
+    token statement_prefix:sym<NEXT>  { <sym> <blorst> }
+    token statement_prefix:sym<LAST>  { <sym> <blorst> }
     token statement_prefix:sym<PRE> { <sym> <blorst>
             <.NYI('PRE phaser')> }
     token statement_prefix:sym<POST> { <sym> <blorst>

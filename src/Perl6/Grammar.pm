@@ -779,19 +779,29 @@ grammar Perl6::Grammar is HLL::Grammar {
     token statement_prefix:sym<BEGIN> { <sym> <blorst> }
     token statement_prefix:sym<CHECK> { <sym> <blorst> }
     token statement_prefix:sym<INIT>  { <sym> <blorst> }
-    token statement_prefix:sym<END>   { <sym> <blorst> }
-    token statement_prefix:sym<FIRST> { <sym> <blorst>
-            <.NYI('FIRST phaser')> }
-    token statement_prefix:sym<LAST>  { <sym> <blorst>
-            <.NYI('LAST phaser')> }
+    token statement_prefix:sym<START> { <sym> <blorst>
+            <.NYI('START phaser')> }
     token statement_prefix:sym<ENTER> { <sym> <blorst>
             <.NYI('ENTER phaser')> }
+    token statement_prefix:sym<FIRST> { <sym> <blorst>
+            <.NYI('FIRST phaser')> }
+    
+    token statement_prefix:sym<END>   { <sym> <blorst> }
     token statement_prefix:sym<LEAVE> { <sym> <blorst>
             <.NYI('LEAVE phaser')> }
+    token statement_prefix:sym<KEEP> { <sym> <blorst>
+            <.NYI('KEEP phaser')> }
+    token statement_prefix:sym<UNDO> { <sym> <blorst>
+            <.NYI('UNDO phaser')> }
+    token statement_prefix:sym<NEXT>  { <sym> <blorst>
+            <.NYI('NEXT phaser')> }
+    token statement_prefix:sym<LAST>  { <sym> <blorst>
+            <.NYI('LAST phaser')> }
     token statement_prefix:sym<PRE> { <sym> <blorst>
             <.NYI('PRE phaser')> }
     token statement_prefix:sym<POST> { <sym> <blorst>
             <.NYI('POST phaser')> }
+    
     token statement_prefix:sym<sink>  { <sym> <blorst> }
     token statement_prefix:sym<try>   { <sym> <blorst> }
     token statement_prefix:sym<gather>{ <sym> <blorst> }

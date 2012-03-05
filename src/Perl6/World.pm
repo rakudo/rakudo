@@ -367,10 +367,10 @@ class Perl6::World is HLL::World {
         }
         
         # Build container.
-        my $cont := pir::repr_instance_of__PP(%cont_info<container_type>);
-        pir::setattribute__vPPsP($cont, %cont_info<container_base>, '$!descriptor', $descriptor);
+        my $cont := nqp::create(%cont_info<container_type>);
+        nqp::bindattr($cont, %cont_info<container_base>, '$!descriptor', $descriptor);
         if pir::exists(%cont_info, 'default_value') {
-            pir::setattribute__vPPsP($cont, %cont_info<container_base>, '$!value',
+            nqp::bindattr($cont, %cont_info<container_base>, '$!value',
                 %cont_info<default_value>);
         }
         $block.symbol($name, :value($cont));
@@ -436,7 +436,7 @@ class Perl6::World is HLL::World {
     method create_parameter(%param_info) {
         # Create parameter object now.
         my $par_type  := self.find_symbol(['Parameter']);
-        my $parameter := pir::repr_instance_of__PP($par_type);
+        my $parameter := nqp::create($par_type);
         self.add_object($parameter);
         
         # Calculate flags.
@@ -548,11 +548,11 @@ class Perl6::World is HLL::World {
     method create_signature(@parameters) {
         # Create signature object now.
         my $sig_type  := self.find_symbol(['Signature']);
-        my $signature := pir::repr_instance_of__PP($sig_type);
+        my $signature := nqp::create($sig_type);
         self.add_object($signature);
         
         # Set parameters.
-        pir::setattribute__vPPsP($signature, $sig_type, '$!params', @parameters);
+        nqp::bindattr($signature, $sig_type, '$!params', @parameters);
         
         # Return created signature.
         $signature
@@ -626,7 +626,7 @@ class Perl6::World is HLL::World {
         });
         pir::setprop__vPsP($stub, 'COMPILER_THUNK', $compiler_thunk);
         pir::set__vPS($stub, $code_past.name);
-        pir::setattribute__vPPsP($code, $code_type, '$!do', $stub);
+        nqp::bindattr($code, $code_type, '$!do', $stub);
         
         # Tag it as a static code ref and add it to the root code refs set.
         pir::setprop__vPsP($stub, 'STATIC_CODE_REF', $stub);
@@ -689,7 +689,7 @@ class Perl6::World is HLL::World {
         # If this is a dispatcher, install dispatchee list that we can
         # add the candidates too.
         if $is_dispatcher {
-            pir::setattribute__vPPsP($code, $routine_type, '$!dispatchees', []);
+            nqp::bindattr($code, $routine_type, '$!dispatchees', []);
         }
         
         # Set yada flag if needed.
@@ -1012,10 +1012,10 @@ class Perl6::World is HLL::World {
     method pkg_add_attribute($obj, $meta_attr, %lit_args, %obj_args,
             %cont_info, $descriptor) {
         # Build container.
-        my $cont := pir::repr_instance_of__PP(%cont_info<container_type>);
-        pir::setattribute__vPPsP($cont, %cont_info<container_base>, '$!descriptor', $descriptor);
+        my $cont := nqp::create(%cont_info<container_type>);
+        nqp::bindattr($cont, %cont_info<container_base>, '$!descriptor', $descriptor);
         if pir::exists(%cont_info, 'default_value') {
-            pir::setattribute__vPPsP($cont, %cont_info<container_base>, '$!value',
+            nqp::bindattr($cont, %cont_info<container_base>, '$!value',
                 %cont_info<default_value>);
         }
         
@@ -1102,8 +1102,8 @@ class Perl6::World is HLL::World {
         # Create directly.
         my $val       := pir::repr_box_int__PiP($value, $enum_type_obj);
         my $base_type := ($enum_type_obj.HOW.parents($enum_type_obj, :local(1)))[0];
-        pir::setattribute__vPPsP($val, $enum_type_obj, '$!key', $key);
-        pir::setattribute__vPPsP($val, $enum_type_obj, '$!value',
+        nqp::bindattr($val, $enum_type_obj, '$!key', $key);
+        nqp::bindattr($val, $enum_type_obj, '$!value',
             pir::repr_box_int__PiP($value, $base_type));
         self.add_object($val);
         

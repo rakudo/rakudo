@@ -779,8 +779,7 @@ grammar Perl6::Grammar is HLL::Grammar {
     token statement_prefix:sym<BEGIN> { <sym> <blorst> }
     token statement_prefix:sym<CHECK> { <sym> <blorst> }
     token statement_prefix:sym<INIT>  { <sym> <blorst> }
-    token statement_prefix:sym<START> { <sym> <blorst>
-            <.NYI('START phaser')> }
+    token statement_prefix:sym<START> { <sym> <blorst> }
     token statement_prefix:sym<ENTER> { <sym> <blorst> }
     token statement_prefix:sym<FIRST> { <sym> <blorst>
             <.NYI('FIRST phaser')> }

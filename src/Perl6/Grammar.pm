@@ -1527,6 +1527,7 @@ grammar Perl6::Grammar is HLL::Grammar {
         :my $*HAS_SELF := $d eq 'submethod' ?? 'partial' !! 'complete';
         :my $*DOC := $*DECLARATOR_DOCS;
         :my $*DOCEE;
+        :my $*DECLARAND := $*W.stub_code_object($d eq 'submethod' ?? 'Submethod' !! 'Method');
         <.attach_docs>
         [
             <.newpad>
@@ -1733,6 +1734,7 @@ grammar Perl6::Grammar is HLL::Grammar {
     rule regex_def {<.end_keyword> [
         :my $*CURPAD;
         :my $*HAS_SELF := 'complete';
+        :my $*DECLARAND := $*W.stub_code_object('Regex');
         [
           { $*IN_DECL := '' }
           <deflongname>?

@@ -1558,7 +1558,8 @@ class Perl6::Actions is HLL::Actions {
 
         # Produce a code object and install it.
         my $invocant_type := $*W.find_symbol([$*W.is_lexical('$?CLASS') ?? '$?CLASS' !! 'Mu']);
-        my $code := methodize_block($/, $a_past, [], $invocant_type, 'Method');
+        my $code := methodize_block($/, $*W.stub_code_object('Method'), 
+            $a_past, [], $invocant_type);
         install_method($/, $meth_name, 'has', $code, $install_in);
     }
 
@@ -1859,8 +1860,7 @@ class Perl6::Actions is HLL::Actions {
         my @params    := $<multisig> ?? $<multisig>[0].ast !! [];
         my $inv_type  := $*W.find_symbol([
             $<longname> && $*W.is_lexical('$?CLASS') ?? '$?CLASS' !! 'Mu']);
-        my $code_type := $*METHODTYPE eq 'submethod' ?? 'Submethod' !! 'Method';
-        my $code := methodize_block($/, $past, @params, $inv_type, $code_type, :yada(is_yada($/)));
+        my $code := methodize_block($/, $*DECLARAND, $past, @params, $inv_type, :yada(is_yada($/)));
 
         # Document it
         Perl6::Pod::document($code, $*DOC);
@@ -1894,7 +1894,7 @@ class Perl6::Actions is HLL::Actions {
         make $closure;
     }
 
-    sub methodize_block($/, $past, @params, $invocant_type, $code_type, :$yada) {
+    sub methodize_block($/, $code, $past, @params, $invocant_type, :$yada) {
         # Get signature and ensure it has an invocant and *%_.
         if $past<placeholder_sig> {
             $/.CURSOR.panic('Placeholder variables cannot be used in a method');
@@ -1930,9 +1930,10 @@ class Perl6::Actions is HLL::Actions {
             $*W.find_symbol([$*MULTINESS eq 'multi' ?? 'MultiDispatcher' !! 'MethodDispatcher']));
         $past[0].unshift(PAST::Op.new(:pirop('perl6_take_dispatcher v')));
 
-        # Create code object.
-        return $*W.create_code_object($past, $code_type, $signature,
-            $*MULTINESS eq 'proto', :yada($yada));
+        # Finish up code object.
+        $*W.attach_signature($code, $signature);
+        $*W.finish_code_object($code, $past, $*MULTINESS eq 'proto', :yada($yada));
+        return $code;
     }
 
     # Installs a method into the various places it needs to go.
@@ -2048,9 +2049,9 @@ class Perl6::Actions is HLL::Actions {
                 :pasttype('callmethod'), :name('!protoregex'),
                 PAST::Var.new( :name('self'), :scope('register') ),
                 $name);
-            $coderef := regex_coderef($/, $proto_body, $*SCOPE, $name, @params, $*CURPAD, $<trait>, :proto(1));
+            $coderef := regex_coderef($/, $*DECLARAND, $proto_body, $*SCOPE, $name, @params, $*CURPAD, $<trait>, :proto(1));
         } else {
-            $coderef := regex_coderef($/, $<p6regex>.ast, $*SCOPE, $name, @params, $*CURPAD, $<trait>);
+            $coderef := regex_coderef($/, $*DECLARAND, $<p6regex>.ast, $*SCOPE, $name, @params, $*CURPAD, $<trait>);
         }
 
         # Return closure if not in sink context.
@@ -2059,7 +2060,7 @@ class Perl6::Actions is HLL::Actions {
         make $closure;
     }
 
-    sub regex_coderef($/, $qast, $scope, $name, @params, $block, $traits?, :$proto, :$use_outer_match) {
+    sub regex_coderef($/, $code, $qast, $scope, $name, @params, $block, $traits?, :$proto, :$use_outer_match) {
         # create a code reference from a regex qast tree
         my $past;
         if $proto {
@@ -2081,7 +2082,7 @@ class Perl6::Actions is HLL::Actions {
         # Do the various tasks to turn the block into a method code object.
         my $inv_type  := $*W.find_symbol([ # XXX Maybe Cursor below, not Mu...
             $name && $*W.is_lexical('$?CLASS') ?? '$?CLASS' !! 'Mu']);
-        my $code := methodize_block($/, $past, @params, $inv_type, 'Regex');
+        methodize_block($/, $code, $past, @params, $inv_type);
 
         # Need to put self into a register for the regex engine.
         $past[0].push(PAST::Var.new(
@@ -3970,7 +3971,8 @@ class Perl6::Actions is HLL::Actions {
     }
     method quote:sym</ />($/) {
         my $block := PAST::Block.new(PAST::Stmts.new, PAST::Stmts.new, :node($/));
-        my $coderef := regex_coderef($/, $<p6regex>.ast, 'anon', '', [], $block, :use_outer_match(1));
+        my $coderef := regex_coderef($/, $*W.stub_code_object('Regex'),
+            $<p6regex>.ast, 'anon', '', [], $block, :use_outer_match(1));
         # Return closure if not in sink context.
         my $closure := block_closure($coderef);
         $closure<sink_past> := PAST::Op.new( :pasttype('null') );
@@ -3980,12 +3982,14 @@ class Perl6::Actions is HLL::Actions {
     method quote:sym<rx>($/) {
         my $block := PAST::Block.new(PAST::Stmts.new, PAST::Stmts.new, :node($/));
         self.handle_and_check_adverbs($/, %SHARED_ALLOWED_ADVERBS, 'rx', $block);
-        my $coderef := regex_coderef($/, $<p6regex>.ast, 'anon', '', [], $block, :use_outer_match(1));
+        my $coderef := regex_coderef($/, $*W.stub_code_object('Regex'),
+            $<p6regex>.ast, 'anon', '', [], $block, :use_outer_match(1));
         make block_closure($coderef);
     }
     method quote:sym<m>($/) {
         my $block := PAST::Block.new(PAST::Stmts.new, PAST::Stmts.new, :node($/));
-        my $coderef := regex_coderef($/, $<p6regex>.ast, 'anon', '', [], $block, :use_outer_match(1));
+        my $coderef := regex_coderef($/, $*W.stub_code_object('Regex'),
+            $<p6regex>.ast, 'anon', '', [], $block, :use_outer_match(1));
 
         my $past := PAST::Op.new(
             :node($/),
@@ -4028,8 +4032,8 @@ class Perl6::Actions is HLL::Actions {
         # Build the regex.
 
         my $rx_block := PAST::Block.new(PAST::Stmts.new, PAST::Stmts.new, :node($/));
-        my $rx_coderef := regex_coderef($/, $<p6regex>.ast, 'anon', '', [], $rx_block, :use_outer_match(1));
-#        my $regex :=  block_closure($rx_coderef);
+        my $rx_coderef := regex_coderef($/, $*W.stub_code_object('Regex'),
+            $<p6regex>.ast, 'anon', '', [], $rx_block, :use_outer_match(1));
 
         # Quote needs to be closure-i-fied.
         my $closure := block_closure(make_thunk_ref($<quote_EXPR> ?? $<quote_EXPR>.ast !! $<EXPR>.ast, $/));

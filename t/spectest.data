@@ -200,6 +200,7 @@ S04-blocks-and-statements/pointy.t
 S04-phasers/begin.t
 S04-phasers/check.t
 S04-phasers/end.t
+S04-phasers/first.t
 S04-phasers/rvalue.t
 S04-phasers/start.t
 S04-declarations/constant.t

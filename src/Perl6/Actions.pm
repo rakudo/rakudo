@@ -1614,13 +1614,16 @@ class Perl6::Actions is HLL::Actions {
         }
         $block[0].unshift(PAST::Op.new(:pirop('perl6_take_dispatcher v')));
 
-        # Create code object.
+        # Set name.
         if $<deflongname> {
             $block.name(~$<deflongname>[0].ast);
             $block.nsentry('');
         }
-        my $code := $*W.create_code_object($block, 'Sub', $signature,
-            $*MULTINESS eq 'proto', :yada(is_yada($/)));
+        
+        # Finish code object, associating it with the routine body.
+        my $code := $*DECLARAND;
+        $*W.attach_signature($code, $signature);
+        $*W.finish_code_object($code, $block, $*MULTINESS eq 'proto', :yada(is_yada($/)));
 
         # Document it
         Perl6::Pod::document($code, $*DOC);

@@ -1497,6 +1497,7 @@ grammar Perl6::Grammar is HLL::Grammar {
         :my $*IMPLICIT := 0;
         :my $*DOC := $*DECLARATOR_DOCS;
         :my $*DOCEE;
+        :my $*DECLARAND := $*W.stub_code_object('Sub');
         <.attach_docs>
         <deflongname>?
         {

@@ -70,6 +70,7 @@ typedef struct {
 /* Flags that the block has state variables and that this is the first time
  * that we are visiting the block and so they need initializing. */
 #define PObj_P6LEXPAD_STATE_INIT_FLAG PObj_private1_FLAG
+#define PObj_SUB_FIRST_FLAG PObj_private7_FLAG
 
 /* Gets the ID of a 6model object PMC. */
 INTVAL Rakudo_smo_id(void);

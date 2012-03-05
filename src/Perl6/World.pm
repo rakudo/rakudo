@@ -731,9 +731,8 @@ class Perl6::World is HLL::World {
     method add_phasers_handling_code($code, $code_past) {
         my $block_type := self.find_symbol(['Block']);
         if nqp::istype($code, $block_type) {
-            my %phasers := nqp::getattr($code, $block_type, '$!phasers');
-            if pir::exists(%phasers, 'ENTER') {
-                $code_past[0].push(PAST::Op.new(
+            sub run_phasers_code($type) {
+                PAST::Op.new(
                     :pasttype('for'),
                     PAST::Var.new(
                         :scope('keyed'),
@@ -742,14 +741,24 @@ class Perl6::World is HLL::World {
                             $*W.get_ref($code),
                             $*W.get_ref($block_type)
                         ),
-                        'ENTER'
+                        $type
                     ),
                     PAST::Block.new(
                         :blocktype('immediate'),
                         PAST::Op.new(
                             :pasttype('call'),
                             PAST::Var.new( :scope('parameter'), :name('$_') )
-                        ))));
+                        )))
+            }
+            my %phasers := nqp::getattr($code, $block_type, '$!phasers');
+            if pir::exists(%phasers, 'FIRST') {
+                $code_past[0].push(PAST::Op.new(
+                    :pasttype('if'),
+                    PAST::Op.new( :pirop('perl6_take_block_first_flag i') ),
+                    run_phasers_code('FIRST')));
+            }
+            if pir::exists(%phasers, 'ENTER') {
+                $code_past[0].push(run_phasers_code('ENTER'));
             }
         }
     }

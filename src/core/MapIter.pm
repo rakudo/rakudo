@@ -2,6 +2,7 @@ my class MapIter is Iterator {
     has $!reified;             # Parcel we return after reifying
     has $!list;                # the list we're consuming
     has $!block;               # the block we're applying
+    has int $!followup;        # is this an iterator that continues an existing iteration?
 
     method new(:$list!, :$block!) { 
         my $new := nqp::create(self).BUILD($list, $block);
@@ -41,6 +42,11 @@ my class MapIter is Iterator {
                     $NEXT := -> {
                         .() for @NEXT;
                     };
+                }
+            }
+            unless $!followup {
+                if $block.?phasers('FIRST') {
+                    pir::perl6_set_block_first_flag__vP($block);
                 }
             }
             my Mu $args := Q:PIR {
@@ -116,7 +122,9 @@ my class MapIter is Iterator {
             };
             # create the next MapIter if we haven't reached the end
             if $args {
-                nqp::push($rpa, nqp::create(self).BUILD($!list, $!block))
+                my $iter := nqp::create(self).BUILD($!list, $!block);
+                nqp::bindattr_i($iter, MapIter, '$!followup', 1);
+                nqp::push($rpa, $iter);
             }
             elsif $block.?phasers('LAST') -> @LAST {
                 .() for @LAST;

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2011, The Perl Foundation.
+ * Copyright (C) 2008-2012, The Perl Foundation.
  */
 
 BEGIN_OPS_PREAMBLE
@@ -1197,6 +1197,39 @@ and START blocks should run.
 inline op perl6_state_needs_init(out INT) :base_core {
     PMC *cur_ctx = CURRENT_CONTEXT(interp);
     $1 = PObj_flag_TEST(P6LEXPAD_STATE_INIT, cur_ctx)
+}
+
+
+/*
+
+=item perl6_set_block_first_flag(in PMC)
+
+Flags that the next execution of a block should run the FIRST block.
+
+=cut
+
+*/
+inline op perl6_set_block_first_flag(in PMC) :base_core {
+    Rakudo_Code * code = (Rakudo_Code *)PMC_data($1);
+    PObj_flag_SET(SUB_FIRST, code->_do);
+}
+
+
+/*
+
+=item perl6_take_block_first_flag(out INT)
+
+Checks the flag for if FIRST blocks should be run for this invocation, and
+clears it.
+
+=cut
+
+*/
+inline op perl6_take_block_first_flag(out INT) :base_core {
+    PMC * const ctx     = CURRENT_CONTEXT(interp);
+    PMC * const cur_sub = Parrot_pcc_get_sub(interp, ctx);
+    $1 = PObj_flag_TEST(SUB_FIRST, cur_sub);
+    PObj_flag_CLEAR(SUB_FIRST, cur_sub);
 }
 
 

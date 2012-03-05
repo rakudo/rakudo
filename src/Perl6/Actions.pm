@@ -882,10 +882,10 @@ class Perl6::Actions is HLL::Actions {
         make PAST::Var.new( :name('Nil'), :scope('lexical') );
     }
 
-    method statement_prefix:sym<BEGIN>($/) { make $*W.add_phaser($/, ($<blorst>.ast)<code_object>, 'BEGIN'); }
-    method statement_prefix:sym<CHECK>($/) { make $*W.add_phaser($/, ($<blorst>.ast)<code_object>, 'CHECK'); }
-    method statement_prefix:sym<INIT>($/)  { $*W.add_phaser($/, ($<blorst>.ast)<code_object>, 'INIT'); }
-    method statement_prefix:sym<END>($/)   { $*W.add_phaser($/, ($<blorst>.ast)<code_object>, 'END'); }
+    method statement_prefix:sym<BEGIN>($/) { make $*W.add_phaser($/, 'BEGIN', ($<blorst>.ast)<code_object>); }
+    method statement_prefix:sym<CHECK>($/) { make $*W.add_phaser($/, 'CHECK', ($<blorst>.ast)<code_object>); }
+    method statement_prefix:sym<INIT>($/)  { make $*W.add_phaser($/, 'INIT', ($<blorst>.ast)<code_object>); }
+    method statement_prefix:sym<END>($/)   { make $*W.add_phaser($/, 'END', ($<blorst>.ast)<code_object>); }
 
     method statement_prefix:sym<DOC>($/)   {
         $*W.add_phaser($/, ($<blorst>.ast)<code_object>, ~$<phase>)

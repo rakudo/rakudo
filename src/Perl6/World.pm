@@ -35,6 +35,9 @@ class Perl6::World is HLL::World {
     # outermost frame is at the bottom, the latest frame is on top.
     has @!BLOCKS;
     
+    # The stack of code objects; phasers get attached to the top one.
+    has @!CODES;
+    
     # Mapping of sub IDs to their proto code objects; used for fixing
     # up in dynamic compilation.
     has %!sub_id_to_code_object;
@@ -571,6 +574,7 @@ class Perl6::World is HLL::World {
     method stub_code_object($type) {
         my $type_obj := self.find_symbol([$type]);
         my $code     := nqp::create($type_obj);
+        @!CODES[+@!CODES] := $code;
         self.add_object($code);
         $code
     }
@@ -585,6 +589,9 @@ class Perl6::World is HLL::World {
     method finish_code_object($code, $code_past, $is_dispatcher = 0, :$yada) {
         my $fixups := PAST::Stmts.new();
         my $des    := PAST::Stmts.new();
+        
+        # Remove it from the code objects stack.
+        @!CODES.pop();
         
         # Locate various interesting symbols.
         my $code_type    := self.find_symbol(['Code']);
@@ -1150,7 +1157,7 @@ class Perl6::World is HLL::World {
     }
     
     # Handles addition of a phaser.
-    method add_phaser($/, $block, $phaser) {
+    method add_phaser($/, $phaser, $block) {
         if $phaser eq 'BEGIN' {
             # BEGIN phasers get run immediately.
             my $result := $block();
@@ -1167,6 +1174,8 @@ class Perl6::World is HLL::World {
                 :pasttype('call'),
                 self.get_ref($block)
             ));
+            # XXX should keep value for r-value usage
+            return PAST::Var.new(:name('Nil'), :scope('lexical_6model'));
         }
         elsif $phaser eq 'END' {
             $*UNIT[0].push(PAST::Op.new(
@@ -1174,9 +1183,11 @@ class Perl6::World is HLL::World {
                 PAST::Var.new( :name('@*END_PHASERS'), :scope('contextual') ),
                 self.get_ref($block)
             ));
+            return PAST::Var.new(:name('Nil'), :scope('lexical_6model'));
         }
         else {
-            $/.CURSOR.panic("$phaser phaser not yet implemented");
+            @!CODES[+@!CODES - 1].add_phaser($phaser, $block);
+            return PAST::Var.new(:name('Nil'), :scope('lexical_6model'));
         }
     }
     

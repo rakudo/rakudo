@@ -437,7 +437,7 @@ class Perl6::World is HLL::World {
         # Create parameter object now.
         my $par_type  := self.find_symbol(['Parameter']);
         my $parameter := pir::repr_instance_of__PP($par_type);
-        my $slot      := self.add_object($parameter);
+        self.add_object($parameter);
         
         # Calculate flags.
         my $flags := 0;
@@ -549,7 +549,7 @@ class Perl6::World is HLL::World {
         # Create signature object now.
         my $sig_type  := self.find_symbol(['Signature']);
         my $signature := pir::repr_instance_of__PP($sig_type);
-        my $slot      := self.add_object($signature);
+        self.add_object($signature);
         
         # Set parameters.
         pir::setattribute__vPPsP($signature, $sig_type, '$!params', @parameters);
@@ -780,7 +780,7 @@ class Perl6::World is HLL::World {
     method scalar_wrap($obj) {
         my $scalar_type := self.find_symbol(['Scalar']);
         my $scalar      := nqp::create($scalar_type);
-        my $slot        := self.add_object($scalar);
+        self.add_object($scalar);
         nqp::bindattr($scalar, $scalar_type, '$!value', $obj);
         $scalar;
     }
@@ -998,7 +998,7 @@ class Perl6::World is HLL::World {
             %args<signatured> := %extra<signatured>;
         }
         my $mo := $how.new_type(|%args);
-        my $slot := self.add_object($mo);
+        self.add_object($mo);
 
         # Result is just the object.
         return $mo;
@@ -1105,7 +1105,7 @@ class Perl6::World is HLL::World {
         pir::setattribute__vPPsP($val, $enum_type_obj, '$!key', $key);
         pir::setattribute__vPPsP($val, $enum_type_obj, '$!value',
             pir::repr_box_int__PiP($value, $base_type));
-        my $slot := self.add_object($val);
+        self.add_object($val);
         
         # Add to meta-object.
         $enum_type_obj.HOW.add_enum_value($enum_type_obj, $val);
@@ -1126,7 +1126,7 @@ class Perl6::World is HLL::World {
         # Create a list and put it in the SC.
         my class FixupList { has $!list }
         my $fixup_list := nqp::create(FixupList);
-        my $slot := self.add_object($fixup_list);
+        self.add_object($fixup_list);
         nqp::bindattr($fixup_list, FixupList, '$!list', nqp::list());
 
         # Set up capturing code.

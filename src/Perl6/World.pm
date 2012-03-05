@@ -593,6 +593,9 @@ class Perl6::World is HLL::World {
         # Remove it from the code objects stack.
         @!CODES.pop();
         
+        # Handle any phasers.
+        self.add_phasers_handling_code($code, $code_past);
+                
         # Locate various interesting symbols.
         my $code_type    := self.find_symbol(['Code']);
         my $routine_type := self.find_symbol(['Routine']);
@@ -722,6 +725,33 @@ class Perl6::World is HLL::World {
             
         self.add_fixup_task(:deserialize_past($des), :fixup_past($fixups));
         $code;
+    }
+    
+    # Adds any extra code needing for handling phasers.
+    method add_phasers_handling_code($code, $code_past) {
+        my $block_type := self.find_symbol(['Block']);
+        if nqp::istype($code, $block_type) {
+            my %phasers := nqp::getattr($code, $block_type, '$!phasers');
+            if pir::exists(%phasers, 'ENTER') {
+                $code_past[0].push(PAST::Op.new(
+                    :pasttype('for'),
+                    PAST::Var.new(
+                        :scope('keyed'),
+                        PAST::Var.new(
+                            :scope('attribute_6model'), :name('$!phasers'),
+                            $*W.get_ref($code),
+                            $*W.get_ref($block_type)
+                        ),
+                        'ENTER'
+                    ),
+                    PAST::Block.new(
+                        :blocktype('immediate'),
+                        PAST::Op.new(
+                            :pasttype('call'),
+                            PAST::Var.new( :scope('parameter'), :name('$_') )
+                        ))));
+            }
+        }
     }
     
     # Adds a multi candidate to a proto/dispatch.

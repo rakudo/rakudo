@@ -472,7 +472,7 @@ grammar Perl6::Grammar is HLL::Grammar {
                 $*W.install_lexical_symbol($*UNIT, 'EXPORT', $*EXPORT);
                 $*W.install_lexical_symbol($*UNIT, '$?PACKAGE', $*PACKAGE);
                 $*W.install_lexical_symbol($*UNIT, '::?PACKAGE', $*PACKAGE);
-                $*W.create_code_object($*UNIT, 'Block', $*W.create_signature([]));
+                $*DECLARAND := $*W.stub_code_object('Block');
             }
         }
         

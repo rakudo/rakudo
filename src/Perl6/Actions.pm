@@ -213,6 +213,12 @@ class Perl6::Actions is HLL::Actions {
     method comp_unit($/, $key?) {
         our $?RAKUDO_HLL;
 
+        # Finish up code object for the mainline.
+        if $*DECLARAND {
+            $*W.attach_signature($*DECLARAND, $*W.create_signature([]));
+            $*W.finish_code_object($*DECLARAND, $*UNIT);
+        }
+        
         # Checks.
         $*W.assert_stubs_defined();
 

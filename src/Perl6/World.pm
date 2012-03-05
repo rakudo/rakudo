@@ -558,6 +558,15 @@ class Perl6::World is HLL::World {
         $signature
     }
     
+    # Creates a code object of the specified type, attached the passed signature
+    # object and sets up dynamic compilation thunk.
+    method create_code_object($code_past, $type, $signature, $is_dispatcher = 0, :$yada) {
+        my $code := self.stub_code_object($type);
+        self.attach_signature($code, $signature);
+        self.finish_code_object($code, $code_past, $is_dispatcher, :yada($yada));
+        $code
+    }
+    
     # Stubs a code object of the specified type.
     method stub_code_object($type) {
         my $type_obj := self.find_symbol([$type]);
@@ -572,11 +581,8 @@ class Perl6::World is HLL::World {
         nqp::bindattr($code, $code_type, '$!signature', $signature);
     }
     
-    # Creates a code object and ensures that it gets fixed up with the compiled
-    # body at fixup time; during the deserialize we just set the already compiled
-    # output right into place. If we get a request to run the code before we did
-    # really compiling it, we can do that - we just dynamically compile it.
-    method create_code_object($code_past, $type, $signature, $is_dispatcher = 0, :$yada) {
+    # Takes a code object and the PAST::Block for its body.
+    method finish_code_object($code, $code_past, $is_dispatcher = 0, :$yada) {
         my $fixups := PAST::Stmts.new();
         my $des    := PAST::Stmts.new();
         
@@ -584,10 +590,6 @@ class Perl6::World is HLL::World {
         my $code_type    := self.find_symbol(['Code']);
         my $routine_type := self.find_symbol(['Routine']);
         my $slp_type     := self.find_symbol(['StaticLexPad']);
-        
-        # Create code object now and attach signature.
-        my $code := self.stub_code_object($type);
-        self.attach_signature($code, $signature);
         
         # Attach code object to PAST node.
         $code_past<code_object> := $code;
@@ -707,7 +709,7 @@ class Perl6::World is HLL::World {
         }
 
         # If it's a routine, flag that it needs fresh magicals.
-        if pir::type_check__IPP($code, self.find_symbol(['Routine'])) {
+        if nqp::istype($code, $routine_type) {
             self.get_static_lexpad($code_past).set_fresh_magicals();
         }
             

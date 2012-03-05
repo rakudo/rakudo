@@ -558,6 +558,20 @@ class Perl6::World is HLL::World {
         $signature
     }
     
+    # Stubs a code object of the specified type.
+    method stub_code_object($type) {
+        my $type_obj := self.find_symbol([$type]);
+        my $code     := nqp::create($type_obj);
+        self.add_object($code);
+        $code
+    }
+    
+    # Attaches a signature to a code object.
+    method attach_signature($code, $signature) {
+        my $code_type := self.find_symbol(['Code']);
+        nqp::bindattr($code, $code_type, '$!signature', $signature);
+    }
+    
     # Creates a code object and ensures that it gets fixed up with the compiled
     # body at fixup time; during the deserialize we just set the already compiled
     # output right into place. If we get a request to run the code before we did
@@ -566,13 +580,14 @@ class Perl6::World is HLL::World {
         my $fixups := PAST::Stmts.new();
         my $des    := PAST::Stmts.new();
         
-        # Create code object now.
-        my $type_obj     := self.find_symbol([$type]);
+        # Locate various interesting symbols.
         my $code_type    := self.find_symbol(['Code']);
         my $routine_type := self.find_symbol(['Routine']);
         my $slp_type     := self.find_symbol(['StaticLexPad']);
-        my $code         := pir::repr_instance_of__PP($type_obj);
-        my $slot         := self.add_object($code);
+        
+        # Create code object now and attach signature.
+        my $code := self.stub_code_object($type);
+        self.attach_signature($code, $signature);
         
         # Attach code object to PAST node.
         $code_past<code_object> := $code;
@@ -670,9 +685,6 @@ class Perl6::World is HLL::World {
         if self.is_precompilation_mode() {
             $des.push(self.set_attribute($code, $code_type, '$!do', PAST::Val.new( :value($code_past) )));
         }
-
-        # Install signauture now and add to deserialization.
-        pir::setattribute__vPPsP($code, $code_type, '$!signature', $signature);
         
         # If this is a dispatcher, install dispatchee list that we can
         # add the candidates too.

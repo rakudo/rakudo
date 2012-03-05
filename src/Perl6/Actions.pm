@@ -621,8 +621,9 @@ class Perl6::Actions is HLL::Actions {
             # Then evaluate to a reference to the block (non-closure - higher
             # up stuff does that if it wants to).
             ($*W.cur_lexpad())[0].push(my $uninst := PAST::Stmts.new($block));
-            my $code := $*W.create_code_object($block, 'Block', $signature);
-            my $ref := reference_to_code_object($code, $block);
+            $*W.attach_signature($*DECLARAND, $signature);
+            $*W.finish_code_object($*DECLARAND, $block);
+            my $ref := reference_to_code_object($*DECLARAND, $block);
             $ref<uninstall_if_immediately_used> := $uninst;
             make $ref;
         }
@@ -642,8 +643,9 @@ class Perl6::Actions is HLL::Actions {
             );
         }
         ($*W.cur_lexpad())[0].push(my $uninst := PAST::Stmts.new($block));
-        my $code := $*W.create_code_object($block, 'Block', $*W.create_signature([]));
-        my $ref := reference_to_code_object($code, $block);
+        $*W.attach_signature($*DECLARAND, $*W.create_signature([]));
+        $*W.finish_code_object($*DECLARAND, $block);
+        my $ref := reference_to_code_object($*DECLARAND, $block);
         $ref<uninstall_if_immediately_used> := $uninst;
         make $ref;
     }

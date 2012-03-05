@@ -550,6 +550,8 @@ grammar Perl6::Grammar is HLL::Grammar {
     }
 
     token pblock($*IMPLICIT = 0) {
+        :my $*DECLARAND := $*W.stub_code_object('Block');
+        [
         | <lambda>
             <.newpad>
             :my $*SCOPE := 'my';
@@ -559,11 +561,13 @@ grammar Perl6::Grammar is HLL::Grammar {
             <.newpad>
             <blockoid>
         || <.missing: 'block'>
+        ]
     }
 
     token lambda { '->' | '<->' }
 
     token block($*IMPLICIT = 0) {
+        :my $*DECLARAND := $*W.stub_code_object('Block');
         [ <?[{]> || <.missing: 'block'>]
         <.newpad>
         <blockoid>

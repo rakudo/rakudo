@@ -205,6 +205,7 @@ S04-phasers/end.t
 S04-phasers/enter-leave.t
 S04-phasers/first.t
 S04-phasers/multiple.t
+S04-phasers/next.t
 S04-phasers/rvalue.t
 S04-phasers/start.t
 S04-declarations/constant.t

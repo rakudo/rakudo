@@ -4,9 +4,15 @@ my class Block {
             nqp::bindattr(self, Block, '$!phasers', nqp::hash());
         nqp::existskey($!phasers, nqp::unbox_s($name)) ||
             nqp::bindkey($!phasers, nqp::unbox_s($name), nqp::list());
-        nqp::push(nqp::atkey($!phasers, nqp::unbox_s($name)), &block);
         if $name eq any(<LEAVE KEEP UNDO>) {
+            nqp::unshift(nqp::atkey($!phasers, nqp::unbox_s($name)), &block);
             self.add_phaser('!LEAVE-ORDER', &block);
+        }
+        elsif $name eq '!LEAVE-ORDER' {
+            nqp::unshift(nqp::atkey($!phasers, nqp::unbox_s($name)), &block);
+        }
+        else {
+            nqp::push(nqp::atkey($!phasers, nqp::unbox_s($name)), &block);
         }
     }
     

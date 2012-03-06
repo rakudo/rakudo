@@ -760,6 +760,11 @@ class Perl6::World is HLL::World {
             if pir::exists(%phasers, 'ENTER') {
                 $code_past[0].push(run_phasers_code('ENTER'));
             }
+            if pir::exists(%phasers, '!LEAVE-ORDER') {
+                $code_past[+@($code_past) - 1] := PAST::Op.new(
+                    :pirop('perl6_returncc__0P'),
+                    $code_past[+@($code_past) - 1]);
+            }
         }
     }
     

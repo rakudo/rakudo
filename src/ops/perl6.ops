@@ -29,6 +29,141 @@ static INTVAL smo_id = 0;
 /* The current dispatcher, for the next thing that wants one to take. */
 static PMC *current_dispatcher = NULL;
 
+static PMC *build_sig_object(PARROT_INTERP, ARGIN_NULLOK(PMC *signature), ARGIN(const char *sig), ...)
+{
+    PMC *sig_obj;
+    va_list args;
+
+    va_start(args, sig);
+    /* sigh, Parrot_pcc_build_sig_object_from_varargs does not have a signature arg */
+    sig_obj = Parrot_pcc_build_sig_object_from_varargs(interp, PMCNULL, sig, args);
+    va_end(args);
+    return sig_obj;
+}
+
+static PMC *run_leave_phasers(PARROT_INTERP, PMC *ctx, PMC *perl6_code, PMC *exceptions)
+{
+    Rakudo_Code *code;
+    PMC *phasers, *leave_phasers;
+    PMC *oldctx;
+    int i, n;
+    Parrot_runloop jump_point;
+    if (PMC_IS_NULL(perl6_code))
+        return PMCNULL;
+    code = (Rakudo_Code *)PMC_data(perl6_code);
+    phasers = code->phasers;
+    if (PMC_IS_NULL(phasers))
+        return PMCNULL;
+    leave_phasers = VTABLE_get_pmc_keyed_str(interp, phasers, Parrot_str_new_constant(interp, "!LEAVE-ORDER"));
+    if (PMC_IS_NULL(leave_phasers))
+        return PMCNULL;
+    n = VTABLE_elements(interp, leave_phasers);
+    if (!n)
+        return PMCNULL;
+    oldctx = CURRENT_CONTEXT(interp);
+    Parrot_pcc_set_context(interp, ctx);
+    for (i = 0; i < n; i++) {
+        int runloop_id = interp->current_runloop_id;
+        if (setjmp(jump_point.resume)) {
+            if (PMC_IS_NULL(exceptions)) {
+                exceptions = Parrot_pmc_new(interp, enum_class_ResizablePMCArray);
+            }
+            VTABLE_push_pmc(interp, exceptions, jump_point.exception);
+            /* grrr */
+            while (interp->current_runloop && interp->current_runloop_id != runloop_id)
+                free_runloop_jump_point(interp);
+        } else {
+            PMC *phaser = VTABLE_get_pmc_keyed_int(interp, leave_phasers, i);
+            Parrot_ex_add_c_handler(interp, &jump_point);
+            Parrot_pcc_invoke_sub_from_c_args(interp, phaser, "->");
+        }
+        Parrot_cx_delete_handler_local(interp, STRINGNULL);
+    }
+    Parrot_pcc_set_context(interp, oldctx);
+    return exceptions;
+}
+
+static void rethrow_phaser_exceptions(PARROT_INTERP, PMC *exceptions)
+{
+    int i, n;
+    if (PMC_IS_NULL(exceptions))
+        return;
+    n = VTABLE_elements(interp, exceptions);
+    if (!n)
+        return;
+    for (i = 0; i < n; i++) {
+        Parrot_ex_rethrow_from_c(interp, VTABLE_get_pmc_keyed_int(interp, exceptions, i));
+    }
+}
+
+static void rewind_to_ctx(PARROT_INTERP, ARGIN_NULLOK(PMC *ctx), ARGIN_NULLOK(PMC *basectx))
+{
+    PMC *parrot_sub;
+    PMC *perl6_code;
+    PMC *exceptions = PMCNULL;
+    while (!PMC_IS_NULL(ctx) && ctx != basectx) {
+        parrot_sub = Parrot_pcc_get_sub(interp, ctx);
+        if (!PMC_IS_NULL(parrot_sub)) {
+            GETATTR_Sub_multi_signature(interp, parrot_sub, perl6_code);
+            if (!PMC_IS_NULL(perl6_code) && perl6_code->vtable->base_type == smo_id &&
+                    STABLE(perl6_code)->WHAT != Rakudo_types_code_get()) {
+                exceptions = run_leave_phasers(interp, ctx, perl6_code, exceptions);
+            }
+        }
+        ctx = Parrot_pcc_get_caller_ctx(interp, ctx);
+    }
+    if (!PMC_IS_NULL(exceptions)) {
+        Parrot_pcc_set_context(interp, basectx);
+        rethrow_phaser_exceptions(interp, exceptions);
+    }
+}
+
+static PMC *find_common_ctx(PARROT_INTERP, ARGIN_NULLOK(PMC *ctx1), ARGIN_NULLOK(PMC *ctx2))
+{
+    int depth1 = 0;
+    int depth2 = 0;
+    PMC *ctx;
+
+    for (ctx = ctx1; !PMC_IS_NULL(ctx); ctx = Parrot_pcc_get_caller_ctx(interp, ctx), depth1++)
+        if (ctx == ctx2)
+            return ctx;
+    for (ctx = ctx2; !PMC_IS_NULL(ctx); ctx = Parrot_pcc_get_caller_ctx(interp, ctx), depth2++)
+        if (ctx == ctx1)
+            return ctx;
+    for (; depth1 > depth2; depth2++)
+        ctx1 = Parrot_pcc_get_caller_ctx(interp, ctx1);
+    for (; depth2 > depth1; depth1++)
+        ctx2 = Parrot_pcc_get_caller_ctx(interp, ctx2);
+    while (ctx1 != ctx2) {
+        ctx1 = Parrot_pcc_get_caller_ctx(interp, ctx1);
+        ctx2 = Parrot_pcc_get_caller_ctx(interp, ctx2);
+    }
+    return ctx1;
+}
+
+
+PARROT_CAN_RETURN_NULL
+PARROT_WARN_UNUSED_RESULT
+static PMC* sub_find_pad(PARROT_INTERP, ARGIN(STRING *lex_name), ARGIN(PMC *ctx))
+{
+    ASSERT_ARGS(Parrot_sub_find_pad)
+    while (1) {
+        PMC * const lex_pad = Parrot_pcc_get_lex_pad(interp, ctx);
+        PMC * outer = Parrot_pcc_get_outer_ctx(interp, ctx);
+
+        if (PMC_IS_NULL(outer))
+            return lex_pad;
+
+        PARROT_ASSERT(outer->vtable->base_type == enum_class_CallContext);
+
+        if (!PMC_IS_NULL(lex_pad))
+            if (VTABLE_exists_keyed_str(interp, lex_pad, lex_name))
+                return lex_pad;
+
+        ctx = outer;
+    }
+}
+
 END_OPS_PREAMBLE
 
 /*
@@ -1512,19 +1647,69 @@ inline op perl6_invoke_catchhandler(invar PMC, in PMC) :flow {
     GETATTR_Exception_thrower(interp, $2, ectx);
     if (PMC_IS_NULL(ectx))
         ectx = ctx;
-    if (!PMC_IS_NULL(p)) {
+    if (ectx != ctx)
+        Parrot_pcc_set_context(interp, ectx);
+    if (PMC_IS_NULL(p)) {
+        /* no function provided, return immediately */
+        PMC *basectx = find_common_ctx(interp, ctx, ectx);
+        rewind_to_ctx(interp, ectx, basectx, PMCNULL);
+        Parrot_pcc_set_context(interp, ctx);
+        goto NEXT();
+    } else {
         interp->current_cont = cont;
-        Parrot_pcc_set_signature(interp, ctx, call_obj);
+        Parrot_pcc_set_signature(interp, ectx, call_obj);
         dest = VTABLE_invoke(interp, p, dest);
-        if (ectx != ctx) {
-            PMC * nctx = CURRENT_CONTEXT(interp);
-            Parrot_pcc_set_caller_ctx(interp, nctx, ectx);
-            Parrot_pcc_set_signature(interp, ectx, call_obj);
+        goto ADDRESS(dest);
+    }
+}
+
+
+inline op perl6_return_from_routine(in PMC) :flow {
+    PMC * ctx = CURRENT_CONTEXT(interp);
+    PMC * cont = PMCNULL;
+    opcode_t * dest = expr NEXT();
+    PMC * cctx;
+    PMC * basectx;
+    PMC * call_sig = build_sig_object(interp, PMCNULL, "P", $1);
+    STRING * lex_name = Parrot_str_new_constant(interp, "RETURN");
+
+    for (ctx = Parrot_pcc_get_caller_ctx(interp, ctx); !PMC_IS_NULL(ctx); ctx = Parrot_pcc_get_caller_ctx(interp, ctx)) {
+        PMC * const lex_pad = sub_find_pad(interp, lex_name, ctx);
+        if (!PMC_IS_NULL(lex_pad)) {
+            cont = VTABLE_get_pmc_keyed_str(interp, lex_pad, lex_name);
+            if (!PMC_IS_NULL(cont))
+                break;
         }
     }
+    if (PMC_IS_NULL(cont)) {
+        Parrot_ex_throw_from_c_args(interp, NULL, EXCEPTION_INVALID_OPERATION,
+                "Attempt to return outside of any Routine");
+    }
+    ctx = CURRENT_CONTEXT(interp);
+    GETATTR_Continuation_to_ctx(interp, cont, cctx);
+    basectx = find_common_ctx(interp, ctx, cctx);
+    rewind_to_ctx(interp, ctx, basectx);
+    Parrot_pcc_set_signature(interp, ctx, call_sig);
+    dest = VTABLE_invoke(interp, cont, dest);
     goto ADDRESS(dest);
 }
 
+
+inline op perl6_returncc(in PMC) :flow {
+    PMC * ctx = CURRENT_CONTEXT(interp);
+    PMC * cont = Parrot_pcc_get_continuation(interp, ctx);
+    opcode_t * dest = expr NEXT();
+    PMC * cctx;
+    PMC * basectx;
+    PMC * call_sig = build_sig_object(interp, PMCNULL, "P", $1);
+
+    GETATTR_Continuation_to_ctx(interp, cont, cctx);
+    basectx = find_common_ctx(interp, ctx, cctx);
+    rewind_to_ctx(interp, ctx, basectx);
+    Parrot_pcc_set_signature(interp, ctx, call_sig);
+    dest = VTABLE_invoke(interp, cont, dest);
+    goto ADDRESS(dest);
+}
 
 
 /*

@@ -940,7 +940,7 @@ class Perl6::Actions is HLL::Actions {
                 PAST::Op.new(:pirop('perl6_container_store__0PP'),
                     PAST::Var.new(:name<$!>, :scope<lexical_6model>),
                     PAST::Op.new(:name<&EXCEPTION>, :pasttype<call>,
-                        PAST::Op.new(:inline("    .get_results (%r)")))));
+                        PAST::Op.new(:inline("    .get_results (%r)\n    \$P0 = null\n    perl6_invoke_catchhandler \$P0, %r")))));
 
             # Otherwise, put Mu into $!.
             $past.push(
@@ -4363,7 +4363,7 @@ class Perl6::Actions is HLL::Actions {
             @handlers.push(
                 PAST::Op.new(
                     :handle_types('BREAK'),
-                    :pirop('perl6_type_check_return_value__0P'),
+                    :inline("    perl6_type_check_return_value %0\n    perl6_returncc %0"),
                     PAST::Var.new(
                         :scope('keyed'),
                         PAST::Op.new(:inline("    .get_results (%r)")),

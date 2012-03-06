@@ -32,19 +32,13 @@ my &RETURN-PARCEL := -> Mu \$parcel {
 my &return-rw := -> |$ { 
     my $parcel := 
         &RETURN-PARCEL(nqp::p6parcel(pir::perl6_current_args_rpa__PP(), Nil));
-    my Mu $return := pir::find_caller_lex__Ps('RETURN');
-    nqp::isnull($return)
-        ?? die "Attempt to return outside of any Routine"
-        !! $return($parcel);
+    pir::perl6_return_from_routine__vP($parcel);
     $parcel
 };
 my &return := -> |$ {
     my $parcel := 
         &RETURN-PARCEL(nqp::p6parcel(pir::perl6_current_args_rpa__PP(), Nil));
-    my Mu $return := pir::find_caller_lex__Ps('RETURN');
-    nqp::isnull($return)
-        ?? die "Attempt to return outside of any Routine"
-        !! $return(nqp::p6recont_ro($parcel));
+    pir::perl6_return_from_routine__vP(nqp::p6recont_ro($parcel));
     $parcel
 };
 
@@ -100,12 +94,9 @@ my &callwith := -> *@pos, *%named {
 
 my &nextwith := -> *@pos, *%named {
     my Mu $dispatcher := pir::perl6_find_dispatcher__Ps('nextwith');
-    my Mu $return     := pir::find_caller_lex__Ps('RETURN');
     unless $dispatcher.exhausted {
-        nqp::isnull($return)
-            ?? die "Attempt to return outside of any Routine"
-            !! $return(nqp::p6recont_ro(
-                $dispatcher.call_with_args(|@pos, |%named)))
+        pir::perl6_return_from_routine__vP(nqp::p6recont_ro(
+            $dispatcher.call_with_args(|@pos, |%named)))
     }
     Nil
 };
@@ -119,14 +110,10 @@ my &callsame := -> {
 
 my &nextsame := -> {
     my Mu $dispatcher := pir::perl6_find_dispatcher__Ps('nextsame');
-    my Mu $return     := pir::find_caller_lex__Ps('RETURN');
     unless $dispatcher.exhausted {
-        nqp::isnull($return)
-            ?? die "Attempt to return outside of any Routine"
-            !! $return(nqp::p6recont_ro(
-                $dispatcher.call_with_capture(
-                    pir::perl6_args_for_dispatcher__PP($dispatcher))))
-    
+        pir::perl6_return_from_routine__vP(nqp::p6recont_ro(
+            $dispatcher.call_with_capture(
+                pir::perl6_args_for_dispatcher__PP($dispatcher))))
     }
     Nil
 };

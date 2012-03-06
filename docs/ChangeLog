@@ -9,6 +9,10 @@ New in 2012.03
 + constant declarator now works with non-literals on the RHS
 + implemented Set, Bag, KeySet and KeyBag types
 + implemented :exhaustive and :nth match adverbs
++ implemented ENTER, LEAVE, KEEP and UNDO phasers
++ implemented FIRST, NEXT and LAST phasers in for loops
++ implemented START phaser, including use of it in r-value context
++ implemented also syntax for adding traits inside a block/package
 
 New in 2012.02
 + catch duplicate accessor generation required of "has $.x; has @.x;"

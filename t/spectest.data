@@ -204,6 +204,7 @@ S04-phasers/descending-order.t
 S04-phasers/end.t
 S04-phasers/enter-leave.t
 S04-phasers/first.t
+S04-phasers/keep-undo.t
 S04-phasers/multiple.t
 S04-phasers/next.t
 S04-phasers/rvalue.t

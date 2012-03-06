@@ -41,7 +41,7 @@ static PMC *build_sig_object(PARROT_INTERP, ARGIN_NULLOK(PMC *signature), ARGIN(
     return sig_obj;
 }
 
-static PMC *run_leave_phasers(PARROT_INTERP, PMC *ctx, PMC *perl6_code, PMC *exceptions)
+static PMC *run_leave_phasers(PARROT_INTERP, PMC *ctx, PMC *perl6_code, PMC *result, PMC *exceptions)
 {
     Rakudo_Code *code;
     PMC *phasers, *leave_phasers;
@@ -96,7 +96,7 @@ static void rethrow_phaser_exceptions(PARROT_INTERP, PMC *exceptions)
     }
 }
 
-static void rewind_to_ctx(PARROT_INTERP, ARGIN_NULLOK(PMC *ctx), ARGIN_NULLOK(PMC *basectx))
+static void rewind_to_ctx(PARROT_INTERP, ARGIN_NULLOK(PMC *ctx), ARGIN_NULLOK(PMC *basectx), ARGIN_NULLOK(PMC *result))
 {
     PMC *parrot_sub;
     PMC *perl6_code;
@@ -107,7 +107,7 @@ static void rewind_to_ctx(PARROT_INTERP, ARGIN_NULLOK(PMC *ctx), ARGIN_NULLOK(PM
             GETATTR_Sub_multi_signature(interp, parrot_sub, perl6_code);
             if (!PMC_IS_NULL(perl6_code) && perl6_code->vtable->base_type == smo_id &&
                     STABLE(perl6_code)->WHAT != Rakudo_types_code_get()) {
-                exceptions = run_leave_phasers(interp, ctx, perl6_code, exceptions);
+                exceptions = run_leave_phasers(interp, ctx, perl6_code, result, exceptions);
             }
         }
         ctx = Parrot_pcc_get_caller_ctx(interp, ctx);
@@ -1688,7 +1688,7 @@ inline op perl6_return_from_routine(in PMC) :flow {
     ctx = CURRENT_CONTEXT(interp);
     GETATTR_Continuation_to_ctx(interp, cont, cctx);
     basectx = find_common_ctx(interp, ctx, cctx);
-    rewind_to_ctx(interp, ctx, basectx);
+    rewind_to_ctx(interp, ctx, basectx, $1);
     Parrot_pcc_set_signature(interp, ctx, call_sig);
     dest = VTABLE_invoke(interp, cont, dest);
     goto ADDRESS(dest);
@@ -1705,7 +1705,7 @@ inline op perl6_returncc(in PMC) :flow {
 
     GETATTR_Continuation_to_ctx(interp, cont, cctx);
     basectx = find_common_ctx(interp, ctx, cctx);
-    rewind_to_ctx(interp, ctx, basectx);
+    rewind_to_ctx(interp, ctx, basectx, $1);
     Parrot_pcc_set_signature(interp, ctx, call_sig);
     dest = VTABLE_invoke(interp, cont, dest);
     goto ADDRESS(dest);

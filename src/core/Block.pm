@@ -8,7 +8,7 @@ my class Block {
             nqp::unshift(nqp::atkey($!phasers, nqp::unbox_s($name)), &block);
             self.add_phaser('!LEAVE-ORDER', &block);
         }
-        elsif $name eq '!LEAVE-ORDER' {
+        elsif $name eq any(<NEXT !LEAVE-ORDER>) {
             nqp::unshift(nqp::atkey($!phasers, nqp::unbox_s($name)), &block);
         }
         else {

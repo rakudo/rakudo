@@ -1227,7 +1227,9 @@ class Perl6::Actions is HLL::Actions {
     }
 
     method package_declarator:sym<also>($/) {
-        $*W.throw($/, ['X', 'Comp', 'NYI'], feature => 'also');
+        for $<trait> {
+            if $_.ast { ($_.ast)($*DECLARAND) }
+        }
     }
 
     method package_def($/) {

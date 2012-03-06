@@ -41,6 +41,52 @@ static PMC *build_sig_object(PARROT_INTERP, ARGIN_NULLOK(PMC *signature), ARGIN(
     return sig_obj;
 }
 
+static INTVAL should_run_phaser(PARROT_INTERP, PMC *phaser, PMC *all_phasers, PMC *result) {
+    PMC *keep_list, *undo_list;
+    INTVAL i, elems;
+    
+    /* Check if the phaser is in the keep or undo list. */
+    INTVAL in_keep_list = 0;
+    INTVAL in_undo_list = 0;
+    phaser = Rakudo_cont_decontainerize(interp, phaser);
+    keep_list = VTABLE_get_pmc_keyed_str(interp, all_phasers, Parrot_str_new_constant(interp, "KEEP"));
+    if (!PMC_IS_NULL(keep_list)) {
+        elems = VTABLE_elements(interp, keep_list);
+        for (i = 0; i < elems; i++)
+            if (Rakudo_cont_decontainerize(interp, VTABLE_get_pmc_keyed_int(interp, keep_list, i)) == phaser)
+            {
+                in_keep_list = 1;
+                break;
+            }
+    }
+    if (!in_keep_list) {
+        undo_list = VTABLE_get_pmc_keyed_str(interp, all_phasers, Parrot_str_new_constant(interp, "UNDO"));
+        if (!PMC_IS_NULL(undo_list)) {
+            elems = VTABLE_elements(interp, undo_list);
+            for (i = 0; i < elems; i++)
+                if (Rakudo_cont_decontainerize(interp, VTABLE_get_pmc_keyed_int(interp, undo_list, i)) == phaser)
+                {
+                    in_undo_list = 1;
+                    break;
+                }
+        }
+    }
+    
+    /* If it's in neither list, it's just a plain old LEAVE. */
+    if (!in_keep_list && !in_undo_list)
+        return 1;
+
+    /* If it's NULL, we're unwinding, which means we only UNDO. */
+    if (PMC_IS_NULL(result))
+        return in_undo_list;
+
+    /* Otherwise, need to consider the definedness of the return value. */
+    if (IS_CONCRETE(result))
+        return in_keep_list;
+    else
+        return in_undo_list;
+}
+
 static PMC *run_leave_phasers(PARROT_INTERP, PMC *ctx, PMC *perl6_code, PMC *result, PMC *exceptions)
 {
     Rakudo_Code *code;
@@ -75,7 +121,8 @@ static PMC *run_leave_phasers(PARROT_INTERP, PMC *ctx, PMC *perl6_code, PMC *res
         } else {
             PMC *phaser = VTABLE_get_pmc_keyed_int(interp, leave_phasers, i);
             Parrot_ex_add_c_handler(interp, &jump_point);
-            Parrot_pcc_invoke_sub_from_c_args(interp, phaser, "->");
+            if (should_run_phaser(interp, phaser, phasers, result))
+                Parrot_pcc_invoke_sub_from_c_args(interp, phaser, "->");
         }
         Parrot_cx_delete_handler_local(interp, STRINGNULL);
     }

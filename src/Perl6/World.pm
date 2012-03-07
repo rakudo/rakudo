@@ -1271,6 +1271,9 @@ class Perl6::World is HLL::World {
         # or a PAST node that represents an expresison to produce it.
         has @!components;
         
+        # The colonpairs, if any.
+        has @!colonpairs;
+        
         # Flag for if the name ends in ::, meaning we need to emit a
         # .WHO on the end.
         has int $!get_who;
@@ -1282,22 +1285,41 @@ class Perl6::World is HLL::World {
         
         # Gets the name, without any adverbs.
         method name() {
-            pir::join('::', @!components)
+            my @parts := nqp::clone(@!components);
+            @parts.shift() while is_pseudo_package(@parts[0]);
+            pir::join('::', @parts)
         }
         
         # Fetches an array of components provided they are all known
-        # at compile time.
+        # or resolvable at compile time.
         method type_name_parts($dba, :$decl) {
             my @name;
+            my $beyond_pp;
             for @!components {
                 if pir::can($_, 'isa') && $_.isa(PAST::Node) {
                     pir::die("Name $!text is not compile-time known, and can not serve as a $dba");
                 }
-                else {
+                elsif $beyond_pp || !is_pseudo_package($_) {
                     nqp::push(@name, $_);
+                    $beyond_pp := 1;
+                }
+                else {
+                    if $decl {
+                        if $_ ne 'GLOBAL' {
+                            pir::die("Cannot use pseudo-package $_ in a $dba");
+                        }
+                    }
                 }
             }
             @name
+        }
+        
+        # Checks if a name component is a pseudo-package.
+        sub is_pseudo_package($comp) {
+            $comp eq 'CORE' || $comp eq 'SETTING' || $comp eq 'UNIT' ||
+            $comp eq 'OUTER' || $comp eq 'MY' || $comp eq 'OUR' ||
+            $comp eq 'PROCESS' || $comp eq 'GLOBAL' || $comp eq 'CALLER' ||
+            $comp eq 'DYNAMIC' || $comp eq 'COMPILING'
         }
     }
     
@@ -1329,6 +1351,9 @@ class Perl6::World is HLL::World {
             }
         }
         nqp::bindattr($result, LongName, '@!components', @components);
+        
+        # Stash colon pairs.
+        nqp::bindattr($result, LongName, '@!colonpairs', $name<colonpair>);
         
         # Is it a name that ends in ::?
         if $name && $name<morename> && ~$name<morename>[+$name<morename> - 1] eq '::' {

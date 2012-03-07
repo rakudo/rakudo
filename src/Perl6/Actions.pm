@@ -2225,8 +2225,9 @@ class Perl6::Actions is HLL::Actions {
 
         # Get, or find, enumeration base type and create type object with
         # correct base type.
+        my $longname  := $<longname> ?? $*W.disect_longname($<longname>) !! 0;
         my $base_type := $*OFTYPE ?? $*OFTYPE.ast !! $*W.find_symbol(['Int']);
-        my $name      := $<longname> ?? ~$<longname> !! $<variable><desigilname>;
+        my $name      := $<longname> ?? $longname.name() !! $<variable><desigilname>;
         my $type_obj  := $*W.pkg_create_mo(%*HOW<enum>, :name($name), :base_type($base_type));
 
         # Add roles (which will provide the enum-related methods).
@@ -2245,8 +2246,8 @@ class Perl6::Actions is HLL::Actions {
                 feature => "Variable case of enums",
             );
         }
-        $*W.install_package_longname($/, $<longname>, ($*SCOPE || 'our'),
-            'enum', $*PACKAGE, $*W.cur_lexpad(), $type_obj);
+        $*W.install_package($/, $longname.compile_time_name('enum name', :decl(1)),
+            ($*SCOPE || 'our'), 'enum', $*PACKAGE, $*W.cur_lexpad(), $type_obj);
 
         # Get list of either values or pairs; fail if we can't.
         my @values;
@@ -2337,8 +2338,9 @@ class Perl6::Actions is HLL::Actions {
             PAST::Op.new( :pirop('perl6_booleanize__PI'), 1 ));
 
         # Create the meta-object.
+        my $longname := $<longname> ?? $*W.disect_longname($<longname>[0]) !! 0;
         my $subset := $<longname> ??
-            $*W.create_subset(%*HOW<subset>, $refinee, $refinement, :name($<longname>[0].Str)) !!
+            $*W.create_subset(%*HOW<subset>, $refinee, $refinement, :name($longname.name())) !!
             $*W.create_subset(%*HOW<subset>, $refinee, $refinement);
 
         # Apply traits.
@@ -2348,8 +2350,8 @@ class Perl6::Actions is HLL::Actions {
 
         # Install it as needed.
         if $<longname> {
-            $*W.install_package_longname($/, $<longname>[0], ($*SCOPE || 'our'),
-                'subset', $*PACKAGE, $*W.cur_lexpad(), $subset);
+            $*W.install_package($/, $longname.compile_time_name('subset name', :decl(1)),
+                ($*SCOPE || 'our'), 'subset', $*PACKAGE, $*W.cur_lexpad(), $subset);
         }
 
         # We evaluate to the refinement type object.

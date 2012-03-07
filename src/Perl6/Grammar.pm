@@ -2044,10 +2044,10 @@ grammar Perl6::Grammar is HLL::Grammar {
         | '::?'<identifier> <colonpair>*    # parse ::?CLASS as special case
         | <longname>
           <?{
-            my $longname := canonical_type_longname($<longname>);
-            pir::substr($longname, 0, 2) eq '::' ??
+            my $longname := $*W.disect_longname($<longname>);
+            pir::substr(~$<longname>, 0, 2) eq '::' ??
                 1 !! # ::T introduces a type, so always is one
-                $*W.is_name(parse_name($longname))
+                $*W.is_name($longname.type_name_parts('type name'))
           }>
         ]
         # parametric type?
@@ -2055,22 +2055,6 @@ grammar Perl6::Grammar is HLL::Grammar {
         [<.ws> 'of' <.ws> <typename> ]?
     }
     
-    our sub canonical_type_longname($/) {
-        my $ver := '';
-        my $auth := '';
-        for $<colonpair> {
-            if $<identifier> && $<circumfix> {
-                if $<identifier>.Str eq 'ver' {
-                    $ver := $<circumfix>.Str;
-                }
-                elsif $<identifier>.Str eq 'auth' {
-                    $auth := $<circumfix>.Str;
-                }
-            }
-        }
-        return ~$<name> ~ $ver ~ $auth;
-    }
-
     token term:sym<type_declarator>   { <type_declarator> }
 
     token quotepair {

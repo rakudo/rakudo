@@ -4079,8 +4079,8 @@ class Perl6::Actions is HLL::Actions {
         # GenericHOW, though whether/how it's used depends on context.
         if $<longname> {
             if pir::substr(~$<longname>, 0, 2) ne '::' {
-                my $type := $*W.find_symbol(Perl6::Grammar::parse_name(
-                    Perl6::Grammar::canonical_type_longname($<longname>)));
+                my $longname := $*W.disect_longname($<longname>);
+                my $type := $*W.find_symbol($longname.type_name_parts('type name'));
                 if $<arglist> {
                     $type := $*W.parameterize_type($type, $<arglist>, $/);
                 }

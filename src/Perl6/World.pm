@@ -823,32 +823,6 @@ class Perl6::World is HLL::World {
             $value_past
         )
     }
-    
-    # Helper to make PAST for setting an attribute to a value. Value should
-    # be a PAST tree. Expects to be given registers with object and class in.
-    method set_attribute_reg($obj_reg, $class_reg, $name, $value_past) {
-        PAST::Op.new(
-            :pasttype('bind_6model'),
-            PAST::Var.new(
-                :name($name), :scope('attribute_6model'),
-                $obj_reg, $class_reg
-            ),
-            $value_past
-        )
-    }
-    
-    # Helper to make PAST for setting a typed attribute to a value. Value should
-    # be a PAST tree.
-    method set_attribute_typed($obj_reg, $class_reg, $name, $value_past, $type) {
-        PAST::Op.new(
-            :pasttype('bind_6model'),
-            PAST::Var.new(
-                :name($name), :scope('attribute_6model'), :type($type),
-                $obj_reg, $class_reg
-            ),
-            $value_past
-        )
-    }
 
     # Wraps a value in a scalar container
     method scalar_wrap($obj) {

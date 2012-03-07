@@ -1288,6 +1288,11 @@ class Perl6::World is HLL::World {
             $!text
         }
         
+        # Gets the name, without any adverbs.
+        method name() {
+            pir::join('::', @!components)
+        }
+        
         # Fetches an array of components provided they are all known
         # at compile time.
         method compile_time_name($dba, :$decl) {

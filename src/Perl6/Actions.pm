@@ -2246,7 +2246,7 @@ class Perl6::Actions is HLL::Actions {
                 feature => "Variable case of enums",
             );
         }
-        $*W.install_package($/, $longname.compile_time_name('enum name', :decl(1)),
+        $*W.install_package($/, $longname.type_name_parts('enum name', :decl(1)),
             ($*SCOPE || 'our'), 'enum', $*PACKAGE, $*W.cur_lexpad(), $type_obj);
 
         # Get list of either values or pairs; fail if we can't.
@@ -2350,7 +2350,7 @@ class Perl6::Actions is HLL::Actions {
 
         # Install it as needed.
         if $<longname> {
-            $*W.install_package($/, $longname.compile_time_name('subset name', :decl(1)),
+            $*W.install_package($/, $longname.type_name_parts('subset name', :decl(1)),
                 ($*SCOPE || 'our'), 'subset', $*PACKAGE, $*W.cur_lexpad(), $subset);
         }
 

@@ -1213,7 +1213,7 @@ grammar Perl6::Grammar is HLL::Grammar {
                     # with "my" if we already have a declaration in this scope.
                     my $exists := 0;
                     if $longname && $*SCOPE ne 'anon' {
-                        my @name := $longname.compile_time_name('package name', :decl(1));
+                        my @name := $longname.type_name_parts('package name', :decl(1));
                         if $*W.already_declared($*SCOPE, $*OUTERPACKAGE, $outer, @name) {
                             $*PACKAGE := $*W.find_symbol(@name);
                             $exists := 1;
@@ -1246,7 +1246,7 @@ grammar Perl6::Grammar is HLL::Grammar {
                         
                         # Install it in the symbol table if needed.
                         if $longname {
-                            my @name := $longname.compile_time_name('package name', :decl(1));
+                            my @name := $longname.type_name_parts('package name', :decl(1));
                             $*W.install_package($/, @name, $*SCOPE, $*PKGDECL, $*OUTERPACKAGE, $outer, $*PACKAGE);
                         }
                     }
@@ -1261,7 +1261,7 @@ grammar Perl6::Grammar is HLL::Grammar {
                             $group := $*PACKAGE;
                         }
                         else {
-                            my @name := $longname.compile_time_name('package name', :decl(1));
+                            my @name := $longname.type_name_parts('package name', :decl(1));
                             $group := $*W.pkg_create_mo(%*HOW{'role-group'}, :name($longname.name()));                            
                             $*W.install_package($/, @name, $*SCOPE, $*PKGDECL, $*OUTERPACKAGE, $outer, $group);
                         }
@@ -1285,7 +1285,7 @@ grammar Perl6::Grammar is HLL::Grammar {
                     
                     # Locate type.
                     my $found;
-                    my @name := $longname.compile_time_name('package name', :decl(1));
+                    my @name := $longname.type_name_parts('package name', :decl(1));
                     try { $*PACKAGE := $*W.find_symbol(@name); $found := 1 }
                     unless $found {
                         $*W.throw($/, 'X::Augment::NoSuchType',
@@ -1792,7 +1792,7 @@ grammar Perl6::Grammar is HLL::Grammar {
         | <longname>
             {
                 my $longname := $*W.disect_longname($<longname>);
-                my @name := $longname.compile_time_name('enum name', :decl(1));
+                my @name := $longname.type_name_parts('enum name', :decl(1));
                 if $*W.already_declared($*SCOPE, $*PACKAGE, $*W.cur_lexpad(), @name) {
                     $*W.throw($/, ['X', 'Redeclaration'],
                         symbol => $longname.name(),
@@ -1818,7 +1818,7 @@ grammar Perl6::Grammar is HLL::Grammar {
                     <longname>
                     {
                         my $longname := $*W.disect_longname($<longname>);
-                        my @name := $longname.compile_time_name('subest name', :decl(1));
+                        my @name := $longname.type_name_parts('subest name', :decl(1));
                         if $*W.already_declared($*SCOPE, $*PACKAGE, $*W.cur_lexpad(), @name) {
                             $*W.throw($/, ['X', 'Redeclaration'],
                                 symbol => $longname.name(),

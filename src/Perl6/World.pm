@@ -1287,7 +1287,7 @@ class Perl6::World is HLL::World {
         
         # Fetches an array of components provided they are all known
         # at compile time.
-        method compile_time_name($dba, :$decl) {
+        method type_name_parts($dba, :$decl) {
             my @name;
             for @!components {
                 if pir::can($_, 'isa') && $_.isa(PAST::Node) {

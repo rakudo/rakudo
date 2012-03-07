@@ -238,14 +238,6 @@ class Perl6::World is HLL::World {
         1;
     }
     
-    # Factors out installation of package-y things, based on a longname.
-    method install_package_longname($/, $longname, $scope, $pkgdecl, $package, $outer, $symbol) {
-        my @name := pir::split('::', ~$longname);
-        my @adv  := pir::split(':', @name[+@name - 1]);
-        @name[+@name - 1] := @adv[0];
-        self.install_package($/, @name, $scope, $pkgdecl, $package, $outer, $symbol)
-    }
-    
     # Installs something package-y in the right place, creating the nested
     # pacakges as needed.
     method install_package($/, @name_orig, $scope, $pkgdecl, $package, $outer, $symbol) {

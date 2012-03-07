@@ -1270,6 +1270,77 @@ class Perl6::World is HLL::World {
                             'nqp_bigint_ops', 'nqp_dyncall_ops');
     }
     
+    # Represents a longname after having parsed it.
+    my class LongName {
+        # The original text of the name.
+        has str $!text;
+        
+        # Set of name components. Each one will be either a string
+        # or a PAST node that represents an expresison to produce it.
+        has @!components;
+        
+        # Flag for if the name ends in ::, meaning we need to emit a
+        # .WHO on the end.
+        has int $!get_who;
+        
+        # Gets the textual name of the value.
+        method text() {
+            $!text
+        }
+        
+        # Fetches an array of components provided they are all known
+        # at compile time.
+        method compile_time_name($dba, :$decl) {
+            my @name;
+            for @!components {
+                if pir::can($_, 'isa') && $_.isa(PAST::Node) {
+                    pir::die("Name $!text is not compile-time known, and can not serve as a $dba");
+                }
+                else {
+                    nqp::push(@name, $_);
+                }
+            }
+            @name
+        }
+    }
+    
+    # Takes a longname and turns it into an object representing the
+    # name.
+    method disect_longname($longname) {
+        # Set up basic info about the long name.
+        my $result := nqp::create(LongName);
+        nqp::bindattr_s($result, LongName, '$!text', ~$longname);
+
+        # Pick out the pieces of the name.
+        my @components;
+        my $name := $longname<name>;
+        if $name<identifier> {
+            @components.push(~$name<identifier>);
+        }
+        for $name<morename> {
+            if $_<identifier> {
+                @components.push(~$_<identifier>[0]);
+            }
+            else {
+                my $EXPR := $_<EXPR>[0].ast;
+                if $EXPR<has_compile_time_value> {
+                    @components.push(~$EXPR<compile_time_value>);
+                }
+                else {
+                    @components.push($EXPR);
+                }
+            }
+        }
+        nqp::bindattr($result, LongName, '@!components', @components);
+        
+        # Is it a name that ends in ::?
+        if $name && $name<morename> && ~$name<morename>[+$name<morename> - 1] eq '::' {
+            nqp::bindattr_i($result, LongName, '$!get_who', 1);
+        }
+        
+        $result
+    }
+    
     # Checks if a given symbol is declared.
     method is_name(@name) {
         my $is_name := 0;

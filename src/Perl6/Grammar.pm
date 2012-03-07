@@ -1194,7 +1194,7 @@ grammar Perl6::Grammar is HLL::Grammar {
         { unless $*SCOPE { $*SCOPE := 'our'; } }
         
         [
-            [ <longname> { $longname := $<longname>[0]; } ]?
+            [ <longname> { $longname := $*W.disect_longname($<longname>[0]); } ]?
             <.newpad>
             
             [ #:dba('generic role')
@@ -1213,7 +1213,7 @@ grammar Perl6::Grammar is HLL::Grammar {
                     # with "my" if we already have a declaration in this scope.
                     my $exists := 0;
                     if $longname && $*SCOPE ne 'anon' {
-                        my @name := parse_name(~$longname<name>);
+                        my @name := $longname.compile_time_name('package name', :decl(1));
                         if $*W.already_declared($*SCOPE, $*OUTERPACKAGE, $outer, @name) {
                             $*PACKAGE := $*W.find_symbol(@name);
                             $exists := 1;
@@ -1226,7 +1226,7 @@ grammar Perl6::Grammar is HLL::Grammar {
                     if $exists && $*PKGDECL ne 'role' {
                         if $*PACKAGE.HOW.is_composed($*PACKAGE) {
                             $*W.throw($/, ['X', 'Redeclaration'],
-                                symbol => ~$longname<name>,
+                                symbol => $longname.name(),
                             );
                         }
                     }
@@ -1237,7 +1237,7 @@ grammar Perl6::Grammar is HLL::Grammar {
                         # Construct meta-object for this package.
                         my %args;
                         if $longname {
-                            %args<name> := ~$longname<name>;
+                            %args<name> := $longname.name();
                         }
                         if $*REPR ne '' {
                             %args<repr> := $*REPR;
@@ -1246,8 +1246,8 @@ grammar Perl6::Grammar is HLL::Grammar {
                         
                         # Install it in the symbol table if needed.
                         if $longname {
-                            $*W.install_package_longname($/, $longname, $*SCOPE,
-                                $*PKGDECL, $*OUTERPACKAGE, $outer, $*PACKAGE);
+                            my @name := $longname.compile_time_name('package name', :decl(1));
+                            $*W.install_package($/, @name, $*SCOPE, $*PKGDECL, $*OUTERPACKAGE, $outer, $*PACKAGE);
                         }
                     }
                     
@@ -1261,13 +1261,13 @@ grammar Perl6::Grammar is HLL::Grammar {
                             $group := $*PACKAGE;
                         }
                         else {
-                            $group := $*W.pkg_create_mo(%*HOW{'role-group'}, :name(~$longname<name>));                            
-                            $*W.install_package_longname($/, $longname, $*SCOPE,
-                                $*PKGDECL, $*OUTERPACKAGE, $outer, $group);
+                            my @name := $longname.compile_time_name('package name', :decl(1));
+                            $group := $*W.pkg_create_mo(%*HOW{'role-group'}, :name($longname.name()));                            
+                            $*W.install_package($/, @name, $*SCOPE, $*PKGDECL, $*OUTERPACKAGE, $outer, $group);
                         }
 
                         # Construct role meta-object with group.
-                        $*PACKAGE := $*W.pkg_create_mo(%*HOW{$*PKGDECL}, :name(~$longname<name>),
+                        $*PACKAGE := $*W.pkg_create_mo(%*HOW{$*PKGDECL}, :name($longname.name()),
                             :group($group), :signatured($<signature> ?? 1 !! 0));
                     }
                 }
@@ -1285,7 +1285,7 @@ grammar Perl6::Grammar is HLL::Grammar {
                     
                     # Locate type.
                     my $found;
-                    my @name := parse_name(~$longname<name>);
+                    my @name := $longname.compile_time_name('package name', :decl(1));
                     try { $*PACKAGE := $*W.find_symbol(@name); $found := 1 }
                     unless $found {
                         $*W.throw($/, 'X::Augment::NoSuchType',
@@ -1791,10 +1791,11 @@ grammar Perl6::Grammar is HLL::Grammar {
         [
         | <longname>
             {
-                my @name := parse_name(~$<longname><name>);
+                my $longname := $*W.disect_longname($<longname>);
+                my @name := $longname.compile_time_name('enum name', :decl(1));
                 if $*W.already_declared($*SCOPE, $*PACKAGE, $*W.cur_lexpad(), @name) {
                     $*W.throw($/, ['X', 'Redeclaration'],
-                        symbol => ~$<longname><name>,
+                        symbol => $longname.name(),
                     );
                 }
             }
@@ -1816,10 +1817,11 @@ grammar Perl6::Grammar is HLL::Grammar {
                 [
                     <longname>
                     {
-                        my @name := parse_name(~$<longname><name>);
+                        my $longname := $*W.disect_longname($<longname>);
+                        my @name := $longname.compile_time_name('subest name', :decl(1));
                         if $*W.already_declared($*SCOPE, $*PACKAGE, $*W.cur_lexpad(), @name) {
                             $*W.throw($/, ['X', 'Redeclaration'],
-                                symbol => ~$<longname><name>,
+                                symbol => $longname.name(),
                             );
                         }
                     }

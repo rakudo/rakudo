@@ -137,8 +137,7 @@ class Perl6::World is HLL::World {
             }
         }
         if +@incomplete {
-            pir::die("The following packages were stubbed but not defined:\n    " ~
-                pir::join("\n    ", @incomplete) ~ "\n");
+            self.throw($/, 'X::Package::Stubbed', packages => @incomplete);
         }
     }
     
@@ -1586,7 +1585,16 @@ class Perl6::World is HLL::World {
         if $type_found {
              %opts<line>     := HLL::Compiler.lineof($/.orig, $/.from);
             for %opts -> $p {
-                %opts{$p.key} := pir::perl6ize_type__PP($p.value);
+                if pir::does($p.value, 'array') {
+                    my @a := [];
+                    for $p.value {
+                        nqp::push(@a, pir::perl6ize_type__PP($_));
+                    }
+                    %opts{$p.key} := pir::perl6ize_type__PP(@a);
+                }
+                else {
+                    %opts{$p.key} := pir::perl6ize_type__PP($p.value);
+                }
             }
             my $file        := pir::find_caller_lex__ps('$?FILES');
             %opts<filename> := nqp::box_s(

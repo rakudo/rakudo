@@ -482,4 +482,13 @@ my class X::Hash::Store::OddNumber is Exception {
     method message() { "Odd number of elements found where hash expected" }
 }
 
+my class X::Package::Stubbed does X::Comp {
+    has @.packages;
+    # TODO: supress display of line number
+    method message() {
+        "The following packages where stubbed but not defined:\n    "
+        ~ @.packages.join("\n    ");
+    }
+}
+
 # vim: ft=perl6

@@ -449,10 +449,12 @@ my class X::Attribute::Package does X::Comp {
 my class X::Attribute::NoPackage does X::Comp {
     method message() { "You cannot declare an attribute here; maybe you'd like a class or a role?" }
 }
-my class X::Sub::Scope does X::Comp {
+my class X::Declaration::Scope does X::Comp {
     has $.scope;
-    method message() { "Cannot use '$.scope' scope with a sub" }
+    has $.declaration;
+    method message() { "Cannot use '$.scope' with $.declaration declaration" }
 }
+
 my class X::Anon::Multi does X::Comp {
     has $.multiness;
     has $.routine-type = 'routine';
@@ -479,3 +481,5 @@ my class X::Constructor::Positional is Exception {
 my class X::Hash::Store::OddNumber is Exception {
     method message() { "Odd number of elements found where hash expected" }
 }
+
+# vim: ft=perl6

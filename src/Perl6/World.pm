@@ -258,7 +258,10 @@ class Perl6::World is HLL::World {
         
         # Can only install packages as our or my scope.
         unless $create_scope eq 'my' || $create_scope eq 'our' {
-            $/.CURSOR.panic("Cannot use $*SCOPE scope with $pkgdecl");
+            self.throw($/, 'X::Declaration::Scope',
+                scope       => $*SCOPE,
+                declaration => $pkgdecl,
+            );
         }
         
         # If we have a multi-part name, see if we know the opening

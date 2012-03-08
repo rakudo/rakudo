@@ -1724,7 +1724,10 @@ class Perl6::Actions is HLL::Actions {
                     ));
                 }
                 else {
-                    $*W.throw($/, 'X::Sub::Scope', scope => $*SCOPE);
+                    $*W.throw($/, 'X::Declaration::Scope',
+                            scope       => $*SCOPE,
+                            declaration => 'sub',
+                    );
                 }
             }
         }
@@ -1933,7 +1936,7 @@ class Perl6::Actions is HLL::Actions {
         # Obtain parameters, create signature object and generate code to
         # call binder.
         if $block<placeholder_sig> && $<multisig> {
-            $/.CURSOR.panic('Placeholder variable cannot override existing signature');
+            $*W.throw($/, 'X::Signature::Placeholder');
         }
         my @params :=
                 $<multisig>             ?? $<multisig>[0].ast      !!

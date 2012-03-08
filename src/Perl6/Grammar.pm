@@ -439,7 +439,7 @@ grammar Perl6::Grammar is HLL::Grammar {
             # If we already have a specified outer context, then that's
             # our setting. Otherwise, load one.
             unless pir::defined(%*COMPILING<%?OPTIONS><outer_ctx>) {
-                $*SETTING := $*W.load_setting(%*COMPILING<%?OPTIONS><setting> // 'CORE');
+                $*SETTING := $*W.load_setting($/, %*COMPILING<%?OPTIONS><setting> // 'CORE');
             }
             $/.CURSOR.unitstart();
             try {
@@ -454,12 +454,12 @@ grammar Perl6::Grammar is HLL::Grammar {
                 $*GLOBALish := %*COMPILING<%?OPTIONS><global>;
             }
             else {
-                $*GLOBALish := $*W.pkg_create_mo(%*HOW<package>, :name('GLOBAL'));
+                $*GLOBALish := $*W.pkg_create_mo($/, %*HOW<package>, :name('GLOBAL'));
                 $*W.pkg_compose($*GLOBALish);
             }
                 
             # Create EXPORT.
-            $*EXPORT := $*W.pkg_create_mo(%*HOW<package>, :name('EXPORT'));
+            $*EXPORT := $*W.pkg_create_mo($/, %*HOW<package>, :name('EXPORT'));
             $*W.pkg_compose($*EXPORT);
                 
             # We start with the current package as that also.
@@ -678,7 +678,7 @@ grammar Perl6::Grammar is HLL::Grammar {
         ] ** ','
         {
             for $<module_name> {
-                $*W.load_module(~$_<longname>, $*GLOBALish);
+                $*W.load_module($/, ~$_<longname>, $*GLOBALish);
             }
         }
     }
@@ -733,7 +733,8 @@ grammar Perl6::Grammar is HLL::Grammar {
             || { 
                     unless ~$<doc> && !%*COMPILING<%?OPTIONS><doc> {
                         if $longname {
-                            my $module := $*W.load_module(~$longname,
+                            my $module := $*W.load_module($/,
+                                                          ~$longname,
                                                            $*GLOBALish);
                             do_import($module, $<arglist>);
                             $/.CURSOR.import_EXPORTHOW($module);
@@ -1242,7 +1243,7 @@ grammar Perl6::Grammar is HLL::Grammar {
                         if $*REPR ne '' {
                             %args<repr> := $*REPR;
                         }
-                        $*PACKAGE := $*W.pkg_create_mo(%*HOW{$*PKGDECL}, |%args);
+                        $*PACKAGE := $*W.pkg_create_mo($/, %*HOW{$*PKGDECL}, |%args);
                         
                         # Install it in the symbol table if needed.
                         if $longname {
@@ -1261,13 +1262,13 @@ grammar Perl6::Grammar is HLL::Grammar {
                             $group := $*PACKAGE;
                         }
                         else {
-                            $group := $*W.pkg_create_mo(%*HOW{'role-group'}, :name(~$longname<name>));                            
+                            $group := $*W.pkg_create_mo($/, %*HOW{'role-group'}, :name(~$longname<name>));                            
                             $*W.install_package_longname($/, $longname, $*SCOPE,
                                 $*PKGDECL, $*OUTERPACKAGE, $outer, $group);
                         }
 
                         # Construct role meta-object with group.
-                        $*PACKAGE := $*W.pkg_create_mo(%*HOW{$*PKGDECL}, :name(~$longname<name>),
+                        $*PACKAGE := $*W.pkg_create_mo($/, %*HOW{$*PKGDECL}, :name(~$longname<name>),
                             :group($group), :signatured($<signature> ?? 1 !! 0));
                     }
                 }
@@ -1308,9 +1309,9 @@ grammar Perl6::Grammar is HLL::Grammar {
                         $*W.install_lexical_symbol($curpad, '$?ROLE', $*PACKAGE);
                         $*W.install_lexical_symbol($curpad, '::?ROLE', $*PACKAGE);
                         $*W.install_lexical_symbol($curpad, '$?CLASS',
-                            $*W.pkg_create_mo(%*HOW<generic>, :name('$?CLASS')));
+                            $*W.pkg_create_mo($/, %*HOW<generic>, :name('$?CLASS')));
                         $*W.install_lexical_symbol($curpad, '::?CLASS',
-                            $*W.pkg_create_mo(%*HOW<generic>, :name('::?CLASS')));
+                            $*W.pkg_create_mo($/, %*HOW<generic>, :name('::?CLASS')));
                     }
                 }
                 

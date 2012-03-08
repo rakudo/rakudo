@@ -220,7 +220,7 @@ class Perl6::Actions is HLL::Actions {
         }
         
         # Checks.
-        $*W.assert_stubs_defined();
+        $*W.assert_stubs_defined($/);
 
         # Get the block for the unit mainline code.
         my $unit := $*UNIT;
@@ -322,7 +322,7 @@ class Perl6::Actions is HLL::Actions {
             # loading and importing
             # TODO: Skip importing and use a symbol_lookup when the
             # Pod::foo modules bug gets fixed
-            my $module := $*W.load_module('Pod::To::Text', $*GLOBALish);
+            my $module := $*W.load_module($/, 'Pod::To::Text', $*GLOBALish);
             if pir::exists($module, 'EXPORT') {
                 my $EXPORT := $module<EXPORT>.WHO;
                 if pir::exists($EXPORT, 'DEFAULT') {
@@ -1318,7 +1318,7 @@ class Perl6::Actions is HLL::Actions {
 
             # Create code object and add it as the role's body block.
             my $code := $*W.create_code_object($block, 'Sub', $sig);
-            $*W.pkg_set_role_body_block($*PACKAGE, $code, $block);
+            $*W.pkg_set_role_body_block($/, $*PACKAGE, $code, $block);
             
             # Compose before we add the role to the group, so the group sees
             # it composed.
@@ -1327,7 +1327,7 @@ class Perl6::Actions is HLL::Actions {
             # Add this role to the group if needed.
             my $group := $*PACKAGE.HOW.group($*PACKAGE);
             unless $group =:= $*PACKAGE {
-                $*W.pkg_add_role_group_possibility($group, $*PACKAGE);
+                $*W.pkg_add_role_group_possibility($/, $group, $*PACKAGE);
             }
         }
         else {
@@ -1465,7 +1465,7 @@ class Perl6::Actions is HLL::Actions {
 
             # Create meta-attribute and add it.
             my $metaattr := %*HOW{$*PKGDECL ~ '-attr'};
-            my $attr := $*W.pkg_add_attribute($*PACKAGE, $metaattr,
+            my $attr := $*W.pkg_add_attribute($/, $*PACKAGE, $metaattr,
                 hash(
                     name => $attrname,
                     has_accessor => $twigil eq '.'
@@ -2057,7 +2057,7 @@ class Perl6::Actions is HLL::Actions {
             $meta_meth := $*MULTINESS eq 'multi' ?? 'add_multi_method' !! 'add_method';
         }
         if $scope ne 'anon' && pir::can($*PACKAGE.HOW, $meta_meth) {
-            $*W.pkg_add_method($*PACKAGE, $meta_meth, $name, $code);
+            $*W.pkg_add_method($/, $*PACKAGE, $meta_meth, $name, $code);
         }
         elsif $scope eq '' || $scope eq 'has' {
             my $nocando := $*MULTINESS eq 'multi' ?? 'multi-method' !! 'method';
@@ -2227,7 +2227,7 @@ class Perl6::Actions is HLL::Actions {
         # correct base type.
         my $base_type := $*OFTYPE ?? $*OFTYPE.ast !! $*W.find_symbol(['Int']);
         my $name      := $<longname> ?? ~$<longname> !! $<variable><desigilname>;
-        my $type_obj  := $*W.pkg_create_mo(%*HOW<enum>, :name($name), :base_type($base_type));
+        my $type_obj  := $*W.pkg_create_mo($/, %*HOW<enum>, :name($name), :base_type($base_type));
 
         # Add roles (which will provide the enum-related methods).
         $*W.apply_trait('&trait_mod:<does>', $type_obj, $*W.find_symbol(['Enumeration']));
@@ -4092,7 +4092,7 @@ class Perl6::Actions is HLL::Actions {
                 if $<arglist> || $<typename> {
                     $/.CURSOR.panic("Cannot put type parameters on a type capture");
                 }
-                make $*W.pkg_create_mo(%*HOW<generic>, :name(pir::substr(~$<longname>, 2)));
+                make $*W.pkg_create_mo($/, %*HOW<generic>, :name(pir::substr(~$<longname>, 2)));
             }
         }
         else {

@@ -55,12 +55,23 @@ my class RoleToClassApplier {
         # Collisions?
         my @collisions := $to_compose_meta.collisions($to_compose);
         for @collisions {
-            unless has_method($target, $_.name, 1) {
-                pir::die("Method '" ~ $_.name ~
-                    "' must be resolved by class " ~
-                    $target.HOW.name($target) ~
-                    " because it exists in multiple roles (" ~
-                    pir::join(", ", $_.roles) ~ ")");
+            if $_.private {
+                unless has_private_method($target, $_.name) {
+                    pir::die("Private method '" ~ $_.name ~
+                        "' must be resolved by class " ~
+                        $target.HOW.name($target) ~
+                        " because it exists in multiple roles (" ~
+                        pir::join(", ", $_.roles) ~ ")");
+                }
+            }
+            else {
+                unless has_method($target, $_.name, 1) {
+                    pir::die("Method '" ~ $_.name ~
+                        "' must be resolved by class " ~
+                        $target.HOW.name($target) ~
+                        " because it exists in multiple roles (" ~
+                        pir::join(", ", $_.roles) ~ ")");
+                }
             }
         }
 

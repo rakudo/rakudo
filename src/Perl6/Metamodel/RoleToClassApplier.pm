@@ -105,10 +105,6 @@ my class RoleToClassApplier {
         # Compose in any role attributes.
         my @attributes := $to_compose_meta.attributes($to_compose, :local(1));
         for @attributes {
-            if has_attribute($target, $_.name) {
-                pir::die("Attribute '" ~ $_.name ~ "' already exists in the class '" ~
-                    $target.HOW.name($target) ~ "', but a role also wishes to compose it");
-            }
             $target.HOW.add_attribute($target, $_);
         }
         

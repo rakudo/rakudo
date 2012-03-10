@@ -102,11 +102,6 @@ my class RoleToRoleApplier {
                     if $_ =:= $add_attr {
                         $skip := 1;
                     }
-                    else {
-                        if $_.name eq $add_attr.name {
-                            pir::die("Attribute '" ~ $_.name ~ "' conflicts in role composition");
-                        }
-                    }
                 }
                 unless $skip {
                     $target.HOW.add_attribute($target, $add_attr);

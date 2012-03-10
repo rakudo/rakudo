@@ -40,7 +40,8 @@ role Perl6::Metamodel::BUILDPLAN {
                     if $_.has_accessor {
                         my $attr_name := $_.name;
                         my $name      := pir::substr__SSi($attr_name, 2);
-                        my $entry     := [1, $class, $name, $attr_name];
+                        my $pkg       := pir::can__IPs($_, 'package') ?? $_.package !! $class;
+                        my $entry     := [1, $pkg, $name, $attr_name];
                         @all_plan[+@all_plan] := $entry;
                         if $i == 0 {
                             @plan[+@plan] := $entry;
@@ -54,7 +55,8 @@ role Perl6::Metamodel::BUILDPLAN {
                 if pir::can__IPs($_, 'build') {
                     my $default := $_.build;
                     if $default {
-                        my $entry := [2, $class, $_.name, $default];
+                        my $pkg   := pir::can__IPs($_, 'package') ?? $_.package !! $class;
+                        my $entry := [2, $pkg, $_.name, $default];
                         @all_plan[+@all_plan] := $entry;
                         if $i == 0 {
                             @plan[+@plan] := $entry;

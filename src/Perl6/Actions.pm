@@ -1127,7 +1127,7 @@ class Perl6::Actions is HLL::Actions {
                 my $attr := get_attribute_meta_object($/, $name);
                 $past.scope('attribute_6model');
                 $past.type($attr.type);
-                $past.unshift(instantiated_type(['$?CLASS'], $/));
+                $past.unshift($*W.get_ref($*PACKAGE));
                 $past.unshift(PAST::Var.new( :name('self'), :scope('lexical_6model') ));
                 $past := box_native_if_needed($past, $attr.type);
             }
@@ -1473,7 +1473,7 @@ class Perl6::Actions is HLL::Actions {
                 hash(
                     container_descriptor => $descriptor,
                     type => %cont_info<bind_constraint>,
-                    package => $*W.find_symbol(['$?CLASS'])),
+                    package => $*PACKAGE),
                 %cont_info, $descriptor);
 
             # Document it

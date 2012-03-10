@@ -46,3 +46,20 @@ my role NumericEnumeration {
         self.key
     }
 }
+
+sub ANON_ENUM(*@args) {
+    my Mu $prev = -1;
+    my %res;
+    for @args {
+        if .^isa(Enum) {
+            %res{.key} = .value;
+        }
+        else {
+            %res{$_} = $prev.=succ;
+        }
+    }
+    my $r := nqp::create(EnumMap);
+    nqp::bindattr($r, EnumMap, '$!storage',
+        nqp::getattr(%res, EnumMap, '$!storage'));
+    $r;
+}

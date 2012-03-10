@@ -424,7 +424,7 @@ S12-construction/BUILD.t
 S12-construction/construction.t
 S12-construction/named-params-in-BUILD.t
 S12-construction/new.t
-# S12-enums/anonymous.t # err: Undefined routine '&ANON_ENUM' called
+S12-enums/anonymous.t
 # S12-enums/as-role.t # err: Cannot yet turn an enum into a role
 S12-enums/basic.t
 S12-enums/misc.t

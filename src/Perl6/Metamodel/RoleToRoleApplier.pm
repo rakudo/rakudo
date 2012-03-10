@@ -114,7 +114,7 @@ my class RoleToRoleApplier {
             }
             
             # Any multi-methods go straight in; conflicts can be
-            # caught my the multi-dispatcher later.
+            # caught by the multi-dispatcher later.
             if pir::can__IPs($how, 'multi_methods_to_incorporate') {
                 my @multis := $how.multi_methods_to_incorporate($_);
                 for @multis {

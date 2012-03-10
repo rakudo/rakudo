@@ -219,6 +219,10 @@ BEGIN {
             nqp::getattr_i(pir::perl6_decontainerize__PP($self),
                 Attribute, '$!box_target')
         }));
+    Attribute.HOW.add_method(Attribute, 'package', static(sub ($self) {
+            nqp::getattr(pir::perl6_decontainerize__PP($self),
+                Attribute, '$!package');
+        }));
     Attribute.HOW.add_method(Attribute, 'is_generic', static(sub ($self) {
             my $dcself   := pir::perl6_decontainerize__PP($self);
             my $type := nqp::getattr(pir::perl6_decontainerize__PP($dcself),

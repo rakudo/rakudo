@@ -9,9 +9,15 @@ role Perl6::Metamodel::AttributeContainer {
     # Adds an attribute.
     method add_attribute($obj, $meta_attr) {
         my $name := $meta_attr.name;
-        if pir::exists(%!attribute_lookup, $name) {
-            pir::die("Package '" ~ self.name($obj) ~
-                "' already has an attribute named '$name'");
+        for @!attributes {
+            if $_.name eq $name {
+                if !pir::can__IPs($meta_attr, 'package')
+                || !pir::can__IPs($_, 'package')
+                || $_.package =:= $meta_attr.package {
+                    pir::die("Package '" ~ self.name($obj) ~
+                        "' already has an attribute named '$name'");
+                }
+            }
         }
         @!attributes[+@!attributes] := $meta_attr;
         %!attribute_lookup{$name}   := $meta_attr;

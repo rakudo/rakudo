@@ -302,12 +302,6 @@ class Perl6::Actions is HLL::Actions {
             )
         );
 
-        # Add file annotation.
-        my $file := pir::find_caller_lex__ps('$?FILES');
-        unless pir::isnull($file) {
-            $outer.unshift(PAST::Op.new(:inline(".annotate 'file', '" ~ $file ~ "'")));
-        }
-
         # Pass some extra bits along to the optimizer.
         $outer<UNIT>      := $unit;
         $outer<GLOBALish> := $*GLOBALish;

@@ -74,10 +74,10 @@ my class EnumMap does Associative {
             !! Any
     }
 
-    method STORE_AT_KEY(Str \$key, Mu \$value) is rw {
+    method STORE_AT_KEY(\$key, Mu \$value) is rw {
         pir::defined($!storage) ||
             nqp::bindattr(self, EnumMap, '$!storage', pir::new__Ps('Hash'));
-        nqp::bindkey($!storage, nqp::unbox_s($key), $value)
+        nqp::bindkey($!storage, nqp::unbox_s($key.Str), $value)
     }
     
     method Capture() {

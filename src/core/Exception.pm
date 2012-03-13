@@ -357,7 +357,7 @@ my class X::Syntax::NegatedPair does X::Syntax {
 
 my class X::Syntax::Variable::Numeric does X::Syntax {
     has $.what = 'variable';
-    method message() { "Cannot declare a numeric variable" }
+    method message() { "Cannot declare a numeric $.what" }
 }
 
 my class X::Syntax::Variable::Match does X::Syntax {

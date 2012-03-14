@@ -341,7 +341,7 @@ class Perl6::Actions is HLL::Actions {
             );
             $*W.pop_lexpad();
             $*W.add_phaser(
-                $/, make_simple_code_object($block, 'Block'), 'INIT'
+                $/, 'INIT', make_simple_code_object($block, 'Block')
             );
         }
     }
@@ -897,7 +897,7 @@ class Perl6::Actions is HLL::Actions {
     method statement_prefix:sym<LAST>($/)  { make $*W.add_phaser($/, 'LAST', ($<blorst>.ast)<code_object>); }
 
     method statement_prefix:sym<DOC>($/)   {
-        $*W.add_phaser($/, ($<blorst>.ast)<code_object>, ~$<phase>)
+        $*W.add_phaser($/, ~$<phase>, ($<blorst>.ast)<code_object>)
             if %*COMPILING<%?OPTIONS><doc>;
     }
 

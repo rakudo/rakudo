@@ -1666,6 +1666,12 @@ class Perl6::Actions is HLL::Actions {
                     $proto := $outer.symbol($name)<value>;
                 }
                 else {
+                    unless $*SCOPE eq '' || $*SCOPE eq 'my' {
+                        $*W.throw($/, 'X::Declaration::Scope::Multi',
+                            scope       => $*SCOPE,
+                            declaration => 'multi',
+                        );
+                    }
                     # None; search outer scopes.
                     my $new_proto;
                     try {

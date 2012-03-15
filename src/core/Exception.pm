@@ -455,6 +455,12 @@ my class X::Declaration::Scope does X::Comp {
     method message() { "Cannot use '$.scope' with $.declaration declaration" }
 }
 
+my class X::Declaration::Scope::Multi is X::Declaration::Scope {
+    method message() {
+        "Cannot use '$.scope' with individual multi candidates. Please declare an {$.scope}-scoped proto instead";
+    }
+}
+
 my class X::Anon::Multi does X::Comp {
     has $.multiness;
     has $.routine-type = 'routine';

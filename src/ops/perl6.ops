@@ -5,6 +5,7 @@
 BEGIN_OPS_PREAMBLE
 
 #include "parrot/parrot.h"
+#include "parrot/events.h"
 #include "parrot/extend.h"
 #include "parrot/dynext.h"
 #include "pmc_object.h"
@@ -124,7 +125,7 @@ static PMC *run_leave_phasers(PARROT_INTERP, PMC *ctx, PMC *perl6_code, PMC *res
             if (should_run_phaser(interp, phaser, phasers, result))
                 Parrot_pcc_invoke_sub_from_c_args(interp, phaser, "->");
         }
-        Parrot_cx_delete_handler_local(interp, STRINGNULL);
+        Parrot_cx_delete_handler_local(interp);
     }
     Parrot_pcc_set_context(interp, oldctx);
     return exceptions;

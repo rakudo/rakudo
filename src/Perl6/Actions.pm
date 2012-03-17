@@ -895,6 +895,8 @@ class Perl6::Actions is HLL::Actions {
     method statement_prefix:sym<UNDO>($/)  { make $*W.add_phaser($/, 'UNDO', ($<blorst>.ast)<code_object>); }
     method statement_prefix:sym<NEXT>($/)  { make $*W.add_phaser($/, 'NEXT', ($<blorst>.ast)<code_object>); }
     method statement_prefix:sym<LAST>($/)  { make $*W.add_phaser($/, 'LAST', ($<blorst>.ast)<code_object>); }
+    method statement_prefix:sym<PRE>($/)   { make $*W.add_phaser($/, 'PRE', ($<blorst>.ast)<code_object>, ($<blorst>.ast)<past_block>); }
+    method statement_prefix:sym<POST>($/)  { make $*W.add_phaser($/, 'POST', ($<blorst>.ast)<code_object>, ($<blorst>.ast)<past_block>); }
 
     method statement_prefix:sym<DOC>($/)   {
         $*W.add_phaser($/, ~$<phase>, ($<blorst>.ast)<code_object>)

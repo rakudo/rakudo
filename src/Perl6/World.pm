@@ -774,6 +774,9 @@ class Perl6::World is HLL::World {
                         )))
             }
             my %phasers := nqp::getattr($code, $block_type, '$!phasers');
+            if pir::exists(%phasers, 'PRE') {
+                $code_past[0].push(run_phasers_code('PRE'));
+            }
             if pir::exists(%phasers, 'FIRST') {
                 $code_past[0].push(PAST::Op.new(
                     :pasttype('if'),
@@ -783,7 +786,7 @@ class Perl6::World is HLL::World {
             if pir::exists(%phasers, 'ENTER') {
                 $code_past[0].push(run_phasers_code('ENTER'));
             }
-            if pir::exists(%phasers, '!LEAVE-ORDER') {
+            if pir::exists(%phasers, '!LEAVE-ORDER') || pir::exists(%phasers, 'POST') {
                 $code_past[+@($code_past) - 1] := PAST::Op.new(
                     :pirop('perl6_returncc__0P'),
                     $code_past[+@($code_past) - 1]);
@@ -1198,7 +1201,7 @@ class Perl6::World is HLL::World {
     }
     
     # Handles addition of a phaser.
-    method add_phaser($/, $phaser, $block) {
+    method add_phaser($/, $phaser, $block, $phaser_past?) {
         if $phaser eq 'BEGIN' {
             # BEGIN phasers get run immediately.
             my $result := $block();
@@ -1249,6 +1252,18 @@ class Perl6::World is HLL::World {
                     PAST::Op.new( :pasttype('call'), $*W.get_ref($block) )
                 ),
                 PAST::Var.new( :name($sym), :scope('lexical_6model') ));
+        }
+        elsif $phaser eq 'PRE' || $phaser eq 'POST' {
+            $phaser_past[1] := PAST::Op.new(
+                :pasttype('unless'),
+                $phaser_past[1],
+                PAST::Op.new(
+                    :pasttype('call'), :name('&die'),
+                    self.add_string_constant($phaser eq 'PRE' ??
+                        'Precondition failed' !!
+                        'Postcondition failed')));
+            @!CODES[+@!CODES - 1].add_phaser($phaser, $block);
+            return PAST::Var.new(:name('Nil'), :scope('lexical_6model'));
         }
         else {
             @!CODES[+@!CODES - 1].add_phaser($phaser, $block);

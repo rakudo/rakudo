@@ -1272,6 +1272,21 @@ class Perl6::World is HLL::World {
                     )
                 ),
             );
+            
+            if $phaser eq 'POST' {
+                # Needs $_ that can be set to the return value.
+                $phaser_past[0].unshift(PAST::Op.new( :pirop('bind_signature v') ));
+                unless $phaser_past.symbol('$_') {
+                    $phaser_past[0].unshift(PAST::Var.new( :name('$_'), :scope('lexical_6model'), :isdecl(1) ));
+                }
+                nqp::push(
+                    nqp::getattr($block.signature, self.find_symbol(['Signature']), '$!params'),
+                    self.create_parameter(hash(
+                            variable_name => '$_', is_parcel => 1,
+                            nominal_type => self.find_symbol(['Mu'])
+                        )));
+            }
+            
             @!CODES[+@!CODES - 1].add_phaser($phaser, $block);
             return PAST::Var.new(:name('Nil'), :scope('lexical_6model'));
         }

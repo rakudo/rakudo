@@ -147,7 +147,7 @@ static PMC *run_leave_phasers(PARROT_INTERP, PMC *ctx, PMC *perl6_code, PMC *res
             } else {
                 PMC *phaser = VTABLE_get_pmc_keyed_int(interp, post_phasers, i);
                 Parrot_ex_add_c_handler(interp, &jump_point);
-                Parrot_pcc_invoke_sub_from_c_args(interp, phaser, "->");
+                Parrot_pcc_invoke_sub_from_c_args(interp, phaser, "P->", result);
             }
             Parrot_cx_delete_handler_local(interp);
         }

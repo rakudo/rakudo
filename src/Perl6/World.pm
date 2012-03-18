@@ -1254,10 +1254,8 @@ class Perl6::World is HLL::World {
                 PAST::Var.new( :name($sym), :scope('lexical_6model') ));
         }
         elsif $phaser eq 'PRE' || $phaser eq 'POST' {
-            my $what := self.add_string_constant(
-                $phaser eq 'PRE' ?? 'Precondition' !! 'Postcondition'
-            );
-            $what.named('what');
+            my $what := self.add_string_constant($phaser);
+            $what.named('phaser');
             my $condition := self.add_string_constant(~$/<blorst>);
             $condition.named('condition');
 

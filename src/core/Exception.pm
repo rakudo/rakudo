@@ -498,12 +498,13 @@ my class X::Package::Stubbed does X::Comp {
 }
 
 my class X::Phaser::PrePost is Exception {
-    has $.what = 'Precondition';
+    has $.phaser = 'PRE';
     has $.condition;
     method message {
+        my $what = $.phaser eq 'PRE' ?? 'Precondition' !! 'Postcondition';
         $.condition.defined
-            ?? "$.what '$.condition' failed"
-            !! "$.what failed";
+            ?? "$what '$.condition.trim()' failed"
+            !! "$what failed";
     }
 }
 

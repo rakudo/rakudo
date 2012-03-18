@@ -207,6 +207,7 @@ S04-phasers/first.t
 S04-phasers/keep-undo.t
 S04-phasers/multiple.t
 S04-phasers/next.t
+S04-phasers/pre-post.t
 S04-phasers/rvalue.t
 S04-phasers/start.t
 S04-declarations/constant.t

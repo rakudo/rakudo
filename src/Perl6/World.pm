@@ -1254,14 +1254,26 @@ class Perl6::World is HLL::World {
                 PAST::Var.new( :name($sym), :scope('lexical_6model') ));
         }
         elsif $phaser eq 'PRE' || $phaser eq 'POST' {
+            my $what := self.add_string_constant(
+                $phaser eq 'PRE' ?? 'Precondition' !! 'Postcondition'
+            );
+            $what.named('what');
+            my $condition := self.add_string_constant(~$/<blorst>);
+            $condition.named('condition');
+
             $phaser_past[1] := PAST::Op.new(
                 :pasttype('unless'),
                 $phaser_past[1],
                 PAST::Op.new(
-                    :pasttype('call'), :name('&die'),
-                    self.add_string_constant($phaser eq 'PRE' ??
-                        'Precondition failed' !!
-                        'Postcondition failed')));
+                    :pasttype('callmethod'), :name('throw'),
+                    PAST::Op.new(
+                        :pasttype('callmethod'), :name('new'),
+                        self.get_ref(self.find_symbol(['X', 'Phaser', 'PrePost'])),
+                        $what,
+                        $condition,
+                    )
+                ),
+            );
             @!CODES[+@!CODES - 1].add_phaser($phaser, $block);
             return PAST::Var.new(:name('Nil'), :scope('lexical_6model'));
         }

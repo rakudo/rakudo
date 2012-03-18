@@ -497,4 +497,14 @@ my class X::Package::Stubbed does X::Comp {
     }
 }
 
+my class X::Phaser::PrePost is Exception {
+    has $.what = 'Precondition';
+    has $.condition;
+    method message {
+        $.condition.defined
+            ?? "$.what '$.condition' failed"
+            !! "$.what failed";
+    }
+}
+
 # vim: ft=perl6

@@ -13,6 +13,7 @@ New in 2012.03
 + implemented FIRST, NEXT and LAST phasers in for loops
 + implemented START phaser, including use of it in r-value context
 + implemented also syntax for adding traits inside a block/package
++ implemented macro declarations and quasi quotes (sans placeholders)
 + implemented anonymous enums
 + 'our multi' now dies (used to ignore the 'our')
 + implemented PRE and POST phasers

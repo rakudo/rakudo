@@ -775,7 +775,9 @@ class Perl6::World is HLL::World {
             }
             my %phasers := nqp::getattr($code, $block_type, '$!phasers');
             if pir::exists(%phasers, 'PRE') {
+                $code_past[0].push(PAST::Op.new( :pirop('perl6_set_checking_pre v') ));
                 $code_past[0].push(run_phasers_code('PRE'));
+                $code_past[0].push(PAST::Op.new( :pirop('perl6_clear_checking_pre v') ));
             }
             if pir::exists(%phasers, 'FIRST') {
                 $code_past[0].push(PAST::Op.new(

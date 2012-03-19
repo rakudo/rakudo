@@ -96,6 +96,10 @@ static PMC *run_leave_phasers(PARROT_INTERP, PMC *ctx, PMC *perl6_code, PMC *res
     int i, n;
     Parrot_runloop jump_point;
     
+    /* Don't run any phasers if we failed while checking pre-conditions. */
+    if (PObj_flag_TEST(P6_CHECKING_PRE, ctx))
+        return PMCNULL;
+    
     if (PMC_IS_NULL(perl6_code))
         return PMCNULL;
     code = (Rakudo_Code *)PMC_data(perl6_code);
@@ -1443,6 +1447,36 @@ inline op perl6_take_block_first_flag(out INT) :base_core {
     PMC * const cur_sub = Parrot_pcc_get_sub(interp, ctx);
     $1 = PObj_flag_TEST(SUB_FIRST, cur_sub);
     PObj_flag_CLEAR(SUB_FIRST, cur_sub);
+}
+
+
+/*
+
+=item perl6_set_checking_pre()
+
+Sets the checking PRE blocks flag on a context.
+
+=cut
+
+*/
+inline op perl6_set_checking_pre() :base_core {
+    PMC * const ctx = CURRENT_CONTEXT(interp);
+    PObj_flag_SET(P6_CHECKING_PRE, ctx);
+}
+
+
+/*
+
+=item perl6_clear_checking_pre()
+
+Clears the checking PRE blocks flag on a context.
+
+=cut
+
+*/
+inline op perl6_clear_checking_pre() :base_core {
+    PMC * const ctx = CURRENT_CONTEXT(interp);
+    PObj_flag_CLEAR(P6_CHECKING_PRE, ctx);
 }
 
 

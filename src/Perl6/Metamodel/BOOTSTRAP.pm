@@ -709,7 +709,7 @@ BEGIN {
     #     ...
     # }
     LoL.HOW.add_parent(LoL, List);
-    LoL.HOW.add_attribute(LoL, BOOTSTRAPATTR.new(:name<$!descriptor>, :type(Mu), :package(Array)));
+    LoL.HOW.add_attribute(LoL, BOOTSTRAPATTR.new(:name<$!descriptor>, :type(Mu), :package(LoL)));
 
     # my class EnumMap is Iterable {
     #     has $!storage;

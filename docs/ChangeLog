@@ -15,6 +15,8 @@ New in 2012.03
 + implemented also syntax for adding traits inside a block/package
 + implemented anonymous enums
 + 'our multi' now dies (used to ignore the 'our')
++ implemented PRE and POST phasers
++ ~25% performance improvement to array indexing
 
 New in 2012.02
 + catch duplicate accessor generation required of "has $.x; has @.x;"

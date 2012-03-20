@@ -492,7 +492,7 @@ my class X::Package::Stubbed does X::Comp {
     has @.packages;
     # TODO: supress display of line number
     method message() {
-        "The following packages where stubbed but not defined:\n    "
+        "The following packages were stubbed but not defined:\n    "
         ~ @.packages.join("\n    ");
     }
 }

@@ -49,15 +49,21 @@ part of monthly Parrot releases.
   2011-12-22   Rakudo #47 "Columbus"           (moritz)
   2012-01-23   Rakudo #48 "Toronto"            (moritz)
   2012-02-23   Rakudo #49 "SPb"                (masak)
+  2012-03-22   Rakudo #50 "Argentina"          (masak)
 
 =head2 Planned 2012 releases
 
 Dates are based on Parrot's expected release schedule.
 
-  2012-03-22   Rakudo #50
   2012-04-19   Rakudo #51                      (Coke)
   2012-05-17   Rakudo #52
   2012-06-21   Rakudo #53
+  2012-07-19   Rakudo #54
+  2012-08-23   Rakudo #55
+  2012-09-20   Rakudo #56
+  2012-10-18   Rakudo #57
+  2012-11-22   Rakudo #58
+  2012-12-20   Rakudo #59
 
 =head2 Suggested .pm group names for future releases
 

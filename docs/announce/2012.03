@@ -1,7 +1,7 @@
-    Announce: Rakudo Perl 6 compiler development release #50 ("TODO")
+    Announce: Rakudo Perl 6 compiler development release #50 ("Argentina")
 
 On behalf of the Rakudo development team, I'm happy to announce the
-February 2012 release of Rakudo Perl #50 "TODO". Rakudo is an 
+February 2012 release of Rakudo Perl #50 "Argentina". Rakudo is an
 implementation of Perl 6 on the Parrot Virtual Machine (see 
 <http://www.parrot.org>). The tarball for this release
 is available from <http://github.com/rakudo/rakudo/downloads>.
@@ -13,7 +13,9 @@ For the latest Rakudo Star release, see
 
 The Rakudo Perl compiler follows a monthly release cycle, with each
 release named after a Perl Mongers group. The March 2012 release is
-code named after TODO.
+code named after Argentina, because that's where one of our core
+contributors went to relax this month after adding some significant
+Perl 6 features to Rakudo.
 
 Some of the specific changes and improvements occurring with this
 release include:
@@ -55,7 +57,8 @@ available in the "docs/release_guide.pod" file. In general, Rakudo
 development releases are scheduled to occur soon after each Parrot
 monthly release. Parrot releases the third Tuesday of each month.
 
-May a great deal of fun befall you!
+On behalf of the development team, I admonish you to try the new release,
+to live life to its fullest, to cherish each day, and to have fun.
 
 
 [*] What's the difference between the Rakudo compiler and the Rakudo

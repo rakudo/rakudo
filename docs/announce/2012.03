@@ -1,7 +1,7 @@
     Announce: Rakudo Perl 6 compiler development release #50 ("Argentina")
 
 On behalf of the Rakudo development team, I'm happy to announce the
-February 2012 release of Rakudo Perl #50 "Argentina". Rakudo is an
+March 2012 release of Rakudo Perl #50 "Argentina". Rakudo is an
 implementation of Perl 6 on the Parrot Virtual Machine (see 
 <http://www.parrot.org>). The tarball for this release
 is available from <http://github.com/rakudo/rakudo/downloads>.

@@ -25,6 +25,7 @@ my class Signature {
                     $count++;
                     $arity++ unless $param.optional;
                 }
+                $count = Inf if $param.capture || $param.slurpy && !$param.named;
             }
             nqp::bindattr(self, Signature, '$!arity', $arity);
             nqp::bindattr(self, Signature, '$!count', $count);

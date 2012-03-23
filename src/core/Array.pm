@@ -12,6 +12,7 @@ class Array {
         my Mu $items := nqp::getattr(self, List, '$!items');
         nqp::islist($items) or 
             $items := nqp::bindattr(self, List, '$!items', nqp::list());
+        # hotpath check for element existence (RT #111848)
         nqp::existspos($items, $p)
               || nqp::getattr(self, List, '$!nextiter').defined
                   && self.exists($p)
@@ -23,6 +24,7 @@ class Array {
         my Mu $items := nqp::getattr(self, List, '$!items');
         nqp::islist($items) or 
             $items := nqp::bindattr(self, List, '$!items', nqp::list());
+        # hotpath check for element existence (RT #111848)
         nqp::existspos($items, $pos)
               || nqp::getattr(self, List, '$!nextiter').defined
                   && self.exists($pos)

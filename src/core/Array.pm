@@ -26,9 +26,9 @@ class Array {
         nqp::existspos($items, $pos)
               || nqp::getattr(self, List, '$!nextiter').defined
                   && self.exists($pos)
-          ?? nqp::atpos(nqp::getattr(self, List, '$!items'), $pos)
+          ?? nqp::atpos($items, $pos)
           !! pir::setattribute__0PPsP(my $v, Scalar, '$!whence',
-                 -> { nqp::bindpos(nqp::getattr(self, List, '$!items'), $pos, $v) } )
+                 -> { nqp::bindpos($items, $pos, $v) } )
     }
 
     proto method bind_pos(|$) { * }

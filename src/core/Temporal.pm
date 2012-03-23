@@ -504,9 +504,6 @@ multi infix:«<=>»(Date:D $a, Date:D $b) {
 multi infix:<==>(Date:D $a, Date:D $b) {
     $a.daycount == $b.daycount
 }
-multi infix:<!=>(Date:D $a, Date:D $b) {
-    $a.daycount != $b.daycount
-}
 multi infix:«<=»(Date:D $a, Date:D $b) {
     $a.daycount <= $b.daycount
 }

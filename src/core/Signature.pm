@@ -21,11 +21,13 @@ my class Signature {
             my $param;
             while $iter {
                 $param := nqp::shift($iter);
-                if $param.positional {
+                if $param.capture || $param.slurpy && !$param.named { 
+                    $count = Inf; 
+                }
+                elsif $param.positional {
                     $count++;
                     $arity++ unless $param.optional;
                 }
-                $count = Inf if $param.capture || $param.slurpy && !$param.named;
             }
             nqp::bindattr(self, Signature, '$!arity', $arity);
             nqp::bindattr(self, Signature, '$!count', $count);

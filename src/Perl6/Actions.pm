@@ -1725,6 +1725,9 @@ class Perl6::Actions is HLL::Actions {
                         PAST::Var.new( :name($name), :scope('lexical_6model') )
                     ));
                 }
+                elsif $*SCOPE eq 'anon' {
+                    # don't do anything
+                }
                 else {
                     $*W.throw($/, 'X::Declaration::Scope',
                             scope       => $*SCOPE,

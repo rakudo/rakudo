@@ -2,6 +2,7 @@ my class Cursor {... }
 my class Range  {... }
 my class Match  {... }
 my class Buf    {... }
+my class X::Str::Numeric { ... }
 
 sub PARROT_ENCODING(Str:D $s) {
     my %map = (
@@ -161,14 +162,16 @@ my class Str does Stringy {
         my int $pos   = pir::find_not_cclass__Iisii(pir::const::CCLASS_WHITESPACE, $str, 0, $eos);
 
         my $tailfail =
-             -> { fail "trailing characters after number in conversion"
-                      if nqp::islt_i(
+             -> { fail(X::Str::Numeric.new(
+                     source => self,
+                     :$pos,
+                     reason => 'trailing characters after number',
+                 )) if nqp::islt_i(
                           pir::find_not_cclass__Iisii(pir::const::CCLASS_WHITESPACE,
                                                       $str, $pos, $eos),
                           $eos);
                   0;
              };
-
         # objects for managing the parse and results
         my Mu $parse;
         my $result;

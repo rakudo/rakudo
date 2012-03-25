@@ -508,4 +508,24 @@ my class X::Phaser::PrePost is Exception {
     }
 }
 
+my class X::Str::Numeric is Exception {
+    has $.source;
+    has $.pos;
+    has $.reason;
+    method source-indicator {
+        constant marker = chr(0x23CF);
+        join '', "in '",
+                $.source.substr(0, $.pos),
+                marker,
+                $.source.substr($.pos),
+                "' (indicated by the ",
+                marker,
+                " symbol)",
+                ;
+    }
+    method message() {
+        "Cannot convert string to number: $.reason $.source-indicator";
+    }
+}
+
 # vim: ft=perl6

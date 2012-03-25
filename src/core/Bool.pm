@@ -37,6 +37,9 @@ proto prefix:<not>($) { * }
 multi prefix:<not>(Bool \$a) { nqp::p6bool($a ?? 0 !! 1) }
 multi prefix:<not>(Mu \$a) { nqp::p6bool($a.Bool ?? 0 !! 1) }
 
+proto prefix:<?^>($) { * }
+multi prefix:<?^>(Mu \$a) { not $a }
+
 proto infix:<?&>(|$)                  { * }
 multi infix:<?&>(Mu $x = Bool::True)  { $x.Bool }
 multi infix:<?&>(Mu \$a, Mu \$b)      { $a.Bool && $b.Bool }

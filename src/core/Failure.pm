@@ -23,14 +23,16 @@ my class Failure {
     }
     multi method Bool(Failure:D:) { $!handled = 1; Bool::False; }
 
-    method Int(Failure:D:) { $!handled ?? 0 !! $!exception.throw; }
-    method Num(Failure:D:) { $!handled ?? 0e0 !! $!exception.throw; }
-    multi method Str(Failure:D:) { $!handled ?? '' !! $!exception.throw; }
+    method Int(Failure:D:)        { $!handled ?? 0   !! $!exception.throw; }
+    method Num(Failure:D:)        { $!handled ?? 0e0 !! $!exception.throw; }
+    method Numeric(Failure:D:)    { $!handled ?? 0e0 !! $!exception.throw; }
+    multi method Str(Failure:D:)  { $!handled ?? ''  !! $!exception.throw; }
+    multi method gist(Failure:D:) { $!handled ?? $.perl !! $!exception.throw; }
 
     Failure.^add_fallback(
         -> $, $ { True },
         method ($name) {
-            die $!exception;
+            $!exception.throw;
         }
     );
 }

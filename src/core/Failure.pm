@@ -39,7 +39,7 @@ my class Failure {
 
 
 my &fail := -> *@msg {
-    my $value = @msg.join('');
+    my $value = @msg == 1 ?? @msg[0] !! @msg.join('');
     die $value if $*FATAL;
     my Mu $ex := Q:PIR {
                      # throw and immediately catch an exception, to capture

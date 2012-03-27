@@ -427,7 +427,7 @@ my class X::Syntax::NoSelf does X::Syntax {
 
 my class X::Syntax::Number::RadixOutOfRange does X::Syntax {
     has $.radix;
-    method mesage() { "Radix $.radix out of range (allowed: 2..36)" }
+    method message() { "Radix $.radix out of range (allowed: 2..36)" }
 }
 
 my class X::Syntax::Regex::Adverb does X::Syntax {

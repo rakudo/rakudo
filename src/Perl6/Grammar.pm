@@ -2137,6 +2137,10 @@ grammar Perl6::Grammar is HLL::Grammar {
         ]
     }
 
+    token quote:sym<qr> {
+        <sym> <.end_keyword> <.obs('qr for regex quoting', 'rx//')>
+    }
+
     token setup_quotepair { '' }
 
     token quote:sym<s> {

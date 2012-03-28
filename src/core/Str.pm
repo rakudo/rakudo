@@ -151,7 +151,7 @@ my class Str does Stringy {
         $str;
     }
 
-    multi method Numeric(Str:D:) {
+    multi method Numeric(Str:D: :$strict) {
         return nqp::p6box_n(pir::set__Ns('NaN')) if self eq 'NaN';
         my str $str = nqp::unbox_s(self);
         my int $eos = nqp::chars($str);
@@ -233,6 +233,11 @@ my class Str does Stringy {
             #     We should really fail here instead of returning 0,
             #     but we need to first need to figure out better ways
             #     to handle failure results.
+            fail X::Str::Numeric.new(
+                     source => self,
+                     pos    => $p,
+                     reason => 'does not look like a number',
+                ) if $strict && nqp::iseq_i($p, 0) && nqp::islt_i($pos, 0);
             return 0 if nqp::iseq_i($p, 0) && nqp::islt_i($pos, 0);
             fail "malformed numeric string" if nqp::islt_i($pos, 0);
             $int = nqp::atpos($parse, 0);

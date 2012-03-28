@@ -18,6 +18,10 @@ my class Bool {
     multi method ACCEPTS(Bool:D: Mu \$topic) { self }
 
     multi method perl(Bool:D:) { self ?? 'Bool::True' !! 'Bool::False' }
+
+    method enums() {
+        my % = False => 0, True => 1
+    }
 }
 
 

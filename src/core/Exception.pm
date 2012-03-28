@@ -518,9 +518,9 @@ my class X::Str::Numeric is Exception {
                 $.source.substr(0, $.pos),
                 marker,
                 $.source.substr($.pos),
-                "' (indicated by the ",
+                "' (indicated by ",
                 marker,
-                " symbol)",
+                ")",
                 ;
     }
     method message() {

@@ -7,15 +7,25 @@ class Array {
         nqp::p6list($args, self.WHAT, Bool::True);
     }
     
-    multi method at_pos($pos is copy) is rw {
-        $pos = $pos.Int;
-        self.exists($pos)
-          ?? nqp::atpos(nqp::getattr(self, List, '$!items'), nqp::unbox_i($pos))
+    multi method at_pos($pos) is rw {
+        my int $p = nqp::unbox_i($pos.Int);
+        my Mu $items := nqp::getattr(self, List, '$!items');
+        nqp::islist($items) or 
+            $items := nqp::bindattr(self, List, '$!items', nqp::list());
+        nqp::existspos($items, $p)
+              || nqp::getattr(self, List, '$!nextiter').defined
+                  && self.exists($p)
+          ?? nqp::atpos($items, $p)
           !! pir::setattribute__0PPsP(my $v, Scalar, '$!whence',
-                 -> { nqp::bindpos(nqp::getattr(self, List, '$!items'), nqp::unbox_i($pos), $v) } )
+                 -> { nqp::bindpos($items, $p, $v) } )
     }
     multi method at_pos(int $pos) is rw {
-        self.exists($pos)
+        my Mu $items := nqp::getattr(self, List, '$!items');
+        nqp::islist($items) or 
+            $items := nqp::bindattr(self, List, '$!items', nqp::list());
+        nqp::existspos($items, $pos)
+              || nqp::getattr(self, List, '$!nextiter').defined
+                  && self.exists($pos)
           ?? nqp::atpos(nqp::getattr(self, List, '$!items'), $pos)
           !! pir::setattribute__0PPsP(my $v, Scalar, '$!whence',
                  -> { nqp::bindpos(nqp::getattr(self, List, '$!items'), $pos, $v) } )

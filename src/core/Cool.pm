@@ -201,7 +201,7 @@ proto sub ords(|$)            { * }
 multi sub ords(Cool $s)       { ords($s.Stringy) }
 
 proto sub comb(|$)            { * }
-multi sub comb(Regex $matcher, Cool $input) { $input.comb($matcher) }
+multi sub comb(Regex $matcher, Cool $input, $limit = *) { $input.comb($matcher, $limit) }
 
 proto sub capitalize(|$)       { * }
 multi sub capitalize(Str:D $x) {$x.capitalize }

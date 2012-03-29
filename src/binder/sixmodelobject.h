@@ -5,6 +5,7 @@
 #define SIXMODELOBJECT_H_GUARD
 
 #include "storage_spec.h"
+#include "serialization.h"
 
 /* The commonalities shared between all 6model objects, no matter what the
  * REPR is. This struct should be placed as the first thing in the object
@@ -69,7 +70,7 @@ typedef struct {
 /* S-Tables (short for Shared Table) contains the commonalities shared between
  * a (HOW, REPR) pairing (for example, (HOW for the class Dog, P6Opaque). */
 typedef struct SixModel_REPROps REPROps;
-typedef struct {
+struct SixModel_STable {
     /* The representation operation table. */
     REPROps *REPR;
     
@@ -126,6 +127,9 @@ typedef struct {
     
     /* The underlying package stash. */
     PMC *WHO;
+    
+    /* Serialization context that this s-table belongs to. */
+    PMC *sc;
 
     /* Parrot-specific set of v-table to method mappings, for overriding
      * of Parrot v-table functions. */
@@ -136,7 +140,7 @@ typedef struct {
     
     /* The PMC that wraps this s-table. */
     PMC *stable_pmc;
-} STable;
+};
 
 /* A representation is what controls the layout of an object and access and
  * manipulation of the memory it manages. This includes attribute storage
@@ -291,6 +295,22 @@ struct SixModel_REPROps {
      * thread safety requirements. */
     void (*change_type) (PARROT_INTERP, PMC *Object, PMC *NewType);
     
+    /* Object serialization. Writes the objects body out using the passed
+     * serialization writer. */
+    void (*serialize) (PARROT_INTERP, STable *st, void *data, SerializationWriter *writer);
+    
+    /* Object deserialization. Reads the objects body in using the passed
+     * serialization reader. */
+    void (*deserialize) (PARROT_INTERP, STable *st, void *data, SerializationReader *reader);
+    
+    /* REPR data serialization. Seserializes the per-type representation data that
+     * is attached to the supplied STable. */
+    void (*serialize_repr_data) (PARROT_INTERP, STable *st, SerializationWriter *writer);
+    
+    /* REPR data deserialization. Deserializes the per-type representation data and
+     * attaches it to the supplied STable. */
+    void (*deserialize_repr_data) (PARROT_INTERP, STable *st, SerializationReader *reader);
+    
     /* This Parrot-specific addition to the API is used to mark an object. */
     void (*gc_mark) (PARROT_INTERP, STable *st, void *data);
 
@@ -334,6 +354,7 @@ struct SixModel_REPROps {
 void SixModelObject_initialize(PARROT_INTERP, PMC **knowhow, PMC **knowhow_attribute);
 
 /* Some utility functions. */
+void set_wrapping_object(PMC *wrapper);
 PMC * wrap_object(PARROT_INTERP, void *obj);
 PMC * create_stable(PARROT_INTERP, REPROps *REPR, PMC *HOW);
 PMC * decontainerize(PARROT_INTERP, PMC *var);

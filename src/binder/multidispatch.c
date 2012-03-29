@@ -545,7 +545,6 @@ static PMC* find_best_candidate(PARROT_INTERP, Rakudo_md_candidate_info **candid
                 INTVAL i;
 
                 for (i = 0; i < possibles_count; i++) {
-                    interp->current_cont = (PMC *)NEED_CONTINUATION;
                     Parrot_pcc_set_signature(interp, CURRENT_CONTEXT(interp), NULL);
 
                     /* First, if there's a required named parameter and it was
@@ -572,13 +571,15 @@ static PMC* find_best_candidate(PARROT_INTERP, Rakudo_md_candidate_info **candid
                         opcode_t *where;
                         INTVAL    bind_check_result;
                         Rakudo_Code *code_obj = (Rakudo_Code *)PMC_data(possibles[i]->sub);
-                        cthunk = VTABLE_getprop(interp, code_obj->_do,
+                        cthunk = Parrot_pmc_getprop(interp, code_obj->_do,
                             Parrot_str_new(interp, "COMPILER_THUNK", 0));
                         if (!PMC_IS_NULL(cthunk)) {
                             /* We need to do the tie-break on something not yet compiled.
                              * Get it compiled. */
                             Parrot_ext_call(interp, cthunk, "->");
                         }
+
+                        Parrot_pcc_reuse_continuation(interp, CURRENT_CONTEXT(interp), next);
                         where  = VTABLE_invoke(interp, possibles[i]->sub, next);
                         lexpad = Parrot_pcc_get_lex_pad(interp, CURRENT_CONTEXT(interp));
                         sig    = possibles[i]->signature;
@@ -787,7 +788,7 @@ static PMC* find_best_candidate(PARROT_INTERP, Rakudo_md_candidate_info **candid
 
         mem_sys_free(possibles);
         Parrot_ex_throw_from_c_args(interp, next, 1,
-            "No applicable candidates found to dispatch to for '%Ss'. Available candidates are:\n%Ss",
+            "Cannot call '%Ss'; none of these signatures match:\n%Ss",
                 (candidates[0] ? VTABLE_get_string(interp, candidates[0]->sub) : STRINGNULL),
                 signatures);
     }
@@ -800,7 +801,7 @@ static PMC* find_best_candidate(PARROT_INTERP, Rakudo_md_candidate_info **candid
         
         mem_sys_free(possibles);
         Parrot_ex_throw_from_c_args(interp, next, 1,
-            "Ambiguous dispatch to multi '%Ss'. Ambiguous candidates had signatures:\n%Ss",
+            "Ambiguous call to '%Ss'; these signatures all match:\n%Ss",
                 VTABLE_get_string(interp, candidates[0]->sub), signatures);
     }
 }

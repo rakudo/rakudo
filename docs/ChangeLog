@@ -1,3 +1,24 @@
+New in 2012.03
++ updated to dyncall 0.7
++ infix:<eqv> now autothreads over junctions
++ more typed exceptions
++ pre-compiled modules/settings are now serialized, not re-built on load
++ startup time is now about 25% of what it once was
++ significant memory and time reduction (~40%) when pre-compiling modules/settings
++ BEGIN and CHECK now work in r-value context
++ constant declarator now works with non-literals on the RHS
++ implemented Set, Bag, KeySet and KeyBag types
++ implemented :exhaustive and :nth match adverbs
++ implemented ENTER, LEAVE, KEEP and UNDO phasers
++ implemented FIRST, NEXT and LAST phasers in for loops
++ implemented START phaser, including use of it in r-value context
++ implemented also syntax for adding traits inside a block/package
++ implemented macro declarations and quasi quotes (sans placeholders)
++ implemented anonymous enums
++ 'our multi' now dies (used to ignore the 'our')
++ implemented PRE and POST phasers
++ ~25% performance improvement to array indexing
+
 New in 2012.02
 + catch duplicate accessor generation required of "has $.x; has @.x;"
 + many more typed exceptions thrown

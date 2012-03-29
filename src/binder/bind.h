@@ -67,9 +67,17 @@ typedef struct {
  */
 #define PObj_P6BINDER_ALREADY_CHECKED_FLAG PObj_private0_FLAG
 
+/* 
+ * CHECKING_PRE flags that we are currently checking pre-conditions. If we
+ * get an exception during this, it suppresses running of various other
+ * phasers.
+ */
+#define PObj_P6_CHECKING_PRE_FLAG PObj_private0_FLAG
+
 /* Flags that the block has state variables and that this is the first time
  * that we are visiting the block and so they need initializing. */
 #define PObj_P6LEXPAD_STATE_INIT_FLAG PObj_private1_FLAG
+#define PObj_SUB_FIRST_FLAG PObj_private7_FLAG
 
 /* Gets the ID of a 6model object PMC. */
 INTVAL Rakudo_smo_id(void);

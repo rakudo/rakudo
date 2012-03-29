@@ -40,7 +40,10 @@ S02-types/pair.t
 S02-types/parcel.t
 S02-types/parsing-bool.t
 S02-types/range.t
-# S02-types/set.t # err: Undefined routine '&set' called
+S02-types/set.t
+S02-types/bag.t
+S02-types/keyset.t
+S02-types/keybag.t
 S02-types/sigils-and-types.t
 S02-types/subscripts_and_context.t
 S02-types/subset.t
@@ -194,10 +197,19 @@ S03-smartmatch/regex-hash.t
 S03-smartmatch/scalar-hash.t
 S04-blocks-and-statements/pointy-rw.t
 S04-blocks-and-statements/pointy.t
+S04-phasers/ascending-order.t
 S04-phasers/begin.t
+S04-phasers/check.t
+S04-phasers/descending-order.t
 S04-phasers/end.t
-# S04-phasers/rvalue.t # err: Method 'isa' not found for invocant of class 'Undef'
-# S04-phasers/start.t # err: Undefined routine '&START' called
+S04-phasers/enter-leave.t
+S04-phasers/first.t
+S04-phasers/keep-undo.t
+S04-phasers/multiple.t
+S04-phasers/next.t
+S04-phasers/pre-post.t
+S04-phasers/rvalue.t
+S04-phasers/start.t
 S04-declarations/constant.t
 S04-declarations/implicit-parameter.t
 S04-declarations/multiple.t
@@ -306,6 +318,7 @@ S06-advanced/return.t
 S06-advanced/wrap.t
 S06-currying/assuming-and-mmd.t
 S06-currying/named.t
+S06-macros/macros-d1.t
 S06-multi/lexical-multis.t
 S06-multi/positional-vs-named.t
 S06-multi/proto.t
@@ -314,10 +327,10 @@ S06-multi/syntax.t
 S06-multi/type-based.t
 S06-multi/value-based.t
 S06-multi/unpackability.t
-# S06-operator-overloading/imported-subs.t
+S06-operator-overloading/imported-subs.t
 S06-operator-overloading/methods.t
 S06-operator-overloading/sub.t
-# S06-operator-overloading/workout.t # err: Unable to parse postcircumfix:sym<( )>
+S06-operator-overloading/workout.t
 S06-other/anon-hashes-vs-blocks.t
 S06-other/main.t
 S06-other/main-eval.t
@@ -353,7 +366,6 @@ S06-signature/types.t
 S06-signature/unpack-array.t
 S06-signature/unpack-object.t
 S06-signature/unspecified.t
-S06-traits/as.t
 S06-traits/is-copy.t
 S06-traits/is-readonly.t
 S06-traits/is-rw.t
@@ -413,7 +425,7 @@ S12-construction/BUILD.t
 S12-construction/construction.t
 S12-construction/named-params-in-BUILD.t
 S12-construction/new.t
-# S12-enums/anonymous.t # err: Undefined routine '&ANON_ENUM' called
+S12-enums/anonymous.t
 # S12-enums/as-role.t # err: Cannot yet turn an enum into a role
 S12-enums/basic.t
 S12-enums/misc.t
@@ -452,6 +464,8 @@ S12-subset/multi-dispatch.t
 S12-subset/subtypes.t
 S13-type-casting/methods.t
 S13-overloading/typecasting-long.t
+S13-overloading/typecasting-mixed.t
+S13-overloading/typecasting-short.t
 S13-overloading/metaoperators.t
 S13-overloading/operators.t
 S14-roles/anonymous.t
@@ -479,6 +493,7 @@ S16-filehandles/filetest.t
 S16-filehandles/io.t
 S16-filehandles/io_in_for_loops.t
 S16-filehandles/io_in_while_loops.t
+S16-filehandles/mkdir_rmdir.t
 S16-filehandles/open.t
 S16-filehandles/unlink.t
 S16-io/bare-say.t
@@ -490,6 +505,16 @@ S16-unfiled/rebindstdhandles.t
 S16-unfiled/slurp.t
 S19-command-line/dash-e.t # icu
 S19-command-line/help.t
+S26-documentation/01-delimited.t
+S26-documentation/02-paragraph.t
+S26-documentation/03-abbreviated.t
+S26-documentation/04-code.t
+S26-documentation/05-comment.t
+S26-documentation/06-lists.t
+S26-documentation/07-tables.t
+S26-documentation/08-formattingcodes.t
+S26-documentation/09-configuration.t
+S26-documentation/why.t
 S28-named-variables/cwd.t
 S28-named-variables/inc.t
 S29-any/cmp.t

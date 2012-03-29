@@ -1,4 +1,4 @@
-use Perl6::Metamodel;
+use Perl6::BOOTSTRAP;
 
 # Stub these or we can't use any sigil other than $.
 my role Positional { ... }
@@ -70,7 +70,7 @@ sub EXPORT_SYMBOL(\$exp_name, @tags, Mu \$sym) {
             $install_in := $*EXPORT.WHO.{$tag};
         }
         else {
-            $install_in := $*W.pkg_create_mo((package { }).HOW.WHAT, :name($tag));
+            $install_in := $*W.pkg_create_mo($/, (package { }).HOW.WHAT, :name($tag));
             $*W.pkg_compose($install_in);
             $*W.install_package_symbol($*EXPORT, $tag, $install_in);
         }
@@ -83,19 +83,15 @@ sub EXPORT_SYMBOL(\$exp_name, @tags, Mu \$sym) {
     }
 }
 multi trait_mod:<is>(Routine:D \$r, :$export!) {
-    if %*COMPILING {
-        my $to_export := $r.multi ?? $r.dispatcher !! $r;
-        my $exp_name  := '&' ~ $r.name;
-        my @tags = 'ALL', 'DEFAULT';
-        EXPORT_SYMBOL($exp_name, @tags, $to_export);
-    }
+    my $to_export := $r.multi ?? $r.dispatcher !! $r;
+    my $exp_name  := '&' ~ $r.name;
+    my @tags = 'ALL', 'DEFAULT';
+    EXPORT_SYMBOL($exp_name, @tags, $to_export);
 }
 multi trait_mod:<is>(Mu:U \$type, :$export!) {
-    if %*COMPILING {
-        my $exp_name := $type.HOW.name($type);
-        my @tags = 'ALL', 'DEFAULT';
-        EXPORT_SYMBOL($exp_name, @tags, $type);
-    }
+    my $exp_name := $type.HOW.name($type);
+    my @tags = 'ALL', 'DEFAULT';
+    EXPORT_SYMBOL($exp_name, @tags, $type);
 }
 
 multi trait_mod:<is>(Mu:D $docee, $doc, :$docs!) {

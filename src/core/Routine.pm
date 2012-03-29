@@ -1,3 +1,5 @@
+my class X::Routine::Unwrap { ... }
+
 my class Routine {
     method of() { self.signature.returns }
     method returns() { self.signature.returns }
@@ -11,7 +13,7 @@ my class Routine {
     
     method candidates() {
         self.is_dispatcher ??
-            pir::perl6ize_type__PP(nqp::getattr(self, Code, '$!dispatchees')) !!
+            pir::perl6ize_type__PP($!dispatchees) !!
             (self,)
     }
     
@@ -22,7 +24,7 @@ my class Routine {
         }
         else {
             $disp := nqp::create(self);
-            nqp::bindattr($disp, Code, '$!dispatchees', nqp::list(self));
+            nqp::bindattr($disp, Routine, '$!dispatchees', nqp::list(self));
         }
         sub checker(|$) {
             my Mu $cap := pir::find_lex__Ps('call_sig');
@@ -86,7 +88,7 @@ my class Routine {
     
     method unwrap($handle) {
         $handle.can('restore') && $handle.restore() ||
-            die("Invalid wrap handle passed to routine")
+            die(X::Routine::Unwrap.new())
     }
     
     method yada() {

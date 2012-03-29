@@ -31,6 +31,7 @@ MAIN: {
     GetOptions(\%options, 'help!', 'prefix=s',
                'with-nqp=s', 'gen-nqp:s',
                'with-parrot=s', 'gen-parrot:s', 'parrot-option=s@',
+               'parrot-make-option=s@',
                'make-install!', 'makefile-timing!',
                );
 
@@ -162,6 +163,9 @@ General Options:
                        Download and build a copy of Parrot
         --parrot-option='--option'
                        Options to pass to Parrot's Configure.pl
+        --parrot-make-option='--option'
+                       Options to pass to Parrot's make, for example:
+                       --parrot-make-option='--jobs=4'
     --makefile-timing  Enable timing of individual makefile commands
 
 Configure.pl also reads options from 'config.default' in the current directory.

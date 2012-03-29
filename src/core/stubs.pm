@@ -4,13 +4,15 @@
 # in Perl6::Metamodel for now, though should be a BEGIN block in CORE.setting
 # in the end.
 my class Whatever { ... }
-my class Bag is Iterable does Associative { }
-my class Set is Iterable does Associative { }
+my class Bag { ... }
+my class KeyBag { ... }
+my class KeySet { ... }
 my class KeyHash is Iterable does Associative { }
 my class Seq is List does Positional { }
 my class Exception { ... }
 my class X::AdHoc  { ... }
 my class FatRat    { ... }
+my class Enum      { ... }
 
 sub DYNAMIC(\$name) is rw { 
     my Mu $x := pir::find_dynamic_lex__Ps(nqp::unbox_s($name));

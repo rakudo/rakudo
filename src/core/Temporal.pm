@@ -95,7 +95,7 @@ my role Dateish {
             or die X::OutOfRange.new(
                         what    => $name,
                         got     => $val,
-                        range   => $range.perl,
+                        range   => $range,
                    );
     }
   

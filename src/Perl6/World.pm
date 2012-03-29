@@ -35,6 +35,9 @@ class Perl6::World is HLL::World {
     # outermost frame is at the bottom, the latest frame is on top.
     has @!BLOCKS;
     
+    # The stack of code objects; phasers get attached to the top one.
+    has @!CODES;
+    
     # Mapping of sub IDs to their proto code objects; used for fixing
     # up in dynamic compilation.
     has %!sub_id_to_code_object;
@@ -42,11 +45,17 @@ class Perl6::World is HLL::World {
     # Mapping of sub IDs to their static lexpad objects.
     has %!sub_id_to_static_lexpad;
     
+    # Mapping of sub IDs to SC indexes of code stubs.
+    has %!sub_id_to_sc_idx;
+    
     # Array of stubs to check and the end of compilation.
     has @!stub_check;
     
     # Cached constants that we've built.
     has %!const_cache;
+    
+    # List of CHECK blocks to run.
+    has @!CHECKs;
     
     # Creates a new lexical scope and puts it on top of the stack.
     method push_lexpad($/) {
@@ -77,21 +86,19 @@ class Perl6::World is HLL::World {
         }
         
         # Create it a static lexpad object.
-        my $slp_type_obj     := self.find_symbol(['StaticLexPad']);
-        my $slp_type_obj_ref := self.get_ref($slp_type_obj);
-        my $slp              := nqp::create($slp_type_obj);
-        my $slot             := self.add_object($slp);
+        my $slp_type_obj := self.find_symbol(['StaticLexPad']);
+        my $slp          := nqp::create($slp_type_obj);
+        nqp::bindattr($slp, $slp_type_obj, '%!static_values', nqp::hash());
+        nqp::bindattr($slp, $slp_type_obj, '%!flags', nqp::hash());
         
-        # Deserialization code creates the static lexpad. Both that and the
-        # fixup need to associate it with the low-level LexInfo.
-        my $des := self.add_object_to_cur_sc_past($slot, PAST::Op.new(
-            :pirop('repr_instance_of PP'), $slp_type_obj_ref
-        ));
-        my $fix := PAST::Op.new(
+        # Deserialization and fixup need to associate static lex pad with the
+        # low-level LexInfo.
+        self.add_object($slp);
+        my $fixup := PAST::Op.new(
             :pasttype('callmethod'), :name('set_static_lexpad'),
             PAST::Val.new( :value($pad), :returns('LexInfo')),
             self.get_ref($slp));
-        self.add_event(:deserialize_past(PAST::Stmts.new($des, $fix)), :fixup_past($fix));
+        self.add_fixup_task(:deserialize_past($fixup), :fixup_past($fixup));
         
         # Stash it under the PAST block sub ID.
         %!sub_id_to_static_lexpad{$pad.subid()} := $slp;
@@ -122,7 +129,7 @@ class Perl6::World is HLL::World {
     }
     
     # Checks for any stubs that weren't completed.
-    method assert_stubs_defined() {
+    method assert_stubs_defined($/) {
         my @incomplete;
         for @!stub_check {
             unless $_.HOW.is_composed($_) {
@@ -130,13 +137,12 @@ class Perl6::World is HLL::World {
             }
         }
         if +@incomplete {
-            pir::die("The following packages were stubbed but not defined:\n    " ~
-                pir::join("\n    ", @incomplete) ~ "\n");
+            self.throw($/, 'X::Package::Stubbed', packages => @incomplete);
         }
     }
     
     # Loads a setting.
-    method load_setting($setting_name) {
+    method load_setting($/, $setting_name) {
         # Do nothing for the NULL setting.
         if $setting_name ne 'NULL' {    
             # Load it immediately, so the compile time info is available.
@@ -145,7 +151,7 @@ class Perl6::World is HLL::World {
             my $setting := %*COMPILING<%?OPTIONS><outer_ctx>
                         := Perl6::ModuleLoader.load_setting($setting_name);
             
-            # Do load in code.
+            # Add a fixup and deserialization task also.
             my $fixup := PAST::Stmt.new(
                 self.perl6_module_loader_code(),
                 PAST::Op.new(
@@ -158,7 +164,7 @@ class Perl6::World is HLL::World {
                     )
                 )
             );
-            self.add_event(:deserialize_past($fixup), :fixup_past($fixup));
+            self.add_load_dependency_task(:deserialize_past($fixup), :fixup_past($fixup));
             
             return pir::getattribute__PPs($setting, 'lex_pad');
         }
@@ -166,19 +172,18 @@ class Perl6::World is HLL::World {
     
     # Loads a module immediately, and also makes sure we load it
     # during the deserialization.
-    method load_module($module_name, $cur_GLOBALish) {
+    method load_module($/, $module_name, $cur_GLOBALish) {
         # Immediate loading.
         my $module := Perl6::ModuleLoader.load_module($module_name, $cur_GLOBALish);
         
-        # Make sure we do the loading during deserialization.
+        # During deserialization, ensure that we get this module loaded.
         if self.is_precompilation_mode() {
-            self.add_event(:deserialize_past(PAST::Stmts.new(
+            self.add_load_dependency_task(:deserialize_past(PAST::Stmts.new(
                 self.perl6_module_loader_code(),
                 PAST::Op.new(
                    :pasttype('callmethod'), :name('load_module'),
                    PAST::Var.new( :name('ModuleLoader'), :namespace([]), :scope('package') ),
-                   $module_name,
-                   self.get_slot_past_for_object($cur_GLOBALish)
+                   $module_name
                 ))));
         }
 
@@ -201,8 +206,7 @@ class Perl6::World is HLL::World {
                             'nqp' ),
                         'ModuleLoader'),
                     1),
-                'Perl6::ModuleLoader',
-                self.get_slot_past_for_object($*W.pkg_create_mo(pir::get_knowhow__P()))
+                'Perl6::ModuleLoader'
             ))
     }
     
@@ -225,30 +229,9 @@ class Perl6::World is HLL::World {
         }
         
         # Second pass: stick it in the actual static lexpad.
-        my $slp     := self.get_static_lexpad($target);
-        my $slp_ref := self.get_ref($slp);
-        my $des := PAST::Stmts.new();
+        my $slp := self.get_static_lexpad($target);
         for %stash {
             $slp.add_static_value($_.key, $_.value, 0, 0);
-            if self.is_precompilation_mode() {
-                $des.push(PAST::Op.new(
-                    :pasttype('callmethod'), :name('add_static_value'),
-                    $slp_ref, $_.key,
-                    PAST::Var.new(
-                        :scope('keyed'),
-                        PAST::Op.new(
-                            :pirop('get_who PP'),
-                            self.get_ref($package)
-                        ),
-                        $_.key
-                    ),
-                    0, 0
-                ));
-            }
-        }
-        
-        if self.is_precompilation_mode() {
-            self.add_event(:deserialize_past($des));
         }
 
         1;
@@ -274,7 +257,10 @@ class Perl6::World is HLL::World {
         
         # Can only install packages as our or my scope.
         unless $create_scope eq 'my' || $create_scope eq 'our' {
-            $/.CURSOR.panic("Cannot use $*SCOPE scope with $pkgdecl");
+            self.throw($/, 'X::Declaration::Scope',
+                scope       => $*SCOPE,
+                declaration => $pkgdecl,
+            );
         }
         
         # If we have a multi-part name, see if we know the opening
@@ -295,7 +281,7 @@ class Perl6::World is HLL::World {
                 $cur_pkg := ($cur_pkg.WHO){$part};
             }
             else {
-                my $new_pkg := self.pkg_create_mo(%*HOW<package>, :name($part));
+                my $new_pkg := self.pkg_create_mo($/, %*HOW<package>, :name($part));
                 self.pkg_compose($new_pkg);
                 if $create_scope eq 'my' || $cur_lex {
                     self.install_lexical_symbol($cur_lex, $part, $new_pkg);
@@ -327,13 +313,6 @@ class Perl6::World is HLL::World {
     # .WHO we already created for the stub package A.
     method steal_WHO($thief, $victim) {
         pir::set_who__vP($thief, $victim.WHO);
-        if self.is_precompilation_mode() {
-            self.add_event(:deserialize_past(PAST::Op.new(
-                :pirop('set_who vP'),
-                self.get_ref($thief),
-                PAST::Op.new( :pirop('get_who PP'),
-                    self.get_ref($victim)))));
-        }
     }
     
     # Installs a lexical symbol. Takes a PAST::Block object, name and
@@ -348,11 +327,7 @@ class Perl6::World is HLL::World {
         $block.symbol($name, :scope('lexical_6model'), :value($obj));
         
         # Add a clone if needed.
-        # XXX Horrible workaround here. We don't have proper serialization
-        # yet, and if we look up a cloned trait_mod (e.g. from the setting)
-        # then the serialization will blow up when we apply the trait. For
-        # now we just skip these, until the serializer lands.
-        if $clone && pir::substr($name, 0, 11) ne '&trait_mod:' {
+        if $clone {
             $block[0].push(PAST::Op.new(
                 :pasttype('bind_6model'),
                 PAST::Var.new( :name($name), :scope('lexical_6model') ),
@@ -362,16 +337,9 @@ class Perl6::World is HLL::World {
                 )));
         }
         
-        # Add to static lexpad, and generate deserialization code.
+        # Add to static lexpad.
         my $slp := self.get_static_lexpad($block);
         $slp.add_static_value(~$name, $obj, 0, 0);
-        if self.is_precompilation_mode() {
-            self.add_event(:deserialize_past(PAST::Stmt.new(PAST::Op.new(
-                :pasttype('callmethod'), :name('add_static_value'),
-                self.get_ref($slp), 
-                ~$name, self.get_ref($obj), 0, 0
-            ))));
-        }
 
         1;
     }
@@ -403,27 +371,18 @@ class Perl6::World is HLL::World {
             return 1;
         }
         
-        # Build container, as well as code to deserialize it.
-        my $cont_code := self.build_container_past(%cont_info, $descriptor);
-        my $cont := pir::repr_instance_of__PP(%cont_info<container_type>);
-        pir::setattribute__vPPsP($cont, %cont_info<container_base>, '$!descriptor', $descriptor);
+        # Build container.
+        my $cont := nqp::create(%cont_info<container_type>);
+        nqp::bindattr($cont, %cont_info<container_base>, '$!descriptor', $descriptor);
         if pir::exists(%cont_info, 'default_value') {
-            pir::setattribute__vPPsP($cont, %cont_info<container_base>, '$!value',
+            nqp::bindattr($cont, %cont_info<container_base>, '$!value',
                 %cont_info<default_value>);
         }
         $block.symbol($name, :value($cont));
         
-        # Add container to static lexpad immediately, and make deserialization
-        # code to also do so.
+        # Add container to static lexpad.
         my $slp := self.get_static_lexpad($block);
         $slp.add_static_value(~$name, $cont, 1, ($state ?? 1 !! 0));
-        if self.is_precompilation_mode() {
-            self.add_event(:deserialize_past(PAST::Stmt.new(PAST::Op.new(
-                :pasttype('callmethod'), :name('add_static_value'),
-                self.get_ref($slp), 
-                ~$name, $cont_code, 1, ($state ?? 1 !! 0)
-            ))));
-        }
 
         1;
     }
@@ -472,26 +431,9 @@ class Perl6::World is HLL::World {
         pir::die("Could not find container descriptor for $name");
     }
     
-    # Installs a symbol into the package. Does so immediately, and
-    # makes sure this happens on deserialization also.
+    # Installs a symbol into the package.
     method install_package_symbol($package, $name, $obj) {
-        # Install symbol immediately.
         ($package.WHO){$name} := $obj;
-        
-        # Add deserialization installation of the symbol.
-        if self.is_precompilation_mode() {
-            my $package_ref := self.get_ref($package);
-            self.add_event(:deserialize_past(PAST::Op.new(
-                :pasttype('bind_6model'),
-                PAST::Var.new(
-                    :scope('keyed'),
-                    PAST::Op.new( :pirop('get_who PP'), $package_ref ),
-                    ~$name
-                ),
-                self.get_ref($obj)
-            )));
-        }
-
         1;
     }
     
@@ -499,8 +441,8 @@ class Perl6::World is HLL::World {
     method create_parameter(%param_info) {
         # Create parameter object now.
         my $par_type  := self.find_symbol(['Parameter']);
-        my $parameter := pir::repr_instance_of__PP($par_type);
-        my $slot      := self.add_object($parameter);
+        my $parameter := nqp::create($par_type);
+        self.add_object($parameter);
         
         # Calculate flags.
         my $flags := 0;
@@ -602,87 +544,6 @@ class Perl6::World is HLL::World {
         if pir::exists(%param_info, 'sub_signature') {
             nqp::bindattr($parameter, $par_type, '$!sub_signature', %param_info<sub_signature>);
         }
-        
-        # Create PAST to make it when deserializing.
-        if self.is_precompilation_mode() {
-            my $obj_reg := PAST::Var.new( :name('$P0'), :scope('register') );
-            my $class_reg := PAST::Var.new( :name('$P1'), :scope('register') );
-            my $set_attrs := PAST::Stmts.new( );
-            self.add_event(:deserialize_past(PAST::Stmts.new(
-                PAST::Op.new(
-                    :pasttype('bind'), $class_reg,
-                    self.get_ref($par_type)
-                ),
-                self.add_object_to_cur_sc_past($slot, PAST::Op.new(
-                    :pasttype('bind_6model'), $obj_reg,
-                    PAST::Op.new(
-                        :pirop('repr_instance_of PP'),
-                        $class_reg
-                    ))),
-                $set_attrs
-            )));
-            
-            # Set name if there is one.
-            if pir::exists(%param_info, 'variable_name') {
-                $set_attrs.push(self.set_attribute_typed($obj_reg, $class_reg,
-                    '$!variable_name', %param_info<variable_name>, str));
-            }
-            
-            # Set nominal type.
-            $set_attrs.push(self.set_attribute_reg($obj_reg, $class_reg, '$!nominal_type',
-                self.get_ref(%param_info<nominal_type>)));
-            
-            # Set flags.
-            $set_attrs.push(self.set_attribute_typed($obj_reg, $class_reg,
-                '$!flags', $flags, int));
-            
-            # Set named names up, for named parameters.
-            if %param_info<named_names> {
-                my @names := %param_info<named_names>;
-                $set_attrs.push(self.set_attribute_reg($obj_reg, $class_reg, '$!named_names',
-                    PAST::Op.new( :pasttype('list'), |@names )));
-            }
-            
-            # Set type captures up.
-            if %param_info<type_captures> {
-                my @type_names := %param_info<type_captures>;
-                $set_attrs.push(self.set_attribute_reg($obj_reg, $class_reg, '$!type_captures',
-                    PAST::Op.new( :pasttype('list'), |@type_names )));
-            }
-            
-            # Post constraints.
-            if %param_info<post_constraints> {
-                $set_attrs.push(self.set_attribute_reg($obj_reg, $class_reg, '$!post_constraints',
-                    (my $con_list := PAST::Op.new( :pasttype('list') ))));
-                for %param_info<post_constraints> {
-                    $con_list.push(self.get_ref($_));
-                }
-            }
-            
-            # Set default value thunk up, if there is one.
-            if pir::exists(%param_info, 'default_value') {
-                $set_attrs.push(self.set_attribute_reg($obj_reg, $class_reg, '$!default_value',
-                    self.get_ref(%param_info<default_value>)));
-            }
-            
-            # Set container descriptor, if there is one.
-            if pir::exists(%param_info, 'container_descriptor') {
-                $set_attrs.push(self.set_attribute_reg($obj_reg, $class_reg, '$!container_descriptor',
-                    self.get_ref(%param_info<container_descriptor>)));
-            }
-            
-            # Set attributive bind package up, if there is one.
-            if pir::exists(%param_info, 'attr_package') {
-                $set_attrs.push(self.set_attribute_reg($obj_reg, $class_reg, '$!attr_package',
-                    self.get_ref(%param_info<attr_package>)));
-            }
-            
-            # Set sub-signature up, if there is one.
-            if pir::exists(%param_info, 'sub_signature') {
-                $set_attrs.push(self.set_attribute_reg($obj_reg, $class_reg, '$!sub_signature',
-                    self.get_ref(%param_info<sub_signature>)));
-            }
-        }
 
         # Return created parameter.
         $parameter
@@ -692,45 +553,55 @@ class Perl6::World is HLL::World {
     method create_signature(@parameters) {
         # Create signature object now.
         my $sig_type  := self.find_symbol(['Signature']);
-        my $signature := pir::repr_instance_of__PP($sig_type);
-        my $slot      := self.add_object($signature);
+        my $signature := nqp::create($sig_type);
+        self.add_object($signature);
         
         # Set parameters.
-        pir::setattribute__vPPsP($signature, $sig_type, '$!params', @parameters);
-        
-        # Create PAST to make it when deserializing.
-        if self.is_precompilation_mode() {
-            my $param_past := PAST::Op.new( :pasttype('list') );
-            for @parameters {
-                $param_past.push(self.get_slot_past_for_object($_));
-            }
-            self.add_event(:deserialize_past(PAST::Stmts.new(
-                self.add_object_to_cur_sc_past($slot, PAST::Op.new(
-                    :pirop('repr_instance_of PP'),
-                    self.get_ref($sig_type)
-                )),
-                self.set_attribute($signature, $sig_type, '$!params', $param_past)
-            )));
-        }
+        nqp::bindattr($signature, $sig_type, '$!params', @parameters);
         
         # Return created signature.
         $signature
     }
     
-    # Creates a code object and ensures that it gets fixed up with the compiled
-    # body at fixup time; during the deserialize we just set the already compiled
-    # output right into place. If we get a request to run the code before we did
-    # really compiling it, we can do that - we just dynamically compile it.
+    # Creates a code object of the specified type, attached the passed signature
+    # object and sets up dynamic compilation thunk.
     method create_code_object($code_past, $type, $signature, $is_dispatcher = 0, :$yada) {
+        my $code := self.stub_code_object($type);
+        self.attach_signature($code, $signature);
+        self.finish_code_object($code, $code_past, $is_dispatcher, :yada($yada));
+        $code
+    }
+    
+    # Stubs a code object of the specified type.
+    method stub_code_object($type) {
+        my $type_obj := self.find_symbol([$type]);
+        my $code     := nqp::create($type_obj);
+        @!CODES[+@!CODES] := $code;
+        self.add_object($code);
+        $code
+    }
+    
+    # Attaches a signature to a code object.
+    method attach_signature($code, $signature) {
+        my $code_type := self.find_symbol(['Code']);
+        nqp::bindattr($code, $code_type, '$!signature', $signature);
+    }
+    
+    # Takes a code object and the PAST::Block for its body.
+    method finish_code_object($code, $code_past, $is_dispatcher = 0, :$yada) {
         my $fixups := PAST::Stmts.new();
         my $des    := PAST::Stmts.new();
         
-        # Create code object now.
-        my $type_obj  := self.find_symbol([$type]);
-        my $code_type := self.find_symbol(['Code']);
-        my $slp_type  := self.find_symbol(['StaticLexPad']);
-        my $code      := pir::repr_instance_of__PP($type_obj);
-        my $slot      := self.add_object($code);
+        # Remove it from the code objects stack.
+        @!CODES.pop();
+        
+        # Handle any phasers.
+        self.add_phasers_handling_code($code, $code_past);
+                
+        # Locate various interesting symbols.
+        my $code_type    := self.find_symbol(['Code']);
+        my $routine_type := self.find_symbol(['Routine']);
+        my $slp_type     := self.find_symbol(['StaticLexPad']);
         
         # Attach code object to PAST node.
         $code_past<code_object> := $code;
@@ -752,7 +623,7 @@ class Perl6::World is HLL::World {
 
             # Also compile the candidates if this is a proto.
             if $is_dispatcher {
-                for nqp::getattr($code, $code_type, '$!dispatchees') {
+                for nqp::getattr($code, $routine_type, '$!dispatchees') {
                     my $stub := nqp::getattr($_, $code_type, '$!do');
                     my $past := pir::getprop__PsP('PAST_BLOCK', $stub);
                     if $past {
@@ -761,15 +632,32 @@ class Perl6::World is HLL::World {
                 }
             }
         };
-        my $stub := sub (*@pos, *%named) {
+        my $stub := pir::nqp_fresh_stub__PP(sub (*@pos, *%named) {
             unless $precomp {
                 $compiler_thunk();
             }
             $precomp(|@pos, |%named);
-        };
+        });
         pir::setprop__vPsP($stub, 'COMPILER_THUNK', $compiler_thunk);
         pir::set__vPS($stub, $code_past.name);
-        pir::setattribute__vPPsP($code, $code_type, '$!do', $stub);
+        nqp::bindattr($code, $code_type, '$!do', $stub);
+        
+        # Tag it as a static code ref and add it to the root code refs set.
+        pir::setprop__vPsP($stub, 'STATIC_CODE_REF', $stub);
+        pir::setprop__vPsP($stub, 'COMPILER_STUB', $stub);
+        my $code_ref_idx := self.add_root_code_ref($stub, $code_past);
+        %!sub_id_to_sc_idx{$code_past.subid()} := $code_ref_idx;
+        
+        # If we clone the stub, need to mark it as a dynamic compilation
+        # boundary.
+        if self.is_precompilation_mode() {
+            my $clone_handler := sub ($orig, $clone) {
+                my $do := nqp::getattr($clone, $code_type, '$!do');
+                pir::setprop__vPsP($do, 'COMPILER_STUB', $do);
+                pir::setprop__vPsP($do, 'CLONE_CALLBACK', $clone_handler);
+            };
+            pir::setprop__vPsP($stub, 'CLONE_CALLBACK', $clone_handler);
+        }
         
         # Fixup will install the real thing, unless we're in a role, in
         # which case pre-comp will have sorted it out.
@@ -809,38 +697,19 @@ class Perl6::World is HLL::World {
         # Desserialization should do the actual creation and just put the right
         # code in there in the first place.
         if self.is_precompilation_mode() {
-            $des.push(self.add_object_to_cur_sc_past($slot, PAST::Op.new(
-                :pirop('repr_instance_of PP'),
-                self.get_ref($type_obj)
-            )));
             $des.push(self.set_attribute($code, $code_type, '$!do', PAST::Val.new( :value($code_past) )));
-        }
-
-        # Install signauture now and add to deserialization.
-        pir::setattribute__vPPsP($code, $code_type, '$!signature', $signature);
-        if self.is_precompilation_mode() {
-            $des.push(self.set_attribute($code, $code_type, '$!signature', self.get_ref($signature)));
         }
         
         # If this is a dispatcher, install dispatchee list that we can
         # add the candidates too.
         if $is_dispatcher {
-            pir::setattribute__vPPsP($code, $code_type, '$!dispatchees', []);
-            if self.is_precompilation_mode() {
-                $des.push(self.set_attribute($code, $code_type, '$!dispatchees',
-                    PAST::Op.new( :pasttype('list') )));
-            }
+            nqp::bindattr($code, $routine_type, '$!dispatchees', []);
         }
         
         # Set yada flag if needed.
         if $yada {
             my $rtype := self.find_symbol(['Routine']);
             nqp::bindattr_i($code, $rtype, '$!yada', 1);
-            if self.is_precompilation_mode() {
-                $des.push(PAST::Op.new(
-                    :pirop('repr_bind_attr_int__vPPsi'),
-                    self.get_ref($code), self.get_ref($rtype), '$!yada', 1));
-            }
         }
 
         # Deserialization also needs to give the Parrot sub its backlink.
@@ -852,69 +721,99 @@ class Perl6::World is HLL::World {
         }
 
         # If it's a routine, flag that it needs fresh magicals.
-        if pir::type_check__IPP($code, self.find_symbol(['Routine'])) {
-            my $set := PAST::Op.new(
-                :pasttype('callmethod'), :name('set_fresh_magicals'),
-                PAST::Val.new( :value($code_past), :returns('LexInfo')));
-            $des.push($set);
-            $fixups.push($set);
+        if nqp::istype($code, $routine_type) {
+            self.get_static_lexpad($code_past).set_fresh_magicals();
         }
             
-        self.add_event(:deserialize_past($des), :fixup_past($fixups));
+        self.add_fixup_task(:deserialize_past($des), :fixup_past($fixups));
         $code;
+    }
+
+    method add_quasi_fixups($quasi_ast, $block) {
+        $quasi_ast := pir::nqp_decontainerize__PP($quasi_ast);
+        self.add_object($quasi_ast);
+        unless $quasi_ast.is_quasi_ast {
+            return "";
+        }
+        my $fixups := PAST::Op.new(:name<set_outer_ctx>, :pasttype<callmethod>,
+                                   PAST::Val.new(:value($block)),
+                                   PAST::Op.new(
+                                        :pirop<perl6_get_outer_ctx__PP>,
+                                        PAST::Var.new(
+                                            :scope<attribute_6model>,
+                                            :name<$!quasi_context>,
+                                            self.get_ref($quasi_ast),
+                                            self.get_ref(self.find_symbol(['AST']))
+                                        )
+                                   )
+                        );
+        self.add_fixup_task(:fixup_past($fixups));
+    }
+    
+    # Adds any extra code needing for handling phasers.
+    method add_phasers_handling_code($code, $code_past) {
+        my $block_type := self.find_symbol(['Block']);
+        if nqp::istype($code, $block_type) {
+            sub run_phasers_code($type) {
+                PAST::Op.new(
+                    :pasttype('for'),
+                    PAST::Var.new(
+                        :scope('keyed'),
+                        PAST::Var.new(
+                            :scope('attribute_6model'), :name('$!phasers'),
+                            $*W.get_ref($code),
+                            $*W.get_ref($block_type)
+                        ),
+                        $type
+                    ),
+                    PAST::Block.new(
+                        :blocktype('immediate'),
+                        PAST::Op.new(
+                            :pasttype('call'),
+                            PAST::Var.new( :scope('parameter'), :name('$_') )
+                        )))
+            }
+            my %phasers := nqp::getattr($code, $block_type, '$!phasers');
+            if pir::exists(%phasers, 'PRE') {
+                $code_past[0].push(PAST::Op.new( :pirop('perl6_set_checking_pre v') ));
+                $code_past[0].push(run_phasers_code('PRE'));
+                $code_past[0].push(PAST::Op.new( :pirop('perl6_clear_checking_pre v') ));
+            }
+            if pir::exists(%phasers, 'FIRST') {
+                $code_past[0].push(PAST::Op.new(
+                    :pasttype('if'),
+                    PAST::Op.new( :pirop('perl6_take_block_first_flag i') ),
+                    run_phasers_code('FIRST')));
+            }
+            if pir::exists(%phasers, 'ENTER') {
+                $code_past[0].push(run_phasers_code('ENTER'));
+            }
+            if pir::exists(%phasers, '!LEAVE-ORDER') || pir::exists(%phasers, 'POST') {
+                $code_past[+@($code_past) - 1] := PAST::Op.new(
+                    :pirop('perl6_returncc__0P'),
+                    $code_past[+@($code_past) - 1]);
+            }
+        }
     }
     
     # Adds a multi candidate to a proto/dispatch.
     method add_dispatchee_to_proto($proto, $candidate) {
-        # Add it to the list.
-        my $code_type := self.find_symbol(['Code']);
         $proto.add_dispatchee($candidate);
-        
-        # Deserializatin code to add it.
-        if self.is_precompilation_mode() {
-            self.add_event(:deserialize_past(PAST::Op.new(
-                :pasttype('callmethod'), :name('add_dispatchee'),
-                self.get_ref($proto),
-                self.get_ref($candidate)
-            )));
-        }
     }
     
     # Derives a proto to get a dispatch.
     method derive_dispatcher($proto) {
         # Immediately do so and add to SC.
         my $derived := $proto.derive_dispatcher();
-        my $slot    := self.add_object($derived);
-        
-        # Add deserialization action.
-        if self.is_precompilation_mode() {
-            my $des := PAST::Op.new(
-                :pasttype('callmethod'), :name('derive_dispatcher'),
-                self.get_ref($proto));
-            self.add_event(:deserialize_past(
-                self.add_object_to_cur_sc_past($slot, $des)));
-        }
-        
+        self.add_object($derived);
         return $derived;
     }
     
     # Creates a new container descriptor and adds it to the SC.
     method create_container_descriptor($of, $rw, $name) {
-        # Create descriptor object now.
         my $cd_type := self.find_symbol(['ContainerDescriptor']);
         my $cd      := pir::perl6_create_container_descriptor__PPPis($cd_type, $of, $rw, $name);
-        my $slot    := self.add_object($cd);
-        
-        # Create PAST to make it when deserializing.
-        if self.is_precompilation_mode() {
-            self.add_event(:deserialize_past(
-                self.add_object_to_cur_sc_past($slot, PAST::Op.new(
-                    :pirop('perl6_create_container_descriptor PPPis'),
-                    self.get_ref($cd_type),
-                    self.get_ref($of),
-                    $rw, $name))));
-        }
-
+        self.add_object($cd);
         $cd
     }
     
@@ -931,40 +830,13 @@ class Perl6::World is HLL::World {
             $value_past
         )
     }
-    
-    # Helper to make PAST for setting an attribute to a value. Value should
-    # be a PAST tree. Expects to be given registers with object and class in.
-    method set_attribute_reg($obj_reg, $class_reg, $name, $value_past) {
-        PAST::Op.new(
-            :pasttype('bind_6model'),
-            PAST::Var.new(
-                :name($name), :scope('attribute_6model'),
-                $obj_reg, $class_reg
-            ),
-            $value_past
-        )
-    }
-    
-    # Helper to make PAST for setting a typed attribute to a value. Value should
-    # be a PAST tree.
-    method set_attribute_typed($obj_reg, $class_reg, $name, $value_past, $type) {
-        PAST::Op.new(
-            :pasttype('bind_6model'),
-            PAST::Var.new(
-                :name($name), :scope('attribute_6model'), :type($type),
-                $obj_reg, $class_reg
-            ),
-            $value_past
-        )
-    }
 
     # Wraps a value in a scalar container
     method scalar_wrap($obj) {
         my $scalar_type := self.find_symbol(['Scalar']);
         my $scalar      := nqp::create($scalar_type);
-        my $slot        := self.add_object($scalar);
+        self.add_object($scalar);
         nqp::bindattr($scalar, $scalar_type, '$!value', $obj);
-        # XXX we do deserialization later...
         $scalar;
     }
     
@@ -1032,8 +904,15 @@ class Perl6::World is HLL::World {
             if pir::exists(%!sub_id_to_static_lexpad, $subid) {
                 $precomp[$i].get_lexinfo.set_static_lexpad(%!sub_id_to_static_lexpad{$subid});
             }
+            if pir::exists(%!sub_id_to_sc_idx, $subid) {
+                pir::setprop__vPsP($precomp[$i], 'STATIC_CODE_REF', $precomp[$i]);
+                self.update_root_code_ref(%!sub_id_to_sc_idx{$subid}, $precomp[$i]);
+            }
             $i := $i + 1;
         }
+        
+        # Flag block as dynamically compiled.
+        $past<DYNAMICALLY_COMPILED> := 1;
         
         # Return the Parrot Sub that maps to the thing we were originally
         # asked to compile.
@@ -1068,71 +947,32 @@ class Perl6::World is HLL::World {
         }
         
         # Find type object for the box typed we'll create.
-        # On deserialization, we'll need to look it up too.
         my $type_obj := self.find_symbol(pir::split('::', $type));
-        my $type_obj_lookup := self.get_ref($type_obj);
         
         # Go by the primitive type we're boxing. Need to create
         # the boxed value and also code to produce it.
         my $constant;
-        my $des;
         if $primitive eq 'int' {
             $constant := pir::repr_box_int__PiP(@value[0], $type_obj);
-            $des := PAST::Op.new( :pirop('repr_box_int PiP'), @value[0], $type_obj_lookup );
         }
         elsif $primitive eq 'str' {
             $constant := pir::repr_box_str__PsP(@value[0], $type_obj);
-            $des := PAST::Op.new( :pirop('repr_box_str PsP'), @value[0], $type_obj_lookup );
         }
         elsif $primitive eq 'num' {
             $constant := pir::repr_box_num__PnP(@value[0], $type_obj);
-            $des := PAST::Op.new( :pirop('repr_box_num PnP'), @value[0], $type_obj_lookup );
         }
         elsif $primitive eq 'bigint' {
             $constant := @value[0];
-            $des := PAST::Op.new( :pirop('nqp_bigint_from_str PsP'),
-                    nqp::tostr_I(@value[0]),
-                    $type_obj_lookup,
-                );
         }
         elsif $primitive eq 'type_new' {
             $constant := $type_obj.new(|@value, |%named);
-            if $type eq 'Rat' {
-                my $int_lookup := self.get_ref(self.find_symbol(['Int']));
-                my $nu := nqp::tostr_I(nqp::getattr($constant, $type_obj, '$!numerator'));
-                my $de := nqp::tostr_I(nqp::getattr($constant, $type_obj, '$!denominator'));
-                $des := PAST::Op.new(
-                    :pirop('repr_bind_attr_obj 0PPsP'),
-                    PAST::Op.new(
-                        :pirop('repr_bind_attr_obj 0PPsP'),
-                        PAST::Op.new( :pirop('repr_instance_of PP'), $type_obj_lookup ),
-                        $type_obj_lookup, '$!numerator',
-                        PAST::Op.new( :pirop('nqp_bigint_from_str PsP'), $nu, $int_lookup)),
-                    $type_obj_lookup, '$!denominator',
-                    PAST::Op.new( :pirop('nqp_bigint_from_str PsP'), $de, $int_lookup));
-            }
-            else {
-                $des := PAST::Op.new(
-                    :pasttype('callmethod'), :name('new'),
-                    $type_obj_lookup
-                );
-                $des.push(self.get_ref(nqp::shift(@value)))
-                    while @value;
-                for %named {
-                    my $x := self.get_ref($_.value);
-                    $x.named($_.key);
-                    $des.push($x);
-                }
-            }
         }
         else {
             pir::die("Don't know how to build a $primitive constant");
         }
         
-        # Add to SC, finish up deserialization code.
-        my $slot := self.add_object($constant);
-        self.add_event(:deserialize_past(
-            self.add_object_to_cur_sc_past($slot, $des)));
+        # Add to SC.
+        self.add_object($constant);
         
         # Build PAST for getting the boxed constant from the constants
         # table, but also annotate it with the constant itself in case
@@ -1189,18 +1029,16 @@ class Perl6::World is HLL::World {
         $past;
     }
     
-    # XXX This needs doing properly...though it'd be trivial if we had
-    # proper serialization.
+    # Adds the result of a constant folding operation to the SC and
+    # returns a reference to it.
     method add_constant_folded_result($r) {
-        my $result := PAST::Op.new();
-        $result<has_compile_time_value> := 1;
-        $result<compile_time_value> := $r;
-        $result
+        self.add_object($r);
+        self.get_ref($r);
     }
 
     # Creates a meta-object for a package, adds it to the root objects and
-    # stores an event for the action. Returns the created object.
-    method pkg_create_mo($how, :$name, :$repr, *%extra) {
+    # returns the created object.
+    method pkg_create_mo($/, $how, :$name, :$repr, *%extra) {
         # Create the meta-object and add to root objects.
         my %args;
         if pir::defined($name) { %args<name> := ~$name; }
@@ -1215,35 +1053,7 @@ class Perl6::World is HLL::World {
             %args<signatured> := %extra<signatured>;
         }
         my $mo := $how.new_type(|%args);
-        my $slot := self.add_object($mo);
-        
-        # Add an event. There's no fixup to do, just a type object to create
-        # on deserialization.
-        if self.is_precompilation_mode() {
-            my $setup_call := PAST::Op.new(
-                :pasttype('callmethod'), :name('new_type'),
-                self.get_ref($how)
-            );
-            if pir::defined($name) {
-                $setup_call.push(PAST::Val.new( :value(~$name), :named('name') ));
-            }
-            if pir::defined($repr) {
-                $setup_call.push(PAST::Val.new( :value(~$repr), :named('repr') ));
-            }
-            if pir::exists(%extra, 'base_type') {
-                $setup_call.push(my $ref := self.get_ref(%extra<base_type>));
-                $ref.named('base_type');
-            }
-            if pir::exists(%extra, 'group') {
-                $setup_call.push(my $ref := self.get_ref(%extra<group>));
-                $ref.named('group');
-            }
-            if pir::exists(%extra, 'signatured') && %extra<signatured> {
-                $setup_call.push(PAST::Val.new( :value(1), :named('signatured') ));
-            }
-            self.add_event(:deserialize_past(
-                self.add_object_to_cur_sc_past($slot, $setup_call)));
-        }
+        self.add_object($mo);
 
         # Result is just the object.
         return $mo;
@@ -1254,14 +1064,13 @@ class Perl6::World is HLL::World {
     # arguments to pass and a set of name to object mappings to pass also
     # as named arguments, but where these passed objects also live in a
     # serialization context. The type would be passed in this way.
-    method pkg_add_attribute($obj, $meta_attr, %lit_args, %obj_args,
+    method pkg_add_attribute($/, $obj, $meta_attr, %lit_args, %obj_args,
             %cont_info, $descriptor) {
-        # Build container, and create container PAST for deserialize.
-        my $cont_past := self.build_container_past(%cont_info, $descriptor);
-        my $cont := pir::repr_instance_of__PP(%cont_info<container_type>);
-        pir::setattribute__vPPsP($cont, %cont_info<container_base>, '$!descriptor', $descriptor);
+        # Build container.
+        my $cont := nqp::create(%cont_info<container_type>);
+        nqp::bindattr($cont, %cont_info<container_base>, '$!descriptor', $descriptor);
         if pir::exists(%cont_info, 'default_value') {
-            pir::setattribute__vPPsP($cont, %cont_info<container_base>, '$!value',
+            nqp::bindattr($cont, %cont_info<container_base>, '$!value',
                 %cont_info<default_value>);
         }
         
@@ -1269,75 +1078,21 @@ class Perl6::World is HLL::World {
         # it to the SC.
         my $attr := $meta_attr.new(:auto_viv_container($cont), |%lit_args, |%obj_args);
         $obj.HOW.add_attribute($obj, $attr);
-        my $slot := self.add_object($attr);
+        self.add_object($attr);
         
-        # Emit code to create attribute deserializing.
-        if self.is_precompilation_mode() {
-            $cont_past.named('auto_viv_container');
-            my $create_call := PAST::Op.new(
-                :pasttype('callmethod'), :name('new'),
-                self.get_ref($meta_attr),
-                $cont_past
-            );
-            for %lit_args {
-                $create_call.push(PAST::Val.new( :value($_.value), :named($_.key) ));
-            }
-            for %obj_args {
-                my $lookup := self.get_ref($_.value);
-                $lookup.named($_.key);
-                $create_call.push($lookup);
-            }
-            self.add_event(:deserialize_past(
-                self.add_object_to_cur_sc_past($slot, $create_call)));
-
-            # Emit code to add attribute when deserializing.
-            my $obj_slot_past := self.get_ref($obj);
-            self.add_event(:deserialize_past(PAST::Op.new(
-                :pasttype('callmethod'), :name('add_attribute'),
-                PAST::Op.new( :pirop('get_how PP'), $obj_slot_past ),
-                $obj_slot_past,
-                self.get_ref($attr)
-            )));
-        }
-
         # Return attribute that was built.
         $attr
     }
     
-    # Adds a method to the meta-object, and stores an event for the action.
-    method pkg_add_method($obj, $meta_method_name, $name, $code_object) {
-        # Add it to the compile time meta-object.
+    # Adds a method to the meta-object.
+    method pkg_add_method($/, $obj, $meta_method_name, $name, $code_object) {
         $obj.HOW."$meta_method_name"($obj, $name, $code_object);
-        
-        # Add call to add the method at deserialization time.
-        if self.is_precompilation_mode() {
-            my $slot_past := self.get_ref($obj);
-            self.add_event(
-                :deserialize_past(PAST::Op.new(
-                    :pasttype('callmethod'), :name($meta_method_name),
-                    PAST::Op.new( :pirop('get_how PP'), $slot_past ),
-                    $slot_past,
-                    $name,
-                    self.get_ref($code_object)
-                )));
-        }
     }
     
     # Handles setting the body block code for a role.
-    method pkg_set_role_body_block($obj, $code_object, $past) {
+    method pkg_set_role_body_block($/, $obj, $code_object, $past) {
         # Add it to the compile time meta-object.
         $obj.HOW.set_body_block($obj, $code_object);
-        
-        # Add call to do it at deserialization time.
-        if self.is_precompilation_mode() {
-            my $slot_past := self.get_ref($obj);
-            self.add_event(:deserialize_past(PAST::Op.new(
-                :pasttype('callmethod'), :name('set_body_block'),
-                PAST::Op.new( :pirop('get_how PP'), $slot_past ),
-                $slot_past,
-                self.get_ref($code_object)
-            )));
-        }
 
         # Compile it immediately (we always compile role bodies as
         # early as possible, but then assume they don't need to be
@@ -1347,36 +1102,13 @@ class Perl6::World is HLL::World {
     }
     
     # Adds a possible role to a role group.
-    method pkg_add_role_group_possibility($group, $role) {
-        # Do it immediately.
+    method pkg_add_role_group_possibility($/, $group, $role) {
         $group.HOW.add_possibility($group, $role);
-    
-        # Add call to do it at deserialization time.
-        if self.is_precompilation_mode() {
-            my $slot_past := self.get_ref($group);
-            self.add_event(:deserialize_past(PAST::Op.new(
-                :pasttype('callmethod'), :name('add_possibility'),
-                PAST::Op.new( :pirop('get_how PP'), $slot_past ),
-                $slot_past,
-                self.get_ref($role)
-            )));
-        }
     }
     
     # Composes the package, and stores an event for this action.
     method pkg_compose($obj) {
-        # Compose.
         $obj.HOW.compose($obj);
-        
-        # Emit code to do the composition when deserializing.
-        if self.is_precompilation_mode() {
-            my $slot_past := self.get_ref($obj);
-            self.add_event(:deserialize_past(PAST::Op.new(
-                :pasttype('callmethod'), :name('compose'),
-                PAST::Op.new( :pirop('get_how PP'), $slot_past ),
-                $slot_past
-            )));
-        }
     }
     
     # Builds a curried role based on a parsed argument list.
@@ -1406,27 +1138,7 @@ class Perl6::World is HLL::World {
     method parameterize_type_with_args($role, @pos_args, %named_args) {
         # Make the curry right away and add it to the SC.
         my $curried := $role.HOW.parameterize($role, |@pos_args, |%named_args);
-        my $slot := self.add_object($curried);
-        
-        # Serialize call.
-        if self.is_precompilation_mode() {
-            my $rref := self.get_ref($role);
-            my $setup_call := PAST::Op.new(
-                :pasttype('callmethod'), :name('parameterize'),
-                PAST::Op.new( :pirop('get_how PP'), $rref ),
-                $rref
-            );
-            for @pos_args {
-                $setup_call.push(self.get_ref($_));
-            }
-            for %named_args {
-                $setup_call.push(my $arg := self.get_ref($_.value));
-                $arg.named($_.key);
-            }
-            self.add_event(:deserialize_past(
-                self.add_object_to_cur_sc_past($slot, $setup_call)));
-        }
-
+        self.add_object($curried);
         return $curried;
     }
     
@@ -1436,27 +1148,7 @@ class Perl6::World is HLL::World {
         my %args := hash(:refinee($refinee), :refinement($refinement));
         if pir::defined($name) { %args<name> := $name; }
         my $mo := $how.new_type(|%args);
-        my $slot := self.add_object($mo);
-        
-        # Add an event. There's no fixup to do, just a type object to create
-        # on deserialization.
-        if self.is_precompilation_mode() {
-            my $setup_call := PAST::Op.new(
-                :pasttype('callmethod'), :name('new_type'),
-                self.get_ref($how),
-                self.get_ref($refinement),
-                self.get_ref($refinee)
-            );
-            $setup_call[1].named('refinement');
-            $setup_call[2].named('refinee');
-            if pir::defined($name) {
-                $setup_call.push(PAST::Val.new( :value($name), :named('name') ));
-            }
-            self.add_event(:deserialize_past(
-                self.add_object_to_cur_sc_past($slot, $setup_call)));
-        }
-
-        # Result is just the object.
+        self.add_object($mo);
         return $mo;
     }
     
@@ -1465,39 +1157,13 @@ class Perl6::World is HLL::World {
         # Create directly.
         my $val       := pir::repr_box_int__PiP($value, $enum_type_obj);
         my $base_type := ($enum_type_obj.HOW.parents($enum_type_obj, :local(1)))[0];
-        pir::setattribute__vPPsP($val, $enum_type_obj, '$!key', $key);
-        pir::setattribute__vPPsP($val, $enum_type_obj, '$!value',
+        nqp::bindattr($val, $enum_type_obj, '$!key', $key);
+        nqp::bindattr($val, $enum_type_obj, '$!value',
             pir::repr_box_int__PiP($value, $base_type));
-        my $slot := self.add_object($val);
+        self.add_object($val);
         
         # Add to meta-object.
         $enum_type_obj.HOW.add_enum_value($enum_type_obj, $val);
-        
-        # Generate deserialization code.
-        if self.is_precompilation_mode() {
-            my $enum_type_obj_ref := self.get_ref($enum_type_obj);
-            my $base_type_ref := self.get_ref($base_type);
-            my $key_ref := self.get_ref($key);
-            my $val_ref := self.get_ref($val);
-            self.add_event(:deserialize_past(PAST::Stmts.new(            
-                self.add_object_to_cur_sc_past($slot,
-                    PAST::Op.new( :pirop('repr_box_int PiP'), $value, $enum_type_obj_ref )
-                ),
-                PAST::Op.new(
-                    :pirop('setattribute vPPsP'),
-                    $val_ref, $enum_type_obj_ref, '$!key', $key_ref
-                ),
-                PAST::Op.new(
-                    :pirop('setattribute vPPsP'),
-                    $val_ref, $enum_type_obj_ref, '$!value',
-                    PAST::Op.new( :pirop('repr_box_int PiP'), $value, $base_type_ref )
-                ),
-                PAST::Op.new(
-                    :pasttype('callmethod'), :name('add_enum_value'),
-                    PAST::Op.new( :pirop('get_how PP'), $enum_type_obj_ref ),
-                    $enum_type_obj_ref, $val_ref
-                ))));
-        }
 
         # Result is the value.
         $val
@@ -1505,73 +1171,57 @@ class Perl6::World is HLL::World {
     
     # Applies a trait.
     method apply_trait($trait_sub_name, *@pos_args, *%named_args) {
-        # Locate the trait sub to apply.
         my $trait_sub := $*W.find_symbol([$trait_sub_name]);
-        
-        # Call it right away.
         $trait_sub(|@pos_args, |%named_args);
-        
-        # Serialize call to it.
-        if self.is_precompilation_mode() {
-            my $call_past := PAST::Op.new(
-                :pasttype('call'),
-                self.get_ref($trait_sub));
-            for @pos_args {
-                $call_past.push(self.get_ref($_));
-            }
-            for %named_args {
-                my $lookup := self.get_ref($_.value);
-                $lookup.named($_.key);
-                $call_past.push($lookup);
-            }
-            self.add_event(:deserialize_past($call_past));
-        }
     }
     
     # Some things get cloned many times with a lexical scope that
-    # we never entered. This makes sure we capture them as needed.
-    # Yes, it's evil...find a vodka before reading, kthx.
+    # we never enter. This makes sure we capture them as needed.
     method create_lexical_capture_fixup() {
-        # Create an RPA and put it in the SC. Also code to build
-        # one and install it.
-        my $fixup_list := pir::new__Ps('ResizablePMCArray');
-        my $slot := self.add_code($fixup_list);
-        if self.is_precompilation_mode() {
-            self.add_event(:deserialize_past(
-                self.set_slot_past($slot, PAST::Op.new( :pasttype('list') ))));
-        }
+        # Create a list and put it in the SC.
+        my class FixupList { has $!list }
+        my $fixup_list := nqp::create(FixupList);
+        self.add_object($fixup_list);
+        nqp::bindattr($fixup_list, FixupList, '$!list', nqp::list());
 
         # Set up capturing code.
         my $capturer := self.cur_lexpad();
         $capturer[0].push(PAST::Op.new(
             :pirop('capture_all_outers vP'),
-            self.get_slot_past_for_object($fixup_list)));
+            PAST::Var.new(
+                :name('$!list'), :scope('attribute_6model'),
+                self.get_ref($fixup_list),
+                self.get_ref(FixupList) )));
         
-        # Return code that adds current context to re-capture
-        # list.
+        # Return a PAST node that we can push the dummy closure
         return PAST::Op.new(
             :pirop('push vPP'),
-            self.get_slot_past_for_object($fixup_list),
-            PAST::Op.new(
-                :pirop('set PQPS'),
-                PAST::Op.new( :pirop('getinterp P') ),
-                'context'));
+            PAST::Var.new(
+                :name('$!list'), :scope('attribute_6model'),
+                self.get_ref($fixup_list),
+                self.get_ref(FixupList) ));
     }
     
     # Handles addition of a phaser.
-    method add_phaser($/, $block, $phaser) {
+    method add_phaser($/, $phaser, $block, $phaser_past?) {
         if $phaser eq 'BEGIN' {
             # BEGIN phasers get run immediately.
-            $block();
+            my $result := $block();
+            return self.add_constant_folded_result($result);
         }
         elsif $phaser eq 'CHECK' {
-            @*CHECK_PHASERS.unshift($block);
+            my $result_node := PAST::Stmt.new( PAST::Var.new( :name('Nil'), :scope('lexical_6model') ) );
+            @!CHECKs := [] unless @!CHECKs;
+            @!CHECKs.unshift([$block, $result_node]);
+            return $result_node;
         }
         elsif $phaser eq 'INIT' {
             $*UNIT[0].push(PAST::Op.new(
                 :pasttype('call'),
                 self.get_ref($block)
             ));
+            # XXX should keep value for r-value usage
+            return PAST::Var.new(:name('Nil'), :scope('lexical_6model'));
         }
         elsif $phaser eq 'END' {
             $*UNIT[0].push(PAST::Op.new(
@@ -1579,9 +1229,80 @@ class Perl6::World is HLL::World {
                 PAST::Var.new( :name('@*END_PHASERS'), :scope('contextual') ),
                 self.get_ref($block)
             ));
+            return PAST::Var.new(:name('Nil'), :scope('lexical_6model'));
+        }
+        elsif $phaser eq 'START' {
+            # Create a state variable to hold the phaser's result.
+            my $pad := self.cur_lexpad();
+            my $sym := $pad.unique('START_');
+            my $mu := self.find_symbol(['Mu']);
+            my $descriptor := self.create_container_descriptor($mu, 1, $sym);
+            my %info;
+            %info<container_type> := %info<container_base> := self.find_symbol(['Scalar']);
+            %info<default_value> := %info<bind_constraint> := %info<value_type> := $mu;
+            self.install_lexical_container($pad, $sym, %info, $descriptor, :state(1));
+            
+            # Generate code that runs the phaser the first time we init
+            # the state block, or just evaluates to the existing value
+            # in other cases.
+            make PAST::Op.new(
+                :pasttype('if'),
+                PAST::Op.new( :pirop('perl6_state_needs_init I') ),
+                PAST::Op.new(
+                    :pirop('perl6_container_store__0PP'),
+                    PAST::Var.new( :name($sym), :scope('lexical_6model') ),
+                    PAST::Op.new( :pasttype('call'), $*W.get_ref($block) )
+                ),
+                PAST::Var.new( :name($sym), :scope('lexical_6model') ));
+        }
+        elsif $phaser eq 'PRE' || $phaser eq 'POST' {
+            my $what := self.add_string_constant($phaser);
+            $what.named('phaser');
+            my $condition := self.add_string_constant(~$/<blorst>);
+            $condition.named('condition');
+
+            $phaser_past[1] := PAST::Op.new(
+                :pasttype('unless'),
+                $phaser_past[1],
+                PAST::Op.new(
+                    :pasttype('callmethod'), :name('throw'),
+                    PAST::Op.new(
+                        :pasttype('callmethod'), :name('new'),
+                        self.get_ref(self.find_symbol(['X', 'Phaser', 'PrePost'])),
+                        $what,
+                        $condition,
+                    )
+                ),
+            );
+            
+            if $phaser eq 'POST' {
+                # Needs $_ that can be set to the return value.
+                $phaser_past[0].unshift(PAST::Op.new( :pirop('bind_signature v') ));
+                unless $phaser_past.symbol('$_') {
+                    $phaser_past[0].unshift(PAST::Var.new( :name('$_'), :scope('lexical_6model'), :isdecl(1) ));
+                }
+                nqp::push(
+                    nqp::getattr($block.signature, self.find_symbol(['Signature']), '$!params'),
+                    self.create_parameter(hash(
+                            variable_name => '$_', is_parcel => 1,
+                            nominal_type => self.find_symbol(['Mu'])
+                        )));
+            }
+            
+            @!CODES[+@!CODES - 1].add_phaser($phaser, $block);
+            return PAST::Var.new(:name('Nil'), :scope('lexical_6model'));
         }
         else {
-            $/.CURSOR.panic("$phaser phaser not yet implemented");
+            @!CODES[+@!CODES - 1].add_phaser($phaser, $block);
+            return PAST::Var.new(:name('Nil'), :scope('lexical_6model'));
+        }
+    }
+    
+    # Runs the CHECK phasers and twiddles the PAST to look them up.
+    method CHECK() {
+        for @!CHECKs {
+            my $result := $_[0]();
+            $_[1][0] := self.add_constant_folded_result($result);
         }
     }
     
@@ -1843,23 +1564,20 @@ class Perl6::World is HLL::World {
             }
         }
     }
-    
+
     # Generates a series of PAST operations that will build this context if
     # it doesn't exist, and fix it up if it already does.
     method to_past() {
-        my $des := PAST::Stmts.new();
-        my $fix := PAST::Stmts.new();
-        for self.event_stream() {
-            $des.push(PAST::Stmt.new($_.deserialize_past())) if pir::defined($_.deserialize_past());
-            $fix.push(PAST::Stmt.new($_.fixup_past())) if pir::defined($_.fixup_past());
-        }
-        make PAST::Op.new(
-            :pasttype('if'),
-            PAST::Op.new(
-                :pirop('isnull IP'),
-                PAST::Op.new( :pirop('nqp_get_sc Ps'), self.handle() )
-            ),
-            PAST::Stmts.new(
+        if self.is_precompilation_mode() {
+            my $load_tasks := PAST::Stmts.new();
+            for self.load_dependency_tasks() {
+                $load_tasks.push(PAST::Stmt.new($_));
+            }
+            my $fixup_tasks := PAST::Stmts.new();
+            for self.fixup_tasks() {
+                $fixup_tasks.push(PAST::Stmt.new($_));
+            }
+            return PAST::Stmts.new(
                 PAST::Op.new( :pirop('nqp_dynop_setup v') ),
                 PAST::Op.new( :pirop('nqp_bigint_setup v') ),
                 PAST::Op.new( :pirop('nqp_native_call_setup v') ),
@@ -1875,10 +1593,26 @@ class Perl6::World is HLL::World {
                     PAST::Var.new( :name('cur_sc'), :scope('register'), :isdecl(1) ),
                     PAST::Op.new( :pirop('nqp_create_sc Ps'), self.handle() )
                 ),
-                $des
-            ),
-            $fix
-        );
+                PAST::Op.new(
+                    :pasttype('callmethod'), :name('set_description'),
+                    PAST::Var.new( :name('cur_sc'), :scope('register') ),
+                    self.sc.description
+                ),
+                $load_tasks,
+                self.serialize_and_produce_deserialization_past('cur_sc'),
+                $fixup_tasks
+            )
+        }
+        else {
+            my $tasks := PAST::Stmts.new();
+            for self.load_dependency_tasks() {
+                $tasks.push(PAST::Stmt.new($_));
+            }
+            for self.fixup_tasks() {
+                $tasks.push(PAST::Stmt.new($_));
+            }
+            return $tasks
+        }
     }
 
     # throws a typed exception
@@ -1893,7 +1627,16 @@ class Perl6::World is HLL::World {
         if $type_found {
              %opts<line>     := HLL::Compiler.lineof($/.orig, $/.from);
             for %opts -> $p {
-                %opts{$p.key} := pir::perl6ize_type__PP($p.value);
+                if pir::does($p.value, 'array') {
+                    my @a := [];
+                    for $p.value {
+                        nqp::push(@a, pir::perl6ize_type__PP($_));
+                    }
+                    %opts{$p.key} := pir::perl6ize_type__PP(@a);
+                }
+                else {
+                    %opts{$p.key} := pir::perl6ize_type__PP($p.value);
+                }
             }
             my $file        := pir::find_caller_lex__ps('$?FILES');
             %opts<filename> := nqp::box_s(

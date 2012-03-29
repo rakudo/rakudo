@@ -99,7 +99,7 @@ class Perl6::Actions is HLL::Actions {
     # attribute/lexpad), bind constraint (what could we bind to this
     # slot later), and if specified a constraint on the inner value
     # and a default value.
-    sub container_type_info($sigil, @value_type, $shape?) {
+    sub container_type_info($/, $sigil, @value_type, $shape?) {
         my %info;
         if $sigil eq '@' {
             %info<container_base>  := $*W.find_symbol(['Array']);
@@ -116,7 +116,7 @@ class Perl6::Actions is HLL::Actions {
                 %info<value_type>     := $*W.find_symbol(['Mu']);
             }
             if $shape {
-                pir::die("Shaped arrays are not yet supported");
+                $*W.throw($/, 'X::Comp::NYI', feature => 'Shaped arrays');
             }
         }
         elsif $sigil eq '%' {
@@ -213,8 +213,14 @@ class Perl6::Actions is HLL::Actions {
     method comp_unit($/, $key?) {
         our $?RAKUDO_HLL;
 
+        # Finish up code object for the mainline.
+        if $*DECLARAND {
+            $*W.attach_signature($*DECLARAND, $*W.create_signature([]));
+            $*W.finish_code_object($*DECLARAND, $*UNIT);
+        }
+        
         # Checks.
-        $*W.assert_stubs_defined();
+        $*W.assert_stubs_defined($/);
 
         # Get the block for the unit mainline code.
         my $unit := $*UNIT;
@@ -244,9 +250,7 @@ class Perl6::Actions is HLL::Actions {
         ));
 
         # Mainline should have fresh lexicals.
-        $unit.loadinit().push(PAST::Op.new(
-            :pasttype('callmethod'), :name('set_fresh_magicals'),
-            PAST::Val.new( :value($unit), :returns('LexInfo'))));
+        $*W.get_static_lexpad($unit).set_fresh_magicals();
 
         # Get the block for the entire compilation unit.
         my $outer := $*UNIT_OUTER;
@@ -298,12 +302,6 @@ class Perl6::Actions is HLL::Actions {
             )
         );
 
-        # Add file annotation.
-        my $file := pir::find_caller_lex__ps('$?FILES');
-        unless pir::isnull($file) {
-            $outer.unshift(PAST::Op.new(:inline(".annotate 'file', '" ~ $file ~ "'")));
-        }
-
         # Pass some extra bits along to the optimizer.
         $outer<UNIT>      := $unit;
         $outer<GLOBALish> := $*GLOBALish;
@@ -318,7 +316,7 @@ class Perl6::Actions is HLL::Actions {
             # loading and importing
             # TODO: Skip importing and use a symbol_lookup when the
             # Pod::foo modules bug gets fixed
-            my $module := $*W.load_module('Pod::To::Text', $*GLOBALish);
+            my $module := $*W.load_module($/, 'Pod::To::Text', $*GLOBALish);
             if pir::exists($module, 'EXPORT') {
                 my $EXPORT := $module<EXPORT>.WHO;
                 if pir::exists($EXPORT, 'DEFAULT') {
@@ -343,7 +341,7 @@ class Perl6::Actions is HLL::Actions {
             );
             $*W.pop_lexpad();
             $*W.add_phaser(
-                $/, make_simple_code_object($block, 'Block'), 'INIT'
+                $/, 'INIT', make_simple_code_object($block, 'Block')
             );
         }
     }
@@ -623,8 +621,9 @@ class Perl6::Actions is HLL::Actions {
             # Then evaluate to a reference to the block (non-closure - higher
             # up stuff does that if it wants to).
             ($*W.cur_lexpad())[0].push(my $uninst := PAST::Stmts.new($block));
-            my $code := $*W.create_code_object($block, 'Block', $signature);
-            my $ref := reference_to_code_object($code, $block);
+            $*W.attach_signature($*DECLARAND, $signature);
+            $*W.finish_code_object($*DECLARAND, $block);
+            my $ref := reference_to_code_object($*DECLARAND, $block);
             $ref<uninstall_if_immediately_used> := $uninst;
             make $ref;
         }
@@ -644,8 +643,9 @@ class Perl6::Actions is HLL::Actions {
             );
         }
         ($*W.cur_lexpad())[0].push(my $uninst := PAST::Stmts.new($block));
-        my $code := $*W.create_code_object($block, 'Block', $*W.create_signature([]));
-        my $ref := reference_to_code_object($code, $block);
+        $*W.attach_signature($*DECLARAND, $*W.create_signature([]));
+        $*W.finish_code_object($*DECLARAND, $block);
+        my $ref := reference_to_code_object($*DECLARAND, $block);
         $ref<uninstall_if_immediately_used> := $uninst;
         make $ref;
     }
@@ -817,7 +817,7 @@ class Perl6::Actions is HLL::Actions {
 
     method statement_control:sym<require>($/) {
         if $<module_name> && $<EXPR> {
-            $*W.throw($/, ['X', 'NYI'],
+            $*W.throw($/, ['X', 'Comp', 'NYI'],
                 feature => 'require with argument list');
         }
         my $name_past := $<module_name>
@@ -882,13 +882,24 @@ class Perl6::Actions is HLL::Actions {
         make PAST::Var.new( :name('Nil'), :scope('lexical') );
     }
 
-    method statement_prefix:sym<BEGIN>($/) { $*W.add_phaser($/, ($<blorst>.ast)<code_object>, 'BEGIN'); }
-    method statement_prefix:sym<CHECK>($/) { $*W.add_phaser($/, ($<blorst>.ast)<code_object>, 'CHECK'); }
-    method statement_prefix:sym<INIT>($/)  { $*W.add_phaser($/, ($<blorst>.ast)<code_object>, 'INIT'); }
-    method statement_prefix:sym<END>($/)   { $*W.add_phaser($/, ($<blorst>.ast)<code_object>, 'END'); }
+    method statement_prefix:sym<BEGIN>($/) { make $*W.add_phaser($/, 'BEGIN', ($<blorst>.ast)<code_object>); }
+    method statement_prefix:sym<CHECK>($/) { make $*W.add_phaser($/, 'CHECK', ($<blorst>.ast)<code_object>); }
+    method statement_prefix:sym<INIT>($/)  { make $*W.add_phaser($/, 'INIT', ($<blorst>.ast)<code_object>); }
+    method statement_prefix:sym<START>($/) { make $*W.add_phaser($/, 'START', ($<blorst>.ast)<code_object>); }
+    method statement_prefix:sym<ENTER>($/) { make $*W.add_phaser($/, 'ENTER', ($<blorst>.ast)<code_object>); }
+    method statement_prefix:sym<FIRST>($/) { make $*W.add_phaser($/, 'FIRST', ($<blorst>.ast)<code_object>); }
+    
+    method statement_prefix:sym<END>($/)   { make $*W.add_phaser($/, 'END', ($<blorst>.ast)<code_object>); }
+    method statement_prefix:sym<LEAVE>($/) { make $*W.add_phaser($/, 'LEAVE', ($<blorst>.ast)<code_object>); }
+    method statement_prefix:sym<KEEP>($/)  { make $*W.add_phaser($/, 'KEEP', ($<blorst>.ast)<code_object>); }
+    method statement_prefix:sym<UNDO>($/)  { make $*W.add_phaser($/, 'UNDO', ($<blorst>.ast)<code_object>); }
+    method statement_prefix:sym<NEXT>($/)  { make $*W.add_phaser($/, 'NEXT', ($<blorst>.ast)<code_object>); }
+    method statement_prefix:sym<LAST>($/)  { make $*W.add_phaser($/, 'LAST', ($<blorst>.ast)<code_object>); }
+    method statement_prefix:sym<PRE>($/)   { make $*W.add_phaser($/, 'PRE', ($<blorst>.ast)<code_object>, ($<blorst>.ast)<past_block>); }
+    method statement_prefix:sym<POST>($/)  { make $*W.add_phaser($/, 'POST', ($<blorst>.ast)<code_object>, ($<blorst>.ast)<past_block>); }
 
     method statement_prefix:sym<DOC>($/)   {
-        $*W.add_phaser($/, ($<blorst>.ast)<code_object>, ~$<phase>)
+        $*W.add_phaser($/, ~$<phase>, ($<blorst>.ast)<code_object>)
             if %*COMPILING<%?OPTIONS><doc>;
     }
 
@@ -925,7 +936,7 @@ class Perl6::Actions is HLL::Actions {
                 PAST::Op.new(:pirop('perl6_container_store__0PP'),
                     PAST::Var.new(:name<$!>, :scope<lexical_6model>),
                     PAST::Op.new(:name<&EXCEPTION>, :pasttype<call>,
-                        PAST::Op.new(:inline("    .get_results (%r)")))));
+                        PAST::Op.new(:inline("    .get_results (%r)\n    \$P0 = null\n    perl6_invoke_catchhandler \$P0, %r")))));
 
             # Otherwise, put Mu into $!.
             $past.push(
@@ -1166,12 +1177,15 @@ class Perl6::Actions is HLL::Actions {
             if $sigil ne '&' && !$*IN_DECL && ($*QSIGIL eq '' || $*QSIGIL eq '$') && !$*W.is_lexical($name) {
                 $*W.throw($/, ['X', 'Undeclared'], symbol => $name);
             }
+            elsif $sigil eq '&' {
+                $past.viviself(PAST::Var.new(:name('Nil'), :scope('lexical_6model')));
+            }
 
             # Expect variable to have been declared somewhere.
             # Locate descriptor and thus type.
+            $past.scope('lexical_6model');
             try {
                 my $type := $*W.find_lexical_container_type($past.name);
-                $past.scope('lexical_6model');
                 $past.type($type);
                 $past := box_native_if_needed($past, $type);
             }
@@ -1212,7 +1226,9 @@ class Perl6::Actions is HLL::Actions {
     }
 
     method package_declarator:sym<also>($/) {
-        $*W.throw($/, ['X', 'NYI'], feature => 'also');
+        for $<trait> {
+            if $_.ast { ($_.ast)($*DECLARAND) }
+        }
     }
 
     method package_def($/) {
@@ -1265,9 +1281,24 @@ class Perl6::Actions is HLL::Actions {
             add_signature_binding_code($block, $sig, @params);
             $block.blocktype('declaration');
 
-            # Need to ensure we get lexical outers fixed up
-            # properly.
-            $block.push($*W.create_lexical_capture_fixup());
+            # Need to ensure we get lexical outers fixed up properly. To
+            # do this we make a list of closures, which each point to the
+            # outer context. These surive serialization and thus point at
+            # what has to be fixed up.
+            my $throwaway_block_past := PAST::Block.new( 
+                :blocktype('declaration'),
+                PAST::Var.new( :name('$_'), :scope('lexical'), :isdecl(1) )
+            );
+            $throwaway_block_past<outer> := $block;
+            $block[0].push($throwaway_block_past);
+            my $throwaway_block := $*W.create_code_object($throwaway_block_past,
+                'Block', $*W.create_signature([]));
+            my $fixup := $*W.create_lexical_capture_fixup();
+            $fixup.push(PAST::Op.new(
+                :pasttype('callmethod'), :name('clone'),
+                $*W.get_ref($throwaway_block)
+            ));
+            $block.push($fixup);
 
             # As its last act, it should grab the current lexpad so that
             # we have the type environment, and also return the parametric
@@ -1282,8 +1313,8 @@ class Perl6::Actions is HLL::Actions {
                     'lexpad')));
 
             # Create code object and add it as the role's body block.
-            my $code := $*W.create_code_object($block, 'Block', $sig);
-            $*W.pkg_set_role_body_block($*PACKAGE, $code, $block);
+            my $code := $*W.create_code_object($block, 'Sub', $sig);
+            $*W.pkg_set_role_body_block($/, $*PACKAGE, $code, $block);
             
             # Compose before we add the role to the group, so the group sees
             # it composed.
@@ -1292,7 +1323,7 @@ class Perl6::Actions is HLL::Actions {
             # Add this role to the group if needed.
             my $group := $*PACKAGE.HOW.group($*PACKAGE);
             unless $group =:= $*PACKAGE {
-                $*W.pkg_add_role_group_possibility($group, $*PACKAGE);
+                $*W.pkg_add_role_group_possibility($/, $group, $*PACKAGE);
             }
         }
         else {
@@ -1359,7 +1390,7 @@ class Perl6::Actions is HLL::Actions {
                     }
                 }
                 else {
-                    my %cont_info := container_type_info($_<sigil> || '$', []);
+                    my %cont_info := container_type_info($/, $_<sigil> || '$', []);
                     $list.push($*W.build_container_past(
                         %cont_info,
                         $*W.create_container_descriptor(%cont_info<value_type>, 1, 'anon')));
@@ -1376,7 +1407,7 @@ class Perl6::Actions is HLL::Actions {
                     $/.CURSOR.panic("Cannot use .= initializer with a list of declarations");
                 }
                 else {
-                    $/.CURSOR.panic("Binding to signatures in $*SCOPE declarations not yet implemented");
+                    $*W.throw($/, 'X::Comp::NYI', feature => "Binding to signatures in $*SCOPE declarations");
                 }
             }
             
@@ -1425,12 +1456,12 @@ class Perl6::Actions is HLL::Actions {
 
             # Create container descriptor and decide on any default value..
             my $attrname   := ~$sigil ~ '!' ~ $desigilname;
-            my %cont_info  := container_type_info($sigil, $*OFTYPE ?? [$*OFTYPE.ast] !! [], $shape);
+            my %cont_info  := container_type_info($/, $sigil, $*OFTYPE ?? [$*OFTYPE.ast] !! [], $shape);
             my $descriptor := $*W.create_container_descriptor(%cont_info<value_type>, 1, $attrname);
 
             # Create meta-attribute and add it.
             my $metaattr := %*HOW{$*PKGDECL ~ '-attr'};
-            my $attr := $*W.pkg_add_attribute($*PACKAGE, $metaattr,
+            my $attr := $*W.pkg_add_attribute($/, $*PACKAGE, $metaattr,
                 hash(
                     name => $attrname,
                     has_accessor => $twigil eq '.'
@@ -1474,7 +1505,7 @@ class Perl6::Actions is HLL::Actions {
 
             # Create a container descriptor. Default to rw and set a
             # type if we have one; a trait may twiddle with that later.
-            my %cont_info := container_type_info($sigil, $*OFTYPE ?? [$*OFTYPE.ast] !! [], $shape);
+            my %cont_info := container_type_info($/, $sigil, $*OFTYPE ?? [$*OFTYPE.ast] !! [], $shape);
             my $descriptor := $*W.create_container_descriptor(%cont_info<value_type>, 1, $name);
 
             # Install the container.
@@ -1528,7 +1559,7 @@ class Perl6::Actions is HLL::Actions {
             $BLOCK.symbol($name, :scope('lexical'));
         }
         else {
-            $*W.throw($/, ['X', 'NYI'],
+            $*W.throw($/, 'X::Comp::NYI',
                 feature => "$*SCOPE scoped variables");
         }
 
@@ -1545,7 +1576,8 @@ class Perl6::Actions is HLL::Actions {
 
         # Produce a code object and install it.
         my $invocant_type := $*W.find_symbol([$*W.is_lexical('$?CLASS') ?? '$?CLASS' !! 'Mu']);
-        my $code := methodize_block($/, $a_past, [], $invocant_type, 'Method');
+        my $code := methodize_block($/, $*W.stub_code_object('Method'), 
+            $a_past, [], $invocant_type);
         install_method($/, $meth_name, 'has', $code, $install_in);
     }
 
@@ -1601,13 +1633,16 @@ class Perl6::Actions is HLL::Actions {
         }
         $block[0].unshift(PAST::Op.new(:pirop('perl6_take_dispatcher v')));
 
-        # Create code object.
+        # Set name.
         if $<deflongname> {
             $block.name(~$<deflongname>[0].ast);
             $block.nsentry('');
         }
-        my $code := $*W.create_code_object($block, 'Sub', $signature,
-            $*MULTINESS eq 'proto', :yada(is_yada($/)));
+        
+        # Finish code object, associating it with the routine body.
+        my $code := $*DECLARAND;
+        $*W.attach_signature($code, $signature);
+        $*W.finish_code_object($code, $block, $*MULTINESS eq 'proto', :yada(is_yada($/)));
 
         # Document it
         Perl6::Pod::document($code, $*DOC);
@@ -1633,6 +1668,12 @@ class Perl6::Actions is HLL::Actions {
                     $proto := $outer.symbol($name)<value>;
                 }
                 else {
+                    unless $*SCOPE eq '' || $*SCOPE eq 'my' {
+                        $*W.throw($/, 'X::Declaration::Scope::Multi',
+                            scope       => $*SCOPE,
+                            declaration => 'multi',
+                        );
+                    }
                     # None; search outer scopes.
                     my $new_proto;
                     try {
@@ -1685,7 +1726,10 @@ class Perl6::Actions is HLL::Actions {
                     ));
                 }
                 else {
-                    $*W.throw($/, 'X::Sub::Scope', scope => $*SCOPE);
+                    $*W.throw($/, 'X::Declaration::Scope',
+                            scope       => $*SCOPE,
+                            declaration => 'sub',
+                    );
                 }
             }
         }
@@ -1823,15 +1867,27 @@ class Perl6::Actions is HLL::Actions {
                 $past[1] := wrap_return_handler($past[1]);
             }
         }
-        $past.name($<longname> ?? $<longname>.Str !! '<anon>');
+        
+        my $name;
+        if $<longname> {
+            $name := $<longname>.Str;
+        }
+        elsif $<sigil> {
+            if $<sigil> eq '@'    { $name := 'postcircumfix:<[ ]>' }
+            elsif $<sigil> eq '%' { $name := 'postcircumfix:<{ }>' }
+            elsif $<sigil> eq '&' { $name := 'postcircumfix:<( )>' }
+            else {
+                $/.CURSOR.panic("Cannot use " ~ $<sigil> ~ " sigil as a method name");
+            }
+        }
+        $past.name($name ?? $name !! '<anon>');
         $past.nsentry('');
 
         # Do the various tasks to trun the block into a method code object.
         my @params    := $<multisig> ?? $<multisig>[0].ast !! [];
         my $inv_type  := $*W.find_symbol([
             $<longname> && $*W.is_lexical('$?CLASS') ?? '$?CLASS' !! 'Mu']);
-        my $code_type := $*METHODTYPE eq 'submethod' ?? 'Submethod' !! 'Method';
-        my $code := methodize_block($/, $past, @params, $inv_type, $code_type, :yada(is_yada($/)));
+        my $code := methodize_block($/, $*DECLARAND, $past, @params, $inv_type, :yada(is_yada($/)));
 
         # Document it
         Perl6::Pod::document($code, $*DOC);
@@ -1849,8 +1905,8 @@ class Perl6::Actions is HLL::Actions {
         }
 
         # Install method.
-        if $<longname> {
-            install_method($/, $<longname>.Str, $*SCOPE, $code, $outer,
+        if $name {
+            install_method($/, $name, $*SCOPE, $code, $outer,
                 :private($<specials> && ~$<specials> eq '!'));
         }
         elsif $*MULTINESS {
@@ -1865,7 +1921,93 @@ class Perl6::Actions is HLL::Actions {
         make $closure;
     }
 
-    sub methodize_block($/, $past, @params, $invocant_type, $code_type, :$yada) {
+    method macro_def($/) {
+        my $block;
+
+        $block := $<blockoid>.ast;
+        $block.blocktype('declaration');
+        if is_clearly_returnless($block) {
+            $block[1] := PAST::Op.new(
+                :pirop('perl6_decontainerize_return_value PP'),
+                $block[1]);
+        }
+        else {
+            $block[1] := wrap_return_handler($block[1]);
+        }
+
+        # Obtain parameters, create signature object and generate code to
+        # call binder.
+        if $block<placeholder_sig> && $<multisig> {
+            $*W.throw($/, 'X::Signature::Placeholder');
+        }
+        my @params :=
+                $<multisig>             ?? $<multisig>[0].ast      !!
+                $block<placeholder_sig> ?? $block<placeholder_sig> !!
+                [];
+        set_default_parameter_type(@params, 'Any');
+        my $signature := create_signature_object($<multisig> ?? $<multisig>[0] !! $/, @params, $block);
+        add_signature_binding_code($block, $signature, @params);
+
+        # Create code object.
+        if $<deflongname> {
+            $block.name(~$<deflongname>[0].ast);
+            $block.nsentry('');
+        }
+        my $code := $*W.create_code_object($block, 'Macro', $signature,
+            $*MULTINESS eq 'proto');
+
+        # Document it
+        Perl6::Pod::document($code, $*DOC);
+
+        # Install PAST block so that it gets capture_lex'd correctly and also
+        # install it in the lexpad.
+        my $outer := $*W.cur_lexpad();
+        $outer[0].push(PAST::Stmt.new($block));
+
+        # Install &?ROUTINE.
+        $*W.install_lexical_symbol($block, '&?ROUTINE', $code);
+
+        my $past;
+        if $<deflongname> {
+            my $name := '&' ~ ~$<deflongname>[0].ast;
+            # Install.
+            if $outer.symbol($name) {
+                $/.CURSOR.panic("Illegal redeclaration of macro '" ~
+                    ~$<deflongname>[0].ast ~ "'");
+            }
+            if $*SCOPE eq '' || $*SCOPE eq 'my' {
+                $*W.install_lexical_symbol($outer, $name, $code);
+            }
+            elsif $*SCOPE eq 'our' {
+                # Install in lexpad and in package, and set up code to
+                # re-bind it per invocation of its outer.
+                $*W.install_lexical_symbol($outer, $name, $code);
+                $*W.install_package_symbol($*PACKAGE, $name, $code);
+                $outer[0].push(PAST::Op.new(
+                    :pasttype('bind_6model'),
+                    $*W.symbol_lookup([$name], $/, :package_only(1)),
+                    PAST::Var.new( :name($name), :scope('lexical_6model') )
+                ));
+            }
+            else {
+                $/.CURSOR.panic("Cannot use '$*SCOPE' scope with a macro");
+            }
+        }
+        elsif $*MULTINESS {
+            $/.CURSOR.panic('Cannot put ' ~ $*MULTINESS ~ ' on anonymous macro');
+        }
+
+        # Apply traits.
+        for $<trait> {
+            if $_.ast { ($_.ast)($code) }
+        }
+
+        my $closure := block_closure(reference_to_code_object($code, $past));
+        $closure<sink_past> := PAST::Op.new( :pasttype('null') );
+        make $closure;
+    }
+
+    sub methodize_block($/, $code, $past, @params, $invocant_type, :$yada) {
         # Get signature and ensure it has an invocant and *%_.
         if $past<placeholder_sig> {
             $/.CURSOR.panic('Placeholder variables cannot be used in a method');
@@ -1901,9 +2043,10 @@ class Perl6::Actions is HLL::Actions {
             $*W.find_symbol([$*MULTINESS eq 'multi' ?? 'MultiDispatcher' !! 'MethodDispatcher']));
         $past[0].unshift(PAST::Op.new(:pirop('perl6_take_dispatcher v')));
 
-        # Create code object.
-        return $*W.create_code_object($past, $code_type, $signature,
-            $*MULTINESS eq 'proto', :yada($yada));
+        # Finish up code object.
+        $*W.attach_signature($code, $signature);
+        $*W.finish_code_object($code, $past, $*MULTINESS eq 'proto', :yada($yada));
+        return $code;
     }
 
     # Installs a method into the various places it needs to go.
@@ -1919,7 +2062,7 @@ class Perl6::Actions is HLL::Actions {
             $meta_meth := $*MULTINESS eq 'multi' ?? 'add_multi_method' !! 'add_method';
         }
         if $scope ne 'anon' && pir::can($*PACKAGE.HOW, $meta_meth) {
-            $*W.pkg_add_method($*PACKAGE, $meta_meth, $name, $code);
+            $*W.pkg_add_method($/, $*PACKAGE, $meta_meth, $name, $code);
         }
         elsif $scope eq '' || $scope eq 'has' {
             my $nocando := $*MULTINESS eq 'multi' ?? 'multi-method' !! 'method';
@@ -2019,9 +2162,9 @@ class Perl6::Actions is HLL::Actions {
                 :pasttype('callmethod'), :name('!protoregex'),
                 PAST::Var.new( :name('self'), :scope('register') ),
                 $name);
-            $coderef := regex_coderef($/, $proto_body, $*SCOPE, $name, @params, $*CURPAD, $<trait>, :proto(1));
+            $coderef := regex_coderef($/, $*DECLARAND, $proto_body, $*SCOPE, $name, @params, $*CURPAD, $<trait>, :proto(1));
         } else {
-            $coderef := regex_coderef($/, $<p6regex>.ast, $*SCOPE, $name, @params, $*CURPAD, $<trait>);
+            $coderef := regex_coderef($/, $*DECLARAND, $<p6regex>.ast, $*SCOPE, $name, @params, $*CURPAD, $<trait>);
         }
 
         # Return closure if not in sink context.
@@ -2030,7 +2173,7 @@ class Perl6::Actions is HLL::Actions {
         make $closure;
     }
 
-    sub regex_coderef($/, $qast, $scope, $name, @params, $block, $traits?, :$proto, :$use_outer_match) {
+    sub regex_coderef($/, $code, $qast, $scope, $name, @params, $block, $traits?, :$proto, :$use_outer_match) {
         # create a code reference from a regex qast tree
         my $past;
         if $proto {
@@ -2052,7 +2195,7 @@ class Perl6::Actions is HLL::Actions {
         # Do the various tasks to turn the block into a method code object.
         my $inv_type  := $*W.find_symbol([ # XXX Maybe Cursor below, not Mu...
             $name && $*W.is_lexical('$?CLASS') ?? '$?CLASS' !! 'Mu']);
-        my $code := methodize_block($/, $past, @params, $inv_type, 'Regex');
+        methodize_block($/, $code, $past, @params, $inv_type);
 
         # Need to put self into a register for the regex engine.
         $past[0].push(PAST::Var.new(
@@ -2089,7 +2232,7 @@ class Perl6::Actions is HLL::Actions {
         # correct base type.
         my $base_type := $*OFTYPE ?? $*OFTYPE.ast !! $*W.find_symbol(['Int']);
         my $name      := $<longname> ?? ~$<longname> !! $<variable><desigilname>;
-        my $type_obj  := $*W.pkg_create_mo(%*HOW<enum>, :name($name), :base_type($base_type));
+        my $type_obj  := $*W.pkg_create_mo($/, %*HOW<enum>, :name($name), :base_type($base_type));
 
         # Add roles (which will provide the enum-related methods).
         $*W.apply_trait('&trait_mod:<does>', $type_obj, $*W.find_symbol(['Enumeration']));
@@ -2103,7 +2246,7 @@ class Perl6::Actions is HLL::Actions {
         }
         $*W.pkg_compose($type_obj);
         if $<variable> {
-            $*W.throw($/, ['X', 'NYI'],
+            $*W.throw($/, 'X::Comp::NYI',
                 feature => "Variable case of enums",
             );
         }
@@ -2226,8 +2369,9 @@ class Perl6::Actions is HLL::Actions {
             $value := $value_ast<compile_time_value>;
         }
         else {
-            my $name := ~($<identifier> // $<variable>);
-            $/.CURSOR.panic("Cannot handle constant $name with non-literal value yet");
+            my $value_thunk := make_thunk($value_ast, $/);
+            $value := $value_thunk();
+            $*W.add_constant_folded_result($value);
         }
 
         # Provided it's named, install it.
@@ -2238,7 +2382,7 @@ class Perl6::Actions is HLL::Actions {
         elsif $<variable> {
             # Don't handle twigil'd case yet.
             if $<variable><twigil> {
-                $*W.throw($/, ['X', 'NYI'],
+                $*W.throw($/, 'X::Comp::NYI',
                     feature => "Twigil-Variable constants"
                 );
             }
@@ -2306,7 +2450,7 @@ class Perl6::Actions is HLL::Actions {
             my $sep := @*seps[$param_idx];
             if ~$sep eq ':' {
                 if $param_idx != 0 {
-                    $/.CURSOR.panic("Can only use : in a signature after the first parameter");
+                    $*W.throw($/, 'X::Syntax::Signature::InvocantMarker')
                 }
                 %info<is_invocant> := 1;
             }
@@ -2367,6 +2511,7 @@ class Perl6::Actions is HLL::Actions {
             %*PARAM_INFO<sub_signature_params> := $<signature>.ast;
             if pir::substr(~$/, 0, 1) eq '[' {
                 %*PARAM_INFO<sigil> := '@';
+                %*PARAM_INFO<nominal_type> := $*W.find_symbol(['Positional']);
             }
         }
         else {
@@ -2603,7 +2748,7 @@ class Perl6::Actions is HLL::Actions {
             }
             
             # If we have a sub-signature, create that.
-            if $_<sub_signature_params> {
+            if pir::exists($_, 'sub_signature_params') {
                 $_<sub_signature> := create_signature_object($/, $_<sub_signature_params>, $lexpad);
             }
             
@@ -2908,10 +3053,66 @@ class Perl6::Actions is HLL::Actions {
     }
 
     method term:sym<identifier>($/) {
-        my $past := capture_or_parcel($<args>.ast, ~$<identifier>);
-        $past.name('&' ~ $<identifier>);
-        $past.node($/);
-        make $past;
+        my $is_macro := 0;
+        my $routine;
+        try {
+            $routine := $*W.find_symbol(['&' ~ ~$<identifier>]);
+            if nqp::istype($routine, $*W.find_symbol(['Macro'])) {
+                $is_macro := 1;
+            }
+        }
+        if $is_macro {
+            my $nil_class := $*W.find_symbol(['Nil']);
+            my $ast_class := $*W.find_symbol(['AST']);
+            my @argument_quasi_asts := [];
+            if $<args><semiarglist> {
+                for $<args><semiarglist><arglist> {
+                    if $_<EXPR> {
+                        my $expr := $_<EXPR>.ast;
+                        add_macro_arguments($expr, $ast_class, @argument_quasi_asts);
+                    }
+                }
+            }
+            my $quasi_ast := $routine(|@argument_quasi_asts);
+            if nqp::istype($quasi_ast, $nil_class) {
+                make PAST::Var.new(:name('Nil'), :scope('lexical_6model'));
+                return 1;
+            }
+            unless nqp::istype($quasi_ast, $ast_class) {
+                # XXX: Need to awesomeize with which type it got
+                $/.CURSOR.panic('Macro did not return AST');
+            }
+            my $past := PAST::Block.new(
+                :blocktype<immediate>,
+                :lexical(0),
+                nqp::getattr(pir::perl6_decontainerize__PP($quasi_ast),
+                    $ast_class,
+                    '$!past')
+            );
+            $*W.add_quasi_fixups($quasi_ast, $past);
+            make $past;
+        }
+        else {
+            my $past := capture_or_parcel($<args>.ast, ~$<identifier>);
+            $past.name('&' ~ $<identifier>);
+            $past.node($/);
+            make $past;
+        }
+    }
+
+    sub add_macro_arguments($expr, $ast_class, @argument_quasi_asts) {
+        if $expr.name eq '&infix:<,>' {
+            for $expr.list {
+                my $quasi_ast := $ast_class.new();
+                nqp::bindattr($quasi_ast, $ast_class, '$!past', $_);
+                @argument_quasi_asts.push($quasi_ast);
+            }
+        }
+        else {
+            my $quasi_ast := $ast_class.new();
+            nqp::bindattr($quasi_ast, $ast_class, '$!past', $expr);
+            @argument_quasi_asts.push($quasi_ast);
+        }
     }
 
     method is_indirect_lookup($longname) {
@@ -2950,8 +3151,8 @@ class Perl6::Actions is HLL::Actions {
                 $/.CURSOR.panic("Combination of indirect name lookup and call not (yet?) allowed");
             }
             $past := self.make_indirect_lookup($<longname>)
-
-        } elsif $<args> {
+        }
+        elsif $<args> {
             # If we have args, it's a call. Look it up dynamically
             # and make the call.
             # Add & to name.
@@ -2960,12 +3161,58 @@ class Perl6::Actions is HLL::Actions {
             if pir::substr($final, 0, 1) ne '&' {
                 @name[+@name - 1] := '&' ~ $final;
             }
-            $past := capture_or_parcel($<args>.ast, ~$<longname>);
-            if +@name == 1 {
-                $past.name(@name[0]);
+            my $is_macro := 0;
+            my $routine;
+            try {
+                $routine := $*W.find_symbol(@name);
+                if nqp::istype($routine, $*W.find_symbol(['Macro'])) {
+                    $is_macro := 1;
+                }
+            }
+            if $is_macro {
+                my $nil_class := $*W.find_symbol(['Nil']);
+                my $ast_class := $*W.find_symbol(['AST']);
+                my @argument_quasi_asts := [];
+                if $<args><semiarglist> {
+                    for $<args><semiarglist><arglist> {
+                        if $_<EXPR> {
+                            my $expr := $_<EXPR>.ast;
+                            add_macro_arguments($expr, $ast_class, @argument_quasi_asts);
+                        }
+                    }
+                }
+                elsif $<args><arglist> {
+                    if $<args><arglist><EXPR> {
+                        my $expr := $<args><arglist><EXPR>.ast;
+                        add_macro_arguments($expr, $ast_class, @argument_quasi_asts);
+                    }
+                }
+                my $quasi_ast := $routine(|@argument_quasi_asts);
+                if nqp::istype($quasi_ast, $nil_class) {
+                    make PAST::Var.new(:name('Nil'), :scope('lexical_6model'));
+                    return 1;
+                }
+                unless nqp::istype($quasi_ast, $ast_class) {
+                    # XXX: Need to awesomeize with which type it got
+                    $/.CURSOR.panic('Macro did not return AST');
+                }
+                $past := PAST::Block.new(
+                    :blocktype<immediate>,
+                    :lexical(0),
+                    nqp::getattr(pir::perl6_decontainerize__PP($quasi_ast),
+                        $ast_class,
+                        '$!past')
+                );
+                $*W.add_quasi_fixups($quasi_ast, $past);
             }
             else {
-                $past.unshift($*W.symbol_lookup(@name, $/));
+                $past := capture_or_parcel($<args>.ast, ~$<longname>);
+                if +@name == 1 {
+                    $past.name(@name[0]);
+                }
+                else {
+                    $past.unshift($*W.symbol_lookup(@name, $/));
+                }
             }
         }
         else {
@@ -3282,15 +3529,52 @@ class Perl6::Actions is HLL::Actions {
             $past := PAST::Op.new( :node($/) );
             if $<OPER><O><pasttype> { $past.pasttype( ~$<OPER><O><pasttype> ); }
             elsif $<OPER><O><pirop>    { $past.pirop( ~$<OPER><O><pirop> ); }
+            my $name;
             unless $past.name {
                 if $key eq 'LIST' { $key := 'infix'; }
-                my $name := Q:PIR {
+                $name := Q:PIR {
                     $P0 = find_lex '$key'
                     $S0 = $P0
                     $S0 = downcase $S0
                     %r = box $S0
                 } ~ ':<' ~ $<OPER><sym> ~ '>';
                 $past.name('&' ~ $name);
+            }
+            my $routine;
+            my $is_macro := 0;
+            try {
+                $routine := $*W.find_symbol(['&' ~ $name]);
+                if nqp::istype($routine, $*W.find_symbol(['Macro'])) {
+                    $is_macro := 1;
+                }
+            }
+            if $is_macro {
+                my $nil_class := $*W.find_symbol(['Nil']);
+                my $ast_class := $*W.find_symbol(['AST']);
+                my @argument_quasi_asts := [];
+                for @($/) {
+                    add_macro_arguments($_.ast, $ast_class, @argument_quasi_asts);
+                }
+
+                my $quasi_ast := $routine(|@argument_quasi_asts);
+                if nqp::istype($quasi_ast, $nil_class) {
+                    make PAST::Var.new(:name('Nil'), :scope('lexical_6model'));
+                    return 1;
+                }
+                unless nqp::istype($quasi_ast, $ast_class) {
+                    # XXX: Need to awesomeize with which type it got
+                    $/.CURSOR.panic('Macro did not return AST');
+                }
+                my $past := PAST::Block.new(
+                    :blocktype<immediate>,
+                    :lexical(0),
+                    nqp::getattr(pir::perl6_decontainerize__PP($quasi_ast),
+                        $ast_class,
+                        '$!past')
+                );
+                $*W.add_quasi_fixups($quasi_ast, $past);
+                make $past;
+                return 'an irrelevant value';
             }
         }
         if $key eq 'POSTFIX' {
@@ -3327,7 +3611,7 @@ class Perl6::Actions is HLL::Actions {
             for @($/) { @stages.unshift($_.ast); }
         }
         else {
-            $*W.throw($/, ['X', 'NYI'],
+            $*W.throw($/, 'X::Comp::NYI',
                 feature => $/<infix> ~ " feed operator"
             );
         }
@@ -3685,7 +3969,7 @@ class Perl6::Actions is HLL::Actions {
         my $past := PAST::Op.new( :name('postcircumfix:<{ }>'), :pasttype('callmethod'), :node($/) );
         if $<semilist><statement> {
             if +$<semilist><statement> > 1 {
-                $/.CURSOR.panic("Sorry, multi-dimensional indexes are not yet supported");
+                $*W.throw($/, 'X::Comp::NYI', feature => 'multi-dimensional indexes');
             }
             $past.push($<semilist>.ast);
         }
@@ -3813,7 +4097,7 @@ class Perl6::Actions is HLL::Actions {
                 if $<arglist> || $<typename> {
                     $/.CURSOR.panic("Cannot put type parameters on a type capture");
                 }
-                make $*W.pkg_create_mo(%*HOW<generic>, :name(pir::substr(~$<longname>, 2)));
+                make $*W.pkg_create_mo($/, %*HOW<generic>, :name(pir::substr(~$<longname>, 2)));
             }
         }
         else {
@@ -3830,6 +4114,8 @@ class Perl6::Actions is HLL::Actions {
         global  => 1,
         ov      => 1,
         overlap => 1,
+        ex      => 1,
+        exhaustive => 1,
     );
     our %REGEX_ADVERBS_CANONICAL := hash(
         ignorecase  => 'i',
@@ -3843,6 +4129,7 @@ class Perl6::Actions is HLL::Actions {
         rd          => 'nth',
         global      => 'g',
         overlap     => 'ov',
+        exhaustive  => 'ex',
     );
     INIT {
         my $mods := 'i ignorecase s sigspace r ratchet';
@@ -3855,7 +4142,7 @@ class Perl6::Actions is HLL::Actions {
             %SUBST_ALLOWED_ADVERBS{$_} := 1;
         }
 
-        $mods := 'x c continue p pos nth th st nd rd g global ov overlap';
+        $mods := 'x c continue p pos nth th st nd rd g global ov overlap ex exhaustive';
         for nqp::split(' ', $mods) {
             %MATCH_ALLOWED_ADVERBS{$_} := 1;
         }
@@ -3936,7 +4223,8 @@ class Perl6::Actions is HLL::Actions {
     }
     method quote:sym</ />($/) {
         my $block := PAST::Block.new(PAST::Stmts.new, PAST::Stmts.new, :node($/));
-        my $coderef := regex_coderef($/, $<p6regex>.ast, 'anon', '', [], $block, :use_outer_match(1));
+        my $coderef := regex_coderef($/, $*W.stub_code_object('Regex'),
+            $<p6regex>.ast, 'anon', '', [], $block, :use_outer_match(1));
         # Return closure if not in sink context.
         my $closure := block_closure($coderef);
         $closure<sink_past> := PAST::Op.new( :pasttype('null') );
@@ -3945,13 +4233,15 @@ class Perl6::Actions is HLL::Actions {
 
     method quote:sym<rx>($/) {
         my $block := PAST::Block.new(PAST::Stmts.new, PAST::Stmts.new, :node($/));
-        self.handle_and_check_adverbs($/, %SHARED_ALLOWED_ADVERBS, 'm', $block);
-        my $coderef := regex_coderef($/, $<p6regex>.ast, 'anon', '', [], $block, :use_outer_match(1));
+        self.handle_and_check_adverbs($/, %SHARED_ALLOWED_ADVERBS, 'rx', $block);
+        my $coderef := regex_coderef($/, $*W.stub_code_object('Regex'),
+            $<p6regex>.ast, 'anon', '', [], $block, :use_outer_match(1));
         make block_closure($coderef);
     }
     method quote:sym<m>($/) {
         my $block := PAST::Block.new(PAST::Stmts.new, PAST::Stmts.new, :node($/));
-        my $coderef := regex_coderef($/, $<p6regex>.ast, 'anon', '', [], $block, :use_outer_match(1));
+        my $coderef := regex_coderef($/, $*W.stub_code_object('Regex'),
+            $<p6regex>.ast, 'anon', '', [], $block, :use_outer_match(1));
 
         my $past := PAST::Op.new(
             :node($/),
@@ -3978,7 +4268,10 @@ class Perl6::Actions is HLL::Actions {
         for $<rx_adverbs>.ast {
             $multiple := 1 if %MATCH_ADVERBS_MULTIPLE{$_.named};
             unless %SHARED_ALLOWED_ADVERBS{$_.named} || %adverbs{$_.named} {
-                $/.CURSOR.panic("Adverb '" ~ $_.named ~ "' not allowed on " ~ $what);
+                $*W.throw($/, 'X::Syntax::Regex::Adverb',
+                    adverb    => $_.named,
+                    construct => $what,
+                );
             }
             if $past {
                 $past.push($_);
@@ -3991,8 +4284,8 @@ class Perl6::Actions is HLL::Actions {
         # Build the regex.
 
         my $rx_block := PAST::Block.new(PAST::Stmts.new, PAST::Stmts.new, :node($/));
-        my $rx_coderef := regex_coderef($/, $<p6regex>.ast, 'anon', '', [], $rx_block, :use_outer_match(1));
-#        my $regex :=  block_closure($rx_coderef);
+        my $rx_coderef := regex_coderef($/, $*W.stub_code_object('Regex'),
+            $<p6regex>.ast, 'anon', '', [], $rx_block, :use_outer_match(1));
 
         # Quote needs to be closure-i-fied.
         my $closure := block_closure(make_thunk_ref($<quote_EXPR> ?? $<quote_EXPR>.ast !! $<EXPR>.ast, $/));
@@ -4019,6 +4312,21 @@ class Perl6::Actions is HLL::Actions {
         );
 
         make $past;
+    }
+
+    method quote:sym<quasi>($/) {
+        my $ast_class := $*W.find_symbol(['AST']);
+        my $quasi_ast := $ast_class.new();
+        nqp::bindattr($quasi_ast, $ast_class, '$!past', $<block>.ast<past_block>[1]);
+        $*W.add_object($quasi_ast);
+        my $throwaway_block := PAST::Block.new();
+        my $quasi_context := block_closure(
+            reference_to_code_object(
+                make_simple_code_object($throwaway_block, 'Block'),
+                $throwaway_block
+            ));
+        make PAST::Op.new(:pasttype<callmethod>, :name<incarnate>,
+                          $*W.get_ref($quasi_ast), $quasi_context);
     }
 
     method quote_escape:sym<$>($/) {
@@ -4127,7 +4435,7 @@ class Perl6::Actions is HLL::Actions {
         # We tell Parrot that we'll have all args in the call_sig so it won't
         # do its own arg processing. We also add a call to bind the signature.
         $block[0].push(PAST::Var.new( :name('call_sig'), :scope('parameter'), :call_sig(1) ));
-        $block[0].push(PAST::Op.new( :pirop('bind_signature vP') ));
+        $block[0].push(PAST::Op.new( :pirop('bind_signature v') ));
 
         $block;
     }
@@ -4305,7 +4613,7 @@ class Perl6::Actions is HLL::Actions {
             @handlers.push(
                 PAST::Op.new(
                     :handle_types('BREAK'),
-                    :pirop('perl6_type_check_return_value__0P'),
+                    :inline("    perl6_type_check_return_value %0\n    perl6_returncc %0"),
                     PAST::Var.new(
                         :scope('keyed'),
                         PAST::Op.new(:inline("    .get_results (%r)")),
@@ -4604,6 +4912,7 @@ class Perl6::Actions is HLL::Actions {
             $*W.get_ref($type);
         $past<has_compile_time_value> := 1;
         $past<compile_time_value> := $type;
+        $past.type($type.WHAT);
         return $past;
     }
 

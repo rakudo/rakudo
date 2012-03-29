@@ -20,12 +20,13 @@ typedef struct {
     PMC    *sc;                 /* Serialization context, though we don't care about that here. */
     PMC    *_do;                /* Lower-level code object. */
     PMC    *signature;          /* Signature object. */
+    PMC    *state_vars;         /* Storage for state variables. */
+    PMC    *phasers;            /* Hash mapping phaser names to lists of phasers. */
     PMC    *dispatchees;        /* List of dispatchees, if any. */
     PMC    *dispatcher_cache;   /* Holder for any dispatcher cache. */
     PMC    *dispatcher;         /* The parent dispatcher, if any. */
-    PMC    *state_vars;         /* Storage for state variables. */
-    INTVAL  rw;                 /* Is it rw? */
     PMC    *md_thunk;           /* Multi-dispatcher thunk. */
+    INTVAL  rw;                 /* Is it rw? */
 } Rakudo_Code;
 
 /* Represents a candidate. We extract various bits of information about it when

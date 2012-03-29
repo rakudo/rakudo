@@ -29,8 +29,10 @@ class Perl6::Metamodel::ConcreteRoleHOW
     my class Collision {
         has $!name;
         has @!roles;
+        has $!private;
         method name() { $!name }
         method roles() { @!roles }
+        method private() { $!private }
     }
     
     method new_type(:@roles, :$name = '<anon>', :$ver, :$auth, :$repr) {
@@ -38,9 +40,9 @@ class Perl6::Metamodel::ConcreteRoleHOW
         pir::repr_type_object_for__PPS($metarole, 'Uninstantiable');
     }
     
-    method add_collision($obj, $colliding_name, @role_names) {
+    method add_collision($obj, $colliding_name, @role_names, :$private = 0) {
         @!collisions[+@!collisions] := Collision.new(
-            :name($colliding_name), :roles(@role_names)
+            :name($colliding_name), :roles(@role_names), :private($private)
         );
     }
 

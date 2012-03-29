@@ -2,6 +2,7 @@ my class MapIter is Iterator {
     has $!reified;             # Parcel we return after reifying
     has $!list;                # the list we're consuming
     has $!block;               # the block we're applying
+    has int $!followup;        # is this an iterator that continues an existing iteration?
 
     method new(:$list!, :$block!) { 
         my $new := nqp::create(self).BUILD($list, $block);
@@ -32,9 +33,25 @@ my class MapIter is Iterator {
             my $list    := nqp::p6decont($!list);
             my $block   := nqp::p6decont($!block); ### TODO: Why?
             my $munched := $!list.munch($argc * $count);
+            my $NEXT;
+            if $block.?phasers('NEXT') -> @NEXT {
+                if @NEXT.elems == 1 {
+                    $NEXT := @NEXT[0];
+                }
+                else {
+                    $NEXT := -> {
+                        .() for @NEXT;
+                    };
+                }
+            }
+            unless $!followup {
+                if $block.?phasers('FIRST') {
+                    pir::perl6_set_block_first_flag__vP($block);
+                }
+            }
             my Mu $args := Q:PIR {
                 .local int count, argc, munchpos
-                .local pmc rpa, args, block, list, munched, result, Parcel, List
+                .local pmc rpa, args, block, list, munched, result, Parcel, List, NEXT
                 rpa      = find_lex '$rpa'
                 list     = find_lex '$list'
                 block    = find_lex '$block'
@@ -46,6 +63,7 @@ my class MapIter is Iterator {
                 munched  = getattribute $P0, Parcel, '$!storage'
                 $P0      = find_lex '$count'
                 count    = repr_unbox_int $P0
+                NEXT     = find_lex '$NEXT'
                 munchpos = 0
                 args     = root_new ['parrot';'ResizablePMCArray']
                 .local pmc handler
@@ -71,6 +89,9 @@ my class MapIter is Iterator {
                 unless args goto done
                 result = block(args :flat)
                 push rpa, result
+                unless NEXT goto no_next_phaser
+                NEXT()
+              no_next_phaser:
                 goto next
               catch:
                 .local pmc exception, type
@@ -79,7 +100,10 @@ my class MapIter is Iterator {
                 push rpa, result
                 type = getattribute exception, 'type'
                 if type == .CONTROL_LOOP_LAST goto last
-                if type != .CONTROL_LOOP_REDO goto next
+                if type == .CONTROL_LOOP_REDO goto redo
+                unless NEXT goto next
+                NEXT()
+                goto next
               redo:
                 $I0 = elements args
                 munchpos -= $I0
@@ -97,8 +121,14 @@ my class MapIter is Iterator {
                 %r = args
             };
             # create the next MapIter if we haven't reached the end
-            nqp::push($rpa, nqp::create(self).BUILD($!list, $!block))
-              if $args;
+            if $args {
+                my $iter := nqp::create(self).BUILD($!list, $!block);
+                nqp::bindattr_i($iter, MapIter, '$!followup', 1);
+                nqp::push($rpa, $iter);
+            }
+            elsif $block.?phasers('LAST') -> @LAST {
+                .() for @LAST;
+            }
             $!reified := nqp::p6parcel($rpa, nqp::null());
             $!list = Any;
             $!block = Any;

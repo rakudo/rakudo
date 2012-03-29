@@ -349,7 +349,7 @@ sub gen_parrot {
     %config = read_parrot_config('config_lib.pir');
     my $make = $config{'parrot::make'} or
         die "Unable to determine value for 'make' from parrot config\n";
-    system_or_die($make, 'install-dev');
+    system_or_die($make, 'install-dev', @{$options{'parrot-make-option'}});
     chdir($startdir);
 
     print "Parrot installed.\n";

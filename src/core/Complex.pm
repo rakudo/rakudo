@@ -403,4 +403,6 @@ multi postfix:<i>(Complex:D \$a) returns Complex:D { Complex.new(-$a.im, $a.re) 
 multi postfix:<i>(Numeric   \$a) returns Complex:D { $a * Complex.new(0e0, 1e0) }
 multi postfix:<i>(Cool      \$a) returns Complex:D { $a.Numeric * Complex.new(0e0, 1e0) }
 
+constant i = Complex.new(0e0, 1e0);
+
 # vim: ft=perl6

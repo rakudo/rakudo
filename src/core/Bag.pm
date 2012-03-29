@@ -34,7 +34,7 @@ my class Bag is Iterable does Associative does Baggy {
 
     submethod BUILD (:%!elems) { }
 
-    multi method Str(Any:D $ : --> Str) { "bag({ self.pairs>>.perl.join(', ') })" }
+    multi method Str(Any:D $ : --> Str) { ~ self.pairs.map: { .key xx .value } }
     multi method gist(Any:D $ : --> Str) { "bag({ self.pairs>>.gist.join(', ') })" }
     multi method perl(Any:D $ : --> Str) { 'Bag.new(' ~ %!elems.perl ~ ')' }
 
@@ -88,7 +88,7 @@ my class KeyBag does Associative does Baggy {
 
     submethod BUILD (:%!elems) { }
 
-    multi method Str(Any:D $ : --> Str) { "keybag({ self.pairs>>.perl.join(', ') })" }
+    multi method Str(Bag:D:) { ~ self.pairs.map: { .key xx .value } }
     multi method gist(Any:D $ : --> Str) { "keybag({ self.pairs>>.gist.join(', ') })" }
     multi method perl(Any:D $ : --> Str) { 'KeyBag.new(' ~ %!elems.perl ~ ')' }
 

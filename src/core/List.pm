@@ -124,7 +124,8 @@ my class List does Positional {
         $iter;
     }
 
-    method munch(\$n) {
+    method munch($n is copy) {
+        $n = 0 if $n < 0;
         self.gimme($n) if nqp::not_i(nqp::istype($n, Int))
                           || nqp::not_i(nqp::islist($!items))
                           || nqp::islt_i(nqp::elems($!items), nqp::unbox_i($n));

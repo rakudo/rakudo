@@ -55,9 +55,9 @@ my class Parcel does Positional {
         nqp::p6box_s(nqp::join(' ', $gist))
     }
 
-    multi method perl(Parcel:D:) {
+    multi method perl(Parcel:D \$self:) {
         my Mu $rpa := nqp::clone($!storage);
-        my $perl = '(';
+        my $perl = nqp::iscont($self) ?? '$(' !! '(';
         if $rpa {
             $perl = $perl ~ nqp::shift($rpa).perl;
             if $rpa {

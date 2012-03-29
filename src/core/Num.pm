@@ -328,9 +328,6 @@ multi infix:<==>(num $a, num $b) returns Bool:D  {
     nqp::p6bool(nqp::iseq_n($a, $b))
 }
 
-multi infix:<!=>(Num:D \$a, Num:D \$b) returns Bool:D {
-    nqp::p6bool(nqp::isne_n(nqp::unbox_n($a), nqp::unbox_n($b)))
-}
 multi infix:<!=>(num $a, num $b) returns Bool:D {
     nqp::p6bool(nqp::isne_n($a, $b))
 }

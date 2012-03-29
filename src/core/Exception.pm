@@ -391,6 +391,10 @@ my class X::Does::TypeObject is Exception {
     method message() { "Cannot use 'does' operator with a type object." }
 }
 
+my class X::Role::Initialization is Exception {
+    method message() { 'Can only supply an initialization value for a role if it has a single public attribute' }
+}
+
 my class X::Syntax::Comment::Embedded does X::Syntax {
     method message() { "Opening bracket required for #` comment" }
 }

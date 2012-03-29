@@ -327,6 +327,11 @@ my class X::Bind::NativeType does X::Comp {
         'Cannot bind to a natively typed variable; use assignment instead'
     }
 }
+my class X::Bind::ZenSlice is Exception {
+    has Str $.what = 'array';
+
+    method message() { "Cannot bind to a zen $.what slice." }
+}
 
 my class X::Value::Dynamic does X::Comp {
     has $.what;
@@ -380,6 +385,14 @@ my class X::Syntax::Augment::WithoutMonkeyTyping does X::Syntax {
 
 my class X::Syntax::Augment::Role does X::Syntax {
     method message() { "Cannot augment a role, since roles are immutable" };
+}
+
+my class X::Does::TypeObject is Exception {
+    method message() { "Cannot use 'does' operator with a type object." }
+}
+
+my class X::Role::Initialization is Exception {
+    method message() { 'Can only supply an initialization value for a role if it has a single public attribute' }
 }
 
 my class X::Syntax::Comment::Embedded does X::Syntax {

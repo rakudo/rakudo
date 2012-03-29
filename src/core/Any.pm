@@ -1,6 +1,7 @@
 my class MapIter { ... }
 my class Whatever { ... }
 my class Range { ... }
+my class X::Bind::ZenSlice { ... }
 
 my class Any {
     multi method ACCEPTS(Any:D: Mu \$a) { self === $a }
@@ -111,7 +112,7 @@ my class Any {
 
     proto method postcircumfix:<[ ]>(|$) { * }
     multi method postcircumfix:<[ ]>() { self.list }
-    multi method postcircumfix:<[ ]>(:$BIND!) { die "Cannot bind to a zen array slice" }
+    multi method postcircumfix:<[ ]>(:$BIND!) { die(X::Bind::ZenSlice.new()) }
     multi method postcircumfix:<[ ]>($pos) is rw {
         fail "Cannot use negative index $pos on {self.WHAT.perl}" if $pos < 0;
         self.at_pos($pos)
@@ -168,7 +169,7 @@ my class Any {
     ########
     proto method postcircumfix:<{ }>(|$) { * }
     multi method postcircumfix:<{ }>() { self }
-    multi method postcircumfix:<{ }>(:$BIND!) { die "Cannot bind to a zen hash slice" }
+    multi method postcircumfix:<{ }>(:$BIND!) { die(X::Bind::ZenSlice.new(:what<hash>)) }
     multi method postcircumfix:<{ }>($key) is rw {
         self.at_key($key)
     }

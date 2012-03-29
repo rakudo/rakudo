@@ -327,6 +327,11 @@ my class X::Bind::NativeType does X::Comp {
         'Cannot bind to a natively typed variable; use assignment instead'
     }
 }
+my class X::Bind::ZenSlice is Exception {
+    has Str $.what = 'array';
+
+    method message() { "Cannot bind to a zen $.what slice." }
+}
 
 my class X::Value::Dynamic does X::Comp {
     has $.what;

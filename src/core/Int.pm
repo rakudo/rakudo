@@ -233,14 +233,14 @@ multi infix:<+^>(int $a, int $b) {
 }
 
 multi infix:«+<»(Int:D \$a, Int:D \$b) returns Int:D {
-    nqp::bitshiftl_i(nqp::p6decont($a), nqp::unbox_i($b));
+    nqp::bitshiftl_I(nqp::p6decont($a), nqp::unbox_i($b), Int)
 }
 multi infix:«+<»(int $a, int $b) {
     nqp::bitshiftl_i($a, $b);
 }
 
 multi infix:«+>»(Int:D \$a, Int:D \$b) returns Int:D {
-    nqp::bitshiftr_i(nqp::p6decont($a), nqp::unbox_i($b));
+    nqp::bitshiftr_I(nqp::p6decont($a), nqp::unbox_i($b), Int)
 }
 multi infix:«+>»(int $a, int $b) {
     nqp::bitshiftr_i($a, $b)

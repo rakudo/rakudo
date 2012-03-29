@@ -25,6 +25,7 @@ New in 2012.01
 + optimized Range.roll and Range.pick for large ranges
 + fixed non-numeric, no-Str ranges
 + fixed build on Cygwin
++ fixed regex backtracking into subrules and captures
 
 New in 2011.12
 + improved protoregex support, including NFA caching

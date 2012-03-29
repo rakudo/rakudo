@@ -43,7 +43,7 @@ my class Set is Iterable does Associative {
     multi to-set (%elems --> Set) { Set.new: %elems.keys }
     multi to-set ($elem --> Set) { die "Cannot coerce $elem.perl() to a Set; use set($elem.perl()) to create a one-element set" }
 
-    multi method Str(Any:D $ : --> Str) { "set(< %!elems.keys() >)" }
+    multi method Str(Any:D $ : --> Str) { ~%!elems.keys() }
     multi method gist(Any:D $ : --> Str) { "set({ %!elems.keys».gist.join(', ') })"
     }
     multi method perl(Any:D $ : --> Str) { 'set(' ~ join(', ', map { .perl }, %!elems.keys) ~ ')' }
@@ -98,7 +98,7 @@ my class KeySet is Iterable does Associative {
 
     submethod BUILD (:%!elems) { }
 
-    submethod Str(Any:D $ : --> Str) { "keyset(< %!elems.keys() >)" }
+    submethod Str(Any:D $ : --> Str) { ~%!elems.keys }
     submethod gist(Any:D $ : --> Str) { "keyset({ %!elems.keys».gist.join(', ') })" }
     submethod perl(Any:D $ : --> Str) { 'KeySet.new(' ~ join(', ', map { .perl }, %!elems.keys) ~ ')' }
 

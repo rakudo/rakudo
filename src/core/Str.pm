@@ -2,6 +2,7 @@ my class Cursor {... }
 my class Range  {... }
 my class Match  {... }
 my class Buf    {... }
+my class X::Str::Numeric { ... }
 
 sub PARROT_ENCODING(Str:D $s) {
     my %map = (

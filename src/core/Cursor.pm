@@ -1,5 +1,10 @@
 my class Cursor does NQPCursorRole {
     has $!ast; # Need it to survive re-creations of the match object.
+    
+    # Some bits to support <prior>
+    trusts Regex;
+    my $last_match;
+    method !set_last_match($m) { $last_match = $m }
 
     method MATCH() {
         my $match := nqp::getattr(self, Cursor, '$!match');
@@ -37,7 +42,17 @@ my class Cursor does NQPCursorRole {
             ($var ~~ Callable ?? $var(self) !! self."!LITERAL"(nqp::unbox_s($var.Str))) !!
             self."!cursor_start"()
     }
-
+    
+    method OTHERGRAMMAR($grammar, $name, |$args) {
+        my $lang_cursor := $grammar.'!cursor_init'(self.target(), :p(self.pos()));
+        $lang_cursor."$name"(); 
+    }
+    
+    method prior() {
+        nqp::isconcrete($last_match) ??
+            self."!LITERAL"(nqp::unbox_s(~$last_match)) !!
+            self."!cursor_start"()
+    }
 }
 
 sub MAKE_REGEX($arg) {

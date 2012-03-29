@@ -133,7 +133,7 @@ my class Mu {
     
     proto method Numeric(|$) { * }
     multi method Numeric(Mu:U \$v:) {
-        note (nqp::iscont($v)
+        warn (nqp::iscont($v)
               ?? "use of uninitialized variable { $v.VAR.name }"
               !! "use of uninitialized value")
             ~ " of type {self.^name} in numeric context";
@@ -141,7 +141,7 @@ my class Mu {
     }
     proto method Real(|$) { * }
     multi method Real(Mu:U \$v:) {
-        note (nqp::iscont($v)
+        warn (nqp::iscont($v)
               ?? "use of uninitialized variable { $v.VAR.name }"
               !! "use of uninitialized value")
             ~ " of type {self.^name} in numeric context";
@@ -150,7 +150,7 @@ my class Mu {
     
     proto method Str(|$) { * }
     multi method Str(Mu:U \$v:) {
-        note (nqp::iscont($v)
+        warn (nqp::iscont($v)
               ?? "use of uninitialized variable { $v.VAR.name }"
               !! "use of uninitialized value")
             ~ " of type {self.^name} in string context";

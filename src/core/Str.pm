@@ -432,7 +432,10 @@ my class Str does Stringy {
     # TODO: should be private
     proto method ll-match(Str:D: $, *%) {*}
     multi method ll-match(Str:D: Regex:D $pat, *%opts) {
-        $pat(Cursor.'!cursor_init'(self, |%opts)).MATCH
+        my $match := $pat(Cursor.'!cursor_init'(self, |%opts)).MATCH;
+        # next line written this way for reasons of circularity sawing
+        Cursor.HOW.find_private_method(Cursor, 'set_last_match')(Cursor, $match) if $match;
+        $match
     }
     multi method ll-match(Str:D: Cool:D $pat, *%opts) {
         my Int $from = %opts<p> // %opts<c> // 0;
@@ -829,7 +832,7 @@ sub trim-leading (Str:D $s) { $s.trim-leading }
 sub trim-trailing(Str:D $s) { $s.trim-trailing }
 
 # the opposite of Real.base, used for :16($hex_str)
-sub unbase(Int:D $base, Cool:D $str) {
+sub unbase(Int:D $base, Str:D $str) {
     if $str.substr(0, 2) eq any(<0x 0d 0o 0b>) {
         $str.Numeric;
     } else {

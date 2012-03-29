@@ -1604,6 +1604,16 @@ class Perl6::World is HLL::World {
         $is_name
     }
     
+    # Checks if a given symbol is declared and a type object.
+    method is_type(@name) {
+        my $is_name := 0;
+        try {
+            # This throws if it's not a known name.
+            $is_name := !nqp::isconcrete(self.find_symbol(@name))
+        }
+        $is_name
+    }
+    
     # Checks if a symbol has already been declared in the current
     # scope, and thus may not be redeclared.
     method already_declared($scope, $curpackage, $curpad, @name) {
@@ -1640,6 +1650,16 @@ class Perl6::World is HLL::World {
                 return $first_sym.HOW.HOW.name($first_sym.HOW) ne 'Perl6::Metamodel::PackageHOW';
             }
         }
+    }
+    
+    # Checks if there is a regex in scope.
+    method regex_in_scope($name) {
+        my $result := 0;
+        try {
+            my $maybe_regex := self.find_symbol([$name]);
+            $result := nqp::istype($maybe_regex, self.find_symbol(['Regex']));
+        }
+        $result
     }
     
     # Finds a symbol that has a known value at compile time from the
@@ -1867,16 +1887,17 @@ class Perl6::World is HLL::World {
         my $type_found := 1;
         my $ex := try {
             CATCH { $type_found := 0 };
-            self.find_symbol($ex_type);
+            self.find_symbol(pir::does($ex_type, 'array') ?? $ex_type !! nqp::split('::', $ex_type));
         };
+
         if $type_found {
+             %opts<line>     := HLL::Compiler.lineof($/.orig, $/.from);
+            for %opts -> $p {
+                %opts{$p.key} := pir::perl6ize_type__PP($p.value);
+            }
             my $file        := pir::find_caller_lex__ps('$?FILES');
-            %opts<line>     := nqp::box_i(
-                HLL::Compiler.lineof($/.orig, $/.from),
-                $*W.find_symbol(['Int'])
-            );
             %opts<filename> := nqp::box_s(
-                pir::isnull($file) ?? '<unknown file>' !! $file,
+                (pir::isnull($file) ?? '<unknown file>' !! $file),
                 self.find_symbol(['Str'])
             );
             $ex.new(|%opts).throw;

@@ -93,13 +93,13 @@ my &proceed := -> {
 }
 
 my &callwith := -> *@pos, *%named {
-    my Mu $dispatcher := pir::perl6_find_dispatcher__P();
+    my Mu $dispatcher := pir::perl6_find_dispatcher__Ps('callwith');
     $dispatcher.exhausted ?? Nil !!
         $dispatcher.call_with_args(|@pos, |%named)
 };
 
 my &nextwith := -> *@pos, *%named {
-    my Mu $dispatcher := pir::perl6_find_dispatcher__P();
+    my Mu $dispatcher := pir::perl6_find_dispatcher__Ps('nextwith');
     my Mu $return     := pir::find_caller_lex__Ps('RETURN');
     unless $dispatcher.exhausted {
         nqp::isnull($return)
@@ -111,14 +111,14 @@ my &nextwith := -> *@pos, *%named {
 };
 
 my &callsame := -> {
-    my Mu $dispatcher := pir::perl6_find_dispatcher__P();
+    my Mu $dispatcher := pir::perl6_find_dispatcher__Ps('callsame');
     $dispatcher.exhausted ?? Nil !!
         $dispatcher.call_with_capture(
             pir::perl6_args_for_dispatcher__PP($dispatcher))
 };
 
 my &nextsame := -> {
-    my Mu $dispatcher := pir::perl6_find_dispatcher__P();
+    my Mu $dispatcher := pir::perl6_find_dispatcher__Ps('nextsame');
     my Mu $return     := pir::find_caller_lex__Ps('RETURN');
     unless $dispatcher.exhausted {
         nqp::isnull($return)
@@ -132,13 +132,18 @@ my &nextsame := -> {
 };
 
 my &lastcall := -> {
-    pir::perl6_find_dispatcher__P().last();
+    pir::perl6_find_dispatcher__Ps('lastcall').last();
     True
 };
 
 proto sub die(|$) is hidden_from_backtrace {*};
 multi sub die(Exception $e) is hidden_from_backtrace { $e.throw }
-multi sub die(*@msg) is hidden_from_backtrace { pir::die__0P(@msg.join('')) }
+multi sub die($payload) is hidden_from_backtrace {
+    X::AdHoc.new(:$payload).throw
+}
+multi sub die(*@msg) is hidden_from_backtrace {
+    X::AdHoc.new(payload => @msg.join).throw
+}
 
 multi sub warn(*@msg) is hidden_from_backtrace {
     my $ex := pir::new('Exception');
@@ -154,6 +159,7 @@ sub eval(Str $code, :$lang = 'perl6') {
         $P0 = getinterp
         %r = $P0['context';1]
     };
+    my $?FILES   := 'eval_' ~ (state $no)++;
     my $compiler := pir::compreg__PS($lang);
     my $pbc      := $compiler.compile($code, :outer_ctx($caller_ctx), :global(GLOBAL));
     nqp::atpos($pbc, 0).set_outer_ctx($caller_ctx);

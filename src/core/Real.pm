@@ -7,7 +7,7 @@ my class Real does Numeric {
     proto method sign(|$) {*}
     multi method sign(Real:U:) { Mu }
     multi method sign(Real:D:) { self < 0 ?? -1 !! self == 0 ?? 0 !! 1 }
-    method conjugate(Real:D:) { self }
+    method conj(Real:D:) { self }
     method sqrt() { self.Bridge.sqrt }
     method sin()  { self.Bridge.sin }
     method asin() { self.Bridge.asin }

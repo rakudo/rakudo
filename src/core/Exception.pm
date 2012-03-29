@@ -1,20 +1,27 @@
+my role X::Comp { ... }
+
 my class Exception {
     has $!ex;
 
     method backtrace() { Backtrace.new(self) }
 
-    method Str() {
-        nqp::p6box_s(nqp::atkey($!ex, 'message'))
-    }
 
-    multi method Numeric(Exception:D:) {
-        self.Str.Numeric()
+    multi method Str(Exception:D:) {
+        self.?message.Str // 'Something went wrong'
+    }
+    multi method gist(Exception:D:) {
+        my $str = try self.?message ~ "\n" ~ $.backtrace;
+        $! ?? "Error while creating error string: $!.message() $!.backtrace.full()" 
+           !! $str;
     }
 
     method throw() is hidden_from_backtrace {
         nqp::bindattr(self, Exception, '$!ex', pir::new('Exception'))
             unless pir::defined($!ex);
         pir::setattribute__vPsP($!ex, 'payload', nqp::p6decont(self));
+        my $msg := self.?message;
+        pir::setattribute__vPsP($!ex, 'message', nqp::unbox_s($msg.Str))
+            if defined $msg;
         pir::throw__0P($!ex)
     }
     method rethrow() is hidden_from_backtrace {
@@ -24,6 +31,12 @@ my class Exception {
     method Bool() { False }
 }
 
+my class X::AdHoc is Exception {
+    has $.payload;
+    method message() { $.payload.Str     }
+    method Numeric() { $.payload.Numeric }
+}
+
 sub EXCEPTION(|$) {
     my Mu $parrot_ex := nqp::shift(pir::perl6_current_args_rpa__P());
     my Mu $payload   := nqp::atkey($parrot_ex, 'payload');
@@ -31,14 +44,13 @@ sub EXCEPTION(|$) {
         nqp::bindattr($payload, Exception, '$!ex', $parrot_ex);
         $payload;
     } else {
-        my $ex := nqp::create(Exception);
+        my $ex := nqp::create(X::AdHoc);
         nqp::bindattr($ex, Exception, '$!ex', $parrot_ex);
+        nqp::bindattr($ex, X::AdHoc, '$!payload', nqp::p6box_s(nqp::atkey($parrot_ex, 'message')));
         $ex;
     }
 }
 
-
-my class X::Base { ... }
 
 do {
     sub is_runtime($bt) {
@@ -59,20 +71,16 @@ do {
         return False;
     }
 
+
     sub print_exception(|$) is hidden_from_backtrace {
         my Mu $ex := nqp::atpos(pir::perl6_current_args_rpa__P(), 0);
         try {
             my $e := EXCEPTION($ex);
             my Mu $err := pir::getstderr__P();
 
-            if X::Base.ACCEPTS($e) {
+            if X::Comp.ACCEPTS($e) || is_runtime($ex.backtrace) {
                 $err.print: $e.gist;
                 $err.print: "\n";
-            }
-            elsif is_runtime($ex.backtrace) {
-                $err.print: $e;
-                $err.print: "\n";
-                $err.print: Backtrace.new($e);
             }
             else {
                 $err.print: "===SORRY!===\n";

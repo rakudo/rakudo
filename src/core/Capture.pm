@@ -2,7 +2,15 @@ my class Capture {
     has Mu $!list;
     has Mu $!hash;
 
-    submethod BUILD(:$!list, :$!hash) { }
+    submethod BUILD(:@list, :%hash) {
+        nqp::bindattr(self, Capture, '$!list',
+            nqp::getattr(nqp::p6decont(@list.Parcel), Parcel, '$!storage')
+        );
+        nqp::bindattr(self, Capture, '$!hash',
+            nqp::getattr(nqp::p6decont(%hash), EnumMap, '$!storage')
+        );
+        1;
+    }
 
     method at_key(Capture:D: $key is copy) {
         $key = $key.Str;
@@ -86,6 +94,11 @@ my class Capture {
     }
     method kv(Capture:D:) {
         (self.list.kv, self.hash.kv).flat
+    }
+
+    multi method perl(Capture:D:) {
+        join '', self.^name, '.new( list => ', self.list.perl,
+                                 ', hash => ', self.hash.perl, ')';
     }
 }
 

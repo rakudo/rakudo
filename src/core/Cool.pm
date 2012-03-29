@@ -5,7 +5,7 @@ my class Cool {
     ## numeric methods
 
     method abs()  { self.Numeric.abs }
-    method conjugate()  { self.Numeric.conjugate }
+    method conj()  { self.Numeric.conj }
     method sqrt()  { self.Numeric.sqrt }
     method sign()  { self.Numeric.sign }
     method rand() { self.Num.rand }

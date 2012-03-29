@@ -1086,7 +1086,7 @@ and returns it.
 =cut
 
 */
-inline op perl6_find_dispatcher(out PMC) :base_core {
+inline op perl6_find_dispatcher(out PMC, in STR) :base_core {
     PMC     *ctx            = CURRENT_CONTEXT(interp);
     STRING  *dispatcher_str = Parrot_str_new_constant(interp, "$*DISPATCHER");
     PMC     *dispatcher     = NULL;
@@ -1125,7 +1125,7 @@ inline op perl6_find_dispatcher(out PMC) :base_core {
     
     if (!dispatcher)
         Parrot_ex_throw_from_c_args(interp, NULL, EXCEPTION_INVALID_OPERATION,
-            "No dispatcher in scope");
+            "%Ss is not in the dynamic scope of a dispatcher", $2);
     $1 = dispatcher;
 }
 

@@ -21,6 +21,7 @@ S02-types/bool.t
 S02-types/capture.t
 S02-types/catch_type_cast_mismatch.t
 S02-types/declare.t
+S02-types/fatrat.t
 S02-types/flattening.t
 S02-types/hash_ref.t
 S02-types/hash.t
@@ -47,6 +48,7 @@ S02-types/type.t
 S02-types/undefined-types.t
 S02-types/whatever.t
 S02-lexical-conventions/unicode.t                          # icu
+S02-lists/tree.t
 S02-literals/array-interpolation.t
 S02-literals/autoref.t
 S02-literals/char-by-name.t # icu
@@ -232,19 +234,20 @@ S04-statements/unless.t
 S04-statements/until.t
 S04-statements/while.t
 S05-capture/caps.t
-# S05-capture/dot.t # err: Method 'dotdot' not found for invocant of class 'Cursor'
+S05-capture/dot.t
 S05-capture/match-object.t
-# S05-capture/named.t # err: Method 'fishy' not found for invocant of class 'Cursor'
+S05-capture/named.t
 S05-capture/subrule.t
 S05-grammar/action-stubs.t
 S05-grammar/inheritance.t
 S05-grammar/methods.t
-# S05-grammar/namespace.t # err: regex assertion not terminated by angle bracket
+S05-grammar/namespace.t
 S05-grammar/parse_and_parsefile.t
+S05-grammar/polymorphism.t
 S05-grammar/protoregex.t
 S05-grammar/protos.t
 S05-grammar/signatures.t
-# S05-grammar/ws.t # err: Method 'T1' not found for invocant of class 'Cursor'
+S05-grammar/ws.t
 S05-interpolation/lexicals.t
 S05-interpolation/regex-in-variable.t
 S05-mass/named-chars.t                                     # icu
@@ -272,6 +275,7 @@ S05-metasyntax/charset.t
 S05-metasyntax/interpolating-closure.t
 S05-metasyntax/lookaround.t
 S05-metasyntax/null.t
+S05-metasyntax/prior.t
 S05-metasyntax/regex.t
 S05-metasyntax/repeat.t
 S05-metasyntax/sequential-alternation.t
@@ -360,6 +364,7 @@ S06-traits/misc.t
 
 S09-autovivification/autoincrement.t
 # S09-autovivification/autovivification.t # err: Cannot assign to a non-container
+S09-hashes/objecthash.t
 S09-subscript/slice.t
 S09-typed-arrays/arrays.t
 S09-typed-arrays/hashes.t
@@ -375,6 +380,7 @@ S11-modules/need.t
 S11-modules/require.t
 S12-attributes/class.t
 S12-attributes/clone.t
+S12-attributes/defaults.t
 S12-attributes/delegation.t
 S12-attributes/inheritance.t
 S12-attributes/instance.t
@@ -395,7 +401,7 @@ S12-class/lexical.t
 S12-class/literal.t
 S12-class/magical-vars.t
 S12-class/mro.t
-# S12-class/namespaced.t # err: regex assertion not terminated by angle bracket
+S12-class/namespaced.t
 S12-class/open.t
 # S12-class/parent_attributes.t # err: Method 'at_key' not found for invocant of class 'Foo'
 S12-class/rw.t
@@ -517,6 +523,7 @@ S32-hash/exists.t
 S32-hash/delete.t
 S32-hash/invert.t
 S32-hash/keys_values.t
+S32-hash/kv.t
 S32-hash/pairs.t
 S32-hash/push.t
 S32-hash/slice.t
@@ -546,6 +553,7 @@ S32-num/base.t
 S32-num/complex.t
 S32-num/cool-num.t
 S32-num/exp.t
+S32-num/fatrat.t
 S32-num/int.t
 S32-num/log.t
 S32-num/pi.t

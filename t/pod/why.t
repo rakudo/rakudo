@@ -1,5 +1,5 @@
 use Test;
-plan 18;
+plan 19;
 
 #= simple case
 class Simple {
@@ -79,3 +79,7 @@ sub second {}
 
 is &first.WHY.content, 'that will break';
 is &second.WHY.content, 'that will break';
+
+#= trailing space here  
+sub third {}
+is &third.WHY.content, 'trailing space here';

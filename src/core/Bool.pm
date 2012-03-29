@@ -2,6 +2,7 @@ my class Bool {
     multi method Bool(Bool:D:)    { self }
     multi method Numeric(Bool:D:) { self ?? 1 !! 0 }
     multi method Str(Bool:D:)     { self ?? 'True' !! 'False' }
+    multi method gist(Bool:D:)    { self ?? 'True' !! 'False' }
 
     method Int()     { self ?? 1 !! 0 }
 

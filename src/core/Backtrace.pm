@@ -9,7 +9,7 @@ my class Backtrace is List {
         has Str $.subname;
 
         method subtype {
-            my $s = $!code.WHAT.perl.lc;
+            my $s = $!code.^name.lc.split('+', 2)[0];
             $s eq 'mu' ?? '' !! $s;
         }
 
@@ -59,15 +59,74 @@ my class Backtrace is List {
         $new;
     }
 
+    method next-interesting-index(Int $idx is copy = 0) {
+        ++$idx;
+        # NOTE: the < $.end looks like an off-by-one error
+        # but it turns out that a simple   perl6 -e 'die "foo"'
+        # has two bt frames from the mainline; so it's OK to never
+        # consider the last one
+        loop (; $idx < $.end; ++$idx) {
+            my $cand = $.at_pos($idx);
+            return $idx unless $cand.is-hidden;
+        }
+        Int;
+    }
+
+    method outer-caller-idx(Int $startidx is copy) {
+        my %print;
+        my $start   = $.at_pos($startidx).code;
+        return $startidx.list unless $start;
+        my $current = $start.outer;
+        my %outers;
+        while $current {
+            %outers{$current.static_id} = $start;
+            $current = $current.outer;
+        }
+        my @outers;
+        loop (my Int $i = $startidx; $i < $.end; ++$i) {
+            if $.at_pos($i).code && %outers{%.at_pos($i).code.static_id} {
+                @outers.push: $i;
+                return @outers if $.at_pos($i).is-routine;
+            }
+        }
+
+        return @outers;
+    }
+
+    method nice() {
+        my Int $i = self.next-interesting-index(-1);
+        my @frames;
+        while $i.defined {
+            my $prev = self.at_pos($i);
+            if $prev.is-routine {
+                @frames.push: $prev;
+            } else {
+                my @outer_callers := self.outer-caller-idx($i);
+                my ($target_idx) = @outer_callers.keys.grep({self.at_pos($i).code.^isa(Routine)});
+                $target_idx    ||= @outer_callers[0] || $i;
+                my $current = self.at_pos($target_idx);
+                @frames.push: $current.clone(line => $prev.line);
+                $i = $target_idx;
+            }
+            $i = self.next-interesting-index($i);
+        }
+        return @frames.join;
+    }
+
+
     method concise(Backtrace:D:) {
         self.grep({ !.is-hidden && .is-routine && !.is-setting }).join
     }
 
     multi method Str(Backtrace:D:) {
-        self.grep({ !.is-hidden && (.is-routine || !.is-setting )}).join
+        self.nice;
     }
 
     method full(Backtrace:D:) {
         self.join
+    }
+
+    method summary(Backtrace:D:) {
+        self.grep({ !.is-hidden && (.is-routine || !.is-setting )}).join
     }
 }

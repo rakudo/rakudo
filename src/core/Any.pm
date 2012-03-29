@@ -16,6 +16,7 @@ my class Any {
     method uniq() { self.list.uniq }
     method infinite() { Mu }
     method flat() { nqp::p6list(nqp::list(self), List, Bool::True) }
+    method tree(*@a) { self.list.tree(|@a) }
     method hash() { my %h = self }
     method list() { nqp::p6list(nqp::list(self), List, Mu) }
     method pick($n = 1) { self.list.pick($n) }
@@ -166,7 +167,7 @@ my class Any {
     # Hash-like methods for Any.
     ########
     proto method postcircumfix:<{ }>(|$) { * }
-    multi method postcircumfix:<{ }>() { self.values }
+    multi method postcircumfix:<{ }>() { self }
     multi method postcircumfix:<{ }>(:$BIND!) { die "Cannot bind to a zen hash slice" }
     multi method postcircumfix:<{ }>($key) is rw {
         self.at_key($key)
@@ -300,4 +301,5 @@ multi sub sort(*@values)      {
         !!  @values.sort;
 }
 
-sub item(*@a) { my $ = @a }
+multi sub item(*@a) { my $ = @a }
+multi sub item(Mu $a) { $a }

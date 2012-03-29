@@ -99,7 +99,7 @@ class Perl6::Actions is HLL::Actions {
     # attribute/lexpad), bind constraint (what could we bind to this
     # slot later), and if specified a constraint on the inner value
     # and a default value.
-    sub container_type_info($sigil, @value_type) {
+    sub container_type_info($sigil, @value_type, $shape?) {
         my %info;
         if $sigil eq '@' {
             %info<container_base>  := $*W.find_symbol(['Array']);
@@ -115,15 +115,28 @@ class Perl6::Actions is HLL::Actions {
                 %info<container_type> := %info<container_base>;
                 %info<value_type>     := $*W.find_symbol(['Mu']);
             }
+            if $shape {
+                pir::die("Shaped arrays are not yet supported");
+            }
         }
         elsif $sigil eq '%' {
             %info<container_base>  := $*W.find_symbol(['Hash']);
             %info<bind_constraint> := $*W.find_symbol(['Associative']);
+            if $shape {
+                @value_type[0] := $*W.find_symbol(['Mu']) unless +@value_type;
+                my $shape_ast := $shape[0].ast;
+                if $shape_ast.isa(PAST::Stmts) && +@($shape_ast) == 1 && $shape_ast[0]<has_compile_time_value> {
+                    @value_type[1] := $shape_ast[0]<compile_time_value>;
+                }
+                else {
+                    pir::die("Invalid hash shape; type expected");
+                }
+            }
             if @value_type {
                 %info<container_type>  := $*W.parameterize_type_with_args(
-                    %info<container_base>, [@value_type[0]], nqp::hash());
+                    %info<container_base>, @value_type, nqp::hash());
                 %info<bind_constraint> := $*W.parameterize_type_with_args(
-                    %info<bind_constraint>, [@value_type[0]], nqp::hash());
+                    %info<bind_constraint>, @value_type, nqp::hash());
                 %info<value_type>      := @value_type[0];
             }
             else {
@@ -620,7 +633,15 @@ class Perl6::Actions is HLL::Actions {
     method block($/) {
         my $block := $<blockoid>.ast;
         if $block<placeholder_sig> {
-            $/.CURSOR.panic("Cannot use placeholder parameters in this kind of block");
+            my $name := $block<placeholder_sig>[0]<variable_name>;
+            unless $name eq '%_' || $name eq '@_' {
+                $name := nqp::concat_s(nqp::substr($name, 0, 1),
+                        nqp::concat_s('^', nqp::substr($name, 1)));
+            }
+
+            $*W.throw( $/, ['X', 'Placeholder', 'Block'],
+                placeholder => $name,
+            );
         }
         ($*W.cur_lexpad())[0].push(my $uninst := PAST::Stmts.new($block));
         my $code := $*W.create_code_object($block, 'Block', $*W.create_signature([]));
@@ -797,7 +818,7 @@ class Perl6::Actions is HLL::Actions {
     method statement_control:sym<require>($/) {
         if $<module_name> && $<EXPR> {
             $*W.throw($/, ['X', 'NYI'],
-                feature => p6box_s('require with argument list'));
+                feature => 'require with argument list');
         }
         my $name_past := $<module_name>
                         ?? PAST::Val.new(:value($<module_name><longname><name>.Str))
@@ -845,7 +866,7 @@ class Perl6::Actions is HLL::Actions {
 
     method statement_control:sym<CATCH>($/) {
         if has_block_handler($*W.cur_lexpad(), 'CONTROL', :except(1)) {
-            $/.CURSOR.panic("only one CATCH block allowed");
+            $*W.throw($/, ['X', 'Phaser', 'Multiple'], block => 'CATCH');
         }
         my $block := $<block>.ast;
         push_block_handler($/, $*W.cur_lexpad(), $block, 'CONTROL', :except(1));
@@ -854,7 +875,7 @@ class Perl6::Actions is HLL::Actions {
 
     method statement_control:sym<CONTROL>($/) {
         if has_block_handler($*W.cur_lexpad(), 'CONTROL') {
-            $/.CURSOR.panic("only one CONTROL block allowed");
+            $*W.throw($/, ['X', 'Phaser', 'Multiple'], block => 'CONTROL');
         }
         my $block := $<block>.ast;
         push_block_handler($/, $*W.cur_lexpad(), $block, 'CONTROL');
@@ -1060,7 +1081,7 @@ class Perl6::Actions is HLL::Actions {
         else {
             if $<desigilname> && $<desigilname><longname> && self.is_indirect_lookup($<desigilname><longname>) {
                 if $*IN_DECL {
-                    $/.CURSOR.panic("Variable variable names not allowed in declarations");
+                    $*W.throw($/, ['X', 'Syntax', 'Variable', 'IndirectDeclaration']);
                 }
                 $past := self.make_indirect_lookup($<desigilname><longname>, ~$<sigil>);
             } else {
@@ -1085,33 +1106,23 @@ class Perl6::Actions is HLL::Actions {
         elsif $twigil eq '!' {
             # In a declaration, don't produce anything here.
             if $*IN_DECL ne 'variable' {
-                # Ensure attribute actually exists before emitting lookup.
-                unless pir::can($*PACKAGE.HOW, 'get_attribute_for_usage') {
-                    $/.CURSOR.panic("Cannot understand $name in this context");
+                unless $*HAS_SELF {
+                    $*W.throw($/, ['X', 'Syntax', 'NoSelf'], variable => $name);
                 }
-                my $attr;
-                my $found := 0;
-                try {
-                    $attr := $*PACKAGE.HOW.get_attribute_for_usage($*PACKAGE, $name);
-                    $found := 1;
-                }
-                if $found {
-                    $past.scope('attribute_6model');
-                    $past.type($attr.type);
-                    $past.unshift(instantiated_type(['$?CLASS'], $/));
-                    $past.unshift(PAST::Var.new( :name('self'), :scope('lexical_6model') ));
-                    $past := box_native_if_needed($past, $attr.type);
-                }
-                else {
-                    $*W.throw($/, ['X', 'Attribute', 'Undeclared'],
-                            name         => p6box_s($name),
-                            package-type => p6box_s($*PKGDECL),
-                            package-name => p6box_s($*PACKAGE.HOW.name($*PACKAGE)),
-                    );
-                }
+                my $attr := get_attribute_meta_object($/, $name);
+                $past.scope('attribute_6model');
+                $past.type($attr.type);
+                $past.unshift(instantiated_type(['$?CLASS'], $/));
+                $past.unshift(PAST::Var.new( :name('self'), :scope('lexical_6model') ));
+                $past := box_native_if_needed($past, $attr.type);
             }
         }
         elsif $twigil eq '.' && $*IN_DECL ne 'variable' {
+            if !$*HAS_SELF {
+                $*W.throw($/, ['X', 'Syntax', 'NoSelf'], variable => $name);
+            } elsif $*HAS_SELF eq 'partial' {
+                $*W.throw($/, ['X', 'Syntax', 'VirtualCall'], call => $name);
+            }
             # Need to transform this to a method call.
             $past := $<arglist> ?? $<arglist>[0].ast !! PAST::Op.new();
             $past.pasttype('callmethod');
@@ -1153,7 +1164,7 @@ class Perl6::Actions is HLL::Actions {
             # inside double quotes fixes the most common case, but fails to
             # catch undeclared variables in double-quoted strings.
             if $sigil ne '&' && !$*IN_DECL && ($*QSIGIL eq '' || $*QSIGIL eq '$') && !$*W.is_lexical($name) {
-                $/.CURSOR.panic("Variable $name is not predeclared");
+                $*W.throw($/, ['X', 'Undeclared'], symbol => $name);
             }
 
             # Expect variable to have been declared somewhere.
@@ -1166,6 +1177,26 @@ class Perl6::Actions is HLL::Actions {
             }
         }
         $past
+    }
+    
+    sub get_attribute_meta_object($/, $name) {
+        unless pir::can($*PACKAGE.HOW, 'get_attribute_for_usage') {
+            $/.CURSOR.panic("Cannot understand $name in this context");
+        }
+        my $attr;
+        my $found := 0;
+        try {
+            $attr := $*PACKAGE.HOW.get_attribute_for_usage($*PACKAGE, $name);
+            $found := 1;
+        }
+        unless $found {
+            $*W.throw($/, ['X', 'Attribute', 'Undeclared'],
+                    name         => $name,
+                    package-type => $*PKGDECL,
+                    package-name => $*PACKAGE.HOW.name($*PACKAGE),
+            );
+        }
+        $attr
     }
 
     method package_declarator:sym<package>($/) { make $<package_def>.ast; }
@@ -1181,7 +1212,7 @@ class Perl6::Actions is HLL::Actions {
     }
 
     method package_declarator:sym<also>($/) {
-        $*W.throw($/, ['X', 'NYI'], feature => p6box_s('also'));
+        $*W.throw($/, ['X', 'NYI'], feature => 'also');
     }
 
     method package_def($/) {
@@ -1196,6 +1227,17 @@ class Perl6::Actions is HLL::Actions {
             $block.node($/);
         }
         $block.blocktype('immediate');
+
+        if $*PKGDECL ne 'role' && $block<placeholder_sig> {
+            my $name := $block<placeholder_sig>[0]<variable_name>;
+            unless $name eq '%_' || $name eq '@_' {
+                $name := nqp::concat_s(nqp::substr($name, 0, 1),
+                        nqp::concat_s('^', nqp::substr($name, 1)));
+            }
+            $*W.throw( $/, ['X', 'Placeholder', 'Block'],
+                placeholder => $name,
+            );
+        }
 
         # If it's a stub, add it to the "must compose at some point" list,
         # then just evaluate to the type object. Don't need to do any more
@@ -1274,9 +1316,34 @@ class Perl6::Actions is HLL::Actions {
     method scope_declarator:sym<state>($/)   { make $<scoped>.ast; }
 
     method declarator($/) {
-        if    $<variable_declarator> { make $<variable_declarator>.ast }
-        elsif $<routine_declarator>  { make $<routine_declarator>.ast  }
+        if    $<routine_declarator>  { make $<routine_declarator>.ast  }
         elsif $<regex_declarator>    { make $<regex_declarator>.ast    }
+        elsif $<type_declarator>     { make $<type_declarator>.ast     }
+        elsif $<variable_declarator> {
+            my $past := $<variable_declarator>.ast;
+            if $<initializer> {
+                if $*SCOPE eq 'has' {
+                    if $<initializer>[0]<sym> eq '=' {
+                        self.install_attr_init($past<metaattr>, $<initializer>[0].ast, $*ATTR_INIT_BLOCK);
+                    }
+                    else {
+                        $/.CURSOR.panic("Cannot use " ~ $<initializer>[0]<sym> ~
+                            " to initialize an attribute");
+                    }
+                }
+                elsif $<initializer>[0]<sym> eq '=' {
+                    $past := assign_op($past, $<initializer>[0].ast);
+                }
+                elsif $<initializer>[0]<sym> eq '.=' {
+                    $past := make_dot_equals($past, $<initializer>[0].ast);
+                }
+                else {
+                    $past := bind_op($/, $past, $<initializer>[0].ast,
+                        $<initializer>[0]<sym> eq '::=');
+                }
+            }
+            make $past;
+        }
         elsif $<signature> {
             # Go over the params and declare the variable defined
             # in them.
@@ -1298,6 +1365,21 @@ class Perl6::Actions is HLL::Actions {
                         $*W.create_container_descriptor(%cont_info<value_type>, 1, 'anon')));
                 }
             }
+            
+            if $<initializer> {
+                if $<initializer>[0]<sym> eq '=' {
+                    $/.CURSOR.panic("Cannot assign to a list of 'has' scoped declarations")
+                        if $*SCOPE eq 'has';
+                    $list := assign_op($list, $<initializer>[0].ast);
+                }
+                elsif $<initializer>[0]<sym> eq '.=' {
+                    $/.CURSOR.panic("Cannot use .= initializer with a list of declarations");
+                }
+                else {
+                    $/.CURSOR.panic("Binding to signatures in $*SCOPE declarations not yet implemented");
+                }
+            }
+            
             make $list;
         }
         else {
@@ -1320,12 +1402,12 @@ class Perl6::Actions is HLL::Actions {
         my $twigil := $<variable><twigil>[0];
         my $name   := ~$sigil ~ ~$twigil ~ ~$<variable><desigilname>;
         if $<variable><desigilname> && $*W.cur_lexpad().symbol($name) {
-            $/.CURSOR.panic("Redeclaration of symbol ", $name);
+            $*W.throw($/, ['X', 'Redeclaration'], symbol => $name);
         }
-        make declare_variable($/, $past, ~$sigil, ~$twigil, ~$<variable><desigilname>, $<trait>);
+        make declare_variable($/, $past, ~$sigil, ~$twigil, ~$<variable><desigilname>, $<trait>, $<semilist>);
     }
 
-    sub declare_variable($/, $past, $sigil, $twigil, $desigilname, $trait_list) {
+    sub declare_variable($/, $past, $sigil, $twigil, $desigilname, $trait_list, $shape?) {
         my $name  := $sigil ~ $twigil ~ $desigilname;
         my $BLOCK := $*W.cur_lexpad();
 
@@ -1333,15 +1415,17 @@ class Perl6::Actions is HLL::Actions {
             # Ensure current package can take attributes.
             unless pir::can($*PACKAGE.HOW, 'add_attribute') {
                 if $*PKGDECL {
-                    $/.CURSOR.panic("A $*PKGDECL cannot have attributes");
+                    $*W.throw($/, ['X', 'Attribute', 'Package'],
+                        package-type => $*PKGDECL
+                    );
                 } else {
-                    $/.CURSOR.panic("You can't declare an attribute here; maybe you'd like a class or a role?");
+                    $*W.throw($/, ['X', 'Attribute', 'NoPackage']);
                 }
             }
 
             # Create container descriptor and decide on any default value..
             my $attrname   := ~$sigil ~ '!' ~ $desigilname;
-            my %cont_info  := container_type_info($sigil, $*TYPENAME ?? [$*TYPENAME.ast] !! []);
+            my %cont_info  := container_type_info($sigil, $*OFTYPE ?? [$*OFTYPE.ast] !! [], $shape);
             my $descriptor := $*W.create_container_descriptor(%cont_info<value_type>, 1, $attrname);
 
             # Create meta-attribute and add it.
@@ -1371,11 +1455,9 @@ class Perl6::Actions is HLL::Actions {
                 if $applier { $applier($attr); }
             }
 
-            # Nothing to emit here; just hand back an empty node but
-            # annotated with the attribute object in case we get a
-            # default vlaue "assigned".
-            $past := PAST::Op.new( :pasttype('null') );
-            $past<attribute_declarand> := $attr;
+            # Nothing to emit here; hand back a Nil.
+            $past := PAST::Var.new(:name('Nil'), :scope('lexical_6model'));
+            $past<metaattr> := $attr;
         }
         elsif $*SCOPE eq 'my' || $*SCOPE eq 'state' {            
             # Twigil handling.
@@ -1384,12 +1466,15 @@ class Perl6::Actions is HLL::Actions {
                 $name := $sigil ~ $desigilname;
             }
             elsif $twigil eq '!' {
-                $/.CURSOR.panic("Cannot use $twigil twigil on $*SCOPE variable");
+                $*W.throw($/, ['X', 'Syntax', 'Variable', 'Twigil'],
+                    twigil => $twigil,
+                    scope  => $*SCOPE,
+                );
             }
 
             # Create a container descriptor. Default to rw and set a
             # type if we have one; a trait may twiddle with that later.
-            my %cont_info := container_type_info($sigil, $*TYPENAME ?? [$*TYPENAME.ast] !! []);
+            my %cont_info := container_type_info($sigil, $*OFTYPE ?? [$*OFTYPE.ast] !! [], $shape);
             my $descriptor := $*W.create_container_descriptor(%cont_info<value_type>, 1, $name);
 
             # Install the container.
@@ -1425,11 +1510,17 @@ class Perl6::Actions is HLL::Actions {
                 $past.name($name);
             }
             elsif $twigil eq '!' {
-                $/.CURSOR.panic("Cannot use $twigil twigil on $*SCOPE variable");
+                $*W.throw($/, ['X', 'Syntax', 'Variable', 'Twigil'],
+                    twigil => $twigil,
+                    scope  => $*SCOPE,
+                );
             }
 
-            if $*TYPENAME {
+            if $*OFTYPE {
                 $/.CURSOR.panic("Cannot put a type constraint on an 'our'-scoped variable");
+            }
+            elsif $shape {
+                $/.CURSOR.panic("Cannot put a shape on an 'our'-scoped variable");
             }
             $BLOCK[0].push(PAST::Var.new(
                 :name($name), :scope('lexical'), :isdecl(1),
@@ -1438,7 +1529,7 @@ class Perl6::Actions is HLL::Actions {
         }
         else {
             $*W.throw($/, ['X', 'NYI'],
-                feature => p6box_s("$*SCOPE scoped variables"));
+                feature => "$*SCOPE scoped variables");
         }
 
         return $past;
@@ -1562,7 +1653,10 @@ class Perl6::Actions is HLL::Actions {
 
                 # Ensure it's actually a dispatcher.
                 unless $proto.is_dispatcher {
-                    $/.CURSOR.panic("Cannot declare a multi when an only is in scope");
+                    $*W.throw($/, ['X', 'Redeclaration'],
+                        what    => 'routine',
+                        symbol  => ~$<deflongname>[0].ast,
+                    );
                 }
 
                 # Install the candidate.
@@ -1571,8 +1665,10 @@ class Perl6::Actions is HLL::Actions {
             else {
                 # Install.
                 if $outer.symbol($name) {
-                    $/.CURSOR.panic("Illegal redeclaration of routine '" ~
-                        ~$<deflongname>[0].ast ~ "'");
+                    $*W.throw($/, ['X', 'Redeclaration'],
+                            symbol => ~$<deflongname>[0].ast,
+                            what   => 'routine',
+                    );
                 }
                 if $*SCOPE eq '' || $*SCOPE eq 'my' {
                     $*W.install_lexical_symbol($outer, $name, $code, :clone(1));
@@ -1589,12 +1685,12 @@ class Perl6::Actions is HLL::Actions {
                     ));
                 }
                 else {
-                    $/.CURSOR.panic("Cannot use '$*SCOPE' scope with a sub");
+                    $*W.throw($/, 'X::Sub::Scope', scope => $*SCOPE);
                 }
             }
         }
         elsif $*MULTINESS {
-            $/.CURSOR.panic('Cannot put ' ~ $*MULTINESS ~ ' on anonymous routine');
+            $*W.throw($/, 'X::Anon::Multi', multiness => $*MULTINESS);
         }
 
         # Apply traits.
@@ -1758,7 +1854,10 @@ class Perl6::Actions is HLL::Actions {
                 :private($<specials> && ~$<specials> eq '!'));
         }
         elsif $*MULTINESS {
-            $/.CURSOR.panic('Cannot put ' ~ $*MULTINESS ~ ' on anonymous method');
+            $*W.throw($/, 'X::Anon::Multi',
+                multiness       => $*MULTINESS,
+                routine-type    => 'method',
+            );
         }
 
         my $closure := block_closure(reference_to_code_object($code, $past));
@@ -1988,7 +2087,7 @@ class Perl6::Actions is HLL::Actions {
 
         # Get, or find, enumeration base type and create type object with
         # correct base type.
-        my $base_type := $*TYPENAME ?? $*TYPENAME.ast !! $*W.find_symbol(['Int']);
+        my $base_type := $*OFTYPE ?? $*OFTYPE.ast !! $*W.find_symbol(['Int']);
         my $name      := $<longname> ?? ~$<longname> !! $<variable><desigilname>;
         my $type_obj  := $*W.pkg_create_mo(%*HOW<enum>, :name($name), :base_type($base_type));
 
@@ -2005,7 +2104,7 @@ class Perl6::Actions is HLL::Actions {
         $*W.pkg_compose($type_obj);
         if $<variable> {
             $*W.throw($/, ['X', 'NYI'],
-                feature => p6box_s("Variable case of enums")
+                feature => "Variable case of enums",
             );
         }
         $*W.install_package_longname($/, $<longname>, ($*SCOPE || 'our'),
@@ -2026,7 +2125,7 @@ class Perl6::Actions is HLL::Actions {
                     @values.push($_);
                 }
                 else {
-                    $<term>.CURSOR.panic("Enumeration values must be known at compile time");
+                    $*W.throw($<term>, ['X', 'Value', 'Dynamic'], what => 'Enumeration');
                 }
             }
         }
@@ -2037,7 +2136,7 @@ class Perl6::Actions is HLL::Actions {
             @values.push($term_ast);
         }
         else {
-            $<term>.CURSOR.panic("Enumeration values must be known or constant-foldable at compile time");
+            $*W.throw($<term>, ['X', 'Value', 'Dynamic'], what => 'Enumeration');
         }
 
         # Now we have them, we can go about computing the value
@@ -2064,7 +2163,7 @@ class Perl6::Actions is HLL::Actions {
                         $ok := 1;
                     }
                     unless $ok {
-                        $/.CURSOR.panic("Enumeration values must be known or constant-foldable at compile time");
+                        $*W.throw($/, ['X', 'Value', 'Dynamic'], what => 'Enumeration');
                     }
                 }
             }
@@ -2120,48 +2219,51 @@ class Perl6::Actions is HLL::Actions {
     }
 
     method type_declarator:sym<constant>($/) {
-        # We make an empty PAST node, but attach a callback to it
-        # that we'll have made when we see the =.
-        my $past := PAST::Op.new( :pasttype('null') );
-        $past<constant_declarator> := -> $rhs_ast {
-            # Get constant value.
-            my $value;
-            if $rhs_ast<has_compile_time_value> {
-                $value := $rhs_ast<compile_time_value>;
-            }
-            else {
-                my $name := ~($<identifier> // $<variable>);
-                $/.CURSOR.panic("Cannot handle constant $name with non-literal value yet");
-            }
+        # Get constant value.
+        my $value_ast := $<initializer>.ast;
+        my $value;
+        if $value_ast<has_compile_time_value> {
+            $value := $value_ast<compile_time_value>;
+        }
+        else {
+            my $name := ~($<identifier> // $<variable>);
+            $/.CURSOR.panic("Cannot handle constant $name with non-literal value yet");
+        }
 
-            # Get name to install it as.
-            my $name;
-            if $<identifier> {
-                $name := ~$<identifier>;
+        # Provided it's named, install it.
+        my $name;
+        if $<identifier> {
+            $name := ~$<identifier>;
+        }
+        elsif $<variable> {
+            # Don't handle twigil'd case yet.
+            if $<variable><twigil> {
+                $*W.throw($/, ['X', 'NYI'],
+                    feature => "Twigil-Variable constants"
+                );
             }
-            elsif $<variable> {
-                # Don't handle twigil'd case yet.
-                if $<variable><twigil> {
-                    $*W.throw($/, ['X', 'NYI'],
-                        feature => p6box_s("Twigil-Variable constants")
-                    );
-                }
-                $name := ~$<variable>;
-            }
-            else {
-                # Nothing to install, just return a PAST node to
-                # get hold of the constant.
-                return $*W.get_ref($value);
-            }
-
-            # Install.
+            $name := ~$<variable>;
+        }
+        if $name {
             $*W.install_package($/, [$name], ($*SCOPE || 'our'),
                 'constant', $*PACKAGE, $*W.cur_lexpad(), $value);
+        }
 
-            # Evaluate to the constant.
-            return $*W.get_ref($value);
-        };
-        make $past;
+        # Evaluate to the constant.
+        make $*W.get_ref($value);
+    }
+    
+    method initializer:sym<=>($/) {
+        make $<EXPR>.ast;
+    }
+    method initializer:sym<:=>($/) {
+        make $<EXPR>.ast;
+    }
+    method initializer:sym<::=>($/) {
+        make $<EXPR>.ast;
+    }
+    method initializer:sym<.=>($/) {
+        make $<dottyopish><term>.ast;
     }
 
     method capterm($/) {
@@ -2186,7 +2288,7 @@ class Perl6::Actions is HLL::Actions {
     method fakesignature($/) {
         my @params := $<signature>.ast;
         set_default_parameter_type(@params, 'Mu');
-        my $sig := create_signature_object($/, @params, $*FAKE_PAD);
+        my $sig := create_signature_object($/, @params, $*FAKE_PAD, :no_attr_check(1));
         my $past := $*W.get_ref($sig);
         $past<has_compile_time_value> := 1;
         $past<compile_time_value> := $sig;
@@ -2227,10 +2329,10 @@ class Perl6::Actions is HLL::Actions {
         my $quant := $<quant>;
         if $<default_value> {
             if $quant eq '*' {
-                $/.CURSOR.panic("Cannot put default on slurpy parameter");
+                $*W.throw($/, ['X', 'Parameter', 'Default'], how => 'slurpy');
             }
             if $quant eq '!' {
-                $/.CURSOR.panic("Cannot put default on required parameter");
+                $*W.throw($/, ['X', 'Parameter', 'Default'], how => 'required');
             }
             my $val := $<default_value>[0].ast;
             if $val<has_compile_time_value> {
@@ -2308,7 +2410,7 @@ class Perl6::Actions is HLL::Actions {
                 if $<name> {
                     my $cur_pad := $*W.cur_lexpad();
                     if $cur_pad.symbol(~$/) {
-                        $/.CURSOR.panic("Redeclaration of symbol ", ~$/);
+                        $*W.throw($/, ['X', 'Redeclaration'], symbol => ~$/);
                     }
                     if pir::exists(%*PARAM_INFO, 'nominal_type') {
                         $cur_pad[0].push(PAST::Var.new( :name(~$/), :scope('lexical_6model'),
@@ -2324,7 +2426,6 @@ class Perl6::Actions is HLL::Actions {
                 }
             }
             elsif $twigil eq '!' {
-                # XXX Can compile-time check name when we have attributes. :-)
                 %*PARAM_INFO<bind_attr> := 1;
                 %*PARAM_INFO<attr_package> := $*PACKAGE;
             }
@@ -2339,13 +2440,16 @@ class Perl6::Actions is HLL::Actions {
             }
             else {
                 if $twigil eq ':' {
-                    $/.CURSOR.panic("In signature parameter, placeholder variables like " ~
-                        ~$/ ~ " are illegal\n" ~
-                        "you probably meant a named parameter: ':" ~ $<sigil> ~ ~$<name>[0] ~ "'");
+                    $*W.throw($/, ['X', 'Parameter', 'Placeholder'],
+                        parameter => ~$/,
+                        right     => ':' ~ $<sigil> ~ ~$<name>[0],
+                    );
                 }
                 else {
-                    $/.CURSOR.panic("In signature parameter, '" ~ ~$/ ~
-                        "', it is illegal to use '" ~ $twigil ~ "' twigil");
+                    $*W.throw($/, ['X', 'Parameter', 'Twigil'],
+                        parameter => ~$/,
+                        twigil    => $twigil,
+                    );
                 }
             }
         }
@@ -2380,7 +2484,7 @@ class Perl6::Actions is HLL::Actions {
             }
             else {
                 if pir::exists(%*PARAM_INFO, 'nominal_type') {
-                    $/.CURSOR.panic('Parameter may only have one prefix type constraint');
+                    $*W.throw($/, ['X', 'Parameter', 'MultipleTypeConstraints']);
                 }
                 my $type := $<typename>.ast;
                 if nqp::isconcrete($type) {
@@ -2424,7 +2528,7 @@ class Perl6::Actions is HLL::Actions {
         }
         elsif $<value> {
             if pir::exists(%*PARAM_INFO, 'nominal_type') {
-                $/.CURSOR.panic('Parameter may only have one prefix type constraint');
+                $*W.throw($/, ['X', 'Parameter', 'MultipleTypeConstraints']);
             }
             my $ast := $<value>.ast;
             unless $ast<has_compile_time_value> {
@@ -2476,7 +2580,7 @@ class Perl6::Actions is HLL::Actions {
     # Create Parameter objects, along with container descriptors
     # if needed. Parameters will be bound into the specified
     # lexpad.
-    sub create_signature_object($/, @parameter_infos, $lexpad) {
+    sub create_signature_object($/, @parameter_infos, $lexpad, :$no_attr_check) {
         my @parameters;
         my %seen_names;
         for @parameter_infos {
@@ -2484,10 +2588,18 @@ class Perl6::Actions is HLL::Actions {
             if $_<named_names> {
                 for $_<named_names> {
                     if %seen_names{$_} {
-                        $/.CURSOR.panic("Name '$_' used for more than one named parameter");
+                        $*W.throw($/, ['X', 'Signature', 'NameClash'],
+                            named => $_
+                        );
                     }
                     %seen_names{$_} := 1;
                 }
+            }
+            
+            # If it's !-twigil'd, ensure the attribute it mentions exists unless
+            # we're in a context where we should not do that.
+            if $_<bind_attr> && !$no_attr_check {
+                get_attribute_meta_object($/, $_<variable_name>);
             }
             
             # If we have a sub-signature, create that.
@@ -2528,7 +2640,7 @@ class Perl6::Actions is HLL::Actions {
                 $*REPR := compile_time_value_str($<circumfix>[0].ast[0], "is repr(...) trait", $/);
             }
             else {
-                $/.cursor.panic("is repr(...) trait needs a parameter");
+                $/.CURSOR.panic("is repr(...) trait needs a parameter");
             }
         }
         else
@@ -2655,16 +2767,19 @@ class Perl6::Actions is HLL::Actions {
             if @parts {
                 my $methpkg := $*W.find_symbol(@parts);
                 unless $methpkg.HOW.is_trusted($methpkg, $*PACKAGE) {
-                    $/.CURSOR.panic("Cannot call private method '$name' on package " ~
-                        $methpkg.HOW.name($methpkg) ~ " because it does not trust " ~
-                        $*PACKAGE.HOW.name($*PACKAGE));
+                    $*W.throw($/, ['X', 'Method', 'Private', 'Permission'],
+                        :method(         $name),
+                        :source-package( $methpkg.HOW.name($methpkg)),
+                        :calling-package( $*PACKAGE.HOW.name($*PACKAGE)),
+                    );
                 }
                 $past[1].type($methpkg);
             }
             else {
                 unless pir::can($*PACKAGE.HOW, 'find_private_method') {
-                    $/.CURSOR.panic("Private method call to '$name' must be fully " ~
-                        "qualified with the package containing the method");
+                    $*W.throw($/, ['X', 'Method', 'Private', 'Unqualified'],
+                        :method($name),
+                    );
                 }
                 $past.unshift($*W.get_ref($*PACKAGE));
                 $past[0].type($*PACKAGE);
@@ -3144,19 +3259,23 @@ class Perl6::Actions is HLL::Actions {
             return 1;
         }
         elsif $sym eq '=' {
-            make assign_op($/);
+            make assign_op($/[0].ast, $/[1].ast);
             return 1;
         }
         elsif $sym eq ':=' {
-            make bind_op($/, 0);
+            make bind_op($/, $/[0].ast, $/[1].ast, 0);
             return 1;
         }
         elsif $sym eq '::=' {
-            make bind_op($/, 1);
+            make bind_op($/, $/[0].ast, $/[1].ast, 1);
             return 1;
         }
-        elsif $sym eq 'does' || $sym eq 'but' {
+        elsif !$past && ($sym eq 'does' || $sym eq 'but') {
             make mixin_op($/, $sym);
+            return 1;
+        }
+        elsif !$past && $sym eq 'xx' {
+            make xx_op($/, $/[0].ast, $/[1].ast);
             return 1;
         }
         unless $past {
@@ -3209,7 +3328,7 @@ class Perl6::Actions is HLL::Actions {
         }
         else {
             $*W.throw($/, ['X', 'NYI'],
-                feature => p6box_s($/<infix> ~ " feed operator")
+                feature => $/<infix> ~ " feed operator"
             );
         }
 
@@ -3304,10 +3423,7 @@ class Perl6::Actions is HLL::Actions {
         ));
     }
 
-    sub bind_op($/, $sigish) {
-        my $target := $/[0].ast;
-        my $source := $/[1].ast;
-
+    sub bind_op($/, $target, $source, $sigish) {
         # Check we know how to bind to the thing on the LHS.
         if $target.isa(PAST::Var) {
             # We may need to decontainerize the right, depending on sigil.
@@ -3340,7 +3456,7 @@ class Perl6::Actions is HLL::Actions {
                     $was_lexical := 1;
                 }
                 unless $was_lexical {
-                    $/.CURSOR.panic("Cannot use bind operator with this LHS");
+                    $*W.throw($/, ['X', 'Bind', 'WrongLHS']);
                 }
             }
 
@@ -3348,7 +3464,7 @@ class Perl6::Actions is HLL::Actions {
             make PAST::Op.new( :pasttype('bind_6model'), $target, $source );
         }
         elsif $target<boxable_native> {
-            $/.CURSOR.panic("Cannot bind to a natively typed variable; use assignment instead");
+            $*W.throw($/, ['X', 'Bind', 'NativeType']);
         }
         elsif $target.isa(PAST::Op) && $target.pirop eq 'perl6ize_type PP' &&
                 $target[0].isa(PAST::Op) && $target[0].pasttype eq 'callmethod' &&
@@ -3359,26 +3475,17 @@ class Perl6::Actions is HLL::Actions {
         }
         # XXX Several more cases to do...
         else {
-            $/.CURSOR.panic("Cannot use bind operator with this LHS");
+            $*W.throw($/, ['X', 'Bind', 'WrongLHS']);
         }
     }
 
-    sub assign_op($/) {
+    sub assign_op($lhs_ast, $rhs_ast) {
         my $past;
-        my $lhs_ast := $/[0].ast;
-        my $rhs_ast := $/[1].ast;
         my $var_sigil;
         if $lhs_ast.isa(PAST::Var) {
             $var_sigil := pir::substr($lhs_ast.name, 0, 1);
         }
-        if $lhs_ast && $lhs_ast<attribute_declarand> {
-            Perl6::Actions.install_attr_init($/);
-            $past := PAST::Stmts.new();
-        }
-        elsif $lhs_ast<constant_declarator> {
-            $past := $lhs_ast<constant_declarator>($rhs_ast);
-        }
-        elsif $lhs_ast && $lhs_ast<boxable_native> {
+        if $lhs_ast && $lhs_ast<boxable_native> {
             # Native assignment is actually really a bind at low level
             # We grab the thing we want out of the PAST::Want node.
             $past := box_native_if_needed(
@@ -3435,6 +3542,14 @@ class Perl6::Actions is HLL::Actions {
         }
         $past
     }
+    
+    sub xx_op($/, $lhs, $rhs) {
+        PAST::Op.new(
+            :name('&infix:<xx>'), :node($/),
+            block_closure(make_thunk_ref($lhs, $/)),
+            $rhs,
+            PAST::Op.new( :pirop('perl6_booleanize__Pi'), 1, :named('thunked') ))
+    }
 
     method prefixish($/) {
         if $<prefix_postfix_meta_operator> {
@@ -3483,7 +3598,7 @@ class Perl6::Actions is HLL::Actions {
         }
     }
 
-    method prefix_circumfix_meta_operator:sym<reduce>($/) {
+    method term:sym<reduce>($/) {
         my $base     := $<op>;
         my $basepast := $base.ast
                           ?? $base.ast[0]
@@ -3499,7 +3614,9 @@ class Perl6::Actions is HLL::Actions {
             $tri.named('triangle');
             $metapast.push($tri);
         }
-        make PAST::Op.new(:node($/), :pasttype<call>, $metapast);
+        my $args := $<args>.ast;
+        $args.name('&infix:<,>');
+        make PAST::Op.new(:node($/), :pasttype<call>, $metapast, $args);
     }
 
     method infix_circumfix_meta_operator:sym«<< >>»($/) {
@@ -3647,9 +3764,9 @@ class Perl6::Actions is HLL::Actions {
         if $<escale> {
             my $e := pir::isa($<escale>, 'ResizablePMCArray') ?? $<escale>[0] !! $<escale>;
 #            pir::say('dec_number exponent: ' ~ ~$e.ast);
-            make radcalc(10, $<coeff>, 10, nqp::unbox_i($e.ast), :num);
+            make radcalc($/, 10, $<coeff>, 10, nqp::unbox_i($e.ast), :num);
         } else {
-            make radcalc(10, $<coeff>);
+            make radcalc($/, 10, $<coeff>);
         }
     }
 
@@ -3669,11 +3786,7 @@ class Perl6::Actions is HLL::Actions {
             $exp    := +($<exp>[0].Str)  if $<exp>;
 
             my $error;
-            try {
-                make radcalc($radix, $intfrac, $base, $exp);
-                CATCH { $error := $_ }
-            }
-            $/.CURSOR.panic($error) if pir::defined($error);
+            make radcalc($/, $radix, $intfrac, $base, $exp);
         }
     }
 
@@ -3711,12 +3824,25 @@ class Perl6::Actions is HLL::Actions {
     our %SUBST_ALLOWED_ADVERBS ;
     our %SHARED_ALLOWED_ADVERBS;
     our %MATCH_ALLOWED_ADVERBS;
-    our %MATCH_ADVERBS_MULTIPLE := hash(
+        our %MATCH_ADVERBS_MULTIPLE := hash(
         x       => 1,
         g       => 1,
         global  => 1,
         ov      => 1,
         overlap => 1,
+    );
+    our %REGEX_ADVERBS_CANONICAL := hash(
+        ignorecase  => 'i',
+        ratchet     => 'r',
+        sigspace    => 's',
+        continue    => 'c',
+        pos         => 'p',
+        th          => 'nth',
+        st          => 'nth',
+        nd          => 'nth',
+        rd          => 'nth',
+        global      => 'g',
+        overlap     => 'ov',
     );
     INIT {
         my $mods := 'i ignorecase s sigspace r ratchet';
@@ -3778,9 +3904,10 @@ class Perl6::Actions is HLL::Actions {
         }
         else {
             if %SHARED_ALLOWED_ADVERBS{$key} {
-                $/.CURSOR.panic('Value of adverb :' ~ $key ~ ' must be known at compile time');
+                $*W.throw($/, ['X', 'Value', 'Dynamic'], what => "Adverb $key");
             }
         }
+        $key := %REGEX_ADVERBS_CANONICAL{$key} // $key;
         %*RX{$key} := $value;
     }
 
@@ -4010,7 +4137,9 @@ class Perl6::Actions is HLL::Actions {
         # Ensure we're not trying to put a placeholder in the mainline.
         my $block := $*W.cur_lexpad();
         if $block<IN_DECL> eq 'mainline' {
-            $/.CURSOR.panic("Cannot use placeholder parameter $full_name in the mainline");
+            $*W.throw($/, ['X', 'Placeholder', 'Mainline'],
+                placeholder => $full_name,
+            );
         }
         
         # Obtain/create placeholder parameter list.
@@ -4063,7 +4192,10 @@ class Perl6::Actions is HLL::Actions {
         # Add variable declaration, and evaluate to a lookup of it.
         my %existing := $block.symbol($name);
         if +%existing && !%existing<placeholder_parameter> {
-            $/.CURSOR.panic("Redeclaration of symbol $full_name as a placeholder parameter");
+            $*W.throw($/, ['X', 'Redeclaration'],
+                symbol  => ~$/,
+                postfix => ' as a placeholder parameter',
+            );
         }
         $block[0].push(PAST::Var.new( :name($name), :scope('lexical_6model'), :isdecl(1) ));
         $block.symbol($name, :scope('lexical_6model'), :placeholder_parameter(1));
@@ -4315,10 +4447,7 @@ class Perl6::Actions is HLL::Actions {
 
     # Handles the case where we have a default value closure for an
     # attribute.
-    method install_attr_init($/) {
-        # Locate attribute.
-        my $attr := ($/[0].ast)<attribute_declarand>;
-
+    method install_attr_init($attr, $initializer, $block) {
         # Construct signature and anonymous method.
         my @params := [
             hash( is_invocant => 1, nominal_type => $*PACKAGE),
@@ -4328,12 +4457,9 @@ class Perl6::Actions is HLL::Actions {
             $*W.create_parameter(@params[0]),
             $*W.create_parameter(@params[1])
         ]);
-        my $block := PAST::Block.new(
-            PAST::Stmts.new(
-                PAST::Var.new( :name('self'), :scope('lexical_6model'), :isdecl(1) ),
-                PAST::Var.new( :name('$_'), :scope('lexical_6model'), :isdecl(1) )
-            ),
-            PAST::Stmts.new( $/[1].ast ));
+        $block[0].push(PAST::Var.new( :name('self'), :scope('lexical_6model'), :isdecl(1) ));
+        $block[0].push(PAST::Var.new( :name('$_'), :scope('lexical_6model'), :isdecl(1) ));
+        $block.push(PAST::Stmts.new( $initializer ));
         $block.symbol('self', :scope('lexical_6model'));
         add_signature_binding_code($block, $sig, @params);
         my $code := $*W.create_code_object($block, 'Method', $sig);
@@ -4489,7 +4615,7 @@ class Perl6::Actions is HLL::Actions {
             nqp::unbox_s($past<compile_time_value>);
         }
         else {
-            $/.CURSOR.panic("$usage must have a value known at compile time");
+            $*W.throw($/, ['X', 'Value', 'Dynamic'], what => $usage);
         }
     }
 
@@ -4521,9 +4647,9 @@ class Perl6::Actions is HLL::Actions {
     # radix, $base, $exponent: parrot numbers (Integer or Float)
     # $number: parrot string
     # return value: PAST for Int, Rat or Num
-    sub radcalc($radix, $number, $base?, $exponent?, :$num) {
+    sub radcalc($/, $radix, $number, $base?, $exponent?, :$num) {
         my int $sign := 1;
-        pir::die("Radix '$radix' out of range (2..36)")
+        $*W.throw($/, 'X::Syntax::Number::RadixOutOfRange', :$radix)
             if $radix < 2 || $radix > 36;
         pir::die("You gave us a base for the magnitude, but you forgot the exponent.")
             if pir::defined($base) && !pir::defined($exponent);
@@ -4645,7 +4771,55 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions {
                  PAST::Node.new('INTERPOLATE', PAST::Op.new( :name<&MAKE_REGEX>, $<var>.ast )),
                  :rxtype<subrule>, :subtype<method>, :node($/));
     }
-
+    
+    method assertion:sym<name>($/) {
+        my @parts := Perl6::Grammar::parse_name(~$<longname>);
+        my $name  := @parts.pop();
+        my $qast;
+        if $<assertion> {
+            if +@parts {
+                $/.CURSOR.panic("Can only alias to a short name (without '::')");
+            }
+            $qast := $<assertion>[0].ast;
+            self.subrule_alias($qast, $name);
+        }
+        elsif !@parts && $name eq 'sym' {
+            my $rxname := pir::chopn__Ssi( 
+                              nqp::substr(%*RX<name>,
+                                          nqp::index(%*RX<name>, ':sym<') + 5),
+                              1);
+            $qast := QAST::Regex.new(:name('sym'), :rxtype<subcapture>, :node($/),
+                QAST::Regex.new(:rxtype<literal>, $rxname, :node($/)));
+        }
+        else {
+            if +@parts {
+                my $gref := $*W.get_ref($*W.find_symbol(@parts));
+                $qast := QAST::Regex.new(:rxtype<subrule>, :subtype<capture>,
+                                         :node($/), PAST::Node.new('OTHERGRAMMAR', $gref, $name),
+                                         :name(~$<longname>) );
+            } elsif $*W.regex_in_scope('&' ~ $name) {
+                $qast := QAST::Regex.new(:rxtype<subrule>, :subtype<capture>,
+                                         :node($/), PAST::Node.new('INTERPOLATE',
+                                            PAST::Var.new( :name('&' ~ $name), :scope('lexical_6model') ) ), 
+                                         :name($name) );
+            }
+            else {
+                $qast := QAST::Regex.new(:rxtype<subrule>, :subtype<capture>,
+                                         :node($/), PAST::Node.new($name), 
+                                         :name($name) );
+            }
+            if $<arglist> {
+                for $<arglist>[0].ast.list { $qast[0].push( $_ ) }
+            }
+            elsif $<nibbler> {
+                $name eq 'after' ??
+                    $qast[0].push(QRegex::P6Regex::Actions::buildsub(self.flip_ast($<nibbler>[0].ast), :anon(1))) !!
+                    $qast[0].push(QRegex::P6Regex::Actions::buildsub($<nibbler>[0].ast, :anon(1)));
+            }
+        }
+        make $qast;
+    }
+    
     method codeblock($/) {
         my $blockref := $<block>.ast;
         my $past :=

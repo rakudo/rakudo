@@ -1,3 +1,38 @@
+New in 2012.02
++ catch duplicate accessor generation required of "has $.x; has @.x;"
++ many more typed exceptions thrown
++ undeclared attributes mentioned in signatures now caught at compile time
++ empty Buf is now False in boolean context
++ implemented <prior>
++ implemented /<Foo::Bar::baz>/ syntax
++ /<x>/ can call a predeclared lexical regex x
++ conjugate is now called conj
++ enumeration values .gist to just the key, not the full name
++ <!> in regexes fixed
++ implemented Match.make(...) method
++ better error reporting for improper use of nextsame and friends
++ initializers now parsed as part of a variable declarator
++ trailing whitespace now removed from Pod declarator blocks
++ List.tree made more useful
++ implemented rename and copy functions
++ ().pick and ().roll now return Nil
++ default MAIN usage message includes .WHY of the candidates
++ X::Base eliminated in favor of Exception
++ various range iteration fixes; Num ranges now produce Num lists
++ LHS of the xx operator is now thunked
++ can now declare state/constant/our in regexes (before, only :my worked)
++ improved backtraces
++ catch constructs that require an invocant but don't have one
++ catch uses of virtual method calls in submethods and attribute initializers
++ improved parsing and performance of reduction meta operators
++ Rat arithmetic now properly defaults to Num if the denominator is too big
++ FatRat implemented
++ implemented long forms of regex adverbs (e.g. "ignorecase" maps to "i")
++ fixed "but True" and "but False"
++ object hashes, with the my %h{SomeObjectType} syntax
++ implemented Int($x) style coercions
++ implemented Capture.perl
+
 New in 2012.01
 + -c command line option re-implemented
 + take flattening bug fixed

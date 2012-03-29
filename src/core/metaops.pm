@@ -64,8 +64,12 @@ sub METAOP_REDUCE(\$op, :$triangle) {
             return $op() unless @values.gimme(1);
             my $result := @values.shift;
             return $op($result) unless @values.gimme(1);
-            $result := $op($result, @values.shift)
-                while @values.gimme(1);
+            my int $i;
+            while my int $c = @values.gimme(1000) {
+                $i = 0;
+                $result := $op($result, @values.shift)
+                    while ($i = $i + 1) <= $c;
+            }
             $result;
         })
 }
@@ -87,8 +91,12 @@ sub METAOP_REDUCE_RIGHT(\$op, :$triangle) {
             return $op() unless $list.gimme(1);
             my $result := $list.shift;
             return $op($result) unless $list.gimme(1);
-            $result := $op($list.shift, $result)
-                while $list.gimme(1);
+            my int $i;
+            while my int $c = $list.gimme(1000) {
+                $i = 0;
+                $result := $op($list.shift, $result)
+                    while ($i = $i + 1) <= $c;
+            }
             $result;
         }
     }

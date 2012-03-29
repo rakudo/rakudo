@@ -28,9 +28,27 @@ my class List does Positional {
     method list() { self }
     method flattens() { $!flattens }
 
-    method tree() {
-        MapIter.new(:list(self), :block({ my $ = $_ })).list;
+    my &itemify = { .elems == 1 ?? $_ !! [.list] };
+    proto method tree(|$) {*}
+    multi method tree(List:U:) { self }
+    multi method tree(List:D:) {
+        MapIter.new(:list(self), :block(&itemify)).list;
     }
+    multi method tree(List:D: Cool $count as Int) {
+           $count <= 0 ?? self
+        !! $count == 1 ?? self.tree
+        !!  MapIter.new(
+                :list(self),
+                :block({.elems == 1 ?? $_ !! [.tree($count - 1)]})
+            ).list;
+    }
+    multi method tree(List:D: &c) {
+        MapIter.new(:list(self), :block(&c)).list;
+    }
+    # uncommenting causes "Circularity detected in multi sub types"
+#    multi method tree(List:D: *@ [$first, *@rest] where {.elems >= 2 }) {
+#        MapIter.new(:list(self), :block(*.list(|@rest))).list.tree($first)
+#    }
 
     method Capture() {
         self.gimme(*);
@@ -94,7 +112,7 @@ my class List does Positional {
     }
 
     method infinite() { 
-        $!nextiter.defined && $!nextiter.infinite;
+        self.DEFINITE && $!nextiter.defined && $!nextiter.infinite;
     }
 
     method iterator() {
@@ -121,6 +139,7 @@ my class List does Positional {
         ## replace picked elements with elements from the end
         ## of the list, resulting in an O(n) algorithm.
         my $elems = self.elems;
+        return unless $elems;
         fail ".pick from infinite list NYI" if $!nextiter.defined;
         $n = +$Inf if nqp::istype($n, Whatever);
         $n = $elems if $n > $elems;
@@ -156,6 +175,7 @@ my class List does Positional {
 
     method roll($n is copy = 1) {
         my $elems = self.elems;
+        return unless $elems;
         fail ".roll from infinite list NYI" if $!nextiter.defined;
         $n = +$Inf if nqp::istype($n, Whatever);
         return self.at_pos($elems.rand.floor) if $n == 1;
@@ -359,9 +379,9 @@ sub list(|$) {
 proto infix:<xx>(|$)     { * }
 multi infix:<xx>()       { fail "No zero-arg meaning for infix:<xx>" }
 multi infix:<xx>(Mu \$x) { $x }
-multi infix:<xx>(Mu \$x, $n is copy) {
+multi infix:<xx>(Mu \$x, $n is copy, :$thunked) {
     $n = nqp::p6bool(nqp::istype($n, Whatever)) ?? $Inf !! $n.Int;
-    GatherIter.new({ take $x while $n-- > 0; }, :infinite($n == $Inf)).list
+    GatherIter.new({ take ($thunked ?? $x() !! $x) while $n-- > 0; }, :infinite($n == $Inf)).list
 }
 
 proto sub pop(|$) {*}

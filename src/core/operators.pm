@@ -20,14 +20,14 @@ multi infix:<does>(Mu:D \$obj, Mu:U \$role, :$value! is parcel) is rw {
     $obj.HOW.mixin($obj, $role).BUILD_LEAST_DERIVED({ @attrs[0].Str.substr(2) => $value });
 }
 multi infix:<does>(Mu:U \$obj, Mu:U \$role) is rw {
-    die "Cannot use 'does' operator with a type object"
+    die(X::Does::TypeObject.new())
 }
 multi infix:<does>(Mu:D \$obj, @roles) is rw {
     # XXX Mutability check.
     $obj.HOW.mixin($obj, |@roles).BUILD_LEAST_DERIVED({});
 }
 multi infix:<does>(Mu:U \$obj, @roles) is rw {
-    die "Cannot use 'does' operator with a type object"
+    die(X::Does::TypeObject.new())
 }
 
 proto infix:<but>(|$) { * }

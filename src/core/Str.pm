@@ -776,11 +776,7 @@ sub trim-trailing(Str:D $s) { $s.trim-trailing }
 
 # the opposite of Real.base, used for :16($hex_str)
 sub unbase(Int:D $base, Str:D $str) {
-    if $str.substr(0, 2) eq any(<0x 0d 0o 0b>) {
-        $str.Numeric;
-    } else {
-        ":{$base}<$str>".Numeric;
-    }
+    ":{$base}<$str>".Numeric;
 }
 
 sub chrs(*@c) {

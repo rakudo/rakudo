@@ -57,19 +57,18 @@ class IO {
     }
 
     method get() {
-        unless $!PIO {
+        unless pir::defined($!PIO) {
             self.open($.path, :chomp($.chomp));
         }
+        return Str if self.eof;
         my Str $x = nqp::p6box_s($!PIO.readline);
         # XXX don't fail() as long as it's fatal
         # fail('end of file') if self.eof && $x eq '';
+        $x.=chomp if $.chomp;
         return Str if self.eof && $x eq '';
 
         $!ins++;
-        # XXX
-        # comment out as long as initiliaztion of attributes is a no-op
-#        $!chomp ?? $x.chomp !! $x;
-        $x.chomp;
+        $x;
     }
     
     method getc() {

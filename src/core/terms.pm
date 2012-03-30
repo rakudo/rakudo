@@ -24,6 +24,15 @@ sub term:<time>() { nqp::p6box_i(pir::time__I()) }
     }
     nqp::bindkey(pir::get_who__PP(PROCESS), '$VM', $VM);
 
+    my $PERL          = {};
+    my Mu $perl      := pir::find_caller_lex__PS('$COMPILER_CONFIG');
+    my Mu $perl_iter := nqp::iterator($perl);
+    while $perl_iter {
+        $key        = nqp::p6box_s(pir::shift__SP($perl_iter));
+        $PERL{$key} = nqp::p6box_s(nqp::atkey($perl, nqp::unbox_s($key)));
+    }
+    nqp::bindkey(pir::get_who__PP(PROCESS), '$PERL', $PERL);
+
     my $CWD = nqp::p6box_s(pir::new__PS('OS').cwd);
     nqp::bindkey(pir::get_who__PP(PROCESS), '$CWD', $CWD);
 

@@ -2522,7 +2522,6 @@ grammar Perl6::Grammar is HLL::Grammar {
     token infix:sym<^>    { <sym> <O('%junctive_or')> }
 
     token prefix:sym<abs>     { <sym> » <O('%named_unary')> }
-    token prefix:sym<defined> { <sym> » <O('%named_unary')> }
 
     token infix:sym«==»   { <sym>  <O('%chaining')> }
     token infix:sym«!=»   { <sym> <?before \s|']'> <O('%chaining')> }

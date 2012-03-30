@@ -326,7 +326,7 @@ my class Str does Stringy {
     multi method ll-match(Str:D: Cool:D $pat, *%opts) {
         my Int $from = %opts<p> // %opts<c> // 0;
         my $idx = self.index($pat, $from);
-        defined $idx
+        $idx.defined
           ?? Match.new(orig => self, from => $idx, to => ($idx + $pat.chars))
           !! Match.new(orig => self, from => 0,    to => -3);
     }

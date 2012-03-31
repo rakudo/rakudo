@@ -1,3 +1,7 @@
+New in 2012.04
++ 'defined' is now a listop instead of a prefix op
++ fixed :16('0d...')
+
 New in 2012.03
 + updated to dyncall 0.7
 + infix:<eqv> now autothreads over junctions

@@ -220,3 +220,12 @@ multi sub infix:<**>(Rational \$a, Int \$b) {
         $b;
 }
 
+multi sub infix:<==>(Rational:D \$a, Rational:D \$b) {
+    $a.numerator == $b.numerator && $a.denominator == $b.denominator
+}
+multi sub infix:<==>(Rational:D \$a, Int:D \$b) {
+    $a.numerator == $b && $a.denominator == 1
+}
+multi sub infix:<==>(Int:D \$a, Rational:D \$b) {
+    $a == $b.numerator && $b.denominator == 1;
+}

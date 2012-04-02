@@ -25,7 +25,13 @@ role Perl6::Metamodel::BaseType {
         @!mro
     }
     
-    method parents($obj, :$local) {
-        $local ?? [$!base_type] !! $!base_type.HOW.mro($!base_type)
+    method parents($obj, :$local, :$excl, :$all) {
+        my @parents := [$!base_type];
+        unless $local {
+            for $!base_type.HOW.parents($!base_type, :excl($excl), :all($all)) {
+                @parents.push($_);
+            }
+        }
+        @parents
     }
 }

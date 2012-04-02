@@ -331,7 +331,7 @@ class Perl6::Actions is HLL::Actions {
                 :pasttype<call>, :node($/), :name<&pod2text>,
             );
 
-            $pod2text.push(PAST::Var.new(:name<$=POD>, :node($/)));
+            $pod2text.push(PAST::Var.new(:name<$=pod>, :node($/)));
 
             $block.push(
                 PAST::Op.new(

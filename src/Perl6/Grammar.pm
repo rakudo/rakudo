@@ -488,7 +488,7 @@ grammar Perl6::Grammar is HLL::Grammar {
                 'Array', 'type_new', |$*POD_BLOCKS
             );
             $*W.install_lexical_symbol(
-                $*UNIT, '$=POD', $*POD_PAST<compile_time_value>
+                $*UNIT, '$=pod', $*POD_PAST<compile_time_value>
             );
         }
         

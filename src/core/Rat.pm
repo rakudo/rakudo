@@ -277,5 +277,5 @@ multi sub infix:«<=>»(Rational:D \$a, Int:D \$b) {
     $a.numerator  <=> $b * $a.denominator
 }
 multi sub infix:«<=>»(Int:D \$a, Rational:D \$b) {
-    $a * $b.denominator <=> $b.numerator * $a
+    $a * $b.denominator <=> $b.numerator
 }

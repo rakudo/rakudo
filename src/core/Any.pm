@@ -154,7 +154,11 @@ my class Any {
 
     method at_pos($pos) is rw {
         if self.defined {
-            fail ".[$pos] out of range for type {self.perl}" if $pos != 0;
+            fail X::OutOfRange.new(
+                what => 'Index',
+                got  => $pos,
+                range => (0..0)
+            ) if $pos != 0;
             return self;
         }
     }

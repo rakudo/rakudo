@@ -133,7 +133,7 @@ my class Any {
         my $list = $pos.flat;
         $list.gimme(*);
         $list.map($list.infinite
-                   ?? { last if $_ >= self.gimme($_ + 1); self[$_] }
+                   ?? { last if $_ >= self.list.gimme($_ + 1); self[$_] }
                    !! { self[$_] }).eager.Parcel;
     }
     multi method postcircumfix:<[ ]>(Positional $pos, :$BIND!) is rw {

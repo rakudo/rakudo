@@ -25,7 +25,9 @@ my ($nqp_want) = split(' ', slurp('tools/build/NQP_REVISION'));
 if (!$nqp_have || cmp_rev($nqp_have, $nqp_want) < 0) {
     my $parrot_option = '--gen-parrot or --with-parrot=path/to/bin/parrot';
     if (-x 'install/bin/parrot') {
-        $parrot_option = '--with-parrot=install/bin/parrot';
+        use Cwd 'abs_path';
+        my $path = abs_path;
+        $parrot_option = "--with-parrot=$path/install/bin/parrot";
     }
     die <<EOM
 NQP $nqp_have is too old ($nqp_want required), run something like

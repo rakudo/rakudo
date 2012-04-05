@@ -455,6 +455,13 @@ my class X::Syntax::Signature::InvocantMarker does X::Syntax {
     }
 }
 
+my class X::Syntax::Extension::Category does X::Syntax {
+    has $.category;
+    method message() {
+        "Cannot add tokens of category '$.category'";
+    }
+}
+
 my class X::Attribute::Package does X::Comp {
     has $.package-type;
     method message() { "A $.package-type cannot have attributes" }

@@ -180,8 +180,6 @@ class Range is Iterable does Positional {
     }
 }
 
-
-###  XXX remove the (1) from :excludes_min and :excludes_max below
 sub infix:<..>($min, $max) { 
     Range.new($min, $max) 
 }

@@ -39,13 +39,6 @@ class Range is Iterable does Positional {
             and ($topic cmp $!max) < +(!$!excludes_max)
     }
 
-    multi method ACCEPTS(Range:D: Range \$topic) {
-        ?( $.min eqv $topic.min
-           && $.max eqv $topic.max
-           && $.excludes_min === $topic.excludes_min
-           && $.excludes_max === $topic.excludes_max)
-    }
-
     method reify($n = 10) {
         my $value = $!excludes_min ?? $!min.succ !! $!min;
         # Iterating a Str range delegates to iterating a sequence.

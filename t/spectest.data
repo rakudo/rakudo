@@ -193,6 +193,7 @@ S03-smartmatch/array-hash.t
 # S03-smartmatch/capture-signature.t # all fail
 S03-smartmatch/disorganized.t
 S03-smartmatch/hash-hash.t
+S03-smartmatch/range-range.t
 S03-smartmatch/regex-hash.t
 S03-smartmatch/scalar-hash.t
 S04-blocks-and-statements/pointy-rw.t

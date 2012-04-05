@@ -137,7 +137,7 @@ sub SEQUENCE($left, $right, :$exclude_end) {
                 }
             }
             else {
-                $value = (sub { fail "unable to deduce sequence" })();
+                $value = (sub { fail X::Sequence::Deduction.new })();
             }
         }
         take $value unless $exclude_end;

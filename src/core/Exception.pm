@@ -548,4 +548,8 @@ my class X::Str::Numeric is Exception {
     }
 }
 
+my class X::Sequence::Deduction is Exception {
+    method message() { 'Unable to decude sequence' }
+}
+
 # vim: ft=perl6

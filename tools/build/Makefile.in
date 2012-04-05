@@ -400,7 +400,7 @@ test    : coretest
 fulltest: coretest stresstest
 
 coretest: all
-	$(PERL) t/harness t/00-parrot t/01-sanity t/02-embed
+	$(PERL) t/harness t/00-parrot t/01-sanity
 
 # Run the spectests that we know work.
 spectest_regression: spectest

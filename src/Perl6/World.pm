@@ -694,12 +694,6 @@ class Perl6::World is HLL::World {
 			pir::setprop__vPsP($stub, 'PAST_BLOCK', $code_past);
         }
         
-        # Desserialization should do the actual creation and just put the right
-        # code in there in the first place.
-        if self.is_precompilation_mode() {
-            $des.push(self.set_attribute($code, $code_type, '$!do', PAST::Val.new( :value($code_past) )));
-        }
-        
         # If this is a dispatcher, install dispatchee list that we can
         # add the candidates too.
         if $is_dispatcher {

@@ -129,7 +129,11 @@ my class Any {
         fail "Cannot use negative index $pos on {self.WHAT.perl}" if $pos < 0;
         self.bind_pos($pos, $BIND)
     }
-    multi method postcircumfix:<[ ]>(Positional $pos) is rw {
+    multi method postcircumfix:<[ ]>(Positional \$pos) is rw {
+        if nqp::iscont($pos) {
+            fail "Cannot use negative index $pos on {self.WHAT.perl}" if $pos < 0;
+            return self.at_pos($pos)
+        }
         my $list = $pos.flat;
         $list.gimme(*);
         $list.map($list.infinite
@@ -180,8 +184,10 @@ my class Any {
     multi method postcircumfix:<{ }>($key, :$BIND! is parcel) is rw {
         self.bind_key($key, $BIND)
     }
-    multi method postcircumfix:<{ }>(Positional $key) is rw {
-        $key.map({ self{$_} }).eager.Parcel
+    multi method postcircumfix:<{ }>(Positional \$key) is rw {
+        nqp::iscont($key) 
+          ?? self.at_key($key) 
+          !! $key.map({ self{$_} }).eager.Parcel
     }
     multi method postcircumfix:<{ }>(Positional $key, :$BIND!) is rw {
         die "Cannot bind to a hash slice"

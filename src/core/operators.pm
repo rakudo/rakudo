@@ -67,9 +67,6 @@ sub SEQUENCE($left, $right, :$exclude_end) {
     $endpoint = Bool::False if $infinite;
     my $tail := ().list;
 
-    my sub generate($code) {
-    }
-
     my sub succpred($cmp) {
         ($cmp < 0) ?? { $^x.succ } !! ( $cmp > 0 ?? { $^x.pred } !! { $^x } )
     }

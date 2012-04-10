@@ -95,4 +95,6 @@ my class Routine {
     method yada() {
         nqp::p6bool(nqp::getattr_i(self, Routine, '$!yada'))
     }
+
+    method package() { $!package }
 }

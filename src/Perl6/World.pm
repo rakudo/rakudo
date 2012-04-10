@@ -715,8 +715,10 @@ class Perl6::World is HLL::World {
         }
 
         # If it's a routine, flag that it needs fresh magicals.
+        # Also store the namespace, which makes backtraces nicer.
         if nqp::istype($code, $routine_type) {
             self.get_static_lexpad($code_past).set_fresh_magicals();
+            nqp::bindattr($code, $routine_type, '$!package', $*PACKAGE);
         }
             
         self.add_fixup_task(:deserialize_past($des), :fixup_past($fixups));

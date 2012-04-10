@@ -702,8 +702,7 @@ class Perl6::World is HLL::World {
         
         # Set yada flag if needed.
         if $yada {
-            my $rtype := $routine_type;
-            nqp::bindattr_i($code, $rtype, '$!yada', 1);
+            nqp::bindattr_i($code, $routine_type, '$!yada', 1);
         }
 
         # Deserialization also needs to give the Parrot sub its backlink.

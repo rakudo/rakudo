@@ -423,6 +423,15 @@ my class Date does Dateish {
         self.new(|$date.split('-').map({.Int}));
     }
 
+    multi method new() {
+        my $n = self.today;
+        if $n.month == 12 && $n.day >= 24 {
+            Date.new($n.year + 1, 12, 24);
+        } else {
+            Date.new($n.year, 12, 24);
+        }
+    }
+
     multi method new(DateTime $dt) {
         self.bless(*, 
             :year($dt.year), :month($dt.month), :day($dt.day),

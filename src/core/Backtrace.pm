@@ -95,7 +95,7 @@ my class Backtrace is List {
         return @outers;
     }
 
-    method nice() {
+    method nice(:$oneline) {
         try {
             my @frames;
             my Int $i = self.next-interesting-index(-1);
@@ -111,6 +111,7 @@ my class Backtrace is List {
                     @frames.push: $current.clone(line => $prev.line);
                     $i = $target_idx;
                 }
+                last if $oneline;
                 $i = self.next-interesting-index($i);
             }
             return @frames.join;

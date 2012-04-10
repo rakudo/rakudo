@@ -702,7 +702,7 @@ class Perl6::World is HLL::World {
         
         # Set yada flag if needed.
         if $yada {
-            my $rtype := self.find_symbol(['Routine']);
+            my $rtype := $routine_type;
             nqp::bindattr_i($code, $rtype, '$!yada', 1);
         }
 

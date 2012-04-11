@@ -141,8 +141,8 @@ sub default-formatter(DateTime $dt, Bool :$subseconds) {
 }
 
 my class DateTime-local-timezone does Callable {
-    method Str { '<local time zone>' }
-    method perl { '$*TZ' }
+    multi method Str(DateTime-local-timezone:D:) { '<local time zone>' }
+    multi method perl(DateTime-local-timezone:D:) { '$*TZ' }
 
     method postcircumfix:<( )>($args) { self.offset(|$args) }
 

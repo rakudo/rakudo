@@ -788,6 +788,9 @@ multi infix:<x>(Str:D $s, Int:D $repetition) {
         ?? ''
         !!  nqp::p6box_s(nqp::x(nqp::unbox_s($s), nqp::unbox_i($repetition)))
 }
+multi infix(str $s, int $repetition) returns str {
+    $repetition <= 0 ?? '' !! nqp::x($s, $repetition);
+}
 
 multi infix:<cmp>(Str:D \$a, Str:D \$b) {
     Order.(nqp::p6box_i(nqp::cmp_s(nqp::unbox_s($a), nqp::unbox_s($b))))

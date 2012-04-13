@@ -1351,6 +1351,9 @@ class Perl6::World is HLL::World {
                             pir::die("Cannot use pseudo-package $_ in a $dba");
                         }
                     }
+                    else {
+                        nqp::push(@name, $_);
+                    }
                 }
             }
             @name

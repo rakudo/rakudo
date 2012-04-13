@@ -27,8 +27,6 @@ my class Exception {
     method rethrow() is hidden_from_backtrace {
         pir::rethrow__0P($!ex)
     }
-
-    method Bool() { False }
 }
 
 my class X::AdHoc is Exception {

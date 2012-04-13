@@ -1334,6 +1334,9 @@ class Perl6::World is HLL::World {
         method type_name_parts($dba, :$decl) {
             my @name;
             my $beyond_pp;
+            if $decl && $!get_who {
+                pir::die("Name $!text ends with '::' and cannot be used as a $dba");
+            }
             for @!components {
                 if pir::can($_, 'isa') && $_.isa(PAST::Node) {
                     pir::die("Name $!text is not compile-time known, and can not serve as a $dba");
@@ -1379,7 +1382,7 @@ class Perl6::World is HLL::World {
             if $_<identifier> {
                 @components.push(~$_<identifier>[0]);
             }
-            else {
+            elsif $_<EXPR> {
                 my $EXPR := $_<EXPR>[0].ast;
                 if $EXPR<has_compile_time_value> {
                     @components.push(~$EXPR<compile_time_value>);
@@ -1388,16 +1391,18 @@ class Perl6::World is HLL::World {
                     @components.push($EXPR);
                 }
             }
+            else {
+                # Either it's :: as a name entirely, in which case it's anon,
+                # or we're ending in ::, in which case it implies .WHO.
+                if +@components {
+                    nqp::bindattr_i($result, LongName, '$!get_who', 1);
+                }
+            }
         }
         nqp::bindattr($result, LongName, '@!components', @components);
         
         # Stash colon pairs.
         nqp::bindattr($result, LongName, '@!colonpairs', $name<colonpair>);
-        
-        # Is it a name that ends in ::?
-        if $name && $name<morename> && ~$name<morename>[+$name<morename> - 1] eq '::' {
-            nqp::bindattr_i($result, LongName, '$!get_who', 1);
-        }
         
         $result
     }

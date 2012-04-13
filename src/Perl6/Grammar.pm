@@ -1211,9 +1211,11 @@ grammar Perl6::Grammar is HLL::Grammar {
                     # Locate any existing symbol. Note that it's only a match
                     # with "my" if we already have a declaration in this scope.
                     my $exists := 0;
-                    if $longname && $*SCOPE ne 'anon' {
-                        my @name := $longname.type_name_parts('package name', :decl(1));
-                        if $*W.already_declared($*SCOPE, $*OUTERPACKAGE, $outer, @name) {
+                    my @name := $longname ??
+                        $longname.type_name_parts('package name', :decl(1)) !!
+                        [];
+                    if @name && $*SCOPE ne 'anon' {
+                        if @name && $*W.already_declared($*SCOPE, $*OUTERPACKAGE, $outer, @name) {
                             $*PACKAGE := $*W.find_symbol(@name);
                             $exists := 1;
                         }
@@ -1232,10 +1234,10 @@ grammar Perl6::Grammar is HLL::Grammar {
                     
                     # If it's not a role, or it is a role but one with no name,
                     # then just needs meta-object construction and installation.
-                    elsif $*PKGDECL ne 'role' || !$longname {
+                    elsif $*PKGDECL ne 'role' || !@name {
                         # Construct meta-object for this package.
                         my %args;
-                        if $longname {
+                        if @name {
                             %args<name> := $longname.name();
                         }
                         if $*REPR ne '' {
@@ -1244,8 +1246,7 @@ grammar Perl6::Grammar is HLL::Grammar {
                         $*PACKAGE := $*W.pkg_create_mo($/, %*HOW{$*PKGDECL}, |%args);
                         
                         # Install it in the symbol table if needed.
-                        if $longname {
-                            my @name := $longname.type_name_parts('package name', :decl(1));
+                        if @name {
                             $*W.install_package($/, @name, $*SCOPE, $*PKGDECL, $*OUTERPACKAGE, $outer, $*PACKAGE);
                         }
                     }
@@ -1260,7 +1261,6 @@ grammar Perl6::Grammar is HLL::Grammar {
                             $group := $*PACKAGE;
                         }
                         else {
-                            my @name := $longname.type_name_parts('package name', :decl(1));
                             $group := $*W.pkg_create_mo($/, %*HOW{'role-group'}, :name($longname.name()));                            
                             $*W.install_package($/, @name, $*SCOPE, $*PKGDECL, $*OUTERPACKAGE, $outer, $group);
                         }
@@ -1272,19 +1272,21 @@ grammar Perl6::Grammar is HLL::Grammar {
                 }
                 else {
                     # Augment. Ensure we can.
+                    my @name := $longname ??
+                        $longname.type_name_parts('package name', :decl(1)) !!
+                        [];
                     unless $*MONKEY_TYPING {
                         $/.CURSOR.typed_panic('X::Syntax::Augment::WithoutMonkeyTyping');
                     }
                     if $*PKGDECL eq 'role' {
                         $/.CURSOR.typed_panic('X::Syntax::Augment::Role');
                     }
-                    unless $longname {
+                    unless @name {
                         $*W.throw($/, 'X::Anon::Augment', package-type => $*PKGDECL);
                     }
                     
                     # Locate type.
                     my $found;
-                    my @name := $longname.type_name_parts('package name', :decl(1));
                     try { $*PACKAGE := $*W.find_symbol(@name); $found := 1 }
                     unless $found {
                         $*W.throw($/, 'X::Augment::NoSuchType',

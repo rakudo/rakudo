@@ -1361,7 +1361,7 @@ class Perl6::World is HLL::World {
             $comp eq 'CORE' || $comp eq 'SETTING' || $comp eq 'UNIT' ||
             $comp eq 'OUTER' || $comp eq 'MY' || $comp eq 'OUR' ||
             $comp eq 'PROCESS' || $comp eq 'GLOBAL' || $comp eq 'CALLER' ||
-            $comp eq 'DYNAMIC' || $comp eq 'COMPILING'
+            $comp eq 'DYNAMIC' || $comp eq 'COMPILING' || $comp eq 'PARENT'
         }
     }
     

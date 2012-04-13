@@ -220,7 +220,7 @@ class Perl6::Actions is HLL::Actions {
         }
         
         # Checks.
-        $*W.assert_stubs_defined();
+        $*W.assert_stubs_defined($/);
 
         # Get the block for the unit mainline code.
         my $unit := $*UNIT;
@@ -302,12 +302,6 @@ class Perl6::Actions is HLL::Actions {
             )
         );
 
-        # Add file annotation.
-        my $file := pir::find_caller_lex__ps('$?FILES');
-        unless pir::isnull($file) {
-            $outer.unshift(PAST::Op.new(:inline(".annotate 'file', '" ~ $file ~ "'")));
-        }
-
         # Pass some extra bits along to the optimizer.
         $outer<UNIT>      := $unit;
         $outer<GLOBALish> := $*GLOBALish;
@@ -322,7 +316,7 @@ class Perl6::Actions is HLL::Actions {
             # loading and importing
             # TODO: Skip importing and use a symbol_lookup when the
             # Pod::foo modules bug gets fixed
-            my $module := $*W.load_module('Pod::To::Text', $*GLOBALish);
+            my $module := $*W.load_module($/, 'Pod::To::Text', $*GLOBALish);
             if pir::exists($module, 'EXPORT') {
                 my $EXPORT := $module<EXPORT>.WHO;
                 if pir::exists($EXPORT, 'DEFAULT') {
@@ -337,7 +331,7 @@ class Perl6::Actions is HLL::Actions {
                 :pasttype<call>, :node($/), :name<&pod2text>,
             );
 
-            $pod2text.push(PAST::Var.new(:name<$=POD>, :node($/)));
+            $pod2text.push(PAST::Var.new(:name<$=pod>, :node($/)));
 
             $block.push(
                 PAST::Op.new(
@@ -347,7 +341,7 @@ class Perl6::Actions is HLL::Actions {
             );
             $*W.pop_lexpad();
             $*W.add_phaser(
-                $/, make_simple_code_object($block, 'Block'), 'INIT'
+                $/, 'INIT', make_simple_code_object($block, 'Block')
             );
         }
     }
@@ -901,9 +895,11 @@ class Perl6::Actions is HLL::Actions {
     method statement_prefix:sym<UNDO>($/)  { make $*W.add_phaser($/, 'UNDO', ($<blorst>.ast)<code_object>); }
     method statement_prefix:sym<NEXT>($/)  { make $*W.add_phaser($/, 'NEXT', ($<blorst>.ast)<code_object>); }
     method statement_prefix:sym<LAST>($/)  { make $*W.add_phaser($/, 'LAST', ($<blorst>.ast)<code_object>); }
+    method statement_prefix:sym<PRE>($/)   { make $*W.add_phaser($/, 'PRE', ($<blorst>.ast)<code_object>, ($<blorst>.ast)<past_block>); }
+    method statement_prefix:sym<POST>($/)  { make $*W.add_phaser($/, 'POST', ($<blorst>.ast)<code_object>, ($<blorst>.ast)<past_block>); }
 
     method statement_prefix:sym<DOC>($/)   {
-        $*W.add_phaser($/, ($<blorst>.ast)<code_object>, ~$<phase>)
+        $*W.add_phaser($/, ~$<phase>, ($<blorst>.ast)<code_object>)
             if %*COMPILING<%?OPTIONS><doc>;
     }
 
@@ -1318,7 +1314,7 @@ class Perl6::Actions is HLL::Actions {
 
             # Create code object and add it as the role's body block.
             my $code := $*W.create_code_object($block, 'Sub', $sig);
-            $*W.pkg_set_role_body_block($*PACKAGE, $code, $block);
+            $*W.pkg_set_role_body_block($/, $*PACKAGE, $code, $block);
             
             # Compose before we add the role to the group, so the group sees
             # it composed.
@@ -1327,7 +1323,7 @@ class Perl6::Actions is HLL::Actions {
             # Add this role to the group if needed.
             my $group := $*PACKAGE.HOW.group($*PACKAGE);
             unless $group =:= $*PACKAGE {
-                $*W.pkg_add_role_group_possibility($group, $*PACKAGE);
+                $*W.pkg_add_role_group_possibility($/, $group, $*PACKAGE);
             }
         }
         else {
@@ -1465,7 +1461,7 @@ class Perl6::Actions is HLL::Actions {
 
             # Create meta-attribute and add it.
             my $metaattr := %*HOW{$*PKGDECL ~ '-attr'};
-            my $attr := $*W.pkg_add_attribute($*PACKAGE, $metaattr,
+            my $attr := $*W.pkg_add_attribute($/, $*PACKAGE, $metaattr,
                 hash(
                     name => $attrname,
                     has_accessor => $twigil eq '.'
@@ -1672,6 +1668,12 @@ class Perl6::Actions is HLL::Actions {
                     $proto := $outer.symbol($name)<value>;
                 }
                 else {
+                    unless $*SCOPE eq '' || $*SCOPE eq 'my' {
+                        $*W.throw($/, 'X::Declaration::Scope::Multi',
+                            scope       => $*SCOPE,
+                            declaration => 'multi',
+                        );
+                    }
                     # None; search outer scopes.
                     my $new_proto;
                     try {
@@ -1723,8 +1725,14 @@ class Perl6::Actions is HLL::Actions {
                         PAST::Var.new( :name($name), :scope('lexical_6model') )
                     ));
                 }
+                elsif $*SCOPE eq 'anon' {
+                    # don't do anything
+                }
                 else {
-                    $*W.throw($/, 'X::Sub::Scope', scope => $*SCOPE);
+                    $*W.throw($/, 'X::Declaration::Scope',
+                            scope       => $*SCOPE,
+                            declaration => 'sub',
+                    );
                 }
             }
         }
@@ -1933,7 +1941,7 @@ class Perl6::Actions is HLL::Actions {
         # Obtain parameters, create signature object and generate code to
         # call binder.
         if $block<placeholder_sig> && $<multisig> {
-            $/.CURSOR.panic('Placeholder variable cannot override existing signature');
+            $*W.throw($/, 'X::Signature::Placeholder');
         }
         my @params :=
                 $<multisig>             ?? $<multisig>[0].ast      !!
@@ -2057,7 +2065,7 @@ class Perl6::Actions is HLL::Actions {
             $meta_meth := $*MULTINESS eq 'multi' ?? 'add_multi_method' !! 'add_method';
         }
         if $scope ne 'anon' && pir::can($*PACKAGE.HOW, $meta_meth) {
-            $*W.pkg_add_method($*PACKAGE, $meta_meth, $name, $code);
+            $*W.pkg_add_method($/, $*PACKAGE, $meta_meth, $name, $code);
         }
         elsif $scope eq '' || $scope eq 'has' {
             my $nocando := $*MULTINESS eq 'multi' ?? 'multi-method' !! 'method';
@@ -2228,7 +2236,7 @@ class Perl6::Actions is HLL::Actions {
         my $longname  := $<longname> ?? $*W.disect_longname($<longname>) !! 0;
         my $base_type := $*OFTYPE ?? $*OFTYPE.ast !! $*W.find_symbol(['Int']);
         my $name      := $<longname> ?? $longname.name() !! $<variable><desigilname>;
-        my $type_obj  := $*W.pkg_create_mo(%*HOW<enum>, :name($name), :base_type($base_type));
+        my $type_obj  := $*W.pkg_create_mo($/, %*HOW<enum>, :name($name), :base_type($base_type));
 
         # Add roles (which will provide the enum-related methods).
         $*W.apply_trait('&trait_mod:<does>', $type_obj, $*W.find_symbol(['Enumeration']));
@@ -4094,7 +4102,7 @@ class Perl6::Actions is HLL::Actions {
                 if $<arglist> || $<typename> {
                     $/.CURSOR.panic("Cannot put type parameters on a type capture");
                 }
-                make $*W.pkg_create_mo(%*HOW<generic>, :name(pir::substr(~$<longname>, 2)));
+                make $*W.pkg_create_mo($/, %*HOW<generic>, :name(pir::substr(~$<longname>, 2)));
             }
         }
         else {

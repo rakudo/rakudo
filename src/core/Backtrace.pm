@@ -95,24 +95,35 @@ my class Backtrace is List {
         return @outers;
     }
 
-    method nice() {
-        my Int $i = self.next-interesting-index(-1);
-        my @frames;
-        while $i.defined {
-            my $prev = self.at_pos($i);
-            if $prev.is-routine {
-                @frames.push: $prev;
-            } else {
-                my @outer_callers := self.outer-caller-idx($i);
-                my ($target_idx) = @outer_callers.keys.grep({self.at_pos($i).code.^isa(Routine)});
-                $target_idx    ||= @outer_callers[0] || $i;
-                my $current = self.at_pos($target_idx);
-                @frames.push: $current.clone(line => $prev.line);
-                $i = $target_idx;
+    method nice(:$oneline) {
+        try {
+            my @frames;
+            my Int $i = self.next-interesting-index(-1);
+            while $i.defined {
+                my $prev = self.at_pos($i);
+                if $prev.is-routine {
+                    @frames.push: $prev;
+                } else {
+                    my @outer_callers := self.outer-caller-idx($i);
+                    my ($target_idx) = @outer_callers.keys.grep({self.at_pos($i).code.^isa(Routine)});
+                    $target_idx    ||= @outer_callers[0] || $i;
+                    my $current = self.at_pos($target_idx);
+                    @frames.push: $current.clone(line => $prev.line);
+                    $i = $target_idx;
+                }
+                last if $oneline;
+                $i = self.next-interesting-index($i);
             }
-            $i = self.next-interesting-index($i);
+            return @frames.join;
+            CATCH {
+                default {
+                    return "<Internal error while creating backtrace: $!.message().\n"
+                        ~ "Please report this as a bug (mail to rakudobug@perl.org)\n", 
+                        ~ "and re-run with the --ll-exception command line option\n"
+                        ~ "to get more information about your error>";
+                }
+            }
         }
-        return @frames.join;
     }
 
 

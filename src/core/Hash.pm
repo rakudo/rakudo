@@ -31,7 +31,7 @@ my class Hash {
           !! '(' ~ self.pairs.map({.perl}).join(', ') ~ ').hash'
     }
 
-    method STORE_AT_KEY(Str \$key, Mu $x is copy) is rw {
+    method STORE_AT_KEY(\$key, Mu $x is copy) is rw {
         pir::find_method__PPs(EnumMap, 'STORE_AT_KEY')(self, $key, $x);
     }
 
@@ -40,11 +40,11 @@ my class Hash {
         nqp::bindattr(self, EnumMap, '$!storage', pir::new__Ps('Hash'));
         while $items {
             my Mu $x := $items.shift;
-            if Enum.ACCEPTS($x) { self.STORE_AT_KEY($x.key.Str, $x.value) }
+            if Enum.ACCEPTS($x) { self.STORE_AT_KEY($x.key, $x.value) }
             elsif EnumMap.ACCEPTS($x) {
-                for $x.list { self.STORE_AT_KEY(.key.Str, .value) }
+                for $x.list { self.STORE_AT_KEY(.key, .value) }
             }
-            elsif $items { self.STORE_AT_KEY($x.Str, $items.shift) }
+            elsif $items { self.STORE_AT_KEY($x, $items.shift) }
             else {
                 die(X::Hash::Store::OddNumber.new())
             }

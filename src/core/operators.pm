@@ -15,19 +15,19 @@ multi infix:<does>(Mu:D \$obj, Mu:U \$role) is rw {
 multi infix:<does>(Mu:D \$obj, Mu:U \$role, :$value! is parcel) is rw {
     # XXX Mutability check.
     my @attrs = $role.^attributes().grep: { .has_accessor };
-    die "Can only supply an initialization value for a role if it has a single public attribute"
+    die(X::Role::Initialization.new())
         unless @attrs == 1;
     $obj.HOW.mixin($obj, $role).BUILD_LEAST_DERIVED({ @attrs[0].Str.substr(2) => $value });
 }
 multi infix:<does>(Mu:U \$obj, Mu:U \$role) is rw {
-    die "Cannot use 'does' operator with a type object"
+    die(X::Does::TypeObject.new())
 }
 multi infix:<does>(Mu:D \$obj, @roles) is rw {
     # XXX Mutability check.
     $obj.HOW.mixin($obj, |@roles).BUILD_LEAST_DERIVED({});
 }
 multi infix:<does>(Mu:U \$obj, @roles) is rw {
-    die "Cannot use 'does' operator with a type object"
+    die(X::Does::TypeObject.new())
 }
 
 proto infix:<but>(|$) { * }
@@ -36,7 +36,7 @@ multi infix:<but>(Mu:D \$obj, Mu:U \$role) {
 }
 multi infix:<but>(Mu:D \$obj, Mu:U \$role, :$value! is parcel) {
     my @attrs = $role.^attributes().grep: { .has_accessor };
-    die "Can only supply an initialization value for a role if it has a single public attribute"
+    die(X::Role::Initialization.new())
         unless @attrs == 1;
     $obj.HOW.mixin($obj.clone(), $role).BUILD_LEAST_DERIVED({ @attrs[0].Str.substr(2) => $value });
 }
@@ -66,9 +66,6 @@ sub SEQUENCE($left, $right, :$exclude_end) {
     my $infinite = $endpoint ~~ Whatever;
     $endpoint = Bool::False if $infinite;
     my $tail := ().list;
-
-    my sub generate($code) {
-    }
 
     my sub succpred($cmp) {
         ($cmp < 0) ?? { $^x.succ } !! ( $cmp > 0 ?? { $^x.pred } !! { $^x } )
@@ -137,7 +134,7 @@ sub SEQUENCE($left, $right, :$exclude_end) {
                 }
             }
             else {
-                $value = (sub { fail "unable to deduce sequence" })();
+                $value = (sub { fail X::Sequence::Deduction.new })();
             }
         }
         take $value unless $exclude_end;

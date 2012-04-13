@@ -11,7 +11,7 @@ my class Exception {
     }
     multi method gist(Exception:D:) {
         my $str = try self.?message ~ "\n" ~ $.backtrace;
-        $! ?? "Error while creating error string: $!.message() $!.backtrace.full()" 
+        $! ?? "Error while creating error string" 
            !! $str;
     }
 
@@ -21,7 +21,7 @@ my class Exception {
         pir::setattribute__vPsP($!ex, 'payload', nqp::p6decont(self));
         my $msg := self.?message;
         pir::setattribute__vPsP($!ex, 'message', nqp::unbox_s($msg.Str))
-            if defined $msg;
+            if $msg.defined;
         pir::throw__0P($!ex)
     }
     method rethrow() is hidden_from_backtrace {
@@ -99,7 +99,9 @@ do {
         if ($type == nqp::p6box_i(pir::const::CONTROL_OK)) {
             my Mu $err := pir::getstderr__P();
             my $msg = nqp::p6box_s(nqp::atkey($ex, 'message'));
-            $err.print: $msg ?? "$msg\n" !! "Warning\n";
+            $err.print: $msg ?? "$msg" !! "Warning";
+            $err.print: Backtrace.new($ex.backtrace, 0).nice(:oneline);
+            $err.print: "\n";
             my $resume := nqp::atkey($ex, 'resume');
             if ($resume) {
                 $resume();
@@ -327,6 +329,11 @@ my class X::Bind::NativeType does X::Comp {
         'Cannot bind to a natively typed variable; use assignment instead'
     }
 }
+my class X::Bind::ZenSlice is Exception {
+    has Str $.what = 'array';
+
+    method message() { "Cannot bind to a zen $.what slice." }
+}
 
 my class X::Value::Dynamic does X::Comp {
     has $.what;
@@ -357,7 +364,7 @@ my class X::Syntax::NegatedPair does X::Syntax {
 
 my class X::Syntax::Variable::Numeric does X::Syntax {
     has $.what = 'variable';
-    method message() { "Cannot declare a numeric variable" }
+    method message() { "Cannot declare a numeric $.what" }
 }
 
 my class X::Syntax::Variable::Match does X::Syntax {
@@ -380,6 +387,14 @@ my class X::Syntax::Augment::WithoutMonkeyTyping does X::Syntax {
 
 my class X::Syntax::Augment::Role does X::Syntax {
     method message() { "Cannot augment a role, since roles are immutable" };
+}
+
+my class X::Does::TypeObject is Exception {
+    method message() { "Cannot use 'does' operator with a type object." }
+}
+
+my class X::Role::Initialization is Exception {
+    method message() { 'Can only supply an initialization value for a role if it has a single public attribute' }
 }
 
 my class X::Syntax::Comment::Embedded does X::Syntax {
@@ -427,7 +442,7 @@ my class X::Syntax::NoSelf does X::Syntax {
 
 my class X::Syntax::Number::RadixOutOfRange does X::Syntax {
     has $.radix;
-    method mesage() { "Radix $.radix out of range (allowed: 2..36)" }
+    method message() { "Radix $.radix out of range (allowed: 2..36)" }
 }
 
 my class X::Syntax::Regex::Adverb does X::Syntax {
@@ -442,6 +457,13 @@ my class X::Syntax::Signature::InvocantMarker does X::Syntax {
     }
 }
 
+my class X::Syntax::Extension::Category does X::Syntax {
+    has $.category;
+    method message() {
+        "Cannot add tokens of category '$.category'";
+    }
+}
+
 my class X::Attribute::Package does X::Comp {
     has $.package-type;
     method message() { "A $.package-type cannot have attributes" }
@@ -449,10 +471,18 @@ my class X::Attribute::Package does X::Comp {
 my class X::Attribute::NoPackage does X::Comp {
     method message() { "You cannot declare an attribute here; maybe you'd like a class or a role?" }
 }
-my class X::Sub::Scope does X::Comp {
+my class X::Declaration::Scope does X::Comp {
     has $.scope;
-    method message() { "Cannot use '$.scope' scope with a sub" }
+    has $.declaration;
+    method message() { "Cannot use '$.scope' with $.declaration declaration" }
 }
+
+my class X::Declaration::Scope::Multi is X::Declaration::Scope {
+    method message() {
+        "Cannot use '$.scope' with individual multi candidates. Please declare an {$.scope}-scoped proto instead";
+    }
+}
+
 my class X::Anon::Multi does X::Comp {
     has $.multiness;
     has $.routine-type = 'routine';
@@ -479,3 +509,49 @@ my class X::Constructor::Positional is Exception {
 my class X::Hash::Store::OddNumber is Exception {
     method message() { "Odd number of elements found where hash expected" }
 }
+
+my class X::Package::Stubbed does X::Comp {
+    has @.packages;
+    # TODO: supress display of line number
+    method message() {
+        "The following packages were stubbed but not defined:\n    "
+        ~ @.packages.join("\n    ");
+    }
+}
+
+my class X::Phaser::PrePost is Exception {
+    has $.phaser = 'PRE';
+    has $.condition;
+    method message {
+        my $what = $.phaser eq 'PRE' ?? 'Precondition' !! 'Postcondition';
+        $.condition.defined
+            ?? "$what '$.condition.trim()' failed"
+            !! "$what failed";
+    }
+}
+
+my class X::Str::Numeric is Exception {
+    has $.source;
+    has $.pos;
+    has $.reason;
+    method source-indicator {
+        constant marker = chr(0x23CF);
+        join '', "in '",
+                $.source.substr(0, $.pos),
+                marker,
+                $.source.substr($.pos),
+                "' (indicated by ",
+                marker,
+                ")",
+                ;
+    }
+    method message() {
+        "Cannot convert string to number: $.reason $.source-indicator";
+    }
+}
+
+my class X::Sequence::Deduction is Exception {
+    method message() { 'Unable to deduce sequence' }
+}
+
+# vim: ft=perl6

@@ -129,7 +129,7 @@ class Perl6::World is HLL::World {
     }
     
     # Checks for any stubs that weren't completed.
-    method assert_stubs_defined() {
+    method assert_stubs_defined($/) {
         my @incomplete;
         for @!stub_check {
             unless $_.HOW.is_composed($_) {
@@ -137,13 +137,12 @@ class Perl6::World is HLL::World {
             }
         }
         if +@incomplete {
-            pir::die("The following packages were stubbed but not defined:\n    " ~
-                pir::join("\n    ", @incomplete) ~ "\n");
+            self.throw($/, 'X::Package::Stubbed', packages => @incomplete);
         }
     }
     
     # Loads a setting.
-    method load_setting($setting_name) {
+    method load_setting($/, $setting_name) {
         # Do nothing for the NULL setting.
         if $setting_name ne 'NULL' {    
             # Load it immediately, so the compile time info is available.
@@ -173,7 +172,7 @@ class Perl6::World is HLL::World {
     
     # Loads a module immediately, and also makes sure we load it
     # during the deserialization.
-    method load_module($module_name, $cur_GLOBALish) {
+    method load_module($/, $module_name, $cur_GLOBALish) {
         # Immediate loading.
         my $module := Perl6::ModuleLoader.load_module($module_name, $cur_GLOBALish);
         
@@ -250,7 +249,10 @@ class Perl6::World is HLL::World {
         
         # Can only install packages as our or my scope.
         unless $create_scope eq 'my' || $create_scope eq 'our' {
-            $/.CURSOR.panic("Cannot use $*SCOPE scope with $pkgdecl");
+            self.throw($/, 'X::Declaration::Scope',
+                scope       => $*SCOPE,
+                declaration => $pkgdecl,
+            );
         }
         
         # If we have a multi-part name, see if we know the opening
@@ -271,7 +273,7 @@ class Perl6::World is HLL::World {
                 $cur_pkg := ($cur_pkg.WHO){$part};
             }
             else {
-                my $new_pkg := self.pkg_create_mo(%*HOW<package>, :name($part));
+                my $new_pkg := self.pkg_create_mo($/, %*HOW<package>, :name($part));
                 self.pkg_compose($new_pkg);
                 if $create_scope eq 'my' || $cur_lex {
                     self.install_lexical_symbol($cur_lex, $part, $new_pkg);
@@ -684,12 +686,6 @@ class Perl6::World is HLL::World {
 			pir::setprop__vPsP($stub, 'PAST_BLOCK', $code_past);
         }
         
-        # Desserialization should do the actual creation and just put the right
-        # code in there in the first place.
-        if self.is_precompilation_mode() {
-            $des.push(self.set_attribute($code, $code_type, '$!do', PAST::Val.new( :value($code_past) )));
-        }
-        
         # If this is a dispatcher, install dispatchee list that we can
         # add the candidates too.
         if $is_dispatcher {
@@ -698,8 +694,7 @@ class Perl6::World is HLL::World {
         
         # Set yada flag if needed.
         if $yada {
-            my $rtype := self.find_symbol(['Routine']);
-            nqp::bindattr_i($code, $rtype, '$!yada', 1);
+            nqp::bindattr_i($code, $routine_type, '$!yada', 1);
         }
 
         # Deserialization also needs to give the Parrot sub its backlink.
@@ -711,8 +706,10 @@ class Perl6::World is HLL::World {
         }
 
         # If it's a routine, flag that it needs fresh magicals.
+        # Also store the namespace, which makes backtraces nicer.
         if nqp::istype($code, $routine_type) {
             self.get_static_lexpad($code_past).set_fresh_magicals();
+            nqp::bindattr($code, $routine_type, '$!package', $*PACKAGE);
         }
             
         self.add_fixup_task(:deserialize_past($des), :fixup_past($fixups));
@@ -764,6 +761,11 @@ class Perl6::World is HLL::World {
                         )))
             }
             my %phasers := nqp::getattr($code, $block_type, '$!phasers');
+            if pir::exists(%phasers, 'PRE') {
+                $code_past[0].push(PAST::Op.new( :pirop('perl6_set_checking_pre v') ));
+                $code_past[0].push(run_phasers_code('PRE'));
+                $code_past[0].push(PAST::Op.new( :pirop('perl6_clear_checking_pre v') ));
+            }
             if pir::exists(%phasers, 'FIRST') {
                 $code_past[0].push(PAST::Op.new(
                     :pasttype('if'),
@@ -773,7 +775,7 @@ class Perl6::World is HLL::World {
             if pir::exists(%phasers, 'ENTER') {
                 $code_past[0].push(run_phasers_code('ENTER'));
             }
-            if pir::exists(%phasers, '!LEAVE-ORDER') {
+            if pir::exists(%phasers, '!LEAVE-ORDER') || pir::exists(%phasers, 'POST') {
                 $code_past[+@($code_past) - 1] := PAST::Op.new(
                     :pirop('perl6_returncc__0P'),
                     $code_past[+@($code_past) - 1]);
@@ -1023,7 +1025,7 @@ class Perl6::World is HLL::World {
 
     # Creates a meta-object for a package, adds it to the root objects and
     # returns the created object.
-    method pkg_create_mo($how, :$name, :$repr, *%extra) {
+    method pkg_create_mo($/, $how, :$name, :$repr, *%extra) {
         # Create the meta-object and add to root objects.
         my %args;
         if pir::defined($name) { %args<name> := ~$name; }
@@ -1049,7 +1051,7 @@ class Perl6::World is HLL::World {
     # arguments to pass and a set of name to object mappings to pass also
     # as named arguments, but where these passed objects also live in a
     # serialization context. The type would be passed in this way.
-    method pkg_add_attribute($obj, $meta_attr, %lit_args, %obj_args,
+    method pkg_add_attribute($/, $obj, $meta_attr, %lit_args, %obj_args,
             %cont_info, $descriptor) {
         # Build container.
         my $cont := nqp::create(%cont_info<container_type>);
@@ -1070,12 +1072,12 @@ class Perl6::World is HLL::World {
     }
     
     # Adds a method to the meta-object.
-    method pkg_add_method($obj, $meta_method_name, $name, $code_object) {
+    method pkg_add_method($/, $obj, $meta_method_name, $name, $code_object) {
         $obj.HOW."$meta_method_name"($obj, $name, $code_object);
     }
     
     # Handles setting the body block code for a role.
-    method pkg_set_role_body_block($obj, $code_object, $past) {
+    method pkg_set_role_body_block($/, $obj, $code_object, $past) {
         # Add it to the compile time meta-object.
         $obj.HOW.set_body_block($obj, $code_object);
 
@@ -1087,7 +1089,7 @@ class Perl6::World is HLL::World {
     }
     
     # Adds a possible role to a role group.
-    method pkg_add_role_group_possibility($group, $role) {
+    method pkg_add_role_group_possibility($/, $group, $role) {
         $group.HOW.add_possibility($group, $role);
     }
     
@@ -1188,7 +1190,7 @@ class Perl6::World is HLL::World {
     }
     
     # Handles addition of a phaser.
-    method add_phaser($/, $phaser, $block) {
+    method add_phaser($/, $phaser, $block, $phaser_past?) {
         if $phaser eq 'BEGIN' {
             # BEGIN phasers get run immediately.
             my $result := $block();
@@ -1239,6 +1241,43 @@ class Perl6::World is HLL::World {
                     PAST::Op.new( :pasttype('call'), $*W.get_ref($block) )
                 ),
                 PAST::Var.new( :name($sym), :scope('lexical_6model') ));
+        }
+        elsif $phaser eq 'PRE' || $phaser eq 'POST' {
+            my $what := self.add_string_constant($phaser);
+            $what.named('phaser');
+            my $condition := self.add_string_constant(~$/<blorst>);
+            $condition.named('condition');
+
+            $phaser_past[1] := PAST::Op.new(
+                :pasttype('unless'),
+                $phaser_past[1],
+                PAST::Op.new(
+                    :pasttype('callmethod'), :name('throw'),
+                    PAST::Op.new(
+                        :pasttype('callmethod'), :name('new'),
+                        self.get_ref(self.find_symbol(['X', 'Phaser', 'PrePost'])),
+                        $what,
+                        $condition,
+                    )
+                ),
+            );
+            
+            if $phaser eq 'POST' {
+                # Needs $_ that can be set to the return value.
+                $phaser_past[0].unshift(PAST::Op.new( :pirop('bind_signature v') ));
+                unless $phaser_past.symbol('$_') {
+                    $phaser_past[0].unshift(PAST::Var.new( :name('$_'), :scope('lexical_6model'), :isdecl(1) ));
+                }
+                nqp::push(
+                    nqp::getattr($block.signature, self.find_symbol(['Signature']), '$!params'),
+                    self.create_parameter(hash(
+                            variable_name => '$_', is_parcel => 1,
+                            nominal_type => self.find_symbol(['Mu'])
+                        )));
+            }
+            
+            @!CODES[+@!CODES - 1].add_phaser($phaser, $block);
+            return PAST::Var.new(:name('Nil'), :scope('lexical_6model'));
         }
         else {
             @!CODES[+@!CODES - 1].add_phaser($phaser, $block);
@@ -1676,7 +1715,16 @@ class Perl6::World is HLL::World {
         if $type_found {
              %opts<line>     := HLL::Compiler.lineof($/.orig, $/.from);
             for %opts -> $p {
-                %opts{$p.key} := pir::perl6ize_type__PP($p.value);
+                if pir::does($p.value, 'array') {
+                    my @a := [];
+                    for $p.value {
+                        nqp::push(@a, pir::perl6ize_type__PP($_));
+                    }
+                    %opts{$p.key} := pir::perl6ize_type__PP(@a);
+                }
+                else {
+                    %opts{$p.key} := pir::perl6ize_type__PP($p.value);
+                }
             }
             my $file        := pir::find_caller_lex__ps('$?FILES');
             %opts<filename> := nqp::box_s(

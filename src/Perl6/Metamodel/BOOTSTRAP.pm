@@ -565,7 +565,10 @@ BEGIN {
     Routine.HOW.add_attribute(Routine, BOOTSTRAPATTR.new(:name<$!md_thunk>, :type(Mu), :package(Routine)));
     Routine.HOW.add_attribute(Routine, BOOTSTRAPATTR.new(:name<$!rw>, :type(int), :package(Routine)));
     Routine.HOW.add_attribute(Routine, BOOTSTRAPATTR.new(:name<$!inline_info>, :type(str), :package(Routine)));
-    Routine.HOW.add_attribute(Routine, BOOTSTRAPATTR.new(:name<$!yada>, :type(int), :package(Routine)));Code.HOW.add_method(Code, 'is_dispatcher', static(sub ($self) {
+    Routine.HOW.add_attribute(Routine, BOOTSTRAPATTR.new(:name<$!yada>, :type(int), :package(Routine)));
+    Routine.HOW.add_attribute(Routine, BOOTSTRAPATTR.new(:name<$!package>, :type(Mu), :package(Routine)));
+
+    Code.HOW.add_method(Code, 'is_dispatcher', static(sub ($self) {
             my $dc_self   := pir::perl6_decontainerize__PP($self);
             my $disp_list := nqp::getattr($dc_self, Routine, '$!dispatchees');
             pir::perl6_booleanize__PI(pir::defined__IP($disp_list));
@@ -709,7 +712,7 @@ BEGIN {
     #     ...
     # }
     LoL.HOW.add_parent(LoL, List);
-    LoL.HOW.add_attribute(LoL, BOOTSTRAPATTR.new(:name<$!descriptor>, :type(Mu), :package(Array)));
+    LoL.HOW.add_attribute(LoL, BOOTSTRAPATTR.new(:name<$!descriptor>, :type(Mu), :package(LoL)));
 
     # my class EnumMap is Iterable {
     #     has $!storage;

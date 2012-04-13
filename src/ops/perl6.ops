@@ -5,6 +5,7 @@
 BEGIN_OPS_PREAMBLE
 
 #include "parrot/parrot.h"
+#include "parrot/events.h"
 #include "parrot/extend.h"
 #include "parrot/dynext.h"
 #include "pmc_object.h"
@@ -90,10 +91,15 @@ static INTVAL should_run_phaser(PARROT_INTERP, PMC *phaser, PMC *all_phasers, PM
 static PMC *run_leave_phasers(PARROT_INTERP, PMC *ctx, PMC *perl6_code, PMC *result, PMC *exceptions)
 {
     Rakudo_Code *code;
-    PMC *phasers, *leave_phasers;
+    PMC *phasers, *leave_phasers, *post_phasers;
     PMC *oldctx;
     int i, n;
     Parrot_runloop jump_point;
+    
+    /* Don't run any phasers if we failed while checking pre-conditions. */
+    if (PObj_flag_TEST(P6_CHECKING_PRE, ctx))
+        return PMCNULL;
+    
     if (PMC_IS_NULL(perl6_code))
         return PMCNULL;
     code = (Rakudo_Code *)PMC_data(perl6_code);
@@ -101,31 +107,60 @@ static PMC *run_leave_phasers(PARROT_INTERP, PMC *ctx, PMC *perl6_code, PMC *res
     if (PMC_IS_NULL(phasers))
         return PMCNULL;
     leave_phasers = VTABLE_get_pmc_keyed_str(interp, phasers, Parrot_str_new_constant(interp, "!LEAVE-ORDER"));
-    if (PMC_IS_NULL(leave_phasers))
+    post_phasers = VTABLE_get_pmc_keyed_str(interp, phasers, Parrot_str_new_constant(interp, "POST"));
+    if (PMC_IS_NULL(leave_phasers) && PMC_IS_NULL(post_phasers))
         return PMCNULL;
-    n = VTABLE_elements(interp, leave_phasers);
-    if (!n)
-        return PMCNULL;
+    
     oldctx = CURRENT_CONTEXT(interp);
     Parrot_pcc_set_context(interp, ctx);
-    for (i = 0; i < n; i++) {
-        int runloop_id = interp->current_runloop_id;
-        if (setjmp(jump_point.resume)) {
-            if (PMC_IS_NULL(exceptions)) {
-                exceptions = Parrot_pmc_new(interp, enum_class_ResizablePMCArray);
+    
+    if (!PMC_IS_NULL(leave_phasers)) {
+        n = VTABLE_elements(interp, leave_phasers);
+        for (i = 0; i < n; i++) {
+            int runloop_id = interp->current_runloop_id;
+            if (setjmp(jump_point.resume)) {
+                if (PMC_IS_NULL(exceptions)) {
+                    exceptions = Parrot_pmc_new(interp, enum_class_ResizablePMCArray);
+                }
+                VTABLE_push_pmc(interp, exceptions, jump_point.exception);
+                /* grrr */
+                while (interp->current_runloop && interp->current_runloop_id != runloop_id)
+                    free_runloop_jump_point(interp);
+            } else {
+                PMC *phaser = VTABLE_get_pmc_keyed_int(interp, leave_phasers, i);
+                Parrot_ex_add_c_handler(interp, &jump_point);
+                if (should_run_phaser(interp, phaser, phasers, result))
+                    Parrot_pcc_invoke_sub_from_c_args(interp, phaser, "->");
             }
-            VTABLE_push_pmc(interp, exceptions, jump_point.exception);
-            /* grrr */
-            while (interp->current_runloop && interp->current_runloop_id != runloop_id)
-                free_runloop_jump_point(interp);
-        } else {
-            PMC *phaser = VTABLE_get_pmc_keyed_int(interp, leave_phasers, i);
-            Parrot_ex_add_c_handler(interp, &jump_point);
-            if (should_run_phaser(interp, phaser, phasers, result))
-                Parrot_pcc_invoke_sub_from_c_args(interp, phaser, "->");
+            Parrot_cx_delete_handler_local(interp);
         }
-        Parrot_cx_delete_handler_local(interp, STRINGNULL);
     }
+    
+    if (!PMC_IS_NULL(post_phasers)) {
+        INTVAL failed_a_post = 0;
+        n = VTABLE_elements(interp, post_phasers);
+        for (i = 0; i < n; i++) {
+            int runloop_id = interp->current_runloop_id;
+            if (setjmp(jump_point.resume)) {
+                if (PMC_IS_NULL(exceptions)) {
+                    exceptions = Parrot_pmc_new(interp, enum_class_ResizablePMCArray);
+                }
+                VTABLE_push_pmc(interp, exceptions, jump_point.exception);
+                /* grrrrrrr */
+                while (interp->current_runloop && interp->current_runloop_id != runloop_id)
+                    free_runloop_jump_point(interp);
+                failed_a_post = 1;
+            } else {
+                PMC *phaser = VTABLE_get_pmc_keyed_int(interp, post_phasers, i);
+                Parrot_ex_add_c_handler(interp, &jump_point);
+                Parrot_pcc_invoke_sub_from_c_args(interp, phaser, "P->", result);
+            }
+            Parrot_cx_delete_handler_local(interp);
+            if (failed_a_post)
+                break;
+        }
+    }
+    
     Parrot_pcc_set_context(interp, oldctx);
     return exceptions;
 }
@@ -1412,6 +1447,36 @@ inline op perl6_take_block_first_flag(out INT) :base_core {
     PMC * const cur_sub = Parrot_pcc_get_sub(interp, ctx);
     $1 = PObj_flag_TEST(SUB_FIRST, cur_sub);
     PObj_flag_CLEAR(SUB_FIRST, cur_sub);
+}
+
+
+/*
+
+=item perl6_set_checking_pre()
+
+Sets the checking PRE blocks flag on a context.
+
+=cut
+
+*/
+inline op perl6_set_checking_pre() :base_core {
+    PMC * const ctx = CURRENT_CONTEXT(interp);
+    PObj_flag_SET(P6_CHECKING_PRE, ctx);
+}
+
+
+/*
+
+=item perl6_clear_checking_pre()
+
+Clears the checking PRE blocks flag on a context.
+
+=cut
+
+*/
+inline op perl6_clear_checking_pre() :base_core {
+    PMC * const ctx = CURRENT_CONTEXT(interp);
+    PObj_flag_CLEAR(P6_CHECKING_PRE, ctx);
 }
 
 

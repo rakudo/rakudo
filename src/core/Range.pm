@@ -40,10 +40,13 @@ class Range is Iterable does Positional {
     }
 
     multi method ACCEPTS(Range:D: Range \$topic) {
-        ?( $.min eqv $topic.min
-           && $.max eqv $topic.max
-           && $.excludes_min === $topic.excludes_min
-           && $.excludes_max === $topic.excludes_max)
+        ($topic.min > $!min
+         || $topic.min == $!min
+            && !(!$topic.excludes_min && $!excludes_min))
+        &&
+        ($topic.max < $!max
+         || $topic.max == $!max
+            && !(!$topic.excludes_max && $!excludes_max))
     }
 
     method reify($n = 10) {
@@ -180,8 +183,6 @@ class Range is Iterable does Positional {
     }
 }
 
-
-###  XXX remove the (1) from :excludes_min and :excludes_max below
 sub infix:<..>($min, $max) { 
     Range.new($min, $max) 
 }

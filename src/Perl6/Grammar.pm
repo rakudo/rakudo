@@ -439,7 +439,7 @@ grammar Perl6::Grammar is HLL::Grammar {
             # If we already have a specified outer context, then that's
             # our setting. Otherwise, load one.
             unless pir::defined(%*COMPILING<%?OPTIONS><outer_ctx>) {
-                $*SETTING := $*W.load_setting(%*COMPILING<%?OPTIONS><setting> // 'CORE');
+                $*SETTING := $*W.load_setting($/, %*COMPILING<%?OPTIONS><setting> // 'CORE');
             }
             $/.CURSOR.unitstart();
             try {
@@ -454,12 +454,12 @@ grammar Perl6::Grammar is HLL::Grammar {
                 $*GLOBALish := %*COMPILING<%?OPTIONS><global>;
             }
             else {
-                $*GLOBALish := $*W.pkg_create_mo(%*HOW<package>, :name('GLOBAL'));
+                $*GLOBALish := $*W.pkg_create_mo($/, %*HOW<package>, :name('GLOBAL'));
                 $*W.pkg_compose($*GLOBALish);
             }
                 
             # Create EXPORT.
-            $*EXPORT := $*W.pkg_create_mo(%*HOW<package>, :name('EXPORT'));
+            $*EXPORT := $*W.pkg_create_mo($/, %*HOW<package>, :name('EXPORT'));
             $*W.pkg_compose($*EXPORT);
                 
             # We start with the current package as that also.
@@ -488,7 +488,7 @@ grammar Perl6::Grammar is HLL::Grammar {
                 'Array', 'type_new', |$*POD_BLOCKS
             );
             $*W.install_lexical_symbol(
-                $*UNIT, '$=POD', $*POD_PAST<compile_time_value>
+                $*UNIT, '$=pod', $*POD_PAST<compile_time_value>
             );
         }
         
@@ -678,7 +678,7 @@ grammar Perl6::Grammar is HLL::Grammar {
         ] ** ','
         {
             for $<module_name> {
-                $*W.load_module(~$_<longname>, $*GLOBALish);
+                $*W.load_module($/, ~$_<longname>, $*GLOBALish);
             }
         }
     }
@@ -733,7 +733,8 @@ grammar Perl6::Grammar is HLL::Grammar {
             || { 
                     unless ~$<doc> && !%*COMPILING<%?OPTIONS><doc> {
                         if $longname {
-                            my $module := $*W.load_module(~$longname,
+                            my $module := $*W.load_module($/,
+                                                          ~$longname,
                                                            $*GLOBALish);
                             do_import($module, $<arglist>);
                             $/.CURSOR.import_EXPORTHOW($module);
@@ -785,14 +786,12 @@ grammar Perl6::Grammar is HLL::Grammar {
     
     token statement_prefix:sym<END>   { <sym> <blorst> }
     token statement_prefix:sym<LEAVE> { <sym> <blorst> }
-    token statement_prefix:sym<KEEP> { <sym> <blorst> }
-    token statement_prefix:sym<UNDO> { <sym> <blorst> }
+    token statement_prefix:sym<KEEP>  { <sym> <blorst> }
+    token statement_prefix:sym<UNDO>  { <sym> <blorst> }
     token statement_prefix:sym<NEXT>  { <sym> <blorst> }
     token statement_prefix:sym<LAST>  { <sym> <blorst> }
-    token statement_prefix:sym<PRE> { <sym> <blorst>
-            <.NYI('PRE phaser')> }
-    token statement_prefix:sym<POST> { <sym> <blorst>
-            <.NYI('POST phaser')> }
+    token statement_prefix:sym<PRE>   { <sym> <blorst> }
+    token statement_prefix:sym<POST>  { <sym> <blorst> }
     
     token statement_prefix:sym<sink>  { <sym> <blorst> }
     token statement_prefix:sym<try>   { <sym> <blorst> }
@@ -1242,7 +1241,7 @@ grammar Perl6::Grammar is HLL::Grammar {
                         if $*REPR ne '' {
                             %args<repr> := $*REPR;
                         }
-                        $*PACKAGE := $*W.pkg_create_mo(%*HOW{$*PKGDECL}, |%args);
+                        $*PACKAGE := $*W.pkg_create_mo($/, %*HOW{$*PKGDECL}, |%args);
                         
                         # Install it in the symbol table if needed.
                         if $longname {
@@ -1262,12 +1261,12 @@ grammar Perl6::Grammar is HLL::Grammar {
                         }
                         else {
                             my @name := $longname.type_name_parts('package name', :decl(1));
-                            $group := $*W.pkg_create_mo(%*HOW{'role-group'}, :name($longname.name()));                            
+                            $group := $*W.pkg_create_mo($/, %*HOW{'role-group'}, :name($longname.name()));                            
                             $*W.install_package($/, @name, $*SCOPE, $*PKGDECL, $*OUTERPACKAGE, $outer, $group);
                         }
 
                         # Construct role meta-object with group.
-                        $*PACKAGE := $*W.pkg_create_mo(%*HOW{$*PKGDECL}, :name($longname.name()),
+                        $*PACKAGE := $*W.pkg_create_mo($/, %*HOW{$*PKGDECL}, :name($longname.name()),
                             :group($group), :signatured($<signature> ?? 1 !! 0));
                     }
                 }
@@ -1308,9 +1307,9 @@ grammar Perl6::Grammar is HLL::Grammar {
                         $*W.install_lexical_symbol($curpad, '$?ROLE', $*PACKAGE);
                         $*W.install_lexical_symbol($curpad, '::?ROLE', $*PACKAGE);
                         $*W.install_lexical_symbol($curpad, '$?CLASS',
-                            $*W.pkg_create_mo(%*HOW<generic>, :name('$?CLASS')));
+                            $*W.pkg_create_mo($/, %*HOW<generic>, :name('$?CLASS')));
                         $*W.install_lexical_symbol($curpad, '::?CLASS',
-                            $*W.pkg_create_mo(%*HOW<generic>, :name('::?CLASS')));
+                            $*W.pkg_create_mo($/, %*HOW<generic>, :name('::?CLASS')));
                     }
                 }
                 
@@ -2124,6 +2123,10 @@ grammar Perl6::Grammar is HLL::Grammar {
         ]
     }
 
+    token quote:sym<qr> {
+        <sym> <.end_keyword> <.obs('qr for regex quoting', 'rx//')>
+    }
+
     token setup_quotepair { '' }
 
     token quote:sym<s> {
@@ -2460,6 +2463,7 @@ grammar Perl6::Grammar is HLL::Grammar {
     token prefix:sym<!>   { <!before '!!!'> <sym>  <O('%symbolic_unary')> }
     token prefix:sym<+^>  { <sym>  <O('%symbolic_unary')> }
     token prefix:sym<~^>  { <sym>  <O('%symbolic_unary')> }
+    token prefix:sym<?^>  { <sym>  <O('%symbolic_unary')> }
     token prefix:sym<^>   { <sym>  <O('%symbolic_unary')> }
     token prefix:sym<|>   { <sym>  <O('%symbolic_unary')> }
 
@@ -2504,7 +2508,6 @@ grammar Perl6::Grammar is HLL::Grammar {
     token infix:sym<^>    { <sym> <O('%junctive_or')> }
 
     token prefix:sym<abs>     { <sym> » <O('%named_unary')> }
-    token prefix:sym<defined> { <sym> » <O('%named_unary')> }
 
     token infix:sym«==»   { <sym>  <O('%chaining')> }
     token infix:sym«!=»   { <sym> <?before \s|']'> <O('%chaining')> }
@@ -2716,7 +2719,7 @@ grammar Perl6::Grammar is HLL::Grammar {
             return 0;
         }
         else {
-            pir::die("Cannot add tokens of category '$category' with a sub");
+            self.typed_panic('X::Syntax::Extension::Category', :$category);
         }
 
         # We need to modify the grammar. Build code to parse it.

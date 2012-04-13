@@ -400,7 +400,7 @@ test    : coretest
 fulltest: coretest stresstest
 
 coretest: all
-	$(PERL) t/harness t/00-parrot t/01-sanity t/02-embed
+	$(PERL) t/harness t/00-parrot t/01-sanity
 
 # Run the spectests that we know work.
 spectest_regression: spectest
@@ -426,7 +426,7 @@ spectest_update :
 	-cd t/spec && git pull
 
 rakudo_test_run.tar.gz: testable t/spectest.data
-	- $(HARNESS_WITH_FUDGE) --tests-from-file=t/spectest.data --archive rakudo_test_run.tar.gz --parrot_revision @revision@
+	- $(HARNESS_WITH_FUDGE) --tests-from-file=t/spectest.data --archive rakudo_test_run.tar.gz --parrot_revision @git_describe@
 
 spectest_smolder: rakudo_test_run.tar.gz
 	./perl6 -e "shell qqx[git log -1 --pretty=format:%H].fmt(qq[curl -F architecture=@cpuarch@ -F platform=@osname@ -F revision=%s -F report_file=@rakudo_test_run.tar.gz -F username=parrot-autobot -F password=qa_rocks http://smolder.parrot.org/app/projects/process_add_report/5])"

@@ -12,6 +12,8 @@ my class Seq is List does Positional { }
 my class Exception { ... }
 my class X::AdHoc  { ... }
 my class FatRat    { ... }
+my class Enum      { ... }
+my class X::OutOfRange { ... }
 
 sub DYNAMIC(\$name) is rw { 
     my Mu $x := pir::find_dynamic_lex__Ps(nqp::unbox_s($name));

@@ -179,9 +179,6 @@ multi infix:<==>(int $a, int $b) {
     nqp::p6bool(nqp::iseq_i($a, $b))
 }
 
-multi infix:<!=>(Int:D \$a, Int:D \$b) {
-    nqp::p6bool(nqp::isne_I(nqp::p6decont($a), nqp::p6decont($b)))
-}
 multi infix:<!=>(int $a, int $b) {
     nqp::p6bool(nqp::isne_i($a, $b))
 }

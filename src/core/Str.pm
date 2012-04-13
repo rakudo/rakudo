@@ -2,6 +2,9 @@ my class Cursor {... }
 my class Range  {... }
 my class Match  {... }
 my class Buf    {... }
+my class X::Str::Numeric { ... }
+
+my $?TABSTOP = 8;
 
 sub PARROT_ENCODING(Str:D $s) {
     my %map = (
@@ -150,7 +153,7 @@ my class Str does Stringy {
         $str;
     }
 
-    multi method Numeric(Str:D:) {
+    multi method Numeric(Str:D: :$strict) {
         return nqp::p6box_n(pir::set__Ns('NaN')) if self eq 'NaN';
         my str $str = nqp::unbox_s(self);
         my int $eos = nqp::chars($str);
@@ -161,14 +164,16 @@ my class Str does Stringy {
         my int $pos   = pir::find_not_cclass__Iisii(pir::const::CCLASS_WHITESPACE, $str, 0, $eos);
 
         my $tailfail =
-             -> { fail "trailing characters after number in conversion"
-                      if nqp::islt_i(
+             -> { fail(X::Str::Numeric.new(
+                     source => self,
+                     :$pos,
+                     reason => 'trailing characters after number',
+                 )) if nqp::islt_i(
                           pir::find_not_cclass__Iisii(pir::const::CCLASS_WHITESPACE,
                                                       $str, $pos, $eos),
                           $eos);
                   0;
              };
-
         # objects for managing the parse and results
         my Mu $parse;
         my $result;
@@ -230,6 +235,11 @@ my class Str does Stringy {
             #     We should really fail here instead of returning 0,
             #     but we need to first need to figure out better ways
             #     to handle failure results.
+            fail X::Str::Numeric.new(
+                     source => self,
+                     pos    => $p,
+                     reason => 'does not look like a number',
+                ) if $strict && nqp::iseq_i($p, 0) && nqp::islt_i($pos, 0);
             return 0 if nqp::iseq_i($p, 0) && nqp::islt_i($pos, 0);
             fail "malformed numeric string" if nqp::islt_i($pos, 0);
             $int = nqp::atpos($parse, 0);
@@ -318,7 +328,7 @@ my class Str does Stringy {
     multi method ll-match(Str:D: Cool:D $pat, *%opts) {
         my Int $from = %opts<p> // %opts<c> // 0;
         my $idx = self.index($pat, $from);
-        defined $idx
+        $idx.defined
           ?? Match.new(orig => self, from => $idx, to => ($idx + $pat.chars))
           !! Match.new(orig => self, from => 0,    to => -3);
     }
@@ -691,6 +701,79 @@ my class Str does Stringy {
 
         return $r;
     }
+    proto method indent($) {*}
+    # Zero indent does nothing
+    multi method indent(Int $steps where { $_ == 0 }) {
+        self;
+    }
+
+    # Positive indent does indent
+    multi method indent(Int $steps where { $_ > 0 }) {
+    # We want to keep trailing \n so we have to .comb explicitly instead of .lines
+        return self.comb(/:r ^^ \N* \n?/).map({
+            given $_.Str {
+                # Use the existing space character if they're all the same
+                # (but tabs are done slightly differently)
+                when /^(\t+) ([ \S .* | $ ])/ {
+                    $0 ~ "\t" x ($steps div $?TABSTOP) ~
+                         ' '  x ($steps mod $?TABSTOP) ~ $1
+                }
+                when /^(\h) $0* [ \S | $ ]/ {
+                    $0 x $steps ~ $_
+                }
+
+                # Otherwise we just insert spaces after the existing leading space
+                default {
+                    $_ ~~ /^(\h*) (.*)$/;
+                    $0 ~ (' ' x $steps) ~ $1
+                }
+            }
+        }).join;
+    }
+
+    # Negative values and Whatever-* do outdent
+    multi method indent($steps where { .^isa(Whatever) || .^isa(Int) && $_ < 0 }) {
+        # Loop through all lines to get as much info out of them as possible
+        my @lines = self.comb(/:r ^^ \N* \n?/).map({
+            # Split the line into indent and content
+            my ($indent, $rest) = @($_ ~~ /^(\h*) (.*)$/);
+
+            # Split the indent into characters and annotate them
+            # with their visual size
+            my $indent-size = 0;
+            my @indent-chars = $indent.comb.map(-> $char {
+                my $width = $char eq "\t"
+                    ?? $?TABSTOP - ($indent-size mod $?TABSTOP)
+                    !! 1;
+                $indent-size += $width;
+                $char => $width;
+            });
+
+            { :$indent-size, :@indent-chars, :$rest };
+        });
+
+        # Figure out the amount * should outdent by, we also use this for warnings
+        my $common-prefix = [min] @lines.map({ $_<indent-size> });
+
+        # Set the actual outdent amount here
+        my Int $outdent = $steps ~~ Whatever ?? $common-prefix
+                                             !! -$steps;
+
+        warn sprintf('Asked to remove %d spaces, ' ~
+                     'but the shortest indent is %d spaces',
+                     $outdent, $common-prefix) if $outdent > $common-prefix;
+
+        # Work backwards from the right end of the indent whitespace, removing
+        # array elements up to # (or over, in the case of tab-explosion)
+        # the specified outdent amount.
+        @lines.map({
+            my $pos = 0;
+            while $_<indent-chars> and $pos < $outdent {
+                $pos += $_<indent-chars>.pop.value;
+            }
+            $_<indent-chars>».key.join ~ ' ' x ($pos - $outdent) ~ $_<rest>;
+        }).join;
+    }
 }
 
 
@@ -768,8 +851,12 @@ sub trim-trailing(Str:D $s) { $s.trim-trailing }
 
 # the opposite of Real.base, used for :16($hex_str)
 sub unbase(Int:D $base, Str:D $str) {
-    if $str.substr(0, 2) eq any(<0x 0d 0o 0b>) {
+    my Str $prefix = $str.substr(0, 2);
+    if    $base <= 10 && $prefix eq any(<0x 0d 0o 0b>)
+       or $base <= 24 && $prefix eq any <0o 0x>
+       or $base <= 33 && $prefix eq '0x' {
         $str.Numeric;
+
     } else {
         ":{$base}<$str>".Numeric;
     }

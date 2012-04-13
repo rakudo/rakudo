@@ -9,21 +9,23 @@ my class RoleToRoleApplier {
         # any duplicates (a method can't collide with itself).
         my %meth_info;
         my %meth_providers;
+        my %priv_meth_info;
+        my %priv_meth_providers;
         for @roles {
             my $role := $_;
-            sub build_meth_info(%methods) {
+            sub build_meth_info(%methods, %meth_info_to_use, %meth_providers_to_use) {
                 for %methods {
                     my $name := $_.key;
                     my $meth := $_.value;
                     my @meth_list;
                     my @meth_providers;
-                    if pir::exists(%meth_info, $name) {
-                        @meth_list := %meth_info{$name};
-                        @meth_providers := %meth_providers{$name};
+                    if pir::exists(%meth_info_to_use, $name) {
+                        @meth_list := %meth_info_to_use{$name};
+                        @meth_providers := %meth_providers_to_use{$name};
                     }
                     else {
-                        %meth_info{$name} := @meth_list;
-                        %meth_providers{$name} := @meth_providers;
+                        %meth_info_to_use{$name} := @meth_list;
+                        %meth_providers_to_use{$name} := @meth_providers;
                     }
                     my $found := 0;
                     for @meth_list {
@@ -40,9 +42,11 @@ my class RoleToRoleApplier {
                     }
                 }
             }
-            build_meth_info($_.HOW.method_table($_));
-            build_meth_info($_.HOW.submethod_table($_))
+            build_meth_info($_.HOW.method_table($_), %meth_info, %meth_providers);
+            build_meth_info($_.HOW.submethod_table($_), %meth_info, %meth_providers)
                 if pir::can__IPs($_.HOW, 'submethod_table');
+            build_meth_info($_.HOW.private_method_table($_), %priv_meth_info, %priv_meth_providers)
+                if pir::can__IPs($_.HOW, 'private_method_table');
         }
 
         # Also need methods of target.
@@ -87,6 +91,23 @@ my class RoleToRoleApplier {
                 }
             }
         }
+        
+        # Process private method list.
+        if pir::can__IPs($target.HOW, 'private_method_table') {
+            my %target_priv_meth_info := $target.HOW.private_method_table($target);
+            for %priv_meth_info {
+                my $name := $_.key;
+                my @add_meths := %priv_meth_info{$name};
+                unless pir::exists(%target_priv_meth_info, $name) {
+                    if +@add_meths == 1 {
+                        $target.HOW.add_private_method($target, $name, @add_meths[0]);
+                    }
+                    elsif +@add_meths {
+                        $target.HOW.add_collision($target, $name, %priv_meth_providers{$name}, :private(1));
+                    }
+                }
+            }
+        }
 
         # Now do the other bits.
         for @roles {
@@ -114,7 +135,7 @@ my class RoleToRoleApplier {
             }
             
             # Any multi-methods go straight in; conflicts can be
-            # caught my the multi-dispatcher later.
+            # caught by the multi-dispatcher later.
             if pir::can__IPs($how, 'multi_methods_to_incorporate') {
                 my @multis := $how.multi_methods_to_incorporate($_);
                 for @multis {

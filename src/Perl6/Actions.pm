@@ -3223,7 +3223,8 @@ class Perl6::Actions is HLL::Actions {
         else {
             # Otherwise, it's a type name; build a reference to that
             # type, since we can statically resolve them.
-            my @name := Perl6::Grammar::parse_name(~$<longname>);
+            my $longname := $*W.disect_longname($<longname>);
+            my @name     := $longname.type_name_parts('type name');
             if $<arglist> {
                 # Look up parametric type.
                 my $ptype := $*W.find_symbol(@name);
@@ -3255,6 +3256,11 @@ class Perl6::Actions is HLL::Actions {
             }
             else {
                 $past := instantiated_type(@name, $/);
+            }
+            
+            # Names ending in :: really want .WHO.
+            if $longname.get_who {
+                $past := PAST::Op.new( :pirop('get_who PP'), $past );
             }
         }
 

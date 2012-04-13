@@ -1362,6 +1362,10 @@ class Perl6::World is HLL::World {
             @name
         }
         
+        method get_who() {
+            $!get_who
+        }
+        
         # Checks if a name component is a pseudo-package.
         sub is_pseudo_package($comp) {
             $comp eq 'CORE' || $comp eq 'SETTING' || $comp eq 'UNIT' ||

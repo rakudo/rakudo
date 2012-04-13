@@ -2733,7 +2733,7 @@ grammar Perl6::Grammar is HLL::Grammar {
             return 0;
         }
         else {
-            pir::die("Cannot add tokens of category '$category' with a sub");
+            self.typed_panic('X::Syntax::Extension::Category', :$category);
         }
 
         # We need to modify the grammar. Build code to parse it.

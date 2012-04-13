@@ -1350,6 +1350,9 @@ class Perl6::World is HLL::World {
                         if $_ ne 'GLOBAL' {
                             pir::die("Cannot use pseudo-package $_ in a $dba");
                         }
+                        elsif +@!components == 1 {
+                            pir::die("Cannot declare pseudo-package GLOBAL");
+                        }
                     }
                     else {
                         nqp::push(@name, $_);

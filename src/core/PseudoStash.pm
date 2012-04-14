@@ -65,9 +65,14 @@ my class PseudoStash is EnumMap {
         },
         'UNIT' => sub ($cur) {
             die("UNIT NYI");
-        }
+        },
         'SETTING' => sub ($cur) {
             die("SETTING NYI");
+        },
+        'OUR' => sub ($cur) {
+            pir::find_lex_relative__PPs(
+                nqp::getattr(nqp::p6decont($cur), PseudoStash, '$!ctx'),
+                '$?PACKAGE')
         };
     
     method at_key($key is copy) is rw {

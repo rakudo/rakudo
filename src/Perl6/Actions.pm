@@ -3150,8 +3150,8 @@ class Perl6::Actions is HLL::Actions {
 
     method term:sym<name>($/) {
         my $past;
-
-        if self.is_indirect_lookup($<longname>) {
+        my $longname := $*W.disect_longname($<longname>);
+        if $longname.contains_indirect_lookup() {
             if $<args> {
                 $/.CURSOR.panic("Combination of indirect name lookup and call not (yet?) allowed");
             }
@@ -3223,8 +3223,7 @@ class Perl6::Actions is HLL::Actions {
         else {
             # Otherwise, it's a type name; build a reference to that
             # type, since we can statically resolve them.
-            my $longname := $*W.disect_longname($<longname>);
-            my @name     := $longname.type_name_parts('type name');
+            my @name := $longname.type_name_parts('type name');
             if $<arglist> {
                 # Look up parametric type.
                 my $ptype := $*W.find_symbol(@name);
@@ -4107,6 +4106,9 @@ class Perl6::Actions is HLL::Actions {
             else {
                 if $<arglist> || $<typename> {
                     $/.CURSOR.panic("Cannot put type parameters on a type capture");
+                }
+                if ~$<longname> eq '::' {
+                    $/.CURSOR.panic("Cannot use :: as a type name");
                 }
                 make $*W.pkg_create_mo($/, %*HOW<generic>, :name(pir::substr(~$<longname>, 2)));
             }

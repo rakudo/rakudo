@@ -1329,6 +1329,16 @@ class Perl6::World is HLL::World {
             pir::join('::', @parts)
         }
         
+        # Checks if there is an indirect lookup required.
+        method contains_indirect_lookup() {
+            for @!components {
+                if pir::can($_, 'isa') && $_.isa(PAST::Node) {
+                    return 1;
+                }
+            }
+            return 0;
+        }
+        
         # Fetches an array of components provided they are all known
         # or resolvable at compile time.
         method type_name_parts($dba, :$decl) {
@@ -1395,7 +1405,9 @@ class Perl6::World is HLL::World {
             elsif $_<EXPR> {
                 my $EXPR := $_<EXPR>[0].ast;
                 if $EXPR<has_compile_time_value> {
-                    @components.push(~$EXPR<compile_time_value>);
+                    for nqp::split('::', ~$EXPR<compile_time_value>) {
+                        @components.push($_);
+                    }
                 }
                 else {
                     @components.push($EXPR);

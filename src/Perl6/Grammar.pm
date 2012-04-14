@@ -1193,7 +1193,7 @@ grammar Perl6::Grammar is HLL::Grammar {
         { unless $*SCOPE { $*SCOPE := 'our'; } }
         
         [
-            [ <longname> { $longname := $<longname>[0]; } ]?
+            [ <longname> { $longname := $*W.disect_longname($<longname>[0]); } ]?
             <.newpad>
             
             [ #:dba('generic role')
@@ -1211,9 +1211,11 @@ grammar Perl6::Grammar is HLL::Grammar {
                     # Locate any existing symbol. Note that it's only a match
                     # with "my" if we already have a declaration in this scope.
                     my $exists := 0;
-                    if $longname && $*SCOPE ne 'anon' {
-                        my @name := parse_name(~$longname<name>);
-                        if $*W.already_declared($*SCOPE, $*OUTERPACKAGE, $outer, @name) {
+                    my @name := $longname ??
+                        $longname.type_name_parts('package name', :decl(1)) !!
+                        [];
+                    if @name && $*SCOPE ne 'anon' {
+                        if @name && $*W.already_declared($*SCOPE, $*OUTERPACKAGE, $outer, @name) {
                             $*PACKAGE := $*W.find_symbol(@name);
                             $exists := 1;
                         }
@@ -1225,18 +1227,18 @@ grammar Perl6::Grammar is HLL::Grammar {
                     if $exists && $*PKGDECL ne 'role' {
                         if $*PACKAGE.HOW.is_composed($*PACKAGE) {
                             $*W.throw($/, ['X', 'Redeclaration'],
-                                symbol => ~$longname<name>,
+                                symbol => $longname.name(),
                             );
                         }
                     }
                     
                     # If it's not a role, or it is a role but one with no name,
                     # then just needs meta-object construction and installation.
-                    elsif $*PKGDECL ne 'role' || !$longname {
+                    elsif $*PKGDECL ne 'role' || !@name {
                         # Construct meta-object for this package.
                         my %args;
-                        if $longname {
-                            %args<name> := ~$longname<name>;
+                        if @name {
+                            %args<name> := $longname.name();
                         }
                         if $*REPR ne '' {
                             %args<repr> := $*REPR;
@@ -1244,9 +1246,8 @@ grammar Perl6::Grammar is HLL::Grammar {
                         $*PACKAGE := $*W.pkg_create_mo($/, %*HOW{$*PKGDECL}, |%args);
                         
                         # Install it in the symbol table if needed.
-                        if $longname {
-                            $*W.install_package_longname($/, $longname, $*SCOPE,
-                                $*PKGDECL, $*OUTERPACKAGE, $outer, $*PACKAGE);
+                        if @name {
+                            $*W.install_package($/, @name, $*SCOPE, $*PKGDECL, $*OUTERPACKAGE, $outer, $*PACKAGE);
                         }
                     }
                     
@@ -1260,31 +1261,32 @@ grammar Perl6::Grammar is HLL::Grammar {
                             $group := $*PACKAGE;
                         }
                         else {
-                            $group := $*W.pkg_create_mo($/, %*HOW{'role-group'}, :name(~$longname<name>));                            
-                            $*W.install_package_longname($/, $longname, $*SCOPE,
-                                $*PKGDECL, $*OUTERPACKAGE, $outer, $group);
+                            $group := $*W.pkg_create_mo($/, %*HOW{'role-group'}, :name($longname.name()));                            
+                            $*W.install_package($/, @name, $*SCOPE, $*PKGDECL, $*OUTERPACKAGE, $outer, $group);
                         }
 
                         # Construct role meta-object with group.
-                        $*PACKAGE := $*W.pkg_create_mo($/, %*HOW{$*PKGDECL}, :name(~$longname<name>),
+                        $*PACKAGE := $*W.pkg_create_mo($/, %*HOW{$*PKGDECL}, :name($longname.name()),
                             :group($group), :signatured($<signature> ?? 1 !! 0));
                     }
                 }
                 else {
                     # Augment. Ensure we can.
+                    my @name := $longname ??
+                        $longname.type_name_parts('package name', :decl(1)) !!
+                        [];
                     unless $*MONKEY_TYPING {
                         $/.CURSOR.typed_panic('X::Syntax::Augment::WithoutMonkeyTyping');
                     }
                     if $*PKGDECL eq 'role' {
                         $/.CURSOR.typed_panic('X::Syntax::Augment::Role');
                     }
-                    unless $longname {
+                    unless @name {
                         $*W.throw($/, 'X::Anon::Augment', package-type => $*PKGDECL);
                     }
                     
                     # Locate type.
                     my $found;
-                    my @name := parse_name(~$longname<name>);
                     try { $*PACKAGE := $*W.find_symbol(@name); $found := 1 }
                     unless $found {
                         $*W.throw($/, 'X::Augment::NoSuchType',
@@ -1790,10 +1792,11 @@ grammar Perl6::Grammar is HLL::Grammar {
         [
         | <longname>
             {
-                my @name := parse_name(~$<longname><name>);
+                my $longname := $*W.disect_longname($<longname>);
+                my @name := $longname.type_name_parts('enum name', :decl(1));
                 if $*W.already_declared($*SCOPE, $*PACKAGE, $*W.cur_lexpad(), @name) {
                     $*W.throw($/, ['X', 'Redeclaration'],
-                        symbol => ~$<longname><name>,
+                        symbol => $longname.name(),
                     );
                 }
             }
@@ -1815,10 +1818,11 @@ grammar Perl6::Grammar is HLL::Grammar {
                 [
                     <longname>
                     {
-                        my @name := parse_name(~$<longname><name>);
+                        my $longname := $*W.disect_longname($<longname>);
+                        my @name := $longname.type_name_parts('subset name', :decl(1));
                         if $*W.already_declared($*SCOPE, $*PACKAGE, $*W.cur_lexpad(), @name) {
                             $*W.throw($/, ['X', 'Redeclaration'],
-                                symbol => ~$<longname><name>,
+                                symbol => $longname.name(),
                             );
                         }
                     }
@@ -2041,10 +2045,10 @@ grammar Perl6::Grammar is HLL::Grammar {
         | '::?'<identifier> <colonpair>*    # parse ::?CLASS as special case
         | <longname>
           <?{
-            my $longname := canonical_type_longname($<longname>);
-            pir::substr($longname, 0, 2) eq '::' ??
+            my $longname := $*W.disect_longname($<longname>);
+            pir::substr(~$<longname>, 0, 2) eq '::' ??
                 1 !! # ::T introduces a type, so always is one
-                $*W.is_name(parse_name($longname))
+                $*W.is_name($longname.type_name_parts('type name'))
           }>
         ]
         # parametric type?
@@ -2052,22 +2056,6 @@ grammar Perl6::Grammar is HLL::Grammar {
         [<.ws> 'of' <.ws> <typename> ]?
     }
     
-    our sub canonical_type_longname($/) {
-        my $ver := '';
-        my $auth := '';
-        for $<colonpair> {
-            if $<identifier> && $<circumfix> {
-                if $<identifier>.Str eq 'ver' {
-                    $ver := $<circumfix>.Str;
-                }
-                elsif $<identifier>.Str eq 'auth' {
-                    $auth := $<circumfix>.Str;
-                }
-            }
-        }
-        return ~$<name> ~ $ver ~ $auth;
-    }
-
     token term:sym<type_declarator>   { <type_declarator> }
 
     token quotepair {

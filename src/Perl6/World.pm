@@ -237,14 +237,6 @@ class Perl6::World is HLL::World {
         1;
     }
     
-    # Factors out installation of package-y things, based on a longname.
-    method install_package_longname($/, $longname, $scope, $pkgdecl, $package, $outer, $symbol) {
-        my @name := pir::split('::', ~$longname);
-        my @adv  := pir::split(':', @name[+@name - 1]);
-        @name[+@name - 1] := @adv[0];
-        self.install_package($/, @name, $scope, $pkgdecl, $package, $outer, $symbol)
-    }
-    
     # Installs something package-y in the right place, creating the nested
     # pacakges as needed.
     method install_package($/, @name_orig, $scope, $pkgdecl, $package, $outer, $symbol) {
@@ -1307,6 +1299,122 @@ class Perl6::World is HLL::World {
                             'bit_ops', 'math_ops', 'trans_ops', 'io_ops',
                             'obscure_ops', 'os', 'file', 'sys_ops',
                             'nqp_bigint_ops', 'nqp_dyncall_ops');
+    }
+    
+    # Represents a longname after having parsed it.
+    my class LongName {
+        # The original text of the name.
+        has str $!text;
+        
+        # Set of name components. Each one will be either a string
+        # or a PAST node that represents an expresison to produce it.
+        has @!components;
+        
+        # The colonpairs, if any.
+        has @!colonpairs;
+        
+        # Flag for if the name ends in ::, meaning we need to emit a
+        # .WHO on the end.
+        has int $!get_who;
+        
+        # Gets the textual name of the value.
+        method text() {
+            $!text
+        }
+        
+        # Gets the name, without any adverbs.
+        method name() {
+            my @parts := nqp::clone(@!components);
+            @parts.shift() while is_pseudo_package(@parts[0]);
+            pir::join('::', @parts)
+        }
+        
+        # Fetches an array of components provided they are all known
+        # or resolvable at compile time.
+        method type_name_parts($dba, :$decl) {
+            my @name;
+            my $beyond_pp;
+            if $decl && $!get_who {
+                pir::die("Name $!text ends with '::' and cannot be used as a $dba");
+            }
+            for @!components {
+                if pir::can($_, 'isa') && $_.isa(PAST::Node) {
+                    pir::die("Name $!text is not compile-time known, and can not serve as a $dba");
+                }
+                elsif $beyond_pp || !is_pseudo_package($_) {
+                    nqp::push(@name, $_);
+                    $beyond_pp := 1;
+                }
+                else {
+                    if $decl {
+                        if $_ ne 'GLOBAL' {
+                            pir::die("Cannot use pseudo-package $_ in a $dba");
+                        }
+                        elsif +@!components == 1 {
+                            pir::die("Cannot declare pseudo-package GLOBAL");
+                        }
+                    }
+                    else {
+                        nqp::push(@name, $_);
+                    }
+                }
+            }
+            @name
+        }
+        
+        method get_who() {
+            $!get_who
+        }
+        
+        # Checks if a name component is a pseudo-package.
+        sub is_pseudo_package($comp) {
+            $comp eq 'CORE' || $comp eq 'SETTING' || $comp eq 'UNIT' ||
+            $comp eq 'OUTER' || $comp eq 'MY' || $comp eq 'OUR' ||
+            $comp eq 'PROCESS' || $comp eq 'GLOBAL' || $comp eq 'CALLER' ||
+            $comp eq 'DYNAMIC' || $comp eq 'COMPILING' || $comp eq 'PARENT'
+        }
+    }
+    
+    # Takes a longname and turns it into an object representing the
+    # name.
+    method disect_longname($longname) {
+        # Set up basic info about the long name.
+        my $result := nqp::create(LongName);
+        nqp::bindattr_s($result, LongName, '$!text', ~$longname);
+
+        # Pick out the pieces of the name.
+        my @components;
+        my $name := $longname<name>;
+        if $name<identifier> {
+            @components.push(~$name<identifier>);
+        }
+        for $name<morename> {
+            if $_<identifier> {
+                @components.push(~$_<identifier>[0]);
+            }
+            elsif $_<EXPR> {
+                my $EXPR := $_<EXPR>[0].ast;
+                if $EXPR<has_compile_time_value> {
+                    @components.push(~$EXPR<compile_time_value>);
+                }
+                else {
+                    @components.push($EXPR);
+                }
+            }
+            else {
+                # Either it's :: as a name entirely, in which case it's anon,
+                # or we're ending in ::, in which case it implies .WHO.
+                if +@components {
+                    nqp::bindattr_i($result, LongName, '$!get_who', 1);
+                }
+            }
+        }
+        nqp::bindattr($result, LongName, '@!components', @components);
+        
+        # Stash colon pairs.
+        nqp::bindattr($result, LongName, '@!colonpairs', $name<colonpair>);
+        
+        $result
     }
     
     # Checks if a given symbol is declared.

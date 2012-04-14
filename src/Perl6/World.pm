@@ -1329,6 +1329,12 @@ class Perl6::World is HLL::World {
             pir::join('::', @parts)
         }
         
+        # Gets the individual components, which may be PAST nodes for
+        # unknown pieces.
+        method components() {
+            @!components
+        }
+        
         # Checks if there is an indirect lookup required.
         method contains_indirect_lookup() {
             for @!components {
@@ -1349,7 +1355,14 @@ class Perl6::World is HLL::World {
             }
             for @!components {
                 if pir::can($_, 'isa') && $_.isa(PAST::Node) {
-                    pir::die("Name $!text is not compile-time known, and can not serve as a $dba");
+                    if $_<has_compile_time_value> {
+                        for nqp::split('::', ~$_<compile_time_value>) {
+                            @name.push($_);
+                        }
+                    }
+                    else {
+                        pir::die("Name $!text is not compile-time known, and can not serve as a $dba");
+                    }
                 }
                 elsif $beyond_pp || !is_pseudo_package($_) {
                     nqp::push(@name, $_);
@@ -1404,14 +1417,7 @@ class Perl6::World is HLL::World {
             }
             elsif $_<EXPR> {
                 my $EXPR := $_<EXPR>[0].ast;
-                if $EXPR<has_compile_time_value> {
-                    for nqp::split('::', ~$EXPR<compile_time_value>) {
-                        @components.push($_);
-                    }
-                }
-                else {
-                    @components.push($EXPR);
-                }
+                @components.push($EXPR);
             }
             else {
                 # Either it's :: as a name entirely, in which case it's anon,

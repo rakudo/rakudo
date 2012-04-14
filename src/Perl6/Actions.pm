@@ -1090,12 +1090,18 @@ class Perl6::Actions is HLL::Actions {
                                            'item');
         }
         else {
-            if $<desigilname> && $<desigilname><longname> && self.is_indirect_lookup($<desigilname><longname>) {
-                if $*IN_DECL {
-                    $*W.throw($/, ['X', 'Syntax', 'Variable', 'IndirectDeclaration']);
+            my $indirect;
+            if $<desigilname> && $<desigilname><longname> {
+                my $longname := $*W.disect_longname($<desigilname><longname>);
+                if $longname.contains_indirect_lookup() {
+                    if $*IN_DECL {
+                        $*W.throw($/, ['X', 'Syntax', 'Variable', 'IndirectDeclaration']);
+                    }
+                    $past := self.make_indirect_lookup($longname.components(), ~$<sigil>);
+                    $indirect := 1;
                 }
-                $past := self.make_indirect_lookup($<desigilname><longname>, ~$<sigil>);
-            } else {
+            }
+            unless $indirect {
                 $past := make_variable($/, ~$/);
             }
         }
@@ -3120,29 +3126,21 @@ class Perl6::Actions is HLL::Actions {
         }
     }
 
-    method is_indirect_lookup($longname) {
-        for $longname<name><morename> {
-            if $_<EXPR> {
-                return 1;
-            }
-        }
-        0;
-    }
-
-    method make_indirect_lookup($longname, $sigil?) {
+    method make_indirect_lookup(@components, $sigil?) {
         my $past := PAST::Op.new(
             :pasttype<call>,
             :name<&INDIRECT_NAME_LOOKUP>,
+            PAST::Op.new(
+                :pasttype<callmethod>, :name<new>,
+                $*W.get_ref($*W.find_symbol(['PseudoStash']))
+            )
         );
         $past.push($*W.add_string_constant($sigil)) if $sigil;
-        $past.push($*W.add_string_constant(~$longname<name><identifier>))
-            if $longname<name><identifier>;
-
-        for $longname<name><morename> {
-            if $_<EXPR> {
-                $past.push($_<EXPR>[0].ast);
+        for @components {
+            if pir::can($_, 'isa') && $_.isa(PAST::Node) {
+                $past.push($_);
             } else {
-                $past.push($*W.add_string_constant(~$_<identifier>));
+                $past.push($*W.add_string_constant(~$_));
             }
         }
         $past;
@@ -3155,7 +3153,7 @@ class Perl6::Actions is HLL::Actions {
             if $<args> {
                 $/.CURSOR.panic("Combination of indirect name lookup and call not (yet?) allowed");
             }
-            $past := self.make_indirect_lookup($<longname>)
+            $past := self.make_indirect_lookup($longname.components())
         }
         elsif $<args> {
             # If we have args, it's a call. Look it up dynamically

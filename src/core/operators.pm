@@ -213,7 +213,7 @@ sub infix:<^ff^>($a as Bool, $b as Bool) {
 
 # not sure where this should go
 # this implements the ::() indirect lookup
-sub INDIRECT_NAME_LOOKUP(*@chunks) is rw {
+sub INDIRECT_NAME_LOOKUP($root, *@chunks) is rw {
     # note that each part of @chunks itself can
     # contain double colons. That's why joining and
     # re-splitting is necessary
@@ -231,11 +231,8 @@ sub INDIRECT_NAME_LOOKUP(*@chunks) is rw {
             $name = @chunks.join('::');
         }
     }
-    my Mu $thing := pir::find_caller_lex__Ps(
-        nqp::unbox_s($first)
-    );
-    $thing := GLOBAL.WHO{$first} if nqp::isnull($thing) && nqp::existskey(GLOBAL.WHO, $first);
-    fail("Symbol '$name' not found") if nqp::isnull($thing);
+    fail("Symbol '$name' not found") unless $root.exists($first);
+    my Mu $thing := $root{$first};
     for @parts {
         fail("Symbol '$name not found") unless $thing.WHO.exists($_);
         $thing := $thing.WHO{$_};

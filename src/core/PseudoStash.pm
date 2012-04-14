@@ -88,4 +88,22 @@ my class PseudoStash is EnumMap {
             die "Static chain lookup NYI";
         }
     }
+    
+    method exists($key is copy) {
+        $key = $key.Str;
+        if %pseudoers.exists($key) {
+            True
+        }
+        elsif $!mode == PRECISE_SCOPE {
+            nqp::existskey(
+                nqp::getattr(self, EnumMap, '$!storage'),
+                nqp::unbox_s($key))
+        }
+        elsif $!mode == DYNAMIC_CHAIN || $!mode == PICK_CHAIN_BY_NAME && substr($key, 1, 1) eq '*' {
+            False
+        }
+        else {
+            False
+        }
+    }
 }

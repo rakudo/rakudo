@@ -82,10 +82,16 @@ my class PseudoStash is EnumMap {
                 Any
         }
         elsif $!mode == DYNAMIC_CHAIN || $!mode == PICK_CHAIN_BY_NAME && substr($key, 1, 1) eq '*' {
-            die "Dynamic chain lookup NYI";
+            my $found := pir::find_dynamic_lex_relative__PPs(
+                nqp::getattr(self, PseudoStash, '$!ctx'),
+                nqp::unbox_s($key));
+            nqp::isnull($found) ?? Any !! $found
         }
         else {
-            die "Static chain lookup NYI";
+            my $found := pir::find_lex_relative__PPs(
+                nqp::getattr(self, PseudoStash, '$!ctx'),
+                nqp::unbox_s($key));
+            nqp::isnull($found) ?? Any !! $found
         }
     }
     
@@ -100,10 +106,18 @@ my class PseudoStash is EnumMap {
                 nqp::unbox_s($key))
         }
         elsif $!mode == DYNAMIC_CHAIN || $!mode == PICK_CHAIN_BY_NAME && substr($key, 1, 1) eq '*' {
-            False
+            nqp::isnull(
+                pir::find_dynamic_lex_relative__PPs(
+                    nqp::getattr(self, PseudoStash, '$!ctx'),
+                    nqp::unbox_s($key)))
+                ?? False !! True
         }
         else {
-            False
+            nqp::isnull(
+                pir::find_lex_relative__PPs(
+                    nqp::getattr(self, PseudoStash, '$!ctx'),
+                    nqp::unbox_s($key)))
+                ?? False !! True
         }
     }
 }

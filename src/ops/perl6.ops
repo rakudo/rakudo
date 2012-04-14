@@ -1870,6 +1870,60 @@ inline op perl6_get_outer_ctx(out PMC, in PMC) {
 }
 
 /*
+
+=item find_lex_relative(out PMC, in PMC, in STR)
+
+Finds the lexical named $3 relative to scope $2, following the outer
+chain. Places it in $1. Places a NULL PMC in $1 if it is not found.
+
+=cut
+
+*/
+inline op find_lex_relative(out PMC, in PMC, in STR) :base_core {
+    PMC *ctx = $2;
+    $1 = PMCNULL;
+
+    while (!PMC_IS_NULL(ctx)) {
+        PMC   * const lex_pad = Parrot_pcc_get_lex_pad(interp, ctx);
+        PMC   * const outer   = Parrot_pcc_get_outer_ctx(interp, ctx);
+
+        if (!PMC_IS_NULL(lex_pad) && VTABLE_exists_keyed_str(interp, lex_pad, $3)) {
+            $1 = VTABLE_get_pmc_keyed_str(interp, lex_pad, $3);
+            break;
+        }
+
+        ctx = outer;
+    }
+}
+
+/*
+
+=item find_dynamic_lex_relative(out PMC, in PMC, in STR)
+
+Finds the lexical named $3 relative to scope $2, following the caller
+chain. Places it in $1. Places a NULL PMC in $1 if it is not found.
+
+=cut
+
+*/
+inline op find_dynamic_lex_relative(out PMC, in PMC, in STR) :base_core {
+    PMC *ctx = $2;
+    $1 = PMCNULL;
+
+    while (!PMC_IS_NULL(ctx)) {
+        PMC   * const lex_pad = Parrot_pcc_get_lex_pad(interp, ctx);
+        PMC   * const caller  = Parrot_pcc_get_caller_ctx(interp, ctx);
+
+        if (!PMC_IS_NULL(lex_pad) && VTABLE_exists_keyed_str(interp, lex_pad, $3)) {
+            $1 = VTABLE_get_pmc_keyed_str(interp, lex_pad, $3);
+            break;
+        }
+
+        ctx = caller;
+    }
+}
+
+/*
  * Local variables:
  *   c-file-style: "parrot"
  * End:

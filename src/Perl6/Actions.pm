@@ -3148,18 +3148,17 @@ class Perl6::Actions is HLL::Actions {
 
     method term:sym<name>($/) {
         my $past;
-        my $longname := $*W.disect_longname($<longname>);
-        if $longname.contains_indirect_lookup() {
+        if $*longname.contains_indirect_lookup() {
             if $<args> {
                 $/.CURSOR.panic("Combination of indirect name lookup and call not (yet?) allowed");
             }
-            $past := self.make_indirect_lookup($longname.components())
+            $past := self.make_indirect_lookup($*longname.components())
         }
         elsif $<args> {
             # If we have args, it's a call. Look it up dynamically
             # and make the call.
             # Add & to name.
-            my @name := Perl6::Grammar::parse_name(~$<longname>);
+            my @name := nqp::clone($*longname.components());
             my $final := @name[+@name - 1];
             if pir::substr($final, 0, 1) ne '&' {
                 @name[+@name - 1] := '&' ~ $final;
@@ -3221,7 +3220,7 @@ class Perl6::Actions is HLL::Actions {
         else {
             # Otherwise, it's a type name; build a reference to that
             # type, since we can statically resolve them.
-            my @name := $longname.type_name_parts('type name');
+            my @name := $*longname.type_name_parts('type name');
             if $<arglist> {
                 # Look up parametric type.
                 my $ptype := $*W.find_symbol(@name);
@@ -3256,7 +3255,7 @@ class Perl6::Actions is HLL::Actions {
             }
             
             # Names ending in :: really want .WHO.
-            if $longname.get_who {
+            if $*longname.get_who {
                 $past := PAST::Op.new( :pirop('get_who PP'), $past );
             }
         }

@@ -1388,7 +1388,7 @@ class Perl6::World is HLL::World {
         method get_who() {
             $!get_who
         }
-        
+
         # Checks if a name component is a pseudo-package.
         sub is_pseudo_package($comp) {
             $comp eq 'CORE' || $comp eq 'SETTING' || $comp eq 'UNIT' ||
@@ -1429,8 +1429,30 @@ class Perl6::World is HLL::World {
         }
         nqp::bindattr($result, LongName, '@!components', @components);
         
-        # Stash colon pairs.
-        nqp::bindattr($result, LongName, '@!colonpairs', $name<colonpair>);
+        # Stash colon pairs with names; incorporate non-named one into
+        # the last part of the name (e.g. for infix:<+>). Need to be a
+        # little cheaty when compiling the setting due to bootstrapping.
+        my @pairs;
+        if pir::isa($longname<colonpair>, 'ResizablePMCArray') {
+            for $longname<colonpair> {
+                if $_<circumfix> && !$_<identifier> {
+                    my $value := $_.ast;
+                    if $value<has_compile_time_value> {
+                        @components[+@components - 1] := @components[+@components - 1] ~
+                            (%*COMPILING<%?OPTIONS><setting> ne 'NULL' ??
+                            ':<' ~ ~$value<compile_time_value> ~ '>' !!
+                            ~$_);
+                    }
+                    else {
+                        pir::die(~$_ ~ ' cannot be resolved at compile time');
+                    }
+                }
+                else {
+                    @pairs.push($_);
+                }
+            }
+        }
+        nqp::bindattr($result, LongName, '@!colonpairs', @pairs);
         
         $result
     }

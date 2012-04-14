@@ -1928,13 +1928,13 @@ grammar Perl6::Grammar is HLL::Grammar {
 
     token term:sym<name> {
         <longname>
-        :my @longname;
-        { @longname := parse_name($<longname>.Str) }
+        :my $*longname;
+        { $*longname := $*W.disect_longname($<longname>) }
         [
-        ||  <?{ pir::substr($<longname>.Str, 0, 2) eq '::' || $*W.is_name(@longname) }>
+        ||  <?{ pir::substr($<longname>.Str, 0, 2) eq '::' || $*W.is_name($*longname.components()) }>
             <.unsp>?
             [
-                <?{ $*W.is_type(@longname) }>
+                <?{ $*W.is_type($*longname.components()) }>
                 <?before '['> '[' ~ ']' <arglist>
             ]?
         || <args>

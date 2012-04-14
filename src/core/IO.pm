@@ -254,6 +254,9 @@ multi sub slurp($filename) {
     $handle.close();
     $contents
 }
+multi sub slurp(IO $io = $*ARGFILES) {
+    $io.slurp;
+}
 
 proto sub cwd(|$) { * }
 multi sub cwd() {

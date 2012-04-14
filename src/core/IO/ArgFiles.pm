@@ -1,4 +1,4 @@
-my class IO::ArgFiles {
+my class IO::ArgFiles is IO {
     has $.args;
     has $.filename;
     has $!io;

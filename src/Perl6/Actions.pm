@@ -3247,7 +3247,13 @@ class Perl6::Actions is HLL::Actions {
                     $past.unshift(PAST::Op.new( :pirop('get_how PP'), $ptref ));
                 }
             }
-            elsif ~$<longname> eq 'GLOBAL' {
+            elsif +@name == 0 {
+                $past := PAST::Op.new(
+                    :pasttype<callmethod>, :name<new>,
+                    $*W.get_ref($*W.find_symbol(['PseudoStash']))
+                );
+            }
+            elsif $*W.is_pseudo_package(@name[0]) {
                 $past := $*W.symbol_lookup(@name, $/);
             }
             else {

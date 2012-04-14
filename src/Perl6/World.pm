@@ -1325,7 +1325,7 @@ class Perl6::World is HLL::World {
         # Gets the name, without any adverbs.
         method name() {
             my @parts := nqp::clone(@!components);
-            @parts.shift() while is_pseudo_package(@parts[0]);
+            @parts.shift() while self.is_pseudo_package(@parts[0]);
             pir::join('::', @parts)
         }
         
@@ -1364,7 +1364,7 @@ class Perl6::World is HLL::World {
                         pir::die("Name $!text is not compile-time known, and can not serve as a $dba");
                     }
                 }
-                elsif $beyond_pp || !is_pseudo_package($_) {
+                elsif $beyond_pp || !self.is_pseudo_package($_) {
                     nqp::push(@name, $_);
                     $beyond_pp := 1;
                 }
@@ -1390,7 +1390,7 @@ class Perl6::World is HLL::World {
         }
 
         # Checks if a name component is a pseudo-package.
-        sub is_pseudo_package($comp) {
+        method is_pseudo_package($comp) {
             $comp eq 'CORE' || $comp eq 'SETTING' || $comp eq 'UNIT' ||
             $comp eq 'OUTER' || $comp eq 'MY' || $comp eq 'OUR' ||
             $comp eq 'PROCESS' || $comp eq 'GLOBAL' || $comp eq 'CALLER' ||
@@ -1457,13 +1457,23 @@ class Perl6::World is HLL::World {
         $result
     }
     
+    # Checks if a name starts with a pseudo-package.
+    method is_pseudo_package($comp) {
+        LongName.is_pseudo_package($comp)
+    }
+    
     # Checks if a given symbol is declared.
     method is_name(@name) {
         my $is_name := 0;
-        try {
-            # This throws if it's not a known name.
-            self.find_symbol(@name);
+        if self.is_pseudo_package(@name[0]) {
             $is_name := 1;
+        }
+        else {
+            try {
+                # This throws if it's not a known name.
+                self.find_symbol(@name);
+                $is_name := 1;
+            }
         }
         $is_name
     }
@@ -1601,9 +1611,31 @@ class Perl6::World is HLL::World {
         if +@name == 0 { $/.CURSOR.panic("Cannot compile empty name"); }
         my $orig_name := pir::join('::', @name);
         
-        # Handle special names.
+        # Handle fetching GLOBAL.
         if +@name == 1 && @name[0] eq 'GLOBAL' {
             return PAST::Var.new( :name('GLOBAL'), :namespace([]), :scope('package') );
+        }
+        
+        # Handle things starting with pseudo-package.
+        if self.is_pseudo_package(@name[0]) && @name[0] ne 'GLOBAL' && @name[0] ne 'PROCESS' {
+            my $lookup;
+            for @name {
+                if $lookup {
+                    $lookup := PAST::Op.new( :pirop('get_who PP'), $lookup );
+                }
+                else {
+                    # Lookups start at the :: root.
+                    $lookup := PAST::Op.new(
+                        :pasttype('callmethod'), :name('new'),
+                        $*W.get_ref($*W.find_symbol(['PseudoStash']))
+                    );
+                }
+                $lookup := PAST::Op.new(
+                    :pasttype('callmethod'), :name('at_key'),
+                    $lookup,
+                    self.add_string_constant($_));
+            }
+            return $lookup;
         }
         
         # If it's a single item, then go hunting for it through the

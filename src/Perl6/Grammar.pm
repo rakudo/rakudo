@@ -1291,7 +1291,7 @@ grammar Perl6::Grammar is HLL::Grammar {
                     unless $found {
                         $*W.throw($/, 'X::Augment::NoSuchType',
                             package-type => $*PKGDECL,
-                            package      => ~$longname<name>,
+                            package      => $longname.text(),
                         );
                     }
                 }

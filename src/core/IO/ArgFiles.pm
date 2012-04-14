@@ -1,4 +1,4 @@
-my class ArgFiles {
+my class IO::ArgFiles {
     has $.args;
     has $.filename;
     has $!io;
@@ -31,7 +31,7 @@ my class ArgFiles {
            take $.get // last;
         }
     }
-    method slurp(ArgFiles:D:) {
+    method slurp(IO::ArgFiles:D:) {
         my @chunks;
         if $!io && $!io.opened {
             @chunks.push: nqp::p6box_s($!io.readall);

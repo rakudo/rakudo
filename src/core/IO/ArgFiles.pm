@@ -31,5 +31,19 @@ my class ArgFiles {
            take $.get // last;
         }
     }
+    method slurp(ArgFiles:D:) {
+        my @chunks;
+        if $!io && $!io.opened {
+            @chunks.push: nqp::p6box_s($!io.readall);
+            $!io.close;
+        }
+        while $!args {
+            my $fn = $!args.shift;
+            my $file = open($fn);
+            @chunks.push: $file.slurp;
+        }
+        return $*IN.slurp unless @chunks;
+        @chunks.join;
+    }
 }
 

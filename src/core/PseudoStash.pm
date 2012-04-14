@@ -57,7 +57,7 @@ my class PseudoStash is EnumMap {
                 $stash);
         },
         'DYNAMIC' => sub ($cur) {
-            my $stash := nqp::clone($cur);
+            my $stash := pir::repr_clone__PP($cur);
             nqp::bindattr_i($stash, PseudoStash, '$!mode', DYNAMIC_CHAIN);
             pir::set_who__0PP(
                 Metamodel::ModuleHOW.new(:name('DYNAMIC')),

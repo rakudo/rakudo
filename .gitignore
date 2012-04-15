@@ -8,6 +8,8 @@ Makefile
 *.patch
 *.pdb
 *.res
+*.exp
+*.lib
 lib/Test.pir
 lib/Pod/To/Text.pir
 CORE.setting.pbc

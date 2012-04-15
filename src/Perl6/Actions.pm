@@ -2792,7 +2792,7 @@ class Perl6::Actions is HLL::Actions {
         
             # If we have a type name then we need to dispatch with that type; otherwise
             # we need to dispatch with it as a named argument.
-            my @name := Perl6::Grammar::parse_name(~$<longname>);
+            my @name := $*W.disect_longname($<longname>).components();
             if $*W.is_name(@name) {
                 my $trait := $*W.find_symbol(@name);
                 make -> $declarand {
@@ -2895,7 +2895,7 @@ class Perl6::Actions is HLL::Actions {
         # runs after CHECK time.
         my $past := $<methodop>.ast;
         if $<methodop><longname> {
-            my @parts   := Perl6::Grammar::parse_name(~$<methodop><longname>);
+            my @parts   := $*W.disect_longname($<methodop><longname>).components();
             my $name    := @parts.pop;
             if @parts {
                 my $methpkg := $*W.find_symbol(@parts);
@@ -2937,7 +2937,7 @@ class Perl6::Actions is HLL::Actions {
         if $<longname> {
             # May just be .foo, but could also be .Foo::bar. Also handle the
             # macro-ish cases.
-            my @parts := Perl6::Grammar::parse_name(~$<longname>);
+            my @parts := $*W.disect_longname($<longname>).components();
             my $name := @parts.pop;
             if +@parts {
                 $past.unshift($*W.symbol_lookup(@parts, $/));
@@ -5075,7 +5075,7 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions {
     }
     
     method assertion:sym<name>($/) {
-        my @parts := Perl6::Grammar::parse_name(~$<longname>);
+        my @parts := $*W.disect_longname($<longname>).components();
         my $name  := @parts.pop();
         my $qast;
         if $<assertion> {

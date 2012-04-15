@@ -791,6 +791,7 @@ static PMC* find_best_candidate(PARROT_INTERP, Rakudo_md_candidate_info **candid
             "Cannot call '%Ss'; none of these signatures match:\n%Ss",
                 (candidates[0] ? VTABLE_get_string(interp, candidates[0]->sub) : STRINGNULL),
                 signatures);
+        return PMCNULL;
     }
     else {
         /* Get signatures of ambiguous candidates. */
@@ -803,6 +804,7 @@ static PMC* find_best_candidate(PARROT_INTERP, Rakudo_md_candidate_info **candid
         Parrot_ex_throw_from_c_args(interp, next, 1,
             "Ambiguous call to '%Ss'; these signatures all match:\n%Ss",
                 VTABLE_get_string(interp, candidates[0]->sub), signatures);
+        return PMCNULL;
     }
 }
 

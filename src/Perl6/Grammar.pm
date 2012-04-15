@@ -1818,7 +1818,7 @@ grammar Perl6::Grammar is HLL::Grammar {
                 [
                     <longname>
                     {
-                        my $longname := $*W.disect_longname($<longname>);
+                        my $longname := $*W.disect_longname($<longname>[0]);
                         my @name := $longname.type_name_parts('subset name', :decl(1));
                         if $*W.already_declared($*SCOPE, $*PACKAGE, $*W.cur_lexpad(), @name) {
                             $*W.throw($/, ['X', 'Redeclaration'],

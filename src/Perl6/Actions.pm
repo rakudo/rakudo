@@ -1002,7 +1002,7 @@ class Perl6::Actions is HLL::Actions {
     method colonpair($/) {
         if $*key {
             if $<var> {
-                make make_pair($*key, make_variable($/<var>, ~$<var>));
+                make make_pair($*key, make_variable($/<var>, [~$<var>]));
             }
             elsif $*value ~~ Regex::Match {
                 my $val_ast := $*value.ast;
@@ -1077,33 +1077,36 @@ class Perl6::Actions is HLL::Actions {
                     $past := self.make_indirect_lookup($longname.components(), ~$<sigil>);
                     $indirect := 1;
                 }
+                else {
+                    $past := make_variable($/, $longname.variable_components(
+                        ~$<sigil>, $<twigil> ?? ~$<twigil>[0] !! ''));
+                }
             }
-            unless $indirect {
-                $past := make_variable($/, ~$/);
+            else {
+                $past := make_variable($/, [~$/]);
             }
         }
         make $past;
     }
 
-    sub make_variable($/, $name) {
-        make_variable_from_parts($/, $name, $<sigil>.Str, $<twigil>[0], ~$<desigilname>);
+    sub make_variable($/, @name) {
+        make_variable_from_parts($/, @name, $<sigil>.Str, $<twigil>[0], ~$<desigilname>);
     }
 
-    sub make_variable_from_parts($/, $name, $sigil, $twigil, $desigilname) {
-        my @name := Perl6::Grammar::parse_name($name);
+    sub make_variable_from_parts($/, @name, $sigil, $twigil, $desigilname) {
         my $past := PAST::Var.new( :name(@name[+@name - 1]), :node($/));
         if $twigil eq '*' {
             $past := PAST::Op.new(
-                $*W.add_string_constant(~$past.name()),
+                $*W.add_string_constant($past.name()),
                 :pasttype('call'), :name('&DYNAMIC'), :lvalue(0) );
         }
         elsif $twigil eq '!' {
             # In a declaration, don't produce anything here.
             if $*IN_DECL ne 'variable' {
                 unless $*HAS_SELF {
-                    $*W.throw($/, ['X', 'Syntax', 'NoSelf'], variable => $name);
+                    $*W.throw($/, ['X', 'Syntax', 'NoSelf'], variable => $past.name());
                 }
-                my $attr := get_attribute_meta_object($/, $name);
+                my $attr := get_attribute_meta_object($/, $past.name());
                 $past.scope('attribute_6model');
                 $past.type($attr.type);
                 $past.unshift(instantiated_type(['$?CLASS'], $/));
@@ -1113,9 +1116,9 @@ class Perl6::Actions is HLL::Actions {
         }
         elsif $twigil eq '.' && $*IN_DECL ne 'variable' {
             if !$*HAS_SELF {
-                $*W.throw($/, ['X', 'Syntax', 'NoSelf'], variable => $name);
+                $*W.throw($/, ['X', 'Syntax', 'NoSelf'], variable => $past.name());
             } elsif $*HAS_SELF eq 'partial' {
-                $*W.throw($/, ['X', 'Syntax', 'VirtualCall'], call => $name);
+                $*W.throw($/, ['X', 'Syntax', 'VirtualCall'], call => $past.name());
             }
             # Need to transform this to a method call.
             $past := $<arglist> ?? $<arglist>[0].ast !! PAST::Op.new();
@@ -1125,18 +1128,18 @@ class Perl6::Actions is HLL::Actions {
         }
         elsif $twigil eq '^' || $twigil eq ':' {
             $past := add_placeholder_parameter($/, $sigil, $desigilname,
-                                :named($twigil eq ':'), :full_name($name));
+                                :named($twigil eq ':'), :full_name($past.name()));
         }
-        elsif $name eq '@_' {
+        elsif $past.name() eq '@_' {
             unless $*W.nearest_signatured_block_declares('@_') {
                 $past := add_placeholder_parameter($/, '@', '_',
-                                :pos_slurpy(1), :full_name($name));
+                                :pos_slurpy(1), :full_name($past.name()));
             }
         }
-        elsif $name eq '%_' {
+        elsif $past.name() eq '%_' {
             unless $*W.nearest_signatured_block_declares('%_') || $*METHODTYPE {
                 $past := add_placeholder_parameter($/, '%', '_', :named_slurpy(1),
-                                :full_name($name));
+                                :full_name($past.name()));
             }
         }
         elsif +@name > 1 {
@@ -1157,8 +1160,8 @@ class Perl6::Actions is HLL::Actions {
             # I don't know what the correct solution is. Disabling the check
             # inside double quotes fixes the most common case, but fails to
             # catch undeclared variables in double-quoted strings.
-            if $sigil ne '&' && !$*IN_DECL && ($*QSIGIL eq '' || $*QSIGIL eq '$') && !$*W.is_lexical($name) {
-                $*W.throw($/, ['X', 'Undeclared'], symbol => $name);
+            if $sigil ne '&' && !$*IN_DECL && ($*QSIGIL eq '' || $*QSIGIL eq '$') && !$*W.is_lexical($past.name) {
+                $*W.throw($/, ['X', 'Undeclared'], symbol => $past.name());
             }
             elsif $sigil eq '&' {
                 $past.viviself(PAST::Var.new(:name('Nil'), :scope('lexical_6model')));

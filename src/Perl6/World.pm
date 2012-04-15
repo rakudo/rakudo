@@ -1335,6 +1335,17 @@ class Perl6::World is HLL::World {
             @!components
         }
         
+        # Gets the individual components (which should be strings) but
+        # taking a sigil and twigil and adding them to the last component.
+        method variable_components($sigil, $twigil) {
+            my @result;
+            for @!components {
+                @result.push($_);
+            }
+            @result[+@result - 1] := $sigil ~ $twigil ~ @result[+@result - 1];
+            @result
+        }
+        
         # Checks if there is an indirect lookup required.
         method contains_indirect_lookup() {
             for @!components {

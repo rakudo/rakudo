@@ -688,10 +688,10 @@ grammar Perl6::Grammar is HLL::Grammar {
         <module_name> [ <.spacey> <arglist> ]? <.ws>
         :my $*HAS_SELF := '';
         {
-            my @name := parse_name(~$<module_name><longname>);
+            my $longname := $*W.disect_longname($<module_name><longname>);
             my $module;
             my $found := 0;
-            try { $module := $*W.find_symbol(@name); $found := 1; }
+            try { $module := $*W.find_symbol($longname.components()); $found := 1; }
             if $found {
                 do_import($module.WHO, $<arglist>);
             }

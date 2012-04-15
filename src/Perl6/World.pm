@@ -1640,7 +1640,7 @@ class Perl6::World is HLL::World {
                     );
                 }
                 $lookup := PAST::Op.new(
-                    :pasttype('callmethod'), :name('at_key'),
+                    :pasttype('callmethod'), :name('postcircumfix:<{ }>'),
                     $lookup,
                     self.add_string_constant($_));
             }

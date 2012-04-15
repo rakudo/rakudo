@@ -3750,6 +3750,12 @@ class Perl6::Actions is HLL::Actions {
             $target[0].push($source);
             make $target;
         }
+        elsif $target.isa(PAST::Op) && $target.pasttype eq 'callmethod' &&
+              ($target.name eq 'postcircumfix:<[ ]>' || $target.name eq 'postcircumfix:<{ }>') {
+            $source.named('BIND');
+            $target.push($source);
+            make $target;
+        }
         # XXX Several more cases to do...
         else {
             $*W.throw($/, ['X', 'Bind', 'WrongLHS']);

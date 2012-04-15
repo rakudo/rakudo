@@ -68,15 +68,15 @@ my class Str does Stringy {
     method substr(Str:D: $start, $length? is copy) {
         my str $sself  = nqp::unbox_s(self);
         my int $istart = nqp::unbox_i(
-            $start.^does(Callable)
-                ??  $start(nqp::p6box_i(nqp::chars($sself)))
+            nqp::istype($start, Callable)
+                ?? $start(nqp::p6box_i(nqp::chars($sself)))
                 !! $start.Int
             );
         my int $ichars = nqp::chars($sself);
         fail "Negative start argument ($start) to .substr" if $istart < 0;
         fail "Start of substr ($start) beyond end of string" if $istart > $ichars;
         $length = $length($ichars - $istart) if nqp::istype($length, Callable);
-        my int $ilength = $length.defined ??  $length.Int !! $ichars - $istart;
+        my int $ilength = $length.defined ?? $length.Int !! $ichars - $istart;
         fail "Negative length argument ($length) to .substr" if $ilength < 0;
 
         nqp::p6box_s(nqp::substr($sself, $istart, $ilength));
@@ -311,7 +311,7 @@ my class Str does Stringy {
     }
     multi method comb(Str:D: Regex $pat, $limit = $Inf, :$match) {
         my $x;
-        $x = (1..$limit) unless $limit.^isa(Whatever) || $limit == $Inf;
+        $x = (1..$limit) unless nqp::istype($limit, Whatever) || $limit == $Inf;
         $match
             ?? self.match(:g, :$x, $pat)
             !! self.match(:g, :$x, $pat).map: { .Str }
@@ -333,7 +333,7 @@ my class Str does Stringy {
           !! Match.new(orig => self, from => 0,    to => -3);
     }
     method match-list(Str:D: $pat, :$g, :$ov, :$ex, *%opts) {
-        if $ex && $pat.^does(Callable) {
+        if $ex && nqp::istype($pat, Callable) {
             gather {
                 my $m := self.ll-match($pat, |%opts);
                 if $m {
@@ -383,7 +383,7 @@ my class Str does Stringy {
         %opts<p> = $p if $p.defined;
         my @matches := self.match-list($pat, :g($g || $x || $nth), :$ov, :$ex, |%opts);
         if $nth.defined {
-            if $nth.^does(Positional) {
+            if nqp::istype($nth, Positional) {
                 my @nth-monotonic := gather {
                     my $max = 0;
                     for $nth.list {
@@ -405,12 +405,12 @@ my class Str does Stringy {
             }
         }
         if $x.defined {
-            if $x.^isa(Int) {
+            if nqp::istype($x, Int) {
                 @matches.gimme($x) == $x
                     ?? @matches[^$x]
                     !! ().list;
             }
-            elsif $x.^isa(Range) {
+            elsif nqp::istype($x, Range) {
                 my $real-max := $x.excludes_max ?? $x.max - 1 !! $x.max;
                 @matches.gimme($real-max) ~~ $x
                     ?? @matches[^$real-max].list
@@ -472,7 +472,7 @@ my class Str does Stringy {
 
     multi method split(Str:D: Regex $pat, $limit = *, :$all) {
         return ().list if $limit ~~ Numeric && $limit <= 0;
-        my @matches = $limit.^isa(Whatever)
+        my @matches = nqp::istype($limit, Whatever)
                         ?? self.match($pat, :g)
                         !! self.match($pat, :x(1..$limit-1), :g);
         gather {
@@ -732,7 +732,7 @@ my class Str does Stringy {
     }
 
     # Negative values and Whatever-* do outdent
-    multi method indent($steps where { .^isa(Whatever) || .^isa(Int) && $_ < 0 }) {
+    multi method indent($steps where { nqp::istype($_, Whatever) || nqp::istype($_, Int) && $_ < 0 }) {
         # Loop through all lines to get as much info out of them as possible
         my @lines = self.comb(/:r ^^ \N* \n?/).map({
             # Split the line into indent and content

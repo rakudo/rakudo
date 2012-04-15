@@ -340,7 +340,7 @@ my class Str does Stringy {
                     take $m;
                     while $m := $m.CURSOR.'!cursor_next'().MATCH {
                         # next line written this way for reasons of circularity sawing
-                        Cursor.HOW.find_private_method(Cursor, 'set_last_match')(Cursor, $m) if $m;
+                        Cursor.HOW.find_private_method(Cursor, 'set_last_match')(Cursor, $m);
                         take $m;
                     }
                 }

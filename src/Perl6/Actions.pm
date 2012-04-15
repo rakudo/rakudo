@@ -995,29 +995,6 @@ class Perl6::Actions is HLL::Actions {
 
     method name($/) { }
 
-    method module_name($/) {
-        # XXX Needs re-doing.
-        my @name := Perl6::Grammar::parse_name(~$<longname>);
-        unless nqp::elems(@name) {
-            $/.CURSOR.panic('Cannot deal with an empty module name here');
-        }
-        my $var := PAST::Var.new(
-            :name(@name.pop),
-            :namespace(@name),
-            :scope('package')
-        );
-        if $<arglist> {
-            my $past := $<arglist>[0].ast;
-            $past.pasttype('callmethod');
-            $past.name('!select');
-            $past.unshift($var);
-            make $past;
-        }
-        else {
-            make $var;
-        }
-    }
-
     method fatarrow($/) {
         make make_pair($<key>.Str, $<val>.ast);
     }

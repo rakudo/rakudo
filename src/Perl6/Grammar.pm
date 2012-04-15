@@ -2647,46 +2647,6 @@ grammar Perl6::Grammar is HLL::Grammar {
     token infix:sym<!~> { <sym> \s <.obs('!~ to do negated pattern matching', '!~~')> <O('%chaining')> }
     token infix:sym<=~> { <sym> <.obs('=~ to do pattern matching', '~~')> <O('%chaining')> }
 
-    our %is_sigil;
-    INIT {
-        our %is_sigil;
-        %is_sigil{'$'} := 1;
-        %is_sigil{'@'} := 1;
-        %is_sigil{'%'} := 1;
-        %is_sigil{'&'} := 1;
-    }
-
-    our sub parse_name($name) {
-        my $type_param := '';
-        my $sep := pir::index__ISS($name,'[');
-        if ($sep > -1) {
-            $type_param := pir::substr__SSII($name, $sep);
-            $name := pir::substr__SSII($name, 0, $sep);
-        }
-
-        my @parts := pir::split__PSS('::', $name);
-        my $sigil := pir::substr__SSII(@parts[0], 0, 1);
-        if %is_sigil{$sigil} {
-            @parts[0] := pir::substr__SSII(@parts[0], 1);
-            my $last_part := @parts.pop();
-            $last_part := $sigil ~ $last_part;
-            @parts.push($last_part);
-        }
-
-        my @result;
-        for @parts {
-            @result.push($_) if $_;
-        }
-
-        if $type_param {
-            my $last_part := @result.pop();
-            $last_part := $last_part ~ $type_param;
-            @result.push($last_part);
-        }
-
-        @result;
-    }
-
     method add_variable($name) {
         my $categorical := $name ~~ /^'&'((\w+)':<'\s*(\S+?)\s*'>')$/;
         if $categorical {

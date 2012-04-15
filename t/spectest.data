@@ -91,6 +91,7 @@ S02-names-vars/variables-and-packages.t
 S02-names-vars/varnames.t
 S02-names/identifier.t
 S02-names/our.t
+S02-names/pseudo.t
 S02-names/symbolic-deref.t
 S02-one-pass-parsing/less-than.t
 S02-lexical-conventions/begin_end_pod.t

@@ -552,4 +552,14 @@ my class X::Sequence::Deduction is Exception {
     method message() { 'Unable to deduce sequence' }
 }
 
+my class X::TypeCheck is Exception {
+    has $.operation;
+    has $.got;
+    has $.exepcted;
+    method message() {
+        "Type check failed in $.operation; expected '{$.expected.^name}' but got '{$.got.^name}'";
+
+    }
+}
+
 # vim: ft=perl6

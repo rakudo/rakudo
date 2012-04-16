@@ -13,6 +13,10 @@ New in 2012.04
 + ban declaring pseudo-packages, with a helpful error
 + a name followed by :: now returns .WHO, so Foo::<&bar> style lookups work
 + Exception.Bool now returns true
++ avoided re-parsing of longname, which speeds up the parse a bit overall
++ implemented MY, CALLER, OUTER, UNIT, CORE, SETTING and DYNAMIC pseudo-packages
++ implemented ::<$x> and ::{'$x'} style lookups
++ some small optimizations to various Str built-ins and MapIter
 
 New in 2012.03
 + updated to dyncall 0.7

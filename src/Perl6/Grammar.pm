@@ -484,12 +484,24 @@ grammar Perl6::Grammar is HLL::Grammar {
         [ $ || <.typed_panic: 'X::Syntax::Confused'> ]
         
         {
+            # Install POD-related variables.
             $*POD_PAST := $*W.add_constant(
                 'Array', 'type_new', |$*POD_BLOCKS
             );
             $*W.install_lexical_symbol(
                 $*UNIT, '$=pod', $*POD_PAST<compile_time_value>
             );
+            
+            # Tag UNIT with a magical lexical. Also if we're compiling CORE,
+            # give it such a tag too.
+            if %*COMPILING<%?OPTIONS><setting> eq 'NULL' {
+                $*W.install_lexical_symbol($*UNIT, '!CORE_MARKER',
+                    $*W.pkg_create_mo($/, %*HOW<package>, :name('!CORE_MARKER')));
+            }
+            else {
+                $*W.install_lexical_symbol($*UNIT, '!UNIT_MARKER',
+                    $*W.pkg_create_mo($/, %*HOW<package>, :name('!UNIT_MARKER')));
+            }
         }
         
         # CHECK time.

@@ -28,7 +28,18 @@ my class PseudoStash is EnumMap {
                 $stash);
         },
         'CORE' => sub ($cur) {
-            die("CORE NYI");
+            my Mu $ctx := nqp::getattr(nqp::p6decont($cur), PseudoStash, '$!ctx');
+            until nqp::existskey(pir::getattribute__PPs($ctx, 'lex_pad'), '!CORE_MARKER') {
+                $ctx := pir::getattribute__PPs($ctx, 'outer_ctx');
+            }
+            my $stash := nqp::create(PseudoStash);
+            nqp::bindattr($stash, EnumMap, '$!storage',
+                pir::getattribute__PPs($ctx, 'lex_pad'));
+            nqp::bindattr($stash, PseudoStash, '$!ctx', $ctx);
+            nqp::bindattr_i($stash, PseudoStash, '$!mode', PRECISE_SCOPE);
+            pir::set_who__0PP(
+                Metamodel::ModuleHOW.new(:name('CORE')),
+                $stash);
         },
         'CALLER' => sub ($cur) {
             my Mu $ctx := pir::getattribute__PPs(
@@ -64,10 +75,35 @@ my class PseudoStash is EnumMap {
                 $stash);
         },
         'UNIT' => sub ($cur) {
-            die("UNIT NYI");
+            my Mu $ctx := nqp::getattr(nqp::p6decont($cur), PseudoStash, '$!ctx');
+            until nqp::existskey(pir::getattribute__PPs($ctx, 'lex_pad'), '!UNIT_MARKER') {
+                $ctx := pir::getattribute__PPs($ctx, 'outer_ctx');
+            }
+            my $stash := nqp::create(PseudoStash);
+            nqp::bindattr($stash, EnumMap, '$!storage',
+                pir::getattribute__PPs($ctx, 'lex_pad'));
+            nqp::bindattr($stash, PseudoStash, '$!ctx', $ctx);
+            nqp::bindattr_i($stash, PseudoStash, '$!mode', PRECISE_SCOPE);
+            pir::set_who__0PP(
+                Metamodel::ModuleHOW.new(:name('UNIT')),
+                $stash);
         },
         'SETTING' => sub ($cur) {
-            die("SETTING NYI");
+            # Same as UNIT, but go a little further out (two steps, for
+            # internals reasons).
+            my Mu $ctx := nqp::getattr(nqp::p6decont($cur), PseudoStash, '$!ctx');
+            until nqp::existskey(pir::getattribute__PPs($ctx, 'lex_pad'), '!UNIT_MARKER') {
+                $ctx := pir::getattribute__PPs($ctx, 'outer_ctx');
+            }
+            $ctx := pir::getattribute__PPs(pir::getattribute__PPs($ctx, 'outer_ctx'), 'outer_ctx');
+            my $stash := nqp::create(PseudoStash);
+            nqp::bindattr($stash, EnumMap, '$!storage',
+                pir::getattribute__PPs($ctx, 'lex_pad'));
+            nqp::bindattr($stash, PseudoStash, '$!ctx', $ctx);
+            nqp::bindattr_i($stash, PseudoStash, '$!mode', PRECISE_SCOPE);
+            pir::set_who__0PP(
+                Metamodel::ModuleHOW.new(:name('UNIT')),
+                $stash);
         },
         'OUR' => sub ($cur) {
             pir::find_lex_relative__PPs(

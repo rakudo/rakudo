@@ -231,8 +231,9 @@ sub INDIRECT_NAME_LOOKUP($root, *@chunks) is rw {
             $name = @chunks.join('::');
         }
     }
-    fail("Symbol '$name' not found") unless $root.exists($first);
-    my Mu $thing := $root{$first};
+    my Mu $thing := $root.exists($first) ?? $root{$first} !!
+                    GLOBAL::.exists($first) ?? GLOBAL::{$first} !!
+                    fail("Symbol '$name' not found");
     for @parts {
         fail("Symbol '$name not found") unless $thing.WHO.exists($_);
         $thing := $thing.WHO{$_};

@@ -19,7 +19,7 @@ Hackathon. Thanks!
 Some of the specific changes and improvements occurring with this
 release include:
 
-* ???
+* Support for pseudo packages like MY, OUR, DYNAMIC
 * Now passing over 21,400 spec tests.
 
 We are still regressed on a few features compared to the 2011.07 release of

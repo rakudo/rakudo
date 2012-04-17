@@ -210,10 +210,7 @@ class Perl6::World is HLL::World {
             ))
     }
     
-    # Implements a basic first cut of import. Works out what needs to
-    # happen and builds code to do it at fixup/deserialization; also
-    # does it so that things are available at compile time. Note that
-    # import is done into the current lexpad.
+    # Imports symbols from the specified package into the current lexical scope.
     method import($package) {
         # We'll do this in two passes, since at the start of CORE.setting we import
         # StaticLexPad, which of course we need to use when importing. Since we still
@@ -222,15 +219,25 @@ class Perl6::World is HLL::World {
         my %stash := $package.WHO;
         my $target := self.cur_lexpad();
         
-        # First pass: PAST::Block symbol table installation.
+        # First pass: PAST::Block symbol table installation. Also detect any
+        # outright conflicts, and handle any situations where we need to merge.
+        my %to_install;
         for %stash {
-            $target.symbol($_.key, :scope('lexical_6model'), :value($_.value));
-            $target[0].push(PAST::Var.new( :scope('lexical_6model'), :name($_.key), :isdecl(1) ));
+            if $target.symbol($_.key) {
+                # XXX TODO: Merge handling.
+                pir::die("Cannot import symbol '" ~ $_.key ~ "', since it already exists in the lexpad");
+            }
+            else {
+                $target.symbol($_.key, :scope('lexical_6model'), :value($_.value));
+                $target[0].push(PAST::Var.new( :scope('lexical_6model'), :name($_.key), :isdecl(1) ));
+                %to_install{$_.key} := $_.value;
+            }
         }
         
-        # Second pass: stick it in the actual static lexpad.
+        # Second pass: stick everything we still need to install in the
+        # actual static lexpad.
         my $slp := self.get_static_lexpad($target);
-        for %stash {
+        for %to_install {
             $slp.add_static_value($_.key, $_.value, 0, 0);
         }
 

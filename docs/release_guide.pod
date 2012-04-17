@@ -55,7 +55,7 @@ part of monthly Parrot releases.
 
 Dates are based on Parrot's expected release schedule.
 
-  2012-04-19   Rakudo #51                      (Coke)
+  2012-04-19   Rakudo #51 "Brazos Valley"      (Coke)
   2012-05-17   Rakudo #52
   2012-06-21   Rakudo #53
   2012-07-19   Rakudo #54
@@ -68,7 +68,6 @@ Dates are based on Parrot's expected release schedule.
 =head2 Suggested .pm group names for future releases
 
   MadMongers    (YAPC::NA 2012)
-  Brazos Valley (YAPC::NA 2007, p6 hackathon)
 
 More names can be gotten from L<http://www.pm.org> if you 
 can't think of one with any particular significance to Perl 

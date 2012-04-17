@@ -20,6 +20,9 @@ Some of the specific changes and improvements occurring with this
 release include:
 
 * Support for pseudo packages like MY, OUR, DYNAMIC
+* Support for indexing into packages like hashes, e.g. Foo::{'$x'}
+* Warnings now include line numbers
+* Assorted minor optimizations to compilation, Str methods and iteration
 * Now passing over 21,400 spec tests.
 
 We are still regressed on a few features compared to the 2011.07 release of

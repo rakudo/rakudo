@@ -18,6 +18,8 @@ New in 2012.04
 + implemented ::<$x> and ::{'$x'} style lookups
 + some small optimizations to various Str built-ins and MapIter
 + improved --doc output
++ added $*PERL
++ implemented IO::ArgFiles.slurp
 
 New in 2012.03
 + updated to dyncall 0.7

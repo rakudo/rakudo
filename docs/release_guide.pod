@@ -216,6 +216,8 @@ judgment or ask others if uncertain what to do here.
 
 =item *
 
+B<Note>: these steps overlap with the steps in NQP's release guide.
+
 Go to the NQP repository, tag it and push the tags
 
   $ git tag -a -m"tag release YYYY.MM" YYYY.MM    # e.g., 2010.02
@@ -264,8 +266,8 @@ So please make a backup if you have any important data in there.
 =item 12.
 
 Unpack the tar file into another area, and test that it
-builds and runs properly using the same process in step 7.  
-If there are any problems, fix them and go back to step 7.
+builds and runs properly using the same process in step 8.
+If there are any problems, fix them and go back to step 8.
 
 =item 13.
 

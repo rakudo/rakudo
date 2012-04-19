@@ -50,12 +50,12 @@ part of monthly Parrot releases.
   2012-01-23   Rakudo #48 "Toronto"            (moritz)
   2012-02-23   Rakudo #49 "SPb"                (masak)
   2012-03-22   Rakudo #50 "Argentina"          (masak)
+  2012-04-19   Rakudo #51 "Brazos Valley"      (Coke)
 
 =head2 Planned 2012 releases
 
 Dates are based on Parrot's expected release schedule.
 
-  2012-04-19   Rakudo #51 "Brazos Valley"      (Coke)
   2012-05-17   Rakudo #52
   2012-06-21   Rakudo #53
   2012-07-19   Rakudo #54

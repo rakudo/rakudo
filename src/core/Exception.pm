@@ -11,7 +11,7 @@ my class Exception {
     }
     multi method gist(Exception:D:) {
         my $str = try self.?message ~ "\n" ~ $.backtrace;
-        $! ?? "Error while creating error string" 
+        $! ?? "Error while creating error string: $!"
            !! $str;
     }
 

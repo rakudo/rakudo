@@ -221,7 +221,9 @@ class Perl6::ModuleLoader {
                 my $*CTXSAVE := self;
                 my $*MAIN_CTX;
                 my $preserve_global := pir::get_hll_global__Ps('GLOBAL');
+                pir::nqp_disable_sc_write_barrier__v();
                 pir::load_bytecode($path);
+                pir::nqp_enable_sc_write_barrier__v();
                 pir::set_hll_global__vsP('GLOBAL', $preserve_global);
                 unless pir::defined($*MAIN_CTX) {
                     pir::die("Unable to load setting $setting_name; maybe it is missing a YOU_ARE_HERE?");

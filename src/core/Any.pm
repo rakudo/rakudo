@@ -114,58 +114,62 @@ my class Any {
     proto method postcircumfix:<[ ]>(|$) { * }
     multi method postcircumfix:<[ ]>() { self.list }
     multi method postcircumfix:<[ ]>(:$BIND!) { die(X::Bind::ZenSlice.new()) }
-    multi method postcircumfix:<[ ]>($pos) is rw {
-        fail "Cannot use negative index $pos on {self.WHAT.perl}" if $pos < 0;
-        self.at_pos($pos)
+    multi method postcircumfix:<[ ]>(\$self: $pos) is rw {
+        fail "Cannot use negative index $pos on {$self.WHAT.perl}" if $pos < 0;
+        $self.at_pos($pos)
     }
     multi method postcircumfix:<[ ]>($pos, :$BIND! is parcel) is rw {
         fail "Cannot use negative index $pos on {self.WHAT.perl}" if $pos < 0;
         self.bind_pos($pos, $BIND)
     }
-    multi method postcircumfix:<[ ]>(int $pos) is rw {
-        fail "Cannot use negative index $pos on {self.WHAT.perl}" if $pos < 0;
-        self.at_pos($pos)
+    multi method postcircumfix:<[ ]>(\$self: int $pos) is rw {
+        fail "Cannot use negative index $pos on {$self.WHAT.perl}" if $pos < 0;
+        $self.at_pos($pos)
     }
     multi method postcircumfix:<[ ]>(int $pos, :$BIND! is parcel) is rw {
         fail "Cannot use negative index $pos on {self.WHAT.perl}" if $pos < 0;
         self.bind_pos($pos, $BIND)
     }
-    multi method postcircumfix:<[ ]>(Positional \$pos) is rw {
+    multi method postcircumfix:<[ ]>(\$self: Positional \$pos) is rw {
         if nqp::iscont($pos) {
-            fail "Cannot use negative index $pos on {self.WHAT.perl}" if $pos < 0;
-            return self.at_pos($pos)
+            fail "Cannot use negative index $pos on {$self.WHAT.perl}" if $pos < 0;
+            return $self.at_pos($pos)
         }
         my $list = $pos.flat;
         $list.gimme(*);
         $list.map($list.infinite
-                   ?? { last if $_ >= self.list.gimme($_ + 1); self[$_] }
-                   !! { self[$_] }).eager.Parcel;
+                   ?? { last if $_ >= $self.list.gimme($_ + 1); $self[$_] }
+                   !! { $self[$_] }).eager.Parcel;
     }
     multi method postcircumfix:<[ ]>(Positional $pos, :$BIND!) is rw {
         die "Cannot bind to an array slice"
     }
-    multi method postcircumfix:<[ ]>(Callable $block) is rw {
-        self[$block(|(self.elems xx $block.count))]
+    multi method postcircumfix:<[ ]>(\$self: Callable $block) is rw {
+        $self[$block(|($self.elems xx $block.count))]
     }
     multi method postcircumfix:<[ ]>(Callable $block, :$BIND!) is rw {
         die "Cannot bind to a callable array slice"; # WhateverCode?
     }
-    multi method postcircumfix:<[ ]>(Whatever) is rw {
-        self[^self.elems]
+    multi method postcircumfix:<[ ]>(\$self: Whatever) is rw {
+        $self[^$self.elems]
     }
     multi method postcircumfix:<[ ]>(Whatever, :$BIND!) is rw {
         die "Cannot bind to a whatever array slice"
     }
 
-    method at_pos($pos) is rw {
-        if self.defined {
+    method at_pos(\$self: $pos) is rw {
+        if $self.defined {
             fail X::OutOfRange.new(
                 what => 'Index',
                 got  => $pos,
                 range => (0..0)
             ) if $pos != 0;
-            return self;
+            return $self;
         }
+        pir::setattribute__0PPsP(my $v, Scalar, '$!whence',
+            -> { $self.defined 
+                     || pir::perl6_container_store__0PP($self, Array.new);
+                 $self.bind_pos($pos, $v) });
     }
     
     method all() { all(self.list) }

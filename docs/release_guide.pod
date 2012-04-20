@@ -68,6 +68,7 @@ Dates are based on Parrot's expected release schedule.
 =head2 Suggested .pm group names for future releases
 
   MadMongers    (YAPC::NA 2012)
+  Frankfurt     (YAPC::EU 2012)
 
 More names can be gotten from L<http://www.pm.org> if you 
 can't think of one with any particular significance to Perl 

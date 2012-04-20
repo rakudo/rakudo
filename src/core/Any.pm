@@ -179,25 +179,34 @@ my class Any {
     proto method postcircumfix:<{ }>(|$) { * }
     multi method postcircumfix:<{ }>() { self }
     multi method postcircumfix:<{ }>(:$BIND!) { die(X::Bind::ZenSlice.new(:what<hash>)) }
-    multi method postcircumfix:<{ }>($key) is rw {
-        self.at_key($key)
+    multi method postcircumfix:<{ }>(\$self: $key) is rw {
+        $self.at_key($key)
     }
-    multi method postcircumfix:<{ }>($key, :$BIND! is parcel) is rw {
-        self.bind_key($key, $BIND)
+    multi method postcircumfix:<{ }>(\$self: $key, :$BIND! is parcel) is rw {
+        $self.bind_key($key, $BIND)
     }
-    multi method postcircumfix:<{ }>(Positional \$key) is rw {
+    multi method postcircumfix:<{ }>(\$self: Positional \$key) is rw {
         nqp::iscont($key) 
-          ?? self.at_key($key) 
-          !! $key.map({ self{$_} }).eager.Parcel
+          ?? $self.at_key($key) 
+          !! $key.map({ $self{$_} }).eager.Parcel
     }
     multi method postcircumfix:<{ }>(Positional $key, :$BIND!) is rw {
         die "Cannot bind to a hash slice"
     }
-    multi method postcircumfix:<{ }>(Whatever) is rw {
-        self{self.keys}
+    multi method postcircumfix:<{ }>(\$self: Whatever) is rw {
+        $self{$self.keys}
     }
     multi method postcircumfix:<{ }>(Whatever, :$BIND!) is rw {
         die "Cannot bind to a whatever hash slice"
+    }
+
+    method at_key(\$self: $key) is rw {
+        fail "postcircumfix:<\{ \}> not defined for type {$self.WHAT.perl}"
+            if $self.defined;
+        pir::setattribute__0PPsP(my $v, Scalar, '$!whence',
+            -> { $self.defined 
+                     || pir::perl6_container_store__0PP($self, Hash.new);
+                 $self.bind_key($key, $v) });
     }
 
     method reduce(&with) { self.list.reduce(&with) }

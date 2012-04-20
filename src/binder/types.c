@@ -29,6 +29,8 @@ static PMC * BoolTrue   = NULL;
 static PMC * PackageHOW = NULL;
 static PMC * JunctionThreader = NULL;
 
+static INTVAL ownedhash_id = 0;
+
 void Rakudo_types_mu_set(PMC * type) { Mu = type; }
 PMC * Rakudo_types_mu_get(void) { return Mu; }
 
@@ -120,7 +122,16 @@ PMC * Rakudo_types_parrot_map(PARROT_INTERP, PMC * to_map) {
             result = Mu;
             break;
         default:
-            result = to_map;
+            if (ownedhash_id == 0)
+                ownedhash_id = Parrot_pmc_get_type_str(interp, Parrot_str_new(interp, "OwnedHash", 0));
+            if (to_map->vtable->base_type == ownedhash_id) {
+                result = REPR(_Hash)->allocate(interp, STABLE(_Hash));
+                REPR(result)->initialize(interp, STABLE(result), OBJECT_BODY(result));
+                VTABLE_set_attr_keyed(interp, result, EnumMap, Parrot_str_new_constant(interp, "$!storage"), to_map);
+            }
+            else {
+                result = to_map;
+            }
     }
     return result;
 }

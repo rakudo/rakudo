@@ -5,10 +5,10 @@ my class Exception {
 
     method backtrace() { Backtrace.new(self) }
 
-
     multi method Str(Exception:D:) {
         self.?message.Str // 'Something went wrong'
     }
+
     multi method gist(Exception:D:) {
         my $str = try self.?message ~ "\n" ~ $.backtrace;
         $! ?? "Error while creating error string: $!"

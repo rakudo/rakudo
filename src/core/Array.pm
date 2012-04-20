@@ -7,7 +7,7 @@ class Array {
         nqp::p6list($args, self.WHAT, Bool::True);
     }
     
-    multi method at_pos($pos) is rw {
+    multi method at_pos(Array:D: $pos) is rw {
         my int $p = nqp::unbox_i($pos.Int);
         my Mu $items := nqp::getattr(self, List, '$!items');
         nqp::islist($items) or 
@@ -20,7 +20,7 @@ class Array {
           !! pir::setattribute__0PPsP(my $v, Scalar, '$!whence',
                  -> { nqp::bindpos($items, $p, $v) } )
     }
-    multi method at_pos(int $pos) is rw {
+    multi method at_pos(Array:D: int $pos) is rw {
         my Mu $items := nqp::getattr(self, List, '$!items');
         nqp::islist($items) or 
             $items := nqp::bindattr(self, List, '$!items', nqp::list());

@@ -65,14 +65,13 @@ my class List does Positional {
         nqp::p6parcel($rpa, Any);
     }
 
-    proto method at_pos($) { * }
-    multi method at_pos($pos is copy) is rw {
+    multi method at_pos(List:D: $pos is copy) is rw {
         $pos = $pos.Int;
         self.exists($pos)
           ?? nqp::atpos($!items, nqp::unbox_i($pos))
           !! Nil
     }
-    multi method at_pos(int $pos) is rw {
+    multi method at_pos(List:D: int $pos) is rw {
         self.exists($pos)
             ?? nqp::atpos($!items, $pos)
             !! Nil;
@@ -167,7 +166,7 @@ my class List does Positional {
           !! fail 'Element popped from empty list';
     }
 
-    method push(*@values) {
+    multi method push(List:D: *@values) {
         my $pos = self.elems;
         fail '.push on infinite lists NYI' if $!nextiter.defined;
         self.STORE_AT_POS($pos++, @values.shift) while @values.gimme(1);
@@ -220,7 +219,7 @@ my class List does Positional {
           !! fail 'Element shifted from empty list';
     }
 
-    method unshift(*@elems) {
+    multi method unshift(List:D: *@elems) {
         nqp::bindattr(self, List, '$!items', nqp::list())
             unless nqp::islist($!items);
         while @elems {

@@ -5,7 +5,7 @@ my class Hash {
 
     method new(*@args) { @args.hash }
     
-    method at_key($key is copy) is rw {
+    multi method at_key(Hash:D: $key is copy) is rw {
         my Mu $storage := pir::defined(nqp::getattr(self, EnumMap, '$!storage')) ??
             nqp::getattr(self, EnumMap, '$!storage') !!
             nqp::bindattr(self, EnumMap, '$!storage', pir::new__Ps('Hash'));

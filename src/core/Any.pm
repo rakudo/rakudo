@@ -111,6 +111,18 @@ my class Any {
                   :excludes_max($excludes_max));
     }
 
+    proto method push(|$) { * }
+    multi method push(Any:U \$self: *@values) {
+        &infix:<=>($self, Array.new);
+        $self.push(@values);
+    }
+
+    proto method unshift(|$) { * }
+    multi method unshift(Any:U \$self: *@values) {
+        &infix:<=>($self, Array.new);
+        $self.unshift(@values);
+    }
+
     proto method postcircumfix:<[ ]>(|$) { * }
     multi method postcircumfix:<[ ]>() { self.list }
     multi method postcircumfix:<[ ]>(:$BIND!) { die(X::Bind::ZenSlice.new()) }
@@ -157,18 +169,18 @@ my class Any {
         die "Cannot bind to a whatever array slice"
     }
 
-    method at_pos(\$self: $pos) is rw {
-        if $self.defined {
-            fail X::OutOfRange.new(
-                what => 'Index',
-                got  => $pos,
-                range => (0..0)
-            ) if $pos != 0;
-            return $self;
-        }
+    proto method at_pos(|$) {*}
+    multi method at_pos(Any:D: $pos) {
+        fail X::OutOfRange.new(
+            what => 'Index',
+            got  => $pos,
+            range => (0..0)
+        ) if $pos != 0;
+        self;
+    }
+    multi method at_pos(Any:U \$self: $pos) is rw {
         pir::setattribute__0PPsP(my $v, Scalar, '$!whence',
-            -> { $self.defined 
-                     || pir::perl6_container_store__0PP($self, Array.new);
+            -> { $self.defined || &infix:<=>($self, Array.new);
                  $self.bind_pos($pos, $v) });
     }
     
@@ -204,12 +216,13 @@ my class Any {
         die "Cannot bind to a whatever hash slice"
     }
 
-    method at_key(\$self: $key) is rw {
-        fail "postcircumfix:<\{ \}> not defined for type {$self.WHAT.perl}"
-            if $self.defined;
+    proto method at_key(|$) { * }
+    multi method at_key(Any:D: $key) {
+        fail "postcircumfix:<\{ \}> not defined for type {self.WHAT.perl}";
+    }
+    multi method at_key(Any:U \$self: $key) is rw {
         pir::setattribute__0PPsP(my $v, Scalar, '$!whence',
-            -> { $self.defined 
-                     || pir::perl6_container_store__0PP($self, Hash.new);
+            -> { $self.defined || &infix:<=>($self, Hash.new);
                  $self.bind_key($key, $v) });
     }
 

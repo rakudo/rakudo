@@ -402,12 +402,12 @@ test    : coretest
 fulltest: coretest stresstest
 
 coretest: all
-	$(PERL) t/harness t/00-parrot t/01-sanity
+	PERL6LIB=lib $(PERL) t/harness t/00-parrot t/01-sanity
 
 # Run the spectests that we know work.
 spectest_regression: spectest
 spectest: testable t/spectest.data
-	$(HARNESS_WITH_FUDGE) --tests-from-file=t/spectest.data
+	PERL6LIB=lib $(HARNESS_WITH_FUDGE) --tests-from-file=t/spectest.data
 
 spectest_full: testable
 	$(HARNESS_WITH_FUDGE) t/spec

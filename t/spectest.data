@@ -379,7 +379,7 @@ S06-traits/misc.t
 # follows obsolete version of spec.
 
 S09-autovivification/autoincrement.t
-# S09-autovivification/autovivification.t # err: Cannot assign to a non-container
+S09-autovivification/autovivification.t
 S09-hashes/objecthash.t
 S09-subscript/slice.t
 S09-typed-arrays/arrays.t

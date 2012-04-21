@@ -1338,6 +1338,7 @@ class Perl6::Actions is HLL::Actions {
         elsif $<variable_declarator> {
             my $past := $<variable_declarator>.ast;
             if $<initializer> {
+                my $orig_past := $past;
                 if $*SCOPE eq 'has' {
                     if $<initializer>[0]<sym> eq '=' {
                         self.install_attr_init($past<metaattr>, $<initializer>[0].ast, $*ATTR_INIT_BLOCK);
@@ -1356,6 +1357,12 @@ class Perl6::Actions is HLL::Actions {
                 else {
                     $past := bind_op($/, $past, $<initializer>[0].ast,
                         $<initializer>[0]<sym> eq '::=');
+                }
+                if $*SCOPE eq 'state' {
+                    $past := PAST::Op.new( :pasttype('if'),
+                        PAST::Op.new( :pirop('perl6_state_needs_init I') ),
+                        $past,
+                        $orig_past);
                 }
             }
             make $past;
@@ -1383,6 +1390,7 @@ class Perl6::Actions is HLL::Actions {
             }
             
             if $<initializer> {
+                my $orig_list := $list;
                 if $<initializer>[0]<sym> eq '=' {
                     $/.CURSOR.panic("Cannot assign to a list of 'has' scoped declarations")
                         if $*SCOPE eq 'has';
@@ -1393,6 +1401,11 @@ class Perl6::Actions is HLL::Actions {
                 }
                 else {
                     $*W.throw($/, 'X::Comp::NYI', feature => "Binding to signatures in $*SCOPE declarations");
+                }
+                if $*SCOPE eq 'state' {
+                    $list := PAST::Op.new( :pasttype('if'),
+                        PAST::Op.new( :pirop('perl6_state_needs_init I') ),
+                        $list, $orig_list);
                 }
             }
             
@@ -1511,11 +1524,6 @@ class Perl6::Actions is HLL::Actions {
                         PAST::Op.new( :pirop('set PQPs'),
                             PAST::Op.new( :pirop('getinterp P') ), 'lexpad'));
                 }
-            }
-            
-            # Flag state declarators.
-            if $*SCOPE eq 'state' {
-                $past<state_declarator> := 1;
             }
         }
         elsif $*SCOPE eq 'our' {            
@@ -3785,11 +3793,6 @@ class Perl6::Actions is HLL::Actions {
         else {
             $past := PAST::Op.new(:pirop('perl6_container_store__0PP'),
                 $lhs_ast, $rhs_ast);
-        }
-        if $lhs_ast<state_declarator> {
-            $past := PAST::Op.new( :pasttype('if'),
-                PAST::Op.new( :pirop('perl6_state_needs_init I') ),
-                $past);
         }
         return $past;
     }

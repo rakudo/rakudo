@@ -1382,7 +1382,7 @@ grammar Perl6::Grammar is HLL::Grammar {
           || <?{ $*SCOPE eq 'has' }> <.newpad> <initializer>? { $*ATTR_INIT_BLOCK := $*W.pop_lexpad() }
           || <initializer>?
           ]
-        | '(' ~ ')' <signature> <trait>* <initializer>?
+        | '(' ~ ')' <signature> <trait>* <.ws> <initializer>?
         | <routine_declarator>
         | <regex_declarator>
         | <type_declarator>

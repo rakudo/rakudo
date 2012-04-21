@@ -1,4 +1,4 @@
-My class Parameter {
+my class Parameter {
     # XXX constant...
     my $SIG_ELEM_BIND_CAPTURE       := 1;
     my $SIG_ELEM_BIND_PRIVATE_ATTR  := 2;
@@ -139,7 +139,6 @@ My class Parameter {
         }
         $perl = '' if $perl eq any(<Any Callable>);
         $perl ~= ' ' if $perl;
-      
         if $!variable_name {
             my $name = $!variable_name;
             if $!flags +& $SIG_ELEM_IS_CAPTURE {
@@ -157,7 +156,7 @@ My class Parameter {
                     $name ~= '!' unless self.optional;
                 } elsif self.optional && !$default {
                     $name ~= '?';
-                } 
+                }
                 $perl ~= $name;
                 if $!flags +& $SIG_ELEM_IS_RW {
                     $perl ~= ' is rw';

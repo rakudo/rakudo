@@ -68,6 +68,7 @@ our $debug = 0;
 our $out_filename = 'autounfudge.patch';
 my $exclude = '(?!)';
 our $threads_num = 1;
+$ENV{PERL6LIB} = 'lib';
 
 GetOptions  'impl=s'        => \$impl,
             'debug'         => \$debug,

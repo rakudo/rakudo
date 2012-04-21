@@ -250,11 +250,11 @@ my class Mu {
     }
     
     # XXX TODO: Handle positional case.
-    method dispatch:<var>(Mu \$self: $var, |$c) {
+    method dispatch:<var>(Mu \$self: $var, |$c) is rw {
         $var($self, |$c)
     }
     
-    method dispatch:<::>(Mu \$self: $name, Mu $type, |$c) {
+    method dispatch:<::>(Mu \$self: $name, Mu $type, |$c) is rw {
         unless nqp::istype($self, $type) {
             die "Cannot dispatch to a method on " ~ $type.WHAT.perl ~
                 " because it is not inherited or done by " ~
@@ -263,7 +263,7 @@ my class Mu {
         pir::find_method__PPS($type, $name)($self, |$c)
     }
     
-    method dispatch:<!>(Mu \$self: $name, Mu $type, |$c) {
+    method dispatch:<!>(Mu \$self: $name, Mu $type, |$c) is rw {
         my $meth := $type.HOW.find_private_method($type, $name);
         $meth ??
             $meth($self, |$c) !!
@@ -271,15 +271,15 @@ my class Mu {
             
     }
     
-    method dispatch:<.^>(Mu \$self: $name, |$c) {
+    method dispatch:<.^>(Mu \$self: $name, |$c) is rw {
         self.HOW."$name"($self, |$c)
     }
     
-    method dispatch:<.=>(\$mutate: $name, |$c) {
+    method dispatch:<.=>(\$mutate: $name, |$c) is rw {
         $mutate = $mutate."$name"(|$c)
     }
     
-    method dispatch:<.?>(Mu \$self: $name, |$c) {
+    method dispatch:<.?>(Mu \$self: $name, |$c) is rw {
         pir::can__IPS($self, $name) ??
             $self."$name"(|$c) !!
             Nil

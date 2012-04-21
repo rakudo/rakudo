@@ -5061,7 +5061,8 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions {
     }
 
     method metachar:sym<rakvar>($/) {
-        make QAST::Regex.new( PAST::Node.new('INTERPOLATE', $<var>.ast),
+        make QAST::Regex.new( PAST::Node.new('INTERPOLATE', $<var>.ast,
+                                    PAST::Val.new( :value(%*RX<i> ?? 1 !! 0) )),
                               :rxtype<subrule>, :subtype<method>, :node($/));
     }
 
@@ -5079,7 +5080,7 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions {
 
     method assertion:sym<var>($/) {
         make QAST::Regex.new( 
-                 PAST::Node.new('INTERPOLATE', PAST::Op.new( :name<&MAKE_REGEX>, $<var>.ast )),
+                 PAST::Node.new('INTERPOLATE', PAST::Op.new( :name<&MAKE_REGEX>, $<var>.ast ) ),
                  :rxtype<subrule>, :subtype<method>, :node($/));
     }
     

@@ -136,8 +136,10 @@ my class Parameter {
             } elsif $!flags +& $SIG_ELEM_UNDEFINED_ONLY {
                 $perl ~= ':U';
             }
-            $perl ~= ' ';
         }
+        $perl = '' if $perl eq any(<Any Callable>);
+        $perl ~= ' ' if $perl;
+      
         if $!variable_name {
             my $name = $!variable_name;
             if $!flags +& $SIG_ELEM_IS_CAPTURE {
@@ -150,10 +152,6 @@ my class Parameter {
                     my @names := self.named_names;
                     my $/ := $name ~~ / ^^ $<sigil>=<[$@%&]> $<desigil>=(@names) $$ /;
                     $name = ':' ~ $name if $/;
-                    for @names {
-                        next if $/ and $_ eq $<desigil>;
-                        $name = ':' ~ $_ ~ '(' ~ $name ~ ')';
-                    }
                     $name ~= '!' unless self.optional;
                 } elsif self.optional && !$default {
                     $name ~= '?';

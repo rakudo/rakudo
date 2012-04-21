@@ -80,13 +80,13 @@ my class Backtrace is List {
         return $startidx.list unless $start;
         my $current = $start.outer;
         my %outers;
-        while $current {
+        while $current.defined {
             %outers{$current.static_id} = $start;
             $current = $current.outer;
         }
         my @outers;
         loop (my Int $i = $startidx; $i < $.end; ++$i) {
-            if self.at_pos($i).code && %outers{self.at_pos($i).code.static_id} {
+            if self.at_pos($i).code && %outers{self.at_pos($i).code.static_id}.defined {
                 @outers.push: $i;
                 return @outers if self.at_pos($i).is-routine;
             }

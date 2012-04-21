@@ -238,8 +238,8 @@ multi infix:<===>($a, $b) {
 
 proto infix:<cmp>($, $) { * }
 multi infix:<cmp>(\$a, \$b) { 
-    return -1 if $a == -$Inf || $b == $Inf;
-    return  1 if $a ==  $Inf || $b == -$Inf;
+    return -1 if $a === -$Inf || $b === $Inf;
+    return  1 if $a ===  $Inf || $b === -$Inf;
     $a.Stringy cmp $b.Stringy 
 }
 

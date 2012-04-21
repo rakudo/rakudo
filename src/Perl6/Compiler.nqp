@@ -5,7 +5,7 @@ use Perl6::Optimizer;
 class Perl6::Compiler is HLL::Compiler {
     method command_eval(*@args, *%options) {
         if pir::exists(%options, 'doc') && !%options<doc> {
-            %options<doc> := 'text';
+            %options<doc> := 'Text';
         }
 
         my $hll_ns := pir::get_root_global__Ps('perl6');

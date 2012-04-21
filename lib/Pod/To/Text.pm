@@ -1,4 +1,8 @@
-module Pod::To::Text;
+class Pod::To::Text;
+
+method render($pod) {
+    pod2text($pod)
+}
 
 sub pod2text($pod) is export {
     my @declarators;

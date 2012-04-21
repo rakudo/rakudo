@@ -311,27 +311,19 @@ class Perl6::Actions is HLL::Actions {
 
     method install_doc_phaser($/) {
         # Add a default DOC INIT phaser
-        if %*COMPILING<%?OPTIONS><doc> {
+        my $doc := %*COMPILING<%?OPTIONS><doc>;
+        if $doc {
             my $block := $*W.push_lexpad($/);
-            # loading and importing
-            # TODO: Skip importing and use a symbol_lookup when the
-            # Pod::foo modules bug gets fixed
-            my $module := $*W.load_module($/, 'Pod::To::Text', $*GLOBALish);
-            if pir::exists($module, 'EXPORT') {
-                my $EXPORT := $module<EXPORT>.WHO;
-                if pir::exists($EXPORT, 'DEFAULT') {
-                    $*W.import($EXPORT<DEFAULT>);
-                }
-            }
 
-            #my $pod2text := $*W.symbol_lookup(
-            #    ['Pod','To','Text','&pod2text'], $/
-            #);
+            my $renderer := "Pod::To::$doc";
+
+            my $module := $*W.load_module($/, $renderer, $*GLOBALish);
+
             my $pod2text := PAST::Op.new(
-                :pasttype<call>, :node($/), :name<&pod2text>,
+                :pasttype<callmethod>, :name<render>, :node($/),
+                self.make_indirect_lookup([$renderer]),
+                PAST::Var.new(:name<$=pod>, :node($/))
             );
-
-            $pod2text.push(PAST::Var.new(:name<$=pod>, :node($/)));
 
             $block.push(
                 PAST::Op.new(

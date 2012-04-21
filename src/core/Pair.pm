@@ -3,7 +3,7 @@ my class Pair is Enum does Associative {
     method value() is rw { nqp::getattr(self, Enum, '$!value') }
 
     multi method ACCEPTS(Pair:D: %h) {
-        $.value.ACCEPTS(%h{%.key});
+        $.value.ACCEPTS(%h{$.key});
     }
     multi method ACCEPTS(Pair:D: Mu $other) {
         $other."$.key"().Bool === $.value.Bool

@@ -74,10 +74,12 @@ sub declarator2text($pod) {
     next unless $pod.WHEREFORE.WHY;
     my $what = do given $pod.WHEREFORE {
         when Method {
-            'method ' ~ $_.name ~ signature2text($_.signature)
+            my @params=$_.signature.params[1..*];
+              @params.pop if @params[*-1].name eq '%_';
+            'method ' ~ $_.name ~ signature2text(@params)
         }
         when Sub {
-            'sub ' ~ $_.name ~ signature2text($_.signature)
+            'sub ' ~ $_.name ~ signature2text($_.signature.params)
         }
         when nqp::p6bool(nqp::istype($_.HOW, Metamodel::ClassHOW)) {
             'class ' ~ $_.perl
@@ -95,9 +97,9 @@ sub declarator2text($pod) {
     return "$what\n{$pod.WHEREFORE.WHY.content}"
 }
 
-sub signature2text($signature) {
-  return $signature.params.elems ??
-      "(\n\t" ~ $signature.params.map({ $_.perl }).join(", \n\t") ~ "\n)" 
+sub signature2text($params) {
+      $params.elems ??
+      "(\n\t" ~ $params.map({ $_.perl }).join(", \n\t") ~ "\n)" 
       !! "()";
 }
 

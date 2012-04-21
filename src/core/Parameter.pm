@@ -1,4 +1,4 @@
-my class Parameter {
+My class Parameter {
     # XXX constant...
     my $SIG_ELEM_BIND_CAPTURE       := 1;
     my $SIG_ELEM_BIND_PRIVATE_ATTR  := 2;
@@ -148,16 +148,16 @@ my class Parameter {
                 $perl ~= '\\' ~ $name;
             } else {
                 my $default = self.default();
-                if self.named {
+                if self.slurpy {
+                    $name = '*' ~ $name;
+                } elsif self.named {
                     my @names := self.named_names;
                     my $/ := $name ~~ / ^^ $<sigil>=<[$@%&]> $<desigil>=(@names) $$ /;
                     $name = ':' ~ $name if $/;
                     $name ~= '!' unless self.optional;
                 } elsif self.optional && !$default {
                     $name ~= '?';
-                } elsif self.slurpy {
-                    $name = '*' ~ $name;
-                }
+                } 
                 $perl ~= $name;
                 if $!flags +& $SIG_ELEM_IS_RW {
                     $perl ~= ' is rw';

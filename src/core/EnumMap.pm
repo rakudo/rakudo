@@ -96,6 +96,10 @@ my class EnumMap does Associative {
     method fmt($format = "%s\t\%s", $sep = "\n") {
         self.pairs.fmt($format, $sep);
     }
+    
+    method hash(\$self:) is rw {
+        $self
+    }
 }
 
 multi sub infix:<eqv>(EnumMap $a, EnumMap $b) {

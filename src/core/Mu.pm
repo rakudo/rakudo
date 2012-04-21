@@ -164,7 +164,7 @@ my class Mu {
 
     method Stringy() { self.Str }
     
-    method item() { self }
+    method item(Mu \$item:) is rw { $item }
     
     proto method say(|$) { * }
     multi method say() { say(self) }

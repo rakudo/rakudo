@@ -2361,13 +2361,15 @@ class Perl6::Actions is HLL::Actions {
 
     method type_declarator:sym<constant>($/) {
         # Get constant value.
+        my $con_block := $*W.pop_lexpad();
         my $value_ast := $<initializer>.ast;
         my $value;
         if $value_ast<has_compile_time_value> {
             $value := $value_ast<compile_time_value>;
         }
         else {
-            my $value_thunk := make_thunk($value_ast, $/);
+            $con_block.push($value_ast);
+            my $value_thunk := make_simple_code_object($con_block, 'Block');
             $value := $value_thunk();
             $*W.add_constant_folded_result($value);
         }

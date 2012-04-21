@@ -1861,6 +1861,7 @@ grammar Perl6::Grammar is HLL::Grammar {
 
         <trait>*
 
+        { $*W.push_lexpad($/) }
         [
         || <initializer>
         || <.missing: "initializer on constant declaration">

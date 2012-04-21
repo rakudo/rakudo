@@ -61,9 +61,14 @@ class Perl6::Compiler is HLL::Compiler {
           -o, --output=[name]  specify name of output file
           -v, --version        display version information
           --stagestats         display time spent in the compilation stages
-          --ll-backtrace       display a low level backtrace on errors
+          --ll-exception       display a low level backtrace on errors
+          --profile            print profile information to standard error
+
 
         Note that only boolean single-letter options may be bundled.
+
+        Output from --profile can be visualized by kcachegrind.
+
 
         To modify the include path, you can set the PERL6LIB environment variable:
         

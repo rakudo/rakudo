@@ -24,9 +24,12 @@ compiled code.
   -o, --output=[name]  specify name of output file
   -v, --version        display version information
   --stagestats         display time spent in the compilation stages
-  --ll-backtrace       display a low level backtrace on errors
+  --ll-exception       display a low level backtrace on errors
+  --profile            print profile information to standard error
 
 Note that only boolean single-letter options may be bundled
+
+Output from C<--profile> can be visualized by C<kcachegrind>.
 
 Supported stages for --target are:
 

@@ -153,6 +153,12 @@ my class Parameter {
                     my @names := self.named_names;
                     my $/ := $name ~~ / ^^ $<sigil>=<[$@%&]> $<desigil>=(@names) $$ /;
                     $name = ':' ~ $name if $/;
+                    unless +@names == 1 and $_ and "\$$_" eq $name {
+                        for @names {
+                            next if $/ and $_ eq $<desigil>;
+                            $name = ':' ~ $_ ~ '(' ~ $name ~ ')';
+                        }
+                    }
                     $name ~= '!' unless self.optional;
                 } elsif self.optional && !$default {
                     $name ~= '?';

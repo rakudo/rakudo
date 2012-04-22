@@ -494,6 +494,7 @@ S14-traits/attributes.t
 # S14-traits/package.t # err: Invalid typename in parameter declaration
 S14-traits/routines.t
 # S14-traits/variables.t # err: Invalid typename in parameter declaration
+S16-filehandles/filestat.t
 S16-filehandles/filetest.t
 S16-filehandles/io.t
 S16-filehandles/io_in_for_loops.t

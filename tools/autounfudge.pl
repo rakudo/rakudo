@@ -68,7 +68,6 @@ our $debug = 0;
 our $out_filename = 'autounfudge.patch';
 my $exclude = '(?!)';
 our $threads_num = 1;
-$ENV{PERL6LIB} = 'lib';
 
 GetOptions  'impl=s'        => \$impl,
             'debug'         => \$debug,
@@ -82,7 +81,7 @@ GetOptions  'impl=s'        => \$impl,
             'jobs=i'        => \$threads_num,
             or usage();
 
-delete $ENV{PERL6LIB} unless $keep_env;
+$ENV{PERL6LIB} = 'lib' unless $keep_env;
 
 my @files;
 

@@ -331,6 +331,17 @@ class Perl6::Actions is HLL::Actions {
                     :name('&say'), $pod2text,
                 ),
             );
+
+            # TODO: We should print out $?USAGE too,
+            # once it's known at compile time
+
+            $block.push(
+                PAST::Op.new(
+                    :pasttype<call>, :node($/),
+                    :name('&exit'),
+                ),
+            );
+
             $*W.pop_lexpad();
             $*W.add_phaser(
                 $/, 'INIT', make_simple_code_object($block, 'Block')

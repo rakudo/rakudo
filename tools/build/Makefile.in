@@ -179,6 +179,7 @@ CORE_SOURCES = \
   src/core/Numeric.pm \
   src/core/Real.pm \
   src/core/Int.pm \
+  src/core/Order.pm \
   src/core/Num.pm \
   src/core/Str.pm \
   src/core/Capture.pm \

@@ -236,13 +236,6 @@ multi infix:<===>($a, $b) {
     nqp::p6bool(nqp::iseq_s(nqp::unbox_s($a.WHICH), nqp::unbox_s($b.WHICH)))
 }
 
-proto infix:<cmp>($, $) { * }
-multi infix:<cmp>(\$a, \$b) { 
-    return -1 if $a === -$Inf || $b === $Inf;
-    return  1 if $a ===  $Inf || $b === -$Inf;
-    $a.Stringy cmp $b.Stringy 
-}
-
 proto infix:<before>(|$)       { * }
 multi infix:<before>($x?)      { Bool::True }
 multi infix:<before>(\$a, \$b) { ($a cmp $b) < 0 }

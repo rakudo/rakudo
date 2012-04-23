@@ -147,23 +147,6 @@ multi infix:<gcd>(int $a, int $b) returns int {
     nqp::gcd_i($a, $b)
 }
 
-## Order enumeration, for cmp and <=>
-my enum Order (:Increase(-1), :Same(0), :Decrease(1));
-
-multi infix:<cmp>(Int:D \$a, Int:D \$b) {
-    Order.(nqp::p6box_i(nqp::cmp_I(nqp::p6decont($a), nqp::p6decont($b))))
-}
-multi infix:<cmp>(int $a, int $b) {
-    Order.(nqp::p6box_i(nqp::cmp_i($a, $b)))
-}
-
-multi infix:«<=>»(Int:D \$a, Int:D \$b) {
-    Order.(nqp::p6box_i(nqp::cmp_I(nqp::p6decont($a), nqp::p6decont($b))))
-}
-multi infix:«<=>»(int $a, int $b) {
-    Order.(nqp::p6box_i(nqp::cmp_i($a, $b)))
-}
-
 multi infix:<===>(Int:D \$a, Int:D \$b) {
     nqp::p6bool(nqp::iseq_I(nqp::p6decont($a), nqp::p6decont($b)))
 }

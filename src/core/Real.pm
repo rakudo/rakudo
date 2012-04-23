@@ -107,8 +107,6 @@ multi infix:«>»(Real \$a, Real \$b)   { $a.Bridge > $b.Bridge }
 
 multi infix:«>=»(Real \$a, Real \$b)  { $a.Bridge >= $b.Bridge }
 
-multi infix:<cmp>(Real \$a, Real \$b) { $a.Bridge cmp $b.Bridge }
-
 proto sub infix:<mod>(|$) {*}
 multi sub infix:<mod>(Real $a, Real $b) {
     $a - ($a div $b) * $b;

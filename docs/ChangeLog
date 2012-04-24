@@ -3,7 +3,7 @@ New in 2012.04.1
 + more robust module precompilation
 + improved infrastructure for calling C code
 + $.foo style calls now contextualize correctly
-+ infix cmp now return memebers of the Order enum in all cases
++ &infix:<cmp> now return members of the Order enum in all cases
 + --doc=format now loads Pod::To::format and uses it for rendering
 + 'lib/' is no longer in the default include path
 + improved Parameter.perl

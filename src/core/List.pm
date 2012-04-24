@@ -125,9 +125,9 @@ my class List does Positional {
 
     method munch($n is copy) {
         $n = 0 if $n < 0;
-        self.gimme($n) if nqp::not_i(nqp::istype($n, Int))
-                          || nqp::not_i(nqp::islist($!items))
-                          || nqp::islt_i(nqp::elems($!items), nqp::unbox_i($n));
+        $n = self.gimme($n) if nqp::not_i(nqp::istype($n, Int))
+                               || nqp::not_i(nqp::islist($!items))
+                               || nqp::islt_i(nqp::elems($!items), nqp::unbox_i($n));
         nqp::p6parcel(
             pir::perl6_shiftpush__0PPi(nqp::list(), $!items, nqp::unbox_i($n)),
             Any

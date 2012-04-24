@@ -1,3 +1,18 @@
+New in 2012.04.1
++ autvivification for arrays and hashes
++ more robust module precompilation
++ improved infrastructure for calling C code
++ $.foo style calls now contextualize correctly
++ infix cmp now return memebers of the Order enum in all cases
++ --doc=format now loads Pod::To::format and uses it for rendering
++ 'lib/' is no longer in the default include path
++ improved Parameter.perl
++ add .changed, .modified and .accessed methods to IO
++ improved --help output
++ install precompiled test module for speedup
++ fixed printing of backtraces when regexes are in the call chain
++ case insensitive regex matches now also work for interpolated variables
+
 New in 2012.04
 + 'defined' is now a listop instead of a prefix op
 + fixed :16('0d...')

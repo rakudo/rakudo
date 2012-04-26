@@ -41,6 +41,7 @@ sub term:<time>() { nqp::p6box_i(pir::time__I()) }
     nqp::bindkey(pir::get_who__PP(PROCESS), '$CWD', $CWD);
 
     my @INC;
+    @INC.push(%ENV<RAKUDOLIB>.split($VM<config><osname> eq 'MSWin32' ?? ';' !! ':')) if %ENV<RAKUDOLIB>;
     @INC.push(%ENV<PERL6LIB>.split($VM<config><osname> eq 'MSWin32' ?? ';' !! ':')) if %ENV<PERL6LIB>;
     try {
         @INC.push((%ENV<HOME> // %ENV<HOMEDRIVE> ~ %ENV<HOMEPATH>) ~ '/.perl6/lib');

@@ -15,7 +15,7 @@ sub term:<time>() { nqp::p6box_i(pir::time__I()) }
         $key = nqp::p6box_s(pir::shift__SP($enviter));
         %ENV{$key} = nqp::p6box_s(nqp::atkey($env, nqp::unbox_s($key)));
     }
-    %ENV but role {
+    %ENV does role {
         method at_key($k) {
             Proxy.new(
                     FETCH => {

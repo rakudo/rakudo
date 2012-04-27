@@ -250,7 +250,7 @@ my class Mu {
     }
     
     # XXX TODO: Handle positional case.
-    method dispatch:<var>(Mu \$self: $var, |$c) is rw {
+    method dispatch:<var>(Mu \$self: $var, |$c) is rw is hidden_from_backtrace {
         $var($self, |$c)
     }
     
@@ -263,7 +263,7 @@ my class Mu {
         pir::find_method__PPS($type, $name)($self, |$c)
     }
     
-    method dispatch:<!>(Mu \$self: $name, Mu $type, |$c) is rw {
+    method dispatch:<!>(Mu \$self: $name, Mu $type, |$c) is rw is hidden_from_backtrace {
         my $meth := $type.HOW.find_private_method($type, $name);
         $meth ??
             $meth($self, |$c) !!
@@ -271,7 +271,7 @@ my class Mu {
             
     }
     
-    method dispatch:<.^>(Mu \$self: $name, |$c) is rw {
+    method dispatch:<.^>(Mu \$self: $name, |$c) is rw is hidden_from_backtrace {
         self.HOW."$name"($self, |$c)
     }
     
@@ -279,7 +279,7 @@ my class Mu {
         $mutate = $mutate."$name"(|$c)
     }
     
-    method dispatch:<.?>(Mu \$self: $name, |$c) is rw {
+    method dispatch:<.?>(Mu \$self: $name, |$c) is rw is hidden_from_backtrace {
         pir::can__IPS($self, $name) ??
             $self."$name"(|$c) !!
             Nil

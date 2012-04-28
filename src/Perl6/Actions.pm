@@ -1692,7 +1692,7 @@ class Perl6::Actions is HLL::Actions {
                     }
 
                     # Install in current scope.
-                    $*W.install_lexical_symbol($outer, $name, $new_proto);
+                    $*W.install_lexical_symbol($outer, $name, $new_proto, :clone(1));
                     $proto := $new_proto;
                 }
 

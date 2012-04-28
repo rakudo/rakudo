@@ -759,7 +759,7 @@ class Perl6::Actions is HLL::Actions {
 
     method statement_control:sym<loop>($/) {
         my $block := pblock_immediate($<block>.ast);
-        my $cond := $<e2> ?? $<e2>[0].ast !! 1;
+        my $cond := $<e2> ?? $<e2>[0].ast !! PAST::Var.new(:name<True>, :scope<lexical_6model>);
         my $loop := PAST::Op.new( $cond, $block, :pasttype('while'), :node($/) );
         if $<e3> {
             $loop.push( $<e3>[0].ast );

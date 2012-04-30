@@ -229,6 +229,7 @@ my class List does Positional {
     }
 
     method splice($offset is copy = 0, $size? is copy, *@values) {
+        self.gimme(*);
         $offset += self.elems if ($offset < 0);
         $size //= self.elems - $offset;
         $size = self.elems + $size - $offset if ($size < 0);

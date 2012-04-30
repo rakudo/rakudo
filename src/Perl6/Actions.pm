@@ -3506,6 +3506,12 @@ class Perl6::Actions is HLL::Actions {
             make make_dot_equals($/[0].ast, $/[1].ast);
             return 1;
         }
+        elsif $past && nqp::substr($past.name, 0, 19) eq '&METAOP_TEST_ASSIGN' {
+            $past.push($/[0].ast);
+            $past.push(make_thunk_ref($/[1].ast, $/));
+            make $past;
+            return 1;
+        }
         elsif $sym eq '==>' || $sym eq '<==' || $sym eq '==>>' || $sym eq '<<==' {
             make make_feed($/);
             return 1;
@@ -3867,9 +3873,16 @@ class Perl6::Actions is HLL::Actions {
                               ?? $base.ast[0]
                               !! PAST::Var.new(:name("&infix:<$basesym>"),
                                                :scope<lexical_6model>);
-            make PAST::Op.new( :node($/),
-                     PAST::Op.new( :pasttype<call>,
-                         :name<&METAOP_ASSIGN>, $basepast ));
+            if $basesym eq '||' || $basesym eq '&&' || $basesym eq '//' {
+                make PAST::Op.new( :pasttype<call>,
+                        :name('&METAOP_TEST_ASSIGN:<' ~ $basesym ~ '>') );
+            }
+            else {
+                make PAST::Op.new( :node($/),
+                        PAST::Op.new( :pasttype<call>,
+                            :name<&METAOP_ASSIGN>, $basepast ));
+
+            }
         }
 
         if $<infix_prefix_meta_operator> {

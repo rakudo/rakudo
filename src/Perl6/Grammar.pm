@@ -2693,6 +2693,9 @@ grammar Perl6::Grammar is HLL::Grammar {
         elsif $category eq 'trait_mod' {
             return 0;
         }
+        elsif $category eq 'METAOP_TEST_ASSIGN' {
+            return 0;
+        }
         else {
             self.typed_panic('X::Syntax::Extension::Category', :$category);
         }

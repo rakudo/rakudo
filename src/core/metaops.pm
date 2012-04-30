@@ -3,6 +3,10 @@ sub METAOP_ASSIGN(\$op) {
     -> Mu \$a, Mu \$b { $a = $op( $a // $op(), $b) }
 }
 
+sub METAOP_TEST_ASSIGN:<//>(\$lhs, $rhs) is rw { $lhs // ($lhs = $rhs()) }
+sub METAOP_TEST_ASSIGN:<||>(\$lhs, $rhs) is rw { $lhs || ($lhs = $rhs()) }
+sub METAOP_TEST_ASSIGN:<&&>(\$lhs, $rhs) is rw { $lhs && ($lhs = $rhs()) }
+
 sub METAOP_NEGATE(\$op) {
     -> Mu \$a, Mu \$b { !$op($a,$b) }
 }

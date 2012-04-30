@@ -15,6 +15,18 @@ sub term:<time>() { nqp::p6box_i(pir::time__I()) }
         $key = nqp::p6box_s(pir::shift__SP($enviter));
         %ENV{$key} = nqp::p6box_s(nqp::atkey($env, nqp::unbox_s($key)));
     }
+    %ENV does role {
+        method at_key($k) {
+            Proxy.new(
+                    FETCH => {
+                        nqp::p6box_s(nqp::atkey($env, nqp::unbox_s($k)))
+                    },
+                    STORE => -> $, $v {
+                        nqp::bindkey($env, nqp::unbox_s($k), nqp::unbox_s($v))
+                    }
+            )
+        }
+    }
     nqp::bindkey(pir::get_who__PP(PROCESS), '%ENV', %ENV);
 
     my $VM = {

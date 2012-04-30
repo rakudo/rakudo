@@ -73,7 +73,7 @@ class Perl6::Actions is HLL::Actions {
 
 
     # TODO: inline string_to_bigint?
-    our sub string_to_bigint($src, $base) {
+    my sub string_to_bigint($src, $base) {
         my $res := nqp::radix_I($base, ~$src, 0, 2, $*W.find_symbol(['Int']));
         $src.CURSOR.panic("'$src' is not a valid number")
             unless nqp::iseq_i(nqp::unbox_i(nqp::atkey($res, 2)), nqp::chars($src));

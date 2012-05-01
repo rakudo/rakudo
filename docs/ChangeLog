@@ -1,3 +1,10 @@
+New in 2012.05
++ meta ops //=, ||= and &&= now short-circuit properly
++ Failure objects don't blow up the REPL anymore
++ allow case insensitive regex matches without ICU in limited cases
++ %*ENV now propagates into subprocesses
++ RAKUDOLIB env variable supported in addition to PERL6LIB
+
 New in 2012.04.1
 + autvivification for arrays and hashes
 + more robust module precompilation

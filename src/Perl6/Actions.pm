@@ -1178,11 +1178,14 @@ class Perl6::Actions is HLL::Actions {
             # I don't know what the correct solution is. Disabling the check
             # inside double quotes fixes the most common case, but fails to
             # catch undeclared variables in double-quoted strings.
-            if $sigil ne '&' && !$*IN_DECL && ($*QSIGIL eq '' || $*QSIGIL eq '$') && !$*W.is_lexical($past.name) {
+            if $sigil ne '&' && $twigil ne '=' && !$*IN_DECL && ($*QSIGIL eq '' || $*QSIGIL eq '$') && !$*W.is_lexical($past.name) {
                 $*W.throw($/, ['X', 'Undeclared'], symbol => $past.name());
             }
             elsif $sigil eq '&' {
                 $past.viviself(PAST::Var.new(:name('Nil'), :scope('lexical_6model')));
+            }
+            elsif $twigil eq '=' {
+                $past.viviself(PAST::Var.new(:name('Any'), :scope('lexical_6model')));
             }
 
             # Expect variable to have been declared somewhere.

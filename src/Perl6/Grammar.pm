@@ -296,6 +296,7 @@ grammar Perl6::Grammar is HLL::Grammar {
     token pod_block:sym<delimited_table> {
         ^^ \h* '=begin' \h+ 'table'
             [ [\n '=']? \h+ <colonpair> ]* <pod_newline>+
+        { $<type> := 'table' }
         [
          <table_row>*
          ^^ \h* '=end' \h+ 'table' <pod_newline>
@@ -313,6 +314,7 @@ grammar Perl6::Grammar is HLL::Grammar {
             || '=begin' \h+ 'END' <pod_newline>
             || '=for'   \h+ 'END' <pod_newline>
             || '=END' <pod_newline>
+            { $<type> := 'END' }
         ]
         .*
     }
@@ -373,6 +375,7 @@ grammar Perl6::Grammar is HLL::Grammar {
 
     token pod_block:sym<abbreviated_table> {
         ^^ \h* '=table' [ [\n '=']? \h+ <colonpair> ]* <pod_newline>
+        { $<type> := 'table' }
         [ <!before \h* \n> <table_row>]*
     }
 
@@ -424,6 +427,7 @@ grammar Perl6::Grammar is HLL::Grammar {
 
         # A place for Pod
         :my $*POD_BLOCKS := [];
+        :my $*POD_BLOCKS_NAMED := {};
         :my $*POD_BLOCKS_SEEN := {};
         :my $*POD_PAST;
         :my $*DECLARATOR_DOCS;
@@ -491,6 +495,15 @@ grammar Perl6::Grammar is HLL::Grammar {
             $*W.install_lexical_symbol(
                 $*UNIT, '$=pod', $*POD_PAST<compile_time_value>
             );
+
+            for $*POD_BLOCKS_NAMED {
+                my $arr := $*W.add_constant(
+                    'Array', 'type_new', |($_.value)
+                );
+                $*W.install_lexical_symbol(
+                    $*UNIT, '$=' ~ $_.key, $arr<compile_time_value>
+                );
+            }
             
             # Tag UNIT with a magical lexical. Also if we're compiling CORE,
             # give it such a tag too.

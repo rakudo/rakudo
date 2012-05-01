@@ -358,7 +358,6 @@ class Perl6::Actions is HLL::Actions {
                 $*POD_BLOCKS.push($child);
 
                 my $type := $<pod_block><type>.Str;
-                say("Oh, a block of type $type");
 
                 if !$*POD_BLOCKS_NAMED{$type} {
                     $*POD_BLOCKS_NAMED{$type} := []

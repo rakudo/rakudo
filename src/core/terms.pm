@@ -19,12 +19,23 @@ sub term:<time>() { nqp::p6box_i(pir::time__I()) }
         method at_key($k) {
             Proxy.new(
                     FETCH => {
-                        nqp::p6box_s(nqp::atkey($env, nqp::unbox_s($k)))
+                        if nqp::p6bool(nqp::existskey($env, nqp::unbox_s($k))) {
+                            nqp::p6box_s(nqp::atkey($env, nqp::unbox_s($k)))
+                        }
+                        else {
+                            Any
+                        }
                     },
                     STORE => -> $, $v {
                         nqp::bindkey($env, nqp::unbox_s($k), nqp::unbox_s($v))
                     }
             )
+        }
+
+        method delete($k) {
+            my $ret = self.at_key($k);
+            pir::delete($env, nqp::unbox_s($k));
+            return $ret;
         }
     }
     nqp::bindkey(pir::get_who__PP(PROCESS), '%ENV', %ENV);

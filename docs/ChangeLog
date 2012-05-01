@@ -4,6 +4,7 @@ New in 2012.05
 + allow case insensitive regex matches without ICU in limited cases
 + %*ENV now propagates into subprocesses
 + RAKUDOLIB env variable supported in addition to PERL6LIB
++ -I command line option
 
 New in 2012.04.1
 + autvivification for arrays and hashes

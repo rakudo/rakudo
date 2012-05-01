@@ -71,6 +71,18 @@ sub term:<time>() { nqp::p6box_i(pir::time__I()) }
     }
     @INC.push($VM<config><libdir> ~ $VM<config><versiondir> ~ '/languages/perl6/lib');
     @INC.push('.'); # XXX: remove this when 'use lib' works fine
+
+    my $I := nqp::atkey(nqp::atkey(%*COMPILING, '%?OPTIONS'), 'I');
+    if pir::defined($I) {
+        if pir::does($I, 'array') {
+            my Mu $iter := nqp::iterator($I);
+            @INC.unshift: nqp::p6box_s(nqp::shift($iter)) while $iter;
+        }
+        else {
+            @INC.unshift: nqp::p6box_s($I);
+        }
+    }
+
     nqp::bindkey(pir::get_who__PP(PROCESS), '@INC', @INC);
 
     my $PID = nqp::p6box_i(pir::getinterp.getpid());

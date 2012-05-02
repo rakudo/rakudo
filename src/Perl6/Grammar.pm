@@ -2096,7 +2096,7 @@ grammar Perl6::Grammar is HLL::Grammar {
             || { $*value := 1; }
             ]
         | (\d+) <identifier>
-            [ <?before '('> <.cirumfix> <.panic('2nd argument not allowed on pair')> ]?
+            [ <?before '('> <.circumfix> <.panic('2nd argument not allowed on pair')> ]?
             { $*key := ~$<identifier>; $*value := +~$/[0] }
         ]
     }

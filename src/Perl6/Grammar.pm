@@ -474,6 +474,16 @@ grammar Perl6::Grammar is HLL::Grammar {
                 $*W.install_lexical_symbol($*UNIT, '::?PACKAGE', $*PACKAGE);
                 $*DECLARAND := $*W.stub_code_object('Block');
             }
+            my $M := %*COMPILING<%?OPTIONS><M>;
+            if pir::defined($M) {
+                for pir::does($M, 'array') ?? $M !! [$M] -> $longname {
+                    my $module := $*W.load_module($/,
+                                                    $longname,
+                                                    $*GLOBALish);
+                    do_import($module, []);
+                    $/.CURSOR.import_EXPORTHOW($module);
+                }
+            }
         }
         
         <.finishpad>

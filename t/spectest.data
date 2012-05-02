@@ -78,6 +78,7 @@ S02-magicals/config.t
 S02-magicals/dollar_bang.t
 S02-magicals/dollar-underscore.t
 S02-magicals/env.t
+S02-magicals/file_line.t
 S02-magicals/pid.t
 S02-magicals/progname.t
 S02-magicals/sub.t

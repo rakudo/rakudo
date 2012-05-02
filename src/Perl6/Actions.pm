@@ -1152,6 +1152,21 @@ class Perl6::Actions is HLL::Actions {
                                 :full_name($past.name()));
             }
         }
+        elsif $past.name() eq '$?LINE' || $past.name eq '$?FILE' {
+            if $*IN_DECL eq 'variable' {
+                $*W.throw('X::Syntax::Variable::Twigil',
+                        twigil  => '?',
+                        scope   => $*SCOPE,
+                );
+            }
+            if $past.name() eq '$?LINE' {
+                $past := $*W.add_constant('Int', 'int',
+                        HLL::Compiler.lineof($/.orig, $/.from ));
+            }
+            else {
+                $past := $*W.add_string_constant(pir::find_caller_lex__ps('$?FILES') // '<unknown file>');
+            }
+        }
         elsif +@name > 1 {
             $past := $*W.symbol_lookup(@name, $/, :lvalue(1));
         }

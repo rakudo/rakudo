@@ -1154,7 +1154,7 @@ class Perl6::Actions is HLL::Actions {
         }
         elsif $past.name() eq '$?LINE' || $past.name eq '$?FILE' {
             if $*IN_DECL eq 'variable' {
-                $*W.throw('X::Syntax::Variable::Twigil',
+                $*W.throw($/, 'X::Syntax::Variable::Twigil',
                         twigil  => '?',
                         scope   => $*SCOPE,
                 );

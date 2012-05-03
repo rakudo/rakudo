@@ -50,7 +50,7 @@ class Perl6::Optimizer {
         if +%!deadly {
             my @fails;
             for %!deadly {
-                my @parts := pir::split("\n", $_.key);
+                my @parts := nqp::split("\n", $_.key);
                 my $headline := @parts.shift();
                 @fails.push("$headline (line" ~ (+$_.value == 1 ?? ' ' !! 's ') ~
                     nqp::join(', ', $_.value) ~ ")" ~
@@ -450,7 +450,7 @@ class Perl6::Optimizer {
     method inline_call($call, $code_obj) {
         my $inline := $code_obj.inline_info();
         my $name   := $call.name;
-        my @tokens := pir::split(' ', $inline);
+        my @tokens := nqp::split(' ', $inline);
         my @stack  := [PAST::Stmt.new()];
         while +@tokens {
             my $cur_tok := @tokens.shift;

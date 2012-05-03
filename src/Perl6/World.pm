@@ -941,7 +941,7 @@ class Perl6::World is HLL::World {
         }
         
         # Find type object for the box typed we'll create.
-        my $type_obj := self.find_symbol(pir::split('::', $type));
+        my $type_obj := self.find_symbol(nqp::split('::', $type));
         
         # Go by the primitive type we're boxing. Need to create
         # the boxed value and also code to produce it.

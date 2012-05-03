@@ -345,7 +345,7 @@ class Perl6::Pod {
         my $i := 0;
         while $i < +@rows {
             unless @rows[$i] ~~ /^'='+ || ^'-'+ || ^'_'+ || ^\h*$ / {
-                my @line := pir::split('', @rows[$i]);
+                my @line := nqp::split('', @rows[$i]);
                 my $j := 0;
                 while $j < +@line {
                     unless @suspects[$j] {

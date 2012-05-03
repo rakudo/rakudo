@@ -1841,7 +1841,7 @@ class Perl6::Actions is HLL::Actions {
                 for @($node) {
                     @children.push($node_walker($_));
                 }
-                my $safe_name := nqp::join('__', pir::split(' ', $node.pirop));
+                my $safe_name := nqp::join('__', nqp::split(' ', $node.pirop));
                 "PIROP $safe_name ( " ~ nqp::join(' ', @children) ~ " )"
             }
             elsif $node.isa(PAST::Want) && +@($node) == 3 {

@@ -137,7 +137,7 @@ do {
         method (|$) {
             my Mu $ex := nqp::atpos(pir::perl6_current_args_rpa__P(), 1);
             pir::perl6_invoke_catchhandler(&print_exception, $ex);
-            pir::exit(1);
+            nqp::exit(1);
             0;
         }
     );

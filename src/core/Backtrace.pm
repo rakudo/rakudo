@@ -100,6 +100,10 @@ my class Backtrace is List {
             my @frames;
             my Int $i = self.next-interesting-index(-1);
             while $i.defined {
+                $i = self.next-interesting-index($i)
+                    while $oneline && $i.defined
+                          && self.at_pos($i).is-setting;
+
                 my $prev = self.at_pos($i);
                 if $prev.is-routine {
                     @frames.push: $prev;

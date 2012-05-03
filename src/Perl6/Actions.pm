@@ -4071,7 +4071,7 @@ class Perl6::Actions is HLL::Actions {
         my $result := '';
         while $i < nqp::chars($n) {
             my $char := nqp::substr($n, $i, 1);
-            $result := $result ~ $char if pir::index($allowed, $char) >= 0;
+            $result := $result ~ $char if nqp::index($allowed, $char) >= 0;
             $i++;
         }
         $result;
@@ -4876,7 +4876,7 @@ class Perl6::Actions is HLL::Actions {
     }
     sub whatever_curry($/, $past, $upto_arity) {
         my $curried := $past.isa(PAST::Op)
-                       && ($past<pasttype> ne 'call' || pir::index($past.name, '&infix:') == 0)
+                       && ($past<pasttype> ne 'call' || nqp::index($past.name, '&infix:') == 0)
                        && (%curried{$past.name // $past.pirop} // 2);
         my $i := 0;
         my $whatevers := 0;
@@ -4991,8 +4991,8 @@ class Perl6::Actions is HLL::Actions {
     }
 
     sub strip_trailing_zeros(str $n) {
-        return $n if pir::index($n, '.') < 0;
-        while pir::index('_0',nqp::substr($n, -1)) >= 0 {
+        return $n if nqp::index($n, '.') < 0;
+        while nqp::index('_0',nqp::substr($n, -1)) >= 0 {
             $n := pir::chopn__Ssi($n, 1);
         }
         $n;
@@ -5016,7 +5016,7 @@ class Perl6::Actions is HLL::Actions {
         }
         if nqp::substr($number, 0, 1) eq '0' {
             my $radix_name := nqp::uc(nqp::substr($number, 1, 1));
-            if pir::index('0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ', $radix_name) > $radix {
+            if nqp::index('0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ', $radix_name) > $radix {
                 $number := nqp::substr($number, 2);
 
                 if      $radix_name eq 'B' {
@@ -5050,7 +5050,7 @@ class Perl6::Actions is HLL::Actions {
                 $seen_dot := 1;
                 next;
             }
-            my $i := pir::index('0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ', $current);
+            my $i := nqp::index('0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ', $current);
             nqp::die("Invalid character '$current' in number literal") if $i < 0 || $i >= $radix;
             $iresult := nqp::add_I(nqp::mul_I($iresult, $radixInt, $Int), nqp::box_i($i, $Int), $Int);
             $fdivide := nqp::mul_I($fdivide, $radixInt, $Int) if $seen_dot;

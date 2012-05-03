@@ -102,7 +102,7 @@ BEGIN {
             nqp::unbox_s($self.Str())
         }));
     Mu.HOW.add_parrot_vtable_mapping(Mu, 'defined',
-        static(sub ($self) { pir::istrue__IP($self.defined()) }));
+        static(sub ($self) { nqp::istrue($self.defined()) }));
 
     # class Any is Mu { ... }
     Any.HOW.add_parent(Any, Mu);

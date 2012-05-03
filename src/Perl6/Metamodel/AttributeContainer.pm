@@ -24,7 +24,7 @@ role Perl6::Metamodel::AttributeContainer {
         for @!attributes {
             if $!attr_rw_by_default { $_.default_to_rw() }
             if $_.has_accessor() {
-                my $acc_name := pir::substr__SSi($_.name, 2);
+                my $acc_name := nqp::substr($_.name, 2);
                 nqp::die("Two or more attributes declared that both want an accessor method '$acc_name'")
                     if %seen_with_accessor{$acc_name} && !nqp::existskey(%meths, $acc_name);
                 %seen_with_accessor{$acc_name} := 1;

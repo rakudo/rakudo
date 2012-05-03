@@ -1269,7 +1269,7 @@ class Perl6::Actions is HLL::Actions {
         # If it's a stub, add it to the "must compose at some point" list,
         # then just evaluate to the type object. Don't need to do any more
         # just yet.
-        if pir::substr__Ssii($<blockoid><statementlist><statement>[0], 0, 3) eq '...' {
+        if nqp::substr($<blockoid><statementlist><statement>[0], 0, 3) eq '...' {
             unless $*PKGDECL eq 'role' {
                 $*W.add_stub_to_check($*PACKAGE);
             }
@@ -2535,7 +2535,7 @@ class Perl6::Actions is HLL::Actions {
                 $/.CURSOR.panic('Cannot have more than one sub-signature for a parameter');
             }
             %*PARAM_INFO<sub_signature_params> := $<signature>.ast;
-            if pir::substr(~$/, 0, 1) eq '[' {
+            if nqp::substr(~$/, 0, 1) eq '[' {
                 %*PARAM_INFO<sigil> := '@';
                 %*PARAM_INFO<nominal_type> := $*W.find_symbol(['Positional']);
             }
@@ -2639,9 +2639,9 @@ class Perl6::Actions is HLL::Actions {
 
     method type_constraint($/) {
         if $<typename> {
-            if pir::substr(~$<typename>, 0, 2) eq '::' && pir::substr(~$<typename>, 2, 1) ne '?' {
+            if nqp::substr(~$<typename>, 0, 2) eq '::' && nqp::substr(~$<typename>, 2, 1) ne '?' {
                 # Set up signature so it will find the typename.
-                my $desigilname := pir::substr(~$<typename>, 2);
+                my $desigilname := nqp::substr(~$<typename>, 2);
                 unless %*PARAM_INFO<type_captures> {
                     %*PARAM_INFO<type_captures> := []
                 }
@@ -2723,7 +2723,7 @@ class Perl6::Actions is HLL::Actions {
                 $/.CURSOR.panic('Cannot have more than one sub-signature for a parameter');
             }
             %*PARAM_INFO<sub_signature_params> := $<signature>.ast;
-            if pir::substr(~$/, 0, 1) eq '[' {
+            if nqp::substr(~$/, 0, 1) eq '[' {
                 %*PARAM_INFO<sigil> := '@';
             }
         }
@@ -3175,7 +3175,7 @@ class Perl6::Actions is HLL::Actions {
             # Add & to name.
             my @name := nqp::clone($*longname.components());
             my $final := @name[+@name - 1];
-            if pir::substr($final, 0, 1) ne '&' {
+            if nqp::substr($final, 0, 1) ne '&' {
                 @name[+@name - 1] := '&' ~ $final;
             }
             my $is_macro := 0;
@@ -3474,7 +3474,7 @@ class Perl6::Actions is HLL::Actions {
                 $is_hash := 1;
             }
             elsif $elem ~~ PAST::Var
-                    && pir::substr($elem.name, 0, 1) eq '%' {
+                    && nqp::substr($elem.name, 0, 1) eq '%' {
                 # first item is a hash
                 $is_hash := 1;
             }
@@ -3745,7 +3745,7 @@ class Perl6::Actions is HLL::Actions {
         # Check we know how to bind to the thing on the LHS.
         if $target.isa(PAST::Var) {
             # We may need to decontainerize the right, depending on sigil.
-            my $sigil := pir::substr($target.name(), 0, 1);
+            my $sigil := nqp::substr($target.name(), 0, 1);
             if $sigil eq '@' || $sigil eq '%' {
                 $source := PAST::Op.new( :pirop('perl6_decontainerize PP'), $source );
             }
@@ -3807,7 +3807,7 @@ class Perl6::Actions is HLL::Actions {
         my $past;
         my $var_sigil;
         if $lhs_ast.isa(PAST::Var) {
-            $var_sigil := pir::substr($lhs_ast.name, 0, 1);
+            $var_sigil := nqp::substr($lhs_ast.name, 0, 1);
         }
         if $lhs_ast && $lhs_ast<boxable_native> {
             # Native assignment is actually really a bind at low level
@@ -3839,7 +3839,7 @@ class Perl6::Actions is HLL::Actions {
         if $rhs.isa(PAST::Op) && $rhs.pasttype eq 'call' {
             if $rhs.name && +@($rhs) == 1 {
                 try {
-                    $past.push($*W.get_ref($*W.find_symbol([pir::substr__SSi($rhs.name, 1)])));
+                    $past.push($*W.get_ref($*W.find_symbol([nqp::substr($rhs.name, 1)])));
                     $rhs[0].named('value');
                     $past.push($rhs[0]);
                     CATCH { $past.push($rhs); }
@@ -4123,7 +4123,7 @@ class Perl6::Actions is HLL::Actions {
         # dispatch with. Note that for '::T' style things we need to make a
         # GenericHOW, though whether/how it's used depends on context.
         if $<longname> {
-            if pir::substr(~$<longname>, 0, 2) ne '::' {
+            if nqp::substr(~$<longname>, 0, 2) ne '::' {
                 my $longname := $*W.disect_longname($<longname>);
                 my $type := $*W.find_symbol($longname.type_name_parts('type name'));
                 if $<arglist> {
@@ -4142,7 +4142,7 @@ class Perl6::Actions is HLL::Actions {
                 if ~$<longname> eq '::' {
                     $/.CURSOR.panic("Cannot use :: as a type name");
                 }
-                make $*W.pkg_create_mo($/, %*HOW<generic>, :name(pir::substr(~$<longname>, 2)));
+                make $*W.pkg_create_mo($/, %*HOW<generic>, :name(nqp::substr(~$<longname>, 2)));
             }
         }
         else {
@@ -4398,7 +4398,7 @@ class Perl6::Actions is HLL::Actions {
         while pir::is_cclass__IISI(32, $/, $pos) {
             $pos--;
         }
-        my $nab_back := pir::substr__SSI($/, $pos + 1);
+        my $nab_back := nqp::substr($/, $pos + 1);
         if $nab_back {
             PAST::Op.new( :pasttype('call'), :name('&infix:<~>'), $expr, $*W.add_string_constant(~$nab_back) )
         }
@@ -4536,7 +4536,7 @@ class Perl6::Actions is HLL::Actions {
             for @params {
                 last if $_<pos_slurpy> || $_<named_slurpy> ||
                         $_<named_names> ||
-                        pir::substr__SSi($_<variable_name>, 1) gt $ident;
+                        nqp::substr($_<variable_name>, 1) gt $ident;
                 $insert_at := $insert_at + 1;
             }
             nqp::splice(@params, [%param_info], $insert_at, 0);

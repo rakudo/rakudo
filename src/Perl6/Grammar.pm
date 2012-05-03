@@ -1954,7 +1954,7 @@ grammar Perl6::Grammar is HLL::Grammar {
         :my $*longname;
         { $*longname := $*W.disect_longname($<longname>) }
         [
-        ||  <?{ pir::substr($<longname>.Str, 0, 2) eq '::' || $*W.is_name($*longname.components()) }>
+        ||  <?{ nqp::substr($<longname>.Str, 0, 2) eq '::' || $*W.is_name($*longname.components()) }>
             <.unsp>?
             [
                 <?{ $*W.is_type($*longname.components()) }>
@@ -2069,7 +2069,7 @@ grammar Perl6::Grammar is HLL::Grammar {
         | <longname>
           <?{
             my $longname := $*W.disect_longname($<longname>);
-            pir::substr(~$<longname>, 0, 2) eq '::' ??
+            nqp::substr(~$<longname>, 0, 2) eq '::' ??
                 1 !! # ::T introduces a type, so always is one
                 $*W.is_name($longname.type_name_parts('type name'))
           }>
@@ -2282,7 +2282,7 @@ grammar Perl6::Grammar is HLL::Grammar {
     sub bracket_ending($matches) {
         my $check := $matches[+$matches - 1];
         my $str   := $check.Str;
-        my $last  := pir::substr($str, nqp::chars($check) - 1, 1);
+        my $last  := nqp::substr($str, nqp::chars($check) - 1, 1);
         $last eq ')' || $last eq '}' || $last eq ']' || $last eq '>'
     }
 

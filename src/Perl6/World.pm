@@ -248,7 +248,7 @@ class Perl6::World is HLL::World {
     # pacakges as needed.
     method install_package($/, @name_orig, $scope, $pkgdecl, $package, $outer, $symbol) {
         if $scope eq 'anon' { return 1 }
-        my @parts := pir::clone(@name_orig);
+        my @parts := nqp::clone(@name_orig);
         my $name  := @parts.pop();
         my $create_scope := $scope;
         my $cur_pkg := $package;
@@ -1532,7 +1532,7 @@ class Perl6::World is HLL::World {
             # in the package. Otherwise, just go on if it's a
             # package or not.
             if +@name > 1 {
-                my @restname := pir::clone(@name);
+                my @restname := nqp::clone(@name);
                 @restname.shift;
                 return self.already_declared('our', $first_sym, PAST::Block.new(), @restname);
             }
@@ -1596,7 +1596,7 @@ class Perl6::World is HLL::World {
                 if +%sym {
                     if pir::exists(%sym, 'value') {
                         $result := %sym<value>;
-                        @name := pir::clone__PP(@name);
+                        @name := nqp::clone(@name);
                         @name.shift();
                         $i := 0;
                     }
@@ -1702,7 +1702,7 @@ class Perl6::World is HLL::World {
                 PAST::Var.new( :name(@name.shift()), :scope('lexical_6model') ) !!
                 PAST::Var.new( :name('GLOBAL'), :namespace([]), :scope('package') );
             if @name[0] eq 'GLOBAL' {
-                @name := pir::clone__PP(@name);
+                @name := nqp::clone(@name);
                 @name.shift();
             }
             for @name {

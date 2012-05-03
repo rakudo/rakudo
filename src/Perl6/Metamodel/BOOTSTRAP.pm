@@ -481,7 +481,7 @@ BEGIN {
             my $cloned := pir::repr_clone__PP($dcself);
             nqp::bindattr($cloned, Code, '$!do',
                 pir::perl6_associate_sub_code_object__0PP(
-                    pir::clone__PP(nqp::getattr($dcself, Code, '$!do')),
+                    nqp::clone(nqp::getattr($dcself, Code, '$!do')),
                     $cloned));
             Q:PIR {
                 $P0 = find_lex '$dcself'
@@ -507,7 +507,7 @@ BEGIN {
             my $ins := $self.clone();
             if pir::defined(nqp::getattr($dcself, Routine, '$!dispatchees')) {
                 nqp::bindattr($ins, Routine, '$!dispatchees',
-                    pir::clone__PP(nqp::getattr($dcself, Routine, '$!dispatchees')));
+                    nqp::clone(nqp::getattr($dcself, Routine, '$!dispatchees')));
             }
             my $sig := nqp::getattr($dcself, Code, '$!signature');
             pir::setattribute__0PPsP($ins, Code, '$!signature',
@@ -541,7 +541,7 @@ BEGIN {
             my $cloned := pir::repr_clone__PP($dcself);
             nqp::bindattr($cloned, Code, '$!do',
                 pir::perl6_associate_sub_code_object__0PP(
-                    pir::clone__PP(nqp::getattr($dcself, Code, '$!do')),
+                    nqp::clone(nqp::getattr($dcself, Code, '$!do')),
                     $cloned));
             Q:PIR {
                 $P0 = find_lex '$dcself'
@@ -583,13 +583,13 @@ BEGIN {
                 pir::setattribute__0PPsP($dc_self, Routine, '$!dispatcher_cache', pir::null__P());
             }
             else {
-                pir::die("Cannot add a dispatchee to a non-dispatcher code object");
+                nqp::die("Cannot add a dispatchee to a non-dispatcher code object");
             }
         }));
     Routine.HOW.add_method(Routine, 'derive_dispatcher', static(sub ($self) {
             my $clone := $self.clone();
             nqp::bindattr($clone, Routine, '$!dispatchees',
-                pir::clone__PP(nqp::getattr($self, Routine, '$!dispatchees')));
+                nqp::clone(nqp::getattr($self, Routine, '$!dispatchees')));
             nqp::bindattr($clone, Routine, '$!md_thunk', nqp::null());
             $clone
         }));

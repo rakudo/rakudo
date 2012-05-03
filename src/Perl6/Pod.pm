@@ -90,7 +90,7 @@ class Perl6::Pod {
             if $colonpair<circumfix> {
                 $val := $colonpair<circumfix>;
                 if $val<quote_EXPR> {
-                    $val := pir::join('', $val<quote_EXPR><quote_delimited><quote_atom>);
+                    $val := nqp::join('', $val<quote_EXPR><quote_delimited><quote_atom>);
                 } else {
                     $val := ~$val<semilist>;
                 }
@@ -306,7 +306,7 @@ class Perl6::Pod {
 
     our sub build_pod_string(@content) {
         sub push_strings(@strings, @where) {
-            my $s := subst(pir::join('', @strings), /\s+/, ' ', :global);
+            my $s := subst(nqp::join('', @strings), /\s+/, ' ', :global);
             my $t := $*W.add_constant(
                 'Str', 'str', $s
             )<compile_time_value>;

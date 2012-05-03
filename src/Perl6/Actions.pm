@@ -794,7 +794,7 @@ class Perl6::Actions is HLL::Actions {
 #                if $_ ne '*' && $_ < @MAX_PERL_VERSION[$i] {
 #                    last;
 #                } elsif $_ > @MAX_PERL_VERSION[$i] {
-#                    my $mpv := pir::join('.', @MAX_PERL_VERSION);
+#                    my $mpv := nqp::join('.', @MAX_PERL_VERSION);
 #                    $/.CURSOR.panic("Perl $<version> required--this is only v$mpv")
 #                }
 #            }
@@ -1841,8 +1841,8 @@ class Perl6::Actions is HLL::Actions {
                 for @($node) {
                     @children.push($node_walker($_));
                 }
-                my $safe_name := pir::join('__', pir::split(' ', $node.pirop));
-                "PIROP $safe_name ( " ~ pir::join(' ', @children) ~ " )"
+                my $safe_name := nqp::join('__', pir::split(' ', $node.pirop));
+                "PIROP $safe_name ( " ~ nqp::join(' ', @children) ~ " )"
             }
             elsif $node.isa(PAST::Want) && +@($node) == 3 {
                 my %backup := nqp::clone(%arg_used);

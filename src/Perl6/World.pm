@@ -929,7 +929,7 @@ class Perl6::World is HLL::World {
                 $cache_key := "$type,bigint," ~ nqp::tostr_I(@value[0]);
             } else {
                 $cache_key := "$type,$primitive,"
-                    ~ pir::join(',', @value)
+                    ~ nqp::join(',', @value)
                     ~ $namedkey;
             }
             if pir::exists(%!const_cache, $cache_key) {
@@ -1333,7 +1333,7 @@ class Perl6::World is HLL::World {
         method name() {
             my @parts := nqp::clone(@!components);
             @parts.shift() while self.is_pseudo_package(@parts[0]);
-            pir::join('::', @parts)
+            nqp::join('::', @parts)
         }
         
         # Gets the individual components, which may be PAST nodes for
@@ -1614,7 +1614,7 @@ class Perl6::World is HLL::World {
             }
             else {
                 nqp::die("Could not locate compile-time value for symbol " ~
-                    pir::join('::', @name));
+                    nqp::join('::', @name));
             }
         }
         
@@ -1625,7 +1625,7 @@ class Perl6::World is HLL::World {
     method symbol_lookup(@name, $/, :$package_only = 0, :$lvalue = 0) {
         # Catch empty names and die helpfully.
         if +@name == 0 { $/.CURSOR.panic("Cannot compile empty name"); }
-        my $orig_name := pir::join('::', @name);
+        my $orig_name := nqp::join('::', @name);
         
         # Handle fetching GLOBAL.
         if +@name == 1 && @name[0] eq 'GLOBAL' {

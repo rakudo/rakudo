@@ -61,7 +61,7 @@ my class RoleToClassApplier {
                         "' must be resolved by class " ~
                         $target.HOW.name($target) ~
                         " because it exists in multiple roles (" ~
-                        pir::join(", ", $_.roles) ~ ")");
+                        nqp::join(", ", $_.roles) ~ ")");
                 }
             }
             else {
@@ -70,7 +70,7 @@ my class RoleToClassApplier {
                         "' must be resolved by class " ~
                         $target.HOW.name($target) ~
                         " because it exists in multiple roles (" ~
-                        pir::join(", ", $_.roles) ~ ")");
+                        nqp::join(", ", $_.roles) ~ ")");
                 }
             }
         }

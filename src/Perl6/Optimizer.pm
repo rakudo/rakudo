@@ -53,17 +53,17 @@ class Perl6::Optimizer {
                 my @parts := pir::split("\n", $_.key);
                 my $headline := @parts.shift();
                 @fails.push("$headline (line" ~ (+$_.value == 1 ?? ' ' !! 's ') ~
-                    pir::join(', ', $_.value) ~ ")" ~
-                    (+@parts ?? "\n" ~ pir::join("\n", @parts) !! ""));
+                    nqp::join(', ', $_.value) ~ ")" ~
+                    (+@parts ?? "\n" ~ nqp::join("\n", @parts) !! ""));
             }
-            nqp::die("CHECK FAILED:\n" ~ pir::join("\n", @fails))
+            nqp::die("CHECK FAILED:\n" ~ nqp::join("\n", @fails))
         }
         if +%!worrying {
             pir::printerr__vs("WARNINGS:\n");
             my @fails;
             for %!worrying {
                 pir::printerr__vs($_.key ~ " (line" ~ (+$_.value == 1 ?? ' ' !! 's ') ~
-                    pir::join(', ', $_.value) ~ ")\n");
+                    nqp::join(', ', $_.value) ~ ")\n");
             }
         }
         
@@ -303,7 +303,7 @@ class Perl6::Optimizer {
             "Calling '" ~ $obj.name ~ "' will never work with " ~
             (+@arg_names == 0 ??
                 "no arguments" !!
-                "argument types (" ~ pir::join(', ', @arg_names) ~ ")"),
+                "argument types (" ~ nqp::join(', ', @arg_names) ~ ")"),
             $obj.is_dispatcher ??
                 multi_sig_list($obj) !!
                 ["    Expected: " ~ $obj.signature.perl]);
@@ -516,7 +516,7 @@ class Perl6::Optimizer {
     # Adds an entry to the list of things that would cause a check fail.
     method add_deadly($past_node, $message, @extras?) {
         my $line := HLL::Compiler.lineof($past_node<source>, $past_node<pos>);
-        my $key := $message ~ (+@extras ?? "\n" ~ pir::join("\n", @extras) !! "");
+        my $key := $message ~ (+@extras ?? "\n" ~ nqp::join("\n", @extras) !! "");
         unless %!deadly{$key} {
             %!deadly{$key} := [];
         }

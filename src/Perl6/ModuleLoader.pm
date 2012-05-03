@@ -40,7 +40,7 @@ class Perl6::ModuleLoader {
     # Locates files we could potentially load for this module.
     method locate_candidates($module_name, @prefixes) {
         # Assemble various files we'd look for.
-        my $base_path := pir::join('/', pir::split('::', $module_name));
+        my $base_path := nqp::join('/', pir::split('::', $module_name));
         my $pbc_path  := $base_path ~ '.pbc';
         my $pir_path  := $base_path ~ '.pir';
         my $pm_path   := $base_path ~ '.pm';
@@ -97,7 +97,7 @@ class Perl6::ModuleLoader {
         my @candidates := self.locate_candidates($module_name, @prefixes);
         if +@candidates == 0 {
             nqp::die("Could not find $module_name in any of: " ~
-                pir::join(', ', @prefixes));
+                nqp::join(', ', @prefixes));
         }
         my %chosen := @candidates[0];
         

@@ -63,11 +63,11 @@ class Perl6::Actions is HLL::Actions {
         if pir::does($ints, 'array') {
             my $result := '';
             for $ints {
-                $result := $result ~ pir::chr(nqp::unbox_i($_.ast));
+                $result := $result ~ nqp::chr(nqp::unbox_i($_.ast));
             }
             $result;
         } else {
-            pir::chr(nqp::unbox_i($ints.ast));
+            nqp::chr(nqp::unbox_i($ints.ast));
         }
     }
 

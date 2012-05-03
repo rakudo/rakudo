@@ -100,7 +100,7 @@ class Perl6::Metamodel::EnumHOW
     }
     
     method composalize($obj) {
-        pir::die("Cannot yet turn an enum into a role");
+        nqp::die("Cannot yet turn an enum into a role");
     }
     
     method does_list($obj) {

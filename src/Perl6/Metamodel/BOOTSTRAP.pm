@@ -428,7 +428,7 @@ BEGIN {
             my $dcself := pir::perl6_decontainerize__PP($self);
             my $flags  := nqp::getattr_i($dcself, Parameter, '$!flags');
             if $flags +& $SIG_ELEM_IS_OPTIONAL {
-                pir::die("Cannot use 'is rw' on an optional parameter");
+                nqp::die("Cannot use 'is rw' on an optional parameter");
             }
             my $cd := nqp::getattr($dcself, Parameter, '$!container_descriptor');
             if $cd { $cd.set_rw(1) }

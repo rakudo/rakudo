@@ -8,7 +8,7 @@ role Perl6::Metamodel::BaseType {
     
     method set_base_type($obj, $base_type) {
         if $!base_type_set {
-            pir::die("Base type has already been set for " ~ self.name($obj));
+            nqp::die("Base type has already been set for " ~ self.name($obj));
         }
         $!base_type := $base_type;
         $!base_type_set := 1;

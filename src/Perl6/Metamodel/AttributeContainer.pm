@@ -10,7 +10,7 @@ role Perl6::Metamodel::AttributeContainer {
     method add_attribute($obj, $meta_attr) {
         my $name := $meta_attr.name;
         if pir::exists(%!attribute_lookup, $name) {
-            pir::die("Package '" ~ self.name($obj) ~
+            nqp::die("Package '" ~ self.name($obj) ~
                 "' already has an attribute named '$name'");
         }
         @!attributes[+@!attributes] := $meta_attr;
@@ -25,7 +25,7 @@ role Perl6::Metamodel::AttributeContainer {
             if $!attr_rw_by_default { $_.default_to_rw() }
             if $_.has_accessor() {
                 my $acc_name := pir::substr__SSi($_.name, 2);
-                pir::die("Two or more attributes declared that both want an accessor method '$acc_name'")
+                nqp::die("Two or more attributes declared that both want an accessor method '$acc_name'")
                     if %seen_with_accessor{$acc_name} && !nqp::existskey(%meths, $acc_name);
                 %seen_with_accessor{$acc_name} := 1;
             }
@@ -49,7 +49,7 @@ role Perl6::Metamodel::AttributeContainer {
     # that are visible inside the current package.
     method get_attribute_for_usage($obj, $name) {
         unless pir::exists(%!attribute_lookup, $name) {
-            pir::die("No $name attribute in " ~ self.name($obj))
+            nqp::die("No $name attribute in " ~ self.name($obj))
         }
         %!attribute_lookup{$name}
     }

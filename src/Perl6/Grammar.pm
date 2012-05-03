@@ -2739,7 +2739,7 @@ grammar Perl6::Grammar is HLL::Grammar {
             # runs us into fun with terminators.
             my @parts := nqp::split(' ', $opname);
             if +@parts != 2 {
-                pir::die("Unable to find starter and stopper from '$opname'");
+                nqp::die("Unable to find starter and stopper from '$opname'");
             }
             $parse.push(PAST::Regex.new(
                 :pasttype('literal'), :backtrack('r'),

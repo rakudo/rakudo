@@ -23,7 +23,7 @@ class Perl6::Metamodel::SubsetHOW
     method set_of($obj, $refinee) {
         my $archetypes := $!refinee.HOW.archetypes;
         unless $archetypes.nominal || $archetypes.nominalizable {
-            pir::die("The 'of' type of a subset must either be a valid nominal " ~
+            nqp::die("The 'of' type of a subset must either be a valid nominal " ~
                 "type or a type that can provide one");
         }
         $!refinee := pir::nqp_decontainerize__PP($refinee);

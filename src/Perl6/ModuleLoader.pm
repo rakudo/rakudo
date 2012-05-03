@@ -96,7 +96,7 @@ class Perl6::ModuleLoader {
         my @prefixes   := self.search_path();
         my @candidates := self.locate_candidates($module_name, @prefixes);
         if +@candidates == 0 {
-            pir::die("Could not find $module_name in any of: " ~
+            nqp::die("Could not find $module_name in any of: " ~
                 pir::join(', ', @prefixes));
         }
         my %chosen := @candidates[0];
@@ -194,7 +194,7 @@ class Perl6::ModuleLoader {
                     ($target.WHO){$sym} := $_.value;
                 }
                 else {
-                    pir::die("Merging GLOBAL symbols failed: duplicate definition of symbol $sym");
+                    nqp::die("Merging GLOBAL symbols failed: duplicate definition of symbol $sym");
                 }
             }
         }
@@ -226,7 +226,7 @@ class Perl6::ModuleLoader {
                 pir::nqp_enable_sc_write_barrier__v();
                 pir::set_hll_global__vsP('GLOBAL', $preserve_global);
                 unless pir::defined($*MAIN_CTX) {
-                    pir::die("Unable to load setting $setting_name; maybe it is missing a YOU_ARE_HERE?");
+                    nqp::die("Unable to load setting $setting_name; maybe it is missing a YOU_ARE_HERE?");
                 }
                 %settings_loaded{$setting_name} := $*MAIN_CTX;
             }

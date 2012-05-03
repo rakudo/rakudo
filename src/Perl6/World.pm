@@ -225,7 +225,7 @@ class Perl6::World is HLL::World {
         for %stash {
             if $target.symbol($_.key) {
                 # XXX TODO: Merge handling.
-                pir::die("Cannot import symbol '" ~ $_.key ~ "', since it already exists in the lexpad");
+                nqp::die("Cannot import symbol '" ~ $_.key ~ "', since it already exists in the lexpad");
             }
             else {
                 $target.symbol($_.key, :scope('lexical_6model'), :value($_.value));
@@ -361,7 +361,7 @@ class Perl6::World is HLL::World {
         # need to take care of initial value though.
         my $prim := pir::repr_get_primitive_type_spec__IP($descriptor.of);
         if $prim {
-            if $state { pir::die("Natively typed state variables not yet implemented") }
+            if $state { nqp::die("Natively typed state variables not yet implemented") }
             if $var {
                 if $prim == 1    { $var.viviself(PAST::Val.new( :value(0) )) }
                 elsif $prim == 2 { $var.viviself(PAST::Op.new( :pirop('set__Ns'), 'NaN' )) }
@@ -427,7 +427,7 @@ class Perl6::World is HLL::World {
                 }
             }
         }
-        pir::die("Could not find container descriptor for $name");
+        nqp::die("Could not find container descriptor for $name");
     }
     
     # Installs a symbol into the package.
@@ -962,7 +962,7 @@ class Perl6::World is HLL::World {
             $constant := $type_obj.new(|@value, |%named);
         }
         else {
-            pir::die("Don't know how to build a $primitive constant");
+            nqp::die("Don't know how to build a $primitive constant");
         }
         
         # Add to SC.
@@ -1369,7 +1369,7 @@ class Perl6::World is HLL::World {
             my @name;
             my $beyond_pp;
             if $decl && $!get_who {
-                pir::die("Name $!text ends with '::' and cannot be used as a $dba");
+                nqp::die("Name $!text ends with '::' and cannot be used as a $dba");
             }
             for @!components {
                 if pir::can($_, 'isa') && $_.isa(PAST::Node) {
@@ -1379,7 +1379,7 @@ class Perl6::World is HLL::World {
                         }
                     }
                     else {
-                        pir::die("Name $!text is not compile-time known, and can not serve as a $dba");
+                        nqp::die("Name $!text is not compile-time known, and can not serve as a $dba");
                     }
                 }
                 elsif $beyond_pp || !self.is_pseudo_package($_) {
@@ -1389,10 +1389,10 @@ class Perl6::World is HLL::World {
                 else {
                     if $decl {
                         if $_ ne 'GLOBAL' {
-                            pir::die("Cannot use pseudo-package $_ in a $dba");
+                            nqp::die("Cannot use pseudo-package $_ in a $dba");
                         }
                         elsif +@!components == 1 {
-                            pir::die("Cannot declare pseudo-package GLOBAL");
+                            nqp::die("Cannot declare pseudo-package GLOBAL");
                         }
                     }
                     else {
@@ -1461,7 +1461,7 @@ class Perl6::World is HLL::World {
                         ~$_);
                 }
                 else {
-                    pir::die(~$_ ~ ' cannot be resolved at compile time');
+                    nqp::die(~$_ ~ ' cannot be resolved at compile time');
                 }
             }
             else {
@@ -1557,7 +1557,7 @@ class Perl6::World is HLL::World {
     # that fails tries package lookup.
     method find_symbol(@name) {
         # Make sure it's not an empty name.
-        unless +@name { pir::die("Cannot look up empty name"); }
+        unless +@name { nqp::die("Cannot look up empty name"); }
 
         # GLOBAL is current view of global.
         if +@name == 1 && @name[0] eq 'GLOBAL' {
@@ -1577,7 +1577,7 @@ class Perl6::World is HLL::World {
                         return %sym<value>;
                     }
                     else {
-                        pir::die("No compile-time value for $final_name");
+                        nqp::die("No compile-time value for $final_name");
                     }
                 }
             }
@@ -1601,7 +1601,7 @@ class Perl6::World is HLL::World {
                         $i := 0;
                     }
                     else {
-                        pir::die("No compile-time value for $first");
+                        nqp::die("No compile-time value for $first");
                     }                    
                 }
             }
@@ -1613,7 +1613,7 @@ class Perl6::World is HLL::World {
                 $result := ($result.WHO){$_};
             }
             else {
-                pir::die("Could not locate compile-time value for symbol " ~
+                nqp::die("Could not locate compile-time value for symbol " ~
                     pir::join('::', @name));
             }
         }

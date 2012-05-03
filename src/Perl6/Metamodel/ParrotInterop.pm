@@ -10,7 +10,7 @@ role Perl6::Metamodel::ParrotInterop {
     
     method add_parrot_vtable_mapping($obj, $name, $meth) {
         if pir::defined(%!parrot_vtable_mapping{$name}) {
-            pir::die("Class '" ~ self.name($obj) ~
+            nqp::die("Class '" ~ self.name($obj) ~
                 "' already has a Parrot v-table override for '" ~
                 $name ~ "'");
         }
@@ -19,7 +19,7 @@ role Perl6::Metamodel::ParrotInterop {
 
     method add_parrot_vtable_handler_mapping($obj, $name, $attr_name) {
         if pir::defined(%!parrot_vtable_handler_mapping{$name}) {
-            pir::die("Class '" ~ self.name($obj) ~
+            nqp::die("Class '" ~ self.name($obj) ~
                 "' already has a Parrot v-table handler for '" ~
                 $name ~ "'");
         }

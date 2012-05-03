@@ -72,7 +72,7 @@ role Perl6::Metamodel::C3MRO {
 
         # If we didn't find anything to accept, error.
         unless $something_accepted {
-            pir::die("Could not build C3 linearization: ambiguous hierarchy");
+            nqp::die("Could not build C3 linearization: ambiguous hierarchy");
         }
 
         # Otherwise, remove what was accepted from the merge lists.

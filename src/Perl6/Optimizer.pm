@@ -42,7 +42,7 @@ class Perl6::Optimizer {
         my $*GLOBALish := $past<GLOBALish>;
         my $*W := $past<W>;
         unless $unit.isa(PAST::Block) {
-            pir::die("Optimizer could not find UNIT");
+            nqp::die("Optimizer could not find UNIT");
         }
         self.visit_block($unit);
         
@@ -56,7 +56,7 @@ class Perl6::Optimizer {
                     pir::join(', ', $_.value) ~ ")" ~
                     (+@parts ?? "\n" ~ pir::join("\n", @parts) !! ""));
             }
-            pir::die("CHECK FAILED:\n" ~ pir::join("\n", @fails))
+            nqp::die("CHECK FAILED:\n" ~ pir::join("\n", @fails))
         }
         if +%!worrying {
             pir::printerr__vs("WARNINGS:\n");
@@ -360,11 +360,11 @@ class Perl6::Optimizer {
                     return %sym<value>;
                 }
                 else {
-                    pir::die("Optimizer: No lexical compile time value for $name");
+                    nqp::die("Optimizer: No lexical compile time value for $name");
                 }
             }
         }
-        pir::die("Optimizer: No lexical $name found");
+        nqp::die("Optimizer: No lexical $name found");
     }
     
     # Checks if a given lexical is declared, though it needn't have a compile
@@ -464,25 +464,25 @@ class Perl6::Optimizer {
             elsif $cur_tok eq 'PIROP' {
                 @stack.push(PAST::Op.new( :pirop(@tokens.shift()) ));
                 unless @tokens.shift() eq '(' {
-                    pir::die("INTERNAL ERROR: Inline corrupt for $name; expected '('");
+                    nqp::die("INTERNAL ERROR: Inline corrupt for $name; expected '('");
                 }
             }
             elsif $cur_tok eq 'WANT' {
                 @stack.push(PAST::Want.new());
                 unless @tokens.shift() eq '(' {
-                    pir::die("INTERNAL ERROR: Inline corrupt for $name; expected '('");
+                    nqp::die("INTERNAL ERROR: Inline corrupt for $name; expected '('");
                 }
             }
             elsif $cur_tok eq 'WANTSPEC' {
                 @stack[+@stack - 1].push(~@tokens.shift());
             }
             elsif $cur_tok ne '' {
-                pir::die("INTERNAL ERROR: Unexpected inline token for $name: " ~ $cur_tok);
+                nqp::die("INTERNAL ERROR: Unexpected inline token for $name: " ~ $cur_tok);
                 return $call;
             }
         }
         if +@stack != 1 {
-            pir::die("INTERNAL ERROR: Non-empty inline stack for $name")
+            nqp::die("INTERNAL ERROR: Non-empty inline stack for $name")
         }
         if $call.named ne '' {
             @stack[0].named($call.named);

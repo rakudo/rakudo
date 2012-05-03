@@ -55,7 +55,7 @@ role Perl6::Metamodel::MultiMethodContainer {
                     $dispatcher.add_dispatchee($code);
                 }
                 else {
-                    pir::die("Cannot have a multi candidate for '" ~ $name ~ 
+                    nqp::die("Cannot have a multi candidate for '" ~ $name ~ 
                         "' when an only method is also in the package '" ~
                         self.name($obj) ~ "'");
                 }
@@ -85,7 +85,7 @@ role Perl6::Metamodel::MultiMethodContainer {
                 unless $found {
                     # No proto found, so we'll generate one here.
                     unless $autogen_proto {
-                        pir::die("Cannot auto-generate a proto method in the setting");
+                        nqp::die("Cannot auto-generate a proto method in the setting");
                     }
                     my $proto := $autogen_proto.instantiate_generic(
                         hash( T => $obj ));

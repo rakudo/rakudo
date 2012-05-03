@@ -129,7 +129,7 @@ class Perl6::Actions is HLL::Actions {
                     @value_type[1] := $shape_ast[0]<compile_time_value>;
                 }
                 else {
-                    pir::die("Invalid hash shape; type expected");
+                    nqp::die("Invalid hash shape; type expected");
                 }
             }
             if @value_type {
@@ -3287,7 +3287,7 @@ class Perl6::Actions is HLL::Actions {
 
     method term:sym<pir::op>($/) {
         if $FORBID_PIR {
-            pir::die("pir::op forbidden in safe mode\n");
+            nqp::die("pir::op forbidden in safe mode\n");
         }
         my $past := $<args> ?? $<args>[0].ast !! PAST::Op.new( :node($/) );
         my $pirop := ~$<op>;
@@ -4251,7 +4251,7 @@ class Perl6::Actions is HLL::Actions {
     method quote:sym<Q>($/)    { make $<quote_EXPR>.ast; }
     method quote:sym<Q:PIR>($/) {
         if $FORBID_PIR {
-            pir::die("Q:PIR forbidden in safe mode\n");
+            nqp::die("Q:PIR forbidden in safe mode\n");
         }
         my $pir := compile_time_value_str($<quote_EXPR>.ast, "Q:PIR", $/);
         make PAST::Op.new( :inline( $pir ), :pasttype('inline'), :node($/) );
@@ -5005,9 +5005,9 @@ class Perl6::Actions is HLL::Actions {
         my int $sign := 1;
         $*W.throw($/, 'X::Syntax::Number::RadixOutOfRange', :$radix)
             if $radix < 2 || $radix > 36;
-        pir::die("You gave us a base for the magnitude, but you forgot the exponent.")
+        nqp::die("You gave us a base for the magnitude, but you forgot the exponent.")
             if pir::defined($base) && !pir::defined($exponent);
-        pir::die("You gave us an exponent for the magnitude, but you forgot the base.")
+        nqp::die("You gave us an exponent for the magnitude, but you forgot the base.")
             if !pir::defined($base) && pir::defined($exponent);
 
         if nqp::substr($number, 0, 1) eq '-' {
@@ -5028,7 +5028,7 @@ class Perl6::Actions is HLL::Actions {
                 } elsif $radix_name eq 'X' {
                     $radix := 16;
                 } else {
-                    pir::die("Unkonwn radix character '$radix_name' (can be b, o, d, x)");
+                    nqp::die("Unkonwn radix character '$radix_name' (can be b, o, d, x)");
                 }
             }
         }
@@ -5051,7 +5051,7 @@ class Perl6::Actions is HLL::Actions {
                 next;
             }
             my $i := pir::index('0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ', $current);
-            pir::die("Invalid character '$current' in number literal") if $i < 0 || $i >= $radix;
+            nqp::die("Invalid character '$current' in number literal") if $i < 0 || $i >= $radix;
             $iresult := nqp::add_I(nqp::mul_I($iresult, $radixInt, $Int), nqp::box_i($i, $Int), $Int);
             $fdivide := nqp::mul_I($fdivide, $radixInt, $Int) if $seen_dot;
         }

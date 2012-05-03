@@ -8,7 +8,7 @@ role Perl6::Metamodel::Stashing {
     }
     
     method add_stash($type_obj) {
-        unless pir::isnull__IP(pir::get_hll_global__Ps('StashType')) {
+        unless nqp::isnull(pir::get_hll_global__Ps('StashType')) {
             my $stash_type := pir::get_hll_global__Ps('StashType');
             my $attr_type := pir::get_hll_global__Ps('StashAttrType');
             my $stash := pir::repr_instance_of__PP($stash_type);

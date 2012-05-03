@@ -1831,7 +1831,7 @@ class Perl6::World is HLL::World {
             }
             my $file        := pir::find_caller_lex__ps('$?FILES');
             %opts<filename> := nqp::box_s(
-                (pir::isnull($file) ?? '<unknown file>' !! $file),
+                (nqp::isnull($file) ?? '<unknown file>' !! $file),
                 self.find_symbol(['Str'])
             );
             $ex.new(|%opts).throw;

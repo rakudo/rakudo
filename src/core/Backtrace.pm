@@ -38,7 +38,7 @@ my class Backtrace is List {
     multi method new(Parcel $bt, Int $offset = 0) {
         my $new = self.bless(*);
         for $offset .. $bt.elems - 1 {
-            next if pir::isnull($bt[$_]<sub>);
+            next if nqp::isnull($bt[$_]<sub>);
             my $code;
             try {
                 $code = pir::perl6_code_object_from_parrot_sub__PP($bt[$_]<sub>);

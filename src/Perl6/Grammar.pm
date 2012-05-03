@@ -26,7 +26,7 @@ grammar Perl6::Grammar is HLL::Grammar {
         # associated with this compilation unit.
         my $file := pir::find_caller_lex__ps('$?FILES');
         my $source_id := nqp::sha1(nqp::getattr(self, Regex::Cursor, '$!target'));
-        my $*W := pir::isnull($file) ??
+        my $*W := nqp::isnull($file) ??
             Perl6::World.new(:handle($source_id)) !!
             Perl6::World.new(:handle($source_id), :description($file));
 

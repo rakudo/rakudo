@@ -267,7 +267,7 @@ class Perl6::Optimizer {
                 @types.push(nqp::null());
                 @flags.push($_<boxable_native>);
             }
-            elsif pir::can__IPs($_, 'type') && !pir::isnull__IP($_.type) {
+            elsif pir::can__IPs($_, 'type') && !nqp::isnull($_.type) {
                 my $type := $_.type();
                 if pir::isa($type, 'Undef') {
                     return [];

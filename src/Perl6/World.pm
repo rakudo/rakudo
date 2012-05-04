@@ -211,7 +211,7 @@ class Perl6::World is HLL::World {
     }
     
     # Imports symbols from the specified package into the current lexical scope.
-    method import($package) {
+    method import($package, $source_package_name) {
         # We'll do this in two passes, since at the start of CORE.setting we import
         # StaticLexPad, which of course we need to use when importing. Since we still
         # keep the authoritative copy of stuff from the compiler's view in PAST::Block's
@@ -225,8 +225,7 @@ class Perl6::World is HLL::World {
         for %stash {
             if $target.symbol($_.key) {
                 # XXX TODO: Merge handling.
-                nqp::die("Cannot import symbol '" ~ $_.key ~ "', since it already exists in the lexpad");
-            }
+                nqp::die("Cannot import symbol '" ~ $_.key ~ "' from package '$source_package_name', since it already exists in the lexpad"); }
             else {
                 $target.symbol($_.key, :scope('lexical_6model'), :value($_.value));
                 $target[0].push(PAST::Var.new( :scope('lexical_6model'), :name($_.key), :isdecl(1) ));

@@ -480,7 +480,7 @@ grammar Perl6::Grammar is HLL::Grammar {
                     my $module := $*W.load_module($/,
                                                     $longname,
                                                     $*GLOBALish);
-                    do_import($module, []);
+                    do_import($module, [], $longname);
                     $/.CURSOR.import_EXPORTHOW($module);
                 }
             }
@@ -715,7 +715,7 @@ grammar Perl6::Grammar is HLL::Grammar {
             my $found := 0;
             try { $module := $*W.find_symbol($longname.components()); $found := 1; }
             if $found {
-                do_import($module.WHO, $<arglist>);
+                do_import($module.WHO, $<arglist>, ~$<module_name><longname>);
             }
             else {
                 $/.CURSOR.panic("Could not find module " ~ ~$<module_name> ~
@@ -758,7 +758,7 @@ grammar Perl6::Grammar is HLL::Grammar {
                             my $module := $*W.load_module($/,
                                                           ~$longname,
                                                            $*GLOBALish);
-                            do_import($module, $<arglist>);
+                            do_import($module, $<arglist>, ~$longname);
                             $/.CURSOR.import_EXPORTHOW($module);
                         }
                     }
@@ -768,11 +768,11 @@ grammar Perl6::Grammar is HLL::Grammar {
         <.ws>
     }
     
-    sub do_import($module, $arglist) {
+    sub do_import($module, $arglist, $package_source_name) {
         if pir::exists($module, 'EXPORT') {
             my $EXPORT := $module<EXPORT>.WHO;
             if pir::exists($EXPORT, 'DEFAULT') {
-                $*W.import($EXPORT<DEFAULT>);
+                $*W.import($EXPORT<DEFAULT>, $package_source_name);
             }
         }
     }

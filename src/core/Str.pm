@@ -372,7 +372,7 @@ my class Str does Stringy {
             (self.ll-match($pat, |%opts),).list;
         }
     }
-    multi method match(Str:D: $pat, :continue(:$c), :pos(:$p), :global(:$g), :overlap(:$ov), :exhaustive(:$ex), :$x, :st(:nd(:rd(:$nth)))) {
+    multi method match(Str:D: $pat, :continue(:$c), :pos(:$p), :global(:$g), :overlap(:$ov), :exhaustive(:$ex), :$x, :st(:nd(:rd(:th(:$nth))))) {
         my %opts;
         if $c.defined {
             %opts<c> = $c

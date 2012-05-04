@@ -95,6 +95,7 @@ S02-names/our.t
 S02-names/pseudo.t
 S02-names/symbolic-deref.t
 S02-one-pass-parsing/less-than.t
+S02-packages/package-lookup.t
 S02-lexical-conventions/begin_end_pod.t
 S02-lexical-conventions/end-pod.t
 S02-lexical-conventions/comments.t

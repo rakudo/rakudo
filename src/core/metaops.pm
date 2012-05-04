@@ -107,6 +107,12 @@ sub METAOP_REDUCE_RIGHT(\$op, :$triangle) {
 }
 
 
+sub METAOP_REDUCE_LIST(\$op, :$triangle) {
+    NYI ":assoc<list> reduce triangle NYI" if $triangle;
+    sub (*@values) { $op(|@values) }
+}
+
+
 sub METAOP_REDUCE_CHAIN(\$op, :$triangle) {
     $triangle
         ??  sub (*@values) {

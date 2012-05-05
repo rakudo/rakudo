@@ -726,6 +726,7 @@ grammar Perl6::Grammar is HLL::Grammar {
 
     token statement_control:sym<use> {
         :my $longname;
+        :my $arglist;
         :my $*IN_DECL := 'use';
         :my $*HAS_SELF := '';
         :my $*SCOPE   := 'use';
@@ -751,7 +752,21 @@ grammar Perl6::Grammar is HLL::Grammar {
             }
             [
             || <.spacey> <arglist>
-                <.NYI('arglist case of use')>
+                {
+                    my $ast = $<arglist>.ast;
+                    if $ast<has_compile_time_value> {
+                        $arglist := $ast<compile_time_value>;
+                    }
+                    else {
+                        $*W.push_lexpad($/);
+                        my $block := $*W.pop_lexpad;
+                        $block.push($ast);
+                        my $thunk := $*W.make_simple_code_object($block,
+                                'Block');
+                        $arglist := $thunk();
+                    }
+
+                }
             || { 
                     unless ~$<doc> && !%*COMPILING<%?OPTIONS><doc> {
                         if $longname {

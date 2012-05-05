@@ -56,7 +56,20 @@ my class Cursor does NQPCursorRole {
 }
 
 sub MAKE_REGEX($arg) {
-    $arg ~~ Regex ?? $arg !! eval("my \$x = anon regex \{ $arg \}")
+    my role CachedCompiledRegex {
+        has $.regex;
+    }
+    if $arg ~~ Regex {
+        $arg
+    }
+    elsif nqp::istype($arg, CachedCompiledRegex) {
+        $arg.regex
+    }
+    else {
+        my $rx := eval("my \$x = anon regex \{ $arg \}");
+        $arg does CachedCompiledRegex($rx);
+        $rx
+    }
 }
 
 

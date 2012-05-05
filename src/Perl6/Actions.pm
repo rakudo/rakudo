@@ -2510,7 +2510,8 @@ class Perl6::Actions is HLL::Actions {
                 %*PARAM_INFO<default_is_literal> := 1;
             }
             else {
-                %*PARAM_INFO<default_value> := make_thunk($val, $<default_value>[0]);
+                %*PARAM_INFO<default_value> :=
+                    $*W.create_thunk($<default_value>[0], $val);
             }
         }
 
@@ -2890,7 +2891,7 @@ class Perl6::Actions is HLL::Actions {
         # The term may be fairly complex. Thus we make it into a thunk
         # which the trait handler can use to get the term and work with
         # it.
-        my $thunk := make_thunk($<term>.ast, $/);
+        my $thunk := $*W.create_thunk($/, $<term>.ast);
         make -> $declarand {
             $*W.apply_trait('&trait_mod:<handles>', $declarand, $thunk);
         };
@@ -4572,13 +4573,6 @@ class Perl6::Actions is HLL::Actions {
         $closure<past_block> := $code<past_block>;
         $closure<code_object> := $code<code_object>;
         return $closure;
-    }
-
-    sub make_thunk($to_thunk, $/) {
-        my $block := $*W.push_lexpad($/);
-        $block.push($to_thunk);
-        $*W.pop_lexpad();
-        $*W.create_simple_code_object($block, 'Code');
     }
 
     sub make_thunk_ref($to_thunk, $/) {

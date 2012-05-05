@@ -561,6 +561,14 @@ class Perl6::World is HLL::World {
         $signature
     }
 
+    # turn a PAST into a code object, to be called immediately.
+    method create_thunk($/, $to_thunk) {
+        my $block := self.push_lexpad($/);
+        $block.push($to_thunk);
+        self.pop_lexpad();
+        self.create_simple_code_object($block, 'Code');
+    }
+
     # Creates a simple code object with an empty signature
     method create_simple_code_object($block, $type) {
         self.cur_lexpad()[0].push($block);

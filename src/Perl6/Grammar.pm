@@ -753,7 +753,7 @@ grammar Perl6::Grammar is HLL::Grammar {
             [
             || <.spacey> <arglist>
                 {
-                    my $ast = $<arglist>.ast;
+                    my $ast := $<arglist>.ast;
                     if $ast<has_compile_time_value> {
                         $arglist := $ast<compile_time_value>;
                     }
@@ -761,8 +761,7 @@ grammar Perl6::Grammar is HLL::Grammar {
                         $*W.push_lexpad($/);
                         my $block := $*W.pop_lexpad;
                         $block.push($ast);
-                        my $thunk := $*W.make_simple_code_object($block,
-                                'Block');
+                        my $thunk := $*W.create_simple_code_object($block, 'Block');
                         $arglist := $thunk();
                     }
 

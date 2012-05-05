@@ -344,7 +344,7 @@ class Perl6::Actions is HLL::Actions {
 
             $*W.pop_lexpad();
             $*W.add_phaser(
-                $/, 'INIT', make_simple_code_object($block, 'Block')
+                $/, 'INIT', $*W.create_simple_code_object($block, 'Block')
             );
         }
     }
@@ -2395,7 +2395,7 @@ class Perl6::Actions is HLL::Actions {
         }
         else {
             $con_block.push($value_ast);
-            my $value_thunk := make_simple_code_object($con_block, 'Block');
+            my $value_thunk := $*W.create_simple_code_object($con_block, 'Block');
             $value := $value_thunk();
             $*W.add_constant_folded_result($value);
         }
@@ -4368,7 +4368,7 @@ class Perl6::Actions is HLL::Actions {
         my $throwaway_block := PAST::Block.new();
         my $quasi_context := block_closure(
             reference_to_code_object(
-                make_simple_code_object($throwaway_block, 'Block'),
+                $*W.create_simple_code_object($throwaway_block, 'Block'),
                 $throwaway_block
             ));
         make PAST::Op.new(:pasttype<callmethod>, :name<incarnate>,
@@ -4578,7 +4578,7 @@ class Perl6::Actions is HLL::Actions {
         my $block := $*W.push_lexpad($/);
         $block.push($to_thunk);
         $*W.pop_lexpad();
-        make_simple_code_object($block, 'Code');
+        $*W.create_simple_code_object($block, 'Code');
     }
 
     sub make_thunk_ref($to_thunk, $/) {
@@ -4586,14 +4586,8 @@ class Perl6::Actions is HLL::Actions {
         $block.push($to_thunk);
         $*W.pop_lexpad();
         reference_to_code_object(
-            make_simple_code_object($block, 'Code'),
+            $*W.create_simple_code_object($block, 'Code'),
             $block);
-    }
-
-    sub make_simple_code_object($block, $type) {
-        ($*W.cur_lexpad())[0].push($block);
-        my $sig := $*W.create_signature([]);
-        return $*W.create_code_object($block, $type, $sig);
     }
 
     sub make_topic_block_ref($past, :$copy) {

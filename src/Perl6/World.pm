@@ -560,6 +560,13 @@ class Perl6::World is HLL::World {
         # Return created signature.
         $signature
     }
+
+    # Creates a simple code object with an empty signature
+    method create_simple_code_object($block, $type) {
+        self.cur_lexpad()[0].push($block);
+        my $sig := self.create_signature([]);
+        return self.create_code_object($block, $type, $sig);
+    }
     
     # Creates a code object of the specified type, attached the passed signature
     # object and sets up dynamic compilation thunk.

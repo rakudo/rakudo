@@ -753,12 +753,12 @@ grammar Perl6::Grammar is HLL::Grammar {
             [
             || <.spacey> <arglist>
                 {
-                    my $ast := $<arglist>.ast;
+                    my $ast := $<arglist><EXPR>.ast;
                     if $ast<has_compile_time_value> {
                         $arglist := $ast<compile_time_value>;
                     }
                     else {
-                        $arglist := $*W.create_thunk($/, $<arglist>.ast)();
+                        $arglist := $*W.create_thunk($/, $ast)();
                     }
 
                 }

@@ -789,6 +789,51 @@ class Perl6::World is HLL::World {
         }
     }
     
+    # Gives the current block what's needed for "let"/"temp" support.
+    method give_cur_block_let($/) {
+        my $block := self.cur_lexpad();
+        unless $block.symbol('!LET-RESTORE') {
+            self.setup_let_or_temp($/, '!LET-RESTORE', 'UNDO');
+        }
+    }
+    method give_cur_block_temp($/) {
+        my $block := self.cur_lexpad();
+        unless $block.symbol('!TEMP-RESTORE') {
+            self.setup_let_or_temp($/, '!TEMP-RESTORE', 'LEAVE');
+        }
+    }
+    method setup_let_or_temp($/, $value_stash, $phaser) {
+        # Add variable to current block.
+        my $block := self.cur_lexpad();
+        $block[0].push(PAST::Op.new(
+            :pasttype('bind'),
+            PAST::Var.new( :name($value_stash), :scope('lexical_6model'), :isdecl(1) ),
+            PAST::Op.new( :pasttype('list') )));
+        $block.symbol($value_stash, :scope('lexical_6model'));
+        
+        # Create a phasser block that will do the restoration.
+        my $phaser_block := self.push_lexpad($/);
+        self.pop_lexpad();
+        $phaser_block.push(PAST::Op.new(
+            :pasttype('while'),
+            PAST::Var.new( :name($value_stash), :scope('lexical_6model') ),
+            PAST::Op.new(
+                :pirop('perl6_container_store__0PP'),
+                PAST::Op.new(
+                    :pirop('shift__PP'),
+                    PAST::Var.new( :name($value_stash), :scope('lexical_6model') )
+                ),
+                PAST::Op.new(
+                    :pirop('shift__PP'),
+                    PAST::Var.new( :name($value_stash), :scope('lexical_6model') )
+                ))));
+        
+        # Add as phaser.
+        $block[0].push($phaser_block);
+        self.add_phaser($/, $phaser,
+            self.create_code_object($phaser_block, 'Code', self.create_signature([])));
+    }
+    
     # Adds a multi candidate to a proto/dispatch.
     method add_dispatchee_to_proto($proto, $candidate) {
         $proto.add_dispatchee($candidate);

@@ -211,6 +211,46 @@ sub infix:<^ff^>($a as Bool, $b as Bool) {
     }
 }
 
+sub prefix:<temp>(\$cont) is rw {
+    my $temp_restore := pir::find_caller_lex__Ps('!TEMP-RESTORE');
+    if nqp::iscont($cont) {
+        nqp::push($temp_restore, $cont);
+        nqp::push($temp_restore, nqp::p6decont($cont));
+    }
+    elsif nqp::istype($cont, Array) {
+        nqp::push($temp_restore, $cont);
+        nqp::push($temp_restore, my @a = $cont);
+    }
+    elsif nqp::istype($cont, Hash) {
+        nqp::push($temp_restore, $cont);
+        nqp::push($temp_restore, my %h = $cont);
+    }
+    else {
+        die "Can only use 'temp' on a container";
+    }
+    $cont
+}
+
+sub prefix:<let>(\$cont) is rw {
+    my $let_restore := pir::find_caller_lex__Ps('!LET-RESTORE');
+    if nqp::iscont($cont) {
+        nqp::push($let_restore, $cont);
+        nqp::push($let_restore, nqp::p6decont($cont));
+    }
+    elsif nqp::istype($cont, Array) {
+        nqp::push($let_restore, $cont);
+        nqp::push($let_restore, my @a = $cont);
+    }
+    elsif nqp::istype($cont, Hash) {
+        nqp::push($let_restore, $cont);
+        nqp::push($let_restore, my %h = $cont);
+    }
+    else {
+        die "Can only use 'let' on a container";
+    }
+    $cont
+}
+
 # not sure where this should go
 # this implements the ::() indirect lookup
 sub INDIRECT_NAME_LOOKUP($root, *@chunks) is rw {

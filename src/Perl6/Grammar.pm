@@ -480,7 +480,7 @@ grammar Perl6::Grammar is HLL::Grammar {
                     my $module := $*W.load_module($/,
                                                     $longname,
                                                     $*GLOBALish);
-                    do_import($module, [], $longname);
+                    do_import($module, ['DEFAULT'], $longname);
                     $/.CURSOR.import_EXPORTHOW($module);
                 }
             }
@@ -715,6 +715,7 @@ grammar Perl6::Grammar is HLL::Grammar {
             my $found := 0;
             try { $module := $*W.find_symbol($longname.components()); $found := 1; }
             if $found {
+                # todo: fix arglist
                 do_import($module.WHO, $<arglist>, ~$<module_name><longname>);
             }
             else {
@@ -726,7 +727,7 @@ grammar Perl6::Grammar is HLL::Grammar {
 
     token statement_control:sym<use> {
         :my $longname;
-        :my $arglist;
+        :my $arglist := [];
         :my $*IN_DECL := 'use';
         :my $*HAS_SELF := '';
         :my $*SCOPE   := 'use';
@@ -760,6 +761,8 @@ grammar Perl6::Grammar is HLL::Grammar {
                     else {
                         $arglist := $*W.create_thunk($/, $ast)();
                     }
+                    $arglist := nqp::getattr($arglist.list.eager,
+                            $*W.find_symbol(['List']), '$!items');
 
                 }
             || { 
@@ -768,7 +771,7 @@ grammar Perl6::Grammar is HLL::Grammar {
                             my $module := $*W.load_module($/,
                                                           ~$longname,
                                                            $*GLOBALish);
-                            do_import($module, $<arglist>, ~$longname);
+                            do_import($module, $arglist, ~$longname);
                             $/.CURSOR.import_EXPORTHOW($module);
                         }
                     }
@@ -779,10 +782,13 @@ grammar Perl6::Grammar is HLL::Grammar {
     }
     
     sub do_import($module, $arglist, $package_source_name) {
+        $arglist := ['DEFAULT'] unless +$arglist;
         if pir::exists($module, 'EXPORT') {
             my $EXPORT := $module<EXPORT>.WHO;
-            if pir::exists($EXPORT, 'DEFAULT') {
-                $*W.import($EXPORT<DEFAULT>, $package_source_name);
+            for $arglist -> $tag {
+                if pir::exists($EXPORT, $tag) {
+                    $*W.import($EXPORT{$tag}, $package_source_name);
+                }
             }
         }
     }

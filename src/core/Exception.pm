@@ -88,6 +88,7 @@ do {
                 $err.print: $ex;
                 $err.print: "\n";
             }
+            $_() for pir::perl6ize_type__PP(@*END_PHASERS);
         }
         if $! {
             pir::perl6_based_rethrow__vPP(nqp::getattr($!, Exception, '$!ex'), $ex);

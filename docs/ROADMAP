@@ -1,7 +1,7 @@
 Rakudo Roadmap
 --------------
 
-Last updated: 2012-04-20
+Last updated: 2012-05-06
 
 This document serves as a guide to the major goals for Rakudo
 development, as things stood in December 2011. They have been
@@ -88,7 +88,6 @@ Language Features
 2 ***   module versioning
 3 ***   domain specific languages -- slang and grammar tweaks
 3 ****  more advanced Perl 5 interop (lexical embedding, etc.)
-3 ***   temp variables
 
 Optimizer (jnthn)
 2 **    ro/rw variable tracking, related transforms

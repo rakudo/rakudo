@@ -6,6 +6,13 @@ New in 2012.05
 + RAKUDOLIB env variable supported in addition to PERL6LIB
 + -I and -M command line options
 + $?LINE and $?FILE variables
++ warnings now include line number from program, not from CORE.setting
++ reduction meta-operator on list-associative ops now has correct semantics
++ now have :th alias for :nth in Str.match
++ import collisions now report the name of the module that is to blame
++ ms// fixed
++ <$x> in regexes caches the compiled regex, which can be a big performance win
++ implemented temp and let
 
 New in 2012.04.1
 + autvivification for arrays and hashes

@@ -561,6 +561,12 @@ class Perl6::World is HLL::World {
         $signature
     }
 
+    method compile_time_evaluate($/, $ast) {
+        return $ast<compile_time_value> if $ast<has_compile_time_value>;
+        my $thunk := self.create_thunk($/, $ast);
+        $thunk();
+    }
+
     # turn a PAST into a code object, to be called immediately.
     method create_thunk($/, $to_thunk) {
         my $block := self.push_lexpad($/);

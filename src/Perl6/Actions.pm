@@ -1866,8 +1866,7 @@ class Perl6::Actions is HLL::Actions {
 
         # Attach inlining information.
         $*W.apply_trait('&trait_mod:<is>', $code,
-            ($*W.add_string_constant($inline_info))<compile_time_value>,
-            inlinable => ($*W.add_numeric_constant('Int', 1))<compile_time_value>)
+            inlinable => ($*W.add_string_constant($inline_info))<compile_time_value>)
     }
 
     method method_def($/) {
@@ -2817,16 +2816,14 @@ class Perl6::Actions is HLL::Actions {
         }
         else
         {
-            # If we have an argument, get its compile time value.
+            # If we have an argument, get its compile time value or
+            # evaluate it to get that.
             my @trait_arg;
             if $<circumfix> {
                 my $arg := $<circumfix>[0].ast[0];
-                if $arg<has_compile_time_value> {
-                    @trait_arg[0] := $arg<compile_time_value>;
-                }
-                else {
-                    # XXX Should complain, or go compile it.
-                }
+                @trait_arg[0] := $arg<has_compile_time_value> ??
+                    $arg<compile_time_value> !!
+                    $*W.create_thunk($/, $<circumfix>[0].ast)();
             }
         
             # If we have a type name then we need to dispatch with that type; otherwise
@@ -2840,9 +2837,10 @@ class Perl6::Actions is HLL::Actions {
             }
             else {
                 my %arg;
-                %arg{~$<longname>} := ($*W.add_constant('Int', 'int', 1))<compile_time_value>;
+                %arg{~$<longname>} := @trait_arg ?? @trait_arg[0] !!
+                    ($*W.add_constant('Int', 'int', 1))<compile_time_value>;
                 make -> $declarand {
-                    $*W.apply_trait('&trait_mod:<is>', $declarand, |@trait_arg, |%arg);
+                    $*W.apply_trait('&trait_mod:<is>', $declarand, |%arg);
                 };
             }
         }
@@ -4811,7 +4809,7 @@ class Perl6::Actions is HLL::Actions {
 
         # Dispatch trait. XXX Should really be Bool::True, not Int here...
         my $true := ($*W.add_constant('Int', 'int', 1))<compile_time_value>;
-        $*W.apply_trait('&trait_mod:<will>', $attr, $code, :build($true));
+        $*W.apply_trait('&trait_mod:<will>', $attr, :build($code));
     }
 
     # This is the hook where, in the future, we'll use this as the hook to check

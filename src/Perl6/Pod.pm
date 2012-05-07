@@ -2,8 +2,7 @@
 class Perl6::Pod {
     our sub document($what, $with) {
         if ~$with ne '' {
-            my $true := $*W.add_constant('Int', 'int', 1)<compile_time_value>;
-            $*W.apply_trait('&trait_mod:<is>', $what, $*DOCEE, :docs($true));
+            $*W.apply_trait('&trait_mod:<is>', $what, :docs($*DOCEE));
             # don't reset it if it already holds docs for another element
             if $*DECLARATOR_DOCS && $*DOC.to == $*DECLARATOR_DOCS.to {
                 $*DECLARATOR_DOCS := '';

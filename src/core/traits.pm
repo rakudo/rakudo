@@ -5,6 +5,9 @@ my role Positional { ... }
 my role Associative { ... }
 my role Callable { ... }
 
+# This is needed for the export trait.
+my class Pair { ... }
+
 proto trait_mod:<is>(|$) { * }
 multi trait_mod:<is>(Mu:U $child, Mu:U $parent) {
     if $parent.HOW.archetypes.inheritable() {
@@ -85,12 +88,16 @@ sub EXPORT_SYMBOL(\$exp_name, @tags, Mu \$sym) {
 multi trait_mod:<is>(Routine:D \$r, :$export!) {
     my $to_export := $r.multi ?? $r.dispatcher !! $r;
     my $exp_name  := '&' ~ $r.name;
-    my @tags = 'ALL', 'DEFAULT';
+    my @tags = 'ALL', ($export ~~ Pair ?? $export.key() !!
+                       $export ~~ Positional ?? @($export)>>.key !!
+                       'DEFAULT');
     EXPORT_SYMBOL($exp_name, @tags, $to_export);
 }
 multi trait_mod:<is>(Mu:U \$type, :$export!) {
     my $exp_name := $type.HOW.name($type);
-    my @tags = 'ALL', 'DEFAULT';
+    my @tags = 'ALL', ($export ~~ Pair ?? $export.key !!
+                       $export ~~ Positional ?? @($export)>>.key !!
+                       'DEFAULT');
     EXPORT_SYMBOL($exp_name, @tags, $type);
 }
 

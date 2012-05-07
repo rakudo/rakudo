@@ -716,7 +716,11 @@ grammar Perl6::Grammar is HLL::Grammar {
             try { $module := $*W.find_symbol($longname.components()); $found := 1; }
             if $found {
                 # todo: fix arglist
-                do_import($module.WHO, $<arglist>, ~$<module_name><longname>);
+                my $arglist;
+                if $<arglist> {
+                    $arglist := $*W.compile_time_evaluate($/, $<arglist>[0]<EXPR>);
+                }
+                do_import($module.WHO, ~$<module_name><longname>, $arglist);
             }
             else {
                 $/.CURSOR.panic("Could not find module " ~ ~$<module_name> ~

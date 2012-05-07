@@ -480,7 +480,7 @@ grammar Perl6::Grammar is HLL::Grammar {
                     my $module := $*W.load_module($/,
                                                     $longname,
                                                     $*GLOBALish);
-                    do_import($module, ['DEFAULT'], $longname);
+                    do_import($module, [], $longname);
                     $/.CURSOR.import_EXPORTHOW($module);
                 }
             }
@@ -727,7 +727,6 @@ grammar Perl6::Grammar is HLL::Grammar {
 
     token statement_control:sym<use> {
         :my $longname;
-        :my $arglist := [];
         :my $*IN_DECL := 'use';
         :my $*HAS_SELF := '';
         :my $*SCOPE   := 'use';
@@ -754,6 +753,7 @@ grammar Perl6::Grammar is HLL::Grammar {
             [
             || <.spacey> <arglist>
                 {
+                    my $arglist;
                     my $ast := $<arglist><EXPR>.ast;
                     if $ast<has_compile_time_value> {
                         $arglist := $ast<compile_time_value>;
@@ -763,6 +763,11 @@ grammar Perl6::Grammar is HLL::Grammar {
                     }
                     $arglist := nqp::getattr($arglist.list.eager,
                             $*W.find_symbol(['List']), '$!items');
+                    my $module := $*W.load_module($/,
+                                                    ~$longname,
+                                                    $*GLOBALish);
+                    do_import($module, ~$longname, $arglist);
+                    $/.CURSOR.import_EXPORTHOW($module);
 
                 }
             || { 
@@ -771,7 +776,7 @@ grammar Perl6::Grammar is HLL::Grammar {
                             my $module := $*W.load_module($/,
                                                           ~$longname,
                                                            $*GLOBALish);
-                            do_import($module, $arglist, ~$longname);
+                            do_import($module, ~$longname);
                             $/.CURSOR.import_EXPORTHOW($module);
                         }
                     }
@@ -781,13 +786,26 @@ grammar Perl6::Grammar is HLL::Grammar {
         <.ws>
     }
     
-    sub do_import($module, $arglist, $package_source_name) {
-        $arglist := ['DEFAULT'] unless +$arglist;
+    sub do_import($module, $package_source_name, $arglist?) {
         if pir::exists($module, 'EXPORT') {
             my $EXPORT := $module<EXPORT>.WHO;
-            for $arglist -> $tag {
-                if pir::exists($EXPORT, $tag) {
-                    $*W.import($EXPORT{$tag}, $package_source_name);
+            if pir::defined($arglist) {
+                my $Pair := $*W.find_symbol(['Pair']);
+                for $arglist -> $tag {
+                    if nqp::istype($tag, $Pair) {
+                        $tag := nqp::unbox_s($tag.key);
+                        if pir::exists($EXPORT, $tag) {
+                            $*W.import($EXPORT{$tag}, $package_source_name);
+                        }
+                    }
+                    else {
+                        nqp::die('Can only import named tags for now');
+                    }
+                }
+            }
+            else {
+                if pir::exists($EXPORT, 'DEFAULT') {
+                    $*W.import($EXPORT<DEFAULT>, $package_source_name);
                 }
             }
         }

@@ -37,12 +37,12 @@ my class Cool {
     method cis()     { self.Numeric.cis }
     
     proto method log(|$) {*}
-    multi method log()      { self.Numeric.log          }
-    multi method log($base) { self.Numeric.log($base.Numeric) }
+    multi method log(Cool:D: )      { self.Numeric.log          }
+    multi method log(Cool:D: $base) { self.Numeric.log($base.Numeric) }
 
     proto method exp(|$) {*}
-    multi method exp()      { self.Numeric.exp          }
-    multi method exp($base) { self.Numeric.exp($base.Numeric) }
+    multi method exp(Cool:D: )      { self.Numeric.exp          }
+    multi method exp(Cool:D: $base) { self.Numeric.exp($base.Numeric) }
 
 
     method roots(Cool $n)   { self.Numeric.roots($n)    }

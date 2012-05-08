@@ -6,16 +6,17 @@ my role Numeric {
     }
 
     proto method log(|$) {*}
-    multi method log(Cool    $base) { self.log / $base.Numeric.log }
-    multi method log(Numeric $base) { self.log / $base.log         }
+    multi method log(Numeric:D: Cool $base) { self.log / $base.Numeric.log }
+    multi method log(Numeric:D: Numeric $base) { self.log / $base.log         }
 
     method log10() { self.log / 10e0.log }
 
     proto method exp(|$) {*}
-    multi method exp($base) {
+    multi method exp(Numeric:D: $base) {
         $base ** self;
     }
     method roots(Cool $n) { self.Complex.roots($n.Int) }
+
     multi method Bool(Numeric:D:) { self != 0 }
 
     multi method gist(Numeric:D:) { self.Str }
@@ -169,6 +170,7 @@ multi sub ceiling(Numeric $a)  { $a.ceiling }
 proto sub round(|$)          { * }
 multi sub round($a)          { $a.Numeric.round }
 multi sub round(Numeric $a)  { $a.round }
+multi sub round(Numeric $a, $scale) { $a.round($scale) }
 
 proto infix:<+>($a?, $b?)    { * }
 multi infix:<+>($x = 0)      { $x.Numeric }

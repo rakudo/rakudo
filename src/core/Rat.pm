@@ -1,6 +1,6 @@
 my Int $UINT64_UPPER = nqp::pow_I(2, 64, Num, Int);
 
-my role Rational is Real {
+my role Rational does Real {
     has Int $.numerator;
     has Int $.denominator;
 
@@ -55,15 +55,14 @@ my role Rational is Real {
     }
 }
 
-# XXX: should also be Cool
-my class Rat    does Rational { 
+my class Rat is Cool does Rational { 
     method Rat   (Rat:D: Real $?) { self }
     method FatRat(Rat:D: Real $?) { FatRat.new($.numerator, $.denominator); }
     multi method perl(Rat:D:) {
         $.numerator ~ '/' ~ $.denominator
     }
 }
-my class FatRat does Rational {
+my class FatRat is Cool does Rational {
     method FatRat(FatRat:D: Real $?) { self }
     method Rat   (FatRat:D: Real $?) {
         $.denominator < $UINT64_UPPER

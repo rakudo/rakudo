@@ -2687,6 +2687,11 @@ grammar Perl6::Grammar is HLL::Grammar {
     token infix:sym<^ff> { <sym> <O('%conditional')> }
     token infix:sym<ff^> { <sym> <O('%conditional')> }
     token infix:sym<^ff^> { <sym> <O('%conditional')> }
+    
+    token infix:sym<fff> { <sym> <O('%conditional')> }
+    token infix:sym<^fff> { <sym> <O('%conditional')> }
+    token infix:sym<fff^> { <sym> <O('%conditional')> }
+    token infix:sym<^fff^> { <sym> <O('%conditional')> }
 
     token infix:sym<=> {
         <sym>

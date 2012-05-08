@@ -70,7 +70,8 @@ sub EXPORT_SYMBOL(\$exp_name, @tags, Mu \$sym) {
     my @export_packages = $*EXPORT;
     for pir::perl6ize_type__PP(@*PACKAGES) {
         unless .WHO.exists('EXPORT') {
-            .WHO<EXPORT> := anon package EXPORT { };
+            .WHO<EXPORT> := Metamodel::PackageHOW.new_type(:name('EXPORT'));
+            .WHO<EXPORT>.^compose;
         }
         @export_packages.push: .WHO<EXPORT>;
     }

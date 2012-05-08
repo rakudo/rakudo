@@ -67,22 +67,31 @@ multi trait_mod:<is>(Parameter:D $param, :$parcel!) {
 # TODO: Make this much less cheaty. That'll probably need the
 # full-blown serialization, though.
 sub EXPORT_SYMBOL(\$exp_name, @tags, Mu \$sym) {
-    for @tags -> $tag {
-        my $install_in;
-        if $*EXPORT.WHO.exists($tag) {
-            $install_in := $*EXPORT.WHO.{$tag};
+    my @export_packages = $*EXPORT;
+    for pir::perl6ize_type__PP(@*PACKAGES) {
+        unless .WHO.exists('EXPORT') {
+            .WHO<EXPORT> := anon package EXPORT { };
         }
-        else {
-            $install_in := $*W.pkg_create_mo($/, (package { }).HOW, :name($tag));
-            $*W.pkg_compose($install_in);
-            $*W.install_package_symbol($*EXPORT, $tag, $install_in);
-        }
-        if $install_in.WHO.exists($exp_name) {
-            unless ($install_in.WHO){$exp_name} =:= $sym {
-                die "A symbol $exp_name has already been exported";
+        @export_packages.push: .WHO<EXPORT>;
+    }
+    for @export_packages -> $p {
+        for @tags -> $tag {
+            my $install_in;
+            if $p.WHO.exists($tag) {
+                $install_in := $*EXPORT.WHO.{$tag};
             }
+            else {
+                $install_in := $*W.pkg_create_mo($/, (package { }).HOW, :name($tag));
+                $*W.pkg_compose($install_in);
+                $*W.install_package_symbol($p, $tag, $install_in);
+            }
+            if $install_in.WHO.exists($exp_name) {
+                unless ($install_in.WHO){$exp_name} =:= $sym {
+                    die "A symbol $exp_name has already been exported";
+                }
+            }
+            $*W.install_package_symbol($install_in, $exp_name, $sym);
         }
-        $*W.install_package_symbol($install_in, $exp_name, $sym);
     }
 }
 multi trait_mod:<is>(Routine:D \$r, :$export!) {

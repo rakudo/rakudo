@@ -787,6 +787,7 @@ grammar Perl6::Grammar is HLL::Grammar {
     sub do_import($module, $package_source_name, $arglist?) {
         if pir::exists($module, 'EXPORT') {
             my $EXPORT := $module<EXPORT>.WHO;
+            my @to_import := ['MANDATORY'];
             if pir::defined($arglist) {
                 my $Pair := $*W.find_symbol(['Pair']);
                 for $arglist -> $tag {
@@ -802,8 +803,11 @@ grammar Perl6::Grammar is HLL::Grammar {
                 }
             }
             else {
-                if pir::exists($EXPORT, 'DEFAULT') {
-                    $*W.import($EXPORT<DEFAULT>, $package_source_name);
+                nqp::push(@to_import, 'DEFAULT');
+            }
+            for @to_import -> $tag {
+                if pir::exists($EXPORT, $tag) {
+                    $*W.import($EXPORT{$tag}, $package_source_name);
                 }
             }
         }

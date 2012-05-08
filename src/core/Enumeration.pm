@@ -63,3 +63,19 @@ sub ANON_ENUM(*@args) {
         nqp::getattr(%res, EnumMap, '$!storage'));
     $r;
 }
+
+Metamodel::EnumHOW.set_composalizer(-> $type, $name, %enum_values {
+    my Mu $r := Metamodel::ParametricRoleHOW.new_type(:name($name));
+    $r.HOW.add_attribute($r, Attribute.new(
+        :name('$!' ~ $name), :type(nqp::p6decont($type)),
+        :has_accessor(1), :package($r)));
+    for %enum_values.kv -> $key, $value {
+        my $meth = method () { self."$name"() === $value }
+        $meth.set_name($key);
+        $r.HOW.add_method($r, $key, $meth);
+    }
+    $r.HOW.set_body_block($r,
+        -> |$c { nqp::list($r, nqp::hash('$?CLASS', $c<$?CLASS>)) });
+    $r.HOW.compose($r);
+    $r
+});

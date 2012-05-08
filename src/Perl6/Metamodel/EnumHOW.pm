@@ -27,6 +27,10 @@ class Perl6::Metamodel::EnumHOW
     
     # Roles that we do.
     has @!does_list;
+    
+    # Role'd version of the enum.
+    has $!role;
+    has int $!roled;
 
     my $archetypes := Perl6::Metamodel::Archetypes.new( :nominal(1), :composalizable(1) );
     method archetypes() {
@@ -99,8 +103,14 @@ class Perl6::Metamodel::EnumHOW
         $obj
     }
     
+    my $composalizer;
+    method set_composalizer($c) { $composalizer := $c }
     method composalize($obj) {
-        nqp::die("Cannot yet turn an enum into a role");
+        unless $!roled {
+            $!role := $composalizer($obj, self.name($obj), %!values);
+            $!roled := 1;
+        }
+        $!role
     }
     
     method does_list($obj) {

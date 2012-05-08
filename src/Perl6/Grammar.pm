@@ -788,6 +788,7 @@ grammar Perl6::Grammar is HLL::Grammar {
         if pir::exists($module, 'EXPORT') {
             my $EXPORT := $module<EXPORT>.WHO;
             my @to_import := ['MANDATORY'];
+            my @positional_imports := [];
             if pir::defined($arglist) {
                 my $Pair := $*W.find_symbol(['Pair']);
                 for $arglist -> $tag {
@@ -802,7 +803,7 @@ grammar Perl6::Grammar is HLL::Grammar {
                         }
                     }
                     else {
-                        nqp::die('Can only import named tags for now');
+                        nqp::push(@positional_imports, $tag);
                     }
                 }
             }
@@ -812,6 +813,14 @@ grammar Perl6::Grammar is HLL::Grammar {
             for @to_import -> $tag {
                 if pir::exists($EXPORT, $tag) {
                     $*W.import($EXPORT{$tag}, $package_source_name);
+                }
+            }
+            if +@positional_imports {
+                if pir::exists($module, '&EXPORT') {
+                    $module<&EXPORT>(|@positional_imports);
+                }
+                else {
+                    nqp::die("Error while importing from '$package_source_name': no EXPORT sub, but you provided positional argument in the 'use' statement");
                 }
             }
         }

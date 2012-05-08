@@ -12,6 +12,7 @@ Makefile
 *.lib
 lib/Test.pir
 lib/Pod/To/Text.pir
+lib/lib.pir
 CORE.setting.pbc
 SAFE.setting.pbc
 perl6

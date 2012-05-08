@@ -20,6 +20,9 @@ New in 2012.05
 + implemented fff flip-flop operator; improvements to ff form also
 + removed current directory from default library search path
 + 'import' works
++ symbols installed in EXPORT in all nested packages, not just UNIT::EXPORT
++ enumeration types can be used as roles
++ END phasers now run when program ends with exit or an exception
 
 New in 2012.04.1
 + autvivification for arrays and hashes

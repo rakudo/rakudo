@@ -77,7 +77,6 @@ Phasers
 Language Features
 1 ***   basic Perl 5 interop (use, eval, etc.)
 1 **    non-Numeric enums
-2 **    enumerations as roles
 2 ***   heredocs
 2 **    module versioning
 2 **    missing bits of enums

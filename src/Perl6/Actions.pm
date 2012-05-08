@@ -2838,7 +2838,7 @@ class Perl6::Actions is HLL::Actions {
             else {
                 my %arg;
                 %arg{~$<longname>} := @trait_arg ?? @trait_arg[0] !!
-                    ($*W.add_constant('Int', 'int', 1))<compile_time_value>;
+                    $*W.find_symbol(['Bool', 'True']);
                 make -> $declarand {
                     $*W.apply_trait('&trait_mod:<is>', $declarand, |%arg);
                 };

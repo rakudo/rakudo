@@ -6,6 +6,8 @@ New in 2012.05
 + RAKUDOLIB env variable supported in addition to PERL6LIB
 + -I and -M command line options
 + $?LINE and $?FILE variables
++ 'use' can now import by tag name
++ updated calling conventions for traits
 
 New in 2012.04.1
 + autvivification for arrays and hashes

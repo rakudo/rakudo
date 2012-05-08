@@ -62,7 +62,7 @@ Built-ins/Data Structures
 2 ***   packed arrays (jnthn)
 2 ***** NFG strings, .codes, .graphs, etc.
 2 **    Rat/FatRat/Rational cleanup
-2 ***   other S02 data types -- KeySet, KeyBag
+2 ***   other S02 data types -- KeySet, KeyBag (tadzik)
 2 **    sized/shaped arrays (jnthn)
 2 **    Str.Numeric rewrite (japhb, str-numeric branch)
 2 ***   val() (japhb)
@@ -78,6 +78,7 @@ Language Features
 1 ***   basic Perl 5 interop (use, eval, etc.)
 1 **    non-Numeric enums
 2 ***   heredocs
+2 *     $=DATA and friends (tadzik)
 2 **    module versioning
 2 **    missing bits of enums
 2 ***   new syntax/semantics for coercion (jnthn)

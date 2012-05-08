@@ -421,6 +421,8 @@ grammar Perl6::Grammar is HLL::Grammar {
         :my $*UNIT;
         :my $*UNIT_OUTER;
         :my $*EXPORT;
+        # stack of packages, which the 'is export' needs
+        :my @*PACKAGES := [];
 
         # A place for Pod
         :my $*POD_BLOCKS := [];
@@ -1398,6 +1400,7 @@ grammar Perl6::Grammar is HLL::Grammar {
                 }
             }
             
+            { nqp::push(@*PACKAGES, $*PACKAGE); }
             [
             || <?[{]> 
                 [
@@ -1431,6 +1434,7 @@ grammar Perl6::Grammar is HLL::Grammar {
                 ]
             || <.panic: "Unable to parse $*PKGDECL definition">
             ]
+            { nqp::pop(@*PACKAGES); }
         ] || { $/.CURSOR.malformed($*PKGDECL) }
     }
 

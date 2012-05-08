@@ -17,7 +17,7 @@ New in 2012.05
 + 'use' with positional arguemnts
 + lib.pm
 + updated calling conventions for traits
-
++ implemented fff flip-flop operator; improvements to ff form also
 
 New in 2012.04.1
 + autvivification for arrays and hashes

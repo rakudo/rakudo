@@ -715,7 +715,12 @@ grammar Perl6::Grammar is HLL::Grammar {
             my $found := 0;
             try { $module := $*W.find_symbol($longname.components()); $found := 1; }
             if $found {
-                do_import($module.WHO, $<arglist>, ~$<module_name><longname>);
+                # todo: fix arglist
+                my $arglist;
+                if $<arglist> {
+                    $arglist := $*W.compile_time_evaluate($/, $<arglist>[0]<EXPR>);
+                }
+                do_import($module.WHO, ~$<module_name><longname>, $arglist);
             }
             else {
                 $/.CURSOR.panic("Could not find module " ~ ~$<module_name> ~
@@ -751,14 +756,25 @@ grammar Perl6::Grammar is HLL::Grammar {
             }
             [
             || <.spacey> <arglist>
-                <.NYI('arglist case of use')>
+                {
+                    my $arglist := $*W.compile_time_evaluate($/,
+                            $<arglist><EXPR>.ast);
+                    $arglist := nqp::getattr($arglist.list.eager,
+                            $*W.find_symbol(['List']), '$!items');
+                    my $module := $*W.load_module($/,
+                                                    ~$longname,
+                                                    $*GLOBALish);
+                    do_import($module, ~$longname, $arglist);
+                    $/.CURSOR.import_EXPORTHOW($module);
+
+                }
             || { 
                     unless ~$<doc> && !%*COMPILING<%?OPTIONS><doc> {
                         if $longname {
                             my $module := $*W.load_module($/,
                                                           ~$longname,
                                                            $*GLOBALish);
-                            do_import($module, $<arglist>, ~$longname);
+                            do_import($module, ~$longname);
                             $/.CURSOR.import_EXPORTHOW($module);
                         }
                     }
@@ -768,11 +784,27 @@ grammar Perl6::Grammar is HLL::Grammar {
         <.ws>
     }
     
-    sub do_import($module, $arglist, $package_source_name) {
+    sub do_import($module, $package_source_name, $arglist?) {
         if pir::exists($module, 'EXPORT') {
             my $EXPORT := $module<EXPORT>.WHO;
-            if pir::exists($EXPORT, 'DEFAULT') {
-                $*W.import($EXPORT<DEFAULT>, $package_source_name);
+            if pir::defined($arglist) {
+                my $Pair := $*W.find_symbol(['Pair']);
+                for $arglist -> $tag {
+                    if nqp::istype($tag, $Pair) {
+                        $tag := nqp::unbox_s($tag.key);
+                        if pir::exists($EXPORT, $tag) {
+                            $*W.import($EXPORT{$tag}, $package_source_name);
+                        }
+                    }
+                    else {
+                        nqp::die('Can only import named tags for now');
+                    }
+                }
+            }
+            else {
+                if pir::exists($EXPORT, 'DEFAULT') {
+                    $*W.import($EXPORT<DEFAULT>, $package_source_name);
+                }
             }
         }
     }

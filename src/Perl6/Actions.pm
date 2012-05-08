@@ -344,7 +344,7 @@ class Perl6::Actions is HLL::Actions {
 
             $*W.pop_lexpad();
             $*W.add_phaser(
-                $/, 'INIT', make_simple_code_object($block, 'Block')
+                $/, 'INIT', $*W.create_simple_code_object($block, 'Block')
             );
         }
     }
@@ -1866,8 +1866,7 @@ class Perl6::Actions is HLL::Actions {
 
         # Attach inlining information.
         $*W.apply_trait('&trait_mod:<is>', $code,
-            ($*W.add_string_constant($inline_info))<compile_time_value>,
-            inlinable => ($*W.add_numeric_constant('Int', 1))<compile_time_value>)
+            inlinable => ($*W.add_string_constant($inline_info))<compile_time_value>)
     }
 
     method method_def($/) {
@@ -2395,7 +2394,7 @@ class Perl6::Actions is HLL::Actions {
         }
         else {
             $con_block.push($value_ast);
-            my $value_thunk := make_simple_code_object($con_block, 'Block');
+            my $value_thunk := $*W.create_simple_code_object($con_block, 'Block');
             $value := $value_thunk();
             $*W.add_constant_folded_result($value);
         }
@@ -2510,7 +2509,8 @@ class Perl6::Actions is HLL::Actions {
                 %*PARAM_INFO<default_is_literal> := 1;
             }
             else {
-                %*PARAM_INFO<default_value> := make_thunk($val, $<default_value>[0]);
+                %*PARAM_INFO<default_value> :=
+                    $*W.create_thunk($<default_value>[0], $val);
             }
         }
 
@@ -2816,16 +2816,14 @@ class Perl6::Actions is HLL::Actions {
         }
         else
         {
-            # If we have an argument, get its compile time value.
+            # If we have an argument, get its compile time value or
+            # evaluate it to get that.
             my @trait_arg;
             if $<circumfix> {
                 my $arg := $<circumfix>[0].ast[0];
-                if $arg<has_compile_time_value> {
-                    @trait_arg[0] := $arg<compile_time_value>;
-                }
-                else {
-                    # XXX Should complain, or go compile it.
-                }
+                @trait_arg[0] := $arg<has_compile_time_value> ??
+                    $arg<compile_time_value> !!
+                    $*W.create_thunk($/, $<circumfix>[0].ast)();
             }
         
             # If we have a type name then we need to dispatch with that type; otherwise
@@ -2839,9 +2837,10 @@ class Perl6::Actions is HLL::Actions {
             }
             else {
                 my %arg;
-                %arg{~$<longname>} := ($*W.add_constant('Int', 'int', 1))<compile_time_value>;
+                %arg{~$<longname>} := @trait_arg ?? @trait_arg[0] !!
+                    $*W.find_symbol(['Bool', 'True']);
                 make -> $declarand {
-                    $*W.apply_trait('&trait_mod:<is>', $declarand, |@trait_arg, |%arg);
+                    $*W.apply_trait('&trait_mod:<is>', $declarand, |%arg);
                 };
             }
         }
@@ -2890,7 +2889,7 @@ class Perl6::Actions is HLL::Actions {
         # The term may be fairly complex. Thus we make it into a thunk
         # which the trait handler can use to get the term and work with
         # it.
-        my $thunk := make_thunk($<term>.ast, $/);
+        my $thunk := $*W.create_thunk($/, $<term>.ast);
         make -> $declarand {
             $*W.apply_trait('&trait_mod:<handles>', $declarand, $thunk);
         };
@@ -4368,7 +4367,7 @@ class Perl6::Actions is HLL::Actions {
         my $throwaway_block := PAST::Block.new();
         my $quasi_context := block_closure(
             reference_to_code_object(
-                make_simple_code_object($throwaway_block, 'Block'),
+                $*W.create_simple_code_object($throwaway_block, 'Block'),
                 $throwaway_block
             ));
         make PAST::Op.new(:pasttype<callmethod>, :name<incarnate>,
@@ -4574,26 +4573,13 @@ class Perl6::Actions is HLL::Actions {
         return $closure;
     }
 
-    sub make_thunk($to_thunk, $/) {
-        my $block := $*W.push_lexpad($/);
-        $block.push($to_thunk);
-        $*W.pop_lexpad();
-        make_simple_code_object($block, 'Code');
-    }
-
     sub make_thunk_ref($to_thunk, $/) {
         my $block := $*W.push_lexpad($/);
         $block.push($to_thunk);
         $*W.pop_lexpad();
         reference_to_code_object(
-            make_simple_code_object($block, 'Code'),
+            $*W.create_simple_code_object($block, 'Code'),
             $block);
-    }
-
-    sub make_simple_code_object($block, $type) {
-        ($*W.cur_lexpad())[0].push($block);
-        my $sig := $*W.create_signature([]);
-        return $*W.create_code_object($block, $type, $sig);
     }
 
     sub make_topic_block_ref($past, :$copy) {
@@ -4823,7 +4809,7 @@ class Perl6::Actions is HLL::Actions {
 
         # Dispatch trait. XXX Should really be Bool::True, not Int here...
         my $true := ($*W.add_constant('Int', 'int', 1))<compile_time_value>;
-        $*W.apply_trait('&trait_mod:<will>', $attr, $code, :build($true));
+        $*W.apply_trait('&trait_mod:<will>', $attr, :build($code));
     }
 
     # This is the hook where, in the future, we'll use this as the hook to check

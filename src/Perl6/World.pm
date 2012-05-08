@@ -560,6 +560,27 @@ class Perl6::World is HLL::World {
         # Return created signature.
         $signature
     }
+
+    method compile_time_evaluate($/, $ast) {
+        return $ast<compile_time_value> if $ast<has_compile_time_value>;
+        my $thunk := self.create_thunk($/, $ast);
+        $thunk();
+    }
+
+    # turn a PAST into a code object, to be called immediately.
+    method create_thunk($/, $to_thunk) {
+        my $block := self.push_lexpad($/);
+        $block.push($to_thunk);
+        self.pop_lexpad();
+        self.create_simple_code_object($block, 'Code');
+    }
+
+    # Creates a simple code object with an empty signature
+    method create_simple_code_object($block, $type) {
+        self.cur_lexpad()[0].push($block);
+        my $sig := self.create_signature([]);
+        return self.create_code_object($block, $type, $sig);
+    }
     
     # Creates a code object of the specified type, attached the passed signature
     # object and sets up dynamic compilation thunk.

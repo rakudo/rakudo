@@ -13,6 +13,8 @@ New in 2012.05
 + ms// fixed
 + <$x> in regexes caches the compiled regex, which can be a big performance win
 + implemented temp and let
++ 'use' can now import by tag name
++ updated calling conventions for traits
 
 New in 2012.04.1
 + autvivification for arrays and hashes

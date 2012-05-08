@@ -1,4 +1,3 @@
-use v6;
 my class DateTime { ...}
 my class Date     { ...}
 

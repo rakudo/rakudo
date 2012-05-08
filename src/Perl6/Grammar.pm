@@ -796,6 +796,10 @@ grammar Perl6::Grammar is HLL::Grammar {
                         if pir::exists($EXPORT, $tag) {
                             $*W.import($EXPORT{$tag}, $package_source_name);
                         }
+                        else {
+                            nqp::die("Error while importing from '$package_source_name': no such tag '$tag'");
+
+                        }
                     }
                     else {
                         nqp::die('Can only import named tags for now');

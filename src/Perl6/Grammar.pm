@@ -720,7 +720,7 @@ grammar Perl6::Grammar is HLL::Grammar {
                 # todo: fix arglist
                 my $arglist;
                 if $<arglist> {
-                    $arglist := $*W.compile_time_evaluate($/, $<arglist>[0]<EXPR>);
+                    $arglist := $*W.compile_time_evaluate($/, $<arglist>[0]<EXPR>.ast);
                 }
                 do_import($module.WHO, ~$<module_name><longname>, $arglist);
             }

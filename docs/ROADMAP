@@ -1,7 +1,7 @@
 Rakudo Roadmap
 --------------
 
-Last updated: 2012-05-06
+Last updated: 2012-05-08
 
 This document serves as a guide to the major goals for Rakudo
 development, as things stood in December 2011. They have been
@@ -80,7 +80,6 @@ Language Features
 2 **    enumerations as roles
 2 ***   heredocs
 2 **    module versioning
-2 **    import/export tags
 2 **    missing bits of enums
 2 ***   new syntax/semantics for coercion (jnthn)
 2 **    MAIN and USAGE (japhb)

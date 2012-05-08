@@ -123,7 +123,7 @@ sub read_specfile {
 sub get_harness {
     return TAP::Harness->new({
             verbosity   => -2,
-            exec        => [$^X, 'tools/perl6-limited.pl'],
+            exec        => [$^X, 'tools/perl6-limited.pl', qw/-Ilib -I./],
             merge       => 1,
     });
 }

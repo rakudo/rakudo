@@ -18,6 +18,7 @@ New in 2012.05
 + lib.pm
 + updated calling conventions for traits
 + implemented fff flip-flop operator; improvements to ff form also
++ removed current directory from default library search path
 
 New in 2012.04.1
 + autvivification for arrays and hashes

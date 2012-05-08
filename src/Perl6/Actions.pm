@@ -3519,7 +3519,15 @@ class Perl6::Actions is HLL::Actions {
         '!~~',  -> $/, $sym { make_smartmatch($/, 1) },
         '=',    -> $/, $sym { assign_op($/[0].ast, $/[1].ast) },
         ':=',   -> $/, $sym { bind_op($/, $/[0].ast, $/[1].ast, 0) },
-        '::=',  -> $/, $sym { bind_op($/, $/[0].ast, $/[1].ast, 1) }
+        '::=',  -> $/, $sym { bind_op($/, $/[0].ast, $/[1].ast, 1) },
+        'ff',   -> $/, $sym { flipflop($/[0].ast, $/[1].ast, 0, 0, 0) },
+        '^ff',  -> $/, $sym { flipflop($/[0].ast, $/[1].ast, 1, 0, 0) },
+        'ff^',  -> $/, $sym { flipflop($/[0].ast, $/[1].ast, 0, 1, 0) },
+        '^ff^', -> $/, $sym { flipflop($/[0].ast, $/[1].ast, 1, 1, 0) },
+        'fff',  -> $/, $sym { flipflop($/[0].ast, $/[1].ast, 0, 0, 1) },
+        '^fff', -> $/, $sym { flipflop($/[0].ast, $/[1].ast, 1, 0, 1) },
+        'fff^', -> $/, $sym { flipflop($/[0].ast, $/[1].ast, 0, 1, 1) },
+        '^fff^',-> $/, $sym { flipflop($/[0].ast, $/[1].ast, 1, 1, 1) }
     );
     method EXPR($/, $key?) {
         unless $key { return 0; }
@@ -3857,6 +3865,135 @@ class Perl6::Actions is HLL::Actions {
             block_closure(make_thunk_ref($lhs, $/)),
             $rhs,
             PAST::Op.new( :pirop('perl6_booleanize__Pi'), 1, :named('thunked') ))
+    }
+    
+    sub flipflop($lhs, $rhs, $min_excl, $max_excl, $one_only) {
+        # Need various constants.
+        my $zero  := $*W.add_numeric_constant('Int', 0);
+        my $one   := $*W.add_numeric_constant('Int', 1);
+        my $nil   := $*W.get_ref($*W.find_symbol(['Nil']));
+        my $false := $*W.get_ref($*W.find_symbol(['Bool', 'False']));
+        my $true  := $*W.get_ref($*W.find_symbol(['Bool', 'True']));
+        
+        # Need a state variable to track the state.
+        my %cont;
+        my $id    := $lhs.unique('FLIPFLOP_STATE_');
+        my $state := '!' ~ $id;
+        %cont{'bind_constraint'} := $*W.find_symbol(['Mu']);
+        %cont{'container_type'}  := $*W.find_symbol(['Scalar']);
+        %cont{'container_base'}  := %cont{'container_type'};
+        %cont{'default_value'}   := $zero<compile_time_value>;
+        $*W.install_lexical_container($*W.cur_lexpad(), $state, %cont,
+            $*W.create_container_descriptor(%cont{'bind_constraint'}, 1, $state),
+            :state(1));
+            
+        # Twiddle to make special-case RHS * work.
+        if $rhs.returns eq 'Whatever' {
+            $rhs := $false;
+        }
+        
+        # Evaluate LHS and RHS. Note that in one-only mode, we use
+        # the state bit to decide which side to evaluate.
+        my $ff_code := PAST::Stmts.new(
+            PAST::Op.new(
+                :pasttype('bind'),
+                PAST::Var.new( :name($id ~ '_lhs'), :scope('register'), :isdecl(1) ),
+                ($one_only ??
+                    PAST::Op.new(
+                        :pasttype('if'),
+                        PAST::Var.new( :name($state), :scope('lexical_6model') ),
+                        $false,
+                        PAST::Op.new( :pasttype('callmethod'), :name('Bool'), $lhs )
+                    ) !!
+                    PAST::Op.new( :pasttype('callmethod'), :name('Bool'), $lhs ))
+            ),
+            PAST::Op.new(
+                :pasttype('bind'),
+                PAST::Var.new( :name($id ~ '_rhs'), :scope('register'), :isdecl(1) ),
+                ($one_only ??
+                    PAST::Op.new(
+                        :pasttype('if'),
+                        PAST::Var.new( :name($state), :scope('lexical_6model') ),
+                        PAST::Op.new( :pasttype('callmethod'), :name('Bool'), $rhs ),
+                        $false
+                    ) !!
+                    PAST::Op.new( :pasttype('callmethod'), :name('Bool'), $rhs ))
+            )
+        );
+        
+        # Now decide what to do based on current state and current
+        # results.
+        $ff_code.push(PAST::Op.new(
+            :pasttype('if'),
+            PAST::Var.new( :name($state), :scope('lexical_6model') ),
+            
+            # State is currently true. Check RHS. If it's false, then we
+            # increment the sequence count. If it's true, then we reset,
+            # the state to zero and and what we return depends on $max_excl.
+            PAST::Op.new(
+                :pasttype('if'),
+                PAST::Var.new( :name($id ~ '_rhs'), :scope('register') ),
+                ($max_excl ??
+                    PAST::Stmts.new(
+                        PAST::Op.new(
+                            :pirop('perl6_container_store__0PP'),
+                            PAST::Var.new( :name($state), :scope('lexical_6model') ),
+                            $zero
+                        ),
+                        $nil
+                    ) !!
+                    PAST::Stmts.new(
+                        PAST::Op.new(
+                            :pasttype('bind'),
+                            PAST::Var.new( :name($id ~ '_orig'), :scope('register'), :isdecl(1) ),
+                            PAST::Op.new(
+                                :pasttype('call'), :name('&prefix:<++>'),
+                                PAST::Var.new( :name($state), :scope('lexical_6model') )
+                            )
+                        ),
+                        PAST::Op.new(
+                            :pirop('perl6_container_store__0PP'),
+                            PAST::Var.new( :name($state), :scope('lexical_6model') ),
+                            $zero
+                        ),
+                        PAST::Op.new(
+                            :pirop('perl6_decontainerize__PP'),
+                            PAST::Var.new( :name($id ~ '_orig'), :scope('register') )
+                        )
+                    )),
+                PAST::Stmts.new(
+                    PAST::Op.new(
+                        :pasttype('call'), :name('&prefix:<++>'),
+                        PAST::Var.new( :name($state), :scope('lexical_6model') )
+                    )
+                )
+            ),
+            
+            # State is currently false. Check LHS. If it's false, then we
+            # stay in a false state. If it's true, then we flip the bit,
+            # but only if the RHS is not also true. We return a result
+            # based on $min_excl.
+            PAST::Op.new(
+                :pasttype('if'),
+                PAST::Var.new( :name($id ~ '_lhs'), :scope('register') ),
+                PAST::Op.new(
+                    :pasttype('if'),
+                    PAST::Var.new( :name($id ~ '_rhs'), :scope('register') ),
+                    $min_excl || $max_excl ?? $nil !! $one,
+                    PAST::Stmts.new(
+                        PAST::Op.new(
+                            :pirop('perl6_container_store__0PP'),
+                            PAST::Var.new( :name($state), :scope('lexical_6model') ),
+                            $one
+                        ),
+                        $min_excl ?? $nil !! $one
+                    )
+                ),
+                $nil
+            )
+        ));
+        
+        $ff_code
     }
 
     method prefixish($/) {

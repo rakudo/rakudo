@@ -157,60 +157,6 @@ sub undefine(Mu \$x) {
     $x = $undefined;
 }
 
-sub infix:<ff>($a as Bool, $b as Bool) {
-    my $pos := nqp::p6box_s(nqp::callerid());
-    state %ffv;
-    if %ffv{$pos} {
-        %ffv{$pos} = False if $b;
-        True;
-    }
-    elsif $a {
-        %ffv{$pos} = $a
-    }
-    else {
-        False
-    }
-}
-
-sub infix:<ff^>($a as Bool, $b as Bool) {
-    my $pos := nqp::p6box_s(nqp::callerid());
-    state %ffv;
-    if %ffv{$pos} {
-        $b ?? (%ffv{$pos} = False) !! True
-    }
-    elsif $a {
-        %ffv{$pos} = $a
-    }
-    else {
-        False
-    }
-}
-
-sub infix:<^ff>($a as Bool, $b as Bool) {
-    my $pos := nqp::p6box_s(nqp::callerid());
-    state %ffv;
-    if %ffv{$pos} {
-        %ffv{$pos} = False if $b;
-        True
-    }
-    else {
-        %ffv{$pos} = True if $a;
-        False
-    }
-}
-
-sub infix:<^ff^>($a as Bool, $b as Bool) {
-    my $pos := nqp::p6box_s(nqp::callerid());
-    state %ffv;
-    if %ffv{$pos} {
-        $b ?? (%ffv{$pos} = False) !! True
-    }
-    else {
-        %ffv{$pos} = True if $a;
-        False
-    }
-}
-
 sub prefix:<temp>(\$cont) is rw {
     my $temp_restore := pir::find_caller_lex__Ps('!TEMP-RESTORE');
     if nqp::iscont($cont) {

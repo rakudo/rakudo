@@ -721,6 +721,8 @@ grammar Perl6::Grammar is HLL::Grammar {
                 my $arglist;
                 if $<arglist> {
                     $arglist := $*W.compile_time_evaluate($/, $<arglist>[0]<EXPR>.ast);
+                    $arglist := nqp::getattr($arglist.list.eager,
+                            $*W.find_symbol(['List']), '$!items');
                 }
                 do_import($module.WHO, ~$<module_name><longname>, $arglist);
             }

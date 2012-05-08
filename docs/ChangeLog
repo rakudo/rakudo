@@ -19,6 +19,7 @@ New in 2012.05
 + updated calling conventions for traits
 + implemented fff flip-flop operator; improvements to ff form also
 + removed current directory from default library search path
++ 'import' works
 
 New in 2012.04.1
 + autvivification for arrays and hashes

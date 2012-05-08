@@ -70,7 +70,7 @@ sub term:<time>() { nqp::p6box_i(pir::time__I()) }
         @INC.push((%ENV<HOME> // %ENV<HOMEDRIVE> ~ %ENV<HOMEPATH>) ~ '/.perl6/lib');
     }
     @INC.push($VM<config><libdir> ~ $VM<config><versiondir> ~ '/languages/perl6/lib');
-    @INC.push('.'); # XXX: remove this when 'use lib' works fine
+
     my $I := nqp::atkey(nqp::atkey(%*COMPILING, '%?OPTIONS'), 'I');
     if pir::defined($I) {
         if pir::does($I, 'array') {

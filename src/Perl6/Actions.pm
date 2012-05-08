@@ -3510,7 +3510,17 @@ class Perl6::Actions is HLL::Actions {
     }
 
     ## Expressions
-
+    my %specials := nqp::hash(
+        '==>',  -> $/, $sym { make_feed($/) },
+        '==>>', -> $/, $sym { make_feed($/) },
+        '<==',  -> $/, $sym { make_feed($/) },
+        '<<==', -> $/, $sym { make_feed($/) },
+        '~~',   -> $/, $sym { make_smartmatch($/, 0) },
+        '!~~',  -> $/, $sym { make_smartmatch($/, 1) },
+        '=',    -> $/, $sym { assign_op($/[0].ast, $/[1].ast) },
+        ':=',   -> $/, $sym { bind_op($/, $/[0].ast, $/[1].ast, 0) },
+        '::=',  -> $/, $sym { bind_op($/, $/[0].ast, $/[1].ast, 1) }
+    );
     method EXPR($/, $key?) {
         unless $key { return 0; }
         my $past := $/.ast // $<OPER>.ast;
@@ -3526,28 +3536,8 @@ class Perl6::Actions is HLL::Actions {
             make $past;
             return 1;
         }
-        elsif $sym eq '==>' || $sym eq '<==' || $sym eq '==>>' || $sym eq '<<==' {
-            make make_feed($/);
-            return 1;
-        }
-        elsif $sym eq '~~' {
-            make make_smartmatch($/, 0);
-            return 1;
-        }
-        elsif $sym eq '!~~' {
-            make make_smartmatch($/, 1);
-            return 1;
-        }
-        elsif $sym eq '=' {
-            make assign_op($/[0].ast, $/[1].ast);
-            return 1;
-        }
-        elsif $sym eq ':=' {
-            make bind_op($/, $/[0].ast, $/[1].ast, 0);
-            return 1;
-        }
-        elsif $sym eq '::=' {
-            make bind_op($/, $/[0].ast, $/[1].ast, 1);
+        elsif nqp::existskey(%specials, $sym) {
+            make %specials{$sym}($/, $sym);
             return 1;
         }
         elsif !$past && ($sym eq 'does' || $sym eq 'but') {

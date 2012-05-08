@@ -1,6 +1,6 @@
 my class Duration {... }
 
-my class Instant is Real {
+my class Instant is Cool does Real {
     has Rat $.x;
       # A linear count of seconds since 1970-01-01T00:00:00Z, plus
       # tai-utc::initial-offset. Thus, $.x matches TAI from 1970

@@ -53,7 +53,6 @@ my stub Method metaclass Perl6::Metamodel::ClassHOW { ... };
 my stub Submethod metaclass Perl6::Metamodel::ClassHOW { ... };
 my stub Regex metaclass Perl6::Metamodel::ClassHOW { ... };
 my stub Str metaclass Perl6::Metamodel::ClassHOW { ... };
-my stub Real metaclass Perl6::Metamodel::ClassHOW { ... };
 my knowhow bigint is repr('P6bigint') { }
 my stub Int metaclass Perl6::Metamodel::ClassHOW { ... };
 my stub Num metaclass Perl6::Metamodel::ClassHOW { ... };
@@ -639,23 +638,20 @@ BEGIN {
     Str.HOW.set_boolification_mode(Str, 4);
     Str.HOW.publish_boolification_spec(Str);
 
-    # class Real is Numeric { ... }
-    Real.HOW.add_parent(Real, Cool);
-
-    # class Int is (Cool does) Real {
+    # class Int is Cool {
     #     has int $!value is box_target;
     #     ...
     # }
-    Int.HOW.add_parent(Int, Real);
+    Int.HOW.add_parent(Int, Cool);
     Int.HOW.add_attribute(Int, BOOTSTRAPATTR.new(:name<$!value>, :type(bigint), :box_target(1), :package(Int)));
     Int.HOW.set_boolification_mode(Int, 6);
     Int.HOW.publish_boolification_spec(Int);
 
-    # class Num is (Cool does) Real {
+    # class Num is Cool {
     #     has num $!value is box_target;
     #     ...
     # }
-    Num.HOW.add_parent(Num, Real);
+    Num.HOW.add_parent(Num, Cool);
     Num.HOW.add_attribute(Num, BOOTSTRAPATTR.new(:name<$!value>, :type(num), :box_target(1), :package(Num)));
     Num.HOW.set_boolification_mode(Num, 2);
     Num.HOW.publish_boolification_spec(Num);
@@ -859,7 +855,6 @@ BEGIN {
     EXPORT::DEFAULT.WHO<Submethod> := Submethod;
     EXPORT::DEFAULT.WHO<Regex>     := Regex;
     EXPORT::DEFAULT.WHO<Str>       := Str;
-    EXPORT::DEFAULT.WHO<Real>      := Real;
     EXPORT::DEFAULT.WHO<Int>       := Int;
     EXPORT::DEFAULT.WHO<Num>       := Num;
     EXPORT::DEFAULT.WHO<Parcel>    := Parcel;  

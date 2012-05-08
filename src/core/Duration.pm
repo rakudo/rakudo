@@ -1,4 +1,4 @@
-my class Duration is Real {
+my class Duration is Cool does Real {
     has Rat $.x = 0;
       # A linear count of seconds.
 

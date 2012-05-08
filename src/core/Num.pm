@@ -1,5 +1,4 @@
-
-my class Num {
+my class Num does Real {
     multi method WHICH(Num:D:) {
         nqp::box_s(
             nqp::concat_s(
@@ -301,17 +300,17 @@ multi infix:<**>(num $a, num $b) {
 
 
 multi infix:<cmp>(Num:D \$a, Num:D \$b) {
-    nqp::p6box_i(nqp::cmp_n(nqp::unbox_n($a), nqp::unbox_n($b)))
+    Order.(nqp::p6box_i(nqp::cmp_n(nqp::unbox_n($a), nqp::unbox_n($b))))
 }
 multi infix:<cmp>(num $a, num $b) {
-    nqp::cmp_n($a, $b)
+    Order.(nqp::p6box_i(nqp::cmp_n($a, $b)))
 }
 
 multi infix:«<=>»(Num:D \$a, Num:D \$b) {
     Order.(nqp::p6box_i(nqp::cmp_n(nqp::unbox_n($a), nqp::unbox_n($b))))
 }
 multi infix:«<=>»(num $a, num $b) {
-    Order.(nqp::cmp_n($a, $b))
+    Order.(nqp::p6box_i(nqp::cmp_n($a, $b)))
 }
 
 multi infix:<===>(Num:D \$a, Num:D \$b) {

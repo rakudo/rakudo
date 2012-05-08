@@ -1,6 +1,6 @@
 my class Rat { ... }
 
-my class Int {
+my class Int does Real {
     multi method WHICH(Int:D:) {
         nqp::box_s(
             nqp::concat_s(

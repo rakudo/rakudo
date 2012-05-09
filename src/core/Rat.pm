@@ -40,6 +40,14 @@ my role Rational does Real {
                 nqp::p6decont($!denominator)
              ));
     }
+
+    method floor(Rational:D:) {
+        $!denominator == 1
+            ?? $!numerator
+            !! $!numerator < 0
+            ?? ($!numerator div $!denominator - 1) # XXX because div for negati
+            !! $!numerator div $!denominator
+    }
     method Int() { $!numerator div $!denominator }
 
     method Bridge() { self.Num }

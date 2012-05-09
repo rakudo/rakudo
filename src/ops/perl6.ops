@@ -82,10 +82,18 @@ static INTVAL should_run_phaser(PARROT_INTERP, PMC *phaser, PMC *all_phasers, PM
         return in_undo_list;
 
     /* Otherwise, need to consider the definedness of the return value. */
-    if (IS_CONCRETE(result))
-        return in_keep_list;
-    else
+    if (IS_CONCRETE(result)) {
+        PMC *meth = VTABLE_find_method(interp, result, Parrot_str_new_constant(interp, "defined"));
+        PMC *definedness;
+        Parrot_ext_call(interp, meth, "Pi->P", result, &definedness);
+        if (VTABLE_get_bool(interp, definedness))
+            return in_keep_list;
+        else
+            return in_undo_list;
+    }
+    else {
         return in_undo_list;
+    }
 }
 
 static PMC *run_leave_phasers(PARROT_INTERP, PMC *ctx, PMC *perl6_code, PMC *result, PMC *exceptions)

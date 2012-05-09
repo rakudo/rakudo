@@ -52,7 +52,21 @@ my role Rational does Real {
 
     method Bridge() { self.Num }
     multi method Str(Rational:D:) {
-        self.Num.Str
+        my $s = $!numerator < 0 ?? '-' !! '';
+        my $r = self.abs;
+        my $i = $r.floor;
+        $r -= $i;
+        $s ~= $i;
+        if $r {
+            $s ~= '.';
+            while $r and $s.chars < 41 {
+                $r *= 10;
+                $i = $r.floor;
+                $s ~= $i;
+                $r -= $i;
+            }
+        }
+        $s;
     }
     method succ {
         self.new($!numerator + $!denominator, $!denominator);

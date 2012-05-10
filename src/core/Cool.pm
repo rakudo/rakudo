@@ -132,11 +132,18 @@ my class Cool {
                     ?? $pos
                     !! self.chars;
         }
-        my $result =
-            nqp::p6box_i(
-                pir::box__PS(nqp::unbox_s(self.Str)).reverse_index(
+        my $result = $pos.defined
+            ?? nqp::p6box_i(
+                pir::rindex__ISSI(
+                    nqp::unbox_s(self.Str),
                     nqp::unbox_s($needle.Str),
-                    nqp::unbox_i(($pos // 0).Int)));
+                    nqp::unbox_i($pos.Int)
+                ))
+            !! nqp::p6box_i(
+                pir::rindex__ISS(
+                    nqp::unbox_s(self.Str),
+                    nqp::unbox_s($needle.Str),
+                ));
         fail "substring not found" if $result < 0;
         $result;
     }

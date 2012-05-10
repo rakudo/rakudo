@@ -59,12 +59,18 @@ my role Rational does Real {
         $s ~= $i;
         if $r {
             $s ~= '.';
-            while $r and $s.chars < 41 {
+            my $want = $!denominator < 100_000
+                       ?? 6
+                       !! $!denominator.Str.chars + 1;
+            my $f = '';
+            while $r and $f.chars < $want {
                 $r *= 10;
                 $i = $r.floor;
-                $s ~= $i;
+                $f ~= $i;
                 $r -= $i;
             }
+            $f++ if  2 * $r >= 1;
+            $s ~= $f;
         }
         $s;
     }

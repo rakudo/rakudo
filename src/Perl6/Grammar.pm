@@ -2858,6 +2858,11 @@ grammar Perl6::RegexGrammar is QRegex::P6Regex::Grammar {
         <?[$@&]> <?before .<?alpha>> <var=.LANG('MAIN', 'variable')>
     }
 
+    token metachar:sym<qw> {
+        <?before '<' \s >  # (note required whitespace)
+        <quote_EXPR: ':q', ':w'>
+    }
+    
     token assertion:sym<{ }> {
         <?[{]> <codeblock>
     }

@@ -5204,6 +5204,14 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions {
         make QAST::Regex.new( $<codeblock>.ast,
                               :rxtype<pastnode>, :node($/) );
     }
+    
+    method metachar:sym<qw>($/) {
+        my $qast := QAST::Regex.new( :rxtype<alt>, :node($/) );
+        for HLL::Grammar::split_words($/, $<quote_EXPR><quote_delimited>.ast) {
+            $qast.push(QAST::Regex.new( $_, :rxtype<literal> ));
+        }
+        make $qast;
+    }
 
     method metachar:sym<rakvar>($/) {
         make QAST::Regex.new( PAST::Node.new('INTERPOLATE', $<var>.ast,

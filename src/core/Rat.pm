@@ -41,13 +41,22 @@ my role Rational does Real {
              ));
     }
 
-    method floor(Rational:D:) {
+    method floor(Rational:D:) returns Int:D {
         $!denominator == 1
             ?? $!numerator
             !! $!numerator < 0
             ?? ($!numerator div $!denominator - 1) # XXX because div for negati
             !! $!numerator div $!denominator
     }
+
+    method ceiling(Rational:D:) returns Int:D {
+        $!denominator == 1
+            ?? $!numerator
+            !! $!numerator < 0
+            ?? ($!numerator div $!denominator) # XXX should be +1, but div is buggy
+            !! ($!numerator div $!denominator + 1)
+    }
+
     method Int() { $!numerator div $!denominator }
 
     method Bridge() { self.Num }

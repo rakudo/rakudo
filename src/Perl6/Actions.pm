@@ -3289,14 +3289,7 @@ class Perl6::Actions is HLL::Actions {
             nqp::die("pir::op forbidden in safe mode\n");
         }
         my $past := $<args> ?? $<args>[0].ast !! PAST::Op.new( :node($/) );
-        my $pirop := ~$<op>;
-        $pirop := Q:PIR {
-            $P0 = find_lex '$pirop'
-            $S0 = $P0
-            $P0 = split '__', $S0
-            $S0 = join ' ', $P0
-            %r = box $S0
-        };
+        my $pirop := nqp::join(' ', nqp::split('__', ~$<op>));
         $past.pirop($pirop);
         $past.pasttype('pirop');
         make $past;
@@ -3563,12 +3556,7 @@ class Perl6::Actions is HLL::Actions {
             my $name;
             unless $past.name {
                 if $key eq 'LIST' { $key := 'infix'; }
-                $name := Q:PIR {
-                    $P0 = find_lex '$key'
-                    $S0 = $P0
-                    $S0 = downcase $S0
-                    %r = box $S0
-                } ~ ':<' ~ $<OPER><sym> ~ '>';
+                $name := nqp::lc($key) ~ ':<' ~ $<OPER><sym> ~ '>';
                 $past.name('&' ~ $name);
             }
             my $routine;

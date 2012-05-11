@@ -23,6 +23,9 @@ New in 2012.05
 + symbols installed in EXPORT in all nested packages, not just UNIT::EXPORT
 + enumeration types can be used as roles
 + END phasers now run when program ends with exit or an exception
++ fix Rat.floor and .ceiling to work for large numbers
++ improves Rat stringification
++ Real is now a role, as it should be
 
 New in 2012.04.1
 + autvivification for arrays and hashes

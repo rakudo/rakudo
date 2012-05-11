@@ -2308,7 +2308,7 @@ class Perl6::Actions is HLL::Actions {
         # for each of the keys, unless they have them supplied.
         # XXX Should not assume integers, and should use lexically
         # scoped &postfix:<++> or so.
-        my $cur_value := 0;
+        my $cur_value := nqp::box_i(-1, $*W.find_symbol(['Int']));
         for @values {
             # If it's a pair, take that as the value; also find
             # key.
@@ -2316,15 +2316,14 @@ class Perl6::Actions is HLL::Actions {
             if $_.returns() eq 'Pair' {
                 $cur_key   := $_[1]<compile_time_value>;
                 if $_[2]<has_compile_time_value> {
-                    $cur_value := nqp::unbox_i($_[2]<compile_time_value>);
+                    $cur_value := $_[2]<compile_time_value>;
                 }
                 else {
                     my $ok;
                     try {
-                        $cur_value := nqp::unbox_i(
-                            Perl6::ConstantFolder.fold(
-                                $_[2], $*W.cur_lexpad(), $*W
-                            )<compile_time_value>);
+                        $cur_value := Perl6::ConstantFolder.fold(
+                                        $_[2], $*W.cur_lexpad(), $*W
+                                    )<compile_time_value>;
                         $ok := 1;
                     }
                     unless $ok {
@@ -2334,6 +2333,7 @@ class Perl6::Actions is HLL::Actions {
             }
             else {
                 $cur_key := $_<compile_time_value>;
+                $cur_value := $cur_value.succ();
             }
 
             # Create and install value.
@@ -2345,9 +2345,6 @@ class Perl6::Actions is HLL::Actions {
             if $*SCOPE eq '' || $*SCOPE eq 'our' {
                 $*W.install_package_symbol($*PACKAGE, nqp::unbox_s($cur_key), $val_obj);
             }
-
-            # Increment for next value.
-            $cur_value := $cur_value + 1;
         }
 
         # We evaluate to the enum type object.

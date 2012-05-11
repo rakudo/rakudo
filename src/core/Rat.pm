@@ -90,6 +90,8 @@ my role Rational does Real {
     method pred {
         self.new($!numerator - $!denominator, $!denominator);
     }
+
+    method norm() { self }
 }
 
 my class Rat is Cool does Rational { 

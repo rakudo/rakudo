@@ -2252,28 +2252,38 @@ class Perl6::Actions is HLL::Actions {
         # Get, or find, enumeration base type and create type object with
         # correct base type.
         my $longname  := $<longname> ?? $*W.disect_longname($<longname>) !! 0;
-        my $base_type := $*OFTYPE ?? $*OFTYPE.ast !! $*W.find_symbol(['Int']);
         my $name      := $<longname> ?? $longname.name() !! $<variable><desigilname>;
-        my $type_obj  := $*W.pkg_create_mo($/, %*HOW<enum>, :name($name), :base_type($base_type));
 
-        # Add roles (which will provide the enum-related methods).
-        $*W.apply_trait('&trait_mod:<does>', $type_obj, $*W.find_symbol(['Enumeration']));
-        if pir::type_check__IPP($type_obj, $*W.find_symbol(['Numeric'])) {
-            $*W.apply_trait('&trait_mod:<does>', $type_obj, $*W.find_symbol(['NumericEnumeration']));
+        my $type_obj;
+        my sub make_type_obj($base_type) {
+            $type_obj := $*W.pkg_create_mo($/, %*HOW<enum>, :$name, :$base_type);
+            # Add roles (which will provide the enum-related methods).
+            $*W.apply_trait('&trait_mod:<does>', $type_obj, $*W.find_symbol(['Enumeration']));
+            if pir::type_check__IPP($type_obj, $*W.find_symbol(['Numeric'])) {
+                $*W.apply_trait('&trait_mod:<does>', $type_obj, $*W.find_symbol(['NumericEnumeration']));
+            }
+            if pir::type_check__IPP($type_obj, $*W.find_symbol(['Stringy'])) {
+                $*W.apply_trait('&trait_mod:<does>', $type_obj, $*W.find_symbol(['StringyEnumeration']));
+            }
+            # Apply traits, compose and install package.
+            for $<trait> {
+                ($_.ast)($type_obj) if $_.ast;
+            }
+            $*W.pkg_compose($type_obj);
+        }
+        my $base_type;
+        my $has_base_type;
+        if $*OFTYPE {
+            $base_type     := $*OFTYPE.ast;
+            $has_base_type := 1;
+            make_type_obj($base_type);
         }
 
-        # Apply traits, compose and install package.
-        for $<trait> {
-            ($_.ast)($type_obj) if $_.ast;
-        }
-        $*W.pkg_compose($type_obj);
         if $<variable> {
             $*W.throw($/, 'X::Comp::NYI',
                 feature => "Variable case of enums",
             );
         }
-        $*W.install_package($/, $longname.type_name_parts('enum name', :decl(1)),
-            ($*SCOPE || 'our'), 'enum', $*PACKAGE, $*W.cur_lexpad(), $type_obj);
 
         # Get list of either values or pairs; fail if we can't.
         my @values;
@@ -2308,7 +2318,7 @@ class Perl6::Actions is HLL::Actions {
         # for each of the keys, unless they have them supplied.
         # XXX Should not assume integers, and should use lexically
         # scoped &postfix:<++> or so.
-        my $cur_value := 0;
+        my $cur_value := nqp::box_i(-1, $*W.find_symbol(['Int']));
         for @values {
             # If it's a pair, take that as the value; also find
             # key.
@@ -2316,24 +2326,45 @@ class Perl6::Actions is HLL::Actions {
             if $_.returns() eq 'Pair' {
                 $cur_key   := $_[1]<compile_time_value>;
                 if $_[2]<has_compile_time_value> {
-                    $cur_value := nqp::unbox_i($_[2]<compile_time_value>);
+                    $cur_value := $_[2]<compile_time_value>;
                 }
                 else {
                     my $ok;
                     try {
-                        $cur_value := nqp::unbox_i(
-                            Perl6::ConstantFolder.fold(
-                                $_[2], $*W.cur_lexpad(), $*W
-                            )<compile_time_value>);
+                        $cur_value := Perl6::ConstantFolder.fold(
+                                        $_[2], $*W.cur_lexpad(), $*W
+                                    )<compile_time_value>;
                         $ok := 1;
                     }
                     unless $ok {
                         $*W.throw($/, ['X', 'Value', 'Dynamic'], what => 'Enumeration');
                     }
                 }
+                if $has_base_type {
+                    unless pir::type_check__IPP($cur_value, $base_type) {
+                        $/.CURSOR.panic("Type error in enum. Got '"
+                                ~ $cur_value.HOW.name($cur_value)
+                                ~ "' Expected: '"
+                                ~ $base_type.HOW.name($base_type)
+                                ~ "'"
+                        );
+                    }
+                }
+                else {
+                    $base_type     :=  $cur_value.WHAT;
+                    $has_base_type := 1;
+                    make_type_obj($base_type);
+                }
             }
             else {
+                unless $has_base_type {
+                    $base_type := $*W.find_symbol(['Int']);
+                    make_type_obj($base_type);
+                    $has_base_type := 1;
+                }
+
                 $cur_key := $_<compile_time_value>;
+                $cur_value := $cur_value.succ();
             }
 
             # Create and install value.
@@ -2345,10 +2376,12 @@ class Perl6::Actions is HLL::Actions {
             if $*SCOPE eq '' || $*SCOPE eq 'our' {
                 $*W.install_package_symbol($*PACKAGE, nqp::unbox_s($cur_key), $val_obj);
             }
-
-            # Increment for next value.
-            $cur_value := $cur_value + 1;
         }
+        # create a type object even for empty enums
+        make_type_obj($*W.find_symbol(['Int'])) unless $has_base_type;
+
+        $*W.install_package($/, $longname.type_name_parts('enum name', :decl(1)),
+            ($*SCOPE || 'our'), 'enum', $*PACKAGE, $*W.cur_lexpad(), $type_obj);
 
         # We evaluate to the enum type object.
         make $*W.get_ref($type_obj);

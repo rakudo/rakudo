@@ -46,6 +46,11 @@ my role NumericEnumeration {
         self.key
     }
 }
+my role StringyEnumeration {
+    multi method Str(::?CLASS:D:) {
+        self.value
+    }
+}
 
 sub ANON_ENUM(*@args) {
     my Mu $prev = -1;

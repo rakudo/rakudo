@@ -2284,8 +2284,6 @@ class Perl6::Actions is HLL::Actions {
                 feature => "Variable case of enums",
             );
         }
-        $*W.install_package($/, $longname.type_name_parts('enum name', :decl(1)),
-            ($*SCOPE || 'our'), 'enum', $*PACKAGE, $*W.cur_lexpad(), $type_obj);
 
         # Get list of either values or pairs; fail if we can't.
         my @values;
@@ -2375,6 +2373,9 @@ class Perl6::Actions is HLL::Actions {
         }
         # create a type object even for empty enums
         make_type_obj unless $has_base_type;
+
+        $*W.install_package($/, $longname.type_name_parts('enum name', :decl(1)),
+            ($*SCOPE || 'our'), 'enum', $*PACKAGE, $*W.cur_lexpad(), $type_obj);
 
         # We evaluate to the enum type object.
         make $*W.get_ref($type_obj);

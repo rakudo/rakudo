@@ -2357,6 +2357,12 @@ class Perl6::Actions is HLL::Actions {
                 }
             }
             else {
+                unless $has_base_type {
+                    $base_type := $*W.find_symbol(['Int']);
+                    make_type_obj($base_type);
+                    $has_base_type := 1;
+                }
+
                 $cur_key := $_<compile_time_value>;
                 $cur_value := $cur_value.succ();
             }

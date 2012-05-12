@@ -76,7 +76,6 @@ Phasers
 
 Language Features
 1 ***   basic Perl 5 interop (use, eval, etc.)
-1 **    non-Numeric enums (moritz)
 2 ***   heredocs
 2 *     $=DATA and friends (tadzik)
 2 **    module versioning

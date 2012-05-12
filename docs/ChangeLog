@@ -24,8 +24,10 @@ New in 2012.05
 + enumeration types can be used as roles
 + END phasers now run when program ends with exit or an exception
 + fix Rat.floor and .ceiling to work for large numbers
-+ improves Rat stringification
++ improved Rat stringification
 + Real is now a role, as it should be
++ implemented < foo bar baz > syntax for alternations in regexes
++ implemented <( and )> syntax for setting from/to of match  in regexes
 
 New in 2012.04.1
 + autvivification for arrays and hashes

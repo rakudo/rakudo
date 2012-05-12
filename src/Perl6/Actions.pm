@@ -2372,7 +2372,7 @@ class Perl6::Actions is HLL::Actions {
             }
         }
         # create a type object even for empty enums
-        make_type_obj unless $has_base_type;
+        make_type_obj($*W.find_symbol(['Int'])) unless $has_base_type;
 
         $*W.install_package($/, $longname.type_name_parts('enum name', :decl(1)),
             ($*SCOPE || 'our'), 'enum', $*PACKAGE, $*W.cur_lexpad(), $type_obj);

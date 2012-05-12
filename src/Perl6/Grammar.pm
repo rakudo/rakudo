@@ -387,6 +387,16 @@ grammar Perl6::Grammar is HLL::Grammar {
 
     token install_doc_phaser { <?> }
 
+    token vnum {
+        <decint> | '*'
+    }
+
+    token version {
+        'v' {} <?before \d+> <vnum> ** '.' ('+')?
+        <!before '-'|\'> # cheat because of LTM fail
+    }
+
+
     ## Top-level rules
 
     token comp_unit {
@@ -684,14 +694,6 @@ grammar Perl6::Grammar is HLL::Grammar {
             <e3=.EXPR>?
         ')' ]?
         <block>
-    }
-
-    token vnum {
-        \d+ | '*'
-    }
-
-    token version {
-        'v' <?before \d+> <vnum> ** '.' '+'?
     }
 
     token statement_control:sym<need> {
@@ -2066,6 +2068,7 @@ grammar Perl6::Grammar is HLL::Grammar {
     proto token value { <...> }
     token value:sym<quote>  { <quote> }
     token value:sym<number> { <number> }
+    token value:sym<version> { <version> }
 
     proto token number { <...> }
     token number:sym<complex>  { <im=.numish>'\\'?'i' }

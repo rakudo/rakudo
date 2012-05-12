@@ -228,6 +228,7 @@ CORE_SOURCES = \
   src/core/Set.pm \
   src/core/Bag.pm \
   src/core/ObjAt.pm \
+  src/core/Version.pm \
   src/core/operators.pm \
   src/core/metaops.pm \
   src/core/terms.pm \

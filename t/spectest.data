@@ -437,6 +437,7 @@ S12-enums/anonymous.t
 S12-enums/as-role.t
 S12-enums/basic.t
 S12-enums/misc.t
+S12-enums/non-int.t
 S12-enums/thorough.t
 S12-introspection/attributes.t
 S12-introspection/can.t

@@ -83,6 +83,36 @@ my role Rational does Real {
         }
         $s;
     }
+
+    method base($base) {
+        my $s = $!numerator < 0 ?? '-' !! '';
+        my $r = self.abs;
+        my $i = $r.floor;
+        $r -= $i;
+        $s ~= $i.base($base);
+        if $r {
+            my $want = $!denominator < $base**6 ?? 6 !! $!denominator.log($base).ceiling + 1;
+            my @f;
+            while $r and @f < $want {
+                $r *= $base;
+                $i = $r.floor;
+                push @f, $i;
+                $r -= $i;
+            }
+            if 2 * $r >= 1 {
+                for @f-1 ... 0 -> $x {
+                    last if ++@f[$x] < $base;
+                    @f[$x] = 0;
+                    $s ~= ($i+1).base($base) if $x == 0; # never happens?
+                }
+            }
+            $s ~= '.';
+            $s ~= (0..9,'A'..'Z')[@f].join;
+        }
+        $s;
+    }
+
+
     method succ {
         self.new($!numerator + $!denominator, $!denominator);
     }

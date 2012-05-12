@@ -2863,6 +2863,9 @@ grammar Perl6::RegexGrammar is QRegex::P6Regex::Grammar {
         <quote_EXPR: ':q', ':w'>
     }
     
+    token metachar:sym<from> { '<(' }
+    token metachar:sym<to> { ')>' }
+    
     token assertion:sym<{ }> {
         <?[{]> <codeblock>
     }

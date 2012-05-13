@@ -2793,7 +2793,7 @@ class Perl6::Actions is HLL::Actions {
                 for $_<named_names> {
                     if %seen_names{$_} {
                         $*W.throw($/, ['X', 'Signature', 'NameClash'],
-                            named => $_
+                            name => $_
                         );
                     }
                     %seen_names{$_} := 1;

@@ -50,7 +50,13 @@ multi infix:<but>(Mu:D \$obj, Mu:U \$rolish, :$value! is parcel) {
     my @attrs = $role.^attributes().grep: { .has_accessor };
     die(X::Role::Initialization.new())
         unless @attrs == 1;
-    $obj.HOW.mixin($obj.clone(), $role).BUILD_LEAST_DERIVED({ @attrs[0].Str.substr(2) => $value });
+    my $mixin-value := $value;
+    unless nqp::istype($value, @attrs[0].type) {
+        if @attrs[0].type.HOW.HOW.name(@attrs[0].type.HOW) eq 'Perl6::Metamodel::EnumHOW' {
+            $mixin-value := @attrs[0].type.($value);
+        }
+    }
+    $obj.HOW.mixin($obj.clone(), $role).BUILD_LEAST_DERIVED({ @attrs[0].Str.substr(2) => $mixin-value });
 }
 multi infix:<but>(Mu:U \$obj, Mu:U \$rolish) {
     my $role := $rolish.HOW.archetypes.composable() ?? $rolish !!

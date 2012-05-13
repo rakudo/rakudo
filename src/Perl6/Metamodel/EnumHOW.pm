@@ -59,7 +59,9 @@ class Perl6::Metamodel::EnumHOW
                 %!value_to_enum{$_.value} := $_;
             }
         }
-        %!value_to_enum{$value}
+        nqp::existskey(%!value_to_enum, $value)
+            ?? %!value_to_enum{$value}
+            !! $obj.WHAT;
     }
     
     method enum_value_list($obj) {

@@ -34,8 +34,8 @@ my role Enumeration {
         self.value.Int
     }
 
-    method postcircumfix:<( )>($x) {
-        self.^enum_from_value($x)
+    method postcircumfix:<( )>($ ($x)) {
+        $x ~~ ::?CLASS ?? $x !! self.^enum_from_value($x)
     }
 }
 

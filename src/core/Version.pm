@@ -26,4 +26,14 @@ class Version is List {
         }
         True;
     }
+
+    multi method WHICH(Version:D:) {
+        my $s := join '|', self.^name, self.Str;
+        nqp::box_s(nqp::unbox_s($s), ObjAt);
+    }
 }
+
+multi sub infix:<eqv>(Version:D $a, Version:D $b) {
+    $a.WHAT === $b.WHAT && $a.Str eq $b.Str
+}
+

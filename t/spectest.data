@@ -558,6 +558,7 @@ S32-array/shift.t
 S32-array/splice.t
 S32-array/unshift.t
 S32-basics/warn.t
+S32-container/roundrobin.t
 S32-container/zip.t
 S32-exceptions/misc.t
 S32-hash/delete.t

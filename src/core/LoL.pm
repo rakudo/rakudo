@@ -73,3 +73,12 @@ sub infix:<Z>(**@lol) {
 
 my &zip := &infix:<Z>;
 
+sub roundrobin(**@lol) {
+    my @l = @lol.map({ (.flat,).list.item });
+    gather {
+        my $p;
+        while $p := @l.grep(*.Bool).map(*.shift).eager.Parcel {
+            take $p;
+        }
+    }
+}

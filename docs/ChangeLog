@@ -30,6 +30,9 @@ New in 2012.05
 + implemented <( and )> syntax for setting from/to of match  in regexes
 + support for non-Int enums
 + basic support for Version literals
++ chmod now available as a function
++ roundrobin implemented
++ fixed a bug in precompilation of modules that use roles from other modules
 
 New in 2012.04.1
 + autvivification for arrays and hashes

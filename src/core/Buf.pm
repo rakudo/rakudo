@@ -76,6 +76,76 @@ my class Buf does Positional {
         );
         $ret;
     }
+
+    method unpack(Buf:D: $template) {
+        my @bytes = self.list;
+        my @fields;
+        for $template.comb(/<[a..zA..Z]>[\d+|'*']?/) -> $unit {
+            my $directive = $unit.substr(0, 1);
+            my $amount = $unit.substr(1);
+
+            given $directive {
+                when 'A' {
+                    my $asciistring;
+                    if $amount eq '*' {
+                        $amount = @bytes.elems;
+                    }
+                    for ^$amount {
+                        $asciistring ~= chr(shift @bytes);
+                    }
+                    @fields.push($asciistring);
+                }
+                when 'H' {
+                    my $hexstring;
+                    while @bytes {
+                        my $byte = shift @bytes;
+                        $hexstring ~= ($byte +> 4).fmt('%x')
+                                    ~ ($byte % 16).fmt('%x');
+                    }
+                    @fields.push($hexstring);
+                }
+                when 'x' {
+                    if $amount eq '*' {
+                        $amount = 0;
+                    }
+                    elsif $amount eq '' {
+                        $amount = 1;
+                    }
+                    splice @bytes, 0, $amount;
+                }
+                when 'C' {
+                    @fields.push: shift @bytes;
+                }
+                when 'S' | 'v' {
+                    @fields.push: shift(@bytes)
+                                 + (shift(@bytes) +< 0x08);
+                }
+                when 'L' | 'V' {
+                    @fields.push: shift(@bytes)
+                                 + (shift(@bytes) +< 0x08)
+                                 + (shift(@bytes) +< 0x10)
+                                 + (shift(@bytes) +< 0x18);
+                }
+                when 'n' {
+                    @fields.push: (shift(@bytes) +< 0x08)
+                                 + shift(@bytes);
+                }
+                when 'N' {
+                    @fields.push: (shift(@bytes) +< 0x18)
+                                 + (shift(@bytes) +< 0x10)
+                                 + (shift(@bytes) +< 0x08)
+                                 + shift(@bytes);
+                }
+                die "Unrecognized directive $directive";
+            }
+        }
+
+        return |@fields;
+    }
+
+    # XXX: the pack.t spectest file seems to require this method
+    # not sure if it should be changed to list there...
+    method contents(Buf:D:) { self.list }
 }
 
 multi infix:<eqv>(Buf:D $a, Buf:D $b) {
@@ -139,4 +209,57 @@ multi sub infix:<le>(Buf:D $a, Buf:D $b) {
 }
 multi sub infix:<ge>(Buf:D $a, Buf:D $b) {
     ($a cmp $b) != -1
+}
+
+multi sub pack(Str $template, *@items) {
+    my @bytes;
+    for $template.comb(/<[a..zA..Z]>[\d+|'*']?/) -> $unit {
+        my $directive = $unit.substr(0, 1);
+        my $amount = $unit.substr(1);
+
+        given $directive {
+            when 'A' {
+                my $ascii = shift @items // '';
+                for $ascii.comb -> $char {
+                    die "Non-ASCII character $char" if ord($char) > 0x7f;
+                    @bytes.push: ord($char);
+                }
+                if $amount ne '*' {
+                    @bytes.push: 0x20 xx ($amount - $ascii.chars);
+                }
+            }
+            when 'H' {
+                my $hexstring = shift @items // '';
+                if $hexstring % 2 {
+                    $hexstring ~= '0';
+                }
+                @bytes.push: map { :16($_) }, $hexstring.comb(/../);
+            }
+            when 'C' {
+                my $number = shift(@items);
+                @bytes.push: $number % 0x100;
+            }
+            when 'S' | 'v' {
+                my $number = shift(@items);
+                @bytes.push: ($number, $number +> 0x08) >>%>> 0x100;
+            }
+            when 'L' | 'V' {
+                my $number = shift(@items);
+                @bytes.push: ($number, $number +> 0x08,
+                              $number +> 0x10, $number +> 0x18) >>%>> 0x100;
+            }
+            when 'n' {
+                my $number = shift(@items);
+                @bytes.push: ($number +> 0x08, $number) >>%>> 0x100;
+            }
+            when 'N' {
+                my $number = shift(@items);
+                @bytes.push: ($number +> 0x18, $number +> 0x10,
+                              $number +> 0x08, $number) >>%>> 0x100;
+            }
+            die "Unrecognized directive $directive";
+        }
+    }
+
+    return Buf.new(@bytes);
 }

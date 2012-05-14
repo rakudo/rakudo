@@ -627,7 +627,7 @@ S32-str/lc.t                                               # icu
 S32-str/lines.t
 S32-str/numeric.t
 S32-str/ords.t
-# S32-str/pack.t # err: Undefined routine '&pack' called
+S32-str/pack.t
 S32-str/pos.t
 S32-str/rindex.t
 S32-str/samecase.t                                         # icu
@@ -638,7 +638,7 @@ S32-str/substr.t
 S32-str/trim.t
 S32-str/ucfirst.t                                          # icu
 S32-str/uc.t                                               # icu
-# S32-str/unpack.t # err: Method 'unpack' not found for invocant of class 'Buf'
+S32-str/unpack.t
 S32-str/words.t                                            # icu
 S32-temporal/calendar.t
 S32-temporal/Date.t

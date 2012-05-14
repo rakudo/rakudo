@@ -398,3 +398,4 @@ sub copy(Cool $from as Str, Cool $to as Str) {
     }
 }
 
+sub chmod($mode, $filename) { $filename.IO.chmod($mode); $filename }

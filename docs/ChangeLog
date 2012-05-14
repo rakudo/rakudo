@@ -33,6 +33,7 @@ New in 2012.05
 + chmod now available as a function
 + roundrobin implemented
 + fixed a bug in precompilation of modules that use roles from other modules
++ basic implementation of pack and unpack
 
 New in 2012.04.1
 + autvivification for arrays and hashes

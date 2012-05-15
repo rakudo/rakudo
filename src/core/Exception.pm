@@ -611,11 +611,26 @@ my class X::Sequence::Deduction is Exception {
 my class X::TypeCheck is Exception {
     has $.operation;
     has $.got;
-    has $.exepcted;
+    has $.expected;
     method message() {
         "Type check failed in $.operation; expected '{$.expected.^name}' but got '{$.got.^name}'";
 
     }
 }
+
+my class X::TypeCheck::Binding is X::TypeCheck {
+    method operation { 'binding' }
+}
+
+{
+    my %c_ex;
+    %c_ex{'X::TypeCheck::Binding'} := sub ($got, $expected) {
+            X::TypeCheck::Binding.new(:$got, :$expected).throw;
+        };
+    my Mu $parrot_c_ex := nqp::getattr(%c_ex, EnumMap, '$!storage');
+    pir::set_hll_global__vsP('P6EX', $parrot_c_ex);
+    0;
+}
+
 
 # vim: ft=perl6

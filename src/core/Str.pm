@@ -866,7 +866,7 @@ sub chrs(*@c) {
     @c.map({.chr}).join('');
 }
 
-sub lsubstr($s is rw, $from = 0, $chars = $s.chars - $from) {
+sub substr-rw($s is rw, $from = 0, $chars = $s.chars - $from) {
     my Str $substr = $s.substr($from, $chars);
     Proxy.new(
         FETCH   => sub ($) { $substr },

@@ -865,3 +865,15 @@ sub unbase(Int:D $base, Str:D $str) {
 sub chrs(*@c) {
     @c.map({.chr}).join('');
 }
+
+sub lsubstr($s is rw, $from = 0, $chars = $s.chars - $from) {
+    my Str $substr = $s.substr($from, $chars);
+    Proxy.new(
+        FETCH   => sub ($) { $substr },
+        STORE   => sub ($, $new) {
+            $s = $s.substr(0, $from)
+               ~ $new
+               ~ $s.substr($from + $chars);
+        }
+    );
+}

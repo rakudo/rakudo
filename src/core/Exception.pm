@@ -640,6 +640,13 @@ my class X::TypeCheck::Return is X::TypeCheck {
     }
 }
 
+my class X::NoDispatcher is Exception {
+    has $.redispatcher;
+    method message() {
+        "$.redispatcher is not in the dynamic socpe of a dispatcher";
+    }
+}
+
 {
     my %c_ex;
     %c_ex{'X::TypeCheck::Binding'} := sub ($got, $expected) is hidden_from_backtrace {
@@ -650,6 +657,9 @@ my class X::TypeCheck::Return is X::TypeCheck {
         };
     %c_ex{'X::ControlFlow::Return'} := sub () is hidden_from_backtrace {
             X::ControlFlow::Return.new().throw;
+        };
+    %c_ex{'X::NoDispatcher'} := sub ($redispatcher) is hidden_from_backtrace {
+            X::NoDispatcher.new(:$redispatcher).throw;
         };
     my Mu $parrot_c_ex := nqp::getattr(%c_ex, EnumMap, '$!storage');
     pir::set_hll_global__vsP('P6EX', $parrot_c_ex);

@@ -1374,9 +1374,20 @@ inline op perl6_find_dispatcher(out PMC, in STR) :base_core {
         ctx = Parrot_pcc_get_caller_ctx(interp, ctx);
     }
     
-    if (!dispatcher)
-        Parrot_ex_throw_from_c_args(interp, NULL, EXCEPTION_INVALID_OPERATION,
-            "%Ss is not in the dynamic scope of a dispatcher", $2);
+    if (!dispatcher) {
+        PMC * const thrower = get_thrower(interp, "X::NoDispatcher");
+        if (PMC_IS_NULL(thrower)) {
+            Parrot_ex_throw_from_c_args(interp, NULL, EXCEPTION_INVALID_OPERATION,
+                "%Ss is not in the dynamic scope of a dispatcher", $2);
+        } else {
+            PMC *type = Rakudo_types_str_get();
+            PMC *str = REPR(type)->allocate(interp, STABLE(type));
+            REPR(str)->box_funcs->set_str(interp, STABLE(str), OBJECT_BODY(str), $2);
+            PARROT_GC_WRITE_BARRIER(interp, str);
+            Parrot_pcc_invoke_sub_from_c_args(interp, thrower, "P->", str)
+        }
+
+    }
     $1 = dispatcher;
 }
 

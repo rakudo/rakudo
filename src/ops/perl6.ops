@@ -278,7 +278,7 @@ Does various setup tasks on behalf of all of the other dynops.
 */
 inline op rakudo_dynop_setup() :base_core {
     /* Get 6model object type ID. */
-    smo_id = Parrot_pmc_get_type_str(interp, Parrot_str_new(interp, "SixModelObject", 0));
+    smo_id = Parrot_pmc_get_type_str(interp, Parrot_str_new_constant(interp, "SixModelObject"));
 }
 
 
@@ -1129,7 +1129,8 @@ Creates a multi-dispatch thunk for the specified onlystar dispatcher.
 inline op perl6_multi_dispatch_thunk(out PMC, in PMC) :base_core {
     Rakudo_Code *code_obj = (Rakudo_Code *)PMC_data($2);
     if (PMC_IS_NULL(code_obj->md_thunk)) {
-        code_obj->md_thunk = Parrot_pmc_new(interp, Parrot_pmc_get_type_str(interp, Parrot_str_new(interp, "MDThunk", 0)));
+        code_obj->md_thunk = Parrot_pmc_new(interp,
+                Parrot_pmc_get_type_str(interp, Parrot_str_new_constant(interp, "MDThunk")));
         PARROT_GC_WRITE_BARRIER(interp, $2);
         VTABLE_set_pointer(interp, code_obj->md_thunk, &Rakudo_md_dispatch);
         VTABLE_set_pmc(interp, code_obj->md_thunk, $2);
@@ -1154,7 +1155,8 @@ inline op perl6_multi_dispatch_cand_thunk(out PMC, in PMC, in INT) :base_core {
     PMC         *chosen   = VTABLE_get_pmc_keyed_int(interp, disp_obj->dispatchees, $3);
     Rakudo_Code *code_obj = (Rakudo_Code *)PMC_data(chosen);
     if (PMC_IS_NULL(code_obj->md_thunk)) {
-        code_obj->md_thunk = Parrot_pmc_new(interp, Parrot_pmc_get_type_str(interp, Parrot_str_new(interp, "CTMThunk", 0)));
+        code_obj->md_thunk = Parrot_pmc_new(interp,
+                Parrot_pmc_get_type_str(interp, Parrot_str_new_constant(interp, "CTMThunk")));
         PARROT_GC_WRITE_BARRIER(interp, chosen);
         VTABLE_set_pmc(interp, code_obj->md_thunk, chosen);
     }
@@ -1265,10 +1267,11 @@ inline op perl6_get_package_through_who(out PMC, in PMC, in STR) :base_core {
              */
             PMC *pkg_how = Rakudo_types_packagehow_get();
             PMC *old_ctx = Parrot_pcc_get_signature(interp, CURRENT_CONTEXT(interp));
-            PMC *meth    = VTABLE_find_method(interp, pkg_how, Parrot_str_new(interp, "new_type", 0));
+            PMC *meth    = VTABLE_find_method(interp, pkg_how,
+                    Parrot_str_new_constant(interp, "new_type"));
             PMC *cappy   = Parrot_pmc_new(interp, enum_class_CallContext);
             VTABLE_push_pmc(interp, cappy, pkg_how);
-            VTABLE_set_string_keyed_str(interp, cappy, Parrot_str_new(interp, "name", 0), $3);
+            VTABLE_set_string_keyed_str(interp, cappy, Parrot_str_new_constant(interp, "name"), $3);
             Parrot_pcc_invoke_from_sig_object(interp, meth, cappy);
             cappy = Parrot_pcc_get_signature(interp, CURRENT_CONTEXT(interp));
             Parrot_pcc_set_signature(interp, CURRENT_CONTEXT(interp), old_ctx);

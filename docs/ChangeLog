@@ -35,6 +35,7 @@ New in 2012.05
 + fixed a bug in precompilation of modules that use roles from other modules
 + basic implementation of pack and unpack
 + implemented substr-rw, which provides an l-value (assignable) substring
++ implemented <~~> (recursive call into self) syntax in regexes
 
 New in 2012.04.1
 + autvivification for arrays and hashes

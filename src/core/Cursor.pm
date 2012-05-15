@@ -72,6 +72,10 @@ my class Cursor does NQPCursorRole {
         $lang_cursor."$name"(); 
     }
     
+    method RECURSE() {
+        pir::find_dynamic_lex__Ps('$?REGEX')(self)
+    }
+    
     method prior() {
         nqp::isconcrete($last_match) ??
             self."!LITERAL"(nqp::unbox_s(~$last_match)) !!

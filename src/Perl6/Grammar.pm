@@ -2880,6 +2880,11 @@ grammar Perl6::RegexGrammar is QRegex::P6Regex::Grammar {
     token assertion:sym<var> {
         <?[$@&]> <var=.LANG('MAIN', 'variable')>
     }
+    
+    token assertion:sym<~~> {
+        <sym>
+        [ <?before '>'> | $<num>=[\d+] | <desigilname=.LANG('MAIN','desigilname')> ]
+    }
 
     token codeblock {
         <block=.LANG('MAIN','block')>

@@ -2212,6 +2212,16 @@ class Perl6::Actions is HLL::Actions {
         }
         $past.name($name);
         $past.blocktype("declaration");
+        
+        # Install a $?REGEX (mostly for the benefit of <~~>).
+        $block[0].push(PAST::Op.new(
+            :pasttype('bind'),
+            PAST::Var.new(:name<$?REGEX>, :scope<lexical_6model>, :isdecl(1)),
+            PAST::Op.new(
+                :pirop('perl6_code_object_from_parrot_sub PP'),
+                PAST::Op.new( :pirop('set PQs'), PAST::Op.new( :pirop('getinterp P') ), 'sub')
+            )));
+        $block.symbol('$?REGEX', :scope<lexical_6model>);
 
         # Do the various tasks to turn the block into a method code object.
         my $inv_type  := $*W.find_symbol([ # XXX Maybe Cursor below, not Mu...
@@ -5346,6 +5356,19 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions {
             }
         }
         make $qast;
+    }
+    
+    method assertion:sym<~~>($/) {
+        if $<num> {
+            pir::die('Sorry, ~~ regex assertion with a capture is not yet implemented');
+        }
+        elsif $<desigilname> {
+            pir::die('Sorry, ~~ regex assertion with a capture is not yet implemented');
+        }
+        else {
+            make QAST::Regex.new( :rxtype<subrule>, :subtype<method>,
+                PAST::Node.new('RECURSE'), :node($/) );
+        }
     }
     
     method codeblock($/) {

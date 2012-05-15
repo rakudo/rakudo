@@ -608,6 +608,18 @@ my class X::Sequence::Deduction is Exception {
     method message() { 'Unable to deduce sequence' }
 }
 
+my class X::ControlFlow is Exception {
+    has $.illegal;   # something like 'next'
+    has $.enclosing; # ....  outside a loop
+
+    method message() { "$.illegal without $.enclosing" }
+}
+my class X::ControlFlow::Return is X::ControlFlow {
+    method illegal()   { 'return'  }
+    method enclosing() { 'Routine' }
+    method message()   { 'Attempt to return outside of any Routine' }
+}
+
 my class X::TypeCheck is Exception {
     has $.operation;
     has $.got;
@@ -630,11 +642,14 @@ my class X::TypeCheck::Return is X::TypeCheck {
 
 {
     my %c_ex;
-    %c_ex{'X::TypeCheck::Binding'} := sub ($got, $expected) {
+    %c_ex{'X::TypeCheck::Binding'} := sub ($got, $expected) is hidden_from_backtrace {
             X::TypeCheck::Binding.new(:$got, :$expected).throw;
         };
-    %c_ex{'X::TypeCheck::Return'} := sub ($got, $expected) {
+    %c_ex{'X::TypeCheck::Return'} := sub ($got, $expected) is hidden_from_backtrace {
             X::TypeCheck::Return.new(:$got, :$expected).throw;
+        };
+    %c_ex{'X::ControlFlow::Return'} := sub () is hidden_from_backtrace {
+            X::ControlFlow::Return.new().throw;
         };
     my Mu $parrot_c_ex := nqp::getattr(%c_ex, EnumMap, '$!storage');
     pir::set_hll_global__vsP('P6EX', $parrot_c_ex);

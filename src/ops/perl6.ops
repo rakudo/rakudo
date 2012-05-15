@@ -1828,8 +1828,12 @@ inline op perl6_return_from_routine(in PMC) :flow {
         }
     }
     if (PMC_IS_NULL(cont)) {
-        Parrot_ex_throw_from_c_args(interp, NULL, EXCEPTION_INVALID_OPERATION,
-                "Attempt to return outside of any Routine");
+        PMC * const thrower = get_thrower(interp, "X::ControlFlow::Return");
+        if (PMC_IS_NULL(thrower))
+            Parrot_ex_throw_from_c_args(interp, NULL, EXCEPTION_INVALID_OPERATION,
+                    "Attempt to return outside of any Routine");
+        else
+            Parrot_pcc_invoke_sub_from_c_args(interp, thrower, "->");
     }
     ctx = CURRENT_CONTEXT(interp);
     GETATTR_Continuation_to_ctx(interp, cont, cctx);

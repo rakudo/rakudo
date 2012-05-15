@@ -30,6 +30,17 @@ static INTVAL smo_id = 0;
 /* The current dispatcher, for the next thing that wants one to take. */
 static PMC *current_dispatcher = NULL;
 
+static PMC * get_thrower(PARROT_INTERP, const char * name) {
+        PMC * const hll_ns = Parrot_hll_get_ctx_HLL_namespace(interp);
+        PMC * const ex_hash = Parrot_ns_find_namespace_global(interp,
+                    hll_ns, Parrot_str_new_constant(interp, "P6EX"));
+        PMC * const thrower = PMC_IS_NULL(ex_hash)
+            ? PMCNULL
+            : VTABLE_get_pmc_keyed_str(interp,
+                    ex_hash, Parrot_str_new(interp, name, 0));
+        return thrower;
+}
+
 static PMC *build_sig_object(PARROT_INTERP, ARGIN_NULLOK(PMC *signature), ARGIN(const char *sig), ...)
 {
     PMC *sig_obj;
@@ -871,18 +882,14 @@ inline op perl6_assert_bind_ok(in PMC, in PMC) :base_core {
                 ok = STABLE(value)->type_check(interp, value, type);
             }
             if (!ok) {
-                PMC * const hll_ns = Parrot_hll_get_ctx_HLL_namespace(interp);
-                PMC * const ex_hash = Parrot_ns_find_namespace_global(interp,
-                            hll_ns, Parrot_str_new_constant(interp, "P6EX"));
-                PMC * const thrower = VTABLE_get_pmc_keyed_str(interp,
-                            ex_hash, Parrot_str_new_constant(interp,
-                                "X::TypeCheck::Binding"));
-                Parrot_pcc_invoke_sub_from_c_args(interp, thrower, "PP->",
+                PMC * const thrower = get_thrower(interp, "X::TypeCheck::Binding");
+                if (PMC_IS_NULL(thrower))
+                        Parrot_ex_throw_from_c_args(interp, NULL, EXCEPTION_INVALID_OPERATION,
+                            "Type check failed in binding");
+                else
+                    Parrot_pcc_invoke_sub_from_c_args(interp, thrower, "PP->",
                         $1, type);
 
-/*                Parrot_ex_throw_from_c_args(interp, NULL, EXCEPTION_INVALID_OPERATION,
-                    "Type check failed in binding");
-                    */
             }
         }
 

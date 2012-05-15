@@ -621,11 +621,20 @@ my class X::TypeCheck is Exception {
 my class X::TypeCheck::Binding is X::TypeCheck {
     method operation { 'binding' }
 }
+my class X::TypeCheck::Return is X::TypeCheck {
+    method operation { 'returning' }
+    method message() {
+        "Type check failed for return value; expected '{$.expected.^name}' but got '{$.got.^name}'";
+    }
+}
 
 {
     my %c_ex;
     %c_ex{'X::TypeCheck::Binding'} := sub ($got, $expected) {
             X::TypeCheck::Binding.new(:$got, :$expected).throw;
+        };
+    %c_ex{'X::TypeCheck::Return'} := sub ($got, $expected) {
+            X::TypeCheck::Return.new(:$got, :$expected).throw;
         };
     my Mu $parrot_c_ex := nqp::getattr(%c_ex, EnumMap, '$!storage');
     pir::set_hll_global__vsP('P6EX', $parrot_c_ex);

@@ -1072,9 +1072,13 @@ inline op perl6_type_check_return_value(in PMC) :base_core {
     if (!PMC_IS_NULL(rtype)) {
         PMC *decont_value = Rakudo_cont_decontainerize(interp, $1);
         if (!STABLE(decont_value)->type_check(interp, decont_value, rtype)) {
-            /* XXX Awesomize. */
-            Parrot_ex_throw_from_c_args(interp, NULL, EXCEPTION_INVALID_OPERATION,
-                "Type check failed for return value");
+            PMC * const thrower = get_thrower(interp, "X::TypeCheck::Return");
+            if (PMC_IS_NULL(thrower))
+                Parrot_ex_throw_from_c_args(interp, NULL, EXCEPTION_INVALID_OPERATION,
+                    "Type check failed for return value");
+            else
+                Parrot_pcc_invoke_sub_from_c_args(interp, thrower, "PP->",
+                        decont_value, rtype);
         }
     }
 }

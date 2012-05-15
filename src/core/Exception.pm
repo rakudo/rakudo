@@ -643,7 +643,7 @@ my class X::TypeCheck::Return is X::TypeCheck {
 my class X::NoDispatcher is Exception {
     has $.redispatcher;
     method message() {
-        "$.redispatcher is not in the dynamic socpe of a dispatcher";
+        "$.redispatcher is not in the dynamic scope of a dispatcher";
     }
 }
 

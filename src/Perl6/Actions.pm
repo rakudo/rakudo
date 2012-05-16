@@ -901,7 +901,7 @@ class Perl6::Actions is HLL::Actions {
     method statement_prefix:sym<PRE>($/)   { make $*W.add_phaser($/, 'PRE', ($<blorst>.ast)<code_object>, ($<blorst>.ast)<past_block>); }
     method statement_prefix:sym<POST>($/)  { make $*W.add_phaser($/, 'POST', ($<blorst>.ast)<code_object>, ($<blorst>.ast)<past_block>); }
 
-    method statement_prefix:sym<lazy>($/) {
+    method statement_prefix:sym<LAZY>($/) {
         make $*W.create_lazy($/, $<blorst>.ast()<code_object>);
     }
 

@@ -34,6 +34,7 @@ New in 2012.05
 + roundrobin implemented
 + fixed a bug in precompilation of modules that use roles from other modules
 + basic implementation of pack and unpack
++ 'lazy' statement prefix
 
 New in 2012.04.1
 + autvivification for arrays and hashes

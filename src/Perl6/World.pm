@@ -1145,7 +1145,18 @@ class Perl6::World is HLL::World {
     
     # Adds a method to the meta-object.
     method pkg_add_method($/, $obj, $meta_method_name, $name, $code_object) {
-        $obj.HOW."$meta_method_name"($obj, $name, $code_object);
+        my $ex;
+        my $nok;
+        try {
+            $obj.HOW."$meta_method_name"($obj, $name, $code_object);
+            CATCH {
+                $nok := 1;
+                $ex  := $_;
+            }
+        }
+        if $nok {
+            $*W.rethrow($/, $ex);
+        }
     }
     
     # Handles setting the body block code for a role.
@@ -1909,5 +1920,17 @@ class Perl6::World is HLL::World {
             }
             $/.CURSOR.panic(nqp::join('', @err));
         }
+    }
+    method rethrow($/, $err) {
+        my $ex_t    := self.find_symbol(['X', 'Comp', 'AdHoc']);
+        my $coercer := self.find_symbol(['&COMP_EXCEPTION']);
+        my $p6ex    := $coercer($err);
+        nqp::bindattr($p6ex, $ex_t, '$!filename',
+            nqp::box_s(pir::find_caller_lex__ps('$?FILES'),
+                self.find_symbol(['Str'])));
+        nqp::bindattr($p6ex, $ex_t, '$!line',
+            nqp::box_i(HLL::Compiler.lineof($/.orig, $/.from),
+                self.find_symbol(['Int'])));
+        $p6ex.rethrow();
     }
 }

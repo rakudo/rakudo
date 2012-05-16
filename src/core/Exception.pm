@@ -28,6 +28,7 @@ my class Exception {
         pir::throw__0P($!ex)
     }
     method rethrow() is hidden_from_backtrace {
+        pir::setattribute__vPsP($!ex, 'payload', nqp::p6decont(self));
         pir::rethrow__0P($!ex)
     }
 }
@@ -46,6 +47,21 @@ sub EXCEPTION(|$) {
         $payload;
     } else {
         my $ex := nqp::create(X::AdHoc);
+        nqp::bindattr($ex, Exception, '$!ex', $parrot_ex);
+        nqp::bindattr($ex, X::AdHoc, '$!payload', nqp::p6box_s(nqp::atkey($parrot_ex, 'message')));
+        $ex;
+    }
+}
+
+my class X::Comp::AdHoc { ... }
+sub COMP_EXCEPTION(|$) {
+    my Mu $parrot_ex := nqp::shift(pir::perl6_current_args_rpa__P());
+    my Mu $payload   := nqp::atkey($parrot_ex, 'payload');
+    if nqp::p6bool(pir::type_check__IPP($payload, Exception)) {
+        nqp::bindattr($payload, Exception, '$!ex', $parrot_ex);
+        $payload;
+    } else {
+        my $ex := nqp::create(X::Comp::AdHoc);
         nqp::bindattr($ex, Exception, '$!ex', $parrot_ex);
         nqp::bindattr($ex, X::AdHoc, '$!payload', nqp::p6box_s(nqp::atkey($parrot_ex, 'message')));
         $ex;
@@ -232,6 +248,9 @@ my role X::Comp is Exception {
         "===SORRY!===\n$.message\nat $.filename():$.line";
     }
 }
+
+# XXX a hack for getting line numbers from exceptions from the metamodel
+my class X::Comp::AdHoc is X::AdHoc does X::Comp { }
 
 my role X::Syntax does X::Comp { }
 my role X::Pod                 { }

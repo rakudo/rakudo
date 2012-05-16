@@ -36,6 +36,7 @@ New in 2012.05
 + basic implementation of pack and unpack
 + implemented substr-rw, which provides an l-value (assignable) substring
 + implemented <~~> (recursive call into self) syntax in regexes
++ 'lazy' statement prefix
 
 New in 2012.04.1
 + autvivification for arrays and hashes

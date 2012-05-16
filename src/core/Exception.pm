@@ -97,8 +97,8 @@ do {
 
     sub print_control(|$) is hidden_from_backtrace {
         my Mu $ex := nqp::atpos(pir::perl6_current_args_rpa__P(), 0);
-        my $type = nqp::p6box_i(nqp::atkey($ex, 'type'));
-        if ($type == nqp::p6box_i(pir::const::CONTROL_OK)) {
+        my int $type = nqp::atkey($ex, 'type');
+        if ($type == pir::const::CONTROL_OK) {
             my Mu $err := pir::getstderr__P();
             my $msg = nqp::p6box_s(nqp::atkey($ex, 'message'));
             $err.print: $msg ?? "$msg" !! "Warning";
@@ -109,26 +109,26 @@ do {
                 $resume();
             }
         }
-        if ($type == nqp::p6box_i(pir::const::CONTROL_RETURN)) {
+        if $type == pir::const::CONTROL_RETURN() {
             die("stray return control exception");
         }
-        if ($type == nqp::p6box_i(pir::const::CONTROL_LOOP_LAST)) {
+        if $type == pir::const::CONTROL_LOOP_LAST() {
             die("last without loop construct");
         }
-        if ($type == nqp::p6box_i(pir::const::CONTROL_LOOP_NEXT)) {
+        if $type == pir::const::CONTROL_LOOP_NEXT() {
             die("next without loop construct");
         }
-        if ($type == nqp::p6box_i(pir::const::CONTROL_LOOP_REDO)) {
+        if $type == pir::const::CONTROL_LOOP_REDO() {
             die("redo without loop construct");
         }
-        if ($type == nqp::p6box_i(pir::const::CONTROL_CONTINUE)) {
+        if $type == pir::const::CONTROL_CONTINUE() {
             die("proceed without when clause");
         }
-        if ($type == nqp::p6box_i(pir::const::CONTROL_BREAK)) {
+        if $type == pir::const::CONTROL_BREAK() {
             # XXX: should work like leave() ?
             die("succeed without when clause");
         }
-        if ($type == nqp::p6box_i(pir::const::CONTROL_TAKE)) {
+        if $type == pir::const::CONTROL_TAKE() {
             die("stray take statement");
         }
     }

@@ -874,6 +874,7 @@ grammar Perl6::Grammar is HLL::Grammar {
     token statement_prefix:sym<try>   { <sym> <blorst> }
     token statement_prefix:sym<gather>{ <sym> <blorst> }
     token statement_prefix:sym<do>    { <sym> <blorst> }
+    token statement_prefix:sym<lazy>  { <sym> <blorst> }
     token statement_prefix:sym<DOC>   {
         <sym> \s <.ws> $<phase>=['BEGIN' || 'CHECK' || 'INIT']
         <blorst>

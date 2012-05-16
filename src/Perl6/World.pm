@@ -590,6 +590,13 @@ class Perl6::World is HLL::World {
         self.finish_code_object($code, $code_past, $is_dispatcher, :yada($yada));
         $code
     }
+
+    method create_lazy($/, $code) {
+        my $type      := self.find_symbol(['LazyScalar']);
+        my $container := $type.new($code);
+        self.add_object($container);
+        self.get_ref($container);
+    }
     
     # Stubs a code object of the specified type.
     method stub_code_object($type) {

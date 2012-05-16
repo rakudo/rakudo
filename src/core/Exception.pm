@@ -38,6 +38,14 @@ my class X::AdHoc is Exception {
     method Numeric() { $.payload.Numeric }
 }
 
+my class X::Method::NotFound is Exception {
+    has $.method;
+    has $.typename;
+    method message() {
+        "No such method '$.method' for invocant of type '$.typename'";
+    }
+}
+
 sub EXCEPTION(|$) {
     my Mu $parrot_ex := nqp::shift(pir::perl6_current_args_rpa__P());
     my Mu $payload   := nqp::atkey($parrot_ex, 'payload');
@@ -45,9 +53,22 @@ sub EXCEPTION(|$) {
         nqp::bindattr($payload, Exception, '$!ex', $parrot_ex);
         $payload;
     } else {
-        my $ex := nqp::create(X::AdHoc);
+        my int $type = nqp::atkey($parrot_ex, 'type');
+        my $ex;
+        if $type == pir::const::EXCEPTION_METHOD_NOT_FOUND  &&
+            nqp::p6box_s(nqp::atkey($parrot_ex, 'message'))
+                ~~ /"Method '" (.+?) "' not found for invocant of class '" (.+)\'$/ {
+
+            $ex := X::Method::NotFound.new(
+                method   => ~$0,
+                typename => ~$1,
+            );
+        }
+        else {
+            $ex := nqp::create(X::AdHoc);
+            nqp::bindattr($ex, X::AdHoc, '$!payload', nqp::p6box_s(nqp::atkey($parrot_ex, 'message')));
+        }
         nqp::bindattr($ex, Exception, '$!ex', $parrot_ex);
-        nqp::bindattr($ex, X::AdHoc, '$!payload', nqp::p6box_s(nqp::atkey($parrot_ex, 'message')));
         $ex;
     }
 }

@@ -19,12 +19,13 @@ This release includes a whole lot of changes since the last one, including:
 
 * -I and -M command-line options
 * support for non-Int enums
-* 'use' now accepts positional arguments and is able import by tag name
-* 'import' is now functional
+* 'use' now accepts positional arguments and is able to import by tag name
+* 'import' now works
 * basic support for Version literals
 * %*ENV now propagates into subprocesses
 * basic implementation of pack and unpack ported from 'ng' branch
-* fff flip-flop operator is now implemented, ff have been improved
+* fff flip-flop operator is now implemented, ff has been improved
+* various new regex features and improvements
 
 This is only a small peek at the changes in this release. For a more
 detailed list, see "docs/ChangeLog".

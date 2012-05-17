@@ -27,6 +27,8 @@ This release includes a whole lot of changes since the last one, including:
 * fff flip-flop operator is now implemented, ff has been improved
 * various new regex features and improvements
 
+Rakudo now also includes the lib.pm module.
+
 This is only a small peek at the changes in this release. For a more
 detailed list, see "docs/ChangeLog".
 
@@ -52,7 +54,7 @@ development releases are scheduled to occur soon after each Parrot
 monthly release. Parrot releases the third Tuesday of each month.
 
 On behalf of the development team, I encourage you to try the new release.
-have fun, and let us know about your experience.
+Have fun, and let us know about your experience.
 
 [*] What's the difference between the Rakudo compiler and the Rakudo
     Star distribution?  

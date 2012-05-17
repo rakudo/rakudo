@@ -14,7 +14,7 @@ New in 2012.05
 + <$x> in regexes caches the compiled regex, which can be a big performance win
 + implemented temp and let
 + 'use' can now import by tag name
-+ 'use' with positional arguemnts
++ 'use' with positional arguments
 + lib.pm
 + updated calling conventions for traits
 + implemented fff flip-flop operator; improvements to ff form also

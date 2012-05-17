@@ -38,6 +38,14 @@ my class X::AdHoc is Exception {
     method Numeric() { $.payload.Numeric }
 }
 
+my class X::Method::NotFound is Exception {
+    has $.method;
+    has $.typename;
+    method message() {
+        "No such method '$.method' for invocant of type '$.typename'";
+    }
+}
+
 sub EXCEPTION(|$) {
     my Mu $parrot_ex := nqp::shift(pir::perl6_current_args_rpa__P());
     my Mu $payload   := nqp::atkey($parrot_ex, 'payload');
@@ -45,9 +53,22 @@ sub EXCEPTION(|$) {
         nqp::bindattr($payload, Exception, '$!ex', $parrot_ex);
         $payload;
     } else {
-        my $ex := nqp::create(X::AdHoc);
+        my int $type = nqp::atkey($parrot_ex, 'type');
+        my $ex;
+        if $type == pir::const::EXCEPTION_METHOD_NOT_FOUND  &&
+            nqp::p6box_s(nqp::atkey($parrot_ex, 'message'))
+                ~~ /"Method '" (.+?) "' not found for invocant of class '" (.+)\'$/ {
+
+            $ex := X::Method::NotFound.new(
+                method   => ~$0,
+                typename => ~$1,
+            );
+        }
+        else {
+            $ex := nqp::create(X::AdHoc);
+            nqp::bindattr($ex, X::AdHoc, '$!payload', nqp::p6box_s(nqp::atkey($parrot_ex, 'message')));
+        }
         nqp::bindattr($ex, Exception, '$!ex', $parrot_ex);
-        nqp::bindattr($ex, X::AdHoc, '$!payload', nqp::p6box_s(nqp::atkey($parrot_ex, 'message')));
         $ex;
     }
 }
@@ -97,8 +118,8 @@ do {
 
     sub print_control(|$) is hidden_from_backtrace {
         my Mu $ex := nqp::atpos(pir::perl6_current_args_rpa__P(), 0);
-        my $type = nqp::p6box_i(nqp::atkey($ex, 'type'));
-        if ($type == nqp::p6box_i(pir::const::CONTROL_OK)) {
+        my int $type = nqp::atkey($ex, 'type');
+        if ($type == pir::const::CONTROL_OK) {
             my Mu $err := pir::getstderr__P();
             my $msg = nqp::p6box_s(nqp::atkey($ex, 'message'));
             $err.print: $msg ?? "$msg" !! "Warning";
@@ -109,26 +130,26 @@ do {
                 $resume();
             }
         }
-        if ($type == nqp::p6box_i(pir::const::CONTROL_RETURN)) {
+        if ($type == pir::const::CONTROL_RETURN) {
             die("stray return control exception");
         }
-        if ($type == nqp::p6box_i(pir::const::CONTROL_LOOP_LAST)) {
+        if ($type == pir::const::CONTROL_LOOP_LAST) {
             die("last without loop construct");
         }
-        if ($type == nqp::p6box_i(pir::const::CONTROL_LOOP_NEXT)) {
+        if ($type == pir::const::CONTROL_LOOP_NEXT) {
             die("next without loop construct");
         }
-        if ($type == nqp::p6box_i(pir::const::CONTROL_LOOP_REDO)) {
+        if ($type == pir::const::CONTROL_LOOP_REDO) {
             die("redo without loop construct");
         }
-        if ($type == nqp::p6box_i(pir::const::CONTROL_CONTINUE)) {
+        if ($type == pir::const::CONTROL_CONTINUE) {
             die("proceed without when clause");
         }
-        if ($type == nqp::p6box_i(pir::const::CONTROL_BREAK)) {
+        if ($type == pir::const::CONTROL_BREAK) {
             # XXX: should work like leave() ?
             die("succeed without when clause");
         }
-        if ($type == nqp::p6box_i(pir::const::CONTROL_TAKE)) {
+        if ($type == pir::const::CONTROL_TAKE) {
             die("stray take statement");
         }
     }

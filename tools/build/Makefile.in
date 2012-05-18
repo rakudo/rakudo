@@ -180,6 +180,7 @@ CORE_SOURCES = \
   src/core/Real.pm \
   src/core/Int.pm \
   src/core/Order.pm \
+  src/core/UInt64.pm \
   src/core/Num.pm \
   src/core/Str.pm \
   src/core/Capture.pm \
@@ -207,6 +208,7 @@ CORE_SOURCES = \
   src/core/IO/ArgFiles.pm \
   src/core/IO/Socket.pm \
   src/core/IO/Socket/INET.pm \
+  src/core/Rational.pm \
   src/core/Rat.pm \
   src/core/Complex.pm \
   src/core/Backtrace.pm \

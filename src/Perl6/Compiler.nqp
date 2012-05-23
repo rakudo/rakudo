@@ -57,6 +57,7 @@ class Perl6::Compiler is HLL::Compiler {
           -n                   run program once for each line of input
           -p                   same as -n, but also print \$_ at the end of lines
           --target=[stage]     specify compilation stage to emit
+          --optimize=[level]   use the given level of optimization (0..3)
           -t, --trace=[flags]  enable trace flags, see 'parrot --help-debug'
           --encoding=[mode]    specify string encoding mode
           -o, --output=[name]  specify name of output file

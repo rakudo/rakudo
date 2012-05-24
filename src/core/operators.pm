@@ -110,6 +110,15 @@ sub SEQUENCE($left, $right, :$exclude_end) {
             my $b = $tail[1];
             my $c = $tail[2];
             if $code.defined { }
+            elsif $tail.grep({ $_ ~~ Numeric}).elems != $tail.elems {
+                # non-numeric
+                if $tail.elems == 1 {
+                    $code = $infinite ??  { $^x.succ } !! succpred($a cmp $endpoint);
+                }
+                else {
+                    $code = succpred($tail[*-2] cmp $tail[*-1]);
+                }
+            }
             elsif $tail.elems == 3 {
                 my $ab = $b - $a;
                 if $ab == $c - $b {

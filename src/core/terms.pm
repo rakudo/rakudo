@@ -96,14 +96,11 @@ sub term:<time>() { nqp::p6box_i(pir::time__I()) }
     my $EXECUTABLE_NAME = 
         nqp::p6box_s(pir::interpinfo__Si(pir::const::INTERPINFO_EXECUTABLE_FULLNAME));
     nqp::bindkey(pir::get_who__PP(PROCESS), '$EXECUTABLE_NAME', $EXECUTABLE_NAME);
+    my Mu $comp := pir::compreg__Ps('perl6');
 
     my $PROGRAM_NAME =
         nqp::p6box_s(
-            nqp::atpos(
-                nqp::atpos(
-                    pir::getinterp, pir::const::IGLOBALS_ARGV_LIST
-                ), 0
-            )
+            $comp.cli-arguments()[0]
         ) || 'interactive';
     nqp::bindkey(pir::get_who__PP(PROCESS), '$PROGRAM_NAME', $PROGRAM_NAME);
 

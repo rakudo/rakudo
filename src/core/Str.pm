@@ -186,7 +186,8 @@ my class Str does Stringy {
         $str;
     }
 
-    multi method Numeric(Str:D: :$strict) {
+    multi method Numeric(Str:D: :$strict = True) {
+        return 0 if self eq '';
         return nqp::p6box_n(pir::set__Ns('NaN')) if self eq 'NaN';
         my str $str = nqp::unbox_s(self);
         my int $eos = nqp::chars($str);

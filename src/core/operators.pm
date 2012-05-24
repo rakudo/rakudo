@@ -84,7 +84,7 @@ multi infix:<but>(Mu:U \$obj, @roles) {
 sub SEQUENCE($left, $right, :$exclude_end) {
     my @right := $right.flat;
     my $endpoint = @right.shift;
-    my $infinite = $endpoint ~~ Whatever;
+    my $infinite = $endpoint ~~ Whatever || $endpoint === $Inf;
     $endpoint = Bool::False if $infinite;
     my $tail := ().list;
 

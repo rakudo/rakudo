@@ -201,7 +201,7 @@ grammar Perl6::Grammar is HLL::Grammar {
     # any number of paragraphs of text
     token pod_content:sym<text> {
         <pod_newline>*
-        <pod_textcontent> ** <pod_newline>+
+        <pod_textcontent>+ % <pod_newline>+
         <pod_newline>*
     }
 
@@ -230,7 +230,7 @@ grammar Perl6::Grammar is HLL::Grammar {
         <?{ $*ALLOW_CODE
             && ($<spaces>.to - $<spaces>.from) > $*VMARGIN }>
         $<text> = [
-            [<!before '=' \w> \N+] ** [<pod_newline> $<spaces>]
+            [<!before '=' \w> \N+]+ % [<pod_newline> $<spaces>]
         ]
     }
 
@@ -392,7 +392,7 @@ grammar Perl6::Grammar is HLL::Grammar {
     }
 
     token version {
-        'v' {} <?before \d+> <vnum> ** '.' ('+')?
+        'v' {} <?before \d+> <vnum>+ % '.' ('+')?
         <!before '-'|\'> # cheat because of LTM fail
     }
 
@@ -701,7 +701,7 @@ grammar Perl6::Grammar is HLL::Grammar {
         [
         | <version>
         | <module_name>
-        ] ** ','
+        ]+ % ','
         {
             for $<module_name> {
                 $*W.load_module($/, ~$_<longname>, $*GLOBALish);
@@ -1717,7 +1717,7 @@ grammar Perl6::Grammar is HLL::Grammar {
         [
         | <?before '-->' | ')' | ']' | '{' | ':'\s >
         | [ <parameter> || <.malformed('parameter')> ]
-        ] ** <param_sep>
+        ]+ % <param_sep>
         <.ws>
         { $*IN_DECL := ''; }
         [ '-->' <.ws> <typename> ]?
@@ -2050,7 +2050,7 @@ grammar Perl6::Grammar is HLL::Grammar {
     }
 
     token semiarglist {
-        <arglist> ** ';'
+        <arglist>+ % ';'
         <.ws>
     }
 

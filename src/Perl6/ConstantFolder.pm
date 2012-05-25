@@ -16,7 +16,7 @@ class Perl6::ConstantFolder {
                     @args.push($arg<compile_time_value>)
                 }
                 else {
-                    pir::die("No compile time value obtainable for argument to " ~ $expr.name);
+                    nqp::die("No compile time value obtainable for argument to " ~ $expr.name);
                 }
             }
             
@@ -40,11 +40,11 @@ class Perl6::ConstantFolder {
                     return %sym<value>;
                 }
                 else {
-                    pir::die("No compile time value for $name");
+                    nqp::die("No compile time value for $name");
                 }
             }
             $block := $block<outer>;
         }
-        pir::die("Could not locate compile time $name");
+        nqp::die("Could not locate compile time $name");
     }
 }

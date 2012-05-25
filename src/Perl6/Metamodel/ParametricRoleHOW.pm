@@ -129,7 +129,7 @@ class Perl6::Metamodel::ParametricRoleHOW
             }
         }
         if $error {
-            pir::die("Could not instantiate role '" ~ self.name($obj) ~ "':\n$error")
+            nqp::die("Could not instantiate role '" ~ self.name($obj) ~ "':\n$error")
         }
         
         # Use it to build concrete role.

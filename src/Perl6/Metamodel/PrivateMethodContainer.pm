@@ -4,7 +4,7 @@ role Perl6::Metamodel::PrivateMethodContainer {
     # Adds a private method.
     method add_private_method($obj, $name, $code) {
         if pir::exists(%!private_methods, $name) {
-            pir::die("Private method '$name' already declared in package " ~
+            nqp::die("Private method '$name' already declared in package " ~
                 self.name($obj));
         }
         %!private_methods{$name} := $code;

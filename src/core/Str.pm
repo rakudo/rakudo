@@ -489,7 +489,7 @@ my class Str does Stringy {
             (self.ll-match($pat, |%opts),).list;
         }
     }
-    multi method match(Str:D: $pat, :continue(:$c), :pos(:$p), :global(:$g), :overlap(:$ov), :exhaustive(:$ex), :$x, :st(:nd(:rd(:$nth)))) {
+    multi method match(Str:D: $pat, :continue(:$c), :pos(:$p), :global(:$g), :overlap(:$ov), :exhaustive(:$ex), :$x, :st(:nd(:rd(:th(:$nth))))) {
         my %opts;
         if $c.defined {
             %opts<c> = $c
@@ -981,4 +981,16 @@ sub unbase(Int:D $base, Str:D $str) {
 
 sub chrs(*@c) {
     @c.map({.chr}).join('');
+}
+
+sub substr-rw($s is rw, $from = 0, $chars = $s.chars - $from) {
+    my Str $substr = $s.substr($from, $chars);
+    Proxy.new(
+        FETCH   => sub ($) { $substr },
+        STORE   => sub ($, $new) {
+            $s = $s.substr(0, $from)
+               ~ $new
+               ~ $s.substr($from + $chars);
+        }
+    );
 }

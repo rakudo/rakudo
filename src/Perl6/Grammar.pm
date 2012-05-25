@@ -26,7 +26,7 @@ grammar Perl6::Grammar is HLL::Grammar {
         # associated with this compilation unit.
         my $file := pir::find_caller_lex__ps('$?FILES');
         my $source_id := nqp::sha1(nqp::getattr(self, Regex::Cursor, '$!target'));
-        my $*W := pir::isnull($file) ??
+        my $*W := nqp::isnull($file) ??
             Perl6::World.new(:handle($source_id)) !!
             Perl6::World.new(:handle($source_id), :description($file));
 
@@ -387,6 +387,16 @@ grammar Perl6::Grammar is HLL::Grammar {
 
     token install_doc_phaser { <?> }
 
+    token vnum {
+        <decint> | '*'
+    }
+
+    token version {
+        'v' {} <?before \d+> <vnum> ** '.' ('+')?
+        <!before '-'|\'> # cheat because of LTM fail
+    }
+
+
     ## Top-level rules
 
     token comp_unit {
@@ -421,6 +431,8 @@ grammar Perl6::Grammar is HLL::Grammar {
         :my $*UNIT;
         :my $*UNIT_OUTER;
         :my $*EXPORT;
+        # stack of packages, which the 'is export' needs
+        :my @*PACKAGES := [];
 
         # A place for Pod
         :my $*POD_BLOCKS := [];
@@ -473,6 +485,16 @@ grammar Perl6::Grammar is HLL::Grammar {
                 $*W.install_lexical_symbol($*UNIT, '$?PACKAGE', $*PACKAGE);
                 $*W.install_lexical_symbol($*UNIT, '::?PACKAGE', $*PACKAGE);
                 $*DECLARAND := $*W.stub_code_object('Block');
+            }
+            my $M := %*COMPILING<%?OPTIONS><M>;
+            if pir::defined($M) {
+                for pir::does($M, 'array') ?? $M !! [$M] -> $longname {
+                    my $module := $*W.load_module($/,
+                                                    $longname,
+                                                    $*GLOBALish);
+                    do_import($module, [], $longname);
+                    $/.CURSOR.import_EXPORTHOW($module);
+                }
             }
         }
         
@@ -674,14 +696,6 @@ grammar Perl6::Grammar is HLL::Grammar {
         <block>
     }
 
-    token vnum {
-        \d+ | '*'
-    }
-
-    token version {
-        'v' <?before \d+> <vnum> ** '.' '+'?
-    }
-
     token statement_control:sym<need> {
         <sym> <.ws>
         [
@@ -705,7 +719,14 @@ grammar Perl6::Grammar is HLL::Grammar {
             my $found := 0;
             try { $module := $*W.find_symbol($longname.components()); $found := 1; }
             if $found {
-                do_import($module.WHO, $<arglist>);
+                # todo: fix arglist
+                my $arglist;
+                if $<arglist> {
+                    $arglist := $*W.compile_time_evaluate($/, $<arglist>[0]<EXPR>.ast);
+                    $arglist := nqp::getattr($arglist.list.eager,
+                            $*W.find_symbol(['List']), '$!items');
+                }
+                do_import($module.WHO, ~$<module_name><longname>, $arglist);
             }
             else {
                 $/.CURSOR.panic("Could not find module " ~ ~$<module_name> ~
@@ -741,14 +762,25 @@ grammar Perl6::Grammar is HLL::Grammar {
             }
             [
             || <.spacey> <arglist>
-                <.NYI('arglist case of use')>
+                {
+                    my $arglist := $*W.compile_time_evaluate($/,
+                            $<arglist><EXPR>.ast);
+                    $arglist := nqp::getattr($arglist.list.eager,
+                            $*W.find_symbol(['List']), '$!items');
+                    my $module := $*W.load_module($/,
+                                                    ~$longname,
+                                                    $*GLOBALish);
+                    do_import($module, ~$longname, $arglist);
+                    $/.CURSOR.import_EXPORTHOW($module);
+
+                }
             || { 
                     unless ~$<doc> && !%*COMPILING<%?OPTIONS><doc> {
                         if $longname {
                             my $module := $*W.load_module($/,
                                                           ~$longname,
                                                            $*GLOBALish);
-                            do_import($module, $<arglist>);
+                            do_import($module, ~$longname);
                             $/.CURSOR.import_EXPORTHOW($module);
                         }
                     }
@@ -758,11 +790,44 @@ grammar Perl6::Grammar is HLL::Grammar {
         <.ws>
     }
     
-    sub do_import($module, $arglist) {
+    sub do_import($module, $package_source_name, $arglist?) {
         if pir::exists($module, 'EXPORT') {
             my $EXPORT := $module<EXPORT>.WHO;
-            if pir::exists($EXPORT, 'DEFAULT') {
-                $*W.import($EXPORT<DEFAULT>);
+            my @to_import := ['MANDATORY'];
+            my @positional_imports := [];
+            if pir::defined($arglist) {
+                my $Pair := $*W.find_symbol(['Pair']);
+                for $arglist -> $tag {
+                    if nqp::istype($tag, $Pair) {
+                        $tag := nqp::unbox_s($tag.key);
+                        if pir::exists($EXPORT, $tag) {
+                            $*W.import($EXPORT{$tag}, $package_source_name);
+                        }
+                        else {
+                            nqp::die("Error while importing from '$package_source_name': no such tag '$tag'");
+
+                        }
+                    }
+                    else {
+                        nqp::push(@positional_imports, $tag);
+                    }
+                }
+            }
+            else {
+                nqp::push(@to_import, 'DEFAULT');
+            }
+            for @to_import -> $tag {
+                if pir::exists($EXPORT, $tag) {
+                    $*W.import($EXPORT{$tag}, $package_source_name);
+                }
+            }
+            if +@positional_imports {
+                if pir::exists($module, '&EXPORT') {
+                    $module<&EXPORT>(|@positional_imports);
+                }
+                else {
+                    nqp::die("Error while importing from '$package_source_name': no EXPORT sub, but you provided positional argument in the 'use' statement");
+                }
             }
         }
     }
@@ -809,6 +874,7 @@ grammar Perl6::Grammar is HLL::Grammar {
     token statement_prefix:sym<try>   { <sym> <blorst> }
     token statement_prefix:sym<gather>{ <sym> <blorst> }
     token statement_prefix:sym<do>    { <sym> <blorst> }
+    token statement_prefix:sym<LAZY>  { <sym> <blorst> }
     token statement_prefix:sym<DOC>   {
         <sym> \s <.ws> $<phase>=['BEGIN' || 'CHECK' || 'INIT']
         <blorst>
@@ -1339,6 +1405,7 @@ grammar Perl6::Grammar is HLL::Grammar {
                 }
             }
             
+            { nqp::push(@*PACKAGES, $*PACKAGE); }
             [
             || <?[{]> 
                 [
@@ -1372,6 +1439,7 @@ grammar Perl6::Grammar is HLL::Grammar {
                 ]
             || <.panic: "Unable to parse $*PKGDECL definition">
             ]
+            { nqp::pop(@*PACKAGES); }
         ] || { $/.CURSOR.malformed($*PKGDECL) }
     }
 
@@ -1944,7 +2012,7 @@ grammar Perl6::Grammar is HLL::Grammar {
         :my $*longname;
         { $*longname := $*W.disect_longname($<longname>) }
         [
-        ||  <?{ pir::substr($<longname>.Str, 0, 2) eq '::' || $*W.is_name($*longname.components()) }>
+        ||  <?{ nqp::substr($<longname>.Str, 0, 2) eq '::' || $*W.is_name($*longname.components()) }>
             <.unsp>?
             [
                 <?{ $*W.is_type($*longname.components()) }>
@@ -2001,6 +2069,7 @@ grammar Perl6::Grammar is HLL::Grammar {
     proto token value { <...> }
     token value:sym<quote>  { <quote> }
     token value:sym<number> { <number> }
+    token value:sym<version> { <version> }
 
     proto token number { <...> }
     token number:sym<complex>  { <im=.numish>'\\'?'i' }
@@ -2059,7 +2128,7 @@ grammar Perl6::Grammar is HLL::Grammar {
         | <longname>
           <?{
             my $longname := $*W.disect_longname($<longname>);
-            pir::substr(~$<longname>, 0, 2) eq '::' ??
+            nqp::substr(~$<longname>, 0, 2) eq '::' ??
                 1 !! # ::T introduces a type, so always is one
                 $*W.is_name($longname.type_name_parts('type name'))
           }>
@@ -2086,7 +2155,7 @@ grammar Perl6::Grammar is HLL::Grammar {
             || { $*value := 1; }
             ]
         | (\d+) <identifier>
-            [ <?before '('> <.cirumfix> <.panic('2nd argument not allowed on pair')> ]?
+            [ <?before '('> <.circumfix> <.panic('2nd argument not allowed on pair')> ]?
             { $*key := ~$<identifier>; $*value := +~$/[0] }
         ]
     }
@@ -2131,6 +2200,7 @@ grammar Perl6::Grammar is HLL::Grammar {
     token quote:sym<m> {
         <sym> (s)?>>
         :my %*RX;
+        { %*RX<s> := 1 if $/[0] }
         <rx_adverbs>
         [
         | '/'<p6regex=.LANG('Regex','nibbler')>'/' <.old_rx_mods>?
@@ -2272,7 +2342,7 @@ grammar Perl6::Grammar is HLL::Grammar {
     sub bracket_ending($matches) {
         my $check := $matches[+$matches - 1];
         my $str   := $check.Str;
-        my $last  := pir::substr($str, nqp::chars($check) - 1, 1);
+        my $last  := nqp::substr($str, nqp::chars($check) - 1, 1);
         $last eq ')' || $last eq '}' || $last eq ']' || $last eq '>'
     }
 
@@ -2522,7 +2592,9 @@ grammar Perl6::Grammar is HLL::Grammar {
     token infix:sym<|>    { <sym> <O('%junctive_or')> }
     token infix:sym<^>    { <sym> <O('%junctive_or')> }
 
-    token prefix:sym<abs>     { <sym> » <O('%named_unary')> }
+    token prefix:sym<abs>  { <sym> » <O('%named_unary')> }
+    token prefix:sym<let>  { <sym> \s+ <!before '=>'> <O('%named_unary')> { $*W.give_cur_block_let($/) } }
+    token prefix:sym<temp> { <sym> \s+ <!before '=>'> <O('%named_unary')> { $*W.give_cur_block_temp($/) } }
 
     token infix:sym«==»   { <sym>  <O('%chaining')> }
     token infix:sym«!=»   { <sym> <?before \s|']'> <O('%chaining')> }
@@ -2625,6 +2697,11 @@ grammar Perl6::Grammar is HLL::Grammar {
     token infix:sym<^ff> { <sym> <O('%conditional')> }
     token infix:sym<ff^> { <sym> <O('%conditional')> }
     token infix:sym<^ff^> { <sym> <O('%conditional')> }
+    
+    token infix:sym<fff> { <sym> <O('%conditional')> }
+    token infix:sym<^fff> { <sym> <O('%conditional')> }
+    token infix:sym<fff^> { <sym> <O('%conditional')> }
+    token infix:sym<^fff^> { <sym> <O('%conditional')> }
 
     token infix:sym<=> {
         <sym>
@@ -2693,6 +2770,9 @@ grammar Perl6::Grammar is HLL::Grammar {
         elsif $category eq 'trait_mod' {
             return 0;
         }
+        elsif $category eq 'METAOP_TEST_ASSIGN' {
+            return 0;
+        }
         else {
             self.typed_panic('X::Syntax::Extension::Category', :$category);
         }
@@ -2726,7 +2806,7 @@ grammar Perl6::Grammar is HLL::Grammar {
             # runs us into fun with terminators.
             my @parts := nqp::split(' ', $opname);
             if +@parts != 2 {
-                pir::die("Unable to find starter and stopper from '$opname'");
+                nqp::die("Unable to find starter and stopper from '$opname'");
             }
             $parse.push(PAST::Regex.new(
                 :pasttype('literal'), :backtrack('r'),
@@ -2782,6 +2862,14 @@ grammar Perl6::RegexGrammar is QRegex::P6Regex::Grammar {
         <?[$@&]> <?before .<?alpha>> <var=.LANG('MAIN', 'variable')>
     }
 
+    token metachar:sym<qw> {
+        <?before '<' \s >  # (note required whitespace)
+        <quote_EXPR: ':q', ':w'>
+    }
+    
+    token metachar:sym<from> { '<(' }
+    token metachar:sym<to> { ')>' }
+    
     token assertion:sym<{ }> {
         <?[{]> <codeblock>
     }
@@ -2792,6 +2880,11 @@ grammar Perl6::RegexGrammar is QRegex::P6Regex::Grammar {
 
     token assertion:sym<var> {
         <?[$@&]> <var=.LANG('MAIN', 'variable')>
+    }
+    
+    token assertion:sym<~~> {
+        <sym>
+        [ <?before '>'> | $<num>=[\d+] | <desigilname=.LANG('MAIN','desigilname')> ]
     }
 
     token codeblock {

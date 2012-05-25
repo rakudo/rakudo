@@ -53,7 +53,6 @@ my stub Method metaclass Perl6::Metamodel::ClassHOW { ... };
 my stub Submethod metaclass Perl6::Metamodel::ClassHOW { ... };
 my stub Regex metaclass Perl6::Metamodel::ClassHOW { ... };
 my stub Str metaclass Perl6::Metamodel::ClassHOW { ... };
-my stub Real metaclass Perl6::Metamodel::ClassHOW { ... };
 my knowhow bigint is repr('P6bigint') { }
 my stub Int metaclass Perl6::Metamodel::ClassHOW { ... };
 my stub Num metaclass Perl6::Metamodel::ClassHOW { ... };
@@ -102,7 +101,7 @@ BEGIN {
             nqp::unbox_s($self.Str())
         }));
     Mu.HOW.add_parrot_vtable_mapping(Mu, 'defined',
-        static(sub ($self) { pir::istrue__IP($self.defined()) }));
+        static(sub ($self) { nqp::istrue($self.defined()) }));
 
     # class Any is Mu { ... }
     Any.HOW.add_parent(Any, Mu);
@@ -428,7 +427,7 @@ BEGIN {
             my $dcself := pir::perl6_decontainerize__PP($self);
             my $flags  := nqp::getattr_i($dcself, Parameter, '$!flags');
             if $flags +& $SIG_ELEM_IS_OPTIONAL {
-                pir::die("Cannot use 'is rw' on an optional parameter");
+                nqp::die("Cannot use 'is rw' on an optional parameter");
             }
             my $cd := nqp::getattr($dcself, Parameter, '$!container_descriptor');
             if $cd { $cd.set_rw(1) }
@@ -481,7 +480,7 @@ BEGIN {
             my $cloned := pir::repr_clone__PP($dcself);
             nqp::bindattr($cloned, Code, '$!do',
                 pir::perl6_associate_sub_code_object__0PP(
-                    pir::clone__PP(nqp::getattr($dcself, Code, '$!do')),
+                    nqp::clone(nqp::getattr($dcself, Code, '$!do')),
                     $cloned));
             Q:PIR {
                 $P0 = find_lex '$dcself'
@@ -507,7 +506,7 @@ BEGIN {
             my $ins := $self.clone();
             if pir::defined(nqp::getattr($dcself, Routine, '$!dispatchees')) {
                 nqp::bindattr($ins, Routine, '$!dispatchees',
-                    pir::clone__PP(nqp::getattr($dcself, Routine, '$!dispatchees')));
+                    nqp::clone(nqp::getattr($dcself, Routine, '$!dispatchees')));
             }
             my $sig := nqp::getattr($dcself, Code, '$!signature');
             pir::setattribute__0PPsP($ins, Code, '$!signature',
@@ -541,7 +540,7 @@ BEGIN {
             my $cloned := pir::repr_clone__PP($dcself);
             nqp::bindattr($cloned, Code, '$!do',
                 pir::perl6_associate_sub_code_object__0PP(
-                    pir::clone__PP(nqp::getattr($dcself, Code, '$!do')),
+                    nqp::clone(nqp::getattr($dcself, Code, '$!do')),
                     $cloned));
             Q:PIR {
                 $P0 = find_lex '$dcself'
@@ -583,13 +582,13 @@ BEGIN {
                 pir::setattribute__0PPsP($dc_self, Routine, '$!dispatcher_cache', pir::null__P());
             }
             else {
-                pir::die("Cannot add a dispatchee to a non-dispatcher code object");
+                nqp::die("Cannot add a dispatchee to a non-dispatcher code object");
             }
         }));
     Routine.HOW.add_method(Routine, 'derive_dispatcher', static(sub ($self) {
             my $clone := $self.clone();
             nqp::bindattr($clone, Routine, '$!dispatchees',
-                pir::clone__PP(nqp::getattr($self, Routine, '$!dispatchees')));
+                nqp::clone(nqp::getattr($self, Routine, '$!dispatchees')));
             nqp::bindattr($clone, Routine, '$!md_thunk', nqp::null());
             $clone
         }));
@@ -639,23 +638,20 @@ BEGIN {
     Str.HOW.set_boolification_mode(Str, 4);
     Str.HOW.publish_boolification_spec(Str);
 
-    # class Real is Numeric { ... }
-    Real.HOW.add_parent(Real, Cool);
-
-    # class Int is (Cool does) Real {
+    # class Int is Cool {
     #     has int $!value is box_target;
     #     ...
     # }
-    Int.HOW.add_parent(Int, Real);
+    Int.HOW.add_parent(Int, Cool);
     Int.HOW.add_attribute(Int, BOOTSTRAPATTR.new(:name<$!value>, :type(bigint), :box_target(1), :package(Int)));
     Int.HOW.set_boolification_mode(Int, 6);
     Int.HOW.publish_boolification_spec(Int);
 
-    # class Num is (Cool does) Real {
+    # class Num is Cool {
     #     has num $!value is box_target;
     #     ...
     # }
-    Num.HOW.add_parent(Num, Real);
+    Num.HOW.add_parent(Num, Cool);
     Num.HOW.add_attribute(Num, BOOTSTRAPATTR.new(:name<$!value>, :type(num), :box_target(1), :package(Num)));
     Num.HOW.set_boolification_mode(Num, 2);
     Num.HOW.publish_boolification_spec(Num);
@@ -859,7 +855,6 @@ BEGIN {
     EXPORT::DEFAULT.WHO<Submethod> := Submethod;
     EXPORT::DEFAULT.WHO<Regex>     := Regex;
     EXPORT::DEFAULT.WHO<Str>       := Str;
-    EXPORT::DEFAULT.WHO<Real>      := Real;
     EXPORT::DEFAULT.WHO<Int>       := Int;
     EXPORT::DEFAULT.WHO<Num>       := Num;
     EXPORT::DEFAULT.WHO<Parcel>    := Parcel;  

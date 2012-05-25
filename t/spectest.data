@@ -11,46 +11,16 @@
 # See the "make quicktest" and "make stresstest" targets in
 # build/Makefile.in for examples of use.
 
-S02-types/anon_block.t
-S02-types/array_extending.t
-S02-types/array_ref.t
-S02-types/array.t
-S02-types/assigning-refs.t
-S02-types/autovivification.t
-S02-types/bool.t
-S02-types/capture.t
-S02-types/catch_type_cast_mismatch.t
-S02-types/declare.t
-S02-types/fatrat.t
-S02-types/flattening.t
-S02-types/hash_ref.t
-S02-types/hash.t
-S02-types/infinity.t
-S02-types/instants-and-durations.t
-S02-types/lists.t
-S02-types/mixed_multi_dimensional.t
-S02-types/multi_dimensional_array.t
-S02-types/nan.t
-S02-types/native.t
-S02-types/nested_arrays.t
-S02-types/nested_pairs.t
-S02-types/nil.t
-S02-types/num.t
-S02-types/pair.t
-S02-types/parcel.t
-S02-types/parsing-bool.t
-S02-types/range.t
-S02-types/set.t
-S02-types/bag.t
-S02-types/keyset.t
-S02-types/keybag.t
-S02-types/sigils-and-types.t
-S02-types/subscripts_and_context.t
-S02-types/subset.t
-S02-types/type.t
-S02-types/undefined-types.t
-S02-types/whatever.t
+S02-lexical-conventions/begin_end_pod.t
+S02-lexical-conventions/comments.t
+S02-lexical-conventions/end-pod.t
+S02-lexical-conventions/minimal-whitespace.t
+S02-lexical-conventions/one-pass-parsing.t
+S02-lexical-conventions/pod-in-multi-line-exprs.t
+S02-lexical-conventions/sub-block-parsing.t
 S02-lexical-conventions/unicode.t                          # icu
+S02-lexical-conventions/unicode-whitespace.t
+S02-lexical-conventions/unspace.t
 S02-lists/tree.t
 S02-literals/array-interpolation.t
 S02-literals/autoref.t
@@ -73,36 +43,77 @@ S02-literals/sub-calls.t
 S02-literals/subscript.t
 S02-literals/types.t
 S02-literals/underscores.t
+S02-literals/version.t
 S02-magicals/args.t
 S02-magicals/config.t
 S02-magicals/dollar_bang.t
 S02-magicals/dollar-underscore.t
 S02-magicals/env.t
+S02-magicals/file_line.t
 S02-magicals/pid.t
 S02-magicals/progname.t
 S02-magicals/sub.t
-S02-names-vars/contextual.t
-S02-names-vars/fmt.t
-S02-names-vars/names.t
-S02-names-vars/perl.t
-S02-names-vars/list_array_perl.t
-# S02-names-vars/signature.t # err: Cannot use bind operator with this LHS
-S02-names-vars/variables-and-packages.t
-S02-names-vars/varnames.t
+S02-names/caller.t
 S02-names/identifier.t
 S02-names/our.t
 S02-names/pseudo.t
 S02-names/symbolic-deref.t
+S02-names-vars/contextual.t
+S02-names-vars/fmt.t
+S02-names-vars/list_array_perl.t
+S02-names-vars/names.t
+S02-names-vars/perl.t                              # icu
+# S02-names-vars/signature.t # err: Cannot use bind operator with this LHS
+S02-names-vars/variables-and-packages.t
+S02-names-vars/varnames.t
 S02-one-pass-parsing/less-than.t
-S02-lexical-conventions/begin_end_pod.t
-S02-lexical-conventions/end-pod.t
-S02-lexical-conventions/comments.t
-S02-lexical-conventions/minimal-whitespace.t
-S02-lexical-conventions/one-pass-parsing.t
-S02-lexical-conventions/pod-in-multi-line-exprs.t
-S02-lexical-conventions/sub-block-parsing.t
-S02-lexical-conventions/unicode-whitespace.t
-S02-lexical-conventions/unspace.t
+S02-packages/package-lookup.t
+S02-types/anon_block.t
+S02-types/array_extending.t
+S02-types/array_ref.t
+S02-types/array.t
+S02-types/assigning-refs.t
+S02-types/autovivification.t
+S02-types/bag.t
+S02-types/bool.t
+S02-types/capture.t
+S02-types/catch_type_cast_mismatch.t
+S02-types/declare.t
+S02-types/fatrat.t
+S02-types/flattening.t
+S02-types/hash_ref.t
+S02-types/hash.t
+S02-types/infinity.t
+S02-types/instants-and-durations.t
+S02-types/keybag.t
+S02-types/keyset.t
+S02-types/lists.t
+S02-types/mixed_multi_dimensional.t
+S02-types/multi_dimensional_array.t
+S02-types/nan.t
+S02-types/native.t
+S02-types/nested_arrays.t
+S02-types/nested_pairs.t
+S02-types/nil.t
+S02-types/num.t
+S02-types/pair.t
+S02-types/parcel.t
+S02-types/parsing-bool.t
+S02-types/range.t
+S02-types/set.t
+S02-types/sigils-and-types.t
+S02-types/subscripts_and_context.t
+S02-types/subset.t
+S02-types/type.t
+S02-types/undefined-types.t
+S02-types/whatever.t
+S03-binding/arrays.t
+S03-binding/attributes.t
+S03-binding/closure.t
+S03-binding/hashes.t
+S03-binding/nested.t
+S03-binding/ro.t
+S03-binding/scalars.t
 S03-feeds/basic.t
 S03-junctions/associative.t
 S03-junctions/autothreading.t
@@ -115,13 +126,6 @@ S03-metaops/not.t
 S03-metaops/reduce.t
 S03-metaops/reverse.t
 S03-metaops/zip.t
-S03-binding/attributes.t
-S03-binding/arrays.t
-S03-binding/nested.t
-S03-binding/closure.t
-S03-binding/hashes.t
-S03-binding/ro.t
-S03-binding/scalars.t
 S03-operators/also.t
 S03-operators/arith.t
 S03-operators/assign-is-not-binding.t
@@ -136,12 +140,13 @@ S03-operators/brainos.t
 S03-operators/buf.t
 S03-operators/chained-declarators.t
 S03-operators/cmp.t
-S03-operators/comparison.t
 S03-operators/comparison-simple.t
+S03-operators/comparison.t
 S03-operators/context-forcers.t
 S03-operators/context.t
 S03-operators/equality.t
 S03-operators/eqv.t
+S03-operators/flip-flop.t
 S03-operators/gcd.t
 S03-operators/identity.t
 S03-operators/increment.t
@@ -164,11 +169,11 @@ S03-operators/relational.t
 S03-operators/repeat.t
 S03-operators/scalar-assign.t
 S03-operators/short-circuit.t
+S03-operators/so.t
 S03-operators/spaceship-and-containers.t
 S03-operators/spaceship.t
 S03-operators/subscript-vs-lt.t
 S03-operators/ternary.t
-S03-operators/so.t
 S03-operators/value_equivalence.t
 S03-sequence/arity0.t
 S03-sequence/arity-2-or-more.t
@@ -197,8 +202,17 @@ S03-smartmatch/hash-hash.t
 S03-smartmatch/range-range.t
 S03-smartmatch/regex-hash.t
 S03-smartmatch/scalar-hash.t
+S04-blocks-and-statements/let.t
 S04-blocks-and-statements/pointy-rw.t
 S04-blocks-and-statements/pointy.t
+S04-blocks-and-statements/temp.t
+S04-declarations/constant.t
+S04-declarations/implicit-parameter.t
+S04-declarations/multiple.t
+S04-declarations/my.t
+S04-declarations/state.t
+S04-exception-handlers/catch.t
+S04-exceptions/fail.t
 S04-phasers/ascending-order.t
 S04-phasers/begin.t
 S04-phasers/check.t
@@ -212,13 +226,6 @@ S04-phasers/next.t
 S04-phasers/pre-post.t
 S04-phasers/rvalue.t
 S04-phasers/start.t
-S04-declarations/constant.t
-S04-declarations/implicit-parameter.t
-S04-declarations/multiple.t
-S04-declarations/my.t
-S04-declarations/state.t
-S04-exception-handlers/catch.t
-S04-exceptions/fail.t
 S04-statement-modifiers/for.t
 S04-statement-modifiers/given.t 
 S04-statement-modifiers/if.t
@@ -235,6 +242,7 @@ S04-statements/gather.t
 S04-statements/given.t
 S04-statements/if.t
 S04-statements/last.t
+S04-statements/lazy.t
 S04-statements/loop.t
 S04-statements/map-and-sort-in-for.t
 S04-statements/next.t
@@ -269,8 +277,8 @@ S05-mass/properties-block.t                                # icu
 S05-mass/properties-derived.t                              # icu
 S05-mass/properties-general.t                              # icu
 S05-mass/properties-script.t                               # icu
-S05-mass/rx.t                                              # icu
 S05-mass/recursive.t
+S05-mass/rx.t                                              # icu
 S05-mass/stdrules.t
 S05-match/arrayhash.t
 S05-match/blocks.t
@@ -298,9 +306,10 @@ S05-metasyntax/single-quotes.t
 S05-metasyntax/unknown.t
 S05-modifier/continue.t
 S05-modifier/counted-match.t
+S05-modifier/counted.t
 S05-modifier/global.t
-S05-modifier/ii.t
 S05-modifier/ignorecase.t  # icu
+S05-modifier/ii.t
 S05-modifier/overlapping.t
 # S05-modifier/perl5_1.t # err: Adverb 'P5' not allowed on m
 # S05-modifier/perl5_2.t # err: Adverb 'P5' not allowed on m
@@ -329,15 +338,15 @@ S06-multi/proto.t
 S06-multi/redispatch.t
 S06-multi/syntax.t
 S06-multi/type-based.t
-S06-multi/value-based.t
 S06-multi/unpackability.t
+S06-multi/value-based.t
 S06-operator-overloading/imported-subs.t
 S06-operator-overloading/methods.t
 S06-operator-overloading/sub.t
 S06-operator-overloading/workout.t
 S06-other/anon-hashes-vs-blocks.t
-S06-other/main.t
 S06-other/main-eval.t
+S06-other/main.t
 S06-other/main-usage.t
 S06-other/misc.t
 S06-routine-modifiers/lvalue-subroutines.t
@@ -351,6 +360,7 @@ S06-signature/defaults.t
 S06-signature/errors.t
 S06-signature/introspection.t
 S06-signature/mixed-placeholders.t
+S06-signature/multidimensional.t
 S06-signature/named-parameters.t
 S06-signature/named-placeholders.t
 S06-signature/named-renaming.t
@@ -374,10 +384,6 @@ S06-traits/is-copy.t
 S06-traits/is-readonly.t
 S06-traits/is-rw.t
 S06-traits/misc.t
-
-# S07-iterators/range-iterator.t # err: Undefined routine '&RangeIter' called 
-# follows obsolete version of spec.
-
 S09-autovivification/autoincrement.t
 S09-autovivification/autovivification.t
 S09-hashes/objecthash.t
@@ -388,9 +394,9 @@ S10-packages/basic.t
 S10-packages/joined-namespaces.t
 S10-packages/use-with-class.t
 # S11-modules/export.t # err: Could not find symbol 'Foo::&Foo_exp_parens
-# S11-modules/import.t # err: Illegal redeclaration of symbol B
 S11-modules/importing.t
-# S11-modules/import-tag.t # err: arglist case of use not yet implemented
+S11-modules/import-tag.t
+S11-modules/import.t
 S11-modules/lexical.t
 S11-modules/need.t
 S11-modules/nested.t
@@ -405,8 +411,8 @@ S12-attributes/mutators.t
 S12-attributes/recursive.t
 S12-attributes/undeclared.t
 S12-class/anonymous.t
-S12-class/augment-supersede.t
 S12-class/attributes.t
+S12-class/augment-supersede.t
 S12-class/basic.t
 S12-class/declaration-order.t
 S12-class/extending-arrays.t
@@ -431,9 +437,11 @@ S12-construction/construction.t
 S12-construction/named-params-in-BUILD.t
 S12-construction/new.t
 S12-enums/anonymous.t
-# S12-enums/as-role.t # err: Cannot yet turn an enum into a role
+S12-enums/as-role.t
 S12-enums/basic.t
 S12-enums/misc.t
+S12-enums/non-int.t
+S12-enums/pseudo-functional.t
 S12-enums/thorough.t
 S12-introspection/attributes.t
 S12-introspection/can.t
@@ -456,6 +464,7 @@ S12-methods/how.t
 S12-methods/indirect_notation.t
 S12-methods/instance.t
 S12-methods/lastcall.t
+S12-methods/lvalue.t
 S12-methods/method-vs-sub.t 
 S12-methods/multi.t
 S12-methods/parallel-dispatch.t
@@ -468,12 +477,12 @@ S12-methods/typed-attributes.t
 S12-methods/what.t
 S12-subset/multi-dispatch.t
 S12-subset/subtypes.t
-S13-type-casting/methods.t
+S13-overloading/metaoperators.t
+S13-overloading/operators.t
 S13-overloading/typecasting-long.t
 S13-overloading/typecasting-mixed.t
 S13-overloading/typecasting-short.t
-S13-overloading/metaoperators.t
-S13-overloading/operators.t
+S13-type-casting/methods.t
 S14-roles/anonymous.t
 # S14-roles/attributes.t # err: Attribute $!a1 not declared in class C1
 S14-roles/basic.t
@@ -485,29 +494,30 @@ S14-roles/instantiation.t
 S14-roles/lexical.t
 S14-roles/mixin.t
 S14-roles/namespaced.t 
-S14-roles/parameter-subtyping.t
 S14-roles/parameterized-basic.t
 S14-roles/parameterized-mixin.t
 S14-roles/parameterized-type.t
+S14-roles/parameter-subtyping.t
 S14-roles/stubs.t
 S14-roles/submethods.t
 S14-traits/attributes.t
 # S14-traits/package.t # err: Invalid typename in parameter declaration
 S14-traits/routines.t
 # S14-traits/variables.t # err: Invalid typename in parameter declaration
+S16-filehandles/chmod.t
 S16-filehandles/filestat.t
 S16-filehandles/filetest.t
-S16-filehandles/io.t
 S16-filehandles/io_in_for_loops.t
 S16-filehandles/io_in_while_loops.t
+S16-filehandles/io.t
 S16-filehandles/mkdir_rmdir.t
 S16-filehandles/open.t
 S16-filehandles/unlink.t
 S16-io/bare-say.t
 S16-io/basic-open.t
-S16-io/say.t
-S16-io/say-and-ref.t
 S16-io/getc.t
+S16-io/say-and-ref.t
+S16-io/say.t
 S16-unfiled/rebindstdhandles.t
 S16-unfiled/slurp.t
 S19-command-line/dash-e.t # icu
@@ -528,8 +538,8 @@ S29-any/cmp.t
 S29-any/isa.t
 S29-context/die.t
 S29-context/eval.t
-S29-context/exit.t
 S29-context/exit-in-if.t
+S29-context/exit.t
 S29-context/sleep.t
 S29-conversions/hash.t
 S29-conversions/ord_and_chr.t                              #icu
@@ -549,21 +559,22 @@ S32-array/shift.t
 S32-array/splice.t
 S32-array/unshift.t
 S32-basics/warn.t
+S32-container/roundrobin.t
 S32-container/zip.t
 S32-exceptions/misc.t
-S32-hash/exists.t
 S32-hash/delete.t
+S32-hash/exists.t
 S32-hash/invert.t
 S32-hash/keys_values.t
 S32-hash/kv.t
 S32-hash/pairs.t
 S32-hash/push.t
 S32-hash/slice.t
-S32-io/dir.t
 S32-io/chdir.t
+S32-io/dir.t
 S32-io/file-tests.t
-S32-io/note.t
 S32-io/IO-Socket-INET.t
+S32-io/note.t
 S32-list/categorize.t
 S32-list/classify.t
 S32-list/create.t
@@ -593,12 +604,12 @@ S32-num/polar.t
 S32-num/power.t
 S32-num/rand.t
 S32-num/rat.t
-# S32-num/real-bridge.t # err: Fixed2 cannot compose Real because it is not composable
+S32-num/real-bridge.t
 S32-num/roots.t
 S32-num/rounders.t
 S32-num/sign.t
-S32-num/stringify.t
 S32-num/sqrt.t
+S32-num/stringify.t
 S32-num/unpolar.t
 S32-scalar/defined.t
 S32-scalar/undef.t
@@ -610,14 +621,14 @@ S32-str/chop.t
 S32-str/comb.t                                             # icu
 S32-str/encode.t
 S32-str/flip.t
-S32-str/indent.t
+S32-str/indent.t                                           # icu
 S32-str/index.t
-S32-str/lc.t                                               # icu
 S32-str/lcfirst.t                                          # icu
+S32-str/lc.t                                               # icu
 S32-str/lines.t
 S32-str/numeric.t
 S32-str/ords.t
-# S32-str/pack.t # err: Undefined routine '&pack' called
+S32-str/pack.t
 S32-str/pos.t
 S32-str/rindex.t
 S32-str/samecase.t                                         # icu
@@ -625,32 +636,33 @@ S32-str/split-simple.t
 S32-str/split.t
 S32-str/sprintf.t
 S32-str/substr.t
+S32-str/substr-rw.t
 S32-str/trim.t
-S32-str/uc.t                                               # icu
 S32-str/ucfirst.t                                          # icu
-# S32-str/unpack.t # err: Method 'unpack' not found for invocant of class 'Buf'
+S32-str/uc.t                                               # icu
+S32-str/unpack.t
 S32-str/words.t                                            # icu
 S32-temporal/calendar.t
 S32-temporal/Date.t
-S32-temporal/DateTime.t
 S32-temporal/DateTime-Instant-Duration.t
+S32-temporal/DateTime.t
 S32-temporal/local.t
+S32-trig/atan2.t
+S32-trig/cosech.t
+S32-trig/cosec.t
+S32-trig/cosh.t
+S32-trig/cos.t
+S32-trig/cotanh.t
+S32-trig/cotan.t
 S32-trig/e.t
 S32-trig/pi.t
-S32-trig/sin.t
-S32-trig/cos.t
-S32-trig/tan.t
-S32-trig/sec.t
-S32-trig/cosec.t
-S32-trig/cotan.t
-S32-trig/atan2.t
-S32-trig/sinh.t
-S32-trig/cosh.t
-S32-trig/tanh.t
 S32-trig/sech.t
+S32-trig/sec.t
 S32-trig/simple.t
-S32-trig/cosech.t
-S32-trig/cotanh.t
+S32-trig/sinh.t
+S32-trig/sin.t
+S32-trig/tanh.t
+S32-trig/tan.t
 integration/99problems-01-to-10.t
 integration/99problems-11-to-20.t
 integration/99problems-21-to-30.t

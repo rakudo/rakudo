@@ -23,7 +23,7 @@ class Perl6::Metamodel::SubsetHOW
     method set_of($obj, $refinee) {
         my $archetypes := $!refinee.HOW.archetypes;
         unless $archetypes.nominal || $archetypes.nominalizable {
-            pir::die("The 'of' type of a subset must either be a valid nominal " ~
+            nqp::die("The 'of' type of a subset must either be a valid nominal " ~
                 "type or a type that can provide one");
         }
         $!refinee := pir::nqp_decontainerize__PP($refinee);
@@ -52,7 +52,7 @@ class Perl6::Metamodel::SubsetHOW
     
     # Do check when we're on LHS of smartmatch (e.g. Even ~~ Int).
     method type_check($obj, $checkee) {
-        pir::perl6_booleanize__PI(pir::istrue($checkee.HOW =:= self) ||
+        pir::perl6_booleanize__PI(nqp::istrue($checkee.HOW =:= self) ||
             pir::type_check__IPP($checkee, $!refinee))
     }
     
@@ -60,6 +60,6 @@ class Perl6::Metamodel::SubsetHOW
     method accepts_type($obj, $checkee) {
         pir::perl6_booleanize__PI(
             pir::type_check__IPP($checkee, $!refinee) &&
-            pir::istrue__IP($!refinement.ACCEPTS($checkee)))
+            nqp::istrue($!refinement.ACCEPTS($checkee)))
     }
 }

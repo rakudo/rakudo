@@ -34,8 +34,8 @@ my role Enumeration {
         self.value.Int
     }
 
-    method postcircumfix:<( )>($x) {
-        self.^enum_from_value($x)
+    method postcircumfix:<( )>($ ($x)) {
+        $x ~~ ::?CLASS ?? $x !! self.^enum_from_value($x)
     }
 }
 
@@ -44,6 +44,11 @@ my role Enumeration {
 my role NumericEnumeration {
     multi method Str(::?CLASS:D:) {
         self.key
+    }
+}
+my role StringyEnumeration {
+    multi method Str(::?CLASS:D:) {
+        self.value
     }
 }
 
@@ -63,3 +68,19 @@ sub ANON_ENUM(*@args) {
         nqp::getattr(%res, EnumMap, '$!storage'));
     $r;
 }
+
+Metamodel::EnumHOW.set_composalizer(-> $type, $name, %enum_values {
+    my Mu $r := Metamodel::ParametricRoleHOW.new_type(:name($name));
+    $r.HOW.add_attribute($r, Attribute.new(
+        :name('$!' ~ $name), :type(nqp::p6decont($type)),
+        :has_accessor(1), :package($r)));
+    for %enum_values.kv -> $key, $value {
+        my $meth = method () { self."$name"() === $value }
+        $meth.set_name($key);
+        $r.HOW.add_method($r, $key, $meth);
+    }
+    $r.HOW.set_body_block($r,
+        -> |$c { nqp::list($r, nqp::hash('$?CLASS', $c<$?CLASS>)) });
+    $r.HOW.compose($r);
+    $r
+});

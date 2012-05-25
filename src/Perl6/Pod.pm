@@ -2,8 +2,7 @@
 class Perl6::Pod {
     our sub document($what, $with) {
         if ~$with ne '' {
-            my $true := $*W.add_constant('Int', 'int', 1)<compile_time_value>;
-            $*W.apply_trait('&trait_mod:<is>', $what, $*DOCEE, :docs($true));
+            $*W.apply_trait('&trait_mod:<is>', $what, :docs($*DOCEE));
             # don't reset it if it already holds docs for another element
             if $*DECLARATOR_DOCS && $*DOC.to == $*DECLARATOR_DOCS.to {
                 $*DECLARATOR_DOCS := '';
@@ -90,14 +89,14 @@ class Perl6::Pod {
             if $colonpair<circumfix> {
                 $val := $colonpair<circumfix>;
                 if $val<quote_EXPR> {
-                    $val := pir::join('', $val<quote_EXPR><quote_delimited><quote_atom>);
+                    $val := nqp::join('', $val<quote_EXPR><quote_delimited><quote_atom>);
                 } else {
                     $val := ~$val<semilist>;
                 }
             } else {
                 # and this is the worst hack of them all.
                 # Hide your kids, hide your wife!
-                my $truth := pir::substr($colonpair, 1, 1) ne '!';
+                my $truth := nqp::substr($colonpair, 1, 1) ne '!';
 
                 $val := $*W.add_constant('Int', 'int', $truth)<compile_time_value>;
             }
@@ -306,7 +305,7 @@ class Perl6::Pod {
 
     our sub build_pod_string(@content) {
         sub push_strings(@strings, @where) {
-            my $s := subst(pir::join('', @strings), /\s+/, ' ', :global);
+            my $s := subst(nqp::join('', @strings), /\s+/, ' ', :global);
             my $t := $*W.add_constant(
                 'Str', 'str', $s
             )<compile_time_value>;
@@ -345,7 +344,7 @@ class Perl6::Pod {
         my $i := 0;
         while $i < +@rows {
             unless @rows[$i] ~~ /^'='+ || ^'-'+ || ^'_'+ || ^\h*$ / {
-                my @line := pir::split('', @rows[$i]);
+                my @line := nqp::split('', @rows[$i]);
                 my $j := 0;
                 while $j < +@line {
                     unless @suspects[$j] {

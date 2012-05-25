@@ -1,3 +1,43 @@
+New in 2012.05
++ meta ops //=, ||= and &&= now short-circuit properly
++ Failure objects don't blow up the REPL anymore
++ allow case insensitive regex matches without ICU in limited cases
++ %*ENV now propagates into subprocesses
++ RAKUDOLIB env variable supported in addition to PERL6LIB
++ -I and -M command line options
++ $?LINE and $?FILE variables
++ warnings now include line number from program, not from CORE.setting
++ reduction meta-operator on list-associative ops now has correct semantics
++ now have :th alias for :nth in Str.match
++ import collisions now report the name of the module that is to blame
++ ms// fixed
++ <$x> in regexes caches the compiled regex, which can be a big performance win
++ implemented temp and let
++ 'use' can now import by tag name
++ 'use' with positional arguments
++ lib.pm
++ updated calling conventions for traits
++ implemented fff flip-flop operator; improvements to ff form also
++ removed current directory from default library search path
++ 'import' works
++ symbols installed in EXPORT in all nested packages, not just UNIT::EXPORT
++ enumeration types can be used as roles
++ END phasers now run when program ends with exit or an exception
++ fix Rat.floor and .ceiling to work for large numbers
++ improved Rat stringification
++ Real is now a role, as it should be
++ implemented < foo bar baz > syntax for alternations in regexes
++ implemented <( and )> syntax for setting from/to of match  in regexes
++ support for non-Int enums
++ basic support for Version literals
++ chmod now available as a function
++ roundrobin implemented
++ fixed a bug in precompilation of modules that use roles from other modules
++ basic implementation of pack and unpack
++ implemented substr-rw, which provides an l-value (assignable) substring
++ implemented <~~> (recursive call into self) syntax in regexes
++ 'LAZY' statement prefix
+
 New in 2012.04.1
 + autvivification for arrays and hashes
 + more robust module precompilation

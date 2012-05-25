@@ -50,7 +50,7 @@ class Perl6::Metamodel::ClassHOW
             $obj.PARAMETERIZE_TYPE(|@pos_args, |%named_args)
         }
         else {
-            pir::die("Type " ~ self.name($obj) ~ " cannot accept type arguments")
+            nqp::die("Type " ~ self.name($obj) ~ " cannot accept type arguments")
         }
     }
     

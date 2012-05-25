@@ -5,6 +5,24 @@ my class Cursor does NQPCursorRole {
     trusts Regex;
     my $last_match;
     method !set_last_match($m) { $last_match = $m }
+    
+    # For <( and )>
+    has $!explicit_from;
+    has $!explicit_to;
+    method MARK_FROM() {
+        my int $pos = nqp::getattr_i(self, Cursor, '$!pos');
+        $!explicit_from = $pos;
+        my $cur := self.'!cursor_start'();
+        $cur.'!cursor_pass'($pos);
+        $cur
+    }
+    method MARK_TO() {
+        my int $pos = nqp::getattr_i(self, Cursor, '$!pos');
+        $!explicit_to = $pos;
+        my $cur := self.'!cursor_start'();
+        $cur.'!cursor_pass'($pos);
+        $cur
+    }
 
     method MATCH() {
         my $match := nqp::getattr(self, Cursor, '$!match');
@@ -30,6 +48,12 @@ my class Cursor does NQPCursorRole {
                   ?? nqp::bindpos($list, $key, $value)
                   !! nqp::bindkey($hash, $key, $value);
             }
+            if $!explicit_from.DEFINITE {
+                nqp::bindattr($match, Match, '$!from', $!explicit_from);
+            }
+            if $!explicit_to.DEFINITE {
+                nqp::bindattr($match, Match, '$!to',  $!explicit_to);
+            }
         }
         nqp::bindattr($match, Capture, '$!list', $list);
         nqp::bindattr($match, Capture, '$!hash', $hash);
@@ -48,6 +72,10 @@ my class Cursor does NQPCursorRole {
         $lang_cursor."$name"(); 
     }
     
+    method RECURSE() {
+        pir::find_dynamic_lex__Ps('$?REGEX')(self)
+    }
+    
     method prior() {
         nqp::isconcrete($last_match) ??
             self."!LITERAL"(nqp::unbox_s(~$last_match)) !!
@@ -56,7 +84,20 @@ my class Cursor does NQPCursorRole {
 }
 
 sub MAKE_REGEX($arg) {
-    $arg ~~ Regex ?? $arg !! eval("my \$x = anon regex \{ $arg \}")
+    my role CachedCompiledRegex {
+        has $.regex;
+    }
+    if $arg ~~ Regex {
+        $arg
+    }
+    elsif nqp::istype($arg, CachedCompiledRegex) {
+        $arg.regex
+    }
+    else {
+        my $rx := eval("my \$x = anon regex \{ $arg \}");
+        $arg does CachedCompiledRegex($rx);
+        $rx
+    }
 }
 
 

@@ -30,6 +30,17 @@ static INTVAL smo_id = 0;
 /* The current dispatcher, for the next thing that wants one to take. */
 static PMC *current_dispatcher = NULL;
 
+static PMC * get_thrower(PARROT_INTERP, const char * name) {
+        PMC * const hll_ns = Parrot_hll_get_ctx_HLL_namespace(interp);
+        PMC * const ex_hash = Parrot_ns_find_namespace_global(interp,
+                    hll_ns, Parrot_str_new_constant(interp, "P6EX"));
+        PMC * const thrower = PMC_IS_NULL(ex_hash)
+            ? PMCNULL
+            : VTABLE_get_pmc_keyed_str(interp,
+                    ex_hash, Parrot_str_new(interp, name, 0));
+        return thrower;
+}
+
 static PMC *build_sig_object(PARROT_INTERP, ARGIN_NULLOK(PMC *signature), ARGIN(const char *sig), ...)
 {
     PMC *sig_obj;
@@ -82,10 +93,18 @@ static INTVAL should_run_phaser(PARROT_INTERP, PMC *phaser, PMC *all_phasers, PM
         return in_undo_list;
 
     /* Otherwise, need to consider the definedness of the return value. */
-    if (IS_CONCRETE(result))
-        return in_keep_list;
-    else
+    if (IS_CONCRETE(result)) {
+        PMC *meth = VTABLE_find_method(interp, result, Parrot_str_new_constant(interp, "defined"));
+        PMC *definedness;
+        Parrot_ext_call(interp, meth, "Pi->P", result, &definedness);
+        if (VTABLE_get_bool(interp, definedness))
+            return in_keep_list;
+        else
+            return in_undo_list;
+    }
+    else {
         return in_undo_list;
+    }
 }
 
 static PMC *run_leave_phasers(PARROT_INTERP, PMC *ctx, PMC *perl6_code, PMC *result, PMC *exceptions)
@@ -259,7 +278,7 @@ Does various setup tasks on behalf of all of the other dynops.
 */
 inline op rakudo_dynop_setup() :base_core {
     /* Get 6model object type ID. */
-    smo_id = Parrot_pmc_get_type_str(interp, Parrot_str_new(interp, "SixModelObject", 0));
+    smo_id = Parrot_pmc_get_type_str(interp, Parrot_str_new_constant(interp, "SixModelObject"));
 }
 
 
@@ -862,10 +881,18 @@ inline op perl6_assert_bind_ok(in PMC, in PMC) :base_core {
                 PMC *value = Rakudo_cont_decontainerize(interp, $1);
                 ok = STABLE(value)->type_check(interp, value, type);
             }
-            if (!ok)
-                Parrot_ex_throw_from_c_args(interp, NULL, EXCEPTION_INVALID_OPERATION,
-                    "Type check failed in binding");
+            if (!ok) {
+                PMC * const thrower = get_thrower(interp, "X::TypeCheck::Binding");
+                if (PMC_IS_NULL(thrower))
+                        Parrot_ex_throw_from_c_args(interp, NULL, EXCEPTION_INVALID_OPERATION,
+                            "Type check failed in binding");
+                else
+                    Parrot_pcc_invoke_sub_from_c_args(interp, thrower, "PP->",
+                        $1, type);
+
+            }
         }
+
     }
     else {
         Parrot_ex_throw_from_c_args(interp, NULL, EXCEPTION_INVALID_OPERATION,
@@ -1045,9 +1072,13 @@ inline op perl6_type_check_return_value(in PMC) :base_core {
     if (!PMC_IS_NULL(rtype)) {
         PMC *decont_value = Rakudo_cont_decontainerize(interp, $1);
         if (!STABLE(decont_value)->type_check(interp, decont_value, rtype)) {
-            /* XXX Awesomize. */
-            Parrot_ex_throw_from_c_args(interp, NULL, EXCEPTION_INVALID_OPERATION,
-                "Type check failed for return value");
+            PMC * const thrower = get_thrower(interp, "X::TypeCheck::Return");
+            if (PMC_IS_NULL(thrower))
+                Parrot_ex_throw_from_c_args(interp, NULL, EXCEPTION_INVALID_OPERATION,
+                    "Type check failed for return value");
+            else
+                Parrot_pcc_invoke_sub_from_c_args(interp, thrower, "PP->",
+                        decont_value, rtype);
         }
     }
 }
@@ -1102,7 +1133,8 @@ Creates a multi-dispatch thunk for the specified onlystar dispatcher.
 inline op perl6_multi_dispatch_thunk(out PMC, in PMC) :base_core {
     Rakudo_Code *code_obj = (Rakudo_Code *)PMC_data($2);
     if (PMC_IS_NULL(code_obj->md_thunk)) {
-        code_obj->md_thunk = Parrot_pmc_new(interp, Parrot_pmc_get_type_str(interp, Parrot_str_new(interp, "MDThunk", 0)));
+        code_obj->md_thunk = Parrot_pmc_new(interp,
+                Parrot_pmc_get_type_str(interp, Parrot_str_new_constant(interp, "MDThunk")));
         PARROT_GC_WRITE_BARRIER(interp, $2);
         VTABLE_set_pointer(interp, code_obj->md_thunk, &Rakudo_md_dispatch);
         VTABLE_set_pmc(interp, code_obj->md_thunk, $2);
@@ -1127,7 +1159,8 @@ inline op perl6_multi_dispatch_cand_thunk(out PMC, in PMC, in INT) :base_core {
     PMC         *chosen   = VTABLE_get_pmc_keyed_int(interp, disp_obj->dispatchees, $3);
     Rakudo_Code *code_obj = (Rakudo_Code *)PMC_data(chosen);
     if (PMC_IS_NULL(code_obj->md_thunk)) {
-        code_obj->md_thunk = Parrot_pmc_new(interp, Parrot_pmc_get_type_str(interp, Parrot_str_new(interp, "CTMThunk", 0)));
+        code_obj->md_thunk = Parrot_pmc_new(interp,
+                Parrot_pmc_get_type_str(interp, Parrot_str_new_constant(interp, "CTMThunk")));
         PARROT_GC_WRITE_BARRIER(interp, chosen);
         VTABLE_set_pmc(interp, code_obj->md_thunk, chosen);
     }
@@ -1238,10 +1271,11 @@ inline op perl6_get_package_through_who(out PMC, in PMC, in STR) :base_core {
              */
             PMC *pkg_how = Rakudo_types_packagehow_get();
             PMC *old_ctx = Parrot_pcc_get_signature(interp, CURRENT_CONTEXT(interp));
-            PMC *meth    = VTABLE_find_method(interp, pkg_how, Parrot_str_new(interp, "new_type", 0));
+            PMC *meth    = VTABLE_find_method(interp, pkg_how,
+                    Parrot_str_new_constant(interp, "new_type"));
             PMC *cappy   = Parrot_pmc_new(interp, enum_class_CallContext);
             VTABLE_push_pmc(interp, cappy, pkg_how);
-            VTABLE_set_string_keyed_str(interp, cappy, Parrot_str_new(interp, "name", 0), $3);
+            VTABLE_set_string_keyed_str(interp, cappy, Parrot_str_new_constant(interp, "name"), $3);
             Parrot_pcc_invoke_from_sig_object(interp, meth, cappy);
             cappy = Parrot_pcc_get_signature(interp, CURRENT_CONTEXT(interp));
             Parrot_pcc_set_signature(interp, CURRENT_CONTEXT(interp), old_ctx);
@@ -1340,9 +1374,20 @@ inline op perl6_find_dispatcher(out PMC, in STR) :base_core {
         ctx = Parrot_pcc_get_caller_ctx(interp, ctx);
     }
     
-    if (!dispatcher)
-        Parrot_ex_throw_from_c_args(interp, NULL, EXCEPTION_INVALID_OPERATION,
-            "%Ss is not in the dynamic scope of a dispatcher", $2);
+    if (!dispatcher) {
+        PMC * const thrower = get_thrower(interp, "X::NoDispatcher");
+        if (PMC_IS_NULL(thrower)) {
+            Parrot_ex_throw_from_c_args(interp, NULL, EXCEPTION_INVALID_OPERATION,
+                "%Ss is not in the dynamic scope of a dispatcher", $2);
+        } else {
+            PMC *type = Rakudo_types_str_get();
+            PMC *str = REPR(type)->allocate(interp, STABLE(type));
+            REPR(str)->box_funcs->set_str(interp, STABLE(str), OBJECT_BODY(str), $2);
+            PARROT_GC_WRITE_BARRIER(interp, str);
+            Parrot_pcc_invoke_sub_from_c_args(interp, thrower, "P->", str)
+        }
+
+    }
     $1 = dispatcher;
 }
 
@@ -1794,8 +1839,12 @@ inline op perl6_return_from_routine(in PMC) :flow {
         }
     }
     if (PMC_IS_NULL(cont)) {
-        Parrot_ex_throw_from_c_args(interp, NULL, EXCEPTION_INVALID_OPERATION,
-                "Attempt to return outside of any Routine");
+        PMC * const thrower = get_thrower(interp, "X::ControlFlow::Return");
+        if (PMC_IS_NULL(thrower))
+            Parrot_ex_throw_from_c_args(interp, NULL, EXCEPTION_INVALID_OPERATION,
+                    "Attempt to return outside of any Routine");
+        else
+            Parrot_pcc_invoke_sub_from_c_args(interp, thrower, "->");
     }
     ctx = CURRENT_CONTEXT(interp);
     GETATTR_Continuation_to_ctx(interp, cont, cctx);

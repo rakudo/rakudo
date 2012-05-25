@@ -60,7 +60,7 @@ class Perl6::Metamodel::ParametricRoleGroupHOW
             CATCH { $error := $! }
         }
         if $error {
-            pir::die("None of the parametric role variants for '" ~
+            nqp::die("None of the parametric role variants for '" ~
                 self.name($obj) ~ "' matched the arguments supplied.\n" ~
                 $error);
         }

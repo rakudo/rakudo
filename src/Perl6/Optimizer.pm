@@ -42,7 +42,7 @@ class Perl6::Optimizer {
         my $*GLOBALish := $past<GLOBALish>;
         my $*W := $past<W>;
         unless $unit.isa(PAST::Block) {
-            pir::die("Optimizer could not find UNIT");
+            nqp::die("Optimizer could not find UNIT");
         }
         self.visit_block($unit);
         
@@ -50,20 +50,20 @@ class Perl6::Optimizer {
         if +%!deadly {
             my @fails;
             for %!deadly {
-                my @parts := pir::split("\n", $_.key);
+                my @parts := nqp::split("\n", $_.key);
                 my $headline := @parts.shift();
                 @fails.push("$headline (line" ~ (+$_.value == 1 ?? ' ' !! 's ') ~
-                    pir::join(', ', $_.value) ~ ")" ~
-                    (+@parts ?? "\n" ~ pir::join("\n", @parts) !! ""));
+                    nqp::join(', ', $_.value) ~ ")" ~
+                    (+@parts ?? "\n" ~ nqp::join("\n", @parts) !! ""));
             }
-            pir::die("CHECK FAILED:\n" ~ pir::join("\n", @fails))
+            nqp::die("CHECK FAILED:\n" ~ nqp::join("\n", @fails))
         }
         if +%!worrying {
             pir::printerr__vs("WARNINGS:\n");
             my @fails;
             for %!worrying {
                 pir::printerr__vs($_.key ~ " (line" ~ (+$_.value == 1 ?? ' ' !! 's ') ~
-                    pir::join(', ', $_.value) ~ ")\n");
+                    nqp::join(', ', $_.value) ~ ")\n");
             }
         }
         
@@ -267,7 +267,7 @@ class Perl6::Optimizer {
                 @types.push(nqp::null());
                 @flags.push($_<boxable_native>);
             }
-            elsif pir::can__IPs($_, 'type') && !pir::isnull__IP($_.type) {
+            elsif pir::can__IPs($_, 'type') && !nqp::isnull($_.type) {
                 my $type := $_.type();
                 if pir::isa($type, 'Undef') {
                     return [];
@@ -303,7 +303,7 @@ class Perl6::Optimizer {
             "Calling '" ~ $obj.name ~ "' will never work with " ~
             (+@arg_names == 0 ??
                 "no arguments" !!
-                "argument types (" ~ pir::join(', ', @arg_names) ~ ")"),
+                "argument types (" ~ nqp::join(', ', @arg_names) ~ ")"),
             $obj.is_dispatcher ??
                 multi_sig_list($obj) !!
                 ["    Expected: " ~ $obj.signature.perl]);
@@ -360,11 +360,11 @@ class Perl6::Optimizer {
                     return %sym<value>;
                 }
                 else {
-                    pir::die("Optimizer: No lexical compile time value for $name");
+                    nqp::die("Optimizer: No lexical compile time value for $name");
                 }
             }
         }
-        pir::die("Optimizer: No lexical $name found");
+        nqp::die("Optimizer: No lexical $name found");
     }
     
     # Checks if a given lexical is declared, though it needn't have a compile
@@ -450,7 +450,7 @@ class Perl6::Optimizer {
     method inline_call($call, $code_obj) {
         my $inline := $code_obj.inline_info();
         my $name   := $call.name;
-        my @tokens := pir::split(' ', $inline);
+        my @tokens := nqp::split(' ', $inline);
         my @stack  := [PAST::Stmt.new()];
         while +@tokens {
             my $cur_tok := @tokens.shift;
@@ -464,25 +464,25 @@ class Perl6::Optimizer {
             elsif $cur_tok eq 'PIROP' {
                 @stack.push(PAST::Op.new( :pirop(@tokens.shift()) ));
                 unless @tokens.shift() eq '(' {
-                    pir::die("INTERNAL ERROR: Inline corrupt for $name; expected '('");
+                    nqp::die("INTERNAL ERROR: Inline corrupt for $name; expected '('");
                 }
             }
             elsif $cur_tok eq 'WANT' {
                 @stack.push(PAST::Want.new());
                 unless @tokens.shift() eq '(' {
-                    pir::die("INTERNAL ERROR: Inline corrupt for $name; expected '('");
+                    nqp::die("INTERNAL ERROR: Inline corrupt for $name; expected '('");
                 }
             }
             elsif $cur_tok eq 'WANTSPEC' {
                 @stack[+@stack - 1].push(~@tokens.shift());
             }
             elsif $cur_tok ne '' {
-                pir::die("INTERNAL ERROR: Unexpected inline token for $name: " ~ $cur_tok);
+                nqp::die("INTERNAL ERROR: Unexpected inline token for $name: " ~ $cur_tok);
                 return $call;
             }
         }
         if +@stack != 1 {
-            pir::die("INTERNAL ERROR: Non-empty inline stack for $name")
+            nqp::die("INTERNAL ERROR: Non-empty inline stack for $name")
         }
         if $call.named ne '' {
             @stack[0].named($call.named);
@@ -516,7 +516,7 @@ class Perl6::Optimizer {
     # Adds an entry to the list of things that would cause a check fail.
     method add_deadly($past_node, $message, @extras?) {
         my $line := HLL::Compiler.lineof($past_node<source>, $past_node<pos>);
-        my $key := $message ~ (+@extras ?? "\n" ~ pir::join("\n", @extras) !! "");
+        my $key := $message ~ (+@extras ?? "\n" ~ nqp::join("\n", @extras) !! "");
         unless %!deadly{$key} {
             %!deadly{$key} := [];
         }

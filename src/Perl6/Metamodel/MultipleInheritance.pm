@@ -11,14 +11,14 @@ role Perl6::Metamodel::MultipleInheritance {
     # Adds a parent.
     method add_parent($obj, $parent) {
         if self.is_composed($obj) {
-            pir::die("Parents cannot be added to a class after it has been composed");
+            nqp::die("Parents cannot be added to a class after it has been composed");
         }
         if $parent =:= $obj {
-            pir::die("Class " ~ self.name($obj) ~ " cannot inherit from itself");
+            nqp::die("Class " ~ self.name($obj) ~ " cannot inherit from itself");
         }
         for @!parents {
             if $_ =:= $parent {
-                pir::die("Package '" ~ self.name($obj) ~
+                nqp::die("Package '" ~ self.name($obj) ~
                     "' already has parent '" ~
                     $parent.HOW.name($parent) ~ "'");
             }

@@ -8,12 +8,18 @@ sub infix:<=>(Mu \$a, Mu \$b) is rw {
 }
 
 proto infix:<does>(|$) { * }
-multi infix:<does>(Mu:D \$obj, Mu:U \$role) is rw {
+multi infix:<does>(Mu:D \$obj, Mu:U \$rolish) is rw {
     # XXX Mutability check.
+    my $role := $rolish.HOW.archetypes.composable() ?? $rolish !!
+                $rolish.HOW.archetypes.composalizable() ?? $rolish.HOW.composalize($rolish) !!
+                die("Cannot mix in a non-composable type");
     $obj.HOW.mixin($obj, $role).BUILD_LEAST_DERIVED({});
 }
-multi infix:<does>(Mu:D \$obj, Mu:U \$role, :$value! is parcel) is rw {
+multi infix:<does>(Mu:D \$obj, Mu:U \$rolish, :$value! is parcel) is rw {
     # XXX Mutability check.
+    my $role := $rolish.HOW.archetypes.composable() ?? $rolish !!
+                $rolish.HOW.archetypes.composalizable() ?? $rolish.HOW.composalize($rolish) !!
+                die("Cannot mix in a non-composable type");
     my @attrs = $role.^attributes().grep: { .has_accessor };
     die(X::Role::Initialization.new())
         unless @attrs == 1;
@@ -31,16 +37,31 @@ multi infix:<does>(Mu:U \$obj, @roles) is rw {
 }
 
 proto infix:<but>(|$) { * }
-multi infix:<but>(Mu:D \$obj, Mu:U \$role) {
+multi infix:<but>(Mu:D \$obj, Mu:U \$rolish) {
+    my $role := $rolish.HOW.archetypes.composable() ?? $rolish !!
+                $rolish.HOW.archetypes.composalizable() ?? $rolish.HOW.composalize($rolish) !!
+                die("Cannot mix in a non-composable type");
     $obj.HOW.mixin($obj.clone(), $role).BUILD_LEAST_DERIVED({});
 }
-multi infix:<but>(Mu:D \$obj, Mu:U \$role, :$value! is parcel) {
+multi infix:<but>(Mu:D \$obj, Mu:U \$rolish, :$value! is parcel) {
+    my $role := $rolish.HOW.archetypes.composable() ?? $rolish !!
+                $rolish.HOW.archetypes.composalizable() ?? $rolish.HOW.composalize($rolish) !!
+                die("Cannot mix in a non-composable type");
     my @attrs = $role.^attributes().grep: { .has_accessor };
     die(X::Role::Initialization.new())
         unless @attrs == 1;
-    $obj.HOW.mixin($obj.clone(), $role).BUILD_LEAST_DERIVED({ @attrs[0].Str.substr(2) => $value });
+    my $mixin-value := $value;
+    unless nqp::istype($value, @attrs[0].type) {
+        if @attrs[0].type.HOW.HOW.name(@attrs[0].type.HOW) eq 'Perl6::Metamodel::EnumHOW' {
+            $mixin-value := @attrs[0].type.($value);
+        }
+    }
+    $obj.HOW.mixin($obj.clone(), $role).BUILD_LEAST_DERIVED({ @attrs[0].Str.substr(2) => $mixin-value });
 }
-multi infix:<but>(Mu:U \$obj, Mu:U \$role) {
+multi infix:<but>(Mu:U \$obj, Mu:U \$rolish) {
+    my $role := $rolish.HOW.archetypes.composable() ?? $rolish !!
+                $rolish.HOW.archetypes.composalizable() ?? $rolish.HOW.composalize($rolish) !!
+                die("Cannot mix in a non-composable type");
     $obj.HOW.mixin($obj, $role);
 }
 multi infix:<but>(Mu \$obj, Mu:D $val) is rw {
@@ -157,58 +178,44 @@ sub undefine(Mu \$x) {
     $x = $undefined;
 }
 
-sub infix:<ff>($a as Bool, $b as Bool) {
-    my $pos := nqp::p6box_s(nqp::callerid());
-    state %ffv;
-    if %ffv{$pos} {
-        %ffv{$pos} = False if $b;
-        True;
+sub prefix:<temp>(\$cont) is rw {
+    my $temp_restore := pir::find_caller_lex__Ps('!TEMP-RESTORE');
+    if nqp::iscont($cont) {
+        nqp::push($temp_restore, $cont);
+        nqp::push($temp_restore, nqp::p6decont($cont));
     }
-    elsif $a {
-        %ffv{$pos} = $a
+    elsif nqp::istype($cont, Array) {
+        nqp::push($temp_restore, $cont);
+        nqp::push($temp_restore, my @a = $cont);
+    }
+    elsif nqp::istype($cont, Hash) {
+        nqp::push($temp_restore, $cont);
+        nqp::push($temp_restore, my %h = $cont);
     }
     else {
-        False
+        die "Can only use 'temp' on a container";
     }
+    $cont
 }
 
-sub infix:<ff^>($a as Bool, $b as Bool) {
-    my $pos := nqp::p6box_s(nqp::callerid());
-    state %ffv;
-    if %ffv{$pos} {
-        $b ?? (%ffv{$pos} = False) !! True
+sub prefix:<let>(\$cont) is rw {
+    my $let_restore := pir::find_caller_lex__Ps('!LET-RESTORE');
+    if nqp::iscont($cont) {
+        nqp::push($let_restore, $cont);
+        nqp::push($let_restore, nqp::p6decont($cont));
     }
-    elsif $a {
-        %ffv{$pos} = $a
+    elsif nqp::istype($cont, Array) {
+        nqp::push($let_restore, $cont);
+        nqp::push($let_restore, my @a = $cont);
     }
-    else {
-        False
-    }
-}
-
-sub infix:<^ff>($a as Bool, $b as Bool) {
-    my $pos := nqp::p6box_s(nqp::callerid());
-    state %ffv;
-    if %ffv{$pos} {
-        %ffv{$pos} = False if $b;
-        True
+    elsif nqp::istype($cont, Hash) {
+        nqp::push($let_restore, $cont);
+        nqp::push($let_restore, my %h = $cont);
     }
     else {
-        %ffv{$pos} = True if $a;
-        False
+        die "Can only use 'let' on a container";
     }
-}
-
-sub infix:<^ff^>($a as Bool, $b as Bool) {
-    my $pos := nqp::p6box_s(nqp::callerid());
-    state %ffv;
-    if %ffv{$pos} {
-        $b ?? (%ffv{$pos} = False) !! True
-    }
-    else {
-        %ffv{$pos} = True if $a;
-        False
-    }
+    $cont
 }
 
 # not sure where this should go

@@ -19,7 +19,7 @@ my class Attribute {
                                 nqp::unbox_s($name))
                         }
                         !!
-                        pir::die("Cannot create rw-accessors for natively typed attribute '$name'");
+                        nqp::die("Cannot create rw-accessors for natively typed attribute '$name'");
                 } else {
                     # ro accessor
                     $meth  := nqp::p6bool(nqp::iseq_i($attr_type, 0))

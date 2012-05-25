@@ -1,6 +1,6 @@
 my Int $UINT64_UPPER = nqp::pow_I(2, 64, Num, Int);
 
-my role Rational is Real {
+my role Rational does Real {
     has Int $.numerator;
     has Int $.denominator;
 
@@ -40,12 +40,79 @@ my role Rational is Real {
                 nqp::p6decont($!denominator)
              ));
     }
+
+    method floor(Rational:D:) returns Int:D {
+        $!denominator == 1
+            ?? $!numerator
+            !! $!numerator < 0
+            ?? ($!numerator div $!denominator - 1) # XXX because div for negati
+            !! $!numerator div $!denominator
+    }
+
+    method ceiling(Rational:D:) returns Int:D {
+        $!denominator == 1
+            ?? $!numerator
+            !! $!numerator < 0
+            ?? ($!numerator div $!denominator) # XXX should be +1, but div is buggy
+            !! ($!numerator div $!denominator + 1)
+    }
+
     method Int() { $!numerator div $!denominator }
 
     method Bridge() { self.Num }
     multi method Str(Rational:D:) {
-        self.Num.Str
+        my $s = $!numerator < 0 ?? '-' !! '';
+        my $r = self.abs;
+        my $i = $r.floor;
+        $r -= $i;
+        $s ~= $i;
+        if $r {
+            $s ~= '.';
+            my $want = $!denominator < 100_000
+                       ?? 6
+                       !! $!denominator.Str.chars + 1;
+            my $f = '';
+            while $r and $f.chars < $want {
+                $r *= 10;
+                $i = $r.floor;
+                $f ~= $i;
+                $r -= $i;
+            }
+            $f++ if  2 * $r >= 1;
+            $s ~= $f;
+        }
+        $s;
     }
+
+    method base($base) {
+        my $s = $!numerator < 0 ?? '-' !! '';
+        my $r = self.abs;
+        my $i = $r.floor;
+        $r -= $i;
+        $s ~= $i.base($base);
+        if $r {
+            my $want = $!denominator < $base**6 ?? 6 !! $!denominator.log($base).ceiling + 1;
+            my @f;
+            while $r and @f < $want {
+                $r *= $base;
+                $i = $r.floor;
+                push @f, $i;
+                $r -= $i;
+            }
+            if 2 * $r >= 1 {
+                for @f-1 ... 0 -> $x {
+                    last if ++@f[$x] < $base;
+                    @f[$x] = 0;
+                    $s ~= ($i+1).base($base) if $x == 0; # never happens?
+                }
+            }
+            $s ~= '.';
+            $s ~= (0..9,'A'..'Z')[@f].join;
+        }
+        $s;
+    }
+
+
     method succ {
         self.new($!numerator + $!denominator, $!denominator);
     }
@@ -53,17 +120,18 @@ my role Rational is Real {
     method pred {
         self.new($!numerator - $!denominator, $!denominator);
     }
+
+    method norm() { self }
 }
 
-# XXX: should also be Cool
-my class Rat    does Rational { 
+my class Rat is Cool does Rational { 
     method Rat   (Rat:D: Real $?) { self }
     method FatRat(Rat:D: Real $?) { FatRat.new($.numerator, $.denominator); }
     multi method perl(Rat:D:) {
         $.numerator ~ '/' ~ $.denominator
     }
 }
-my class FatRat does Rational {
+my class FatRat is Cool does Rational {
     method FatRat(FatRat:D: Real $?) { self }
     method Rat   (FatRat:D: Real $?) {
         $.denominator < $UINT64_UPPER

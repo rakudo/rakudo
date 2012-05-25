@@ -81,7 +81,8 @@ GetOptions  'impl=s'        => \$impl,
             'jobs=i'        => \$threads_num,
             or usage();
 
-$ENV{PERL6LIB} = 'lib' unless $keep_env;
+my $path_sep = $^O eq 'MSWin32' ? ';' : ':';
+$ENV{PERL6LIB} = join($path_sep, qw/lib ./) unless $keep_env;
 
 my @files;
 

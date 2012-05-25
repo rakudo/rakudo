@@ -1,7 +1,7 @@
 Rakudo Roadmap
 --------------
 
-Last updated: 2012-04-20
+Last updated: 2012-05-12
 
 This document serves as a guide to the major goals for Rakudo
 development, as things stood in December 2011. They have been
@@ -42,27 +42,27 @@ Macros (masak)
 3 ?     Textual macros
 
 Operators
-2 *     precedence traits for user defined operators
+2 *     precedence traits for user defined operators (jnthn)
 2 ***   missing native operators, including ++/-- (jnthn)
 3 **    logical cascades
 3 **    operator adverbs
 
 Regexes
-1 **    LTM for alternations
+1 **    mark_commit to fix various backtracking/capturing issues
+1 ***   LTM for alternations
 2 **    array variable interpolation
 3 **    <*foo>
-3 *     <~~>
-3 **    <|w>, <|b>, ...
-3 *     <(, )>
-3 **    explicit backtracking control (::, :::)
-3 **    <cut>
+3 **    <~~>
+3 *     <|w>, <|g>, <|c>
+3 ***   explicit backtracking control (::, :::)
+3 **    <cut> and <commit>
 
 Built-ins/Data Structures
 2 ***   throwing typed exceptions (moritz)
 2 ***   packed arrays (jnthn)
 2 ***** NFG strings, .codes, .graphs, etc.
 2 **    Rat/FatRat/Rational cleanup
-2 ***   other S02 data types -- KeySet, KeyBag
+2 ***   other S02 data types -- KeySet, KeyBag (tadzik)
 2 **    sized/shaped arrays (jnthn)
 2 **    Str.Numeric rewrite (japhb, str-numeric branch)
 2 ***   val() (japhb)
@@ -76,11 +76,9 @@ Phasers
 
 Language Features
 1 ***   basic Perl 5 interop (use, eval, etc.)
-1 **    non-Numeric enums
-2 **    enumerations as roles
 2 ***   heredocs
+2 *     $=DATA and friends (tadzik)
 2 **    module versioning
-2 **    import/export tags
 2 **    missing bits of enums
 2 ***   new syntax/semantics for coercion (jnthn)
 2 **    MAIN and USAGE (japhb)
@@ -88,7 +86,6 @@ Language Features
 2 ***   module versioning
 3 ***   domain specific languages -- slang and grammar tweaks
 3 ****  more advanced Perl 5 interop (lexical embedding, etc.)
-3 ***   temp variables
 
 Optimizer (jnthn)
 2 **    ro/rw variable tracking, related transforms

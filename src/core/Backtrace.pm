@@ -38,7 +38,7 @@ my class Backtrace is List {
     multi method new(Parcel $bt, Int $offset = 0) {
         my $new = self.bless(*);
         for $offset .. $bt.elems - 1 {
-            next if pir::isnull($bt[$_]<sub>);
+            next if nqp::isnull($bt[$_]<sub>);
             my $code;
             try {
                 $code = pir::perl6_code_object_from_parrot_sub__PP($bt[$_]<sub>);
@@ -100,6 +100,10 @@ my class Backtrace is List {
             my @frames;
             my Int $i = self.next-interesting-index(-1);
             while $i.defined {
+                $i = self.next-interesting-index($i)
+                    while $oneline && $i.defined
+                          && self.at_pos($i).is-setting;
+
                 my $prev = self.at_pos($i);
                 if $prev.is-routine {
                     @frames.push: $prev;

@@ -57,20 +57,20 @@ my class RoleToClassApplier {
         for @collisions {
             if $_.private {
                 unless has_private_method($target, $_.name) {
-                    pir::die("Private method '" ~ $_.name ~
+                    nqp::die("Private method '" ~ $_.name ~
                         "' must be resolved by class " ~
                         $target.HOW.name($target) ~
                         " because it exists in multiple roles (" ~
-                        pir::join(", ", $_.roles) ~ ")");
+                        nqp::join(", ", $_.roles) ~ ")");
                 }
             }
             else {
                 unless has_method($target, $_.name, 1) {
-                    pir::die("Method '" ~ $_.name ~
+                    nqp::die("Method '" ~ $_.name ~
                         "' must be resolved by class " ~
                         $target.HOW.name($target) ~
                         " because it exists in multiple roles (" ~
-                        pir::join(", ", $_.roles) ~ ")");
+                        nqp::join(", ", $_.roles) ~ ")");
                 }
             }
         }
@@ -83,7 +83,7 @@ my class RoleToClassApplier {
                 try { $yada := $_.value.yada }
                 if $yada {
                     unless has_method($target, $name, 0) {
-                        pir::die("Method '$name' must be implemented by " ~
+                        nqp::die("Method '$name' must be implemented by " ~
                         $target.HOW.name($target) ~
                         " because it is required by a role");
                     }
@@ -117,7 +117,7 @@ my class RoleToClassApplier {
         my @attributes := $to_compose_meta.attributes($to_compose, :local(1));
         for @attributes {
             if has_attribute($target, $_.name) {
-                pir::die("Attribute '" ~ $_.name ~ "' already exists in the class '" ~
+                nqp::die("Attribute '" ~ $_.name ~ "' already exists in the class '" ~
                     $target.HOW.name($target) ~ "', but a role also wishes to compose it");
             }
             $target.HOW.add_attribute($target, $_);

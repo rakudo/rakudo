@@ -1,7 +1,6 @@
 my class Complex { ... }
 
-# XxX role Real does Numeric { ... }
-my class Real does Numeric {
+my role Real does Numeric {
     method Rat(Real:D: Real $epsilon = 1.0e-6) { self.Bridge.Rat($epsilon) }
     method abs()  { self < 0 ?? -self !! self }
     proto method sign(|$) {*}
@@ -9,6 +8,7 @@ my class Real does Numeric {
     multi method sign(Real:D:) { self < 0 ?? -1 !! self == 0 ?? 0 !! 1 }
     method conj(Real:D:) { self }
     method sqrt() { self.Bridge.sqrt }
+    method rand() { self.Bridge.rand }
     method sin()  { self.Bridge.sin }
     method asin() { self.Bridge.asin }
     method cos()  { self.Bridge.cos }
@@ -47,9 +47,11 @@ my class Real does Numeric {
         Complex.new(self.cos, self.sin);
     }
     method Complex() { Complex.new(self.Num, 0e0) }
-    multi method log()           { self.Bridge.log               }
-    multi method log(Real $base) { self.Bridge.log($base.Bridge) }
-    multi method exp()           { self.Bridge.exp               }
+    proto method log(|$) {*}
+    multi method log(Real:D: )           { self.Bridge.log               }
+    multi method log(Real:D: Real $base) { self.Bridge.log($base.Bridge) }
+    proto method exp(|$) {*}
+    multi method exp(Real:D: )           { self.Bridge.exp               }
     method truncate(Real:D:) {
         self == 0 ?? 0 !! self < 0  ?? self.ceiling !! self.floor
     }
@@ -76,8 +78,14 @@ my class Real does Numeric {
         $int_part == 0 && self < 0 ?? '-' ~ $r !! $r;
     }
 
+    method succ() { self.Bridge.succ }
+    method pred() { self.Bridge.pred }
+
     method Real(Real:D:) { self }
     method Bridge(Real:D:) { self.Num }
+    method Int(Real:D:) { self.Bridge.Int }
+    method Num(Real:D:) { self.Bridge.Num }
+    multi method Str(Real:D:) { self.Bridge.Str }
 }
 
 proto sub cis(|$) {*}
@@ -107,9 +115,11 @@ multi infix:«>»(Real \$a, Real \$b)   { $a.Bridge > $b.Bridge }
 
 multi infix:«>=»(Real \$a, Real \$b)  { $a.Bridge >= $b.Bridge }
 
+multi prefix:<->(Real \$a)            { -$a.Bridge }
+
 proto sub infix:<mod>(|$) {*}
 multi sub infix:<mod>(Real $a, Real $b) {
-    $a - ($a div $b) * $b;
+    $a - ($a.Bridge.Int div $b.Bridge.Int) * $b;
 }
 
 multi prefix:<abs>(Real \$a) {
@@ -128,3 +138,5 @@ multi sub atan2(Real \$a, Real \$b = 1e0) { $a.Bridge.atan2($b.Bridge) }
 # of ambiguous dispatches. So just go with (Any, Any) for now.
 multi sub atan2(     \$a,      \$b = 1e0) { $a.Numeric.atan2($b.Numeric) }
 
+proto sub unpolar(|$) {*}
+multi sub unpolar(Real $mag, Real $angle) { $mag.unpolar($angle) }

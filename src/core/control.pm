@@ -158,6 +158,7 @@ sub eval(Str $code, :$lang = 'perl6') {
 
 
 sub exit($status = 0) {
+    $_() for pir::perl6ize_type__PP(@*END_PHASERS);
     nqp::exit($status.Int);
     $status;
 }

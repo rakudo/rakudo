@@ -27,10 +27,10 @@ class Perl6::Metamodel::GenericHOW
     }
     
     method find_method($obj, $name) {
-        pir::die("Cannot call a method on type variable " ~ self.name($obj))
+        nqp::die("Cannot call a method on type variable " ~ self.name($obj))
     }
     
     method type_check($obj, $checkee) {
-        pir::die("Cannot type check against type variable " ~ self.name($obj))
+        nqp::die("Cannot type check against type variable " ~ self.name($obj))
     }
 }

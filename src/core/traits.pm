@@ -5,6 +5,9 @@ my role Positional { ... }
 my role Associative { ... }
 my role Callable { ... }
 
+# This is needed for the export trait.
+my class Pair { ... }
+
 proto trait_mod:<is>(|$) { * }
 multi trait_mod:<is>(Mu:U $child, Mu:U $parent) {
     if $parent.HOW.archetypes.inheritable() {
@@ -21,8 +24,8 @@ multi trait_mod:<is>(Mu:U $child, Mu:U $parent) {
 multi trait_mod:<is>(Mu:U $type, :$rw!) {
     $type.HOW.set_rw($type);
 }
-multi trait_mod:<is>(Mu:U $type, $size, :$nativesize!) {
-    $type.HOW.set_nativesize($type, $size);
+multi trait_mod:<is>(Mu:U $type, :$nativesize!) {
+    $type.HOW.set_nativesize($type, $nativesize);
 }
 
 multi trait_mod:<is>(Attribute:D $attr, :$rw!) {
@@ -41,8 +44,8 @@ multi trait_mod:<is>(Routine:D $r, :$rw!) {
 multi trait_mod:<is>(Routine:D $r, :$default!) {
     $r does role { method default() { True } }
 }
-multi trait_mod:<is>(Routine:D $r, $info, :$inlinable!) {
-    $r.set_inline_info($info);
+multi trait_mod:<is>(Routine:D $r, :$inlinable!) {
+    $r.set_inline_info($inlinable);
 }
 
 multi trait_mod:<is>(Parameter:D $param, :$readonly!) {
@@ -64,49 +67,63 @@ multi trait_mod:<is>(Parameter:D $param, :$parcel!) {
 # TODO: Make this much less cheaty. That'll probably need the
 # full-blown serialization, though.
 sub EXPORT_SYMBOL(\$exp_name, @tags, Mu \$sym) {
-    for @tags -> $tag {
-        my $install_in;
-        if $*EXPORT.WHO.exists($tag) {
-            $install_in := $*EXPORT.WHO.{$tag};
+    my @export_packages = $*EXPORT;
+    for pir::perl6ize_type__PP(@*PACKAGES) {
+        unless .WHO.exists('EXPORT') {
+            .WHO<EXPORT> := Metamodel::PackageHOW.new_type(:name('EXPORT'));
+            .WHO<EXPORT>.^compose;
         }
-        else {
-            $install_in := $*W.pkg_create_mo($/, (package { }).HOW, :name($tag));
-            $*W.pkg_compose($install_in);
-            $*W.install_package_symbol($*EXPORT, $tag, $install_in);
-        }
-        if $install_in.WHO.exists($exp_name) {
-            unless ($install_in.WHO){$exp_name} =:= $sym {
-                die "A symbol $exp_name has already been exported";
+        @export_packages.push: .WHO<EXPORT>;
+    }
+    for @export_packages -> $p {
+        for @tags -> $tag {
+            my $install_in;
+            if $p.WHO.exists($tag) {
+                $install_in := $*EXPORT.WHO.{$tag};
             }
+            else {
+                $install_in := $*W.pkg_create_mo($/, (package { }).HOW, :name($tag));
+                $*W.pkg_compose($install_in);
+                $*W.install_package_symbol($p, $tag, $install_in);
+            }
+            if $install_in.WHO.exists($exp_name) {
+                unless ($install_in.WHO){$exp_name} =:= $sym {
+                    die "A symbol $exp_name has already been exported";
+                }
+            }
+            $*W.install_package_symbol($install_in, $exp_name, $sym);
         }
-        $*W.install_package_symbol($install_in, $exp_name, $sym);
     }
 }
 multi trait_mod:<is>(Routine:D \$r, :$export!) {
     my $to_export := $r.multi ?? $r.dispatcher !! $r;
     my $exp_name  := '&' ~ $r.name;
-    my @tags = 'ALL', 'DEFAULT';
+    my @tags = 'ALL', ($export ~~ Pair ?? $export.key() !!
+                       $export ~~ Positional ?? @($export)>>.key !!
+                       'DEFAULT');
     EXPORT_SYMBOL($exp_name, @tags, $to_export);
 }
 multi trait_mod:<is>(Mu:U \$type, :$export!) {
     my $exp_name := $type.HOW.name($type);
-    my @tags = 'ALL', 'DEFAULT';
+    my @tags = 'ALL', ($export ~~ Pair ?? $export.key !!
+                       $export ~~ Positional ?? @($export)>>.key !!
+                       'DEFAULT');
     EXPORT_SYMBOL($exp_name, @tags, $type);
 }
 
-multi trait_mod:<is>(Mu:D $docee, $doc, :$docs!) {
+multi trait_mod:<is>(Mu:D $docee, :$docs!) {
     $docee does role {
         has $!WHY;
         method WHY          { $!WHY      }
         method set_docs($d) { $!WHY = $d }
     }
-    $docee.set_docs($doc);
-    $doc.set_docee($docee);
+    $docee.set_docs($docs);
+    $docs.set_docee($docee);
 }
 
-multi trait_mod:<is>(Mu:U $docee, $doc, :$docs!) {
-    $docee.HOW.set_docs($doc);
-    $doc.set_docee($docee);
+multi trait_mod:<is>(Mu:U $docee, :$docs!) {
+    $docee.HOW.set_docs($docs);
+    $docs.set_docee($docee);
 }
 
 
@@ -213,8 +230,8 @@ multi trait_mod:<handles>(Attribute:D $target, $thunk) {
 }
 
 proto trait_mod:<will>(|$) { * }
-multi trait_mod:<will>(Attribute $attr, Block $closure, :$build!) {
-    $attr.set_build($closure)
+multi trait_mod:<will>(Attribute $attr, Block :$build!) {
+    $attr.set_build($build)
 }
 
 proto trait_mod:<trusts>(|$) { * }

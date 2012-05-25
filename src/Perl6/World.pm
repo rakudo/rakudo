@@ -211,7 +211,7 @@ class Perl6::World is HLL::World {
     }
     
     # Imports symbols from the specified package into the current lexical scope.
-    method import($package) {
+    method import($package, $source_package_name) {
         # We'll do this in two passes, since at the start of CORE.setting we import
         # StaticLexPad, which of course we need to use when importing. Since we still
         # keep the authoritative copy of stuff from the compiler's view in PAST::Block's
@@ -225,8 +225,7 @@ class Perl6::World is HLL::World {
         for %stash {
             if $target.symbol($_.key) {
                 # XXX TODO: Merge handling.
-                pir::die("Cannot import symbol '" ~ $_.key ~ "', since it already exists in the lexpad");
-            }
+                nqp::die("Cannot import symbol '" ~ $_.key ~ "' from package '$source_package_name', since it already exists in the lexpad"); }
             else {
                 $target.symbol($_.key, :scope('lexical_6model'), :value($_.value));
                 $target[0].push(PAST::Var.new( :scope('lexical_6model'), :name($_.key), :isdecl(1) ));
@@ -248,7 +247,7 @@ class Perl6::World is HLL::World {
     # pacakges as needed.
     method install_package($/, @name_orig, $scope, $pkgdecl, $package, $outer, $symbol) {
         if $scope eq 'anon' { return 1 }
-        my @parts := pir::clone(@name_orig);
+        my @parts := nqp::clone(@name_orig);
         my $name  := @parts.pop();
         my $create_scope := $scope;
         my $cur_pkg := $package;
@@ -361,7 +360,7 @@ class Perl6::World is HLL::World {
         # need to take care of initial value though.
         my $prim := pir::repr_get_primitive_type_spec__IP($descriptor.of);
         if $prim {
-            if $state { pir::die("Natively typed state variables not yet implemented") }
+            if $state { nqp::die("Natively typed state variables not yet implemented") }
             if $var {
                 if $prim == 1    { $var.viviself(PAST::Val.new( :value(0) )) }
                 elsif $prim == 2 { $var.viviself(PAST::Op.new( :pirop('set__Ns'), 'NaN' )) }
@@ -427,7 +426,7 @@ class Perl6::World is HLL::World {
                 }
             }
         }
-        pir::die("Could not find container descriptor for $name");
+        nqp::die("Could not find container descriptor for $name");
     }
     
     # Installs a symbol into the package.
@@ -561,6 +560,27 @@ class Perl6::World is HLL::World {
         # Return created signature.
         $signature
     }
+
+    method compile_time_evaluate($/, $ast) {
+        return $ast<compile_time_value> if $ast<has_compile_time_value>;
+        my $thunk := self.create_thunk($/, $ast);
+        $thunk();
+    }
+
+    # turn a PAST into a code object, to be called immediately.
+    method create_thunk($/, $to_thunk) {
+        my $block := self.push_lexpad($/);
+        $block.push($to_thunk);
+        self.pop_lexpad();
+        self.create_simple_code_object($block, 'Code');
+    }
+
+    # Creates a simple code object with an empty signature
+    method create_simple_code_object($block, $type) {
+        self.cur_lexpad()[0].push($block);
+        my $sig := self.create_signature([]);
+        return self.create_code_object($block, $type, $sig);
+    }
     
     # Creates a code object of the specified type, attached the passed signature
     # object and sets up dynamic compilation thunk.
@@ -569,6 +589,13 @@ class Perl6::World is HLL::World {
         self.attach_signature($code, $signature);
         self.finish_code_object($code, $code_past, $is_dispatcher, :yada($yada));
         $code
+    }
+
+    method create_lazy($/, $code) {
+        my $type      := self.find_symbol(['LazyScalar']);
+        my $container := $type.new($code);
+        self.add_object($container);
+        self.get_ref($container);
     }
     
     # Stubs a code object of the specified type.
@@ -790,6 +817,51 @@ class Perl6::World is HLL::World {
         }
     }
     
+    # Gives the current block what's needed for "let"/"temp" support.
+    method give_cur_block_let($/) {
+        my $block := self.cur_lexpad();
+        unless $block.symbol('!LET-RESTORE') {
+            self.setup_let_or_temp($/, '!LET-RESTORE', 'UNDO');
+        }
+    }
+    method give_cur_block_temp($/) {
+        my $block := self.cur_lexpad();
+        unless $block.symbol('!TEMP-RESTORE') {
+            self.setup_let_or_temp($/, '!TEMP-RESTORE', 'LEAVE');
+        }
+    }
+    method setup_let_or_temp($/, $value_stash, $phaser) {
+        # Add variable to current block.
+        my $block := self.cur_lexpad();
+        $block[0].push(PAST::Op.new(
+            :pasttype('bind'),
+            PAST::Var.new( :name($value_stash), :scope('lexical_6model'), :isdecl(1) ),
+            PAST::Op.new( :pasttype('list') )));
+        $block.symbol($value_stash, :scope('lexical_6model'));
+        
+        # Create a phasser block that will do the restoration.
+        my $phaser_block := self.push_lexpad($/);
+        self.pop_lexpad();
+        $phaser_block.push(PAST::Op.new(
+            :pasttype('while'),
+            PAST::Var.new( :name($value_stash), :scope('lexical_6model') ),
+            PAST::Op.new(
+                :pirop('perl6_container_store__0PP'),
+                PAST::Op.new(
+                    :pirop('shift__PP'),
+                    PAST::Var.new( :name($value_stash), :scope('lexical_6model') )
+                ),
+                PAST::Op.new(
+                    :pirop('shift__PP'),
+                    PAST::Var.new( :name($value_stash), :scope('lexical_6model') )
+                ))));
+        
+        # Add as phaser.
+        $block[0].push($phaser_block);
+        self.add_phaser($/, $phaser,
+            self.create_code_object($phaser_block, 'Code', self.create_signature([])));
+    }
+    
     # Adds a multi candidate to a proto/dispatch.
     method add_dispatchee_to_proto($proto, $candidate) {
         $proto.add_dispatchee($candidate);
@@ -929,7 +1001,7 @@ class Perl6::World is HLL::World {
                 $cache_key := "$type,bigint," ~ nqp::tostr_I(@value[0]);
             } else {
                 $cache_key := "$type,$primitive,"
-                    ~ pir::join(',', @value)
+                    ~ nqp::join(',', @value)
                     ~ $namedkey;
             }
             if pir::exists(%!const_cache, $cache_key) {
@@ -941,7 +1013,7 @@ class Perl6::World is HLL::World {
         }
         
         # Find type object for the box typed we'll create.
-        my $type_obj := self.find_symbol(pir::split('::', $type));
+        my $type_obj := self.find_symbol(nqp::split('::', $type));
         
         # Go by the primitive type we're boxing. Need to create
         # the boxed value and also code to produce it.
@@ -962,7 +1034,7 @@ class Perl6::World is HLL::World {
             $constant := $type_obj.new(|@value, |%named);
         }
         else {
-            pir::die("Don't know how to build a $primitive constant");
+            nqp::die("Don't know how to build a $primitive constant");
         }
         
         # Add to SC.
@@ -1149,11 +1221,9 @@ class Perl6::World is HLL::World {
     # Adds a value to an enumeration.
     method create_enum_value($enum_type_obj, $key, $value) {
         # Create directly.
-        my $val       := pir::repr_box_int__PiP($value, $enum_type_obj);
-        my $base_type := ($enum_type_obj.HOW.parents($enum_type_obj, :local(1)))[0];
+        my $val := pir::repr_change_type__0PP(pir::repr_clone__PP($value), $enum_type_obj);
         nqp::bindattr($val, $enum_type_obj, '$!key', $key);
-        nqp::bindattr($val, $enum_type_obj, '$!value',
-            pir::repr_box_int__PiP($value, $base_type));
+        nqp::bindattr($val, $enum_type_obj, '$!value', $value);
         self.add_object($val);
         
         # Add to meta-object.
@@ -1333,7 +1403,7 @@ class Perl6::World is HLL::World {
         method name() {
             my @parts := nqp::clone(@!components);
             @parts.shift() while self.is_pseudo_package(@parts[0]);
-            pir::join('::', @parts)
+            nqp::join('::', @parts)
         }
         
         # Gets the individual components, which may be PAST nodes for
@@ -1369,7 +1439,7 @@ class Perl6::World is HLL::World {
             my @name;
             my $beyond_pp;
             if $decl && $!get_who {
-                pir::die("Name $!text ends with '::' and cannot be used as a $dba");
+                nqp::die("Name $!text ends with '::' and cannot be used as a $dba");
             }
             for @!components {
                 if pir::can($_, 'isa') && $_.isa(PAST::Node) {
@@ -1379,7 +1449,7 @@ class Perl6::World is HLL::World {
                         }
                     }
                     else {
-                        pir::die("Name $!text is not compile-time known, and can not serve as a $dba");
+                        nqp::die("Name $!text is not compile-time known, and can not serve as a $dba");
                     }
                 }
                 elsif $beyond_pp || !self.is_pseudo_package($_) {
@@ -1389,10 +1459,10 @@ class Perl6::World is HLL::World {
                 else {
                     if $decl {
                         if $_ ne 'GLOBAL' {
-                            pir::die("Cannot use pseudo-package $_ in a $dba");
+                            nqp::die("Cannot use pseudo-package $_ in a $dba");
                         }
                         elsif +@!components == 1 {
-                            pir::die("Cannot declare pseudo-package GLOBAL");
+                            nqp::die("Cannot declare pseudo-package GLOBAL");
                         }
                     }
                     else {
@@ -1461,7 +1531,7 @@ class Perl6::World is HLL::World {
                         ~$_);
                 }
                 else {
-                    pir::die(~$_ ~ ' cannot be resolved at compile time');
+                    nqp::die(~$_ ~ ' cannot be resolved at compile time');
                 }
             }
             else {
@@ -1532,7 +1602,7 @@ class Perl6::World is HLL::World {
             # in the package. Otherwise, just go on if it's a
             # package or not.
             if +@name > 1 {
-                my @restname := pir::clone(@name);
+                my @restname := nqp::clone(@name);
                 @restname.shift;
                 return self.already_declared('our', $first_sym, PAST::Block.new(), @restname);
             }
@@ -1557,7 +1627,7 @@ class Perl6::World is HLL::World {
     # that fails tries package lookup.
     method find_symbol(@name) {
         # Make sure it's not an empty name.
-        unless +@name { pir::die("Cannot look up empty name"); }
+        unless +@name { nqp::die("Cannot look up empty name"); }
 
         # GLOBAL is current view of global.
         if +@name == 1 && @name[0] eq 'GLOBAL' {
@@ -1577,7 +1647,7 @@ class Perl6::World is HLL::World {
                         return %sym<value>;
                     }
                     else {
-                        pir::die("No compile-time value for $final_name");
+                        nqp::die("No compile-time value for $final_name");
                     }
                 }
             }
@@ -1596,12 +1666,12 @@ class Perl6::World is HLL::World {
                 if +%sym {
                     if pir::exists(%sym, 'value') {
                         $result := %sym<value>;
-                        @name := pir::clone__PP(@name);
+                        @name := nqp::clone(@name);
                         @name.shift();
                         $i := 0;
                     }
                     else {
-                        pir::die("No compile-time value for $first");
+                        nqp::die("No compile-time value for $first");
                     }                    
                 }
             }
@@ -1613,8 +1683,8 @@ class Perl6::World is HLL::World {
                 $result := ($result.WHO){$_};
             }
             else {
-                pir::die("Could not locate compile-time value for symbol " ~
-                    pir::join('::', @name));
+                nqp::die("Could not locate compile-time value for symbol " ~
+                    nqp::join('::', @name));
             }
         }
         
@@ -1625,7 +1695,7 @@ class Perl6::World is HLL::World {
     method symbol_lookup(@name, $/, :$package_only = 0, :$lvalue = 0) {
         # Catch empty names and die helpfully.
         if +@name == 0 { $/.CURSOR.panic("Cannot compile empty name"); }
-        my $orig_name := pir::join('::', @name);
+        my $orig_name := nqp::join('::', @name);
         
         # Handle fetching GLOBAL.
         if +@name == 1 && @name[0] eq 'GLOBAL' {
@@ -1702,7 +1772,7 @@ class Perl6::World is HLL::World {
                 PAST::Var.new( :name(@name.shift()), :scope('lexical_6model') ) !!
                 PAST::Var.new( :name('GLOBAL'), :namespace([]), :scope('package') );
             if @name[0] eq 'GLOBAL' {
-                @name := pir::clone__PP(@name);
+                @name := nqp::clone(@name);
                 @name.shift();
             }
             for @name {
@@ -1831,7 +1901,7 @@ class Perl6::World is HLL::World {
             }
             my $file        := pir::find_caller_lex__ps('$?FILES');
             %opts<filename> := nqp::box_s(
-                (pir::isnull($file) ?? '<unknown file>' !! $file),
+                (nqp::isnull($file) ?? '<unknown file>' !! $file),
                 self.find_symbol(['Str'])
             );
             $ex.new(|%opts).throw;

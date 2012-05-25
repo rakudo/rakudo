@@ -15,6 +15,29 @@ sub term:<time>() { nqp::p6box_i(pir::time__I()) }
         $key = nqp::p6box_s(pir::shift__SP($enviter));
         %ENV{$key} = nqp::p6box_s(nqp::atkey($env, nqp::unbox_s($key)));
     }
+    %ENV does role {
+        method at_key($k) {
+            Proxy.new(
+                    FETCH => {
+                        if nqp::p6bool(nqp::existskey($env, nqp::unbox_s($k))) {
+                            nqp::p6box_s(nqp::atkey($env, nqp::unbox_s($k)))
+                        }
+                        else {
+                            Any
+                        }
+                    },
+                    STORE => -> $, $v {
+                        nqp::bindkey($env, nqp::unbox_s($k), nqp::unbox_s($v))
+                    }
+            )
+        }
+
+        method delete($k) {
+            my $ret = self.at_key($k);
+            pir::delete($env, nqp::unbox_s($k));
+            return $ret;
+        }
+    }
     nqp::bindkey(pir::get_who__PP(PROCESS), '%ENV', %ENV);
 
     my $VM = {
@@ -41,12 +64,24 @@ sub term:<time>() { nqp::p6box_i(pir::time__I()) }
     nqp::bindkey(pir::get_who__PP(PROCESS), '$CWD', $CWD);
 
     my @INC;
+    @INC.push(%ENV<RAKUDOLIB>.split($VM<config><osname> eq 'MSWin32' ?? ';' !! ':')) if %ENV<RAKUDOLIB>;
     @INC.push(%ENV<PERL6LIB>.split($VM<config><osname> eq 'MSWin32' ?? ';' !! ':')) if %ENV<PERL6LIB>;
     try {
         @INC.push((%ENV<HOME> // %ENV<HOMEDRIVE> ~ %ENV<HOMEPATH>) ~ '/.perl6/lib');
     }
     @INC.push($VM<config><libdir> ~ $VM<config><versiondir> ~ '/languages/perl6/lib');
-    @INC.push('.'); # XXX: remove this when 'use lib' works fine
+
+    my $I := nqp::atkey(nqp::atkey(%*COMPILING, '%?OPTIONS'), 'I');
+    if pir::defined($I) {
+        if pir::does($I, 'array') {
+            my Mu $iter := nqp::iterator($I);
+            @INC.unshift: nqp::p6box_s(nqp::shift($iter)) while $iter;
+        }
+        else {
+            @INC.unshift: nqp::p6box_s($I);
+        }
+    }
+
     nqp::bindkey(pir::get_who__PP(PROCESS), '@INC', @INC);
 
     my $PID = nqp::p6box_i(pir::getinterp.getpid());

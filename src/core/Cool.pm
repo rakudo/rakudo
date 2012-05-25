@@ -37,12 +37,12 @@ my class Cool {
     method cis()     { self.Numeric.cis }
     
     proto method log(|$) {*}
-    multi method log()      { self.Numeric.log          }
-    multi method log($base) { self.Numeric.log($base.Numeric) }
+    multi method log(Cool:D: )      { self.Numeric.log          }
+    multi method log(Cool:D: $base) { self.Numeric.log($base.Numeric) }
 
     proto method exp(|$) {*}
-    multi method exp()      { self.Numeric.exp          }
-    multi method exp($base) { self.Numeric.exp($base.Numeric) }
+    multi method exp(Cool:D: )      { self.Numeric.exp          }
+    multi method exp(Cool:D: $base) { self.Numeric.exp($base.Numeric) }
 
 
     method roots(Cool $n)   { self.Numeric.roots($n)    }
@@ -132,11 +132,18 @@ my class Cool {
                     ?? $pos
                     !! self.chars;
         }
-        my $result =
-            nqp::p6box_i(
-                pir::box__PS(nqp::unbox_s(self.Str)).reverse_index(
+        my $result = $pos.defined
+            ?? nqp::p6box_i(
+                pir::rindex__ISSI(
+                    nqp::unbox_s(self.Str),
                     nqp::unbox_s($needle.Str),
-                    nqp::unbox_i(($pos // 0).Int)));
+                    nqp::unbox_i($pos.Int)
+                ))
+            !! nqp::p6box_i(
+                pir::rindex__ISS(
+                    nqp::unbox_s(self.Str),
+                    nqp::unbox_s($needle.Str),
+                ));
         fail "substring not found" if $result < 0;
         $result;
     }

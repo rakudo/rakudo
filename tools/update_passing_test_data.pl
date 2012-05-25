@@ -105,7 +105,6 @@ sub go {
     $all_passed  = 'A' if !       $agg->has_errors;
     printf "[%s%s%s] (% 3d/%-3d) %s\n", $some_passed, $plan_ok, $all_passed,
            $actually_passed, $planned, $orig
-                if $actually_passed || ($plan_ok && $planned > 0);
 }
 
 sub read_specfile {
@@ -123,7 +122,7 @@ sub read_specfile {
 sub get_harness {
     return TAP::Harness->new({
             verbosity   => -2,
-            exec        => [$^X, 'tools/perl6-limited.pl'],
+            exec        => [$^X, 'tools/perl6-limited.pl', qw/-Ilib -I./],
             merge       => 1,
     });
 }

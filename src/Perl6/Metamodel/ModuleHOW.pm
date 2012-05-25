@@ -14,7 +14,7 @@ class Perl6::Metamodel::ModuleHOW
     }
 
     method new_type(:$name = '<anon>', :$repr, :$ver, :$auth) {
-        if $repr { pir::die("'module' does not support custom representations") }
+        if $repr { nqp::die("'module' does not support custom representations") }
         my $metaclass := self.new(:name($name), :ver($ver), :auth($auth));
         self.add_stash(pir::repr_type_object_for__PPS($metaclass, 'Uninstantiable'));
     }

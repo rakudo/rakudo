@@ -40,7 +40,7 @@ class Perl6::ModuleLoader {
     # Locates files we could potentially load for this module.
     method locate_candidates($module_name, @prefixes) {
         # Assemble various files we'd look for.
-        my $base_path := pir::join('/', pir::split('::', $module_name));
+        my $base_path := nqp::join('/', nqp::split('::', $module_name));
         my $pbc_path  := $base_path ~ '.pbc';
         my $pir_path  := $base_path ~ '.pir';
         my $pm_path   := $base_path ~ '.pm';
@@ -96,8 +96,8 @@ class Perl6::ModuleLoader {
         my @prefixes   := self.search_path();
         my @candidates := self.locate_candidates($module_name, @prefixes);
         if +@candidates == 0 {
-            pir::die("Could not find $module_name in any of: " ~
-                pir::join(', ', @prefixes));
+            nqp::die("Could not find $module_name in any of: " ~
+                nqp::join(', ', @prefixes));
         }
         my %chosen := @candidates[0];
         
@@ -141,7 +141,7 @@ class Perl6::ModuleLoader {
             # Merge any globals.
             if +@GLOBALish {
                 my $UNIT := pir::getattribute__PPs($module_ctx, 'lex_pad');
-                unless pir::isnull($UNIT<GLOBALish>) {
+                unless nqp::isnull($UNIT<GLOBALish>) {
                     merge_globals(@GLOBALish[0], $UNIT<GLOBALish>);
                 }
             }
@@ -194,7 +194,7 @@ class Perl6::ModuleLoader {
                     ($target.WHO){$sym} := $_.value;
                 }
                 else {
-                    pir::die("Merging GLOBAL symbols failed: duplicate definition of symbol $sym");
+                    nqp::die("Merging GLOBAL symbols failed: duplicate definition of symbol $sym");
                 }
             }
         }
@@ -226,7 +226,7 @@ class Perl6::ModuleLoader {
                 pir::nqp_enable_sc_write_barrier__v();
                 pir::set_hll_global__vsP('GLOBAL', $preserve_global);
                 unless pir::defined($*MAIN_CTX) {
-                    pir::die("Unable to load setting $setting_name; maybe it is missing a YOU_ARE_HERE?");
+                    nqp::die("Unable to load setting $setting_name; maybe it is missing a YOU_ARE_HERE?");
                 }
                 %settings_loaded{$setting_name} := $*MAIN_CTX;
             }

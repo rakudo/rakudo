@@ -23,12 +23,12 @@ my class Parameter {
     }
     
     method constraint_list() {
-        pir::isnull($!post_constraints) ?? () !!
+        nqp::isnull($!post_constraints) ?? () !!
             pir::perl6ize_type__PP($!post_constraints)
     }
     
     method constraints() {
-        all(pir::isnull($!post_constraints) ?? () !!
+        all(nqp::isnull($!post_constraints) ?? () !!
             pir::perl6ize_type__PP($!post_constraints))
     }
 
@@ -42,7 +42,7 @@ my class Parameter {
     }
 
     method named_names() {
-        if !pir::isnull($!named_names) {
+        if !nqp::isnull($!named_names) {
             my Int $count = nqp::p6box_i(nqp::elems($!named_names));
             my Int $i = 0;
             my @res;
@@ -105,7 +105,7 @@ my class Parameter {
     }
     
     method type_captures() {
-        if !pir::isnull($!type_captures) {
+        if !nqp::isnull($!type_captures) {
             my Int $count = nqp::p6box_i(nqp::elems($!type_captures));
             my Int $i = 0;
             my @res;

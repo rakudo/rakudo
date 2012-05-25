@@ -3,6 +3,10 @@ sub METAOP_ASSIGN(\$op) {
     -> Mu \$a, Mu \$b { $a = $op( $a // $op(), $b) }
 }
 
+sub METAOP_TEST_ASSIGN:<//>(\$lhs, $rhs) is rw { $lhs // ($lhs = $rhs()) }
+sub METAOP_TEST_ASSIGN:<||>(\$lhs, $rhs) is rw { $lhs || ($lhs = $rhs()) }
+sub METAOP_TEST_ASSIGN:<&&>(\$lhs, $rhs) is rw { $lhs && ($lhs = $rhs()) }
+
 sub METAOP_NEGATE(\$op) {
     -> Mu \$a, Mu \$b { !$op($a,$b) }
 }
@@ -100,6 +104,22 @@ sub METAOP_REDUCE_RIGHT(\$op, :$triangle) {
             $result;
         }
     }
+}
+
+
+sub METAOP_REDUCE_LIST(\$op, :$triangle) {
+    $triangle
+        ??  sub (*@values) {
+                return () unless @values.gimme(1);
+                GATHER({
+                    my @list;
+                    while @values {
+                        @list.push(@values.shift);
+                        take $op(|@list);
+                    }
+                }, :infinite(@values.infinite))
+            }
+        !!  sub (*@values) { $op(|@values) }
 }
 
 

@@ -39,7 +39,7 @@ role Perl6::Metamodel::BUILDPLAN {
                 for @attrs {
                     if $_.has_accessor {
                         my $attr_name := $_.name;
-                        my $name      := pir::substr__SSi($attr_name, 2);
+                        my $name      := nqp::substr($attr_name, 2);
                         my $entry     := [1, $class, $name, $attr_name];
                         @all_plan[+@all_plan] := $entry;
                         if $i == 0 {

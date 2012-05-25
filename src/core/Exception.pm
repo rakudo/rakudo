@@ -59,12 +59,12 @@ do {
             try {
                 return True if nqp::iseq_s($bt[$_]<sub>, 'eval')
                     && nqp::iseq_s(
-                            pir::join(';', $bt[$_]<sub>.get_namespace.get_name),
+                            nqp::join(';', $bt[$_]<sub>.get_namespace.get_name),
                             'nqp;HLL;Compiler'
                     );
                 return False if nqp::iseq_s($bt[$_]<sub>, 'compile')
                     && nqp::iseq_s(
-                            pir::join(';', $bt[$_]<sub>.get_namespace.get_name),
+                            nqp::join(';', $bt[$_]<sub>.get_namespace.get_name),
                             'nqp;HLL;Compiler'
                     );
             }
@@ -88,6 +88,7 @@ do {
                 $err.print: $ex;
                 $err.print: "\n";
             }
+            $_() for pir::perl6ize_type__PP(@*END_PHASERS);
         }
         if $! {
             pir::perl6_based_rethrow__vPP(nqp::getattr($!, Exception, '$!ex'), $ex);
@@ -137,7 +138,7 @@ do {
         method (|$) {
             my Mu $ex := nqp::atpos(pir::perl6_current_args_rpa__P(), 1);
             pir::perl6_invoke_catchhandler(&print_exception, $ex);
-            pir::exit(1);
+            nqp::exit(1);
             0;
         }
     );
@@ -607,14 +608,63 @@ my class X::Sequence::Deduction is Exception {
     method message() { 'Unable to deduce sequence' }
 }
 
+my class X::ControlFlow is Exception {
+    has $.illegal;   # something like 'next'
+    has $.enclosing; # ....  outside a loop
+
+    method message() { "$.illegal without $.enclosing" }
+}
+my class X::ControlFlow::Return is X::ControlFlow {
+    method illegal()   { 'return'  }
+    method enclosing() { 'Routine' }
+    method message()   { 'Attempt to return outside of any Routine' }
+}
+
 my class X::TypeCheck is Exception {
     has $.operation;
     has $.got;
-    has $.exepcted;
+    has $.expected;
     method message() {
         "Type check failed in $.operation; expected '{$.expected.^name}' but got '{$.got.^name}'";
 
     }
 }
+
+my class X::TypeCheck::Binding is X::TypeCheck {
+    method operation { 'binding' }
+}
+my class X::TypeCheck::Return is X::TypeCheck {
+    method operation { 'returning' }
+    method message() {
+        "Type check failed for return value; expected '{$.expected.^name}' but got '{$.got.^name}'";
+    }
+}
+
+my class X::NoDispatcher is Exception {
+    has $.redispatcher;
+    method message() {
+        "$.redispatcher is not in the dynamic scope of a dispatcher";
+    }
+}
+
+{
+    my %c_ex;
+    %c_ex{'X::TypeCheck::Binding'} := sub ($got, $expected) is hidden_from_backtrace {
+            X::TypeCheck::Binding.new(:$got, :$expected).throw;
+        };
+    %c_ex{'X::TypeCheck::Return'} := sub ($got, $expected) is hidden_from_backtrace {
+            X::TypeCheck::Return.new(:$got, :$expected).throw;
+        };
+    %c_ex{'X::ControlFlow::Return'} := sub () is hidden_from_backtrace {
+            X::ControlFlow::Return.new().throw;
+        };
+    %c_ex{'X::NoDispatcher'} := sub ($redispatcher) is hidden_from_backtrace {
+            X::NoDispatcher.new(:$redispatcher).throw;
+        };
+    my Mu $parrot_c_ex := nqp::getattr(%c_ex, EnumMap, '$!storage');
+    pir::set_hll_global__vsP('P6EX', $parrot_c_ex);
+    0;
+}
+
 
 # vim: ft=perl6

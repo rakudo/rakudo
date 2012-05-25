@@ -1012,7 +1012,7 @@ class Perl6::Actions is HLL::Actions {
             if $<var> {
                 make make_pair($*key, make_variable($/<var>, [~$<var>]));
             }
-            elsif $*value ~~ Regex::Match {
+            elsif $*value ~~ NQPMatch {
                 my $val_ast := $*value.ast;
                 if $val_ast.isa(PAST::Stmts) && +@($val_ast) == 1 {
                     $val_ast := $val_ast[0];

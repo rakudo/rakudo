@@ -25,7 +25,7 @@ grammar Perl6::Grammar is HLL::Grammar {
         # objects that cross the compile-time/run-time boundary that are
         # associated with this compilation unit.
         my $file := pir::find_caller_lex__ps('$?FILES');
-        my $source_id := nqp::sha1(nqp::getattr(self, Regex::Cursor, '$!target'));
+        my $source_id := nqp::sha1(nqp::getattr_s(self, NQPCursor, '$!target'));
         my $*W := nqp::isnull($file) ??
             Perl6::World.new(:handle($source_id)) !!
             Perl6::World.new(:handle($source_id), :description($file));
@@ -2192,7 +2192,7 @@ grammar Perl6::Grammar is HLL::Grammar {
     }
 
     method match_with_adverb($v) {
-        my $s := Regex::Match.new();
+        my $s := NQPMatch.new();
         $s.'!make'(PAST::Val.new(:value(1), :named('s')));
         $s;
     }

@@ -2433,20 +2433,22 @@ grammar Perl6::Grammar is HLL::Grammar {
         $<opening>=[ '«' | '»' ]
         {} <infixish>
         $<closing>=[ '«' | '»' || <.missing("« or »")> ]
-        <O=.copyO('infixish')>
+        <O=.copyO($<infixish>)>
     }
 
     token infix_circumfix_meta_operator:sym«<< >>» {
         $<opening>=[ '<<' | '>>' ]
         {} <infixish>
         $<closing>=[ '<<' | '>>' || <.missing("<< or >>")> ]
-        <O=.copyO('infixish')>
+        <O=.copyO($<infixish>)>
     }
 
     method copyO($from) {
-        my $m := self.MATCH();
-        my $r := $m{$from}<OPER><O>;
-        self.'!cursor_start'().'!cursor_pass'(self.pos(), '', $r);
+        my $O   := $from<OPER><O>;
+        my $cur := self.'!cursor_start'();
+        $cur.'!cursor_pass'(self.pos());
+        nqp::bindattr($cur, NQPCursor, '$!match', $O);
+        $cur
     }
 
     method copyOPER($from) {
@@ -2649,12 +2651,12 @@ grammar Perl6::Grammar is HLL::Grammar {
         <sym> <infixish> 
         [
         || <?{ $<infixish>.Str eq '=' }> <O('%chaining')>
-        || <?{ $<infixish><OPER><O><iffy> }> <O=.copyO('infixish')>
+        || <?{ $<infixish><OPER><O><iffy> }> <O=.copyO($<infixish>)>
         || <.panic("Cannot negate " ~ $<infixish>.Str ~ " because it is not iffy enough")>
         ]
     }
-    token infix_prefix_meta_operator:sym<R> { <sym> <infixish> <O=.copyO('infixish')> }
-    token infix_prefix_meta_operator:sym<S> { <sym> <infixish> <O=.copyO('infixish')> }
+    token infix_prefix_meta_operator:sym<R> { <sym> <infixish> <O=.copyO($<infixish>)> }
+    token infix_prefix_meta_operator:sym<S> { <sym> <infixish> <O=.copyO($<infixish>)> }
     token infix_prefix_meta_operator:sym<X> { <sym> <infixish> <O('%list_infix')> }
     token infix_prefix_meta_operator:sym<Z> { <sym> <infixish> <O('%list_infix')> }
     token infix:sym<minmax> { <sym> >> <O('%list_infix')> }

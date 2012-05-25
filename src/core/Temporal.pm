@@ -1,5 +1,5 @@
-my class DateTime { ...}
-my class Date     { ...}
+my class DateTime { ... }
+my class Date     { ... }
 
 my role Dateish {
     method is-leap-year($y = $.year) {

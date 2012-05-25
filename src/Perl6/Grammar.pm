@@ -2364,7 +2364,7 @@ grammar Perl6::Grammar is HLL::Grammar {
     token infixish {
         <!stdstopper>
         [
-        | '[' ~ ']' <infixish> <OPER=.copyOPER('infixish')>
+        | '[' ~ ']' <infixish> {} <OPER=.copyOPER($<infixish>)>
         | <OPER=infix_circumfix_meta_operator>
         | <OPER=infix> <![=]>
         | <OPER=infix_prefix_meta_operator>
@@ -2433,14 +2433,14 @@ grammar Perl6::Grammar is HLL::Grammar {
         $<opening>=[ '«' | '»' ]
         {} <infixish>
         $<closing>=[ '«' | '»' || <.missing("« or »")> ]
-        <O=.copyO($<infixish>)>
+        {} <O=.copyO($<infixish>)>
     }
 
     token infix_circumfix_meta_operator:sym«<< >>» {
         $<opening>=[ '<<' | '>>' ]
         {} <infixish>
         $<closing>=[ '<<' | '>>' || <.missing("<< or >>")> ]
-        <O=.copyO($<infixish>)>
+        {} <O=.copyO($<infixish>)>
     }
 
     method copyO($from) {
@@ -2452,9 +2452,11 @@ grammar Perl6::Grammar is HLL::Grammar {
     }
 
     method copyOPER($from) {
-        my $m := self.MATCH();
-        my $r := $m{$from}<OPER>;
-        self.'!cursor_start'().'!cursor_pass'(self.pos(), '', $r);
+        my $OPER := $from<OPER>;
+        my $cur  := self.'!cursor_start'();
+        $cur.'!cursor_pass'(self.pos());
+        nqp::bindattr($cur, NQPCursor, '$!match', $OPER);
+        $cur
     }
 
     proto token dotty { <...> }
@@ -2655,8 +2657,8 @@ grammar Perl6::Grammar is HLL::Grammar {
         || <.panic("Cannot negate " ~ $<infixish>.Str ~ " because it is not iffy enough")>
         ]
     }
-    token infix_prefix_meta_operator:sym<R> { <sym> <infixish> <O=.copyO($<infixish>)> }
-    token infix_prefix_meta_operator:sym<S> { <sym> <infixish> <O=.copyO($<infixish>)> }
+    token infix_prefix_meta_operator:sym<R> { <sym> <infixish> {} <O=.copyO($<infixish>)> }
+    token infix_prefix_meta_operator:sym<S> { <sym> <infixish> {} <O=.copyO($<infixish>)> }
     token infix_prefix_meta_operator:sym<X> { <sym> <infixish> <O('%list_infix')> }
     token infix_prefix_meta_operator:sym<Z> { <sym> <infixish> <O('%list_infix')> }
     token infix:sym<minmax> { <sym> >> <O('%list_infix')> }

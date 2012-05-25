@@ -1145,18 +1145,10 @@ class Perl6::World is HLL::World {
     
     # Adds a method to the meta-object.
     method pkg_add_method($/, $obj, $meta_method_name, $name, $code_object) {
-        my $ex;
-        my $nok;
-        try {
-            $obj.HOW."$meta_method_name"($obj, $name, $code_object);
-            CATCH {
-                $nok := 1;
-                $ex  := $_;
+        self.handle-ex($/, {
+                $obj.HOW."$meta_method_name"($obj, $name, $code_object)
             }
-        }
-        if $nok {
-            $*W.rethrow($/, $ex);
-        }
+        )
     }
     
     # Handles setting the body block code for a role.
@@ -1921,6 +1913,25 @@ class Perl6::World is HLL::World {
             $/.CURSOR.panic(nqp::join('', @err));
         }
     }
+
+    method ex-handle($/, $code) {
+        my $res;
+        my $ex;
+        my $nok;
+        try {
+            $res := $code();
+            CATCH {
+                $nok := 1;
+                $ex  := $_;
+            }
+        }
+        if $nok {
+            $*W.rethrow($/, $ex);
+        } else {
+            $res;
+        }
+    }
+
     method rethrow($/, $err) {
         my $ex_t    := self.find_symbol(['X', 'Comp', 'AdHoc']);
         my $coercer := self.find_symbol(['&COMP_EXCEPTION']);

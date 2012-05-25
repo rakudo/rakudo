@@ -214,8 +214,13 @@ my class Str does Stringy {
         $eos = nqp::add_i($end, 1);
 
         # Fail all the way out when parse failures occur
-        my &parse_fail := -> $msg { fail $msg, ' at position ',
-                                    $pos, " of '", ~$str, "'" };
+        my &parse_fail := -> $msg {
+            fail X::Str::Numeric.new(
+                    source => self,
+                    reason => $msg,
+                    :$pos,
+            );
+        };
 
         my sub parse-simple-number () {
             # Handle NaN here, to make later parsing simpler

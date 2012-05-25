@@ -13,6 +13,7 @@ use Pod::Usage;
 
 my $slash = $^O eq 'MSWin32' ? '\\' : '/';
 $ENV{'HARNESS_PERL'} = ".${slash}perl6";
+$ENV{'PERL6LIB'} = 'lib';
 use Test::Harness;
 $Test::Harness::switches = '';
 

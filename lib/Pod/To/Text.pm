@@ -1,4 +1,8 @@
-module Pod::To::Text;
+class Pod::To::Text;
+
+method render($pod) {
+    pod2text($pod)
+}
 
 sub pod2text($pod) is export {
     my @declarators;
@@ -70,13 +74,12 @@ sub declarator2text($pod) {
     next unless $pod.WHEREFORE.WHY;
     my $what = do given $pod.WHEREFORE {
         when Method {
-            'method ' ~ $_.name
-                      ~ $_.signature.perl.substr(1)\
-                        .subst(/'(' <-[,]>+ ', '/, '(')\
-                        .subst(/',' <-[,]>+ ')'/, ')')
+            my @params=$_.signature.params[1..*];
+              @params.pop if @params[*-1].name eq '%_';
+            'method ' ~ $_.name ~ signature2text(@params)
         }
         when Sub {
-            'sub ' ~ $_.name ~ $_.signature.perl.substr(1)
+            'sub ' ~ $_.name ~ signature2text($_.signature.params)
         }
         when nqp::p6bool(nqp::istype($_.HOW, Metamodel::ClassHOW)) {
             'class ' ~ $_.perl
@@ -91,7 +94,13 @@ sub declarator2text($pod) {
             ''
         }
     }
-    return "$what: {$pod.WHEREFORE.WHY.content}"
+    return "$what\n{$pod.WHEREFORE.WHY.content}"
+}
+
+sub signature2text($params) {
+      $params.elems ??
+      "(\n\t" ~ $params.map({ $_.perl }).join(", \n\t") ~ "\n)" 
+      !! "()";
 }
 
 sub formatting2text($pod) {

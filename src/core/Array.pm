@@ -7,7 +7,7 @@ class Array {
         nqp::p6list($args, self.WHAT, Bool::True);
     }
     
-    multi method at_pos($pos) is rw {
+    multi method at_pos(Array:D: $pos) is rw {
         my int $p = nqp::unbox_i($pos.Int);
         my Mu $items := nqp::getattr(self, List, '$!items');
         nqp::islist($items) or 
@@ -20,7 +20,7 @@ class Array {
           !! pir::setattribute__0PPsP(my $v, Scalar, '$!whence',
                  -> { nqp::bindpos($items, $p, $v) } )
     }
-    multi method at_pos(int $pos) is rw {
+    multi method at_pos(Array:D: int $pos) is rw {
         my Mu $items := nqp::getattr(self, List, '$!items');
         nqp::islist($items) or 
             $items := nqp::bindattr(self, List, '$!items', nqp::list());
@@ -75,9 +75,10 @@ class Array {
     method REIFY(Parcel \$parcel) {
         my Mu $rpa := nqp::getattr($parcel, Parcel, '$!storage');
         my Mu $iter := nqp::iterator($rpa);
-        my $i = 0;
+        my int $i = 0;
         while $iter {
-            nqp::bindpos($rpa, nqp::unbox_i($i++), my $v = nqp::shift($iter));
+            nqp::bindpos($rpa, $i, my $v = nqp::shift($iter));
+            $i = $i + 1;
         }
         pir::find_method__PPs(List, 'REIFY')(self, $parcel)
     }

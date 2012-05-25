@@ -81,7 +81,7 @@ GetOptions  'impl=s'        => \$impl,
             'jobs=i'        => \$threads_num,
             or usage();
 
-delete $ENV{PERL6LIB} unless $keep_env;
+$ENV{PERL6LIB} = 'lib' unless $keep_env;
 
 my @files;
 

@@ -14,7 +14,7 @@ my class Backtrace is List {
         }
 
         multi method Str(Backtrace::Frame:D:) {
-            my $s = $.subtype;
+            my $s = self.subtype;
             $s ~= ' ' if $s.chars;
             "  in {$s}$.subname at {$.file}:$.line\n"
         }
@@ -67,8 +67,8 @@ my class Backtrace is List {
         # but it turns out that a simple   perl6 -e 'die "foo"'
         # has two bt frames from the mainline; so it's OK to never
         # consider the last one
-        loop (; $idx < $.end; ++$idx) {
-            my $cand = $.at_pos($idx);
+        loop (; $idx < self.end; ++$idx) {
+            my $cand = self.at_pos($idx);
             return $idx unless $cand.is-hidden;
         }
         Int;
@@ -76,19 +76,19 @@ my class Backtrace is List {
 
     method outer-caller-idx(Int $startidx is copy) {
         my %print;
-        my $start   = $.at_pos($startidx).code;
+        my $start   = self.at_pos($startidx).code;
         return $startidx.list unless $start;
         my $current = $start.outer;
         my %outers;
-        while $current {
+        while $current.DEFINITE {
             %outers{$current.static_id} = $start;
             $current = $current.outer;
         }
         my @outers;
         loop (my Int $i = $startidx; $i < $.end; ++$i) {
-            if $.at_pos($i).code && %outers{%.at_pos($i).code.static_id} {
+            if self.at_pos($i).code.DEFINITE && %outers{self.at_pos($i).code.static_id}.DEFINITE {
                 @outers.push: $i;
-                return @outers if $.at_pos($i).is-routine;
+                return @outers if self.at_pos($i).is-routine;
             }
         }
 

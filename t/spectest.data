@@ -16,7 +16,7 @@ S02-types/array_extending.t
 S02-types/array_ref.t
 S02-types/array.t
 S02-types/assigning-refs.t
-# S02-types/autovivification.t # err: Method 'at_key' not found for invocant of class 'Any'
+S02-types/autovivification.t
 S02-types/bool.t
 S02-types/capture.t
 S02-types/catch_type_cast_mismatch.t
@@ -379,7 +379,7 @@ S06-traits/misc.t
 # follows obsolete version of spec.
 
 S09-autovivification/autoincrement.t
-# S09-autovivification/autovivification.t # err: Cannot assign to a non-container
+S09-autovivification/autovivification.t
 S09-hashes/objecthash.t
 S09-subscript/slice.t
 S09-typed-arrays/arrays.t
@@ -443,6 +443,7 @@ S12-introspection/methods.t
 S12-introspection/parents.t
 S12-introspection/roles.t
 S12-introspection/walk.t
+S12-methods/accessors.t
 S12-methods/attribute-params.t
 S12-methods/calling_sets.t
 S12-methods/calling_syntax.t
@@ -494,6 +495,7 @@ S14-traits/attributes.t
 # S14-traits/package.t # err: Invalid typename in parameter declaration
 S14-traits/routines.t
 # S14-traits/variables.t # err: Invalid typename in parameter declaration
+S16-filehandles/filestat.t
 S16-filehandles/filetest.t
 S16-filehandles/io.t
 S16-filehandles/io_in_for_loops.t

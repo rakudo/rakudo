@@ -189,6 +189,18 @@ class IO {
         self.e && self.s == 0;
     }
 
+    method modified() {
+         nqp::p6box_i(pir::stat__Isi(nqp::unbox_s($!path), pir::const::STAT_MODIFYTIME));
+    }
+
+    method accessed() {
+         nqp::p6box_i(pir::stat__Isi(nqp::unbox_s($!path), pir::const::STAT_ACCESSTIME));
+    }
+
+    method changed() { 
+         nqp::p6box_i(pir::stat__Isi(nqp::unbox_s($!path), pir::const::STAT_CHANGETIME));
+    }
+
     # not spec'd
     method copy($dest) {
         if self.d() {

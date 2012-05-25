@@ -27,11 +27,15 @@ role Perl6::Metamodel::MROBasedMethodDispatch {
             @mro_reversed.unshift($_);
         }
         for @mro_reversed {
-            %cache.update($_.HOW.method_table($_));
+            for $_.HOW.method_table($_) {
+                %cache{$_.key} := $_.value;
+            }
         }
         
         # Also add submethods.
-        %cache.update($obj.HOW.submethod_table($obj));
+        for $obj.HOW.submethod_table($obj) {
+            %cache{$_.key} := $_.value;
+        }
         
         pir::publish_method_cache($obj, %cache)
     }

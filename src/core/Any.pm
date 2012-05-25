@@ -111,61 +111,77 @@ my class Any {
                   :excludes_max($excludes_max));
     }
 
+    proto method push(|$) { * }
+    multi method push(Any:U \$self: *@values) {
+        &infix:<=>($self, Array.new);
+        $self.push(@values);
+    }
+
+    proto method unshift(|$) { * }
+    multi method unshift(Any:U \$self: *@values) {
+        &infix:<=>($self, Array.new);
+        $self.unshift(@values);
+    }
+
     proto method postcircumfix:<[ ]>(|$) { * }
     multi method postcircumfix:<[ ]>() { self.list }
     multi method postcircumfix:<[ ]>(:$BIND!) { die(X::Bind::ZenSlice.new()) }
-    multi method postcircumfix:<[ ]>($pos) is rw {
-        fail "Cannot use negative index $pos on {self.WHAT.perl}" if $pos < 0;
-        self.at_pos($pos)
+    multi method postcircumfix:<[ ]>(\$self: $pos) is rw {
+        fail "Cannot use negative index $pos on {$self.WHAT.perl}" if $pos < 0;
+        $self.at_pos($pos)
     }
     multi method postcircumfix:<[ ]>($pos, :$BIND! is parcel) is rw {
         fail "Cannot use negative index $pos on {self.WHAT.perl}" if $pos < 0;
         self.bind_pos($pos, $BIND)
     }
-    multi method postcircumfix:<[ ]>(int $pos) is rw {
-        fail "Cannot use negative index $pos on {self.WHAT.perl}" if $pos < 0;
-        self.at_pos($pos)
+    multi method postcircumfix:<[ ]>(\$self: int $pos) is rw {
+        fail "Cannot use negative index $pos on {$self.WHAT.perl}" if $pos < 0;
+        $self.at_pos($pos)
     }
     multi method postcircumfix:<[ ]>(int $pos, :$BIND! is parcel) is rw {
         fail "Cannot use negative index $pos on {self.WHAT.perl}" if $pos < 0;
         self.bind_pos($pos, $BIND)
     }
-    multi method postcircumfix:<[ ]>(Positional \$pos) is rw {
+    multi method postcircumfix:<[ ]>(\$self: Positional \$pos) is rw {
         if nqp::iscont($pos) {
-            fail "Cannot use negative index $pos on {self.WHAT.perl}" if $pos < 0;
-            return self.at_pos($pos)
+            fail "Cannot use negative index $pos on {$self.WHAT.perl}" if $pos < 0;
+            return $self.at_pos($pos)
         }
         my $list = $pos.flat;
         $list.gimme(*);
         $list.map($list.infinite
-                   ?? { last if $_ >= self.list.gimme($_ + 1); self[$_] }
-                   !! { self[$_] }).eager.Parcel;
+                   ?? { last if $_ >= $self.list.gimme($_ + 1); $self[$_] }
+                   !! { $self[$_] }).eager.Parcel;
     }
     multi method postcircumfix:<[ ]>(Positional $pos, :$BIND!) is rw {
         die "Cannot bind to an array slice"
     }
-    multi method postcircumfix:<[ ]>(Callable $block) is rw {
-        self[$block(|(self.elems xx $block.count))]
+    multi method postcircumfix:<[ ]>(\$self: Callable $block) is rw {
+        $self[$block(|($self.elems xx $block.count))]
     }
     multi method postcircumfix:<[ ]>(Callable $block, :$BIND!) is rw {
         die "Cannot bind to a callable array slice"; # WhateverCode?
     }
-    multi method postcircumfix:<[ ]>(Whatever) is rw {
-        self[^self.elems]
+    multi method postcircumfix:<[ ]>(\$self: Whatever) is rw {
+        $self[^$self.elems]
     }
     multi method postcircumfix:<[ ]>(Whatever, :$BIND!) is rw {
         die "Cannot bind to a whatever array slice"
     }
 
-    method at_pos($pos) is rw {
-        if self.defined {
-            fail X::OutOfRange.new(
-                what => 'Index',
-                got  => $pos,
-                range => (0..0)
-            ) if $pos != 0;
-            return self;
-        }
+    proto method at_pos(|$) {*}
+    multi method at_pos(Any:D: $pos) {
+        fail X::OutOfRange.new(
+            what => 'Index',
+            got  => $pos,
+            range => (0..0)
+        ) if $pos != 0;
+        self;
+    }
+    multi method at_pos(Any:U \$self: $pos) is rw {
+        pir::setattribute__0PPsP(my $v, Scalar, '$!whence',
+            -> { $self.defined || &infix:<=>($self, Array.new);
+                 $self.bind_pos($pos, $v) });
     }
     
     method all() { all(self.list) }
@@ -179,25 +195,35 @@ my class Any {
     proto method postcircumfix:<{ }>(|$) { * }
     multi method postcircumfix:<{ }>() { self }
     multi method postcircumfix:<{ }>(:$BIND!) { die(X::Bind::ZenSlice.new(:what<hash>)) }
-    multi method postcircumfix:<{ }>($key) is rw {
-        self.at_key($key)
+    multi method postcircumfix:<{ }>(\$self: $key) is rw {
+        $self.at_key($key)
     }
-    multi method postcircumfix:<{ }>($key, :$BIND! is parcel) is rw {
-        self.bind_key($key, $BIND)
+    multi method postcircumfix:<{ }>(\$self: $key, :$BIND! is parcel) is rw {
+        $self.bind_key($key, $BIND)
     }
-    multi method postcircumfix:<{ }>(Positional \$key) is rw {
+    multi method postcircumfix:<{ }>(\$self: Positional \$key) is rw {
         nqp::iscont($key) 
-          ?? self.at_key($key) 
-          !! $key.map({ self{$_} }).eager.Parcel
+          ?? $self.at_key($key) 
+          !! $key.map({ $self{$_} }).eager.Parcel
     }
     multi method postcircumfix:<{ }>(Positional $key, :$BIND!) is rw {
         die "Cannot bind to a hash slice"
     }
-    multi method postcircumfix:<{ }>(Whatever) is rw {
-        self{self.keys}
+    multi method postcircumfix:<{ }>(\$self: Whatever) is rw {
+        $self{$self.keys}
     }
     multi method postcircumfix:<{ }>(Whatever, :$BIND!) is rw {
         die "Cannot bind to a whatever hash slice"
+    }
+
+    proto method at_key(|$) { * }
+    multi method at_key(Any:D: $key) {
+        fail "postcircumfix:<\{ \}> not defined for type {self.WHAT.perl}";
+    }
+    multi method at_key(Any:U \$self: $key) is rw {
+        pir::setattribute__0PPsP(my $v, Scalar, '$!whence',
+            -> { $self.defined || &infix:<=>($self, Hash.new);
+                 $self.bind_key($key, $v) });
     }
 
     method reduce(&with) { self.list.reduce(&with) }
@@ -208,13 +234,6 @@ proto infix:<===>($?, $?) { * }
 multi infix:<===>($a?)    { Bool::True }
 multi infix:<===>($a, $b) {
     nqp::p6bool(nqp::iseq_s(nqp::unbox_s($a.WHICH), nqp::unbox_s($b.WHICH)))
-}
-
-proto infix:<cmp>($, $) { * }
-multi infix:<cmp>(\$a, \$b) { 
-    return -1 if $a == -$Inf || $b == $Inf;
-    return  1 if $a ==  $Inf || $b == -$Inf;
-    $a.Stringy cmp $b.Stringy 
 }
 
 proto infix:<before>(|$)       { * }

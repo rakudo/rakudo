@@ -311,27 +311,19 @@ class Perl6::Actions is HLL::Actions {
 
     method install_doc_phaser($/) {
         # Add a default DOC INIT phaser
-        if %*COMPILING<%?OPTIONS><doc> {
+        my $doc := %*COMPILING<%?OPTIONS><doc>;
+        if $doc {
             my $block := $*W.push_lexpad($/);
-            # loading and importing
-            # TODO: Skip importing and use a symbol_lookup when the
-            # Pod::foo modules bug gets fixed
-            my $module := $*W.load_module($/, 'Pod::To::Text', $*GLOBALish);
-            if pir::exists($module, 'EXPORT') {
-                my $EXPORT := $module<EXPORT>.WHO;
-                if pir::exists($EXPORT, 'DEFAULT') {
-                    $*W.import($EXPORT<DEFAULT>);
-                }
-            }
 
-            #my $pod2text := $*W.symbol_lookup(
-            #    ['Pod','To','Text','&pod2text'], $/
-            #);
+            my $renderer := "Pod::To::$doc";
+
+            my $module := $*W.load_module($/, $renderer, $*GLOBALish);
+
             my $pod2text := PAST::Op.new(
-                :pasttype<call>, :node($/), :name<&pod2text>,
+                :pasttype<callmethod>, :name<render>, :node($/),
+                self.make_indirect_lookup([$renderer]),
+                PAST::Var.new(:name<$=pod>, :node($/))
             );
-
-            $pod2text.push(PAST::Var.new(:name<$=pod>, :node($/)));
 
             $block.push(
                 PAST::Op.new(
@@ -339,6 +331,17 @@ class Perl6::Actions is HLL::Actions {
                     :name('&say'), $pod2text,
                 ),
             );
+
+            # TODO: We should print out $?USAGE too,
+            # once it's known at compile time
+
+            $block.push(
+                PAST::Op.new(
+                    :pasttype<call>, :node($/),
+                    :name('&exit'),
+                ),
+            );
+
             $*W.pop_lexpad();
             $*W.add_phaser(
                 $/, 'INIT', make_simple_code_object($block, 'Block')
@@ -1125,6 +1128,13 @@ class Perl6::Actions is HLL::Actions {
             $past.pasttype('callmethod');
             $past.name($desigilname);
             $past.unshift(PAST::Var.new( :name('self'), :scope('lexical_6model') ));
+            # Contextualize based on sigil.
+            $past := PAST::Op.new(
+                :pasttype('callmethod'),
+                :name($sigil eq '@' ?? 'list' !!
+                      $sigil eq '%' ?? 'hash' !!
+                      'item'),
+                $past);
         }
         elsif $twigil eq '^' || $twigil eq ':' {
             $past := add_placeholder_parameter($/, $sigil, $desigilname,
@@ -1339,6 +1349,7 @@ class Perl6::Actions is HLL::Actions {
         elsif $<variable_declarator> {
             my $past := $<variable_declarator>.ast;
             if $<initializer> {
+                my $orig_past := $past;
                 if $*SCOPE eq 'has' {
                     if $<initializer>[0]<sym> eq '=' {
                         self.install_attr_init($past<metaattr>, $<initializer>[0].ast, $*ATTR_INIT_BLOCK);
@@ -1357,6 +1368,12 @@ class Perl6::Actions is HLL::Actions {
                 else {
                     $past := bind_op($/, $past, $<initializer>[0].ast,
                         $<initializer>[0]<sym> eq '::=');
+                }
+                if $*SCOPE eq 'state' {
+                    $past := PAST::Op.new( :pasttype('if'),
+                        PAST::Op.new( :pirop('perl6_state_needs_init I') ),
+                        $past,
+                        $orig_past);
                 }
             }
             make $past;
@@ -1384,6 +1401,7 @@ class Perl6::Actions is HLL::Actions {
             }
             
             if $<initializer> {
+                my $orig_list := $list;
                 if $<initializer>[0]<sym> eq '=' {
                     $/.CURSOR.panic("Cannot assign to a list of 'has' scoped declarations")
                         if $*SCOPE eq 'has';
@@ -1394,6 +1412,11 @@ class Perl6::Actions is HLL::Actions {
                 }
                 else {
                     $*W.throw($/, 'X::Comp::NYI', feature => "Binding to signatures in $*SCOPE declarations");
+                }
+                if $*SCOPE eq 'state' {
+                    $list := PAST::Op.new( :pasttype('if'),
+                        PAST::Op.new( :pirop('perl6_state_needs_init I') ),
+                        $list, $orig_list);
                 }
             }
             
@@ -1512,11 +1535,6 @@ class Perl6::Actions is HLL::Actions {
                         PAST::Op.new( :pirop('set PQPs'),
                             PAST::Op.new( :pirop('getinterp P') ), 'lexpad'));
                 }
-            }
-            
-            # Flag state declarators.
-            if $*SCOPE eq 'state' {
-                $past<state_declarator> := 1;
             }
         }
         elsif $*SCOPE eq 'our' {            
@@ -2354,13 +2372,15 @@ class Perl6::Actions is HLL::Actions {
 
     method type_declarator:sym<constant>($/) {
         # Get constant value.
+        my $con_block := $*W.pop_lexpad();
         my $value_ast := $<initializer>.ast;
         my $value;
         if $value_ast<has_compile_time_value> {
             $value := $value_ast<compile_time_value>;
         }
         else {
-            my $value_thunk := make_thunk($value_ast, $/);
+            $con_block.push($value_ast);
+            my $value_thunk := make_simple_code_object($con_block, 'Block');
             $value := $value_thunk();
             $*W.add_constant_folded_result($value);
         }
@@ -3787,11 +3807,6 @@ class Perl6::Actions is HLL::Actions {
             $past := PAST::Op.new(:pirop('perl6_container_store__0PP'),
                 $lhs_ast, $rhs_ast);
         }
-        if $lhs_ast<state_declarator> {
-            $past := PAST::Op.new( :pasttype('if'),
-                PAST::Op.new( :pirop('perl6_state_needs_init I') ),
-                $past);
-        }
         return $past;
     }
     
@@ -5061,7 +5076,8 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions {
     }
 
     method metachar:sym<rakvar>($/) {
-        make QAST::Regex.new( PAST::Node.new('INTERPOLATE', $<var>.ast),
+        make QAST::Regex.new( PAST::Node.new('INTERPOLATE', $<var>.ast,
+                                    PAST::Val.new( :value(%*RX<i> ?? 1 !! 0) )),
                               :rxtype<subrule>, :subtype<method>, :node($/));
     }
 
@@ -5079,7 +5095,7 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions {
 
     method assertion:sym<var>($/) {
         make QAST::Regex.new( 
-                 PAST::Node.new('INTERPOLATE', PAST::Op.new( :name<&MAKE_REGEX>, $<var>.ast )),
+                 PAST::Node.new('INTERPOLATE', PAST::Op.new( :name<&MAKE_REGEX>, $<var>.ast ) ),
                  :rxtype<subrule>, :subtype<method>, :node($/));
     }
     

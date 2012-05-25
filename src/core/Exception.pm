@@ -5,14 +5,17 @@ my class Exception {
 
     method backtrace() { Backtrace.new(self) }
 
-
     multi method Str(Exception:D:) {
         self.?message.Str // 'Something went wrong'
     }
+
     multi method gist(Exception:D:) {
-        my $str = try self.?message ~ "\n" ~ $.backtrace;
-        $! ?? "Error while creating error string" 
-           !! $str;
+        my $str = try self.?message;
+        return "Error while creating error string: $!" if $!;
+        $str ~= "\n";
+        try $str ~= self.backtrace;
+        return "$str\nError while creating backtrace: $!.message()\n$!.backtrace.full();" if $!;
+        return $str;
     }
 
     method throw() is hidden_from_backtrace {

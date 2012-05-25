@@ -37,9 +37,9 @@ my class Cursor does NQPCursorRole {
         $match;
     }
 
-    method INTERPOLATE($var) {
+    method INTERPOLATE($var, $i = 0) {
         nqp::isconcrete($var) ??
-            ($var ~~ Callable ?? $var(self) !! self."!LITERAL"(nqp::unbox_s($var.Str))) !!
+            ($var ~~ Callable ?? $var(self) !! self."!LITERAL"(nqp::unbox_s($var.Str), $i)) !!
             self."!cursor_start"()
     }
     

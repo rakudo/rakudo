@@ -179,6 +179,7 @@ CORE_SOURCES = \
   src/core/Numeric.pm \
   src/core/Real.pm \
   src/core/Int.pm \
+  src/core/Order.pm \
   src/core/Num.pm \
   src/core/Str.pm \
   src/core/Capture.pm \
@@ -295,6 +296,7 @@ install: all
 	$(MKPATH)                     $(DESTDIR)$(PERL6_LANG_DIR)/lib
 	$(CP)     perl6.pbc           $(DESTDIR)$(PERL6_LANG_DIR)
 	$(CP)     lib/Test.pm         $(DESTDIR)$(PERL6_LANG_DIR)/lib
+	$(CP)     lib/Test.pir        $(DESTDIR)$(PERL6_LANG_DIR)/lib
 	$(MKPATH) 					  $(DESTDIR)$(PERL6_LANG_DIR)/lib/Pod/To
 	$(CP)     lib/Pod/To/Text.pm  $(DESTDIR)$(PERL6_LANG_DIR)/lib/Pod/To
 	$(CP)     CORE.setting.pbc    $(DESTDIR)$(PERL6_LANG_DIR)/lib/CORE.setting.pbc
@@ -382,7 +384,7 @@ $(PERL6_B_PBC): $(NQP_EXE) $(DYNEXT_DYNPMC) $(DYNEXT_DYNOPS) $(PERL6_M_PBC) $(BO
 $(SETTING): $(PERL6_B_PBC) $(PERL6_EXE) $(CORE_SOURCES)
 	$(PERL) $(GEN_CAT) $(CORE_SOURCES) > src/gen/CORE.setting
 	@echo "The following step can take a long time, please be patient."
-	./$(PERL6_EXE) --setting=NULL --optimize=3 --target=pir $(STAGESTATS) --output=$(SETTING_PIR) src/gen/CORE.setting
+	./$(PERL6_EXE) --setting=NULL --optimize=3 --target=pir --stagestats --output=$(SETTING_PIR) src/gen/CORE.setting
 	$(PARROT) $(PARROT_ARGS) -o $(SETTING) $(SETTING_PIR)
 
 $(S_SETTING): $(PERL6_B_PBC) $(PERL6_EXE) $(SETTING) src/SAFE.setting

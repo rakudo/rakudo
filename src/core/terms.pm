@@ -24,20 +24,23 @@ sub term:<time>() { nqp::p6box_i(pir::time__I()) }
     }
     nqp::bindkey(pir::get_who__PP(PROCESS), '$VM', $VM);
 
-    my $PERL          = {};
-    my Mu $perl      := pir::find_caller_lex__PS('$COMPILER_CONFIG');
-    my Mu $perl_iter := nqp::iterator($perl);
-    while $perl_iter {
-        $key        = nqp::p6box_s(pir::shift__SP($perl_iter));
-        $PERL{$key} = nqp::p6box_s(nqp::atkey($perl, nqp::unbox_s($key)));
-    }
+    my Mu $compiler := pir::find_caller_lex__PS('$COMPILER_CONFIG');
+    my $PERL = {
+        name => 'rakudo',
+        compiler => {
+            name => 'rakudo',
+            ver => nqp::p6box_s(nqp::atkey($compiler, 'version')),
+            release-number => nqp::p6box_s(nqp::atkey($compiler, 'release-number')),
+            build-date => nqp::p6box_s(nqp::atkey($compiler, 'build-date')),
+            codename => nqp::p6box_s(nqp::atkey($compiler, 'codename')),
+        }
+    };
     nqp::bindkey(pir::get_who__PP(PROCESS), '$PERL', $PERL);
 
     my $CWD = nqp::p6box_s(pir::new__PS('OS').cwd);
     nqp::bindkey(pir::get_who__PP(PROCESS), '$CWD', $CWD);
 
     my @INC;
-    @INC.push('lib');
     @INC.push(%ENV<PERL6LIB>.split($VM<config><osname> eq 'MSWin32' ?? ';' !! ':')) if %ENV<PERL6LIB>;
     try {
         @INC.push((%ENV<HOME> // %ENV<HOMEDRIVE> ~ %ENV<HOMEPATH>) ~ '/.perl6/lib');

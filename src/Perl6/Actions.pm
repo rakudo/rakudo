@@ -4134,7 +4134,7 @@ class Perl6::Actions is HLL::Actions {
             $dwim.named('dwim-right');
             $hpast.push($dwim);
         }
-        make PAST::Op.new( :node($/), $hpast );
+        return PAST::Op.new( :node($/), $hpast );
     }
 
     method postfixish($/) {

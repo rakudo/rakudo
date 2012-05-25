@@ -4,6 +4,7 @@ New in 2012.06
 + string to number conversion now recognizes radix notation
 + string incrementation is now aware of more scripts
 + <|w> word boundary in regexes implemented
++ more errors from within the meta model now contain line number and file name
 
 New in 2012.05
 + meta ops //=, ||= and &&= now short-circuit properly

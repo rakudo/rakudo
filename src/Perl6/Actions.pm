@@ -2,6 +2,7 @@ use NQPP6QRegex;
 use Perl6::Pod;
 use Perl6::ConstantFolder;
 use QRegex;
+use PASTRegex; # For PAST
 
 INIT {
     # Add our custom nqp:: opcodes.

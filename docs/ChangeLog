@@ -1,3 +1,9 @@
+New in 2012.06
++ changed the output of Match.gist
++ string to number conversion now fails for non-numbers
++ string incrementation is now aware of more scripts
++ <|w> word boundary in regexes implemented
+
 New in 2012.05
 + meta ops //=, ||= and &&= now short-circuit properly
 + Failure objects don't blow up the REPL anymore

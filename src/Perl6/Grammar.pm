@@ -492,7 +492,7 @@ grammar Perl6::Grammar is HLL::Grammar {
                     my $module := $*W.load_module($/,
                                                     $longname,
                                                     $*GLOBALish);
-                    do_import($module, [], $longname);
+                    do_import($module, $longname);
                     $/.CURSOR.import_EXPORTHOW($module);
                 }
             }

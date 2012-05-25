@@ -552,7 +552,7 @@ class Perl6::Actions is HLL::Actions {
                         PAST::Op.new(
                             :pasttype<callmethod>, :name<map>, :node($/),
                             PAST::Op.new(:name('&infix:<,>'), $cond),
-                            $past
+                            block_closure($past)
                         ));
                 }
                 else {

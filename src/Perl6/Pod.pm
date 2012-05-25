@@ -249,15 +249,16 @@ class Perl6::Pod {
                 @res[$i] := $v;
             } elsif $v ~~ /\h'|'\h/ {
                 my $m := $v ~~ /
-                    :ratchet ([<!before [\h+ || ^^] '|' [\h+ || $$]> .]*)
-                    ** [ [\h+ || ^^] '|' [\h || $$] ]
+                    :ratchet
+                    ([<!before [\h+ || ^^] '|' [\h+ || $$]> .]*)+
+                    % [ [\h+ || ^^] '|' [\h || $$] ]
                 /;
                 @res[$i] := [];
                 for $m[0] { @res[$i].push(formatted_text($_)) }
             } elsif $v ~~ /\h'+'\h/ {
                 my $m := $v ~~ /
-                    :ratchet ([<!before [\h+ || ^^] '+' [\h+ || $$]> .]*)
-                    ** [ [\h+ || ^^] '+' [\h+ || $$] ]
+                    :ratchet ([<!before [\h+ || ^^] '+' [\h+ || $$]> .]*)+
+                    % [ [\h+ || ^^] '+' [\h+ || $$] ]
                 /;
                 @res[$i] := [];
                 for $m[0] { @res[$i].push(formatted_text($_)) }

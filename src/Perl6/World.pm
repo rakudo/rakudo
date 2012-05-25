@@ -1145,7 +1145,7 @@ class Perl6::World is HLL::World {
     
     # Adds a method to the meta-object.
     method pkg_add_method($/, $obj, $meta_method_name, $name, $code_object) {
-        self.handle-ex($/, {
+        self.ex-handle($/, {
                 $obj.HOW."$meta_method_name"($obj, $name, $code_object)
             }
         )

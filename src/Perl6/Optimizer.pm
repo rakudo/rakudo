@@ -1,4 +1,4 @@
-use NQPP6Regex;
+use NQPP6QRegex;
 
 # This powers the optimization pass. It takes place after we've done all
 # of the stuff in the grammar and actions, which means CHECK time is over.

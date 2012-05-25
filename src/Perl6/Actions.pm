@@ -1,4 +1,4 @@
-use NQPP6Regex;
+use NQPP6QRegex;
 use Perl6::Pod;
 use Perl6::ConstantFolder;
 use QRegex;

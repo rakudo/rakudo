@@ -545,7 +545,7 @@ grammar Perl6::Grammar is HLL::Grammar {
     }
 
     rule semilist {
-        | <?[ ) \] } ]>
+        | <?before <[)\]}]> >
         | [<statement><.eat_terminator> ]*
     }
 

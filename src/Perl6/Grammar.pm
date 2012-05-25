@@ -911,7 +911,7 @@ grammar Perl6::Grammar is HLL::Grammar {
     token term:sym<routine_declarator> { <routine_declarator> }
     token term:sym<multi_declarator>   { <?before 'multi'|'proto'|'only'> <multi_declarator> }
     token term:sym<regex_declarator>   { <regex_declarator> }
-    token term:sym<circumfix>          { <!before '[' \\? <.infixish> ']'> <circumfix> }
+    token term:sym<circumfix>          { <circumfix> }
     token term:sym<statement_prefix>   { <statement_prefix> }
     token term:sym<**>                 { <sym> <.NYI('HyperWhatever (**)')> }
     token term:sym<*>                  { <sym> }

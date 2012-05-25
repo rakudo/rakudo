@@ -1,4 +1,4 @@
-use NQPP6Regex;
+use NQPP6QRegex;
 use QRegex;
 use Perl6::World;
 use Perl6::Pod;

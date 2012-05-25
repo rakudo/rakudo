@@ -1,7 +1,7 @@
 Rakudo Roadmap
 --------------
 
-Last updated: 2012-02-10
+Last updated: 2012-04-16
 
 This document serves as a guide to the major goals for Rakudo
 development, as things stood in December 2011. They have been
@@ -36,7 +36,6 @@ Compiler Performance/Portability Improvements (jnthn)
 3 **    Optimizing multis for `[+] 1..10` and `[<=] 1..10` etc.
 
 Macros (masak)
-2 ***   macro declarations and invocation; Rudimentary quasiquotes
 2 ***   quasiquote splicing
 2 **    hygienic macros and the COMPILING:: pseudopackage
 2 ****  "delayed" declarations of routines and types within quasiquotes
@@ -74,17 +73,12 @@ Built-ins/Data Structures
 3 ***   Cat and stream matching
 
 Phasers
-2 ***   ENTER and LEAVE
-2 **    LAST/NEXT/FIRST/REDO
-2 ?     PRE/POST
-3 ?     KEEP/UNDO
+2 **    LAST/NEXT/FIRST in loops other than for loops
 
 Language Features
 1 ***   basic Perl 5 interop (use, eval, etc.)
 1 **    non-Numeric enums
-2 *     anonymous enums
 2 **    enumerations as roles
-2 **    pseudo-packages MY, CONTEXT, OUTER, etc. (jnthn)
 2 ***   heredocs
 2 **    module versioning
 2 **    import/export tags
@@ -93,7 +87,6 @@ Language Features
 2 **    MAIN and USAGE (japhb)
 2 **    Failure changes (japhb)
 2 ***   module versioning
-3 **    constant declarators with non-literals
 3 ***   domain specific languages -- slang and grammar tweaks
 3 ****  more advanced Perl 5 interop (lexical embedding, etc.)
 3 ***   temp variables

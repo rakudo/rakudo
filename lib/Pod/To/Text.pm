@@ -71,9 +71,12 @@ sub declarator2text($pod) {
     my $what = do given $pod.WHEREFORE {
         when Method {
             'method ' ~ $_.name
+                      ~ $_.signature.perl.substr(1)\
+                        .subst(/'(' <-[,]>+ ', '/, '(')\
+                        .subst(/',' <-[,]>+ ')'/, ')')
         }
         when Sub {
-            'sub ' ~ $_.name
+            'sub ' ~ $_.name ~ $_.signature.perl.substr(1)
         }
         when nqp::p6bool(nqp::istype($_.HOW, Metamodel::ClassHOW)) {
             'class ' ~ $_.perl

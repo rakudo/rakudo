@@ -1,3 +1,26 @@
+New in 2012.04
++ 'defined' is now a listop instead of a prefix op
++ fixed :16('0d...')
++ implemented simple interpolation in names in type declarations (class ::(const) { })
++ $=POD renamed to $=pod
++ fixed slicing of non-lists with infinite ranges
++ fixed accidental over-serialization, cutting ~300KB off each pre-compiled module
++ scalar positionals no longer treated as slices
++ implemented Routine.package
++ join will now always reify at least 4 elements of a list if possible
++ warnings now have line numbers
++ brought back Str.indent
++ ban declaring pseudo-packages, with a helpful error
++ a name followed by :: now returns .WHO, so Foo::<&bar> style lookups work
++ Exception.Bool now returns true
++ avoided re-parsing of longname, which speeds up the parse a bit overall
++ implemented MY, CALLER, OUTER, UNIT, CORE, SETTING and DYNAMIC pseudo-packages
++ implemented ::<$x> and ::{'$x'} style lookups
++ some small optimizations to various Str built-ins and MapIter
++ improved --doc output
++ added $*PERL
++ implemented IO::ArgFiles.slurp
+
 New in 2012.03
 + updated to dyncall 0.7
 + infix:<eqv> now autothreads over junctions

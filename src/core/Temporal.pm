@@ -141,8 +141,8 @@ sub default-formatter(DateTime $dt, Bool :$subseconds) {
 }
 
 my class DateTime-local-timezone does Callable {
-    method Str { '<local time zone>' }
-    method perl { '$*TZ' }
+    multi method Str(DateTime-local-timezone:D:) { '<local time zone>' }
+    multi method perl(DateTime-local-timezone:D:) { '$*TZ' }
 
     method postcircumfix:<( )>($args) { self.offset(|$args) }
 
@@ -421,6 +421,15 @@ my class Date does Dateish {
         $date ~~ /^ \d\d\d\d '-' \d\d '-' \d\d $/
             or die 'Invalid Date string; please use the format "yyyy-mm-dd"';
         self.new(|$date.split('-').map({.Int}));
+    }
+
+    multi method new() {
+        my $n = self.today;
+        if $n.month == 12 && $n.day >= 24 {
+            Date.new($n.year + 1, 12, 24);
+        } else {
+            Date.new($n.year, 12, 24);
+        }
     }
 
     multi method new(DateTime $dt) {

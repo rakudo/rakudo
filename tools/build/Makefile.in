@@ -198,6 +198,7 @@ CORE_SOURCES = \
   src/core/EnumMap.pm \
   src/core/Hash.pm \
   src/core/Stash.pm \
+  src/core/PseudoStash.pm \
   src/core/Parameter.pm \
   src/core/Signature.pm \
   src/core/Buf.pm \
@@ -400,7 +401,7 @@ test    : coretest
 fulltest: coretest stresstest
 
 coretest: all
-	$(PERL) t/harness t/00-parrot t/01-sanity t/02-embed
+	$(PERL) t/harness t/00-parrot t/01-sanity
 
 # Run the spectests that we know work.
 spectest_regression: spectest

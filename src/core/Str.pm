@@ -4,6 +4,8 @@ my class Match  {... }
 my class Buf    {... }
 my class X::Str::Numeric { ... }
 
+my $?TABSTOP = 8;
+
 sub PARROT_ENCODING(Str:D $s) {
     my %map = (
         'utf-8'             => 'utf8',
@@ -66,15 +68,15 @@ my class Str does Stringy {
     method substr(Str:D: $start, $length? is copy) {
         my str $sself  = nqp::unbox_s(self);
         my int $istart = nqp::unbox_i(
-            $start.^does(Callable)
-                ??  $start(nqp::p6box_i(nqp::chars($sself)))
+            nqp::istype($start, Callable)
+                ?? $start(nqp::p6box_i(nqp::chars($sself)))
                 !! $start.Int
             );
         my int $ichars = nqp::chars($sself);
         fail "Negative start argument ($start) to .substr" if $istart < 0;
         fail "Start of substr ($start) beyond end of string" if $istart > $ichars;
         $length = $length($ichars - $istart) if nqp::istype($length, Callable);
-        my int $ilength = $length.defined ??  $length.Int !! $ichars - $istart;
+        my int $ilength = $length.defined ?? $length.Int !! $ichars - $istart;
         fail "Negative length argument ($length) to .substr" if $ilength < 0;
 
         nqp::p6box_s(nqp::substr($sself, $istart, $ilength));
@@ -426,7 +428,7 @@ my class Str does Stringy {
     }
     multi method comb(Str:D: Regex $pat, $limit = $Inf, :$match) {
         my $x;
-        $x = (1..$limit) unless $limit.^isa(Whatever) || $limit == $Inf;
+        $x = (1..$limit) unless nqp::istype($limit, Whatever) || $limit == $Inf;
         $match
             ?? self.match(:g, :$x, $pat)
             !! self.match(:g, :$x, $pat).map: { .Str }
@@ -443,19 +445,19 @@ my class Str does Stringy {
     multi method ll-match(Str:D: Cool:D $pat, *%opts) {
         my Int $from = %opts<p> // %opts<c> // 0;
         my $idx = self.index($pat, $from);
-        defined $idx
+        $idx.defined
           ?? Match.new(orig => self, from => $idx, to => ($idx + $pat.chars))
           !! Match.new(orig => self, from => 0,    to => -3);
     }
     method match-list(Str:D: $pat, :$g, :$ov, :$ex, *%opts) {
-        if $ex && $pat.^does(Callable) {
+        if $ex && nqp::istype($pat, Callable) {
             gather {
                 my $m := self.ll-match($pat, |%opts);
                 if $m {
                     take $m;
                     while $m := $m.CURSOR.'!cursor_next'().MATCH {
                         # next line written this way for reasons of circularity sawing
-                        Cursor.HOW.find_private_method(Cursor, 'set_last_match')(Cursor, $m) if $m;
+                        Cursor.HOW.find_private_method(Cursor, 'set_last_match')(Cursor, $m);
                         take $m;
                     }
                 }
@@ -498,7 +500,7 @@ my class Str does Stringy {
         %opts<p> = $p if $p.defined;
         my @matches := self.match-list($pat, :g($g || $x || $nth), :$ov, :$ex, |%opts);
         if $nth.defined {
-            if $nth.^does(Positional) {
+            if nqp::istype($nth, Positional) {
                 my @nth-monotonic := gather {
                     my $max = 0;
                     for $nth.list {
@@ -520,12 +522,12 @@ my class Str does Stringy {
             }
         }
         if $x.defined {
-            if $x.^isa(Int) {
+            if nqp::istype($x, Int) {
                 @matches.gimme($x) == $x
                     ?? @matches[^$x]
                     !! ().list;
             }
-            elsif $x.^isa(Range) {
+            elsif nqp::istype($x, Range) {
                 my $real-max := $x.excludes_max ?? $x.max - 1 !! $x.max;
                 @matches.gimme($real-max) ~~ $x
                     ?? @matches[^$real-max].list
@@ -587,7 +589,7 @@ my class Str does Stringy {
 
     multi method split(Str:D: Regex $pat, $limit = *, :$all) {
         return ().list if $limit ~~ Numeric && $limit <= 0;
-        my @matches = $limit.^isa(Whatever)
+        my @matches = nqp::istype($limit, Whatever)
                         ?? self.match($pat, :g)
                         !! self.match($pat, :x(1..$limit-1), :g);
         gather {
@@ -816,6 +818,79 @@ my class Str does Stringy {
 
         return $r;
     }
+    proto method indent($) {*}
+    # Zero indent does nothing
+    multi method indent(Int $steps where { $_ == 0 }) {
+        self;
+    }
+
+    # Positive indent does indent
+    multi method indent(Int $steps where { $_ > 0 }) {
+    # We want to keep trailing \n so we have to .comb explicitly instead of .lines
+        return self.comb(/:r ^^ \N* \n?/).map({
+            given $_.Str {
+                # Use the existing space character if they're all the same
+                # (but tabs are done slightly differently)
+                when /^(\t+) ([ \S .* | $ ])/ {
+                    $0 ~ "\t" x ($steps div $?TABSTOP) ~
+                         ' '  x ($steps mod $?TABSTOP) ~ $1
+                }
+                when /^(\h) $0* [ \S | $ ]/ {
+                    $0 x $steps ~ $_
+                }
+
+                # Otherwise we just insert spaces after the existing leading space
+                default {
+                    $_ ~~ /^(\h*) (.*)$/;
+                    $0 ~ (' ' x $steps) ~ $1
+                }
+            }
+        }).join;
+    }
+
+    # Negative values and Whatever-* do outdent
+    multi method indent($steps where { nqp::istype($_, Whatever) || nqp::istype($_, Int) && $_ < 0 }) {
+        # Loop through all lines to get as much info out of them as possible
+        my @lines = self.comb(/:r ^^ \N* \n?/).map({
+            # Split the line into indent and content
+            my ($indent, $rest) = @($_ ~~ /^(\h*) (.*)$/);
+
+            # Split the indent into characters and annotate them
+            # with their visual size
+            my $indent-size = 0;
+            my @indent-chars = $indent.comb.map(-> $char {
+                my $width = $char eq "\t"
+                    ?? $?TABSTOP - ($indent-size mod $?TABSTOP)
+                    !! 1;
+                $indent-size += $width;
+                $char => $width;
+            });
+
+            { :$indent-size, :@indent-chars, :$rest };
+        });
+
+        # Figure out the amount * should outdent by, we also use this for warnings
+        my $common-prefix = [min] @lines.map({ $_<indent-size> });
+
+        # Set the actual outdent amount here
+        my Int $outdent = $steps ~~ Whatever ?? $common-prefix
+                                             !! -$steps;
+
+        warn sprintf('Asked to remove %d spaces, ' ~
+                     'but the shortest indent is %d spaces',
+                     $outdent, $common-prefix) if $outdent > $common-prefix;
+
+        # Work backwards from the right end of the indent whitespace, removing
+        # array elements up to # (or over, in the case of tab-explosion)
+        # the specified outdent amount.
+        @lines.map({
+            my $pos = 0;
+            while $_<indent-chars> and $pos < $outdent {
+                $pos += $_<indent-chars>.pop.value;
+            }
+            $_<indent-chars>».key.join ~ ' ' x ($pos - $outdent) ~ $_<rest>;
+        }).join;
+    }
 }
 
 
@@ -893,8 +968,12 @@ sub trim-trailing(Str:D $s) { $s.trim-trailing }
 
 # the opposite of Real.base, used for :16($hex_str)
 sub unbase(Int:D $base, Str:D $str) {
-    if $str.substr(0, 2) eq any(<0x 0d 0o 0b>) {
+    my Str $prefix = $str.substr(0, 2);
+    if    $base <= 10 && $prefix eq any(<0x 0d 0o 0b>)
+       or $base <= 24 && $prefix eq any <0o 0x>
+       or $base <= 33 && $prefix eq '0x' {
         $str.Numeric;
+
     } else {
         ":{$base}<$str>".Numeric;
     }

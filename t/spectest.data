@@ -91,6 +91,7 @@ S02-names-vars/variables-and-packages.t
 S02-names-vars/varnames.t
 S02-names/identifier.t
 S02-names/our.t
+S02-names/pseudo.t
 S02-names/symbolic-deref.t
 S02-one-pass-parsing/less-than.t
 S02-lexical-conventions/begin_end_pod.t
@@ -193,6 +194,7 @@ S03-smartmatch/array-hash.t
 # S03-smartmatch/capture-signature.t # all fail
 S03-smartmatch/disorganized.t
 S03-smartmatch/hash-hash.t
+S03-smartmatch/range-range.t
 S03-smartmatch/regex-hash.t
 S03-smartmatch/scalar-hash.t
 S04-blocks-and-statements/pointy-rw.t
@@ -282,6 +284,7 @@ S05-metachars/line-anchors.t
 S05-metachars/newline.t
 S05-metachars/tilde.t
 S05-metasyntax/angle-brackets.t
+S05-metasyntax/assertions.t
 S05-metasyntax/changed.t
 S05-metasyntax/charset.t
 S05-metasyntax/interpolating-closure.t
@@ -319,6 +322,7 @@ S06-advanced/wrap.t
 S06-currying/assuming-and-mmd.t
 S06-currying/named.t
 S06-macros/macros-d1.t
+S06-macros/opaque-ast.t
 S06-multi/lexical-multis.t
 S06-multi/positional-vs-named.t
 S06-multi/proto.t
@@ -385,10 +389,11 @@ S10-packages/joined-namespaces.t
 S10-packages/use-with-class.t
 # S11-modules/export.t # err: Could not find symbol 'Foo::&Foo_exp_parens
 # S11-modules/import.t # err: Illegal redeclaration of symbol B
+S11-modules/importing.t
 # S11-modules/import-tag.t # err: arglist case of use not yet implemented
 S11-modules/lexical.t
 S11-modules/need.t
-# S11-modules/nested.t
+S11-modules/nested.t
 S11-modules/require.t
 S12-attributes/class.t
 S12-attributes/clone.t
@@ -429,7 +434,7 @@ S12-enums/anonymous.t
 # S12-enums/as-role.t # err: Cannot yet turn an enum into a role
 S12-enums/basic.t
 S12-enums/misc.t
-# S12-enums/thorough.t # err: Undefined routine '&day' called
+S12-enums/thorough.t
 S12-introspection/attributes.t
 S12-introspection/can.t
 S12-introspection/definite.t
@@ -603,7 +608,7 @@ S32-str/chop.t
 S32-str/comb.t                                             # icu
 S32-str/encode.t
 S32-str/flip.t
-# S32-str/indent.t # err: Method 'indent' not found for invocant of class 'Str'
+S32-str/indent.t
 S32-str/index.t
 S32-str/lc.t                                               # icu
 S32-str/lcfirst.t                                          # icu

@@ -26,6 +26,7 @@ my class Routine {
             $disp := nqp::create(self);
             nqp::bindattr($disp, Routine, '$!dispatchees', nqp::list(self));
         }
+        # Call this lexical sub to get rid of 'self' in the signature.
         sub checker(|$) {
             my Mu $cap := pir::find_lex__Ps('call_sig');
             pir::perl6ize_type__PP(pir::perl6_get_matching_multis__PPP($disp, $cap))
@@ -94,4 +95,6 @@ my class Routine {
     method yada() {
         nqp::p6bool(nqp::getattr_i(self, Routine, '$!yada'))
     }
+
+    method package() { $!package }
 }

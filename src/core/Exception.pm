@@ -21,14 +21,12 @@ my class Exception {
         pir::setattribute__vPsP($!ex, 'payload', nqp::p6decont(self));
         my $msg := self.?message;
         pir::setattribute__vPsP($!ex, 'message', nqp::unbox_s($msg.Str))
-            if defined $msg;
+            if $msg.defined;
         pir::throw__0P($!ex)
     }
     method rethrow() is hidden_from_backtrace {
         pir::rethrow__0P($!ex)
     }
-
-    method Bool() { False }
 }
 
 my class X::AdHoc is Exception {
@@ -99,7 +97,9 @@ do {
         if ($type == nqp::p6box_i(pir::const::CONTROL_OK)) {
             my Mu $err := pir::getstderr__P();
             my $msg = nqp::p6box_s(nqp::atkey($ex, 'message'));
-            $err.print: $msg ?? "$msg\n" !! "Warning\n";
+            $err.print: $msg ?? "$msg" !! "Warning";
+            $err.print: Backtrace.new($ex.backtrace, 0).nice(:oneline);
+            $err.print: "\n";
             my $resume := nqp::atkey($ex, 'resume');
             if ($resume) {
                 $resume();
@@ -152,7 +152,9 @@ my role X::OS {
     has $.os-error;
 }
 
-my class X::IO::Rename does X::OS is Exception {
+my role X::IO does X::OS { };
+
+my class X::IO::Rename does X::IO is Exception {
     has $.from;
     has $.to;
     method message() {
@@ -160,11 +162,61 @@ my class X::IO::Rename does X::OS is Exception {
     }
 }
 
-my class X::IO::Copy does X::OS is Exception {
+my class X::IO::Copy does X::IO is Exception {
     has $.from;
     has $.to;
     method message() {
         "Failed to copy '$.from' to '$.to': $.os-error"
+    }
+}
+
+my class X::IO::Mkdir does X::IO is Exception {
+    has $.path;
+    has $.mode;
+    method message() {
+        "Failed to create directory '$.path' with mode '0o{$.mode.fmt("%03o")}': $.os-error"
+    }
+}
+
+my class X::IO::Chdir does X::IO is Exception {
+    has $.path;
+    method message() {
+        "Failed to change the working directory to '$.path': $.os-error"
+    }
+}
+
+my class X::IO::Dir does X::IO is Exception {
+    has $.path;
+    method message() {
+        "Failed to get the directory contents of '$.path': $.os-error"
+    }
+}
+
+my class X::IO::Cwd does X::IO is Exception {
+    method message() {
+        "Failed to get the working directory: $.os-error"
+    }
+}
+
+my class X::IO::Rmdir does X::IO is Exception {
+    has $.path;
+    method message() {
+        "Failed to remove the directory '$.path': $.os-error"
+    }
+}
+
+my class X::IO::Unlink does X::IO is Exception {
+    has $.path;
+    method message() {
+        "Failed to remove the file '$.path': $.os-error"
+    }
+}
+
+my class X::IO::Chmod does X::IO is Exception {
+    has $.path;
+    has $.mode;
+    method message() {
+        "Failed to set the mode of '$.path' to '0o{$.mode.fmt("%03o")}': $.os-error"
     }
 }
 
@@ -327,6 +379,11 @@ my class X::Bind::NativeType does X::Comp {
         'Cannot bind to a natively typed variable; use assignment instead'
     }
 }
+my class X::Bind::ZenSlice is Exception {
+    has Str $.what = 'array';
+
+    method message() { "Cannot bind to a zen $.what slice." }
+}
 
 my class X::Value::Dynamic does X::Comp {
     has $.what;
@@ -380,6 +437,14 @@ my class X::Syntax::Augment::WithoutMonkeyTyping does X::Syntax {
 
 my class X::Syntax::Augment::Role does X::Syntax {
     method message() { "Cannot augment a role, since roles are immutable" };
+}
+
+my class X::Does::TypeObject is Exception {
+    method message() { "Cannot use 'does' operator with a type object." }
+}
+
+my class X::Role::Initialization is Exception {
+    method message() { 'Can only supply an initialization value for a role if it has a single public attribute' }
 }
 
 my class X::Syntax::Comment::Embedded does X::Syntax {
@@ -439,6 +504,13 @@ my class X::Syntax::Regex::Adverb does X::Syntax {
 my class X::Syntax::Signature::InvocantMarker does X::Syntax {
     method message() {
         "Can only use : as invocant marker in a signature after the first parameter"
+    }
+}
+
+my class X::Syntax::Extension::Category does X::Syntax {
+    has $.category;
+    method message() {
+        "Cannot add tokens of category '$.category'";
     }
 }
 
@@ -525,6 +597,20 @@ my class X::Str::Numeric is Exception {
     }
     method message() {
         "Cannot convert string to number: $.reason $.source-indicator";
+    }
+}
+
+my class X::Sequence::Deduction is Exception {
+    method message() { 'Unable to deduce sequence' }
+}
+
+my class X::TypeCheck is Exception {
+    has $.operation;
+    has $.got;
+    has $.exepcted;
+    method message() {
+        "Type check failed in $.operation; expected '{$.expected.^name}' but got '{$.got.^name}'";
+
     }
 }
 

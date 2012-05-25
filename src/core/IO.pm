@@ -57,19 +57,18 @@ class IO {
     }
 
     method get() {
-        unless $!PIO {
+        unless pir::defined($!PIO) {
             self.open($.path, :chomp($.chomp));
         }
+        return Str if self.eof;
         my Str $x = nqp::p6box_s($!PIO.readline);
         # XXX don't fail() as long as it's fatal
         # fail('end of file') if self.eof && $x eq '';
+        $x.=chomp if $.chomp;
         return Str if self.eof && $x eq '';
 
         $!ins++;
-        # XXX
-        # comment out as long as initiliaztion of attributes is a no-op
-#        $!chomp ?? $x.chomp !! $x;
-        $x.chomp;
+        $x;
     }
     
     method getc() {
@@ -201,26 +200,48 @@ class IO {
         $! ?? fail($!) !! True
     }
 
+    my class X::IO::Chmod { ... }
     method chmod($mode) {
-        try {
-            pir::new__PS('OS').chmod(nqp::unbox_s(~$.path), nqp::unbox_i($mode.Int));
+        pir::new__PS('OS').chmod(nqp::unbox_s(~$.path), nqp::unbox_i($mode.Int));
+        return True;
+        CATCH {
+            default {
+                X::IO::Chmod.new(
+                    :$.path,
+                    :$mode,
+                    os-error => .Str,
+                ).throw;
+            }
         }
-        $! ?? fail($!) !! True
     }
 }
 
+my class X::IO::Unlink { ... }
 sub unlink($path) {
-    try {
-        pir::new__PS('OS').unlink($path);
+    pir::new__PS('OS').unlink($path);
+    return True;
+    CATCH {
+        default {
+            X::IO::Unlink.new(
+                :$path,
+                os-error => .Str,
+            ).throw;
+        }
     }
-    $! ?? fail($!) !! Bool::True
 }
 
+my class X::IO::Rmdir { ... }
 sub rmdir($path) {
-    try {
-        pir::new__PS('OS').rmdir($path);
+    pir::new__PS('OS').rmdir($path);
+    return True;
+    CATCH {
+        default {
+            X::IO::Rmdir.new(
+                :$path,
+                os-error => .Str,
+            ).throw;
+        }
     }
-    $! ?? fail($!) !! Bool::True
 }
 
 proto sub open(|$) { * }
@@ -255,16 +276,25 @@ multi sub slurp($filename) {
     $handle.close();
     $contents
 }
-
-proto sub cwd(|$) { * }
-multi sub cwd() {
-    my $pwd;
-    try {
-        $pwd = pir::new__Ps('OS').cwd();
-    }
-    $! ?? fail($!) !! $pwd;
+multi sub slurp(IO $io = $*ARGFILES) {
+    $io.slurp;
 }
 
+my class X::IO::Cwd { ... }
+proto sub cwd(|$) { * }
+multi sub cwd() {
+    return pir::new__Ps('OS').cwd();
+
+    CATCH {
+        default {
+            X::IO::Cwd.new(
+                os-error => .Str,
+            ).throw;
+        }
+    }
+}
+
+my class X::IO::Dir { ... }
 sub dir($path = '.', Mu :$test = none('.', '..')) {
     my Mu $RSA := pir::new__PS('OS').readdir(nqp::unbox_s($path.Stringy));
     my int $elems = pir::set__IP($RSA);
@@ -273,25 +303,48 @@ sub dir($path = '.', Mu :$test = none('.', '..')) {
         my Str $item := nqp::p6box_s(nqp::atpos($RSA, $i));
         @res.push: $item if $test.ACCEPTS($item);
     }
-    @res;
+    return @res;
 
+    CATCH {
+        default {
+            X::IO::Dir.new(
+                :$path,
+                os-error => .Str,
+            ).throw;
+        }
+    }
 }
 
+my class X::IO::Chdir { ... }
 proto sub chdir(|$) { * }
 multi sub chdir($path as Str) {
-    try {
-        pir::new__PS('OS').chdir(nqp::unbox_s($path))
-    }
+    pir::new__PS('OS').chdir(nqp::unbox_s($path));
     $*CWD = nqp::p6box_s(pir::new__PS('OS').cwd);
-    $! ?? fail($!) !! True
+    return True;
+    CATCH {
+        default {
+            X::IO::Chdir.new(
+                :$path,
+                os-error => .Str,
+            ).throw;
+        }
+    }
 }
 
+my class X::IO::Mkdir { ... }
 proto sub mkdir(|$) { * }
 multi sub mkdir($path as Str, $mode = 0o777) {
-    try {
-        pir::new__PS('OS').mkdir($path, $mode)
+    pir::new__PS('OS').mkdir($path, $mode);
+    return True;
+    CATCH {
+        default {
+            X::IO::Mkdir.new(
+                :$path,
+                :$mode,
+                os-error => .Str,
+            ).throw;
+        }
     }
-    $! ?? fail($!) !! True
 }
 
 $PROCESS::IN  = open('-');
@@ -303,7 +356,7 @@ nqp::bindattr(nqp::p6decont($PROCESS::ERR),
 my class X::IO::Rename { ... }
 sub rename(Cool $from as Str, Cool $to as Str) {
     pir::new__PS('OS').rename(nqp::unbox_s($from), nqp::unbox_s($to));
-    Nil;
+    return True;
     CATCH {
         default {
             if .Str ~~ /'rename failed: '(.*)/ {
@@ -321,7 +374,7 @@ sub rename(Cool $from as Str, Cool $to as Str) {
 my class X::IO::Copy { ... }
 sub copy(Cool $from as Str, Cool $to as Str) {
     pir::new__PS('File').copy(nqp::unbox_s($from), nqp::unbox_s($to));
-    Nil;
+    return True;
     CATCH {
         default {
             X::IO::Copy.new(

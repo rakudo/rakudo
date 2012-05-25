@@ -50,12 +50,12 @@ part of monthly Parrot releases.
   2012-01-23   Rakudo #48 "Toronto"            (moritz)
   2012-02-23   Rakudo #49 "SPb"                (masak)
   2012-03-22   Rakudo #50 "Argentina"          (masak)
+  2012-04-19   Rakudo #51 "Brazos Valley"      (Coke)
 
 =head2 Planned 2012 releases
 
 Dates are based on Parrot's expected release schedule.
 
-  2012-04-19   Rakudo #51                      (Coke)
   2012-05-17   Rakudo #52
   2012-06-21   Rakudo #53
   2012-07-19   Rakudo #54
@@ -68,7 +68,6 @@ Dates are based on Parrot's expected release schedule.
 =head2 Suggested .pm group names for future releases
 
   MadMongers    (YAPC::NA 2012)
-  Brazos Valley (YAPC::NA 2007, p6 hackathon)
 
 More names can be gotten from L<http://www.pm.org> if you 
 can't think of one with any particular significance to Perl 
@@ -147,6 +146,8 @@ commit the new version:
 But probably there won't be any new leap seconds, in which case the file
 will be unchanged.
 
+B<Note>: this program requires the perl module L<Time::y2038> be installed.
+
 =item 5.
 
 As the actual release date nears, review the git log history
@@ -215,6 +216,8 @@ judgment or ask others if uncertain what to do here.
 
 =item *
 
+B<Note>: these steps overlap with the steps in NQP's release guide.
+
 Go to the NQP repository, tag it and push the tags
 
   $ git tag -a -m"tag release YYYY.MM" YYYY.MM    # e.g., 2010.02
@@ -263,8 +266,8 @@ So please make a backup if you have any important data in there.
 =item 12.
 
 Unpack the tar file into another area, and test that it
-builds and runs properly using the same process in step 7.  
-If there are any problems, fix them and go back to step 7.
+builds and runs properly using the same process in step 8.
+If there are any problems, fix them and go back to step 8.
 
 =item 13.
 

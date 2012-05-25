@@ -1,6 +1,7 @@
 my class MapIter { ... }
 my class Whatever { ... }
 my class Range { ... }
+my class X::Bind::ZenSlice { ... }
 
 my class Any {
     multi method ACCEPTS(Any:D: Mu \$a) { self === $a }
@@ -43,6 +44,7 @@ my class Any {
     method join($separator = '') {
         my $list = (self,).flat.eager;
         my Mu $rsa := pir::new__Ps('ResizableStringArray');
+        $list.gimme(4);        # force reification of at least 4 elements
         nqp::push_s($rsa, nqp::unbox_s($list.shift.Stringy)) 
             while $list.gimme(0);
         nqp::push_s($rsa, '...') if $list.infinite;
@@ -111,7 +113,7 @@ my class Any {
 
     proto method postcircumfix:<[ ]>(|$) { * }
     multi method postcircumfix:<[ ]>() { self.list }
-    multi method postcircumfix:<[ ]>(:$BIND!) { die "Cannot bind to a zen array slice" }
+    multi method postcircumfix:<[ ]>(:$BIND!) { die(X::Bind::ZenSlice.new()) }
     multi method postcircumfix:<[ ]>($pos) is rw {
         fail "Cannot use negative index $pos on {self.WHAT.perl}" if $pos < 0;
         self.at_pos($pos)
@@ -128,11 +130,15 @@ my class Any {
         fail "Cannot use negative index $pos on {self.WHAT.perl}" if $pos < 0;
         self.bind_pos($pos, $BIND)
     }
-    multi method postcircumfix:<[ ]>(Positional $pos) is rw {
+    multi method postcircumfix:<[ ]>(Positional \$pos) is rw {
+        if nqp::iscont($pos) {
+            fail "Cannot use negative index $pos on {self.WHAT.perl}" if $pos < 0;
+            return self.at_pos($pos)
+        }
         my $list = $pos.flat;
         $list.gimme(*);
         $list.map($list.infinite
-                   ?? { last if $_ >= self.gimme($_ + 1); self[$_] }
+                   ?? { last if $_ >= self.list.gimme($_ + 1); self[$_] }
                    !! { self[$_] }).eager.Parcel;
     }
     multi method postcircumfix:<[ ]>(Positional $pos, :$BIND!) is rw {
@@ -153,7 +159,11 @@ my class Any {
 
     method at_pos($pos) is rw {
         if self.defined {
-            fail ".[$pos] out of range for type {self.perl}" if $pos != 0;
+            fail X::OutOfRange.new(
+                what => 'Index',
+                got  => $pos,
+                range => (0..0)
+            ) if $pos != 0;
             return self;
         }
     }
@@ -168,15 +178,17 @@ my class Any {
     ########
     proto method postcircumfix:<{ }>(|$) { * }
     multi method postcircumfix:<{ }>() { self }
-    multi method postcircumfix:<{ }>(:$BIND!) { die "Cannot bind to a zen hash slice" }
+    multi method postcircumfix:<{ }>(:$BIND!) { die(X::Bind::ZenSlice.new(:what<hash>)) }
     multi method postcircumfix:<{ }>($key) is rw {
         self.at_key($key)
     }
     multi method postcircumfix:<{ }>($key, :$BIND! is parcel) is rw {
         self.bind_key($key, $BIND)
     }
-    multi method postcircumfix:<{ }>(Positional $key) is rw {
-        $key.map({ self{$_} }).eager.Parcel
+    multi method postcircumfix:<{ }>(Positional \$key) is rw {
+        nqp::iscont($key) 
+          ?? self.at_key($key) 
+          !! $key.map({ self{$_} }).eager.Parcel
     }
     multi method postcircumfix:<{ }>(Positional $key, :$BIND!) is rw {
         die "Cannot bind to a hash slice"

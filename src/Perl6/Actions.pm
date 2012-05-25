@@ -331,7 +331,7 @@ class Perl6::Actions is HLL::Actions {
                 :pasttype<call>, :node($/), :name<&pod2text>,
             );
 
-            $pod2text.push(PAST::Var.new(:name<$=POD>, :node($/)));
+            $pod2text.push(PAST::Var.new(:name<$=pod>, :node($/)));
 
             $block.push(
                 PAST::Op.new(
@@ -995,29 +995,6 @@ class Perl6::Actions is HLL::Actions {
 
     method name($/) { }
 
-    method module_name($/) {
-        # XXX Needs re-doing.
-        my @name := Perl6::Grammar::parse_name(~$<longname>);
-        unless nqp::elems(@name) {
-            $/.CURSOR.panic('Cannot deal with an empty module name here');
-        }
-        my $var := PAST::Var.new(
-            :name(@name.pop),
-            :namespace(@name),
-            :scope('package')
-        );
-        if $<arglist> {
-            my $past := $<arglist>[0].ast;
-            $past.pasttype('callmethod');
-            $past.name('!select');
-            $past.unshift($var);
-            make $past;
-        }
-        else {
-            make $var;
-        }
-    }
-
     method fatarrow($/) {
         make make_pair($<key>.Str, $<val>.ast);
     }
@@ -1025,7 +1002,7 @@ class Perl6::Actions is HLL::Actions {
     method colonpair($/) {
         if $*key {
             if $<var> {
-                make make_pair($*key, make_variable($/<var>, ~$<var>));
+                make make_pair($*key, make_variable($/<var>, [~$<var>]));
             }
             elsif $*value ~~ Regex::Match {
                 my $val_ast := $*value.ast;
@@ -1090,37 +1067,46 @@ class Perl6::Actions is HLL::Actions {
                                            'item');
         }
         else {
-            if $<desigilname> && $<desigilname><longname> && self.is_indirect_lookup($<desigilname><longname>) {
-                if $*IN_DECL {
-                    $*W.throw($/, ['X', 'Syntax', 'Variable', 'IndirectDeclaration']);
+            my $indirect;
+            if $<desigilname> && $<desigilname><longname> {
+                my $longname := $*W.disect_longname($<desigilname><longname>);
+                if $longname.contains_indirect_lookup() {
+                    if $*IN_DECL {
+                        $*W.throw($/, ['X', 'Syntax', 'Variable', 'IndirectDeclaration']);
+                    }
+                    $past := self.make_indirect_lookup($longname.components(), ~$<sigil>);
+                    $indirect := 1;
                 }
-                $past := self.make_indirect_lookup($<desigilname><longname>, ~$<sigil>);
-            } else {
-                $past := make_variable($/, ~$/);
+                else {
+                    $past := make_variable($/, $longname.variable_components(
+                        ~$<sigil>, $<twigil> ?? ~$<twigil>[0] !! ''));
+                }
+            }
+            else {
+                $past := make_variable($/, [~$/]);
             }
         }
         make $past;
     }
 
-    sub make_variable($/, $name) {
-        make_variable_from_parts($/, $name, $<sigil>.Str, $<twigil>[0], ~$<desigilname>);
+    sub make_variable($/, @name) {
+        make_variable_from_parts($/, @name, $<sigil>.Str, $<twigil>[0], ~$<desigilname>);
     }
 
-    sub make_variable_from_parts($/, $name, $sigil, $twigil, $desigilname) {
-        my @name := Perl6::Grammar::parse_name($name);
+    sub make_variable_from_parts($/, @name, $sigil, $twigil, $desigilname) {
         my $past := PAST::Var.new( :name(@name[+@name - 1]), :node($/));
         if $twigil eq '*' {
             $past := PAST::Op.new(
-                $*W.add_string_constant(~$past.name()),
+                $*W.add_string_constant($past.name()),
                 :pasttype('call'), :name('&DYNAMIC'), :lvalue(0) );
         }
         elsif $twigil eq '!' {
             # In a declaration, don't produce anything here.
             if $*IN_DECL ne 'variable' {
                 unless $*HAS_SELF {
-                    $*W.throw($/, ['X', 'Syntax', 'NoSelf'], variable => $name);
+                    $*W.throw($/, ['X', 'Syntax', 'NoSelf'], variable => $past.name());
                 }
-                my $attr := get_attribute_meta_object($/, $name);
+                my $attr := get_attribute_meta_object($/, $past.name());
                 $past.scope('attribute_6model');
                 $past.type($attr.type);
                 $past.unshift(instantiated_type(['$?CLASS'], $/));
@@ -1130,9 +1116,9 @@ class Perl6::Actions is HLL::Actions {
         }
         elsif $twigil eq '.' && $*IN_DECL ne 'variable' {
             if !$*HAS_SELF {
-                $*W.throw($/, ['X', 'Syntax', 'NoSelf'], variable => $name);
+                $*W.throw($/, ['X', 'Syntax', 'NoSelf'], variable => $past.name());
             } elsif $*HAS_SELF eq 'partial' {
-                $*W.throw($/, ['X', 'Syntax', 'VirtualCall'], call => $name);
+                $*W.throw($/, ['X', 'Syntax', 'VirtualCall'], call => $past.name());
             }
             # Need to transform this to a method call.
             $past := $<arglist> ?? $<arglist>[0].ast !! PAST::Op.new();
@@ -1142,18 +1128,18 @@ class Perl6::Actions is HLL::Actions {
         }
         elsif $twigil eq '^' || $twigil eq ':' {
             $past := add_placeholder_parameter($/, $sigil, $desigilname,
-                                :named($twigil eq ':'), :full_name($name));
+                                :named($twigil eq ':'), :full_name($past.name()));
         }
-        elsif $name eq '@_' {
+        elsif $past.name() eq '@_' {
             unless $*W.nearest_signatured_block_declares('@_') {
                 $past := add_placeholder_parameter($/, '@', '_',
-                                :pos_slurpy(1), :full_name($name));
+                                :pos_slurpy(1), :full_name($past.name()));
             }
         }
-        elsif $name eq '%_' {
+        elsif $past.name() eq '%_' {
             unless $*W.nearest_signatured_block_declares('%_') || $*METHODTYPE {
                 $past := add_placeholder_parameter($/, '%', '_', :named_slurpy(1),
-                                :full_name($name));
+                                :full_name($past.name()));
             }
         }
         elsif +@name > 1 {
@@ -1174,8 +1160,8 @@ class Perl6::Actions is HLL::Actions {
             # I don't know what the correct solution is. Disabling the check
             # inside double quotes fixes the most common case, but fails to
             # catch undeclared variables in double-quoted strings.
-            if $sigil ne '&' && !$*IN_DECL && ($*QSIGIL eq '' || $*QSIGIL eq '$') && !$*W.is_lexical($name) {
-                $*W.throw($/, ['X', 'Undeclared'], symbol => $name);
+            if $sigil ne '&' && !$*IN_DECL && ($*QSIGIL eq '' || $*QSIGIL eq '$') && !$*W.is_lexical($past.name) {
+                $*W.throw($/, ['X', 'Undeclared'], symbol => $past.name());
             }
             elsif $sigil eq '&' {
                 $past.viviself(PAST::Var.new(:name('Nil'), :scope('lexical_6model')));
@@ -1725,6 +1711,9 @@ class Perl6::Actions is HLL::Actions {
                         PAST::Var.new( :name($name), :scope('lexical_6model') )
                     ));
                 }
+                elsif $*SCOPE eq 'anon' {
+                    # don't do anything
+                }
                 else {
                     $*W.throw($/, 'X::Declaration::Scope',
                             scope       => $*SCOPE,
@@ -2230,8 +2219,9 @@ class Perl6::Actions is HLL::Actions {
 
         # Get, or find, enumeration base type and create type object with
         # correct base type.
+        my $longname  := $<longname> ?? $*W.disect_longname($<longname>) !! 0;
         my $base_type := $*OFTYPE ?? $*OFTYPE.ast !! $*W.find_symbol(['Int']);
-        my $name      := $<longname> ?? ~$<longname> !! $<variable><desigilname>;
+        my $name      := $<longname> ?? $longname.name() !! $<variable><desigilname>;
         my $type_obj  := $*W.pkg_create_mo($/, %*HOW<enum>, :name($name), :base_type($base_type));
 
         # Add roles (which will provide the enum-related methods).
@@ -2250,8 +2240,8 @@ class Perl6::Actions is HLL::Actions {
                 feature => "Variable case of enums",
             );
         }
-        $*W.install_package_longname($/, $<longname>, ($*SCOPE || 'our'),
-            'enum', $*PACKAGE, $*W.cur_lexpad(), $type_obj);
+        $*W.install_package($/, $longname.type_name_parts('enum name', :decl(1)),
+            ($*SCOPE || 'our'), 'enum', $*PACKAGE, $*W.cur_lexpad(), $type_obj);
 
         # Get list of either values or pairs; fail if we can't.
         my @values;
@@ -2342,8 +2332,9 @@ class Perl6::Actions is HLL::Actions {
             PAST::Op.new( :pirop('perl6_booleanize__PI'), 1 ));
 
         # Create the meta-object.
+        my $longname := $<longname> ?? $*W.disect_longname($<longname>[0]) !! 0;
         my $subset := $<longname> ??
-            $*W.create_subset(%*HOW<subset>, $refinee, $refinement, :name($<longname>[0].Str)) !!
+            $*W.create_subset(%*HOW<subset>, $refinee, $refinement, :name($longname.name())) !!
             $*W.create_subset(%*HOW<subset>, $refinee, $refinement);
 
         # Apply traits.
@@ -2353,8 +2344,8 @@ class Perl6::Actions is HLL::Actions {
 
         # Install it as needed.
         if $<longname> {
-            $*W.install_package_longname($/, $<longname>[0], ($*SCOPE || 'our'),
-                'subset', $*PACKAGE, $*W.cur_lexpad(), $subset);
+            $*W.install_package($/, $longname.type_name_parts('subset name', :decl(1)),
+                ($*SCOPE || 'our'), 'subset', $*PACKAGE, $*W.cur_lexpad(), $subset);
         }
 
         # We evaluate to the refinement type object.
@@ -2804,7 +2795,7 @@ class Perl6::Actions is HLL::Actions {
         
             # If we have a type name then we need to dispatch with that type; otherwise
             # we need to dispatch with it as a named argument.
-            my @name := Perl6::Grammar::parse_name(~$<longname>);
+            my @name := $*W.disect_longname($<longname>).components();
             if $*W.is_name(@name) {
                 my $trait := $*W.find_symbol(@name);
                 make -> $declarand {
@@ -2907,7 +2898,7 @@ class Perl6::Actions is HLL::Actions {
         # runs after CHECK time.
         my $past := $<methodop>.ast;
         if $<methodop><longname> {
-            my @parts   := Perl6::Grammar::parse_name(~$<methodop><longname>);
+            my @parts   := $*W.disect_longname($<methodop><longname>).components();
             my $name    := @parts.pop;
             if @parts {
                 my $methpkg := $*W.find_symbol(@parts);
@@ -2949,7 +2940,7 @@ class Perl6::Actions is HLL::Actions {
         if $<longname> {
             # May just be .foo, but could also be .Foo::bar. Also handle the
             # macro-ish cases.
-            my @parts := Perl6::Grammar::parse_name(~$<longname>);
+            my @parts := $*W.disect_longname($<longname>).components();
             my $name := @parts.pop;
             if +@parts {
                 $past.unshift($*W.symbol_lookup(@parts, $/));
@@ -3115,29 +3106,21 @@ class Perl6::Actions is HLL::Actions {
         }
     }
 
-    method is_indirect_lookup($longname) {
-        for $longname<name><morename> {
-            if $_<EXPR> {
-                return 1;
-            }
-        }
-        0;
-    }
-
-    method make_indirect_lookup($longname, $sigil?) {
+    method make_indirect_lookup(@components, $sigil?) {
         my $past := PAST::Op.new(
             :pasttype<call>,
             :name<&INDIRECT_NAME_LOOKUP>,
+            PAST::Op.new(
+                :pasttype<callmethod>, :name<new>,
+                $*W.get_ref($*W.find_symbol(['PseudoStash']))
+            )
         );
         $past.push($*W.add_string_constant($sigil)) if $sigil;
-        $past.push($*W.add_string_constant(~$longname<name><identifier>))
-            if $longname<name><identifier>;
-
-        for $longname<name><morename> {
-            if $_<EXPR> {
-                $past.push($_<EXPR>[0].ast);
+        for @components {
+            if pir::can($_, 'isa') && $_.isa(PAST::Node) {
+                $past.push($_);
             } else {
-                $past.push($*W.add_string_constant(~$_<identifier>));
+                $past.push($*W.add_string_constant(~$_));
             }
         }
         $past;
@@ -3145,18 +3128,17 @@ class Perl6::Actions is HLL::Actions {
 
     method term:sym<name>($/) {
         my $past;
-
-        if self.is_indirect_lookup($<longname>) {
+        if $*longname.contains_indirect_lookup() {
             if $<args> {
                 $/.CURSOR.panic("Combination of indirect name lookup and call not (yet?) allowed");
             }
-            $past := self.make_indirect_lookup($<longname>)
+            $past := self.make_indirect_lookup($*longname.components())
         }
         elsif $<args> {
             # If we have args, it's a call. Look it up dynamically
             # and make the call.
             # Add & to name.
-            my @name := Perl6::Grammar::parse_name(~$<longname>);
+            my @name := nqp::clone($*longname.components());
             my $final := @name[+@name - 1];
             if pir::substr($final, 0, 1) ne '&' {
                 @name[+@name - 1] := '&' ~ $final;
@@ -3218,7 +3200,7 @@ class Perl6::Actions is HLL::Actions {
         else {
             # Otherwise, it's a type name; build a reference to that
             # type, since we can statically resolve them.
-            my @name := Perl6::Grammar::parse_name(~$<longname>);
+            my @name := $*longname.type_name_parts('type name');
             if $<arglist> {
                 # Look up parametric type.
                 my $ptype := $*W.find_symbol(@name);
@@ -3245,11 +3227,22 @@ class Perl6::Actions is HLL::Actions {
                     $past.unshift(PAST::Op.new( :pirop('get_how PP'), $ptref ));
                 }
             }
-            elsif ~$<longname> eq 'GLOBAL' {
+            elsif +@name == 0 {
+                $past := PAST::Op.new(
+                    :pasttype<callmethod>, :name<new>,
+                    $*W.get_ref($*W.find_symbol(['PseudoStash']))
+                );
+            }
+            elsif $*W.is_pseudo_package(@name[0]) {
                 $past := $*W.symbol_lookup(@name, $/);
             }
             else {
                 $past := instantiated_type(@name, $/);
+            }
+            
+            # Names ending in :: really want .WHO.
+            if $*longname.get_who {
+                $past := PAST::Op.new( :pirop('get_who PP'), $past );
             }
         }
 
@@ -3757,6 +3750,12 @@ class Perl6::Actions is HLL::Actions {
             $target[0].push($source);
             make $target;
         }
+        elsif $target.isa(PAST::Op) && $target.pasttype eq 'callmethod' &&
+              ($target.name eq 'postcircumfix:<[ ]>' || $target.name eq 'postcircumfix:<{ }>') {
+            $source.named('BIND');
+            $target.push($source);
+            make $target;
+        }
         # XXX Several more cases to do...
         else {
             $*W.throw($/, ['X', 'Bind', 'WrongLHS']);
@@ -4082,8 +4081,8 @@ class Perl6::Actions is HLL::Actions {
         # GenericHOW, though whether/how it's used depends on context.
         if $<longname> {
             if pir::substr(~$<longname>, 0, 2) ne '::' {
-                my $type := $*W.find_symbol(Perl6::Grammar::parse_name(
-                    Perl6::Grammar::canonical_type_longname($<longname>)));
+                my $longname := $*W.disect_longname($<longname>);
+                my $type := $*W.find_symbol($longname.type_name_parts('type name'));
                 if $<arglist> {
                     $type := $*W.parameterize_type($type, $<arglist>, $/);
                 }
@@ -4096,6 +4095,9 @@ class Perl6::Actions is HLL::Actions {
             else {
                 if $<arglist> || $<typename> {
                     $/.CURSOR.panic("Cannot put type parameters on a type capture");
+                }
+                if ~$<longname> eq '::' {
+                    $/.CURSOR.panic("Cannot use :: as a type name");
                 }
                 make $*W.pkg_create_mo($/, %*HOW<generic>, :name(pir::substr(~$<longname>, 2)));
             }
@@ -5082,7 +5084,7 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions {
     }
     
     method assertion:sym<name>($/) {
-        my @parts := Perl6::Grammar::parse_name(~$<longname>);
+        my @parts := $*W.disect_longname($<longname>).components();
         my $name  := @parts.pop();
         my $qast;
         if $<assertion> {

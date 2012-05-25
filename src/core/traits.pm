@@ -70,7 +70,7 @@ sub EXPORT_SYMBOL(\$exp_name, @tags, Mu \$sym) {
             $install_in := $*EXPORT.WHO.{$tag};
         }
         else {
-            $install_in := $*W.pkg_create_mo($/, (package { }).HOW.WHAT, :name($tag));
+            $install_in := $*W.pkg_create_mo($/, (package { }).HOW, :name($tag));
             $*W.pkg_compose($install_in);
             $*W.install_package_symbol($*EXPORT, $tag, $install_in);
         }

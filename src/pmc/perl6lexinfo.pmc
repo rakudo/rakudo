@@ -170,5 +170,6 @@ C<symbols>, which gets an array of the names of the symbols in this lexpad.
         else
             Parrot_ex_throw_from_c_args(INTERP, NULL, EXCEPTION_INVALID_OPERATION,
                 "Unknown introspection value '%S'", what);
+            return PMCNULL;
     }
 }

@@ -210,10 +210,7 @@ class Perl6::World is HLL::World {
             ))
     }
     
-    # Implements a basic first cut of import. Works out what needs to
-    # happen and builds code to do it at fixup/deserialization; also
-    # does it so that things are available at compile time. Note that
-    # import is done into the current lexpad.
+    # Imports symbols from the specified package into the current lexical scope.
     method import($package) {
         # We'll do this in two passes, since at the start of CORE.setting we import
         # StaticLexPad, which of course we need to use when importing. Since we still
@@ -222,27 +219,29 @@ class Perl6::World is HLL::World {
         my %stash := $package.WHO;
         my $target := self.cur_lexpad();
         
-        # First pass: PAST::Block symbol table installation.
+        # First pass: PAST::Block symbol table installation. Also detect any
+        # outright conflicts, and handle any situations where we need to merge.
+        my %to_install;
         for %stash {
-            $target.symbol($_.key, :scope('lexical_6model'), :value($_.value));
-            $target[0].push(PAST::Var.new( :scope('lexical_6model'), :name($_.key), :isdecl(1) ));
+            if $target.symbol($_.key) {
+                # XXX TODO: Merge handling.
+                pir::die("Cannot import symbol '" ~ $_.key ~ "', since it already exists in the lexpad");
+            }
+            else {
+                $target.symbol($_.key, :scope('lexical_6model'), :value($_.value));
+                $target[0].push(PAST::Var.new( :scope('lexical_6model'), :name($_.key), :isdecl(1) ));
+                %to_install{$_.key} := $_.value;
+            }
         }
         
-        # Second pass: stick it in the actual static lexpad.
+        # Second pass: stick everything we still need to install in the
+        # actual static lexpad.
         my $slp := self.get_static_lexpad($target);
-        for %stash {
+        for %to_install {
             $slp.add_static_value($_.key, $_.value, 0, 0);
         }
 
         1;
-    }
-    
-    # Factors out installation of package-y things, based on a longname.
-    method install_package_longname($/, $longname, $scope, $pkgdecl, $package, $outer, $symbol) {
-        my @name := pir::split('::', ~$longname);
-        my @adv  := pir::split(':', @name[+@name - 1]);
-        @name[+@name - 1] := @adv[0];
-        self.install_package($/, @name, $scope, $pkgdecl, $package, $outer, $symbol)
     }
     
     # Installs something package-y in the right place, creating the nested
@@ -694,12 +693,6 @@ class Perl6::World is HLL::World {
 			pir::setprop__vPsP($stub, 'PAST_BLOCK', $code_past);
         }
         
-        # Desserialization should do the actual creation and just put the right
-        # code in there in the first place.
-        if self.is_precompilation_mode() {
-            $des.push(self.set_attribute($code, $code_type, '$!do', PAST::Val.new( :value($code_past) )));
-        }
-        
         # If this is a dispatcher, install dispatchee list that we can
         # add the candidates too.
         if $is_dispatcher {
@@ -708,8 +701,7 @@ class Perl6::World is HLL::World {
         
         # Set yada flag if needed.
         if $yada {
-            my $rtype := self.find_symbol(['Routine']);
-            nqp::bindattr_i($code, $rtype, '$!yada', 1);
+            nqp::bindattr_i($code, $routine_type, '$!yada', 1);
         }
 
         # Deserialization also needs to give the Parrot sub its backlink.
@@ -721,8 +713,10 @@ class Perl6::World is HLL::World {
         }
 
         # If it's a routine, flag that it needs fresh magicals.
+        # Also store the namespace, which makes backtraces nicer.
         if nqp::istype($code, $routine_type) {
             self.get_static_lexpad($code_past).set_fresh_magicals();
+            nqp::bindattr($code, $routine_type, '$!package', $*PACKAGE);
         }
             
         self.add_fixup_task(:deserialize_past($des), :fixup_past($fixups));
@@ -1314,13 +1308,188 @@ class Perl6::World is HLL::World {
                             'nqp_bigint_ops', 'nqp_dyncall_ops');
     }
     
+    # Represents a longname after having parsed it.
+    my class LongName {
+        # The original text of the name.
+        has str $!text;
+        
+        # Set of name components. Each one will be either a string
+        # or a PAST node that represents an expresison to produce it.
+        has @!components;
+        
+        # The colonpairs, if any.
+        has @!colonpairs;
+        
+        # Flag for if the name ends in ::, meaning we need to emit a
+        # .WHO on the end.
+        has int $!get_who;
+        
+        # Gets the textual name of the value.
+        method text() {
+            $!text
+        }
+        
+        # Gets the name, without any adverbs.
+        method name() {
+            my @parts := nqp::clone(@!components);
+            @parts.shift() while self.is_pseudo_package(@parts[0]);
+            pir::join('::', @parts)
+        }
+        
+        # Gets the individual components, which may be PAST nodes for
+        # unknown pieces.
+        method components() {
+            @!components
+        }
+        
+        # Gets the individual components (which should be strings) but
+        # taking a sigil and twigil and adding them to the last component.
+        method variable_components($sigil, $twigil) {
+            my @result;
+            for @!components {
+                @result.push($_);
+            }
+            @result[+@result - 1] := $sigil ~ $twigil ~ @result[+@result - 1];
+            @result
+        }
+        
+        # Checks if there is an indirect lookup required.
+        method contains_indirect_lookup() {
+            for @!components {
+                if pir::can($_, 'isa') && $_.isa(PAST::Node) {
+                    return 1;
+                }
+            }
+            return 0;
+        }
+        
+        # Fetches an array of components provided they are all known
+        # or resolvable at compile time.
+        method type_name_parts($dba, :$decl) {
+            my @name;
+            my $beyond_pp;
+            if $decl && $!get_who {
+                pir::die("Name $!text ends with '::' and cannot be used as a $dba");
+            }
+            for @!components {
+                if pir::can($_, 'isa') && $_.isa(PAST::Node) {
+                    if $_<has_compile_time_value> {
+                        for nqp::split('::', ~$_<compile_time_value>) {
+                            @name.push($_);
+                        }
+                    }
+                    else {
+                        pir::die("Name $!text is not compile-time known, and can not serve as a $dba");
+                    }
+                }
+                elsif $beyond_pp || !self.is_pseudo_package($_) {
+                    nqp::push(@name, $_);
+                    $beyond_pp := 1;
+                }
+                else {
+                    if $decl {
+                        if $_ ne 'GLOBAL' {
+                            pir::die("Cannot use pseudo-package $_ in a $dba");
+                        }
+                        elsif +@!components == 1 {
+                            pir::die("Cannot declare pseudo-package GLOBAL");
+                        }
+                    }
+                    else {
+                        nqp::push(@name, $_);
+                    }
+                }
+            }
+            @name
+        }
+        
+        method get_who() {
+            $!get_who
+        }
+
+        # Checks if a name component is a pseudo-package.
+        method is_pseudo_package($comp) {
+            $comp eq 'CORE' || $comp eq 'SETTING' || $comp eq 'UNIT' ||
+            $comp eq 'OUTER' || $comp eq 'MY' || $comp eq 'OUR' ||
+            $comp eq 'PROCESS' || $comp eq 'GLOBAL' || $comp eq 'CALLER' ||
+            $comp eq 'DYNAMIC' || $comp eq 'COMPILING' || $comp eq 'PARENT'
+        }
+    }
+    
+    # Takes a longname and turns it into an object representing the
+    # name.
+    method disect_longname($longname) {
+        # Set up basic info about the long name.
+        my $result := nqp::create(LongName);
+        nqp::bindattr_s($result, LongName, '$!text', ~$longname);
+
+        # Pick out the pieces of the name.
+        my @components;
+        my $name := $longname<name>;
+        if $name<identifier> {
+            @components.push(~$name<identifier>);
+        }
+        for $name<morename> {
+            if $_<identifier> {
+                @components.push(~$_<identifier>[0]);
+            }
+            elsif $_<EXPR> {
+                my $EXPR := $_<EXPR>[0].ast;
+                @components.push($EXPR);
+            }
+            else {
+                # Either it's :: as a name entirely, in which case it's anon,
+                # or we're ending in ::, in which case it implies .WHO.
+                if +@components {
+                    nqp::bindattr_i($result, LongName, '$!get_who', 1);
+                }
+            }
+        }
+        nqp::bindattr($result, LongName, '@!components', @components);
+        
+        # Stash colon pairs with names; incorporate non-named one into
+        # the last part of the name (e.g. for infix:<+>). Need to be a
+        # little cheaty when compiling the setting due to bootstrapping.
+        my @pairs;
+        for $longname<colonpair> {
+            if $_<circumfix> && !$_<identifier> {
+                my $value := $_.ast;
+                if $value<has_compile_time_value> {
+                    @components[+@components - 1] := @components[+@components - 1] ~
+                        (%*COMPILING<%?OPTIONS><setting> ne 'NULL' ??
+                        ':<' ~ ~$value<compile_time_value> ~ '>' !!
+                        ~$_);
+                }
+                else {
+                    pir::die(~$_ ~ ' cannot be resolved at compile time');
+                }
+            }
+            else {
+                @pairs.push($_);
+            }
+        }
+        nqp::bindattr($result, LongName, '@!colonpairs', @pairs);
+        
+        $result
+    }
+    
+    # Checks if a name starts with a pseudo-package.
+    method is_pseudo_package($comp) {
+        LongName.is_pseudo_package($comp)
+    }
+    
     # Checks if a given symbol is declared.
     method is_name(@name) {
         my $is_name := 0;
-        try {
-            # This throws if it's not a known name.
-            self.find_symbol(@name);
+        if self.is_pseudo_package(@name[0]) {
             $is_name := 1;
+        }
+        else {
+            try {
+                # This throws if it's not a known name.
+                self.find_symbol(@name);
+                $is_name := 1;
+            }
         }
         $is_name
     }
@@ -1458,9 +1627,31 @@ class Perl6::World is HLL::World {
         if +@name == 0 { $/.CURSOR.panic("Cannot compile empty name"); }
         my $orig_name := pir::join('::', @name);
         
-        # Handle special names.
+        # Handle fetching GLOBAL.
         if +@name == 1 && @name[0] eq 'GLOBAL' {
             return PAST::Var.new( :name('GLOBAL'), :namespace([]), :scope('package') );
+        }
+        
+        # Handle things starting with pseudo-package.
+        if self.is_pseudo_package(@name[0]) && @name[0] ne 'GLOBAL' && @name[0] ne 'PROCESS' {
+            my $lookup;
+            for @name {
+                if $lookup {
+                    $lookup := PAST::Op.new( :pirop('get_who PP'), $lookup );
+                }
+                else {
+                    # Lookups start at the :: root.
+                    $lookup := PAST::Op.new(
+                        :pasttype('callmethod'), :name('new'),
+                        $*W.get_ref($*W.find_symbol(['PseudoStash']))
+                    );
+                }
+                $lookup := PAST::Op.new(
+                    :pasttype('callmethod'), :name('postcircumfix:<{ }>'),
+                    $lookup,
+                    self.add_string_constant($_));
+            }
+            return $lookup;
         }
         
         # If it's a single item, then go hunting for it through the

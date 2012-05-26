@@ -1,7 +1,7 @@
 role Perl6::Metamodel::MROBasedMethodDispatch {
     # While we normally end up locating methods through the method cache,
     # this is here as a fallback.
-    method find_method($obj, $name, :$no_fallback) {
+    method find_method($obj, $name, :$no_fallback, *%adverbs) {
         my %methods;
         for self.mro($obj) {
             %methods := $_.HOW.method_table($_);

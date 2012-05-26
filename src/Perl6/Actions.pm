@@ -4602,7 +4602,7 @@ class Perl6::Actions is HLL::Actions {
     # and use &infix:<,> to build the parcel
     method quote_EXPR($/) {
         my $past := $<quote_delimited>.ast;
-        if $/.CURSOR.quotemod_check('w') {
+        if %*QUOTEMOD<w> {
             my @words := HLL::Grammar::split_words($/,
                 compile_time_value_str($past, ":w list", $/));
             if +@words != 1 {

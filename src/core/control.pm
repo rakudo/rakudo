@@ -141,7 +141,8 @@ multi sub warn(*@msg) is hidden_from_backtrace {
     0;
 }
 
-sub eval(Str $code, :$lang = 'perl6') {
+proto sub eval(|$) {*}
+multi sub eval(Str $code, :$lang = 'perl6') {
     my $caller_ctx := Q:PIR {
         $P0 = getinterp
         %r = $P0['context';1]

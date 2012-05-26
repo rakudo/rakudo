@@ -144,7 +144,7 @@ grammar Perl6::Grammar is HLL::Grammar {
         # :dba('horizontal whitespace')
         [
         | ^^ <?before \h* '=' [ \w | '\\'] > <.pod_content_toplevel>
-        | \h* <comment>
+        | \h* <.comment>
         | \h+
         ]
     }
@@ -157,7 +157,7 @@ grammar Perl6::Grammar is HLL::Grammar {
 
     token comment:sym<#`(...)> {
         '#`' {}
-        [ <quote_EXPR> || <.typed_panic: 'X::Syntax::Comment::Embedded'> ]
+        [ <.quote_EXPR> || <.typed_panic: 'X::Syntax::Comment::Embedded'> ]
     }
 
     token comment:sym<#=(...)> {

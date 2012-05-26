@@ -1157,7 +1157,7 @@ grammar Perl6::Grammar is HLL::Grammar {
 
     token desigilname {
         [
-        | <?before '$' >
+        | <?[$]>
             [ <?{ $*IN_DECL }> <.typed_panic: 'X::Syntax::Variable::IndirectDeclaration'> ]?
             <variable>
         | <?before <[\@\%\&]> <sigil>* \w > <.panic: "Invalid hard reference syntax">

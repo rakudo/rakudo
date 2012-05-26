@@ -2094,8 +2094,8 @@ grammar Perl6::Grammar is HLL::Grammar {
     }
 
     token rad_number {
-         <!before '::'> ':' $<radix> = [\d+] <.unsp>?
-        # {}           # don't recurse in lexer
+        ':' $<radix> = [\d+] <.unsp>?
+        {}           # don't recurse in lexer
         # :dba('number in radix notation')
         [
         || '<'

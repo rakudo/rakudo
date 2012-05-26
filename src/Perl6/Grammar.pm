@@ -2781,27 +2781,26 @@ grammar Perl6::Grammar is HLL::Grammar {
             self.typed_panic('X::Syntax::Extension::Category', :$category);
         }
 
-        # We need to modify the grammar. Build code to parse it.
-        my $parse := PAST::Regex.new(
-            :pasttype('concat')
+        # We need to modify the grammar. Build code to parse it
+        # the operator.
+        my $parse := QAST::Regex.new(
+            :rxtype('concat')
         );
         if $is_oper {
             # For operator, it's just like 'op' <O('%prec')>
-            $parse.push(PAST::Regex.new(
-                :pasttype('subcapture'),
+            $parse.push(QAST::Regex.new(
+                :rxtype('subcapture'),
                 :name('sym'),
                 :backtrack('r'),
-                PAST::Regex.new(
-                    :pasttype('literal'),
+                QAST::Regex.new(
+                    :rxtype('literal'),
                     $opname
                 )
             ));
-            $parse.push(PAST::Regex.new(
-                :pasttype('subrule'),
-                :name('O'),
-                :backtrack('r'),
-                'O',
-                PAST::Val.new( :value($prec) )
+            $parse.push(QAST::Regex.new(
+                :rxtype('subrule'), :subtype('capture'),
+                :name('O'), :backtrack('r'),
+                PAST::Node.new('O', PAST::Val.new( :value($prec) ))
             ));
         }
         else {
@@ -2812,29 +2811,32 @@ grammar Perl6::Grammar is HLL::Grammar {
             if +@parts != 2 {
                 nqp::die("Unable to find starter and stopper from '$opname'");
             }
-            $parse.push(PAST::Regex.new(
-                :pasttype('literal'), :backtrack('r'),
+            $parse.push(QAST::Regex.new(
+                :rxtype('literal'), :backtrack('r'),
                 ~@parts[0]
             ));
-            $parse.push(PAST::Regex.new(
-                :pasttype('concat'),
-                PAST::Regex.new(
-                    :pasttype('subrule'), :subtype('capture'), :backtrack('r'),
-                    :name('EXPR'), 'EXPR'
+            $parse.push(QAST::Regex.new(
+                :rxtype('concat'),
+                QAST::Regex.new(
+                    :rxtype('subrule'), :subtype('capture'),
+                    :name('EXPR'), :backtrack('r'),
+                    PAST::Node.new('EXPR')
                 ),
-                PAST::Regex.new(
-                    :pasttype('literal'), :backtrack('r'),
+                QAST::Regex.new(
+                    :rxtype('literal'), :backtrack('r'),
                     ~@parts[1]
                 )
             ));
         }
-        $parse := Regex::P6Regex::Actions::buildsub($parse);
+        
+        # Wrap it in a block, compile and install it in the methods
+        # table.
+        my %*RX;
+        %*RX<name> := $canname;
+        $parse := QRegex::P6Regex::Actions::buildsub($parse);
         $parse.name($canname);
-
-        # Compile and then install the produced method into the
-        # Perl6::Grammar methods table.
         my $compiled := PAST::Compiler.compile($parse);
-        $self.HOW.add_method($self, ~$compiled[0], $compiled[0]);
+        $self.HOW.add_method($self, $canname, $compiled[0]);
 
         # May also need to add to the actions.
         if $category eq 'circumfix' {
@@ -2845,9 +2847,6 @@ grammar Perl6::Grammar is HLL::Grammar {
                 );
             });
         }
-
-        # Mark proto-regex table as needing re-generation.
-        $self.'!protoregex_generation'();
 
         return 1;
     }

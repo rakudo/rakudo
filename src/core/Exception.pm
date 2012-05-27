@@ -707,6 +707,14 @@ my class X::NoDispatcher is Exception {
     }
 }
 
+my class X::Localizer::NoContainer is Exception {
+    has $.localizer;
+    method message() {
+        "Can only use '$.localizer' on a container";
+    }
+}
+
+
 {
     my %c_ex;
     %c_ex{'X::TypeCheck::Binding'} := sub ($got, $expected) is hidden_from_backtrace {

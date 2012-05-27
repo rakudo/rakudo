@@ -201,7 +201,7 @@ sub prefix:<temp>(\$cont) is rw {
         nqp::push($temp_restore, my %h = $cont);
     }
     else {
-        die "Can only use 'temp' on a container";
+        X::Localizer::NoContainer.new(localizer => 'temp').throw;
     }
     $cont
 }
@@ -221,7 +221,7 @@ sub prefix:<let>(\$cont) is rw {
         nqp::push($let_restore, my %h = $cont);
     }
     else {
-        die "Can only use 'let' on a container";
+        X::Localizer::NoContainer.new(localizer => 'let').throw;
     }
     $cont
 }

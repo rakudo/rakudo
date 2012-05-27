@@ -1,3 +1,5 @@
+my class X::IO::Copy { ... }
+
 sub print(|$) {
     my $args := pir::perl6_current_args_rpa__P();
     $*OUT.print(nqp::shift($args)) while $args;
@@ -203,13 +205,10 @@ class IO {
 
     # not spec'd
     method copy($dest) {
-        if self.d() {
-            die "Cannot copy '$.path': Is a directory"
-        }
         try {
             pir::new__PS('File').copy(nqp::unbox_s(~$.path), nqp::unbox_s(~$dest));
         }
-        $! ?? fail($!) !! True
+        $! ?? fail(X::IO::Copy.new(from => $.path, to => $dest, os-error => ~$!)) !! True
     }
 
     my class X::IO::Chmod { ... }
@@ -383,7 +382,6 @@ sub rename(Cool $from as Str, Cool $to as Str) {
         }
     }
 }
-my class X::IO::Copy { ... }
 sub copy(Cool $from as Str, Cool $to as Str) {
     pir::new__PS('File').copy(nqp::unbox_s($from), nqp::unbox_s($to));
     return True;

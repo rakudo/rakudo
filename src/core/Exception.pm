@@ -659,6 +659,11 @@ my class X::ControlFlow::Return is X::ControlFlow {
     method enclosing() { 'Routine' }
     method message()   { 'Attempt to return outside of any Routine' }
 }
+my class X::ControlFlow::Routine::Exhausted is X::ControlFlow {
+    method illegal()   { 'return'  }
+    method enclosing() { 'not a Routine' }
+    method message()   { 'Attempt to return from exhausted Routine' }
+}
 
 my class X::TypeCheck is Exception {
     has $.operation;

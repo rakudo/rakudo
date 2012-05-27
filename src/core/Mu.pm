@@ -1,4 +1,5 @@
 my class X::Constructor::Positional { ... }
+my class X::Method::NotFound        { ... }
 
 my class Mu {
     proto method ACCEPTS(|$) { * }
@@ -288,8 +289,10 @@ my class Mu {
     method dispatch:<.+>(Mu \$self: $name, |$c) {
         my @result := $self.dispatch:<.*>($name, |$c);
         if @result.elems == 0 {
-            die "Method '$name' not found for invocant of type '" ~
-                $self.WHAT.perl ~ "'";
+            X::Method::NotFound.new(
+                    method   => $name,
+                    typename => $self.^name,
+            ).throw;
         }
         @result
     }

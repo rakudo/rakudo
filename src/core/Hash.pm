@@ -46,7 +46,7 @@ my class Hash {
             }
             elsif $items { self.STORE_AT_KEY($x, $items.shift) }
             else {
-                die(X::Hash::Store::OddNumber.new())
+                X::Hash::Store::OddNumber.new.throw
             }
         }
         self

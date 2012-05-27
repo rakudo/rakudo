@@ -21,19 +21,18 @@ multi infix:<does>(Mu:D \$obj, Mu:U \$rolish, :$value! is parcel) is rw {
                 $rolish.HOW.archetypes.composalizable() ?? $rolish.HOW.composalize($rolish) !!
                 die("Cannot mix in a non-composable type");
     my @attrs = $role.^attributes().grep: { .has_accessor };
-    die(X::Role::Initialization.new())
-        unless @attrs == 1;
+    X::Role::Initialization.new().throw unless @attrs == 1;
     $obj.HOW.mixin($obj, $role).BUILD_LEAST_DERIVED({ @attrs[0].Str.substr(2) => $value });
 }
 multi infix:<does>(Mu:U \$obj, Mu:U \$role) is rw {
-    die(X::Does::TypeObject.new())
+    X::Does::TypeObject.new().throw
 }
 multi infix:<does>(Mu:D \$obj, @roles) is rw {
     # XXX Mutability check.
     $obj.HOW.mixin($obj, |@roles).BUILD_LEAST_DERIVED({});
 }
 multi infix:<does>(Mu:U \$obj, @roles) is rw {
-    die(X::Does::TypeObject.new())
+    X::Does::TypeObject.new().throw
 }
 
 proto infix:<but>(|$) { * }

@@ -2862,7 +2862,7 @@ grammar Perl6::RegexGrammar is QRegex::P6Regex::Grammar {
     }
 
     token metachar:sym<rakvar> {
-        <?[$@&]> <?before .<?alpha>> <var=.LANG('MAIN', 'variable')>
+        <?before <[$@&]> [<alpha> | \W<alpha>]> <var=.LANG('MAIN', 'variable')>
     }
 
     token metachar:sym<qw> {

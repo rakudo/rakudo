@@ -1,5 +1,6 @@
 my class X::Constructor::Positional { ... }
 my class X::Method::NotFound        { ... }
+my class X::Method::InvalidQualifier { ... }
 
 my class Mu {
     proto method ACCEPTS(|$) { * }
@@ -257,9 +258,12 @@ my class Mu {
     
     method dispatch:<::>(Mu \$self: $name, Mu $type, |$c) is rw {
         unless nqp::istype($self, $type) {
-            die "Cannot dispatch to a method on " ~ $type.WHAT.perl ~
-                " because it is not inherited or done by " ~
-                $self.WHAT.perl;
+            X::Method::InvalidQualifier.new(
+                    method          => $name,
+                    invocant        => $self,
+                    qualifier-type  => $type,
+
+            ).throw;
         }
         pir::find_method__PPS($type, $name)($self, |$c)
     }

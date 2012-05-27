@@ -51,6 +51,16 @@ my class X::Method::NotFound is Exception {
     }
 }
 
+my class X::Method::InvalidQualifier is Exception {
+    has $.method;
+    has $.invocant;
+    has $.qualifier-type;
+    method message() {
+          "Cannot dispatch to method $.method on {$.qualifier-type.^name} "
+        ~ "because it is no inhertied or done by {$.invocant.^name}";
+    }
+}
+
 
 sub EXCEPTION(|$) {
     my Mu $parrot_ex := nqp::shift(pir::perl6_current_args_rpa__P());

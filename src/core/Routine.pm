@@ -89,7 +89,7 @@ my class Routine {
     
     method unwrap($handle) {
         $handle.can('restore') && $handle.restore() ||
-            die(X::Routine::Unwrap.new())
+            X::Routine::Unwrap.new.throw
     }
     
     method yada() {

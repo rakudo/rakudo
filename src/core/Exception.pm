@@ -714,6 +714,14 @@ my class X::Localizer::NoContainer is Exception {
     }
 }
 
+my class X::Mixin::NonComposable is Exception {
+    has $.target;
+    has $.rolish;
+    method message() {
+        "Cannot mix in non-composable type {$.rolish.^name} into object of type {$.target.^name}";
+    }
+}
+
 
 {
     my %c_ex;

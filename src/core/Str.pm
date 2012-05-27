@@ -978,15 +978,15 @@ multi infix:<ge>(Str:D \$a, Str:D \$b) {
 
 
 multi infix:<~|>(Str:D \$a, Str:D \$b) {
-    nqp::p6box_s(pir::bors__SSS(nqp::unbox_s($a), nqp::unbox_s($b)))
+    nqp::p6box_s(nqp::bitor_s(nqp::unbox_s($a), nqp::unbox_s($b)))
 }
 
 multi infix:<~&>(Str:D \$a, Str:D \$b) {
-    nqp::p6box_s(pir::bands__SSS(nqp::unbox_s($a), nqp::unbox_s($b)))
+    nqp::p6box_s(nqp::bitand_s(nqp::unbox_s($a), nqp::unbox_s($b)))
 }
 
 multi infix:<~^>(Str:D \$a, Str:D \$b) {
-    nqp::p6box_s(pir::bxors__SSS(nqp::unbox_s($a), nqp::unbox_s($b)))
+    nqp::p6box_s(nqp::bitxor_s(nqp::unbox_s($a), nqp::unbox_s($b)))
 }
 
 multi prefix:<~^>(Str \$a) {

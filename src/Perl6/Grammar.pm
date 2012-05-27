@@ -1,4 +1,4 @@
-use NQPP6Regex;
+use NQPP6QRegex;
 use QRegex;
 use Perl6::World;
 use Perl6::Pod;
@@ -25,7 +25,7 @@ grammar Perl6::Grammar is HLL::Grammar {
         # objects that cross the compile-time/run-time boundary that are
         # associated with this compilation unit.
         my $file := pir::find_caller_lex__ps('$?FILES');
-        my $source_id := nqp::sha1(nqp::getattr(self, Regex::Cursor, '$!target'));
+        my $source_id := nqp::sha1(nqp::getattr_s(self, NQPCursor, '$!target'));
         my $*W := nqp::isnull($file) ??
             Perl6::World.new(:handle($source_id)) !!
             Perl6::World.new(:handle($source_id), :description($file));
@@ -144,7 +144,7 @@ grammar Perl6::Grammar is HLL::Grammar {
         # :dba('horizontal whitespace')
         [
         | ^^ <?before \h* '=' [ \w | '\\'] > <.pod_content_toplevel>
-        | \h* <comment>
+        | \h* <.comment>
         | \h+
         ]
     }
@@ -157,7 +157,7 @@ grammar Perl6::Grammar is HLL::Grammar {
 
     token comment:sym<#`(...)> {
         '#`' {}
-        [ <quote_EXPR> || <.typed_panic: 'X::Syntax::Comment::Embedded'> ]
+        [ <.quote_EXPR> || <.typed_panic: 'X::Syntax::Comment::Embedded'> ]
     }
 
     token comment:sym<#=(...)> {
@@ -201,7 +201,7 @@ grammar Perl6::Grammar is HLL::Grammar {
     # any number of paragraphs of text
     token pod_content:sym<text> {
         <pod_newline>*
-        <pod_textcontent> ** <pod_newline>+
+        <pod_textcontent>+ % <pod_newline>+
         <pod_newline>*
     }
 
@@ -230,7 +230,7 @@ grammar Perl6::Grammar is HLL::Grammar {
         <?{ $*ALLOW_CODE
             && ($<spaces>.to - $<spaces>.from) > $*VMARGIN }>
         $<text> = [
-            [<!before '=' \w> \N+] ** [<pod_newline> $<spaces>]
+            [<!before '=' \w> \N+]+ % [<pod_newline> $<spaces>]
         ]
     }
 
@@ -392,7 +392,7 @@ grammar Perl6::Grammar is HLL::Grammar {
     }
 
     token version {
-        'v' {} <?before \d+> <vnum> ** '.' ('+')?
+        'v' {} <?before \d+> <vnum>+ % '.' ('+')?
         <!before '-'|\'> # cheat because of LTM fail
     }
 
@@ -545,7 +545,7 @@ grammar Perl6::Grammar is HLL::Grammar {
     }
 
     rule semilist {
-        | <?[ ) \] } ]>
+        | <?before <[)\]}]> >
         | [<statement><.eat_terminator> ]*
     }
 
@@ -701,7 +701,7 @@ grammar Perl6::Grammar is HLL::Grammar {
         [
         | <version>
         | <module_name>
-        ] ** ','
+        ]+ % ','
         {
             for $<module_name> {
                 $*W.load_module($/, ~$_<longname>, $*GLOBALish);
@@ -911,7 +911,7 @@ grammar Perl6::Grammar is HLL::Grammar {
     token term:sym<routine_declarator> { <routine_declarator> }
     token term:sym<multi_declarator>   { <?before 'multi'|'proto'|'only'> <multi_declarator> }
     token term:sym<regex_declarator>   { <regex_declarator> }
-    token term:sym<circumfix>          { <!before '[' \\? <.infixish> ']'> <circumfix> }
+    token term:sym<circumfix>          { <circumfix> }
     token term:sym<statement_prefix>   { <statement_prefix> }
     token term:sym<**>                 { <sym> <.NYI('HyperWhatever (**)')> }
     token term:sym<*>                  { <sym> }
@@ -1157,7 +1157,7 @@ grammar Perl6::Grammar is HLL::Grammar {
 
     token desigilname {
         [
-        | <?before '$' >
+        | <?[$]>
             [ <?{ $*IN_DECL }> <.typed_panic: 'X::Syntax::Variable::IndirectDeclaration'> ]?
             <variable>
         | <?before <[\@\%\&]> <sigil>* \w > <.panic: "Invalid hard reference syntax">
@@ -1717,7 +1717,7 @@ grammar Perl6::Grammar is HLL::Grammar {
         [
         | <?before '-->' | ')' | ']' | '{' | ':'\s >
         | [ <parameter> || <.malformed('parameter')> ]
-        ] ** <param_sep>
+        ]+ % <param_sep>
         <.ws>
         { $*IN_DECL := ''; }
         [ '-->' <.ws> <typename> ]?
@@ -2050,7 +2050,7 @@ grammar Perl6::Grammar is HLL::Grammar {
     }
 
     token semiarglist {
-        <arglist> ** ';'
+        <arglist>+ % ';'
         <.ws>
     }
 
@@ -2094,8 +2094,8 @@ grammar Perl6::Grammar is HLL::Grammar {
     }
 
     token rad_number {
-         <!before '::'> ':' $<radix> = [\d+] <.unsp>?
-        # {}           # don't recurse in lexer
+        ':' $<radix> = [\d+] <.unsp>?
+        {}           # don't recurse in lexer
         # :dba('number in radix notation')
         [
         || '<'
@@ -2192,7 +2192,7 @@ grammar Perl6::Grammar is HLL::Grammar {
     }
 
     method match_with_adverb($v) {
-        my $s := Regex::Match.new();
+        my $s := NQPMatch.new();
         $s.'!make'(PAST::Val.new(:value(1), :named('s')));
         $s;
     }
@@ -2364,7 +2364,7 @@ grammar Perl6::Grammar is HLL::Grammar {
     token infixish {
         <!stdstopper>
         [
-        | '[' ~ ']' <infixish> <OPER=.copyOPER('infixish')>
+        | '[' ~ ']' <infixish> {} <OPER=.copyOPER($<infixish>)>
         | <OPER=infix_circumfix_meta_operator>
         | <OPER=infix> <![=]>
         | <OPER=infix_prefix_meta_operator>
@@ -2433,26 +2433,30 @@ grammar Perl6::Grammar is HLL::Grammar {
         $<opening>=[ '«' | '»' ]
         {} <infixish>
         $<closing>=[ '«' | '»' || <.missing("« or »")> ]
-        <O=.copyO('infixish')>
+        {} <O=.copyO($<infixish>)>
     }
 
     token infix_circumfix_meta_operator:sym«<< >>» {
         $<opening>=[ '<<' | '>>' ]
         {} <infixish>
         $<closing>=[ '<<' | '>>' || <.missing("<< or >>")> ]
-        <O=.copyO('infixish')>
+        {} <O=.copyO($<infixish>)>
     }
 
     method copyO($from) {
-        my $m := self.MATCH();
-        my $r := $m{$from}<OPER><O>;
-        self.'!cursor_start'().'!cursor_pass'(self.pos(), '', $r);
+        my $O   := $from<OPER><O>;
+        my $cur := self.'!cursor_start'();
+        $cur.'!cursor_pass'(self.pos());
+        nqp::bindattr($cur, NQPCursor, '$!match', $O);
+        $cur
     }
 
     method copyOPER($from) {
-        my $m := self.MATCH();
-        my $r := $m{$from}<OPER>;
-        self.'!cursor_start'().'!cursor_pass'(self.pos(), '', $r);
+        my $OPER := $from<OPER>;
+        my $cur  := self.'!cursor_start'();
+        $cur.'!cursor_pass'(self.pos());
+        nqp::bindattr($cur, NQPCursor, '$!match', $OPER);
+        $cur
     }
 
     proto token dotty { <...> }
@@ -2544,8 +2548,8 @@ grammar Perl6::Grammar is HLL::Grammar {
     token prefix:sym<+>   { <sym>  <O('%symbolic_unary')> }
     token prefix:sym<~>   { <sym>  <O('%symbolic_unary')> }
     token prefix:sym<->   { <sym> <![>]> <O('%symbolic_unary')> }
-    token prefix:sym<?>   { <!before '???'> <sym>  <O('%symbolic_unary')> }
-    token prefix:sym<!>   { <!before '!!!'> <sym>  <O('%symbolic_unary')> }
+    token prefix:sym<?>   { <sym> <!before '??'> <O('%symbolic_unary')> }
+    token prefix:sym<!>   { <sym> <!before '!!'> <O('%symbolic_unary')> }
     token prefix:sym<+^>  { <sym>  <O('%symbolic_unary')> }
     token prefix:sym<~^>  { <sym>  <O('%symbolic_unary')> }
     token prefix:sym<?^>  { <sym>  <O('%symbolic_unary')> }
@@ -2649,12 +2653,12 @@ grammar Perl6::Grammar is HLL::Grammar {
         <sym> <infixish> 
         [
         || <?{ $<infixish>.Str eq '=' }> <O('%chaining')>
-        || <?{ $<infixish><OPER><O><iffy> }> <O=.copyO('infixish')>
+        || <?{ $<infixish><OPER><O><iffy> }> <O=.copyO($<infixish>)>
         || <.panic("Cannot negate " ~ $<infixish>.Str ~ " because it is not iffy enough")>
         ]
     }
-    token infix_prefix_meta_operator:sym<R> { <sym> <infixish> <O=.copyO('infixish')> }
-    token infix_prefix_meta_operator:sym<S> { <sym> <infixish> <O=.copyO('infixish')> }
+    token infix_prefix_meta_operator:sym<R> { <sym> <infixish> {} <O=.copyO($<infixish>)> }
+    token infix_prefix_meta_operator:sym<S> { <sym> <infixish> {} <O=.copyO($<infixish>)> }
     token infix_prefix_meta_operator:sym<X> { <sym> <infixish> <O('%list_infix')> }
     token infix_prefix_meta_operator:sym<Z> { <sym> <infixish> <O('%list_infix')> }
     token infix:sym<minmax> { <sym> >> <O('%list_infix')> }
@@ -2777,27 +2781,26 @@ grammar Perl6::Grammar is HLL::Grammar {
             self.typed_panic('X::Syntax::Extension::Category', :$category);
         }
 
-        # We need to modify the grammar. Build code to parse it.
-        my $parse := PAST::Regex.new(
-            :pasttype('concat')
+        # We need to modify the grammar. Build code to parse it
+        # the operator.
+        my $parse := QAST::Regex.new(
+            :rxtype('concat')
         );
         if $is_oper {
             # For operator, it's just like 'op' <O('%prec')>
-            $parse.push(PAST::Regex.new(
-                :pasttype('subcapture'),
+            $parse.push(QAST::Regex.new(
+                :rxtype('subcapture'),
                 :name('sym'),
                 :backtrack('r'),
-                PAST::Regex.new(
-                    :pasttype('literal'),
+                QAST::Regex.new(
+                    :rxtype('literal'),
                     $opname
                 )
             ));
-            $parse.push(PAST::Regex.new(
-                :pasttype('subrule'),
-                :name('O'),
-                :backtrack('r'),
-                'O',
-                PAST::Val.new( :value($prec) )
+            $parse.push(QAST::Regex.new(
+                :rxtype('subrule'), :subtype('capture'),
+                :name('O'), :backtrack('r'),
+                PAST::Node.new('O', PAST::Val.new( :value($prec) ))
             ));
         }
         else {
@@ -2808,29 +2811,32 @@ grammar Perl6::Grammar is HLL::Grammar {
             if +@parts != 2 {
                 nqp::die("Unable to find starter and stopper from '$opname'");
             }
-            $parse.push(PAST::Regex.new(
-                :pasttype('literal'), :backtrack('r'),
+            $parse.push(QAST::Regex.new(
+                :rxtype('literal'), :backtrack('r'),
                 ~@parts[0]
             ));
-            $parse.push(PAST::Regex.new(
-                :pasttype('concat'),
-                PAST::Regex.new(
-                    :pasttype('subrule'), :subtype('capture'), :backtrack('r'),
-                    :name('EXPR'), 'EXPR'
+            $parse.push(QAST::Regex.new(
+                :rxtype('concat'),
+                QAST::Regex.new(
+                    :rxtype('subrule'), :subtype('capture'),
+                    :name('EXPR'), :backtrack('r'),
+                    PAST::Node.new('EXPR')
                 ),
-                PAST::Regex.new(
-                    :pasttype('literal'), :backtrack('r'),
+                QAST::Regex.new(
+                    :rxtype('literal'), :backtrack('r'),
                     ~@parts[1]
                 )
             ));
         }
-        $parse := Regex::P6Regex::Actions::buildsub($parse);
+        
+        # Wrap it in a block, compile and install it in the methods
+        # table.
+        my %*RX;
+        %*RX<name> := $canname;
+        $parse := QRegex::P6Regex::Actions::buildsub($parse);
         $parse.name($canname);
-
-        # Compile and then install the produced method into the
-        # Perl6::Grammar methods table.
         my $compiled := PAST::Compiler.compile($parse);
-        $self.HOW.add_method($self, ~$compiled[0], $compiled[0]);
+        $self.HOW.add_method($self, $canname, $compiled[0]);
 
         # May also need to add to the actions.
         if $category eq 'circumfix' {
@@ -2841,9 +2847,6 @@ grammar Perl6::Grammar is HLL::Grammar {
                 );
             });
         }
-
-        # Mark proto-regex table as needing re-generation.
-        $self.'!protoregex_generation'();
 
         return 1;
     }
@@ -2859,7 +2862,7 @@ grammar Perl6::RegexGrammar is QRegex::P6Regex::Grammar {
     }
 
     token metachar:sym<rakvar> {
-        <?[$@&]> <?before .<?alpha>> <var=.LANG('MAIN', 'variable')>
+        <?before <[$@&]> [<alpha> | \W<alpha>]> <var=.LANG('MAIN', 'variable')>
     }
 
     token metachar:sym<qw> {

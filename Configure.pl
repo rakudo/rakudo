@@ -56,7 +56,7 @@ MAIN: {
     }
 
     # --with-parrot and --gen-parrot imply --gen-nqp
-    if (!defined $gen_nqp && (defined $with_parrot || defined $gen_parrot)) {
+    if (!defined $gen_nqp && !defined $with_nqp && (defined $with_parrot || defined $gen_parrot)) {
         $gen_nqp = '';
     }
 

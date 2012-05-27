@@ -1,7 +1,8 @@
-use NQPP6Regex;
+use NQPP6QRegex;
 use Perl6::Pod;
 use Perl6::ConstantFolder;
 use QRegex;
+use PASTRegex; # For PAST
 
 INIT {
     # Add our custom nqp:: opcodes.
@@ -1011,7 +1012,7 @@ class Perl6::Actions is HLL::Actions {
             if $<var> {
                 make make_pair($*key, make_variable($/<var>, [~$<var>]));
             }
-            elsif $*value ~~ Regex::Match {
+            elsif $*value ~~ NQPMatch {
                 my $val_ast := $*value.ast;
                 if $val_ast.isa(PAST::Stmts) && +@($val_ast) == 1 {
                     $val_ast := $val_ast[0];
@@ -4133,7 +4134,7 @@ class Perl6::Actions is HLL::Actions {
             $dwim.named('dwim-right');
             $hpast.push($dwim);
         }
-        make PAST::Op.new( :node($/), $hpast );
+        return PAST::Op.new( :node($/), $hpast );
     }
 
     method postfixish($/) {
@@ -4601,7 +4602,7 @@ class Perl6::Actions is HLL::Actions {
     # and use &infix:<,> to build the parcel
     method quote_EXPR($/) {
         my $past := $<quote_delimited>.ast;
-        if $/.CURSOR.quotemod_check('w') {
+        if %*QUOTEMOD<w> {
             my @words := HLL::Grammar::split_words($/,
                 compile_time_value_str($past, ":w list", $/));
             if +@words != 1 {

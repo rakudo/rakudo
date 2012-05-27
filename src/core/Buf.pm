@@ -3,6 +3,7 @@
 # the Real Thing.
 
 my class X::Buf::AsStr { ... };
+my class X::Buf::Pack  { ... };
 
 my class Buf does Positional {
     has Mu $!buffer;
@@ -38,8 +39,8 @@ my class Buf does Positional {
         nqp::p6box_i(nqp::elems($!buffer));
     }
     method bytes(Buf:D:) { self.elems }
-    method chars()       { die X::Buf::AsStr.new(method => 'chars') }
-    multi method Str()   { die X::Buf::AsStr.new(method => 'Str'  ) }
+    method chars()       { X::Buf::AsStr.new(method => 'chars').throw }
+    multi method Str()   { X::Buf::AsStr.new(method => 'Str'  ).throw }
 
 
     method Numeric { self.elems }
@@ -136,7 +137,7 @@ my class Buf does Positional {
                                  + (shift(@bytes) +< 0x08)
                                  + shift(@bytes);
                 }
-                die "Unrecognized directive $directive";
+                X::Buf::Pack.new(:$directive).throw;
             }
         }
 
@@ -257,7 +258,7 @@ multi sub pack(Str $template, *@items) {
                 @bytes.push: ($number +> 0x18, $number +> 0x10,
                               $number +> 0x08, $number) >>%>> 0x100;
             }
-            die "Unrecognized directive $directive";
+            X::Buf::Pack.new(:$directive).throw;
         }
     }
 

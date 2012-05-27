@@ -312,6 +312,12 @@ my class X::Buf::AsStr is Exception {
         "Cannot use a Buf as a string, but you called the $.method method on it";
     }
 }
+my class X::Buf::Pack is Exception {
+    has $.directive;
+    method message() {
+        "Unrecognized directive '$.directive'";
+    }
+}
 
 my class X::Signature::Placeholder does X::Comp {
     method message() {

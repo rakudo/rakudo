@@ -1,7 +1,7 @@
 Rakudo Roadmap
 --------------
 
-Last updated: 2012-05-25
+Last updated: 2012-05-27
 
 This document serves as a guide to the major goals for Rakudo
 development, as things stood in December 2011. They have been
@@ -28,8 +28,6 @@ remove completed ones, re-prioritize, volunteer for a goal,
 rescue yourself from a goal, etc.
 
 Compiler Performance/Portability Improvements (jnthn)
-1 ***   get NQP bootstrapped with QRegex engine
-1 **    LTM and other updates to Rakudo grammar to work on QRegex
 2 ***** design, implement and switch to QAST
 2 **    finish up any remaining s/pir::/nqp::/
 2 ?     re-organize Rakudo, build process, etc. for multi-backend

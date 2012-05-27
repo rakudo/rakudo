@@ -42,10 +42,14 @@ my class X::AdHoc is Exception {
 my class X::Method::NotFound is Exception {
     has $.method;
     has $.typename;
+    has Bool $.private = False;
     method message() {
-        "No such method '$.method' for invocant of type '$.typename'";
+        $.private
+            ?? "No such private method '$.method' for invocant of type '$.typename'"
+            !! "No such method '$.method' for invocant of type '$.typename'";
     }
 }
+
 
 sub EXCEPTION(|$) {
     my Mu $parrot_ex := nqp::shift(pir::perl6_current_args_rpa__P());

@@ -268,8 +268,11 @@ my class Mu {
         my $meth := $type.HOW.find_private_method($type, $name);
         $meth ??
             $meth($self, |$c) !!
-            die("Private method '$name' not found on type " ~ $type.HOW.name($type))
-            
+            X::Method::NotFound.new(
+                    method   => '!' ~ $name,
+                    typename => $type.HOW.name($type),
+                    :private,
+            ).throw;
     }
     
     method dispatch:<.^>(Mu \$self: $name, |$c) is rw is hidden_from_backtrace {

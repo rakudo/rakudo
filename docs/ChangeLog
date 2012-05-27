@@ -1,4 +1,6 @@
 New in 2012.06
++ Rakudo is now compiled with the same regex engine as user-space regexes use
++ transitive longest-token matching in proto regexes
 + changed the output of Match.gist
 + string to number conversion now fails for non-numbers
 + string to number conversion now recognizes radix notation

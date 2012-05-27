@@ -3806,7 +3806,7 @@ class Perl6::Actions is HLL::Actions {
                     $was_lexical := 1;
                 }
                 unless $was_lexical {
-                    $*W.throw($/, ['X', 'Bind', 'WrongLHS']);
+                    $*W.throw($/, ['X', 'Bind', 'Comp']);
                 }
             }
 
@@ -3831,7 +3831,7 @@ class Perl6::Actions is HLL::Actions {
         }
         # XXX Several more cases to do...
         else {
-            $*W.throw($/, ['X', 'Bind', 'WrongLHS']);
+            $*W.throw($/, ['X', 'Bind', 'Comp']);
         }
     }
 

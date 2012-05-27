@@ -1,6 +1,7 @@
 my class MapIter { ... }
 my class Whatever { ... }
 my class Range { ... }
+my class X::Bind::Slice { ... }
 my class X::Bind::ZenSlice { ... }
 
 my class Any {
@@ -125,7 +126,9 @@ my class Any {
 
     proto method postcircumfix:<[ ]>(|$) { * }
     multi method postcircumfix:<[ ]>() { self.list }
-    multi method postcircumfix:<[ ]>(:$BIND!) { die(X::Bind::ZenSlice.new()) }
+    multi method postcircumfix:<[ ]>(:$BIND!) {
+        X::Bind::ZenSlice.new(type => self.WHAT).throw
+    }
     multi method postcircumfix:<[ ]>(\$self: $pos) is rw {
         fail "Cannot use negative index $pos on {$self.WHAT.perl}" if $pos < 0;
         $self.at_pos($pos)
@@ -154,19 +157,19 @@ my class Any {
                    !! { $self[$_] }).eager.Parcel;
     }
     multi method postcircumfix:<[ ]>(Positional $pos, :$BIND!) is rw {
-        die "Cannot bind to an array slice"
+        X::Bind::Slice.new(type => self.WHAT).throw;
     }
     multi method postcircumfix:<[ ]>(\$self: Callable $block) is rw {
         $self[$block(|($self.elems xx $block.count))]
     }
     multi method postcircumfix:<[ ]>(Callable $block, :$BIND!) is rw {
-        die "Cannot bind to a callable array slice"; # WhateverCode?
+        X::Bind::Slice.new(type => self.WHAT).throw;
     }
     multi method postcircumfix:<[ ]>(\$self: Whatever) is rw {
         $self[^$self.elems]
     }
     multi method postcircumfix:<[ ]>(Whatever, :$BIND!) is rw {
-        die "Cannot bind to a whatever array slice"
+        X::Bind::Slice.new(type => self.WHAT).throw;
     }
 
     proto method at_pos(|$) {*}
@@ -194,7 +197,9 @@ my class Any {
     ########
     proto method postcircumfix:<{ }>(|$) { * }
     multi method postcircumfix:<{ }>() { self }
-    multi method postcircumfix:<{ }>(:$BIND!) { die(X::Bind::ZenSlice.new(:what<hash>)) }
+    multi method postcircumfix:<{ }>(:$BIND!) {
+        X::Bind::ZenSlice.new(type => self.WHAT).throw
+    }
     multi method postcircumfix:<{ }>(\$self: $key) is rw {
         $self.at_key($key)
     }
@@ -207,13 +212,13 @@ my class Any {
           !! $key.map({ $self{$_} }).eager.Parcel
     }
     multi method postcircumfix:<{ }>(Positional $key, :$BIND!) is rw {
-        die "Cannot bind to a hash slice"
+        X::Bind::Slice.new(type => self.WHAT).throw
     }
     multi method postcircumfix:<{ }>(\$self: Whatever) is rw {
         $self{$self.keys}
     }
     multi method postcircumfix:<{ }>(Whatever, :$BIND!) is rw {
-        die "Cannot bind to a whatever hash slice"
+        X::Bind::Slice.new(type => self.WHAT).throw
     }
 
     proto method at_key(|$) { * }

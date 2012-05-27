@@ -419,18 +419,29 @@ my class X::Method::Private::Unqualified does X::Comp {
     }
 }
 
-my class X::Bind::WrongLHS does X::Comp {
-    method message() { 'Cannot use bind operator with this left-hand side' }
+my class X::Bind::Comp does X::Comp {
+    has $.target;
+    method message() {
+        $.target.defined
+            ?? "Cannot bind to $.target"
+            !! 'Cannot use bind operator with this left-hand side'
+    }
 }
 my class X::Bind::NativeType does X::Comp {
     method message() {
         'Cannot bind to a natively typed variable; use assignment instead'
     }
 }
-my class X::Bind::ZenSlice is Exception {
-    has Str $.what = 'array';
-
-    method message() { "Cannot bind to a zen $.what slice." }
+my class X::Bind::Slice is Exception  {
+    has $.type;
+    method message() {
+        "Cannot bind to {$.type.^name} slice";
+    }
+}
+my class X::Bind::ZenSlice is X::Bind::Slice {
+    method message() {
+        "Cannot bind to {$.type.^name} zen slice";
+    }
 }
 
 my class X::Value::Dynamic does X::Comp {

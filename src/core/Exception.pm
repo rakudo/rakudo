@@ -739,6 +739,20 @@ my class X::Mixin::NonComposable is Exception {
     }
 }
 
+# XXX should probably be X::Comp, but we don't get
+# the line number etc. in traits.pm
+my class X::Inheritance::Unsupported is Exception {
+    # note that this exception is thrown before the child type object
+    # has been composed, so it's useless to carry it around. Use the
+    # name instead.
+    has $.child-typename;
+    has $.parent;
+    method message {
+        $.child-typename ~ ' cannot inherit from ' ~
+        $.parent.^name ~ ' because it is not inheritable';
+    }
+}
+
 
 {
     my %c_ex;

@@ -8,6 +8,9 @@ my role Callable { ... }
 # This is needed for the export trait.
 my class Pair { ... }
 
+# for errors
+my class X::Inheritance::Unsupported { ... }
+
 proto trait_mod:<is>(|$) { * }
 multi trait_mod:<is>(Mu:U $child, Mu:U $parent) {
     if $parent.HOW.archetypes.inheritable() {
@@ -17,8 +20,10 @@ multi trait_mod:<is>(Mu:U $child, Mu:U $parent) {
         $child.HOW.add_parent($child, $parent.HOW.inheritalize($parent))
     }
     else {
-        die $child.HOW.name($child) ~ " cannot inherit from " ~
-            $parent.HOW.name($parent) ~ " because it is not inheritable"
+        X::Inheritance::Unsupported.new(
+            :child-typename($child.HOW.name($child)),
+            :$parent,
+        ).throw;
     }
 }
 multi trait_mod:<is>(Mu:U $type, :$rw!) {

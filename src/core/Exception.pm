@@ -1,4 +1,5 @@
 my role X::Comp { ... }
+my class X::ControlFlow { ... }
 
 my class Exception {
     has $!ex;
@@ -154,23 +155,23 @@ do {
             die("stray return control exception");
         }
         if ($type == pir::const::CONTROL_LOOP_LAST) {
-            die("last without loop construct");
+            X::ControlFlow.new(illegal => 'last', enclosing => 'loop construct').throw;
         }
         if ($type == pir::const::CONTROL_LOOP_NEXT) {
-            die("next without loop construct");
+            X::ControlFlow.new(illegal => 'next', enclosing => 'loop construct').throw;
         }
         if ($type == pir::const::CONTROL_LOOP_REDO) {
-            die("redo without loop construct");
+            X::ControlFlow.new(illegal => 'redo', enclosing => 'loop construct').throw;
         }
         if ($type == pir::const::CONTROL_CONTINUE) {
-            die("proceed without when clause");
+            X::ControlFlow.new(illegal => 'proceed', enclosing => 'when clause').throw;
         }
         if ($type == pir::const::CONTROL_BREAK) {
             # XXX: should work like leave() ?
-            die("succeed without when clause");
+            X::ControlFlow.new(illegal => 'succeed', enclosing => 'when clause').throw;
         }
         if ($type == pir::const::CONTROL_TAKE) {
-            die("stray take statement");
+            X::ControlFlow.new(illegal => 'take', enclosing => 'gather').throw;
         }
     }
             

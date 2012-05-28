@@ -10,6 +10,7 @@ my class Pair { ... }
 
 # for errors
 my class X::Inheritance::Unsupported { ... }
+my class X::Export::NameClash        { ... }
 
 proto trait_mod:<is>(|$) { * }
 multi trait_mod:<is>(Mu:U $child, Mu:U $parent) {
@@ -93,7 +94,7 @@ sub EXPORT_SYMBOL(\$exp_name, @tags, Mu \$sym) {
             }
             if $install_in.WHO.exists($exp_name) {
                 unless ($install_in.WHO){$exp_name} =:= $sym {
-                    die "A symbol $exp_name has already been exported";
+                    X::Export::NameClash.new(symbol => $exp_name).throw;
                 }
             }
             $*W.install_package_symbol($install_in, $exp_name, $sym);

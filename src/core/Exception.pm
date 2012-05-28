@@ -753,6 +753,13 @@ my class X::Inheritance::Unsupported is Exception {
     }
 }
 
+my class X::Export::NameClash is Exception {
+    has $.symbol;
+    method message() {
+        "A symbol '$.symbol' has already been exported";
+    }
+}
+
 
 {
     my %c_ex;

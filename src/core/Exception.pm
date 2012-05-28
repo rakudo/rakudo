@@ -760,6 +760,16 @@ my class X::Export::NameClash is Exception {
     }
 }
 
+my class X::HyperOp::NonDWIM is Exception {
+    has &.operator;
+    has $.left-elems;
+    has $.right-elems;
+    method message() {
+        "Lists on both side of non-dwimmy hyperop of &.operator.name() are not of the same length\n"
+        ~ "left: $.left-elems elements, right: $.right-elems elements"; 
+    }
+}
+
 
 {
     my %c_ex;

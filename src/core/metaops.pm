@@ -175,9 +175,12 @@ multi sub hyper(\$op, \$a, \$b, :$dwim-left, :$dwim-right) {
     elsif $dwim-left { $elems = @blist.elems }
     elsif $dwim-right { $elems = @alist.elems }
     else { 
-        die "Sorry, lists on both sides of non-dwimmy hyperop are not of same length:\n"
-            ~ "    left: @alist.elems() elements, right: @blist.elems() elements\n"
-          if @alist.elems != @blist.elems
+        X::HyperOp::NonDWIM.new(
+                operator    => $op,
+                left-elems  => @alist.elems,
+                right-elems => @blist.elems,
+        ).throw
+            if @alist.elems != @blist.elems
     }
     @alist := (@alist xx *).munch($elems) if @alist.elems < $elems;
     @blist := (@blist xx *).munch($elems) if @blist.elems < $elems;

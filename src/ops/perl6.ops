@@ -1838,7 +1838,7 @@ inline op perl6_return_from_routine(in PMC) :flow {
                 break;
         }
     }
-    if (PMC_IS_NULL(cont)) {
+    if (cont->vtable->base_type != enum_class_Continuation) {
         PMC * const thrower = get_thrower(interp, "X::ControlFlow::Return");
         if (PMC_IS_NULL(thrower))
             Parrot_ex_throw_from_c_args(interp, NULL, EXCEPTION_INVALID_OPERATION,

@@ -34,7 +34,7 @@ my class MapIter is Iterator {
             my $block   := nqp::p6decont($!block); ### TODO: Why?
             my $munched := $!list.munch($argc * $count);
             my $NEXT;
-            if pir::can__IPs($block, 'phasers') && $block.phasers('NEXT') -> @NEXT {
+            if nqp::can($block, 'phasers') && $block.phasers('NEXT') -> @NEXT {
                 if @NEXT.elems == 1 {
                     $NEXT := @NEXT[0];
                 }
@@ -45,7 +45,7 @@ my class MapIter is Iterator {
                 }
             }
             unless $!followup {
-                if pir::can__IPs($block, 'phasers') && $block.phasers('FIRST') {
+                if nqp::can($block, 'phasers') && $block.phasers('FIRST') {
                     pir::perl6_set_block_first_flag__vP($block);
                 }
             }
@@ -126,7 +126,7 @@ my class MapIter is Iterator {
                 nqp::bindattr_i($iter, MapIter, '$!followup', 1);
                 nqp::push($rpa, $iter);
             }
-            elsif pir::can__IPs($block, 'phasers') && $block.phasers('LAST') -> @LAST {
+            elsif nqp::can($block, 'phasers') && $block.phasers('LAST') -> @LAST {
                 .() for @LAST;
             }
             $!reified := nqp::p6parcel($rpa, nqp::null());

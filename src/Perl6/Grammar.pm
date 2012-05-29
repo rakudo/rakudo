@@ -1594,7 +1594,7 @@ grammar Perl6::Grammar is HLL::Grammar {
                 my $opname := ~$<deflongname>[0]<colonpair>[0]<circumfix><quote_EXPR><quote_delimited><quote_atom>[0];
                 my $canname := $category ~ ":sym<" ~ $opname ~ ">";
                 $/.CURSOR.gen_op($category, $opname, $canname, $<deflongname>[0].ast)
-                    unless pir::can__IPs($/.CURSOR, $canname);
+                    unless nqp::can($/.CURSOR, $canname);
             }
         }
         <.newpad>
@@ -1653,7 +1653,7 @@ grammar Perl6::Grammar is HLL::Grammar {
                 my $opname := ~$<deflongname>[0]<colonpair>[0]<circumfix><quote_EXPR><quote_delimited><quote_atom>[0];
                 my $canname := $category ~ ":sym<" ~ $opname ~ ">";
                 $/.CURSOR.gen_op($category, $opname, $canname, $<deflongname>[0].ast)
-                    unless pir::can__IPs($/.CURSOR, $canname);
+                    unless nqp::can($/.CURSOR, $canname);
             }
         }
         <.newpad>

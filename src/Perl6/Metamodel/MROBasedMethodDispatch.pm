@@ -13,7 +13,7 @@ role Perl6::Metamodel::MROBasedMethodDispatch {
         if pir::exists(%submethods, $name) {
             return %submethods{$name}
         }
-        !$no_fallback && pir::can__IPs(self, 'find_method_fallback') ??
+        !$no_fallback && nqp::can(self, 'find_method_fallback') ??
             self.find_method_fallback($obj, $name) !!
             pir::null__P();
     }

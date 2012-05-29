@@ -157,7 +157,7 @@ class Perl6::Optimizer {
                             my $chosen := @ct_result[1];
                             if $op.pasttype eq 'chain' { $!chain_depth := $!chain_depth - 1 }
                             if $*LEVEL >= 2 {
-                                return pir::can($chosen, 'inline_info') && $chosen.inline_info ne ''
+                                return nqp::can($chosen, 'inline_info') && $chosen.inline_info ne ''
                                     ?? self.inline_call($op, $chosen)
                                     !! self.call_ct_chosen_multi($op, $obj, $chosen);
                             }
@@ -173,9 +173,9 @@ class Perl6::Optimizer {
                         return self.inline_proto($op, $obj);
                     }
                 }
-                elsif pir::can($obj, 'signature') {
+                elsif nqp::can($obj, 'signature') {
                     # It's an only; we can at least know the return type.
-                    $op.type($obj.returns) if pir::can($obj, 'returns');
+                    $op.type($obj.returns) if nqp::can($obj, 'returns');
                     
                     # If we know enough about the arguments, do a "trial bind".
                     my @ct_arg_info := analyze_args_for_ct_call($op);
@@ -187,7 +187,7 @@ class Perl6::Optimizer {
                             if $op.pasttype eq 'chain' { $!chain_depth := $!chain_depth - 1 }
                             #say("# trial bind worked!");
                             if $*LEVEL >= 2 {
-                                return pir::can($obj, 'inline_info') && $obj.inline_info ne ''
+                                return nqp::can($obj, 'inline_info') && $obj.inline_info ne ''
                                     ?? self.inline_call($op, $obj)
                                     !! $op;
                             }
@@ -267,7 +267,7 @@ class Perl6::Optimizer {
                 @types.push(nqp::null());
                 @flags.push($_<boxable_native>);
             }
-            elsif pir::can__IPs($_, 'type') && !nqp::isnull($_.type) {
+            elsif nqp::can($_, 'type') && !nqp::isnull($_.type) {
                 my $type := $_.type();
                 if pir::isa($type, 'Undef') {
                     return [];
@@ -487,7 +487,7 @@ class Perl6::Optimizer {
         if $call.named ne '' {
             @stack[0].named($call.named);
         }
-        @stack[0].type($code_obj.returns) if pir::can($code_obj, 'returns');
+        @stack[0].type($code_obj.returns) if nqp::can($code_obj, 'returns');
         #say("# inlined a call to $name");
         @stack[0]
     }
@@ -509,7 +509,7 @@ class Perl6::Optimizer {
             }
             $idx := $idx + 1;
         }
-        $call.type($chosen.returns) if pir::can($chosen, 'returns');
+        $call.type($chosen.returns) if nqp::can($chosen, 'returns');
         $call
     }
     

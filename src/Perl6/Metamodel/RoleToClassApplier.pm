@@ -95,8 +95,8 @@ my class RoleToClassApplier {
         }
         compose_method_table($to_compose_meta.method_table($to_compose));
         compose_method_table($to_compose_meta.submethod_table($to_compose))
-            if pir::can__IPs($to_compose_meta, 'submethod_table');
-        if pir::can__IPs($to_compose_meta, 'private_method_table') {
+            if nqp::can($to_compose_meta, 'submethod_table');
+        if nqp::can($to_compose_meta, 'private_method_table') {
             for $to_compose_meta.private_method_table($to_compose) {
                 unless has_private_method($target, $_.key) {
                     $target.HOW.add_private_method($target, $_.key, $_.value);
@@ -106,7 +106,7 @@ my class RoleToClassApplier {
         
         # Compose in any multi-methods; conflicts can be caught by
         # the multi-dispatcher later.
-        if pir::can__IPs($to_compose_meta, 'multi_methods_to_incorporate') {
+        if nqp::can($to_compose_meta, 'multi_methods_to_incorporate') {
             my @multis := $to_compose_meta.multi_methods_to_incorporate($to_compose);
             for @multis {
                 $target.HOW.add_multi_method($target, $_.name, $_.code);
@@ -124,7 +124,7 @@ my class RoleToClassApplier {
         }
         
         # Compose in any parents.
-        if pir::can($to_compose_meta, 'parents') {
+        if nqp::can($to_compose_meta, 'parents') {
             my @parents := $to_compose_meta.parents($to_compose, :local(1));
             for @parents {
                 $target.HOW.add_parent($target, $_);

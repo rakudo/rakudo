@@ -1210,7 +1210,7 @@ class Perl6::Actions is HLL::Actions {
     }
     
     sub get_attribute_meta_object($/, $name) {
-        unless pir::can($*PACKAGE.HOW, 'get_attribute_for_usage') {
+        unless nqp::can($*PACKAGE.HOW, 'get_attribute_for_usage') {
             $/.CURSOR.panic("Cannot understand $name in this context");
         }
         my $attr;
@@ -1473,7 +1473,7 @@ class Perl6::Actions is HLL::Actions {
 
         if $*SCOPE eq 'has' {
             # Ensure current package can take attributes.
-            unless pir::can($*PACKAGE.HOW, 'add_attribute') {
+            unless nqp::can($*PACKAGE.HOW, 'add_attribute') {
                 if $*PKGDECL {
                     $*W.throw($/, ['X', 'Attribute', 'Package'],
                         package-type => $*PKGDECL
@@ -2087,7 +2087,7 @@ class Perl6::Actions is HLL::Actions {
         else {
             $meta_meth := $*MULTINESS eq 'multi' ?? 'add_multi_method' !! 'add_method';
         }
-        if $scope ne 'anon' && pir::can($*PACKAGE.HOW, $meta_meth) {
+        if $scope ne 'anon' && nqp::can($*PACKAGE.HOW, $meta_meth) {
             $*W.pkg_add_method($/, $*PACKAGE, $meta_meth, $name, $code);
         }
         elsif $scope eq '' || $scope eq 'has' {
@@ -2994,7 +2994,7 @@ class Perl6::Actions is HLL::Actions {
                 $past[1].type($methpkg);
             }
             else {
-                unless pir::can($*PACKAGE.HOW, 'find_private_method') {
+                unless nqp::can($*PACKAGE.HOW, 'find_private_method') {
                     $*W.throw($/, ['X', 'Method', 'Private', 'Unqualified'],
                         :method($name),
                     );
@@ -3199,7 +3199,7 @@ class Perl6::Actions is HLL::Actions {
         );
         $past.push($*W.add_string_constant($sigil)) if $sigil;
         for @components {
-            if pir::can($_, 'isa') && $_.isa(PAST::Node) {
+            if nqp::can($_, 'isa') && $_.isa(PAST::Node) {
                 $past.push($_);
             } else {
                 $past.push($*W.add_string_constant(~$_));

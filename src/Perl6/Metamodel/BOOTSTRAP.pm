@@ -789,7 +789,7 @@ BEGIN {
     # to postcircumfix:<( )>.
     my $invoke_forwarder :=
         static(sub ($self, *@pos, *%named) {
-            if !nqp::isconcrete($self) && !pir::can__IPs($self, 'postcircumfix:<( )>') {
+            if !nqp::isconcrete($self) && !nqp::can($self, 'postcircumfix:<( )>') {
                 my $coercer_name := $self.HOW.name($self);
                 if +@pos == 1 {
                     @pos[0]."$coercer_name"()

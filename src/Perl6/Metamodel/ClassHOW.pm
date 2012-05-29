@@ -46,7 +46,7 @@ class Perl6::Metamodel::ClassHOW
         # XXX This mechanism may well change. For now we pass these along
         # to a PARAMETERIZE_TYPE method on the object if it has one. If
         # not, we complain.
-        if pir::can($obj, 'PARAMETERIZE_TYPE') {
+        if nqp::can($obj, 'PARAMETERIZE_TYPE') {
             $obj.PARAMETERIZE_TYPE(|@pos_args, |%named_args)
         }
         else {

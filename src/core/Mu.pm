@@ -288,7 +288,7 @@ my class Mu {
     }
     
     method dispatch:<.?>(Mu \$self: $name, |$c) is rw is hidden_from_backtrace {
-        pir::can__IPS($self, $name) ??
+        nqp::can($self, $name) ??
             $self."$name"(|$c) !!
             Nil
     }

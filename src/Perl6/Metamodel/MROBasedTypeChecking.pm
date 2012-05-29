@@ -19,7 +19,7 @@ role Perl6::Metamodel::MROBasedTypeChecking {
             if $_ =:= $checkee {
                 return 1;
             }
-            if pir::can($_.HOW, 'role_typecheck_list') {
+            if nqp::can($_.HOW, 'role_typecheck_list') {
                 for $_.HOW.role_typecheck_list($_) {
                     if $_ =:= $checkee {
                         return 1;
@@ -34,7 +34,7 @@ role Perl6::Metamodel::MROBasedTypeChecking {
         my @tc;
         for self.mro($obj) {
             @tc.push($_);
-            if pir::can($_.HOW, 'role_typecheck_list') {
+            if nqp::can($_.HOW, 'role_typecheck_list') {
                 for $_.HOW.role_typecheck_list($_) {
                     @tc.push($_);
                 }

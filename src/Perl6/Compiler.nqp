@@ -35,7 +35,7 @@ class Perl6::Compiler is HLL::Compiler {
     method autoprint($value) {
         unless pir::getinterp__P().stdout_handle().tell() > $*AUTOPRINTPOS {
             CATCH { nqp::say($_) }
-            if pir::can($value, 'gist') {
+            if nqp::can($value, 'gist') {
                 nqp::say(nqp::unbox_s($value.gist));
             } else {
                 nqp::say(~$value);

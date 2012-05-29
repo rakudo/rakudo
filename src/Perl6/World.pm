@@ -1429,7 +1429,7 @@ class Perl6::World is HLL::World {
         # Checks if there is an indirect lookup required.
         method contains_indirect_lookup() {
             for @!components {
-                if pir::can($_, 'isa') && $_.isa(PAST::Node) {
+                if nqp::can($_, 'isa') && $_.isa(PAST::Node) {
                     return 1;
                 }
             }
@@ -1445,7 +1445,7 @@ class Perl6::World is HLL::World {
                 nqp::die("Name $!text ends with '::' and cannot be used as a $dba");
             }
             for @!components {
-                if pir::can($_, 'isa') && $_.isa(PAST::Node) {
+                if nqp::can($_, 'isa') && $_.isa(PAST::Node) {
                     if $_<has_compile_time_value> {
                         for nqp::split('::', ~$_<compile_time_value>) {
                             @name.push($_);

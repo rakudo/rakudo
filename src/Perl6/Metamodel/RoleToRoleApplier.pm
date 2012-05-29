@@ -32,7 +32,7 @@ my class RoleToRoleApplier {
                         if $meth =:= $_ {
                             $found := 1;
                         }
-                        elsif pir::can($meth, 'id') && pir::can($_, 'id') {
+                        elsif nqp::can($meth, 'id') && nqp::can($_, 'id') {
                             $found := $meth.id == $_.id;
                         }
                     }
@@ -44,9 +44,9 @@ my class RoleToRoleApplier {
             }
             build_meth_info($_.HOW.method_table($_), %meth_info, %meth_providers);
             build_meth_info($_.HOW.submethod_table($_), %meth_info, %meth_providers)
-                if pir::can__IPs($_.HOW, 'submethod_table');
+                if nqp::can($_.HOW, 'submethod_table');
             build_meth_info($_.HOW.private_method_table($_), %priv_meth_info, %priv_meth_providers)
-                if pir::can__IPs($_.HOW, 'private_method_table');
+                if nqp::can($_.HOW, 'private_method_table');
         }
 
         # Also need methods of target.
@@ -93,7 +93,7 @@ my class RoleToRoleApplier {
         }
         
         # Process private method list.
-        if pir::can__IPs($target.HOW, 'private_method_table') {
+        if nqp::can($target.HOW, 'private_method_table') {
             my %target_priv_meth_info := $target.HOW.private_method_table($target);
             for %priv_meth_info {
                 my $name := $_.key;
@@ -136,7 +136,7 @@ my class RoleToRoleApplier {
             
             # Any multi-methods go straight in; conflicts can be
             # caught by the multi-dispatcher later.
-            if pir::can__IPs($how, 'multi_methods_to_incorporate') {
+            if nqp::can($how, 'multi_methods_to_incorporate') {
                 my @multis := $how.multi_methods_to_incorporate($_);
                 for @multis {
                     $target.HOW.add_multi_method($target, $_.name, $_.code);
@@ -144,7 +144,7 @@ my class RoleToRoleApplier {
             }
             
             # Any parents can also just be copied over.
-            if pir::can__IPs($how, 'parents') {
+            if nqp::can($how, 'parents') {
                 my @parents := $how.parents($_, :local(1));
                 for @parents {
                     $target.HOW.add_parent($target, $_);

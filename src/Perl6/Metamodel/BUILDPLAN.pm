@@ -51,7 +51,7 @@ role Perl6::Metamodel::BUILDPLAN {
             
             # Check if there's any default values to put in place.
             for @attrs {
-                if pir::can__IPs($_, 'build') {
+                if nqp::can($_, 'build') {
                     my $default := $_.build;
                     if $default {
                         my $entry := [2, $class, $_.name, $default];

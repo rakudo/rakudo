@@ -81,7 +81,7 @@ class Perl6::World is HLL::World {
     # Gets (and creates if needed) the static lexpad object for a PAST block.
     method get_static_lexpad($pad) {
         my $pad_id := $pad.subid();
-        if pir::exists(%!sub_id_to_static_lexpad, $pad_id) {
+        if nqp::existskey(%!sub_id_to_static_lexpad, $pad_id) {
             return %!sub_id_to_static_lexpad{$pad_id};
         }
         
@@ -275,7 +275,7 @@ class Perl6::World is HLL::World {
         # Chase down the name, creating stub packages as needed.
         while +@parts {
             my $part := @parts.shift;
-            if pir::exists($cur_pkg.WHO, $part) {
+            if nqp::existskey($cur_pkg.WHO, $part) {
                 $cur_pkg := ($cur_pkg.WHO){$part};
             }
             else {
@@ -298,7 +298,7 @@ class Perl6::World is HLL::World {
             self.install_lexical_symbol($cur_lex, $name, $symbol);
         }
         if $create_scope eq 'our' {
-            if pir::exists($cur_pkg.WHO, $name) {
+            if nqp::existskey($cur_pkg.WHO, $name) {
                 self.steal_WHO($symbol, ($cur_pkg.WHO){$name});
             }
             self.install_package_symbol($cur_pkg, $name, $symbol);
@@ -372,7 +372,7 @@ class Perl6::World is HLL::World {
         # Build container.
         my $cont := nqp::create(%cont_info<container_type>);
         nqp::bindattr($cont, %cont_info<container_base>, '$!descriptor', $descriptor);
-        if pir::exists(%cont_info, 'default_value') {
+        if nqp::existskey(%cont_info, 'default_value') {
             nqp::bindattr($cont, %cont_info<container_base>, '$!value',
                 %cont_info<default_value>);
         }
@@ -401,7 +401,7 @@ class Perl6::World is HLL::World {
         
         # Default contents, if applicable (note, slurpy param as we can't
         # use definedness here, as it's a type object we'd be checking).
-        if pir::exists(%cont_info, 'default_value') {
+        if nqp::existskey(%cont_info, 'default_value') {
             $cont_code := PAST::Op.new(
                 :pirop('setattribute 0PPsP'),
                 $cont_code, self.get_ref(%cont_info<container_base>),
@@ -418,7 +418,7 @@ class Perl6::World is HLL::World {
             $i := $i - 1;
             my %sym := @!BLOCKS[$i].symbol($name);
             if +%sym {
-                if pir::exists(%sym, 'type') {
+                if nqp::existskey(%sym, 'type') {
                     return %sym<type>;
                 }
                 else {
@@ -513,7 +513,7 @@ class Perl6::World is HLL::World {
         }
         
         # Populate it.
-        if pir::exists(%param_info, 'variable_name') {
+        if nqp::existskey(%param_info, 'variable_name') {
             nqp::bindattr_s($parameter, $par_type, '$!variable_name', %param_info<variable_name>);
         }
         nqp::bindattr($parameter, $par_type, '$!nominal_type', %param_info<nominal_type>);
@@ -530,16 +530,16 @@ class Perl6::World is HLL::World {
             nqp::bindattr($parameter, $par_type, '$!post_constraints',
                 %param_info<post_constraints>);
         }
-        if pir::exists(%param_info, 'default_value') {
+        if nqp::existskey(%param_info, 'default_value') {
             nqp::bindattr($parameter, $par_type, '$!default_value', %param_info<default_value>);
         }
-        if pir::exists(%param_info, 'container_descriptor') {
+        if nqp::existskey(%param_info, 'container_descriptor') {
             nqp::bindattr($parameter, $par_type, '$!container_descriptor', %param_info<container_descriptor>);
         }
-        if pir::exists(%param_info, 'attr_package') {
+        if nqp::existskey(%param_info, 'attr_package') {
             nqp::bindattr($parameter, $par_type, '$!attr_package', %param_info<attr_package>);
         }
-        if pir::exists(%param_info, 'sub_signature') {
+        if nqp::existskey(%param_info, 'sub_signature') {
             nqp::bindattr($parameter, $par_type, '$!sub_signature', %param_info<sub_signature>);
         }
 
@@ -795,21 +795,21 @@ class Perl6::World is HLL::World {
                         )))
             }
             my %phasers := nqp::getattr($code, $block_type, '$!phasers');
-            if pir::exists(%phasers, 'PRE') {
+            if nqp::existskey(%phasers, 'PRE') {
                 $code_past[0].push(PAST::Op.new( :pirop('perl6_set_checking_pre v') ));
                 $code_past[0].push(run_phasers_code('PRE'));
                 $code_past[0].push(PAST::Op.new( :pirop('perl6_clear_checking_pre v') ));
             }
-            if pir::exists(%phasers, 'FIRST') {
+            if nqp::existskey(%phasers, 'FIRST') {
                 $code_past[0].push(PAST::Op.new(
                     :pasttype('if'),
                     PAST::Op.new( :pirop('perl6_take_block_first_flag i') ),
                     run_phasers_code('FIRST')));
             }
-            if pir::exists(%phasers, 'ENTER') {
+            if nqp::existskey(%phasers, 'ENTER') {
                 $code_past[0].push(run_phasers_code('ENTER'));
             }
-            if pir::exists(%phasers, '!LEAVE-ORDER') || pir::exists(%phasers, 'POST') {
+            if nqp::existskey(%phasers, '!LEAVE-ORDER') || nqp::existskey(%phasers, 'POST') {
                 $code_past[+@($code_past) - 1] := PAST::Op.new(
                     :pirop('perl6_returncc__0P'),
                     $code_past[+@($code_past) - 1]);
@@ -936,7 +936,7 @@ class Perl6::World is HLL::World {
                     # Make static lexpad entry.
                     my %sym := $_.value;
                     $slp.add_static_value($_.key,
-                        (pir::exists(%sym, 'value') ?? %sym<value> !! $mu),
+                        (nqp::existskey(%sym, 'value') ?? %sym<value> !! $mu),
                         0, (%sym<state> ?? 1 !! 0));
                 }
                 %seen{$_.key} := 1;
@@ -962,15 +962,15 @@ class Perl6::World is HLL::World {
         my $i := 0;
         while $i < $num_subs {
             my $subid := $precomp[$i].get_subid();
-            if pir::exists(%!sub_id_to_code_object, $subid) {
+            if nqp::existskey(%!sub_id_to_code_object, $subid) {
                 pir::perl6_associate_sub_code_object__vPP($precomp[$i],
                     %!sub_id_to_code_object{$subid});
                 nqp::bindattr(%!sub_id_to_code_object{$subid}, $code_type, '$!do', $precomp[$i]);
             }
-            if pir::exists(%!sub_id_to_static_lexpad, $subid) {
+            if nqp::existskey(%!sub_id_to_static_lexpad, $subid) {
                 $precomp[$i].get_lexinfo.set_static_lexpad(%!sub_id_to_static_lexpad{$subid});
             }
-            if pir::exists(%!sub_id_to_sc_idx, $subid) {
+            if nqp::existskey(%!sub_id_to_sc_idx, $subid) {
                 pir::setprop__vPsP($precomp[$i], 'STATIC_CODE_REF', $precomp[$i]);
                 self.update_root_code_ref(%!sub_id_to_sc_idx{$subid}, $precomp[$i]);
             }
@@ -1004,7 +1004,7 @@ class Perl6::World is HLL::World {
                     ~ nqp::join(',', @value)
                     ~ $namedkey;
             }
-            if pir::exists(%!const_cache, $cache_key) {
+            if nqp::existskey(%!const_cache, $cache_key) {
                 my $past := self.get_slot_past_for_object(%!const_cache{$cache_key});
                 $past<has_compile_time_value> := 1;
                 $past<compile_time_value> := %!const_cache{$cache_key};
@@ -1109,13 +1109,13 @@ class Perl6::World is HLL::World {
         my %args;
         if pir::defined($name) { %args<name> := ~$name; }
         if pir::defined($repr) { %args<repr> := ~$repr; }
-        if pir::exists(%extra, 'base_type') {
+        if nqp::existskey(%extra, 'base_type') {
             %args<base_type> := %extra<base_type>;
         }
-        if pir::exists(%extra, 'group') {
+        if nqp::existskey(%extra, 'group') {
             %args<group> := %extra<group>;
         }
-        if pir::exists(%extra, 'signatured') {
+        if nqp::existskey(%extra, 'signatured') {
             %args<signatured> := %extra<signatured>;
         }
         my $mo := $how.new_type(|%args);
@@ -1135,7 +1135,7 @@ class Perl6::World is HLL::World {
         # Build container.
         my $cont := nqp::create(%cont_info<container_type>);
         nqp::bindattr($cont, %cont_info<container_base>, '$!descriptor', $descriptor);
-        if pir::exists(%cont_info, 'default_value') {
+        if nqp::existskey(%cont_info, 'default_value') {
             nqp::bindattr($cont, %cont_info<container_base>, '$!value',
                 %cont_info<default_value>);
         }
@@ -1594,7 +1594,7 @@ class Perl6::World is HLL::World {
             if $curpad.symbol(@name[0]) {
                 $first_sym := $curpad.symbol(@name[0])<value>;
             }
-            elsif pir::exists($curpackage.WHO, @name[0]) {
+            elsif nqp::existskey($curpackage.WHO, @name[0]) {
                 $first_sym := ($curpackage.WHO){@name[0]};
             }
             else {
@@ -1646,7 +1646,7 @@ class Perl6::World is HLL::World {
                 $i := $i - 1;
                 my %sym := @!BLOCKS[$i].symbol($final_name);
                 if +%sym {
-                    if pir::exists(%sym, 'value') {
+                    if nqp::existskey(%sym, 'value') {
                         return %sym<value>;
                     }
                     else {
@@ -1667,7 +1667,7 @@ class Perl6::World is HLL::World {
                 $i := $i - 1;
                 my %sym := @!BLOCKS[$i].symbol($first);
                 if +%sym {
-                    if pir::exists(%sym, 'value') {
+                    if nqp::existskey(%sym, 'value') {
                         $result := %sym<value>;
                         @name := nqp::clone(@name);
                         @name.shift();
@@ -1682,7 +1682,7 @@ class Perl6::World is HLL::World {
         
         # Try to chase down the parts of the name.
         for @name {
-            if pir::exists($result.WHO, ~$_) {
+            if nqp::existskey($result.WHO, ~$_) {
                 $result := ($result.WHO){$_};
             }
             else {

@@ -462,7 +462,7 @@ grammar Perl6::Grammar is HLL::Grammar {
             }
             
             # Create GLOBAL(ish), unless we were given one.
-            if pir::exists(%*COMPILING<%?OPTIONS>, 'global') {
+            if nqp::existskey(%*COMPILING<%?OPTIONS>, 'global') {
                 $*GLOBALish := %*COMPILING<%?OPTIONS><global>;
             }
             else {
@@ -532,7 +532,7 @@ grammar Perl6::Grammar is HLL::Grammar {
     
     method import_EXPORTHOW($UNIT) {    
         # See if we've exported any HOWs.
-        if pir::exists($UNIT, 'EXPORTHOW') {
+        if nqp::existskey($UNIT, 'EXPORTHOW') {
             for $UNIT<EXPORTHOW>.WHO {
                 %*HOW{$_.key} := pir::nqp_decontainerize__PP($_.value);
             }
@@ -791,7 +791,7 @@ grammar Perl6::Grammar is HLL::Grammar {
     }
     
     sub do_import($module, $package_source_name, $arglist?) {
-        if pir::exists($module, 'EXPORT') {
+        if nqp::existskey($module, 'EXPORT') {
             my $EXPORT := $module<EXPORT>.WHO;
             my @to_import := ['MANDATORY'];
             my @positional_imports := [];
@@ -800,7 +800,7 @@ grammar Perl6::Grammar is HLL::Grammar {
                 for $arglist -> $tag {
                     if nqp::istype($tag, $Pair) {
                         $tag := nqp::unbox_s($tag.key);
-                        if pir::exists($EXPORT, $tag) {
+                        if nqp::existskey($EXPORT, $tag) {
                             $*W.import($EXPORT{$tag}, $package_source_name);
                         }
                         else {
@@ -817,12 +817,12 @@ grammar Perl6::Grammar is HLL::Grammar {
                 nqp::push(@to_import, 'DEFAULT');
             }
             for @to_import -> $tag {
-                if pir::exists($EXPORT, $tag) {
+                if nqp::existskey($EXPORT, $tag) {
                     $*W.import($EXPORT{$tag}, $package_source_name);
                 }
             }
             if +@positional_imports {
-                if pir::exists($module, '&EXPORT') {
+                if nqp::existskey($module, '&EXPORT') {
                     $module<&EXPORT>(|@positional_imports);
                 }
                 else {
@@ -1712,7 +1712,7 @@ grammar Perl6::Grammar is HLL::Grammar {
     token signature {
         :my $*IN_DECL := 'sig';
         :my $*zone := 'posreq';
-        :my @*seps := pir::new__PS('ResizablePMCArray');
+        :my @*seps := nqp::list();
         <.ws>
         [
         | <?before '-->' | ')' | ']' | '{' | ':'\s >

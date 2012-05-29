@@ -1818,7 +1818,7 @@ class Perl6::Actions is HLL::Actions {
                 my $name := $_.name;
                 return 0 if $name ne 'call_sig' && $name ne '$_' &&
                     $name ne '$/' && $name ne '$!' && $name ne '&?ROUTINE' &&
-                    $name ne '$*DISPATCHER' && !pir::exists(%arg_pos, $name);
+                    $name ne '$*DISPATCHER' && !nqp::existskey(%arg_pos, $name);
             }
         }
         
@@ -1833,7 +1833,7 @@ class Perl6::Actions is HLL::Actions {
                 $node_walker($node[0])
             }
             elsif $node.isa(PAST::Var) && ($node.scope eq 'lexical_6model' || $node.scope eq '') {
-                if pir::exists(%arg_pos, $node.name) && %arg_used{$node.name} == 0 {
+                if nqp::existskey(%arg_pos, $node.name) && %arg_used{$node.name} == 0 {
                     %arg_used{$node.name} := 1;
                     "ARG " ~ %arg_pos{$node.name}
                 }
@@ -2274,10 +2274,10 @@ class Perl6::Actions is HLL::Actions {
             $type_obj := $*W.pkg_create_mo($/, %*HOW<enum>, :$name, :$base_type);
             # Add roles (which will provide the enum-related methods).
             $*W.apply_trait('&trait_mod:<does>', $type_obj, $*W.find_symbol(['Enumeration']));
-            if pir::type_check__IPP($type_obj, $*W.find_symbol(['Numeric'])) {
+            if nqp::istype($type_obj, $*W.find_symbol(['Numeric'])) {
                 $*W.apply_trait('&trait_mod:<does>', $type_obj, $*W.find_symbol(['NumericEnumeration']));
             }
-            if pir::type_check__IPP($type_obj, $*W.find_symbol(['Stringy'])) {
+            if nqp::istype($type_obj, $*W.find_symbol(['Stringy'])) {
                 $*W.apply_trait('&trait_mod:<does>', $type_obj, $*W.find_symbol(['StringyEnumeration']));
             }
             # Apply traits, compose and install package.
@@ -2356,7 +2356,7 @@ class Perl6::Actions is HLL::Actions {
                     }
                 }
                 if $has_base_type {
-                    unless pir::type_check__IPP($cur_value, $base_type) {
+                    unless nqp::istype($cur_value, $base_type) {
                         $/.CURSOR.panic("Type error in enum. Got '"
                                 ~ $cur_value.HOW.name($cur_value)
                                 ~ "' Expected: '"
@@ -2579,7 +2579,7 @@ class Perl6::Actions is HLL::Actions {
 
     method param_var($/) {
         if $<signature> {
-            if pir::exists(%*PARAM_INFO, 'sub_signature_params') {
+            if nqp::existskey(%*PARAM_INFO, 'sub_signature_params') {
                 $/.CURSOR.panic('Cannot have more than one sub-signature for a parameter');
             }
             %*PARAM_INFO<sub_signature_params> := $<signature>.ast;
@@ -2612,7 +2612,7 @@ class Perl6::Actions is HLL::Actions {
                 $need_role := 1;
             }
             if $need_role {
-                if pir::exists(%*PARAM_INFO, 'nominal_type') {
+                if nqp::existskey(%*PARAM_INFO, 'nominal_type') {
                     %*PARAM_INFO<nominal_type> := $*W.parameterize_type_with_args(
                         $role_type, [%*PARAM_INFO<nominal_type>], nqp::hash());
                 }
@@ -2631,7 +2631,7 @@ class Perl6::Actions is HLL::Actions {
                     if $cur_pad.symbol(~$/) {
                         $*W.throw($/, ['X', 'Redeclaration'], symbol => ~$/);
                     }
-                    if pir::exists(%*PARAM_INFO, 'nominal_type') {
+                    if nqp::existskey(%*PARAM_INFO, 'nominal_type') {
                         $cur_pad[0].push(PAST::Var.new( :name(~$/), :scope('lexical_6model'),
                             :isdecl(1), :type(%*PARAM_INFO<nominal_type>) ));
                         %*PARAM_INFO<container_descriptor> := $*W.create_container_descriptor(
@@ -2702,7 +2702,7 @@ class Perl6::Actions is HLL::Actions {
                     $<typename>.ast);
             }
             else {
-                if pir::exists(%*PARAM_INFO, 'nominal_type') {
+                if nqp::existskey(%*PARAM_INFO, 'nominal_type') {
                     $*W.throw($/, ['X', 'Parameter', 'MultipleTypeConstraints']);
                 }
                 my $type := $<typename>.ast;
@@ -2746,7 +2746,7 @@ class Perl6::Actions is HLL::Actions {
             }
         }
         elsif $<value> {
-            if pir::exists(%*PARAM_INFO, 'nominal_type') {
+            if nqp::existskey(%*PARAM_INFO, 'nominal_type') {
                 $*W.throw($/, ['X', 'Parameter', 'MultipleTypeConstraints']);
             }
             my $ast := $<value>.ast;
@@ -2767,7 +2767,7 @@ class Perl6::Actions is HLL::Actions {
 
     method post_constraint($/) {
         if $<signature> {
-            if pir::exists(%*PARAM_INFO, 'sub_signature_params') {
+            if nqp::existskey(%*PARAM_INFO, 'sub_signature_params') {
                 $/.CURSOR.panic('Cannot have more than one sub-signature for a parameter');
             }
             %*PARAM_INFO<sub_signature_params> := $<signature>.ast;
@@ -2787,10 +2787,10 @@ class Perl6::Actions is HLL::Actions {
     sub set_default_parameter_type(@parameter_infos, $type_name) {
         my $type := $*W.find_symbol([$type_name]);
         for @parameter_infos {
-            unless pir::exists($_, 'nominal_type') {
+            unless nqp::existskey($_, 'nominal_type') {
                 $_<nominal_type> := $type;
             }
-            if pir::exists($_, 'sub_signature_params') {
+            if nqp::existskey($_, 'sub_signature_params') {
                 set_default_parameter_type($_<sub_signature_params>, $type_name);
             }
         }
@@ -2822,14 +2822,14 @@ class Perl6::Actions is HLL::Actions {
             }
             
             # If we have a sub-signature, create that.
-            if pir::exists($_, 'sub_signature_params') {
+            if nqp::existskey($_, 'sub_signature_params') {
                 $_<sub_signature> := create_signature_object($/, $_<sub_signature_params>, $lexpad);
             }
             
             # Add variable as needed.
             if $_<variable_name> {
                 my %sym := $lexpad.symbol($_<variable_name>);
-                if +%sym && !pir::exists(%sym, 'descriptor') {
+                if +%sym && !nqp::existskey(%sym, 'descriptor') {
                     $_<container_descriptor> := $*W.create_container_descriptor(
                         $_<nominal_type>, $_<is_rw> ?? 1 !! 0, $_<variable_name>);
                     $lexpad.symbol($_<variable_name>, :descriptor($_<container_descriptor>));

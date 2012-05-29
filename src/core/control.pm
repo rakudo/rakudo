@@ -209,5 +209,5 @@ sub QX($cmd) {
 }
 
 sub EXHAUST(|$) {
-    die "Attempt to return from exhausted Routine"
+    X::ControlFlow::Routine::Exhausted.new.threw;
 }

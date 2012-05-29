@@ -7,6 +7,8 @@ New in 2012.06
 + string incrementation is now aware of more scripts
 + <|w> word boundary in regexes implemented
 + more errors from within the meta model now contain line number and file name
++ &push and &unshift functions can now autovivify
++ user-defined operators properly participate in LTM
 
 New in 2012.05
 + meta ops //=, ||= and &&= now short-circuit properly

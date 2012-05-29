@@ -2334,7 +2334,8 @@ grammar Perl6::Grammar is HLL::Grammar {
                 ]
             || <!{ $*QSIGIL }> <postfixish>*
             ]
-        || <!{ $*QSIGIL }> <?before <infixish> { $/.CURSOR.panic("Preceding context expects a term, but found infix " ~ ~$<infixish> ~ " instead"); } >
+        || <!{ $*QSIGIL }> <?before <infixish> {
+            $/.CURSOR.typed_panic('X::Syntax::InfixInTermPosition', infix => ~$<infixish>); } >
         || <!>
         ]
     }

@@ -590,6 +590,13 @@ my class X::Syntax::Extension::Category does X::Syntax {
     }
 }
 
+my class X::Syntax::InfixInTermPosition does X::Syntax {
+    has $.infix;
+    method message() {
+        "Preceding context expects a term, but found infix $.infix instead";
+    }
+}
+
 my class X::Attribute::Package does X::Comp {
     has $.package-type;
     method message() { "A $.package-type cannot have attributes" }

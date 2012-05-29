@@ -395,7 +395,7 @@ proto sub unshift(|$) {*}
 multi sub unshift(@a, *@elems) { @a.unshift: @elems }
 
 proto sub push(|$) {*}
-multi sub push(@a, *@elems) { @a.push: @elems }
+multi sub push(\$a, *@elems) { $a.push: @elems }
 
 sub reverse(*@a)            { @a.reverse }
 sub rotate(@a, Int $n = 1)  { @a.rotate($n) }

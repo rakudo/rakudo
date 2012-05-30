@@ -135,14 +135,14 @@ BEGIN {
     # Need new and accessor methods for Attribute in here for now.
     Attribute.HOW.add_method(Attribute, 'new',
         static(sub ($self, :$name!, :$type!, :$package!, :$has_accessor, *%other) {
-            my $attr := pir::repr_instance_of__PP($self);
+            my $attr := nqp::create($self);
             nqp::bindattr_s($attr, Attribute, '$!name', $name);
             nqp::bindattr($attr, Attribute, '$!type', $type);
             nqp::bindattr_i($attr, Attribute, '$!has_accessor', $has_accessor);
             nqp::bindattr($attr, Attribute, '$!package', $package);
-            if pir::exists(%other, 'container_descriptor') {
+            if nqp::existskey(%other, 'container_descriptor') {
                 nqp::bindattr($attr, Attribute, '$!container_descriptor', %other<container_descriptor>);
-                if pir::exists(%other, 'auto_viv_container') {
+                if nqp::existskey(%other, 'auto_viv_container') {
                     nqp::bindattr($attr, Attribute, '$!auto_viv_container',
                         %other<auto_viv_container>);
                 }
@@ -150,7 +150,7 @@ BEGIN {
             else {
                 my $cd := Metamodel::ContainerDescriptor.new(
                     :of($type), :rw(1), :name($name));
-                my $scalar := pir::repr_instance_of__PP(Scalar);
+                my $scalar := nqp::create(Scalar);
                 nqp::bindattr($scalar, Scalar, '$!descriptor', $cd);
                 nqp::bindattr($scalar, Scalar, '$!value', $type);
                 nqp::bindattr($attr, Attribute, '$!container_descriptor', $cd);
@@ -286,7 +286,7 @@ BEGIN {
     }));
 
     # Scalar needs to be registered as a container type.
-    pir::set_container_spec__vPPsP(Scalar, Scalar, '$!value', pir::null__P());
+    pir::set_container_spec__vPPsP(Scalar, Scalar, '$!value', nqp::null());
 
     # class Proxy is Any {
     #    has &!FETCH;
@@ -320,7 +320,7 @@ BEGIN {
     sub scalar_attr($name, $type, $package) {
         my $cd := Perl6::Metamodel::ContainerDescriptor.new(
             :of($type), :rw(1), :name($name));
-        my $scalar := pir::repr_instance_of__PP(Scalar);
+        my $scalar := nqp::create(Scalar);
         nqp::bindattr($scalar, Scalar, '$!descriptor', $cd);
         nqp::bindattr($scalar, Scalar, '$!value', $type);
         return Attribute.new( :name($name), :type($type), :package($package),
@@ -579,7 +579,7 @@ BEGIN {
                 $disp_list.push($dispatchee);
                 pir::setattribute__0PPsP(pir::perl6_decontainerize__PP($dispatchee),
                     Routine, '$!dispatcher', $dc_self);
-                pir::setattribute__0PPsP($dc_self, Routine, '$!dispatcher_cache', pir::null__P());
+                pir::setattribute__0PPsP($dc_self, Routine, '$!dispatcher_cache', nqp::null());
             }
             else {
                 nqp::die("Cannot add a dispatchee to a non-dispatcher code object");
@@ -812,7 +812,7 @@ BEGIN {
     # If we don't already have a PROCESS, set it up.
     my $PROCESS;
     my $hll_ns := pir::get_root_global__PS('perl6');
-    if $hll_ns && pir::exists($hll_ns, 'PROCESS') {
+    if $hll_ns && nqp::existskey($hll_ns, 'PROCESS') {
         $PROCESS := $hll_ns<PROCESS>;
     }
     else {
@@ -823,10 +823,10 @@ BEGIN {
     }
 
     # Bool::False and Bool::True.
-    my $false := pir::repr_instance_of__PP(Bool);
+    my $false := nqp::create(Bool);
     nqp::bindattr_i($false, Bool, '$!value', 0);
     (Bool.WHO)<False> := $false;
-    my $true := pir::repr_instance_of__PP(Bool);
+    my $true := nqp::create(Bool);
     nqp::bindattr_i($true, Bool, '$!value', 1);
     (Bool.WHO)<True> := $true;
 

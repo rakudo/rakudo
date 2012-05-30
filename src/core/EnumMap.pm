@@ -76,7 +76,7 @@ my class EnumMap does Associative {
 
     method STORE_AT_KEY(\$key, Mu \$value) is rw {
         pir::defined($!storage) ||
-            nqp::bindattr(self, EnumMap, '$!storage', pir::new__Ps('Hash'));
+            nqp::bindattr(self, EnumMap, '$!storage', nqp::hash());
         nqp::bindkey($!storage, nqp::unbox_s($key.Str), $value)
     }
     

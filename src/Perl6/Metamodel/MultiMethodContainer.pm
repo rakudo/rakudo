@@ -47,7 +47,7 @@ role Perl6::Metamodel::MultiMethodContainer {
             # Do we have anything in the methods table already in
             # this class?
             my %meths := self.method_table($obj);
-            if pir::exists(%meths, $name) {
+            if nqp::existskey(%meths, $name) {
                 # Yes. Only or dispatcher, though? If only, error. If
                 # dispatcher, simply add new dispatchee.
                 my $dispatcher := %meths{$name};
@@ -68,7 +68,7 @@ role Perl6::Metamodel::MultiMethodContainer {
                 while $j != +@mro && !$found {
                     my $parent := @mro[$j];
                     my %meths := $parent.HOW.method_table($parent);
-                    if pir::exists(%meths, $name) {
+                    if nqp::existskey(%meths, $name) {
                         # Found a possible - make sure it's a dispatcher, not
                         # an only.
                         my $dispatcher := %meths{$name};

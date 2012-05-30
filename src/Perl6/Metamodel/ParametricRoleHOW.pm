@@ -28,7 +28,7 @@ class Perl6::Metamodel::ParametricRoleHOW
     method new_type(:$name = '<anon>', :$ver, :$auth, :$repr, :$signatured, *%extra) {
         my $metarole := self.new(:name($name), :ver($ver), :auth($auth), :signatured($signatured));
         my $type := pir::repr_type_object_for__PPS($metarole, 'Uninstantiable');
-        if pir::exists(%extra, 'group') {
+        if nqp::existskey(%extra, 'group') {
             $metarole.set_group($type, %extra<group>);
         }
         self.add_stash($type);
@@ -109,7 +109,7 @@ class Perl6::Metamodel::ParametricRoleHOW
             }
         }
         for self.roles_to_compose($obj) {
-            if pir::type_check__IPP($checkee, $_) {
+            if nqp::istype($checkee, $_) {
                 return 1;
             }
         }

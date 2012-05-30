@@ -36,7 +36,7 @@ role Perl6::Metamodel::RolePunning {
     
     # Do a pun-based dispatch. If we pun, return a thunk that will delegate.
     method find_method($obj, $name) {
-        if pir::exists(%exceptions, $name) {
+        if nqp::existskey(%exceptions, $name) {
             return pir::find_method__PPS(%exceptions{$name}, $name);
         }
         unless $!made_pun {

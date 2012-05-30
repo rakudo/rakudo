@@ -1,4 +1,4 @@
-sub term:<time>() { nqp::p6box_i(pir::time__I()) }
+sub term:<time>() { nqp::p6box_i(nqp::time_i()) }
 
 {
     my @ARGS;
@@ -12,7 +12,7 @@ sub term:<time>() { nqp::p6box_i(pir::time__I()) }
     my Mu $enviter := nqp::iterator($env);
     my $key;
     while $enviter {
-        $key = nqp::p6box_s(pir::shift__SP($enviter));
+        $key = nqp::p6box_s(nqp::shift_s($enviter));
         %ENV{$key} = nqp::p6box_s(nqp::atkey($env, nqp::unbox_s($key)));
     }
     %ENV does role {
@@ -34,7 +34,7 @@ sub term:<time>() { nqp::p6box_i(pir::time__I()) }
 
         method delete($k) {
             my $ret = self.at_key($k);
-            pir::delete($env, nqp::unbox_s($k));
+            nqp::deletekey($env, nqp::unbox_s($k));
             return $ret;
         }
     }

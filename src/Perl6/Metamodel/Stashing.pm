@@ -11,7 +11,7 @@ role Perl6::Metamodel::Stashing {
         unless nqp::isnull(pir::get_hll_global__Ps('StashType')) {
             my $stash_type := pir::get_hll_global__Ps('StashType');
             my $attr_type := pir::get_hll_global__Ps('StashAttrType');
-            my $stash := pir::repr_instance_of__PP($stash_type);
+            my $stash := nqp::create($stash_type);
             pir::setattribute__vPPsP($stash, $attr_type, '$!storage', my %symbols);
             pir::set_who__vPP($type_obj, $stash);
         }

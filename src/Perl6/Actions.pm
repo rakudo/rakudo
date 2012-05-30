@@ -4578,7 +4578,7 @@ class Perl6::Actions is HLL::Actions {
     # Here we take them back again. Hacky, better solutions welcome.
     sub steal_back_spaces($/, $expr) {
         my $pos := nqp::chars($/) - 1;
-        while pir::is_cclass__IISI(32, $/, $pos) {
+        while nqp::iscclass(32, $/, $pos) {
             $pos--;
         }
         my $nab_back := nqp::substr($/, $pos + 1);
@@ -5365,10 +5365,10 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions {
     
     method assertion:sym<~~>($/) {
         if $<num> {
-            pir::die('Sorry, ~~ regex assertion with a capture is not yet implemented');
+            nqp::die('Sorry, ~~ regex assertion with a capture is not yet implemented');
         }
         elsif $<desigilname> {
-            pir::die('Sorry, ~~ regex assertion with a capture is not yet implemented');
+            nqp::die('Sorry, ~~ regex assertion with a capture is not yet implemented');
         }
         else {
             make QAST::Regex.new( :rxtype<subrule>, :subtype<method>,

@@ -38,7 +38,7 @@ class Perl6::Metamodel::ClassHOW
         my $metaclass := self.new(:name($name), :ver($ver), :auth($auth));
         my $obj := pir::repr_type_object_for__PPS($metaclass, $repr);
         self.add_stash($obj);
-        pir::set_boolification_spec__0PiP($obj, 5, pir::null__P());
+        pir::set_boolification_spec__0PiP($obj, 5, nqp::null());
         $obj
     }
     
@@ -114,7 +114,7 @@ class Perl6::Metamodel::ClassHOW
             my @mro := self.mro($obj);
             while $i < +@mro {
                 my %meths := @mro[$i].HOW.method_table(@mro[$i]);
-                if pir::exists(%meths, 'Bool') {
+                if nqp::existskey(%meths, 'Bool') {
                     last;
                 }
                 $i := $i + 1;
@@ -131,7 +131,7 @@ class Perl6::Metamodel::ClassHOW
         
         # Check if we have a postcircumfix:<( )>, and if so install a
         # v-table forwarder.
-        if pir::exists(self.method_table($obj), 'postcircumfix:<( )>') {
+        if nqp::existskey(self.method_table($obj), 'postcircumfix:<( )>') {
             self.add_parrot_vtable_mapping($obj, 'invoke', $invoke_forwarder);
         }
         
@@ -183,7 +183,7 @@ class Perl6::Metamodel::ClassHOW
         my @meths;
         for self.mro($obj) {
             my %mt := $_.HOW.method_table($_);
-            if pir::exists(%mt, $name) {
+            if nqp::existskey(%mt, $name) {
                 @meths.push(%mt{$name})
             }
         }
@@ -216,6 +216,6 @@ class Perl6::Metamodel::ClassHOW
         }
 
         # Otherwise, didn't find anything.
-        pir::null__P()
+        nqp::null()
     }
 }

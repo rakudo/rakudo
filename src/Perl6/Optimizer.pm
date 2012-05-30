@@ -33,7 +33,7 @@ class Perl6::Optimizer {
         my $*DYNAMICALLY_COMPILED := 0;
         
         # Work out optimization level.
-        my $*LEVEL := pir::exists(%adverbs, 'optimize') ??
+        my $*LEVEL := nqp::existskey(%adverbs, 'optimize') ??
             +%adverbs<optimize> !! 2;
         
         # We'll start walking over UNIT (we wouldn't find it by going
@@ -356,7 +356,7 @@ class Perl6::Optimizer {
             my $block := @!block_stack[$i];
             my %sym := $block.symbol($name);
             if +%sym {
-                if pir::exists(%sym, 'value') {
+                if nqp::existskey(%sym, 'value') {
                     return %sym<value>;
                 }
                 else {

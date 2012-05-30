@@ -19,7 +19,7 @@ my class RoleToRoleApplier {
                     my $meth := $_.value;
                     my @meth_list;
                     my @meth_providers;
-                    if pir::exists(%meth_info_to_use, $name) {
+                    if nqp::existskey(%meth_info_to_use, $name) {
                         @meth_list := %meth_info_to_use{$name};
                         @meth_providers := %meth_providers_to_use{$name};
                     }
@@ -59,7 +59,7 @@ my class RoleToRoleApplier {
 
             # Do we already have a method of this name? If so, ignore all of the
             # methods we have from elsewhere.
-            unless pir::exists(%target_meth_info, $name) {
+            unless nqp::existskey(%target_meth_info, $name) {
                 # No methods in the target role. If only one, it's easy...
                 if +@add_meths == 1 {
                     $target.HOW.add_method($target, $name, @add_meths[0]);
@@ -98,7 +98,7 @@ my class RoleToRoleApplier {
             for %priv_meth_info {
                 my $name := $_.key;
                 my @add_meths := %priv_meth_info{$name};
-                unless pir::exists(%target_priv_meth_info, $name) {
+                unless nqp::existskey(%target_priv_meth_info, $name) {
                     if +@add_meths == 1 {
                         $target.HOW.add_private_method($target, $name, @add_meths[0]);
                     }

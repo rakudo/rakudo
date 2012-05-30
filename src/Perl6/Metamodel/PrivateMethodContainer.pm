@@ -3,7 +3,7 @@ role Perl6::Metamodel::PrivateMethodContainer {
     
     # Adds a private method.
     method add_private_method($obj, $name, $code) {
-        if pir::exists(%!private_methods, $name) {
+        if nqp::existskey(%!private_methods, $name) {
             nqp::die("Private method '$name' already declared in package " ~
                 self.name($obj));
         }
@@ -17,7 +17,7 @@ role Perl6::Metamodel::PrivateMethodContainer {
     
     # Locates a private method, and hands back null if it doesn't exist.
     method find_private_method($obj, $name) {
-        pir::exists(%!private_methods, $name) ??
+        nqp::existskey(%!private_methods, $name) ??
             %!private_methods{$name} !!
             nqp::null()
     }

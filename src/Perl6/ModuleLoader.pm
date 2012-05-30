@@ -13,7 +13,7 @@ class Perl6::ModuleLoader {
     method search_path() {
         # See if we have an @*INC set up, and if so just use that.
         my $hll_ns := pir::get_root_global__PS('perl6');
-        if pir::exists($hll_ns, 'PROCESS') && pir::exists($hll_ns<PROCESS>.WHO, '@INC') {
+        if nqp::existskey($hll_ns, 'PROCESS') && nqp::existskey($hll_ns<PROCESS>.WHO, '@INC') {
             my $INC := ($hll_ns<PROCESS>.WHO)<@INC>;
             if pir::defined($INC) {
                 my @INC := $INC.FLATTENABLE_LIST();

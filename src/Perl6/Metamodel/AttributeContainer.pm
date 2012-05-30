@@ -9,7 +9,7 @@ role Perl6::Metamodel::AttributeContainer {
     # Adds an attribute.
     method add_attribute($obj, $meta_attr) {
         my $name := $meta_attr.name;
-        if pir::exists(%!attribute_lookup, $name) {
+        if nqp::existskey(%!attribute_lookup, $name) {
             nqp::die("Package '" ~ self.name($obj) ~
                 "' already has an attribute named '$name'");
         }
@@ -48,7 +48,7 @@ role Perl6::Metamodel::AttributeContainer {
     # This is called by the parser so it should only return attributes
     # that are visible inside the current package.
     method get_attribute_for_usage($obj, $name) {
-        unless pir::exists(%!attribute_lookup, $name) {
+        unless nqp::existskey(%!attribute_lookup, $name) {
             nqp::die("No $name attribute in " ~ self.name($obj))
         }
         %!attribute_lookup{$name}

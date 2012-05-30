@@ -66,7 +66,7 @@ my class Cool {
 
     method fmt($format = '%s') {
         nqp::p6box_s(
-            pir::sprintf__SsP(nqp::unbox_s($format.Stringy), nqp::list(self))
+            nqp::sprintf(nqp::unbox_s($format.Stringy), nqp::list(self))
         )
     }
 
@@ -217,7 +217,7 @@ multi sub capitalize(Cool $x)  {$x.Stringy.capitalize }
 sub sprintf(Cool $format, *@args) {
     @args.gimme(*);
     nqp::p6box_s(
-        pir::sprintf__SSP(nqp::unbox_s($format.Stringy),
+        nqp::sprintf(nqp::unbox_s($format.Stringy),
             nqp::clone(nqp::getattr(@args, List, '$!items'))
         )
     );

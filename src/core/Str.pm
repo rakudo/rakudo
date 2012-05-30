@@ -394,7 +394,7 @@ my class Str does Stringy {
                 }
             }
             elsif nqp::iseq_i($ch, 48)  # '0'
-              and $radix = pir::index('  b     o d     x',
+              and $radix = nqp::index('  b     o d     x',
                                       nqp::substr($str, nqp::add_i($pos, 1), 1))
               and nqp::isge_i($radix, 2) {
                 # A string starting with 0x, 0d, 0o, or 0b,
@@ -452,7 +452,7 @@ my class Str does Stringy {
         my $result = '"';
         for ^self.chars -> $i {
             my $ch = self.substr($i, 1);
-            $result ~= %esc{$ch} // (pir::is_cclass__Iisi(
+            $result ~= %esc{$ch} // (nqp::iscclass(
                                             pir::const::CCLASS_PRINTING,
                                             nqp::unbox_s($ch), 0)
                                       ?? $ch

@@ -20,7 +20,7 @@ class Perl6::Metamodel::GenericHOW
 
     method instantiate_generic($obj, $type_environment) {
         my $name := self.name($obj);
-        pir::exists($type_environment, $name) ?? $type_environment{$name} !! $obj
+        nqp::existskey($type_environment, $name) ?? $type_environment{$name} !! $obj
     }
     
     method compose($obj) {

@@ -1019,13 +1019,13 @@ class Perl6::World is HLL::World {
         # the boxed value and also code to produce it.
         my $constant;
         if $primitive eq 'int' {
-            $constant := pir::repr_box_int__PiP(@value[0], $type_obj);
+            $constant := nqp::box_i(@value[0], $type_obj);
         }
         elsif $primitive eq 'str' {
-            $constant := pir::repr_box_str__PsP(@value[0], $type_obj);
+            $constant := nqp::box_s(@value[0], $type_obj);
         }
         elsif $primitive eq 'num' {
-            $constant := pir::repr_box_num__PnP(@value[0], $type_obj);
+            $constant := nqp::box_n(@value[0], $type_obj);
         }
         elsif $primitive eq 'bigint' {
             $constant := @value[0];

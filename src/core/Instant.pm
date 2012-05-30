@@ -115,5 +115,5 @@ multi sub infix:<->(Instant:D $a, Real:D $b) {
 sub term:<now>() {
     # FIXME: During a leap second, the returned value is one
     # second greater than it should be.
-    Instant.from-posix: pir::time__n
+    Instant.from-posix: nqp::time_n
 }

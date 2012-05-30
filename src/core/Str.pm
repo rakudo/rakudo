@@ -452,7 +452,7 @@ my class Str does Stringy {
         my $result = '"';
         for ^self.chars -> $i {
             my $ch = self.substr($i, 1);
-            $result ~= %esc{$ch} // (pir::is_cclass__Iisi(
+            $result ~= %esc{$ch} // (nqp::iscclass(
                                             pir::const::CCLASS_PRINTING,
                                             nqp::unbox_s($ch), 0)
                                       ?? $ch

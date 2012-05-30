@@ -4578,7 +4578,7 @@ class Perl6::Actions is HLL::Actions {
     # Here we take them back again. Hacky, better solutions welcome.
     sub steal_back_spaces($/, $expr) {
         my $pos := nqp::chars($/) - 1;
-        while pir::is_cclass__IISI(32, $/, $pos) {
+        while nqp::iscclass(32, $/, $pos) {
             $pos--;
         }
         my $nab_back := nqp::substr($/, $pos + 1);

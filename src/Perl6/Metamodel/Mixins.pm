@@ -20,7 +20,7 @@ role Perl6::Metamodel::Mixins {
         }
         $new_type.HOW.compose($new_type);
         $new_type.HOW.set_boolification_mode($new_type,
-            pir::exists($new_type.HOW.method_table($new_type), 'Bool') ?? 0 !!
+            nqp::existskey($new_type.HOW.method_table($new_type), 'Bool') ?? 0 !!
                 self.get_boolification_mode($obj));
         $new_type.HOW.publish_boolification_spec($new_type);
         

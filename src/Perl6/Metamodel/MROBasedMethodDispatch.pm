@@ -5,12 +5,12 @@ role Perl6::Metamodel::MROBasedMethodDispatch {
         my %methods;
         for self.mro($obj) {
             %methods := $_.HOW.method_table($_);
-            if pir::exists(%methods, $name) {
+            if nqp::existskey(%methods, $name) {
                 return %methods{$name}
             }
         }
         my %submethods := $obj.HOW.submethod_table($obj);
-        if pir::exists(%submethods, $name) {
+        if nqp::existskey(%submethods, $name) {
             return %submethods{$name}
         }
         !$no_fallback && nqp::can(self, 'find_method_fallback') ??

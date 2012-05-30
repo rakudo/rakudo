@@ -53,7 +53,7 @@ class Perl6::Metamodel::MethodDispatcher is Perl6::Metamodel::BaseDispatcher {
         my @methods;
         for @mro {
             my %mt := $_.HOW.method_table($_);
-            if pir::exists(%mt, $name) {
+            if nqp::existskey(%mt, $name) {
                 @methods.push(%mt{$name});
             }
         }
@@ -71,7 +71,7 @@ class Perl6::Metamodel::MultiDispatcher is Perl6::Metamodel::BaseDispatcher {
     method vivify_for($sub, $lexpad) {
         my $disp         := $sub.dispatcher();
         my $args         := $lexpad<call_sig>;
-        my $has_invocant := pir::exists($lexpad, 'self');
+        my $has_invocant := nqp::existskey($lexpad, 'self');
         my $invocant     := $has_invocant && $lexpad<self>;
         my @cands        := pir::perl6_get_matching_multis__PPP($disp, $args);
         self.new(:candidates(@cands), :idx(1), :invocant($invocant),

@@ -140,9 +140,9 @@ BEGIN {
             nqp::bindattr($attr, Attribute, '$!type', $type);
             nqp::bindattr_i($attr, Attribute, '$!has_accessor', $has_accessor);
             nqp::bindattr($attr, Attribute, '$!package', $package);
-            if pir::exists(%other, 'container_descriptor') {
+            if nqp::existskey(%other, 'container_descriptor') {
                 nqp::bindattr($attr, Attribute, '$!container_descriptor', %other<container_descriptor>);
-                if pir::exists(%other, 'auto_viv_container') {
+                if nqp::existskey(%other, 'auto_viv_container') {
                     nqp::bindattr($attr, Attribute, '$!auto_viv_container',
                         %other<auto_viv_container>);
                 }
@@ -812,7 +812,7 @@ BEGIN {
     # If we don't already have a PROCESS, set it up.
     my $PROCESS;
     my $hll_ns := pir::get_root_global__PS('perl6');
-    if $hll_ns && pir::exists($hll_ns, 'PROCESS') {
+    if $hll_ns && nqp::existskey($hll_ns, 'PROCESS') {
         $PROCESS := $hll_ns<PROCESS>;
     }
     else {

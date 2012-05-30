@@ -4,7 +4,7 @@ use Perl6::Optimizer;
 
 class Perl6::Compiler is HLL::Compiler {
     method command_eval(*@args, *%options) {
-        if pir::exists(%options, 'doc') && !%options<doc> {
+        if nqp::existskey(%options, 'doc') && !%options<doc> {
             %options<doc> := 'Text';
         }
 

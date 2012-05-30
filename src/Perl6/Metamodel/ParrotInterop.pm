@@ -31,7 +31,7 @@ role Perl6::Metamodel::ParrotInterop {
         for self.mro($obj) {
             my %map := $_.HOW.parrot_vtable_mappings($_, :local(1));
             for %map {
-                unless pir::exists(%mapping, $_.key) {
+                unless nqp::existskey(%mapping, $_.key) {
                     if !nqp::isnull($_.value) && $_.value {
                         %mapping{$_.key} := $_.value;
                     }
@@ -51,7 +51,7 @@ role Perl6::Metamodel::ParrotInterop {
         for self.mro($obj) {
             my %map := $_.HOW.parrot_vtable_handler_mappings($_, :local(1));
             for %map {
-                unless pir::exists(%mapping, $_.key) {
+                unless nqp::existskey(%mapping, $_.key) {
                     if !nqp::isnull($_.value) && $_.value {
                         %mapping{$_.key} := $_.value;
                     }

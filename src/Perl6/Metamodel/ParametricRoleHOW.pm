@@ -109,7 +109,7 @@ class Perl6::Metamodel::ParametricRoleHOW
             }
         }
         for self.roles_to_compose($obj) {
-            if pir::type_check__IPP($checkee, $_) {
+            if nqp::istype($checkee, $_) {
                 return 1;
             }
         }

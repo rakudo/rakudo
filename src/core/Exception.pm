@@ -65,7 +65,7 @@ my class X::Method::InvalidQualifier is Exception {
 sub EXCEPTION(|$) {
     my Mu $parrot_ex := nqp::shift(pir::perl6_current_args_rpa__P());
     my Mu $payload   := nqp::atkey($parrot_ex, 'payload');
-    if nqp::p6bool(pir::type_check__IPP($payload, Exception)) {
+    if nqp::p6bool(nqp::istype($payload, Exception)) {
         nqp::bindattr($payload, Exception, '$!ex', $parrot_ex);
         $payload;
     } else {
@@ -93,7 +93,7 @@ my class X::Comp::AdHoc { ... }
 sub COMP_EXCEPTION(|$) {
     my Mu $parrot_ex := nqp::shift(pir::perl6_current_args_rpa__P());
     my Mu $payload   := nqp::atkey($parrot_ex, 'payload');
-    if nqp::p6bool(pir::type_check__IPP($payload, Exception)) {
+    if nqp::p6bool(nqp::istype($payload, Exception)) {
         nqp::bindattr($payload, Exception, '$!ex', $parrot_ex);
         $payload;
     } else {

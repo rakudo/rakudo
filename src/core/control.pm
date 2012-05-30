@@ -209,5 +209,5 @@ sub QX($cmd) {
 }
 
 sub EXHAUST(|$) {
-    X::ControlFlow::Routine::Exhausted.new.threw;
+    X::ControlFlow::Return.new.throw();
 }

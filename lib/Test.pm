@@ -45,36 +45,36 @@ multi sub plan($number_of_tests) is export {
     # clock, and to let the first test timing work just like the rest.
     # These readings should be made with the expression now.to-posix[0],
     # but its execution time when tried in the following two lines is a
-    # lot slower than the non portable nqp::p6box_n(pir::time__N).
-    $time_before = nqp::p6box_n(pir::time__N);
-    $time_after  = nqp::p6box_n(pir::time__N);
+    # lot slower than the non portable nqp::p6box_n(nqp::time_n).
+    $time_before = nqp::p6box_n(nqp::time_n);
+    $time_after  = nqp::p6box_n(nqp::time_n);
     say '# between two timestamps ' ~
         ceiling(($time_after-$time_before)*1_000_000) ~ ' microseconds'
         if $perl6_test_times;
     # Take one more reading to serve as the begin time of the first test
-    $time_before = nqp::p6box_n(pir::time__N);
+    $time_before = nqp::p6box_n(nqp::time_n);
 }
 
 multi sub pass($desc = '') is export {
-    $time_after = nqp::p6box_n(pir::time__N);
+    $time_after = nqp::p6box_n(nqp::time_n);
     proclaim(1, $desc);
-    $time_before = nqp::p6box_n(pir::time__N);
+    $time_before = nqp::p6box_n(nqp::time_n);
 }
 
 multi sub ok(Mu $cond, $desc = '') is export {
-    $time_after = nqp::p6box_n(pir::time__N);
+    $time_after = nqp::p6box_n(nqp::time_n);
     proclaim(?$cond, $desc);
-    $time_before = nqp::p6box_n(pir::time__N);
+    $time_before = nqp::p6box_n(nqp::time_n);
 }
 
 multi sub nok(Mu $cond, $desc = '') is export {
-    $time_after = nqp::p6box_n(pir::time__N);
+    $time_after = nqp::p6box_n(nqp::time_n);
     proclaim(!$cond, $desc);
-    $time_before = nqp::p6box_n(pir::time__N);
+    $time_before = nqp::p6box_n(nqp::time_n);
 }
 
 multi sub is(Mu $got, Mu $expected, $desc = '') is export {
-    $time_after = nqp::p6box_n(pir::time__N);
+    $time_after = nqp::p6box_n(nqp::time_n);
     $got.defined; # Hack to deal with Failures
     my $test = $got eq $expected;
     proclaim(?$test, $desc);
@@ -83,18 +83,18 @@ multi sub is(Mu $got, Mu $expected, $desc = '') is export {
         diag "expected: '$expected'";
     }
     $test;
-    $time_before = nqp::p6box_n(pir::time__N);
+    $time_before = nqp::p6box_n(nqp::time_n);
 }
 
 multi sub isnt(Mu $got, Mu $expected, $desc = '') is export {
-    $time_after = nqp::p6box_n(pir::time__N);
+    $time_after = nqp::p6box_n(nqp::time_n);
     my $test = !($got eq $expected);
     proclaim($test, $desc);
-    $time_before = nqp::p6box_n(pir::time__N);
+    $time_before = nqp::p6box_n(nqp::time_n);
 }
 
 multi sub is_approx(Mu $got, Mu $expected, $desc = '') is export {
-    $time_after = nqp::p6box_n(pir::time__N);
+    $time_after = nqp::p6box_n(nqp::time_n);
     my $tol = $expected.abs < 1e-6 ?? 1e-5 !! $expected.abs * 1e-6;
     my $test = ($got - $expected).abs <= $tol;
     proclaim(?$test, $desc);
@@ -103,56 +103,56 @@ multi sub is_approx(Mu $got, Mu $expected, $desc = '') is export {
         diag("expected: $expected");
     }
     ?$test;
-    $time_before = nqp::p6box_n(pir::time__N);
+    $time_before = nqp::p6box_n(nqp::time_n);
 }
 
 multi sub todo($reason, $count = 1) is export {
-    $time_after = nqp::p6box_n(pir::time__N);
+    $time_after = nqp::p6box_n(nqp::time_n);
     $todo_upto_test_num = $num_of_tests_run + $count;
     $todo_reason = '# TODO ' ~ $reason;
-    $time_before = nqp::p6box_n(pir::time__N);
+    $time_before = nqp::p6box_n(nqp::time_n);
 }
 
 multi sub skip() {
-    $time_after = nqp::p6box_n(pir::time__N);
+    $time_after = nqp::p6box_n(nqp::time_n);
     proclaim(1, "# SKIP");
-    $time_before = nqp::p6box_n(pir::time__N);
+    $time_before = nqp::p6box_n(nqp::time_n);
 }
 multi sub skip($reason, $count = 1) is export {
-    $time_after = nqp::p6box_n(pir::time__N);
+    $time_after = nqp::p6box_n(nqp::time_n);
     die "skip() was passed a non-numeric number of tests.  Did you get the arguments backwards?" if $count !~~ Numeric;
     my $i = 1;
     while $i <= $count { proclaim(1, "# SKIP " ~ $reason); $i = $i + 1; }
-    $time_before = nqp::p6box_n(pir::time__N);
+    $time_before = nqp::p6box_n(nqp::time_n);
 }
 
 sub skip_rest($reason = '<unknown>') is export {
-    $time_after = nqp::p6box_n(pir::time__N);
+    $time_after = nqp::p6box_n(nqp::time_n);
     skip($reason, $num_of_tests_planned - $num_of_tests_run);
-    $time_before = nqp::p6box_n(pir::time__N);
+    $time_before = nqp::p6box_n(nqp::time_n);
 }
 
 sub diag($message) is export {
-    $time_after = nqp::p6box_n(pir::time__N);
+    $time_after = nqp::p6box_n(nqp::time_n);
     say $message.Str.subst(rx/^^/, '# ', :g);
-    $time_before = nqp::p6box_n(pir::time__N);
+    $time_before = nqp::p6box_n(nqp::time_n);
 }
 
 multi sub flunk($reason) is export {
-    $time_after = nqp::p6box_n(pir::time__N);
+    $time_after = nqp::p6box_n(nqp::time_n);
     proclaim(0, "flunk $reason");
-    $time_before = nqp::p6box_n(pir::time__N);
+    $time_before = nqp::p6box_n(nqp::time_n);
 }
 
 multi sub isa_ok(Mu $var, Mu $type, $msg = ("The object is-a '" ~ $type.perl ~ "'")) is export {
-    $time_after = nqp::p6box_n(pir::time__N);
+    $time_after = nqp::p6box_n(nqp::time_n);
     ok($var.isa($type), $msg)
         or diag('Actual type: ' ~ $var.WHAT);
-    $time_before = nqp::p6box_n(pir::time__N);
+    $time_before = nqp::p6box_n(nqp::time_n);
 }
 
 multi sub dies_ok(Callable $closure, $reason = '') is export {
-    $time_after = nqp::p6box_n(pir::time__N);
+    $time_after = nqp::p6box_n(nqp::time_n);
     my $death = 1;
     my $bad_death = 0;
     try {
@@ -164,20 +164,20 @@ multi sub dies_ok(Callable $closure, $reason = '') is export {
         diag("Wrong way to die: '$!'");
     }
     proclaim( $death && !$bad_death, $reason );
-    $time_before = nqp::p6box_n(pir::time__N);
+    $time_before = nqp::p6box_n(nqp::time_n);
 }
 
 multi sub lives_ok(Callable $closure, $reason = '') is export {
-    $time_after = nqp::p6box_n(pir::time__N);
+    $time_after = nqp::p6box_n(nqp::time_n);
     try {
         $closure();
     }
     proclaim((not defined $!), $reason) or diag($!);
-    $time_before = nqp::p6box_n(pir::time__N);
+    $time_before = nqp::p6box_n(nqp::time_n);
 }
 
 multi sub eval_dies_ok(Str $code, $reason = '') is export {
-    $time_after = nqp::p6box_n(pir::time__N);
+    $time_after = nqp::p6box_n(nqp::time_n);
     my $ee = eval_exception($code);
     if defined $ee {
         # XXX no regexes yet in nom
@@ -190,20 +190,20 @@ multi sub eval_dies_ok(Str $code, $reason = '') is export {
     else {
         proclaim( 0, $reason );
     }
-    $time_before = nqp::p6box_n(pir::time__N);
+    $time_before = nqp::p6box_n(nqp::time_n);
 }
 
 multi sub eval_lives_ok(Str $code, $reason = '') is export {
-    $time_after = nqp::p6box_n(pir::time__N);
+    $time_after = nqp::p6box_n(nqp::time_n);
     my $ee = eval_exception($code);
     proclaim((not defined $ee), $reason)
         or diag("Error: $ee");
-    $time_before = nqp::p6box_n(pir::time__N);
+    $time_before = nqp::p6box_n(nqp::time_n);
 }
 
 multi sub is_deeply(Mu $got, Mu $expected, $reason = '') is export
 {
-    $time_after = nqp::p6box_n(pir::time__N);
+    $time_after = nqp::p6box_n(nqp::time_n);
     my $test = _is_deeply( $got, $expected );
     proclaim($test, $reason);
     if !$test {
@@ -215,7 +215,7 @@ multi sub is_deeply(Mu $got, Mu $expected, $reason = '') is export
         }
     }
     $test;
-    $time_before = nqp::p6box_n(pir::time__N);
+    $time_before = nqp::p6box_n(nqp::time_n);
 }
 
 sub _is_deeply(Mu $got, Mu $expected) {

@@ -106,12 +106,12 @@ my class Num does Real {
     method ceiling(Num:D: ) {
         nqp::isnanorinf(nqp::unbox_n(self))
             ?? self
-            !! nqp::fromnum_I(pir::ceil__NN(nqp::unbox_n(self)), Int);
+            !! nqp::fromnum_I(nqp::ceil_n(nqp::unbox_n(self)), Int);
     }
     method floor(Num:D: ) {
         nqp::isnanorinf(nqp::unbox_n(self))
             ?? self
-            !! nqp::fromnum_I(pir::floor__NN(nqp::unbox_n(self)), Int);
+            !! nqp::fromnum_I(nqp::floor_n(nqp::unbox_n(self)), Int);
     }
 
     proto method sin(|$) {*}

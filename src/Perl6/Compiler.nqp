@@ -27,7 +27,7 @@ class Perl6::Compiler is HLL::Compiler {
     method syntaxcheck($past, *%adverbs) {
         if %adverbs<c> {
             say("Syntax OK");
-            pir::exit__vi(0);
+            nqp::exit(0);
         }
         $past;
     }
@@ -77,6 +77,6 @@ class Perl6::Compiler is HLL::Compiler {
         PERL6LIB=\"lib\" perl6 example.pl
         
         For more information, see the perl6(1) man page.\n"); 
-        pir::exit__vi(0);
+        nqp::exit(0);
     }
 }

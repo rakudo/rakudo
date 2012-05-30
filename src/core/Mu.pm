@@ -39,7 +39,7 @@ my class Mu {
     method not() { self ?? False !! True }
     
     method defined() {
-        nqp::p6bool(pir::repr_defined__IP(self))
+        nqp::p6bool(nqp::isconcrete(self))
     }
     
     proto method new(|$) { * }

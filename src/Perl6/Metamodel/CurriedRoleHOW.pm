@@ -26,7 +26,7 @@ class Perl6::Metamodel::CurriedRoleHOW
     my $archetypes_g := Perl6::Metamodel::Archetypes.new( :composable(1), :inheritalizable(1), :parametric(1), :generic(1) );
     my $archetypes_ng := Perl6::Metamodel::Archetypes.new( :nominal(1), :composable(1), :inheritalizable(1), :parametric(1) );
     method archetypes() {
-        if pir::repr_defined__IP(self) {
+        if nqp::isconcrete(self) {
             for @!pos_args {
                 if $_.HOW.archetypes.generic {
                     return $archetypes_g;

@@ -55,7 +55,7 @@ my class Hash {
     proto method delete(|$) { * }
     multi method delete($key as Str) {
         my Mu $val = self.at_key($key);
-        pir::delete(
+        nqp::deletekey(
             nqp::getattr(self, EnumMap, '$!storage'),
             nqp::unbox_s($key)
         );

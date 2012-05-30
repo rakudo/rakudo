@@ -34,7 +34,7 @@ sub term:<time>() { nqp::p6box_i(pir::time__I()) }
 
         method delete($k) {
             my $ret = self.at_key($k);
-            pir::delete($env, nqp::unbox_s($k));
+            nqp::deletekey($env, nqp::unbox_s($k));
             return $ret;
         }
     }

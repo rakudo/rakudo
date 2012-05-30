@@ -135,7 +135,7 @@ BEGIN {
     # Need new and accessor methods for Attribute in here for now.
     Attribute.HOW.add_method(Attribute, 'new',
         static(sub ($self, :$name!, :$type!, :$package!, :$has_accessor, *%other) {
-            my $attr := pir::repr_instance_of__PP($self);
+            my $attr := nqp::create($self);
             nqp::bindattr_s($attr, Attribute, '$!name', $name);
             nqp::bindattr($attr, Attribute, '$!type', $type);
             nqp::bindattr_i($attr, Attribute, '$!has_accessor', $has_accessor);
@@ -150,7 +150,7 @@ BEGIN {
             else {
                 my $cd := Metamodel::ContainerDescriptor.new(
                     :of($type), :rw(1), :name($name));
-                my $scalar := pir::repr_instance_of__PP(Scalar);
+                my $scalar := nqp::create(Scalar);
                 nqp::bindattr($scalar, Scalar, '$!descriptor', $cd);
                 nqp::bindattr($scalar, Scalar, '$!value', $type);
                 nqp::bindattr($attr, Attribute, '$!container_descriptor', $cd);
@@ -320,7 +320,7 @@ BEGIN {
     sub scalar_attr($name, $type, $package) {
         my $cd := Perl6::Metamodel::ContainerDescriptor.new(
             :of($type), :rw(1), :name($name));
-        my $scalar := pir::repr_instance_of__PP(Scalar);
+        my $scalar := nqp::create(Scalar);
         nqp::bindattr($scalar, Scalar, '$!descriptor', $cd);
         nqp::bindattr($scalar, Scalar, '$!value', $type);
         return Attribute.new( :name($name), :type($type), :package($package),
@@ -823,10 +823,10 @@ BEGIN {
     }
 
     # Bool::False and Bool::True.
-    my $false := pir::repr_instance_of__PP(Bool);
+    my $false := nqp::create(Bool);
     nqp::bindattr_i($false, Bool, '$!value', 0);
     (Bool.WHO)<False> := $false;
-    my $true := pir::repr_instance_of__PP(Bool);
+    my $true := nqp::create(Bool);
     nqp::bindattr_i($true, Bool, '$!value', 1);
     (Bool.WHO)<True> := $true;
 

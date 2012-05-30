@@ -586,13 +586,19 @@ my class Str does Stringy {
     multi method subst($matcher, $replacement,
                        :ii(:$samecase), :ss(:$samespace),
                        :$SET_CALLER_DOLLAR_SLASH, *%options) {
-        my @matches = self.match($matcher, |%options);
-        return self unless @matches;
-        return self if @matches == 1 && !@matches[0];
+        my $matches := self.match($matcher, |%options);
+        return self unless $matches;
+        if $matches ~~ Match {
+            $matches := ($matches,).list;
+        }
+        else {
+            $matches := $matches.list;
+        }
         my $caller_dollar_slash := pir::find_caller_lex__Ps('$/');
         my $prev = 0;
         my $result = '';
-        for @matches -> $m {
+        while $matches {
+            my $m = $matches.shift;
             $result ~= self.substr($prev, $m.from - $prev);
 
             $caller_dollar_slash = $m if $SET_CALLER_DOLLAR_SLASH;
@@ -602,8 +608,7 @@ my class Str does Stringy {
             $result ~= $real_replacement;
             $prev = $m.to;
         }
-        my $last = @matches.pop;
-        $result ~= self.substr($last.to);
+        $result ~= self.substr($prev);
         $result;
     }
 

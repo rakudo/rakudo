@@ -5365,10 +5365,10 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions {
     
     method assertion:sym<~~>($/) {
         if $<num> {
-            pir::die('Sorry, ~~ regex assertion with a capture is not yet implemented');
+            nqp::die('Sorry, ~~ regex assertion with a capture is not yet implemented');
         }
         elsif $<desigilname> {
-            pir::die('Sorry, ~~ regex assertion with a capture is not yet implemented');
+            nqp::die('Sorry, ~~ regex assertion with a capture is not yet implemented');
         }
         else {
             make QAST::Regex.new( :rxtype<subrule>, :subtype<method>,

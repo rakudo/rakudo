@@ -38,7 +38,7 @@ class Perl6::Metamodel::ClassHOW
         my $metaclass := self.new(:name($name), :ver($ver), :auth($auth));
         my $obj := pir::repr_type_object_for__PPS($metaclass, $repr);
         self.add_stash($obj);
-        pir::set_boolification_spec__0PiP($obj, 5, pir::null__P());
+        pir::set_boolification_spec__0PiP($obj, 5, nqp::null());
         $obj
     }
     
@@ -216,6 +216,6 @@ class Perl6::Metamodel::ClassHOW
         }
 
         # Otherwise, didn't find anything.
-        pir::null__P()
+        nqp::null()
     }
 }

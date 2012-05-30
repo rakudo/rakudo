@@ -15,7 +15,7 @@ role Perl6::Metamodel::MROBasedMethodDispatch {
         }
         !$no_fallback && nqp::can(self, 'find_method_fallback') ??
             self.find_method_fallback($obj, $name) !!
-            pir::null__P();
+            nqp::null();
     }
     
     method publish_method_cache($obj) {

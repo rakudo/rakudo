@@ -17,11 +17,11 @@ role Perl6::Metamodel::BoolificationProtocol {
             }
             else {
                 # Default to "not a type object" if we've no available method.
-                pir::set_boolification_spec__0PiP($obj, 5, pir::null__P())
+                pir::set_boolification_spec__0PiP($obj, 5, nqp::null())
             }
         }
         else {
-            pir::set_boolification_spec__0PiP($obj, $!boolification_mode, pir::null__P())
+            pir::set_boolification_spec__0PiP($obj, $!boolification_mode, nqp::null())
         }
     }
 }

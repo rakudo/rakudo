@@ -286,7 +286,7 @@ BEGIN {
     }));
 
     # Scalar needs to be registered as a container type.
-    pir::set_container_spec__vPPsP(Scalar, Scalar, '$!value', pir::null__P());
+    pir::set_container_spec__vPPsP(Scalar, Scalar, '$!value', nqp::null());
 
     # class Proxy is Any {
     #    has &!FETCH;
@@ -579,7 +579,7 @@ BEGIN {
                 $disp_list.push($dispatchee);
                 pir::setattribute__0PPsP(pir::perl6_decontainerize__PP($dispatchee),
                     Routine, '$!dispatcher', $dc_self);
-                pir::setattribute__0PPsP($dc_self, Routine, '$!dispatcher_cache', pir::null__P());
+                pir::setattribute__0PPsP($dc_self, Routine, '$!dispatcher_cache', nqp::null());
             }
             else {
                 nqp::die("Cannot add a dispatchee to a non-dispatcher code object");

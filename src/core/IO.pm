@@ -147,15 +147,15 @@ class IO {
     }
 
     method d() {
-        self.e && nqp::p6bool(pir::stat__Isi(nqp::unbox_s($!path), pir::const::STAT_ISDIR))
+        self.e && nqp::p6bool(nqp::stat(nqp::unbox_s($!path), pir::const::STAT_ISDIR))
     }
 
     method e() {
-        nqp::p6bool(pir::stat__Isi(nqp::unbox_s($!path), pir::const::STAT_EXISTS))
+        nqp::p6bool(nqp::stat(nqp::unbox_s($!path), pir::const::STAT_EXISTS))
     }
 
     method f() {
-        self.e && nqp::p6bool(pir::stat__Isi(nqp::unbox_s($!path), pir::const::STAT_ISREG))
+        self.e && nqp::p6bool(nqp::stat(nqp::unbox_s($!path), pir::const::STAT_ISREG))
     }
 
     method l() {
@@ -170,7 +170,7 @@ class IO {
         self.e 
           && nqp::p6bool(
               nqp::isgt_i(
-                  pir::stat__Isi(nqp::unbox_s($!path), 
+                  nqp::stat(nqp::unbox_s($!path), 
                                  pir::const::STAT_FILESIZE),
                   0))
     }
@@ -192,15 +192,15 @@ class IO {
     }
 
     method modified() {
-         nqp::p6box_i(pir::stat__Isi(nqp::unbox_s($!path), pir::const::STAT_MODIFYTIME));
+         nqp::p6box_i(nqp::stat(nqp::unbox_s($!path), pir::const::STAT_MODIFYTIME));
     }
 
     method accessed() {
-         nqp::p6box_i(pir::stat__Isi(nqp::unbox_s($!path), pir::const::STAT_ACCESSTIME));
+         nqp::p6box_i(nqp::stat(nqp::unbox_s($!path), pir::const::STAT_ACCESSTIME));
     }
 
     method changed() { 
-         nqp::p6box_i(pir::stat__Isi(nqp::unbox_s($!path), pir::const::STAT_CHANGETIME));
+         nqp::p6box_i(nqp::stat(nqp::unbox_s($!path), pir::const::STAT_CHANGETIME));
     }
 
     # not spec'd

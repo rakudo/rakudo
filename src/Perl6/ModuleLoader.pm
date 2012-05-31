@@ -50,10 +50,10 @@ class Perl6::ModuleLoader {
         my @candidates;
         for @prefixes -> $prefix {
             $prefix := ~$prefix;
-            my $have_pm  := pir::stat__isi("$prefix/$pm_path", 0);
-            my $have_pm6 := pir::stat__isi("$prefix/$pm6_path", 0);
-            my $have_pir := pir::stat__isi("$prefix/$pir_path", 0);
-            my $have_pbc := pir::stat__isi("$prefix/$pbc_path", 0);
+            my $have_pm  := nqp::stat("$prefix/$pm_path", 0);
+            my $have_pm6 := nqp::stat("$prefix/$pm6_path", 0);
+            my $have_pir := nqp::stat("$prefix/$pir_path", 0);
+            my $have_pbc := nqp::stat("$prefix/$pbc_path", 0);
             if $have_pm6 {
                 # if there are both .pm and .pm6 we assume that
                 # the former is a Perl 5 module and use the latter
@@ -64,12 +64,12 @@ class Perl6::ModuleLoader {
                 my %cand;
                 %cand<key> := "$prefix/$pm_path";
                 %cand<pm>  := "$prefix/$pm_path";
-                if $have_pir && pir::stat__ISI("$prefix/$pir_path", 7)
-                             >= pir::stat__ISI("$prefix/$pm_path", 7) {
+                if $have_pir && nqp::stat("$prefix/$pir_path", 7)
+                             >= nqp::stat("$prefix/$pm_path", 7) {
                     %cand<load> := "$prefix/$pir_path";
                 }
-                elsif $have_pbc && pir::stat__ISI("$prefix/$pbc_path", 7)
-                                >= pir::stat__ISI("$prefix/$pm_path", 7) {
+                elsif $have_pbc && nqp::stat("$prefix/$pbc_path", 7)
+                                >= nqp::stat("$prefix/$pm_path", 7) {
                     %cand<load> := "$prefix/$pbc_path";
                 }
                 @candidates.push(%cand);
@@ -211,7 +211,7 @@ class Perl6::ModuleLoader {
                 my @prefixes := self.search_path();
                 for @prefixes -> $prefix {
                     $prefix := ~$prefix;
-                    if pir::stat__isi("$prefix/$path", 0) {
+                    if nqp::stat("$prefix/$path", 0) {
                         $path := "$prefix/$path";
                         last;
                     }

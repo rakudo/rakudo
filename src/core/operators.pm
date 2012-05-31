@@ -103,10 +103,13 @@ sub SEQUENCE($left, $right, :$exclude_end) {
             take $value;
         }
         unless $stop {
-            $tail.munch($tail.elems - 3) if $tail.elems > 3;
-            my $a = $tail[0];
-            my $b = $tail[1];
-            my $c = $tail[2];
+            my ($a, $b, $c);
+            unless $code.defined {
+                $tail.munch($tail.elems - 3) if $tail.elems > 3;
+                $a = $tail[0];
+                $b = $tail[1];
+                $c = $tail[2];
+            }
             if $code.defined { }
             elsif $tail.grep({ $_ ~~ Numeric}).elems != $tail.elems {
                 # non-numeric

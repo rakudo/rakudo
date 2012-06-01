@@ -59,7 +59,7 @@ class IO {
     }
 
     method get() {
-        unless pir::defined($!PIO) {
+        unless nqp::defined($!PIO) {
             self.open($.path, :chomp($.chomp));
         }
         return Str if self.eof;

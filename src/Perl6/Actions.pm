@@ -3356,7 +3356,7 @@ class Perl6::Actions is HLL::Actions {
         my $past  := PAST::Node.'map_node'(|$args, :map<nqp>, :op($op),
                                            :node($/));
 
-        pir::defined($past) ||
+        nqp::defined($past) ||
             $/.CURSOR.panic("Unrecognized nqp:: opcode 'nqp::$op'");
             
         if $past.isa(PAST::Op) && $past.pirop ne '' {
@@ -3472,10 +3472,10 @@ class Perl6::Actions is HLL::Actions {
         }
         else {
             my $last := $past[ $size - 1 ];
-            if pir::defined($last.returns) {
+            if nqp::defined($last.returns) {
                 $past.returns($last.returns);
             }
-            if pir::defined($last.arity) {
+            if nqp::defined($last.arity) {
                 $past.arity($last.arity);
             }
         }
@@ -4925,9 +4925,9 @@ class Perl6::Actions is HLL::Actions {
         my $firsthandler;
         my $firsthandlertype;
         my @handlers := $block.handlers();
-        if pir::defined($type) && $type eq 'CONTROL' && @handlers && @handlers[0] {
+        if nqp::defined($type) && $type eq 'CONTROL' && @handlers && @handlers[0] {
             $firsthandlertype := $except ?? @handlers[0].handle_types() !! @handlers[0].handle_types_except();
-            if pir::defined($firsthandlertype) && $firsthandlertype eq $type {
+            if nqp::defined($firsthandlertype) && $firsthandlertype eq $type {
                 $firsthandler := @handlers.shift();
                 $ex := PAST::Op.new( :pirop('perl6_skip_handlers_in_rethrow__0Pi'), $ex, 1);
             }
@@ -4937,7 +4937,7 @@ class Perl6::Actions is HLL::Actions {
             PAST::Op.new( :pirop('perl6_invoke_catchhandler__vPP'), $handler, $ex),
             PAST::Var.new( :scope('lexical_6model'), :name('$!') )
         );
-        if pir::defined($type) {
+        if nqp::defined($type) {
             if $except {
                 $handler.handle_types_except($type);
             } else {
@@ -4961,7 +4961,7 @@ class Perl6::Actions is HLL::Actions {
         my @handlers := $block.handlers();
         for @handlers {
             my $ltype := $except ?? $_.handle_types_except() !! $_.handle_types();
-            if pir::defined($ltype) && $ltype eq $type {
+            if nqp::defined($ltype) && $ltype eq $type {
                 return 1;
             }
         }
@@ -5176,9 +5176,9 @@ class Perl6::Actions is HLL::Actions {
         $*W.throw($/, 'X::Syntax::Number::RadixOutOfRange', :$radix)
             if $radix < 2 || $radix > 36;
         nqp::die("You gave us a base for the magnitude, but you forgot the exponent.")
-            if pir::defined($base) && !pir::defined($exponent);
+            if nqp::defined($base) && !nqp::defined($exponent);
         nqp::die("You gave us an exponent for the magnitude, but you forgot the base.")
-            if !pir::defined($base) && pir::defined($exponent);
+            if !nqp::defined($base) && nqp::defined($exponent);
 
         if nqp::substr($number, 0, 1) eq '-' {
             $sign := -1;
@@ -5236,7 +5236,7 @@ class Perl6::Actions is HLL::Actions {
                 return $*W.add_numeric_constant('Num', 0e0);
             }
         } else {
-            if pir::defined($exponent) {
+            if nqp::defined($exponent) {
                 $iresult := nqp::mul_I(
                             $iresult,
                             nqp::pow_I(

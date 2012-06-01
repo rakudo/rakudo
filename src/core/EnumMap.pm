@@ -3,10 +3,10 @@ my class EnumMap does Associative {
     #   has $!storage;         # Parrot Hash PMC of key->value mappings
 
     multi method Bool(EnumMap:D:) {
-        nqp::p6bool(pir::defined($!storage) ?? nqp::elems($!storage) !! 0)
+        nqp::p6bool(nqp::defined($!storage) ?? nqp::elems($!storage) !! 0)
     }
     method elems(EnumMap:D:) {
-        pir::defined($!storage) ?? nqp::p6box_i(nqp::elems($!storage)) !! 0
+        nqp::defined($!storage) ?? nqp::p6box_i(nqp::elems($!storage)) !! 0
     }
 
     multi method ACCEPTS(EnumMap:D: Any $topic) {
@@ -20,13 +20,13 @@ my class EnumMap does Associative {
     proto method exists(|$) {*}
     multi method exists(EnumMap:D: Str:D \$key) {
         nqp::p6bool(
-            pir::defined($!storage)
+            nqp::defined($!storage)
             && nqp::existskey($!storage, nqp::unbox_s($key))
         )
     }
     multi method exists(EnumMap:D: \$key) {
         nqp::p6bool(
-            pir::defined($!storage)
+            nqp::defined($!storage)
             && nqp::existskey($!storage, nqp::unbox_s($key.Stringy))
         )
     }
@@ -44,7 +44,7 @@ my class EnumMap does Associative {
     method kv()     { self.pairs.map( { $_.kv } ) }
     method values() { self.pairs.map( { $_.value } ) }
     method pairs() {
-        return unless pir::defined($!storage);
+        return unless nqp::defined($!storage);
         gather {
             my Mu $iter := nqp::iterator($!storage);
             my Mu $pair;
@@ -75,7 +75,7 @@ my class EnumMap does Associative {
     }
 
     method STORE_AT_KEY(\$key, Mu \$value) is rw {
-        pir::defined($!storage) ||
+        nqp::defined($!storage) ||
             nqp::bindattr(self, EnumMap, '$!storage', nqp::hash());
         nqp::bindkey($!storage, nqp::unbox_s($key.Str), $value)
     }
@@ -88,7 +88,7 @@ my class EnumMap does Associative {
     
     method FLATTENABLE_LIST() { nqp::list() }
     method FLATTENABLE_HASH() {
-        pir::defined($!storage) ||
+        nqp::defined($!storage) ||
             nqp::bindattr(self, EnumMap, '$!storage', nqp::hash());
         $!storage
     }

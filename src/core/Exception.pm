@@ -21,7 +21,7 @@ my class Exception {
 
     method throw() is hidden_from_backtrace {
         nqp::bindattr(self, Exception, '$!ex', pir::new('Exception'))
-            unless pir::defined($!ex);
+            unless nqp::defined($!ex);
         pir::setattribute__vPsP($!ex, 'payload', nqp::p6decont(self));
         my $msg := self.?message;
         pir::setattribute__vPsP($!ex, 'message', nqp::unbox_s($msg.Str))

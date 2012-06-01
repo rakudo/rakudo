@@ -450,7 +450,7 @@ grammar Perl6::Grammar is HLL::Grammar {
             
             # If we already have a specified outer context, then that's
             # our setting. Otherwise, load one.
-            unless pir::defined(%*COMPILING<%?OPTIONS><outer_ctx>) {
+            unless nqp::defined(%*COMPILING<%?OPTIONS><outer_ctx>) {
                 $*SETTING := $*W.load_setting($/, %*COMPILING<%?OPTIONS><setting> // 'CORE');
             }
             $/.CURSOR.unitstart();
@@ -487,7 +487,7 @@ grammar Perl6::Grammar is HLL::Grammar {
                 $*DECLARAND := $*W.stub_code_object('Block');
             }
             my $M := %*COMPILING<%?OPTIONS><M>;
-            if pir::defined($M) {
+            if nqp::defined($M) {
                 for nqp::does($M, 'array') ?? $M !! [$M] -> $longname {
                     my $module := $*W.load_module($/,
                                                     $longname,
@@ -795,7 +795,7 @@ grammar Perl6::Grammar is HLL::Grammar {
             my $EXPORT := $module<EXPORT>.WHO;
             my @to_import := ['MANDATORY'];
             my @positional_imports := [];
-            if pir::defined($arglist) {
+            if nqp::defined($arglist) {
                 my $Pair := $*W.find_symbol(['Pair']);
                 for $arglist -> $tag {
                     if nqp::istype($tag, $Pair) {

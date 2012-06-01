@@ -15,7 +15,7 @@ class Perl6::ModuleLoader {
         my $hll_ns := pir::get_root_global__PS('perl6');
         if nqp::existskey($hll_ns, 'PROCESS') && nqp::existskey($hll_ns<PROCESS>.WHO, '@INC') {
             my $INC := ($hll_ns<PROCESS>.WHO)<@INC>;
-            if pir::defined($INC) {
+            if nqp::defined($INC) {
                 my @INC := $INC.FLATTENABLE_LIST();
                 if +@INC {
                     return @INC;
@@ -105,7 +105,7 @@ class Perl6::ModuleLoader {
         # its mainline. Otherwise, we already loaded it so go on
         # with what we already have.
         my $module_ctx;
-        if pir::defined(%modules_loaded{%chosen<key>}) {
+        if nqp::defined(%modules_loaded{%chosen<key>}) {
             $module_ctx := %modules_loaded{%chosen<key>};
         }
         else {
@@ -137,7 +137,7 @@ class Perl6::ModuleLoader {
         }
 
         # Provided we have a mainline and need to do global merging...
-        if pir::defined($module_ctx) {
+        if nqp::defined($module_ctx) {
             # Merge any globals.
             if +@GLOBALish {
                 my $UNIT := pir::getattribute__PPs($module_ctx, 'lex_pad');
@@ -205,7 +205,7 @@ class Perl6::ModuleLoader {
         
         if $setting_name ne 'NULL' {
             # Unless we already did so, locate and load the setting.
-            unless pir::defined(%settings_loaded{$setting_name}) {
+            unless nqp::defined(%settings_loaded{$setting_name}) {
                 # Find it.
                 my $path := "$setting_name.setting.pbc";
                 my @prefixes := self.search_path();
@@ -225,7 +225,7 @@ class Perl6::ModuleLoader {
                 pir::load_bytecode($path);
                 pir::nqp_enable_sc_write_barrier__v();
                 pir::set_hll_global__vsP('GLOBAL', $preserve_global);
-                unless pir::defined($*MAIN_CTX) {
+                unless nqp::defined($*MAIN_CTX) {
                     nqp::die("Unable to load setting $setting_name; maybe it is missing a YOU_ARE_HERE?");
                 }
                 %settings_loaded{$setting_name} := $*MAIN_CTX;

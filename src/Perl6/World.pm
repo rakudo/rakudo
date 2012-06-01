@@ -995,7 +995,7 @@ class Perl6::World is HLL::World {
             my $namedkey := '';
             for %named {
                 $namedkey := $namedkey ~ $_.key ~ ',' ~ $_.value ~ ';'
-                    if pir::defined($_.value);
+                    if nqp::defined($_.value);
             }
             if $primitive eq 'bigint' {
                 $cache_key := "$type,bigint," ~ nqp::tostr_I(@value[0]);
@@ -1107,8 +1107,8 @@ class Perl6::World is HLL::World {
     method pkg_create_mo($/, $how, :$name, :$repr, *%extra) {
         # Create the meta-object and add to root objects.
         my %args;
-        if pir::defined($name) { %args<name> := ~$name; }
-        if pir::defined($repr) { %args<repr> := ~$repr; }
+        if nqp::defined($name) { %args<name> := ~$name; }
+        if nqp::defined($repr) { %args<repr> := ~$repr; }
         if nqp::existskey(%extra, 'base_type') {
             %args<base_type> := %extra<base_type>;
         }
@@ -1215,7 +1215,7 @@ class Perl6::World is HLL::World {
     method create_subset($how, $refinee, $refinement, :$name) {
         # Create the meta-object and add to root objects.
         my %args := hash(:refinee($refinee), :refinement($refinement));
-        if pir::defined($name) { %args<name> := $name; }
+        if nqp::defined($name) { %args<name> := $name; }
         my $mo := $how.new_type(|%args);
         self.add_object($mo);
         return $mo;

@@ -226,7 +226,7 @@ BEGIN {
                 Attribute, '$!package');
             my $build := nqp::getattr(pir::perl6_decontainerize__PP($dcself),
                 Attribute, '$!build_closure');
-            pir::perl6_booleanize__PI($type.HOW.archetypes.generic || $package.HOW.archetypes.generic || pir::defined__IP($build));
+            pir::perl6_booleanize__PI($type.HOW.archetypes.generic || $package.HOW.archetypes.generic || nqp::defined($build));
         }));
     Attribute.HOW.add_method(Attribute, 'instantiate_generic', static(sub ($self, $type_environment) {
             my $dcself   := pir::perl6_decontainerize__PP($self);
@@ -253,7 +253,7 @@ BEGIN {
                 nqp::bindattr($ins, Attribute, '$!package',
                     $pkg.HOW.instantiate_generic($pkg, $type_environment));
             }
-            if pir::defined__IP($bc) {
+            if nqp::defined($bc) {
                 nqp::bindattr($ins, Attribute, '$!build_closure', $bc.clone());
             }
             $ins
@@ -504,7 +504,7 @@ BEGIN {
             # need to clone dispatchees list.
             my $dcself := pir::perl6_decontainerize__PP($self);
             my $ins := $self.clone();
-            if pir::defined(nqp::getattr($dcself, Routine, '$!dispatchees')) {
+            if nqp::defined(nqp::getattr($dcself, Routine, '$!dispatchees')) {
                 nqp::bindattr($ins, Routine, '$!dispatchees',
                     nqp::clone(nqp::getattr($dcself, Routine, '$!dispatchees')));
             }
@@ -570,12 +570,12 @@ BEGIN {
     Code.HOW.add_method(Code, 'is_dispatcher', static(sub ($self) {
             my $dc_self   := pir::perl6_decontainerize__PP($self);
             my $disp_list := nqp::getattr($dc_self, Routine, '$!dispatchees');
-            pir::perl6_booleanize__PI(pir::defined__IP($disp_list));
+            pir::perl6_booleanize__PI(nqp::defined($disp_list));
         }));
     Routine.HOW.add_method(Routine, 'add_dispatchee', static(sub ($self, $dispatchee) {
             my $dc_self   := pir::perl6_decontainerize__PP($self);
             my $disp_list := nqp::getattr($dc_self, Routine, '$!dispatchees');
-            if pir::defined($disp_list) {
+            if nqp::defined($disp_list) {
                 $disp_list.push($dispatchee);
                 pir::setattribute__0PPsP(pir::perl6_decontainerize__PP($dispatchee),
                     Routine, '$!dispatcher', $dc_self);

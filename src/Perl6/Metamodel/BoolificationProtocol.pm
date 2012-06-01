@@ -12,7 +12,7 @@ role Perl6::Metamodel::BoolificationProtocol {
     method publish_boolification_spec($obj) {
         if $!boolification_mode == 0 {
             my $meth := self.find_method($obj, 'Bool', :no_fallback(1));
-            if pir::defined($meth) {
+            if nqp::defined($meth) {
                 pir::set_boolification_spec__0PiP($obj, 0, $meth)
             }
             else {

@@ -6,7 +6,7 @@ my class Hash {
     method new(*@args) { @args.hash }
     
     multi method at_key(Hash:D: $key is copy) is rw {
-        my Mu $storage := pir::defined(nqp::getattr(self, EnumMap, '$!storage')) ??
+        my Mu $storage := nqp::defined(nqp::getattr(self, EnumMap, '$!storage')) ??
             nqp::getattr(self, EnumMap, '$!storage') !!
             nqp::bindattr(self, EnumMap, '$!storage', nqp::hash());
         $key = $key.Str;
@@ -17,7 +17,7 @@ my class Hash {
     }
 
     method bind_key($key, \$bindval) is rw {
-        pir::defined(nqp::getattr(self, EnumMap, '$!storage')) ||
+        nqp::defined(nqp::getattr(self, EnumMap, '$!storage')) ||
             nqp::bindattr(self, EnumMap, '$!storage', nqp::hash());
         nqp::bindkey(
             nqp::getattr(self, EnumMap, '$!storage'),
@@ -114,7 +114,7 @@ my class Hash {
             nqp::find_method(EnumMap, 'STORE_AT_KEY')(self, $key, $x);
         }
         method bind_key($key, TValue \$bindval) is rw {
-            pir::defined(nqp::getattr(self, EnumMap, '$!storage')) ||
+            nqp::defined(nqp::getattr(self, EnumMap, '$!storage')) ||
                 nqp::bindattr(self, EnumMap, '$!storage', nqp::hash());
             nqp::bindkey(
                 nqp::getattr(self, EnumMap, '$!storage'),
@@ -130,9 +130,9 @@ my class Hash {
               ?? nqp::find_method(EnumMap, 'at_key')(self, $key_which)
               !! pir::setattribute__0PPsP($v, Scalar, '$!whence',
                  -> {
-                        pir::defined(nqp::getattr(self, $?CLASS, '$!keys')) ||
+                        nqp::defined(nqp::getattr(self, $?CLASS, '$!keys')) ||
                             nqp::bindattr(self, $?CLASS, '$!keys', nqp::hash());
-                        pir::defined(nqp::getattr(self, EnumMap, '$!storage')) ||
+                        nqp::defined(nqp::getattr(self, EnumMap, '$!storage')) ||
                             nqp::bindattr(self, EnumMap, '$!storage', nqp::hash());
                         nqp::bindkey(
                             nqp::getattr(self, $?CLASS, '$!keys'),
@@ -146,9 +146,9 @@ my class Hash {
         }
         method STORE_AT_KEY(TKey \$key, TValue $x is copy) is rw {
             my $key_which = $key.WHICH;
-            pir::defined(nqp::getattr(self, $?CLASS, '$!keys')) ||
+            nqp::defined(nqp::getattr(self, $?CLASS, '$!keys')) ||
                 nqp::bindattr(self, $?CLASS, '$!keys', nqp::hash());
-            pir::defined(nqp::getattr(self, EnumMap, '$!storage')) ||
+            nqp::defined(nqp::getattr(self, EnumMap, '$!storage')) ||
                 nqp::bindattr(self, EnumMap, '$!storage', nqp::hash());
             nqp::bindkey(
                 nqp::getattr(self, $?CLASS, '$!keys'),
@@ -161,9 +161,9 @@ my class Hash {
         }
         method bind_key(TKey $key, TValue \$bindval) is rw {
             my $key_which = $key.WHICH;
-            pir::defined(nqp::getattr(self, $?CLASS, '$!keys')) ||
+            nqp::defined(nqp::getattr(self, $?CLASS, '$!keys')) ||
                 nqp::bindattr(self, $?CLASS, '$!keys', nqp::hash());
-            pir::defined(nqp::getattr(self, EnumMap, '$!storage')) ||
+            nqp::defined(nqp::getattr(self, EnumMap, '$!storage')) ||
                 nqp::bindattr(self, EnumMap, '$!storage', nqp::hash());
             nqp::bindkey(
                 nqp::getattr(self, $?CLASS, '$!keys'),
@@ -175,7 +175,7 @@ my class Hash {
                 $bindval)
         }
         method pairs() {
-            return unless pir::defined(nqp::getattr(self, EnumMap, '$!storage'));
+            return unless nqp::defined(nqp::getattr(self, EnumMap, '$!storage'));
             gather {
                 my Mu $iter := nqp::iterator(nqp::getattr(self, EnumMap, '$!storage'));
                 my Mu $pair;

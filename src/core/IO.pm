@@ -40,7 +40,7 @@ class IO {
         nqp::bindattr(self, IO, '$!PIO',
              $path eq '-'
                 ?? ( $w || $a ?? pir::getstdout__P() !! pir::getstdin__P() )
-                !! pir::open__PSS(nqp::unbox_s($path), nqp::unbox_s($mode))
+                !! nqp::open(nqp::unbox_s($path), nqp::unbox_s($mode))
         );
         $!path = $path;
         $!chomp = $chomp;

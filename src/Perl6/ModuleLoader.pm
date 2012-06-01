@@ -119,7 +119,7 @@ class Perl6::ModuleLoader {
             }
             else {
                 # Read source file.
-                my $fh := pir::open__PSs(%chosen<pm>, 'r');
+                my $fh := nqp::open(%chosen<pm>, 'r');
                 $fh.encoding('utf8');
                 my $source := $fh.readall();
                 $fh.close();

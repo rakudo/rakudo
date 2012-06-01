@@ -200,7 +200,7 @@ sub sleep($seconds = $Inf) {         # fractional seconds also allowed
 }
 
 sub QX($cmd) {
-    my Mu $pio := pir::open__Pss(nqp::unbox_s($cmd), 'rp');
+    my Mu $pio := nqp::open(nqp::unbox_s($cmd), 'rp');
     fail "Unable to execute '$cmd'" unless $pio;
     $pio.encoding('utf8');
     my $result = nqp::p6box_s($pio.readall());

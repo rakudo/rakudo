@@ -1826,7 +1826,7 @@ class Perl6::Actions is HLL::Actions {
         # would just walk the PAST and see all is well; for now, we generate
         # a simple representation of the op tree for very restricted cases.
         my $node_walker := -> $node {
-            if pir::isa($node, 'Integer') || pir::isa($node, 'String') {
+            if nqp::isa($node, 'Integer') || nqp::isa($node, 'String') {
                 return 0;
             }
             if ($node.isa(PAST::Stmt) || $node.isa(PAST::Stmts)) && +@($node) == 1 {
@@ -2116,7 +2116,7 @@ class Perl6::Actions is HLL::Actions {
                 # Just a PAST::Want
                 $past.isa(PAST::Want);
             for @($past) {
-                if pir::isa($_, PAST::Node) {
+                if nqp::isa($_, PAST::Node) {
                     if !returnless_past($_) {
                         return 0;
                     }
@@ -2954,7 +2954,7 @@ class Perl6::Actions is HLL::Actions {
         unless $past.isa(PAST::Op) && $past.pasttype() eq 'callmethod' {
             $/.CURSOR.panic("Cannot use " ~ $<sym>.Str ~ " on a non-identifier method call");
         }
-        $past.unshift(pir::isa($past.name, 'String') ??
+        $past.unshift(nqp::isa($past.name, 'String') ??
             $*W.add_string_constant($past.name) !!
             $past.name);
         $past.name('dispatch:<' ~ ~$<sym> ~ '>');
@@ -4271,7 +4271,7 @@ class Perl6::Actions is HLL::Actions {
         my $int  := $<int> ?? filter_number(~$<int>) !! "0";
         my $frac := $<frac> ?? filter_number(~$<frac>) !! "0";
         if $<escale> {
-            my $e := pir::isa($<escale>, 'ResizablePMCArray') ?? $<escale>[0] !! $<escale>;
+            my $e := nqp::isa($<escale>, 'ResizablePMCArray') ?? $<escale>[0] !! $<escale>;
 #            pir::say('dec_number exponent: ' ~ ~$e.ast);
             make radcalc($/, 10, $<coeff>, 10, nqp::unbox_i($e.ast), :num);
         } else {

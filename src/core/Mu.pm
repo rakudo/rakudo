@@ -428,7 +428,7 @@ sub DUMP(|$) {
     my Mu $args := pir::perl6_current_args_rpa__P();
     my Mu $topic  := nqp::shift($args);
     if nqp::isnull($topic) { '(null)' }
-    elsif pir::isa__IPs($topic, 'ResizablePMCArray') {
+    elsif nqp::isa($topic, 'ResizablePMCArray') {
         my $s = 'RPA<' ~ nqp::p6box_s(nqp::where($topic)) ~ '>(';
         my $t = '';
         $topic := nqp::clone($topic);

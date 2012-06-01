@@ -43,7 +43,7 @@ my class Cursor does NQPCursorRole {
                 my str $key = $pair.key;
                 my Mu $value := $pair.value;
                 $value := nqp::p6list($value, List, Mu)
-                    if pir::isa__IPs($value, 'ResizablePMCArray');
+                    if nqp::isa($value, 'ResizablePMCArray');
                 nqp::iscclass(pir::const::CCLASS_NUMERIC, $key, 0)
                   ?? nqp::bindpos($list, $key, $value)
                   !! nqp::bindkey($hash, $key, $value);

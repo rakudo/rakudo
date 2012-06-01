@@ -269,7 +269,7 @@ class Perl6::Optimizer {
             }
             elsif nqp::can($_, 'type') && !nqp::isnull($_.type) {
                 my $type := $_.type();
-                if pir::isa($type, 'Undef') {
+                if nqp::isa($type, 'Undef') {
                     return [];
                 }
                 elsif $type.HOW.archetypes.generic {
@@ -323,7 +323,7 @@ class Perl6::Optimizer {
         my $i := 0;
         while $i < +@($node) {
             my $visit := $node[$i];
-            unless pir::isa($visit, 'String') || pir::isa($visit, 'Integer') || pir::isa($visit, 'Float') {
+            unless nqp::isa($visit, 'String') || nqp::isa($visit, 'Integer') || nqp::isa($visit, 'Float') {
                 if $visit.isa(PAST::Op) {
                     $node[$i] := self.visit_op($visit)
                 }

@@ -199,7 +199,7 @@ my class Str does Stringy {
         my int $eos = nqp::chars($str);
 
         # S02:3276-3277: Ignore leading and trailing whitespace
-        my int $pos = pir::find_not_cclass__Iisii(pir::const::CCLASS_WHITESPACE,
+        my int $pos = nqp::find_not_cclass(pir::const::CCLASS_WHITESPACE,
                                                   $str, 0, $eos);
         my int $end = nqp::sub_i($eos, 1);
 
@@ -692,7 +692,7 @@ my class Str does Stringy {
 
     method trim-leading(Str:D:) {
         my str $str = nqp::unbox_s(self);
-        my int $pos = pir::find_not_cclass__IiSii(
+        my int $pos = nqp::find_not_cclass(
                           pir::const::CCLASS_WHITESPACE,
                           $str, 0, nqp::chars($str));
         nqp::p6box_s(nqp::substr($str, $pos));
@@ -710,7 +710,7 @@ my class Str does Stringy {
     method trim(Str:D:) {
         my str $str  = nqp::unbox_s(self);
         my int $pos  = nqp::chars($str) - 1;
-        my int $left = pir::find_not_cclass__IiSii(
+        my int $left = nqp::find_not_cclass(
                            pir::const::CCLASS_WHITESPACE, $str, 0, $pos + 1);
         $pos = $pos - 1
             while nqp::isge_i($pos, $left)

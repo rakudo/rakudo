@@ -137,7 +137,7 @@ multi sub warn(*@msg) is hidden_from_backtrace {
     pir::setattribute__0PPsP($ex, Exception, 'message', @msg.join(''));
     pir::setattribute__0PPsP($ex, Exception, 'type', nqp::p6box_i(pir::const::CONTROL_OK));
     pir::setattribute__0PPsP($ex, Exception, 'severity', nqp::p6box_i(pir::const::EXCEPT_WARNING));
-    pir::throw($ex);
+    nqp::throw($ex);
     0;
 }
 

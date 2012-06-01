@@ -30,7 +30,7 @@ my class Exception {
     }
     method rethrow() is hidden_from_backtrace {
         pir::setattribute__vPsP($!ex, 'payload', nqp::p6decont(self));
-        pir::rethrow__0P($!ex)
+        nqp::rethrow($!ex)
     }
 }
 
@@ -198,7 +198,7 @@ do {
         method (|$) {
             my Mu $ex := nqp::atpos(pir::perl6_current_args_rpa__P(), 1);
             pir::perl6_invoke_catchhandler(&print_control, $ex);
-            pir::rethrow__0P($ex);
+            nqp::rethrow($ex);
         }
     );
 

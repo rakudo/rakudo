@@ -26,6 +26,10 @@ my class Mu {
         )
     }
 
+    method take {
+        take self;
+    }
+
     method WHY() {
         self.HOW.docs // Any
     }

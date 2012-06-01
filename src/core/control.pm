@@ -191,9 +191,9 @@ my $NaN = nqp::p6box_n(pir::set__Ns('NaN'));
 sub sleep($seconds = $Inf) {         # fractional seconds also allowed
     my $time1 = time;
     if $seconds ~~ $Inf {
-        pir::sleep__vN(1e16) while True;
+        nqp::sleep(1e16) while True;
     } else {
-        pir::sleep__vN($seconds.Num);
+        nqp::sleep($seconds.Num);
     }
     my $time2 = time;
     return $time2 - $time1;

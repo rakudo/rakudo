@@ -10,6 +10,6 @@ role Perl6::Metamodel::MethodDelegation {
     }
     
     method find_method($obj, $name) {
-        pir::find_method__PPs($delegate_type, $name)
+        nqp::find_method($delegate_type, $name)
     }
 }

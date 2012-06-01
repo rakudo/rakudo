@@ -36,7 +36,7 @@ my class Cursor does NQPCursorRole {
         my Mu $list := nqp::list();
         my Mu $hash := nqp::hash();
         if $match.Bool {
-            my Mu $caphash := pir::find_method__PPs(Cursor, 'CAPHASH')(self);
+            my Mu $caphash := nqp::find_method(Cursor, 'CAPHASH')(self);
             my Mu $capiter := nqp::iterator($caphash);
             while $capiter {
                 my Mu $pair := nqp::shift($capiter);

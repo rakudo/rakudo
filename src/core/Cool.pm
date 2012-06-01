@@ -134,13 +134,13 @@ my class Cool {
         }
         my $result = $pos.defined
             ?? nqp::p6box_i(
-                pir::rindex__ISSI(
+                nqp::rindex(
                     nqp::unbox_s(self.Str),
                     nqp::unbox_s($needle.Str),
                     nqp::unbox_i($pos.Int)
                 ))
             !! nqp::p6box_i(
-                pir::rindex__ISS(
+                nqp::rindex(
                     nqp::unbox_s(self.Str),
                     nqp::unbox_s($needle.Str),
                 ));

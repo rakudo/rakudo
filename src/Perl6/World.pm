@@ -839,7 +839,7 @@ class Perl6::World is HLL::World {
             PAST::Op.new( :pasttype('list') )));
         $block.symbol($value_stash, :scope('lexical_6model'));
         
-        # Create a phasser block that will do the restoration.
+        # Create a phaser block that will do the restoration.
         my $phaser_block := self.push_lexpad($/);
         self.pop_lexpad();
         $phaser_block.push(PAST::Op.new(

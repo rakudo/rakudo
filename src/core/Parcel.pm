@@ -82,7 +82,7 @@ my class Parcel does Positional {
         my Mu $lhs := nqp::clone($!storage);
         my Mu $tv := nqp::list();
         while ($lhs) {
-            my Mu $x := $lhs.shift;
+            my Mu $x := nqp::shift($lhs);
             if nqp::iscont($x) {
                 # container: scalar assignment
                 nqp::push($tv, $x);

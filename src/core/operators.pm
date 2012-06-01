@@ -190,6 +190,11 @@ sub undefine(Mu \$x) {
 
 sub prefix:<temp>(\$cont) is rw {
     my $temp_restore := pir::find_caller_lex__Ps('!TEMP-RESTORE');
+    my int $i = nqp::elems($temp_restore);
+    while $i > 0 {
+        $i = $i - 2;
+        return-rw $cont if nqp::atpos($temp_restore, $i) =:= $cont;
+    }
     if nqp::iscont($cont) {
         nqp::push($temp_restore, $cont);
         nqp::push($temp_restore, nqp::p6decont($cont));
@@ -210,6 +215,11 @@ sub prefix:<temp>(\$cont) is rw {
 
 sub prefix:<let>(\$cont) is rw {
     my $let_restore := pir::find_caller_lex__Ps('!LET-RESTORE');
+    my int $i = nqp::elems($let_restore);
+    while $i > 0 {
+        $i = $i - 2;
+        return-rw $cont if nqp::atpos($let_restore, $i) =:= $cont;
+    }
     if nqp::iscont($cont) {
         nqp::push($let_restore, $cont);
         nqp::push($let_restore, nqp::p6decont($cont));

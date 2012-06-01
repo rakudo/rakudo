@@ -573,10 +573,10 @@ grammar Perl6::Grammar is HLL::Grammar {
     }
 
     token eat_terminator {
-        | ';'
-        | <?MARKED('endstmt')>
-        | <?terminator>
-        | $
+        || ';'
+        || <?MARKED('endstmt')>
+        || <?terminator>
+        || $
     }
 
     token xblock($*IMPLICIT = 0) {
@@ -1602,8 +1602,8 @@ grammar Perl6::Grammar is HLL::Grammar {
         <trait>*
         { $*IN_DECL := ''; }
         [
-        | <onlystar>
-        | <blockoid>
+        || <onlystar>
+        || <blockoid>
         ]
     }
 
@@ -1631,8 +1631,8 @@ grammar Perl6::Grammar is HLL::Grammar {
             ]
             { $*IN_DECL := ''; }
             [
-            | <onlystar>
-            | <blockoid>
+            || <onlystar>
+            || <blockoid>
             ]
         ] || <.malformed('method')>
     }
@@ -1661,8 +1661,8 @@ grammar Perl6::Grammar is HLL::Grammar {
         <trait>*
         { $*IN_DECL := ''; }
         [
-        | <onlystar>
-        | <blockoid>
+        || <onlystar>
+        || <blockoid>
         ]
     }
     

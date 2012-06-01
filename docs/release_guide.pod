@@ -53,12 +53,12 @@ part of monthly Parrot releases.
   2012-04-19   Rakudo #51 "Brazos Valley"      (Coke)
   2012-04-25   2012.04.1                       (moritz)
   2012-05-17   Rakudo #52 "MadMongers"         (tadzik)
+  2012-06-21   Rakudo #53 "Frankfurt"          (duff)
 
 =head2 Planned 2012 releases
 
 Dates are based on Parrot's expected release schedule.
 
-  2012-06-21   Rakudo #53 duff
   2012-07-19   Rakudo #54 masak
   2012-08-23   Rakudo #55 tadzik
   2012-09-20   Rakudo #56
@@ -67,8 +67,6 @@ Dates are based on Parrot's expected release schedule.
   2012-12-20   Rakudo #59
 
 =head2 Suggested .pm group names for future releases
-
-  Frankfurt     (YAPC::EU 2012)
 
 More names can be gotten from L<http://www.pm.org> if you 
 can't think of one with any particular significance to Perl 

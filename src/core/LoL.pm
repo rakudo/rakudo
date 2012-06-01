@@ -11,9 +11,9 @@ class LoL {
     method at_pos($pos is copy) {
         $pos = $pos.Int;
         self.exists($pos)
-          ?? nqp::find_method(List, 'at_pos')(self, $pos)
+          ?? nqp::findmethod(List, 'at_pos')(self, $pos)
           !! pir::setattribute__0PPsP(my $v, Scalar, '$!whence',
-                 -> { nqp::find_method(List, 'STORE_AT_POS')(self, $pos, $v) } )
+                 -> { nqp::findmethod(List, 'STORE_AT_POS')(self, $pos, $v) } )
     }
 
     multi method perl(LoL:D \$self:) {
@@ -29,11 +29,11 @@ class LoL {
             nqp::bindpos($rpa, $i, my $v = nqp::shift($iter));
             $i = $i + 1;
         }
-        nqp::find_method(List, 'REIFY')(self, $parcel)
+        nqp::findmethod(List, 'REIFY')(self, $parcel)
     }
 
     method STORE_AT_POS(\$pos, Mu $v is copy) {
-        nqp::find_method(List, 'STORE_AT_POS')(self, $pos, $v);
+        nqp::findmethod(List, 'STORE_AT_POS')(self, $pos, $v);
     }
 
 }

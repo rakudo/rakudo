@@ -36,14 +36,14 @@ my class Cursor does NQPCursorRole {
         my Mu $list := nqp::list();
         my Mu $hash := nqp::hash();
         if $match.Bool {
-            my Mu $caphash := nqp::find_method(Cursor, 'CAPHASH')(self);
+            my Mu $caphash := nqp::findmethod(Cursor, 'CAPHASH')(self);
             my Mu $capiter := nqp::iterator($caphash);
             while $capiter {
                 my Mu $pair := nqp::shift($capiter);
                 my str $key = $pair.key;
                 my Mu $value := $pair.value;
                 $value := nqp::p6list($value, List, Mu)
-                    if nqp::isa($value, 'ResizablePMCArray');
+                    if nqp::islist($value);
                 nqp::iscclass(pir::const::CCLASS_NUMERIC, $key, 0)
                   ?? nqp::bindpos($list, $key, $value)
                   !! nqp::bindkey($hash, $key, $value);

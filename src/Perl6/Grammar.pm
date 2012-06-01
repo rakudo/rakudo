@@ -488,7 +488,7 @@ grammar Perl6::Grammar is HLL::Grammar {
             }
             my $M := %*COMPILING<%?OPTIONS><M>;
             if nqp::defined($M) {
-                for nqp::does($M, 'array') ?? $M !! [$M] -> $longname {
+                for pir::does($M, 'array') ?? $M !! [$M] -> $longname {
                     my $module := $*W.load_module($/,
                                                     $longname,
                                                     $*GLOBALish);
@@ -2350,7 +2350,7 @@ grammar Perl6::Grammar is HLL::Grammar {
     method EXPR($preclim = '') {
         # Override this so we can set $*LEFTSIGIL.
         my $*LEFTSIGIL := '';
-        nqp::find_method(HLL::Grammar, 'EXPR')(self, $preclim);
+        nqp::findmethod(HLL::Grammar, 'EXPR')(self, $preclim);
     }
 
     token prefixish { 

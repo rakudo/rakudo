@@ -70,7 +70,7 @@ my class Mu {
         # Get the build plan. Note that we do this "low level" to
         # avoid the NQP type getting mapped to a Rakudo one, which
         # would get expensive.
-        my $build_plan := nqp::find_method(self.HOW, 'BUILDALLPLAN')(self.HOW, self);
+        my $build_plan := nqp::findmethod(self.HOW, 'BUILDALLPLAN')(self.HOW, self);
         my int $count   = nqp::elems($build_plan);
         my int $i       = 0;
         while nqp::islt_i($i, $count) {
@@ -107,7 +107,7 @@ my class Mu {
     
     method BUILD_LEAST_DERIVED(%attrinit) {
         # Get the build plan for just this class.
-        my $build_plan := nqp::find_method(self.HOW, 'BUILDPLAN')(self.HOW, self);
+        my $build_plan := nqp::findmethod(self.HOW, 'BUILDPLAN')(self.HOW, self);
         my int $count   = nqp::elems($build_plan);
         my int $i       = 0;
         while nqp::islt_i($i, $count) {
@@ -269,7 +269,7 @@ my class Mu {
 
             ).throw;
         }
-        nqp::find_method($type, $name)($self, |$c)
+        nqp::findmethod($type, $name)($self, |$c)
     }
     
     method dispatch:<!>(Mu \$self: $name, Mu $type, |$c) is rw is hidden_from_backtrace {
@@ -432,7 +432,7 @@ sub DUMP(|$) {
     my Mu $args := pir::perl6_current_args_rpa__P();
     my Mu $topic  := nqp::shift($args);
     if nqp::isnull($topic) { '(null)' }
-    elsif nqp::isa($topic, 'ResizablePMCArray') {
+    elsif nqp::islist($topic) {
         my $s = 'RPA<' ~ nqp::p6box_s(nqp::where($topic)) ~ '>(';
         my $t = '';
         $topic := nqp::clone($topic);

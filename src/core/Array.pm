@@ -80,11 +80,11 @@ class Array {
             nqp::bindpos($rpa, $i, my $v = nqp::shift($iter));
             $i = $i + 1;
         }
-        nqp::find_method(List, 'REIFY')(self, $parcel)
+        nqp::findmethod(List, 'REIFY')(self, $parcel)
     }
 
     method STORE_AT_POS(\$pos, Mu $v is copy) is rw {
-        nqp::find_method(List, 'STORE_AT_POS')(self, $pos, $v);
+        nqp::findmethod(List, 'STORE_AT_POS')(self, $pos, $v);
     }
 
     method STORE(|$) {

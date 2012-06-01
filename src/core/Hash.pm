@@ -32,7 +32,7 @@ my class Hash {
     }
 
     method STORE_AT_KEY(\$key, Mu $x is copy) is rw {
-        nqp::find_method(EnumMap, 'STORE_AT_KEY')(self, $key, $x);
+        nqp::findmethod(EnumMap, 'STORE_AT_KEY')(self, $key, $x);
     }
 
     method STORE(\$to_store) is hidden_from_backtrace {
@@ -106,12 +106,12 @@ my class Hash {
         method at_key($key is copy, TValue $v? is copy) is rw {
             $key = $key.Str;
             self.exists($key)
-              ?? nqp::find_method(EnumMap, 'at_key')(self, $key)
+              ?? nqp::findmethod(EnumMap, 'at_key')(self, $key)
               !! pir::setattribute__0PPsP($v, Scalar, '$!whence',
-                     -> { nqp::find_method(EnumMap, 'STORE_AT_KEY')(self, $key, $v) } )
+                     -> { nqp::findmethod(EnumMap, 'STORE_AT_KEY')(self, $key, $v) } )
         }
         method STORE_AT_KEY(Str \$key, TValue $x is copy) is rw {
-            nqp::find_method(EnumMap, 'STORE_AT_KEY')(self, $key, $x);
+            nqp::findmethod(EnumMap, 'STORE_AT_KEY')(self, $key, $x);
         }
         method bind_key($key, TValue \$bindval) is rw {
             nqp::defined(nqp::getattr(self, EnumMap, '$!storage')) ||
@@ -127,7 +127,7 @@ my class Hash {
         method at_key(TKey \$key, TValue $v? is copy) is rw {
             my $key_which = $key.WHICH;
             self.exists($key_which)
-              ?? nqp::find_method(EnumMap, 'at_key')(self, $key_which)
+              ?? nqp::findmethod(EnumMap, 'at_key')(self, $key_which)
               !! pir::setattribute__0PPsP($v, Scalar, '$!whence',
                  -> {
                         nqp::defined(nqp::getattr(self, $?CLASS, '$!keys')) ||

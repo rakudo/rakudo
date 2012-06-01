@@ -1885,13 +1885,13 @@ class Perl6::World is HLL::World {
         my $type_found := 1;
         my $ex := try {
             CATCH { $type_found := 0 };
-            self.find_symbol(pir::does($ex_type, 'array') ?? $ex_type !! nqp::split('::', $ex_type));
+            self.find_symbol(nqp::does($ex_type, 'array') ?? $ex_type !! nqp::split('::', $ex_type));
         };
 
         if $type_found {
              %opts<line>     := HLL::Compiler.lineof($/.orig, $/.from);
             for %opts -> $p {
-                if pir::does($p.value, 'array') {
+                if nqp::does($p.value, 'array') {
                     my @a := [];
                     for $p.value {
                         nqp::push(@a, pir::perl6ize_type__PP($_));

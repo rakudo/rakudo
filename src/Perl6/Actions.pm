@@ -61,7 +61,7 @@ class Perl6::Actions is HLL::Actions {
     }
 
     method ints_to_string($ints) {
-        if pir::does($ints, 'array') {
+        if nqp::does($ints, 'array') {
             my $result := '';
             for $ints {
                 $result := $result ~ nqp::chr(nqp::unbox_i($_.ast));

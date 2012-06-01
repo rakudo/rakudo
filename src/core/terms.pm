@@ -73,7 +73,7 @@ sub term:<time>() { nqp::p6box_i(nqp::time_i()) }
 
     my $I := nqp::atkey(nqp::atkey(%*COMPILING, '%?OPTIONS'), 'I');
     if pir::defined($I) {
-        if pir::does($I, 'array') {
+        if nqp::does($I, 'array') {
             my Mu $iter := nqp::iterator($I);
             @INC.unshift: nqp::p6box_s(nqp::shift($iter)) while $iter;
         }

@@ -488,7 +488,7 @@ grammar Perl6::Grammar is HLL::Grammar {
             }
             my $M := %*COMPILING<%?OPTIONS><M>;
             if pir::defined($M) {
-                for pir::does($M, 'array') ?? $M !! [$M] -> $longname {
+                for nqp::does($M, 'array') ?? $M !! [$M] -> $longname {
                     my $module := $*W.load_module($/,
                                                     $longname,
                                                     $*GLOBALish);

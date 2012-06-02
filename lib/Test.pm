@@ -201,6 +201,23 @@ multi sub eval_lives_ok(Str $code, $reason = '') is export {
     $time_before = nqp::p6box_n(nqp::time_n);
 }
 
+multi sub eval_dies_with_error(Str $code, $pattern, $reason = '') is export {
+    $time_after = nqp::p6box_n(nqp::time_n);
+    my $ee = eval_exception($code);
+    if defined $ee {
+        # XXX no regexes yet in nom
+        my $bad_death = $ee.Str !~~ $pattern;
+        if $bad_death {
+            diag "wrong way to die: '$ee'";
+        }
+        proclaim( !$bad_death, $reason );
+    }
+    else {
+        proclaim( 0, $reason );
+    }
+    $time_before = nqp::p6box_n(nqp::time_n);
+}
+
 multi sub is_deeply(Mu $got, Mu $expected, $reason = '') is export
 {
     $time_after = nqp::p6box_n(nqp::time_n);

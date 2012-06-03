@@ -693,6 +693,13 @@ my class X::Str::Numeric is Exception {
     }
 }
 
+my class X::Str::Match::x is Exception {
+    has $.got;
+    method message() {
+        "in Str.match, got invalid value of type {$.got.^name} for :x, must be Int or Range"
+    }
+}
+
 my class X::Sequence::Deduction is Exception {
     method message() { 'Unable to deduce sequence' }
 }

@@ -2,7 +2,8 @@ my class Cursor {... }
 my class Range  {... }
 my class Match  {... }
 my class Buf    {... }
-my class X::Str::Numeric { ... }
+my class X::Str::Numeric  { ... }
+my class X::Str::Match::x { ... }
 
 my $?TABSTOP = 8;
 
@@ -572,8 +573,7 @@ my class Str does Stringy {
                     !! ().list;
             }
             else {
-                die "Invalid argument to :x, must be Int or Range, got type {$x.^name}";
-
+                X::Str::Match::x.new(got => $x).throw;
             }
         }
         else {

@@ -254,7 +254,11 @@ my class DateTime does Dateish {
 
     multi method new(Str $format, :$timezone is copy = 0, :&formatter=&default-formatter) {
         $format ~~ /^ (\d**4) '-' (\d\d) '-' (\d\d) T (\d\d) ':' (\d\d) ':' (\d\d) (Z || (<[\-\+]>) (\d\d)(\d\d))? $/
-            or die 'Invalid DateTime string; please an ISO 8601 timestamp';
+            or X::Temporal::InvalidFormat.new(
+                    invalid-str => $format,
+                    target      => 'DateTime',
+                    format      => 'an ISO 8601 timestamp (yyyy-mm-ddThh::mm::ssZ or yyyy-mm-ddThh::mm::ss+0100)',
+                ).throw;
         my $year   = (+$0).Int;
         my $month  = (+$1).Int;
         my $day    = (+$2).Int;
@@ -418,7 +422,10 @@ my class Date does Dateish {
 
     multi method new(Str $date) {
         $date ~~ /^ \d\d\d\d '-' \d\d '-' \d\d $/
-            or die 'Invalid Date string; please use the format "yyyy-mm-dd"';
+            or X::Temporal::InvalidFormat.new(
+                    invalid-str => $date,
+                    format      => 'yyyy-mm-dd',
+            ).throw;
         self.new(|$date.split('-').map({.Int}));
     }
 

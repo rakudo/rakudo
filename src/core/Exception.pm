@@ -773,6 +773,16 @@ my class X::HyperOp::NonDWIM is Exception {
 }
 
 
+my class X::Temporal is Exception { }
+my class X::Temporal::InvalidFormat is X::Temporal {
+    has $.invalid-str;
+    has $.target = 'Date';
+    has $.format;
+    method message() {
+        "Ivalid $.target string '$.invalid-str'; use $.format instead";
+    }
+}
+
 {
     my %c_ex;
     %c_ex{'X::TypeCheck::Binding'} := sub ($got, $expected) is hidden_from_backtrace {

@@ -1,4 +1,5 @@
 my class Nil { ... }
+my class X::Eval::NoSuchLang { ... }
 
 my &THROW :=
     -> |$ {
@@ -149,9 +150,8 @@ multi sub eval(Str $code, :$lang = 'perl6') {
     };
     my $?FILES   := 'eval_' ~ (state $no)++;
     my $compiler := pir::compreg__PS($lang);
-    if nqp::isnull($compiler) {
-        die "No compiler available for language '$lang'";
-    }
+    X::Eval::NoSuchLang.new(:$lang).throw
+        if nqp::isnull($compiler);
     my $pbc      := $compiler.compile($code, :outer_ctx($caller_ctx), :global(GLOBAL));
     nqp::atpos($pbc, 0).set_outer_ctx($caller_ctx);
     $pbc();

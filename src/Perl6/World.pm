@@ -1883,9 +1883,19 @@ class Perl6::World is HLL::World {
     method throw($/, $ex_type, *%opts) {
         # TODO: provide context
         my $type_found := 1;
-        my $ex := try {
-            CATCH { $type_found := 0 };
-            self.find_symbol(pir::does($ex_type, 'array') ?? $ex_type !! nqp::split('::', $ex_type));
+        my $ex;
+        my $x_comp;
+        try {
+            CATCH {
+                $type_found := 0;
+                nqp::print("Error while constructing error object:");
+                nqp::say($_);
+            };
+            $ex := self.find_symbol(pir::does($ex_type, 'array') ?? $ex_type !! nqp::split('::', $ex_type));
+            my $x_comp := self.find_symbol(['X', 'Comp']);
+            unless nqp::istype($ex, $x_comp) {
+                $ex := $ex.HOW.mixin($ex, $x_comp);
+            }
         };
 
         if $type_found {

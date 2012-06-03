@@ -436,7 +436,7 @@ my class X::Method::Private::Unqualified does X::Comp {
     }
 }
 
-my class X::Bind::Comp does X::Comp {
+my class X::Bind is Exception {
     has $.target;
     method message() {
         $.target.defined

@@ -1,3 +1,5 @@
+my class X::Bind { ... }
+
 my class PseudoStash is EnumMap {
     has Mu $!ctx;
     has int $!mode;
@@ -139,7 +141,7 @@ my class PseudoStash is EnumMap {
     method bind_key($key is copy, \$value) {
         $key = $key.Str;
         if %pseudoers.exists($key) {
-            die "Cannot bind to pseudo-package $key";
+            X::Bind.new(target => "pseudo-package $key").throw;
         }
         elsif $!mode == PRECISE_SCOPE {
             my Mu $store := nqp::getattr(self, EnumMap, '$!storage');

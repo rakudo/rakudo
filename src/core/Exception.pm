@@ -807,6 +807,13 @@ my class X::Temporal::InvalidFormat is X::Temporal {
         "Ivalid $.target string '$.invalid-str'; use $.format instead";
     }
 }
+my class X::Temporal::Truncation is X::Temporal {
+    has $.class = 'DateTime';
+    has $.error;
+    method message() {
+        "in $.class.truncated-to: $.error";
+    }
+}
 
 my class X::Eval::NoSuchLang is Exception {
     has $.lang;

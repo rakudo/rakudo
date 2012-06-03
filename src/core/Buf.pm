@@ -4,6 +4,7 @@
 
 my class X::Buf::AsStr { ... };
 my class X::Buf::Pack  { ... };
+my class X::Buf::Pack::NonASCII  { ... };
 
 my class Buf does Positional {
     has Mu $!buffer;
@@ -222,7 +223,7 @@ multi sub pack(Str $template, *@items) {
             when 'A' {
                 my $ascii = shift @items // '';
                 for $ascii.comb -> $char {
-                    die "Non-ASCII character $char" if ord($char) > 0x7f;
+                    X::Buf::Pack::NonASCII.new(:$char).throw if ord($char) > 0x7f;
                     @bytes.push: ord($char);
                 }
                 if $amount ne '*' {

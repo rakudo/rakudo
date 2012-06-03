@@ -322,6 +322,13 @@ my class X::Buf::Pack is Exception {
     }
 }
 
+my class X::Buf::Pack::NonASCII is Exception {
+    has $.char;
+    method message() {
+        "non-ASCII character '$.char' while processing an 'A' template in pack";
+    }
+}
+
 my class X::Signature::Placeholder does X::Comp {
     method message() {
         'Placeholder variable cannot override existing signature';

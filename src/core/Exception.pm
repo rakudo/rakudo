@@ -808,13 +808,6 @@ my class X::Temporal::InvalidFormat is X::Temporal {
     }
 }
 
-my class X::Eval::NoSuchLang is Exception {
-    has $.lang;
-    method message() {
-        "No compiler compiler available for language '$lang'";
-    }
-}
-
 {
     my %c_ex;
     %c_ex{'X::TypeCheck::Binding'} := sub ($got, $expected) is hidden_from_backtrace {

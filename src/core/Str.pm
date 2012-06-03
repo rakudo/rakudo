@@ -4,6 +4,7 @@ my class Match  {... }
 my class Buf    {... }
 my class X::Str::Numeric  { ... }
 my class X::Str::Match::x { ... }
+my class X::Str::Trans::IllegalKey { ... }
 
 my $?TABSTOP = 8;
 
@@ -781,6 +782,7 @@ my class Str does Stringy {
         }
 
         multi method triage_substitution($_) {
+            X::Str::Trans::IllegalKey.new(key => $_).throw;
             die "Don't know how to handle a {.WHAT.gist} as a substitution key";
         }
 

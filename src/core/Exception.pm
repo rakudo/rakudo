@@ -700,6 +700,13 @@ my class X::Str::Match::x is Exception {
     }
 }
 
+my class X::Str::Trans::IllegalKey is Exception {
+    has $.key;
+    method message {
+        "in Str.trans, got illegal substitution key of type {$.key.^name} (should be a Regex or Str)"
+    }
+}
+
 my class X::Sequence::Deduction is Exception {
     method message() { 'Unable to deduce sequence' }
 }

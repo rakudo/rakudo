@@ -706,6 +706,12 @@ my class X::Str::Trans::IllegalKey is Exception {
         "in Str.trans, got illegal substitution key of type {$.key.^name} (should be a Regex or Str)"
     }
 }
+my class X::Str::Trans::InvalidArg is Exception {
+    has $.got;
+    method message() {
+        "Only Pair objects are allowed as arguemnts to Str.trans, got {$.got.^name}";
+    }
+}
 
 my class X::Sequence::Deduction is Exception {
     method message() { 'Unable to deduce sequence' }

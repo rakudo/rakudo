@@ -5,6 +5,8 @@ my class Buf    {... }
 my class X::Str::Numeric  { ... }
 my class X::Str::Match::x { ... }
 my class X::Str::Trans::IllegalKey { ... }
+my class X::Str::Trans::InvalidArg { ... }
+
 
 my $?TABSTOP = 8;
 
@@ -783,7 +785,6 @@ my class Str does Stringy {
 
         multi method triage_substitution($_) {
             X::Str::Trans::IllegalKey.new(key => $_).throw;
-            die "Don't know how to handle a {.WHAT.gist} as a substitution key";
         }
 
         proto method increment_index(|$) {*}
@@ -830,7 +831,7 @@ my class Str does Stringy {
 
         my $lsm = LSM.new(:source(self));
         for (@changes) -> $p {
-            die "$p.perl() is not a Pair" unless $p ~~ Pair;
+            X::Str::Trans::InvalidArg.new(got => $p).throw unless $p ~~ Pair;
             if $p.key ~~ Regex {
                 $lsm.add_substitution($p.key, $p.value);
             }

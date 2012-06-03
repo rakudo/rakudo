@@ -11,6 +11,7 @@ my class Pair { ... }
 # for errors
 my class X::Inheritance::Unsupported { ... }
 my class X::Export::NameClash        { ... }
+my class X::Composition::NotComposable { ... }
 
 proto trait_mod:<is>(|$) { * }
 multi trait_mod:<is>(Mu:U $child, Mu:U $parent) {
@@ -142,8 +143,10 @@ multi trait_mod:<does>(Mu:U $doee, Mu:U $role) {
         $doee.HOW.add_role($doee, $role.HOW.composalize($role))
     }
     else {
-        die $doee.HOW.name($doee) ~ " cannot compose " ~
-            $role.HOW.name($role) ~ " because it is not composable"
+        X::Composition::NotComposable.new(
+            target-name => $doee.HOW.name($doee),
+            composer    => $role,
+        ).throw;
     }
 }
 

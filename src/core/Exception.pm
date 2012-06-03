@@ -716,6 +716,14 @@ my class X::ControlFlow::Return is X::ControlFlow {
     method message()   { 'Attempt to return outside of any Routine' }
 }
 
+my class X::Composition::NotComposable is Exception {
+    has $.target-name;
+    has $.composer;
+    method message() {
+        "$.target-name cannot compose {$.composer.^name} because it is not composable";
+    }
+}
+
 my class X::TypeCheck is Exception {
     has $.operation;
     has $.got;

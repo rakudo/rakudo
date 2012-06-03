@@ -207,14 +207,29 @@ my class DateTime does Dateish {
         if $!second >= 60 {
             # Ensure this is an actual leap second.
             self.second < 61
-                or die 'No second 61 has yet been defined';
+                or X::OutOfRange.new(
+                        what  => 'second',
+                        range => (0..^60),
+                        got   => self.second,
+                        comment => 'No second 61 has yet been defined',
+                ).throw;
             my $dt = self.utc;
             $dt.hour == 23 && $dt.minute == 59
-                or die 'A leap second can occur only at hour 23 and minute 59 UTC';
+                or X::OutOfRange.new(
+                        what  => 'second',
+                        range => (0..^60),
+                        got   => self.second,
+                        comment => 'a leap second can occur only at hour 23 and minute 59 UTC',
+                ).throw;
             my $date = sprintf '%04d-%02d-%02d',
                 $dt.year, $dt.month, $dt.day;
             $date eq any(tai-utc::leap-second-dates)
-                or die "There is no leap second on UTC $date";
+                or X::OutOfRange.new(
+                        what  => 'second',
+                        range => (0..^60),
+                        got   => self.second,
+                        comment => "There is no leap second on UTC $date",
+                ).throw;
         }
     }
 

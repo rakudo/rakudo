@@ -810,6 +810,13 @@ my class X::HyperOp::NonDWIM is Exception {
     }
 }
 
+my class X::Set::Coerce is Exception {
+    has $.thing;
+    method message {
+        "Cannot coerce object of type {$.thing.^name} to Set. To create a one-element set, pass it to the 'set' function";
+    }
+}
+
 
 my class X::Temporal is Exception { }
 my class X::Temporal::InvalidFormat is X::Temporal {

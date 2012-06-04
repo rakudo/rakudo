@@ -41,7 +41,7 @@ my class Set is Iterable does Associative {
     multi to-set (@elems --> Set) { Set.new: @elems }
     multi to-set ([*@elems] --> Set) { Set.new: @elems }
     multi to-set (%elems --> Set) { Set.new: %elems.keys }
-    multi to-set ($elem --> Set) { die "Cannot coerce $elem.perl() to a Set; use set($elem.perl()) to create a one-element set" }
+    multi to-set ($thing) { X::Set::Coerce.new(:$thing).throw }
 
     multi method Str(Any:D $ : --> Str) { ~%!elems.keys() }
     multi method gist(Any:D $ : --> Str) { "set({ %!elems.keys».gist.join(', ') })"

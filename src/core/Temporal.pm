@@ -282,7 +282,7 @@ my class DateTime does Dateish {
         my $second = +$5;
         if $6 {
             $timezone
-                and die "DateTime.new(Str): :timezone argument not allowed with a timestamp offset";
+                and X::DateTime::TimezoneClash.new.throw;
             if $6 eq 'Z' {
                 $timezone = 0;                
             } else {

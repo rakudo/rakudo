@@ -834,6 +834,11 @@ my class X::Temporal::Truncation is X::Temporal {
         "in $.class.truncated-to: $.error";
     }
 }
+my class X::DateTime::TimezoneClash is X::Temporal {
+    method message() {
+        'DateTime.new(Str): :timezone argument not allowed with a timestamp offset';
+    }
+}
 
 my class X::Eval::NoSuchLang is Exception {
     has $.lang;

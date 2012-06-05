@@ -1,3 +1,12 @@
+my $DEBUG := +nqp::atkey(pir::new__Ps('Env'), 'RAKUDO_MODULE_DEBUG');
+sub DEBUG(*@strs) {
+    my $err := pir::getstderr__P();
+    $err.print("MODULE_DEBUG: ");
+    for @strs { $err.print($_) };
+    $err.print("\n");
+    1;
+}
+
 class Perl6::ModuleLoader {
     my %modules_loaded;
     my %settings_loaded;
@@ -111,6 +120,7 @@ class Perl6::ModuleLoader {
         else {
             my $preserve_global := pir::get_hll_global__Ps('GLOBAL');
             if %chosen<load> {
+                DEBUG("loading ", %chosen<load>) if $DEBUG;
                 my %*COMPILING := {};
                 my $*CTXSAVE := self;
                 my $*MAIN_CTX;
@@ -119,6 +129,7 @@ class Perl6::ModuleLoader {
             }
             else {
                 # Read source file.
+                DEBUG("loading ", %chosen<pm>) if $DEBUG;
                 my $fh := nqp::open(%chosen<pm>, 'r');
                 $fh.encoding('utf8');
                 my $source := $fh.readall();

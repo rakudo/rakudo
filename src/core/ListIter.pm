@@ -19,22 +19,21 @@ my class ListIter {
             my int $index;
             pir::perl6_shiftpush__0PPI($rpa, $!rest, nqp::elems($!rest))
                 if nqp::istype($!list, LoL);
-            while $!rest && nqp::islt_i(nqp::elems($rpa), $count) {
+            while $!rest && (nqp::elems($rpa) < $count) {
                 $index = pir::perl6_rpa_find_type__IPPii(
                                  $!rest, Iterable, 0, $count);
                 $index = pir::perl6_rpa_find_type__IPPii(
                                  $!rest, Parcel, 0, $index)
                     if $flattens;
                 pir::perl6_shiftpush__0PPi($rpa, $!rest, $index);
-                if $!rest && nqp::islt_i(nqp::elems($rpa), $count) {
+                if $!rest && (nqp::elems($rpa) < $count) {
                     $x := nqp::shift($!rest);
                     if nqp::isconcrete($x) {
                         (nqp::unshift($!rest, $x); last) if $eager && $x.infinite;
                         $x := $x.iterator.reify(
                                   $eager 
                                     ?? Whatever 
-                                    !! nqp::p6box_i(nqp::sub_i($count,
-                                                               nqp::elems($rpa))))
+                                    !! nqp::p6box_i($count - nqp::elems($rpa)))
                             if nqp::istype($x, Iterable);
                         nqp::splice($!rest, nqp::getattr($x, Parcel, '$!storage'), 0, 0);
                     

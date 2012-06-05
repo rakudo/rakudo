@@ -44,15 +44,12 @@ my class ListIter {
                 }
             }
             my $reified := nqp::p6parcel($rpa, Any);
-            $reified := $!list.REIFY($reified) if nqp::isconcrete($!list);
-            nqp::push(
-                    nqp::getattr($reified, Parcel, '$!storage'),
-                    nqp::bindattr(self, ListIter, '$!nextiter',
-                                  nqp::p6listiter($!rest, $!list)))
+            nqp::bindattr(self, ListIter, '$!nextiter', nqp::p6listiter($!rest, $!list))
+                if $!rest;
+            $reified := $!list.REIFY($reified, $!nextiter) if nqp::isconcrete($!list);
+            nqp::push( nqp::getattr($reified, Parcel, '$!storage'), $!nextiter)
                 if $!rest;
             nqp::bindattr(self, ListIter, '$!reified', $reified);
-            # update $!list's nextiter
-            nqp::bindattr($!list, List, '$!nextiter', $!nextiter) if nqp::isconcrete($!list);
             # free up $!list and $!rest
             nqp::bindattr(self, ListIter, '$!list', Mu);
             nqp::bindattr(self, ListIter, '$!rest', Mu);

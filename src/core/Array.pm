@@ -72,7 +72,7 @@ class Array {
           !! self.WHAT.perl ~ '.new(' ~ self.map({.perl}).join(', ') ~ ')'
     }
 
-    method REIFY(Parcel \$parcel) {
+    method REIFY(Parcel \$parcel, Mu \$nextiter) {
         my Mu $rpa := nqp::getattr($parcel, Parcel, '$!storage');
         my Mu $iter := nqp::iterator($rpa);
         my int $i = 0;
@@ -80,7 +80,7 @@ class Array {
             nqp::bindpos($rpa, $i, my $v = nqp::shift($iter));
             $i = $i + 1;
         }
-        nqp::findmethod(List, 'REIFY')(self, $parcel)
+        nqp::findmethod(List, 'REIFY')(self, $parcel, $nextiter)
     }
 
     method STORE_AT_POS(\$pos, Mu $v is copy) is rw {

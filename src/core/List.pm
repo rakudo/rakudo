@@ -316,9 +316,10 @@ my class List does Positional {
           ~ (nqp::iscont($self) ?? '.item' !! '')
     }
 
-    method REIFY(Parcel \$parcel) {
+    method REIFY(Parcel \$parcel, Mu \$nextiter) {
         nqp::splice($!items, nqp::getattr($parcel, Parcel, '$!storage'),
                     nqp::elems($!items), 0);
+        nqp::bindattr(self, List, '$!nextiter', $nextiter);
         $parcel
     }
 

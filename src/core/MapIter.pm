@@ -87,6 +87,7 @@ my class MapIter is Iterator {
                 goto arg_list_loop
               arg_list_loop_end:
                 unless args goto done
+              redo:
                 result = block(args :flat)
                 push rpa, result
                 unless NEXT goto no_next_phaser
@@ -103,10 +104,6 @@ my class MapIter is Iterator {
                 if type == .CONTROL_LOOP_REDO goto redo
                 unless NEXT goto next
                 NEXT()
-                goto next
-              redo:
-                $I0 = elements args
-                munchpos -= $I0
                 goto next
               last:
                 args = perl6_booleanize 0

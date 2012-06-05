@@ -7,7 +7,7 @@ my class ListIter {
     #   has Mu $!rest;         # RPA of elements remaining to be reified
     #   has $!list;            # List object associated with this iterator
     
-    method reify($n = 1, :$sink) {
+    method reify($n = 1) {
         unless nqp::isconcrete($!reified) {
             my $eager = nqp::p6bool(nqp::istype($n, Whatever));
             my $flattens = nqp::isconcrete($!list) && $!list.flattens;
@@ -44,7 +44,7 @@ my class ListIter {
                 }
             }
             my $reified := nqp::p6parcel($rpa, Any);
-            $reified := $!list.REIFY($reified) if nqp::isconcrete($!list) && !$sink;
+            $reified := $!list.REIFY($reified) if nqp::isconcrete($!list);
             nqp::push(
                     nqp::getattr($reified, Parcel, '$!storage'),
                     nqp::bindattr(self, ListIter, '$!nextiter',

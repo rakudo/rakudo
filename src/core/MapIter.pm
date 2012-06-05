@@ -15,7 +15,7 @@ my class MapIter is Iterator {
         self 
     }
 
-    method reify($n = 1, :$sink) {
+    method reify($n = 1) {
         if !$!reified.defined {
             ## we don't have good control blocks yet, so we'll 
             ## temporarily implement MapIter with Q:PIR blocks.

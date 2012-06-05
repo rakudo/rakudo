@@ -33,17 +33,9 @@ my class MapIter is Iterator {
             my $list    := nqp::p6decont($!list);
             my $block   := nqp::p6decont($!block); ### TODO: Why?
             my $munched := $!list.munch($argc * $count);
-            my $NEXT;
-            if nqp::can($block, 'phasers') && $block.phasers('NEXT') -> @NEXT {
-                if @NEXT.elems == 1 {
-                    $NEXT := @NEXT[0];
-                }
-                else {
-                    $NEXT := -> {
-                        .() for @NEXT;
-                    };
-                }
-            }
+            my $NEXT    := nqp::can($block, 'fire_phasers') 
+                           && $block.phasers('NEXT');
+ 
             unless $!followup {
                 if nqp::can($block, 'phasers') && $block.phasers('FIRST') {
                     pir::perl6_set_block_first_flag__vP($block);
@@ -71,7 +63,7 @@ my class MapIter is Iterator {
                 set_addr handler, catch
                 handler.'handle_types'(.CONTROL_LOOP_LAST, .CONTROL_LOOP_NEXT, .CONTROL_LOOP_REDO)
                 push_eh handler
-              next:
+              iter_loop:
                 $I0 = elements rpa
                 unless $I0 < count goto done
                 args = 0
@@ -90,9 +82,6 @@ my class MapIter is Iterator {
               redo:
                 result = block(args :flat)
                 push rpa, result
-                unless NEXT goto no_next_phaser
-                NEXT()
-              no_next_phaser:
                 goto next
               catch:
                 .local pmc exception, type
@@ -102,9 +91,10 @@ my class MapIter is Iterator {
                 type = getattribute exception, 'type'
                 if type == .CONTROL_LOOP_LAST goto last
                 if type == .CONTROL_LOOP_REDO goto redo
-                unless NEXT goto next
-                NEXT()
-                goto next
+              next:
+                unless NEXT goto iter_loop
+                block.'fire_phasers'('NEXT')
+                goto iter_loop
               last:
                 args = perl6_booleanize 0
               done:
@@ -123,8 +113,8 @@ my class MapIter is Iterator {
                 nqp::bindattr_i($iter, MapIter, '$!followup', 1);
                 nqp::push($rpa, $iter);
             }
-            elsif nqp::can($block, 'phasers') && $block.phasers('LAST') -> @LAST {
-                .() for @LAST;
+            elsif nqp::can($block, 'fire_phasers') { 
+                $block.fire_phasers('LAST');
             }
             $!reified := nqp::p6parcel($rpa, nqp::null());
             $!list = Any;

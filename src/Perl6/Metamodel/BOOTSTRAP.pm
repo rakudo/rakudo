@@ -72,6 +72,7 @@ my stub Stash metaclass Perl6::Metamodel::ClassHOW { ... };
 my stub PROCESS metaclass Perl6::Metamodel::ModuleHOW { ... };
 my stub Grammar metaclass Perl6::Metamodel::ClassHOW { ... };
 my stub Metamodel metaclass Perl6::Metamodel::PackageHOW { ... };
+my stub Nil metaclass Perl6::Metamodel::ClassHOW { ... };
 
 # Stubbed EXPORT::DEFAULT.
 my module EXPORT {
@@ -753,6 +754,8 @@ BEGIN {
     Stash.HOW.add_parrot_vtable_handler_mapping(EnumMap, 'get_iter', '$!storage');
     Stash.HOW.publish_parrot_vtable_handler_mapping(Stash);
 
+    Nil.HOW.add_parent(Nil, Any);
+
     # Set this Stash type for the various types of package.
     Perl6::Metamodel::PackageHOW.set_stash_type(Stash, EnumMap);
     Perl6::Metamodel::ModuleHOW.set_stash_type(Stash, EnumMap);
@@ -780,10 +783,12 @@ BEGIN {
     Perl6::Metamodel::ClassHOW.add_stash(Scalar);
     Perl6::Metamodel::ClassHOW.add_stash(Bool);
     Perl6::Metamodel::ClassHOW.add_stash(Stash);
+    Perl6::Metamodel::ClassHOW.add_stash(Nil);
     Perl6::Metamodel::ClassHOW.add_stash(List);
     Perl6::Metamodel::ClassHOW.add_stash(Array);
     Perl6::Metamodel::ClassHOW.add_stash(Hash);
     Perl6::Metamodel::ClassHOW.add_stash(ObjAt);
+
 
     # Make Parrot invoke v-table construct a capture and delegate off
     # to postcircumfix:<( )>.
@@ -869,6 +874,7 @@ BEGIN {
     EXPORT::DEFAULT.WHO<Capture>   := Capture;
     EXPORT::DEFAULT.WHO<ObjAt>     := ObjAt;
     EXPORT::DEFAULT.WHO<Stash>     := Stash;
+    EXPORT::DEFAULT.WHO<Nil>       := Nil;
     EXPORT::DEFAULT.WHO<Scalar>    := Scalar;
     EXPORT::DEFAULT.WHO<Proxy>     := Proxy;
     EXPORT::DEFAULT.WHO<Grammar>   := Grammar;

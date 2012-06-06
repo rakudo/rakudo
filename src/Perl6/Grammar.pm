@@ -396,7 +396,7 @@ grammar Perl6::Grammar is HLL::Grammar {
     }
 
     token version {
-        'v' {} <?before \d+> <vnum>+ % '.' ('+')?
+        'v' <?before \d+> {} <vnum>+ % '.' ('+')?
         <!before '-'|\'> # cheat because of LTM fail
     }
 

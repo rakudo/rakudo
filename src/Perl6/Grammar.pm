@@ -921,6 +921,7 @@ grammar Perl6::Grammar is HLL::Grammar {
     token term:sym<*>                  { <sym> }
     token term:sym<lambda>             { <?lambda> <pblock> }
     token term:sym<type_declarator>    { <type_declarator> }
+    token term:sym<value>              { <value> }
 
     # XXX temporary Bool::True/Bool::False until we can get a permanent definition
     token term:sym<boolean> { 'Bool::'? $<value>=[True|False] » }
@@ -2011,6 +2012,18 @@ grammar Perl6::Grammar is HLL::Grammar {
     token term:sym<identifier> {
         <identifier> <!{ $*W.is_type([~$<identifier>]) }> <?[(]> <args>
     }
+    
+    token term:sym<pir::op> {
+        'pir::' $<op>=[\w+] <args>?
+    }
+
+    token term:sym<pir::const> {
+        'pir::const::' $<const>=[\w+]
+    }
+
+    token term:sym<nqp::op> {
+        'nqp::' $<op>=[\w+] <args>?
+    }
 
     token term:sym<name> {
         <longname>
@@ -2025,18 +2038,6 @@ grammar Perl6::Grammar is HLL::Grammar {
             ]?
         || <args>
         ]
-    }
-
-    token term:sym<pir::op> {
-        'pir::' $<op>=[\w+] <args>?
-    }
-
-    token term:sym<pir::const> {
-        'pir::const::' $<const>=[\w+]
-    }
-
-    token term:sym<nqp::op> {
-        'nqp::' $<op>=[\w+] <args>?
     }
 
     token term:sym<dotty> { <dotty> }
@@ -2068,8 +2069,6 @@ grammar Perl6::Grammar is HLL::Grammar {
         | <?>
         ]
     }
-
-    token term:sym<value> { <value> }
 
     proto token value { <...> }
     token value:sym<quote>  { <quote> }

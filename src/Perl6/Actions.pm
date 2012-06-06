@@ -3348,6 +3348,7 @@ class Perl6::Actions is HLL::Actions {
     }
 
     method term:sym<nqp::op>($/) {
+        $/.CURSOR.panic("nqp::op forbidden in safe mode\n") if $FORBID_PIR;
         my $op    := ~$<op>;
         my $args  := $<args> ?? $<args>[0].ast.list !! [];
         if $op eq 'want' {

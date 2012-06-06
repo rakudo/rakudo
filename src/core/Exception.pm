@@ -756,6 +756,16 @@ my class X::TypeCheck::Return is X::TypeCheck {
         "Type check failed for return value; expected '{$.expected.^name}' but got '{$.got.^name}'";
     }
 }
+my class X::TypeCheck::Assignment is X::TypeCheck {
+    has $.symbol;
+    method operation { 'assignment' }
+    method message {
+        $.symbol.defined
+            ?? "Type check failed in assignment to '$.symbol'; expected '{$.expected.^name}' but got '{$.got.^name}'"
+            !! "Type check failed in assignment; expected '{$.expected.^name}' but got '{$.got.^name}'";
+    }
+
+}
 
 my class X::NoDispatcher is Exception {
     has $.redispatcher;
@@ -851,6 +861,9 @@ my class X::Eval::NoSuchLang is Exception {
     my %c_ex;
     %c_ex{'X::TypeCheck::Binding'} := sub ($got, $expected) is hidden_from_backtrace {
             X::TypeCheck::Binding.new(:$got, :$expected).throw;
+        };
+    %c_ex<X::TypeCheck::Assignment> := sub ($symbol, $got, $expected) {
+            X::TypeCheck::Assignment.new(:$symbol, :$got, :$expected).throw;
         };
     %c_ex{'X::TypeCheck::Return'} := sub ($got, $expected) is hidden_from_backtrace {
             X::TypeCheck::Return.new(:$got, :$expected).throw;

@@ -618,6 +618,19 @@ inline op perl6_set_type_capture(in PMC) :base_core {
     Rakudo_types_capture_set($1);
 }
 
+/*
+
+=item perl6_set_type_nil(in PMC)
+
+Sets the Nil type.
+
+=cut
+
+*/
+inline op perl6_set_type_nil(in PMC) :base_core {
+    Rakudo_types_nil_set($1);
+}
+
 
 /*
 

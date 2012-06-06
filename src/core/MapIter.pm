@@ -26,7 +26,7 @@ my class MapIter is Iterator {
         unless nqp::isconcrete($!reified) {
             my $argc   = $!block.count;
             $argc = 1 if $argc < 1;
-            my $block  = nqp::p6decont($!block); ### TODO: Why?
+            my $block  := nqp::p6decont($!block);
             my Mu $rpa := nqp::list();
 
             if $!first {

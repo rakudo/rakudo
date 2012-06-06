@@ -1,84 +1,84 @@
 my class MapIter is Iterator {
     has $!reified;             # Parcel we return after reifying
-    has $!list;                # the list we're consuming
+    has Mu $!listiter;         # the list we're consuming
     has $!block;               # the block we're applying
-    has int $!followup;        # is this an iterator that continues an existing iteration?
+    has $!first;               # Is this the first iterator in the sequence?
+    has Mu $!items;            # reified items we haven't consumed yet
 
     method new(:$list!, :$block!) { 
-        my $new := nqp::create(self).BUILD($list, $block);
+        my $new := nqp::create(self);
+        $new.BUILD(nqp::p6listiter(nqp::list(nqp::p6decont($list)), $new), 
+                   $block, True);
         $new;
     }
 
-    method BUILD(\$list, \$block) { 
-        $!list = $list; 
+    method BUILD(Mu \$listiter, \$block, $first = False) { 
+        nqp::bindattr($listiter, ListIter, '$!list', self) if nqp::isconcrete($listiter);
+        $!listiter := $listiter; 
         $!block = $block; 
+        $!first = $first;
         self 
     }
 
+    method flattens() { 1 }
+
     method reify($n = 1) {
-        if !$!reified.defined {
-            ## we don't have good control blocks yet, so we'll 
-            ## temporarily implement MapIter with Q:PIR blocks.
-            my $argc = $!block.count;
+        unless nqp::isconcrete($!reified) {
+            my $argc   = $!block.count;
             $argc = 1 if $argc < 1;
-            my $count;
-            if nqp::istype($n, Whatever) || $argc === $Inf {
-                $count = ($!list.gimme(*).Num / $argc).ceiling.Int
-            }
-            else {
-                $count = $n.Int; $!list.gimme($argc * $count);
-            }
-            $count = 1 if $count < 1;
-            my Mu $rpa  := nqp::list();
-            my $list    := nqp::p6decont($!list);
-            my $block   := nqp::p6decont($!block); ### TODO: Why?
-            my $munched := $!list.munch($argc * $count);
-            my $NEXT    := nqp::can($block, 'fire_phasers')
-                           && ?$block.phasers('NEXT');
- 
-            unless $!followup {
+            my $block  = nqp::p6decont($!block); ### TODO: Why?
+            my Mu $rpa := nqp::list();
+
+            if $!first {
+                $!items := nqp::list();
                 pir::perl6_set_block_first_flag__vP($block)
-                  if nqp::can($block, 'fire_phasers');
+                  if (nqp::can($block, 'phasers') && $block.phasers('FIRST'));
             }
 
-            my Mu $args := Q:PIR {
-                .local int count, argc, munchpos
-                .local pmc rpa, args, block, list, munched, result, Parcel, List, NEXT
-                rpa      = find_lex '$rpa'
-                list     = find_lex '$list'
-                block    = find_lex '$block'
+            my $count = $n;
+            if nqp::istype($count, Whatever) {
+                $!listiter.reify(*) if nqp::elems($!items) < $argc;
+                $count = (nqp::elems($!items) / $argc).floor;
+                $count = 1 if $count < 1;
+                $count = 100000 if $count > 100000;
+            }
+
+            my int $NEXT = nqp::can($block, 'fire_phasers') 
+                             && $block.phasers('NEXT');
+
+            Q:PIR {
+                .local int argc, count, NEXT
+                .local pmc handler, self, MapIter, items, args, result, block, rpa
                 $P0      = find_lex '$argc'
                 argc     = repr_unbox_int $P0
-                List     = find_lex 'List'
-                Parcel   = find_lex 'Parcel'
-                $P0      = find_lex '$munched'
-                munched  = getattribute $P0, Parcel, '$!storage'
                 $P0      = find_lex '$count'
                 count    = repr_unbox_int $P0
+                self     = find_lex 'self'
+                rpa      = find_lex '$rpa'
+                MapIter = find_lex 'MapIter'
+                items    = getattribute self, MapIter, '$!items'
+                args     = new 'ResizablePMCArray'
+                block    = find_lex '$block'
+                handler  = root_new ['parrot';'ExceptionHandler']
                 NEXT     = find_lex '$NEXT'
-                munchpos = 0
-                args     = root_new ['parrot';'ResizablePMCArray']
-                .local pmc handler
-                handler = root_new ['parrot';'ExceptionHandler']
+
                 set_addr handler, catch
                 handler.'handle_types'(.CONTROL_LOOP_LAST, .CONTROL_LOOP_NEXT, .CONTROL_LOOP_REDO)
                 push_eh handler
+
               iter_loop:
                 $I0 = elements rpa
-                unless $I0 < count goto done
+                unless $I0 < count goto iter_done
+                $I0 = elements items
+                if $I0 >= argc goto have_items
+                $I0 = argc - $I0
+                $P0 = getattribute self, MapIter, '$!listiter'
+                unless $P0 goto have_items
+                $P0.'reify'($I0)
+              have_items:
                 args = 0
-                $I0 = 0
-              arg_list_loop:
-                if $I0 == argc goto arg_list_loop_end
-                $I1 = exists munched[munchpos]
-                unless $I1 goto arg_list_loop_end
-                $P0 = munched[munchpos]
-                args[$I0] = $P0
-                inc munchpos
-                inc $I0
-                goto arg_list_loop
-              arg_list_loop_end:
-                unless args goto done
+                perl6_shiftpush args, items, argc
+                unless args goto iter_done
               redo:
                 result = block(args :flat)
                 push rpa, result
@@ -89,47 +89,55 @@ my class MapIter is Iterator {
                 result = getattribute exception, 'payload'
                 push rpa, result
                 type = getattribute exception, 'type'
-                if type == .CONTROL_LOOP_LAST goto last
                 if type == .CONTROL_LOOP_REDO goto redo
+                if type == .CONTROL_LOOP_LAST goto last
               next:
                 unless NEXT goto iter_loop
                 block.'fire_phasers'('NEXT')
                 goto iter_loop
               last:
-                args = perl6_booleanize 0
-              done:
-                null $P0
-                perl6_shiftpush $P0, munched, munchpos
-                unless munched goto uneaten_saved
-                $P0 = getattribute list, List, '$!items'
-                splice $P0, munched, 0, 0
-              uneaten_saved:
+                $P0 = find_lex 'Any'
+                setattribute self, MapIter, '$!items', $P0
+                setattribute self, MapIter, '$!listiter', $P0
+              iter_done:
                 pop_eh
-                %r = args
             };
-            # create the next MapIter if we haven't reached the end
-            if $args {
-                my $iter := nqp::create(self).BUILD($!list, $!block);
-                nqp::bindattr_i($iter, MapIter, '$!followup', 1);
-                nqp::push($rpa, $iter);
+
+            if $!items || $!listiter {
+                #nqp::say('next map iter');
+                #nqp::say(nqp::elems($!items));
+                #nqp::say(DUMP($!listiter));
+                my $nextiter := nqp::create(self).BUILD($!listiter, $!block);
+                nqp::bindattr($nextiter, MapIter, '$!items', $!items);
+                nqp::push($rpa, $nextiter);
             }
-            elsif nqp::can($block, 'fire_phasers') { 
+            elsif nqp::can($block, 'fire_phasers') {
                 $block.fire_phasers('LAST');
             }
+
             $!reified := nqp::p6parcel($rpa, nqp::null());
-            $!list = Any;
-            $!block = Any;
+            # release references to objects we no longer need/own
+            $!items := Any;
+            $!listiter := Any;
+            $!block := Any;
+
         }
-        $!reified
+        $!reified;
+    }
+
+    method REIFY(Parcel \$parcel, Mu \$nextiter) {
+        #nqp::say("REIFY " ~ $nextiter.^name);
+        nqp::splice($!items, nqp::getattr($parcel, Parcel, '$!storage'),
+                    nqp::elems($!items), 0);
+        $!listiter := $nextiter;
+        $parcel
     }
 
     method DUMP() {
         self.DUMP-ID() ~ '('
           ~ ':reified(' ~ DUMP($!reified) ~ '), '
-          ~ ':list(' ~ DUMP($!list) ~ '), '
-          ~ ':block(' ~ DUMP($!block) ~ ')'
+          ~ ':items(' ~ DUMP($!items) ~'), '
+          ~ ':listiter(' ~ DUMP($!listiter) ~ ')'
           ~ ')'
     }
 }
-
-

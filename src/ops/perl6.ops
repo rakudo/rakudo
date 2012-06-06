@@ -19,6 +19,7 @@ BEGIN_OPS_PREAMBLE
 #include "../binder/container.h"
 #include "../binder/types.h"
 #include "../binder/sixmodelobject.h"
+#include "../binder/exceptions.h"
 
 #if PARROT_HAS_ICU
 #  include <unicode/uchar.h>
@@ -29,17 +30,6 @@ static INTVAL smo_id = 0;
 
 /* The current dispatcher, for the next thing that wants one to take. */
 static PMC *current_dispatcher = NULL;
-
-static PMC * get_thrower(PARROT_INTERP, const char * name) {
-        PMC * const hll_ns = Parrot_hll_get_ctx_HLL_namespace(interp);
-        PMC * const ex_hash = Parrot_ns_find_namespace_global(interp,
-                    hll_ns, Parrot_str_new_constant(interp, "P6EX"));
-        PMC * const thrower = PMC_IS_NULL(ex_hash)
-            ? PMCNULL
-            : VTABLE_get_pmc_keyed_str(interp,
-                    ex_hash, Parrot_str_new(interp, name, 0));
-        return thrower;
-}
 
 static PMC *build_sig_object(PARROT_INTERP, ARGIN_NULLOK(PMC *signature), ARGIN(const char *sig), ...)
 {
@@ -882,7 +872,7 @@ inline op perl6_assert_bind_ok(in PMC, in PMC) :base_core {
                 ok = STABLE(value)->type_check(interp, value, type);
             }
             if (!ok) {
-                PMC * const thrower = get_thrower(interp, "X::TypeCheck::Binding");
+                PMC * const thrower = Rakudo_get_thrower(interp, "X::TypeCheck::Binding");
                 if (PMC_IS_NULL(thrower))
                         Parrot_ex_throw_from_c_args(interp, NULL, EXCEPTION_INVALID_OPERATION,
                             "Type check failed in binding");
@@ -1072,7 +1062,7 @@ inline op perl6_type_check_return_value(in PMC) :base_core {
     if (!PMC_IS_NULL(rtype)) {
         PMC *decont_value = Rakudo_cont_decontainerize(interp, $1);
         if (!STABLE(decont_value)->type_check(interp, decont_value, rtype)) {
-            PMC * const thrower = get_thrower(interp, "X::TypeCheck::Return");
+            PMC * const thrower = Rakudo_get_thrower(interp, "X::TypeCheck::Return");
             if (PMC_IS_NULL(thrower))
                 Parrot_ex_throw_from_c_args(interp, NULL, EXCEPTION_INVALID_OPERATION,
                     "Type check failed for return value");
@@ -1375,7 +1365,7 @@ inline op perl6_find_dispatcher(out PMC, in STR) :base_core {
     }
     
     if (!dispatcher) {
-        PMC * const thrower = get_thrower(interp, "X::NoDispatcher");
+        PMC * const thrower = Rakudo_get_thrower(interp, "X::NoDispatcher");
         if (PMC_IS_NULL(thrower)) {
             Parrot_ex_throw_from_c_args(interp, NULL, EXCEPTION_INVALID_OPERATION,
                 "%Ss is not in the dynamic scope of a dispatcher", $2);
@@ -1839,7 +1829,7 @@ inline op perl6_return_from_routine(in PMC) :flow {
         }
     }
     if (cont->vtable->base_type != enum_class_Continuation) {
-        PMC * const thrower = get_thrower(interp, "X::ControlFlow::Return");
+        PMC * const thrower = Rakudo_get_thrower(interp, "X::ControlFlow::Return");
         if (PMC_IS_NULL(thrower))
             Parrot_ex_throw_from_c_args(interp, NULL, EXCEPTION_INVALID_OPERATION,
                     "Attempt to return outside of any Routine");

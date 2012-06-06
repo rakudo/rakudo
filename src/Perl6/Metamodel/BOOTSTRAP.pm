@@ -754,7 +754,7 @@ BEGIN {
     Stash.HOW.add_parrot_vtable_handler_mapping(EnumMap, 'get_iter', '$!storage');
     Stash.HOW.publish_parrot_vtable_handler_mapping(Stash);
 
-    Nil.HOW.add_parent(Nil, Any);
+    Nil.HOW.add_parent(Nil, Iterator);
 
     # Set this Stash type for the various types of package.
     Perl6::Metamodel::PackageHOW.set_stash_type(Stash, EnumMap);

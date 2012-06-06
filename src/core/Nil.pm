@@ -1,4 +1,4 @@
-my class Nil is Iterator {
+my class Nil {
     method new() { Nil }
     method iterator() { self }
     method reify($n?) { () }

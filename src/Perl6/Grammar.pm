@@ -1146,17 +1146,17 @@ grammar Perl6::Grammar is HLL::Grammar {
     }
 
     token special_variable:sym«\$>» {
-        <sym> <?before \s | ',' | <terminator> >
+        <sym> {} <?before \s | ',' | <terminator> >
         <.obs('$> variable', '$*EUID')>
     }
 
     token special_variable:sym<$.> {
-        <sym> <?before \s | ',' | <terminator> >
+        <sym> {} <?before \s | ',' | <terminator> >
         <.obs('$. variable', "the filehandle's .line method")>
     }
 
     token special_variable:sym<$?> {
-        <sym> <?before \s | ',' | <terminator> >
+        <sym> {} <?before \s | ',' | <terminator> >
         <.obs('$? variable as child error', '$!')>
     }
 

@@ -33,14 +33,14 @@ my class MapIter is Iterator {
             my $list    := nqp::p6decont($!list);
             my $block   := nqp::p6decont($!block); ### TODO: Why?
             my $munched := $!list.munch($argc * $count);
-            my $NEXT    := nqp::can($block, 'fire_phasers') 
-                           && $block.phasers('NEXT');
+            my $NEXT    := nqp::can($block, 'fire_phasers')
+                           && ?$block.phasers('NEXT');
  
             unless $!followup {
-                if nqp::can($block, 'phasers') && $block.phasers('FIRST') {
-                    pir::perl6_set_block_first_flag__vP($block);
-                }
+                pir::perl6_set_block_first_flag__vP($block)
+                  if nqp::can($block, 'fire_phasers');
             }
+
             my Mu $args := Q:PIR {
                 .local int count, argc, munchpos
                 .local pmc rpa, args, block, list, munched, result, Parcel, List, NEXT

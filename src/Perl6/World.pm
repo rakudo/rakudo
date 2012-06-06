@@ -776,23 +776,8 @@ class Perl6::World is HLL::World {
         my $block_type := self.find_symbol(['Block']);
         if nqp::istype($code, $block_type) {
             sub run_phasers_code($type) {
-                PAST::Op.new(
-                    :pasttype('for'),
-                    PAST::Var.new(
-                        :scope('keyed'),
-                        PAST::Var.new(
-                            :scope('attribute_6model'), :name('$!phasers'),
-                            $*W.get_ref($code),
-                            $*W.get_ref($block_type)
-                        ),
-                        $type
-                    ),
-                    PAST::Block.new(
-                        :blocktype('immediate'),
-                        PAST::Op.new(
-                            :pasttype('call'),
-                            PAST::Var.new( :scope('parameter'), :name('$_') )
-                        )))
+                PAST::Op.new( :pasttype<callmethod>, :name<fire_phasers>,
+                              $*W.get_ref($code), ~$type);
             }
             my %phasers := nqp::getattr($code, $block_type, '$!phasers');
             if nqp::existskey(%phasers, 'PRE') {

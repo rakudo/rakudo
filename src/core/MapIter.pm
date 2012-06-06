@@ -1,26 +1,28 @@
 my class MapIter is Iterator {
     has $!reified;             # Parcel we return after reifying
     has Mu $!listiter;         # the list we're consuming
+    has $!flattens;            # flag to flatten input list
     has $!block;               # the block we're applying
     has $!first;               # Is this the first iterator in the sequence?
     has Mu $!items;            # reified items we haven't consumed yet
 
-    method new(:$list!, :$block!) { 
+    method new(:$list!, :$block!, :$flattens = 1) { 
         my $new := nqp::create(self);
         $new.BUILD(nqp::p6listiter(nqp::list(nqp::p6decont($list)), $new), 
-                   $block, True);
+                   $block, $flattens, True);
         $new;
     }
 
-    method BUILD(Mu \$listiter, \$block, $first = False) { 
+    method BUILD(Mu \$listiter, \$block, $flattens, $first = False) { 
         nqp::bindattr($listiter, ListIter, '$!list', self) if nqp::isconcrete($listiter);
         $!listiter := $listiter; 
         $!block = $block; 
         $!first = $first;
+        $!flattens = $flattens;
         self 
     }
 
-    method flattens() { 1 }
+    method flattens() { $!flattens }
 
     method reify($n = 1) {
         unless nqp::isconcrete($!reified) {
@@ -105,7 +107,7 @@ my class MapIter is Iterator {
             };
 
             if $!items || $!listiter {
-                my $nextiter := nqp::create(self).BUILD($!listiter, $!block);
+                my $nextiter := nqp::create(self).BUILD($!listiter, $!block, $!flattens);
                 nqp::bindattr($nextiter, MapIter, '$!items', $!items);
                 nqp::push($rpa, $nextiter);
             }

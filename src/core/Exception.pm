@@ -764,7 +764,12 @@ my class X::TypeCheck::Assignment is X::TypeCheck {
             ?? "Type check failed in assignment to '$.symbol'; expected '{$.expected.^name}' but got '{$.got.^name}'"
             !! "Type check failed in assignment; expected '{$.expected.^name}' but got '{$.got.^name}'";
     }
+}
 
+my class X::Assignment::RO is Exception {
+    method message {
+        "Cannot assign to a non-container";
+    }
 }
 
 my class X::NoDispatcher is Exception {
@@ -867,6 +872,9 @@ my class X::Eval::NoSuchLang is Exception {
         };
     %c_ex{'X::TypeCheck::Return'} := sub ($got, $expected) is hidden_from_backtrace {
             X::TypeCheck::Return.new(:$got, :$expected).throw;
+        };
+    %c_ex<X::Assignment::RO> := sub () is hidden_from_backtrace {
+            X::Assignment::RO.new.throw;
         };
     %c_ex{'X::ControlFlow::Return'} := sub () is hidden_from_backtrace {
             X::ControlFlow::Return.new().throw;

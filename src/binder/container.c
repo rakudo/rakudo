@@ -130,8 +130,12 @@ void Rakudo_cont_store(PARROT_INTERP, PMC *cont, PMC *value,
             Parrot_pcc_set_signature(interp, CURRENT_CONTEXT(interp), old_ctx);
         }
         else {
-            Parrot_ex_throw_from_c_args(interp, NULL, EXCEPTION_INVALID_OPERATION,
-                "Cannot assign to a non-container");
+            PMC * thrower = Rakudo_get_thrower(interp, "X::Assignment::RO");
+            if (PMC_IS_NULL(thrower))
+                Parrot_ex_throw_from_c_args(interp, NULL, EXCEPTION_INVALID_OPERATION,
+                    "Cannot assign to a non-container");
+            else
+                Parrot_pcc_invoke_sub_from_c_args(interp, thrower, "->");
         }
     }
 }

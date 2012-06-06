@@ -920,6 +920,7 @@ grammar Perl6::Grammar is HLL::Grammar {
     token term:sym<**>                 { <sym> <.NYI('HyperWhatever (**)')> }
     token term:sym<*>                  { <sym> }
     token term:sym<lambda>             { <?lambda> <pblock> }
+    token term:sym<type_declarator>    { <type_declarator> }
 
     # XXX temporary Bool::True/Bool::False until we can get a permanent definition
     token term:sym<boolean> { 'Bool::'? $<value>=[True|False] » }
@@ -2141,8 +2142,6 @@ grammar Perl6::Grammar is HLL::Grammar {
         <.unsp>? [ <?before '['> '[' ~ ']' <arglist> ]?
         [<.ws> 'of' <.ws> <typename> ]?
     }
-    
-    token term:sym<type_declarator>   { <type_declarator> }
 
     token quotepair {
         :my $*key;

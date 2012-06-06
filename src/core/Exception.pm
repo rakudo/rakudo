@@ -862,7 +862,7 @@ my class X::Eval::NoSuchLang is Exception {
     %c_ex{'X::TypeCheck::Binding'} := sub ($got, $expected) is hidden_from_backtrace {
             X::TypeCheck::Binding.new(:$got, :$expected).throw;
         };
-    %c_ex<X::TypeCheck::Assignment> := sub ($symbol, $got, $expected) {
+    %c_ex<X::TypeCheck::Assignment> := sub ($symbol, $got, $expected) is hidden_from_backtrace {
             X::TypeCheck::Assignment.new(:$symbol, :$got, :$expected).throw;
         };
     %c_ex{'X::TypeCheck::Return'} := sub ($got, $expected) is hidden_from_backtrace {

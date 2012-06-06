@@ -4,6 +4,7 @@
 #include "container.h"
 #include "sixmodelobject.h"
 #include "bind.h"
+#include "types.h"
 
 static PMC *scalar_type = NULL;
 void Rakudo_cont_set_scalar_type(PMC *type) { scalar_type = type; }
@@ -86,6 +87,10 @@ void Rakudo_cont_store(PARROT_INTERP, PMC *cont, PMC *value,
             INTVAL ok = 0;
             if (!PMC_IS_NULL(scalar->descriptor)) {
                 Rakudo_ContainerDescriptor *desc = ((Rakudo_ContainerDescriptor *)PMC_data(scalar->descriptor));
+                if (value_decont == Rakudo_types_nil_get()) {
+                    scalar->value = desc->of;
+                    return;
+                }
                 ok = STABLE(value_decont)->type_check(interp, value_decont, desc->of);
                 if (!ok) {
                     Parrot_ex_throw_from_c_args(interp, NULL, EXCEPTION_INVALID_OPERATION,

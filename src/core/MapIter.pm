@@ -37,7 +37,8 @@ my class MapIter is Iterator {
 
             my $count = $n;
             if nqp::istype($count, Whatever) {
-                $!listiter.reify(*) if nqp::elems($!items) < $argc;
+                $!listiter.reify(*) 
+                  if $!listiter && nqp::elems($!items) < $argc;
                 $count = (nqp::elems($!items) / $argc).floor;
                 $count = 1 if $count < 1;
                 $count = 100000 if $count > 100000;
@@ -104,9 +105,6 @@ my class MapIter is Iterator {
             };
 
             if $!items || $!listiter {
-                #nqp::say('next map iter');
-                #nqp::say(nqp::elems($!items));
-                #nqp::say(DUMP($!listiter));
                 my $nextiter := nqp::create(self).BUILD($!listiter, $!block);
                 nqp::bindattr($nextiter, MapIter, '$!items', $!items);
                 nqp::push($rpa, $nextiter);
@@ -126,7 +124,6 @@ my class MapIter is Iterator {
     }
 
     method REIFY(Parcel \$parcel, Mu \$nextiter) {
-        #nqp::say("REIFY " ~ $nextiter.^name);
         nqp::splice($!items, nqp::getattr($parcel, Parcel, '$!storage'),
                     nqp::elems($!items), 0);
         $!listiter := $nextiter;

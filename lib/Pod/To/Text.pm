@@ -17,6 +17,7 @@ sub pod2text($pod) is export {
         when Pod::FormattingCode { formatting2text($pod)        }
         when Positional        { $pod.map({pod2text($_)}).join("\n\n")}
         when Pod::Block::Comment { }
+        when Pod::Config       { }
         default                { $pod.Str                       }
     }
 }

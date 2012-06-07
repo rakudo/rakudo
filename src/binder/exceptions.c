@@ -1,3 +1,4 @@
+#define PARROT_IN_EXTENSION
 #include "parrot/parrot.h"
 #include "parrot/extend.h"
 #include "exceptions.h"

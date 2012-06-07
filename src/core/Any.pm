@@ -18,9 +18,9 @@ my class Any {
     method uniq() { self.list.uniq }
     method infinite() { Mu }
     method flat() { nqp::p6list(nqp::list(self), List, Bool::True) }
-    method tree(*@a) { self.list.tree(|@a) }
     method hash() { my %h = self }
     method list() { nqp::p6list(nqp::list(self), List, Mu) }
+    method lol()  { MapIter.new(self.list, { .item }, Mu).list }
     method pick($n = 1) { self.list.pick($n) }
     method roll($n = 1) { self.list.roll($n) }
     method reverse() { self.list.reverse }
@@ -116,6 +116,20 @@ my class Any {
     multi method push(Any:U \$self: *@values) {
         &infix:<=>($self, Array.new);
         $self.push(@values);
+    }
+
+    proto method tree(|$) { * }
+    multi method tree(Any:U:) { self }
+    multi method tree(Any:D:) { self.lol }
+    multi method tree(Any:D: Cool $count as Int) {
+        $count > 1
+          ?? MapIter.new(self.list, { .tree($count-1).item }, Mu).list
+          !! $count == 1
+             ?? self.lol
+             !! self
+    }
+    multi method tree(Any:D: &c) {
+        MapIter.new(self.list, { .&c.item }, Mu).list
     }
 
     proto method unshift(|$) { * }

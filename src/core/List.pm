@@ -26,6 +26,13 @@ my class List does Positional {
                     !! nqp::p6list(nqp::list(self), List, Bool::True)
     }
     method list() { self }
+    method lol() {
+        self.gimme(0);
+        my Mu $rpa := nqp::clone($!items);
+        nqp::push($rpa, $!nextiter) if $!nextiter.defined;
+        nqp::p6list($rpa, LoL, Mu);
+    }
+
     method flattens() { $!flattens }
 
     my &itemify = { .elems == 1 ?? $_ !! [.list] };

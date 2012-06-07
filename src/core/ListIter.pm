@@ -10,7 +10,7 @@ my class ListIter {
     method reify($n = 1) {
         unless nqp::isconcrete($!reified) {
             my $eager = nqp::p6bool(nqp::istype($n, Whatever));
-            my $flattens = nqp::isconcrete($!list) && $!list.flattens;
+            my $flattens = nqp::p6bool(nqp::isconcrete($!list)) && $!list.flattens;
             my int $count = $eager
                 ?? 100000
                 !! nqp::unbox_i(nqp::istype($n, Int) ?? $n !! $n.Int);

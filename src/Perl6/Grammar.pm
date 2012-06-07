@@ -258,6 +258,20 @@ grammar Perl6::Grammar is HLL::Grammar {
 
     proto token pod_block { <...> }
 
+    token pod_block:sym<delimited_raw> {
+        ^^
+        $<spaces> = [ \h* ]
+        '=begin' \h+ <!before 'END'>
+                        $<type>=[ 'code' || 'comment' ]
+                        [ [\n '=']? \h+ <colonpair> ]*
+                        <pod_newline>+
+        [
+         $<pod_content> = [ .*? ]
+         ^^ $<spaces> '=end' \h+ $<type> <pod_newline>
+         ||  <.typed_panic: 'X::Syntax::Pod::BeginWithoutEnd'>
+        ]
+    }
+
     token pod_block:sym<delimited> {
         ^^
         $<spaces> = [ \h* ]
@@ -283,19 +297,6 @@ grammar Perl6::Grammar is HLL::Grammar {
         ]
     }
 
-    token pod_block:sym<delimited_raw> {
-        ^^
-        $<spaces> = [ \h* ]
-        '=begin' \h+ <!before 'END'>
-                        $<type>=[ 'code' || 'comment' ]
-                        [ [\n '=']? \h+ <colonpair> ]*
-                        <pod_newline>+
-        [
-         $<pod_content> = [ .*? ]
-         ^^ $<spaces> '=end' \h+ $<type> <pod_newline>
-         ||  <.typed_panic: 'X::Syntax::Pod::BeginWithoutEnd'>
-        ]
-    }
 
     token pod_block:sym<delimited_table> {
         ^^ \h* '=begin' \h+ 'table'

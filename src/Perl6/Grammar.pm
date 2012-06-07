@@ -261,8 +261,7 @@ grammar Perl6::Grammar is HLL::Grammar {
     token pod_block:sym<delimited_raw> {
         ^^
         $<spaces> = [ \h* ]
-        '=begin' \h+ <!before 'END'>
-                        $<type>=[ 'code' || 'comment' ]
+        '=begin' \h+ $<type>=[ 'code' | 'comment' ] {}
                         [ [\n '=']? \h+ <colonpair> ]*
                         <pod_newline>+
         [
@@ -315,9 +314,9 @@ grammar Perl6::Grammar is HLL::Grammar {
     token pod_block:sym<end> {
         ^^ \h*
         [
-            || '=begin' \h+ 'END' <pod_newline>
-            || '=for'   \h+ 'END' <pod_newline>
-            || '=END' <pod_newline>
+            | '=begin' \h+ 'END' <pod_newline>
+            | '=for'   \h+ 'END' <pod_newline>
+            | '=END' <pod_newline>
         ]
         .*
     }

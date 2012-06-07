@@ -61,7 +61,10 @@ sub table2text($pod) {
     for 0..(@rows[1].elems - 1) -> $i {
         @maxes.push([max] @rows.map({ $_[$i].chars }));
     }
-    my $ret = $pod.config<caption> ~ "\n" // '';
+    my $ret;
+    if $pod.config<caption> {
+        $ret = $pod.config<caption> ~ "\n"
+    }
     for @rows -> $row {
         for 0..($row.elems - 1) -> $i {
             $ret ~= $row[$i].fmt("%-{@maxes[$i]}s") ~ "  ";

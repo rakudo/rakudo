@@ -146,8 +146,8 @@ multi sub flunk($reason) is export {
 
 multi sub isa_ok(Mu $var, Mu $type, $msg = ("The object is-a '" ~ $type.perl ~ "'")) is export {
     $time_after = nqp::p6box_n(nqp::time_n);
-    ok($var.isa($type), $msg)
-        or diag('Actual type: ' ~ $var.WHAT);
+    proclaim($var.isa($type), $msg)
+        or diag('Actual type: ' ~ $var.^name);
     $time_before = nqp::p6box_n(nqp::time_n);
 }
 

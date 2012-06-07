@@ -17,6 +17,7 @@ sub pod2text($pod) is export {
         when Pod::FormattingCode { formatting2text($pod)        }
         when Positional        { $pod.map({pod2text($_)}).join("\n\n")}
         when Pod::Block::Comment { }
+        when Pod::Config       { }
         default                { $pod.Str                       }
     }
 }
@@ -60,7 +61,10 @@ sub table2text($pod) {
     for 0..(@rows[1].elems - 1) -> $i {
         @maxes.push([max] @rows.map({ $_[$i].chars }));
     }
-    my $ret = $pod.config<caption> ~ "\n" // '';
+    my $ret;
+    if $pod.config<caption> {
+        $ret = $pod.config<caption> ~ "\n"
+    }
     for @rows -> $row {
         for 0..($row.elems - 1) -> $i {
             $ret ~= $row[$i].fmt("%-{@maxes[$i]}s") ~ "  ";

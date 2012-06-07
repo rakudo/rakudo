@@ -66,6 +66,10 @@ grammar Perl6::Grammar is HLL::Grammar {
     token apostrophe {
         <[ ' \- ]>
     }
+    
+    token ident {
+        <.alpha> \w*
+    }
 
     token identifier {
         <.ident> [ <.apostrophe> <.ident> ]*
@@ -254,6 +258,19 @@ grammar Perl6::Grammar is HLL::Grammar {
 
     proto token pod_block { <...> }
 
+    token pod_block:sym<delimited_raw> {
+        ^^
+        $<spaces> = [ \h* ]
+        '=begin' \h+ $<type>=[ 'code' | 'comment' ] {}
+                        [ [\n '=']? \h+ <colonpair> ]*
+                        <pod_newline>+
+        [
+         $<pod_content> = [ .*? ]
+         ^^ $<spaces> '=end' \h+ $<type> <pod_newline>
+         ||  <.typed_panic: 'X::Syntax::Pod::BeginWithoutEnd'>
+        ]
+    }
+
     token pod_block:sym<delimited> {
         ^^
         $<spaces> = [ \h* ]
@@ -279,19 +296,6 @@ grammar Perl6::Grammar is HLL::Grammar {
         ]
     }
 
-    token pod_block:sym<delimited_raw> {
-        ^^
-        $<spaces> = [ \h* ]
-        '=begin' \h+ <!before 'END'>
-                        $<type>=[ 'code' || 'comment' ]
-                        [ [\n '=']? \h+ <colonpair> ]*
-                        <pod_newline>+
-        [
-         $<pod_content> = [ .*? ]
-         ^^ $<spaces> '=end' \h+ $<type> <pod_newline>
-         ||  <.typed_panic: 'X::Syntax::Pod::BeginWithoutEnd'>
-        ]
-    }
 
     token pod_block:sym<delimited_table> {
         ^^ \h* '=begin' \h+ 'table'
@@ -310,9 +314,9 @@ grammar Perl6::Grammar is HLL::Grammar {
     token pod_block:sym<end> {
         ^^ \h*
         [
-            || '=begin' \h+ 'END' <pod_newline>
-            || '=for'   \h+ 'END' <pod_newline>
-            || '=END' <pod_newline>
+            | '=begin' \h+ 'END' <pod_newline>
+            | '=for'   \h+ 'END' <pod_newline>
+            | '=END' <pod_newline>
         ]
         .*
     }
@@ -335,8 +339,7 @@ grammar Perl6::Grammar is HLL::Grammar {
     }
 
     token pod_block:sym<paragraph_raw> {
-        ^^ \h* '=for' \h+ <!before 'END'>
-                          $<type>=[ 'code' || 'comment' ]
+        ^^ \h* '=for' \h+ $<type>=[ 'code' | 'comment' ]
                           [ [\n '=']? \h+ <colonpair> ]*
                           <pod_newline>
         $<pod_content> = [ \h* <!before '=' \w> \N+ \n ]+
@@ -366,7 +369,7 @@ grammar Perl6::Grammar is HLL::Grammar {
     }
 
     token pod_block:sym<abbreviated_raw> {
-        ^^ \h* '=' $<type>=[ 'code' || 'comment' ]
+        ^^ \h* '=' $<type>=[ 'code' | 'comment' ]
         [ [\n '=']? \h+ <colonpair> ]* \s
         $<pod_content> = [ \h* <!before '=' \w> \N+ \n ]*
     }
@@ -392,7 +395,7 @@ grammar Perl6::Grammar is HLL::Grammar {
     }
 
     token version {
-        'v' {} <?before \d+> <vnum>+ % '.' ('+')?
+        'v' <?before \d+> {} <vnum>+ % '.' ('+')?
         <!before '-'|\'> # cheat because of LTM fail
     }
 
@@ -573,10 +576,10 @@ grammar Perl6::Grammar is HLL::Grammar {
     }
 
     token eat_terminator {
-        | ';'
-        | <?MARKED('endstmt')>
-        | <?terminator>
-        | $
+        || ';'
+        || <?MARKED('endstmt')>
+        || <?terminator>
+        || $
     }
 
     token xblock($*IMPLICIT = 0) {
@@ -916,6 +919,8 @@ grammar Perl6::Grammar is HLL::Grammar {
     token term:sym<**>                 { <sym> <.NYI('HyperWhatever (**)')> }
     token term:sym<*>                  { <sym> }
     token term:sym<lambda>             { <?lambda> <pblock> }
+    token term:sym<type_declarator>    { <type_declarator> }
+    token term:sym<value>              { <value> }
 
     # XXX temporary Bool::True/Bool::False until we can get a permanent definition
     token term:sym<boolean> { 'Bool::'? $<value>=[True|False] » }
@@ -1141,17 +1146,17 @@ grammar Perl6::Grammar is HLL::Grammar {
     }
 
     token special_variable:sym«\$>» {
-        <sym> <?before \s | ',' | <terminator> >
+        <sym> {} <?before \s | ',' | <terminator> >
         <.obs('$> variable', '$*EUID')>
     }
 
     token special_variable:sym<$.> {
-        <sym> <?before \s | ',' | <terminator> >
+        <sym> {} <?before \s | ',' | <terminator> >
         <.obs('$. variable', "the filehandle's .line method")>
     }
 
     token special_variable:sym<$?> {
-        <sym> <?before \s | ',' | <terminator> >
+        <sym> {} <?before \s | ',' | <terminator> >
         <.obs('$? variable as child error', '$!')>
     }
 
@@ -1602,8 +1607,8 @@ grammar Perl6::Grammar is HLL::Grammar {
         <trait>*
         { $*IN_DECL := ''; }
         [
-        | <onlystar>
-        | <blockoid>
+        || <onlystar>
+        || <blockoid>
         ]
     }
 
@@ -1631,8 +1636,8 @@ grammar Perl6::Grammar is HLL::Grammar {
             ]
             { $*IN_DECL := ''; }
             [
-            | <onlystar>
-            | <blockoid>
+            || <onlystar>
+            || <blockoid>
             ]
         ] || <.malformed('method')>
     }
@@ -1661,8 +1666,8 @@ grammar Perl6::Grammar is HLL::Grammar {
         <trait>*
         { $*IN_DECL := ''; }
         [
-        | <onlystar>
-        | <blockoid>
+        || <onlystar>
+        || <blockoid>
         ]
     }
     
@@ -2006,6 +2011,18 @@ grammar Perl6::Grammar is HLL::Grammar {
     token term:sym<identifier> {
         <identifier> <!{ $*W.is_type([~$<identifier>]) }> <?[(]> <args>
     }
+    
+    token term:sym<pir::op> {
+        'pir::' $<op>=[\w+] <args>?
+    }
+
+    token term:sym<pir::const> {
+        'pir::const::' $<const>=[\w+]
+    }
+
+    token term:sym<nqp::op> {
+        'nqp::' $<op>=[\w+] <args>?
+    }
 
     token term:sym<name> {
         <longname>
@@ -2020,18 +2037,6 @@ grammar Perl6::Grammar is HLL::Grammar {
             ]?
         || <args>
         ]
-    }
-
-    token term:sym<pir::op> {
-        'pir::' $<op>=[\w+] <args>?
-    }
-
-    token term:sym<pir::const> {
-        'pir::const::' $<const>=[\w+]
-    }
-
-    token term:sym<nqp::op> {
-        'nqp::' $<op>=[\w+] <args>?
     }
 
     token term:sym<dotty> { <dotty> }
@@ -2063,8 +2068,6 @@ grammar Perl6::Grammar is HLL::Grammar {
         | <?>
         ]
     }
-
-    token term:sym<value> { <value> }
 
     proto token value { <...> }
     token value:sym<quote>  { <quote> }
@@ -2137,8 +2140,6 @@ grammar Perl6::Grammar is HLL::Grammar {
         <.unsp>? [ <?before '['> '[' ~ ']' <arglist> ]?
         [<.ws> 'of' <.ws> <typename> ]?
     }
-    
-    token term:sym<type_declarator>   { <type_declarator> }
 
     token quotepair {
         :my $*key;

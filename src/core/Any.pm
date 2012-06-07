@@ -53,7 +53,7 @@ my class Any {
     }
 
     method map($block) is rw {
-        MapIter.new(:list(self), :block($block)).list
+        MapIter.new(self, $block, Bool::True).list
     }
 
     method min($by = &infix:<cmp>) {

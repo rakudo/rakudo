@@ -1,7 +1,7 @@
 Rakudo Roadmap
 --------------
 
-Last updated: 2012-05-31
+Last updated: 2012-06-07
 
 This document serves as a guide to the major goals for Rakudo
 development, as things stood in December 2011. They have been
@@ -46,7 +46,6 @@ Operators
 3 **    operator adverbs
 
 Regexes
-1 ***   LTM for alternations
 2 **    array variable interpolation
 2 **    ~~ inside regexes
 2 *     Null pattern detection (at parse time)

@@ -369,7 +369,7 @@ grammar Perl6::Grammar is HLL::Grammar {
     }
 
     token pod_block:sym<abbreviated_raw> {
-        ^^ \h* '=' $<type>=[ 'code' || 'comment' ]
+        ^^ \h* '=' $<type>=[ 'code' | 'comment' ]
         [ [\n '=']? \h+ <colonpair> ]* \s
         $<pod_content> = [ \h* <!before '=' \w> \N+ \n ]*
     }

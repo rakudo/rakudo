@@ -6,14 +6,14 @@ my class MapIter is Iterator {
     has $!first;               # Is this the first iterator in the sequence?
     has Mu $!items;            # reified items we haven't consumed yet
 
-    method new($list, $block, $flattens = Bool::True) { 
+    method new($list, $block, Mu $flattens = Bool::True) { 
         my $new := nqp::create(self);
         $new.BUILD(nqp::p6listiter(nqp::list(nqp::p6decont($list)), $new), 
                    $block, $flattens, True);
         $new;
     }
 
-    method BUILD(Mu \$listiter, \$block, \$flattens, $first = False) { 
+    method BUILD(Mu \$listiter, \$block, Mu \$flattens, $first = False) { 
         nqp::bindattr($listiter, ListIter, '$!list', self) if nqp::isconcrete($listiter);
         $!listiter := $listiter; 
         $!block = $block; 

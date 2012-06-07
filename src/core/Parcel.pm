@@ -28,19 +28,10 @@ my class Parcel does Positional {
         $cap
     }
 
-    method flat() {
-        nqp::p6list(nqp::clone($!storage), List, Bool::True)
-    }
-
     method item() { my $v = self; }
-
-    method list() {
-        nqp::p6list(nqp::clone($!storage), List, Mu)
-    }
-
-    method lol() {
-        nqp::p6list(nqp::clone($!storage), LoL, Mu)
-    }
+    method flat() { nqp::p6list(nqp::clone($!storage), List, Bool::True) }
+    method list() { nqp::p6list(nqp::clone($!storage), List, Mu) }
+    method lol()  { nqp::p6list(nqp::clone($!storage), LoL, Mu) }
 
     method at_pos(Parcel:D: \$x) is rw { self.flat.at_pos($x); }
 

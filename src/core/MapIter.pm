@@ -1,7 +1,7 @@
 my class MapIter is Iterator {
     has $!reified;             # Parcel we return after reifying
     has Mu $!listiter;         # the list we're consuming
-    has $!flattens;            # flag to flatten input list
+    has Mu $!flattens;         # flag to flatten input list
     has $!block;               # the block we're applying
     has $!first;               # Is this the first iterator in the sequence?
     has Mu $!items;            # reified items we haven't consumed yet

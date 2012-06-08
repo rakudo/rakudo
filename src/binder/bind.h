@@ -82,6 +82,9 @@ typedef struct {
 /* Gets the ID of a 6model object PMC. */
 INTVAL Rakudo_smo_id(void);
 
+/* Checks that a PMC is a nqp native list */
+INTVAL Rakudo_isnqplist(PMC *);
+
 /* Functions we want to share to provide the interface to the binder. */
 INTVAL Rakudo_binding_bind(PARROT_INTERP, PMC *lexpad, PMC *sig_pmc,
                     PMC *capture, INTVAL no_nom_type_check,

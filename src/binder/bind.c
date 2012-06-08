@@ -16,6 +16,7 @@ Copyright (C) 2009-2011, The Perl Foundation.
 /* Cache of Parrot type IDs and some strings. */
 static INTVAL smo_id            = 0;
 static INTVAL p6l_id            = 0;
+static INTVAL qrpa_id           = 0;
 static STRING *ACCEPTS          = NULL;
 static STRING *HOW              = NULL;
 static STRING *DO_str           = NULL;
@@ -60,13 +61,20 @@ static void setup_binder_statics(PARROT_INTERP) {
     NAMED_str        = Parrot_str_new_constant(interp, "named");
     INSTANTIATE_GENERIC_str = Parrot_str_new_constant(interp, "instantiate_generic");
     
-    smo_id = Parrot_pmc_get_type_str(interp, Parrot_str_new(interp, "SixModelObject", 0));
-    p6l_id = Parrot_pmc_get_type_str(interp, Parrot_str_new(interp, "Perl6LexPad", 0));
+    smo_id  = Parrot_pmc_get_type_str(interp, Parrot_str_new(interp, "SixModelObject", 0));
+    p6l_id  = Parrot_pmc_get_type_str(interp, Parrot_str_new(interp, "Perl6LexPad", 0));
+    qrpa_id = Parrot_pmc_get_type_str(interp, Parrot_str_new(interp, "QRPA", 0));
 }
 
 
 /* Gets the ID of a 6model object PMC. */
 INTVAL Rakudo_smo_id(void) { return smo_id; }
+
+/* Checks that a PMC is a native list object */
+INTVAL Rakudo_isnqplist(PMC *pmc) {
+    return (INTVAL)(pmc->vtable->base_type == qrpa_id
+                    || pmc->vtable->base_type == enum_class_ResizablePMCArray);
+}
 
 
 /* Return the type we'd box a native value to. */
@@ -779,8 +787,9 @@ Rakudo_binding_bind(PARROT_INTERP, PMC *lexpad, PMC *sig_pmc, PMC *capture,
         PMC *captype   = Rakudo_types_capture_get();
         PMC *list_part = VTABLE_get_attr_keyed(interp, capture, captype, LIST_str);
         PMC *hash_part = VTABLE_get_attr_keyed(interp, capture, captype, HASH_str);
-        capture = list_part->vtable->base_type == enum_class_ResizablePMCArray ?
-                list_part : Parrot_pmc_new(interp, enum_class_ResizablePMCArray);
+        capture = Rakudo_isnqplist(list_part) 
+                    ?  list_part 
+                    : Parrot_pmc_new(interp, enum_class_ResizablePMCArray);
         if (hash_part->vtable->base_type == enum_class_Hash) {
             PMC *iter = VTABLE_get_iter(interp, hash_part);
             named_args_copy = Parrot_pmc_new(interp, enum_class_Hash);

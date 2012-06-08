@@ -127,7 +127,10 @@ PMC * Rakudo_types_parrot_map(PARROT_INTERP, PMC * to_map) {
                 ownedhash_id = Parrot_pmc_get_type_str(interp, Parrot_str_new(interp, "OwnedHash", 0));
             if (ownedrpa_id == 0)
                 ownedrpa_id = Parrot_pmc_get_type_str(interp, Parrot_str_new(interp, "OwnedResizablePMCArray", 0));
-            if (to_map->vtable->base_type == ownedhash_id) {
+            if (Rakudo_isnqplist(to_map)) {
+                result = Rakudo_binding_parcel_from_rpa(interp, to_map, Mu);
+            }
+            else if (to_map->vtable->base_type == ownedhash_id) {
                 result = REPR(_Hash)->allocate(interp, STABLE(_Hash));
                 REPR(result)->initialize(interp, STABLE(result), OBJECT_BODY(result));
                 VTABLE_set_attr_keyed(interp, result, EnumMap, Parrot_str_new_constant(interp, "$!storage"), to_map);

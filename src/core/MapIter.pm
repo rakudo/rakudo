@@ -8,7 +8,7 @@ my class MapIter is Iterator {
 
     method new($list, $block, Mu $flattens = Bool::True) { 
         my $new := nqp::create(self);
-        $new.BUILD(nqp::p6listiter(nqp::list(nqp::p6decont($list)), $new), 
+        $new.BUILD(nqp::p6listiter(nqp::qlist(nqp::p6decont($list)), $new), 
                    $block, $flattens, True);
         $new;
     }

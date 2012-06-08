@@ -121,8 +121,8 @@ my class Cool {
                 nqp::unbox_s($needle.Str),
                 nqp::unbox_i($pos.Int)
         ));
-        # TODO: fail() instead of returning Str
-        $result < 0 ?? Str !! $result;
+        # TODO: fail() instead of returning Int
+        $result < 0 ?? Int !! $result;
     }
 
     proto method rindex(|$) {*}

@@ -32,7 +32,7 @@ my class MapIter is Iterator {
             my Mu $rpa := nqp::list();
 
             if $!first {
-                $!items := nqp::list();
+                $!items := nqp::qlist();
                 pir::perl6_set_block_first_flag__vP($block)
                   if (nqp::can($block, 'phasers') && $block.phasers('FIRST'));
             }
@@ -60,7 +60,7 @@ my class MapIter is Iterator {
                 rpa      = find_lex '$rpa'
                 MapIter = find_lex 'MapIter'
                 items    = getattribute self, MapIter, '$!items'
-                args     = new 'ResizablePMCArray'
+                args     = new 'QRPA'
                 block    = find_lex '$block'
                 handler  = root_new ['parrot';'ExceptionHandler']
                 NEXT     = find_lex '$NEXT'

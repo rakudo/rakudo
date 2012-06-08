@@ -26,6 +26,13 @@ my class List does Positional {
                     !! nqp::p6list(nqp::list(self), List, Bool::True)
     }
     method list() { self }
+    method lol() {
+        self.gimme(0);
+        my Mu $rpa := nqp::clone($!items);
+        nqp::push($rpa, $!nextiter) if $!nextiter.defined;
+        nqp::p6list($rpa, LoL, Mu);
+    }
+
     method flattens() { $!flattens }
 
     my &itemify = { .elems == 1 ?? $_ !! [.list] };
@@ -316,9 +323,10 @@ my class List does Positional {
           ~ (nqp::iscont($self) ?? '.item' !! '')
     }
 
-    method REIFY(Parcel \$parcel) {
+    method REIFY(Parcel \$parcel, Mu \$nextiter) {
         nqp::splice($!items, nqp::getattr($parcel, Parcel, '$!storage'),
                     nqp::elems($!items), 0);
+        nqp::bindattr(self, List, '$!nextiter', $nextiter);
         $parcel
     }
 

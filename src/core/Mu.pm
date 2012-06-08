@@ -433,7 +433,9 @@ sub DUMP(|$) {
     my Mu $topic  := nqp::shift($args);
     if nqp::isnull($topic) { '(null)' }
     elsif nqp::islist($topic) {
-        my $s = 'RPA<' ~ nqp::p6box_s(nqp::where($topic)) ~ '>(';
+        my str $type = pir::typeof__SP($topic);
+        $type = 'RPA' if $type eq 'ResizablePMCArray';
+        my $s = $type ~ '<' ~ nqp::p6box_s(nqp::where($topic)) ~ '>(';
         my $t = '';
         $topic := nqp::clone($topic);
         while $topic {

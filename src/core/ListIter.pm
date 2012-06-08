@@ -7,10 +7,10 @@ my class ListIter {
     #   has Mu $!rest;         # RPA of elements remaining to be reified
     #   has $!list;            # List object associated with this iterator
     
-    method reify($n = 1, :$sink) {
+    method reify($n = 1) {
         unless nqp::isconcrete($!reified) {
             my $eager = nqp::p6bool(nqp::istype($n, Whatever));
-            my $flattens = nqp::isconcrete($!list) && $!list.flattens;
+            my $flattens = nqp::p6bool(nqp::isconcrete($!list)) && $!list.flattens;
             my int $count = $eager
                 ?? 100000
                 !! nqp::unbox_i(nqp::istype($n, Int) ?? $n !! $n.Int);
@@ -19,22 +19,21 @@ my class ListIter {
             my int $index;
             pir::perl6_shiftpush__0PPI($rpa, $!rest, nqp::elems($!rest))
                 if nqp::istype($!list, LoL);
-            while $!rest && nqp::islt_i(nqp::elems($rpa), $count) {
+            while $!rest && (nqp::elems($rpa) < $count) {
                 $index = pir::perl6_rpa_find_type__IPPii(
                                  $!rest, Iterable, 0, $count);
                 $index = pir::perl6_rpa_find_type__IPPii(
                                  $!rest, Parcel, 0, $index)
                     if $flattens;
                 pir::perl6_shiftpush__0PPi($rpa, $!rest, $index);
-                if $!rest && nqp::islt_i(nqp::elems($rpa), $count) {
+                if $!rest && (nqp::elems($rpa) < $count) {
                     $x := nqp::shift($!rest);
                     if nqp::isconcrete($x) {
                         (nqp::unshift($!rest, $x); last) if $eager && $x.infinite;
                         $x := $x.iterator.reify(
                                   $eager 
                                     ?? Whatever 
-                                    !! nqp::p6box_i(nqp::sub_i($count,
-                                                               nqp::elems($rpa))))
+                                    !! nqp::p6box_i($count - nqp::elems($rpa)))
                             if nqp::istype($x, Iterable);
                         nqp::splice($!rest, nqp::getattr($x, Parcel, '$!storage'), 0, 0);
                     
@@ -45,15 +44,12 @@ my class ListIter {
                 }
             }
             my $reified := nqp::p6parcel($rpa, Any);
-            $reified := $!list.REIFY($reified) if nqp::isconcrete($!list) && !$sink;
-            nqp::push(
-                    nqp::getattr($reified, Parcel, '$!storage'),
-                    nqp::bindattr(self, ListIter, '$!nextiter',
-                                  nqp::p6listiter($!rest, $!list)))
+            nqp::bindattr(self, ListIter, '$!nextiter', nqp::p6listiter($!rest, $!list))
+                if $!rest;
+            $reified := $!list.REIFY($reified, $!nextiter) if nqp::isconcrete($!list);
+            nqp::push( nqp::getattr($reified, Parcel, '$!storage'), $!nextiter)
                 if $!rest;
             nqp::bindattr(self, ListIter, '$!reified', $reified);
-            # update $!list's nextiter
-            nqp::bindattr($!list, List, '$!nextiter', $!nextiter) if nqp::isconcrete($!list);
             # free up $!list and $!rest
             nqp::bindattr(self, ListIter, '$!list', Mu);
             nqp::bindattr(self, ListIter, '$!rest', Mu);

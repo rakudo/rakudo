@@ -15,6 +15,13 @@ my class Block {
             nqp::push(nqp::atkey($!phasers, nqp::unbox_s($name)), &block);
         }
     }
+
+    method fire_phasers(str $name) {
+        if !nqp::isnull($!phasers) && nqp::existskey($!phasers, $name) {
+            my Mu $iter := nqp::iterator(nqp::atkey($!phasers, $name));
+            nqp::shift($iter).() while $iter;
+        }
+    }
     
     method phasers(Str $name) {
         unless nqp::isnull($!phasers) {

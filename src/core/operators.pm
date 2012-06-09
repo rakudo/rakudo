@@ -267,3 +267,21 @@ sub INDIRECT_NAME_LOOKUP($root, *@chunks) is rw {
     }
     $thing;
 }
+
+sub REQUIRE_IMPORT($package-name, *@syms) {
+    my @missing;
+    my $package := ::OUR{$package-name}.WHO;
+    my @missing;
+    for @syms {
+        if $package.exists($_) {
+            CALLER::{$_} := $package{$_};
+        }
+        else {
+            @missing.push: $_;
+        }
+    }
+    if @missing {
+        X::Import::MissingSymbols.new(:from($package-name), :@missing).throw;
+    }
+    ::OUR{$package-name};
+}

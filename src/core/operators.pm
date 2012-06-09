@@ -269,7 +269,6 @@ sub INDIRECT_NAME_LOOKUP($root, *@chunks) is rw {
 }
 
 sub REQUIRE_IMPORT($package-name, *@syms) {
-    my @missing;
     my $package := ::OUR{$package-name}.WHO;
     my @missing;
     for @syms {

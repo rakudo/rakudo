@@ -820,8 +820,16 @@ class Perl6::Actions is HLL::Actions {
 
     method statement_control:sym<require>($/) {
         if $<module_name> && $<EXPR> {
-            $*W.throw($/, ['X', 'Comp', 'NYI'],
-                feature => 'require with argument list');
+            my $arglist := $*W.compile_time_evaluate($/, $<EXPR>.ast);
+            $arglist := nqp::getattr($arglist.list.eager,
+                    $*W.find_symbol(['List']), '$!items');
+            my $lexpad := $*W.cur_lexpad();
+            for $arglist {
+                my $symbol := nqp::unbox_s($_.Str());
+                $*W.throw($/, ['X', 'Redeclaration'], :$symbol)
+                    if $lexpad.symbol($symbol);
+                # TODO: stub symbol
+            }
         }
         my $name_past := $<module_name>
                         ?? PAST::Val.new(:value($<module_name><longname><name>.Str))

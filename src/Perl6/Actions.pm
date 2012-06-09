@@ -819,26 +819,33 @@ class Perl6::Actions is HLL::Actions {
     }
 
     method statement_control:sym<require>($/) {
+        my $past := PAST::Stmts.new(:node($/));
         if $<module_name> && $<EXPR> {
             my $arglist := $*W.compile_time_evaluate($/, $<EXPR>[0].ast);
             $arglist := nqp::getattr($arglist.list.eager,
                     $*W.find_symbol(['List']), '$!items');
             my $lexpad := $*W.cur_lexpad();
+            my $*SCOPE := 'my';
             for $arglist {
                 my $symbol := nqp::unbox_s($_.Str());
                 $*W.throw($/, ['X', 'Redeclaration'], :$symbol)
                     if $lexpad.symbol($symbol);
-                # TODO: stub symbol
+                declare_variable($/, $past,
+                        nqp::substr($symbol, 0, 1), '', nqp::substr($symbol, 1),
+                        []);
+                # TODO: bind the variables on loading
             }
         }
         my $name_past := $<module_name>
                         ?? PAST::Val.new(:value($<module_name><longname><name>.Str))
                         !! $<EXPR>[0].ast;
-        make PAST::Op.new(
+
+        $past.unshift(PAST::Op.new(
             :pasttype('callmethod'), :name('load_module'),
             PAST::Var.new( :name('ModuleLoader'), :namespace([]), :scope('package') ),
             $name_past, $*W.symbol_lookup(['GLOBAL'], $/)
-        );
+        ));
+        make $past;
     }
 
     method statement_control:sym<given>($/) {

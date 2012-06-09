@@ -820,7 +820,7 @@ class Perl6::Actions is HLL::Actions {
 
     method statement_control:sym<require>($/) {
         if $<module_name> && $<EXPR> {
-            my $arglist := $*W.compile_time_evaluate($/, $<EXPR>.ast);
+            my $arglist := $*W.compile_time_evaluate($/, $<EXPR>[0].ast);
             $arglist := nqp::getattr($arglist.list.eager,
                     $*W.find_symbol(['List']), '$!items');
             my $lexpad := $*W.cur_lexpad();

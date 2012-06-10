@@ -862,7 +862,7 @@ my class X::Eval::NoSuchLang is Exception {
     }
 }
 
-my class X::Import::MissingSymbols {
+my class X::Import::MissingSymbols is Exception {
     has $.from;
     has @.missing;
     method message() {

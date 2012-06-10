@@ -12,6 +12,7 @@ my class Pair { ... }
 my class X::Inheritance::Unsupported { ... }
 my class X::Export::NameClash        { ... }
 my class X::Composition::NotComposable { ... }
+my class X::Import::MissingSymbols   { ... }
 
 proto trait_mod:<is>(|$) { * }
 multi trait_mod:<is>(Mu:U $child, Mu:U $parent) {

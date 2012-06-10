@@ -819,18 +819,37 @@ class Perl6::Actions is HLL::Actions {
     }
 
     method statement_control:sym<require>($/) {
-        if $<module_name> && $<EXPR> {
-            $*W.throw($/, ['X', 'Comp', 'NYI'],
-                feature => 'require with argument list');
-        }
+        my $past := PAST::Stmts.new(:node($/));
         my $name_past := $<module_name>
                         ?? PAST::Val.new(:value($<module_name><longname><name>.Str))
                         !! $<EXPR>[0].ast;
-        make PAST::Op.new(
+
+        $past.push(PAST::Op.new(
             :pasttype('callmethod'), :name('load_module'),
             PAST::Var.new( :name('ModuleLoader'), :namespace([]), :scope('package') ),
             $name_past, $*W.symbol_lookup(['GLOBAL'], $/)
-        );
+        ));
+
+         if $<module_name> && $<EXPR> {
+             my $p6_arglist  := $*W.compile_time_evaluate($/, $<EXPR>[0].ast).list.eager;
+             my $arglist     := nqp::getattr($p6_arglist, $*W.find_symbol(['List']), '$!items');
+             my $lexpad      := $*W.cur_lexpad();
+             my $*SCOPE      := 'my';
+             my $import_past := PAST::Op.new(:node($/), :pasttype<call>,
+                                :name<&REQUIRE_IMPORT>,
+                                $name_past);
+             for $arglist {
+                 my $symbol := nqp::unbox_s($_.Str());
+                 $*W.throw($/, ['X', 'Redeclaration'], :$symbol)
+                     if $lexpad.symbol($symbol);
+                 declare_variable($/, $past,
+                         nqp::substr($symbol, 0, 1), '', nqp::substr($symbol, 1),
+                         []);
+                 $import_past.push($*W.add_string_constant($symbol));
+             }
+             $past.push($import_past);
+         }
+        make $past;
     }
 
     method statement_control:sym<given>($/) {

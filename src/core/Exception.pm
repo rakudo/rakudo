@@ -862,6 +862,15 @@ my class X::Eval::NoSuchLang is Exception {
     }
 }
 
+my class X::Import::MissingSymbols is Exception {
+    has $.from;
+    has @.missing;
+    method message() {
+        "Trying to import from '$.from', but the following symbols are missing: "
+            ~ @.missing.join(', ');
+    }
+}
+
 {
     my %c_ex;
     %c_ex{'X::TypeCheck::Binding'} := sub ($got, $expected) is hidden_from_backtrace {

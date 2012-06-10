@@ -267,3 +267,24 @@ sub INDIRECT_NAME_LOOKUP($root, *@chunks) is rw {
     }
     $thing;
 }
+
+sub REQUIRE_IMPORT($package-name, *@syms) {
+    my $package := CALLER::OUR::{$package-name}.WHO;
+    unless $package.exists('EXPORT') {
+        die "Trying to import symbols @syms.join(', ') from '$package-name', but it does not export anything";
+    }
+    $package := $package<EXPORT>.WHO<ALL>.WHO;
+    say $package.keys;
+    my @missing;
+    for @syms {
+        unless $package.exists($_) {
+            @missing.push: $_;
+            next;
+        }
+        OUTER::CALLER::{$_} := $package{$_};
+    }
+    if @missing {
+        X::Import::MissingSymbols.new(:from($package-name), :@missing).throw;
+    }
+    CALLER::OUR::{$package-name};
+}

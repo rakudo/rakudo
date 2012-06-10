@@ -12,6 +12,7 @@ New in 2012.06
 + Rakudo's C code is now compiled with optimization switches turned on
 + basic module loading tracing with the RAKUDO_MODULE_DEBUG=1 env variable
 + longest token matching with alternations
++ require with argument list
 
 New in 2012.05
 + meta ops //=, ||= and &&= now short-circuit properly

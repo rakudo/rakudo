@@ -87,7 +87,7 @@ sub EXPORT_SYMBOL(\$exp_name, @tags, Mu \$sym) {
         for @tags -> $tag {
             my $install_in;
             if $p.WHO.exists($tag) {
-                $install_in := $*EXPORT.WHO.{$tag};
+                $install_in := $p.WHO.{$tag};
             }
             else {
                 $install_in := $*W.pkg_create_mo($/, (package { }).HOW, :name($tag));

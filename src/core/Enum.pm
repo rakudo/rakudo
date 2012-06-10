@@ -1,4 +1,4 @@
-my class Enum {
+my class Enum does Associative {
     has $.key;
     has $.value;
 

@@ -1,4 +1,4 @@
-my class Pair is Enum does Associative {
+my class Pair is Enum {
     method key() is rw { nqp::getattr(self, Enum, '$!key') }
     method value() is rw { nqp::getattr(self, Enum, '$!value') }
 
@@ -14,6 +14,6 @@ sub infix:«=>»($key, Mu $value) {
     Pair.new(:key($key), :value($value))
 }
 
-multi infix:<cmp>(Pair \$a, Pair \$b) {
+multi infix:<cmp>(Pair:D \$a, Pair:D \$b) {
     ($a.key cmp $b.key) || ($a.value cmp $b.value)
 }

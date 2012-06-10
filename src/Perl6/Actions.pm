@@ -836,7 +836,8 @@ class Perl6::Actions is HLL::Actions {
              my $lexpad      := $*W.cur_lexpad();
              my $*SCOPE      := 'my';
              my $import_past := PAST::Op.new(:node($/), :pasttype<call>,
-                                :name<&REQUIRE_IMPORT>);
+                                :name<&REQUIRE_IMPORT>,
+                                $name_past);
              for $arglist {
                  my $symbol := nqp::unbox_s($_.Str());
                  $*W.throw($/, ['X', 'Redeclaration'], :$symbol)

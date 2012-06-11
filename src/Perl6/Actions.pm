@@ -3140,7 +3140,7 @@ class Perl6::Actions is HLL::Actions {
     method term:sym<dotty>($/) {
         my $past := $<dotty>.ast;
         $past.unshift(PAST::Var.new( :name('$_'), :scope('lexical_6model') ) );
-        make $past;
+        make PAST::Op.new( :pirop('perl6ize_type PP'), $past);
     }
 
     method term:sym<identifier>($/) {

@@ -155,6 +155,7 @@ class Perl6::ModuleLoader {
             nqp::pop(@*MODULES);
             pir::set_hll_global__vsP('GLOBAL', $preserve_global);
             CATCH {
+                pir::set_hll_global__vsP('GLOBAL', $preserve_global);
                 nqp::pop(@*MODULES);
                 nqp::rethrow($_);
             }

@@ -118,8 +118,13 @@ class Perl6::ModuleLoader {
             $module_ctx := %modules_loaded{%chosen<key>};
         }
         else {
+            my %trace := nqp::hash();
+            %trace<module>   := $module_name;
+            %trace<filename> := %chosen<pm>;
             my $preserve_global := pir::get_hll_global__Ps('GLOBAL');
+            nqp::push(@*MODULES, %trace);
             if %chosen<load> {
+                %trace<precompiled> := %chosen<load>;
                 DEBUG("loading ", %chosen<load>) if $DEBUG;
                 my %*COMPILING := {};
                 my $*CTXSAVE := self;
@@ -147,7 +152,12 @@ class Perl6::ModuleLoader {
                 DEBUG("done loading ", %chosen<pm>) if $DEBUG;
 
             }
+            nqp::pop(@*MODULES);
             pir::set_hll_global__vsP('GLOBAL', $preserve_global);
+            CATCH {
+                nqp::pop(@*MODULES);
+                nqp::rethrow($_);
+            }
         }
 
         # Provided we have a mainline and need to do global merging...

@@ -118,6 +118,15 @@ class Perl6::ModuleLoader {
             $module_ctx := %modules_loaded{%chosen<key>};
         }
         else {
+            if @*MODULES {
+                @*MODULES[-1]<line> := $line;
+            }
+            else {
+                my %prev        := nqp::hash();
+                %prev<line>     := $line;
+                %prev<filename> := pir::find_caller_lex__ps('$?FILES');
+                @*MODULES[0]    := %prev;
+            }
             my %trace := nqp::hash();
             %trace<module>   := $module_name;
             %trace<filename> := %chosen<pm>;

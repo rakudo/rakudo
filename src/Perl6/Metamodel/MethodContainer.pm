@@ -12,7 +12,7 @@ role Perl6::Metamodel::MethodContainer {
     # Add a method.
     method add_method($obj, $name, $code_obj) {
         # Ensure we haven't already got it.
-        if %!methods{$name} || %!submethods{$name} {
+        if nqp::existskey(%!methods, $name) || nqp::existskey(%!submethods, $name) {
             nqp::die("Package '" ~ self.name($obj) ~ "' already has a method '" ~
                 $name ~ "' (did you mean to declare a multi-method?)");
         }

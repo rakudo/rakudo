@@ -1899,7 +1899,12 @@ class Perl6::World is HLL::World {
         };
 
         if $type_found {
-             %opts<line>     := HLL::Compiler.lineof($/.orig, $/.from);
+            %opts<line>     := HLL::Compiler.lineof($/.orig, $/.from);
+            my @modules     := [];
+            for @*MODULES {
+                nqp::push(@modules, pir::perl6ize_type__PP($_<module>));
+            }
+            %opts<modules> := @modules;
             for %opts -> $p {
                 if pir::does($p.value, 'array') {
                     my @a := [];

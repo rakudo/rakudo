@@ -28,6 +28,24 @@ my $SIG_ELEM_NATIVE_INT_VALUE    := 2097152;
 my $SIG_ELEM_NATIVE_NUM_VALUE    := 4194304;
 my $SIG_ELEM_NATIVE_STR_VALUE    := 8388608;
 
+sub p6ize_recursive($x) {
+    if nqp::islist($x) {
+        my @copy := [];
+        for $x {
+            nqp::push(@copy, p6ize_recursive($_));
+        }
+        return pir::perl6ize_type__PP(@copy);
+    }
+    elsif pir::isa($x, 'Hash') {
+        my %copy := nqp::hash();
+        for $x {
+            %copy{$_.key} := p6ize_recursive($_.value);
+        }
+        return pir::perl6ize_type__PP(%copy);
+    }
+    pir::perl6ize_type__PP($x);
+}
+
 # This builds upon the SerializationContextBuilder to add the specifics
 # needed by Rakudo Perl 6.
 class Perl6::World is HLL::World {
@@ -1900,12 +1918,8 @@ class Perl6::World is HLL::World {
         };
 
         if $type_found {
-            %opts<line>     := HLL::Compiler.lineof($/.orig, $/.from);
-            my @modules     := [];
-            for @*MODULES {
-                nqp::push(@modules, pir::perl6ize_type__PP($_<module>));
-            }
-            %opts<modules> := @modules;
+            %opts<line>    := HLL::Compiler.lineof($/.orig, $/.from);
+            %opts<modules> := p6ize_recursive(@*MODULES);
             for %opts -> $p {
                 if pir::does($p.value, 'array') {
                     my @a := [];

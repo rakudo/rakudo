@@ -174,7 +174,8 @@ class Perl6::World is HLL::World {
     # during the deserialization.
     method load_module($/, $module_name, $cur_GLOBALish) {
         # Immediate loading.
-        my $module := Perl6::ModuleLoader.load_module($module_name, $cur_GLOBALish);
+        my $line := HLL::Compiler.lineof($/.orig, $/.from);
+        my $module := Perl6::ModuleLoader.load_module($module_name, $cur_GLOBALish, :$line);
         
         # During deserialization, ensure that we get this module loaded.
         if self.is_precompilation_mode() {
@@ -183,7 +184,7 @@ class Perl6::World is HLL::World {
                 PAST::Op.new(
                    :pasttype('callmethod'), :name('load_module'),
                    PAST::Var.new( :name('ModuleLoader'), :namespace([]), :scope('package') ),
-                   $module_name
+                   $module_name, PAST::Val.new(:value($line), :named('line'))
                 ))));
         }
 

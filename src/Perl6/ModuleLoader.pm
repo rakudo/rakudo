@@ -99,7 +99,7 @@ class Perl6::ModuleLoader {
         @candidates
     }
     
-    method load_module($module_name, *@GLOBALish) {
+    method load_module($module_name, *@GLOBALish, :$line) {
         # Locate all the things that we potentially could load. Choose
         # the first one for now (XXX need to filter by version and auth).
         my @prefixes   := self.search_path();

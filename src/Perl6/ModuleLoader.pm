@@ -126,6 +126,7 @@ class Perl6::ModuleLoader {
                 my $*MAIN_CTX;
                 pir::load_bytecode(%chosen<load>);
                 %modules_loaded{%chosen<key>} := $module_ctx := $*MAIN_CTX;
+                DEBUG("done loading ", %chosen<load>) if $DEBUG;
             }
             else {
                 # Read source file.
@@ -143,6 +144,8 @@ class Perl6::ModuleLoader {
                 my $*MAIN_CTX;
                 $eval();
                 %modules_loaded{%chosen<key>} := $module_ctx := $*MAIN_CTX;
+                DEBUG("done loading ", %chosen<pm>) if $DEBUG;
+
             }
             pir::set_hll_global__vsP('GLOBAL', $preserve_global);
         }

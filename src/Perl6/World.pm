@@ -41,7 +41,7 @@ sub p6ize_recursive($x) {
         for $x {
             %copy{$_.key} := p6ize_recursive($_.value);
         }
-        return pir::perl6ize_type__PP(%copy);
+        return pir::perl6ize_type__PP(%copy).item;
     }
     pir::perl6ize_type__PP($x);
 }

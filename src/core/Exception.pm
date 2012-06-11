@@ -282,7 +282,6 @@ my role X::Comp is Exception {
     has $.column;
     has @.modules;
     multi method gist(::?CLASS:D:) {
-        say @.modules.perl;
         my $r = "===SORRY!===\n$.message\nat $.filename():$.line";
         for @.modules.reverse[1..*] {
             $r ~= $_<module>.defined

@@ -285,7 +285,7 @@ my role X::Comp is Exception {
         my $r = "===SORRY!===\n$.message\nat $.filename():$.line";
         for @.modules.reverse[1..*] {
             $r ~= $_<module>.defined
-                    ?? "\n  from module $_<module> file $_<filename>:$_<line>"
+                    ?? "\n  from module $_<module> ($_<filename>:$_<line>)"
                     !! "\n  from $_<filename>:$_<line>";
         }
         $r;

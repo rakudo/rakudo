@@ -13,6 +13,7 @@ New in 2012.06
 + basic module loading tracing with the RAKUDO_MODULE_DEBUG=1 env variable
 + longest token matching with alternations
 + require with argument list
++ compile time errors in loaded modules now show a module loading backtrace
 
 New in 2012.05
 + meta ops //=, ||= and &&= now short-circuit properly

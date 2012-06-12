@@ -28,6 +28,24 @@ my $SIG_ELEM_NATIVE_INT_VALUE    := 2097152;
 my $SIG_ELEM_NATIVE_NUM_VALUE    := 4194304;
 my $SIG_ELEM_NATIVE_STR_VALUE    := 8388608;
 
+sub p6ize_recursive($x) {
+    if nqp::islist($x) {
+        my @copy := [];
+        for $x {
+            nqp::push(@copy, p6ize_recursive($_));
+        }
+        return pir::perl6ize_type__PP(@copy);
+    }
+    elsif pir::isa($x, 'Hash') {
+        my %copy := nqp::hash();
+        for $x {
+            %copy{$_.key} := p6ize_recursive($_.value);
+        }
+        return pir::perl6ize_type__PP(%copy).item;
+    }
+    pir::perl6ize_type__PP($x);
+}
+
 # This builds upon the SerializationContextBuilder to add the specifics
 # needed by Rakudo Perl 6.
 class Perl6::World is HLL::World {
@@ -174,7 +192,8 @@ class Perl6::World is HLL::World {
     # during the deserialization.
     method load_module($/, $module_name, $cur_GLOBALish) {
         # Immediate loading.
-        my $module := Perl6::ModuleLoader.load_module($module_name, $cur_GLOBALish);
+        my $line := HLL::Compiler.lineof($/.orig, $/.from);
+        my $module := Perl6::ModuleLoader.load_module($module_name, $cur_GLOBALish, :$line);
         
         # During deserialization, ensure that we get this module loaded.
         if self.is_precompilation_mode() {
@@ -183,7 +202,7 @@ class Perl6::World is HLL::World {
                 PAST::Op.new(
                    :pasttype('callmethod'), :name('load_module'),
                    PAST::Var.new( :name('ModuleLoader'), :namespace([]), :scope('package') ),
-                   $module_name
+                   $module_name, PAST::Val.new(:value($line), :named('line'))
                 ))));
         }
 
@@ -1899,7 +1918,8 @@ class Perl6::World is HLL::World {
         };
 
         if $type_found {
-             %opts<line>     := HLL::Compiler.lineof($/.orig, $/.from);
+            %opts<line>    := HLL::Compiler.lineof($/.orig, $/.from);
+            %opts<modules> := p6ize_recursive(@*MODULES);
             for %opts -> $p {
                 if pir::does($p.value, 'array') {
                     my @a := [];

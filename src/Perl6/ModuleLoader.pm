@@ -99,7 +99,7 @@ class Perl6::ModuleLoader {
         @candidates
     }
     
-    method load_module($module_name, *@GLOBALish) {
+    method load_module($module_name, *@GLOBALish, :$line) {
         # Locate all the things that we potentially could load. Choose
         # the first one for now (XXX need to filter by version and auth).
         my @prefixes   := self.search_path();
@@ -118,14 +118,29 @@ class Perl6::ModuleLoader {
             $module_ctx := %modules_loaded{%chosen<key>};
         }
         else {
+            if +@*MODULES  == 0 {
+                my %prev        := nqp::hash();
+                %prev<line>     := $line;
+                %prev<filename> := pir::find_caller_lex__ps('$?FILES');
+                @*MODULES[0]    := %prev;
+            }
+            else {
+                @*MODULES[-1]<line> := $line;
+            }
+            my %trace := nqp::hash();
+            %trace<module>   := $module_name;
+            %trace<filename> := %chosen<pm>;
             my $preserve_global := pir::get_hll_global__Ps('GLOBAL');
+            nqp::push(@*MODULES, %trace);
             if %chosen<load> {
+                %trace<precompiled> := %chosen<load>;
                 DEBUG("loading ", %chosen<load>) if $DEBUG;
                 my %*COMPILING := {};
                 my $*CTXSAVE := self;
                 my $*MAIN_CTX;
                 pir::load_bytecode(%chosen<load>);
                 %modules_loaded{%chosen<key>} := $module_ctx := $*MAIN_CTX;
+                DEBUG("done loading ", %chosen<load>) if $DEBUG;
             }
             else {
                 # Read source file.
@@ -143,8 +158,16 @@ class Perl6::ModuleLoader {
                 my $*MAIN_CTX;
                 $eval();
                 %modules_loaded{%chosen<key>} := $module_ctx := $*MAIN_CTX;
+                DEBUG("done loading ", %chosen<pm>) if $DEBUG;
+
             }
+            nqp::pop(@*MODULES);
             pir::set_hll_global__vsP('GLOBAL', $preserve_global);
+            CATCH {
+                pir::set_hll_global__vsP('GLOBAL', $preserve_global);
+                nqp::pop(@*MODULES);
+                nqp::rethrow($_);
+            }
         }
 
         # Provided we have a mainline and need to do global merging...

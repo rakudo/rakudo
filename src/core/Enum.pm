@@ -15,7 +15,7 @@ my class Enum does Associative {
     }
     
     method invert() {
-        $.value => $.key;
+        Enum.new(key => $.value, value => $.key);
     }
 
     method key(Enum:D:)   { $!key }

@@ -18,7 +18,10 @@ Workshop 2012.
 
 This release includes a whole lot of changes since the last one, including:
 
-TODO: list of changes here
+* Longest-Token Matching for | alternations in regexes
+* Stricter numification of strings (fails if the string does not
+  represent a number)
+* 'require' now allows argument lists
 
 This is only a small peek at the changes in this release. For a more
 detailed list, see "docs/ChangeLog".

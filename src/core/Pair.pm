@@ -13,7 +13,3 @@ my class Pair is Enum {
 sub infix:«=>»($key, Mu $value) { 
     Pair.new(:key($key), :value($value))
 }
-
-multi infix:<cmp>(Pair:D \$a, Pair:D \$b) {
-    ($a.key cmp $b.key) || ($a.value cmp $b.value)
-}

@@ -1,7 +1,7 @@
-    Announce: Rakudo Perl 6 compiler development release #53 ("Frankfurt")
+    Announce: Rakudo Perl 6 compiler development release #53 ("Strasbourg")
 
 On behalf of the Rakudo development team, I'm glad to announce the
-June 2012 release of Rakudo Perl #53 "Frankfurt". Rakudo is an
+June 2012 release of Rakudo Perl #53 "Strasbourg". Rakudo is an
 implementation of Perl 6 on the Parrot Virtual Machine (see 
 <http://www.parrot.org>). The tarball for this release
 is available from <http://github.com/rakudo/rakudo/downloads>.
@@ -13,7 +13,8 @@ For the latest Rakudo Star release, see
 
 The Rakudo Perl compiler follows a monthly release cycle, with each
 release named after a Perl Mongers group. The June 2012 release is
-code named after Frankfurt.
+code named after Strasbourg, after the location of the French Perl
+Workshop 2012.
 
 This release includes a whole lot of changes since the last one, including:
 

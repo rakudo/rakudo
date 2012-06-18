@@ -57,7 +57,7 @@ my class X::Method::InvalidQualifier is Exception {
     has $.qualifier-type;
     method message() {
           "Cannot dispatch to method $.method on {$.qualifier-type.^name} "
-        ~ "because it is no inhertied or done by {$.invocant.^name}";
+        ~ "because it is not inherited or done by {$.invocant.^name}";
     }
 }
 
@@ -645,7 +645,7 @@ my class X::Anon::Augment does X::Comp {
 my class X::Augment::NoSuchType does X::Comp {
     has $.package-type;
     has $.package;
-    method message() { "You tried to agument $.package-type $.package, but it does not exist" }
+    method message() { "You tried to augment $.package-type $.package, but it does not exist" }
 }
 
 my class X::Routine::Unwrap is Exception {
@@ -662,7 +662,7 @@ my class X::Hash::Store::OddNumber is Exception {
 
 my class X::Package::Stubbed does X::Comp {
     has @.packages;
-    # TODO: supress display of line number
+    # TODO: suppress display of line number
     method message() {
         "The following packages were stubbed but not defined:\n    "
         ~ @.packages.join("\n    ");
@@ -716,7 +716,7 @@ my class X::Str::Trans::IllegalKey is Exception {
 my class X::Str::Trans::InvalidArg is Exception {
     has $.got;
     method message() {
-        "Only Pair objects are allowed as arguemnts to Str.trans, got {$.got.^name}";
+        "Only Pair objects are allowed as arguments to Str.trans, got {$.got.^name}";
     }
 }
 
@@ -846,7 +846,7 @@ my class X::Temporal::InvalidFormat is X::Temporal {
     has $.target = 'Date';
     has $.format;
     method message() {
-        "Ivalid $.target string '$.invalid-str'; use $.format instead";
+        "Invalid $.target string '$.invalid-str'; use $.format instead";
     }
 }
 my class X::Temporal::Truncation is X::Temporal {

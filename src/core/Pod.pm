@@ -22,7 +22,7 @@ my package Pod {
         method set_docee($d) {
             $!WHEREFORE = $d
         }
-        method Stringy {
+        method gist {
             ~@.content
         }
     }

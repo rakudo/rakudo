@@ -426,6 +426,7 @@ grammar Perl6::Grammar is HLL::Grammar {
         :my $*ALLOW_CODE := 0;                     # pod stuff
         :my $*POD_IN_FORMATTINGCODE := 0;          # pod stuff
         :my $*IN_REGEX_ASSERTION := 0;
+        :my $*STRICT := 1;
         
         # Various interesting scopes we'd like to keep to hand.
         :my $*GLOBALish;

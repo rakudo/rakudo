@@ -1209,7 +1209,16 @@ class Perl6::Actions is HLL::Actions {
             # inside double quotes fixes the most common case, but fails to
             # catch undeclared variables in double-quoted strings.
             if $sigil ne '&' && !$*IN_DECL && ($*QSIGIL eq '' || $*QSIGIL eq '$') && !$*W.is_lexical($past.name) {
-                $*W.throw($/, ['X', 'Undeclared'], symbol => $past.name());
+                if $*STRICT {
+                    $*W.throw($/, ['X', 'Undeclared'], symbol => $past.name());
+                }
+                else {
+                    $*UNIT_OUTER[0].push(PAST::Var.new(
+                        :name($past.name), :scope('lexical'), :isdecl(1),
+                        :viviself($*W.symbol_lookup([$past.name], $/, :package_only(1), :lvalue(1)))));
+                    $*UNIT_OUTER.symbol($past.name, :scope('lexical'));
+
+                }
             }
             elsif $sigil eq '&' {
                 $past.viviself(PAST::Var.new(:name('Nil'), :scope('lexical_6model')));

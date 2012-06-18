@@ -6,6 +6,9 @@ sub MAIN(@ARGS) {
     # Initialize dynops.
     pir::rakudo_dynop_setup__v();
 
+    # Bump up Parrot's recursion limit
+    pir::getinterp__P().recursion_limit(100000);
+
     # Create and configure compiler object.
     my $comp := Perl6::Compiler.new();
     $comp.language('perl6');

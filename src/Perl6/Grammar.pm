@@ -807,7 +807,6 @@ grammar Perl6::Grammar is HLL::Grammar {
             }
         }
         <.ws>
-        [ <arglist> <.NYI('"no" with argument lists')> ]
     }
 
     

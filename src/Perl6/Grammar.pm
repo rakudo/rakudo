@@ -793,6 +793,23 @@ grammar Perl6::Grammar is HLL::Grammar {
         ]
         <.ws>
     }
+
+    token statement_control:sym<no> {
+        <sym> <.ws>
+        <module_name>
+        {
+            if ~$/<module_name> eq 'strict' {
+                # TODO: do something that respects lexical scoping
+                $*STRICT := 0;
+            }
+            else {
+                $/.CURSOR.panic('"no" is not yet implemented, with the exception of "no strict";')
+            }
+        }
+        <.ws>
+        [ <arglist> <.NYI('"no" with argument lists')> ]
+    }
+
     
     sub do_import($module, $package_source_name, $arglist?) {
         if nqp::existskey($module, 'EXPORT') {

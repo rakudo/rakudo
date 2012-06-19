@@ -343,7 +343,7 @@ my class DateTime does Dateish {
         my $unit = %args.keys[0];
         $unit eq any(<second minute hour day week month year>)
             or X::Temporal::Truncation.new(
-                    error => "Unknwon truncation unit '$unit'",
+                    error => "Unknown truncation unit '$unit'",
                 ).throw;
         my %parts;
         given $unit {

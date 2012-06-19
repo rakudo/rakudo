@@ -484,7 +484,7 @@ my class X::Value::Dynamic does X::Comp {
 }
 
 my class X::Syntax::Name::Null does X::Syntax {
-    method message() { 'Name component my not be null'; }
+    method message() { 'Name component may not be null'; }
 }
 
 my class X::Syntax::UnlessElse does X::Syntax {

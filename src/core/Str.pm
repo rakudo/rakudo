@@ -479,10 +479,7 @@ my class Str does Stringy {
     # TODO: should be private
     proto method ll-match(Str:D: $, *%) {*}
     multi method ll-match(Str:D: Regex:D $pat, *%opts) {
-        my $match := $pat(Cursor.'!cursor_init'(self, |%opts)).MATCH;
-        # next line written this way for reasons of circularity sawing
-        Cursor.HOW.find_private_method(Cursor, 'set_last_match')(Cursor, $match) if $match;
-        $match
+        $pat(Cursor.'!cursor_init'(self, |%opts)).MATCH_SAVE;
     }
     multi method ll-match(Str:D: Cool:D $pat, *%opts) {
         my Int $from = %opts<p> // %opts<c> // 0;
@@ -497,9 +494,7 @@ my class Str does Stringy {
                 my $m := self.ll-match($pat, |%opts);
                 if $m {
                     take $m;
-                    while $m := $m.CURSOR.'!cursor_next'().MATCH {
-                        # next line written this way for reasons of circularity sawing
-                        Cursor.HOW.find_private_method(Cursor, 'set_last_match')(Cursor, $m);
+                    while $m := $m.CURSOR.'!cursor_next'().MATCH_SAVE {
                         take $m;
                     }
                 }

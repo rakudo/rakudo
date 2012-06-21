@@ -2,9 +2,7 @@ my class Cursor does NQPCursorRole {
     has $!ast; # Need it to survive re-creations of the match object.
     
     # Some bits to support <prior>
-    trusts Regex;
     my $last_match;
-    method !set_last_match($m) { $last_match = $m }
     
     # For <( and )>
     has $!explicit_from;
@@ -58,6 +56,12 @@ my class Cursor does NQPCursorRole {
         nqp::bindattr($match, Capture, '$!list', $list);
         nqp::bindattr($match, Capture, '$!hash', $hash);
         nqp::bindattr(self, Cursor, '$!match', $match);
+        $match;
+    }
+
+    method MATCH_SAVE() {
+        my $match := self.MATCH();
+        $last_match := $match if $match;
         $match;
     }
 

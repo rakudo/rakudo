@@ -764,7 +764,7 @@ grammar Perl6::Grammar is HLL::Grammar {
                 }
             }
             [
-            || <.spacey> <arglist>
+            || <.spacey> <arglist> <?{ $<arglist><EXPR> }>
                 {
                     my $arglist := $*W.compile_time_evaluate($/,
                             $<arglist><EXPR>.ast);
@@ -775,7 +775,6 @@ grammar Perl6::Grammar is HLL::Grammar {
                                                     $*GLOBALish);
                     do_import($module, ~$longname, $arglist);
                     $/.CURSOR.import_EXPORTHOW($module);
-
                 }
             || { 
                     unless ~$<doc> && !%*COMPILING<%?OPTIONS><doc> {

@@ -1,6 +1,6 @@
 New in 2012.06
 + Rakudo is now compiled with the same regex engine as user-space regexes use
-+ transitive longest-token matching in proto regexes
++ transitive longest-token matching in protoregexes
 + changed the output of Match.gist
 + string to number conversion now fails for non-numbers
 + string to number conversion now recognizes radix notation
@@ -14,6 +14,7 @@ New in 2012.06
 + longest token matching with alternations
 + require with argument list
 + compile time errors in loaded modules now show a module loading backtrace
++ improved list and .map handling
 
 New in 2012.05
 + meta ops //=, ||= and &&= now short-circuit properly

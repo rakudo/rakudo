@@ -173,9 +173,22 @@ class Perl6::Actions is HLL::Actions {
     }
 
     method deflongname($/) {
-        make $<colonpair>
-             ?? ~$<name> ~ ':<' ~ ~$<colonpair>[0]<circumfix><quote_EXPR><quote_delimited><quote_atom>[0] ~ '>'
-             !! ~$<name>;
+        if $<colonpair> {
+            my $name := ~$<name>;
+            if $<colonpair>[0] {
+                $name := $name ~ ':';
+            }
+            if $<colonpair>[0]<identifier> {
+                $name := $name ~ ~$<colonpair>[0]<identifier>;
+            }
+            if $<colonpair>[0]<circumfix> {
+                $name := $name ~ '<' ~ ~$<colonpair>[0]<circumfix><quote_EXPR><quote_delimited><quote_atom>[0] ~ '>';
+            }
+            make $name;
+        }
+        else {
+            make ~$<name>;
+        }
     }
 
     # Turn $code into "for lines() { $code }"
@@ -2194,8 +2207,7 @@ class Perl6::Actions is HLL::Actions {
 
     method regex_def($/) {
         my $coderef;
-        my $name := ~$<deflongname>[0];
-        %*RX<name> := $name;
+        my $name := ~%*RX<name>;
 
         my @params := $<signature> ?? $<signature>[0].ast !! [];
         if $*MULTINESS eq 'proto' {

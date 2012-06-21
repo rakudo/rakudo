@@ -1857,7 +1857,7 @@ grammar Perl6::Grammar is HLL::Grammar {
         [
           { $*IN_DECL := '' }
           <deflongname>?
-          { if $<deflongname> { %*RX<name> := $<deflongname>[0].Str } }
+          { if $<deflongname> { %*RX<name> := ~$<deflongname>[0].ast } }
           <.newpad>
           [ [ ':'?'(' <signature> ')'] | <trait> ]*
           '{'[

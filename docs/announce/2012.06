@@ -13,15 +13,15 @@ For the latest Rakudo Star release, see
 
 The Rakudo Perl compiler follows a monthly release cycle, with each
 release named after a Perl Mongers group. The June 2012 release is
-code named after Strasbourg, after the location of the French Perl
-Workshop 2012.
+code named after Strasbourg, the location of the French Perl Workshop 2012.
 
-This release includes a whole lot of changes since the last one, including:
+This release includes a lot of changes since the last one, including:
 
 * Longest-Token Matching for | alternations in regexes
 * Stricter numification of strings (fails if the string does not
   represent a number)
 * 'require' now allows argument lists
+* Faster .map / list handling
 
 This is only a small peek at the changes in this release. For a more
 detailed list, see "docs/ChangeLog".

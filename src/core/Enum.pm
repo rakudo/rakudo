@@ -36,6 +36,9 @@ my class Enum does Associative {
     method at_key($key) {
         $key eq $!key ?? $!value !! Mu
     }
+    
+    method FLATTENABLE_LIST() { nqp::list() }
+    method FLATTENABLE_HASH() { nqp::hash($!key, $!value) }
 }
 
 multi sub infix:<eqv>(Enum:D $a, Enum:D $b) {

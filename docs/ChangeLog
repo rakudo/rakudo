@@ -15,6 +15,7 @@ New in 2012.06
 + require with argument list
 + compile time errors in loaded modules now show a module loading backtrace
 + improved list and .map handling
++ can now use | to flatten a pair into an argument list as a named argument
 
 New in 2012.05
 + meta ops //=, ||= and &&= now short-circuit properly

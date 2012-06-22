@@ -8,6 +8,7 @@ sub shell(|$)  { restricted('shell') }
 sub run(|$)    { restricted('run') }
 sub QX(|$)     { restricted('qx, qqx') }
 sub mkdir(|$)  { restricted('mkdir')   }
+sub rmdir(|$)  { restricted('rmdir') }
 sub rename(|$) { restricted('rename')  }
 sub copy(|$)   { restricted('copy')    }
 

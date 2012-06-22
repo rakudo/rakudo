@@ -225,6 +225,10 @@ class IO {
             }
         }
     }
+
+    method Str {
+        $.path
+    }
 }
 
 my class X::IO::Unlink { ... }
@@ -311,8 +315,8 @@ sub dir($path = '.', Mu :$test = none('.', '..')) {
     my int $elems = pir::set__IP($RSA);
     my @res;
     loop (my int $i = 0; $i < $elems; $i = $i + 1) {
-        my Str $item := nqp::p6box_s(nqp::atpos($RSA, $i));
-        @res.push: $item if $test.ACCEPTS($item);
+        my Str $file := nqp::p6box_s(nqp::atpos($RSA, $i));
+        @res.push: "$path/$file".IO if $test.ACCEPTS($file);
     }
     return @res;
 

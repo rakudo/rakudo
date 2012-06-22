@@ -53,7 +53,7 @@ part of monthly Parrot releases.
   2012-04-19   Rakudo #51 "Brazos Valley"      (Coke)
   2012-04-25   2012.04.1                       (moritz)
   2012-05-17   Rakudo #52 "MadMongers"         (tadzik)
-  2012-06-21   Rakudo #53 "Frankfurt"          (duff)
+  2012-06-21   Rakudo #53 "Strasbourg"         (duff)
 
 =head2 Planned 2012 releases
 

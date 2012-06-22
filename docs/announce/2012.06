@@ -22,6 +22,7 @@ This release includes a lot of changes since the last one, including:
   represent a number)
 * 'require' now allows argument lists
 * Faster .map / list handling
+* Improvements to typed exceptions
 
 This is only a small peek at the changes in this release. For a more
 detailed list, see "docs/ChangeLog".
@@ -32,7 +33,10 @@ Parrot, the Perl 6 test suite and the specification.
 
 The following people contributed to this release:
 
-TODO: add people here
+Contributors to Rakudo since the release on 2012-05-17:
+Moritz Lenz, Jonathan Worthington, Patrick R. Michaud, kboga, 
+Jonathan Scott Duff, Tadeusz Sośnierz, Carl Masak, Geoffrey Broadwell, 
+diakopter, Solomon Foster, JimmyZ, TimToady
 
 If you would like to contribute, see <http://rakudo.org/how-to-help>,
 ask on the perl6-compiler@perl.org mailing list, or ask on IRC #perl6

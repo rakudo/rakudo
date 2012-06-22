@@ -116,6 +116,10 @@ my class Cool {
 
     proto method index(|$) {*}
     multi method index(Cool $needle, Cool $pos = 0) {
+        if $needle eq '' {
+            my $chars = self.chars;
+            return $pos < $chars ?? $pos !! $chars;
+        }
         my $result := nqp::p6box_i(nqp::index(
                 nqp::unbox_s(self.Str),
                 nqp::unbox_s($needle.Str),

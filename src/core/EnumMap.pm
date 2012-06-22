@@ -20,6 +20,10 @@ my class EnumMap does Associative {
     multi method ACCEPTS(EnumMap:D: Positional $topic) {
         so self.exists($topic.any);
     }
+
+    multi method ACCEPTS(EnumMap:D: Regex $topic) {
+        so self.keys.any.match($topic);
+    }
     
     proto method exists(|$) {*}
     multi method exists(EnumMap:D: Str:D \$key) {

@@ -1,0 +1,18 @@
+sub restricted($what) {
+    die "$what is disallowed in restricted setting"
+}
+
+sub open(|$)   { restricted('open') }
+sub unlink(|$) { restricted('unlink') }
+sub shell(|$)  { restricted('shell') }
+sub run(|$)    { restricted('run') }
+sub QX(|$)     { restricted('qx, qqx') }
+sub mkdir(|$)  { restricted('mkdir')   }
+sub rmdir(|$)  { restricted('rmdir') }
+sub rename(|$) { restricted('rename')  }
+sub copy(|$)   { restricted('copy')    }
+
+my class IO { }
+IO.^add_fallback(
+    -> $, $ { True },
+    -> $, $ { restricted('IO') });

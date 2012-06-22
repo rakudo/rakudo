@@ -8,7 +8,7 @@ my class Backtrace is List {
         has Mu  $.code;
         has Str $.subname;
 
-        method subtype {
+        method subtype(Frame:D:) {
             my $s = $!code.^name.lc.split('+', 2)[0];
             $s eq 'mu' ?? '' !! $s;
         }
@@ -19,9 +19,9 @@ my class Backtrace is List {
             "  in {$s}$.subname at {$.file}:$.line\n"
         }
 
-        method is-hidden  { $!code.?is_hidden_from_backtrace }
-        method is-routine { $!code ~~ Routine }
-        method is-setting { $!file eq 'src/gen/CORE.setting' }
+        method is-hidden(Frame:D)  { $!code.?is_hidden_from_backtrace }
+        method is-routine(Frame:D) { $!code ~~ Routine }
+        method is-setting(Frame:D) { $!file eq 'src/gen/CORE.setting' }
     }
     proto method new(|$) {*}
 
@@ -61,7 +61,7 @@ my class Backtrace is List {
         $new;
     }
 
-    method next-interesting-index(Int $idx is copy = 0) {
+    method next-interesting-index(Backtrace:D: Int $idx is copy = 0) {
         ++$idx;
         # NOTE: the < $.end looks like an off-by-one error
         # but it turns out that a simple   perl6 -e 'die "foo"'
@@ -74,7 +74,7 @@ my class Backtrace is List {
         Int;
     }
 
-    method outer-caller-idx(Int $startidx is copy) {
+    method outer-caller-idx(Backtrace:D: Int $startidx is copy) {
         my %print;
         my $start   = self.at_pos($startidx).code;
         return $startidx.list unless $start;
@@ -95,7 +95,7 @@ my class Backtrace is List {
         return @outers;
     }
 
-    method nice(:$oneline) {
+    method nice(Backtrace:D: :$oneline) {
         try {
             my @frames;
             my Int $i = self.next-interesting-index(-1);

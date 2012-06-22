@@ -19,9 +19,9 @@ my class Backtrace is List {
             "  in {$s}$.subname at {$.file}:$.line\n"
         }
 
-        method is-hidden(Frame:D)  { $!code.?is_hidden_from_backtrace }
-        method is-routine(Frame:D) { $!code ~~ Routine }
-        method is-setting(Frame:D) { $!file eq 'src/gen/CORE.setting' }
+        method is-hidden(Frame:D:)  { $!code.?is_hidden_from_backtrace }
+        method is-routine(Frame:D:) { $!code ~~ Routine }
+        method is-setting(Frame:D:) { $!file eq 'src/gen/CORE.setting' }
     }
     proto method new(|$) {*}
 

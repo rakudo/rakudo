@@ -16,6 +16,10 @@ my class EnumMap does Associative {
     multi method ACCEPTS(EnumMap:D: Cool:D $topic) {
         so self.exists($topic);
     }
+
+    multi method ACCEPTS(EnumMap:D: Positional $topic) {
+        so self.exists($topic.any);
+    }
     
     proto method exists(|$) {*}
     multi method exists(EnumMap:D: Str:D \$key) {

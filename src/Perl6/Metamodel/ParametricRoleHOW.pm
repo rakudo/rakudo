@@ -24,10 +24,17 @@ class Perl6::Metamodel::ParametricRoleHOW
     method archetypes() {
         $archetypes
     }
+    
+    method BUILD(:$signatured) {
+        $!signatured := $signatured;
+    }
 
     method new_type(:$name = '<anon>', :$ver, :$auth, :$repr, :$signatured, *%extra) {
-        my $metarole := self.new(:name($name), :ver($ver), :auth($auth), :signatured($signatured));
+        my $metarole := self.new(:signatured($signatured));
         my $type := pir::repr_type_object_for__PPS($metarole, 'Uninstantiable');
+        $metarole.set_name($type, $name);
+        $metarole.set_ver($type, $ver) if $ver;
+        $metarole.set_auth($type, $auth) if $auth;
         if nqp::existskey(%extra, 'group') {
             $metarole.set_group($type, %extra<group>);
         }

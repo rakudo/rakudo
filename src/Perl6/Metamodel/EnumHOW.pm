@@ -38,8 +38,9 @@ class Perl6::Metamodel::EnumHOW
     }
     
     method new_type(:$name!, :$base_type!) {
-        my $meta := self.new(:name($name));
+        my $meta := self.new();
         my $obj  := pir::repr_type_object_for__PPS($meta, 'P6opaque');
+        $meta.set_name($obj, $name);
         $meta.set_base_type($meta, $base_type);
         self.add_stash($obj);
     }

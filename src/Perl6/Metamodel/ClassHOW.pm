@@ -35,9 +35,12 @@ class Perl6::Metamodel::ClassHOW
     }
 
     method new_type(:$name = '<anon>', :$repr = 'P6opaque', :$ver, :$auth) {
-        my $metaclass := self.new(:name($name), :ver($ver), :auth($auth));
+        my $metaclass := self.new();
         my $obj := pir::repr_type_object_for__PPS($metaclass, $repr);
         self.add_stash($obj);
+        $metaclass.set_name($obj, $name);
+        $metaclass.set_ver($obj, $ver) if $ver;
+        $metaclass.set_auth($obj, $auth) if $auth;
         pir::set_boolification_spec__0PiP($obj, 5, nqp::null());
         $obj
     }

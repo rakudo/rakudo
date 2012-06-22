@@ -15,10 +15,18 @@ class Perl6::Metamodel::NativeHOW
     method archetypes() {
         $archetypes
     }
+    
+    method BUILD(:$nativesize) {
+        $!nativesize := $nativesize;
+    }
 
     method new_type(:$name = '<anon>', :$repr = 'P6opaque', :$ver, :$auth) {
-        my $metaclass := self.new(:name($name), :ver($ver), :auth($auth), :nativesize(0));
-        self.add_stash(pir::repr_type_object_for__PPS($metaclass, $repr));
+        my $metaclass := self.new(:nativesize(0));
+        my $obj := pir::repr_type_object_for__PPS($metaclass, $repr);
+        $metaclass.set_name($obj, $name);
+        $metaclass.set_ver($obj, $ver) if $ver;
+        $metaclass.set_auth($obj, $auth) if $auth;
+        self.add_stash($obj);
     }
 
     method compose($obj) {

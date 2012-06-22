@@ -35,9 +35,17 @@ class Perl6::Metamodel::ConcreteRoleHOW
         method private() { $!private }
     }
     
+    method BUILD(:@roles) {
+        @!roles := @roles;
+    }
+    
     method new_type(:@roles, :$name = '<anon>', :$ver, :$auth, :$repr) {
-        my $metarole := self.new(:roles(@roles), :name($name), :ver($ver), :auth($auth));
-        pir::repr_type_object_for__PPS($metarole, 'Uninstantiable');
+        my $metarole := self.new(:roles(@roles));
+        my $obj := pir::repr_type_object_for__PPS($metarole, 'Uninstantiable');
+        $metarole.set_name($obj, $name);
+        $metarole.set_ver($obj, $ver) if $ver;
+        $metarole.set_auth($obj, $auth) if $auth;
+        $obj;
     }
     
     method add_collision($obj, $colliding_name, @role_names, :$private = 0) {

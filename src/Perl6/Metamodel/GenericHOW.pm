@@ -15,7 +15,10 @@ class Perl6::Metamodel::GenericHOW
     # supplied type environment when we want to instantiate
     # ourself.
     method new_type(:$name) {
-        pir::repr_type_object_for__PPS(self.new(:name($name)), 'Uninstantiable')
+        my $meta := self.new();
+        my $obj := pir::repr_type_object_for__PPS($meta, 'Uninstantiable');
+        $meta.set_name($obj, $name);
+        $obj
     }
 
     method instantiate_generic($obj, $type_environment) {

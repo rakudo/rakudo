@@ -38,6 +38,9 @@ class Range is Iterable does Positional {
     method iterator() { self }
     method list()     { self.flat }
 
+    method FLATTENABLE_LIST() { nqp::getattr(self.flat.eager, List, '$!items') }
+    method FLATTENABLE_HASH() { nqp::hash() }
+
     method bounds()   { ($!min, $!max) }
 
     multi method ACCEPTS(Range:D: Mu \$topic) {

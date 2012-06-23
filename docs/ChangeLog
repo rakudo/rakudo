@@ -1,5 +1,6 @@
 New in 2012.07
 + Deprecated SAFE.setting in favor of RESTRICTED.setting
++ Ranges can now interpolate in argument lists
 
 New in 2012.06
 + Rakudo is now compiled with the same regex engine as user-space regexes use

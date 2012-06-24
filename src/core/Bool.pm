@@ -24,6 +24,10 @@ my class Bool {
     }
 }
 
+multi prefix:<++>(Bool:U \$a is rw) { $a = True; }
+multi prefix:<-->(Bool:U \$a is rw) { $a = False; }
+multi postfix:<++>(Bool:U \$a is rw) { $a = True; False; }
+multi postfix:<-->(Bool:U \$a is rw) { $a = False; }
 
 proto prefix:<?>($) { * }
 multi prefix:<?>(Bool:D \$a) { $a }

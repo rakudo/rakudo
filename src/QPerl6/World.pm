@@ -46,8 +46,7 @@ sub p6ize_recursive($x) {
     pir::perl6ize_type__PP($x);
 }
 
-# This builds upon the SerializationContextBuilder to add the specifics
-# needed by Rakudo Perl 6.
+# This builds upon the HLL::World to add the specifics needed by Rakudo Perl 6.
 class QPerl6::World is HLL::World {
     # The stack of lexical pads, actually as PAST::Block objects. The
     # outermost frame is at the bottom, the latest frame is on top.

@@ -185,7 +185,33 @@ you find any steps that are missing.
 
   $ git commit docs/release_guide.pod
 
-=item 8.
+=item 8. 
+
+Create an NQP release with the same C<YYYY.MM> version number
+as Rakudo. Follow NQP's C<docs/release_guide.pod> file to do that.
+
+=item 9.
+
+Go back to the Rakudo repository, and update the NQP dependency:
+
+  $ echo YYYY.MM > tools/build/NQP_REVISION
+  $ git commit -m '[release] bump NQP revision' tools/build/NQP_REVISION
+
+=item 10.
+
+Enter the new version into the F<VERSION> file, and commit the changes:
+
+  $ echo YYYY.MM > VERSION
+  $ git commit -m '[release] bump VERSION' VERSION
+
+=item 11.
+
+Make sure any locally modified files have been pushed back to github.
+
+  $ git status
+  $ git push
+
+=item 12.
 
 Make sure everything compiles and runs from a known clean state:
 
@@ -208,32 +234,6 @@ Continue adjusting things until make stresstest passes as expected.
 Often this means fixing a bug, fudging a test, or (temporarily?)
 commenting out a test file in t/spectest.data .  Use your best
 judgment or ask others if uncertain what to do here.
-
-=item 9. 
-
-Create an NQP release with the same C<YYYY.MM> version number
-as Rakudo. Follow NQP's C<docs/release_guide.pod> file to do that.
-
-=item 10.
-
-Go back to the Rakudo repository, and update the NQP dependency:
-
-  $ echo YYYY.MM > tools/build/NQP_REVISION
-  $ git commit -m '[release] bump NQP revision' tools/build/NQP_REVISION
-
-=item 11
-
-Enter the new version into the F<VERSION> file, and commit the changes:
-
-  $ echo YYYY.MM > VERSION
-  $ git commit -m '[release] bump VERSION' VERSION
-
-=item 12.
-
-Make sure any locally modified files have been pushed back to github.
-
-  $ git status
-  $ git push
 
 =item 13.
 

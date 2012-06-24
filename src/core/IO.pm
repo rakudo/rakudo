@@ -316,7 +316,7 @@ sub dir($path = '.', Mu :$test = none('.', '..')) {
     my @res;
     loop (my int $i = 0; $i < $elems; $i = $i + 1) {
         my Str $file := nqp::p6box_s(nqp::atpos($RSA, $i));
-        @res.push: "$path/$file".IO if $test.ACCEPTS($file);
+        @res.push: ($path ~~ m/\/$/ ?? "$path$file" !! "$path/$file").IO if $test.ACCEPTS($file);
     }
     return @res;
 

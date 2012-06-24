@@ -93,6 +93,26 @@ DYNEXT_DYNOPS = $(DYNEXT_DIR)/$(OPS)$(LOAD_EXT)
 DYNPMC        = $(PMC_DIR)/$(GROUP)$(LOAD_EXT)
 DYNOPS        = $(OPS_DIR)/$(OPS)$(LOAD_EXT)
 
+# QPerl6
+# Temporary qperl6 executable for QAST migration.
+QPERL6_PIR     = src/gen/qperl6.pir
+QPERL6_PBC     = qperl6.pbc
+QPERL6_EXE     = qperl6$(EXE)
+QPERL6_CF      = src/gen/qperl6-constantfolder.pir
+QPERL6_CF_PBC  = blib/QPerl6/ConstantFolder.pbc
+QPERL6_W       = src/gen/qperl6-symboltable.pir
+QPERL6_W_PBC   = blib/QPerl6/World.pbc
+QPERL6_G       = src/gen/qperl6-grammar.pir
+QPERL6_G_PBC   = blib/QPerl6/Grammar.pbc
+QPERL6_A       = src/gen/qperl6-actions.pir
+QPERL6_A_PBC   = blib/QPerl6/Actions.pbc
+QPERL6_O       = src/gen/qperl6-optimizer.pir
+QPERL6_O_PBC   = blib/QPerl6/Optimizer.pbc
+QPERL6_P       = src/gen/qperl6-pod.pir
+QPERL6_P_PBC   = blib/QPerl6/Pod.pbc
+QPERL6_C       = src/gen/qperl6-compiler.pir
+QPERL6_C_PBC   = blib/QPerl6/Compiler.pbc
+
 PMC_SOURCES = \
   $(PMC_DIR)/perl6lexinfo.pmc $(PMC_DIR)/perl6lexpad.pmc \
   $(PMC_DIR)/mdthunk.pmc $(PMC_DIR)/ctmthunk.pmc \
@@ -287,7 +307,7 @@ HARNESS_WITH_FUDGE = $(PERL) t/harness --fudge --keep-exit-code --icu=$(HAS_ICU)
 STAGESTATS = @stagestats@
 
 # the default target, TODO: make libraries in 'lib' a variable.
-all: check-versions $(PERL6_EXE) $(SETTING_PBC) $(R_SETTING_PBC) $(S_SETTING_PBC) lib/lib.pir lib/Test.pir lib/Pod/To/Text.pir
+all: check-versions $(PERL6_EXE) $(SETTING_PBC) $(R_SETTING_PBC) $(S_SETTING_PBC) lib/lib.pir lib/Test.pir lib/Pod/To/Text.pir $(QPERL6_EXE)
 
 # the install target
 install: all
@@ -406,7 +426,54 @@ $(R_SETTING_PBC): $(PERL6_B_PBC) $(PERL6_EXE) $(SETTING_PBC) $(R_SETTING_SRC)
 $(S_SETTING_PBC): $(PERL6_B_PBC) $(PERL6_EXE) $(SETTING_PBC) $(S_SETTING_SRC)
 	./$(PERL6_EXE) --target=pir $(STAGESTATS) --output=$(S_SETTING_PIR) $(S_SETTING_SRC)
 	$(PARROT) $(PARROT_ARGS) -o $(S_SETTING_PBC) $(S_SETTING_PIR)
+
+
+##  QPerl6 build targets
+$(QPERL6_EXE): $(QPERL6_PBC)
+	$(PBC_TO_EXE) $(QPERL6_PBC)
+
+$(QPERL6_PBC): $(QPERL6_G_PBC) $(QPERL6_A_PBC) $(QPERL6_C_PBC) $(QPERL6_P_PBC) src/qmain.nqp
+	$(PERL) tools/build/gen-version.pl >src/gen/main-version.nqp
+	$(NQP_EXE) --vmlibs=perl6_group,perl6_ops --target=pir --output=src/gen/qperl6.pir \
+	    --combine src/qmain.nqp src/gen/main-version.nqp
+	$(PARROT) $(PARROT_ARGS) -o $(QPERL6_PBC) src/gen/qperl6.pir
+
+$(QPERL6_CF_PBC): $(NQP_EXE) $(DYNEXT_DYNPMC) $(DYNEXT_DYNOPS) src/QPerl6/ConstantFolder.pm
+	$(NQP_EXE) --target=pir --output=$(QPERL6_CF) --encoding=utf8 \
+	    src/QPerl6/ConstantFolder.pm
+	$(PARROT) $(PARROT_ARGS) -o $(QPERL6_CF_PBC) $(QPERL6_CF)
+
+$(QPERL6_W_PBC): $(NQP_EXE) $(PERL6_ML_PBC) src/QPerl6/World.pm
+	$(NQP_EXE) --vmlibs=perl6_group,perl6_ops --target=pir --output=$(QPERL6_W) --encoding=utf8 \
+	    src/QPerl6/World.pm
+	$(PARROT) $(PARROT_ARGS) -o $(QPERL6_W_PBC) $(QPERL6_W)
     
+$(QPERL6_G_PBC): $(NQP_EXE) $(QPERL6_W_PBC) src/QPerl6/Grammar.pm $(QPERL6_P_PBC)
+	$(NQP_EXE) --target=pir --output=$(QPERL6_G) --encoding=utf8 \
+	    src/QPerl6/Grammar.pm
+	$(PARROT) $(PARROT_ARGS) -o $(QPERL6_G_PBC) $(QPERL6_G)
+
+$(QPERL6_A_PBC): $(NQP_EXE) $(DYNEXT_DYNPMC) $(DYNEXT_DYNOPS) src/QPerl6/Actions.pm $(QPERL6_P_PBC) $(QPERL6_CF_PBC)
+	$(NQP_EXE) --vmlibs=perl6_group,perl6_ops  --target=pir --output=$(QPERL6_A) --encoding=utf8 \
+	    src/QPerl6/Actions.pm
+	$(PARROT) $(PARROT_ARGS) -o $(QPERL6_A_PBC) $(QPERL6_A)
+
+$(QPERL6_O_PBC): $(NQP_EXE) $(DYNEXT_DYNPMC) $(DYNEXT_DYNOPS) src/QPerl6/Optimizer.pm
+	$(NQP_EXE) --vmlibs=perl6_group,perl6_ops  --target=pir --output=$(QPERL6_O) --encoding=utf8 \
+	    src/QPerl6/Optimizer.pm
+	$(PARROT) $(PARROT_ARGS) -o $(QPERL6_O_PBC) $(QPERL6_O)
+    
+$(QPERL6_P_PBC): $(NQP_EXE) $(DYNEXT_DYNPMC) $(DYNEXT_DYNOPS) src/QPerl6/Pod.pm
+	$(NQP_EXE) --vmlibs=perl6_group,perl6_ops  --target=pir --output=$(QPERL6_P) --encoding=utf8 \
+	    src/QPerl6/Pod.pm
+	$(PARROT) $(PARROT_ARGS) -o $(QPERL6_P_PBC) $(QPERL6_P)
+
+$(QPERL6_C_PBC): $(NQP_EXE) $(DYNEXT_DYNPMC) $(DYNEXT_DYNOPS) $(QPERL6_O_PBC) src/QPerl6/Compiler.nqp
+	$(NQP_EXE) --target=pir --output=$(QPERL6_C) --encoding=utf8 \
+	    src/QPerl6/Compiler.nqp
+	$(PARROT) $(PARROT_ARGS) -o $(QPERL6_C_PBC) $(QPERL6_C)
+
+
 ##  testing targets
 lib/Test.pir: lib/Test.pm $(PERL6_EXE) $(SETTING_PBC)
 	./$(PERL6_EXE) --target=pir --output=lib/Test.pir lib/Test.pm

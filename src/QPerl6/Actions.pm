@@ -311,7 +311,7 @@ class QPerl6::Actions is HLL::Actions {
                 :pirflags(':load'), :lexical(0), :namespace(''),
                 PAST::Op.new(
                     :pasttype('call'),
-                    PAST::Val.new( :value($outer) ),
+                    QAST::BVal.new( :value($outer) ),
                 )
             )
         );
@@ -580,7 +580,7 @@ class QPerl6::Actions is HLL::Actions {
             $past := PAST::Stmts.new(:node($/),
                 PAST::Op.new(
                     :pirop<say__vs>,
-                    PAST::Val.new(:value(~$/))
+                    QAST::SVal.new(:value(~$/))
                 ),
                 $past
             );
@@ -835,7 +835,7 @@ class QPerl6::Actions is HLL::Actions {
     method statement_control:sym<require>($/) {
         my $past := PAST::Stmts.new(:node($/));
         my $name_past := $<module_name>
-                        ?? PAST::Val.new(:value($<module_name><longname><name>.Str))
+                        ?? QAST::SVal.new(:value($<module_name><longname><name>.Str))
                         !! $<EXPR>[0].ast;
 
         $past.push(PAST::Op.new(
@@ -3566,7 +3566,7 @@ class QPerl6::Actions is HLL::Actions {
             $past := block_closure($past);
             $past<bare_block> := PAST::Op.new(
                 :pasttype('call'),
-                PAST::Val.new( :value($past<past_block>) ));
+                QAST::BVal.new( :value($past<past_block>) ));
         }
         make $past;
     }
@@ -4421,7 +4421,7 @@ class QPerl6::Actions is HLL::Actions {
                         PAST::Var.new(:name('$/'), :scope<lexical_6model>),
                         :name<to>
                     ),
-                    PAST::Val.new(:value(0)),
+                    QAST::IVal.new(:value(0)),
                 );
             } else {
                 $*value := PAST::Val.new( :value($*value) );
@@ -4443,7 +4443,7 @@ class QPerl6::Actions is HLL::Actions {
         my %h;
         my $key := $*ADVERB.ast.named;
         my $value := $*ADVERB.ast;
-        if $value ~~ PAST::Val {
+        if $value ~~ QAST::IVal || $value ~~ QAST::SVal {
             $value := $value.value;
         }
         elsif $value<has_compile_time_value> {
@@ -4559,9 +4559,9 @@ class QPerl6::Actions is HLL::Actions {
         );
         self.handle_and_check_adverbs($/, %SUBST_ALLOWED_ADVERBS, 'substitution', $past);
         if $/[0] {
-            $past.push(PAST::Val.new(:named('samespace'), :value(1)));
+            $past.push(QAST::IVal.new(:named('samespace'), :value(1)));
         }
-        $past.push(PAST::Val.new(:named('SET_CALLER_DOLLAR_SLASH'), :value(1)));
+        $past.push(QAST::IVal.new(:named('SET_CALLER_DOLLAR_SLASH'), :value(1)));
 
         $past := PAST::Op.new(
             :node($/),
@@ -4657,7 +4657,7 @@ class QPerl6::Actions is HLL::Actions {
             if !PAST::Node.ACCEPTS($ast) {
                 $lastlit := $lastlit ~ $ast;
             }
-            elsif $ast.isa(PAST::Val) {
+            elsif $ast.isa(QAST::SVal) {
                 $lastlit := $lastlit ~ $ast.value;
             }
             else {
@@ -5325,7 +5325,7 @@ class QPerl6::RegexActions is QRegex::P6Regex::Actions {
 
     method metachar:sym<rakvar>($/) {
         make QAST::Regex.new( PAST::Node.new('INTERPOLATE', $<var>.ast,
-                                    PAST::Val.new( :value(%*RX<i> ?? 1 !! 0) )),
+                                    QAST::IVal.new( :value(%*RX<i> ?? 1 !! 0) )),
                               :rxtype<subrule>, :subtype<method>, :node($/));
     }
 

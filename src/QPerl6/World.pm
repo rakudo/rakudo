@@ -174,7 +174,7 @@ class QPerl6::World is HLL::World {
                 self.perl6_module_loader_code(),
                 PAST::Op.new(
                     :pasttype('callmethod'), :name('set_outer_ctx'),
-                    PAST::Val.new( :value($*UNIT_OUTER) ),
+                    QAST::BVal.new( :value($*UNIT_OUTER) ),
                     PAST::Op.new(
                         :pasttype('callmethod'), :name('load_setting'),
                         PAST::Var.new( :name('ModuleLoader'), :namespace([]), :scope('package') ),
@@ -202,7 +202,7 @@ class QPerl6::World is HLL::World {
                 PAST::Op.new(
                    :pasttype('callmethod'), :name('load_module'),
                    PAST::Var.new( :name('ModuleLoader'), :namespace([]), :scope('package') ),
-                   $module_name, PAST::Val.new(:value($line), :named('line'))
+                   $module_name, QAST::IVal.new(:value($line), :named('line'))
                 ))));
         }
 
@@ -381,9 +381,9 @@ class QPerl6::World is HLL::World {
         if $prim {
             if $state { nqp::die("Natively typed state variables not yet implemented") }
             if $var {
-                if $prim == 1    { $var.viviself(PAST::Val.new( :value(0) )) }
+                if $prim == 1    { $var.viviself(QAST::IVal.new( :value(0) )) }
                 elsif $prim == 2 { $var.viviself(PAST::Op.new( :pirop('set__Ns'), 'NaN' )) }
-                elsif $prim == 3 { $var.viviself(PAST::Val.new( :value('') )) }
+                elsif $prim == 3 { $var.viviself(SAST::SVal.new( :value('') )) }
             }
             return 1;
         }
@@ -709,10 +709,10 @@ class QPerl6::World is HLL::World {
         unless $*PKGDECL eq 'role' {
             unless self.is_precompilation_mode() {
                 $fixups.push(PAST::Stmts.new(
-                    self.set_attribute($code, $code_type, '$!do', PAST::Val.new( :value($code_past) )),
+                    self.set_attribute($code, $code_type, '$!do', QAST::BVal.new( :value($code_past) )),
                     PAST::Op.new(
                         :pirop('perl6_associate_sub_code_object vPP'),
-                        PAST::Val.new( :value($code_past) ),
+                        QAST::BVal.new( :value($code_past) ),
                         self.get_ref($code)
                     )));
                 
@@ -723,7 +723,7 @@ class QPerl6::World is HLL::World {
                     $fixups.push(PAST::Stmts.new(
                         PAST::Op.new( :pasttype('bind'),
                             PAST::Var.new( :name('$P0'), :scope('register') ),
-                            PAST::Op.new( :pirop('clone PP'), PAST::Val.new( :value($code_past) ) )
+                            PAST::Op.new( :pirop('clone PP'), QAST::BVal.new( :value($code_past) ) )
                         ),
                         self.set_attribute($clone, $code_type, '$!do',
                             PAST::Var.new( :name('$P0'), :scope('register') )),
@@ -754,7 +754,7 @@ class QPerl6::World is HLL::World {
         if self.is_precompilation_mode() {
             $des.push(PAST::Op.new(
                 :pirop('perl6_associate_sub_code_object vPP'),
-                PAST::Val.new( :value($code_past) ),
+                QAST::BVal.new( :value($code_past) ),
                 self.get_ref($code)));
         }
 
@@ -776,7 +776,7 @@ class QPerl6::World is HLL::World {
             return "";
         }
         my $fixups := PAST::Op.new(:name<set_outer_ctx>, :pasttype<callmethod>,
-                                   PAST::Val.new(:value($block)),
+                                   QAST::BVal.new(:value($block)),
                                    PAST::Op.new(
                                         :pirop<perl6_get_outer_ctx__PP>,
                                         PAST::Var.new(

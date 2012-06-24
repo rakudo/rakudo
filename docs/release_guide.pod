@@ -93,13 +93,13 @@ release name, etc.
 
 =item *
 
-Verify that the Parrot trunk head is able to build Rakudo
+Verify that the Parrot master branch is able to build Rakudo
 and run the spectest suite. Also check the smolder reports
 at L<http://smolder.parrot.org/app/projects/smoke_reports/5>.
 
 =item *
 
-If Parrot's trunk exhibits any problems building or running
+If Parrot's master branch exhibits any problems building or running
 Rakudo (that require changes to Parrot to fix), immediately
 report them to the Parrot development team so they can be
 fixed prior to Parrot's release.

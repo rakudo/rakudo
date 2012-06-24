@@ -46,10 +46,6 @@ my class Int does Real {
         nqp::p6box_s(nqp::chr(nqp::unbox_i(self)));
     }
 
-    method succ(Int:D:) { self + 1 }
-
-    method pred(Int:D:) { self - 1 }
-
     method sqrt(Int:D:) { nqp::p6box_n(nqp::sqrt_n(nqp::tonum_I(self))) }
 
     method base(Int:D: Cool $base) {

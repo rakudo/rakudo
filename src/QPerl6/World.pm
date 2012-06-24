@@ -78,7 +78,7 @@ class QPerl6::World is HLL::World {
     # Creates a new lexical scope and puts it on top of the stack.
     method push_lexpad($/) {
         # Create pad, link to outer and add to stack.
-        my $pad := QAST::Block.new( PAST::Stmts.new(), :node($/) );
+        my $pad := QAST::Block.new( QAST::Stmts.new(), :node($/) );
         if +@!BLOCKS {
             $pad<outer> := @!BLOCKS[+@!BLOCKS - 1];
         }
@@ -170,7 +170,7 @@ class QPerl6::World is HLL::World {
                         := Perl6::ModuleLoader.load_setting($setting_name);
             
             # Add a fixup and deserialization task also.
-            my $fixup := PAST::Stmt.new(
+            my $fixup := QAST::Stmt.new(
                 self.perl6_module_loader_code(),
                 PAST::Op.new(
                     :pasttype('callmethod'), :name('set_outer_ctx'),
@@ -197,7 +197,7 @@ class QPerl6::World is HLL::World {
         
         # During deserialization, ensure that we get this module loaded.
         if self.is_precompilation_mode() {
-            self.add_load_dependency_task(:deserialize_past(PAST::Stmts.new(
+            self.add_load_dependency_task(:deserialize_past(QAST::Stmts.new(
                 self.perl6_module_loader_code(),
                 PAST::Op.new(
                    :pasttype('callmethod'), :name('load_module'),
@@ -212,7 +212,7 @@ class QPerl6::World is HLL::World {
     # Uses the NQP module loader to load Perl6::ModuleLoader, which
     # is a normal NQP module.
     method perl6_module_loader_code() {
-        PAST::Stmt.new(
+        QAST::Stmt.new(
             PAST::Op.new(
                 :pirop('load_bytecode vs'), 'ModuleLoader.pbc'
             ),
@@ -634,8 +634,8 @@ class QPerl6::World is HLL::World {
     
     # Takes a code object and the QAST::Block for its body.
     method finish_code_object($code, $code_past, $is_dispatcher = 0, :$yada) {
-        my $fixups := PAST::Stmts.new();
-        my $des    := PAST::Stmts.new();
+        my $fixups := QAST::Stmts.new();
+        my $des    := QAST::Stmts.new();
         
         # Remove it from the code objects stack.
         @!CODES.pop();
@@ -708,7 +708,7 @@ class QPerl6::World is HLL::World {
         # which case pre-comp will have sorted it out.
         unless $*PKGDECL eq 'role' {
             unless self.is_precompilation_mode() {
-                $fixups.push(PAST::Stmts.new(
+                $fixups.push(QAST::Stmts.new(
                     self.set_attribute($code, $code_type, '$!do', QAST::BVal.new( :value($code_past) )),
                     PAST::Op.new(
                         :pirop('perl6_associate_sub_code_object vPP'),
@@ -720,7 +720,7 @@ class QPerl6::World is HLL::World {
                 # of it also.
                 pir::setprop__vPsP($stub, 'CLONE_CALLBACK', sub ($orig, $clone) {
                     self.add_object($clone);
-                    $fixups.push(PAST::Stmts.new(
+                    $fixups.push(QAST::Stmts.new(
                         PAST::Op.new( :pasttype('bind'),
                             PAST::Var.new( :name('$P0'), :scope('register') ),
                             PAST::Op.new( :pirop('clone PP'), QAST::BVal.new( :value($code_past) ) )
@@ -931,7 +931,7 @@ class QPerl6::World is HLL::World {
     method compile_in_context($past, $code_type, $slp_type) {
         # Ensure that we have the appropriate op libs loaded and correct
         # HLL.
-        my $wrapper := QAST::Block.new(PAST::Stmts.new(), $past);
+        my $wrapper := QAST::Block.new(QAST::Stmts.new(), $past);
         self.add_libs($wrapper);
         $wrapper.hll('perl6');
         $wrapper.namespace('');
@@ -1296,7 +1296,7 @@ class QPerl6::World is HLL::World {
             return self.add_constant_folded_result($result);
         }
         elsif $phaser eq 'CHECK' {
-            my $result_node := PAST::Stmt.new( PAST::Var.new( :name('Nil'), :scope('lexical_6model') ) );
+            my $result_node := QAST::Stmt.new( PAST::Var.new( :name('Nil'), :scope('lexical_6model') ) );
             @!CHECKs := [] unless @!CHECKs;
             @!CHECKs.unshift([$block, $result_node]);
             return $result_node;
@@ -1852,15 +1852,15 @@ class QPerl6::World is HLL::World {
     # it doesn't exist, and fix it up if it already does.
     method to_past() {
         if self.is_precompilation_mode() {
-            my $load_tasks := PAST::Stmts.new();
+            my $load_tasks := QAST::Stmts.new();
             for self.load_dependency_tasks() {
-                $load_tasks.push(PAST::Stmt.new($_));
+                $load_tasks.push(QAST::Stmt.new($_));
             }
-            my $fixup_tasks := PAST::Stmts.new();
+            my $fixup_tasks := QAST::Stmts.new();
             for self.fixup_tasks() {
-                $fixup_tasks.push(PAST::Stmt.new($_));
+                $fixup_tasks.push(QAST::Stmt.new($_));
             }
-            return PAST::Stmts.new(
+            return QAST::Stmts.new(
                 PAST::Op.new( :pirop('nqp_dynop_setup v') ),
                 PAST::Op.new( :pirop('nqp_bigint_setup v') ),
                 PAST::Op.new( :pirop('nqp_native_call_setup v') ),
@@ -1887,12 +1887,12 @@ class QPerl6::World is HLL::World {
             )
         }
         else {
-            my $tasks := PAST::Stmts.new();
+            my $tasks := QAST::Stmts.new();
             for self.load_dependency_tasks() {
-                $tasks.push(PAST::Stmt.new($_));
+                $tasks.push(QAST::Stmt.new($_));
             }
             for self.fixup_tasks() {
-                $tasks.push(PAST::Stmt.new($_));
+                $tasks.push(QAST::Stmt.new($_));
             }
             return $tasks
         }

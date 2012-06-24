@@ -113,6 +113,16 @@ that has a large impact on users is worth addressing either
 as a fix or as prominent documentation (the README and/or
 the release announcement).
 
+=item *
+
+Create a draft release announcement in docs/announce/YYYY.MM .
+You can often use the previous release's file as a starting point,
+updating the release number, version information, name, etc. as
+appropriate.
+
+  $ git add docs/announce/YYYY.MM
+  $ git commit docs
+
 =back
 
 =item 2.
@@ -147,12 +157,12 @@ This can be conveniently done with  "git log --since=yyyy-mm-dd --reverse".
 
 =item 5.
 
-When it's time to cut the release, create a new release announcement
-in docs/announce/YYYY.MM.  It's often a good idea to use the
-previous month's file as a starting point for this.  Highlight areas
-in which the new release is significant.  If possible, also give
-some small details about the choice of release name.  (If the
-details are a bit lengthy, this can often best be done as a separate
+When it's time to cut the release, finalize the new release 
+announcement in docs/announce/YYYY.MM.  (If one hasn't already
+been created, see step 1 above.) Highlight areas in which the 
+new release is significant.  If possible, also give some small 
+details about the choice of release name.  (If the details 
+are a bit lengthy, this can often best be done as a separate
 section at the bottom of the announcement.)
 
 Include a list of contributors since the last release in the announcement.

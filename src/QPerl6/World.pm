@@ -115,7 +115,7 @@ class QPerl6::World is HLL::World {
         my $fixup := PAST::Op.new(
             :pasttype('callmethod'), :name('set_static_lexpad'),
             PAST::Val.new( :value($pad), :returns('LexInfo')),
-            self.get_ref($slp));
+            QAST::WVal.new( :value($slp) ));
         self.add_fixup_task(:deserialize_past($fixup), :fixup_past($fixup));
         
         # Stash it under the QAST block unique ID.
@@ -409,22 +409,22 @@ class QPerl6::World is HLL::World {
         # Create container.
         my $cont_code := PAST::Op.new(
             :pirop('repr_instance_of PP'),
-            self.get_ref(%cont_info<container_type>)
+            QAST::WVal.new( :value(%cont_info<container_type>) )
         );
         
         # Set container descriptor.
         $cont_code := PAST::Op.new(
             :pirop('setattribute 0PPsP'),
-            $cont_code, self.get_ref(%cont_info<container_base>),
-            '$!descriptor', self.get_ref($descriptor));
+            $cont_code, QAST::WVal.new( :value(%cont_info<container_base>) ),
+            '$!descriptor', QAST::WVal.new( :value($descriptor) ));
         
         # Default contents, if applicable (note, slurpy param as we can't
         # use definedness here, as it's a type object we'd be checking).
         if nqp::existskey(%cont_info, 'default_value') {
             $cont_code := PAST::Op.new(
                 :pirop('setattribute 0PPsP'),
-                $cont_code, self.get_ref(%cont_info<container_base>),
-                '$!value', self.get_ref(%cont_info<default_value>));
+                $cont_code, QAST::WVal.new( :value(%cont_info<container_base>) ),
+                '$!value', QAST::WVal.new( :value(%cont_info<default_value>) ));
         }
         
         $cont_code
@@ -614,7 +614,7 @@ class QPerl6::World is HLL::World {
         my $type      := self.find_symbol(['LazyScalar']);
         my $container := $type.new($code);
         self.add_object($container);
-        self.get_ref($container);
+        QAST::WVal.new( :value($container) )
     }
     
     # Stubs a code object of the specified type.
@@ -713,7 +713,7 @@ class QPerl6::World is HLL::World {
                     PAST::Op.new(
                         :pirop('perl6_associate_sub_code_object vPP'),
                         QAST::BVal.new( :value($code_past) ),
-                        self.get_ref($code)
+                        QAST::WVal.new( :value($code) )
                     )));
                 
                 # If we clone the stub, then we must remember to do a fixup
@@ -730,7 +730,7 @@ class QPerl6::World is HLL::World {
                         PAST::Op.new(
                             :pirop('perl6_associate_sub_code_object vPP'),
                             PAST::Var.new( :name('$P0'), :scope('register') ),
-                            self.get_ref($clone)
+                            QAST::WVal.new( :value($clone) )
                         )));
                 });
             }
@@ -755,7 +755,7 @@ class QPerl6::World is HLL::World {
             $des.push(PAST::Op.new(
                 :pirop('perl6_associate_sub_code_object vPP'),
                 QAST::BVal.new( :value($code_past) ),
-                self.get_ref($code)));
+                QAST::WVal.new( :value($code) )));
         }
 
         # If it's a routine, flag that it needs fresh magicals.
@@ -782,8 +782,8 @@ class QPerl6::World is HLL::World {
                                         PAST::Var.new(
                                             :scope<attribute_6model>,
                                             :name<$!quasi_context>,
-                                            self.get_ref($quasi_ast),
-                                            self.get_ref(self.find_symbol(['AST']))
+                                            QAST::WVal.new( :value($quasi_ast) ),
+                                            QAST::WVal.new( :value(self.find_symbol(['AST'])) )
                                         )
                                    )
                         );
@@ -801,8 +801,8 @@ class QPerl6::World is HLL::World {
                         :scope('keyed'),
                         PAST::Var.new(
                             :scope('attribute_6model'), :name('$!phasers'),
-                            $*W.get_ref($code),
-                            $*W.get_ref($block_type)
+                            QAST::WVal.new( :value($code) ),
+                            QAST::WVal.new( :value($block_type) )
                         ),
                         $type
                     ),
@@ -909,8 +909,8 @@ class QPerl6::World is HLL::World {
             :pasttype('bind_6model'),
             PAST::Var.new(
                 :name($name), :scope('attribute_6model'),
-                self.get_ref($obj), 
-                self.get_ref($class)
+                QAST::WVal.new( :value($obj) ),
+                QAST::WVal.new( :value($class) )
             ),
             $value_past
         )
@@ -1118,7 +1118,7 @@ class QPerl6::World is HLL::World {
     # returns a reference to it.
     method add_constant_folded_result($r) {
         self.add_object($r);
-        self.get_ref($r);
+        QAST::WVal.new( :value($r) );
     }
 
     # Creates a meta-object for a package, adds it to the root objects and
@@ -1276,16 +1276,16 @@ class QPerl6::World is HLL::World {
             :pirop('capture_all_outers vP'),
             PAST::Var.new(
                 :name('$!list'), :scope('attribute_6model'),
-                self.get_ref($fixup_list),
-                self.get_ref(FixupList) )));
+                QAST::WVal.new( :value($fixup_list) ),
+                QAST::WVal.new( :value(FixupList) ))));
         
         # Return a PAST node that we can push the dummy closure
         return PAST::Op.new(
             :pirop('push vPP'),
             PAST::Var.new(
                 :name('$!list'), :scope('attribute_6model'),
-                self.get_ref($fixup_list),
-                self.get_ref(FixupList) ));
+                QAST::WVal.new( :value($fixup_list) ),
+                QAST::WVal.new( :value(FixupList) )));
     }
     
     # Handles addition of a phaser.
@@ -1304,7 +1304,7 @@ class QPerl6::World is HLL::World {
         elsif $phaser eq 'INIT' {
             $*UNIT[0].push(PAST::Op.new(
                 :pasttype('call'),
-                self.get_ref($block)
+                QAST::WVal.new( :value($block) )
             ));
             # XXX should keep value for r-value usage
             return PAST::Var.new(:name('Nil'), :scope('lexical_6model'));
@@ -1313,7 +1313,7 @@ class QPerl6::World is HLL::World {
             $*UNIT[0].push(PAST::Op.new(
                 :pasttype('callmethod'), :name('unshift'),
                 PAST::Var.new( :name('@*END_PHASERS'), :scope('contextual') ),
-                self.get_ref($block)
+                QAST::WVal.new( :value($block) )
             ));
             return PAST::Var.new(:name('Nil'), :scope('lexical_6model'));
         }
@@ -1337,7 +1337,7 @@ class QPerl6::World is HLL::World {
                 PAST::Op.new(
                     :pirop('perl6_container_store__0PP'),
                     PAST::Var.new( :name($sym), :scope('lexical_6model') ),
-                    PAST::Op.new( :pasttype('call'), $*W.get_ref($block) )
+                    PAST::Op.new( :pasttype('call'), QAST::WVal.new( :value($block) ) )
                 ),
                 PAST::Var.new( :name($sym), :scope('lexical_6model') ));
         }
@@ -1354,7 +1354,7 @@ class QPerl6::World is HLL::World {
                     :pasttype('callmethod'), :name('throw'),
                     PAST::Op.new(
                         :pasttype('callmethod'), :name('new'),
-                        self.get_ref(self.find_symbol(['X', 'Phaser', 'PrePost'])),
+                        QAST::WVal.new( :value(self.find_symbol(['X', 'Phaser', 'PrePost'])) ),
                         $what,
                         $condition,
                     )
@@ -1735,7 +1735,7 @@ class QPerl6::World is HLL::World {
                     # Lookups start at the :: root.
                     $lookup := PAST::Op.new(
                         :pasttype('callmethod'), :name('new'),
-                        $*W.get_ref($*W.find_symbol(['PseudoStash']))
+                        QAST::WVal.new( :value($*W.find_symbol(['PseudoStash'])) )
                     );
                 }
                 $lookup := PAST::Op.new(

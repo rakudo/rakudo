@@ -260,7 +260,7 @@ class QPerl6::Actions is HLL::Actions {
         $unit.loadinit().push(PAST::Op.new(
             :pasttype('bind_6model'),
             PAST::Var.new( :name('GLOBAL'), :namespace([]), :scope('package') ),
-            $*W.get_ref($*GLOBALish)
+            QAST::WVal.new( :value($*GLOBALish) )
         ));
 
         # Mainline should have fresh lexicals.
@@ -1311,7 +1311,7 @@ class QPerl6::Actions is HLL::Actions {
                 $*W.add_stub_to_check($*PACKAGE);
             }
             $block.blocktype('declaration');
-            make QAST::Stmts.new( $block, $*W.get_ref($*PACKAGE) );
+            make QAST::Stmts.new( $block, QAST::WVal.new( :value($*PACKAGE) ) );
             return 1;
         }
 
@@ -1344,7 +1344,7 @@ class QPerl6::Actions is HLL::Actions {
             my $fixup := $*W.create_lexical_capture_fixup();
             $fixup.push(PAST::Op.new(
                 :pasttype('callmethod'), :name('clone'),
-                $*W.get_ref($throwaway_block)
+                QAST::WVal.new( :value($throwaway_block) )
             ));
             $block.push($fixup);
 
@@ -1354,7 +1354,7 @@ class QPerl6::Actions is HLL::Actions {
             # we won't know).
             $block.push(PAST::Op.new(
                 :pasttype('list'),
-                $*W.get_ref($*PACKAGE),
+                QAST::WVal.new( :value($*PACKAGE) ),
                 PAST::Op.new(
                     :pirop('set PQPS'),
                     PAST::Op.new( :pirop('getinterp P') ),
@@ -1383,7 +1383,7 @@ class QPerl6::Actions is HLL::Actions {
         QPerl6::Pod::document($*PACKAGE, $*DOC);
 
         make QAST::Stmts.new(
-            $block, $*W.get_ref($*PACKAGE)
+            $block, QAST::WVal.new( :value($*PACKAGE) )
         );
     }
 
@@ -2430,7 +2430,7 @@ class QPerl6::Actions is HLL::Actions {
             ($*SCOPE || 'our'), 'enum', $*PACKAGE, $*W.cur_lexpad(), $type_obj);
 
         # We evaluate to the enum type object.
-        make $*W.get_ref($type_obj);
+        make QAST::WVal.new( :value($type_obj) );
     }
 
     method type_declarator:sym<subset>($/) {
@@ -2460,7 +2460,7 @@ class QPerl6::Actions is HLL::Actions {
         }
 
         # We evaluate to the refinement type object.
-        make $*W.get_ref($subset);
+        make QAST::WVal.new( :value($subset) );
     }
 
     method type_declarator:sym<constant>($/) {
@@ -2498,7 +2498,7 @@ class QPerl6::Actions is HLL::Actions {
         }
 
         # Evaluate to the constant.
-        make $*W.get_ref($value);
+        make QAST::WVal.new( :value($value) );
     }
     
     method initializer:sym<=>($/) {
@@ -2537,7 +2537,7 @@ class QPerl6::Actions is HLL::Actions {
         my @params := $<signature>.ast;
         set_default_parameter_type(@params, 'Mu');
         my $sig := create_signature_object($/, @params, $*FAKE_PAD, :no_attr_check(1));
-        my $past := $*W.get_ref($sig);
+        my $past := QAST::WVal.new( :value($sig) );
         $past<has_compile_time_value> := 1;
         $past<compile_time_value> := $sig;
         make $past;
@@ -3030,14 +3030,14 @@ class QPerl6::Actions is HLL::Actions {
                         :method($name),
                     );
                 }
-                $past.unshift($*W.get_ref($*PACKAGE));
+                $past.unshift(QAST::WVal.new( :value($*PACKAGE) ));
                 $past[0].type($*PACKAGE);
                 $past.unshift($*W.add_string_constant($name));
             }
             $past.name('dispatch:<!>');
         }
         elsif $<methodop><quote> {
-            $past.unshift($*W.get_ref($*PACKAGE));
+            $past.unshift(QAST::WVal.new( :value($*PACKAGE) ));
             $past.unshift($<methodop><quote>.ast);
             $past.name('dispatch:<!>');
         }
@@ -3225,7 +3225,7 @@ class QPerl6::Actions is HLL::Actions {
             :name<&INDIRECT_NAME_LOOKUP>,
             PAST::Op.new(
                 :pasttype<callmethod>, :name<new>,
-                $*W.get_ref($*W.find_symbol(['PseudoStash']))
+                QAST::WVal.new( :value($*W.find_symbol(['PseudoStash'])) )
             )
         );
         $past.push($*W.add_string_constant($sigil)) if $sigil;
@@ -3327,12 +3327,12 @@ class QPerl6::Actions is HLL::Actions {
                 }
                 if $all_compile_time {
                     my $curried := $*W.parameterize_type($ptype, $<arglist>, $/);
-                    $past := $*W.get_ref($curried);
+                    $past := QAST::WVal.new( :value($curried) );
                     $past<has_compile_time_value> := 1;
                     $past<compile_time_value> := $curried;
                 }
                 else {
-                    my $ptref := $*W.get_ref($ptype);
+                    my $ptref := QAST::WVal.new( :value($ptype) );
                     $past := $<arglist>[0].ast;
                     $past.pasttype('callmethod');
                     $past.name('parameterize');
@@ -3343,7 +3343,7 @@ class QPerl6::Actions is HLL::Actions {
             elsif +@name == 0 {
                 $past := PAST::Op.new(
                     :pasttype<callmethod>, :name<new>,
-                    $*W.get_ref($*W.find_symbol(['PseudoStash']))
+                    QAST::WVal.new( :value($*W.find_symbol(['PseudoStash'])) )
                 );
             }
             elsif $*W.is_pseudo_package(@name[0]) {
@@ -3824,7 +3824,7 @@ class QPerl6::Actions is HLL::Actions {
                 }
                 $source := PAST::Op.new(
                     :pirop('perl6_assert_bind_ok 0PP'),
-                    $source, $*W.get_ref($meta_attr.type))
+                    $source, QAST::WVal.new( :value($meta_attr.type) ))
             }
             else {
                 # Probably a lexical.
@@ -3833,7 +3833,7 @@ class QPerl6::Actions is HLL::Actions {
                     my $type := $*W.find_lexical_container_type($target.name);
                     $source := PAST::Op.new(
                         :pirop('perl6_assert_bind_ok 0PP'),
-                        $source, $*W.get_ref($type));
+                        $source, QAST::WVal.new( :value($type) ));
                     $was_lexical := 1;
                 }
                 unless $was_lexical {
@@ -3902,7 +3902,7 @@ class QPerl6::Actions is HLL::Actions {
         if $rhs.isa(PAST::Op) && $rhs.pasttype eq 'call' {
             if $rhs.name && +@($rhs) == 1 {
                 try {
-                    $past.push($*W.get_ref($*W.find_symbol([nqp::substr($rhs.name, 1)])));
+                    $past.push(QAST::WVal.new( :value($*W.find_symbol([nqp::substr($rhs.name, 1)])) ));
                     $rhs[0].named('value');
                     $past.push($rhs[0]);
                     CATCH { $past.push($rhs); }
@@ -3937,9 +3937,9 @@ class QPerl6::Actions is HLL::Actions {
         # Need various constants.
         my $zero  := $*W.add_numeric_constant('Int', 0);
         my $one   := $*W.add_numeric_constant('Int', 1);
-        my $nil   := $*W.get_ref($*W.find_symbol(['Nil']));
-        my $false := $*W.get_ref($*W.find_symbol(['Bool', 'False']));
-        my $true  := $*W.get_ref($*W.find_symbol(['Bool', 'True']));
+        my $nil   := QAST::WVal.new( :value($*W.find_symbol(['Nil'])) );
+        my $false := QAST::WVal.new( :value($*W.find_symbol(['Bool', 'False'])) );
+        my $true  := QAST::WVal.new( :value($*W.find_symbol(['Bool', 'True'])) );
         
         # Need a state variable to track the state.
         my %cont;
@@ -4247,7 +4247,7 @@ class QPerl6::Actions is HLL::Actions {
         }
         my $v := $*W.find_symbol(['Version']).new(|@vnums, :plus(?$/[0]));
         $*W.add_object($v);
-        make $*W.get_ref($v);
+        make QAST::WVal.new( :value($v) );
     }
 
     method decint($/) { make string_to_bigint( $/, 10); }
@@ -4584,7 +4584,8 @@ class QPerl6::Actions is HLL::Actions {
                 $throwaway_block
             ));
         make PAST::Op.new(:pasttype<callmethod>, :name<incarnate>,
-                          $*W.get_ref($quasi_ast), $quasi_context);
+                          QAST::WVal.new( :value($quasi_ast) ),
+                          $quasi_context);
     }
 
     method quote_escape:sym<$>($/) {
@@ -4769,7 +4770,7 @@ class QPerl6::Actions is HLL::Actions {
     }
 
     sub reference_to_code_object($code_obj, $past_block) {
-        my $ref := $*W.get_ref($code_obj);
+        my $ref := QAST::WVal.new( :value($code_obj) );
         $ref<past_block> := $past_block;
         $ref<code_object> := $code_obj;
         return $ref;
@@ -5154,7 +5155,7 @@ class QPerl6::Actions is HLL::Actions {
         try { $is_generic := $type.HOW.archetypes.generic }
         my $past := $is_generic ??
             $*W.symbol_lookup(@name, $/) !!
-            $*W.get_ref($type);
+            QAST::WVal.new( :value($type) );
         $past<has_compile_time_value> := 1;
         $past<compile_time_value> := $type;
         $past.type($type.WHAT);
@@ -5366,7 +5367,7 @@ class QPerl6::RegexActions is QRegex::P6Regex::Actions {
         }
         else {
             if +@parts {
-                my $gref := $*W.get_ref($*W.find_symbol(@parts));
+                my $gref := QAST::WVal.new( :value($*W.find_symbol(@parts)) );
                 $qast := QAST::Regex.new(:rxtype<subrule>, :subtype<capture>,
                                          :node($/), PAST::Node.new('OTHERGRAMMAR', $gref, $name),
                                          :name(~$<longname>) );

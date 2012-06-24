@@ -1,4 +1,5 @@
 use NQPHLL;
+use QAST;
 use Perl6::ModuleLoader;
 
 # Binder constants.
@@ -48,7 +49,7 @@ sub p6ize_recursive($x) {
 
 # This builds upon the HLL::World to add the specifics needed by Rakudo Perl 6.
 class QPerl6::World is HLL::World {
-    # The stack of lexical pads, actually as PAST::Block objects. The
+    # The stack of lexical pads, actually as QAST::Block objects. The
     # outermost frame is at the bottom, the latest frame is on top.
     has @!BLOCKS;
     
@@ -77,7 +78,7 @@ class QPerl6::World is HLL::World {
     # Creates a new lexical scope and puts it on top of the stack.
     method push_lexpad($/) {
         # Create pad, link to outer and add to stack.
-        my $pad := PAST::Block.new( PAST::Stmts.new(), :node($/) );
+        my $pad := QAST::Block.new( PAST::Stmts.new(), :node($/) );
         if +@!BLOCKS {
             $pad<outer> := @!BLOCKS[+@!BLOCKS - 1];
         }
@@ -95,9 +96,9 @@ class QPerl6::World is HLL::World {
         @!BLOCKS[+@!BLOCKS - 1]
     }
     
-    # Gets (and creates if needed) the static lexpad object for a PAST block.
+    # Gets (and creates if needed) the static lexpad object for a QAST block.
     method get_static_lexpad($pad) {
-        my $pad_id := $pad.subid();
+        my $pad_id := $pad.cuid();
         if nqp::existskey(%!sub_id_to_static_lexpad, $pad_id) {
             return %!sub_id_to_static_lexpad{$pad_id};
         }
@@ -117,8 +118,8 @@ class QPerl6::World is HLL::World {
             self.get_ref($slp));
         self.add_fixup_task(:deserialize_past($fixup), :fixup_past($fixup));
         
-        # Stash it under the PAST block sub ID.
-        %!sub_id_to_static_lexpad{$pad.subid()} := $slp;
+        # Stash it under the QAST block unique ID.
+        %!sub_id_to_static_lexpad{$pad.cuid()} := $slp;
         
         $slp
     }
@@ -232,12 +233,12 @@ class QPerl6::World is HLL::World {
     method import($package, $source_package_name) {
         # We'll do this in two passes, since at the start of CORE.setting we import
         # StaticLexPad, which of course we need to use when importing. Since we still
-        # keep the authoritative copy of stuff from the compiler's view in PAST::Block's
+        # keep the authoritative copy of stuff from the compiler's view in QAST::Block's
         # .symbol(...) hash we get away with this for now.
         my %stash := $package.WHO;
         my $target := self.cur_lexpad();
         
-        # First pass: PAST::Block symbol table installation. Also detect any
+        # First pass: QAST::Block symbol table installation. Also detect any
         # outright conflicts, and handle any situations where we need to merge.
         my %to_install;
         for %stash {
@@ -331,7 +332,7 @@ class QPerl6::World is HLL::World {
         pir::set_who__vP($thief, $victim.WHO);
     }
     
-    # Installs a lexical symbol. Takes a PAST::Block object, name and
+    # Installs a lexical symbol. Takes a QAST::Block object, name and
     # the object to install. Does an immediate installation in the
     # compile-time block symbol table, and ensures that the installation
     # gets fixed up at runtime too.
@@ -360,7 +361,7 @@ class QPerl6::World is HLL::World {
         1;
     }
     
-    # Installs a lexical symbol. Takes a PAST::Block object, name and
+    # Installs a lexical symbol. Takes a QAST::Block object, name and
     # the type of container to install.
     method install_lexical_container($block, $name, %cont_info, $descriptor, :$state) {
         # Add to block, if needed. Note that it doesn't really have
@@ -585,7 +586,7 @@ class QPerl6::World is HLL::World {
         $thunk();
     }
 
-    # turn a PAST into a code object, to be called immediately.
+    # Turn a QAST tree into a code object, to be called immediately.
     method create_thunk($/, $to_thunk) {
         my $block := self.push_lexpad($/);
         $block.push($to_thunk);
@@ -631,7 +632,7 @@ class QPerl6::World is HLL::World {
         nqp::bindattr($code, $code_type, '$!signature', $signature);
     }
     
-    # Takes a code object and the PAST::Block for its body.
+    # Takes a code object and the QAST::Block for its body.
     method finish_code_object($code, $code_past, $is_dispatcher = 0, :$yada) {
         my $fixups := PAST::Stmts.new();
         my $des    := PAST::Stmts.new();
@@ -647,11 +648,11 @@ class QPerl6::World is HLL::World {
         my $routine_type := self.find_symbol(['Routine']);
         my $slp_type     := self.find_symbol(['StaticLexPad']);
         
-        # Attach code object to PAST node.
+        # Attach code object to QAST node.
         $code_past<code_object> := $code;
         
-        # Stash it under the PAST block sub ID.
-        %!sub_id_to_code_object{$code_past.subid()} := $code;
+        # Stash it under the QAST block unique ID.
+        %!sub_id_to_code_object{$code_past.cuid()} := $code;
         
         # For now, install stub that will dynamically compile the code if
         # we ever try to run it during compilation.
@@ -690,7 +691,7 @@ class QPerl6::World is HLL::World {
         pir::setprop__vPsP($stub, 'STATIC_CODE_REF', $stub);
         pir::setprop__vPsP($stub, 'COMPILER_STUB', $stub);
         my $code_ref_idx := self.add_root_code_ref($stub, $code_past);
-        %!sub_id_to_sc_idx{$code_past.subid()} := $code_ref_idx;
+        %!sub_id_to_sc_idx{$code_past.cuid()} := $code_ref_idx;
         
         # If we clone the stub, need to mark it as a dynamic compilation
         # boundary.
@@ -734,7 +735,7 @@ class QPerl6::World is HLL::World {
                 });
             }
 
-			# Attach the PAST block to the stub.
+			# Attach the QAST block to the stub.
 			pir::setprop__vPsP($stub, 'PAST_BLOCK', $code_past);
         }
         
@@ -805,7 +806,7 @@ class QPerl6::World is HLL::World {
                         ),
                         $type
                     ),
-                    PAST::Block.new(
+                    QAST::Block.new(
                         :blocktype('immediate'),
                         PAST::Op.new(
                             :pasttype('call'),
@@ -924,13 +925,13 @@ class QPerl6::World is HLL::World {
         $scalar;
     }
     
-    # Takes a PAST::Block and compiles it for running during "compile time".
+    # Takes a QAST::Block and compiles it for running during "compile time".
     # We need to do this for BEGIN but also for things that get called in
     # the compilation process, like user defined traits.
     method compile_in_context($past, $code_type, $slp_type) {
         # Ensure that we have the appropriate op libs loaded and correct
         # HLL.
-        my $wrapper := PAST::Block.new(PAST::Stmts.new(), $past);
+        my $wrapper := QAST::Block.new(PAST::Stmts.new(), $past);
         self.add_libs($wrapper);
         $wrapper.hll('perl6');
         $wrapper.namespace('');
@@ -1625,7 +1626,7 @@ class QPerl6::World is HLL::World {
             if +@name > 1 {
                 my @restname := nqp::clone(@name);
                 @restname.shift;
-                return self.already_declared('our', $first_sym, PAST::Block.new(), @restname);
+                return self.already_declared('our', $first_sym, QAST::Block.new(), @restname);
             }
             else {
                 return $first_sym.HOW.HOW.name($first_sym.HOW) ne 'Perl6::Metamodel::PackageHOW';

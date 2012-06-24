@@ -2,6 +2,7 @@ use NQPP6QRegex;
 use QPerl6::Pod;
 use QPerl6::ConstantFolder;
 use QRegex;
+use QAST;
 use PASTRegex; # For PAST
 
 INIT {
@@ -1332,7 +1333,7 @@ class QPerl6::Actions is HLL::Actions {
             # do this we make a list of closures, which each point to the
             # outer context. These surive serialization and thus point at
             # what has to be fixed up.
-            my $throwaway_block_past := PAST::Block.new( 
+            my $throwaway_block_past := QAST::Block.new( 
                 :blocktype('declaration'),
                 PAST::Var.new( :name('$_'), :scope('lexical'), :isdecl(1) )
             );
@@ -2160,10 +2161,10 @@ class QPerl6::Actions is HLL::Actions {
         if +$block[1].list == 1 && $block[1][0].isa(PAST::Stmt) && +$block[1][0].list == 1 {
             # Ensure there's no nested blocks.
             for @($block[0]) {
-                if $_.isa(PAST::Block) { return 0; }
+                if $_.isa(QAST::Block) { return 0; }
                 if $_.isa(PAST::Stmts) {
                     for @($_) {
-                        if $_.isa(PAST::Block) { return 0; }
+                        if $_.isa(QAST::Block) { return 0; }
                     }
                 }
             }
@@ -3185,7 +3186,7 @@ class QPerl6::Actions is HLL::Actions {
                 # XXX: Need to awesomeize with which type it got
                 $/.CURSOR.panic('Macro did not return AST');
             }
-            my $past := PAST::Block.new(
+            my $past := QAST::Block.new(
                 :blocktype<immediate>,
                 :lexical(0),
                 nqp::getattr(pir::perl6_decontainerize__PP($quasi_ast),
@@ -3290,7 +3291,7 @@ class QPerl6::Actions is HLL::Actions {
                     # XXX: Need to awesomeize with which type it got
                     $/.CURSOR.panic('Macro did not return AST');
                 }
-                $past := PAST::Block.new(
+                $past := QAST::Block.new(
                     :blocktype<immediate>,
                     :lexical(0),
                     nqp::getattr(pir::perl6_decontainerize__PP($quasi_ast),
@@ -3663,7 +3664,7 @@ class QPerl6::Actions is HLL::Actions {
                     # XXX: Need to awesomeize with which type it got
                     $/.CURSOR.panic('Macro did not return AST');
                 }
-                my $past := PAST::Block.new(
+                my $past := QAST::Block.new(
                     :blocktype<immediate>,
                     :lexical(0),
                     nqp::getattr(pir::perl6_decontainerize__PP($quasi_ast),
@@ -3722,7 +3723,7 @@ class QPerl6::Actions is HLL::Actions {
         for @stages {
             # Wrap current result in a block, so it's thunked and can be
             # called at the right point.
-            $result := PAST::Block.new( $result );
+            $result := QAST::Block.new( $result );
 
             # Check what we have. XXX Real first step should be looking
             # for @(*) since if we find that it overrides all other things.
@@ -4481,7 +4482,7 @@ class QPerl6::Actions is HLL::Actions {
         );
     }
     method quote:sym</ />($/) {
-        my $block := PAST::Block.new(PAST::Stmts.new, PAST::Stmts.new, :node($/));
+        my $block := QAST::Block.new(PAST::Stmts.new, PAST::Stmts.new, :node($/));
         my $coderef := regex_coderef($/, $*W.stub_code_object('Regex'),
             $<p6regex>.ast, 'anon', '', [], $block, :use_outer_match(1));
         # Return closure if not in sink context.
@@ -4491,14 +4492,14 @@ class QPerl6::Actions is HLL::Actions {
     }
 
     method quote:sym<rx>($/) {
-        my $block := PAST::Block.new(PAST::Stmts.new, PAST::Stmts.new, :node($/));
+        my $block := QAST::Block.new(PAST::Stmts.new, PAST::Stmts.new, :node($/));
         self.handle_and_check_adverbs($/, %SHARED_ALLOWED_ADVERBS, 'rx', $block);
         my $coderef := regex_coderef($/, $*W.stub_code_object('Regex'),
             $<p6regex>.ast, 'anon', '', [], $block, :use_outer_match(1));
         make block_closure($coderef);
     }
     method quote:sym<m>($/) {
-        my $block := PAST::Block.new(PAST::Stmts.new, PAST::Stmts.new, :node($/));
+        my $block := QAST::Block.new(PAST::Stmts.new, PAST::Stmts.new, :node($/));
         my $coderef := regex_coderef($/, $*W.stub_code_object('Regex'),
             $<p6regex>.ast, 'anon', '', [], $block, :use_outer_match(1));
 
@@ -4542,7 +4543,7 @@ class QPerl6::Actions is HLL::Actions {
     method quote:sym<s>($/) {
         # Build the regex.
 
-        my $rx_block := PAST::Block.new(PAST::Stmts.new, PAST::Stmts.new, :node($/));
+        my $rx_block := QAST::Block.new(PAST::Stmts.new, PAST::Stmts.new, :node($/));
         my $rx_coderef := regex_coderef($/, $*W.stub_code_object('Regex'),
             $<p6regex>.ast, 'anon', '', [], $rx_block, :use_outer_match(1));
 
@@ -4578,7 +4579,7 @@ class QPerl6::Actions is HLL::Actions {
         my $quasi_ast := $ast_class.new();
         nqp::bindattr($quasi_ast, $ast_class, '$!past', $<block>.ast<past_block>[1]);
         $*W.add_object($quasi_ast);
-        my $throwaway_block := PAST::Block.new();
+        my $throwaway_block := QAST::Block.new();
         my $quasi_context := block_closure(
             reference_to_code_object(
                 $*W.create_simple_code_object($throwaway_block, 'Block'),
@@ -4797,7 +4798,7 @@ class QPerl6::Actions is HLL::Actions {
     }
 
     sub make_topic_block_ref($past, :$copy) {
-        my $block := PAST::Block.new(
+        my $block := QAST::Block.new(
             PAST::Stmts.new(
                 PAST::Var.new( :name('$_'), :scope('lexical_6model'), :isdecl(1) )
             ),
@@ -4824,7 +4825,7 @@ class QPerl6::Actions is HLL::Actions {
 
         # Build a block that'll smartmatch the topic against the
         # expression.
-        my $past := PAST::Block.new(
+        my $past := QAST::Block.new(
             PAST::Stmts.new(
                 PAST::Var.new( :name('$_'), :scope('lexical_6model'), :isdecl(1) )
             ),
@@ -5089,7 +5090,7 @@ class QPerl6::Actions is HLL::Actions {
         if $whatevers {
             my $i := 0;
             my @params;
-            my $block := PAST::Block.new(PAST::Stmts.new(), $past);
+            my $block := QAST::Block.new(PAST::Stmts.new(), $past);
             $*W.cur_lexpad()[0].push($block);
             while $i < $upto_arity {
                 my $old := $past[$i];

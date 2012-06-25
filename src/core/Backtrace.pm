@@ -104,6 +104,7 @@ my class Backtrace is List {
                     while $oneline && $i.defined
                           && self.at_pos($i).is-setting;
 
+                last unless $i.defined;
                 my $prev = self.at_pos($i);
                 if $prev.is-routine {
                     @frames.push: $prev;
@@ -121,7 +122,7 @@ my class Backtrace is List {
             return @frames.join;
             CATCH {
                 default {
-                    return "<Internal error while creating backtrace: $_.message().\n"
+                    return "<Internal error while creating backtrace: $_.message() $_.backtrace.full().\n"
                         ~ "Please report this as a bug (mail to rakudobug@perl.org)\n", 
                         ~ "and re-run with the --ll-exception command line option\n"
                         ~ "to get more information about your error>";

@@ -199,9 +199,9 @@ class QPerl6::Actions is HLL::Actions {
             QAST::Op.new(:op<callmethod>, :name<map>,
                 PAST::Op.new( :name<&flat>,
                     PAST::Op.new(:name<&flat>,
-                        PAST::Op.new(
+                        QAST::Op.new(
                             :name<&lines>,
-                            :pasttype<call>
+                            :op<call>
                         )
                     )
                 ),
@@ -217,7 +217,7 @@ class QPerl6::Actions is HLL::Actions {
         return wrap_option_n_code($/,
             QAST::Stmts.new(
                 $code,
-                PAST::Op.new(:name<&say>, :pasttype<call>,
+                QAST::Op.new(:name<&say>, :op<call>,
                     PAST::Var.new(:name<$_>)
                 )
             )
@@ -276,8 +276,8 @@ class QPerl6::Actions is HLL::Actions {
 
         # If the unit defines &MAIN, add a &MAIN_HELPER.
         if $unit.symbol('&MAIN') {
-            $mainline := PAST::Op.new(
-                :pasttype('call'),
+            $mainline := QAST::Op.new(
+                :op('call'),
                 :name('&MAIN_HELPER'),
                 $mainline,
             );
@@ -299,7 +299,7 @@ class QPerl6::Actions is HLL::Actions {
         $outer.push(
             PAST::Op.new(
                 :pirop('return'),
-                PAST::Op.new( :pasttype<call>, $unit )
+                QAST::Op.new( :op<call>, $unit )
             )
         );
 
@@ -309,8 +309,8 @@ class QPerl6::Actions is HLL::Actions {
         $outer.push(
             PAST::Block.new(
                 :pirflags(':load'), :lexical(0), :namespace(''),
-                PAST::Op.new(
-                    :pasttype('call'),
+                QAST::Op.new(
+                    :op('call'),
                     QAST::BVal.new( :value($outer) ),
                 )
             )
@@ -340,8 +340,8 @@ class QPerl6::Actions is HLL::Actions {
             );
 
             $block.push(
-                PAST::Op.new(
-                    :pasttype<call>, :node($/),
+                QAST::Op.new(
+                    :op<call>, :node($/),
                     :name('&say'), $pod2text,
                 ),
             );
@@ -350,10 +350,10 @@ class QPerl6::Actions is HLL::Actions {
             # once it's known at compile time
 
             $block.push(
-                PAST::Op.new(
-                    :pasttype<call>, :node($/),
+                QAST::Op.new(
+                    :op<call>, :node($/),
                     :name('&exit'),
-                ),
+                )
             );
 
             $*W.pop_lexpad();
@@ -551,8 +551,8 @@ class QPerl6::Actions is HLL::Actions {
             if $ml {
                 my $cond := $ml<smexpr>.ast;
                 if ~$ml<sym> eq 'given' {
-                    $past := PAST::Op.new(
-                        :pasttype('call'),
+                    $past := QAST::Op.new(
+                        :op('call'),
                         make_topic_block_ref($past),
                         $cond
                     );
@@ -849,7 +849,7 @@ class QPerl6::Actions is HLL::Actions {
              my $arglist     := nqp::getattr($p6_arglist, $*W.find_symbol(['List']), '$!items');
              my $lexpad      := $*W.cur_lexpad();
              my $*SCOPE      := 'my';
-             my $import_past := PAST::Op.new(:node($/), :pasttype<call>,
+             my $import_past := QAST::Op.new(:node($/), :op<call>,
                                 :name<&REQUIRE_IMPORT>,
                                 $name_past);
              for $arglist {
@@ -869,7 +869,7 @@ class QPerl6::Actions is HLL::Actions {
     method statement_control:sym<given>($/) {
         my $past := $<xblock>.ast;
         $past.push($past.shift); # swap [0] and [1] elements
-        $past.pasttype('call');
+        $past.op('call');
         make $past;
     }
 
@@ -944,12 +944,12 @@ class QPerl6::Actions is HLL::Actions {
     }
 
     method statement_prefix:sym<do>($/) {
-        make PAST::Op.new( :pasttype('call'), $<blorst>.ast );
+        make QAST::Op.new( :op('call'), $<blorst>.ast );
     }
 
     method statement_prefix:sym<gather>($/) {
         my $past := block_closure($<blorst>.ast);
-        make PAST::Op.new( :pasttype('call'), :name('&GATHER'), $past );
+        make QAST::Op.new( :op('call'), :name('&GATHER'), $past );
     }
 
     method statement_prefix:sym<sink>($/) {
@@ -966,16 +966,16 @@ class QPerl6::Actions is HLL::Actions {
         my $past;
         if has_block_handler($block<past_block>, 'CONTROL', :except(1)) {
             # we already have a CATCH block, nothing to do here
-            $past := PAST::Op.new( :pasttype('call'), $block );
+            $past := QAST::Op.new( :op('call'), $block );
         } else {
-            $block := PAST::Op.new(:pasttype<call>, $block); # XXX should be immediate
+            $block := QAST::Op.new(:op<call>, $block); # XXX should be immediate
             $past := PAST::Op.new( :pasttype('try'), :handle_types_except('CONTROL'), $block );
 
             # On failure, capture the exception object into $!.
             $past.push(
                 PAST::Op.new(:pirop('perl6_container_store__0PP'),
                     PAST::Var.new(:name<$!>, :scope<lexical_6model>),
-                    PAST::Op.new(:name<&EXCEPTION>, :pasttype<call>,
+                    QAST::Op.new(:name<&EXCEPTION>, :op<call>,
                         PAST::Op.new(:inline("    .get_results (%r)\n    \$P0 = null\n    perl6_invoke_catchhandler \$P0, %r")))));
 
             # Otherwise, put Mu into $!.
@@ -1136,9 +1136,9 @@ class QPerl6::Actions is HLL::Actions {
     sub make_variable_from_parts($/, @name, $sigil, $twigil, $desigilname) {
         my $past := PAST::Var.new( :name(@name[+@name - 1]), :node($/));
         if $twigil eq '*' {
-            $past := PAST::Op.new(
+            $past := QAST::Op.new(
                 $*W.add_string_constant($past.name()),
-                :pasttype('call'), :name('&DYNAMIC'), :lvalue(0) );
+                :op('call'), :name('&DYNAMIC'), :lvalue(0) );
         }
         elsif $twigil eq '!' {
             # In a declaration, don't produce anything here.
@@ -1433,7 +1433,7 @@ class QPerl6::Actions is HLL::Actions {
         elsif $<signature> {
             # Go over the params and declare the variable defined
             # in them.
-            my $list   := PAST::Op.new( :pasttype('call'), :name('&infix:<,>') );
+            my $list   := QAST::Op.new( :op('call'), :name('&infix:<,>') );
             my @params := $<signature>.ast;
             for @params {
                 if $_<variable_name> {
@@ -3220,8 +3220,8 @@ class QPerl6::Actions is HLL::Actions {
     }
 
     method make_indirect_lookup(@components, $sigil?) {
-        my $past := PAST::Op.new(
-            :pasttype<call>,
+        my $past := QAST::Op.new(
+            :op<call>,
             :name<&INDIRECT_NAME_LOOKUP>,
             QAST::Op.new(
                 :op<callmethod>, :name<new>,
@@ -3423,7 +3423,7 @@ class QPerl6::Actions is HLL::Actions {
         if    $<semiarglist> { $past := $<semiarglist>.ast; }
         elsif $<arglist>     { $past := $<arglist>.ast; }
         else {
-            $past := PAST::Op.new( :pasttype('call'), :node($/) );
+            $past := QAST::Op.new( :op('call'), :node($/) );
         }
         make $past;
     }
@@ -3433,7 +3433,7 @@ class QPerl6::Actions is HLL::Actions {
             make $<arglist>[0].ast;
         }
         else {
-            my $past := PAST::Op.new( :pasttype('call'), :node($/) );
+            my $past := QAST::Op.new( :op('call'), :node($/) );
             for $<arglist> {
                 my $ast := $_.ast;
                 $ast.name('&infix:<,>');
@@ -3444,7 +3444,7 @@ class QPerl6::Actions is HLL::Actions {
     }
 
     method arglist($/) {
-        my $past := PAST::Op.new( :pasttype('call'), :node($/) );        
+        my $past := QAST::Op.new( :op('call'), :node($/) );        
         if $<EXPR> {
             # Make first pass over arguments, finding any duplicate named
             # arguments.
@@ -3553,8 +3553,8 @@ class QPerl6::Actions is HLL::Actions {
         }
         if $is_hash && $past<past_block>.arity == 0 {
             my @children := @($past<past_block>[1]);
-            $past := PAST::Op.new(
-                :pasttype('call'),
+            $past := QAST::Op.new(
+                :op('call'),
                 :name('&circumfix:<{ }>'),
                 :node($/)
             );
@@ -3564,8 +3564,8 @@ class QPerl6::Actions is HLL::Actions {
         }
         else {
             $past := block_closure($past);
-            $past<bare_block> := PAST::Op.new(
-                :pasttype('call'),
+            $past<bare_block> := QAST::Op.new(
+                :op('call'),
                 QAST::BVal.new( :value($past<past_block>) ));
         }
         make $past;
@@ -3728,10 +3728,10 @@ class QPerl6::Actions is HLL::Actions {
             # Check what we have. XXX Real first step should be looking
             # for @(*) since if we find that it overrides all other things.
             # But that's todo...soon. :-)
-            if $_ ~~ PAST::Op && $_.pasttype eq 'call' {
+            if $_.isa(QAST::Op) && $_.op eq 'call' {
                 # It's a call. Stick a call to the current supplier in
                 # as its last argument.
-                $_.push(PAST::Op.new( :pasttype('call'), $result ));
+                $_.push(QAST::Op.new( :op('call'), $result ));
             }
             elsif $_ ~~ PAST::Var {
                 # It's a variable. We need code that gets the results, pushes
@@ -3741,7 +3741,7 @@ class QPerl6::Actions is HLL::Actions {
                     PAST::Op.new(
                         :pasttype('bind_6model'),
                         PAST::Var.new( :scope('register'), :name('tmp'), :isdecl(1) ),
-                        PAST::Op.new( :pasttype('call'), $result )
+                        QAST::Op.new( :op('call'), $result )
                     ),
                     QAST::Op.new(
                         :op('callmethod'), :name('push'),
@@ -3896,10 +3896,10 @@ class QPerl6::Actions is HLL::Actions {
     
     sub mixin_op($/, $sym) {
         my $rhs  := $/[1].ast;
-        my $past := PAST::Op.new(
-            :pasttype('call'), :name('&infix:<' ~ $sym ~ '>'),
+        my $past := QAST::Op.new(
+            :op('call'), :name('&infix:<' ~ $sym ~ '>'),
             $/[0].ast);
-        if $rhs.isa(PAST::Op) && $rhs.pasttype eq 'call' {
+        if $rhs.isa(QAST::Op) && $rhs.op eq 'call' {
             if $rhs.name && +@($rhs) == 1 {
                 try {
                     $past.push(QAST::WVal.new( :value($*W.find_symbol([nqp::substr($rhs.name, 1)])) ));
@@ -4012,8 +4012,8 @@ class QPerl6::Actions is HLL::Actions {
                         PAST::Op.new(
                             :pasttype('bind'),
                             PAST::Var.new( :name($id ~ '_orig'), :scope('register'), :isdecl(1) ),
-                            PAST::Op.new(
-                                :pasttype('call'), :name('&prefix:<++>'),
+                            QAST::Op.new(
+                                :op('call'), :name('&prefix:<++>'),
                                 PAST::Var.new( :name($state), :scope('lexical_6model') )
                             )
                         ),
@@ -4028,8 +4028,8 @@ class QPerl6::Actions is HLL::Actions {
                         )
                     )),
                 QAST::Stmts.new(
-                    PAST::Op.new(
-                        :pasttype('call'), :name('&prefix:<++>'),
+                    QAST::Op.new(
+                        :op('call'), :name('&prefix:<++>'),
                         PAST::Var.new( :name($state), :scope('lexical_6model') )
                     )
                 )
@@ -4064,9 +4064,9 @@ class QPerl6::Actions is HLL::Actions {
 
     method prefixish($/) {
         if $<prefix_postfix_meta_operator> {
-            make PAST::Op.new( :node($/),
+            make QAST::Op.new( :node($/),
                      :name<&METAOP_HYPER_PREFIX>,
-                     :pasttype<call>,
+                     :op<call>,
                      PAST::Var.new( :name('&prefix:<' ~ $<OPER>.Str ~ '>'),
                                     :scope<lexical_6model> ));
         }
@@ -4081,12 +4081,12 @@ class QPerl6::Actions is HLL::Actions {
                               !! PAST::Var.new(:name("&infix:<$basesym>"),
                                                :scope<lexical_6model>);
             if $basesym eq '||' || $basesym eq '&&' || $basesym eq '//' {
-                make PAST::Op.new( :pasttype<call>,
+                make QAST::Op.new( :op<call>,
                         :name('&METAOP_TEST_ASSIGN:<' ~ $basesym ~ '>') );
             }
             else {
-                make PAST::Op.new( :node($/),
-                        PAST::Op.new( :pasttype<call>,
+                make QAST::Op.new( :node($/),
+                        QAST::Op.new( :op<call>,
                             :name<&METAOP_ASSIGN>, $basepast ));
 
             }
@@ -4106,8 +4106,8 @@ class QPerl6::Actions is HLL::Actions {
             elsif $metasym eq 'X' { $helper := '&METAOP_CROSS'; }
             elsif $metasym eq 'Z' { $helper := '&METAOP_ZIP'; }
 
-            make PAST::Op.new( :node($/),
-                     PAST::Op.new( :pasttype<call>,
+            make QAST::Op.new( :node($/),
+                     QAST::Op.new( :op<call>,
                          :name($helper), $basepast ));
         }
 
@@ -4127,7 +4127,7 @@ class QPerl6::Actions is HLL::Actions {
         elsif $base<OPER><O><assoc> eq 'list'   { $metaop := '&METAOP_REDUCE_LIST'  }
         elsif $base<OPER><O><prec> eq 'm='      { $metaop := '&METAOP_REDUCE_CHAIN' }
         elsif $base<OPER><O><pasttype> eq 'xor' { $metaop := '&METAOP_REDUCE_XOR' }
-        my $metapast := PAST::Op.new( :pasttype<call>, :name($metaop), $basepast);
+        my $metapast := QAST::Op.new( :op<call>, :name($metaop), $basepast);
         if $<triangle> {
             my $tri := $*W.add_constant('Int', 'int', 1);
             $tri.named('triangle');
@@ -4135,7 +4135,7 @@ class QPerl6::Actions is HLL::Actions {
         }
         my $args := $<args>.ast;
         $args.name('&infix:<,>');
-        make PAST::Op.new(:node($/), :pasttype<call>, $metapast, $args);
+        make QAST::Op.new(:node($/), :op<call>, $metapast, $args);
     }
 
     method infix_circumfix_meta_operator:sym«<< >>»($/) {
@@ -4153,7 +4153,7 @@ class QPerl6::Actions is HLL::Actions {
                           ?? $base.ast[0]
                           !! PAST::Var.new(:name("&infix:<$basesym>"),
                                            :scope<lexical_6model>);
-        my $hpast    := PAST::Op.new(:pasttype<call>, :name<&METAOP_HYPER>, $basepast);
+        my $hpast    := QAST::Op.new(:op<call>, :name<&METAOP_HYPER>, $basepast);
         if $<opening> eq '<<' || $<opening> eq '«' {
             my $dwim := $*W.add_constant('Int', 'int', 1);
             $dwim.named('dwim-left');
@@ -4169,13 +4169,13 @@ class QPerl6::Actions is HLL::Actions {
 
     method postfixish($/) {
         if $<postfix_prefix_meta_operator> {
-            my $past := $<OPER>.ast || PAST::Op.new( :name('&postfix:<' ~ $<OPER>.Str ~ '>'),
-                                                     :pasttype<call> );
+            my $past := $<OPER>.ast || QAST::Op.new( :name('&postfix:<' ~ $<OPER>.Str ~ '>'),
+                                                     :op<call> );
             if $past.isa(QAST::Op) && $past.op() eq 'callmethod' {
                 $past.unshift($past.name());
                 $past.name('dispatch:<hyper>');
             }
-            elsif $past.isa(PAST::Op) && $past.pasttype() eq 'call' {
+            elsif $past.isa(QAST::Op) && $past.op() eq 'call' {
                 if $<dotty> {
                     $past.name('&METAOP_HYPER_CALL');
                 }
@@ -4312,7 +4312,7 @@ class QPerl6::Actions is HLL::Actions {
     method rad_number($/) {
         my $radix    := +($<radix>.Str);
         if $<circumfix> {
-            make PAST::Op.new(:name('&unbase'), :pasttype('call'),
+            make QAST::Op.new(:name('&unbase'), :op('call'),
                 $*W.add_numeric_constant('Int', $radix), $<circumfix>.ast);
         } else {
             my $intpart  := $<intpart>.Str;
@@ -4470,12 +4470,12 @@ class QPerl6::Actions is HLL::Actions {
         make PAST::Op.new( :inline( $pir ), :pasttype('inline'), :node($/) );
     }
     method quote:sym<qx>($/) {
-        make PAST::Op.new( :name('&QX'), :pasttype('call'),
+        make QAST::Op.new( :name('&QX'), :op('call'),
             $<quote_EXPR>.ast
         );
     }
     method quote:sym<qqx>($/)  {
-        make PAST::Op.new( :name('&QX'), :pasttype('call'),
+        make QAST::Op.new( :name('&QX'), :op('call'),
             $<quote_EXPR>.ast
         );
     }
@@ -4561,9 +4561,9 @@ class QPerl6::Actions is HLL::Actions {
         }
         $past.push(QAST::IVal.new(:named('SET_CALLER_DOLLAR_SLASH'), :value(1)));
 
-        $past := PAST::Op.new(
+        $past := QAST::Op.new(
             :node($/),
-            :pasttype('call'),
+            :op('call'),
             :name('&infix:<=>'),
             PAST::Var.new(:name('$_'), :scope('lexical_6model')),
             $past
@@ -4614,7 +4614,7 @@ class QPerl6::Actions is HLL::Actions {
         }
         my $nab_back := nqp::substr($/, $pos + 1);
         if $nab_back {
-            PAST::Op.new( :pasttype('call'), :name('&infix:<~>'), $expr, $*W.add_string_constant(~$nab_back) )
+            QAST::Op.new( :op('call'), :name('&infix:<~>'), $expr, $*W.add_string_constant(~$nab_back) )
         }
         else {
             $expr
@@ -4672,8 +4672,8 @@ class QPerl6::Actions is HLL::Actions {
         }
         my $past := @parts ?? @parts.shift !! $*W.add_string_constant('');
         while @parts {
-            $past := PAST::Op.new(
-                :pasttype('call'), :name('&infix:<~>'),
+            $past := QAST::Op.new(
+                :op('call'), :name('&infix:<~>'),
                 $past, @parts.shift
             );
         }
@@ -4872,13 +4872,13 @@ class QPerl6::Actions is HLL::Actions {
 
         # if this is not an immediate block create a call
         if ($when_block<past_block>) {
-            $when_block := PAST::Op.new( :pasttype('call'), $when_block);
+            $when_block := QAST::Op.new( :op('call'), $when_block);
         }
 
         # call succeed with the block return value, succeed will throw
         # a BREAK exception to be caught by the above handler
-        my $result := PAST::Op.new(
-            :pasttype('call'),
+        my $result := QAST::Op.new(
+            :op('call'),
             :name('&succeed'),
             $when_block,
         );
@@ -5094,7 +5094,7 @@ class QPerl6::Actions is HLL::Actions {
             while $i < $upto_arity {
                 my $old := $past[$i];
                 if $old.returns eq 'WhateverCode' {
-                    my $new := PAST::Op.new( :pasttype<call>, :node($/), $old);
+                    my $new := QAST::Op.new( :op<call>, :node($/), $old);
                     my $acount := 0;
                     while $acount < $old.arity {
                         my $pname := '$x' ~ (+@params);
@@ -5420,7 +5420,7 @@ class QPerl6::RegexActions is QRegex::P6Regex::Actions {
                         :op('callmethod')
                     )
                 ),
-                PAST::Op.new(:pasttype<call>, $blockref)
+                QAST::Op.new(:op<call>, $blockref)
             );
         make $past;
     }

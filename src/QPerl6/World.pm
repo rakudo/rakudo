@@ -808,8 +808,8 @@ class QPerl6::World is HLL::World {
                     ),
                     QAST::Block.new(
                         :blocktype('immediate'),
-                        PAST::Op.new(
-                            :pasttype('call'),
+                        QAST::Op.new(
+                            :op('call'),
                             PAST::Var.new( :scope('parameter'), :name('$_') )
                         )))
             }
@@ -1302,8 +1302,8 @@ class QPerl6::World is HLL::World {
             return $result_node;
         }
         elsif $phaser eq 'INIT' {
-            $*UNIT[0].push(PAST::Op.new(
-                :pasttype('call'),
+            $*UNIT[0].push(QAST::Op.new(
+                :op('call'),
                 QAST::WVal.new( :value($block) )
             ));
             # XXX should keep value for r-value usage
@@ -1337,7 +1337,7 @@ class QPerl6::World is HLL::World {
                 PAST::Op.new(
                     :pirop('perl6_container_store__0PP'),
                     PAST::Var.new( :name($sym), :scope('lexical_6model') ),
-                    PAST::Op.new( :pasttype('call'), QAST::WVal.new( :value($block) ) )
+                    QAST::Op.new( :op('call'), QAST::WVal.new( :value($block) ) )
                 ),
                 PAST::Var.new( :name($sym), :scope('lexical_6model') ));
         }
@@ -1815,8 +1815,8 @@ class QPerl6::World is HLL::World {
     
     method lookup_failure($orig_name) {
         my $msg := "Could not find symbol '$orig_name'";
-        return PAST::Op.new(
-            :pasttype('call'), :name('&die'),
+        return QAST::Op.new(
+            :op('call'), :name('&die'),
             self.add_constant('Str', 'str', $msg)
         );
     }

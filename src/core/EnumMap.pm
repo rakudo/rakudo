@@ -40,7 +40,7 @@ my class EnumMap does Associative {
     }
 
     multi method perl(EnumMap:D:) {
-        'EnumMap.new('
+        self.^name ~ '.new('
             ~ self.keys.map({ .perl ~ ', ' ~ self.at_key($_).perl ~ ', '}).join
             ~ ')';
     }

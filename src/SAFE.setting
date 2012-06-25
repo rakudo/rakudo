@@ -1,3 +1,5 @@
+# SAFE.setting is deprecated, use RESTRICTED.setting instead.
+
 sub restricted($what) {
     die "$what is disallowed in safe mode"
 }

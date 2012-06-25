@@ -79,9 +79,13 @@ PERL6_M_PBC   = blib/Perl6/Metamodel.pbc
 PERL6_B       = src/gen/perl6-bootstrap.pir
 PERL6_B_PBC   = blib/Perl6/BOOTSTRAP.pbc
 SETTING_PIR   = src/gen/CORE.setting.pir
-SETTING       = CORE.setting.pbc
+SETTING_PBC   = CORE.setting.pbc
+R_SETTING_SRC = src/RESTRICTED.setting
+R_SETTING_PIR = src/gen/RESTRICTED.setting.pir
+R_SETTING_PBC = RESTRICTED.setting.pbc
+S_SETTING_SRC = src/SAFE.setting
 S_SETTING_PIR = src/gen/SAFE.setting.pir
-S_SETTING     = SAFE.setting.pbc
+S_SETTING_PBC = SAFE.setting.pbc
 GROUP         = perl6_group
 OPS           = perl6_ops
 DYNEXT_DYNPMC = $(DYNEXT_DIR)/$(GROUP)$(LOAD_EXT)
@@ -244,6 +248,9 @@ CLEANUPS = \
   *.pdb \
   $(PERL6_PBC) \
   $(PERL6_EXE) \
+  $(SETTING_PBC) \
+  $(R_SETTING_PBC) \
+  $(S_SETTING_PBC) \
   $(PARROT_DLL_COPY) \
   perl6.c \
   perl6$(O) \
@@ -272,8 +279,6 @@ CLEANUPS = \
   $(OPS_DIR)/*$(O) \
   $(OPS_DIR)/*$(LOAD_EXT) \
   src/binder/*$(O) \
-  CORE.setting.pbc \
-  SAFE.setting.pbc \
 
 # NOTE: eventually, we should remove --keep-exit-code and --fudge
 #       as the goal is that all tests must pass without fudge
@@ -282,7 +287,7 @@ HARNESS_WITH_FUDGE = $(PERL) t/harness --fudge --keep-exit-code --icu=$(HAS_ICU)
 STAGESTATS = @stagestats@
 
 # the default target, TODO: make libraries in 'lib' a variable.
-all: check-versions $(PERL6_EXE) $(SETTING) $(S_SETTING) lib/lib.pir lib/Test.pir lib/Pod/To/Text.pir
+all: check-versions $(PERL6_EXE) $(SETTING_PBC) $(R_SETTING_PBC) $(S_SETTING_PBC) lib/lib.pir lib/Test.pir lib/Pod/To/Text.pir
 
 # the install target
 install: all
@@ -298,15 +303,16 @@ install: all
 	$(CP) $(PERL6_M_PBC)          $(DESTDIR)$(NQP_LANG_DIR)/lib/Perl6/Metamodel.pbc
 	$(CP) $(PERL6_B_PBC)          $(DESTDIR)$(NQP_LANG_DIR)/lib/Perl6/BOOTSTRAP.pbc
 	$(MKPATH)                     $(DESTDIR)$(PERL6_LANG_DIR)/lib
-	$(CP)     perl6.pbc           $(DESTDIR)$(PERL6_LANG_DIR)
+	$(CP)     $(PERL6_PBC)        $(DESTDIR)$(PERL6_LANG_DIR)
+	$(CP)     $(SETTING_PBC)      $(DESTDIR)$(PERL6_LANG_DIR)/lib
+	$(CP)     $(R_SETTING_PBC)    $(DESTDIR)$(PERL6_LANG_DIR)/lib
+	$(CP)     $(S_SETTING_PBC)    $(DESTDIR)$(PERL6_LANG_DIR)/lib
 	$(CP)     lib/Test.pm         $(DESTDIR)$(PERL6_LANG_DIR)/lib
 	$(CP)     lib/Test.pir        $(DESTDIR)$(PERL6_LANG_DIR)/lib
 	$(CP)     lib/lib.pm          $(DESTDIR)$(PERL6_LANG_DIR)/lib
 	$(CP)     lib/lib.pir         $(DESTDIR)$(PERL6_LANG_DIR)/lib
 	$(MKPATH) 					  $(DESTDIR)$(PERL6_LANG_DIR)/lib/Pod/To
 	$(CP)     lib/Pod/To/Text.pm  $(DESTDIR)$(PERL6_LANG_DIR)/lib/Pod/To
-	$(CP)     CORE.setting.pbc    $(DESTDIR)$(PERL6_LANG_DIR)/lib/CORE.setting.pbc
-	$(CP)     SAFE.setting.pbc    $(DESTDIR)$(PERL6_LANG_DIR)/lib/SAFE.setting.pbc
 	$(MKPATH)                     $(DESTDIR)$(PARROT_LIB_DIR)/dynext
 	$(CP)     $(DYNPMC) $(DYNOPS) $(DESTDIR)$(PARROT_LIB_DIR)/dynext
 	$(MKPATH)                     $(DESTDIR)$(PARROT_BIN_DIR)
@@ -320,7 +326,7 @@ install: all
 	-$(POD2MAN) docs/running.pod --name=perl6 > $(DESTDIR)$(MANDIR)/man1/perl6.1
 	-$(POD2MAN) docs/running.pod --name=rakudo > $(DESTDIR)$(MANDIR)/man1/rakudo.1
 
-xmas: $(PERL6_EXE) $(SETTING) $(S_SETTING)
+xmas: $(PERL6_EXE) $(SETTING_PBC) $(R_SETTING_PBC) $(S_SETTING_PBC)
 
 ##  targets for building a standalone perl6 executable.
 $(PERL6_EXE): $(PERL6_PBC) $(PARROT_DLL_COPY)
@@ -387,24 +393,28 @@ $(PERL6_B_PBC): $(NQP_EXE) $(DYNEXT_DYNPMC) $(DYNEXT_DYNOPS) $(PERL6_M_PBC) $(BO
 	    --vmlibs=perl6_ops src/gen/BOOTSTRAP.pm
 	$(PARROT) $(PARROT_ARGS) -o $(PERL6_B_PBC) $(PERL6_B)
 
-$(SETTING): $(PERL6_B_PBC) $(PERL6_EXE) $(CORE_SOURCES)
+$(SETTING_PBC): $(PERL6_B_PBC) $(PERL6_EXE) $(CORE_SOURCES)
 	$(PERL) $(GEN_CAT) $(CORE_SOURCES) > src/gen/CORE.setting
 	@echo "The following step can take a long time, please be patient."
 	./$(PERL6_EXE) --setting=NULL --optimize=3 --target=pir --stagestats --output=$(SETTING_PIR) src/gen/CORE.setting
-	$(PARROT) $(PARROT_ARGS) -o $(SETTING) $(SETTING_PIR)
+	$(PARROT) $(PARROT_ARGS) -o $(SETTING_PBC) $(SETTING_PIR)
 
-$(S_SETTING): $(PERL6_B_PBC) $(PERL6_EXE) $(SETTING) src/SAFE.setting
-	./$(PERL6_EXE) --target=pir $(STAGESTATS) --output=$(S_SETTING_PIR) src/SAFE.setting
-	$(PARROT) $(PARROT_ARGS) -o $(S_SETTING) $(S_SETTING_PIR)
+$(R_SETTING_PBC): $(PERL6_B_PBC) $(PERL6_EXE) $(SETTING_PBC) $(R_SETTING_SRC)
+	./$(PERL6_EXE) --target=pir $(STAGESTATS) --output=$(R_SETTING_PIR) $(R_SETTING_SRC)
+	$(PARROT) $(PARROT_ARGS) -o $(R_SETTING_PBC) $(R_SETTING_PIR)
+    
+$(S_SETTING_PBC): $(PERL6_B_PBC) $(PERL6_EXE) $(SETTING_PBC) $(S_SETTING_SRC)
+	./$(PERL6_EXE) --target=pir $(STAGESTATS) --output=$(S_SETTING_PIR) $(S_SETTING_SRC)
+	$(PARROT) $(PARROT_ARGS) -o $(S_SETTING_PBC) $(S_SETTING_PIR)
     
 ##  testing targets
-lib/Test.pir: lib/Test.pm $(PERL6_EXE) $(SETTING)
+lib/Test.pir: lib/Test.pm $(PERL6_EXE) $(SETTING_PBC)
 	./$(PERL6_EXE) --target=pir --output=lib/Test.pir lib/Test.pm
 
-lib/lib.pir: lib/lib.pm $(PERL6_EXE) $(SETTING)
+lib/lib.pir: lib/lib.pm $(PERL6_EXE) $(SETTING_PBC)
 	./$(PERL6_EXE) --target=pir --output=lib/lib.pir lib/lib.pm
 
-lib/Pod/To/Text.pir: lib/Pod/To/Text.pm $(PERL6_EXE) $(SETTING)
+lib/Pod/To/Text.pir: lib/Pod/To/Text.pm $(PERL6_EXE) $(SETTING_PBC)
 	./$(PERL6_EXE) --target=pir --output=lib/Pod/To/Text.pir lib/Pod/To/Text.pm
 
 test    : coretest

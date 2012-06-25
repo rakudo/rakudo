@@ -73,6 +73,16 @@ multi infix:<||>(Mu \$a, Mu \$b)      { $a || $b }
 proto infix:<^^>(|$)                  { * }
 multi infix:<^^>(Mu $x = Bool::False) { $x }
 multi infix:<^^>(Mu \$a, Mu \$b)      { $a ^^ $b }
+multi infix:<^^>(*@a) {
+    my $a = shift @a;
+    while @a {
+        my $b := shift @a;
+        next unless $b;
+        return Nil if $a;
+        $a := $b;
+    }
+    $a;
+}
 
 proto infix:<//>(|$)                  { * }
 multi infix:<//>(Mu $x = Any)         { $x }
@@ -89,6 +99,7 @@ multi infix:<or>(Mu \$a, Mu \$b)      { $a || $b }
 proto infix:<xor>(|$)                  { * }
 multi infix:<xor>(Mu $x = Bool::False) { $x }
 multi infix:<xor>(Mu \$a, Mu \$b)      { $a ^^ $b }
+multi infix:<xor>(*@a)                 { &infix:<^^>(@a); }
 
 proto infix:<orelse>(|$)              { * }
 multi infix:<orelse>(Mu $x = Any)     { $x }

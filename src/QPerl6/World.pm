@@ -112,8 +112,8 @@ class QPerl6::World is HLL::World {
         # Deserialization and fixup need to associate static lex pad with the
         # low-level LexInfo.
         self.add_object($slp);
-        my $fixup := PAST::Op.new(
-            :pasttype('callmethod'), :name('set_static_lexpad'),
+        my $fixup := QAST::Op.new(
+            :op('callmethod'), :name('set_static_lexpad'),
             PAST::Val.new( :value($pad), :returns('LexInfo')),
             QAST::WVal.new( :value($slp) ));
         self.add_fixup_task(:deserialize_past($fixup), :fixup_past($fixup));
@@ -172,11 +172,11 @@ class QPerl6::World is HLL::World {
             # Add a fixup and deserialization task also.
             my $fixup := QAST::Stmt.new(
                 self.perl6_module_loader_code(),
-                PAST::Op.new(
-                    :pasttype('callmethod'), :name('set_outer_ctx'),
+                QAST::Op.new(
+                    :op('callmethod'), :name('set_outer_ctx'),
                     QAST::BVal.new( :value($*UNIT_OUTER) ),
-                    PAST::Op.new(
-                        :pasttype('callmethod'), :name('load_setting'),
+                    QAST::Op.new(
+                        :op('callmethod'), :name('load_setting'),
                         PAST::Var.new( :name('ModuleLoader'), :namespace([]), :scope('package') ),
                         $setting_name
                     )
@@ -199,8 +199,8 @@ class QPerl6::World is HLL::World {
         if self.is_precompilation_mode() {
             self.add_load_dependency_task(:deserialize_past(QAST::Stmts.new(
                 self.perl6_module_loader_code(),
-                PAST::Op.new(
-                   :pasttype('callmethod'), :name('load_module'),
+                QAST::Op.new(
+                   :op('callmethod'), :name('load_module'),
                    PAST::Var.new( :name('ModuleLoader'), :namespace([]), :scope('package') ),
                    $module_name, QAST::IVal.new(:value($line), :named('line'))
                 ))));
@@ -216,8 +216,8 @@ class QPerl6::World is HLL::World {
             PAST::Op.new(
                 :pirop('load_bytecode vs'), 'ModuleLoader.pbc'
             ),
-            PAST::Op.new(
-                :pasttype('callmethod'), :name('load_module'),
+            QAST::Op.new(
+                :op('callmethod'), :name('load_module'),
                 PAST::Var.new( :scope('keyed_int'),
                     PAST::Var.new( :scope('keyed'),
                         PAST::Var.new( :scope('keyed'),
@@ -348,8 +348,8 @@ class QPerl6::World is HLL::World {
             $block[0].push(PAST::Op.new(
                 :pasttype('bind_6model'),
                 PAST::Var.new( :name($name), :scope('lexical_6model') ),
-                PAST::Op.new(
-                    :pasttype('callmethod'), :name('clone'),
+                QAST::Op.new(
+                    :op('callmethod'), :name('clone'),
                     PAST::Var.new( :name($name), :scope('lexical_6model') )
                 )));
         }
@@ -775,7 +775,7 @@ class QPerl6::World is HLL::World {
         unless $quasi_ast.is_quasi_ast {
             return "";
         }
-        my $fixups := PAST::Op.new(:name<set_outer_ctx>, :pasttype<callmethod>,
+        my $fixups := QAST::Op.new(:name<set_outer_ctx>, :op<callmethod>,
                                    QAST::BVal.new(:value($block)),
                                    PAST::Op.new(
                                         :pirop<perl6_get_outer_ctx__PP>,
@@ -1310,8 +1310,8 @@ class QPerl6::World is HLL::World {
             return PAST::Var.new(:name('Nil'), :scope('lexical_6model'));
         }
         elsif $phaser eq 'END' {
-            $*UNIT[0].push(PAST::Op.new(
-                :pasttype('callmethod'), :name('unshift'),
+            $*UNIT[0].push(QAST::Op.new(
+                :op('callmethod'), :name('unshift'),
                 PAST::Var.new( :name('@*END_PHASERS'), :scope('contextual') ),
                 QAST::WVal.new( :value($block) )
             ));
@@ -1350,10 +1350,10 @@ class QPerl6::World is HLL::World {
             $phaser_past[1] := PAST::Op.new(
                 :pasttype('unless'),
                 $phaser_past[1],
-                PAST::Op.new(
-                    :pasttype('callmethod'), :name('throw'),
-                    PAST::Op.new(
-                        :pasttype('callmethod'), :name('new'),
+                QAST::Op.new(
+                    :op('callmethod'), :name('throw'),
+                    QAST::Op.new(
+                        :op('callmethod'), :name('new'),
                         QAST::WVal.new( :value(self.find_symbol(['X', 'Phaser', 'PrePost'])) ),
                         $what,
                         $condition,
@@ -1733,13 +1733,13 @@ class QPerl6::World is HLL::World {
                 }
                 else {
                     # Lookups start at the :: root.
-                    $lookup := PAST::Op.new(
-                        :pasttype('callmethod'), :name('new'),
+                    $lookup := QAST::Op.new(
+                        :op('callmethod'), :name('new'),
                         QAST::WVal.new( :value($*W.find_symbol(['PseudoStash'])) )
                     );
                 }
-                $lookup := PAST::Op.new(
-                    :pasttype('callmethod'), :name('postcircumfix:<{ }>'),
+                $lookup := QAST::Op.new(
+                    :op('callmethod'), :name('postcircumfix:<{ }>'),
                     $lookup,
                     self.add_string_constant($_));
             }
@@ -1763,8 +1763,8 @@ class QPerl6::World is HLL::World {
         # for non-lvalue case, or at_key call on a Stash.
         my $final_name := @name.pop();
         my $lookup := $lvalue ??
-            PAST::Op.new(
-                :pasttype('callmethod'), :name('at_key'),
+            QAST::Op.new(
+                :op('callmethod'), :name('at_key'),
                 self.add_constant('Str', 'str', $final_name)) !!
             PAST::Var.new( :scope('keyed'), ~$final_name);
         
@@ -1865,8 +1865,8 @@ class QPerl6::World is HLL::World {
                 PAST::Op.new( :pirop('nqp_bigint_setup v') ),
                 PAST::Op.new( :pirop('nqp_native_call_setup v') ),
                 PAST::Op.new( :pirop('rakudo_dynop_setup v') ),
-                PAST::Op.new(
-                    :pasttype('callmethod'), :name('hll_map'),
+                QAST::Op.new(
+                    :op('callmethod'), :name('hll_map'),
                     PAST::Op.new( :pirop('getinterp P') ),
                     PAST::Op.new( :pirop('get_class Ps'), 'LexPad' ),
                     PAST::Op.new( :pirop('get_class Ps'), 'Perl6LexPad' )
@@ -1876,8 +1876,8 @@ class QPerl6::World is HLL::World {
                     PAST::Var.new( :name('cur_sc'), :scope('register'), :isdecl(1) ),
                     PAST::Op.new( :pirop('nqp_create_sc Ps'), self.handle() )
                 ),
-                PAST::Op.new(
-                    :pasttype('callmethod'), :name('set_description'),
+                QAST::Op.new(
+                    :op('callmethod'), :name('set_description'),
                     PAST::Var.new( :name('cur_sc'), :scope('register') ),
                     self.sc.description
                 ),

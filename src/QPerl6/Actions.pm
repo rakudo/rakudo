@@ -224,9 +224,7 @@ class QPerl6::Actions is HLL::Actions {
         );
     }
 
-    method comp_unit($/, $key?) {
-        our $?RAKUDO_HLL;
-
+    method comp_unit($/) {
         # Finish up code object for the mainline.
         if $*DECLARAND {
             $*W.attach_signature($*DECLARAND, $*W.create_signature([]));

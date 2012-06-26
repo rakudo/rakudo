@@ -1411,7 +1411,7 @@ class Perl6::Actions is HLL::Actions {
                     }
                 }
                 elsif $<initializer>[0]<sym> eq '=' {
-                    $past := assign_op($past, $<initializer>[0].ast);
+                    $past := assign_op($/, $past, $<initializer>[0].ast);
                 }
                 elsif $<initializer>[0]<sym> eq '.=' {
                     $past := make_dot_equals($past, $<initializer>[0].ast);
@@ -1456,7 +1456,7 @@ class Perl6::Actions is HLL::Actions {
                 if $<initializer>[0]<sym> eq '=' {
                     $/.CURSOR.panic("Cannot assign to a list of 'has' scoped declarations")
                         if $*SCOPE eq 'has';
-                    $list := assign_op($list, $<initializer>[0].ast);
+                    $list := assign_op($/, $list, $<initializer>[0].ast);
                 }
                 elsif $<initializer>[0]<sym> eq '.=' {
                     $/.CURSOR.panic("Cannot use .= initializer with a list of declarations");
@@ -3589,7 +3589,7 @@ class Perl6::Actions is HLL::Actions {
         '<<==', -> $/, $sym { make_feed($/) },
         '~~',   -> $/, $sym { make_smartmatch($/, 0) },
         '!~~',  -> $/, $sym { make_smartmatch($/, 1) },
-        '=',    -> $/, $sym { assign_op($/[0].ast, $/[1].ast) },
+        '=',    -> $/, $sym { assign_op($/, $/[0].ast, $/[1].ast) },
         ':=',   -> $/, $sym { bind_op($/, $/[0].ast, $/[1].ast, 0) },
         '::=',  -> $/, $sym { bind_op($/, $/[0].ast, $/[1].ast, 1) },
         'ff',   -> $/, $sym { flipflop($/[0].ast, $/[1].ast, 0, 0, 0) },
@@ -3867,7 +3867,7 @@ class Perl6::Actions is HLL::Actions {
         }
     }
 
-    sub assign_op($lhs_ast, $rhs_ast) {
+    sub assign_op($/, $lhs_ast, $rhs_ast) {
         my $past;
         my $var_sigil;
         if $lhs_ast.isa(PAST::Var) {
@@ -3889,7 +3889,8 @@ class Perl6::Actions is HLL::Actions {
                 $lhs_ast, $rhs_ast);
         }
         else {
-            $past := PAST::Op.new(:pirop('perl6_container_store__0PP'),
+            $past := PAST::Op.new(:node($/), :pirop('perl6_container_store__0PP'),
+
                 $lhs_ast, $rhs_ast);
         }
         return $past;

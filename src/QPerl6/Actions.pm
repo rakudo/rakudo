@@ -248,10 +248,6 @@ class QPerl6::Actions is HLL::Actions {
             $mainline := wrap_option_n_code($/, $mainline);
         }
 
-        # Unit needs to have a load-init holding the deserialization or
-        # fixup code for this compilation unit.
-        $unit.loadinit().push($*W.to_past());
-
         # We'll install our view of GLOBAL as the main one; any other
         # compilation unit that is using this one will then replace it
         # with its view later (or be in a position to restore it).
@@ -296,6 +292,12 @@ class QPerl6::Actions is HLL::Actions {
         # Wrap everything in a QAST::CompUnit.
         my $compunit := QAST::CompUnit.new(
             :hll('perl6'),
+            
+            # Serialization related bits.
+            :sc($*W.sc()),
+            :compilation_mode($*W.is_precompilation_mode()),
+            :pre_deserialize($*W.load_dependency_tasks()),
+            :post_deserialize($*W.fixup_tasks()),
 
             # If this unit is loaded as a module, we want it to automatically
             # execute the mainline code above after all other initializations

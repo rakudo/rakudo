@@ -507,7 +507,7 @@ class QPerl6::Actions is HLL::Actions {
                     elsif $ast<bare_block> {
                         $ast := $ast<bare_block>;
                     }
-                    $ast := QAST::Stmt.new($ast, :type($ast.type)) if $ast ~~ PAST::Node;
+                    $ast := QAST::Stmt.new($ast, :returns($ast.returns)) if $ast ~~ QAST::Node;
                     $past.push( $ast );
                 }
             }
@@ -516,7 +516,7 @@ class QPerl6::Actions is HLL::Actions {
             $past.push(PAST::Var.new(:name('Nil'), :scope('lexical_6model')));
         }
         else {
-            $past.type($past[+@($past) - 1].type);
+            $past.returns($past[+@($past) - 1].returns);
         }
         make $past;
     }

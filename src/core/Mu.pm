@@ -407,11 +407,14 @@ multi sub infix:<~~>(Mu \$topic, Mu \$matcher) {
     $matcher.ACCEPTS($topic).Bool;
 }
 
-sub infix:<=:=>(Mu \$x, Mu \$y) { 
-    nqp::p6bool(nqp::iseq_i(nqp::where($x), nqp::where($y)));
+proto sub infix:<=:=>($a?, $b?) { * }
+multi sub infix:<=:=>($a?)      { Bool::True }
+multi sub infix:<=:=>(Mu \$a, Mu \$b) { 
+    nqp::p6bool(nqp::iseq_i(nqp::where($a), nqp::where($b)));
 }
 
-proto sub infix:<eqv>(Any $, Any $) { * }
+proto sub infix:<eqv>(Any $?, Any $?) { * }
+multi sub infix:<eqv>($a?)            { Bool::True }
 multi sub infix:<eqv>(Any $a, Any $b) {
     $a.WHICH eq $b.WHICH
 }

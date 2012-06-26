@@ -268,8 +268,7 @@ class QPerl6::Actions is HLL::Actions {
         my $outer := $*UNIT_OUTER;
         $outer.node($/);
 
-        # Set HLL and load the needed libraries.
-        $outer.hll('perl6');
+        # Load the needed libraries.
         $*W.add_libs($unit);
 
         # If the unit defines &MAIN, add a &MAIN_HELPER.
@@ -287,38 +286,36 @@ class QPerl6::Actions is HLL::Actions {
         unless $*HAS_YOU_ARE_HERE {
             $unit.push( self.CTXSAVE() );
         }
+
         # Add the mainline code to the unit.
         $unit.push($mainline);
 
         # Executing the compilation unit causes the mainline to be executed.
-        # We force a return here, because we have other :load/:init blocks
-        # that have to be done at the end of the unit, and we don't want them
-        # executed by the mainline.
-        $outer.push(
-            PAST::Op.new(
-                :pirop('return'),
-                QAST::Op.new( :op<call>, $unit )
-            )
-        );
+        $outer.push(QAST::Op.new( :op<call>, $unit ));
 
-        # If this unit is loaded via load_bytecode, we want it to automatically
-        # execute the mainline code above after all other initializations have
-        # occurred.
-        $outer.push(
-            PAST::Block.new(
-                :pirflags(':load'), :lexical(0), :namespace(''),
-                QAST::Op.new(
-                    :op('call'),
-                    QAST::BVal.new( :value($outer) ),
-                )
-            )
+        # Wrap everything in a QAST::CompUnit.
+        my $compunit := QAST::CompUnit.new(
+            :hll('perl6'),
+
+            # If this unit is loaded as a module, we want it to automatically
+            # execute the mainline code above after all other initializations
+            # have occurred.
+            :load(QAST::Op.new(
+                :op('call'),
+                QAST::BVal.new( :value($outer) ),
+            )),
+
+            # Finally, the outer block, which in turn contains all of the
+            # other program elements.
+            $outer
         );
 
         # Pass some extra bits along to the optimizer.
-        $outer<UNIT>      := $unit;
-        $outer<GLOBALish> := $*GLOBALish;
-        $outer<W>        := $*W;
-        make $outer;
+        $compunit<UNIT>      := $unit;
+        $compunit<GLOBALish> := $*GLOBALish;
+        $compunit<W>         := $*W;
+
+        make $compunit;
     }
 
     method install_doc_phaser($/) {

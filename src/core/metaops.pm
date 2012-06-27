@@ -41,7 +41,7 @@ sub METAOP_CROSS(\$op, &reduce) {
 
 sub METAOP_ZIP(\$op, &reduce) {
     -> **@lol {
-        my $rop = METAOP_REDUCE_LEFT($op);
+        my $rop = @lol.elems == 2 ?? $op !! &reduce($op);
         my @l = @lol.map({ (.flat,).list.item });
         gather {
             my $loop = 1;

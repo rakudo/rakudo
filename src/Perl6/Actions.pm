@@ -4124,7 +4124,7 @@ class Perl6::Actions is HLL::Actions {
                           ?? $base.ast[0]
                           !! PAST::Var.new(:name("&infix:<" ~ $base<OPER><sym> ~ ">"),
                                            :scope<lexical_6model>);
-        my $metaop   := '&METAOP_REDUCE';
+        my $metaop   := '&METAOP_REDUCE_LEFT';
         if $base<OPER><O><assoc> eq 'right'     { $metaop := '&METAOP_REDUCE_RIGHT' }
         elsif $base<OPER><O><assoc> eq 'list'   { $metaop := '&METAOP_REDUCE_LIST'  }
         elsif $base<OPER><O><prec> eq 'm='      { $metaop := '&METAOP_REDUCE_CHAIN' }

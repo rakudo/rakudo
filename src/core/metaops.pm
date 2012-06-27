@@ -17,7 +17,7 @@ sub METAOP_REVERSE(\$op) {
 
 sub METAOP_CROSS(\$op) {
     -> **@lol {
-        my $rop = @lol.elems == 2 ?? $op !! METAOP_REDUCE($op);
+        my $rop = @lol.elems == 2 ?? $op !! METAOP_REDUCE_LEFT($op);
         my @l;
         my @v;
         @l[0] = (@lol[0].flat,).list;
@@ -41,7 +41,7 @@ sub METAOP_CROSS(\$op) {
 
 sub METAOP_ZIP(\$op) {
     -> **@lol {
-        my $rop = METAOP_REDUCE($op);
+        my $rop = METAOP_REDUCE_LEFT($op);
         my @l = @lol.map({ (.flat,).list.item });
         gather {
             my $loop = 1;
@@ -53,7 +53,7 @@ sub METAOP_ZIP(\$op) {
     }
 }
 
-sub METAOP_REDUCE(\$op, :$triangle) {
+sub METAOP_REDUCE_LEFT(\$op, :$triangle) {
     my $x := $triangle ??
         (sub (*@values) {
             return () unless @values.gimme(1);

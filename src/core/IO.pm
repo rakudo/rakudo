@@ -34,7 +34,8 @@ class IO {
     has $.path;
 
     proto method open(|$) { * }
-    multi method open($path, :$r, :$w, :$a, :$bin, :$chomp = Bool::True) {
+    multi method open($path, :$r, :$w, :$a, :$bin, :$chomp = Bool::True,
+            :enc(:$encoding) = 'utf8') {
         my $mode = $w ?? 'w' !! ($a ?? 'wa' !! 'r');
         # TODO: catch error, and fail()
         nqp::bindattr(self, IO, '$!PIO',
@@ -44,7 +45,7 @@ class IO {
         );
         $!path = $path;
         $!chomp = $chomp;
-        $!PIO.encoding($bin ?? 'binary' !! 'utf8');
+        $!PIO.encoding($bin ?? 'binary' !! PARROT_ENCODING($encoding));
         self;
     }
 
@@ -260,8 +261,8 @@ sub rmdir($path) {
 }
 
 proto sub open(|$) { * }
-multi sub open($path, :$r, :$w, :$a, :$bin, :$chomp = Bool::True) {
-    IO.new.open($path, :$r, :$w, :$a, :$bin, :$chomp);
+multi sub open($path, :$r, :$w, :$a, :$bin, :$chomp = Bool::True, :enc(:$encoding) = 'utf8') {
+    IO.new.open($path, :$r, :$w, :$a, :$bin, :$chomp, :$encoding);
 }
 
 proto sub lines(|$) { * }

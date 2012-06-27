@@ -15,7 +15,7 @@ sub METAOP_REVERSE(\$op) {
     -> Mu \$a, Mu \$b { $op($b, $a) }
 }
 
-sub METAOP_CROSS(\$op) {
+sub METAOP_CROSS(\$op, &reduce) {
     -> **@lol {
         my $rop = @lol.elems == 2 ?? $op !! METAOP_REDUCE_LEFT($op);
         my @l;
@@ -39,7 +39,7 @@ sub METAOP_CROSS(\$op) {
     }
 }
 
-sub METAOP_ZIP(\$op) {
+sub METAOP_ZIP(\$op, &reduce) {
     -> **@lol {
         my $rop = METAOP_REDUCE_LEFT($op);
         my @l = @lol.map({ (.flat,).list.item });

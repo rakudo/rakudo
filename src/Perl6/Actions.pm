@@ -4075,12 +4075,12 @@ class Perl6::Actions is HLL::Actions {
     }
 
     sub baseop_reduce($/) {
-        my $reduce := 'left';
+        my $reduce := 'LEFT';
         if    $<assoc> eq 'right'  
-           || $<assoc> eq 'list'   { $reduce := $<assoc>; }
-        elsif $<prec> eq 'm='      { $reduce := 'chain'; }
-        elsif $<pasttype> eq 'xor' { $reduce := 'xor'; }
-        $reduce;
+           || $<assoc> eq 'list'   { $reduce := nqp::uc($<assoc>); }
+        elsif $<prec> eq 'm='      { $reduce := 'CHAIN'; }
+        elsif $<pasttype> eq 'xor' { $reduce := 'XOR'; }
+        '&METAOP_REDUCE_' ~ $reduce;
     }
 
     method infixish($/) {
@@ -4117,9 +4117,12 @@ class Perl6::Actions is HLL::Actions {
             elsif $metasym eq 'X' { $helper := '&METAOP_CROSS'; }
             elsif $metasym eq 'Z' { $helper := '&METAOP_ZIP'; }
 
-            make PAST::Op.new( :node($/),
-                     PAST::Op.new( :pasttype<call>,
-                         :name($helper), $basepast ));
+            my $metapast := PAST::Op.new( :pasttype<call>, :name($helper),
+                                $basepast);
+            $metapast.push(PAST::Var.new(:name(baseop_reduce($base<OPER><O>)),
+                                         :scope<lexical_6model>))
+                if $metasym eq 'X' || $metasym eq 'Z';
+            make PAST::Op.new( :node($/), $metapast );
         }
 
         if $<infixish> {
@@ -4133,7 +4136,7 @@ class Perl6::Actions is HLL::Actions {
                           ?? $base.ast[0]
                           !! PAST::Var.new(:name("&infix:<" ~ $base<OPER><sym> ~ ">"),
                                            :scope<lexical_6model>);
-        my $metaop   := '&METAOP_REDUCE_' ~ nqp::uc(baseop_reduce($base<OPER><O>));
+        my $metaop   := baseop_reduce($base<OPER><O>);
         my $metapast := PAST::Op.new( :pasttype<call>, :name($metaop), $basepast);
         if $<triangle> {
             my $tri := $*W.add_constant('Int', 'int', 1);

@@ -17,7 +17,7 @@ sub METAOP_REVERSE(\$op) {
 
 sub METAOP_CROSS(\$op, &reduce) {
     -> **@lol {
-        my $rop = @lol.elems == 2 ?? $op !! METAOP_REDUCE_LEFT($op);
+        my $rop = @lol.elems == 2 ?? $op !! &reduce($op);
         my @l;
         my @v;
         @l[0] = (@lol[0].flat,).list;

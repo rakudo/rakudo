@@ -27,7 +27,63 @@ sub prompt($msg) {
     $*IN.get;
 }
 
-class IO {
+my role IO::FileTestable {
+    method d() {
+        self.e && nqp::p6bool(nqp::stat(nqp::unbox_s($.path), pir::const::STAT_ISDIR))
+    }
+
+    method e() {
+        nqp::p6bool(nqp::stat(nqp::unbox_s($.path), pir::const::STAT_EXISTS))
+    }
+
+    method f() {
+        self.e && nqp::p6bool(nqp::stat(nqp::unbox_s($.path), pir::const::STAT_ISREG))
+    }
+
+    method l() {
+        nqp::p6bool(pir::new__Ps('File').is_link(nqp::unbox_s($.path)))
+    }
+
+    method r() {
+        nqp::p6bool(pir::new__Ps('OS').can_read(nqp::unbox_s($.path)))
+    }
+
+    method s() {
+        self.e 
+          && nqp::p6bool(
+              nqp::isgt_i(
+                  nqp::stat(nqp::unbox_s($.path), 
+                                 pir::const::STAT_FILESIZE),
+                  0))
+    }
+
+    method w() {
+        nqp::p6bool(pir::new__Ps('OS').can_write(nqp::unbox_s($.path)))
+    }
+
+    method x() {
+        nqp::p6bool(pir::new__Ps('OS').can_execute(nqp::unbox_s($.path)))
+    }
+    
+    method z() {
+        self.e && self.s == 0;
+    }
+
+    method modified() {
+         nqp::p6box_i(nqp::stat(nqp::unbox_s($.path), pir::const::STAT_MODIFYTIME));
+    }
+
+    method accessed() {
+         nqp::p6box_i(nqp::stat(nqp::unbox_s($.path), pir::const::STAT_ACCESSTIME));
+    }
+
+    method changed() { 
+         nqp::p6box_i(nqp::stat(nqp::unbox_s($.path), pir::const::STAT_CHANGETIME));
+    }
+
+}
+
+class IO does IO::FileTestable {
     has $!PIO;
     has Int $.ins = 0;
     has $.chomp = Bool::True;
@@ -126,6 +182,11 @@ class IO {
         nqp::p6bool(nqp::istrue($!PIO));
     }
 
+    method t() {
+        self.opened && nqp::p6bool($!PIO.isatty)
+    }
+
+
     proto method print(|$) { * }
     multi method print(IO:D: Str:D $value) {
         $!PIO.print(nqp::unbox_s($value));
@@ -147,62 +208,6 @@ class IO {
         nqp::p6box_s($!PIO.readall());
     }
 
-    method d() {
-        self.e && nqp::p6bool(nqp::stat(nqp::unbox_s($!path), pir::const::STAT_ISDIR))
-    }
-
-    method e() {
-        nqp::p6bool(nqp::stat(nqp::unbox_s($!path), pir::const::STAT_EXISTS))
-    }
-
-    method f() {
-        self.e && nqp::p6bool(nqp::stat(nqp::unbox_s($!path), pir::const::STAT_ISREG))
-    }
-
-    method l() {
-        nqp::p6bool(pir::new__Ps('File').is_link(nqp::unbox_s($!path)))
-    }
-
-    method r() {
-        nqp::p6bool(pir::new__Ps('OS').can_read(nqp::unbox_s($!path)))
-    }
-
-    method s() {
-        self.e 
-          && nqp::p6bool(
-              nqp::isgt_i(
-                  nqp::stat(nqp::unbox_s($!path), 
-                                 pir::const::STAT_FILESIZE),
-                  0))
-    }
-
-    method t() {
-        self.opened && nqp::p6bool($!PIO.isatty)
-    }
-
-    method w() {
-        nqp::p6bool(pir::new__Ps('OS').can_write(nqp::unbox_s($!path)))
-    }
-
-    method x() {
-        nqp::p6bool(pir::new__Ps('OS').can_execute(nqp::unbox_s($!path)))
-    }
-    
-    method z() {
-        self.e && self.s == 0;
-    }
-
-    method modified() {
-         nqp::p6box_i(nqp::stat(nqp::unbox_s($!path), pir::const::STAT_MODIFYTIME));
-    }
-
-    method accessed() {
-         nqp::p6box_i(nqp::stat(nqp::unbox_s($!path), pir::const::STAT_ACCESSTIME));
-    }
-
-    method changed() { 
-         nqp::p6box_i(nqp::stat(nqp::unbox_s($!path), pir::const::STAT_CHANGETIME));
-    }
 
     # not spec'd
     method copy($dest) {

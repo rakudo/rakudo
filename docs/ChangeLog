@@ -3,6 +3,7 @@ New in 2012.07
 + Ranges can now interpolate in argument lists
 + The built-in meta-objects (such as Metamodel::ClassHOW) now inherit from Any
 + &open now supports :enc/:encoding
++ Exception.fail
 
 New in 2012.06
 + Rakudo is now compiled with the same regex engine as user-space regexes use

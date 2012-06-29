@@ -4,6 +4,7 @@ New in 2012.07
 + The built-in meta-objects (such as Metamodel::ClassHOW) now inherit from Any
 + &open now supports :enc/:encoding
 + Exception.fail
++ Changed &dir to return IO::File and IO::Dir objects, not strings
 
 New in 2012.06
 + Rakudo is now compiled with the same regex engine as user-space regexes use
@@ -23,7 +24,6 @@ New in 2012.06
 + compile time errors in loaded modules now show a module loading backtrace
 + improved list and .map handling
 + can now use | to flatten a pair into an argument list as a named argument
-+ Changed &dir to return IO objects, not Str objects
 
 New in 2012.05
 + meta ops //=, ||= and &&= now short-circuit properly

@@ -1,4 +1,5 @@
 my class X::IO::Copy { ... }
+my class X::IO::Dir  { ... }
 
 sub print(|$) {
     my $args := pir::perl6_current_args_rpa__P();
@@ -237,6 +238,70 @@ class IO does IO::FileTestable {
     }
 }
 
+my class IO::Path is Cool does IO::FileTestable {
+    has Str $.basename;
+    has Str $.dir = '.';
+
+    multi method Str(IO::Path:D:) {
+        self.basename;
+    }
+    multi method gist(IO::Path:D:) {
+        "{self.^name}<{self.path}>";
+    }
+    multi method Numeric(IO::Path:D:) {
+        self.basename.Numeric;
+    }
+    method Bridge(IO::Path:D:) {
+        self.basename.Bridge;
+    }
+    method Int(IO::Path:D:) {
+        self.basename.Int;
+    }
+
+    method path(IO::Path:D:) {
+        $.dir eq '.' ?? $.basename !! join('/', $.dir, $.basename);
+    }
+
+    method IO(IO::Path:D:) {
+        IO.new(:$.path);
+    }
+}
+
+my class IO::File is IO::Path {
+    method open(IO::File:D: *%opts) {
+        open($.path, |%opts);
+    }
+}
+
+my class IO::Dir is IO::Path {
+    method contents() {
+        dir($.path);
+    }
+}
+
+sub dir(Cool $path = '.', Mu :$test = none('.', '..')) {
+    my Mu $RSA := pir::new__PS('OS').readdir(nqp::unbox_s($path.Str));
+    my int $elems = pir::set__IP($RSA);
+    my @res;
+    loop (my int $i = 0; $i < $elems; $i = $i + 1) {
+        my Str $file := nqp::p6box_s(nqp::atpos($RSA, $i));
+        if $file ~~ $test {
+            my $f = IO::File.new(:basename($file), :dir($path.Str));
+            @res.push: $f.d ?? IO::Dir.new(:basename($file), :dir($path.Str)) !! $f;
+        }
+    }
+    return @res.list;
+
+    CATCH {
+        default {
+            X::IO::Dir.new(
+                :$path,
+                os-error => .Str,
+            ).throw;
+        }
+    }
+}
+
 my class X::IO::Unlink { ... }
 sub unlink($path) {
     pir::new__PS('OS').unlink($path);
@@ -315,26 +380,6 @@ multi sub cwd() {
     }
 }
 
-my class X::IO::Dir { ... }
-sub dir($path = '.', Mu :$test = none('.', '..')) {
-    my Mu $RSA := pir::new__PS('OS').readdir(nqp::unbox_s($path.Stringy));
-    my int $elems = pir::set__IP($RSA);
-    my @res;
-    loop (my int $i = 0; $i < $elems; $i = $i + 1) {
-        my Str $file := nqp::p6box_s(nqp::atpos($RSA, $i));
-        @res.push: "$path/$file".IO if $test.ACCEPTS($file);
-    }
-    return @res;
-
-    CATCH {
-        default {
-            X::IO::Dir.new(
-                :$path,
-                os-error => .Str,
-            ).throw;
-        }
-    }
-}
 
 my class X::IO::Chdir { ... }
 proto sub chdir(|$) { * }

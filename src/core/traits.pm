@@ -52,6 +52,9 @@ multi trait_mod:<is>(Routine:D $r, :$rw!) {
 multi trait_mod:<is>(Routine:D $r, :$default!) {
     $r does role { method default() { True } }
 }
+multi trait_mod:<is>(Routine:D $r, :$DEPRECATED!) {
+    # we'll add logic here later
+}
 multi trait_mod:<is>(Routine:D $r, :$inlinable!) {
     $r.set_inline_info($inlinable);
 }

@@ -56,7 +56,7 @@ my class Cool {
 
     ## string methods
 
-    method bytes() {
+    method bytes() is DEPRECATED {
         nqp::p6box_i(pir::bytelength__IS(nqp::unbox_s(self.Str)));
     }
 

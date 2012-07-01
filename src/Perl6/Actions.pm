@@ -2453,7 +2453,7 @@ class Perl6::Actions is HLL::Actions {
         }
 
         # Install it as needed.
-        if $<longname> {
+        if $<longname> && $longname.type_name_parts('subset name', :decl(1)) {
             $*W.install_package($/, $longname.type_name_parts('subset name', :decl(1)),
                 ($*SCOPE || 'our'), 'subset', $*PACKAGE, $*W.cur_lexpad(), $subset);
         }

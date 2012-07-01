@@ -5,6 +5,7 @@ New in 2012.07
 + &open now supports :enc/:encoding
 + Exception.fail
 + Changed &dir to return IO::File and IO::Dir objects, not strings
++ anonymous subset types with  subset :: where ...;
 
 New in 2012.06
 + Rakudo is now compiled with the same regex engine as user-space regexes use

@@ -228,8 +228,9 @@ class QPerl6::World is HLL::World {
                     :op('atpos'),
                     QAST::Op.new(
                         :op('atkey'),
-                        QAST::VM.new(
-                            pirop => 'get_root_namespace P',
+                        QAST::Op.new(
+                            :op('atkey'),
+                            QAST::VM.new( pirop => 'get_root_namespace P' ),
                             QAST::SVal.new( :value('nqp') )
                         ),
                         QAST::SVal.new( :value('ModuleLoader') )

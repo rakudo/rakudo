@@ -454,13 +454,16 @@ my class Str does Stringy {
     multi method gist(Str:D:) { self }
     multi method perl(Str:D:) {
         my $result = '"';
+        my $icu = $*VM<config><has_icu>;
         for ^self.chars -> $i {
             my $ch = self.substr($i, 1);
-            $result ~= %esc{$ch} // (nqp::iscclass(
-                                            pir::const::CCLASS_PRINTING,
-                                            nqp::unbox_s($ch), 0)
-                                      ?? $ch
-                                      !! $ch.ord.fmt('\x[%x]'));
+            $result ~= %esc{$ch} 
+                       //  (   ((!$icu && $ch.ord >= 256)
+                               || nqp::iscclass( pir::const::CCLASS_PRINTING,
+                                                  nqp::unbox_s($ch), 0))
+                           ?? $ch
+                           !! $ch.ord.fmt('\x[%x]')
+                           );
         }
         $result ~ '"'
     }

@@ -246,6 +246,12 @@ my class Any {
     }
 
     method reduce(&with) { self.list.reduce(&with) }
+
+    method FLATTENABLE_LIST() { 
+        my $list := self.list;
+        nqp::findmethod($list, 'FLATTENABLE_LIST')($list);
+    }
+    method FLATTENABLE_HASH() { nqp::hash() }
 }
 Metamodel::ClassHOW.exclude_parent(Any);
 

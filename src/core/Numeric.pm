@@ -20,6 +20,9 @@ my role Numeric {
     multi method Bool(Numeric:D:) { self != 0 }
 
     multi method gist(Numeric:D:) { self.Str }
+
+    method succ() { self + 1 }
+    method pred() { self - 1 }
 }
 
 multi sub infix:<eqv>(Numeric $a, Numeric $b) {

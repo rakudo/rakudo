@@ -1,5 +1,11 @@
 New in 2012.07
 + Deprecated SAFE.setting in favor of RESTRICTED.setting
++ Ranges can now interpolate in argument lists
++ The built-in meta-objects (such as Metamodel::ClassHOW) now inherit from Any
++ &open now supports :enc/:encoding
++ Exception.fail
++ Changed &dir to return IO::File and IO::Dir objects, not strings
++ anonymous subset types with  subset :: where ...;
 
 New in 2012.06
 + Rakudo is now compiled with the same regex engine as user-space regexes use

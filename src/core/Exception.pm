@@ -1,3 +1,4 @@
+my class Failure { ... }
 my role X::Comp { ... }
 my class X::ControlFlow { ... }
 
@@ -31,6 +32,14 @@ my class Exception {
     method rethrow() is hidden_from_backtrace {
         pir::setattribute__vPsP($!ex, 'payload', nqp::p6decont(self));
         nqp::rethrow($!ex)
+    }
+
+    method fail(Exception:D:) {
+        try self.throw;
+        my $fail := Failure.new($!);
+        my Mu $return := pir::find_caller_lex__Ps('RETURN');
+        $return($fail) unless nqp::isnull($return);
+        $fail
     }
 }
 

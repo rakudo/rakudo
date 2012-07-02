@@ -114,7 +114,9 @@ class QPerl6::World is HLL::World {
         self.add_object($slp);
         my $fixup := QAST::Op.new(
             :op('callmethod'), :name('set_static_lexpad'),
-            PAST::Val.new( :value($pad), :returns('LexInfo')),
+            QAST::VM.new(
+                pir => '    .const "LexInfo" %r = "' ~ $pad.cuid() ~ '"'
+            ),
             QAST::WVal.new( :value($slp) ));
         self.add_fixup_task(:deserialize_past($fixup), :fixup_past($fixup));
         
@@ -719,7 +721,7 @@ class QPerl6::World is HLL::World {
             unless self.is_precompilation_mode() {
                 $fixups.push(QAST::Stmts.new(
                     self.set_attribute($code, $code_type, '$!do', QAST::BVal.new( :value($code_past) )),
-                    PAST::Op.new(
+                    QAST::VM.new(
                         :pirop('perl6_associate_sub_code_object vPP'),
                         QAST::BVal.new( :value($code_past) ),
                         QAST::WVal.new( :value($code) )
@@ -761,7 +763,7 @@ class QPerl6::World is HLL::World {
 
         # Deserialization also needs to give the Parrot sub its backlink.
         if self.is_precompilation_mode() {
-            $des.push(PAST::Op.new(
+            $des.push(QAST::VM.new(
                 :pirop('perl6_associate_sub_code_object vPP'),
                 QAST::BVal.new( :value($code_past) ),
                 QAST::WVal.new( :value($code) )));
@@ -914,10 +916,10 @@ class QPerl6::World is HLL::World {
     # Helper to make PAST for setting an attribute to a value. Value should
     # be a PAST tree.
     method set_attribute($obj, $class, $name, $value_past) {
-        PAST::Op.new(
-            :pasttype('bind_6model'),
-            PAST::Var.new(
-                :name($name), :scope('attribute_6model'),
+        QAST::Op.new(
+            :op('bind'),
+            QAST::Var.new(
+                :name($name), :scope('attribute'),
                 QAST::WVal.new( :value($obj) ),
                 QAST::WVal.new( :value($class) )
             ),
@@ -1068,16 +1070,16 @@ class QPerl6::World is HLL::World {
         # Add to SC.
         self.add_object($constant);
         
-        # Build PAST for getting the boxed constant from the constants
+        # Build QAST for getting the boxed constant from the constants
         # table, but also annotate it with the constant itself in case
         # we need it. Add to cache.
-        my $past := self.get_slot_past_for_object($constant);
-        $past<has_compile_time_value> := 1;
-        $past<compile_time_value> := $constant;
+        my $qast := QAST::WVal.new( :value($constant) );
+        $qast<has_compile_time_value> := 1;
+        $qast<compile_time_value> := $constant;
         if !$nocache {
             %!const_cache{$cache_key} := $constant;
         }
-        return $past;
+        return $qast;
     }
     
     # Adds a numeric constant value (int or num) to the constants table.

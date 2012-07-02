@@ -177,7 +177,10 @@ class QPerl6::World is HLL::World {
                     QAST::BVal.new( :value($*UNIT_OUTER) ),
                     QAST::Op.new(
                         :op('callmethod'), :name('load_setting'),
-                        QAST::VM.new( pirop('get_hll_global Ps'), QAST::SVal.new( :value('ModuleLoader') ) ),
+                        QAST::VM.new(
+                            pirop => 'get_hll_global Ps',
+                            QAST::SVal.new( :value('ModuleLoader') )
+                        ),
                         QAST::SVal.new( :value($setting_name) )
                     )
                 )
@@ -1400,10 +1403,11 @@ class QPerl6::World is HLL::World {
     
     # Adds required libraries to a compilation unit.
     method add_libs($comp_unit) {
-        $comp_unit.loadlibs('nqp_group', 'nqp_ops', 'perl6_group', 'perl6_ops',
-                            'bit_ops', 'math_ops', 'trans_ops', 'io_ops',
-                            'obscure_ops', 'os', 'file', 'sys_ops',
-                            'nqp_bigint_ops', 'nqp_dyncall_ops');
+        $comp_unit.push(QAST::VM.new(
+            loadlibs => ['nqp_group', 'nqp_ops', 'perl6_group', 'perl6_ops',
+                         'bit_ops', 'math_ops', 'trans_ops', 'io_ops',
+                         'obscure_ops', 'os', 'file', 'sys_ops',
+                         'nqp_bigint_ops', 'nqp_dyncall_ops' ]));
     }
     
     # Represents a longname after having parsed it.

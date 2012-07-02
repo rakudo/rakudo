@@ -177,8 +177,8 @@ class QPerl6::World is HLL::World {
                     QAST::BVal.new( :value($*UNIT_OUTER) ),
                     QAST::Op.new(
                         :op('callmethod'), :name('load_setting'),
-                        PAST::Var.new( :name('ModuleLoader'), :namespace([]), :scope('package') ),
-                        $setting_name
+                        QAST::VM.new( pirop('get_hll_global Ps'), QAST::SVal.new( :value('ModuleLoader') ) ),
+                        QAST::SVal.new( :value($setting_name) )
                     )
                 )
             );
@@ -213,19 +213,25 @@ class QPerl6::World is HLL::World {
     # is a normal NQP module.
     method perl6_module_loader_code() {
         QAST::Stmt.new(
-            PAST::Op.new(
-                :pirop('load_bytecode vs'), 'ModuleLoader.pbc'
+            QAST::VM.new(
+                pirop => 'load_bytecode vs',
+                QAST::SVal.new( :value('ModuleLoader.pbc') )
             ),
             QAST::Op.new(
                 :op('callmethod'), :name('load_module'),
-                PAST::Var.new( :scope('keyed_int'),
-                    PAST::Var.new( :scope('keyed'),
-                        PAST::Var.new( :scope('keyed'),
-                            PAST::Op.new( :pirop('get_root_namespace P') ),
-                            'nqp' ),
-                        'ModuleLoader'),
-                    1),
-                'Perl6::ModuleLoader'
+                QAST::Op.new(
+                    :op('atpos'),
+                    QAST::Op.new(
+                        :op('atkey'),
+                        QAST::VM.new(
+                            pirop => 'get_root_namespace P',
+                            QAST::SVal.new( :value('nqp') )
+                        ),
+                        QAST::SVal.new( :value('ModuleLoader') )
+                    ),
+                    QAST::IVal.new( :value(1) )
+                ),
+                QAST::SVal.new( :value('Perl6::ModuleLoader') )
             ))
     }
     

@@ -731,6 +731,7 @@ class QPerl6::World is HLL::World {
                 # of it also.
                 pir::setprop__vPsP($stub, 'CLONE_CALLBACK', sub ($orig, $clone) {
                     self.add_object($clone);
+                    nqp::die("not yet updated for QAST");
                     $fixups.push(QAST::Stmts.new(
                         PAST::Op.new( :pasttype('bind'),
                             PAST::Var.new( :name('$P0'), :scope('register') ),
@@ -1283,18 +1284,18 @@ class QPerl6::World is HLL::World {
 
         # Set up capturing code.
         my $capturer := self.cur_lexpad();
-        $capturer[0].push(PAST::Op.new(
+        $capturer[0].push(QAST::VM.new(
             :pirop('capture_all_outers vP'),
             PAST::Var.new(
-                :name('$!list'), :scope('attribute_6model'),
+                :name('$!list'), :scope('attribute'),
                 QAST::WVal.new( :value($fixup_list) ),
                 QAST::WVal.new( :value(FixupList) ))));
         
         # Return a PAST node that we can push the dummy closure
-        return PAST::Op.new(
-            :pirop('push vPP'),
-            PAST::Var.new(
-                :name('$!list'), :scope('attribute_6model'),
+        return QAST::Op.new(
+            :op('push'),
+            QAST::Var.new(
+                :name('$!list'), :scope('attribute'),
                 QAST::WVal.new( :value($fixup_list) ),
                 QAST::WVal.new( :value(FixupList) )));
     }
@@ -1741,7 +1742,7 @@ class QPerl6::World is HLL::World {
             my $lookup;
             for @name {
                 if $lookup {
-                    $lookup := PAST::Op.new( :pirop('get_who PP'), $lookup );
+                    $lookup := QAST::Op.new( :op('getwho'), $lookup );
                 }
                 else {
                     # Lookups start at the :: root.
@@ -1783,15 +1784,15 @@ class QPerl6::World is HLL::World {
         # If there's no explicit qualification, then look it up in the
         # current package, and fall back to looking in GLOBAL.
         if +@name == 0 {
-            $lookup.unshift(PAST::Op.new(
-                :pirop('get_who PP'),
+            $lookup.unshift(QAST::Op.new(
+                :op('getwho'),
                 PAST::Var.new( :name('$?PACKAGE'), :scope('lexical_6model') )
             ));
             $lookup.isa(PAST::Var) && $lookup.viviself(PAST::Var.new(
                 :scope('keyed'),
                 :viviself(self.lookup_failure($orig_name)),
-                PAST::Op.new(
-                    :pirop('get_who PP'),
+                QAST::Op.new(
+                    :op('getwho'),
                     PAST::Var.new( :name('GLOBAL'), :namespace([]), :scope('package') )
                 ),
                 ~$final_name
@@ -1814,7 +1815,7 @@ class QPerl6::World is HLL::World {
                     :pirop('perl6_get_package_through_who PPs'),
                     $path, ~$_);
             }
-            $lookup.unshift(PAST::Op.new(:pirop('get_who PP'), $path));
+            $lookup.unshift(QAST::Op.new(:op('getwho'), $path));
         }
         
         # Failure object if we can't find the name.

@@ -576,8 +576,8 @@ class QPerl6::Actions is HLL::Actions {
         else { $past := 0; }
         if $STATEMENT_PRINT && $past {
             $past := QAST::Stmts.new(:node($/),
-                PAST::Op.new(
-                    :pirop<say__vs>,
+                QAST::Op.new(
+                    :op<say>,
                     QAST::SVal.new(:value(~$/))
                 ),
                 $past

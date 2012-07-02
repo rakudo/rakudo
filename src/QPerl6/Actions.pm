@@ -251,9 +251,9 @@ class QPerl6::Actions is HLL::Actions {
         # We'll install our view of GLOBAL as the main one; any other
         # compilation unit that is using this one will then replace it
         # with its view later (or be in a position to restore it).
-        my $global_install := PAST::Op.new(
-            :pasttype('bind_6model'),
-            PAST::Var.new( :name('GLOBAL'), :namespace([]), :scope('package') ),
+        my $global_install := QAST::VM.new(
+            pirop => 'set_hll_global vsP',
+            QAST::SVal.new( :value('GLOBAL') ),
             QAST::WVal.new( :value($*GLOBALish) )
         );
         $*W.add_fixup_task(:deserialize_past($global_install), :fixup_past($global_install));

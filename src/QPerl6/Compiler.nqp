@@ -18,10 +18,12 @@ class QPerl6::Compiler is HLL::Compiler {
         $super(self, |@args, |%options);
     }
 
+    # XXX Disable optimizer for now while doing QAST transition.
     method optimize($past, *%adverbs) {
-        %adverbs<optimize> eq 'off' ??
-            $past !!
-            QPerl6::Optimizer.new.optimize($past, |%adverbs)
+        #%adverbs<optimize> eq 'off' ??
+        #    $past !!
+        #    QPerl6::Optimizer.new.optimize($past, |%adverbs)
+        $past
     }
 
     method syntaxcheck($past, *%adverbs) {

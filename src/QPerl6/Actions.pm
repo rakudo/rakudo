@@ -4845,7 +4845,7 @@ class QPerl6::Actions is HLL::Actions {
     }
 
     sub add_implicit_var($block, $name) {
-        $block[0].push(PAST::Var.new( :name($name), :scope('lexical_6model'), :isdecl(1) ));
+        $block[0].push(QAST::Var.new( :name($name), :scope('lexical'), :decl('var') ));
         $block.symbol($name, :scope('lexical_6model') );
     }
 

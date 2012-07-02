@@ -348,18 +348,18 @@ class QPerl6::World is HLL::World {
     method install_lexical_symbol($block, $name, $obj, :$clone) {
         # Install the object directly as a block symbol.
         unless $block.symbol($name) {
-            $block[0].push(PAST::Var.new( :scope('lexical_6model'), :name($name), :isdecl(1) ));
+            $block[0].push(QAST::Var.new( :scope('lexical'), :name($name), :decl('var') ));
         }
         $block.symbol($name, :scope('lexical_6model'), :value($obj));
         
         # Add a clone if needed.
         if $clone {
-            $block[0].push(PAST::Op.new(
-                :pasttype('bind_6model'),
-                PAST::Var.new( :name($name), :scope('lexical_6model') ),
+            $block[0].push(QAST::Op.new(
+                :op('bind'),
+                QAST::Var.new( :name($name), :scope('lexical') ),
                 QAST::Op.new(
                     :op('callmethod'), :name('clone'),
-                    PAST::Var.new( :name($name), :scope('lexical_6model') )
+                    QAST::Var.new( :name($name), :scope('lexical') )
                 )));
         }
         

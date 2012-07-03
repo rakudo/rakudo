@@ -559,7 +559,7 @@ class QPerl6::Actions is HLL::Actions {
     }
 
     method xblock($/) {
-        make PAST::Op.new( $<EXPR>.ast, $<pblock>.ast, :pasttype('if'), :node($/) );
+        make QAST::Op.new( $<EXPR>.ast, $<pblock>.ast, :op('if'), :node($/) );
     }
 
     method pblock($/) {
@@ -706,26 +706,26 @@ class QPerl6::Actions is HLL::Actions {
 
     method statement_control:sym<unless>($/) {
         my $past := xblock_immediate( $<xblock>.ast );
-        $past.pasttype('unless');
+        $past.op('unless');
         make $past;
     }
 
     method statement_control:sym<while>($/) {
         my $past := xblock_immediate( $<xblock>.ast );
-        $past.pasttype(~$<sym>);
+        $past.op(~$<sym>);
         make $past;
     }
 
     method statement_control:sym<repeat>($/) {
-        my $pasttype := 'repeat_' ~ ~$<wu>;
+        my $op := 'repeat_' ~ ~$<wu>;
         my $past;
         if $<xblock> {
             $past := xblock_immediate( $<xblock>.ast );
-            $past.pasttype($pasttype);
+            $past.op($op);
         }
         else {
-            $past := PAST::Op.new( $<EXPR>.ast, pblock_immediate( $<pblock>.ast ),
-                                   :pasttype($pasttype), :node($/) );
+            $past := QAST::Op.new( $<EXPR>.ast, pblock_immediate( $<pblock>.ast ),
+                                   :op($op), :node($/) );
         }
         make $past;
     }
@@ -734,17 +734,17 @@ class QPerl6::Actions is HLL::Actions {
         my $xblock := $<xblock>.ast;
         my $past := QAST::Op.new(
                         :op<callmethod>, :name<map>, :node($/),
-                        PAST::Op.new(:name('&infix:<,>'), $xblock[0]),
+                        QAST::Op.new(:name('&infix:<,>'), :op('call'), $xblock[0]),
                         block_closure($xblock[1])
         );
-        $past := PAST::Op.new( :name<&eager>, $past, :node($/) );
+        $past := PAST::Op.new( :name<&eager>, :op<call>, $past, :node($/) );
         make $past;
     }
 
     method statement_control:sym<loop>($/) {
         my $block := pblock_immediate($<block>.ast);
         my $cond := $<e2> ?? $<e2>[0].ast !! QAST::Var.new(:name<True>, :scope<lexical>);
-        my $loop := PAST::Op.new( $cond, $block, :pasttype('while'), :node($/) );
+        my $loop := QAST::Op.new( $cond, $block, :op('while'), :node($/) );
         if $<e3> {
             $loop.push( $<e3>[0].ast );
         }
@@ -859,7 +859,7 @@ class QPerl6::Actions is HLL::Actions {
         # and ensure continue/succeed handlers are in place and that a
         # succeed happens after the block.
         $pblock := pblock_immediate($pblock);
-        make PAST::Op.new( :pasttype('if'), :node( $/ ),
+        make QAST::Op.new( :op('if'), :node( $/ ),
             $match_past, when_handler_helper($pblock)
         );
     }
@@ -925,7 +925,7 @@ class QPerl6::Actions is HLL::Actions {
     method statement_prefix:sym<sink>($/) {
         my $blast := PAST::Op.new( $<blorst>.ast );
         make QAST::Stmts.new(
-            PAST::Op.new( :name('&eager'), $blast ),
+            QAST::Op.new( :name('&eager'), :op('call'), $blast ),
             QAST::Var.new( :name('Nil'), :scope('lexical')),
             :node($/)
         );
@@ -968,15 +968,15 @@ class QPerl6::Actions is HLL::Actions {
     method modifier_expr($/) { make $<EXPR>.ast; }
 
     method statement_mod_cond:sym<if>($/)     {
-        make PAST::Op.new( :pasttype<if>, $<modifier_expr>.ast, :node($/) );
+        make QAST::Op.new( :op<if>, $<modifier_expr>.ast, :node($/) );
     }
 
     method statement_mod_cond:sym<unless>($/) {
-        make PAST::Op.new( :pasttype<unless>, $<modifier_expr>.ast, :node($/) );
+        make QAST::Op.new( :op<unless>, $<modifier_expr>.ast, :node($/) );
     }
 
     method statement_mod_cond:sym<when>($/) {
-        make PAST::Op.new( :pasttype<if>,
+        make QAST::Op.new( :op<if>,
             QAST::Op.new( :name('ACCEPTS'), :op('callmethod'),
                           $<modifier_expr>.ast, 
                           QAST::Var.new( :name('$_'), :scope('lexical') ) ),
@@ -1394,7 +1394,7 @@ class QPerl6::Actions is HLL::Actions {
                         $<initializer>[0]<sym> eq '::=');
                 }
                 if $*SCOPE eq 'state' {
-                    $past := PAST::Op.new( :pasttype('if'),
+                    $past := QAST::Op.new( :op('if'),
                         PAST::Op.new( :pirop('perl6_state_needs_init I') ),
                         $past,
                         $orig_past);
@@ -1438,7 +1438,7 @@ class QPerl6::Actions is HLL::Actions {
                     $*W.throw($/, 'X::Comp::NYI', feature => "Binding to signatures in $*SCOPE declarations");
                 }
                 if $*SCOPE eq 'state' {
-                    $list := PAST::Op.new( :pasttype('if'),
+                    $list := QAST::Op.new( :op('if'),
                         PAST::Op.new( :pirop('perl6_state_needs_init I') ),
                         $list, $orig_list);
                 }
@@ -3939,8 +3939,8 @@ class QPerl6::Actions is HLL::Actions {
                 :pasttype('bind'),
                 PAST::Var.new( :name($id ~ '_lhs'), :scope('register'), :isdecl(1) ),
                 ($one_only ??
-                    PAST::Op.new(
-                        :pasttype('if'),
+                    QAST::Op.new(
+                        :op('if'),
                         QAST::Var.new( :name($state), :scope('lexical') ),
                         $false,
                         QAST::Op.new( :op('callmethod'), :name('Bool'), $lhs )
@@ -3951,8 +3951,8 @@ class QPerl6::Actions is HLL::Actions {
                 :pasttype('bind'),
                 PAST::Var.new( :name($id ~ '_rhs'), :scope('register'), :isdecl(1) ),
                 ($one_only ??
-                    PAST::Op.new(
-                        :pasttype('if'),
+                    QAST::Op.new(
+                        :op('if'),
                         QAST::Var.new( :name($state), :scope('lexical') ),
                         QAST::Op.new( :op('callmethod'), :name('Bool'), $rhs ),
                         $false
@@ -3963,15 +3963,15 @@ class QPerl6::Actions is HLL::Actions {
         
         # Now decide what to do based on current state and current
         # results.
-        $ff_code.push(PAST::Op.new(
-            :pasttype('if'),
+        $ff_code.push(QAST::Op.new(
+            :op('if'),
             QAST::Var.new( :name($state), :scope('lexical') ),
             
             # State is currently true. Check RHS. If it's false, then we
             # increment the sequence count. If it's true, then we reset,
             # the state to zero and and what we return depends on $max_excl.
-            PAST::Op.new(
-                :pasttype('if'),
+            QAST::Op.new(
+                :op('if'),
                 PAST::Var.new( :name($id ~ '_rhs'), :scope('register') ),
                 ($max_excl ??
                     QAST::Stmts.new(
@@ -4013,11 +4013,11 @@ class QPerl6::Actions is HLL::Actions {
             # stay in a false state. If it's true, then we flip the bit,
             # but only if the RHS is not also true. We return a result
             # based on $min_excl.
-            PAST::Op.new(
-                :pasttype('if'),
+            QAST::Op.new(
+                :op('if'),
                 PAST::Var.new( :name($id ~ '_lhs'), :scope('register') ),
-                PAST::Op.new(
-                    :pasttype('if'),
+                QAST::Op.new(
+                    :op('if'),
                     PAST::Var.new( :name($id ~ '_rhs'), :scope('register') ),
                     $min_excl || $max_excl ?? $nil !! $one,
                     QAST::Stmts.new(
@@ -4384,9 +4384,9 @@ class QPerl6::Actions is HLL::Actions {
         unless $*value ~~ PAST::Node {
             if ($*key eq 'c' || $*key eq 'continue'
             || $*key eq 'p' || $*key eq 'pos') && $*value == 1 {
-                $*value := PAST::Op.new(
+                $*value := QAST::Op.new(
                     :node($/),
-                    :pasttype<if>,
+                    :op<if>,
                     QAST::Var.new(:name('$/'), :scope('lexical')),
                     QAST::Op.new(:op('callmethod'),
                         QAST::Var.new(:name('$/'), :scope<lexical>),

@@ -4059,10 +4059,9 @@ class QPerl6::Actions is HLL::Actions {
                         :name('&METAOP_TEST_ASSIGN:<' ~ $basesym ~ '>') );
             }
             else {
-                make QAST::Op.new( :node($/),
+                make QAST::Op.new( :node($/), :op<call>,
                         QAST::Op.new( :op<call>,
                             :name<&METAOP_ASSIGN>, $basepast ));
-
             }
         }
 
@@ -4080,7 +4079,7 @@ class QPerl6::Actions is HLL::Actions {
             elsif $metasym eq 'X' { $helper := '&METAOP_CROSS'; }
             elsif $metasym eq 'Z' { $helper := '&METAOP_ZIP'; }
 
-            make QAST::Op.new( :node($/),
+            make QAST::Op.new( :node($/), :op<call>,
                      QAST::Op.new( :op<call>,
                          :name($helper), $basepast ));
         }
@@ -4138,7 +4137,7 @@ class QPerl6::Actions is HLL::Actions {
             $dwim.named('dwim-right');
             $hpast.push($dwim);
         }
-        return PAST::Op.new( :node($/), $hpast );
+        return QAST::Op.new( :node($/), :op<call>, $hpast );
     }
 
     method postfixish($/) {

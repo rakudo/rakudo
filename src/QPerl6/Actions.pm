@@ -789,7 +789,7 @@ class QPerl6::Actions is HLL::Actions {
                 $past := QAST::Op.new(
                     :op('p6store'), :node($/),
                     QAST::Var.new( :name('$*FATAL'), :scope('lexical') ),
-                    PAST::Op.new( :pirop('perl6_booleanize PI'), 1 )
+                    QAST::Op.new( :op('p6bool'), 1 )
                 );
             }
             elsif ~$<module_name> eq 'FORBID_PIR' {
@@ -1024,10 +1024,10 @@ class QPerl6::Actions is HLL::Actions {
                 make make_pair($*key, $val_ast);
             }
             elsif $*value == 0 {
-                make make_pair($*key, PAST::Op.new( :pirop('perl6_booleanize PI'), 0 ));
+                make make_pair($*key, QAST::Op.new( :op('p6bool'), 0 ));
             }
             else {
-                make make_pair($*key, PAST::Op.new( :pirop('perl6_booleanize PI'), 1 ));
+                make make_pair($*key, QAST::Op.new( :op('p6bool'), 1 ));
             }
         }
         elsif $<fakesignature> {
@@ -2409,7 +2409,7 @@ class QPerl6::Actions is HLL::Actions {
         # If we have a refinement, make sure it's thunked if needed. If none,
         # just always true.
         my $refinement := make_where_block($<EXPR> ?? $<EXPR>[0].ast !!
-            PAST::Op.new( :pirop('perl6_booleanize__PI'), 1 ));
+            QAST::Op.new( :op('p6bool'), 1 ));
 
         # Create the meta-object.
         my $longname := $<longname> ?? $*W.disect_longname($<longname>[0]) !! 0;
@@ -3074,7 +3074,7 @@ class QPerl6::Actions is HLL::Actions {
 
     ## temporary Bool::True/False generation
     method term:sym<boolean>($/) {
-        make PAST::Op.new(:pirop<perl6_booleanize__Pi>, $<value> eq 'True');
+        make QAST::Op.new(:op<p6bool>, $<value> eq 'True');
     }
     
     method term:sym<::?IDENT>($/) {
@@ -3904,7 +3904,7 @@ class QPerl6::Actions is HLL::Actions {
             :name('&infix:<xx>'), :node($/),
             block_closure(make_thunk_ref($lhs, $/)),
             $rhs,
-            PAST::Op.new( :pirop('perl6_booleanize__Pi'), 1, :named('thunked') ))
+            QAST::Op.new( :op('p6bool'), 1, :named('thunked') ))
     }
     
     sub flipflop($lhs, $rhs, $min_excl, $max_excl, $one_only) {

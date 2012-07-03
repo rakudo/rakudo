@@ -1147,7 +1147,7 @@ class QPerl6::Actions is HLL::Actions {
                 }
                 my $attr := get_attribute_meta_object($/, $past.name());
                 $past.scope('attribute_6model');
-                $past.type($attr.type);
+                $past.returns($attr.type);
                 $past.unshift(instantiated_type(['$?CLASS'], $/));
                 $past.unshift(QAST::Var.new( :name('self'), :scope('lexical') ));
                 $past := box_native_if_needed($past, $attr.type);
@@ -1233,7 +1233,7 @@ class QPerl6::Actions is HLL::Actions {
             $past.scope('lexical');
             try {
                 my $type := $*W.find_lexical_container_type($past.name);
-                $past.type($type);
+                $past.returns($type);
                 $past := box_native_if_needed($past, $type);
             }
         }
@@ -1577,7 +1577,7 @@ class QPerl6::Actions is HLL::Actions {
             if $past.isa(QAST::Var) {
                 $past.name($name);
                 $past.scope('lexical');
-                $past.type(%cont_info<bind_constraint>);
+                $past.returns(%cont_info<bind_constraint>);
                 $past := box_native_if_needed($past, %cont_info<bind_constraint>);
                 if %cont_info<bind_constraint>.HOW.archetypes.generic {
                     $past := QAST::Op.new(
@@ -3021,7 +3021,7 @@ class QPerl6::Actions is HLL::Actions {
                         :calling-package( $*PACKAGE.HOW.name($*PACKAGE)),
                     );
                 }
-                $past[1].type($methpkg);
+                $past[1].returns($methpkg);
             }
             else {
                 unless nqp::can($*PACKAGE.HOW, 'find_private_method') {
@@ -3030,7 +3030,7 @@ class QPerl6::Actions is HLL::Actions {
                     );
                 }
                 $past.unshift(QAST::WVal.new( :value($*PACKAGE) ));
-                $past[0].type($*PACKAGE);
+                $past[0].returns($*PACKAGE);
                 $past.unshift($*W.add_string_constant($name));
             }
             $past.name('dispatch:<!>');
@@ -3393,13 +3393,13 @@ class QPerl6::Actions is HLL::Actions {
         if $past.isa(PAST::Op) && $past.pirop ne '' {
             my $ret_type := nqp::substr(nqp::split('__', $past.pirop)[1], 0, 1);
             if $ret_type eq 'I' {
-                $past.type($*W.find_symbol(['int']));
+                $past.returns($*W.find_symbol(['int']));
             }
             elsif $ret_type eq 'N' {
-                $past.type($*W.find_symbol(['num']));
+                $past.returns($*W.find_symbol(['num']));
             }
             elsif $ret_type eq 'S' {
-                $past.type($*W.find_symbol(['str']));
+                $past.returns($*W.find_symbol(['str']));
             }
         }
         
@@ -5165,7 +5165,7 @@ class QPerl6::Actions is HLL::Actions {
             QAST::WVal.new( :value($type) );
         $past<has_compile_time_value> := 1;
         $past<compile_time_value> := $type;
-        $past.type($type.WHAT);
+        $past.returns($type.WHAT);
         return $past;
     }
 

@@ -258,8 +258,8 @@ class QPerl6::World is HLL::World {
                 # XXX TODO: Merge handling.
                 nqp::die("Cannot import symbol '" ~ $_.key ~ "' from package '$source_package_name', since it already exists in the lexpad"); }
             else {
-                $target.symbol($_.key, :scope('lexical_6model'), :value($_.value));
-                $target[0].push(PAST::Var.new( :scope('lexical_6model'), :name($_.key), :isdecl(1) ));
+                $target.symbol($_.key, :scope('lexical'), :value($_.value));
+                $target[0].push(QAST::Var.new( :scope('lexical'), :name($_.key), :decl('var') ));
                 %to_install{$_.key} := $_.value;
             }
         }
@@ -353,7 +353,7 @@ class QPerl6::World is HLL::World {
         unless $block.symbol($name) {
             $block[0].push(QAST::Var.new( :scope('lexical'), :name($name), :decl('var') ));
         }
-        $block.symbol($name, :scope('lexical_6model'), :value($obj));
+        $block.symbol($name, :scope('lexical'), :value($obj));
         
         # Add a clone if needed.
         if $clone {
@@ -380,11 +380,11 @@ class QPerl6::World is HLL::World {
         # a compile time value.
         my $var;
         unless $block.symbol($name) {
-            $var := PAST::Var.new( :scope('lexical_6model'), :name($name),
-                :isdecl(1), :type(%cont_info<bind_constraint>) );
+            $var := QAST::Var.new( :scope('lexical'), :name($name),
+                :decl('var'), :returns(%cont_info<bind_constraint>) );
             $block[0].push($var);
         }
-        $block.symbol($name, :scope('lexical_6model'), :type(%cont_info<bind_constraint>), :descriptor($descriptor));
+        $block.symbol($name, :scope('lexical'), :type(%cont_info<bind_constraint>), :descriptor($descriptor));
             
         # If it's a native type, we're done - no container
         # as we inline natives straight into registers. Do
@@ -792,8 +792,8 @@ class QPerl6::World is HLL::World {
                                    QAST::BVal.new(:value($block)),
                                    PAST::Op.new(
                                         :pirop<perl6_get_outer_ctx__PP>,
-                                        PAST::Var.new(
-                                            :scope<attribute_6model>,
+                                        QAST::Var.new(
+                                            :scope<attribute>,
                                             :name<$!quasi_context>,
                                             QAST::WVal.new( :value($quasi_ast) ),
                                             QAST::WVal.new( :value(self.find_symbol(['AST'])) )
@@ -812,8 +812,8 @@ class QPerl6::World is HLL::World {
                     :pasttype('for'),
                     PAST::Var.new(
                         :scope('keyed'),
-                        PAST::Var.new(
-                            :scope('attribute_6model'), :name('$!phasers'),
+                        QAST::Var.new(
+                            :scope('attribute'), :name('$!phasers'),
                             QAST::WVal.new( :value($code) ),
                             QAST::WVal.new( :value($block_type) )
                         ),
@@ -867,25 +867,25 @@ class QPerl6::World is HLL::World {
         my $block := self.cur_lexpad();
         $block[0].push(PAST::Op.new(
             :pasttype('bind'),
-            PAST::Var.new( :name($value_stash), :scope('lexical_6model'), :isdecl(1) ),
+            QAST::Var.new( :name($value_stash), :scope('lexical'), :decl('var') ),
             PAST::Op.new( :pasttype('list') )));
-        $block.symbol($value_stash, :scope('lexical_6model'));
+        $block.symbol($value_stash, :scope('lexical'));
         
         # Create a phaser block that will do the restoration.
         my $phaser_block := self.push_lexpad($/);
         self.pop_lexpad();
         $phaser_block.push(PAST::Op.new(
             :pasttype('while'),
-            PAST::Var.new( :name($value_stash), :scope('lexical_6model') ),
+            QAST::Var.new( :name($value_stash), :scope('lexical') ),
             PAST::Op.new(
                 :pirop('perl6_container_store__0PP'),
                 PAST::Op.new(
                     :pirop('shift__PP'),
-                    PAST::Var.new( :name($value_stash), :scope('lexical_6model') )
+                    QAST::Var.new( :name($value_stash), :scope('lexical') )
                 ),
                 PAST::Op.new(
                     :pirop('shift__PP'),
-                    PAST::Var.new( :name($value_stash), :scope('lexical_6model') )
+                    QAST::Var.new( :name($value_stash), :scope('lexical') )
                 ))));
         
         # Add as phaser.
@@ -961,9 +961,9 @@ class QPerl6::World is HLL::World {
             for %symbols {
                 unless %seen{$_.key} {
                     # Add slot for symbol.
-                    $wrapper[0].push(PAST::Var.new(
-                        :name($_.key), :scope('lexical_6model'), :isdecl(1) ));
-                    $wrapper.symbol($_.key, :scope('lexical_6model'));
+                    $wrapper[0].push(QAST::Var.new(
+                        :name($_.key), :scope('lexical'), :decl('var') ));
+                    $wrapper.symbol($_.key, :scope('lexical'));
                     
                     # Make static lexpad entry.
                     my %sym := $_.value;
@@ -1287,7 +1287,7 @@ class QPerl6::World is HLL::World {
         my $capturer := self.cur_lexpad();
         $capturer[0].push(QAST::VM.new(
             :pirop('capture_all_outers vP'),
-            PAST::Var.new(
+            QAST::Var.new(
                 :name('$!list'), :scope('attribute'),
                 QAST::WVal.new( :value($fixup_list) ),
                 QAST::WVal.new( :value(FixupList) ))));
@@ -1309,7 +1309,7 @@ class QPerl6::World is HLL::World {
             return self.add_constant_folded_result($result);
         }
         elsif $phaser eq 'CHECK' {
-            my $result_node := QAST::Stmt.new( PAST::Var.new( :name('Nil'), :scope('lexical_6model') ) );
+            my $result_node := QAST::Stmt.new( QAST::Var.new( :name('Nil'), :scope('lexical') ) );
             @!CHECKs := [] unless @!CHECKs;
             @!CHECKs.unshift([$block, $result_node]);
             return $result_node;
@@ -1320,7 +1320,7 @@ class QPerl6::World is HLL::World {
                 QAST::WVal.new( :value($block) )
             ));
             # XXX should keep value for r-value usage
-            return PAST::Var.new(:name('Nil'), :scope('lexical_6model'));
+            return QAST::Var.new(:name('Nil'), :scope('lexical'));
         }
         elsif $phaser eq 'END' {
             $*UNIT[0].push(QAST::Op.new(
@@ -1328,7 +1328,7 @@ class QPerl6::World is HLL::World {
                 PAST::Var.new( :name('@*END_PHASERS'), :scope('contextual') ),
                 QAST::WVal.new( :value($block) )
             ));
-            return PAST::Var.new(:name('Nil'), :scope('lexical_6model'));
+            return QAST::Var.new(:name('Nil'), :scope('lexical'));
         }
         elsif $phaser eq 'START' {
             # Create a state variable to hold the phaser's result.
@@ -1349,10 +1349,10 @@ class QPerl6::World is HLL::World {
                 PAST::Op.new( :pirop('perl6_state_needs_init I') ),
                 PAST::Op.new(
                     :pirop('perl6_container_store__0PP'),
-                    PAST::Var.new( :name($sym), :scope('lexical_6model') ),
+                    QAST::Var.new( :name($sym), :scope('lexical') ),
                     QAST::Op.new( :op('call'), QAST::WVal.new( :value($block) ) )
                 ),
-                PAST::Var.new( :name($sym), :scope('lexical_6model') ));
+                QAST::Var.new( :name($sym), :scope('lexical') ));
         }
         elsif $phaser eq 'PRE' || $phaser eq 'POST' {
             my $what := self.add_string_constant($phaser);
@@ -1378,7 +1378,7 @@ class QPerl6::World is HLL::World {
                 # Needs $_ that can be set to the return value.
                 $phaser_past[0].unshift(PAST::Op.new( :pirop('bind_signature v') ));
                 unless $phaser_past.symbol('$_') {
-                    $phaser_past[0].unshift(PAST::Var.new( :name('$_'), :scope('lexical_6model'), :isdecl(1) ));
+                    $phaser_past[0].unshift(QAST::Var.new( :name('$_'), :scope('lexical'), :decl('var') ));
                 }
                 nqp::push(
                     nqp::getattr($block.signature, self.find_symbol(['Signature']), '$!params'),
@@ -1389,11 +1389,11 @@ class QPerl6::World is HLL::World {
             }
             
             @!CODES[+@!CODES - 1].add_phaser($phaser, $block);
-            return PAST::Var.new(:name('Nil'), :scope('lexical_6model'));
+            return QAST::Var.new(:name('Nil'), :scope('lexical'));
         }
         else {
             @!CODES[+@!CODES - 1].add_phaser($phaser, $block);
-            return PAST::Var.new(:name('Nil'), :scope('lexical_6model'));
+            return QAST::Var.new(:name('Nil'), :scope('lexical'));
         }
     }
     
@@ -1768,7 +1768,7 @@ class QPerl6::World is HLL::World {
                 $i := $i - 1;
                 my %sym := @!BLOCKS[$i].symbol(@name[0]);
                 if +%sym {
-                    return PAST::Var.new( :name(@name[0]), :scope(%sym<scope>) );
+                    return QAST::Var.new( :name(@name[0]), :scope(%sym<scope>) );
                 }
             }
         }
@@ -1787,9 +1787,9 @@ class QPerl6::World is HLL::World {
         if +@name == 0 {
             $lookup.unshift(QAST::Op.new(
                 :op('getwho'),
-                PAST::Var.new( :name('$?PACKAGE'), :scope('lexical_6model') )
+                QAST::Var.new( :name('$?PACKAGE'), :scope('lexical') )
             ));
-            $lookup.isa(PAST::Var) && $lookup.viviself(PAST::Var.new(
+            $lookup.isa(QAST::Var) && $lookup.viviself(PAST::Var.new(
                 :scope('keyed'),
                 :viviself(self.lookup_failure($orig_name)),
                 QAST::Op.new(
@@ -1805,7 +1805,7 @@ class QPerl6::World is HLL::World {
         # then strip it off.
         else {
             my $path := self.is_lexical(@name[0]) ??
-                PAST::Var.new( :name(@name.shift()), :scope('lexical_6model') ) !!
+                QAST::Var.new( :name(@name.shift()), :scope('lexical') ) !!
                 PAST::Var.new( :name('GLOBAL'), :namespace([]), :scope('package') );
             if @name[0] eq 'GLOBAL' {
                 @name := nqp::clone(@name);
@@ -1820,7 +1820,7 @@ class QPerl6::World is HLL::World {
         }
         
         # Failure object if we can't find the name.
-        if $lookup.isa(PAST::Var) && !$lookup.viviself {
+        if $lookup.isa(QAST::Var) && !$lookup.viviself {
             $lookup.viviself(self.lookup_failure($orig_name));
         }
         
@@ -1843,8 +1843,7 @@ class QPerl6::World is HLL::World {
             $i := $i - 1;
             my %sym := @!BLOCKS[$i].symbol($name);
             if +%sym {
-                return %sym<scope> eq 'lexical_6model' ||
-                       %sym<scope> eq 'lexical';
+                return %sym<scope> eq 'lexical';
             }
         }
         0;

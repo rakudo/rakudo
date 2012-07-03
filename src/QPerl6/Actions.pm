@@ -42,7 +42,8 @@ class QPerl6::Actions is HLL::Actions {
     our $STATEMENT_PRINT;
 
     INIT {
-        # Tell PAST::Var how to encode Perl6Str and Str values
+        # Tell QAST::SVal how to encode Perl6Str and Str values
+        # XXX Needs review...
         my %valflags :=
             Q:PIR { %r = get_hll_global ['PAST';'Compiler'], '%valflags' };
         %valflags<Perl6Str> := 'e';
@@ -218,7 +219,7 @@ class QPerl6::Actions is HLL::Actions {
             QAST::Stmts.new(
                 $code,
                 QAST::Op.new(:name<&say>, :op<call>,
-                    PAST::Var.new(:name<$_>)
+                    QAST::Var.new(:name<$_>)
                 )
             )
         );
@@ -334,7 +335,7 @@ class QPerl6::Actions is HLL::Actions {
             my $pod2text := QAST::Op.new(
                 :op<callmethod>, :name<render>, :node($/),
                 self.make_indirect_lookup([$renderer]),
-                PAST::Var.new(:name<$=pod>, :node($/))
+                QAST::Var.new(:name<$=pod>, :node($/))
             );
 
             $block.push(
@@ -516,7 +517,7 @@ class QPerl6::Actions is HLL::Actions {
             }
         }
         if +$past.list < 1 {
-            $past.push(PAST::Var.new(:name('Nil'), :scope('lexical_6model')));
+            $past.push(QAST::Var.new(:name('Nil'), :scope('lexical')));
         }
         else {
             $past.returns($past[+@($past) - 1].returns);
@@ -543,7 +544,7 @@ class QPerl6::Actions is HLL::Actions {
             $past := $<EXPR>.ast;
             if $mc {
                 $mc.ast.push($past);
-                $mc.ast.push(PAST::Var.new(:name('Nil'), :scope('lexical_6model')));
+                $mc.ast.push(QAST::Var.new(:name('Nil'), :scope('lexical')));
                 $past := $mc.ast;
             }
             if $ml {
@@ -720,7 +721,7 @@ class QPerl6::Actions is HLL::Actions {
         # push the else block if any, otherwise 'if' returns C<Nil> (per S04)
         $past.push( $<else>
                     ?? pblock_immediate( $<else>[0].ast )
-                    !!  PAST::Var.new(:name('Nil'), :scope('lexical_6model'))
+                    !!  QAST::Var.new(:name('Nil'), :scope('lexical'))
         );
         # build if/then/elsif structure
         while $count > 0 {
@@ -771,7 +772,7 @@ class QPerl6::Actions is HLL::Actions {
 
     method statement_control:sym<loop>($/) {
         my $block := pblock_immediate($<block>.ast);
-        my $cond := $<e2> ?? $<e2>[0].ast !! PAST::Var.new(:name<True>, :scope<lexical_6model>);
+        my $cond := $<e2> ?? $<e2>[0].ast !! QAST::Var.new(:name<True>, :scope<lexical>);
         my $loop := PAST::Op.new( $cond, $block, :pasttype('while'), :node($/) );
         if $<e3> {
             $loop.push( $<e3>[0].ast );
@@ -783,7 +784,7 @@ class QPerl6::Actions is HLL::Actions {
     }
 
     method statement_control:sym<need>($/) {
-        my $past := PAST::Var.new( :name('Nil'), :scope('lexical') );
+        my $past := QAST::Var.new( :name('Nil'), :scope('lexical') );
         for $<version> {
             # XXX TODO: Version checks.
         }
@@ -791,12 +792,12 @@ class QPerl6::Actions is HLL::Actions {
     }
 
     method statement_control:sym<import>($/) {
-        my $past := PAST::Var.new( :name('Nil'), :scope('lexical') );
+        my $past := QAST::Var.new( :name('Nil'), :scope('lexical') );
         make $past;
     }
 
     method statement_control:sym<use>($/) {
-        my $past := PAST::Var.new( :name('Nil'), :scope('lexical') );
+        my $past := QAST::Var.new( :name('Nil'), :scope('lexical') );
         if $<version> {
             # TODO: replace this by code that doesn't always die with
             # a useless error message
@@ -816,7 +817,7 @@ class QPerl6::Actions is HLL::Actions {
                 declare_variable($/, QAST::Stmts.new(), '$', '*', 'FATAL', []);
                 $past := PAST::Op.new(
                     :pirop('perl6_container_store__0PP'), :node($/),
-                    PAST::Var.new( :name('$*FATAL'), :scope('lexical_6model') ),
+                    QAST::Var.new( :name('$*FATAL'), :scope('lexical') ),
                     PAST::Op.new( :pirop('perl6_booleanize PI'), 1 )
                 );
             }
@@ -880,7 +881,7 @@ class QPerl6::Actions is HLL::Actions {
         # Handle the smart-match.
         my $match_past := QAST::Op.new( :op('callmethod'), :name('ACCEPTS'),
             $sm_exp,
-            PAST::Var.new( :name('$_'), :scope('lexical_6model') )
+            QAST::Var.new( :name('$_'), :scope('6model') )
         );
 
         # Use the smartmatch result as the condition for running the block,
@@ -904,7 +905,7 @@ class QPerl6::Actions is HLL::Actions {
         }
         my $block := $<block>.ast;
         push_block_handler($/, $*W.cur_lexpad(), $block, 'CONTROL', :except(1));
-        make PAST::Var.new( :name('Nil'), :scope('lexical') );
+        make QAST::Var.new( :name('Nil'), :scope('lexical') );
     }
 
     method statement_control:sym<CONTROL>($/) {
@@ -913,7 +914,7 @@ class QPerl6::Actions is HLL::Actions {
         }
         my $block := $<block>.ast;
         push_block_handler($/, $*W.cur_lexpad(), $block, 'CONTROL');
-        make PAST::Var.new( :name('Nil'), :scope('lexical') );
+        make QAST::Var.new( :name('Nil'), :scope('lexical') );
     }
 
     method statement_prefix:sym<BEGIN>($/) { make $*W.add_phaser($/, 'BEGIN', ($<blorst>.ast)<code_object>); }
@@ -954,7 +955,7 @@ class QPerl6::Actions is HLL::Actions {
         my $blast := PAST::Op.new( $<blorst>.ast );
         make QAST::Stmts.new(
             PAST::Op.new( :name('&eager'), $blast ),
-            PAST::Var.new( :name('Nil'), :scope('lexical')),
+            QAST::Var.new( :name('Nil'), :scope('lexical')),
             :node($/)
         );
     }
@@ -972,15 +973,15 @@ class QPerl6::Actions is HLL::Actions {
             # On failure, capture the exception object into $!.
             $past.push(
                 PAST::Op.new(:pirop('perl6_container_store__0PP'),
-                    PAST::Var.new(:name<$!>, :scope<lexical_6model>),
+                    QAST::Var.new(:name<$!>, :scope<lexical>),
                     QAST::Op.new(:name<&EXCEPTION>, :op<call>,
                         PAST::Op.new(:inline("    .get_results (%r)\n    \$P0 = null\n    perl6_invoke_catchhandler \$P0, %r")))));
 
             # Otherwise, put Mu into $!.
             $past.push(
                 PAST::Op.new(:pirop('perl6_container_store__0PP'),
-                    PAST::Var.new( :name<$!>, :scope<lexical_6model> ),
-                    PAST::Var.new( :name<Mu>, :scope<lexical_6model> )));
+                    QAST::Var.new( :name<$!>, :scope<lexical> ),
+                    QAST::Var.new( :name<Mu>, :scope<lexical> )));
         }
         make $past;
     }
@@ -1005,7 +1006,7 @@ class QPerl6::Actions is HLL::Actions {
         make PAST::Op.new( :pasttype<if>,
             QAST::Op.new( :name('ACCEPTS'), :op('callmethod'),
                           $<modifier_expr>.ast, 
-                          PAST::Var.new( :name('$_') ) ),
+                          QAST::Var.new( :name('$_'), :scope('lexical') ) ),
             :node($/)
         );
     }
@@ -1070,7 +1071,7 @@ class QPerl6::Actions is HLL::Actions {
         $value.named('value');
         PAST::Op.new(
             :pasttype('callmethod'), :name('new'), :returns('Pair'),
-            PAST::Var.new( :name('Pair'), :scope('lexical_6model') ),
+            QAST::Var.new( :name('Pair'), :scope('lexical') ),
             $key, $value
         )
     }
@@ -1087,13 +1088,13 @@ class QPerl6::Actions is HLL::Actions {
             $past := QAST::Op.new(
                 :op('callmethod'),
                 :name('postcircumfix:<[ ]>'),
-                PAST::Var.new(:name('$/'), :scope('lexical_6model')),
+                QAST::Var.new(:name('$/'), :scope('lexical')),
                 $*W.add_constant('Int', 'int', +$<index>),
             );
         }
         elsif $<postcircumfix> {
             $past := $<postcircumfix>.ast;
-            $past.unshift( PAST::Var.new( :name('$/') ) );
+            $past.unshift( QAST::Var.new( :name('$/'), :scope('lexical') ) );
         }
         elsif $<infixish> {
             $past := PAST::Op.new( :pirop('find_sub_not_null__Ps'), '&infix:<' ~ $<infixish>.Str ~ '>' );
@@ -1132,7 +1133,7 @@ class QPerl6::Actions is HLL::Actions {
     }
 
     sub make_variable_from_parts($/, @name, $sigil, $twigil, $desigilname) {
-        my $past := PAST::Var.new( :name(@name[+@name - 1]), :node($/));
+        my $past := QAST::Var.new( :name(@name[+@name - 1]), :node($/));
         if $twigil eq '*' {
             $past := QAST::Op.new(
                 $*W.add_string_constant($past.name()),
@@ -1148,7 +1149,7 @@ class QPerl6::Actions is HLL::Actions {
                 $past.scope('attribute_6model');
                 $past.type($attr.type);
                 $past.unshift(instantiated_type(['$?CLASS'], $/));
-                $past.unshift(PAST::Var.new( :name('self'), :scope('lexical_6model') ));
+                $past.unshift(QAST::Var.new( :name('self'), :scope('lexical') ));
                 $past := box_native_if_needed($past, $attr.type);
             }
         }
@@ -1162,7 +1163,7 @@ class QPerl6::Actions is HLL::Actions {
             $past := $<arglist> ?? $<arglist>[0].ast !! PAST::Op.new();
             $past.op('callmethod');
             $past.name($desigilname);
-            $past.unshift(PAST::Var.new( :name('self'), :scope('lexical_6model') ));
+            $past.unshift(QAST::Var.new( :name('self'), :scope('lexical') ));
             # Contextualize based on sigil.
             $past := QAST::Op.new(
                 :op('callmethod'),
@@ -1209,7 +1210,7 @@ class QPerl6::Actions is HLL::Actions {
             $past.name($attr_alias);
             $past.scope('attribute_6model');
             $past.unshift(instantiated_type(['$?CLASS'], $/));
-            $past.unshift(PAST::Var.new( :name('self'), :scope('lexical_6model') ));
+            $past.unshift(QAST::Var.new( :name('self'), :scope('lexical') ));
         }
         elsif $*IN_DECL ne 'variable' {
             # the $*QSGIL part is a hack:
@@ -1224,12 +1225,12 @@ class QPerl6::Actions is HLL::Actions {
                 $*W.throw($/, ['X', 'Undeclared'], symbol => $past.name());
             }
             elsif $sigil eq '&' {
-                $past.viviself(PAST::Var.new(:name('Nil'), :scope('lexical_6model')));
+                $past.viviself(QAST::Var.new(:name('Nil'), :scope('lexical')));
             }
 
             # Expect variable to have been declared somewhere.
             # Locate descriptor and thus type.
-            $past.scope('lexical_6model');
+            $past.scope('lexical');
             try {
                 my $type := $*W.find_lexical_container_type($past.name);
                 $past.type($type);
@@ -1333,7 +1334,7 @@ class QPerl6::Actions is HLL::Actions {
             # what has to be fixed up.
             my $throwaway_block_past := QAST::Block.new( 
                 :blocktype('declaration'),
-                PAST::Var.new( :name('$_'), :scope('lexical'), :isdecl(1) )
+                QAST::Var.new( :name('$_'), :scope('lexical'), :decl('var') )
             );
             $throwaway_block_past<outer> := $block;
             $block[0].push($throwaway_block_past);
@@ -1435,7 +1436,7 @@ class QPerl6::Actions is HLL::Actions {
             my @params := $<signature>.ast;
             for @params {
                 if $_<variable_name> {
-                    my $past := PAST::Var.new( :name($_<variable_name>) );
+                    my $past := QAST::Var.new( :name($_<variable_name>) );
                     $past := declare_variable($/, $past, $_<sigil>, $_<twigil>,
                         $_<desigilname>, []);
                     unless $past.isa(PAST::Op) && $past.pasttype eq 'null' {
@@ -1546,7 +1547,7 @@ class QPerl6::Actions is HLL::Actions {
             }
 
             # Nothing to emit here; hand back a Nil.
-            $past := PAST::Var.new(:name('Nil'), :scope('lexical_6model'));
+            $past := QAST::Var.new(:name('Nil'), :scope('lexical'));
             $past<metaattr> := $attr;
         }
         elsif $*SCOPE eq 'my' || $*SCOPE eq 'state' {            
@@ -1573,9 +1574,9 @@ class QPerl6::Actions is HLL::Actions {
 
             # Set scope and type on container, and if needed emit code to
             # reify a generic type.
-            if $past.isa(PAST::Var) {
+            if $past.isa(QAST::Var) {
                 $past.name($name);
-                $past.scope('lexical_6model');
+                $past.scope('lexical');
                 $past.type(%cont_info<bind_constraint>);
                 $past := box_native_if_needed($past, %cont_info<bind_constraint>);
                 if %cont_info<bind_constraint>.HOW.archetypes.generic {
@@ -1607,8 +1608,8 @@ class QPerl6::Actions is HLL::Actions {
             elsif $shape {
                 $/.CURSOR.panic("Cannot put a shape on an 'our'-scoped variable");
             }
-            $BLOCK[0].push(PAST::Var.new(
-                :name($name), :scope('lexical'), :isdecl(1),
+            $BLOCK[0].push(QAST::Var.new(
+                :name($name), :scope('lexical'), :decl('var'),
                 :viviself($*W.symbol_lookup([$name], $/, :package_only(1), :lvalue(1)))));
             $BLOCK.symbol($name, :scope('lexical'));
         }
@@ -1776,7 +1777,7 @@ class QPerl6::Actions is HLL::Actions {
                     $outer[0].push(PAST::Op.new(
                         :pasttype('bind_6model'),
                         $*W.symbol_lookup([$name], $/, :package_only(1)),
-                        PAST::Var.new( :name($name), :scope('lexical_6model') )
+                        QAST::Var.new( :name($name), :scope('lexical') )
                     ));
                 }
                 elsif $*SCOPE eq 'anon' {
@@ -1844,7 +1845,7 @@ class QPerl6::Actions is HLL::Actions {
         
         # Ensure nothing extra is declared.
         for @($past[0]) {
-            if $_.isa(PAST::Var) {
+            if $_.isa(QAST::Var) {
                 my $name := $_.name;
                 return 0 if $name ne 'call_sig' && $name ne '$_' &&
                     $name ne '$/' && $name ne '$!' && $name ne '&?ROUTINE' &&
@@ -1862,7 +1863,7 @@ class QPerl6::Actions is HLL::Actions {
             if ($node.isa(QAST::Stmt) || $node.isa(QAST::Stmts)) && +@($node) == 1 {
                 $node_walker($node[0])
             }
-            elsif $node.isa(PAST::Var) && ($node.scope eq 'lexical_6model' || $node.scope eq '') {
+            elsif $node.isa(QAST::Var) && ($node.scope eq 'lexical' || $node.scope eq '') {
                 if nqp::existskey(%arg_pos, $node.name) && %arg_used{$node.name} == 0 {
                     %arg_used{$node.name} := 1;
                     "ARG " ~ %arg_pos{$node.name}
@@ -2042,7 +2043,7 @@ class QPerl6::Actions is HLL::Actions {
                 $outer[0].push(PAST::Op.new(
                     :pasttype('bind_6model'),
                     $*W.symbol_lookup([$name], $/, :package_only(1)),
-                    PAST::Var.new( :name($name), :scope('lexical_6model') )
+                    QAST::Var.new( :name($name), :scope('6model') )
                 ));
             }
             else {
@@ -2083,16 +2084,16 @@ class QPerl6::Actions is HLL::Actions {
                 is_multi_invocant => 1,
                 is_method_named_slurpy => 1
             ));
-            $past[0].unshift(PAST::Var.new( :name('%_'), :scope('lexical_6model'), :isdecl(1) ));
-            $past.symbol('%_', :scope('lexical_6model'));
+            $past[0].unshift(QAST::Var.new( :name('%_'), :scope('lexical'), :decl('var') ));
+            $past.symbol('%_', :scope('lexical'));
         }
         set_default_parameter_type(@params, 'Any');
         my $signature := create_signature_object($/, @params, $past);
         add_signature_binding_code($past, $signature, @params);
 
         # Place to store invocant.
-        $past[0].unshift(PAST::Var.new( :name('self'), :scope('lexical_6model'), :isdecl(1) ));
-        $past.symbol('self', :scope('lexical_6model'));
+        $past[0].unshift(QAST::Var.new( :name('self'), :scope('lexical'), :decl('var') ));
+        $past.symbol('self', :scope('lexical'));
 
         # Needs a slot to hold a multi or method dispatcher.
         $*W.install_lexical_symbol($past, '$*DISPATCHER',
@@ -2142,7 +2143,7 @@ class QPerl6::Actions is HLL::Actions {
                 # It's a low-level op or method call.
                 $past.isa(PAST::Op) && ($past.pirop() || $past.op eq 'callmethod') ||
                 # Just a variable lookup.
-                $past.isa(PAST::Var) ||
+                $past.isa(QAST::Var) ||
                 # Just a QAST::Want
                 $past.isa(QAST::Want);
             for @($past) {
@@ -2236,11 +2237,11 @@ class QPerl6::Actions is HLL::Actions {
             $past := $block;
         }
         else {
-            $block[0].push(PAST::Var.new(:name<$¢>, :scope<lexical_6model>, :isdecl(1)));
-            $block.symbol('$¢', :scope<lexical_6model>);
+            $block[0].push(QAST::Var.new(:name<$¢>, :scope<lexical>, :decl('var')));
+            $block.symbol('$¢', :scope<lexical>);
             unless $use_outer_match {
-                $block[0].push(PAST::Var.new(:name<$/>, :scope<lexical_6model>, :isdecl(1)));
-                $block.symbol('$/', :scope<lexical_6model>);
+                $block[0].push(QAST::Var.new(:name<$/>, :scope<lexical>, :decl('var')));
+                $block.symbol('$/', :scope<lexical>);
             }
             $past := QRegex::P6Regex::Actions::buildsub($qast, $block);
         }
@@ -2250,12 +2251,12 @@ class QPerl6::Actions is HLL::Actions {
         # Install a $?REGEX (mostly for the benefit of <~~>).
         $block[0].push(PAST::Op.new(
             :pasttype('bind'),
-            PAST::Var.new(:name<$?REGEX>, :scope<lexical_6model>, :isdecl(1)),
+            QAST::Var.new(:name<$?REGEX>, :scope<lexical>, :decl('var')),
             PAST::Op.new(
                 :pirop('perl6_code_object_from_parrot_sub PP'),
                 PAST::Op.new( :pirop('set PQs'), PAST::Op.new( :pirop('getinterp P') ), 'sub')
             )));
-        $block.symbol('$?REGEX', :scope<lexical_6model>);
+        $block.symbol('$?REGEX', :scope<lexical>);
 
         # Do the various tasks to turn the block into a method code object.
         my $inv_type  := $*W.find_symbol([ # XXX Maybe Cursor below, not Mu...
@@ -2265,7 +2266,7 @@ class QPerl6::Actions is HLL::Actions {
         # Need to put self into a register for the regex engine.
         $past[0].push(PAST::Var.new(
             :name('self'), :scope('register'), :isdecl(1),
-            :viviself(PAST::Var.new( :name('self'), :scope('lexical_6model') ))));
+            :viviself(QAST::Var.new( :name('self'), :scope('lexical') ))));
 
         # Install PAST block so that it gets capture_lex'd correctly.
         my $outer := $*W.cur_lexpad();
@@ -2661,16 +2662,16 @@ class QPerl6::Actions is HLL::Actions {
                         $*W.throw($/, ['X', 'Redeclaration'], symbol => ~$/);
                     }
                     if nqp::existskey(%*PARAM_INFO, 'nominal_type') {
-                        $cur_pad[0].push(PAST::Var.new( :name(~$/), :scope('lexical_6model'),
-                            :isdecl(1), :type(%*PARAM_INFO<nominal_type>) ));
+                        $cur_pad[0].push(QAST::Var.new( :name(~$/), :scope('lexical'),
+                            :decl('var'), :returns(%*PARAM_INFO<nominal_type>) ));
                         %*PARAM_INFO<container_descriptor> := $*W.create_container_descriptor(
                             %*PARAM_INFO<nominal_type>, 0, %*PARAM_INFO<variable_name>);
                         $cur_pad.symbol(%*PARAM_INFO<variable_name>, :descriptor(%*PARAM_INFO<container_descriptor>),
                             :type(%*PARAM_INFO<nominal_type>));
                     } else {
-                        $cur_pad[0].push(PAST::Var.new( :name(~$/), :scope('lexical_6model'), :isdecl(1) ));
+                        $cur_pad[0].push(QAST::Var.new( :name(~$/), :scope('lexical'), :decl('var') ));
                     }
-                    $cur_pad.symbol(~$/, :scope('lexical_6model'));
+                    $cur_pad.symbol(~$/, :scope('lexical'));
                 }
             }
             elsif $twigil eq '!' {
@@ -3111,7 +3112,7 @@ class QPerl6::Actions is HLL::Actions {
     }
 
     method term:sym<self>($/) {
-        make PAST::Var.new( :name('self'), :type($*PACKAGE), :node($/) );
+        make QAST::Var.new( :name('self'), :returns($*PACKAGE), :node($/) );
     }
 
     method term:sym<now>($/) {
@@ -3150,7 +3151,7 @@ class QPerl6::Actions is HLL::Actions {
 
     method term:sym<dotty>($/) {
         my $past := $<dotty>.ast;
-        $past.unshift(PAST::Var.new( :name('$_'), :scope('lexical_6model') ) );
+        $past.unshift(QAST::Var.new( :name('$_'), :scope('lexical') ) );
         make PAST::Op.new( :pirop('perl6ize_type PP'), $past);
     }
 
@@ -3177,7 +3178,7 @@ class QPerl6::Actions is HLL::Actions {
             }
             my $quasi_ast := $routine(|@argument_quasi_asts);
             if nqp::istype($quasi_ast, $nil_class) {
-                make PAST::Var.new(:name('Nil'), :scope('lexical_6model'));
+                make QAST::Var.new(:name('Nil'), :scope('lexical'));
                 return 1;
             }
             unless nqp::istype($quasi_ast, $ast_class) {
@@ -3282,7 +3283,7 @@ class QPerl6::Actions is HLL::Actions {
                 }
                 my $quasi_ast := $routine(|@argument_quasi_asts);
                 if nqp::istype($quasi_ast, $nil_class) {
-                    make PAST::Var.new(:name('Nil'), :scope('lexical_6model'));
+                    make QAST::Var.new(:name('Nil'), :scope('lexical'));
                     return 1;
                 }
                 unless nqp::istype($quasi_ast, $ast_class) {
@@ -3408,7 +3409,7 @@ class QPerl6::Actions is HLL::Actions {
     method term:sym<*>($/) {
         make PAST::Op.new(
             :pasttype('callmethod'), :name('new'), :node($/), :lvalue(1), :returns('Whatever'),
-            PAST::Var.new( :name('Whatever'), :scope('lexical_6model') )
+            QAST::Var.new( :name('Whatever'), :scope('lexical') )
         )
     }
 
@@ -3543,7 +3544,7 @@ class QPerl6::Actions is HLL::Actions {
                 # first item is a pair
                 $is_hash := 1;
             }
-            elsif $elem ~~ PAST::Var
+            elsif $elem ~~ QAST::Var
                     && nqp::substr($elem.name, 0, 1) eq '%' {
                 # first item is a hash
                 $is_hash := 1;
@@ -3655,7 +3656,7 @@ class QPerl6::Actions is HLL::Actions {
 
                 my $quasi_ast := $routine(|@argument_quasi_asts);
                 if nqp::istype($quasi_ast, $nil_class) {
-                    make PAST::Var.new(:name('Nil'), :scope('lexical_6model'));
+                    make QAST::Var.new(:name('Nil'), :scope('lexical'));
                     return 1;
                 }
                 unless nqp::istype($quasi_ast, $ast_class) {
@@ -3686,7 +3687,7 @@ class QPerl6::Actions is HLL::Actions {
             for $/.list { if $_.ast { $past.push($_.ast); } }
         }
         if $past.pasttype eq 'xor_nqp' {
-            $past.push(PAST::Var.new(:named<false>, :scope<lexical_6model>, :name<Nil>));
+            $past.push(QAST::Var.new(:named<false>, :scope<lexical>, :name<Nil>));
         }
         if $key eq 'PREFIX' || $key eq 'INFIX' || $key eq 'POSTFIX' {
             $past := whatever_curry($/, (my $orig := $past), $key eq 'INFIX' ?? 2 !! 1);
@@ -3731,7 +3732,7 @@ class QPerl6::Actions is HLL::Actions {
                 # as its last argument.
                 $_.push(QAST::Op.new( :op('call'), $result ));
             }
-            elsif $_ ~~ PAST::Var {
+            elsif $_ ~~ QAST::Var {
                 # It's a variable. We need code that gets the results, pushes
                 # them onto the variable and then returns them (since this
                 # could well be a tap.
@@ -3766,7 +3767,7 @@ class QPerl6::Actions is HLL::Actions {
         my $sm_call := QAST::Op.new(
             :op('callmethod'), :name('ACCEPTS'),
             $rhs,
-            PAST::Var.new( :name('$_'), :scope('lexical_6model') )
+            QAST::Var.new( :name('$_'), :scope('lexical') )
         );
         if $negated {
             $sm_call := PAST::Op.new( :name('&prefix:<!>'), $sm_call );
@@ -3775,36 +3776,36 @@ class QPerl6::Actions is HLL::Actions {
             # Stash original $_.
             PAST::Op.new( :pasttype('bind_6model'),
                 PAST::Var.new( :name($old_topic_var), :scope('register'), :isdecl(1) ),
-                PAST::Var.new( :name('$_'), :scope('lexical_6model') )
+                QAST::Var.new( :name('$_'), :scope('lexical') )
             ),
 
             # Evaluate LHS and bind it to $_.
             PAST::Op.new( :pasttype('bind_6model'),
-                PAST::Var.new( :name('$_'), :scope('lexical_6model') ),
+                QAST::Var.new( :name('$_'), :scope('lexical') ),
                 $lhs
             ),
 
             # Evaluate RHS and call ACCEPTS on it, passing in $_. Bind the
             # return value to a result variable.
             PAST::Op.new( :pasttype('bind_6model'),
-                PAST::Var.new( :name($result_var), :scope('lexical_6model'), :isdecl(1) ),
+                QAST::Var.new( :name($result_var), :scope('lexical'), :decl('var') ),
                 $sm_call
             ),
 
             # Re-instate original $_.
             PAST::Op.new( :pasttype('bind_6model'),
-                PAST::Var.new( :name('$_'), :scope('lexical_6model') ),
+                QAST::Var.new( :name('$_'), :scope('lexical') ),
                 PAST::Var.new( :name($old_topic_var), :scope('register') )
             ),
 
             # And finally evaluate to the smart-match result.
-            PAST::Var.new( :name($result_var), :scope('lexical_6model') )
+            QAST::Var.new( :name($result_var), :scope('lexical') )
         );
     }
 
     sub bind_op($/, $target, $source, $sigish) {
         # Check we know how to bind to the thing on the LHS.
-        if $target.isa(PAST::Var) {
+        if $target.isa(QAST::Var) {
             # We may need to decontainerize the right, depending on sigil.
             my $sigil := nqp::substr($target.name(), 0, 1);
             if $sigil eq '@' || $sigil eq '%' {
@@ -3867,7 +3868,7 @@ class QPerl6::Actions is HLL::Actions {
     sub assign_op($lhs_ast, $rhs_ast) {
         my $past;
         my $var_sigil;
-        if $lhs_ast.isa(PAST::Var) {
+        if $lhs_ast.isa(QAST::Var) {
             $var_sigil := nqp::substr($lhs_ast.name, 0, 1);
         }
         if $lhs_ast && $lhs_ast<boxable_native> {
@@ -3965,7 +3966,7 @@ class QPerl6::Actions is HLL::Actions {
                 ($one_only ??
                     PAST::Op.new(
                         :pasttype('if'),
-                        PAST::Var.new( :name($state), :scope('lexical_6model') ),
+                        QAST::Var.new( :name($state), :scope('lexical') ),
                         $false,
                         QAST::Op.new( :op('callmethod'), :name('Bool'), $lhs )
                     ) !!
@@ -3977,7 +3978,7 @@ class QPerl6::Actions is HLL::Actions {
                 ($one_only ??
                     PAST::Op.new(
                         :pasttype('if'),
-                        PAST::Var.new( :name($state), :scope('lexical_6model') ),
+                        QAST::Var.new( :name($state), :scope('lexical') ),
                         QAST::Op.new( :op('callmethod'), :name('Bool'), $rhs ),
                         $false
                     ) !!
@@ -3989,7 +3990,7 @@ class QPerl6::Actions is HLL::Actions {
         # results.
         $ff_code.push(PAST::Op.new(
             :pasttype('if'),
-            PAST::Var.new( :name($state), :scope('lexical_6model') ),
+            QAST::Var.new( :name($state), :scope('lexical') ),
             
             # State is currently true. Check RHS. If it's false, then we
             # increment the sequence count. If it's true, then we reset,
@@ -4001,7 +4002,7 @@ class QPerl6::Actions is HLL::Actions {
                     QAST::Stmts.new(
                         PAST::Op.new(
                             :pirop('perl6_container_store__0PP'),
-                            PAST::Var.new( :name($state), :scope('lexical_6model') ),
+                            QAST::Var.new( :name($state), :scope('lexical') ),
                             $zero
                         ),
                         $nil
@@ -4012,12 +4013,12 @@ class QPerl6::Actions is HLL::Actions {
                             PAST::Var.new( :name($id ~ '_orig'), :scope('register'), :isdecl(1) ),
                             QAST::Op.new(
                                 :op('call'), :name('&prefix:<++>'),
-                                PAST::Var.new( :name($state), :scope('lexical_6model') )
+                                QAST::Var.new( :name($state), :scope('lexical') )
                             )
                         ),
                         PAST::Op.new(
                             :pirop('perl6_container_store__0PP'),
-                            PAST::Var.new( :name($state), :scope('lexical_6model') ),
+                            QAST::Var.new( :name($state), :scope('lexical') ),
                             $zero
                         ),
                         PAST::Op.new(
@@ -4028,7 +4029,7 @@ class QPerl6::Actions is HLL::Actions {
                 QAST::Stmts.new(
                     QAST::Op.new(
                         :op('call'), :name('&prefix:<++>'),
-                        PAST::Var.new( :name($state), :scope('lexical_6model') )
+                        QAST::Var.new( :name($state), :scope('lexical') )
                     )
                 )
             ),
@@ -4047,7 +4048,7 @@ class QPerl6::Actions is HLL::Actions {
                     QAST::Stmts.new(
                         PAST::Op.new(
                             :pirop('perl6_container_store__0PP'),
-                            PAST::Var.new( :name($state), :scope('lexical_6model') ),
+                            QAST::Var.new( :name($state), :scope('lexical') ),
                             $one
                         ),
                         $min_excl ?? $nil !! $one
@@ -4065,8 +4066,8 @@ class QPerl6::Actions is HLL::Actions {
             make QAST::Op.new( :node($/),
                      :name<&METAOP_HYPER_PREFIX>,
                      :op<call>,
-                     PAST::Var.new( :name('&prefix:<' ~ $<OPER>.Str ~ '>'),
-                                    :scope<lexical_6model> ));
+                     QAST::Var.new( :name('&prefix:<' ~ $<OPER>.Str ~ '>'),
+                                    :scope<lexical> ));
         }
     }
 
@@ -4076,8 +4077,8 @@ class QPerl6::Actions is HLL::Actions {
             my $basesym  := ~$base<sym>;
             my $basepast := $base.ast
                               ?? $base.ast[0]
-                              !! PAST::Var.new(:name("&infix:<$basesym>"),
-                                               :scope<lexical_6model>);
+                              !! QAST::Var.new(:name("&infix:<$basesym>"),
+                                               :scope<lexical>);
             if $basesym eq '||' || $basesym eq '&&' || $basesym eq '//' {
                 make QAST::Op.new( :op<call>,
                         :name('&METAOP_TEST_ASSIGN:<' ~ $basesym ~ '>') );
@@ -4096,8 +4097,8 @@ class QPerl6::Actions is HLL::Actions {
             my $basesym  := ~$base<OPER>;
             my $basepast := $base.ast
                               ?? $base.ast[0]
-                              !! PAST::Var.new(:name("&infix:<$basesym>"),
-                                               :scope<lexical_6model>);
+                              !! QAST::Var.new(:name("&infix:<$basesym>"),
+                                               :scope<lexical>);
             my $helper   := '';
             if    $metasym eq '!' { $helper := '&METAOP_NEGATE'; }
             if    $metasym eq 'R' { $helper := '&METAOP_REVERSE'; }
@@ -4118,8 +4119,8 @@ class QPerl6::Actions is HLL::Actions {
         my $base     := $<op>;
         my $basepast := $base.ast
                           ?? $base.ast[0]
-                          !! PAST::Var.new(:name("&infix:<" ~ $base<OPER><sym> ~ ">"),
-                                           :scope<lexical_6model>);
+                          !! QAST::Var.new(:name("&infix:<" ~ $base<OPER><sym> ~ ">"),
+                                           :scope<lexical>);
         my $metaop   := '&METAOP_REDUCE';
         if $base<OPER><O><assoc> eq 'right'     { $metaop := '&METAOP_REDUCE_RIGHT' }
         elsif $base<OPER><O><assoc> eq 'list'   { $metaop := '&METAOP_REDUCE_LIST'  }
@@ -4149,8 +4150,8 @@ class QPerl6::Actions is HLL::Actions {
         my $basesym  := ~ $base<OPER>;
         my $basepast := $base.ast
                           ?? $base.ast[0]
-                          !! PAST::Var.new(:name("&infix:<$basesym>"),
-                                           :scope<lexical_6model>);
+                          !! QAST::Var.new(:name("&infix:<$basesym>"),
+                                           :scope<lexical>);
         my $hpast    := QAST::Op.new(:op<call>, :name<&METAOP_HYPER>, $basepast);
         if $<opening> eq '<<' || $<opening> eq '«' {
             my $dwim := $*W.add_constant('Int', 'int', 1);
@@ -4179,7 +4180,7 @@ class QPerl6::Actions is HLL::Actions {
                 }
                 else {
                     my $basepast := $past.name 
-                                    ?? PAST::Var.new( :name($past.name), :scope<lexical_6model>)
+                                    ?? QAST::Var.new( :name($past.name), :scope<lexical>)
                                     !! $past[0];
                     $past.push($basepast);
                     $past.name('&METAOP_HYPER_POSTFIX');
@@ -4412,9 +4413,9 @@ class QPerl6::Actions is HLL::Actions {
                 $*value := PAST::Op.new(
                     :node($/),
                     :pasttype<if>,
-                    PAST::Var.new(:name('$/'), :scope('lexical_6model')),
+                    QAST::Var.new(:name('$/'), :scope('lexical')),
                     QAST::Op.new(:op('callmethod'),
-                        PAST::Var.new(:name('$/'), :scope<lexical_6model>),
+                        QAST::Var.new(:name('$/'), :scope<lexical>),
                         :name<to>
                     ),
                     QAST::IVal.new(:value(0)),
@@ -4502,7 +4503,7 @@ class QPerl6::Actions is HLL::Actions {
         my $past := QAST::Op.new(
             :node($/),
             :op('callmethod'), :name('match'),
-            PAST::Var.new( :name('$_'), :scope('lexical_6model') ),
+            QAST::Var.new( :name('$_'), :scope('lexical') ),
             block_closure($coderef)
         );
         if self.handle_and_check_adverbs($/, %MATCH_ALLOWED_ADVERBS, 'm', $past) {
@@ -4511,7 +4512,7 @@ class QPerl6::Actions is HLL::Actions {
             make $past;
         } else {
             make PAST::Op.new( :pirop('perl6_container_store__0PP'),
-                PAST::Var.new(:name('$/'), :scope('lexical_6model')),
+                QAST::Var.new(:name('$/'), :scope('lexical')),
                 $past
             );
         }
@@ -4550,7 +4551,7 @@ class QPerl6::Actions is HLL::Actions {
         my $past := QAST::Op.new(
             :node($/),
             :op('callmethod'), :name('subst'),
-            PAST::Var.new( :name('$_'), :scope('lexical_6model') ),
+            QAST::Var.new( :name('$_'), :scope('lexical') ),
             $rx_coderef, $closure
         );
         self.handle_and_check_adverbs($/, %SUBST_ALLOWED_ADVERBS, 'substitution', $past);
@@ -4563,7 +4564,7 @@ class QPerl6::Actions is HLL::Actions {
             :node($/),
             :op('call'),
             :name('&infix:<=>'),
-            PAST::Var.new(:name('$_'), :scope('lexical_6model')),
+            QAST::Var.new(:name('$_'), :scope('lexical')),
             $past
         );
 
@@ -4714,7 +4715,7 @@ class QPerl6::Actions is HLL::Actions {
         my $name := ~$sigil ~ ~$ident;
         for @params {
             if $_<variable_name> eq $name {
-                return PAST::Var.new( :name($name), :scope('lexical_6model') );
+                return QAST::Var.new( :name($name), :scope('lexical') );
             }
         }
 
@@ -4762,9 +4763,9 @@ class QPerl6::Actions is HLL::Actions {
                 postfix => ' as a placeholder parameter',
             );
         }
-        $block[0].push(PAST::Var.new( :name($name), :scope('lexical_6model'), :isdecl(1) ));
-        $block.symbol($name, :scope('lexical_6model'), :placeholder_parameter(1));
-        return PAST::Var.new( :name($name), :scope('lexical_6model') );
+        $block[0].push(QAST::Var.new( :name($name), :scope('lexical'), :decl('var') ));
+        $block.symbol($name, :scope('lexical'), :placeholder_parameter(1));
+        return QAST::Var.new( :name($name), :scope('lexical') );
     }
 
     sub reference_to_code_object($code_obj, $past_block) {
@@ -4797,7 +4798,7 @@ class QPerl6::Actions is HLL::Actions {
     sub make_topic_block_ref($past, :$copy) {
         my $block := QAST::Block.new(
             QAST::Stmts.new(
-                PAST::Var.new( :name('$_'), :scope('lexical_6model'), :isdecl(1) )
+                QAST::Var.new( :name('$_'), :scope('lexical'), :decl('var') )
             ),
             $past);
         ($*W.cur_lexpad())[0].push($block);
@@ -4824,13 +4825,13 @@ class QPerl6::Actions is HLL::Actions {
         # expression.
         my $past := QAST::Block.new(
             QAST::Stmts.new(
-                PAST::Var.new( :name('$_'), :scope('lexical_6model'), :isdecl(1) )
+                QAST::Var.new( :name('$_'), :scope('lexical'), :decl('var') )
             ),
             QAST::Stmts.new(
                 QAST::Op.new(
                     :op('callmethod'), :name('ACCEPTS'),
                     $expr,
-                    PAST::Var.new( :name('$_'), :scope('lexical_6model') )
+                    QAST::Var.new( :name('$_'), :scope('lexical') )
                 )));
         ($*W.cur_lexpad())[0].push($past);
 
@@ -4846,7 +4847,7 @@ class QPerl6::Actions is HLL::Actions {
 
     sub add_implicit_var($block, $name) {
         $block[0].push(QAST::Var.new( :name($name), :scope('lexical'), :decl('var') ));
-        $block.symbol($name, :scope('lexical_6model') );
+        $block.symbol($name, :scope('lexical') );
     }
 
     sub when_handler_helper($when_block) {
@@ -4913,15 +4914,15 @@ class QPerl6::Actions is HLL::Actions {
                 PAST::Var.new( :scope('parameter') ),
             ),
             PAST::Op.new( :pasttype('bind_6model'),
-                PAST::Var.new( :scope('lexical_6model'), :name('$_'), :isdecl(1) ),
+                QAST::Var.new( :scope('lexical'), :name('$_'), :decl('var') ),
                 PAST::Op.new( :name('&EXCEPTION'), PAST::Var.new( :scope('register'), :name($exceptionreg) ) ),
             ),
             PAST::Op.new( :pirop('perl6_container_store__0PP'),
                 PAST::Op.new( :pirop('find_lex_skip_current__Ps'), '$!'),
-                PAST::Var.new( :scope('lexical_6model'), :name('$_') ),
+                QAST::Var.new( :scope('lexical'), :name('$_') ),
             ),
-            PAST::Var.new( :scope('lexical_6model'), :name('$!'), :isdecl(1) ),
-            PAST::Var.new( :scope('lexical_6model'), :name('$/'), :isdecl(1) ),
+            QAST::Var.new( :scope('lexical'), :name('$!'), :decl('var') ),
+            QAST::Var.new( :scope('lexical'), :name('$/'), :decl('var') ),
         );
         $handler<past_block>[1].unshift($handler_preamble);
 
@@ -4964,7 +4965,7 @@ class QPerl6::Actions is HLL::Actions {
         $handler := QAST::Stmts.new(
             :node($/),
             PAST::Op.new( :pirop('perl6_invoke_catchhandler__vPP'), $handler, $ex),
-            PAST::Var.new( :scope('lexical_6model'), :name('$!') )
+            QAST::Var.new( :scope('lexical'), :name('$!') )
         );
         if nqp::defined($type) {
             if $except {
@@ -5009,10 +5010,10 @@ class QPerl6::Actions is HLL::Actions {
             $*W.create_parameter(@params[0]),
             $*W.create_parameter(@params[1])
         ]);
-        $block[0].push(PAST::Var.new( :name('self'), :scope('lexical_6model'), :isdecl(1) ));
-        $block[0].push(PAST::Var.new( :name('$_'), :scope('lexical_6model'), :isdecl(1) ));
+        $block[0].push(QAST::Var.new( :name('self'), :scope('lexical'), :decl('var') ));
+        $block[0].push(QAST::Var.new( :name('$_'), :scope('lexical'), :decl('var') ));
         $block.push(QAST::Stmts.new( $initializer ));
-        $block.symbol('self', :scope('lexical_6model'));
+        $block.symbol('self', :scope('lexical'));
         add_signature_binding_code($block, $sig, @params);
         my $code := $*W.create_code_object($block, 'Method', $sig);
 
@@ -5101,8 +5102,8 @@ class QPerl6::Actions is HLL::Actions {
                             :nominal_type($*W.find_symbol(['Mu'])),
                             :is_parcel(1),
                         ));
-                        $block[0].push(PAST::Var.new(:name($pname), :scope<lexical_6model>, :isdecl(1)));
-                        $new.push(PAST::Var.new(:name($pname), :scope<lexical_6model>));
+                        $block[0].push(QAST::Var.new(:name($pname), :scope<lexical>, :decl('var')));
+                        $new.push(QAST::Var.new(:name($pname), :scope<lexical>));
                         $acount++;
                     }
                     $past[$i] := $new;
@@ -5114,8 +5115,8 @@ class QPerl6::Actions is HLL::Actions {
                         :nominal_type($*W.find_symbol(['Mu'])),
                         :is_parcel(1),
                     ));
-                    $block[0].push(PAST::Var.new(:name($pname), :scope<lexical_6model>, :isdecl(1)));
-                    $past[$i] := PAST::Var.new(:name($pname), :scope<lexical_6model>);
+                    $block[0].push(QAST::Var.new(:name($pname), :scope<lexical>, :decl('var')));
+                    $past[$i] := QAST::Var.new(:name($pname), :scope<lexical>);
                 }
                 $i++;
             }
@@ -5139,8 +5140,8 @@ class QPerl6::Actions is HLL::Actions {
                     PAST::Op.new( :pirop('perl6_decontainerize_return_value PP'), $past )
                 ),
                 PAST::Op.new(:pasttype<bind_6model>,
-                    PAST::Var.new(:name<RETURN>, :scope<lexical>),
-                    PAST::Var.new(:name<&EXHAUST>, :scope<lexical>))
+                    QAST::Var.new(:name<RETURN>, :scope<lexical>),
+                    QAST::Var.new(:name<&EXHAUST>, :scope<lexical>))
             )
         )
     }
@@ -5372,7 +5373,7 @@ class QPerl6::RegexActions is QRegex::P6Regex::Actions {
             } elsif $*W.regex_in_scope('&' ~ $name) {
                 $qast := QAST::Regex.new(:rxtype<subrule>, :subtype<capture>,
                                          :node($/), PAST::Node.new('INTERPOLATE',
-                                            PAST::Var.new( :name('&' ~ $name), :scope('lexical_6model') ) ), 
+                                            QAST::Var.new( :name('&' ~ $name), :scope('lexical') ) ), 
                                          :name($name) );
             }
             else {
@@ -5411,9 +5412,9 @@ class QPerl6::RegexActions is QRegex::P6Regex::Actions {
             QAST::Stmts.new(
                 PAST::Op.new(
                     :pirop('perl6_container_store__vPP'),
-                    PAST::Var.new( :name('$/'), :scope<lexical_6model> ),
+                    QAST::Var.new( :name('$/'), :scope<lexical> ),
                     QAST::Op.new(
-                        PAST::Var.new( :name('$¢'), :scope<lexical_6model> ),
+                        QAST::Var.new( :name('$¢'), :scope<lexical> ),
                         :name('MATCH'),
                         :op('callmethod')
                     )

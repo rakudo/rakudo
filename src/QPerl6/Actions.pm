@@ -4627,7 +4627,7 @@ class QPerl6::Actions is HLL::Actions {
         my $lastlit := '';
         for $<quote_atom> {
             my $ast := $_.ast;
-            if !PAST::Node.ACCEPTS($ast) {
+            if !($ast ~~ QAST::Node) {
                 $lastlit := $lastlit ~ $ast;
             }
             elsif $ast.isa(QAST::SVal) {

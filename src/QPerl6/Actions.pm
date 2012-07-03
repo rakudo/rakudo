@@ -3122,7 +3122,7 @@ class QPerl6::Actions is HLL::Actions {
     method term:sym<dotty>($/) {
         my $past := $<dotty>.ast;
         $past.unshift(QAST::Var.new( :name('$_'), :scope('lexical') ) );
-        make PAST::Op.new( :pirop('perl6ize_type PP'), $past);
+        make QAST::Op.new( :op('p6type'), $past);
     }
 
     method term:sym<identifier>($/) {
@@ -3668,8 +3668,8 @@ class QPerl6::Actions is HLL::Actions {
         if $key eq 'PREFIX' || $key eq 'INFIX' || $key eq 'POSTFIX' {
             $past := whatever_curry($/, (my $orig := $past), $key eq 'INFIX' ?? 2 !! 1);
             if $return_map && $orig =:= $past {
-                $past := PAST::Op.new($past,
-                    :pirop('perl6ize_type PP'), :returns($past.returns()));
+                $past := QAST::Op.new($past,
+                    :op('p6type'), :returns($past.returns()));
             }
         }
         make $past;
@@ -3822,7 +3822,7 @@ class QPerl6::Actions is HLL::Actions {
         elsif $target<boxable_native> {
             $*W.throw($/, ['X', 'Bind', 'NativeType']);
         }
-        elsif $target.isa(PAST::Op) && $target.pirop eq 'perl6ize_type PP' &&
+        elsif $target.isa(QAST::Op) && $target.op eq 'p6type' &&
                 $target[0].isa(QAST::Op) && $target[0].op eq 'callmethod' &&
                 ($target[0].name eq 'postcircumfix:<[ ]>' || $target[0].name eq 'postcircumfix:<{ }>') {
             $source.named('BIND');

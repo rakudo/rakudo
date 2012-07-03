@@ -1,39 +1,10 @@
 use NQPP6QRegex;
 use QPerl6::Pod;
 use QPerl6::ConstantFolder;
+use QPerl6::Ops;
 use QRegex;
 use QAST;
 use PASTRegex; # For PAST
-
-INIT {
-    # Add our custom nqp:: opcodes.
-    PAST::Node.map_add('nqp',
-        p6box_i      => 'perl6_box_int__Pi',
-        p6box_n      => 'perl6_box_num__Pn',
-        p6box_s      => 'perl6_box_str__Ps',
-        p6bool       => 'perl6_booleanize__Pi',
-        p6bigint     => 'perl6_box_bigint__Pn',
-        p6parcel     => 'perl6_parcel_from_rpa__PPP',
-        p6listiter   => 'perl6_iter_from_rpa__PPP',
-        p6list       => 'perl6_list_from_rpa__PPPP',
-        p6decont     => 'perl6_decontainerize__PP',
-        p6recont_ro  => 'perl6_recontainerize_to_ro__PP',
-        attrinited   => 'repr_is_attr_initialized__IPPs',
-        callerid     => 'perl6_callerid__I',
-
-#        islist       => 'perl6_is_list__IP',
-        ishash       => 'perl6_is_hash__IP',
-        lcm_i        => 'lcm__Iii',
-        gcd_i        => 'gcd__Iii',
-        sqrt_n       => 'sqrt__NN',
-        find_method  => 'find_method__PPs',
-        create       => 'repr_instance_of__PP',
-        exit         => 'exit__vi',
-        
-        want         => nqp::hash('WHAT', PAST::Want),
-    );
-}
-
 
 class QPerl6::Actions is HLL::Actions {
     our @MAX_PERL_VERSION;

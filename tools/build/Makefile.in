@@ -104,6 +104,8 @@ QPERL6_W       = src/gen/qperl6-symboltable.pir
 QPERL6_W_PBC   = blib/QPerl6/World.pbc
 QPERL6_G       = src/gen/qperl6-grammar.pir
 QPERL6_G_PBC   = blib/QPerl6/Grammar.pbc
+QPERL6_OPS     = src/gen/qperl6-ops.pir
+QPERL6_OPS_PBC = blib/QPerl6/Ops.pbc
 QPERL6_A       = src/gen/qperl6-actions.pir
 QPERL6_A_PBC   = blib/QPerl6/Actions.pbc
 QPERL6_O       = src/gen/qperl6-optimizer.pir
@@ -453,7 +455,12 @@ $(QPERL6_G_PBC): $(NQP_EXE) $(QPERL6_W_PBC) src/QPerl6/Grammar.pm $(QPERL6_P_PBC
 	    src/QPerl6/Grammar.pm
 	$(PARROT) $(PARROT_ARGS) -o $(QPERL6_G_PBC) $(QPERL6_G)
 
-$(QPERL6_A_PBC): $(NQP_EXE) $(DYNEXT_DYNPMC) $(DYNEXT_DYNOPS) src/QPerl6/Actions.pm $(QPERL6_P_PBC) $(QPERL6_CF_PBC)
+$(QPERL6_OPS_PBC): $(NQP_EXE) $(DYNEXT_DYNPMC) $(DYNEXT_DYNOPS) src/QPerl6/Ops.pm
+	$(NQP_EXE) --vmlibs=perl6_group,perl6_ops  --target=pir --output=$(QPERL6_OPS) --encoding=utf8 \
+	    src/QPerl6/Ops.pm
+	$(PARROT) $(PARROT_ARGS) -o $(QPERL6_OPS_PBC) $(QPERL6_OPS)
+
+$(QPERL6_A_PBC): $(NQP_EXE) $(DYNEXT_DYNPMC) $(DYNEXT_DYNOPS) src/QPerl6/Actions.pm $(QPERL6_P_PBC) $(QPERL6_CF_PBC) $(QPERL6_OPS_PBC)
 	$(NQP_EXE) --vmlibs=perl6_group,perl6_ops  --target=pir --output=$(QPERL6_A) --encoding=utf8 \
 	    src/QPerl6/Actions.pm
 	$(PARROT) $(PARROT_ARGS) -o $(QPERL6_A_PBC) $(QPERL6_A)

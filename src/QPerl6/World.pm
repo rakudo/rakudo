@@ -1101,7 +1101,7 @@ class QPerl6::World is HLL::World {
         }
         my $const := self.add_constant($type, nqp::lc($type), $value);
         my $tflag := $type eq 'Int' ?? 'Ii' !! 'Nn';
-        my $past  := PAST::Want.new($const, $tflag,
+        my $past  := QAST::Want.new($const, $tflag,
             $value eq 'Inf' || $value eq '-Inf' || $value eq 'NaN' ??
                 PAST::Op.new( :pirop('set Ns'), ~$value ) !!
                 $value);
@@ -1120,7 +1120,7 @@ class QPerl6::World is HLL::World {
     # Returns PAST to do the lookup of the constant.
     method add_string_constant($value) {
         my $const := self.add_constant('Str', 'str', $value);
-        my $past  := PAST::Want.new($const, 'Ss', $value);
+        my $past  := QAST::Want.new($const, 'Ss', $value);
         $past<has_compile_time_value> := 1;
         $past<compile_time_value>     := $const<compile_time_value>;
         $past<boxable_native>         := 3;

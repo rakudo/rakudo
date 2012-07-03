@@ -786,8 +786,8 @@ class QPerl6::Actions is HLL::Actions {
             if ~$<module_name> eq 'fatal' {
                 my $*SCOPE := 'my';
                 declare_variable($/, QAST::Stmts.new(), '$', '*', 'FATAL', []);
-                $past := PAST::Op.new(
-                    :pirop('perl6_container_store__0PP'), :node($/),
+                $past := QAST::Op.new(
+                    :op('p6store'), :node($/),
                     QAST::Var.new( :name('$*FATAL'), :scope('lexical') ),
                     PAST::Op.new( :pirop('perl6_booleanize PI'), 1 )
                 );
@@ -943,14 +943,16 @@ class QPerl6::Actions is HLL::Actions {
 
             # On failure, capture the exception object into $!.
             $past.push(
-                PAST::Op.new(:pirop('perl6_container_store__0PP'),
+                QAST::Op.new(
+                    :op('p6store'),
                     QAST::Var.new(:name<$!>, :scope<lexical>),
                     QAST::Op.new(:name<&EXCEPTION>, :op<call>,
                         PAST::Op.new(:inline("    .get_results (%r)\n    \$P0 = null\n    perl6_invoke_catchhandler \$P0, %r")))));
 
             # Otherwise, put Mu into $!.
             $past.push(
-                PAST::Op.new(:pirop('perl6_container_store__0PP'),
+                QAST::Op.new(
+                    :op('p6store'),
                     QAST::Var.new( :name<$!>, :scope<lexical> ),
                     QAST::Var.new( :name<Mu>, :scope<lexical> )));
         }
@@ -3861,8 +3863,7 @@ class QPerl6::Actions is HLL::Actions {
                 $lhs_ast, $rhs_ast);
         }
         else {
-            $past := PAST::Op.new(:pirop('perl6_container_store__0PP'),
-                $lhs_ast, $rhs_ast);
+            $past := QAST::Op.new( :op('p6store'), $lhs_ast, $rhs_ast);
         }
         return $past;
     }
@@ -3974,8 +3975,8 @@ class QPerl6::Actions is HLL::Actions {
                 PAST::Var.new( :name($id ~ '_rhs'), :scope('register') ),
                 ($max_excl ??
                     QAST::Stmts.new(
-                        PAST::Op.new(
-                            :pirop('perl6_container_store__0PP'),
+                        QAST::Op.new(
+                            :op('p6store'),
                             QAST::Var.new( :name($state), :scope('lexical') ),
                             $zero
                         ),
@@ -3990,8 +3991,8 @@ class QPerl6::Actions is HLL::Actions {
                                 QAST::Var.new( :name($state), :scope('lexical') )
                             )
                         ),
-                        PAST::Op.new(
-                            :pirop('perl6_container_store__0PP'),
+                        QAST::Op.new(
+                            :op('p6store'),
                             QAST::Var.new( :name($state), :scope('lexical') ),
                             $zero
                         ),
@@ -4020,8 +4021,8 @@ class QPerl6::Actions is HLL::Actions {
                     PAST::Var.new( :name($id ~ '_rhs'), :scope('register') ),
                     $min_excl || $max_excl ?? $nil !! $one,
                     QAST::Stmts.new(
-                        PAST::Op.new(
-                            :pirop('perl6_container_store__0PP'),
+                        QAST::Op.new(
+                            :op('p6store'),
                             QAST::Var.new( :name($state), :scope('lexical') ),
                             $one
                         ),
@@ -4485,7 +4486,7 @@ class QPerl6::Actions is HLL::Actions {
             # match, don't assing to $/ (which imposes item context)
             make $past;
         } else {
-            make PAST::Op.new( :pirop('perl6_container_store__0PP'),
+            make QAST::Op.new( :op('p6store'),
                 QAST::Var.new(:name('$/'), :scope('lexical')),
                 $past
             );
@@ -4891,7 +4892,7 @@ class QPerl6::Actions is HLL::Actions {
                 QAST::Var.new( :scope('lexical'), :name('$_'), :decl('var') ),
                 PAST::Op.new( :name('&EXCEPTION'), PAST::Var.new( :scope('register'), :name($exceptionreg) ) ),
             ),
-            PAST::Op.new( :pirop('perl6_container_store__0PP'),
+            QAST::Op.new( :op('p6store'),
                 PAST::Op.new( :pirop('find_lex_skip_current__Ps'), '$!'),
                 QAST::Var.new( :scope('lexical'), :name('$_') ),
             ),
@@ -5386,8 +5387,8 @@ class QPerl6::RegexActions is QRegex::P6Regex::Actions {
         my $blockref := $<block>.ast;
         my $past :=
             QAST::Stmts.new(
-                PAST::Op.new(
-                    :pirop('perl6_container_store__vPP'),
+                QAST::Op.new(
+                    :op('p6store'),
                     QAST::Var.new( :name('$/'), :scope<lexical> ),
                     QAST::Op.new(
                         QAST::Var.new( :name('$¢'), :scope<lexical> ),

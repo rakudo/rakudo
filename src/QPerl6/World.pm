@@ -877,8 +877,8 @@ class QPerl6::World is HLL::World {
         $phaser_block.push(PAST::Op.new(
             :pasttype('while'),
             QAST::Var.new( :name($value_stash), :scope('lexical') ),
-            PAST::Op.new(
-                :pirop('perl6_container_store__0PP'),
+            QAST::Op.new(
+                :op('p6store'),
                 PAST::Op.new(
                     :pirop('shift__PP'),
                     QAST::Var.new( :name($value_stash), :scope('lexical') )
@@ -1347,8 +1347,8 @@ class QPerl6::World is HLL::World {
             make PAST::Op.new(
                 :pasttype('if'),
                 PAST::Op.new( :pirop('perl6_state_needs_init I') ),
-                PAST::Op.new(
-                    :pirop('perl6_container_store__0PP'),
+                QAST::Op.new(
+                    :op('p6store'),
                     QAST::Var.new( :name($sym), :scope('lexical') ),
                     QAST::Op.new( :op('call'), QAST::WVal.new( :value($block) ) )
                 ),

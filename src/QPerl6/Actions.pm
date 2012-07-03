@@ -505,7 +505,7 @@ class QPerl6::Actions is HLL::Actions {
                 my $ast := $_.ast;
                 if $ast {
                     if $ast<sink_past> {
-                        $ast := PAST::Want.new($ast, 'v', $ast<sink_past>);
+                        $ast := QAST::Want.new($ast, 'v', $ast<sink_past>);
                     }
                     elsif $ast<bare_block> {
                         $ast := $ast<bare_block>;
@@ -1879,7 +1879,7 @@ class QPerl6::Actions is HLL::Actions {
                 my $safe_name := nqp::join('__', nqp::split(' ', $node.pirop));
                 "PIROP $safe_name ( " ~ nqp::join(' ', @children) ~ " )"
             }
-            elsif $node.isa(PAST::Want) && +@($node) == 3 {
+            elsif $node.isa(QAST::Want) && +@($node) == 3 {
                 my %backup := nqp::clone(%arg_used);
                 my $normal := $node_walker($node[0]);
                 %arg_used := %backup;
@@ -2143,8 +2143,8 @@ class QPerl6::Actions is HLL::Actions {
                 $past.isa(PAST::Op) && ($past.pirop() || $past.op eq 'callmethod') ||
                 # Just a variable lookup.
                 $past.isa(PAST::Var) ||
-                # Just a PAST::Want
-                $past.isa(PAST::Want);
+                # Just a QAST::Want
+                $past.isa(QAST::Want);
             for @($past) {
                 if pir::isa($_, PAST::Node) {
                     if !returnless_past($_) {
@@ -3872,7 +3872,7 @@ class QPerl6::Actions is HLL::Actions {
         }
         if $lhs_ast && $lhs_ast<boxable_native> {
             # Native assignment is actually really a bind at low level
-            # We grab the thing we want out of the PAST::Want node.
+            # We grab the thing we want out of the QAST::Want node.
             $past := box_native_if_needed(
                 PAST::Op.new(:pasttype('bind_6model'), $lhs_ast[2], $rhs_ast),
                 $lhs_ast.type);
@@ -5177,11 +5177,11 @@ class QPerl6::Actions is HLL::Actions {
     sub box_native_if_needed($past, $type) {
         my $primspec := pir::repr_get_primitive_type_spec__IP($type);
         if $primspec {
-            my $want := PAST::Want.new(
+            my $want := QAST::Want.new(
                 PAST::Op.new( :pirop(@prim_spec_ops[$primspec]), $past ),
                 @prim_spec_flags[$primspec], $past);
             $want<boxable_native> := $primspec;
-            $want.type($type);
+            $want.returns($type);
             return $want;
         }
         else {

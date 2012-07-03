@@ -5081,6 +5081,8 @@ class QPerl6::Actions is HLL::Actions {
         %curried{'&infix:<xx>'}   := 1;
     }
     sub whatever_curry($/, $past, $upto_arity) {
+        # XXX needs some re-work
+        return $past;
         my $curried := $past.isa(PAST::Op)
                        && ($past<pasttype> ne 'call' || nqp::index($past.name, '&infix:') == 0)
                        && (%curried{$past.name // $past.pirop} // 2);

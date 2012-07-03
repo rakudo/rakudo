@@ -1037,7 +1037,7 @@ class QPerl6::World is HLL::World {
                     ~ $namedkey;
             }
             if nqp::existskey(%!const_cache, $cache_key) {
-                my $past := self.get_slot_past_for_object(%!const_cache{$cache_key});
+                my $past := QAST::WVal.new( :value(%!const_cache{$cache_key}) );
                 $past<has_compile_time_value> := 1;
                 $past<compile_time_value> := %!const_cache{$cache_key};
                 return $past;

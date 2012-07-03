@@ -3629,11 +3629,17 @@ class QPerl6::Actions is HLL::Actions {
             return 1;
         }
         unless $past {
-            $past := PAST::Op.new( :node($/) );
-            if $<OPER><O><pasttype> { $past.pasttype( ~$<OPER><O><pasttype> ); }
-            elsif $<OPER><O><pirop>    { $past.pirop( ~$<OPER><O><pirop> ); }
+            if $<OPER><O><pasttype> {
+                $past := QAST::Op.new( :node($/), :op( ~$<OPER><O><pasttype> ) );
+            }
+            elsif $<OPER><O><pirop> {
+                $past := QAST::VM.new( :node($/), :pirop(~$<OPER><O><pirop>) );
+            }
+            else {
+                $past := QAST::Op.new( :node($/), :op('call') );
+            }
             my $name;
-            unless $past.name {
+            if $past.isa(QAST::Op) && $past.op eq 'call' {
                 if $key eq 'LIST' { $key := 'infix'; }
                 $name := nqp::lc($key) ~ ':<' ~ $<OPER><sym> ~ '>';
                 $past.name('&' ~ $name);
@@ -3686,7 +3692,7 @@ class QPerl6::Actions is HLL::Actions {
         else {
             for $/.list { if $_.ast { $past.push($_.ast); } }
         }
-        if $past.pasttype eq 'xor_nqp' {
+        if $past.op eq 'xor_nqp' {
             $past.push(QAST::Var.new(:named<false>, :scope<lexical>, :name<Nil>));
         }
         if $key eq 'PREFIX' || $key eq 'INFIX' || $key eq 'POSTFIX' {

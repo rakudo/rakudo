@@ -1,56 +1,54 @@
-my package Pod {
-    class Block {
-        has %.config;
-        has @.content;
-    }
+my class Pod::Block {
+    has %.config;
+    has @.content;
+}
 
-    class Block::Para is Block {
-    }
+my class Pod::Block::Para is Pod::Block {
+}
 
-    class Block::Named is Block {
-        has $.name;
-    }
+my class Pod::Block::Named is Pod::Block {
+    has $.name;
+}
 
-    class Block::Comment is Block { }
+my class Pod::Block::Comment is Pod::Block { }
 
-    class Block::Code is Block {
-        has @.allowed;
-    }
+my class Pod::Block::Code is Pod::Block {
+    has @.allowed;
+}
 
-    class Block::Declarator is Block {
-        has $.WHEREFORE;
-        method set_docee($d) {
-            $!WHEREFORE = $d
-        }
-        method Str {
-            ~@.content
-        }
-        method gist {
-            self.Stringy
-        }
+my class Pod::Block::Declarator is Pod::Block {
+    has $.WHEREFORE;
+    method set_docee($d) {
+        $!WHEREFORE = $d
     }
+    method Str {
+        ~@.content
+    }
+    method gist {
+        self.Stringy
+    }
+}
 
-    class Block::Table is Block {
-        has $.caption;
-        has @.headers; # optional, may be empty
-    }
+my class Pod::Block::Table is Pod::Block {
+    has $.caption;
+    has @.headers; # optional, may be empty
+}
 
-    class FormattingCode is Block {
-        has $.type;
-    }
+my class Pod::FormattingCode is Pod::Block {
+    has $.type;
+}
 
-    class Heading is Block {
-        has $.level;
-    }
+my class Pod::Heading is Pod::Block {
+    has $.level;
+}
 
-    class Item is Block {
-        has $.level;
-    }
+my class Pod::Item is Pod::Block {
+    has $.level;
+}
 
-    class Config {
-        has $.type;
-        has %.config;
-    }
+class Pod::Config {
+    has $.type;
+    has %.config;
 }
 
 # vim: ft=perl6

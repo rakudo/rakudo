@@ -1691,7 +1691,6 @@ class QPerl6::Actions is HLL::Actions {
         # Set name.
         if $<deflongname> {
             $block.name(~$<deflongname>[0].ast);
-            $block.nsentry('');
         }
         
         # Finish code object, associating it with the routine body.
@@ -1938,7 +1937,6 @@ class QPerl6::Actions is HLL::Actions {
             }
         }
         $past.name($name ?? $name !! '<anon>');
-        $past.nsentry('');
 
         # Do the various tasks to trun the block into a method code object.
         my @params    := $<multisig> ?? $<multisig>[0].ast !! [];
@@ -2008,7 +2006,6 @@ class QPerl6::Actions is HLL::Actions {
         # Create code object.
         if $<deflongname> {
             $block.name(~$<deflongname>[0].ast);
-            $block.nsentry('');
         }
         my $code := $*W.create_code_object($block, 'Macro', $signature,
             $*MULTINESS eq 'proto');

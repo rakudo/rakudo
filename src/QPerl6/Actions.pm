@@ -281,7 +281,7 @@ class QPerl6::Actions is HLL::Actions {
         # (CTXSAVE is inherited from HLL::Actions.) Don't do this when
         # there was an explicit {YOU_ARE_HERE}.
         unless $*HAS_YOU_ARE_HERE {
-            $unit.push( self.CTXSAVE() );
+            #$unit.push( self.CTXSAVE() );
         }
 
         # Add the mainline code to the unit.

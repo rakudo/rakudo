@@ -602,7 +602,7 @@ class QPerl6::Actions is HLL::Actions {
             
             # Add a slot for a $*DISPATCHER, and a call to take one.
             add_implicit_var($block, '$*DISPATCHER');
-            $block[0].unshift(PAST::Op.new(:pirop('perl6_take_dispatcher v')));
+            $block[0].unshift(QAST::Op.new(:op('p6takedisp')));
 
             # We'll install PAST in current block so it gets capture_lex'd.
             # Then evaluate to a reference to the block (non-closure - higher
@@ -1659,7 +1659,7 @@ class QPerl6::Actions is HLL::Actions {
         else {
             add_implicit_var($block, '$*DISPATCHER');
         }
-        $block[0].unshift(PAST::Op.new(:pirop('perl6_take_dispatcher v')));
+        $block[0].unshift(QAST::Op.new(:op('p6takedisp')));
 
         # Set name.
         if $<deflongname> {
@@ -2068,7 +2068,7 @@ class QPerl6::Actions is HLL::Actions {
         # Needs a slot to hold a multi or method dispatcher.
         $*W.install_lexical_symbol($past, '$*DISPATCHER',
             $*W.find_symbol([$*MULTINESS eq 'multi' ?? 'MultiDispatcher' !! 'MethodDispatcher']));
-        $past[0].unshift(PAST::Op.new(:pirop('perl6_take_dispatcher v')));
+        $past[0].unshift(QAST::Op.new(:op('p6takedisp')));
 
         # Finish up code object.
         $*W.attach_signature($code, $signature);

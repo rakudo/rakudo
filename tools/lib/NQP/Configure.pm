@@ -2,6 +2,7 @@ package NQP::Configure;
 use strict;
 use warnings;
 use Cwd;
+use File::Copy;
 
 use base qw(Exporter);
 our @EXPORT_OK = qw(sorry slurp system_or_die
@@ -336,6 +337,13 @@ sub gen_parrot {
             print "\nPerforming '$make realclean' ...\n";
             system_or_die($make, 'realclean');
         }
+    }
+
+    # Compensate for cygwin removal of phony.exe per RT #113992
+    my $phony_dir = 't/tools/install/testlib';
+    if (not -f "$phony_dir/phony.exe" and -f "$phony_dir/phony") {
+        copy("$phony_dir/phony", "$phony_dir/phony.exe") or
+            die "Could not copy/create $phony_dir/phony.exe: $!";
     }
 
     $prefix =~ s{\\}{/}g;

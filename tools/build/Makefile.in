@@ -321,7 +321,7 @@ install: all
 	$(MKPATH)                     $(DESTDIR)$(DOCDIR)/rakudo
 	$(MKPATH)                     $(DESTDIR)$(DOCDIR)/rakudo/announce
 	-$(CP)    $(DOCS)             $(DESTDIR)$(DOCDIR)/rakudo
-	$(CP)     $(DOCS)/announce    $(DESTDIR)$(DOCDIR)/rakudo/announce
+	$(CP)     docs/announce/*     $(DESTDIR)$(DOCDIR)/rakudo/announce
 	$(MKPATH) $(DESTDIR)$(MANDIR)/man1
 	-$(POD2MAN) docs/running.pod --name=perl6 > $(DESTDIR)$(MANDIR)/man1/perl6.1
 	-$(POD2MAN) docs/running.pod --name=rakudo > $(DESTDIR)$(MANDIR)/man1/rakudo.1

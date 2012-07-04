@@ -4440,7 +4440,7 @@ class QPerl6::Actions is HLL::Actions {
             nqp::die("Q:PIR forbidden in safe mode\n");
         }
         my $pir := compile_time_value_str($<quote_EXPR>.ast, "Q:PIR", $/);
-        make PAST::Op.new( :inline( $pir ), :pasttype('inline'), :node($/) );
+        make QAST::VM.new( :pir($pir), :node($/) );
     }
     method quote:sym<qx>($/) {
         make QAST::Op.new( :name('&QX'), :op('call'),

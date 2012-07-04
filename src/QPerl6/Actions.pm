@@ -3609,7 +3609,7 @@ class QPerl6::Actions is HLL::Actions {
                 $past := QAST::Op.new( :node($/), :op('call') );
             }
             my $name;
-            if $past.isa(QAST::Op) && $past.op eq 'call' {
+            if $past.isa(QAST::Op) && !$past.name {
                 if $key eq 'LIST' { $key := 'infix'; }
                 $name := nqp::lc($key) ~ ':<' ~ $<OPER><sym> ~ '>';
                 $past.name('&' ~ $name);

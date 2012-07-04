@@ -502,7 +502,7 @@ class QPerl6::Actions is HLL::Actions {
             for $<statement> { $past.push($_.ast); }
         }
         else {
-            $past.push( PAST::Op.new( :name('&infix:<,>') ) );
+            $past.push( QAST::Op.new( :op('call'), :name('&infix:<,>') ) );
         }
         make $past;
     }
@@ -535,7 +535,7 @@ class QPerl6::Actions is HLL::Actions {
                         :name<&eager>, :node($/),
                         QAST::Op.new(
                             :op<callmethod>, :name<map>, :node($/),
-                            PAST::Op.new(:name('&infix:<,>'), $cond),
+                            QAST::Op.new(:op('call'), :name('&infix:<,>'), $cond),
                             block_closure($past)
                         ));
                 }
@@ -2306,7 +2306,7 @@ class QPerl6::Actions is HLL::Actions {
         if $term_ast.isa(QAST::Stmts) && +@($term_ast) == 1 {
             $term_ast := $term_ast[0];
         }
-        if $term_ast.isa(PAST::Op) && $term_ast.name eq '&infix:<,>' {
+        if $term_ast.isa(QAST::Op) && $term_ast.name eq '&infix:<,>' {
             for @($term_ast) {
                 if $_.returns() eq 'Pair' && $_[1]<has_compile_time_value> {
                     @values.push($_);
@@ -2487,9 +2487,9 @@ class QPerl6::Actions is HLL::Actions {
         # Construct a Parcel, and then call .Capture to coerce it to a capture.
         my $past := $<termish> ?? $<termish>.ast !!
                     $<capture> ?? $<capture>[0].ast !!
-                    PAST::Op.new( :name('&infix:<,>') );
-        unless $past.isa(PAST::Op) && $past.name() eq '&infix:<,>' {
-            $past := PAST::Op.new( :name('&infix:<,>'), $past );
+                    QAST::Op.new( :op('call'), :name('&infix:<,>') );
+        unless $past.isa(QAST::Op) && $past.name eq '&infix:<,>' {
+            $past := QAST::Op.new( :op('call'), :name('&infix:<,>'), $past );
         }
         make QAST::Op.new( :op('callmethod'), :name('Capture'), $past);
     }
@@ -3469,7 +3469,7 @@ class QPerl6::Actions is HLL::Actions {
         my $past := $<semilist>.ast;
         my $size := +$past.list;
         if $size == 0 {
-            $past := PAST::Op.new( :name('&infix:<,>') );
+            $past := QAST::Op.new( :op('call'), :name('&infix:<,>') );
         }
         else {
             my $last := $past[ $size - 1 ];
@@ -3505,7 +3505,7 @@ class QPerl6::Actions is HLL::Actions {
         }
         elsif $stmts == 1 {
             my $elem := $past<past_block>[1][0][0];
-            if $elem ~~ PAST::Op && $elem.name eq '&infix:<,>' {
+            if $elem ~~ QAST::Op && $elem.name eq '&infix:<,>' {
                 # block contains a list, so test the first element
                 $elem := $elem[0];
             }
@@ -4610,7 +4610,7 @@ class QPerl6::Actions is HLL::Actions {
             my @words := HLL::Grammar::split_words($/,
                 compile_time_value_str($past, ":w list", $/));
             if +@words != 1 {
-                $past := PAST::Op.new( :name('&infix:<,>'), :node($/) );
+                $past := QAST::Op.new( :op('call'), :name('&infix:<,>'), :node($/) );
                 for @words { $past.push($*W.add_string_constant(~$_)); }
                 $past := QAST::Stmts.new($past);
             }

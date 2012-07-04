@@ -1100,11 +1100,16 @@ class QPerl6::World is HLL::World {
             $value := nqp::unbox_i($value);
         }
         my $const := self.add_constant($type, nqp::lc($type), $value);
-        my $tflag := $type eq 'Int' ?? 'Ii' !! 'Nn';
-        my $past  := QAST::Want.new($const, $tflag,
-            $value eq 'Inf' || $value eq '-Inf' || $value eq 'NaN' ??
-                PAST::Op.new( :pirop('set Ns'), ~$value ) !!
-                $value);
+        my $past;
+        if $type eq 'Int' {
+            $past := QAST::Want.new($const, 'Ii', QAST::IVal.new( :value($value) ) );
+        }
+        else {
+            $past := QAST::Want.new($const, 'Nn',
+                $value eq 'Inf' || $value eq '-Inf' || $value eq 'NaN' ??
+                    PAST::Op.new( :pirop('set Ns'), QAST::SVal.new( :value(~$value) ) ) !!
+                    QAST::NVal.new( :value($value) ) );
+        }
         $past<has_compile_time_value> := 1;
         $past<compile_time_value>     := $const<compile_time_value>;
         if $type eq 'Int' {
@@ -1120,7 +1125,7 @@ class QPerl6::World is HLL::World {
     # Returns PAST to do the lookup of the constant.
     method add_string_constant($value) {
         my $const := self.add_constant('Str', 'str', $value);
-        my $past  := QAST::Want.new($const, 'Ss', $value);
+        my $past  := QAST::Want.new($const, 'Ss', QAST::SVal.new( :value($value) ));
         $past<has_compile_time_value> := 1;
         $past<compile_time_value>     := $const<compile_time_value>;
         $past<boxable_native>         := 3;

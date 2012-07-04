@@ -3541,7 +3541,7 @@ class QPerl6::Actions is HLL::Actions {
     }
 
     method circumfix:sym<[ ]>($/) {
-        make PAST::Op.new( :name('&circumfix:<[ ]>'), $<semilist>.ast, :node($/) );
+        make QAST::Op.new( :op('call'), :name('&circumfix:<[ ]>'), $<semilist>.ast, :node($/) );
     }
 
     method circumfix:sym<sigil>($/) {

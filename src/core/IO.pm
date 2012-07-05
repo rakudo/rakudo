@@ -51,11 +51,8 @@ my role IO::FileTestable {
 
     method s() {
         self.e 
-          && nqp::p6bool(
-              nqp::isgt_i(
-                  nqp::stat(nqp::unbox_s($.path), 
-                                 pir::const::STAT_FILESIZE),
-                  0))
+          && nqp::p6box_i( nqp::stat(nqp::unbox_s($.path), 
+                                 pir::const::STAT_FILESIZE) );
     }
 
     method w() {

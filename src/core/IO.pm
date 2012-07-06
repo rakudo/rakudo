@@ -51,11 +51,8 @@ my role IO::FileTestable {
 
     method s() {
         self.e 
-          && nqp::p6bool(
-              nqp::isgt_i(
-                  nqp::stat(nqp::unbox_s($.path), 
-                                 pir::const::STAT_FILESIZE),
-                  0))
+          && nqp::p6box_i( nqp::stat(nqp::unbox_s($.path), 
+                                 pir::const::STAT_FILESIZE) );
     }
 
     method w() {
@@ -91,8 +88,9 @@ class IO does IO::FileTestable {
     has $.path;
 
     proto method open(|$) { * }
-    multi method open($path, :$r, :$w, :$a, :$bin, :$chomp = Bool::True,
+    multi method open($path? is copy, :$r, :$w, :$a, :$bin, :$chomp = Bool::True,
             :enc(:$encoding) = 'utf8') {
+        $path //= $.path;
         my $mode = $w ?? 'w' !! ($a ?? 'wa' !! 'r');
         # TODO: catch error, and fail()
         nqp::bindattr(self, IO, '$!PIO',
@@ -392,6 +390,31 @@ multi sub slurp($filename) {
 }
 multi sub slurp(IO $io = $*ARGFILES) {
     $io.slurp;
+}
+
+proto sub spurt(|$) { * }
+multi sub spurt(Cool $filename,
+                Cool $contents,
+                :encoding(:$enc) = 'utf8',
+                :$new,
+                :$append) {
+    fail("File '$filename' already exists, but :new was give to spurt")
+        if $new && $filename.IO.e;
+    my $mode = $append ?? :a !! :w;
+    my $fh = open($filename.Str, :$enc, |$mode);
+    $fh.print($contents);
+    $fh.close;
+}
+multi sub spurt(Cool $filename,
+                Buf $contents,
+                :$new,
+                :$append) {
+    fail("File '$filename' already exists, but :new was give to spurt")
+        if $new && $filename.IO.e;
+    my $mode = $append ?? :a !! :w;
+    my $fh = open($filename.Str, :bin, |$mode);
+    $fh.write($contents);
+    $fh.close;
 }
 
 my class X::IO::Cwd { ... }

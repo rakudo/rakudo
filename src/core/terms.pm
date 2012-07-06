@@ -27,7 +27,8 @@ sub term:<time>() { nqp::p6box_i(nqp::time_i()) }
                         }
                     },
                     STORE => -> $, $v {
-                        nqp::bindkey($env, nqp::unbox_s($k), nqp::unbox_s($v))
+                        nqp::bindkey($env, nqp::unbox_s($k),
+                            nqp::unbox_s(($v // '').Str))
                     }
             )
         }

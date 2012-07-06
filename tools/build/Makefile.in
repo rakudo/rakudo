@@ -309,7 +309,7 @@ install: all
 	$(CP)     $(S_SETTING_PBC)    $(DESTDIR)$(PERL6_LANG_DIR)/lib
 	$(CP)     lib/Test.pm         $(DESTDIR)$(PERL6_LANG_DIR)/lib
 	$(CP)     lib/Test.pir        $(DESTDIR)$(PERL6_LANG_DIR)/lib
-	$(CP)     lib/lib.pm          $(DESTDIR)$(PERL6_LANG_DIR)/lib
+	$(CP)     lib/lib.pm6         $(DESTDIR)$(PERL6_LANG_DIR)/lib
 	$(CP)     lib/lib.pir         $(DESTDIR)$(PERL6_LANG_DIR)/lib
 	$(MKPATH) 					  $(DESTDIR)$(PERL6_LANG_DIR)/lib/Pod/To
 	$(CP)     lib/Pod/To/Text.pm  $(DESTDIR)$(PERL6_LANG_DIR)/lib/Pod/To
@@ -318,10 +318,10 @@ install: all
 	$(MKPATH)                     $(DESTDIR)$(PARROT_BIN_DIR)
 	$(CP)     $(PERL6_EXE)        $(DESTDIR)$(PARROT_BIN_DIR)
 	$(CHMOD)  755                 $(DESTDIR)$(PARROT_BIN_DIR)/$(PERL6_EXE)
-	$(MKPATH) 		              $(DESTDIR)$(DOCDIR)/rakudo
-	$(MKPATH) 		              $(DESTDIR)$(DOCDIR)/rakudo/announce
-	$(CP)     $(DOCS)             $(DESTDIR)$(DOCDIR)/rakudo
-	$(CP)     $(DOCS)/announce    $(DESTDIR)$(DOCDIR)/rakudo/announce
+	$(MKPATH)                     $(DESTDIR)$(DOCDIR)/rakudo
+	$(MKPATH)                     $(DESTDIR)$(DOCDIR)/rakudo/announce
+	-$(CP)    $(DOCS)             $(DESTDIR)$(DOCDIR)/rakudo
+	$(CP)     docs/announce/*     $(DESTDIR)$(DOCDIR)/rakudo/announce
 	$(MKPATH) $(DESTDIR)$(MANDIR)/man1
 	-$(POD2MAN) docs/running.pod --name=perl6 > $(DESTDIR)$(MANDIR)/man1/perl6.1
 	-$(POD2MAN) docs/running.pod --name=rakudo > $(DESTDIR)$(MANDIR)/man1/rakudo.1
@@ -411,8 +411,8 @@ $(S_SETTING_PBC): $(PERL6_B_PBC) $(PERL6_EXE) $(SETTING_PBC) $(S_SETTING_SRC)
 lib/Test.pir: lib/Test.pm $(PERL6_EXE) $(SETTING_PBC)
 	./$(PERL6_EXE) --target=pir --output=lib/Test.pir lib/Test.pm
 
-lib/lib.pir: lib/lib.pm $(PERL6_EXE) $(SETTING_PBC)
-	./$(PERL6_EXE) --target=pir --output=lib/lib.pir lib/lib.pm
+lib/lib.pir: lib/lib.pm6 $(PERL6_EXE) $(SETTING_PBC)
+	./$(PERL6_EXE) --target=pir --output=lib/lib.pir lib/lib.pm6
 
 lib/Pod/To/Text.pir: lib/Pod/To/Text.pm $(PERL6_EXE) $(SETTING_PBC)
 	./$(PERL6_EXE) --target=pir --output=lib/Pod/To/Text.pir lib/Pod/To/Text.pm

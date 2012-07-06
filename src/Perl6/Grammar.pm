@@ -1998,9 +1998,9 @@ grammar Perl6::Grammar is HLL::Grammar {
 
     token term:sym<rand> {
         <sym> »
-        <.end_keyword>
         [ <?before '('? \h* [\d|'$']> <.obs('rand(N)', 'N.rand or (1..N).pick')> ]?
         [ <?before '()'> <.obs('rand()', 'rand')> ]?
+        <.end_keyword>
     }
 
     token term:sym<...> { <sym> <args> }

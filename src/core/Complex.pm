@@ -20,18 +20,17 @@ my class Complex is Cool does Numeric {
         self.re.isNaN || self.im.isNaN;
     }
 
-    multi method Real(Complex:D:) {
-        if $!im == 0 {
-            $!re;
-        } else {
-            fail "You can only coerce a Complex to Real if the imaginary part is zero"
-        }
+    my class X::Numeric::Real { ... };
+    method coerce-to-real(Complex:D: $exception-target) {
+        unless $!im == 0 { fail X::Numeric::Real.new(target => $exception-target, reason => "imaginary part not zero");}
+        $!re;
     }
+    multi method Real(Complex:D:) { self.coerce-to-real(Real); }
 
     # should probably be eventually supplied by role Numeric
-    method Num(Complex:D:) { self.Real.Num }
-    method Int(Complex:D:) { self.Real.Int }
-    method Rat(Complex:D:) { self.Real.Rat }
+    method Num(Complex:D:) { self.coerce-to-real(Num).Num; }
+    method Int(Complex:D:) { self.coerce-to-real(Int).Int; }
+    method Rat(Complex:D:) { self.coerce-to-real(Rat).Rat; }
 
     multi method Bool(Complex:D:) {
         $!re != 0e0 || $!im != 0e0;

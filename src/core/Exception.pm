@@ -887,6 +887,16 @@ my class X::Import::MissingSymbols is Exception {
     }
 }
 
+my class X::Numeric::Real is Exception {
+    has $.target;
+    has $.reason;
+
+    method message() {
+        "Can not convert Numeric to {$.target.^name}: $.reason";
+    }
+}
+
+
 {
     my %c_ex;
     %c_ex{'X::TypeCheck::Binding'} := sub ($got, $expected) is hidden_from_backtrace {

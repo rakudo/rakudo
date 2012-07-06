@@ -82,12 +82,12 @@ my class Cool {
         nqp::p6box_s(nqp::lc(nqp::unbox_s(self.Str)))
     }
 
-    method ucfirst() {
+    method ucfirst() is DEPRECATED {
         my $self-str = self.Str;
         $self-str eq '' ?? '' !! $self-str.substr(0, 1).uc ~ $self-str.substr(1)
     }
 
-    method lcfirst() {
+    method lcfirst() is DEPRECATED {
         my $self-str = self.Str;
         $self-str eq '' ?? '' !! $self-str.substr(0, 1).lc ~ $self-str.substr(1)
     }
@@ -199,11 +199,13 @@ sub chomp(Cool $s)                 { $s.chomp }
 sub flip(Cool $s)                  { $s.flip }
 sub index(Cool $s,$needle,$pos=0)  { $s.index($needle,$pos) }
 sub lc(Cool $s)                    { $s.lc }
-sub lcfirst(Cool $s)               { $s.lcfirst }
 sub ord(Cool $s)                   { $s.ord }
 sub substr(Cool $s,$pos,$chars?)   { $s.substr($pos,$chars) }
 sub uc(Cool $s)                    { $s.uc }
-sub ucfirst(Cool $s)               { $s.ucfirst }
+
+sub lcfirst(Cool $s) is DEPRECATED { $s.lcfirst }
+sub ucfirst(Cool $s) is DEPRECATED { $s.ucfirst }
+
 proto sub rindex(|$) { * };
 multi sub rindex(Cool $s, Cool $needle, Cool $pos) { $s.rindex($needle, $pos) };
 multi sub rindex(Cool $s, Cool $needle)            { $s.rindex($needle) };

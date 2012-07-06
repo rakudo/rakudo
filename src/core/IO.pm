@@ -364,6 +364,25 @@ multi sub slurp(IO $io = $*ARGFILES) {
     $io.slurp;
 }
 
+proto sub spurt(|$) { * }
+multi sub spurt(Cool $filename,
+                Cool $contents,
+                :encoding(:$enc) = 'utf8',
+                :$append) {
+    my $mode = $append ?? :a !! :w;
+    my $fh = open($filename.Str, :$enc, |$mode);
+    $fh.print($contents);
+    $fh.close;
+}
+multi sub spurt(Cool $filename,
+                Buf $contents,
+                :$append) {
+    my $mode = $append ?? :a !! :w;
+    my $fh = open($filename.Str, :bin, |$mode);
+    $fh.write($contents);
+    $fh.close;
+}
+
 my class X::IO::Cwd { ... }
 proto sub cwd(|$) { * }
 multi sub cwd() {

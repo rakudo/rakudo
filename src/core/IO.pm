@@ -88,8 +88,9 @@ class IO does IO::FileTestable {
     has $.path;
 
     proto method open(|$) { * }
-    multi method open($path, :$r, :$w, :$a, :$bin, :$chomp = Bool::True,
+    multi method open($path? is copy, :$r, :$w, :$a, :$bin, :$chomp = Bool::True,
             :enc(:$encoding) = 'utf8') {
+        $path //= $.path;
         my $mode = $w ?? 'w' !! ($a ?? 'wa' !! 'r');
         # TODO: catch error, and fail()
         nqp::bindattr(self, IO, '$!PIO',

@@ -368,7 +368,10 @@ proto sub spurt(|$) { * }
 multi sub spurt(Cool $filename,
                 Cool $contents,
                 :encoding(:$enc) = 'utf8',
+                :$new,
                 :$append) {
+    fail("File '$filename' already exists, but :new was give to spurt")
+        if $new && $filename.IO.e;
     my $mode = $append ?? :a !! :w;
     my $fh = open($filename.Str, :$enc, |$mode);
     $fh.print($contents);
@@ -376,7 +379,10 @@ multi sub spurt(Cool $filename,
 }
 multi sub spurt(Cool $filename,
                 Buf $contents,
+                :$new,
                 :$append) {
+    fail("File '$filename' already exists, but :new was give to spurt")
+        if $new && $filename.IO.e;
     my $mode = $append ?? :a !! :w;
     my $fh = open($filename.Str, :bin, |$mode);
     $fh.write($contents);

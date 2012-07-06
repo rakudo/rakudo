@@ -101,6 +101,7 @@ class IO does IO::FileTestable {
         $!path = $path;
         $!chomp = $chomp;
         $!PIO.encoding($bin ?? 'binary' !! PARROT_ENCODING($encoding));
+        self.buffer_type(:line);
         self;
     }
 
@@ -108,6 +109,13 @@ class IO does IO::FileTestable {
         # TODO:b catch errors
         $!PIO.close;
         Bool::True;
+    }
+
+    # XXX - DESTROY is NYI in Rakudo at the time this was written, so
+    #       the following has no effect.
+    method DESTROY() {
+        # It might be correct to self.close(), here, but perhaps not...
+        self.flush();
     }
 
     method eof() {
@@ -194,6 +202,26 @@ class IO does IO::FileTestable {
     multi method print(IO:D: *@list) {
         $!PIO.print(nqp::unbox_s(@list.shift.Str)) while @list.gimme(1);
         Bool::True
+    }
+
+    # Underlying Parrot buffer types:
+    # * unbuffered
+    # * line-buffered
+    # * full-buffered
+    # Returns one of those strings
+    method buffer_type(IO:D: Bool :$unbuffered=False,
+                             Bool :$line=False,
+                             Bool :$full=False) {
+        my $type = $unbuffered ?? 'unbuffered' !! (
+                $line ?? 'line-buffered' !! (
+                    $full ?? 'full-buffered' !!
+                        die "buffer_type called without a type"));
+        nqp::p6box_s($!PIO.buffer_type(nqp::unbox_s($type)));
+    }
+
+    method flush(IO:D:) {
+        $!PIO.flush();
+        Bool::True;
     }
 
     multi method say(IO:D: |$) {

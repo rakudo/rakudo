@@ -1748,7 +1748,7 @@ class QPerl6::World is HLL::World {
             my $lookup;
             for @name {
                 if $lookup {
-                    $lookup := QAST::Op.new( :op('getwho'), $lookup );
+                    $lookup := QAST::Op.new( :op('who'), $lookup );
                 }
                 else {
                     # Lookups start at the :: root.
@@ -1785,24 +1785,25 @@ class QPerl6::World is HLL::World {
             QAST::Op.new(
                 :op('callmethod'), :name('at_key'),
                 self.add_constant('Str', 'str', $final_name)) !!
-            PAST::Var.new( :scope('keyed'), ~$final_name);
+            QAST::Op.new( :scope('atkey'), QAST::SVal.new( :value(~$final_name) ) );
         
         # If there's no explicit qualification, then look it up in the
         # current package, and fall back to looking in GLOBAL.
         if +@name == 0 {
             $lookup.unshift(QAST::Op.new(
-                :op('getwho'),
+                :op('who'),
                 QAST::Var.new( :name('$?PACKAGE'), :scope('lexical') )
             ));
-            $lookup.isa(QAST::Var) && $lookup.viviself(PAST::Var.new(
-                :scope('keyed'),
-                :viviself(self.lookup_failure($orig_name)),
-                QAST::Op.new(
-                    :op('getwho'),
-                    PAST::Var.new( :name('GLOBAL'), :namespace([]), :scope('package') )
-                ),
-                ~$final_name
-            ));
+            # XXX QAST TODO
+            #$lookup.isa(QAST::Var) && $lookup.viviself(PAST::Var.new(
+            #    :scope('keyed'),
+            #    :viviself(self.lookup_failure($orig_name)),
+            #    QAST::Op.new(
+            #        :op('who'),
+            #        PAST::Var.new( :name('GLOBAL'), :namespace([]), :scope('package') )
+            #    ),
+            #    ~$final_name
+            #));
         }
         
         # Otherwise, see if the first part of the name is lexically
@@ -1821,7 +1822,7 @@ class QPerl6::World is HLL::World {
                     :pirop('perl6_get_package_through_who PPs'),
                     $path, ~$_);
             }
-            $lookup.unshift(QAST::Op.new(:op('getwho'), $path));
+            $lookup.unshift(QAST::Op.new(:op('who'), $path));
         }
         
         # Failure object if we can't find the name.

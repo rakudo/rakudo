@@ -5321,16 +5321,6 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions {
         make $qast;
     }
     
-    method metachar:sym<from>($/) {
-        make QAST::Regex.new( :rxtype<subrule>, :subtype<method>,
-            PAST::Node.new('MARK_FROM'), :node($/) );
-    }
-    
-    method metachar:sym<to>($/) {
-        make QAST::Regex.new( :rxtype<subrule>, :subtype<method>,
-            PAST::Node.new('MARK_TO'), :node($/) );
-    }
-
     method metachar:sym<rakvar>($/) {
         make QAST::Regex.new( PAST::Node.new('INTERPOLATE', $<var>.ast,
                                     PAST::Val.new( :value(%*RX<i> ?? 1 !! 0) )),

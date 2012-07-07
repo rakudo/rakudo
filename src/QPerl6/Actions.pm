@@ -4575,7 +4575,7 @@ class QPerl6::Actions is HLL::Actions {
             :op('callmethod'), :name('Stringy'),
             QAST::Op.new(
                 :op('call'),
-                PAST::Op.new( :pirop('perl6_capture_lex__0P'), $<block>.ast ),
+                QAST::Op.new( :op('p6capturelex'), $<block>.ast ),
                 :node($/)));
     }
 
@@ -4730,7 +4730,7 @@ class QPerl6::Actions is HLL::Actions {
             :op('callmethod'), :name('clone'),
             $code
         );
-        $closure := PAST::Op.new( :pirop('perl6_capture_lex__0P'), $closure);
+        $closure := QAST::Op.new( :op('p6capturelex'), $closure);
         $closure<past_block> := $code<past_block>;
         $closure<code_object> := $code<code_object>;
         return $closure;

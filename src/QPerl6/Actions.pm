@@ -2110,8 +2110,10 @@ class QPerl6::Actions is HLL::Actions {
     sub is_clearly_returnless($block) {
         sub returnless_past($past) {
             return 0 unless
-                # It's a low-level op or method call.
-                $past.isa(PAST::Op) && ($past.pirop() || $past.op eq 'callmethod') ||
+                # It's a method call.
+                $past.isa(QAST::Op) && $past.op eq 'callmethod' ||
+                # It's a simple/primitive operation.
+                # XXX TODO: something for PAST -> QAST transformation.
                 # Just a variable lookup.
                 $past.isa(QAST::Var) ||
                 # Just a QAST::Want

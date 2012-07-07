@@ -1557,7 +1557,7 @@ class QPerl6::Actions is HLL::Actions {
                 if %cont_info<bind_constraint>.HOW.archetypes.generic {
                     $past := QAST::Op.new(
                         :op('callmethod'), :name('instantiate_generic'),
-                        PAST::Op.new( :pirop('perl6_var PP'), $past ),
+                        QAST::Op.new( :op('p6var'), $past ),
                         PAST::Op.new( :pirop('set PQPs'),
                             PAST::Op.new( :pirop('getinterp P') ), 'lexpad'));
                 }
@@ -1787,7 +1787,7 @@ class QPerl6::Actions is HLL::Actions {
     method autogenerate_proto($/, $name, $install_in) {
         my $p_past := $*W.push_lexpad($/);
         $p_past.name(~$name);
-        $p_past.push(PAST::Op.new( :pirop('perl6_enter_multi_dispatch_from_onlystar_block P') ));
+        $p_past.push(QAST::Op.new( :op('p6multidispatch') ));
         $*W.pop_lexpad();
         $install_in.push(QAST::Stmt.new($p_past));
         my @p_params := [hash(is_capture => 1, nominal_type => $*W.find_symbol(['Mu']) )];
@@ -2160,7 +2160,7 @@ class QPerl6::Actions is HLL::Actions {
 
     method onlystar($/) {
         my $BLOCK := $*CURPAD;
-        $BLOCK.push(PAST::Op.new( :pirop('perl6_enter_multi_dispatch_from_onlystar_block P') ));
+        $BLOCK.push(QAST::Op.new( :op('p6multidispatch') ));
         $BLOCK.node($/);
         make $BLOCK;
     }
@@ -3045,16 +3045,13 @@ class QPerl6::Actions is HLL::Actions {
                 $past.pirop('get_who PP');
             }
             elsif $name eq 'VAR' {
-                $past.pasttype('pirop');
-                $past.pirop('perl6_var PP');
+                $past.op('p6var');
             }
             elsif $name eq 'REPR' {
-                $past.pasttype('pirop');
-                $past.pirop('perl6_repr_name PP');
+                $past.op('p6reprname');
             }
             elsif $name eq 'DEFINITE' {
-                $past.pasttype('pirop');
-                $past.pirop('perl6_definite PP');
+                $past.op('p6definite');
             }
             else {
                 $past.name( $name );
@@ -4652,7 +4649,7 @@ class QPerl6::Actions is HLL::Actions {
         # We tell Parrot that we'll have all args in the call_sig so it won't
         # do its own arg processing. We also add a call to bind the signature.
         $block[0].push(PAST::Var.new( :name('call_sig'), :scope('parameter'), :call_sig(1) ));
-        $block[0].push(PAST::Op.new( :pirop('bind_signature v') ));
+        $block[0].push(QAST::Op.new( :op('p6bindsig') ));
 
         $block;
     }
@@ -5135,13 +5132,13 @@ class QPerl6::Actions is HLL::Actions {
         }
     }
 
-    my @prim_spec_ops := ['', 'perl6_box_int__PI', 'perl6_box_num__PN', 'perl6_box_str__PS'];
+    my @prim_spec_ops := ['', 'p6box_i', 'p6box_n', 'p6box_s'];
     my @prim_spec_flags := ['', 'Ii', 'Nn', 'Ss'];
     sub box_native_if_needed($past, $type) {
         my $primspec := pir::repr_get_primitive_type_spec__IP($type);
         if $primspec {
             my $want := QAST::Want.new(
-                PAST::Op.new( :pirop(@prim_spec_ops[$primspec]), $past ),
+                QAST::Op.new( :op(@prim_spec_ops[$primspec]), $past ),
                 @prim_spec_flags[$primspec], $past);
             $want<boxable_native> := $primspec;
             $want.returns($type);

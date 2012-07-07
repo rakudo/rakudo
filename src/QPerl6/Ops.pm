@@ -20,3 +20,8 @@ $ops.add_hll_pirop_mapping('perl6', 'exit', 'exit', 'vi');
 $ops.add_hll_pirop_mapping('perl6', 'p6store', 'perl6_container_store', '0PP');
 $ops.add_hll_pirop_mapping('perl6', 'p6type', 'perl6ize_type', 'PP');
 $ops.add_hll_pirop_mapping('perl6', 'p6takedisp', 'perl6_take_dispatcher', 'v');
+$ops.add_hll_pirop_mapping('perl6', 'p6var', 'perl6_var', 'PP');
+$ops.add_hll_pirop_mapping('perl6', 'p6reprname', 'perl6_repr_name', 'PP');
+$ops.add_hll_pirop_mapping('perl6', 'p6definite', 'perl6_definite', 'PP');
+$ops.add_hll_pirop_mapping('perl6', 'p6multidispatch', 'perl6_enter_multi_dispatch_from_onlystar_block', 'P');
+$ops.add_hll_pirop_mapping('perl6', 'p6bindsig', 'bind_signature', 'v');

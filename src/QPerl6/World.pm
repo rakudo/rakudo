@@ -1381,7 +1381,7 @@ class QPerl6::World is HLL::World {
             
             if $phaser eq 'POST' {
                 # Needs $_ that can be set to the return value.
-                $phaser_past[0].unshift(PAST::Op.new( :pirop('bind_signature v') ));
+                $phaser_past[0].unshift(QAST::Op.new( :op('p6bindsig') ));
                 unless $phaser_past.symbol('$_') {
                     $phaser_past[0].unshift(QAST::Var.new( :name('$_'), :scope('lexical'), :decl('var') ));
                 }

@@ -3033,16 +3033,13 @@ class QPerl6::Actions is HLL::Actions {
                 $past.name('dispatch:<::>');
             }
             elsif $name eq 'WHAT' {
-                $past.pasttype('pirop');
-                $past.pirop('get_what PP');
+                $past.op('what');
             }
             elsif $name eq 'HOW' {
-                $past.pasttype('pirop');
-                $past.pirop('get_how PP');
+                $past.op('how');
             }
             elsif $name eq 'WHO' {
-                $past.pasttype('pirop');
-                $past.pirop('get_who PP');
+                $past.op('who');
             }
             elsif $name eq 'VAR' {
                 $past.op('p6var');

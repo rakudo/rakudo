@@ -1831,7 +1831,7 @@ class QPerl6::Actions is HLL::Actions {
         # would just walk the PAST and see all is well; for now, we generate
         # a simple representation of the op tree for very restricted cases.
         my $node_walker := -> $node {
-            if pir::isa($node, 'Integer') || pir::isa($node, 'String') {
+            if $node.isa(QAST::IVal) || $node.isa(QAST::SVal) {
                 return 0;
             }
             if ($node.isa(QAST::Stmt) || $node.isa(QAST::Stmts)) && +@($node) == 1 {
@@ -1846,14 +1846,15 @@ class QPerl6::Actions is HLL::Actions {
                     return 0;
                 }
             }
-            elsif $node.isa(PAST::Op) && $node.pirop {
-                my @children;
-                for @($node) {
-                    @children.push($node_walker($_));
-                }
-                my $safe_name := nqp::join('__', nqp::split(' ', $node.pirop));
-                "PIROP $safe_name ( " ~ nqp::join(' ', @children) ~ " )"
-            }
+            # XXX Needs QAST update...
+            #elsif $node.isa(PAST::Op) && $node.pirop {
+            #    my @children;
+            #    for @($node) {
+            #        @children.push($node_walker($_));
+            #    }
+            #    my $safe_name := nqp::join('__', nqp::split(' ', $node.pirop));
+            #    "PIROP $safe_name ( " ~ nqp::join(' ', @children) ~ " )"
+            #}
             elsif $node.isa(QAST::Want) && +@($node) == 3 {
                 my %backup := nqp::clone(%arg_used);
                 my $normal := $node_walker($node[0]);

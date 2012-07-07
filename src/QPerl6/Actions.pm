@@ -5087,8 +5087,10 @@ class QPerl6::Actions is HLL::Actions {
     sub wrap_return_handler($past) {
         QAST::Op.new(
             :op('p6typecheckrv'),
-            PAST::Stmts.new( :signature('0Pv'),
-                PAST::Op.new(:pasttype<lexotic>, :name<RETURN>,
+            QAST::Stmts.new(
+                :resultchild(0),
+                QAST::Op.new(
+                    :op<lexotic>, :name<RETURN>,
                     # If we fall off the bottom, decontainerize if
                     # rw not set.
                     QAST::Op.new( :op('p6decontrv'), $past )

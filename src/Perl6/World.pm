@@ -1970,8 +1970,12 @@ class Perl6::World is HLL::World {
     }
 
     method rethrow($/, $err) {
-        my $ex_t    := self.find_symbol(['X', 'Comp', 'AdHoc']);
-        my $coercer := self.find_symbol(['&COMP_EXCEPTION']);
+        my $success := 0;
+        my $ex_t;
+        my $coercer;
+        try { $ex_t := self.find_symbol(['X', 'Comp', 'AdHoc']); $success := 1 };
+        try { $coercer := self.find_symbol(['&COMP_EXCEPTION']); ++$success; };
+        $err.rethrow unless $success == 2;
         my $p6ex    := $coercer($err);
         nqp::bindattr($p6ex, $ex_t, '$!filename',
             nqp::box_s(pir::find_caller_lex__ps('$?FILES'),

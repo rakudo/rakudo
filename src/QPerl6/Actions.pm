@@ -1821,7 +1821,7 @@ class QPerl6::Actions is HLL::Actions {
         for @($past[0]) {
             if $_.isa(QAST::Var) {
                 my $name := $_.name;
-                return 0 if $name ne 'call_sig' && $name ne '$_' &&
+                return 0 if $name ne '$_' &&
                     $name ne '$/' && $name ne '$!' && $name ne '&?ROUTINE' &&
                     $name ne '$*DISPATCHER' && !nqp::existskey(%arg_pos, $name);
             }
@@ -4646,9 +4646,8 @@ class QPerl6::Actions is HLL::Actions {
         }
         $block.arity($arity);
 
-        # We tell Parrot that we'll have all args in the call_sig so it won't
-        # do its own arg processing. We also add a call to bind the signature.
-        $block[0].push(PAST::Var.new( :name('call_sig'), :scope('parameter'), :call_sig(1) ));
+        # Flag that we do custom arguments processing, and invoke the binder.
+        $block.custom_args(1);
         $block[0].push(QAST::Op.new( :op('p6bindsig') ));
 
         $block;

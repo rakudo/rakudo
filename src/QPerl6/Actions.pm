@@ -1629,11 +1629,11 @@ class QPerl6::Actions is HLL::Actions {
                     $block[1] := box_native_if_needed($block[1], $block[1].type);
                 }
                 else {
-                    $block[1] := PAST::Op.new(
-                        :pirop('perl6_decontainerize_return_value PP'),
+                    $block[1] := QAST::Op.new(
+                        :op('p6decontrv'),
                         $block[1]);
                 }
-                $block[1] := PAST::Op.new( :pirop('perl6_type_check_return_value 0P'), $block[1] );
+                $block[1] := QAST::Op.new( :op('p6typecheckrv'), $block[1] );
             }
             else {
                 $block[1] := wrap_return_handler($block[1]);
@@ -1888,11 +1888,9 @@ class QPerl6::Actions is HLL::Actions {
             $past := $<blockoid>.ast;
             $past.blocktype('declaration');
             if is_clearly_returnless($past) {
-                $past[1] := PAST::Op.new(
-                    :pirop('perl6_type_check_return_value 0P'),
-                        PAST::Op.new(
-                        :pirop('perl6_decontainerize_return_value PP'),
-                        $past[1]));
+                $past[1] := QAST::Op.new(
+                    :op('p6typecheckrv'),
+                    QAST::Op.new( :op('p6decontrv'), $past[1]));
             }
             else {
                 $past[1] := wrap_return_handler($past[1]);
@@ -1957,8 +1955,8 @@ class QPerl6::Actions is HLL::Actions {
         $block := $<blockoid>.ast;
         $block.blocktype('declaration');
         if is_clearly_returnless($block) {
-            $block[1] := PAST::Op.new(
-                :pirop('perl6_decontainerize_return_value PP'),
+            $block[1] := QAST::Op.new(
+                :op('p6decontrv'),
                 $block[1]);
         }
         else {
@@ -5085,13 +5083,13 @@ class QPerl6::Actions is HLL::Actions {
     }
 
     sub wrap_return_handler($past) {
-        PAST::Op.new(
-            :pirop('perl6_type_check_return_value 0P'),
+        QAST::Op.new(
+            :op('p6typecheckrv'),
             PAST::Stmts.new( :signature('0Pv'),
                 PAST::Op.new(:pasttype<lexotic>, :name<RETURN>,
                     # If we fall off the bottom, decontainerize if
                     # rw not set.
-                    PAST::Op.new( :pirop('perl6_decontainerize_return_value PP'), $past )
+                    QAST::Op.new( :op('p6decontrv'), $past )
                 ),
                 QAST::Op.new(
                     :op<bind>,

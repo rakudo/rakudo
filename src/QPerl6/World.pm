@@ -419,8 +419,8 @@ class QPerl6::World is HLL::World {
     # Builds PAST that constructs a container.
     method build_container_past(%cont_info, $descriptor) {
         # Create container.
-        my $cont_code := PAST::Op.new(
-            :pirop('repr_instance_of PP'),
+        my $cont_code := QAST::Op.new(
+            :op('create'),
             QAST::WVal.new( :value(%cont_info<container_type>) )
         );
         
@@ -833,7 +833,7 @@ class QPerl6::World is HLL::World {
                 $code_past[0].push(PAST::Op.new( :pirop('perl6_clear_checking_pre v') ));
             }
             if nqp::existskey(%phasers, 'FIRST') {
-                $code_past[0].push(PAST::Op.new(
+                $code_past[0].push(QAST::Op.new(
                     :pasttype('if'),
                     PAST::Op.new( :pirop('perl6_take_block_first_flag i') ),
                     run_phasers_code('FIRST')));
@@ -865,26 +865,26 @@ class QPerl6::World is HLL::World {
     method setup_let_or_temp($/, $value_stash, $phaser) {
         # Add variable to current block.
         my $block := self.cur_lexpad();
-        $block[0].push(PAST::Op.new(
-            :pasttype('bind'),
+        $block[0].push(QAST::Op.new(
+            :op('bind'),
             QAST::Var.new( :name($value_stash), :scope('lexical'), :decl('var') ),
-            PAST::Op.new( :pasttype('list') )));
+            QAST::Op.new( :op('list') )));
         $block.symbol($value_stash, :scope('lexical'));
         
         # Create a phaser block that will do the restoration.
         my $phaser_block := self.push_lexpad($/);
         self.pop_lexpad();
-        $phaser_block.push(PAST::Op.new(
+        $phaser_block.push(QAST::Op.new(
             :pasttype('while'),
             QAST::Var.new( :name($value_stash), :scope('lexical') ),
             QAST::Op.new(
                 :op('p6store'),
-                PAST::Op.new(
-                    :pirop('shift__PP'),
+                QAST::Op.new(
+                    :op('shift'),
                     QAST::Var.new( :name($value_stash), :scope('lexical') )
                 ),
-                PAST::Op.new(
-                    :pirop('shift__PP'),
+                QAST::Op.new(
+                    :op('shift'),
                     QAST::Var.new( :name($value_stash), :scope('lexical') )
                 ))));
         
@@ -1349,8 +1349,8 @@ class QPerl6::World is HLL::World {
             # Generate code that runs the phaser the first time we init
             # the state block, or just evaluates to the existing value
             # in other cases.
-            make PAST::Op.new(
-                :pasttype('if'),
+            make QAST::Op.new(
+                :op('if'),
                 PAST::Op.new( :pirop('perl6_state_needs_init I') ),
                 QAST::Op.new(
                     :op('p6store'),
@@ -1365,8 +1365,8 @@ class QPerl6::World is HLL::World {
             my $condition := self.add_string_constant(~$/<blorst>);
             $condition.named('condition');
 
-            $phaser_past[1] := PAST::Op.new(
-                :pasttype('unless'),
+            $phaser_past[1] := QAST::Op.new(
+                :op('unless'),
                 $phaser_past[1],
                 QAST::Op.new(
                     :op('callmethod'), :name('throw'),
@@ -1467,7 +1467,7 @@ class QPerl6::World is HLL::World {
         # Checks if there is an indirect lookup required.
         method contains_indirect_lookup() {
             for @!components {
-                if nqp::can($_, 'isa') && $_.isa(PAST::Node) {
+                if nqp::can($_, 'isa') && $_.isa(QAST::Node) {
                     return 1;
                 }
             }
@@ -1483,7 +1483,7 @@ class QPerl6::World is HLL::World {
                 nqp::die("Name $!text ends with '::' and cannot be used as a $dba");
             }
             for @!components {
-                if nqp::can($_, 'isa') && $_.isa(PAST::Node) {
+                if nqp::can($_, 'isa') && $_.isa(QAST::Node) {
                     if $_<has_compile_time_value> {
                         for nqp::split('::', ~$_<compile_time_value>) {
                             @name.push($_);

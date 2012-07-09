@@ -2227,8 +2227,8 @@ class QPerl6::Actions is HLL::Actions {
         $block[0].push(QAST::Op.new(
             :op('bind'),
             QAST::Var.new(:name<$?REGEX>, :scope<lexical>, :decl('var')),
-            PAST::Op.new(
-                :pirop('perl6_code_object_from_parrot_sub PP'),
+            QAST::Op.new(
+                :op('p6vmcodetoobj'),
                 PAST::Op.new( :pirop('set PQs'), PAST::Op.new( :pirop('getinterp P') ), 'sub')
             )));
         $block.symbol('$?REGEX', :scope<lexical>);

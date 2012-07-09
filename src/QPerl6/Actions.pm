@@ -1329,10 +1329,7 @@ class QPerl6::Actions is HLL::Actions {
             $block.push(QAST::Op.new(
                 :op('list'),
                 QAST::WVal.new( :value($*PACKAGE) ),
-                PAST::Op.new(
-                    :pirop('set PQPS'),
-                    PAST::Op.new( :pirop('getinterp P') ),
-                    'lexpad')));
+                QAST::Op.new( :op('curlexpad') )));
 
             # Create code object and add it as the role's body block.
             my $code := $*W.create_code_object($block, 'Sub', $sig);
@@ -1558,8 +1555,7 @@ class QPerl6::Actions is HLL::Actions {
                     $past := QAST::Op.new(
                         :op('callmethod'), :name('instantiate_generic'),
                         QAST::Op.new( :op('p6var'), $past ),
-                        PAST::Op.new( :pirop('set PQPs'),
-                            PAST::Op.new( :pirop('getinterp P') ), 'lexpad'));
+                        QAST::Op.new( :op('curlexpad') ));
                 }
             }
         }
@@ -2229,7 +2225,7 @@ class QPerl6::Actions is HLL::Actions {
             QAST::Var.new(:name<$?REGEX>, :scope<lexical>, :decl('var')),
             QAST::Op.new(
                 :op('p6vmcodetoobj'),
-                PAST::Op.new( :pirop('set PQs'), PAST::Op.new( :pirop('getinterp P') ), 'sub')
+                QAST::Op.new( :op('curcode') )
             )));
         $block.symbol('$?REGEX', :scope<lexical>);
 

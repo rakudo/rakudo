@@ -481,110 +481,71 @@ my class Str does Stringy {
             !! self.match(:g, :$x, $pat).map: { .Str }
     }
 
-    # TODO: should be private
-    proto method ll-match(Str:D: $, *%) {*}
-    multi method ll-match(Str:D: Regex:D $pat, *%opts) {
-        $pat(Cursor.'!cursor_init'(self, |%opts)).MATCH_SAVE;
-    }
-    multi method ll-match(Str:D: Cool:D $pat, *%opts) {
-        my Int $from = %opts<p> // %opts<c> // 0;
-        my $idx = self.index($pat, $from);
-        $idx.defined
-          ?? Match.new(orig => self, from => $idx, to => ($idx + $pat.chars))
-          !! Match.new(orig => self, from => 0,    to => -3);
-    }
-    method match-list(Str:D: $pat, :$g, :$ov, :$ex, *%opts) {
-        if $ex && nqp::istype($pat, Callable) {
-            gather {
-                my $m := self.ll-match($pat, |%opts);
-                if $m {
-                    take $m;
-                    while $m := $m.CURSOR.'!cursor_next'().MATCH_SAVE {
-                        take $m;
-                    }
-                }
-            }
-        }
-        elsif $ov || $ex {
-            gather {
-                my $m := self.ll-match($pat, |%opts);
-                while $m {
-                    last if $m.to > self.chars;
-                    take $m;
-                    $m := self.ll-match($pat, :c($m.from + 1));
-                }
-            }
-        }
-        elsif $g {
-            gather {
-                my $m := self.ll-match($pat, |%opts);
-                if $m {
-                    take $m;
-                    while $m := self.ll-match($pat, :c($m.to == $m.from ?? $m.to + 1 !! $m.to)) {
-                        last if $m.to > self.chars;
-                        take $m;
-                    }
-                }
-            }
-        }
-        else {
-            (self.ll-match($pat, |%opts),).list;
-        }
-    }
-    multi method match(Str:D: $pat, :continue(:$c), :pos(:$p), :global(:$g), :overlap(:$ov), :exhaustive(:$ex), :$x, :st(:nd(:rd(:th(:$nth))))) {
+    method match($pat, 
+                  :continue(:$c), :pos(:$p),
+                  :global(:$g), :overlap(:$ov), :exhaustive(:$ex), 
+                  :st(:nd(:rd(:th(:$nth)))), :$x) {
         my %opts;
-        if $c.defined {
-            %opts<c> = $c
+        if $p.defined { %opts<p> = $p }
+        else { %opts<c> = $c // 0; }
+        my $patrx := $pat ~~ Code ?? $pat !! / $pat: /;
+        my $cur := $patrx(Cursor.'!cursor_init'(self, |%opts));
+
+        %opts<ov> = $ov if $ov;
+        %opts<ex> = $ex if $ex;
+
+        my @matches := gather {
+            while $cur.pos >= 0 {
+                take $cur.MATCH_SAVE;
+                $cur := $cur.'!cursor_more'(|%opts);
+            }
         }
-        elsif !$p.defined {
-            %opts<c> = 0;
-        }
-        %opts<p> = $p if $p.defined;
-        my @matches := self.match-list($pat, :g($g || $x || $nth), :$ov, :$ex, |%opts);
+        my $multi = $g || $ov || $ex;
+
         if $nth.defined {
-            if nqp::istype($nth, Positional) {
-                my @nth-monotonic := gather {
-                    my $max = 0;
-                    for $nth.list {
-                        if $_ > $max {
-                            # note that $nth is 1-based, but our array
-                            # indexes are 0-based. Hence the - 1
-                            take $_ - 1;
-                            $max = $_;
+            $multi = Positional.ACCEPTS($nth);
+            my @nlist := $nth.list;
+            my @src   := @matches;
+            @matches  := gather {
+                my $max = 0;
+                while @nlist {
+                    my $n = shift @nlist;
+                    fail "Attempt to retrieve negative match :nth($n)" if $n < 1;
+                    if $n > $max { take @src[$n-1]; $max = $n; }
+                }
+            }
+        }
+
+        if $x.defined {
+            $multi = True;
+            if nqp::istype($x, Int) {
+                @matches := @matches.gimme($x) >= $x 
+                            ?? @matches[^$x]
+                            !! ().list
+            }
+            elsif nqp::istype($x, Range) {
+                my $min = $x.min.ceiling;
+                my $max = $x.max;
+                $min++ while $min <= $max && $min !~~ $x;
+                if @matches.gimme($min) >= $min && $min ~~ $x {
+                    my @src := @matches;
+                    @matches := gather {
+                        my $n = 0;
+                        while @src && ($n < $min || $n+1 ~~ $x) {
+                            take @src.shift;
+                            $n++;
                         }
                     }
                 }
-                @matches := @matches[@nth-monotonic].list;
+                else { @matches := ().list }
             }
             else {
-                return () if $nth < 1;
-                @matches := @matches[$nth - 1].defined
-                    ?? (@matches[$nth - 1], ).list
-                    !! ().list;
+                X::Str::Match::x.new(got => $x).fail;
             }
         }
-        if $x.defined {
-            if nqp::istype($x, Int) {
-                @matches.gimme($x) == $x
-                    ?? @matches[^$x]
-                    !! ().list;
-            }
-            elsif nqp::istype($x, Range) {
-                my $real-max := $x.excludes_max ?? $x.max - 1 !! $x.max;
-                @matches.gimme($real-max) ~~ $x
-                    ?? @matches[^$real-max].list
-                    !! ().list;
-            }
-            else {
-                X::Str::Match::x.new(got => $x).throw;
-            }
-        }
-        else {
-            @matches.gimme(2) == 1 ?? @matches[0] !! @matches;
-        }
+
+        $multi ?? @matches !! (@matches[0] // $cur.MATCH_SAVE);
     }
-
-
 
     multi method subst($matcher, $replacement,
                        :ii(:$samecase), :ss(:$samespace),

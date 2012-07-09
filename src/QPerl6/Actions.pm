@@ -3339,7 +3339,7 @@ class QPerl6::Actions is HLL::Actions {
         my $pirop := nqp::join(' ', nqp::split('__', ~$<op>));
         my $past := QAST::VM.new( :pirop($pirop), :node($/) );
         if $<args> {
-            for $<args>[0].ast {
+            for $<args>[0].ast.list {
                 $past.push($_);
             }
         }

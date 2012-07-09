@@ -1,28 +1,28 @@
 my class Exception { ... }
 
-my class Backtrace::Frame {
-    has Str $.file;
-    has Int $.line;
-    has Mu  $.code;
-    has Str $.subname;
-
-    method subtype(Backtrace::Frame:D:) {
-        my $s = $!code.^name.lc.split('+', 2)[0];
-        $s eq 'mu' ?? '' !! $s;
-    }
-
-    multi method Str(Backtrace::Frame:D:) {
-        my $s = self.subtype;
-        $s ~= ' ' if $s.chars;
-        "  in {$s}$.subname at {$.file}:$.line\n"
-    }
-
-    method is-hidden(Backtrace::Frame:D:)  { $!code.?is_hidden_from_backtrace }
-    method is-routine(Backtrace::Frame:D:) { $!code ~~ Routine }
-    method is-setting(Backtrace::Frame:D:) { $!file eq 'src/gen/CORE.setting' }
-}
 
 my class Backtrace is List {
+    class Frame {
+        has Str $.file;
+        has Int $.line;
+        has Mu  $.code;
+        has Str $.subname;
+
+        method subtype(Frame:D:) {
+            my $s = $!code.^name.lc.split('+', 2)[0];
+            $s eq 'mu' ?? '' !! $s;
+        }
+
+        multi method Str(Backtrace::Frame:D:) {
+            my $s = self.subtype;
+            $s ~= ' ' if $s.chars;
+            "  in {$s}$.subname at {$.file}:$.line\n"
+        }
+
+        method is-hidden(Frame:D:)  { $!code.?is_hidden_from_backtrace }
+        method is-routine(Frame:D:) { $!code ~~ Routine }
+        method is-setting(Frame:D:) { $!file eq 'src/gen/CORE.setting' }
+    }
     proto method new(|$) {*}
 
     multi method new(Exception $e, Int $offset = 0) {

@@ -1330,7 +1330,7 @@ class QPerl6::World is HLL::World {
         elsif $phaser eq 'END' {
             $*UNIT[0].push(QAST::Op.new(
                 :op('callmethod'), :name('unshift'),
-                PAST::Var.new( :name('@*END_PHASERS'), :scope('contextual') ),
+                QAST::Var.new( :name('@*END_PHASERS'), :scope('contextual') ),
                 QAST::WVal.new( :value($block) )
             ));
             return QAST::Var.new(:name('Nil'), :scope('lexical'));

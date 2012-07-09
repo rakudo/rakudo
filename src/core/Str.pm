@@ -534,6 +534,7 @@ my class Str does Stringy {
                 }
                 else { @matches := ().list }
             }
+            elsif nqp::istype($x, Whatever) { }
             else {
                 X::Str::Match::x.new(got => $x).fail;
             }

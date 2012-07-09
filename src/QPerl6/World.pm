@@ -734,9 +734,10 @@ class QPerl6::World is HLL::World {
                     self.add_object($clone);
                     nqp::die("not yet updated for QAST");
                     $fixups.push(QAST::Stmts.new(
-                        PAST::Op.new( :pasttype('bind'),
+                        QAST::Op.new(
+                            :op('bind'),
                             PAST::Var.new( :name('$P0'), :scope('register') ),
-                            PAST::Op.new( :pirop('clone PP'), QAST::BVal.new( :value($code_past) ) )
+                            QAST::Op.new( :op('clone'), QAST::BVal.new( :value($code_past) ) )
                         ),
                         self.set_attribute($clone, $code_type, '$!do',
                             PAST::Var.new( :name('$P0'), :scope('register') )),
@@ -808,22 +809,22 @@ class QPerl6::World is HLL::World {
         my $block_type := self.find_symbol(['Block']);
         if nqp::istype($code, $block_type) {
             sub run_phasers_code($type) {
-                PAST::Op.new(
-                    :pasttype('for'),
-                    PAST::Var.new(
-                        :scope('keyed'),
+                QAST::Op.new(
+                    :op('for'),
+                    QAST::Op.new(
+                        :op('atkey'),
                         QAST::Var.new(
                             :scope('attribute'), :name('$!phasers'),
                             QAST::WVal.new( :value($code) ),
                             QAST::WVal.new( :value($block_type) )
                         ),
-                        $type
+                        QAST::SVal.new( :value($type) )
                     ),
                     QAST::Block.new(
                         :blocktype('immediate'),
                         QAST::Op.new(
                             :op('call'),
-                            PAST::Var.new( :scope('parameter'), :name('$_') )
+                            QAST::Var.new( :scope('lexical'), :name('$_'), :decl('param') )
                         )))
             }
             my %phasers := nqp::getattr($code, $block_type, '$!phasers');

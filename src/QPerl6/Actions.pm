@@ -3306,7 +3306,7 @@ class QPerl6::Actions is HLL::Actions {
                     $past.op('callmethod');
                     $past.name('parameterize');
                     $past.unshift($ptref);
-                    $past.unshift(PAST::Op.new( :pirop('get_how PP'), $ptref ));
+                    $past.unshift(QAST::Op.new( :op('how'), $ptref ));
                 }
             }
             elsif +@name == 0 {
@@ -3324,7 +3324,7 @@ class QPerl6::Actions is HLL::Actions {
             
             # Names ending in :: really want .WHO.
             if $*longname.get_who {
-                $past := PAST::Op.new( :pirop('get_who PP'), $past );
+                $past := QAST::Op.new( :op('who'), $past );
             }
         }
 
@@ -3336,10 +3336,13 @@ class QPerl6::Actions is HLL::Actions {
         if $FORBID_PIR {
             nqp::die("pir::op forbidden in safe mode\n");
         }
-        my $past := $<args> ?? $<args>[0].ast !! PAST::Op.new( :node($/) );
         my $pirop := nqp::join(' ', nqp::split('__', ~$<op>));
-        $past.pirop($pirop);
-        $past.pasttype('pirop');
+        my $past := QAST::VM.new( :pirop($pirop), :node($/) );
+        if $<args> {
+            for $<args>[0].ast {
+                $past.push($_);
+            }
+        }
         make $past;
     }
 

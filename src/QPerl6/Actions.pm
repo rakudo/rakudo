@@ -3750,7 +3750,7 @@ class QPerl6::Actions is HLL::Actions {
             ),
 
             # Re-instate original $_.
-            QAST::Op.new( :pasttype('bind'),
+            QAST::Op.new( :op('bind'),
                 QAST::Var.new( :name('$_'), :scope('lexical') ),
                 QAST::Var.new( :name($old_topic_var), :scope('local') )
             ),

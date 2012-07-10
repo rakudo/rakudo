@@ -15,6 +15,7 @@ INIT {
         p6parcel     => 'perl6_parcel_from_rpa__PPP',
         p6listiter   => 'perl6_iter_from_rpa__PPP',
         p6list       => 'perl6_list_from_rpa__PPPP',
+        p6listitems  => 'perl6_listitems__PP',
         p6decont     => 'perl6_decontainerize__PP',
         p6recont_ro  => 'perl6_recontainerize_to_ro__PP',
         attrinited   => 'repr_is_attr_initialized__IPPs',

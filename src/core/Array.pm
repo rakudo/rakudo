@@ -9,9 +9,7 @@ class Array {
     
     multi method at_pos(Array:D: $pos) is rw {
         my int $p = nqp::unbox_i($pos.Int);
-        my Mu $items := nqp::getattr(self, List, '$!items');
-        nqp::islist($items) or 
-            $items := nqp::bindattr(self, List, '$!items', nqp::list());
+        my Mu $items := nqp::p6listitems(self);
         # hotpath check for element existence (RT #111848)
         nqp::existspos($items, $p)
               || nqp::getattr(self, List, '$!nextiter').defined
@@ -21,9 +19,7 @@ class Array {
                  -> { nqp::bindpos($items, $p, $v) } )
     }
     multi method at_pos(Array:D: int $pos) is rw {
-        my Mu $items := nqp::getattr(self, List, '$!items');
-        nqp::islist($items) or 
-            $items := nqp::bindattr(self, List, '$!items', nqp::list());
+        my Mu $items := nqp::p6listitems(self);
         # hotpath check for element existence (RT #111848)
         nqp::existspos($items, $pos)
               || nqp::getattr(self, List, '$!nextiter').defined

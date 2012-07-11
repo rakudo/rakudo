@@ -1,24 +1,23 @@
-class Version is List {
+class Version {
+    has $.parts;
     has Bool $.plus = False;
-    method new(*@positional, :$plus) {
-        self.List::new(@positional).MYBUILD(?$plus);
+
+    method new(*@parts, :$plus) {
+        self.bless(*, :parts(@parts.eager), :plus(?$plus));
     }
-    submethod MYBUILD(Bool $plus) {
-        $!plus = $plus;
-        self;
-    }
+
     multi method Str(Version:D:) {
-        'v' ~ self.map({ $_ ~~ Whatever ?? '*' !! $_}).join('.') ~ ($!plus ?? '+' !! '');
+        'v' ~ $!parts.map({ $_ ~~ Whatever ?? '*' !! $_}).join('.') ~ ($!plus ?? '+' !! '');
     }
     multi method gist(Version:D:) { self.Str }
     multi method perl(Version:D:) {
-        self.^name ~ '.new(' ~ self.List::perl ~ ', :plus(' ~ $!plus.perl ~ '))';
+        self.^name ~ '.new(' ~ $!parts.perl ~ ', :plus(' ~ $!plus.perl ~ '))';
 
     }
     multi method ACCEPTS(Version:D: Version:D $other) {
-        for self.kv -> $i, $v {
+        for $!parts.kv -> $i, $v {
             next if $v ~~ Whatever;
-            my $o = $other[$i];
+            my $o = $other.parts[$i];
             return True unless defined $o;
             next if $o ~~ Whatever;
             return $.plus if $o after  $v;

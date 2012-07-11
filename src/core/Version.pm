@@ -2,7 +2,15 @@ class Version {
     has $.parts;
     has Bool $.plus = False;
 
-    method new(*@parts, :$plus) {
+    multi method new(Str:D $s) {
+        my @parts = $s.comb(/:r '*' || \d+ || <.alpha>+/);
+        for @parts {
+            $_ .= Numeric if .Numeric.defined ;
+            $_ = * if $_ eq '*';
+        }
+        self.bless(*, :parts(@parts), :plus($s.substr(*-1) eq '+'));
+    };
+    multi method new(*@parts, :$plus) {
         self.bless(*, :parts(@parts.eager), :plus(?$plus));
     }
 

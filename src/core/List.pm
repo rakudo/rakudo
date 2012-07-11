@@ -342,7 +342,9 @@ my class List does Positional {
         (0..self.end).list;
     }
     method values(List:D:) {
-        self
+        my Mu $rpa := nqp::clone(nqp::p6listitems(self));
+        nqp::push($rpa, $!nextiter) if $!nextiter.defined;
+        nqp::p6list($rpa, List, self.flattens);
     }
     method pairs(List:D:) {
         self.keys.map: {; $_ => self.at_pos($_) };

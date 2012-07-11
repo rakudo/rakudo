@@ -1,5 +1,5 @@
 class Version {
-    has $.parts;
+    has @.parts;
     has Bool $.plus = False;
 
     multi method new(Str:D $s) {
@@ -12,15 +12,15 @@ class Version {
     };
 
     multi method Str(Version:D:) {
-        'v' ~ $!parts.map({ $_ ~~ Whatever ?? '*' !! $_}).join('.') ~ ($!plus ?? '+' !! '');
+        'v' ~ @!parts.map({ $_ ~~ Whatever ?? '*' !! $_}).join('.') ~ ($!plus ?? '+' !! '');
     }
     multi method gist(Version:D:) { self.Str }
     multi method perl(Version:D:) {
-        self.^name ~ '.new(' ~ $!parts.perl ~ ', :plus(' ~ $!plus.perl ~ '))';
+        self.^name ~ '.new(' ~ @!parts.perl ~ ', :plus(' ~ $!plus.perl ~ '))';
 
     }
     multi method ACCEPTS(Version:D: Version:D $other) {
-        for $!parts.kv -> $i, $v {
+        for @!parts.kv -> $i, $v {
             next if $v ~~ Whatever;
             my $o = $other.parts[$i];
             return True unless defined $o;
@@ -37,7 +37,24 @@ class Version {
     }
 }
 
+
 multi sub infix:<eqv>(Version:D $a, Version:D $b) {
     $a.WHAT === $b.WHAT && $a.Str eq $b.Str
+}
+
+
+multi sub infix:<cmp>(Version:D $a, Version:D $b) {
+    proto vnumcmp(|$) { * }
+    multi vnumcmp(Str, Int) { Order::Increase }
+    multi vnumcmp(Int, Str) { Order::Decrease }
+    multi vnumcmp($av, $bv) { $av cmp $bv }
+
+    my @av = ($a.parts,).flat;
+    my @bv = ($b.parts,).flat;
+    while @av || @bv {
+       my $cmp = vnumcmp(@av.shift // 0, @bv.shift // 0);
+       return $cmp if $cmp != Order::Same;
+    }
+    $a.plus cmp $b.plus;
 }
 

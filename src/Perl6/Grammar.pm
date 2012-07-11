@@ -391,14 +391,13 @@ grammar Perl6::Grammar is HLL::Grammar {
     token install_doc_phaser { <?> }
 
     token vnum {
-        <decint> | '*'
+        \d+ | '*'
     }
 
     token version {
-        'v' <?before \d+> {} <vnum>+ % '.' ('+')?
+        'v' <?before \d> {} $<vstr>=[<vnum>+ % '.' '+'?]
         <!before '-'|\'> # cheat because of LTM fail
     }
-
 
     ## Top-level rules
 

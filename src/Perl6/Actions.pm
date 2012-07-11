@@ -4242,20 +4242,9 @@ class Perl6::Actions is HLL::Actions {
     method value:sym<version>($/) {
         make $<version>.ast;
     }
-    method vnum($/) {
-        if $<decint> {
-            make $<decint>.ast;
-        }
-        else {
-            make $*W.find_symbol(['Whatever']).new;
-        }
-    }
+
     method version($/) {
-        my @vnums;
-        for $<vnum> -> $v {
-            nqp::push(@vnums, $v.ast);
-        }
-        my $v := $*W.find_symbol(['Version']).new(|@vnums, :plus(?$/[0]));
+        my $v := $*W.find_symbol(['Version']).new(~$<vstr>);
         $*W.add_object($v);
         make $*W.get_ref($v);
     }

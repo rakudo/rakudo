@@ -10,9 +10,6 @@ class Version {
         }
         self.bless(*, :parts(@parts), :plus($s.substr(*-1) eq '+'));
     };
-    multi method new(*@parts, :$plus) {
-        self.bless(*, :parts(@parts.eager), :plus(?$plus));
-    }
 
     multi method Str(Version:D:) {
         'v' ~ $!parts.map({ $_ ~~ Whatever ?? '*' !! $_}).join('.') ~ ($!plus ?? '+' !! '');

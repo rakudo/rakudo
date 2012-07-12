@@ -3085,7 +3085,7 @@ class QPerl6::Actions is HLL::Actions {
 
     ## temporary Bool::True/False generation
     method term:sym<boolean>($/) {
-        make QAST::Op.new(:op<p6bool>, $<value> eq 'True');
+        make QAST::Op.new( :op<p6bool>, QAST::IVal.new( :value($<value> eq 'True') ) );
     }
     
     method term:sym<::?IDENT>($/) {
@@ -3093,7 +3093,7 @@ class QPerl6::Actions is HLL::Actions {
     }
 
     method term:sym<self>($/) {
-        make QAST::Var.new( :name('self'), :returns($*PACKAGE), :node($/) );
+        make QAST::Var.new( :name('self'), :scope('lexical'), :returns($*PACKAGE), :node($/) );
     }
 
     method term:sym<now>($/) {

@@ -50,8 +50,8 @@ multi sub infix:<cmp>(Version:D $a, Version:D $b) {
     multi vnumcmp(Int, Str) { Order::Decrease }
     multi vnumcmp($av, $bv) { $av cmp $bv }
 
-    my @av = ($a.parts,).flat;
-    my @bv = ($b.parts,).flat;
+    my @av = $a.parts.values;
+    my @bv = $b.parts.values;
     while @av || @bv {
        my $cmp = vnumcmp(@av.shift // 0, @bv.shift // 0);
        return $cmp if $cmp != Order::Same;

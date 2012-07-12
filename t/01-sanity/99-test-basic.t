@@ -104,14 +104,32 @@ nok $dies_ok2, 'dies_ok returns False if code did not die';
 dies_ok { die }, 'dies_ok';
 dies_ok { die };
 
-lives_ok { 1 }, 'lives_ok';
+my $lives_ok1 = lives_ok { 1 }, 'lives_ok';
+ok $lives_ok1, 'lives_ok returns True';
 lives_ok { 1 };
 
-eval_dies_ok 'die', 'eval_dies_ok';
+# NOT_TODO
+todo( 'failing lives_ok returns False' );
+my $lives_ok2 = lives_ok { die }, 'lives_ok { die }';
+nok $lives_ok2, 'failing lives_ok returns False';
+
+my $ed_ok1 = eval_dies_ok 'die', 'eval_dies_ok';
+ok $ed_ok1, 'eavl_dies_ok returns True';
 eval_dies_ok 'die';
 
-eval_lives_ok '1', 'eval_lives_ok';
+# NOT_TODO
+todo( 'eval_dies_ok 1 returns False' );
+my $ed_ok2 = eval_dies_ok '1', 'eval_dies_ok 1 fails';
+nok $ed_ok2, 'eval_dies_ok 1 returns False';
+
+my $el_ok1 = eval_lives_ok '1', 'eval_lives_ok';
+ok $el_ok1, 'eval_lives_ok 1 returns True';
 eval_lives_ok '1';
+
+# NOT_TODO
+todo( 'failing eval_lives_ok returns False' );
+my $el_ok2 = eval_lives_ok 'die', 'lives_ok { die }';
+nok $el_ok2, 'failing eval_lives_ok returns False';
 
 {
     my $deeply = {
@@ -125,9 +143,15 @@ eval_lives_ok '1';
         bool  => Bool::True,
         array => [3, 4],
     };
-    is_deeply $deeply, $deeply, 'is_deeply';
+    my $is_deeply = is_deeply $deeply, $deeply, 'is_deeply';
+    ok $is_deeply, 'is_deeply returns True';
     is_deeply $deeply, $deeply;
 }
+
+# NOT_TODO
+todo( 'failing is_deeply returns False' );
+my $is_deeply = is_deeply {a => 1}, {}, 'is_deeply with exta key fails';
+nok $is_deeply, 'failing is_deeply returns False';
 
 done;
 

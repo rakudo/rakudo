@@ -3801,8 +3801,8 @@ class QPerl6::Actions is HLL::Actions {
                         $*PACKAGE, $target.name
                     );
                 }
-                $source := PAST::Op.new(
-                    :pirop('perl6_assert_bind_ok 0PP'),
+                $source := QAST::Op.new(
+                    :op('p6bindassert'),
                     $source, QAST::WVal.new( :value($meta_attr.type) ))
             }
             else {
@@ -3810,8 +3810,8 @@ class QPerl6::Actions is HLL::Actions {
                 my $was_lexical := 0;
                 try {
                     my $type := $*W.find_lexical_container_type($target.name);
-                    $source := PAST::Op.new(
-                        :pirop('perl6_assert_bind_ok 0PP'),
+                    $source := QAST::Op.new(
+                        :op('p6bindassert'),
                         $source, QAST::WVal.new( :value($type) ));
                     $was_lexical := 1;
                 }

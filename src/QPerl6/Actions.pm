@@ -936,27 +936,42 @@ class QPerl6::Actions is HLL::Actions {
     method statement_prefix:sym<try>($/) {
         my $block := $<blorst>.ast;
         my $past;
-        if has_block_handler($block<past_block>, 'CONTROL', :except(1)) {
+        if $block<handlers> && $block<handlers><CATCH> {
             # we already have a CATCH block, nothing to do here
             $past := QAST::Op.new( :op('call'), $block );
         } else {
             $block := QAST::Op.new(:op<call>, $block); # XXX should be immediate
-            $past := PAST::Op.new( :pasttype('try'), :handle_types_except('CONTROL'), $block );
+            $past := QAST::Op.new(
+                :op('handle'),
+                
+                # Success path puts Any into $! and evaluates to the block.
+                QAST::Stmt.new(
+                    :resultchild(0),
+                    $block,
+                    QAST::Op.new(
+                        :op('p6store'),
+                        QAST::Var.new( :name<$!>, :scope<lexical> ),
+                        QAST::Var.new( :name<Any>, :scope<lexical> )
+                    )
+                ),
 
-            # On failure, capture the exception object into $!.
-            $past.push(
-                QAST::Op.new(
-                    :op('p6store'),
-                    QAST::Var.new(:name<$!>, :scope<lexical>),
-                    QAST::Op.new(:name<&EXCEPTION>, :op<call>,
-                        PAST::Op.new(:inline("    .get_results (%r)\n    \$P0 = null\n    perl6_invoke_catchhandler \$P0, %r")))));
-
-            # Otherwise, put Mu into $!.
-            $past.push(
-                QAST::Op.new(
-                    :op('p6store'),
-                    QAST::Var.new( :name<$!>, :scope<lexical> ),
-                    QAST::Var.new( :name<Mu>, :scope<lexical> )));
+                # On failure, capture the exception object into $!.
+                'CATCH', QAST::Stmts.new(
+                    QAST::Op.new(
+                        :op('p6store'),
+                        QAST::Var.new(:name<$!>, :scope<lexical>),
+                        QAST::Op.new(
+                            :name<&EXCEPTION>, :op<call>,
+                            QAST::Op.new( :op('exception') )
+                        ),
+                    ),
+                    QAST::VM.new(
+                        pirop => 'perl6_invoke_catchhandler 1PP',
+                        QAST::Op.new( :op('null') ),
+                        QAST::Op.new( :op('exception') )
+                    )
+                )
+            );
         }
         make $past;
     }
@@ -2054,7 +2069,7 @@ class QPerl6::Actions is HLL::Actions {
                 is_method_named_slurpy => 1
             ));
             $past[0].unshift(QAST::Var.new( :name('%_'), :scope('lexical'), :decl('var') ));
-            $past.symbol('%_', :scope('lexical'));
+            $past.symbol('%_', :scope('lexical'), :lazyinit(1));
         }
         set_default_parameter_type(@params, 'Any');
         my $signature := create_signature_object($/, @params, $past);
@@ -4801,7 +4816,7 @@ class QPerl6::Actions is HLL::Actions {
 
     sub add_implicit_var($block, $name) {
         $block[0].push(QAST::Var.new( :name($name), :scope('lexical'), :decl('var') ));
-        $block.symbol($name, :scope('lexical') );
+        $block.symbol($name, :scope('lexical'), :lazyinit(1) );
     }
 
     sub when_handler_helper($when_block) {

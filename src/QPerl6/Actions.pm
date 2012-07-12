@@ -1059,8 +1059,8 @@ class QPerl6::Actions is HLL::Actions {
         my $key := $*W.add_string_constant($key_str);
         $key.named('key');
         $value.named('value');
-        PAST::Op.new(
-            :pasttype('callmethod'), :name('new'), :returns('Pair'),
+        QAST::Op.new(
+            :op('callmethod'), :name('new'), :returns($*W.find_symbol(['Pair'])),
             QAST::Var.new( :name('Pair'), :scope('lexical') ),
             $key, $value
         )
@@ -2323,6 +2323,7 @@ class QPerl6::Actions is HLL::Actions {
         }
 
         # Get list of either values or pairs; fail if we can't.
+        my $Pair := $*W.find_symbol(['Pair']);
         my @values;
         my $term_ast := $<term>.ast;
         if $term_ast.isa(QAST::Stmts) && +@($term_ast) == 1 {
@@ -2330,7 +2331,7 @@ class QPerl6::Actions is HLL::Actions {
         }
         if $term_ast.isa(QAST::Op) && $term_ast.name eq '&infix:<,>' {
             for @($term_ast) {
-                if $_.returns() eq 'Pair' && $_[1]<has_compile_time_value> {
+                if nqp::istype($_.returns(), $Pair) && $_[1]<has_compile_time_value> {
                     @values.push($_);
                 }
                 elsif $_<has_compile_time_value> {
@@ -2344,7 +2345,7 @@ class QPerl6::Actions is HLL::Actions {
         elsif $term_ast<has_compile_time_value> {
             @values.push($term_ast);
         }
-        elsif $term_ast.returns() eq 'Pair' && $term_ast[1]<has_compile_time_value> {
+        elsif nqp::istype($term_ast.returns, $Pair) && $term_ast[1]<has_compile_time_value> {
             @values.push($term_ast);
         }
         else {
@@ -2360,7 +2361,7 @@ class QPerl6::Actions is HLL::Actions {
             # If it's a pair, take that as the value; also find
             # key.
             my $cur_key;
-            if $_.returns() eq 'Pair' {
+            if nqp::istype($_.returns(), $Pair) {
                 $cur_key   := $_[1]<compile_time_value>;
                 if $_[2]<has_compile_time_value> {
                     $cur_value := $_[2]<compile_time_value>;
@@ -3414,6 +3415,7 @@ class QPerl6::Actions is HLL::Actions {
     }
 
     method arglist($/) {
+        my $Pair := $*W.find_symbol(['Pair']);
         my $past := QAST::Op.new( :op('call'), :node($/) );        
         if $<EXPR> {
             # Make first pass over arguments, finding any duplicate named
@@ -3422,7 +3424,7 @@ class QPerl6::Actions is HLL::Actions {
             my @args := $expr.name eq '&infix:<,>' ?? $expr.list !! [$expr];
             my %named_counts;
             for @args {
-                if $_ ~~ PAST::Op && $_.returns eq 'Pair' {
+                if $_.isa(QAST::Op) && nqp::istype($_.returns, $Pair) {
                     my $name := compile_time_value_str($_[1], 'LHS of pair', $/);
                     %named_counts{$name} := +%named_counts{$name} + 1;
                     $_[2].named($name);
@@ -3431,7 +3433,7 @@ class QPerl6::Actions is HLL::Actions {
 
             # Make result.
             for @args {
-                if $_ ~~ PAST::Op && $_.returns eq 'Pair' {
+                if $_.isa(QAST::Op) && nqp::istype($_.returns, $Pair) {
                     my $name := $_[2].named();
                     if %named_counts{$name} == 1 {
                         $past.push($_[2]);
@@ -3498,6 +3500,7 @@ class QPerl6::Actions is HLL::Actions {
 
         # If it is completely empty or consists of a single list, the first
         # element of which is either a hash or a pair, it's a hash constructor.
+        my $Pair := $*W.find_symbol(['Pair']);
         my $is_hash := 0;
         my $stmts := +$<pblock><blockoid><statementlist><statement>;
         if $stmts == 0 {
@@ -3510,8 +3513,8 @@ class QPerl6::Actions is HLL::Actions {
                 # block contains a list, so test the first element
                 $elem := $elem[0];
             }
-            if $elem ~~ PAST::Op
-                    && ($elem.returns eq 'Pair' || $elem.name eq '&infix:<=>>') {
+            if $elem ~~ QAST::Op
+                    && (nqp::istype($elem.returns, $Pair) || $elem.name eq '&infix:<=>>') {
                 # first item is a pair
                 $is_hash := 1;
             }

@@ -1126,8 +1126,8 @@ class QPerl6::Actions is HLL::Actions {
         my $past := QAST::Var.new( :name(@name[+@name - 1]), :node($/));
         if $twigil eq '*' {
             $past := QAST::Op.new(
-                $*W.add_string_constant($past.name()),
-                :op('call'), :name('&DYNAMIC'), :lvalue(0) );
+                :op('call'), :name('&DYNAMIC'),
+                $*W.add_string_constant($past.name()));
         }
         elsif $twigil eq '!' {
             # In a declaration, don't produce anything here.

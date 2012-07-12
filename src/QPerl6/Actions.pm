@@ -1214,10 +1214,7 @@ class QPerl6::Actions is HLL::Actions {
             if $sigil ne '&' && !$*IN_DECL && ($*QSIGIL eq '' || $*QSIGIL eq '$') && !$*W.is_lexical($past.name) {
                 $*W.throw($/, ['X', 'Undeclared'], symbol => $past.name());
             }
-            elsif $sigil eq '&' {
-                $past.viviself(QAST::Var.new(:name('Nil'), :scope('lexical')));
-            }
-
+            
             # Expect variable to have been declared somewhere.
             # Locate descriptor and thus type.
             $past.scope('lexical');
@@ -1225,6 +1222,14 @@ class QPerl6::Actions is HLL::Actions {
                 my $type := $*W.find_lexical_container_type($past.name);
                 $past.returns($type);
                 $past := box_native_if_needed($past, $type);
+            }
+            
+            # If it's a late-bound sub lookup, we may not find it, so be sure
+            # to handle the case where the lookup comes back null.
+            if $sigil eq '&' {
+                $past := QAST::Op.new(
+                    :op('vivify'), $past,
+                    QAST::Var.new(:name('Nil'), :scope('lexical')));
             }
         }
         $past

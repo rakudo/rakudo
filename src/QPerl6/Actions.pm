@@ -5008,7 +5008,7 @@ class QPerl6::Actions is HLL::Actions {
     sub capture_or_parcel($args, $name) {
         if $name eq 'return' {
             # Need to demote pairs again.
-            my $parcel := QAST::Op.new();
+            my $parcel := QAST::Op.new( :op('call') );
             for @($args) {
                 $parcel.push($_<before_promotion> ?? $_<before_promotion> !! $_);
             }

@@ -3448,7 +3448,7 @@ class QPerl6::Actions is HLL::Actions {
                     $past.push(QAST::Op.new(
                         :op('callmethod'), :name('FLATTENABLE_LIST'),
                         QAST::Op.new(
-                            :pasttype('bind'),
+                            :op('bind'),
                             QAST::Var.new( :name($reg), :scope('local'), :decl('var') ),
                             $_[0]),
                         :flat(1) ));
@@ -5057,8 +5057,8 @@ class QPerl6::Actions is HLL::Actions {
         return $past;
         my $Whatever := $*W.find_symbol(['Whatever']);
         my $WhateverCode := $*W.find_symbol(['Whatever']);
-        my $curried := $past.isa(PAST::Op)
-                       && ($past<pasttype> ne 'call' || nqp::index($past.name, '&infix:') == 0)
+        my $curried := $past.isa(QAST::Op)
+                       && ($past.op ne 'call' || nqp::index($past.name, '&infix:') == 0)
                        && (%curried{$past.name // $past.pirop} // 2);
         my $i := 0;
         my $whatevers := 0;

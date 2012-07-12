@@ -101,33 +101,33 @@ todo( 'failing dies_ok returns False' );
 my $dies_ok2 = dies_ok { 1 }, 'dies_ok {1}';
 nok $dies_ok2, 'dies_ok returns False if code did not die';
 
-# dies_ok { die }, 'dies_ok';
-# dies_ok { die };
-#
-# lives_ok { 1 }, 'lives_ok';
-# lives_ok { 1 };
-#
-# eval_dies_ok 'die', 'eval_dies_ok';
-# eval_dies_ok 'die';
-#
-# eval_lives_ok '1', 'eval_lives_ok';
-# eval_lives_ok '1';
-#
-# {
-#     my $deeply = {
-#         list  => (1, 2),
-#         hash  => { a => 1, b => 2 },
-#         str   => 'hello',
-#         num   => 1.2,
-#         int   => 33,
-#         pair  => :a(3),
-#         undef => undef,
-#         bool  => Bool::True,
-#         array => [3, 4],
-#     };
-#     is_deeply $deeply, $deeply, 'is_deeply';
-#     is_deeply $deeply, $deeply;
-# }
+dies_ok { die }, 'dies_ok';
+dies_ok { die };
+
+lives_ok { 1 }, 'lives_ok';
+lives_ok { 1 };
+
+eval_dies_ok 'die', 'eval_dies_ok';
+eval_dies_ok 'die';
+
+eval_lives_ok '1', 'eval_lives_ok';
+eval_lives_ok '1';
+
+{
+    my $deeply = {
+        list  => (1, 2),
+        hash  => { a => 1, b => 2 },
+        str   => 'hello',
+        num   => 1.2,
+        int   => 33,
+        pair  => :a(3),
+#        undef => undef,
+        bool  => Bool::True,
+        array => [3, 4],
+    };
+    is_deeply $deeply, $deeply, 'is_deeply';
+    is_deeply $deeply, $deeply;
+}
 
 done;
 

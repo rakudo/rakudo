@@ -1643,8 +1643,8 @@ class QPerl6::Actions is HLL::Actions {
             $block := $<blockoid>.ast;
             $block.blocktype('declaration');
             if is_clearly_returnless($block) {
-                if pir::repr_get_primitive_type_spec__IP($block[1].type) {
-                    $block[1] := box_native_if_needed($block[1], $block[1].type);
+                if pir::repr_get_primitive_type_spec__IP($block[1].returns) {
+                    $block[1] := box_native_if_needed($block[1], $block[1].returns);
                 }
                 else {
                     $block[1] := QAST::Op.new(
@@ -3856,7 +3856,7 @@ class QPerl6::Actions is HLL::Actions {
             # We grab the thing we want out of the QAST::Want node.
             $past := box_native_if_needed(
                 QAST::Op.new(:op('bind'), $lhs_ast[2], $rhs_ast),
-                $lhs_ast.type);
+                $lhs_ast.returns);
         }
         elsif $var_sigil eq '@' || $var_sigil eq '%' {
             # While the scalar container store op would end up calling .STORE,

@@ -12,11 +12,12 @@ class Version {
     };
 
     multi method Str(Version:D:) {
-        'v' ~ @!parts.map({ $_ ~~ Whatever ?? '*' !! $_}).join('.') ~ ($!plus ?? '+' !! '');
+        @!parts.map({ $_ ~~ Whatever ?? '*' !! $_}).join('.') 
+          ~ ($!plus ?? '+' !! '');
     }
-    multi method gist(Version:D:) { self.Str }
+    multi method gist(Version:D:) { 'v' ~ self.Str }
     multi method perl(Version:D:) {
-        self.^name ~ '.new(' ~ @!parts.perl ~ ', :plus(' ~ $!plus.perl ~ '))';
+        self.^name ~ ".new('" ~ self.Str ~ "')";
 
     }
     multi method ACCEPTS(Version:D: Version:D $other) {

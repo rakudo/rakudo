@@ -1040,11 +1040,11 @@ class QPerl6::Actions is HLL::Actions {
                 }
                 make make_pair($*key, $val_ast);
             }
-            elsif $*value == 0 {
-                make make_pair($*key, QAST::Op.new( :op('p6bool'), 0 ));
-            }
             else {
-                make make_pair($*key, QAST::Op.new( :op('p6bool'), 1 ));
+                make make_pair($*key, QAST::Op.new(
+                    :op('p6bool'),
+                    QAST::IVal.new( :value($*value) ) 
+                ));
             }
         }
         elsif $<fakesignature> {

@@ -1136,7 +1136,7 @@ class QPerl6::Actions is HLL::Actions {
                     $*W.throw($/, ['X', 'Syntax', 'NoSelf'], variable => $past.name());
                 }
                 my $attr := get_attribute_meta_object($/, $past.name());
-                $past.scope('attribute_6model');
+                $past.scope('attribute');
                 $past.returns($attr.type);
                 $past.unshift(instantiated_type(['$?CLASS'], $/));
                 $past.unshift(QAST::Var.new( :name('self'), :scope('lexical') ));
@@ -1198,7 +1198,7 @@ class QPerl6::Actions is HLL::Actions {
         }
         elsif $*IN_DECL ne 'variable' && (my $attr_alias := $*W.is_attr_alias($past.name)) {
             $past.name($attr_alias);
-            $past.scope('attribute_6model');
+            $past.scope('attribute');
             $past.unshift(instantiated_type(['$?CLASS'], $/));
             $past.unshift(QAST::Var.new( :name('self'), :scope('lexical') ));
         }
@@ -3793,7 +3793,7 @@ class QPerl6::Actions is HLL::Actions {
             }
 
             # Now go by scope.
-            if $target.scope eq 'attribute_6model' {
+            if $target.scope eq 'attribute' {
                 # Source needs type check.
                 my $meta_attr;
                 try {

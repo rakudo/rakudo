@@ -3372,8 +3372,9 @@ class QPerl6::Actions is HLL::Actions {
     }
 
     method term:sym<*>($/) {
-        make PAST::Op.new(
-            :pasttype('callmethod'), :name('new'), :node($/), :lvalue(1), :returns('Whatever'),
+        my $whatever := $*W.find_symbol(['Whatever']);
+        make QAST::Op.new(
+            :op('callmethod'), :name('new'), :node($/), :returns($whatever),
             QAST::Var.new( :name('Whatever'), :scope('lexical') )
         )
     }
@@ -3923,7 +3924,7 @@ class QPerl6::Actions is HLL::Actions {
             :state(1));
             
         # Twiddle to make special-case RHS * work.
-        if $rhs.returns eq 'Whatever' {
+        if nqp::istype($rhs.returns, $*W.find_symbol(['Whatever'])) {
             $rhs := $false;
         }
         
@@ -5046,14 +5047,16 @@ class QPerl6::Actions is HLL::Actions {
     sub whatever_curry($/, $past, $upto_arity) {
         # XXX needs some re-work
         return $past;
+        my $Whatever := $*W.find_symbol(['Whatever']);
+        my $WhateverCode := $*W.find_symbol(['Whatever']);
         my $curried := $past.isa(PAST::Op)
                        && ($past<pasttype> ne 'call' || nqp::index($past.name, '&infix:') == 0)
                        && (%curried{$past.name // $past.pirop} // 2);
         my $i := 0;
         my $whatevers := 0;
         while $curried && $i < $upto_arity {
-            $whatevers++ if $past[$i].returns eq 'WhateverCode'
-                            || $curried > 1 && $past[$i].returns eq 'Whatever';
+            $whatevers++ if nqp::istype($past[$i].returns, $WhateverCode)
+                            || $curried > 1 && nqp::istype($past[$i].returns, $Whatever);
             $i++;
         }
         if $whatevers {
@@ -5079,7 +5082,7 @@ class QPerl6::Actions is HLL::Actions {
                     }
                     $past[$i] := $new;
                 }
-                elsif $curried > 1 && $old.returns eq 'Whatever' {
+                elsif $curried > 1 && nqp::istype($old.returns, $Whatever) {
                     my $pname := '$x' ~ (+@params);
                     @params.push(hash(
                         :variable_name($pname),

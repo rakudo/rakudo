@@ -63,47 +63,50 @@ multi sub pass($desc = '') is export {
 
 multi sub ok(Mu $cond, $desc = '') is export {
     $time_after = nqp::p6box_n(nqp::time_n);
-    proclaim(?$cond, $desc);
+    my $ok = proclaim(?$cond, $desc);
     $time_before = nqp::p6box_n(nqp::time_n);
+    return $ok;
 }
 
 multi sub nok(Mu $cond, $desc = '') is export {
     $time_after = nqp::p6box_n(nqp::time_n);
-    proclaim(!$cond, $desc);
+    my $ok = proclaim(!$cond, $desc);
     $time_before = nqp::p6box_n(nqp::time_n);
+    return $ok;
 }
 
 multi sub is(Mu $got, Mu $expected, $desc = '') is export {
     $time_after = nqp::p6box_n(nqp::time_n);
     $got.defined; # Hack to deal with Failures
     my $test = $got eq $expected;
-    proclaim(?$test, $desc);
+    my $ok = proclaim(?$test, $desc);
     if !$test {
         diag "     got: '$got'";
         diag "expected: '$expected'";
     }
-    $test;
     $time_before = nqp::p6box_n(nqp::time_n);
+    return $ok;
 }
 
 multi sub isnt(Mu $got, Mu $expected, $desc = '') is export {
     $time_after = nqp::p6box_n(nqp::time_n);
     my $test = !($got eq $expected);
-    proclaim($test, $desc);
+    my $ok = proclaim($test, $desc);
     $time_before = nqp::p6box_n(nqp::time_n);
+    return $ok;
 }
 
 multi sub is_approx(Mu $got, Mu $expected, $desc = '') is export {
     $time_after = nqp::p6box_n(nqp::time_n);
     my $tol = $expected.abs < 1e-6 ?? 1e-5 !! $expected.abs * 1e-6;
     my $test = ($got - $expected).abs <= $tol;
-    proclaim(?$test, $desc);
+    my $ok = proclaim(?$test, $desc);
     unless $test {
         diag("got:      $got");
         diag("expected: $expected");
     }
-    ?$test;
     $time_before = nqp::p6box_n(nqp::time_n);
+    return $ok;
 }
 
 multi sub todo($reason, $count = 1) is export {
@@ -140,15 +143,17 @@ sub diag($message) is export {
 
 multi sub flunk($reason) is export {
     $time_after = nqp::p6box_n(nqp::time_n);
-    proclaim(0, "flunk $reason");
+    my $ok = proclaim(0, "flunk $reason");
     $time_before = nqp::p6box_n(nqp::time_n);
+    return $ok;
 }
 
 multi sub isa_ok(Mu $var, Mu $type, $msg = ("The object is-a '" ~ $type.perl ~ "'")) is export {
     $time_after = nqp::p6box_n(nqp::time_n);
-    proclaim($var.isa($type), $msg)
+    my $ok = proclaim($var.isa($type), $msg)
         or diag('Actual type: ' ~ $var.^name);
     $time_before = nqp::p6box_n(nqp::time_n);
+    return $ok;
 }
 
 multi sub dies_ok(Callable $closure, $reason = '') is export {
@@ -163,8 +168,9 @@ multi sub dies_ok(Callable $closure, $reason = '') is export {
         $bad_death = 1;
         diag("Wrong way to die: '$!'");
     }
-    proclaim( $death && !$bad_death, $reason );
+    my $ok = proclaim( $death && !$bad_death, $reason );
     $time_before = nqp::p6box_n(nqp::time_n);
+    return $ok;
 }
 
 multi sub lives_ok(Callable $closure, $reason = '') is export {

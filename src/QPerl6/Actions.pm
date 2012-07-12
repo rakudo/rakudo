@@ -3767,7 +3767,7 @@ class QPerl6::Actions is HLL::Actions {
 
             # Evaluate RHS and call ACCEPTS on it, passing in $_. Bind the
             # return value to a result variable.
-            QAST::Op.new( :op('bind_6model'),
+            QAST::Op.new( :op('bind'),
                 QAST::Var.new( :name($result_var), :scope('lexical'), :decl('var') ),
                 $sm_call
             ),

@@ -4,21 +4,61 @@ use Test;
 
 pass( 'pass($desc)' );
 
-ok 1, 'ok with description';
-ok 1;
+my $ok1 = ok 1, 'ok with description';
+ok $ok1, 'ok returns True';
+my $ok2 = ok 1;
+ok $ok2, 'ok returns True';
 
-nok 0, 'nok with description';
-nok 0;
+# NOT_TODO
+# next is TODO only so our test script won't fail
+# we are only testing the return value of &ok
+todo( 'testing failure' );
+my $ok3 = ok False, 'calling ok False';
+nok $ok3, 'failure returns False';
 
-is 1, 1, 'is with description';
+
+my $nok1 = nok 0, 'nok with description';
+ok $nok1, 'nok 0 returns True';
+my $nok2 = nok 0;
+ok $nok2, 'nok 0 returns True';
+
+# NOT_TODO
+todo( 'tesing nok True' );
+my $nok3 = nok 1, 'nok 1 with description';
+nok $nok3, 'nok 1 returns False';
+
+
+my $is1 = is 1, 1, 'is with description';
+ok $is1, 'is returns True';
 is 1, 1;
 
-isnt 1, 0, 'isnt with description';
+# NOT_TODO
+todo( 'failing is' );
+my $is3 = is 1, 0, 'is 1, 0; with description';
+nok $is3, 'is 1, 0;  returns False';
+
+
+my $isnt1 = isnt 1, 0, 'isnt with description';
+ok $isnt1, 'isnt 1, 0; returns True';
 isnt 1, 0;
 
-is_approx 1, 1, 'is_approx with description';
-is_approx 1, 1;
-# is_approx 1, 1.000001, 'is_approx with small difference';
+# NOT_TODO
+todo( 'testing isnt 1,1' );
+my $isnt3 = isnt 1, 1, 'isnt 1,1, with description';
+nok $isnt3, 'isnt 1, 1; returns False';
+
+
+my $approx1 = is_approx 1, 1, 'is_approx with description';
+ok $approx1, 'is_approx 1,1, returns True';
+my $approx2 = is_approx 1, 1;
+my $approx3 = is_approx 1, 1.000001, 'is_approx with small difference';
+ok $approx3, 'is_approx 1,1.000001, returns True';
+
+# NOT_TODO
+todo( 'failing is_approx 1,2;');
+my $approx4 = is_approx 1, 2, 'is_approx with small difference';
+nok $approx4, 'is_approx 1, 2; fails and returns False';
+
 
 todo( 'testing todo twice', 2 );
 ok 0, 'this should fail, to test todo()';
@@ -42,12 +82,24 @@ flunk( 'flunk' );
 
 {
     my $x = 3;
-    isa_ok( $x, Int, 'isa_ok with message' );
+    my $isa1 = isa_ok( $x, Int, 'isa_ok with message' );
+    ok $isa1, 'isa_ok returns True';
     isa_ok( $x, Int );
+
+    # NOT_TODO
+    todo( 'failing isa_ok returns False' );
+    my $isa2 = isa_ok( 'abc', Int );
+    nok $isa2, 'Failing isa_ok returns False';
 }
 
-dies_ok { skip( 2, 'reason' ) },
+my $dies_ok1 = dies_ok { skip( 2, 'reason' ) },
         'skip() dies when given the arguments in the wrong order';
+ok $dies_ok1, 'dies_ok returns True';
+
+# NOT_TODO
+todo( 'failing dies_ok returns False' );
+my $dies_ok2 = dies_ok { 1 }, 'dies_ok {1}';
+nok $dies_ok2, 'dies_ok returns False if code did not die';
 
 # dies_ok { die }, 'dies_ok';
 # dies_ok { die };

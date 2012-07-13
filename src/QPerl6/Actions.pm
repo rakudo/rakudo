@@ -2432,7 +2432,7 @@ class QPerl6::Actions is HLL::Actions {
         # If we have a refinement, make sure it's thunked if needed. If none,
         # just always true.
         my $refinement := make_where_block($<EXPR> ?? $<EXPR>[0].ast !!
-            QAST::Op.new( :op('p6bool'), 1 ));
+            QAST::Op.new( :op('p6bool'), QAST::IVal.new( :value(1) ) ));
 
         # Create the meta-object.
         my $longname := $<longname> ?? $*W.disect_longname($<longname>[0]) !! 0;

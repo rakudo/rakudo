@@ -4149,7 +4149,9 @@ class QPerl6::Actions is HLL::Actions {
             my $past := $<OPER>.ast || QAST::Op.new( :name('&postfix:<' ~ $<OPER>.Str ~ '>'),
                                                      :op<call> );
             if $past.isa(QAST::Op) && $past.op() eq 'callmethod' {
-                $past.unshift($past.name());
+                my $name := $past.name;
+                $past.unshift($name ~~ QAST::Node ?? $name !!
+                    QAST::SVal.new( :value($past.name()) ));
                 $past.name('dispatch:<hyper>');
             }
             elsif $past.isa(QAST::Op) && $past.op() eq 'call' {

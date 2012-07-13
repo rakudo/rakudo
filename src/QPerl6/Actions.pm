@@ -5307,14 +5307,17 @@ class QPerl6::RegexActions is QRegex::P6Regex::Actions {
     }
 
     method metachar:sym<rakvar>($/) {
-        make QAST::Regex.new( PAST::Node.new('INTERPOLATE', $<var>.ast,
-                                    QAST::IVal.new( :value(%*RX<i> ?? 1 !! 0) )),
+        make QAST::Regex.new( PAST::Node.new('INTERPOLATE',
+                                    PAST::QAST.new( $<var>.ast ),
+                                    PAST::QAST.new( QAST::IVal.new( :value(%*RX<i> ?? 1 !! 0) ) )),
                               :rxtype<subrule>, :subtype<method>, :node($/));
     }
 
     method assertion:sym<{ }>($/) {
         make QAST::Regex.new( 
-                 PAST::Node.new('INTERPOLATE', PAST::Op.new( :name<&MAKE_REGEX>, $<codeblock>.ast )),
+                 PAST::Node.new('INTERPOLATE',
+                    PAST::QAST.new( QAST::Op.new(
+                        :op<call>, :name<&MAKE_REGEX>, $<codeblock>.ast ) )),
                  :rxtype<subrule>, :subtype<method>, :node($/));
     }
 
@@ -5326,7 +5329,8 @@ class QPerl6::RegexActions is QRegex::P6Regex::Actions {
 
     method assertion:sym<var>($/) {
         make QAST::Regex.new( 
-                 PAST::Node.new('INTERPOLATE', PAST::Op.new( :name<&MAKE_REGEX>, $<var>.ast ) ),
+                 PAST::Node.new('INTERPOLATE',
+                    PAST::QAST.new( QAST::Op.new( :op<call>, :name<&MAKE_REGEX>, $<var>.ast ) ) ),
                  :rxtype<subrule>, :subtype<method>, :node($/));
     }
     
@@ -5353,12 +5357,13 @@ class QPerl6::RegexActions is QRegex::P6Regex::Actions {
             if +@parts {
                 my $gref := QAST::WVal.new( :value($*W.find_symbol(@parts)) );
                 $qast := QAST::Regex.new(:rxtype<subrule>, :subtype<capture>,
-                                         :node($/), PAST::Node.new('OTHERGRAMMAR', $gref, $name),
+                                         :node($/), PAST::Node.new('OTHERGRAMMAR', 
+                                            PAST::QAST.new($gref), $name),
                                          :name(~$<longname>) );
             } elsif $*W.regex_in_scope('&' ~ $name) {
                 $qast := QAST::Regex.new(:rxtype<subrule>, :subtype<capture>,
                                          :node($/), PAST::Node.new('INTERPOLATE',
-                                            QAST::Var.new( :name('&' ~ $name), :scope('lexical') ) ), 
+                                            PAST::QAST.new( QAST::Var.new( :name('&' ~ $name), :scope('lexical') ) ) ), 
                                          :name($name) );
             }
             else {
@@ -5412,6 +5417,15 @@ class QPerl6::RegexActions is QRegex::P6Regex::Actions {
     method arglist($/) {
         my $arglist := $<arglist>.ast;
         make $arglist;
+    }
+    
+    # XXX Overriden during QAST migration.
+    method metachar:sym<( )>($/) {
+        my $subpast := PAST::Node.new(PAST::QAST.new(
+            QRegex::P6Regex::Actions::qbuildsub($<nibbler>.ast, :anon(1), :addself(1))));
+        my $qast := QAST::Regex.new( $subpast, $<nibbler>.ast, :rxtype('subrule'),
+                                     :subtype('capture'), :node($/) );
+        make $qast;
     }
 }
 

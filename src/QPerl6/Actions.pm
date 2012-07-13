@@ -4399,7 +4399,7 @@ class QPerl6::Actions is HLL::Actions {
                     QAST::IVal.new(:value(0)),
                 );
             } else {
-                $*value := PAST::Val.new( :value($*value) );
+                $*value := QAST::IVal.new( :value($*value) );
             }
         }
         $*value.named(~$*key);

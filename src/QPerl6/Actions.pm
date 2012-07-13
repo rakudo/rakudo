@@ -1228,7 +1228,7 @@ class QPerl6::Actions is HLL::Actions {
             # to handle the case where the lookup comes back null.
             if $sigil eq '&' {
                 $past := QAST::Op.new(
-                    :op('vivify'), $past,
+                    :op('ifnull'), $past,
                     QAST::Var.new(:name('Nil'), :scope('lexical')));
             }
         }

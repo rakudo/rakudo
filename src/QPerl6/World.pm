@@ -947,8 +947,6 @@ class QPerl6::World is HLL::World {
         # HLL.
         my $wrapper := QAST::Block.new(QAST::Stmts.new(), $past);
         self.add_libs($wrapper);
-        $wrapper.hll('perl6');
-        $wrapper.namespace('');
         
         # Create outer lexical contexts with all symbols visible. Maybe 
         # we can be a bit smarter here some day. But for now we just make a
@@ -979,8 +977,14 @@ class QPerl6::World is HLL::World {
         
         # Compile it, set wrapper's static lexpad, then invoke the wrapper,
         # which fixes up the lexicals.
+        my $compunit := QAST::CompUnit.new(
+            :hll('perl6'),
+            :sc(self.sc()),
+            :compilation_mode(0),
+            $wrapper
+        );
         my $p6comp  := pir::compreg__Ps('perl6');
-        my $post    := $p6comp.post($wrapper);
+        my $post    := $p6comp.post($compunit);
         my $pir     := $p6comp.pir($post);
         my $precomp := $p6comp.evalpmc($pir);
         $precomp[0].get_lexinfo.set_static_lexpad($slp);

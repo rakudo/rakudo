@@ -5280,12 +5280,12 @@ class QPerl6::RegexActions is QRegex::P6Regex::Actions {
 
     method metachar:sym<:my>($/) {
         my $past := $<statement>.ast;
-        make QAST::Regex.new( $past, :rxtype('pastnode'), :subtype('declarative') );
+        make QAST::Regex.new( $past, :rxtype('qastnode'), :subtype('declarative') );
     }
 
     method metachar:sym<{ }>($/) {
         make QAST::Regex.new( $<codeblock>.ast,
-                              :rxtype<pastnode>, :node($/) );
+                              :rxtype<qastnode>, :node($/) );
     }
     
     method metachar:sym<qw>($/) {
@@ -5321,7 +5321,7 @@ class QPerl6::RegexActions is QRegex::P6Regex::Actions {
     method assertion:sym<?{ }>($/) {
         make QAST::Regex.new( $<codeblock>.ast,
                               :subtype<zerowidth>, :negate( $<zw> eq '!' ),
-                              :rxtype<pastnode>, :node($/) );
+                              :rxtype<qastnode>, :node($/) );
     }
 
     method assertion:sym<var>($/) {

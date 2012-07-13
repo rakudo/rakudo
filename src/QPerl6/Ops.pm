@@ -1,4 +1,6 @@
 my $ops := pir::compreg__Ps('QAST').operations;
+
+# Perl 6 opcode specific mappings.
 $ops.add_hll_pirop_mapping('perl6', 'p6box_i', 'perl6_box_int', 'Pi');
 $ops.add_hll_pirop_mapping('perl6', 'p6box_n', 'perl6_box_num', 'Pn');
 $ops.add_hll_pirop_mapping('perl6', 'p6box_s', 'perl6_box_str', 'Ps');
@@ -30,3 +32,53 @@ $ops.add_hll_pirop_mapping('perl6', 'p6decontrv', 'perl6_decontainerize_return_v
 $ops.add_hll_pirop_mapping('perl6', 'p6capturelex', 'perl6_capture_lex', '0P');
 $ops.add_hll_pirop_mapping('perl6', 'p6vmcodetoobj', 'perl6_code_object_from_parrot_sub', 'PP');
 $ops.add_hll_pirop_mapping('perl6', 'p6bindassert', 'perl6_assert_bind_ok', '0PP');
+
+# Boxing and unboxing configuration.
+QAST::Operations.add_hll_box('perl6', 'i', -> $qastcomp, $post {
+    my $reg := $*REGALLOC.fresh_p();
+    my $ops := $qastcomp.post_new('Ops');
+    $ops.push($post);
+    $ops.push_pirop('perl6_box_int', $reg, $post);
+    $ops.result($reg);
+    $ops
+});
+QAST::Operations.add_hll_box('perl6', 'n', -> $qastcomp, $post {
+    my $reg := $*REGALLOC.fresh_p();
+    my $ops := $qastcomp.post_new('Ops');
+    $ops.push($post);
+    $ops.push_pirop('perl6_box_num', $reg, $post);
+    $ops.result($reg);
+    $ops
+});
+QAST::Operations.add_hll_box('perl6', 's', -> $qastcomp, $post {
+    my $reg := $*REGALLOC.fresh_p();
+    my $ops := $qastcomp.post_new('Ops');
+    $ops.push($post);
+    $ops.push_pirop('perl6_box_str', $reg, $post);
+    $ops.result($reg);
+    $ops
+});
+QAST::Operations.add_hll_unbox('perl6', 'i', -> $qastcomp, $post {
+    my $reg := $*REGALLOC.fresh_i();
+    my $ops := $qastcomp.post_new('Ops');
+    $ops.push($post);
+    $ops.push_pirop('set', $reg, $post);
+    $ops.result($reg);
+    $ops
+});
+QAST::Operations.add_hll_unbox('perl6', 'n', -> $qastcomp, $post {
+    my $reg := $*REGALLOC.fresh_n();
+    my $ops := $qastcomp.post_new('Ops');
+    $ops.push($post);
+    $ops.push_pirop('set', $reg, $post);
+    $ops.result($reg);
+    $ops
+});
+QAST::Operations.add_hll_unbox('perl6', 's', -> $qastcomp, $post {
+    my $reg := $*REGALLOC.fresh_s();
+    my $ops := $qastcomp.post_new('Ops');
+    $ops.push($post);
+    $ops.push_pirop('set', $reg, $post);
+    $ops.result($reg);
+    $ops
+});

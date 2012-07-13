@@ -2234,7 +2234,7 @@ class QPerl6::Actions is HLL::Actions {
                 $block[0].push(QAST::Var.new(:name<$/>, :scope<lexical>, :decl('var')));
                 $block.symbol('$/', :scope<lexical>);
             }
-            $past := QRegex::P6Regex::Actions::buildsub($qast, $block);
+            $past := QRegex::P6Regex::Actions::qbuildsub($qast, $block);
         }
         $past.name($name);
         $past.blocktype("declaration");
@@ -5371,8 +5371,8 @@ class QPerl6::RegexActions is QRegex::P6Regex::Actions {
             }
             elsif $<nibbler> {
                 $name eq 'after' ??
-                    $qast[0].push(QRegex::P6Regex::Actions::buildsub(self.flip_ast($<nibbler>[0].ast), :anon(1))) !!
-                    $qast[0].push(QRegex::P6Regex::Actions::buildsub($<nibbler>[0].ast, :anon(1)));
+                    $qast[0].push(QRegex::P6Regex::Actions::qbuildsub(self.flip_ast($<nibbler>[0].ast), :anon(1))) !!
+                    $qast[0].push(QRegex::P6Regex::Actions::qbuildsub($<nibbler>[0].ast, :anon(1)));
             }
         }
         make $qast;

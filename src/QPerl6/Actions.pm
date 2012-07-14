@@ -746,9 +746,12 @@ class QPerl6::Actions is HLL::Actions {
     method statement_control:sym<loop>($/) {
         my $block := pblock_immediate($<block>.ast);
         my $cond := $<e2> ?? $<e2>[0].ast !! QAST::Var.new(:name<True>, :scope<lexical>);
-        my $loop := QAST::Op.new( $cond, $block, :op('while'), :node($/) );
+        my $loop := QAST::Op.new( $cond, :op('while'), :node($/) );
         if $<e3> {
-            $loop.push( $<e3>[0].ast );
+            $loop.push(QAST::Stmts.new( $block, $<e3>[0].ast ));
+        }
+        else {
+            $loop.push($block);
         }
         if $<e1> {
             $loop := QAST::Stmts.new( $<e1>[0].ast, $loop, :node($/) );

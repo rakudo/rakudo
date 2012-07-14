@@ -829,22 +829,22 @@ class QPerl6::World is HLL::World {
             }
             my %phasers := nqp::getattr($code, $block_type, '$!phasers');
             if nqp::existskey(%phasers, 'PRE') {
-                $code_past[0].push(PAST::Op.new( :pirop('perl6_set_checking_pre v') ));
+                $code_past[0].push(QAST::Op.new( :op('p6setpre') ));
                 $code_past[0].push(run_phasers_code('PRE'));
-                $code_past[0].push(PAST::Op.new( :pirop('perl6_clear_checking_pre v') ));
+                $code_past[0].push(QAST::Op.new( :op('p6clearpre') ));
             }
             if nqp::existskey(%phasers, 'FIRST') {
                 $code_past[0].push(QAST::Op.new(
                     :pasttype('if'),
-                    PAST::Op.new( :pirop('perl6_take_block_first_flag i') ),
+                    QAST::Op.new( :op('p6takefirstflag') ),
                     run_phasers_code('FIRST')));
             }
             if nqp::existskey(%phasers, 'ENTER') {
                 $code_past[0].push(run_phasers_code('ENTER'));
             }
             if nqp::existskey(%phasers, '!LEAVE-ORDER') || nqp::existskey(%phasers, 'POST') {
-                $code_past[+@($code_past) - 1] := PAST::Op.new(
-                    :pirop('perl6_returncc__0P'),
+                $code_past[+@($code_past) - 1] := QAST::Op.new(
+                    :op('p6return'),
                     $code_past[+@($code_past) - 1]);
             }
         }

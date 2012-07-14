@@ -393,9 +393,23 @@ class QPerl6::World is HLL::World {
         if $prim {
             if $state { nqp::die("Natively typed state variables not yet implemented") }
             if $var {
-                if $prim == 1    { $var.viviself(QAST::IVal.new( :value(0) )) }
-                elsif $prim == 2 { $var.viviself(PAST::Op.new( :pirop('set__Ns'), 'NaN' )) }
-                elsif $prim == 3 { $var.viviself(SAST::SVal.new( :value('') )) }
+                if $prim == 1 {
+                    $block[0].push(QAST::Op.new( :op('bind'),
+                        QAST::Var.new( :scope('lexical'), :name($name) ),
+                        QAST::IVal.new( :value(0) ) ))
+                }
+                elsif $prim == 2 {
+                    $block[0].push(QAST::Op.new( :op('bind'),
+                        QAST::Var.new( :scope('lexical'), :name($name) ),
+                        QAST::VM.new(
+                            :pirop('set__Ns'), QAST::SVal.new( :value('NaN') 
+                        ))));
+                }
+                elsif $prim == 3 {
+                    $block[0].push(QAST::Op.new( :op('bind'),
+                        QAST::Var.new( :scope('lexical'), :name($name) ),
+                        QAST::SVal.new( :value('') ) ))
+                }
             }
             return 1;
         }

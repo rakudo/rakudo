@@ -1356,7 +1356,7 @@ class QPerl6::World is HLL::World {
             # in other cases.
             make QAST::Op.new(
                 :op('if'),
-                PAST::Op.new( :pirop('perl6_state_needs_init I') ),
+                QAST::Op.new( :op('p6stateinit') ),
                 QAST::Op.new(
                     :op('p6store'),
                     QAST::Var.new( :name($sym), :scope('lexical') ),

@@ -1417,7 +1417,7 @@ class QPerl6::Actions is HLL::Actions {
                 }
                 if $*SCOPE eq 'state' {
                     $past := QAST::Op.new( :op('if'),
-                        PAST::Op.new( :pirop('perl6_state_needs_init I') ),
+                        QAST::Op.new( :op('p6stateinit') ),
                         $past,
                         $orig_past);
                 }
@@ -1461,7 +1461,7 @@ class QPerl6::Actions is HLL::Actions {
                 }
                 if $*SCOPE eq 'state' {
                     $list := QAST::Op.new( :op('if'),
-                        PAST::Op.new( :pirop('perl6_state_needs_init I') ),
+                        QAST::Op.new( :op('p6stateinit') ),
                         $list, $orig_list);
                 }
             }

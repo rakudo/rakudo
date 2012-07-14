@@ -642,6 +642,13 @@ class QPerl6::Actions is HLL::Actions {
     method blockoid($/) {
         if $<statementlist> {
             my $past := $<statementlist>.ast;
+            if %*HANDLERS {
+                $past := QAST::Op.new( :op('handle'), $past );
+                for %*HANDLERS {
+                    $past.push($_.key);
+                    $past.push($_.value);
+                }
+            }
             my $BLOCK := $*CURPAD;
             $BLOCK.push($past);
             $BLOCK.node($/);
@@ -876,20 +883,20 @@ class QPerl6::Actions is HLL::Actions {
     }
 
     method statement_control:sym<CATCH>($/) {
-        if has_block_handler($*W.cur_lexpad(), 'CONTROL', :except(1)) {
+        if nqp::existskey(%*HANDLERS, 'CATCH') {
             $*W.throw($/, ['X', 'Phaser', 'Multiple'], block => 'CATCH');
         }
         my $block := $<block>.ast;
-        push_block_handler($/, $*W.cur_lexpad(), $block, 'CONTROL', :except(1));
+        set_block_handler($/, $block, 'CATCH');
         make QAST::Var.new( :name('Nil'), :scope('lexical') );
     }
 
     method statement_control:sym<CONTROL>($/) {
-        if has_block_handler($*W.cur_lexpad(), 'CONTROL') {
+        if nqp::existskey(%*HANDLERS, 'CONTROL') {
             $*W.throw($/, ['X', 'Phaser', 'Multiple'], block => 'CONTROL');
         }
         my $block := $<block>.ast;
-        push_block_handler($/, $*W.cur_lexpad(), $block, 'CONTROL');
+        set_block_handler($/, $block, 'CONTROL');
         make QAST::Var.new( :name('Nil'), :scope('lexical') );
     }
 
@@ -4888,20 +4895,22 @@ class QPerl6::Actions is HLL::Actions {
     }
 
     # XXX This isn't quite right yet... need to evaluate these semantics
-    sub push_block_handler($/, $block, $handler, $type?, :$except) {
+    sub set_block_handler($/, $handler, $type) {
         # unshift handler preamble: create exception object and store it into $_
-        my $exceptionreg := $block.unique('exception_');
+        my $exceptionreg := $handler.unique('exception_');
         my $handler_preamble := QAST::Stmts.new(
-            PAST::Op.new( :pasttype('bind'),
-                PAST::Var.new( :scope('register'), :name($exceptionreg), :isdecl(1) ),
-                PAST::Var.new( :scope('parameter') ),
-            ),
-            PAST::Op.new( :pasttype('bind_6model'),
+            QAST::Var.new( :scope('local'), :name($exceptionreg), :decl('param') ),
+            QAST::Op.new(
+                :op('bind'),
                 QAST::Var.new( :scope('lexical'), :name('$_'), :decl('var') ),
-                PAST::Op.new( :name('&EXCEPTION'), PAST::Var.new( :scope('register'), :name($exceptionreg) ) ),
+                QAST::Op.new(
+                    :op('call'), :name('&EXCEPTION'),
+                    QAST::Var.new( :scope('local'), :name($exceptionreg) )
+                )
             ),
             QAST::Op.new( :op('p6store'),
-                PAST::Op.new( :pirop('find_lex_skip_current__Ps'), '$!'),
+                QAST::VM.new( :pirop('find_lex_skip_current__Ps'),
+                    QAST::SVal.new( :value('$!') )),
                 QAST::Var.new( :scope('lexical'), :name('$_') ),
             ),
             QAST::Var.new( :scope('lexical'), :name('$!'), :decl('var') ),
@@ -4912,73 +4921,46 @@ class QPerl6::Actions is HLL::Actions {
         # rethrow the exception if we reach the end of the handler
         # (if a when {} clause matches this will get skipped due
         # to the BREAK exception)
-        $handler<past_block>[1].push(PAST::Op.new( :inline("    rethrow $exceptionreg")));
+        $handler<past_block>[1].push(QAST::VM.new(
+            :pirop('rethrow vP'),
+            QAST::Var.new( :name($exceptionreg), :scope('local') )));
 
         # set up a generic exception rethrow, so that exception
         # handlers from unwanted frames will get skipped if the
         # code in our handler throws an exception.
-        unless $handler<past_block>.handlers() {
-            $handler<past_block>.handlers([]);
-        }
-        $handler<past_block>.handlers.unshift(
-            PAST::Op.new( :pirop('perl6_based_rethrow__vPP'),
-                PAST::Op.new(:inline("    .get_results (%r)")),
-                PAST::Var.new( :scope('register'), :name($exceptionreg))
-            )
-        );
+        # XXX Needs QAST update. Also, figuring out what the bloody hell
+        # is it doing...
+        #unless $handler<past_block>.handlers() {
+        #    $handler<past_block>.handlers([]);
+        #}
+        #$handler<past_block>.handlers.unshift(
+        #    PAST::Op.new( :pirop('perl6_based_rethrow__vPP'),
+        #        PAST::Op.new(:inline("    .get_results (%r)")),
+        #        PAST::Var.new( :scope('register'), :name($exceptionreg))
+        #    )
+        #);
 
-        my $ex := PAST::Op.new( :inline("    .get_results (%r)"));
+        my $ex := QAST::Op.new( :op('exception') );
 
-        # create code that calls our handler with the parrot
-        # exception as argument and returns the result.
-
-        # install handler at the front except if there's a already a CATCH/CONTROL
-        # handler. In that case, put it right after it and make a rethrow skip
-        # the first handler.
-        my $firsthandler;
-        my $firsthandlertype;
-        my @handlers := $block.handlers();
-        if nqp::defined($type) && $type eq 'CONTROL' && @handlers && @handlers[0] {
-            $firsthandlertype := $except ?? @handlers[0].handle_types() !! @handlers[0].handle_types_except();
-            if nqp::defined($firsthandlertype) && $firsthandlertype eq $type {
-                $firsthandler := @handlers.shift();
-                $ex := PAST::Op.new( :pirop('perl6_skip_handlers_in_rethrow__0Pi'), $ex, 1);
-            }
-        }
-        $handler := QAST::Stmts.new(
+        # create code that calls our handler with the Parrot exception
+        # as argument and returns the result. The install the handler.
+        %*HANDLERS{$type} := QAST::Stmts.new(
             :node($/),
-            PAST::Op.new( :pirop('perl6_invoke_catchhandler__vPP'), $handler, $ex),
+            QAST::VM.new( :pirop('perl6_invoke_catchhandler__vPP'), $handler, $ex),
             QAST::Var.new( :scope('lexical'), :name('$!') )
         );
-        if nqp::defined($type) {
-            if $except {
-                $handler.handle_types_except($type);
-            } else {
-                $handler.handle_types($type);
-            }
-        }
-
-        #install new handler
-        unless $block.handlers() {
-            $block.handlers([]);
-        }
-        $block.handlers.unshift($handler);
-
-        # put old catch/control handler back to the front
-        if $firsthandler {
-            $block.handlers.unshift($firsthandler);
-        }
-    }
-
-    sub has_block_handler($block, $type, :$except) {
-        my @handlers := $block.handlers();
-        for @handlers {
-            my $ltype := $except ?? $_.handle_types_except() !! $_.handle_types();
-            if nqp::defined($ltype) && $ltype eq $type {
-                return 1;
-            }
-        }
-        0;
+        
+        # XXX Figure out why on earth this lot is needed...
+        # my $firsthandler;
+        # my $firsthandlertype;
+        # my @handlers := $block.handlers();
+        # if nqp::defined($type) && $type eq 'CONTROL' && @handlers && @handlers[0] {
+            # $firsthandlertype := $except ?? @handlers[0].handle_types() !! @handlers[0].handle_types_except();
+            # if nqp::defined($firsthandlertype) && $firsthandlertype eq $type {
+                # $firsthandler := @handlers.shift();
+                # $ex := PAST::Op.new( :pirop('perl6_skip_handlers_in_rethrow__0Pi'), $ex, 1);
+            # }
+        # }
     }
 
     # Handles the case where we have a default value closure for an

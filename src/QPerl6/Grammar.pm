@@ -612,6 +612,7 @@ grammar QPerl6::Grammar is HLL::Grammar {
 
     token blockoid {
         :my $*CURPAD;
+        :my %*HANDLERS;
         <.finishpad>
         [
         | '{YOU_ARE_HERE}' <you_are_here>

@@ -2633,7 +2633,7 @@ grammar QPerl6::Grammar is HLL::Grammar {
 
     token infix:sym<||>   { <sym>  <O('%tight_or, :assoc<left>, :pasttype<unless>')> }
     token infix:sym<^^>   { <sym>  <O('%tight_or, :pasttype<xor>')> }
-    token infix:sym<//>   { <sym>  <O('%tight_or, :assoc<left>, :pasttype<def_or>')> }
+    token infix:sym<//>   { <sym>  <O('%tight_or, :assoc<left>, :pasttype<defor>')> }
     token infix:sym<min>  { <sym> >> <O('%tight_or')> }
     token infix:sym<max>  { <sym> >> <O('%tight_or')> }
 
@@ -2720,7 +2720,7 @@ grammar QPerl6::Grammar is HLL::Grammar {
 
     token infix:sym<or>   { <sym> >> <O('%loose_or, :assoc<left>, :pasttype<unless>')> }
     token infix:sym<xor>  { <sym> >> <O('%loose_or, :pasttype<xor>')> }
-    token infix:sym<orelse> { <sym> >> <O('%loose_or, :assoc<left>, :pasttype<def_or>')> }
+    token infix:sym<orelse> { <sym> >> <O('%loose_or, :assoc<left>, :pasttype<defor>')> }
 
     token infix:sym«<==»  { <sym> <O('%sequencer')> }
     token infix:sym«==>»  { <sym> <O('%sequencer')> }

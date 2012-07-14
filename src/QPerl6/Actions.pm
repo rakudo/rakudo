@@ -5058,13 +5058,11 @@ class QPerl6::Actions is HLL::Actions {
         %curried{'&infix:<xx>'}   := 1;
     }
     sub whatever_curry($/, $past, $upto_arity) {
-        # XXX needs some re-work
-        return $past;
         my $Whatever := $*W.find_symbol(['Whatever']);
-        my $WhateverCode := $*W.find_symbol(['Whatever']);
+        my $WhateverCode := $*W.find_symbol(['WhateverCode']);
         my $curried := $past.isa(QAST::Op)
                        && ($past.op ne 'call' || nqp::index($past.name, '&infix:') == 0)
-                       && (%curried{$past.name // $past.pirop} // 2);
+                       && (%curried{$past.name} // 2);
         my $i := 0;
         my $whatevers := 0;
         while $curried && $i < $upto_arity {
@@ -5079,7 +5077,7 @@ class QPerl6::Actions is HLL::Actions {
             $*W.cur_lexpad()[0].push($block);
             while $i < $upto_arity {
                 my $old := $past[$i];
-                if $old.returns eq 'WhateverCode' {
+                if nqp::istype($old.returns, $WhateverCode) {
                     my $new := QAST::Op.new( :op<call>, :node($/), $old);
                     my $acount := 0;
                     while $acount < $old.arity {
@@ -5111,7 +5109,7 @@ class QPerl6::Actions is HLL::Actions {
             add_signature_binding_code($block, $signature, @params);
             my $code := $*W.create_code_object($block, 'WhateverCode', $signature);
             $past := block_closure(reference_to_code_object($code, $block));
-            $past.returns('WhateverCode');
+            $past.returns($WhateverCode);
             $past.arity(+@params);
         }
         $past

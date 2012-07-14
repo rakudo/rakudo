@@ -38,6 +38,7 @@ $ops.add_hll_pirop_mapping('perl6', 'p6setpre', 'perl6_set_checking_pre', 'v');
 $ops.add_hll_pirop_mapping('perl6', 'p6clearpre', 'perl6_clear_checking_pre', 'v');
 $ops.add_hll_pirop_mapping('perl6', 'p6takefirstflag', 'perl6_take_block_first_flag', 'i');
 $ops.add_hll_pirop_mapping('perl6', 'p6return', 'perl6_returncc', '0P');
+$ops.add_hll_pirop_mapping('perl6', 'p6assoccode', 'perl6_associate_sub_code_object', 'vPP');
 
 # Boxing and unboxing configuration.
 QAST::Operations.add_hll_box('perl6', 'i', -> $qastcomp, $post {

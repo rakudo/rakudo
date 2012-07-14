@@ -731,19 +731,19 @@ class QPerl6::World is HLL::World {
                 # If we clone the stub, then we must remember to do a fixup
                 # of it also.
                 pir::setprop__vPsP($stub, 'CLONE_CALLBACK', sub ($orig, $clone) {
+                    my $tmp := $fixups.unique('tmp_block_fixup');
                     self.add_object($clone);
-                    nqp::die("not yet updated for QAST");
-                    $fixups.push(QAST::Stmts.new(
+                    $fixups.push(QAST::Stmt.new(
                         QAST::Op.new(
                             :op('bind'),
-                            PAST::Var.new( :name('$P0'), :scope('register') ),
+                            QAST::Var.new( :name($tmp), :scope('local'), :decl('var') ),
                             QAST::Op.new( :op('clone'), QAST::BVal.new( :value($code_past) ) )
                         ),
                         self.set_attribute($clone, $code_type, '$!do',
-                            PAST::Var.new( :name('$P0'), :scope('register') )),
-                        PAST::Op.new(
-                            :pirop('perl6_associate_sub_code_object vPP'),
-                            PAST::Var.new( :name('$P0'), :scope('register') ),
+                            QAST::Var.new( :name($tmp), :scope('local') )),
+                        QAST::Op.new(
+                            :op('p6assoccode'),
+                            QAST::Var.new( :name($tmp), :scope('local') ),
                             QAST::WVal.new( :value($clone) )
                         )));
                 });

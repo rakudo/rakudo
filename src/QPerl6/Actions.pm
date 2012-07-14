@@ -2980,9 +2980,8 @@ class QPerl6::Actions is HLL::Actions {
         unless $past.isa(QAST::Op) && $past.op() eq 'callmethod' {
             $/.CURSOR.panic("Cannot use " ~ $<sym>.Str ~ " on a non-identifier method call");
         }
-        $past.unshift(pir::isa($past.name, 'String') ??
-            $*W.add_string_constant($past.name) !!
-            $past.name);
+        $past.unshift($*W.add_string_constant($past.name))
+            if $past.name ne '';
         $past.name('dispatch:<' ~ ~$<sym> ~ '>');
         make $past;
     }
@@ -3078,7 +3077,7 @@ class QPerl6::Actions is HLL::Actions {
             }
         }
         elsif $<quote> {
-            $past.name(
+            $past.unshift(
                 QAST::Op.new(
                     :op<unbox_s>,
                     $<quote>.ast

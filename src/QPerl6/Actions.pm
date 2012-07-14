@@ -5060,7 +5060,10 @@ class QPerl6::Actions is HLL::Actions {
         my $Whatever := $*W.find_symbol(['Whatever']);
         my $WhateverCode := $*W.find_symbol(['WhateverCode']);
         my $curried := $past.isa(QAST::Op)
-                       && ($past.op ne 'call' || nqp::index($past.name, '&infix:') == 0)
+                       && ($past.op ne 'call' ||
+                            (nqp::index($past.name, '&infix:') == 0 ||
+                             nqp::index($past.name, '&prefix:') == 0 ||
+                             nqp::index($past.name, '&postfix:') == 0))
                        && (%curried{$past.name} // 2);
         my $i := 0;
         my $whatevers := 0;

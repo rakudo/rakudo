@@ -864,7 +864,7 @@ class QPerl6::Actions is HLL::Actions {
         # Handle the smart-match.
         my $match_past := QAST::Op.new( :op('callmethod'), :name('ACCEPTS'),
             $sm_exp,
-            QAST::Var.new( :name('$_'), :scope('6model') )
+            QAST::Var.new( :name('$_'), :scope('lexical') )
         );
 
         # Use the smartmatch result as the condition for running the block,
@@ -4841,22 +4841,15 @@ class QPerl6::Actions is HLL::Actions {
     }
 
     sub when_handler_helper($when_block) {
-        my $enclosing_block := $*W.cur_lexpad();
-        # XXX TODO: This isn't quite the right way to check this...
-        unless $enclosing_block.handlers() {
-            my @handlers;
-            @handlers.push(
-                PAST::Op.new(
-                    :handle_types('BREAK'),
-                    :inline("    perl6_type_check_return_value %0\n    perl6_returncc %0"),
-                    PAST::Var.new(
-                        :scope('keyed'),
-                        PAST::Op.new(:inline("    .get_results (%r)")),
-                        'payload',
-                    ),
-                )
-            );
-            $enclosing_block.handlers(@handlers);
+        unless nqp::existskey(%*HANDLERS, 'SUCCEED') {
+            %*HANDLERS<SUCCEED> := QAST::Op.new(
+                :op('p6return'),
+                QAST::Op.new(
+                    :op('p6typecheckrv'),
+                    QAST::Op.new(
+                        :op('getpayload'),
+                        QAST::Op.new( :op('exception') )
+                    )));
         }
 
         # if this is not an immediate block create a call
@@ -4872,17 +4865,16 @@ class QPerl6::Actions is HLL::Actions {
             $when_block,
         );
         
-        # wrap it in a try pirop so that we can use a CONTINUE exception
+        # wrap it in a handle op so that we can use a PROCEED exception
         # to skip the succeed call
-        return PAST::Op.new(
-            :pasttype('try'),
-            :handle_types('CONTINUE'),
+        return QAST::Op.new(
+            :op('handle'),
             $result,
-            PAST::Var.new(
-                :scope('keyed'),
-                PAST::Op.new(:inline("    .get_results (%r)")),
-                'payload',
-            ),
+            'PROCEED',
+            QAST::Op.new(
+                :op('getpayload'),
+                QAST::Op.new( :op('exception') )
+            )
         );
     }
 

@@ -255,7 +255,7 @@ class QPerl6::Actions is HLL::Actions {
         # (CTXSAVE is inherited from HLL::Actions.) Don't do this when
         # there was an explicit {YOU_ARE_HERE}.
         unless $*HAS_YOU_ARE_HERE {
-            #$unit.push( self.CTXSAVE() );
+            $unit.push( self.CTXSAVE() );
         }
 
         # Add the mainline code to the unit.
@@ -293,6 +293,33 @@ class QPerl6::Actions is HLL::Actions {
         $compunit<W>         := $*W;
 
         make $compunit;
+    }
+    
+    # XXX Move to HLL::Actions after NQP gets QAST.
+    method CTXSAVE() {
+        QAST::Stmt.new(
+            QAST::Op.new(
+                :op('bind'),
+                QAST::Var.new( :name('ctxsave'), :scope('local'), :decl('var') ),
+                QAST::Var.new( :name('$*CTXSAVE'), :scope('contextual') )
+            ),
+            QAST::Op.new(
+                :op('unless'),
+                QAST::Op.new(
+                    :op('isnull'),
+                    QAST::Var.new( :name('ctxsave'), :scope('local') )
+                ),
+                QAST::Op.new(
+                    :op('if'),
+                    QAST::VM.new(
+                        :pirop('can IPs'),
+                        QAST::Var.new( :name('ctxsave'), :scope('local') ),
+                        QAST::SVal.new( :value('ctxsave') )
+                    ),
+                    QAST::Op.new(
+                        :op('callmethod'), :name('ctxsave'),
+                        QAST::Var.new( :name('ctxsave'), :scope('local')
+                    )))))
     }
 
     method install_doc_phaser($/) {

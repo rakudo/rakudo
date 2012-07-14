@@ -2333,10 +2333,10 @@ class QPerl6::Actions is HLL::Actions {
             $type_obj := $*W.pkg_create_mo($/, %*HOW<enum>, :$name, :$base_type);
             # Add roles (which will provide the enum-related methods).
             $*W.apply_trait('&trait_mod:<does>', $type_obj, $*W.find_symbol(['Enumeration']));
-            if nqp::istype($type_obj, $*W.find_symbol(['Numeric'])) {
+            if istype($type_obj, $*W.find_symbol(['Numeric'])) {
                 $*W.apply_trait('&trait_mod:<does>', $type_obj, $*W.find_symbol(['NumericEnumeration']));
             }
-            if nqp::istype($type_obj, $*W.find_symbol(['Stringy'])) {
+            if istype($type_obj, $*W.find_symbol(['Stringy'])) {
                 $*W.apply_trait('&trait_mod:<does>', $type_obj, $*W.find_symbol(['StringyEnumeration']));
             }
             # Apply traits, compose and install package.
@@ -2368,7 +2368,7 @@ class QPerl6::Actions is HLL::Actions {
         }
         if $term_ast.isa(QAST::Op) && $term_ast.name eq '&infix:<,>' {
             for @($term_ast) {
-                if nqp::istype($_.returns(), $Pair) && $_[1]<has_compile_time_value> {
+                if istype($_.returns(), $Pair) && $_[1]<has_compile_time_value> {
                     @values.push($_);
                 }
                 elsif $_<has_compile_time_value> {
@@ -2382,7 +2382,7 @@ class QPerl6::Actions is HLL::Actions {
         elsif $term_ast<has_compile_time_value> {
             @values.push($term_ast);
         }
-        elsif nqp::istype($term_ast.returns, $Pair) && $term_ast[1]<has_compile_time_value> {
+        elsif istype($term_ast.returns, $Pair) && $term_ast[1]<has_compile_time_value> {
             @values.push($term_ast);
         }
         else {
@@ -2398,7 +2398,7 @@ class QPerl6::Actions is HLL::Actions {
             # If it's a pair, take that as the value; also find
             # key.
             my $cur_key;
-            if nqp::istype($_.returns(), $Pair) {
+            if istype($_.returns(), $Pair) {
                 $cur_key   := $_[1]<compile_time_value>;
                 if $_[2]<has_compile_time_value> {
                     $cur_value := $_[2]<compile_time_value>;
@@ -2416,7 +2416,7 @@ class QPerl6::Actions is HLL::Actions {
                     }
                 }
                 if $has_base_type {
-                    unless nqp::istype($cur_value, $base_type) {
+                    unless istype($cur_value, $base_type) {
                         $/.CURSOR.panic("Type error in enum. Got '"
                                 ~ $cur_value.HOW.name($cur_value)
                                 ~ "' Expected: '"
@@ -3184,7 +3184,7 @@ class QPerl6::Actions is HLL::Actions {
         my $routine;
         try {
             $routine := $*W.find_symbol(['&' ~ ~$<identifier>]);
-            if nqp::istype($routine, $*W.find_symbol(['Macro'])) {
+            if istype($routine, $*W.find_symbol(['Macro'])) {
                 $is_macro := 1;
             }
         }
@@ -3201,11 +3201,11 @@ class QPerl6::Actions is HLL::Actions {
                 }
             }
             my $quasi_ast := $routine(|@argument_quasi_asts);
-            if nqp::istype($quasi_ast, $nil_class) {
+            if istype($quasi_ast, $nil_class) {
                 make QAST::Var.new(:name('Nil'), :scope('lexical'));
                 return 1;
             }
-            unless nqp::istype($quasi_ast, $ast_class) {
+            unless istype($quasi_ast, $ast_class) {
                 # XXX: Need to awesomeize with which type it got
                 $/.CURSOR.panic('Macro did not return AST');
             }
@@ -3283,7 +3283,7 @@ class QPerl6::Actions is HLL::Actions {
             my $routine;
             try {
                 $routine := $*W.find_symbol(@name);
-                if nqp::istype($routine, $*W.find_symbol(['Macro'])) {
+                if istype($routine, $*W.find_symbol(['Macro'])) {
                     $is_macro := 1;
                 }
             }
@@ -3306,11 +3306,11 @@ class QPerl6::Actions is HLL::Actions {
                     }
                 }
                 my $quasi_ast := $routine(|@argument_quasi_asts);
-                if nqp::istype($quasi_ast, $nil_class) {
+                if istype($quasi_ast, $nil_class) {
                     make QAST::Var.new(:name('Nil'), :scope('lexical'));
                     return 1;
                 }
-                unless nqp::istype($quasi_ast, $ast_class) {
+                unless istype($quasi_ast, $ast_class) {
                     # XXX: Need to awesomeize with which type it got
                     $/.CURSOR.panic('Macro did not return AST');
                 }
@@ -3461,7 +3461,7 @@ class QPerl6::Actions is HLL::Actions {
             my @args := $expr.name eq '&infix:<,>' ?? $expr.list !! [$expr];
             my %named_counts;
             for @args {
-                if $_.isa(QAST::Op) && nqp::istype($_.returns, $Pair) {
+                if $_.isa(QAST::Op) && istype($_.returns, $Pair) {
                     my $name := compile_time_value_str($_[1], 'LHS of pair', $/);
                     %named_counts{$name} := +%named_counts{$name} + 1;
                     $_[2].named($name);
@@ -3470,7 +3470,7 @@ class QPerl6::Actions is HLL::Actions {
 
             # Make result.
             for @args {
-                if $_.isa(QAST::Op) && nqp::istype($_.returns, $Pair) {
+                if $_.isa(QAST::Op) && istype($_.returns, $Pair) {
                     my $name := $_[2].named();
                     if %named_counts{$name} == 1 {
                         $past.push($_[2]);
@@ -3551,7 +3551,7 @@ class QPerl6::Actions is HLL::Actions {
                 $elem := $elem[0];
             }
             if $elem ~~ QAST::Op
-                    && (nqp::istype($elem.returns, $Pair) || $elem.name eq '&infix:<=>>') {
+                    && (istype($elem.returns, $Pair) || $elem.name eq '&infix:<=>>') {
                 # first item is a pair
                 $is_hash := 1;
             }
@@ -3659,7 +3659,7 @@ class QPerl6::Actions is HLL::Actions {
             my $is_macro := 0;
             try {
                 $routine := $*W.find_symbol(['&' ~ $name]);
-                if nqp::istype($routine, $*W.find_symbol(['Macro'])) {
+                if istype($routine, $*W.find_symbol(['Macro'])) {
                     $is_macro := 1;
                 }
             }
@@ -3672,11 +3672,11 @@ class QPerl6::Actions is HLL::Actions {
                 }
 
                 my $quasi_ast := $routine(|@argument_quasi_asts);
-                if nqp::istype($quasi_ast, $nil_class) {
+                if istype($quasi_ast, $nil_class) {
                     make QAST::Var.new(:name('Nil'), :scope('lexical'));
                     return 1;
                 }
-                unless nqp::istype($quasi_ast, $ast_class) {
+                unless istype($quasi_ast, $ast_class) {
                     # XXX: Need to awesomeize with which type it got
                     $/.CURSOR.panic('Macro did not return AST');
                 }
@@ -3969,7 +3969,7 @@ class QPerl6::Actions is HLL::Actions {
             :state(1));
             
         # Twiddle to make special-case RHS * work.
-        if nqp::istype($rhs.returns, $*W.find_symbol(['Whatever'])) {
+        if istype($rhs.returns, $*W.find_symbol(['Whatever'])) {
             $rhs := $false;
         }
         
@@ -5070,8 +5070,8 @@ class QPerl6::Actions is HLL::Actions {
         my $i := 0;
         my $whatevers := 0;
         while $curried && $i < $upto_arity {
-            $whatevers++ if nqp::istype($past[$i].returns, $WhateverCode)
-                            || $curried > 1 && nqp::istype($past[$i].returns, $Whatever);
+            $whatevers++ if istype($past[$i].returns, $WhateverCode)
+                            || $curried > 1 && istype($past[$i].returns, $Whatever);
             $i++;
         }
         if $whatevers {
@@ -5081,7 +5081,7 @@ class QPerl6::Actions is HLL::Actions {
             $*W.cur_lexpad()[0].push($block);
             while $i < $upto_arity {
                 my $old := $past[$i];
-                if nqp::istype($old.returns, $WhateverCode) {
+                if istype($old.returns, $WhateverCode) {
                     my $new := QAST::Op.new( :op<call>, :node($/), $old);
                     my $acount := 0;
                     while $acount < $old.arity {
@@ -5097,7 +5097,7 @@ class QPerl6::Actions is HLL::Actions {
                     }
                     $past[$i] := $new;
                 }
-                elsif $curried > 1 && nqp::istype($old.returns, $Whatever) {
+                elsif $curried > 1 && istype($old.returns, $Whatever) {
                     my $pname := '$x' ~ (+@params);
                     @params.push(hash(
                         :variable_name($pname),
@@ -5180,6 +5180,11 @@ class QPerl6::Actions is HLL::Actions {
         else {
             $past
         }
+    }
+    
+    sub istype($val, $type) {
+        try { return nqp::istype($val, $type) }
+        0
     }
 
     sub strip_trailing_zeros(str $n) {

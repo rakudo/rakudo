@@ -1745,7 +1745,8 @@ class QPerl6::World is HLL::World {
         
         # Handle fetching GLOBAL.
         if +@name == 1 && @name[0] eq 'GLOBAL' {
-            return PAST::Var.new( :name('GLOBAL'), :namespace([]), :scope('package') );
+            return QAST::VM.new( pirop => 'get_hll_global Ps',
+                QAST::SVal.new( :value('GLOBAL') ) );
         }
         
         # Handle things starting with pseudo-package.
@@ -1790,7 +1791,7 @@ class QPerl6::World is HLL::World {
             QAST::Op.new(
                 :op('callmethod'), :name('at_key'),
                 self.add_constant('Str', 'str', $final_name)) !!
-            QAST::Op.new( :scope('atkey'), QAST::SVal.new( :value(~$final_name) ) );
+            QAST::Op.new( :op('atkey'), QAST::SVal.new( :value(~$final_name) ) );
         
         # If there's no explicit qualification, then look it up in the
         # current package, and fall back to looking in GLOBAL.
@@ -1799,16 +1800,22 @@ class QPerl6::World is HLL::World {
                 :op('who'),
                 QAST::Var.new( :name('$?PACKAGE'), :scope('lexical') )
             ));
-            # XXX QAST TODO
-            #$lookup.isa(QAST::Var) && $lookup.viviself(PAST::Var.new(
-            #    :scope('keyed'),
-            #    :viviself(self.lookup_failure($orig_name)),
-            #    QAST::Op.new(
-            #        :op('who'),
-            #        PAST::Var.new( :name('GLOBAL'), :namespace([]), :scope('package') )
-            #    ),
-            #    ~$final_name
-            #));
+            if $lookup.isa(QAST::Var) {
+                $lookup := QAST::Op.new(
+                    :op('ifnull'),
+                    $lookup,
+                    QAST::Op.new(
+                        :op('atkey'),
+                        QAST::Op.new(
+                            :op('who'),
+                            QAST::VM.new( pirop => 'get_hll_global Ps',
+                                QAST::SVal.new( :value('GLOBAL') ) ) ),
+                        QAST::SVal.new( :value(~$final_name) )));
+                $lookup := QAST::Op.new(
+                    :op('ifnull'),
+                    $lookup,
+                    self.lookup_failure($orig_name));
+            }
         }
         
         # Otherwise, see if the first part of the name is lexically
@@ -1817,22 +1824,23 @@ class QPerl6::World is HLL::World {
         else {
             my $path := self.is_lexical(@name[0]) ??
                 QAST::Var.new( :name(@name.shift()), :scope('lexical') ) !!
-                PAST::Var.new( :name('GLOBAL'), :namespace([]), :scope('package') );
+                QAST::VM.new( pirop => 'get_hll_global Ps',
+                    QAST::SVal.new( :value('GLOBAL') ) );
             if @name[0] eq 'GLOBAL' {
                 @name := nqp::clone(@name);
                 @name.shift();
             }
             for @name {
-                $path := PAST::Op.new(
-                    :pirop('perl6_get_package_through_who PPs'),
-                    $path, ~$_);
+                $path := QAST::Op.new( :op('p6getpackage'),
+                    $path, QAST::SVal.new( :value(~$_) ));
             }
             $lookup.unshift(QAST::Op.new(:op('who'), $path));
         }
         
         # Failure object if we can't find the name.
-        if $lookup.isa(QAST::Var) && !$lookup.viviself {
-            $lookup.viviself(self.lookup_failure($orig_name));
+        if $lookup.isa(QAST::Var) {
+            $lookup := QAST::Op.new( :op('ifnull'),
+                $lookup, self.lookup_failure($orig_name) );
         }
         
         return $lookup;

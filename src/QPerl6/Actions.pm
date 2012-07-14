@@ -3031,8 +3031,9 @@ class QPerl6::Actions is HLL::Actions {
             $past.name('dispatch:<!>');
         }
         elsif $<methodop><quote> {
+            my $name := $past.shift;
             $past.unshift(QAST::WVal.new( :value($*PACKAGE) ));
-            $past.unshift($<methodop><quote>.ast);
+            $past.unshift($name);
             $past.name('dispatch:<!>');
         }
         else {

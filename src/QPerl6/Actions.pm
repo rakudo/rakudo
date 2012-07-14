@@ -1967,7 +1967,7 @@ class QPerl6::Actions is HLL::Actions {
         }
 
         my $closure := block_closure(reference_to_code_object($code, $past));
-        $closure<sink_past> := PAST::Op.new( :pasttype('null') );
+        $closure<sink_past> := QAST::Op.new( :op('null') );
         make $closure;
     }
 
@@ -2052,7 +2052,7 @@ class QPerl6::Actions is HLL::Actions {
         }
 
         my $closure := block_closure(reference_to_code_object($code, $past));
-        $closure<sink_past> := PAST::Op.new( :pasttype('null') );
+        $closure<sink_past> := QAST::Op.new( :op('null') );
         make $closure;
     }
 
@@ -2219,7 +2219,7 @@ class QPerl6::Actions is HLL::Actions {
 
         # Return closure if not in sink context.
         my $closure := block_closure($coderef);
-        $closure<sink_past> := PAST::Op.new( :pasttype('null') );
+        $closure<sink_past> := QAST::Op.new( :op('null') );
         make $closure;
     }
 
@@ -4467,7 +4467,7 @@ class QPerl6::Actions is HLL::Actions {
             $<p6regex>.ast, 'anon', '', [], $block, :use_outer_match(1));
         # Return closure if not in sink context.
         my $closure := block_closure($coderef);
-        $closure<sink_past> := PAST::Op.new( :pasttype('null') );
+        $closure<sink_past> := QAST::Op.new( :op('null') );
         make $closure;
     }
 

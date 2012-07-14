@@ -7,6 +7,8 @@ New in 2012.07
 + Changed &dir to return IO::File and IO::Dir objects, not strings
 + anonymous subset types with  subset :: where ...;
 + Deprecated .bytes, .ucfirst, and .lcfirst
++ &slurp now supports :bin
++ &spurt implemented
 
 New in 2012.06
 + Rakudo is now compiled with the same regex engine as user-space regexes use

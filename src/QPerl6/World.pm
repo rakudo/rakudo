@@ -811,17 +811,17 @@ class QPerl6::World is HLL::World {
             return "";
         }
         my $fixups := QAST::Op.new(:name<set_outer_ctx>, :op<callmethod>,
-                                   QAST::BVal.new(:value($block)),
-                                   PAST::Op.new(
-                                        :pirop<perl6_get_outer_ctx__PP>,
-                                        QAST::Var.new(
-                                            :scope<attribute>,
-                                            :name<$!quasi_context>,
-                                            QAST::WVal.new( :value($quasi_ast) ),
-                                            QAST::WVal.new( :value(self.find_symbol(['AST'])) )
-                                        )
-                                   )
-                        );
+           QAST::BVal.new(:value($block)),
+           QAST::Op.new(
+                :op<p6getouterctx>,
+                QAST::Var.new(
+                    :scope<attribute>,
+                    :name<$!quasi_context>,
+                    QAST::WVal.new( :value($quasi_ast) ),
+                    QAST::WVal.new( :value(self.find_symbol(['AST'])) )
+                )
+           )
+        );
         self.add_fixup_task(:fixup_past($fixups));
     }
     

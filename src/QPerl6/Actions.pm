@@ -5384,12 +5384,15 @@ class QPerl6::RegexActions is QRegex::P6Regex::Actions {
                                          :name($name) );
             }
             if $<arglist> {
-                for $<arglist>[0].ast.list { $qast[0].push( $_ ) }
+                for $<arglist>[0].ast.list { $qast[0].push( PAST::QAST.new($_) ) }
             }
             elsif $<nibbler> {
-                $name eq 'after' ??
-                    $qast[0].push(QRegex::P6Regex::Actions::qbuildsub(self.flip_ast($<nibbler>[0].ast), :anon(1))) !!
-                    $qast[0].push(QRegex::P6Regex::Actions::qbuildsub($<nibbler>[0].ast, :anon(1)));
+                my $nibbled := $name eq 'after'
+                    ?? self.flip_ast($<nibbler>[0].ast)
+                    !! $<nibbler>[0].ast;
+                my $sub := PAST::QAST.new(QRegex::P6Regex::Actions::qbuildsub($nibbled, :anon(1), :addself(1)));
+                $sub<orig_qast> := $sub[0]<orig_qast>;
+                $qast[0].push($sub);
             }
         }
         make $qast;

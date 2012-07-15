@@ -828,7 +828,7 @@ class QPerl6::Actions is HLL::Actions {
                 $past := QAST::Op.new(
                     :op('p6store'), :node($/),
                     QAST::Var.new( :name('$*FATAL'), :scope('lexical') ),
-                    QAST::Op.new( :op('p6bool'), 1 )
+                    QAST::Op.new( :op('p6bool'), QAST::IVal.new( :value(1) ) )
                 );
             }
             elsif ~$<module_name> eq 'FORBID_PIR' {

@@ -1812,8 +1812,9 @@ class QPerl6::Actions is HLL::Actions {
                     $*W.install_lexical_symbol($outer, $name, $code, :clone(1));
                     $*W.install_package_symbol($*PACKAGE, $name, $code);
                     $outer[0].push(QAST::Op.new(
-                        :op('bind'),
-                        $*W.symbol_lookup([$name], $/, :package_only(1)),
+                        :op('bindkey'),
+                        QAST::Op.new( :op('who'), QAST::WVal.new( :value($*PACKAGE) ) ),
+                        QAST::SVal.new( :value($name) ),
                         QAST::Var.new( :name($name), :scope('lexical') )
                     ));
                 }

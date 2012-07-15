@@ -856,7 +856,7 @@ class QPerl6::World is HLL::World {
             }
             if nqp::existskey(%phasers, 'FIRST') {
                 $code_past[0].push(QAST::Op.new(
-                    :pasttype('if'),
+                    :op('if'),
                     QAST::Op.new( :op('p6takefirstflag') ),
                     run_phasers_code('FIRST')));
             }
@@ -897,7 +897,7 @@ class QPerl6::World is HLL::World {
         my $phaser_block := self.push_lexpad($/);
         self.pop_lexpad();
         $phaser_block.push(QAST::Op.new(
-            :pasttype('while'),
+            :op('while'),
             QAST::Var.new( :name($value_stash), :scope('lexical') ),
             QAST::Op.new(
                 :op('p6store'),

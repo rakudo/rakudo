@@ -849,7 +849,8 @@ class QPerl6::Actions is HLL::Actions {
 
         $past.push(QAST::Op.new(
             :op('callmethod'), :name('load_module'),
-            PAST::Var.new( :name('ModuleLoader'), :namespace([]), :scope('package') ),
+            QAST::VM.new( pirop => 'get_hll_global Ps',
+                QAST::SVal.new( :value('ModuleLoader') ) ),
             $name_past, $*W.symbol_lookup(['GLOBAL'], $/)
         ));
 

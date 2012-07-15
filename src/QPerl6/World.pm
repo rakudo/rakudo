@@ -432,25 +432,32 @@ class QPerl6::World is HLL::World {
     
     # Builds PAST that constructs a container.
     method build_container_past(%cont_info, $descriptor) {
-        # Create container.
-        my $cont_code := QAST::Op.new(
-            :op('create'),
-            QAST::WVal.new( :value(%cont_info<container_type>) )
-        );
-        
-        # Set container descriptor.
-        $cont_code := PAST::Op.new(
-            :pirop('setattribute 0PPsP'),
-            $cont_code, QAST::WVal.new( :value(%cont_info<container_base>) ),
-            '$!descriptor', QAST::WVal.new( :value($descriptor) ));
+        # Create container and set descriptor.
+        my $tmp := QAST::Node.unique('cont');
+        my $cont_code := QAST::Stmts.new(
+            :resultchild(0),
+            QAST::Op.new(
+                :op('bind'),
+                QAST::Var.new( :name($tmp), :scope('local'), :decl('var') ),
+                QAST::Op.new(
+                    :op('create'),
+                    QAST::WVal.new( :value(%cont_info<container_type>) ))),
+            QAST::Op.new(
+                :op('bindattr'),
+                QAST::Var.new( :name($tmp), :scope('local') ),
+                QAST::WVal.new( :value(%cont_info<container_base>) ),
+                QAST::SVal.new( :value('$!descriptor') ),
+                QAST::WVal.new( :value($descriptor) )));
         
         # Default contents, if applicable (note, slurpy param as we can't
         # use definedness here, as it's a type object we'd be checking).
         if nqp::existskey(%cont_info, 'default_value') {
-            $cont_code := PAST::Op.new(
-                :pirop('setattribute 0PPsP'),
-                $cont_code, QAST::WVal.new( :value(%cont_info<container_base>) ),
-                '$!value', QAST::WVal.new( :value(%cont_info<default_value>) ));
+            $cont_code.push(QAST::Op.new(
+                :op('bindattr'),
+                QAST::Var.new( :name($tmp), :scope('local') ),
+                QAST::WVal.new( :value(%cont_info<container_base>) ),
+                QAST::SVal.new( :value('$!value') ),
+                QAST::WVal.new( :value(%cont_info<default_value>) )));
         }
         
         $cont_code

@@ -4709,7 +4709,11 @@ class QPerl6::Actions is HLL::Actions {
         $block.arity($arity);
 
         # Flag that we do custom arguments processing, and invoke the binder.
+        # Need to expose the arguments as a lexical, for things like deferral.
         $block.custom_args(1);
+        $block[0].push(QAST::Op.new( :op('bind'),
+            QAST::Var.new( :name('call_sig'), :scope('lexical'), :decl('var') ),
+            QAST::Op.new( :op('p6getcallsig') ) ));
         $block[0].push(QAST::Op.new( :op('p6bindsig') ));
 
         $block;

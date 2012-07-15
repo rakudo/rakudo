@@ -39,6 +39,12 @@ $ops.add_hll_pirop_mapping('perl6', 'p6clearpre', 'perl6_clear_checking_pre', 'v
 $ops.add_hll_pirop_mapping('perl6', 'p6takefirstflag', 'perl6_take_block_first_flag', 'i');
 $ops.add_hll_pirop_mapping('perl6', 'p6return', 'perl6_returncc', '0P');
 $ops.add_hll_pirop_mapping('perl6', 'p6assoccode', 'perl6_associate_sub_code_object', 'vPP');
+$ops.add_hll_op('perl6', 'p6getcallsig', -> $qastcomp, $op {
+    my $reg := $*REGALLOC.fresh_p();
+    my $ops := $qastcomp.post_new('Ops', :result($reg));
+    $ops.push_pirop('set', $reg, 'CALL_SIG');
+    $ops
+});
 
 # Boxing and unboxing configuration.
 QAST::Operations.add_hll_box('perl6', 'i', -> $qastcomp, $post {

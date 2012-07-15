@@ -1125,7 +1125,14 @@ class QPerl6::Actions is HLL::Actions {
             $past.unshift( QAST::Var.new( :name('$/'), :scope('lexical') ) );
         }
         elsif $<infixish> {
-            $past := PAST::Op.new( :pirop('find_sub_not_null__Ps'), '&infix:<' ~ $<infixish>.Str ~ '>' );
+            my $name := '&infix:<' ~ $<infixish>.Str ~ '>';
+            $past := QAST::Op.new(
+                :op('ifnull'),
+                QAST::Var.new( :name($name), :scope('lexical') ),
+                QAST::Op.new(
+                    :op('die'),
+                    QAST::SVal.new( :value("Could not find sub $name") )
+                ));
         }
         elsif $<desigilname><variable> {
             $past := $<desigilname>.ast;

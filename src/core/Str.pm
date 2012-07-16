@@ -92,9 +92,13 @@ my class Str does Stringy {
             if $istart > $ichars;
         $length = $length($ichars - $istart) if nqp::istype($length, Callable);
         my int $ilength = $length.defined ?? $length.Int !! $ichars - $istart;
-        fail "Negative length argument ($length) to .substr, use *{$ilength} if you want relative to the end" 
+        X::OutOfRange.new(
+            what    => 'Length argument to substr',
+            got     => $length,
+            range   => (0..*),
+            comment => "use *{$ilength} if you want to index relative to the end"
+        ).fail
             if $ilength < 0;
-
         nqp::p6box_s(nqp::substr($sself, $istart, $ilength));
     }
 

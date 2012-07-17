@@ -679,6 +679,8 @@ class QPerl6::Actions is HLL::Actions {
             my $BLOCK := $*CURPAD;
             $BLOCK.push($past);
             $BLOCK.node($/);
+            $BLOCK<statementlist> := $<statementlist>.ast;
+            $BLOCK<handlers>      := %*HANDLERS if %*HANDLERS;
             make $BLOCK;
         }
         else {
@@ -4948,12 +4950,12 @@ class QPerl6::Actions is HLL::Actions {
             QAST::Var.new( :scope('lexical'), :name('$!'), :decl('var') ),
             QAST::Var.new( :scope('lexical'), :name('$/'), :decl('var') ),
         );
-        $handler<past_block>[1].unshift($handler_preamble);
+        $handler<past_block>.unshift($handler_preamble);
 
         # rethrow the exception if we reach the end of the handler
         # (if a when {} clause matches this will get skipped due
         # to the BREAK exception)
-        $handler<past_block>[1].push(QAST::VM.new(
+        $handler<past_block>.push(QAST::VM.new(
             :pirop('rethrow vP'),
             QAST::Var.new( :name($exceptionreg), :scope('local') )));
 

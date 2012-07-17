@@ -997,6 +997,7 @@ class QPerl6::Actions is HLL::Actions {
 
                 # On failure, capture the exception object into $!.
                 'CATCH', QAST::Stmts.new(
+                    :resultchild(0),
                     QAST::Op.new(
                         :op('p6store'),
                         QAST::Var.new(:name<$!>, :scope<lexical>),

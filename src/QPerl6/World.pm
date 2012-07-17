@@ -206,8 +206,10 @@ class QPerl6::World is HLL::World {
                 self.perl6_module_loader_code(),
                 QAST::Op.new(
                    :op('callmethod'), :name('load_module'),
-                   PAST::Var.new( :name('ModuleLoader'), :namespace([]), :scope('package') ),
-                   $module_name, QAST::IVal.new(:value($line), :named('line'))
+                   QAST::VM.new( pirop => 'get_hll_global Ps',
+                        QAST::SVal.new( :value('ModuleLoader') ) ),
+                   QAST::SVal.new( :value($module_name) ),
+                   QAST::IVal.new(:value($line), :named('line'))
                 ))));
         }
 

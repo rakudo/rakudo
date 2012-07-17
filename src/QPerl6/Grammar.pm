@@ -2194,7 +2194,7 @@ grammar QPerl6::Grammar is HLL::Grammar {
 
     method match_with_adverb($v) {
         my $s := NQPMatch.new();
-        $s.'!make'(PAST::Val.new(:value(1), :named('s')));
+        $s.'!make'(QAST::IVal.new(:value(1), :named('s')));
         $s;
     }
 
@@ -2843,8 +2843,8 @@ grammar QPerl6::Grammar is HLL::Grammar {
         # May also need to add to the actions.
         if $category eq 'circumfix' {
             $*ACTIONS.HOW.add_method($*ACTIONS, $canname, sub ($self, $/) {
-                make PAST::Op.new(
-                    :pasttype('call'), :name('&' ~ $subname),
+                make QAST::Op.new(
+                    :op('call'), :name('&' ~ $subname),
                     $<EXPR>.ast
                 );
             });

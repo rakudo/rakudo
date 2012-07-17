@@ -1645,7 +1645,9 @@ class QPerl6::Actions is HLL::Actions {
                     scope  => $*SCOPE,
                 );
             }
-            $past.scope('lexical');
+            elsif $twigil ne '*' {
+                $past.scope('lexical');
+            }
 
             if $*OFTYPE {
                 $/.CURSOR.panic("Cannot put a type constraint on an 'our'-scoped variable");

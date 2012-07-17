@@ -5090,13 +5090,19 @@ class QPerl6::Actions is HLL::Actions {
                        && ($past.op ne 'call' ||
                             (nqp::index($past.name, '&infix:') == 0 ||
                              nqp::index($past.name, '&prefix:') == 0 ||
-                             nqp::index($past.name, '&postfix:') == 0))
+                             nqp::index($past.name, '&postfix:') == 0 ||
+                             ($past[0].isa(QAST::Op) &&
+                                nqp::index($past[0].name, '&METAOP') == 0)))
                        && (%curried{$past.name} // 2);
         my $i := 0;
         my $whatevers := 0;
         while $curried && $i < $upto_arity {
-            $whatevers++ if istype($past[$i].returns, $WhateverCode)
-                            || $curried > 1 && istype($past[$i].returns, $Whatever);
+            my $check := $past[$i];
+            $check := $check[0] if (nqp::istype($check, QAST::Stmts) || 
+                                    nqp::istype($check, QAST::Stmt)) &&
+                                   +@($check) == 1;
+            $whatevers++ if istype($check.returns, $WhateverCode)
+                            || $curried > 1 && istype($check.returns, $Whatever);
             $i++;
         }
         if $whatevers {
@@ -5106,6 +5112,9 @@ class QPerl6::Actions is HLL::Actions {
             $*W.cur_lexpad()[0].push($block);
             while $i < $upto_arity {
                 my $old := $past[$i];
+                $old := $old[0] if (nqp::istype($old, QAST::Stmts) || 
+                                    nqp::istype($old, QAST::Stmt)) &&
+                                   +@($old) == 1;
                 if istype($old.returns, $WhateverCode) {
                     my $new := QAST::Op.new( :op<call>, :node($/), $old);
                     my $acount := 0;

@@ -3826,7 +3826,7 @@ class QPerl6::Actions is HLL::Actions {
             # Evaluate RHS and call ACCEPTS on it, passing in $_. Bind the
             # return value to a result variable.
             QAST::Op.new( :op('bind'),
-                QAST::Var.new( :name($result_var), :scope('lexical'), :decl('var') ),
+                QAST::Var.new( :name($result_var), :scope('local'), :decl('var') ),
                 $sm_call
             ),
 
@@ -3837,7 +3837,7 @@ class QPerl6::Actions is HLL::Actions {
             ),
 
             # And finally evaluate to the smart-match result.
-            QAST::Var.new( :name($result_var), :scope('lexical') )
+            QAST::Var.new( :name($result_var), :scope('local') )
         );
     }
 

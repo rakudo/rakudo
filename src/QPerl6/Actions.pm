@@ -2080,7 +2080,7 @@ class QPerl6::Actions is HLL::Actions {
                 $outer[0].push(QAST::Op.new(
                     :op('bind'),
                     $*W.symbol_lookup([$name], $/, :package_only(1)),
-                    QAST::Var.new( :name($name), :scope('6model') )
+                    QAST::Var.new( :name($name), :scope('lexical') )
                 ));
             }
             else {

@@ -1133,7 +1133,7 @@ class QPerl6::Actions is HLL::Actions {
                 :op('ifnull'),
                 QAST::Var.new( :name($name), :scope('lexical') ),
                 QAST::Op.new(
-                    :op('die'),
+                    :op('die_s'),
                     QAST::SVal.new( :value("Could not find sub $name") )
                 ));
         }

@@ -3773,18 +3773,19 @@ class QPerl6::Actions is HLL::Actions {
                 # It's a variable. We need code that gets the results, pushes
                 # them onto the variable and then returns them (since this
                 # could well be a tap.
+                my $tmp := QAST::Node.unique('feed_tmp');
                 $_ := QAST::Stmts.new(
                     QAST::Op.new(
                         :op('bind'),
-                        QAST::Var.new( :scope('local'), :name('tmp'), :decl('var') ),
+                        QAST::Var.new( :scope('local'), :name($tmp), :decl('var') ),
                         QAST::Op.new( :op('call'), $result )
                     ),
                     QAST::Op.new(
                         :op('callmethod'), :name('push'),
                         $_,
-                        QAST::Var.new( :scope('local'), :name('tmp') )
+                        QAST::Var.new( :scope('local'), :name($tmp) )
                     ),
-                    QAST::Var.new( :scope('local'), :name('tmp') )
+                    QAST::Var.new( :scope('local'), :name($tmp) )
                 );
             }
             else {

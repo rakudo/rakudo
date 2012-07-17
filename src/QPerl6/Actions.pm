@@ -1214,13 +1214,19 @@ class QPerl6::Actions is HLL::Actions {
                                 :named($twigil eq ':'), :full_name($past.name()));
         }
         elsif $past.name() eq '@_' {
-            unless $*W.nearest_signatured_block_declares('@_') {
+            if $*W.nearest_signatured_block_declares('@_') {
+                $past.scope('lexical');
+            }
+            else {
                 $past := add_placeholder_parameter($/, '@', '_',
                                 :pos_slurpy(1), :full_name($past.name()));
             }
         }
         elsif $past.name() eq '%_' {
-            unless $*W.nearest_signatured_block_declares('%_') || $*METHODTYPE {
+            if $*W.nearest_signatured_block_declares('%_') || $*METHODTYPE {
+                $past.scope('lexical');
+            }
+            else {
                 $past := add_placeholder_parameter($/, '%', '_', :named_slurpy(1),
                                 :full_name($past.name()));
             }

@@ -3714,7 +3714,7 @@ class QPerl6::Actions is HLL::Actions {
         else {
             for $/.list { if $_.ast { $past.push($_.ast); } }
         }
-        if $past.op eq 'xor_nqp' {
+        if $past.op eq 'xor' {
             $past.push(QAST::Var.new(:named<false>, :scope<lexical>, :name<Nil>));
         }
         if $key eq 'PREFIX' || $key eq 'INFIX' || $key eq 'POSTFIX' {

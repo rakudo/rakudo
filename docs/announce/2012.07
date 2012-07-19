@@ -21,7 +21,7 @@ This release includes a lot of changes since the last one, including:
 - Built-in meta-objects (e.g. Metamodel::ClassHOW) now inherit from Any
 - &open now supports :enc/:encoding
 - Changed &dir to return IO::Path objects, not strings
-- Deprecated .bytes, .ucfirst, and .lcfirst
+- Deprecated .bytes, .ucfirst, and .lcfirst on Str
 - recognize obosolete rand() and rand(N) forms at compile time
 - anonymous subset types 'subset :: of Int where { $_ > 0 }'
 

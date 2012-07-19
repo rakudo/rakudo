@@ -35,7 +35,7 @@ Parrot, the Perl 6 test suite and the specification.
 The following people contributed to this release:
 
 Patrick R. Michaud, Moritz Lenz, Jonathan Worthington, Jonathan Scott Duff,
-Carl Mäsak, ronaldxs, Felix Herrmann, szabgab, harmil, Gabor Szabo, sisar
+Carl Mäsak, ronaldxs, Felix Herrmann, harmil, Gabor Szabo, sisar
 
 If you would like to contribute, see <http://rakudo.org/how-to-help>,
 ask on the perl6-compiler@perl.org mailing list, or ask on IRC #perl6

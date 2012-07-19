@@ -270,6 +270,7 @@ class QPerl6::Actions is HLL::Actions {
             
             # Serialization related bits.
             :sc($*W.sc()),
+            :code_ref_blocks($*W.code_ref_blocks()),
             :compilation_mode($*W.is_precompilation_mode()),
             :pre_deserialize($*W.load_dependency_tasks()),
             :post_deserialize($*W.fixup_tasks()),

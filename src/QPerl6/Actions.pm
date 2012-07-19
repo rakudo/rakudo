@@ -3427,8 +3427,8 @@ class QPerl6::Actions is HLL::Actions {
 
     method term:sym<nqp::op>($/) {
         $/.CURSOR.panic("nqp::op forbidden in safe mode\n") if $FORBID_PIR;
-        my $past := $<args> ?? $<args>[0].ast.list !! [];
-        $past.op(~$<op>);
+        my @args := $<args> ?? $<args>[0].ast.list !! [];
+        my $past := QAST::Op.new( :op(~$<op>), |@args );
         if $past.op eq 'want' {
             $past[1] := compile_time_value_str($past[1], 'want specification', $/);
         }

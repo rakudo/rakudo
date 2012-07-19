@@ -25,23 +25,23 @@ my class Bool {
 }
 
 
-proto prefix:<?>($) { * }
+proto prefix:<?>(Mu $) { * }
 multi prefix:<?>(Bool:D \$a) { $a }
 multi prefix:<?>(Mu \$a) { $a.Bool }
 
-proto prefix:<so>($) { * }
+proto prefix:<so>(Mu $) { * }
 multi prefix:<so>(Bool:D \$a) { $a }
 multi prefix:<so>(Mu \$a) { $a.Bool }
 
-proto prefix:<!>($) { * }
+proto prefix:<!>(Mu $) { * }
 multi prefix:<!>(Bool \$a) { nqp::p6bool($a ?? 0 !! 1) }
 multi prefix:<!>(Mu \$a) { nqp::p6bool($a.Bool ?? 0 !! 1) }
 
-proto prefix:<not>($) { * }
+proto prefix:<not>(Mu $) { * }
 multi prefix:<not>(Bool \$a) { nqp::p6bool($a ?? 0 !! 1) }
 multi prefix:<not>(Mu \$a) { nqp::p6bool($a.Bool ?? 0 !! 1) }
 
-proto prefix:<?^>($) { * }
+proto prefix:<?^>(Mu $) { * }
 multi prefix:<?^>(Mu \$a) { not $a }
 
 proto infix:<?&>(|$)                  { * }

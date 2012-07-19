@@ -54,12 +54,12 @@ part of monthly Parrot releases.
   2012-04-25   2012.04.1                       (moritz)
   2012-05-17   Rakudo #52 "MadMongers"         (tadzik)
   2012-06-21   Rakudo #53 "Strasbourg"         (duff)
+  2012-07-19   Rakudo #54 "Tallinn"            (masak)
 
 =head2 Planned 2012 releases
 
 Dates are based on Parrot's expected release schedule.
 
-  2012-07-19   Rakudo #54 masak
   2012-08-23   Rakudo #55 tadzik
   2012-09-20   Rakudo #56
   2012-10-18   Rakudo #57 duff

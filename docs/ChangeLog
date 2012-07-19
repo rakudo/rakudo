@@ -5,7 +5,6 @@ New in 2012.07
 + &open now supports :enc/:encoding
 + Exception.fail, .resumable and .resume
 + Changed &dir to return IO::Path objects, not strings
-+ anonymous subset types with  subset :: where ...;
 + Deprecated .bytes, .ucfirst, and .lcfirst
 + &slurp now supports :bin
 + &spurt implemented

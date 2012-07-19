@@ -482,14 +482,14 @@ $(QPERL6_C_PBC): $(NQP_EXE) $(DYNEXT_DYNPMC) $(DYNEXT_DYNOPS) $(QPERL6_O_PBC) sr
 
 
 ##  testing targets
-lib/Test.pir: lib/Test.pm $(PERL6_EXE) $(SETTING_PBC)
-	./$(PERL6_EXE) --target=pir --output=lib/Test.pir lib/Test.pm
+lib/Test.pir: lib/Test.pm $(QPERL6_EXE) $(SETTING_PBC)
+	./$(QPERL6_EXE) --target=pir --output=lib/Test.pir lib/Test.pm
 
-lib/lib.pir: lib/lib.pm $(PERL6_EXE) $(SETTING_PBC)
-	./$(PERL6_EXE) --target=pir --output=lib/lib.pir lib/lib.pm
+lib/lib.pir: lib/lib.pm $(QPERL6_EXE) $(SETTING_PBC)
+	./$(QPERL6_EXE) --target=pir --output=lib/lib.pir lib/lib.pm
 
-lib/Pod/To/Text.pir: lib/Pod/To/Text.pm $(PERL6_EXE) $(SETTING_PBC)
-	./$(PERL6_EXE) --target=pir --output=lib/Pod/To/Text.pir lib/Pod/To/Text.pm
+lib/Pod/To/Text.pir: lib/Pod/To/Text.pm $(QPERL6_EXE) $(SETTING_PBC)
+	./$(QPERL6_EXE) --target=pir --output=lib/Pod/To/Text.pir lib/Pod/To/Text.pm
 
 test    : coretest
 

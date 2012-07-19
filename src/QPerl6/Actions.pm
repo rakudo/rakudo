@@ -1639,6 +1639,7 @@ class QPerl6::Actions is HLL::Actions {
                 add_lexical_accessor($/, $past, $desigilname, $*W.cur_lexpad());
                 $name := $sigil ~ $desigilname;
                 $past.name($name);
+                $past.scope('lexical');
             }
             elsif $twigil eq '!' {
                 $*W.throw($/, ['X', 'Syntax', 'Variable', 'Twigil'],

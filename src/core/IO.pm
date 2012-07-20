@@ -96,7 +96,7 @@ class IO does IO::FileTestable {
         nqp::bindattr(self, IO, '$!PIO',
              $path eq '-'
                 ?? ( $w || $a ?? pir::getstdout__P() !! pir::getstdin__P() )
-                !! nqp::open(nqp::unbox_s($path), nqp::unbox_s($mode))
+                !! nqp::open(nqp::unbox_s($path.Str), nqp::unbox_s($mode))
         );
         $!path = $path;
         $!chomp = $chomp;
@@ -354,12 +354,25 @@ multi sub close($fh) {
 }
 
 proto sub slurp(|$) { * }
-multi sub slurp($filename) {
-    my $handle = open($filename, :r);
-    my $contents = $handle.slurp();
-    $handle.close();
-    $contents
+multi sub slurp($filename, :$bin = False) {
+    my $handle = open($filename, :r, :$bin);
+    if $bin {
+        my $Buf = Buf.new();
+        loop {
+            my $current  = $handle.read(10_000);
+            $Buf ~= $current;
+            last if $current.bytes == 0;
+        }
+        $handle.close;
+        $Buf;
+    }
+    else {
+        my $contents = $handle.slurp();
+        $handle.close();
+        $contents
+    }
 }
+
 multi sub slurp(IO $io = $*ARGFILES) {
     $io.slurp;
 }
@@ -368,10 +381,10 @@ proto sub spurt(|$) { * }
 multi sub spurt(Cool $filename,
                 Cool $contents,
                 :encoding(:$enc) = 'utf8',
-                :$new,
+                :$createonly,
                 :$append) {
-    fail("File '$filename' already exists, but :new was give to spurt")
-        if $new && $filename.IO.e;
+    fail("File '$filename' already exists, but :createonly was give to spurt")
+        if $createonly && $filename.IO.e;
     my $mode = $append ?? :a !! :w;
     my $fh = open($filename.Str, :$enc, |$mode);
     $fh.print($contents);
@@ -379,10 +392,10 @@ multi sub spurt(Cool $filename,
 }
 multi sub spurt(Cool $filename,
                 Buf $contents,
-                :$new,
+                :$createonly,
                 :$append) {
-    fail("File '$filename' already exists, but :new was give to spurt")
-        if $new && $filename.IO.e;
+    fail("File '$filename' already exists, but :createonly was give to spurt")
+        if $createonly && $filename.IO.e;
     my $mode = $append ?? :a !! :w;
     my $fh = open($filename.Str, :bin, |$mode);
     $fh.write($contents);

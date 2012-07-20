@@ -77,14 +77,28 @@ my class Str does Stringy {
                 !! $start.Int
             );
         my int $ichars = nqp::chars($sself);
-        fail "Negative start argument ($start) to .substr, use *{$istart} if you want relative to the end" 
+        X::OutOfRange.new(
+            what    => 'Start argument to substr',
+            got     => $start,
+            range   => (0..*),
+            comment => "use *{$istart} if you want to index relative to the end"
+        ).fail
             if $istart < 0;
-        fail "Start of substr ($start) beyond end of string" if $istart > $ichars;
+        X::OutOfRange.new(
+            what => 'Start of substr',
+            got  => $istart,
+            range => (0..$ichars),
+        ).fail
+            if $istart > $ichars;
         $length = $length($ichars - $istart) if nqp::istype($length, Callable);
         my int $ilength = $length.defined ?? $length.Int !! $ichars - $istart;
-        fail "Negative length argument ($length) to .substr, use *{$ilength} if you want relative to the end" 
+        X::OutOfRange.new(
+            what    => 'Length argument to substr',
+            got     => $length,
+            range   => (0..*),
+            comment => "use *{$ilength} if you want to index relative to the end"
+        ).fail
             if $ilength < 0;
-
         nqp::p6box_s(nqp::substr($sself, $istart, $ilength));
     }
 

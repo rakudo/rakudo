@@ -3,10 +3,15 @@ New in 2012.07
 + Ranges can now interpolate in argument lists
 + The built-in meta-objects (such as Metamodel::ClassHOW) now inherit from Any
 + &open now supports :enc/:encoding
-+ Exception.fail
-+ Changed &dir to return IO::File and IO::Dir objects, not strings
-+ anonymous subset types with  subset :: where ...;
++ Exception.fail, .resumable and .resume
++ Changed &dir to return IO::Path objects, not strings
 + Deprecated .bytes, .ucfirst, and .lcfirst
++ &slurp now supports :bin
++ &spurt implemented
++ cleaned up Version implementation
++ fixed :s file test
++ recognize obosolete rand() and rand(N) forms at compile time
++ anonymous subset types 'subset :: of Int where { $_ > 0 }'
 
 New in 2012.06
 + Rakudo is now compiled with the same regex engine as user-space regexes use

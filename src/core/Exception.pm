@@ -34,6 +34,20 @@ my class Exception {
         nqp::rethrow($!ex)
     }
 
+    method resumable() {
+        nqp::p6bool(nqp::istrue(nqp::atkey($!ex, 'resume')));
+    }
+
+    method resume() {
+        my Mu $resume := nqp::atkey($!ex, 'resume');
+        if $resume {
+            $resume();
+        }
+        else {
+            die "Exception is not resumable";
+        }
+    }
+
     method fail(Exception:D:) {
         try self.throw;
         my $fail := Failure.new($!);

@@ -177,4 +177,8 @@ my class Parameter {
         }
         $perl
     }
+
+    method sub_signature(Parameter:D:) {
+        nqp::isnull($!sub_signature) ?? Any !! $!sub_signature
+    }
 }

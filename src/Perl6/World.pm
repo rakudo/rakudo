@@ -1206,16 +1206,18 @@ class Perl6::World is HLL::World {
         my @pos_args;
         my %named_args;
         for @($arglist[0].ast) {
-            unless $_<has_compile_time_value> {
-                $/.CURSOR.panic("Cannot use '" ~ $arglist[0].Str ~
-                    "' as an argument to a parametric role as its value is not " ~
-                    "known at compile time");
-            }
-            if $_.named {
-                %named_args{$_.named} := $_<compile_time_value>;
+            my $val;
+            if $_<has_compile_time_value> {
+                $val := $_<compile_time_value>;
             }
             else {
-                @pos_args.push($_<compile_time_value>);
+                $val := self.compile_time_evaluate($/, $_);
+            }
+            if $_.named {
+                %named_args{$_.named} := $val;
+            }
+            else {
+                @pos_args.push($val);
             }
         }
         

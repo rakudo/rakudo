@@ -3413,6 +3413,9 @@ class QPerl6::Actions is HLL::Actions {
             nqp::die("pir::op forbidden in safe mode\n");
         }
         my $pirop := nqp::join(' ', nqp::split('__', ~$<op>));
+        unless nqp::index($pirop, ' ') > 0 {
+            nqp::die("pir::$pirop missing a signature");
+        }
         my $past := QAST::VM.new( :pirop($pirop), :node($/) );
         if $<args> {
             for $<args>[0].ast.list {

@@ -83,10 +83,10 @@ multi prefix:<->(int $a) returns int {
     nqp::neg_i($a)
 }
 
-multi prefix:<abs>(Int:D \$a) returns Int:D {
+multi abs(Int:D \$a) returns Int:D {
     nqp::abs_I(nqp::p6decont($a), Int);
 }
-multi prefix:<abs>(int $a) returns int {
+multi abs(int $a) returns int {
     nqp::abs_i($a)
 }
 

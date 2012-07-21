@@ -203,7 +203,7 @@ multi sub prefix:<->(Complex:D \$a) returns Complex:D {
     $new;
 }
 
-multi sub prefix:<abs>(Complex:D \$a) returns Num:D {
+multi sub abs(Complex:D \$a) returns Num:D {
     my num $re = nqp::getattr_n(nqp::p6decont($a), Complex, '$!re');
     my num $im = nqp::getattr_n(nqp::p6decont($a), Complex, '$!im');
     nqp::p6box_n(nqp::sqrt_n(nqp::add_n(nqp::mul_n($re, $re), nqp::mul_n($im, $im))));

@@ -119,7 +119,7 @@ multi sub infix:<mod>(Real $a, Real $b) {
     $a - ($a.Bridge.Int div $b.Bridge.Int) * $b;
 }
 
-multi prefix:<abs>(Real \$a) {
+multi sub abs(Real \$a) {
     $a < 0 ?? -$a !! $a;
 }
 

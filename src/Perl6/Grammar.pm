@@ -2596,7 +2596,6 @@ grammar Perl6::Grammar is HLL::Grammar {
     token infix:sym<|>    { <sym> <O('%junctive_or')> }
     token infix:sym<^>    { <sym> <O('%junctive_or')> }
 
-    token prefix:sym<abs>  { <sym> » <O('%named_unary')> }
     token prefix:sym<let>  { <sym> \s+ <!before '=>'> <O('%named_unary')> { $*W.give_cur_block_let($/) } }
     token prefix:sym<temp> { <sym> \s+ <!before '=>'> <O('%named_unary')> { $*W.give_cur_block_temp($/) } }
 

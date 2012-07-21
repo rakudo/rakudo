@@ -37,8 +37,8 @@ multi prefix:<+>(\$a) { $a.Numeric }
 proto prefix:<->(|$) { * }
 multi prefix:<->(\$a) { -$a.Numeric }
 
-proto prefix:<abs>(|$) { * }
-multi prefix:<abs>(\$a) { abs $a.Numeric }
+proto sub abs(|$) { * }
+multi sub abs(\$a) { abs $a.Numeric }
 
 proto sub sign(|$) {*}
 multi sub sign(Numeric \$x) { $x.sign }

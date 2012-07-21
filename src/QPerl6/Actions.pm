@@ -512,7 +512,9 @@ class QPerl6::Actions is HLL::Actions {
                     elsif $ast<bare_block> {
                         $ast := $ast<bare_block>;
                     }
-                    $ast := QAST::Stmt.new($ast, :returns($ast.returns)) if $ast ~~ QAST::Node;
+                    else {
+                        $ast := QAST::Stmt.new($ast, :returns($ast.returns)) if $ast ~~ QAST::Node;
+                    }
                     $past.push( $ast );
                 }
             }
@@ -1393,13 +1395,13 @@ class QPerl6::Actions is HLL::Actions {
                 :op('callmethod'), :name('clone'),
                 QAST::WVal.new( :value($throwaway_block) )
             ));
-            $block.push($fixup);
+            $block[1].push($fixup);
 
             # As its last act, it should grab the current lexpad so that
             # we have the type environment, and also return the parametric
             # role we're in (because if we land it through a multi-dispatch,
             # we won't know).
-            $block.push(QAST::Op.new(
+            $block[1].push(QAST::Op.new(
                 :op('list'),
                 QAST::WVal.new( :value($*PACKAGE) ),
                 QAST::Op.new( :op('curlexpad') )));

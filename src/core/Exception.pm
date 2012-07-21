@@ -24,7 +24,7 @@ my class Exception {
             unless nqp::defined($!ex);
         pir::setattribute__vPsP($!ex, 'payload', nqp::p6decont(self));
         my $msg := self.?message;
-        pir::setattribute__vPsP($!ex, 'message', nqp::unbox_s($msg.Str))
+        pir::setattribute__0PsP($!ex, 'message', nqp::unbox_s($msg.Str))
             if $msg.defined;
         nqp::throw($!ex)
     }
@@ -143,7 +143,7 @@ do {
             $_() for pir::perl6ize_type__PP(@*END_PHASERS);
         }
         if $! {
-            pir::perl6_based_rethrow__vPP(nqp::getattr($!, Exception, '$!ex'), $ex);
+            pir::perl6_based_rethrow__0PP(nqp::getattr($!, Exception, '$!ex'), $ex);
         }
     }
 

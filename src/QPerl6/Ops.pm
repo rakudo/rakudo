@@ -18,7 +18,6 @@ $ops.add_hll_pirop_mapping('perl6', 'lcm_i', 'lcm', 'Iii');
 $ops.add_hll_pirop_mapping('perl6', 'gcd_i', 'gcd', 'Iii');
 $ops.add_hll_pirop_mapping('perl6', 'sqrt_n', 'sqrt', 'NN');
 $ops.add_hll_pirop_mapping('perl6', 'create', 'repr_instance_of', 'PP');
-$ops.add_hll_pirop_mapping('perl6', 'exit', 'exit', 'vi');
 $ops.add_hll_pirop_mapping('perl6', 'p6store', 'perl6_container_store', '0PP');
 $ops.add_hll_pirop_mapping('perl6', 'p6type', 'perl6ize_type', 'PP');
 $ops.add_hll_pirop_mapping('perl6', 'p6takedisp', 'perl6_take_dispatcher', 'v');

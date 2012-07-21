@@ -637,6 +637,10 @@ BEGIN {
     Str.HOW.add_attribute(Str, BOOTSTRAPATTR.new(:name<$!value>, :type(str), :box_target(1), :package(Str)));
     Str.HOW.set_boolification_mode(Str, 4);
     Str.HOW.publish_boolification_spec(Str);
+    Str.HOW.add_parrot_vtable_mapping(Str, 'get_string',
+        static(sub ($self) {
+            nqp::unbox_s($self)
+        }));
 
     # class Int is Cool {
     #     has int $!value is box_target;
@@ -903,6 +907,7 @@ Submethod.HOW.publish_parrot_vtable_mapping(Submethod);
 Regex.HOW.publish_parrot_vtable_handler_mapping(Regex);
 Regex.HOW.publish_parrot_vtable_mapping(Regex);
 Stash.HOW.publish_parrot_vtable_handler_mapping(Stash);
+Stash.HOW.publish_parrot_vtable_handler_mapping(Str);
 
 # Set up various type mappings.
 pir::perl6_set_type_packagehow__vP(Perl6::Metamodel::PackageHOW);

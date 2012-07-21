@@ -3533,9 +3533,7 @@ class QPerl6::Actions is HLL::Actions {
         }
         else {
             my $last := $past[ $size - 1 ];
-            if nqp::defined($last.returns) {
-                $past.returns($last.returns);
-            }
+            $past.returns($last.returns);
             if nqp::defined($last.arity) {
                 $past.arity($last.arity);
             }

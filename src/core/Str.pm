@@ -683,9 +683,9 @@ my class Str does Stringy {
     method encode(Str:D $encoding = 'utf8') {
         my $buf := Buf.new;
         pir::set__vPs(nqp::getattr($buf, Buf, '$!buffer'),
-            pir::trans_encoding__ssi(
+            pir::trans_encoding__Ssi(
                 nqp::unbox_s(self),
-                pir::find_encoding__is(nqp::unbox_s(PARROT_ENCODING($encoding)))
+                pir::find_encoding__Is(nqp::unbox_s(PARROT_ENCODING($encoding)))
             )
         );
         $buf;

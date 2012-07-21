@@ -134,7 +134,7 @@ multi sub die(*@msg) is hidden_from_backtrace {
 }
 
 multi sub warn(*@msg) is hidden_from_backtrace {
-    my $ex := pir::new('Exception');
+    my $ex := pir::new__Ps('Exception');
     pir::setattribute__0PPsP($ex, Exception, 'message', @msg.join(''));
     pir::setattribute__0PPsP($ex, Exception, 'type', nqp::p6box_i(pir::const::CONTROL_OK));
     pir::setattribute__0PPsP($ex, Exception, 'severity', nqp::p6box_i(pir::const::EXCEPT_WARNING));

@@ -9,7 +9,7 @@ my class X::Buf::Pack::NonASCII  { ... };
 my class Buf does Positional {
     has Mu $!buffer;
     method BUILD() {
-        $!buffer := pir::new__PS('ByteBuffer');
+        $!buffer := pir::new__Ps('ByteBuffer');
         1;
     }
     method new(*@codes) {
@@ -158,7 +158,7 @@ multi prefix:<~^>(Buf:D $a) {
 }
 multi infix:<~>(Buf:D $a, Buf:D $b) {
     my Buf $r := nqp::create(Buf);
-    my Mu $br := pir::new__PS('ByteBuffer');
+    my Mu $br := pir::new__Ps('ByteBuffer');
 
     my Mu $ba := nqp::getattr(nqp::p6decont($a), Buf, '$!buffer');
     my Mu $bb := nqp::getattr(nqp::p6decont($b), Buf, '$!buffer');

@@ -20,7 +20,7 @@ my class Exception {
     }
 
     method throw() is hidden_from_backtrace {
-        nqp::bindattr(self, Exception, '$!ex', pir::new('Exception'))
+        nqp::bindattr(self, Exception, '$!ex', pir::new__Ps('Exception'))
             unless nqp::defined($!ex);
         pir::setattribute__vPsP($!ex, 'payload', nqp::p6decont(self));
         my $msg := self.?message;
@@ -189,7 +189,7 @@ do {
     $comp.HOW.add_method($comp, 'handle-exception',
         method (|$) {
             my Mu $ex := nqp::atpos(pir::perl6_current_args_rpa__P(), 1);
-            pir::perl6_invoke_catchhandler(&print_exception, $ex);
+            pir::perl6_invoke_catchhandler__vPP(&print_exception, $ex);
             nqp::exit(1);
             0;
         }
@@ -197,7 +197,7 @@ do {
     $comp.HOW.add_method($comp, 'handle-control',
         method (|$) {
             my Mu $ex := nqp::atpos(pir::perl6_current_args_rpa__P(), 1);
-            pir::perl6_invoke_catchhandler(&print_control, $ex);
+            pir::perl6_invoke_catchhandler__vPP(&print_control, $ex);
             nqp::rethrow($ex);
         }
     );

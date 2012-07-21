@@ -1164,7 +1164,10 @@ class QPerl6::World is HLL::World {
     # returns a reference to it.
     method add_constant_folded_result($r) {
         self.add_object($r);
-        QAST::WVal.new( :value($r) );
+        my $ast := QAST::WVal.new( :value($r) );
+        $ast<has_compile_time_value> := 1;
+        $ast<compile_time_value> := $r;
+        $ast
     }
 
     # Creates a meta-object for a package, adds it to the root objects and

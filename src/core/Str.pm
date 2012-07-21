@@ -64,9 +64,7 @@ my class Str does Stringy {
     }
 
     method chop(Str:D:) {
-        nqp::p6box_s(
-            nqp::p6box_s(pir::chopn__Ssi(nqp::unbox_s(self), 1))
-        );
+        nqp::p6box_s(pir::chopn__Ssi(nqp::unbox_s(self), 1))
     }
 
     method substr(Str:D: $start, $length? is copy) {

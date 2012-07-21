@@ -1135,7 +1135,7 @@ class QPerl6::World is HLL::World {
         else {
             $past := QAST::Want.new($const, 'Nn',
                 $value eq 'Inf' || $value eq '-Inf' || $value eq 'NaN' ??
-                    PAST::Op.new( :pirop('set Ns'), QAST::SVal.new( :value(~$value) ) ) !!
+                    QAST::VM.new( :pirop('set Ns'), QAST::SVal.new( :value(~$value) ) ) !!
                     QAST::NVal.new( :value($value) ) );
         }
         $past<has_compile_time_value> := 1;

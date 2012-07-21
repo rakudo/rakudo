@@ -32,53 +32,53 @@ my &RETURN-PARCEL := -> Mu \$parcel {
 
 my &return-rw := -> |$ { 
     my $parcel := 
-        &RETURN-PARCEL(nqp::p6parcel(pir::perl6_current_args_rpa__PP(), Nil));
+        &RETURN-PARCEL(nqp::p6parcel(pir::perl6_current_args_rpa__P(), Nil));
     pir::perl6_return_from_routine__vP($parcel);
     $parcel
 };
 my &return := -> |$ {
     my $parcel := 
-        &RETURN-PARCEL(nqp::p6parcel(pir::perl6_current_args_rpa__PP(), Nil));
+        &RETURN-PARCEL(nqp::p6parcel(pir::perl6_current_args_rpa__P(), Nil));
     pir::perl6_return_from_routine__vP(nqp::p6recont_ro($parcel));
     $parcel
 };
 
 my &take-rw := -> |$ { 
     my $parcel := 
-        &RETURN-PARCEL(nqp::p6parcel(pir::perl6_current_args_rpa__PP(), Nil));
+        &RETURN-PARCEL(nqp::p6parcel(pir::perl6_current_args_rpa__P(), Nil));
     THROW($parcel, pir::const::CONTROL_TAKE) 
 };
 my &take := -> |$ { 
     my $parcel := 
-        &RETURN-PARCEL(nqp::p6parcel(pir::perl6_current_args_rpa__PP(), Nil));
+        &RETURN-PARCEL(nqp::p6parcel(pir::perl6_current_args_rpa__P(), Nil));
     THROW(nqp::p6recont_ro($parcel),
           pir::const::CONTROL_TAKE) 
 };
 
 my &last := -> |$ { 
     my $parcel := 
-        &RETURN-PARCEL(nqp::p6parcel(pir::perl6_current_args_rpa__PP(), Nil));
+        &RETURN-PARCEL(nqp::p6parcel(pir::perl6_current_args_rpa__P(), Nil));
     THROW(nqp::p6decont($parcel), 
           pir::const::CONTROL_LOOP_LAST) 
 };
 
 my &next := -> |$ { 
     my $parcel := 
-        &RETURN-PARCEL(nqp::p6parcel(pir::perl6_current_args_rpa__PP(), Nil));
+        &RETURN-PARCEL(nqp::p6parcel(pir::perl6_current_args_rpa__P(), Nil));
     THROW(nqp::p6decont($parcel), 
           pir::const::CONTROL_LOOP_NEXT) 
 };
 
 my &redo := -> |$ { 
     my $parcel := 
-        &RETURN-PARCEL(nqp::p6parcel(pir::perl6_current_args_rpa__PP(), Nil));
+        &RETURN-PARCEL(nqp::p6parcel(pir::perl6_current_args_rpa__P(), Nil));
     THROW(nqp::p6decont($parcel), 
           pir::const::CONTROL_LOOP_REDO) 
 };
 
 my &succeed := -> |$ { 
     my $parcel := 
-        &RETURN-PARCEL(nqp::p6parcel(pir::perl6_current_args_rpa__PP(), Nil));
+        &RETURN-PARCEL(nqp::p6parcel(pir::perl6_current_args_rpa__P(), Nil));
     THROW(nqp::p6decont($parcel), 
           pir::const::CONTROL_BREAK) 
 };

@@ -1,6 +1,5 @@
 *~
 src/gen/*
-Perl6/*
 nqp/
 install/
 Makefile
@@ -32,7 +31,6 @@ perl6.rc
 t/localtest.data
 t/spec
 parrot
-perl6
 perl6.c
 perl6.o
 MANIFEST

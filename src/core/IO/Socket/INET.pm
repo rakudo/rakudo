@@ -16,6 +16,7 @@ my class IO::Socket::INET does IO::Socket {
         constant PROTO_UDP      = 17;
     }
 
+    has Str $.encoding = 'utf8';
     has Str $.host;
     has Int $.port = 80;
     has Str $.localhost;
@@ -76,6 +77,7 @@ my class IO::Socket::INET does IO::Socket {
             $PIO.bind($addr);
         }
 
+        $PIO.encoding(nqp::unbox_s(PARROT_ENCODING(self.encoding)));
         if $.listen { 
             $PIO.listen($.listen);
         }

@@ -51,7 +51,7 @@ my class List does Positional {
             ).list;
     }
     multi method tree(List:D: &c) {
-        MapIter.new(:list(self), :block(&c)).list;
+        MapIter.new(self, &c, Mu).list;
     }
     # uncommenting causes "Circularity detected in multi sub types"
 #    multi method tree(List:D: *@ [$first, *@rest] where {.elems >= 2 }) {

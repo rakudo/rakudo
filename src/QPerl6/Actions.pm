@@ -5075,28 +5075,32 @@ class QPerl6::Actions is HLL::Actions {
         %curried{'&infix:<~~>'}   := 0;
         %curried{'&infix:<=>'}    := 0;
         %curried{'&infix:<:=>'}   := 0;
-        %curried{'get_what PP'}   := 0;
-        %curried{'get_how PP'}    := 0;
-        %curried{'get_who PP'}    := 0;
-        %curried{'perl6_var PP'}  := 0;
-        %curried{'WHERE'}         := 0;
         %curried{'&infix:<..>'}   := 1;
         %curried{'&infix:<..^>'}  := 1;
         %curried{'&infix:<^..>'}  := 1;
         %curried{'&infix:<^..^>'} := 1;
         %curried{'&infix:<xx>'}   := 1;
+        %curried{'callmethod'}    := 2;
     }
     sub whatever_curry($/, $past, $upto_arity) {
         my $Whatever := $*W.find_symbol(['Whatever']);
         my $WhateverCode := $*W.find_symbol(['WhateverCode']);
-        my $curried := $past.isa(QAST::Op)
-                       && ($past.op ne 'call' ||
-                            (nqp::index($past.name, '&infix:') == 0 ||
-                             nqp::index($past.name, '&prefix:') == 0 ||
-                             nqp::index($past.name, '&postfix:') == 0 ||
-                             ($past[0].isa(QAST::Op) &&
-                                nqp::index($past[0].name, '&METAOP') == 0)))
-                       && (%curried{$past.name} // 2);
+        my $curried :=
+            # It must be an op and...
+            $past.isa(QAST::Op) && (
+            
+            # Either a call that we're allowed to curry...
+                (($past.op eq 'call' || $past.op eq 'chain') &&
+                    (nqp::index($past.name, '&infix:') == 0 ||
+                     nqp::index($past.name, '&prefix:') == 0 ||
+                     nqp::index($past.name, '&postfix:') == 0 ||
+                     ($past[0].isa(QAST::Op) &&
+                        nqp::index($past[0].name, '&METAOP') == 0)) &&
+                    %curried{$past.name} // 2)
+            
+            # Or not a call and an op in the list of alloweds.
+                || ($past.op ne 'call' && %curried{$past.op} // 0)
+            );
         my $i := 0;
         my $whatevers := 0;
         while $curried && $i < $upto_arity {

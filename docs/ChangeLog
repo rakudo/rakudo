@@ -2,6 +2,16 @@ New in 2012.07
 + Deprecated SAFE.setting in favor of RESTRICTED.setting
 + Ranges can now interpolate in argument lists
 + The built-in meta-objects (such as Metamodel::ClassHOW) now inherit from Any
++ &open now supports :enc/:encoding
++ Exception.fail, .resumable and .resume
++ Changed &dir to return IO::Path objects, not strings
++ Deprecated .bytes, .ucfirst, and .lcfirst
++ &slurp now supports :bin
++ &spurt implemented
++ cleaned up Version implementation
++ fixed :s file test
++ recognize obosolete rand() and rand(N) forms at compile time
++ anonymous subset types 'subset :: of Int where { $_ > 0 }'
 
 New in 2012.06
 + Rakudo is now compiled with the same regex engine as user-space regexes use
@@ -21,7 +31,6 @@ New in 2012.06
 + compile time errors in loaded modules now show a module loading backtrace
 + improved list and .map handling
 + can now use | to flatten a pair into an argument list as a named argument
-+ Changed &dir to return IO objects, not Str objects
 
 New in 2012.05
 + meta ops //=, ||= and &&= now short-circuit properly

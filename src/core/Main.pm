@@ -101,7 +101,7 @@ my sub MAIN_HELPER($retval = 0) is hidden_from_backtrace {
                 last;
             }
         }
-
+        $PROCESS::ARGFILES = IO::ArgFiles.new(:args(@args));
         return @positional-arguments, %named-arguments;
     }
 

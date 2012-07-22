@@ -75,12 +75,28 @@ my class Str does Stringy {
                 !! $start.Int
             );
         my int $ichars = nqp::chars($sself);
-        fail "Negative start argument ($start) to .substr" if $istart < 0;
-        fail "Start of substr ($start) beyond end of string" if $istart > $ichars;
+        X::OutOfRange.new(
+            what    => 'Start argument to substr',
+            got     => $start,
+            range   => (0..*),
+            comment => "use *{$istart} if you want to index relative to the end"
+        ).fail
+            if $istart < 0;
+        X::OutOfRange.new(
+            what => 'Start of substr',
+            got  => $istart,
+            range => (0..$ichars),
+        ).fail
+            if $istart > $ichars;
         $length = $length($ichars - $istart) if nqp::istype($length, Callable);
         my int $ilength = $length.defined ?? $length.Int !! $ichars - $istart;
-        fail "Negative length argument ($length) to .substr" if $ilength < 0;
-
+        X::OutOfRange.new(
+            what    => 'Length argument to substr',
+            got     => $length,
+            range   => (0..*),
+            comment => "use *{$ilength} if you want to index relative to the end"
+        ).fail
+            if $ilength < 0;
         nqp::p6box_s(nqp::substr($sself, $istart, $ilength));
     }
 
@@ -452,13 +468,16 @@ my class Str does Stringy {
     multi method gist(Str:D:) { self }
     multi method perl(Str:D:) {
         my $result = '"';
+        my $icu = $*VM<config><has_icu>;
         for ^self.chars -> $i {
             my $ch = self.substr($i, 1);
-            $result ~= %esc{$ch} // (nqp::iscclass(
-                                            pir::const::CCLASS_PRINTING,
-                                            nqp::unbox_s($ch), 0)
-                                      ?? $ch
-                                      !! $ch.ord.fmt('\x[%x]'));
+            $result ~= %esc{$ch} 
+                       //  (   ((!$icu && $ch.ord >= 256)
+                               || nqp::iscclass( pir::const::CCLASS_PRINTING,
+                                                  nqp::unbox_s($ch), 0))
+                           ?? $ch
+                           !! $ch.ord.fmt('\x[%x]')
+                           );
         }
         $result ~ '"'
     }

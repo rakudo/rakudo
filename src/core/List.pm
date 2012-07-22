@@ -65,9 +65,7 @@ my class List does Positional {
     }
 
     method Parcel() {
-        nqp::islist($!items) or 
-            nqp::bindattr(self, List, '$!items', nqp::list());
-        my Mu $rpa := nqp::clone($!items);
+        my Mu $rpa := nqp::clone(nqp::p6listitems(self));
         nqp::push($rpa, $!nextiter) if $!nextiter.defined;
         nqp::p6parcel($rpa, Any);
     }
@@ -99,12 +97,8 @@ my class List does Positional {
     }
 
     method gimme($n) {
-        # create $!items RPA if it doesn't already exist
-        nqp::islist($!items) or 
-            nqp::bindattr(self, List, '$!items', nqp::list());
-
         # loop through iterators until we have at least $n elements
-        my int $count = nqp::elems($!items);
+        my int $count = nqp::elems(nqp::p6listitems(self));
         my $eager = nqp::p6bool(nqp::istype($n, Whatever) || $n == $Inf);
         while $!nextiter.defined && ($eager 
                                        ?? !$!nextiter.infinite 
@@ -227,8 +221,7 @@ my class List does Positional {
     }
 
     multi method unshift(List:D: *@elems) {
-        nqp::bindattr(self, List, '$!items', nqp::list())
-            unless nqp::islist($!items);
+        nqp::p6listitems(self);
         while @elems {
             nqp::unshift($!items, @elems.pop)
         }
@@ -349,7 +342,9 @@ my class List does Positional {
         (0..self.end).list;
     }
     method values(List:D:) {
-        self
+        my Mu $rpa := nqp::clone(nqp::p6listitems(self));
+        nqp::push($rpa, $!nextiter) if $!nextiter.defined;
+        nqp::p6list($rpa, List, self.flattens);
     }
     method pairs(List:D:) {
         self.keys.map: {; $_ => self.at_pos($_) };

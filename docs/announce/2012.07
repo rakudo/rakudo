@@ -1,7 +1,7 @@
-    Announce: Rakudo Perl 6 compiler development release #54 ("XXX")
+    Announce: Rakudo Perl 6 compiler development release #54 ("Tallinn")
 
 On behalf of the Rakudo development team, I'm glad to announce the
-July 2012 release of Rakudo Perl #54 "XXX". Rakudo is an
+July 2012 release of Rakudo Perl #54 "Tallinn". Rakudo is an
 implementation of Perl 6 on the Parrot Virtual Machine (see
 <http://www.parrot.org>). The tarball for this release
 is available from <http://github.com/rakudo/rakudo/downloads>.
@@ -13,11 +13,17 @@ For the latest Rakudo Star release, see
 
 The Rakudo Perl compiler follows a monthly release cycle, with each
 release named after a Perl Mongers group. The July 2012 release is
-code named after XXX
+code-named after Tallinn, a fine old capital where jnthn and masak had
+much useful discussions about Perl 6 macro design last year.
 
 This release includes a lot of changes since the last one, including:
 
-* SAFE.setting is deprecated, use RESTRICTED.setting instead
+- Built-in meta-objects (e.g. Metamodel::ClassHOW) now inherit from Any
+- &open now supports :enc/:encoding
+- Changed &dir to return IO::Path objects, not strings
+- Deprecated .bytes, .ucfirst, and .lcfirst on Str
+- recognize obosolete rand() and rand(N) forms at compile time
+- anonymous subset types 'subset :: of Int where { $_ > 0 }'
 
 This is only a small peek at the changes in this release. For a more
 detailed list, see "docs/ChangeLog".
@@ -28,22 +34,21 @@ Parrot, the Perl 6 test suite and the specification.
 
 The following people contributed to this release:
 
-Contributors to Rakudo since the release on 2012-06-21:
-XXX
+Patrick R. Michaud, Moritz Lenz, Jonathan Worthington, Jonathan Scott Duff,
+Carl Mäsak, ronaldxs, Felix Herrmann, harmil, Gabor Szabo, sisar
 
 If you would like to contribute, see <http://rakudo.org/how-to-help>,
 ask on the perl6-compiler@perl.org mailing list, or ask on IRC #perl6
 on freenode.
 
 The next release of Rakudo (#55) is scheduled for August 23, 2012. A
-list of the other planned release dates and code names for upcoming
-releases is available in the "docs/release_guide.pod" file.
-In general, Rakudo development releases are scheduled to occur soon
-after each Parrot monthly release. Parrot releases the third Tuesday
-of each month.
+list of the other planned release dates and code names for 2012 is
+available in the "docs/release_guide.pod" file. In general, Rakudo
+development releases are scheduled to occur soon after each Parrot
+monthly release. Parrot releases the third Tuesday of each month.
 
-On behalf of the development team, I encourage you to try the new release.
-Have fun, and let us know about your experience.
+On behalf of the development team, I encourage you to try the new release,
+to live life to its fullest, to cherish each moment, and to have fun.
 
 [*] What's the difference between the Rakudo compiler and the Rakudo
     Star distribution?

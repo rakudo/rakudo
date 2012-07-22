@@ -391,14 +391,13 @@ grammar Perl6::Grammar is HLL::Grammar {
     token install_doc_phaser { <?> }
 
     token vnum {
-        <decint> | '*'
+        \d+ | '*'
     }
 
     token version {
-        'v' <?before \d+> {} <vnum>+ % '.' ('+')?
+        'v' <?before \d> {} $<vstr>=[<vnum>+ % '.' '+'?]
         <!before '-'|\'> # cheat because of LTM fail
     }
-
 
     ## Top-level rules
 
@@ -1999,9 +1998,9 @@ grammar Perl6::Grammar is HLL::Grammar {
 
     token term:sym<rand> {
         <sym> »
-        <.end_keyword>
         [ <?before '('? \h* [\d|'$']> <.obs('rand(N)', 'N.rand or (1..N).pick')> ]?
         [ <?before '()'> <.obs('rand()', 'rand')> ]?
+        <.end_keyword>
     }
 
     token term:sym<...> { <sym> <args> }
@@ -2598,7 +2597,6 @@ grammar Perl6::Grammar is HLL::Grammar {
     token infix:sym<|>    { <sym> <O('%junctive_or')> }
     token infix:sym<^>    { <sym> <O('%junctive_or')> }
 
-    token prefix:sym<abs>  { <sym> » <O('%named_unary')> }
     token prefix:sym<let>  { <sym> \s+ <!before '=>'> <O('%named_unary')> { $*W.give_cur_block_let($/) } }
     token prefix:sym<temp> { <sym> \s+ <!before '=>'> <O('%named_unary')> { $*W.give_cur_block_temp($/) } }
 
@@ -2871,9 +2869,6 @@ grammar Perl6::RegexGrammar is QRegex::P6Regex::Grammar {
         <?before '<' \s >  # (note required whitespace)
         <quote_EXPR: ':q', ':w'>
     }
-    
-    token metachar:sym<from> { '<(' }
-    token metachar:sym<to> { ')>' }
     
     token assertion:sym<{ }> {
         <?[{]> <codeblock>

@@ -78,9 +78,6 @@ my role Real does Numeric {
         $int_part == 0 && self < 0 ?? '-' ~ $r !! $r;
     }
 
-    method succ() { self.Bridge.succ }
-    method pred() { self.Bridge.pred }
-
     method Real(Real:D:) { self }
     method Bridge(Real:D:) { self.Num }
     method Int(Real:D:) { self.Bridge.Int }
@@ -122,7 +119,7 @@ multi sub infix:<mod>(Real $a, Real $b) {
     $a - ($a.Bridge.Int div $b.Bridge.Int) * $b;
 }
 
-multi prefix:<abs>(Real \$a) {
+multi sub abs(Real \$a) {
     $a < 0 ?? -$a !! $a;
 }
 

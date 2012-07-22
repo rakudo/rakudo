@@ -1458,7 +1458,7 @@ class Perl6::Actions is HLL::Actions {
                     }
                 }
                 elsif $<initializer>[0]<sym> eq '=' {
-                    $past := assign_op($past, $<initializer>[0].ast);
+                    $past := assign_op($/, $past, $<initializer>[0].ast);
                 }
                 elsif $<initializer>[0]<sym> eq '.=' {
                     $past := make_dot_equals($past, $<initializer>[0].ast);
@@ -1503,7 +1503,7 @@ class Perl6::Actions is HLL::Actions {
                 if $<initializer>[0]<sym> eq '=' {
                     $/.CURSOR.panic("Cannot assign to a list of 'has' scoped declarations")
                         if $*SCOPE eq 'has';
-                    $list := assign_op($list, $<initializer>[0].ast);
+                    $list := assign_op($/, $list, $<initializer>[0].ast);
                 }
                 elsif $<initializer>[0]<sym> eq '.=' {
                     $/.CURSOR.panic("Cannot use .= initializer with a list of declarations");
@@ -2505,7 +2505,7 @@ class Perl6::Actions is HLL::Actions {
         }
 
         # Install it as needed.
-        if $<longname> {
+        if $<longname> && $longname.type_name_parts('subset name', :decl(1)) {
             $*W.install_package($/, $longname.type_name_parts('subset name', :decl(1)),
                 ($*SCOPE || 'our'), 'subset', $*PACKAGE, $*W.cur_lexpad(), $subset);
         }
@@ -3623,7 +3623,7 @@ class Perl6::Actions is HLL::Actions {
         '<<==', -> $/, $sym { make_feed($/) },
         '~~',   -> $/, $sym { make_smartmatch($/, 0) },
         '!~~',  -> $/, $sym { make_smartmatch($/, 1) },
-        '=',    -> $/, $sym { assign_op($/[0].ast, $/[1].ast) },
+        '=',    -> $/, $sym { assign_op($/, $/[0].ast, $/[1].ast) },
         ':=',   -> $/, $sym { bind_op($/, $/[0].ast, $/[1].ast, 0) },
         '::=',  -> $/, $sym { bind_op($/, $/[0].ast, $/[1].ast, 1) },
         'ff',   -> $/, $sym { flipflop($/[0].ast, $/[1].ast, 0, 0, 0) },
@@ -3906,7 +3906,7 @@ class Perl6::Actions is HLL::Actions {
         }
     }
 
-    sub assign_op($lhs_ast, $rhs_ast) {
+    sub assign_op($/, $lhs_ast, $rhs_ast) {
         my $past;
         my $var_sigil;
         if $lhs_ast.isa(QAST::Var) {
@@ -3928,7 +3928,8 @@ class Perl6::Actions is HLL::Actions {
                 $lhs_ast, $rhs_ast);
         }
         else {
-            $past := QAST::Op.new( :op('p6store'), $lhs_ast, $rhs_ast);
+            $past := QAST::Op.new( :node($/), :op('p6store'),
+                $lhs_ast, $rhs_ast);
         }
         return $past;
     }
@@ -4111,6 +4112,15 @@ class Perl6::Actions is HLL::Actions {
         }
     }
 
+    sub baseop_reduce($/) {
+        my $reduce := 'LEFT';
+        if    $<assoc> eq 'right'  
+           || $<assoc> eq 'list'   { $reduce := nqp::uc($<assoc>); }
+        elsif $<prec> eq 'm='      { $reduce := 'CHAIN'; }
+        elsif $<pasttype> eq 'xor' { $reduce := 'XOR'; }
+        '&METAOP_REDUCE_' ~ $reduce;
+    }
+
     method infixish($/) {
         if $<infix_postfix_meta_operator> {
             my $base     := $<infix>;
@@ -4144,9 +4154,11 @@ class Perl6::Actions is HLL::Actions {
             elsif $metasym eq 'X' { $helper := '&METAOP_CROSS'; }
             elsif $metasym eq 'Z' { $helper := '&METAOP_ZIP'; }
 
-            make QAST::Op.new( :node($/), :op<call>,
-                     QAST::Op.new( :op<call>,
-                         :name($helper), $basepast ));
+            my $metapast := QAST::Op.new( :op<call>, :name($helper), $basepast );
+            $metapast.push(QAST::Var.new(:name(baseop_reduce($base<OPER><O>)),
+                                         :scope<lexical>))
+                if $metasym eq 'X' || $metasym eq 'Z';
+            make QAST::Op.new( :node($/), :op<call>, $metapast );
         }
 
         if $<infixish> {
@@ -4160,11 +4172,7 @@ class Perl6::Actions is HLL::Actions {
                           ?? $base.ast[0]
                           !! QAST::Var.new(:name("&infix:<" ~ $base<OPER><sym> ~ ">"),
                                            :scope<lexical>);
-        my $metaop   := '&METAOP_REDUCE';
-        if $base<OPER><O><assoc> eq 'right'     { $metaop := '&METAOP_REDUCE_RIGHT' }
-        elsif $base<OPER><O><assoc> eq 'list'   { $metaop := '&METAOP_REDUCE_LIST'  }
-        elsif $base<OPER><O><prec> eq 'm='      { $metaop := '&METAOP_REDUCE_CHAIN' }
-        elsif $base<OPER><O><pasttype> eq 'xor' { $metaop := '&METAOP_REDUCE_XOR' }
+        my $metaop   := baseop_reduce($base<OPER><O>);
         my $metapast := QAST::Op.new( :op<call>, :name($metaop), $basepast);
         if $<triangle> {
             my $tri := $*W.add_constant('Int', 'int', 1);
@@ -4272,20 +4280,9 @@ class Perl6::Actions is HLL::Actions {
     method value:sym<version>($/) {
         make $<version>.ast;
     }
-    method vnum($/) {
-        if $<decint> {
-            make $<decint>.ast;
-        }
-        else {
-            make $*W.find_symbol(['Whatever']).new;
-        }
-    }
+
     method version($/) {
-        my @vnums;
-        for $<vnum> -> $v {
-            nqp::push(@vnums, $v.ast);
-        }
-        my $v := $*W.find_symbol(['Version']).new(|@vnums, :plus(?$/[0]));
+        my $v := $*W.find_symbol(['Version']).new(~$<vstr>);
         $*W.add_object($v);
         make QAST::WVal.new( :value($v) );
     }
@@ -5349,16 +5346,6 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions {
         make $qast;
     }
     
-    method metachar:sym<from>($/) {
-        make QAST::Regex.new( :rxtype<subrule>, :subtype<method>,
-            PAST::Node.new('MARK_FROM'), :node($/) );
-    }
-    
-    method metachar:sym<to>($/) {
-        make QAST::Regex.new( :rxtype<subrule>, :subtype<method>,
-            PAST::Node.new('MARK_TO'), :node($/) );
-    }
-
     method metachar:sym<rakvar>($/) {
         make QAST::Regex.new( PAST::Node.new('INTERPOLATE',
                                     PAST::QAST.new( $<var>.ast ),

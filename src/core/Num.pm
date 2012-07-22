@@ -249,10 +249,10 @@ multi prefix:<->(num $a) {
     nqp::neg_n($a);
 }
 
-multi prefix:<abs>(Num:D \$a) {
+multi sub abs(Num:D \$a) {
     nqp::p6box_n(nqp::abs_n(nqp::unbox_n($a)))
 }
-multi prefix:<abs>(num $a) {
+multi sub abs(num $a) {
     nqp::abs_n($a)
 }
 

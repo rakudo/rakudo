@@ -20,6 +20,9 @@ my role Numeric {
     multi method Bool(Numeric:D:) { self != 0 }
 
     multi method gist(Numeric:D:) { self.Str }
+
+    method succ() { self + 1 }
+    method pred() { self - 1 }
 }
 
 multi sub infix:<eqv>(Numeric $a, Numeric $b) {
@@ -34,8 +37,8 @@ multi prefix:<+>(\$a) { $a.Numeric }
 proto prefix:<->(|$) { * }
 multi prefix:<->(\$a) { -$a.Numeric }
 
-proto prefix:<abs>(|$) { * }
-multi prefix:<abs>(\$a) { abs $a.Numeric }
+proto sub abs(|$) { * }
+multi sub abs(\$a) { abs $a.Numeric }
 
 proto sub sign(|$) {*}
 multi sub sign(Numeric \$x) { $x.sign }

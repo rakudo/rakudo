@@ -27,6 +27,7 @@ BEGIN_OPS_PREAMBLE
 
 /* Cache some stuff for fast access. */
 static INTVAL smo_id = 0;
+static INTVAL qrpa_id = 0;
 
 /* The current dispatcher, for the next thing that wants one to take. */
 static PMC *current_dispatcher = NULL;
@@ -269,6 +270,7 @@ Does various setup tasks on behalf of all of the other dynops.
 inline op rakudo_dynop_setup() :base_core {
     /* Get 6model object type ID. */
     smo_id = Parrot_pmc_get_type_str(interp, Parrot_str_new_constant(interp, "SixModelObject"));
+    qrpa_id = Parrot_pmc_get_type_str(interp, Parrot_str_new_constant(interp, "QRPA"));
 }
 
 
@@ -1585,6 +1587,28 @@ in $2 and with flattening $4.
 */
 inline op perl6_list_from_rpa(out PMC, in PMC, in PMC, in PMC) :base_core {
     $1 = Rakudo_binding_list_from_rpa(interp, $2, $3, $4);
+}
+
+
+/*
+
+=item perl6_listitems(out PMC, in PMC)
+
+Returns the $!items attribute of $2 into $1, vivifying it to a
+low-level array if it isn't one already.
+
+*/
+inline op perl6_listitems(out PMC, in PMC) :base_core {
+    PMC *List  = Rakudo_types_list_get();
+    PMC *items = VTABLE_get_attr_keyed(interp, $2, List,
+                     Parrot_str_new_constant(interp, "$!items"));
+    INTVAL type = items->vtable->base_type;
+    if (type != qrpa_id && type != enum_class_ResizablePMCArray) {
+        items = Parrot_pmc_new(interp, enum_class_ResizablePMCArray);
+        VTABLE_set_attr_keyed(interp, $2, List,
+                     Parrot_str_new_constant(interp, "$!items"), items);
+    }
+    $1 = items;
 }
 
 

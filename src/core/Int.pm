@@ -46,10 +46,6 @@ my class Int does Real {
         nqp::p6box_s(nqp::chr(nqp::unbox_i(self)));
     }
 
-    method succ(Int:D:) { self + 1 }
-
-    method pred(Int:D:) { self - 1 }
-
     method sqrt(Int:D:) { nqp::p6box_n(nqp::sqrt_n(nqp::tonum_I(self))) }
 
     method base(Int:D: Cool $base) {
@@ -87,10 +83,10 @@ multi prefix:<->(int $a) returns int {
     nqp::neg_i($a)
 }
 
-multi prefix:<abs>(Int:D \$a) returns Int:D {
+multi abs(Int:D \$a) returns Int:D {
     nqp::abs_I(nqp::p6decont($a), Int);
 }
-multi prefix:<abs>(int $a) returns int {
+multi abs(int $a) returns int {
     nqp::abs_i($a)
 }
 

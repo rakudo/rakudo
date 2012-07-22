@@ -4,24 +4,6 @@ my class Cursor does NQPCursorRole {
     # Some bits to support <prior>
     my $last_match;
     
-    # For <( and )>
-    has $!explicit_from;
-    has $!explicit_to;
-    method MARK_FROM() {
-        my int $pos = nqp::getattr_i(self, Cursor, '$!pos');
-        $!explicit_from = $pos;
-        my $cur := self.'!cursor_start'();
-        $cur.'!cursor_pass'($pos);
-        $cur
-    }
-    method MARK_TO() {
-        my int $pos = nqp::getattr_i(self, Cursor, '$!pos');
-        $!explicit_to = $pos;
-        my $cur := self.'!cursor_start'();
-        $cur.'!cursor_pass'($pos);
-        $cur
-    }
-
     method MATCH() {
         my $match := nqp::getattr(self, Cursor, '$!match');
         return $match if nqp::istype($match, Match) && nqp::isconcrete($match);
@@ -40,17 +22,16 @@ my class Cursor does NQPCursorRole {
                 my Mu $pair := nqp::shift($capiter);
                 my str $key = $pair.key;
                 my Mu $value := $pair.value;
-                $value := nqp::p6list($value, List, Mu)
-                    if nqp::islist($value);
-                nqp::iscclass(pir::const::CCLASS_NUMERIC, $key, 0)
-                  ?? nqp::bindpos($list, $key, $value)
-                  !! nqp::bindkey($hash, $key, $value);
-            }
-            if $!explicit_from.DEFINITE {
-                nqp::bindattr($match, Match, '$!from', $!explicit_from);
-            }
-            if $!explicit_to.DEFINITE {
-                nqp::bindattr($match, Match, '$!to',  $!explicit_to);
+                if $key eq '$!from' || $key eq '$!to' {
+                    nqp::bindattr($match, Match, $key, nqp::p6box_i($value.from));
+                }
+                else {
+                    $value := nqp::p6list($value, List, Mu)
+                        if nqp::islist($value);
+                    nqp::iscclass(pir::const::CCLASS_NUMERIC, $key, 0)
+                      ?? nqp::bindpos($list, $key, $value)
+                      !! nqp::bindkey($hash, $key, $value);
+                }
             }
         }
         nqp::bindattr($match, Capture, '$!list', $list);

@@ -70,7 +70,9 @@ my class Buf does Positional {
 
     method subbuf(Buf:D: $from = 0, $len = self.elems) {
         my $ret := nqp::create(self);
-        nqp::bindattr($ret, Buf, '$!buffer',
+        my $buf := pir::new__Ps('ByteBuffer');
+        nqp::bindattr($ret, Buf, '$!buffer', $buf);
+        pir::set__vPs($buf,
             nqp::substr($!buffer.get_string('binary'),
                 nqp::unbox_i($from.Int),
                 nqp::unbox_i($len.Int)

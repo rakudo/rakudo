@@ -4968,24 +4968,24 @@ class QPerl6::Actions is HLL::Actions {
         # rethrow the exception if we reach the end of the handler
         # (if a when {} clause matches this will get skipped due
         # to the BREAK exception)
-        $handler<past_block>.push(QAST::VM.new(
-            :pirop('rethrow vP'),
+        $handler<past_block>.push(QAST::Op.new(
+            :op('rethrow'),
             QAST::Var.new( :name($exceptionreg), :scope('local') )));
 
         # set up a generic exception rethrow, so that exception
         # handlers from unwanted frames will get skipped if the
         # code in our handler throws an exception.
-        # XXX Needs QAST update. Also, figuring out what the bloody hell
-        # is it doing...
-        #unless $handler<past_block>.handlers() {
-        #    $handler<past_block>.handlers([]);
-        #}
-        #$handler<past_block>.handlers.unshift(
-        #    PAST::Op.new( :pirop('perl6_based_rethrow__vPP'),
-        #        PAST::Op.new(:inline("    .get_results (%r)")),
-        #        PAST::Var.new( :scope('register'), :name($exceptionreg))
-        #    )
-        #);
+        my $prev_content := QAST::Stmts.new();
+        $prev_content.push($handler<past_block>.shift()) while +@($handler<past_block>);
+        $handler<past_block>.push(QAST::Op.new(
+            :op('handle'),
+            $prev_content,
+            'CATCH',
+            QAST::VM.new(
+                :pirop('perl6_based_rethrow 1PP'),
+                QAST::Op.new( :op('exception') ),
+                QAST::Var.new( :name($exceptionreg), :scope('local') )
+            )));
 
         my $ex := QAST::Op.new( :op('exception') );
 

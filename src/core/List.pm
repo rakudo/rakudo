@@ -39,14 +39,15 @@ my class List does Positional {
     proto method tree(|$) {*}
     multi method tree(List:U:) { self }
     multi method tree(List:D:) {
-        MapIter.new(:list(self), :block(&itemify)).list;
+        MapIter.new(self, &itemify, Mu).list;
     }
     multi method tree(List:D: Cool $count as Int) {
            $count <= 0 ?? self
         !! $count == 1 ?? self.tree
         !!  MapIter.new(
-                :list(self),
-                :block({.elems == 1 ?? $_ !! [.tree($count - 1)]})
+                self,
+                {.elems == 1 ?? $_ !! [.tree($count - 1)]},
+                Mu
             ).list;
     }
     multi method tree(List:D: &c) {

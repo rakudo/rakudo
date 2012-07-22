@@ -612,6 +612,7 @@ grammar Perl6::Grammar is HLL::Grammar {
 
     token blockoid {
         :my $*CURPAD;
+        :my %*HANDLERS;
         <.finishpad>
         [
         | '{YOU_ARE_HERE}' <you_are_here>
@@ -2193,7 +2194,7 @@ grammar Perl6::Grammar is HLL::Grammar {
 
     method match_with_adverb($v) {
         my $s := NQPMatch.new();
-        $s.'!make'(PAST::Val.new(:value(1), :named('s')));
+        $s.'!make'(QAST::IVal.new(:value(1), :named('s')));
         $s;
     }
 
@@ -2632,8 +2633,8 @@ grammar Perl6::Grammar is HLL::Grammar {
     token infix:sym<&&>   { <sym>  <O('%tight_and, :pasttype<if>')> }
 
     token infix:sym<||>   { <sym>  <O('%tight_or, :assoc<left>, :pasttype<unless>')> }
-    token infix:sym<^^>   { <sym>  <O('%tight_or, :pasttype<xor_nqp>')> }
-    token infix:sym<//>   { <sym>  <O('%tight_or, :assoc<left>, :pasttype<def_or>')> }
+    token infix:sym<^^>   { <sym>  <O('%tight_or, :pasttype<xor>')> }
+    token infix:sym<//>   { <sym>  <O('%tight_or, :assoc<left>, :pasttype<defor>')> }
     token infix:sym<min>  { <sym> >> <O('%tight_or')> }
     token infix:sym<max>  { <sym> >> <O('%tight_or')> }
 
@@ -2719,8 +2720,8 @@ grammar Perl6::Grammar is HLL::Grammar {
     token infix:sym<and>  { <sym> >> <O('%loose_and, :pasttype<if>')> }
 
     token infix:sym<or>   { <sym> >> <O('%loose_or, :assoc<left>, :pasttype<unless>')> }
-    token infix:sym<xor>  { <sym> >> <O('%loose_or, :pasttype<xor_nqp>')> }
-    token infix:sym<orelse> { <sym> >> <O('%loose_or, :assoc<left>, :pasttype<def_or>')> }
+    token infix:sym<xor>  { <sym> >> <O('%loose_or, :pasttype<xor>')> }
+    token infix:sym<orelse> { <sym> >> <O('%loose_or, :assoc<left>, :pasttype<defor>')> }
 
     token infix:sym«<==»  { <sym> <O('%sequencer')> }
     token infix:sym«==>»  { <sym> <O('%sequencer')> }
@@ -2842,8 +2843,8 @@ grammar Perl6::Grammar is HLL::Grammar {
         # May also need to add to the actions.
         if $category eq 'circumfix' {
             $*ACTIONS.HOW.add_method($*ACTIONS, $canname, sub ($self, $/) {
-                make PAST::Op.new(
-                    :pasttype('call'), :name('&' ~ $subname),
+                make QAST::Op.new(
+                    :op('call'), :name('&' ~ $subname),
                     $<EXPR>.ast
                 );
             });

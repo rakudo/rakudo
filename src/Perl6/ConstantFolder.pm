@@ -6,7 +6,7 @@ class Perl6::ConstantFolder {
             # It's already got a compile time value, just hand it back.
             $expr
         }
-        elsif $expr.isa(PAST::Op) && $expr.name && ($expr.pasttype eq '' || $expr.pasttype eq 'call') {
+        elsif nqp::istype($expr, QAST::Op) && $expr.name && $expr.op eq 'call' {
             # Potentially foldable call. Try to get compile time args (which
             # my involve recursively folding).
             my @args;

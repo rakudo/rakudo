@@ -397,6 +397,9 @@ class Perl6::Optimizer {
     
     # Inlines an immediate block.
     method inline_immediate_block($block, $outer) {
+        # Sanity check.
+        return $block if +@($block) != 2;
+
         # Extract interesting parts of block.
         my $decls := $block.shift;
         my $stmts := $block.shift;
@@ -410,11 +413,12 @@ class Perl6::Optimizer {
         
         # Copy over interesting stuff in declaration section.
         for @($decls) {
-            if $_.isa(QAST::Op) && $_.op eq 'p6bindsig' {
-                # Don't copy this binder call.
+            if $_.isa(QAST::Op) && ($_.op eq 'p6bindsig' || 
+                    $_.op eq 'bind' && $_[0].name eq 'call_sig') {
+                # Don't copy this binder call or setup.
             }
             elsif $_.isa(QAST::Var) && ($_.name eq '$/' || $_.name eq '$!' ||
-                    $_.name eq '$_' || $_.name eq 'call_sig' || $_.name eq '$*DISPATCHER') {
+                    $_.name eq '$_' || $_.name eq '$*DISPATCHER') {
                 # Don't copy this variable node.
             }
             else {

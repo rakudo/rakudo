@@ -33,13 +33,13 @@ my &RETURN-PARCEL := -> Mu \$parcel {
 my &return-rw := -> |$ { 
     my $parcel := 
         &RETURN-PARCEL(nqp::p6parcel(pir::perl6_current_args_rpa__P(), Nil));
-    pir::perl6_return_from_routine__vP($parcel);
+    nqp::p6routinereturn($parcel);
     $parcel
 };
 my &return := -> |$ {
     my $parcel := 
         &RETURN-PARCEL(nqp::p6parcel(pir::perl6_current_args_rpa__P(), Nil));
-    pir::perl6_return_from_routine__vP(nqp::p6recont_ro($parcel));
+    nqp::p6routinereturn(nqp::p6recont_ro($parcel));
     $parcel
 };
 
@@ -96,7 +96,7 @@ my &callwith := -> *@pos, *%named {
 my &nextwith := -> *@pos, *%named {
     my Mu $dispatcher := pir::perl6_find_dispatcher__Ps('nextwith');
     unless $dispatcher.exhausted {
-        pir::perl6_return_from_routine__vP(nqp::p6recont_ro(
+        nqp::p6routinereturn(nqp::p6recont_ro(
             $dispatcher.call_with_args(|@pos, |%named)))
     }
     Nil
@@ -112,7 +112,7 @@ my &callsame := -> {
 my &nextsame := -> {
     my Mu $dispatcher := pir::perl6_find_dispatcher__Ps('nextsame');
     unless $dispatcher.exhausted {
-        pir::perl6_return_from_routine__vP(nqp::p6recont_ro(
+        nqp::p6routinereturn(nqp::p6recont_ro(
             $dispatcher.call_with_capture(
                 pir::perl6_args_for_dispatcher__PP($dispatcher))))
     }

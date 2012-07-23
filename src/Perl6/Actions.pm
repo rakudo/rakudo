@@ -2291,7 +2291,7 @@ class Perl6::Actions is HLL::Actions {
             $block.symbol('$¢', :scope<lexical>);
             unless $use_outer_match {
                 $block[0].push(QAST::Var.new(:name<$/>, :scope<lexical>, :decl('var')));
-                $block.symbol('$/', :scope<lexical>);
+                $block.symbol('$/', :scope<lexical>, :lazyinit(1));
             }
             $past := QRegex::P6Regex::Actions::qbuildsub($qast, $block);
         }

@@ -417,6 +417,7 @@ grammar Perl6::Grammar is HLL::Grammar {
 
         # Extras.
         :my %*METAOPGEN;                           # hash of generated metaops
+        :my %*HANDLERS;                            # block exception handlers
         :my $*IMPLICIT;                            # whether we allow an implicit param
         :my $*FORBID_PIR := 0;                     # whether pir::op and Q:PIR { } are disallowed
         :my $*HAS_YOU_ARE_HERE := 0;               # whether {YOU_ARE_HERE} has shown up

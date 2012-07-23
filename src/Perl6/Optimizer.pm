@@ -107,7 +107,7 @@ class Perl6::Optimizer {
             # the static lexpad entries will need twiddling with.
             if +@sigsyms == 0 {
                 if $*LEVEL >= 3 {
-                    #return self.inline_immediate_block($block, $outer);
+                    return self.inline_immediate_block($block, $outer);
                 }
             }
         }
@@ -425,7 +425,7 @@ class Perl6::Optimizer {
                 $outer[0].push($_);
             }
         }
-        
+
         # Hand back the statements, but be sure to preserve $_
         # around them.
         $!pres_topic_counter := $!pres_topic_counter + 1;

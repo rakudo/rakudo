@@ -20,10 +20,9 @@ class Perl6::Compiler is HLL::Compiler {
 
     # XXX Disable optimizer for now while doing QAST transition.
     method optimize($past, *%adverbs) {
-        #%adverbs<optimize> eq 'off' ??
-        #    $past !!
-        #    Perl6::Optimizer.new.optimize($past, |%adverbs)
-        $past
+        %adverbs<optimize> eq 'off' ??
+            $past !!
+            Perl6::Optimizer.new.optimize($past, |%adverbs)
     }
 
     method syntaxcheck($past, *%adverbs) {

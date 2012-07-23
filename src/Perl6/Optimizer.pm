@@ -26,7 +26,7 @@ class Perl6::Optimizer {
     # Entry point for the optimization process.
     method optimize($past, *%adverbs) {
         # Initialize.
-        @!block_stack := [$past];
+        @!block_stack := [$past[0]];
         $!chain_depth := 0;
         $!pres_topic_counter := 0;
         %!deadly := nqp::hash();
@@ -107,7 +107,7 @@ class Perl6::Optimizer {
             # the static lexpad entries will need twiddling with.
             if +@sigsyms == 0 {
                 if $*LEVEL >= 3 {
-                    return self.inline_immediate_block($block, $outer);
+                    #return self.inline_immediate_block($block, $outer);
                 }
             }
         }
@@ -115,11 +115,16 @@ class Perl6::Optimizer {
         $block
     }
     
-    # Called when we encounter a PAST::Op in the tree. Produces either
+    # Called when we encounter a QAST::Op in the tree. Produces either
     # the op itself or some replacement opcode to put in the tree.
     method visit_op($op) {
-        # A chain with exactly two children can become the op itself.
+        # If it's a QAST::Op of type handle, needs some special attention.
         my $optype := $op.op;
+        if $optype eq 'handle' {
+            return self.visit_handle($op);
+        }
+        
+        # A chain with exactly two children can become the op itself.
         if $optype eq 'chain' {
             $!chain_depth := $!chain_depth + 1;
             $optype := 'call' if $!chain_depth == 1 &&
@@ -218,12 +223,13 @@ class Perl6::Optimizer {
                 my $meth := $pkg.HOW.find_private_method($pkg, $name);
                 if $meth {
                     try {
-                        my $call := $*W.get_ref($meth); # may fail, thus the try
+                        $*W.get_ref($meth); # may fail, thus the try; verifies it's in SC
+                        my $call := QAST::WVal.new( :value($meth) );
                         my $inv  := $op.shift;
                         $op.shift; $op.shift; # name, package (both pre-resolved now)
                         $op.unshift($inv);
                         $op.unshift($call);
-                        $op.pasttype('call');
+                        $op.op('call');
                         $op.name(nqp::null());
                     }
                 }
@@ -240,11 +246,17 @@ class Perl6::Optimizer {
         $op
     }
     
-    # Handles visiting a PAST::Want node.
+    # Handles visiting a QAST::Op :op('handle').
+    method visit_handle($op) {
+        self.visit_children($op, :skip_selectors);
+        $op
+    }
+    
+    # Handles visiting a QAST::Want node.
     method visit_want($want) {
         # Just visit the children for now. We ignore the literal strings, so
         # it all works out.
-        self.visit_children($want)
+        self.visit_children($want, :skip_selectors)
     }
     
     # Handles visit a variable node.
@@ -320,27 +332,29 @@ class Perl6::Optimizer {
     }
     
     # Visits all of a nodes children, and dispatches appropriately.
-    method visit_children($node) {
+    method visit_children($node, :$skip_selectors) {
         my $i := 0;
         while $i < +@($node) {
-            my $visit := $node[$i];
-            if $visit.isa(QAST::Op) {
-                $node[$i] := self.visit_op($visit)
-            }
-            elsif $visit.isa(QAST::Block) {
-                $node[$i] := self.visit_block($visit);
-            }
-            elsif $visit.isa(QAST::Stmts) {
-                self.visit_children($visit);
-            }
-            elsif $visit.isa(QAST::Stmt) {
-                self.visit_children($visit);
-            }
-            elsif $visit.isa(QAST::Want) {
-                self.visit_want($visit);
-            }
-            elsif $visit.isa(QAST::Var) {
-                self.visit_var($visit);
+            unless $skip_selectors && $i % 2 {
+                my $visit := $node[$i];
+                if $visit.isa(QAST::Op) {
+                    $node[$i] := self.visit_op($visit)
+                }
+                elsif $visit.isa(QAST::Block) {
+                    $node[$i] := self.visit_block($visit);
+                }
+                elsif $visit.isa(QAST::Stmts) {
+                    self.visit_children($visit);
+                }
+                elsif $visit.isa(QAST::Stmt) {
+                    self.visit_children($visit);
+                }
+                elsif $visit.isa(QAST::Want) {
+                    self.visit_want($visit);
+                }
+                elsif $visit.isa(QAST::Var) {
+                    self.visit_var($visit);
+                }
             }
             $i := $i + 1;
         }
@@ -429,6 +443,8 @@ class Perl6::Optimizer {
     
     # Inlines a proto.
     method inline_proto($call, $proto) {
+        # XXX Still needs updating.
+        return $call;
         $call.unshift(PAST::Op.new(
             :pirop('perl6_multi_dispatch_thunk PP'),
             QAST::Var.new( :name($call.name), :scope('lexical') )));
@@ -439,6 +455,8 @@ class Perl6::Optimizer {
     
     # Inlines a call to a sub.
     method inline_call($call, $code_obj) {
+        # XXX Still needs updating.
+        return $call;
         my $inline := $code_obj.inline_info();
         my $name   := $call.name;
         my @tokens := nqp::split(' ', $inline);
@@ -478,13 +496,15 @@ class Perl6::Optimizer {
         if $call.named ne '' {
             @stack[0].named($call.named);
         }
-        @stack[0].type($code_obj.returns) if nqp::can($code_obj, 'returns');
+        @stack[0].returns($code_obj.returns) if nqp::can($code_obj, 'returns');
         #say("# inlined a call to $name");
         @stack[0]
     }
     
     # If we decide a dispatch at compile time, this emits the direct call.
     method call_ct_chosen_multi($call, $proto, $chosen) {
+        # XXX still needs updating
+        return $call;
         my @cands := $proto.dispatchees();
         my $idx := 0;
         for @cands {

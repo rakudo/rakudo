@@ -443,10 +443,8 @@ class Perl6::Optimizer {
     
     # Inlines a proto.
     method inline_proto($call, $proto) {
-        # XXX Still needs updating.
-        return $call;
-        $call.unshift(PAST::Op.new(
-            :pirop('perl6_multi_dispatch_thunk PP'),
+        $call.unshift(QAST::Op.new(
+            :op('p6mdthunk'),
             QAST::Var.new( :name($call.name), :scope('lexical') )));
         $call.name(nqp::null());
         $call.op('call');

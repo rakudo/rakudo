@@ -501,16 +501,17 @@ class Perl6::Optimizer {
     
     # If we decide a dispatch at compile time, this emits the direct call.
     method call_ct_chosen_multi($call, $proto, $chosen) {
-        # XXX still needs updating
+        # XXX sadly, busts the setting
         return $call;
         my @cands := $proto.dispatchees();
         my $idx := 0;
         for @cands {
             if $_ =:= $chosen {
-                $call.unshift(PAST::Op.new(
-                    :pirop('perl6_multi_dispatch_cand_thunk PPi'),
+                $call.unshift(QAST::Op.new(
+                    :op('p6mdcandthunk'),
                     QAST::Var.new( :name($call.name), :scope('lexical') ),
-                    $idx));
+                    QAST::IVal.new( :value($idx) )
+                ));
                 $call.name(nqp::null());
                 $call.op('call');
                 #say("# Compile-time resolved a call to " ~ $proto.name);

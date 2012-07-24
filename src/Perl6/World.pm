@@ -1812,14 +1812,11 @@ class Perl6::World is HLL::World {
             }
         }
         
-        # The final lookup will always be just a keyed index (cheap)
-        # for non-lvalue case, or at_key call on a Stash.
+        # The final lookup will always be just an at_key call on a Stash.
         my $final_name := @name.pop();
-        my $lookup := $lvalue ??
-            QAST::Op.new(
-                :op('callmethod'), :name('at_key'),
-                self.add_constant('Str', 'str', $final_name)) !!
-            QAST::Op.new( :op('atkey'), QAST::SVal.new( :value(~$final_name) ) );
+        my $lookup := QAST::Op.new(
+            :op('callmethod'), :name('at_key'),
+            self.add_constant('Str', 'str', $final_name));
         
         # If there's no explicit qualification, then look it up in the
         # current package, and fall back to looking in GLOBAL.
@@ -1828,22 +1825,6 @@ class Perl6::World is HLL::World {
                 :op('who'),
                 QAST::Var.new( :name('$?PACKAGE'), :scope('lexical') )
             ));
-            if $lookup.isa(QAST::Var) {
-                $lookup := QAST::Op.new(
-                    :op('ifnull'),
-                    $lookup,
-                    QAST::Op.new(
-                        :op('atkey'),
-                        QAST::Op.new(
-                            :op('who'),
-                            QAST::VM.new( pirop => 'get_hll_global Ps',
-                                QAST::SVal.new( :value('GLOBAL') ) ) ),
-                        QAST::SVal.new( :value(~$final_name) )));
-                $lookup := QAST::Op.new(
-                    :op('ifnull'),
-                    $lookup,
-                    self.lookup_failure($orig_name));
-            }
         }
         
         # Otherwise, see if the first part of the name is lexically
@@ -1865,21 +1846,14 @@ class Perl6::World is HLL::World {
             $lookup.unshift(QAST::Op.new(:op('who'), $path));
         }
         
-        # Failure object if we can't find the name.
-        if $lookup.isa(QAST::Var) {
-            $lookup := QAST::Op.new( :op('ifnull'),
-                $lookup, self.lookup_failure($orig_name) );
+        unless $lvalue {
+            $lookup.push(QAST::WVal.new( 
+                :value(self.find_symbol(['Bool', 'True'])),
+                :named('global_fallback')
+            ));
         }
         
         return $lookup;
-    }
-    
-    method lookup_failure($orig_name) {
-        my $msg := "Could not find symbol '$orig_name'";
-        return QAST::Op.new(
-            :op('call'), :name('&die'),
-            self.add_constant('Str', 'str', $msg)
-        );
     }
 
     # Checks if the given name is known anywhere in the lexpad

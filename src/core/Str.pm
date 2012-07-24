@@ -906,6 +906,10 @@ my class Str does Stringy {
             $_<indent-chars>».key.join ~ ' ' x ($pos - $outdent) ~ $_<rest>;
         }).join;
     }
+
+    method tclc(Str:D:) {
+        nqp::p6box_s(nqp::tclc(nqp::unbox_s(self)))
+    }
 }
 
 
@@ -1008,4 +1012,8 @@ sub substr-rw($s is rw, $from = 0, $chars = $s.chars - $from) {
                ~ $s.substr($from + $chars);
         }
     );
+}
+
+multi sub tclc(Str:D $s) {
+    nqp::p6box_s(nqp::tclc(nqp::unbox_s($s)));
 }

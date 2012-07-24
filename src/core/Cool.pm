@@ -82,6 +82,10 @@ my class Cool {
         nqp::p6box_s(nqp::lc(nqp::unbox_s(self.Str)))
     }
 
+    method tclc() {
+        self.Str.tclc;
+    }
+
     method ucfirst() is DEPRECATED {
         my $self-str = self.Str;
         $self-str eq '' ?? '' !! $self-str.substr(0, 1).uc ~ $self-str.substr(1)
@@ -219,6 +223,9 @@ multi sub comb(Regex $matcher, Cool $input, $limit = *) { $input.comb($matcher, 
 proto sub capitalize(|$)       { * }
 multi sub capitalize(Str:D $x) {$x.capitalize }
 multi sub capitalize(Cool $x)  {$x.Stringy.capitalize }
+
+proto sub tclc(|$)             { * }
+multi sub tclc(Cool $x)        { tclc $x.Str }
 
 sub sprintf(Cool $format, *@args) {
     @args.gimme(*);

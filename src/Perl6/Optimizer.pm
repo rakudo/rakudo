@@ -180,9 +180,6 @@ class Perl6::Optimizer {
                     }
                 }
                 elsif nqp::can($obj, 'signature') {
-                    # It's an only; we can at least know the return type.
-                    $op.returns($obj.returns) if nqp::can($obj, 'returns');
-                    
                     # If we know enough about the arguments, do a "trial bind".
                     my @ct_arg_info := analyze_args_for_ct_call($op);
                     if +@ct_arg_info {
@@ -195,7 +192,7 @@ class Perl6::Optimizer {
                             if $*LEVEL >= 2 {
                                 return nqp::can($obj, 'inline_info') && $obj.inline_info ne ''
                                     ?? self.inline_call($op, $obj)
-                                    !! $op;
+                                    !! copy_returns($op, $obj);
                             }
                         }
                         elsif $ct_result == -1 {
@@ -505,8 +502,6 @@ class Perl6::Optimizer {
     
     # If we decide a dispatch at compile time, this emits the direct call.
     method call_ct_chosen_multi($call, $proto, $chosen) {
-        # XXX sadly, busts the setting
-        return $call;
         my @cands := $proto.dispatchees();
         my $idx := 0;
         for @cands {
@@ -523,7 +518,7 @@ class Perl6::Optimizer {
             }
             $idx := $idx + 1;
         }
-        $call.returns($chosen.returns) if nqp::can($chosen, 'returns');
+        $call := copy_returns($call, $chosen);
         $call
     }
     
@@ -535,5 +530,21 @@ class Perl6::Optimizer {
             %!deadly{$key} := [];
         }
         %!deadly{$key}.push($line);
+    }
+    
+    my @prim_spec_ops := ['', 'p6box_i', 'p6box_n', 'p6box_s'];
+    my @prim_spec_flags := ['', 'Ii', 'Nn', 'Ss'];
+    sub copy_returns($to, $from) {
+        if nqp::can($from, 'returns') {
+            my $ret_type := $from.returns();
+            if pir::repr_get_primitive_type_spec__IP($ret_type) -> $primspec {
+                $to := QAST::Want.new(
+                    :named($to.named),
+                    QAST::Op.new( :op(@prim_spec_ops[$primspec]), $to ),
+                    @prim_spec_flags[$primspec], $to);
+            }
+            $to.returns($ret_type);
+        }
+        $to
     }
 }

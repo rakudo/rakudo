@@ -3232,13 +3232,16 @@ class Perl6::Actions is HLL::Actions {
                 $/.CURSOR.panic('Macro did not return AST');
             }
             my $past := QAST::Block.new(
-                :blocktype<immediate>,
-                :lexical(0),
+                :blocktype<raw>,
                 nqp::getattr(pir::perl6_decontainerize__PP($quasi_ast),
                     $ast_class,
                     '$!past')
             );
             $*W.add_quasi_fixups($quasi_ast, $past);
+            $past := QAST::Stmts.new(
+                $past,
+                QAST::Op.new( :op('call'), QAST::BVal.new( :value($past) ) )
+            );
             make $past;
         }
         else {
@@ -3337,13 +3340,16 @@ class Perl6::Actions is HLL::Actions {
                     $/.CURSOR.panic('Macro did not return AST');
                 }
                 $past := QAST::Block.new(
-                    :blocktype<immediate>,
-                    :lexical(0),
+                    :blocktype<raw>,
                     nqp::getattr(pir::perl6_decontainerize__PP($quasi_ast),
                         $ast_class,
                         '$!past')
                 );
                 $*W.add_quasi_fixups($quasi_ast, $past);
+                $past := QAST::Stmts.new(
+                    $past,
+                    QAST::Op.new( :op('call'), QAST::BVal.new( :value($past) ) )
+                );
             }
             else {
                 $past := capture_or_parcel($<args>.ast, ~$<longname>);
@@ -3709,13 +3715,16 @@ class Perl6::Actions is HLL::Actions {
                     $/.CURSOR.panic('Macro did not return AST');
                 }
                 my $past := QAST::Block.new(
-                    :blocktype<immediate>,
-                    :lexical(0),
+                    :blocktype<raw>,
                     nqp::getattr(pir::perl6_decontainerize__PP($quasi_ast),
                         $ast_class,
                         '$!past')
                 );
                 $*W.add_quasi_fixups($quasi_ast, $past);
+                $past := QAST::Stmts.new(
+                    $past,
+                    QAST::Op.new( :op('call'), QAST::BVal.new( :value($past) ) )
+                );
                 make $past;
                 return 'an irrelevant value';
             }

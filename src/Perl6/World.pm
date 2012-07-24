@@ -824,7 +824,7 @@ class Perl6::World is HLL::World {
                 )
            )
         );
-        self.add_fixup_task(:fixup_past($fixups));
+        self.add_fixup_task(:fixup_past($fixups), :deserialize_past($fixups));
     }
     
     # Adds any extra code needing for handling phasers.

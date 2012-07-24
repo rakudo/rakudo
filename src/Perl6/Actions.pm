@@ -977,7 +977,7 @@ class Perl6::Actions is HLL::Actions {
     method statement_prefix:sym<try>($/) {
         my $block := $<blorst>.ast;
         my $past;
-        if $block<handlers> && $block<handlers><CATCH> {
+        if $block<past_block><handlers> && $block<past_block><handlers><CATCH> {
             # we already have a CATCH block, nothing to do here
             $past := QAST::Op.new( :op('call'), $block );
         } else {

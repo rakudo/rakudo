@@ -607,7 +607,7 @@ class Perl6::Actions is HLL::Actions {
                 @params := $block<placeholder_sig>;
             }
             elsif $<signature> {
-                @params := $<signature>.ast;
+                @params := $<signature>.ast<parameters>;
             }
             else {
                 unless $block.symbol('$_') {
@@ -1319,7 +1319,7 @@ class Perl6::Actions is HLL::Actions {
         if $*PKGDECL eq 'role' {
             # Set up signature. Needs to have $?CLASS as an implicit
             # parameter, since any mention of it is generic.
-            my @params := $<signature> ?? $<signature>[0].ast !! [];
+            my @params := $<signature> ?? $<signature>[0].ast<parameters> !! [];
             @params.unshift(hash(
                 is_multi_invocant => 1,
                 type_captures     => ['$?CLASS', '::?CLASS']
@@ -1434,7 +1434,7 @@ class Perl6::Actions is HLL::Actions {
             # Go over the params and declare the variable defined
             # in them.
             my $list   := PAST::Op.new( :pasttype('call'), :name('&infix:<,>') );
-            my @params := $<signature>.ast;
+            my @params := $<signature>.ast<parameters>;
             for @params {
                 if $_<variable_name> {
                     my $past := PAST::Var.new( :name($_<variable_name>) );
@@ -1672,8 +1672,8 @@ class Perl6::Actions is HLL::Actions {
             $*W.throw($/, ['X', 'Signature', 'Placeholder']);
         }
         my @params :=
-                $<multisig>             ?? $<multisig>[0].ast      !!
-                $block<placeholder_sig> ?? $block<placeholder_sig> !!
+                $<multisig>             ?? $<multisig>[0].ast<parameters> !!
+                $block<placeholder_sig> ?? $block<placeholder_sig>        !!
                 [];
         set_default_parameter_type(@params, 'Any');
         my $signature := create_signature_object($<multisig> ?? $<multisig>[0] !! $/, @params, $block);
@@ -1942,7 +1942,7 @@ class Perl6::Actions is HLL::Actions {
         $past.nsentry('');
 
         # Do the various tasks to trun the block into a method code object.
-        my @params    := $<multisig> ?? $<multisig>[0].ast !! [];
+        my @params    := $<multisig> ?? $<multisig>[0].ast<parameters> !! [];
         my $inv_type  := $*W.find_symbol([
             $<longname> && $*W.is_lexical('$?CLASS') ?? '$?CLASS' !! 'Mu']);
         my $code := methodize_block($/, $*DECLARAND, $past, @params, $inv_type, :yada(is_yada($/)));
@@ -1999,8 +1999,8 @@ class Perl6::Actions is HLL::Actions {
             $*W.throw($/, 'X::Signature::Placeholder');
         }
         my @params :=
-                $<multisig>             ?? $<multisig>[0].ast      !!
-                $block<placeholder_sig> ?? $block<placeholder_sig> !!
+                $<multisig>             ?? $<multisig>[0].ast<parameters> !!
+                $block<placeholder_sig> ?? $block<placeholder_sig>        !!
                 [];
         set_default_parameter_type(@params, 'Any');
         my $signature := create_signature_object($<multisig> ?? $<multisig>[0] !! $/, @params, $block);
@@ -2210,7 +2210,7 @@ class Perl6::Actions is HLL::Actions {
         my $coderef;
         my $name := ~%*RX<name>;
 
-        my @params := $<signature> ?? $<signature>[0].ast !! [];
+        my @params := $<signature> ?? $<signature>[0].ast<parameters> !! [];
         if $*MULTINESS eq 'proto' {
             unless $<onlystar> {
                 $/.CURSOR.panic("Proto regex body must be \{*\} (or <*> or <...>, which are deprecated)");
@@ -2534,9 +2534,9 @@ class Perl6::Actions is HLL::Actions {
     }
 
     method fakesignature($/) {
-        my @params := $<signature>.ast;
+        my @params := $<signature>.ast<parameters>;
         set_default_parameter_type(@params, 'Mu');
-        my $sig := create_signature_object($/, @params, $*FAKE_PAD, :no_attr_check(1));
+        my $sig := create_signature_object($/, $<signature>.ast<parameters>, $*FAKE_PAD, :no_attr_check(1));
         my $past := $*W.get_ref($sig);
         $past<has_compile_time_value> := 1;
         $past<compile_time_value> := $sig;
@@ -2545,6 +2545,9 @@ class Perl6::Actions is HLL::Actions {
 
     method signature($/) {
         # Fix up parameters with flags according to the separators.
+        # TODO: Handle $<typename>, which contains the return type declared
+        # with the --> syntax.
+        my %signature;
         my @parameter_infos;
         my $param_idx := 0;
         my $multi_invocant := 1;
@@ -2564,12 +2567,16 @@ class Perl6::Actions is HLL::Actions {
             @parameter_infos.push(%info);
             $param_idx := $param_idx + 1;
         }
+        %signature<parameters> := @parameter_infos;
+        if $<typename> {
+            %signature<returns> := $<typename>[0].ast;
+        }
 
         # Mark current block as having a signature.
         $*W.mark_cur_lexpad_signatured();
 
         # Result is set of parameter descriptors.
-        make @parameter_infos;
+        make %signature;
     }
 
     method parameter($/) {
@@ -2613,7 +2620,7 @@ class Perl6::Actions is HLL::Actions {
             if nqp::existskey(%*PARAM_INFO, 'sub_signature_params') {
                 $/.CURSOR.panic('Cannot have more than one sub-signature for a parameter');
             }
-            %*PARAM_INFO<sub_signature_params> := $<signature>.ast;
+            %*PARAM_INFO<sub_signature_params> := $<signature>.ast<parameters>;
             if nqp::substr(~$/, 0, 1) eq '[' {
                 %*PARAM_INFO<sigil> := '@';
                 %*PARAM_INFO<nominal_type> := $*W.find_symbol(['Positional']);
@@ -2801,7 +2808,7 @@ class Perl6::Actions is HLL::Actions {
             if nqp::existskey(%*PARAM_INFO, 'sub_signature_params') {
                 $/.CURSOR.panic('Cannot have more than one sub-signature for a parameter');
             }
-            %*PARAM_INFO<sub_signature_params> := $<signature>.ast;
+            %*PARAM_INFO<sub_signature_params> := $<signature>.ast<parameters>;
             if nqp::substr(~$/, 0, 1) eq '[' {
                 %*PARAM_INFO<sigil> := '@';
             }

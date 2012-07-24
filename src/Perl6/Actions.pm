@@ -4962,29 +4962,34 @@ class Perl6::Actions is HLL::Actions {
         );
         $handler<past_block>.unshift($handler_preamble);
 
-        # rethrow the exception if we reach the end of the handler
-        # (if a when {} clause matches this will get skipped due
-        # to the BREAK exception)
-        $handler<past_block>.push(QAST::Op.new(
-            :op('rethrow'),
-            QAST::Var.new( :name($exceptionreg), :scope('local') )));
-
         # set up a generic exception rethrow, so that exception
         # handlers from unwanted frames will get skipped if the
         # code in our handler throws an exception.
-        my $prev_content := QAST::Stmts.new();
-        $prev_content.push($handler<past_block>.shift()) while +@($handler<past_block>);
-        $handler<past_block>.push(QAST::Op.new(
-            :op('handle'),
-            $prev_content,
-            'CATCH',
-            QAST::VM.new(
-                :pirop('perl6_based_rethrow 1PP'),
-                QAST::Op.new( :op('exception') ),
-                QAST::Var.new( :name($exceptionreg), :scope('local') )
-            )));
-
         my $ex := QAST::Op.new( :op('exception') );
+        if $handler<past_block><handlers> && nqp::existskey($handler<past_block><handlers>, $type) {
+            $ex := QAST::VM.new( :pirop('perl6_skip_handlers_in_rethrow__0Pi'),
+                $ex, QAST::IVal.new( :value(1) ));
+        }
+        else {
+            my $prev_content := QAST::Stmts.new();
+            $prev_content.push($handler<past_block>.shift()) while +@($handler<past_block>);
+            $handler<past_block>.push(QAST::Op.new(
+                :op('handle'),
+                $prev_content,
+                'CATCH',
+                QAST::VM.new(
+                    :pirop('perl6_based_rethrow 1PP'),
+                    QAST::Op.new( :op('exception') ),
+                    QAST::Var.new( :name($exceptionreg), :scope('local') )
+                )));
+                
+            # rethrow the exception if we reach the end of the handler
+            # (if a when {} clause matches this will get skipped due
+            # to the BREAK exception)
+            $handler<past_block>.push(QAST::Op.new(
+                :op('rethrow'),
+                QAST::Var.new( :name($exceptionreg), :scope('local') )));
+        }
 
         # create code that calls our handler with the Parrot exception
         # as argument and returns the result. The install the handler.
@@ -4993,18 +4998,6 @@ class Perl6::Actions is HLL::Actions {
             QAST::VM.new( :pirop('perl6_invoke_catchhandler__vPP'), $handler, $ex),
             QAST::Var.new( :scope('lexical'), :name('$!') )
         );
-        
-        # XXX Figure out why on earth this lot is needed...
-        # my $firsthandler;
-        # my $firsthandlertype;
-        # my @handlers := $block.handlers();
-        # if nqp::defined($type) && $type eq 'CONTROL' && @handlers && @handlers[0] {
-            # $firsthandlertype := $except ?? @handlers[0].handle_types() !! @handlers[0].handle_types_except();
-            # if nqp::defined($firsthandlertype) && $firsthandlertype eq $type {
-                # $firsthandler := @handlers.shift();
-                # $ex := PAST::Op.new( :pirop('perl6_skip_handlers_in_rethrow__0Pi'), $ex, 1);
-            # }
-        # }
     }
 
     # Handles the case where we have a default value closure for an

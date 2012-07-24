@@ -3592,6 +3592,11 @@ class Perl6::Actions is HLL::Actions {
                 :node($/)
             );
             for @children {
+                if nqp::istype($_, QAST::Stmt) {
+                    # Mustn't use QAST::Stmt here, as it will cause register
+                    # re-use within a statemnet, which is a problem.
+                    $_ := QAST::Stmts.new( |$_.list );
+                }
                 $past.push($_);
             }
         }

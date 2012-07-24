@@ -625,7 +625,6 @@ S32-str/encode.t
 S32-str/flip.t
 S32-str/indent.t                                           # icu
 S32-str/index.t
-S32-str/lcfirst.t                                          # icu
 S32-str/lc.t                                               # icu
 S32-str/lines.t
 S32-str/numeric.t
@@ -640,7 +639,6 @@ S32-str/sprintf.t
 S32-str/substr.t
 S32-str/substr-rw.t
 S32-str/trim.t
-S32-str/ucfirst.t                                          # icu
 S32-str/uc.t                                               # icu
 S32-str/unpack.t
 S32-str/words.t                                            # icu

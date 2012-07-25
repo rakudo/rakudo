@@ -42,7 +42,7 @@ class Perl6::Optimizer {
         my $unit := $past<UNIT>;
         my $*GLOBALish := $past<GLOBALish>;
         my $*W := $past<W>;
-        unless $unit.isa(QAST::Block) {
+        unless nqp::istype($unit, QAST::Block) {
             nqp::die("Optimizer could not find UNIT");
         }
         self.visit_block($unit);
@@ -128,8 +128,8 @@ class Perl6::Optimizer {
         if $optype eq 'chain' {
             $!chain_depth := $!chain_depth + 1;
             $optype := 'call' if $!chain_depth == 1 &&
-                !($op[0].isa(QAST::Op) && $op[0].op eq 'chain') &&
-                !($op[1].isa(QAST::Op) && $op[1].op eq 'chain');
+                !(nqp::istype($op[0], QAST::Op) && $op[0].op eq 'chain') &&
+                !(nqp::istype($op[1], QAST::Op) && $op[1].op eq 'chain');
         }
         
         # Visit the children.
@@ -334,23 +334,23 @@ class Perl6::Optimizer {
         while $i < +@($node) {
             unless $skip_selectors && $i % 2 {
                 my $visit := $node[$i];
-                if $visit.isa(QAST::Op) {
+                if nqp::istype($visit, QAST::Op) {
                     $node[$i] := self.visit_op($visit)
                 }
-                elsif $visit.isa(QAST::Block) {
-                    $node[$i] := self.visit_block($visit);
-                }
-                elsif $visit.isa(QAST::Stmts) {
-                    self.visit_children($visit);
-                }
-                elsif $visit.isa(QAST::Stmt) {
-                    self.visit_children($visit);
-                }
-                elsif $visit.isa(QAST::Want) {
+                elsif nqp::istype($visit, QAST::Want) {
                     self.visit_want($visit);
                 }
-                elsif $visit.isa(QAST::Var) {
+                elsif nqp::istype($visit, QAST::Var) {
                     self.visit_var($visit);
+                }
+                elsif nqp::istype($visit, QAST::Block) {
+                    $node[$i] := self.visit_block($visit);
+                }
+                elsif nqp::istype($visit, QAST::Stmts) {
+                    self.visit_children($visit);
+                }
+                elsif nqp::istype($visit, QAST::Stmt) {
+                    self.visit_children($visit);
                 }
             }
             $i := $i + 1;
@@ -410,11 +410,11 @@ class Perl6::Optimizer {
         
         # Copy over interesting stuff in declaration section.
         for @($decls) {
-            if $_.isa(QAST::Op) && ($_.op eq 'p6bindsig' || 
+            if nqp::istype($_, QAST::Op) && ($_.op eq 'p6bindsig' || 
                     $_.op eq 'bind' && $_[0].name eq 'call_sig') {
                 # Don't copy this binder call or setup.
             }
-            elsif $_.isa(QAST::Var) && ($_.name eq '$/' || $_.name eq '$!' ||
+            elsif nqp::istype($_, QAST::Var) && ($_.name eq '$/' || $_.name eq '$!' ||
                     $_.name eq '$_' || $_.name eq '$*DISPATCHER') {
                 # Don't copy this variable node.
             }

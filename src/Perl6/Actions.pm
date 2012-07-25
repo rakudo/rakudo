@@ -2210,10 +2210,10 @@ class Perl6::Actions is HLL::Actions {
         if +$block[1].list == 1 && $block[1][0].isa(QAST::Stmt) && +$block[1][0].list == 1 {
             # Ensure there's no nested blocks.
             for @($block[0]) {
-                if $_.isa(QAST::Block) { return 0; }
-                if $_.isa(QAST::Stmts) {
+                if nqp::istype($_, QAST::Block) { return 0; }
+                if nqp::istype($_, QAST::Stmts) {
                     for @($_) {
-                        if $_.isa(QAST::Block) { return 0; }
+                        if nqp::istype($_, QAST::Block) { return 0; }
                     }
                 }
             }
@@ -3494,7 +3494,7 @@ class Perl6::Actions is HLL::Actions {
                 !! [$expr];
             my %named_counts;
             for @args {
-                if $_.isa(QAST::Op) && istype($_.returns, $Pair) {
+                if nqp::istype($_, QAST::Op) && istype($_.returns, $Pair) {
                     my $name := compile_time_value_str($_[1], 'LHS of pair', $/);
                     %named_counts{$name} := +%named_counts{$name} + 1;
                     $_[2].named($name);
@@ -3503,7 +3503,7 @@ class Perl6::Actions is HLL::Actions {
 
             # Make result.
             for @args {
-                if $_.isa(QAST::Op) && istype($_.returns, $Pair) {
+                if nqp::istype($_, QAST::Op) && istype($_.returns, $Pair) {
                     my $name := $_[2].named();
                     if %named_counts{$name} == 1 {
                         $past.push($_[2]);
@@ -3513,7 +3513,7 @@ class Perl6::Actions is HLL::Actions {
                         %named_counts{$name} := %named_counts{$name} - 1;
                     }
                 }
-                elsif $_ ~~ QAST::Op && $_.name eq '&prefix:<|>' {
+                elsif nqp::istype($_, QAST::Op) && $_.name eq '&prefix:<|>' {
                     my $reg := $past.unique('flattening_');
                     $past.push(QAST::Op.new(
                         :op('callmethod'), :name('FLATTENABLE_LIST'),
@@ -5093,14 +5093,14 @@ class Perl6::Actions is HLL::Actions {
         my $WhateverCode := $*W.find_symbol(['WhateverCode']);
         my $curried :=
             # It must be an op and...
-            $past.isa(QAST::Op) && (
+            nqp::istype($past, QAST::Op) && (
             
             # Either a call that we're allowed to curry...
                 (($past.op eq 'call' || $past.op eq 'chain') &&
                     (nqp::index($past.name, '&infix:') == 0 ||
                      nqp::index($past.name, '&prefix:') == 0 ||
                      nqp::index($past.name, '&postfix:') == 0 ||
-                     ($past[0].isa(QAST::Op) &&
+                     (nqp::istype($past[0], QAST::Op) &&
                         nqp::index($past[0].name, '&METAOP') == 0)) &&
                     %curried{$past.name} // 2)
             

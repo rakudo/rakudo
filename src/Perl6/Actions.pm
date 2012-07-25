@@ -598,6 +598,7 @@ class Perl6::Actions is HLL::Actions {
         }
         else {
             # Locate or build a set of parameters.
+            my %sig_info;
             my @params;
             my $block := $<blockoid>.ast;
             if $block<placeholder_sig> && $<signature> {
@@ -605,9 +606,11 @@ class Perl6::Actions is HLL::Actions {
             }
             elsif $block<placeholder_sig> {
                 @params := $block<placeholder_sig>;
+                %sig_info<parameters> := @params;
             }
             elsif $<signature> {
-                @params := $<signature>.ast<parameters>;
+                %sig_info := $<signature>.ast;
+                @params := %sig_info<parameters>;
             }
             else {
                 unless $block.symbol('$_') {
@@ -620,6 +623,7 @@ class Perl6::Actions is HLL::Actions {
                     }
                     add_implicit_var($block, '$_');
                 }
+                %sig_info<parameters> := @params;
             }
 
             # Create signature object and set up binding.
@@ -627,7 +631,7 @@ class Perl6::Actions is HLL::Actions {
                 for @params { $_<is_rw> := 1 }
             }
             set_default_parameter_type(@params, 'Mu');
-            my $signature := create_signature_object($<signature>, @params, $block);
+            my $signature := create_signature_object($<signature>, %sig_info, $block);
             add_signature_binding_code($block, $signature, @params);
             
             # Add a slot for a $*DISPATCHER, and a call to take one.
@@ -1319,13 +1323,14 @@ class Perl6::Actions is HLL::Actions {
         if $*PKGDECL eq 'role' {
             # Set up signature. Needs to have $?CLASS as an implicit
             # parameter, since any mention of it is generic.
-            my @params := $<signature> ?? $<signature>[0].ast<parameters> !! [];
+            my %sig_info := $<signature> ?? $<signature>[0].ast !! hash(parameters => []);
+            my @params := %sig_info<parameters>;
             @params.unshift(hash(
                 is_multi_invocant => 1,
                 type_captures     => ['$?CLASS', '::?CLASS']
             ));
             set_default_parameter_type(@params, 'Mu');
-            my $sig := create_signature_object($<signature>, @params, $block);
+            my $sig := create_signature_object($<signature>, %sig_info, $block);
             add_signature_binding_code($block, $sig, @params);
             $block.blocktype('declaration');
 
@@ -1632,8 +1637,9 @@ class Perl6::Actions is HLL::Actions {
 
         # Produce a code object and install it.
         my $invocant_type := $*W.find_symbol([$*W.is_lexical('$?CLASS') ?? '$?CLASS' !! 'Mu']);
+        my %sig_info := hash(parameters => []);
         my $code := methodize_block($/, $*W.stub_code_object('Method'), 
-            $a_past, [], $invocant_type);
+            $a_past, %sig_info, $invocant_type);
         install_method($/, $meth_name, 'has', $code, $install_in);
     }
 
@@ -1671,12 +1677,17 @@ class Perl6::Actions is HLL::Actions {
         if $block<placeholder_sig> && $<multisig> {
             $*W.throw($/, ['X', 'Signature', 'Placeholder']);
         }
-        my @params :=
-                $<multisig>             ?? $<multisig>[0].ast<parameters> !!
-                $block<placeholder_sig> ?? $block<placeholder_sig>        !!
-                [];
+        my %sig_info;
+        if $<multisig> {
+            %sig_info := $<multisig>[0].ast;
+        }
+        else {
+            %sig_info<parameters> := $block<placeholder_sig> ?? $block<placeholder_sig> !!
+                                                                [];
+        }
+        my @params := %sig_info<parameters>;
         set_default_parameter_type(@params, 'Any');
-        my $signature := create_signature_object($<multisig> ?? $<multisig>[0] !! $/, @params, $block);
+        my $signature := create_signature_object($<multisig> ?? $<multisig>[0] !! $/, %sig_info, $block);
         add_signature_binding_code($block, $signature, @params);
 
         # Needs a slot that can hold a (potentially unvivified) dispatcher;
@@ -1942,10 +1953,10 @@ class Perl6::Actions is HLL::Actions {
         $past.nsentry('');
 
         # Do the various tasks to trun the block into a method code object.
-        my @params    := $<multisig> ?? $<multisig>[0].ast<parameters> !! [];
+        my %sig_info := $<multisig> ?? $<multisig>[0].ast !! hash(parameters => []);
         my $inv_type  := $*W.find_symbol([
             $<longname> && $*W.is_lexical('$?CLASS') ?? '$?CLASS' !! 'Mu']);
-        my $code := methodize_block($/, $*DECLARAND, $past, @params, $inv_type, :yada(is_yada($/)));
+        my $code := methodize_block($/, $*DECLARAND, $past, %sig_info, $inv_type, :yada(is_yada($/)));
 
         # Document it
         Perl6::Pod::document($code, $*DOC);
@@ -1998,12 +2009,17 @@ class Perl6::Actions is HLL::Actions {
         if $block<placeholder_sig> && $<multisig> {
             $*W.throw($/, 'X::Signature::Placeholder');
         }
-        my @params :=
-                $<multisig>             ?? $<multisig>[0].ast<parameters> !!
-                $block<placeholder_sig> ?? $block<placeholder_sig>        !!
-                [];
+        my %sig_info;
+        if $<multisig> {
+            %sig_info := $<multisig>[0].ast;
+        }
+        else {
+            %sig_info<parameters> := $block<placeholder_sig> ?? $block<placeholder_sig> !!
+                                                                [];
+        }
+        my @params := %sig_info<parameters>;
         set_default_parameter_type(@params, 'Any');
-        my $signature := create_signature_object($<multisig> ?? $<multisig>[0] !! $/, @params, $block);
+        my $signature := create_signature_object($<multisig> ?? $<multisig>[0] !! $/, %sig_info, $block);
         add_signature_binding_code($block, $signature, @params);
 
         # Create code object.
@@ -2065,8 +2081,9 @@ class Perl6::Actions is HLL::Actions {
         make $closure;
     }
 
-    sub methodize_block($/, $code, $past, @params, $invocant_type, :$yada) {
+    sub methodize_block($/, $code, $past, %sig_info, $invocant_type, :$yada) {
         # Get signature and ensure it has an invocant and *%_.
+        my @params := %sig_info<parameters>;
         if $past<placeholder_sig> {
             $/.CURSOR.panic('Placeholder variables cannot be used in a method');
         }
@@ -2089,7 +2106,7 @@ class Perl6::Actions is HLL::Actions {
             $past.symbol('%_', :scope('lexical_6model'));
         }
         set_default_parameter_type(@params, 'Any');
-        my $signature := create_signature_object($/, @params, $past);
+        my $signature := create_signature_object($/, %sig_info, $past);
         add_signature_binding_code($past, $signature, @params);
 
         # Place to store invocant.
@@ -2210,7 +2227,7 @@ class Perl6::Actions is HLL::Actions {
         my $coderef;
         my $name := ~%*RX<name>;
 
-        my @params := $<signature> ?? $<signature>[0].ast<parameters> !! [];
+        my %sig_info := $<signature> ?? $<signature>[0].ast !! hash(parameters => []);
         if $*MULTINESS eq 'proto' {
             unless $<onlystar> {
                 $/.CURSOR.panic("Proto regex body must be \{*\} (or <*> or <...>, which are deprecated)");
@@ -2219,9 +2236,9 @@ class Perl6::Actions is HLL::Actions {
                 :pasttype('callmethod'), :name('!protoregex'),
                 PAST::Var.new( :name('self'), :scope('register') ),
                 $name);
-            $coderef := regex_coderef($/, $*DECLARAND, $proto_body, $*SCOPE, $name, @params, $*CURPAD, $<trait>, :proto(1));
+            $coderef := regex_coderef($/, $*DECLARAND, $proto_body, $*SCOPE, $name, %sig_info, $*CURPAD, $<trait>, :proto(1));
         } else {
-            $coderef := regex_coderef($/, $*DECLARAND, $<p6regex>.ast, $*SCOPE, $name, @params, $*CURPAD, $<trait>);
+            $coderef := regex_coderef($/, $*DECLARAND, $<p6regex>.ast, $*SCOPE, $name, %sig_info, $*CURPAD, $<trait>);
         }
 
         # Return closure if not in sink context.
@@ -2230,7 +2247,7 @@ class Perl6::Actions is HLL::Actions {
         make $closure;
     }
 
-    sub regex_coderef($/, $code, $qast, $scope, $name, @params, $block, $traits?, :$proto, :$use_outer_match) {
+    sub regex_coderef($/, $code, $qast, $scope, $name, %sig_info, $block, $traits?, :$proto, :$use_outer_match) {
         # create a code reference from a regex qast tree
         my $past;
         if $proto {
@@ -2262,7 +2279,7 @@ class Perl6::Actions is HLL::Actions {
         # Do the various tasks to turn the block into a method code object.
         my $inv_type  := $*W.find_symbol([ # XXX Maybe Cursor below, not Mu...
             $name && $*W.is_lexical('$?CLASS') ?? '$?CLASS' !! 'Mu']);
-        methodize_block($/, $code, $past, @params, $inv_type);
+        methodize_block($/, $code, $past, %sig_info, $inv_type);
 
         # Need to put self into a register for the regex engine.
         $past[0].push(PAST::Var.new(
@@ -2534,9 +2551,10 @@ class Perl6::Actions is HLL::Actions {
     }
 
     method fakesignature($/) {
-        my @params := $<signature>.ast<parameters>;
+        my %sig_info := $<signature>.ast;
+        my @params := %sig_info<parameters>;
         set_default_parameter_type(@params, 'Mu');
-        my $sig := create_signature_object($/, $<signature>.ast<parameters>, $*FAKE_PAD, :no_attr_check(1));
+        my $sig := create_signature_object($/, %sig_info, $*FAKE_PAD, :no_attr_check(1));
         my $past := $*W.get_ref($sig);
         $past<has_compile_time_value> := 1;
         $past<compile_time_value> := $sig;
@@ -2620,7 +2638,7 @@ class Perl6::Actions is HLL::Actions {
             if nqp::existskey(%*PARAM_INFO, 'sub_signature_params') {
                 $/.CURSOR.panic('Cannot have more than one sub-signature for a parameter');
             }
-            %*PARAM_INFO<sub_signature_params> := $<signature>.ast<parameters>;
+            %*PARAM_INFO<sub_signature_params> := $<signature>.ast;
             if nqp::substr(~$/, 0, 1) eq '[' {
                 %*PARAM_INFO<sigil> := '@';
                 %*PARAM_INFO<nominal_type> := $*W.find_symbol(['Positional']);
@@ -2808,7 +2826,7 @@ class Perl6::Actions is HLL::Actions {
             if nqp::existskey(%*PARAM_INFO, 'sub_signature_params') {
                 $/.CURSOR.panic('Cannot have more than one sub-signature for a parameter');
             }
-            %*PARAM_INFO<sub_signature_params> := $<signature>.ast<parameters>;
+            %*PARAM_INFO<sub_signature_params> := $<signature>.ast;
             if nqp::substr(~$/, 0, 1) eq '[' {
                 %*PARAM_INFO<sigil> := '@';
             }
@@ -2829,7 +2847,7 @@ class Perl6::Actions is HLL::Actions {
                 $_<nominal_type> := $type;
             }
             if nqp::existskey($_, 'sub_signature_params') {
-                set_default_parameter_type($_<sub_signature_params>, $type_name);
+                set_default_parameter_type($_<sub_signature_params><parameters>, $type_name);
             }
         }
     }
@@ -2837,10 +2855,10 @@ class Perl6::Actions is HLL::Actions {
     # Create Parameter objects, along with container descriptors
     # if needed. Parameters will be bound into the specified
     # lexpad.
-    sub create_signature_object($/, @parameter_infos, $lexpad, :$no_attr_check) {
+    sub create_signature_object($/, %signature_info, $lexpad, :$no_attr_check) {
         my @parameters;
         my %seen_names;
-        for @parameter_infos {
+        for %signature_info<parameters> {
             # Check we don't have duplicated named parameter names.
             if $_<named_names> {
                 for $_<named_names> {
@@ -4488,8 +4506,10 @@ class Perl6::Actions is HLL::Actions {
     }
     method quote:sym</ />($/) {
         my $block := PAST::Block.new(PAST::Stmts.new, PAST::Stmts.new, :node($/));
+        my %sig_info := hash(parameters => []);
+        %sig_info<parameters> := [];
         my $coderef := regex_coderef($/, $*W.stub_code_object('Regex'),
-            $<p6regex>.ast, 'anon', '', [], $block, :use_outer_match(1));
+            $<p6regex>.ast, 'anon', '', %sig_info, $block, :use_outer_match(1));
         # Return closure if not in sink context.
         my $closure := block_closure($coderef);
         $closure<sink_past> := PAST::Op.new( :pasttype('null') );
@@ -4499,14 +4519,16 @@ class Perl6::Actions is HLL::Actions {
     method quote:sym<rx>($/) {
         my $block := PAST::Block.new(PAST::Stmts.new, PAST::Stmts.new, :node($/));
         self.handle_and_check_adverbs($/, %SHARED_ALLOWED_ADVERBS, 'rx', $block);
+        my %sig_info := hash(parameters => []);
         my $coderef := regex_coderef($/, $*W.stub_code_object('Regex'),
-            $<p6regex>.ast, 'anon', '', [], $block, :use_outer_match(1));
+            $<p6regex>.ast, 'anon', '', %sig_info, $block, :use_outer_match(1));
         make block_closure($coderef);
     }
     method quote:sym<m>($/) {
         my $block := PAST::Block.new(PAST::Stmts.new, PAST::Stmts.new, :node($/));
+        my %sig_info := hash(parameters => []);
         my $coderef := regex_coderef($/, $*W.stub_code_object('Regex'),
-            $<p6regex>.ast, 'anon', '', [], $block, :use_outer_match(1));
+            $<p6regex>.ast, 'anon', '', %sig_info, $block, :use_outer_match(1));
 
         my $past := PAST::Op.new(
             :node($/),
@@ -4549,8 +4571,9 @@ class Perl6::Actions is HLL::Actions {
         # Build the regex.
 
         my $rx_block := PAST::Block.new(PAST::Stmts.new, PAST::Stmts.new, :node($/));
+        my %sig_info := hash(parameters => []);
         my $rx_coderef := regex_coderef($/, $*W.stub_code_object('Regex'),
-            $<p6regex>.ast, 'anon', '', [], $rx_block, :use_outer_match(1));
+            $<p6regex>.ast, 'anon', '', %sig_info, $rx_block, :use_outer_match(1));
 
         # Quote needs to be closure-i-fied.
         my $closure := block_closure(make_thunk_ref($<quote_EXPR> ?? $<quote_EXPR>.ast !! $<EXPR>.ast, $/));
@@ -5127,7 +5150,8 @@ class Perl6::Actions is HLL::Actions {
                 }
                 $i++;
             }
-            my $signature := create_signature_object($/, @params, $block);
+            my %sig_info := hash(parameters => @params);
+            my $signature := create_signature_object($/, %sig_info, $block);
             add_signature_binding_code($block, $signature, @params);
             my $code := $*W.create_code_object($block, 'WhateverCode', $signature);
             $past := block_closure(reference_to_code_object($code, $block));

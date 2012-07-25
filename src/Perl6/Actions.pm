@@ -3489,7 +3489,9 @@ class Perl6::Actions is HLL::Actions {
             # Make first pass over arguments, finding any duplicate named
             # arguments.
             my $expr := $<EXPR>.ast;
-            my @args := $expr.name eq '&infix:<,>' ?? $expr.list !! [$expr];
+            my @args := nqp::istype($expr, QAST::Op) && $expr.name eq '&infix:<,>'
+                ?? $expr.list
+                !! [$expr];
             my %named_counts;
             for @args {
                 if $_.isa(QAST::Op) && istype($_.returns, $Pair) {

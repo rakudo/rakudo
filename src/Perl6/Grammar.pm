@@ -29,6 +29,7 @@ grammar Perl6::Grammar is HLL::Grammar {
         my $*W := nqp::isnull($file) ??
             Perl6::World.new(:handle($source_id)) !!
             Perl6::World.new(:handle($source_id), :description($file));
+        $*W.add_initializations();
 
         # XXX Hack: clear any marks.
         pir::set_hll_global__vPsP(['HLL', 'Grammar'], '%!MARKHASH', nqp::null());

@@ -1,4 +1,5 @@
 use NQPP6QRegex;
+use QAST;
 
 # This powers the optimization pass. It takes place after we've done all
 # of the stuff in the grammar and actions, which means CHECK time is over.
@@ -25,7 +26,7 @@ class Perl6::Optimizer {
     # Entry point for the optimization process.
     method optimize($past, *%adverbs) {
         # Initialize.
-        @!block_stack := [$past];
+        @!block_stack := [$past[0]];
         $!chain_depth := 0;
         $!pres_topic_counter := 0;
         %!deadly := nqp::hash();
@@ -41,7 +42,7 @@ class Perl6::Optimizer {
         my $unit := $past<UNIT>;
         my $*GLOBALish := $past<GLOBALish>;
         my $*W := $past<W>;
-        unless $unit.isa(PAST::Block) {
+        unless $unit.isa(QAST::Block) {
             nqp::die("Optimizer could not find UNIT");
         }
         self.visit_block($unit);
@@ -114,16 +115,21 @@ class Perl6::Optimizer {
         $block
     }
     
-    # Called when we encounter a PAST::Op in the tree. Produces either
+    # Called when we encounter a QAST::Op in the tree. Produces either
     # the op itself or some replacement opcode to put in the tree.
     method visit_op($op) {
+        # If it's a QAST::Op of type handle, needs some special attention.
+        my $optype := $op.op;
+        if $optype eq 'handle' {
+            return self.visit_handle($op);
+        }
+        
         # A chain with exactly two children can become the op itself.
-        my $pasttype := $op.pasttype;
-        if $pasttype eq 'chain' {
+        if $optype eq 'chain' {
             $!chain_depth := $!chain_depth + 1;
-            $pasttype := 'call' if $!chain_depth == 1 &&
-                !($op[0].isa(PAST::Op) && $op[0].pasttype eq 'chain') &&
-                !($op[1].isa(PAST::Op) && $op[1].pasttype eq 'chain');
+            $optype := 'call' if $!chain_depth == 1 &&
+                !($op[0].isa(QAST::Op) && $op[0].op eq 'chain') &&
+                !($op[1].isa(QAST::Op) && $op[1].op eq 'chain');
         }
         
         # Visit the children.
@@ -131,7 +137,7 @@ class Perl6::Optimizer {
         
         # Calls are especially interesting as we may wish to do some
         # kind of inlining.
-        if ($pasttype eq 'call' || $pasttype eq '') && $op.name ne '' {
+        if $optype eq 'call' && $op.name ne '' {
             # See if we can find the thing we're going to call.
             my $obj;
             my $found;
@@ -155,7 +161,7 @@ class Perl6::Optimizer {
                         my @ct_result := pir::perl6_multi_dispatch_ct__PPPP($obj, @types, @flags);
                         if @ct_result[0] == 1 {
                             my $chosen := @ct_result[1];
-                            if $op.pasttype eq 'chain' { $!chain_depth := $!chain_depth - 1 }
+                            if $op.op eq 'chain' { $!chain_depth := $!chain_depth - 1 }
                             if $*LEVEL >= 2 {
                                 return nqp::can($chosen, 'inline_info') && $chosen.inline_info ne ''
                                     ?? self.inline_call($op, $chosen)
@@ -168,15 +174,12 @@ class Perl6::Optimizer {
                     }
                     
                     # Otherwise, inline the proto.
-                    if $op.pasttype eq 'chain' { $!chain_depth := $!chain_depth - 1 }
+                    if $op.op eq 'chain' { $!chain_depth := $!chain_depth - 1 }
                     if $*LEVEL >= 2 {
                         return self.inline_proto($op, $obj);
                     }
                 }
                 elsif nqp::can($obj, 'signature') {
-                    # It's an only; we can at least know the return type.
-                    $op.type($obj.returns) if nqp::can($obj, 'returns');
-                    
                     # If we know enough about the arguments, do a "trial bind".
                     my @ct_arg_info := analyze_args_for_ct_call($op);
                     if +@ct_arg_info {
@@ -184,12 +187,12 @@ class Perl6::Optimizer {
                         my @flags := @ct_arg_info[1];
                         my $ct_result := pir::perl6_trial_bind_ct__IPPP($obj.signature, @types, @flags);
                         if $ct_result == 1 {
-                            if $op.pasttype eq 'chain' { $!chain_depth := $!chain_depth - 1 }
+                            if $op.op eq 'chain' { $!chain_depth := $!chain_depth - 1 }
                             #say("# trial bind worked!");
                             if $*LEVEL >= 2 {
                                 return nqp::can($obj, 'inline_info') && $obj.inline_info ne ''
                                     ?? self.inline_call($op, $obj)
-                                    !! $op;
+                                    !! copy_returns($op, $obj);
                             }
                         }
                         elsif $ct_result == -1 {
@@ -210,19 +213,20 @@ class Perl6::Optimizer {
         
         # If it's a private method call, we can sometimes resolve it at
         # compile time. If so, we can reduce it to a sub call in some cases.
-        elsif $*LEVEL >= 3 && $op.pasttype eq 'callmethod' && $op.name eq 'dispatch:<!>' {
+        elsif $*LEVEL >= 3 && $op.op eq 'callmethod' && $op.name eq 'dispatch:<!>' {
             if $op[1]<has_compile_time_value> && $op[1]<boxable_native> == 3 {
-                my $name := $op[1][2];   # get raw string name
-                my $pkg  := $op[2].type; # actions always sets this
+                my $name := $op[1][2].value; # get raw string name
+                my $pkg  := $op[2].returns;  # actions always sets this
                 my $meth := $pkg.HOW.find_private_method($pkg, $name);
                 if $meth {
                     try {
-                        my $call := $*W.get_ref($meth); # may fail, thus the try
+                        $*W.get_ref($meth); # may fail, thus the try; verifies it's in SC
+                        my $call := QAST::WVal.new( :value($meth) );
                         my $inv  := $op.shift;
                         $op.shift; $op.shift; # name, package (both pre-resolved now)
                         $op.unshift($inv);
                         $op.unshift($call);
-                        $op.pasttype('call');
+                        $op.op('call');
                         $op.name(nqp::null());
                     }
                 }
@@ -233,17 +237,23 @@ class Perl6::Optimizer {
         }
         
         # If we end up here, just leave op as is.
-        if $op.pasttype eq 'chain' {
+        if $op.op eq 'chain' {
             $!chain_depth := $!chain_depth - 1;
         }
         $op
     }
     
-    # Handles visiting a PAST::Want node.
+    # Handles visiting a QAST::Op :op('handle').
+    method visit_handle($op) {
+        self.visit_children($op, :skip_selectors);
+        $op
+    }
+    
+    # Handles visiting a QAST::Want node.
     method visit_want($want) {
         # Just visit the children for now. We ignore the literal strings, so
         # it all works out.
-        self.visit_children($want)
+        self.visit_children($want, :skip_selectors)
     }
     
     # Handles visit a variable node.
@@ -267,8 +277,8 @@ class Perl6::Optimizer {
                 @types.push(nqp::null());
                 @flags.push($_<boxable_native>);
             }
-            elsif nqp::can($_, 'type') && !nqp::isnull($_.type) {
-                my $type := $_.type();
+            elsif nqp::can($_, 'returns') && !nqp::isnull($_.returns) {
+                my $type := $_.returns();
                 if pir::isa($type, 'Undef') {
                     return [];
                 }
@@ -319,27 +329,27 @@ class Perl6::Optimizer {
     }
     
     # Visits all of a nodes children, and dispatches appropriately.
-    method visit_children($node) {
+    method visit_children($node, :$skip_selectors) {
         my $i := 0;
         while $i < +@($node) {
-            my $visit := $node[$i];
-            unless pir::isa($visit, 'String') || pir::isa($visit, 'Integer') || pir::isa($visit, 'Float') {
-                if $visit.isa(PAST::Op) {
+            unless $skip_selectors && $i % 2 {
+                my $visit := $node[$i];
+                if $visit.isa(QAST::Op) {
                     $node[$i] := self.visit_op($visit)
                 }
-                elsif $visit.isa(PAST::Block) {
+                elsif $visit.isa(QAST::Block) {
                     $node[$i] := self.visit_block($visit);
                 }
-                elsif $visit.isa(PAST::Stmts) {
+                elsif $visit.isa(QAST::Stmts) {
                     self.visit_children($visit);
                 }
-                elsif $visit.isa(PAST::Stmt) {
+                elsif $visit.isa(QAST::Stmt) {
                     self.visit_children($visit);
                 }
-                elsif $visit.isa(PAST::Want) {
+                elsif $visit.isa(QAST::Want) {
                     self.visit_want($visit);
                 }
-                elsif $visit.isa(PAST::Var) {
+                elsif $visit.isa(QAST::Var) {
                     self.visit_var($visit);
                 }
             }
@@ -384,6 +394,9 @@ class Perl6::Optimizer {
     
     # Inlines an immediate block.
     method inline_immediate_block($block, $outer) {
+        # Sanity check.
+        return $block if +@($block) != 2;
+
         # Extract interesting parts of block.
         my $decls := $block.shift;
         my $stmts := $block.shift;
@@ -391,17 +404,18 @@ class Perl6::Optimizer {
         # Turn block into an "optimized out" stub (deserialization
         # or fixup will still want it to be there).
         $block.blocktype('declaration');
-        $block[0] := PAST::Op.new( :pirop('die vs'),
-            'INTERNAL ERROR: Execution of block eliminated by optimizer');                
+        $block[0] := QAST::Op.new( :op('die_s'),
+            QAST::SVal.new( :value('INTERNAL ERROR: Execution of block eliminated by optimizer') ) );
         $outer[0].push($block);
         
         # Copy over interesting stuff in declaration section.
         for @($decls) {
-            if $_.isa(PAST::Op) && $_.pirop eq 'bind_signature v' {
-                # Don't copy this binder call.
+            if $_.isa(QAST::Op) && ($_.op eq 'p6bindsig' || 
+                    $_.op eq 'bind' && $_[0].name eq 'call_sig') {
+                # Don't copy this binder call or setup.
             }
-            elsif $_.isa(PAST::Var) && ($_.name eq '$/' || $_.name eq '$!' ||
-                    $_.name eq '$_' || $_.name eq 'call_sig' || $_.name eq '$*DISPATCHER') {
+            elsif $_.isa(QAST::Var) && ($_.name eq '$/' || $_.name eq '$!' ||
+                    $_.name eq '$_' || $_.name eq '$*DISPATCHER') {
                 # Don't copy this variable node.
             }
             else {
@@ -409,45 +423,39 @@ class Perl6::Optimizer {
             }
         }
 
-        # Copy over block handlers
-        my $handlers := $block.handlers();
-        if $handlers {
-            $stmts := PAST::Stmts.new($stmts);
-            $stmts.handlers($handlers);
-            $block.handlers(pir::new__Ps('Undef'));
-        }
-        
         # Hand back the statements, but be sure to preserve $_
         # around them.
         $!pres_topic_counter := $!pres_topic_counter + 1;
-        $outer[0].push(PAST::Var.new( :scope('register'),
-            :name("pres_topic_$!pres_topic_counter"), :isdecl(1) ));
-        return PAST::Stmts.new(
-            :signature('1PPP'),
-            PAST::Op.new( :pasttype('bind_6model'),
-                PAST::Var.new( :name("pres_topic_$!pres_topic_counter"), :scope('register') ),
-                PAST::Var.new( :name('$_'), :scope('lexical') )
+        $outer[0].push(QAST::Var.new( :scope('local'),
+            :name("pres_topic_$!pres_topic_counter"), :decl('var') ));
+        return QAST::Stmts.new(
+            :resultchild(1),
+            QAST::Op.new( :op('bind'),
+                QAST::Var.new( :name("pres_topic_$!pres_topic_counter"), :scope('local') ),
+                QAST::Var.new( :name('$_'), :scope('lexical') )
             ),
             $stmts,
-            PAST::Op.new( :pasttype('bind_6model'),
-                PAST::Var.new( :name('$_'), :scope('lexical') ),
-                PAST::Var.new( :name("pres_topic_$!pres_topic_counter"), :scope('register') )
+            QAST::Op.new( :op('bind'),
+                QAST::Var.new( :name('$_'), :scope('lexical') ),
+                QAST::Var.new( :name("pres_topic_$!pres_topic_counter"), :scope('local') )
             )
         );
     }
     
     # Inlines a proto.
     method inline_proto($call, $proto) {
-        $call.unshift(PAST::Op.new(
-            :pirop('perl6_multi_dispatch_thunk PP'),
-            PAST::Var.new( :name($call.name), :scope('lexical_6model') )));
+        $call.unshift(QAST::Op.new(
+            :op('p6mdthunk'),
+            QAST::Var.new( :name($call.name), :scope('lexical') )));
         $call.name(nqp::null());
-        $call.pasttype('call');
+        $call.op('call');
         $call
     }
     
     # Inlines a call to a sub.
     method inline_call($call, $code_obj) {
+        # XXX Still needs updating.
+        return $call;
         my $inline := $code_obj.inline_info();
         my $name   := $call.name;
         my @tokens := nqp::split(' ', $inline);
@@ -487,7 +495,7 @@ class Perl6::Optimizer {
         if $call.named ne '' {
             @stack[0].named($call.named);
         }
-        @stack[0].type($code_obj.returns) if nqp::can($code_obj, 'returns');
+        @stack[0].returns($code_obj.returns) if nqp::can($code_obj, 'returns');
         #say("# inlined a call to $name");
         @stack[0]
     }
@@ -498,28 +506,46 @@ class Perl6::Optimizer {
         my $idx := 0;
         for @cands {
             if $_ =:= $chosen {
-                $call.unshift(PAST::Op.new(
-                    :pirop('perl6_multi_dispatch_cand_thunk PPi'),
-                    PAST::Var.new( :name($call.name), :scope('lexical_6model') ),
-                    $idx));
+                $call.unshift(QAST::Op.new(
+                    :op('p6mdcandthunk'),
+                    QAST::Var.new( :name($call.name), :scope('lexical') ),
+                    QAST::IVal.new( :value($idx) )
+                ));
                 $call.name(nqp::null());
-                $call.pasttype('call');
+                $call.op('call');
                 #say("# Compile-time resolved a call to " ~ $proto.name);
                 last;
             }
             $idx := $idx + 1;
         }
-        $call.type($chosen.returns) if nqp::can($chosen, 'returns');
+        $call := copy_returns($call, $chosen);
         $call
     }
     
     # Adds an entry to the list of things that would cause a check fail.
     method add_deadly($past_node, $message, @extras?) {
-        my $line := HLL::Compiler.lineof($past_node<source>, $past_node<pos>);
+        my $mnode := $past_node.node;
+        my $line := HLL::Compiler.lineof($mnode.orig, $mnode.from);
         my $key := $message ~ (+@extras ?? "\n" ~ nqp::join("\n", @extras) !! "");
         unless %!deadly{$key} {
             %!deadly{$key} := [];
         }
         %!deadly{$key}.push($line);
+    }
+    
+    my @prim_spec_ops := ['', 'p6box_i', 'p6box_n', 'p6box_s'];
+    my @prim_spec_flags := ['', 'Ii', 'Nn', 'Ss'];
+    sub copy_returns($to, $from) {
+        if nqp::can($from, 'returns') {
+            my $ret_type := $from.returns();
+            if pir::repr_get_primitive_type_spec__IP($ret_type) -> $primspec {
+                $to := QAST::Want.new(
+                    :named($to.named),
+                    QAST::Op.new( :op(@prim_spec_ops[$primspec]), $to ),
+                    @prim_spec_flags[$primspec], $to);
+            }
+            $to.returns($ret_type);
+        }
+        $to
     }
 }

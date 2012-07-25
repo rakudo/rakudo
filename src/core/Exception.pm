@@ -21,11 +21,11 @@ my class Exception {
     }
 
     method throw() is hidden_from_backtrace {
-        nqp::bindattr(self, Exception, '$!ex', pir::new('Exception'))
+        nqp::bindattr(self, Exception, '$!ex', pir::new__Ps('Exception'))
             unless nqp::defined($!ex);
         pir::setattribute__vPsP($!ex, 'payload', nqp::p6decont(self));
         my $msg := self.?message;
-        pir::setattribute__vPsP($!ex, 'message', nqp::unbox_s($msg.Str))
+        pir::setattribute__0PsP($!ex, 'message', nqp::unbox_s($msg.Str))
             if $msg.defined;
         nqp::throw($!ex)
     }
@@ -166,7 +166,7 @@ do {
             $_() for pir::perl6ize_type__PP(@*END_PHASERS);
         }
         if $! {
-            pir::perl6_based_rethrow__vPP(nqp::getattr($!, Exception, '$!ex'), $ex);
+            pir::perl6_based_rethrow__0PP(nqp::getattr($!, Exception, '$!ex'), $ex);
         }
     }
 
@@ -212,7 +212,7 @@ do {
     $comp.HOW.add_method($comp, 'handle-exception',
         method (|$) {
             my Mu $ex := nqp::atpos(pir::perl6_current_args_rpa__P(), 1);
-            pir::perl6_invoke_catchhandler(&print_exception, $ex);
+            pir::perl6_invoke_catchhandler__vPP(&print_exception, $ex);
             nqp::exit(1);
             0;
         }
@@ -220,7 +220,7 @@ do {
     $comp.HOW.add_method($comp, 'handle-control',
         method (|$) {
             my Mu $ex := nqp::atpos(pir::perl6_current_args_rpa__P(), 1);
-            pir::perl6_invoke_catchhandler(&print_control, $ex);
+            pir::perl6_invoke_catchhandler__vPP(&print_control, $ex);
             nqp::rethrow($ex);
         }
     );

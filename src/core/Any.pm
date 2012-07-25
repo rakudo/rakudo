@@ -1,5 +1,4 @@
 my class MapIter { ... }
-my class Whatever { ... }
 my class Range { ... }
 my class X::Bind::Slice { ... }
 my class X::Bind::ZenSlice { ... }

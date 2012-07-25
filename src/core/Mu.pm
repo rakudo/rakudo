@@ -407,7 +407,7 @@ multi sub infix:<~~>(Mu \$topic, Mu \$matcher) {
     $matcher.ACCEPTS($topic).Bool;
 }
 
-proto sub infix:<=:=>($a?, $b?) { * }
+proto sub infix:<=:=>(Mu $a?, Mu $b?) { * }
 multi sub infix:<=:=>($a?)      { Bool::True }
 multi sub infix:<=:=>(Mu \$a, Mu \$b) { 
     nqp::p6bool(nqp::iseq_i(nqp::where($a), nqp::where($b)));

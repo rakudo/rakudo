@@ -23,7 +23,7 @@ my class Regex {
     }
 
     multi method Bool(Regex:D:) {
-        my $match = pir::find_caller_lex__pS('$_').match(self);
+        my $match = pir::find_caller_lex__Ps('$_').match(self);
         pir::find_caller_lex__Ps('$/') = $match;
         $match.Bool()
     }

@@ -66,6 +66,8 @@ PERL6_W       = src/gen/perl6-symboltable.pir
 PERL6_W_PBC   = blib/Perl6/World.pbc
 PERL6_G       = src/gen/perl6-grammar.pir
 PERL6_G_PBC   = blib/Perl6/Grammar.pbc
+PERL6_OPS     = src/gen/perl6-ops.pir
+PERL6_OPS_PBC = blib/Perl6/Ops.pbc
 PERL6_A       = src/gen/perl6-actions.pir
 PERL6_A_PBC   = blib/Perl6/Actions.pbc
 PERL6_O       = src/gen/perl6-optimizer.pir
@@ -296,6 +298,7 @@ install: all
 	$(CP) $(PERL6_CF_PBC)         $(DESTDIR)$(NQP_LANG_DIR)/lib/Perl6/ConstantFolder.pbc
 	$(CP) $(PERL6_W_PBC)          $(DESTDIR)$(NQP_LANG_DIR)/lib/Perl6/World.pbc
 	$(CP) $(PERL6_G_PBC)          $(DESTDIR)$(NQP_LANG_DIR)/lib/Perl6/Grammar.pbc
+	$(CP) $(PERL6_OPS_PBC)        $(DESTDIR)$(NQP_LANG_DIR)/lib/Perl6/Ops.pbc
 	$(CP) $(PERL6_A_PBC)          $(DESTDIR)$(NQP_LANG_DIR)/lib/Perl6/Actions.pbc
 	$(CP) $(PERL6_O_PBC)          $(DESTDIR)$(NQP_LANG_DIR)/lib/Perl6/Optimizer.pbc
 	$(CP) $(PERL6_P_PBC)          $(DESTDIR)$(NQP_LANG_DIR)/lib/Perl6/Pod.pbc
@@ -361,7 +364,12 @@ $(PERL6_G_PBC): $(NQP_EXE) $(PERL6_W_PBC) src/Perl6/Grammar.pm $(PERL6_P_PBC)
 	    src/Perl6/Grammar.pm
 	$(PARROT) $(PARROT_ARGS) -o $(PERL6_G_PBC) $(PERL6_G)
 
-$(PERL6_A_PBC): $(NQP_EXE) $(DYNEXT_DYNPMC) $(DYNEXT_DYNOPS) src/Perl6/Actions.pm $(PERL6_P_PBC) $(PERL6_CF_PBC)
+$(PERL6_OPS_PBC): $(NQP_EXE) $(DYNEXT_DYNPMC) $(DYNEXT_DYNOPS) src/Perl6/Ops.pm
+	$(NQP_EXE) --vmlibs=perl6_group,perl6_ops  --target=pir --output=$(PERL6_OPS) --encoding=utf8 \
+	    src/Perl6/Ops.pm
+	$(PARROT) $(PARROT_ARGS) -o $(PERL6_OPS_PBC) $(PERL6_OPS)
+
+$(PERL6_A_PBC): $(NQP_EXE) $(DYNEXT_DYNPMC) $(DYNEXT_DYNOPS) src/Perl6/Actions.pm $(PERL6_P_PBC) $(PERL6_CF_PBC) $(PERL6_OPS_PBC)
 	$(NQP_EXE) --vmlibs=perl6_group,perl6_ops  --target=pir --output=$(PERL6_A) --encoding=utf8 \
 	    src/Perl6/Actions.pm
 	$(PARROT) $(PARROT_ARGS) -o $(PERL6_A_PBC) $(PERL6_A)
@@ -406,7 +414,8 @@ $(R_SETTING_PBC): $(PERL6_B_PBC) $(PERL6_EXE) $(SETTING_PBC) $(R_SETTING_SRC)
 $(S_SETTING_PBC): $(PERL6_B_PBC) $(PERL6_EXE) $(SETTING_PBC) $(S_SETTING_SRC)
 	./$(PERL6_EXE) --target=pir $(STAGESTATS) --output=$(S_SETTING_PIR) $(S_SETTING_SRC)
 	$(PARROT) $(PARROT_ARGS) -o $(S_SETTING_PBC) $(S_SETTING_PIR)
-    
+
+
 ##  testing targets
 lib/Test.pir: lib/Test.pm $(PERL6_EXE) $(SETTING_PBC)
 	./$(PERL6_EXE) --target=pir --output=lib/Test.pir lib/Test.pm

@@ -3253,7 +3253,7 @@ class Perl6::Actions is HLL::Actions {
     }
 
     sub add_macro_arguments($expr, $ast_class, @argument_quasi_asts) {
-        if $expr.name eq '&infix:<,>' {
+        if nqp::istype($expr, QAST::Op) && $expr.name eq '&infix:<,>' {
             for $expr.list {
                 my $quasi_ast := $ast_class.new();
                 nqp::bindattr($quasi_ast, $ast_class, '$!past', $_);

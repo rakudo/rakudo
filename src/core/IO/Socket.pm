@@ -2,13 +2,19 @@ my role IO::Socket {
     has $!PIO;
     has $!buffer = '';
 
-    method recv (Cool $bufsize = $Inf) {
+    method recv (Cool $chars = $Inf) {
         fail('Socket not available') unless $!PIO;
 
-        $!buffer ~= nqp::p6box_s($!PIO.recv()) if $!buffer.bytes <= $bufsize
-        if $!buffer.bytes > $bufsize {
-            my $rec  = $!buffer.substr(0, $bufsize);
-            $!buffer = $!buffer.substr($bufsize);
+        if $!buffer.chars < $chars {
+            my str $r = $!PIO.recv;
+            $r = pir::trans_encoding__SSI($r,
+                    pir::find_encoding__Is('utf8'));
+            $!buffer ~= nqp::p6box_s($r);
+        }
+
+        if $!buffer.chars > $chars {
+            my $rec  = $!buffer.substr(0, $chars);
+            $!buffer = $!buffer.substr($chars);
             $rec
         } else {
             my $rec = $!buffer;

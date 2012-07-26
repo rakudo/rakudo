@@ -336,7 +336,7 @@ class Perl6::Actions is HLL::Actions {
             my $pod2text := QAST::Op.new(
                 :op<callmethod>, :name<render>, :node($/),
                 self.make_indirect_lookup([$renderer]),
-                QAST::Var.new(:name<$=pod>, :node($/))
+                QAST::Var.new(:name<$=pod>, :scope('lexical'), :node($/))
             );
 
             $block.push(

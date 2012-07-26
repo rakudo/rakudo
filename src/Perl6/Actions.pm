@@ -98,8 +98,8 @@ class Perl6::Actions is HLL::Actions {
             if $shape {
                 @value_type[0] := $*W.find_symbol(['Mu']) unless +@value_type;
                 my $shape_ast := $shape[0].ast;
-                if $shape_ast.isa(QAST::Stmts) && +@($shape_ast) == 1 && $shape_ast[0]<has_compile_time_value> {
-                    @value_type[1] := $shape_ast[0]<compile_time_value>;
+                if $shape_ast.isa(QAST::Stmts) && +@($shape_ast) == 1 && $shape_ast[0].has_compile_time_value {
+                    @value_type[1] := $shape_ast[0].compile_time_value;
                 }
                 else {
                     nqp::die("Invalid hash shape; type expected");
@@ -429,15 +429,15 @@ class Perl6::Actions is HLL::Actions {
             @ret.push($_.ast);
         }
         my $past := Perl6::Pod::serialize_array(@ret);
-        make $past<compile_time_value>;
+        make $past.compile_time_value;
     }
 
     method pod_textcontent:sym<regular>($/) {
         my @t     := Perl6::Pod::merge_twines($<pod_string>);
-        my $twine := Perl6::Pod::serialize_array(@t)<compile_time_value>;
+        my $twine := Perl6::Pod::serialize_array(@t).compile_time_value;
         make Perl6::Pod::serialize_object(
             'Pod::Block::Para', :content($twine)
-        )<compile_time_value>
+        ).compile_time_value
     }
 
     method pod_textcontent:sym<code>($/) {
@@ -446,9 +446,9 @@ class Perl6::Actions is HLL::Actions {
         $t    := subst($t, /\n$/, ''); # chomp!
         my $past := Perl6::Pod::serialize_object(
             'Pod::Block::Code',
-            :content(Perl6::Pod::serialize_aos([$t])<compile_time_value>),
+            :content(Perl6::Pod::serialize_aos([$t]).compile_time_value),
         );
-        make $past<compile_time_value>;
+        make $past.compile_time_value;
     }
 
     method pod_formatting_code($/) {
@@ -463,13 +463,13 @@ class Perl6::Actions is HLL::Actions {
             my $past := Perl6::Pod::serialize_object(
                 'Pod::FormattingCode',
                 :type(
-                    $*W.add_string_constant(~$<code>)<compile_time_value>
+                    $*W.add_string_constant(~$<code>).compile_time_value
                 ),
                 :content(
-                    Perl6::Pod::serialize_array(@t)<compile_time_value>
+                    Perl6::Pod::serialize_array(@t).compile_time_value
                 )
             );
-            make $past<compile_time_value>;
+            make $past.compile_time_value;
         }
     }
 
@@ -1954,7 +1954,7 @@ class Perl6::Actions is HLL::Actions {
 
         # Attach inlining information.
         $*W.apply_trait('&trait_mod:<is>', $code,
-            inlinable => ($*W.add_string_constant($inline_info))<compile_time_value>)
+            inlinable => ($*W.add_string_constant($inline_info)).compile_time_value)
     }
 
     method method_def($/) {
@@ -2390,10 +2390,10 @@ class Perl6::Actions is HLL::Actions {
         }
         if $term_ast.isa(QAST::Op) && $term_ast.name eq '&infix:<,>' {
             for @($term_ast) {
-                if istype($_.returns(), $Pair) && $_[1]<has_compile_time_value> {
+                if istype($_.returns(), $Pair) && $_[1].has_compile_time_value {
                     @values.push($_);
                 }
-                elsif $_<has_compile_time_value> {
+                elsif $_.has_compile_time_value {
                     @values.push($_);
                 }
                 else {
@@ -2401,10 +2401,10 @@ class Perl6::Actions is HLL::Actions {
                 }
             }
         }
-        elsif $term_ast<has_compile_time_value> {
+        elsif $term_ast.has_compile_time_value {
             @values.push($term_ast);
         }
-        elsif istype($term_ast.returns, $Pair) && $term_ast[1]<has_compile_time_value> {
+        elsif istype($term_ast.returns, $Pair) && $term_ast[1].has_compile_time_value {
             @values.push($term_ast);
         }
         else {
@@ -2421,16 +2421,16 @@ class Perl6::Actions is HLL::Actions {
             # key.
             my $cur_key;
             if istype($_.returns(), $Pair) {
-                $cur_key   := $_[1]<compile_time_value>;
-                if $_[2]<has_compile_time_value> {
-                    $cur_value := $_[2]<compile_time_value>;
+                $cur_key := $_[1].compile_time_value;
+                if $_[2].has_compile_time_value {
+                    $cur_value := $_[2].compile_time_value;
                 }
                 else {
                     my $ok;
                     try {
                         $cur_value := Perl6::ConstantFolder.fold(
                                         $_[2], $*W.cur_lexpad(), $*W
-                                    )<compile_time_value>;
+                                    ).compile_time_value;
                         $ok := 1;
                     }
                     unless $ok {
@@ -2460,7 +2460,7 @@ class Perl6::Actions is HLL::Actions {
                     $has_base_type := 1;
                 }
 
-                $cur_key := $_<compile_time_value>;
+                $cur_key := $_.compile_time_value;
                 $cur_value := $cur_value.succ();
             }
 
@@ -2519,8 +2519,8 @@ class Perl6::Actions is HLL::Actions {
         my $con_block := $*W.pop_lexpad();
         my $value_ast := $<initializer>.ast;
         my $value;
-        if $value_ast<has_compile_time_value> {
-            $value := $value_ast<compile_time_value>;
+        if $value_ast.has_compile_time_value {
+            $value := $value_ast.compile_time_value;
         }
         else {
             $con_block.push($value_ast);
@@ -2588,10 +2588,7 @@ class Perl6::Actions is HLL::Actions {
         my @params := $<signature>.ast;
         set_default_parameter_type(@params, 'Mu');
         my $sig := create_signature_object($/, @params, $*FAKE_PAD, :no_attr_check(1));
-        my $past := QAST::WVal.new( :value($sig) );
-        $past<has_compile_time_value> := 1;
-        $past<compile_time_value> := $sig;
-        make $past;
+        make QAST::WVal.new( :value($sig) );
     }
 
     method signature($/) {
@@ -2634,8 +2631,8 @@ class Perl6::Actions is HLL::Actions {
                 $*W.throw($/, ['X', 'Parameter', 'Default'], how => 'required');
             }
             my $val := $<default_value>[0].ast;
-            if $val<has_compile_time_value> {
-                %*PARAM_INFO<default_value> := $val<compile_time_value>;
+            if $val.has_compile_time_value {
+                %*PARAM_INFO<default_value> := $val.compile_time_value;
                 %*PARAM_INFO<default_is_literal> := 1;
             }
             else {
@@ -2832,10 +2829,10 @@ class Perl6::Actions is HLL::Actions {
                 $*W.throw($/, ['X', 'Parameter', 'MultipleTypeConstraints']);
             }
             my $ast := $<value>.ast;
-            unless $ast<has_compile_time_value> {
+            unless $ast.has_compile_time_value {
                 $/.CURSOR.panic('Cannot use a value type constraints whose value is unknown at compile time');
             }
-            my $val := $ast<compile_time_value>;
+            my $val := $ast.compile_time_value;
             %*PARAM_INFO<nominal_type> := $val.WHAT;
             unless %*PARAM_INFO<post_constraints> {
                 %*PARAM_INFO<post_constraints> := [];
@@ -2951,8 +2948,8 @@ class Perl6::Actions is HLL::Actions {
             my @trait_arg;
             if $<circumfix> {
                 my $arg := $<circumfix>[0].ast[0];
-                @trait_arg[0] := $arg<has_compile_time_value> ??
-                    $arg<compile_time_value> !!
+                @trait_arg[0] := $arg.has_compile_time_value ??
+                    $arg.compile_time_value !!
                     $*W.create_thunk($/, $<circumfix>[0].ast)();
             }
         
@@ -2990,7 +2987,7 @@ class Perl6::Actions is HLL::Actions {
 
     method trait_mod:sym<will>($/) {
         my %arg;
-        %arg{~$<identifier>} := ($*W.add_constant('Int', 'int', 1))<compile_time_value>;
+        %arg{~$<identifier>} := ($*W.add_constant('Int', 'int', 1)).compile_time_value;
         make -> $declarand {
             $*W.apply_trait('&trait_mod:<will>', $declarand,
                 ($<pblock>.ast)<code_object>, |%arg);
@@ -3372,15 +3369,13 @@ class Perl6::Actions is HLL::Actions {
                 # Do we know all the arguments at compile time?
                 my $all_compile_time := 1;
                 for @($<arglist>[0].ast) {
-                    unless $_<has_compile_time_value> {
+                    unless $_.has_compile_time_value {
                         $all_compile_time := 0;
                     }
                 }
                 if $all_compile_time {
                     my $curried := $*W.parameterize_type($ptype, $<arglist>, $/);
                     $past := QAST::WVal.new( :value($curried) );
-                    $past<has_compile_time_value> := 1;
-                    $past<compile_time_value> := $curried;
                 }
                 else {
                     my $ptref := QAST::WVal.new( :value($ptype) );
@@ -3965,7 +3960,7 @@ class Perl6::Actions is HLL::Actions {
                 }
             }
             else {
-                if $rhs[0]<has_compile_time_value> && +@($rhs) == 2 {
+                if $rhs[0].has_compile_time_value && +@($rhs) == 2 {
                     $past.push($rhs[0]);
                     $rhs[1].named('value');
                     $past.push($rhs[1]);
@@ -4004,7 +3999,7 @@ class Perl6::Actions is HLL::Actions {
         %cont{'bind_constraint'} := $*W.find_symbol(['Mu']);
         %cont{'container_type'}  := $*W.find_symbol(['Scalar']);
         %cont{'container_base'}  := %cont{'container_type'};
-        %cont{'default_value'}   := $zero<compile_time_value>;
+        %cont{'default_value'}   := $zero.compile_time_value;
         $*W.install_lexical_container($*W.cur_lexpad(), $state, %cont,
             $*W.create_container_descriptor(%cont{'bind_constraint'}, 1, $state),
             :state(1));
@@ -4312,7 +4307,7 @@ class Perl6::Actions is HLL::Actions {
     method number:sym<complex>($/) {
         my $re := $*W.add_constant('Num', 'num', 0e0);
         my $im := $*W.add_constant('Num', 'num', +~$<im>);
-        make $*W.add_constant('Complex', 'type_new', $re<compile_time_value>, $im<compile_time_value>);
+        make $*W.add_constant('Complex', 'type_new', $re.compile_time_value, $im.compile_time_value);
     }
 
     method number:sym<numish>($/) {
@@ -4497,8 +4492,8 @@ class Perl6::Actions is HLL::Actions {
         if $value ~~ QAST::IVal || $value ~~ QAST::SVal {
             $value := $value.value;
         }
-        elsif $value<has_compile_time_value> {
-            $value := $value<compile_time_value>;
+        elsif $value.has_compile_time_value {
+            $value := $value.compile_time_value;
         }
         else {
             if %SHARED_ALLOWED_ADVERBS{$key} {
@@ -5039,7 +5034,7 @@ class Perl6::Actions is HLL::Actions {
         ($*W.cur_lexpad())[0].push($block);
 
         # Dispatch trait. XXX Should really be Bool::True, not Int here...
-        my $true := ($*W.add_constant('Int', 'int', 1))<compile_time_value>;
+        my $true := ($*W.add_constant('Int', 'int', 1)).compile_time_value;
         $*W.apply_trait('&trait_mod:<will>', $attr, :build($code));
     }
 
@@ -5191,11 +5186,14 @@ class Perl6::Actions is HLL::Actions {
         my $type := $*W.find_symbol(@name);
         my $is_generic := 0;
         try { $is_generic := $type.HOW.archetypes.generic }
-        my $past := $is_generic ??
-            $*W.symbol_lookup(@name, $/) !!
-            QAST::WVal.new( :value($type) );
-        $past<has_compile_time_value> := 1;
-        $past<compile_time_value> := $type;
+        my $past;
+        if $is_generic {
+            $past := $*W.symbol_lookup(@name, $/);
+            $past.set_compile_time_value($type);
+        }
+        else {
+            $past := QAST::WVal.new( :value($type) );
+        }
         $past.returns($type.WHAT);
         return $past;
     }
@@ -5204,8 +5202,8 @@ class Perl6::Actions is HLL::Actions {
     # time and if so obtains it. Otherwise reports an error, involving
     # the $usage parameter to make it more helpful.
     sub compile_time_value_str($past, $usage, $/) {
-        if $past<has_compile_time_value> {
-            nqp::unbox_s($past<compile_time_value>);
+        if $past.has_compile_time_value {
+            nqp::unbox_s($past.compile_time_value);
         }
         else {
             $*W.throw($/, ['X', 'Value', 'Dynamic'], what => $usage);

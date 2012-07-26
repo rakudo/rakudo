@@ -214,7 +214,7 @@ class Perl6::Optimizer {
         # If it's a private method call, we can sometimes resolve it at
         # compile time. If so, we can reduce it to a sub call in some cases.
         elsif $*LEVEL >= 3 && $op.op eq 'callmethod' && $op.name eq 'dispatch:<!>' {
-            if $op[1]<has_compile_time_value> && $op[1]<boxable_native> == 3 {
+            if $op[1].has_compile_time_value && $op[1]<boxable_native> == 3 {
                 my $name := $op[1][2].value; # get raw string name
                 my $pkg  := $op[2].returns;  # actions always sets this
                 my $meth := $pkg.HOW.find_private_method($pkg, $name);

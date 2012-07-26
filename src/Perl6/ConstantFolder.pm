@@ -2,7 +2,7 @@
 class Perl6::ConstantFolder {
     # Tries to fold. Throws if it's not possible.
     method fold($expr, $scope, $world) {
-        if $expr<has_compile_time_value> {
+        if $expr.has_compile_time_value {
             # It's already got a compile time value, just hand it back.
             $expr
         }
@@ -12,8 +12,8 @@ class Perl6::ConstantFolder {
             my @args;
             for @($expr) {
                 my $arg := self.fold($_, $scope, $world);
-                if $arg<has_compile_time_value> {
-                    @args.push($arg<compile_time_value>)
+                if $arg.has_compile_time_value {
+                    @args.push($arg.compile_time_value)
                 }
                 else {
                     nqp::die("No compile time value obtainable for argument to " ~ $expr.name);

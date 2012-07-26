@@ -616,7 +616,7 @@ class Perl6::World is HLL::World {
     }
 
     method compile_time_evaluate($/, $ast) {
-        return $ast<compile_time_value> if $ast<has_compile_time_value>;
+        return $ast.compile_time_value if $ast.has_compile_time_value;
         my $thunk := self.create_thunk($/, $ast);
         $thunk();
     }
@@ -1065,10 +1065,7 @@ class Perl6::World is HLL::World {
                     ~ $namedkey;
             }
             if nqp::existskey(%!const_cache, $cache_key) {
-                my $past := QAST::WVal.new( :value(%!const_cache{$cache_key}) );
-                $past<has_compile_time_value> := 1;
-                $past<compile_time_value> := %!const_cache{$cache_key};
-                return $past;
+                return QAST::WVal.new( :value(%!const_cache{$cache_key}) );
             }
         }
         
@@ -1104,8 +1101,6 @@ class Perl6::World is HLL::World {
         # table, but also annotate it with the constant itself in case
         # we need it. Add to cache.
         my $qast := QAST::WVal.new( :value($constant) );
-        $qast<has_compile_time_value> := 1;
-        $qast<compile_time_value> := $constant;
         if !$nocache {
             %!const_cache{$cache_key} := $constant;
         }
@@ -1118,10 +1113,7 @@ class Perl6::World is HLL::World {
         if $type eq 'Int' && pir::typeof__SP($value) eq 'Int' {
             if nqp::isbig_I($value) {
                 # cannot unbox to int without loss of information
-                my $past := self.add_constant('Int', 'bigint', $value);
-                $past<has_compile_time_value> := 1;
-                $past<compile_time_value>     := $value;
-                return $past;
+                return self.add_constant('Int', 'bigint', $value);
             }
             # since Int doesn't have any vtables yet (at least while compiling
             # the setting), it is inconvenient to work with, so unbox
@@ -1138,8 +1130,6 @@ class Perl6::World is HLL::World {
                     QAST::VM.new( :pirop('set Ns'), QAST::SVal.new( :value(~$value) ) ) !!
                     QAST::NVal.new( :value($value) ) );
         }
-        $past<has_compile_time_value> := 1;
-        $past<compile_time_value>     := $const<compile_time_value>;
         if $type eq 'Int' {
             $past<boxable_native> := 1;
         }
@@ -1154,8 +1144,6 @@ class Perl6::World is HLL::World {
     method add_string_constant($value) {
         my $const := self.add_constant('Str', 'str', $value);
         my $past  := QAST::Want.new($const, 'Ss', QAST::SVal.new( :value($value) ));
-        $past<has_compile_time_value> := 1;
-        $past<compile_time_value>     := $const<compile_time_value>;
         $past<boxable_native>         := 3;
         $past;
     }
@@ -1164,10 +1152,7 @@ class Perl6::World is HLL::World {
     # returns a reference to it.
     method add_constant_folded_result($r) {
         self.add_object($r);
-        my $ast := QAST::WVal.new( :value($r) );
-        $ast<has_compile_time_value> := 1;
-        $ast<compile_time_value> := $r;
-        $ast
+        QAST::WVal.new( :value($r) )
     }
 
     # Creates a meta-object for a package, adds it to the root objects and
@@ -1256,8 +1241,8 @@ class Perl6::World is HLL::World {
         my %named_args;
         for @($arglist[0].ast) {
             my $val;
-            if $_<has_compile_time_value> {
-                $val := $_<compile_time_value>;
+            if $_.has_compile_time_value {
+                $val := $_.compile_time_value;
             }
             else {
                 $val := self.compile_time_evaluate($/, $_);
@@ -1517,8 +1502,8 @@ class Perl6::World is HLL::World {
             }
             for @!components {
                 if nqp::can($_, 'isa') && $_.isa(QAST::Node) {
-                    if $_<has_compile_time_value> {
-                        for nqp::split('::', ~$_<compile_time_value>) {
+                    if $_.has_compile_time_value {
+                        for nqp::split('::', ~$_.compile_time_value) {
                             @name.push($_);
                         }
                     }
@@ -1598,10 +1583,10 @@ class Perl6::World is HLL::World {
         for $longname<colonpair> {
             if $_<circumfix> && !$_<identifier> {
                 my $value := $_.ast;
-                if $value<has_compile_time_value> {
+                if $value.has_compile_time_value {
                     @components[+@components - 1] := @components[+@components - 1] ~
                         (%*COMPILING<%?OPTIONS><setting> ne 'NULL' ??
-                        ':<' ~ ~$value<compile_time_value> ~ '>' !!
+                        ':<' ~ ~$value.compile_time_value ~ '>' !!
                         ~$_);
                 }
                 else {

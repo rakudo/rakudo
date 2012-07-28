@@ -5354,17 +5354,19 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions {
     }
     
     method metachar:sym<rakvar>($/) {
-        make QAST::Regex.new( PAST::Node.new('INTERPOLATE',
-                                    PAST::QAST.new( $<var>.ast ),
-                                    PAST::QAST.new( QAST::IVal.new( :value(%*RX<i> ?? 1 !! 0) ) )),
+        make QAST::Regex.new( QAST::Node.new(
+                                    QAST::SVal.new( :value('INTERPOLATE') ),
+                                    $<var>.ast,
+                                    QAST::IVal.new( :value(%*RX<i> ?? 1 !! 0) ) ),
                               :rxtype<subrule>, :subtype<method>, :node($/));
     }
 
     method assertion:sym<{ }>($/) {
         make QAST::Regex.new( 
-                 PAST::Node.new('INTERPOLATE',
-                    PAST::QAST.new( QAST::Op.new(
-                        :op<call>, :name<&MAKE_REGEX>, $<codeblock>.ast ) )),
+                 QAST::Node.new(
+                    QAST::SVal.new( :value('INTERPOLATE') ),
+                    QAST::Op.new(
+                        :op<call>, :name<&MAKE_REGEX>, $<codeblock>.ast ) ),
                  :rxtype<subrule>, :subtype<method>, :node($/));
     }
 
@@ -5376,8 +5378,9 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions {
 
     method assertion:sym<var>($/) {
         make QAST::Regex.new( 
-                 PAST::Node.new('INTERPOLATE',
-                    PAST::QAST.new( QAST::Op.new( :op<call>, :name<&MAKE_REGEX>, $<var>.ast ) ) ),
+                 QAST::Node.new(
+                    QAST::SVal.new( :value('INTERPOLATE') ),
+                    QAST::Op.new( :op<call>, :name<&MAKE_REGEX>, $<var>.ast ) ),
                  :rxtype<subrule>, :subtype<method>, :node($/));
     }
     
@@ -5404,28 +5407,30 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions {
             if +@parts {
                 my $gref := QAST::WVal.new( :value($*W.find_symbol(@parts)) );
                 $qast := QAST::Regex.new(:rxtype<subrule>, :subtype<capture>,
-                                         :node($/), PAST::Node.new('OTHERGRAMMAR', 
-                                            PAST::QAST.new($gref), $name),
+                                         :node($/), QAST::Node.new(
+                                            QAST::SVal.new( :value('OTHERGRAMMAR') ), 
+                                            $gref, QAST::SVal.new( :value($name) )),
                                          :name(~$<longname>) );
             } elsif $*W.regex_in_scope('&' ~ $name) {
                 $qast := QAST::Regex.new(:rxtype<subrule>, :subtype<capture>,
-                                         :node($/), PAST::Node.new('INTERPOLATE',
-                                            PAST::QAST.new( QAST::Var.new( :name('&' ~ $name), :scope('lexical') ) ) ), 
+                                         :node($/), QAST::Node.new(
+                                            QAST::SVal.new( :value('INTERPOLATE') ),
+                                            QAST::Var.new( :name('&' ~ $name), :scope('lexical') ) ), 
                                          :name($name) );
             }
             else {
                 $qast := QAST::Regex.new(:rxtype<subrule>, :subtype<capture>,
-                                         :node($/), PAST::Node.new($name), 
+                                         :node($/), QAST::Node.new(QAST::SVal.new( :value($name) )), 
                                          :name($name) );
             }
             if $<arglist> {
-                for $<arglist>[0].ast.list { $qast[0].push( PAST::QAST.new($_) ) }
+                for $<arglist>[0].ast.list { $qast[0].push($_) }
             }
             elsif $<nibbler> {
                 my $nibbled := $name eq 'after'
                     ?? self.flip_ast($<nibbler>[0].ast)
                     !! $<nibbler>[0].ast;
-                my $sub := PAST::QAST.new(QRegex::P6Regex::Actions::qbuildsub($nibbled, :anon(1), :addself(1)));
+                my $sub := QRegex::P6Regex::Actions::qbuildsub($nibbled, :anon(1), :addself(1));
                 $sub<orig_qast> := $sub[0]<orig_qast>;
                 $qast[0].push($sub);
             }
@@ -5442,7 +5447,7 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions {
         }
         else {
             make QAST::Regex.new( :rxtype<subrule>, :subtype<method>,
-                PAST::Node.new('RECURSE'), :node($/) );
+                QAST::Node.new(QAST::SVal.new( :value('RECURSE') )), :node($/) );
         }
     }
     
@@ -5471,8 +5476,8 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions {
     
     # XXX Overriden during QAST migration.
     method metachar:sym<( )>($/) {
-        my $subpast := PAST::Node.new(PAST::QAST.new(
-            QRegex::P6Regex::Actions::qbuildsub($<nibbler>.ast, :anon(1), :addself(1))));
+        my $subpast := QAST::Node.new(
+            QRegex::P6Regex::Actions::qbuildsub($<nibbler>.ast, :anon(1), :addself(1)));
         my $qast := QAST::Regex.new( $subpast, $<nibbler>.ast, :rxtype('subrule'),
                                      :subtype('capture'), :node($/) );
         make $qast;

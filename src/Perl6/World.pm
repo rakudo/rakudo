@@ -576,6 +576,9 @@ class Perl6::World is HLL::World {
         
         # Set parameters.
         nqp::bindattr($signature, $sig_type, '$!params', @parameters);
+        if nqp::existskey(%signature_info, 'returns') {
+            nqp::bindattr($signature, $sig_type, '$!returns', %signature_info<returns>);
+        }
         
         # Return created signature.
         $signature

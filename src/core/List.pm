@@ -277,11 +277,9 @@ my class List does Positional {
     method classify(&test) {
         my %result;
         for @.list {
-            my $k = test $_;
-            %result{$k} //= [];
-            %result{$k}.push: $_;
+            %result{test $_}.push: $_;
         }
-        %result.pairs;
+        %result
     }
 
     method categorize(&test) {

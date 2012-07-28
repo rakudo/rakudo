@@ -2397,7 +2397,7 @@ class Perl6::Actions is HLL::Actions {
                     @values.push($_);
                 }
                 else {
-                    $*W.throw($<term>, ['X', 'Value', 'Dynamic'], what => 'Enumeration');
+                    @values.push($*W.compile_time_evaluate($<term>, $_));
                 }
             }
         }
@@ -2408,7 +2408,7 @@ class Perl6::Actions is HLL::Actions {
             @values.push($term_ast);
         }
         else {
-            $*W.throw($<term>, ['X', 'Value', 'Dynamic'], what => 'Enumeration');
+            @values.push($*W.compile_time_evaluate($<term>, $<term>.ast));
         }
 
         # Now we have them, we can go about computing the value
@@ -2434,7 +2434,7 @@ class Perl6::Actions is HLL::Actions {
                         $ok := 1;
                     }
                     unless $ok {
-                        $*W.throw($/, ['X', 'Value', 'Dynamic'], what => 'Enumeration');
+                        $cur_value := $*W.compile_time_evaluate($<term>, $_[2]);
                     }
                 }
                 if $has_base_type {

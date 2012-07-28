@@ -2833,6 +2833,7 @@ grammar Perl6::Grammar is HLL::Grammar {
         
         # Wrap it in a block, compile and install it in the methods
         # table.
+        my $*PIRT := 0;
         my %*RX;
         %*RX<name> := $canname;
         $parse := QRegex::P6Regex::Actions::buildsub($parse);

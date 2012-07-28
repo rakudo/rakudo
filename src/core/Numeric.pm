@@ -227,7 +227,7 @@ proto infix:<==>($a?, $b?)   { * }
 multi infix:<==>($x?)        { Bool::True }
 multi infix:<==>(\$a, \$b)   { $a.Numeric == $b.Numeric }
 
-proto infix:<!=>($a?, $b?)   { * }
+proto infix:<!=>(Mu $a?, Mu $b?)   { * }
 multi infix:<!=>($x?)        { Bool::True }
 multi infix:<!=>(Mu \$a, Mu \$b)   { not $a == $b }
 

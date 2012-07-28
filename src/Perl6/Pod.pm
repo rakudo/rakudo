@@ -37,45 +37,45 @@ class Perl6::Pod {
             if $level ne '' {
                 $level_past := $*W.add_constant(
                     'Int', 'int', +$level,
-                )<compile_time_value>;
+                ).compile_time_value;
             } else {
                 $level_past := $*W.find_symbol(['Mu']);
             }
 
             my $past := serialize_object(
                 $type, :level($level_past), :config($config),
-                :content($content<compile_time_value>)
+                :content($content.compile_time_value)
             );
-            return $past<compile_time_value>;
+            return $past.compile_time_value;
         }
 
         my $name := $*W.add_constant('Str', 'str', $<type>.Str);
         my $past := serialize_object(
-            'Pod::Block::Named', :name($name<compile_time_value>),
-            :config($config), :content($content<compile_time_value>),
+            'Pod::Block::Named', :name($name.compile_time_value),
+            :config($config), :content($content.compile_time_value),
         );
-        return $past<compile_time_value>;
+        return $past.compile_time_value;
     }
 
     our sub raw_block($/) {
         my $config := make_config($/);
         my $str := $*W.add_constant('Str', 'str', ~$<pod_content>);
-        my $content := serialize_array([$str<compile_time_value>]);
+        my $content := serialize_array([$str.compile_time_value]);
         my $type := $<type>.Str eq 'code' ?? 'Pod::Block::Code'
                                           !! 'Pod::Block::Comment';
         my $past := serialize_object(
             $type, :config($config),
-            :content($content<compile_time_value>),
+            :content($content.compile_time_value),
         );
-        return $past<compile_time_value>;
+        return $past.compile_time_value;
     }
 
     our sub config($/) {
         my $type := $*W.add_constant('Str', 'str', ~$<type>);
         return serialize_object(
-            'Pod::Config', :type($type<compile_time_value>),
+            'Pod::Config', :type($type.compile_time_value),
             :config(make_config($/))
-        )<compile_time_value>
+        ).compile_time_value
     }
 
     our sub make_config($/) {
@@ -98,17 +98,17 @@ class Perl6::Pod {
                 # Hide your kids, hide your wife!
                 my $truth := nqp::substr($colonpair, 1, 1) ne '!';
 
-                $val := $*W.add_constant('Int', 'int', $truth)<compile_time_value>;
+                $val := $*W.add_constant('Int', 'int', $truth).compile_time_value;
             }
-            $key := $*W.add_constant('Str', 'str', $key)<compile_time_value>;
-            $val := $*W.add_constant('Str', 'str', $val)<compile_time_value>;
+            $key := $*W.add_constant('Str', 'str', $key).compile_time_value;
+            $val := $*W.add_constant('Str', 'str', $val).compile_time_value;
             @pairs.push(
                 serialize_object(
                     'Pair', :key($key), :value($val)
-                )<compile_time_value>
+                ).compile_time_value
             );
         }
-        return serialize_object('Hash', |@pairs)<compile_time_value>;
+        return serialize_object('Hash', |@pairs).compile_time_value;
     }
 
     our sub formatted_text($a) {
@@ -211,10 +211,10 @@ class Perl6::Pod {
 
         my $past := serialize_object(
             'Pod::Block::Table', :config($config),
-            :headers(serialize_aos($headers)<compile_time_value>),
-            :content(serialize_aoaos($content)<compile_time_value>),
+            :headers(serialize_aos($headers).compile_time_value),
+            :content(serialize_aoaos($content).compile_time_value),
         );
-        make $past<compile_time_value>;
+        make $past.compile_time_value;
     }
 
     our sub process_rows(@rows) {
@@ -297,7 +297,7 @@ class Perl6::Pod {
                 $*W.add_constant(
                     'Str', 'str',
                     nqp::unbox_s(@ret.pop) ~ ' ' ~ nqp::unbox_s(@cur.shift)
-                )<compile_time_value>,
+                ).compile_time_value,
             );
             nqp::splice(@ret, @cur, +@ret, 0);
         }
@@ -309,7 +309,7 @@ class Perl6::Pod {
             my $s := subst(nqp::join('', @strings), /\s+/, ' ', :global);
             my $t := $*W.add_constant(
                 'Str', 'str', $s
-            )<compile_time_value>;
+            ).compile_time_value;
             @where.push($t);
         }
 
@@ -426,7 +426,7 @@ class Perl6::Pod {
         my @cells := [];
         for @arr -> $cell {
             my $p := $*W.add_constant('Str', 'str', ~$cell);
-            @cells.push($p<compile_time_value>);
+            @cells.push($p.compile_time_value);
         }
         return serialize_array(@cells);
     }
@@ -436,7 +436,7 @@ class Perl6::Pod {
         my @content := [];
         for @rows -> $row {
             my $p := serialize_aos($row);
-            @content.push($*W.scalar_wrap($p<compile_time_value>));
+            @content.push($*W.scalar_wrap($p.compile_time_value));
         }
         return serialize_array(@content);
     }

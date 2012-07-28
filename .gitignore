@@ -1,6 +1,5 @@
 *~
 src/gen/*
-Perl6/*
 nqp/
 install/
 Makefile
@@ -32,7 +31,6 @@ perl6.rc
 t/localtest.data
 t/spec
 parrot
-perl6
 perl6.c
 perl6.o
 MANIFEST
@@ -56,3 +54,4 @@ lib/Safe.pir
 rakudo_test_run.tar.gz
 config.status
 config.default
+qperl6.*

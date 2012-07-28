@@ -2,18 +2,18 @@
 class Perl6::ConstantFolder {
     # Tries to fold. Throws if it's not possible.
     method fold($expr, $scope, $world) {
-        if $expr<has_compile_time_value> {
+        if $expr.has_compile_time_value {
             # It's already got a compile time value, just hand it back.
             $expr
         }
-        elsif $expr.isa(PAST::Op) && $expr.name && ($expr.pasttype eq '' || $expr.pasttype eq 'call') {
+        elsif nqp::istype($expr, QAST::Op) && $expr.name && $expr.op eq 'call' {
             # Potentially foldable call. Try to get compile time args (which
             # my involve recursively folding).
             my @args;
             for @($expr) {
                 my $arg := self.fold($_, $scope, $world);
-                if $arg<has_compile_time_value> {
-                    @args.push($arg<compile_time_value>)
+                if $arg.has_compile_time_value {
+                    @args.push($arg.compile_time_value)
                 }
                 else {
                     nqp::die("No compile time value obtainable for argument to " ~ $expr.name);
@@ -27,6 +27,9 @@ class Perl6::ConstantFolder {
             
             # Add folded symbol into the world (which'll return a PAST ref to it).
             $world.add_constant_folded_result(pir::nqp_decontainerize__PP($result))
+        }
+        else {
+            nqp::die("No compile time value obtainable");
         }
     }
     

@@ -1064,13 +1064,19 @@ inline op perl6_type_check_return_value(in PMC) :base_core {
     if (!PMC_IS_NULL(rtype)) {
         PMC *decont_value = Rakudo_cont_decontainerize(interp, $1);
         if (!STABLE(decont_value)->type_check(interp, decont_value, rtype)) {
-            PMC * const thrower = Rakudo_get_thrower(interp, "X::TypeCheck::Return");
-            if (PMC_IS_NULL(thrower))
-                Parrot_ex_throw_from_c_args(interp, NULL, EXCEPTION_INVALID_OPERATION,
-                    "Type check failed for return value");
-            else
-                Parrot_pcc_invoke_sub_from_c_args(interp, thrower, "PP->",
-                        decont_value, rtype);
+            /* Straight type check failed, but it's possible we're returning
+             * an Int that can unbox into an int or similar. */
+            storage_spec spec = REPR(rtype)->get_storage_spec(interp, STABLE(rtype));
+            if (!spec.inlineable ||
+                !STABLE(rtype)->type_check(interp, rtype, STABLE(decont_value)->WHAT)) {
+                PMC * const thrower = Rakudo_get_thrower(interp, "X::TypeCheck::Return");
+                if (PMC_IS_NULL(thrower))
+                    Parrot_ex_throw_from_c_args(interp, NULL, EXCEPTION_INVALID_OPERATION,
+                        "Type check failed for return value");
+                else
+                    Parrot_pcc_invoke_sub_from_c_args(interp, thrower, "PP->",
+                            decont_value, rtype);
+            }
         }
     }
 }
@@ -1431,9 +1437,13 @@ inline op perl6_current_args_rpa(out PMC) :base_core {
     PMC   *result  = Parrot_pmc_new(interp, enum_class_ResizablePMCArray);
     INTVAL args    = VTABLE_elements(interp, cur_ctx);
     INTVAL i;
-    for (i = 0; i < args; i++)
+    for (i = 0; i < args; i++) {
+        PMC *argval = VTABLE_get_pmc_keyed_int(interp, cur_ctx, i);
         VTABLE_set_pmc_keyed_int(interp, result, i,
-            VTABLE_get_pmc_keyed_int(interp, cur_ctx, i));
+            argval->vtable->base_type == smo_id ?
+                argval :
+                Rakudo_types_parrot_map(interp, argval));
+    }
     $1 = result;
 }
 

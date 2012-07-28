@@ -32,53 +32,53 @@ my &RETURN-PARCEL := -> Mu \$parcel {
 
 my &return-rw := -> |$ { 
     my $parcel := 
-        &RETURN-PARCEL(nqp::p6parcel(pir::perl6_current_args_rpa__PP(), Nil));
-    pir::perl6_return_from_routine__vP($parcel);
+        &RETURN-PARCEL(nqp::p6parcel(pir::perl6_current_args_rpa__P(), Nil));
+    nqp::p6routinereturn($parcel);
     $parcel
 };
 my &return := -> |$ {
     my $parcel := 
-        &RETURN-PARCEL(nqp::p6parcel(pir::perl6_current_args_rpa__PP(), Nil));
-    pir::perl6_return_from_routine__vP(nqp::p6recont_ro($parcel));
+        &RETURN-PARCEL(nqp::p6parcel(pir::perl6_current_args_rpa__P(), Nil));
+    nqp::p6routinereturn(nqp::p6recont_ro($parcel));
     $parcel
 };
 
 my &take-rw := -> |$ { 
     my $parcel := 
-        &RETURN-PARCEL(nqp::p6parcel(pir::perl6_current_args_rpa__PP(), Nil));
+        &RETURN-PARCEL(nqp::p6parcel(pir::perl6_current_args_rpa__P(), Nil));
     THROW($parcel, pir::const::CONTROL_TAKE) 
 };
 my &take := -> |$ { 
     my $parcel := 
-        &RETURN-PARCEL(nqp::p6parcel(pir::perl6_current_args_rpa__PP(), Nil));
+        &RETURN-PARCEL(nqp::p6parcel(pir::perl6_current_args_rpa__P(), Nil));
     THROW(nqp::p6recont_ro($parcel),
           pir::const::CONTROL_TAKE) 
 };
 
 my &last := -> |$ { 
     my $parcel := 
-        &RETURN-PARCEL(nqp::p6parcel(pir::perl6_current_args_rpa__PP(), Nil));
+        &RETURN-PARCEL(nqp::p6parcel(pir::perl6_current_args_rpa__P(), Nil));
     THROW(nqp::p6decont($parcel), 
           pir::const::CONTROL_LOOP_LAST) 
 };
 
 my &next := -> |$ { 
     my $parcel := 
-        &RETURN-PARCEL(nqp::p6parcel(pir::perl6_current_args_rpa__PP(), Nil));
+        &RETURN-PARCEL(nqp::p6parcel(pir::perl6_current_args_rpa__P(), Nil));
     THROW(nqp::p6decont($parcel), 
           pir::const::CONTROL_LOOP_NEXT) 
 };
 
 my &redo := -> |$ { 
     my $parcel := 
-        &RETURN-PARCEL(nqp::p6parcel(pir::perl6_current_args_rpa__PP(), Nil));
+        &RETURN-PARCEL(nqp::p6parcel(pir::perl6_current_args_rpa__P(), Nil));
     THROW(nqp::p6decont($parcel), 
           pir::const::CONTROL_LOOP_REDO) 
 };
 
 my &succeed := -> |$ { 
     my $parcel := 
-        &RETURN-PARCEL(nqp::p6parcel(pir::perl6_current_args_rpa__PP(), Nil));
+        &RETURN-PARCEL(nqp::p6parcel(pir::perl6_current_args_rpa__P(), Nil));
     THROW(nqp::p6decont($parcel), 
           pir::const::CONTROL_BREAK) 
 };
@@ -96,7 +96,7 @@ my &callwith := -> *@pos, *%named {
 my &nextwith := -> *@pos, *%named {
     my Mu $dispatcher := pir::perl6_find_dispatcher__Ps('nextwith');
     unless $dispatcher.exhausted {
-        pir::perl6_return_from_routine__vP(nqp::p6recont_ro(
+        nqp::p6routinereturn(nqp::p6recont_ro(
             $dispatcher.call_with_args(|@pos, |%named)))
     }
     Nil
@@ -112,7 +112,7 @@ my &callsame := -> {
 my &nextsame := -> {
     my Mu $dispatcher := pir::perl6_find_dispatcher__Ps('nextsame');
     unless $dispatcher.exhausted {
-        pir::perl6_return_from_routine__vP(nqp::p6recont_ro(
+        nqp::p6routinereturn(nqp::p6recont_ro(
             $dispatcher.call_with_capture(
                 pir::perl6_args_for_dispatcher__PP($dispatcher))))
     }
@@ -134,7 +134,7 @@ multi sub die(*@msg) is hidden_from_backtrace {
 }
 
 multi sub warn(*@msg) is hidden_from_backtrace {
-    my $ex := pir::new('Exception');
+    my $ex := pir::new__Ps('Exception');
     pir::setattribute__0PPsP($ex, Exception, 'message', @msg.join(''));
     pir::setattribute__0PPsP($ex, Exception, 'type', nqp::p6box_i(pir::const::CONTROL_OK));
     pir::setattribute__0PPsP($ex, Exception, 'severity', nqp::p6box_i(pir::const::EXCEPT_WARNING));

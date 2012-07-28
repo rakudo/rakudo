@@ -33,7 +33,7 @@ my class MapIter is Iterator {
 
             if $!first {
                 $!items := nqp::qlist();
-                pir::perl6_set_block_first_flag__vP($block)
+                pir::perl6_set_block_first_flag__0P($block)
                   if (nqp::can($block, 'phasers') && $block.phasers('FIRST'));
             }
 

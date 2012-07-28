@@ -1,3 +1,6 @@
+New in 2012.08
++ tclc implemented
+
 New in 2012.07
 + Deprecated SAFE.setting in favor of RESTRICTED.setting
 + Ranges can now interpolate in argument lists

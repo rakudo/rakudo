@@ -44,7 +44,7 @@ sub term:<time>() { nqp::p6box_i(nqp::time_i()) }
     my $VM = {
         name    => 'parrot', # XXX: should be made dynamical
         config  => pir::perl6ize_type__PP(
-                        nqp::atpos(pir::getinterp, pir::const::IGLOBALS_CONFIG_HASH))
+                        nqp::atpos(pir::getinterp__P, pir::const::IGLOBALS_CONFIG_HASH))
     }
     nqp::bindkey(pir::get_who__PP(PROCESS), '$VM', $VM);
 
@@ -74,7 +74,7 @@ sub term:<time>() { nqp::p6box_i(nqp::time_i()) }
 
     my $I := nqp::atkey(nqp::atkey(%*COMPILING, '%?OPTIONS'), 'I');
     if nqp::defined($I) {
-        if pir::does($I, 'array') {
+        if pir::does__IPs($I, 'array') {
             my Mu $iter := nqp::iterator($I);
             @INC.unshift: nqp::p6box_s(nqp::shift($iter)) while $iter;
         }
@@ -85,7 +85,7 @@ sub term:<time>() { nqp::p6box_i(nqp::time_i()) }
 
     nqp::bindkey(pir::get_who__PP(PROCESS), '@INC', @INC);
 
-    my $PID = nqp::p6box_i(pir::getinterp.getpid());
+    my $PID = nqp::p6box_i(pir::getinterp__P().getpid());
     nqp::bindkey(pir::get_who__PP(PROCESS), '$PID', $PID);
 
     my $OS = $VM<config><osname>; # XXX: master gets this information with the sysinfo dynop

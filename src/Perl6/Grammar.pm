@@ -29,6 +29,7 @@ grammar Perl6::Grammar is HLL::Grammar {
         my $*W := nqp::isnull($file) ??
             Perl6::World.new(:handle($source_id)) !!
             Perl6::World.new(:handle($source_id), :description($file));
+        $*W.add_initializations();
 
         # XXX Hack: clear any marks.
         pir::set_hll_global__vPsP(['HLL', 'Grammar'], '%!MARKHASH', nqp::null());
@@ -178,12 +179,12 @@ grammar Perl6::Grammar is HLL::Grammar {
             if ~$*DOC ne '' {
                 my $cont  := Perl6::Pod::serialize_aos(
                     [Perl6::Pod::formatted_text(~$*DOC)]
-                )<compile_time_value>;
+                ).compile_time_value;
                 my $block := $*W.add_constant(
                     'Pod::Block::Declarator', 'type_new',
                     :nocache, :content($cont),
                 );
-                $*DOCEE := $block<compile_time_value>;
+                $*DOCEE := $block.compile_time_value;
                 $*POD_BLOCKS.push($*DOCEE);
             }
         }
@@ -417,6 +418,7 @@ grammar Perl6::Grammar is HLL::Grammar {
 
         # Extras.
         :my %*METAOPGEN;                           # hash of generated metaops
+        :my %*HANDLERS;                            # block exception handlers
         :my $*IMPLICIT;                            # whether we allow an implicit param
         :my $*FORBID_PIR := 0;                     # whether pir::op and Q:PIR { } are disallowed
         :my $*HAS_YOU_ARE_HERE := 0;               # whether {YOU_ARE_HERE} has shown up
@@ -513,7 +515,7 @@ grammar Perl6::Grammar is HLL::Grammar {
                 'Array', 'type_new', |$*POD_BLOCKS
             );
             $*W.install_lexical_symbol(
-                $*UNIT, '$=pod', $*POD_PAST<compile_time_value>
+                $*UNIT, '$=pod', $*POD_PAST.compile_time_value
             );
             
             # Tag UNIT with a magical lexical. Also if we're compiling CORE,
@@ -611,6 +613,7 @@ grammar Perl6::Grammar is HLL::Grammar {
 
     token blockoid {
         :my $*CURPAD;
+        :my %*HANDLERS;
         <.finishpad>
         [
         | '{YOU_ARE_HERE}' <you_are_here>
@@ -2192,7 +2195,7 @@ grammar Perl6::Grammar is HLL::Grammar {
 
     method match_with_adverb($v) {
         my $s := NQPMatch.new();
-        $s.'!make'(PAST::Val.new(:value(1), :named('s')));
+        $s.'!make'(QAST::IVal.new(:value(1), :named('s')));
         $s;
     }
 
@@ -2630,8 +2633,8 @@ grammar Perl6::Grammar is HLL::Grammar {
     token infix:sym<&&>   { <sym>  <O('%tight_and, :pasttype<if>')> }
 
     token infix:sym<||>   { <sym>  <O('%tight_or, :assoc<left>, :pasttype<unless>')> }
-    token infix:sym<^^>   { <sym>  <O('%tight_or, :pasttype<xor_nqp>')> }
-    token infix:sym<//>   { <sym>  <O('%tight_or, :assoc<left>, :pasttype<def_or>')> }
+    token infix:sym<^^>   { <sym>  <O('%tight_or, :pasttype<xor>')> }
+    token infix:sym<//>   { <sym>  <O('%tight_or, :assoc<left>, :pasttype<defor>')> }
     token infix:sym<min>  { <sym> >> <O('%tight_or')> }
     token infix:sym<max>  { <sym> >> <O('%tight_or')> }
 
@@ -2717,8 +2720,8 @@ grammar Perl6::Grammar is HLL::Grammar {
     token infix:sym<and>  { <sym> >> <O('%loose_and, :pasttype<if>')> }
 
     token infix:sym<or>   { <sym> >> <O('%loose_or, :assoc<left>, :pasttype<unless>')> }
-    token infix:sym<xor>  { <sym> >> <O('%loose_or, :pasttype<xor_nqp>')> }
-    token infix:sym<orelse> { <sym> >> <O('%loose_or, :assoc<left>, :pasttype<def_or>')> }
+    token infix:sym<xor>  { <sym> >> <O('%loose_or, :pasttype<xor>')> }
+    token infix:sym<orelse> { <sym> >> <O('%loose_or, :assoc<left>, :pasttype<defor>')> }
 
     token infix:sym«<==»  { <sym> <O('%sequencer')> }
     token infix:sym«==>»  { <sym> <O('%sequencer')> }
@@ -2840,8 +2843,8 @@ grammar Perl6::Grammar is HLL::Grammar {
         # May also need to add to the actions.
         if $category eq 'circumfix' {
             $*ACTIONS.HOW.add_method($*ACTIONS, $canname, sub ($self, $/) {
-                make PAST::Op.new(
-                    :pasttype('call'), :name('&' ~ $subname),
+                make QAST::Op.new(
+                    :op('call'), :name('&' ~ $subname),
                     $<EXPR>.ast
                 );
             });

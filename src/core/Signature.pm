@@ -1,6 +1,5 @@
 my class Signature {
     # declared in BOOTSTRAP.pm:
-    #   is Cool;               # parent class
     #   has $!params;          # RPA of parameters
     #   has $!returns;         # return type
     #   has $!arity;           # cached arity

@@ -64,9 +64,7 @@ my class Str does Stringy {
     }
 
     method chop(Str:D:) {
-        nqp::p6box_s(
-            nqp::p6box_s(pir::chopn__Ssi(nqp::unbox_s(self), 1))
-        );
+        nqp::p6box_s(pir::chopn__Ssi(nqp::unbox_s(self), 1))
     }
 
     method substr(Str:D: $start, $length? is copy) {
@@ -704,9 +702,9 @@ my class Str does Stringy {
     method encode(Str:D $encoding = 'utf8') {
         my $buf := Buf.new;
         pir::set__vPs(nqp::getattr($buf, Buf, '$!buffer'),
-            pir::trans_encoding__ssi(
+            pir::trans_encoding__Ssi(
                 nqp::unbox_s(self),
-                pir::find_encoding__is(nqp::unbox_s(PARROT_ENCODING($encoding)))
+                pir::find_encoding__Is(nqp::unbox_s(PARROT_ENCODING($encoding)))
             )
         );
         $buf;
@@ -908,6 +906,10 @@ my class Str does Stringy {
             $_<indent-chars>».key.join ~ ' ' x ($pos - $outdent) ~ $_<rest>;
         }).join;
     }
+
+    method tclc(Str:D:) {
+        nqp::p6box_s(nqp::tclc(nqp::unbox_s(self)))
+    }
 }
 
 
@@ -1010,4 +1012,8 @@ sub substr-rw($s is rw, $from = 0, $chars = $s.chars - $from) {
                ~ $s.substr($from + $chars);
         }
     );
+}
+
+multi sub tclc(Str:D $s) {
+    nqp::p6box_s(nqp::tclc(nqp::unbox_s($s)));
 }

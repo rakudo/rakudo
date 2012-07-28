@@ -229,7 +229,7 @@ class Perl6::Actions is HLL::Actions {
 
         # Finish up code object for the mainline.
         if $*DECLARAND {
-            $*W.attach_signature($*DECLARAND, $*W.create_signature([]));
+            $*W.attach_signature($*DECLARAND, $*W.create_signature(nqp::hash('parameters', [])));
             $*W.finish_code_object($*DECLARAND, $*UNIT);
         }
         
@@ -664,7 +664,7 @@ class Perl6::Actions is HLL::Actions {
             );
         }
         ($*W.cur_lexpad())[0].push(my $uninst := PAST::Stmts.new($block));
-        $*W.attach_signature($*DECLARAND, $*W.create_signature([]));
+        $*W.attach_signature($*DECLARAND, $*W.create_signature(nqp::hash('parameters', [])));
         $*W.finish_code_object($*DECLARAND, $block);
         my $ref := reference_to_code_object($*DECLARAND, $block);
         $ref<uninstall_if_immediately_used> := $uninst;
@@ -1345,7 +1345,7 @@ class Perl6::Actions is HLL::Actions {
             $throwaway_block_past<outer> := $block;
             $block[0].push($throwaway_block_past);
             my $throwaway_block := $*W.create_code_object($throwaway_block_past,
-                'Block', $*W.create_signature([]));
+                'Block', $*W.create_signature(nqp::hash('parameters', [])));
             my $fixup := $*W.create_lexical_capture_fixup();
             $fixup.push(PAST::Op.new(
                 :pasttype('callmethod'), :name('clone'),
@@ -1829,7 +1829,7 @@ class Perl6::Actions is HLL::Actions {
         $*W.pop_lexpad();
         $install_in.push(PAST::Stmt.new($p_past));
         my @p_params := [hash(is_capture => 1, nominal_type => $*W.find_symbol(['Mu']) )];
-        my $p_sig := $*W.create_signature([$*W.create_parameter(@p_params[0])]);
+        my $p_sig := $*W.create_signature(nqp::hash('parameters', [$*W.create_parameter(@p_params[0])]));
         add_signature_binding_code($p_past, $p_sig, @p_params);
         $*W.create_code_object($p_past, 'Sub', $p_sig, 1);
     }
@@ -2901,7 +2901,8 @@ class Perl6::Actions is HLL::Actions {
             # Add it to the signature.
             @parameters.push($param_obj);
         }
-        $*W.create_signature(@parameters)
+        %signature_info<parameters> := @parameters;
+        $*W.create_signature(%signature_info)
     }
 
     method trait($/) {
@@ -4838,7 +4839,7 @@ class Perl6::Actions is HLL::Actions {
         } else {
             $param<is_parcel> := 1;
         }
-        my $sig := $*W.create_signature([$*W.create_parameter($param)]);
+        my $sig := $*W.create_signature(nqp::hash('parameters', [$*W.create_parameter($param)]));
         add_signature_binding_code($block, $sig, [$param]);
         return reference_to_code_object(
             $*W.create_code_object($block, 'Block', $sig),
@@ -4869,8 +4870,7 @@ class Perl6::Actions is HLL::Actions {
         my $param := hash(
             variable_name => '$_',
             nominal_type => $*W.find_symbol(['Mu']));
-        my $sig := $*W.create_signature([
-            $*W.create_parameter($param)]);
+        my $sig := $*W.create_signature(nqp::hash('parameters', [$*W.create_parameter($param)]));
         add_signature_binding_code($past, $sig, [$param]);
         return $*W.create_code_object($past, 'Block', $sig);
     }
@@ -5036,10 +5036,10 @@ class Perl6::Actions is HLL::Actions {
             hash( is_invocant => 1, nominal_type => $*PACKAGE),
             hash( variable_name => '$_', nominal_type => $*W.find_symbol(['Mu']))
         ];
-        my $sig := $*W.create_signature([
+        my $sig := $*W.create_signature(nqp::hash('parameters', [
             $*W.create_parameter(@params[0]),
             $*W.create_parameter(@params[1])
-        ]);
+        ]));
         $block[0].push(PAST::Var.new( :name('self'), :scope('lexical_6model'), :isdecl(1) ));
         $block[0].push(PAST::Var.new( :name('$_'), :scope('lexical_6model'), :isdecl(1) ));
         $block.push(PAST::Stmts.new( $initializer ));

@@ -448,6 +448,9 @@ grammar Perl6::Grammar is HLL::Grammar {
         :my $*POD_PAST;
         :my $*DECLARATOR_DOCS;
         
+        # Quasis and unquotes
+        :my $*IN_QUASI := 0;                       # whether we're currently in a quasi block
+
         # Setting loading and symbol setup.
         {
             # Create unit outer (where we assemble any lexicals accumulated
@@ -934,6 +937,12 @@ grammar Perl6::Grammar is HLL::Grammar {
     token term:sym<lambda>             { <?lambda> <pblock> }
     token term:sym<type_declarator>    { <type_declarator> }
     token term:sym<value>              { <value> }
+    token term:sym<unquote>            {
+        '{{{'
+        [<?{ !$*IN_QUASI }> <.typed_panic: "X::Syntax::UnquoteOutsideQuasi">]
+        <EXPR>
+        '}}}'
+    }
 
     # XXX temporary Bool::True/Bool::False until we can get a permanent definition
     token term:sym<boolean> { 'Bool::'? $<value>=[True|False] » }
@@ -2277,7 +2286,9 @@ grammar Perl6::Grammar is HLL::Grammar {
     }
 
     token quote:sym<quasi> {
-        <sym> <.ws> <!before '('> <block>
+        <sym> <.ws> <!before '('>
+        :my $*IN_QUASI := 1;
+        <block>
     }
 
     token quote_escape:sym<$> {

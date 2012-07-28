@@ -937,12 +937,7 @@ grammar Perl6::Grammar is HLL::Grammar {
     token term:sym<lambda>             { <?lambda> <pblock> }
     token term:sym<type_declarator>    { <type_declarator> }
     token term:sym<value>              { <value> }
-    token term:sym<unquote>            {
-        '{{{'
-        [<?{ !$*IN_QUASI }> <.typed_panic: "X::Syntax::UnquoteOutsideQuasi">]
-        <EXPR>
-        '}}}'
-    }
+    token term:sym<unquote>            { '{{{' <?{ $*IN_QUASI }> <EXPR> '}}}' }
 
     # XXX temporary Bool::True/Bool::False until we can get a permanent definition
     token term:sym<boolean> { 'Bool::'? $<value>=[True|False] » }

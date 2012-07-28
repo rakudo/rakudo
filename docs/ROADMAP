@@ -1,7 +1,7 @@
 Rakudo Roadmap
 --------------
 
-Last updated: 2012-06-07
+Last updated: 2012-07-28
 
 This document serves as a guide to the major goals for Rakudo
 development, as things stood in December 2011. They have been
@@ -49,6 +49,8 @@ Regexes
 2 **    array variable interpolation
 2 **    ~~ inside regexes
 2 *     Null pattern detection (at parse time)
+2 *     :sigspace ignores leading whitespace
+2 **    ? quantifier produces Nil or Match, not List[Match]
 3 **    <*foo>
 3 **    <~~0>, <~~foo>
 3 ***   explicit backtracking control (::, :::)
@@ -79,6 +81,9 @@ Language Features
 2 ***   new syntax/semantics for coercion (jnthn)
 2 **    MAIN and USAGE (japhb)
 2 **    Failure changes (japhb)
+2 **    sigilless variables and parameters
+2 ?     coercion types
+2 *     improved hash/block disambiguation
 3 ***   domain specific languages -- slang and grammar tweaks
 3 ****  more advanced Perl 5 interop (lexical embedding, etc.)
 

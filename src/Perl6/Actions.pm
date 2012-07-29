@@ -5431,7 +5431,6 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions {
                     ?? self.flip_ast($<nibbler>[0].ast)
                     !! $<nibbler>[0].ast;
                 my $sub := QRegex::P6Regex::Actions::qbuildsub($nibbled, :anon(1), :addself(1));
-                $sub<orig_qast> := $sub[0]<orig_qast>;
                 $qast[0].push($sub);
             }
         }

@@ -63,6 +63,9 @@ my class Cool {
     method chars() {
         nqp::p6box_i(nqp::chars(nqp::unbox_s(self.Str)));
     }
+    method codes() {
+        nqp::p6box_i(nqp::chars(nqp::unbox_s(self.Str)));
+    }
 
     method fmt($format = '%s') {
         nqp::p6box_s(

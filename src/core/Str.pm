@@ -907,6 +907,11 @@ my class Str does Stringy {
         }).join;
     }
 
+    method codes(Str:D:) {
+        nqp::p6box_i(nqp::chars(nqp::unbox_s(self)));
+
+    }
+
     method tclc(Str:D:) {
         nqp::p6box_s(nqp::tclc(nqp::unbox_s(self)))
     }

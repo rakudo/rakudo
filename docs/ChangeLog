@@ -1,7 +1,7 @@
 New in 2012.08
 + tclc implemented
 + --> ReturnType in signatures is honored
-+ reduced memory usage at build time
++ reduced memory usage at build time by around 35% - 40%
 + the argument to IO::Socket.recv is now interpreted as a number of characters
 + enum lists and arguments to parametric roles are now evaluated at compile time
 + switched to new internal AST representation (QAST)

@@ -1859,8 +1859,8 @@ class Perl6::Actions is HLL::Actions {
         }
 
         # Apply traits.
-        for $<trait> {
-            if $_.ast { ($_.ast)($code) }
+        for $<trait> -> $t {
+            if $t.ast { $*W.ex-handle($t, { ($t.ast)($code) }) }
         }
         
         # Add inlining information if it's inlinable.

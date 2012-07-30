@@ -198,14 +198,35 @@ multi sub hyper(\$op, \$a, \$b, :$dwim-left, :$dwim-right) {
 
 multi sub hyper(\$op, \$obj) {
     my Mu $rpa := nqp::list();
-    my $a := $obj.flat.eager;
-    for (^$a.elems).pick(*) {
-        my $o := $a.at_pos($_);
-        nqp::bindpos($rpa, nqp::unbox_i($_),
-            Iterable.ACCEPTS($o)
-              ?? $o.new(hyper($op, $o)).item
-              !! $op($o));
-    }
+    my Mu $items := nqp::p6listitems($obj.flat.eager);
+    my Mu $o;
+    # We process the elements in two passes, end to start, to 
+    # prevent users from relying on a sequential ordering of hyper.
+    # Also, starting at the end pre-allocates $rpa for us.
+    my int $i = nqp::elems($items) - 1;
+    nqp::while(
+        nqp::isge_i($i, 0),
+        nqp::stmts(
+            ($o := nqp::atpos($items, $i)),
+            nqp::bindpos($rpa, $i, 
+                nqp::if(nqp::istype($o, Iterable),
+                        $o.new(hyper($op, $o)).item,
+                        $op($o))),
+            $i = nqp::sub_i($i, 2)
+        )
+    );
+    $i = nqp::elems($items) - 2;
+    nqp::while(
+        nqp::isge_i($i, 0),
+        nqp::stmts(
+            ($o := nqp::atpos($items, $i)),
+            nqp::bindpos($rpa, $i, 
+                nqp::if(nqp::istype($o, Iterable),
+                        $o.new(hyper($op, $o)).item,
+                        $op($o))),
+            $i = nqp::sub_i($i, 2)
+        )
+    );
     nqp::p6parcel($rpa, Nil);
 }
 

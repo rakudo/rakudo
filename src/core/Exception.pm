@@ -313,6 +313,10 @@ my role X::Comp is Exception {
         }
         $r;
     }
+    method SET_FILE_LINE($file, $line) {
+        $!filename = $file;
+        $!line     = $line;
+    }
 }
 
 # XXX a hack for getting line numbers from exceptions from the metamodel
@@ -759,7 +763,7 @@ my class X::ControlFlow::Return is X::ControlFlow {
     method message()   { 'Attempt to return outside of any Routine' }
 }
 
-my class X::Composition::NotComposable is Exception {
+my class X::Composition::NotComposable does X::Comp {
     has $.target-name;
     has $.composer;
     method message() {
@@ -824,9 +828,7 @@ my class X::Mixin::NonComposable is Exception {
     }
 }
 
-# XXX should probably be X::Comp, but we don't get
-# the line number etc. in traits.pm
-my class X::Inheritance::Unsupported is Exception {
+my class X::Inheritance::Unsupported does X::Comp {
     # note that this exception is thrown before the child type object
     # has been composed, so it's useless to carry it around. Use the
     # name instead.
@@ -838,7 +840,7 @@ my class X::Inheritance::Unsupported is Exception {
     }
 }
 
-my class X::Export::NameClash is Exception {
+my class X::Export::NameClash does X::Comp {
     has $.symbol;
     method message() {
         "A symbol '$.symbol' has already been exported";

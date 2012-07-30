@@ -1296,9 +1296,9 @@ class Perl6::World is HLL::World {
     }
     
     # Applies a trait.
-    method apply_trait($trait_sub_name, *@pos_args, *%named_args) {
+    method apply_trait($/, $trait_sub_name, *@pos_args, *%named_args) {
         my $trait_sub := $*W.find_symbol([$trait_sub_name]);
-        $trait_sub(|@pos_args, |%named_args);
+        self.ex-handle($/, { $trait_sub(|@pos_args, |%named_args) });
     }
     
     # Some things get cloned many times with a lexical scope that
@@ -1964,16 +1964,28 @@ class Perl6::World is HLL::World {
         my $success := 0;
         my $ex_t;
         my $coercer;
-        try { $ex_t := self.find_symbol(['X', 'Comp', 'AdHoc']); $success := 1 };
         try { $coercer := self.find_symbol(['&COMP_EXCEPTION']); ++$success; };
-        $err.rethrow unless $success == 2;
-        my $p6ex    := $coercer($err);
-        nqp::bindattr($p6ex, $ex_t, '$!filename',
+        nqp::rethrow($err) unless $success;
+        my $p6ex := $coercer($err);
+        try {
+            $ex_t := self.find_symbol(['X', 'Comp']);
+            if nqp::istype($p6ex, $err) {
+                $p6ex.SET_FILE_LINE(
+                    nqp::box_s(pir::find_caller_lex__ps('$?FILES'),
+                        self.find_symbol(['Str'])),
+                    nqp::box_i(HLL::Compiler.lineof($/.orig, $/.from),
+                        self.find_symbol(['Int'])),
+                );
+                $success++;
+            }
+        }
+        $p6ex.rethrow if $success == 2;
+        $p6ex.SET_FILE_LINE(
             nqp::box_s(pir::find_caller_lex__ps('$?FILES'),
-                self.find_symbol(['Str'])));
-        nqp::bindattr($p6ex, $ex_t, '$!line',
+                self.find_symbol(['Str'])),
             nqp::box_i(HLL::Compiler.lineof($/.orig, $/.from),
-                self.find_symbol(['Int'])));
+                self.find_symbol(['Int'])),
+        );
         $p6ex.rethrow();
     }
 }

@@ -313,6 +313,10 @@ my role X::Comp is Exception {
         }
         $r;
     }
+    method SET_FILE_LINE($file, $line) {
+        $!filename = $file;
+        $!line     = $line;
+    }
 }
 
 # XXX a hack for getting line numbers from exceptions from the metamodel

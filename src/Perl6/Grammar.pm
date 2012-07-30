@@ -2048,6 +2048,8 @@ grammar Perl6::Grammar is HLL::Grammar {
         '{*}' <?ENDSTMT>
         [ <?{ $*MULTINESS eq 'proto' }> || <.panic: '{*} may only appear in proto'> ]
     }
+    
+    token term:sym<∅> { <sym> }
 
     token args {
         | '(' <semiarglist> ')'
@@ -2629,6 +2631,25 @@ grammar Perl6::Grammar is HLL::Grammar {
         | <?before \h* [ 'Bool::'? 'True' && <.longname> ] >  <.panic("Smartmatch against True always matches; if you mean to test the topic for truthiness, use :so or *.so or ?* instead")>
         | <?before \h* [ 'Bool::'? 'False' && <.longname> ] > <.panic("Smartmatch against False always fails; if you mean to test the topic for truthiness, use :!so or *.not or !* instead")>
     }
+    
+    token infix:sym«∈»      { <sym>  <O('%chaining')> }
+    token infix:sym«(elem)» { <sym>  <O('%chaining')> }
+    token infix:sym«∉»      { <sym>  <O('%chaining')> }
+    token infix:sym«∋»      { <sym>  <O('%chaining')> }
+    token infix:sym«(cont)» { <sym>  <O('%chaining')> }
+    token infix:sym«∌»      { <sym>  <O('%chaining')> }
+    token infix:sym«⊆»      { <sym>  <O('%chaining')> }
+    token infix:sym«(<=)»   { <sym>  <O('%chaining')> }
+    token infix:sym«⊈»      { <sym>  <O('%chaining')> }
+    token infix:sym«⊂»      { <sym>  <O('%chaining')> }
+    token infix:sym«(<)»    { <sym>  <O('%chaining')> }
+    token infix:sym«⊄»      { <sym>  <O('%chaining')> }
+    token infix:sym«⊇»      { <sym>  <O('%chaining')> }
+    token infix:sym«(>=)»   { <sym>  <O('%chaining')> }
+    token infix:sym«⊉»      { <sym>  <O('%chaining')> }
+    token infix:sym«⊃»      { <sym>  <O('%chaining')> }
+    token infix:sym«(>)»    { <sym>  <O('%chaining')> }
+    token infix:sym«⊅»      { <sym>  <O('%chaining')> }
 
     token infix:sym<&&>   { <sym>  <O('%tight_and, :pasttype<if>')> }
 
@@ -2696,6 +2717,13 @@ grammar Perl6::Grammar is HLL::Grammar {
     token infix:sym<...>  { <sym>  <O('%list_infix')> }
     token infix:sym<...^> { <sym>  <O('%list_infix')> }
     # token term:sym<...>   { <sym> <args>? <O(|%list_prefix)> }
+    
+    token infix:sym<∪>    { <sym>  <O('%list_infix')> }
+    token infix:sym<(|)>  { <sym>  <O('%list_infix')> }
+    token infix:sym<∩>    { <sym>  <O('%list_infix')> }
+    token infix:sym<(&)>  { <sym>  <O('%list_infix')> }
+    token infix:sym<(-)>  { <sym>  <O('%list_infix')> }
+    token infix:sym<(^)>  { <sym>  <O('%list_infix')> }
 
     token infix:sym<?>    { <sym> {} <!before '?'> <?before <-[;]>*?':'> <.obs('?: for the conditional operator', '??!!')> <O('%conditional')> }
 

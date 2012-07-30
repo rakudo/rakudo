@@ -60,6 +60,60 @@ sub set(*@args) {
     Set.new(@args);
 }
 
+proto sub infix:<∈>($, $ --> Bool) {*}
+multi sub infix:<∈>($a, Any $b --> Bool) { $a ∈ Set($b) }
+multi sub infix:<∈>($a, Set $b --> Bool) { $b.exists($a) }
+only sub infix:<(elem)>($a, $b --> Bool) { $a ∈ $b }
+only sub infix:<∉>($a, $b --> Bool) { $a !∈ $b }
+
+proto sub infix:<∋>($, $ --> Bool) {*}
+multi sub infix:<∋>(Any $a, $b --> Bool) { Set($a) ∋ $b }
+multi sub infix:<∋>(Set $a, $b --> Bool) { $a.exists($b) }
+only sub infix:<(cont)>($a, $b --> Bool) { $a ∋ $b }
+only sub infix:<∌>($a, $b --> Bool) { $a !∋ $b }
+
+proto sub infix:<∪>($, $ --> Set) {*}
+multi sub infix:<∪>(Any $a, Any $b --> Set) { Set($a) ∪ Set($b) }
+multi sub infix:<∪>(Set $a, Set $b --> Set) { Set.new: $a.keys, $b.keys }
+only sub infix:<(|)>($a, $b) { $a ∪ $b }
+
+proto sub infix:<∩>($, $ --> Set) {*}
+multi sub infix:<∩>(Any $a, Any $b --> Set) { Set($a) ∩ Set($b) }
+multi sub infix:<∩>(Set $a, Set $b --> Set) { Set.new: $a.keys.grep: -> $k { ?$b{$k} } }
+only sub infix:<(&)>($a, $b) { $a ∩ $b }
+
+proto sub infix:<(-)>($, $ --> Set) {*}
+multi sub infix:<(-)>(Any $a, Any $b --> Set) { Set($a) (-) Set($b) }
+multi sub infix:<(-)>(Set $a, Set $b --> Set) { Set.new: $a.keys.grep: * ∉ $b }
+
+proto sub infix:<(^)>($, $ --> Set) {*}
+multi sub infix:<(^)>(Any $a, Any $b --> Set) { Set($a) (^) Set($b) }
+multi sub infix:<(^)>(Set $a, Set $b --> Set) { ($a (-) $b) ∪ ($b (-) $a) }
+
+proto sub infix:<⊆>($, $ --> Bool) {*}
+multi sub infix:<⊆>(Any $a, Any $b --> Bool) { Set($a) ⊆ Set($b) }
+multi sub infix:<⊆>(Set $a, Set $b --> Bool) { $a <= $b and so $a.keys.all ∈ $b }
+only sub infix:«(<=)»($a, $b --> Bool) { $a ⊆ $b }
+only sub infix:<⊈>($a, $b --> Bool) { $a !⊆ $b }
+
+proto sub infix:<⊂>($, $ --> Bool) {*}
+multi sub infix:<⊂>(Any $a, Any $b --> Bool) { Set($a) ⊂ Set($b) }
+multi sub infix:<⊂>(Set $a, Set $b --> Bool) { $a < $b and so $a.keys.all ∈ $b }
+only sub infix:«(<)»($a, $b --> Bool) { $a ⊂ $b }
+only sub infix:<⊄>($a, $b --> Bool) { $a !⊂ $b }
+
+proto sub infix:<⊇>($, $ --> Bool) {*}
+multi sub infix:<⊇>(Any $a, Any $b --> Bool) { Set($a) ⊇ Set($b) }
+multi sub infix:<⊇>(Set $a, Set $b --> Bool) { $a >= $b and so $b.keys.all ∈ $a }
+only sub infix:«(>=)»($a, $b --> Bool) { $a ⊇ $b }
+only sub infix:<⊉>($a, $b --> Bool) { $a !⊇ $b }
+
+proto sub infix:<⊃>($, $ --> Bool) {*}
+multi sub infix:<⊃>(Any $a, Any $b --> Bool) { Set($a) ⊃ Set($b) }
+multi sub infix:<⊃>(Set $a, Set $b --> Bool) { $a > $b and so $b.keys.all ∈ $a }
+only sub infix:«(>)»($a, $b --> Bool) { $a ⊃ $b }
+only sub infix:<⊅>($a, $b --> Bool) { $a !⊃ $b }
+
 my class KeySet is Iterable does Associative {
     has %!elems;
 

@@ -50,6 +50,14 @@ sub bag(*@a) returns Bag {
     Bag.new(|@a);
 }
 
+multi sub infix:<∪>(Baggy $a, Any $b --> Bag) { $a ∪ bag($b) }
+multi sub infix:<∪>(Any $a, Baggy $b --> Bag) { bag($a) ∪ $b }
+multi sub infix:<∪>(Baggy $a, Baggy $b --> Bag) { bag((set($a) ∪ set($b)).map({ ; $_ => $a{$_} max $b{$_} })) }
+
+multi sub infix:<∩>(Baggy $a, Any $b --> Bag) { $a ∩ bag($b) }
+multi sub infix:<∩>(Any $a, Baggy $b --> Bag) { bag($a) ∩ $b }
+multi sub infix:<∩>(Baggy $a, Baggy $b --> Bag) { bag((set($a) ∪ set($b)).map({ ; $_ => $a{$_} min $b{$_} })) }
+
 my class KeyBag does Associative does Baggy {
     has %!elems; # should be UInt
 

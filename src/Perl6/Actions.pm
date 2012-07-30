@@ -3196,6 +3196,10 @@ class Perl6::Actions is HLL::Actions {
     method term:sym<rand>($/) {
         make QAST::Op.new( :op('call'), :name('&rand'), :node($/) );
     }
+    
+    method term:sym<∅>($/) {
+        make QAST::Op.new( :op('call'), :name('&set'), :node($/) );
+    }
 
     sub make_yada($name, $/) {
 	    my $past := $<args>.ast;

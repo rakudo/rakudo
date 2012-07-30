@@ -1431,7 +1431,7 @@ class Perl6::Actions is HLL::Actions {
         }
 
         # Document
-        Perl6::Pod::document($*PACKAGE, $*DOC);
+        Perl6::Pod::document($/, $*PACKAGE, $*DOC);
 
         make QAST::Stmts.new(
             $block, QAST::WVal.new( :value($*PACKAGE) )
@@ -1586,7 +1586,7 @@ class Perl6::Actions is HLL::Actions {
                 %cont_info, $descriptor);
 
             # Document it
-            # Perl6::Pod::document($attr, $*DOC); #XXX var traits NYI
+            # Perl6::Pod::document($/, $attr, $*DOC); #XXX var traits NYI
 
             # If no twigil, note $foo is an alias to $!foo.
             if $twigil eq '' {
@@ -1762,7 +1762,7 @@ class Perl6::Actions is HLL::Actions {
         $*W.finish_code_object($code, $block, $*MULTINESS eq 'proto', :yada(is_yada($/)));
 
         # Document it
-        Perl6::Pod::document($code, $*DOC);
+        Perl6::Pod::document($/, $code, $*DOC);
 
         # Install PAST block so that it gets capture_lex'd correctly and also
         # install it in the lexpad.
@@ -2008,7 +2008,7 @@ class Perl6::Actions is HLL::Actions {
         my $code := methodize_block($/, $*DECLARAND, $past, %sig_info, $inv_type, :yada(is_yada($/)));
 
         # Document it
-        Perl6::Pod::document($code, $*DOC);
+        Perl6::Pod::document($/, $code, $*DOC);
 
         # Install &?ROUTINE.
         $*W.install_lexical_symbol($past, '&?ROUTINE', $code);
@@ -2079,7 +2079,7 @@ class Perl6::Actions is HLL::Actions {
             $*MULTINESS eq 'proto');
 
         # Document it
-        Perl6::Pod::document($code, $*DOC);
+        Perl6::Pod::document($/, $code, $*DOC);
 
         # Install PAST block so that it gets capture_lex'd correctly and also
         # install it in the lexpad.

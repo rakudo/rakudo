@@ -146,14 +146,27 @@ my sub MAIN_HELPER($retval = 0) is hidden_from_backtrace {
         return $usage;
     }
 
+    sub has-unexpected-named-arguments($signature, %named-arguments) {
+        my %accepts-argument = $signature.params.grep({ .named }).map({ .named_names }) Z=> 1 xx *;
+        for %named-arguments.keys -> $name {
+            return True if !%accepts-argument{$name}
+        }
+
+        return False;
+    }
+
     # Process command line arguments
     my ($p, $n) = process-cmd-args(@*ARGS).lol;
 
     # Generate default $?USAGE message
     my $?USAGE = gen-usage();
 
-    # If dispatch to MAIN is possible, do so
-    if $m.candidates_matching(|@($p), |%($n)).elems {
+    # Get a list of candidates that match according to the dispatcher
+    my @matching_candidates = $m.candidates_matching(|@($p), |%($n));
+    # Sort out all that would fail due to binding
+    @matching_candidates .=grep: {!has-unexpected-named-arguments($_.signature, $n)};
+    # If there are still some candidates left, try to dispatch to MAIN
+    if +@matching_candidates {
         return $m(|@($p), |%($n));
     }
 

@@ -56,10 +56,6 @@ my class Cool {
 
     ## string methods
 
-    method bytes() is DEPRECATED {
-        nqp::p6box_i(pir::bytelength__IS(nqp::unbox_s(self.Str)));
-    }
-
     method chars() {
         nqp::p6box_i(nqp::chars(nqp::unbox_s(self.Str)));
     }
@@ -92,11 +88,6 @@ my class Cool {
     method ucfirst() is DEPRECATED {
         my $self-str = self.Str;
         $self-str eq '' ?? '' !! $self-str.substr(0, 1).uc ~ $self-str.substr(1)
-    }
-
-    method lcfirst() is DEPRECATED {
-        my $self-str = self.Str;
-        $self-str eq '' ?? '' !! $self-str.substr(0, 1).lc ~ $self-str.substr(1)
     }
 
     method capitalize() { self.Stringy.capitalize }
@@ -210,7 +201,6 @@ sub ord(Cool $s)                   { $s.ord }
 sub substr(Cool $s,$pos,$chars?)   { $s.substr($pos,$chars) }
 sub uc(Cool $s)                    { $s.uc }
 
-sub lcfirst(Cool $s) is DEPRECATED { $s.lcfirst }
 sub ucfirst(Cool $s) is DEPRECATED { $s.ucfirst }
 
 proto sub rindex(|$) { * };

@@ -5,6 +5,7 @@ New in 2012.08
 + the argument to IO::Socket.recv is now interpreted as a number of characters
 + enum lists and arguments to parametric roles are now evaluated at compile time
 + switched to new internal AST representation (QAST)
++ removed deprecated routines Str.bytes and Str.lcfirst/&lcfirst
 
 New in 2012.07
 + Deprecated SAFE.setting in favor of RESTRICTED.setting

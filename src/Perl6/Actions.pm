@@ -1323,7 +1323,7 @@ class Perl6::Actions is HLL::Actions {
     method package_declarator:sym<native>($/)  { make $<package_def>.ast; }
 
     method package_declarator:sym<trusts>($/) {
-        $*W.apply_trait('&trait_mod:<trusts>', $*PACKAGE, $<typename>.ast);
+        $*W.apply_trait($/, '&trait_mod:<trusts>', $*PACKAGE, $<typename>.ast);
     }
 
     method package_declarator:sym<also>($/) {
@@ -1455,7 +1455,8 @@ class Perl6::Actions is HLL::Actions {
                 my $orig_past := $past;
                 if $*SCOPE eq 'has' {
                     if $<initializer>[0]<sym> eq '=' {
-                        self.install_attr_init($past<metaattr>, $<initializer>[0].ast, $*ATTR_INIT_BLOCK);
+                        self.install_attr_init($<initializer>[0], $past<metaattr>,
+                            $<initializer>[0].ast, $*ATTR_INIT_BLOCK);
                     }
                     else {
                         $/.CURSOR.panic("Cannot use " ~ $<initializer>[0]<sym> ~
@@ -1864,7 +1865,7 @@ class Perl6::Actions is HLL::Actions {
         
         # Add inlining information if it's inlinable.
         if $<deflongname> {
-            self.add_inlining_info_if_possible($code, $block, @params);
+            self.add_inlining_info_if_possible($/, $code, $block, @params);
         }
 
         my $closure := block_closure(reference_to_code_object($code, $past));
@@ -1884,7 +1885,7 @@ class Perl6::Actions is HLL::Actions {
         $*W.create_code_object($p_past, 'Sub', $p_sig, 1);
     }
     
-    method add_inlining_info_if_possible($code, $past, @params) {
+    method add_inlining_info_if_possible($/, $code, $past, @params) {
         # Only consider things with single statements.
         unless +$past[1].list == 1 {
             return 0;
@@ -1964,7 +1965,7 @@ class Perl6::Actions is HLL::Actions {
         }
 
         # Attach inlining information.
-        $*W.apply_trait('&trait_mod:<is>', $code,
+        $*W.apply_trait($/, '&trait_mod:<is>', $code,
             inlinable => ($*W.add_string_constant($inline_info)).compile_time_value)
     }
 
@@ -2371,12 +2372,12 @@ class Perl6::Actions is HLL::Actions {
         my sub make_type_obj($base_type) {
             $type_obj := $*W.pkg_create_mo($/, %*HOW<enum>, :$name, :$base_type);
             # Add roles (which will provide the enum-related methods).
-            $*W.apply_trait('&trait_mod:<does>', $type_obj, $*W.find_symbol(['Enumeration']));
+            $*W.apply_trait($/, '&trait_mod:<does>', $type_obj, $*W.find_symbol(['Enumeration']));
             if istype($type_obj, $*W.find_symbol(['Numeric'])) {
-                $*W.apply_trait('&trait_mod:<does>', $type_obj, $*W.find_symbol(['NumericEnumeration']));
+                $*W.apply_trait($/, '&trait_mod:<does>', $type_obj, $*W.find_symbol(['NumericEnumeration']));
             }
             if istype($type_obj, $*W.find_symbol(['Stringy'])) {
-                $*W.apply_trait('&trait_mod:<does>', $type_obj, $*W.find_symbol(['StringyEnumeration']));
+                $*W.apply_trait($/, '&trait_mod:<does>', $type_obj, $*W.find_symbol(['StringyEnumeration']));
             }
             # Apply traits, compose and install package.
             for $<trait> {
@@ -2985,7 +2986,7 @@ class Perl6::Actions is HLL::Actions {
             if $*W.is_name(@name) {
                 my $trait := $*W.find_symbol(@name);
                 make -> $declarand {
-                    $*W.apply_trait('&trait_mod:<is>', $declarand, $trait, |@trait_arg);
+                    $*W.apply_trait($/, '&trait_mod:<is>', $declarand, $trait, |@trait_arg);
                 };
             }
             else {
@@ -2993,7 +2994,7 @@ class Perl6::Actions is HLL::Actions {
                 %arg{~$<longname>} := @trait_arg ?? @trait_arg[0] !!
                     $*W.find_symbol(['Bool', 'True']);
                 make -> $declarand {
-                    $*W.apply_trait('&trait_mod:<is>', $declarand, |%arg);
+                    $*W.apply_trait($/, '&trait_mod:<is>', $declarand, |%arg);
                 };
             }
         }
@@ -3001,13 +3002,13 @@ class Perl6::Actions is HLL::Actions {
 
     method trait_mod:sym<hides>($/) {
         make -> $declarand {
-            $*W.apply_trait('&trait_mod:<hides>', $declarand, $<typename>.ast);
+            $*W.apply_trait($/, '&trait_mod:<hides>', $declarand, $<typename>.ast);
         };
     }
 
     method trait_mod:sym<does>($/) {
         make -> $declarand {
-            $*W.apply_trait('&trait_mod:<does>', $declarand, $<typename>.ast);
+            $*W.apply_trait($/, '&trait_mod:<does>', $declarand, $<typename>.ast);
         };
     }
 
@@ -3015,26 +3016,26 @@ class Perl6::Actions is HLL::Actions {
         my %arg;
         %arg{~$<identifier>} := ($*W.add_constant('Int', 'int', 1)).compile_time_value;
         make -> $declarand {
-            $*W.apply_trait('&trait_mod:<will>', $declarand,
+            $*W.apply_trait($/, '&trait_mod:<will>', $declarand,
                 ($<pblock>.ast)<code_object>, |%arg);
         };
     }
 
     method trait_mod:sym<of>($/) {
         make -> $declarand {
-            $*W.apply_trait('&trait_mod:<of>', $declarand, $<typename>.ast);
+            $*W.apply_trait($/, '&trait_mod:<of>', $declarand, $<typename>.ast);
         };
     }
 
     method trait_mod:sym<as>($/) {
         make -> $declarand {
-            $*W.apply_trait('&trait_mod:<as>', $declarand, $<typename>.ast);
+            $*W.apply_trait($/, '&trait_mod:<as>', $declarand, $<typename>.ast);
         };
     }
 
     method trait_mod:sym<returns>($/) {
         make -> $declarand {
-            $*W.apply_trait('&trait_mod:<returns>', $declarand, $<typename>.ast);
+            $*W.apply_trait($/, '&trait_mod:<returns>', $declarand, $<typename>.ast);
         };
     }
 
@@ -3044,7 +3045,7 @@ class Perl6::Actions is HLL::Actions {
         # it.
         my $thunk := $*W.create_thunk($/, $<term>.ast);
         make -> $declarand {
-            $*W.apply_trait('&trait_mod:<handles>', $declarand, $thunk);
+            $*W.apply_trait($/, '&trait_mod:<handles>', $declarand, $thunk);
         };
     }
 
@@ -5042,7 +5043,7 @@ class Perl6::Actions is HLL::Actions {
 
     # Handles the case where we have a default value closure for an
     # attribute.
-    method install_attr_init($attr, $initializer, $block) {
+    method install_attr_init($/, $attr, $initializer, $block) {
         # Construct signature and anonymous method.
         my @params := [
             hash( is_invocant => 1, nominal_type => $*PACKAGE),
@@ -5064,7 +5065,7 @@ class Perl6::Actions is HLL::Actions {
 
         # Dispatch trait. XXX Should really be Bool::True, not Int here...
         my $true := ($*W.add_constant('Int', 'int', 1)).compile_time_value;
-        $*W.apply_trait('&trait_mod:<will>', $attr, :build($code));
+        $*W.apply_trait($/, '&trait_mod:<will>', $attr, :build($code));
     }
 
     # This is the hook where, in the future, we'll use this as the hook to check

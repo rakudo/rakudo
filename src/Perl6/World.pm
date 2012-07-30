@@ -1296,9 +1296,9 @@ class Perl6::World is HLL::World {
     }
     
     # Applies a trait.
-    method apply_trait($trait_sub_name, *@pos_args, *%named_args) {
+    method apply_trait($/, $trait_sub_name, *@pos_args, *%named_args) {
         my $trait_sub := $*W.find_symbol([$trait_sub_name]);
-        $trait_sub(|@pos_args, |%named_args);
+        self.ex-handle($/, { $trait_sub(|@pos_args, |%named_args) });
     }
     
     # Some things get cloned many times with a lexical scope that

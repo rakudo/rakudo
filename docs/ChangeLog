@@ -4,7 +4,7 @@ New in 2012.08
 + reduced memory usage at build time by around 35% - 40%
 + the argument to IO::Socket.recv is now interpreted as a number of characters
 + enum lists and arguments to parametric roles are now evaluated at compile time
-+ switched to new internal AST representation (QAST)
++ switched to new internal AST and backend representations (QAST and PIRT)
 + removed deprecated routines Str.bytes and Str.lcfirst/&lcfirst
 
 New in 2012.07

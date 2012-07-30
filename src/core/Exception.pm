@@ -763,7 +763,7 @@ my class X::ControlFlow::Return is X::ControlFlow {
     method message()   { 'Attempt to return outside of any Routine' }
 }
 
-my class X::Composition::NotComposable is Exception {
+my class X::Composition::NotComposable does X::Comp {
     has $.target-name;
     has $.composer;
     method message() {

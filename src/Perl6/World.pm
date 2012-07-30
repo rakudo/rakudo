@@ -1980,9 +1980,6 @@ class Perl6::World is HLL::World {
             }
         }
         $p6ex.rethrow if $success == 2;
-        $success := 0;
-        try { $ex_t := self.find_symbol(['X', 'Comp', 'AdHoc']); ++$success };
-        $p6ex.rethrow unless $success;
         $p6ex.SET_FILE_LINE(
             nqp::box_s(pir::find_caller_lex__ps('$?FILES'),
                 self.find_symbol(['Str'])),

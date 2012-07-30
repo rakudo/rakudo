@@ -840,7 +840,7 @@ my class X::Inheritance::Unsupported does X::Comp {
     }
 }
 
-my class X::Export::NameClash is Exception {
+my class X::Export::NameClash does X::Comp {
     has $.symbol;
     method message() {
         "A symbol '$.symbol' has already been exported";

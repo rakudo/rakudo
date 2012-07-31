@@ -464,7 +464,6 @@ class Perl6::Optimizer {
         for $call.list {
             my $temp_name := '_inline_arg_' ~ ($!inline_arg_counter := $!inline_arg_counter + 1);
             my $temp_type := $_.returns;
-            say("Inlining arg of type " ~ $temp_type.HOW.name($temp_type));
             $inlined.push(QAST::Op.new(
                 :op('bind'),
                 QAST::Var.new( :name($temp_name), :scope('local'), :returns($temp_type), :decl('var') ),

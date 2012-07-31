@@ -264,10 +264,10 @@ my class IO::Path is Cool does IO::FileTestable {
     method IO(IO::Path:D:) {
         IO.new(:$.path);
     }
-    method open(IO::File:D: *%opts) {
+    method open(IO::Path:D: *%opts) {
         open($.path, |%opts);
     }
-    method contents() {
+    method contents(IO::Path:D:) {
         dir($.path);
     }
 }

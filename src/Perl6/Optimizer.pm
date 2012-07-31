@@ -163,7 +163,7 @@ class Perl6::Optimizer {
                             my $chosen := @ct_result[1];
                             if $op.op eq 'chain' { $!chain_depth := $!chain_depth - 1 }
                             if $*LEVEL >= 2 {
-                                return nqp::can($chosen, 'inline_info') && $chosen.inline_info ne ''
+                                return nqp::can($chosen, 'inline_info') && nqp::istype($chosen.inline_info, QAST::Node)
                                     ?? self.inline_call($op, $chosen)
                                     !! self.call_ct_chosen_multi($op, $obj, $chosen);
                             }
@@ -190,7 +190,7 @@ class Perl6::Optimizer {
                             if $op.op eq 'chain' { $!chain_depth := $!chain_depth - 1 }
                             #say("# trial bind worked!");
                             if $*LEVEL >= 2 {
-                                return nqp::can($obj, 'inline_info') && $obj.inline_info ne ''
+                                return nqp::can($obj, 'inline_info') && nqp::istype($obj.inline_info, QAST::Node)
                                     ?? self.inline_call($op, $obj)
                                     !! copy_returns($op, $obj);
                             }

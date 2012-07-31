@@ -544,13 +544,13 @@ grammar Perl6::Grammar is HLL::Grammar {
     }
 
     rule statementlist {
-        | $
-        | [<statement><.eat_terminator> ]*
+        | <?> $
+        | <?> [<statement><.eat_terminator> ]*
     }
 
     rule semilist {
-        | <?before <[)\]}]> >
-        | [<statement><.eat_terminator> ]*
+        | <?> <?before <[)\]}]> >
+        | <?> [<statement><.eat_terminator> ]*
     }
 
     token statement {
@@ -836,7 +836,7 @@ grammar Perl6::Grammar is HLL::Grammar {
         }
     }
 
-    rule statement_control:sym<require> {
+    rule statement_control:sym<require> { <?>
         <sym>
         [
         | <module_name> <EXPR>?
@@ -845,17 +845,17 @@ grammar Perl6::Grammar is HLL::Grammar {
     }
 
     token statement_control:sym<given> {
-        <sym> <.end_keyword> :s <xblock(1)>
+        <sym> <.end_keyword> :s <?> <xblock(1)>
     }
     token statement_control:sym<when> {
-        <sym> <.end_keyword> :s <xblock>
+        <sym> <.end_keyword> :s <?> <xblock>
     }
-    rule statement_control:sym<default> {
+    rule statement_control:sym<default> { <?>
         <sym><.end_keyword> <block>
     }
 
-    rule statement_control:sym<CATCH> {<sym> <block(1)> }
-    rule statement_control:sym<CONTROL> {<sym> <block(1)> }
+    rule statement_control:sym<CATCH> { <sym> <block(1)> }
+    rule statement_control:sym<CONTROL> { <sym> <block(1)> }
 
     proto token statement_prefix { <...> }
     token statement_prefix:sym<BEGIN> { <sym> <blorst> }
@@ -892,7 +892,7 @@ grammar Perl6::Grammar is HLL::Grammar {
 
     proto token statement_mod_cond { <...> }
 
-    rule modifier_expr { <EXPR> }
+    rule modifier_expr { <?> <EXPR> }
 
     token statement_mod_cond:sym<if>     { <sym> <modifier_expr> }
     token statement_mod_cond:sym<unless> { <sym> <modifier_expr> }
@@ -900,10 +900,10 @@ grammar Perl6::Grammar is HLL::Grammar {
 
     proto token statement_mod_loop { <...> }
 
-    token statement_mod_loop:sym<while> { <sym> :s <smexpr=.EXPR> }
-    token statement_mod_loop:sym<until> { <sym> :s <smexpr=.EXPR> }
-    token statement_mod_loop:sym<for>   { <sym> :s <smexpr=.EXPR> }
-    token statement_mod_loop:sym<given> { <sym> :s <smexpr=.EXPR> }
+    token statement_mod_loop:sym<while> { <sym> <smexpr=.modifier_expr> }
+    token statement_mod_loop:sym<until> { <sym> <smexpr=.modifier_expr> }
+    token statement_mod_loop:sym<for>   { <sym> <smexpr=.modifier_expr> }
+    token statement_mod_loop:sym<given> { <sym> <smexpr=.modifier_expr> }
 
     ## Terms
 
@@ -1257,7 +1257,7 @@ grammar Perl6::Grammar is HLL::Grammar {
         [ <trait>+ || <.panic: "No valid trait found after also"> ]
     }
 
-    rule package_def {
+    rule package_def { <?>
         :my $longname;
         :my $outer := $*W.cur_lexpad();
         :my $*DECLARAND;
@@ -1583,7 +1583,7 @@ grammar Perl6::Grammar is HLL::Grammar {
     token routine_declarator:sym<macro>
         { <sym> <.end_keyword> <macro_def()> }
 
-    rule routine_def($d) {
+    rule routine_def($d) { <?>
         :my $*IN_DECL := $d;
         :my $*METHODTYPE;
         :my $*IMPLICIT := 0;
@@ -1613,7 +1613,7 @@ grammar Perl6::Grammar is HLL::Grammar {
         ]
     }
 
-    rule method_def($d) {
+    rule method_def($d) { <?>
         :my $*IN_DECL := $d;
         :my $*METHODTYPE := $d;
         :my $*HAS_SELF := $d eq 'submethod' ?? 'partial' !! 'complete';
@@ -1643,7 +1643,7 @@ grammar Perl6::Grammar is HLL::Grammar {
         ] || <.malformed('method')>
     }
 
-    rule macro_def() {
+    rule macro_def() { <?>
         :my $*IN_DECL := 'macro';
         :my $*METHODTYPE;
         :my $*IMPLICIT := 0;
@@ -1694,16 +1694,16 @@ grammar Perl6::Grammar is HLL::Grammar {
         ]
     }
 
-    rule capture {
+    rule capture { <?>
         <EXPR>
     }
 
-    rule param_sep {
+    rule param_sep { <?>
         $<sep>=[','|':'|';;'|';'] { @*seps.push($<sep>) }
     }
 
     # XXX Not really implemented yet.
-    rule multisig {
+    rule multisig { <?>
         :my $*SCOPE := 'my';
         <signature>
     }
@@ -1800,7 +1800,7 @@ grammar Perl6::Grammar is HLL::Grammar {
         ]
     }
 
-    rule default_value {
+    rule default_value { <?>
         :my $*IN_DECL := '';
         '=' <EXPR('i=')>
     }
@@ -1815,7 +1815,7 @@ grammar Perl6::Grammar is HLL::Grammar {
         <.ws>
     }
 
-    rule post_constraint {
+    rule post_constraint { <?>
         :my $*IN_DECL := '';
     #    :dba('constraint')
         [
@@ -1852,7 +1852,7 @@ grammar Perl6::Grammar is HLL::Grammar {
         <regex_def>
     }
 
-    rule regex_def {<.end_keyword> [
+    rule regex_def { <.end_keyword> [
         :my $*CURPAD;
         :my $*HAS_SELF := 'complete';
         :my $*DECLARAND := $*W.stub_code_object('Regex');
@@ -1964,7 +1964,7 @@ grammar Perl6::Grammar is HLL::Grammar {
         <sym> [ <.ws> <dottyopish> || <.malformed: 'mutator method call'> ]
     }
 
-    rule trait {
+    rule trait { <?>
         :my $*IN_DECL := '';
         [
         | <trait_mod>
@@ -1973,14 +1973,14 @@ grammar Perl6::Grammar is HLL::Grammar {
     }
 
     proto token trait_mod { <...> }
-    token trait_mod:sym<is>      { <sym>:s <longname><circumfix>? }
-    token trait_mod:sym<hides>   { <sym>:s <typename> }
-    token trait_mod:sym<does>    { <sym>:s <typename> }
-    token trait_mod:sym<will>    { <sym>:s <identifier> <pblock> }
-    token trait_mod:sym<of>      { <sym>:s <typename> }
-    token trait_mod:sym<as>      { <sym>:s <typename> }
-    token trait_mod:sym<returns> { <sym>:s <typename> }
-    token trait_mod:sym<handles> { <sym>:s <term> }
+    token trait_mod:sym<is>      { <sym>:s <?> <longname><circumfix>? }
+    token trait_mod:sym<hides>   { <sym>:s <?> <typename> }
+    token trait_mod:sym<does>    { <sym>:s <?> <typename> }
+    token trait_mod:sym<will>    { <sym>:s <?> <identifier> <pblock> }
+    token trait_mod:sym<of>      { <sym>:s <?> <typename> }
+    token trait_mod:sym<as>      { <sym>:s <?> <typename> }
+    token trait_mod:sym<returns> { <sym>:s <?> <typename> }
+    token trait_mod:sym<handles> { <sym>:s <?> <term> }
 
 
     ## Terms

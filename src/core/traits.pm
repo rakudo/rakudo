@@ -15,6 +15,7 @@ my class X::Inheritance::Unsupported { ... }
 my class X::Export::NameClash        { ... }
 my class X::Composition::NotComposable { ... }
 my class X::Import::MissingSymbols   { ... }
+my class X::Redeclaration { ... }
 
 proto trait_mod:<is>(|$) { * }
 multi trait_mod:<is>(Mu:U $child, Mu:U $parent) {
@@ -162,6 +163,10 @@ multi trait_mod:<of>(Mu:U $target, Mu:U $type) {
     $target.HOW.set_of($target, $type);
 }
 multi trait_mod:<of>(Routine:D $target, Mu:U $type) {
+    my $returns := nqp::getattr(nqp::p6decont($target.signature), Signature, '$!returns');
+    X::Redeclaration.new(what => 'return type for', symbol => $target,
+        postfix => " (previous return type was {$returns.^name})").throw
+        if not nqp::p6bool(nqp::isnull($returns));
     $target.signature.set_returns($type)
 }
 
@@ -174,6 +179,10 @@ multi trait_mod:<is>(Routine:D $r, :$hidden_from_backtrace!) {
 
 proto trait_mod:<returns>(|$) { * }
 multi trait_mod:<returns>(Routine:D $target, Mu:U $type) {
+    my $returns := nqp::getattr(nqp::p6decont($target.signature), Signature, '$!returns');
+    X::Redeclaration.new(what => 'return type for', symbol => $target,
+        postfix => " (previous return type was {$returns.^name})").throw
+        if not nqp::p6bool(nqp::isnull($returns));
     $target.signature.set_returns($type)
 }
 

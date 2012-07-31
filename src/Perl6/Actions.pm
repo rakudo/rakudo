@@ -1902,87 +1902,129 @@ class Perl6::Actions is HLL::Actions {
     }
     
     method add_inlining_info_if_possible($/, $code, $past, @params) {
-        # Only consider things with single statements.
-        unless +$past[1].list == 1 {
-            return 0;
-        }
-        my $stmt := $past[1][0];
-        
-        # Ensure all parameters are simple and build information about them.
-        my %arg_pos;
-        my %arg_used;
+        # Make sure the block has the common structure we expect
+        # (decls then statements).
+        return 0 unless +@($past) == 2;
+
+        # Ensure all parameters are simple and build placeholders for
+        # them.
+        my %arg_placeholders;
         my $arg_num := 0;
         for @params {
             return 0 if $_<optional> || $_<is_capture> || $_<pos_slurpy> ||
                 $_<named_slurpy> || $_<pos_lol> || $_<bind_attr> ||
                 $_<bind_accessor> || $_<nominal_generic> || $_<named_names> ||
                 $_<type_captures> || $_<post_constraints>;
-            %arg_pos{$_<variable_name>} := $arg_num;
-            %arg_used{$_<variable_name>} := 0;
+            %arg_placeholders{$_<variable_name>} :=
+                QAST::InlinePlaceholder.new( :position($arg_num) );
             $arg_num := $arg_num + 1;
         }
-        
+
         # Ensure nothing extra is declared.
         for @($past[0]) {
-            if $_.isa(QAST::Var) {
+            if nqp::istype($_, QAST::Var) && $_.scope eq 'lexical' {
                 my $name := $_.name;
                 return 0 if $name ne '$_' &&
                     $name ne '$/' && $name ne '$!' && $name ne '&?ROUTINE' &&
-                    $name ne '$*DISPATCHER' && !nqp::existskey(%arg_pos, $name);
-            }
-        }
-        
-        # If all is well, we can try to build inline info. In the future, we
-        # would just walk the PAST and see all is well; for now, we generate
-        # a simple representation of the op tree for very restricted cases.
-        my $node_walker := -> $node {
-            if $node.isa(QAST::IVal) || $node.isa(QAST::SVal) {
-                return 0;
-            }
-            if ($node.isa(QAST::Stmt) || $node.isa(QAST::Stmts)) && +@($node) == 1 {
-                $node_walker($node[0])
-            }
-            elsif $node.isa(QAST::Var) && ($node.scope eq 'lexical' || $node.scope eq '') {
-                if nqp::existskey(%arg_pos, $node.name) && %arg_used{$node.name} == 0 {
-                    %arg_used{$node.name} := 1;
-                    "ARG " ~ %arg_pos{$node.name}
-                }
-                else {
-                    return 0;
-                }
-            }
-            # XXX Needs QAST update...
-            #elsif $node.isa(PAST::Op) && $node.pirop {
-            #    my @children;
-            #    for @($node) {
-            #        @children.push($node_walker($_));
-            #    }
-            #    my $safe_name := nqp::join('__', nqp::split(' ', $node.pirop));
-            #    "PIROP $safe_name ( " ~ nqp::join(' ', @children) ~ " )"
-            #}
-            elsif $node.isa(QAST::Want) && +@($node) == 3 {
-                my %backup := nqp::clone(%arg_used);
-                my $normal := $node_walker($node[0]);
-                %arg_used := %backup;
-                my $typed  := $node_walker($node[2]);
-                "WANT ( " ~ $normal ~ " WANTSPEC " ~ ~$node[1] ~ " " ~ $typed ~ " )"
-            }
-            else {
-                return 0;
-            }
-        };
-        my $inline_info := $node_walker($stmt);
-        
-        # Ensure we used all arguments.
-        for %arg_used {
-            if $_.value == 0 {
-                return 0;
+                    $name ne '$*DISPATCHER' && $name ne 'call_sig' &&
+                    !nqp::existskey(%arg_placeholders, $name);
             }
         }
 
+        # If all is well, we try to build the QAST for inlining. This dies
+        # if we fail.
+        sub clear_node($qast) {
+            $qast.node(nqp::null());
+            $qast
+        }
+        sub clone_qast($qast) {
+            my $cloned := pir::repr_clone__PP($qast);
+            nqp::bindattr($cloned, QAST::Node, '@!array',
+                nqp::clone(nqp::getattr($cloned, QAST::Node, '@!array')));
+            $cloned
+        }
+        sub node_walker($node) {
+            # Simple values are always fine; just return them as they are, modulo
+            # removing any :node(...).
+            if nqp::istype($node, QAST::IVal) || nqp::istype($node, QAST::SVal)
+            || nqp::istype($node, QAST::NVal) || nqp::istype($node, QAST::WVal) {
+                return $node.node ?? clear_node(clone_qast($node)) !! $node;
+            }
+            
+            # Operations need checking for their inlinability. If they are OK in
+            # themselves, it comes down to the children.
+            elsif nqp::istype($node, QAST::Op) {
+                if QAST::Operations.is_inlinable('perl6', $node.op) {
+                    my $replacement := clone_qast($node);
+                    my $i := 0;
+                    my $n := +@($node);
+                    while $i < $n {
+                        $replacement[$i] := node_walker($node[$i]);
+                        $i := $i + 1;
+                    }
+                    return clear_node($replacement);
+                }
+                elsif $node.op eq 'p6typecheckrv' {
+                    # We leave the validation/handling of this to the inliner.
+                    return node_walker($node[0]);
+                }
+                else {
+                    nqp::die("Non-inlinable op '" ~ $node.op ~ "' encountered");
+                }
+            }
+            
+            # Variables are fine *if* they are arguments.
+            elsif nqp::istype($node, QAST::Var) && ($node.scope eq 'lexical' || $node.scope eq '') {
+                if nqp::existskey(%arg_placeholders, $node.name) {
+                    my $replacement := %arg_placeholders{$node.name};
+                    if $node.named || $node.flat {
+                        $replacement := clone_qast($replacement);
+                        if $node.named { $replacement.named($node.named) }
+                        if $node.flat { $replacement.flat($node.flat) }
+                    }
+                    return $replacement;
+                }
+                else {
+                    nqp::die("Cannot inline with non-argument variables");
+                }
+            }
+            
+            # Statements need to be cloned and then each of the nodes below them
+            # visited.
+            elsif nqp::istype($node, QAST::Stmt) || nqp::istype($node, QAST::Stmts) {
+                my $replacement := clone_qast($node);
+                my $i := 0;
+                my $n := +@($node);
+                while $i < $n {
+                    $replacement[$i] := node_walker($node[$i]);
+                    $i := $i + 1;
+                }
+                return clear_node($replacement);
+            }
+            
+            # Want nodes need copying and every other child visiting.
+            elsif nqp::istype($node, QAST::Want) {
+                my $replacement := clone_qast($node);
+                my $i := 0;
+                my $n := +@($node);
+                while $i < $n {
+                    $replacement[$i] := node_walker($node[$i]);
+                    $i := $i + 2;
+                }
+                return clear_node($replacement);
+            }
+            
+            # Otherwise, we don't know what to do with it.
+            else {
+                nqp::die("Unhandled node type; won't inline");
+            }
+        };
+        my $inline_info;
+        try $inline_info := node_walker($past[1]);
+        return 0 unless nqp::istype($inline_info, QAST::Node);
+
         # Attach inlining information.
-        $*W.apply_trait($/, '&trait_mod:<is>', $code,
-            inlinable => ($*W.add_string_constant($inline_info)).compile_time_value)
+        $*W.apply_trait($/, '&trait_mod:<is>', $code, inlinable => $inline_info)
     }
 
     method method_def($/) {
@@ -2222,16 +2264,20 @@ class Perl6::Actions is HLL::Actions {
     sub is_clearly_returnless($block) {
         sub returnless_past($past) {
             return 0 unless
-                # It's a method call.
-                $past.isa(QAST::Op) && $past.op eq 'callmethod' ||
-                # It's a simple/primitive operation.
-                # XXX TODO: something for PAST -> QAST transformation.
+                # It's a simple operation.
+                nqp::istype($past, QAST::Op)
+                    && QAST::Operations.is_inlinable('perl6', $past.op) ||
                 # Just a variable lookup.
-                $past.isa(QAST::Var) ||
+                nqp::istype($past, QAST::Var) ||
                 # Just a QAST::Want
-                $past.isa(QAST::Want);
+                nqp::istype($past, QAST::Want) ||
+                # Just a primitive or world value.
+                nqp::istype($past, QAST::WVal) ||
+                nqp::istype($past, QAST::IVal) ||
+                nqp::istype($past, QAST::NVal) ||
+                nqp::istype($past, QAST::SVal);
             for @($past) {
-                if $_.isa(QAST::Node) {
+                if nqp::istype($_, QAST::Node) {
                     if !returnless_past($_) {
                         return 0;
                     }
@@ -2241,7 +2287,7 @@ class Perl6::Actions is HLL::Actions {
         }
         
         # Only analyse things with a single simple statement.
-        if +$block[1].list == 1 && $block[1][0].isa(QAST::Stmt) && +$block[1][0].list == 1 {
+        if +$block[1].list == 1 && nqp::istype($block[1][0], QAST::Stmt) && +$block[1][0].list == 1 {
             # Ensure there's no nested blocks.
             for @($block[0]) {
                 if nqp::istype($_, QAST::Block) { return 0; }

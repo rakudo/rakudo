@@ -1,6 +1,7 @@
 New in 2012.08
 + tclc implemented
-+ --> ReturnType in signatures is honored
++ --> ReturnType in signatures and prefix type constraints of routine return
+types are honored
 + reduced memory usage at build time by around 35% - 40%
 + the argument to IO::Socket.recv is now interpreted as a number of characters
 + enum lists and arguments to parametric roles are now evaluated at compile time

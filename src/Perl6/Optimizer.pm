@@ -15,6 +15,9 @@ class Perl6::Optimizer {
     # Unique ID for topic ($_) preservation registers.
     has $!pres_topic_counter;
     
+    # Unique ID for inline args variables.
+    has $!inline_arg_counter;
+    
     # Things that should cause compilation to fail; keys are errors, value is
     # array of line numbers.
     has %!deadly;
@@ -29,6 +32,7 @@ class Perl6::Optimizer {
         @!block_stack := [$past[0]];
         $!chain_depth := 0;
         $!pres_topic_counter := 0;
+        $!inline_arg_counter := 0;
         %!deadly := nqp::hash();
         %!worrying := nqp::hash();
         my $*DYNAMICALLY_COMPILED := 0;
@@ -454,50 +458,26 @@ class Perl6::Optimizer {
     
     # Inlines a call to a sub.
     method inline_call($call, $code_obj) {
-        # XXX Still needs updating.
-        return $call;
-        my $inline := $code_obj.inline_info();
-        my $name   := $call.name;
-        my @tokens := nqp::split(' ', $inline);
-        my @stack  := [PAST::Stmt.new()];
-        while +@tokens {
-            my $cur_tok := @tokens.shift;
-            if $cur_tok eq ')' {
-                my $popped := @stack.pop();
-                @stack[+@stack - 1].push($popped);
-            }
-            elsif $cur_tok eq 'ARG' {
-                @stack[+@stack - 1].push($call[+@tokens.shift()]);
-            }
-            elsif $cur_tok eq 'PIROP' {
-                @stack.push(PAST::Op.new( :pirop(@tokens.shift()) ));
-                unless @tokens.shift() eq '(' {
-                    nqp::die("INTERNAL ERROR: Inline corrupt for $name; expected '('");
-                }
-            }
-            elsif $cur_tok eq 'WANT' {
-                @stack.push(PAST::Want.new());
-                unless @tokens.shift() eq '(' {
-                    nqp::die("INTERNAL ERROR: Inline corrupt for $name; expected '('");
-                }
-            }
-            elsif $cur_tok eq 'WANTSPEC' {
-                @stack[+@stack - 1].push(~@tokens.shift());
-            }
-            elsif $cur_tok ne '' {
-                nqp::die("INTERNAL ERROR: Unexpected inline token for $name: " ~ $cur_tok);
-                return $call;
-            }
+        # Bind the arguments to temporaries.
+        my $inlined := QAST::Stmts.new();
+        my @subs;
+        for $call.list {
+            my $temp_name := '_inline_arg_' ~ ($!inline_arg_counter := $!inline_arg_counter + 1);
+            my $temp_type := $_.returns;
+            say("Inlining arg of type " ~ $temp_type.HOW.name($temp_type));
+            $inlined.push(QAST::Op.new(
+                :op('bind'),
+                QAST::Var.new( :name($temp_name), :scope('local'), :returns($temp_type), :decl('var') ),
+                $_));
+            nqp::push(@subs, QAST::Var.new( :name($temp_name), :scope('local'), :returns($temp_type) ));
         }
-        if +@stack != 1 {
-            nqp::die("INTERNAL ERROR: Non-empty inline stack for $name")
+        
+        # Now do the inlining.
+        $inlined.push($code_obj.inline_info.substitute_inline_placeholders(@subs));
+        if $call.named -> $name {
+            $inlined.named($name);
         }
-        if $call.named ne '' {
-            @stack[0].named($call.named);
-        }
-        @stack[0].returns($code_obj.returns) if nqp::can($code_obj, 'returns');
-        #say("# inlined a call to $name");
-        @stack[0]
+        $inlined
     }
     
     # If we decide a dispatch at compile time, this emits the direct call.

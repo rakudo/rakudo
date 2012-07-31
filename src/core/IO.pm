@@ -88,10 +88,11 @@ class IO does IO::FileTestable {
     has $.path;
 
     proto method open(|$) { * }
-    multi method open($path? is copy, :$r, :$w, :$a, :$bin, :$chomp = Bool::True,
+    multi method open($path? is copy, :$r, :$w, :$a, :$p, :$bin, :$chomp = Bool::True,
             :enc(:$encoding) = 'utf8') {
         $path //= $.path;
-        my $mode = $w ?? 'w' !! ($a ?? 'wa' !! 'r');
+        my $mode =  $p ?? ($w ||  $a ?? 'wp' !! 'rp') !!
+                   ($w ?? 'w' !! ($a ?? 'wa' !! 'r' ));
         # TODO: catch error, and fail()
         nqp::bindattr(self, IO, '$!PIO',
              $path eq '-'
@@ -329,8 +330,8 @@ sub rmdir($path) {
 }
 
 proto sub open(|$) { * }
-multi sub open($path, :$r, :$w, :$a, :$bin, :$chomp = Bool::True, :enc(:$encoding) = 'utf8') {
-    IO.new.open($path, :$r, :$w, :$a, :$bin, :$chomp, :$encoding);
+multi sub open($path, :$r, :$w, :$a, :$p, :$bin, :$chomp = Bool::True, :enc(:$encoding) = 'utf8') {
+    IO.new.open($path, :$r, :$w, :$a, :$p, :$bin, :$chomp, :$encoding);
 }
 
 proto sub lines(|$) { * }

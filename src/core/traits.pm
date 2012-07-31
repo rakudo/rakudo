@@ -163,11 +163,11 @@ multi trait_mod:<of>(Mu:U $target, Mu:U $type) {
     $target.HOW.set_of($target, $type);
 }
 multi trait_mod:<of>(Routine:D $target, Mu:U $type) {
-    my $returns := nqp::getattr(nqp::p6decont($target.signature), Signature, '$!returns');
+    my $sig := $target.signature;
     X::Redeclaration.new(what => 'return type for', symbol => $target,
-        postfix => " (previous return type was {$returns.^name})").throw
-        if not nqp::p6bool(nqp::isnull($returns));
-    $target.signature.set_returns($type)
+        postfix => " (previous return type was {$sig.returns.^name})").throw
+        if $sig.has_returns;
+    $sig.set_returns($type)
 }
 
 multi trait_mod:<is>(Routine:D $r, :$hidden_from_backtrace!) {
@@ -179,11 +179,11 @@ multi trait_mod:<is>(Routine:D $r, :$hidden_from_backtrace!) {
 
 proto trait_mod:<returns>(|$) { * }
 multi trait_mod:<returns>(Routine:D $target, Mu:U $type) {
-    my $returns := nqp::getattr(nqp::p6decont($target.signature), Signature, '$!returns');
+    my $sig := $target.signature;
     X::Redeclaration.new(what => 'return type for', symbol => $target,
-        postfix => " (previous return type was {$returns.^name})").throw
-        if not nqp::p6bool(nqp::isnull($returns));
-    $target.signature.set_returns($type)
+        postfix => " (previous return type was {$sig.returns.^name})").throw
+        if $sig.has_returns;
+    $sig.set_returns($type)
 }
 
 proto trait_mod:<as>(|$) { * }

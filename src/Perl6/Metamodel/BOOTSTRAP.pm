@@ -369,6 +369,16 @@ BEGIN {
             nqp::bindattr(pir::perl6_decontainerize__PP($self),
                 Signature, '$!returns', pir::perl6_decontainerize__PP($type));
         }));
+    Signature.HOW.add_method(Signature, 'has_returns', static(sub ($self) {
+            pir::perl6_booleanize__PI(
+                nqp::not_i(
+                    nqp::isnull(
+                        nqp::getattr(pir::perl6_decontainerize__PP($self),
+                            Signature, '$!returns')
+                    )
+                )
+            );
+        }));
         
     # class Parameter {
     #     has str $!variable_name

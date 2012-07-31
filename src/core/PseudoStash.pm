@@ -161,9 +161,9 @@ my class PseudoStash is EnumMap {
             True
         }
         elsif $!mode == PRECISE_SCOPE {
-            nqp::existskey(
+            nqp::p6bool(nqp::existskey(
                 nqp::getattr(self, EnumMap, '$!storage'),
-                nqp::unbox_s($key))
+                nqp::unbox_s($key)))
         }
         elsif $!mode == DYNAMIC_CHAIN || $!mode == PICK_CHAIN_BY_NAME && substr($key, 1, 1) eq '*' {
             nqp::isnull(

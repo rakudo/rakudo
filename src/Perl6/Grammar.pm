@@ -1863,7 +1863,7 @@ grammar Perl6::Grammar is HLL::Grammar {
           <.newpad>
           [ [ ':'?'(' <signature> ')'] | <trait> ]*
           '{'[
-            | ['*'|'<...>'|'<*>'] <?{ $*MULTINESS eq 'proto' }> $<onlystar>={1}
+            | <?> ['*'|'<...>'|'<*>'] <?{ $*MULTINESS eq 'proto' }> $<onlystar>={1}
             |<p6regex=.LANG('Regex','nibbler')>]'}'<?ENDSTMT>
           { $*CURPAD := $*W.pop_lexpad() }
         ] || <.malformed('regex')>

@@ -264,16 +264,10 @@ my class IO::Path is Cool does IO::FileTestable {
     method IO(IO::Path:D:) {
         IO.new(:$.path);
     }
-}
-
-my class IO::File is IO::Path {
-    method open(IO::File:D: *%opts) {
+    method open(IO::Path:D: *%opts) {
         open($.path, |%opts);
     }
-}
-
-my class IO::Dir is IO::Path {
-    method contents() {
+    method contents(IO::Path:D:) {
         dir($.path);
     }
 }
@@ -285,8 +279,7 @@ sub dir(Cool $path = '.', Mu :$test = none('.', '..')) {
     loop (my int $i = 0; $i < $elems; $i = $i + 1) {
         my Str $file := nqp::p6box_s(nqp::atpos($RSA, $i));
         if $file ~~ $test {
-            my $f = IO::File.new(:basename($file), :dir($path.Str));
-            @res.push: $f.d ?? IO::Dir.new(:basename($file), :dir($path.Str)) !! $f;
+            @res.push: IO::Path.new(:basename($file), :dir($path.Str));
         }
     }
     return @res.list;

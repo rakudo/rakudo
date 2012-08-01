@@ -8,6 +8,7 @@ types are honored
 + switched to new internal AST and backend representations (QAST and PIRT)
 + removed deprecated routines Str.bytes and Str.lcfirst/&lcfirst
 + errors from traits now contain file name and line number
++ IO::File and IO::Dir have been removed
 
 New in 2012.07
 + Deprecated SAFE.setting in favor of RESTRICTED.setting

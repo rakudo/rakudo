@@ -242,8 +242,9 @@ class Perl6::Actions is HLL::Actions {
         # Load the needed libraries.
         $*W.add_libs($unit);
 
-        # If the unit defines &MAIN, add a &MAIN_HELPER.
-        if $unit.symbol('&MAIN') {
+        # If the unit defines &MAIN, and this is in the mainline,
+        # add a &MAIN_HELPER.
+        if !$*W.is_precompilation_mode && +@*MODULES == 0 && $unit.symbol('&MAIN') {
             $mainline := QAST::Op.new(
                 :op('call'),
                 :name('&MAIN_HELPER'),
@@ -1193,7 +1194,6 @@ class Perl6::Actions is HLL::Actions {
                 $past.returns($attr.type);
                 $past.unshift(instantiated_type(['$?CLASS'], $/));
                 $past.unshift(QAST::Var.new( :name('self'), :scope('lexical') ));
-                $past := box_native_if_needed($past, $attr.type);
             }
         }
         elsif $twigil eq '.' && $*IN_DECL ne 'variable' {
@@ -1280,7 +1280,6 @@ class Perl6::Actions is HLL::Actions {
             try {
                 my $type := $*W.find_lexical_container_type($past.name);
                 $past.returns($type);
-                $past := box_native_if_needed($past, $type);
             }
             
             # If it's a late-bound sub lookup, we may not find it, so be sure
@@ -1631,7 +1630,6 @@ class Perl6::Actions is HLL::Actions {
                 $past.name($name);
                 $past.scope('lexical');
                 $past.returns(%cont_info<bind_constraint>);
-                $past := box_native_if_needed($past, %cont_info<bind_constraint>);
                 if %cont_info<bind_constraint>.HOW.archetypes.generic {
                     $past := QAST::Op.new(
                         :op('callmethod'), :name('instantiate_generic'),
@@ -1708,10 +1706,7 @@ class Perl6::Actions is HLL::Actions {
             $block := $<blockoid>.ast;
             $block.blocktype('declaration');
             if is_clearly_returnless($block) {
-                if pir::repr_get_primitive_type_spec__IP($block[1].returns) {
-                    $block[1] := box_native_if_needed($block[1], $block[1].returns);
-                }
-                else {
+                unless pir::repr_get_primitive_type_spec__IP($block[1].returns) {
                     $block[1] := QAST::Op.new(
                         :op('p6decontrv'),
                         $block[1]);
@@ -3947,6 +3942,11 @@ class Perl6::Actions is HLL::Actions {
     sub bind_op($/, $target, $source, $sigish) {
         # Check we know how to bind to the thing on the LHS.
         if $target.isa(QAST::Var) {
+            # Check it's not a native type; we can't bind to those.
+            if pir::repr_get_primitive_type_spec__IP($target.returns) {
+                $*W.throw($/, ['X', 'Bind', 'NativeType']);
+            }
+            
             # We may need to decontainerize the right, depending on sigil.
             my $sigil := nqp::substr($target.name(), 0, 1);
             if $sigil eq '@' || $sigil eq '%' {
@@ -3984,9 +3984,6 @@ class Perl6::Actions is HLL::Actions {
             # Finally, just need to make a bind.
             make QAST::Op.new( :op('bind'), $target, $source );
         }
-        elsif $target<boxable_native> {
-            $*W.throw($/, ['X', 'Bind', 'NativeType']);
-        }
         elsif $target.isa(QAST::Op) && $target.op eq 'p6type' &&
                 $target[0].isa(QAST::Op) && $target[0].op eq 'callmethod' &&
                 ($target[0].name eq 'postcircumfix:<[ ]>' || $target[0].name eq 'postcircumfix:<{ }>') {
@@ -4012,12 +4009,12 @@ class Perl6::Actions is HLL::Actions {
         if $lhs_ast.isa(QAST::Var) {
             $var_sigil := nqp::substr($lhs_ast.name, 0, 1);
         }
-        if $lhs_ast && $lhs_ast<boxable_native> {
-            # Native assignment is actually really a bind at low level
-            # We grab the thing we want out of the QAST::Want node.
-            $past := box_native_if_needed(
-                QAST::Op.new(:op('bind'), $lhs_ast[2], $rhs_ast),
-                $lhs_ast.returns);
+        if nqp::istype($lhs_ast, QAST::Var)
+                && pir::repr_get_primitive_type_spec__IP($lhs_ast.returns) {
+            # Native assignment is actually really a bind at low level.
+            $past := QAST::Op.new(
+                :op('bind'), :returns($lhs_ast.returns),
+                $lhs_ast, $rhs_ast);
         }
         elsif $var_sigil eq '@' || $var_sigil eq '%' {
             # While the scalar container store op would end up calling .STORE,
@@ -4343,7 +4340,7 @@ class Perl6::Actions is HLL::Actions {
         my $past := QAST::Op.new( :name('postcircumfix:<[ ]>'), :op('callmethod'), :node($/) );
         if $<semilist><statement> {
             my $slast := $<semilist>.ast;
-            $past.push(+@($slast) == 1 && $slast[0]<boxable_native> ?? $slast[0][2] !! $slast);
+            $past.push($slast);
         }
         make $past;
     }
@@ -5300,23 +5297,6 @@ class Perl6::Actions is HLL::Actions {
         }
         else {
             $*W.throw($/, ['X', 'Value', 'Dynamic'], what => $usage);
-        }
-    }
-
-    my @prim_spec_ops := ['', 'p6box_i', 'p6box_n', 'p6box_s'];
-    my @prim_spec_flags := ['', 'Ii', 'Nn', 'Ss'];
-    sub box_native_if_needed($past, $type) {
-        my $primspec := pir::repr_get_primitive_type_spec__IP($type);
-        if $primspec {
-            my $want := QAST::Want.new(
-                QAST::Op.new( :op(@prim_spec_ops[$primspec]), $past ),
-                @prim_spec_flags[$primspec], $past);
-            $want<boxable_native> := $primspec;
-            $want.returns($type);
-            return $want;
-        }
-        else {
-            $past
         }
     }
     

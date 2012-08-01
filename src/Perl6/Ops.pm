@@ -100,5 +100,6 @@ QAST::Operations.add_hll_unbox('perl6', 's', -> $qastcomp, $post {
     $ops.result($reg);
     $ops
 });
+QAST::Compiler.force_return_boxing_for_hll('perl6');
 
 QAST::Operations.add_core_pirop_mapping('findnotcclass', 'find_not_cclass', 'Iisii');

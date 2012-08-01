@@ -110,6 +110,7 @@ class Perl6::ModuleLoader {
         }
         my %chosen := @candidates[0];
         
+        my @MODULES := nqp::clone(@*MODULES);
         # If we didn't already do so, load the module and capture
         # its mainline. Otherwise, we already loaded it so go on
         # with what we already have.
@@ -118,6 +119,7 @@ class Perl6::ModuleLoader {
             $module_ctx := %modules_loaded{%chosen<key>};
         }
         else {
+            my @*MODULES := @MODULES;
             if +@*MODULES  == 0 {
                 my %prev        := nqp::hash();
                 %prev<line>     := $line;
@@ -161,11 +163,9 @@ class Perl6::ModuleLoader {
                 DEBUG("done loading ", %chosen<pm>) if $DEBUG;
 
             }
-            nqp::pop(@*MODULES);
             pir::set_hll_global__vsP('GLOBAL', $preserve_global);
             CATCH {
                 pir::set_hll_global__vsP('GLOBAL', $preserve_global);
-                nqp::pop(@*MODULES);
                 nqp::rethrow($_);
             }
         }

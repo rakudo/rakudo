@@ -242,8 +242,9 @@ class Perl6::Actions is HLL::Actions {
         # Load the needed libraries.
         $*W.add_libs($unit);
 
-        # If the unit defines &MAIN, add a &MAIN_HELPER.
-        if $unit.symbol('&MAIN') {
+        # If the unit defines &MAIN, and this is in the mainline,
+        # add a &MAIN_HELPER.
+        if !$*W.is_precompilation_mode && +@*MODULES == 0 && $unit.symbol('&MAIN') {
             $mainline := QAST::Op.new(
                 :op('call'),
                 :name('&MAIN_HELPER'),

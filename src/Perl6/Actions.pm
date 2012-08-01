@@ -4,7 +4,6 @@ use Perl6::ConstantFolder;
 use Perl6::Ops;
 use QRegex;
 use QAST;
-use PASTRegex; # For PAST
 
 class Perl6::Actions is HLL::Actions {
     our @MAX_PERL_VERSION;

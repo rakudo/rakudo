@@ -2,6 +2,7 @@ my class Cursor {... }
 my class Range  {... }
 my class Match  {... }
 my class Buf    {... }
+my class IO::Path         { ... }
 my class X::Str::Numeric  { ... }
 my class X::Str::Match::x { ... }
 my class X::Str::Trans::IllegalKey { ... }
@@ -914,6 +915,10 @@ my class Str does Stringy {
 
     method tclc(Str:D:) {
         nqp::p6box_s(nqp::tclc(nqp::unbox_s(self)))
+    }
+
+    method path(Str:D:) {
+        IO::Path.new(self);
     }
 }
 

@@ -239,7 +239,18 @@ class IO does IO::FileTestable {
 
 my class IO::Path is Cool does IO::FileTestable {
     has Str $.basename;
-    has Str $.dir = '.';
+    has Str $.directory = '.';
+
+    # just for backwards compatiblity
+    method dir() { $!directory }
+    submethod BUILD(:$!basename, :dir(:$!directory)) { }
+
+    multi method new(Str:D $path) {
+        my @chunks    = $path.split('/');
+        my $basename  = @chunks.pop;
+        my $directory = @chunks.join('/');
+        self.new(:$basename, :$directory);
+    }
 
     multi method Str(IO::Path:D:) {
         self.basename;

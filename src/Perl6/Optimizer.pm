@@ -26,6 +26,9 @@ class Perl6::Optimizer {
     # of line numbers.
     has %!worrying;
     
+    # The type type, Mu.
+    has $!Mu;
+    
     # Entry point for the optimization process.
     method optimize($past, *%adverbs) {
         # Initialize.
@@ -35,6 +38,7 @@ class Perl6::Optimizer {
         $!inline_arg_counter := 0;
         %!deadly := nqp::hash();
         %!worrying := nqp::hash();
+        $!Mu := self.find_lexical('Mu');
         my $*DYNAMICALLY_COMPILED := 0;
         
         # Work out optimization level.
@@ -158,7 +162,7 @@ class Perl6::Optimizer {
                 try { if $obj.is_dispatcher { $dispatcher := 1 } }
                 if $dispatcher {
                     # Try to do compile-time multi-dispatch.
-                    my @ct_arg_info := analyze_args_for_ct_call($op);
+                    my @ct_arg_info := self.analyze_args_for_ct_call($op);
                     if +@ct_arg_info {
                         my @types := @ct_arg_info[0];
                         my @flags := @ct_arg_info[1];
@@ -185,7 +189,7 @@ class Perl6::Optimizer {
                 }
                 elsif nqp::can($obj, 'signature') {
                     # If we know enough about the arguments, do a "trial bind".
-                    my @ct_arg_info := analyze_args_for_ct_call($op);
+                    my @ct_arg_info := self.analyze_args_for_ct_call($op);
                     if +@ct_arg_info {
                         my @types := @ct_arg_info[0];
                         my @flags := @ct_arg_info[1];
@@ -218,7 +222,7 @@ class Perl6::Optimizer {
         # If it's a private method call, we can sometimes resolve it at
         # compile time. If so, we can reduce it to a sub call in some cases.
         elsif $*LEVEL >= 3 && $op.op eq 'callmethod' && $op.name eq 'dispatch:<!>' {
-            if $op[1].has_compile_time_value && $op[1]<boxable_native> == 3 {
+            if $op[1].has_compile_time_value && nqp::istype($op[1], QAST::Want) && $op[1][1] eq 'Ss' {
                 my $name := $op[1][2].value; # get raw string name
                 my $pkg  := $op[2].returns;  # actions always sets this
                 my $meth := $pkg.HOW.find_private_method($pkg, $name);
@@ -267,38 +271,51 @@ class Perl6::Optimizer {
     
     # Checks arguments to see if we're going to be able to do compile
     # time analysis of the call.
-    sub analyze_args_for_ct_call($op) {
+    my @allo_map := ['', 'Ii', 'Nn', 'Ss'];
+    method analyze_args_for_ct_call($op) {
         my @types;
         my @flags;
+        my @allomorphs;
+        my $num_prim := 0;
+        my $num_allo := 0;
+        
+        # Initial analysis.
         for @($op) {
             # Can't cope with flattening or named.
             if $_.flat || $_.named ne '' {
                 return [];
             }
             
-            # See if we know the node's type.
-            if $_<boxable_native> {
-                @types.push(nqp::null());
-                @flags.push($_<boxable_native>);
-            }
-            elsif nqp::can($_, 'returns') && !nqp::isnull($_.returns) {
-                my $type := $_.returns();
-                if pir::isa($type, 'Undef') {
-                    return [];
-                }
-                elsif $type.HOW.archetypes.generic {
-                    return [];
-                }
-                else {
-                    my $prim := pir::repr_get_primitive_type_spec__IP($type);
-                    @types.push($type);
-                    @flags.push($prim);
-                }
+            # See if we know the node's type; if so, check it.
+            my $type := $_.returns();
+            my $ok_type := 0;
+            try $ok_type := nqp::istype($type, $!Mu);
+            if $ok_type {
+                my $prim := pir::repr_get_primitive_type_spec__IP($type);
+                my $allo := $_.has_compile_time_value && nqp::istype($_, QAST::Want)
+                    ?? $_[1] !! '';
+                @types.push($type);
+                @flags.push($prim);
+                @allomorphs.push($allo);
+                $num_prim := $num_prim + 1 if $prim;
+                $num_allo := $num_allo + 1 if $allo;
             }
             else {
                 return [];
             }
         }
+        
+        # See if we have an allomorphic constant that may allow us to do
+        # a native dispatch with it; takes at least one declaratively
+        # native argument to make this happen.
+        if @types == 2 && $num_prim == 1 && $num_allo == 1 {
+            my $prim_flag := @flags[0] || @flags[1];
+            my $allo_idx := @allomorphs[0] ?? 0 !! 1;
+            if @allomorphs[$allo_idx] eq @allo_map[$prim_flag] {
+                @flags[$allo_idx] := $prim_flag;
+            }
+        }
+        
         [@types, @flags]
     }
     

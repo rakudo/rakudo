@@ -428,7 +428,7 @@ my class Date does Dateish {
 
     method get-daycount { $!daycount }
 
-    multi method new(:$year!, :$month, :$day) {
+    multi method new(:$year!, :$month = 1, :$day = 1) {
         my $d = self.bless(*, :$year, :$month, :$day);
         $d.check-date;
         $d!set-daycount(self.daycount-from-ymd($year,$month,$day));

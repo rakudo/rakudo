@@ -529,7 +529,8 @@ my class X::Syntax::P5 does X::Syntax {
 }
 
 my class X::Syntax::NegatedPair does X::Syntax {
-    method message() { 'Argument not allowed on negated pair' }
+    has $.key;
+    method message() { "Argument not allowed on negated pair with key '$.key'" }
 }
 
 my class X::Syntax::Variable::Numeric does X::Syntax {

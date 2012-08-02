@@ -956,7 +956,8 @@ grammar Perl6::Grammar is HLL::Grammar {
 
         ':'
         [
-        | '!' <identifier> [ <[ \[ \( \< \{ ]> <.typed_panic: "X::Syntax::NegatedPair"> ]?
+        | '!' <identifier> [ <[ \[ \( \< \{ ]> {
+            $/.CURSOR.typed_panic('X::Syntax::NegatedPair', key => ~$<identifier>) } ]?
             { $*key := $<identifier>.Str; $*value := 0; }
         | <identifier>
             { $*key := $<identifier>.Str; }

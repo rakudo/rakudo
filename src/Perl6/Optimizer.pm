@@ -503,6 +503,7 @@ class Perl6::Optimizer {
         if $call.named -> $name {
             $inlined.named($name);
         }
+        $inlined.node($call.node);
         
         $inlined
     }

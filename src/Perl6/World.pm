@@ -1069,7 +1069,8 @@ class Perl6::World is HLL::World {
                     ~ $namedkey;
             }
             if nqp::existskey(%!const_cache, $cache_key) {
-                return QAST::WVal.new( :value(%!const_cache{$cache_key}) );
+                my $value := %!const_cache{$cache_key};
+                return QAST::WVal.new( :value($value), :returns($value.WHAT) );
             }
         }
         
@@ -1104,7 +1105,7 @@ class Perl6::World is HLL::World {
         # Build QAST for getting the boxed constant from the constants
         # table, but also annotate it with the constant itself in case
         # we need it. Add to cache.
-        my $qast := QAST::WVal.new( :value($constant) );
+        my $qast := QAST::WVal.new( :value($constant), :returns($constant.WHAT) );
         if !$nocache {
             %!const_cache{$cache_key} := $constant;
         }
@@ -1134,12 +1135,7 @@ class Perl6::World is HLL::World {
                     QAST::VM.new( :pirop('set Ns'), QAST::SVal.new( :value(~$value) ) ) !!
                     QAST::NVal.new( :value($value) ) );
         }
-        if $type eq 'Int' {
-            $past<boxable_native> := 1;
-        }
-        elsif $type eq 'Num' {
-            $past<boxable_native> := 2;
-        }
+        $past.returns($const.returns);
         $past;
     }
     
@@ -1147,9 +1143,9 @@ class Perl6::World is HLL::World {
     # Returns PAST to do the lookup of the constant.
     method add_string_constant($value) {
         my $const := self.add_constant('Str', 'str', $value);
-        my $past  := QAST::Want.new($const, 'Ss', QAST::SVal.new( :value($value) ));
-        $past<boxable_native>         := 3;
-        $past;
+        QAST::Want.new(
+            $const, :returns($const.returns),
+            'Ss', QAST::SVal.new( :value($value) ));
     }
     
     # Adds the result of a constant folding operation to the SC and

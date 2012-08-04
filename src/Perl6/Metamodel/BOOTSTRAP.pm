@@ -573,7 +573,7 @@ BEGIN {
     Routine.HOW.add_attribute(Routine, BOOTSTRAPATTR.new(:name<$!dispatcher>, :type(Mu), :package(Routine)));
     Routine.HOW.add_attribute(Routine, BOOTSTRAPATTR.new(:name<$!md_thunk>, :type(Mu), :package(Routine)));
     Routine.HOW.add_attribute(Routine, BOOTSTRAPATTR.new(:name<$!rw>, :type(int), :package(Routine)));
-    Routine.HOW.add_attribute(Routine, BOOTSTRAPATTR.new(:name<$!inline_info>, :type(str), :package(Routine)));
+    Routine.HOW.add_attribute(Routine, BOOTSTRAPATTR.new(:name<$!inline_info>, :type(Mu), :package(Routine)));
     Routine.HOW.add_attribute(Routine, BOOTSTRAPATTR.new(:name<$!yada>, :type(int), :package(Routine)));
     Routine.HOW.add_attribute(Routine, BOOTSTRAPATTR.new(:name<$!package>, :type(Mu), :package(Routine)));
 
@@ -616,12 +616,11 @@ BEGIN {
         }));
     Routine.HOW.add_method(Routine, 'set_inline_info', static(sub ($self, $info) {
             my $dcself := pir::perl6_decontainerize__PP($self);
-            pir::repr_bind_attr_str__0PPss($dcself, Routine, '$!inline_info',
-                nqp::unbox_s($info));
+            pir::repr_bind_attr_obj__0PPsP($dcself, Routine, '$!inline_info', $info);
         }));
     Routine.HOW.add_method(Routine, 'inline_info', static(sub ($self) {
             my $dcself := pir::perl6_decontainerize__PP($self);
-            nqp::getattr_s($dcself, Routine, '$!inline_info')
+            nqp::getattr($dcself, Routine, '$!inline_info')
         }));
 
     # class Sub is Routine { ... }

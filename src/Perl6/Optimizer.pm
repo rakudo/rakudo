@@ -15,6 +15,9 @@ class Perl6::Optimizer {
     # Unique ID for topic ($_) preservation registers.
     has $!pres_topic_counter;
     
+    # Unique ID for inline args variables.
+    has $!inline_arg_counter;
+    
     # Things that should cause compilation to fail; keys are errors, value is
     # array of line numbers.
     has %!deadly;
@@ -23,12 +26,16 @@ class Perl6::Optimizer {
     # of line numbers.
     has %!worrying;
     
+    # The type type, Mu.
+    has $!Mu;
+    
     # Entry point for the optimization process.
     method optimize($past, *%adverbs) {
         # Initialize.
         @!block_stack := [$past[0]];
         $!chain_depth := 0;
         $!pres_topic_counter := 0;
+        $!inline_arg_counter := 0;
         %!deadly := nqp::hash();
         %!worrying := nqp::hash();
         my $*DYNAMICALLY_COMPILED := 0;
@@ -37,14 +44,18 @@ class Perl6::Optimizer {
         my $*LEVEL := nqp::existskey(%adverbs, 'optimize') ??
             +%adverbs<optimize> !! 2;
         
-        # We'll start walking over UNIT (we wouldn't find it by going
-        # over OUTER since we don't walk loadinits).
+        # Locate UNIT and some other useful symbols.
         my $unit := $past<UNIT>;
         my $*GLOBALish := $past<GLOBALish>;
         my $*W := $past<W>;
         unless nqp::istype($unit, QAST::Block) {
             nqp::die("Optimizer could not find UNIT");
         }
+        nqp::push(@!block_stack, $unit);
+        $!Mu := self.find_lexical('Mu');
+        nqp::pop(@!block_stack);
+        
+        # Walk and optimize the program.
         self.visit_block($unit);
         
         # Die if we failed check in any way; otherwise, print any warnings.
@@ -154,7 +165,7 @@ class Perl6::Optimizer {
                 try { if $obj.is_dispatcher { $dispatcher := 1 } }
                 if $dispatcher {
                     # Try to do compile-time multi-dispatch.
-                    my @ct_arg_info := analyze_args_for_ct_call($op);
+                    my @ct_arg_info := self.analyze_args_for_ct_call($op);
                     if +@ct_arg_info {
                         my @types := @ct_arg_info[0];
                         my @flags := @ct_arg_info[1];
@@ -163,7 +174,7 @@ class Perl6::Optimizer {
                             my $chosen := @ct_result[1];
                             if $op.op eq 'chain' { $!chain_depth := $!chain_depth - 1 }
                             if $*LEVEL >= 2 {
-                                return nqp::can($chosen, 'inline_info') && $chosen.inline_info ne ''
+                                return nqp::can($chosen, 'inline_info') && nqp::istype($chosen.inline_info, QAST::Node)
                                     ?? self.inline_call($op, $chosen)
                                     !! self.call_ct_chosen_multi($op, $obj, $chosen);
                             }
@@ -181,7 +192,7 @@ class Perl6::Optimizer {
                 }
                 elsif nqp::can($obj, 'signature') {
                     # If we know enough about the arguments, do a "trial bind".
-                    my @ct_arg_info := analyze_args_for_ct_call($op);
+                    my @ct_arg_info := self.analyze_args_for_ct_call($op);
                     if +@ct_arg_info {
                         my @types := @ct_arg_info[0];
                         my @flags := @ct_arg_info[1];
@@ -190,7 +201,7 @@ class Perl6::Optimizer {
                             if $op.op eq 'chain' { $!chain_depth := $!chain_depth - 1 }
                             #say("# trial bind worked!");
                             if $*LEVEL >= 2 {
-                                return nqp::can($obj, 'inline_info') && $obj.inline_info ne ''
+                                return nqp::can($obj, 'inline_info') && nqp::istype($obj.inline_info, QAST::Node)
                                     ?? self.inline_call($op, $obj)
                                     !! copy_returns($op, $obj);
                             }
@@ -214,7 +225,7 @@ class Perl6::Optimizer {
         # If it's a private method call, we can sometimes resolve it at
         # compile time. If so, we can reduce it to a sub call in some cases.
         elsif $*LEVEL >= 3 && $op.op eq 'callmethod' && $op.name eq 'dispatch:<!>' {
-            if $op[1].has_compile_time_value && $op[1]<boxable_native> == 3 {
+            if $op[1].has_compile_time_value && nqp::istype($op[1], QAST::Want) && $op[1][1] eq 'Ss' {
                 my $name := $op[1][2].value; # get raw string name
                 my $pkg  := $op[2].returns;  # actions always sets this
                 my $meth := $pkg.HOW.find_private_method($pkg, $name);
@@ -263,38 +274,58 @@ class Perl6::Optimizer {
     
     # Checks arguments to see if we're going to be able to do compile
     # time analysis of the call.
-    sub analyze_args_for_ct_call($op) {
+    my @allo_map := ['', 'Ii', 'Nn', 'Ss'];
+    my %allo_rev := nqp::hash('Ii', 1, 'Nn', 2, 'Ss', 3);
+    method analyze_args_for_ct_call($op) {
         my @types;
         my @flags;
+        my @allomorphs;
+        my $num_prim := 0;
+        my $num_allo := 0;
+        
+        # Initial analysis.
         for @($op) {
             # Can't cope with flattening or named.
             if $_.flat || $_.named ne '' {
                 return [];
             }
             
-            # See if we know the node's type.
-            if $_<boxable_native> {
-                @types.push(nqp::null());
-                @flags.push($_<boxable_native>);
-            }
-            elsif nqp::can($_, 'returns') && !nqp::isnull($_.returns) {
-                my $type := $_.returns();
-                if pir::isa($type, 'Undef') {
-                    return [];
-                }
-                elsif $type.HOW.archetypes.generic {
-                    return [];
-                }
-                else {
-                    my $prim := pir::repr_get_primitive_type_spec__IP($type);
-                    @types.push($type);
-                    @flags.push($prim);
-                }
+            # See if we know the node's type; if so, check it.
+            my $type := $_.returns();
+            my $ok_type := 0;
+            try $ok_type := nqp::istype($type, $!Mu);
+            if $ok_type {
+                my $prim := pir::repr_get_primitive_type_spec__IP($type);
+                my $allo := $_.has_compile_time_value && nqp::istype($_, QAST::Want)
+                    ?? $_[1] !! '';
+                @types.push($type);
+                @flags.push($prim);
+                @allomorphs.push($allo);
+                $num_prim := $num_prim + 1 if $prim;
+                $num_allo := $num_allo + 1 if $allo;
             }
             else {
                 return [];
             }
         }
+        
+        # See if we have an allomorphic constant that may allow us to do
+        # a native dispatch with it; takes at least one declaratively
+        # native argument to make this happen.
+        if @types == 2 && $num_prim == 1 && $num_allo == 1 {
+            my $prim_flag := @flags[0] || @flags[1];
+            my $allo_idx := @allomorphs[0] ?? 0 !! 1;
+            if @allomorphs[$allo_idx] eq @allo_map[$prim_flag] {
+                @flags[$allo_idx] := $prim_flag;
+            }
+        }
+        
+        # Alternatively, a single arg that is allomorphic will prefer
+        # the literal too.
+        if @types == 1 && $num_allo == 1 {
+            @flags[0] := %allo_rev{@allomorphs[0]} // 0;
+        }
+        
         [@types, @flags]
     }
     
@@ -454,50 +485,26 @@ class Perl6::Optimizer {
     
     # Inlines a call to a sub.
     method inline_call($call, $code_obj) {
-        # XXX Still needs updating.
-        return $call;
-        my $inline := $code_obj.inline_info();
-        my $name   := $call.name;
-        my @tokens := nqp::split(' ', $inline);
-        my @stack  := [PAST::Stmt.new()];
-        while +@tokens {
-            my $cur_tok := @tokens.shift;
-            if $cur_tok eq ')' {
-                my $popped := @stack.pop();
-                @stack[+@stack - 1].push($popped);
-            }
-            elsif $cur_tok eq 'ARG' {
-                @stack[+@stack - 1].push($call[+@tokens.shift()]);
-            }
-            elsif $cur_tok eq 'PIROP' {
-                @stack.push(PAST::Op.new( :pirop(@tokens.shift()) ));
-                unless @tokens.shift() eq '(' {
-                    nqp::die("INTERNAL ERROR: Inline corrupt for $name; expected '('");
-                }
-            }
-            elsif $cur_tok eq 'WANT' {
-                @stack.push(PAST::Want.new());
-                unless @tokens.shift() eq '(' {
-                    nqp::die("INTERNAL ERROR: Inline corrupt for $name; expected '('");
-                }
-            }
-            elsif $cur_tok eq 'WANTSPEC' {
-                @stack[+@stack - 1].push(~@tokens.shift());
-            }
-            elsif $cur_tok ne '' {
-                nqp::die("INTERNAL ERROR: Unexpected inline token for $name: " ~ $cur_tok);
-                return $call;
-            }
+        # Bind the arguments to temporaries.
+        my $inlined := QAST::Stmts.new();
+        my @subs;
+        for $call.list {
+            my $temp_name := '_inline_arg_' ~ ($!inline_arg_counter := $!inline_arg_counter + 1);
+            my $temp_type := $_.returns;
+            $inlined.push(QAST::Op.new(
+                :op('bind'),
+                QAST::Var.new( :name($temp_name), :scope('local'), :returns($temp_type), :decl('var') ),
+                $_));
+            nqp::push(@subs, QAST::Var.new( :name($temp_name), :scope('local'), :returns($temp_type) ));
         }
-        if +@stack != 1 {
-            nqp::die("INTERNAL ERROR: Non-empty inline stack for $name")
+        
+        # Now do the inlining.
+        $inlined.push($code_obj.inline_info.substitute_inline_placeholders(@subs));
+        if $call.named -> $name {
+            $inlined.named($name);
         }
-        if $call.named ne '' {
-            @stack[0].named($call.named);
-        }
-        @stack[0].returns($code_obj.returns) if nqp::can($code_obj, 'returns');
-        #say("# inlined a call to $name");
-        @stack[0]
+        
+        $inlined
     }
     
     # If we decide a dispatch at compile time, this emits the direct call.

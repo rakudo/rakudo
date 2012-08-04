@@ -38,21 +38,24 @@ class Perl6::Optimizer {
         $!inline_arg_counter := 0;
         %!deadly := nqp::hash();
         %!worrying := nqp::hash();
-        $!Mu := self.find_lexical('Mu');
         my $*DYNAMICALLY_COMPILED := 0;
         
         # Work out optimization level.
         my $*LEVEL := nqp::existskey(%adverbs, 'optimize') ??
             +%adverbs<optimize> !! 2;
         
-        # We'll start walking over UNIT (we wouldn't find it by going
-        # over OUTER since we don't walk loadinits).
+        # Locate UNIT and some other useful symbols.
         my $unit := $past<UNIT>;
         my $*GLOBALish := $past<GLOBALish>;
         my $*W := $past<W>;
         unless nqp::istype($unit, QAST::Block) {
             nqp::die("Optimizer could not find UNIT");
         }
+        nqp::push(@!block_stack, $unit);
+        $!Mu := self.find_lexical('Mu');
+        nqp::pop(@!block_stack);
+        
+        # Walk and optimize the program.
         self.visit_block($unit);
         
         # Die if we failed check in any way; otherwise, print any warnings.
@@ -272,6 +275,7 @@ class Perl6::Optimizer {
     # Checks arguments to see if we're going to be able to do compile
     # time analysis of the call.
     my @allo_map := ['', 'Ii', 'Nn', 'Ss'];
+    my %allo_rev := nqp::hash('Ii', 1, 'Nn', 2, 'Ss', 3);
     method analyze_args_for_ct_call($op) {
         my @types;
         my @flags;
@@ -314,6 +318,12 @@ class Perl6::Optimizer {
             if @allomorphs[$allo_idx] eq @allo_map[$prim_flag] {
                 @flags[$allo_idx] := $prim_flag;
             }
+        }
+        
+        # Alternatively, a single arg that is allomorphic will prefer
+        # the literal too.
+        if @types == 1 && $num_allo == 1 {
+            @flags[0] := %allo_rev{@allomorphs[0]} // 0;
         }
         
         [@types, @flags]

@@ -3535,6 +3535,7 @@ class Perl6::Actions is HLL::Actions {
         if $past.op eq 'want' {
             $past[1] := compile_time_value_str($past[1], 'want specification', $/);
         }
+        QAST::Operations.attach_result_type('perl6', $past);
         make $past;
     }
 

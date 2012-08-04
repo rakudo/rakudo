@@ -427,6 +427,7 @@ grammar Perl6::Grammar is HLL::Grammar {
         :my $*ALLOW_CODE := 0;                     # pod stuff
         :my $*POD_IN_FORMATTINGCODE := 0;          # pod stuff
         :my $*IN_REGEX_ASSERTION := 0;
+        :my $*SOFT := 0;                           # is the soft pragma in effect
         
         # Various interesting scopes we'd like to keep to hand.
         :my $*GLOBALish;
@@ -757,6 +758,12 @@ grammar Perl6::Grammar is HLL::Grammar {
                 # setting of some kind.
                 if $longname.Str eq 'MONKEY_TYPING' {
                     $*MONKEY_TYPING := 1;
+                    $longname := "";
+                }
+                elsif $longname.Str eq 'soft' {
+                    # This is an approximation; need to pay attention to argument
+                    # list really.
+                    $*SOFT := 1;
                     $longname := "";
                 }
                 elsif $longname.Str eq 'FORBID_PIR' ||

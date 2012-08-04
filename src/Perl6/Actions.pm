@@ -1877,9 +1877,15 @@ class Perl6::Actions is HLL::Actions {
             if $t.ast { $*W.ex-handle($t, { ($t.ast)($code) }) }
         }
         
-        # Add inlining information if it's inlinable.
+        # Add inlining information if it's inlinable; also mark soft if the
+        # appropriate pragma is in effect.
         if $<deflongname> {
-            self.add_inlining_info_if_possible($/, $code, $block, @params);
+            if $*SOFT {
+                $*W.find_symbol(['&infix:<does>'])($code, $*W.find_symbol(['SoftRoutine']));
+            }
+            else {
+                self.add_inlining_info_if_possible($/, $code, $block, @params);
+            }
         }
 
         my $closure := block_closure(reference_to_code_object($code, $past));
@@ -1958,7 +1964,7 @@ class Perl6::Actions is HLL::Actions {
                     nqp::die("Routines using pseudo-stashes are not inlinable");
                 }
                 else {
-                    return $node;
+                    return $node.node ?? clear_node(clone_qast($node)) !! $node;
                 }
             }
             

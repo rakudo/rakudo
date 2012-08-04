@@ -1,5 +1,12 @@
 my class X::Routine::Unwrap { ... }
 
+my role HardRoutine {
+    method soft() { False }
+}
+my role SoftRoutine {
+    method soft() { True }
+}
+
 my class Routine {
     method of() { self.signature.returns }
     method returns() { self.signature.returns }
@@ -48,6 +55,10 @@ my class Routine {
         $perl
     }
     
+    method soft() {
+        Mu
+    }
+    
     method wrap(&wrapper) {
         my class WrapHandle {
             has $!dispatcher;
@@ -73,6 +84,13 @@ my class Routine {
             method postcircumfix:<( )>($c) {
                 $!dispatcher.enter(|$c);
             }
+        }
+        
+        # We can't wrap a hardened routine (that is, one that's been
+        # marked inlinable).
+        if nqp::istype(self, HardRoutine) {
+            die "Cannot wrap a HardRoutine, since it may have been inlined; " ~
+                "use the 'soft' pragma to avoid marking routines has hard.";
         }
         
         # If we're not wrapped already, do the initial dispatcher

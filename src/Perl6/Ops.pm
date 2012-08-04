@@ -27,7 +27,7 @@ $ops.add_hll_pirop_mapping('perl6', 'p6reprname', 'perl6_repr_name', 'PP', :inli
 $ops.add_hll_pirop_mapping('perl6', 'p6definite', 'perl6_definite', 'PP', :inlinable(1));
 $ops.add_hll_pirop_mapping('perl6', 'p6multidispatch', 'perl6_enter_multi_dispatch_from_onlystar_block', 'P');
 $ops.add_hll_pirop_mapping('perl6', 'p6bindsig', 'bind_signature', 'v');
-$ops.add_hll_pirop_mapping('perl6', 'p6typecheckrv', 'perl6_type_check_return_value', '0P');
+$ops.add_hll_pirop_mapping('perl6', 'p6typecheckrv', 'perl6_type_check_return_value', '0PP', :inlinable(1));
 $ops.add_hll_pirop_mapping('perl6', 'p6decontrv', 'perl6_decontainerize_return_value', 'PP', :inlinable(1));
 $ops.add_hll_pirop_mapping('perl6', 'p6capturelex', 'perl6_capture_lex', '0P');
 $ops.add_hll_pirop_mapping('perl6', 'p6vmcodetoobj', 'perl6_code_object_from_parrot_sub', 'PP');

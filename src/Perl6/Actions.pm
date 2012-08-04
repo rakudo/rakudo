@@ -1711,7 +1711,10 @@ class Perl6::Actions is HLL::Actions {
                         :op('p6decontrv'),
                         $block[1]);
                 }
-                $block[1] := QAST::Op.new( :op('p6typecheckrv'), $block[1] );
+                $block[1] := QAST::Op.new(
+                    :op('p6typecheckrv'),
+                    $block[1],
+                    QAST::WVal.new( :value($*DECLARAND) ));
             }
             else {
                 $block[1] := wrap_return_handler($block[1]);
@@ -1928,7 +1931,8 @@ class Perl6::Actions is HLL::Actions {
 
         # If all is well, we try to build the QAST for inlining. This dies
         # if we fail.
-        my $PseudoStash := $*W.find_symbol(['PseudoStash']);
+        my $PseudoStash;
+        try $PseudoStash := $*W.find_symbol(['PseudoStash']);
         sub clear_node($qast) {
             $qast.node(nqp::null());
             $qast
@@ -1970,10 +1974,6 @@ class Perl6::Actions is HLL::Actions {
                         $i := $i + 1;
                     }
                     return clear_node($replacement);
-                }
-                elsif $node.op eq 'p6typecheckrv' {
-                    # We leave the validation/handling of this to the inliner.
-                    return node_walker($node[0]);
                 }
                 else {
                     nqp::die("Non-inlinable op '" ~ $node.op ~ "' encountered");
@@ -2045,7 +2045,8 @@ class Perl6::Actions is HLL::Actions {
             if is_clearly_returnless($past) {
                 $past[1] := QAST::Op.new(
                     :op('p6typecheckrv'),
-                    QAST::Op.new( :op('p6decontrv'), $past[1]));
+                    QAST::Op.new( :op('p6decontrv'), $past[1]),
+                    QAST::WVal.new( :value($*DECLARAND) ));
             }
             else {
                 $past[1] := wrap_return_handler($past[1]);
@@ -2136,12 +2137,13 @@ class Perl6::Actions is HLL::Actions {
         my $signature := create_signature_object($<multisig> ?? $<multisig>[0] !! $/, %sig_info, $block);
         add_signature_binding_code($block, $signature, @params);
 
-        # Create code object.
+        # Finish code object, associating it with the routine body.
         if $<deflongname> {
             $block.name(~$<deflongname>[0].ast);
         }
-        my $code := $*W.create_code_object($block, 'Macro', $signature,
-            $*MULTINESS eq 'proto');
+        my $code := $*DECLARAND;
+        $*W.attach_signature($code, $signature);
+        $*W.finish_code_object($code, $block, $*MULTINESS eq 'proto');
 
         # Document it
         Perl6::Pod::document($/, $code, $*DOC);
@@ -5013,7 +5015,8 @@ class Perl6::Actions is HLL::Actions {
                     QAST::Op.new(
                         :op('getpayload'),
                         QAST::Op.new( :op('exception') )
-                    )));
+                    ),
+                    QAST::WVal.new( :value($*DECLARAND) )));
         }
 
         # if this is not an immediate block create a call
@@ -5278,7 +5281,8 @@ class Perl6::Actions is HLL::Actions {
                     :op<bind>,
                     QAST::Var.new(:name<RETURN>, :scope<lexical>),
                     QAST::Var.new(:name<&EXHAUST>, :scope<lexical>))
-            )
+            ),
+            QAST::WVal.new( :value($*DECLARAND) )
         )
     }
 

@@ -1645,10 +1645,10 @@ grammar Perl6::Grammar is HLL::Grammar {
 
     rule macro_def() {
         :my $*IN_DECL := 'macro';
-        :my $*METHODTYPE;
         :my $*IMPLICIT := 0;
         :my $*DOC := $*DECLARATOR_DOCS;
         :my $*DOCEE;
+        :my $*DECLARAND := $*W.stub_code_object('Macro');
         <.attach_docs>
         <deflongname>?
         {

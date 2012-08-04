@@ -1928,6 +1928,7 @@ class Perl6::Actions is HLL::Actions {
 
         # If all is well, we try to build the QAST for inlining. This dies
         # if we fail.
+        my $PseudoStash := $*W.find_symbol(['PseudoStash']);
         sub clear_node($qast) {
             $qast.node(nqp::null());
             $qast
@@ -1942,8 +1943,19 @@ class Perl6::Actions is HLL::Actions {
             # Simple values are always fine; just return them as they are, modulo
             # removing any :node(...).
             if nqp::istype($node, QAST::IVal) || nqp::istype($node, QAST::SVal)
-            || nqp::istype($node, QAST::NVal) || nqp::istype($node, QAST::WVal) {
+            || nqp::istype($node, QAST::NVal) {
                 return $node.node ?? clear_node(clone_qast($node)) !! $node;
+            }
+            
+            # WVal is OK, though special case for PseudoStash usage (which means
+            # we are doing funny lookup stuff).
+            elsif nqp::istype($node, QAST::WVal) {
+                if $node.value =:= $PseudoStash {
+                    nqp::die("Routines using pseudo-stashes are not inlinable");
+                }
+                else {
+                    return $node;
+                }
             }
             
             # Operations need checking for their inlinability. If they are OK in

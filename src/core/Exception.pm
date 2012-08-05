@@ -560,6 +560,11 @@ my class X::Syntax::Augment::Role does X::Syntax {
     method message() { "Cannot augment a role, since roles are immutable" };
 }
 
+my class X::Syntax::Argument::MOPMacro does X::Syntax {
+    has $.macro;
+    method message() { "Cannot give arguments to $.macro" };
+}
+
 my class X::Does::TypeObject is Exception {
     method message() { "Cannot use 'does' operator with a type object." }
 }

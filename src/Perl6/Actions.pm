@@ -3219,21 +3219,27 @@ class Perl6::Actions is HLL::Actions {
                 $past.name('dispatch:<::>');
             }
             elsif $name eq 'WHAT' {
+                whine_if_args($/, $past, $name);
                 $past.op('what');
             }
             elsif $name eq 'HOW' {
+                whine_if_args($/, $past, $name);
                 $past.op('how');
             }
             elsif $name eq 'WHO' {
+                whine_if_args($/, $past, $name);
                 $past.op('who');
             }
             elsif $name eq 'VAR' {
+                whine_if_args($/, $past, $name);
                 $past.op('p6var');
             }
             elsif $name eq 'REPR' {
+                whine_if_args($/, $past, $name);
                 $past.op('p6reprname');
             }
             elsif $name eq 'DEFINITE' {
+                whine_if_args($/, $past, $name);
                 $past.op('p6definite');
             }
             else {
@@ -3253,6 +3259,12 @@ class Perl6::Actions is HLL::Actions {
             $past.name('dispatch:<var>');
         }
         make $past;
+    }
+    
+    sub whine_if_args($/, $past, $name) {
+        if +@($past) > 0 {
+           $*W.throw($/, ['X', 'Syntax', 'Argument', 'MOPMacro'], macro => $name);
+        }
     }
 
     ## temporary Bool::True/False generation

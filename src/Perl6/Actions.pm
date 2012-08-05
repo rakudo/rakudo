@@ -880,6 +880,9 @@ class Perl6::Actions is HLL::Actions {
             }
             $past.push($import_past);
         }
+        
+        $past.push(QAST::Var.new( :name('Nil'), :scope('lexical') ));
+
         make $past;
     }
 

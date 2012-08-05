@@ -1681,7 +1681,7 @@ class Perl6::Actions is HLL::Actions {
         $a_past.name($meth_name);
         $a_past.push($var_past);
         $*W.pop_lexpad();
-        $install_in.push(QAST::Stmt.new($a_past));
+        $install_in[0].push($a_past);
 
         # Produce a code object and install it.
         my $invocant_type := $*W.find_symbol([$*W.is_lexical('$?CLASS') ?? '$?CLASS' !! 'Mu']);

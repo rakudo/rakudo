@@ -234,7 +234,7 @@ Rakudo_binding_arity_fail(PARROT_INTERP, PMC *params, INTVAL num_params,
 static void
 Rakudo_binding_bind_type_captures(PARROT_INTERP, PMC *lexpad, Rakudo_Parameter *param, Rakudo_BindVal value) {
     PMC * type_obj = value.type == BIND_VAL_OBJ ?
-        STABLE(value.val.o)->WHAT :
+        STABLE(Rakudo_cont_decontainerize(interp, value.val.o))->WHAT :
         box_type(value);
     PMC * iter     = VTABLE_get_iter(interp, param->type_captures);
     while (VTABLE_get_bool(interp, iter)) {

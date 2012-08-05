@@ -1426,6 +1426,10 @@ class Perl6::Actions is HLL::Actions {
         else {
             # Compose.
             $*W.pkg_compose($*PACKAGE);
+            
+            # Make a code object for the block.
+            $*W.create_code_object($block, 'Block',
+                $*W.create_signature(nqp::hash('parameters', [])));
         }
 
         # Document

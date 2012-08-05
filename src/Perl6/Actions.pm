@@ -861,25 +861,25 @@ class Perl6::Actions is HLL::Actions {
             $name_past, $*W.symbol_lookup(['GLOBAL'], $/)
         ));
 
-         if $<module_name> && $<EXPR> {
-             my $p6_arglist  := $*W.compile_time_evaluate($/, $<EXPR>[0].ast).list.eager;
-             my $arglist     := nqp::getattr($p6_arglist, $*W.find_symbol(['List']), '$!items');
-             my $lexpad      := $*W.cur_lexpad();
-             my $*SCOPE      := 'my';
-             my $import_past := QAST::Op.new(:node($/), :op<call>,
-                                :name<&REQUIRE_IMPORT>,
-                                $name_past);
-             for $arglist {
-                 my $symbol := nqp::unbox_s($_.Str());
-                 $*W.throw($/, ['X', 'Redeclaration'], :$symbol)
-                     if $lexpad.symbol($symbol);
-                 declare_variable($/, $past,
-                         nqp::substr($symbol, 0, 1), '', nqp::substr($symbol, 1),
-                         []);
-                 $import_past.push($*W.add_string_constant($symbol));
-             }
-             $past.push($import_past);
-         }
+        if $<module_name> && $<EXPR> {
+            my $p6_arglist  := $*W.compile_time_evaluate($/, $<EXPR>[0].ast).list.eager;
+            my $arglist     := nqp::getattr($p6_arglist, $*W.find_symbol(['List']), '$!items');
+            my $lexpad      := $*W.cur_lexpad();
+            my $*SCOPE      := 'my';
+            my $import_past := QAST::Op.new(:node($/), :op<call>,
+                               :name<&REQUIRE_IMPORT>,
+                               $name_past);
+            for $arglist {
+                my $symbol := nqp::unbox_s($_.Str());
+                $*W.throw($/, ['X', 'Redeclaration'], :$symbol)
+                    if $lexpad.symbol($symbol);
+                declare_variable($/, $past,
+                        nqp::substr($symbol, 0, 1), '', nqp::substr($symbol, 1),
+                        []);
+                $import_past.push($*W.add_string_constant($symbol));
+            }
+            $past.push($import_past);
+        }
         make $past;
     }
 

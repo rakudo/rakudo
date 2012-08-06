@@ -2,16 +2,9 @@
 # * Align number parsing to STD
 #   * Rakudo's .Numeric
 #     * complex numbers
-#     * nums with no integer part (e.g. '.5')
-#     * any radix number beyond most basic:
-#       - ratios: '0xfeed/0xf00d' or ':16(feed)/:16(f00d)'
-#       - nums:   ':16<feed.f00d>'
-#       - * base ** exp
 #   * Rakudo's grammar
 #   * val()
 # * Strengthen val()
-#   * Check that number in ':30<foo>' radix notation is sane
-#   * Make parsing match Rakudo (and STD, where possible)
 #   * Make val() available globally
 # * $?USAGE
 #   * Create $?USAGE at compile time
@@ -30,45 +23,11 @@ my sub MAIN_HELPER($retval = 0) is hidden_from_backtrace {
     # Temporary stand-in for magic val() routine
     my sub hack-val ($v) {
         # Convert to native type if appropriate
-        my grammar CLIVal {
-            token TOP     { ^ <numlike> $ }
-
-            token numlike {
-                [
-                | <[+\-]>? <decint> '/' <[+\-]>? <decint>
-                | <[+\-]>? <decint> '.' <decint> <escale>
-                | <[+\-]>? <decint>              <escale>
-                | <[+\-]>? <decint> '.' <decint>
-                | <[+\-]>? <integer>
-                | <[+\-]>? ':' \d+ '<' <alnumint> '>'
-                | <[+\-]>? 'Inf'
-                | 'NaN'
-                ]
-            }
-
-            token binint   { <[ 0..1 ]>+ [ _ <[ 0..1 ]>+ ]* }
-            token octint   { <[ 0..7 ]>+ [ _ <[ 0..7 ]>+ ]* }
-            token hexint   { <[ 0..9 a..f A..F ]>+ [ _ <[ 0..9 a..f A..F ]>+ ]* }
-            token alnumint { <[ 0..9 a..z A..Z ]>+ [ _ <[ 0..9 a..z A..Z ]>+ ]* }
-            token decint   { \d+ [ _ \d+ ]* }
-            token escale   { <[Ee]> <[+\-]>? <decint> }
-
-            token integer {
-                [
-                | 0 [ b '_'? <binint>
-                    | o '_'? <octint>
-                    | x '_'? <hexint>
-                    | d '_'? <decint>
-                    ]
-                | <decint>
-                ]
-            }
-        };
 
         my $val;
         if    $v ~~ /^ 'Bool::'?'False' $/ { $val := Bool::False }
         elsif $v ~~ /^ 'Bool::'?'True'  $/ { $val := Bool::True  }
-        elsif CLIVal.parse($v)             { $val := +$v }
+        elsif $v.Numeric.defined           { $val := +$v }
         else                               { return $v   }
 
         # Mix in original stringifications

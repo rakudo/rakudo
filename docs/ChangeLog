@@ -13,6 +13,7 @@ New in 2012.08
 + simple implementation of the 'soft' pragma
 + fixed over-eager treatment of numeric literals as int rather than Int in cases
   where they appeared each side of an infix operator
++ detect circularities in module loading
 
 New in 2012.07
 + Deprecated SAFE.setting in favor of RESTRICTED.setting

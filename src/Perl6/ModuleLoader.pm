@@ -111,6 +111,12 @@ class Perl6::ModuleLoader {
         my %chosen := @candidates[0];
         
         my @MODULES := nqp::clone(@*MODULES);
+        for @MODULES -> $m {
+            if $m<module> eq $module_name {
+                nqp::die("Circular module loading detected involving module '$module_name'");
+            }
+        }
+
         # If we didn't already do so, load the module and capture
         # its mainline. Otherwise, we already loaded it so go on
         # with what we already have.

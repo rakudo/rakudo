@@ -248,7 +248,7 @@ my class IO::Path is Cool does IO::FileTestable {
     multi method new(Str:D $path) {
         my @chunks    = $path.split('/');
         my $basename  = @chunks.pop;
-        my $directory = @chunks.join('/');
+        my $directory = @chunks ?? @chunks.join('/') !! '.';
         self.new(:$basename, :$directory);
     }
 

@@ -77,6 +77,7 @@ GetOptions  'impl=s'        => \$impl,
             'unskip'        => \my $unskip,
             'untodo'        => \my $untodo,
             'section=s'     => \my $section,
+            'out=s'         => \$out_filename,
             'exclude'       => \$exclude,
             'jobs=i'        => \$threads_num,
             or usage();
@@ -219,6 +220,7 @@ Valid options:
     --section number    Run only on tests belonging to section <number>
     --unskip            Try to change 'skip' to 'todo' markers
     --untodo            Try to remove 'todo' markers
+    --out               Output patch file (defaults to "autounfudge.patch")
 USAGE
 }
 

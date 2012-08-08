@@ -99,8 +99,8 @@ if ($section) {
     my $s = ($section =~ m/^\d{1,2}$/)
             ? sprintf('S%02d', $section)
             : $section;
-    print "Only of section `$section'\n";
-    @files = grep { m{ spec [/\\] \Q$section\E  }x } @files;
+    print "Only of section `$s'\n";
+    @files = grep { m{ spec [/\\] \Q$s\E  }x } @files;
 }
 
 our $diff_lock :shared = 0;

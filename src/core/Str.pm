@@ -209,7 +209,6 @@ my class Str does Stringy {
     # TODO:
     # * Additional numeric styles:
     #   + fractions in [] radix notation:  :100[10,'.',53]
-    #   + complex numbers:                 5.2+1e42i
     # * Performance tuning
     # * Fix remaining XXXX
 
@@ -437,21 +436,62 @@ my class Str does Stringy {
             }
         }
 
-        # Parse a simple number or a Rat numerator
-        my $result := parse-simple-number();
+        my sub parse-real () {
+            # Parse a simple number or a Rat numerator
+            my $result := parse-simple-number();
+            return $result if nqp::iseq_i($pos, $eos);
+
+            # Check for '/' indicating Rat denominator
+            if nqp::iseq_i(nqp::ord($str, $pos), 47) {  # '/'
+                $pos = nqp::add_i($pos, 1);
+                parse_fail "denominator expected after '/'"
+                    unless nqp::islt_i($pos, $eos);
+
+                my $denom := parse-simple-number();
+
+                $result := $result.WHAT === Int && $denom.WHAT === Int
+                        ?? Rat.new($result, $denom)
+                        !! $result / $denom;
+            }
+
+            return $result;
+        }
+
+        # Parse a real number, magnitude of a pure imaginary number,
+        # or real part of a complex number
+        my $result := parse-real();
         return $result if nqp::iseq_i($pos, $eos);
 
-        # Check for '/' indicating Rat denominator
-        if nqp::iseq_i(nqp::ord($str, $pos), 47) {  # '/'
+        # Check for 'i' or '\\i' indicating first parsed number was
+        # the magnitude of a pure imaginary number
+        if nqp::iseq_i(nqp::ord($str, $pos), 105) {  # 'i'
             $pos = nqp::add_i($pos, 1);
-            parse_fail "denominator expected after '/'"
+            $result := Complex.new(0, $result);
+        }
+        elsif nqp::iseq_s(nqp::substr($str, $pos, 2), '\\i') {
+            $pos = nqp::add_i($pos, 2);
+            $result := Complex.new(0, $result);
+        }
+        # Check for '+' or '-' indicating first parsed number was
+        # the real part of a complex number
+        elsif nqp::iseq_i(nqp::ord($str, $pos), 45)    # '-'
+           || nqp::iseq_i(nqp::ord($str, $pos), 43) {  # '+'
+            # Don't move $pos -- we want parse-real() to see the sign
+            my $im := parse-real();
+            parse_fail "imaginary part of complex number must be followed by 'i' or '\\i'"
                 unless nqp::islt_i($pos, $eos);
 
-            my $denom := parse-simple-number();
+            if nqp::iseq_i(nqp::ord($str, $pos), 105) {  # 'i'
+                $pos = nqp::add_i($pos, 1);
+            }
+            elsif nqp::iseq_s(nqp::substr($str, $pos, 2), '\\i') {
+                $pos = nqp::add_i($pos, 2);
+            }
+            else {
+                parse_fail "imaginary part of complex number must be followed by 'i' or '\\i'"
+            }
 
-            $result := $result.WHAT === Int && $denom.WHAT === Int
-                    ?? Rat.new($result, $denom)
-                    !! $result / $denom;
+            $result := Complex.new($result, $im);
         }
 
         # Check for trailing garbage

@@ -391,7 +391,7 @@ my class Str does Stringy {
                         $pos    = $p;
 
                         $digit := nqp::atpos($parse, 0);
-                        parse_fail "digit is larger than radix in ':$radix[]' style radix number"
+                        parse_fail "digit is larger than {$radix - 1} in ':$radix[]' style radix number"
                             if $digit >= $radix;
 
                         $result := $result * $radix + $digit;

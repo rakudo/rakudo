@@ -160,7 +160,7 @@ multi sub eval(Str $code, :$lang = 'perl6') {
 
 sub exit($status = 0) {
     $_() for pir::perl6ize_type__PP(@*END_PHASERS);
-    nqp::exit($status.Int);
+    nqp::exit(nqp::unbox_i($status.Int));
     $status;
 }
 

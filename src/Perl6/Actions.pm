@@ -4085,7 +4085,7 @@ class Perl6::Actions is HLL::Actions {
                 }
             }
             else {
-                if +@($rhs) && $rhs[0].has_compile_time_value && +@($rhs) == 2 {
+                if +@($rhs) == 2 && $rhs[0].has_compile_time_value {
                     $past.push($rhs[0]); $rhs[1].named('value');
                     $past.push($rhs[1]);
                 }

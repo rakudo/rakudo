@@ -237,7 +237,7 @@ my class List does Positional {
         my @ret = self[$offset..($offset + $size - 1)];
         nqp::splice($!items,
                     nqp::getattr(@values.eager, List, '$!items'),
-                    $offset, $size);
+                    $offset.Int, $size.Int);
         @ret;
     }
 

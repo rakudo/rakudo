@@ -4,7 +4,6 @@ my $ops := pir::compreg__Ps('QAST').operations;
 $ops.add_hll_pirop_mapping('perl6', 'p6box_i', 'perl6_box_int', 'Pi', :inlinable(1));
 $ops.add_hll_pirop_mapping('perl6', 'p6box_n', 'perl6_box_num', 'Pn', :inlinable(1));
 $ops.add_hll_pirop_mapping('perl6', 'p6box_s', 'perl6_box_str', 'Ps', :inlinable(1));
-$ops.add_hll_pirop_mapping('perl6', 'p6bool', 'perl6_booleanize', 'Pi', :inlinable(1));
 $ops.add_hll_pirop_mapping('perl6', 'p6bigint', 'perl6_box_bigint', 'Pn', :inlinable(1));
 $ops.add_hll_pirop_mapping('perl6', 'p6parcel', 'perl6_parcel_from_rpa', 'PPP', :inlinable(1));
 $ops.add_hll_pirop_mapping('perl6', 'p6listiter', 'perl6_iter_from_rpa', 'PPP', :inlinable(1));
@@ -50,6 +49,21 @@ $ops.add_hll_op('perl6', 'p6getcallsig', -> $qastcomp, $op {
     $ops.push_pirop('set', $reg, 'CALL_SIG');
     $ops
 });
+$ops.add_hll_op('perl6', 'p6bool', :inlinable(1), -> $qastcomp, $op {
+    my $cpost := $qastcomp.as_post($op[0]);
+    my $reg := $*REGALLOC.fresh_p();
+    my $ops := $qastcomp.post_new('Ops', :result($reg));
+    $ops.push($cpost);
+    if nqp::lc($qastcomp.infer_type($cpost.result)) eq 'i' {
+        $ops.push_pirop('perl6_booleanize', $reg, $cpost);
+    }
+    else {
+        my $reg_i := $*REGALLOC.fresh_i();
+        $ops.push_pirop('istrue', $reg_i, $cpost);
+        $ops.push_pirop('perl6_booleanize', $reg, $reg_i);
+    }
+    $ops
+});
 
 # Boxing and unboxing configuration.
 QAST::Operations.add_hll_box('perl6', 'i', -> $qastcomp, $post {
@@ -80,7 +94,7 @@ QAST::Operations.add_hll_unbox('perl6', 'i', -> $qastcomp, $post {
     my $reg := $*REGALLOC.fresh_i();
     my $ops := $qastcomp.post_new('Ops');
     $ops.push($post);
-    $ops.push_pirop('set', $reg, $post);
+    $ops.push_pirop('repr_unbox_int', $reg, $post);
     $ops.result($reg);
     $ops
 });

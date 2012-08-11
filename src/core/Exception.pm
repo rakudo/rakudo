@@ -92,10 +92,10 @@ sub EXCEPTION(|$) {
         nqp::bindattr($payload, Exception, '$!ex', $parrot_ex);
         $payload;
     } else {
-        my int $type = nqp::atkey($parrot_ex, 'type');
+        my int $type = nqp::atkey_i($parrot_ex, 'type');
         my $ex;
         if $type == pir::const::EXCEPTION_METHOD_NOT_FOUND  &&
-            nqp::p6box_s(nqp::atkey($parrot_ex, 'message'))
+            nqp::p6box_s(nqp::atkey_s($parrot_ex, 'message'))
                 ~~ /"Method '" (.+?) "' not found for invocant of class '" (.+)\'$/ {
 
             $ex := X::Method::NotFound.new(
@@ -105,7 +105,7 @@ sub EXCEPTION(|$) {
         }
         else {
             $ex := nqp::create(X::AdHoc);
-            nqp::bindattr($ex, X::AdHoc, '$!payload', nqp::p6box_s(nqp::atkey($parrot_ex, 'message')));
+            nqp::bindattr($ex, X::AdHoc, '$!payload', nqp::p6box_s(nqp::atkey_s($parrot_ex, 'message')));
         }
         nqp::bindattr($ex, Exception, '$!ex', $parrot_ex);
         $ex;
@@ -122,7 +122,7 @@ sub COMP_EXCEPTION(|$) {
     } else {
         my $ex := nqp::create(X::Comp::AdHoc);
         nqp::bindattr($ex, Exception, '$!ex', $parrot_ex);
-        nqp::bindattr($ex, X::AdHoc, '$!payload', nqp::p6box_s(nqp::atkey($parrot_ex, 'message')));
+        nqp::bindattr($ex, X::AdHoc, '$!payload', nqp::p6box_s(nqp::atkey_s($parrot_ex, 'message')));
         $ex;
     }
 }
@@ -172,10 +172,10 @@ do {
 
     sub print_control(|$) is hidden_from_backtrace {
         my Mu $ex := nqp::atpos(pir::perl6_current_args_rpa__P(), 0);
-        my int $type = nqp::atkey($ex, 'type');
+        my int $type = nqp::atkey_i($ex, 'type');
         if ($type == pir::const::CONTROL_OK) {
             my Mu $err := pir::getstderr__P();
-            my $msg = nqp::p6box_s(nqp::atkey($ex, 'message'));
+            my $msg = nqp::p6box_s(nqp::atkey_s($ex, 'message'));
             $err.print: $msg ?? "$msg" !! "Warning";
             $err.print: Backtrace.new($ex.backtrace, 0).nice(:oneline);
             $err.print: "\n";

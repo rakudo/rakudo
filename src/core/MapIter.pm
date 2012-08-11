@@ -47,7 +47,7 @@ my class MapIter is Iterator {
             }
 
             my int $NEXT = nqp::can($block, 'fire_phasers') 
-                             && $block.phasers('NEXT');
+                             && +$block.phasers('NEXT');
 
             Q:PIR {
                 .local int argc, count, NEXT

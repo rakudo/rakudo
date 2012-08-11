@@ -164,12 +164,12 @@ my class DateTime-local-timezone does Callable {
             my $p = $dt.posix;
             my ($year, $month, $day, $hour, $minute, $second);
             my Mu $fia := pir::decodelocaltime__PI(nqp::unbox_i($p.Int));
-            $second = nqp::p6box_i(nqp::atpos($fia, 0));
-            $minute = nqp::p6box_i(nqp::atpos($fia, 1));
-            $hour   = nqp::p6box_i(nqp::atpos($fia, 2));
-            $day    = nqp::p6box_i(nqp::atpos($fia, 3));
-            $month  = nqp::p6box_i(nqp::atpos($fia, 4));
-            $year   = nqp::p6box_i(nqp::atpos($fia, 5));
+            $second = nqp::p6box_i(nqp::atpos_i($fia, 0));
+            $minute = nqp::p6box_i(nqp::atpos_i($fia, 1));
+            $hour   = nqp::p6box_i(nqp::atpos_i($fia, 2));
+            $day    = nqp::p6box_i(nqp::atpos_i($fia, 3));
+            $month  = nqp::p6box_i(nqp::atpos_i($fia, 4));
+            $year   = nqp::p6box_i(nqp::atpos_i($fia, 5));
             DateTime\
                 .new(:$year, :$month, :$day, :$hour, :$minute, :$second)\
                 .posix - $p;

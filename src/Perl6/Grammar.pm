@@ -673,7 +673,9 @@ grammar Perl6::Grammar is HLL::Grammar {
         <sym> <.end_keyword> :s
         [
         | $<wu>=[while|until]\s <xblock>
-        | <pblock> $<wu>=[while|until]\s <EXPR>
+        | <pblock>
+          [$<wu>=['while'|'until']\s || <.panic: '"repeat" is missing its "while" or "until"'>]
+          <EXPR>
         ]
     }
 

@@ -5466,6 +5466,14 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions {
         make $qast;
     }
     
+    method metachar:sym<">($/) {
+        make QAST::Regex.new( QAST::Node.new(
+                                    QAST::SVal.new( :value('!LITERAL') ),
+                                    $<quote>.ast,
+                                    QAST::IVal.new( :value(%*RX<i> ?? 1 !! 0) ) ),
+                              :rxtype<subrule>, :subtype<method>, :node($/));
+    }
+    
     method metachar:sym<rakvar>($/) {
         make QAST::Regex.new( QAST::Node.new(
                                     QAST::SVal.new( :value('INTERPOLATE') ),

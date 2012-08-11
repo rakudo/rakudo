@@ -113,22 +113,22 @@ my class Mu {
         while nqp::islt_i($i, $count) {
             my $task := nqp::atpos($build_plan, $i);
             $i = nqp::add_i($i, 1);
-            if nqp::iseq_i(nqp::atpos($task, 0), 0) {
+            if nqp::iseq_i(nqp::atpos_i($task, 0), 0) {
                 # Custom BUILD call.
                 nqp::atpos($task, 1)(self, |%attrinit);
             }
-            elsif nqp::iseq_i(nqp::atpos($task, 0), 1) {
+            elsif nqp::iseq_i(nqp::atpos_i($task, 0), 1) {
                 # See if we have a value to initialize this attr
                 # with.
-                my $key_name := nqp::p6box_s(nqp::atpos($task, 2));
+                my $key_name := nqp::p6box_s(nqp::atpos_s($task, 2));
                 if %attrinit.exists($key_name) {
                     nqp::getattr(self, nqp::atpos($task, 1),
-                        nqp::atpos($task, 3)) = pir::nqp_decontainerize__PP(%attrinit{$key_name});
+                        nqp::atpos_s($task, 3)) = pir::nqp_decontainerize__PP(%attrinit{$key_name});
                 }
             }
-            elsif nqp::iseq_i(nqp::atpos($task, 0), 2) {
-                unless nqp::attrinited(self, nqp::atpos($task, 1), nqp::atpos($task, 2)) {
-                    my $attr := nqp::getattr(self, nqp::atpos($task, 1), nqp::atpos($task, 2));
+            elsif nqp::iseq_i(nqp::atpos_i($task, 0), 2) {
+                unless nqp::attrinited(self, nqp::atpos($task, 1), nqp::atpos_s($task, 2)) {
+                    my $attr := nqp::getattr(self, nqp::atpos($task, 1), nqp::atpos_s($task, 2));
                     $attr = nqp::atpos($task, 3)(self, $attr);
                 }
             }

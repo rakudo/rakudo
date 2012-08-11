@@ -151,6 +151,16 @@ class Perl6::ModuleLoader {
                 DEBUG("done loading ", %chosen<load>) if $DEBUG;
             }
             else {
+                # If we're doing module pre-compilation, we should only
+                # allow the modules we load to be pre-compiled also.
+                my $precomp := 0;
+                try $precomp := $*W.is_precompilation_mode();
+                if $precomp {
+                    nqp::die(
+                        "When pre-compiling a module, its dependencies must be pre-compiled first.\n" ~
+                        "Please pre-compile " ~ %chosen<pm>);
+                }
+                
                 # Read source file.
                 DEBUG("loading ", %chosen<pm>) if $DEBUG;
                 my $fh := nqp::open(%chosen<pm>, 'r');

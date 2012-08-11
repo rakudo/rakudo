@@ -948,95 +948,125 @@ my class Str does Stringy {
         }).join;
     }
 
-    method codes(Str:D:) {
-        nqp::p6box_i(nqp::chars(nqp::unbox_s(self)));
-
+    method codes(Str:D:) returns Int:D {
+        nqp::p6box_i(nqp::chars(nqp::unbox_s(self)))
     }
 
-    method tclc(Str:D:) {
+    method tclc(Str:D:) returns Str:D {
         nqp::p6box_s(nqp::tclc(nqp::unbox_s(self)))
     }
 
-    method path(Str:D:) {
-        IO::Path.new(self);
+    method path(Str:D:) returns IO::Path:D {
+        IO::Path.new(self)
     }
 }
 
 
-multi prefix:<~>(Str:D \$a) { $a }
+multi prefix:<~>(Str:D \$a) returns Str:D { $a }
+multi prefix:<~>(str $a)    returns str   { $a }
 
-multi infix:<~>(Str:D \$a, Str:D \$b) {
+multi infix:<~>(Str:D \$a, Str:D \$b) returns Str:D {
     nqp::p6box_s(nqp::concat_s(nqp::unbox_s($a), nqp::unbox_s($b)))
 }
+multi infix:<~>(str $a, str $b) returns str { nqp::concat_s($a, $b) }
 
-multi infix:<x>(Str:D $s, Int:D $repetition) {
-    $repetition <= 0
+multi infix:<x>(Str:D $s, Int:D $repetition) returns Str:D {
+    $repetition < 0
         ?? ''
         !!  nqp::p6box_s(nqp::x(nqp::unbox_s($s), nqp::unbox_i($repetition)))
 }
+multi infix:<x>(str $s, int $repetition) returns str {
+    nqp::if(nqp::islt_i($repetition, 0), '', nqp::x($s, $repetition))
+}
 
-multi infix:<cmp>(Str:D \$a, Str:D \$b) {
+multi infix:<cmp>(Str:D \$a, Str:D \$b) returns Order:D {
     Order.(nqp::p6box_i(nqp::cmp_s(nqp::unbox_s($a), nqp::unbox_s($b))))
 }
-
-multi infix:<===>(Str:D \$a, Str:D \$b) {
-    nqp::p6bool(nqp::iseq_s(nqp::unbox_s($a), nqp::unbox_s($b)))
+multi infix:<cmp>(str $a, str $b) returns Order:D {
+    Order.(nqp::p6box_i(nqp::cmp_s($a, $b)))
 }
 
-multi infix:<leg>(Str:D \$a, Str:D \$b) {
+multi infix:<===>(Str:D \$a, Str:D \$b) returns Bool:D {
+    nqp::p6bool(nqp::iseq_s(nqp::unbox_s($a), nqp::unbox_s($b)))
+}
+multi infix:<===>(str $a, str $b) returns Bool:D {
+    nqp::p6bool(nqp::iseq_s($a, $b))
+}
+
+multi infix:<leg>(Str:D \$a, Str:D \$b) returns Order:D {
     Order.(nqp::p6box_i(nqp::cmp_s(nqp::unbox_s($a), nqp::unbox_s($b))))
 }
-
-multi infix:<eq>(Str:D \$a, Str:D \$b) {
-    nqp::p6bool(nqp::iseq_s(nqp::unbox_s($a), nqp::unbox_s($b)))
+multi infix:<leg>(str $a, str $b) returns Order:D {
+    Order.(nqp::p6box_i(nqp::cmp_s($a, $b)))
 }
 
-multi infix:<lt>(Str:D \$a, Str:D \$b) {
+multi infix:<eq>(Str:D \$a, Str:D \$b) returns Bool:D {
+    nqp::p6bool(nqp::iseq_s(nqp::unbox_s($a), nqp::unbox_s($b)))
+}
+multi infix:<eq>(str $a, str $b) returns Bool:D {
+    nqp::p6bool(nqp::iseq_s($a, $b))
+}
+
+multi infix:<lt>(Str:D \$a, Str:D \$b) returns Bool:D {
     nqp::p6bool(nqp::islt_s(nqp::unbox_s($a), nqp::unbox_s($b)))
 }
+multi infix:<lt>(str $a, str $b) returns Bool:D {
+    nqp::p6bool(nqp::islt_s($a, $b))
+}
 
-multi infix:<le>(Str:D \$a, Str:D \$b) {
+multi infix:<le>(Str:D \$a, Str:D \$b) returns Bool:D {
     nqp::p6bool(nqp::isle_s(nqp::unbox_s($a), nqp::unbox_s($b)))
 }
+multi infix:<le>(str $a, str $b) returns Bool:D {
+    nqp::p6bool(nqp::isle_s($a, $b))
+}
 
-multi infix:<gt>(Str:D \$a, Str:D \$b) {
+multi infix:<gt>(Str:D \$a, Str:D \$b) returns Bool:D {
     nqp::p6bool(nqp::isgt_s(nqp::unbox_s($a), nqp::unbox_s($b)))
 }
+multi infix:<gt>(str $a, str $b) returns Bool:D {
+    nqp::p6bool(nqp::isgt_s($a, $b))
+}
 
-multi infix:<ge>(Str:D \$a, Str:D \$b) {
+multi infix:<ge>(Str:D \$a, Str:D \$b) returns Bool:D {
     nqp::p6bool(nqp::isge_s(nqp::unbox_s($a), nqp::unbox_s($b)))
 }
+multi infix:<le>(str $a, str $b) returns Bool:D {
+    nqp::p6bool(nqp::isle_s($a, $b))
+}
 
-
-multi infix:<~|>(Str:D \$a, Str:D \$b) {
+multi infix:<~|>(Str:D \$a, Str:D \$b) returns Str:D {
     nqp::p6box_s(nqp::bitor_s(nqp::unbox_s($a), nqp::unbox_s($b)))
 }
+multi infix:<~|>(str $a, str $b) returns str { nqp::bitor_s($a, $b) }
 
-multi infix:<~&>(Str:D \$a, Str:D \$b) {
+multi infix:<~&>(Str:D \$a, Str:D \$b) returns Str:D {
     nqp::p6box_s(nqp::bitand_s(nqp::unbox_s($a), nqp::unbox_s($b)))
 }
+multi infix:<~&>(str $a, str $b) returns str { nqp::bitand_s($a, $b) }
 
-multi infix:<~^>(Str:D \$a, Str:D \$b) {
+multi infix:<~^>(Str:D \$a, Str:D \$b) returns Str:D {
     nqp::p6box_s(nqp::bitxor_s(nqp::unbox_s($a), nqp::unbox_s($b)))
 }
+multi infix:<~^>(str $a, str $b) returns str { nqp::bitxor_s($a, $b) }
 
 multi prefix:<~^>(Str \$a) {
     fail "prefix:<~^> NYI";   # XXX
 }
 
-multi sub ords(Str $s) {
+multi sub ords(Str $s) returns List:D {
     my Int $c  = $s.chars;
     my str $ns = nqp::unbox_s($s);
     (^$c).map: { nqp::p6box_i(nqp::ord(nqp::substr($ns, $_, 1))) }
 }
 
 # TODO: Cool  variants
-sub trim         (Str:D $s) { $s.trim }
-sub trim-leading (Str:D $s) { $s.trim-leading }
-sub trim-trailing(Str:D $s) { $s.trim-trailing }
+sub trim         (Str:D $s) returns Str:D { $s.trim }
+sub trim-leading (Str:D $s) returns Str:D { $s.trim-leading }
+sub trim-trailing(Str:D $s) returns Str:D { $s.trim-trailing }
 
 # the opposite of Real.base, used for :16($hex_str)
-sub unbase(Int:D $base, Str:D $str) {
+sub unbase(Int:D $base, Str:D $str) returns Numeric:D {
     my Str $prefix = $str.substr(0, 2);
     if    $base <= 10 && $prefix eq any(<0x 0d 0o 0b>)
        or $base <= 24 && $prefix eq any <0o 0x>
@@ -1048,7 +1078,7 @@ sub unbase(Int:D $base, Str:D $str) {
     }
 }
 
-sub chrs(*@c) {
+sub chrs(*@c) returns Str:D {
     @c.map({.chr}).join('');
 }
 
@@ -1064,6 +1094,6 @@ sub substr-rw($s is rw, $from = 0, $chars = $s.chars - $from) {
     );
 }
 
-multi sub tclc(Str:D $s) {
+multi sub tclc(Str:D $s) returns Str:D {
     nqp::p6box_s(nqp::tclc(nqp::unbox_s($s)));
 }

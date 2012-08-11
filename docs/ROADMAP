@@ -1,7 +1,7 @@
 Rakudo Roadmap
 --------------
 
-Last updated: 2012-07-28
+Last updated: 2012-08-11
 
 This document serves as a guide to the major goals for Rakudo
 development, as things stood in December 2011. They have been
@@ -91,7 +91,6 @@ Optimizer (jnthn)
 2 **    ro/rw variable tracking, related transforms
 2 **    context/non-context variable tracking
 2 ***   :D/:U constraint tracking and integration with dispatch analysis
-2 **    inlining of routines that do method calls
 2 *     topic preservation elimination on simple block inlines
 2 ***   inlining calls to methods
 3 ***   guard lifting for method call inlining

@@ -80,7 +80,7 @@ QAST::Operations.add_hll_unbox('perl6', 'i', -> $qastcomp, $post {
     my $reg := $*REGALLOC.fresh_i();
     my $ops := $qastcomp.post_new('Ops');
     $ops.push($post);
-    $ops.push_pirop('set', $reg, $post);
+    $ops.push_pirop('repr_unbox_int', $reg, $post);
     $ops.result($reg);
     $ops
 });

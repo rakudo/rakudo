@@ -3686,6 +3686,7 @@ class Perl6::Actions is HLL::Actions {
 
         # If it is completely empty or consists of a single list, the first
         # element of which is either a hash or a pair, it's a hash constructor.
+        # Note that if it declares any symbols it is also not one.
         my $Pair := $*W.find_symbol(['Pair']);
         my $is_hash := 0;
         my $stmts := +$<pblock><blockoid><statementlist><statement>;
@@ -3708,6 +3709,14 @@ class Perl6::Actions is HLL::Actions {
                     && nqp::substr($elem.name, 0, 1) eq '%' {
                 # first item is a hash
                 $is_hash := 1;
+            }
+        }
+        if $is_hash {
+            for $past<past_block>.symtable() {
+                my $sym := $_.key;
+                if $sym ne 'call_sig' && $sym ne '$_' && $sym ne '$*DISPATCHER' {
+                    $is_hash := 0;
+                }
             }
         }
         if $is_hash && $past<past_block>.arity == 0 {

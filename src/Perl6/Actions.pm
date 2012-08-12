@@ -5209,7 +5209,6 @@ class Perl6::Actions is HLL::Actions {
     INIT {
         %curried{'&infix:<...>'}  := 0;
         %curried{'&infix:<...^>'} := 0;
-        %curried{'&prefix:<^>'}   := 0;
         %curried{'&infix:<~~>'}   := 0;
         %curried{'&infix:<=>'}    := 0;
         %curried{'&infix:<:=>'}   := 0;

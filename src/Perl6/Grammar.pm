@@ -1747,7 +1747,12 @@ grammar Perl6::Grammar is HLL::Grammar {
         [
         | <type_constraint>+
             [
-            | $<quant>=['**'|'*'|'\\'|'|'] <param_var>
+            | $<quant>=['**'|'*'] <param_var>
+            | $<quant>=['\\'|'|'] <param_var> {
+            pir::getstderr__P().print("Obsolete use of | or \\ with sigil on param { $<param_var> }\n")
+        }
+            | $<quant>=['\\'|'|'] <defterm>
+
             | [ <param_var> | <named_param> ] $<quant>=['?'|'!'|<?>]
             | <?>
             ]

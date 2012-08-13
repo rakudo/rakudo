@@ -1620,7 +1620,7 @@ class Perl6::World is HLL::World {
                 $is_name := 1;
             }
         }
-        $is_name
+        $is_name || +@name == 1 && self.is_lexical(@name[0])
     }
     
     # Checks if a given symbol is declared and a type object.

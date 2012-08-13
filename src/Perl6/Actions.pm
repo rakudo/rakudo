@@ -2815,21 +2815,7 @@ class Perl6::Actions is HLL::Actions {
             if $twigil eq '' || $twigil eq '*' {
                 # Need to add the name.
                 if $<name> {
-                    my $cur_pad := $*W.cur_lexpad();
-                    if $cur_pad.symbol(~$/) {
-                        $*W.throw($/, ['X', 'Redeclaration'], symbol => ~$/);
-                    }
-                    if nqp::existskey(%*PARAM_INFO, 'nominal_type') {
-                        $cur_pad[0].push(QAST::Var.new( :name(~$/), :scope('lexical'),
-                            :decl('var'), :returns(%*PARAM_INFO<nominal_type>) ));
-                        %*PARAM_INFO<container_descriptor> := $*W.create_container_descriptor(
-                            %*PARAM_INFO<nominal_type>, 0, %*PARAM_INFO<variable_name>);
-                        $cur_pad.symbol(%*PARAM_INFO<variable_name>, :descriptor(%*PARAM_INFO<container_descriptor>),
-                            :type(%*PARAM_INFO<nominal_type>));
-                    } else {
-                        $cur_pad[0].push(QAST::Var.new( :name(~$/), :scope('lexical'), :decl('var') ));
-                    }
-                    $cur_pad.symbol(~$/, :scope('lexical'));
+                    self.declare_param($/, ~$/);
                 }
             }
             elsif $twigil eq '!' {
@@ -2862,18 +2848,7 @@ class Perl6::Actions is HLL::Actions {
         }
     }
 
-    method named_param($/) {
-        %*PARAM_INFO<named_names> := %*PARAM_INFO<named_names> || [];
-        if $<name>               { %*PARAM_INFO<named_names>.push(~$<name>); }
-        elsif $<param_var><name> { %*PARAM_INFO<named_names>.push(~$<param_var><name>[0]); }
-        else                     { %*PARAM_INFO<named_names>.push(''); }
-    }
-
-    method defterm($/) {
-        my $name := ~$<identifier>;
-        %*PARAM_INFO<variable_name> := $name;
-        %*PARAM_INFO<desigilname>   := $name;
-        %*PARAM_INFO<sigil>         := '';
+    method declare_param($/, $name) {
         my $cur_pad := $*W.cur_lexpad();
         if $cur_pad.symbol($name) {
             $*W.throw($/, ['X', 'Redeclaration'], symbol => $name);
@@ -2889,6 +2864,21 @@ class Perl6::Actions is HLL::Actions {
             $cur_pad[0].push(QAST::Var.new( :name(~$/), :scope('lexical'), :decl('var') ));
         }
         $cur_pad.symbol(~$/, :scope('lexical'));
+    }
+
+    method named_param($/) {
+        %*PARAM_INFO<named_names> := %*PARAM_INFO<named_names> || [];
+        if $<name>               { %*PARAM_INFO<named_names>.push(~$<name>); }
+        elsif $<param_var><name> { %*PARAM_INFO<named_names>.push(~$<param_var><name>[0]); }
+        else                     { %*PARAM_INFO<named_names>.push(''); }
+    }
+
+    method defterm($/) {
+        my $name := ~$<identifier>;
+        %*PARAM_INFO<variable_name> := $name;
+        %*PARAM_INFO<desigilname>   := $name;
+        %*PARAM_INFO<sigil>         := '';
+        self.declare_param($/, $name);
     }
 
     method default_value($/) {

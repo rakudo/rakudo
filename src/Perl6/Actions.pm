@@ -2870,9 +2870,25 @@ class Perl6::Actions is HLL::Actions {
     }
 
     method defterm($/) {
-        %*PARAM_INFO<variable_name> := ~$<identifier>;
-        %*PARAM_INFO<desigilname>   := ~$<identifier>;
+        my $name := ~$<identifier>;
+        %*PARAM_INFO<variable_name> := $name;
+        %*PARAM_INFO<desigilname>   := $name;
         %*PARAM_INFO<sigil>         := '';
+        my $cur_pad := $*W.cur_lexpad();
+        if $cur_pad.symbol($name) {
+            $*W.throw($/, ['X', 'Redeclaration'], symbol => $name);
+        }
+        if nqp::existskey(%*PARAM_INFO, 'nominal_type') {
+            $cur_pad[0].push(QAST::Var.new( :$name, :scope('lexical'),
+                :decl('var'), :returns(%*PARAM_INFO<nominal_type>) ));
+            %*PARAM_INFO<container_descriptor> := $*W.create_container_descriptor(
+                %*PARAM_INFO<nominal_type>, 0, %*PARAM_INFO<variable_name>);
+            $cur_pad.symbol(%*PARAM_INFO<variable_name>, :descriptor(%*PARAM_INFO<container_descriptor>),
+                :type(%*PARAM_INFO<nominal_type>));
+        } else {
+            $cur_pad[0].push(QAST::Var.new( :name(~$/), :scope('lexical'), :decl('var') ));
+        }
+        $cur_pad.symbol(~$/, :scope('lexical'));
     }
 
     method default_value($/) {

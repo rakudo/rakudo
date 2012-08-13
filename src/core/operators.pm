@@ -7,7 +7,7 @@ sub infix:<=>(Mu \$a, Mu \$b) is rw {
     pir::perl6_container_store__0PP($a, $b)
 }
 
-proto infix:<does>(|$) { * }
+proto infix:<does>(|) { * }
 multi infix:<does>(Mu:D \$obj, Mu:U \$rolish) is rw {
     # XXX Mutability check.
     my $role := $rolish.HOW.archetypes.composable() ?? $rolish !!
@@ -35,7 +35,7 @@ multi infix:<does>(Mu:U \$obj, @roles) is rw {
     X::Does::TypeObject.new().throw
 }
 
-proto infix:<but>(|$) { * }
+proto infix:<but>(|) { * }
 multi infix:<but>(Mu:D \$obj, Mu:U \$rolish) {
     my $role := $rolish.HOW.archetypes.composable() ?? $rolish !!
                 $rolish.HOW.archetypes.composalizable() ?? $rolish.HOW.composalize($rolish) !!
@@ -177,10 +177,10 @@ sub WHAT(\$x) {
     $x.WHAT
 }
 
-proto sub infix:<...>(|$) { * }
+proto sub infix:<...>(|) { * }
 multi sub infix:<...>($a, $b) { SEQUENCE($a, $b) }
 
-proto sub infix:<...^>(|$) { * }
+proto sub infix:<...^>(|) { * }
 multi sub infix:<...^>($a, $b) { SEQUENCE($a, $b, :exclude_end(1)) }
 
 sub undefine(Mu \$x) {

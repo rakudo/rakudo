@@ -1,7 +1,7 @@
 class Array {
     # Has attributes and parent List declared in BOOTSTRAP.    
 
-    method new(|$) { 
+    method new(|) { 
         my Mu $args := pir::perl6_current_args_rpa__P();
         nqp::shift($args);
         nqp::p6list($args, self.WHAT, Bool::True);
@@ -29,7 +29,7 @@ class Array {
                  -> { nqp::bindpos($items, $pos, $v) } )
     }
 
-    proto method bind_pos(|$) { * }
+    proto method bind_pos(|) { * }
     multi method bind_pos($pos is copy, \$bindval) is rw {
         $pos = $pos.Int;
         self.gimme($pos + 1);
@@ -83,7 +83,7 @@ class Array {
         nqp::findmethod(List, 'STORE_AT_POS')(self, $pos, $v);
     }
 
-    method STORE(|$) {
+    method STORE(|) {
         # get arguments, shift off invocant
         my $args := pir::perl6_current_args_rpa__P();
         nqp::shift($args);

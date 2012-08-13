@@ -124,7 +124,7 @@ my &lastcall := -> {
     True
 };
 
-proto sub die(|$) is hidden_from_backtrace {*};
+proto sub die(|) is hidden_from_backtrace {*};
 multi sub die(Exception $e) is hidden_from_backtrace { $e.throw }
 multi sub die($payload) is hidden_from_backtrace {
     X::AdHoc.new(:$payload).throw
@@ -142,7 +142,7 @@ multi sub warn(*@msg) is hidden_from_backtrace {
     0;
 }
 
-proto sub eval(|$) {*}
+proto sub eval(|) {*}
 multi sub eval(Str $code, :$lang = 'perl6') {
     my $caller_ctx := Q:PIR {
         $P0 = getinterp
@@ -208,6 +208,6 @@ sub QX($cmd) {
     $result;
 }
 
-sub EXHAUST(|$) {
+sub EXHAUST(|) {
     X::ControlFlow::Return.new.throw();
 }

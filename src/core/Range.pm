@@ -4,7 +4,7 @@ class Range is Iterable does Positional {
     has $.excludes_min;
     has $.excludes_max;
 
-    proto method new(|$) { * }
+    proto method new(|) { * }
     multi method new($min, $max, :$excludes_min, :$excludes_max) {
         nqp::create(self).BUILD($min, $max, $excludes_min, $excludes_max)
     }
@@ -148,7 +148,7 @@ class Range is Iterable does Positional {
           ~ ')'
     }
 
-    proto method roll(|$) { * }
+    proto method roll(|) { * }
     multi method roll(Range:D: Whatever) {
         gather loop { take self.roll }
     }
@@ -167,7 +167,7 @@ class Range is Iterable does Positional {
         }
     }
 
-    proto method pick(|$)        { * }
+    proto method pick(|)        { * }
     multi method pick()          { self.roll };
     multi method pick(Whatever)  { self.list.pick(*) };
     multi method pick(Cool $n as Int) {

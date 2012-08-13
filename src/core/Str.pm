@@ -784,7 +784,7 @@ my class Str does Stringy {
             }
         }
 
-        proto method triage_substitution(|$) {*}
+        proto method triage_substitution(|) {*}
         multi method triage_substitution($_ where { .key ~~ Regex }) {
             my $key = .key;
             return unless $!source.substr($!index) ~~ $key;
@@ -802,7 +802,7 @@ my class Str does Stringy {
             X::Str::Trans::IllegalKey.new(key => $_).throw;
         }
 
-        proto method increment_index(|$) {*}
+        proto method increment_index(|) {*}
         multi method increment_index(Regex $s) {
             $!source.substr($!index) ~~ $s;
             $!index = $!next_match + $/.chars;

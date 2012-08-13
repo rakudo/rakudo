@@ -17,7 +17,7 @@ my class X::Composition::NotComposable { ... }
 my class X::Import::MissingSymbols   { ... }
 my class X::Redeclaration { ... }
 
-proto trait_mod:<is>(|$) { * }
+proto trait_mod:<is>(|) { * }
 multi trait_mod:<is>(Mu:U $child, Mu:U $parent) {
     if $parent.HOW.archetypes.inheritable() {
         $child.HOW.add_parent($child, $parent);
@@ -141,7 +141,7 @@ multi trait_mod:<is>(Mu:U $docee, :$docs!) {
 }
 
 
-proto trait_mod:<does>(|$) { * }
+proto trait_mod:<does>(|) { * }
 multi trait_mod:<does>(Mu:U $doee, Mu:U $role) {
     if $role.HOW.archetypes.composable() {
         $doee.HOW.add_role($doee, $role)
@@ -157,7 +157,7 @@ multi trait_mod:<does>(Mu:U $doee, Mu:U $role) {
     }
 }
 
-proto trait_mod:<of>(|$) { * }
+proto trait_mod:<of>(|) { * }
 multi trait_mod:<of>(Mu:U $target, Mu:U $type) {
     # XXX Ensure we can do this, die if not.
     $target.HOW.set_of($target, $type);
@@ -177,7 +177,7 @@ multi trait_mod:<is>(Routine:D $r, :$hidden_from_backtrace!) {
 }
 
 
-proto trait_mod:<returns>(|$) { * }
+proto trait_mod:<returns>(|) { * }
 multi trait_mod:<returns>(Routine:D $target, Mu:U $type) {
     my $sig := $target.signature;
     X::Redeclaration.new(what => 'return type for', symbol => $target,
@@ -186,13 +186,13 @@ multi trait_mod:<returns>(Routine:D $target, Mu:U $type) {
     $sig.set_returns($type)
 }
 
-proto trait_mod:<as>(|$) { * }
+proto trait_mod:<as>(|) { * }
 multi trait_mod:<as>(Parameter:D $param, $type) {
     $param.set_coercion($type);
 }
 
 my class Pair { ... }
-proto trait_mod:<handles>(|$) { * }
+proto trait_mod:<handles>(|) { * }
 multi trait_mod:<handles>(Attribute:D $target, $thunk) {
     $target does role {
         has $.handles;
@@ -253,12 +253,12 @@ multi trait_mod:<handles>(Attribute:D $target, $thunk) {
     $target.set_handles($thunk());
 }
 
-proto trait_mod:<will>(|$) { * }
+proto trait_mod:<will>(|) { * }
 multi trait_mod:<will>(Attribute $attr, Block :$build!) {
     $attr.set_build($build)
 }
 
-proto trait_mod:<trusts>(|$) { * }
+proto trait_mod:<trusts>(|) { * }
 multi trait_mod:<trusts>(Mu:U $truster, Mu:U $trustee) {
     $truster.HOW.add_trustee($truster, $trustee);
 }

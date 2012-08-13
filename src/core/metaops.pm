@@ -166,7 +166,7 @@ sub METAOP_HYPER_PREFIX(\$op, \$obj) { hyper($op, $obj) }
 
 sub METAOP_HYPER_CALL(\$list, |$args) { hyper(-> $c { $c(|$args) }, $list) }
 
-proto sub hyper(|$) { * }
+proto sub hyper(|) { * }
 multi sub hyper(\$op, \$a, \$b, :$dwim-left, :$dwim-right) { 
     my @alist := $a.flat;
     my @blist := $b.flat;

@@ -2,7 +2,7 @@ my class Complex is Cool does Numeric {
     has num $.re;
     has num $.im;
 
-    proto method new(|$) { * }
+    proto method new(|) { * }
     multi method new(Real \$re, Real \$im) {
         my $new = nqp::create(self);
         $new.BUILD($re.Num, $im.Num);
@@ -396,7 +396,7 @@ multi sub infix:<==>(Complex:D \$a, Complex:D \$b) returns Bool:D { $a.re == $b.
 multi sub infix:<==>(Complex:D \$a, Real      \$b) returns Bool:D { $a.re == $b    && $a.im == 0e0   }
 multi sub infix:<==>(Real      \$a, Complex:D \$b) returns Bool:D { $a    == $b.re && 0e0   == $b.im }
 
-proto postfix:<i>(|$) returns Complex:D { * }
+proto postfix:<i>(|) returns Complex:D { * }
 multi postfix:<i>(Real      \$a) returns Complex:D { Complex.new(0e0, $a);     }
 multi postfix:<i>(Complex:D \$a) returns Complex:D { Complex.new(-$a.im, $a.re) }
 multi postfix:<i>(Numeric   \$a) returns Complex:D { $a * Complex.new(0e0, 1e0) }

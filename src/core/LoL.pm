@@ -2,7 +2,7 @@ class LoL {
     # declared in BOOTSTRAP:
     #    is List;              # parent class
 
-    method new(|$) { 
+    method new(|) { 
         my Mu $args := pir::perl6_current_args_rpa__P();
         nqp::shift($args);
         nqp::p6list($args, self.WHAT, Mu);

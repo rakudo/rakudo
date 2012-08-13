@@ -111,13 +111,13 @@ my class Any {
                   :excludes_max($excludes_max));
     }
 
-    proto method push(|$) { * }
+    proto method push(|) { * }
     multi method push(Any:U \$self: *@values) {
         &infix:<=>($self, Array.new);
         $self.push(@values);
     }
 
-    proto method tree(|$) { * }
+    proto method tree(|) { * }
     multi method tree(Any:U:) { self }
     multi method tree(Any:D:) { self.lol }
     multi method tree(Any:D: Cool $count as Int) {
@@ -131,13 +131,13 @@ my class Any {
         MapIter.new(self.list, { .&c.item }, Mu).list
     }
 
-    proto method unshift(|$) { * }
+    proto method unshift(|) { * }
     multi method unshift(Any:U \$self: *@values) {
         &infix:<=>($self, Array.new);
         $self.unshift(@values);
     }
 
-    proto method postcircumfix:<[ ]>(|$) { * }
+    proto method postcircumfix:<[ ]>(|) { * }
     multi method postcircumfix:<[ ]>() { self.list }
     multi method postcircumfix:<[ ]>(:$BIND!) {
         X::Bind::ZenSlice.new(type => self.WHAT).throw
@@ -185,7 +185,7 @@ my class Any {
         X::Bind::Slice.new(type => self.WHAT).throw;
     }
 
-    proto method at_pos(|$) {*}
+    proto method at_pos(|) {*}
     multi method at_pos(Any:D: $pos) {
         fail X::OutOfRange.new(
             what => 'Index',
@@ -208,7 +208,7 @@ my class Any {
     ########
     # Hash-like methods for Any.
     ########
-    proto method postcircumfix:<{ }>(|$) { * }
+    proto method postcircumfix:<{ }>(|) { * }
     multi method postcircumfix:<{ }>() { self }
     multi method postcircumfix:<{ }>(:$BIND!) {
         X::Bind::ZenSlice.new(type => self.WHAT).throw
@@ -234,7 +234,7 @@ my class Any {
         X::Bind::Slice.new(type => self.WHAT).throw
     }
 
-    proto method at_key(|$) { * }
+    proto method at_key(|) { * }
     multi method at_key(Any:D: $key) {
         fail "postcircumfix:<\{ \}> not defined for type {self.WHAT.perl}";
     }
@@ -260,96 +260,96 @@ multi infix:<===>($a, $b) {
     nqp::p6bool(nqp::iseq_s(nqp::unbox_s($a.WHICH), nqp::unbox_s($b.WHICH)))
 }
 
-proto infix:<before>(|$)       { * }
+proto infix:<before>(|)       { * }
 multi infix:<before>($x?)      { Bool::True }
 multi infix:<before>(\$a, \$b) { ($a cmp $b) < 0 }
 
-proto infix:<after>(|$)        { * }
+proto infix:<after>(|)        { * }
 multi infix:<after>($x?)       { Bool::True }
 multi infix:<after>(\$a, \$b)  { ($a cmp $b) > 0 }
 
 # XXX: should really be '$a is rw' (no \) in the next four operators
-proto prefix:<++>(|$)             { * }
+proto prefix:<++>(|)             { * }
 multi prefix:<++>(Mu:D \$a is rw) { $a = $a.succ }
 multi prefix:<++>(Mu:U \$a is rw) { $a = 1 }
-proto prefix:<-->(|$)             { * }
+proto prefix:<-->(|)             { * }
 multi prefix:<-->(Mu:D \$a is rw) { $a = $a.pred }
 multi prefix:<-->(Mu:U \$a is rw) { $a = -1 }
 
-proto postfix:<++>(|$)             { * }
+proto postfix:<++>(|)             { * }
 multi postfix:<++>(Mu:D \$a is rw) { my $b = $a; $a = $a.succ; $b }
 multi postfix:<++>(Mu:U \$a is rw) { $a = 1; 0 }
-proto postfix:<-->(|$)             { * }
+proto postfix:<-->(|)             { * }
 multi postfix:<-->(Mu:D \$a is rw) { my $b = $a; $a = $a.pred; $b }
 multi postfix:<-->(Mu:U \$a is rw) { $a = -1; 0 }
 
-proto infix:<min>(|$)     { * }
+proto infix:<min>(|)     { * }
 multi infix:<min>(*@args) { @args.min }
 # XXX the multi version suffers from a multi dispatch bug
 # where the mandatory named is ignored in the presence of a slurpy
-#proto sub min(|$)     { * }
+#proto sub min(|)     { * }
 #multi sub min(*@args) { @args.min() }
 #multi sub min(*@args, :&by!) { @args.min(&by) }
 sub min(*@args, :&by = &infix:<cmp>) { @args.min(&by) }
 
 
-proto infix:<max>(|$)     { * }
+proto infix:<max>(|)     { * }
 multi infix:<max>(*@args) { @args.max }
-#proto sub max(|$) { * }
+#proto sub max(|) { * }
 #multi sub max(*@args) { @args.max() }
 #multi sub max(*@args, :&by!) { @args.max(&by) }
 sub max(*@args, :&by = &infix:<cmp>) { @args.max(&by) }
 
-proto infix:<minmax>(|$)     { * }
+proto infix:<minmax>(|)     { * }
 multi infix:<minmax>(*@args) { @args.minmax }
-#proto sub minmax(|$) { * }
+#proto sub minmax(|) { * }
 #multi sub minmax(*@args) { @args.minmax() }
 #multi sub minmax(*@args, :&by!) { @args.minmax(&by) }
 sub minmax(*@args, :&by = &infix:<cmp>) { @args.minmax(&by) }
 
-proto map(|$) {*}
+proto map(|) {*}
 multi map(&code, *@values) { @values.map(&code) }
 
-proto grep(|$) {*}
+proto grep(|) {*}
 multi grep(Mu $test, *@values) { @values.grep($test) }
 
-proto first(|$) {*}
+proto first(|) {*}
 multi first(Mu $test, *@values) { @values.first($test) }
 
-proto join(|$) { * }
+proto join(|) { * }
 multi join($sep = '', *@values) { @values.join($sep) }
 
-proto pick(|$) { * }
+proto pick(|) { * }
 multi pick($n, *@values) { @values.pick($n) }
 
-proto roll(|$) { * }
+proto roll(|) { * }
 multi roll($n, *@values) { @values.roll($n) }
 
-proto keys(|$) { * }
+proto keys(|) { * }
 multi keys($x) { $x.keys }
 
-proto values(|$) { * }
+proto values(|) { * }
 multi values($x) { $x.values }
 
-proto pairs(|$) { * }
+proto pairs(|) { * }
 multi pairs($x) { $x.pairs }
 
-proto kv(|$) { * }
+proto kv(|) { * }
 multi kv($x) { $x.kv }
 
-proto elems(|$) { * }
+proto elems(|) { * }
 multi elems($a) { $a.elems }
 
-proto end(|$) { * }
+proto end(|) { * }
 multi end($a) { $a.end }
 
-proto classify(|$) { * }
+proto classify(|) { * }
 multi classify(&test, *@items) { @items.classify(&test) }
 
-proto uniq(|$) { * }
+proto uniq(|) { * }
 multi uniq(*@values) { @values.uniq }
 
-proto sub sort(|$) {*}
+proto sub sort(|) {*}
 multi sub sort(*@values)      {
     @values.at_pos(0).^does(Callable)
         ?? do { my $cmp := @values.shift; @values.sort($cmp) }

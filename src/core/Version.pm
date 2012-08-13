@@ -45,7 +45,7 @@ multi sub infix:<eqv>(Version:D $a, Version:D $b) {
 
 
 multi sub infix:<cmp>(Version:D $a, Version:D $b) {
-    proto vnumcmp(|$) { * }
+    proto vnumcmp(|) { * }
     multi vnumcmp(Str, Int) { Order::Increase }
     multi vnumcmp(Int, Str) { Order::Decrease }
     multi vnumcmp($av, $bv) { $av cmp $bv }

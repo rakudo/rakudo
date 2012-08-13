@@ -36,11 +36,11 @@ my class Cool {
     method acotanh() { self.Numeric.acotanh }
     method cis()     { self.Numeric.cis }
     
-    proto method log(|$) {*}
+    proto method log(|) {*}
     multi method log(Cool:D: )      { self.Numeric.log          }
     multi method log(Cool:D: $base) { self.Numeric.log($base.Numeric) }
 
-    proto method exp(|$) {*}
+    proto method exp(|) {*}
     multi method exp(Cool:D: )      { self.Numeric.exp          }
     multi method exp(Cool:D: $base) { self.Numeric.exp($base.Numeric) }
 
@@ -112,7 +112,7 @@ my class Cool {
     }
     method trans(*@a) { self.Str.trans(@a) }
 
-    proto method index(|$) {*}
+    proto method index(|) {*}
     multi method index(Cool $needle, Cool $pos = 0) {
         if $needle eq '' {
             my $chars = self.chars;
@@ -127,7 +127,7 @@ my class Cool {
         $result < 0 ?? Int !! $result;
     }
 
-    proto method rindex(|$) {*}
+    proto method rindex(|) {*}
     multi method rindex(Cool $needle, Cool $pos?) {
         if $needle eq '' {
             return $pos.defined && $pos < self.chars
@@ -151,23 +151,23 @@ my class Cool {
     }
 
     method ords(Cool:D:) { self.Str.ords }
-    proto method split(|$) {*}
+    proto method split(|) {*}
     multi method split(Regex $pat, $limit = $Inf, :$all) {
         self.Stringy.split($pat, $limit, :$all);
     }
     multi method split(Cool $pat, $limit = $Inf, :$all) {
         self.Stringy.split($pat.Stringy, $limit, :$all);
     }
-    proto method match(|$) {*}
+    proto method match(|) {*}
     multi method match(Cool:D: $target, *%adverbs) {
         self.Stringy.match($target, |%adverbs)
     }
 
-    proto method comb(|$) {*}
+    proto method comb(|) {*}
     multi method comb() { self.Str.comb() }
     multi method comb(Regex $matcher, $limit = $Inf) { self.Str.comb($matcher, $limit) }
 
-    proto method subst(|$) {*}
+    proto method subst(|) {*}
     multi method subst($matcher, $replacement, *%adverbs) {
         self.Stringy.subst($matcher, $replacement, |%adverbs);
     }
@@ -203,21 +203,21 @@ sub uc(Cool $s)                    { $s.uc }
 
 sub ucfirst(Cool $s) is DEPRECATED { $s.ucfirst }
 
-proto sub rindex(|$) { * };
+proto sub rindex(|) { * };
 multi sub rindex(Cool $s, Cool $needle, Cool $pos) { $s.rindex($needle, $pos) };
 multi sub rindex(Cool $s, Cool $needle)            { $s.rindex($needle) };
 
-proto sub ords(|$)            { * }
+proto sub ords(|)            { * }
 multi sub ords(Cool $s)       { ords($s.Stringy) }
 
-proto sub comb(|$)            { * }
+proto sub comb(|)            { * }
 multi sub comb(Regex $matcher, Cool $input, $limit = *) { $input.comb($matcher, $limit) }
 
-proto sub capitalize(|$)       { * }
+proto sub capitalize(|)       { * }
 multi sub capitalize(Str:D $x) {$x.capitalize }
 multi sub capitalize(Cool $x)  {$x.Stringy.capitalize }
 
-proto sub tclc(|$)             { * }
+proto sub tclc(|)             { * }
 multi sub tclc(Cool $x)        { tclc $x.Str }
 
 sub sprintf(Cool $format, *@args) {

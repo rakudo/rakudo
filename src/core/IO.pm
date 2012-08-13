@@ -1,25 +1,25 @@
 my class X::IO::Copy { ... }
 my class X::IO::Dir  { ... }
 
-sub print(|$) {
+sub print(|) {
     my $args := pir::perl6_current_args_rpa__P();
     $*OUT.print(nqp::shift($args)) while $args;
     Bool::True
 }
 
-sub say(|$) {
+sub say(|) {
     my $args := pir::perl6_current_args_rpa__P();
     $*OUT.print(nqp::shift($args).gist) while $args;
     $*OUT.print("\n");
 }
 
-sub note(|$) {
+sub note(|) {
     my $args := pir::perl6_current_args_rpa__P();
     $*ERR.print(nqp::shift($args).gist) while $args;
     $*ERR.print("\n");
 }
 
-sub gist(|$) {
+sub gist(|) {
     nqp::p6parcel(pir::perl6_current_args_rpa__P(), Mu).gist
 }
 
@@ -87,7 +87,7 @@ class IO does IO::FileTestable {
     has $.chomp = Bool::True;
     has $.path;
 
-    proto method open(|$) { * }
+    proto method open(|) { * }
     multi method open($path? is copy, :$r, :$w, :$a, :$p, :$bin, :$chomp = Bool::True,
             :enc(:$encoding) = 'utf8') {
         $path //= $.path;
@@ -187,7 +187,7 @@ class IO does IO::FileTestable {
     }
 
 
-    proto method print(|$) { * }
+    proto method print(|) { * }
     multi method print(IO:D: Str:D $value) {
         $!PIO.print(nqp::unbox_s($value));
         Bool::True
@@ -333,32 +333,32 @@ sub rmdir($path) {
     }
 }
 
-proto sub open(|$) { * }
+proto sub open(|) { * }
 multi sub open($path, :$r, :$w, :$a, :$p, :$bin, :$chomp = Bool::True, :enc(:$encoding) = 'utf8') {
     IO.new.open($path, :$r, :$w, :$a, :$p, :$bin, :$chomp, :$encoding);
 }
 
-proto sub lines(|$) { * }
+proto sub lines(|) { * }
 multi sub lines($fh = $*ARGFILES, $limit = $Inf) { 
     $fh.lines($limit) 
 }
 
-proto sub get(|$) { * }
+proto sub get(|) { * }
 multi sub get($fh = $*ARGFILES) {
     $fh.get()
 }
 
-proto sub getc(|$) { * }
+proto sub getc(|) { * }
 multi sub getc($fh = $*ARGFILES) {
     $fh.getc()
 }
 
-proto sub close(|$) { * }
+proto sub close(|) { * }
 multi sub close($fh) {
     $fh.close()
 }
 
-proto sub slurp(|$) { * }
+proto sub slurp(|) { * }
 multi sub slurp($filename, :$bin = False) {
     my $handle = open($filename, :r, :$bin);
     if $bin {
@@ -382,7 +382,7 @@ multi sub slurp(IO $io = $*ARGFILES) {
     $io.slurp;
 }
 
-proto sub spurt(|$) { * }
+proto sub spurt(|) { * }
 multi sub spurt(Cool $filename,
                 Cool $contents,
                 :encoding(:$enc) = 'utf8',
@@ -408,7 +408,7 @@ multi sub spurt(Cool $filename,
 }
 
 my class X::IO::Cwd { ... }
-proto sub cwd(|$) { * }
+proto sub cwd(|) { * }
 multi sub cwd() {
     return pir::new__Ps('OS').cwd();
 
@@ -423,7 +423,7 @@ multi sub cwd() {
 
 
 my class X::IO::Chdir { ... }
-proto sub chdir(|$) { * }
+proto sub chdir(|) { * }
 multi sub chdir($path as Str) {
     pir::new__PS('OS').chdir(nqp::unbox_s($path));
     $*CWD = nqp::p6box_s(pir::new__PS('OS').cwd);
@@ -439,7 +439,7 @@ multi sub chdir($path as Str) {
 }
 
 my class X::IO::Mkdir { ... }
-proto sub mkdir(|$) { * }
+proto sub mkdir(|) { * }
 multi sub mkdir($path as Str, $mode = 0o777) {
     pir::new__PS('OS').mkdir($path, $mode);
     return True;

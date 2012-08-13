@@ -36,7 +36,7 @@ my class Parcel does Positional {
 
     method at_pos(Parcel:D: \$x) is rw { self.flat.at_pos($x); }
 
-    proto method postcircumfix:<[ ]>(|$)                  { * }
+    proto method postcircumfix:<[ ]>(|)                  { * }
     multi method postcircumfix:<[ ]>() is rw              { self.flat }
     multi method postcircumfix:<[ ]>(Parcel:D: \$x) is rw { self.flat.[$x] }
 
@@ -62,7 +62,7 @@ my class Parcel does Positional {
         $perl ~ ')';
     }
 
-    method STORE(|$) {
+    method STORE(|) {
         # get the list of rvalues to store and lhs containers
         my Mu $args := pir::perl6_current_args_rpa__P();
         nqp::shift($args);
@@ -114,7 +114,7 @@ my class Parcel does Positional {
 }
 
 
-my sub infix:<,>(|$) {
+my sub infix:<,>(|) {
     nqp::p6parcel(pir::perl6_current_args_rpa__P(), nqp::null());
 }
 

@@ -3,7 +3,7 @@ my class X::Method::NotFound        { ... }
 my class X::Method::InvalidQualifier { ... }
 
 my class Mu {
-    proto method ACCEPTS(|$) { * }
+    proto method ACCEPTS(|) { * }
     multi method ACCEPTS(Mu:U: Mu \$topic) {
         nqp::p6bool(nqp::istype($topic, self))
     }
@@ -12,7 +12,7 @@ my class Mu {
         nqp::p6box_i(nqp::where(self))
     }
 
-    proto method WHICH(|$) {*}
+    proto method WHICH(|) {*}
     multi method WHICH(Mu:U:) {
         nqp::box_s(nqp::unbox_s(self.^name), ObjAt);
     }
@@ -34,7 +34,7 @@ my class Mu {
         self.HOW.docs // Any
     }
     
-    proto method Bool(|$) {*}
+    proto method Bool(|) {*}
     multi method Bool() {
         self.defined
     }
@@ -46,7 +46,7 @@ my class Mu {
         nqp::p6bool(nqp::isconcrete(self))
     }
     
-    proto method new(|$) { * }
+    proto method new(|) { * }
     multi method new(*%attrinit) {
         self.bless(*, |%attrinit);
     }
@@ -139,7 +139,7 @@ my class Mu {
         self
     }
     
-    proto method Numeric(|$) { * }
+    proto method Numeric(|) { * }
     multi method Numeric(Mu:U \$v:) {
         warn (nqp::iscont($v)
               ?? "use of uninitialized variable { $v.VAR.name }"
@@ -147,7 +147,7 @@ my class Mu {
             ~ " of type {self.^name} in numeric context";
         0
     }
-    proto method Real(|$) { * }
+    proto method Real(|) { * }
     multi method Real(Mu:U \$v:) {
         warn (nqp::iscont($v)
               ?? "use of uninitialized variable { $v.VAR.name }"
@@ -156,7 +156,7 @@ my class Mu {
         0
     }
     
-    proto method Str(|$) { * }
+    proto method Str(|) { * }
     multi method Str(Mu:U \$v:) {
         warn (nqp::iscont($v)
               ?? "use of uninitialized variable { $v.VAR.name }"
@@ -172,15 +172,15 @@ my class Mu {
     
     method item(Mu \$item:) is rw { $item }
     
-    proto method say(|$) { * }
+    proto method say(|) { * }
     multi method say() { say(self) }
     method print() { print(self) }
 
-    proto method gist(|$) { * }
+    proto method gist(|) { * }
     multi method gist(Mu:U:) { self.HOW.name(self) ~ '()' }
     multi method gist(Mu:D:) { self.perl }
 
-    proto method perl(|$) { * }
+    proto method perl(|) { * }
     multi method perl(Mu:U:) { self.HOW.name(self) }
     multi method perl(Mu:D:) {
         my @attrs;
@@ -193,12 +193,12 @@ my class Mu {
         self.^name() ~ '.new(' ~  @attrs.join(', ') ~ ')';
     }
 
-    proto method DUMP(|$) { * }
+    proto method DUMP(|) { * }
     multi method DUMP(Mu:D:) { self.perl }
     multi method DUMP(Mu:U:) { self.perl }
     method DUMP-ID() { self.HOW.name(self) ~ '<' ~ self.WHERE ~ '>' }
     
-    proto method isa(|$) { * }
+    proto method isa(|) { * }
     multi method isa(Mu \$self: Mu $type) {
         nqp::p6bool($self.HOW.isa($self, $type.WHAT))
     }
@@ -399,10 +399,10 @@ my class Mu {
 }
 
 
-proto sub defined(|$) { * }
+proto sub defined(|) { * }
 multi sub defined(Mu \$x) { $x.defined }
 
-proto sub infix:<~~>(|$) { * }
+proto sub infix:<~~>(|) { * }
 multi sub infix:<~~>(Mu \$topic, Mu \$matcher) {
     $matcher.ACCEPTS($topic).Bool;
 }
@@ -431,7 +431,7 @@ multi sub infix:<eqv>(@a, @b) {
     Bool::True
 }
 
-sub DUMP(|$) {
+sub DUMP(|) {
     my Mu $args := pir::perl6_current_args_rpa__P();
     my Mu $topic  := nqp::shift($args);
     if nqp::isnull($topic) { '(null)' }

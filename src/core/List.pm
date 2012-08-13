@@ -5,7 +5,7 @@ my class List does Positional {
     #   has $!flattens;        # true if this list flattens its parcels
     #   has $!nextiter;        # iterator for generating remaining elements
 
-    method new(|$) {
+    method new(|) {
         my Mu $args := pir::perl6_current_args_rpa__P();
         nqp::shift($args);
         nqp::p6list($args, self.WHAT, Mu);
@@ -36,7 +36,7 @@ my class List does Positional {
     method flattens() { $!flattens }
 
     my &itemify = { .elems == 1 ?? $_ !! [.list] };
-    proto method tree(|$) {*}
+    proto method tree(|) {*}
     multi method tree(List:U:) { self }
     multi method tree(List:D:) {
         MapIter.new(self, &itemify, Mu).list;
@@ -367,19 +367,19 @@ my class List does Positional {
     }
 }
 
-sub eager(|$) {
+sub eager(|) {
     nqp::p6parcel(pir::perl6_current_args_rpa__P(), Any).eager
 }
 
-sub flat(|$) {
+sub flat(|) {
     nqp::p6list(pir::perl6_current_args_rpa__P(), List, Bool::True)
 }
 
-sub list(|$) {
+sub list(|) {
     nqp::p6list(pir::perl6_current_args_rpa__P(), List, Mu)
 }
 
-proto infix:<xx>(|$)     { * }
+proto infix:<xx>(|)     { * }
 multi infix:<xx>()       { fail "No zero-arg meaning for infix:<xx>" }
 multi infix:<xx>(Mu \$x) { $x }
 multi infix:<xx>(Mu \$x, $n is copy, :$thunked) {
@@ -387,16 +387,16 @@ multi infix:<xx>(Mu \$x, $n is copy, :$thunked) {
     GatherIter.new({ take ($thunked ?? $x() !! $x) while $n-- > 0; }, :infinite($n == $Inf)).list
 }
 
-proto sub pop(|$) {*}
+proto sub pop(|) {*}
 multi sub pop(@a) { @a.pop }
 
-proto sub shift(|$) {*}
+proto sub shift(|) {*}
 multi sub shift(@a) { @a.shift }
 
-proto sub unshift(|$) {*}
+proto sub unshift(|) {*}
 multi sub unshift(\$a, *@elems) { $a.unshift: @elems }
 
-proto sub push(|$) {*}
+proto sub push(|) {*}
 multi sub push(\$a, *@elems) { $a.push: @elems }
 
 sub reverse(*@a)            { @a.reverse }

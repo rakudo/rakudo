@@ -2869,6 +2869,12 @@ class Perl6::Actions is HLL::Actions {
         else                     { %*PARAM_INFO<named_names>.push(''); }
     }
 
+    method defterm($/) {
+        %*PARAM_INFO<variable_name> := ~$<identifier>;
+        %*PARAM_INFO<desigilname>   := ~$<identifier>;
+        %*PARAM_INFO<sigil>         := '';
+    }
+
     method default_value($/) {
         make $<EXPR>.ast;
     }

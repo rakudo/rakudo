@@ -52,7 +52,7 @@ my class Cursor does NQPCursorRole {
             self."!cursor_start"()
     }
     
-    method OTHERGRAMMAR($grammar, $name, |$args) {
+    method OTHERGRAMMAR($grammar, $name, |) {
         my $lang_cursor := $grammar.'!cursor_init'(self.target(), :p(self.pos()));
         $lang_cursor."$name"(); 
     }

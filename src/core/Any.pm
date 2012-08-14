@@ -4,7 +4,7 @@ my class X::Bind::Slice { ... }
 my class X::Bind::ZenSlice { ... }
 
 my class Any {
-    multi method ACCEPTS(Any:D: Mu \$a) { self === $a }
+    multi method ACCEPTS(Any:D: Mu \a) { self === a }
 
     ########
     # List-like methods for Any.
@@ -112,9 +112,9 @@ my class Any {
     }
 
     proto method push(|) { * }
-    multi method push(Any:U \$self: *@values) {
-        &infix:<=>($self, Array.new);
-        $self.push(@values);
+    multi method push(Any:U \SELF: *@values) {
+        &infix:<=>(SELF, Array.new);
+        SELF.push(@values);
     }
 
     proto method tree(|) { * }
@@ -132,9 +132,9 @@ my class Any {
     }
 
     proto method unshift(|) { * }
-    multi method unshift(Any:U \$self: *@values) {
-        &infix:<=>($self, Array.new);
-        $self.unshift(@values);
+    multi method unshift(Any:U \SELF: *@values) {
+        &infix:<=>(SELF, Array.new);
+        SELF.unshift(@values);
     }
 
     proto method postcircumfix:<[ ]>(|) { * }
@@ -142,44 +142,44 @@ my class Any {
     multi method postcircumfix:<[ ]>(:$BIND!) {
         X::Bind::ZenSlice.new(type => self.WHAT).throw
     }
-    multi method postcircumfix:<[ ]>(\$self: $pos) is rw {
-        fail "Cannot use negative index $pos on {$self.WHAT.perl}" if $pos < 0;
-        $self.at_pos($pos)
+    multi method postcircumfix:<[ ]>(\SELF: $pos) is rw {
+        fail "Cannot use negative index $pos on {SELF.WHAT.perl}" if $pos < 0;
+        SELF.at_pos($pos)
     }
     multi method postcircumfix:<[ ]>($pos, :$BIND! is parcel) is rw {
         fail "Cannot use negative index $pos on {self.WHAT.perl}" if $pos < 0;
         self.bind_pos($pos, $BIND)
     }
-    multi method postcircumfix:<[ ]>(\$self: int $pos) is rw {
-        fail "Cannot use negative index $pos on {$self.WHAT.perl}" if $pos < 0;
-        $self.at_pos($pos)
+    multi method postcircumfix:<[ ]>(\SELF: int $pos) is rw {
+        fail "Cannot use negative index $pos on {SELF.WHAT.perl}" if $pos < 0;
+        SELF.at_pos($pos)
     }
     multi method postcircumfix:<[ ]>(int $pos, :$BIND! is parcel) is rw {
         fail "Cannot use negative index $pos on {self.WHAT.perl}" if $pos < 0;
         self.bind_pos($pos, $BIND)
     }
-    multi method postcircumfix:<[ ]>(\$self: Positional \$pos) is rw {
-        if nqp::iscont($pos) {
-            fail "Cannot use negative index $pos on {$self.WHAT.perl}" if $pos < 0;
-            return $self.at_pos($pos)
+    multi method postcircumfix:<[ ]>(\SELF: Positional \pos) is rw {
+        if nqp::iscont(pos) {
+            fail "Cannot use negative index {pos} on {SELF.WHAT.perl}" if pos < 0;
+            return SELF.at_pos(pos)
         }
-        my $list = $pos.flat;
+        my $list = pos.flat;
         $list.gimme(*);
         $list.map($list.infinite
-                   ?? { last if $_ >= $self.list.gimme($_ + 1); $self[$_] }
-                   !! { $self[$_] }).eager.Parcel;
+                   ?? { last if $_ >= SELF.list.gimme($_ + 1); SELF[$_] }
+                   !! { SELF[$_] }).eager.Parcel;
     }
     multi method postcircumfix:<[ ]>(Positional $pos, :$BIND!) is rw {
         X::Bind::Slice.new(type => self.WHAT).throw;
     }
-    multi method postcircumfix:<[ ]>(\$self: Callable $block) is rw {
-        $self[$block(|($self.elems xx $block.count))]
+    multi method postcircumfix:<[ ]>(\SELF: Callable $block) is rw {
+        SELF[$block(|(SELF.elems xx $block.count))]
     }
     multi method postcircumfix:<[ ]>(Callable $block, :$BIND!) is rw {
         X::Bind::Slice.new(type => self.WHAT).throw;
     }
-    multi method postcircumfix:<[ ]>(\$self: Whatever) is rw {
-        $self[^$self.elems]
+    multi method postcircumfix:<[ ]>(\SELF: Whatever) is rw {
+        SELF[^SELF.elems]
     }
     multi method postcircumfix:<[ ]>(Whatever, :$BIND!) is rw {
         X::Bind::Slice.new(type => self.WHAT).throw;
@@ -194,10 +194,10 @@ my class Any {
         ) if $pos != 0;
         self;
     }
-    multi method at_pos(Any:U \$self: $pos) is rw {
+    multi method at_pos(Any:U \SELF: $pos) is rw {
         pir::setattribute__0PPsP(my $v, Scalar, '$!whence',
-            -> { $self.defined || &infix:<=>($self, Array.new);
-                 $self.bind_pos($pos, $v) });
+            -> { SELF.defined || &infix:<=>(SELF, Array.new);
+                 SELF.bind_pos($pos, $v) });
     }
     
     method all() { all(self.list) }
@@ -213,22 +213,22 @@ my class Any {
     multi method postcircumfix:<{ }>(:$BIND!) {
         X::Bind::ZenSlice.new(type => self.WHAT).throw
     }
-    multi method postcircumfix:<{ }>(\$self: $key) is rw {
-        $self.at_key($key)
+    multi method postcircumfix:<{ }>(\SELF: $key) is rw {
+        SELF.at_key($key)
     }
-    multi method postcircumfix:<{ }>(\$self: $key, :$BIND! is parcel) is rw {
-        $self.bind_key($key, $BIND)
+    multi method postcircumfix:<{ }>(\SELF: $key, :$BIND! is parcel) is rw {
+        SELF.bind_key($key, $BIND)
     }
-    multi method postcircumfix:<{ }>(\$self: Positional \$key) is rw {
-        nqp::iscont($key) 
-          ?? $self.at_key($key) 
-          !! $key.map({ $self{$_} }).eager.Parcel
+    multi method postcircumfix:<{ }>(\SELF: Positional \key) is rw {
+        nqp::iscont(key) 
+          ?? SELF.at_key(key) 
+          !! key.map({ SELF{$_} }).eager.Parcel
     }
     multi method postcircumfix:<{ }>(Positional $key, :$BIND!) is rw {
         X::Bind::Slice.new(type => self.WHAT).throw
     }
-    multi method postcircumfix:<{ }>(\$self: Whatever) is rw {
-        $self{$self.keys}
+    multi method postcircumfix:<{ }>(\SELF: Whatever) is rw {
+        SELF{SELF.keys}
     }
     multi method postcircumfix:<{ }>(Whatever, :$BIND!) is rw {
         X::Bind::Slice.new(type => self.WHAT).throw
@@ -238,10 +238,10 @@ my class Any {
     multi method at_key(Any:D: $key) {
         fail "postcircumfix:<\{ \}> not defined for type {self.WHAT.perl}";
     }
-    multi method at_key(Any:U \$self: $key) is rw {
+    multi method at_key(Any:U \SELF: $key) is rw {
         pir::setattribute__0PPsP(my $v, Scalar, '$!whence',
-            -> { $self.defined || &infix:<=>($self, Hash.new);
-                 $self.bind_key($key, $v) });
+            -> { SELF.defined || &infix:<=>(SELF, Hash.new);
+                 SELF.bind_key($key, $v) });
     }
 
     method reduce(&with) { self.list.reduce(&with) }
@@ -260,28 +260,28 @@ multi infix:<===>($a, $b) {
     nqp::p6bool(nqp::iseq_s(nqp::unbox_s($a.WHICH), nqp::unbox_s($b.WHICH)))
 }
 
-proto infix:<before>(|)       { * }
+proto infix:<before>(|)        { * }
 multi infix:<before>($x?)      { Bool::True }
-multi infix:<before>(\$a, \$b) { ($a cmp $b) < 0 }
+multi infix:<before>(\a, \b)   { (a cmp b) < 0 }
 
-proto infix:<after>(|)        { * }
+proto infix:<after>(|)         { * }
 multi infix:<after>($x?)       { Bool::True }
-multi infix:<after>(\$a, \$b)  { ($a cmp $b) > 0 }
+multi infix:<after>(\a, \b)    { (a cmp b) > 0 }
 
 # XXX: should really be '$a is rw' (no \) in the next four operators
 proto prefix:<++>(|)             { * }
-multi prefix:<++>(Mu:D \$a is rw) { $a = $a.succ }
-multi prefix:<++>(Mu:U \$a is rw) { $a = 1 }
+multi prefix:<++>(Mu:D \a is rw) { a = a.succ }
+multi prefix:<++>(Mu:U \a is rw) { a = 1 }
 proto prefix:<-->(|)             { * }
-multi prefix:<-->(Mu:D \$a is rw) { $a = $a.pred }
-multi prefix:<-->(Mu:U \$a is rw) { $a = -1 }
+multi prefix:<-->(Mu:D \a is rw) { a = a.pred }
+multi prefix:<-->(Mu:U \a is rw) { a = -1 }
 
 proto postfix:<++>(|)             { * }
-multi postfix:<++>(Mu:D \$a is rw) { my $b = $a; $a = $a.succ; $b }
-multi postfix:<++>(Mu:U \$a is rw) { $a = 1; 0 }
+multi postfix:<++>(Mu:D \a is rw) { my $b = a; a = a.succ; $b }
+multi postfix:<++>(Mu:U \a is rw) { a = 1; 0 }
 proto postfix:<-->(|)             { * }
-multi postfix:<-->(Mu:D \$a is rw) { my $b = $a; $a = $a.pred; $b }
-multi postfix:<-->(Mu:U \$a is rw) { $a = -1; 0 }
+multi postfix:<-->(Mu:D \a is rw) { my $b = a; a = a.pred; $b }
+multi postfix:<-->(Mu:U \a is rw) { a = -1; 0 }
 
 proto infix:<min>(|)     { * }
 multi infix:<min>(*@args) { @args.min }

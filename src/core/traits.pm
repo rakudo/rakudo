@@ -80,7 +80,7 @@ multi trait_mod:<is>(Parameter:D $param, :$parcel!) {
 
 # TODO: Make this much less cheaty. That'll probably need the
 # full-blown serialization, though.
-sub EXPORT_SYMBOL(\$exp_name, @tags, Mu \$sym) {
+sub EXPORT_SYMBOL(\exp_name, @tags, Mu \sym) {
     my @export_packages = $*EXPORT;
     for pir::perl6ize_type__PP(@*PACKAGES) {
         unless .WHO.exists('EXPORT') {
@@ -100,29 +100,29 @@ sub EXPORT_SYMBOL(\$exp_name, @tags, Mu \$sym) {
                 $*W.pkg_compose($install_in);
                 $*W.install_package_symbol($p, $tag, $install_in);
             }
-            if $install_in.WHO.exists($exp_name) {
-                unless ($install_in.WHO){$exp_name} =:= $sym {
-                    X::Export::NameClash.new(symbol => $exp_name).throw;
+            if $install_in.WHO.exists(exp_name) {
+                unless ($install_in.WHO){exp_name} =:= sym {
+                    X::Export::NameClash.new(symbol => exp_name).throw;
                 }
             }
-            $*W.install_package_symbol($install_in, $exp_name, $sym);
+            $*W.install_package_symbol($install_in, exp_name, sym);
         }
     }
 }
-multi trait_mod:<is>(Routine:D \$r, :$export!) {
-    my $to_export := $r.multi ?? $r.dispatcher !! $r;
-    my $exp_name  := '&' ~ $r.name;
+multi trait_mod:<is>(Routine:D \r, :$export!) {
+    my $to_export := r.multi ?? r.dispatcher !! r;
+    my $exp_name  := '&' ~ r.name;
     my @tags = 'ALL', ($export ~~ Pair ?? $export.key() !!
                        $export ~~ Positional ?? @($export)>>.key !!
                        'DEFAULT');
     EXPORT_SYMBOL($exp_name, @tags, $to_export);
 }
-multi trait_mod:<is>(Mu:U \$type, :$export!) {
-    my $exp_name := $type.HOW.name($type);
+multi trait_mod:<is>(Mu:U \type, :$export!) {
+    my $exp_name := type.HOW.name(type);
     my @tags = 'ALL', ($export ~~ Pair ?? $export.key !!
                        $export ~~ Positional ?? @($export)>>.key !!
                        'DEFAULT');
-    EXPORT_SYMBOL($exp_name, @tags, $type);
+    EXPORT_SYMBOL($exp_name, @tags, type);
 }
 
 multi trait_mod:<is>(Mu:D $docee, :$docs!) {
@@ -202,8 +202,8 @@ multi trait_mod:<handles>(Attribute:D $target, $thunk) {
         }
         
         method add_delegator_method($attr: $pkg, $meth_name, $call_name) {
-            my $meth := method (|$c) is rw {
-                $attr.get_value(self)."$call_name"(|$c)
+            my $meth := method (|c) is rw {
+                $attr.get_value(self)."$call_name"(|c)
             };
             $meth.set_name($meth_name);
             $pkg.HOW.add_method($pkg, $meth_name, $meth);
@@ -229,8 +229,8 @@ multi trait_mod:<handles>(Attribute:D $target, $thunk) {
                                 ?($name ~~ $expr)
                             },
                             -> $obj, $name {
-                                -> $self, |$c {
-                                    $attr.get_value($self)."$name"(|$c)
+                                -> $self, |c {
+                                    $attr.get_value($self)."$name"(|c)
                                 }
                             });
                     }
@@ -241,8 +241,8 @@ multi trait_mod:<handles>(Attribute:D $target, $thunk) {
                             ?$expr.can($name)
                         },
                         -> $obj, $name {
-                            -> $self, |$c {
-                                $attr.get_value($self)."$name"(|$c)
+                            -> $self, |c {
+                                $attr.get_value($self)."$name"(|c)
                             }
                         });
                 }

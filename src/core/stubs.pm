@@ -30,7 +30,7 @@ sub DYNAMIC(\$name) is rw {
 # actually appear in the setting).
 {
     my class Dummy {
-        our proto method AUTOGEN(::T $: |$) { * }
+        our proto method AUTOGEN(::T $: |) { * }
     }
     Dummy.HOW.set_autogen_proto(&Dummy::AUTOGEN);
 }

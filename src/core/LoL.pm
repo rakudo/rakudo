@@ -16,24 +16,24 @@ class LoL {
                  -> { nqp::findmethod(List, 'STORE_AT_POS')(self, $pos, $v) } )
     }
 
-    multi method perl(LoL:D \$self:) {
+    multi method perl(LoL:D \SELF:) {
         self.WHAT.perl ~ '.new(' ~ self.map({.perl}).join(', ') ~ ')'
-            ~ ('.item' if nqp::iscont($self));
+            ~ ('.item' if nqp::iscont(SELF));
     }
 
-    method REIFY(Parcel \$parcel, Mu \$nextiter) {
-        my Mu $rpa := nqp::getattr($parcel, Parcel, '$!storage');
+    method REIFY(Parcel \parcel, Mu \nextiter) {
+        my Mu $rpa := nqp::getattr(parcel, Parcel, '$!storage');
         my Mu $iter := nqp::iterator($rpa);
         my int $i = 0;
         while $iter {
             nqp::bindpos($rpa, $i, my $v = nqp::shift($iter));
             $i = $i + 1;
         }
-        nqp::findmethod(List, 'REIFY')(self, $parcel, $nextiter)
+        nqp::findmethod(List, 'REIFY')(self, parcel, nextiter)
     }
 
-    method STORE_AT_POS(\$pos, Mu $v is copy) {
-        nqp::findmethod(List, 'STORE_AT_POS')(self, $pos, $v);
+    method STORE_AT_POS(\pos, Mu $v is copy) {
+        nqp::findmethod(List, 'STORE_AT_POS')(self, pos, $v);
     }
 
 }

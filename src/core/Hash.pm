@@ -16,27 +16,27 @@ my class Hash {
                  -> { nqp::bindkey($storage, nqp::unbox_s($key), $v) } )
     }
 
-    method bind_key($key, \$bindval) is rw {
+    method bind_key($key, \bindval) is rw {
         nqp::defined(nqp::getattr(self, EnumMap, '$!storage')) ||
             nqp::bindattr(self, EnumMap, '$!storage', nqp::hash());
         nqp::bindkey(
             nqp::getattr(self, EnumMap, '$!storage'),
             nqp::unbox_s($key.Str),
-            $bindval)
+            bindval)
     }
 
-    multi method perl(Hash:D \$self:) {
-        nqp::iscont($self)
+    multi method perl(Hash:D \SELF:) {
+        nqp::iscont(SELF)
           ?? '{' ~ self.pairs.map({.perl}).join(', ') ~ '}'
           !! '(' ~ self.pairs.map({.perl}).join(', ') ~ ').hash'
     }
 
-    method STORE_AT_KEY(\$key, Mu $x is copy) is rw {
-        nqp::findmethod(EnumMap, 'STORE_AT_KEY')(self, $key, $x);
+    method STORE_AT_KEY(\key, Mu $x is copy) is rw {
+        nqp::findmethod(EnumMap, 'STORE_AT_KEY')(self, key, $x);
     }
 
-    method STORE(\$to_store) is hidden_from_backtrace {
-        my $items = ($to_store,).flat.eager;
+    method STORE(\to_store) is hidden_from_backtrace {
+        my $items = (to_store,).flat.eager;
         nqp::bindattr(self, EnumMap, '$!storage', nqp::hash());
         while $items {
             my Mu $x := $items.shift;
@@ -110,22 +110,22 @@ my class Hash {
               !! pir::setattribute__0PPsP($v, Scalar, '$!whence',
                      -> { nqp::findmethod(EnumMap, 'STORE_AT_KEY')(self, $key, $v) } )
         }
-        method STORE_AT_KEY(Str \$key, TValue $x is copy) is rw {
-            nqp::findmethod(EnumMap, 'STORE_AT_KEY')(self, $key, $x);
+        method STORE_AT_KEY(Str \key, TValue $x is copy) is rw {
+            nqp::findmethod(EnumMap, 'STORE_AT_KEY')(self, key, $x);
         }
-        method bind_key($key, TValue \$bindval) is rw {
+        method bind_key($key, TValue \bindval) is rw {
             nqp::defined(nqp::getattr(self, EnumMap, '$!storage')) ||
                 nqp::bindattr(self, EnumMap, '$!storage', nqp::hash());
             nqp::bindkey(
                 nqp::getattr(self, EnumMap, '$!storage'),
                 nqp::unbox_s($key.Str),
-                $bindval)
+                bindval)
         }
     }
     my role TypedHash[::TValue, ::TKey] does Associative[TValue] {
         has $!keys;
-        method at_key(TKey \$key, TValue $v? is copy) is rw {
-            my $key_which = $key.WHICH;
+        method at_key(TKey \key, TValue $v? is copy) is rw {
+            my $key_which = key.WHICH;
             self.exists($key_which)
               ?? nqp::findmethod(EnumMap, 'at_key')(self, $key_which)
               !! pir::setattribute__0PPsP($v, Scalar, '$!whence',
@@ -137,15 +137,15 @@ my class Hash {
                         nqp::bindkey(
                             nqp::getattr(self, $?CLASS, '$!keys'),
                             nqp::unbox_s($key_which),
-                            $key);                        
+                            key);                        
                         nqp::bindkey(
                             nqp::getattr(self, EnumMap, '$!storage'),
                             nqp::unbox_s($key_which),
                             $v);
                     })
         }
-        method STORE_AT_KEY(TKey \$key, TValue $x is copy) is rw {
-            my $key_which = $key.WHICH;
+        method STORE_AT_KEY(TKey \key, TValue $x is copy) is rw {
+            my $key_which = key.WHICH;
             nqp::defined(nqp::getattr(self, $?CLASS, '$!keys')) ||
                 nqp::bindattr(self, $?CLASS, '$!keys', nqp::hash());
             nqp::defined(nqp::getattr(self, EnumMap, '$!storage')) ||
@@ -153,14 +153,14 @@ my class Hash {
             nqp::bindkey(
                 nqp::getattr(self, $?CLASS, '$!keys'),
                 nqp::unbox_s($key_which),
-                $key);
+                key);
             nqp::bindkey(
                 nqp::getattr(self, EnumMap, '$!storage'),
                 nqp::unbox_s($key_which),
                 $x);
         }
-        method bind_key(TKey $key, TValue \$bindval) is rw {
-            my $key_which = $key.WHICH;
+        method bind_key(TKey \key, TValue \bindval) is rw {
+            my $key_which = key.WHICH;
             nqp::defined(nqp::getattr(self, $?CLASS, '$!keys')) ||
                 nqp::bindattr(self, $?CLASS, '$!keys', nqp::hash());
             nqp::defined(nqp::getattr(self, EnumMap, '$!storage')) ||
@@ -168,11 +168,11 @@ my class Hash {
             nqp::bindkey(
                 nqp::getattr(self, $?CLASS, '$!keys'),
                 nqp::unbox_s($key_which),
-                $key);
+                key);
             nqp::bindkey(
                 nqp::getattr(self, EnumMap, '$!storage'),
                 nqp::unbox_s($key_which),
-                $bindval)
+                bindval)
         }
         method pairs() {
             return unless nqp::defined(nqp::getattr(self, EnumMap, '$!storage'));
@@ -189,9 +189,9 @@ my class Hash {
             }
         }
     }
-    method PARAMETERIZE_TYPE(Mu $t, |$c) {
-        $c.elems ??
-            self but TypedHash[$t.WHAT, $c[0]] !!
+    method PARAMETERIZE_TYPE(Mu $t, |c) {
+        c.elems ??
+            self but TypedHash[$t.WHAT, c[0]] !!
             self but TypedHash[$t.WHAT]
     }
 }

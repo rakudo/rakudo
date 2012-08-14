@@ -92,9 +92,9 @@ my class List does Positional {
         $!nextiter.defined ?? nqp::p6box_n('Inf') !! $n
     }
 
-    method exists(\$pos) {
-        self.gimme($pos + 1);
-        nqp::p6bool(nqp::existspos($!items, nqp::unbox_i($pos)))
+    method exists(\pos) {
+        self.gimme(pos + 1);
+        nqp::p6bool(nqp::existspos($!items, nqp::unbox_i(pos)))
     }
 
     method gimme($n) {
@@ -309,21 +309,21 @@ my class List does Positional {
     }
 
     multi method gist(List:D:) { self.Str }
-    multi method perl(List:D \$self:) {
+    multi method perl(List:D \SELF:) {
         self.gimme(*);
         self.Parcel.perl ~ '.list'  
-          ~ (nqp::iscont($self) ?? '.item' !! '')
+          ~ (nqp::iscont(SELF) ?? '.item' !! '')
     }
 
-    method REIFY(Parcel \$parcel, Mu \$nextiter) {
-        nqp::splice($!items, nqp::getattr($parcel, Parcel, '$!storage'),
+    method REIFY(Parcel \parcel, Mu \nextiter) {
+        nqp::splice($!items, nqp::getattr(parcel, Parcel, '$!storage'),
                     nqp::elems($!items), 0);
-        nqp::bindattr(self, List, '$!nextiter', $nextiter);
-        $parcel
+        nqp::bindattr(self, List, '$!nextiter', nextiter);
+        parcel
     }
 
-    method STORE_AT_POS(\$pos, Mu \$v) is rw {
-        nqp::bindpos($!items, nqp::unbox_i($pos), $v)
+    method STORE_AT_POS(\pos, Mu \v) is rw {
+        nqp::bindpos($!items, nqp::unbox_i(pos), v)
     }
 
     method FLATTENABLE_LIST() { self.gimme(*); $!items }
@@ -379,12 +379,12 @@ sub list(|) {
     nqp::p6list(pir::perl6_current_args_rpa__P(), List, Mu)
 }
 
-proto infix:<xx>(|)     { * }
-multi infix:<xx>()       { fail "No zero-arg meaning for infix:<xx>" }
-multi infix:<xx>(Mu \$x) { $x }
-multi infix:<xx>(Mu \$x, $n is copy, :$thunked) {
+proto infix:<xx>(|)       { * }
+multi infix:<xx>()        { fail "No zero-arg meaning for infix:<xx>" }
+multi infix:<xx>(Mu \x)   {x }
+multi infix:<xx>(Mu \x, $n is copy, :$thunked) {
     $n = nqp::p6bool(nqp::istype($n, Whatever)) ?? $Inf !! $n.Int;
-    GatherIter.new({ take ($thunked ?? $x() !! $x) while $n-- > 0; }, :infinite($n == $Inf)).list
+    GatherIter.new({ take ($thunked ?? x.() !! x) while $n-- > 0; }, :infinite($n == $Inf)).list
 }
 
 proto sub pop(|) {*}

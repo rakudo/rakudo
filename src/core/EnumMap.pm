@@ -26,16 +26,16 @@ my class EnumMap does Associative {
     }
     
     proto method exists(|) {*}
-    multi method exists(EnumMap:D: Str:D \$key) {
+    multi method exists(EnumMap:D: Str:D \key) {
         nqp::p6bool(
             nqp::defined($!storage)
-            && nqp::existskey($!storage, nqp::unbox_s($key))
+            && nqp::existskey($!storage, nqp::unbox_s(key))
         )
     }
-    multi method exists(EnumMap:D: \$key) {
+    multi method exists(EnumMap:D: \key) {
         nqp::p6bool(
             nqp::defined($!storage)
-            && nqp::existskey($!storage, nqp::unbox_s($key.Stringy))
+            && nqp::existskey($!storage, nqp::unbox_s(key.Stringy))
         )
     }
 
@@ -82,10 +82,10 @@ my class EnumMap does Associative {
             !! Any
     }
 
-    method STORE_AT_KEY(\$key, Mu \$value) is rw {
+    method STORE_AT_KEY(\key, Mu \value) is rw {
         nqp::defined($!storage) ||
             nqp::bindattr(self, EnumMap, '$!storage', nqp::hash());
-        nqp::bindkey($!storage, nqp::unbox_s($key.Str), $value)
+        nqp::bindkey($!storage, nqp::unbox_s(key.Str), value)
     }
     
     method Capture() {
@@ -105,8 +105,8 @@ my class EnumMap does Associative {
         self.pairs.fmt($format, $sep);
     }
     
-    method hash(\$self:) is rw {
-        $self
+    method hash(\SELF:) is rw {
+        SELF
     }
 }
 

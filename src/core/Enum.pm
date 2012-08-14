@@ -3,7 +3,7 @@ my class Enum does Associative {
     has $.value;
 
     method new(:$key, Mu :$value) { nqp::create(self).BUILD($key, $value) }
-    method BUILD(\$key, Mu \$value) { $!key = $key; $!value = $value; self }
+    method BUILD(\key, Mu \value) { $!key = key; $!value = value; self }
 
     multi method ACCEPTS(Enum:D: Associative:D $topic) { 
         $topic{$.key} ~~ $.value 
@@ -45,6 +45,6 @@ multi sub infix:<eqv>(Enum:D $a, Enum:D $b) {
     $a.WHAT === $b.WHAT && $a.key eqv $b.key && $a.value eqv $b.value
 }
 
-multi infix:<cmp>(Enum:D \$a, Enum:D \$b) {
-    ($a.key cmp $b.key) || ($a.value cmp $b.value)
+multi infix:<cmp>(Enum:D \a, Enum:D \b) {
+    (a.key cmp b.key) || (a.value cmp b.value)
 }

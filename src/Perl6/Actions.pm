@@ -380,6 +380,10 @@ class Perl6::Actions is HLL::Actions {
         make $<pod_block>.ast;
     }
 
+    method pod_configuration($/) {
+        make Perl6::Pod::make_config($/);
+    }
+
     method pod_block:sym<delimited>($/) {
         make Perl6::Pod::any_block($/);
     }

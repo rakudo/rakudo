@@ -213,7 +213,7 @@ grammar Perl6::Grammar is HLL::Grammar {
     # not a block, just a directive
     token pod_content:sym<config> {
         <pod_newline>*
-        ^^ \h* '=config' \h+ $<type>=\S+ [ [\n '=']? \h+ <colonpair> ]+
+        ^^ \h* '=config' \h+ $<type>=\S+ <pod_configuration>
         <pod_newline>+
     }
 
@@ -259,12 +259,15 @@ grammar Perl6::Grammar is HLL::Grammar {
 
     proto token pod_block { <...> }
 
+    token pod_configuration($spaces = '') {
+        [ [\n $spaces '=']? \h+ <colonpair> ]*
+    }
+
     token pod_block:sym<delimited_raw> {
         ^^
         $<spaces> = [ \h* ]
         '=begin' \h+ $<type>=[ 'code' | 'comment' ] {}
-                        [ [\n '=']? \h+ <colonpair> ]*
-                        <pod_newline>+
+        <pod_configuration($<spaces>)> <pod_newline>+
         [
          $<pod_content> = [ .*? ]
          ^^ $<spaces> '=end' \h+ $<type> <pod_newline>
@@ -288,8 +291,7 @@ grammar Perl6::Grammar is HLL::Grammar {
             <pod_code_parent> { $*ALLOW_CODE := 1 }
             || <identifier>
         ]
-        [ [\n '=']? \h+ <colonpair> ]*
-        <pod_newline>+
+        <pod_configuration($<spaces>)> <pod_newline>+
         [
          <pod_content> *
          ^^ $<spaces> '=end' \h+ $<type> <pod_newline>
@@ -300,7 +302,7 @@ grammar Perl6::Grammar is HLL::Grammar {
 
     token pod_block:sym<delimited_table> {
         ^^ \h* '=begin' \h+ 'table'
-            [ [\n '=']? \h+ <colonpair> ]* <pod_newline>+
+            <pod_configuration($<spaces>)> <pod_newline>+
         [
          <table_row>*
          ^^ \h* '=end' \h+ 'table' <pod_newline>
@@ -334,21 +336,19 @@ grammar Perl6::Grammar is HLL::Grammar {
             <pod_code_parent> { $*ALLOW_CODE := 1 }
             || <identifier>
         ]
-        [ [\n '=']? \h+ <colonpair> ]*
-        <pod_newline>
+        <pod_configuration($<spaces>)> <pod_newline>
         $<pod_content> = <pod_textcontent>?
     }
 
     token pod_block:sym<paragraph_raw> {
         ^^ \h* '=for' \h+ $<type>=[ 'code' | 'comment' ]
-                          [ [\n '=']? \h+ <colonpair> ]*
-                          <pod_newline>
+        <pod_configuration($<spaces>)> <pod_newline>
         $<pod_content> = [ \h* <!before '=' \w> \N+ \n ]+
     }
 
     token pod_block:sym<paragraph_table> {
         ^^ \h* '=for' \h+ 'table'
-            [ [\n '=']? \h+ <colonpair> ]* <pod_newline>
+            <pod_configuration($<spaces>)> <pod_newline>
         [ <!before \h* \n> <table_row>]*
     }
 
@@ -364,19 +364,19 @@ grammar Perl6::Grammar is HLL::Grammar {
             <pod_code_parent> { $*ALLOW_CODE := 1 }
             || <identifier>
         ]
-        [ [\n '=']? \h+ <colonpair> ]*
+        <pod_configuration($<spaces>)>
         \s
         $<pod_content> = <pod_textcontent>?
     }
 
     token pod_block:sym<abbreviated_raw> {
         ^^ \h* '=' $<type>=[ 'code' | 'comment' ]
-        [ [\n '=']? \h+ <colonpair> ]* \s
+        <pod_configuration($<spaces>)> \s
         $<pod_content> = [ \h* <!before '=' \w> \N+ \n ]*
     }
 
     token pod_block:sym<abbreviated_table> {
-        ^^ \h* '=table' [ [\n '=']? \h+ <colonpair> ]* <pod_newline>
+        ^^ \h* '=table' <pod_configuration($<spaces>)> <pod_newline>
         [ <!before \h* \n> <table_row>]*
     }
 

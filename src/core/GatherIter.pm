@@ -41,10 +41,10 @@ class GatherIter is Iterator {
 
     method infinite() { $!infinite }
 
-    my sub coro(\$block) {
+    my sub coro(\block) {
         Q:PIR {
             .local pmc block, handler, taken
-            block = find_lex '$block'
+            block = find_lex 'block'
             .yield ()
             handler = root_new ['parrot';'ExceptionHandler']
             handler.'handle_types'(.CONTROL_TAKE)
@@ -71,7 +71,7 @@ class GatherIter is Iterator {
 }
 
 
-sub GATHER(\$block, Mu :$infinite) { 
-    GatherIter.new( $block, :$infinite ).list;  
+sub GATHER(\block, Mu :$infinite) { 
+    GatherIter.new( block, :$infinite ).list;  
 }
 

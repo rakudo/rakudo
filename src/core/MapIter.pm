@@ -13,12 +13,12 @@ my class MapIter is Iterator {
         $new;
     }
 
-    method BUILD(Mu \$listiter, \$block, Mu \$flattens, $first = False) { 
-        nqp::bindattr($listiter, ListIter, '$!list', self) if nqp::isconcrete($listiter);
-        $!listiter := $listiter; 
-        $!block = $block; 
+    method BUILD(Mu \listiter, \block, Mu \flattens, $first = False) { 
+        nqp::bindattr(listiter, ListIter, '$!list', self) if nqp::isconcrete(listiter);
+        $!listiter := listiter; 
+        $!block = block; 
         $!first = $first;
-        $!flattens = $flattens;
+        $!flattens = flattens;
         self 
     }
 
@@ -125,11 +125,11 @@ my class MapIter is Iterator {
         $!reified;
     }
 
-    method REIFY(Parcel \$parcel, Mu \$nextiter) {
-        nqp::splice($!items, nqp::getattr($parcel, Parcel, '$!storage'),
+    method REIFY(Parcel \parcel, Mu \nextiter) {
+        nqp::splice($!items, nqp::getattr(parcel, Parcel, '$!storage'),
                     nqp::elems($!items), 0);
-        $!listiter := $nextiter;
-        $parcel
+        $!listiter := nextiter;
+        parcel
     }
 
     method DUMP() {

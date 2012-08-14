@@ -4,8 +4,8 @@ my class X::Method::InvalidQualifier { ... }
 
 my class Mu {
     proto method ACCEPTS(|) { * }
-    multi method ACCEPTS(Mu:U: Mu \$topic) {
-        nqp::p6bool(nqp::istype($topic, self))
+    multi method ACCEPTS(Mu:U: Mu \topic) {
+        nqp::p6bool(nqp::istype(topic, self))
     }
 
     method WHERE() {
@@ -58,11 +58,11 @@ my class Mu {
         nqp::create(self)
     }
     
-    method bless(Mu \$candidate, *@autovivs, *%attrinit) {
+    method bless(Mu \candidate, *@autovivs, *%attrinit) {
         # If we were passed *, then need to create a candidate.
-        my $cand := nqp::istype($candidate, Whatever) ??
+        my $cand := nqp::istype(candidate, Whatever) ??
             nqp::create(self) !!
-            $candidate;
+            candidate;
         $cand.BUILDALL(@autovivs, %attrinit);
     }
     
@@ -140,26 +140,26 @@ my class Mu {
     }
     
     proto method Numeric(|) { * }
-    multi method Numeric(Mu:U \$v:) {
-        warn (nqp::iscont($v)
-              ?? "use of uninitialized variable { $v.VAR.name }"
+    multi method Numeric(Mu:U \v:) {
+        warn (nqp::iscont(v)
+              ?? "use of uninitialized variable { v.VAR.name }"
               !! "use of uninitialized value")
             ~ " of type {self.^name} in numeric context";
         0
     }
     proto method Real(|) { * }
-    multi method Real(Mu:U \$v:) {
-        warn (nqp::iscont($v)
-              ?? "use of uninitialized variable { $v.VAR.name }"
+    multi method Real(Mu:U \v:) {
+        warn (nqp::iscont(v)
+              ?? "use of uninitialized variable { v.VAR.name }"
               !! "use of uninitialized value")
             ~ " of type {self.^name} in numeric context";
         0
     }
     
     proto method Str(|) { * }
-    multi method Str(Mu:U \$v:) {
-        warn (nqp::iscont($v)
-              ?? "use of uninitialized variable { $v.VAR.name }"
+    multi method Str(Mu:U \v:) {
+        warn (nqp::iscont(v)
+              ?? "use of uninitialized variable { $.VAR.name }"
               !! "use of uninitialized value")
             ~ " of type {self.^name} in string context";
         ''
@@ -199,11 +199,11 @@ my class Mu {
     method DUMP-ID() { self.HOW.name(self) ~ '<' ~ self.WHERE ~ '>' }
     
     proto method isa(|) { * }
-    multi method isa(Mu \$self: Mu $type) {
-        nqp::p6bool($self.HOW.isa($self, $type.WHAT))
+    multi method isa(Mu \SELF: Mu $type) {
+        nqp::p6bool(SELF.HOW.isa(SELF, $type.WHAT))
     }
-    multi method isa(Mu \$self: Str:D $name) {
-        my @mro = $self.HOW.mro($self);
+    multi method isa(Mu \SELF: Str:D $name) {
+        my @mro = SELF.HOW.mro(SELF);
         my int $mro_count = +@mro;
         my int $i = 0;
         while $i < $mro_count {
@@ -216,12 +216,12 @@ my class Mu {
         Bool::False
     }
     
-    method does(Mu \$self: Mu $type) {
-        nqp::p6bool(nqp::istype($self, $type.WHAT))
+    method does(Mu \SELF: Mu $type) {
+        nqp::p6bool(nqp::istype(SELF, $type.WHAT))
     }
     
-    method can(Mu \$self: $name) {
-        $self.HOW.can($self, $name)
+    method can(Mu \SELF: $name) {
+        SELF.HOW.can(SELF, $name)
     }
     
     method clone(*%twiddles) {
@@ -256,26 +256,26 @@ my class Mu {
     }
     
     # XXX TODO: Handle positional case.
-    method dispatch:<var>(Mu \$self: $var, |$c) is rw is hidden_from_backtrace {
-        $var($self, |$c)
+    method dispatch:<var>(Mu \SELF: $var, |$c) is rw is hidden_from_backtrace {
+        $var(SELF, |$c)
     }
     
-    method dispatch:<::>(Mu \$self: $name, Mu $type, |$c) is rw {
-        unless nqp::istype($self, $type) {
+    method dispatch:<::>(Mu \SELF: $name, Mu $type, |c) is rw {
+        unless nqp::istype(SELF, $type) {
             X::Method::InvalidQualifier.new(
                     method          => $name,
-                    invocant        => $self,
+                    invocant        => SELF,
                     qualifier-type  => $type,
 
             ).throw;
         }
-        nqp::findmethod($type, $name)($self, |$c)
+        nqp::findmethod($type, $name)(SELF, |c)
     }
     
-    method dispatch:<!>(Mu \$self: $name, Mu $type, |$c) is rw is hidden_from_backtrace {
+    method dispatch:<!>(Mu \SELF: $name, Mu $type, |c) is rw is hidden_from_backtrace {
         my $meth := $type.HOW.find_private_method($type, $name);
         $meth ??
-            $meth($self, |$c) !!
+            $meth(SELF, |c) !!
             X::Method::NotFound.new(
                     method   => '!' ~ $name,
                     typename => $type.HOW.name($type),
@@ -283,33 +283,33 @@ my class Mu {
             ).throw;
     }
     
-    method dispatch:<.^>(Mu \$self: $name, |$c) is rw is hidden_from_backtrace {
-        self.HOW."$name"($self, |$c)
+    method dispatch:<.^>(Mu \SELF: $name, |c) is rw is hidden_from_backtrace {
+        self.HOW."$name"(SELF, |c)
     }
     
-    method dispatch:<.=>(\$mutate: $name, |$c) is rw {
-        $mutate = $mutate."$name"(|$c)
+    method dispatch:<.=>(\mutate: $name, |c) is rw {
+        mutate = mutate."$name"(|c)
     }
     
-    method dispatch:<.?>(Mu \$self: $name, |$c) is rw is hidden_from_backtrace {
-        nqp::can($self, $name) ??
-            $self."$name"(|$c) !!
+    method dispatch:<.?>(Mu \SELF: $name, |c) is rw is hidden_from_backtrace {
+        nqp::can(SELF, $name) ??
+            SELF."$name"(|c) !!
             Nil
     }
     
-    method dispatch:<.+>(Mu \$self: $name, |$c) {
-        my @result := $self.dispatch:<.*>($name, |$c);
+    method dispatch:<.+>(Mu \SELF: $name, |c) {
+        my @result := SELF.dispatch:<.*>($name, |c);
         if @result.elems == 0 {
             X::Method::NotFound.new(
                     method   => $name,
-                    typename => $self.^name,
+                    typename => SELF.^name,
             ).throw;
         }
         @result
     }
     
-    method dispatch:<.*>(Mu \$self: $name, |$c) {
-        my @mro = $self.HOW.mro($self);
+    method dispatch:<.*>(Mu \SELF: $name, |c) {
+        my @mro = SELF.HOW.mro(SELF);
         my int $mro_count = +@mro;
         my @results;
         my int $i = 0;
@@ -320,15 +320,15 @@ my class Mu {
                 $meth = ($obj.HOW.submethod_table($obj)){$name};
             }
             if $meth {
-                @results.push($meth($self, |$c));
+                @results.push($meth(SELF, |c));
             }
             $i = $i + 1;
         }
         &infix:<,>(|@results)
     }
 
-    method dispatch:<hyper>(Mu \$self: $name, |$c) {
-        hyper( -> \$obj { $obj."$name"(|$c) }, $self )
+    method dispatch:<hyper>(Mu \SELF: $name, |c) {
+        hyper( -> \obj { obj."$name"(|c) }, SELF )
     }
     
     method WALK(:$name!, :$canonical, :$ascendant, :$descendant, :$preorder, :$breadth,
@@ -400,17 +400,17 @@ my class Mu {
 
 
 proto sub defined(|) { * }
-multi sub defined(Mu \$x) { $x.defined }
+multi sub defined(Mu \x) { x.defined }
 
 proto sub infix:<~~>(|) { * }
-multi sub infix:<~~>(Mu \$topic, Mu \$matcher) {
-    $matcher.ACCEPTS($topic).Bool;
+multi sub infix:<~~>(Mu \topic, Mu \matcher) {
+    matcher.ACCEPTS(topic).Bool;
 }
 
 proto sub infix:<=:=>(Mu $a?, Mu $b?) { * }
 multi sub infix:<=:=>($a?)      { Bool::True }
-multi sub infix:<=:=>(Mu \$a, Mu \$b) { 
-    nqp::p6bool(nqp::iseq_i(nqp::where($a), nqp::where($b)));
+multi sub infix:<=:=>(Mu \a, Mu \b) { 
+    nqp::p6bool(nqp::iseq_i(nqp::where(a), nqp::where(b)));
 }
 
 proto sub infix:<eqv>(Any $?, Any $?) { * }

@@ -32,7 +32,7 @@ multi sub infix:<eqv>(Numeric $a, Numeric $b) {
 ## arithmetic operators
 
 proto prefix:<+>(|) { * }
-multi prefix:<+>($a) { a.Numeric }
+multi prefix:<+>(\a) { a.Numeric }
 
 proto prefix:<->(|) { * }
 multi prefix:<->(\a) { -a.Numeric }

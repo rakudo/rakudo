@@ -3529,7 +3529,8 @@ class Perl6::Actions is HLL::Actions {
             elsif $*W.is_pseudo_package(@name[0]) {
                 $past := $*W.symbol_lookup(@name, $/);
             }
-            elsif +@name == 1 && $*W.is_name(@name) && !$*W.is_type(@name) {
+            elsif +@name == 1 && $*W.is_name(@name)
+                    && !$*W.symbol_has_compile_time_value(@name) {
                 # it's a sigilless param or variable
                 $past := make_variable_from_parts($/, @name, '', '', @name[0]);
             }

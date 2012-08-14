@@ -1622,6 +1622,15 @@ class Perl6::World is HLL::World {
         }
         $is_name || +@name == 1 && self.is_lexical(@name[0])
     }
+
+    method symbol_has_compile_time_value(@name) {
+        my $has_ctv := 0;
+        try {
+            self.find_symbol(@name);
+            $has_ctv := 1;
+        }
+        $has_ctv;
+    }
     
     # Checks if a given symbol is declared and a type object.
     method is_type(@name) {

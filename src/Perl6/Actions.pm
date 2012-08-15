@@ -1546,14 +1546,30 @@ class Perl6::Actions is HLL::Actions {
             if $cur_lexpad.symbol($name) {
                 $*W.throw($/, ['X', 'Redeclaration'], symbol => $name);
             }
-            # TODO: worry about type constraints
-            $cur_lexpad[0].push(QAST::Var.new(:$name, :scope('lexical'), :decl('var')));
-            $cur_lexpad.symbol($name, :scope('lexical'));
-            make QAST::Op.new(
-                :op<bind>,
-                QAST::Var.new(:$name, :scope<lexical>),
-                $<term_init>.ast
-            );
+            if $*OFTYPE {
+                my $type := $*OFTYPE.ast;
+                $cur_lexpad[0].push(QAST::Var.new( :$name, :scope('lexical'),
+                    :decl('var'), :returns($type) ));
+                $cur_lexpad.symbol($name, :$type, :scope<lexical>);
+                make QAST::Op.new(
+                    :op<bind>,
+                    QAST::Var.new(:$name, :scope<lexical>),
+                    QAST::Op.new(
+                        :op('p6bindassert'),
+                        $<term_init>.ast,
+                        QAST::WVal.new( :value($type) ),
+                    )
+                );
+            }
+            else {
+                $cur_lexpad[0].push(QAST::Var.new(:$name, :scope('lexical'), :decl('var')));
+                $cur_lexpad.symbol($name, :scope('lexical'));
+                make QAST::Op.new(
+                    :op<bind>,
+                    QAST::Var.new(:$name, :scope<lexical>),
+                    $<term_init>.ast
+                );
+                }
         }
         else {
             $/.CURSOR.panic('Unknown declarator type');

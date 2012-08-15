@@ -81,7 +81,7 @@ Language Features
 2 ***   new syntax/semantics for coercion (jnthn)
 2 **    MAIN and USAGE (japhb)
 2 **    Failure changes (japhb)
-2 **    sigilless variables and parameters
+2 *     sigilless variables
 2 ?     coercion types
 2 *     improved hash/block disambiguation
 3 ***   domain specific languages -- slang and grammar tweaks

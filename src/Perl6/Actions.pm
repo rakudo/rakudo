@@ -1535,6 +1535,26 @@ class Perl6::Actions is HLL::Actions {
             
             make $list;
         }
+        elsif $<identifier> {
+            # 'my \foo' style declaration
+            if $*SCOPE ne 'my' {
+                $*W.throw($/, 'X::Comp::NYI',
+                    feature => "$*SCOPE scoped term definitions (only 'my' is supported at the moment)");
+            }
+            my $name       :=  ~$<identifier>;
+            my $cur_lexpad := $*W.cur_lexpad;
+            if $cur_lexpad.symbol($name) {
+                $*W.throw($/, ['X', 'Redeclaration'], symbol => $name);
+            }
+            # TODO: worry about type constraints
+            $cur_lexpad[0].push(QAST::Var.new(:$name, :scope('lexical'), :decl('var')));
+            $cur_lexpad.symbol($name, :scope('lexical'));
+            make QAST::Op.new(
+                :op<bind>,
+                QAST::Var.new(:$name, :scope<lexical>),
+                $<term_init>.ast
+            );
+        }
         else {
             $/.CURSOR.panic('Unknown declarator type');
         }

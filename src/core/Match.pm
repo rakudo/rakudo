@@ -62,7 +62,7 @@ my class Match is Capture is Cool {
     multi method gist (Match:D: $d = 0) {
         return "#<failed match>" unless self;
         my $s = ' ' x ($d + 1);
-        my $r = ("=> " if $d) ~ "｢{self}｣\n";
+        my $r = ("=> " if $d) ~ "\x[FF62]{self}\x[FF63]\n";
         for @.caps {
             $r ~= $s ~ (.key // '?') ~ ' ' ~ .value.gist($d + 1)
         }

@@ -86,13 +86,13 @@ my class Attribute {
         }
     }
     
-    method set_value(Mu $obj, Mu \$value) {
+    method set_value(Mu $obj, Mu \value) {
         my $decont := nqp::p6decont($obj);
         given nqp::p6box_i(pir::repr_get_primitive_type_spec__IP($!type)) {
-            when 0 { nqp::bindattr($decont, $!package, $!name, $value) }
-            when 1 { nqp::p6box_i(nqp::bindattr_i($decont, $!package, $!name, $value)) }
-            when 2 { nqp::p6box_n(nqp::bindattr_n($decont, $!package, $!name, $value)) }
-            when 3 { nqp::p6box_s(nqp::bindattr_s($decont, $!package, $!name, $value)) }
+            when 0 { nqp::bindattr($decont, $!package, $!name, value) }
+            when 1 { nqp::p6box_i(nqp::bindattr_i($decont, $!package, $!name, value)) }
+            when 2 { nqp::p6box_n(nqp::bindattr_n($decont, $!package, $!name, value)) }
+            when 3 { nqp::p6box_s(nqp::bindattr_s($decont, $!package, $!name, value)) }
         }
     }
     

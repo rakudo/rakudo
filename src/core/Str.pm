@@ -784,7 +784,7 @@ my class Str does Stringy {
             }
         }
 
-        proto method triage_substitution(|$) {*}
+        proto method triage_substitution(|) {*}
         multi method triage_substitution($_ where { .key ~~ Regex }) {
             my $key = .key;
             return unless $!source.substr($!index) ~~ $key;
@@ -802,7 +802,7 @@ my class Str does Stringy {
             X::Str::Trans::IllegalKey.new(key => $_).throw;
         }
 
-        proto method increment_index(|$) {*}
+        proto method increment_index(|) {*}
         multi method increment_index(Regex $s) {
             $!source.substr($!index) ~~ $s;
             $!index = $!next_match + $/.chars;
@@ -963,10 +963,10 @@ my class Str does Stringy {
 }
 
 
-multi prefix:<~>(Str:D \$a) { $a }
+multi prefix:<~>(Str:D \a) { a }
 
-multi infix:<~>(Str:D \$a, Str:D \$b) {
-    nqp::p6box_s(nqp::concat_s(nqp::unbox_s($a), nqp::unbox_s($b)))
+multi infix:<~>(Str:D \a, Str:D \b) {
+    nqp::p6box_s(nqp::concat_s(nqp::unbox_s(a), nqp::unbox_s(b)))
 }
 
 multi infix:<x>(Str:D $s, Int:D $repetition) {
@@ -975,52 +975,52 @@ multi infix:<x>(Str:D $s, Int:D $repetition) {
         !!  nqp::p6box_s(nqp::x(nqp::unbox_s($s), nqp::unbox_i($repetition)))
 }
 
-multi infix:<cmp>(Str:D \$a, Str:D \$b) {
-    Order.(nqp::p6box_i(nqp::cmp_s(nqp::unbox_s($a), nqp::unbox_s($b))))
+multi infix:<cmp>(Str:D \a, Str:D \b) {
+    Order.(nqp::p6box_i(nqp::cmp_s(nqp::unbox_s(a), nqp::unbox_s(b))))
 }
 
-multi infix:<===>(Str:D \$a, Str:D \$b) {
-    nqp::p6bool(nqp::iseq_s(nqp::unbox_s($a), nqp::unbox_s($b)))
+multi infix:<===>(Str:D \a, Str:D \b) {
+    nqp::p6bool(nqp::iseq_s(nqp::unbox_s(a), nqp::unbox_s(b)))
 }
 
-multi infix:<leg>(Str:D \$a, Str:D \$b) {
-    Order.(nqp::p6box_i(nqp::cmp_s(nqp::unbox_s($a), nqp::unbox_s($b))))
+multi infix:<leg>(Str:D \a, Str:D \b) {
+    Order.(nqp::p6box_i(nqp::cmp_s(nqp::unbox_s(a), nqp::unbox_s(b))))
 }
 
-multi infix:<eq>(Str:D \$a, Str:D \$b) {
-    nqp::p6bool(nqp::iseq_s(nqp::unbox_s($a), nqp::unbox_s($b)))
+multi infix:<eq>(Str:D \a, Str:D \b) {
+    nqp::p6bool(nqp::iseq_s(nqp::unbox_s(a), nqp::unbox_s(b)))
 }
 
-multi infix:<lt>(Str:D \$a, Str:D \$b) {
-    nqp::p6bool(nqp::islt_s(nqp::unbox_s($a), nqp::unbox_s($b)))
+multi infix:<lt>(Str:D \a, Str:D \b) {
+    nqp::p6bool(nqp::islt_s(nqp::unbox_s(a), nqp::unbox_s(b)))
 }
 
-multi infix:<le>(Str:D \$a, Str:D \$b) {
-    nqp::p6bool(nqp::isle_s(nqp::unbox_s($a), nqp::unbox_s($b)))
+multi infix:<le>(Str:D \a, Str:D \b) {
+    nqp::p6bool(nqp::isle_s(nqp::unbox_s(a), nqp::unbox_s(b)))
 }
 
-multi infix:<gt>(Str:D \$a, Str:D \$b) {
-    nqp::p6bool(nqp::isgt_s(nqp::unbox_s($a), nqp::unbox_s($b)))
+multi infix:<gt>(Str:D \a, Str:D \b) {
+    nqp::p6bool(nqp::isgt_s(nqp::unbox_s(a), nqp::unbox_s(b)))
 }
 
-multi infix:<ge>(Str:D \$a, Str:D \$b) {
-    nqp::p6bool(nqp::isge_s(nqp::unbox_s($a), nqp::unbox_s($b)))
+multi infix:<ge>(Str:D \a, Str:D \b) {
+    nqp::p6bool(nqp::isge_s(nqp::unbox_s(a), nqp::unbox_s(b)))
 }
 
 
-multi infix:<~|>(Str:D \$a, Str:D \$b) {
-    nqp::p6box_s(nqp::bitor_s(nqp::unbox_s($a), nqp::unbox_s($b)))
+multi infix:<~|>(Str:D \a, Str:D \b) {
+    nqp::p6box_s(nqp::bitor_s(nqp::unbox_s(a), nqp::unbox_s(b)))
 }
 
-multi infix:<~&>(Str:D \$a, Str:D \$b) {
-    nqp::p6box_s(nqp::bitand_s(nqp::unbox_s($a), nqp::unbox_s($b)))
+multi infix:<~&>(Str:D \a, Str:D \b) {
+    nqp::p6box_s(nqp::bitand_s(nqp::unbox_s(a), nqp::unbox_s(b)))
 }
 
-multi infix:<~^>(Str:D \$a, Str:D \$b) {
-    nqp::p6box_s(nqp::bitxor_s(nqp::unbox_s($a), nqp::unbox_s($b)))
+multi infix:<~^>(Str:D \a, Str:D \b) {
+    nqp::p6box_s(nqp::bitxor_s(nqp::unbox_s(a), nqp::unbox_s(b)))
 }
 
-multi prefix:<~^>(Str \$a) {
+multi prefix:<~^>(Str \a) {
     fail "prefix:<~^> NYI";   # XXX
 }
 

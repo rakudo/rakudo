@@ -10,9 +10,9 @@ my class LazyScalar is Proxy {
                 } 
                 $payload;
             },
-            STORE => sub ($, Mu \$new) {
+            STORE => sub ($, Mu \new) {
                 $reified = 1;
-                $payload := $new;
+                $payload := new;
             }
         )
     }

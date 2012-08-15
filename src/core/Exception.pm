@@ -85,7 +85,7 @@ my class X::Method::InvalidQualifier is Exception {
 }
 
 
-sub EXCEPTION(|$) {
+sub EXCEPTION(|) {
     my Mu $parrot_ex := nqp::shift(pir::perl6_current_args_rpa__P());
     my Mu $payload   := nqp::atkey($parrot_ex, 'payload');
     if nqp::p6bool(nqp::istype($payload, Exception)) {
@@ -113,7 +113,7 @@ sub EXCEPTION(|$) {
 }
 
 my class X::Comp::AdHoc { ... }
-sub COMP_EXCEPTION(|$) {
+sub COMP_EXCEPTION(|) {
     my Mu $parrot_ex := nqp::shift(pir::perl6_current_args_rpa__P());
     my Mu $payload   := nqp::atkey($parrot_ex, 'payload');
     if nqp::p6bool(nqp::istype($payload, Exception)) {
@@ -148,7 +148,7 @@ do {
     }
 
 
-    sub print_exception(|$) is hidden_from_backtrace {
+    sub print_exception(|) is hidden_from_backtrace {
         my Mu $ex := nqp::atpos(pir::perl6_current_args_rpa__P(), 0);
         try {
             my $e := EXCEPTION($ex);
@@ -170,7 +170,7 @@ do {
         }
     }
 
-    sub print_control(|$) is hidden_from_backtrace {
+    sub print_control(|) is hidden_from_backtrace {
         my Mu $ex := nqp::atpos(pir::perl6_current_args_rpa__P(), 0);
         my int $type = nqp::atkey_i($ex, 'type');
         if ($type == pir::const::CONTROL_OK) {
@@ -210,7 +210,7 @@ do {
             
     my Mu $comp := pir::compreg__Ps('perl6');
     $comp.HOW.add_method($comp, 'handle-exception',
-        method (|$) {
+        method (|) {
             my Mu $ex := nqp::atpos(pir::perl6_current_args_rpa__P(), 1);
             pir::perl6_invoke_catchhandler__vPP(&print_exception, $ex);
             nqp::exit(1);
@@ -218,7 +218,7 @@ do {
         }
     );
     $comp.HOW.add_method($comp, 'handle-control',
-        method (|$) {
+        method (|) {
             my Mu $ex := nqp::atpos(pir::perl6_current_args_rpa__P(), 1);
             pir::perl6_invoke_catchhandler__vPP(&print_control, $ex);
             nqp::rethrow($ex);

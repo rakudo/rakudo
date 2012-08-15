@@ -80,7 +80,7 @@ Metamodel::EnumHOW.set_composalizer(-> $type, $name, %enum_values {
         $r.HOW.add_method($r, $key, $meth);
     }
     $r.HOW.set_body_block($r,
-        -> |$c { nqp::list($r, nqp::hash('$?CLASS', $c<$?CLASS>)) });
+        -> |c { nqp::list($r, nqp::hash('$?CLASS', c<$?CLASS>)) });
     $r.HOW.compose($r);
     $r
 });

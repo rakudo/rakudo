@@ -5,7 +5,7 @@ my class List does Positional {
     #   has $!flattens;        # true if this list flattens its parcels
     #   has $!nextiter;        # iterator for generating remaining elements
 
-    method new(|$) {
+    method new(|) {
         my Mu $args := pir::perl6_current_args_rpa__P();
         nqp::shift($args);
         nqp::p6list($args, self.WHAT, Mu);
@@ -36,7 +36,7 @@ my class List does Positional {
     method flattens() { $!flattens }
 
     my &itemify = { .elems == 1 ?? $_ !! [.list] };
-    proto method tree(|$) {*}
+    proto method tree(|) {*}
     multi method tree(List:U:) { self }
     multi method tree(List:D:) {
         MapIter.new(self, &itemify, Mu).list;
@@ -92,9 +92,9 @@ my class List does Positional {
         $!nextiter.defined ?? nqp::p6box_n('Inf') !! $n
     }
 
-    method exists(\$pos) {
-        self.gimme($pos + 1);
-        nqp::p6bool(nqp::existspos($!items, nqp::unbox_i($pos)))
+    method exists(\pos) {
+        self.gimme(pos + 1);
+        nqp::p6bool(nqp::existspos($!items, nqp::unbox_i(pos)))
     }
 
     method gimme($n) {
@@ -309,21 +309,21 @@ my class List does Positional {
     }
 
     multi method gist(List:D:) { self.Str }
-    multi method perl(List:D \$self:) {
+    multi method perl(List:D \SELF:) {
         self.gimme(*);
         self.Parcel.perl ~ '.list'  
-          ~ (nqp::iscont($self) ?? '.item' !! '')
+          ~ (nqp::iscont(SELF) ?? '.item' !! '')
     }
 
-    method REIFY(Parcel \$parcel, Mu \$nextiter) {
-        nqp::splice($!items, nqp::getattr($parcel, Parcel, '$!storage'),
+    method REIFY(Parcel \parcel, Mu \nextiter) {
+        nqp::splice($!items, nqp::getattr(parcel, Parcel, '$!storage'),
                     nqp::elems($!items), 0);
-        nqp::bindattr(self, List, '$!nextiter', $nextiter);
-        $parcel
+        nqp::bindattr(self, List, '$!nextiter', nextiter);
+        parcel
     }
 
-    method STORE_AT_POS(\$pos, Mu \$v) is rw {
-        nqp::bindpos($!items, nqp::unbox_i($pos), $v)
+    method STORE_AT_POS(\pos, Mu \v) is rw {
+        nqp::bindpos($!items, nqp::unbox_i(pos), v)
     }
 
     method FLATTENABLE_LIST() { self.gimme(*); $!items }
@@ -367,37 +367,37 @@ my class List does Positional {
     }
 }
 
-sub eager(|$) {
+sub eager(|) {
     nqp::p6parcel(pir::perl6_current_args_rpa__P(), Any).eager
 }
 
-sub flat(|$) {
+sub flat(|) {
     nqp::p6list(pir::perl6_current_args_rpa__P(), List, Bool::True)
 }
 
-sub list(|$) {
+sub list(|) {
     nqp::p6list(pir::perl6_current_args_rpa__P(), List, Mu)
 }
 
-proto infix:<xx>(|$)     { * }
-multi infix:<xx>()       { fail "No zero-arg meaning for infix:<xx>" }
-multi infix:<xx>(Mu \$x) { $x }
-multi infix:<xx>(Mu \$x, $n is copy, :$thunked) {
+proto infix:<xx>(|)       { * }
+multi infix:<xx>()        { fail "No zero-arg meaning for infix:<xx>" }
+multi infix:<xx>(Mu \x)   {x }
+multi infix:<xx>(Mu \x, $n is copy, :$thunked) {
     $n = nqp::p6bool(nqp::istype($n, Whatever)) ?? $Inf !! $n.Int;
-    GatherIter.new({ take ($thunked ?? $x() !! $x) while $n-- > 0; }, :infinite($n == $Inf)).list
+    GatherIter.new({ take ($thunked ?? x.() !! x) while $n-- > 0; }, :infinite($n == $Inf)).list
 }
 
-proto sub pop(|$) {*}
+proto sub pop(|) {*}
 multi sub pop(@a) { @a.pop }
 
-proto sub shift(|$) {*}
+proto sub shift(|) {*}
 multi sub shift(@a) { @a.shift }
 
-proto sub unshift(|$) {*}
-multi sub unshift(\$a, *@elems) { $a.unshift: @elems }
+proto sub unshift(|) {*}
+multi sub unshift(\a, *@elems) { a.unshift: @elems }
 
-proto sub push(|$) {*}
-multi sub push(\$a, *@elems) { $a.push: @elems }
+proto sub push(|) {*}
+multi sub push(\a, *@elems) { a.push: @elems }
 
 sub reverse(*@a)            { @a.reverse }
 sub rotate(@a, Int $n = 1)  { @a.rotate($n) }

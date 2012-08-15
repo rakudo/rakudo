@@ -15,13 +15,13 @@ my class FatRat    { ... }
 my class Enum      { ... }
 my class X::OutOfRange { ... }
 
-sub DYNAMIC(\$name) is rw { 
-    my Mu $x := pir::find_dynamic_lex__Ps(nqp::unbox_s($name));
+sub DYNAMIC(\name) is rw { 
+    my Mu $x := pir::find_dynamic_lex__Ps(nqp::unbox_s(name));
     if nqp::isnull($x) {
-        my str $pkgname = pir::replace__Ssiis(nqp::unbox_s($name), 1, 1, '');
+        my str $pkgname = pir::replace__Ssiis(nqp::unbox_s(name), 1, 1, '');
         if nqp::existskey(GLOBAL.WHO, $pkgname) { $x := nqp::atkey(GLOBAL.WHO, $pkgname) }
         elsif nqp::existskey(PROCESS.WHO, $pkgname) { $x := nqp::atkey(PROCESS.WHO, $pkgname) }
-        else { fail "Dynamic variable $name not found" }
+        else { fail "Dynamic variable name not found" }
     }
     $x
 }
@@ -30,7 +30,7 @@ sub DYNAMIC(\$name) is rw {
 # actually appear in the setting).
 {
     my class Dummy {
-        our proto method AUTOGEN(::T $: |$) { * }
+        our proto method AUTOGEN(::T $: |) { * }
     }
     Dummy.HOW.set_autogen_proto(&Dummy::AUTOGEN);
 }

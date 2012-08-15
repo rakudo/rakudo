@@ -86,15 +86,15 @@ my class Num does Real {
         nqp::p6box_n(nqp::exp_n(nqp::unbox_n(self)));
     }
 
-    proto method log(|$) {*}
+    proto method log(|) {*}
     multi method log(Num:D: ) {
         nqp::p6box_n(nqp::log_n(nqp::unbox_n(self)));
     }
-    multi method log(Num:D: Num \$base) {
-        self.log() / $base.log();
+    multi method log(Num:D: Num \base) {
+        self.log() / base.log();
     }
 
-    proto method sqrt(|$) {*}
+    proto method sqrt(|) {*}
     multi method sqrt(Num:D: ) {
         nqp::p6box_n(nqp::sqrt_n(nqp::unbox_n(self)));
     }
@@ -114,35 +114,35 @@ my class Num does Real {
             !! nqp::fromnum_I(nqp::floor_n(nqp::unbox_n(self)), Int);
     }
 
-    proto method sin(|$) {*}
+    proto method sin(|) {*}
     multi method sin(Num:D: ) {
         nqp::p6box_n(nqp::sin_n(nqp::unbox_n(self)));
     }
-    proto method asin(|$) {*}
+    proto method asin(|) {*}
     multi method asin(Num:D: ) {
         nqp::p6box_n(nqp::asin_n(nqp::unbox_n(self)));
     }
-    proto method cos(|$) {*}
+    proto method cos(|) {*}
     multi method cos(Num:D: ) {
         nqp::p6box_n(nqp::cos_n(nqp::unbox_n(self)));
     }
-    proto method acos(|$) {*}
+    proto method acos(|) {*}
     multi method acos(Num:D: ) {
         nqp::p6box_n(nqp::acos_n(nqp::unbox_n(self)));
     }
-    proto method tan(|$) {*}
+    proto method tan(|) {*}
     multi method tan(Num:D: ) {
         nqp::p6box_n(nqp::tan_n(nqp::unbox_n(self)));
     }
-    proto method atan(|$) {*}
+    proto method atan(|) {*}
     multi method atan(Num:D: ) {
         nqp::p6box_n(nqp::atan_n(nqp::unbox_n(self)));
     }
-    proto method sec(|$) {*}
+    proto method sec(|) {*}
     multi method sec(Num:D: ) {
         nqp::p6box_n(nqp::sec_n(nqp::unbox_n(self)));
     }
-    proto method asec(|$) {*}
+    proto method asec(|) {*}
     multi method asec(Num:D: ) {
         nqp::p6box_n(nqp::asec_n(nqp::unbox_n(self)));
     }
@@ -158,51 +158,51 @@ my class Num does Real {
     method acotan(Num:D:) {
         nqp::p6box_n(nqp::atan_n(nqp::div_n(1, nqp::unbox_n(self))));
     }
-    proto method sinh(|$) {*}
+    proto method sinh(|) {*}
     multi method sinh(Num:D: ) {
         nqp::p6box_n(nqp::sinh_n(nqp::unbox_n(self)));
     }
-    proto method asinh(|$) {*}
+    proto method asinh(|) {*}
     multi method asinh(Num:D: ) {
         (self + (self * self + 1).sqrt).log;
     }
-    proto method cosh(|$) {*}
+    proto method cosh(|) {*}
     multi method cosh(Num:D: ) {
         nqp::p6box_n(nqp::cosh_n(nqp::unbox_n(self)));
     }
-    proto method acosh(|$) {*}
+    proto method acosh(|) {*}
     multi method acosh(Num:D: ) {
         (self + (self * self - 1).sqrt).log;
     }
-    proto method tanh(|$) {*}
+    proto method tanh(|) {*}
     multi method tanh(Num:D: ) {
         nqp::p6box_n(nqp::tanh_n(nqp::unbox_n(self)));
     }
-    proto method atanh(|$) {*}
+    proto method atanh(|) {*}
     multi method atanh(Num:D: ) {
         ((1 + self) / (1 - self)).log / 2;
     }
-    proto method sech(|$) {*}
+    proto method sech(|) {*}
     multi method sech(Num:D: ) {
         nqp::p6box_n(nqp::sech_n(nqp::unbox_n(self)));
     }
-    proto method asech(|$) {*}
+    proto method asech(|) {*}
     multi method asech(Num:D: ) {
         (1 / self).acosh;
     }
-    proto method cosech(|$) {*}
+    proto method cosech(|) {*}
     multi method cosech(Num:D: ) {
         nqp::p6box_n(nqp::div_n(1, nqp::sinh_n(nqp::unbox_n(self))));
     }
-    proto method acosech(|$) {*}
+    proto method acosech(|) {*}
     multi method acosech(Num:D: ) {
         (1 / self).asinh;
     }
-    proto method cotanh(|$) {*}
+    proto method cotanh(|) {*}
     multi method cotanh(Num:D: ) {
         nqp::p6box_n(nqp::div_n(1, nqp::tanh_n(nqp::unbox_n(self))));
     }
-    proto method acotanh(|$) {*}
+    proto method acotanh(|) {*}
     multi method acotanh(Num:D: ) {
         (1 / self).atanh;
     }
@@ -211,117 +211,117 @@ my class Num does Real {
 my constant pi = 3.14159_26535_89793_238e0;
 my constant e  = 2.71828_18284_59045_235e0;
 
-multi prefix:<++>(Num:D \$a is rw) {   # XXX
-    $a = nqp::p6box_n(nqp::add_n(nqp::unbox_n($a), 1))
+multi prefix:<++>(Num:D \a is rw) {   # XXX
+    a = nqp::p6box_n(nqp::add_n(nqp::unbox_n(a), 1))
 }
-multi prefix:<++>(Num:U \$a is rw) {   # XXX
-    $a = 1e0;
+multi prefix:<++>(Num:U \a is rw) {   # XXX
+    a = 1e0;
 }
-multi prefix:<-->(Num:D \$a is rw) {   # XXX
-    $a = nqp::p6box_n(nqp::sub_n(nqp::unbox_n($a), 1))
+multi prefix:<-->(Num:D \a is rw) {   # XXX
+    a = nqp::p6box_n(nqp::sub_n(nqp::unbox_n(a), 1))
 }
-multi prefix:<-->(Num:U \$a is rw) {   # XXX
-    $a = -1e0;
+multi prefix:<-->(Num:U \a is rw) {   # XXX
+    a = -1e0;
 }
-multi postfix:<++>(Num:D \$a is rw) {  # XXX
-    my $b = $a;
-    $a = nqp::p6box_n(nqp::add_n(nqp::unbox_n($a), 1));
+multi postfix:<++>(Num:D \a is rw) {  # XXX
+    my $b = a;
+    a = nqp::p6box_n(nqp::add_n(nqp::unbox_n(a), 1));
     $b
 }
-multi postfix:<++>(Num:U \$a is rw) {   # XXX
-    $a = 1e0;
+multi postfix:<++>(Num:U \a is rw) {   # XXX
+    a = 1e0;
     0
 }
-multi postfix:<-->(Num:D \$a is rw) {  # XXX
-    my $b = $a;
-    $a = nqp::p6box_n(nqp::sub_n(nqp::unbox_n($a), 1));
+multi postfix:<-->(Num:D \a is rw) {  # XXX
+    my $b = a;
+    a = nqp::p6box_n(nqp::sub_n(nqp::unbox_n(a), 1));
     $b
 }
-multi postfix:<-->(Num:U \$a is rw) {   # XXX
-    $a = -1e0;
+multi postfix:<-->(Num:U \a is rw) {   # XXX
+    a = -1e0;
     0
 }
 
-multi prefix:<->(Num:D \$a) {
-    nqp::p6box_n(nqp::neg_n(nqp::unbox_n($a)))
+multi prefix:<->(Num:D \a) {
+    nqp::p6box_n(nqp::neg_n(nqp::unbox_n(a)))
 }
 multi prefix:<->(num $a) {
     nqp::neg_n($a);
 }
 
-multi sub abs(Num:D \$a) {
-    nqp::p6box_n(nqp::abs_n(nqp::unbox_n($a)))
+multi sub abs(Num:D \a) {
+    nqp::p6box_n(nqp::abs_n(nqp::unbox_n(a)))
 }
 multi sub abs(num $a) {
     nqp::abs_n($a)
 }
 
-multi infix:<+>(Num:D \$a, Num:D \$b) {
-    nqp::p6box_n(nqp::add_n(nqp::unbox_n($a), nqp::unbox_n($b)))
+multi infix:<+>(Num:D \a, Num:D \b) {
+    nqp::p6box_n(nqp::add_n(nqp::unbox_n(a), nqp::unbox_n(b)))
 }
 multi infix:<+>(num $a, num $b) {
     nqp::add_n($a, $b)
 }
 
-multi infix:<->(Num:D \$a, Num:D \$b) {
-    nqp::p6box_n(nqp::sub_n(nqp::unbox_n($a), nqp::unbox_n($b)))
+multi infix:<->(Num:D \a, Num:D \b) {
+    nqp::p6box_n(nqp::sub_n(nqp::unbox_n(a), nqp::unbox_n(b)))
 }
 multi infix:<->(num $a, num $b) {
     nqp::sub_n($a, $b)
 }
 
-multi infix:<*>(Num:D \$a, Num:D \$b) {
-    nqp::p6box_n(nqp::mul_n(nqp::unbox_n($a), nqp::unbox_n($b)))
+multi infix:<*>(Num:D \a, Num:D \b) {
+    nqp::p6box_n(nqp::mul_n(nqp::unbox_n(a), nqp::unbox_n(b)))
 }
-multi infix:<*>(num \$a, num \$b) {
+multi infix:<*>(num $a, num $b) {
     nqp::mul_n($a, $b)
 }
 
-multi infix:</>(Num:D \$a, Num:D \$b) {
-    nqp::p6box_n(nqp::div_n(nqp::unbox_n($a), nqp::unbox_n($b)))
+multi infix:</>(Num:D \a, Num:D \b) {
+    nqp::p6box_n(nqp::div_n(nqp::unbox_n(a), nqp::unbox_n(b)))
 }
 multi infix:</>(num $a, num $b) {
     nqp::div_n($a, $b)
 }
 
-multi infix:<%>(Num:D \$a, Num:D \$b) {
-    nqp::p6box_n(nqp::mod_n(nqp::unbox_n($a), nqp::unbox_n($b)))
+multi infix:<%>(Num:D \a, Num:D \b) {
+    nqp::p6box_n(nqp::mod_n(nqp::unbox_n(a), nqp::unbox_n(b)))
 }
 multi infix:<%>(num $a, num $b) {
     nqp::mod_n($a, $b)
 }
 
-multi infix:<**>(Num:D \$a, Num:D \$b) {
-    nqp::p6box_n(nqp::pow_n(nqp::unbox_n($a), nqp::unbox_n($b)))
+multi infix:<**>(Num:D \a, Num:D \b) {
+    nqp::p6box_n(nqp::pow_n(nqp::unbox_n(a), nqp::unbox_n(b)))
 }
 multi infix:<**>(num $a, num $b) {
     nqp::pow_n($a, $b)
 }
 
 
-multi infix:<cmp>(Num:D \$a, Num:D \$b) {
-    Order.(nqp::p6box_i(nqp::cmp_n(nqp::unbox_n($a), nqp::unbox_n($b))))
+multi infix:<cmp>(Num:D \a, Num:D \b) {
+    Order.(nqp::p6box_i(nqp::cmp_n(nqp::unbox_n(a), nqp::unbox_n(b))))
 }
 multi infix:<cmp>(num $a, num $b) {
     Order.(nqp::p6box_i(nqp::cmp_n($a, $b)))
 }
 
-multi infix:«<=>»(Num:D \$a, Num:D \$b) {
-    Order.(nqp::p6box_i(nqp::cmp_n(nqp::unbox_n($a), nqp::unbox_n($b))))
+multi infix:«<=>»(Num:D \a, Num:D \b) {
+    Order.(nqp::p6box_i(nqp::cmp_n(nqp::unbox_n(a), nqp::unbox_n(b))))
 }
 multi infix:«<=>»(num $a, num $b) {
     Order.(nqp::p6box_i(nqp::cmp_n($a, $b)))
 }
 
-multi infix:<===>(Num:D \$a, Num:D \$b) {
-    nqp::p6bool(nqp::iseq_n(nqp::unbox_n($a), nqp::unbox_n($b)))
+multi infix:<===>(Num:D \a, Num:D \b) {
+    nqp::p6bool(nqp::iseq_n(nqp::unbox_n(a), nqp::unbox_n(b)))
 }
 multi infix:<===>(num $a, num $b) returns Bool:D {
     nqp::p6bool(nqp::iseq_n($a, $b))
 }
 
-multi infix:<==>(Num:D \$a, Num:D \$b) returns Bool:D  {
-    nqp::p6bool(nqp::iseq_n(nqp::unbox_n($a), nqp::unbox_n($b)))
+multi infix:<==>(Num:D \a, Num:D \b) returns Bool:D  {
+    nqp::p6bool(nqp::iseq_n(nqp::unbox_n(a), nqp::unbox_n(b)))
 }
 multi infix:<==>(num $a, num $b) returns Bool:D  {
     nqp::p6bool(nqp::iseq_n($a, $b))
@@ -331,29 +331,29 @@ multi infix:<!=>(num $a, num $b) returns Bool:D {
     nqp::p6bool(nqp::isne_n($a, $b))
 }
 
-multi infix:«<»(Num:D \$a, Num:D \$b) returns Bool:D {
-    nqp::p6bool(nqp::islt_n(nqp::unbox_n($a), nqp::unbox_n($b)))
+multi infix:«<»(Num:D \a, Num:D \b) returns Bool:D {
+    nqp::p6bool(nqp::islt_n(nqp::unbox_n(a), nqp::unbox_n(b)))
 }
 multi infix:«<»(num $a, num $b) returns Bool:D {
     nqp::p6bool(nqp::islt_n($a, $b))
 }
 
-multi infix:«<=»(Num:D \$a, Num:D \$b) returns Bool:D {
-    nqp::p6bool(nqp::isle_n(nqp::unbox_n($a), nqp::unbox_n($b)))
+multi infix:«<=»(Num:D \a, Num:D \b) returns Bool:D {
+    nqp::p6bool(nqp::isle_n(nqp::unbox_n(a), nqp::unbox_n(b)))
 }
 multi infix:«<=»(num $a, num $b) returns Bool:D {
     nqp::p6bool(nqp::isle_n($a, $b))
 }
 
-multi infix:«>»(Num:D \$a, Num:D \$b) returns Bool:D {
-    nqp::p6bool(nqp::isgt_n(nqp::unbox_n($a), nqp::unbox_n($b)))
+multi infix:«>»(Num:D \a, Num:D \b) returns Bool:D {
+    nqp::p6bool(nqp::isgt_n(nqp::unbox_n(a), nqp::unbox_n(b)))
 }
 multi infix:«>»(num $a, num $b) returns Bool:D {
     nqp::p6bool(nqp::isgt_n($a, $b))
 }
 
-multi infix:«>=»(Num:D \$a, Num:D \$b) returns Bool:D {
-    nqp::p6bool(nqp::isge_n(nqp::unbox_n($a), nqp::unbox_n($b)))
+multi infix:«>=»(Num:D \a, Num:D \b) returns Bool:D {
+    nqp::p6bool(nqp::isge_n(nqp::unbox_n(a), nqp::unbox_n(b)))
 }
 multi infix:«>=»(num $a, num $b) returns Bool:D {
     nqp::p6bool(nqp::isge_n($a, $b))
@@ -372,11 +372,11 @@ multi sub atan2(Num:D $a, Num:D $b = 1e0) {
     nqp::p6box_n(nqp::atan2_n(nqp::unbox_n($a), nqp::unbox_n($b)));
 }
 
-multi sub cosec(Num:D \$x) {
-    nqp::p6box_n(nqp::div_n(1, nqp::sin_n(nqp::unbox_n($x))));
+multi sub cosec(Num:D \x) {
+    nqp::p6box_n(nqp::div_n(1, nqp::sin_n(nqp::unbox_n(x))));
 }
-multi sub acosec(Num:D \$x) {
-    nqp::p6box_n(nqp::asin_n(nqp::div_n(1, nqp::unbox_n($x))));
+multi sub acosec(Num:D \x) {
+    nqp::p6box_n(nqp::asin_n(nqp::div_n(1, nqp::unbox_n(x))));
 }
 
 multi sub log(num $x) {

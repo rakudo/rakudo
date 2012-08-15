@@ -1,7 +1,7 @@
 class Array {
     # Has attributes and parent List declared in BOOTSTRAP.    
 
-    method new(|$) { 
+    method new(|) { 
         my Mu $args := pir::perl6_current_args_rpa__P();
         nqp::shift($args);
         nqp::p6list($args, self.WHAT, Bool::True);
@@ -29,15 +29,15 @@ class Array {
                  -> { nqp::bindpos($items, $pos, $v) } )
     }
 
-    proto method bind_pos(|$) { * }
-    multi method bind_pos($pos is copy, \$bindval) is rw {
+    proto method bind_pos(|) { * }
+    multi method bind_pos($pos is copy, \bindval) is rw {
         $pos = $pos.Int;
         self.gimme($pos + 1);
-        nqp::bindpos(nqp::getattr(self, List, '$!items'), nqp::unbox_i($pos), $bindval);
+        nqp::bindpos(nqp::getattr(self, List, '$!items'), nqp::unbox_i($pos), bindval);
     }
-    multi method bind_pos(int $pos, \$bindval) is rw {
+    multi method bind_pos(int $pos, \bindval) is rw {
         self.gimme($pos + 1);
-        nqp::bindpos(nqp::getattr(self, List, '$!items'), $pos, $bindval)
+        nqp::bindpos(nqp::getattr(self, List, '$!items'), $pos, bindval)
     }
     
     method delete(@array is rw: *@indices) {
@@ -62,28 +62,28 @@ class Array {
 
     method flattens() { 1 }
 
-    multi method perl(Array:D \$self:) {
-        nqp::iscont($self)
+    multi method perl(Array:D \SELF:) {
+        nqp::iscont(SELF)
           ?? '[' ~ self.map({.perl}).join(', ') ~ ']'
           !! self.WHAT.perl ~ '.new(' ~ self.map({.perl}).join(', ') ~ ')'
     }
 
-    method REIFY(Parcel \$parcel, Mu \$nextiter) {
-        my Mu $rpa := nqp::getattr($parcel, Parcel, '$!storage');
+    method REIFY(Parcel \parcel, Mu \nextiter) {
+        my Mu $rpa := nqp::getattr(parcel, Parcel, '$!storage');
         my Mu $iter := nqp::iterator($rpa);
         my int $i = 0;
         while $iter {
             nqp::bindpos($rpa, $i, my $v = nqp::shift($iter));
             $i = $i + 1;
         }
-        nqp::findmethod(List, 'REIFY')(self, $parcel, $nextiter)
+        nqp::findmethod(List, 'REIFY')(self, parcel, nextiter)
     }
 
-    method STORE_AT_POS(\$pos, Mu $v is copy) is rw {
-        nqp::findmethod(List, 'STORE_AT_POS')(self, $pos, $v);
+    method STORE_AT_POS(\pos, Mu $v is copy) is rw {
+        nqp::findmethod(List, 'STORE_AT_POS')(self, pos, $v);
     }
 
-    method STORE(|$) {
+    method STORE(|) {
         # get arguments, shift off invocant
         my $args := pir::perl6_current_args_rpa__P();
         nqp::shift($args);
@@ -113,14 +113,14 @@ class Array {
               !! pir::setattribute__0PPsP($v, Scalar, '$!whence',
                      -> { nqp::bindpos(nqp::getattr(self, List, '$!items'), $pos, $v) } )
         }
-        multi method bind_pos($pos is copy, TValue \$bindval) is rw {
+        multi method bind_pos($pos is copy, TValue \bindval) is rw {
             $pos = $pos.Int;
             self.gimme($pos + 1);
-            nqp::bindpos(nqp::getattr(self, List, '$!items'), nqp::unbox_i($pos), $bindval)
+            nqp::bindpos(nqp::getattr(self, List, '$!items'), nqp::unbox_i($pos), bindval)
         }
-        multi method bind_pos(int $pos, TValue \$bindval) is rw {
+        multi method bind_pos(int $pos, TValue \bindval) is rw {
             self.gimme($pos + 1);
-            nqp::bindpos(nqp::getattr(self, List, '$!items'), $pos, $bindval)
+            nqp::bindpos(nqp::getattr(self, List, '$!items'), $pos, bindval)
         }
         # XXX some methods to come here...
     }

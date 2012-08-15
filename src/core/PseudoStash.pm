@@ -138,14 +138,14 @@ my class PseudoStash is EnumMap {
         }
     }
     
-    method bind_key($key is copy, \$value) {
+    method bind_key($key is copy, \value) {
         $key = $key.Str;
         if %pseudoers.exists($key) {
             X::Bind.new(target => "pseudo-package $key").throw;
         }
         elsif $!mode == PRECISE_SCOPE {
             my Mu $store := nqp::getattr(self, EnumMap, '$!storage');
-            nqp::bindkey($store, nqp::unbox_s($key), $value)
+            nqp::bindkey($store, nqp::unbox_s($key), value)
         }
         elsif $!mode == DYNAMIC_CHAIN || $!mode == PICK_CHAIN_BY_NAME && substr($key, 1, 1) eq '*' {
             die "Binding to dynamic variables not yet implemented";

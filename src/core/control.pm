@@ -2,7 +2,7 @@ my class Nil { ... }
 my class X::Eval::NoSuchLang { ... }
 
 my &THROW :=
-    -> |$ {
+    -> | {
         Q:PIR {
             .local pmc args, payload, type, severity, ex
             args = perl6_current_args_rpa
@@ -21,62 +21,62 @@ my &THROW :=
         0
     };
 
-my &RETURN-PARCEL := -> Mu \$parcel {
-    my Mu $storage := nqp::getattr($parcel, Parcel, '$!storage');
+my &RETURN-PARCEL := -> Mu \parcel {
+    my Mu $storage := nqp::getattr(parcel, Parcel, '$!storage');
     nqp::iseq_i(nqp::elems($storage), 0)
       ?? Nil
       !! (nqp::iseq_i(nqp::elems($storage), 1)
             ?? nqp::shift($storage)
-            !! $parcel)
+            !! parcel)
 }
 
-my &return-rw := -> |$ { 
+my &return-rw := -> | { 
     my $parcel := 
         &RETURN-PARCEL(nqp::p6parcel(pir::perl6_current_args_rpa__P(), Nil));
     nqp::p6routinereturn($parcel);
     $parcel
 };
-my &return := -> |$ {
+my &return := -> | {
     my $parcel := 
         &RETURN-PARCEL(nqp::p6parcel(pir::perl6_current_args_rpa__P(), Nil));
     nqp::p6routinereturn(nqp::p6recont_ro($parcel));
     $parcel
 };
 
-my &take-rw := -> |$ { 
+my &take-rw := -> | { 
     my $parcel := 
         &RETURN-PARCEL(nqp::p6parcel(pir::perl6_current_args_rpa__P(), Nil));
     THROW($parcel, pir::const::CONTROL_TAKE) 
 };
-my &take := -> |$ { 
+my &take := -> | { 
     my $parcel := 
         &RETURN-PARCEL(nqp::p6parcel(pir::perl6_current_args_rpa__P(), Nil));
     THROW(nqp::p6recont_ro($parcel),
           pir::const::CONTROL_TAKE) 
 };
 
-my &last := -> |$ { 
+my &last := -> | { 
     my $parcel := 
         &RETURN-PARCEL(nqp::p6parcel(pir::perl6_current_args_rpa__P(), Nil));
     THROW(nqp::p6decont($parcel), 
           pir::const::CONTROL_LOOP_LAST) 
 };
 
-my &next := -> |$ { 
+my &next := -> | { 
     my $parcel := 
         &RETURN-PARCEL(nqp::p6parcel(pir::perl6_current_args_rpa__P(), Nil));
     THROW(nqp::p6decont($parcel), 
           pir::const::CONTROL_LOOP_NEXT) 
 };
 
-my &redo := -> |$ { 
+my &redo := -> | { 
     my $parcel := 
         &RETURN-PARCEL(nqp::p6parcel(pir::perl6_current_args_rpa__P(), Nil));
     THROW(nqp::p6decont($parcel), 
           pir::const::CONTROL_LOOP_REDO) 
 };
 
-my &succeed := -> |$ { 
+my &succeed := -> | { 
     my $parcel := 
         &RETURN-PARCEL(nqp::p6parcel(pir::perl6_current_args_rpa__P(), Nil));
     THROW(nqp::p6decont($parcel), 
@@ -124,7 +124,7 @@ my &lastcall := -> {
     True
 };
 
-proto sub die(|$) is hidden_from_backtrace {*};
+proto sub die(|) is hidden_from_backtrace {*};
 multi sub die(Exception $e) is hidden_from_backtrace { $e.throw }
 multi sub die($payload) is hidden_from_backtrace {
     X::AdHoc.new(:$payload).throw
@@ -142,7 +142,7 @@ multi sub warn(*@msg) is hidden_from_backtrace {
     0;
 }
 
-proto sub eval(|$) {*}
+proto sub eval(|) {*}
 multi sub eval(Str $code, :$lang = 'perl6') {
     my $caller_ctx := Q:PIR {
         $P0 = getinterp
@@ -208,6 +208,6 @@ sub QX($cmd) {
     $result;
 }
 
-sub EXHAUST(|$) {
+sub EXHAUST(|) {
     X::ControlFlow::Return.new.throw();
 }

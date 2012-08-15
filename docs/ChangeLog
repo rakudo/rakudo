@@ -15,6 +15,11 @@ New in 2012.08
   where they appeared each side of an infix operator
 + detect circularities in module loading
 + sigilless variables in signatures when proeceed by | or \
++ prevented blocks that declare variables turning into hash constructors
++ made pre-compilation complain if dependencies are not pre-compiled yet
++ fixed interpolation of double-quoted strings in regexes
++ fixed issue with Num.new not being friendly to subclassing
++ implemented handling of complex numbers in Str.Numeric
 
 New in 2012.07
 + Deprecated SAFE.setting in favor of RESTRICTED.setting

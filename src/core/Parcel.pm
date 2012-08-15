@@ -34,11 +34,11 @@ my class Parcel does Positional {
     method list()  { nqp::p6list(nqp::clone($!storage), List, Mu) }
     method lol()   { nqp::p6list(nqp::clone($!storage), LoL, Mu) }
 
-    method at_pos(Parcel:D: \$x) is rw { self.flat.at_pos($x); }
+    method at_pos(Parcel:D: \x) is rw { self.flat.at_pos(x); }
 
     proto method postcircumfix:<[ ]>(|)                  { * }
     multi method postcircumfix:<[ ]>() is rw              { self.flat }
-    multi method postcircumfix:<[ ]>(Parcel:D: \$x) is rw { self.flat.[$x] }
+    multi method postcircumfix:<[ ]>(Parcel:D: \x) is rw  { self.flat.[x] }
 
     multi method gist(Parcel:D:) {
         my Mu $gist := nqp::list();
@@ -47,9 +47,9 @@ my class Parcel does Positional {
         nqp::p6box_s(nqp::join(' ', $gist))
     }
 
-    multi method perl(Parcel:D \$self:) {
+    multi method perl(Parcel:D \SELF:) {
         my Mu $rpa := nqp::clone($!storage);
-        my $perl = nqp::iscont($self) ?? '$(' !! '(';
+        my $perl = nqp::iscont(SELF) ?? '$(' !! '(';
         if $rpa {
             $perl = $perl ~ nqp::shift($rpa).perl;
             if $rpa {

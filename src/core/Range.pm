@@ -40,19 +40,19 @@ class Range is Iterable does Positional {
 
     method bounds()   { ($!min, $!max) }
 
-    multi method ACCEPTS(Range:D: Mu \$topic) {
-        ($topic cmp $!min) > -(!$!excludes_min)
-            and ($topic cmp $!max) < +(!$!excludes_max)
+    multi method ACCEPTS(Range:D: Mu \topic) {
+        (topic cmp $!min) > -(!$!excludes_min)
+            and (topic cmp $!max) < +(!$!excludes_max)
     }
 
-    multi method ACCEPTS(Range:D: Range \$topic) {
-        ($topic.min > $!min
-         || $topic.min == $!min
-            && !(!$topic.excludes_min && $!excludes_min))
+    multi method ACCEPTS(Range:D: Range \topic) {
+        (topic.min > $!min
+         || topic.min == $!min
+            && !(!topic.excludes_min && $!excludes_min))
         &&
-        ($topic.max < $!max
-         || $topic.max == $!max
-            && !(!$topic.excludes_max && $!excludes_max))
+        (topic.max < $!max
+         || topic.max == $!max
+            && !(!topic.excludes_max && $!excludes_max))
     }
 
     method reify($n = 10) {

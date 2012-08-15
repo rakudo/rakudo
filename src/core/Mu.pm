@@ -256,8 +256,8 @@ my class Mu {
     }
     
     # XXX TODO: Handle positional case.
-    method dispatch:<var>(Mu \SELF: $var, |$c) is rw is hidden_from_backtrace {
-        $var(SELF, |$c)
+    method dispatch:<var>(Mu \SELF: $var, |c) is rw is hidden_from_backtrace {
+        $var(SELF, |c)
     }
     
     method dispatch:<::>(Mu \SELF: $name, Mu $type, |c) is rw {

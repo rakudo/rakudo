@@ -233,8 +233,8 @@ multi prefix:<+^>(int $a) {
 }
 
 proto sub chr($) {*}
-multi sub chr(Int:D  \$x) returns Str:D { $x.chr     }
-multi sub chr(Cool \$x) returns Str:D { $x.Int.chr }
+multi sub chr(Int:D  \x) returns Str:D { x.chr     }
+multi sub chr(Cool \x) returns Str:D { x.Int.chr }
 multi sub chr(int $x) returns str {
     nqp::chr($x);
 }

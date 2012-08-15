@@ -1,0 +1,22 @@
+#! /usr/bin/env perl
+use strict;
+use warnings;
+
+my @OPTS = ('--keep-exit-code', 'rakudo');
+
+if (@ARGV) {
+    my $file = $ARGV[0];
+    if (! -e $file) {
+        my $spec = "t/spec/$file";
+        if (-e $spec) {
+            $ARGV[0] = $spec;
+        }
+    }
+}
+
+my $nt = `t/spec/fudge @OPTS @ARGV`;
+# uninstalled rakudo doesn't know how to find Test.pm
+# ... or any other modules
+my $pwd = `pwd`; chomp $pwd;
+$ENV{PERL6LIB}="$pwd/lib:.";
+system("./perl6", split ' ', $nt);

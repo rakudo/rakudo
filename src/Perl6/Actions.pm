@@ -2887,7 +2887,7 @@ class Perl6::Actions is HLL::Actions {
         } else {
             $cur_pad[0].push(QAST::Var.new( :name(~$/), :scope('lexical'), :decl('var') ));
         }
-        $cur_pad.symbol(~$/, :scope('lexical'));
+        $cur_pad.symbol($name, :scope('lexical'));
     }
 
     method named_param($/) {

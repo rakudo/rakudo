@@ -170,7 +170,7 @@ my class Mu {
 
     method Stringy() { self.Str }
     
-    method item(Mu \$item:) is rw { $item }
+    method item(Mu \item:) is rw { item }
     
     proto method say(|) { * }
     multi method say() { say(self) }

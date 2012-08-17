@@ -376,8 +376,7 @@ my class X::Placeholder::Block does X::Comp {
     }
 }
 
-my class X::Placeholder::Mainline does X::Comp {
-    has $.placeholder;
+my class X::Placeholder::Mainline is X::Placeholder::Block {
     method message() {
         "Cannot use placeholder parameter $.placeholder in the mainline"
     }

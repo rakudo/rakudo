@@ -1778,12 +1778,13 @@ grammar Perl6::Grammar is HLL::Grammar {
                 $<quant> eq '!'                     ?? '!' !!
                 $<quant> ne '' && $<quant> ne '\\'  ?? '*' !!
                                                        '!';
+            my $name := %*PARAM_INFO<variable_name> // '';
             if $kind eq '!' {
                 if $*zone eq 'posopt' {
-                    $/.CURSOR.typed_panic('X::Parameter::WrongOrder', misplaced => 'required', after => 'optional');
+                    $/.CURSOR.typed_panic('X::Parameter::WrongOrder', misplaced => 'required', after => 'optional', parameter => $name);
                 }
                 elsif $*zone eq 'var' {
-                    $/.CURSOR.typed_panic('X::Parameter::WrongOrder', misplaced => 'required', after => 'variadic');
+                    $/.CURSOR.typed_panic('X::Parameter::WrongOrder', misplaced => 'required', after => 'variadic', parameter => $name);
                 }
             }
             elsif $kind eq '?' {
@@ -1791,7 +1792,7 @@ grammar Perl6::Grammar is HLL::Grammar {
                         $*zone := 'posopt';
                 }
                 elsif $*zone eq  'var' {
-                    $/.CURSOR.typed_panic('X::Parameter::WrongOrder', misplaced => 'optional positional', after => 'variadic');
+                    $/.CURSOR.typed_panic('X::Parameter::WrongOrder', misplaced => 'optional positional', after => 'variadic', parameter => $name);
                 }
             }
             elsif $kind eq '*' {

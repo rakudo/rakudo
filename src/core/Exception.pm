@@ -448,16 +448,19 @@ my class X::Parameter::Twigil does X::Comp {
 }
 
 my class X::Parameter::MultipleTypeConstraints does X::Comp {
+    has $.parameter;
     method message() {
-        "A parameter may only have on prefix type constraint";
+        ($.parameter ?? "Parameter $.parameter" !! 'A parameter')
+        ~ " may only have one prefix type constraint";
     }
 }
 
 my class X::Parameter::WrongOrder does X::Comp {
     has $.misplaced;
+    has $.parameter;
     has $.after;
     method message() {
-        "Cannot put $.misplaced parameter after $.after parameters";
+        "Cannot put $.misplaced parameter $.parameter after $.after parameters";
     }
 }
 

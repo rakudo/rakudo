@@ -2947,7 +2947,9 @@ class Perl6::Actions is HLL::Actions {
             }
             else {
                 if nqp::existskey(%*PARAM_INFO, 'nominal_type') {
-                    $*W.throw($/, ['X', 'Parameter', 'MultipleTypeConstraints']);
+                    $*W.throw($/, ['X', 'Parameter', 'MultipleTypeConstraints'],
+                        parameter => (%*PARAM_INFO<variable_name> // ''),
+                    );
                 }
                 my $type := $<typename>.ast;
                 if nqp::isconcrete($type) {
@@ -2991,7 +2993,9 @@ class Perl6::Actions is HLL::Actions {
         }
         elsif $<value> {
             if nqp::existskey(%*PARAM_INFO, 'nominal_type') {
-                $*W.throw($/, ['X', 'Parameter', 'MultipleTypeConstraints']);
+                $*W.throw($/, ['X', 'Parameter', 'MultipleTypeConstraints'],
+                        parameter => (%*PARAM_INFO<variable_name> // ''),
+                );
             }
             my $ast := $<value>.ast;
             unless $ast.has_compile_time_value {

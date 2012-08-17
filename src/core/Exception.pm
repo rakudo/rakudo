@@ -384,10 +384,10 @@ my class X::Placeholder::Mainline is X::Placeholder::Block {
 
 my class X::Attribute::Undeclared does X::Comp {
     has $.name;
-    has $.package-type;
+    has $.package-kind;
     has $.package-name;
     method message() {
-        "Attribute $.name not declared in $.package-type $.package-name";
+        "Attribute $.name not declared in $.package-kind $.package-name";
     }
 }
 
@@ -647,8 +647,8 @@ my class X::Syntax::InfixInTermPosition does X::Syntax {
 }
 
 my class X::Attribute::Package does X::Comp {
-    has $.package-type;
-    method message() { "A $.package-type cannot have attributes" }
+    has $.package-kind;
+    method message() { "A $.package-kind cannot have attributes" }
 }
 my class X::Attribute::NoPackage does X::Comp {
     method message() { "You cannot declare an attribute here; maybe you'd like a class or a role?" }
@@ -671,13 +671,13 @@ my class X::Anon::Multi does X::Comp {
     method message() { "Cannot put $.multiness on anonymous $.routine-type" }
 }
 my class X::Anon::Augment does X::Comp {
-    has $.package-type;
-    method message() { "Cannot augment anonymous $.package-type" }
+    has $.package-kind;
+    method message() { "Cannot augment anonymous $.package-kind" }
 }
 my class X::Augment::NoSuchType does X::Comp {
-    has $.package-type;
+    has $.package-kind;
     has $.package;
-    method message() { "You tried to augment $.package-type $.package, but it does not exist" }
+    method message() { "You tried to augment $.package-kind $.package, but it does not exist" }
 }
 
 my class X::Routine::Unwrap is Exception {

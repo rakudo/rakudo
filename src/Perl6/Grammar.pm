@@ -1376,7 +1376,7 @@ grammar Perl6::Grammar is HLL::Grammar {
                         $/.CURSOR.typed_panic('X::Syntax::Augment::Role');
                     }
                     unless @name {
-                        $*W.throw($/, 'X::Anon::Augment', package-type => $*PKGDECL);
+                        $*W.throw($/, 'X::Anon::Augment', package-kind => $*PKGDECL);
                     }
                     
                     # Locate type.
@@ -1384,7 +1384,7 @@ grammar Perl6::Grammar is HLL::Grammar {
                     try { $*PACKAGE := $*W.find_symbol(@name); $found := 1 }
                     unless $found {
                         $*W.throw($/, 'X::Augment::NoSuchType',
-                            package-type => $*PKGDECL,
+                            package-kind => $*PKGDECL,
                             package      => $longname.text(),
                         );
                     }

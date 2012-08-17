@@ -382,12 +382,20 @@ my class X::Placeholder::Mainline is X::Placeholder::Block {
     }
 }
 
-my class X::Attribute::Undeclared does X::Comp {
-    has $.name;
+my class X::Undeclared does X::Comp {
+    has $.what = 'Variable';
+    has $.symbol;
+    method message() {
+        "$.what $.symbol is not declared";
+    }
+}
+
+my class X::Attribute::Undeclared is X::Undeclared {
     has $.package-kind;
     has $.package-name;
+
     method message() {
-        "Attribute $.name not declared in $.package-kind $.package-name";
+        "Attribute $.symbol not declared in $.package-kind $.package-name";
     }
 }
 
@@ -397,14 +405,6 @@ my class X::Redeclaration does X::Comp {
     has $.what    = 'symbol';
     method message() {
         "Redeclaration of $.what $.symbol$.postfix";
-    }
-}
-
-my class X::Undeclared does X::Comp {
-    has $.what = 'Variable';
-    has $.symbol;
-    method message() {
-        "$.what $.symbol is not declared";
     }
 }
 

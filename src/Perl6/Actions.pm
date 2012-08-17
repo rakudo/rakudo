@@ -1311,9 +1311,10 @@ class Perl6::Actions is HLL::Actions {
         }
         unless $found {
             $*W.throw($/, ['X', 'Attribute', 'Undeclared'],
-                    name         => $name,
+                    symbol       => $name,
                     package-kind => $*PKGDECL,
                     package-name => $*PACKAGE.HOW.name($*PACKAGE),
+                    what         => 'attribute',
             );
         }
         $attr

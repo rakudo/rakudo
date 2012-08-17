@@ -2774,11 +2774,14 @@ class Perl6::Actions is HLL::Actions {
         # Sanity checks.
         my $quant := $<quant>;
         if $<default_value> {
+            my $name := %*PARAM_INFO<variable_name> // '';
             if $quant eq '*' {
-                $*W.throw($/, ['X', 'Parameter', 'Default'], how => 'slurpy');
+                $*W.throw($/, ['X', 'Parameter', 'Default'], how => 'slurpy',
+                            parameter => $name);
             }
             if $quant eq '!' {
-                $*W.throw($/, ['X', 'Parameter', 'Default'], how => 'required');
+                $*W.throw($/, ['X', 'Parameter', 'Default'], how => 'required',
+                            parameter => $name);
             }
             my $val := $<default_value>[0].ast;
             if $val.has_compile_time_value {

@@ -422,7 +422,12 @@ my class X::Obsolete does X::Comp {
 
 my class X::Parameter::Default does X::Comp {
     has $.how;
-    method message() { "Cannot put default on $.how parameter" };
+    has $.parameter;
+    method message() {
+        $.parameter
+            ?? "Cannot put default on $.how parameter $.parameter"
+            !! "Cannot put default on anonymous $.how parameter";
+    }
 }
 
 my class X::Parameter::Placeholder does X::Comp {

@@ -7,8 +7,6 @@ my role IO::Socket {
 
         if $!buffer.chars < $chars {
             my str $r = $!PIO.recv;
-            $r = pir::trans_encoding__SSI($r,
-                    pir::find_encoding__Is('utf8'));
             $!buffer ~= nqp::p6box_s($r);
         }
 

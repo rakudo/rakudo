@@ -410,7 +410,10 @@ multi sub spurt(Cool $filename,
 my class X::IO::Cwd { ... }
 proto sub cwd(|) { * }
 multi sub cwd() {
-    return pir::new__Ps('OS').cwd();
+    return nqp::p6box_s(
+		pir::trans_encoding__Ssi(
+			pir::new__Ps('OS').cwd(),
+			pir::find_encoding__Is('utf8')));
 
     CATCH {
         default {

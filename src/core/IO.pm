@@ -288,7 +288,9 @@ sub dir(Cool $path = '.', Mu :$test = none('.', '..')) {
     my int $elems = pir::set__IP($RSA);
     my @res;
     loop (my int $i = 0; $i < $elems; $i = $i + 1) {
-        my Str $file := nqp::p6box_s(nqp::atpos($RSA, $i));
+        my Str $file := nqp::p6box_s(pir::trans_encoding__Ssi(
+			nqp::atpos_s($RSA, $i),
+			pir::find_encoding__Is('utf8')));
         if $file ~~ $test {
             @res.push: IO::Path.new(:basename($file), :dir($path.Str));
         }
@@ -429,7 +431,7 @@ my class X::IO::Chdir { ... }
 proto sub chdir(|) { * }
 multi sub chdir($path as Str) {
     pir::new__PS('OS').chdir(nqp::unbox_s($path));
-    $*CWD = nqp::p6box_s(pir::new__PS('OS').cwd);
+    $*CWD = cwd();
     return True;
     CATCH {
         default {

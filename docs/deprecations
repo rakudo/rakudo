@@ -9,3 +9,6 @@ Deprecations in 2012.08
     IO::Path.dir (which returns the directory part of the path)
     has been renamed to IO::Path.directory.
     IO::Path.dir will be removed or re-purposed in 2012.09
+
+    The LAZY statement prefix will be removed in 2012.09. It was a non-specced
+    experiment and did not work out well.

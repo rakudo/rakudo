@@ -1045,7 +1045,7 @@ multi infix:<~&>(Str:D \a, Str:D \b) returns Str:D {
 }
 multi infix:<~&>(str $a, str $b) returns str { nqp::bitand_s($a, $b) }
 
-multi infix:<~^>(Str:D \a, Str:D \b) returns Bool:D {
+multi infix:<~^>(Str:D \a, Str:D \b) returns Str:D {
     nqp::p6box_s(nqp::bitxor_s(nqp::unbox_s(a), nqp::unbox_s(b)))
 }
 multi infix:<~^>(str $a, str $b) returns str { nqp::bitxor_s($a, $b) }

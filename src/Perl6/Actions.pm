@@ -4057,7 +4057,9 @@ class Perl6::Actions is HLL::Actions {
         if $target.isa(QAST::Var) {
             # Check it's not a native type; we can't bind to those.
             if pir::repr_get_primitive_type_spec__IP($target.returns) {
-                $*W.throw($/, ['X', 'Bind', 'NativeType']);
+                $*W.throw($/, ['X', 'Bind', 'NativeType'],
+                        name => ($target.name // ''),
+                );
             }
             
             # We may need to decontainerize the right, depending on sigil.

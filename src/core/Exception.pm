@@ -496,8 +496,9 @@ my class X::Bind is Exception {
     }
 }
 my class X::Bind::NativeType does X::Comp {
+    has $.name;
     method message() {
-        'Cannot bind to a natively typed variable; use assignment instead'
+        "Cannot bind to natively typed variable '$.name'; use assignment instead"
     }
 }
 my class X::Bind::Slice is Exception  {

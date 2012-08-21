@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <!-- Created with Inkscape (http://www.inkscape.org/) -->
+
 <svg
    xmlns:dc="http://purl.org/dc/elements/1.1/"
    xmlns:cc="http://creativecommons.org/ns#"
@@ -14,7 +15,7 @@
    height="429.95145"
    id="svg2"
    sodipodi:version="0.32"
-   inkscape:version="0.46"
+   inkscape:version="0.48.3.1 r9886"
    sodipodi:docname="architecture.svg"
    inkscape:output_extension="org.inkscape.output.svg.inkscape">
   <metadata
@@ -29,8 +30,8 @@
     </rdf:RDF>
   </metadata>
   <sodipodi:namedview
-     inkscape:window-height="674"
-     inkscape:window-width="680"
+     inkscape:window-height="739"
+     inkscape:window-width="963"
      inkscape:pageshadow="2"
      inkscape:pageopacity="0.0"
      guidetolerance="10.0"
@@ -41,12 +42,13 @@
      pagecolor="#ffffff"
      id="base"
      showgrid="false"
-     inkscape:zoom="0.44281333"
-     inkscape:cx="769.50592"
-     inkscape:cy="458.31653"
-     inkscape:window-x="125"
-     inkscape:window-y="17"
-     inkscape:current-layer="svg2" />
+     inkscape:zoom="1.2524652"
+     inkscape:cx="169.00772"
+     inkscape:cy="226.57166"
+     inkscape:window-x="389"
+     inkscape:window-y="-1"
+     inkscape:current-layer="svg2"
+     inkscape:window-maximized="0" />
   <defs
      id="defs4">
     <inkscape:perspective
@@ -57,6 +59,29 @@
        inkscape:persp3d-origin="372.04724 : 350.78739 : 1"
        id="perspective108" />
   </defs>
+  <a
+     xlink:href="http://rakudo.de/architecture#parser"
+     id="a61"
+     target="_top"
+     transform="matrix(0.5,0,0,0.5,-2.8409758,-82.669119)">
+    <rect
+       width="333.35034"
+       height="61.619305"
+       x="221.18207"
+       y="243.92645"
+       id="rect2383"
+       style="fill:#72abff;fill-opacity:1;fill-rule:evenodd;stroke:#5599ff;stroke-width:1;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:0.74901961" />
+    <text
+       x="236.56122"
+       y="281.90472"
+       id="text2563"
+       xml:space="preserve"
+       style="font-size:24px;font-style:normal;font-weight:normal;fill:#000000;fill-opacity:1;stroke:none;font-family:Bitstream Vera Sans"><tspan
+         x="236.56122"
+         y="281.90472"
+         id="tspan2565"
+         style="font-size:24px">Parser (P6 Regexes, NQP)</tspan></text>
+  </a>
   <g
      transform="matrix(0.8063273,0,0,0.3220593,115.77607,27.608331)"
      id="g2413">
@@ -142,49 +167,49 @@
        style="fill:#ffbb55" />
   </g>
   <text
-     x="190.72449"
+     x="190.7245"
      y="11.919666"
      id="text2473"
      xml:space="preserve"
-     style="font-size:12.36547184px;font-style:normal;font-weight:normal;text-align:center;text-anchor:middle;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;font-family:Bitstream Vera Sans"><tspan
-       x="190.72449"
+     style="font-size:12.36547184px;font-style:normal;font-weight:normal;text-align:center;text-anchor:middle;fill:#000000;fill-opacity:1;stroke:none;font-family:Bitstream Vera Sans"><tspan
+       x="190.7245"
        y="11.919666"
        id="tspan2475">Perl 6</tspan><tspan
-       x="190.72449"
+       x="190.7245"
        y="27.376514"
        id="tspan2483">source</tspan></text>
   <text
-     x="189.16336"
+     x="190.59193"
      y="81.929619"
      id="text2487"
      xml:space="preserve"
-     style="font-size:12.90198231px;font-style:normal;font-weight:normal;text-align:center;text-anchor:middle;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;font-family:Bitstream Vera Sans"><tspan
-       x="189.16336"
+     style="font-size:12.90198231px;font-style:normal;font-weight:normal;text-align:center;text-anchor:middle;fill:#000000;fill-opacity:1;stroke:none;font-family:Bitstream Vera Sans"><tspan
+       x="190.59193"
        y="81.929619"
        id="tspan2489">syntax</tspan><tspan
-       x="189.16336"
+       x="190.59193"
        y="98.057091"
        id="tspan2491">tree</tspan></text>
   <text
-     x="158.49933"
+     x="156.64029"
      y="172.76982"
-     transform="scale(1.0498159,0.952548)"
+     transform="scale(1.0498159,0.95254798)"
      id="text2493"
      xml:space="preserve"
-     style="font-size:18.04409218px;font-style:normal;font-weight:normal;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;font-family:Bitstream Vera Sans"><tspan
-       x="158.49933"
+     style="font-size:18.04409218px;font-style:normal;font-weight:normal;fill:#000000;fill-opacity:1;stroke:none;font-family:Bitstream Vera Sans"><tspan
+       x="156.64029"
        y="172.76982"
-       id="tspan2495">PAST</tspan></text>
+       id="tspan2495">QAST</tspan></text>
   <text
-     x="157.81885"
+     x="161.53017"
      y="247.16066"
-     transform="scale(1.0498159,0.952548)"
+     transform="scale(1.0498159,0.95254798)"
      id="text2501"
      xml:space="preserve"
-     style="font-size:18.04409218px;font-style:normal;font-weight:normal;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;font-family:Bitstream Vera Sans"><tspan
-       x="157.81885"
+     style="font-size:18.04409218px;font-style:normal;font-weight:normal;fill:#000000;fill-opacity:1;stroke:none;font-family:Bitstream Vera Sans"><tspan
+       x="161.53017"
        y="247.16066"
-       id="tspan2503">POST</tspan></text>
+       id="tspan2503">PIRT</tspan></text>
   <text
      x="169.77715"
      y="315.50876"
@@ -242,10 +267,10 @@
        y="713.19427"
        id="text2547"
        xml:space="preserve"
-       style="font-size:26.11718369px;font-style:normal;font-weight:normal;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;font-family:Bitstream Vera Sans"><tspan
+       style="font-size:26.11718369px;font-style:normal;font-weight:normal;fill:#000000;fill-opacity:1;stroke:none;font-family:Bitstream Vera Sans"><tspan
          x="257.73041"
          y="713.19427"
-         id="tspan2549">POST-compiler (PIR)</tspan></text>
+         id="tspan2549">PIRT-compiler (NQP)</tspan></text>
   </a>
   <a
      xlink:href="http://rakudo.de/architecture#past-compiler"
@@ -264,10 +289,10 @@
        y="569.59216"
        id="text2551"
        xml:space="preserve"
-       style="font-size:26.11718369px;font-style:normal;font-weight:normal;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;font-family:Bitstream Vera Sans"><tspan
+       style="font-size:26.11718369px;font-style:normal;font-weight:normal;fill:#000000;fill-opacity:1;stroke:none;font-family:Bitstream Vera Sans"><tspan
          x="259.92386"
          y="569.59216"
-         id="tspan2553">PAST-compiler (PIR)</tspan></text>
+         id="tspan2553">QAST-compiler (NQP)</tspan></text>
   </a>
   <a
      xlink:href="http://rakudo.de/architecture#imcc"
@@ -314,28 +339,6 @@
          id="tspan2561">Action methods (NQP)</tspan></text>
   </a>
   <a
-     xlink:href="http://rakudo.de/architecture#parser"
-     id="a61"
-     target="_top"
-     transform="matrix(0.5,0,0,0.5,-2.8409758,-82.669119)">
-    <rect
-       width="333.35034"
-       height="61.619305"
-       x="221.18207"
-       y="243.92645"
-       id="rect2383"
-       style="fill:#72abff;fill-opacity:1;fill-rule:evenodd;stroke:#5599ff;stroke-width:1;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:0.74901961" />
-    <text
-       x="236.56122"
-       y="281.90472"
-       id="text2563"
-       xml:space="preserve"
-       style="font-size:26.11718369px;font-style:normal;font-weight:normal;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;font-family:Bitstream Vera Sans"><tspan
-         x="236.56122"
-         y="281.90472"
-         id="tspan2565">Parser (Perl 6 Regexes)</tspan></text>
-  </a>
-  <a
      xlink:href="http://rakudo.de/architecture#setting"
      target="_top"
      id="a66"
@@ -360,55 +363,6 @@
          y="260.34668"
          id="tspan2577">(Perl 6)</tspan></text>
   </a>
-  <rect
-     width="83.071434"
-     height="70.063057"
-     x="0.26615313"
-     y="288.48044"
-     id="rect2589"
-     style="fill:#7fff29;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:0.53230625px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1" />
-  <text
-     x="41.484489"
-     y="311.34351"
-     id="text2591"
-     xml:space="preserve"
-     style="font-size:13px;font-style:normal;font-weight:normal;text-align:center;text-anchor:middle;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;font-family:Bitstream Vera Sans"><tspan
-       x="41.484489"
-       y="311.34351"
-       id="tspan2595">Other</tspan><tspan
-       x="41.484489"
-       y="327.59351"
-       id="tspan2603">Built-Ins</tspan><tspan
-       x="41.484489"
-       y="343.84351"
-       id="tspan2605">(PIR)</tspan></text>
-  <g
-     transform="matrix(0.5,0,0,0.5,-24.119476,-78.383409)"
-     id="g2634">
-    <rect
-       width="77.14286"
-       height="18.571428"
-       x="216.42857"
-       y="736.64795"
-       id="rect2614"
-       style="fill:#ff9955" />
-    <g
-       id="g2622">
-      <rect
-         width="60.000004"
-         height="18.571428"
-         x="736.64795"
-         y="-294.89743"
-         transform="matrix(0,1,-1,0,0,0)"
-         id="rect2616"
-         style="fill:#ff9955" />
-      <path
-         d="M 185.71429,946.72704 L 174.51116,927.32264 L 196.91743,927.32264 L 185.71429,946.72704 z"
-         transform="matrix(1.5495147,0,0,0.9605465,-2.1553157,-96.271133)"
-         id="path2620"
-         style="fill:#ff9955" />
-    </g>
-  </g>
   <rect
      width="50.714287"
      height="9.2857141"
@@ -469,7 +423,7 @@
   </g>
   <g
      id="g3273"
-     transform="matrix(0.5,0,0,0.5,-2.8409758,-82.669119)">
+     transform="matrix(0.5,0,0,0.5,-2.8409259,-82.669119)">
     <rect
        width="60.000004"
        height="18.571428"
@@ -479,10 +433,11 @@
        id="rect2664"
        style="fill:#ff9955" />
     <path
-       d="M 185.71429,946.72704 L 174.51116,927.32264 L 196.91743,927.32264 L 185.71429,946.72704 z"
+       d="m 185.71429,946.72704 -11.20313,-19.4044 22.40627,0 -11.20314,19.4044 z"
        transform="matrix(1.5495147,0,0,0.9605465,-19.453956,-237.35646)"
        id="path2666"
-       style="fill:#ff9955" />
+       style="fill:#ff9955"
+       inkscape:connector-curvature="0" />
   </g>
   <g
      transform="matrix(0.5,0,0,0.5,-11.490246,-78.926069)"
@@ -499,23 +454,6 @@
        d="M 185.71429,946.72704 L 174.51116,927.32264 L 196.91743,927.32264 L 185.71429,946.72704 z"
        transform="matrix(1.5495147,0,0,0.9605465,-2.1553157,-96.271133)"
        id="path2672"
-       style="fill:#ff9955" />
-  </g>
-  <g
-     transform="matrix(0.8908953,0,0,0.5,-130.50537,-8.9260691)"
-     id="g2699">
-    <rect
-       width="60.000004"
-       height="18.571428"
-       x="736.64795"
-       y="-294.89743"
-       transform="matrix(0,1,-1,0,0,0)"
-       id="rect2701"
-       style="fill:#ff9955" />
-    <path
-       d="M 185.71429,946.72704 L 174.51116,927.32264 L 196.91743,927.32264 L 185.71429,946.72704 z"
-       transform="matrix(1.5495147,0,0,0.9605465,-2.1553157,-96.271133)"
-       id="path2703"
        style="fill:#ff9955" />
   </g>
   <a
@@ -540,52 +478,45 @@
          y="1001.9778"
          id="tspan2711">Parrot runcores (C)</tspan></text>
   </a>
-  <rect
-     width="61.660728"
-     height="102.97978"
-     x="289.09399"
-     y="326.72168"
-     id="rect4038"
-     style="fill:#ffff50;fill-opacity:1;stroke:#fff000;stroke-width:0.5;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" />
-  <rect
-     width="61.660728"
-     height="102.97978"
-     x="289.09399"
-     y="183.11955"
-     id="rect4040"
-     style="fill:#ffff50;fill-opacity:1;stroke:#fff000;stroke-width:0.5;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" />
-  <text
-     x="319.4451"
-     y="382.85803"
-     id="text4042"
-     xml:space="preserve"
-     style="font-size:13px;font-style:normal;font-weight:normal;text-align:center;text-anchor:middle;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;font-family:Bitstream Vera Sans"><tspan
-       x="319.4451"
-       y="382.85803"
-       id="tspan4044">Parrot</tspan></text>
-  <rect
-     width="61.887054"
-     height="30.738857"
-     x="288.9808"
-     y="39.180927"
-     id="rect4054"
-     style="fill:#ffff50;fill-opacity:1;stroke:#fff000;stroke-width:0.27367395;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" />
-  <text
-     x="319.70853"
-     y="59.28252"
-     id="text4056"
-     xml:space="preserve"
-     style="font-size:13px;font-style:normal;font-weight:normal;text-align:center;text-anchor:middle;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;font-family:Bitstream Vera Sans"><tspan
-       x="319.70853"
-       y="59.28252"
-       id="tspan4058">PGE</tspan></text>
-  <text
-     x="319.27054"
-     y="239.34163"
-     id="text4080"
-     xml:space="preserve"
-     style="font-size:13px;font-style:normal;font-weight:normal;text-align:center;text-anchor:middle;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;font-family:Bitstream Vera Sans"><tspan
-       x="319.27054"
-       y="239.34163"
-       id="tspan4082">PCT</tspan></text>
+  <g
+     id="g3857"
+     transform="translate(0,19.162209)">
+    <rect
+       y="18.762388"
+       x="282.64258"
+       height="323.36227"
+       width="62.277176"
+       id="rect3083"
+       style="fill:#fffa68;fill-opacity:1;stroke:none" />
+    <text
+       transform="matrix(0,-1,1,0,0,0)"
+       sodipodi:linespacing="125%"
+       id="text3853"
+       y="318.8046"
+       x="-310.28336"
+       style="font-size:16px;font-style:normal;font-weight:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;font-family:Bitstream Vera Sans"
+       xml:space="preserve"><tspan
+         y="318.8046"
+         x="-310.28336"
+         id="tspan3855"
+         sodipodi:role="line">World, tracks declarations (NQP)</tspan></text>
+  </g>
+  <g
+     transform="matrix(0.5,0,0,0.5,-11.490246,-8.5858166)"
+     id="g2668-6">
+    <rect
+       width="60.000004"
+       height="18.571428"
+       x="736.64795"
+       y="-294.89743"
+       transform="matrix(0,1,-1,0,0,0)"
+       id="rect2670-4"
+       style="fill:#ff9955" />
+    <path
+       inkscape:connector-curvature="0"
+       d="m 185.71429,946.72704 -11.20313,-19.4044 22.40627,0 -11.20314,19.4044 z"
+       transform="matrix(1.5495147,0,0,0.9605465,-2.1553157,-96.271133)"
+       id="path2672-3"
+       style="fill:#ff9955" />
+  </g>
 </svg>

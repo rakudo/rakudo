@@ -164,8 +164,17 @@ sub exit($status = 0) {
     $status;
 }
 
-sub run(*@) {
-    die 'run() is not yet implemented, please use shell() for now';
+sub run(*@args ($, *@)) {
+    my $error_code = nqp::p6box_i(
+        pir::spawnw__IP(
+            nqp::getattr(
+                @args.eager,
+                List,
+                '$!items'
+            )
+        )
+    )+> 8;
+    $error_code but !$error_code;
 }
 
 sub shell($cmd) {

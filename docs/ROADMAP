@@ -1,7 +1,7 @@
 Rakudo Roadmap
 --------------
 
-Last updated: 2012-08-11
+Last updated: 2012-08-19
 
 This document serves as a guide to the major goals for Rakudo
 development, as things stood in December 2011. They have been
@@ -68,6 +68,7 @@ Built-ins/Data Structures
 3 ***   complete Buf implementation
 3 ***   complete LoL and slice context implementation
 3 ***   Cat and stream matching
+? ?     Correct type smiley support  (:U, :D, :T, etc.)
 
 Phasers
 2 **    LAST/NEXT/FIRST in loops other than for loops
@@ -81,11 +82,11 @@ Language Features
 2 ***   new syntax/semantics for coercion (jnthn)
 2 **    MAIN and USAGE (japhb)
 2 **    Failure changes (japhb)
-2 *     sigilless variables
 2 ?     coercion types
 2 *     improved hash/block disambiguation
 3 ***   domain specific languages -- slang and grammar tweaks
 3 ****  more advanced Perl 5 interop (lexical embedding, etc.)
+3 ?     Parse and execute simple Perl 5 code
 
 Optimizer (jnthn)
 2 **    ro/rw variable tracking, related transforms
@@ -101,3 +102,8 @@ STD Convergence (needs more exploration)
 2 ***   using mixins for derived languages
 2 ***   more of STDs TTIAR error handling
 3 **    work on convergence with STD's quote parsing
+
+Other things (to be organized into above groups)
+3 ?     AUTOLOAD, including possibly AUTOLOADING setting components
+
+

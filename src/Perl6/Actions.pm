@@ -608,7 +608,9 @@ class Perl6::Actions is HLL::Actions {
             my @params;
             my $block := $<blockoid>.ast;
             if $block<placeholder_sig> && $<signature> {
-                $*W.throw($/, ['X', 'Signature', 'Placeholder']);
+                $*W.throw($/, ['X', 'Signature', 'Placeholder'],
+                    placeholder => $block<placeholder_sig>[0]<placeholder>,
+                );
             }
             elsif $block<placeholder_sig> {
                 @params := $block<placeholder_sig>;
@@ -1772,7 +1774,9 @@ class Perl6::Actions is HLL::Actions {
         # Obtain parameters, create signature object and generate code to
         # call binder.
         if $block<placeholder_sig> && $<multisig> {
-            $*W.throw($/, ['X', 'Signature', 'Placeholder']);
+            $*W.throw($/, ['X', 'Signature', 'Placeholder'],
+                placeholder => $block<placeholder_sig>[0]<placeholder>,
+            );
         }
         my %sig_info;
         if $<multisig> {
@@ -2176,7 +2180,9 @@ class Perl6::Actions is HLL::Actions {
         # Obtain parameters, create signature object and generate code to
         # call binder.
         if $block<placeholder_sig> && $<multisig> {
-            $*W.throw($/, 'X::Signature::Placeholder');
+            $*W.throw($/, 'X::Signature::Placeholder',
+                placeholder => $block<placeholder_sig>[0]<placeholder>,
+            );
         }
         my %sig_info;
         if $<multisig> {
@@ -4982,6 +4988,7 @@ class Perl6::Actions is HLL::Actions {
             variable_name => $name,
             pos_slurpy    => $pos_slurpy,
             named_slurpy  => $named_slurpy,
+            placeholder   => $full_name,
             sigil         => ~$sigil);
 
         # If it's slurpy, just goes on the end.

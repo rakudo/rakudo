@@ -364,8 +364,9 @@ my class X::Buf::Pack::NonASCII is Exception {
 }
 
 my class X::Signature::Placeholder does X::Comp {
+    has $.placeholder;
     method message() {
-        'Placeholder variable cannot override existing signature';
+        "Placeholder variable '$.placeholder' cannot override existing signature";
     }
 }
 

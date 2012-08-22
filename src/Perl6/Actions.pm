@@ -1606,10 +1606,11 @@ class Perl6::Actions is HLL::Actions {
             unless nqp::can($*PACKAGE.HOW, 'add_attribute') {
                 if $*PKGDECL {
                     $*W.throw($/, ['X', 'Attribute', 'Package'],
-                        package-kind => $*PKGDECL
+                        package-kind => $*PKGDECL,
+                        :$name,
                     );
                 } else {
-                    $*W.throw($/, ['X', 'Attribute', 'NoPackage']);
+                    $*W.throw($/, ['X', 'Attribute', 'NoPackage'], :$name);
                 }
             }
 

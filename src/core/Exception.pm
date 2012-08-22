@@ -657,10 +657,12 @@ my class X::Syntax::InfixInTermPosition does X::Syntax {
 
 my class X::Attribute::Package does X::Comp {
     has $.package-kind;
-    method message() { "A $.package-kind cannot have attributes" }
+    has $.name;
+    method message() { "A $.package-kind cannot have attributes, but you tried to declare '$.name'" }
 }
 my class X::Attribute::NoPackage does X::Comp {
-    method message() { "You cannot declare an attribute here; maybe you'd like a class or a role?" }
+    has $.name;
+    method message() { "You cannot declare attribute '$.name' here; maybe you'd like a class or a role?" }
 }
 my class X::Declaration::Scope does X::Comp {
     has $.scope;

@@ -785,7 +785,7 @@ my class X::Composition::NotComposable does X::Comp {
     has $.target-name;
     has $.composer;
     method message() {
-        "$.target-name cannot compose {$.composer.^name} because it is not composable";
+        $.composer.^name ~ " is not composable, so $.target-name cannot compose it";
     }
 }
 

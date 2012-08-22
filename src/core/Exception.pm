@@ -579,7 +579,8 @@ my class X::Does::TypeObject is Exception {
 }
 
 my class X::Role::Initialization is Exception {
-    method message() { 'Can only supply an initialization value for a role if it has a single public attribute' }
+    has $.role;
+    method message() { "Can only supply an initialization value for a role if it has a single public attribute, but this is not the case for '{$.role.^name}'" }
 }
 
 my class X::Syntax::Comment::Embedded does X::Syntax {

@@ -21,7 +21,7 @@ multi infix:<does>(Mu:D \obj, Mu:U \rolish, :$value! is parcel) is rw {
                 rolish.HOW.archetypes.composalizable() ?? rolish.HOW.composalize(rolish) !!
                 X::Mixin::NonComposable.new(:target(obj), :rolish(rolish)).throw;
     my @attrs = $role.^attributes().grep: { .has_accessor };
-    X::Role::Initialization.new().throw unless @attrs == 1;
+    X::Role::Initialization.new(:$role).throw unless @attrs == 1;
     obj.HOW.mixin(obj, $role).BUILD_LEAST_DERIVED({ @attrs[0].Str.substr(2) => $value });
 }
 multi infix:<does>(Mu:U \obj, Mu:U \role) is rw {
@@ -47,7 +47,7 @@ multi infix:<but>(Mu:D \obj, Mu:U \rolish, :$value! is parcel) {
                 rolish.HOW.archetypes.composalizable() ?? rolish.HOW.composalize(rolish) !!
                 X::Mixin::NonComposable.new(:target(obj), :rolish(rolish)).throw;
     my @attrs = $role.^attributes().grep: { .has_accessor };
-    X::Role::Initialization.new.throw unless @attrs == 1;
+    X::Role::Initialization.new(:$role).throw unless @attrs == 1;
     my $mixin-value := $value;
     unless nqp::istype($value, @attrs[0].type) {
         if @attrs[0].type.HOW.HOW.name(@attrs[0].type.HOW) eq 'Perl6::Metamodel::EnumHOW' {

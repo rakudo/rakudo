@@ -1,7 +1,7 @@
     Announce: Rakudo Perl 6 compiler development release #55 ("Frankfurt")
 
 On behalf of the Rakudo development team, I'm glad to announce the
-July 2012 release of Rakudo Perl #55 "Frankfurt". Rakudo is an
+August 2012 release of Rakudo Perl #55 "Frankfurt". Rakudo is an
 implementation of Perl 6 on the Parrot Virtual Machine (see
 <http://www.parrot.org>). The tarball for this release
 is available from <http://github.com/rakudo/rakudo/downloads>.
@@ -12,7 +12,7 @@ For the latest Rakudo Star release, see
 <http://github.com/rakudo/star/downloads>.
 
 The Rakudo Perl compiler follows a monthly release cycle, with each
-release named after a Perl Mongers group. The June 2012 release is
+release named after a Perl Mongers group. The August 2012 release is
 code-named after Frankfurt am Mein, the city that hosted this year's
 YAPC::EU, the yearly gathering of Perl hackers in europe.
 
@@ -28,6 +28,21 @@ outlined below:
 - Circularities in module loading are now detected
 - Improvements in inliner, which allow it to inline a wider
   range of routines
+
+Some features have been deprecated:
+
+- Parameters preceeded by a | or \ may not have a sigil anymore.
+      sub f(\$x) { say $x }
+  must be changed to
+      sub f(\x) { say x }
+  Usage of \$x will unconditionally warn in 2012.09 and be removed in 2012.10
+
+- IO::Path.dir (which returns the directory part of the path)
+  has been renamed to IO::Path.directory.
+  IO::Path.dir will be removed or re-purposed in 2012.09
+
+- The LAZY statement prefix will be removed in 2012.09. It was a non-specced
+  experiment and did not work out well.
 
 This is only a small peek at the changes in this release. For a more
 detailed list, see "docs/ChangeLog".

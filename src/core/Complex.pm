@@ -22,7 +22,7 @@ my class Complex is Cool does Numeric {
 
     my class X::Numeric::Real { ... };
     method coerce-to-real(Complex:D: $exception-target) {
-        unless $!im == 0 { fail X::Numeric::Real.new(target => $exception-target, reason => "imaginary part not zero");}
+        unless $!im == 0 { fail X::Numeric::Real.new(target => $exception-target, reason => "imaginary part not zero", source => self);}
         $!re;
     }
     multi method Real(Complex:D:) { self.coerce-to-real(Real); }

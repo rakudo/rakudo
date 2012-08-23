@@ -924,9 +924,10 @@ my class X::Import::MissingSymbols is Exception {
 my class X::Numeric::Real is Exception {
     has $.target;
     has $.reason;
+    has $.source;
 
     method message() {
-        "Can not convert Numeric to {$.target.^name}: $.reason";
+        "Can not convert $.source to {$.target.^name}: $.reason";
     }
 }
 

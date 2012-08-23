@@ -14,8 +14,7 @@ For the latest Rakudo Star release, see
 The Rakudo Perl compiler follows a monthly release cycle, with each
 release named after a Perl Mongers group. The August 2012 release is
 code-named after Frankfurt.pm, the group that hosted this year's
-YAPC::Europe conference (a yearly gathering of Perl enthusiasts in
-Europe).
+YAPC::Europe conference in Frankfurt am Mein.
 
 This release brings a massive amount of changes; some of them are
 outlined below:

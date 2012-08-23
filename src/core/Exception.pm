@@ -853,8 +853,8 @@ my class X::Inheritance::Unsupported does X::Comp {
     has $.child-typename;
     has $.parent;
     method message {
-        $.child-typename ~ ' cannot inherit from ' ~
-        $.parent.^name ~ ' because it is not inheritable';
+        $.parent.^name ~ ' does not support inheritance, so '
+        ~ $.child-typename ~ ' cannot inherit from it';
     }
 }
 

@@ -1376,7 +1376,8 @@ grammar Perl6::Grammar is HLL::Grammar {
                         $/.CURSOR.typed_panic('X::Syntax::Augment::WithoutMonkeyTyping');
                     }
                     if $*PKGDECL eq 'role' {
-                        $/.CURSOR.typed_panic('X::Syntax::Augment::Role');
+                        $/.CURSOR.typed_panic('X::Syntax::Augment::Role',
+                                role-name => $longname.text);
                     }
                     unless @name {
                         $*W.throw($/, 'X::Anon::Augment', package-kind => $*PKGDECL);

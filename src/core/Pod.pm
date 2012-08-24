@@ -1,6 +1,40 @@
 my class Pod::Block {
     has %.config;
     has @.content;
+
+    sub pod-gist(Pod::Block $pod, $level = 0) {
+        my $leading = ' ' x $level;
+        my %confs;
+        my @chunks;
+        for <config name level caption type> {
+            my $thing = $pod.?"$_"();
+            if $thing {
+                %confs{$_} = $thing ~~ Iterable ?? $thing.perl
+                                                !! $thing.Str;
+            }
+        }
+        @chunks = $leading, $pod.^name, (%confs.perl if %confs), "\n";
+        for $pod.content.list -> $c {
+            if $c ~~ Pod::Block {
+                @chunks.push: pod-gist($c, $level + 2);
+            }
+            elsif $c ~~ Positional {
+                @chunks.push: $c>>.Str.perl.indent($level + 2), "\n";
+            }
+            else {
+                @chunks.push: $c.indent($level + 2), "\n";
+            }
+        }
+        @chunks.join;
+    }
+
+    method Str {
+        pod-gist(self)
+    }
+
+    method gist {
+        self.Stringy
+    }
 }
 
 my class Pod::Block::Para is Pod::Block {

@@ -338,12 +338,14 @@ my class DateTime does Dateish {
     method truncated-to(*%args) {
         %args.keys == 1
             or X::Temporal::Truncation.new(
-                    error => 'exactly one named argument needed',
+                    invocant => self,
+                    error    => 'exactly one named argument needed',
                 ).throw;
         my $unit = %args.keys[0];
         $unit eq any(<second minute hour day week month year>)
             or X::Temporal::Truncation.new(
-                    error => "Unknown truncation unit '$unit'",
+                    invocant => self,
+                    error    => "Unknown truncation unit '$unit'",
                 ).throw;
         my %parts;
         given $unit {
@@ -486,14 +488,14 @@ my class Date does Dateish {
     method truncated-to(*%args) {
         %args.keys == 1
             or X::Temporal::Truncation.new(
-                    class => 'Date',
-                    error => "exactly one named argument needed",
+                    invocant => self,
+                    error    => "exactly one named argument needed",
             ).throw;
         my $unit = %args.keys[0];
         $unit eq any(<week month year>)
             or X::Temporal::Truncation.new(
-                    class => 'Date',
-                    error => "unknown truncation unit '$unit'",
+                    invocant => self,
+                    error    => "unknown truncation unit '$unit'",
             ).throw;
         self.clone(|self.truncate-parts($unit));
     }

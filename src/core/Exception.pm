@@ -894,10 +894,10 @@ my class X::Temporal::InvalidFormat does X::Temporal {
     }
 }
 my class X::Temporal::Truncation does X::Temporal {
-    has $.class = 'DateTime';
+    has $.invocant;
     has $.error;
     method message() {
-        "in $.class.truncated-to: $.error";
+        "Error while truncating $.invocant: $.error";
     }
 }
 my class X::DateTime::TimezoneClash does X::Temporal {

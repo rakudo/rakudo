@@ -884,8 +884,8 @@ my class X::Set::Coerce is Exception {
 }
 
 
-my class X::Temporal is Exception { }
-my class X::Temporal::InvalidFormat is X::Temporal {
+my role X::Temporal is Exception { }
+my class X::Temporal::InvalidFormat does X::Temporal {
     has $.invalid-str;
     has $.target = 'Date';
     has $.format;
@@ -893,14 +893,14 @@ my class X::Temporal::InvalidFormat is X::Temporal {
         "Invalid $.target string '$.invalid-str'; use $.format instead";
     }
 }
-my class X::Temporal::Truncation is X::Temporal {
+my class X::Temporal::Truncation does X::Temporal {
     has $.class = 'DateTime';
     has $.error;
     method message() {
         "in $.class.truncated-to: $.error";
     }
 }
-my class X::DateTime::TimezoneClash is X::Temporal {
+my class X::DateTime::TimezoneClash does X::Temporal {
     method message() {
         'DateTime.new(Str): :timezone argument not allowed with a timestamp offset';
     }

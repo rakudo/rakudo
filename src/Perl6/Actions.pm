@@ -1,4 +1,5 @@
 use NQPP6QRegex;
+use NQPP5QRegex;
 use Perl6::Pod;
 use Perl6::ConstantFolder;
 use Perl6::Ops;
@@ -4643,9 +4644,10 @@ class Perl6::Actions is HLL::Actions {
         global      => 'g',
         overlap     => 'ov',
         exhaustive  => 'ex',
+        Perl5       => 'P5',
     );
     INIT {
-        my $mods := 'i ignorecase s sigspace r ratchet';
+        my $mods := 'i ignorecase s sigspace r ratchet Perl5 P5';
         for nqp::split(' ', $mods) {
             %SHARED_ALLOWED_ADVERBS{$_} := 1;
         }

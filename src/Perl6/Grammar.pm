@@ -1,4 +1,5 @@
 use NQPP6QRegex;
+use NQPP5QRegex;
 use QRegex;
 use Perl6::World;
 use Perl6::Pod;
@@ -7,10 +8,12 @@ grammar Perl6::Grammar is HLL::Grammar {
     method TOP() {
         # Language braid.
         my %*LANG;
-        %*LANG<Regex>         := Perl6::RegexGrammar;
-        %*LANG<Regex-actions> := Perl6::RegexActions;
-        %*LANG<MAIN>          := Perl6::Grammar;
-        %*LANG<MAIN-actions>  := Perl6::Actions;
+        %*LANG<Regex>           := Perl6::RegexGrammar;
+        %*LANG<Regex-actions>   := Perl6::RegexActions;
+        %*LANG<P5Regex>         := QRegex::P5Regex::Grammar;
+        %*LANG<P5Regex-actions> := QRegex::P5Regex::Actions;
+        %*LANG<MAIN>            := Perl6::Grammar;
+        %*LANG<MAIN-actions>    := Perl6::Actions;
         
         # Package declarator to meta-package mapping. Starts pretty much empty;
         # we get the mappings either imported or supplied by the setting. One
@@ -1890,7 +1893,7 @@ grammar Perl6::Grammar is HLL::Grammar {
           [ [ ':'?'(' <signature> ')'] | <trait> ]*
           '{'[
             | ['*'|'<...>'|'<*>'] <?{ $*MULTINESS eq 'proto' }> $<onlystar>={1}
-            |<p6regex=.LANG('Regex','nibbler')>]'}'<?ENDSTMT>
+            | <p6regex=.LANG(%*RX<P5> ?? 'P5Regex' !! 'Regex','nibbler')>]'}'<?ENDSTMT>
           { $*CURPAD := $*W.pop_lexpad() }
         ] || <.malformed('regex')>
     ] }
@@ -2214,8 +2217,8 @@ grammar Perl6::Grammar is HLL::Grammar {
         :my %*RX;
         <rx_adverbs>
         [
-        | '/'<p6regex=.LANG('Regex','nibbler')>'/' <.old_rx_mods>?
-        | '{'<p6regex=.LANG('Regex','nibbler')>'}' <.old_rx_mods>?
+        | '/'<p6regex=.LANG(%*RX<P5> ?? 'P5Regex' !! 'Regex','nibbler')>'/' <.old_rx_mods>?
+        | '{'<p6regex=.LANG(%*RX<P5> ?? 'P5Regex' !! 'Regex','nibbler')>'}' <.old_rx_mods>?
         ]
     }
 
@@ -2231,8 +2234,8 @@ grammar Perl6::Grammar is HLL::Grammar {
         { %*RX<s> := 1 if $/[0] }
         <rx_adverbs>
         [
-        | '/'<p6regex=.LANG('Regex','nibbler')>'/' <.old_rx_mods>?
-        | '{'<p6regex=.LANG('Regex','nibbler')>'}'
+        | '/'<p6regex=.LANG(%*RX<P5> ?? 'P5Regex' !! 'Regex','nibbler')>'/' <.old_rx_mods>?
+        | '{'<p6regex=.LANG(%*RX<P5> ?? 'P5Regex' !! 'Regex','nibbler')>'}'
         ]
     }
 
@@ -2250,8 +2253,8 @@ grammar Perl6::Grammar is HLL::Grammar {
         }
         <rx_adverbs>
         [
-        | '/' <p6regex=.LANG('Regex','nibbler')> <?[/]> <quote_EXPR: ':qq'> <.old_rx_mods>?
-        | '[' <p6regex=.LANG('Regex','nibbler')> ']'
+        | '/' <p6regex=.LANG(%*RX<P5> ?? 'P5Regex' !! 'Regex','nibbler')> <?[/]> <quote_EXPR: ':qq'> <.old_rx_mods>?
+        | '[' <p6regex=.LANG(%*RX<P5> ?? 'P5Regex' !! 'Regex','nibbler')> ']'
           <.ws> [ '=' || <.missing: "assignment operator"> ]
           <.ws> <EXPR('i')>
         ]

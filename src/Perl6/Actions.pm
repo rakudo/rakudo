@@ -1077,6 +1077,10 @@ class Perl6::Actions is HLL::Actions {
     method term:sym<statement_prefix>($/)   { make $<statement_prefix>.ast; }
     method term:sym<lambda>($/)             { make block_closure($<pblock>.ast); }
     method term:sym<sigterm>($/)            { make $<sigterm>.ast; }
+    method term:sym<unquote>($/) {
+        make QAST::Unquote.new(:position(+@*UNQUOTE_ASTS));
+        @*UNQUOTE_ASTS.push($<statementlist>.ast);
+    }
 
     method name($/) { }
 
@@ -4836,7 +4840,8 @@ class Perl6::Actions is HLL::Actions {
     method quote:sym<quasi>($/) {
         my $ast_class := $*W.find_symbol(['AST']);
         my $quasi_ast := $ast_class.new();
-        nqp::bindattr($quasi_ast, $ast_class, '$!past', $<block>.ast<past_block>[1]);
+        my $past := $<block>.ast<past_block>.pop;
+        nqp::bindattr($quasi_ast, $ast_class, '$!past', $past);
         $*W.add_object($quasi_ast);
         my $throwaway_block := QAST::Block.new();
         my $quasi_context := block_closure(
@@ -4846,7 +4851,8 @@ class Perl6::Actions is HLL::Actions {
             ));
         make QAST::Op.new(:op<callmethod>, :name<incarnate>,
                           QAST::WVal.new( :value($quasi_ast) ),
-                          $quasi_context);
+                          $quasi_context,
+                          QAST::Op.new( :op('list'), |@*UNQUOTE_ASTS ));
     }
 
     method quote_escape:sym<$>($/) {

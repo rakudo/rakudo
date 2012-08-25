@@ -8,10 +8,17 @@ my class AST {
         $!past := $past;
     }
 
-    method incarnate($quasi_context) {
+    method incarnate($quasi_context, @unquote_asts) {
         my $incarnation = self.clone();
+        nqp::bindattr(nqp::p6decont($incarnation), AST, '$!past', $incarnation.evaluate_unquotes(@unquote_asts));
         nqp::bindattr(nqp::p6decont($incarnation), AST, '$!quasi_context', $quasi_context);
         return $incarnation;
+    }
+
+    method evaluate_unquotes(@unquote_asts) {
+        my $pasts := nqp::list();
+        for @unquote_asts { nqp::push($pasts, nqp::getattr(nqp::p6decont($_), AST, '$!past')) }
+        $!past.evaluate_unquotes($pasts);
     }
 
     method is_quasi_ast {

@@ -22,18 +22,14 @@ my class Pod::Block {
                 @chunks.push: $c>>.Str.perl.indent($level + 2), "\n";
             }
             else {
-                @chunks.push: $c.indent($level + 2), "\n";
+                @chunks.push: $c.Str.indent($level + 2), "\n";
             }
         }
         @chunks.join;
     }
 
-    method Str {
-        pod-gist(self)
-    }
-
     method gist {
-        self.Stringy
+        pod-gist(self)
     }
 }
 

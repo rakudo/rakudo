@@ -675,10 +675,10 @@ BEGIN {
     Parcel.HOW.add_parent(Parcel, Cool);
     Parcel.HOW.add_attribute(Parcel, scalar_attr('$!storage', Mu, Parcel));
 
-    # class Iterable is Cool {
+    # class Iterable is Any {
     #     ...
     # }
-    Iterable.HOW.add_parent(Iterable, Cool);
+    Iterable.HOW.add_parent(Iterable, Any);
 
     # class Iterator is Iterable {
     #     ...
@@ -698,13 +698,14 @@ BEGIN {
     ListIter.HOW.add_attribute(ListIter, scalar_attr('$!rest', Mu, ListIter));
     ListIter.HOW.add_attribute(ListIter, scalar_attr('$!list', Mu, ListIter));
 
-    # class List is Iterable {
+    # class List is Iterable is Cool {
     #     has $!items;
     #     has $!flattens;
     #     has $!nextiter;
     #     ...
     # }
     List.HOW.add_parent(List, Iterable);
+    List.HOW.add_parent(List, Cool);
     List.HOW.add_attribute(List, scalar_attr('$!items', Mu, List));
     List.HOW.add_attribute(List, scalar_attr('$!flattens', Mu, List));
     List.HOW.add_attribute(List, scalar_attr('$!nextiter', Mu, List));
@@ -723,11 +724,12 @@ BEGIN {
     LoL.HOW.add_parent(LoL, List);
     LoL.HOW.add_attribute(LoL, BOOTSTRAPATTR.new(:name<$!descriptor>, :type(Mu), :package(LoL)));
 
-    # my class EnumMap is Iterable {
+    # my class EnumMap is Iterable is Cool {
     #     has $!storage;
     #     ...
     # }
     EnumMap.HOW.add_parent(EnumMap, Iterable);
+    EnumMap.HOW.add_parent(EnumMap, Cool);
     EnumMap.HOW.add_attribute(EnumMap, scalar_attr('$!storage', Mu, EnumMap));
 
     # my class Hash is EnumMap {

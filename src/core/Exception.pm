@@ -839,7 +839,7 @@ my class X::Localizer::NoContainer is Exception {
     }
 }
 
-my class X::Mixin::NonComposable is Exception {
+my class X::Mixin::NotComposable is Exception {
     has $.target;
     has $.rolish;
     method message() {

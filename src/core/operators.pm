@@ -12,14 +12,14 @@ multi infix:<does>(Mu:D \obj, Mu:U \rolish) is rw {
     # XXX Mutability check.
     my $role := rolish.HOW.archetypes.composable() ?? rolish !!
                 rolish.HOW.archetypes.composalizable() ?? rolish.HOW.composalize(rolish) !!
-                X::Mixin::NonComposable.new(:target(obj), :rolish(rolish)).throw;
+                X::Mixin::NotComposable.new(:target(obj), :rolish(rolish)).throw;
     obj.HOW.mixin(obj, $role).BUILD_LEAST_DERIVED({});
 }
 multi infix:<does>(Mu:D \obj, Mu:U \rolish, :$value! is parcel) is rw {
     # XXX Mutability check.
     my $role := rolish.HOW.archetypes.composable() ?? rolish !!
                 rolish.HOW.archetypes.composalizable() ?? rolish.HOW.composalize(rolish) !!
-                X::Mixin::NonComposable.new(:target(obj), :rolish(rolish)).throw;
+                X::Mixin::NotComposable.new(:target(obj), :rolish(rolish)).throw;
     my @attrs = $role.^attributes().grep: { .has_accessor };
     X::Role::Initialization.new(:$role).throw unless @attrs == 1;
     obj.HOW.mixin(obj, $role).BUILD_LEAST_DERIVED({ @attrs[0].Str.substr(2) => $value });
@@ -39,13 +39,13 @@ proto infix:<but>(|) { * }
 multi infix:<but>(Mu:D \obj, Mu:U \rolish) {
     my $role := rolish.HOW.archetypes.composable() ?? rolish !!
                 rolish.HOW.archetypes.composalizable() ?? rolish.HOW.composalize(rolish) !!
-                X::Mixin::NonComposable.new(:target(obj), :rolish(rolish)).throw;
+                X::Mixin::NotComposable.new(:target(obj), :rolish(rolish)).throw;
     obj.HOW.mixin(obj.clone(), $role).BUILD_LEAST_DERIVED({});
 }
 multi infix:<but>(Mu:D \obj, Mu:U \rolish, :$value! is parcel) {
     my $role := rolish.HOW.archetypes.composable() ?? rolish !!
                 rolish.HOW.archetypes.composalizable() ?? rolish.HOW.composalize(rolish) !!
-                X::Mixin::NonComposable.new(:target(obj), :rolish(rolish)).throw;
+                X::Mixin::NotComposable.new(:target(obj), :rolish(rolish)).throw;
     my @attrs = $role.^attributes().grep: { .has_accessor };
     X::Role::Initialization.new(:$role).throw unless @attrs == 1;
     my $mixin-value := $value;
@@ -59,7 +59,7 @@ multi infix:<but>(Mu:D \obj, Mu:U \rolish, :$value! is parcel) {
 multi infix:<but>(Mu:U \obj, Mu:U \rolish) {
     my $role := rolish.HOW.archetypes.composable() ?? rolish !!
                 rolish.HOW.archetypes.composalizable() ?? rolish.HOW.composalize(rolish) !!
-                X::Mixin::NonComposable.new(:target(obj), :rolish(rolish)).throw;
+                X::Mixin::NotComposable.new(:target(obj), :rolish(rolish)).throw;
     obj.HOW.mixin(obj, $role);
 }
 multi infix:<but>(Mu \obj, Mu:D $val) is rw {

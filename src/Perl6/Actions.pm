@@ -3420,7 +3420,11 @@ class Perl6::Actions is HLL::Actions {
             }
             unless istype($quasi_ast, $ast_class) {
                 # XXX: Need to awesomeize with which type it got
-                $/.CURSOR.panic('Macro did not return AST');
+                $*W.throw('X::TypeCheck::MacroUnquote',
+                        got         => $quasi_ast,
+                        expected    => $ast_class,
+                        symbol      => ~$<identifier>,
+                );
             }
             my $past := QAST::Block.new(
                 :blocktype<raw>,
@@ -3521,7 +3525,7 @@ class Perl6::Actions is HLL::Actions {
                         add_macro_arguments($expr, $ast_class, @argument_quasi_asts);
                     }
                 }
-                my $quasi_ast := $routine(|@argument_quasi_asts);
+                my $quasi_ast := $*W.ex-handle($/, { $routine(|@argument_quasi_asts) });
                 if istype($quasi_ast, $nil_class) {
                     make QAST::Var.new(:name('Nil'), :scope('lexical'));
                     return 1;

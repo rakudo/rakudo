@@ -819,6 +819,13 @@ my class X::TypeCheck::Assignment is X::TypeCheck {
     }
 }
 
+my class X::TypeCheck::MacroUnquote is X::TypeCheck does X::Comp {
+    method message {
+        "Type check failed in macro application; expected {$.expected.^name} but got {$.got.^name}";
+    }
+
+}
+
 my class X::Assignment::RO is Exception {
     method message {
         "Cannot assign to a non-container";

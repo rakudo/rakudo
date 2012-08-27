@@ -909,7 +909,7 @@ my class X::DateTime::TimezoneClash does X::Temporal {
 my class X::Eval::NoSuchLang is Exception {
     has $.lang;
     method message() {
-        "No compiler compiler available for language '$.lang'";
+        "No compiler available for language '$.lang'";
     }
 }
 

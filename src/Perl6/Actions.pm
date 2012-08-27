@@ -3531,8 +3531,11 @@ class Perl6::Actions is HLL::Actions {
                     return 1;
                 }
                 unless istype($quasi_ast, $ast_class) {
-                    # XXX: Need to awesomeize with which type it got
-                    $/.CURSOR.panic('Macro did not return AST');
+                    $*W.throw($/, 'X::TypeCheck::MacroUnquote',
+                            got      => $quasi_ast,
+                            expected => $ast_class,
+                            symbol   => $*longname.text,
+                    );
                 }
                 $past := QAST::Block.new(
                     :blocktype<raw>,

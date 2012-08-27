@@ -235,4 +235,7 @@ sub split($pat, Cool $target, $limit = $Inf, :$all) {
     $target.split($pat, $limit, :$all);
 }
 
-sub chars(Cool $x) { $x.Str.chars }
+proto sub chars(|) {*}
+multi sub chars(Cool $x)  { $x.Str.chars }
+multi sub chars(Str:D $x) { nqp::p6box_i(nqp::chars($x)) }
+multi sub chars(str $x) returns int { nqp::chars($x) }

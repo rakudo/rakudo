@@ -229,15 +229,29 @@ my class List does Positional {
         self
     }
 
-    method splice($offset is copy = 0, $size? is copy, *@values) {
+    method splice($offset = 0, $size?, *@values) {
         self.gimme(*);
-        $offset += self.elems if ($offset < 0);
-        $size //= self.elems - $offset;
-        $size = self.elems + $size - $offset if ($size < 0);
-        my @ret = self[$offset..($offset + $size - 1)];
+        my $o = $offset;
+        my $s = $size;
+        my $elems = self.elems;
+        $offset += $elems if ($offset < 0);
+        X::OutOfRange.new(
+            what => 'offset argument to List.splice',
+            got  => $offset,
+            range => (-self.elems..^self.elems),
+        ).fail if $o < 0;
+        $s //= self.elems - ($o min $elems);
+        $s = self.elems + $s - $o if ($s < 0);
+        X::OutOfRange.new(
+            what => 'size argument to List.splice',
+            got  => $size,
+            range => (0..^(self.elems - $o)),
+        ).fail if $s < 0;
+
+        my @ret = self[$o..($o + $s - 1)];
         nqp::splice($!items,
                     nqp::getattr(@values.eager, List, '$!items'),
-                    $offset.Int, $size.Int);
+                    $o.Int, $s.Int);
         @ret;
     }
 

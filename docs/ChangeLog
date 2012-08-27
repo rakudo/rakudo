@@ -1,3 +1,8 @@
+New in 2012.09
++ class Iterable does not inherit from class Cool anymore
++ basic macro unquoting
++ basic support for m:P5/.../ regexes
+
 New in 2012.08
 + tclc implemented
 + --> ReturnType in signatures and prefix type constraints of routine return

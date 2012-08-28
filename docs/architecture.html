@@ -6,99 +6,89 @@
 
 <h1>Rakudo architectural overview</h1>
 
-<p>(This started off <a
-href="http://perlgeek.de/blog-en/perl-6/rakudo-overview.html">as a blog
-post</a>, which didn't have the fancy clickable SVG image).</p>
-
 <object 
     style="margin:2ex; float:left"
-    data="/architecture.svg"
+    data="architecture.svg"
     type="image/svg+xml"
     alt="Rakudo flow chart"
     >
     </object>
+
 <a id="action-methods" />
-<h2 id="parser" >Parser and action methods</h2>
+<h2 id="parser" >Parser and Action methods</h2>
 
-<p>The source code is entered at the top of the machine named Rakudo, and is
-transformed in various stages. The first two, parser and action methods, are
-actually part of Rakudo, and are hosted in the Rakudo repository. They are
-written in two different subsets of Perl 6, the regexes (parser), and "Not
-Quite Perl 6", short NQP (action methods).</p>
+<p>The Perl 6 source code is transformed in various stages. The first are the Parser and Action Method stage. This stage creates a parse tree out of the Perl 6 source code and the fires off Action methods that annotate the parse tree, incrementally turning it into an Abstract Syntax Tree (QAST). When an Action Method is done annotating, the control is handed back to the Parser, which then continues parsing the Perl 6 code.</p>
 
-<a id="post-compiler" />
-<h2 id="past-compiler">PAST and POST
-compiler</h2>
+<p>The result of these two stages is an "improved PAST" (Perl 6 Abstract Syntax Tree) named QAST. This tree is then passed on to the QAST compiler.</p>
 
-<p>The next two stages (PAST and POST compiler) are part of the so-called
-"Parrot Compiler Toolkit", short PCT. Both PAST and POST are structural
-representations of the program, with PAST being more high-level than POST.
-Both compilers are written in PIR, the parrot
-assembly language, and are distributed along with parrot. They are also used
-by many other parrot based languages.</p>
+<p>The Parser and Action methods are implemented in "Not Quite Perl 6" (NQP) and are part of Rakudo and hosted in the Rakudo repository at <a href="../src/Perl6/Grammar.pm">src/Perl6/Grammar.pm</a> and <a href="../src/Perl6/Actions.pm">src/Perl6/Actions.pm</a>.</p>
 
-<a id="parrot-runloops" />
-<h2 id="imcc">IMCC and Parrot runcores</h2>
+<h2 id="QAST-compiler">QAST compiler</h2>
 
-<p>The POST compiler emits PIR, which IMCC transforms into byte code. IMCC is
-parrot's PIR compiler, written in C and statically linked into parrot. The
-byte code (PBC) can then be stored to disk, or executed in memory by a
-so-called <em>run core</em> or <em>run loop</em>, which is in some sense
-the heart
-of parrot - or one of the hearts, because there are several different ones
-available (one for just-in-time compilation (JIT), one for debugging etc.).</p>
+<p>The QAST compiler transforms the abstract syntax tree into a PIRT (Parrot Intermediate Representation Tree). In this phase we have the program represented as an AST, and need to translate this into the PIR that the Parrot VM understands. To do this, the QAST compiler does a series of translations on the AST, creating PIRT nodes that implement the operations specified by the QAST nodes.</p>
 
-<p>There are also some supporting custom types and operations in Rakudo called
-<em>dynamic PMCs</em> and <em>dynamic ops</em> which are written in C, and
-helper functions written in other languages (namely NQP and PIR). Those do
-not show up in the flow chart.</p>
+<p>In addition, the QAST compiler is responsible for serializing The World in such a way that the later stages can get access to the declarations stored there during the Parser and Action methods stages.</p>
 
-<h2 id="setting">Setting library</h2>
+<p>There's also opportunity to apply some VM-specific optimizations at this point. When this is done, the resulting PIRT is passed to the PIRT serializer.</p>
 
-<p>The part of Rakudo described so far is the <em>stage one</em> compiler.
-In the build process it is compiled first, and then it compiles the <em>setting
-library</em> down to PBC. "Setting library" is a fancy term describing the
-built-in functions which are written in Perl 6. The result of this compilation
-(together with a low level runtime library in PIR) is linked together with the
-stage one compiler and parrot, the result is the <code>perl6</code>
-executable.</p>
+<p>This stage is described in <a href="../nqp/src/QAST/">nqp/src/QAST/</a>.</p>
+
+<h2 id="The-World">The World</h2>
+
+<p>The World is where the parser and the action methods store any declarations they encouter during their runs.</p>
+
+
+<h2 id="PIRT-serializer">PIRT serializer</h2>
+
+<p>The PIRT serializer "squashes" the PIR tree into a format that can be passed to Parrot itself and it's IMCC (InterMediate Code Compiler) stage.</p>
+
+<p>You can read more about this at <a href="../nqp/src/QAST/PIRT.nqp">nqp/src/QAST/PIRT.nqp</a></p>
+
+
+<a id="parrot-runtime" />
+<h2 id="imcc">IMCC and Parrot runtime</h2>
+
+<p>The IMCC (InterMediate Code Compiler) receives the PIR code from the PIRT serializer and then transforms it into Parrot Byte Code (PBC). IMCC is parrot's PIR compiler, written in C and statically linked into parrot. The byte code can then be stored to disk or executed in memory by one of the <em>run cores</em> availabe as part of the Parrot runtime. This is in some sense the heart of Parrot - or one of the hearts; There are several different cores available, includin one for just-in-time compilation (JIT), one for debugging and more.</p>
+
+<p>You can find out more about this on <a href="../parrot/docs/imcc">parrot/docs/imcc/</a></p>
+
+<h2 id="pmc-dynops">PMCs and dynops</h2>
+
+<p>There are also some supporting custom types and operations in Rakudo called <em>dynamic PMCs</em> and <em>dynamic ops</em> (dynops) which are written in C, and helper functions written in NQP and PIR. These supporting libraries exist for adding features to Parrot that are needed to handle special features in Perl 6.</p>
+
+<h2 id="setting">Core setting library</h2>
+
+<p>The part of Rakudo described so far is the <em>stage one</em> compiler. In the build process it is compiled first, and then it compiles the <em>Core setting library</em> down to PBC. "Core setting library" is a fancy term describing the built-in functions which are written in Perl 6, whose purpose is to be the Perl 6 standard library. The result of this compilation is linked together with the stage one compiler and Parrot, the result is the <code>perl6</code> executable.</p>
+
+<p>The core setting library informs the Parser and Action methods when compiling a Perl 6 program.</p>
 
 <h2 id="glossary">Glossary</h2>
 
 <dl>
-    <dt>PGE</dt>
-    <dd>Parrot Grammar Engine, parrot's grammar engine for Perl 6 regexes and
-        grammars.</dd>
-
     <dt>NQP</dt>
-    <dd>Not Quite Perl 6, a small subset of Perl 6 that is used for tree
-        transformations in compilers.</dd>
+    <dd>Not Quite Perl 6, a small subset of Perl 6 that is used for tree transformations in compilers.</dd>
 
-    <dt>PAST</dt>
-    <dd>Parrot Abstract Syntax Tree, an in-memory representation of
-        structures common to many programming languages (like variable
-        declarations, branches, loops, subroutine calls).</dd>
+    <dt>PIR</dt>
+    <dd>Parrot Intermediate Representation, the most commonly used for of parrot assembly (which is still high-level enough to be written by humans).</dd>
 
-    <dt>POST</dt>
-    <dd>Parrot Opcode Syntax Tree, an in-memory low level representation
-        of programs.</dd>
+    <dt>IMCC</dt>
+    <dd>InterMediate Code Compiler, the part of parrot that compiles PIR into byte code.</dd>
 
-     <dt>PCT</dt>
-     <dd>Parrot Compiler Toolkit, a collection of tools and compilers useful
-         for writing other compilers.</dd>
+    <dt>PBC</dt>
+    <dd>Parrot Byte Code, the binary form to which all parrot programs are compiled in the end.</dd>
 
-     <dt>PIR</dt>
-     <dd>Parrot Intermediate Representation, the most commonly used for of
-         parrot assembly (which is still high-level enough to be written by
-         humans).</dd>
+    <dt>Core setting</dt>
+    <dd>The core setting is the Perl 6 standard library.</dd>
 
-      <dt>IMCC</dt>
-      <dd>InterMediate Code Compiler, the part of parrot that compiles PIR
-          into byte code.</dd>
+    <dt>QAST</dt>
+    <dd></dd>
 
-       <dt>PBC</dt>
-       <dd>Parrot Byte Code, the binary form to which all parrot programs are
-           compiled in the end.</dd>
+    <dt>JIT</dt>
+    <dd></dd>
+
+    <dt>PIRT</dt>
+    <dd></dd>
+
 </dl>
 
 </body>

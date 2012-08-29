@@ -10,9 +10,9 @@ class Perl6::Compiler is HLL::Compiler {
 
         my $hll_ns := pir::get_root_global__Ps('perl6');
         my $argiter := nqp::iterator(@args);
-        nqp::shift($argiter) if $argiter && !pir::defined(%options<e>);
+        nqp::shift($argiter) if $argiter && !nqp::defined(%options<e>);
         $hll_ns<$!ARGITER> := $argiter;
-        my $super := pir::find_method__PPs(HLL::Compiler, 'command_eval');
+        my $super := nqp::findmethod(HLL::Compiler, 'command_eval');
         my %*COMPILING;
         %*COMPILING<%?OPTIONS> := %options;
         $super(self, |@args, |%options);
@@ -28,7 +28,7 @@ class Perl6::Compiler is HLL::Compiler {
     method syntaxcheck($past, *%adverbs) {
         if %adverbs<c> {
             say("Syntax OK");
-            pir::exit__vi(0);
+            pir::exit__0i(0);
         }
         $past;
     }
@@ -78,6 +78,6 @@ class Perl6::Compiler is HLL::Compiler {
         PERL6LIB=\"lib\" perl6 example.pl
         
         For more information, see the perl6(1) man page.\n"); 
-        pir::exit__vi(0);
+        pir::exit__0i(0);
     }
 }

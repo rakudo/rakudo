@@ -27,7 +27,7 @@ grammar Perl6::Grammar is HLL::Grammar {
         # Symbol table and serialization context builder - keeps track of
         # objects that cross the compile-time/run-time boundary that are
         # associated with this compilation unit.
-        my $file := pir::find_caller_lex__ps('$?FILES');
+        my $file := pir::find_caller_lex__Ps('$?FILES');
         my $source_id := nqp::sha1(nqp::getattr_s(self, NQPCursor, '$!target'));
         my $*W := nqp::isnull($file) ??
             Perl6::World.new(:handle($source_id)) !!
@@ -499,7 +499,7 @@ grammar Perl6::Grammar is HLL::Grammar {
             }
             my $M := %*COMPILING<%?OPTIONS><M>;
             if nqp::defined($M) {
-                for pir::does($M, 'array') ?? $M !! [$M] -> $longname {
+                for nqp::islist($M) ?? $M !! [$M] -> $longname {
                     my $module := $*W.load_module($/,
                                                     $longname,
                                                     $*GLOBALish);

@@ -33,7 +33,7 @@ class Perl6::Actions is HLL::Actions {
     }
 
     method ints_to_string($ints) {
-        if pir::does($ints, 'array') {
+        if nqp::islist($ints) {
             my $result := '';
             for $ints {
                 $result := $result ~ nqp::chr(nqp::unbox_i($_.ast));
@@ -1262,7 +1262,7 @@ class Perl6::Actions is HLL::Actions {
                         HLL::Compiler.lineof($/.orig, $/.from ));
             }
             else {
-                $past := $*W.add_string_constant(pir::find_caller_lex__ps('$?FILES') // '<unknown file>');
+                $past := $*W.add_string_constant(pir::find_caller_lex__Ps('$?FILES') // '<unknown file>');
             }
         }
         elsif +@name > 1 {
@@ -4568,7 +4568,7 @@ class Perl6::Actions is HLL::Actions {
         my $int  := $<int> ?? filter_number(~$<int>) !! "0";
         my $frac := $<frac> ?? filter_number(~$<frac>) !! "0";
         if $<escale> {
-            my $e := pir::isa($<escale>, 'ResizablePMCArray') ?? $<escale>[0] !! $<escale>;
+            my $e := nqp::islist($<escale>) ?? $<escale>[0] !! $<escale>;
 #            pir::say('dec_number exponent: ' ~ ~$e.ast);
             make radcalc($/, 10, $<coeff>, 10, nqp::unbox_i($e.ast), :num);
         } else {

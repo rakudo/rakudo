@@ -75,6 +75,17 @@ class Perl6::World is HLL::World {
     # List of CHECK blocks to run.
     has @!CHECKs;
     
+    method BUILD(*%adv) {
+        @!BLOCKS := [];
+        @!CODES := [];
+        @!stub_check := [];
+        @!CHECKs := [];
+        %!sub_id_to_code_object := {};
+        %!sub_id_to_static_lexpad := {};
+        %!sub_id_to_sc_idx := {};
+        %!const_cache := {};
+    }
+    
     # Creates a new lexical scope and puts it on top of the stack.
     method push_lexpad($/) {
         # Create pad, link to outer and add to stack.

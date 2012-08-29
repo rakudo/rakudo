@@ -3098,8 +3098,10 @@ class Perl6::Actions is HLL::Actions {
 
             # Create parameter object and apply any traits.
             my $param_obj := $*W.create_parameter($_);
-            for $_<traits> {
-                ($_.ast)($param_obj) if $_.ast;
+            if $_<traits> {
+                for $_<traits> {
+                    ($_.ast)($param_obj) if $_.ast;
+                }
             }
 
             # Add it to the signature.

@@ -15,10 +15,6 @@ class Perl6::Metamodel::NativeHOW
     method archetypes() {
         $archetypes
     }
-    
-    method BUILD(:$nativesize) {
-        $!nativesize := $nativesize;
-    }
 
     method new_type(:$name = '<anon>', :$repr = 'P6opaque', :$ver, :$auth) {
         my $metaclass := self.new(:nativesize(0));

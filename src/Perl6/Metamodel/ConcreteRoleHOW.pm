@@ -35,10 +35,6 @@ class Perl6::Metamodel::ConcreteRoleHOW
         method private() { $!private }
     }
     
-    method BUILD(:@roles) {
-        @!roles := @roles;
-    }
-    
     method new_type(:@roles, :$name = '<anon>', :$ver, :$auth, :$repr) {
         my $metarole := self.new(:roles(@roles));
         my $obj := pir::repr_type_object_for__PPS($metarole, 'Uninstantiable');

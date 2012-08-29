@@ -24,10 +24,6 @@ class Perl6::Metamodel::ParametricRoleHOW
     method archetypes() {
         $archetypes
     }
-    
-    method BUILD(:$signatured) {
-        $!signatured := $signatured;
-    }
 
     method new_type(:$name = '<anon>', :$ver, :$auth, :$repr, :$signatured, *%extra) {
         my $metarole := self.new(:signatured($signatured));

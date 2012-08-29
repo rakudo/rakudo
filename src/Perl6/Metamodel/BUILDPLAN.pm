@@ -24,7 +24,7 @@ role Perl6::Metamodel::BUILDPLAN {
             
             # Does it have its own BUILD?
             my $build := $class.HOW.find_method($class, 'BUILD', :no_fallback(1));
-            if $build {
+            if !nqp::isnull($build) && $build {
                 # We'll call the custom one.
                 my $entry := [0, $build];
                 @all_plan[+@all_plan] := $entry;

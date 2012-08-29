@@ -527,7 +527,7 @@ BEGIN {
                 Code, '$!do')
         }));
     Code.HOW.add_method(Code, 'set_name', static(sub ($self, $name) {
-            pir::assign__vPS(
+            pir::assign__1PS(
                 nqp::getattr(pir::perl6_decontainerize__PP($self), Code, '$!do'),
                 $name)
         }));
@@ -834,7 +834,7 @@ BEGIN {
         PROCESS.HOW.compose(PROCESS);
         Perl6::Metamodel::ModuleHOW.add_stash(PROCESS);
         $hll_ns<PROCESS> := $PROCESS := PROCESS;
-        pir::set_root_global__vPsP(['perl6'], 'PROCESS', $PROCESS);
+        pir::set_root_global__2PsP(['perl6'], 'PROCESS', $PROCESS);
     }
 
     # Bool::False and Bool::True.

@@ -26,6 +26,10 @@ class Perl6::Metamodel::ConcreteRoleHOW
         $archetypes
     }
     
+    method new(*%named) {
+        nqp::findmethod(NQPMu, 'BUILDALL')(nqp::create(self), |%named)
+    }
+    
     my class Collision {
         has $!name;
         has @!roles;

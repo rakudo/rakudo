@@ -33,6 +33,10 @@ class Perl6::Metamodel::ClassHOW
     method archetypes() {
         $archetypes
     }
+    
+    method new(*%named) {
+        nqp::findmethod(NQPMu, 'BUILDALL')(nqp::create(self), |%named)
+    }
 
     method new_type(:$name = '<anon>', :$repr = 'P6opaque', :$ver, :$auth) {
         my $metaclass := self.new();

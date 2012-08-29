@@ -28,6 +28,10 @@ class Perl6::Metamodel::ParametricRoleGroupHOW
         $archetypes
     }
     
+    method new(*%named) {
+        nqp::findmethod(NQPMu, 'BUILDALL')(nqp::create(self), |%named)
+    }
+    
     my $selector_creator;
     method set_selector_creator($sc) {
         $selector_creator := $sc;

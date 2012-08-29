@@ -238,17 +238,13 @@ class Perl6::World is HLL::World {
             QAST::Op.new(
                 :op('callmethod'), :name('load_module'),
                 QAST::Op.new(
-                    :op('atpos'),
+                    :op('atkey'),
                     QAST::Op.new(
                         :op('atkey'),
-                        QAST::Op.new(
-                            :op('atkey'),
-                            QAST::VM.new( pirop => 'get_root_namespace P' ),
-                            QAST::SVal.new( :value('nqp') )
-                        ),
-                        QAST::SVal.new( :value('ModuleLoader') )
+                        QAST::VM.new( pirop => 'get_root_namespace P' ),
+                        QAST::SVal.new( :value('nqp') )
                     ),
-                    QAST::IVal.new( :value(1) )
+                    QAST::SVal.new( :value('ModuleLoader') )
                 ),
                 QAST::SVal.new( :value('Perl6::ModuleLoader') )
             ))

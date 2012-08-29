@@ -53,7 +53,7 @@ role Perl6::Metamodel::BUILDPLAN {
             for @attrs {
                 if nqp::can($_, 'build') {
                     my $default := $_.build;
-                    if $default {
+                    if !nqp::isnull($default) && $default {
                         my $entry := [2, $class, $_.name, $default];
                         @all_plan[+@all_plan] := $entry;
                         if $i == 0 {

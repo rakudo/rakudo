@@ -420,7 +420,7 @@ BEGIN {
             my $type     := nqp::getattr($self, Parameter, '$!nominal_type');
             my $cd       := nqp::getattr($self, Parameter, '$!container_descriptor');
             my $ins_type := $type.HOW.instantiate_generic($type, $type_environment);
-            my $ins_cd   := $cd ?? $cd.instantiate_generic($type_environment) !! $cd;
+            my $ins_cd   := nqp::isnull($cd) ?? $cd !! $cd.instantiate_generic($type_environment);
             unless $ins_type.HOW.archetypes.generic {
                 my $flags := nqp::getattr_i($ins, Parameter, '$!flags');
                 if $flags +& $SIG_ELEM_NOMINAL_GENERIC {

@@ -4632,10 +4632,10 @@ class Perl6::Actions is HLL::Actions {
         }
     }
 
-    our %SUBST_ALLOWED_ADVERBS ;
-    our %SHARED_ALLOWED_ADVERBS;
-    our %MATCH_ALLOWED_ADVERBS;
-        our %MATCH_ADVERBS_MULTIPLE := hash(
+    my %SUBST_ALLOWED_ADVERBS;
+    my %SHARED_ALLOWED_ADVERBS;
+    my %MATCH_ALLOWED_ADVERBS;
+    my %MATCH_ADVERBS_MULTIPLE := hash(
         x       => 1,
         g       => 1,
         global  => 1,
@@ -4644,7 +4644,7 @@ class Perl6::Actions is HLL::Actions {
         ex      => 1,
         exhaustive => 1,
     );
-    our %REGEX_ADVERBS_CANONICAL := hash(
+    my %REGEX_ADVERBS_CANONICAL := hash(
         ignorecase  => 'i',
         ratchet     => 'r',
         sigspace    => 's',
@@ -5297,7 +5297,7 @@ class Perl6::Actions is HLL::Actions {
     # %curried == 1 means curry WhateverCode only
     # %curried == 2 means curry both WhateverCode and Whatever (default)
 
-    our %curried;
+    my %curried;
     INIT {
         %curried{'&infix:<...>'}  := 0;
         %curried{'&infix:<...^>'} := 0;

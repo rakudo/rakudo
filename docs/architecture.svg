@@ -67,8 +67,8 @@
      id="base"
      showgrid="false"
      inkscape:zoom="1.4142136"
-     inkscape:cx="237.31829"
-     inkscape:cy="206.75371"
+     inkscape:cx="238.0254"
+     inkscape:cy="213.17704"
      inkscape:window-x="0"
      inkscape:window-y="24"
      inkscape:current-layer="svg2"
@@ -80,41 +80,12 @@
      showguides="true"
      inkscape:guide-bbox="true" />
   <defs
-     id="defs4">
-    <marker
-       inkscape:stockid="TriangleOutS"
-       orient="auto"
-       refY="0"
-       refX="0"
-       id="TriangleOutS-5"
-       style="overflow:visible">
-      <path
-         id="path4004-6"
-         d="m 5.77,0 -8.65,5 0,-10 8.65,5 z"
-         style="fill:#ffbb55;fill-rule:evenodd;stroke:#ffbb55;stroke-width:1pt"
-         transform="scale(0.2,0.2)"
-         inkscape:connector-curvature="0" />
-    </marker>
-    <marker
-       inkscape:stockid="TriangleOutS"
-       orient="auto"
-       refY="0"
-       refX="0"
-       id="TriangleOutS-5-6"
-       style="overflow:visible">
-      <path
-         id="path4004-6-4"
-         d="m 5.77,0 -8.65,5 0,-10 8.65,5 z"
-         style="fill:#ffbb55;fill-rule:evenodd;stroke:#ffbb55;stroke-width:1pt"
-         transform="scale(0.2,0.2)"
-         inkscape:connector-curvature="0" />
-    </marker>
-  </defs>
+     id="defs4" />
   <a
-     xlink:href="architecture.html#setting"
-     target="_top"
+     xlink:href="architecture.html#core-setting"
+     transform="matrix(0.5,0,0,0.5,17.715316,-37.789196)"
      id="a66"
-     transform="matrix(0.5,0,0,0.5,17.715316,-37.789196)">
+     target="_top">
     <rect
        width="188.60774"
        height="163.09328"
@@ -135,29 +106,39 @@
          y="272.36749"
          id="tspan2577">(Perl 6)</tspan></text>
   </a>
-  <g
-     id="g3077"
-     transform="translate(53.630226,3.3021826)">
-    <rect
-       y="41.327747"
-       x="254.90707"
-       height="153.9113"
-       width="47.905518"
-       id="rect3083"
-       style="fill:#fffa68;fill-opacity:1;stroke:none" />
-    <text
-       transform="matrix(0,-1,1,0,0,0)"
-       sodipodi:linespacing="125%"
-       id="text3853"
-       y="282.95706"
-       x="-171.74826"
-       style="font-size:13.05000019px;font-style:normal;font-weight:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;font-family:Bitstream Vera Sans"
-       xml:space="preserve"><tspan
-         y="282.95706"
-         x="-171.74826"
-         id="tspan3855"
-         sodipodi:role="line">The World (NQP)</tspan></text>
-  </g>
+  <a
+     xlink:href="architecture.html#the-world"
+     target="_top"
+     id="a3082">
+    <g
+       id="g3075">
+      <rect
+         style="fill:#fffa68;fill-opacity:1;stroke:none"
+         id="rect3083"
+         width="47.905518"
+         height="153.9113"
+         x="308.53729"
+         y="44.629929" />
+      <g
+         id="g3070">
+        <a
+           id="a3066">
+          <text
+             xml:space="preserve"
+             style="font-size:13.05000019px;font-style:normal;font-weight:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;font-family:Bitstream Vera Sans"
+             x="-175.05045"
+             y="336.58728"
+             id="text3853"
+             sodipodi:linespacing="125%"
+             transform="matrix(0,-1,1,0,0,0)"><tspan
+               sodipodi:role="line"
+               id="tspan3855"
+               x="-175.05045"
+               y="336.58728">The World (NQP)</tspan></text>
+        </a>
+      </g>
+    </g>
+  </a>
   <path
      inkscape:connector-curvature="0"
      id="path3281"
@@ -165,9 +146,9 @@
      style="font-size:medium;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;text-indent:0;text-align:start;text-decoration:none;line-height:normal;letter-spacing:normal;word-spacing:normal;text-transform:none;direction:ltr;block-progression:tb;writing-mode:lr-tb;text-anchor:start;baseline-shift:baseline;color:#000000;fill:#ffbb55;fill-opacity:1;stroke:none;stroke-width:10;marker:none;visibility:visible;display:inline;overflow:visible;enable-background:accumulate;font-family:Sans;-inkscape-font-specification:Sans" />
   <a
      xlink:href="architecture.html#parser"
-     id="a61"
+     transform="matrix(0.5,0,0,0.5,12.2667,-77.083296)"
      target="_top"
-     transform="matrix(0.5,0,0,0.5,12.2667,-77.083296)">
+     id="a61">
     <desc
        id="desc3046">The Perl 6 source code is transformed in various stages. The first one is the parser stage, which creates a parse tree out of the Perl 6 source code.
 
@@ -206,9 +187,9 @@ The parser stage is implemented in &quot;Not Quite Perl 6&quot; (NQP) and is par
      inkscape:transform-center-y="-0.02913637" />
   <a
      xlink:href="architecture.html#action-methods"
-     id="action-methods"
+     transform="matrix(0.5,0,0,0.5,12.266679,-97.23971)"
      target="_top"
-     transform="matrix(0.5,0,0,0.5,12.266679,-97.23971)">
+     id="action-methods">
     <desc
        id="desc3064">The action methods are applied to the parse tree at the same time as the parser builds it. The result of this process is the Abstract Syntax Tree that is sent to the QAST compiler.</desc>
     <title
@@ -236,10 +217,10 @@ The parser stage is implemented in &quot;Not Quite Perl 6&quot; (NQP) and is par
      inkscape:transform-center-x="-0.9144769"
      inkscape:transform-center-y="0.6733995" />
   <a
-     xlink:href="architecture.html#post-compiler"
-     id="a41"
+     xlink:href="architecture.html#pirt-serializer"
+     transform="matrix(0.5,0,0,0.5,12.26668,-98.103967)"
      target="_top"
-     transform="matrix(0.5,0,0,0.5,12.26668,-98.103967)">
+     id="a41">
     <rect
        width="333.35034"
        height="61.619305"
@@ -258,10 +239,10 @@ The parser stage is implemented in &quot;Not Quite Perl 6&quot; (NQP) and is par
          id="tspan2549">PIRT serializer (NQP)</tspan></text>
   </a>
   <a
-     xlink:href="architecture.html#past-compiler"
-     id="a46"
+     xlink:href="architecture.html#qast-compiler"
+     transform="matrix(0.5,0,0,0.5,12.26668,-98.091211)"
      target="_top"
-     transform="matrix(0.5,0,0,0.5,12.26668,-98.091211)">
+     id="a46">
     <rect
        width="333.35034"
        height="61.619305"
@@ -281,9 +262,9 @@ The parser stage is implemented in &quot;Not Quite Perl 6&quot; (NQP) and is par
   </a>
   <a
      xlink:href="architecture.html#imcc"
-     id="a51"
+     transform="matrix(0.5,0,0,0.5,12.266678,-98.116724)"
      target="_top"
-     transform="matrix(0.5,0,0,0.5,12.266678,-98.116724)">
+     id="a51">
     <rect
        width="333.35034"
        height="61.619305"
@@ -364,10 +345,10 @@ The parser stage is implemented in &quot;Not Quite Perl 6&quot; (NQP) and is par
        y="301.65015"
        id="tspan2527">PIR</tspan></text>
   <a
-     xlink:href="architecture.html#parrot-runloops"
-     target="_top"
+     xlink:href="architecture.html#parrot-runtime"
+     transform="matrix(0.5,0,0,0.5,12.266687,-98.428182)"
      id="a101"
-     transform="matrix(0.5,0,0,0.5,12.266687,-98.428182)">
+     target="_top">
     <desc
        id="desc3042">The POST compiler emits PIR, which IMCC transforms into byte code. IMCC is parrot's PIR compiler, written in C and statically linked into parrot. The byte code (PBC) can then be stored to disk, or executed in memory by a so-called run core or run loop, which is in some sense the heart of parrot - or one of the hearts, because there are several different ones available (one for just-in-time compilation (JIT), one for debugging etc.).
 
@@ -406,37 +387,37 @@ There are also some supporting custom types and operations in Rakudo called dyna
        id="tspan2541"
        y="382.36429"
        x="178.24348">PBC</tspan></text>
-  <g
-     id="g3077-7"
-     transform="translate(53.63025,218.88296)">
+  <a
+     xlink:href="architecture.html#pmc-dynops"
+     target="_top"
+     id="a3110">
     <g
-       id="g3059-4"
-       transform="translate(-32.73544,-1.5968508)">
+       id="g3104">
       <rect
          style="fill:#55ff99;fill-opacity:1;stroke:none"
          id="rect3083-4"
          width="47.905518"
          height="103.10033"
-         x="287.64252"
-         y="93.73558" />
+         x="308.53732"
+         y="311.0217" />
       <text
          xml:space="preserve"
          style="font-size:13.05000019px;font-style:normal;font-weight:normal;text-align:center;line-height:125%;letter-spacing:0px;word-spacing:0px;text-anchor:middle;fill:#000000;fill-opacity:1;stroke:none;font-family:Bitstream Vera Sans"
-         x="-145.08183"
-         y="306.92456"
+         x="-362.36795"
+         y="327.81937"
          id="text3853-9"
          sodipodi:linespacing="125%"
          transform="matrix(0,-1,1,0,0,0)"><tspan
            sodipodi:role="line"
            id="tspan3855-2"
-           x="-145.08183"
-           y="306.92456">PMC &amp;</tspan><tspan
+           x="-362.36795"
+           y="327.81937">PMC &amp;</tspan><tspan
            sodipodi:role="line"
-           x="-145.08183"
-           y="323.23706"
+           x="-362.36795"
+           y="344.13187"
            id="tspan3229">dynops (C)</tspan></text>
     </g>
-  </g>
+  </a>
   <path
      style="fill:#ffbb55"
      d="m 304.45517,318.86055 -4.34646,0 -0.008,-4.48275 -7.83783,12.52446 7.89841,12.0777 -0.008,-4.49033 6.86003,0 0,-15.62908 z"

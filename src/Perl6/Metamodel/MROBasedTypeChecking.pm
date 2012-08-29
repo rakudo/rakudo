@@ -40,6 +40,6 @@ role Perl6::Metamodel::MROBasedTypeChecking {
                 }
             }
         }
-        pir::publish_type_check_cache($obj, @tc)
+        pir::publish_type_check_cache__0PP($obj, @tc)
     }
 }

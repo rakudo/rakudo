@@ -990,7 +990,7 @@ class Perl6::World is HLL::World {
         # we can be a bit smarter here some day. But for now we just make a
         # single frame and copy all the visible things into it.
         my %seen;
-        my $slp       := nqp::create($slp_type);
+        my $slp       := $slp_type.new();
         my $mu        := try { self.find_symbol(['Mu']) };
         my $cur_block := $past;
         while $cur_block {

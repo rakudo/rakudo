@@ -55,6 +55,8 @@ my class Exception {
         $return($fail) unless nqp::isnull($return);
         $fail
     }
+
+    method is-compile-time { False }
 }
 
 my class X::AdHoc is Exception {
@@ -154,7 +156,7 @@ do {
             my $e := EXCEPTION($ex);
             my Mu $err := pir::getstderr__P();
 
-            if X::Comp.ACCEPTS($e) || is_runtime($ex.backtrace) {
+            if $e.is-compile-time || is_runtime($ex.backtrace) {
                 $err.print: $e.gist;
                 $err.print: "\n";
             }
@@ -304,23 +306,32 @@ my role X::Comp is Exception {
     has $.line;
     has $.column;
     has @.modules;
+    has $.is-compile-time = False;
     multi method gist(::?CLASS:D:) {
-        my $r = "===SORRY!===\n$.message\nat $.filename():$.line";
-        for @.modules.reverse[1..*] {
-            $r ~= $_<module>.defined
-                    ?? "\n  from module $_<module> ($_<filename>:$_<line>)"
-                    !! "\n  from $_<filename>:$_<line>";
+        if $.is-compile-time {
+            my $r = "===SORRY!===\n$.message\nat $.filename():$.line";
+            for @.modules.reverse[1..*] {
+                $r ~= $_<module>.defined
+                        ?? "\n  from module $_<module> ($_<filename>:$_<line>)"
+                        !! "\n  from $_<filename>:$_<line>";
+            }
+            $r;
         }
-        $r;
+        else {
+            self.Exception::gist;
+        }
     }
     method SET_FILE_LINE($file, $line) {
         $!filename = $file;
         $!line     = $line;
+        $!is-compile-time = True;
     }
 }
 
 # XXX a hack for getting line numbers from exceptions from the metamodel
-my class X::Comp::AdHoc is X::AdHoc does X::Comp { }
+my class X::Comp::AdHoc is X::AdHoc does X::Comp {
+    method is-compile-time() { True }
+}
 
 my role X::Syntax does X::Comp { }
 my role X::Pod                 { }
@@ -819,9 +830,10 @@ my class X::TypeCheck::Assignment is X::TypeCheck {
     }
 }
 
-my class X::TypeCheck::MacroUnquote is X::TypeCheck does X::Comp {
+my class X::TypeCheck::Splice is X::TypeCheck does X::Comp {
+    has $.action;
     method message {
-        "Type check failed in macro application; expected {$.expected.^name} but got {$.got.^name}";
+        "Type check failed in {$.action}; expected {$.expected.^name} but got {$.got.^name}";
     }
 
 }

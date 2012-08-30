@@ -3421,11 +3421,11 @@ class Perl6::Actions is HLL::Actions {
                 return 1;
             }
             unless istype($quasi_ast, $ast_class) {
-                # XXX: Need to awesomeize with which type it got
-                $*W.throw('X::TypeCheck::MacroUnquote',
-                        got         => $quasi_ast,
-                        expected    => $ast_class,
-                        symbol      => ~$<identifier>,
+                $*W.throw('X::TypeCheck::Splice',
+                    got         => $quasi_ast,
+                    expected    => $ast_class,
+                    symbol      => ~$<identifier>,
+                    action      => 'macro application',
                 );
             }
             my $past := QAST::Block.new(
@@ -3533,10 +3533,11 @@ class Perl6::Actions is HLL::Actions {
                     return 1;
                 }
                 unless istype($quasi_ast, $ast_class) {
-                    $*W.throw($/, 'X::TypeCheck::MacroUnquote',
-                            got      => $quasi_ast,
-                            expected => $ast_class,
-                            symbol   => $*longname.text,
+                    $*W.throw('X::TypeCheck::Splice',
+                        got         => $quasi_ast,
+                        expected    => $ast_class,
+                        symbol      => $*longname.text,
+                        action      => 'macro application',
                     );
                 }
                 $past := QAST::Block.new(
@@ -3926,8 +3927,12 @@ class Perl6::Actions is HLL::Actions {
                     return 1;
                 }
                 unless istype($quasi_ast, $ast_class) {
-                    # XXX: Need to awesomeize with which type it got
-                    $/.CURSOR.panic('Macro did not return AST');
+                    $*W.throw('X::TypeCheck::Splice',
+                        got         => $quasi_ast,
+                        expected    => $ast_class,
+                        symbol      => $name,
+                        action      => 'macro application',
+                    );
                 }
                 my $past := QAST::Block.new(
                     :blocktype<raw>,

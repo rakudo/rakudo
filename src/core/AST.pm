@@ -19,9 +19,10 @@ my class AST {
         my $pasts := nqp::list();
         for @unquote_asts {
             # TODO: find and report macro name
-            X::TypeCheck::MacroUnquote.new(
-                got     => $_,
+            X::TypeCheck::Splice.new(
+                got      => $_,
                 expected => AST,
+                action   => 'unquote evaluation',
             ).throw unless $_ ~~ AST;
             nqp::push($pasts, nqp::getattr(nqp::p6decont($_), AST, '$!past'))
         }

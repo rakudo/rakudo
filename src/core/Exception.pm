@@ -819,9 +819,10 @@ my class X::TypeCheck::Assignment is X::TypeCheck {
     }
 }
 
-my class X::TypeCheck::MacroUnquote is X::TypeCheck does X::Comp {
+my class X::TypeCheck::Splice is X::TypeCheck does X::Comp {
+    has $.action;
     method message {
-        "Type check failed in macro application; expected {$.expected.^name} but got {$.got.^name}";
+        "Type check failed in {$.action}; expected {$.expected.^name} but got {$.got.^name}";
     }
 
 }

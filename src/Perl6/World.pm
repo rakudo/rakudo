@@ -1916,6 +1916,7 @@ class Perl6::World is HLL::World {
         if $type_found {
             %opts<line>    := HLL::Compiler.lineof($/.orig, $/.from);
             %opts<modules> := p6ize_recursive(@*MODULES);
+            %opts<is-compile-time> := 1;
             for %opts -> $p {
                 if pir::does($p.value, 'array') {
                     my @a := [];

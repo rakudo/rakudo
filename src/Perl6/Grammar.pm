@@ -35,7 +35,7 @@ grammar Perl6::Grammar is HLL::Grammar {
         $*W.add_initializations();
 
         # XXX Hack: clear any marks.
-        pir::set_hll_global__vPsP(['HLL', 'Grammar'], '%!MARKHASH', nqp::null());
+        pir::set_hll_global__vsP('%!MARKHASH', nqp::null());
 
         my $cursor := self.comp_unit;
         $*W.pop_lexpad(); # UNIT

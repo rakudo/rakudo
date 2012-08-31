@@ -1169,7 +1169,7 @@ grammar Perl6::Grammar is HLL::Grammar {
     }
 
     token special_variable:sym['$<'] {
-        <sym> <!before \s* \w+ \s* '>' >
+        <sym> <?before \h* <[ = , ; ? : ! ) \] } ]> <!before \S* '>'> >
         <.obs('$< variable', '$*UID')>
     }
 

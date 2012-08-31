@@ -137,12 +137,12 @@ do {
                 return True if nqp::iseq_s($bt[$_]<sub>, 'eval')
                     && nqp::iseq_s(
                             nqp::join(';', $bt[$_]<sub>.get_namespace.get_name),
-                            'nqp;HLL;Compiler'
+                            'nqp'
                     );
                 return False if nqp::iseq_s($bt[$_]<sub>, 'compile')
                     && nqp::iseq_s(
                             nqp::join(';', $bt[$_]<sub>.get_namespace.get_name),
-                            'nqp;HLL;Compiler'
+                            'nqp'
                     );
             }
         }

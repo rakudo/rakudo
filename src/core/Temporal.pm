@@ -245,6 +245,10 @@ my class DateTime does Dateish {
             ).in-timezone($timezone);
     }
 
+    multi method new(Num $time, :$timezone=0, :&formatter=&default-formatter) {
+        self.new($time.Int, :$timezone, :&formatter)
+    }
+
     multi method new(Int $time is copy, :$timezone=0, :&formatter=&default-formatter) {
         # Interpret $time as a POSIX time.
         my $second  = $time % 60; $time = $time div 60;

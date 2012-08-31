@@ -1,4 +1,4 @@
-sub term:<time>() { nqp::p6box_i(nqp::time_i()) }
+sub term:<time>() { nqp::p6box_n(nqp::time_n()) }
 
 {
     my @ARGS;

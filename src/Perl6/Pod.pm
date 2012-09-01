@@ -143,7 +143,7 @@ class Perl6::Pod {
         my $firstsep;
         my $i := 0;
         while $i < +@rows {
-            unless pir::isa(@rows[$i], 'ResizablePMCArray') {
+            unless nqp::islist(@rows[$i]) {
                 $sepnum := $sepnum + 1;
                 unless $firstsepindex { $firstsepindex := $i }
                 if $firstsep {
@@ -195,7 +195,7 @@ class Perl6::Pod {
             my @tmp  := [];
             $i       := 0;
             while $i < +@rows {
-                if pir::isa(@rows[$i], 'ResizablePMCArray') {
+                if nqp::islist(@rows[$i]) {
                     @tmp.push(@rows[$i]);
                 } else {
                     @newrows.push(merge_rows(@tmp));
@@ -316,7 +316,7 @@ class Perl6::Pod {
         my @res  := [];
         my @strs := [];
         for @content -> $elem {
-            if pir::typeof($elem) eq 'String' {
+            if pir::typeof__SP($elem) eq 'String' {
                 # don't push the leading whitespace
                 if +@res + @strs == 0 && $elem eq ' ' {
 

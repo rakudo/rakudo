@@ -31,8 +31,11 @@ class Perl6::Metamodel::BaseDispatcher {
             @pos[$i] := $capture[$i];
             $i := $i + 1;
         }
-        for pir::getattribute__PPs($capture, 'named') {
-            %named{$_} := $capture{$_};
+        my @nameds := pir::getattribute__PPs($capture, 'named');
+        unless nqp::isnull(@nameds) {
+            for @nameds {
+                %named{$_} := $capture{$_};
+            }
         }
         
         # Call.

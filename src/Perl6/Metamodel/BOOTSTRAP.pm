@@ -420,7 +420,7 @@ BEGIN {
             my $type     := nqp::getattr($self, Parameter, '$!nominal_type');
             my $cd       := nqp::getattr($self, Parameter, '$!container_descriptor');
             my $ins_type := $type.HOW.instantiate_generic($type, $type_environment);
-            my $ins_cd   := $cd ?? $cd.instantiate_generic($type_environment) !! $cd;
+            my $ins_cd   := nqp::isnull($cd) ?? $cd !! $cd.instantiate_generic($type_environment);
             unless $ins_type.HOW.archetypes.generic {
                 my $flags := nqp::getattr_i($ins, Parameter, '$!flags');
                 if $flags +& $SIG_ELEM_NOMINAL_GENERIC {
@@ -527,7 +527,7 @@ BEGIN {
                 Code, '$!do')
         }));
     Code.HOW.add_method(Code, 'set_name', static(sub ($self, $name) {
-            pir::assign__vPS(
+            pir::assign__1PS(
                 nqp::getattr(pir::perl6_decontainerize__PP($self), Code, '$!do'),
                 $name)
         }));
@@ -827,14 +827,14 @@ BEGIN {
     # If we don't already have a PROCESS, set it up.
     my $PROCESS;
     my $hll_ns := pir::get_root_global__PS('perl6');
-    if $hll_ns && nqp::existskey($hll_ns, 'PROCESS') {
+    if !nqp::isnull($hll_ns) && nqp::existskey($hll_ns, 'PROCESS') {
         $PROCESS := $hll_ns<PROCESS>;
     }
     else {
         PROCESS.HOW.compose(PROCESS);
         Perl6::Metamodel::ModuleHOW.add_stash(PROCESS);
-        $hll_ns<PROCESS> := $PROCESS := PROCESS;
-        pir::set_root_global__vPsP(['perl6'], 'PROCESS', $PROCESS);
+        $PROCESS := PROCESS;
+        pir::set_root_global__2PsP(['perl6'], 'PROCESS', $PROCESS);
     }
 
     # Bool::False and Bool::True.
@@ -896,9 +896,9 @@ BEGIN {
     EXPORT::DEFAULT.WHO<MultiDispatcher>     := Perl6::Metamodel::MultiDispatcher;
     EXPORT::DEFAULT.WHO<WrapDispatcher>      := Perl6::Metamodel::WrapDispatcher;
     EXPORT::DEFAULT.WHO<StaticLexPad>        := Perl6::Metamodel::StaticLexPad;
-    EXPORT::DEFAULT.WHO<NQPCursorRole>       := NQPCursorRole;
     EXPORT::DEFAULT.WHO<Metamodel>           := Metamodel;
 }
+EXPORT::DEFAULT.WHO<NQPCursorRole> := NQPCursorRole;
 
 # Publish Parrot v-table handler mappings.
 Mu.HOW.publish_parrot_vtable_mapping(Mu);
@@ -922,10 +922,10 @@ Str.HOW.publish_parrot_vtable_handler_mapping(Str);
 
 # Set up various type mappings.
 pir::perl6_set_type_packagehow__vP(Perl6::Metamodel::PackageHOW);
-pir::perl6_set_types_mu_any__vP(Mu, Any);
+pir::perl6_set_types_mu_any__vPP(Mu, Any);
 pir::perl6_set_type_code__vP(Code);
 pir::perl6_set_types_ins__vPPP(Int, Num, Str);
-pir::perl6_set_types_list_array_lol__vPP(List, ListIter, Array, LoL, Parcel);
+pir::perl6_set_types_list_array_lol__vPPPPP(List, ListIter, Array, LoL, Parcel);
 pir::perl6_set_types_enummap_hash__vPP(EnumMap, Hash);
 pir::perl6_set_type_capture__vP(Capture);
 pir::perl6_set_bools__vPP(Bool.WHO<False>, Bool.WHO<True>);

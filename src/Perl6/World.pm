@@ -37,7 +37,7 @@ sub p6ize_recursive($x) {
         }
         return pir::perl6ize_type__PP(@copy);
     }
-    elsif pir::isa($x, 'Hash') {
+    elsif nqp::ishash($x) {
         my %copy := nqp::hash();
         for $x {
             %copy{$_.key} := p6ize_recursive($_.value);
@@ -74,6 +74,17 @@ class Perl6::World is HLL::World {
     
     # List of CHECK blocks to run.
     has @!CHECKs;
+    
+    method BUILD(*%adv) {
+        @!BLOCKS := [];
+        @!CODES := [];
+        @!stub_check := [];
+        @!CHECKs := [];
+        %!sub_id_to_code_object := {};
+        %!sub_id_to_static_lexpad := {};
+        %!sub_id_to_sc_idx := {};
+        %!const_cache := {};
+    }
     
     # Creates a new lexical scope and puts it on top of the stack.
     method push_lexpad($/) {
@@ -227,17 +238,13 @@ class Perl6::World is HLL::World {
             QAST::Op.new(
                 :op('callmethod'), :name('load_module'),
                 QAST::Op.new(
-                    :op('atpos'),
+                    :op('atkey'),
                     QAST::Op.new(
                         :op('atkey'),
-                        QAST::Op.new(
-                            :op('atkey'),
-                            QAST::VM.new( pirop => 'get_root_namespace P' ),
-                            QAST::SVal.new( :value('nqp') )
-                        ),
-                        QAST::SVal.new( :value('ModuleLoader') )
+                        QAST::VM.new( pirop => 'get_root_namespace P' ),
+                        QAST::SVal.new( :value('nqp') )
                     ),
-                    QAST::IVal.new( :value(1) )
+                    QAST::SVal.new( :value('ModuleLoader') )
                 ),
                 QAST::SVal.new( :value('Perl6::ModuleLoader') )
             ))
@@ -343,7 +350,7 @@ class Perl6::World is HLL::World {
     # If we declare class A::B { }, then class A { }, then A.WHO must be the
     # .WHO we already created for the stub package A.
     method steal_WHO($thief, $victim) {
-        pir::set_who__vP($thief, $victim.WHO);
+        nqp::setwho($thief, $victim.WHO);
     }
     
     # Installs a lexical symbol. Takes a QAST::Block object, name and
@@ -738,9 +745,9 @@ class Perl6::World is HLL::World {
             my $clone_handler := sub ($orig, $clone) {
                 my $do := nqp::getattr($clone, $code_type, '$!do');
                 pir::setprop__vPsP($do, 'COMPILER_STUB', $do);
-                pir::setprop__vPsP($do, 'CLONE_CALLBACK', $clone_handler);
+                pir::setprop__0PsP($do, 'CLONE_CALLBACK', $clone_handler);
             };
-            pir::setprop__vPsP($stub, 'CLONE_CALLBACK', $clone_handler);
+            pir::setprop__0PsP($stub, 'CLONE_CALLBACK', $clone_handler);
         }
         
         # Fixup will install the real thing, unless we're in a role, in
@@ -757,7 +764,7 @@ class Perl6::World is HLL::World {
                 
                 # If we clone the stub, then we must remember to do a fixup
                 # of it also.
-                pir::setprop__vPsP($stub, 'CLONE_CALLBACK', sub ($orig, $clone) {
+                pir::setprop__0PsP($stub, 'CLONE_CALLBACK', sub ($orig, $clone) {
                     my $tmp := $fixups.unique('tmp_block_fixup');
                     self.add_object($clone);
                     $fixups.push(QAST::Stmt.new(
@@ -777,7 +784,7 @@ class Perl6::World is HLL::World {
             }
 
 			# Attach the QAST block to the stub.
-			pir::setprop__vPsP($stub, 'PAST_BLOCK', $code_past);
+			pir::setprop__0PsP($stub, 'PAST_BLOCK', $code_past);
         }
         
         # If this is a dispatcher, install dispatchee list that we can
@@ -979,7 +986,7 @@ class Perl6::World is HLL::World {
         # we can be a bit smarter here some day. But for now we just make a
         # single frame and copy all the visible things into it.
         my %seen;
-        my $slp       := nqp::create($slp_type);
+        my $slp       := $slp_type.new();
         my $mu        := try { self.find_symbol(['Mu']) };
         my $cur_block := $past;
         while $cur_block {
@@ -1906,7 +1913,7 @@ class Perl6::World is HLL::World {
                 nqp::print("Error while constructing error object:");
                 nqp::say($_);
             };
-            $ex := self.find_symbol(pir::does($ex_type, 'array') ?? $ex_type !! nqp::split('::', $ex_type));
+            $ex := self.find_symbol(nqp::islist($ex_type) ?? $ex_type !! nqp::split('::', $ex_type));
             my $x_comp := self.find_symbol(['X', 'Comp']);
             unless nqp::istype($ex, $x_comp) {
                 $ex := $ex.HOW.mixin($ex, $x_comp);
@@ -1918,7 +1925,7 @@ class Perl6::World is HLL::World {
             %opts<modules> := p6ize_recursive(@*MODULES);
             %opts<is-compile-time> := 1;
             for %opts -> $p {
-                if pir::does($p.value, 'array') {
+                if nqp::islist($p.value) {
                     my @a := [];
                     for $p.value {
                         nqp::push(@a, pir::perl6ize_type__PP($_));
@@ -1929,7 +1936,7 @@ class Perl6::World is HLL::World {
                     %opts{$p.key} := pir::perl6ize_type__PP($p.value);
                 }
             }
-            my $file        := pir::find_caller_lex__ps('$?FILES');
+            my $file        := pir::find_caller_lex__Ps('$?FILES');
             %opts<filename> := nqp::box_s(
                 (nqp::isnull($file) ?? '<unknown file>' !! $file),
                 self.find_symbol(['Str'])
@@ -1977,7 +1984,7 @@ class Perl6::World is HLL::World {
             $ex_t := self.find_symbol(['X', 'Comp']);
             if nqp::istype($p6ex, $err) {
                 $p6ex.SET_FILE_LINE(
-                    nqp::box_s(pir::find_caller_lex__ps('$?FILES'),
+                    nqp::box_s(pir::find_caller_lex__Ps('$?FILES'),
                         self.find_symbol(['Str'])),
                     nqp::box_i(HLL::Compiler.lineof($/.orig, $/.from),
                         self.find_symbol(['Int'])),
@@ -1987,7 +1994,7 @@ class Perl6::World is HLL::World {
         }
         $p6ex.rethrow if $success == 2;
         $p6ex.SET_FILE_LINE(
-            nqp::box_s(pir::find_caller_lex__ps('$?FILES'),
+            nqp::box_s(pir::find_caller_lex__Ps('$?FILES'),
                 self.find_symbol(['Str'])),
             nqp::box_i(HLL::Compiler.lineof($/.orig, $/.from),
                 self.find_symbol(['Int'])),

@@ -27,7 +27,7 @@ grammar Perl6::Grammar is HLL::Grammar {
         # Symbol table and serialization context builder - keeps track of
         # objects that cross the compile-time/run-time boundary that are
         # associated with this compilation unit.
-        my $file := pir::find_caller_lex__ps('$?FILES');
+        my $file := pir::find_caller_lex__Ps('$?FILES');
         my $source_id := nqp::sha1(nqp::getattr_s(self, NQPCursor, '$!target'));
         my $*W := nqp::isnull($file) ??
             Perl6::World.new(:handle($source_id)) !!
@@ -35,7 +35,7 @@ grammar Perl6::Grammar is HLL::Grammar {
         $*W.add_initializations();
 
         # XXX Hack: clear any marks.
-        pir::set_hll_global__vPsP(['HLL', 'Grammar'], '%!MARKHASH', nqp::null());
+        pir::set_hll_global__vsP('%!MARKHASH', nqp::null());
 
         my $cursor := self.comp_unit;
         $*W.pop_lexpad(); # UNIT
@@ -304,7 +304,9 @@ grammar Perl6::Grammar is HLL::Grammar {
 
 
     token pod_block:sym<delimited_table> {
-        ^^ \h* '=begin' \h+ 'table'
+        ^^
+        $<spaces> = [ \h* ]
+        '=begin' \h+ 'table'
             <pod_configuration($<spaces>)> <pod_newline>+
         [
          <table_row>*
@@ -344,13 +346,17 @@ grammar Perl6::Grammar is HLL::Grammar {
     }
 
     token pod_block:sym<paragraph_raw> {
-        ^^ \h* '=for' \h+ $<type>=[ 'code' | 'comment' ]
+        ^^
+        $<spaces> = [ \h* ]
+        '=for' \h+ $<type>=[ 'code' | 'comment' ]
         <pod_configuration($<spaces>)> <pod_newline>
         $<pod_content> = [ \h* <!before '=' \w> \N+ \n ]+
     }
 
     token pod_block:sym<paragraph_table> {
-        ^^ \h* '=for' \h+ 'table'
+        ^^
+        $<spaces> = [ \h* ]
+        '=for' \h+ 'table'
             <pod_configuration($<spaces>)> <pod_newline>
         [ <!before \h* \n> <table_row>]*
     }
@@ -373,13 +379,17 @@ grammar Perl6::Grammar is HLL::Grammar {
     }
 
     token pod_block:sym<abbreviated_raw> {
-        ^^ \h* '=' $<type>=[ 'code' | 'comment' ]
+        ^^
+        $<spaces> = [ \h* ]
+        '=' $<type>=[ 'code' | 'comment' ]
         <pod_configuration($<spaces>)> \s
         $<pod_content> = [ \h* <!before '=' \w> \N+ \n ]*
     }
 
     token pod_block:sym<abbreviated_table> {
-        ^^ \h* '=table' <pod_configuration($<spaces>)> <pod_newline>
+        ^^
+        $<spaces> = [ \h* ]
+        '=table' <pod_configuration($<spaces>)> <pod_newline>
         [ <!before \h* \n> <table_row>]*
     }
 
@@ -499,7 +509,7 @@ grammar Perl6::Grammar is HLL::Grammar {
             }
             my $M := %*COMPILING<%?OPTIONS><M>;
             if nqp::defined($M) {
-                for pir::does($M, 'array') ?? $M !! [$M] -> $longname {
+                for nqp::islist($M) ?? $M !! [$M] -> $longname {
                     my $module := $*W.load_module($/,
                                                     $longname,
                                                     $*GLOBALish);
@@ -1159,7 +1169,7 @@ grammar Perl6::Grammar is HLL::Grammar {
     }
 
     token special_variable:sym['$<'] {
-        <sym> <!before \s* \w+ \s* '>' >
+        <sym> <?before \h* <[ = , ; ? : ! ) \] } ]> <!before \S* '>'> >
         <.obs('$< variable', '$*UID')>
     }
 
@@ -1896,7 +1906,7 @@ grammar Perl6::Grammar is HLL::Grammar {
           [ [ ':'?'(' <signature> ')'] | <trait> ]*
           '{'[
             | ['*'|'<...>'|'<*>'] <?{ $*MULTINESS eq 'proto' }> $<onlystar>={1}
-            | <p6regex=.LANG(%*RX<P5> ?? 'P5Regex' !! 'Regex','nibbler')>]'}'<?ENDSTMT>
+            |<p6regex=.LANG(%*RX<P5> ?? 'P5Regex' !! 'Regex','nibbler')>]'}'<?ENDSTMT>
           { $*CURPAD := $*W.pop_lexpad() }
         ] || <.malformed('regex')>
     ] }

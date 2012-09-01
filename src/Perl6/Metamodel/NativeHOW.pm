@@ -16,8 +16,8 @@ class Perl6::Metamodel::NativeHOW
         $archetypes
     }
     
-    method BUILD(:$nativesize) {
-        $!nativesize := $nativesize;
+    method new(*%named) {
+        nqp::findmethod(NQPMu, 'BUILDALL')(nqp::create(self), |%named)
     }
 
     method new_type(:$name = '<anon>', :$repr = 'P6opaque', :$ver, :$auth) {

@@ -42,7 +42,7 @@ role Perl6::Metamodel::ParrotInterop {
             }
         }
         if +%mapping {
-            pir::stable_publish_vtable_mapping__vPP($obj, %mapping);
+            pir::stable_publish_vtable_mapping__0PP($obj, %mapping);
         }
     }
 
@@ -62,7 +62,7 @@ role Perl6::Metamodel::ParrotInterop {
             }
         }
         if +%mapping {
-            pir::stable_publish_vtable_handler_mapping__vPP($obj, %mapping);
+            pir::stable_publish_vtable_handler_mapping__0PP($obj, %mapping);
         }
     }
     

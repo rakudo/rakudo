@@ -41,10 +41,8 @@ class Perl6::Metamodel::CurriedRoleHOW
         $archetypes_ng
     }
     
-    method BUILD(:$curried_role, :@pos_args, :%named_args) {
-        $!curried_role := $curried_role;
-        @!pos_args := @pos_args;
-        %!named_args := %named_args;
+    method new(*%named) {
+        nqp::findmethod(NQPMu, 'BUILDALL')(nqp::create(self), |%named)
     }
     
     method new_type($curried_role, *@pos_args, *%named_args) {

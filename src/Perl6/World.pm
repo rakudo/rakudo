@@ -1467,7 +1467,7 @@ class Perl6::World is HLL::World {
         
         # Gets the name, without any adverbs.
         method name() {
-            my @parts := nqp::clone(@!components);
+            my @parts := self.type_name_parts('');
             @parts.shift() while self.is_pseudo_package(@parts[0]);
             nqp::join('::', @parts)
         }
@@ -1492,7 +1492,7 @@ class Perl6::World is HLL::World {
         # Checks if there is an indirect lookup required.
         method contains_indirect_lookup() {
             for @!components {
-                if nqp::can($_, 'isa') && $_.isa(QAST::Node) {
+                if nqp::istype($_, QAST::Node) {
                     return 1;
                 }
             }
@@ -1508,7 +1508,7 @@ class Perl6::World is HLL::World {
                 nqp::die("Name $!text ends with '::' and cannot be used as a $dba");
             }
             for @!components {
-                if nqp::can($_, 'isa') && $_.isa(QAST::Node) {
+                if nqp::istype($_, QAST::Node) {
                     if $_.has_compile_time_value {
                         for nqp::split('::', ~$_.compile_time_value) {
                             @name.push($_);

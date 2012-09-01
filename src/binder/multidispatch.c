@@ -674,9 +674,9 @@ static PMC* find_best_candidate(PARROT_INTERP, Rakudo_md_candidate_info **candid
                     type_mismatch = 1;
                     break;
                 }
-                if ((type_flags & TYPE_NATIVE_INT) && got_prim != BIND_VAL_INT ||
-                    (type_flags & TYPE_NATIVE_NUM) && got_prim != BIND_VAL_NUM ||
-                    (type_flags & TYPE_NATIVE_STR) && got_prim != BIND_VAL_STR) {
+                if (((type_flags & TYPE_NATIVE_INT) && got_prim != BIND_VAL_INT) ||
+                    ((type_flags & TYPE_NATIVE_NUM) && got_prim != BIND_VAL_NUM) ||
+                    ((type_flags & TYPE_NATIVE_STR) && got_prim != BIND_VAL_STR)) {
                     /* Mismatch. */
                     type_mismatch = 1;
                     break;
@@ -986,9 +986,9 @@ Rakudo_md_ct_dispatch(PARROT_INTERP, PMC *dispatcher, PMC *capture, PMC **result
                     type_mismatch = 1;
                     break;
                 }
-                if ((type_flags & TYPE_NATIVE_INT) && got_prim != BIND_VAL_INT ||
-                    (type_flags & TYPE_NATIVE_NUM) && got_prim != BIND_VAL_NUM ||
-                    (type_flags & TYPE_NATIVE_STR) && got_prim != BIND_VAL_STR) {
+                if (((type_flags & TYPE_NATIVE_INT) && got_prim != BIND_VAL_INT) ||
+                    ((type_flags & TYPE_NATIVE_NUM) && got_prim != BIND_VAL_NUM) ||
+                    ((type_flags & TYPE_NATIVE_STR) && got_prim != BIND_VAL_STR)) {
                     /* Mismatch. */
                     type_mismatch = 1;
                     type_match_possible = 0;

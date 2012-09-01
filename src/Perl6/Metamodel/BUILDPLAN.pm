@@ -19,11 +19,7 @@ role Perl6::Metamodel::BUILDPLAN {
         my $build := $obj.HOW.find_method($obj, 'BUILD', :no_fallback(1));
         if !nqp::isnull($build) && $build {
             # We'll call the custom one.
-            my $entry := [0, $build];
-            @all_plan[+@all_plan] := $entry;
-            if $i == 0 {
-                @plan[+@plan] := $entry;
-            }
+            @plan[+@plan] := [0, $build];
         }
         else {
             # No custom BUILD. Rather than having an actual BUILD
@@ -33,11 +29,7 @@ role Perl6::Metamodel::BUILDPLAN {
                 if $_.has_accessor {
                     my $attr_name := $_.name;
                     my $name      := nqp::substr($attr_name, 2);
-                    my $entry     := [1, $obj, $name, $attr_name];
-                    @all_plan[+@all_plan] := $entry;
-                    if $i == 0 {
-                        @plan[+@plan] := $entry;
-                    }
+                    @plan[+@plan] :=  [1, $obj, $name, $attr_name];
                 }
             }
         }
@@ -47,11 +39,7 @@ role Perl6::Metamodel::BUILDPLAN {
             if nqp::can($_, 'build') {
                 my $default := $_.build;
                 if !nqp::isnull($default) && $default {
-                    my $entry := [2, $obj, $_.name, $default];
-                    @all_plan[+@all_plan] := $entry;
-                    if $i == 0 {
-                        @plan[+@plan] := $entry;
-                    }
+                    @plan[+@plan] := [4, $obj, $_.name, $default];
                 }
             }
         }

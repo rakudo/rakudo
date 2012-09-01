@@ -92,7 +92,7 @@ my class Mu {
                         nqp::atpos($task, 3)) = pir::nqp_decontainerize__PP(%attrinit{$key_name});
                 }
             }
-            elsif nqp::iseq_i(nqp::atpos_i($task, 0), 2) {
+            elsif nqp::iseq_i(nqp::atpos_i($task, 0), 4) {
                 unless nqp::attrinited(self, nqp::atpos($task, 1), nqp::atpos_s($task, 2)) {
                     my $attr := nqp::getattr(self, nqp::atpos($task, 1), nqp::atpos_s($task, 2));
                     $attr = nqp::atpos($task, 3)(self, $attr);
@@ -126,7 +126,7 @@ my class Mu {
                         nqp::atpos_s($task, 3)) = pir::nqp_decontainerize__PP(%attrinit{$key_name});
                 }
             }
-            elsif nqp::iseq_i(nqp::atpos_i($task, 0), 2) {
+            elsif nqp::iseq_i(nqp::atpos_i($task, 0), 4) {
                 unless nqp::attrinited(self, nqp::atpos($task, 1), nqp::atpos_s($task, 2)) {
                     my $attr := nqp::getattr(self, nqp::atpos($task, 1), nqp::atpos_s($task, 2));
                     $attr = nqp::atpos($task, 3)(self, $attr);

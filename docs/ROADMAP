@@ -1,7 +1,7 @@
 Rakudo Roadmap
 --------------
 
-Last updated: 2012-08-19
+Last updated: 2012-09-01
 
 This document serves as a guide to the major goals for Rakudo
 development, as things stood in December 2011. They have been
@@ -28,7 +28,6 @@ remove completed ones, re-prioritize, volunteer for a goal,
 rescue yourself from a goal, etc.
 
 Compiler Performance/Portability Improvements (jnthn)
-2 ***** design, implement and switch to QAST
 2 **    finish up any remaining s/pir::/nqp::/
 2 ?     re-organize Rakudo, build process, etc. for multi-backend
 3 **    Optimizing multis for `[+] 1..10` and `[<=] 1..10` etc.
@@ -105,5 +104,3 @@ STD Convergence (needs more exploration)
 
 Other things (to be organized into above groups)
 3 ?     AUTOLOAD, including possibly AUTOLOADING setting components
-
-

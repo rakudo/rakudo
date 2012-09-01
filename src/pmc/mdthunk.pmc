@@ -24,7 +24,7 @@ pmclass MDThunk
     }
     
     VTABLE void set_pointer(void *ptr) {
-        dispatcher = ptr;
+        dispatcher = (PMC * (*)(PARROT_INTERP, PMC *, PMC *, opcode_t *))ptr;
     }
     
     VTABLE opcode_t* invoke(void *next) {

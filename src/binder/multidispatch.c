@@ -436,8 +436,8 @@ add_to_cache(PARROT_INTERP, Rakudo_md_cache *cache, PMC *capture, INTVAL num_arg
 
     /* If there's no entries yet, need to do some allocation. */
     if (entries == 0) {
-        cache->arity_caches[num_args - 1].type_ids = mem_sys_allocate(num_args * sizeof(INTVAL) * MD_CACHE_MAX_ENTRIES);
-        cache->arity_caches[num_args - 1].results  = mem_sys_allocate(sizeof(PMC *) * MD_CACHE_MAX_ENTRIES);
+        cache->arity_caches[num_args - 1].type_ids = (INTVAL *)mem_sys_allocate(num_args * sizeof(INTVAL) * MD_CACHE_MAX_ENTRIES);
+        cache->arity_caches[num_args - 1].results  = (PMC **)mem_sys_allocate(sizeof(PMC *) * MD_CACHE_MAX_ENTRIES);
     }
 
     /* Add entry. */

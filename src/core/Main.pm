@@ -106,7 +106,10 @@ my sub MAIN_HELPER($retval = 0) is hidden_from_backtrace {
     }
 
     sub has-unexpected-named-arguments($signature, %named-arguments) {
-        my %accepts-argument = $signature.params.grep({ .named }).map({ .named_names }) Z=> 1 xx *;
+        my @named-params = $signature.params.grep: *.named;
+        return False if @named-params.grep: *.slurpy;
+
+        my %accepts-argument = @named-params.map({ .named_names }) Z=> 1 xx *;
         for %named-arguments.keys -> $name {
             return True if !%accepts-argument{$name}
         }

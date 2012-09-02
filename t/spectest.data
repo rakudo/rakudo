@@ -55,6 +55,7 @@ S02-magicals/progname.t
 S02-magicals/sub.t
 S02-names/caller.t
 S02-names/identifier.t
+S02-names/indirect.t
 S02-names/our.t
 S02-names/pseudo.t
 S02-names/symbolic-deref.t

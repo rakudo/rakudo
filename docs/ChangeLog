@@ -3,6 +3,8 @@ New in 2012.09
 + basic macro unquoting
 + basic support for m:P5/.../ regexes
 + support for indirect type names in routine and type declarations
++ compiler now built with QAST-based NQP, which generates better code, thus
+  making the compiler a little faster
 
 New in 2012.08
 + tclc implemented

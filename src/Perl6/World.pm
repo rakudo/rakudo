@@ -1466,9 +1466,11 @@ class Perl6::World is HLL::World {
         }
         
         # Gets the name, without any adverbs.
-        method name() {
-            my @parts := self.type_name_parts('');
-            @parts.shift() while self.is_pseudo_package(@parts[0]);
+        method name(:$decl, :$dba = '') {
+            my @parts := self.type_name_parts($dba, :$decl);
+            unless $decl && $decl eq 'routine' {
+                @parts.shift() while self.is_pseudo_package(@parts[0]);
+            }
             nqp::join('::', @parts)
         }
         
@@ -1507,6 +1509,19 @@ class Perl6::World is HLL::World {
             if $decl && $!get_who {
                 nqp::die("Name $!text ends with '::' and cannot be used as a $dba");
             }
+            if +@!components == 1 && self.is_pseudo_package(@!components[0]) {
+                nqp::print('1 component ');
+                if !$decl || ($decl eq 'routine') {
+                    nqp::print('routine decl ');
+
+                    nqp::push(@name, @!components[0]);
+                    return @name;
+                }
+                if $_ eq 'GLOBAL' {
+                    nqp::die("Cannot declare pseudo-package GLOBAL");
+                }
+                nqp::die("Cannot use pseudo-package $_ as a $dba");
+            }
             for @!components {
                 if nqp::istype($_, QAST::Node) {
                     if $_.has_compile_time_value {
@@ -1526,9 +1541,6 @@ class Perl6::World is HLL::World {
                     if $decl {
                         if $_ ne 'GLOBAL' {
                             nqp::die("Cannot use pseudo-package $_ in a $dba");
-                        }
-                        elsif +@!components == 1 {
-                            nqp::die("Cannot declare pseudo-package GLOBAL");
                         }
                     }
                     else {
@@ -1589,16 +1601,11 @@ class Perl6::World is HLL::World {
         my @pairs;
         for $longname<colonpair> {
             if $_<circumfix> && !$_<identifier> {
-                my $value := $_.ast;
-                if $value.has_compile_time_value {
-                    @components[+@components - 1] := @components[+@components - 1] ~
-                        (%*COMPILING<%?OPTIONS><setting> ne 'NULL' ??
-                        ':<' ~ ~$value.compile_time_value ~ '>' !!
-                        ~$_);
-                }
-                else {
-                    nqp::die(~$_ ~ ' cannot be resolved at compile time');
-                }
+                @components[+@components - 1] := @components[+@components - 1]
+                        ~ (%*COMPILING<%?OPTIONS><setting> ne 'NULL'
+                                ??  ':<' ~ ~$*W.compile_time_evaluate($_, $_.ast) ~ '>'
+                                !!  ~$_
+                           );
             }
             else {
                 @pairs.push($_);
@@ -1607,6 +1614,10 @@ class Perl6::World is HLL::World {
         nqp::bindattr($result, LongName, '@!colonpairs', @pairs);
         
         $result
+    }
+    method disect_deflongname($deflongname) {
+        # deflongname has the same capture structure as longname
+        self.disect_longname($deflongname);
     }
     
     # Checks if a name starts with a pseudo-package.

@@ -160,7 +160,10 @@ class Perl6::Actions is HLL::Actions {
             make $name;
         }
         else {
-            make ~$<name>;
+            make $*W.disect_deflongname($/).name(
+                :dba("$*IN_DECL declaration"),
+                :decl<routine>,
+            );
         }
     }
 

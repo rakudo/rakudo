@@ -1872,6 +1872,7 @@ grammar Perl6::Grammar is HLL::Grammar {
         <sym>
         :my %*RX;
         :my $*METHODTYPE := 'rule';
+        :my $*IN_DECL    := 'rule';
         {
             %*RX<s> := 1;
             %*RX<r> := 1;
@@ -1882,6 +1883,7 @@ grammar Perl6::Grammar is HLL::Grammar {
         <sym>
         :my %*RX;
         :my $*METHODTYPE := 'token';
+        :my $*IN_DECL    := 'token';
         {
             %*RX<r> := 1;
         }
@@ -1891,6 +1893,7 @@ grammar Perl6::Grammar is HLL::Grammar {
         <sym>
         :my %*RX;
         :my $*METHODTYPE := 'regex';
+        :my $*IN_DECL    := 'regex';
         <regex_def>
     }
 
@@ -1899,9 +1902,9 @@ grammar Perl6::Grammar is HLL::Grammar {
         :my $*HAS_SELF := 'complete';
         :my $*DECLARAND := $*W.stub_code_object('Regex');
         [
-          { $*IN_DECL := '' }
           <deflongname>?
           { if $<deflongname> { %*RX<name> := ~$<deflongname>[0].ast } }
+          { $*IN_DECL := '' }
           <.newpad>
           [ [ ':'?'(' <signature> ')'] | <trait> ]*
           '{'[

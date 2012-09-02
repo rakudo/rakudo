@@ -951,6 +951,14 @@ my class X::Numeric::Real is Exception {
     }
 }
 
+my class X::PseudoPackage::InDeclaration does X::Comp {
+    has $.pseudo-package;
+    has $.action;
+    method message() {
+        "Cannot use pseudo package $.pseudo-package in $.action";
+    }
+}
+
 
 {
     my %c_ex;

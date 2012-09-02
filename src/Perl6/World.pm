@@ -1446,8 +1446,8 @@ class Perl6::World is HLL::World {
     
     # Represents a longname after having parsed it.
     my class LongName {
-        # The original text of the name.
-        has str $!text;
+        # a match object, so that error messages can get a proper line number
+        has $!match;
         
         # Set of name components. Each one will be either a string
         # or a PAST node that represents an expresison to produce it.
@@ -1462,7 +1462,7 @@ class Perl6::World is HLL::World {
         
         # Gets the textual name of the value.
         method text() {
-            $!text
+            ~$!match
         }
         
         # Gets the name, without any adverbs.
@@ -1507,20 +1507,21 @@ class Perl6::World is HLL::World {
             my @name;
             my $beyond_pp;
             if $decl && $!get_who {
-                nqp::die("Name $!text ends with '::' and cannot be used as a $dba");
+                my $name := self.text;
+                nqp::die("Name $name ends with '::' and cannot be used as a $dba");
             }
             if +@!components == 1 && self.is_pseudo_package(@!components[0]) {
-                nqp::print('1 component ');
                 if !$decl || ($decl eq 'routine') {
-                    nqp::print('routine decl ');
-
                     nqp::push(@name, @!components[0]);
                     return @name;
                 }
                 if $_ eq 'GLOBAL' {
                     nqp::die("Cannot declare pseudo-package GLOBAL");
                 }
-                nqp::die("Cannot use pseudo-package $_ as a $dba");
+                $*W.throw($!match, 'X::PseudoPackage::InDeclaration',
+                    pseudo-package  => $_,
+                    action          => $dba,
+                );
             }
             for @!components {
                 if nqp::istype($_, QAST::Node) {
@@ -1530,7 +1531,8 @@ class Perl6::World is HLL::World {
                         }
                     }
                     else {
-                        nqp::die("Name $!text is not compile-time known, and can not serve as a $dba");
+                        my $name := self.text;
+                        nqp::die("Name $name is not compile-time known, and can not serve as a $dba");
                     }
                 }
                 elsif $beyond_pp || !self.is_pseudo_package($_) {
@@ -1540,7 +1542,10 @@ class Perl6::World is HLL::World {
                 else {
                     if $decl {
                         if $_ ne 'GLOBAL' {
-                            nqp::die("Cannot use pseudo-package $_ in a $dba");
+                            $*W.throw($!match, 'X::PseudoPackage::InDeclaration',
+                                pseudo-package  => $_,
+                                action          => $dba,
+                            );
                         }
                     }
                     else {
@@ -1569,7 +1574,7 @@ class Perl6::World is HLL::World {
     method disect_longname($longname) {
         # Set up basic info about the long name.
         my $result := nqp::create(LongName);
-        nqp::bindattr_s($result, LongName, '$!text', ~$longname);
+        nqp::bindattr($result, LongName, '$!match', $longname);
 
         # Pick out the pieces of the name.
         my @components;

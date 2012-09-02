@@ -420,6 +420,17 @@ my class X::Redeclaration does X::Comp {
     }
 }
 
+my class X::Import::Redeclaration does X::Comp {
+    has @.symbols;
+    has $.source-package-name;
+    method message() {
+        @.symbols == 1
+            ?? "Cannot import symbol @.symbols[0] from $.source-package-name, because it already exists in this lexical scope"
+            !! "Cannot import the following symbols from $.source-package-name, becase they aready exist in this lexical scope: ", @.symbols.join(', ');
+    }
+
+}
+
 my class X::Phaser::Multiple does X::Comp {
     has $.block;
     method message() { "Only one $.block block is allowed" }

@@ -251,7 +251,7 @@ class Perl6::World is HLL::World {
     }
     
     # Imports symbols from the specified package into the current lexical scope.
-    method import($package, $source_package_name) {
+    method import($/, $package, $source_package_name) {
         # We'll do this in two passes, since at the start of CORE.setting we import
         # StaticLexPad, which of course we need to use when importing. Since we still
         # keep the authoritative copy of stuff from the compiler's view in QAST::Block's
@@ -262,15 +262,23 @@ class Perl6::World is HLL::World {
         # First pass: QAST::Block symbol table installation. Also detect any
         # outright conflicts, and handle any situations where we need to merge.
         my %to_install;
+        my @clash;
         for %stash {
             if $target.symbol($_.key) {
                 # XXX TODO: Merge handling.
-                nqp::die("Cannot import symbol '" ~ $_.key ~ "' from package '$source_package_name', since it already exists in the lexpad"); }
+                nqp::push(@clash, $_.key);
+            }
             else {
                 $target.symbol($_.key, :scope('lexical'), :value($_.value));
                 $target[0].push(QAST::Var.new( :scope('lexical'), :name($_.key), :decl('var') ));
                 %to_install{$_.key} := $_.value;
             }
+        }
+        if +@clash {
+            self.throw($/, 'X::Import::Redeclaration',
+                symbols             => @clash,
+                source-package-name => $source_package_name,
+            );
         }
         
         # Second pass: stick everything we still need to install in the

@@ -513,7 +513,7 @@ grammar Perl6::Grammar is HLL::Grammar {
                     my $module := $*W.load_module($/,
                                                     $longname,
                                                     $*GLOBALish);
-                    do_import($module, $longname);
+                    do_import($/, $module, $longname);
                     $/.CURSOR.import_EXPORTHOW($module);
                 }
             }
@@ -750,7 +750,7 @@ grammar Perl6::Grammar is HLL::Grammar {
                     $arglist := nqp::getattr($arglist.list.eager,
                             $*W.find_symbol(['List']), '$!items');
                 }
-                do_import($module.WHO, ~$<module_name><longname>, $arglist);
+                do_import($/, $module.WHO, ~$<module_name><longname>, $arglist);
             }
             else {
                 $/.CURSOR.panic("Could not find module " ~ ~$<module_name> ~
@@ -800,7 +800,7 @@ grammar Perl6::Grammar is HLL::Grammar {
                     my $module := $*W.load_module($/,
                                                     ~$longname,
                                                     $*GLOBALish);
-                    do_import($module, ~$longname, $arglist);
+                    do_import($/, $module, ~$longname, $arglist);
                     $/.CURSOR.import_EXPORTHOW($module);
                 }
             || { 
@@ -809,7 +809,7 @@ grammar Perl6::Grammar is HLL::Grammar {
                             my $module := $*W.load_module($/,
                                                           ~$longname,
                                                            $*GLOBALish);
-                            do_import($module, ~$longname);
+                            do_import($/, $module, ~$longname);
                             $/.CURSOR.import_EXPORTHOW($module);
                         }
                     }
@@ -819,7 +819,7 @@ grammar Perl6::Grammar is HLL::Grammar {
         <.ws>
     }
     
-    sub do_import($module, $package_source_name, $arglist?) {
+    sub do_import($/, $module, $package_source_name, $arglist?) {
         if nqp::existskey($module, 'EXPORT') {
             my $EXPORT := $module<EXPORT>.WHO;
             my @to_import := ['MANDATORY'];
@@ -830,7 +830,7 @@ grammar Perl6::Grammar is HLL::Grammar {
                     if nqp::istype($tag, $Pair) {
                         $tag := nqp::unbox_s($tag.key);
                         if nqp::existskey($EXPORT, $tag) {
-                            $*W.import($EXPORT{$tag}, $package_source_name);
+                            $*W.import($/, $EXPORT{$tag}, $package_source_name);
                         }
                         else {
                             nqp::die("Error while importing from '$package_source_name': no such tag '$tag'");
@@ -847,7 +847,7 @@ grammar Perl6::Grammar is HLL::Grammar {
             }
             for @to_import -> $tag {
                 if nqp::existskey($EXPORT, $tag) {
-                    $*W.import($EXPORT{$tag}, $package_source_name);
+                    $*W.import($/, $EXPORT{$tag}, $package_source_name);
                 }
             }
             if +@positional_imports {

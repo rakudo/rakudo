@@ -1511,15 +1511,16 @@ class Perl6::World is HLL::World {
                 nqp::die("Name $name ends with '::' and cannot be used as a $dba");
             }
             if +@!components == 1 && self.is_pseudo_package(@!components[0]) {
+                my $c := @!components[0];
                 if !$decl || ($decl eq 'routine') {
-                    nqp::push(@name, @!components[0]);
+                    nqp::push(@name, $c);
                     return @name;
                 }
-                if $_ eq 'GLOBAL' {
+                if $c eq 'GLOBAL' {
                     nqp::die("Cannot declare pseudo-package GLOBAL");
                 }
                 $*W.throw($!match, 'X::PseudoPackage::InDeclaration',
-                    pseudo-package  => $_,
+                    pseudo-package  => $c,
                     action          => $dba,
                 );
             }

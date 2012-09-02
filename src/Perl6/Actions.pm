@@ -33,7 +33,7 @@ class Perl6::Actions is HLL::Actions {
     }
 
     method ints_to_string($ints) {
-        if pir::does($ints, 'array') {
+        if nqp::islist($ints) {
             my $result := '';
             for $ints {
                 $result := $result ~ nqp::chr(nqp::unbox_i($_.ast));
@@ -1262,7 +1262,7 @@ class Perl6::Actions is HLL::Actions {
                         HLL::Compiler.lineof($/.orig, $/.from ));
             }
             else {
-                $past := $*W.add_string_constant(pir::find_caller_lex__ps('$?FILES') // '<unknown file>');
+                $past := $*W.add_string_constant(pir::find_caller_lex__Ps('$?FILES') // '<unknown file>');
             }
         }
         elsif +@name > 1 {
@@ -3098,8 +3098,10 @@ class Perl6::Actions is HLL::Actions {
 
             # Create parameter object and apply any traits.
             my $param_obj := $*W.create_parameter($_);
-            for $_<traits> {
-                ($_.ast)($param_obj) if $_.ast;
+            if $_<traits> {
+                for $_<traits> {
+                    ($_.ast)($param_obj) if $_.ast;
+                }
             }
 
             # Add it to the signature.
@@ -4573,7 +4575,7 @@ class Perl6::Actions is HLL::Actions {
         my $int  := $<int> ?? filter_number(~$<int>) !! "0";
         my $frac := $<frac> ?? filter_number(~$<frac>) !! "0";
         if $<escale> {
-            my $e := pir::isa($<escale>, 'ResizablePMCArray') ?? $<escale>[0] !! $<escale>;
+            my $e := nqp::islist($<escale>) ?? $<escale>[0] !! $<escale>;
 #            pir::say('dec_number exponent: ' ~ ~$e.ast);
             make radcalc($/, 10, $<coeff>, 10, nqp::unbox_i($e.ast), :num);
         } else {
@@ -4635,10 +4637,10 @@ class Perl6::Actions is HLL::Actions {
         }
     }
 
-    our %SUBST_ALLOWED_ADVERBS ;
-    our %SHARED_ALLOWED_ADVERBS;
-    our %MATCH_ALLOWED_ADVERBS;
-        our %MATCH_ADVERBS_MULTIPLE := hash(
+    my %SUBST_ALLOWED_ADVERBS;
+    my %SHARED_ALLOWED_ADVERBS;
+    my %MATCH_ALLOWED_ADVERBS;
+    my %MATCH_ADVERBS_MULTIPLE := hash(
         x       => 1,
         g       => 1,
         global  => 1,
@@ -4647,7 +4649,7 @@ class Perl6::Actions is HLL::Actions {
         ex      => 1,
         exhaustive => 1,
     );
-    our %REGEX_ADVERBS_CANONICAL := hash(
+    my %REGEX_ADVERBS_CANONICAL := hash(
         ignorecase  => 'i',
         ratchet     => 'r',
         sigspace    => 's',
@@ -5300,7 +5302,7 @@ class Perl6::Actions is HLL::Actions {
     # %curried == 1 means curry WhateverCode only
     # %curried == 2 means curry both WhateverCode and Whatever (default)
 
-    our %curried;
+    my %curried;
     INIT {
         %curried{'&infix:<...>'}  := 0;
         %curried{'&infix:<...^>'} := 0;

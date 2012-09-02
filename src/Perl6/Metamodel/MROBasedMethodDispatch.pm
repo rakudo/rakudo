@@ -37,6 +37,6 @@ role Perl6::Metamodel::MROBasedMethodDispatch {
             %cache{$_.key} := $_.value;
         }
         
-        pir::publish_method_cache($obj, %cache)
+        pir::publish_method_cache__0PP($obj, %cache)
     }
 }

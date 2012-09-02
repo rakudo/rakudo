@@ -129,7 +129,7 @@ class Perl6::ModuleLoader {
             if +@*MODULES  == 0 {
                 my %prev        := nqp::hash();
                 %prev<line>     := $line;
-                %prev<filename> := pir::find_caller_lex__ps('$?FILES');
+                %prev<filename> := pir::find_caller_lex__Ps('$?FILES');
                 @*MODULES[0]    := %prev;
             }
             else {
@@ -146,7 +146,7 @@ class Perl6::ModuleLoader {
                 my %*COMPILING := {};
                 my $*CTXSAVE := self;
                 my $*MAIN_CTX;
-                pir::load_bytecode(%chosen<load>);
+                pir::load_bytecode__vs(%chosen<load>);
                 %modules_loaded{%chosen<key>} := $module_ctx := $*MAIN_CTX;
                 DEBUG("done loading ", %chosen<load>) if $DEBUG;
             }
@@ -272,7 +272,7 @@ class Perl6::ModuleLoader {
                 my $*MAIN_CTX;
                 my $preserve_global := pir::get_hll_global__Ps('GLOBAL');
                 pir::nqp_disable_sc_write_barrier__v();
-                pir::load_bytecode($path);
+                pir::load_bytecode__vS($path);
                 pir::nqp_enable_sc_write_barrier__v();
                 pir::set_hll_global__vsP('GLOBAL', $preserve_global);
                 unless nqp::defined($*MAIN_CTX) {

@@ -37,6 +37,10 @@ class Perl6::Metamodel::EnumHOW
         $archetypes
     }
     
+    method new(*%named) {
+        nqp::findmethod(NQPMu, 'BUILDALL')(nqp::create(self), |%named)
+    }
+    
     method new_type(:$name!, :$base_type!) {
         my $meta := self.new();
         my $obj  := pir::repr_type_object_for__PPS($meta, 'P6opaque');

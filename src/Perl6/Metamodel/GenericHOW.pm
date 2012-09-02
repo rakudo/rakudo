@@ -10,6 +10,10 @@ class Perl6::Metamodel::GenericHOW
         $archetypes
     }
     
+    method new(*%named) {
+        nqp::findmethod(NQPMu, 'BUILDALL')(nqp::create(self), |%named)
+    }
+    
     # The name we're created with is both the name we'll claim
     # to be if asked, but also the name we'll look up in a
     # supplied type environment when we want to instantiate

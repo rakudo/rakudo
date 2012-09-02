@@ -26,6 +26,10 @@ class Perl6::Metamodel::ConcreteRoleHOW
         $archetypes
     }
     
+    method new(*%named) {
+        nqp::findmethod(NQPMu, 'BUILDALL')(nqp::create(self), |%named)
+    }
+    
     my class Collision {
         has $!name;
         has @!roles;
@@ -33,10 +37,6 @@ class Perl6::Metamodel::ConcreteRoleHOW
         method name() { $!name }
         method roles() { @!roles }
         method private() { $!private }
-    }
-    
-    method BUILD(:@roles) {
-        @!roles := @roles;
     }
     
     method new_type(:@roles, :$name = '<anon>', :$ver, :$auth, :$repr) {
@@ -120,6 +120,6 @@ class Perl6::Metamodel::ConcreteRoleHOW
     method publish_type_cache($obj) {
         my @types := [$obj.WHAT];
         for @!role_typecheck_list { @types.push($_) }
-        pir::publish_type_check_cache($obj, @types)
+        pir::publish_type_check_cache__0PP($obj, @types)
     }
 }

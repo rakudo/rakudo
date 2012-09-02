@@ -1,6 +1,6 @@
+use QRegex;
 use NQPP6QRegex;
 use NQPP5QRegex;
-use QRegex;
 use Perl6::World;
 use Perl6::Pod;
 
@@ -2847,7 +2847,9 @@ grammar Perl6::Grammar is HLL::Grammar {
             $parse.push(QAST::Regex.new(
                 :rxtype('subrule'), :subtype('capture'),
                 :name('O'), :backtrack('r'),
-                PAST::Node.new('O', PAST::Val.new( :value($prec) ))
+                QAST::Node.new(
+                    QAST::SVal.new( :value('O') ),
+                    QAST::SVal.new( :value($prec) ))
             ));
         }
         else {
@@ -2867,7 +2869,7 @@ grammar Perl6::Grammar is HLL::Grammar {
                 QAST::Regex.new(
                     :rxtype('subrule'), :subtype('capture'),
                     :name('EXPR'), :backtrack('r'),
-                    PAST::Node.new('EXPR')
+                    QAST::Node.new(QAST::SVal.new( :value('EXPR') ))
                 ),
                 QAST::Regex.new(
                     :rxtype('literal'), :backtrack('r'),
@@ -2878,13 +2880,15 @@ grammar Perl6::Grammar is HLL::Grammar {
         
         # Wrap it in a block, compile and install it in the methods
         # table.
-        my $*PIRT := 0;
         my %*RX;
         %*RX<name> := $canname;
-        $parse := QRegex::P6Regex::Actions::buildsub($parse);
+        $parse := QRegex::P6Regex::Actions::qbuildsub($parse, :addself(1));
         $parse.name($canname);
-        my $compiled := PAST::Compiler.compile($parse);
-        $self.HOW.add_method($self, $canname, $compiled[0]);
+        my $*QAST_BLOCK_NO_CLOSE := 1;
+        my $*PASTCOMPILER := pir::compreg__Ps('PAST');
+        my $pirt := QAST::Compiler.as_post($parse);
+        my $pir := $pirt.pir();
+        $self.HOW.add_method($self, $canname, QAST::Compiler.evalpmc($pir)[0]);
 
         # May also need to add to the actions.
         if $category eq 'circumfix' {

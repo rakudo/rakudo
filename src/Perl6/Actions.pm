@@ -5565,7 +5565,7 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions {
     
     method metachar:sym<qw>($/) {
         my $qast := QAST::Regex.new( :rxtype<alt>, :node($/) );
-        for HLL::Grammar::split_words($/, $<quote_EXPR><quote_delimited>.ast) {
+        for HLL::Grammar::split_words($/, $<quote_EXPR><quote_delimited>.ast.value) {
             $qast.push(QAST::Regex.new( $_, :rxtype<literal> ));
         }
         make $qast;

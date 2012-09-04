@@ -5,6 +5,7 @@ New in 2012.09
 + support for indirect type names in routine and type declarations
 + compiler now built with QAST-based NQP, which generates better code, thus
   making the compiler a little faster
++ support for "is export" traits on constants
 
 New in 2012.08
 + tclc implemented

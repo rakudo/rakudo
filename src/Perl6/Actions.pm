@@ -2697,6 +2697,11 @@ class Perl6::Actions is HLL::Actions {
             $*W.install_package($/, [$name], ($*SCOPE || 'our'),
                 'constant', $*PACKAGE, $*W.cur_lexpad(), $value);
         }
+        $*W.ex-handle($/, {
+            for $<trait> -> $t {
+                ($t.ast)($value, :SYMBOL($name));
+            }
+        });
 
         # Evaluate to the constant.
         make QAST::WVal.new( :value($value) );
@@ -3146,8 +3151,8 @@ class Perl6::Actions is HLL::Actions {
                 my %arg;
                 %arg{~$<longname>} := @trait_arg ?? @trait_arg[0] !!
                     $*W.find_symbol(['Bool', 'True']);
-                make -> $declarand {
-                    $*W.apply_trait($/, '&trait_mod:<is>', $declarand, |%arg);
+                make -> $declarand, *%additional {
+                    $*W.apply_trait($/, '&trait_mod:<is>', $declarand, |%arg, |%additional);
                 };
             }
         }

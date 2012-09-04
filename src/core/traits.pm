@@ -124,6 +124,13 @@ multi trait_mod:<is>(Mu:U \type, :$export!) {
                        'DEFAULT');
     EXPORT_SYMBOL($exp_name, @tags, type);
 }
+# for constants
+multi trait_mod:<is>(Mu \sym, :$export!, :$SYMBOL!) {
+    my @tags = 'ALL', ($export ~~ Pair ?? $export.key !!
+                    $export ~~ Positional ?? @($export)>>.key !!
+                    'DEFAULT');
+    EXPORT_SYMBOL($SYMBOL, @tags, sym);
+}
 
 multi trait_mod:<is>(Mu:D $docee, :$docs!) {
     $docee does role {

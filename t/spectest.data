@@ -714,3 +714,5 @@ integration/role-composition-vs-attribute.t
 integration/say-crash.t
 integration/substr-after-match-in-gather-in-for.t
 integration/weird-errors.t
+rosettacode/greatest_element_of_a_list.t  
+rosettacode/sierpinski_triangle.t

@@ -13,13 +13,6 @@ class Perl6::Actions is HLL::Actions {
     our $STATEMENT_PRINT;
 
     INIT {
-        # Tell QAST::SVal how to encode Perl6Str and Str values
-        # XXX Needs review...
-        my %valflags :=
-            Q:PIR { %r = get_hll_global ['PAST';'Compiler'], '%valflags' };
-        %valflags<Perl6Str> := 'e';
-        %valflags<Str>      := 'e';
-
         # If, e.g., we support Perl up to v6.1.2, set
         # @MAX_PERL_VERSION to [6, 1, 2].
         @MAX_PERL_VERSION[0] := 6;

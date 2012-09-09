@@ -46,10 +46,13 @@ my class Signature {
         # Parameters.
         my $params = self.params();
         my $sep = '';
-        my $i = 0;
+        my int $i = 0;
         while $i < $params.elems {
-            $perl = $perl ~ $sep ~ $params[$i].perl;
-            $sep = ', ';
+            my $param := $params[$i];
+            $perl = $perl ~ $sep ~ $param.perl;
+            # this works because methods always have at least one
+            # other parameter, *%_
+            $sep = ($i == 0 && $param.invocant) ?? ': ' !! ', ';
             $i = $i + 1;
         }
         

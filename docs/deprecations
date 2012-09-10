@@ -1,3 +1,9 @@
+Deprecations in 2012.09
+
+    Str.capitalize and &capitalize are deprecated in favor
+    of the the Str.wordcase and &wordcase routines.
+    They will uncondtionally warn in 2012.10, and be removed in 2012.11.
+
 Deprecations in 2012.08
 
     Parameters preceeded by a | or \ may not have a sigil anymore.

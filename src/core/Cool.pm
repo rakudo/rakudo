@@ -90,7 +90,8 @@ my class Cool {
         $self-str eq '' ?? '' !! $self-str.substr(0, 1).uc ~ $self-str.substr(1)
     }
 
-    method capitalize() { self.Stringy.capitalize }
+    method capitalize() is DEPRECATED { self.Stringy.capitalize }
+    method wordcase()   { self.Str.wordcase }
 
     method chomp() {
         self.Str.chomp;
@@ -213,9 +214,13 @@ multi sub ords(Cool $s)       { ords($s.Stringy) }
 proto sub comb(|)            { * }
 multi sub comb(Regex $matcher, Cool $input, $limit = *) { $input.comb($matcher, $limit) }
 
-proto sub capitalize(|)       { * }
+proto sub capitalize(|) is DEPRECATED { * }
 multi sub capitalize(Str:D $x) {$x.capitalize }
 multi sub capitalize(Cool $x)  {$x.Stringy.capitalize }
+
+proto sub wordcase(|)       { * }
+multi sub wordcase(Str:D $x) {$x.wordcase }
+multi sub wordcase(Cool $x)  {$x.Str.wordcase }
 
 proto sub tclc(|)             { * }
 multi sub tclc(Cool $x)        { tclc $x.Str }

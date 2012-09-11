@@ -755,7 +755,6 @@ my class Str does Stringy {
         self.subst(:g, rx/\w+/, -> $_ { .Str.lc.ucfirst });
     }
     method wordcase(Str:D: :&filter = &tclc, :$where = True) {
-        my token identifier { [<:L> \w* ] *% <['\-]> }
         self.subst(:g, / [<:L> \w* ] +% <['\-]> /, -> $m {
             my Str $s = $m.Str;
             $s ~~ $where ?? filter($s) !! $s;

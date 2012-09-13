@@ -576,6 +576,7 @@ BEGIN {
     Routine.HOW.add_attribute(Routine, BOOTSTRAPATTR.new(:name<$!inline_info>, :type(Mu), :package(Routine)));
     Routine.HOW.add_attribute(Routine, BOOTSTRAPATTR.new(:name<$!yada>, :type(int), :package(Routine)));
     Routine.HOW.add_attribute(Routine, BOOTSTRAPATTR.new(:name<$!package>, :type(Mu), :package(Routine)));
+    Routine.HOW.add_attribute(Routine, BOOTSTRAPATTR.new(:name<$!onlystar>, :type(int), :package(Routine)));
 
     Code.HOW.add_method(Code, 'is_dispatcher', static(sub ($self) {
             my $dc_self   := pir::perl6_decontainerize__PP($self);
@@ -621,6 +622,10 @@ BEGIN {
     Routine.HOW.add_method(Routine, 'inline_info', static(sub ($self) {
             my $dcself := pir::perl6_decontainerize__PP($self);
             nqp::getattr($dcself, Routine, '$!inline_info')
+        }));
+    Routine.HOW.add_method(Routine, 'set_onlystar', static(sub ($self) {
+            my $dcself := pir::perl6_decontainerize__PP($self);
+            pir::repr_bind_attr_int__0PPsi($dcself, Routine, '$!onlystar', 1);
         }));
 
     # class Sub is Routine { ... }

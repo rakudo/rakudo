@@ -1929,6 +1929,11 @@ class Perl6::Actions is HLL::Actions {
         for $<trait> -> $t {
             if $t.ast { $*W.ex-handle($t, { ($t.ast)($code) }) }
         }
+        if $<onlystar> {
+            # Protect with try; won't work when declaring the initial
+            # trait_mod proto in CORE.setting!
+            try $*W.apply_trait($/, '&trait_mod:<is>', $*DECLARAND, :onlystar(1));
+        }
         
         # Add inlining information if it's inlinable; also mark soft if the
         # appropriate pragma is in effect.
@@ -1955,7 +1960,9 @@ class Perl6::Actions is HLL::Actions {
         my @p_params := [hash(is_capture => 1, nominal_type => $*W.find_symbol(['Mu']) )];
         my $p_sig := $*W.create_signature(nqp::hash('parameters', [$*W.create_parameter(@p_params[0])]));
         add_signature_binding_code($p_past, $p_sig, @p_params);
-        $*W.create_code_object($p_past, 'Sub', $p_sig, 1);
+        my $code := $*W.create_code_object($p_past, 'Sub', $p_sig, 1);
+        $*W.apply_trait($/, '&trait_mod:<is>', $code, :onlystar(1));
+        $code
     }
     
     method add_inlining_info_if_possible($/, $code, $past, @params) {
@@ -2145,6 +2152,9 @@ class Perl6::Actions is HLL::Actions {
         # Apply traits.
         for $<trait> {
             if $_.ast { ($_.ast)($code) }
+        }
+        if $<onlystar> {
+            $*W.apply_trait($/, '&trait_mod:<is>', $*DECLARAND, :onlystar(1));
         }
 
         # Install method.
@@ -3661,6 +3671,10 @@ class Perl6::Actions is HLL::Actions {
 
     method term:sym<capterm>($/) {
         make $<capterm>.ast;
+    }
+    
+    method term:sym<onlystar>($/) {
+        make QAST::Op.new( :op('p6multidispatchlex') );
     }
 
     method args($/) {

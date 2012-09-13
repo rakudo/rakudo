@@ -441,6 +441,7 @@ grammar Perl6::Grammar is HLL::Grammar {
         :my $*POD_IN_FORMATTINGCODE := 0;          # pod stuff
         :my $*IN_REGEX_ASSERTION := 0;
         :my $*SOFT := 0;                           # is the soft pragma in effect
+        :my $*IN_PROTO := 0;                       # are we inside a proto?
         
         # Various interesting scopes we'd like to keep to hand.
         :my $*GLOBALish;
@@ -1501,7 +1502,7 @@ grammar Perl6::Grammar is HLL::Grammar {
         <.ws> [ <declarator> || <routine_def('sub')> || <.malformed('multi')> ]
     }
     token multi_declarator:sym<proto> {
-        <sym> :my $*MULTINESS := 'proto'; <.end_keyword>
+        <sym> :my $*MULTINESS := 'proto'; :my $*IN_PROTO := 1; <.end_keyword>
         <.ws> [ <declarator> || <routine_def('sub')> || <.malformed('proto')> ]
     }
     token multi_declarator:sym<only> {
@@ -2091,7 +2092,7 @@ grammar Perl6::Grammar is HLL::Grammar {
     
     token term:sym<onlystar> {
         '{*}' <?ENDSTMT>
-        [ <?{ $*MULTINESS eq 'proto' }> || <.panic: '{*} may only appear in proto'> ]
+        [ <?{ $*IN_PROTO }> || <.panic: '{*} may only appear in proto'> ]
     }
 
     token args {

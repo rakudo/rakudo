@@ -173,7 +173,7 @@ class Perl6::Optimizer {
                         if @ct_result[0] == 1 {
                             my $chosen := @ct_result[1];
                             if $op.op eq 'chain' { $!chain_depth := $!chain_depth - 1 }
-                            if $*LEVEL >= 2 {
+                            if $*LEVEL >= 2 && $obj.onlystar {
                                 return nqp::can($chosen, 'inline_info') && nqp::istype($chosen.inline_info, QAST::Node)
                                     ?? self.inline_call($op, $chosen)
                                     !! self.call_ct_chosen_multi($op, $obj, $chosen);
@@ -186,7 +186,7 @@ class Perl6::Optimizer {
                     
                     # Otherwise, inline the proto.
                     if $op.op eq 'chain' { $!chain_depth := $!chain_depth - 1 }
-                    if $*LEVEL >= 2 {
+                    if $*LEVEL >= 2 && $obj.onlystar {
                         return self.inline_proto($op, $obj);
                     }
                 }

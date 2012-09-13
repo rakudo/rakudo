@@ -10,6 +10,9 @@ PMC * Rakudo_types_any_get(void);
 void Rakudo_types_junction_set(PMC * type);
 PMC * Rakudo_types_junction_get(void);
 
+void Rakudo_types_routine_set(PMC * type);
+PMC * Rakudo_types_routine_get(void);
+
 void Rakudo_types_int_set(PMC * type);
 PMC * Rakudo_types_int_get(void);
 

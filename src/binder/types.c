@@ -11,6 +11,7 @@
 static PMC * Mu         = NULL;
 static PMC * Any        = NULL;
 static PMC * Junction   = NULL;
+static PMC * Routine    = NULL;
 static PMC * Int        = NULL;
 static PMC * Num        = NULL;
 static PMC * Str        = NULL;
@@ -40,6 +41,9 @@ PMC * Rakudo_types_any_get(void) { return Any; }
 
 void Rakudo_types_junction_set(PMC * type) { Junction = type; }
 PMC * Rakudo_types_junction_get(void) { return Junction; }
+
+void Rakudo_types_routine_set(PMC * type) { Routine = type; }
+PMC * Rakudo_types_routine_get(void) { return Routine; }
 
 void Rakudo_types_int_set(PMC * type) { Int = type; }
 PMC * Rakudo_types_int_get(void) { return Int; }

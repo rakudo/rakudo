@@ -929,6 +929,7 @@ Str.HOW.publish_parrot_vtable_handler_mapping(Str);
 pir::perl6_set_type_packagehow__vP(Perl6::Metamodel::PackageHOW);
 pir::perl6_set_types_mu_any__vPP(Mu, Any);
 pir::perl6_set_type_code__vP(Code);
+pir::perl6_set_type_routine__vP(Routine);
 pir::perl6_set_types_ins__vPPP(Int, Num, Str);
 pir::perl6_set_types_list_array_lol__vPPPPP(List, ListIter, Array, LoL, Parcel);
 pir::perl6_set_types_enummap_hash__vPP(EnumMap, Hash);

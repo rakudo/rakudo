@@ -242,7 +242,7 @@ Return the LexInfo PMC, if any or a Null PMC.
                     STRING *state = VTABLE_get_string_keyed_int(interp, state_flags_cache, i);
                     if (!STRING_IS_NULL(state)) {
                         /* See if we have some state storage. */
-                        PMC * sub = Parrot_pcc_get_sub(interp, ctx);
+                        PMC * sub = Parrot_pcc_get_sub(interp, (PMC *)ctx);
                         PMC * cur_state = PMCNULL;
                         PMC * p6sub, *state_stash;
                         GETATTR_Sub_multi_signature(interp, sub, p6sub);

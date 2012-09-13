@@ -44,7 +44,7 @@ PMC *Rakudo_cont_decontainerize(PARROT_INTERP, PMC *var) {
 }
 
 /* Grabs obj.HOW.name(obj) so we can display type name in error. */
-static STRING * typename(PARROT_INTERP, PMC *obj) {
+static STRING * type_name(PARROT_INTERP, PMC *obj) {
     PMC *how     = STABLE(obj)->HOW;
     PMC *old_ctx = Parrot_pcc_get_signature(interp, CURRENT_CONTEXT(interp));
     PMC *meth    = VTABLE_find_method(interp, how, Parrot_str_new(interp, "name", 0));
@@ -93,7 +93,7 @@ void Rakudo_cont_store(PARROT_INTERP, PMC *cont, PMC *value,
                     if PMC_IS_NULL(thrower)
                         Parrot_ex_throw_from_c_args(interp, NULL, EXCEPTION_INVALID_OPERATION,
                             "Type check failed in assignment to '%S'; expected '%S' but got '%S'",
-                            desc->name, typename(interp, desc->of), typename(interp, value_decont));
+                            desc->name, type_name(interp, desc->of), type_name(interp, value_decont));
                     else
                         Parrot_pcc_invoke_sub_from_c_args(interp, thrower,
                                 "SPP->", desc->name, value_decont, desc->of);

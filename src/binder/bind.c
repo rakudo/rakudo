@@ -316,10 +316,10 @@ Rakudo_binding_bind_one_param(PARROT_INTERP, PMC *lexpad, Rakudo_Signature *sign
     
     /* Check if boxed/unboxed expections are met. */
     desired_native = param->flags & SIG_ELEM_NATIVE_VALUE;
-    if (desired_native == 0 && orig_bv.type == BIND_VAL_OBJ ||
-        desired_native == SIG_ELEM_NATIVE_INT_VALUE && orig_bv.type == BIND_VAL_INT ||
-        desired_native == SIG_ELEM_NATIVE_NUM_VALUE && orig_bv.type == BIND_VAL_NUM ||
-        desired_native == SIG_ELEM_NATIVE_STR_VALUE && orig_bv.type == BIND_VAL_STR)
+    if ((desired_native == 0 && orig_bv.type == BIND_VAL_OBJ) ||
+        (desired_native == SIG_ELEM_NATIVE_INT_VALUE && orig_bv.type == BIND_VAL_INT) ||
+        (desired_native == SIG_ELEM_NATIVE_NUM_VALUE && orig_bv.type == BIND_VAL_NUM) ||
+        (desired_native == SIG_ELEM_NATIVE_STR_VALUE && orig_bv.type == BIND_VAL_STR))
     {
         /* We have what we want. */
         bv = orig_bv;
@@ -1106,9 +1106,9 @@ INTVAL Rakudo_binding_trial_bind(PARROT_INTERP, PMC *sig_pmc, PMC *capture) {
             else {
                 /* If it's the wrong type of native, there's no way it
                  * can ever bind. */
-                if ((param->flags & SIG_ELEM_NATIVE_INT_VALUE) && got_prim != BIND_VAL_INT ||
-                    (param->flags & SIG_ELEM_NATIVE_NUM_VALUE) && got_prim != BIND_VAL_NUM ||
-                    (param->flags & SIG_ELEM_NATIVE_STR_VALUE) && got_prim != BIND_VAL_STR)
+                if (((param->flags & SIG_ELEM_NATIVE_INT_VALUE) && got_prim != BIND_VAL_INT) ||
+                    ((param->flags & SIG_ELEM_NATIVE_NUM_VALUE) && got_prim != BIND_VAL_NUM) ||
+                    ((param->flags & SIG_ELEM_NATIVE_STR_VALUE) && got_prim != BIND_VAL_STR))
                     return TRIAL_BIND_NO_WAY;
             }
         }

@@ -436,8 +436,8 @@ add_to_cache(PARROT_INTERP, Rakudo_md_cache *cache, PMC *capture, INTVAL num_arg
 
     /* If there's no entries yet, need to do some allocation. */
     if (entries == 0) {
-        cache->arity_caches[num_args - 1].type_ids = mem_sys_allocate(num_args * sizeof(INTVAL) * MD_CACHE_MAX_ENTRIES);
-        cache->arity_caches[num_args - 1].results  = mem_sys_allocate(sizeof(PMC *) * MD_CACHE_MAX_ENTRIES);
+        cache->arity_caches[num_args - 1].type_ids = (INTVAL *)mem_sys_allocate(num_args * sizeof(INTVAL) * MD_CACHE_MAX_ENTRIES);
+        cache->arity_caches[num_args - 1].results  = (PMC **)mem_sys_allocate(sizeof(PMC *) * MD_CACHE_MAX_ENTRIES);
     }
 
     /* Add entry. */
@@ -674,9 +674,9 @@ static PMC* find_best_candidate(PARROT_INTERP, Rakudo_md_candidate_info **candid
                     type_mismatch = 1;
                     break;
                 }
-                if ((type_flags & TYPE_NATIVE_INT) && got_prim != BIND_VAL_INT ||
-                    (type_flags & TYPE_NATIVE_NUM) && got_prim != BIND_VAL_NUM ||
-                    (type_flags & TYPE_NATIVE_STR) && got_prim != BIND_VAL_STR) {
+                if (((type_flags & TYPE_NATIVE_INT) && got_prim != BIND_VAL_INT) ||
+                    ((type_flags & TYPE_NATIVE_NUM) && got_prim != BIND_VAL_NUM) ||
+                    ((type_flags & TYPE_NATIVE_STR) && got_prim != BIND_VAL_STR)) {
                     /* Mismatch. */
                     type_mismatch = 1;
                     break;
@@ -986,9 +986,9 @@ Rakudo_md_ct_dispatch(PARROT_INTERP, PMC *dispatcher, PMC *capture, PMC **result
                     type_mismatch = 1;
                     break;
                 }
-                if ((type_flags & TYPE_NATIVE_INT) && got_prim != BIND_VAL_INT ||
-                    (type_flags & TYPE_NATIVE_NUM) && got_prim != BIND_VAL_NUM ||
-                    (type_flags & TYPE_NATIVE_STR) && got_prim != BIND_VAL_STR) {
+                if (((type_flags & TYPE_NATIVE_INT) && got_prim != BIND_VAL_INT) ||
+                    ((type_flags & TYPE_NATIVE_NUM) && got_prim != BIND_VAL_NUM) ||
+                    ((type_flags & TYPE_NATIVE_STR) && got_prim != BIND_VAL_STR)) {
                     /* Mismatch. */
                     type_mismatch = 1;
                     type_match_possible = 0;

@@ -3662,6 +3662,10 @@ class Perl6::Actions is HLL::Actions {
     method term:sym<capterm>($/) {
         make $<capterm>.ast;
     }
+    
+    method term:sym<onlystar>($/) {
+        make QAST::Op.new( :op('p6multidispatchlex') );
+    }
 
     method args($/) {
         my $past;

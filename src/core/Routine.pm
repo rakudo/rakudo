@@ -11,6 +11,7 @@ my class Routine {
     method of() { self.signature.returns }
     method returns() { self.signature.returns }
     method rw() { $!rw }
+    method onlystar() { nqp::p6bool($!onlystar) }
     
     method assuming($r: *@curried_pos, *%curried_named) {
         return sub CURRIED (*@pos, *%named) {

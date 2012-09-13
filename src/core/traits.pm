@@ -61,6 +61,9 @@ multi trait_mod:<is>(Routine:D $r, :$DEPRECATED!) {
 multi trait_mod:<is>(Routine:D $r, Mu :$inlinable!) {
     $r.set_inline_info(nqp::p6decont($inlinable));
 }
+multi trait_mod:<is>(Routine:D $r, :$onlystar!) {
+    $r.set_onlystar();
+}
 
 multi trait_mod:<is>(Parameter:D $param, :$readonly!) {
     # This is the default.

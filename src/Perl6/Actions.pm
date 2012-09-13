@@ -1929,6 +1929,11 @@ class Perl6::Actions is HLL::Actions {
         for $<trait> -> $t {
             if $t.ast { $*W.ex-handle($t, { ($t.ast)($code) }) }
         }
+        if $<onlystar> {
+            # Protect with try; won't work when declaring the initial
+            # trait_mod proto in CORE.setting!
+            try $*W.apply_trait($/, '&trait_mod:<is>', $*DECLARAND, :onlystar(1));
+        }
         
         # Add inlining information if it's inlinable; also mark soft if the
         # appropriate pragma is in effect.
@@ -2145,6 +2150,9 @@ class Perl6::Actions is HLL::Actions {
         # Apply traits.
         for $<trait> {
             if $_.ast { ($_.ast)($code) }
+        }
+        if $<onlystar> {
+            $*W.apply_trait($/, '&trait_mod:<is>', $*DECLARAND, :onlystar(1));
         }
 
         # Install method.

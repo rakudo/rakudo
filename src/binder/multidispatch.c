@@ -598,16 +598,18 @@ static PMC* find_best_candidate(PARROT_INTERP, Rakudo_md_candidate_info **candid
                         if (!new_possibles)
                             new_possibles = mem_allocate_n_typed(num_candidates, Rakudo_md_candidate_info *);
 
+                        /* Since we had to do a bindability check, this is not
+                         * a result we can cache on nominal type. */
+                        pure_type_result = 0;
+
                         /* If we don't fail, need to put this one onto the list
                          * (note that needing a junction dispatch is OK). */
                         if (bind_check_result != BIND_RESULT_FAIL) {
                             new_possibles[new_possibles_count] = possibles[i];
                             new_possibles_count++;
+                            if (!many)
+                                break;
                         }
-
-                        /* Since we had to do a bindability check, this is not
-                         * a result we can cache on nominal type. */
-                        pure_type_result = 0;
                     }
                     
                     /* Otherwise, it's just nominal; accept it. */

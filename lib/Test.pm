@@ -178,40 +178,44 @@ multi sub lives_ok(Callable $closure, $reason = '') is export {
     try {
         $closure();
     }
-    proclaim((not defined $!), $reason) or diag($!);
+    my $ok = proclaim((not defined $!), $reason) or diag($!);
     $time_before = nqp::p6box_n(nqp::time_n);
+    return $ok;
 }
 
 multi sub eval_dies_ok(Str $code, $reason = '') is export {
     $time_after = nqp::p6box_n(nqp::time_n);
     my $ee = eval_exception($code);
+    my $ok;
     if defined $ee {
         # XXX no regexes yet in nom
         my $bad_death = $ee.Str.index('Null PMC access ').defined;
         if $bad_death {
             diag "wrong way to die: '$ee'";
         }
-        proclaim( !$bad_death, $reason );
+        $ok = proclaim( !$bad_death, $reason );
     }
     else {
-        proclaim( 0, $reason );
+        $ok = proclaim( 0, $reason );
     }
     $time_before = nqp::p6box_n(nqp::time_n);
+    return $ok;
 }
 
 multi sub eval_lives_ok(Str $code, $reason = '') is export {
     $time_after = nqp::p6box_n(nqp::time_n);
     my $ee = eval_exception($code);
-    proclaim((not defined $ee), $reason)
+    my $ok = proclaim((not defined $ee), $reason)
         or diag("Error: $ee");
     $time_before = nqp::p6box_n(nqp::time_n);
+    return $ok;
 }
 
 multi sub is_deeply(Mu $got, Mu $expected, $reason = '') is export
 {
     $time_after = nqp::p6box_n(nqp::time_n);
     my $test = _is_deeply( $got, $expected );
-    proclaim($test, $reason);
+    my $ok = proclaim($test, $reason);
     if !$test {
         my $got_perl      = try { $got.perl };
         my $expected_perl = try { $expected.perl };
@@ -220,8 +224,8 @@ multi sub is_deeply(Mu $got, Mu $expected, $reason = '') is export
             diag "expected: $expected_perl";
         }
     }
-    $test;
     $time_before = nqp::p6box_n(nqp::time_n);
+    return $ok;
 }
 
 sub _is_deeply(Mu $got, Mu $expected) {

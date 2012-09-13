@@ -7,6 +7,10 @@ New in 2012.09
   making the compiler a little faster
 + support for "is export" traits on constants
 + implemented Str.wordcase
++ can now write more complex proto subs and methods, using {*} to enter the
+  dispatcher
++ tie-breaking with constraints now picks the first matching one rather than
+  demanding they be mutually exclusive
 
 New in 2012.08
 + tclc implemented

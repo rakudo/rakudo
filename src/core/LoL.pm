@@ -41,15 +41,15 @@ class LoL {
 
 sub infix:<X>(**@lol) {
     my @l;
-    my @v;
     @l[0] = (@lol[0].flat,).list;
     my int $i = 0;
     my int $n = @lol.elems - 1;
+    my Mu $v := nqp::list();
     gather {
         while $i >= 0 {
             if @l[$i] {
-                @v[$i] = @l[$i].shift;
-                if $i >= $n { my @x = @v; take @x.Parcel }
+                nqp::bindpos($v, $i, @l[$i].shift);
+                if $i >= $n { take nqp::p6parcel(nqp::clone($v), nqp::null()) }
                 else {
                     $i = $i + 1;
                     @l[$i] = (@lol[$i].flat,).list;

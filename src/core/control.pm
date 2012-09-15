@@ -165,15 +165,23 @@ sub exit($status = 0) {
 }
 
 sub run(*@args ($, *@)) {
-    my $error_code = nqp::p6box_i(
-        pir::spawnw__IP(
-            nqp::getattr(
-                @args.eager,
-                List,
-                '$!items'
+    my $error_code;
+    try {
+        $error_code = nqp::p6box_i(
+            pir::spawnw__IP(
+                nqp::getattr(
+                    @args.eager,
+                    List,
+                    '$!items'
+                )
             )
-        )
-    )+> 8;
+        ) +> 8;
+        CATCH {
+            default {
+                $error_code = 1;
+            }
+        }
+    }
     $error_code but !$error_code;
 }
 

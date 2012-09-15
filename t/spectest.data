@@ -181,6 +181,7 @@ S03-sequence/arity0.t
 S03-sequence/arity-2-or-more.t
 S03-sequence/basic.t
 # S03-sequence/limit-arity-2-or-more.t # err: Not enough positional parameters passed; got 1 but expected 2
+S03-sequence/misc.t
 S03-sequence/nonnumeric.t
 S03-smartmatch/any-any.t
 S03-smartmatch/any-array.t
@@ -474,6 +475,7 @@ S12-methods/method-vs-sub.t
 S12-methods/multi.t
 S12-methods/parallel-dispatch.t
 S12-methods/private.t
+S12-methods/qualified.t
 S12-methods/submethods.t
 S12-methods/syntax.t
 S12-methods/topic.t
@@ -548,6 +550,7 @@ S29-context/exit.t
 S29-context/sleep.t
 S29-conversions/hash.t
 S29-conversions/ord_and_chr.t                              #icu
+S29-os/system.t
 S32-array/bool.t
 S32-array/create.t
 S32-array/delete.t
@@ -714,5 +717,6 @@ integration/role-composition-vs-attribute.t
 integration/say-crash.t
 integration/substr-after-match-in-gather-in-for.t
 integration/weird-errors.t
+integration/rule-in-class-Str.t
 rosettacode/greatest_element_of_a_list.t  
 rosettacode/sierpinski_triangle.t

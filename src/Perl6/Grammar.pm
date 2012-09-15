@@ -1,6 +1,7 @@
 use QRegex;
 use NQPP6QRegex;
 use NQPP5QRegex;
+use Perl6::Actions;
 use Perl6::World;
 use Perl6::Pod;
 

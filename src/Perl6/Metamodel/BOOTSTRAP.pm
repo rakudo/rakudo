@@ -73,12 +73,6 @@ my stub PROCESS metaclass Perl6::Metamodel::ModuleHOW { ... };
 my stub Grammar metaclass Perl6::Metamodel::ClassHOW { ... };
 my stub Metamodel metaclass Perl6::Metamodel::PackageHOW { ... };
 
-# Stubbed EXPORT::DEFAULT.
-my module EXPORT {
-    our module DEFAULT {
-    }
-}
-
 # We stick all the declarative bits inside of a BEGIN, so they get
 # serialized.
 BEGIN {

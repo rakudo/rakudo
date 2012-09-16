@@ -85,13 +85,14 @@ my class Routine {
             method postcircumfix:<( )>($c) {
                 $!dispatcher.enter(|$c);
             }
+            method soft() { True }
         }
         
         # We can't wrap a hardened routine (that is, one that's been
         # marked inlinable).
         if nqp::istype(self, HardRoutine) {
             die "Cannot wrap a HardRoutine, since it may have been inlined; " ~
-                "use the 'soft' pragma to avoid marking routines has hard.";
+                "use the 'soft' pragma to avoid marking routines as hard.";
         }
         
         # If we're not wrapped already, do the initial dispatcher

@@ -485,6 +485,11 @@ class Perl6::Optimizer {
     
     # Inlines a call to a sub.
     method inline_call($call, $code_obj) {
+        # If the code object is marked soft, can't inline it.
+        if nqp::can($code_obj, 'soft') && $code_obj.soft {
+            return $call;
+        }
+        
         # Bind the arguments to temporaries.
         my $inlined := QAST::Stmts.new();
         my @subs;

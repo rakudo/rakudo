@@ -159,7 +159,7 @@ my class Mu {
     proto method Str(|) { * }
     multi method Str(Mu:U \v:) {
         warn (nqp::iscont(v)
-              ?? "use of uninitialized variable { $.VAR.name }"
+              ?? "use of uninitialized variable { v.VAR.name }"
               !! "use of uninitialized value")
             ~ " of type {self.^name} in string context";
         ''

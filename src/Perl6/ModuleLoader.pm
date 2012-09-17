@@ -138,7 +138,7 @@ class Perl6::ModuleLoader {
             my %trace := nqp::hash();
             %trace<module>   := $module_name;
             %trace<filename> := %chosen<pm>;
-            my $preserve_global := pir::get_hll_global__Ps('GLOBAL');
+            my $preserve_global := pir::get_root_global__Ps('perl6'){'GLOBAL'};
             nqp::push(@*MODULES, %trace);
             if %chosen<load> {
                 %trace<precompiled> := %chosen<load>;
@@ -179,9 +179,9 @@ class Perl6::ModuleLoader {
                 DEBUG("done loading ", %chosen<pm>) if $DEBUG;
 
             }
-            pir::set_hll_global__vsP('GLOBAL', $preserve_global);
+            pir::get_root_global__Ps('perl6'){'GLOBAL'} := $preserve_global;
             CATCH {
-                pir::set_hll_global__vsP('GLOBAL', $preserve_global);
+                pir::get_root_global__Ps('perl6'){'GLOBAL'} := $preserve_global;
                 nqp::rethrow($_);
             }
         }

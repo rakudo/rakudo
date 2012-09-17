@@ -44,8 +44,7 @@ my class Set is Iterable does Associative {
     multi to-set ($thing) { X::Set::Coerce.new(:$thing).throw }
 
     multi method Str(Any:D $ : --> Str) { ~%!elems.keys() }
-    multi method gist(Any:D $ : --> Str) { "set({ %!elems.keys».gist.join(', ') })"
-    }
+    multi method gist(Any:D $ : --> Str) { "set({ %!elems.keys».gist.join(', ') })" }
     multi method perl(Any:D $ : --> Str) { 'set(' ~ join(', ', map { .perl }, %!elems.keys) ~ ')' }
 
     method iterator() { %!elems.keys.iterator }
@@ -98,9 +97,9 @@ my class KeySet is Iterable does Associative {
 
     submethod BUILD (:%!elems) { }
 
-    submethod Str(Any:D $ : --> Str) { ~%!elems.keys }
-    submethod gist(Any:D $ : --> Str) { "keyset({ %!elems.keys».gist.join(', ') })" }
-    submethod perl(Any:D $ : --> Str) { 'KeySet.new(' ~ join(', ', map { .perl }, %!elems.keys) ~ ')' }
+    multi method Str(Any:D $ : --> Str) { ~%!elems.keys }
+    multi method gist(Any:D $ : --> Str) { "keyset({ %!elems.keys».gist.join(', ') })" }
+    multi method perl(Any:D $ : --> Str) { 'KeySet.new(' ~ join(', ', map { .perl }, %!elems.keys) ~ ')' }
 
     method iterator() { %!elems.keys.iterator }
     method list() { %!elems.keys }

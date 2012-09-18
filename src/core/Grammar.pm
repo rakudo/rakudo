@@ -1,5 +1,5 @@
 my class Grammar is Cursor { 
-    method parse($target, :$rule = 'TOP', :$actions, *%opt) {
+    method parse($target, :$rule = 'TOP', Mu :$actions = Mu, *%opt) {
         my $*ACTIONS = $actions;
         pir::find_caller_lex__Ps('$/') =
             self."!cursor_init"($target, |%opt)."$rule"().MATCH;

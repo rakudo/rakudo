@@ -736,8 +736,21 @@ my class Str does Stringy {
         nqp::islt_i($pos, $left) ?? '' !! nqp::p6box_s(nqp::substr($str, $left, $pos + 1 - $left));
     }
 
-    method words(Str:D: $limit = *) {
-        self.comb( / \S+ /, $limit );
+    method words(Str:D: $limit = $Inf) {
+        my $taken = 0;
+        my str $str = nqp::unbox_s(self);
+        my int $eos = nqp::chars($str);
+        my int $pos = 0;
+        gather while $taken < $limit {
+            my int $start = nqp::findnotcclass(
+                pir::const::CCLASS_WHITESPACE, $str, $pos, $eos);
+            last if $start == $eos;
+            my int $end = pir::find_cclass__Iisii(
+                pir::const::CCLASS_WHITESPACE, $str, $start, $eos);
+            take nqp::p6box_s(nqp::substr($str, $start, $end - $start));
+            $pos = $end;
+            $taken++;
+        }
     }
 
     method encode(Str:D $encoding = 'utf8') {

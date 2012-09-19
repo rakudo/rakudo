@@ -738,9 +738,10 @@ my class Str does Stringy {
 
     method words(Str:D: $limit = $Inf) {
         my $taken = 0;
-        my str $str = nqp::unbox_s(self);
-        my int $eos = nqp::chars($str);
-        my int $pos = 0;
+        my str $orig = nqp::unbox_s(self);
+        my str $str  = pir::trans_encoding__Ssi($orig, pir::find_encoding__Is('ucs4'));
+        my int $eos  = nqp::chars($str);
+        my int $pos  = 0;
         gather while $taken < $limit {
             my int $start = nqp::findnotcclass(
                 pir::const::CCLASS_WHITESPACE, $str, $pos, $eos);

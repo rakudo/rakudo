@@ -61,7 +61,7 @@ part of monthly Parrot releases.
 
 Dates are based on Parrot's expected release schedule.
 
-  2012-09-20   Rakudo #56
+  2012-09-20   Rakudo #56 masak
   2012-10-18   Rakudo #57 duff
   2012-11-22   Rakudo #58
   2012-12-20   Rakudo #59

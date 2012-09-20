@@ -24,6 +24,7 @@ This release brings changes; some of them are outlined below:
 - support for indirect type names in routine and type declarations
 - support for "is export" traits on constants
 - Str.wordcase implemented
+- slightly faster compilation (thanks to switching NQP over to QAST)
 
 These are some possibly breaking changes:
 

@@ -25,13 +25,12 @@ This release brings changes; some of them are outlined below:
 - support for "is export" traits on constants
 - Str.wordcase implemented
 - slightly faster compilation (thanks to switching NQP over to QAST)
-
-These are some possibly breaking changes:
-
-- class Iterable does not inherit from class Cool anymore
-
 - tie-breaking with constraints now picks the first matching one rather than
   demanding they be mutually exclusive
+
+A possibly breaking change:
+
+- class Iterable does not inherit from class Cool anymore
 
 This is only a small peek at the changes in this release. For a more
 detailed list, see "docs/ChangeLog".

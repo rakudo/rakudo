@@ -19,10 +19,10 @@ while (my $line = <$c>) {
     my ($author, $comitter, $msg) = split /\|/, $line, 3;
     $contrib{nick_to_name($author)}++;
     $contrib{nick_to_name($comitter)}++ if $comitter ne 'Rakudo Perl';
-    while ($msg =~ /\(([^)]+)\)\+\+/g) {
+    while ($msg =~ /\(([^)]{2,})\)\+\+/g) {
         $contrib{nick_to_name($1)}++;
     }
-    while ($msg =~ /([^\s():]+)\+\+/g) {
+    while ($msg =~ /([^\s():]{2,})\+\+/g) {
         my $nick = $1;
         next if $nick =~ /^[\$\@]/;
         $contrib{nick_to_name($nick)}++;

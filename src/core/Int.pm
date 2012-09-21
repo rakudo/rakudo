@@ -54,6 +54,13 @@ my class Int does Real {
         nqp::p6box_s(nqp::base_I(self, $b));
     }
 
+    method expmod(Int:D: Int:D \base, Int:D \mod) {
+        nqp::expmod_I(self, nqp::p6decont(base), nqp::p6decont(mod), Int);
+    }
+    method is-prime(Int:D: Int:D $tries = 100) returns Bool:D {
+        nqp::p6bool(nqp::isprime_I(self, nqp::unbox_i($tries)));
+    }
+
     method floor(Int:D:) { self }
     method round(Int:D:) { self }
     method ceiling(Int:D:) { self }

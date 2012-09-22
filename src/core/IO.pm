@@ -25,6 +25,7 @@ sub gist(|) {
 
 sub prompt($msg) {
     print $msg;
+    $*OUT.flush();
     $*IN.get;
 }
 
@@ -78,7 +79,6 @@ my role IO::FileTestable {
     method changed() { 
          nqp::p6box_i(nqp::stat(nqp::unbox_s($.path), pir::const::STAT_CHANGETIME));
     }
-
 }
 
 class IO does IO::FileTestable {
@@ -234,6 +234,13 @@ class IO does IO::FileTestable {
 
     method Str {
         $.path
+    }
+
+    method flush() {
+        fail("File handle not open, so cannot flush")
+            unless nqp::defined($!PIO);
+        $!PIO.flush();
+        True;
     }
 }
 

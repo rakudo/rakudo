@@ -608,6 +608,7 @@ S32-num/exp.t
 S32-num/expmod.t
 S32-num/fatrat.t
 S32-num/int.t
+S32-num/is-prime.t
 S32-num/log.t
 S32-num/pi.t
 S32-num/polar.t

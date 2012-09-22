@@ -64,6 +64,11 @@ my class Int does Real {
     method floor(Int:D:) { self }
     method round(Int:D:) { self }
     method ceiling(Int:D:) { self }
+
+    method rand(Int:D) {
+        my num $n = nqp::tonum_I(self);
+        $n === $Inf ?? nqp::rand_I(self, Int) !! $n.rand;
+    }
 }
 
 multi prefix:<++>(Int:D \a is rw) {   # XXX

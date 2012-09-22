@@ -572,7 +572,7 @@ BEGIN {
     Routine.HOW.add_attribute(Routine, BOOTSTRAPATTR.new(:name<$!package>, :type(Mu), :package(Routine)));
     Routine.HOW.add_attribute(Routine, BOOTSTRAPATTR.new(:name<$!onlystar>, :type(int), :package(Routine)));
 
-    Code.HOW.add_method(Code, 'is_dispatcher', static(sub ($self) {
+    Routine.HOW.add_method(Routine, 'is_dispatcher', static(sub ($self) {
             my $dc_self   := pir::perl6_decontainerize__PP($self);
             my $disp_list := nqp::getattr($dc_self, Routine, '$!dispatchees');
             pir::perl6_booleanize__PI(nqp::defined($disp_list));

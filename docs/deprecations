@@ -1,3 +1,16 @@
+Deprecations in 2012.10
+
+    protos for built-in routines are now mostly as generic as possible,
+    and will be changed to be specific to the arity of the routine.
+    For example 'proto sub chr(|) {*}' will become 'proto sub chr($) {*}'
+    This affects everybody who adds multis with unusual arity to built-in
+    subs.
+    Planned for the 2012.11 release.
+
+    Unary hyper ops currently descend into nested arrays and hashes.
+    This will change to make them equivalent to a one-level map.
+    Planned for the 2012.11 release.
+
 Deprecations in 2012.09
 
     Str.capitalize and &capitalize are deprecated in favor

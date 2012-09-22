@@ -245,3 +245,18 @@ multi sub chr(Cool \x) returns Str:D { x.Int.chr }
 multi sub chr(int $x) returns str {
     nqp::chr($x);
 }
+
+proto sub is-prime($, $?) {*}
+multi sub is-prime(Int:D \i, Int:D $tries = 100) {
+    nqp::p6bool(nqp::isprime_I(nqp::p6decont(i), nqp::unbox_i($tries)));
+}
+multi sub is-prime(\i, $tries = 100) {
+    nqp::p6bool(nqp::isprime_I(nqp::p6decont(i.Int), nqp::unbox_i($tries.Int)));
+}
+proto sub expmod($, $, $) {*}
+multi sub expmod(Int:D \base, Int:D \exp, Int:D \mod) {
+    nqp::expmod_I(nqp::p6decont(base), nqp::p6decont(exp), nqp::p6decont(mod), Int);
+}
+multi sub expmod(\base, \exp, \mod) {
+    nqp::expmod_I(nqp::p6decont(base.Int), nqp::p6decont(exp.Int), nqp::p6decont(mod.Int), Int);
+}

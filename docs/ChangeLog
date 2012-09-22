@@ -1,6 +1,6 @@
 New in 2012.10
 
-+ Int.is-prime and Int.expmod
++ is-prime and expmod
 
 New in 2012.09
 + class Iterable does not inherit from class Cool anymore

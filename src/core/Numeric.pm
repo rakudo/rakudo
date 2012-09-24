@@ -25,7 +25,7 @@ my role Numeric {
     method pred() { self - 1 }
 }
 
-multi sub infix:<eqv>(Numeric $a, Numeric $b) {
+multi sub infix:<eqv>(Numeric:D $a, Numeric:D $b) {
     $a.WHAT === $b.WHAT && ($a cmp $b) == 0
 }
 

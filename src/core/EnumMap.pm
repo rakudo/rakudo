@@ -110,7 +110,7 @@ my class EnumMap does Associative {
     }
 }
 
-multi sub infix:<eqv>(EnumMap $a, EnumMap $b) {
+multi sub infix:<eqv>(EnumMap:D $a, EnumMap:D $b) {
     if +$a != +$b { return Bool::False }
     for $a.kv -> $k, $v {
         unless $b.exists($k) && $b{$k} eqv $v {

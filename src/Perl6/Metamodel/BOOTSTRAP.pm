@@ -326,6 +326,7 @@ BEGIN {
     #    has $!returns;
     #    has $!arity;
     #    has $!count;
+    #    has $!code;
     #     ... # Uncomposed
     # }
     Signature.HOW.add_parent(Signature, Any);
@@ -333,6 +334,7 @@ BEGIN {
     Signature.HOW.add_attribute(Signature, BOOTSTRAPATTR.new(:name<$!returns>, :type(Mu), :package(Signature)));
     Signature.HOW.add_attribute(Signature, BOOTSTRAPATTR.new(:name<$!arity>, :type(Mu), :package(Signature)));
     Signature.HOW.add_attribute(Signature, BOOTSTRAPATTR.new(:name<$!count>, :type(Mu), :package(Signature)));
+    Signature.HOW.add_attribute(Signature, BOOTSTRAPATTR.new(:name<$!code>, :type(Mu), :package(Signature)));
     Signature.HOW.add_method(Signature, 'is_generic', static(sub ($self) {
             # If any parameter is generic, so are we.
             my @params := nqp::getattr($self, Signature, '$!params');

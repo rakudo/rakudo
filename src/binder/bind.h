@@ -58,6 +58,9 @@ typedef struct {
     PMC    *sc;                 /* Serialization context, though we don't care about that here. */
     PMC    *params;             /* Array of objects that are all parameters. */
     PMC    *rtype;              /* Return type. */
+    PMC    *arity;              /* Cached arity. */
+    PMC    *count;              /* Cached count. */
+    PMC    *code;               /* The code object the signature is for. */
 } Rakudo_Signature;
 
 /* 

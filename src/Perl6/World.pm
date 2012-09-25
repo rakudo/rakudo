@@ -680,10 +680,13 @@ class Perl6::World is HLL::World {
         $code
     }
     
-    # Attaches a signature to a code object.
+    # Attaches a signature to a code object, and gives the
+    # signature its backlink to the code object.
     method attach_signature($code, $signature) {
         my $code_type := self.find_symbol(['Code']);
+        my $sig_type := self.find_symbol(['Signature']);
         nqp::bindattr($code, $code_type, '$!signature', $signature);
+        nqp::bindattr($signature, $sig_type, '$!code', $code);
     }
     
     # Takes a code object and the QAST::Block for its body.

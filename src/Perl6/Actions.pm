@@ -2746,10 +2746,15 @@ class Perl6::Actions is HLL::Actions {
     }
 
     method fakesignature($/) {
+        my $fake_pad := $*W.pop_lexpad();
         my %sig_info := $<signature>.ast;
         my @params := %sig_info<parameters>;
         set_default_parameter_type(@params, 'Mu');
-        my $sig := create_signature_object($/, %sig_info, $*FAKE_PAD, :no_attr_check(1));
+        my $sig := create_signature_object($/, %sig_info, $fake_pad, :no_attr_check(1));
+
+        $*W.cur_lexpad()[0].push($fake_pad);
+        $*W.create_code_object($fake_pad, 'Block', $sig);
+        
         make QAST::WVal.new( :value($sig) );
     }
 

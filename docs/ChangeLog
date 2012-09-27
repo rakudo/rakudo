@@ -1,6 +1,7 @@
 New in 2012.10
 
 + is-prime and expmod
++ smart matching against Signature literals
 
 New in 2012.09
 + class Iterable does not inherit from class Cool anymore

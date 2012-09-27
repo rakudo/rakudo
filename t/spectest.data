@@ -714,7 +714,7 @@ integration/pair-in-array.t
 integration/passing-pair-class-to-sub.t
 integration/real-strings.t
 integration/role-composition-vs-attribute.t
-# integration/rule-in-class-Str.t # err: Adverb 'P5' not allowed on m
+integration/rule-in-class-Str.t
 integration/say-crash.t
 integration/substr-after-match-in-gather-in-for.t
 integration/weird-errors.t

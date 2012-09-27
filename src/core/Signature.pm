@@ -4,6 +4,18 @@ my class Signature {
     #   has $!returns;         # return type
     #   has $!arity;           # cached arity
     #   has $!count;           # cached count
+    
+    multi method ACCEPTS(Signature:D: Capture $topic) {
+        nqp::p6bool(nqp::p6isbindable(self, nqp::p6decont($topic)));
+    }
+    
+    multi method ACCEPTS(Signature:D: @topic) {
+        self.ACCEPTS(@topic.Capture)
+    }
+    
+    multi method ACCEPTS(Signature:D: %topic) {
+        self.ACCEPTS(%topic.Capture)
+    }
 
     method arity() {
         self.count if nqp::isnull($!arity) || !$!arity.defined;

@@ -520,6 +520,61 @@ inline op perl6_trial_bind_ct(out INT, in PMC, in PMC, in PMC) :base_core {
 
 /*
 
+=item perl6_is_sig_bindable()
+
+Checks if a capture can be bound to a signature.
+
+=cut
+
+*/
+inline op perl6_is_sig_bindable(out INT, in PMC, in PMC) :base_core {    
+    PMC      *signature = $2;
+    PMC      *capture   = $3;
+    STRING   *error     = STRINGNULL;
+    PMC      *lexpad, *ctx, *_do, *ret_cont, *call_object;
+    opcode_t *next;
+    INTVAL    result;
+
+    /* Need to make sure some stuff doesn't get destroyed. */
+    PMC      * const saved_ctx   = CURRENT_CONTEXT(interp);
+    PMC      * const saved_ccont = interp->current_cont;
+    PMC      * const saved_sig   = Parrot_pcc_get_signature(interp, saved_ctx);
+    opcode_t * const saved_pc    = Parrot_pcc_get_pc(interp, saved_ctx);
+    
+    /* Obtain code object from signature. */
+    PMC *code = ((Rakudo_Signature *)PMC_data(signature))->code;
+    if (PMC_IS_NULL(code)) {
+        $1 = 0;
+        goto NEXT();
+    }
+    _do  = ((Rakudo_Code *)PMC_data(code))->_do;
+
+    /* Invoke the code that the signature belongs to. */
+    ret_cont = Parrot_pmc_new(interp, enum_class_Continuation);
+    call_object = Parrot_pmc_new(interp, enum_class_CallContext);
+    Parrot_pcc_set_signature(interp, CURRENT_CONTEXT(interp), call_object);
+    PARROT_CONTINUATION(ret_cont)->from_ctx = call_object;
+    Parrot_pcc_set_continuation(interp, call_object, ret_cont);
+    interp->current_cont = ret_cont;
+    next = VTABLE_invoke(interp, _do, saved_pc);
+    ctx = CURRENT_CONTEXT(interp);
+    
+    /* Obtain lexpad. */
+    lexpad = Parrot_pcc_get_lex_pad(interp, ctx);
+
+    /* Call signature binder and stash outcome. */
+    result = Rakudo_binding_bind(interp, lexpad, signature, capture, 0, &error)
+        == BIND_RESULT_OK;
+
+    /* Invoke the return continuation. */
+    VTABLE_invoke(interp, ret_cont, next);
+    
+    $1 = result;
+}
+
+
+/*
+
 =item perl6_set_types_mu_any(in PMC, in PMC)
 
 Sets the top type.

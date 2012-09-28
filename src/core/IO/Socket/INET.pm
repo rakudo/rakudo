@@ -77,7 +77,7 @@ my class IO::Socket::INET does IO::Socket {
             $PIO.bind($addr);
         }
 
-        $PIO.encoding(nqp::unbox_s(PARROT_ENCODING(self.encoding)));
+        # $PIO.encoding(nqp::unbox_s(PARROT_ENCODING(self.encoding)));
         if $.listen { 
             $PIO.listen($.listen);
         }

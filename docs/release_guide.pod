@@ -57,6 +57,7 @@ part of monthly Parrot releases.
   2012-07-19   Rakudo #54 "Tallinn"            (masak)
   2012-08-23   Rakudo #55 "Frankfurt"          (tadzik,moritz)
   2012-09-20   Rakudo #56 "Perl"               (masak)
+  2012-09-29   2012.09.1                       (pmichaud)
 
 =head2 Planned 2012 releases
 

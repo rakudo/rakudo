@@ -1,8 +1,9 @@
-New in 2012.10
+New in 2012.09.1
 + is-prime and expmod
 + smart matching against Signature literals
 + binding to signatures in declarators
 + the is hidden and base traits
++ ability to set encoding on sockets temporarily removed (reverts to 2012.08 behavior)
 
 New in 2012.09
 + class Iterable does not inherit from class Cool anymore

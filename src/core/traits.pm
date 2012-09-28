@@ -38,6 +38,9 @@ multi trait_mod:<is>(Mu:U $type, :$rw!) {
 multi trait_mod:<is>(Mu:U $type, :$nativesize!) {
     $type.HOW.set_nativesize($type, $nativesize);
 }
+multi trait_mod:<is>(Mu:U $type, :$hidden!) {
+    $type.HOW.set_hidden($type);
+}
 
 multi trait_mod:<is>(Attribute:D $attr, :$rw!) {
     $attr.set_rw();
@@ -275,4 +278,20 @@ multi trait_mod:<will>(Attribute $attr, Block :$build!) {
 proto trait_mod:<trusts>(|) { * }
 multi trait_mod:<trusts>(Mu:U $truster, Mu:U $trustee) {
     $truster.HOW.add_trustee($truster, $trustee);
+}
+
+proto trait_mod:<hides>(|) { * }
+multi trait_mod:<hides>(Mu:U $child, Mu:U $parent) {
+    if $parent.HOW.archetypes.inheritable() {
+        $child.HOW.add_parent($child, $parent, :hides);
+    }
+    elsif $parent.HOW.archetypes.inheritalizable() {
+        $child.HOW.add_parent($child, $parent.HOW.inheritalize($parent), :hides)
+    }
+    else {
+        X::Inheritance::Unsupported.new(
+            :child-typename($child.HOW.name($child)),
+            :$parent,
+        ).throw;
+    }
 }

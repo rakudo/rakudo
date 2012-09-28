@@ -52,7 +52,9 @@ class Perl6::Metamodel::MethodDispatcher is Perl6::Metamodel::BaseDispatcher {
     method vivify_for($sub, $lexpad) {
         my $obj      := $lexpad<self>;
         my $name     := $sub.name;
-        my @mro      := $obj.HOW.mro($obj);
+        my @mro      := nqp::can($obj.HOW, 'mro_unhidden')
+            ?? $obj.HOW.mro_unhidden($obj)
+            !! $obj.HOW.mro($obj);
         my @methods;
         for @mro {
             my %mt := $_.HOW.method_table($_);

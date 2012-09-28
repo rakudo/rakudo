@@ -2,6 +2,9 @@ role Perl6::Metamodel::C3MRO {
     # Storage of the MRO.
     has @!mro;
     
+    # The MRO minus anything that is hidden.
+    has @!mro_unhidden;
+    
     # Computes C3 MRO.
     method compute_mro($class) {
         my @immediate_parents := $class.HOW.parents($class, :local);
@@ -26,6 +29,30 @@ role Perl6::Metamodel::C3MRO {
         # Put this class on the start of the list, and we're done.
         @result.unshift($class);
         @!mro := @result;
+        
+        # Also compute the unhidden MRO (all the things in the MRO that
+        # are not somehow hidden).
+        my @unhidden;
+        my @hidden;
+        for @result -> $c {
+            unless nqp::can($c.HOW, 'hidden') && $c.HOW.hidden($c) {
+                my $is_hidden := 0;
+                for @hidden {
+                    if pir::nqp_decontainerize__PP($c) =:= pir::nqp_decontainerize__PP($_) {
+                        $is_hidden := 1;
+                    }
+                }
+                nqp::push(@unhidden, $c) unless $is_hidden;
+            }
+            if nqp::can($c.HOW, 'hides') {
+                for $c.HOW.hides($c) {
+                    nqp::push(@hidden, $_);
+                }
+            }
+        }
+        @!mro_unhidden := @unhidden;
+        
+        @!mro
     }
 
     # C3 merge routine.
@@ -105,6 +132,21 @@ role Perl6::Metamodel::C3MRO {
             # Never computed before; do it best we can so far (and it will
             # be finalized at compose time).
             self.compute_mro($obj)
+        }
+    }
+    
+    # Introspects the Method Resolution Order without anything that has
+    # been hidden.
+    method mro_unhidden($obj) {
+        my @result := @!mro_unhidden;
+        if +@result {
+            @result
+        }
+        else {
+            # Never computed before; do it best we can so far (and it will
+            # be finalized at compose time).
+            self.compute_mro($obj);
+            @!mro_unhidden
         }
     }
 }

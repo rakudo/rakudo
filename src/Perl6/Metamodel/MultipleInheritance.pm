@@ -2,6 +2,12 @@ role Perl6::Metamodel::MultipleInheritance {
     # Array of parents.
     has @!parents;
     
+    # Are any of the parents hidden?
+    has @!hides;
+    
+    # Is this class hidden?
+    has $!hidden;
+    
     # Classes to exclude from the parents list in introspection by default.
     my @excluded;
     method exclude_parent($parent) {
@@ -9,7 +15,7 @@ role Perl6::Metamodel::MultipleInheritance {
     }
 
     # Adds a parent.
-    method add_parent($obj, $parent) {
+    method add_parent($obj, $parent, :$hides) {
         if self.is_composed($obj) {
             nqp::die("Parents cannot be added to a class after it has been composed");
         }
@@ -22,6 +28,9 @@ role Perl6::Metamodel::MultipleInheritance {
                     "' already has parent '" ~
                     $parent.HOW.name($parent) ~ "'");
             }
+        }
+        if $hides {
+            @!hides[+@!hides] := $parent;
         }
         @!parents[+@!parents] := $parent;
     }
@@ -57,5 +66,17 @@ role Perl6::Metamodel::MultipleInheritance {
             }
             @parents
         }
+    }
+    
+    method hides($obj) {
+        @!hides
+    }
+    
+    method hidden($obj) {
+        $!hidden ?? 1 !! 0
+    }
+    
+    method set_hidden($obj) {
+        $!hidden := 1;
     }
 }

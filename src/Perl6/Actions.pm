@@ -1524,7 +1524,18 @@ class Perl6::Actions is HLL::Actions {
                     $/.CURSOR.panic("Cannot use .= initializer with a list of declarations");
                 }
                 else {
-                    $*W.throw($/, 'X::Comp::NYI', feature => "Binding to signatures in $*SCOPE declarations");
+                    my %sig_info := $<signature>.ast;
+                    my @params := %sig_info<parameters>;
+                    set_default_parameter_type(@params, 'Mu');
+                    my $signature := create_signature_object($/, %sig_info, $*W.cur_lexpad());
+                    $list := QAST::Op.new(
+                        :op('p6bindcaptosig'),
+                        QAST::WVal.new( :value($signature) ),
+                        QAST::Op.new(
+                            :op('callmethod'), :name('Capture'),
+                            $<initializer>[0].ast
+                        )
+                    );
                 }
                 if $*SCOPE eq 'state' {
                     $list := QAST::Op.new( :op('if'),

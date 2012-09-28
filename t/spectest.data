@@ -581,7 +581,7 @@ S32-io/chdir.t
 S32-io/dir.t
 S32-io/file-tests.t
 S32-io/io-path.t
-# S32-io/IO-Socket-INET.t   # needs .recv update e.g. Parrot 4.8.0
+S32-io/IO-Socket-INET.t
 S32-io/note.t
 S32-list/categorize.t
 S32-list/classify.t

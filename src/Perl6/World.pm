@@ -1040,8 +1040,8 @@ class Perl6::World is HLL::World {
         # to avoid wasting re-compiling them, and also to help make
         # parametric role outer chain work out. Also set up their static
         # lexpads, if they have any.
-        my $num_subs := nqp::elems($precomp);
-        my $i := 0;
+        my int $num_subs := nqp::elems($precomp);
+        my int $i := 0;
         while $i < $num_subs {
             my $subid := $precomp[$i].get_subid();
             if nqp::existskey(%!sub_id_to_code_object, $subid) {
@@ -1741,7 +1741,7 @@ class Perl6::World is HLL::World {
         # scopes.
         if +@name == 1 {
             my $final_name := @name[0];
-            my $i := +@!BLOCKS;
+            my int $i := +@!BLOCKS;
             while $i > 0 {
                 $i := $i - 1;
                 my %sym := @!BLOCKS[$i].symbol($final_name);
@@ -1831,7 +1831,7 @@ class Perl6::World is HLL::World {
         # If it's a single item, then go hunting for it through the
         # block stack.
         if +@name == 1 && !$package_only {
-            my $i := +@!BLOCKS;
+            my int $i := +@!BLOCKS;
             while $i > 0 {
                 $i := $i - 1;
                 my %sym := @!BLOCKS[$i].symbol(@name[0]);
@@ -1888,7 +1888,7 @@ class Perl6::World is HLL::World {
     # Checks if the given name is known anywhere in the lexpad
     # and with lexical scope.
     method is_lexical($name) {
-        my $i := +@!BLOCKS;
+        my int $i := +@!BLOCKS;
         while $i > 0 {
             $i := $i - 1;
             my %sym := @!BLOCKS[$i].symbol($name);
@@ -1901,7 +1901,7 @@ class Perl6::World is HLL::World {
     
     # Checks if the symbol is really an alias to an attribute.
     method is_attr_alias($name) {
-        my $i := +@!BLOCKS;
+        my int $i := +@!BLOCKS;
         while $i > 0 {
             $i := $i - 1;
             my %sym := @!BLOCKS[$i].symbol($name);

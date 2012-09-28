@@ -65,6 +65,10 @@ multi trait_mod:<is>(Routine:D $r, :$onlystar!) {
     $r.set_onlystar();
 }
 
+# Since trait_mod:<is> to set onlystar isn't there at the
+# point we wrote its proto, we do it manually here.
+BEGIN &trait_mod:<is>.set_onlystar();
+
 multi trait_mod:<is>(Parameter:D $param, :$readonly!) {
     # This is the default.
 }

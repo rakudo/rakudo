@@ -1082,6 +1082,14 @@ sub unbase(Int:D $base, Str:D $str) returns Numeric:D {
         ":{$base}<$str>".Numeric;
     }
 }
+# for :16[1, 2, 3]
+sub unbase_bracket($base, @a) {
+    my $v = 0;
+    for @a {
+        $v = $v * $base + $_;
+    }
+    $v;
+}
 
 sub chrs(*@c) returns Str:D {
     @c.map({.chr}).join('');

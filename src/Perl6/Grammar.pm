@@ -2151,7 +2151,7 @@ grammar Perl6::Grammar is HLL::Grammar {
                 $<fracpart> = [ '.' <[ 0..9 a..z A..Z ]>+ [ _ <[ 0..9 a..z A..Z ]>+ ]* ]?
                 [ '*' <base=.radint> '**' <exp=.radint> ]?
            '>'
-        # || <?before '['> <circumfix>
+        || <?before '['> <bracket=circumfix>
         || <?before '('> <circumfix>
         || <.malformed: 'radix number'>
         ]

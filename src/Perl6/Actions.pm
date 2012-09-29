@@ -4616,7 +4616,11 @@ class Perl6::Actions is HLL::Actions {
 
     method rad_number($/) {
         my $radix    := +($<radix>.Str);
-        if $<circumfix> {
+        if $<bracket>   {
+            make QAST::Op.new(:name('&unbase_bracket'), :op('call'),
+                $*W.add_numeric_constant('Int', $radix), $<bracket>.ast);
+        }
+        elsif $<circumfix> {
             make QAST::Op.new(:name('&unbase'), :op('call'),
                 $*W.add_numeric_constant('Int', $radix), $<circumfix>.ast);
         } else {

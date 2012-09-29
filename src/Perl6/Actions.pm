@@ -2462,7 +2462,9 @@ class Perl6::Actions is HLL::Actions {
                 $block[0].push(QAST::Var.new(:name<$/>, :scope<lexical>, :decl('var')));
                 $block.symbol('$/', :scope<lexical>, :lazyinit(1));
             }
-            $past := QRegex::P6Regex::Actions::qbuildsub($qast, $block);
+            $past := %*RX<P5>
+                ?? QRegex::P5Regex::Actions::qbuildsub($qast, $block)
+                !! QRegex::P6Regex::Actions::qbuildsub($qast, $block);
         }
         $past.name($name);
         $past.blocktype("declaration");

@@ -1085,8 +1085,20 @@ sub unbase(Int:D $base, Str:D $str) returns Numeric:D {
 # for :16[1, 2, 3]
 sub unbase_bracket($base, @a) {
     my $v = 0;
+    my $denom = 1;
+    my Bool $seen-dot = False;
     for @a {
-        $v = $v * $base + $_;
+        if $seen-dot {
+            die "Only one decimal dot allowed" if $_ eq '.';
+            $denom *= $base;
+            $v += $_ / $denom
+        }
+        elsif $_ eq '.' {
+            $seen-dot = True;
+        }
+        else {
+            $v = $v * $base + $_;
+        }
     }
     $v;
 }

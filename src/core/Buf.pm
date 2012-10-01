@@ -239,6 +239,15 @@ multi sub pack(Str $template, *@items) {
                 }
                 @bytes.push: map { :16($_) }, $hexstring.comb(/../);
             }
+            when 'x' {
+                if $amount eq '*' {
+                    $amount = 0;
+                }
+                elsif $amount eq '' {
+                    $amount = 1;
+                }
+                @bytes.push: 0x00 xx $amount;
+            }
             when 'C' {
                 my $number = shift(@items);
                 @bytes.push: $number % 0x100;

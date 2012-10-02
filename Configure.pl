@@ -7,7 +7,7 @@ use warnings;
 use Text::ParseWords;
 use Getopt::Long;
 use Cwd;
-use lib "tools/lib";
+use lib 'tools/lib';
 use NQP::Configure qw(sorry slurp cmp_rev gen_nqp read_config 
                       fill_template_text fill_template_file
                       system_or_die verify_install);
@@ -17,13 +17,13 @@ my $lclang = lc $lang;
 my $uclang = uc $lang;
 
 MAIN: {
-    if (-r "config.default") {
+    if (-r 'config.default') {
         unshift @ARGV, shellwords(slurp('config.default'));
     }
 
     my %config;
     my $config_status = "${lclang}_config_status";
-    $config{$config_status} = join(' ', map { "\"$_\""} @ARGV);
+    $config{$config_status} = join ' ', map { qq("$_") } @ARGV;
 
     my $exe = $NQP::Configure::exe;
 
@@ -81,7 +81,7 @@ MAIN: {
     }
 
     %config = (%config, %nqp_config);
-    my $nqp_have   = $config{'nqp::version'} || '';
+    my $nqp_have = $config{'nqp::version'} || '';
     if ($nqp_have && cmp_rev($nqp_have, $nqp_want) < 0) {
         push @errors, "NQP revision $nqp_want required (currently $nqp_have).";
     }

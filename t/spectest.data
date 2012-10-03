@@ -204,6 +204,7 @@ S03-smartmatch/hash-hash.t
 S03-smartmatch/range-range.t
 S03-smartmatch/regex-hash.t
 S03-smartmatch/scalar-hash.t
+S03-smartmatch/signature-signature.t
 S04-blocks-and-statements/let.t
 S04-blocks-and-statements/pointy-rw.t
 S04-blocks-and-statements/pointy.t

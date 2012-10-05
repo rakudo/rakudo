@@ -4698,6 +4698,10 @@ class Perl6::Actions is HLL::Actions {
         overlap     => 'ov',
         exhaustive  => 'ex',
         Perl5       => 'P5',
+        samecase    => 'ii',
+    );
+    my %REGEX_ADVERB_IMPLIES := hash(
+        ii        => 'i',
     );
     INIT {
         my $mods := 'i ignorecase s sigspace r ratchet Perl5 P5';
@@ -4764,6 +4768,10 @@ class Perl6::Actions is HLL::Actions {
         }
         $key := %REGEX_ADVERBS_CANONICAL{$key} // $key;
         %*RX{$key} := $value;
+        if %REGEX_ADVERB_IMPLIES{$key} {
+            %*RX{%REGEX_ADVERB_IMPLIES{$key}} := $value
+        }
+        $value;
     }
 
     method quote:sym<apos>($/) { make $<quote_EXPR>.ast; }

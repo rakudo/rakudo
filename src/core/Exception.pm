@@ -970,6 +970,11 @@ my class X::PseudoPackage::InDeclaration does X::Comp {
     }
 }
 
+my class X::NoSuchSymbol is Exception {
+    has $.symbol;
+    method message { "No such symbol '$.symbol'" }
+}
+
 
 {
     my %c_ex;

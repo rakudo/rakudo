@@ -4699,9 +4699,11 @@ class Perl6::Actions is HLL::Actions {
         exhaustive  => 'ex',
         Perl5       => 'P5',
         samecase    => 'ii',
+        samespace   => 'ss',
     );
     my %REGEX_ADVERB_IMPLIES := hash(
         ii        => 'i',
+        ss        => 's',
     );
     INIT {
         my $mods := 'i ignorecase s sigspace r ratchet Perl5 P5';
@@ -4709,7 +4711,7 @@ class Perl6::Actions is HLL::Actions {
             %SHARED_ALLOWED_ADVERBS{$_} := 1;
         }
 
-        $mods := 'g global ii samecase x c continue p pos nth th st nd rd';
+        $mods := 'g global ii samecase ss samespace x c continue p pos nth th st nd rd';
         for nqp::split(' ', $mods) {
             %SUBST_ALLOWED_ADVERBS{$_} := 1;
         }

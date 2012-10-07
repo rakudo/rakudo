@@ -262,7 +262,7 @@ sub INDIRECT_NAME_LOOKUP($root, *@chunks) is rw {
                     GLOBAL::.exists($first) ?? GLOBAL::{$first} !!
                     X::NoSuchSymbol.new(symbol => $name).fail;
     for @parts {
-        X::NoSuchSymbol(symbol => $name).fail unless $thing.WHO.exists($_);
+        X::NoSuchSymbol.new(symbol => $name).fail unless $thing.WHO.exists($_);
         $thing := $thing.WHO{$_};
     }
     $thing;

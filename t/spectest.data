@@ -318,6 +318,7 @@ S05-modifier/perl5_1.t
 S05-modifier/perl5_2.t
 S05-modifier/perl5_3.t
 S05-modifier/perl5_4.t
+S05-modifier/perl5_5.t
 # S05-modifier/perl5_7.t # err: Adverb 'P5' not allowed on m
 # S05-modifier/perl5_8.t # err: Adverb 'P5' not allowed on m
 S05-modifier/pos.t

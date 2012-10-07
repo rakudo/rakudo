@@ -4381,7 +4381,7 @@ class Perl6::Actions is HLL::Actions {
     }
 
     sub baseop_reduce($/) {
-        my $reduce := 'LEFT';
+        my str $reduce := 'LEFT';
         if    $<assoc> eq 'right'  
            || $<assoc> eq 'list'   { $reduce := nqp::uc($<assoc>); }
         elsif $<prec> eq 'm='      { $reduce := 'CHAIN'; }
@@ -4585,8 +4585,8 @@ class Perl6::Actions is HLL::Actions {
     # filter out underscores and similar stuff
     sub filter_number($n) {
         my int $i := 0;
-        my $allowed := '0123456789';
-        my $result := '';
+        my str $allowed := '0123456789';
+        my str $result := '';
         while $i < nqp::chars($n) {
             my $char := nqp::substr($n, $i, 1);
             $result := $result ~ $char if nqp::index($allowed, $char) >= 0;
@@ -4706,7 +4706,7 @@ class Perl6::Actions is HLL::Actions {
         ss        => 's',
     );
     INIT {
-        my $mods := 'i ignorecase s sigspace r ratchet Perl5 P5';
+        my str $mods := 'i ignorecase s sigspace r ratchet Perl5 P5';
         for nqp::split(' ', $mods) {
             %SHARED_ALLOWED_ADVERBS{$_} := 1;
         }
@@ -4977,7 +4977,7 @@ class Perl6::Actions is HLL::Actions {
 
     method quote_delimited($/) {
         my @parts;
-        my $lastlit := '';
+        my str $lastlit := '';
         for $<quote_atom> {
             my $ast := $_.ast;
             if !($ast ~~ QAST::Node) {

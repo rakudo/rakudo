@@ -482,7 +482,7 @@ class Perl6::World is HLL::World {
     
     # Hunts through scopes to find the type of a lexical.
     method find_lexical_container_type($name) {
-        my $i := +@!BLOCKS;
+        my int $i := +@!BLOCKS;
         while $i > 0 {
             $i := $i - 1;
             my %sym := @!BLOCKS[$i].symbol($name);
@@ -512,7 +512,7 @@ class Perl6::World is HLL::World {
         self.add_object($parameter);
         
         # Calculate flags.
-        my $flags := 0;
+        my int $flags := 0;
         if %param_info<optional> {
             $flags := $flags + $SIG_ELEM_IS_OPTIONAL;
         }
@@ -1072,9 +1072,9 @@ class Perl6::World is HLL::World {
     method add_constant($type, $primitive, :$nocache, *@value, *%named) {
         # If we already built this, find it in the cache and
         # just return that.
-        my $cache_key;
+        my str $cache_key;
         if !$nocache {
-            my $namedkey := '';
+            my str $namedkey := '';
             for %named {
                 $namedkey := $namedkey ~ $_.key ~ ',' ~ $_.value ~ ';'
                     if nqp::defined($_.value);
@@ -1516,7 +1516,7 @@ class Perl6::World is HLL::World {
         # or resolvable at compile time.
         method type_name_parts($dba, :$decl) {
             my @name;
-            my $beyond_pp;
+            my int $beyond_pp;
             if $decl && $!get_who {
                 my $name := self.text;
                 nqp::die("Name $name ends with '::' and cannot be used as a $dba");
@@ -1644,7 +1644,7 @@ class Perl6::World is HLL::World {
     
     # Checks if a given symbol is declared.
     method is_name(@name) {
-        my $is_name := 0;
+        my int $is_name := 0;
         if self.is_pseudo_package(@name[0]) {
             $is_name := 1;
         }
@@ -1762,7 +1762,7 @@ class Perl6::World is HLL::World {
         my $result := $*GLOBALish;
         if +@name >= 2 {
             my $first := @name[0];
-            my $i := +@!BLOCKS;
+            my int $i := +@!BLOCKS;
             while $i > 0 {
                 $i := $i - 1;
                 my %sym := @!BLOCKS[$i].symbol($first);
@@ -1932,7 +1932,7 @@ class Perl6::World is HLL::World {
     # throws a typed exception
     method throw($/, $ex_type, *%opts) {
         # TODO: provide context
-        my $type_found := 1;
+        my int $type_found := 1;
         my $ex;
         my $x_comp;
         try {
@@ -1986,7 +1986,7 @@ class Perl6::World is HLL::World {
     method ex-handle($/, $code) {
         my $res;
         my $ex;
-        my $nok;
+        my int $nok;
         try {
             $res := $code();
             CATCH {
@@ -2002,7 +2002,7 @@ class Perl6::World is HLL::World {
     }
 
     method rethrow($/, $err) {
-        my $success := 0;
+        my int $success := 0;
         my $ex_t;
         my $coercer;
         try { $coercer := self.find_symbol(['&COMP_EXCEPTION']); ++$success; };

@@ -94,7 +94,7 @@ grammar Perl6::Grammar is HLL::Grammar {
         ||  <?before '(' | <alpha> >
             [
             | <identifier>
-            | '(' ~ ')' <EXPR>
+            | :dba('indirect name') '(' ~ ')' <EXPR>
             ]
         || <?before '::'> <.typed_panic: "X::Syntax::Name::Null">
         ]?
@@ -110,7 +110,7 @@ grammar Perl6::Grammar is HLL::Grammar {
 
     token module_name {
         <longname>
-        [ <?before '['> '[' ~ ']' <arglist> ]?
+        [ <?before '['> :dba('generic role') '[' ~ ']' <arglist> ]?
     }
 
     token end_keyword {
@@ -135,7 +135,7 @@ grammar Perl6::Grammar is HLL::Grammar {
     }
 
     token vws {
-        #:dba('vertical whitespace')
+        :dba('vertical whitespace')
         \v
     }
 
@@ -150,7 +150,7 @@ grammar Perl6::Grammar is HLL::Grammar {
     }
 
     token unv {
-        # :dba('horizontal whitespace')
+        :dba('horizontal whitespace')
         [
         | ^^ <?before \h* '=' [ \w | '\\'] > <.pod_content_toplevel>
         | \h* <.comment>
@@ -636,7 +636,7 @@ grammar Perl6::Grammar is HLL::Grammar {
         <.finishpad>
         [
         | '{YOU_ARE_HERE}' <you_are_here>
-        | '{' ~ '}' <statementlist> <?ENDSTMT>
+        | :dba('block') '{' ~ '}' <statementlist> <?ENDSTMT>
         | <?terminator> { $*W.throw($/, 'X::Syntax::Missing', what =>'block') }
         | <?> { $*W.throw($/, 'X::Syntax::Missing', what => 'block') }
         ]
@@ -982,6 +982,7 @@ grammar Perl6::Grammar is HLL::Grammar {
         :my $*value;
 
         ':'
+        :dba('colon pair')
         [
         | '!' <identifier> [ <[ \[ \( \< \{ ]> {
             $/.CURSOR.typed_panic('X::Syntax::NegatedPair', key => ~$<identifier>) } ]?
@@ -992,7 +993,7 @@ grammar Perl6::Grammar is HLL::Grammar {
             || <.unsp>? <circumfix> { $*value := $<circumfix>; }
             || { $*value := 1; }
             ]
-        | '(' ~ ')' <fakesignature>
+        | :dba('signature') '(' ~ ')' <fakesignature>
         | <circumfix>
             { $*key := ""; $*value := $<circumfix>; }
         | $<var> = (<sigil> {} <twigil>? <desigilname>)
@@ -1208,7 +1209,7 @@ grammar Perl6::Grammar is HLL::Grammar {
         [
         || '&'
             [
-            | '[' ~ ']' <infixish>
+            | :dba('infix noun') '[' ~ ']' <infixish>
             ]
         ||  [
             | <sigil> <twigil>? <desigilname>
@@ -1308,7 +1309,7 @@ grammar Perl6::Grammar is HLL::Grammar {
             [ <longname> { $longname := $*W.disect_longname($<longname>[0]); } ]?
             <.newpad>
             
-            [ #:dba('generic role')
+            [ :dba('generic role')
             <?{ ($*PKGDECL//'') eq 'role' }>
             { $*PACKAGE := $*OUTERPACKAGE } # in case signature tries to declare a package
             '[' ~ ']' <signature>
@@ -1595,8 +1596,8 @@ grammar Perl6::Grammar is HLL::Grammar {
                             reserved => '() shape syntax in variable declarations');
                     }
                 }
-            | '[' ~ ']' <semilist> <.NYI: "Shaped variable declarations">
-            | '{' ~ '}' <semilist>
+            | :dba('shape definition') '[' ~ ']' <semilist> <.NYI: "Shaped variable declarations">
+            | :dba('shape definition') '{' ~ '}' <semilist>
             | <?before '<'> <postcircumfix> <.NYI: "Shaped variable declarations">
             ]+
         ]?
@@ -1660,6 +1661,7 @@ grammar Perl6::Grammar is HLL::Grammar {
             | $<specials>=[<[ ! ^ ]>?]<longname> [ '(' <multisig> ')' ]? <trait>*
             | '(' <multisig> ')' <trait>*
             | <sigil>'.':!s
+                :dba('subscript signature')
                 [
                 | '(' ~ ')' <multisig>
                 | '[' ~ ']' <multisig>
@@ -1821,6 +1823,8 @@ grammar Perl6::Grammar is HLL::Grammar {
     }
 
     token param_var {
+        :dba('formal parameter')
+        [
         | '[' ~ ']' <signature>
         | '(' ~ ')' <signature>
         | <sigil> <twigil>?
@@ -1829,6 +1833,7 @@ grammar Perl6::Grammar is HLL::Grammar {
           || <name=.decint> { $*W.throw($/, 'X::Syntax::Variable::Numeric', what => 'parameter') }
           || $<name>=[<[/!]>]
           ]?
+        ]
     }
 
     token named_param {
@@ -1858,7 +1863,7 @@ grammar Perl6::Grammar is HLL::Grammar {
 
     rule post_constraint {
         :my $*IN_DECL := '';
-    #    :dba('constraint')
+        :dba('constraint')
         [
         | '[' ~ ']' <signature>
         | '(' ~ ')' <signature>
@@ -2078,7 +2083,7 @@ grammar Perl6::Grammar is HLL::Grammar {
             <.unsp>?
             [
                 <?{ $*W.is_type($*longname.components()) }>
-                <?before '['> '[' ~ ']' <arglist>
+                <?before '['> :dba('type parameter') '[' ~ ']' <arglist>
             ]?
         || <args>
         ]
@@ -2094,9 +2099,12 @@ grammar Perl6::Grammar is HLL::Grammar {
     }
 
     token args {
-        | '(' <semiarglist> ')'
+        :dba('argument list')
+        [
+        | '(' ~ ')' <semiarglist>
         | [ \s <arglist> ]
         | <?>
+        ]
     }
 
     token semiarglist {
@@ -2144,7 +2152,7 @@ grammar Perl6::Grammar is HLL::Grammar {
     token rad_number {
         ':' $<radix> = [\d+] <.unsp>?
         {}           # don't recurse in lexer
-        # :dba('number in radix notation')
+        :dba('number in radix notation')
         [
         || '<'
                 $<intpart> = [ <[ 0..9 a..z A..Z ]>+ [ _ <[ 0..9 a..z A..Z ]>+ ]* ]
@@ -2190,7 +2198,7 @@ grammar Perl6::Grammar is HLL::Grammar {
         :my $*key;
         :my $*value;
         ':'
-        # :dba('restricted colonpair')
+        :dba('colon pair (restricted)')
         [
         | '!' <identifier> [ <?before '('> <.panic('Argument not allowed on negated pair')> ]?
             { $*key := ~$<identifier>; $*value := 0; }
@@ -2324,8 +2332,8 @@ grammar Perl6::Grammar is HLL::Grammar {
 
     token quote_escape:sym<{ }> { <?[{]> <?quotemod_check('c')> <block> }
 
-    token circumfix:sym<( )> { '(' <semilist> ')' }
-    token circumfix:sym<[ ]> { '[' <semilist> ']' }
+    token circumfix:sym<( )> { :dba('parenthesized expression') '(' ~ ')' <semilist> }
+    token circumfix:sym<[ ]> { :dba('array composer') '[' ~ ']' <semilist> }
     token circumfix:sym<ang> {
         <?[<]>
         [ <?before '<STDIN>' > <.obs('<STDIN>', '$*IN.lines (or add whitespace to suppress warning)')> ]?
@@ -2335,6 +2343,7 @@ grammar Perl6::Grammar is HLL::Grammar {
     token circumfix:sym<« »> { <?[«]>  <quote_EXPR: ':qq', ':w'> }
     token circumfix:sym<{ }> { <?[{]> <pblock(1)> }
     token circumfix:sym<sigil> {
+        :dba('contextualizer')
         <sigil> '(' ~ ')' <semilist>
         { unless $*LEFTSIGIL { $*LEFTSIGIL := $<sigil>.Str } }
     }
@@ -2414,7 +2423,7 @@ grammar Perl6::Grammar is HLL::Grammar {
     token infixish {
         <!stdstopper>
         [
-        | '[' ~ ']' <infixish> {} <OPER=.copyOPER($<infixish>)>
+        | :dba('bracketed infix') '[' ~ ']' <infixish> {} <OPER=.copyOPER($<infixish>)>
         | <OPER=infix_circumfix_meta_operator>
         | <OPER=infix> <![=]>
         | <OPER=infix_prefix_meta_operator>
@@ -2557,12 +2566,14 @@ grammar Perl6::Grammar is HLL::Grammar {
 
     token postcircumfix:sym<[ ]> {
         :my $*QSIGIL := '';
+        :dba('subscript')
         '[' ~ ']' [ <.ws> <semilist> ]
         <O('%methodcall')>
     }
 
     token postcircumfix:sym<{ }> {
         :my $*QSIGIL := '';
+        :dba('subscript')
         '{' ~ '}' [ <.ws> <semilist> ]
         <O('%methodcall')>
     }
@@ -2573,6 +2584,7 @@ grammar Perl6::Grammar is HLL::Grammar {
     }
 
     token postcircumfix:sym<( )> {
+        :dba('argument list')
         '(' ~ ')' [ <.ws> <arglist> ]
         <O('%methodcall')>
     }

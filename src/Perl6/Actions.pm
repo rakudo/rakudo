@@ -1303,7 +1303,7 @@ class Perl6::Actions is HLL::Actions {
             $/.CURSOR.panic("Cannot understand $name in this context");
         }
         my $attr;
-        my $found := 0;
+        my int $found := 0;
         try {
             $attr := $*PACKAGE.HOW.get_attribute_for_usage($*PACKAGE, $name);
             $found := 1;
@@ -1980,7 +1980,7 @@ class Perl6::Actions is HLL::Actions {
         # Ensure all parameters are simple and build placeholders for
         # them.
         my %arg_placeholders;
-        my $arg_num := 0;
+        my int $arg_num := 0;
         for @params {
             return 0 if $_<optional> || $_<is_capture> || $_<pos_slurpy> ||
                 $_<named_slurpy> || $_<pos_lol> || $_<bind_attr> ||
@@ -2040,8 +2040,8 @@ class Perl6::Actions is HLL::Actions {
             elsif nqp::istype($node, QAST::Op) {
                 if QAST::Operations.is_inlinable('perl6', $node.op) {
                     my $replacement := clone_qast($node);
-                    my $i := 0;
-                    my $n := +@($node);
+                    my int $i := 0;
+                    my int $n := +@($node);
                     while $i < $n {
                         $replacement[$i] := node_walker($node[$i]);
                         $i := $i + 1;
@@ -2073,8 +2073,8 @@ class Perl6::Actions is HLL::Actions {
             # visited.
             elsif nqp::istype($node, QAST::Stmt) || nqp::istype($node, QAST::Stmts) {
                 my $replacement := clone_qast($node);
-                my $i := 0;
-                my $n := +@($node);
+                my int $i := 0;
+                my int $n := +@($node);
                 while $i < $n {
                     $replacement[$i] := node_walker($node[$i]);
                     $i := $i + 1;
@@ -2085,8 +2085,8 @@ class Perl6::Actions is HLL::Actions {
             # Want nodes need copying and every other child visiting.
             elsif nqp::istype($node, QAST::Want) {
                 my $replacement := clone_qast($node);
-                my $i := 0;
-                my $n := +@($node);
+                my int $i := 0;
+                my int $n := +@($node);
                 while $i < $n {
                     $replacement[$i] := node_walker($node[$i]);
                     $i := $i + 2;
@@ -2539,7 +2539,7 @@ class Perl6::Actions is HLL::Actions {
             $*W.pkg_compose($type_obj);
         }
         my $base_type;
-        my $has_base_type;
+        my int $has_base_type := 0;
         if $*OFTYPE {
             $base_type     := $*OFTYPE.ast;
             $has_base_type := 1;
@@ -2597,7 +2597,7 @@ class Perl6::Actions is HLL::Actions {
                     $cur_value := $_[2].compile_time_value;
                 }
                 else {
-                    my $ok;
+                    my int $ok := 0;
                     try {
                         $cur_value := Perl6::ConstantFolder.fold(
                                         $_[2], $*W.cur_lexpad(), $*W
@@ -2779,8 +2779,8 @@ class Perl6::Actions is HLL::Actions {
         # with the --> syntax.
         my %signature;
         my @parameter_infos;
-        my $param_idx := 0;
-        my $multi_invocant := 1;
+        my int $param_idx := 0;
+        my int $multi_invocant := 1;
         for $<parameter> {
             my %info := $_.ast;
             %info<is_multi_invocant> := $multi_invocant;
@@ -2868,7 +2868,7 @@ class Perl6::Actions is HLL::Actions {
             %*PARAM_INFO<sigil> := my $sigil := ~$<sigil>;
 
             # Depending on sigil, use appropriate role.
-            my $need_role;
+            my int $need_role;
             my $role_type;
             if $sigil eq '@' {
                 $role_type := $*W.find_symbol(['Positional']);
@@ -3422,7 +3422,7 @@ class Perl6::Actions is HLL::Actions {
     }
 
     method term:sym<identifier>($/) {
-        my $is_macro := 0;
+        my int $is_macro := 0;
         my $routine;
         try {
             $routine := $*W.find_symbol(['&' ~ ~$<identifier>]);
@@ -3528,7 +3528,7 @@ class Perl6::Actions is HLL::Actions {
             if nqp::substr($final, 0, 1) ne '&' {
                 @name[+@name - 1] := '&' ~ $final;
             }
-            my $is_macro := 0;
+            my int $is_macro := 0;
             my $routine;
             try {
                 $routine := $*W.find_symbol(@name);
@@ -3598,7 +3598,7 @@ class Perl6::Actions is HLL::Actions {
                 my $ptype := $*W.find_symbol(@name);
                 
                 # Do we know all the arguments at compile time?
-                my $all_compile_time := 1;
+                my int $all_compile_time := 1;
                 for @($<arglist>[0].ast) {
                     unless $_.has_compile_time_value {
                         $all_compile_time := 0;
@@ -3806,7 +3806,7 @@ class Perl6::Actions is HLL::Actions {
         # element of which is either a hash or a pair, it's a hash constructor.
         # Note that if it declares any symbols it is also not one.
         my $Pair := $*W.find_symbol(['Pair']);
-        my $is_hash := 0;
+        my int $is_hash := 0;
         my $stmts := +$<pblock><blockoid><statementlist><statement>;
         if $stmts == 0 {
             # empty block, so a hash
@@ -3897,7 +3897,7 @@ class Perl6::Actions is HLL::Actions {
         unless $key { return 0; }
         my $past := $/.ast // $<OPER>.ast;
         my $sym := ~$<infix><sym>;
-        my $return_map := 0;
+        my int $return_map := 0;
         if !$past && $sym eq '.=' {
             make make_dot_equals($/[0].ast, $/[1].ast);
             return 1;
@@ -3937,7 +3937,7 @@ class Perl6::Actions is HLL::Actions {
                 $past.name('&' ~ $name);
             }
             my $routine;
-            my $is_macro := 0;
+            my int $is_macro := 0;
             try {
                 $routine := $*W.find_symbol(['&' ~ $name]);
                 if istype($routine, $*W.find_symbol(['Macro'])) {
@@ -4140,7 +4140,7 @@ class Perl6::Actions is HLL::Actions {
             }
             else {
                 # Probably a lexical.
-                my $was_lexical := 0;
+                my int $was_lexical := 0;
                 try {
                     my $type := $*W.find_lexical_container_type($target.name);
                     $source := QAST::Op.new(
@@ -4584,7 +4584,7 @@ class Perl6::Actions is HLL::Actions {
 
     # filter out underscores and similar stuff
     sub filter_number($n) {
-        my $i := 0;
+        my int $i := 0;
         my $allowed := '0123456789';
         my $result := '';
         while $i < nqp::chars($n) {
@@ -4845,7 +4845,7 @@ class Perl6::Actions is HLL::Actions {
     # returns 1 if the adverbs indicate that the return value of the
     # match will be a List of matches rather than a single match
     method handle_and_check_adverbs($/, %adverbs, $what, $past?) {
-        my $multiple := 0;
+        my int $multiple := 0;
         for $<rx_adverbs>.ast {
             $multiple := 1 if %MATCH_ADVERBS_MULTIPLE{$_.named};
             unless %SHARED_ALLOWED_ADVERBS{$_.named} || %adverbs{$_.named} {
@@ -5010,7 +5010,7 @@ class Perl6::Actions is HLL::Actions {
     # Adds code to do the signature binding.
     sub add_signature_binding_code($block, $sig_obj, @params) {
         # Set arity.
-        my $arity := 0;
+        my int $arity := 0;
         for @params {
             last if $_<optional> || $_<named_names> ||
                $_<pos_slurpy> || $_<named_slurpy>;
@@ -5077,7 +5077,7 @@ class Perl6::Actions is HLL::Actions {
 
         # Otherwise, put it in correct lexicographic position.
         else {
-            my $insert_at := 0;
+            my int $insert_at := 0;
             for @params {
                 last if $_<pos_slurpy> || $_<named_slurpy> ||
                         $_<named_names> ||
@@ -5380,8 +5380,8 @@ class Perl6::Actions is HLL::Actions {
             # Or not a call and an op in the list of alloweds.
                 || ($past.op ne 'call' && %curried{$past.op} // 0)
             );
-        my $i := 0;
-        my $whatevers := 0;
+        my int $i := 0;
+        my int $whatevers := 0;
         while $curried && $i < $upto_arity {
             my $check := $past[$i];
             $check := $check[0] if (nqp::istype($check, QAST::Stmts) || 
@@ -5392,7 +5392,7 @@ class Perl6::Actions is HLL::Actions {
             $i++;
         }
         if $whatevers {
-            my $i := 0;
+            my int $i := 0;
             my @params;
             my $block := QAST::Block.new(QAST::Stmts.new(), $past);
             $*W.cur_lexpad()[0].push($block);

@@ -23,12 +23,16 @@ role Perl6::Metamodel::MROBasedMethodDispatch {
         # lower in the class hierarchy "shadowed" it.
         my %cache;
         my @mro_reversed;
+        my $authable := 1;
         for self.mro($obj) {
             @mro_reversed.unshift($_);
         }
         for @mro_reversed {
             for $_.HOW.method_table($_) {
                 %cache{$_.key} := $_.value;
+            }
+            if nqp::can($_.HOW, 'is_composed') && !$_.HOW.is_composed($_) {
+                $authable := 0;
             }
         }
         
@@ -37,6 +41,9 @@ role Perl6::Metamodel::MROBasedMethodDispatch {
             %cache{$_.key} := $_.value;
         }
         
-        pir::publish_method_cache__0PP($obj, %cache)
+        pir::publish_method_cache__0PP($obj, %cache);
+        unless nqp::can(self, 'has_fallbacks') && self.has_fallbacks($obj) {
+            pir::set_method_cache_authoritativeness__0Pi($obj, $authable);
+        }
     }
 }

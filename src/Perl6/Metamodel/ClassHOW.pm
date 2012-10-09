@@ -66,6 +66,10 @@ class Perl6::Metamodel::ClassHOW
     # and if it is calls $calculator with the object and method name to
     # calculate an invokable object.
     method add_fallback($obj, $condition, $calculator) {
+        # Adding a fallback means any method cache is no longer authoritative.
+        pir::set_method_cache_authoritativeness__vPi($obj, 0);
+        
+        # Add it.
         my %desc;
         %desc<cond> := $condition;
         %desc<calc> := $calculator;
@@ -201,6 +205,7 @@ class Perl6::Metamodel::ClassHOW
     my $junction_type;
     my $junction_autothreader;
     method setup_junction_fallback($type, $autothreader) {
+        pir::set_method_cache_authoritativeness__vPi($type, 0);
         $junction_type := $type;
         $junction_autothreader := $autothreader;
     }
@@ -224,5 +229,10 @@ class Perl6::Metamodel::ClassHOW
 
         # Otherwise, didn't find anything.
         nqp::null()
+    }
+    
+    # Does the type have any fallbacks?
+    method has_fallbacks($obj) {
+        return nqp::istype($obj, $junction_type) || +@!fallbacks;
     }
 }

@@ -19,9 +19,8 @@ my class Cursor does NQPCursorRole {
             my Mu $caphash := nqp::findmethod(Cursor, 'CAPHASH')(self);
             my Mu $capiter := nqp::iterator($caphash);
             while $capiter {
-                my Mu $pair := nqp::shift($capiter);
-                my str $key = $pair.key;
-                my Mu $value := $pair.value;
+                my str $key = nqp::shift_s($capiter);
+                my Mu $value := nqp::p6type(nqp::atkey($caphash, $key));
                 if $key eq '$!from' || $key eq '$!to' {
                     nqp::bindattr_i($match, Match, $key, $value.from);
                 }

@@ -9,8 +9,8 @@ my class Cursor does NQPCursorRole {
         return $match if nqp::istype($match, Match) && nqp::isconcrete($match);
         $match := nqp::create(Match);
         nqp::bindattr($match, Match, '$!orig', nqp::getattr(self, Cursor, '$!orig'));
-        nqp::bindattr($match, Match, '$!from', nqp::p6box_i(nqp::getattr_i(self, Cursor, '$!from')));
-        nqp::bindattr($match, Match, '$!to', nqp::p6box_i(nqp::getattr_i(self, Cursor, '$!pos')));
+        nqp::bindattr_i($match, Match, '$!from', nqp::getattr_i(self, Cursor, '$!from'));
+        nqp::bindattr_i($match, Match, '$!to', nqp::getattr_i(self, Cursor, '$!pos'));
         nqp::bindattr($match, Match, '$!ast', nqp::getattr(self, Cursor, '$!ast'));
         nqp::bindattr($match, Match, '$!CURSOR', self);
         my Mu $list := nqp::list();
@@ -23,7 +23,7 @@ my class Cursor does NQPCursorRole {
                 my str $key = $pair.key;
                 my Mu $value := $pair.value;
                 if $key eq '$!from' || $key eq '$!to' {
-                    nqp::bindattr($match, Match, $key, nqp::p6box_i($value.from));
+                    nqp::bindattr_i($match, Match, $key, $value.from);
                 }
                 else {
                     $value := nqp::p6list($value, List, Mu)

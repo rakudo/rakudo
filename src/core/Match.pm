@@ -1,7 +1,7 @@
 my class Match is Capture is Cool {
     has $.orig;
-    has $.from;
-    has $.to;
+    has int $.from;
+    has int $.to;
     has $.CURSOR;
     has $.ast;
 

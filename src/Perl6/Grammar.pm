@@ -473,7 +473,8 @@ grammar Perl6::Grammar is HLL::Grammar {
             
             # If we already have a specified outer context, then that's
             # our setting. Otherwise, load one.
-            unless nqp::defined(%*COMPILING<%?OPTIONS><outer_ctx>) {
+            my $have_outer := nqp::defined(%*COMPILING<%?OPTIONS><outer_ctx>);
+            unless $have_outer {
                 $*SETTING := $*W.load_setting($/, %*COMPILING<%?OPTIONS><setting> // 'CORE');
             }
             $/.CURSOR.unitstart();
@@ -488,17 +489,36 @@ grammar Perl6::Grammar is HLL::Grammar {
             if nqp::existskey(%*COMPILING<%?OPTIONS>, 'global') {
                 $*GLOBALish := %*COMPILING<%?OPTIONS><global>;
             }
+            elsif $have_outer && $*UNIT_OUTER.symbol('GLOBALish') {
+                $*GLOBALish := $*UNIT_OUTER.symbol('GLOBALish')<value>;
+            }
             else {
                 $*GLOBALish := $*W.pkg_create_mo($/, %*HOW<package>, :name('GLOBAL'));
                 $*W.pkg_compose($*GLOBALish);
             }
                 
-            # Create EXPORT.
-            $*EXPORT := $*W.pkg_create_mo($/, %*HOW<package>, :name('EXPORT'));
-            $*W.pkg_compose($*EXPORT);
+            # Create or pull in existing EXPORT.
+            if $have_outer && $*UNIT_OUTER.symbol('EXPORT') {
+                $*EXPORT := $*UNIT_OUTER.symbol('EXPORT')<value>;
+            }
+            else {
+                $*EXPORT := $*W.pkg_create_mo($/, %*HOW<package>, :name('EXPORT'));
+                $*W.pkg_compose($*EXPORT);
+            }
+            
+            # If there's a self in scope, set $*HAS_SELF.
+            if $have_outer && $*UNIT_OUTER.symbol('self') {
+                $*HAS_SELF := 'complete';
+            }
                 
-            # We start with the current package as that also.
-            $*PACKAGE := $*GLOBALish;
+            # Take current package from outer context if any, otherwise for a
+            # fresh compilation unit we start in GLOBAL.
+            if $have_outer && $*UNIT_OUTER.symbol('$?PACKAGE') {
+                $*PACKAGE := $*UNIT_OUTER.symbol('$?PACKAGE')<value>;
+            }
+            else {
+                $*PACKAGE := $*GLOBALish;
+            }
             
             # Install unless we've no setting, in which case we've likely no
             # static lexpad class yet either. Also, UNIT needs a code object.

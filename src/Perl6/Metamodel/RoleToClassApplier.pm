@@ -33,6 +33,13 @@ my class RoleToClassApplier {
         }
         return 0;
     }
+    sub has_public_attribute($target, $name) {
+        my @attributes := $target.HOW.attributes($target, :local(1));
+        for @attributes {
+            return 1 if nqp::substr($_.name, 2) eq $name && $_.has_accessor;
+        }
+        return 0;
+    }
 
     method apply($target, @roles) {
         # If we have many things to compose, then get them into a single helper
@@ -82,7 +89,8 @@ my class RoleToClassApplier {
                 my $yada := 0;
                 try { $yada := $_.value.yada }
                 if $yada {
-                    unless has_method($target, $name, 0) {
+                    unless has_method($target, $name, 0)
+                            || has_public_attribute($target, $name) {
                         nqp::die("Method '$name' must be implemented by " ~
                         $target.HOW.name($target) ~
                         " because it is required by a role");

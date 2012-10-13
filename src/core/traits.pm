@@ -270,6 +270,18 @@ multi trait_mod:<handles>(Attribute:D $target, $thunk) {
     $target.set_handles($thunk());
 }
 
+multi sub trait_mod:<handles>(Method:D $m, &thunk) {
+    my $pkg := $m.signature.params[0].type;
+    my $call_name := nqp::unbox_s($m.name);
+    for thunk() -> $meth_name {
+        my $meth := method (|c) is rw {
+            self."$call_name"()."$meth_name"(|c);
+        }
+        $meth.set_name($meth_name);
+        $pkg.HOW.add_method($pkg, $meth_name, $meth);
+    }
+}
+
 proto trait_mod:<will>(|) { * }
 multi trait_mod:<will>(Attribute $attr, Block :$build!) {
     $attr.set_build($build)

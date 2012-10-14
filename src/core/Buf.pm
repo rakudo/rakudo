@@ -7,9 +7,10 @@ my class X::Buf::Pack  { ... };
 my class X::Buf::Pack::NonASCII  { ... };
 
 my class Buf does Positional {
-    has Mu $!buffer;
+    has str $!buffer;
+    my int $binary_encoding = pir::find_encoding__Is('binary');
     method BUILD() {
-        $!buffer := pir::new__Ps('ByteBuffer');
+        $!buffer = pir::trans_encoding__Ssi('', $binary_encoding);
         1;
     }
     method new(*@codes) {
@@ -19,25 +20,26 @@ my class Buf does Positional {
     }
     method !set_codes(@codes) {
         my int $bytes = @codes.elems;
-        pir::set__vPI($!buffer, $bytes);
+        my $rsa := pir::new__Ps('ResizableStringArray');
         my int $i = 0;
         while $i < $bytes {
-            nqp::bindpos_i($!buffer, $i, nqp::unbox_i(@codes[$i]));
+            nqp::bindpos_s($rsa, $i, nqp::chr(nqp::unbox_i(@codes[$i])));
             $i = $i + 1;
         }
+        $!buffer = nqp::join('', $rsa);
         self;
     }
 
     method at_pos(Buf:D: Int:D $idx) {
-        nqp::p6box_i(nqp::atpos_i($!buffer, nqp::unbox_i($idx)));
+        nqp::p6box_i(nqp::ord(nqp::substr($!buffer, nqp::unbox_i($idx), 1)));
     }
 
     multi method Bool(Buf:D:) {
-        nqp::p6bool(nqp::elems($!buffer));
+        nqp::p6bool(nqp::chars($!buffer));
     }
 
     method elems(Buf:D:) {
-        nqp::p6box_i(nqp::elems($!buffer));
+        nqp::p6box_i(nqp::chars($!buffer));
     }
     method bytes(Buf:D:) { self.elems }
     method chars()       { X::Buf::AsStr.new(method => 'chars').throw }
@@ -49,10 +51,10 @@ my class Buf does Positional {
 
     method list() {
         my @l;
-        my int $bytes = nqp::elems($!buffer);
+        my int $bytes = nqp::chars($!buffer);
         my int $i = 0;
         while $i < $bytes {
-            @l[$i] = nqp::p6box_i(nqp::atpos_i($!buffer, $i));
+            @l[$i] = nqp::p6box_i(nqp::ord(nqp::substr($!buffer, $i, 1)));
             $i = $i + 1;
         }
         @l;
@@ -63,20 +65,15 @@ my class Buf does Positional {
     }
 
     method decode(Str:D $encoding = 'utf8') {
-        nqp::p6box_s $!buffer.get_string(
-            nqp::unbox_s PARROT_ENCODING($encoding)
-        );
+        my $bb := pir::new__Ps('ByteBuffer');
+        pir::set__vPs($bb, $!buffer);
+        nqp::p6box_s($bb.get_string(PARROT_ENCODING($encoding)));
     }
 
     method subbuf(Buf:D: $from = 0, $len = self.elems) {
         my $ret := nqp::create(self);
-        my $buf := pir::new__Ps('ByteBuffer');
-        nqp::bindattr($ret, Buf, '$!buffer', $buf);
-        pir::set__vPs($buf,
-            nqp::substr($!buffer.get_string('binary'),
-                nqp::unbox_i($from.Int),
-                nqp::unbox_i($len.Int)
-            )
+        nqp::bindattr_s($ret, Buf, '$!buffer',
+            nqp::substr($!buffer, nqp::unbox_i($from), nqp::unbox_i($len))
         );
         $ret;
     }
@@ -160,12 +157,10 @@ multi prefix:<~^>(Buf:D $a) {
 }
 multi infix:<~>(Buf:D $a, Buf:D $b) {
     my Buf $r := nqp::create(Buf);
-    my Mu $br := pir::new__Ps('ByteBuffer');
 
-    my Mu $ba := nqp::getattr(nqp::p6decont($a), Buf, '$!buffer');
-    my Mu $bb := nqp::getattr(nqp::p6decont($b), Buf, '$!buffer');
-    pir::set__vPs($br, nqp::concat_s($ba.get_string('binary'), $bb.get_string('binary')));
-    nqp::bindattr($r, Buf, '$!buffer', $br);
+    my str $ba = nqp::getattr_s(nqp::p6decont($a), Buf, '$!buffer');
+    my str $bb = nqp::getattr_s(nqp::p6decont($b), Buf, '$!buffer');
+    nqp::bindattr_s($r, Buf, '$!buffer', nqp::concat_s($ba, $bb));
     $r;
 }
 multi sub infix:<~&>(Buf:D $a, Buf:D $b) {

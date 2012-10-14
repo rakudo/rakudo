@@ -744,12 +744,12 @@ my class Str does Stringy {
 
     method encode(Str:D $encoding = 'utf8') {
         my $buf := Buf.new;
-        pir::set__vPs(nqp::getattr($buf, Buf, '$!buffer'),
-            pir::trans_encoding__Ssi(
-                nqp::unbox_s(self),
-                pir::find_encoding__Is(nqp::unbox_s(PARROT_ENCODING($encoding)))
-            )
-        );
+        my $bb := pir::new__Ps('ByteBuffer');
+        pir::set__vPS($bb, pir::trans_encoding__SSI(
+            nqp::unbox_s(self),
+            pir::find_encoding__IS(nqp::unbox_s(PARROT_ENCODING($encoding)))
+        ));
+        nqp::bindattr_s($buf, Buf, '$!buffer', $bb.get_string('binary'));
         $buf;
     }
 

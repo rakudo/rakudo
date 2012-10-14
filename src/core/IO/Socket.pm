@@ -27,8 +27,8 @@ my role IO::Socket {
         fail('Socket not available') unless $!PIO;
         my $buf := nqp::create(Buf);
         my Mu $parrot_buf := pir::new__PS('ByteBuffer');
-        pir::set__vPS($parrot_buf, $!PIO.read(nqp::unbox_i($bufsize)));
-        nqp::bindattr($buf, Buf, '$!buffer', $parrot_buf);
+        nqp::bindattr_s($buf, Buf, '$!buffer',
+                $parrot_buf.get_string('binary'));
         $buf;
     }
 

@@ -149,7 +149,7 @@ class IO does IO::FileTestable {
     method read(IO:D: Cool:D $bytes as Int) {
         my Mu $parrot_buffer := $!PIO.read_bytes(nqp::unbox_i($bytes));
         my $buf := nqp::create(Buf);
-        nqp::bindattr($buf, Buf, '$!buffer', $parrot_buffer);
+        nqp::bindattr_s($buf, Buf, '$!buffer', $parrot_buffer.get_string('binary'));
         $buf;
     }
     # first arguemnt should probably be an enum
@@ -166,14 +166,14 @@ class IO does IO::FileTestable {
     }
 
     method write(IO:D: Buf:D $buf) {
-        my Mu $b := nqp::getattr(
+        my str $b = nqp::getattr_s(
                         nqp::p6decont($buf),
                         Buf,
                         '$!buffer'
                     );
         my str $encoding = $!PIO.encoding;
         $!PIO.encoding('binary');
-        $!PIO.print($b.get_string('binary'));
+        $!PIO.print($b);
         $!PIO.encoding($encoding) unless $encoding eq 'binary';
         True;
     }

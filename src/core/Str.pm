@@ -90,7 +90,9 @@ my class Str does Stringy {
         ).fail
             if $istart > $ichars;
         $length = $length($ichars - $istart) if nqp::istype($length, Callable);
-        my int $ilength = $length.defined ?? $length.Int !! $ichars - $istart;
+        my int $ilength = !$length.defined || $length === Inf
+                            ?? $ichars - $istart
+                            !! $length.Int;
         X::OutOfRange.new(
             what    => 'Length argument to substr',
             got     => $length,

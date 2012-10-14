@@ -71,8 +71,8 @@ sub term:<time>() { nqp::p6box_i(nqp::time_i()) }
         @INC.push((%ENV<HOME> // %ENV<HOMEDRIVE> ~ %ENV<HOMEPATH>) ~ '/.perl6/lib');
     }
     @INC.push($VM<config><libdir> ~ $VM<config><versiondir> ~ '/languages/perl6/lib');
-    my $CUSTOM-LIB = $VM<config><libdir> ~ $VM<config><versiondir> ~ '/languages/perl6/custom-lib';
-    @INC.push($CUSTOM-LIB);
+    my $CUSTOM-LIB = $VM<config><libdir> ~ $VM<config><versiondir> ~ '/languages/perl6/custom';
+    @INC.push($CUSTOM-LIB ~ '/lib');
     nqp::bindkey(pir::get_who__PP(PROCESS), '$CUSTOM-LIB', $CUSTOM-LIB);
 
     my $I := nqp::atkey(nqp::atkey(%*COMPILING, '%?OPTIONS'), 'I');

@@ -272,7 +272,7 @@ multi trait_mod:<handles>(Attribute:D $target, $thunk) {
 
 multi sub trait_mod:<handles>(Method:D $m, &thunk) {
     my $pkg := $m.signature.params[0].type;
-    my $call_name := nqp::unbox_s($m.name);
+    my $call_name := $m.name;
     for thunk() -> $meth_name {
         my $meth := method (|c) is rw {
             self."$call_name"()."$meth_name"(|c);

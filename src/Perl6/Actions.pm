@@ -532,9 +532,9 @@ class Perl6::Actions is HLL::Actions {
     method semilist($/) {
         my $past := QAST::Stmts.new( :node($/) );
         if $<statement> {
-            for $<statement> { $past.push($_.ast); }
+            for $<statement> { $past.push($_.ast) if $_.ast; }
         }
-        else {
+        unless +@($past) {
             $past.push( QAST::Op.new( :op('call'), :name('&infix:<,>') ) );
         }
         make $past;

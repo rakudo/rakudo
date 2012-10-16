@@ -608,6 +608,7 @@ grammar Perl6::Grammar is HLL::Grammar {
         :my $*QSIGIL := '';
         :my $*SCOPE := '';
         <!before <[\])}]> | $ >
+        <!!{ nqp::rebless($/.CURSOR, %*LANG<MAIN>) }>
         [
         | <statement_control>
         | <EXPR> <.ws>

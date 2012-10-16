@@ -364,8 +364,14 @@ find_in_cache(PARROT_INTERP, Rakudo_md_cache *cache, PMC *capture, INTVAL num_ar
         return NULL;
     for (i = 0; i < num_args; i++) {
         if (pc_positionals[i].type == BIND_VAL_OBJ) {
-            PMC *arg = Rakudo_cont_decontainerize(interp, pc_positionals[i].u.p);
-            arg_tup[i] = STABLE(arg)->type_cache_id | (IS_CONCRETE(arg) ? 1 : 0);
+            PMC *arg = pc_positionals[i].u.p;
+            if (arg->vtable->base_type == Rakudo_smo_id()) {
+                arg = Rakudo_cont_decontainerize(interp, arg);
+                arg_tup[i] = STABLE(arg)->type_cache_id | (IS_CONCRETE(arg) ? 1 : 0);
+            }
+            else {
+                return NULL;
+            }
         }
         else {
             arg_tup[i] = (pc_positionals[i].type << 1) | 1;
@@ -426,8 +432,13 @@ add_to_cache(PARROT_INTERP, Rakudo_md_cache *cache, PMC *capture, INTVAL num_arg
         return;
     for (i = 0; i < num_args; i++) {
         if (pc_positionals[i].type == BIND_VAL_OBJ) {
-            PMC *arg = Rakudo_cont_decontainerize(interp, pc_positionals[i].u.p);
-            arg_tup[i] = STABLE(arg)->type_cache_id | (IS_CONCRETE(arg) ? 1 : 0);
+            if (pc_positionals[i].u.p->vtable->base_type != Rakudo_smo_id()) {
+                return;
+            }
+            else {
+                PMC *arg = Rakudo_cont_decontainerize(interp, pc_positionals[i].u.p);
+                arg_tup[i] = STABLE(arg)->type_cache_id | (IS_CONCRETE(arg) ? 1 : 0);
+            }
         }
         else {
             arg_tup[i] = (pc_positionals[i].type << 1) | 1;
@@ -464,9 +475,11 @@ static INTVAL has_junctional_args(PARROT_INTERP, INTVAL num_args, struct Pcc_cel
 
     for (i = 0; i < num_args; i++) {
         if (pc_positionals[i].type == BIND_VAL_OBJ) {
-            PMC * const arg = Rakudo_cont_decontainerize(interp, pc_positionals[i].u.p);
-            if (STABLE(arg)->WHAT == Rakudo_types_junction_get())
-                return 1;
+            if (pc_positionals[i].u.p->vtable->base_type == Rakudo_smo_id()) {
+                PMC * const arg = Rakudo_cont_decontainerize(interp, pc_positionals[i].u.p);
+                if (STABLE(arg)->WHAT == Rakudo_types_junction_get())
+                    return 1;
+            }
         }
     }
     
@@ -685,12 +698,25 @@ static PMC* find_best_candidate(PARROT_INTERP, Rakudo_md_candidate_info **candid
                 }
             }
             else {
-                PMC * const param =
-                    got_prim == BIND_VAL_OBJ ?
-                        Rakudo_cont_decontainerize(interp, pc_positionals[i].u.p) :
-                    got_prim == BIND_VAL_INT ? Rakudo_types_int_get() :
-                    got_prim == BIND_VAL_NUM ? Rakudo_types_num_get() :
-                                               Rakudo_types_str_get();
+                PMC *param;
+                if (got_prim == BIND_VAL_OBJ) {
+                    param = pc_positionals[i].u.p;
+                    if (param->vtable->base_type == Rakudo_smo_id()) {
+                        param = Rakudo_cont_decontainerize(interp, param);
+                    }
+                    else {
+                        param = Rakudo_types_parrot_map(interp, param);
+                        if (param->vtable->base_type != Rakudo_smo_id()) {
+                            type_mismatch = 1;
+                            break;
+                        }
+                    }
+                }
+                else {
+                    param = got_prim == BIND_VAL_INT ? Rakudo_types_int_get() :
+                            got_prim == BIND_VAL_NUM ? Rakudo_types_num_get() :
+                                                       Rakudo_types_str_get();
+                }
                 if (type_obj != Rakudo_types_mu_get() &&
                         !STABLE(param)->type_check(interp, param, type_obj)) {
                     type_mismatch = 1;

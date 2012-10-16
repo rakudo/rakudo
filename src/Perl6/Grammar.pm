@@ -583,8 +583,20 @@ grammar Perl6::Grammar is HLL::Grammar {
     }
 
     rule statementlist {
+        :my %*LANG := self.shallow_copy(pir::find_dynamic_lex__Ps('%*LANG'));
+        :my %*HOW  := self.shallow_copy(pir::find_dynamic_lex__Ps('%*HOW'));
+        [
         | $
         | [<statement><.eat_terminator> ]*
+        ]
+    }
+
+    method shallow_copy(%hash) {
+        my %result;
+        for %hash {
+            %result{$_.key} := $_.value;
+        }
+        %result
     }
 
     rule semilist {

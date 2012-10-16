@@ -135,9 +135,9 @@ multi sub die(*@msg) is hidden_from_backtrace {
 
 multi sub warn(*@msg) is hidden_from_backtrace {
     my $ex := pir::new__Ps('Exception');
-    pir::setattribute__0PPsP($ex, Exception, 'message', @msg.join(''));
-    pir::setattribute__0PPsP($ex, Exception, 'type', nqp::p6box_i(pir::const::CONTROL_OK));
-    pir::setattribute__0PPsP($ex, Exception, 'severity', nqp::p6box_i(pir::const::EXCEPT_WARNING));
+    nqp::bindattr($ex, Exception, 'message', @msg.join(''));
+    nqp::bindattr($ex, Exception, 'type', nqp::p6box_i(pir::const::CONTROL_OK));
+    nqp::bindattr($ex, Exception, 'severity', nqp::p6box_i(pir::const::EXCEPT_WARNING));
     nqp::throw($ex);
     0;
 }
@@ -159,7 +159,7 @@ multi sub eval(Str $code, :$lang = 'perl6') {
 
 
 sub exit($status = 0) {
-    $_() for pir::perl6ize_type__PP(@*END_PHASERS);
+    $_() for nqp::p6type(@*END_PHASERS);
     nqp::exit(nqp::unbox_i($status.Int));
     $status;
 }

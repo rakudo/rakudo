@@ -20,7 +20,7 @@ my class Buf does Positional {
     }
     method !set_codes(@codes) {
         my int $bytes = @codes.elems;
-        my $rsa := pir::new__Ps('ResizableStringArray');
+        my $rsa := nqp::list_s();
         my int $i = 0;
         while $i < $bytes {
             nqp::bindpos_s($rsa, $i, nqp::chr(nqp::unbox_i(@codes[$i])));

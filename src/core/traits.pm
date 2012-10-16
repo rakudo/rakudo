@@ -92,7 +92,7 @@ multi trait_mod:<is>(Parameter:D $param, :$parcel!) {
 # full-blown serialization, though.
 sub EXPORT_SYMBOL(\exp_name, @tags, Mu \sym) {
     my @export_packages = $*EXPORT;
-    for pir::perl6ize_type__PP(@*PACKAGES) {
+    for nqp::p6type(@*PACKAGES) {
         unless .WHO.exists('EXPORT') {
             .WHO<EXPORT> := Metamodel::PackageHOW.new_type(:name('EXPORT'));
             .WHO<EXPORT>.^compose;

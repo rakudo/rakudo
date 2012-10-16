@@ -24,12 +24,12 @@ my class Parameter {
     
     method constraint_list() {
         nqp::isnull($!post_constraints) ?? () !!
-            pir::perl6ize_type__PP($!post_constraints)
+            nqp::p6type($!post_constraints)
     }
     
     method constraints() {
         all(nqp::isnull($!post_constraints) ?? () !!
-            pir::perl6ize_type__PP($!post_constraints))
+            nqp::p6type($!post_constraints))
     }
 
     method type() {

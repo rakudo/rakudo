@@ -292,7 +292,7 @@ my class IO::Path is Cool does IO::FileTestable {
 
 sub dir(Cool $path = '.', Mu :$test = none('.', '..')) {
     my Mu $RSA := pir::new__PS('OS').readdir(nqp::unbox_s($path.Str));
-    my int $elems = pir::set__IP($RSA);
+    my int $elems = nqp::elems($RSA);
     my @res;
     loop (my int $i = 0; $i < $elems; $i = $i + 1) {
         my Str $file := nqp::p6box_s(pir::trans_encoding__Ssi(

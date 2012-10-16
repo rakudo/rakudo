@@ -43,7 +43,7 @@ my class Any {
 
     method join($separator = '') {
         my $list = (self,).flat.eager;
-        my Mu $rsa := pir::new__Ps('ResizableStringArray');
+        my Mu $rsa := nqp::list_s();
         $list.gimme(4);        # force reification of at least 4 elements
         nqp::push_s($rsa, nqp::unbox_s($list.shift.Stringy)) 
             while $list.gimme(0);

@@ -54,7 +54,7 @@ my class Capture {
     }
     
     multi method Str(Capture:D:) {
-        my Mu $str := pir::new__Ps('ResizableStringArray');
+        my Mu $str := nqp::list_s();
         if $!list {
             my Mu $iter := nqp::iterator($!list);
             nqp::push_s($str, nqp::unbox_s(nqp::shift($iter).Str)) while $iter;

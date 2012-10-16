@@ -375,7 +375,7 @@ grammar Perl6::Grammar is HLL::Grammar {
             || <identifier>
         ]
         <pod_configuration($<spaces>)>
-        \s
+        [\r\n|\s]
         $<pod_content> = <pod_textcontent>?
     }
 
@@ -383,7 +383,7 @@ grammar Perl6::Grammar is HLL::Grammar {
         ^^
         $<spaces> = [ \h* ]
         '=' $<type>=[ 'code' | 'comment' ]
-        <pod_configuration($<spaces>)> \s
+        <pod_configuration($<spaces>)> [\r\n|\s]
         $<pod_content> = [ \h* <!before '=' \w> \N+ \n ]*
     }
 

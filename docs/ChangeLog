@@ -5,6 +5,9 @@ New in 2012.09.1
 + the is hidden and base traits
 + ability to set encoding on sockets temporarily removed (reverts to 2012.08 behavior)
 + :60[24, 59, 59] radix form
++ delegation to methods
++ fixed serialization of Buf
++ improved handling of :P5 regexes
 
 New in 2012.09
 + class Iterable does not inherit from class Cool anymore

@@ -1,13 +1,27 @@
+New in 2012.10
++ :60[24, 59, 59] radix form
++ delegation to methods using the handles trait
++ fixed serialization of Buf
++ improved handling of :P5 regexes (more features, less bugs)
++ determining that an object lacks a method is usually now much faster
++ reduced memory usage of Match objects and optimized their construction a little
++ some code-generation improvements related to void context
++ implemented :dba('...') modifier in regexes
++ various error messages improved through use of :dba('...') in the Perl 6 grammar
++ implemented 'x' in pack
++ added $*CUSTOM-LIB
++ eval in a method can now see self, attributes and $?PACKAGE
++ each REPL line no longer implies a fresh GLOBAL
++ fixed some Pod parsing issues with Windows newlines
++ fixed interaction of :i and LTM (alternations and protoregexes now respect it)
++ import of custom meta-objects only affects the scope they are imported into
+
 New in 2012.09.1
 + is-prime and expmod
 + smart matching against Signature literals
 + binding to signatures in declarators
 + the is hidden and base traits
 + ability to set encoding on sockets temporarily removed (reverts to 2012.08 behavior)
-+ :60[24, 59, 59] radix form
-+ delegation to methods
-+ fixed serialization of Buf
-+ improved handling of :P5 regexes
 
 New in 2012.09
 + class Iterable does not inherit from class Cool anymore

@@ -3273,7 +3273,7 @@ class Perl6::Actions is HLL::Actions {
             my $name    := @parts.pop;
             if @parts {
                 my $methpkg := $*W.find_symbol(@parts);
-                unless $methpkg.HOW.is_trusted($methpkg, $*PACKAGE) {
+                unless nqp::can($methpkg.HOW, 'is_trusted') && $methpkg.HOW.is_trusted($methpkg, $*PACKAGE) {
                     $*W.throw($/, ['X', 'Method', 'Private', 'Permission'],
                         :method(         $name),
                         :source-package( $methpkg.HOW.name($methpkg)),

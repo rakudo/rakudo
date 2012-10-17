@@ -522,6 +522,9 @@ class Perl6::World is HLL::World {
         if %param_info<is_multi_invocant> {
             $flags := $flags + $SIG_ELEM_MULTI_INVOCANT;
         }
+        if %param_info<is_rw> {
+            $flags := $flags + $SIG_ELEM_IS_RW;
+        }
         if %param_info<is_copy> {
             $flags := $flags + $SIG_ELEM_IS_COPY;
         }

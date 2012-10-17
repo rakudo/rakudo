@@ -636,6 +636,7 @@ grammar Perl6::Grammar is HLL::Grammar {
     }
 
     token xblock($*IMPLICIT = 0) {
+        :my $*GOAL := '{';
         <EXPR> <.ws> <pblock($*IMPLICIT)>
     }
 
@@ -1870,6 +1871,7 @@ grammar Perl6::Grammar is HLL::Grammar {
     }
 
     token named_param {
+        :my $*GOAL := ')';
         ':'
         [
         | <name=.identifier> '(' <.ws>
@@ -2132,6 +2134,7 @@ grammar Perl6::Grammar is HLL::Grammar {
     }
 
     token args {
+        :my $*GOAL := '';
         :dba('argument list')
         [
         | '(' ~ ')' <semiarglist>
@@ -2146,6 +2149,7 @@ grammar Perl6::Grammar is HLL::Grammar {
     }
 
     token arglist {
+        :my $*GOAL := 'endargs';
         :my $*QSIGIL := '';
         <.ws>
         [
@@ -2454,6 +2458,7 @@ grammar Perl6::Grammar is HLL::Grammar {
     }
 
     token infixish {
+        <!infixstopper>
         <!stdstopper>
         [
         | :dba('bracketed infix') '[' ~ ']' <infixish> {} <OPER=.copyOPER($<infixish>)>
@@ -2461,6 +2466,14 @@ grammar Perl6::Grammar is HLL::Grammar {
         | <OPER=infix> <![=]>
         | <OPER=infix_prefix_meta_operator>
         | <infix> <OPER=infix_postfix_meta_operator>
+        ]
+    }
+    
+    regex infixstopper {
+        :dba('infix stopper')
+        [
+        | <?before '!!'> <?{ $*GOAL eq '!!' }>
+        | <?before '{' | <lambda> > <?MARKED('ws')> <?{ $*GOAL eq '{' || $*GOAL eq 'endargs' }>
         ]
     }
 
@@ -2731,6 +2744,7 @@ grammar Perl6::Grammar is HLL::Grammar {
     token infix:sym<max>  { <sym> >> <O('%tight_or')> }
 
     token infix:sym<?? !!> {
+        :my $*GOAL := '!!';
         '??'
         <.ws>
         <EXPR('i=')>

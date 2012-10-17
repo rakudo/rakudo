@@ -16,6 +16,7 @@ New in 2012.10
 + fixed interaction of :i and LTM (alternations and protoregexes now respect it)
 + import of custom meta-objects only affects the scope they are imported into
 + made <-> lambdas work
++ can now parse nested pairs of quote delimeters, like q{ foo q{ bar } baz }
 
 New in 2012.09.1
 + is-prime and expmod

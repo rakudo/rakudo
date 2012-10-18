@@ -1479,13 +1479,14 @@ class Perl6::World is HLL::World {
             ~$!match
         }
         
-        # Gets the name, without any adverbs.
-        method name(:$decl, :$dba = '') {
+        # Gets the name, by default without any adverbs.
+        method name(:$decl, :$dba = '', :$with_adverbs) {
             my @parts := self.type_name_parts($dba, :$decl);
             unless $decl && $decl eq 'routine' {
                 @parts.shift() while self.is_pseudo_package(@parts[0]);
             }
             nqp::join('::', @parts)
+                ~ ($with_adverbs ?? nqp::join('', @!colonpairs) !! '');
         }
         
         # Gets the individual components, which may be PAST nodes for

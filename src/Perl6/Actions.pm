@@ -2128,7 +2128,9 @@ class Perl6::Actions is HLL::Actions {
         
         my $name;
         if $<longname> {
-            $name := $<longname>.Str;
+            my $longname := $*W.disect_longname($<longname>);
+            $name := $longname.name(:dba('method name'),
+                            :decl<routine>, :with_adverbs);
         }
         elsif $<sigil> {
             if $<sigil> eq '@'    { $name := 'postcircumfix:<[ ]>' }

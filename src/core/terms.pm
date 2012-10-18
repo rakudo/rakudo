@@ -67,13 +67,23 @@ sub term:<time>() { nqp::p6box_i(nqp::time_i()) }
     my @INC;
     @INC.push(%ENV<RAKUDOLIB>.split($VM<config><osname> eq 'MSWin32' ?? ';' !! ':')) if %ENV<RAKUDOLIB>;
     @INC.push(%ENV<PERL6LIB>.split($VM<config><osname> eq 'MSWin32' ?? ';' !! ':')) if %ENV<PERL6LIB>;
+    my $prefix := $VM<config><libdir> ~ $VM<config><versiondir> ~ '/languages/perl6';
+    my %CUSTOM_LIB;
+
+    %CUSTOM_LIB<perl>   = $prefix;
+    %CUSTOM_LIB<vendor> = $prefix ~ '/vendor';
+    %CUSTOM_LIB<site>   = $prefix ~ '/site';
+    @INC.push(%CUSTOM_LIB<perl>   ~ '/lib');
+    @INC.push(%CUSTOM_LIB<vendor> ~ '/lib');
+    @INC.push(%CUSTOM_LIB<site>   ~ '/lib');
     try {
-        @INC.push((%ENV<HOME> // %ENV<HOMEDRIVE> ~ %ENV<HOMEPATH>) ~ '/.perl6/lib');
+        my $home := %ENV<HOME> // %ENV<HOMEDRIVE> ~ %ENV<HOMEPATH>;
+        my $ver  := nqp::p6box_s(nqp::atkey($compiler, 'version'));
+        %CUSTOM_LIB<home> = "$home/.perl6/$ver";
+        @INC.push(%CUSTOM_LIB<home> ~ '/lib');
+        @INC.push($home ~ '/.perl6/lib');
     }
-    @INC.push($VM<config><libdir> ~ $VM<config><versiondir> ~ '/languages/perl6/lib');
-    my $CUSTOM-LIB = $VM<config><libdir> ~ $VM<config><versiondir> ~ '/languages/perl6/custom';
-    @INC.push($CUSTOM-LIB ~ '/lib');
-    nqp::bindkey(pir::get_who__PP(PROCESS), '$CUSTOM-LIB', $CUSTOM-LIB);
+    nqp::bindkey(pir::get_who__PP(PROCESS), '%CUSTOM_LIB', %CUSTOM_LIB);
 
     my $I := nqp::atkey(nqp::atkey(%*COMPILING, '%?OPTIONS'), 'I');
     if nqp::defined($I) {

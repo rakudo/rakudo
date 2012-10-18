@@ -11,6 +11,16 @@ Deprecations in 2012.10
     This will change to make them equivalent to a one-level map.
     Planned for the 2012.11 release.
 
+    ~/.perl6/lib will go away from the default include path (@*INC).
+    Instead %*CUSTOM_LIB now holds paths to four library locations:
+        perl    Rakudo installs its core modules here
+        vendor  OS-level package managers should install their modules here
+        site    for local module installations (e.g. with panda or ufo)
+        home    like site, but always under the user's home directory.
+                fallback if site isn't writable.
+    Removal of ~/.perl6/lib from @*INC planned for the 2012.11 release
+
+
 Deprecations in 2012.09
 
     Str.capitalize and &capitalize are deprecated in favor

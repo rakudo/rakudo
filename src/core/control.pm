@@ -1,5 +1,6 @@
 my class Nil { ... }
 my class X::Eval::NoSuchLang { ... }
+my class PseudoStash { ... }
 
 my &THROW :=
     -> | {
@@ -143,17 +144,14 @@ multi sub warn(*@msg) is hidden_from_backtrace {
 }
 
 proto sub eval(|) {*}
-multi sub eval(Str $code, :$lang = 'perl6') {
-    my $caller_ctx := Q:PIR {
-        $P0 = getinterp
-        %r = $P0['context';1]
-    };
+multi sub eval(Str $code, :$lang = 'perl6', PseudoStash :$context) {
+    my $eval_ctx := nqp::getattr(nqp::p6decont($context // CALLER::), PseudoStash, '$!ctx');
     my $?FILES   := 'eval_' ~ (state $no)++;
     my $compiler := pir::compreg__PS($lang);
     X::Eval::NoSuchLang.new(:$lang).throw
         if nqp::isnull($compiler);
-    my $pbc      := $compiler.compile($code, :outer_ctx($caller_ctx), :global(GLOBAL));
-    nqp::atpos($pbc, 0).set_outer_ctx($caller_ctx);
+    my $pbc      := $compiler.compile($code, :outer_ctx($eval_ctx), :global(GLOBAL));
+    nqp::atpos($pbc, 0).set_outer_ctx($eval_ctx);
     $pbc();
 }
 

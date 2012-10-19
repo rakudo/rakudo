@@ -1667,8 +1667,7 @@ grammar Perl6::Grammar is HLL::Grammar {
                 my $category := $<deflongname>[0]<name>.Str;
                 my $opname := ~$<deflongname>[0]<colonpair>[0]<circumfix><quote_EXPR><quote_delimited><quote_atom>[0];
                 my $canname := $category ~ ":sym<" ~ $opname ~ ">";
-                $/.CURSOR.gen_op($category, $opname, $canname, $<deflongname>[0].ast)
-                    unless nqp::can($/.CURSOR, $canname);
+                $/.CURSOR.add_categorical($category, $opname, $canname, $<deflongname>[0].ast);
             }
         }
         <.newpad>
@@ -1727,8 +1726,7 @@ grammar Perl6::Grammar is HLL::Grammar {
                 my $category := $<deflongname>[0]<name>.Str;
                 my $opname := ~$<deflongname>[0]<colonpair>[0]<circumfix><quote_EXPR><quote_delimited><quote_atom>[0];
                 my $canname := $category ~ ":sym<" ~ $opname ~ ">";
-                $/.CURSOR.gen_op($category, $opname, $canname, $<deflongname>[0].ast)
-                    unless nqp::can($/.CURSOR, $canname);
+                $/.CURSOR.add_categorical($category, $opname, $canname, $<deflongname>[0].ast);
             }
         }
         <.newpad>
@@ -2852,13 +2850,20 @@ grammar Perl6::Grammar is HLL::Grammar {
     method add_variable($name) {
         my $categorical := $name ~~ /^'&'((\w+)':<'\s*(\S+?)\s*'>')$/;
         if $categorical {
-            self.gen_op(~$categorical[0][0], ~$categorical[0][1], ~$categorical[0], $name);
+            self.add_categorical(~$categorical[0][0], ~$categorical[0][1], ~$categorical[0], $name);
         }
     }
 
-    # This method is used to augment the grammar with new ops at parse time.
-    method gen_op($category, $opname, $canname, $subname) {
+    # Called when we add a new choice to an existing syntactic category, for
+    # example new infix operators add to the infix category. Augments the
+    # grammar as needed.
+    method add_categorical($category, $opname, $canname, $subname) {
         my $self := self;
+        
+        # If we already have the required operator in the grammar, just return.
+        if nqp::can(self, $canname) {
+            return 1;
+        }
 
         # Work out what default precedence we want, or if it's more special than
         # just an operator.

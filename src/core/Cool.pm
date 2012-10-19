@@ -183,7 +183,7 @@ my class Cool {
     method trim-trailing() { self.Stringy.trim-trailing };
 
     method eval(*%opts) {
-        eval(self.Stringy, |%opts);
+        eval(self.Stringy, context => CALLER::, |%opts);
     }
 
     multi method Real() { self.Numeric.Real }

@@ -2894,29 +2894,12 @@ grammar Perl6::Grammar is HLL::Grammar {
             self.typed_panic('X::Syntax::Extension::Category', :$category);
         }
 
-        # We need to modify the grammar. Build code to parse it
-        # the operator.
-        my $parse := QAST::Regex.new(
-            :rxtype('concat')
-        );
+        # Mix an appropraite role into the grammar for parsing the new op.
         if $is_oper {
-            # For operator, it's just like 'op' <O('%prec')>
-            $parse.push(QAST::Regex.new(
-                :rxtype('subcapture'),
-                :name('sym'),
-                :backtrack('r'),
-                QAST::Regex.new(
-                    :rxtype('literal'),
-                    $opname
-                )
-            ));
-            $parse.push(QAST::Regex.new(
-                :rxtype('subrule'), :subtype('capture'),
-                :name('O'), :backtrack('r'),
-                QAST::Node.new(
-                    QAST::SVal.new( :value('O') ),
-                    QAST::SVal.new( :value($prec) ))
-            ));
+            my role Oper[$meth_name, $op, $precedence] {
+                token ::($meth_name) { $<sym>=[$op] <O($precedence)> }
+            }
+            self.HOW.mixin(self, Oper.HOW.curry(Oper, $canname, $opname, $prec));
         }
         else {
             # Find opener and closer and parse an EXPR between them.
@@ -2926,37 +2909,17 @@ grammar Perl6::Grammar is HLL::Grammar {
             if +@parts != 2 {
                 nqp::die("Unable to find starter and stopper from '$opname'");
             }
-            $parse.push(QAST::Regex.new(
-                :rxtype('literal'), :backtrack('r'),
-                ~@parts[0]
-            ));
-            $parse.push(QAST::Regex.new(
-                :rxtype('concat'),
-                QAST::Regex.new(
-                    :rxtype('subrule'), :subtype('capture'),
-                    :name('EXPR'), :backtrack('r'),
-                    QAST::Node.new(QAST::SVal.new( :value('EXPR') ))
-                ),
-                QAST::Regex.new(
-                    :rxtype('literal'), :backtrack('r'),
-                    ~@parts[1]
-                )
-            ));
+            my role Circumfix[$meth_name, $opener, $closer] {
+                token ::($meth_name) { $opener <EXPR> $closer }
+            }
+            self.HOW.mixin(self, Circumfix.HOW.curry(Circumfix, $canname, @parts[0], @parts[1]));
         }
         
-        # Wrap it in a block, compile and install it in the methods
-        # table.
-        my %*RX;
-        %*RX<name> := $canname;
-        $parse := QRegex::P6Regex::Actions::qbuildsub($parse, :addself(1));
-        $parse.name($canname);
-        my $*QAST_BLOCK_NO_CLOSE := 1;
-        my $*PASTCOMPILER := pir::compreg__Ps('PAST');
-        my $pirt := QAST::Compiler.as_post($parse);
-        my $pir := $pirt.pir();
-        $self.HOW.add_method($self, $canname, QAST::Compiler.evalpmc($pir)[0]);
+        # This also becomes the current MAIN.
+        %*LANG<MAIN> := self;
 
         # May also need to add to the actions.
+        # XXX Should be mixed in too.
         if $category eq 'circumfix' {
             $*ACTIONS.HOW.add_method($*ACTIONS, $canname, sub ($self, $/) {
                 make QAST::Op.new(

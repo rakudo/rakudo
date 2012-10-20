@@ -1371,8 +1371,8 @@ grammar Perl6::Grammar is HLL::Grammar {
                     # If it exists already, then it's either uncomposed (in which
                     # case we just stubbed it), a role (in which case multiple
                     # variants are OK) or else an illegal redecl.
-                    if $exists && $*PKGDECL ne 'role' {
-                        if $*PACKAGE.HOW.is_composed($*PACKAGE) {
+                    if $exists && ($*PKGDECL ne 'role' || !nqp::can($*PACKAGE.HOW, 'configure_punning')) {
+                        if $*PKGDECL eq 'role' || $*PACKAGE.HOW.is_composed($*PACKAGE) {
                             $*W.throw($/, ['X', 'Redeclaration'],
                                 symbol => $longname.name(),
                             );

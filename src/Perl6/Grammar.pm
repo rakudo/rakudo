@@ -2923,13 +2923,9 @@ grammar Perl6::Grammar is HLL::Grammar {
             self.HOW.mixin(self, Circumfix.HOW.curry(Circumfix, $canname, @parts[0], @parts[1]));
         }
 
-        # This also becomes the current MAIN. If we didn't place the current
-        # braid into a lexical %?LANG, also do that.
+        # This also becomes the current MAIN. Also place it in %?LANG.
         %*LANG<MAIN> := self;
-        my $curpad := $*W.cur_lexpad();
-        unless $curpad.symbol('%?LANG') {
-            $*W.install_lexical_symbol($curpad, '%?LANG', $*W.p6ize_recursive(%*LANG));
-        }
+        $*W.install_lexical_symbol($*W.cur_lexpad(), '%?LANG', $*W.p6ize_recursive(%*LANG));
 
         # May also need to add to the actions.
         # XXX Should be mixed in too.

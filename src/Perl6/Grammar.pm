@@ -12,7 +12,7 @@ grammar Perl6::Grammar is HLL::Grammar {
         %*LANG<Regex>           := Perl6::RegexGrammar;
         %*LANG<Regex-actions>   := Perl6::RegexActions;
         %*LANG<P5Regex>         := QRegex::P5Regex::Grammar;
-        %*LANG<P5Regex-actions> := QRegex::P5Regex::Actions;
+        %*LANG<P5Regex-actions> := Perl6::P5RegexActions;
         %*LANG<MAIN>            := Perl6::Grammar;
         %*LANG<MAIN-actions>    := Perl6::Actions;
         
@@ -1371,8 +1371,8 @@ grammar Perl6::Grammar is HLL::Grammar {
                     # If it exists already, then it's either uncomposed (in which
                     # case we just stubbed it), a role (in which case multiple
                     # variants are OK) or else an illegal redecl.
-                    if $exists && $*PKGDECL ne 'role' {
-                        if $*PACKAGE.HOW.is_composed($*PACKAGE) {
+                    if $exists && ($*PKGDECL ne 'role' || !nqp::can($*PACKAGE.HOW, 'configure_punning')) {
+                        if $*PKGDECL eq 'role' || $*PACKAGE.HOW.is_composed($*PACKAGE) {
                             $*W.throw($/, ['X', 'Redeclaration'],
                                 symbol => $longname.name(),
                             );
@@ -2914,7 +2914,7 @@ grammar Perl6::Grammar is HLL::Grammar {
             }
             self.HOW.mixin(self, Circumfix.HOW.curry(Circumfix, $canname, @parts[0], @parts[1]));
         }
-        
+
         # This also becomes the current MAIN.
         %*LANG<MAIN> := self;
 

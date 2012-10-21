@@ -2465,8 +2465,8 @@ class Perl6::Actions is HLL::Actions {
                 $block.symbol('$/', :scope<lexical>, :lazyinit(1));
             }
             $past := %*RX<P5>
-                ?? QRegex::P5Regex::Actions::qbuildsub($qast, $block)
-                !! QRegex::P6Regex::Actions::qbuildsub($qast, $block);
+                ?? %*LANG<P5Regex-actions>.qbuildsub($qast, $block, code_obj => $code)
+                !! %*LANG<Regex-actions>.qbuildsub($qast, $block, code_obj => $code);
         }
         $past.name($name);
         $past.blocktype("declaration");
@@ -5613,7 +5613,9 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions {
     method metachar:sym<qw>($/) {
         my $qast := QAST::Regex.new( :rxtype<alt>, :node($/) );
         for HLL::Grammar::split_words($/, $<quote_EXPR><quote_delimited>.ast.value) {
-            $qast.push(QAST::Regex.new( $_, :rxtype<literal> ));
+            $qast.push(%*RX<i>
+                ?? QAST::Regex.new( $_, :rxtype<literal>, :subtype<ignorecase> )
+                !! QAST::Regex.new( $_, :rxtype<literal> ));
         }
         make $qast;
     }
@@ -5711,7 +5713,7 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions {
                 my $nibbled := $name eq 'after'
                     ?? self.flip_ast($<nibbler>[0].ast)
                     !! $<nibbler>[0].ast;
-                my $sub := QRegex::P6Regex::Actions::qbuildsub($nibbled, :anon(1), :addself(1));
+                my $sub := %*LANG<Regex-actions>.qbuildsub($nibbled, :anon(1), :addself(1));
                 $qast[0].push($sub);
             }
         }
@@ -5753,14 +5755,25 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions {
         my $arglist := $<arglist>.ast;
         make $arglist;
     }
-    
-    # XXX Overriden during QAST migration.
-    method metachar:sym<( )>($/) {
-        my $subpast := QAST::Node.new(
-            QRegex::P6Regex::Actions::qbuildsub($<nibbler>.ast, :anon(1), :addself(1)));
-        my $qast := QAST::Regex.new( $subpast, $<nibbler>.ast, :rxtype('subrule'),
-                                     :subtype('capture'), :node($/) );
-        make $qast;
+
+    method create_regex_code_object($block) {
+        $*W.create_code_object($block, 'Regex',
+            $*W.create_signature(nqp::hash('parameters', [])))
+    }
+
+    method store_regex_nfa($code_obj, $block, $nfa) {
+        $code_obj.SET_NFA($nfa.save);
+    }
+}
+
+class Perl6::P5RegexActions is QRegex::P5Regex::Actions {
+    method create_regex_code_object($block) {
+        $*W.create_code_object($block, 'Regex',
+            $*W.create_signature(nqp::hash('parameters', [])))
+    }
+
+    method store_regex_nfa($code_obj, $block, $nfa) {
+        $code_obj.SET_NFA($nfa.save);
     }
 }
 

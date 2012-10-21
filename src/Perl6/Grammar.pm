@@ -520,6 +520,14 @@ grammar Perl6::Grammar is HLL::Grammar {
                 $*PACKAGE := $*GLOBALish;
             }
             
+            # If we're eval'ing in the context of a %?LANG, set up our own
+            # %*LANG based on it.
+            if $have_outer && $*UNIT_OUTER.symbol('%?LANG') {
+                for $*UNIT_OUTER.symbol('%?LANG')<value>.FLATTENABLE_HASH() {
+                    %*LANG{$_.key} := $_.value;
+                }
+            }
+            
             # Install unless we've no setting, in which case we've likely no
             # static lexpad class yet either. Also, UNIT needs a code object.
             unless %*COMPILING<%?OPTIONS><setting> eq 'NULL' {
@@ -2915,8 +2923,13 @@ grammar Perl6::Grammar is HLL::Grammar {
             self.HOW.mixin(self, Circumfix.HOW.curry(Circumfix, $canname, @parts[0], @parts[1]));
         }
 
-        # This also becomes the current MAIN.
+        # This also becomes the current MAIN. If we didn't place the current
+        # braid into a lexical %?LANG, also do that.
         %*LANG<MAIN> := self;
+        my $curpad := $*W.cur_lexpad();
+        unless $curpad.symbol('%?LANG') {
+            $*W.install_lexical_symbol($curpad, '%?LANG', $*W.p6ize_recursive(%*LANG));
+        }
 
         # May also need to add to the actions.
         # XXX Should be mixed in too.

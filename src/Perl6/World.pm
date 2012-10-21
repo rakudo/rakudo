@@ -1175,6 +1175,12 @@ class Perl6::World is HLL::World {
         self.add_object($r);
         QAST::WVal.new( :value($r) )
     }
+    
+    # Takes a data structure of non-Perl 6 objects and wraps them up
+    # recursively.
+    method p6ize_recursive($data) {
+        p6ize_recursive($data)
+    }
 
     # Creates a meta-object for a package, adds it to the root objects and
     # returns the created object.

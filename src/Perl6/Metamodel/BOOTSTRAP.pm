@@ -635,8 +635,33 @@ BEGIN {
 
     # class Regex is Method { ... }
     Regex.HOW.add_parent(Regex, Method);
-    Regex.HOW.add_method(Regex, 'nqpattr', static(sub ($self, $key) {
-            nqp::getattr(pir::perl6_decontainerize__PP($self), Code, '$!do').nqpattr($key)
+    Regex.HOW.add_attribute(Regex, scalar_attr('$!caps', Mu, Regex));
+    Regex.HOW.add_attribute(Regex, scalar_attr('$!nfa', Mu, Regex));
+    Regex.HOW.add_attribute(Regex, scalar_attr('$!alt_nfas', Mu, Regex));
+    Regex.HOW.add_method(Regex, 'SET_CAPS', static(sub ($self, $caps) {
+            nqp::bindattr(pir::perl6_decontainerize__PP($self), Regex, '$!caps', $caps)
+        }));
+    Regex.HOW.add_method(Regex, 'SET_NFA', static(sub ($self, $nfa) {
+            nqp::bindattr(pir::perl6_decontainerize__PP($self), Regex, '$!nfa', $nfa)
+        }));
+    Regex.HOW.add_method(Regex, 'SET_ALT_NFA', static(sub ($self, str $name, $nfa) {
+            my %alts := nqp::getattr(pir::perl6_decontainerize__PP($self), Regex, '$!alt_nfas');
+            unless %alts {
+                %alts := nqp::hash();
+                nqp::bindattr(pir::perl6_decontainerize__PP($self), Regex, '$!alt_nfas', %alts);
+            }
+            nqp::bindkey(%alts, $name, $nfa);
+        }));
+    Regex.HOW.add_method(Regex, 'CAPS', static(sub ($self) {
+            nqp::getattr(pir::perl6_decontainerize__PP($self), Regex, '$!caps')
+        }));
+    Regex.HOW.add_method(Regex, 'NFA', static(sub ($self) {
+            nqp::getattr(pir::perl6_decontainerize__PP($self), Regex, '$!nfa')
+        }));
+    Regex.HOW.add_method(Regex, 'ALT_NFA', static(sub ($self, str $name) {
+            nqp::atkey(
+                nqp::getattr(pir::perl6_decontainerize__PP($self), Regex, '$!alt_nfas'),
+                $name)
         }));
 
     # class Str is Cool {

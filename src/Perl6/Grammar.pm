@@ -12,7 +12,7 @@ grammar Perl6::Grammar is HLL::Grammar {
         %*LANG<Regex>           := Perl6::RegexGrammar;
         %*LANG<Regex-actions>   := Perl6::RegexActions;
         %*LANG<P5Regex>         := QRegex::P5Regex::Grammar;
-        %*LANG<P5Regex-actions> := QRegex::P5Regex::Actions;
+        %*LANG<P5Regex-actions> := Perl6::P5RegexActions;
         %*LANG<MAIN>            := Perl6::Grammar;
         %*LANG<MAIN-actions>    := Perl6::Actions;
         
@@ -2943,13 +2943,23 @@ grammar Perl6::Grammar is HLL::Grammar {
         # table.
         my %*RX;
         %*RX<name> := $canname;
-        $parse := QRegex::P6Regex::Actions::qbuildsub($parse, :addself(1));
-        $parse.name($canname);
+        my $W     := QRegex::P6Regex::World.new(:handle('RAKUDO_GEN_OP_' ~ $canname));
+        my $block := QAST::Block.new( :name($canname) );
+        my $code  := $W.create_code($block, $canname);
+        QRegex::P6Regex::Actions.qbuildsub($parse, $block, :addself(1), :code_obj($code));
         my $*QAST_BLOCK_NO_CLOSE := 1;
         my $*PASTCOMPILER := pir::compreg__Ps('PAST');
-        my $pirt := QAST::Compiler.as_post($parse);
-        my $pir := $pirt.pir();
-        $self.HOW.add_method($self, $canname, QAST::Compiler.evalpmc($pir)[0]);
+        my $pirt := QAST::Compiler.as_post(QAST::CompUnit.new(
+            :hll('P6Regex'),
+            :sc($W.sc()),
+            :code_ref_blocks($W.code_ref_blocks()),
+            :compilation_mode(0),
+            :pre_deserialize($W.load_dependency_tasks()),
+            :post_deserialize($W.fixup_tasks()),
+            $block
+        ));
+        QAST::Compiler.evalpmc($pirt.pir());
+        $self.HOW.add_method($self, $canname, $code);
 
         # May also need to add to the actions.
         if $category eq 'circumfix' {

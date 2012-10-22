@@ -1675,7 +1675,7 @@ grammar Perl6::Grammar is HLL::Grammar {
                 my $category := $<deflongname>[0]<name>.Str;
                 my $opname := ~$<deflongname>[0]<colonpair>[0]<circumfix><quote_EXPR><quote_delimited><quote_atom>[0];
                 my $canname := $category ~ ":sym<" ~ $opname ~ ">";
-                $/.CURSOR.add_categorical($category, $opname, $canname, $<deflongname>[0].ast);
+                $/.CURSOR.add_categorical($category, $opname, $canname, $<deflongname>[0].ast, $*DECLARAND);
             }
         }
         <.newpad>
@@ -1734,7 +1734,7 @@ grammar Perl6::Grammar is HLL::Grammar {
                 my $category := $<deflongname>[0]<name>.Str;
                 my $opname := ~$<deflongname>[0]<colonpair>[0]<circumfix><quote_EXPR><quote_delimited><quote_atom>[0];
                 my $canname := $category ~ ":sym<" ~ $opname ~ ">";
-                $/.CURSOR.add_categorical($category, $opname, $canname, $<deflongname>[0].ast);
+                $/.CURSOR.add_categorical($category, $opname, $canname, $<deflongname>[0].ast, $*DECLARAND);
             }
         }
         <.newpad>
@@ -2865,7 +2865,7 @@ grammar Perl6::Grammar is HLL::Grammar {
     # Called when we add a new choice to an existing syntactic category, for
     # example new infix operators add to the infix category. Augments the
     # grammar as needed.
-    method add_categorical($category, $opname, $canname, $subname) {
+    method add_categorical($category, $opname, $canname, $subname, $declarand?) {
         my $self := self;
         
         # If we already have the required operator in the grammar, just return.
@@ -2904,10 +2904,10 @@ grammar Perl6::Grammar is HLL::Grammar {
 
         # Mix an appropraite role into the grammar for parsing the new op.
         if $is_oper {
-            my role Oper[$meth_name, $op, $precedence] {
-                token ::($meth_name) { $<sym>=[$op] <O($precedence)> }
+            my role Oper[$meth_name, $op, $precedence, $declarand] {
+                token ::($meth_name) { $<sym>=[$op] <O=.genO($precedence, $declarand)> }
             }
-            self.HOW.mixin(self, Oper.HOW.curry(Oper, $canname, $opname, $prec));
+            self.HOW.mixin(self, Oper.HOW.curry(Oper, $canname, $opname, $prec, $declarand));
         }
         else {
             # Find opener and closer and parse an EXPR between them.
@@ -2939,6 +2939,17 @@ grammar Perl6::Grammar is HLL::Grammar {
         }
 
         return 1;
+    }
+    
+    method genO($default, $declarand) {
+        my $desc := $default;
+        if nqp::can($declarand, 'prec') {
+            my %extras := $declarand.prec.FLATTENABLE_HASH;
+            for %extras {
+                $desc := "$desc, :" ~ $_.key ~ "<" ~ $_.value ~ ">";
+            }
+        }
+        self.O($desc)
     }
 }
 

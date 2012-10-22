@@ -67,6 +67,40 @@ multi trait_mod:<is>(Routine:D $r, Mu :$inlinable!) {
 multi trait_mod:<is>(Routine:D $r, :$onlystar!) {
     $r.set_onlystar();
 }
+multi trait_mod:<is>(Routine:D $r, :prec(%spec)!) {
+    my role Precedence {
+        has %.prec;
+    }
+    if nqp::istype($r, Precedence) {
+        for %spec {
+            $r.prec.{.key} = .value;
+        }
+    }
+    else {
+        $r.HOW.mixin($r, Precedence);
+        nqp::bindattr(nqp::p6decont($r), $r.WHAT, '%!prec', %spec);
+    }
+}
+multi trait_mod:<is>(Routine $r, :&equiv) {
+    nqp::can(&equiv, 'prec')
+        ?? trait_mod:<is>($r, :prec(&equiv.prec))
+        !! die "Routine given to equiv does not appear to be an operator";
+}
+multi trait_mod:<is>(Routine $r, :&tighter) {
+    if !nqp::can($r, 'prec') || !$r.prec<prec> {
+        trait_mod:<is>($r, :prec(&tighter.prec))
+    }
+    $r.prec<prec> .= subst(/\=/, '>=');
+}
+multi trait_mod:<is>(Routine $r, :&looser) {
+    if !nqp::can($r, 'prec') || !$r.prec<prec> {
+        trait_mod:<is>($r, :prec(&looser.prec))
+    }
+    $r.prec<prec> .= subst(/\=/, '<=');
+}
+multi trait_mod:<is>(Routine $r, :$assoc) {
+    trait_mod:<is>($r, :prec({ :$assoc }))
+}
 
 # Since trait_mod:<is> to set onlystar isn't there at the
 # point we wrote its proto, we do it manually here.

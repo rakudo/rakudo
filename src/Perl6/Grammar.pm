@@ -615,6 +615,7 @@ grammar Perl6::Grammar is HLL::Grammar {
     token statement {
         :my $*QSIGIL := '';
         :my $*SCOPE := '';
+        :my $*ACTIONS := %*LANG<MAIN-actions>;
         <!before <[\])}]> | $ >
         <!!{ nqp::rebless($/.CURSOR, %*LANG<MAIN>) }>
         [
@@ -2924,18 +2925,21 @@ grammar Perl6::Grammar is HLL::Grammar {
         }
 
         # This also becomes the current MAIN. Also place it in %?LANG.
-        %*LANG<MAIN> := self;
+        %*LANG<MAIN> := self.WHAT;
         $*W.install_lexical_symbol($*W.cur_lexpad(), '%?LANG', $*W.p6ize_recursive(%*LANG));
 
         # May also need to add to the actions.
-        # XXX Should be mixed in too.
         if $category eq 'circumfix' {
-            $*ACTIONS.HOW.add_method($*ACTIONS, $canname, sub ($self, $/) {
-                make QAST::Op.new(
-                    :op('call'), :name('&' ~ $subname),
-                    $<EXPR>.ast
-                );
-            });
+            my role CircumfixAction[$meth, $subname] {
+                method ::($meth)($/) {
+                    make QAST::Op.new(
+                        :op('call'), :name('&' ~ $subname),
+                        $<EXPR>.ast
+                    );
+                }
+            };
+            %*LANG<MAIN-actions> := $*ACTIONS.HOW.mixin($*ACTIONS,
+                CircumfixAction.HOW.curry(CircumfixAction, $canname, $subname));
         }
 
         return 1;

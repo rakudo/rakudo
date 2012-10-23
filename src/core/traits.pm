@@ -90,13 +90,13 @@ multi trait_mod:<is>(Routine $r, :&tighter) {
     if !nqp::can($r, 'prec') || !$r.prec<prec> {
         trait_mod:<is>($r, :prec(&tighter.prec))
     }
-    $r.prec<prec> .= subst(/\=/, '>=');
+    $r.prec<prec> := $r.prec<prec>.subst(/\=/, '@=');
 }
 multi trait_mod:<is>(Routine $r, :&looser) {
     if !nqp::can($r, 'prec') || !$r.prec<prec> {
         trait_mod:<is>($r, :prec(&looser.prec))
     }
-    $r.prec<prec> .= subst(/\=/, '<=');
+    $r.prec<prec> := $r.prec<prec>.subst(/\=/, ':=');
 }
 multi trait_mod:<is>(Routine $r, :$assoc) {
     trait_mod:<is>($r, :prec({ :$assoc }))

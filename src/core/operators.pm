@@ -293,18 +293,18 @@ sub REQUIRE_IMPORT($package-name, *@syms) {
 # putting the traits directly on the op bodies, since some of the things that
 # the traits are implemented using aren't defiend that early.
 BEGIN {
-    my Mu $methodcall     := nqp::hash('prec', 'y=', 'assoc', 'unary');
-    my Mu $autoincrement  := nqp::hash('prec', 'x=', 'assoc', 'unary');
-    my Mu $exponentiation := nqp::hash('prec', 'w=', 'assoc', 'right');
-    my Mu $symbolic_unary := nqp::hash('prec', 'v=', 'assoc', 'unary');
-    my Mu $multiplicative := nqp::hash('prec', 'u=', 'assoc', 'left');
-    my Mu $additive       := nqp::hash('prec', 't=', 'assoc', 'left');
-    my Mu $replication    := nqp::hash('prec', 's=', 'assoc', 'left');
-    my Mu $concatenation  := nqp::hash('prec', 'r=', 'assoc', 'left');
-    my Mu $junctive_and   := nqp::hash('prec', 'q=', 'assoc', 'list');
-    my Mu $junctive_or    := nqp::hash('prec', 'p=', 'assoc', 'list');
-    my Mu $structural     := nqp::hash('prec', 'n=', 'assoc', 'left');
-    my Mu $chaining       := nqp::hash('prec', 'm=', 'assoc', 'left', 'iffy', 1, 'pasttype', 'chain');
+    my Mu $methodcall     := nqp::hash('prec', 'y=');
+    my Mu $autoincrement  := nqp::hash('prec', 'x=');
+    my Mu $exponentiation := nqp::hash('prec', 'w=');
+    my Mu $symbolic_unary := nqp::hash('prec', 'v=');
+    my Mu $multiplicative := nqp::hash('prec', 'u=');
+    my Mu $additive       := nqp::hash('prec', 't=');
+    my Mu $replication    := nqp::hash('prec', 's=');
+    my Mu $concatenation  := nqp::hash('prec', 'r=');
+    my Mu $junctive_and   := nqp::hash('prec', 'q=');
+    my Mu $junctive_or    := nqp::hash('prec', 'p=');
+    my Mu $structural     := nqp::hash('prec', 'n=');
+    my Mu $chaining       := nqp::hash('prec', 'm=', 'iffy', 1, 'pasttype', 'chain');
     trait_mod:<is>(&postfix:<i>, :prec($methodcall));
     trait_mod:<is>(&prefix:<++>, :prec($autoincrement));
     trait_mod:<is>(&prefix:<-->, :prec($autoincrement));
@@ -327,7 +327,7 @@ BEGIN {
     trait_mod:<is>(&infix:<lcm>, :prec($multiplicative));
     trait_mod:<is>(&infix:<%>, :prec($multiplicative));
     trait_mod:<is>(&infix:<mod>, :prec($multiplicative));
-    trait_mod:<is>(&infix:<%%>, :prec(nqp::hash('prec', 'u=', 'assoc', 'left', 'iffy', 1)));
+    trait_mod:<is>(&infix:<%%>, :prec(nqp::hash('prec', 'u=', 'iffy', 1)));
     trait_mod:<is>(&infix:<+&>, :prec($multiplicative));
     trait_mod:<is>(&infix:<~&>, :prec($multiplicative));
     trait_mod:<is>(&infix:<?&>, :prec($multiplicative));

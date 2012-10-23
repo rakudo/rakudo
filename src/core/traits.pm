@@ -73,7 +73,7 @@ multi trait_mod:<is>(Routine:D $r, :prec(%spec)!) {
     }
     if nqp::istype($r, Precedence) {
         for %spec {
-            $r.prec.{.key} = .value;
+            $r.prec.{.key} := .value;
         }
     }
     else {

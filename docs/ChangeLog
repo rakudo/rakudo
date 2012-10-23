@@ -1,3 +1,12 @@
+New in 2012.11
++ user-defined operators only affect the parser in the scope they are declared in
++ fixed pre-compilation of modules containing user-defined operators
++ implemented precedence related traits (equiv, looser, tighter, assoc)
++ Perl 6 grammar NFAs are pre-computed, saving some work on each invocation; this
+  shaved around 10% off the spectests
++ redeclaring a class as a role now gives a better error
++ the < foo bar > syntax in regexes now respects :i
+
 New in 2012.10
 + :60[24, 59, 59] radix form
 + delegation to methods using the handles trait

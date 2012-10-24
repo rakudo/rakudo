@@ -2375,6 +2375,16 @@ grammar Perl6::Grammar is HLL::Grammar {
     }
 
     token quote_escape:sym<{ }> { <?[{]> <?quotemod_check('c')> <block> }
+    
+    token quote_escape:sym<' '> {
+        <?[']> <?quotemod_check('ww')> <quote_EXPR: ':q'>
+    }
+    token quote_escape:sym<" "> {
+        <?["]> <?quotemod_check('ww')> <quote_EXPR: ':qq'>
+    }
+    token quote_escape:sym<colonpair> {
+        <?[:]> <?quotemod_check('ww')> <colonpair>
+    }
 
     token circumfix:sym<( )> { :dba('parenthesized expression') '(' ~ ')' <semilist> }
     token circumfix:sym<[ ]> { :dba('array composer') '[' ~ ']' <semilist> }

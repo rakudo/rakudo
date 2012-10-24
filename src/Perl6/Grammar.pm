@@ -2384,7 +2384,8 @@ grammar Perl6::Grammar is HLL::Grammar {
         [ <?before '<>' > <.obs('<>', 'lines() to read input, (\'\') to represent a null string or () to represent an empty list')> ]?
         <quote_EXPR: ':q', ':w'>
     }
-    token circumfix:sym<« »> { <?[«]>  <quote_EXPR: ':qq', ':w'> }
+    token circumfix:sym«<< >>» { <?before '<<'>  <quote_EXPR: ':qq', ':ww'> }
+    token circumfix:sym<« »> { <?[«]>  <quote_EXPR: ':qq', ':ww'> }
     token circumfix:sym<{ }> { <?[{]> <pblock(1)> }
     token circumfix:sym<sigil> {
         :dba('contextualizer')

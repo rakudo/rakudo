@@ -3794,6 +3794,8 @@ class Perl6::Actions is HLL::Actions {
 
     method circumfix:sym<ang>($/) { make $<quote_EXPR>.ast; }
 
+    method circumfix:sym«<< >>»($/) { make $<quote_EXPR>.ast; }
+    
     method circumfix:sym<« »>($/) { make $<quote_EXPR>.ast; }
 
     method circumfix:sym<{ }>($/) {
@@ -4958,11 +4960,11 @@ class Perl6::Actions is HLL::Actions {
                 :node($/)));
     }
 
-    # overrides versions from HLL::Actions to handle Perl6Str
+    # overrides versions from HLL::Actions to use Perl 6 Str type
     # and use &infix:<,> to build the parcel
     method quote_EXPR($/) {
         my $past := $<quote_delimited>.ast;
-        if %*QUOTEMOD<w> {
+        if %*QUOTEMOD<w> || %*QUOTEMOD<ww> { # XXX ww should be different
             my @words := HLL::Grammar::split_words($/,
                 compile_time_value_str($past, ":w list", $/));
             if +@words != 1 {

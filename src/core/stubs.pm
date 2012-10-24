@@ -21,7 +21,7 @@ sub DYNAMIC(\name) is rw {
         my str $pkgname = pir::replace__Ssiis(nqp::unbox_s(name), 1, 1, '');
         if nqp::existskey(GLOBAL.WHO, $pkgname) { $x := nqp::atkey(GLOBAL.WHO, $pkgname) }
         elsif nqp::existskey(PROCESS.WHO, $pkgname) { $x := nqp::atkey(PROCESS.WHO, $pkgname) }
-        else { fail "Dynamic variable name not found" }
+        else { fail "Dynamic variable {name} not found" }
     }
     $x
 }

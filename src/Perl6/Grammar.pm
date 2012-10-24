@@ -1232,6 +1232,30 @@ grammar Perl6::Grammar is HLL::Grammar {
         <sym> {} <?before \s | ',' | <terminator> >
         <.obs('$? variable as child error', '$!')>
     }
+    
+    regex special_variable:sym<${ }> {
+        <sigil> '{' {} $<text>=[.*?] '}'
+        <?{
+            my $sigil := $<sigil>.Str;
+            my $text := $<text>.Str;
+            my $bad := $sigil ~ '{' ~ $text ~ '}';
+            $text := $text - 1 if $text ~~ /^\d+$/ && $text > 0;
+            if !($text ~~ /^(\w|\:)+$/) {
+                if $*QSIGIL {
+                    0
+                }
+                else {
+                    $/.CURSOR.obs($bad, $sigil ~ '(' ~ $text ~ ')');
+                }
+            }
+            elsif $*QSIGIL {
+                $/.CURSOR.obs($bad, '{' ~ $sigil ~ $text ~ '}');
+            }
+            else {
+                $/.CURSOR.obs($bad, $sigil ~ $text);
+            }
+        }>
+    }
 
     token desigilname {
         [

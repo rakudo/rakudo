@@ -1,7 +1,7 @@
 Rakudo Roadmap
 --------------
 
-Last updated: 2012-09-01
+Last updated: 2012-10-25
 
 This document serves as a guide to the major goals for Rakudo
 development, as things stood in December 2011. They have been
@@ -39,7 +39,6 @@ Macros (masak)
 3 ?     Textual macros
 
 Operators
-2 *     precedence traits for user defined operators (jnthn)
 2 ***   missing native operators, including ++/-- (jnthn)
 3 **    logical cascades
 3 **    operator adverbs

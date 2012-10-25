@@ -87,13 +87,17 @@ multi trait_mod:<is>(Routine $r, :&equiv) {
         !! die "Routine given to equiv does not appear to be an operator";
 }
 multi trait_mod:<is>(Routine $r, :&tighter) {
-    if !nqp::can($r, 'prec') || !$r.prec<prec> {
+    die "Routine given to tigher does not appear to be an operator"
+        unless nqp::can(&tighter, 'prec');
+    if !nqp::can($r, 'prec') || ($r.prec<prec> // "") !~~ /<[@:]>/ {
         trait_mod:<is>($r, :prec(&tighter.prec))
     }
     $r.prec<prec> := $r.prec<prec>.subst(/\=/, '@=');
 }
 multi trait_mod:<is>(Routine $r, :&looser) {
-    if !nqp::can($r, 'prec') || !$r.prec<prec> {
+    die "Routine given to looser does not appear to be an operator"
+        unless nqp::can(&looser, 'prec');
+    if !nqp::can($r, 'prec') || ($r.prec<prec> // "") !~~ /<[@:]>/ {
         trait_mod:<is>($r, :prec(&looser.prec))
     }
     $r.prec<prec> := $r.prec<prec>.subst(/\=/, ':=');

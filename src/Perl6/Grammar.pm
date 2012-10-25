@@ -2962,6 +2962,13 @@ grammar Perl6::Grammar is HLL::Grammar {
         # This also becomes the current MAIN. Also place it in %?LANG.
         %*LANG<MAIN> := self.WHAT;
         $*W.install_lexical_symbol($*W.cur_lexpad(), '%?LANG', $*W.p6ize_recursive(%*LANG));
+        
+        # Declarand should get precedence traits.
+        if $is_oper && nqp::isconcrete($declarand) {
+            my $base_prec := self.O($prec).MATCH<prec>;
+            $*W.apply_trait(self.MATCH, '&trait_mod:<is>', $declarand,
+                :prec(nqp::hash('prec', $base_prec)));
+        }
 
         # May also need to add to the actions.
         if $category eq 'circumfix' {

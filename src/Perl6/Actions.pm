@@ -4791,7 +4791,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
     method quote:sym<qq>($/)   { make $<quote_EXPR>.ast; }
     method quote:sym<qw>($/)   { make $<quote_EXPR>.ast; }
     method quote:sym<q>($/)    { make $<quote_EXPR>.ast; }
-    method quote:sym<Q>($/)    { make $<quote_EXPR>.ast; }
+    method quote:sym<Q>($/)    { make $<quibble>.ast; }
     method quote:sym<Q:PIR>($/) {
         if $FORBID_PIR {
             nqp::die("Q:PIR forbidden in safe mode\n");

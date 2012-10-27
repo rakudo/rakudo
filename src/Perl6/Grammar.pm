@@ -2416,7 +2416,16 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token quote:sym<qw>    { 'qw'  >> <![(]> <.ws> <quote_EXPR: ':q',':w'> }
     token quote:sym<qx>    { 'qx'  >> <![(]> <.ws> <quote_EXPR: ':q'>  }
     token quote:sym<qqx>   { 'qqx' >> <![(]> <.ws> <quote_EXPR: ':qq'> }
-    token quote:sym<Q>     { 'Q'   >> <![(]> <.ws> <quote_EXPR> }
+    
+    token quote:sym<Q> {
+        :my $qm;
+        'Q'
+        [
+        | <quote_mod> » <!before '('> { $qm := $<quote_mod>.Str } <quibble(%*LANG<Q>, $qm)>
+        | » <!before '('> <.ws> <quibble(%*LANG<Q>)>
+        ]
+    }
+
     token quote:sym<Q:PIR> { 'Q:PIR'      <.ws> <quote_EXPR> }
     token quote:sym</null/> { '/' \s* '/' <.panic: "Null regex not allowed"> }
     token quote:sym</ />  { '/' :my %*RX; <p6regex=.LANG('Regex','nibbler')> '/' <.old_rx_mods>? }

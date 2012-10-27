@@ -3261,16 +3261,16 @@ grammar Perl6::QGrammar is HLL::Grammar does STD {
 
         token backslash:sym<miscq> { {} . }
 
-        multi method tweak_q($v) { self.panic("Too late for :q") }
-        multi method tweak_qq($v) { self.panic("Too late for :qq") }
+        method tweak_q($v) { self.panic("Too late for :q") }
+        method tweak_qq($v) { self.panic("Too late for :qq") }
     }
 
     role qq does b1 does c1 does s1 does a1 does h1 does f1 {
         token stopper { \" }
         token backslash:sym<misc> { {} [ (\W) | $<x>=(\w) <.sorry("Unrecognized backslash sequence: '\\" ~ $<x>.Str ~ "'")> ] }
 
-        multi method tweak_q($v) { self.panic("Too late for :q") }
-        multi method tweak_qq($v) { self.panic("Too late for :qq") }
+        method tweak_q($v) { self.panic("Too late for :q") }
+        method tweak_qq($v) { self.panic("Too late for :qq") }
     }
     
     token nibbler {

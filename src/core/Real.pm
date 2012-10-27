@@ -85,7 +85,7 @@ my role Real does Numeric {
     multi method Str(Real:D:) { self.Bridge.Str }
 }
 
-proto sub cis(|) {*}
+proto sub cis($) {*}
 multi sub cis(Real $a) { $a.cis }
 
 multi infix:<+>(Real \a, Real \b)   { a.Bridge + b.Bridge }
@@ -114,7 +114,7 @@ multi infix:«>=»(Real \a, Real \b)  { a.Bridge >= b.Bridge }
 
 multi prefix:<->(Real \a)            { -a.Bridge }
 
-proto sub infix:<mod>(|) {*}
+proto sub infix:<mod>($, $) {*}
 multi sub infix:<mod>(Real $a, Real $b) {
     $a - ($a.Bridge.Int div $b.Bridge.Int) * $b;
 }
@@ -123,17 +123,17 @@ multi sub abs(Real \a) {
     a < 0 ?? -a !! a;
 }
 
-proto sub truncate(|) {*}
+proto sub truncate($) {*}
 multi sub truncate(Real:D $x) { $x.truncate }
 multi sub truncate(Cool:D $x) { $x.Numeric.truncate }
 
 
-proto sub atan2(|)    { * }
+proto sub atan2($, $?)    { * }
 multi sub atan2(Real \a, Real \b = 1e0) { a.Bridge.atan2(b.Bridge) }
 # should really be (Cool, Cool), and then (Cool, Real) and (Real, Cool)
 # candidates, but since Int both conforms to Cool and Real, we'd get lots
 # of ambiguous dispatches. So just go with (Any, Any) for now.
 multi sub atan2(     \a,      \b = 1e0) { a.Numeric.atan2(b.Numeric) }
 
-proto sub unpolar(|) {*}
+proto sub unpolar($, $) {*}
 multi sub unpolar(Real $mag, Real $angle) { $mag.unpolar($angle) }

@@ -260,11 +260,11 @@ multi infix:<===>($a, $b) {
     nqp::p6bool(nqp::iseq_s(nqp::unbox_s($a.WHICH), nqp::unbox_s($b.WHICH)))
 }
 
-proto infix:<before>(|)        { * }
+proto infix:<before>($, $?)    { * }
 multi infix:<before>($x?)      { Bool::True }
 multi infix:<before>(\a, \b)   { (a cmp b) < 0 }
 
-proto infix:<after>(|)         { * }
+proto infix:<after>($, $?)     { * }
 multi infix:<after>($x?)       { Bool::True }
 multi infix:<after>(\a, \b)    { (a cmp b) > 0 }
 

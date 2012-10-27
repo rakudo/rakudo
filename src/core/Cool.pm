@@ -204,25 +204,25 @@ sub uc(Cool $s)                    { $s.uc }
 
 sub ucfirst(Cool $s) is DEPRECATED { $s.ucfirst }
 
-proto sub rindex(|) { * };
+proto sub rindex($, $, $?) { * };
 multi sub rindex(Cool $s, Cool $needle, Cool $pos) { $s.rindex($needle, $pos) };
 multi sub rindex(Cool $s, Cool $needle)            { $s.rindex($needle) };
 
-proto sub ords(|)            { * }
+proto sub ords($)            { * }
 multi sub ords(Cool $s)       { ords($s.Stringy) }
 
-proto sub comb(|)            { * }
+proto sub comb($, $, $?)            { * }
 multi sub comb(Regex $matcher, Cool $input, $limit = *) { $input.comb($matcher, $limit) }
 
-proto sub capitalize(|) is DEPRECATED { * }
+proto sub capitalize($) is DEPRECATED { * }
 multi sub capitalize(Str:D $x) {$x.capitalize }
 multi sub capitalize(Cool $x)  {$x.Stringy.capitalize }
 
-proto sub wordcase(|)       { * }
+proto sub wordcase($)       { * }
 multi sub wordcase(Str:D $x) {$x.wordcase }
 multi sub wordcase(Cool $x)  {$x.Str.wordcase }
 
-proto sub tclc(|)             { * }
+proto sub tclc($)             { * }
 multi sub tclc(Cool $x)        { tclc $x.Str }
 
 sub sprintf(Cool $format, *@args) {
@@ -240,7 +240,7 @@ sub split($pat, Cool $target, $limit = $Inf, :$all) {
     $target.split($pat, $limit, :$all);
 }
 
-proto sub chars(|) {*}
+proto sub chars($) {*}
 multi sub chars(Cool $x)  { $x.Str.chars }
 multi sub chars(Str:D $x) { nqp::p6box_i(nqp::chars($x)) }
 multi sub chars(str $x) returns int { nqp::chars($x) }

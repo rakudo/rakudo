@@ -3117,6 +3117,9 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 }
 
 grammar Perl6::QGrammar is HLL::Grammar does STD {
+    proto token escape {*}
+    proto token backslash {*}
+
     role b1 {
         token escape:sym<\\> { <sym> {} <item=.backslash> }
         token backslash:sym<qq> { <?before 'q'> <quote=.LANG('MAIN','quote')> }

@@ -97,7 +97,7 @@ role STD {
         <babble($l)>
         { my $B := $<babble><B>.ast; $lang := $B[0]; $start := $B[1]; $stop := $B[2]; }
 
-        $start <nibble($lang)> [ $stop || <.panic: "Couldn't find terminator $stop"> ]
+        $start <nibble($lang)> [ $stop || { $/.CURSOR.panic("Couldn't find terminator $stop") } ]
 
         # Figure out this when we add heredocs...
         #{ $lang<_herelang> and $¢.queue_heredoc($<nibble><nibbles>[0]<TEXT>, $lang<_herelang>) }

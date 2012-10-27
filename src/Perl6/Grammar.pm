@@ -5,7 +5,33 @@ use Perl6::Actions;
 use Perl6::World;
 use Perl6::Pod;
 
-grammar Perl6::Grammar is HLL::Grammar {
+role startstop[$start, $stop] {
+    token starter { $start }
+    token stopper { $stop }
+}
+
+role stop[$stop] {
+    token starter { <!> }
+    token stopper { $stop }
+}
+
+# This role captures things that STD factors out from any individual grammar,
+# but that don't make sense to go in HLL::Grammar.
+role STD {
+    method balanced($start, $stop) {
+        self.HOW.mixin(self, startstop.HOW.curry(startstop, $start, $stop));
+    }
+    method unbalanced($stop) {
+        self.HOW.mixin(self, stop.HOW.curry(stop, $stop));
+    }
+    
+    # overridden in subgrammars
+    # XXX Can't do this until after quote refactor.
+    #token starter { <!> }
+    #token stopper { <!> }
+}
+
+grammar Perl6::Grammar is HLL::Grammar does STD {
     method TOP() {
         # Language braid.
         my %*LANG;
@@ -3001,7 +3027,7 @@ grammar Perl6::Grammar is HLL::Grammar {
     }
 }
 
-grammar Perl6::QGrammar is HLL::Grammar {
+grammar Perl6::QGrammar is HLL::Grammar does STD {
     role b1 {
         token escape:sym<\\> { <sym> {} <item=.backslash> }
         token backslash:sym<qq> { <?before 'q'> <quote=.LANG('MAIN','quote')> }
@@ -3143,6 +3169,10 @@ grammar Perl6::QGrammar is HLL::Grammar {
         multi method tweak_qq($v) { self.panic("Too late for :qq") }
     }
     
+    # XXX These belong in role STD eventually.
+    token starter { <!> }
+    token stopper { <!> }
+    
     method truly($bool, $opt) {
         self.sorry("Cannot negate $opt adverb") unless $bool;
         self;
@@ -3180,7 +3210,7 @@ grammar Perl6::QGrammar is HLL::Grammar {
     }
 }
 
-grammar Perl6::RegexGrammar is QRegex::P6Regex::Grammar {
+grammar Perl6::RegexGrammar is QRegex::P6Regex::Grammar does STD {
     token metachar:sym<:my> {
         ':' <?before 'my'|'constant'|'state'|'our'> <statement=.LANG('MAIN', 'statement')> <.ws> ';'
     }

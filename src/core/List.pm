@@ -401,10 +401,10 @@ multi infix:<xx>(Mu \x, $n is copy, :$thunked) {
     GatherIter.new({ take ($thunked ?? x.() !! x) while $n-- > 0; }, :infinite($n == $Inf)).list
 }
 
-proto sub pop(|) {*}
+proto sub pop(@) {*}
 multi sub pop(@a) { @a.pop }
 
-proto sub shift(|) {*}
+proto sub shift(@) {*}
 multi sub shift(@a) { @a.shift }
 
 proto sub unshift(|) {*}

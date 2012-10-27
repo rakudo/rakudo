@@ -143,7 +143,7 @@ multi sub warn(*@msg) is hidden_from_backtrace {
     0;
 }
 
-proto sub eval(|) {*}
+proto sub eval($, *%) {*}
 multi sub eval(Str $code, :$lang = 'perl6', PseudoStash :$context) {
     my $eval_ctx := nqp::getattr(nqp::p6decont($context // CALLER::), PseudoStash, '$!ctx');
     my $?FILES   := 'eval_' ~ (state $no)++;

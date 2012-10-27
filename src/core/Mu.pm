@@ -399,7 +399,7 @@ my class Mu {
 }
 
 
-proto sub defined(|) { * }
+proto sub defined(Mu) { * }
 multi sub defined(Mu \x) { x.defined }
 
 proto sub infix:<~~>(|) { * }

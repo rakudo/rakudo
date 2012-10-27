@@ -1330,7 +1330,7 @@ class Perl6::World is HLL::World {
         self.ex-handle($/, { $trait_sub(|@pos_args, |%named_args) });
     }
     
-    # Some things get cloned many times with a lexical scope that
+    # Some things get cloned many times with an outer lexical scope that
     # we never enter. This makes sure we capture them as needed.
     method create_lexical_capture_fixup() {
         # Create a list and put it in the SC.

@@ -82,6 +82,25 @@ role STD {
             $<B>.'!make'([$lang, $start, $stop]);
         }
     }
+
+    token quibble($l) {
+        :my $lang;
+        :my $start;
+        :my $stop;
+        <babble($l)>
+        { my $B := $<babble><B>.ast; $lang := $B[0]; $start := $B[1]; $stop := $B[2]; }
+
+        $start <nibble($lang)> [ $stop || <.panic: "Couldn't find terminator $stop"> ]
+
+        # Figure out this when we add heredocs...
+        #{ $lang<_herelang> and $¢.queue_heredoc($<nibble><nibbles>[0]<TEXT>, $lang<_herelang>) }
+    }
+
+    method nibble($lang) {
+        my $lang_cursor := $lang.'!cursor_init'(self.target(), :p(self.pos()));
+        my $*ACTIONS    := %*LANG{'Q-actions'}; # XXX it may not be the quoting langauge?
+        $lang_cursor.nibbler();
+    }
 }
 
 grammar Perl6::Grammar is HLL::Grammar does STD {
@@ -3220,6 +3239,52 @@ grammar Perl6::QGrammar is HLL::Grammar does STD {
 
         multi method tweak_q($v) { self.panic("Too late for :q") }
         multi method tweak_qq($v) { self.panic("Too late for :qq") }
+    }
+    
+    token nibbler {
+        :my $from := self.pos;
+        :my $to   := $from;
+        :my @*nibbles;
+        
+        [
+            <!before <stopper> >
+            [
+            || <starter> <nibbler> <stopper>
+                {
+                    my $c := $/.CURSOR;
+                    $to   := $c.pos;
+                    if $from != $to {
+                        nqp::push(@*nibbles, nqp::substr($c.orig, $from, $to - $from));
+                    }
+
+                    nqp::push(@*nibbles, $<starter>[-1]);
+                    nqp::push(@*nibbles, $<nibbler>[-1]);
+                    nqp::push(@*nibbles, $<stopper>[-1]);
+
+                    $from := $to;
+                }
+            || <escape>
+                {
+                    my $c := $/.CURSOR;
+                    $to   := $c.pos;
+                    if $from != $to {
+                        nqp::push(@*nibbles, nqp::substr($c.orig, $from, $to - $from));
+                    }
+
+                    nqp::push(@*nibbles, $<escape>[-1]);
+
+                    $from := $to;
+                }
+            || .
+            ]
+        ]*
+        {
+            my $c := $/.CURSOR;
+            $to   := $c.pos;
+            if $from != $to || !@*nibbles {
+                nqp::push(@*nibbles, nqp::substr($c.orig, $from, $to - $from));
+            }
+        }
     }
     
     # XXX These belong in role STD eventually.

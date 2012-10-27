@@ -67,15 +67,18 @@ role STD {
                     my $t := $_[0];
                     $lang := $lang."tweak_$t"($_[1]);
                 }
+                $lang
             }
             
             # Work out the delimeters.
-            my @delims := $/.CURSOR.peek_delimiters();
+            my $c := $/.CURSOR;
+            my @delims := $c.peek_delimiters($c.target, $c.pos);
             $start := @delims[0];
             $stop  := @delims[1];
             
             # See if we already cached this language.
             my $key := babble_key();
+            nqp::ifnull(%babble_cache, %babble_cache := nqp::hash());
             my $lang := nqp::existskey(%babble_cache, $key)
                 ?? %babble_cache{$key}
                 !! (%babble_cache{$key} := babble_lang());

@@ -64,7 +64,7 @@ role STD {
             !! (%quote_lang_cache{$key} := con_lang());
     }
     
-    token babble($l, *@base_tweaks) {
+    token babble($l, @base_tweaks?) {
         :my @extra_tweaks;
 
         <.ws>
@@ -90,11 +90,11 @@ role STD {
         }
     }
 
-    token quibble($l) {
+    token quibble($l, *@base_tweaks) {
         :my $lang;
         :my $start;
         :my $stop;
-        <babble($l)>
+        <babble($l, @base_tweaks)>
         { my $B := $<babble><B>.ast; $lang := $B[0]; $start := $B[1]; $stop := $B[2]; }
 
         $start <nibble($lang)> [ $stop || { $/.CURSOR.panic("Couldn't find terminator $stop") } ]
@@ -2399,9 +2399,9 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
     
     proto token quote_mod   {*}
-    token quote_mod:sym<w>  { <sym> }
-    token quote_mod:sym<ww> { <sym> }
     # XXX uncomment these to when they get implemented
+    #token quote_mod:sym<w>  { <sym> }
+    #token quote_mod:sym<ww> { <sym> }
     #token quote_mod:sym<p>  { <sym> }
     #token quote_mod:sym<x>  { <sym> }
     token quote_mod:sym<to> { <sym> }
@@ -2415,8 +2415,24 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     proto token quote { <...> }
     token quote:sym<apos>  { "'" ~ "'" <nibble(self.quote_lang(%*LANG<Q>, "'", "'", ['q']))> }
     token quote:sym<dblq>  { '"' ~ '"' <nibble(self.quote_lang(%*LANG<Q>, '"', '"', ['qq']))> }
-    token quote:sym<q>     { 'q'   >> <![(]> <.ws> <quote_EXPR: ':q'>  }
-    token quote:sym<qq>    { 'qq'  >> <![(]> <.ws> <quote_EXPR: ':qq'> }
+    token quote:sym<q> {
+        :my $qm;
+        'q'
+        [
+        | <quote_mod> » <!before '('> { $qm := $<quote_mod>.Str } <quibble(%*LANG<Q>, 'q', $qm)>
+        | » <!before '('> <.ws> <quibble(%*LANG<Q>, 'q')>
+        ]
+    }
+    token quote:sym<qq> {
+        :my $qm;
+        'qq'
+        [
+        | <quote_mod> » <!before '('> { $qm := $<quote_mod>.Str } <.ws> <quibble(%*LANG<Q>, 'qq', $qm)>
+        | » <!before '('> <.ws> <quibble(%*LANG<Q>, 'qq')>
+        ]
+    }
+    
+    # XXX These three go away for general forms soon...
     token quote:sym<qw>    { 'qw'  >> <![(]> <.ws> <quote_EXPR: ':q',':w'> }
     token quote:sym<qx>    { 'qx'  >> <![(]> <.ws> <quote_EXPR: ':q'>  }
     token quote:sym<qqx>   { 'qqx' >> <![(]> <.ws> <quote_EXPR: ':qq'> }
@@ -2429,8 +2445,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         | » <!before '('> <.ws> <quibble(%*LANG<Q>)>
         ]
     }
-
-    token quote:sym<Q:PIR> { 'Q:PIR'      <.ws> <quote_EXPR> }
+    token quote:sym<Q:PIR> { 'Q:PIR' <.ws> <quibble(%*LANG<Q>)> }
+    
     token quote:sym</null/> { '/' \s* '/' <.panic: "Null regex not allowed"> }
     token quote:sym</ />  { '/' :my %*RX; <p6regex=.LANG('Regex','nibbler')> '/' <.old_rx_mods>? }
     token quote:sym<rx>   {

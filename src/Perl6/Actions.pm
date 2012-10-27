@@ -4788,15 +4788,15 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
     method quote:sym<apos>($/) { make $<nibble>.ast; }
     method quote:sym<dblq>($/) { make $<nibble>.ast; }
-    method quote:sym<qq>($/)   { make $<quote_EXPR>.ast; }
+    method quote:sym<qq>($/)   { make $<quibble>.ast; }
     method quote:sym<qw>($/)   { make $<quote_EXPR>.ast; }
-    method quote:sym<q>($/)    { make $<quote_EXPR>.ast; }
+    method quote:sym<q>($/)    { make $<quibble>.ast; }
     method quote:sym<Q>($/)    { make $<quibble>.ast; }
     method quote:sym<Q:PIR>($/) {
         if $FORBID_PIR {
             nqp::die("Q:PIR forbidden in safe mode\n");
         }
-        my $pir := compile_time_value_str($<quote_EXPR>.ast, "Q:PIR", $/);
+        my $pir := compile_time_value_str($<quibble>.ast, "Q:PIR", $/);
         make QAST::VM.new( :pir($pir), :node($/) );
     }
     method quote:sym<qx>($/) {

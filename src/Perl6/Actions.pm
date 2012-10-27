@@ -5657,6 +5657,32 @@ class Perl6::Actions is HLL::Actions does STDActions {
 }
 
 class Perl6::QActions is HLL::Actions does STDActions {
+    method nibbler($/) {
+        my @asts;
+        my $lastlit := '';
+        
+        for @*nibbles {
+            if nqp::istype($_, NQPMatch) {
+                if $lastlit ne '' {
+                    @asts.push($*W.add_string_constant($lastlit));
+                    $lastlit := '';
+                }
+                @asts.push(QAST::Op.new( :op('callmethod'), :name('Stringy'), $_.ast ));
+            }
+            else {
+                $lastlit := $lastlit ~ $_;
+            }
+        }
+        if $lastlit ne '' || !@asts {
+            @asts.push($*W.add_string_constant($lastlit));
+        }
+        
+        my $past := @asts.shift();
+        for @asts {
+            $past := QAST::Op.new( :op('call'), :name('&infix:<~>'), $past, $_ );
+        }
+        make $past;
+    }
 }
 
 class Perl6::RegexActions is QRegex::P6Regex::Actions does STDActions {

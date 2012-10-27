@@ -43,11 +43,12 @@ role STD {
             nqp::join("\0", @keybits)
         }
         sub con_lang() {
-            my $lang := $start ne $stop ?? $l.balanced($start, $stop)
-                                        !! $l.unbalanced($stop);
+            my $lang := $l;
             for @base_tweaks {
                 $lang := $lang."tweak_$_"(1);
             }
+            $lang := $start ne $stop ?? $lang.balanced($start, $stop)
+                                     !! $lang.unbalanced($stop);
             for @extra_tweaks {
                 my $t := $_[0];
                 $lang := $lang."tweak_$t"($_[1]);

@@ -3002,7 +3002,182 @@ grammar Perl6::Grammar is HLL::Grammar {
 }
 
 grammar Perl6::QGrammar is HLL::Grammar {
+    role b1 {
+        token escape:sym<\\> { <sym> {} <item=.backslash> }
+        token backslash:sym<qq> { <?before 'q'> <quote=.LANG('MAIN','quote')> }
+        token backslash:sym<\\> { <text=.sym> }
+        token backslash:sym<stopper> { <text=.stopper> }
+        token backslash:sym<a> { <sym> }
+        token backslash:sym<b> { <sym> }
+        token backslash:sym<c> { <sym> <charspec> }
+        token backslash:sym<e> { <sym> }
+        token backslash:sym<f> { <sym> }
+        token backslash:sym<n> { <sym> }
+        token backslash:sym<o> { :dba('octal character') <sym> [ <octint> | '[' ~ ']' <octints> ] }
+        token backslash:sym<r> { <sym> }
+        token backslash:sym<t> { <sym> }
+        token backslash:sym<x> { :dba('hex character') <sym> [ <hexint> | '[' ~ ']' <hexints> ] }
+        token backslash:sym<0> { <sym> }
+    }
+
+    role b0 {
+        token escape:sym<\\> { <!> }
+    }
+
+    role c1 {
+        token escape:sym<{ }> { <?before '{'> <quote=.LANG('MAIN','block')> }
+    }
+
+    role c0 {
+        token escape:sym<{ }> { <!> }
+    }
+
+    role s1 {
+        token escape:sym<$> {
+            :my $*QSIGIL := '$';
+            <?before '$'>
+            [ <EXPR=.LANG('MAIN', 'EXPR', 'y=')> || <.panic: "Non-variable \$ must be backslashed"> ]
+        }
+    }
+
+    role s0 {
+        token escape:sym<$> { <!> }
+    }
+
+    role a1 {
+        token escape:sym<@> {
+            :my $*QSIGIL := '@';
+            <?before '@'>
+            <EXPR=.LANG('MAIN', 'EXPR', 'y=')>
+        }
+    }
+
+    role a0 {
+        token escape:sym<@> { <!> }
+    }
+
+    role h1 {
+        token escape:sym<%> {
+            :my $*QSIGIL := '%';
+            <?before '%'>
+            <EXPR=.LANG('MAIN', 'EXPR', 'y=')>
+        }
+    }
+
+    role h0 {
+        token escape:sym<%> { <!> }
+    }
+
+    role f1 {
+        token escape:sym<&> {
+            :my $*QSIGIL := '&';
+            <?before '&'>
+            <EXPR=.LANG('MAIN', 'EXPR', 'y=')>
+        }
+    }
+
+    role f0 {
+        token escape:sym<&> { <!> }
+    }
+
+    role p1 {
+        method postprocessor () { 'path' }
+    }
+
+    role p0 {
+        method postprocessor () { 'null' }
+    }
+
+    role v1 {
+        method postprocessor () { 'val' }
+    }
+
+    role v0 {
+        method postprocessor () { 'null' }
+    }
+
+    role w1 {
+        method postprocessor () { 'words' }
+    }
+
+    role w0 {
+        method postprocessor () { 'null' }
+    }
+
+    role ww1 {
+        method postprocessor () { 'quotewords' }
+    }
+
+    role ww0 {
+        method postprocessor () { 'null' }
+    }
+
+    role x1 {
+        method postprocessor () { 'run' }
+    }
+
+    role x0 {
+        method postprocessor () { 'null' }
+    }
+
+    role q {
+        token stopper { \' }
+
+        token escape:sym<\\> { <sym> <item=.backslash> }
+
+        token backslash:sym<qq> { <?before 'q'> <quote=.LANG('MAIN','quote')> }
+        token backslash:sym<\\> { <text=.sym> }
+        token backslash:sym<stopper> { <text=.stopper> }
+
+        token backslash:sym<miscq> { {} . }
+
+        multi method tweak_q($v) { self.panic("Too late for :q") }
+        multi method tweak_qq($v) { self.panic("Too late for :qq") }
+    }
+
+    role qq does b1 does c1 does s1 does a1 does h1 does f1 {
+        token stopper { \" }
+        token backslash:sym<misc> { {} [ (\W) | $<x>=(\w) <.sorry("Unrecognized backslash sequence: '\\" ~ $<x>.Str ~ "'")> ] }
+
+        multi method tweak_q($v) { self.panic("Too late for :q") }
+        multi method tweak_qq($v) { self.panic("Too late for :qq") }
+    }
     
+    method truly($bool, $opt) {
+        self.sorry("Cannot negate $opt adverb") unless $bool;
+        self;
+    }
+    
+    method tweak_q($v)          { self.truly($v, ':q'); self.HOW.mixin(self, Perl6::QGrammar::q) }
+    method tweak_single($v)     { self.tweak_q($v) }
+    method tweak_qq($v)         { self.truly($v, ':qq'); self.HOW.mixin(self, Perl6::QGrammar::qq); }
+    method tweak_double($v)     { self.tweak_qq($v) }
+
+    method tweak_b($v)          { self.HOW.mixin(self, $v ?? b1 !! b0) }
+    method tweak_backslash($v)  { self.tweak_b($v) }
+    method tweak_s($v)          { self.HOW.mixin(self, $v ?? s1 !! s0) }
+    method tweak_scalar($v)     { self.tweak_s($v) }
+    method tweak_a($v)          { self.HOW.mixin($v ?? a1 !! a0) }
+    method tweak_array($v)      { self.tweak_a($v) }
+    method tweak_h($v)          { self.HOW.mixin(self, $v ?? h1 !! h0) }
+    method tweak_hash($v)       { self.tweak_h($v) }
+    method tweak_f($v)          { self.HOW.mixin(self, $v ?? f1 !! f0) }
+    method tweak_function($v)   { self.tweak_f($v) }
+    method tweak_c($v)          { self.HOW.mixin(self, $v ?? c1 !! c0) }
+    method tweak_closure($v)    { self.tweak_c($v) }
+
+    method tweak_w($v)          { self.HOW.mixin($v ?? w1 !! w0) }
+    method tweak_words($v)      { self.tweak_w($v) }
+    method tweak_ww($v)         { self.HOW.mixin(self, $v ?? ww1 !! ww0) }
+    method tweak_quotewords($v) { self.tweak_ww($v) }
+
+    method tweak_to($v)         { self.truly($v, ':to'); self.cursor_herelang; }
+    method tweak_heredoc($v)    { self.tweak_to($v) }
+
+    method tweak_regex($v) {
+        self.truly($v, ':regex');
+        return %*LANG<Regex>;
+    }
 }
 
 grammar Perl6::RegexGrammar is QRegex::P6Regex::Grammar {

@@ -4787,7 +4787,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
 
     method quote:sym<apos>($/) { make $<nibble>.ast; }
-    method quote:sym<dblq>($/) { make $<quote_EXPR>.ast; }
+    method quote:sym<dblq>($/) { make $<nibble>.ast; }
     method quote:sym<qq>($/)   { make $<quote_EXPR>.ast; }
     method quote:sym<qw>($/)   { make $<quote_EXPR>.ast; }
     method quote:sym<q>($/)    { make $<quote_EXPR>.ast; }

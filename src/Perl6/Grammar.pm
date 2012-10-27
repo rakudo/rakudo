@@ -2413,7 +2413,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     proto token quote { <...> }
     token quote:sym<apos>  { "'" ~ "'" <nibble(self.quote_lang(%*LANG<Q>, "'", "'", ['q']))> }
-    token quote:sym<dblq>  { <?["]>                <quote_EXPR: ':qq'> }
+    token quote:sym<dblq>  { '"' ~ '"' <nibble(self.quote_lang(%*LANG<Q>, '"', '"', ['qq']))> }
     token quote:sym<q>     { 'q'   >> <![(]> <.ws> <quote_EXPR: ':q'>  }
     token quote:sym<qq>    { 'qq'  >> <![(]> <.ws> <quote_EXPR: ':qq'> }
     token quote:sym<qw>    { 'qw'  >> <![(]> <.ws> <quote_EXPR: ':q',':w'> }

@@ -30,10 +30,40 @@ role STD {
     #token starter { <!> }
     #token stopper { <!> }
     
-    my %babble_cache;
-    token babble ($l, *@base_tweaks) {
-        :my $start;
-        :my $stop;
+    my %quote_lang_cache;
+    method quote_lang($l, $start, $stop, @base_tweaks?, @extra_tweaks?) {
+        sub lang_key() {
+            my @keybits := [$l.HOW.name($l), $start, $stop];
+            for @base_tweaks {
+                @keybits.push($_);
+            }
+            for @extra_tweaks {
+                @keybits.push($_[0] ~ '=' ~ $_[1]);
+            }
+            nqp::join("\0", @keybits)
+        }
+        sub con_lang() {
+            my $lang := $start ne $stop ?? $l.balanced($start, $stop)
+                                        !! $l.unbalanced($stop);
+            for @base_tweaks {
+                $lang := $lang."tweak_$_"(1);
+            }
+            for @extra_tweaks {
+                my $t := $_[0];
+                $lang := $lang."tweak_$t"($_[1]);
+            }
+            $lang
+        }
+
+        # Get language from cache or derive it.
+        my $key := lang_key();
+        nqp::ifnull(%quote_lang_cache, %quote_lang_cache := nqp::hash());
+        nqp::existskey(%quote_lang_cache, $key)
+            ?? %quote_lang_cache{$key}
+            !! (%quote_lang_cache{$key} := con_lang());
+    }
+    
+    token babble($l, *@base_tweaks) {
         :my @extra_tweaks;
 
         <.ws>
@@ -47,41 +77,14 @@ role STD {
 
         $<B>=[<?>]
         {
-            sub babble_key() {
-                my @keybits := [$l.HOW.name($l), $start, $stop];
-                for @base_tweaks {
-                    @keybits.push($_);
-                }
-                for @extra_tweaks {
-                    @keybits.push($_[0] ~ '=' ~ $_[1]);
-                }
-                nqp::join("\0", @keybits)
-            }
-            sub babble_lang() {
-                my $lang := $start ne $stop ?? $l.balanced($start, $stop)
-                                            !! $l.unbalanced($stop);
-                for @base_tweaks {
-                    $lang := $lang."tweak_$_"(1);
-                }
-                for @extra_tweaks {
-                    my $t := $_[0];
-                    $lang := $lang."tweak_$t"($_[1]);
-                }
-                $lang
-            }
-            
             # Work out the delimeters.
             my $c := $/.CURSOR;
             my @delims := $c.peek_delimiters($c.target, $c.pos);
-            $start := @delims[0];
-            $stop  := @delims[1];
+            my $start := @delims[0];
+            my $stop  := @delims[1];
             
-            # See if we already cached this language.
-            my $key := babble_key();
-            nqp::ifnull(%babble_cache, %babble_cache := nqp::hash());
-            my $lang := nqp::existskey(%babble_cache, $key)
-                ?? %babble_cache{$key}
-                !! (%babble_cache{$key} := babble_lang());
+            # Get the language.
+            my $lang := self.quote_lang($l, $start, $stop, @base_tweaks, @extra_tweaks);
             $<B>.'!make'([$lang, $start, $stop]);
         }
     }

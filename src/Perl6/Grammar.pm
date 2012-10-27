@@ -2393,6 +2393,20 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             <.setup_quotepair>
         ]*
     }
+    
+    proto token quote_mod   {*}
+    token quote_mod:sym<w>  { <sym> }
+    token quote_mod:sym<ww> { <sym> }
+    # XXX uncomment these to when they get implemented
+    #token quote_mod:sym<p>  { <sym> }
+    #token quote_mod:sym<x>  { <sym> }
+    token quote_mod:sym<to> { <sym> }
+    token quote_mod:sym<s>  { <sym> }
+    token quote_mod:sym<a>  { <sym> }
+    token quote_mod:sym<h>  { <sym> }
+    token quote_mod:sym<f>  { <sym> }
+    token quote_mod:sym<c>  { <sym> }
+    token quote_mod:sym<b>  { <sym> }
 
     proto token quote { <...> }
     token quote:sym<apos>  { <?[']>                <quote_EXPR: ':q'>  }

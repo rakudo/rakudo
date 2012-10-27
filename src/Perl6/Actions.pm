@@ -5650,6 +5650,9 @@ class Perl6::Actions is HLL::Actions {
     }
 }
 
+class Perl6::QActions is HLL::Actions {
+}
+
 class Perl6::RegexActions is QRegex::P6Regex::Actions {
 
     method metachar:sym<:my>($/) {

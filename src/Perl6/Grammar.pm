@@ -13,6 +13,8 @@ grammar Perl6::Grammar is HLL::Grammar {
         %*LANG<Regex-actions>   := Perl6::RegexActions;
         %*LANG<P5Regex>         := QRegex::P5Regex::Grammar;
         %*LANG<P5Regex-actions> := Perl6::P5RegexActions;
+        %*LANG<Q>               := Perl6::QGrammar;
+        %*LANG<Q-actions>       := Perl6::QActions;
         %*LANG<MAIN>            := Perl6::Grammar;
         %*LANG<MAIN-actions>    := Perl6::Actions;
         
@@ -2997,6 +2999,10 @@ grammar Perl6::Grammar is HLL::Grammar {
         }
         self.O($desc)
     }
+}
+
+grammar Perl6::QGrammar is HLL::Grammar {
+    
 }
 
 grammar Perl6::RegexGrammar is QRegex::P6Regex::Grammar {

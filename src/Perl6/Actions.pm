@@ -5663,11 +5663,16 @@ class Perl6::QActions is HLL::Actions does STDActions {
         
         for @*nibbles {
             if nqp::istype($_, NQPMatch) {
-                if $lastlit ne '' {
-                    @asts.push($*W.add_string_constant($lastlit));
-                    $lastlit := '';
+                if nqp::istype($_.ast, QAST::Node) {
+                    if $lastlit ne '' {
+                        @asts.push($*W.add_string_constant($lastlit));
+                        $lastlit := '';
+                    }
+                    @asts.push(QAST::Op.new( :op('callmethod'), :name('Stringy'),  $_.ast ));
                 }
-                @asts.push(QAST::Op.new( :op('callmethod'), :name('Stringy'), $_.ast ));
+                else {
+                    $lastlit := $lastlit ~ $_.ast;
+                }
             }
             else {
                 $lastlit := $lastlit ~ $_;
@@ -5683,6 +5688,12 @@ class Perl6::QActions is HLL::Actions does STDActions {
         }
         make $past;
     }
+
+    method escape:sym<\\>($/) { make $<item>.ast; }
+    method backslash:sym<qq>($/) { make $<quote>.ast; }
+    method backslash:sym<\\>($/) { make $<text>.Str; }
+    method backslash:sym<stopper>($/) { make $<text>.Str; }
+    method backslash:sym<miscq>($/) { make '\\' ~ ~$/; }
 }
 
 class Perl6::RegexActions is QRegex::P6Regex::Actions does STDActions {

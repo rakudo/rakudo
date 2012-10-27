@@ -3272,28 +3272,28 @@ grammar Perl6::QGrammar is HLL::Grammar does STD {
             || <starter> <nibbler> <stopper>
                 {
                     my $c := $/.CURSOR;
-                    $to   := $c.pos;
+                    $to   := $<starter>[-1].from;
                     if $from != $to {
                         nqp::push(@*nibbles, nqp::substr($c.orig, $from, $to - $from));
                     }
 
-                    nqp::push(@*nibbles, $<starter>[-1]);
+                    nqp::push(@*nibbles, $<starter>[-1].Str);
                     nqp::push(@*nibbles, $<nibbler>[-1]);
-                    nqp::push(@*nibbles, $<stopper>[-1]);
+                    nqp::push(@*nibbles, $<stopper>[-1].Str);
 
-                    $from := $to;
+                    $from := $to := $c.pos;
                 }
             || <escape>
                 {
                     my $c := $/.CURSOR;
-                    $to   := $c.pos;
+                    $to   := $<escape>[-1].from;
                     if $from != $to {
                         nqp::push(@*nibbles, nqp::substr($c.orig, $from, $to - $from));
                     }
 
                     nqp::push(@*nibbles, $<escape>[-1]);
 
-                    $from := $to;
+                    $from := $to := $c.pos;
                 }
             || .
             ]

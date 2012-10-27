@@ -29,6 +29,59 @@ role STD {
     # XXX Can't do this until after quote refactor.
     #token starter { <!> }
     #token stopper { <!> }
+    
+    my %babble_cache;
+    token babble ($l, *@base_tweaks) {
+        :my $start;
+        :my $stop;
+        :my @extra_tweaks;
+
+        <.ws>
+        [ <quotepair> <.ws>
+            {
+                # ...
+                # @extra_tweaks.push([$key, $value]);
+                $/.CURSOR.panic("Quote pairs NYI");
+            }
+        ]*
+
+        $<B>=[<?>]
+        {
+            sub babble_key() {
+                my @keybits := [$l.HOW.name($l), $start, $stop];
+                for @base_tweaks {
+                    @keybits.push($_);
+                }
+                for @extra_tweaks {
+                    @keybits.push($_[0] ~ '=' ~ $_[1]);
+                }
+                nqp::join("\0", @keybits)
+            }
+            sub babble_lang() {
+                my $lang := $start ne $stop ?? $l.balanced($start, $stop)
+                                            !! $l.unbalanced($stop);
+                for @base_tweaks {
+                    $lang := $lang."tweak_$_"(1);
+                }
+                for @extra_tweaks {
+                    my $t := $_[0];
+                    $lang := $lang."tweak_$t"($_[1]);
+                }
+            }
+            
+            # Work out the delimeters.
+            my @delims := $/.CURSOR.peek_delimiters();
+            $start := @delims[0];
+            $stop  := @delims[1];
+            
+            # See if we already cached this language.
+            my $key := babble_key();
+            my $lang := nqp::existskey(%babble_cache, $key)
+                ?? %babble_cache{$key}
+                !! (%babble_cache{$key} := babble_lang());
+            $<B>.'!make'([$lang, $start, $stop]);
+        }
+    }
 }
 
 grammar Perl6::Grammar is HLL::Grammar does STD {

@@ -5694,6 +5694,61 @@ class Perl6::QActions is HLL::Actions does STDActions {
     method backslash:sym<\\>($/) { make $<text>.Str; }
     method backslash:sym<stopper>($/) { make $<text>.Str; }
     method backslash:sym<miscq>($/) { make '\\' ~ ~$/; }
+    method backslash:sym<misc>($/) { make ~$/; }
+    
+    method backslash:sym<a>($/) { make nqp::chr(7) }
+    method backslash:sym<b>($/) { make "\b" }
+    method backslash:sym<c>($/) { make $<charspec>.ast }
+    method backslash:sym<e>($/) { make "\c[27]" }
+    method backslash:sym<f>($/) { make "\c[12]" }
+    method backslash:sym<n>($/) { make "\n" }
+    method backslash:sym<o>($/) { make self.ints_to_string( $<octint> ?? $<octint> !! $<octints><octint> ) }
+    method backslash:sym<r>($/) { make "\r" }
+    method backslash:sym<t>($/) { make "\t" }
+    method backslash:sym<x>($/) { make self.ints_to_string( $<hexint> ?? $<hexint> !! $<hexints><hexint> ) }
+    method backslash:sym<0>($/) { make "\c[0]" }
+
+    method escape:sym<{ }>($/) {
+        make QAST::Op.new(
+            :op('callmethod'), :name('Stringy'),
+            QAST::Op.new(
+                :op('call'),
+                QAST::Op.new( :op('p6capturelex'), $<block>.ast ),
+                :node($/)));
+    }
+    
+    method escape:sym<$>($/) {
+        make steal_back_spaces($/, $<EXPR>.ast);
+    }
+    
+    method escape:sym<@>($/) {
+        make steal_back_spaces($/, $<EXPR>.ast);
+    }
+
+    method escape:sym<%>($/) {
+        make steal_back_spaces($/, $<EXPR>.ast);
+    }
+
+    method escape:sym<&>($/) {
+        make steal_back_spaces($/, $<EXPR>.ast);
+    }
+
+    # Unfortunately, the operator precedence parser (probably correctly)
+    # steals spaces after a postfixish. Thus "$a $b" would get messed up.
+    # Here we take them back again. Hacky, better solutions welcome.
+    sub steal_back_spaces($/, $expr) {
+        my $pos := nqp::chars($/) - 1;
+        while nqp::iscclass(32, $/, $pos) {
+            $pos--;
+        }
+        my $nab_back := nqp::substr($/, $pos + 1);
+        if $nab_back {
+            QAST::Op.new( :op('call'), :name('&infix:<~>'), $expr, $*W.add_string_constant(~$nab_back) )
+        }
+        else {
+            $expr
+        }
+    }
 }
 
 class Perl6::RegexActions is QRegex::P6Regex::Actions does STDActions {

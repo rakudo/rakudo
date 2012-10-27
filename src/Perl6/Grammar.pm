@@ -3155,7 +3155,7 @@ grammar Perl6::QGrammar is HLL::Grammar does STD {
     }
 
     role c1 {
-        token escape:sym<{ }> { <?before '{'> <quote=.LANG('MAIN','block')> }
+        token escape:sym<{ }> { <?before '{'> <block=.LANG('MAIN','block')> }
     }
 
     role c0 {

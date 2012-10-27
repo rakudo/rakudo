@@ -6,7 +6,13 @@ use Perl6::Ops;
 use QRegex;
 use QAST;
 
-class Perl6::Actions is HLL::Actions {
+role STDActions {
+    method quibble($/) {
+        make $<nibble>.ast;
+    }
+}
+
+class Perl6::Actions is HLL::Actions does STDActions {
     our @MAX_PERL_VERSION;
 
     our $FORBID_PIR;
@@ -5650,10 +5656,10 @@ class Perl6::Actions is HLL::Actions {
     }
 }
 
-class Perl6::QActions is HLL::Actions {
+class Perl6::QActions is HLL::Actions does STDActions {
 }
 
-class Perl6::RegexActions is QRegex::P6Regex::Actions {
+class Perl6::RegexActions is QRegex::P6Regex::Actions does STDActions {
 
     method metachar:sym<:my>($/) {
         my $past := $<statement>.ast;

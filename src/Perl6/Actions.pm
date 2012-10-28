@@ -4954,14 +4954,6 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 QAST::Op.new( :op('p6capturelex'), $<block>.ast ),
                 :node($/)));
     }
-    
-    method quote_escape:sym<' '>($/) { make mark_ww_atom($<quote_EXPR>.ast); }
-    method quote_escape:sym<" ">($/) { make mark_ww_atom($<quote_EXPR>.ast); }
-    method quote_escape:sym<colonpair>($/) { make mark_ww_atom($<colonpair>.ast); }
-    sub mark_ww_atom($ast) {
-        $ast<ww_atom> := 1;
-        $ast;
-    }
 
     # overrides versions from HLL::Actions to use Perl 6 Str type
     # and use &infix:<,> to build the parcel
@@ -5657,7 +5649,9 @@ class Perl6::QActions is HLL::Actions does STDActions {
                         @asts.push($*W.add_string_constant($lastlit));
                         $lastlit := '';
                     }
-                    @asts.push(QAST::Op.new( :op('callmethod'), :name('Stringy'),  $_.ast ));
+                    @asts.push($_.ast<ww_atom>
+                        ?? $_.ast
+                        !! QAST::Op.new( :op('callmethod'), :name('Stringy'),  $_.ast ));
                 }
                 else {
                     $lastlit := $lastlit ~ $_.ast;
@@ -5712,8 +5706,21 @@ class Perl6::QActions is HLL::Actions does STDActions {
     }
     
     method postprocess_quotewords($/, $past) {
-        # XXX Move real implementation to here...
-        self.postprocess_words($/, $past)
+        sub walk($node) {
+            if nqp::istype($node, QAST::Op) && $node.name eq '&infix:<~>' {
+                $node.name('&infix:<,>');
+                $node[0] := walk($node[0]);
+                $node[1] := walk($node[1]);
+                return $node;
+            }
+            elsif $node<ww_atom> {
+                return $node;
+            }
+            else {
+                return self.postprocess_words($/, $node);
+            }
+        }
+        walk($past)
     }
 
     method escape:sym<\\>($/) { make $<item>.ast; }
@@ -5775,6 +5782,14 @@ class Perl6::QActions is HLL::Actions does STDActions {
         else {
             $expr
         }
+    }
+
+    method escape:sym<' '>($/) { make mark_ww_atom($<quote>.ast); }
+    method escape:sym<" ">($/) { make mark_ww_atom($<quote>.ast); }
+    method escape:sym<colonpair>($/) { make mark_ww_atom($<colonpair>.ast); }
+    sub mark_ww_atom($ast) {
+        $ast<ww_atom> := 1;
+        $ast;
     }
 }
 

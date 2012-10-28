@@ -2562,16 +2562,6 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
 
     token quote_escape:sym<{ }> { <?[{]> <?quotemod_check('c')> <block> }
-    
-    token quote_escape:sym<' '> {
-        <?[']> <?quotemod_check('ww')> <quote_EXPR: ':q'>
-    }
-    token quote_escape:sym<" "> {
-        <?["]> <?quotemod_check('ww')> <quote_EXPR: ':qq'>
-    }
-    token quote_escape:sym<colonpair> {
-        <?[:]> <?quotemod_check('ww')> <colonpair>
-    }
 
     token circumfix:sym<( )> { :dba('parenthesized expression') '(' ~ ')' <semilist> }
     token circumfix:sym<[ ]> { :dba('array composer') '[' ~ ']' <semilist> }
@@ -3272,6 +3262,15 @@ grammar Perl6::QGrammar is HLL::Grammar does STD {
 
     role ww1 {
         method postprocessor () { 'quotewords' }
+        token escape:sym<' '> {
+            <?[']> <quote=.LANG('MAIN','quote')>
+        }
+        token escape:sym<" "> {
+            <?["]> <quote=.LANG('MAIN','quote')>
+        }
+        token escape:sym<colonpair> {
+            <?[:]> <colonpair=.LANG('MAIN','colonpair')>
+        }
     }
 
     role ww0 {

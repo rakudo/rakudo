@@ -5686,7 +5686,17 @@ class Perl6::QActions is HLL::Actions does STDActions {
         for @asts {
             $past := QAST::Op.new( :op('call'), :name('&infix:<~>'), $past, $_ );
         }
+        
+        if nqp::can($/.CURSOR, 'postprocessor') {
+            my $pp := $/.CURSOR.postprocessor;
+            $past := self."postprocess_$pp"($past);
+        }
+        
         make $past;
+    }
+    
+    method postprocess_null($past) {
+        $past
     }
 
     method escape:sym<\\>($/) { make $<item>.ast; }

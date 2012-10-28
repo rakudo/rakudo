@@ -2426,7 +2426,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     #token quote_mod:sym<w>  { <sym> }
     #token quote_mod:sym<ww> { <sym> }
     #token quote_mod:sym<p>  { <sym> }
-    #token quote_mod:sym<x>  { <sym> }
+    token quote_mod:sym<x>  { <sym> }
     token quote_mod:sym<to> { <sym> }
     token quote_mod:sym<s>  { <sym> }
     token quote_mod:sym<a>  { <sym> }
@@ -2455,10 +2455,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         ]
     }
     
-    # XXX These three go away for general forms soon...
+    # XXX This goes away for general form soon...
     token quote:sym<qw>    { 'qw'  >> <![(]> <.ws> <quote_EXPR: ':q',':w'> }
-    token quote:sym<qx>    { 'qx'  >> <![(]> <.ws> <quote_EXPR: ':q'>  }
-    token quote:sym<qqx>   { 'qqx' >> <![(]> <.ws> <quote_EXPR: ':qq'> }
     
     token quote:sym<Q> {
         :my $qm;
@@ -3377,7 +3375,7 @@ grammar Perl6::QGrammar is HLL::Grammar does STD {
     method tweak_backslash($v)  { self.tweak_b($v) }
     method tweak_s($v)          { self.HOW.mixin(self, $v ?? s1 !! s0) }
     method tweak_scalar($v)     { self.tweak_s($v) }
-    method tweak_a($v)          { self.HOW.mixin($v ?? a1 !! a0) }
+    method tweak_a($v)          { self.HOW.mixin(self, $v ?? a1 !! a0) }
     method tweak_array($v)      { self.tweak_a($v) }
     method tweak_h($v)          { self.HOW.mixin(self, $v ?? h1 !! h0) }
     method tweak_hash($v)       { self.tweak_h($v) }
@@ -3386,7 +3384,9 @@ grammar Perl6::QGrammar is HLL::Grammar does STD {
     method tweak_c($v)          { self.HOW.mixin(self, $v ?? c1 !! c0) }
     method tweak_closure($v)    { self.tweak_c($v) }
 
-    method tweak_w($v)          { self.HOW.mixin($v ?? w1 !! w0) }
+    method tweak_x($v)          { self.HOW.mixin(self, $v ?? x1 !! x0) }
+    method tweak_exec($v)       { self.tweak_x($v) }
+    method tweak_w($v)          { self.HOW.mixin(self, $v ?? w1 !! w0) }
     method tweak_words($v)      { self.tweak_w($v) }
     method tweak_ww($v)         { self.HOW.mixin(self, $v ?? ww1 !! ww0) }
     method tweak_quotewords($v) { self.tweak_ww($v) }

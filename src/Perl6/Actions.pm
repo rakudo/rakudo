@@ -4799,16 +4799,6 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my $pir := compile_time_value_str($<quibble>.ast, "Q:PIR", $/);
         make QAST::VM.new( :pir($pir), :node($/) );
     }
-    method quote:sym<qx>($/) {
-        make QAST::Op.new( :name('&QX'), :op('call'),
-            $<quote_EXPR>.ast
-        );
-    }
-    method quote:sym<qqx>($/)  {
-        make QAST::Op.new( :name('&QX'), :op('call'),
-            $<quote_EXPR>.ast
-        );
-    }
     method quote:sym</ />($/) {
         my %sig_info := hash(parameters => []);
         my $block := QAST::Block.new(QAST::Stmts.new, QAST::Stmts.new, :node($/));
@@ -5689,14 +5679,18 @@ class Perl6::QActions is HLL::Actions does STDActions {
         
         if nqp::can($/.CURSOR, 'postprocessor') {
             my $pp := $/.CURSOR.postprocessor;
-            $past := self."postprocess_$pp"($past);
+            $past := self."postprocess_$pp"($/, $past);
         }
         
         make $past;
     }
     
-    method postprocess_null($past) {
+    method postprocess_null($/, $past) {
         $past
+    }
+    
+    method postprocess_run($/, $past) {
+        QAST::Op.new( :name('&QX'), :op('call'), :node($/), $past )
     }
 
     method escape:sym<\\>($/) { make $<item>.ast; }

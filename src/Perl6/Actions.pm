@@ -153,8 +153,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
             if $<colonpair>[0]<identifier> {
                 $name := $name ~ ~$<colonpair>[0]<identifier>;
             }
-            if $<colonpair>[0]<circumfix> {
-                $name := $name ~ '<' ~ ~$<colonpair>[0]<circumfix><quote_EXPR><quote_delimited><quote_atom>[0] ~ '>';
+            if $<colonpair>[0]<circumfix><nibble> -> $op_name {
+                $name := $name ~ '<' ~ $*W.colonpair_nibble_to_str($/, $op_name) ~ '>';
             }
             make $name;
         }
@@ -3798,11 +3798,11 @@ class Perl6::Actions is HLL::Actions does STDActions {
         make $past;
     }
 
-    method circumfix:sym<ang>($/) { make $<quote_EXPR>.ast; }
+    method circumfix:sym<ang>($/) { make $<nibble>.ast; }
 
-    method circumfix:sym«<< >>»($/) { make $<quote_EXPR>.ast; }
+    method circumfix:sym«<< >>»($/) { make $<nibble>.ast; }
     
-    method circumfix:sym<« »>($/) { make $<quote_EXPR>.ast; }
+    method circumfix:sym<« »>($/) { make $<nibble>.ast; }
 
     method circumfix:sym<{ }>($/) {
         # If it was {YOU_ARE_HERE}, nothing to do here.
@@ -5701,11 +5701,19 @@ class Perl6::QActions is HLL::Actions does STDActions {
                 for @words { $past.push($*W.add_string_constant(~$_)); }
                 $past := QAST::Stmts.new($past);
             }
+            else {
+                $past := $*W.add_string_constant(~@words[0]);
+            }
         }
         else {
             $past := QAST::Op.new( :op('callmethod'), :name('words'), :node($/), $past );
         }
         return $past;
+    }
+    
+    method postprocess_quotewords($/, $past) {
+        # XXX Move real implementation to here...
+        self.postprocess_words($/, $past)
     }
 
     method escape:sym<\\>($/) { make $<item>.ast; }

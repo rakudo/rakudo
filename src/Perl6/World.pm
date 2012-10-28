@@ -1187,6 +1187,28 @@ class Perl6::World is HLL::World {
     method p6ize_recursive($data) {
         p6ize_recursive($data)
     }
+    
+    method colonpair_nibble_to_str($/, $nibble) {
+        my $ast := $nibble.ast;
+        if $ast.has_compile_time_value {
+            return nqp::unbox_s($ast.compile_time_value);
+        }
+        elsif nqp::istype($ast[0], QAST::Op) && $ast[0].name eq '&infix:<,>' {
+            my @pieces;
+            for @($ast[0]) {
+                if $_.has_compile_time_value {
+                    nqp::push(@pieces, nqp::unbox_s($_.compile_time_value));
+                }
+                else {
+                    $/.CURSOR.panic("Colon pair value '$nibble' too complex to use in name");
+                }
+            }
+            return nqp::join(' ', @pieces);
+        }
+        else {
+            $/.CURSOR.panic("Colon pair value '$nibble' too complex to use in name");
+        }
+    }
 
     # Creates a meta-object for a package, adds it to the root objects and
     # returns the created object.

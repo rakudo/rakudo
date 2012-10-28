@@ -1824,11 +1824,11 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <.attach_docs>
         <deflongname>?
         {
-            if $<deflongname> && $<deflongname>[0]<colonpair> {
+            if $<deflongname> && $<deflongname>[0]<colonpair>[0]<circumfix><nibble> -> $cp {
                 # It's an (potentially new) operator, circumfix, etc. that we
                 # need to tweak into the grammar.
                 my $category := $<deflongname>[0]<name>.Str;
-                my $opname := ~$<deflongname>[0]<colonpair>[0]<circumfix><quote_EXPR><quote_delimited><quote_atom>[0];
+                my $opname := $*W.colonpair_nibble_to_str($/, $cp);
                 my $canname := $category ~ ":sym<" ~ $opname ~ ">";
                 $/.CURSOR.add_categorical($category, $opname, $canname, $<deflongname>[0].ast, $*DECLARAND);
             }
@@ -1883,11 +1883,11 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <.attach_docs>
         <deflongname>?
         {
-            if $<deflongname> && $<deflongname>[0]<colonpair> {
+            if $<deflongname> && $<deflongname>[0]<colonpair>[0]<circumfix><nibble> -> $cp {
                 # It's an (potentially new) operator, circumfix, etc. that we
                 # need to tweak into the grammar.
                 my $category := $<deflongname>[0]<name>.Str;
-                my $opname := ~$<deflongname>[0]<colonpair>[0]<circumfix><quote_EXPR><quote_delimited><quote_atom>[0];
+                my $opname := $*W.colonpair_nibble_to_str($/, $cp);
                 my $canname := $category ~ ":sym<" ~ $opname ~ ">";
                 $/.CURSOR.add_categorical($category, $opname, $canname, $<deflongname>[0].ast, $*DECLARAND);
             }
@@ -2576,13 +2576,15 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token circumfix:sym<( )> { :dba('parenthesized expression') '(' ~ ')' <semilist> }
     token circumfix:sym<[ ]> { :dba('array composer') '[' ~ ']' <semilist> }
     token circumfix:sym<ang> {
-        <?[<]>
-        [ <?before '<STDIN>' > <.obs('<STDIN>', '$*IN.lines (or add whitespace to suppress warning)')> ]?
-        [ <?before '<>' > <.obs('<>', 'lines() to read input, (\'\') to represent a null string or () to represent an empty list')> ]?
-        <quote_EXPR: ':q', ':w'>
+        '<' ~ '>'
+        [
+            [ <?before 'STDIN>' > <.obs('<STDIN>', '$*IN.lines (or add whitespace to suppress warning)')> ]?
+            [ <?before '>' > <.obs('<>', 'lines() to read input, (\'\') to represent a null string or () to represent an empty list')> ]?
+            <nibble(self.quote_lang(%*LANG<Q>, "<", ">", ['q', 'w']))>
+        ]
     }
-    token circumfix:sym«<< >>» { <?before '<<'>  <quote_EXPR: ':qq', ':ww'> }
-    token circumfix:sym<« »> { <?[«]>  <quote_EXPR: ':qq', ':ww'> }
+    token circumfix:sym«<< >>» { '<<' ~ '>>' <nibble(self.quote_lang(%*LANG<Q>, "<<", ">>", ['qq', 'ww']))> }
+    token circumfix:sym<« »> { '«' ~ '»' <nibble(self.quote_lang(%*LANG<Q>, "«", "»", ['qq', 'ww']))> }
     token circumfix:sym<{ }> { <?[{]> <pblock(1)> }
     token circumfix:sym<sigil> {
         :dba('contextualizer')

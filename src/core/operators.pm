@@ -288,6 +288,14 @@ sub REQUIRE_IMPORT($package-name, *@syms) {
     }
     $package
 }
+sub infix:<andthen>(*@a) {
+    my Mu $current := @a.shift;
+    for @a {
+        return $current unless $current.defined;
+        $current := .count ?? $_(|$current) !! $_();
+    }
+    $current;
+}
 
 # We attach precedence information to all operators here. This is instead of
 # putting the traits directly on the op bodies, since some of the things that

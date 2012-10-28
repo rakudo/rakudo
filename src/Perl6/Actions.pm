@@ -3924,6 +3924,10 @@ class Perl6::Actions is HLL::Actions {
             make xx_op($/, $/[0].ast, $/[1].ast);
             return 1;
         }
+        elsif !$past && $sym eq 'andthen' {
+            make andthen_op($/);
+            return 1;
+        }
         unless $past {
             if $<OPER><O><pasttype> {
                 $past := QAST::Op.new( :node($/), :op( ~$<OPER><O><pasttype> ) );
@@ -4243,6 +4247,28 @@ class Perl6::Actions is HLL::Actions {
             block_closure(make_thunk_ref($lhs, $/)),
             $rhs,
             QAST::Op.new( :op('p6bool'), QAST::IVal.new( :value(1) ), :named('thunked') ))
+    }
+
+    sub andthen_op($/) {
+        my $past := QAST::Op.new(
+            :op('call'),
+            :name('&infix:<andthen>'),
+            # don't need to thunk the first operand
+            $/[0].ast,
+        );
+        my int $i := 1;
+        my int $e := +@($/);
+        while ($i < $e) {
+            my $ast := $/[$i].ast;
+            if $ast<past_block> {
+                $past.push($ast);
+            }
+            else {
+                $past.push(block_closure(make_thunk_ref($ast, $/[$i]))),
+            }
+            $i++;
+        }
+        $past;
     }
     
     sub flipflop($lhs, $rhs, $min_excl, $max_excl, $one_only) {

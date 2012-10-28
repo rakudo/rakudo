@@ -2866,6 +2866,7 @@ grammar Perl6::Grammar is HLL::Grammar {
     }
 
     token infix:sym<and>  { <sym> >> <O('%loose_and, :pasttype<if>')> }
+    token infix:sym<andthen> { <sym> >> <O('%loose_and, :assoc<list>')> }
 
     token infix:sym<or>   { <sym> >> <O('%loose_or, :assoc<left>, :pasttype<unless>')> }
     token infix:sym<xor>  { <sym> >> <O('%loose_or, :pasttype<xor>')> }

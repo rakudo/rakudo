@@ -4789,7 +4789,6 @@ class Perl6::Actions is HLL::Actions does STDActions {
     method quote:sym<apos>($/) { make $<nibble>.ast; }
     method quote:sym<dblq>($/) { make $<nibble>.ast; }
     method quote:sym<qq>($/)   { make $<quibble>.ast; }
-    method quote:sym<qw>($/)   { make $<quote_EXPR>.ast; }
     method quote:sym<q>($/)    { make $<quibble>.ast; }
     method quote:sym<Q>($/)    { make $<quibble>.ast; }
     method quote:sym<Q:PIR>($/) {
@@ -5691,6 +5690,22 @@ class Perl6::QActions is HLL::Actions does STDActions {
     
     method postprocess_run($/, $past) {
         QAST::Op.new( :name('&QX'), :op('call'), :node($/), $past )
+    }
+    
+    method postprocess_words($/, $past) {
+        if $past.has_compile_time_value {
+            my @words := HLL::Grammar::split_words($/,
+                nqp::unbox_s($past.compile_time_value));
+            if +@words != 1 {
+                $past := QAST::Op.new( :op('call'), :name('&infix:<,>'), :node($/) );
+                for @words { $past.push($*W.add_string_constant(~$_)); }
+                $past := QAST::Stmts.new($past);
+            }
+        }
+        else {
+            $past := QAST::Op.new( :op('callmethod'), :name('words'), :node($/), $past );
+        }
+        return $past;
     }
 
     method escape:sym<\\>($/) { make $<item>.ast; }

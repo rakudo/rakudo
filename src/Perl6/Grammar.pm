@@ -2422,8 +2422,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
     
     proto token quote_mod   {*}
-    # XXX uncomment these to when they get implemented
-    #token quote_mod:sym<w>  { <sym> }
+    token quote_mod:sym<w>  { <sym> }
+    # XXX uncomment these two when they get implemented
     #token quote_mod:sym<ww> { <sym> }
     #token quote_mod:sym<p>  { <sym> }
     token quote_mod:sym<x>  { <sym> }
@@ -2454,10 +2454,6 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         | » <!before '('> <.ws> <quibble(%*LANG<Q>, 'qq')>
         ]
     }
-    
-    # XXX This goes away for general form soon...
-    token quote:sym<qw>    { 'qw'  >> <![(]> <.ws> <quote_EXPR: ':q',':w'> }
-    
     token quote:sym<Q> {
         :my $qm;
         'Q'

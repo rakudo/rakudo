@@ -248,9 +248,13 @@ my class IO::Path is Cool does IO::FileTestable {
     has Str $.basename;
     has Str $.directory = '.';
 
-    # just for backwards compatiblity
-    method dir() { $!directory }
-    submethod BUILD(:$!basename, :dir(:$!directory)) { }
+    method dir() {
+        die "IO::Path.dir is deprecated in favor of .directory";
+    }
+    submethod BUILD(:$!basename, :$!directory, :$dir) {
+        die "Named paramter :dir in IO::Path.new deprecated in favor of :directory"
+            if defined $dir;
+    }
 
     multi method new(Str:D $path) {
         my @chunks    = $path.split('/');
@@ -276,7 +280,7 @@ my class IO::Path is Cool does IO::FileTestable {
     }
 
     method path(IO::Path:D:) {
-        $.dir eq '.' ?? $.basename !! join('/', $.dir, $.basename);
+        $.directory eq '.' ?? $.basename !! join('/', $.directory, $.basename);
     }
 
     method IO(IO::Path:D:) {
@@ -299,7 +303,7 @@ sub dir(Cool $path = '.', Mu :$test = none('.', '..')) {
 			nqp::atpos_s($RSA, $i),
 			pir::find_encoding__Is('utf8')));
         if $file ~~ $test {
-            @res.push: IO::Path.new(:basename($file), :dir($path.Str));
+            @res.push: IO::Path.new(:basename($file), :directory($path.Str));
         }
     }
     return @res.list;

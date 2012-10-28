@@ -5012,43 +5012,6 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
         make $past;
     }
-    
-    sub quote_words($/) {
-        my @parts;
-        my str $lastlit := '';
-        for $<quote_atom> {
-            my $ast := $_.ast;
-            if !($ast ~~ QAST::Node) {
-                $lastlit := $lastlit ~ $ast;
-            }
-            elsif $ast.isa(QAST::SVal) {
-                $lastlit := $lastlit ~ $ast.value;
-            }
-            else {
-                if $lastlit gt '' {
-                    for HLL::Grammar::split_words($/, $lastlit) {
-                        @parts.push($*W.add_string_constant($_));
-                    }
-                }
-                $lastlit := '';
-                if $ast<ww_atom> {
-                    @parts.push($ast);
-                }
-                else {
-                    @parts.push(QAST::Op.new(
-                        :op('callmethod'), :name('words'),
-                        QAST::Op.new( :op('callmethod'), :name('Stringy'), $ast )
-                    ));
-                }
-            }
-        }
-        if $lastlit gt '' || !@parts {
-            for HLL::Grammar::split_words($/, $lastlit) {
-                @parts.push($*W.add_string_constant($_));
-            }
-        }
-        make QAST::Op.new( :op('call'), :name('&infix:<,>'), |@parts );
-    }
 
     # Adds code to do the signature binding.
     sub add_signature_binding_code($block, $sig_obj, @params) {

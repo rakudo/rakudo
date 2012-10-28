@@ -2822,7 +2822,13 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
 
     token postcircumfix:sym<ang> {
-        <?[<]> <quote_EXPR: ':q', ':w'>
+        '<'
+        [
+        || <nibble(self.quote_lang(%*LANG<Q>, "<", ">", ['q', 'w']))> '>'
+        || <?before \h* [ \d | <sigil> | ':' ] >
+           { $/.CURSOR.panic("Whitespace required before < operator") }
+        || { $/.CURSOR.panic("Unable to parse quote-words subscript; couldn't find right angle quote") }
+        ]
         <O('%methodcall')>
     }
 

@@ -4539,8 +4539,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
     method postcircumfix:sym<ang>($/) {
         my $past := QAST::Op.new( :name('postcircumfix:<{ }>'), :op('callmethod'), :node($/) );
-        $past.push( $<quote_EXPR>.ast )
-            if +$<quote_EXPR><quote_delimited><quote_atom> > 0;
+        my $nib  := $<nibble>.ast;
+        $past.push($nib)
+            unless nqp::istype($nib, QAST::Stmts) && nqp::istype($nib[0], QAST::Op) &&
+            $nib[0].name eq '&infix:<,>' && +@($nib[0]) == 0;
         make $past;
     }
 

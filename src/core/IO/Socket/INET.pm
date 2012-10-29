@@ -108,7 +108,7 @@ my class IO::Socket::INET does IO::Socket {
     method accept() {
         #my $new_sock := nqp::create($?CLASS);
         ## A solution as proposed by moritz
-        my $new_sock := $?CLASS.bless(*, :$!family, :$!proto, :$!type);
+        my $new_sock := $?CLASS.bless(*, :$!family, :$!proto, :$!type, :$!input-line-separator);
         nqp::getattr($new_sock, $?CLASS, '$!buffer') = '';
         nqp::bindattr($new_sock, $?CLASS, '$!PIO', nqp::getattr(self, $?CLASS, '$!PIO').accept());
         return $new_sock;

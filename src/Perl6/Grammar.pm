@@ -3315,10 +3315,13 @@ grammar Perl6::QGrammar is HLL::Grammar does STD {
     }
     
     token nibbler {
+        :my @*nibbles;
+        <.do_nibbling>
+    }
+    
+    token do_nibbling {
         :my $from := self.pos;
         :my $to   := $from;
-        :my @*nibbles;
-        
         [
             <!before <stopper> >
             [

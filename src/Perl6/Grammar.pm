@@ -2471,7 +2471,11 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token quote:sym<Q:PIR> { 'Q:PIR' <.ws> <quibble(%*LANG<Q>)> }
     
     token quote:sym</null/> { '/' \s* '/' <.panic: "Null regex not allowed"> }
-    token quote:sym</ />  { '/' :my %*RX; <p6regex=.LANG('Regex','nibbler')> '/' <.old_rx_mods>? }
+    token quote:sym</ />  {
+        :my %*RX;
+        '/' <nibble(self.quote_lang(%*LANG<Regex>, '/', '/'))> [ '/' || <.panic: "Unable to parse regex; couldn't find final '/'"> ]
+        <.old_rx_mods>?
+    }
     token quote:sym<rx>   {
         <sym> >> 
         :my %*RX;
@@ -3413,6 +3417,11 @@ grammar Perl6::QGrammar is HLL::Grammar does STD {
 }
 
 grammar Perl6::RegexGrammar is QRegex::P6Regex::Grammar does STD {
+    token rxstopper {
+        | <[ / } ]> # XXX shouldn't be needed in the long run...
+        | <stopper>
+    }
+    
     token metachar:sym<:my> {
         ':' <?before 'my'|'constant'|'state'|'our'> <statement=.LANG('MAIN', 'statement')> <.ws> ';'
     }

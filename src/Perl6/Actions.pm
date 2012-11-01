@@ -4804,7 +4804,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my %sig_info := hash(parameters => []);
         my $block := QAST::Block.new(QAST::Stmts.new, QAST::Stmts.new, :node($/));
         my $coderef := regex_coderef($/, $*W.stub_code_object('Regex'),
-            $<p6regex>.ast, 'anon', '', %sig_info, $block, :use_outer_match(1));
+            $<nibble>.ast, 'anon', '', %sig_info, $block, :use_outer_match(1));
         # Return closure if not in sink context.
         my $closure := block_closure($coderef);
         $closure<sink_past> := QAST::Op.new( :op('null') );

@@ -3436,7 +3436,7 @@ grammar Perl6::RegexGrammar is QRegex::P6Regex::Grammar does STD {
 
     token metachar:sym<qw> {
         <?before '<' \s >  # (note required whitespace)
-        <quote_EXPR: ':q', ':w'>
+        '<' <nibble(self.quote_lang(%*LANG<Q>, "<", ">", ['q', 'w']))> '>'
     }
     
     token metachar:sym<'> { <?[']> <quote=.LANG('MAIN','quote')> }

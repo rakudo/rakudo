@@ -2480,10 +2480,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <sym> >> 
         :my %*RX;
         <rx_adverbs>
-        [
-        | '/'<p6regex=.LANG(%*RX<P5> ?? 'P5Regex' !! 'Regex','nibbler')>'/' <.old_rx_mods>?
-        | '{'<p6regex=.LANG(%*RX<P5> ?? 'P5Regex' !! 'Regex','nibbler')>'}' <.old_rx_mods>?
-        ]
+        <quibble(%*RX<P5> ?? %*LANG<P5Regex> !! %*LANG<Regex>)>
+        <!old_rx_mods>
     }
 
     token quote:sym<m> {
@@ -2491,10 +2489,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my %*RX;
         { %*RX<s> := 1 if $/[0] }
         <rx_adverbs>
-        [
-        | '/'<p6regex=.LANG(%*RX<P5> ?? 'P5Regex' !! 'Regex','nibbler')>'/' <.old_rx_mods>?
-        | '{'<p6regex=.LANG(%*RX<P5> ?? 'P5Regex' !! 'Regex','nibbler')>'}'
-        ]
+        <quibble(%*RX<P5> ?? %*LANG<P5Regex> !! %*LANG<Regex>)>
+        <!old_rx_mods>
     }
 
     token quote:sym<qr> {

@@ -4816,14 +4816,14 @@ class Perl6::Actions is HLL::Actions does STDActions {
         self.handle_and_check_adverbs($/, %SHARED_ALLOWED_ADVERBS, 'rx', $block);
         my %sig_info := hash(parameters => []);
         my $coderef := regex_coderef($/, $*W.stub_code_object('Regex'),
-            $<p6regex>.ast, 'anon', '', %sig_info, $block, :use_outer_match(1));
+            $<quibble>.ast, 'anon', '', %sig_info, $block, :use_outer_match(1));
         make block_closure($coderef);
     }
     method quote:sym<m>($/) {
         my $block := QAST::Block.new(QAST::Stmts.new, QAST::Stmts.new, :node($/));
         my %sig_info := hash(parameters => []);
         my $coderef := regex_coderef($/, $*W.stub_code_object('Regex'),
-            $<p6regex>.ast, 'anon', '', %sig_info, $block, :use_outer_match(1));
+            $<quibble>.ast, 'anon', '', %sig_info, $block, :use_outer_match(1));
 
         my $past := QAST::Op.new(
             :node($/),

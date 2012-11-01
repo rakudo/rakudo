@@ -5,14 +5,163 @@ use Perl6::Actions;
 use Perl6::World;
 use Perl6::Pod;
 
-grammar Perl6::Grammar is HLL::Grammar {
+role startstop[$start, $stop] {
+    token starter { $start }
+    token stopper { $stop }
+}
+
+role stop[$stop] {
+    token starter { <!> }
+    token stopper { $stop }
+}
+
+# This role captures things that STD factors out from any individual grammar,
+# but that don't make sense to go in HLL::Grammar.
+role STD {
+    token opener {
+        <[
+        \x0028 \x003C \x005B \x007B \x00AB \x0F3A \x0F3C \x169B \x2018 \x201A \x201B
+        \x201C \x201E \x201F \x2039 \x2045 \x207D \x208D \x2208 \x2209 \x220A \x2215
+        \x223C \x2243 \x2252 \x2254 \x2264 \x2266 \x2268 \x226A \x226E \x2270 \x2272
+        \x2274 \x2276 \x2278 \x227A \x227C \x227E \x2280 \x2282 \x2284 \x2286 \x2288
+        \x228A \x228F \x2291 \x2298 \x22A2 \x22A6 \x22A8 \x22A9 \x22AB \x22B0 \x22B2
+        \x22B4 \x22B6 \x22C9 \x22CB \x22D0 \x22D6 \x22D8 \x22DA \x22DC \x22DE \x22E0
+        \x22E2 \x22E4 \x22E6 \x22E8 \x22EA \x22EC \x22F0 \x22F2 \x22F3 \x22F4 \x22F6
+        \x22F7 \x2308 \x230A \x2329 \x23B4 \x2768 \x276A \x276C \x276E \x2770 \x2772
+        \x2774 \x27C3 \x27C5 \x27D5 \x27DD \x27E2 \x27E4 \x27E6 \x27E8 \x27EA \x2983
+        \x2985 \x2987 \x2989 \x298B \x298D \x298F \x2991 \x2993 \x2995 \x2997 \x29C0
+        \x29C4 \x29CF \x29D1 \x29D4 \x29D8 \x29DA \x29F8 \x29FC \x2A2B \x2A2D \x2A34
+        \x2A3C \x2A64 \x2A79 \x2A7D \x2A7F \x2A81 \x2A83 \x2A8B \x2A91 \x2A93 \x2A95
+        \x2A97 \x2A99 \x2A9B \x2AA1 \x2AA6 \x2AA8 \x2AAA \x2AAC \x2AAF \x2AB3 \x2ABB
+        \x2ABD \x2ABF \x2AC1 \x2AC3 \x2AC5 \x2ACD \x2ACF \x2AD1 \x2AD3 \x2AD5 \x2AEC
+        \x2AF7 \x2AF9 \x2E02 \x2E04 \x2E09 \x2E0C \x2E1C \x2E20 \x3008 \x300A \x300C
+        \x300E \x3010 \x3014 \x3016 \x3018 \x301A \x301D \xFD3E \xFE17 \xFE35 \xFE37
+        \xFE39 \xFE3B \xFE3D \xFE3F \xFE41 \xFE43 \xFE47 \xFE59 \xFE5B \xFE5D \xFF08
+        \xFF1C \xFF3B \xFF5B \xFF5F \xFF62
+        ]>
+    }
+    
+    method balanced($start, $stop) {
+        self.HOW.mixin(self, startstop.HOW.curry(startstop, $start, $stop));
+    }
+    method unbalanced($stop) {
+        self.HOW.mixin(self, stop.HOW.curry(stop, $stop));
+    }
+    
+    # overridden in subgrammars
+    # XXX Can't do this until after quote refactor.
+    #token starter { <!> }
+    #token stopper { <!> }
+    
+    my %quote_lang_cache;
+    method quote_lang($l, $start, $stop, @base_tweaks?, @extra_tweaks?) {
+        sub lang_key() {
+            my @keybits := [$l.HOW.name($l), $start, $stop];
+            for @base_tweaks {
+                @keybits.push($_);
+            }
+            for @extra_tweaks {
+                @keybits.push($_[0] ~ '=' ~ $_[1]);
+            }
+            nqp::join("\0", @keybits)
+        }
+        sub con_lang() {
+            my $lang := $l;
+            for @base_tweaks {
+                $lang := $lang."tweak_$_"(1);
+            }
+            $lang := $start ne $stop ?? $lang.balanced($start, $stop)
+                                     !! $lang.unbalanced($stop);
+            for @extra_tweaks {
+                my $t := $_[0];
+                if nqp::can($lang, "tweak_$t") {
+                    $lang := $lang."tweak_$t"($_[1]);
+                }
+                else {
+                    self.panic("Unrecognized adverb: :$t");
+                }
+            }
+            $lang
+        }
+
+        # Get language from cache or derive it.
+        my $key := lang_key();
+        nqp::ifnull(%quote_lang_cache, %quote_lang_cache := nqp::hash());
+        nqp::existskey(%quote_lang_cache, $key)
+            ?? %quote_lang_cache{$key}
+            !! (%quote_lang_cache{$key} := con_lang());
+    }
+    
+    token babble($l, @base_tweaks?) {
+        :my @extra_tweaks;
+
+        <.ws>
+        [ <quotepair> <.ws>
+            {
+                my $kv := $<quotepair>[-1].ast;
+                my $k  := $kv.named;
+                if nqp::istype($kv, QAST::Stmts) || nqp::istype($kv, QAST::Stmt) && +@($kv) == 1 {
+                    $kv := $kv[0];
+                }
+                my $v := nqp::istype($kv, QAST::IVal)
+                    ?? $kv.value
+                    !! $kv.has_compile_time_value
+                        ?? $kv.compile_time_value
+                        !! self.panic("Invalid adverb value for " ~ $<quotepair>[-1].Str);
+                nqp::push(@extra_tweaks, [$k, $v]);
+            }
+        ]*
+
+        $<B>=[<?>]
+        {
+            # Work out the delimeters.
+            my $c := $/.CURSOR;
+            my @delims := $c.peek_delimiters($c.target, $c.pos);
+            my $start := @delims[0];
+            my $stop  := @delims[1];
+            
+            # Get the language.
+            my $lang := self.quote_lang($l, $start, $stop, @base_tweaks, @extra_tweaks);
+            $<B>.'!make'([$lang, $start, $stop]);
+        }
+    }
+
+    token quibble($l, *@base_tweaks) {
+        :my $lang;
+        :my $start;
+        :my $stop;
+        <babble($l, @base_tweaks)>
+        { my $B := $<babble><B>.ast; $lang := $B[0]; $start := $B[1]; $stop := $B[2]; }
+
+        $start <nibble($lang)> [ $stop || { $/.CURSOR.panic("Couldn't find terminator $stop") } ]
+
+        # Figure out this when we add heredocs...
+        #{ $lang<_herelang> and $¢.queue_heredoc($<nibble><nibbles>[0]<TEXT>, $lang<_herelang>) }
+    }
+
+    method nibble($lang) {
+        my $lang_cursor := $lang.'!cursor_init'(self.orig(), :p(self.pos()), :target(self.target()));
+        my $*ACTIONS;
+        for %*LANG {
+            if nqp::istype($lang, $_.value) {
+                $*ACTIONS := %*LANG{$_.key ~ '-actions'};
+                last;
+            }
+        }
+        $lang_cursor.nibbler();
+    }
+}
+
+grammar Perl6::Grammar is HLL::Grammar does STD {
     method TOP() {
         # Language braid.
         my %*LANG;
         %*LANG<Regex>           := Perl6::RegexGrammar;
         %*LANG<Regex-actions>   := Perl6::RegexActions;
-        %*LANG<P5Regex>         := QRegex::P5Regex::Grammar;
+        %*LANG<P5Regex>         := Perl6::P5RegexGrammar;
         %*LANG<P5Regex-actions> := Perl6::P5RegexActions;
+        %*LANG<Q>               := Perl6::QGrammar;
+        %*LANG<Q-actions>       := Perl6::QActions;
         %*LANG<MAIN>            := Perl6::Grammar;
         %*LANG<MAIN-actions>    := Perl6::Actions;
         
@@ -165,12 +314,12 @@ grammar Perl6::Grammar is HLL::Grammar {
     }
 
     token comment:sym<#`(...)> {
-        '#`' {}
-        [ <.quote_EXPR> || <.typed_panic: 'X::Syntax::Comment::Embedded'> ]
+        '#`' <?opener> {}
+        [ <.quibble(%*LANG<Q>)> || <.typed_panic: 'X::Syntax::Comment::Embedded'> ]
     }
 
     token comment:sym<#=(...)> {
-        '#=' <!ws> $<attachment>=<quote_EXPR>
+        '#=' <?opener> $<attachment>=<.quibble(%*LANG<Q>)>
     }
 
     token comment:sym<#=> {
@@ -1694,11 +1843,11 @@ grammar Perl6::Grammar is HLL::Grammar {
         <.attach_docs>
         <deflongname>?
         {
-            if $<deflongname> && $<deflongname>[0]<colonpair> {
+            if $<deflongname> && $<deflongname>[0]<colonpair>[0]<circumfix><nibble> -> $cp {
                 # It's an (potentially new) operator, circumfix, etc. that we
                 # need to tweak into the grammar.
                 my $category := $<deflongname>[0]<name>.Str;
-                my $opname := ~$<deflongname>[0]<colonpair>[0]<circumfix><quote_EXPR><quote_delimited><quote_atom>[0];
+                my $opname := $*W.colonpair_nibble_to_str($/, $cp);
                 my $canname := $category ~ ":sym<" ~ $opname ~ ">";
                 $/.CURSOR.add_categorical($category, $opname, $canname, $<deflongname>[0].ast, $*DECLARAND);
             }
@@ -1753,11 +1902,11 @@ grammar Perl6::Grammar is HLL::Grammar {
         <.attach_docs>
         <deflongname>?
         {
-            if $<deflongname> && $<deflongname>[0]<colonpair> {
+            if $<deflongname> && $<deflongname>[0]<colonpair>[0]<circumfix><nibble> -> $cp {
                 # It's an (potentially new) operator, circumfix, etc. that we
                 # need to tweak into the grammar.
                 my $category := $<deflongname>[0]<name>.Str;
-                my $opname := ~$<deflongname>[0]<colonpair>[0]<circumfix><quote_EXPR><quote_delimited><quote_atom>[0];
+                my $opname := $*W.colonpair_nibble_to_str($/, $cp);
                 my $canname := $category ~ ":sym<" ~ $opname ~ ">";
                 $/.CURSOR.add_categorical($category, $opname, $canname, $<deflongname>[0].ast, $*DECLARAND);
             }
@@ -1979,7 +2128,7 @@ grammar Perl6::Grammar is HLL::Grammar {
           [ [ ':'?'(' <signature> ')'] | <trait> ]*
           '{'[
             | ['*'|'<...>'|'<*>'] <?{ $*MULTINESS eq 'proto' }> $<onlystar>={1}
-            |<p6regex=.LANG(%*RX<P5> ?? 'P5Regex' !! 'Regex','nibbler')>]'}'<?ENDSTMT>
+            |<nibble(self.quote_lang(%*RX<P5> ?? %*LANG<P5Regex> !! %*LANG<Regex>, '{', '}'))>]'}'<?ENDSTMT>
           { $*CURPAD := $*W.pop_lexpad() }
         ] || <.malformed('regex')>
     ] }
@@ -2290,33 +2439,62 @@ grammar Perl6::Grammar is HLL::Grammar {
             <.setup_quotepair>
         ]*
     }
+    
+    proto token quote_mod   {*}
+    token quote_mod:sym<w>  { <sym> }
+    # XXX uncomment these two when they get implemented
+    #token quote_mod:sym<ww> { <sym> }
+    #token quote_mod:sym<p>  { <sym> }
+    token quote_mod:sym<x>  { <sym> }
+    token quote_mod:sym<to> { <sym> }
+    token quote_mod:sym<s>  { <sym> }
+    token quote_mod:sym<a>  { <sym> }
+    token quote_mod:sym<h>  { <sym> }
+    token quote_mod:sym<f>  { <sym> }
+    token quote_mod:sym<c>  { <sym> }
+    token quote_mod:sym<b>  { <sym> }
 
     proto token quote { <...> }
-    token quote:sym<apos>  { <?[']>                <quote_EXPR: ':q'>  }
-    token quote:sym<dblq>  { <?["]>                <quote_EXPR: ':qq'> }
-    token quote:sym<q>     { 'q'   >> <![(]> <.ws> <quote_EXPR: ':q'>  }
-    token quote:sym<qq>    { 'qq'  >> <![(]> <.ws> <quote_EXPR: ':qq'> }
-    token quote:sym<qw>    { 'qw'  >> <![(]> <.ws> <quote_EXPR: ':q',':w'> }
-    token quote:sym<qx>    { 'qx'  >> <![(]> <.ws> <quote_EXPR: ':q'>  }
-    token quote:sym<qqx>   { 'qqx' >> <![(]> <.ws> <quote_EXPR: ':qq'> }
-    token quote:sym<Q>     { 'Q'   >> <![(]> <.ws> <quote_EXPR> }
-    token quote:sym<Q:PIR> { 'Q:PIR'      <.ws> <quote_EXPR> }
+    token quote:sym<apos>  { "'" ~ "'" <nibble(self.quote_lang(%*LANG<Q>, "'", "'", ['q']))> }
+    token quote:sym<dblq>  { '"' ~ '"' <nibble(self.quote_lang(%*LANG<Q>, '"', '"', ['qq']))> }
+    token quote:sym<q> {
+        :my $qm;
+        'q'
+        [
+        | <quote_mod> » <!before '('> { $qm := $<quote_mod>.Str } <quibble(%*LANG<Q>, 'q', $qm)>
+        | » <!before '('> <.ws> <quibble(%*LANG<Q>, 'q')>
+        ]
+    }
+    token quote:sym<qq> {
+        :my $qm;
+        'qq'
+        [
+        | <quote_mod> » <!before '('> { $qm := $<quote_mod>.Str } <.ws> <quibble(%*LANG<Q>, 'qq', $qm)>
+        | » <!before '('> <.ws> <quibble(%*LANG<Q>, 'qq')>
+        ]
+    }
+    token quote:sym<Q> {
+        :my $qm;
+        'Q'
+        [
+        | <quote_mod> » <!before '('> { $qm := $<quote_mod>.Str } <quibble(%*LANG<Q>, $qm)>
+        | » <!before '('> <.ws> <quibble(%*LANG<Q>)>
+        ]
+    }
+    token quote:sym<Q:PIR> { 'Q:PIR' <.ws> <quibble(%*LANG<Q>)> }
+    
     token quote:sym</null/> { '/' \s* '/' <.panic: "Null regex not allowed"> }
-    token quote:sym</ />  { '/' :my %*RX; <p6regex=.LANG('Regex','nibbler')> '/' <.old_rx_mods>? }
+    token quote:sym</ />  {
+        :my %*RX;
+        '/' <nibble(self.quote_lang(%*LANG<Regex>, '/', '/'))> [ '/' || <.panic: "Unable to parse regex; couldn't find final '/'"> ]
+        <.old_rx_mods>?
+    }
     token quote:sym<rx>   {
         <sym> >> 
         :my %*RX;
         <rx_adverbs>
-        [
-        | '/'<p6regex=.LANG(%*RX<P5> ?? 'P5Regex' !! 'Regex','nibbler')>'/' <.old_rx_mods>?
-        | '{'<p6regex=.LANG(%*RX<P5> ?? 'P5Regex' !! 'Regex','nibbler')>'}' <.old_rx_mods>?
-        ]
-    }
-
-    method match_with_adverb($v) {
-        my $s := NQPMatch.new();
-        $s.'!make'(QAST::IVal.new(:value(1), :named('s')));
-        $s;
+        <quibble(%*RX<P5> ?? %*LANG<P5Regex> !! %*LANG<Regex>)>
+        <!old_rx_mods>
     }
 
     token quote:sym<m> {
@@ -2324,10 +2502,8 @@ grammar Perl6::Grammar is HLL::Grammar {
         :my %*RX;
         { %*RX<s> := 1 if $/[0] }
         <rx_adverbs>
-        [
-        | '/'<p6regex=.LANG(%*RX<P5> ?? 'P5Regex' !! 'Regex','nibbler')>'/' <.old_rx_mods>?
-        | '{'<p6regex=.LANG(%*RX<P5> ?? 'P5Regex' !! 'Regex','nibbler')>'}'
-        ]
+        <quibble(%*RX<P5> ?? %*LANG<P5Regex> !! %*LANG<Regex>)>
+        <!old_rx_mods>
     }
 
     token quote:sym<qr> {
@@ -2336,6 +2512,28 @@ grammar Perl6::Grammar is HLL::Grammar {
 
     token setup_quotepair { '' }
 
+    token sibble($l, $lang2, @lang2tweaks?) {
+        :my $lang;
+        :my $start;
+        :my $stop;
+        <babble($l)>
+        { my $B := $<babble><B>.ast; $lang := $B[0]; $start := $B[1]; $stop := $B[2]; }
+
+        $start <left=.nibble($lang)> [ $stop || <.panic: "Couldn't find terminator $stop"> ]
+        [ <?{ $start ne $stop }>
+            <.ws>
+            [ <?[ \[ \{ \( \< ]> <.obs('brackets around replacement', 'assignment syntax')> ]?
+            [ <infixish> || <panic: "Missing assignment operator"> ]
+            [ <?{ $<infixish>.Str eq '=' }> || <.panic: "Malformed assignment operator"> ]
+            # XXX When we support it, above check should add: || $<infixish><infix_postfix_meta_operator>[0]
+            <.ws>
+            [ <right=.EXPR('i')> || <.panic: "Assignment operator missing its expression"> ]
+        ||
+            { $lang := self.quote_lang($lang2, $stop, $stop, @lang2tweaks); }
+            <right=.nibble($lang)> $stop || <.panic: "Malformed replacement part; couldn't find final $stop">
+        ]
+    }
+
     token quote:sym<s> {
         <sym> (s)? >>
         :my %*RX;
@@ -2343,12 +2541,7 @@ grammar Perl6::Grammar is HLL::Grammar {
             %*RX<s> := 1 if $/[0]
         }
         <rx_adverbs>
-        [
-        | '/' <p6regex=.LANG(%*RX<P5> ?? 'P5Regex' !! 'Regex','nibbler')> <?[/]> <quote_EXPR: ':qq'> <.old_rx_mods>?
-        | '[' <p6regex=.LANG(%*RX<P5> ?? 'P5Regex' !! 'Regex','nibbler')> ']'
-          <.ws> [ '=' || <.missing: "assignment operator"> ]
-          <.ws> <EXPR('i')>
-        ]
+        <sibble(%*RX<P5> ?? %*LANG<P5Regex> !! %*LANG<Regex>, %*LANG<Q>, ['qq'])>
     }
 
     token old_rx_mods {
@@ -2399,27 +2592,19 @@ grammar Perl6::Grammar is HLL::Grammar {
     }
 
     token quote_escape:sym<{ }> { <?[{]> <?quotemod_check('c')> <block> }
-    
-    token quote_escape:sym<' '> {
-        <?[']> <?quotemod_check('ww')> <quote_EXPR: ':q'>
-    }
-    token quote_escape:sym<" "> {
-        <?["]> <?quotemod_check('ww')> <quote_EXPR: ':qq'>
-    }
-    token quote_escape:sym<colonpair> {
-        <?[:]> <?quotemod_check('ww')> <colonpair>
-    }
 
     token circumfix:sym<( )> { :dba('parenthesized expression') '(' ~ ')' <semilist> }
     token circumfix:sym<[ ]> { :dba('array composer') '[' ~ ']' <semilist> }
     token circumfix:sym<ang> {
-        <?[<]>
-        [ <?before '<STDIN>' > <.obs('<STDIN>', '$*IN.lines (or add whitespace to suppress warning)')> ]?
-        [ <?before '<>' > <.obs('<>', 'lines() to read input, (\'\') to represent a null string or () to represent an empty list')> ]?
-        <quote_EXPR: ':q', ':w'>
+        '<' ~ '>'
+        [
+            [ <?before 'STDIN>' > <.obs('<STDIN>', '$*IN.lines (or add whitespace to suppress warning)')> ]?
+            [ <?before '>' > <.obs('<>', 'lines() to read input, (\'\') to represent a null string or () to represent an empty list')> ]?
+            <nibble(self.quote_lang(%*LANG<Q>, "<", ">", ['q', 'w']))>
+        ]
     }
-    token circumfix:sym«<< >>» { <?before '<<'>  <quote_EXPR: ':qq', ':ww'> }
-    token circumfix:sym<« »> { <?[«]>  <quote_EXPR: ':qq', ':ww'> }
+    token circumfix:sym«<< >>» { '<<' ~ '>>' <nibble(self.quote_lang(%*LANG<Q>, "<<", ">>", ['qq', 'ww']))> }
+    token circumfix:sym<« »> { '«' ~ '»' <nibble(self.quote_lang(%*LANG<Q>, "«", "»", ['qq', 'ww']))> }
     token circumfix:sym<{ }> { <?[{]> <pblock(1)> }
     token circumfix:sym<sigil> {
         :dba('contextualizer')
@@ -2667,7 +2852,13 @@ grammar Perl6::Grammar is HLL::Grammar {
     }
 
     token postcircumfix:sym<ang> {
-        <?[<]> <quote_EXPR: ':q', ':w'>
+        '<'
+        [
+        || <nibble(self.quote_lang(%*LANG<Q>, "<", ">", ['q', 'w']))> '>'
+        || <?before \h* [ \d | <sigil> | ':' ] >
+           { $/.CURSOR.panic("Whitespace required before < operator") }
+        || { $/.CURSOR.panic("Unable to parse quote-words subscript; couldn't find right angle quote") }
+        ]
         <O('%methodcall')>
     }
 
@@ -3000,7 +3191,255 @@ grammar Perl6::Grammar is HLL::Grammar {
     }
 }
 
-grammar Perl6::RegexGrammar is QRegex::P6Regex::Grammar {
+grammar Perl6::QGrammar is HLL::Grammar does STD {
+    proto token escape {*}
+    proto token backslash {*}
+
+    role b1 {
+        token escape:sym<\\> { <sym> {} <item=.backslash> }
+        token backslash:sym<qq> { <?before 'q'> <quote=.LANG('MAIN','quote')> }
+        token backslash:sym<\\> { <text=.sym> }
+        token backslash:sym<stopper> { <text=.stopper> }
+        token backslash:sym<a> { <sym> }
+        token backslash:sym<b> { <sym> }
+        token backslash:sym<c> { <sym> <charspec> }
+        token backslash:sym<e> { <sym> }
+        token backslash:sym<f> { <sym> }
+        token backslash:sym<n> { <sym> }
+        token backslash:sym<o> { :dba('octal character') <sym> [ <octint> | '[' ~ ']' <octints> ] }
+        token backslash:sym<r> { <sym> }
+        token backslash:sym<t> { <sym> }
+        token backslash:sym<x> { :dba('hex character') <sym> [ <hexint> | '[' ~ ']' <hexints> ] }
+        token backslash:sym<0> { <sym> }
+    }
+
+    role b0 {
+        token escape:sym<\\> { <!> }
+    }
+
+    role c1 {
+        token escape:sym<{ }> { <?before '{'> <block=.LANG('MAIN','block')> }
+    }
+
+    role c0 {
+        token escape:sym<{ }> { <!> }
+    }
+
+    role s1 {
+        token escape:sym<$> {
+            :my $*QSIGIL := '$';
+            <?before '$'>
+            [ <EXPR=.LANG('MAIN', 'EXPR', 'y=')> || <.panic: "Non-variable \$ must be backslashed"> ]
+        }
+    }
+
+    role s0 {
+        token escape:sym<$> { <!> }
+    }
+
+    role a1 {
+        token escape:sym<@> {
+            :my $*QSIGIL := '@';
+            <?before '@'>
+            <EXPR=.LANG('MAIN', 'EXPR', 'y=')>
+        }
+    }
+
+    role a0 {
+        token escape:sym<@> { <!> }
+    }
+
+    role h1 {
+        token escape:sym<%> {
+            :my $*QSIGIL := '%';
+            <?before '%'>
+            <EXPR=.LANG('MAIN', 'EXPR', 'y=')>
+        }
+    }
+
+    role h0 {
+        token escape:sym<%> { <!> }
+    }
+
+    role f1 {
+        token escape:sym<&> {
+            :my $*QSIGIL := '&';
+            <?before '&'>
+            <EXPR=.LANG('MAIN', 'EXPR', 'y=')>
+        }
+    }
+
+    role f0 {
+        token escape:sym<&> { <!> }
+    }
+
+    role p1 {
+        method postprocessor () { 'path' }
+    }
+
+    role p0 {
+        method postprocessor () { 'null' }
+    }
+
+    role v1 {
+        method postprocessor () { 'val' }
+    }
+
+    role v0 {
+        method postprocessor () { 'null' }
+    }
+
+    role w1 {
+        method postprocessor () { 'words' }
+    }
+
+    role w0 {
+        method postprocessor () { 'null' }
+    }
+
+    role ww1 {
+        method postprocessor () { 'quotewords' }
+        token escape:sym<' '> {
+            <?[']> <quote=.LANG('MAIN','quote')>
+        }
+        token escape:sym<" "> {
+            <?["]> <quote=.LANG('MAIN','quote')>
+        }
+        token escape:sym<colonpair> {
+            <?[:]> <colonpair=.LANG('MAIN','colonpair')>
+        }
+    }
+
+    role ww0 {
+        method postprocessor () { 'null' }
+    }
+
+    role x1 {
+        method postprocessor () { 'run' }
+    }
+
+    role x0 {
+        method postprocessor () { 'null' }
+    }
+
+    role q {
+        token stopper { \' }
+
+        token escape:sym<\\> { <sym> <item=.backslash> }
+
+        token backslash:sym<qq> { <?before 'q'> <quote=.LANG('MAIN','quote')> }
+        token backslash:sym<\\> { <text=.sym> }
+        token backslash:sym<stopper> { <text=.stopper> }
+
+        token backslash:sym<miscq> { {} . }
+
+        method tweak_q($v) { self.panic("Too late for :q") }
+        method tweak_qq($v) { self.panic("Too late for :qq") }
+    }
+
+    role qq does b1 does c1 does s1 does a1 does h1 does f1 {
+        token stopper { \" }
+        token backslash:sym<misc> { {} [ (\W) | $<x>=(\w) <.sorry("Unrecognized backslash sequence: '\\" ~ $<x>.Str ~ "'")> ] }
+
+        method tweak_q($v) { self.panic("Too late for :q") }
+        method tweak_qq($v) { self.panic("Too late for :qq") }
+    }
+    
+    token nibbler {
+        :my @*nibbles;
+        <.do_nibbling>
+    }
+    
+    token do_nibbling {
+        :my $from := self.pos;
+        :my $to   := $from;
+        [
+            <!before <stopper> >
+            [
+            || <starter> <nibbler> <stopper>
+                {
+                    my $c := $/.CURSOR;
+                    $to   := $<starter>[-1].from;
+                    if $from != $to {
+                        nqp::push(@*nibbles, nqp::substr($c.orig, $from, $to - $from));
+                    }
+
+                    nqp::push(@*nibbles, $<starter>[-1].Str);
+                    nqp::push(@*nibbles, $<nibbler>[-1]);
+                    nqp::push(@*nibbles, $<stopper>[-1].Str);
+
+                    $from := $to := $c.pos;
+                }
+            || <escape>
+                {
+                    my $c := $/.CURSOR;
+                    $to   := $<escape>[-1].from;
+                    if $from != $to {
+                        nqp::push(@*nibbles, nqp::substr($c.orig, $from, $to - $from));
+                    }
+
+                    nqp::push(@*nibbles, $<escape>[-1]);
+
+                    $from := $to := $c.pos;
+                }
+            || .
+            ]
+        ]*
+        {
+            my $c := $/.CURSOR;
+            $to   := $c.pos;
+            if $from != $to || !@*nibbles {
+                nqp::push(@*nibbles, nqp::substr($c.orig, $from, $to - $from));
+            }
+        }
+    }
+    
+    # XXX These belong in role STD eventually.
+    token starter { <!> }
+    token stopper { <!> }
+    
+    method truly($bool, $opt) {
+        self.sorry("Cannot negate $opt adverb") unless $bool;
+        self;
+    }
+    
+    method tweak_q($v)          { self.truly($v, ':q'); self.HOW.mixin(self, Perl6::QGrammar::q) }
+    method tweak_single($v)     { self.tweak_q($v) }
+    method tweak_qq($v)         { self.truly($v, ':qq'); self.HOW.mixin(self, Perl6::QGrammar::qq); }
+    method tweak_double($v)     { self.tweak_qq($v) }
+
+    method tweak_b($v)          { self.HOW.mixin(self, $v ?? b1 !! b0) }
+    method tweak_backslash($v)  { self.tweak_b($v) }
+    method tweak_s($v)          { self.HOW.mixin(self, $v ?? s1 !! s0) }
+    method tweak_scalar($v)     { self.tweak_s($v) }
+    method tweak_a($v)          { self.HOW.mixin(self, $v ?? a1 !! a0) }
+    method tweak_array($v)      { self.tweak_a($v) }
+    method tweak_h($v)          { self.HOW.mixin(self, $v ?? h1 !! h0) }
+    method tweak_hash($v)       { self.tweak_h($v) }
+    method tweak_f($v)          { self.HOW.mixin(self, $v ?? f1 !! f0) }
+    method tweak_function($v)   { self.tweak_f($v) }
+    method tweak_c($v)          { self.HOW.mixin(self, $v ?? c1 !! c0) }
+    method tweak_closure($v)    { self.tweak_c($v) }
+
+    method tweak_x($v)          { self.HOW.mixin(self, $v ?? x1 !! x0) }
+    method tweak_exec($v)       { self.tweak_x($v) }
+    method tweak_w($v)          { self.HOW.mixin(self, $v ?? w1 !! w0) }
+    method tweak_words($v)      { self.tweak_w($v) }
+    method tweak_ww($v)         { self.HOW.mixin(self, $v ?? ww1 !! ww0) }
+    method tweak_quotewords($v) { self.tweak_ww($v) }
+
+    method tweak_to($v)         { self.truly($v, ':to'); self.cursor_herelang; }
+    method tweak_heredoc($v)    { self.tweak_to($v) }
+
+    method tweak_regex($v) {
+        self.truly($v, ':regex');
+        return %*LANG<Regex>;
+    }
+}
+
+grammar Perl6::RegexGrammar is QRegex::P6Regex::Grammar does STD {
+    token rxstopper { <stopper> }
+    
     token metachar:sym<:my> {
         ':' <?before 'my'|'constant'|'state'|'our'> <statement=.LANG('MAIN', 'statement')> <.ws> ';'
     }
@@ -3015,9 +3454,11 @@ grammar Perl6::RegexGrammar is QRegex::P6Regex::Grammar {
 
     token metachar:sym<qw> {
         <?before '<' \s >  # (note required whitespace)
-        <quote_EXPR: ':q', ':w'>
+        '<' <nibble(self.quote_lang(%*LANG<Q>, "<", ">", ['q', 'w']))> '>'
     }
     
+    token metachar:sym<'> { <?[']> <quote=.LANG('MAIN','quote')> }
+
     token metachar:sym<"> { <?["]> <quote=.LANG('MAIN','quote')> }
     
     token assertion:sym<{ }> {
@@ -3056,4 +3497,8 @@ grammar Perl6::RegexGrammar is QRegex::P6Regex::Grammar {
             | <.normspace> <nibbler>
             ]?
     }
+}
+
+grammar Perl6::P5RegexGrammar is QRegex::P5Regex::Grammar does STD {
+    token rxstopper { <stopper> }
 }

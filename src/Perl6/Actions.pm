@@ -6,7 +6,13 @@ use Perl6::Ops;
 use QRegex;
 use QAST;
 
-class Perl6::Actions is HLL::Actions {
+role STDActions {
+    method quibble($/) {
+        make $<nibble>.ast;
+    }
+}
+
+class Perl6::Actions is HLL::Actions does STDActions {
     our @MAX_PERL_VERSION;
 
     our $FORBID_PIR;
@@ -147,8 +153,8 @@ class Perl6::Actions is HLL::Actions {
             if $<colonpair>[0]<identifier> {
                 $name := $name ~ ~$<colonpair>[0]<identifier>;
             }
-            if $<colonpair>[0]<circumfix> {
-                $name := $name ~ '<' ~ ~$<colonpair>[0]<circumfix><quote_EXPR><quote_delimited><quote_atom>[0] ~ '>';
+            if $<colonpair>[0]<circumfix><nibble> -> $op_name {
+                $name := $name ~ '<' ~ $*W.colonpair_nibble_to_str($/, $op_name) ~ '>';
             }
             make $name;
         }
@@ -2441,7 +2447,7 @@ class Perl6::Actions is HLL::Actions {
                 QAST::SVal.new( :value($name) ));
             $coderef := regex_coderef($/, $*DECLARAND, $proto_body, $*SCOPE, $name, %sig_info, $*CURPAD, $<trait>, :proto(1));
         } else {
-            $coderef := regex_coderef($/, $*DECLARAND, $<p6regex>.ast, $*SCOPE, $name, %sig_info, $*CURPAD, $<trait>);
+            $coderef := regex_coderef($/, $*DECLARAND, $<nibble>.ast, $*SCOPE, $name, %sig_info, $*CURPAD, $<trait>);
         }
 
         # Return closure if not in sink context.
@@ -3792,11 +3798,11 @@ class Perl6::Actions is HLL::Actions {
         make $past;
     }
 
-    method circumfix:sym<ang>($/) { make $<quote_EXPR>.ast; }
+    method circumfix:sym<ang>($/) { make $<nibble>.ast; }
 
-    method circumfix:sym«<< >>»($/) { make $<quote_EXPR>.ast; }
+    method circumfix:sym«<< >>»($/) { make $<nibble>.ast; }
     
-    method circumfix:sym<« »>($/) { make $<quote_EXPR>.ast; }
+    method circumfix:sym<« »>($/) { make $<nibble>.ast; }
 
     method circumfix:sym<{ }>($/) {
         # If it was {YOU_ARE_HERE}, nothing to do here.
@@ -4559,8 +4565,10 @@ class Perl6::Actions is HLL::Actions {
 
     method postcircumfix:sym<ang>($/) {
         my $past := QAST::Op.new( :name('postcircumfix:<{ }>'), :op('callmethod'), :node($/) );
-        $past.push( $<quote_EXPR>.ast )
-            if +$<quote_EXPR><quote_delimited><quote_atom> > 0;
+        my $nib  := $<nibble>.ast;
+        $past.push($nib)
+            unless nqp::istype($nib, QAST::Stmts) && nqp::istype($nib[0], QAST::Op) &&
+            $nib[0].name eq '&infix:<,>' && +@($nib[0]) == 0;
         make $past;
     }
 
@@ -4806,34 +4814,23 @@ class Perl6::Actions is HLL::Actions {
         $value;
     }
 
-    method quote:sym<apos>($/) { make $<quote_EXPR>.ast; }
-    method quote:sym<dblq>($/) { make $<quote_EXPR>.ast; }
-    method quote:sym<qq>($/)   { make $<quote_EXPR>.ast; }
-    method quote:sym<qw>($/)   { make $<quote_EXPR>.ast; }
-    method quote:sym<q>($/)    { make $<quote_EXPR>.ast; }
-    method quote:sym<Q>($/)    { make $<quote_EXPR>.ast; }
+    method quote:sym<apos>($/) { make $<nibble>.ast; }
+    method quote:sym<dblq>($/) { make $<nibble>.ast; }
+    method quote:sym<qq>($/)   { make $<quibble>.ast; }
+    method quote:sym<q>($/)    { make $<quibble>.ast; }
+    method quote:sym<Q>($/)    { make $<quibble>.ast; }
     method quote:sym<Q:PIR>($/) {
         if $FORBID_PIR {
             nqp::die("Q:PIR forbidden in safe mode\n");
         }
-        my $pir := compile_time_value_str($<quote_EXPR>.ast, "Q:PIR", $/);
+        my $pir := compile_time_value_str($<quibble>.ast, "Q:PIR", $/);
         make QAST::VM.new( :pir($pir), :node($/) );
-    }
-    method quote:sym<qx>($/) {
-        make QAST::Op.new( :name('&QX'), :op('call'),
-            $<quote_EXPR>.ast
-        );
-    }
-    method quote:sym<qqx>($/)  {
-        make QAST::Op.new( :name('&QX'), :op('call'),
-            $<quote_EXPR>.ast
-        );
     }
     method quote:sym</ />($/) {
         my %sig_info := hash(parameters => []);
         my $block := QAST::Block.new(QAST::Stmts.new, QAST::Stmts.new, :node($/));
         my $coderef := regex_coderef($/, $*W.stub_code_object('Regex'),
-            $<p6regex>.ast, 'anon', '', %sig_info, $block, :use_outer_match(1));
+            $<nibble>.ast, 'anon', '', %sig_info, $block, :use_outer_match(1));
         # Return closure if not in sink context.
         my $closure := block_closure($coderef);
         $closure<sink_past> := QAST::Op.new( :op('null') );
@@ -4845,14 +4842,14 @@ class Perl6::Actions is HLL::Actions {
         self.handle_and_check_adverbs($/, %SHARED_ALLOWED_ADVERBS, 'rx', $block);
         my %sig_info := hash(parameters => []);
         my $coderef := regex_coderef($/, $*W.stub_code_object('Regex'),
-            $<p6regex>.ast, 'anon', '', %sig_info, $block, :use_outer_match(1));
+            $<quibble>.ast, 'anon', '', %sig_info, $block, :use_outer_match(1));
         make block_closure($coderef);
     }
     method quote:sym<m>($/) {
         my $block := QAST::Block.new(QAST::Stmts.new, QAST::Stmts.new, :node($/));
         my %sig_info := hash(parameters => []);
         my $coderef := regex_coderef($/, $*W.stub_code_object('Regex'),
-            $<p6regex>.ast, 'anon', '', %sig_info, $block, :use_outer_match(1));
+            $<quibble>.ast, 'anon', '', %sig_info, $block, :use_outer_match(1));
 
         my $past := QAST::Op.new(
             :node($/),
@@ -4893,14 +4890,13 @@ class Perl6::Actions is HLL::Actions {
 
     method quote:sym<s>($/) {
         # Build the regex.
-
         my $rx_block := QAST::Block.new(QAST::Stmts.new, QAST::Stmts.new, :node($/));
         my %sig_info := hash(parameters => []);
         my $rx_coderef := regex_coderef($/, $*W.stub_code_object('Regex'),
-            $<p6regex>.ast, 'anon', '', %sig_info, $rx_block, :use_outer_match(1));
+            $<sibble><left>.ast, 'anon', '', %sig_info, $rx_block, :use_outer_match(1));
 
         # Quote needs to be closure-i-fied.
-        my $closure := block_closure(make_thunk_ref($<quote_EXPR> ?? $<quote_EXPR>.ast !! $<EXPR>.ast, $/));
+        my $closure := block_closure(make_thunk_ref($<sibble><right>.ast, $<sibble><right>));
 
         # make $_ = $_.subst(...)
         my $past := QAST::Op.new(
@@ -4985,14 +4981,6 @@ class Perl6::Actions is HLL::Actions {
                 QAST::Op.new( :op('p6capturelex'), $<block>.ast ),
                 :node($/)));
     }
-    
-    method quote_escape:sym<' '>($/) { make mark_ww_atom($<quote_EXPR>.ast); }
-    method quote_escape:sym<" ">($/) { make mark_ww_atom($<quote_EXPR>.ast); }
-    method quote_escape:sym<colonpair>($/) { make mark_ww_atom($<colonpair>.ast); }
-    sub mark_ww_atom($ast) {
-        $ast<ww_atom> := 1;
-        $ast;
-    }
 
     # overrides versions from HLL::Actions to use Perl 6 Str type
     # and use &infix:<,> to build the parcel
@@ -5048,43 +5036,6 @@ class Perl6::Actions is HLL::Actions {
             );
         }
         make $past;
-    }
-    
-    sub quote_words($/) {
-        my @parts;
-        my str $lastlit := '';
-        for $<quote_atom> {
-            my $ast := $_.ast;
-            if !($ast ~~ QAST::Node) {
-                $lastlit := $lastlit ~ $ast;
-            }
-            elsif $ast.isa(QAST::SVal) {
-                $lastlit := $lastlit ~ $ast.value;
-            }
-            else {
-                if $lastlit gt '' {
-                    for HLL::Grammar::split_words($/, $lastlit) {
-                        @parts.push($*W.add_string_constant($_));
-                    }
-                }
-                $lastlit := '';
-                if $ast<ww_atom> {
-                    @parts.push($ast);
-                }
-                else {
-                    @parts.push(QAST::Op.new(
-                        :op('callmethod'), :name('words'),
-                        QAST::Op.new( :op('callmethod'), :name('Stringy'), $ast )
-                    ));
-                }
-            }
-        }
-        if $lastlit gt '' || !@parts {
-            for HLL::Grammar::split_words($/, $lastlit) {
-                @parts.push($*W.add_string_constant($_));
-            }
-        }
-        make QAST::Op.new( :op('call'), :name('&infix:<,>'), |@parts );
     }
 
     # Adds code to do the signature binding.
@@ -5676,7 +5627,166 @@ class Perl6::Actions is HLL::Actions {
     }
 }
 
-class Perl6::RegexActions is QRegex::P6Regex::Actions {
+class Perl6::QActions is HLL::Actions does STDActions {
+    method nibbler($/) {
+        my @asts;
+        my $lastlit := '';
+        
+        for @*nibbles {
+            if nqp::istype($_, NQPMatch) {
+                if nqp::istype($_.ast, QAST::Node) {
+                    if $lastlit ne '' {
+                        @asts.push($*W.add_string_constant($lastlit));
+                        $lastlit := '';
+                    }
+                    @asts.push($_.ast<ww_atom>
+                        ?? $_.ast
+                        !! QAST::Op.new( :op('callmethod'), :name('Stringy'),  $_.ast ));
+                }
+                else {
+                    $lastlit := $lastlit ~ $_.ast;
+                }
+            }
+            else {
+                $lastlit := $lastlit ~ $_;
+            }
+        }
+        if $lastlit ne '' || !@asts {
+            @asts.push($*W.add_string_constant($lastlit));
+        }
+        
+        my $past := @asts.shift();
+        for @asts {
+            $past := QAST::Op.new( :op('call'), :name('&infix:<~>'), $past, $_ );
+        }
+        
+        if nqp::can($/.CURSOR, 'postprocessor') {
+            my $pp := $/.CURSOR.postprocessor;
+            $past := self."postprocess_$pp"($/, $past);
+        }
+        
+        make $past;
+    }
+    
+    method postprocess_null($/, $past) {
+        $past
+    }
+    
+    method postprocess_run($/, $past) {
+        QAST::Op.new( :name('&QX'), :op('call'), :node($/), $past )
+    }
+    
+    method postprocess_words($/, $past) {
+        if $past.has_compile_time_value {
+            my @words := HLL::Grammar::split_words($/,
+                nqp::unbox_s($past.compile_time_value));
+            if +@words != 1 {
+                $past := QAST::Op.new( :op('call'), :name('&infix:<,>'), :node($/) );
+                for @words { $past.push($*W.add_string_constant(~$_)); }
+                $past := QAST::Stmts.new($past);
+            }
+            else {
+                $past := $*W.add_string_constant(~@words[0]);
+            }
+        }
+        else {
+            $past := QAST::Op.new( :op('callmethod'), :name('words'), :node($/), $past );
+        }
+        return $past;
+    }
+    
+    method postprocess_quotewords($/, $past) {
+        my $result := QAST::Op.new( :op('call'), :name('&infix:<,>'), :node($/) );
+        sub walk($node) {
+            if nqp::istype($node, QAST::Op) && $node.name eq '&infix:<~>' {
+                walk($node[0]);
+                walk($node[1]);
+            }
+            elsif $node<ww_atom> {
+                $result.push($node);
+            }
+            else {
+                my $ppw := self.postprocess_words($/, $node);
+                unless nqp::istype($ppw, QAST::Stmts) && +@($ppw[0]) == 0 {
+                    $result.push($ppw);
+                }
+            }
+        }
+        walk($past);
+        return +@($result) == 1 ?? $result[0] !! $result;
+    }
+
+    method escape:sym<\\>($/) { make $<item>.ast; }
+    method backslash:sym<qq>($/) { make $<quote>.ast; }
+    method backslash:sym<\\>($/) { make $<text>.Str; }
+    method backslash:sym<stopper>($/) { make $<text>.Str; }
+    method backslash:sym<miscq>($/) { make '\\' ~ ~$/; }
+    method backslash:sym<misc>($/) { make ~$/; }
+    
+    method backslash:sym<a>($/) { make nqp::chr(7) }
+    method backslash:sym<b>($/) { make "\b" }
+    method backslash:sym<c>($/) { make $<charspec>.ast }
+    method backslash:sym<e>($/) { make "\c[27]" }
+    method backslash:sym<f>($/) { make "\c[12]" }
+    method backslash:sym<n>($/) { make "\n" }
+    method backslash:sym<o>($/) { make self.ints_to_string( $<octint> ?? $<octint> !! $<octints><octint> ) }
+    method backslash:sym<r>($/) { make "\r" }
+    method backslash:sym<t>($/) { make "\t" }
+    method backslash:sym<x>($/) { make self.ints_to_string( $<hexint> ?? $<hexint> !! $<hexints><hexint> ) }
+    method backslash:sym<0>($/) { make "\c[0]" }
+
+    method escape:sym<{ }>($/) {
+        make QAST::Op.new(
+            :op('callmethod'), :name('Stringy'),
+            QAST::Op.new(
+                :op('call'),
+                QAST::Op.new( :op('p6capturelex'), $<block>.ast ),
+                :node($/)));
+    }
+    
+    method escape:sym<$>($/) {
+        make steal_back_spaces($/, $<EXPR>.ast);
+    }
+    
+    method escape:sym<@>($/) {
+        make steal_back_spaces($/, $<EXPR>.ast);
+    }
+
+    method escape:sym<%>($/) {
+        make steal_back_spaces($/, $<EXPR>.ast);
+    }
+
+    method escape:sym<&>($/) {
+        make steal_back_spaces($/, $<EXPR>.ast);
+    }
+
+    # Unfortunately, the operator precedence parser (probably correctly)
+    # steals spaces after a postfixish. Thus "$a $b" would get messed up.
+    # Here we take them back again. Hacky, better solutions welcome.
+    sub steal_back_spaces($/, $expr) {
+        my $pos := nqp::chars($/) - 1;
+        while nqp::iscclass(32, $/, $pos) {
+            $pos--;
+        }
+        my $nab_back := nqp::substr($/, $pos + 1);
+        if $nab_back {
+            QAST::Op.new( :op('call'), :name('&infix:<~>'), $expr, $*W.add_string_constant(~$nab_back) )
+        }
+        else {
+            $expr
+        }
+    }
+
+    method escape:sym<' '>($/) { make mark_ww_atom($<quote>.ast); }
+    method escape:sym<" ">($/) { make mark_ww_atom($<quote>.ast); }
+    method escape:sym<colonpair>($/) { make mark_ww_atom($<colonpair>.ast); }
+    sub mark_ww_atom($ast) {
+        $ast<ww_atom> := 1;
+        $ast;
+    }
+}
+
+class Perl6::RegexActions is QRegex::P6Regex::Actions does STDActions {
 
     method metachar:sym<:my>($/) {
         my $past := $<statement>.ast;
@@ -5690,15 +5800,21 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions {
     
     method metachar:sym<qw>($/) {
         my $qast := QAST::Regex.new( :rxtype<alt>, :node($/) );
-        for HLL::Grammar::split_words($/, $<quote_EXPR><quote_delimited>.ast.value) {
+        my $nib  := $<nibble>.ast[0];
+        for @($nib) {
+            unless $_.has_compile_time_value {
+                $/.CURSOR.panic("Quote words construct too complex to use in a regex");
+            }
             $qast.push(%*RX<i>
-                ?? QAST::Regex.new( $_, :rxtype<literal>, :subtype<ignorecase> )
-                !! QAST::Regex.new( $_, :rxtype<literal> ));
+                ?? QAST::Regex.new( $_.compile_time_value, :rxtype<literal>, :subtype<ignorecase> )
+                !! QAST::Regex.new( $_.compile_time_value, :rxtype<literal> ));
         }
         make $qast;
     }
     
-    method metachar:sym<">($/) {
+    method metachar:sym<'>($/) { self.rxquote($/) }
+    method metachar:sym<">($/) { self.rxquote($/) }
+    method rxquote($/) {
         my $quote := $<quote>.ast;
         if $quote.has_compile_time_value {
             my $qast := QAST::Regex.new( :rxtype<literal>, nqp::unbox_s($quote.compile_time_value) );
@@ -5844,7 +5960,7 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions {
     }
 }
 
-class Perl6::P5RegexActions is QRegex::P5Regex::Actions {
+class Perl6::P5RegexActions is QRegex::P5Regex::Actions does STDActions {
     method create_regex_code_object($block) {
         $*W.create_code_object($block, 'Regex',
             $*W.create_signature(nqp::hash('parameters', [])))

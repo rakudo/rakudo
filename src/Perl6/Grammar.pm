@@ -3424,10 +3424,7 @@ grammar Perl6::QGrammar is HLL::Grammar does STD {
 }
 
 grammar Perl6::RegexGrammar is QRegex::P6Regex::Grammar does STD {
-    token rxstopper {
-        | <[ / } ]> # XXX shouldn't be needed in the long run...
-        | <stopper>
-    }
+    token rxstopper { <stopper> }
     
     token metachar:sym<:my> {
         ':' <?before 'my'|'constant'|'state'|'our'> <statement=.LANG('MAIN', 'statement')> <.ws> ';'

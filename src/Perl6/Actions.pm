@@ -5670,21 +5670,24 @@ class Perl6::QActions is HLL::Actions does STDActions {
     }
     
     method postprocess_quotewords($/, $past) {
+        my $result := QAST::Op.new( :op('call'), :name('&infix:<,>'), :node($/) );
         sub walk($node) {
             if nqp::istype($node, QAST::Op) && $node.name eq '&infix:<~>' {
-                $node.name('&infix:<,>');
-                $node[0] := walk($node[0]);
-                $node[1] := walk($node[1]);
-                return $node;
+                walk($node[0]);
+                walk($node[1]);
             }
             elsif $node<ww_atom> {
-                return $node;
+                $result.push($node);
             }
             else {
-                return self.postprocess_words($/, $node);
+                my $ppw := self.postprocess_words($/, $node);
+                unless nqp::istype($ppw, QAST::Stmts) && +@($ppw[0]) == 0 {
+                    $result.push($ppw);
+                }
             }
         }
-        walk($past)
+        walk($past);
+        return +@($result) == 1 ?? $result[0] !! $result;
     }
 
     method escape:sym<\\>($/) { make $<item>.ast; }

@@ -2115,7 +2115,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
           [ [ ':'?'(' <signature> ')'] | <trait> ]*
           '{'[
             | ['*'|'<...>'|'<*>'] <?{ $*MULTINESS eq 'proto' }> $<onlystar>={1}
-            |<p6regex=.LANG(%*RX<P5> ?? 'P5Regex' !! 'Regex','nibbler')>]'}'<?ENDSTMT>
+            |<nibble(self.quote_lang(%*RX<P5> ?? %*LANG<P5Regex> !! %*LANG<Regex>, '{', '}'))>]'}'<?ENDSTMT>
           { $*CURPAD := $*W.pop_lexpad() }
         ] || <.malformed('regex')>
     ] }

@@ -4864,14 +4864,13 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
     method quote:sym<s>($/) {
         # Build the regex.
-
         my $rx_block := QAST::Block.new(QAST::Stmts.new, QAST::Stmts.new, :node($/));
         my %sig_info := hash(parameters => []);
         my $rx_coderef := regex_coderef($/, $*W.stub_code_object('Regex'),
-            $<p6regex>.ast, 'anon', '', %sig_info, $rx_block, :use_outer_match(1));
+            $<sibble><left>.ast, 'anon', '', %sig_info, $rx_block, :use_outer_match(1));
 
         # Quote needs to be closure-i-fied.
-        my $closure := block_closure(make_thunk_ref($<quote_EXPR> ?? $<quote_EXPR>.ast !! $<EXPR>.ast, $/));
+        my $closure := block_closure(make_thunk_ref($<sibble><right>.ast, $<sibble><right>));
 
         # make $_ = $_.subst(...)
         my $past := QAST::Op.new(

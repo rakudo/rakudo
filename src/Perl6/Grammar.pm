@@ -2503,6 +2503,28 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     token setup_quotepair { '' }
 
+    token sibble($l, $lang2, @lang2tweaks?) {
+        :my $lang;
+        :my $start;
+        :my $stop;
+        <babble($l)>
+        { my $B := $<babble><B>.ast; $lang := $B[0]; $start := $B[1]; $stop := $B[2]; }
+
+        $start <left=.nibble($lang)> [ $stop || <.panic: "Couldn't find terminator $stop"> ]
+        [ <?{ $start ne $stop }>
+            <.ws>
+            [ <?[ \[ \{ \( \< ]> <.obs('brackets around replacement', 'assignment syntax')> ]?
+            [ <infixish> || <panic: "Missing assignment operator"> ]
+            [ <?{ $<infixish>.Str eq '=' }> || <.panic: "Malformed assignment operator"> ]
+            # XXX When we support it, above check should add: || $<infixish><infix_postfix_meta_operator>[0]
+            <.ws>
+            [ <right=.EXPR('i')> || <.panic: "Assignment operator missing its expression"> ]
+        ||
+            { $lang := self.quote_lang($lang2, $stop, $stop, @lang2tweaks); }
+            <right=.nibble($lang)> $stop || <.panic: "Malformed replacement part; couldn't find final $stop">
+        ]
+    }
+
     token quote:sym<s> {
         <sym> (s)? >>
         :my %*RX;
@@ -2510,12 +2532,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             %*RX<s> := 1 if $/[0]
         }
         <rx_adverbs>
-        [
-        | '/' <p6regex=.LANG(%*RX<P5> ?? 'P5Regex' !! 'Regex','nibbler')> <?[/]> <quote_EXPR: ':qq'> <.old_rx_mods>?
-        | '[' <p6regex=.LANG(%*RX<P5> ?? 'P5Regex' !! 'Regex','nibbler')> ']'
-          <.ws> [ '=' || <.missing: "assignment operator"> ]
-          <.ws> <EXPR('i')>
-        ]
+        <sibble(%*RX<P5> ?? %*LANG<P5Regex> !! %*LANG<Regex>, %*LANG<Q>, ['qq'])>
     }
 
     token old_rx_mods {

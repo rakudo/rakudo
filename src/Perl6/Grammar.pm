@@ -145,7 +145,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         my %*LANG;
         %*LANG<Regex>           := Perl6::RegexGrammar;
         %*LANG<Regex-actions>   := Perl6::RegexActions;
-        %*LANG<P5Regex>         := QRegex::P5Regex::Grammar;
+        %*LANG<P5Regex>         := Perl6::P5RegexGrammar;
         %*LANG<P5Regex-actions> := Perl6::P5RegexActions;
         %*LANG<Q>               := Perl6::QGrammar;
         %*LANG<Q-actions>       := Perl6::QActions;
@@ -3483,4 +3483,8 @@ grammar Perl6::RegexGrammar is QRegex::P6Regex::Grammar does STD {
             | <.normspace> <nibbler>
             ]?
     }
+}
+
+grammar Perl6::P5RegexGrammar is QRegex::P5Regex::Grammar does STD {
+    token rxstopper { <stopper> }
 }

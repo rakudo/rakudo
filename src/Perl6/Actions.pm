@@ -5931,7 +5931,7 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions does STDActions {
     }
 }
 
-class Perl6::P5RegexActions is QRegex::P5Regex::Actions {
+class Perl6::P5RegexActions is QRegex::P5Regex::Actions does STDActions {
     method create_regex_code_object($block) {
         $*W.create_code_object($block, 'Regex',
             $*W.create_signature(nqp::hash('parameters', [])))

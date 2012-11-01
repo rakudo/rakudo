@@ -8,6 +8,9 @@ New in 2012.11
 + the < foo bar > syntax in regexes now respects :i
 + << ... >> now interpolates, respecting quoting and pairs
 + many protos now have much narrower signatures
++ quote parsing implementation aligned with the approach STD uses
++ regexes and quotes have better support for user-selected delimiters
++ quote adverbs
 
 New in 2012.10
 + :60[24, 59, 59] radix form

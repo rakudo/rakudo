@@ -128,7 +128,13 @@ role STD {
 
     method nibble($lang) {
         my $lang_cursor := $lang.'!cursor_init'(self.orig(), :p(self.pos()), :target(self.target()));
-        my $*ACTIONS    := %*LANG{'Q-actions'}; # XXX it may not be the quoting langauge?
+        my $*ACTIONS;
+        for %*LANG {
+            if nqp::istype($lang, $_.value) {
+                $*ACTIONS := %*LANG{$_.key ~ '-actions'};
+                last;
+            }
+        }
         $lang_cursor.nibbler();
     }
 }

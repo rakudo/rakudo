@@ -2486,12 +2486,6 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         ]
     }
 
-    method match_with_adverb($v) {
-        my $s := NQPMatch.new();
-        $s.'!make'(QAST::IVal.new(:value(1), :named('s')));
-        $s;
-    }
-
     token quote:sym<m> {
         <sym> (s)?>>
         :my %*RX;

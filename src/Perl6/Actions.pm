@@ -5780,7 +5780,9 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions does STDActions {
         make $qast;
     }
     
-    method metachar:sym<">($/) {
+    method metachar:sym<'>($/) { self.rxquote($/) }
+    method metachar:sym<">($/) { self.rxquote($/) }
+    method rxquote($/) {
         my $quote := $<quote>.ast;
         if $quote.has_compile_time_value {
             my $qast := QAST::Regex.new( :rxtype<literal>, nqp::unbox_s($quote.compile_time_value) );

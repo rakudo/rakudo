@@ -3424,6 +3424,8 @@ grammar Perl6::RegexGrammar is QRegex::P6Regex::Grammar does STD {
         <quote_EXPR: ':q', ':w'>
     }
     
+    token metachar:sym<'> { <?[']> <quote=.LANG('MAIN','quote')> }
+
     token metachar:sym<"> { <?["]> <quote=.LANG('MAIN','quote')> }
     
     token assertion:sym<{ }> {

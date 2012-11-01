@@ -74,7 +74,12 @@ role STD {
                                      !! $lang.unbalanced($stop);
             for @extra_tweaks {
                 my $t := $_[0];
-                $lang := $lang."tweak_$t"($_[1]);
+                if nqp::can($lang, "tweak_$t") {
+                    $lang := $lang."tweak_$t"($_[1]);
+                }
+                else {
+                    self.panic("Unrecognized adverb: :$t");
+                }
             }
             $lang
         }
@@ -93,9 +98,17 @@ role STD {
         <.ws>
         [ <quotepair> <.ws>
             {
-                # ...
-                # @extra_tweaks.push([$key, $value]);
-                $/.CURSOR.panic("Quote pairs NYI");
+                my $kv := $<quotepair>[-1].ast;
+                my $k  := $kv.named;
+                if nqp::istype($kv, QAST::Stmts) || nqp::istype($kv, QAST::Stmt) && +@($kv) == 1 {
+                    $kv := $kv[0];
+                }
+                my $v := nqp::istype($kv, QAST::IVal)
+                    ?? $kv.value
+                    !! $kv.has_compile_time_value
+                        ?? $kv.compile_time_value
+                        !! self.panic("Invalid adverb value for " ~ $<quotepair>[-1].Str);
+                nqp::push(@extra_tweaks, [$k, $v]);
             }
         ]*
 

@@ -88,8 +88,8 @@ class Perl6::Pod {
             # <colonpair> entirely
             if $colonpair<circumfix> {
                 $val := $colonpair<circumfix>;
-                if $val<quote_EXPR> {
-                    $val := nqp::join('', $val<quote_EXPR><quote_delimited><quote_atom>);
+                if $val<nibble> {
+                    $val := $*W.colonpair_nibble_to_str($/, $val<nibble>);
                 } else {
                     $val := ~$val<semilist>;
                 }

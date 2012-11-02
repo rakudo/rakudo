@@ -3484,18 +3484,20 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
     }
 
-    sub add_macro_arguments($expr, $ast_class, @argument_quasi_asts) {
+    sub add_macro_arguments($expr, $ast_class, @argument_asts) {
+        sub wrap_and_add_expr($expr) {
+            my $quasi_ast := $ast_class.new();
+            nqp::bindattr($quasi_ast, $ast_class, '$!past', $expr);
+            @argument_asts.push($quasi_ast);
+        }
+
         if nqp::istype($expr, QAST::Op) && $expr.name eq '&infix:<,>' {
             for $expr.list {
-                my $quasi_ast := $ast_class.new();
-                nqp::bindattr($quasi_ast, $ast_class, '$!past', $_);
-                @argument_quasi_asts.push($quasi_ast);
+                wrap_and_add_expr($_);
             }
         }
         else {
-            my $quasi_ast := $ast_class.new();
-            nqp::bindattr($quasi_ast, $ast_class, '$!past', $expr);
-            @argument_quasi_asts.push($quasi_ast);
+            wrap_and_add_expr($expr);
         }
     }
 

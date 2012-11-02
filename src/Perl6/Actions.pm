@@ -3487,7 +3487,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
     sub add_macro_arguments($expr, $ast_class, @argument_asts) {
         sub wrap_and_add_expr($expr) {
             my $quasi_ast := $ast_class.new();
-            nqp::bindattr($quasi_ast, $ast_class, '$!past', $expr);
+            my $wrapped := QAST::Op.new( :op('call'), make_thunk_ref($expr, $expr.node) );
+            nqp::bindattr($quasi_ast, $ast_class, '$!past', $wrapped);
             @argument_asts.push($quasi_ast);
         }
 

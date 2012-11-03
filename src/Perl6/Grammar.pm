@@ -293,6 +293,16 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         ]?
     }
 
+    token ws {
+        ||  <?MARKED('ws')>
+        ||  <!ww>
+            [
+            | <.vws> # XXX <.heredoc>
+            | <.unv>
+            ]*
+            <?MARKER('ws')>
+    }
+    
     token unsp {
         \\ <?before [\s|'#'] >
         # :dba('unspace')
@@ -301,28 +311,24 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         | <.unv>
         ]*
     }
-
+    
     token vws {
         :dba('vertical whitespace')
-        \v
-    }
-
-    token ws {
-        ||  <?MARKED('ws')>
-        ||  <!ww>
+        [
             [
-            | \s+
-            | <.unv>
-            ]*
-            <?MARKER('ws')>
+            | \v
+            | '<<<<<<<' {} <?before [.*? \v '=======']: .*? \v '>>>>>>>' > <.panic: 'Found a version control conflict marker'> \V* \v
+            | '=======' {} .*? \v '>>>>>>>' \V* \v   # ignore second half
+            ]
+        ]+
     }
 
     token unv {
         :dba('horizontal whitespace')
         [
-        | ^^ <?before \h* '=' [ \w | '\\'] > <.pod_content_toplevel>
-        | \h* <.comment>
         | \h+
+        | \h* <.comment>
+        | <?before \h* '=' [ \w | '\\'] > ^^ <.pod_content_toplevel>
         ]
     }
 

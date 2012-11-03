@@ -3457,14 +3457,15 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 action      => 'macro application',
             );
         }
-        my $block := QAST::Block.new(
-            :blocktype<raw>,
-            nqp::getattr(
-                pir::perl6_decontainerize__PP($macro_ast),
-                $ast_class,
-                '$!past'
-            )
+        my $macro_ast_qast := nqp::getattr(
+            pir::perl6_decontainerize__PP($macro_ast),
+            $ast_class,
+            '$!past'
         );
+        unless nqp::defined($macro_ast_qast) {
+            return QAST::Var.new(:name('Nil'), :scope('lexical'));
+        }
+        my $block := QAST::Block.new(:blocktype<raw>, $macro_ast_qast);
         $*W.add_quasi_fixups($macro_ast, $block);
         my $past := QAST::Stmts.new(
             $block,

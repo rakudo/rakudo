@@ -11,6 +11,10 @@ New in 2012.11
 + quote parsing implementation aligned with the approach STD uses
 + regexes and quotes have better support for user-selected delimiters
 + quote adverbs
++ heredocs
++ macro arguments now carry their lexical environment properly
++ postfix operators of the form '.FOO' take precedence over method calls
++ version control markers detected and gracefully complained over
 
 New in 2012.10
 + :60[24, 59, 59] radix form

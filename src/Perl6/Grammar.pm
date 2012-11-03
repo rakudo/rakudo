@@ -123,6 +123,27 @@ role STD {
             $<B>.'!make'([$lang, $start, $stop]);
         }
     }
+    
+    my @herestub_queue;
+
+    my class Herestub {
+        has $!delim;
+        has $!orignode;
+        has $!lang;
+        method delim() { $!delim }
+        method orignode() { $!orignode }
+        method lang() { $!lang }
+    }
+
+    role herestop {
+        token stopper { ^^ {} $<ws>=(\h*?) $*DELIM \h* <.unv>?? $$ \v? }
+    }
+
+    method queue_heredoc($delim, $lang) {
+        nqp::ifnull(@herestub_queue, @herestub_queue := []);
+        nqp::push(@herestub_queue, Herestub.new(:$delim, :$lang, :orignode(self)));
+        return self;
+    }
 
     token quibble($l, *@base_tweaks) {
         :my $lang;

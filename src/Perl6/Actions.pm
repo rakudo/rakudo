@@ -3429,52 +3429,64 @@ class Perl6::Actions is HLL::Actions does STDActions {
         make QAST::Op.new( :op('p6type'), $past);
     }
 
-    method term:sym<identifier>($/) {
-        my int $is_macro := 0;
+    sub find_macro_routine(@symbol) {
         my $routine;
         try {
-            $routine := $*W.find_symbol(['&' ~ ~$<identifier>]);
+            $routine := $*W.find_symbol(@symbol);
             if istype($routine, $*W.find_symbol(['Macro'])) {
-                $is_macro := 1;
+                return $routine;
             }
         }
-        if $is_macro {
-            my $nil_class := $*W.find_symbol(['Nil']);
-            my $ast_class := $*W.find_symbol(['AST']);
-            my @argument_quasi_asts := [];
-            if $<args><semiarglist> {
-                for $<args><semiarglist><arglist> {
-                    if $_<EXPR> {
-                        my $expr := $_<EXPR>.ast;
-                        add_macro_arguments($expr, $ast_class, @argument_quasi_asts);
+        return 0;
+    }
+
+    sub expand_macro($macro, $name, $/, &collect_argument_asts) {
+        my @argument_asts := &collect_argument_asts();
+        my $macro_ast := $*W.ex-handle($/, { $macro(|@argument_asts) });
+        my $nil_class := $*W.find_symbol(['Nil']);
+        if istype($macro_ast, $nil_class) {
+            return QAST::Var.new(:name('Nil'), :scope('lexical'));
+        }
+        my $ast_class := $*W.find_symbol(['AST']);
+        unless istype($macro_ast, $ast_class) {
+            say($name);
+            $*W.throw('X::TypeCheck::Splice',
+                got         => $macro_ast,
+                expected    => $ast_class,
+                symbol      => $name,
+                action      => 'macro application',
+            );
+        }
+        my $block := QAST::Block.new(
+            :blocktype<raw>,
+            nqp::getattr(
+                pir::perl6_decontainerize__PP($macro_ast),
+                $ast_class,
+                '$!past'
+            )
+        );
+        $*W.add_quasi_fixups($macro_ast, $block);
+        my $past := QAST::Stmts.new(
+            $block,
+            QAST::Op.new( :op('call'), QAST::BVal.new( :value($block) ) )
+        );
+        return $past;
+    }
+
+    method term:sym<identifier>($/) {
+        my $macro := find_macro_routine(['&' ~ ~$<identifier>]);
+        if $macro {
+            make expand_macro($macro, ~$<identifier>, $/, sub () {
+                my @argument_asts := [];
+                if $<args><semiarglist> {
+                    for $<args><semiarglist><arglist> {
+                        if $_<EXPR> {
+                            add_macro_arguments($_<EXPR>.ast, @argument_asts);
+                        }
                     }
                 }
-            }
-            my $quasi_ast := $routine(|@argument_quasi_asts);
-            if istype($quasi_ast, $nil_class) {
-                make QAST::Var.new(:name('Nil'), :scope('lexical'));
-                return 1;
-            }
-            unless istype($quasi_ast, $ast_class) {
-                $*W.throw('X::TypeCheck::Splice',
-                    got         => $quasi_ast,
-                    expected    => $ast_class,
-                    symbol      => ~$<identifier>,
-                    action      => 'macro application',
-                );
-            }
-            my $past := QAST::Block.new(
-                :blocktype<raw>,
-                nqp::getattr(pir::perl6_decontainerize__PP($quasi_ast),
-                    $ast_class,
-                    '$!past')
-            );
-            $*W.add_quasi_fixups($quasi_ast, $past);
-            $past := QAST::Stmts.new(
-                $past,
-                QAST::Op.new( :op('call'), QAST::BVal.new( :value($past) ) )
-            );
-            make $past;
+                return @argument_asts;
+            });
         }
         else {
             my $past := capture_or_parcel($<args>.ast, ~$<identifier>);
@@ -3484,7 +3496,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
     }
 
-    sub add_macro_arguments($expr, $ast_class, @argument_asts) {
+    sub add_macro_arguments($expr, @argument_asts) {
+        my $ast_class := $*W.find_symbol(['AST']);
+
         sub wrap_and_add_expr($expr) {
             my $quasi_ast := $ast_class.new();
             my $wrapped := QAST::Op.new( :op('call'), make_thunk_ref($expr, $expr.node) );
@@ -3539,56 +3553,24 @@ class Perl6::Actions is HLL::Actions does STDActions {
             if nqp::substr($final, 0, 1) ne '&' {
                 @name[+@name - 1] := '&' ~ $final;
             }
-            my int $is_macro := 0;
-            my $routine;
-            try {
-                $routine := $*W.find_symbol(@name);
-                if istype($routine, $*W.find_symbol(['Macro'])) {
-                    $is_macro := 1;
-                }
-            }
-            if $is_macro {
-                my $nil_class := $*W.find_symbol(['Nil']);
-                my $ast_class := $*W.find_symbol(['AST']);
-                my @argument_quasi_asts := [];
-                if $<args><semiarglist> {
-                    for $<args><semiarglist><arglist> {
-                        if $_<EXPR> {
-                            my $expr := $_<EXPR>.ast;
-                            add_macro_arguments($expr, $ast_class, @argument_quasi_asts);
+            my $macro := find_macro_routine(@name);
+            if $macro {
+                $past := expand_macro($macro, $*longname.text, $/, sub () {
+                    my @argument_asts := [];
+                    if $<args><semiarglist> {
+                        for $<args><semiarglist><arglist> {
+                            if $_<EXPR> {
+                                add_macro_arguments($_<EXPR>.ast, @argument_asts);
+                            }
                         }
                     }
-                }
-                elsif $<args><arglist> {
-                    if $<args><arglist><EXPR> {
-                        my $expr := $<args><arglist><EXPR>.ast;
-                        add_macro_arguments($expr, $ast_class, @argument_quasi_asts);
+                    elsif $<args><arglist> {
+                        if $<args><arglist><EXPR> {
+                            add_macro_arguments($<args><arglist><EXPR>.ast, @argument_asts);
+                        }
                     }
-                }
-                my $quasi_ast := $*W.ex-handle($/, { $routine(|@argument_quasi_asts) });
-                if istype($quasi_ast, $nil_class) {
-                    make QAST::Var.new(:name('Nil'), :scope('lexical'));
-                    return 1;
-                }
-                unless istype($quasi_ast, $ast_class) {
-                    $*W.throw('X::TypeCheck::Splice',
-                        got         => $quasi_ast,
-                        expected    => $ast_class,
-                        symbol      => $*longname.text,
-                        action      => 'macro application',
-                    );
-                }
-                $past := QAST::Block.new(
-                    :blocktype<raw>,
-                    nqp::getattr(pir::perl6_decontainerize__PP($quasi_ast),
-                        $ast_class,
-                        '$!past')
-                );
-                $*W.add_quasi_fixups($quasi_ast, $past);
-                $past := QAST::Stmts.new(
-                    $past,
-                    QAST::Op.new( :op('call'), QAST::BVal.new( :value($past) ) )
-                );
+                    return @argument_asts;
+                });
             }
             else {
                 $past := capture_or_parcel($<args>.ast, ~$<longname>);
@@ -3953,47 +3935,15 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 $name := nqp::lc($key) ~ ':<' ~ $<OPER><sym> ~ '>';
                 $past.name('&' ~ $name);
             }
-            my $routine;
-            my int $is_macro := 0;
-            try {
-                $routine := $*W.find_symbol(['&' ~ $name]);
-                if istype($routine, $*W.find_symbol(['Macro'])) {
-                    $is_macro := 1;
-                }
-            }
-            if $is_macro {
-                my $nil_class := $*W.find_symbol(['Nil']);
-                my $ast_class := $*W.find_symbol(['AST']);
-                my @argument_quasi_asts := [];
-                for @($/) {
-                    add_macro_arguments($_.ast, $ast_class, @argument_quasi_asts);
-                }
-
-                my $quasi_ast := $routine(|@argument_quasi_asts);
-                if istype($quasi_ast, $nil_class) {
-                    make QAST::Var.new(:name('Nil'), :scope('lexical'));
-                    return 1;
-                }
-                unless istype($quasi_ast, $ast_class) {
-                    $*W.throw('X::TypeCheck::Splice',
-                        got         => $quasi_ast,
-                        expected    => $ast_class,
-                        symbol      => $name,
-                        action      => 'macro application',
-                    );
-                }
-                my $past := QAST::Block.new(
-                    :blocktype<raw>,
-                    nqp::getattr(pir::perl6_decontainerize__PP($quasi_ast),
-                        $ast_class,
-                        '$!past')
-                );
-                $*W.add_quasi_fixups($quasi_ast, $past);
-                $past := QAST::Stmts.new(
-                    $past,
-                    QAST::Op.new( :op('call'), QAST::BVal.new( :value($past) ) )
-                );
-                make $past;
+            my $macro := find_macro_routine(['&' ~ $name]);
+            if $macro {
+                make expand_macro($macro, $name, $/, sub () {
+                    my @argument_asts := [];
+                    for @($/) {
+                        add_macro_arguments($_.ast, @argument_asts);
+                    }
+                    return @argument_asts;
+                });
                 return 'an irrelevant value';
             }
         }

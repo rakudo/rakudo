@@ -138,7 +138,7 @@ role STD {
     }
 
     role herestop {
-        token stopper { ^^ {} $<ws>=(\h*?) $*DELIM \h* <.unv>?? $$ \v? }
+        token stopper { ^^ {} $<ws>=(\h*) $*DELIM \h* $$ \v? }
     }
 
     method heredoc () {
@@ -150,11 +150,15 @@ role STD {
             my $lang := $herestub.lang.HOW.mixin($herestub.lang, herestop);
             my $doc := $here.nibble($lang);
             if $doc {
-                # XXX need to trim it...
-                my $ast := $herestub.orignode.MATCH.ast;
-                $ast.pop(); $ast.pop();
-                $ast.push($*W.add_string_constant(~$doc.MATCH));
-                $here.'!cursor_pos'($doc.pos);
+                # Match stopper.
+                my $stop := $lang.'!cursor_init'(self.orig(), :p($doc.pos), :target(self.target())).stopper();
+                unless $stop {
+                    self.panic("Ending delimiter $*DELIM not found");
+                }
+                $here.'!cursor_pos'($stop.pos);
+                
+                # Get it trimmed and AST updated.
+                $*ACTIONS.trim_heredoc($doc, $stop, $herestub.orignode.MATCH.ast);
             }
             else {
                 self.panic("Ending delimiter $*DELIM not found");

@@ -10,6 +10,23 @@ role STDActions {
     method quibble($/) {
         make $<nibble>.ast;
     }
+    
+    method trim_heredoc($doc, $stop, $origast) {
+        $origast.pop();
+        $origast.pop();
+        my int $indent := -nqp::chars($stop.MATCH<ws>.Str);
+        my $docast := $doc.MATCH.ast;
+        if $docast.has_compile_time_value {
+            my $dedented := nqp::unbox_s($docast.compile_time_value.indent($indent));
+            $origast.push($*W.add_string_constant($dedented));
+        }
+        else {
+            $origast.push(QAST::Op.new(
+                :op('callmethod'), :name('indent'),
+                $doc.MATCH.ast,
+                QAST::IVal.new( :value($indent) )));
+        }
+    }
 }
 
 class Perl6::Actions is HLL::Actions does STDActions {

@@ -2704,10 +2704,10 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
         <postfix_prefix_meta_operator>?
         [
-        | <OPER=dotty>
-        | <OPER=privop>
         | <OPER=postfix>
         | <OPER=postcircumfix>
+        | <OPER=dotty>
+        | <OPER=privop>
         ]
         { $*LEFTSIGIL := '@'; }
     }

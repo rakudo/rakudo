@@ -48,10 +48,8 @@ role STD {
         self.HOW.mixin(self, stop.HOW.curry(stop, $stop));
     }
     
-    # overridden in subgrammars
-    # XXX Can't do this until after quote refactor.
-    #token starter { <!> }
-    #token stopper { <!> }
+    token starter { <!> }
+    token stopper { <!> }
     
     my %quote_lang_cache;
     method quote_lang($l, $start, $stop, @base_tweaks?, @extra_tweaks?) {

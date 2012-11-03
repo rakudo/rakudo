@@ -68,8 +68,6 @@ role STD {
             for @base_tweaks {
                 $lang := $lang."tweak_$_"(1);
             }
-            $lang := $start ne $stop ?? $lang.balanced($start, $stop)
-                                     !! $lang.unbalanced($stop);
             for @extra_tweaks {
                 my $t := $_[0];
                 if nqp::can($lang, "tweak_$t") {
@@ -79,7 +77,8 @@ role STD {
                     self.panic("Unrecognized adverb: :$t");
                 }
             }
-            $lang
+            $start ne $stop ?? $lang.balanced($start, $stop)
+                            !! $lang.unbalanced($stop);
         }
 
         # Get language from cache or derive it.

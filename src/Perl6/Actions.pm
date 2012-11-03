@@ -5572,6 +5572,12 @@ class Perl6::QActions is HLL::Actions does STDActions {
         return +@($result) == 1 ?? $result[0] !! $result;
     }
 
+    method postprocess_heredoc($/, $past) {
+        return QAST::Stmts.new(
+            QAST::Op.new( :op<die_s>, QAST::SVal.new( :value("Premature heredoc consumption") ) ),
+            $past);
+    }
+
     method escape:sym<\\>($/) { make $<item>.ast; }
     method backslash:sym<qq>($/) { make $<quote>.ast; }
     method backslash:sym<\\>($/) { make $<text>.Str; }

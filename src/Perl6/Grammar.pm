@@ -59,6 +59,9 @@ role STD {
                 @keybits.push($_);
             }
             for @extra_tweaks {
+                if $_[0] eq 'to' {
+                    return 'NOCACHE';
+                }
                 @keybits.push($_[0] ~ '=' ~ $_[1]);
             }
             nqp::join("\0", @keybits)
@@ -84,7 +87,7 @@ role STD {
         # Get language from cache or derive it.
         my $key := lang_key();
         nqp::ifnull(%quote_lang_cache, %quote_lang_cache := nqp::hash());
-        nqp::existskey(%quote_lang_cache, $key)
+        nqp::existskey(%quote_lang_cache, $key) && $key ne 'NOCACHE'
             ?? %quote_lang_cache{$key}
             !! (%quote_lang_cache{$key} := con_lang());
     }
@@ -138,6 +141,29 @@ role STD {
         token stopper { ^^ {} $<ws>=(\h*?) $*DELIM \h* <.unv>?? $$ \v? }
     }
 
+    method heredoc () {
+        my $here := self.'!cursor_start'();
+        $here.'!cursor_pos'(self.pos);
+        while @herestub_queue {
+            my $herestub := nqp::shift(@herestub_queue);
+            my $*DELIM := $herestub.delim;
+            my $lang := $herestub.lang.HOW.mixin($herestub.lang, herestop);
+            my $doc := $here.nibble($lang);
+            if $doc {
+                # XXX need to trim it...
+                my $ast := $herestub.orignode.MATCH.ast;
+                $ast.pop(); $ast.pop();
+                $ast.push($*W.add_string_constant(~$doc.MATCH));
+                $here.'!cursor_pos'($doc.pos);
+            }
+            else {
+                self.panic("Ending delimiter $*DELIM not found");
+            }
+        }
+        $here.'!cursor_pass'($here.pos);
+        $here
+    }
+
     method queue_heredoc($delim, $lang) {
         nqp::ifnull(@herestub_queue, @herestub_queue := []);
         nqp::push(@herestub_queue, Herestub.new(:$delim, :$lang, :orignode(self)));
@@ -153,8 +179,11 @@ role STD {
 
         $start <nibble($lang)> [ $stop || { $/.CURSOR.panic("Couldn't find terminator $stop") } ]
 
-        # Figure out this when we add heredocs...
-        #{ $lang<_herelang> and $¢.queue_heredoc($<nibble><nibbles>[0]<TEXT>, $lang<_herelang>) }
+        {
+            nqp::can($lang, 'herelang') && self.queue_heredoc(
+                $*W.nibble_to_str($/, $<nibble>.ast[1], -> { "Stopper '" ~ $<nibble> ~ "' too complex for heredoc" }),
+                $lang.herelang)
+        }
     }
 
     method nibble($lang) {
@@ -296,7 +325,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         ||  <?MARKED('ws')>
         ||  <!ww>
             [
-            | <.vws> # XXX <.heredoc>
+            | <.vws> <.heredoc>
             | <.unv>
             ]*
             <?MARKER('ws')>
@@ -3318,6 +3347,11 @@ grammar Perl6::QGrammar is HLL::Grammar does STD {
     role x0 {
         method postprocessor () { 'null' }
     }
+    
+    role to[$herelang] {
+        method herelang() { $herelang }
+        method postprocessor () { 'heredoc' }
+    }
 
     role q {
         token stopper { \' }
@@ -3425,7 +3459,10 @@ grammar Perl6::QGrammar is HLL::Grammar does STD {
     method tweak_ww($v)         { self.HOW.mixin(self, $v ?? ww1 !! ww0) }
     method tweak_quotewords($v) { self.tweak_ww($v) }
 
-    method tweak_to($v)         { self.truly($v, ':to'); self.cursor_herelang; }
+    method tweak_to($v) {
+        self.truly($v, ':to');
+        %*LANG<Q>.HOW.mixin(%*LANG<Q>, to.HOW.curry(to, self))
+    }
     method tweak_heredoc($v)    { self.tweak_to($v) }
 
     method tweak_regex($v) {

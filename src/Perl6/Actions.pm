@@ -1743,11 +1743,15 @@ class Perl6::Actions is HLL::Actions does STDActions {
             elsif $shape {
                 $/.CURSOR.panic("Cannot put a shape on an 'our'-scoped variable");
             }
+            my $lex := QAST::Var.new( :name($name), :scope('lexical') );
+            unless $BLOCK.symbol($name) {
+                $lex.decl('var');
+                $BLOCK.symbol($name, :scope('lexical'));
+            }
             $BLOCK[0].push(QAST::Op.new(
                 :op('bind'),
-                QAST::Var.new( :name($name), :scope('lexical'), :decl('var') ),
+                $lex,
                 $*W.symbol_lookup([$name], $/, :package_only(1), :lvalue(1))));
-            $BLOCK.symbol($name, :scope('lexical'));
         }
         else {
             $*W.throw($/, 'X::Comp::NYI',

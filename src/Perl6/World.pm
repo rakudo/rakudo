@@ -1397,12 +1397,28 @@ class Perl6::World is HLL::World {
             return $result_node;
         }
         elsif $phaser eq 'INIT' {
+            unless $*UNIT.symbol('!INIT_VALUES') {
+                my $mu := self.find_symbol(['Mu']);
+                my %info;
+                %info<container_type> := %info<container_base> := self.find_symbol(['Hash']);
+                %info<bind_constraint> := self.find_symbol(['Associative']);
+                %info<value_type> := $mu;
+                self.install_lexical_container($*UNIT, '!INIT_VALUES', %info,
+                    self.create_container_descriptor($mu, 1, '!INIT_VALUES'));
+            }
             $*UNIT[0].push(QAST::Op.new(
-                :op('call'),
-                QAST::WVal.new( :value($block) )
-            ));
-            # XXX should keep value for r-value usage
-            return QAST::Var.new(:name('Nil'), :scope('lexical'));
+                :op('callmethod'), :name('bind_key'),
+                QAST::Var.new( :name('!INIT_VALUES'), :scope('lexical') ),
+                QAST::SVal.new( :value($phaser_past.cuid) ),
+                QAST::Op.new(
+                    :op('call'),
+                    QAST::WVal.new( :value($block) )
+                )));
+            return QAST::Op.new(
+                :op('callmethod'), :name('at_key'),
+                QAST::Var.new( :name('!INIT_VALUES'), :scope('lexical') ),
+                QAST::SVal.new( :value($phaser_past.cuid) )
+            );
         }
         elsif $phaser eq 'END' {
             $*UNIT[0].push(QAST::Op.new(

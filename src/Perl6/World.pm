@@ -2079,12 +2079,14 @@ class Perl6::World is HLL::World {
             }
         }
         $p6ex.rethrow if $success == 2;
-        $p6ex.SET_FILE_LINE(
-            nqp::box_s(pir::find_caller_lex__Ps('$?FILES'),
-                self.find_symbol(['Str'])),
-            nqp::box_i(HLL::Compiler.lineof($/.orig, $/.from),
-                self.find_symbol(['Int'])),
-        );
+        if nqp::can($p6ex, 'SET_FILE_LINE') {
+            $p6ex.SET_FILE_LINE(
+                nqp::box_s(pir::find_caller_lex__Ps('$?FILES'),
+                    self.find_symbol(['Str'])),
+                nqp::box_i(HLL::Compiler.lineof($/.orig, $/.from),
+                    self.find_symbol(['Int'])),
+            );
+        }
         $p6ex.rethrow();
     }
 }

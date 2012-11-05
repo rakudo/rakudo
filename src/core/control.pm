@@ -47,13 +47,14 @@ my &return := -> | {
 my &take-rw := -> | { 
     my $parcel := 
         &RETURN-PARCEL(nqp::p6parcel(pir::perl6_current_args_rpa__P(), Nil));
-    THROW($parcel, pir::const::CONTROL_TAKE) 
+    THROW($parcel, pir::const::CONTROL_TAKE);
+    $parcel
 };
 my &take := -> | { 
     my $parcel := 
         &RETURN-PARCEL(nqp::p6parcel(pir::perl6_current_args_rpa__P(), Nil));
-    THROW(nqp::p6recont_ro($parcel),
-          pir::const::CONTROL_TAKE) 
+    THROW(nqp::p6recont_ro($parcel), pir::const::CONTROL_TAKE);
+    $parcel
 };
 
 my &last := -> | { 

@@ -15,6 +15,9 @@ New in 2012.11
 + macro arguments now carry their lexical environment properly
 + postfix operators of the form '.FOO' take precedence over method calls
 + version control markers detected and gracefully complained over
++ INIT phasers now work as r-values
++ our ($x, $y) style declarations fixed
++ take and take-rw now evaluate to the taken value
 
 New in 2012.10
 + :60[24, 59, 59] radix form

@@ -1,7 +1,7 @@
 Rakudo Roadmap
 --------------
 
-Last updated: 2012-11-03
+Last updated: 2012-11-06
 
 This document serves as a guide to the major goals for Rakudo
 development, as things stood in December 2011. They have been
@@ -67,9 +67,6 @@ Built-ins/Data Structures
 3 ***   complete LoL and slice context implementation
 3 ***   Cat and stream matching
 ? ?     Correct type smiley support  (:U, :D, :T, etc.)
-
-Phasers
-2 **    LAST/NEXT/FIRST in loops other than for loops
 
 Language Features
 1 ***   basic Perl 5 interop (use, eval, etc.)

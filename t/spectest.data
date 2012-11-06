@@ -129,6 +129,7 @@ S03-metaops/not.t
 S03-metaops/reduce.t
 S03-metaops/reverse.t
 S03-metaops/zip.t
+S03-operators/adverbial-modifiers.t
 S03-operators/also.t
 S03-operators/andthen.t
 S03-operators/arith.t

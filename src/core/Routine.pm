@@ -25,7 +25,7 @@ my class Routine {
             (self,)
     }
     
-    method candidates_matching(|c) {
+    method cando(Capture $c) {
         my $disp;
         if self.is_dispatcher {
             $disp := self;
@@ -39,7 +39,7 @@ my class Routine {
             my Mu $cap := pir::find_lex__Ps('call_sig');
             pir::perl6ize_type__PP(pir::perl6_get_matching_multis__PPP($disp, $cap))
         }
-        checker(|c);
+        checker(|$c);
     }
     
     method multi() {

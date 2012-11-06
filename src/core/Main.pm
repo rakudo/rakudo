@@ -124,7 +124,7 @@ my sub MAIN_HELPER($retval = 0) is hidden_from_backtrace {
     my $?USAGE = gen-usage();
 
     # Get a list of candidates that match according to the dispatcher
-    my @matching_candidates = $m.candidates_matching(|@($p), |%($n));
+    my @matching_candidates = $m.cando(Capture.new(list => $p, hash => $n));
     # Sort out all that would fail due to binding
     @matching_candidates .=grep: {!has-unexpected-named-arguments($_.signature, $n)};
     # If there are still some candidates left, try to dispatch to MAIN

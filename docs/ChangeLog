@@ -18,6 +18,9 @@ New in 2012.11
 + INIT phasers now work as r-values
 + our ($x, $y) style declarations fixed
 + take and take-rw now evaluate to the taken value
++ implemented cando method on Routine
++ FIRST/NEXT/LAST can now be used in all types of loop (previously limited to for)
++ implemented operator adverbs
 
 New in 2012.10
 + :60[24, 59, 59] radix form

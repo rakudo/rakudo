@@ -784,7 +784,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
     method statement_control:sym<while>($/) {
         my $past := xblock_immediate( $<xblock>.ast );
         $past.op(~$<sym>);
-        make $past;
+        make loop_phasers($past);
     }
 
     method statement_control:sym<repeat>($/) {
@@ -798,7 +798,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $past := QAST::Op.new( $<EXPR>.ast, pblock_immediate( $<pblock>.ast ),
                                    :op($op), :node($/) );
         }
-        make $past;
+        make loop_phasers($past);
     }
 
     method statement_control:sym<for>($/) {
@@ -820,10 +820,38 @@ class Perl6::Actions is HLL::Actions does STDActions {
         if $<e3> {
             $loop.push($<e3>[0].ast);
         }
+        $loop := loop_phasers($loop);
         if $<e1> {
             $loop := QAST::Stmts.new( $<e1>[0].ast, $loop, :node($/) );
         }
         make $loop;
+    }
+    
+    sub loop_phasers($loop) {
+        my $code := $loop[1]<code_object>;
+        my $block_type := $*W.find_symbol(['Block']);
+        my $phasers := nqp::getattr($code, $block_type, '$!phasers');
+        if nqp::existskey($phasers, 'NEXT') {
+            my $phascode := $*W.run_phasers_code($code, $block_type, 'NEXT');
+            if +@($loop) == 2 {
+                $loop.push($phascode);
+            }
+            else {
+                $loop[2] := QAST::Stmts.new($phascode, $loop[2]);
+            }
+        }
+        if nqp::existskey($phasers, 'FIRST') {
+            $loop := QAST::Stmts.new(
+                QAST::Op.new( :op('p6setfirstflag'), QAST::WVal.new( :value($code) ) ),
+                $loop);
+        }
+        if nqp::existskey($phasers, 'LAST') {
+            $loop := QAST::Stmts.new(
+                :resultchild(0),
+                $loop,
+                $*W.run_phasers_code($code, $block_type, 'LAST'));
+        }
+        $loop
     }
 
     method statement_control:sym<need>($/) {

@@ -3997,6 +3997,22 @@ class Perl6::Actions is HLL::Actions does STDActions {
             }
         }
         if $key eq 'POSTFIX' {
+            # If may be an adverb.
+            if $<colonpair> {
+                my $target := $past := $/[0].ast;
+                if nqp::istype($target, QAST::Op) && $target.op eq 'p6type' {
+                    $target := $target[0];
+                }
+                unless nqp::istype($target, QAST::Op) && ($target.op eq 'call' || $target.op eq 'callmethod') {
+                    $/.CURSOR.panic("You can't adverb that");
+                }
+                my $cpast := $<colonpair>.ast;
+                $cpast[2].named(compile_time_value_str($cpast[1], 'LHS of pair', $/));
+                $target.push($cpast[2]);
+                make $past;
+                return 1;
+            }
+            
             # Method calls may be to a foreign language, and thus return
             # values may need type mapping into Perl 6 land.
             $past.unshift($/[0].ast);

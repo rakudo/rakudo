@@ -2699,7 +2699,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         $last eq ')' || $last eq '}' || $last eq ']' || $last eq '>'
     }
 
-    method EXPR($preclim = '') {
+    method EXPR(str $preclim = '') {
         # Override this so we can set $*LEFTSIGIL.
         my $*LEFTSIGIL := '';
         nqp::findmethod(HLL::Grammar, 'EXPR')(self, $preclim);
@@ -2718,12 +2718,17 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <!infixstopper>
         <!stdstopper>
         [
+        | <colonpair> <OPER=fake_infix>
         | :dba('bracketed infix') '[' ~ ']' <infixish> {} <OPER=.copyOPER($<infixish>)>
         | <OPER=infix_circumfix_meta_operator>
         | <OPER=infix> <![=]>
         | <OPER=infix_prefix_meta_operator>
         | <infix> <OPER=infix_postfix_meta_operator>
         ]
+    }
+    
+    token fake_infix {
+        <O('%item_assignment, :assoc<unary>, :fake<1>, :dba<adverb>')>
     }
     
     regex infixstopper {

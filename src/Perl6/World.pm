@@ -858,43 +858,45 @@ class Perl6::World is HLL::World {
         self.add_fixup_task(:fixup_past($fixups), :deserialize_past($fixups));
     }
     
+    # Generates code for running phasers.
+    method run_phasers_code($code, $block_type, $type) {
+        QAST::Op.new(
+            :op('for'),
+            QAST::Op.new(
+                :op('atkey'),
+                QAST::Var.new(
+                    :scope('attribute'), :name('$!phasers'),
+                    QAST::WVal.new( :value($code) ),
+                    QAST::WVal.new( :value($block_type) )
+                ),
+                QAST::SVal.new( :value($type) )
+            ),
+            QAST::Block.new(
+                :blocktype('immediate'),
+                QAST::Op.new(
+                    :op('call'),
+                    QAST::Var.new( :scope('lexical'), :name('$_'), :decl('param') )
+                )))
+    }
+    
     # Adds any extra code needing for handling phasers.
     method add_phasers_handling_code($code, $code_past) {
         my $block_type := self.find_symbol(['Block']);
         if nqp::istype($code, $block_type) {
-            sub run_phasers_code($type) {
-                QAST::Op.new(
-                    :op('for'),
-                    QAST::Op.new(
-                        :op('atkey'),
-                        QAST::Var.new(
-                            :scope('attribute'), :name('$!phasers'),
-                            QAST::WVal.new( :value($code) ),
-                            QAST::WVal.new( :value($block_type) )
-                        ),
-                        QAST::SVal.new( :value($type) )
-                    ),
-                    QAST::Block.new(
-                        :blocktype('immediate'),
-                        QAST::Op.new(
-                            :op('call'),
-                            QAST::Var.new( :scope('lexical'), :name('$_'), :decl('param') )
-                        )))
-            }
             my %phasers := nqp::getattr($code, $block_type, '$!phasers');
             if nqp::existskey(%phasers, 'PRE') {
                 $code_past[0].push(QAST::Op.new( :op('p6setpre') ));
-                $code_past[0].push(run_phasers_code('PRE'));
+                $code_past[0].push(self.run_phasers_code($code, $block_type, 'PRE'));
                 $code_past[0].push(QAST::Op.new( :op('p6clearpre') ));
             }
             if nqp::existskey(%phasers, 'FIRST') {
                 $code_past[0].push(QAST::Op.new(
                     :op('if'),
                     QAST::Op.new( :op('p6takefirstflag') ),
-                    run_phasers_code('FIRST')));
+                    self.run_phasers_code($code, $block_type, 'FIRST')));
             }
             if nqp::existskey(%phasers, 'ENTER') {
-                $code_past[0].push(run_phasers_code('ENTER'));
+                $code_past[0].push(self.run_phasers_code($code, $block_type, 'ENTER'));
             }
             if nqp::existskey(%phasers, '!LEAVE-ORDER') || nqp::existskey(%phasers, 'POST') {
                 $code_past[+@($code_past) - 1] := QAST::Op.new(

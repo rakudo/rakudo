@@ -219,6 +219,12 @@ my class Any {
     multi method postcircumfix:<{ }>(\SELF: $key, :$BIND! is parcel) is rw {
         SELF.bind_key($key, $BIND)
     }
+    multi method postcircumfix:<{ }>(\SELF: $key, :$delete!) is rw {
+        SELF.delete($key)
+    }
+    multi method postcircumfix:<{ }>(\SELF: $key, :$exists!) is rw {
+        SELF.exists($key)
+    }
     multi method postcircumfix:<{ }>(\SELF: Positional \key) is rw {
         nqp::iscont(key) 
           ?? SELF.at_key(key) 
@@ -227,11 +233,27 @@ my class Any {
     multi method postcircumfix:<{ }>(Positional $key, :$BIND!) is rw {
         X::Bind::Slice.new(type => self.WHAT).throw
     }
+    multi method postcircumfix:<{ }>(\SELF: Positional \key, :$delete!) is rw {
+        nqp::iscont(key) 
+          ?? SELF.at_key(key) 
+          !! key.map({ SELF.delete($_) }).eager.Parcel
+    }
+    multi method postcircumfix:<{ }>(\SELF: Positional \key, :$exists!) is rw {
+        nqp::iscont(key) 
+          ?? SELF.at_key(key) 
+          !! die("Cannot use exists adverb with a slice")
+    }
     multi method postcircumfix:<{ }>(\SELF: Whatever) is rw {
         SELF{SELF.keys}
     }
     multi method postcircumfix:<{ }>(Whatever, :$BIND!) is rw {
         X::Bind::Slice.new(type => self.WHAT).throw
+    }
+    multi method postcircumfix:<{ }>(\SELF: Whatever, :$delete!) is rw {
+        SELF{SELF.keys}:delete
+    }
+    multi method postcircumfix:<{ }>(\SELF: Whatever, :$exists!) is rw {
+        SELF{SELF.keys}:delete
     }
 
     proto method at_key(|) { * }

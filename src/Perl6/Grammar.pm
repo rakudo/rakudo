@@ -2468,7 +2468,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         [<.ws> 'of' <.ws> <typename> ]?
     }
 
-    token quotepair {
+    token quotepair($*purpose = 'quoteadverb') {
         :my $*key;
         :my $*value;
         ':'
@@ -2490,7 +2490,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     token rx_adverbs {
         [
-            <quotepair> <.ws>
+            <quotepair('rxadverb')> <.ws>
             :my $*ADVERB;
             { $*ADVERB := $<quotepair>[-1] }
             <.setup_quotepair>

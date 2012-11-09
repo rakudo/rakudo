@@ -4781,7 +4781,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
     method quotepair($/) {
         unless $*value ~~ QAST::Node {
-            if ($*key eq 'c' || $*key eq 'continue'
+            if $*purpose eq 'rxadverb' && ($*key eq 'c' || $*key eq 'continue'
             || $*key eq 'p' || $*key eq 'pos') && $*value == 1 {
                 $*value := QAST::Op.new(
                     :node($/),

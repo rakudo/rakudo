@@ -177,6 +177,7 @@ S03-operators/short-circuit.t
 S03-operators/so.t
 S03-operators/spaceship-and-containers.t
 S03-operators/spaceship.t
+S03-operators/subscript-adverbs.t
 S03-operators/subscript-vs-lt.t
 S03-operators/ternary.t
 S03-operators/value_equivalence.t

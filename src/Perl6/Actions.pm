@@ -5618,12 +5618,12 @@ class Perl6::QActions is HLL::Actions does STDActions {
     method postprocess_quotewords($/, $past) {
         my $result := QAST::Op.new( :op('call'), :name('&infix:<,>'), :node($/) );
         sub walk($node) {
-            if nqp::istype($node, QAST::Op) && $node.name eq '&infix:<~>' {
+            if $node<ww_atom> {
+                $result.push($node);
+            }
+            elsif nqp::istype($node, QAST::Op) && $node.name eq '&infix:<~>' {
                 walk($node[0]);
                 walk($node[1]);
-            }
-            elsif $node<ww_atom> {
-                $result.push($node);
             }
             else {
                 my $ppw := self.postprocess_words($/, $node);

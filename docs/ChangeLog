@@ -21,6 +21,8 @@ New in 2012.11
 + implemented cando method on Routine
 + FIRST/NEXT/LAST can now be used in all types of loop (previously limited to for)
 + implemented operator adverbs
++ implemented :exists and :delete subscript adverbs and on hashes
++ implemented :p, :k, :v and :kv subscript adverbs on arrays and hashes
 
 New in 2012.10
 + :60[24, 59, 59] radix form

@@ -230,6 +230,15 @@ my class Any {
         $list.gimme(*);
         $list.map({ last if $_ >= SELF.list.gimme($_ + 1); $_ }).eager.Parcel;
     }
+    multi method postcircumfix:<[ ]>(\SELF: Positional \pos, :$v!) is rw {
+        if nqp::iscont(pos) {
+            fail "Cannot use negative index {pos} on {SELF.WHAT.perl}" if pos < 0;
+            SELF.at_pos(pos)
+        }
+        my $list = pos.flat;
+        $list.gimme(*);
+        $list.map({ last if $_ >= SELF.list.gimme($_ + 1); SELF[$_] }).eager.Parcel;
+    }
     multi method postcircumfix:<[ ]>(Positional $pos, :$BIND!) is rw {
         X::Bind::Slice.new(type => self.WHAT).throw;
     }

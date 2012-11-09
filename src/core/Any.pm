@@ -298,6 +298,10 @@ my class Any {
     ########
     proto method postcircumfix:<{ }>(|) { * }
     multi method postcircumfix:<{ }>() { self }
+    multi method postcircumfix:<{ }>(:$p!) { self.pairs }
+    multi method postcircumfix:<{ }>(:$k!) { self.keys }
+    multi method postcircumfix:<{ }>(:$kv!) { self.kv }
+    multi method postcircumfix:<{ }>(:$v!) { self.values }
     multi method postcircumfix:<{ }>(:$BIND!) {
         X::Bind::ZenSlice.new(type => self.WHAT).throw
     }
@@ -313,6 +317,15 @@ my class Any {
     multi method postcircumfix:<{ }>(\SELF: $key, :$exists!) is rw {
         SELF.exists($key)
     }
+    multi method postcircumfix:<{ }>(\SELF: $key, :$p!) is rw {
+        RWPAIR($key, SELF.at_key($key))
+    }
+    multi method postcircumfix:<{ }>(\SELF: $key, :$k!) is rw {
+        $key
+    }
+    multi method postcircumfix:<{ }>(\SELF: $key, :$kv!) is rw {
+        ($key, SELF.at_key($key))
+    }
     multi method postcircumfix:<{ }>(\SELF: Positional \key) is rw {
         nqp::iscont(key) 
           ?? SELF.at_key(key) 
@@ -323,13 +336,33 @@ my class Any {
     }
     multi method postcircumfix:<{ }>(\SELF: Positional \key, :$delete!) is rw {
         nqp::iscont(key) 
-          ?? SELF.at_key(key) 
+          ?? SELF.delete(key) 
           !! key.map({ SELF.delete($_) }).eager.Parcel
     }
     multi method postcircumfix:<{ }>(\SELF: Positional \key, :$exists!) is rw {
         nqp::iscont(key) 
-          ?? SELF.at_key(key) 
+          ?? SELF.exists(key) 
           !! die("Cannot use exists adverb with a slice")
+    }
+    multi method postcircumfix:<{ }>(\SELF: Positional \key, :$p!) is rw {
+        nqp::iscont(key) 
+          ?? RWPAIR(key, SELF.at_key(key))
+          !! key.map({ SELF.exists($_) ?? RWPAIR($_, SELF.at_key($_)) !! () }).eager.Parcel
+    }
+    multi method postcircumfix:<{ }>(\SELF: Positional \key, :$kv!) is rw {
+        nqp::iscont(key) 
+          ?? (key, SELF.at_key(key))
+          !! key.map({ SELF.exists($_) ?? ($_, SELF.at_key($_)) !! () }).eager.Parcel
+    }
+    multi method postcircumfix:<{ }>(\SELF: Positional \key, :$k!) is rw {
+        nqp::iscont(key) 
+          ?? key
+          !! key.map({ SELF.exists($_) ?? $_ !! () }).eager.Parcel
+    }
+    multi method postcircumfix:<{ }>(\SELF: Positional \key, :$v!) is rw {
+        nqp::iscont(key) 
+          ?? SELF.at_key(key)
+          !! key.map({ SELF.exists($_) ?? SELF.at_key($_) !! () }).eager.Parcel
     }
     multi method postcircumfix:<{ }>(\SELF: Whatever) is rw {
         SELF{SELF.keys}
@@ -342,6 +375,18 @@ my class Any {
     }
     multi method postcircumfix:<{ }>(\SELF: Whatever, :$exists!) is rw {
         SELF{SELF.keys}:delete
+    }
+    multi method postcircumfix:<{ }>(\SELF: Whatever, :$p!) is rw {
+        SELF{SELF.keys}:p
+    }
+    multi method postcircumfix:<{ }>(\SELF: Whatever, :$kv!) is rw {
+        SELF{SELF.keys}:kv
+    }
+    multi method postcircumfix:<{ }>(\SELF: Whatever, :$k!) is rw {
+        SELF{SELF.keys}:k
+    }
+    multi method postcircumfix:<{ }>(\SELF: Whatever, :$v!) is rw {
+        SELF{SELF.keys}:v
     }
 
     proto method at_key(|) { * }

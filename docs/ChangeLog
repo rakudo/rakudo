@@ -23,6 +23,7 @@ New in 2012.11
 + implemented operator adverbs
 + implemented :exists and :delete subscript adverbs and on hashes
 + implemented :p, :k, :v and :kv subscript adverbs on arrays and hashes
++ byte-order mark at the beginning of a file is now ignored
 
 New in 2012.10
 + :60[24, 59, 59] radix form

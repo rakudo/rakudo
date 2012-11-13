@@ -13,6 +13,7 @@
 
 S01-perl-5-integration/basic.t 
 S02-lexical-conventions/begin_end_pod.t
+S02-lexical-conventions/bom.t
 S02-lexical-conventions/comments.t
 S02-lexical-conventions/end-pod.t
 S02-lexical-conventions/minimal-whitespace.t

@@ -756,6 +756,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         }
         
         <.finishpad>
+        <.bom>?
         <statementlist>
 
         <.install_doc_phaser>
@@ -896,6 +897,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token you_are_here { <?> }
     token newpad { <?> { $*W.push_lexpad($/) } }
     token finishpad { <?> }
+
+    token bom { \xFEFF }
 
     proto token terminator { <...> }
 

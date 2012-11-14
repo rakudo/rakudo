@@ -340,6 +340,7 @@ S06-advanced/return.t
 S06-advanced/wrap.t
 S06-currying/assuming-and-mmd.t
 S06-currying/named.t
+S06-macros/errors.t
 S06-macros/quasi-blocks.t
 S06-macros/unquoting.t
 S06-macros/opaque-ast.t

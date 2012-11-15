@@ -307,8 +307,7 @@ sub gen_parrot {
 
     my $prefix     = $options{'prefix'} || cwd()."/install";
     my $gen_parrot = $options{'gen-parrot'};
-    my @opts       = @{ $options{'parrot-option'} || [] };
-    push @opts, "--optimize";
+    my @opts       = @{ $options{'parrot-option'} || ["--optimize"] };
     my $startdir   = cwd();
 
     my $par_exe  = "$options{'prefix'}/bin/parrot$exe";

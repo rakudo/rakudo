@@ -286,6 +286,24 @@ class Perl6::ModuleLoader {
         
         return $setting;
     }
+    
+    # Handles any object repossession conflicts that occurred during module load,
+    # or complains about any that cannot be resolved.
+    method resolve_repossession_conflicts(@conflicts) {
+        for @conflicts -> $orig, $current {
+            # If it's a Stash in conflict, we make sure any original entries get
+            # appropriately copied.
+            if $orig.HOW.name($orig) eq 'Stash' {
+                for $orig {
+                    unless nqp::existskey($current, $_.key) {
+                        $current{$_.key} := $_.value;
+                    }
+                }
+            }
+            # We could complain about anything else, and may in the future; for
+            # now, we let it pass by with "latest wins" semantics.
+        }
+    }
 }
 
 # We stash this in the perl6 HLL namespace, just so it's easy to

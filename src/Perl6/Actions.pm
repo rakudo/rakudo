@@ -294,6 +294,13 @@ class Perl6::Actions is HLL::Actions does STDActions {
             :compilation_mode($*W.is_precompilation_mode()),
             :pre_deserialize($*W.load_dependency_tasks()),
             :post_deserialize($*W.fixup_tasks()),
+            :repo_conflict_resolver(QAST::Op.new(
+                :op('callmethod'), :name('resolve_repossession_conflicts'),
+                QAST::VM.new(
+                    pirop => 'get_hll_global Ps',
+                    QAST::SVal.new( :value('ModuleLoader') )
+                )
+            )),
 
             # If this unit is loaded as a module, we want it to automatically
             # execute the mainline code above after all other initializations

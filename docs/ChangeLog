@@ -24,6 +24,8 @@ New in 2012.11
 + implemented :exists and :delete subscript adverbs and on hashes
 + implemented :p, :k, :v and :kv subscript adverbs on arrays and hashes
 + byte-order mark at the beginning of a file is now ignored
++ fixed bug that could lead to disappearing symbols when loading pre-compiled modules
++ Configure no longer passes --optimize to Parrot if --parrot-option is specified
 
 New in 2012.10
 + :60[24, 59, 59] radix form

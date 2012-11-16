@@ -1,3 +1,9 @@
+Deprecations in 2012.11
+
+    at present, a reference to an &foo that does not exist evalutes to
+    Nil. This will become a CHECK-time failure, in line with STD.
+    Planned for the 2012.12 release.
+
 Deprecations in 2012.10
 
     protos for built-in routines are now mostly as generic as possible,

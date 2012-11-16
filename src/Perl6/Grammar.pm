@@ -797,9 +797,10 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         }
     }
 
-    rule statementlist {
+    token statementlist {
         :my %*LANG := self.shallow_copy(pir::find_dynamic_lex__Ps('%*LANG'));
         :my %*HOW  := self.shallow_copy(pir::find_dynamic_lex__Ps('%*HOW'));
+        :s
         [
         | $
         | [<statement><.eat_terminator> ]*

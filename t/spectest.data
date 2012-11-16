@@ -109,7 +109,7 @@ S02-types/subscripts_and_context.t
 S02-types/subset.t
 S02-types/type.t
 S02-types/undefined-types.t
-S02-types/version.t
+S02-types/version.t                     # icu
 S02-types/whatever.t
 S03-binding/arrays.t
 S03-binding/attributes.t

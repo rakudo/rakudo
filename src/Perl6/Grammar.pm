@@ -2706,7 +2706,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     method EXPR(str $preclim = '') {
         # Override this so we can set $*LEFTSIGIL.
         my $*LEFTSIGIL := '';
-        nqp::findmethod(HLL::Grammar, 'EXPR')(self, $preclim);
+        nqp::findmethod(HLL::Grammar, 'EXPR')(self, $preclim, :noinfix($preclim eq 'y='));
     }
 
     token prefixish { 

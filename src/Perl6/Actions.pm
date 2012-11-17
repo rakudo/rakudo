@@ -5677,38 +5677,10 @@ class Perl6::QActions is HLL::Actions does STDActions {
                 :node($/)));
     }
     
-    method escape:sym<$>($/) {
-        make steal_back_spaces($/, $<EXPR>.ast);
-    }
-    
-    method escape:sym<@>($/) {
-        make steal_back_spaces($/, $<EXPR>.ast);
-    }
-
-    method escape:sym<%>($/) {
-        make steal_back_spaces($/, $<EXPR>.ast);
-    }
-
-    method escape:sym<&>($/) {
-        make steal_back_spaces($/, $<EXPR>.ast);
-    }
-
-    # Unfortunately, the operator precedence parser (probably correctly)
-    # steals spaces after a postfixish. Thus "$a $b" would get messed up.
-    # Here we take them back again. Hacky, better solutions welcome.
-    sub steal_back_spaces($/, $expr) {
-        my $pos := nqp::chars($/) - 1;
-        while nqp::iscclass(32, $/, $pos) {
-            $pos--;
-        }
-        my $nab_back := nqp::substr($/, $pos + 1);
-        if $nab_back {
-            QAST::Op.new( :op('call'), :name('&infix:<~>'), $expr, $*W.add_string_constant(~$nab_back) )
-        }
-        else {
-            $expr
-        }
-    }
+    method escape:sym<$>($/) { make $<EXPR>.ast; }
+    method escape:sym<@>($/) { make $<EXPR>.ast; }
+    method escape:sym<%>($/) { make $<EXPR>.ast; }
+    method escape:sym<&>($/) { make $<EXPR>.ast; }
 
     method escape:sym<' '>($/) { make mark_ww_atom($<quote>.ast); }
     method escape:sym<" ">($/) { make mark_ww_atom($<quote>.ast); }

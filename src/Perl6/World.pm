@@ -2063,24 +2063,16 @@ class Perl6::World is HLL::World {
 
     method rethrow($/, $err) {
         my int $success := 0;
-        my $ex_t;
         my $coercer;
         try { $coercer := self.find_symbol(['&COMP_EXCEPTION']); ++$success; };
         nqp::rethrow($err) unless $success;
         my $p6ex := $coercer($err);
-        try {
-            $ex_t := self.find_symbol(['X', 'Comp']);
-            if nqp::istype($p6ex, $err) {
-                $p6ex.SET_FILE_LINE(
-                    nqp::box_s(pir::find_caller_lex__Ps('$?FILES'),
-                        self.find_symbol(['Str'])),
-                    nqp::box_i(HLL::Compiler.lineof($/.orig, $/.from),
-                        self.find_symbol(['Int'])),
-                );
-                $success++;
+        unless nqp::can($p6ex, 'SET_FILE_LINE') {
+            try {
+                my $x_comp := self.find_symbol(['X', 'Comp']);
+                $p6ex.HOW.mixin($p6ex, $x_comp).BUILD_LEAST_DERIVED(nqp::hash());
             }
         }
-        $p6ex.rethrow if $success == 2;
         if nqp::can($p6ex, 'SET_FILE_LINE') {
             $p6ex.SET_FILE_LINE(
                 nqp::box_s(pir::find_caller_lex__Ps('$?FILES'),

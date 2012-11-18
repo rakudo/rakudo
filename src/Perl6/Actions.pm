@@ -339,8 +339,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 ),
                 QAST::Op.new(
                     :op('if'),
-                    QAST::VM.new(
-                        :pirop('can IPs'),
+                    QAST::Op.new(
+                        :op<can>,
                         QAST::Var.new( :name('ctxsave'), :scope('local') ),
                         QAST::SVal.new( :value('ctxsave') )
                     ),

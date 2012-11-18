@@ -27,6 +27,7 @@ sub MAIN(@ARGS) {
     @clo.push('p');
     @clo.push('doc=s?');
     @clo.push('optimize=s?');
+    @clo.push('sink');
     @clo.push('c');
     @clo.push('I=s');
     @clo.push('M=s');

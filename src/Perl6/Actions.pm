@@ -3889,6 +3889,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
         elsif $stmts == 1 {
             my $elem := $past<past_block>[1][0][0];
+            $elem := $elem[0] if $elem ~~ QAST::Want;
             if $elem ~~ QAST::Op && $elem.name eq '&infix:<,>' {
                 # block contains a list, so test the first element
                 $elem := $elem[0];

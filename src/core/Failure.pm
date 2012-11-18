@@ -36,6 +36,9 @@ my class Failure {
         }
     );
     method sink() { $!exception.throw }
+
+    # class Any has a fallback method, so we need to redefine it here
+    method postcircumfix:<{ }>(|c) { $!exception.throw }
 }
 
 

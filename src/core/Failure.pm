@@ -35,6 +35,7 @@ my class Failure {
             $!exception.throw;
         }
     );
+    method sink() { $!exception.throw }
 }
 
 

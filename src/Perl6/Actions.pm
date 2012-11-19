@@ -57,7 +57,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 QAST::Op.new(:op<if>,
                     QAST::Op.new(:op<can>,
                         QAST::Var.new(:$name, :scope<local>),
-                        QAST::SVal.new(:value<sink>),
+                        QAST::SVal.new(:value('sink')),
                     ),
                     QAST::Op.new(:op<callmethod>, :name<sink>,
                         QAST::Var.new(:$name, :scope<local>),
@@ -67,7 +67,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         );
     }
     sub autosink($past) {
-        $*DO_SINK && nqp::istype($past, QAST::Op) && ($past.op eq 'call' || $past.op eq 'callmethod')
+        nqp::istype($past, QAST::Op) && ($past.op eq 'call' || $past.op eq 'callmethod')
             ?? sink($past)
             !! $past;
     }

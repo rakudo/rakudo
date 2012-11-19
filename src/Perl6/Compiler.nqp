@@ -7,7 +7,6 @@ class Perl6::Compiler is HLL::Compiler {
         if nqp::existskey(%options, 'doc') && !%options<doc> {
             %options<doc> := 'Text';
         }
-        my $*DO_SINK := %options<sink>;
 
         my $hll_ns := pir::get_root_global__Ps('perl6');
         my $argiter := nqp::iterator(@args);

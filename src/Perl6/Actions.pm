@@ -4208,6 +4208,15 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $target.push($source);
             make $target;
         }
+        elsif $target.isa(QAST::WVal) && nqp::istype($target.value, $*W.find_symbol(['Signature'])) {
+            make QAST::Op.new(
+                :op('p6bindcaptosig'),
+                $target,
+                QAST::Op.new(
+                    :op('callmethod'), :name('Capture'),
+                    $source
+                ));
+        }
         # XXX Several more cases to do...
         else {
             $*W.throw($/, ['X', 'Bind']);

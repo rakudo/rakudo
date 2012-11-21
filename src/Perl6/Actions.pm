@@ -619,12 +619,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
                         $past := make_topic_block_ref($past);
                     }
                     $past := QAST::Op.new(
-                        :op<call>, :name<&eager>, :node($/),
-                        QAST::Op.new(
                             :op<callmethod>, :name<map>, :node($/),
                             QAST::Op.new(:op('call'), :name('&infix:<,>'), $cond),
                             block_closure($past)
-                        ));
+                        );
                 }
                 else {
                     $past := QAST::Op.new($cond, $past, :op(~$ml<sym>), :node($/) );
@@ -839,7 +837,6 @@ class Perl6::Actions is HLL::Actions does STDActions {
                         QAST::Op.new(:name('&infix:<,>'), :op('call'), $xblock[0]),
                         block_closure($xblock[1])
         );
-        $past := QAST::Op.new( :name<&eager>, :op<call>, $past, :node($/) );
         make $past;
     }
 

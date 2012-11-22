@@ -7,11 +7,14 @@ New in 2012.11
 + redeclaring a class as a role now gives a better error
 + the < foo bar > syntax in regexes now respects :i
 + << ... >> now interpolates, respecting quoting and pairs
++ fix error reporting for not-found dynamic variables
 + many protos now have much narrower signatures
 + quote parsing implementation aligned with the approach STD uses
 + regexes and quotes have better support for user-selected delimiters
 + quote adverbs
 + heredocs
++ carry out IO::Path.dir deprecation
++ implement infix:<andthen>
 + macro arguments now carry their lexical environment properly
 + postfix operators of the form '.FOO' take precedence over method calls
 + version control markers detected and gracefully complained over
@@ -23,9 +26,14 @@ New in 2012.11
 + implemented operator adverbs
 + implemented :exists and :delete subscript adverbs and on hashes
 + implemented :p, :k, :v and :kv subscript adverbs on arrays and hashes
++ fixed shell words post-processing like << foo "bar $baz" >>
 + byte-order mark at the beginning of a file is now ignored
 + fixed bug that could lead to disappearing symbols when loading pre-compiled modules
 + Configure no longer passes --optimize to Parrot if --parrot-option is specified
++ deprecated current &foo semantics
++ fixed #`foo and friends at start of statementlist
++ simplify setting line number of compile-time exceptions
++ made :($a, $b) := \(1, 2) update $a and $b
 
 New in 2012.10
 + :60[24, 59, 59] radix form

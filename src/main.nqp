@@ -38,7 +38,10 @@ sub MAIN(@ARGS) {
     my @*END_PHASERS := [];
 
     # Enter the compiler.
-    $comp.command_line(@ARGS, :encoding('utf8'), :transcode('ascii iso-8859-1'));
+    my $result := $comp.command_line(@ARGS, :encoding('utf8'), :transcode('ascii iso-8859-1'));
+    if nqp::can($result, 'sink') {
+        $result.sink();
+    }
     
     # Run any END blocks before exiting.
     for @*END_PHASERS { $_() }

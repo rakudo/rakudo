@@ -42,7 +42,10 @@ sub MAIN(@ARGS) {
     if nqp::can($result, 'sink') {
         $result.sink();
     }
-    
+
     # Run any END blocks before exiting.
-    for @*END_PHASERS { $_() }
+    for @*END_PHASERS {
+        $result := $_();
+        nqp::can($result, 'sink') && $result.sink();
+    }
 }

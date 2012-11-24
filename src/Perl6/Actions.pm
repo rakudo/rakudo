@@ -565,7 +565,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                         $ast := QAST::Want.new($ast, 'v', $ast<sink_past>);
                     }
                     elsif $ast<bare_block> {
-                        $ast := $ast<bare_block>;
+                        $ast := autosink($ast<bare_block>);
                     }
                     else {
                         $ast := QAST::Stmt.new(autosink($ast), :returns($ast.returns)) if $ast ~~ QAST::Node;

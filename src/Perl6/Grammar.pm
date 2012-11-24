@@ -3485,8 +3485,12 @@ grammar Perl6::QGrammar is HLL::Grammar does STD {
 }
 
 grammar Perl6::RegexGrammar is QRegex::P6Regex::Grammar does STD {
+    method throw_unrecognized_metachar ($metachar) {
+        $*W.throw(self.MATCH(), <X Syntax Regex UnrecognizedMetachar>, :$metachar);
+    }
+
     token rxstopper { <stopper> }
-    
+
     token metachar:sym<:my> {
         ':' <?before 'my'|'constant'|'state'|'our'> <statement=.LANG('MAIN', 'statement')> <.ws> ';'
     }

@@ -156,6 +156,7 @@ sub EXPORT_SYMBOL(\exp_name, @tags, Mu \sym) {
             $*W.install_package_symbol($install_in, exp_name, sym);
         }
     }
+    0;
 }
 multi trait_mod:<is>(Routine:D \r, :$export!) {
     my $to_export := r.multi ?? r.dispatcher !! r;

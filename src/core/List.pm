@@ -379,6 +379,11 @@ my class List does Positional {
         }
         $val;
     }
+
+    method sink() {
+        self.eager;
+        Nil;
+    }
 }
 
 sub eager(|) {

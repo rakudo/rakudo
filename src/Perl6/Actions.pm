@@ -44,8 +44,42 @@ class Perl6::Actions is HLL::Actions does STDActions {
         $STATEMENT_PRINT := 0;
     }
 
-    sub p6box_s($s) {
-        nqp::box_s($s, $*W.find_symbol(['Str']));
+    sub sink($past) {
+        my $name := $past.unique('sink');
+        QAST::Want.new(
+            $past,
+            'v',
+            QAST::Stmts.new(
+                QAST::Op.new(:op<bind>,
+                    QAST::Var.new(:$name, :scope<local>, :decl<var>),
+                    $past,
+                ),
+                QAST::Op.new(:op<if>,
+                    QAST::Op.new(:op<can>,
+                        QAST::Var.new(:$name, :scope<local>),
+                        QAST::SVal.new(:value('sink')),
+                    ),
+                    QAST::Op.new(:op<callmethod>, :name<sink>,
+                        QAST::Var.new(:$name, :scope<local>),
+                    ),
+                ),
+            ),
+        );
+    }
+    my %sinkable := nqp::hash(
+            'call',         1,
+            'callmethod',   1,
+            'while',        1,
+            'until',        1,
+            'repeat_until', 1,
+            'repeat_while', 1,
+            'if',           1,
+            'unless',       1,
+    );
+    sub autosink($past) {
+        nqp::istype($past, QAST::Op) && %sinkable{$past.op}
+            ?? sink($past)
+            !! $past;
     }
 
     method ints_to_string($ints) {
@@ -541,10 +575,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
                         $ast := QAST::Want.new($ast, 'v', $ast<sink_past>);
                     }
                     elsif $ast<bare_block> {
-                        $ast := $ast<bare_block>;
+                        $ast := autosink($ast<bare_block>);
                     }
                     else {
-                        $ast := QAST::Stmt.new($ast, :returns($ast.returns)) if $ast ~~ QAST::Node;
+                        $ast := QAST::Stmt.new(autosink($ast), :returns($ast.returns)) if $ast ~~ QAST::Node;
                     }
                     $past.push( $ast );
                 }
@@ -595,12 +629,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
                         $past := make_topic_block_ref($past);
                     }
                     $past := QAST::Op.new(
-                        :op<call>, :name<&eager>, :node($/),
-                        QAST::Op.new(
                             :op<callmethod>, :name<map>, :node($/),
                             QAST::Op.new(:op('call'), :name('&infix:<,>'), $cond),
                             block_closure($past)
-                        ));
+                        );
                 }
                 else {
                     $past := QAST::Op.new($cond, $past, :op(~$ml<sym>), :node($/) );
@@ -815,7 +847,6 @@ class Perl6::Actions is HLL::Actions does STDActions {
                         QAST::Op.new(:name('&infix:<,>'), :op('call'), $xblock[0]),
                         block_closure($xblock[1])
         );
-        $past := QAST::Op.new( :name<&eager>, :op<call>, $past, :node($/) );
         make $past;
     }
 
@@ -3865,6 +3896,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
         elsif $stmts == 1 {
             my $elem := $past<past_block>[1][0][0];
+            $elem := $elem[0] if $elem ~~ QAST::Want;
             if $elem ~~ QAST::Op && $elem.name eq '&infix:<,>' {
                 # block contains a list, so test the first element
                 $elem := $elem[0];

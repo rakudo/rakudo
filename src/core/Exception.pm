@@ -665,6 +665,10 @@ my class X::Syntax::Regex::UnrecognizedMetachar does X::Syntax {
     method message() { "Unrecognized regex metacharacter $.metachar (must be quoted to match literally)" }
 }
 
+my class X::Syntax::Regex::NullRegex does X::Syntax {
+    method message() { 'Null regex not allowed' }
+}
+
 my class X::Syntax::Signature::InvocantMarker does X::Syntax {
     method message() {
         "Can only use : as invocant marker in a signature after the first parameter"

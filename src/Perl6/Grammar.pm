@@ -2544,7 +2544,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
     token quote:sym<Q:PIR> { 'Q:PIR' <.ws> <quibble(%*LANG<Q>)> }
     
-    token quote:sym</null/> { '/' \s* '/' <.panic: "Null regex not allowed"> }
+    token quote:sym</null/> { '/' \s* '/' <.typed_panic: "X::Syntax::Regex::NullRegex"> }
     token quote:sym</ />  {
         :my %*RX;
         '/' <nibble(self.quote_lang(%*LANG<Regex>, '/', '/'))> [ '/' || <.panic: "Unable to parse regex; couldn't find final '/'"> ]
@@ -3487,6 +3487,9 @@ grammar Perl6::QGrammar is HLL::Grammar does STD {
 grammar Perl6::RegexGrammar is QRegex::P6Regex::Grammar does STD {
     method throw_unrecognized_metachar ($metachar) {
         $*W.throw(self.MATCH(), <X Syntax Regex UnrecognizedMetachar>, :$metachar);
+    }
+    method throw_null_pattern() {
+        $*W.throw(self.MATCH(), <X Syntax Regex NullRegex>);
     }
 
     token rxstopper { <stopper> }

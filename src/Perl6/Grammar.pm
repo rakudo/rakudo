@@ -3231,6 +3231,11 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 }
 
 grammar Perl6::QGrammar is HLL::Grammar does STD {
+
+    method throw_unrecog_backslash_seq ($sequence) {
+        $*W.throw(self.MATCH(), <X Backslash UnrecognizedSequence>, :$sequence);
+    }
+
     proto token escape {*}
     proto token backslash {*}
 
@@ -3268,7 +3273,7 @@ grammar Perl6::QGrammar is HLL::Grammar does STD {
         token escape:sym<$> {
             :my $*QSIGIL := '$';
             <?before '$'>
-            [ <EXPR=.LANG('MAIN', 'EXPR', 'y=')> || <.panic: "Non-variable \$ must be backslashed"> ]
+            [ <EXPR=.LANG('MAIN', 'EXPR', 'y=')> || { $*W.throw($/, 'X::Backslash::NonVariableDollar') } ]
         }
     }
 
@@ -3383,7 +3388,8 @@ grammar Perl6::QGrammar is HLL::Grammar does STD {
 
     role qq does b1 does c1 does s1 does a1 does h1 does f1 {
         token stopper { \" }
-        token backslash:sym<misc> { {} [ (\W) | $<x>=(\w) <.sorry("Unrecognized backslash sequence: '\\" ~ $<x>.Str ~ "'")> ] }
+        token backslash:sym<unrec> { {} (\w) { self.throw_unrecog_backslash_seq: $/[0].Str } }
+        token backslash:sym<misc> { \W }
 
         method tweak_q($v) { self.panic("Too late for :q") }
         method tweak_qq($v) { self.panic("Too late for :qq") }
@@ -3443,7 +3449,7 @@ grammar Perl6::QGrammar is HLL::Grammar does STD {
     token stopper { <!> }
     
     method truly($bool, $opt) {
-        self.sorry("Cannot negate $opt adverb") unless $bool;
+        self.panic("Cannot negate $opt adverb") unless $bool;
         self;
     }
     

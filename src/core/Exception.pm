@@ -801,6 +801,11 @@ my class X::Sequence::Deduction is Exception {
     method message() { 'Unable to deduce sequence' }
 }
 
+my class X::Backslash::UnrecognizedSequence does X::Syntax {
+    has $.sequence;
+    method message() { "Unrecognized backslash sequence: '\\$.sequence'" }
+}
+
 my class X::ControlFlow is Exception {
     has $.illegal;   # something like 'next'
     has $.enclosing; # ....  outside a loop

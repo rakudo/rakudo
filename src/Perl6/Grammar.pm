@@ -3449,7 +3449,7 @@ grammar Perl6::QGrammar is HLL::Grammar does STD {
     token stopper { <!> }
     
     method truly($bool, $opt) {
-        self.sorry("Cannot negate $opt adverb") unless $bool;
+        self.panic("Cannot negate $opt adverb") unless $bool;
         self;
     }
     

@@ -3273,7 +3273,7 @@ grammar Perl6::QGrammar is HLL::Grammar does STD {
         token escape:sym<$> {
             :my $*QSIGIL := '$';
             <?before '$'>
-            [ <EXPR=.LANG('MAIN', 'EXPR', 'y=')> || <.panic: "Non-variable \$ must be backslashed"> ]
+            [ <EXPR=.LANG('MAIN', 'EXPR', 'y=')> || { $*W.throw($/, 'X::Backslash::NonVariableDollar') } ]
         }
     }
 

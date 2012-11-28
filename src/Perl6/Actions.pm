@@ -385,7 +385,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
             $*W.pop_lexpad();
             $*W.add_phaser(
-                $/, 'INIT', $*W.create_simple_code_object($block, 'Block')
+                $/, 'INIT', $*W.create_simple_code_object($block, 'Block'), $block
             );
         }
     }

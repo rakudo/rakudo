@@ -936,7 +936,8 @@ my class Str does Stringy {
         });
 
         # Figure out the amount * should outdent by, we also use this for warnings
-        my $common-prefix = min @lines.grep({ .<rest> ~~ /\S/}).map({ $_<indent-size> });
+        my $common-prefix = min @lines.grep({ .<indent-size> ||  .<rest> ~~ /\S/}).map({ $_<indent-size> });
+        return self if $common-prefix === $Inf;
 
         # Set the actual outdent amount here
         my Int $outdent = $steps ~~ Whatever ?? $common-prefix

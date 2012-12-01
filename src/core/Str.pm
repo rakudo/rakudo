@@ -927,13 +927,13 @@ my class Str does Stringy {
                     !! 1;
                 $indent-size += $width;
                 $char => $width;
-            });
+            }).eager;
 
-            { :$indent-size, :@indent-chars, :$rest };
+            { :$indent-size, :@indent-chars, :rest(~$rest) };
         });
 
         # Figure out the amount * should outdent by, we also use this for warnings
-        my $common-prefix = [min] @lines.map({ $_<indent-size> });
+        my $common-prefix = min @lines.grep({ .<rest> ~~ /\S/}).map({ $_<indent-size> });
 
         # Set the actual outdent amount here
         my Int $outdent = $steps ~~ Whatever ?? $common-prefix

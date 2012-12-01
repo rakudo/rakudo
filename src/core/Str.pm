@@ -892,6 +892,9 @@ my class Str does Stringy {
     # We want to keep trailing \n so we have to .comb explicitly instead of .lines
         return self.comb(/:r ^^ \N* \n?/).map({
             given $_.Str {
+                when /^ \n? $ / {
+                    $_;
+                }
                 # Use the existing space character if they're all the same
                 # (but tabs are done slightly differently)
                 when /^(\t+) ([ \S .* | $ ])/ {

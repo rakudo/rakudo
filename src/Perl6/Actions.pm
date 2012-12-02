@@ -82,7 +82,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             'unless',       1,
     );
     sub autosink($past) {
-        nqp::istype($past, QAST::Op) && %sinkable{$past.op}
+        nqp::istype($past, QAST::Op) && %sinkable{$past.op} && !$past<nosink>
             ?? sink($past)
             !! $past;
     }
@@ -4280,6 +4280,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $past := QAST::Op.new(
                 :op('callmethod'), :name('STORE'),
                 $lhs_ast, $rhs_ast);
+            $past<nosink> := 1;
         }
         else {
             $past := QAST::Op.new( :node($/), :op('p6store'),

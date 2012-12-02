@@ -43,6 +43,9 @@ role Perl6::Metamodel::RolePunning {
             $!pun := self.make_pun($obj);
             $!made_pun := 1;
         }
+        unless nqp::can($!pun, $name) {
+            return nqp::null();
+        }
         -> $inv, *@pos, *%named {
             $!pun."$name"(|@pos, |%named)
         }

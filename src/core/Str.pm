@@ -892,6 +892,9 @@ my class Str does Stringy {
     # We want to keep trailing \n so we have to .comb explicitly instead of .lines
         return self.comb(/:r ^^ \N* \n?/).map({
             given $_.Str {
+                when /^ \n? $ / {
+                    $_;
+                }
                 # Use the existing space character if they're all the same
                 # (but tabs are done slightly differently)
                 when /^(\t+) ([ \S .* | $ ])/ {
@@ -927,13 +930,14 @@ my class Str does Stringy {
                     !! 1;
                 $indent-size += $width;
                 $char => $width;
-            });
+            }).eager;
 
-            { :$indent-size, :@indent-chars, :$rest };
+            { :$indent-size, :@indent-chars, :rest(~$rest) };
         });
 
         # Figure out the amount * should outdent by, we also use this for warnings
-        my $common-prefix = [min] @lines.map({ $_<indent-size> });
+        my $common-prefix = min @lines.grep({ .<indent-size> ||  .<rest> ~~ /\S/}).map({ $_<indent-size> });
+        return self if $common-prefix === $Inf;
 
         # Set the actual outdent amount here
         my Int $outdent = $steps ~~ Whatever ?? $common-prefix

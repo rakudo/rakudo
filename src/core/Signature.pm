@@ -17,6 +17,16 @@ my class Signature {
         self.ACCEPTS(%topic.Capture)
     }
 
+    multi method ACCEPTS(Signature:D: Signature:D $topic) {
+        return False unless $topic.params == self.params;
+
+        for $topic.params Z self.params -> $t, $s {
+            return False unless $t.type ~~ $s.type;
+        }
+
+        return True;
+    }
+
     method arity() {
         self.count if nqp::isnull($!arity) || !$!arity.defined;
         $!arity;

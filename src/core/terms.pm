@@ -81,7 +81,6 @@ sub term:<time>() { nqp::p6box_i(nqp::time_i()) }
         my $ver  := nqp::p6box_s(nqp::atkey($compiler, 'version'));
         %CUSTOM_LIB<home> = "$home/.perl6/$ver";
         @INC.push(%CUSTOM_LIB<home> ~ '/lib');
-        @INC.push($home ~ '/.perl6/lib');
     }
     nqp::bindkey(pir::get_who__PP(PROCESS), '%CUSTOM_LIB', %CUSTOM_LIB);
 

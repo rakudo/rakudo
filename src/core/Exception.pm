@@ -660,6 +660,15 @@ my class X::Syntax::Regex::Adverb does X::Syntax {
     method message() { "Adverb $.adverb not allowed on $.construct" }
 }
 
+my class X::Syntax::Regex::UnrecognizedMetachar does X::Syntax {
+    has $.metachar;
+    method message() { "Unrecognized regex metacharacter $.metachar (must be quoted to match literally)" }
+}
+
+my class X::Syntax::Regex::NullRegex does X::Syntax {
+    method message() { 'Null regex not allowed' }
+}
+
 my class X::Syntax::Signature::InvocantMarker does X::Syntax {
     method message() {
         "Can only use : as invocant marker in a signature after the first parameter"
@@ -790,6 +799,15 @@ my class X::Str::Trans::InvalidArg is Exception {
 
 my class X::Sequence::Deduction is Exception {
     method message() { 'Unable to deduce sequence' }
+}
+
+my class X::Backslash::UnrecognizedSequence does X::Syntax {
+    has $.sequence;
+    method message() { "Unrecognized backslash sequence: '\\$.sequence'" }
+}
+
+my class X::Backslash::NonVariableDollar does X::Syntax {
+    method message() { "Non-variable \$ must be backslashed" }
 }
 
 my class X::ControlFlow is Exception {

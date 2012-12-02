@@ -209,6 +209,7 @@ S03-smartmatch/hash-hash.t
 S03-smartmatch/range-range.t
 S03-smartmatch/regex-hash.t
 S03-smartmatch/scalar-hash.t
+S03-smartmatch/signature-signature.t
 S04-blocks-and-statements/let.t
 S04-blocks-and-statements/pointy-rw.t
 S04-blocks-and-statements/pointy.t
@@ -549,6 +550,7 @@ S26-documentation/06-lists.t
 S26-documentation/07-tables.t
 S26-documentation/08-formattingcodes.t
 S26-documentation/09-configuration.t
+S26-documentation/10-doc-cli.t
 S26-documentation/why.t
 S28-named-variables/cwd.t
 S28-named-variables/inc.t

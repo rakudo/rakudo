@@ -201,6 +201,10 @@ role STD {
         }
         $lang_cursor.nibbler();
     }
+    
+    method panic(*@args) {
+        $*W.throw(self.MATCH, < X Comp AdHoc >, payload => nqp::join('', @args))
+    }
 }
 
 grammar Perl6::Grammar is HLL::Grammar does STD {

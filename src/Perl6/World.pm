@@ -1991,7 +1991,6 @@ class Perl6::World is HLL::World {
 
     # throws a typed exception
     method throw($/, $ex_type, *%opts) {
-        # TODO: provide context
         my int $type_found := 1;
         my $ex;
         my $x_comp;
@@ -2009,8 +2008,11 @@ class Perl6::World is HLL::World {
         };
 
         if $type_found {
+            my @locprepost := self.locprepost($/);
             %opts<line>    := HLL::Compiler.lineof($/.orig, $/.from);
             %opts<modules> := p6ize_recursive(@*MODULES);
+            %opts<pre>     := @locprepost[0];
+            %opts<post>    := @locprepost[1];
             %opts<is-compile-time> := 1;
             for %opts -> $p {
                 if nqp::islist($p.value) {
@@ -2041,6 +2043,24 @@ class Perl6::World is HLL::World {
             }
             $/.CURSOR.panic(nqp::join('', @err));
         }
+    }
+    
+    method locprepost($/) {
+        my $pos  := $/.CURSOR.pos;
+        my $orig := $/.CURSOR.orig;
+
+        my $prestart := $pos - 40;
+        $prestart := 0 if $prestart < 0;
+        my $pre := nqp::substr($orig, $prestart, $pos - $prestart);
+        $pre    := subst($pre, /.*\n/, "", :global);
+        $pre    := '<BOL>' if $pre eq '';
+        
+        my $postchars := $pos + 40 > nqp::chars($orig) ?? nqp::chars($orig) - $pos !! 40;
+        my $post := nqp::substr($orig, $pos, $postchars);
+        $post    := subst($post, /\n.*/, "", :global);
+        $post    := '<EOL>' if $post eq '';
+        
+        [$pre, $post]
     }
 
     method ex-handle($/, $code) {

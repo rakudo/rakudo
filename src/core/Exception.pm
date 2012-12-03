@@ -307,9 +307,12 @@ my role X::Comp is Exception {
     has $.column;
     has @.modules;
     has $.is-compile-time = False;
+    has $.pre;
+    has $.post;
     multi method gist(::?CLASS:D:) {
         if $.is-compile-time {
-            my $r = "===SORRY!===\n$.message\nat $.filename():$.line";
+            my $r = "===SORRY!===\n$.message at $.filename():$.line\n------> ";
+            $r ~= "$.pre\x[23CF]$.post";
             for @.modules.reverse[1..*] {
                 $r ~= $_<module>.defined
                         ?? "\n  from module $_<module> ($_<filename>:$_<line>)"

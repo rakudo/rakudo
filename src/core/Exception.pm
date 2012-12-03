@@ -311,8 +311,13 @@ my role X::Comp is Exception {
     has $.post;
     multi method gist(::?CLASS:D:) {
         if $.is-compile-time {
-            my $r = "===SORRY!===\n$.message at $.filename():$.line\n------> ";
-            $r ~= "$.pre\x[23CF]$.post";
+            my $color = %*ENV<RAKUDO_ERROR_COLOR> // $*OS ne 'MSWin32';
+            my ($red, $green, $yellow, $clear) = $color
+                ?? ("\e[31m", "\e[32m", "\e[33m", "\e[0m")
+                !! ("", "", "", "");
+            my $eject = $*OS eq 'MSWin32' ?? "<HERE>" !! "\x[23CF]";
+            my $r = "$red==={$clear}SORRY!$red===$clear\n$.message\nat $.filename():$.line\n------> ";
+            $r ~= "$red$.pre$yellow$eject$green$.post$clear";
             for @.modules.reverse[1..*] {
                 $r ~= $_<module>.defined
                         ?? "\n  from module $_<module> ($_<filename>:$_<line>)"

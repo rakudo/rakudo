@@ -2008,8 +2008,16 @@ class Perl6::World is HLL::World {
         };
 
         if $type_found {
-            my @locprepost := self.locprepost($/);
-            %opts<line>    := HLL::Compiler.lineof($/.orig, $/.from);
+            # If the highwater is beyond the current position, force the cursor to
+            # that location.
+            my $c := $/.CURSOR;
+            if $c.'!highwater'() > $c.pos() {
+                $c.'!cursor_pos'($c.'!highwater'());
+            }
+            
+            # Build and throw exception object.
+            my @locprepost := self.locprepost($c);
+            %opts<line>    := HLL::Compiler.lineof($c.orig, $c.pos);
             %opts<modules> := p6ize_recursive(@*MODULES);
             %opts<pre>     := @locprepost[0];
             %opts<post>    := @locprepost[1];
@@ -2045,9 +2053,9 @@ class Perl6::World is HLL::World {
         }
     }
     
-    method locprepost($/) {
-        my $pos  := $/.CURSOR.pos;
-        my $orig := $/.CURSOR.orig;
+    method locprepost($c) {
+        my $pos  := $c.pos;
+        my $orig := $c.orig;
 
         my $prestart := $pos - 40;
         $prestart := 0 if $prestart < 0;

@@ -317,7 +317,7 @@ my role X::Comp is Exception {
                 !! ("", "", "", "");
             my $eject = $*OS eq 'MSWin32' ?? "<HERE>" !! "\x[23CF]";
             my $r = "$red==={$clear}SORRY!$red===$clear\n$.message\nat $.filename():$.line\n------> ";
-            $r ~= "$red$.pre$yellow$eject$green$.post$clear" if defined $.pre;
+            $r ~= "$green$.pre$yellow$eject$red$.post$clear" if defined $.pre;
             for @.modules.reverse[1..*] {
                 $r ~= $_<module>.defined
                         ?? "\n  from module $_<module> ($_<filename>:$_<line>)"

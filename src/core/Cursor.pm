@@ -8,7 +8,7 @@ my class Cursor does NQPCursorRole {
         my $match := nqp::getattr(self, Cursor, '$!match');
         return $match if nqp::istype($match, Match) && nqp::isconcrete($match);
         $match := nqp::create(Match);
-        nqp::bindattr($match, Match, '$!orig', nqp::getattr(self, Cursor, '$!orig'));
+        nqp::bindattr($match, Match, '$!orig', nqp::findmethod(self, 'orig')(self));
         nqp::bindattr_i($match, Match, '$!from', nqp::getattr_i(self, Cursor, '$!from'));
         nqp::bindattr_i($match, Match, '$!to', nqp::getattr_i(self, Cursor, '$!pos'));
         nqp::bindattr($match, Match, '$!ast', nqp::getattr(self, Cursor, '$!ast'));

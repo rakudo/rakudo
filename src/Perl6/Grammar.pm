@@ -1752,9 +1752,9 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                     <.finishpad>
                     <statementlist>     # whole rest of file, presumably
                     { $*CURPAD := $*W.pop_lexpad() }
-                || <.panic: "Too late for semicolon form of $*PKGDECL definition">
+                || <.panic("Too late for semicolon form of $*PKGDECL definition")>
                 ]
-            || <.panic: "Unable to parse $*PKGDECL definition">
+            || <.panic("Unable to parse $*PKGDECL definition")>
             ]
             { nqp::pop(@*PACKAGES); }
         ] || { $/.CURSOR.malformed($*PKGDECL) }

@@ -2011,16 +2011,26 @@ class Perl6::World is HLL::World {
             # If the highwater is beyond the current position, force the cursor to
             # that location.
             my $c := $/.CURSOR;
-            if $c.'!highwater'() > $c.pos() {
+            my @expected;
+            if $c.'!highwater'() >= $c.pos() {
+                my @raw_expected := $c.'!highexpect'();
                 $c.'!cursor_pos'($c.'!highwater'());
+                my %seen;
+                for @raw_expected {
+                    unless %seen{$_} {
+                        nqp::push(@expected, $_);
+                        %seen{$_} := 1;
+                    }
+                }
             }
             
             # Build and throw exception object.
-            my @locprepost := self.locprepost($c);
-            %opts<line>    := HLL::Compiler.lineof($c.orig, $c.pos);
-            %opts<modules> := p6ize_recursive(@*MODULES);
-            %opts<pre>     := @locprepost[0];
-            %opts<post>    := @locprepost[1];
+            my @locprepost  := self.locprepost($c);
+            %opts<line>     := HLL::Compiler.lineof($c.orig, $c.pos);
+            %opts<modules>  := p6ize_recursive(@*MODULES);
+            %opts<pre>      := @locprepost[0];
+            %opts<post>     := @locprepost[1];
+            %opts<expected> := p6ize_recursive(@expected) if @expected;
             %opts<is-compile-time> := 1;
             for %opts -> $p {
                 if nqp::islist($p.value) {

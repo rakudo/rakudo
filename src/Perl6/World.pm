@@ -2024,6 +2024,20 @@ class Perl6::World is HLL::World {
                 }
             }
             
+            # Try and better explain "Confused".
+            if $ex.HOW.name($ex) eq 'X::Syntax::Confused' {
+                my $expected_infix := 0;
+                for @expected {
+                    if nqp::index($_, "infix") >= 0 {
+                        $expected_infix := 1;
+                        last;
+                    }
+                }
+                if $expected_infix {
+                    %opts<reason> := "Two terms in a row";
+                }
+            }
+            
             # Build and throw exception object.
             my @locprepost  := self.locprepost($c);
             %opts<line>     := HLL::Compiler.lineof($c.orig, $c.pos);

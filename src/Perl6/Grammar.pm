@@ -812,6 +812,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :s
         [
         | $
+        | <?before <[\)\]\}]>>
         | [<statement><.eat_terminator> ]*
         ]
     }
@@ -837,14 +838,15 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*SCOPE := '';
         :my $*ACTIONS := %*LANG<MAIN-actions>;
         <!before <[\])}]> | $ >
+        <!stopper>
         <!!{ nqp::rebless($/.CURSOR, %*LANG<MAIN>) }>
         [
         | <statement_control>
-        | <EXPR> :dba('statement end') <.ws>
+        | <EXPR> :dba('statement end')
             [
             || <?MARKED('endstmt')>
-            || :dba('statement modifier') <statement_mod_cond> <statement_mod_loop>?
-            || :dba('statement modifier loop') <statement_mod_loop>
+            || :dba('statement modifier') <.ws> <statement_mod_cond> <statement_mod_loop>?
+            || :dba('statement modifier loop') <.ws> <statement_mod_loop>
                 {
                     my $sp := $<EXPR><statement_prefix>;
                     if $sp && $sp<sym> eq 'do' {
@@ -853,15 +855,19 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                     }
                 }
             ]?
-        ]
         | <?before ';'>
+        | <?before <stopper> >
+        | {} <.panic: "Bogus statement">
+        ]
     }
 
     token eat_terminator {
         || ';'
         || <?MARKED('endstmt')>
-        || <?terminator>
+        || <?before ')' | ']' | '}' >
         || $
+        || <?stopper>
+        || <.typed_panic: 'X::Syntax::Confused'>
     }
 
     token xblock($*IMPLICIT = 0) {

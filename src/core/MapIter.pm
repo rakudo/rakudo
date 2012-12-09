@@ -24,7 +24,7 @@ my class MapIter is Iterator {
 
     method flattens() { $!flattens }
 
-    method reify($n = 1) {
+    method reify($n = 1, :$sink) {
         unless nqp::isconcrete($!reified) {
             my $argc   = $!block.count;
             $argc = 1 if $argc < 1 || $argc ~~ Inf;
@@ -48,9 +48,10 @@ my class MapIter is Iterator {
 
             my int $NEXT = nqp::can($block, 'fire_phasers') 
                              && +$block.phasers('NEXT');
+            my int $is_sink = $sink ?? 1 !! 0;
 
             Q:PIR {
-                .local int argc, count, NEXT
+                .local int argc, count, NEXT, is_sink
                 .local pmc handler, self, MapIter, items, args, result, block, rpa
                 $P0      = find_lex '$argc'
                 argc     = repr_unbox_int $P0
@@ -64,6 +65,7 @@ my class MapIter is Iterator {
                 block    = find_lex '$block'
                 handler  = root_new ['parrot';'ExceptionHandler']
                 NEXT     = find_lex '$NEXT'
+                is_sink  = find_lex '$is_sink'
 
                 set_addr handler, catch
                 handler.'handle_types'(.CONTROL_LOOP_LAST, .CONTROL_LOOP_NEXT, .CONTROL_LOOP_REDO)
@@ -84,7 +86,17 @@ my class MapIter is Iterator {
                 unless args goto iter_done
               redo:
                 result = block(args :flat)
+                if is_sink goto sink_result
                 push rpa, result
+                goto next
+              sink_result:
+                $I0 = repr_defined result
+                unless $I0 goto next
+                $I0 = can result, 'sink'
+                unless $I0 goto next
+                $I0 = defined result
+                unless $I0 goto next
+                result.'sink'()
                 goto next
               catch:
                 .local pmc exception, type

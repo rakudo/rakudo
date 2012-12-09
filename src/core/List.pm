@@ -97,14 +97,14 @@ my class List does Positional {
         nqp::p6bool(nqp::existspos($!items, nqp::unbox_i(pos)))
     }
 
-    method gimme($n) {
+    method gimme($n, :$sink) {
         # loop through iterators until we have at least $n elements
         my int $count = nqp::elems(nqp::p6listitems(self));
         my $eager = nqp::p6bool(nqp::istype($n, Whatever) || $n == $Inf);
         while $!nextiter.defined && ($eager 
                                        ?? !$!nextiter.infinite 
                                        !! ($count < $n)) {
-            $!nextiter.reify($eager ?? Whatever !! $n - $count);
+            $!nextiter.reify($eager ?? Whatever !! $n - $count, :$sink);
             $count = nqp::elems($!items);
         }
 
@@ -381,7 +381,7 @@ my class List does Positional {
     }
 
     method sink() {
-        self.eager;
+        self.gimme(*, :sink);
         Nil;
     }
 }

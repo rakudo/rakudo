@@ -34,7 +34,7 @@ class Perl6::Metamodel::GenericHOW
     }
     
     method find_method($obj, $name) {
-        nqp::die("Cannot call a method on type variable " ~ self.name($obj))
+        nqp::null()
     }
     
     method type_check($obj, $checkee) {

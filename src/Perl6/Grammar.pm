@@ -151,7 +151,7 @@ role STD {
             my $doc := $here.nibble($lang);
             if $doc {
                 # Match stopper.
-                my $stop := $lang.'!cursor_init'(self.orig(), :p($doc.pos), :target(self.target())).stopper();
+                my $stop := $lang.'!cursor_init'(self.orig(), :p($doc.pos), :shared(self.'!shared'())).stopper();
                 unless $stop {
                     self.panic("Ending delimiter $*DELIM not found");
                 }
@@ -191,7 +191,7 @@ role STD {
     }
 
     method nibble($lang) {
-        my $lang_cursor := $lang.'!cursor_init'(self.orig(), :p(self.pos()), :target(self.target()));
+        my $lang_cursor := $lang.'!cursor_init'(self.orig(), :p(self.pos()), :shared(self.'!shared'()));
         my $*ACTIONS;
         for %*LANG {
             if nqp::istype($lang, $_.value) {
@@ -200,6 +200,10 @@ role STD {
             }
         }
         $lang_cursor.nibbler();
+    }
+    
+    method panic(*@args) {
+        $*W.throw(self.MATCH, < X Comp AdHoc >, payload => nqp::join('', @args))
     }
 }
 
@@ -229,7 +233,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         # objects that cross the compile-time/run-time boundary that are
         # associated with this compilation unit.
         my $file := pir::find_caller_lex__Ps('$?FILES');
-        my $source_id := nqp::sha1(nqp::getattr_s(self, NQPCursor, '$!target'));
+        my $source_id := nqp::sha1(self.target());
         my $*W := nqp::isnull($file) ??
             Perl6::World.new(:handle($source_id)) !!
             Perl6::World.new(:handle($source_id), :description($file));
@@ -1748,9 +1752,9 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                     <.finishpad>
                     <statementlist>     # whole rest of file, presumably
                     { $*CURPAD := $*W.pop_lexpad() }
-                || <.panic: "Too late for semicolon form of $*PKGDECL definition">
+                || <.panic("Too late for semicolon form of $*PKGDECL definition")>
                 ]
-            || <.panic: "Unable to parse $*PKGDECL definition">
+            || <.panic("Unable to parse $*PKGDECL definition")>
             ]
             { nqp::pop(@*PACKAGES); }
         ] || { $/.CURSOR.malformed($*PKGDECL) }

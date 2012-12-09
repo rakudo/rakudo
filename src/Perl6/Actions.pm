@@ -834,7 +834,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
     method statement_control:sym<while>($/) {
         my $past := xblock_immediate( $<xblock>.ast );
         $past.op(~$<sym>);
-        make loop_phasers($past);
+        make tweak_loop($past);
     }
 
     method statement_control:sym<repeat>($/) {
@@ -848,7 +848,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $past := QAST::Op.new( $<EXPR>.ast, pblock_immediate( $<pblock>.ast ),
                                    :op($op), :node($/) );
         }
-        make loop_phasers($past);
+        make tweak_loop($past);
     }
 
     method statement_control:sym<for>($/) {
@@ -869,14 +869,20 @@ class Perl6::Actions is HLL::Actions does STDActions {
         if $<e3> {
             $loop.push($<e3>[0].ast);
         }
-        $loop := loop_phasers($loop);
+        $loop := tweak_loop($loop);
         if $<e1> {
             $loop := QAST::Stmts.new( $<e1>[0].ast, $loop, :node($/) );
         }
         make $loop;
     }
     
-    sub loop_phasers($loop) {
+    sub tweak_loop($loop) {
+        # Make sure the body is in sink context (for now; in the long run,
+        # need to handle the l-value case).
+        my $body_past := $loop[1][1];
+        $body_past.push(QAST::Var.new( :name('Nil'), :scope('lexical') ));
+        
+        # Handle phasers.
         my $code := $loop[1]<code_object>;
         my $block_type := $*W.find_symbol(['Block']);
         my $phasers := nqp::getattr($code, $block_type, '$!phasers');

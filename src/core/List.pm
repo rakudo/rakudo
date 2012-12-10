@@ -310,14 +310,13 @@ my class List does Positional {
 
     # This needs a way of taking a user-defined comparison
     # specifier, but AFAIK nothing has been spec'd yet.
-    # CHEAT: Almost certainly should be hashed on something
-    # other than the stringification of the objects.
     method uniq() {
-        my %seen;
-        gather for @.list {
-             unless %seen{$_} {
+        my $seen := nqp::hash();
+        gather sink for @.list {
+             my str $which = nqp::unbox_s($_.WHICH);
+             unless nqp::existskey($seen, $which) {
                  take $_;
-                 %seen{$_} = 1;
+                 nqp::bindkey($seen, $which, 1);
              }
         }
     }

@@ -5270,6 +5270,19 @@ class Perl6::Actions is HLL::Actions does STDActions {
             QAST::Var.new( :scope('lexical'), :name('$/'), :decl('var') ),
         );
         $handler<past_block>.unshift($handler_preamble);
+        
+        # If the handler has a succeed handler, then make sure we sink
+        # the exception it will produce.
+        if $handler<past_block><handlers> && nqp::existskey($handler<past_block><handlers>, 'SUCCEED') {
+            my $suc := $handler<past_block><handlers><SUCCEED>;
+            $suc[0] := QAST::Stmts.new(
+                sink(QAST::Op.new(
+                    :op('getpayload'),
+                    QAST::Op.new( :op('exception') )
+                )),
+                QAST::Var.new( :name('Nil'), :scope('lexical') )
+            );
+        }
 
         # set up a generic exception rethrow, so that exception
         # handlers from unwanted frames will get skipped if the

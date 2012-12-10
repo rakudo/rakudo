@@ -331,6 +331,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
 
     token ws {
+        :my $old_highexpect := self.'!fresh_highexpect'();
         :dba('whitespace')
         [
         ||  <?MARKED('ws')>
@@ -341,6 +342,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             ]*
             <?MARKER('ws')>
         ]
+        :my $stub := self.'!set_highexpect'($old_highexpect);
     }
     
     token unsp {

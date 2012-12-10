@@ -320,6 +320,7 @@ multi sub trait_mod:<handles>(Method:D $m, &thunk) {
         $meth.set_name($meth_name);
         $pkg.HOW.add_method($pkg, $meth_name, $meth);
     }
+    0;
 }
 
 proto trait_mod:<will>(|) { * }

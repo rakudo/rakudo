@@ -390,6 +390,7 @@ my class Mu {
                             @methods.push($method);
                         }
                     }
+                    0;
                 }
             }
         }

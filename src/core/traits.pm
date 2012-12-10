@@ -278,6 +278,7 @@ multi trait_mod:<handles>(Attribute:D $target, $thunk) {
                         for $expr.list {
                             applier($_);
                         }
+                        0;
                     }
                     else {
                         $pkg.HOW.add_fallback($pkg,

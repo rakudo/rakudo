@@ -309,7 +309,7 @@ my role X::Comp is Exception {
     has $.is-compile-time = False;
     has $.pre;
     has $.post;
-    has @.expected;
+    has @.highexpect;
     multi method gist(::?CLASS:D:) {
         if $.is-compile-time {
             my $color = %*ENV<RAKUDO_ERROR_COLOR> // $*OS ne 'MSWin32';
@@ -319,9 +319,9 @@ my role X::Comp is Exception {
             my $eject = $*OS eq 'MSWin32' ?? "<HERE>" !! "\x[23CF]";
             my $r = "$red==={$clear}SORRY!$red===$clear\n$.message\nat $.filename():$.line\n------> ";
             $r ~= "$green$.pre$yellow$eject$red$.post$clear" if defined $.pre;
-            if @.expected {
+            if @.highexpect {
                 $r ~= "\n    expecting any of:";
-                for @.expected {
+                for @.highexpect {
                     $r ~= "\n        $_";
                 }
             }

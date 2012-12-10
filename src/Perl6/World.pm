@@ -2047,11 +2047,11 @@ class Perl6::World is HLL::World {
             }
             
             # Build and throw exception object.
-            %opts<line>     := HLL::Compiler.lineof($c.orig, $c.pos);
-            %opts<modules>  := p6ize_recursive(@*MODULES);
-            %opts<pre>      := @locprepost[0];
-            %opts<post>     := @locprepost[1];
-            %opts<expected> := p6ize_recursive(@expected) if @expected;
+            %opts<line>            := HLL::Compiler.lineof($c.orig, $c.pos);
+            %opts<modules>         := p6ize_recursive(@*MODULES);
+            %opts<pre>             := @locprepost[0];
+            %opts<post>            := @locprepost[1];
+            %opts<highexpect>      := p6ize_recursive(@expected) if @expected;
             %opts<is-compile-time> := 1;
             for %opts -> $p {
                 if nqp::islist($p.value) {

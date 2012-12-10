@@ -5282,6 +5282,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         else {
             my $prev_content := QAST::Stmts.new();
             $prev_content.push($handler<past_block>.shift()) while +@($handler<past_block>);
+            $prev_content.push(QAST::Var.new( :name('Nil'), :scope('lexical') ));
             $handler<past_block>.push(QAST::Op.new(
                 :op('handle'),
                 $prev_content,

@@ -90,9 +90,8 @@ Optimizer (jnthn)
 3 ***   guard lifting for method call inlining
 
 STD Convergence (needs more exploration)
-2 ***   adopt STD's highwater error handling
 2 **    align error handling approach more with STDs
-2 ***   more of STDs TTIAR error handling
+2 **    more of STDs TTIAR error handling
 
 Other things (to be organized into above groups)
 3 ?     AUTOLOAD, including possibly AUTOLOADING setting components

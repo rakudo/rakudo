@@ -309,6 +309,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
 
     token deflongname {
+        :dba('new name to be defined')
         <name> <colonpair>*
     }
 
@@ -330,6 +331,9 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
 
     token ws {
+        :my $old_highexpect := self.'!fresh_highexpect'();
+        :dba('whitespace')
+        [
         ||  <?MARKED('ws')>
         ||  <!ww>
             [
@@ -337,11 +341,13 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             | <.unv>
             ]*
             <?MARKER('ws')>
+        ]
+        :my $stub := self.'!set_highexpect'($old_highexpect);
     }
     
     token unsp {
         \\ <?before [\s|'#'] >
-        # :dba('unspace')
+        :dba('unspace')
         [
         | <.vws>
         | <.unv>
@@ -804,9 +810,11 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token statementlist {
         :my %*LANG := self.shallow_copy(pir::find_dynamic_lex__Ps('%*LANG'));
         :my %*HOW  := self.shallow_copy(pir::find_dynamic_lex__Ps('%*HOW'));
+        :dba('statement list')
         :s
         [
         | $
+        | <?before <[\)\]\}]>>
         | [<statement><.eat_terminator> ]*
         ]
     }
@@ -820,8 +828,11 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
 
     rule semilist {
+        :dba('semicolon list')
+        [
         | <?before <[)\]}]> >
         | [<statement><.eat_terminator> ]*
+        ]
     }
 
     token statement {
@@ -829,14 +840,15 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*SCOPE := '';
         :my $*ACTIONS := %*LANG<MAIN-actions>;
         <!before <[\])}]> | $ >
+        <!stopper>
         <!!{ nqp::rebless($/.CURSOR, %*LANG<MAIN>) }>
         [
         | <statement_control>
-        | <EXPR> <.ws>
+        | <EXPR> :dba('statement end')
             [
             || <?MARKED('endstmt')>
-            || <statement_mod_cond> <statement_mod_loop>?
-            || <statement_mod_loop>
+            || :dba('statement modifier') <.ws> <statement_mod_cond> <statement_mod_loop>?
+            || :dba('statement modifier loop') <.ws> <statement_mod_loop>
                 {
                     my $sp := $<EXPR><statement_prefix>;
                     if $sp && $sp<sym> eq 'do' {
@@ -845,15 +857,19 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                     }
                 }
             ]?
-        ]
         | <?before ';'>
+        | <?before <stopper> >
+        | {} <.panic: "Bogus statement">
+        ]
     }
 
     token eat_terminator {
         || ';'
         || <?MARKED('endstmt')>
-        || <?terminator>
+        || <?before ')' | ']' | '}' >
         || $
+        || <?stopper>
+        || <.typed_panic: 'X::Syntax::Confused'>
     }
 
     token xblock($*IMPLICIT = 0) {
@@ -863,6 +879,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     token pblock($*IMPLICIT = 0) {
         :my $*DECLARAND := $*W.stub_code_object('Block');
+        :dba('parameterized block')
         [
         | <lambda>
             <.newpad>
@@ -880,6 +897,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     token block($*IMPLICIT = 0) {
         :my $*DECLARAND := $*W.stub_code_object('Block');
+        :dba('scoped block')
         [ <?[{]> || <.missing: 'block'>]
         <.newpad>
         <blockoid>
@@ -1247,7 +1265,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         | <identifier>
             { $*key := $<identifier>.Str; }
             [
-            || <.unsp>? <circumfix> { $*value := $<circumfix>; }
+            || <.unsp>? :dba('pair value') <circumfix> { $*value := $<circumfix>; }
             || { $*value := 1; }
             ]
         | :dba('signature') '(' ~ ')' <fakesignature>
@@ -1814,6 +1832,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     token scoped($*SCOPE) {
         <.end_keyword>
+        :dba('scoped declarator')
         [
         :my $*DOC := $*DECLARATOR_DOCS;
         :my $*DOCEE;
@@ -2098,6 +2117,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
 
     token defterm {
+        :dba('new term to be defined')
         <identifier>
     }
 
@@ -2117,6 +2137,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     token named_param {
         :my $*GOAL := ')';
+        :dba('named parameter')
         ':'
         [
         | <name=.identifier> '(' <.ws>
@@ -2397,6 +2418,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*GOAL := 'endargs';
         :my $*QSIGIL := '';
         <.ws>
+        :dba('argument list')
         [
         | <?stdstopper>
         | <EXPR('e=')>
@@ -2426,9 +2448,12 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
 
     token dec_number {
+        :dba('decimal number')
+        [
         | $<coeff> = [               '.' <frac=.decint> ] <escale>?
         | $<coeff> = [ <int=.decint> '.' <frac=.decint> ] <escale>?
         | $<coeff> = [ <int=.decint>                    ] <escale>
+        ]
     }
 
     token rad_number {
@@ -2520,8 +2545,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token quote_mod:sym<b>  { <sym> }
 
     proto token quote { <...> }
-    token quote:sym<apos>  { "'" ~ "'" <nibble(self.quote_lang(%*LANG<Q>, "'", "'", ['q']))> }
-    token quote:sym<dblq>  { '"' ~ '"' <nibble(self.quote_lang(%*LANG<Q>, '"', '"', ['qq']))> }
+    token quote:sym<apos>  { :dba('single quotes') "'" ~ "'" <nibble(self.quote_lang(%*LANG<Q>, "'", "'", ['q']))> }
+    token quote:sym<dblq>  { :dba('double quotes') '"' ~ '"' <nibble(self.quote_lang(%*LANG<Q>, '"', '"', ['qq']))> }
     token quote:sym<q> {
         :my $qm;
         'q'
@@ -2634,6 +2659,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token circumfix:sym<( )> { :dba('parenthesized expression') '(' ~ ')' <semilist> }
     token circumfix:sym<[ ]> { :dba('array composer') '[' ~ ']' <semilist> }
     token circumfix:sym<ang> {
+        :dba('quote words')
         '<' ~ '>'
         [
             [ <?before 'STDIN>' > <.obs('<STDIN>', '$*IN.lines (or add whitespace to suppress warning)')> ]?
@@ -2641,8 +2667,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             <nibble(self.quote_lang(%*LANG<Q>, "<", ">", ['q', 'w']))>
         ]
     }
-    token circumfix:sym«<< >>» { '<<' ~ '>>' <nibble(self.quote_lang(%*LANG<Q>, "<<", ">>", ['qq', 'ww']))> }
-    token circumfix:sym<« »> { '«' ~ '»' <nibble(self.quote_lang(%*LANG<Q>, "«", "»", ['qq', 'ww']))> }
+    token circumfix:sym«<< >>» { :dba('shell-quote words') '<<' ~ '>>' <nibble(self.quote_lang(%*LANG<Q>, "<<", ">>", ['qq', 'ww']))> }
+    token circumfix:sym<« »> { :dba('shell-quote words') '«' ~ '»' <nibble(self.quote_lang(%*LANG<Q>, "«", "»", ['qq', 'ww']))> }
     token circumfix:sym<{ }> { <?[{]> <pblock(1)> }
     token circumfix:sym<sigil> {
         :dba('contextualizer')
@@ -2684,8 +2710,10 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*SCOPE := "";
         :my $*MULTINESS := "";
         :my $*OFTYPE;
+        :dba('prefix or term')
         [
         || <prefixish>* <term>
+            :dba('postfix')
             [
             || <?{ $*QSIGIL }>
                 [
@@ -2714,6 +2742,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
 
     token prefixish { 
+        :dba('prefix or meta-prefix')
         [
         | <OPER=prefix>
         | <OPER=prefix_circumfix_meta_operator>
@@ -2723,6 +2752,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
 
     token infixish {
+        :dba('infix or meta-infix')
         <!infixstopper>
         <!stdstopper>
         [
@@ -2753,6 +2783,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
         [ <!{ $*QSIGIL }> [ <.unsp> | '\\' ] ]?
 
+        :dba('postfix')
         <postfix_prefix_meta_operator>?
         [
         | <OPER=postfix>
@@ -2846,6 +2877,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
 
     token dottyop {
+        :dba('dotty method or postfix')
         [
         | <methodop>
         | <!alpha> <postop>
@@ -2866,6 +2898,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             <quote>
             [ <?before '(' | '.(' | '\\'> || <.panic: "Quoted method name requires parenthesized arguments"> ]
         ] <.unsp>?
+        :dba('method arguments')
         [
             [
             | <?[(]> <args>

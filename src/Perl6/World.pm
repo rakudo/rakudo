@@ -2011,16 +2011,47 @@ class Perl6::World is HLL::World {
             # If the highwater is beyond the current position, force the cursor to
             # that location.
             my $c := $/.CURSOR;
-            if $c.'!highwater'() > $c.pos() {
+            my @expected;
+            if $c.'!highwater'() >= $c.pos() {
+                my @raw_expected := $c.'!highexpect'();
                 $c.'!cursor_pos'($c.'!highwater'());
+                my %seen;
+                for @raw_expected {
+                    unless %seen{$_} {
+                        nqp::push(@expected, $_);
+                        %seen{$_} := 1;
+                    }
+                }
+            }
+            
+            # Try and better explain "Confused".
+            my @locprepost := self.locprepost($c);
+            if $ex.HOW.name($ex) eq 'X::Syntax::Confused' {
+                my $next := nqp::substr(@locprepost[1], 0, 1);
+                if $next ~~ /\)|\]|\}|\»/ {
+                    %opts<reason> := "Unexpected closing bracket";
+                    @expected := [];
+                }
+                else {
+                    my $expected_infix := 0;
+                    for @expected {
+                        if nqp::index($_, "infix") >= 0 {
+                            $expected_infix := 1;
+                            last;
+                        }
+                    }
+                    if $expected_infix {
+                        %opts<reason> := "Two terms in a row";
+                    }
+                }
             }
             
             # Build and throw exception object.
-            my @locprepost := self.locprepost($c);
-            %opts<line>    := HLL::Compiler.lineof($c.orig, $c.pos);
-            %opts<modules> := p6ize_recursive(@*MODULES);
-            %opts<pre>     := @locprepost[0];
-            %opts<post>    := @locprepost[1];
+            %opts<line>            := HLL::Compiler.lineof($c.orig, $c.pos);
+            %opts<modules>         := p6ize_recursive(@*MODULES);
+            %opts<pre>             := @locprepost[0];
+            %opts<post>            := @locprepost[1];
+            %opts<highexpect>      := p6ize_recursive(@expected) if @expected;
             %opts<is-compile-time> := 1;
             for %opts -> $p {
                 if nqp::islist($p.value) {

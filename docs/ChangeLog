@@ -6,7 +6,11 @@ New in 2012.12
 + location of parse error now indicated with context
 + highwater algorithm implemented, greatly improving accuracy of parse error
   line numbers and locations in a range of cases
++ some parse errors now report what the parser was looking for at the time the
+  parse failed
++ better errors for unmatched closing brackets and two terms in a row
 + uniq now has === semantics as specified, not eq semantics
++ junction auto-threader optimized and is an order of magnitude faster
 
 New in 2012.11
 + user-defined operators only affect the parser in the scope they are declared in

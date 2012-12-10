@@ -2025,21 +2025,28 @@ class Perl6::World is HLL::World {
             }
             
             # Try and better explain "Confused".
+            my @locprepost := self.locprepost($c);
             if $ex.HOW.name($ex) eq 'X::Syntax::Confused' {
-                my $expected_infix := 0;
-                for @expected {
-                    if nqp::index($_, "infix") >= 0 {
-                        $expected_infix := 1;
-                        last;
-                    }
+                my $next := nqp::substr(@locprepost[1], 0, 1);
+                if $next ~~ /\)|\]|\}|\»/ {
+                    %opts<reason> := "Unexpected closing bracket";
+                    @expected := [];
                 }
-                if $expected_infix {
-                    %opts<reason> := "Two terms in a row";
+                else {
+                    my $expected_infix := 0;
+                    for @expected {
+                        if nqp::index($_, "infix") >= 0 {
+                            $expected_infix := 1;
+                            last;
+                        }
+                    }
+                    if $expected_infix {
+                        %opts<reason> := "Two terms in a row";
+                    }
                 }
             }
             
             # Build and throw exception object.
-            my @locprepost  := self.locprepost($c);
             %opts<line>     := HLL::Compiler.lineof($c.orig, $c.pos);
             %opts<modules>  := p6ize_recursive(@*MODULES);
             %opts<pre>      := @locprepost[0];

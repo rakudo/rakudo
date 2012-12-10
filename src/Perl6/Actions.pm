@@ -1110,7 +1110,6 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
                 # On failure, capture the exception object into $!.
                 'CATCH', QAST::Stmts.new(
-                    :resultchild(0),
                     QAST::Op.new(
                         :op('p6store'),
                         QAST::Var.new(:name<$!>, :scope<lexical>),
@@ -1123,7 +1122,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
                         pirop => 'perl6_invoke_catchhandler 1PP',
                         QAST::Op.new( :op('null') ),
                         QAST::Op.new( :op('exception') )
-                    )
+                    ),
+                    QAST::WVal.new(
+                        :value( $*W.find_symbol(['Nil']) ),
+                    ),
                 )
             );
         }

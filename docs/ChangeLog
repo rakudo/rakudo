@@ -1,5 +1,12 @@
 New in 2012.12
 + ~/.perl6/lib is gone from the default include path
++ fixed indent method's handling of empty lines
++ fixed .indent(*)
++ parse errors now formatted like in STD, with color
++ location of parse error now indicated with context
++ highwater algorithm implemented, greatly improving accuracy of parse error
+  line numbers and locations in a range of cases
++ uniq now has === semantics as specified, not eq semantics
 
 New in 2012.11
 + user-defined operators only affect the parser in the scope they are declared in

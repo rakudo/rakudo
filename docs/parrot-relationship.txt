@@ -1,0 +1,109 @@
+Background:  For a variety of reasons, Rakudo continues to target Parrot 
+monthly releases.  This implies that Rakudo developers must periodically
+test and develop against the HEAD of Parrot's master branch, to detect 
+potential breakages before they make it into a monthly Parrot release
+that Rakudo expects to build against shortly thereafter.  Early 
+reporting of potential issues, breakages, and performance degradatation 
+of Parrot HEAD prior to any release is also very beneficial to 
+Parrot development.
+
+During the May 2011 Parrot Developers Summit the participants agreed 
+that Parrot will continue to support Rakudo's efforts to target Parrot 
+monthly releases and be regularly synchronized with Parrot's master branch.
+
+Note that the above agreement does _not_ go so far as to state that
+commits to Parrot master can never cause a Rakudo failure.  We
+recognize that breakages will occasionally occur between Rakudo and
+Parrot's HEAD, both within and outside of the scope of Parrot's
+deprecation and support policies.  Such interim breakages are 
+completely acceptable as long as there is some confidence by both 
+development teams that whatever issue is causing the breakage is 
+likely to be resolved satisfactorily prior to the next Parrot 
+monthly release.  
+
+It is when such resolution seems unlikely that there has been sharp 
+and contentious debate over the "how, where, who, and when" details of 
+solving whatever issue may be at hand.  This is what the new policy
+aims to address.
+
+The policy:  Starting May 2011, Parrot and Rakudo will 
+designate two persons from each team to serve as "relationship 
+managers" to resolve any issues that arise between the two projects.  
+These managers are expected to carry sufficient clout or authority
+to effect potentially unpopular decisions within their respective
+projects (e.g., reverting commits, delaying feature availability,
+adjusting development schedules, etc.).
+
+Christoph Otto and Andrew Whitworth have been selected as Parrot's
+relationship managers for Rakudo; Rakudo managers for Parrot will 
+be represented by Moritz Lenz and Patrick Michaud.
+
+In the future, when Rakudo developers feel that discussions about
+Parrot on IRC, mailing list, or other channels are unlikely to 
+resolve a critical breakage or performance issue they are 
+encountering, the developers should bring the issue to the 
+attention of one or both of Rakudo's representatives (<person1> 
+or <person2>).  The Rakudo developers involved should also seek
+to reduce any pressure they may be applying in the other forums.
+(Reducing pressure can be as simple as "I think we may be at an
+impasse that needs the guidance of the relationship managers,
+let's get them to work on it and we can go have a beer.")
+
+The Rakudo representatives will evaluate any issue brought to
+their attention, and they will then bring it to the attention of
+the Parrot representatives if they deem it appropriate.  At this
+point, the representatives from both teams will collectively work
+to arrive at a consensus solution that will be acceptable to 
+both projects (if not to all of the participants).  The mechanisms
+by which the representatives choose to arrive at their decisions
+are entirely up to them.
+
+The above process also holds in reverse for Parrot developers
+that feel an issue has become unresolvable via direct discussions 
+with Rakudo developers.
+
+Note that petitioning or pressuing another project's relationship 
+managers directly (in their role as relationship manager) is highly 
+discouraged.  Once it's decided that relationship managers need
+to be involved, opinions and discussions between the managers will
+carry far more weight than those coming across project boundaries.
+A relationship manager is free to answer cross-project lobbying 
+requests from non-managers with "Raise this issue with your 
+project's relationship managers."
+
+There are two primary motivations for the establishment of
+project relationship managers.  First, we want to provide a "safety 
+valve" to relieve heat/pressure and provide a path forward whenever 
+the normal discussion channels start to appear impossibly deadlocked.  
+Second, we want a mechanism that ensures that critical decisions 
+aren't appearing to be made (either explicitly or through inaction) 
+solely because of the set of participants of any given IRC discussion 
+or mailing list thread.
+
+Bringing an issue to the attention of a relationship manager does
+not mean that the issue will be immediately resolved, nor that
+that the issue will ultimately be resolved in exactly the manner
+desired by the requestor.  What it does mean is that the relationship 
+managers have committed (1) to thoughtfully investigate and respond 
+to any issues raised by their counterparts, so that we can all have
+some confidence that the issues have been carefully considered from 
+many sides by people empowered to make changes if needed, and 
+(2) to work on such issues in a timely manner, so that the overall
+disruptions to Parrot's and Rakudo's development are minimized.
+
+We all know that Parrot developers want Rakudo to succeed, and 
+vice-versa.  Nobody is intentionally trying to make things
+difficult for others; the projects are just sufficiently complex 
+that it's impractical for us to completely avoid any surprises
+(breakages) in either project.  We know surprises will occur; this 
+new policy will hopefully enable us to collectively handle the inevitable 
+surprises more productively than we have in the past ("fail softly").  
+We'll try it and see how it works out; if it doesn't work out, 
+we'll come up with something else.  (Or perhaps well all need to
+discuss it with our relationship managers. :-)
+
+Comments and feedback welcomed.
+
+[1] http://irclog.perlgeek.de/parrotsketch/2011-05-14
+[2] http://lists.parrot.org/pipermail/parrot-dev/2011-May/005887.html
+[3] http://lists.parrot.org/pipermail/parrot-dev/2011-June/005945.html

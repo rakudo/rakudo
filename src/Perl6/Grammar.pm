@@ -2896,7 +2896,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         | <?before <[ ' " ]> >
             [ <!{$*QSIGIL}> || <!before '"' <-["]>*? \s > ] # dwim on "$foo."
             <quote>
-            [ <?before '(' | '.(' | '\\'> || <.panic: "Quoted method name requires parenthesized arguments"> ]
+            [ <?before '(' | '.(' | '\\'> || <.panic: "Quoted method name requires parenthesized arguments. If you meant to concatenate two strings, use '~'."> ]
         ] <.unsp>?
         :dba('method arguments')
         [
@@ -3008,6 +3008,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token infix:sym<xx>    { <sym> >> <O('%replication')> }
 
     token infix:sym<~>    { <sym>  <O('%concatenation')> }
+    token infix:sym<.>    { <sym> <[\]\)\},:\s\$"']>  <.obs('. to concatenate strings', '~')> }
 
     token infix:sym<&>    { <sym> <O('%junctive_and')> }
     token infix:sym<|>    { <sym> <O('%junctive_or')> }

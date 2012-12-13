@@ -139,6 +139,7 @@ S03-operators/assign.t
 S03-operators/autoincrement-range.t # icu
 S03-operators/autoincrement.t
 S03-operators/autovivification.t
+S03-operators/bag.t
 S03-operators/basic-types.t
 S03-operators/bit.t
 S03-operators/boolean-bitwise.t
@@ -174,6 +175,7 @@ S03-operators/reduce-le1arg.t
 S03-operators/relational.t
 S03-operators/repeat.t
 S03-operators/scalar-assign.t
+S03-operators/set.t
 S03-operators/short-circuit.t
 S03-operators/so.t
 S03-operators/spaceship-and-containers.t

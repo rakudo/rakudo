@@ -3194,6 +3194,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         # just an operator.
         my $prec;
         my $is_oper;
+        my $is_term := 0;
         if $category eq 'infix' {
             $prec := '%additive';
             $is_oper := 1;
@@ -3212,6 +3213,9 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         elsif $category eq 'trait_mod' {
             return 0;
         }
+        elsif $category eq 'term' {
+            $is_term := 1;
+        }
         elsif $category eq 'METAOP_TEST_ASSIGN' {
             return 0;
         }
@@ -3219,8 +3223,14 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             self.typed_panic('X::Syntax::Extension::Category', :$category);
         }
 
+        if $is_term {
+            my role Term[$meth_name, $op] {
+                token ::($meth_name) { $<sym>=[$op] }
+            }
+            self.HOW.mixin(self, Term.HOW.curry(Term, $canname, $opname));
+        }
         # Mix an appropraite role into the grammar for parsing the new op.
-        if $is_oper {
+        elsif $is_oper {
             my role Oper[$meth_name, $op, $precedence, $declarand] {
                 token ::($meth_name) { $<sym>=[$op] <O=.genO($precedence, $declarand)> }
             }
@@ -3263,6 +3273,17 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             };
             %*LANG<MAIN-actions> := $*ACTIONS.HOW.mixin($*ACTIONS,
                 CircumfixAction.HOW.curry(CircumfixAction, $canname, $subname));
+        }
+        elsif $is_term {
+            my role TermAction[$meth, $subname] {
+                method ::($meth)($/) {
+                    make QAST::Op.new(
+                        :op('call'), :name('&' ~ $subname),
+                    );
+                }
+            };
+            %*LANG<MAIN-actions> := $*ACTIONS.HOW.mixin($*ACTIONS,
+                TermAction.HOW.curry(TermAction, $canname, $subname));
         }
 
         return 1;

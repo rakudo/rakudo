@@ -3035,6 +3035,12 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token infix:sym<after>  { <sym>>>  <O('%chaining')> }
     token infix:sym<~~>   { <sym>  <O('%chaining')> <!dumbsmart> }
     token infix:sym<!~~>  { <sym>  <O('%chaining')> <!dumbsmart> }
+    token infix:sym<(elem)> { <sym> <O('%chaining')> }
+    token infix:sym<(cont)> { <sym> <O('%chaining')> }
+    token infix:sym«(<=)»   { <sym> <O('%chaining')> }
+    token infix:sym«(<)»    { <sym> <O('%chaining')> }
+    token infix:sym«(>=)»   { <sym> <O('%chaining')> }
+    token infix:sym«(>)»    { <sym> <O('%chaining')> }
 
     token dumbsmart {
         # should be
@@ -3107,6 +3113,12 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     token infix:sym<Z>    { <!before <sym> <infixish> > <sym>  <O('%list_infix')> }
     token infix:sym<X>    { <!before <sym> <infixish> > <sym>  <O('%list_infix')> }
+    token infix:sym<(|)>  { <!before <sym> <infixish> > <sym>  <O('%list_infix')> }
+    token infix:sym<(&)>  { <!before <sym> <infixish> > <sym>  <O('%list_infix')> }
+    token infix:sym<(-)>  { <!before <sym> <infixish> > <sym>  <O('%list_infix')> }
+    token infix:sym<(^)>  { <!before <sym> <infixish> > <sym>  <O('%list_infix')> }
+    token infix:sym<(.)>  { <!before <sym> <infixish> > <sym>  <O('%list_infix')> }
+    token infix:sym<(+)>  { <!before <sym> <infixish> > <sym>  <O('%list_infix')> }
 
     token infix:sym<...>  { <sym>  <O('%list_infix')> }
     token infix:sym<...^> { <sym>  <O('%list_infix')> }

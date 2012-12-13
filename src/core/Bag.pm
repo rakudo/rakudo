@@ -9,6 +9,7 @@ my class Bag is Iterable does Associative does Baggy {
     method exists($a) returns Bool { %!elems.exists($a) }
     method Bool { %!elems.Bool }
     method Numeric { self.elems }
+    method Real { self.elems }
     method hash { %!elems.hash }
     method at_key($k) { +(%!elems{$k} // 0) }
     method exists_key($k) { self.exists($k) }
@@ -50,6 +51,22 @@ sub bag(*@a) returns Bag {
     Bag.new(|@a);
 }
 
+multi sub infix:<(|)>(Baggy $a, Any $b --> Bag) { $a (|) bag($b) }
+multi sub infix:<(|)>(Any $a, Baggy $b --> Bag) { bag($a) (|) $b }
+multi sub infix:<(|)>(Baggy $a, Baggy $b --> Bag) { bag((set($a) (|) set($b)).map({ ; $_ => $a{$_} max $b{$_} })) }
+
+multi sub infix:<(&)>(Baggy $a, Any $b --> Bag) { $a (&) bag($b) }
+multi sub infix:<(&)>(Any $a, Baggy $b --> Bag) { bag($a) (&) $b }
+multi sub infix:<(&)>(Baggy $a, Baggy $b --> Bag) { bag((set($a) (&) set($b)).map({ ; $_ => $a{$_} min $b{$_} })) }
+
+proto sub infix:<(.)>($, $ --> Bag) {*}
+multi sub infix:<(.)>(Any $a, Any $b --> Bag) { bag($a) (.) bag($b) }
+multi sub infix:<(.)>(Bag $a, Bag $b --> Bag) { bag((set($a) (|) set($b)).map({ ; $_ => $a{$_} * $b{$_} })) }
+
+proto sub infix:<(+)>($, $ --> Bag) {*}
+multi sub infix:<(+)>(Any $a, Any $b --> Bag) { bag($a) (+) bag($b) }
+multi sub infix:<(+)>(Bag $a, Bag $b --> Bag) { bag((set($a) (|) set($b)).map({ ; $_ => $a{$_} + $b{$_} })) }
+
 my class KeyBag does Associative does Baggy {
     has %!elems; # should be UInt
 
@@ -59,6 +76,7 @@ my class KeyBag does Associative does Baggy {
     method exists($a) returns Bool { %!elems.exists($a) }
     method Bool { %!elems.Bool }
     method Numeric { self.elems }
+    method Real { self.elems }
     method hash { %!elems.hash }
     method at_key($k) {
         Proxy.new(FETCH => { %!elems.exists($k) ?? %!elems{$k} !! 0 },

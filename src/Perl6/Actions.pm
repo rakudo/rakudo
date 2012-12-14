@@ -1074,6 +1074,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
     method statement_prefix:sym<gather>($/) {
         my $past := block_closure($<blorst>.ast);
+        $past<past_block>.push(QAST::Var.new( :name('Nil'), :scope('lexical') ));
         make QAST::Op.new( :op('call'), :name('&GATHER'), $past );
     }
 
@@ -5139,7 +5140,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
     sub make_thunk_ref($to_thunk, $/) {
         my $block := $*W.push_lexpad($/);
-        $block.push($to_thunk);
+        $block.push(QAST::Stmts.new(autosink($to_thunk)));
         $*W.pop_lexpad();
         reference_to_code_object(
             $*W.create_simple_code_object($block, 'Code'),

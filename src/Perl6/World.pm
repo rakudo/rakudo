@@ -1991,6 +1991,12 @@ class Perl6::World is HLL::World {
 
     # throws a typed exception
     method throw($/, $ex_type, *%opts) {
+        self.typed_exception($/, $ex_type, |%opts).throw
+    }
+    
+    # Tries to construct a typed exception; returns it provided it is able to.
+    # If that fails, dies.
+    method typed_exception($/, $ex_type, *%opts) {
         my int $type_found := 1;
         my $ex;
         my $x_comp;
@@ -2070,7 +2076,7 @@ class Perl6::World is HLL::World {
                 (nqp::isnull($file) ?? '<unknown file>' !! $file),
                 self.find_symbol(['Str'])
             );
-            $ex.new(|%opts).throw;
+            return $ex.new(|%opts);
         } else {
             my @err := ['Error while compiling, type ', nqp::join('::', $ex_type),  "\n"];
             for %opts -> $key {

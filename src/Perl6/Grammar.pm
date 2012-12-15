@@ -203,13 +203,13 @@ role STD {
     }
     
     method panic(*@args) {
-        $*W.throw(self.MATCH, < X Comp AdHoc >, payload => nqp::join('', @args))
+        self.typed_panic('X::Comp::AdHoc', payload => nqp::join('', @args))
     }
     method sorry(*@args) {
-        $*W.throw(self.MATCH, < X Comp AdHoc >, payload => nqp::join('', @args))
+        self.typed_sorry('X::Comp::AdHoc', payload => nqp::join('', @args))
     }
     method worry(*@args) {
-        $*W.throw(self.MATCH, < X Comp AdHoc >, payload => nqp::join('', @args))
+        self.typed_worry('X::Comp::AdHoc', payload => nqp::join('', @args))
     }
 
     method typed_panic($type_str, *%opts) {

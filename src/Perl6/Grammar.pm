@@ -77,7 +77,7 @@ role STD {
                     $lang := $lang."tweak_$t"($_[1]);
                 }
                 else {
-                    self.panic("Unrecognized adverb: :$t");
+                    self.sorry("Unrecognized adverb: :$t");
                 }
             }
             $start ne $stop ?? $lang.balanced($start, $stop)
@@ -386,7 +386,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         [
             [
             | \v
-            | '<<<<<<<' {} <?before [.*? \v '=======']: .*? \v '>>>>>>>' > <.panic: 'Found a version control conflict marker'> \V* \v
+            | '<<<<<<<' {} <?before [.*? \v '=======']: .*? \v '>>>>>>>' > <.sorry: 'Found a version control conflict marker'> \V* \v
             | '=======' {} .*? \v '>>>>>>>' \V* \v   # ignore second half
             ]
         ]+
@@ -1014,7 +1014,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     token statement_control:sym<loop> {
         <sym> <.end_keyword>
-        [ <?[({]> <.panic: "Whitespace required after 'loop'"> ]?
+        [ <?[({]> <.sorry: "Whitespace required after 'loop'"> ]?
         :s
         [ '('
             <e1=.EXPR>? ';'
@@ -1286,7 +1286,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         ':'
         :dba('colon pair')
         [
-        | '!' <identifier> [ <[ \[ \( \< \{ ]> {
+        | '!' [ <identifier> || <.panic: "Malformed False pair; expected identifier"> ]
+            [ <[ \[ \( \< \{ ]> {
             $/.CURSOR.typed_panic('X::Syntax::NegatedPair', key => ~$<identifier>) } ]?
             { $*key := $<identifier>.Str; $*value := 0; }
         | <identifier>
@@ -1544,7 +1545,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             | <sigil> <?[<[]> [ <?{ $*IN_DECL }> <.typed_panic('X::Syntax::Variable::Match')>]?  <postcircumfix>
             | $<sigil>=['$'] $<desigilname>=[<[/_!]>]
             | <sigil> <?{ $*IN_DECL }>
-            | <!{ $*QSIGIL }> <.typed_panic: 'X::Syntax::SigilWithoutName'>
+            | <!{ $*QSIGIL }> <.typed_sorry: 'X::Syntax::SigilWithoutName'>
             ]
         ]
         [ <?{ $<twigil> && $<twigil>[0] eq '.' }>
@@ -1810,7 +1811,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         # STD.pm6 uses <defterm> here, but we need different 
         # action methods
         | '\\' <identifier> <.ws>
-            [ <term_init=initializer> || <.panic("Term definition requires an initializer")> ]
+            [ <term_init=initializer> || <.sorry("Term definition requires an initializer")> ]
         | <variable_declarator>
           [
           || <?{ $*SCOPE eq 'has' }> <.newpad> <initializer>? { $*ATTR_INIT_BLOCK := $*W.pop_lexpad() }
@@ -1881,7 +1882,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         ] <.ws>
         || <?before <[A..Z]>><longname>{
                 my $t := $<longname>.Str;
-                $/.CURSOR.panic("In \"$*SCOPE\" declaration, typename $t must be predeclared (or marked as declarative with :: prefix)");
+                $/.CURSOR.sorry("In \"$*SCOPE\" declaration, typename $t must be predeclared (or marked as declarative with :: prefix)");
             }
             <!> # drop through
         || <.malformed($*SCOPE)>
@@ -1904,22 +1905,21 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                 {
                     my $sigil := nqp::substr($var, 0, 1);
                     if $sigil eq '&' {
-                        $*W.throw($/, 'X::Syntax::Reserved',
+                        self.typed_sorry('X::Syntax::Reserved',
                             reserved => '() shape syntax in routine declarations',
                             instead => ' (maybe use :() to declare a longname?)'
                         );
                     }
                     elsif $sigil eq '@' {
-
-                        $*W.throw($/, 'X::Syntax::Reserved',
+                        self.typed_sorry('X::Syntax::Reserved',
                             reserved => '() shape syntax in array declarations');
                     }
                     elsif $sigil eq '%' {
-                        $*W.throw($/, 'X::Syntax::Reserved',
+                        self.typed_sorry('X::Syntax::Reserved',
                             reserved => '() shape syntax in hash declarations');
                     }
                     else {
-                        $*W.throw($/, 'X::Syntax::Reserved',
+                        self.typed_sorry('X::Syntax::Reserved',
                             reserved => '() shape syntax in variable declarations');
                     }
                 }
@@ -2367,7 +2367,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token term:sym<self> {
         <sym> <.end_keyword>
         {
-            $*HAS_SELF || $*W.throw($/, ['X', 'Syntax', 'Self', 'WithoutObject'])
+            $*HAS_SELF || self.typed_sorry('X::Syntax::Self::WithoutObject')
         }
     }
 
@@ -2534,7 +2534,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         ':'
         :dba('colon pair (restricted)')
         [
-        | '!' <identifier> [ <?before '('> <.panic('Argument not allowed on negated pair')> ]?
+        | '!' <identifier> [ <?before '('> <.sorry('Argument not allowed on negated pair')> ]?
             { $*key := ~$<identifier>; $*value := 0; }
         | <identifier> 
             { $*key := ~$<identifier> }
@@ -2543,7 +2543,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             || { $*value := 1; }
             ]
         | (\d+) <identifier>
-            [ <?before '('> <.circumfix> <.panic('2nd argument not allowed on pair')> ]?
+            [ <?before '('> <.circumfix> <.sorry('2nd argument not allowed on pair')> ]?
             { $*key := ~$<identifier>; $*value := +~$/[0] }
         ]
     }
@@ -3014,9 +3014,9 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token infix:sym«+<»   { <sym> <!before '<'> <O('%multiplicative')> }
     token infix:sym«+>»   { <sym> <!before '>'> <O('%multiplicative')> }
 
-    token infix:sym«<<» { <sym> \s <.obs('<< to do left shift', '+< or ~<')> }
+    token infix:sym«<<» { <sym> \s <.sorryobs('<< to do left shift', '+< or ~<')> }
 
-    token infix:sym«>>» { <sym> \s <.obs('>> to do right shift', '+> or ~>')> }
+    token infix:sym«>>» { <sym> \s <.sorryobs('>> to do right shift', '+> or ~>')> }
 
     token infix:sym<+>    { <sym>  <O('%additive')> }
     token infix:sym<->    {
@@ -3094,8 +3094,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         [ '!!'
         || <?before '::'<-[=]>> <.panic: "Please use !! rather than ::">
         || <?before ':' <-[=]>> <.panic: "Please use !! rather than :">
-        || <?before \N*? [\n\N*?]?> '!!' <.panic("Bogus code found before the !!")>
-        || <.panic("Found ?? but no !!")>
+        || <?before \N*? [\n\N*?]?> '!!' <.sorry("Bogus code found before the !!")> <.panic("Confused")>
+        || <.sorry("Found ?? but no !!")> <.panic("Confused")>
         ]
         <O('%conditional, :reducecheck<ternary>, :pasttype<if>')>
     }
@@ -3331,7 +3331,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 grammar Perl6::QGrammar is HLL::Grammar does STD {
 
     method throw_unrecog_backslash_seq ($sequence) {
-        $*W.throw(self.MATCH(), <X Backslash UnrecognizedSequence>, :$sequence);
+        self.typed_sorry('X::Backslash::UnrecognizedSequence', :$sequence);
     }
 
     proto token escape {*}
@@ -3543,7 +3543,7 @@ grammar Perl6::QGrammar is HLL::Grammar does STD {
     }
     
     method truly($bool, $opt) {
-        self.panic("Cannot negate $opt adverb") unless $bool;
+        self.sorry("Cannot negate $opt adverb") unless $bool;
         self;
     }
     
@@ -3586,10 +3586,10 @@ grammar Perl6::QGrammar is HLL::Grammar does STD {
 
 grammar Perl6::RegexGrammar is QRegex::P6Regex::Grammar does STD {
     method throw_unrecognized_metachar ($metachar) {
-        $*W.throw(self.MATCH(), <X Syntax Regex UnrecognizedMetachar>, :$metachar);
+        self.typed_sorry('X::Syntax::Regex::UnrecognizedMetachar', :$metachar);
     }
     method throw_null_pattern() {
-        $*W.throw(self.MATCH(), <X Syntax Regex NullRegex>);
+        self.typed_sorry('X::Syntax::Regex::NullRegex');
     }
 
     token rxstopper { <stopper> }

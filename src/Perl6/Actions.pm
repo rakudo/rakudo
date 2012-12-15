@@ -2879,11 +2879,11 @@ class Perl6::Actions is HLL::Actions does STDActions {
         if $<default_value> {
             my $name := %*PARAM_INFO<variable_name> // '';
             if $quant eq '*' {
-                $*W.throw($/, ['X', 'Parameter', 'Default'], how => 'slurpy',
+                $/.CURSOR.typed_sorry('X::Parameter::Default', how => 'slurpy',
                             parameter => $name);
             }
             if $quant eq '!' {
-                $*W.throw($/, ['X', 'Parameter', 'Default'], how => 'required',
+                $/.CURSOR.typed_sorry('X::Parameter::Default', how => 'required',
                             parameter => $name);
             }
             my $val := $<default_value>[0].ast;
@@ -2980,13 +2980,13 @@ class Perl6::Actions is HLL::Actions does STDActions {
             }
             else {
                 if $twigil eq ':' {
-                    $*W.throw($/, ['X', 'Parameter', 'Placeholder'],
+                    $/.CURSOR.typed_sorry('X::Parameter::Placeholder',
                         parameter => ~$/,
                         right     => ':' ~ $<sigil> ~ ~$<name>[0],
                     );
                 }
                 else {
-                    $*W.throw($/, ['X', 'Parameter', 'Twigil'],
+                    $/.CURSOR.typed_sorry('X::Parameter::Twigil',
                         parameter => ~$/,
                         twigil    => $twigil,
                     );
@@ -5830,10 +5830,10 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions does STDActions {
     
     method assertion:sym<~~>($/) {
         if $<num> {
-            nqp::die('Sorry, ~~ regex assertion with a capture is not yet implemented');
+            $/.CURSOR.panic('Sorry, ~~ regex assertion with a capture is not yet implemented');
         }
         elsif $<desigilname> {
-            nqp::die('Sorry, ~~ regex assertion with a capture is not yet implemented');
+            $/.CURSOR.panic('Sorry, ~~ regex assertion with a capture is not yet implemented');
         }
         else {
             make QAST::Regex.new( :rxtype<subrule>, :subtype<method>,

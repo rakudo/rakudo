@@ -309,6 +309,7 @@ my role X::Comp is Exception {
     has $.is-compile-time = False;
     has $.pre;
     has $.post;
+    has @.highexpect;
     multi method gist(::?CLASS:D:) {
         if $.is-compile-time {
             my $color = %*ENV<RAKUDO_ERROR_COLOR> // $*OS ne 'MSWin32';
@@ -318,6 +319,12 @@ my role X::Comp is Exception {
             my $eject = $*OS eq 'MSWin32' ?? "<HERE>" !! "\x[23CF]";
             my $r = "$red==={$clear}SORRY!$red===$clear\n$.message\nat $.filename():$.line\n------> ";
             $r ~= "$green$.pre$yellow$eject$red$.post$clear" if defined $.pre;
+            if @.highexpect {
+                $r ~= "\n    expecting any of:";
+                for @.highexpect {
+                    $r ~= "\n        $_";
+                }
+            }
             for @.modules.reverse[1..*] {
                 $r ~= $_<module>.defined
                         ?? "\n  from module $_<module> ($_<filename>:$_<line>)"
@@ -629,7 +636,8 @@ my class X::Syntax::Pod::BeginWithoutEnd does X::Syntax does X::Pod {
 }
 
 my class X::Syntax::Confused does X::Syntax {
-    method message() { 'Confused' }
+    has $.reason = 'unknown';
+    method message() { $.reason eq 'unknown' ?? 'Confused' !! $.reason }
 }
 
 my class X::Syntax::Malformed does X::Syntax {

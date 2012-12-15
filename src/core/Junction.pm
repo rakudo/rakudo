@@ -48,7 +48,7 @@ my class Junction is Mu {
     
     method postcircumfix:<( )>($c) {
         AUTOTHREAD(
-            -> $obj, **@cpos, *%cnamed { $obj(|@cpos, |%cnamed) },
+            -> $obj, |c { $obj(|c) },
             self, |$c);
     }
     method sink(Junction:D:) {
@@ -66,48 +66,51 @@ sub infix:<|>(**@values) { Junction.new(@values, :type<any>); }
 sub infix:<&>(**@values) { Junction.new(@values, :type<all>); }
 sub infix:<^>(**@values) { Junction.new(@values, :type<one>); }
 
-sub AUTOTHREAD(&call, **@pos, *%named) {
+sub AUTOTHREAD(&call, |args) {
     # Look for a junctional arg in the positionals.
-    loop (my $i = 0; $i < +@pos; $i++) {
+    my Mu $pos_rpa := nqp::getattr(nqp::p6decont(args), Capture, '$!list');
+    loop (my int $i = 0; $i < nqp::elems($pos_rpa); $i = $i + 1) {
         # Junctional positional argument?
-        if @pos[$i] ~~ Junction {
-            my @states := nqp::getattr(nqp::p6decont(@pos[$i]), Junction, '$!storage');
-            my @pre    := @pos[0 ..^ $i];
-            my @post   := @pos[$i + 1 ..^ +@pos];
-            my @result;
+        my Mu $arg := nqp::atpos($pos_rpa, $i);
+        if nqp::istype($arg, Junction) {
+            my @states := nqp::getattr(nqp::p6decont($arg), Junction, '$!storage');
+            my $type   := nqp::getattr(nqp::p6decont($arg), Junction, '$!type');
+            my Mu $res := nqp::list();
             for @states -> $s {
-                push @result, call(|@pre, $s, |@post, |%named);
+                # Next line is Officially Naughty, since captures are meant to be
+                # immutable. But hey, it's our capture to be naughty with...
+                nqp::bindpos($pos_rpa, $i, $s);
+                nqp::push($res, call(|args));
+                Nil;
             }
-            return Junction.new(@result,
-                :type(nqp::getattr(nqp::p6decont(@pos[$i]), Junction, '$!type')));
+            return Junction.new(nqp::p6parcel($res, Nil), :type($type));
         }
     }
     
     # Otherwise, look for one in the nameds.
-    for %named.kv -> $k, $v {
-        if $v ~~ Junction {
-            my %other_nameds;
-            for %named.kv -> $kk, $vk {
-                if $kk ne $k { %other_nameds{$kk} = $vk }
-            }
+    for args.hash.kv -> $k, $v {
+        if nqp::istype($v, Junction) {
+            my Mu $nam_hash := nqp::getattr(nqp::p6decont(args), Capture, '$!hash');
             my @states := nqp::getattr(nqp::p6decont($v), Junction, '$!storage');
-            my @result;
+            my $type   := nqp::getattr(nqp::p6decont($v), Junction, '$!type');
+            my Mu $res := nqp::list();
             for @states -> $s {
-                push @result, call(|@pos, |{ $k => $s }, |%other_nameds);
+                nqp::bindkey($nam_hash, $k, $s);
+                nqp::push($res, call(|args));
+                Nil;
             }
-            return Junction.new(@result,
-                :type(nqp::getattr(nqp::p6decont($v), Junction, '$!type')));
+            return Junction.new(nqp::p6parcel($res, Nil), :type($type));
         }
     }
     
     # If we get here, wasn't actually anything to autothread.
-    call(|@pos, |%named);
+    call(|args);
 }
 
-sub AUTOTHREAD_METHOD($name, **@pos, *%named) {
+sub AUTOTHREAD_METHOD($name, |c) {
     AUTOTHREAD(
-        -> $obj, **@cpos, *%cnamed { $obj."$name"(|@cpos, |%cnamed) },
-        |@pos, |%named);
+        -> $obj, |c { $obj."$name"(|c) },
+        |c);
 }
 
 pir::perl6_setup_junction_autothreading__vPP(Junction, &AUTOTHREAD);

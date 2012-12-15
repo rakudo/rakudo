@@ -7,6 +7,7 @@ my class Set is Iterable does Associative {
     method exists($a) returns Bool { %!elems.exists($a) }
     method Bool { %!elems.Bool }
     method Numeric { %!elems.Numeric }
+    method Real { %!elems.Numeric.Real }
     method hash { %!elems.hash }
     method at_key($k) { ?(%!elems{$k} // False) }
     method exists_key($k) { self.exists($k) }
@@ -59,6 +60,46 @@ sub set(*@args) {
     Set.new(@args);
 }
 
+proto sub infix:<(elem)>($, $ --> Bool) {*}
+multi sub infix:<(elem)>($a, Any $b --> Bool) { $a (elem) set($b) }
+multi sub infix:<(elem)>($a, Set $b --> Bool) { $b.exists($a) }
+
+proto sub infix:<(cont)>($, $ --> Bool) {*}
+multi sub infix:<(cont)>(Any $a, $b --> Bool) { set($a) (cont) $b }
+multi sub infix:<(cont)>(Set $a, $b --> Bool) { $a.exists($b) }
+
+proto sub infix:<(|)>($a, $b) {*}
+multi sub infix:<(|)>(Any $a, Any $b) { set($a) (|) set($b) }
+multi sub infix:<(|)>(Set $a, Set $b) { Set.new: $a, $b }
+
+proto sub infix:<(&)>($a, $b) {*}
+multi sub infix:<(&)>(Any $a, Any $b) { set($a) (&) set($b) }
+multi sub infix:<(&)>(Set $a, Set $b) { Set.new: $a.keys.grep: -> $k { ?$b{$k} } }
+
+proto sub infix:<(-)>($, $ --> Set) {*}
+multi sub infix:<(-)>(Any $a, Any $b --> Set) { set($a) (-) set($b) }
+multi sub infix:<(-)>(Set $a, Set $b --> Set) { Set.new: $a.keys.grep: * !(elem) $b }
+
+proto sub infix:<(^)>($, $ --> Set) {*}
+multi sub infix:<(^)>(Any $a, Any $b --> Set) { set($a) (^) set($b) }
+multi sub infix:<(^)>(Set $a, Set $b --> Set) { ($a (-) $b) (|) ($b (-) $a) }
+
+proto sub infix:«(<=)»($, $ --> Bool) {*}
+multi sub infix:«(<=)»(Any $a, Any $b --> Bool) { set($a) (<=) set($b) }
+multi sub infix:«(<=)»(Set $a, Set $b --> Bool) { $a <= $b and so $a.keys.all (elem) $b }
+
+proto sub infix:«(<)»($, $ --> Bool) {*}
+multi sub infix:«(<)»(Any $a, Any $b --> Bool) { set($a) (<) set($b) }
+multi sub infix:«(<)»(Set $a, Set $b --> Bool) { $a < $b and so $a.keys.all (elem) $b }
+
+proto sub infix:«(>=)»($, $ --> Bool) {*}
+multi sub infix:«(>=)»(Any $a, Any $b --> Bool) { set($a) (>=) set($b) }
+multi sub infix:«(>=)»(Set $a, Set $b --> Bool) { $a >= $b and so $b.keys.all (elem) $a }
+
+proto sub infix:«(>)»($, $ --> Bool) {*}
+multi sub infix:«(>)»(Any $a, Any $b --> Bool) { set($a) (>) set($b) }
+multi sub infix:«(>)»(Set $a, Set $b --> Bool) { $a > $b and so $b.keys.all (elem) $a }
+
 my class KeySet is Iterable does Associative {
     has %!elems;
 
@@ -68,6 +109,7 @@ my class KeySet is Iterable does Associative {
     method exists($a) returns Bool { %!elems.exists($a) && %!elems{$a} }
     method Bool { %!elems.Bool }
     method Numeric { %!elems.Numeric }
+    method Real { %!elems.Numeric.Real }
     method hash { %!elems.hash }
     method at_key($k) {
         Proxy.new(FETCH => { %!elems.exists($k) ?? True !! False },

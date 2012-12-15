@@ -1782,33 +1782,43 @@ inline op perl6_listitems(out PMC, in PMC) :base_core {
 
 /*
 
-=item perl6_rpa_find_type(out INT, in PMC, in PMC, int INT, in INT)
+=item perl6_rpa_find_types(out INT, in PMC, in PMC, int INT, in INT)
 
-Find the first element of RPA $2 that has type $3, starting at
-index $4 and up through (but not including) index $5.  Sets $1
-to be the index of the first element matching type, otherwise
-$1 is set to the highest index searched.
+Find the first element of RPA $2 that has any of the types in
+$3, starting at index $4 and up through (but not including) index
+$5. Sets $1 to be the index of the first element matching type,
+otherwise $1 is set to the highest index searched.
 
 Containerized elements are automatically skipped.
 
 =cut
 
 */
-inline op perl6_rpa_find_type(out INT, in PMC, in PMC, in INT, in INT)
+inline op perl6_rpa_find_types(out INT, invar PMC, invar PMC, in INT, in INT)
 {
-    PMC *rpa     = $2;
-    PMC *type    = Rakudo_cont_decontainerize(interp, $3);
-    INTVAL elems = VTABLE_elements(interp, rpa);
-    INTVAL last  = $5;
-    INTVAL index;
+    PMC *rpa      = $2;
+    PMC *types    = $3;
+    INTVAL elems  = VTABLE_elements(interp, rpa);
+    INTVAL ntypes = VTABLE_elements(interp, types);
+    INTVAL last   = $5;
+    INTVAL index, type_index;
 
     if (elems < last)  last = elems;
 
     for (index = $4; index < last; index++) {
         PMC *val = VTABLE_get_pmc_keyed_int(interp, rpa, index);
-        if (val->vtable->base_type == smo_id
-            && !STABLE(val)->container_spec
-            && STABLE(val)->type_check(interp, val, type)) break;
+        if (val->vtable->base_type == smo_id && !STABLE(val)->container_spec) {
+            INTVAL found = 0;
+            for (type_index = 0; type_index < ntypes; type_index++) {
+                PMC *type = VTABLE_get_pmc_keyed_int(interp, types, type_index);
+                if (STABLE(val)->type_check(interp, val, type)) {
+                    found = 1;
+                    break;
+                }
+            }
+            if (found)
+                break;
+        }
     }
 
     $1 = index;

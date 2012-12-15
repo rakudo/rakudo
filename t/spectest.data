@@ -139,6 +139,7 @@ S03-operators/assign.t
 S03-operators/autoincrement-range.t # icu
 S03-operators/autoincrement.t
 S03-operators/autovivification.t
+S03-operators/bag.t
 S03-operators/basic-types.t
 S03-operators/bit.t
 S03-operators/boolean-bitwise.t
@@ -174,6 +175,7 @@ S03-operators/reduce-le1arg.t
 S03-operators/relational.t
 S03-operators/repeat.t
 S03-operators/scalar-assign.t
+S03-operators/set.t
 S03-operators/short-circuit.t
 S03-operators/so.t
 S03-operators/spaceship-and-containers.t
@@ -227,6 +229,7 @@ S04-phasers/check.t
 S04-phasers/descending-order.t
 S04-phasers/end.t
 S04-phasers/enter-leave.t
+S04-phasers/eval-in-begin.t
 S04-phasers/first.t
 S04-phasers/keep-undo.t
 S04-phasers/multiple.t
@@ -320,6 +323,7 @@ S05-modifier/global.t
 S05-modifier/ignorecase.t  # icu
 S05-modifier/ii.t
 S05-modifier/overlapping.t
+S05-modifier/perl5_0.t
 S05-modifier/perl5_1.t
 S05-modifier/perl5_2.t
 S05-modifier/perl5_3.t
@@ -541,6 +545,7 @@ S16-unfiled/rebindstdhandles.t
 S16-unfiled/slurp.t
 S19-command-line/dash-e.t # icu
 S19-command-line/help.t
+S24-testing/0-compile.t
 S26-documentation/01-delimited.t
 S26-documentation/02-paragraph.t
 S26-documentation/03-abbreviated.t

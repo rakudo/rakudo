@@ -3515,10 +3515,6 @@ grammar Perl6::QGrammar is HLL::Grammar does STD {
         }
     }
     
-    # XXX These belong in role STD eventually.
-    token starter { <!> }
-    token stopper { <!> }
-    
     method truly($bool, $opt) {
         self.panic("Cannot negate $opt adverb") unless $bool;
         self;

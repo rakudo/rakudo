@@ -1,7 +1,7 @@
 Rakudo Roadmap
 --------------
 
-Last updated: 2012-12-10
+Last updated: 2012-12-15
 
 This document serves as a guide to the major goals for Rakudo
 development, as things stood in December 2011. They have been
@@ -33,7 +33,6 @@ Compiler Performance/Portability Improvements (jnthn)
 3 **    Optimizing multis for `[+] 1..10` and `[<=] 1..10` etc.
 
 Macros (masak)
-2 ***   quasiquote splicing
 2 **    hygienic macros and the COMPILING:: pseudopackage
 2 ****  "delayed" declarations of routines and types within quasiquotes
 3 ?     Textual macros

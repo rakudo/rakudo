@@ -3074,8 +3074,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         # should be
         # 'Bool::'? True && <.longname>
         # once && in regexes is implemented
-        | <?before \h* [ 'Bool::'? 'True' && <.longname> ] >  <.panic("Smartmatch against True always matches; if you mean to test the topic for truthiness, use :so or *.so or ?* instead")>
-        | <?before \h* [ 'Bool::'? 'False' && <.longname> ] > <.panic("Smartmatch against False always fails; if you mean to test the topic for truthiness, use :!so or *.not or !* instead")>
+        | <?before \h* [ 'Bool::'? 'True' && <.longname> ] >  <.worry("Smartmatch against True always matches; if you mean to test the topic for truthiness, use :so or *.so or ?* instead")>
+        | <?before \h* [ 'Bool::'? 'False' && <.longname> ] > <.worry("Smartmatch against False always fails; if you mean to test the topic for truthiness, use :!so or *.not or !* instead")>
     }
 
     token infix:sym<&&>   { <sym>  <O('%tight_and, :pasttype<if>')> }

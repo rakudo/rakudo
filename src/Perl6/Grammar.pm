@@ -205,6 +205,55 @@ role STD {
     method panic(*@args) {
         $*W.throw(self.MATCH, < X Comp AdHoc >, payload => nqp::join('', @args))
     }
+    method sorry(*@args) {
+        $*W.throw(self.MATCH, < X Comp AdHoc >, payload => nqp::join('', @args))
+    }
+    method worry(*@args) {
+        $*W.throw(self.MATCH, < X Comp AdHoc >, payload => nqp::join('', @args))
+    }
+
+    method typed_panic($type_str, *%opts) {
+        $*W.throw(self.MATCH(), nqp::split('::', $type_str), |%opts);
+    }
+    method typed_sorry($type_str, *%opts) {
+        $*W.throw(self.MATCH(), nqp::split('::', $type_str), |%opts);
+    }
+    method typed_worry($type_str, *%opts) {
+        $*W.throw(self.MATCH(), nqp::split('::', $type_str), |%opts);
+    }
+    
+    method malformed($what) {
+        self.typed_panic('X::Syntax::Malformed', :$what);
+    }
+    method missing($what) {
+        self.typed_panic('X::Syntax::Missing', :$what);
+    }
+    method NYI($feature) {
+        self.typed_panic('X::Comp::NYI', :$feature)
+    }
+
+    # "when" arg assumes more things will become obsolete after Perl 6 comes out...
+    method obs($old, $new, $when = ' in Perl 6') {
+        $*W.throw(self.MATCH(), ['X', 'Obsolete'],
+            old         => $old,
+            replacement => $new,
+            when        => $when,
+        );
+    }
+    method sorryobs($old, $new, $when = ' in Perl 6') {
+        $*W.throw(self.MATCH(), ['X', 'Obsolete'],
+            old         => $old,
+            replacement => $new,
+            when        => $when,
+        );
+    }
+    method worryobs($old, $new, $when = ' in Perl 6') {
+        $*W.throw(self.MATCH(), ['X', 'Obsolete'],
+            old         => $old,
+            replacement => $new,
+            when        => $when,
+        );
+    }
 }
 
 grammar Perl6::Grammar is HLL::Grammar does STD {
@@ -246,28 +295,6 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         $*W.pop_lexpad(); # UNIT
         $*W.pop_lexpad(); # UNIT_OUTER
         $cursor;
-    }
-
-    method typed_panic($type_str, *%opts) {
-        $*W.throw(self.MATCH(), nqp::split('::', $type_str), |%opts);
-    }
-    method malformed($what) {
-        self.typed_panic('X::Syntax::Malformed', :$what);
-    }
-    method missing($what) {
-        self.typed_panic('X::Syntax::Missing', :$what);
-    }
-    method NYI($feature) {
-        self.typed_panic('X::Comp::NYI', :$feature)
-    }
-
-    # "when" arg assumes more things will become obsolete after Perl 6 comes out...
-    method obs ($old, $new, $when = ' in Perl 6') {
-        $*W.throw(self.MATCH(), ['X', 'Obsolete'],
-            old         => $old,
-            replacement => $new,
-            when        => $when,
-        );
     }
 
     ## Lexer stuff

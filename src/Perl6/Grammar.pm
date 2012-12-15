@@ -2532,8 +2532,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     
     proto token quote_mod   {*}
     token quote_mod:sym<w>  { <sym> }
-    # XXX uncomment these two when they get implemented
-    #token quote_mod:sym<ww> { <sym> }
+    token quote_mod:sym<ww> { <sym> }
+    # XXX uncomment this when it's implemented
     #token quote_mod:sym<p>  { <sym> }
     token quote_mod:sym<x>  { <sym> }
     token quote_mod:sym<to> { <sym> }

@@ -222,9 +222,11 @@ role STD {
         else {
             @*SORROWS.push($*W.typed_exception(self.MATCH(), nqp::split('::', $type_str), |%opts));
         }
+        self
     }
     method typed_worry($type_str, *%opts) {
         @*WORRIES.push($*W.typed_exception(self.MATCH(), nqp::split('::', $type_str), |%opts));
+        self
     }
     
     method malformed($what) {

@@ -216,10 +216,15 @@ role STD {
         $*W.throw(self.MATCH(), nqp::split('::', $type_str), |%opts);
     }
     method typed_sorry($type_str, *%opts) {
-        $*W.throw(self.MATCH(), nqp::split('::', $type_str), |%opts);
+        if +@*SORROWS + 1 == $*SORRY_LIMIT {
+            $*W.throw(self.MATCH(), nqp::split('::', $type_str), |%opts);
+        }
+        else {
+            @*SORROWS.push($*W.typed_exception(self.MATCH(), nqp::split('::', $type_str), |%opts));
+        }
     }
     method typed_worry($type_str, *%opts) {
-        $*W.throw(self.MATCH(), nqp::split('::', $type_str), |%opts);
+        @*WORRIES.push($*W.typed_exception(self.MATCH(), nqp::split('::', $type_str), |%opts));
     }
     
     method malformed($what) {
@@ -672,6 +677,15 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*DECLARAND;                           # the current thingy we're declaring, and subject of traits
         :my $*METHODTYPE;                          # the current type of method we're in, if any
         :my $*PKGDECL;                             # what type of package we're in, if any
+        
+        # Error related. There are three levels: worry (just a warning), sorry
+        # (fatal but not immediately so) and panic (immediately deadly). There
+        # is a limit on the number of sorrows also. Unlike STD, which emits the
+        # textual messages as it goes, we keep track of the exception objects
+        # and, if needed, make a compositite exception group.
+        :my @*WORRIES;                             # exception objects resulting from worry
+        :my @*SORROWS;                             # exception objects resulting from sorry
+        :my $*SORRY_LIMIT := 10;                   # when sorrow turns to panic
 
         # Extras.
         :my %*METAOPGEN;                           # hash of generated metaops
@@ -801,6 +815,19 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         [ $ || <.typed_panic: 'X::Syntax::Confused'> ]
         
         {
+            # Emit any errors/worries.
+            if @*SORROWS {
+                if +@*SORROWS == 1 && !@*WORRIES {
+                    @*SORROWS[0].throw()
+                }
+                else {
+                    $*W.group_exception(@*SORROWS.pop).throw();
+                }
+            }
+            if @*WORRIES {
+                pir::getstderr__P().print($*W.group_exception().gist());
+            }
+        
             # Install POD-related variables.
             $*POD_PAST := $*W.add_constant(
                 'Array', 'type_new', |$*POD_BLOCKS

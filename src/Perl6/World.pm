@@ -1989,13 +1989,35 @@ class Perl6::World is HLL::World {
         }
     }
 
-    # throws a typed exception
+    # Constructs and immediately throws a typed exception. Note that if there
+    # are extra sorrows or worries it will put them into a group.
     method throw($/, $ex_type, *%opts) {
-        self.typed_exception($/, $ex_type, |%opts).throw
+        my $ex := self.typed_exception($/, $ex_type, |%opts);
+        if @*SORROWS || @*WORRIES {
+            $ex := self.group_exception($ex);
+        }
+        $ex.throw
     }
     
-    # Tries to construct a typed exception; returns it provided it is able to.
-    # If that fails, dies.
+    # Builds an exception group.
+    method group_exception(*@panic) {
+        my %opts;
+        %opts<panic> := @panic[0] if @panic;
+        %opts<sorrows> := p6ize_recursive(@*SORROWS) if @*SORROWS;
+        %opts<worries> := p6ize_recursive(@*WORRIES) if @*WORRIES;
+        try {
+            my $group_type := self.find_symbol(['X', 'Comp', 'Group']);
+            return $group_type.new(|%opts);
+            CATCH {
+                nqp::print("Error while constructing error object:");
+                nqp::say($_);
+            }
+        }
+    }
+    
+    # Tries to construct a typed exception, incorporating all available compile
+    # time information (such as about location). Returns it provided it is able
+    # to construct it. If that fails, dies right away.
     method typed_exception($/, $ex_type, *%opts) {
         my int $type_found := 1;
         my $ex;

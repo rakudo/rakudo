@@ -1576,7 +1576,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             | <sigil> <?[<[]> [ <?{ $*IN_DECL }> <.typed_panic('X::Syntax::Variable::Match')>]?  <postcircumfix>
             | $<sigil>=['$'] $<desigilname>=[<[/_!]>]
             | <sigil> <?{ $*IN_DECL }>
-            | <!{ $*QSIGIL }> <.typed_sorry: 'X::Syntax::SigilWithoutName'>
+            | <!{ $*QSIGIL }> <.typed_panic: 'X::Syntax::SigilWithoutName'>
             ]
         ]
         [ <?{ $<twigil> && $<twigil>[0] eq '.' }>

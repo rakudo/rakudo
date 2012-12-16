@@ -29,7 +29,7 @@ my class Enum does Associative {
     multi method Str(Enum:D:) { $.key ~ "\t" ~ $.value }
 
     multi method perl(Enum:D:) {
-        if $.key ~~ Pair {
+        if $.key ~~ Enum {
             '(' ~ $.key.perl ~ ') => ' ~ $.value.perl;
         } else {
             $.key.perl ~ ' => ' ~ $.value.perl;

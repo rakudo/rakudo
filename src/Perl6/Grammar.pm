@@ -261,6 +261,25 @@ role STD {
             when        => $when,
         );
     }
+    
+    method check_variable($var) {
+        my $varast := $var.ast;
+        if nqp::istype($varast, QAST::Op) && $varast.op eq 'ifnull' {
+            $varast := $varast[0];
+        }
+        if !$*IN_DECL && nqp::istype($varast, QAST::Var) && $varast.scope eq 'lexical' {
+            my $name := $varast.name;
+            if $name ne '%_' && $name ne '@_' && !$*W.is_lexical($name) {
+                if $var<sigil> ne '&' {
+                    $*W.throw($var, ['X', 'Undeclared'], symbol => $varast.name());
+                }
+                else {
+                    $var.CURSOR.add_mystery($varast.name, $var.to, 'var');
+                }
+            }
+        }
+        self
+    }
 }
 
 grammar Perl6::Grammar is HLL::Grammar does STD {
@@ -1268,7 +1287,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     token term:sym<fatarrow>           { <fatarrow> }
     token term:sym<colonpair>          { <colonpair> }
-    token term:sym<variable>           { <variable> }
+    token term:sym<variable>           { <variable> { $*VAR := $<variable> } }
     token term:sym<package_declarator> { <package_declarator> }
     token term:sym<scope_declarator>   { <scope_declarator> }
     token term:sym<routine_declarator> { <routine_declarator> }
@@ -1330,9 +1349,13 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         | :dba('signature') '(' ~ ')' <fakesignature>
         | <circumfix>
             { $*key := ""; $*value := $<circumfix>; }
-        | $<var> = (<sigil> {} <twigil>? <desigilname>)
-            { $*key := $<var><desigilname>.Str; $*value := $<var>; }
+        | <var=.colonpair_variable>
+            { $*key := $<var><desigilname>.Str; $*value := $<var>; self.check_variable($*value); }
         ]
+    }
+    
+    token colonpair_variable {
+        <sigil> {} <twigil>? <desigilname>
     }
 
     proto token special_variable { <...> }
@@ -1552,7 +1575,10 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         [
         | <?[$]>
             [ <?{ $*IN_DECL }> <.typed_panic: 'X::Syntax::Variable::IndirectDeclaration'> ]?
-            <variable>
+            <variable> {
+                $*VAR := $<variable>;
+                self.check_variable($*VAR);
+            }
         | <?before <[\@\%\&]> <sigil>* \w > <.panic: "Invalid hard reference syntax">
         | <longname>
         ]
@@ -2770,6 +2796,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*SCOPE := "";
         :my $*MULTINESS := "";
         :my $*OFTYPE;
+        :my $*VAR;
         :dba('prefix or term')
         [
         || <prefixish>* <term>
@@ -2779,6 +2806,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                 [
                 || <?{ $*QSIGIL eq '$' }> [ <postfixish>+! <?{ bracket_ending($<postfixish>) }> ]?
                 ||                          <postfixish>+! <?{ bracket_ending($<postfixish>) }>
+                || { $*VAR := 0 } <!>
                 ]
             || <!{ $*QSIGIL }> <postfixish>*
             ]
@@ -2786,6 +2814,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             $/.CURSOR.typed_panic('X::Syntax::InfixInTermPosition', infix => ~$<infixish>); } >
         || <!>
         ]
+        { self.check_variable($*VAR) if $*VAR; }
     }
 
     sub bracket_ending($matches) {
@@ -2952,7 +2981,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token methodop {
         [
         | <longname>
-        | <?before '$' | '@' | '&' > <variable>
+        | <?before '$' | '@' | '&' > <variable> { self.check_variable($<variable>) }
         | <?before <[ ' " ]> >
             [ <!{$*QSIGIL}> || <!before '"' <-["]>*? \s > ] # dwim on "$foo."
             <quote>
@@ -3700,6 +3729,7 @@ grammar Perl6::RegexGrammar is QRegex::P6Regex::Grammar does STD {
 
     token metachar:sym<rakvar> {
         <?before <[$@&]> [<alpha> | \W<alpha>]> <var=.LANG('MAIN', 'variable')>
+        { self.check_variable($<var>) }
     }
 
     token metachar:sym<qw> {

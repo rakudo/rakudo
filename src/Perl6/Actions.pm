@@ -1141,7 +1141,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
     method colonpair($/) {
         if $*key {
             if $<var> {
-                make make_pair($*key, make_variable($/<var>, [~$<var>]));
+                make make_pair($*key, $<var>.ast);
             }
             elsif $*value ~~ NQPMatch {
                 my $val_ast := $*value.ast;
@@ -1163,6 +1163,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
         else {
             make $*value.ast;
         }
+    }
+    
+    method colonpair_variable($/) {
+        make make_variable($/, [~$/]);
     }
 
     sub make_pair($key_str, $value) {
@@ -1325,23 +1329,6 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $past.unshift(QAST::Var.new( :name('self'), :scope('lexical') ));
         }
         elsif $*IN_DECL ne 'variable' {
-            # the $*QSGIL part is a hack:
-            # when we parse double-quoted strings like "@a", the @a is
-            # first parsed as a variable, and thus checked. So it throws
-            # an exception even if turns out not to end in a postcircumfix
-            #
-            # I don't know what the correct solution is. Disabling the check
-            # inside double quotes fixes the most common case, but fails to
-            # catch undeclared variables in double-quoted strings.
-            if !$*IN_DECL && ($*QSIGIL eq '' || $*QSIGIL eq '$') && !$*W.is_lexical($past.name) {
-                if $sigil ne '&' {
-                    $*W.throw($/, ['X', 'Undeclared'], symbol => $past.name());
-                }
-                else {
-                    $/.CURSOR.add_mystery($past.name, $/.to, 'var');
-                }
-            }
-
             # Expect variable to have been declared somewhere.
             # Locate descriptor and thus type.
             $past.scope('lexical');

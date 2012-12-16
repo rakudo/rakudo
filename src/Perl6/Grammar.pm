@@ -240,7 +240,7 @@ role STD {
     }
 
     # "when" arg assumes more things will become obsolete after Perl 6 comes out...
-    method obs($old, $new, $when = ' in Perl 6') {
+    method obs($old, $new, $when = 'in Perl 6') {
         $*W.throw(self.MATCH(), ['X', 'Obsolete'],
             old         => $old,
             replacement => $new,

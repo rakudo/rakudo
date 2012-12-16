@@ -129,6 +129,37 @@ sub COMP_EXCEPTION(|) {
     }
 }
 
+my class X::Comp::Group is Exception {
+    has $.panic;
+    has @.sorrows;
+    has @.worries;
+    
+    method is-compile-time() { True }
+    
+    method gist(::?CLASS:D:) {
+        my $r = "";
+        if $.panic || @.sorrows {
+            my $color = %*ENV<RAKUDO_ERROR_COLOR> // $*OS ne 'MSWin32';
+            my ($red, $clear) = $color ?? ("\e[31m", "\e[0m") !! ("", "");
+            $r ~= "$red==={$clear}SORRY!$red===$clear\n";
+            for @.sorrows {
+                $r ~= .gist(:!sorry, :!expect) ~ "\n";
+            }
+            if $.panic {
+                $r ~= $.panic.gist(:!sorry) ~ "\n";
+            }
+        }
+        if @.worries {
+            $r ~= $.panic || @.sorrows
+                ?? "Other potential difficulties:\n"
+                !! "Potential difficulties:\n";
+            for @.worries {
+                $r ~= .gist(:!sorry, :!expect).indent(4) ~ "\n";
+            }
+        }
+        $r
+    }
+}
 
 do {
     sub is_runtime($bt) {
@@ -310,16 +341,17 @@ my role X::Comp is Exception {
     has $.pre;
     has $.post;
     has @.highexpect;
-    multi method gist(::?CLASS:D:) {
+    multi method gist(::?CLASS:D: :$sorry = True, :$expect = True) {
         if $.is-compile-time {
             my $color = %*ENV<RAKUDO_ERROR_COLOR> // $*OS ne 'MSWin32';
             my ($red, $green, $yellow, $clear) = $color
                 ?? ("\e[31m", "\e[32m", "\e[33m", "\e[0m")
                 !! ("", "", "", "");
             my $eject = $*OS eq 'MSWin32' ?? "<HERE>" !! "\x[23CF]";
-            my $r = "$red==={$clear}SORRY!$red===$clear\n$.message\nat $.filename():$.line\n------> ";
+            my $r = $sorry ?? "$red==={$clear}SORRY!$red===$clear\n" !! "";
+            $r ~= "$.message\nat $.filename():$.line\n------> ";
             $r ~= "$green$.pre$yellow$eject$red$.post$clear" if defined $.pre;
-            if @.highexpect {
+            if $expect && @.highexpect {
                 $r ~= "\n    expecting any of:";
                 for @.highexpect {
                     $r ~= "\n        $_";

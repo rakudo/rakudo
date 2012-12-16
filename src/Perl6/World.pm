@@ -1970,6 +1970,21 @@ class Perl6::World is HLL::World {
             }
         }
     }
+    
+    # Checks if a symbol is lexically visible relative to a given scope.
+    # Returns 0 if it's not, 1 if it is, 2 if it's a type.
+    method is_lexically_visible($name, $scope) {
+        my $cur_block := $scope;
+        while $cur_block {
+            my %symbols := $cur_block.symtable();
+            if nqp::existskey(%symbols, $name) {
+                my %sym := %symbols{$name};
+                return nqp::existskey(%sym, 'value') && 
+                    !nqp::isconcrete(%sym<value>) ?? 2 !! 1;
+            }
+            $cur_block := $cur_block<outer>;
+        }
+    }
 
     # Adds various bits of initialization that must always be done early on.
     method add_initializations() {
@@ -1989,8 +2004,36 @@ class Perl6::World is HLL::World {
         }
     }
 
-    # throws a typed exception
+    # Constructs and immediately throws a typed exception. Note that if there
+    # are extra sorrows or worries it will put them into a group.
     method throw($/, $ex_type, *%opts) {
+        my $ex := self.typed_exception($/, $ex_type, |%opts);
+        if @*SORROWS || @*WORRIES {
+            $ex := self.group_exception($ex);
+        }
+        $ex.throw
+    }
+    
+    # Builds an exception group.
+    method group_exception(*@panic) {
+        my %opts;
+        %opts<panic> := @panic[0] if @panic;
+        %opts<sorrows> := p6ize_recursive(@*SORROWS) if @*SORROWS;
+        %opts<worries> := p6ize_recursive(@*WORRIES) if @*WORRIES;
+        try {
+            my $group_type := self.find_symbol(['X', 'Comp', 'Group']);
+            return $group_type.new(|%opts);
+            CATCH {
+                nqp::print("Error while constructing error object:");
+                nqp::say($_);
+            }
+        }
+    }
+    
+    # Tries to construct a typed exception, incorporating all available compile
+    # time information (such as about location). Returns it provided it is able
+    # to construct it. If that fails, dies right away.
+    method typed_exception($/, $ex_type, *%opts) {
         my int $type_found := 1;
         my $ex;
         my $x_comp;
@@ -2070,7 +2113,7 @@ class Perl6::World is HLL::World {
                 (nqp::isnull($file) ?? '<unknown file>' !! $file),
                 self.find_symbol(['Str'])
             );
-            $ex.new(|%opts).throw;
+            return $ex.new(|%opts);
         } else {
             my @err := ['Error while compiling, type ', nqp::join('::', $ex_type),  "\n"];
             for %opts -> $key {
@@ -2080,7 +2123,7 @@ class Perl6::World is HLL::World {
                 @err.push: %opts{$key};
                 @err.push: "\n";
             }
-            $/.CURSOR.panic(nqp::join('', @err));
+            nqp::findmethod(HLL::Grammar, 'panic')($/.CURSOR, nqp::join('', @err));
         }
     }
     

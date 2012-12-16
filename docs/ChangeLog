@@ -12,6 +12,15 @@ New in 2012.12
 + uniq now has === semantics as specified, not eq semantics
 + junction auto-threader optimized and is an order of magnitude faster
 + implemented sub term:<foo>
++ implemented texas versions of the Set and Bag operators
++ good error for use of . to concatenate strings
++ flattening large lists of Parcels now happens in about half the time
++ adopted STD panic/sorry/worry model, meaning that we now keep parsing
+  further and can report multiple issues in a range of cases
++ we now catch and complain about post-declared type names
++ variable redeclarations are now just a warning, not an error
++ a mention of an &foo that is never defined is now an error
++ fixed .perl output for a Pair with a Pair key
 
 New in 2012.11
 + user-defined operators only affect the parser in the scope they are declared in

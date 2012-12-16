@@ -77,7 +77,7 @@ role STD {
                     $lang := $lang."tweak_$t"($_[1]);
                 }
                 else {
-                    self.panic("Unrecognized adverb: :$t");
+                    self.sorry("Unrecognized adverb: :$t");
                 }
             }
             $start ne $stop ?? $lang.balanced($start, $stop)
@@ -203,7 +203,63 @@ role STD {
     }
     
     method panic(*@args) {
-        $*W.throw(self.MATCH, < X Comp AdHoc >, payload => nqp::join('', @args))
+        self.typed_panic('X::Comp::AdHoc', payload => nqp::join('', @args))
+    }
+    method sorry(*@args) {
+        self.typed_sorry('X::Comp::AdHoc', payload => nqp::join('', @args))
+    }
+    method worry(*@args) {
+        self.typed_worry('X::Comp::AdHoc', payload => nqp::join('', @args))
+    }
+
+    method typed_panic($type_str, *%opts) {
+        $*W.throw(self.MATCH(), nqp::split('::', $type_str), |%opts);
+    }
+    method typed_sorry($type_str, *%opts) {
+        if +@*SORROWS + 1 == $*SORRY_LIMIT {
+            $*W.throw(self.MATCH(), nqp::split('::', $type_str), |%opts);
+        }
+        else {
+            @*SORROWS.push($*W.typed_exception(self.MATCH(), nqp::split('::', $type_str), |%opts));
+        }
+        self
+    }
+    method typed_worry($type_str, *%opts) {
+        @*WORRIES.push($*W.typed_exception(self.MATCH(), nqp::split('::', $type_str), |%opts));
+        self
+    }
+    
+    method malformed($what) {
+        self.typed_panic('X::Syntax::Malformed', :$what);
+    }
+    method missing($what) {
+        self.typed_panic('X::Syntax::Missing', :$what);
+    }
+    method NYI($feature) {
+        self.typed_panic('X::Comp::NYI', :$feature)
+    }
+
+    # "when" arg assumes more things will become obsolete after Perl 6 comes out...
+    method obs($old, $new, $when = 'in Perl 6') {
+        $*W.throw(self.MATCH(), ['X', 'Obsolete'],
+            old         => $old,
+            replacement => $new,
+            when        => $when,
+        );
+    }
+    method sorryobs($old, $new, $when = ' in Perl 6') {
+        $*W.throw(self.MATCH(), ['X', 'Obsolete'],
+            old         => $old,
+            replacement => $new,
+            when        => $when,
+        );
+    }
+    method worryobs($old, $new, $when = ' in Perl 6') {
+        $*W.throw(self.MATCH(), ['X', 'Obsolete'],
+            old         => $old,
+            replacement => $new,
+            when        => $when,
+        );
     }
 }
 
@@ -246,28 +302,6 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         $*W.pop_lexpad(); # UNIT
         $*W.pop_lexpad(); # UNIT_OUTER
         $cursor;
-    }
-
-    method typed_panic($type_str, *%opts) {
-        $*W.throw(self.MATCH(), nqp::split('::', $type_str), |%opts);
-    }
-    method malformed($what) {
-        self.typed_panic('X::Syntax::Malformed', :$what);
-    }
-    method missing($what) {
-        self.typed_panic('X::Syntax::Missing', :$what);
-    }
-    method NYI($feature) {
-        self.typed_panic('X::Comp::NYI', :$feature)
-    }
-
-    # "when" arg assumes more things will become obsolete after Perl 6 comes out...
-    method obs ($old, $new, $when = ' in Perl 6') {
-        $*W.throw(self.MATCH(), ['X', 'Obsolete'],
-            old         => $old,
-            replacement => $new,
-            when        => $when,
-        );
     }
 
     ## Lexer stuff
@@ -359,7 +393,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         [
             [
             | \v
-            | '<<<<<<<' {} <?before [.*? \v '=======']: .*? \v '>>>>>>>' > <.panic: 'Found a version control conflict marker'> \V* \v
+            | '<<<<<<<' {} <?before [.*? \v '=======']: .*? \v '>>>>>>>' > <.sorry: 'Found a version control conflict marker'> \V* \v
             | '=======' {} .*? \v '>>>>>>>' \V* \v   # ignore second half
             ]
         ]+
@@ -645,6 +679,16 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*DECLARAND;                           # the current thingy we're declaring, and subject of traits
         :my $*METHODTYPE;                          # the current type of method we're in, if any
         :my $*PKGDECL;                             # what type of package we're in, if any
+        :my %*MYSTERY;                             # names we assume may be post-declared functions
+        
+        # Error related. There are three levels: worry (just a warning), sorry
+        # (fatal but not immediately so) and panic (immediately deadly). There
+        # is a limit on the number of sorrows also. Unlike STD, which emits the
+        # textual messages as it goes, we keep track of the exception objects
+        # and, if needed, make a compositite exception group.
+        :my @*WORRIES;                             # exception objects resulting from worry
+        :my @*SORROWS;                             # exception objects resulting from sorry
+        :my $*SORRY_LIMIT := 10;                   # when sorrow turns to panic
 
         # Extras.
         :my %*METAOPGEN;                           # hash of generated metaops
@@ -774,6 +818,20 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         [ $ || <.typed_panic: 'X::Syntax::Confused'> ]
         
         {
+            # Emit any errors/worries.
+            self.explain_mystery();
+            if @*SORROWS {
+                if +@*SORROWS == 1 && !@*WORRIES {
+                    @*SORROWS[0].throw()
+                }
+                else {
+                    $*W.group_exception(@*SORROWS.pop).throw();
+                }
+            }
+            if @*WORRIES {
+                pir::getstderr__P().print($*W.group_exception().gist());
+            }
+        
             # Install POD-related variables.
             $*POD_PAST := $*W.add_constant(
                 'Array', 'type_new', |$*POD_BLOCKS
@@ -987,7 +1045,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     token statement_control:sym<loop> {
         <sym> <.end_keyword>
-        [ <?[({]> <.panic: "Whitespace required after 'loop'"> ]?
+        [ <?[({]> <.sorry: "Whitespace required after 'loop'"> ]?
         :s
         [ '('
             <e1=.EXPR>? ';'
@@ -1259,7 +1317,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         ':'
         :dba('colon pair')
         [
-        | '!' <identifier> [ <[ \[ \( \< \{ ]> {
+        | '!' [ <identifier> || <.panic: "Malformed False pair; expected identifier"> ]
+            [ <[ \[ \( \< \{ ]> {
             $/.CURSOR.typed_panic('X::Syntax::NegatedPair', key => ~$<identifier>) } ]?
             { $*key := $<identifier>.Str; $*value := 0; }
         | <identifier>
@@ -1783,7 +1842,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         # STD.pm6 uses <defterm> here, but we need different 
         # action methods
         | '\\' <identifier> <.ws>
-            [ <term_init=initializer> || <.panic("Term definition requires an initializer")> ]
+            [ <term_init=initializer> || <.sorry("Term definition requires an initializer")> ]
         | <variable_declarator>
           [
           || <?{ $*SCOPE eq 'has' }> <.newpad> <initializer>? { $*ATTR_INIT_BLOCK := $*W.pop_lexpad() }
@@ -1854,7 +1913,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         ] <.ws>
         || <?before <[A..Z]>><longname>{
                 my $t := $<longname>.Str;
-                $/.CURSOR.panic("In \"$*SCOPE\" declaration, typename $t must be predeclared (or marked as declarative with :: prefix)");
+                $/.CURSOR.sorry("In \"$*SCOPE\" declaration, typename $t must be predeclared (or marked as declarative with :: prefix)");
             }
             <!> # drop through
         || <.malformed($*SCOPE)>
@@ -1877,22 +1936,21 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                 {
                     my $sigil := nqp::substr($var, 0, 1);
                     if $sigil eq '&' {
-                        $*W.throw($/, 'X::Syntax::Reserved',
+                        self.typed_sorry('X::Syntax::Reserved',
                             reserved => '() shape syntax in routine declarations',
                             instead => ' (maybe use :() to declare a longname?)'
                         );
                     }
                     elsif $sigil eq '@' {
-
-                        $*W.throw($/, 'X::Syntax::Reserved',
+                        self.typed_sorry('X::Syntax::Reserved',
                             reserved => '() shape syntax in array declarations');
                     }
                     elsif $sigil eq '%' {
-                        $*W.throw($/, 'X::Syntax::Reserved',
+                        self.typed_sorry('X::Syntax::Reserved',
                             reserved => '() shape syntax in hash declarations');
                     }
                     else {
-                        $*W.throw($/, 'X::Syntax::Reserved',
+                        self.typed_sorry('X::Syntax::Reserved',
                             reserved => '() shape syntax in variable declarations');
                     }
                 }
@@ -2340,7 +2398,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token term:sym<self> {
         <sym> <.end_keyword>
         {
-            $*HAS_SELF || $*W.throw($/, ['X', 'Syntax', 'Self', 'WithoutObject'])
+            $*HAS_SELF || self.typed_sorry('X::Syntax::Self::WithoutObject')
         }
     }
 
@@ -2361,6 +2419,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     token term:sym<identifier> {
         <identifier> <!{ $*W.is_type([~$<identifier>]) }> <?[(]> <args>
+        { self.add_mystery($<identifier>, $<args>.from, nqp::substr(~$<args>, 0, 1)) }
     }
     
     token term:sym<pir::op> {
@@ -2386,7 +2445,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                 <?{ $*W.is_type($*longname.components()) }>
                 <?before '['> :dba('type parameter') '[' ~ ']' <arglist>
             ]?
-        || <args>
+        || <args> { self.add_mystery($<longname>, $<args>.from, 'termish')
+                        unless nqp::index($<longname>.Str, '::') >= 0 }
         ]
     }
 
@@ -2507,7 +2567,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         ':'
         :dba('colon pair (restricted)')
         [
-        | '!' <identifier> [ <?before '('> <.panic('Argument not allowed on negated pair')> ]?
+        | '!' <identifier> [ <?before '('> <.sorry('Argument not allowed on negated pair')> ]?
             { $*key := ~$<identifier>; $*value := 0; }
         | <identifier> 
             { $*key := ~$<identifier> }
@@ -2516,7 +2576,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             || { $*value := 1; }
             ]
         | (\d+) <identifier>
-            [ <?before '('> <.circumfix> <.panic('2nd argument not allowed on pair')> ]?
+            [ <?before '('> <.circumfix> <.sorry('2nd argument not allowed on pair')> ]?
             { $*key := ~$<identifier>; $*value := +~$/[0] }
         ]
     }
@@ -2532,8 +2592,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     
     proto token quote_mod   {*}
     token quote_mod:sym<w>  { <sym> }
-    # XXX uncomment these two when they get implemented
-    #token quote_mod:sym<ww> { <sym> }
+    token quote_mod:sym<ww> { <sym> }
+    # XXX uncomment this when it's implemented
     #token quote_mod:sym<p>  { <sym> }
     token quote_mod:sym<x>  { <sym> }
     token quote_mod:sym<to> { <sym> }
@@ -2987,9 +3047,9 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token infix:sym«+<»   { <sym> <!before '<'> <O('%multiplicative')> }
     token infix:sym«+>»   { <sym> <!before '>'> <O('%multiplicative')> }
 
-    token infix:sym«<<» { <sym> \s <.obs('<< to do left shift', '+< or ~<')> }
+    token infix:sym«<<» { <sym> \s <.sorryobs('<< to do left shift', '+< or ~<')> }
 
-    token infix:sym«>>» { <sym> \s <.obs('>> to do right shift', '+> or ~>')> }
+    token infix:sym«>>» { <sym> \s <.sorryobs('>> to do right shift', '+> or ~>')> }
 
     token infix:sym<+>    { <sym>  <O('%additive')> }
     token infix:sym<->    {
@@ -3047,8 +3107,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         # should be
         # 'Bool::'? True && <.longname>
         # once && in regexes is implemented
-        | <?before \h* [ 'Bool::'? 'True' && <.longname> ] >  <.panic("Smartmatch against True always matches; if you mean to test the topic for truthiness, use :so or *.so or ?* instead")>
-        | <?before \h* [ 'Bool::'? 'False' && <.longname> ] > <.panic("Smartmatch against False always fails; if you mean to test the topic for truthiness, use :!so or *.not or !* instead")>
+        | <?before \h* [ 'Bool::'? 'True' && <.longname> ] >  <.worry("Smartmatch against True always matches; if you mean to test the topic for truthiness, use :so or *.so or ?* instead")>
+        | <?before \h* [ 'Bool::'? 'False' && <.longname> ] > <.worry("Smartmatch against False always fails; if you mean to test the topic for truthiness, use :!so or *.not or !* instead")>
     }
 
     token infix:sym<&&>   { <sym>  <O('%tight_and, :pasttype<if>')> }
@@ -3067,8 +3127,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         [ '!!'
         || <?before '::'<-[=]>> <.panic: "Please use !! rather than ::">
         || <?before ':' <-[=]>> <.panic: "Please use !! rather than :">
-        || <?before \N*? [\n\N*?]?> '!!' <.panic("Bogus code found before the !!")>
-        || <.panic("Found ?? but no !!")>
+        || <?before \N*? [\n\N*?]?> '!!' <.sorry("Bogus code found before the !!")> <.panic("Confused")>
+        || <.sorry("Found ?? but no !!")> <.panic("Confused")>
         ]
         <O('%conditional, :reducecheck<ternary>, :pasttype<if>')>
     }
@@ -3172,6 +3232,69 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token infix:sym<!~> { <sym> \s <.obs('!~ to do negated pattern matching', '!~~')> <O('%chaining')> }
     token infix:sym<=~> { <sym> <.obs('=~ to do pattern matching', '~~')> <O('%chaining')> }
 
+    method add_mystery($token, $pos, $ctx) {
+        my $name := ~$token;
+        unless $name eq '' || $*W.is_lexical('&' ~ $name) || $*W.is_lexical($name) {
+            my $lex := $*W.cur_lexpad();
+            my $key := $name ~ '-' ~ $lex.cuid;
+            if nqp::existskey(%*MYSTERY, $key) {
+                nqp::push(%*MYSTERY{$key}<pos>, $pos);
+            }
+            else {
+                %*MYSTERY{$key} := nqp::hash(
+                    'lex', $lex,
+                    'name', $name,
+                    'ctx', $ctx,
+                    'pos', [$pos]);
+            }
+        }
+        self;
+    }
+    
+    method explain_mystery() {
+        my %post_types;
+        my %unk_types;
+        my %unk_routines;
+        
+        sub push_lines(@target, @pos) {
+            for @pos {
+                nqp::push(@target, HLL::Compiler.lineof(self.orig, $_));
+            }
+        }
+        
+        for %*MYSTERY {
+            my %sym  := $_.value;
+            my $name := %sym<name>;
+            my $decl := $*W.is_lexically_visible($name, %sym<lex>);
+            if $decl == 2 {
+                # types may not be post-declared
+                %post_types{$name} := [] unless %post_types{$name};
+                push_lines(%post_types{$name}, %sym<pos>);
+                next;
+            }
+
+            next if $decl == 1;
+            next if $*W.is_lexically_visible('&' ~ $name, %sym<lex>);
+
+            # just a guess, but good enough to improve error reporting
+            if $_ lt 'a' {
+                %unk_types{$name} := [] unless %unk_types{$name};
+                push_lines(%unk_types{$name}, %sym<pos>);
+            }
+            else {
+                %unk_routines{$name} := [] unless %unk_routines{$name};
+                push_lines(%unk_routines{$name}, %sym<pos>);
+            }
+        }
+        
+        if %post_types || %unk_types || %unk_routines {
+            self.typed_sorry('X::Undeclared::Symbols',
+                :%post_types, :%unk_types, :%unk_routines);
+        }
+        
+        self;        
+    }
+    
     method add_variable($name) {
         my $categorical := $name ~~ /^'&'((\w+)':<'\s*(\S+?)\s*'>')$/;
         if $categorical {
@@ -3304,7 +3427,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 grammar Perl6::QGrammar is HLL::Grammar does STD {
 
     method throw_unrecog_backslash_seq ($sequence) {
-        $*W.throw(self.MATCH(), <X Backslash UnrecognizedSequence>, :$sequence);
+        self.typed_sorry('X::Backslash::UnrecognizedSequence', :$sequence);
     }
 
     proto token escape {*}
@@ -3515,12 +3638,8 @@ grammar Perl6::QGrammar is HLL::Grammar does STD {
         }
     }
     
-    # XXX These belong in role STD eventually.
-    token starter { <!> }
-    token stopper { <!> }
-    
     method truly($bool, $opt) {
-        self.panic("Cannot negate $opt adverb") unless $bool;
+        self.sorry("Cannot negate $opt adverb") unless $bool;
         self;
     }
     
@@ -3563,10 +3682,10 @@ grammar Perl6::QGrammar is HLL::Grammar does STD {
 
 grammar Perl6::RegexGrammar is QRegex::P6Regex::Grammar does STD {
     method throw_unrecognized_metachar ($metachar) {
-        $*W.throw(self.MATCH(), <X Syntax Regex UnrecognizedMetachar>, :$metachar);
+        self.typed_sorry('X::Syntax::Regex::UnrecognizedMetachar', :$metachar);
     }
     method throw_null_pattern() {
-        $*W.throw(self.MATCH(), <X Syntax Regex NullRegex>);
+        self.typed_sorry('X::Syntax::Regex::NullRegex');
     }
 
     token rxstopper { <stopper> }

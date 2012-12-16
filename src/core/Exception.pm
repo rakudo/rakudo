@@ -348,7 +348,7 @@ my role X::Comp is Exception {
                 ?? ("\e[31m", "\e[32m", "\e[33m", "\e[0m")
                 !! ("", "", "", "");
             my $eject = $*OS eq 'MSWin32' ?? "<HERE>" !! "\x[23CF]";
-            my $r = $sorry ?? "$red==={$clear}SORRY!$red===$clear\n" !! "";
+            my $r = $sorry ?? self.sorry_heading() !! "";
             $r ~= "$.message\nat $.filename():$.line\n------> ";
             $r ~= "$green$.pre$yellow$eject$red$.post$clear" if defined $.pre;
             if $expect && @.highexpect {
@@ -367,6 +367,11 @@ my role X::Comp is Exception {
         else {
             self.Exception::gist;
         }
+    }
+    method sorry_heading() {
+        my $color = %*ENV<RAKUDO_ERROR_COLOR> // $*OS ne 'MSWin32';
+        my ($red, $clear) = $color ?? ("\e[31m", "\e[0m") !! ("", "");
+        "$red==={$clear}SORRY!$red===$clear\n"
     }
     method SET_FILE_LINE($file, $line) {
         $!filename = $file;
@@ -455,6 +460,38 @@ my class X::Attribute::Undeclared is X::Undeclared {
 
     method message() {
         "Attribute $.symbol not declared in $.package-kind $.package-name";
+    }
+}
+
+my class X::Undeclared::Symbols does X::Comp {
+    has %.post_types;
+    has %.unk_types;
+    has %.unk_routines;
+    multi method gist(:$sorry = True) {
+        my $r = $sorry ?? self.sorry_heading() !! "";
+        sub l(@l) {
+            my @lu = @l.uniq.sort;
+            'used at line' ~ (@lu == 1 ?? ' ' !! 's ') ~ @lu.join(', ')
+        }
+        if %.post_types {
+            $r ~= "Illegally post-declared type" ~ (%.post_types.elems == 1 ?? "" !! "s") ~ ":\n";
+            for %.post_types.sort(*.key) {
+                $r ~= "    $_.key() &l($_.value)\n";
+            }
+        }
+        if %.unk_types {
+            $r ~= "Undeclared name" ~ (%.unk_types.elems == 1 ?? "" !! "s") ~ ":\n";
+            for %.unk_types.sort(*.key) {
+                $r ~= "    $_.key() &l($_.value)\n";
+            }
+        }
+        if %.unk_routines {
+            $r ~= "Undeclared routine" ~ (%.unk_routines.elems == 1 ?? "" !! "s") ~ ":\n";
+            for %.unk_routines.sort(*.key) {
+                $r ~= "    $_.key() &l($_.value)\n";
+            }
+        }
+        $r
     }
 }
 

@@ -1970,6 +1970,21 @@ class Perl6::World is HLL::World {
             }
         }
     }
+    
+    # Checks if a symbol is lexically visible relative to a given scope.
+    # Returns 0 if it's not, 1 if it is, 2 if it's a type.
+    method is_lexically_visible($name, $scope) {
+        my $cur_block := $scope;
+        while $cur_block {
+            my %symbols := $cur_block.symtable();
+            if nqp::existskey(%symbols, $name) {
+                my %sym := %symbols{$name};
+                return nqp::existskey(%sym, 'value') && 
+                    !nqp::isconcrete(%sym<value>) ?? 2 !! 1;
+            }
+            $cur_block := $cur_block<outer>;
+        }
+    }
 
     # Adds various bits of initialization that must always be done early on.
     method add_initializations() {

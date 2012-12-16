@@ -817,6 +817,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         
         {
             # Emit any errors/worries.
+            self.explain_mystery();
             if @*SORROWS {
                 if +@*SORROWS == 1 && !@*WORRIES {
                     @*SORROWS[0].throw()
@@ -2442,7 +2443,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                 <?{ $*W.is_type($*longname.components()) }>
                 <?before '['> :dba('type parameter') '[' ~ ']' <arglist>
             ]?
-        || <args> { self.add_mystery($<longname>, $<args>.from, 'termish') }
+        || <args> { self.add_mystery($<longname>, $<args>.from, 'termish')
+                        unless nqp::index($<longname>.Str, '::') >= 0 }
         ]
     }
 
@@ -3229,9 +3231,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token infix:sym<=~> { <sym> <.obs('=~ to do pattern matching', '~~')> <O('%chaining')> }
 
     method add_mystery($token, $pos, $ctx) {
-        return self unless $token;
         my $name := ~$token;
-        unless $*W.is_lexical('&' ~ $name) || $*W.is_lexical($name) {
+        unless $name eq '' || $*W.is_lexical('&' ~ $name) || $*W.is_lexical($name) {
             my $lex := $*W.cur_lexpad();
             my $key := $name ~ '-' ~ $lex.cuid;
             if nqp::existskey(%*MYSTERY, $key) {
@@ -3246,6 +3247,44 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             }
         }
         self;
+    }
+    
+    method explain_mystery() {
+        my %post_types;
+        my %unk_types;
+        my %unk_routines;
+        
+        for %*MYSTERY {
+            my %sym  := $_.value;
+            my $name := %sym<name>;
+            my $decl := $*W.is_lexically_visible($name, %sym<lex>);
+            if $decl == 2 {
+                # types may not be post-declared
+                %post_types{$name} := [] unless %post_types{$name};
+                nqp::push(%post_types{$name}, HLL::Compiler.lineof(self.orig, %sym<pos>));
+                next;
+            }
+
+            next if $decl == 1;
+            next if $*W.is_lexically_visible('&' ~ $name, %sym<lex>);
+
+            # just a guess, but good enough to improve error reporting
+            if $_ lt 'a' {
+                %unk_types{$name} := [] unless %unk_types{$name};
+                nqp::push(%unk_types{$name}, HLL::Compiler.lineof(self.orig, %sym<pos>));
+            }
+            else {
+                %unk_routines{$name} := [] unless %unk_routines{$name};
+                nqp::push(%unk_routines{$name}, HLL::Compiler.lineof(self.orig, %sym<pos>));
+            }
+        }
+        
+        if %post_types || %unk_types || %unk_routines {
+            self.typed_sorry('X::Undeclared::Symbols',
+                :%post_types, :%unk_types, :%unk_routines);
+        }
+        
+        self;        
     }
     
     method add_variable($name) {

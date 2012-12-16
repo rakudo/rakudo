@@ -1333,10 +1333,15 @@ class Perl6::Actions is HLL::Actions does STDActions {
             # I don't know what the correct solution is. Disabling the check
             # inside double quotes fixes the most common case, but fails to
             # catch undeclared variables in double-quoted strings.
-            if $sigil ne '&' && !$*IN_DECL && ($*QSIGIL eq '' || $*QSIGIL eq '$') && !$*W.is_lexical($past.name) {
-                $*W.throw($/, ['X', 'Undeclared'], symbol => $past.name());
+            if !$*IN_DECL && ($*QSIGIL eq '' || $*QSIGIL eq '$') && !$*W.is_lexical($past.name) {
+                if $sigil ne '&' {
+                    $*W.throw($/, ['X', 'Undeclared'], symbol => $past.name());
+                }
+                else {
+                    $/.CURSOR.add_mystery($past.name, $/.to, 'var');
+                }
             }
-            
+
             # Expect variable to have been declared somewhere.
             # Locate descriptor and thus type.
             $past.scope('lexical');

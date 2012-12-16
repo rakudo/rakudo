@@ -677,6 +677,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*DECLARAND;                           # the current thingy we're declaring, and subject of traits
         :my $*METHODTYPE;                          # the current type of method we're in, if any
         :my $*PKGDECL;                             # what type of package we're in, if any
+        :my %*MYSTERY;                             # names we assume may be post-declared functions
         
         # Error related. There are three levels: worry (just a warning), sorry
         # (fatal but not immediately so) and panic (immediately deadly). There
@@ -2415,6 +2416,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     token term:sym<identifier> {
         <identifier> <!{ $*W.is_type([~$<identifier>]) }> <?[(]> <args>
+        { self.add_mystery($<identifier>, $<args>.from, nqp::substr(~$<args>, 0, 1)) }
     }
     
     token term:sym<pir::op> {
@@ -2440,7 +2442,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                 <?{ $*W.is_type($*longname.components()) }>
                 <?before '['> :dba('type parameter') '[' ~ ']' <arglist>
             ]?
-        || <args>
+        || <args> { self.add_mystery($<longname>, $<args>.from, 'termish') }
         ]
     }
 
@@ -3226,6 +3228,26 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token infix:sym<!~> { <sym> \s <.obs('!~ to do negated pattern matching', '!~~')> <O('%chaining')> }
     token infix:sym<=~> { <sym> <.obs('=~ to do pattern matching', '~~')> <O('%chaining')> }
 
+    method add_mystery($token, $pos, $ctx) {
+        return self unless $token;
+        my $name := ~$token;
+        unless $*W.is_lexical('&' ~ $name) || $*W.is_lexical($name) {
+            my $lex := $*W.cur_lexpad();
+            my $key := $name ~ '-' ~ $lex.cuid;
+            if nqp::existskey(%*MYSTERY, $key) {
+                nqp::push(%*MYSTERY{$key}<pos>, $pos);
+            }
+            else {
+                %*MYSTERY{$key} := nqp::hash(
+                    'lex', $lex,
+                    'name', $name,
+                    'ctx', $ctx,
+                    'pos', [$pos]);
+            }
+        }
+        self;
+    }
+    
     method add_variable($name) {
         my $categorical := $name ~~ /^'&'((\w+)':<'\s*(\S+?)\s*'>')$/;
         if $categorical {

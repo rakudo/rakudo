@@ -1660,7 +1660,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my $twigil := $<variable><twigil>[0];
         my $name   := ~$sigil ~ ~$twigil ~ ~$<variable><desigilname>;
         if $<variable><desigilname> && $*W.cur_lexpad().symbol($name) {
-            $/.CURSOR.worry_typed('X::Redeclaration', symbol => $name);
+            $/.CURSOR.typed_worry('X::Redeclaration', symbol => $name);
         }
         make declare_variable($/, $past, ~$sigil, ~$twigil, ~$<variable><desigilname>, $<trait>, $<semilist>);
     }

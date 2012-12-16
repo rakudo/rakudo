@@ -159,6 +159,20 @@ my class X::Comp::Group is Exception {
         }
         $r
     }
+    
+    method message() {
+        my @m;
+        for @.sorrows {
+            @m.push(.message);
+        }
+        if $.panic {
+            @m.push($.panic.message);
+        }
+        for @.worries {
+            @m.push(.message);
+        }
+        @m.join("\n")
+    }
 }
 
 do {
@@ -468,11 +482,14 @@ my class X::Undeclared::Symbols does X::Comp {
     has %.unk_types;
     has %.unk_routines;
     multi method gist(:$sorry = True) {
-        my $r = $sorry ?? self.sorry_heading() !! "";
+        ($sorry ?? self.sorry_heading() !! "") ~ self.message
+    }
+    method message() {
         sub l(@l) {
             my @lu = @l.uniq.sort;
             'used at line' ~ (@lu == 1 ?? ' ' !! 's ') ~ @lu.join(', ')
         }
+        my $r = "";
         if %.post_types {
             $r ~= "Illegally post-declared type" ~ (%.post_types.elems == 1 ?? "" !! "s") ~ ":\n";
             for %.post_types.sort(*.key) {

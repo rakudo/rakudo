@@ -27,7 +27,14 @@ my class Enum does Associative {
     method pairs(Enum:D:) { (self,).list }
 
     multi method Str(Enum:D:) { $.key ~ "\t" ~ $.value }
-    multi method perl(Enum:D:) { $.key.perl ~ ' => ' ~ $.value.perl }
+
+    multi method perl(Enum:D:) {
+        if $.key ~~ Pair {
+            '(' ~ $.key.perl ~ ') => ' ~ $.value.perl;
+        } else {
+            $.key.perl ~ ' => ' ~ $.value.perl;
+        }
+    }
 
     method fmt($format = "%s\t%s") {
         sprintf($format, $.key, $.value);

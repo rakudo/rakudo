@@ -3256,6 +3256,12 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         my %unk_types;
         my %unk_routines;
         
+        sub push_lines(@target, @pos) {
+            for @pos {
+                nqp::push(@target, HLL::Compiler.lineof(self.orig, $_));
+            }
+        }
+        
         for %*MYSTERY {
             my %sym  := $_.value;
             my $name := %sym<name>;
@@ -3263,7 +3269,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             if $decl == 2 {
                 # types may not be post-declared
                 %post_types{$name} := [] unless %post_types{$name};
-                nqp::push(%post_types{$name}, HLL::Compiler.lineof(self.orig, %sym<pos>));
+                push_lines(%post_types{$name}, %sym<pos>);
                 next;
             }
 
@@ -3273,11 +3279,11 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             # just a guess, but good enough to improve error reporting
             if $_ lt 'a' {
                 %unk_types{$name} := [] unless %unk_types{$name};
-                nqp::push(%unk_types{$name}, HLL::Compiler.lineof(self.orig, %sym<pos>));
+                push_lines(%unk_types{$name}, %sym<pos>);
             }
             else {
                 %unk_routines{$name} := [] unless %unk_routines{$name};
-                nqp::push(%unk_routines{$name}, HLL::Compiler.lineof(self.orig, %sym<pos>));
+                push_lines(%unk_routines{$name}, %sym<pos>);
             }
         }
         

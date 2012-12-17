@@ -3851,7 +3851,11 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my $Pair := $*W.find_symbol(['Pair']);
         my int $is_hash := 0;
         my $stmts := +$<pblock><blockoid><statementlist><statement>;
-        if $stmts == 0 {
+        my $bast  := $<pblock><blockoid>.ast;
+        if $bast.symbol('$_')<used> || $bast<also_uses> && $bast<also_uses><$_> {
+            # Uses $_, so not a hash.
+        }
+        elsif $stmts == 0 {
             # empty block, so a hash
             $is_hash := 1;
         }

@@ -277,6 +277,20 @@ role STD {
                     $var.CURSOR.add_mystery($varast.name, $var.to, 'var');
                 }
             }
+            else {
+                my $lex := $*W.cur_lexpad();
+                my %sym := $lex.symbol($name);
+                if %sym {
+                    %sym<used> := 1;
+                }
+                else {
+                    # Add mention-only record (used to poison outer
+                    # usages and disambiguate hashes/blocks by use of
+                    # $_ when $*IMPLICIT is in force).
+                    $lex<also_uses> := {} unless $lex<also_uses>;
+                    $lex<also_uses>{$name} := 1;
+                }
+            }
         }
         self
     }

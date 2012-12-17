@@ -21,6 +21,8 @@ New in 2012.12
 + variable redeclarations are now just a warning, not an error
 + a mention of an &foo that is never defined is now an error
 + fixed .perl output for a Pair with a Pair key
++ interpolation of undeclared arrays, hashes and functions now detected
++ { a => $_ } now correctly considered a block, not a hash as before
 
 New in 2012.11
 + user-defined operators only affect the parser in the scope they are declared in

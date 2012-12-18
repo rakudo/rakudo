@@ -12,6 +12,11 @@ Deprecations in 2012.12
     warnings will start being issued for unused parameters to pointy blocks
     and routines. At present, they do not warn at all. Planned for 2013.01.
     
+    constructs like "my $a; { $a; my $a; }", where the meaning of the first
+    mention of $a in the block would create confusion as to what was being
+    referred to, will become an error as in STD. This change will take
+    effect in 2013.01.
+
 Deprecations in 2012.11
 
     at present, a reference to an &foo that does not exist evalutes to

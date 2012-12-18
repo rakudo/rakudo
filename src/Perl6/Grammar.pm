@@ -1058,7 +1058,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         [
         | $<wu>=[while|until]\s <xblock>
         | <pblock>
-          [$<wu>=['while'|'until']\s || <.panic: '"repeat" is missing its "while" or "until"'>]
+          [$<wu>=['while'|'until']\s || <.missing('"while" or "until"')>]
           <EXPR>
         ]
     }

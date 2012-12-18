@@ -1,3 +1,8 @@
+Deprecations in 2012.12
+
+    'for'-loops will be lazy (just like map), and only be automatically
+    run in sink (void) or list context.
+    
 Deprecations in 2012.11
 
     at present, a reference to an &foo that does not exist evalutes to

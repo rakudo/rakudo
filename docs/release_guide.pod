@@ -74,6 +74,8 @@ Dates are based on Parrot's expected release schedule.
 
 =head2 Suggested .pm group names for future releases
 
+  Sonoma.pm    japphb's local .pm group
+
 More names can be gotten from L<http://www.pm.org> if you 
 can't think of one with any particular significance to Perl 
 6 or Rakudo.

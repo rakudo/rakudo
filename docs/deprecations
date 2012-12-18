@@ -1,7 +1,12 @@
 Deprecations in 2012.12
 
     'for'-loops will be lazy (just like map), and only be automatically
-    run in sink (void) or list context.
+    run in sink (void) or list context. This causes problems if the last
+    statement in a block is a for-loop that either calls return(), or
+    is inside a try { } block. Since such code is now run after the block
+    exits, it is not in the dynamic scope of the routine or the try block.
+    As a fix, you can force eager execution of the for-loop by adding
+    another statement after it, or by writing 'eager do for LIST BLOCK'.
     
 Deprecations in 2012.11
 

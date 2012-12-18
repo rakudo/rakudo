@@ -1095,6 +1095,11 @@ my class X::NoSuchSymbol is Exception {
     method message { "No such symbol '$.symbol'" }
 }
 
+my class X::Item is Exception {
+    has $.aggregate;
+    has $.index;
+    method message { "Cannot index {$.aggregate.^name} with $.index" }
+}
 
 {
     my %c_ex;

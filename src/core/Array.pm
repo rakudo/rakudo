@@ -1,3 +1,5 @@
+my class X::Item { ... };
+
 class Array {
     # Has attributes and parent List declared in BOOTSTRAP.    
 
@@ -8,6 +10,9 @@ class Array {
     }
     
     multi method at_pos(Array:D: $pos) is rw {
+        if nqp::isnanorinf($pos) {
+            X::Item.new(aggregate => self, index => $pos).throw;
+        }
         my int $p = nqp::unbox_i($pos.Int);
         my Mu $items := nqp::p6listitems(self);
         # hotpath check for element existence (RT #111848)

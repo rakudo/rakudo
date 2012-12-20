@@ -13,8 +13,8 @@ For the latest Rakudo Star release, see
 
 The Rakudo Perl compiler follows a monthly release cycle, with each release
 named after a Perl Mongers group. The December 2012 release is code-named
-after Warszawa, home of Tadeusz Sośnierz (tadzik) whose contributions to Rakudo
-and the Perl 6 ecosystem during 2012 have been significant.
+after Warszawa, home of Tadeusz Sośnierz (tadzik), whose contributions to
+Rakudo and the Perl 6 ecosystem during 2012 have been significant.
 
 Some of the changes in this release are outlined below:
 

@@ -4,12 +4,12 @@ On behalf of the Rakudo development team, I'm proud to announce the
 December 2012 release of Rakudo Perl #59 "Warszawa". Rakudo is an
 implementation of Perl 6 on the Parrot Virtual Machine (see
 <http://www.parrot.org>). The tarball for this release
-is available from <http://github.com/rakudo/rakudo/downloads>.
+is available from <http://rakudo.org/downloads/rakudo/>.
 
 Please note: This announcement is not for the Rakudo Star
 distribution[*] -- it's announcing a new release of the compiler only.
 For the latest Rakudo Star release, see
-<http://github.com/rakudo/star/downloads>.
+<http://rakudo.org/downloads/star/>.
 
 The Rakudo Perl compiler follows a monthly release cycle, with each release
 named after a Perl Mongers group. The December 2012 release is code-named

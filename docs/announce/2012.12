@@ -23,6 +23,7 @@ Some of the changes in this release are outlined below:
   much more closely; they are more accurate and more information is given
 + Rakudo now keeps parsing after some less serious errors
 + Better errors for various parse failures
++ The junction autothreader is now an order of magnitude faster
 + Texas versions of the Set and Bag operators implemented
 + Nested Pairs now give correct .perl output
 + { a => $_ } now correctly considered a block, not a hash as before

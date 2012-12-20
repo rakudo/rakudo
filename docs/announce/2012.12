@@ -20,7 +20,7 @@ Some of the changes in this release are outlined below:
 
 + The .indent method now has better handling of empty lines
 + Parse errors are much improved, and follow STD, the standard parser,
-  much more closely; more accurate and more information given
+  much more closely; they are more accurate and more information is given
 + Rakudo now keeps parsing after some less serious errors
 + Better errors for various parse failures
 + Texas versions of the Set and Bag operators implemented

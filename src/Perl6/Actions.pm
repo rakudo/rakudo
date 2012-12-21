@@ -44,8 +44,53 @@ class Perl6::Actions is HLL::Actions does STDActions {
         $STATEMENT_PRINT := 0;
     }
 
-    sub p6box_s($s) {
-        nqp::box_s($s, $*W.find_symbol(['Str']));
+    sub sink($past) {
+        my $name := $past.unique('sink');
+        QAST::Want.new(
+            $past,
+            'v',
+            QAST::Stmts.new(
+                QAST::Op.new(:op<bind>,
+                    QAST::Var.new(:$name, :scope<local>, :decl<var>),
+                    $past,
+                ),
+                QAST::Op.new(:op<if>,
+                    QAST::Op.new(:op<if>,
+                        QAST::Op.new(:op<isconcrete>,
+                            QAST::Var.new(:$name, :scope<local>),
+                        ),
+                        QAST::Op.new(:op<if>,
+                            QAST::Op.new(:op<can>,
+                                QAST::Var.new(:$name, :scope<local>),
+                                QAST::SVal.new(:value('sink')),
+                            ),
+                            QAST::Op.new(:op<defined>,
+                                QAST::Var.new(:$name, :scope<local>),
+                            )
+                        )
+                    ),
+                    QAST::Op.new(:op<callmethod>, :name<sink>,
+                        QAST::Var.new(:$name, :scope<local>),
+                    ),
+                ),
+            ),
+        );
+    }
+    my %sinkable := nqp::hash(
+            'call',         1,
+            'callmethod',   1,
+            'while',        1,
+            'until',        1,
+            'repeat_until', 1,
+            'repeat_while', 1,
+            'if',           1,
+            'unless',       1,
+            'handle',       1,
+    );
+    sub autosink($past) {
+        nqp::istype($past, QAST::Op) && %sinkable{$past.op} && !$past<nosink>
+            ?? sink($past)
+            !! $past;
     }
 
     method ints_to_string($ints) {
@@ -541,10 +586,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
                         $ast := QAST::Want.new($ast, 'v', $ast<sink_past>);
                     }
                     elsif $ast<bare_block> {
-                        $ast := $ast<bare_block>;
+                        $ast := autosink($ast<bare_block>);
                     }
                     else {
-                        $ast := QAST::Stmt.new($ast, :returns($ast.returns)) if $ast ~~ QAST::Node;
+                        $ast := QAST::Stmt.new(autosink($ast), :returns($ast.returns)) if $ast ~~ QAST::Node;
                     }
                     $past.push( $ast );
                 }
@@ -595,12 +640,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
                         $past := make_topic_block_ref($past);
                     }
                     $past := QAST::Op.new(
-                        :op<call>, :name<&eager>, :node($/),
-                        QAST::Op.new(
                             :op<callmethod>, :name<map>, :node($/),
                             QAST::Op.new(:op('call'), :name('&infix:<,>'), $cond),
                             block_closure($past)
-                        ));
+                        );
                 }
                 else {
                     $past := QAST::Op.new($cond, $past, :op(~$ml<sym>), :node($/) );
@@ -791,7 +834,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
     method statement_control:sym<while>($/) {
         my $past := xblock_immediate( $<xblock>.ast );
         $past.op(~$<sym>);
-        make loop_phasers($past);
+        make tweak_loop($past);
     }
 
     method statement_control:sym<repeat>($/) {
@@ -805,7 +848,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $past := QAST::Op.new( $<EXPR>.ast, pblock_immediate( $<pblock>.ast ),
                                    :op($op), :node($/) );
         }
-        make loop_phasers($past);
+        make tweak_loop($past);
     }
 
     method statement_control:sym<for>($/) {
@@ -815,7 +858,6 @@ class Perl6::Actions is HLL::Actions does STDActions {
                         QAST::Op.new(:name('&infix:<,>'), :op('call'), $xblock[0]),
                         block_closure($xblock[1])
         );
-        $past := QAST::Op.new( :name<&eager>, :op<call>, $past, :node($/) );
         make $past;
     }
 
@@ -827,14 +869,20 @@ class Perl6::Actions is HLL::Actions does STDActions {
         if $<e3> {
             $loop.push($<e3>[0].ast);
         }
-        $loop := loop_phasers($loop);
+        $loop := tweak_loop($loop);
         if $<e1> {
             $loop := QAST::Stmts.new( $<e1>[0].ast, $loop, :node($/) );
         }
         make $loop;
     }
     
-    sub loop_phasers($loop) {
+    sub tweak_loop($loop) {
+        # Make sure the body is in sink context (for now; in the long run,
+        # need to handle the l-value case).
+        my $body_past := $loop[1][1];
+        $body_past.push(QAST::Var.new( :name('Nil'), :scope('lexical') ));
+        
+        # Handle phasers.
         my $code := $loop[1]<code_object>;
         my $block_type := $*W.find_symbol(['Block']);
         my $phasers := nqp::getattr($code, $block_type, '$!phasers');
@@ -1026,6 +1074,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
     method statement_prefix:sym<gather>($/) {
         my $past := block_closure($<blorst>.ast);
+        $past<past_block>.push(QAST::Var.new( :name('Nil'), :scope('lexical') ));
         make QAST::Op.new( :op('call'), :name('&GATHER'), $past );
     }
 
@@ -1062,7 +1111,6 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
                 # On failure, capture the exception object into $!.
                 'CATCH', QAST::Stmts.new(
-                    :resultchild(0),
                     QAST::Op.new(
                         :op('p6store'),
                         QAST::Var.new(:name<$!>, :scope<lexical>),
@@ -1075,7 +1123,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
                         pirop => 'perl6_invoke_catchhandler 1PP',
                         QAST::Op.new( :op('null') ),
                         QAST::Op.new( :op('exception') )
-                    )
+                    ),
+                    QAST::WVal.new(
+                        :value( $*W.find_symbol(['Nil']) ),
+                    ),
                 )
             );
         }
@@ -3861,6 +3912,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
         elsif $stmts == 1 {
             my $elem := $past<past_block>[1][0][0];
+            $elem := $elem[0] if $elem ~~ QAST::Want;
             if $elem ~~ QAST::Op && $elem.name eq '&infix:<,>' {
                 # block contains a list, so test the first element
                 $elem := $elem[0];
@@ -4239,6 +4291,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $past := QAST::Op.new(
                 :op('callmethod'), :name('STORE'),
                 $lhs_ast, $rhs_ast);
+            $past<nosink> := 1;
         }
         else {
             $past := QAST::Op.new( :node($/), :op('p6store'),
@@ -5083,7 +5136,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
     sub make_thunk_ref($to_thunk, $/) {
         my $block := $*W.push_lexpad($/);
-        $block.push($to_thunk);
+        $block.push(QAST::Stmts.new(autosink($to_thunk)));
         $*W.pop_lexpad();
         reference_to_code_object(
             $*W.create_simple_code_object($block, 'Code'),
@@ -5214,6 +5267,19 @@ class Perl6::Actions is HLL::Actions does STDActions {
             QAST::Var.new( :scope('lexical'), :name('$/'), :decl('var') ),
         );
         $handler<past_block>.unshift($handler_preamble);
+        
+        # If the handler has a succeed handler, then make sure we sink
+        # the exception it will produce.
+        if $handler<past_block><handlers> && nqp::existskey($handler<past_block><handlers>, 'SUCCEED') {
+            my $suc := $handler<past_block><handlers><SUCCEED>;
+            $suc[0] := QAST::Stmts.new(
+                sink(QAST::Op.new(
+                    :op('getpayload'),
+                    QAST::Op.new( :op('exception') )
+                )),
+                QAST::Var.new( :name('Nil'), :scope('lexical') )
+            );
+        }
 
         # set up a generic exception rethrow, so that exception
         # handlers from unwanted frames will get skipped if the
@@ -5226,6 +5292,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         else {
             my $prev_content := QAST::Stmts.new();
             $prev_content.push($handler<past_block>.shift()) while +@($handler<past_block>);
+            $prev_content.push(QAST::Var.new( :name('Nil'), :scope('lexical') ));
             $handler<past_block>.push(QAST::Op.new(
                 :op('handle'),
                 $prev_content,

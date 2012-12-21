@@ -51,6 +51,10 @@ my class Junction is Mu {
             -> $obj, |c { $obj(|c) },
             self, |$c);
     }
+    method sink(Junction:D:) {
+        .?sink for $!storage.list;
+        Nil;
+    }
 }
 
 sub any(*@values) { Junction.new(@values, :type<any>); }

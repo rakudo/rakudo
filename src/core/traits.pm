@@ -156,6 +156,7 @@ sub EXPORT_SYMBOL(\exp_name, @tags, Mu \sym) {
             $*W.install_package_symbol($install_in, exp_name, sym);
         }
     }
+    0;
 }
 multi trait_mod:<is>(Routine:D \r, :$export!) {
     my $to_export := r.multi ?? r.dispatcher !! r;
@@ -277,6 +278,7 @@ multi trait_mod:<handles>(Attribute:D $target, $thunk) {
                         for $expr.list {
                             applier($_);
                         }
+                        0;
                     }
                     else {
                         $pkg.HOW.add_fallback($pkg,
@@ -318,6 +320,7 @@ multi sub trait_mod:<handles>(Method:D $m, &thunk) {
         $meth.set_name($meth_name);
         $pkg.HOW.add_method($pkg, $meth_name, $meth);
     }
+    0;
 }
 
 proto trait_mod:<will>(|) { * }

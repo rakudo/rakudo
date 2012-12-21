@@ -845,6 +845,7 @@ my class Str does Stringy {
             gather for $s.comb(/ (\w) '..' (\w) | . /, :match) {
                 if .[0] {
                     take $_ for ~.[0] .. ~.[1];
+                    0;
                 } else {
                     take ~$_;
                 }

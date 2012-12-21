@@ -521,6 +521,15 @@ my class X::Redeclaration does X::Comp {
     }
 }
 
+my class X::Redeclaration::Outer does X::Comp {
+    has $.symbol;
+    method message() {
+        "Lexical symbol '$.symbol' is already bound to an outer symbol;\n" ~
+        "the implicit outer binding must be rewritten as OUTER::<$.symbol>\n" ~
+        "before you can unambiguously declare a new '$.symbol' in this scope";
+    }
+}
+
 my class X::Import::Redeclaration does X::Comp {
     has @.symbols;
     has $.source-package-name;

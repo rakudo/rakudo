@@ -2732,6 +2732,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         }
         <rx_adverbs>
         <sibble(%*RX<P5> ?? %*LANG<P5Regex> !! %*LANG<Regex>, %*LANG<Q>, ['qq'])>
+        <.old_rx_mods>?
     }
 
     token old_rx_mods {

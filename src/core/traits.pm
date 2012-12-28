@@ -80,6 +80,7 @@ multi trait_mod:<is>(Routine:D $r, :prec(%spec)!) {
         $r.HOW.mixin($r, Precedence);
         nqp::bindattr(nqp::p6decont($r), $r.WHAT, '%!prec', %spec);
     }
+    0;
 }
 multi trait_mod:<is>(Routine $r, :&equiv) {
     nqp::can(&equiv, 'prec')

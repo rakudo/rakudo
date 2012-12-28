@@ -1,7 +1,7 @@
 Rakudo Roadmap
 --------------
 
-Last updated: 2012-12-18
+Last updated: 2012-12-28
 
 This document serves as a guide to the major goals for Rakudo
 development, as things stood in December 2011. They have been
@@ -75,6 +75,8 @@ Language Features
 2 **    MAIN and USAGE (japhb)
 2 **    Failure changes (japhb)
 2 ***   coercion types
+2 *     tr///
+2 **    'no strict;'
 3 ***   domain specific languages -- slang and grammar tweaks
 3 ****  more advanced Perl 5 interop (lexical embedding, etc.)
 3 ?     Parse and execute simple Perl 5 code

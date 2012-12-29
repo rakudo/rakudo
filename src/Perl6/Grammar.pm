@@ -2791,7 +2791,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         Perl6::Grammar.O(':prec<q=>, :assoc<list>', '%junctive_and');
         Perl6::Grammar.O(':prec<p=>, :assoc<list>', '%junctive_or');
         Perl6::Grammar.O(':prec<o=>, :assoc<unary>', '%named_unary');
-        Perl6::Grammar.O(':prec<n=>, :assoc<left>',  '%structural');
+        Perl6::Grammar.O(':prec<n=>, :assoc<non>',  '%structural');
         Perl6::Grammar.O(':prec<m=>, :assoc<left>, :iffy<1>, :pasttype<chain>',  '%chaining');
         Perl6::Grammar.O(':prec<l=>, :assoc<left>',  '%tight_and');
         Perl6::Grammar.O(':prec<k=>, :assoc<list>',  '%tight_or');

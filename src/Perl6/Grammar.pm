@@ -239,6 +239,10 @@ role STD {
         self.typed_panic('X::Comp::NYI', :$feature)
     }
 
+    method EXPR_nonassoc($cur, $left, $right) {
+        self.typed_panic('X::Syntax::NonAssociative', :left(~$left), :right(~$right));
+    }
+
     # "when" arg assumes more things will become obsolete after Perl 6 comes out...
     method obs($old, $new, $when = 'in Perl 6') {
         $*W.throw(self.MATCH(), ['X', 'Obsolete'],

@@ -765,6 +765,14 @@ my class X::Syntax::Number::RadixOutOfRange does X::Syntax {
     method message() { "Radix $.radix out of range (allowed: 2..36)" }
 }
 
+my class X::Syntax::NonAssociative does X::Syntax {
+    has $.left;
+    has $.right;
+    method message() {
+        "Operators '$.left' and '$.right' are non-associtiave and require parenthesis";
+    }
+}
+
 my class X::Syntax::Regex::Adverb does X::Syntax {
     has $.adverb;
     has $.construct;

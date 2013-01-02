@@ -2,6 +2,7 @@ New in 2013.01
 + sink context; for-loops are now lazy by default
 + first mentioning a variable from outer scope and then redeclaring it
   in the same scope (my $a; { $a; my $a }) is now an error.
++ the long-deprecated "SAFE" setting has been removed
 
 New in 2012.12
 + ~/.perl6/lib is gone from the default include path

@@ -54,7 +54,7 @@ proto sub log10($, $?) {*}
 multi sub log10(Numeric $x) { $x.log(10e0) }
 multi sub log10(Cool    $x) { $x.Numeric.log(10e0) }
 
-proto sub exp($) {*}
+proto sub exp($, $?) {*}
 multi sub exp(Numeric $x) { $x.exp }
 multi sub exp(Numeric $x, Numeric $base) { $x.exp($base) }
 

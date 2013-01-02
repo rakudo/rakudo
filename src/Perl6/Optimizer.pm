@@ -182,7 +182,8 @@ class Perl6::Optimizer {
                             }
                         }
                         elsif $ct_result_proto == -1 || @ct_result_multi[0] == -1 {
-                            self.report_innevitable_dispatch_failure($op, @types, @flags, $obj);
+                            self.report_innevitable_dispatch_failure($op, @types, @flags, $obj,
+                                :protoguilt($ct_result_proto == -1));
                         }
                     }
                     
@@ -331,7 +332,7 @@ class Perl6::Optimizer {
         [@types, @flags]
     }
     
-    method report_innevitable_dispatch_failure($op, @types, @flags, $obj) {
+    method report_innevitable_dispatch_failure($op, @types, @flags, $obj, :$protoguilt) {
         my @arg_names;
         my $i := 0;
         while $i < +@types {
@@ -343,11 +344,12 @@ class Perl6::Optimizer {
             $i := $i + 1;
         }
         self.add_deadly($op,
-            "Calling '" ~ $obj.name ~ "' will never work with " ~
+            ($protoguilt ?? "Calling proto of '" !! "Calling '") ~ 
+            $obj.name ~ "' will never work with " ~
             (+@arg_names == 0 ??
                 "no arguments" !!
                 "argument types (" ~ nqp::join(', ', @arg_names) ~ ")"),
-            $obj.is_dispatcher ??
+            $obj.is_dispatcher && !$protoguilt ??
                 multi_sig_list($obj) !!
                 ["    Expected: " ~ $obj.signature.perl]);
     }

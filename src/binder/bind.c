@@ -1053,6 +1053,15 @@ INTVAL Rakudo_binding_trial_bind(PARROT_INTERP, PMC *sig_pmc, PMC *capture) {
     if (!smo_id)
         setup_binder_statics(interp);
         
+    /* If there's a single capture parameter, then we're OK. (Worth
+     * handling especially as it's the common case for protos). */
+    if (num_params == 1) {
+        Rakudo_Parameter *param = (Rakudo_Parameter *)PMC_data(
+                VTABLE_get_pmc_keyed_int(interp, params, 0));
+        if (param->flags & SIG_ELEM_IS_CAPTURE)
+            return TRIAL_BIND_OK;
+    }
+        
     /* Walk through the signature and consider the parameters. */
     num_pos_args = VTABLE_elements(interp, capture);
     for (i = 0; i < num_params; i++) {

@@ -163,34 +163,37 @@ class Perl6::Optimizer {
                 # the proto.
                 my $dispatcher;
                 try { if $obj.is_dispatcher { $dispatcher := 1 } }
-                if $dispatcher {
-                    # Try to do compile-time multi-dispatch.
+                if $dispatcher && $obj.onlystar {
+                    # Try to do compile-time multi-dispatch. Need to consider
+                    # both the proto and the multi candidates.
                     my @ct_arg_info := self.analyze_args_for_ct_call($op);
                     if +@ct_arg_info {
                         my @types := @ct_arg_info[0];
                         my @flags := @ct_arg_info[1];
-                        my @ct_result := pir::perl6_multi_dispatch_ct__PPPP($obj, @types, @flags);
-                        if @ct_result[0] == 1 {
-                            my $chosen := @ct_result[1];
+                        my $ct_result_proto := pir::perl6_trial_bind_ct__IPPP($obj.signature, @types, @flags);
+                        my @ct_result_multi := pir::perl6_multi_dispatch_ct__PPPP($obj, @types, @flags);
+                        if $ct_result_proto == 1 && @ct_result_multi[0] == 1 {
+                            my $chosen := @ct_result_multi[1];
                             if $op.op eq 'chain' { $!chain_depth := $!chain_depth - 1 }
-                            if $*LEVEL >= 2 && $obj.onlystar {
+                            if $*LEVEL >= 2 {
                                 return nqp::can($chosen, 'inline_info') && nqp::istype($chosen.inline_info, QAST::Node)
                                     ?? self.inline_call($op, $chosen)
                                     !! self.call_ct_chosen_multi($op, $obj, $chosen);
                             }
                         }
-                        elsif @ct_result[0] == -1 {
-                            self.report_innevitable_dispatch_failure($op, @types, @flags, $obj);
+                        elsif $ct_result_proto == -1 || @ct_result_multi[0] == -1 {
+                            self.report_innevitable_dispatch_failure($op, @types, @flags, $obj,
+                                :protoguilt($ct_result_proto == -1));
                         }
                     }
                     
                     # Otherwise, inline the proto.
                     if $op.op eq 'chain' { $!chain_depth := $!chain_depth - 1 }
-                    if $*LEVEL >= 2 && $obj.onlystar {
+                    if $*LEVEL >= 2 {
                         return self.inline_proto($op, $obj);
                     }
                 }
-                elsif nqp::can($obj, 'signature') {
+                elsif !$dispatcher && nqp::can($obj, 'signature') {
                     # If we know enough about the arguments, do a "trial bind".
                     my @ct_arg_info := self.analyze_args_for_ct_call($op);
                     if +@ct_arg_info {
@@ -329,7 +332,7 @@ class Perl6::Optimizer {
         [@types, @flags]
     }
     
-    method report_innevitable_dispatch_failure($op, @types, @flags, $obj) {
+    method report_innevitable_dispatch_failure($op, @types, @flags, $obj, :$protoguilt) {
         my @arg_names;
         my $i := 0;
         while $i < +@types {
@@ -341,11 +344,12 @@ class Perl6::Optimizer {
             $i := $i + 1;
         }
         self.add_deadly($op,
-            "Calling '" ~ $obj.name ~ "' will never work with " ~
+            ($protoguilt ?? "Calling proto of '" !! "Calling '") ~ 
+            $obj.name ~ "' will never work with " ~
             (+@arg_names == 0 ??
                 "no arguments" !!
                 "argument types (" ~ nqp::join(', ', @arg_names) ~ ")"),
-            $obj.is_dispatcher ??
+            $obj.is_dispatcher && !$protoguilt ??
                 multi_sig_list($obj) !!
                 ["    Expected: " ~ $obj.signature.perl]);
     }

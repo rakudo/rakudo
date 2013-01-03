@@ -263,6 +263,7 @@ class Perl6::World is HLL::World {
         # outright conflicts, and handle any situations where we need to merge.
         my %to_install;
         my @clash;
+        my @clash_onlystar;
         for %stash {
             my $foreign_proto; # of the package we import
             my $installed_proto; # of the current lexpad (target)
@@ -284,6 +285,11 @@ class Perl6::World is HLL::World {
                 if $target.symbol($_.key) {
                     # reuse the already installed proto
                     $installed_proto := $target.symbol($_.key)<value>;
+
+                    # both need to be onlystar for merging, throw otherwise
+                    unless $installed_proto.onlystar && $foreign_proto.onlystar {
+                        nqp::push(@clash_onlystar, $_.key);
+                    }
 
                     # remember the installed dispatchees so that we dont add duplicates
                     for $installed_proto.dispatchees -> $dispatchee {
@@ -327,6 +333,14 @@ class Perl6::World is HLL::World {
                 }
             }
         }
+
+        if +@clash_onlystar {
+            self.throw($/, 'X::Import::OnlystarProto',
+                symbols             => @clash_onlystar,
+                source-package-name => $source_package_name,
+            );
+        }
+
         if +@clash {
             self.throw($/, 'X::Import::Redeclaration',
                 symbols             => @clash,

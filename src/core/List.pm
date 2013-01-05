@@ -142,7 +142,7 @@ my class List does Positional {
         ## of the list, resulting in an O(n) algorithm.
         my $elems = self.elems;
         return unless $elems;
-        fail ".pick from infinite list NYI" if $!nextiter.defined;
+        fail "Cannot .pick from infinite list" if $!nextiter.defined;
         $n = +$Inf if nqp::istype($n, Whatever);
         $n = $elems if $n > $elems;
         return self.at_pos($elems.rand.floor) if $n == 1;
@@ -150,7 +150,7 @@ my class List does Positional {
         my $i;
         my Mu $v;
         gather while $n > 0 {
-            $i = $elems.rand.floor.Int;
+            $i = nqp::rand_I(nqp::p6decont($elems), Int);
             $elems--; $n--;
             $v := nqp::atpos($rpa, nqp::unbox_i($i));
             # replace selected element with last unpicked one

@@ -156,7 +156,7 @@ class Range is Iterable is Cool does Positional {
         return self.list.roll unless nqp::istype($!min, Int) && nqp::istype($!max, Int);
         my Int:D $least = $!excludes_min ?? $!min + 1 !! $!min;
         my Int:D $elems = 1 + ($!excludes_max ?? $!max - 1 !! $!max) - $least;
-        $elems ?? ($least + $elems.rand.floor) !! Any;
+        $elems ?? ($least + nqp::rand_I(nqp::p6decont($elems), Int)) !! Any;
     }
     multi method roll(Cool $num as Int) {
         return self.list.roll($num) unless nqp::istype($!min, Int) && nqp::istype($!max, Int);
@@ -179,7 +179,7 @@ class Range is Iterable is Cool does Positional {
         my %seen;
         my int $i_n = nqp::unbox_i($n);
         gather while $i_n > 0 {
-            my Int $x = $least + $elems.rand.floor;
+            my Int $x = $least + nqp::rand_I(nqp::p6decont($elems), Int);
             unless %seen{$x} {
                 %seen{$x} = 1;
                 $i_n = $i_n - 1;

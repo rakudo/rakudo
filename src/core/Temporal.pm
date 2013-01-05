@@ -399,7 +399,7 @@ my class DateTime does Dateish {
     }
 
     method Date() {
-        Date.new(self)
+        Date.new(:$.year, :$.month, :$.day);
     }
 
     method Str() {

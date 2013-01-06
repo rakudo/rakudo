@@ -960,7 +960,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
     method statement_control:sym<require>($/) {
         my $past := QAST::Stmts.new(:node($/));
         my $name_past := $<module_name>
-                        ?? QAST::SVal.new(:value($<module_name><longname><name>.Str))
+                        ?? $*W.disect_longname($<module_name><longname>).name_past()
                         !! $<EXPR>[0].ast;
 
         $past.push(QAST::Op.new(

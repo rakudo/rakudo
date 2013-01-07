@@ -1554,7 +1554,14 @@ class Perl6::World is HLL::World {
                     return @!components[0];
                 }
                 else {
-                    nqp::die("Not yet implemented :(");
+                    my $past := QAST::Op.new(:op<call>, :name('&infix:<,>'));
+                    for @!components {
+                        $past.push: $_ ~~ QAST::Node ?? $_ !! QAST::SVal.new(:value($_));
+                    }
+                    return QAST::Op.new(:op<callmethod>, :name<join>,
+                        $past,
+                        QAST::SVal.new(:value<::>)
+                    );
                 }
             }
             else {

@@ -857,9 +857,57 @@ class Perl6::World is HLL::World {
         );
         self.add_fixup_task(:fixup_past($fixups), :deserialize_past($fixups));
     }
+
+    # put an expression in sink context
+    method past_sink($past) {
+        my $name := $past.unique('sink');
+        QAST::Stmts.new(
+            QAST::Op.new(:op<bind>,
+                QAST::Var.new(:$name, :scope<local>, :decl<var>),
+                $past,
+            ),
+            QAST::Op.new(:op<if>,
+                QAST::Op.new(:op<if>,
+                    QAST::Op.new(:op<isconcrete>,
+                        QAST::Var.new(:$name, :scope<local>),
+                    ),
+                    QAST::Op.new(:op<if>,
+                        QAST::Op.new(:op<can>,
+                            QAST::Var.new(:$name, :scope<local>),
+                            QAST::SVal.new(:value('sink')),
+                        ),
+                        QAST::Op.new(:op<defined>,
+                            QAST::Var.new(:$name, :scope<local>),
+                        )
+                    )
+                ),
+                QAST::Op.new(:op<callmethod>, :name<sink>,
+                    QAST::Var.new(:$name, :scope<local>),
+                ),
+            ),
+        );
+    }
+
+    # put an expression into potential sink context
+    method sink($past) {
+        my $name := $past.unique('sink');
+        QAST::Want.new(
+            $past,
+            'v',
+            self.past_sink($past)
+        );
+    }
+
     
     # Generates code for running phasers.
-    method run_phasers_code($code, $block_type, $type) {
+    method run_phasers_code($code, $block_type, $type, :$sink) {
+        my $call := QAST::Op.new(
+            :op('call'),
+            QAST::Var.new( :scope('lexical'), :name('$_'), :decl('param') )
+        );
+        if $sink {
+            $call := self.past_sink($call);
+        }
         QAST::Op.new(
             :op('for'),
             QAST::Op.new(
@@ -872,11 +920,10 @@ class Perl6::World is HLL::World {
                 QAST::SVal.new( :value($type) )
             ),
             QAST::Block.new(
-                :blocktype('immediate'),
-                QAST::Op.new(
-                    :op('call'),
-                    QAST::Var.new( :scope('lexical'), :name('$_'), :decl('param') )
-                )))
+                :blocktype('immediate'), 
+                $call
+            )
+        )
     }
     
     # Adds any extra code needing for handling phasers.
@@ -893,10 +940,10 @@ class Perl6::World is HLL::World {
                 $code_past[0].push(QAST::Op.new(
                     :op('if'),
                     QAST::Op.new( :op('p6takefirstflag') ),
-                    self.run_phasers_code($code, $block_type, 'FIRST')));
+                    self.run_phasers_code($code, $block_type, 'FIRST', :sink)));
             }
             if nqp::existskey(%phasers, 'ENTER') {
-                $code_past[0].push(self.run_phasers_code($code, $block_type, 'ENTER'));
+                $code_past[0].push(self.run_phasers_code($code, $block_type, 'ENTER', :sink));
             }
             if nqp::existskey(%phasers, '!LEAVE-ORDER') || nqp::existskey(%phasers, 'POST') {
                 $code_past[+@($code_past) - 1] := QAST::Op.new(

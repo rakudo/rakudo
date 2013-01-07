@@ -44,38 +44,6 @@ class Perl6::Actions is HLL::Actions does STDActions {
         $STATEMENT_PRINT := 0;
     }
 
-    sub sink($past) {
-        my $name := $past.unique('sink');
-        QAST::Want.new(
-            $past,
-            'v',
-            QAST::Stmts.new(
-                QAST::Op.new(:op<bind>,
-                    QAST::Var.new(:$name, :scope<local>, :decl<var>),
-                    $past,
-                ),
-                QAST::Op.new(:op<if>,
-                    QAST::Op.new(:op<if>,
-                        QAST::Op.new(:op<isconcrete>,
-                            QAST::Var.new(:$name, :scope<local>),
-                        ),
-                        QAST::Op.new(:op<if>,
-                            QAST::Op.new(:op<can>,
-                                QAST::Var.new(:$name, :scope<local>),
-                                QAST::SVal.new(:value('sink')),
-                            ),
-                            QAST::Op.new(:op<defined>,
-                                QAST::Var.new(:$name, :scope<local>),
-                            )
-                        )
-                    ),
-                    QAST::Op.new(:op<callmethod>, :name<sink>,
-                        QAST::Var.new(:$name, :scope<local>),
-                    ),
-                ),
-            ),
-        );
-    }
     my %sinkable := nqp::hash(
             'call',         1,
             'callmethod',   1,
@@ -89,7 +57,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
     );
     sub autosink($past) {
         nqp::istype($past, QAST::Op) && %sinkable{$past.op} && !$past<nosink>
-            ?? sink($past)
+            ?? $*W.sink($past)
             !! $past;
     }
 
@@ -5279,7 +5247,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         if $handler<past_block><handlers> && nqp::existskey($handler<past_block><handlers>, 'SUCCEED') {
             my $suc := $handler<past_block><handlers><SUCCEED>;
             $suc[0] := QAST::Stmts.new(
-                sink(QAST::Op.new(
+                $*W.sink(QAST::Op.new(
                     :op('getpayload'),
                     QAST::Op.new( :op('exception') )
                 )),

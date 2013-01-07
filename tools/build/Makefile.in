@@ -244,6 +244,7 @@ DOCS = README CREDITS LICENSE docs/*
 CLEANUPS = \
   *.manifest \
   *.pdb \
+  MANIFEST.generated \
   $(PERL6_PBC) \
   $(PERL6_EXE) \
   $(SETTING_PBC) \

@@ -5322,7 +5322,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         %*HANDLERS{$type} := QAST::Stmts.new(
             :node($/),
             QAST::VM.new( :pirop('perl6_invoke_catchhandler__vPP'), $handler, $ex),
-            QAST::Var.new( :scope('lexical'), :name('$!') )
+            QAST::Var.new( :scope('lexical'), :name('Nil') )
         );
     }
 

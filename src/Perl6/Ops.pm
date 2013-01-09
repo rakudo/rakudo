@@ -11,13 +11,8 @@ $ops.add_hll_pirop_mapping('perl6', 'p6list', 'perl6_list_from_rpa', 'PPPP', :in
 $ops.add_hll_pirop_mapping('perl6', 'p6listitems', 'perl6_listitems', 'PP', :inlinable(1));
 $ops.add_hll_pirop_mapping('perl6', 'p6decont', 'perl6_decontainerize', 'PP', :inlinable(1));
 $ops.add_hll_pirop_mapping('perl6', 'p6recont_ro', 'perl6_recontainerize_to_ro', 'PP', :inlinable(1));
-$ops.add_hll_pirop_mapping('perl6', 'attrinited', 'repr_is_attr_initialized', 'IPPs', :inlinable(1));
 $ops.add_hll_pirop_mapping('perl6', 'callerid', 'perl6_callerid', 'I');
 $ops.add_hll_pirop_mapping('perl6', 'ishash', 'perl6_is_hash', 'IP', :inlinable(1));
-$ops.add_hll_pirop_mapping('perl6', 'lcm_i', 'lcm', 'Iii', :inlinable(1));
-$ops.add_hll_pirop_mapping('perl6', 'gcd_i', 'gcd', 'Iii', :inlinable(1));
-$ops.add_hll_pirop_mapping('perl6', 'sqrt_n', 'sqrt', 'NN', :inlinable(1));
-$ops.add_hll_pirop_mapping('perl6', 'create', 'repr_instance_of', 'PP', :inlinable(1));
 $ops.add_hll_pirop_mapping('perl6', 'p6store', 'perl6_container_store', '0PP', :inlinable(1));
 $ops.add_hll_pirop_mapping('perl6', 'p6type', 'perl6ize_type', 'PP', :inlinable(1));
 $ops.add_hll_pirop_mapping('perl6', 'p6takedisp', 'perl6_take_dispatcher', 'v');

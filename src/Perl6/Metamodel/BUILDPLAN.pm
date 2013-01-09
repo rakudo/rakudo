@@ -9,7 +9,9 @@ role Perl6::Metamodel::BUILDPLAN {
     # nested array is an "op" representing the task to perform:
     #   0 code = call specified BUILD method
     #   1 class name attr_name = try to find initialization value
-    #   2 class attr_name code = call default value closure if needed
+    #   2 class name attr_name = try to find initialization value, or set nqp::list()
+    #   3 class name attr_name = try to find initialization value, or set nqp::hash()
+    #   4 class attr_name code = call default value closure if needed
     method create_BUILDPLAN($obj) {
         # First, we'll create the build plan for just this class.
         my @plan;

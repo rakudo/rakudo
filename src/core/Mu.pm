@@ -315,7 +315,7 @@ my class Mu {
 
             ).throw;
         }
-        nqp::findmethod($type, $name)(SELF, |c)
+        self.HOW.find_method_qualified(self, $type, $name)(SELF, |c)
     }
     
     method dispatch:<!>(Mu \SELF: $name, Mu $type, |c) is rw is hidden_from_backtrace {

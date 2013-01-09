@@ -18,6 +18,19 @@ role Perl6::Metamodel::MROBasedMethodDispatch {
             nqp::null();
     }
     
+    method find_method_qualified($obj, $qtype, $name) {
+        if $qtype.HOW.archetypes.parametric && nqp::can(self, 'concretization') {
+            # Resolve it via the concrete form of this parametric.
+            my $conc := self.concretization($obj, $qtype);
+            $conc.HOW.method_table($conc){$name}
+        }
+        else {
+            # Non-parametric, so just locate it from the already concrete
+            # type (or fallback to this if no .concretization on ourself).
+            nqp::findmethod($qtype, $name)
+        }
+    }
+    
     method publish_method_cache($obj) {
         # Walk MRO and add methods to cache, unless another method
         # lower in the class hierarchy "shadowed" it.

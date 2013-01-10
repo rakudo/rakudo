@@ -234,14 +234,14 @@ my class List does Positional {
         my $o = $offset;
         my $s = $size;
         my $elems = self.elems;
-        $offset += $elems if ($offset < 0);
+        $o = $o($elems) if nqp::istype($o, Callable);
         X::OutOfRange.new(
             what => 'offset argument to List.splice',
             got  => $offset,
-            range => (-self.elems..^self.elems),
+            range => (0..^self.elems),
         ).fail if $o < 0;
         $s //= self.elems - ($o min $elems);
-        $s = self.elems + $s - $o if ($s < 0);
+        $s = $s(self.elems - $o) if nqp::istype($s, Callable);
         X::OutOfRange.new(
             what => 'size argument to List.splice',
             got  => $size,

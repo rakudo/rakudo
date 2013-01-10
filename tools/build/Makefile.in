@@ -1,8 +1,8 @@
-# Copyright (C) 2006-2012, The Perl Foundation.
+# Copyright (C) 2006-2013, The Perl Foundation.
 # $Id$
 
 SHELL            = @shell@
-PARROT_ARGS      =
+PARROT_ARGS      = -L. -X.
 
 # values from parrot_config
 PARROT_BIN_DIR     = @bindir@
@@ -353,7 +353,7 @@ $(PERL6_W_PBC): $(NQP_EXE) $(PERL6_ML_PBC) src/Perl6/World.pm
 	$(NQP_EXE) --vmlibs=perl6_group,perl6_ops --target=pir --output=$(PERL6_W) --encoding=utf8 \
 	    src/Perl6/World.pm
 	$(PARROT) $(PARROT_ARGS) -o $(PERL6_W_PBC) $(PERL6_W)
-    
+
 $(PERL6_G_PBC): $(NQP_EXE) $(PERL6_W_PBC) $(PERL6_A_PBC) src/Perl6/Grammar.pm $(PERL6_P_PBC)
 	$(NQP_EXE) --target=pir --output=$(PERL6_G) --encoding=utf8 \
 	    src/Perl6/Grammar.pm
@@ -373,7 +373,7 @@ $(PERL6_O_PBC): $(NQP_EXE) $(DYNEXT_DYNPMC) $(DYNEXT_DYNOPS) src/Perl6/Optimizer
 	$(NQP_EXE) --vmlibs=perl6_group,perl6_ops  --target=pir --output=$(PERL6_O) --encoding=utf8 \
 	    src/Perl6/Optimizer.pm
 	$(PARROT) $(PARROT_ARGS) -o $(PERL6_O_PBC) $(PERL6_O)
-    
+
 $(PERL6_P_PBC): $(NQP_EXE) $(DYNEXT_DYNPMC) $(DYNEXT_DYNOPS) src/Perl6/Pod.pm
 	$(NQP_EXE) --vmlibs=perl6_group,perl6_ops  --target=pir --output=$(PERL6_P) --encoding=utf8 \
 	    src/Perl6/Pod.pm
@@ -389,7 +389,7 @@ $(PERL6_M_PBC): $(NQP_EXE) $(DYNEXT_DYNPMC) $(DYNEXT_DYNOPS) $(METAMODEL_SOURCES
 	$(NQP_EXE) --target=pir --output=$(PERL6_M) --encoding=utf8 \
 	    --vmlibs=perl6_ops src/gen/Metamodel.pm
 	$(PARROT) $(PARROT_ARGS) -o $(PERL6_M_PBC) $(PERL6_M)
-    
+
 $(PERL6_B_PBC): $(NQP_EXE) $(DYNEXT_DYNPMC) $(DYNEXT_DYNOPS) $(PERL6_M_PBC) $(BOOTSTRAP_SOURCES)
 	$(PERL) $(GEN_CAT) $(BOOTSTRAP_SOURCES) > src/gen/BOOTSTRAP.pm
 	$(NQP_EXE) --target=pir --output=$(PERL6_B) --encoding=utf8 \

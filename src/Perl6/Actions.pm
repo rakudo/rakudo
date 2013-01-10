@@ -59,14 +59,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
                         QAST::Op.new(:op<isconcrete>,
                             QAST::Var.new(:$name, :scope<local>),
                         ),
-                        QAST::Op.new(:op<if>,
-                            QAST::Op.new(:op<can>,
-                                QAST::Var.new(:$name, :scope<local>),
-                                QAST::SVal.new(:value('sink')),
-                            ),
-                            QAST::Op.new(:op<defined>,
-                                QAST::Var.new(:$name, :scope<local>),
-                            )
+                        QAST::Op.new(:op<can>,
+                            QAST::Var.new(:$name, :scope<local>),
+                            QAST::SVal.new(:value('sink')),
                         )
                     ),
                     QAST::Op.new(:op<callmethod>, :name<sink>,

@@ -86,6 +86,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             'if',           1,
             'unless',       1,
             'handle',       1,
+            'p6type',       1,
     );
     sub autosink($past) {
         nqp::istype($past, QAST::Op) && %sinkable{$past.op} && !$past<nosink>

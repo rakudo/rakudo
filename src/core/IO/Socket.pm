@@ -52,7 +52,7 @@ my role IO::Socket {
 
     method write(Buf:D $buf) {
         fail('Socket not available') unless $!PIO;
-        $!PIO.send(nqp::getattr(nqp::p6decont($buf), Buf, '$!buffer').get_string('binary'));
+        $!PIO.send(nqp::unbox_s( $buf.decode('binary') )).Bool;
     }
 
     method close () {

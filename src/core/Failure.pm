@@ -35,7 +35,7 @@ my class Failure {
             $!exception.throw;
         }
     );
-    method sink() { $!exception.throw }
+    method sink() { $!exception.throw unless $!handled }
 
     # class Any has a fallback method, so we need to redefine it here
     method postcircumfix:<{ }>(|c) { $!exception.throw }

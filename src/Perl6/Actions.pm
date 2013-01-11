@@ -59,14 +59,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
                         QAST::Op.new(:op<isconcrete>,
                             QAST::Var.new(:$name, :scope<local>),
                         ),
-                        QAST::Op.new(:op<if>,
-                            QAST::Op.new(:op<can>,
-                                QAST::Var.new(:$name, :scope<local>),
-                                QAST::SVal.new(:value('sink')),
-                            ),
-                            QAST::Op.new(:op<defined>,
-                                QAST::Var.new(:$name, :scope<local>),
-                            )
+                        QAST::Op.new(:op<can>,
+                            QAST::Var.new(:$name, :scope<local>),
+                            QAST::SVal.new(:value('sink')),
                         )
                     ),
                     QAST::Op.new(:op<callmethod>, :name<sink>,
@@ -86,6 +81,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             'if',           1,
             'unless',       1,
             'handle',       1,
+            'p6type',       1,
     );
     sub autosink($past) {
         nqp::istype($past, QAST::Op) && %sinkable{$past.op} && !$past<nosink>
@@ -960,7 +956,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
     method statement_control:sym<require>($/) {
         my $past := QAST::Stmts.new(:node($/));
         my $name_past := $<module_name>
-                        ?? QAST::SVal.new(:value($<module_name><longname><name>.Str))
+                        ?? $*W.disect_longname($<module_name><longname>).name_past()
                         !! $<EXPR>[0].ast;
 
         $past.push(QAST::Op.new(
@@ -5322,7 +5318,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         %*HANDLERS{$type} := QAST::Stmts.new(
             :node($/),
             QAST::VM.new( :pirop('perl6_invoke_catchhandler__vPP'), $handler, $ex),
-            QAST::Var.new( :scope('lexical'), :name('$!') )
+            QAST::Var.new( :scope('lexical'), :name('Nil') )
         );
     }
 

@@ -3119,8 +3119,15 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token infix:sym<.>    { <sym> <[\]\)\},:\s\$"']>  <.obs('. to concatenate strings', '~')> }
 
     token infix:sym<&>    { <sym> <O('%junctive_and')> }
+    token infix:sym<(&)>  { <!before <sym> <infixish> > <sym>  <O('%junctive_and')> }
+    token infix:sym<(.)>  { <!before <sym> <infixish> > <sym>  <O('%junctive_and')> }
+
     token infix:sym<|>    { <sym> <O('%junctive_or')> }
     token infix:sym<^>    { <sym> <O('%junctive_or')> }
+    token infix:sym<(|)>  { <!before <sym> <infixish> > <sym>  <O('%junctive_or')> }
+    token infix:sym<(^)>  { <!before <sym> <infixish> > <sym>  <O('%junctive_or')> }
+    token infix:sym<(+)>  { <!before <sym> <infixish> > <sym>  <O('%junctive_or')> }
+    token infix:sym<(-)>  { <!before <sym> <infixish> > <sym>  <O('%junctive_or')> }
 
     token prefix:sym<let>  { <sym> \s+ <!before '=>'> <O('%named_unary')> { $*W.give_cur_block_let($/) } }
     token prefix:sym<temp> { <sym> \s+ <!before '=>'> <O('%named_unary')> { $*W.give_cur_block_temp($/) } }
@@ -3222,12 +3229,6 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     token infix:sym<Z>    { <!before <sym> <infixish> > <sym>  <O('%list_infix')> }
     token infix:sym<X>    { <!before <sym> <infixish> > <sym>  <O('%list_infix')> }
-    token infix:sym<(|)>  { <!before <sym> <infixish> > <sym>  <O('%list_infix')> }
-    token infix:sym<(&)>  { <!before <sym> <infixish> > <sym>  <O('%list_infix')> }
-    token infix:sym<(-)>  { <!before <sym> <infixish> > <sym>  <O('%list_infix')> }
-    token infix:sym<(^)>  { <!before <sym> <infixish> > <sym>  <O('%list_infix')> }
-    token infix:sym<(.)>  { <!before <sym> <infixish> > <sym>  <O('%list_infix')> }
-    token infix:sym<(+)>  { <!before <sym> <infixish> > <sym>  <O('%list_infix')> }
 
     token infix:sym<...>  { <sym>  <O('%list_infix')> }
     token infix:sym<...^> { <sym>  <O('%list_infix')> }

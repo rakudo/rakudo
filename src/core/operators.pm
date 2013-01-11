@@ -79,8 +79,8 @@ multi infix:<but>(Mu:U \obj, @roles) {
     obj.HOW.mixin(obj, |@roles)
 }
 
-sub SEQUENCE($left, $right, :$exclude_end) {
-    my @right := $right.flat;
+sub SEQUENCE($left, Mu $right, :$exclude_end) {
+    my @right := nqp::istype($right, Junction) ?? [$right] !! $right.flat;
     my $endpoint = @right.shift;
     my $infinite = $endpoint ~~ Whatever || $endpoint === $Inf;
     $endpoint = Bool::False if $infinite;
@@ -178,10 +178,10 @@ sub WHAT(\x) {
 }
 
 proto sub infix:<...>(|) { * }
-multi sub infix:<...>($a, $b) { SEQUENCE($a, $b) }
+multi sub infix:<...>($a, Mu $b) { SEQUENCE($a, $b) }
 
 proto sub infix:<...^>(|) { * }
-multi sub infix:<...^>($a, $b) { SEQUENCE($a, $b, :exclude_end(1)) }
+multi sub infix:<...^>($a, Mu $b) { SEQUENCE($a, $b, :exclude_end(1)) }
 
 sub undefine(Mu \x) {
     my $undefined;

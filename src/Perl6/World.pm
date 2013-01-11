@@ -1611,6 +1611,31 @@ class Perl6::World is HLL::World {
             nqp::join('::', @parts)
                 ~ ($with_adverbs ?? nqp::join('', @!colonpairs) !! '');
         }
+
+        # returns a QAST tree that represents the name
+        # currently needed for 'require ::($modulename) <importlist>'
+        # ignore adverbs for now
+        method name_past() {
+            if self.contains_indirect_lookup() {
+                if @!components == 1 {
+                    return @!components[0];
+                }
+                else {
+                    my $past := QAST::Op.new(:op<call>, :name('&infix:<,>'));
+                    for @!components {
+                        $past.push: $_ ~~ QAST::Node ?? $_ !! QAST::SVal.new(:value($_));
+                    }
+                    return QAST::Op.new(:op<callmethod>, :name<join>,
+                        $past,
+                        QAST::SVal.new(:value<::>)
+                    );
+                }
+            }
+            else {
+                my $value := nqp::join('::', @!components);
+                QAST::SVal.new(:$value);
+            }
+        }
         
         # Gets the individual components, which may be PAST nodes for
         # unknown pieces.

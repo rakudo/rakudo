@@ -42,6 +42,27 @@ where
  post  = an intermediate format representing the parrot opcode syntax tree
  pir   = the parrot intermediate representation
 
+=head1 List of env vars used in Rakudo
+
+=over
+
+=item C<RAKUDOLIB>, C<PERL6LIB> (src/core/terms.pm)
+
+Appends a delimited list of paths to C<@INC>. C<RAKUDOLIB> is evaluated first.
+
+=item C<RAKUDO_MODULE_DEBUG> (src/Perl6/ModuleLoader.pm)
+
+If set to a non-false value, causes the module loader to print debugging information to standard
+error.
+
+=item C<RAKUDO_ERROR_COLOR> (src/core/Exception.pm)
+
+Controls whether to emit ANSI codes for error highlighting. Defaults to true if unset, except on
+Win32.
+
+=back
+
+
 =head1 PARROT OPTIONS
 
 To specify options to the underlying parrot VM, you must explicitly run

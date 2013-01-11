@@ -145,16 +145,16 @@ sub EXPORT_SYMBOL(\exp_name, @tags, Mu \sym) {
                 $install_in := $p.WHO.{$tag};
             }
             else {
-                $install_in := $*W.pkg_create_mo($/, (package { }).HOW, :name($tag));
-                $*W.pkg_compose($install_in);
-                $*W.install_package_symbol($p, $tag, $install_in);
+                $install_in := Metamodel::PackageHOW.new_type(:name($tag));
+                $install_in.HOW.compose($install_in);
+                $p.WHO{$tag} := $install_in;
             }
             if $install_in.WHO.exists(exp_name) {
                 unless ($install_in.WHO){exp_name} =:= sym {
                     X::Export::NameClash.new(symbol => exp_name).throw;
                 }
             }
-            $*W.install_package_symbol($install_in, exp_name, sym);
+            $install_in.WHO{exp_name} := sym;
         }
     }
     0;

@@ -64,6 +64,28 @@ $ops.add_hll_op('perl6', 'p6bool', :inlinable(1), -> $qastcomp, $op {
     $ops
 });
 
+# Override defor to avoid v-table call.
+$ops.add_hll_op('perl6', 'defor', :inlinable(1), -> $qastcomp, $op {
+    if +$op.list != 2 {
+        nqp::die("Operation 'defor' needs 2 operands");
+    }
+    my $ops := PIRT::Ops.new();
+    my $lbl := PIRT::Label.new(:name('defor'));
+    my $dreg := $*REGALLOC.fresh_p();
+    my $rreg := $*REGALLOC.fresh_p();
+    my $test := $qastcomp.coerce($qastcomp.as_post($op[0]), 'P');
+    my $then := $qastcomp.coerce($qastcomp.as_post($op[1]), 'P');
+    $ops.push($test);
+    $ops.push_pirop('set', $rreg, $test);
+    $ops.push_pirop('callmethod', "'defined'", $rreg, :result($dreg));
+    $ops.push_pirop('if', $dreg, $lbl);
+    $ops.push($then);
+    $ops.push_pirop('set', $rreg, $then);
+    $ops.push($lbl);
+    $ops.result($rreg);
+    $ops
+});
+
 # Boxing and unboxing configuration.
 QAST::Operations.add_hll_box('perl6', 'i', -> $qastcomp, $post {
     my $reg := $*REGALLOC.fresh_p();

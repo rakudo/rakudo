@@ -67,7 +67,7 @@ my class Buf does Positional {
     method decode(Str:D $encoding = 'utf8') {
         my $bb := pir::new__Ps('ByteBuffer');
         pir::set__vPs($bb, $!buffer);
-        nqp::p6box_s($bb.get_string(PARROT_ENCODING($encoding)));
+        nqp::p6box_s($bb.get_string($encoding eq 'binary' ?? 'binary' !! PARROT_ENCODING($encoding)));
     }
 
     method subbuf(Buf:D: $from = 0, $len = self.elems) {

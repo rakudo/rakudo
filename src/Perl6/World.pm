@@ -265,72 +265,45 @@ class Perl6::World is HLL::World {
         my @clash;
         my @clash_onlystar;
         for %stash {
-            my $foreign_proto; # of the package we import
-            my $installed_proto; # of the current lexpad (target)
-
-            try {
-                $foreign_proto := self.find_symbol([$_.key]);
-            }
-
-            # It is a multi, so we need to install a proto in the lexpad and add dispatchees.
-            # Note: NQPCursorRole does not support get_bool, therefor skipped.
-            if $_.key ne 'NQPCursorRole' && $foreign_proto && $foreign_proto.is_dispatcher {
-                if $_.value && $_.value.is_dispatcher {
-                    $foreign_proto := $_.value;
-                }
-
-                my @installed_dispatchees;
-
-                # Symbol is known, we need to add dispatchees to the proto that is already there.
-                if $target.symbol($_.key) {
-                    # reuse the already installed proto
-                    $installed_proto := $target.symbol($_.key)<value>;
-
-                    # both need to be onlystar for merging, throw otherwise
-                    unless $installed_proto.onlystar && $foreign_proto.onlystar {
-                        nqp::push(@clash_onlystar, $_.key);
-                    }
-
-                    # remember the installed dispatchees so that we dont add duplicates
-                    for $installed_proto.dispatchees -> $dispatchee {
-                        @installed_dispatchees.push: $dispatchee;
-                    }
-                }
-                # Symbol not yet known, we should install a proto here.
-                else {
-                    # we will add dispatchees to this later
-                    $installed_proto := self.derive_dispatcher( $foreign_proto );
-
-                    # install the foreign symbol (proto?) into our lexpad
-                    self.install_lexical_symbol($target, $_.key, $_.value, :clone(1));
-                }
-
-                if $foreign_proto.dispatchees {
-                    for $foreign_proto.dispatchees -> $foreign_dispatchee {
-                        my $found_new := 0;
-                        for @installed_dispatchees -> $installed_dispatchee {
-                            if $installed_dispatchee =:= $foreign_dispatchee {
-                                $found_new := 1;
-                                last;
+            if $target.symbol($_.key) -> %sym {
+                # There's already a symbol. However, we may be able to merge
+                # if both are multis and have onlystar dispatchers.
+                my $installed := %sym<value>;
+                my $foreign := $_.value;
+                if nqp::can($installed, 'is_dispatcher') && $installed.is_dispatcher
+                && nqp::can($foreign, 'is_dispatcher') && $foreign.is_dispatcher {
+                    # Both dispatchers, but are they onlystar? If so, we can
+                    # go ahead and merge them.
+                    if $installed.onlystar && $foreign.onlystar {
+                        # Replace installed one with a derived one, to avoid any
+                        # weird action at a distance.
+                        $installed := self.derive_dispatcher($installed);
+                        self.install_lexical_symbol($target, $_.key, $installed, :clone(1));
+                        
+                        # Incorporate dispatchees of foreign proto, avoiding
+                        # duplicates.
+                        my %seen;
+                        for $installed.dispatchees {
+                            %seen{$_.static_id} := $_;
+                        }
+                        for $foreign.dispatchees {
+                            unless nqp::existskey(%seen, $_.static_id) {
+                                self.add_dispatchee_to_proto($installed, $_);
                             }
                         }
-                        
-                        unless $found_new {
-                            self.add_dispatchee_to_proto($installed_proto, $foreign_dispatchee);
-                        }
                     }
+                    else {
+                        nqp::push(@clash_onlystar, $_.key);
+                    }
+                }
+                else {
+                    nqp::push(@clash, $_.key);
                 }
             }
             else {
-                if $target.symbol($_.key) {
-                    # If it is not a multi and the symbol is already there, it is a redeclaration.
-                    nqp::push(@clash, $_.key);
-                }
-                else {
-                    $target.symbol($_.key, :scope('lexical'), :value($_.value));
-                    $target[0].push(QAST::Var.new( :scope('lexical'), :name($_.key), :decl('var') ));
-                    %to_install{$_.key} := $_.value;
-                }
+                $target.symbol($_.key, :scope('lexical'), :value($_.value));
+                $target[0].push(QAST::Var.new( :scope('lexical'), :name($_.key), :decl('var') ));
+                %to_install{$_.key} := $_.value;
             }
         }
 

@@ -4,6 +4,16 @@ New in 2013.01
   in the same scope (my $a; { $a; my $a }) is now an error.
 + the long-deprecated "SAFE" setting has been removed
 + 'require' now works with indirect module names
++ restored socket read semantics to returning the requested number of bytes
++ $obj.Some::Role::meth() now passes the correct $obj
++ try/CATCH now returns Nil when the CATCH is triggered, rather than the
+  exception; this brings it in line with try without a CATCH
++ whatever-star cases of splice now implemented
++ sequences with Junction endpoints now work
++ corrected precedence of various set operators
++ fixed binding of non-Any things into hashes and arrays
++ can now import multis with the same name from different modules,
+  provided all dispatchers are onlystar
 
 New in 2012.12
 + ~/.perl6/lib is gone from the default include path

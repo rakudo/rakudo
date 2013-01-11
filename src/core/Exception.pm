@@ -538,7 +538,16 @@ my class X::Import::Redeclaration does X::Comp {
             ?? "Cannot import symbol @.symbols[0] from $.source-package-name, because it already exists in this lexical scope"
             !! ("Cannot import the following symbols from $.source-package-name, because they already exist in this lexical scope: ", @.symbols.join(', '));
     }
+}
 
+my class X::Import::OnlystarProto does X::Comp {
+    has @.symbols;
+    has $.source-package-name;
+    method message() {
+        @.symbols == 1
+            ?? "Cannot import symbol @.symbols[0] from $.source-package-name, only onlystar-protos can be merged"
+            !! ("Cannot import the following symbols from $.source-package-name, only onlystar-protos can be merged: ", @.symbols.join(', '));
+    }
 }
 
 my class X::Phaser::Multiple does X::Comp {

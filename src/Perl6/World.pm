@@ -263,10 +263,42 @@ class Perl6::World is HLL::World {
         # outright conflicts, and handle any situations where we need to merge.
         my %to_install;
         my @clash;
+        my @clash_onlystar;
         for %stash {
-            if $target.symbol($_.key) {
-                # XXX TODO: Merge handling.
-                nqp::push(@clash, $_.key);
+            if $target.symbol($_.key) -> %sym {
+                # There's already a symbol. However, we may be able to merge
+                # if both are multis and have onlystar dispatchers.
+                my $installed := %sym<value>;
+                my $foreign := $_.value;
+                if nqp::can($installed, 'is_dispatcher') && $installed.is_dispatcher
+                && nqp::can($foreign, 'is_dispatcher') && $foreign.is_dispatcher {
+                    # Both dispatchers, but are they onlystar? If so, we can
+                    # go ahead and merge them.
+                    if $installed.onlystar && $foreign.onlystar {
+                        # Replace installed one with a derived one, to avoid any
+                        # weird action at a distance.
+                        $installed := self.derive_dispatcher($installed);
+                        self.install_lexical_symbol($target, $_.key, $installed, :clone(1));
+                        
+                        # Incorporate dispatchees of foreign proto, avoiding
+                        # duplicates.
+                        my %seen;
+                        for $installed.dispatchees {
+                            %seen{$_.static_id} := $_;
+                        }
+                        for $foreign.dispatchees {
+                            unless nqp::existskey(%seen, $_.static_id) {
+                                self.add_dispatchee_to_proto($installed, $_);
+                            }
+                        }
+                    }
+                    else {
+                        nqp::push(@clash_onlystar, $_.key);
+                    }
+                }
+                else {
+                    nqp::push(@clash, $_.key);
+                }
             }
             else {
                 $target.symbol($_.key, :scope('lexical'), :value($_.value));
@@ -274,6 +306,14 @@ class Perl6::World is HLL::World {
                 %to_install{$_.key} := $_.value;
             }
         }
+
+        if +@clash_onlystar {
+            self.throw($/, 'X::Import::OnlystarProto',
+                symbols             => @clash_onlystar,
+                source-package-name => $source_package_name,
+            );
+        }
+
         if +@clash {
             self.throw($/, 'X::Import::Redeclaration',
                 symbols             => @clash,

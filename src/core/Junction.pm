@@ -20,7 +20,7 @@ my class Junction is Mu {
     }
 
     multi method Str(Junction:D:) {
-        self.new($!storage.map({$_.Str}), :type($!type))
+        self.perl
     }
 
     multi method ACCEPTS(Junction:D: Mu \topic) {

@@ -156,7 +156,7 @@ my class Any {
         fail "Cannot use negative index $pos on {SELF.WHAT.perl}" if $pos < 0;
         SELF.at_pos($pos)
     }
-    multi method postcircumfix:<[ ]>($pos, :$BIND! is parcel) is rw {
+    multi method postcircumfix:<[ ]>($pos, Mu :$BIND! is parcel) is rw {
         fail "Cannot use negative index $pos on {self.WHAT.perl}" if $pos < 0;
         self.bind_pos($pos, $BIND)
     }
@@ -176,7 +176,7 @@ my class Any {
         fail "Cannot use negative index $pos on {SELF.WHAT.perl}" if $pos < 0;
         SELF.at_pos($pos)
     }
-    multi method postcircumfix:<[ ]>(int $pos, :$BIND! is parcel) is rw {
+    multi method postcircumfix:<[ ]>(int $pos, Mu :$BIND! is parcel) is rw {
         fail "Cannot use negative index $pos on {self.WHAT.perl}" if $pos < 0;
         self.bind_pos($pos, $BIND)
     }
@@ -308,7 +308,7 @@ my class Any {
     multi method postcircumfix:<{ }>(\SELF: $key) is rw {
         SELF.at_key($key)
     }
-    multi method postcircumfix:<{ }>(\SELF: $key, :$BIND! is parcel) is rw {
+    multi method postcircumfix:<{ }>(\SELF: $key, Mu :$BIND! is parcel) is rw {
         SELF.bind_key($key, $BIND)
     }
     multi method postcircumfix:<{ }>(\SELF: $key, :$delete!) is rw {

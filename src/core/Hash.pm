@@ -16,7 +16,7 @@ my class Hash {
                  -> { nqp::bindkey($storage, nqp::unbox_s($key), $v) } )
     }
 
-    method bind_key($key, \bindval) is rw {
+    method bind_key($key, Mu \bindval) is rw {
         nqp::defined(nqp::getattr(self, EnumMap, '$!storage')) ||
             nqp::bindattr(self, EnumMap, '$!storage', nqp::hash());
         nqp::bindkey(

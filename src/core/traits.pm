@@ -127,8 +127,6 @@ multi trait_mod:<is>(Parameter:D $param, :$parcel!) {
     $param.set_parcel();
 }
 
-# TODO: Make this much less cheaty. That'll probably need the
-# full-blown serialization, though.
 sub EXPORT_SYMBOL(\exp_name, @tags, Mu \sym) {
     my @export_packages = $*EXPORT;
     for nqp::p6type(@*PACKAGES) {

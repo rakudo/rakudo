@@ -1706,8 +1706,13 @@ class Perl6::Actions is HLL::Actions does STDActions {
             elsif $lex<also_uses> && $lex<also_uses>{$name} {
                 $/.CURSOR.typed_sorry('X::Redeclaration::Outer', symbol => $name);
             }
+            make declare_variable($/, $past, ~$sigil, ~$twigil, ~$<variable><desigilname>, $<trait>, $<semilist>);
         }
-        make declare_variable($/, $past, ~$sigil, ~$twigil, ~$<variable><desigilname>, $<trait>, $<semilist>);
+        else {
+            my %cont_info := container_type_info($/, ~$sigil || '$', []);
+            make $*W.build_container_past(%cont_info,
+                $*W.create_container_descriptor(%cont_info<value_type>, 1, 'anon'));
+        }
     }
 
     sub declare_variable($/, $past, $sigil, $twigil, $desigilname, $trait_list, $shape?) {

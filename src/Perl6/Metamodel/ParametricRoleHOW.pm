@@ -1,4 +1,5 @@
 my $concrete := Perl6::Metamodel::ConcreteRoleHOW;
+my $currier := Perl6::Metamodel::CurriedRoleHOW;
 class Perl6::Metamodel::ParametricRoleHOW
     does Perl6::Metamodel::Naming
     does Perl6::Metamodel::Documenting
@@ -39,6 +40,10 @@ class Perl6::Metamodel::ParametricRoleHOW
             $metarole.set_group($type, %extra<group>);
         }
         self.add_stash($type);
+    }
+    
+    method parameterize($obj, *@pos_args, *%named_args) {
+        $currier.new_type($obj, |@pos_args, |%named_args)
     }
     
     method set_body_block($obj, $block) {

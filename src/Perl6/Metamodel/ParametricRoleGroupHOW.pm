@@ -10,7 +10,6 @@
 # group of those, and know how to specialize to a certain parameter
 # list by multi-dispatching over the set of possibilities to pick
 # a particular candidate.
-my $currier := Perl6::Metamodel::CurriedRoleHOW;
 class Perl6::Metamodel::ParametricRoleGroupHOW
     does Perl6::Metamodel::Naming
     does Perl6::Metamodel::Stashing

@@ -1949,10 +1949,6 @@ class Perl6::World is HLL::World {
             my %symtable := $block.symtable();
             for %symtable {
                 if nqp::existskey($_.value, 'value') {
-                    # FIXME those objects cause the following error:
-                    # No type check cache and no type_check method in meta-object
-                    next if $_.key eq "!CORE_MARKER";
-                    next if $_.key eq "NQPCursorRole";
                     my $val := $_.value<value>;
                     if nqp::istype($val, QAST::Block) {
                         say("recursing into " ~ $_.key);

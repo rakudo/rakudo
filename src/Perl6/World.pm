@@ -47,66 +47,6 @@ sub p6ize_recursive($x) {
     pir::perl6ize_type__PP($x);
 }
 
-# this levenshtein implementation is used to suggest good alternatives
-# when deriving from an unknown/typo'd class.
-sub levenshtein($a, $b) {
-    my %memo;
-    my $alen := nqp::chars($a);
-    my $blen := nqp::chars($b);
-
-    return 0 if $alen eq 0 || $blen eq 0;
-
-    # the longer of the two strings is an upper bound.
-    my $bound := $alen < $blen ?? $blen !! $alen;
-
-    sub levenshtein_impl($apos, $bpos, $estimate) {
-        my $key := nqp::join(":", ($apos, $bpos));
-
-        return %memo{$key} if nqp::existskey(%memo, $key);
-
-        # if we're already worse off than the current best solution,
-        # just give up with $BIGNUM
-        #if $estimate > $bound {
-            #return 1000 + $bound * $bound;
-        #}
-
-        # if either cursor reached the end of the respective string,
-        # the result is the remaining length of the other string.
-        sub check($pos1, $len1, $pos2, $len2) {
-            if $pos2 == $len2 {
-                my $result := $estimate + $len1 - $pos1;
-                $bound := $result if $result < $bound;
-                return $result - $estimate;
-            }
-            return -1;
-        }
-
-        my $check := check($apos, $alen, $bpos, $blen);
-        return $check unless $check eq -1;
-        $check := check($bpos, $blen, $apos, $alen);
-        return $check unless $check eq -1;
-
-        my $cost := 0;
-        $cost := 1 unless (nqp::substr($a, $apos, 1) eq nqp::substr($b, $bpos, 1)); # can we keep the current letter?
-
-        my $ca := levenshtein_impl($apos+1, $bpos,   $estimate+1) + 1; # what if we remove the current letter from A?
-        my $cb := levenshtein_impl($apos,   $bpos+1, $estimate+1) + 1; # what if we add the current letter from B?
-        my $cc := levenshtein_impl($apos+1, $bpos+1, $estimate+$cost) + $cost; # what if we change/keep the current letter?
-
-        # the result is the shortest of the three sub-tasks
-        my $distance;
-        $distance := $ca if $ca <= $cb && $ca <= $cc;
-        $distance := $cb if $cb <= $ca && $cb <= $cc;
-        $distance := $cc if $cc <= $ca && $cc <= $cb;
-
-        %memo{$key} := $distance;
-        return $distance;
-    }
-
-    my $result := levenshtein_impl(0, 0, 0);
-    return $result;
-}
-
 # This builds upon the HLL::World to add the specifics needed by Rakudo Perl 6.
 class Perl6::World is HLL::World {
     # The stack of lexical pads, actually as QAST::Block objects. The

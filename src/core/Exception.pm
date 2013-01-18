@@ -1035,6 +1035,22 @@ my class X::Inheritance::Unsupported does X::Comp {
     }
 }
 
+my class X::Inheritance::UnknownParent is Exception {
+    has $.child;
+    has $.parent;
+    has @.suggestions is rw;
+
+    method message {
+        my $message := $.child ~ ' cannot inherit from ' ~ $.parent ~ ' because it is unknown.';
+        if +@.suggestions > 1 {
+            $message := $message ~ "\nDid you mean one of these?\n  " ~ nqp::join("\n  ", @.suggestions);
+        } elsif +@.suggestions == 1 {
+            $message := $message ~ "\nDid you mean " ~ @.suggestions[0];
+        }
+        return $message;
+    }
+}
+
 my class X::Export::NameClash does X::Comp {
     has $.symbol;
     method message() {

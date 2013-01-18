@@ -12,6 +12,7 @@ my role Callable { ... }
 
 # for errors
 my class X::Inheritance::Unsupported { ... }
+my class X::Inheritance::UnknownParent { ... }
 my class X::Export::NameClash        { ... }
 my class X::Composition::NotComposable { ... }
 my class X::Import::MissingSymbols   { ... }
@@ -40,6 +41,13 @@ multi trait_mod:<is>(Mu:U $type, :$nativesize!) {
 }
 multi trait_mod:<is>(Mu:U $type, :$hidden!) {
     $type.HOW.set_hidden($type);
+}
+multi trait_mod:<is>(Mu:U $type, *%fail) {
+    X::Inheritance::UnknownParent.new(
+        :child($type.HOW.name($type)),
+        :parent(%fail.keys[0]),
+        :suggestions([])
+    ).throw;
 }
 
 multi trait_mod:<is>(Attribute:D $attr, :$rw!) {

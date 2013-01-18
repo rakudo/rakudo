@@ -1471,8 +1471,8 @@ class Perl6::World is HLL::World {
                         }
                         my $name-str := nqp::box_s($name, $Str-obj);
                         next if nqp::existskey(%seen, $name);
-                        my $dist := levenshtein($payload.parent, $name);
-                        #%seen{$name-str} := 1;
+                        my $dist := levenshtein(nqp::unbox_s($payload.parent), $name);
+                        #%seen{$name} := 1;
                         if $dist <= 4 {
                             say($name ~ " is close enough. push it!");
                             $payload.suggestions.push($name-str);
@@ -1487,6 +1487,7 @@ class Perl6::World is HLL::World {
             }
         }
         if $nok {
+            #nqp::rethrow($ex);
             self.rethrow($/, $ex);
         }
     }

@@ -47,6 +47,66 @@ sub p6ize_recursive($x) {
     pir::perl6ize_type__PP($x);
 }
 
+# this levenshtein implementation is used to suggest good alternatives
+# when deriving from an unknown/typo'd class.
+sub levenshtein($a, $b) {
+    my %memo;
+    my $alen := nqp::chars($a);
+    my $blen := nqp::chars($b);
+
+    return 0 if $alen eq 0 || $blen eq 0;
+
+    # the longer of the two strings is an upper bound.
+    my $bound := $alen < $blen ?? $blen !! $alen;
+
+    sub levenshtein_impl($apos, $bpos, $estimate) {
+        my $key := nqp::join(":", ($apos, $bpos));
+
+        return %memo{$key} if nqp::existskey(%memo, $key);
+
+        # if we're already worse off than the current best solution,
+        # just give up with $BIGNUM
+        #if $estimate > $bound {
+            #return 1000 + $bound * $bound;
+        #}
+
+        # if either cursor reached the end of the respective string,
+        # the result is the remaining length of the other string.
+        sub check($pos1, $len1, $pos2, $len2) {
+            if $pos2 == $len2 {
+                my $result := $estimate + $len1 - $pos1;
+                $bound := $result if $result < $bound;
+                return $result - $estimate;
+            }
+            return -1;
+        }
+
+        my $check := check($apos, $alen, $bpos, $blen);
+        return $check unless $check eq -1;
+        $check := check($bpos, $blen, $apos, $alen);
+        return $check unless $check eq -1;
+
+        my $cost := 0;
+        $cost := 1 unless (nqp::substr($a, $apos, 1) eq nqp::substr($b, $bpos, 1)); # can we keep the current letter?
+
+        my $ca := levenshtein_impl($apos+1, $bpos,   $estimate+1) + 1; # what if we remove the current letter from A?
+        my $cb := levenshtein_impl($apos,   $bpos+1, $estimate+1) + 1; # what if we add the current letter from B?
+        my $cc := levenshtein_impl($apos+1, $bpos+1, $estimate+$cost) + $cost; # what if we change/keep the current letter?
+
+        # the result is the shortest of the three sub-tasks
+        my $distance;
+        $distance := $ca if $ca <= $cb && $ca <= $cc;
+        $distance := $cb if $cb <= $ca && $cb <= $cc;
+        $distance := $cc if $cc <= $ca && $cc <= $cb;
+
+        %memo{$key} := $distance;
+        return $distance;
+    }
+
+    my $result := levenshtein_impl(0, 0, 0);
+    return $result;
+}
+
 # This builds upon the HLL::World to add the specifics needed by Rakudo Perl 6.
 class Perl6::World is HLL::World {
     # The stack of lexical pads, actually as QAST::Block objects. The
@@ -1394,10 +1454,43 @@ class Perl6::World is HLL::World {
     
     # Applies a trait.
     method apply_trait($/, $trait_sub_name, *@pos_args, *%named_args) {
-        my $trait_sub := $*W.find_symbol([$trait_sub_name]);
-        self.ex-handle($/, { $trait_sub(|@pos_args, |%named_args) });
+        my $trait_sub := self.find_symbol([$trait_sub_name]);
+        my $ex;
+        my $nok := 0;
+        try {
+            self.ex-handle($/, { $trait_sub(|@pos_args, |%named_args) });
+            CATCH {
+                $ex := $_;
+                if nqp::istype(nqp::getpayload($_), self.find_symbol(["X", "Inheritance", "UnknownParent"])) {
+                    my $payload := nqp::getpayload($_);
+                    my $Str-obj := self.find_symbol(["Str"]);
+                    my %seen := nqp::hash();
+                    sub evaluator($name, $object) {
+                        if nqp::isconcrete($object) {
+                            return 1;
+                        }
+                        my $name-str := nqp::box_s($name, $Str-obj);
+                        next if nqp::existskey(%seen, $name-str);
+                        my $dist := levenshtein($payload.parent, $name);
+                        %seen{$name-str} := 1;
+                        if $dist <= 4 {
+                            say($name ~ " is close enough. push it!");
+                            $payload.suggestions.push($name-str);
+                        } else {
+                            say($name ~ " is " ~ $dist ~ " away");
+                        }
+                        1;
+                    }
+                    self.walk_symbols(&evaluator);
+                }
+                $nok := 1;
+            }
+        }
+        if $nok {
+            self.rethrow($/, $ex);
+        }
     }
-    
+
     # Some things get cloned many times with an outer lexical scope that
     # we never enter. This makes sure we capture them as needed.
     method create_lexical_capture_fixup() {
@@ -1849,7 +1942,36 @@ class Perl6::World is HLL::World {
         }
         $result
     }
-    
+
+    method walk_symbols($code) {
+        # first, go through all lexical scopes
+        sub walk_block($block) {
+            my %symtable := $block.symtable();
+            for %symtable {
+                if nqp::existskey($_.value, 'value') {
+                    # FIXME those objects cause the following error:
+                    # No type check cache and no type_check method in meta-object
+                    next if $_.key eq "!CORE_MARKER";
+                    next if $_.key eq "NQPCursorRole";
+                    my $val := $_.value<value>;
+                    if nqp::istype($val, QAST::Block) {
+                        say("recursing into " ~ $_.key);
+                        walk_block($val);
+                    } else {
+                        $code($_.key, $val);
+                    }
+                }
+            }
+        }
+
+        for @!BLOCKS {
+            walk_block($_);
+        }
+        for $*GLOBALish.WHO {
+            $code($_.key, $_.value);
+        }
+    }
+
     # Finds a symbol that has a known value at compile time from the
     # perspective of the current scope. Checks for lexicals, then if
     # that fails tries package lookup.

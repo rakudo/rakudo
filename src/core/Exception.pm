@@ -213,7 +213,7 @@ do {
             $_() for pir::perl6ize_type__PP(@*END_PHASERS);
         }
         if $! {
-            pir::perl6_based_rethrow__0PP(nqp::getattr($!, Exception, '$!ex'), $ex);
+            pir::perl6_based_rethrow__0PP(nqp::getattr(nqp::p6decont($!), Exception, '$!ex'), $ex);
         }
     }
 
@@ -1043,7 +1043,7 @@ my class X::Inheritance::UnknownParent is Exception {
     method message {
         my $message := $.child ~ ' cannot inherit from ' ~ $.parent ~ ' because it is unknown.';
         if +@.suggestions > 1 {
-            $message := $message ~ "\nDid you mean one of these?\n  " ~ nqp::join("\n  ", @.suggestions);
+            $message := $message ~ "\nDid you mean one of these?\n  " ~ @.suggestions.join("\n    ");
         } elsif +@.suggestions == 1 {
             $message := $message ~ "\nDid you mean " ~ @.suggestions[0];
         }

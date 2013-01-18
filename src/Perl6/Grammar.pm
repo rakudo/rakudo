@@ -880,12 +880,14 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             # Tag UNIT with a magical lexical. Also if we're compiling CORE,
             # give it such a tag too.
             if %*COMPILING<%?OPTIONS><setting> eq 'NULL' {
-                $*W.install_lexical_symbol($*UNIT, '!CORE_MARKER',
-                    $*W.pkg_create_mo($/, %*HOW<package>, :name('!CORE_MARKER')));
+                my $marker := $*W.pkg_create_mo($/, %*HOW<package>, :name('!CORE_MARKER'));
+                $marker.HOW.compose($marker);
+                $*W.install_lexical_symbol($*UNIT, '!CORE_MARKER', $marker);
             }
             else {
-                $*W.install_lexical_symbol($*UNIT, '!UNIT_MARKER',
-                    $*W.pkg_create_mo($/, %*HOW<package>, :name('!UNIT_MARKER')));
+                my $marker := $*W.pkg_create_mo($/, %*HOW<package>, :name('!UNIT_MARKER'));
+                $marker.HOW.compose($marker);
+                $*W.install_lexical_symbol($*UNIT, '!UNIT_MARKER', $marker);
             }
         }
         

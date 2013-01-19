@@ -66,9 +66,9 @@ sub levenshtein($a, $b) {
 
         # if we're already worse off than the current best solution,
         # just give up with $BIGNUM
-        #if $estimate > $bound {
-            #return 1000 + $bound * $bound;
-        #}
+        if $estimate > $bound {
+            return 1000 + $bound * $bound;
+        }
 
         # if either cursor reached the end of the respective string,
         # the result is the remaining length of the other string.

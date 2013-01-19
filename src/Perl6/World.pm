@@ -86,8 +86,14 @@ sub levenshtein($a, $b) {
         $check := check($bpos, $blen, $apos, $alen);
         return $check unless $check eq -1;
 
-        my $cost := 0;
-        $cost := 1 unless (nqp::substr($a, $apos, 1) eq nqp::substr($b, $bpos, 1)); # can we keep the current letter?
+        my $cost := 1;
+        if nqp::substr($a, $apos, 1) eq nqp::substr($b, $bpos, 1) {
+            # can we keep the current letter?
+            $cost := 0;
+        } elsif nqp::uc(nqp::substr($a, $apos, 1)) eq nqp::uc(nqp::substr($b, $bpos, 1)) {
+            # case change gives half cost
+            $cost := 0.5;
+        }
 
         my $ca := levenshtein_impl($apos+1, $bpos,   $estimate+1) + 1; # what if we remove the current letter from A?
         my $cb := levenshtein_impl($apos,   $bpos+1, $estimate+1) + 1; # what if we add the current letter from B?

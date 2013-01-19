@@ -86,11 +86,14 @@ sub levenshtein($a, $b) {
         $check := check($bpos, $blen, $apos, $alen);
         return $check unless $check eq -1;
 
+        my $achar := nqp::substr($a, $apos, 1);
+        my $bchar := nqp::substr($b, $bpos, 1);
+
         my $cost := 1;
-        if nqp::substr($a, $apos, 1) eq nqp::substr($b, $bpos, 1) {
+        if $achar eq $bchar {
             # can we keep the current letter?
             $cost := 0;
-        } elsif nqp::uc(nqp::substr($a, $apos, 1)) eq nqp::uc(nqp::substr($b, $bpos, 1)) {
+        } elsif nqp::uc($achar) eq nqp::uc($bchar) {
             # case change gives half cost
             $cost := 0.5;
         }
@@ -107,8 +110,8 @@ sub levenshtein($a, $b) {
 
         # switching two letters costs only 1 instead of 2.
         if $apos + 1 <= $alen && $bpos + 1 <= $blen &&
-           nqp::substr($a, $apos + 1, 1) eq nqp::substr($b, $bpos, 1) &&
-           nqp::substr($a, $apos, 1) eq nqp::substr($b, $bpos + 1, 1) {
+           nqp::substr($a, $apos + 1, 1) eq $bchar &&
+           nqp::substr($b, $bpos + 1, 1) eq $achar {
             my $cd := levenshtein_impl($apos+2, $bpos+2, $estimate+1) + 1;
             $distance := $cd if $cd < $distance;
         }

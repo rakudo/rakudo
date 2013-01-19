@@ -275,7 +275,8 @@ role STD {
             my $name := $varast.name;
             if $name ne '%_' && $name ne '@_' && !$*W.is_lexical($name) {
                 if $var<sigil> ne '&' {
-                    $*W.throw($var, ['X', 'Undeclared'], symbol => $varast.name());
+                    my @suggestions := $*W.suggest_lexicals($name);
+                    $*W.throw($var, ['X', 'Undeclared'], symbol => $varast.name(), suggestions => @suggestions);
                 }
                 else {
                     $var.CURSOR.add_mystery($varast.name, $var.to, 'var');
@@ -3313,6 +3314,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             }
         }
         
+        my %routine_suggestion := hash();
+        
         for %*MYSTERY {
             my %sym  := $_.value;
             my $name := %sym<name>;
@@ -3334,13 +3337,15 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             }
             else {
                 %unk_routines{$name} := [] unless %unk_routines{$name};
+                my @suggs := $*W.suggest_routines($name);
+                %routine_suggestion{$name} := @suggs;
                 push_lines(%unk_routines{$name}, %sym<pos>);
             }
         }
         
         if %post_types || %unk_types || %unk_routines {
             self.typed_sorry('X::Undeclared::Symbols',
-                :%post_types, :%unk_types, :%unk_routines);
+                :%post_types, :%unk_types, :%unk_routines, :%routine_suggestion);
         }
         
         self;        

@@ -213,7 +213,7 @@ do {
             $_() for pir::perl6ize_type__PP(@*END_PHASERS);
         }
         if $! {
-            pir::perl6_based_rethrow__0PP(nqp::getattr($!, Exception, '$!ex'), $ex);
+            pir::perl6_based_rethrow__0PP(nqp::getattr(nqp::p6decont($!), Exception, '$!ex'), $ex);
         }
     }
 
@@ -463,8 +463,15 @@ my class X::Placeholder::Mainline is X::Placeholder::Block {
 my class X::Undeclared does X::Comp {
     has $.what = 'Variable';
     has $.symbol;
+    has @.suggestions;
     method message() {
-        "$.what $.symbol is not declared";
+        my $message := "$.what '$.symbol' is not declared";
+        if +@.suggestions == 1 {
+            $message := "$message. Did you mean '@.suggestions[0]'?";
+        } elsif +@.suggestions > 1 {
+            $message := "$message. Did you mean any of these?\n    { nqp::join("\n    ", @.suggestions) }\n";
+        }
+        $message;
     }
 }
 
@@ -481,6 +488,7 @@ my class X::Undeclared::Symbols does X::Comp {
     has %.post_types;
     has %.unk_types;
     has %.unk_routines;
+    has %.routine_suggestion;
     multi method gist(:$sorry = True) {
         ($sorry ?? self.sorry_heading() !! "") ~ self.message
     }
@@ -488,6 +496,9 @@ my class X::Undeclared::Symbols does X::Comp {
         sub l(@l) {
             my @lu = @l.uniq.sort;
             'used at line' ~ (@lu == 1 ?? ' ' !! 's ') ~ @lu.join(', ')
+        }
+        sub s(@s) {
+            "Did you mean '{ @s.join("', '") }'?";
         }
         my $r = "";
         if %.post_types {
@@ -505,7 +516,11 @@ my class X::Undeclared::Symbols does X::Comp {
         if %.unk_routines {
             $r ~= "Undeclared routine" ~ (%.unk_routines.elems == 1 ?? "" !! "s") ~ ":\n";
             for %.unk_routines.sort(*.key) {
-                $r ~= "    $_.key() &l($_.value)\n";
+                $r ~= "    $_.key() &l($_.value)";
+                if %.routine_suggestion{$_.key()} :exists {
+                    $r ~= ". " ~ s(%.routine_suggestion{$_.key()});
+                }
+                $r ~= "\n";
             }
         }
         $r
@@ -1032,6 +1047,22 @@ my class X::Inheritance::Unsupported does X::Comp {
     method message {
         $.parent.^name ~ ' does not support inheritance, so '
         ~ $.child-typename ~ ' cannot inherit from it';
+    }
+}
+
+my class X::Inheritance::UnknownParent is Exception {
+    has $.child;
+    has $.parent;
+    has @.suggestions is rw;
+
+    method message {
+        my $message := "'" ~ $.child ~ "' cannot inherit from '" ~ $.parent ~ "' because it is unknown.";
+        if +@.suggestions > 1 {
+            $message := $message ~ "\nDid you mean one of these?\n    '" ~ @.suggestions.join("'\n    '") ~ "'\n";
+        } elsif +@.suggestions == 1 {
+            $message := $message ~ "\nDid you mean '" ~ @.suggestions[0] ~ "'?\n";
+        }
+        return $message;
     }
 }
 

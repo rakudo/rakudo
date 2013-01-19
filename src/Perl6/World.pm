@@ -59,6 +59,14 @@ sub levenshtein($a, $b) {
     # the longer of the two strings is an upper bound.
     #my $bound := $alen < $blen ?? $blen !! $alen;
 
+    sub changecost($ac, $bc) {
+        sub issigil($_) { nqp::index('$@%&|', $_) != -1 };
+        return 0 if $ac eq $bc;
+        return 0.5 if nqp::uc($ac) eq nqp::lc($bc);
+        return 0.5 if issigil($ac) && issigil($bc);
+        return 1;
+    }
+
     sub levenshtein_impl($apos, $bpos, $estimate) {
         my $key := nqp::join(":", ($apos, $bpos));
 
@@ -90,14 +98,7 @@ sub levenshtein($a, $b) {
         my $achar := nqp::substr($a, $apos, 1);
         my $bchar := nqp::substr($b, $bpos, 1);
 
-        my $cost := 1;
-        if $achar eq $bchar {
-            # can we keep the current letter?
-            $cost := 0;
-        } elsif nqp::uc($achar) eq nqp::uc($bchar) {
-            # case change gives half cost
-            $cost := 0.5;
-        }
+        my $cost := changecost($achar, $bchar);
 
         # hyphens and underscores cost half when adding/deleting.
         my $addcost := 1;

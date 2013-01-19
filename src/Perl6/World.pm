@@ -105,6 +105,14 @@ sub levenshtein($a, $b) {
         $distance := $cb if $cb <= $ca && $cb <= $cc;
         $distance := $cc if $cc <= $ca && $cc <= $cb;
 
+        # switching two letters costs only 1 instead of 2.
+        if $apos + 1 <= $alen && $bpos + 1 <= $blen &&
+           nqp::substr($a, $apos + 1, 1) eq nqp::substr($b, $bpos, 1) &&
+           nqp::substr($a, $apos, 1) eq nqp::substr($b, $bpos + 1, 1) {
+            my $cd := levenshtein_impl($apos+2, $bpos+2, $estimate+1) + 1;
+            $distance := $cd if $cd < $distance;
+        }
+
         %memo{$key} := $distance;
         return $distance;
     }

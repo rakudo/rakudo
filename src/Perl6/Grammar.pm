@@ -3004,7 +3004,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         | <longname>
         | <?before '$' | '@' | '&' > <variable> { self.check_variable($<variable>) }
         | <?before <[ ' " ]> >
-            [ <!{$*QSIGIL}> || <!before '"' <-["]>*? \s > ] # dwim on "$foo."
+            [ <!{$*QSIGIL}> || <!before '"' <-["]>*? [\s|$] > ] # dwim on "$foo."
             <quote>
             [ <?before '(' | '.(' | '\\'> || <.panic: "Quoted method name requires parenthesized arguments. If you meant to concatenate two strings, use '~'."> ]
         ] <.unsp>?

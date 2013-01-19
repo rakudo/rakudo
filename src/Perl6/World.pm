@@ -72,28 +72,19 @@ sub levenshtein($a, $b) {
 
         return %memo{$key} if nqp::existskey(%memo, $key);
 
-        # if we're already worse off than the current best solution,
-        # just give up with $BIGNUM
-        #if $estimate > $bound {
-            #return 1000 + $bound * $bound;
-        #}
-
         # if either cursor reached the end of the respective string,
         # the result is the remaining length of the other string.
         sub check($pos1, $len1, $pos2, $len2) {
             if $pos2 == $len2 {
-                #my $result := $estimate + $len1 - $pos1;
-                #$bound := $result if $result < $bound;
-                #return $result - $estimate;
                 return $len1 - $pos1;
             }
             return -1;
         }
 
         my $check := check($apos, $alen, $bpos, $blen);
-        return $check unless $check eq -1;
+        return $check unless $check == -1;
         $check := check($bpos, $blen, $apos, $alen);
-        return $check unless $check eq -1;
+        return $check unless $check == -1;
 
         my $achar := nqp::substr($a, $apos, 1);
         my $bchar := nqp::substr($b, $bpos, 1);

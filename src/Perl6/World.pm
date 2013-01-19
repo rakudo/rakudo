@@ -57,7 +57,7 @@ sub levenshtein($a, $b) {
     return 0 if $alen eq 0 || $blen eq 0;
 
     # the longer of the two strings is an upper bound.
-    my $bound := $alen < $blen ?? $blen !! $alen;
+    #my $bound := $alen < $blen ?? $blen !! $alen;
 
     sub levenshtein_impl($apos, $bpos, $estimate) {
         my $key := nqp::join(":", ($apos, $bpos));
@@ -66,17 +66,18 @@ sub levenshtein($a, $b) {
 
         # if we're already worse off than the current best solution,
         # just give up with $BIGNUM
-        if $estimate > $bound {
-            return 1000 + $bound * $bound;
-        }
+        #if $estimate > $bound {
+            #return 1000 + $bound * $bound;
+        #}
 
         # if either cursor reached the end of the respective string,
         # the result is the remaining length of the other string.
         sub check($pos1, $len1, $pos2, $len2) {
             if $pos2 == $len2 {
-                my $result := $estimate + $len1 - $pos1;
-                $bound := $result if $result < $bound;
-                return $result - $estimate;
+                #my $result := $estimate + $len1 - $pos1;
+                #$bound := $result if $result < $bound;
+                #return $result - $estimate;
+                return $len1 - $pos1;
             }
             return -1;
         }

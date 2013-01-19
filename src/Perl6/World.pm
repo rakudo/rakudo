@@ -1488,7 +1488,8 @@ class Perl6::World is HLL::World {
                 my $payload := nqp::getpayload($_);
                 if nqp::istype($payload, self.find_symbol(["X", "Inheritance", "UnknownParent"])) {
                     my $Str-obj := self.find_symbol(["Str"]);
-                    my %seen := hash($payload.child=>1);
+                    my %seen;
+                    %seen{$payload.child} := 1;
                     # sort them into ranges of 0..0.1, 0.1..0.2 and 0.2..0.3
                     my @candidates := [[], [], []];
 

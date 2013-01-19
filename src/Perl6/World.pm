@@ -146,6 +146,24 @@ sub make_levenshtein_evaluator($orig_name, @candidates) {
     return &inner;
 }
 
+sub levenshtein_candidate_heuristic(@candidates, $target) {
+    # only take a few suggestions
+    my $to-add := 5;
+    for @candidates[0] {
+        $target.push($_) if $to-add > 0;
+        $to-add := $to-add - 1;
+    }
+    $to-add := $to-add - 1 if +@candidates[0] > 0;
+    for @candidates[1] {
+        $target.push($_) if $to-add > 0;
+        $to-add := $to-add - 1;
+    }
+    $to-add := $to-add - 2 if +@candidates[1] > 0;
+    for @candidates[2] {
+        $target.push($_) if $to-add > 0;
+        $to-add := $to-add - 1;
+    }
+}
 
 # This builds upon the HLL::World to add the specifics needed by Rakudo Perl 6.
 class Perl6::World is HLL::World {
@@ -1518,22 +1536,7 @@ class Perl6::World is HLL::World {
                     }
                     self.walk_symbols(&evaluator);
 
-                    # only take a few suggestions
-                    my $to-add := 5;
-                    for @candidates[0] {
-                        $payload.suggestions.push($_) if $to-add > 0;
-                        $to-add := $to-add - 1;
-                    }
-                    $to-add := $to-add - 1 if +@candidates[0] > 0;
-                    for @candidates[1] {
-                        $payload.suggestions.push($_) if $to-add > 0;
-                        $to-add := $to-add - 1;
-                    }
-                    $to-add := $to-add - 2 if +@candidates[1] > 0;
-                    for @candidates[2] {
-                        $payload.suggestions.push($_) if $to-add > 0;
-                        $to-add := $to-add - 1;
-                    }
+                    levenshtein_candidate_heuristic(@candidates, $payload.suggestions);
                 }
                 $nok := 1;
             }
@@ -2209,22 +2212,8 @@ class Perl6::World is HLL::World {
             1;
         }
         self.walk_symbols(&evaluate);
-        # only take a few suggestions
-        my $to-add := 5;
-        for @candidates[0] {
-            @suggestions.push($_) if $to-add > 0;
-            $to-add := $to-add - 1;
-        }
-        $to-add := $to-add - 1 if +@candidates[0] > 0;
-        for @candidates[1] {
-            @suggestions.push($_) if $to-add > 0;
-            $to-add := $to-add - 1;
-        }
-        $to-add := $to-add - 2 if +@candidates[1] > 0;
-        for @candidates[2] {
-            @suggestions.push($_) if $to-add > 0;
-            $to-add := $to-add - 1;
-        }
+
+        levenshtein_candidate_heuristic(@candidates, @suggestions);
         return @suggestions;
     }
 
@@ -2245,26 +2234,11 @@ class Perl6::World is HLL::World {
         }
         self.walk_symbols(&evaluate);
 
-        # only take a few suggestions
-        my $to-add := 5;
-        for @candidates[0] {
-            @suggestions.push($_) if $to-add > 0;
-            $to-add := $to-add - 1;
-        }
-        $to-add := $to-add - 1 if +@candidates[0] > 0;
-        for @candidates[1] {
-            @suggestions.push($_) if $to-add > 0;
-            $to-add := $to-add - 1;
-        }
-        $to-add := $to-add - 2 if +@candidates[1] > 0;
-        for @candidates[2] {
-            @suggestions.push($_) if $to-add > 0;
-            $to-add := $to-add - 1;
-        }
+        levenshtein_candidate_heuristic(@candidates, @suggestions);
         return @suggestions;
     }
 
-    
+
     # Checks if the symbol is really an alias to an attribute.
     method is_attr_alias($name) {
         my int $i := +@!BLOCKS;

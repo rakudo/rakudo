@@ -124,6 +124,29 @@ sub levenshtein($a, $b) {
     return $result;
 }
 
+sub make_levenshtein_evaluator($orig_name, @candidates) {
+    my $Str-obj := $*W.find_symbol(["Str"]);
+    sub inner($name, $object, $hash) {
+        # difference in length is a good lower bound.
+        my $parlen := nqp::chars($orig_name);
+        my $lendiff := nqp::chars($name) - $parlen;
+        $lendiff := -$lendiff if $lendiff < 0;
+        return 1 if $lendiff >= $parlen * 0.3;
+
+        my $dist := levenshtein($orig_name, $name) / $parlen;
+        my @target;
+        @target := @candidates[0] if $dist <= 0.1;
+        @target := @candidates[1] if 0.1 < $dist && $dist <= 0.2;
+        @target := @candidates[2] if 0.2 < $dist && $dist <= 0.35;
+        if nqp::defined(@target) {
+            my $name-str := nqp::box_s($name, $Str-obj);
+            nqp::push(@target, $name-str);
+        }
+    }
+    return &inner;
+}
+
+
 # This builds upon the HLL::World to add the specifics needed by Rakudo Perl 6.
 class Perl6::World is HLL::World {
     # The stack of lexical pads, actually as QAST::Block objects. The
@@ -1480,34 +1503,17 @@ class Perl6::World is HLL::World {
                 $ex := $_;
                 my $payload := nqp::getpayload($_);
                 if nqp::istype($payload, self.find_symbol(["X", "Inheritance", "UnknownParent"])) {
-                    my $Str-obj := self.find_symbol(["Str"]);
                     my %seen;
                     %seen{$payload.child} := 1;
-                    # sort them into ranges of 0..0.1, 0.1..0.2 and 0.2..0.3
                     my @candidates := [[], [], []];
+                    my &inner-evaluator := make_levenshtein_evaluator($payload.parent, @candidates);
 
-                    sub evaluator($name, $object) {
+                    sub evaluator($name, $object, $hash) {
                         # only care about type objects
                         return 1 if nqp::isconcrete($object);
-
-                        # difference in length is a good lower bound.
-                        my $parlen := nqp::chars($payload.parent);
-                        my $lendiff := nqp::chars($name) - $parlen;
-                        $lendiff := -$lendiff if $lendiff < 0;
-                        return 1 if $lendiff >= $parlen * 0.3;
-
                         return 1 if nqp::existskey(%seen, $name);
-
-                        my $dist := levenshtein(nqp::unbox_s($payload.parent), $name) / $parlen;
+                        &inner-evaluator($name, $object, $hash);
                         %seen{$name} := 1;
-                        my @target;
-                        @target := @candidates[0] if $dist <= 0.1;
-                        @target := @candidates[1] if 0.1 < $dist && $dist <= 0.2;
-                        @target := @candidates[2] if 0.2 < $dist && $dist <= 0.35;
-                        if nqp::defined(@target) {
-                            my $name-str := nqp::box_s($name, $Str-obj);
-                            nqp::push(@target, $name-str);
-                        }
                         1;
                     }
                     self.walk_symbols(&evaluator);
@@ -1997,10 +2003,9 @@ class Perl6::World is HLL::World {
                 if nqp::existskey($_.value, 'value') {
                     my $val := $_.value<value>;
                     if nqp::istype($val, QAST::Block) {
-                        say("recursing into " ~ $_.key);
                         walk_block($val);
                     } else {
-                        $code($_.key, $val);
+                        $code($_.key, $val, $_.value);
                     }
                 }
             }
@@ -2010,7 +2015,7 @@ class Perl6::World is HLL::World {
             walk_block($_);
         }
         for $*GLOBALish.WHO {
-            $code($_.key, $_.value);
+            $code($_.key, $_.value, hash());
         }
     }
 

@@ -275,7 +275,8 @@ role STD {
             my $name := $varast.name;
             if $name ne '%_' && $name ne '@_' && !$*W.is_lexical($name) {
                 if $var<sigil> ne '&' {
-                    $*W.throw($var, ['X', 'Undeclared'], symbol => $varast.name());
+                    my @suggestions := $*W.suggest_lexicals($name);
+                    $*W.throw($var, ['X', 'Undeclared'], symbol => $varast.name(), suggestions => @suggestions);
                 }
                 else {
                     $var.CURSOR.add_mystery($varast.name, $var.to, 'var');

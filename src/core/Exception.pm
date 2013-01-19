@@ -463,8 +463,15 @@ my class X::Placeholder::Mainline is X::Placeholder::Block {
 my class X::Undeclared does X::Comp {
     has $.what = 'Variable';
     has $.symbol;
+    has @.suggestions;
     method message() {
-        "$.what $.symbol is not declared";
+        my $message := "$.what '$.symbol' is not declared";
+        if +@.suggestions == 1 {
+            $message := "$message. Did you mean '@.suggestions[0]'?";
+        } elsif +@.suggestions > 1 {
+            $message := "$message. Did you mean any of these?\n    { nqp::join("\n    ", @.suggestions) }\n";
+        }
+        $message;
     }
 }
 

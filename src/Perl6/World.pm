@@ -98,8 +98,15 @@ sub levenshtein($a, $b) {
             $cost := 0.5;
         }
 
-        my $ca := levenshtein_impl($apos+1, $bpos,   $estimate+1) + 1; # what if we remove the current letter from A?
-        my $cb := levenshtein_impl($apos,   $bpos+1, $estimate+1) + 1; # what if we add the current letter from B?
+        # hyphens and underscores cost half when adding/deleting.
+        my $addcost := 1;
+        $addcost := 0.5 if $bchar eq "-" || $bchar eq "_";
+
+        my $delcost := 1;
+        $delcost := 0.5 if $achar eq "-" || $achar eq "_";
+
+        my $ca := levenshtein_impl($apos+1, $bpos,   $estimate+$delcost) + $delcost; # what if we remove the current letter from A?
+        my $cb := levenshtein_impl($apos,   $bpos+1, $estimate+$addcost) + $addcost; # what if we add the current letter from B?
         my $cc := levenshtein_impl($apos+1, $bpos+1, $estimate+$cost) + $cost; # what if we change/keep the current letter?
 
         # the result is the shortest of the three sub-tasks

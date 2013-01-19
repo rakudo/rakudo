@@ -47,6 +47,124 @@ sub p6ize_recursive($x) {
     pir::perl6ize_type__PP($x);
 }
 
+# this levenshtein implementation is used to suggest good alternatives
+# when deriving from an unknown/typo'd class.
+sub levenshtein($a, $b) {
+    my %memo;
+    my $alen := nqp::chars($a);
+    my $blen := nqp::chars($b);
+
+    return 0 if $alen eq 0 || $blen eq 0;
+
+    # the longer of the two strings is an upper bound.
+    #my $bound := $alen < $blen ?? $blen !! $alen;
+
+    sub changecost($ac, $bc) {
+        sub issigil($_) { nqp::index('$@%&|', $_) != -1 };
+        return 0 if $ac eq $bc;
+        return 0.5 if nqp::uc($ac) eq nqp::lc($bc);
+        return 0.5 if issigil($ac) && issigil($bc);
+        return 1;
+    }
+
+    sub levenshtein_impl($apos, $bpos, $estimate) {
+        my $key := nqp::join(":", ($apos, $bpos));
+
+        return %memo{$key} if nqp::existskey(%memo, $key);
+
+        # if either cursor reached the end of the respective string,
+        # the result is the remaining length of the other string.
+        sub check($pos1, $len1, $pos2, $len2) {
+            if $pos2 == $len2 {
+                return $len1 - $pos1;
+            }
+            return -1;
+        }
+
+        my $check := check($apos, $alen, $bpos, $blen);
+        return $check unless $check == -1;
+        $check := check($bpos, $blen, $apos, $alen);
+        return $check unless $check == -1;
+
+        my $achar := nqp::substr($a, $apos, 1);
+        my $bchar := nqp::substr($b, $bpos, 1);
+
+        my $cost := changecost($achar, $bchar);
+
+        # hyphens and underscores cost half when adding/deleting.
+        my $addcost := 1;
+        $addcost := 0.5 if $bchar eq "-" || $bchar eq "_";
+
+        my $delcost := 1;
+        $delcost := 0.5 if $achar eq "-" || $achar eq "_";
+
+        my $ca := levenshtein_impl($apos+1, $bpos,   $estimate+$delcost) + $delcost; # what if we remove the current letter from A?
+        my $cb := levenshtein_impl($apos,   $bpos+1, $estimate+$addcost) + $addcost; # what if we add the current letter from B?
+        my $cc := levenshtein_impl($apos+1, $bpos+1, $estimate+$cost) + $cost; # what if we change/keep the current letter?
+
+        # the result is the shortest of the three sub-tasks
+        my $distance;
+        $distance := $ca if $ca <= $cb && $ca <= $cc;
+        $distance := $cb if $cb <= $ca && $cb <= $cc;
+        $distance := $cc if $cc <= $ca && $cc <= $cb;
+
+        # switching two letters costs only 1 instead of 2.
+        if $apos + 1 <= $alen && $bpos + 1 <= $blen &&
+           nqp::substr($a, $apos + 1, 1) eq $bchar &&
+           nqp::substr($b, $bpos + 1, 1) eq $achar {
+            my $cd := levenshtein_impl($apos+2, $bpos+2, $estimate+1) + 1;
+            $distance := $cd if $cd < $distance;
+        }
+
+        %memo{$key} := $distance;
+        return $distance;
+    }
+
+    my $result := levenshtein_impl(0, 0, 0);
+    return $result;
+}
+
+sub make_levenshtein_evaluator($orig_name, @candidates) {
+    my $Str-obj := $*W.find_symbol(["Str"]);
+    sub inner($name, $object, $hash) {
+        # difference in length is a good lower bound.
+        my $parlen := nqp::chars($orig_name);
+        my $lendiff := nqp::chars($name) - $parlen;
+        $lendiff := -$lendiff if $lendiff < 0;
+        return 1 if $lendiff >= $parlen * 0.3;
+
+        my $dist := levenshtein($orig_name, $name) / $parlen;
+        my @target;
+        @target := @candidates[0] if $dist <= 0.1;
+        @target := @candidates[1] if 0.1 < $dist && $dist <= 0.2;
+        @target := @candidates[2] if 0.2 < $dist && $dist <= 0.35;
+        if nqp::defined(@target) {
+            my $name-str := nqp::box_s($name, $Str-obj);
+            nqp::push(@target, $name-str);
+        }
+    }
+    return &inner;
+}
+
+sub levenshtein_candidate_heuristic(@candidates, $target) {
+    # only take a few suggestions
+    my $to-add := 5;
+    for @candidates[0] {
+        $target.push($_) if $to-add > 0;
+        $to-add := $to-add - 1;
+    }
+    $to-add := $to-add - 1 if +@candidates[0] > 0;
+    for @candidates[1] {
+        $target.push($_) if $to-add > 0;
+        $to-add := $to-add - 1;
+    }
+    $to-add := $to-add - 2 if +@candidates[1] > 0;
+    for @candidates[2] {
+        $target.push($_) if $to-add > 0;
+        $to-add := $to-add - 1;
+    }
+}
+
 # This builds upon the HLL::World to add the specifics needed by Rakudo Perl 6.
 class Perl6::World is HLL::World {
     # The stack of lexical pads, actually as QAST::Block objects. The
@@ -1394,10 +1512,40 @@ class Perl6::World is HLL::World {
     
     # Applies a trait.
     method apply_trait($/, $trait_sub_name, *@pos_args, *%named_args) {
-        my $trait_sub := $*W.find_symbol([$trait_sub_name]);
-        self.ex-handle($/, { $trait_sub(|@pos_args, |%named_args) });
+        my $trait_sub := self.find_symbol([$trait_sub_name]);
+        my $ex;
+        my $nok := 0;
+        try {
+            self.ex-handle($/, { $trait_sub(|@pos_args, |%named_args) });
+            CATCH {
+                $ex := $_;
+                my $payload := nqp::getpayload($_);
+                if nqp::istype($payload, self.find_symbol(["X", "Inheritance", "UnknownParent"])) {
+                    my %seen;
+                    %seen{$payload.child} := 1;
+                    my @candidates := [[], [], []];
+                    my &inner-evaluator := make_levenshtein_evaluator($payload.parent, @candidates);
+
+                    sub evaluator($name, $object, $hash) {
+                        # only care about type objects
+                        return 1 if nqp::isconcrete($object);
+                        return 1 if nqp::existskey(%seen, $name);
+                        &inner-evaluator($name, $object, $hash);
+                        %seen{$name} := 1;
+                        1;
+                    }
+                    self.walk_symbols(&evaluator);
+
+                    levenshtein_candidate_heuristic(@candidates, $payload.suggestions);
+                }
+                $nok := 1;
+            }
+        }
+        if $nok {
+            self.rethrow($/, $ex);
+        }
     }
-    
+
     # Some things get cloned many times with an outer lexical scope that
     # we never enter. This makes sure we capture them as needed.
     method create_lexical_capture_fixup() {
@@ -1849,7 +1997,31 @@ class Perl6::World is HLL::World {
         }
         $result
     }
-    
+
+    method walk_symbols($code) {
+        # first, go through all lexical scopes
+        sub walk_block($block) {
+            my %symtable := $block.symtable();
+            for %symtable {
+                if nqp::existskey($_.value, 'value') {
+                    my $val := $_.value<value>;
+                    if nqp::istype($val, QAST::Block) {
+                        walk_block($val);
+                    } else {
+                        $code($_.key, $val, $_.value);
+                    }
+                }
+            }
+        }
+
+        for @!BLOCKS {
+            walk_block($_);
+        }
+        for $*GLOBALish.WHO {
+            $code($_.key, $_.value, hash());
+        }
+    }
+
     # Finds a symbol that has a known value at compile time from the
     # perspective of the current scope. Checks for lexicals, then if
     # that fails tries package lookup.
@@ -2024,6 +2196,49 @@ class Perl6::World is HLL::World {
         0;
     }
     
+    method suggest_lexicals($name) {
+        my @suggestions;
+        my @candidates := [[], [], []];
+        my &inner-evaluator := make_levenshtein_evaluator($name, @candidates);
+        my %seen;
+        %seen{$name} := 1;
+        sub evaluate($name, $value, $hash) {
+            # the descriptor identifies variables.
+            return 1 unless nqp::existskey($hash, "descriptor");
+            return 1 if nqp::existskey(%seen, $name);
+
+            &inner-evaluator($name, $value, $hash);
+            %seen{$name} := 1;
+            1;
+        }
+        self.walk_symbols(&evaluate);
+
+        levenshtein_candidate_heuristic(@candidates, @suggestions);
+        return @suggestions;
+    }
+
+    method suggest_routines($name) {
+        $name := "&"~$name unless nqp::substr($name, 0, 1) eq "&";
+        my @suggestions;
+        my @candidates := [[], [], []];
+        my &inner-evaluator := make_levenshtein_evaluator($name, @candidates);
+        my %seen;
+        %seen{$name} := 1;
+        sub evaluate($name, $value, $hash) {
+            return 1 unless nqp::substr($name, 0, 1) eq "&";
+            return 1 if nqp::existskey(%seen, $name);
+
+            &inner-evaluator($name, $value, $hash);
+            %seen{$name} := 1;
+            1;
+        }
+        self.walk_symbols(&evaluate);
+
+        levenshtein_candidate_heuristic(@candidates, @suggestions);
+        return @suggestions;
+    }
+
+
     # Checks if the symbol is really an alias to an attribute.
     method is_attr_alias($name) {
         my int $i := +@!BLOCKS;

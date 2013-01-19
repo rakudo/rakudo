@@ -1066,6 +1066,14 @@ my class X::Inheritance::UnknownParent is Exception {
     }
 }
 
+my class X::Inheritance::SelfInherit is Exception {
+    has $.name;
+
+    method message {
+        "'$.name' cannot inherit from itself."
+    }
+}
+
 my class X::Export::NameClash does X::Comp {
     has $.symbol;
     method message() {

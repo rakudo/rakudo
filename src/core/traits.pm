@@ -17,6 +17,7 @@ my class X::Export::NameClash        { ... }
 my class X::Composition::NotComposable { ... }
 my class X::Import::MissingSymbols   { ... }
 my class X::Redeclaration { ... }
+my class X::Inheritance::SelfInherit { ... }
 
 proto trait_mod:<is>(|) { * }
 multi trait_mod:<is>(Mu:U $child, Mu:U $parent) {
@@ -43,11 +44,17 @@ multi trait_mod:<is>(Mu:U $type, :$hidden!) {
     $type.HOW.set_hidden($type);
 }
 multi trait_mod:<is>(Mu:U $type, *%fail) {
-    X::Inheritance::UnknownParent.new(
-        :child($type.HOW.name($type)),
-        :parent(%fail.keys[0]),
-        :suggestions([])
-    ).throw;
+    if %fail.keys[0] !eq $type.HOW.name($type) {
+        X::Inheritance::UnknownParent.new(
+            :child($type.HOW.name($type)),
+            :parent(%fail.keys[0]),
+            :suggestions([])
+        ).throw;
+    } else {
+        X::Inheritance::SelfInherit.new(
+            :name(%fail.keys[0])
+        ).throw;
+    }
 }
 
 multi trait_mod:<is>(Attribute:D $attr, :$rw!) {

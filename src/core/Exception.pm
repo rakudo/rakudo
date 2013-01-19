@@ -517,7 +517,7 @@ my class X::Undeclared::Symbols does X::Comp {
             $r ~= "Undeclared routine" ~ (%.unk_routines.elems == 1 ?? "" !! "s") ~ ":\n";
             for %.unk_routines.sort(*.key) {
                 $r ~= "    $_.key() &l($_.value)";
-                if %.routine_suggestion{$_.key()} :exists {
+                if +%.routine_suggestion{$_.key()} {
                     $r ~= ". " ~ s(%.routine_suggestion{$_.key()});
                 }
                 $r ~= "\n";

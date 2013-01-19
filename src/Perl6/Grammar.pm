@@ -3314,6 +3314,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             }
         }
         
+        my %routine_suggestion := hash();
+        
         for %*MYSTERY {
             my %sym  := $_.value;
             my $name := %sym<name>;
@@ -3335,13 +3337,15 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             }
             else {
                 %unk_routines{$name} := [] unless %unk_routines{$name};
+                my @suggs := $*W.suggest_routines($name);
+                %routine_suggestion{$name} := @suggs;
                 push_lines(%unk_routines{$name}, %sym<pos>);
             }
         }
         
         if %post_types || %unk_types || %unk_routines {
             self.typed_sorry('X::Undeclared::Symbols',
-                :%post_types, :%unk_types, :%unk_routines);
+                :%post_types, :%unk_types, :%unk_routines, :%routine_suggestion);
         }
         
         self;        

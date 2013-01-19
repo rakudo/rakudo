@@ -2227,6 +2227,43 @@ class Perl6::World is HLL::World {
         }
         return @suggestions;
     }
+
+    method suggest_routines($name) {
+        $name := "&"~$name unless nqp::substr($name, 0, 1) eq "&";
+        my @suggestions;
+        my @candidates := [[], [], []];
+        my &inner-evaluator := make_levenshtein_evaluator($name, @candidates);
+        my %seen;
+        %seen{$name} := 1;
+        sub evaluate($name, $value, $hash) {
+            return 1 unless nqp::substr($name, 0, 1) eq "&";
+            return 1 if nqp::existskey(%seen, $name);
+
+            &inner-evaluator($name, $value, $hash);
+            %seen{$name} := 1;
+            1;
+        }
+        self.walk_symbols(&evaluate);
+
+        # only take a few suggestions
+        my $to-add := 5;
+        for @candidates[0] {
+            @suggestions.push($_) if $to-add > 0;
+            $to-add := $to-add - 1;
+        }
+        $to-add := $to-add - 1 if +@candidates[0] > 0;
+        for @candidates[1] {
+            @suggestions.push($_) if $to-add > 0;
+            $to-add := $to-add - 1;
+        }
+        $to-add := $to-add - 2 if +@candidates[1] > 0;
+        for @candidates[2] {
+            @suggestions.push($_) if $to-add > 0;
+            $to-add := $to-add - 1;
+        }
+        return @suggestions;
+    }
+
     
     # Checks if the symbol is really an alias to an attribute.
     method is_attr_alias($name) {

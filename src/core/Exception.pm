@@ -488,6 +488,7 @@ my class X::Undeclared::Symbols does X::Comp {
     has %.post_types;
     has %.unk_types;
     has %.unk_routines;
+    has %.routine_suggestion;
     multi method gist(:$sorry = True) {
         ($sorry ?? self.sorry_heading() !! "") ~ self.message
     }
@@ -495,6 +496,9 @@ my class X::Undeclared::Symbols does X::Comp {
         sub l(@l) {
             my @lu = @l.uniq.sort;
             'used at line' ~ (@lu == 1 ?? ' ' !! 's ') ~ @lu.join(', ')
+        }
+        sub s(@s) {
+            "Did you mean '{ @s.join("', '") }'?";
         }
         my $r = "";
         if %.post_types {
@@ -512,7 +516,11 @@ my class X::Undeclared::Symbols does X::Comp {
         if %.unk_routines {
             $r ~= "Undeclared routine" ~ (%.unk_routines.elems == 1 ?? "" !! "s") ~ ":\n";
             for %.unk_routines.sort(*.key) {
-                $r ~= "    $_.key() &l($_.value)\n";
+                $r ~= "    $_.key() &l($_.value)";
+                if %.routine_suggestion{$_.key()} :exists {
+                    $r ~= " " ~ s(%.routine_suggestion{$_.key()});
+                }
+                $r ~= "\n";
             }
         }
         $r

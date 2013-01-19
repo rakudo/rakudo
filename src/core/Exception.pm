@@ -1043,9 +1043,9 @@ my class X::Inheritance::UnknownParent is Exception {
     method message {
         my $message := "'" ~ $.child ~ "' cannot inherit from '" ~ $.parent ~ "' because it is unknown.";
         if +@.suggestions > 1 {
-            $message := $message ~ "\nDid you mean one of these?\n    '" ~ @.suggestions.join("'\n    '") ~ "'";
+            $message := $message ~ "\nDid you mean one of these?\n    '" ~ @.suggestions.join("'\n    '") ~ "'\n";
         } elsif +@.suggestions == 1 {
-            $message := $message ~ "\nDid you mean '" ~ @.suggestions[0] ~ "'?";
+            $message := $message ~ "\nDid you mean '" ~ @.suggestions[0] ~ "'?\n";
         }
         return $message;
     }

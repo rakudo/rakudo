@@ -1461,33 +1461,60 @@ class Perl6::World is HLL::World {
             self.ex-handle($/, { $trait_sub(|@pos_args, |%named_args) });
             CATCH {
                 $ex := $_;
-                if nqp::istype(nqp::getpayload($_), self.find_symbol(["X", "Inheritance", "UnknownParent"])) {
-                    my $payload := nqp::getpayload($_);
+                my $payload := nqp::getpayload($_);
+                if nqp::istype($payload, self.find_symbol(["X", "Inheritance", "UnknownParent"])) {
                     my $Str-obj := self.find_symbol(["Str"]);
                     my %seen := nqp::hash();
+                    # sort them into ranges of 0..0.1, 0.1..0.2 and 0.2..0.3
+                    my @candidates := [[], [], []];
+
                     sub evaluator($name, $object) {
-                        if nqp::isconcrete($object) {
-                            return 1;
-                        }
-                        my $name-str := nqp::box_s($name, $Str-obj);
-                        next if nqp::existskey(%seen, $name);
-                        my $dist := levenshtein(nqp::unbox_s($payload.parent), $name);
-                        #%seen{$name} := 1;
-                        if $dist <= 4 {
-                            say($name ~ " is close enough. push it!");
-                            $payload.suggestions.push($name-str);
-                        } else {
-                            say($name ~ " is " ~ $dist ~ " away");
+                        # only care about type objects
+                        return 1 if nqp::isconcrete($object);
+
+                        # difference in length is a good lower bound.
+                        my $parlen := nqp::chars($payload.parent);
+                        my $lendiff := nqp::chars($name) - $parlen;
+                        $lendiff := -$lendiff if $lendiff < 0;
+                        return 1 if $lendiff >= $parlen * 0.3;
+
+                        return 1 if nqp::existskey(%seen, $name);
+
+                        my $dist := levenshtein(nqp::unbox_s($payload.parent), $name) / $parlen;
+                        %seen{$name} := 1;
+                        my @target;
+                        @target := @candidates[0] if $dist <= 0.1;
+                        @target := @candidates[1] if 0.1 < $dist && $dist <= 0.2;
+                        @target := @candidates[2] if 0.2 < $dist && $dist <= 0.35;
+                        if nqp::defined(@target) {
+                            my $name-str := nqp::box_s($name, $Str-obj);
+                            nqp::push(@target, $name-str);
                         }
                         1;
                     }
                     self.walk_symbols(&evaluator);
+
+                    # only take a few suggestions
+                    my $to-add := 5;
+                    for @candidates[0] {
+                        $payload.suggestions.push($_) if $to-add > 0;
+                        $to-add := $to-add - 1;
+                    }
+                    $to-add := $to-add - 1 if +@candidates[0] > 0;
+                    for @candidates[1] {
+                        $payload.suggestions.push($_) if $to-add > 0;
+                        $to-add := $to-add - 1;
+                    }
+                    $to-add := $to-add - 2 if +@candidates[1] > 0;
+                    for @candidates[2] {
+                        $payload.suggestions.push($_) if $to-add > 0;
+                        $to-add := $to-add - 1;
+                    }
                 }
                 $nok := 1;
             }
         }
         if $nok {
-            #nqp::rethrow($ex);
             self.rethrow($/, $ex);
         }
     }

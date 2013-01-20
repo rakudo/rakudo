@@ -126,22 +126,28 @@ sub levenshtein($a, $b) {
 
 sub make_levenshtein_evaluator($orig_name, @candidates) {
     my $Str-obj := $*W.find_symbol(["Str"]);
+    my $find-count := 0;
+    my $try-count := 0;
     sub inner($name, $object, $hash) {
         # difference in length is a good lower bound.
+        $try-count := $try-count + 1;
+        return 0 if $find-count > 20 || $try-count > 1000;
         my $parlen := nqp::chars($orig_name);
         my $lendiff := nqp::chars($name) - $parlen;
         $lendiff := -$lendiff if $lendiff < 0;
         return 1 if $lendiff >= $parlen * 0.3;
 
         my $dist := levenshtein($orig_name, $name) / $parlen;
-        my @target;
-        @target := @candidates[0] if $dist <= 0.1;
-        @target := @candidates[1] if 0.1 < $dist && $dist <= 0.2;
-        @target := @candidates[2] if 0.2 < $dist && $dist <= 0.35;
-        if nqp::defined(@target) {
+        my $target := -1;
+        $target := @candidates[0] if $dist <= 0.1;
+        $target := @candidates[1] if 0.1 < $dist && $dist <= 0.2;
+        $target := @candidates[2] if 0.2 < $dist && $dist <= 0.35;
+        if $target != -1 {
             my $name-str := nqp::box_s($name, $Str-obj);
-            nqp::push(@target, $name-str);
+            nqp::push($target, $name-str);
+            $find-count := $find-count + 1;
         }
+        1;
     }
     return &inner;
 }
@@ -1509,7 +1515,29 @@ class Perl6::World is HLL::World {
         # Result is the value.
         $val
     }
-    
+
+    method suggest_typename($name) {
+        my %seen;
+        %seen{$name} := 1;
+        my @candidates := [[], [], []];
+        my &inner-evaluator := make_levenshtein_evaluator($name, @candidates);
+        my @suggestions;
+
+        sub evaluator($name, $object, $hash) {
+            # only care about type objects
+            return 1 if nqp::isconcrete($object);
+            return 1 if nqp::existskey(%seen, $name);
+
+            %seen{$name} := 1;
+            return &inner-evaluator($name, $object, $hash);
+        }
+        self.walk_symbols(&evaluator);
+
+        levenshtein_candidate_heuristic(@candidates, @suggestions);
+
+        return @suggestions;
+    }
+
     # Applies a trait.
     method apply_trait($/, $trait_sub_name, *@pos_args, *%named_args) {
         my $trait_sub := self.find_symbol([$trait_sub_name]);
@@ -1521,22 +1549,10 @@ class Perl6::World is HLL::World {
                 $ex := $_;
                 my $payload := nqp::getpayload($_);
                 if nqp::istype($payload, self.find_symbol(["X", "Inheritance", "UnknownParent"])) {
-                    my %seen;
-                    %seen{$payload.child} := 1;
-                    my @candidates := [[], [], []];
-                    my &inner-evaluator := make_levenshtein_evaluator($payload.parent, @candidates);
-
-                    sub evaluator($name, $object, $hash) {
-                        # only care about type objects
-                        return 1 if nqp::isconcrete($object);
-                        return 1 if nqp::existskey(%seen, $name);
-                        &inner-evaluator($name, $object, $hash);
-                        %seen{$name} := 1;
-                        1;
+                    my @suggestions := self.suggest_typename($payload.parent);
+                    for @suggestions {
+                        $payload.suggestions.push($_)
                     }
-                    self.walk_symbols(&evaluator);
-
-                    levenshtein_candidate_heuristic(@candidates, $payload.suggestions);
                 }
                 $nok := 1;
             }
@@ -2002,23 +2018,24 @@ class Perl6::World is HLL::World {
         # first, go through all lexical scopes
         sub walk_block($block) {
             my %symtable := $block.symtable();
-            for %symtable {
-                if nqp::existskey($_.value, 'value') {
-                    my $val := $_.value<value>;
+            for %symtable -> $symp {
+                if nqp::existskey($symp.value, 'value') {
+                    my $val := $symp.value<value>;
                     if nqp::istype($val, QAST::Block) {
-                        walk_block($val);
+                        return 0 if walk_block($val) == 0;
                     } else {
-                        $code($_.key, $val, $_.value);
+                        return 0 if $code($symp.key, $val, $symp.value) == 0;
                     }
                 }
             }
+            1;
         }
 
         for @!BLOCKS {
-            walk_block($_);
+            return 0 if walk_block($_) == 0;
         }
         for $*GLOBALish.WHO {
-            $code($_.key, $_.value, hash());
+            return 0 if $code($_.key, $_.value, hash()) == 0;
         }
     }
 
@@ -2206,10 +2223,8 @@ class Perl6::World is HLL::World {
             # the descriptor identifies variables.
             return 1 unless nqp::existskey($hash, "descriptor");
             return 1 if nqp::existskey(%seen, $name);
-
-            &inner-evaluator($name, $value, $hash);
             %seen{$name} := 1;
-            1;
+            return &inner-evaluator($name, $value, $hash);
         }
         self.walk_symbols(&evaluate);
 
@@ -2228,9 +2243,8 @@ class Perl6::World is HLL::World {
             return 1 unless nqp::substr($name, 0, 1) eq "&";
             return 1 if nqp::existskey(%seen, $name);
 
-            &inner-evaluator($name, $value, $hash);
             %seen{$name} := 1;
-            1;
+            return &inner-evaluator($name, $value, $hash);
         }
         self.walk_symbols(&evaluate);
 

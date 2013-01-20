@@ -2184,7 +2184,13 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         | $<quant>=['\\'|'|'] <param_var> { pir::getstderr__P().print("Obsolete use of | or \\ with sigil on param { $<param_var> }\n") }
         | $<quant>=['\\'|'|'] <defterm>?
         | [ <param_var> | <named_param> ] $<quant>=['?'|'!'|<?>]
-        | <longname> <.panic('Invalid typename in parameter declaration')>
+        | <longname>
+            {
+                my $name := $*W.disect_longname($<longname>);
+                $*W.throw($/, ['X', 'Parameter', 'InvalidType'],
+                    :typename($name.name),
+                    :suggestions($*W.suggest_typename($name.name)));
+            }
         ]
         <trait>*
         <post_constraint>*

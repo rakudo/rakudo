@@ -1525,6 +1525,7 @@ class Perl6::World is HLL::World {
             # only care about type objects
             return 1 if nqp::isconcrete($object);
             return 1 if nqp::existskey(%seen, $name);
+
             %seen{$name} := 1;
             return &inner-evaluator($name, $object, $hash);
         }
@@ -1546,7 +1547,10 @@ class Perl6::World is HLL::World {
                 $ex := $_;
                 my $payload := nqp::getpayload($_);
                 if nqp::istype($payload, self.find_symbol(["X", "Inheritance", "UnknownParent"])) {
-                    $payload.suggestions := self.suggest_typename($payload.parent);
+                    my @suggestions := self.suggest_typename($payload.parent);
+                    for @suggestions {
+                        $payload.suggestions.push($_)
+                    }
                 }
                 $nok := 1;
             }
@@ -2216,7 +2220,6 @@ class Perl6::World is HLL::World {
             # the descriptor identifies variables.
             return 1 unless nqp::existskey($hash, "descriptor");
             return 1 if nqp::existskey(%seen, $name);
-
             %seen{$name} := 1;
             return &inner-evaluator($name, $value, $hash);
         }

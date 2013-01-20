@@ -621,6 +621,18 @@ my class X::Parameter::WrongOrder does X::Comp {
     }
 }
 
+my class X::Parameter::InvalidType does X::Comp {
+    has $.typename;
+    has @.suggestions;
+    method message() {
+        my $msg := "Invalid typename '$.typename' in parameter declaration.";
+        if +@.suggestions > 0 {
+            $msg := $msg ~ " Did you mean '" ~ @.suggestions.join("', '") ~ "'?";
+        }
+        return $msg;
+    }
+}
+
 my class X::Signature::NameClash does X::Comp {
     has $.name;
     method message() {

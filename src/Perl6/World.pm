@@ -126,6 +126,8 @@ sub levenshtein($a, $b) {
 
 sub make_levenshtein_evaluator($orig_name, @candidates) {
     my $Str-obj := $*W.find_symbol(["Str"]);
+    my $find-count := 0;
+    my $try-count := 0;
     sub inner($name, $object, $hash) {
         # difference in length is a good lower bound.
         my $parlen := nqp::chars($orig_name);
@@ -141,11 +143,13 @@ sub make_levenshtein_evaluator($orig_name, @candidates) {
         if nqp::defined(@target) {
             my $name-str := nqp::box_s($name, $Str-obj);
             nqp::push(@target, $name-str);
+            $find-count := $find-count + 1;
+        } else {
+            $try-count := $try-count + 1;
         }
 
-        if @candidates[0] + @candidates[1] + @candidates[2] > 20 {
-            return 0
-        }
+        return 0 if $find-count > 20 || $try-count > 1000;
+        1;
     }
     return &inner;
 }

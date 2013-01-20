@@ -257,6 +257,11 @@ struct SixModel_REPROps {
      * representation instance if needed. */
     PMC * (*type_object_for) (PARROT_INTERP, PMC *HOW);
 
+    /* Composes the representation, passing any composition info. This
+     * is the way a meta-object provides configuration to a REPR, which
+     * it may then use to do layout, etc. */
+    void (*compose) (PARROT_INTERP, STable *st, PMC *repr_info);
+
     /* Allocates a new, but uninitialized object, based on the
      * specified s-table. */
     PMC * (*allocate) (PARROT_INTERP, STable *st);

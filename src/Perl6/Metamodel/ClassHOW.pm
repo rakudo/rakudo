@@ -17,6 +17,7 @@ class Perl6::Metamodel::ClassHOW
     does Perl6::Metamodel::BUILDPLAN
     does Perl6::Metamodel::Mixins
     does Perl6::Metamodel::BoolificationProtocol
+    does Perl6::Metamodel::REPRAttributeProtocol
     does Perl6::Metamodel::ParrotInterop
 {
     has @!roles;
@@ -107,6 +108,7 @@ class Perl6::Metamodel::ClassHOW
 
         # Some things we only do if we weren't already composed once, like
         # building the MRO.
+        my $was_composed := $!composed;
         unless $!composed {
             if self.parents($obj, :local(1)) == 0 && self.has_default_parent_type && self.name($obj) ne 'Mu' {
                 self.add_parent($obj, self.get_default_parent_type);
@@ -155,6 +157,11 @@ class Perl6::Metamodel::ClassHOW
         
         # Create BUILDPLAN.
         self.create_BUILDPLAN($obj);
+        
+        # Compose the representation, unless we already did so once.
+        unless $was_composed {
+            self.compose_repr($obj);
+        }
 
         $obj
     }

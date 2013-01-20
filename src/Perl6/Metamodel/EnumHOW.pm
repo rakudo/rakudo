@@ -14,6 +14,7 @@ class Perl6::Metamodel::EnumHOW
     does Perl6::Metamodel::MROBasedTypeChecking
     does Perl6::Metamodel::BUILDPLAN
     does Perl6::Metamodel::BoolificationProtocol
+    does Perl6::Metamodel::REPRAttributeProtocol
     does Perl6::Metamodel::ParrotInterop
 {
     # Hash representing enumeration keys to values.
@@ -31,6 +32,9 @@ class Perl6::Metamodel::EnumHOW
     # Role'd version of the enum.
     has $!role;
     has int $!roled;
+    
+    # Are we composed yet?
+    has $!composed;
 
     my $archetypes := Perl6::Metamodel::Archetypes.new( :nominal(1), :composalizable(1) );
     method archetypes() {
@@ -106,6 +110,12 @@ class Perl6::Metamodel::EnumHOW
         
         # Create BUILDPLAN.
         self.create_BUILDPLAN($obj);
+        
+        # Compose the representation.
+        unless $!composed {
+            self.compose_repr($obj);
+            $!composed := 1;
+        }
 
         $obj
     }

@@ -561,7 +561,7 @@ $(DYNEXT_DYNOPS): $(DYNOPS)
 # spaces and some compilers/linkers forbid a (forced) space.
 # See RT #66558 and TT #700.
 
-$(DYNPMC): $(PMC_SOURCES)
+$(DYNPMC): $(PMC_SOURCES) src/binder/sixmodelobject.h src/binder/storage_spec.h
 	$(PMC2C) --no-lines --dump $(PMC2C_INCLUDES) $(PMC_SOURCES)
 	$(PMC2C) --no-lines --c $(PMC2C_INCLUDES) $(PMC_SOURCES)
 	$(PMC2C) --no-lines --library $(GROUP) --c $(PMC_SOURCES)

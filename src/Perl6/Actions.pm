@@ -3973,10 +3973,45 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
 
     method circumfix:sym<sigil>($/) {
-        my $name := ~$<sigil> eq '@' ?? 'list' !!
-                    ~$<sigil> eq '%' ?? 'hash' !!
-                                        'item';
-        make QAST::Op.new( :op('callmethod'), :name($name), $<semilist>.ast );
+        my $past := $<semilist>.ast;
+        if $<sigil> eq '$' &&  !~$<semilist> { # for '$()'
+            my $result_var := $past.unique('sm_result');
+            $past := QAST::Stmt.new(
+                # Evaluate RHS and call ACCEPTS on it, passing in $_. Bind the
+                # return value to a result variable.
+                QAST::Op.new( :op('bind'),
+                    QAST::Var.new( :name($result_var), :scope('local'), :decl('var') ),
+                    QAST::Op.new(
+                        :op('if'),
+                        # condition
+                        QAST::Op.new(
+                            :op('callmethod'), :name('ast'),
+                            QAST::Var.new( :name('$/'), :scope('lexical') )
+                        ),
+                        # when true
+                        QAST::Op.new(
+                            :op('callmethod'), :name('ast'),
+                            QAST::Var.new( :name('$/'), :scope('lexical') )
+                        ),
+                        # when false
+                        QAST::Op.new(
+                            :op('callmethod'), :name('Str'),
+                            QAST::Var.new( :name('$/'), :scope('lexical') )
+                        )
+                    )
+                ),
+                # And finally evaluate to the smart-match result.
+                QAST::Var.new( :name($result_var), :scope('local') )
+            );
+        }
+        else {
+            my $name := ~$<sigil> eq '@' ?? 'list' !!
+                        ~$<sigil> eq '%' ?? 'hash' !!
+                                            'item';
+            $past := QAST::Op.new( :op('callmethod'), :name($name), $past );
+        }
+
+        make $past
     }
 
     ## Expressions

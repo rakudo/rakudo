@@ -3974,7 +3974,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
     method circumfix:sym<sigil>($/) {
         my $past := $<semilist>.ast;
-        if $<sigil> eq '$' &&  !~$<semilist> { # for '$()'
+        if $<sigil> eq '$' && ~$<semilist> eq '' { # for '$()'
             my $result_var := $past.unique('sm_result');
             $past := QAST::Stmt.new(
                 # Evaluate RHS and call ACCEPTS on it, passing in $_. Bind the

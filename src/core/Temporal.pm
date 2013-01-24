@@ -177,6 +177,16 @@ my class DateTime-local-timezone does Callable {
     }
 }
 
+my enum TimeUnit (
+    :second(1), :seconds(2),
+    :minute(3), :minutes(4),
+    :hour(5), :hours(6),
+    :day(7), :days(8),
+    :week(9), :weeks(10),
+    :month(11), :months(12),
+    :year(13), :years(14),
+);
+
 my class DateTime does Dateish {
      has Int $.year;
      has Int $.month = 1;
@@ -333,6 +343,64 @@ my class DateTime does Dateish {
             $!timezone ~~ Callable
          ?? $!timezone(self, True)
          !! $!timezone
+    }
+
+    method delta($amount, TimeUnit $unit) {
+        my ($hour, $minute) = $!hour, $!minute;
+        my $date;
+
+        given $unit {
+            when second | seconds {
+                return DateTime.new(self.Instant + $amount);
+            }
+
+            when minute | minutes { $minute += $amount; proceed }
+
+            $hour += floor($minute / 60);
+            $minute %= 60;
+
+            when hour | hours { $hour += $amount; proceed }
+
+            my $day-delta += floor($hour / 24);
+            $hour %= 24;
+
+            when day | days { $day-delta += $amount; proceed }
+            when week | weeks { $day-delta += 7 * $amount; proceed }
+
+            when month | months {
+                my ($month, $year) = $!month, $!year;
+                $month += $amount;
+                $year += floor(($month - 1) / 12);
+                $month = ($month - 1) % 12 + 1;
+                $date = Date.new(:$year, :$month, :$!day);
+                succeed;
+            }
+
+            when year | years {
+                my $year = $!year + $amount;
+                $date = Date.new(:$year, :$!month, :$!day);
+                succeed;
+            }
+
+            my $daycount = Date.new(self).daycount;
+            $daycount += $day-delta;
+            $date = Date.new-from-daycount($daycount);
+        }
+
+        my $second = $!second;
+        if $second > 59 && $date ne any(tai-utc::leap-second-dates) {
+            $second -= 60;
+            $minute++;
+            if $minute > 59 {
+                $minute -= 60;
+                $hour++;
+                if $hour > 23 {
+                    $hour -= 24;
+                    $date++;
+                }
+            }
+        }
+        self.new(:$date, :$hour, :$minute, :$second);
     }
 
     method truncated-to(*%args) {

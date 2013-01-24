@@ -1120,13 +1120,6 @@ my class X::Temporal::InvalidFormat does X::Temporal {
         "Invalid $.target string '$.invalid-str'; use $.format instead";
     }
 }
-my class X::Temporal::Truncation does X::Temporal {
-    has $.invocant;
-    has $.error;
-    method message() {
-        "Error while truncating $.invocant: $.error";
-    }
-}
 my class X::DateTime::TimezoneClash does X::Temporal {
     method message() {
         'DateTime.new(Str): :timezone argument not allowed with a timestamp offset';

@@ -1,6 +1,16 @@
 my class DateTime { ... }
 my class Date     { ... }
 
+my enum TimeUnit (
+    :second(1), :seconds(2),
+    :minute(3), :minutes(4),
+    :hour(5), :hours(6),
+    :day(7), :days(8),
+    :week(9), :weeks(10),
+    :month(11), :months(12),
+    :year(13), :years(14),
+);
+
 my role Dateish {
     method is-leap-year($y = $.year) {
         $y %% 4 and not $y %% 100 or $y %% 400
@@ -104,14 +114,14 @@ my role Dateish {
             1 .. self.days-in-month);
     }
 
-    method truncate-parts($unit, %parts? is copy) {
+    method truncate-parts(TimeUnit $unit, %parts? is copy) {
         # Helper for DateTime.truncated-to and Date.truncated-to.
-        if $unit eq 'week' {
+        if $unit == week | weeks {
             my $dc = self.get-daycount;
             my $new-dc = $dc - self.day-of-week($dc) + 1;
             %parts<year month day> =
                 self.ymd-from-daycount($new-dc);
-        } else { # $unit eq 'month'|'year'
+        } else { # $unit == month | months | year | years
             %parts<day> = 1;
             $unit eq 'year' and %parts<month> = 1;
         }
@@ -176,16 +186,6 @@ my class DateTime-local-timezone does Callable {
         }
     }
 }
-
-my enum TimeUnit (
-    :second(1), :seconds(2),
-    :minute(3), :minutes(4),
-    :hour(5), :hours(6),
-    :day(7), :days(8),
-    :week(9), :weeks(10),
-    :month(11), :months(12),
-    :year(13), :years(14),
-);
 
 my class DateTime does Dateish {
      has Int $.year;
@@ -403,28 +403,17 @@ my class DateTime does Dateish {
         self.new(:$date, :$hour, :$minute, :$second);
     }
 
-    method truncated-to(*%args) {
-        %args.keys == 1
-            or X::Temporal::Truncation.new(
-                    invocant => self,
-                    error    => 'exactly one named argument needed',
-                ).throw;
-        my $unit = %args.keys[0];
-        $unit eq any(<second minute hour day week month year>)
-            or X::Temporal::Truncation.new(
-                    invocant => self,
-                    error    => "Unknown truncation unit '$unit'",
-                ).throw;
+    method truncated-to(TimeUnit $unit) {
         my %parts;
         given $unit {
             %parts<second> = self.whole-second;
-            when 'second'     {}
+            when second     {}
             %parts<second> = 0;
-            when 'minute'     {}
+            when minute     {}
             %parts<minute> = 0;
-            when 'hour'       {}
+            when hour       {}
             %parts<hour> = 0;
-            when 'day'        {}
+            when day        {}
             # Fall through to Dateish.
             %parts = self.truncate-parts($unit, %parts);
         }
@@ -553,18 +542,7 @@ my class Date does Dateish {
         self.new(DateTime.now);
     }
 
-    method truncated-to(*%args) {
-        %args.keys == 1
-            or X::Temporal::Truncation.new(
-                    invocant => self,
-                    error    => "exactly one named argument needed",
-            ).throw;
-        my $unit = %args.keys[0];
-        $unit eq any(<week month year>)
-            or X::Temporal::Truncation.new(
-                    invocant => self,
-                    error    => "unknown truncation unit '$unit'",
-            ).throw;
+    method truncated-to(TimeUnit $unit) {
         self.clone(|self.truncate-parts($unit));
     }
 

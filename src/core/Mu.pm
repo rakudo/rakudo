@@ -51,7 +51,7 @@ my class Mu {
         self.bless(*, |%attrinit);
     }
     multi method new($, *@) {
-        X::Constructor::Positional.new.throw;
+        X::Constructor::Positional.new(:name(self.^name)).throw();
     }
     
     method CREATE() {

@@ -546,6 +546,38 @@ my class Date does Dateish {
         self.clone(|self.truncate-parts($unit));
     }
 
+    method delta($amount, TimeUnit $unit) {
+        my $date;
+
+        given $unit {
+            X::DateTime::InvalidDeltaUnit.new(:$unit).throw
+                when second | seconds | minute | minutes | hour | hours;
+
+            my $day-delta;
+            when day | days { $day-delta = $amount; proceed }
+            when week | weeks { $day-delta = 7 * $amount; proceed }
+
+            when month | months {
+                my ($month, $year) = $!month, $!year;
+                $month += $amount;
+                $year += floor(($month - 1) / 12);
+                $month = ($month - 1) % 12 + 1;
+                $date = Date.new(:$year, :$month, :$!day);
+                succeed;
+            }
+
+            when year | years {
+                my $year = $!year + $amount;
+                $date = Date.new(:$year, :$!month, :$!day);
+                succeed;
+            }
+
+            $date = Date.new-from-daycount(self.daycount + $day-delta);
+        }
+
+        $date;
+    }
+
     method clone(*%_) {
         my %args = { :$!year, :$!month, :$!day, %_ };
         self.new(|%args);

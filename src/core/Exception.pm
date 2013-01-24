@@ -1125,6 +1125,12 @@ my class X::DateTime::TimezoneClash does X::Temporal {
         'DateTime.new(Str): :timezone argument not allowed with a timestamp offset';
     }
 }
+my class X::DateTime::InvalidDeltaUnit does X::Temporal {
+    has $.unit;
+    method message() {
+        "Cannnot use unit $.unit with Date.delta";
+    }
+}
 
 my class X::Eval::NoSuchLang is Exception {
     has $.lang;

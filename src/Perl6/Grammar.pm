@@ -1958,12 +1958,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
           <DECL=multi_declarator>
         | <DECL=multi_declarator>
         ] <.ws>
-        || <?before <[A..Z]>><longname>{
-                my $t := $<longname>.Str;
-                $/.CURSOR.sorry("In \"$*SCOPE\" declaration, typename $t must be predeclared (or marked as declarative with :: prefix)");
-            }
-            <!> # drop through
-        || <.ws><typo_typename>
+        || <.ws><typo_typename> <!>
         || <.malformed($*SCOPE)>
         ]
     }
@@ -2617,14 +2612,14 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     token typo_typename {
         <longname>
-        <?{
+        {
           my $longname := $*W.disect_longname($<longname>);
           my @suggestions := $*W.suggest_typename($longname.name);
-          $*W.throw($/, ['X', 'Undeclared'],
+          $/.CURSOR.typed_sorry('X::Undeclared',
                     what => "Type",
                     symbol => $longname.name(),
                     suggestions => @suggestions);
-        }>
+        }
     }
 
 

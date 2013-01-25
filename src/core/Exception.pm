@@ -885,8 +885,8 @@ my class X::Routine::Unwrap is Exception {
 }
 
 my class X::Constructor::Positional is Exception {
-    has $.name;
-    method message() { "Default constructor for '$.name' only takes named arguments" }
+    has $.type;
+    method message() { "Default constructor for '" ~ $.type.^name ~ "' only takes named arguments" }
 }
 
 my class X::Hash::Store::OddNumber is Exception {

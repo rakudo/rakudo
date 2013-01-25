@@ -469,7 +469,7 @@ my class X::Undeclared does X::Comp {
         if +@.suggestions == 1 {
             $message := "$message. Did you mean '@.suggestions[0]'?";
         } elsif +@.suggestions > 1 {
-            $message := "$message. Did you mean any of these?\n    { nqp::join("\n    ", @.suggestions) }\n";
+            $message := "$message. Did you mean any of these?\n    { @.suggestions.join("\n    ") }\n";
         }
         $message;
     }

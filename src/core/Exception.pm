@@ -469,7 +469,7 @@ my class X::Undeclared does X::Comp {
         if +@.suggestions == 1 {
             $message := "$message. Did you mean '@.suggestions[0]'?";
         } elsif +@.suggestions > 1 {
-            $message := "$message. Did you mean any of these?\n    { nqp::join("\n    ", @.suggestions) }\n";
+            $message := "$message. Did you mean any of these?\n    { @.suggestions.join("\n    ") }\n";
         }
         $message;
     }
@@ -489,6 +489,7 @@ my class X::Undeclared::Symbols does X::Comp {
     has %.unk_types;
     has %.unk_routines;
     has %.routine_suggestion;
+    has %.type_suggestion;
     multi method gist(:$sorry = True) {
         ($sorry ?? self.sorry_heading() !! "") ~ self.message
     }
@@ -510,7 +511,11 @@ my class X::Undeclared::Symbols does X::Comp {
         if %.unk_types {
             $r ~= "Undeclared name" ~ (%.unk_types.elems == 1 ?? "" !! "s") ~ ":\n";
             for %.unk_types.sort(*.key) {
-                $r ~= "    $_.key() &l($_.value)\n";
+                $r ~= "    $_.key() &l($_.value)";
+                if +%.type_suggestion{$_.key()} {
+                    $r ~= ". " ~ s(%.type_suggestion{$_.key()});
+                }
+                $r ~= "\n";
             }
         }
         if %.unk_routines {

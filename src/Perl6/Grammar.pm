@@ -1963,6 +1963,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                 $/.CURSOR.sorry("In \"$*SCOPE\" declaration, typename $t must be predeclared (or marked as declarative with :: prefix)");
             }
             <!> # drop through
+        || <.ws><typo_typename>
         || <.malformed($*SCOPE)>
         ]
     }
@@ -2613,6 +2614,19 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <.unsp>? [ <?before '['> '[' ~ ']' <arglist> ]?
         [<.ws> 'of' <.ws> <typename> ]?
     }
+
+    token typo_typename {
+        <longname>
+        <?{
+          my $longname := $*W.disect_longname($<longname>);
+          my @suggestions := $*W.suggest_typename($longname.name);
+          if nqp::elems(@suggestions) > 0 {
+            $*W.throw($/, ['X', 'Undeclared'], symbol => $longname.name(), suggestions => @suggestions);
+          }
+          return 0;
+        }>
+    }
+
 
     token quotepair($*purpose = 'quoteadverb') {
         :my $*key;

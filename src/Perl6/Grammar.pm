@@ -2620,10 +2620,10 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <?{
           my $longname := $*W.disect_longname($<longname>);
           my @suggestions := $*W.suggest_typename($longname.name);
-          if nqp::elems(@suggestions) > 0 {
-            $*W.throw($/, ['X', 'Undeclared'], symbol => $longname.name(), suggestions => @suggestions);
-          }
-          return 0;
+          $*W.throw($/, ['X', 'Undeclared'],
+                    what => "Type",
+                    symbol => $longname.name(),
+                    suggestions => @suggestions);
         }>
     }
 

@@ -9,6 +9,8 @@ class Perl6::Optimizer {
     # Tracks the nested blocks we're in; it's the lexical chain, essentially.
     has @!block_stack;
     
+    has $!core_block;
+
     # How deep a chain we're in, for chaining operators.
     has $!chain_depth;
     
@@ -125,6 +127,53 @@ class Perl6::Optimizer {
         
         $block
     }
+    method find_core() {
+        if nqp::defined($!core_block) {
+            return $!core_block;
+        }
+        my $i := +@!block_stack;
+        while $i > 0 {
+            $i := $i - 1;
+            my $block := @!block_stack[$i];
+            my %sym := $block.symbol("!CORE_MARKER");
+            if +%sym {
+                $!core_block := $block;
+                return $block;
+            }
+        }
+        nqp::die("Optimizer: couldn't locate !CORE_MARKER");
+    }
+
+    method lexical_in($block, $name) {
+        my %sym := $block.symbol($name);
+        if +%sym {
+            if nqp::existskey(%sym, 'value') {
+                return %sym<value>;
+            }
+            else {
+                nqp::die("Optimizer: No lexical compile time value for $name");
+            }
+        }
+        return 0;
+    }
+
+    method can_chain_junction_be_warped($node) {
+        sub has_core-ish_junction($node) {
+            if nqp::istype($node, QAST::Op) && $node.op eq 'call' {
+                # TODO: add &infix:<^> to the list
+                if $node.name eq '&infix:<|>' || $node.name eq '&infix:<&>' {
+                    my $callee := self.find_lexical($node.name);
+                    my $core := self.find_core();
+                    if self.lexical_in($core, $node.name) =:= $callee {
+                        return 1;
+                    }
+                }
+            }
+            return 0;
+        }
+        my @warpable := [has_core-ish_junction($node[0]), has_core-ish_junction($node[1])];
+        return @warpable;
+    }
     
     # Called when we encounter a QAST::Op in the tree. Produces either
     # the op itself or some replacement opcode to put in the tree.
@@ -141,6 +190,63 @@ class Perl6::Optimizer {
             $optype := 'call' if $!chain_depth == 1 &&
                 !(nqp::istype($op[0], QAST::Op) && $op[0].op eq 'chain') &&
                 !(nqp::istype($op[1], QAST::Op) && $op[1].op eq 'chain');
+        }
+
+        # we may be able to unfold a junction at compile time.
+        if $op.op eq "if" || $op.op eq "unless" &&
+           nqp::istype($op[0], QAST::Op) && $op[0].op eq "chain" {
+            my @warpable := self.can_chain_junction_be_warped($op[0]);
+            my $exp-side := -1;
+            if @warpable[0] {
+                $exp-side := 0;
+            } elsif @warpable[1] {
+                $exp-side := 1;
+            }
+            if $exp-side != -1 && $*LEVEL >= 3 {
+                my $juncop := $op[0][$exp-side].name eq '&infix:<|>' ?? 'if' !! 'unless';
+                my $juncname := $op[0][$exp-side].name eq '&infix:<&>' ?? '&infix:<&&>' !! '&infix:<||>';
+                my $chainop := $op[0].op;
+                my $chainname := $op[0].name;
+                my $values := $op[0][$exp-side];
+                my $ovalue := $op[0][1 - $exp-side];
+                my %reference;
+                sub refer_to($valop) {
+                    my $id := $valop;
+                    if nqp::existskey(%reference, $id) {
+                        return QAST::Var.new(:name(%reference{$id}), :scope<local>);
+                    }
+                    %reference{$id} := $op.unique('junction_unfold');
+                    return QAST::Op.new(:op<bind>,
+                                        QAST::Var.new(:name(%reference{$id}),
+                                                      :scope<local>,
+                                                      :decl<var>),
+                                        $valop);
+                }
+                sub chain($value) {
+                    if $exp-side == 0 {
+                        return QAST::Op.new(:op($chainop), :name($chainname),
+                                            $value,
+                                            refer_to($ovalue));
+                    } else {
+                        return QAST::Op.new(:op($chainop), :name($chainname),
+                                            refer_to($ovalue),
+                                            $value);
+                    }
+                }
+                sub create_junc() {
+                    my $junc := QAST::Op.new(:name($juncname), :op<chain>);
+                    $junc.push(chain($values.shift()));
+                    if +$values.list > 1 {
+                        $junc.push(create_junc());
+                    } else {
+                        $junc.push(chain($values.shift()));
+                    }
+                    return $junc;
+                }
+                $op.shift;
+                $op.unshift(create_junc());
+                return self.visit_op($op);
+            }
         }
         
         # Visit the children.

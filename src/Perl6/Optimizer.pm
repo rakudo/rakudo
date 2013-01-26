@@ -8,8 +8,6 @@ use QAST;
 class Perl6::Optimizer {
     # Tracks the nested blocks we're in; it's the lexical chain, essentially.
     has @!block_stack;
-    
-    has $!core_block;
 
     # How deep a chain we're in, for chaining operators.
     has $!chain_depth;
@@ -127,31 +125,17 @@ class Perl6::Optimizer {
         
         $block
     }
-    method find_core() {
-        if nqp::defined($!core_block) {
-            return $!core_block;
-        }
+    method is_from_core($name) {
         my $i := +@!block_stack;
         while $i > 0 {
             $i := $i - 1;
             my $block := @!block_stack[$i];
-            my %sym := $block.symbol("!CORE_MARKER");
-            if +%sym {
-                $!core_block := $block;
-                return $block;
-            }
-        }
-        nqp::die("Optimizer: couldn't locate !CORE_MARKER");
-    }
-
-    method lexical_in($block, $name) {
-        my %sym := $block.symbol($name);
-        if +%sym {
-            if nqp::existskey(%sym, 'value') {
-                return %sym<value>;
-            }
-            else {
-                nqp::die("Optimizer: No lexical compile time value for $name");
+            my %sym := $block.symbol($name);
+            if +%sym && nqp::existskey(%sym, 'value') {
+                my %sym := $block.symbol("!CORE_MARKER");
+                if +%sym {
+                    return 1;
+                }
             }
         }
         return 0;
@@ -159,15 +143,13 @@ class Perl6::Optimizer {
 
     method can_chain_junction_be_warped($node) {
         sub has_core-ish_junction($node) {
-            if nqp::istype($node, QAST::Op) && $node.op eq 'call' {
-                # TODO: add &infix:<^> to the list
-                if $node.name eq '&infix:<|>' || $node.name eq '&infix:<&>' {
-                    my $callee := self.find_lexical($node.name);
-                    my $core := self.find_core();
-                    if self.lexical_in($core, $node.name) =:= $callee {
-                        return 1;
-                    }
+            # TODO: add &infix:<^> to the list
+            if nqp::istype($node, QAST::Op) && $node.op eq 'call' &&
+                    (my $nodename := $node.name) eq '&infix:<|>' || $nodename eq '&infix:<&>' {
+                if self.is_from_core($nodename) {
+                    return 1;
                 }
+                return 0;
             }
             return 0;
         }
@@ -245,6 +227,7 @@ class Perl6::Optimizer {
                 }
                 $op.shift;
                 $op.unshift(create_junc());
+                say($op.dump);
                 return self.visit_op($op);
             }
         }

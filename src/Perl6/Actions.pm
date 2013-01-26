@@ -5839,7 +5839,8 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions does STDActions {
     method metachar:sym<qw>($/) {
         my $qast := QAST::Regex.new( :rxtype<alt>, :node($/) );
         my $nib  := $<nibble>.ast[0];
-        for @($nib) {
+        my @nibs := +@($nib) ?? @($nib) !! [$nib];
+        for @nibs {
             unless $_.has_compile_time_value {
                 $/.CURSOR.panic("Quote words construct too complex to use in a regex");
             }

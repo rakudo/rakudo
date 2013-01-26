@@ -29,6 +29,8 @@ class Perl6::Optimizer {
     # The type type, Mu.
     has $!Mu;
     
+    has %!foldable_junction;
+
     # Entry point for the optimization process.
     method optimize($past, *%adverbs) {
         # Initialize.
@@ -39,7 +41,12 @@ class Perl6::Optimizer {
         %!deadly := nqp::hash();
         %!worrying := nqp::hash();
         my $*DYNAMICALLY_COMPILED := 0;
-        
+        #%!foldable_junction{"&any"} := "&infix:<||>";
+        %!foldable_junction{"&infix:<|>"} :=  "&infix:<||>";
+        #%!foldable_junction{"&all"} :=  "&infix:<&&>";
+        %!foldable_junction{"&infix:<&>"} :=  "&infix:<&&>";
+        # TODO: none -> like |, but turn then and else branches around.
+        #       or add prefix:<!> around
         # Work out optimization level.
         my $*LEVEL := nqp::existskey(%adverbs, 'optimize') ??
             +%adverbs<optimize> !! 2;
@@ -136,6 +143,7 @@ class Perl6::Optimizer {
                 if +%sym {
                     return 1;
                 }
+                return 0;
             }
         }
         return 0;
@@ -143,13 +151,16 @@ class Perl6::Optimizer {
 
     method can_chain_junction_be_warped($node) {
         sub has_core-ish_junction($node) {
-            # TODO: add &infix:<^> to the list
             if nqp::istype($node, QAST::Op) && $node.op eq 'call' &&
-                    (my $nodename := $node.name) eq '&infix:<|>' || $nodename eq '&infix:<&>' {
-                if self.is_from_core($nodename) {
+                    nqp::existskey(%!foldable_junction, $node.name) {
+                if self.is_from_core($node.name) {
+                    # TODO: special handling for any()/all(), because they create
+                    #       a Stmts with a infix:<,> in it.
+                    if +$node.list == 1 {
+                        return 0;
+                    }
                     return 1;
                 }
-                return 0;
             }
             return 0;
         }
@@ -185,13 +196,14 @@ class Perl6::Optimizer {
                 $exp-side := 1;
             }
             if $exp-side != -1 && $*LEVEL >= 3 {
-                my $juncop := $op[0][$exp-side].name eq '&infix:<|>' ?? 'if' !! 'unless';
-                my $juncname := $op[0][$exp-side].name eq '&infix:<&>' ?? '&infix:<&&>' !! '&infix:<||>';
+                my $juncop := $op[0][$exp-side].name eq '&infix:<&>' ?? 'if' !! 'unless';
+                my $juncname := %!foldable_junction{$op[0][$exp-side].name};
                 my $chainop := $op[0].op;
                 my $chainname := $op[0].name;
                 my $values := $op[0][$exp-side];
                 my $ovalue := $op[0][1 - $exp-side];
                 my %reference;
+
                 sub refer_to($valop) {
                     my $id := $valop;
                     if nqp::existskey(%reference, $id) {
@@ -216,7 +228,7 @@ class Perl6::Optimizer {
                     }
                 }
                 sub create_junc() {
-                    my $junc := QAST::Op.new(:name($juncname), :op<chain>);
+                    my $junc := QAST::Op.new(:name($juncname), :op($juncop));
                     $junc.push(chain($values.shift()));
                     if +$values.list > 1 {
                         $junc.push(create_junc());

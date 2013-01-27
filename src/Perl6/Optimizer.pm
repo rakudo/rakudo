@@ -202,34 +202,43 @@ class Perl6::Optimizer {
                 my $chainname := $op[0].name;
                 my $values := $op[0][$exp-side];
                 my $ovalue := $op[0][1 - $exp-side];
-                my %reference;
 
+                # the first time $valop is refered to, create a bind op for a
+                # local var, next time create a reference var op.
+                my %reference;
                 sub refer_to($valop) {
                     my $id := $valop;
                     if nqp::existskey(%reference, $id) {
-                        return QAST::Var.new(:name(%reference{$id}), :scope<local>);
+                        QAST::Var.new(:name(%reference{$id}), :scope<local>);
+                    } else {
+                        %reference{$id} := $op.unique('junction_unfold');
+                        QAST::Op.new(:op<bind>,
+                                     QAST::Var.new(:name(%reference{$id}),
+                                                   :scope<local>,
+                                                   :decl<var>),
+                                     $valop);
                     }
-                    %reference{$id} := $op.unique('junction_unfold');
-                    return QAST::Op.new(:op<bind>,
-                                        QAST::Var.new(:name(%reference{$id}),
-                                                      :scope<local>,
-                                                      :decl<var>),
-                                        $valop);
                 }
+
+                # create a comparison operation for the inner comparisons
                 sub chain($value) {
                     if $exp-side == 0 {
-                        return QAST::Op.new(:op($chainop), :name($chainname),
-                                            $value,
-                                            refer_to($ovalue));
+                        QAST::Op.new(:op($chainop), :name($chainname),
+                                     $value,
+                                     refer_to($ovalue));
                     } else {
-                        return QAST::Op.new(:op($chainop), :name($chainname),
-                                            refer_to($ovalue),
-                                            $value);
+                        QAST::Op.new(:op($chainop), :name($chainname),
+                                     refer_to($ovalue),
+                                     $value);
                     }
                 }
+
+                # create a chain of outer logical junction operators with inner comparisons
                 sub create_junc() {
                     my $junc := QAST::Op.new(:name($juncname), :op($juncop));
+
                     $junc.push(chain($values.shift()));
+
                     if +$values.list > 1 {
                         $junc.push(create_junc());
                     } else {
@@ -237,9 +246,10 @@ class Perl6::Optimizer {
                     }
                     return $junc;
                 }
+
                 $op.shift;
                 $op.unshift(create_junc());
-                say($op.dump);
+                #say($op.dump);
                 return self.visit_op($op);
             }
         }

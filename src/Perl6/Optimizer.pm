@@ -216,7 +216,7 @@ class Perl6::Optimizer {
         }
 
         # we may be able to unfold a junction at compile time.
-        if $*LEVEL >= 3 && is_outer_foldable() && nqp::istype($op[0], QAST::Op) && $op[0].op eq "chain" {
+        if $*LEVEL >= 2 && is_outer_foldable() && nqp::istype($op[0], QAST::Op) && $op[0].op eq "chain" {
             my $exp-side := self.can_chain_junction_be_warped($op[0]);
             if $exp-side != -1 {
                 my $juncop := $op[0][$exp-side].name eq '&infix:<&>' ?? 'if' !! 'unless';

@@ -175,75 +175,75 @@ multi sub round($a)          { $a.Numeric.round }
 multi sub round(Numeric $a)  { $a.round }
 multi sub round(Numeric $a, $scale) { $a.round($scale) }
 
-proto infix:<+>($a?, $b?)    { * }
+proto infix:<+>($a?, $b?) is pure   { * }
 multi infix:<+>($x = 0)      { $x.Numeric }
 multi infix:<+>(\a, \b)    { a.Numeric + b.Numeric }
 
-proto infix:<->($a?, $b?)    { * }
+proto infix:<->($a?, $b?) is pure   { * }
 multi infix:<->($x = 0)      { $x.Numeric }
 multi infix:<->(\a, \b)    { a.Numeric - b.Numeric }
 
-proto infix:<*>($a?, $b?)    { * }
+proto infix:<*>($a?, $b?) is pure   { * }
 multi infix:<*>($x = 1)      { $x.Numeric }
 multi infix:<*>(\a, \b)    { a.Numeric * b.Numeric }
 
-proto infix:</>($a?, $b?)    { * }
+proto infix:</>($a?, $b?) is pure   { * }
 multi infix:</>()            { fail "No zero-arg meaning for infix:</>" }
 multi infix:</>($x)          { $x.Numeric }
 multi infix:</>(\a, \b)    { a.Numeric / b.Numeric }
 
-proto infix:<div>($a?, $b?)  { * }
+proto infix:<div>($a?, $b?)is pure  { * }
 # rest of infix:<div> is in Int.pm
 
-proto infix:<%>($a?, $b?)    { * }
+proto infix:<%>($a?, $b?) is pure   { * }
 multi infix:<%>()            { fail "No zero-arg meaning for infix:<%>" }
 multi infix:<%>($x)          { $x }
 multi infix:<%>(\a, \b)    { a.Real % b.Real }
 
-proto infix:<%%>($a?, $b?)   { * }
+proto infix:<%%>($a?, $b?) is pure  { * }
 multi infix:<%%>()           { fail "No zero-arg meaning for infix:<%%>" }
 multi infix:<%%>($x)         { Bool::True }
 multi infix:<%%>(\a, \b)   { a.Real % b.Real == 0 }
 
-proto infix:<lcm>($a?, $b?)   { * }
+proto infix:<lcm>($a?, $b?) is pure  { * }
 multi infix:<lcm>(Int $x = 1) { $x }
 multi infix:<lcm>(\a, \b)   { a.Int lcm b.Int }
 
-proto infix:<gcd>($a?, $b?)  { * }
+proto infix:<gcd>($a?, $b?) is pure { * }
 multi infix:<gcd>()          { fail 'No zero-arg meaning for infix:<gcd>' }
 multi infix:<gcd>(Int $x)    { $x }
 multi infix:<gcd>(\a, \b)  { a.Int gcd b.Int }
 
-proto infix:<**>($a?, $b?)   { * }
+proto infix:<**>($a?, $b?) is pure  { * }
 multi infix:<**>($x = 1)     { $x.Numeric }
 multi infix:<**>(\a, \b)   { a.Numeric ** b.Numeric }
 
 ## relational operators
 
-proto infix:«<=>»($, $?)        { * }
+proto infix:«<=>»($, $?) is pure       { * }
 multi infix:«<=>»(\a, \b)  { a.Real <=> b.Real }
 
-proto infix:<==>($a?, $b?)   { * }
+proto infix:<==>($a?, $b?) is pure  { * }
 multi infix:<==>($x?)        { Bool::True }
 multi infix:<==>(\a, \b)   { a.Numeric == b.Numeric }
 
-proto infix:<!=>(Mu $a?, Mu $b?)   { * }
+proto infix:<!=>(Mu $a?, Mu $b?) is pure  { * }
 multi infix:<!=>($x?)        { Bool::True }
 multi infix:<!=>(Mu \a, Mu \b)   { not a == b }
 
-proto infix:«<»($a?, $b?)    { * }
+proto infix:«<»($a?, $b?) is pure   { * }
 multi infix:«<»($x?)         { Bool::True }
 multi infix:«<»(\a, \b)    { a.Real < b.Real }
 
-proto infix:«<=»($a?, $b?)   { * }
+proto infix:«<=»($a?, $b?) is pure  { * }
 multi infix:«<=»($x?)        { Bool::True }
 multi infix:«<=»(\a, \b)   { a.Real <= b.Real }
 
-proto infix:«>»($a?, $b?)    { * }
+proto infix:«>»($a?, $b?) is pure   { * }
 multi infix:«>»($x?)         { Bool::True }
 multi infix:«>»(\a, \b)    { a.Real > b.Real }
 
-proto infix:«>=»($a?, $b?)   { * }
+proto infix:«>=»($a?, $b?) is pure  { * }
 multi infix:«>=»($x?)        { Bool::True }
 multi infix:«>=»(\a, \b)   { a.Real >= b.Real }
 

@@ -246,6 +246,11 @@ multi trait_mod:<is>(Routine:D $r, :$hidden_from_backtrace!) {
     });
 }
 
+multi trait_mod:<is>(Routine:D $r, :$pure!) {
+    $r.HOW.mixin($r, role {
+        method IS_PURE { True }
+    });
+}
 
 proto trait_mod:<returns>(|) { * }
 multi trait_mod:<returns>(Routine:D $target, Mu:U $type) {

@@ -158,9 +158,11 @@ typedef struct SixModel_REPROps_Attribute {
         PMC *class_handle, STRING *name, INTVAL hint);
 
     /* Gets a reference to the memory location of an attribute. Note
-     * that this is only valid so long as the object itself is alive. */
+     * that this is only valid so long as the object itself is alive. If
+     * bits is a non-NULL pointer, the pointed-to INTVAL will contain the
+     * bit-width of the attribute. */
     void * (*get_attribute_ref) (PARROT_INTERP, STable *st, void *data,
-        PMC *class_handle, STRING *name, INTVAL hint);
+        PMC *class_handle, STRING *name, INTVAL *bits, INTVAL hint);
 
     /* Binds the given object value to the specified attribute. If it's
      * a reference type attribute, this just simply sets the value in 
@@ -215,7 +217,10 @@ typedef struct SixModel_REPROps_Boxing {
 } REPROps_Boxing;
 typedef struct SixModel_REPROps_Indexing {
     /* Get the address of the element at the specified position. May return null if
-     * nothing is there, or throw to indicate out of bounds, or vivify. */
+     * nothing is there, or throw to indicate out of bounds, or vivify. If
+     * bits is a non-NULL pointer, the pointed-to INTVAL will contain the
+     * bit-width of the attribute. */
+    /*void * (*at_pos_ref) (PARROT_INTERP, STable *st, void *data, INTVAL index, INTVAL *bits);*/
     void * (*at_pos_ref) (PARROT_INTERP, STable *st, void *data, INTVAL index);
 
     /* Get a boxed object representing the element at the specified position. If the

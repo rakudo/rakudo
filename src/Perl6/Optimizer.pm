@@ -175,8 +175,13 @@ class Perl6::Optimizer {
             }
             return 0;
         }
-        my @warpable := [has_core-ish_junction($node[0]), has_core-ish_junction($node[1])];
-        return @warpable;
+
+        if has_core-ish_junction($node[0]) {
+            return 0;
+        } elsif has_core-ish_junction($node[1]) {
+            return 1;
+        }
+        return -1;
     }
     
     # Called when we encounter a QAST::Op in the tree. Produces either
@@ -210,13 +215,7 @@ class Perl6::Optimizer {
 
         # we may be able to unfold a junction at compile time.
         if is_outer_foldable() && nqp::istype($op[0], QAST::Op) && $op[0].op eq "chain" {
-            my @warpable := self.can_chain_junction_be_warped($op[0]);
-            my $exp-side := -1;
-            if @warpable[0] {
-                $exp-side := 0;
-            } elsif @warpable[1] {
-                $exp-side := 1;
-            }
+            my $exp-side := self.can_chain_junction_be_warped($op[0]);
             if $exp-side != -1 && $*LEVEL >= 3 {
                 my $juncop := $op[0][$exp-side].name eq '&infix:<&>' ?? 'if' !! 'unless';
                 my $juncname := %!foldable_junction{$op[0][$exp-side].name};

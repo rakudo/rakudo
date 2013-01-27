@@ -30,6 +30,7 @@ class Perl6::Optimizer {
     has $!Mu;
     
     has %!foldable_junction;
+    has %!foldable_outer;
 
     # Entry point for the optimization process.
     method optimize($past, *%adverbs) {
@@ -41,12 +42,22 @@ class Perl6::Optimizer {
         %!deadly := nqp::hash();
         %!worrying := nqp::hash();
         my $*DYNAMICALLY_COMPILED := 0;
-        #%!foldable_junction{"&any"} := "&infix:<||>";
-        %!foldable_junction{"&infix:<|>"} :=  "&infix:<||>";
-        #%!foldable_junction{"&all"} :=  "&infix:<&&>";
-        %!foldable_junction{"&infix:<&>"} :=  "&infix:<&&>";
+        %!foldable_junction{'&any'} := '&infix:<||>';
+        %!foldable_junction{'&infix:<|>'} :=  '&infix:<||>';
+        %!foldable_junction{'&all'} :=  '&infix:<&&>';
+        %!foldable_junction{'&infix:<&>'} :=  '&infix:<&&>';
         # TODO: none -> like |, but turn then and else branches around.
         #       or add prefix:<!> around
+        %!foldable_outer{'&prefix:<?>'} := 1;
+        %!foldable_outer{'&prefix:<!>'} := 1;
+        %!foldable_outer{'&prefix:<so>'} := 1;
+        %!foldable_outer{'&prefix:<not>'} := 1;
+
+        %!foldable_outer{'if'} := 1;
+        %!foldable_outer{'unless'} := 1;
+        %!foldable_outer{'while'} := 1;
+        %!foldable_outer{'until'} := 1;
+
         # Work out optimization level.
         my $*LEVEL := nqp::existskey(%adverbs, 'optimize') ??
             +%adverbs<optimize> !! 2;
@@ -185,9 +196,20 @@ class Perl6::Optimizer {
                 !(nqp::istype($op[1], QAST::Op) && $op[1].op eq 'chain');
         }
 
+        # there's a list of foldable outers up in the constructor.
+        sub is_outer_foldable() {
+            if $op.op eq "call" {
+                if nqp::existskey(%!foldable_outer, $op.name) && self.is_from_core($op.name) {
+                    return 1;
+                }
+            } elsif nqp::existskey(%!foldable_outer, $op.op) {
+                return 1;
+            }
+            return 0;
+        }
+
         # we may be able to unfold a junction at compile time.
-        if ($op.op eq "if" || $op.op eq "unless" || $op.op eq "while" || $op.op eq "until") &&
-           nqp::istype($op[0], QAST::Op) && $op[0].op eq "chain" {
+        if is_outer_foldable() && nqp::istype($op[0], QAST::Op) && $op[0].op eq "chain" {
             my @warpable := self.can_chain_junction_be_warped($op[0]);
             my $exp-side := -1;
             if @warpable[0] {

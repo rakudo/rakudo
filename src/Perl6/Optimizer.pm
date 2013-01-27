@@ -42,12 +42,14 @@ class Perl6::Optimizer {
         %!deadly := nqp::hash();
         %!worrying := nqp::hash();
         my $*DYNAMICALLY_COMPILED := 0;
-        %!foldable_junction{'&any'} := '&infix:<||>';
         %!foldable_junction{'&infix:<|>'} :=  '&infix:<||>';
-        %!foldable_junction{'&all'} :=  '&infix:<&&>';
         %!foldable_junction{'&infix:<&>'} :=  '&infix:<&&>';
-        # TODO: none -> like |, but turn then and else branches around.
-        #       or add prefix:<!> around
+
+        # until there's a good way to figure out flattening at compile time,
+        # don't support these junctions
+        #%!foldable_junction{'&any'} := '&infix:<||>';
+        #%!foldable_junction{'&all'} :=  '&infix:<&&>';
+
         %!foldable_outer{'&prefix:<?>'} := 1;
         %!foldable_outer{'&prefix:<!>'} := 1;
         %!foldable_outer{'&prefix:<so>'} := 1;

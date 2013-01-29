@@ -1,6 +1,16 @@
 my class DateTime { ... }
 my class Date     { ... }
 
+my enum TimeUnit (
+    :second(1), :seconds(2),
+    :minute(3), :minutes(4),
+    :hour(5), :hours(6),
+    :day(7), :days(8),
+    :week(9), :weeks(10),
+    :month(11), :months(12),
+    :year(13), :years(14),
+);
+
 my role Dateish {
     method is-leap-year($y = $.year) {
         $y %% 4 and not $y %% 100 or $y %% 400
@@ -104,14 +114,14 @@ my role Dateish {
             1 .. self.days-in-month);
     }
 
-    method truncate-parts($unit, %parts? is copy) {
+    method truncate-parts(TimeUnit $unit, %parts? is copy) {
         # Helper for DateTime.truncated-to and Date.truncated-to.
-        if $unit eq 'week' {
+        if $unit == week | weeks {
             my $dc = self.get-daycount;
             my $new-dc = $dc - self.day-of-week($dc) + 1;
             %parts<year month day> =
                 self.ymd-from-daycount($new-dc);
-        } else { # $unit eq 'month'|'year'
+        } else { # $unit == month | months | year | years
             %parts<day> = 1;
             $unit eq 'year' and %parts<month> = 1;
         }
@@ -335,28 +345,75 @@ my class DateTime does Dateish {
          !! $!timezone
     }
 
-    method truncated-to(*%args) {
-        %args.keys == 1
-            or X::Temporal::Truncation.new(
-                    invocant => self,
-                    error    => 'exactly one named argument needed',
-                ).throw;
-        my $unit = %args.keys[0];
-        $unit eq any(<second minute hour day week month year>)
-            or X::Temporal::Truncation.new(
-                    invocant => self,
-                    error    => "Unknown truncation unit '$unit'",
-                ).throw;
+    method delta($amount, TimeUnit $unit) {
+        my ($hour, $minute) = $!hour, $!minute;
+        my $date;
+
+        given $unit {
+            when second | seconds {
+                return DateTime.new(self.Instant + $amount);
+            }
+
+            when minute | minutes { $minute += $amount; proceed }
+
+            $hour += floor($minute / 60);
+            $minute %= 60;
+
+            when hour | hours { $hour += $amount; proceed }
+
+            my $day-delta += floor($hour / 24);
+            $hour %= 24;
+
+            when day | days { $day-delta += $amount; proceed }
+            when week | weeks { $day-delta += 7 * $amount; proceed }
+
+            when month | months {
+                my ($month, $year) = $!month, $!year;
+                $month += $amount;
+                $year += floor(($month - 1) / 12);
+                $month = ($month - 1) % 12 + 1;
+                $date = Date.new(:$year, :$month, :$!day);
+                succeed;
+            }
+
+            when year | years {
+                my $year = $!year + $amount;
+                $date = Date.new(:$year, :$!month, :$!day);
+                succeed;
+            }
+
+            my $daycount = Date.new(self).daycount;
+            $daycount += $day-delta;
+            $date = Date.new-from-daycount($daycount);
+        }
+
+        my $second = $!second;
+        if $second > 59 && $date ne any(tai-utc::leap-second-dates) {
+            $second -= 60;
+            $minute++;
+            if $minute > 59 {
+                $minute -= 60;
+                $hour++;
+                if $hour > 23 {
+                    $hour -= 24;
+                    $date++;
+                }
+            }
+        }
+        self.new(:$date, :$hour, :$minute, :$second);
+    }
+
+    method truncated-to(TimeUnit $unit) {
         my %parts;
         given $unit {
             %parts<second> = self.whole-second;
-            when 'second'     {}
+            when second     {}
             %parts<second> = 0;
-            when 'minute'     {}
+            when minute     {}
             %parts<minute> = 0;
-            when 'hour'       {}
+            when hour       {}
             %parts<hour> = 0;
-            when 'day'        {}
+            when day        {}
             # Fall through to Dateish.
             %parts = self.truncate-parts($unit, %parts);
         }
@@ -485,19 +542,40 @@ my class Date does Dateish {
         self.new(DateTime.now);
     }
 
-    method truncated-to(*%args) {
-        %args.keys == 1
-            or X::Temporal::Truncation.new(
-                    invocant => self,
-                    error    => "exactly one named argument needed",
-            ).throw;
-        my $unit = %args.keys[0];
-        $unit eq any(<week month year>)
-            or X::Temporal::Truncation.new(
-                    invocant => self,
-                    error    => "unknown truncation unit '$unit'",
-            ).throw;
+    method truncated-to(TimeUnit $unit) {
         self.clone(|self.truncate-parts($unit));
+    }
+
+    method delta($amount, TimeUnit $unit) {
+        my $date;
+
+        given $unit {
+            X::DateTime::InvalidDeltaUnit.new(:$unit).throw
+                when second | seconds | minute | minutes | hour | hours;
+
+            my $day-delta;
+            when day | days { $day-delta = $amount; proceed }
+            when week | weeks { $day-delta = 7 * $amount; proceed }
+
+            when month | months {
+                my ($month, $year) = $!month, $!year;
+                $month += $amount;
+                $year += floor(($month - 1) / 12);
+                $month = ($month - 1) % 12 + 1;
+                $date = Date.new(:$year, :$month, :$!day);
+                succeed;
+            }
+
+            when year | years {
+                my $year = $!year + $amount;
+                $date = Date.new(:$year, :$!month, :$!day);
+                succeed;
+            }
+
+            $date = Date.new-from-daycount(self.daycount + $day-delta);
+        }
+
+        $date;
     }
 
     method clone(*%_) {

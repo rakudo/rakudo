@@ -3973,10 +3973,45 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
 
     method circumfix:sym<sigil>($/) {
-        my $name := ~$<sigil> eq '@' ?? 'list' !!
-                    ~$<sigil> eq '%' ?? 'hash' !!
-                                        'item';
-        make QAST::Op.new( :op('callmethod'), :name($name), $<semilist>.ast );
+        my $past := $<semilist>.ast;
+        if $<sigil> eq '$' && ~$<semilist> eq '' { # for '$()'
+            my $result_var := $past.unique('sm_result');
+            $past := QAST::Stmt.new(
+                # Evaluate RHS and call ACCEPTS on it, passing in $_. Bind the
+                # return value to a result variable.
+                QAST::Op.new( :op('bind'),
+                    QAST::Var.new( :name($result_var), :scope('local'), :decl('var') ),
+                    QAST::Op.new(
+                        :op('if'),
+                        # condition
+                        QAST::Op.new(
+                            :op('callmethod'), :name('ast'),
+                            QAST::Var.new( :name('$/'), :scope('lexical') )
+                        ),
+                        # when true
+                        QAST::Op.new(
+                            :op('callmethod'), :name('ast'),
+                            QAST::Var.new( :name('$/'), :scope('lexical') )
+                        ),
+                        # when false
+                        QAST::Op.new(
+                            :op('callmethod'), :name('Str'),
+                            QAST::Var.new( :name('$/'), :scope('lexical') )
+                        )
+                    )
+                ),
+                # And finally evaluate to the smart-match result.
+                QAST::Var.new( :name($result_var), :scope('local') )
+            );
+        }
+        else {
+            my $name := ~$<sigil> eq '@' ?? 'list' !!
+                        ~$<sigil> eq '%' ?? 'hash' !!
+                                            'item';
+            $past := QAST::Op.new( :op('callmethod'), :name($name), $past );
+        }
+
+        make $past
     }
 
     ## Expressions
@@ -4164,14 +4199,32 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my $rhs := $/[1].ast;
         my $old_topic_var := $lhs.unique('old_topic');
         my $result_var := $lhs.unique('sm_result');
-        my $sm_call := QAST::Op.new(
-            :op('callmethod'), :name('ACCEPTS'),
-            $rhs,
-            QAST::Var.new( :name('$_'), :scope('lexical') )
-        );
+        my $sm_call;
+
+        # In case the rhs is a substitution, the result should say if it actually
+        # matched something. Calling ACCEPTS will always be True for this case.
+        if $rhs<is_subst> {
+            $sm_call := QAST::Stmt.new(
+                $rhs,
+                QAST::Op.new(
+                    :op('callmethod'), :name('Bool'),
+                    QAST::Var.new( :name('$/'), :scope('lexical') )
+                )
+            );
+        }
+        else {
+            # Call $rhs.ACCEPTS( $_ ), where $_ is $lhs.
+            $sm_call := QAST::Op.new(
+                :op('callmethod'), :name('ACCEPTS'),
+                $rhs,
+                QAST::Var.new( :name('$_'), :scope('lexical') )
+            );
+        }
+
         if $negated {
             $sm_call := QAST::Op.new( :op('call'), :name('&prefix:<!>'), $sm_call );
         }
+
         QAST::Stmt.new(
             # Stash original $_.
             QAST::Op.new( :op('bind'),
@@ -5001,7 +5054,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
         $past.push(QAST::IVal.new(:named('SET_CALLER_DOLLAR_SLASH'), :value(1)));
 
-        $past := QAST::Op.new(
+        $past := make QAST::Op.new(
             :node($/),
             :op('call'),
             :name('&infix:<=>'),
@@ -5009,8 +5062,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $past
         );
 
-        make $past;
-    }
+        $past<is_subst> := 1;
+        $past
+}
 
     method quote:sym<quasi>($/) {
         my $ast_class := $*W.find_symbol(['AST']);
@@ -5785,7 +5839,8 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions does STDActions {
     method metachar:sym<qw>($/) {
         my $qast := QAST::Regex.new( :rxtype<alt>, :node($/) );
         my $nib  := $<nibble>.ast[0];
-        for @($nib) {
+        my @nibs := +@($nib) ?? @($nib) !! [$nib];
+        for @nibs {
             unless $_.has_compile_time_value {
                 $/.CURSOR.panic("Quote words construct too complex to use in a regex");
             }

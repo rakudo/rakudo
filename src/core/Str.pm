@@ -540,6 +540,7 @@ my class Str does Stringy {
                   :continue(:$c), :pos(:$p),
                   :global(:$g), :overlap(:$ov), :exhaustive(:$ex), 
                   :st(:nd(:rd(:th(:$nth)))), :$x) {
+        my $caller_dollar_slash := pir::find_caller_lex__Ps('$/');
         my %opts;
         if $p.defined { %opts<p> = $p }
         else { %opts<c> = $c // 0; }
@@ -600,22 +601,37 @@ my class Str does Stringy {
             }
         }
 
-        $multi ?? @matches !! (@matches[0] // $cur.MATCH_SAVE);
+        if $multi {
+            if nqp::istype($pat, Regex) {
+                try $caller_dollar_slash = +@matches
+                    ?? @matches[ +@matches - 1 ]
+                    !! Cursor.'!cursor_init'(nqp::unbox_s('self')).'!cursor_start'().MATCH;
+            }
+            @matches
+        }
+        else {
+            try $caller_dollar_slash = (@matches[0] // $cur.MATCH_SAVE);
+            (@matches[0] // $cur.MATCH_SAVE)
+        }
     }
 
     multi method subst($matcher, $replacement,
                        :ii(:$samecase), :ss(:$samespace),
                        :$SET_CALLER_DOLLAR_SLASH, *%options) {
-        my @matches = self.match($matcher, |%options);
+        my $caller_dollar_slash := pir::find_caller_lex__Ps('$/');
+        my $SET_DOLLAR_SLASH     = $SET_CALLER_DOLLAR_SLASH || nqp::istype($matcher, Regex);
+        my @matches              = self.match($matcher, |%options);
+        try $caller_dollar_slash = $/ if $SET_DOLLAR_SLASH;
+
         return self unless @matches;
         return self if @matches == 1 && !@matches[0];
-        my $caller_dollar_slash := pir::find_caller_lex__Ps('$/');
+
         my $prev = 0;
         my $result = '';
         for @matches -> $m {
+            try $caller_dollar_slash = $m if $SET_DOLLAR_SLASH;
             $result ~= self.substr($prev, $m.from - $prev);
 
-            $caller_dollar_slash = $m if $SET_CALLER_DOLLAR_SLASH;
             my $real_replacement = ~($replacement ~~ Callable ?? $replacement($m) !! $replacement);
             $real_replacement    = $real_replacement.samecase(~$m) if $samecase;
             $real_replacement    = $real_replacement.samespace(~$m) if $samespace;

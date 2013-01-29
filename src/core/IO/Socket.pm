@@ -2,24 +2,36 @@ my role IO::Socket {
     has $!PIO;
     has $!buffer = '';
 
-    method recv (Cool $chars = $Inf) {
+    # if bin is true, will return Buf, Str otherwise
+    method recv (Cool $chars = $Inf, :$bin? = False) {
         fail('Socket not available') unless $!PIO;
 
         if $!buffer.chars < $chars {
             my str $r = $!PIO.recv;
-            $r = pir::trans_encoding__Ssi($r,
-                    pir::find_encoding__Is('utf8'));
+            unless $bin {
+                my Mu $bb := pir::new__Ps('ByteBuffer');
+                pir::set__vPs($bb, $r);
+                $r = $bb.get_string(PARROT_ENCODING('utf8'));
+            }
             $!buffer ~= nqp::p6box_s($r);
         }
 
+        my $rec;
         if $!buffer.chars > $chars {
-            my $rec  = $!buffer.substr(0, $chars);
+            $rec     = $!buffer.substr(0, $chars);
             $!buffer = $!buffer.substr($chars);
-            $rec
         } else {
-            my $rec = $!buffer;
+            $rec     = $!buffer;
             $!buffer = '';
-            $rec;
+        }
+
+        if $bin {
+            my $buf := Buf.new;
+            nqp::bindattr_s($buf, Buf, '$!buffer', nqp::unbox_s($rec));
+            $buf
+        }
+        else {
+            $rec
         }
     }
 
@@ -52,7 +64,7 @@ my role IO::Socket {
 
     method write(Buf:D $buf) {
         fail('Socket not available') unless $!PIO;
-        $!PIO.send(nqp::getattr(nqp::p6decont($buf), Buf, '$!buffer').get_string('binary'));
+        $!PIO.send(nqp::unbox_s( $buf.decode('binary') )).Bool;
     }
 
     method close () {

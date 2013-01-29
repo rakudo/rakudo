@@ -8,7 +8,7 @@ use QAST;
 class Perl6::Optimizer {
     # Tracks the nested blocks we're in; it's the lexical chain, essentially.
     has @!block_stack;
-    
+
     # How deep a chain we're in, for chaining operators.
     has $!chain_depth;
     
@@ -29,6 +29,9 @@ class Perl6::Optimizer {
     # The type type, Mu.
     has $!Mu;
     
+    has %!foldable_junction;
+    has %!foldable_outer;
+
     # Entry point for the optimization process.
     method optimize($past, *%adverbs) {
         # Initialize.
@@ -39,7 +42,24 @@ class Perl6::Optimizer {
         %!deadly := nqp::hash();
         %!worrying := nqp::hash();
         my $*DYNAMICALLY_COMPILED := 0;
-        
+        %!foldable_junction{'&infix:<|>'} :=  '&infix:<||>';
+        %!foldable_junction{'&infix:<&>'} :=  '&infix:<&&>';
+
+        # until there's a good way to figure out flattening at compile time,
+        # don't support these junctions
+        #%!foldable_junction{'&any'} := '&infix:<||>';
+        #%!foldable_junction{'&all'} :=  '&infix:<&&>';
+
+        %!foldable_outer{'&prefix:<?>'} := 1;
+        %!foldable_outer{'&prefix:<!>'} := 1;
+        %!foldable_outer{'&prefix:<so>'} := 1;
+        %!foldable_outer{'&prefix:<not>'} := 1;
+
+        %!foldable_outer{'if'} := 1;
+        %!foldable_outer{'unless'} := 1;
+        %!foldable_outer{'while'} := 1;
+        %!foldable_outer{'until'} := 1;
+
         # Work out optimization level.
         my $*LEVEL := nqp::existskey(%adverbs, 'optimize') ??
             +%adverbs<optimize> !! 2;
@@ -125,6 +145,46 @@ class Perl6::Optimizer {
         
         $block
     }
+    method is_from_core($name) {
+        my $i := +@!block_stack;
+        while $i > 0 {
+            $i := $i - 1;
+            my $block := @!block_stack[$i];
+            my %sym := $block.symbol($name);
+            if +%sym && nqp::existskey(%sym, 'value') {
+                my %sym := $block.symbol("!CORE_MARKER");
+                if +%sym {
+                    return 1;
+                }
+                return 0;
+            }
+        }
+        return 0;
+    }
+
+    method can_chain_junction_be_warped($node) {
+        sub has_core-ish_junction($node) {
+            if nqp::istype($node, QAST::Op) && $node.op eq 'call' &&
+                    nqp::existskey(%!foldable_junction, $node.name) {
+                if self.is_from_core($node.name) {
+                    # TODO: special handling for any()/all(), because they create
+                    #       a Stmts with a infix:<,> in it.
+                    if +$node.list == 1 {
+                        return 0;
+                    }
+                    return 1;
+                }
+            }
+            return 0;
+        }
+
+        if has_core-ish_junction($node[0]) {
+            return 0;
+        } elsif has_core-ish_junction($node[1]) {
+            return 1;
+        }
+        return -1;
+    }
     
     # Called when we encounter a QAST::Op in the tree. Produces either
     # the op itself or some replacement opcode to put in the tree.
@@ -141,6 +201,80 @@ class Perl6::Optimizer {
             $optype := 'call' if $!chain_depth == 1 &&
                 !(nqp::istype($op[0], QAST::Op) && $op[0].op eq 'chain') &&
                 !(nqp::istype($op[1], QAST::Op) && $op[1].op eq 'chain');
+        }
+
+        # there's a list of foldable outers up in the constructor.
+        sub is_outer_foldable() {
+            if $op.op eq "call" {
+                if nqp::existskey(%!foldable_outer, $op.name) && self.is_from_core($op.name) {
+                    return 1;
+                }
+            } elsif nqp::existskey(%!foldable_outer, $op.op) {
+                return 1;
+            }
+            return 0;
+        }
+
+        # we may be able to unfold a junction at compile time.
+        if $*LEVEL >= 2 && is_outer_foldable() && nqp::istype($op[0], QAST::Op) && $op[0].op eq "chain" {
+            my $exp-side := self.can_chain_junction_be_warped($op[0]);
+            if $exp-side != -1 {
+                my $juncop := $op[0][$exp-side].name eq '&infix:<&>' ?? 'if' !! 'unless';
+                my $juncname := %!foldable_junction{$op[0][$exp-side].name};
+                my $chainop := $op[0].op;
+                my $chainname := $op[0].name;
+                my $values := $op[0][$exp-side];
+                my $ovalue := $op[0][1 - $exp-side];
+
+                # the first time $valop is refered to, create a bind op for a
+                # local var, next time create a reference var op.
+                my %reference;
+                sub refer_to($valop) {
+                    my $id := $valop;
+                    if nqp::existskey(%reference, $id) {
+                        QAST::Var.new(:name(%reference{$id}), :scope<local>);
+                    } else {
+                        %reference{$id} := $op.unique('junction_unfold');
+                        QAST::Op.new(:op<bind>,
+                                     QAST::Var.new(:name(%reference{$id}),
+                                                   :scope<local>,
+                                                   :decl<var>),
+                                     $valop);
+                    }
+                }
+
+                # create a comparison operation for the inner comparisons
+                sub chain($value) {
+                    if $exp-side == 0 {
+                        QAST::Op.new(:op($chainop), :name($chainname),
+                                     $value,
+                                     refer_to($ovalue));
+                    } else {
+                        QAST::Op.new(:op($chainop), :name($chainname),
+                                     refer_to($ovalue),
+                                     $value);
+                    }
+                }
+
+                # create a chain of outer logical junction operators with inner comparisons
+                sub create_junc() {
+                    my $junc := QAST::Op.new(:name($juncname), :op($juncop));
+
+                    $junc.push(chain($values.shift()));
+
+                    if +$values.list > 1 {
+                        $junc.push(create_junc());
+                    } else {
+                        $junc.push(chain($values.shift()));
+                    }
+                    return $junc;
+                }
+
+                $op.shift;
+                $op.unshift(create_junc());
+                #say($op.dump);
+                return self.visit_op($op);
+            }
         }
         
         # Visit the children.

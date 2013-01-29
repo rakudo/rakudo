@@ -73,9 +73,9 @@ sub term:<time>() { nqp::p6box_i(nqp::time_i()) }
     %CUSTOM_LIB<perl>   = $prefix;
     %CUSTOM_LIB<vendor> = $prefix ~ '/vendor';
     %CUSTOM_LIB<site>   = $prefix ~ '/site';
-    @INC.push(%CUSTOM_LIB<perl>   ~ '/lib');
-    @INC.push(%CUSTOM_LIB<vendor> ~ '/lib');
     @INC.push(%CUSTOM_LIB<site>   ~ '/lib');
+    @INC.push(%CUSTOM_LIB<vendor> ~ '/lib');
+    @INC.push(%CUSTOM_LIB<perl>   ~ '/lib');
     try {
         my $home := %ENV<HOME> // %ENV<HOMEDRIVE> ~ %ENV<HOMEPATH>;
         my $ver  := nqp::p6box_s(nqp::atkey($compiler, 'version'));

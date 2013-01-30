@@ -18,7 +18,6 @@ class Perl6::Compiler is HLL::Compiler {
         $super(self, |@args, |%options);
     }
 
-    # XXX Disable optimizer for now while doing QAST transition.
     method optimize($past, *%adverbs) {
         %adverbs<optimize> eq 'off' ??
             $past !!
@@ -32,16 +31,25 @@ class Perl6::Compiler is HLL::Compiler {
         }
         $past;
     }
-
-    method autoprint($value) {
-        unless pir::getinterp__P().stdout_handle().tell() > $*AUTOPRINTPOS {
-            CATCH { nqp::say($_) }
-            if nqp::can($value, 'gist') {
-                nqp::say(nqp::unbox_s($value.gist));
-            } else {
-                nqp::say(~$value);
-            }
+    
+    method interactive_result($value) {
+        CATCH { nqp::say($_) }
+        if nqp::can($value, 'gist') {
+            nqp::say(nqp::unbox_s($value.gist));
+        } else {
+            nqp::say(~$value);
         }
+    }
+    
+    method interactive_exception($ex) {
+        my $payload := nqp::getpayload($ex);
+        if nqp::can($payload, 'gist') {
+            nqp::say(nqp::unbox_s($payload.gist));
+        }
+        else {
+            nqp::say(~$ex)
+        }
+        CATCH { nqp::say(~$ex) }
     }
     
     method usage($name?) {

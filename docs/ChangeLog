@@ -1,3 +1,12 @@
+New in 2013.02
++ "Did you mean ..." suggestions for symbol-not-found errors
++ Compile-time optimization of some cases of junctions in boolean context
++ Date and DateTime now support a .delta method
++ IO::Socket.get now works again with non-Unicode characters
++ $() now takes $/.ast into account
++ proper return value for smartmatching against a substitution
++ better error reporting when a parent class does not exist
+
 New in 2013.01
 + sink context; for-loops are now lazy by default
 + first mentioning a variable from outer scope and then redeclaring it

@@ -383,6 +383,26 @@ class Perl6::Optimizer {
                 }
             }
         }
+
+        elsif $*LEVEL >= 2 && $optype eq 'call' && $op.name && !$op<has_compile_time_value> {
+            my $code := try { $*W.find_symbol([$op.name]) };
+            if nqp::defined($code) && nqp::can($code, 'IS_PURE') && $code.IS_PURE {
+                # check if all arguments are known at compile time
+                my $all_args_known := 1;
+                for @($op) {
+                    unless nqp::istype($op, QAST::Node) && $op<has_compile_time_value> && !$_.named {
+                        $all_args_known := 0;
+                        last;
+                    }
+                }
+                if $all_args_known {
+                    my $ret_value := $*W.compile_time_evalute($op.node, $op);
+                    $*W.add_object($ret_value);
+                    return QAST::WVal.new(:value($ret_value));
+
+                }
+            }
+        }
         
         # If we end up here, just leave op as is.
         if $op.op eq 'chain' {

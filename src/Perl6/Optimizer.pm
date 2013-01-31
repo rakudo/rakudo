@@ -291,6 +291,37 @@ class Perl6::Optimizer {
                 $found := 1;
             }
             if $found {
+                if nqp::can($obj, 'IS_PURE') && $obj.IS_PURE {
+#                    nqp::print($op.name);
+#                    nqp::say(" is a candidate for constant folding");
+                    # check if all arguments are known at compile time
+                    my $all_args_known := 1;
+                    my @args := [];
+                    for @($op) {
+                        if nqp::istype($_, QAST::Node)
+                                && $_.has_compile_time_value
+                                && !$_.named {
+                            nqp::push(@args, $_.compile_time_value);
+                        }
+                        else {
+#                            nqp::say("... but the following arg prevents it:");
+#                            nqp::say($_.dump);
+                            $all_args_known := 0;
+                            last;
+                        }
+                    }
+                    if $all_args_known {
+                        nqp::say("Constant-folding " ~ $op.name ~  " with " ~
+                                ~nqp::elems(@args) ~ " arguments:");
+#                        for @args {
+#                            nqp::say(nqp::unbox_s($_.Str));
+#                        }
+                        my $ret_value := $obj(|@args);
+                        $*W.add_object($ret_value);
+                        nqp::say("... done.");
+                        return QAST::WVal.new(:value($ret_value));
+                    }
+                }
                 # If it's an onlystar proto, we have a couple of options.
                 # The first is that we may be able to work out what to
                 # call at compile time. Failing that, we can at least inline
@@ -380,26 +411,6 @@ class Perl6::Optimizer {
                 }
                 else {
                     self.add_deadly($op, "Undefined private method '" ~ $name ~ "' called");
-                }
-            }
-        }
-
-        elsif $*LEVEL >= 2 && $optype eq 'call' && $op.name && !$op<has_compile_time_value> {
-            my $code := try { $*W.find_symbol([$op.name]) };
-            if nqp::defined($code) && nqp::can($code, 'IS_PURE') && $code.IS_PURE {
-                # check if all arguments are known at compile time
-                my $all_args_known := 1;
-                for @($op) {
-                    unless nqp::istype($op, QAST::Node) && $op<has_compile_time_value> && !$_.named {
-                        $all_args_known := 0;
-                        last;
-                    }
-                }
-                if $all_args_known {
-                    my $ret_value := $*W.compile_time_evalute($op.node, $op);
-                    $*W.add_object($ret_value);
-                    return QAST::WVal.new(:value($ret_value));
-
                 }
             }
         }

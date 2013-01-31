@@ -187,7 +187,7 @@ proto infix:<*>($a?, $b?) is pure   { * }
 multi infix:<*>($x = 1)      { $x.Numeric }
 multi infix:<*>(\a, \b)    { a.Numeric * b.Numeric }
 
-proto infix:</>($a?, $b?) is pure   { * }
+proto infix:</>($a?, $b?) { * }
 multi infix:</>()            { fail "No zero-arg meaning for infix:</>" }
 multi infix:</>($x)          { $x.Numeric }
 multi infix:</>(\a, \b)    { a.Numeric / b.Numeric }

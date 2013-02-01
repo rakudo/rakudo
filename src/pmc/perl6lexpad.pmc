@@ -473,6 +473,24 @@ Return the LexInfo PMC, if any or a Null PMC.
         GET_ATTR_lexinfo(INTERP, SELF, lexinfo);
         RETURN(PMC *lexinfo);
     }
+    
+    METHOD get_lex_type(STRING *name) {
+        Hash *hash;
+        HashBucket *b;
+        INTVAL spec;
+        GET_ATTR_lexinfo_hash(INTERP, SELF, hash);
+        b = Parrot_hash_get_bucket(interp, hash, name);
+        if (!b)
+            Parrot_ex_throw_from_c_args(interp, NULL, EXCEPTION_LEX_NOT_FOUND,
+                "Lexical '%Ss' not found", name);
+        switch ((INTVAL)b->value & 3) {
+            case REGNO_INT: spec = STORAGE_SPEC_BP_INT; break;
+            case REGNO_NUM: spec = STORAGE_SPEC_BP_NUM; break;
+            case REGNO_STR: spec = STORAGE_SPEC_BP_STR; break;
+            default: spec = STORAGE_SPEC_BP_NONE; break;
+        }
+        RETURN(INTVAL spec);
+    }
 
 /*
 

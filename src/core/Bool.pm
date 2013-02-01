@@ -29,34 +29,34 @@ multi prefix:<-->(Bool:U \a is rw)  { a = False; }
 multi postfix:<++>(Bool:U \a is rw) { a = True; False; }
 multi postfix:<-->(Bool:U \a is rw) { a = False; }
 
-proto prefix:<?>(Mu $) { * }
+proto prefix:<?>(Mu $) is pure { * }
 multi prefix:<?>(Bool:D \a) { a }
 multi prefix:<?>(Mu \a) { a.Bool }
 
-proto prefix:<so>(Mu $) { * }
+proto prefix:<so>(Mu $) is pure { * }
 multi prefix:<so>(Bool:D \a) { a }
 multi prefix:<so>(Mu \a) { a.Bool }
 
-proto prefix:<!>(Mu $) { * }
+proto prefix:<!>(Mu $) is pure { * }
 multi prefix:<!>(Bool \a) { nqp::p6bool(a ?? 0 !! 1) }
 multi prefix:<!>(Mu \a) { nqp::p6bool(a.Bool ?? 0 !! 1) }
 
-proto prefix:<not>(Mu $) { * }
+proto prefix:<not>(Mu $) is pure { * }
 multi prefix:<not>(Bool \a) { nqp::p6bool(a ?? 0 !! 1) }
 multi prefix:<not>(Mu \a) { nqp::p6bool(a.Bool ?? 0 !! 1) }
 
-proto prefix:<?^>(Mu $) { * }
+proto prefix:<?^>(Mu $) is pure { * }
 multi prefix:<?^>(Mu \a) { not a }
 
-proto infix:<?&>(|)                  { * }
+proto infix:<?&>(|) is pure          { * }
 multi infix:<?&>(Mu $x = Bool::True) { $x.Bool }
 multi infix:<?&>(Mu \a, Mu \b)       { a.Bool && b.Bool }
 
-proto infix:<?|>(|)                   { * }
+proto infix:<?|>(|) is pure           { * }
 multi infix:<?|>(Mu $x = Bool::False) { $x.Bool }
 multi infix:<?|>(Mu \a, Mu \b)        { a.Bool || b.Bool }
 
-proto infix:<?^>(|)                   { * }
+proto infix:<?^>(|) is pure           { * }
 multi infix:<?^>(Mu $x = Bool::False) { $x.Bool }
 multi infix:<?^>(Mu \a, Mu \b)        { a.Bool ^^ b.Bool }
 

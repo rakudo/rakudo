@@ -409,17 +409,17 @@ my class Any {
 }
 Metamodel::ClassHOW.exclude_parent(Any);
 
-proto infix:<===>($?, $?) { * }
+proto infix:<===>($?, $?) is pure { * }
 multi infix:<===>($a?)    { Bool::True }
 multi infix:<===>($a, $b) {
     nqp::p6bool(nqp::iseq_s(nqp::unbox_s($a.WHICH), nqp::unbox_s($b.WHICH)))
 }
 
-proto infix:<before>($, $?)    { * }
+proto infix:<before>($, $?)  is pure { * }
 multi infix:<before>($x?)      { Bool::True }
 multi infix:<before>(\a, \b)   { (a cmp b) < 0 }
 
-proto infix:<after>($, $?)     { * }
+proto infix:<after>($, $?) is pure { * }
 multi infix:<after>($x?)       { Bool::True }
 multi infix:<after>(\a, \b)    { (a cmp b) > 0 }
 
@@ -438,7 +438,7 @@ proto postfix:<-->(|)             { * }
 multi postfix:<-->(Mu:D \a is rw) { my $b = a; a = a.pred; $b }
 multi postfix:<-->(Mu:U \a is rw) { a = -1; 0 }
 
-proto infix:<min>(|)     { * }
+proto infix:<min>(|) is pure { * }
 multi infix:<min>(*@args) { @args.min }
 # XXX the multi version suffers from a multi dispatch bug
 # where the mandatory named is ignored in the presence of a slurpy
@@ -448,14 +448,14 @@ multi infix:<min>(*@args) { @args.min }
 sub min(*@args, :&by = &infix:<cmp>) { @args.min(&by) }
 
 
-proto infix:<max>(|)     { * }
+proto infix:<max>(|) is pure { * }
 multi infix:<max>(*@args) { @args.max }
 #proto sub max(|) { * }
 #multi sub max(*@args) { @args.max() }
 #multi sub max(*@args, :&by!) { @args.max(&by) }
 sub max(*@args, :&by = &infix:<cmp>) { @args.max(&by) }
 
-proto infix:<minmax>(|)     { * }
+proto infix:<minmax>(|) is pure { * }
 multi infix:<minmax>(*@args) { @args.minmax }
 #proto sub minmax(|) { * }
 #multi sub minmax(*@args) { @args.minmax() }
@@ -511,5 +511,5 @@ multi sub sort(*@values)      {
         !!  @values.sort;
 }
 
-multi sub item(*@a) { my $ = @a }
+multi sub item(*@a) is pure { my $ = @a }
 multi sub item(Mu $a) { $a }

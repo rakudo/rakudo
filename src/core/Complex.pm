@@ -396,7 +396,7 @@ multi sub infix:<==>(Complex:D \a, Complex:D \b) returns Bool:D { a.re == b.re &
 multi sub infix:<==>(Complex:D \a, Real      \b) returns Bool:D { a.re == b    && a.im == 0e0   }
 multi sub infix:<==>(Real      \a, Complex:D \b) returns Bool:D { a    == b.re && 0e0   == b.im }
 
-proto postfix:<i>(|) returns Complex:D { * }
+proto postfix:<i>(|) returns Complex:D is pure { * }
 multi postfix:<i>(Real      \a) returns Complex:D { Complex.new(0e0, a);     }
 multi postfix:<i>(Complex:D \a) returns Complex:D { Complex.new(-a.im, a.re) }
 multi postfix:<i>(Numeric   \a) returns Complex:D { a * Complex.new(0e0, 1e0) }

@@ -239,21 +239,21 @@ multi prefix:<+^>(int $a) {
     nqp::bitneg_i($a);
 }
 
-proto sub chr($) {*}
+proto sub chr($) is pure  {*}
 multi sub chr(Int:D  \x) returns Str:D { x.chr     }
 multi sub chr(Cool \x) returns Str:D { x.Int.chr }
 multi sub chr(int $x) returns str {
     nqp::chr($x);
 }
 
-proto sub is-prime($, $?) {*}
+proto sub is-prime($, $?) is pure  {*}
 multi sub is-prime(Int:D \i, Int:D $tries = 100) {
     nqp::p6bool(nqp::isprime_I(nqp::p6decont(i), nqp::unbox_i($tries)));
 }
 multi sub is-prime(\i, $tries = 100) {
     nqp::p6bool(nqp::isprime_I(nqp::p6decont(i.Int), nqp::unbox_i($tries.Int)));
 }
-proto sub expmod($, $, $) {*}
+proto sub expmod($, $, $) is pure  {*}
 multi sub expmod(Int:D \base, Int:D \exp, Int:D \mod) {
     nqp::expmod_I(nqp::p6decont(base), nqp::p6decont(exp), nqp::p6decont(mod), Int);
 }

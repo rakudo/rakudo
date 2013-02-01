@@ -114,7 +114,7 @@ my class Parcel does Positional {
 }
 
 
-my sub infix:<,>(|) {
+my sub infix:<,>(|) is pure {
     nqp::p6parcel(pir::perl6_current_args_rpa__P(), nqp::null());
 }
 

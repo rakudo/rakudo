@@ -36,6 +36,13 @@ typedef struct {
     PMC                 *fetch_method;
 } ContainerSpec;
 
+/* How do we invoke this thing? Specifies either an attribute to look at for
+ * an invokable thing, or alternatively a method to call. */
+typedef struct {
+    AttributeIdentifier  value_slot;
+    PMC                 *invocation_handler;
+} InvocationSpec;
+
 /* How do we turn something of this type into a boolean? */
 typedef struct {
     INTVAL mode;
@@ -120,6 +127,10 @@ struct SixModel_STable {
      * order to fetch the value in it. If not, it'll be null, which can
      * be taken as a "not a container" indication. */
     ContainerSpec *container_spec;
+    
+    /* If this is invokable, then this contains information needed to
+     * figure out how to invoke it. If not, it'll be null. */
+    InvocationSpec *invocation_spec;
     
     /* Information - if any - about how we can turn something of this type
      * into a boolean. */

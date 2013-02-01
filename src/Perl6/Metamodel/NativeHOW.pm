@@ -37,8 +37,9 @@ class Perl6::Metamodel::NativeHOW
             my $info := nqp::hash();
             $info<integer> := nqp::hash();
             $info<integer><bits> := nqp::unbox_i($!nativesize);
+            $info<float> := nqp::hash();
+            $info<float><bits> := nqp::unbox_i($!nativesize);
             nqp::composetype($obj, $info);
-            #nqp::composetype($obj, hash(integer => hash(bits => $!nativesize)));
         }
         $!composed := 1;
     }

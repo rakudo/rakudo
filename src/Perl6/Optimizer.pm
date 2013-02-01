@@ -292,8 +292,6 @@ class Perl6::Optimizer {
             }
             if $found {
                 if nqp::can($obj, 'IS_PURE') && $obj.IS_PURE {
-#                    nqp::print($op.name);
-#                    nqp::say(" is a candidate for constant folding");
                     # check if all arguments are known at compile time
                     my $all_args_known := 1;
                     my @args := [];
@@ -304,22 +302,25 @@ class Perl6::Optimizer {
                             nqp::push(@args, $_.compile_time_value);
                         }
                         else {
-#                            nqp::say("... but the following arg prevents it:");
-#                            nqp::say($_.dump);
                             $all_args_known := 0;
                             last;
                         }
                     }
                     if $all_args_known {
-                        nqp::say("Constant-folding " ~ $op.name ~  " with " ~
-                                ~nqp::elems(@args) ~ " arguments:");
-#                        for @args {
-#                            nqp::say(nqp::unbox_s($_.Str));
-#                        }
-                        my $ret_value := $obj(|@args);
-                        $*W.add_object($ret_value);
-                        nqp::say("... done.");
-                        return QAST::WVal.new(:value($ret_value));
+                        my $survived := 0;
+                        my $ret_value;
+                        try {
+                            $ret_value := $obj(|@args);
+                            $survived  := 1;
+                        }
+                        if $survived {
+                            $*W.add_object($ret_value);
+                            my $wval := QAST::WVal.new(:value($ret_value));
+                            if $op.named {
+                                $wval.named($op.named);
+                            }
+                            return $wval;
+                        }
                     }
                 }
                 # If it's an onlystar proto, we have a couple of options.

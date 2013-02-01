@@ -311,7 +311,10 @@ class Perl6::Optimizer {
                         my $ret_value;
                         try {
                             $ret_value := $obj(|@args);
-                            $survived  := 1;
+                            $survived  := 1 ;
+                            CONTROL {
+                                $survived := 0;
+                            }
                         }
                         if $survived {
                             $*W.add_object($ret_value);

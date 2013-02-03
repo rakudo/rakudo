@@ -71,6 +71,13 @@ Dates are based on Parrot's expected release schedule.
   2013-03-21   Rakudo #62
   2013-04-18   Rakudo #63
   2013-05-23   Rakudo #64
+  2013-06-20   Rakudo #65
+  2013-07-18   Rakudo #66
+  2013-08-22   Rakudo #67
+  2013-09-19   Rakudo #68
+  2013-10-17   Rakudo #69
+  2013-11-21   Rakudo #70
+  2013-12-19   Rakudo #71
 
 =head2 Suggested .pm group names for future releases
 

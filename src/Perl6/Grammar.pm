@@ -1620,7 +1620,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             | <sigil> <twigil>? <desigilname>
             | <special_variable>
             | <sigil> $<index>=[\d+] [ <?{ $*IN_DECL}> <.typed_panic: "X::Syntax::Variable::Numeric">]?
-            | <sigil> <?[<[]> [ <?{ $*IN_DECL }> <.typed_panic('X::Syntax::Variable::Match')>]?  <postcircumfix>
+            | <sigil> <?[<]> [ <?{ $*IN_DECL }> <.typed_panic('X::Syntax::Variable::Match')>]?  <postcircumfix>
+            | :dba('contextualizer') <sigil> '(' ~ ')' <semilist> [<?{ $*IN_DECL }> <.panic: "Cannot declare a contextualizer">]?
             | $<sigil>=['$'] $<desigilname>=[<[/_!]>]
             | <sigil> <?{ $*IN_DECL }>
             | <!{ $*QSIGIL }> <.typed_panic: 'X::Syntax::SigilWithoutName'>
@@ -2793,11 +2794,6 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token circumfix:sym«<< >>» { :dba('shell-quote words') '<<' ~ '>>' <nibble(self.quote_lang(%*LANG<Q>, "<<", ">>", ['qq', 'ww']))> }
     token circumfix:sym<« »> { :dba('shell-quote words') '«' ~ '»' <nibble(self.quote_lang(%*LANG<Q>, "«", "»", ['qq', 'ww']))> }
     token circumfix:sym<{ }> { <?[{]> <pblock(1)> }
-    token circumfix:sym<sigil> {
-        :dba('contextualizer')
-        <sigil> '(' ~ ')' <semilist>
-        { unless $*LEFTSIGIL { $*LEFTSIGIL := $<sigil>.Str } }
-    }
 
     ## Operators
 
@@ -3774,7 +3770,7 @@ grammar Perl6::RegexGrammar is QRegex::P6Regex::Grammar does STD {
     }
 
     token metachar:sym<rakvar> {
-        <?before <[$@&]> [<alpha> | \W<alpha>]> <var=.LANG('MAIN', 'variable')>
+        <?before <sigil> [<alpha> | \W<alpha> | '(']> <var=.LANG('MAIN', 'variable')>
         { self.check_variable($<var>) }
     }
 
@@ -3796,7 +3792,7 @@ grammar Perl6::RegexGrammar is QRegex::P6Regex::Grammar does STD {
     }
 
     token assertion:sym<var> {
-        <?[$@&]> <var=.LANG('MAIN', 'variable')>
+        <?before <sigil>> <var=.LANG('MAIN', 'variable')>
     }
     
     token assertion:sym<~~> {

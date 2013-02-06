@@ -198,9 +198,9 @@ sub infix:<^..>($min, $max) {
 sub infix:<..^>($min, $max) { 
     Range.new($min, $max, :excludes_max) 
 }
-sub infix:<^..^>($min, $max) {
+sub infix:<^..^>($min, $max) is pure {
     Range.new($min, $max, :excludes_min, :excludes_max) 
 }
-sub prefix:<^>($max) {
+sub prefix:<^>($max) is pure {
     Range.new(0, $max.Numeric, :excludes_max) 
 }

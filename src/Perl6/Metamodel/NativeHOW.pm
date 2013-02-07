@@ -33,6 +33,14 @@ class Perl6::Metamodel::NativeHOW
         self.compute_mro($obj);
         self.publish_method_cache($obj);
         self.publish_type_cache($obj);
+        if !$!composed && $!nativesize {
+            my $info := nqp::hash();
+            $info<integer> := nqp::hash();
+            $info<integer><bits> := nqp::unbox_i($!nativesize);
+            $info<float> := nqp::hash();
+            $info<float><bits> := nqp::unbox_i($!nativesize);
+            nqp::composetype($obj, $info);
+        }
         $!composed := 1;
     }
     

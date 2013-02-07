@@ -12,8 +12,10 @@ typedef struct {
     INTVAL inlineable;
 
     /* For things that want to be inlined, the number of bits of
-     * storage they need. Ignored otherwise. */
+     * storage they need and what kind of byte-boundary they want to
+     * be aligned to. Ignored otherwise. */
     INTVAL bits;
+    INTVAL align;
 
     /* For things that are inlined, if they are just storage of a
      * primitive type and can unbox, this says what primitive type

@@ -96,12 +96,15 @@ BEGIN {
         }));
     Mu.HOW.add_parrot_vtable_mapping(Mu, 'defined',
         static(sub ($self) { nqp::istrue($self.defined()) }));
+    Mu.HOW.compose_repr(Mu);
 
     # class Any is Mu { ... }
     Any.HOW.add_parent(Any, Mu);
+    Any.HOW.compose_repr(Any);
 
     # class Cool is Any { ... }
     Cool.HOW.add_parent(Cool, Any);
+    Cool.HOW.compose_repr(Cool);
 
     # class Attribute {
     #     has str $!name;
@@ -252,7 +255,8 @@ BEGIN {
             }
             $ins
         }));
-
+    Attribute.HOW.compose_repr(Attribute);
+    
     # class Scalar is Any {
     #     has $!descriptor;
     #     has $!value;
@@ -278,6 +282,7 @@ BEGIN {
         }
         $self
     }));
+    Scalar.HOW.compose_repr(Scalar);
 
     # Scalar needs to be registered as a container type.
     pir::set_container_spec__vPPsP(Scalar, Scalar, '$!value', nqp::null());
@@ -307,6 +312,7 @@ BEGIN {
     }));
     Proxy.HOW.compose(Proxy);
     pir::set_container_spec__vPPsP(Proxy, nqp::null(), '', $PROXY_FETCH);
+    Proxy.HOW.compose_repr(Proxy);
 
     # Helper for creating a scalar attribute. Sets it up as a real Perl 6
     # Attribute instance, complete with container desciptor and auto-viv
@@ -375,6 +381,7 @@ BEGIN {
                 )
             );
         }));
+    Signature.HOW.compose_repr(Signature);
         
     # class Parameter {
     #     has str $!variable_name
@@ -470,7 +477,8 @@ BEGIN {
             pir::repr_bind_attr_str__0PPsS($dcself, Parameter, '$!coerce_method', $type.HOW.name($type));
             pir::setattribute__0PPsP($dcself, Parameter, '$!coerce_type', $type);
         }));
-        
+    Parameter.HOW.compose_repr(Parameter);
+    
     # class Code {
     #     has $!do;                # Low level code object
     #     has $!signature;         # Signature object
@@ -531,6 +539,7 @@ BEGIN {
             nqp::where(nqp::getattr(pir::perl6_decontainerize__PP($self),
                 Code, '$!do'))
         }));
+    Code.HOW.compose_repr(Code);
         
     # Need to actually run the code block. Also need this available before we finish
     # up the stub.
@@ -561,6 +570,7 @@ BEGIN {
             pir::setattribute__0PPSP($cloned, Block, '$!state_vars', nqp::null());
             $cloned
         }));
+    Block.HOW.compose_repr(Block);
 
     # class Routine is Block { ... }
     Routine.HOW.add_parent(Routine, Block);
@@ -623,15 +633,19 @@ BEGIN {
             my $dcself := pir::perl6_decontainerize__PP($self);
             pir::repr_bind_attr_int__0PPsi($dcself, Routine, '$!onlystar', 1);
         }));
+    Routine.HOW.compose_repr(Routine);
 
     # class Sub is Routine { ... }
     Sub.HOW.add_parent(Sub, Routine);
+    Sub.HOW.compose_repr(Sub);
 
     # class Method is Routine { ... }
     Method.HOW.add_parent(Method, Routine);
+    Method.HOW.compose_repr(Method);
 
     # class Submethod is Routine { ... }
     Submethod.HOW.add_parent(Submethod, Routine);
+    Submethod.HOW.compose_repr(Submethod);
 
     # class Regex is Method { ... }
     Regex.HOW.add_parent(Regex, Method);
@@ -663,6 +677,7 @@ BEGIN {
                 nqp::getattr(pir::perl6_decontainerize__PP($self), Regex, '$!alt_nfas'),
                 $name)
         }));
+    Regex.HOW.compose_repr(Regex);
 
     # class Str is Cool {
     #     has str $!value is box_target;
@@ -676,6 +691,7 @@ BEGIN {
         static(sub ($self) {
             nqp::unbox_s($self)
         }));
+    Str.HOW.compose_repr(Str);
 
     # class Int is Cool {
     #     has int $!value is box_target;
@@ -685,6 +701,7 @@ BEGIN {
     Int.HOW.add_attribute(Int, BOOTSTRAPATTR.new(:name<$!value>, :type(bigint), :box_target(1), :package(Int)));
     Int.HOW.set_boolification_mode(Int, 6);
     Int.HOW.publish_boolification_spec(Int);
+    Int.HOW.compose_repr(Int);
 
     # class Num is Cool {
     #     has num $!value is box_target;
@@ -694,23 +711,27 @@ BEGIN {
     Num.HOW.add_attribute(Num, BOOTSTRAPATTR.new(:name<$!value>, :type(num), :box_target(1), :package(Num)));
     Num.HOW.set_boolification_mode(Num, 2);
     Num.HOW.publish_boolification_spec(Num);
+    Num.HOW.compose_repr(Num);
 
     # class Parcel is Cool {
     #     ...
     # }
     Parcel.HOW.add_parent(Parcel, Cool);
     Parcel.HOW.add_attribute(Parcel, scalar_attr('$!storage', Mu, Parcel));
+    Parcel.HOW.compose_repr(Parcel);
 
     # class Iterable is Any {
     #     ...
     # }
     Iterable.HOW.add_parent(Iterable, Any);
+    Iterable.HOW.compose_repr(Iterable);
 
     # class Iterator is Iterable {
     #     ...
     # }
     Iterator.HOW.add_parent(Iterator, Iterable);
-
+    Iterator.HOW.compose_repr(Iterator);
+    
     # class ListIter is Iterator {
     #     has $!reified;
     #     has $!nextiter;
@@ -723,7 +744,8 @@ BEGIN {
     ListIter.HOW.add_attribute(ListIter, scalar_attr('$!nextiter', Mu, ListIter));
     ListIter.HOW.add_attribute(ListIter, scalar_attr('$!rest', Mu, ListIter));
     ListIter.HOW.add_attribute(ListIter, scalar_attr('$!list', Mu, ListIter));
-
+    ListIter.HOW.compose_repr(ListIter);
+    
     # class List is Iterable is Cool {
     #     has $!items;
     #     has $!flattens;
@@ -735,6 +757,7 @@ BEGIN {
     List.HOW.add_attribute(List, scalar_attr('$!items', Mu, List));
     List.HOW.add_attribute(List, scalar_attr('$!flattens', Mu, List));
     List.HOW.add_attribute(List, scalar_attr('$!nextiter', Mu, List));
+    List.HOW.compose_repr(List);
 
     # class Array is List {
     #     has $!descriptor;
@@ -742,6 +765,7 @@ BEGIN {
     # }
     Array.HOW.add_parent(Array, List);
     Array.HOW.add_attribute(Array, BOOTSTRAPATTR.new(:name<$!descriptor>, :type(Mu), :package(Array)));
+    Array.HOW.compose_repr(Array);
 
     # class LoL is List {
     #     has $!descriptor;
@@ -749,6 +773,7 @@ BEGIN {
     # }
     LoL.HOW.add_parent(LoL, List);
     LoL.HOW.add_attribute(LoL, BOOTSTRAPATTR.new(:name<$!descriptor>, :type(Mu), :package(LoL)));
+    LoL.HOW.compose_repr(LoL);
 
     # my class EnumMap is Iterable is Cool {
     #     has $!storage;
@@ -757,6 +782,7 @@ BEGIN {
     EnumMap.HOW.add_parent(EnumMap, Iterable);
     EnumMap.HOW.add_parent(EnumMap, Cool);
     EnumMap.HOW.add_attribute(EnumMap, scalar_attr('$!storage', Mu, EnumMap));
+    EnumMap.HOW.compose_repr(EnumMap);
 
     # my class Hash is EnumMap {
     #     has $!descriptor;
@@ -764,6 +790,7 @@ BEGIN {
     # }
     Hash.HOW.add_parent(Hash, EnumMap);
     Hash.HOW.add_attribute(Hash, BOOTSTRAPATTR.new(:name<$!descriptor>, :type(Mu), :package(Hash)));
+    Hash.HOW.compose_repr(Hash);
 
     # class Capture {
     #     ...
@@ -771,6 +798,7 @@ BEGIN {
     Capture.HOW.add_parent(Capture, Any);
     Capture.HOW.add_attribute(Capture, BOOTSTRAPATTR.new(:name<$!list>, :type(Mu), :package(Capture)));
     Capture.HOW.add_attribute(Capture, BOOTSTRAPATTR.new(:name<$!hash>, :type(Mu), :package(Capture)));
+    Capture.HOW.compose_repr(Capture);
     
     # class Bool is Cool {
     #     has int $!value;
@@ -780,8 +808,10 @@ BEGIN {
     Bool.HOW.add_attribute(Bool, BOOTSTRAPATTR.new(:name<$!value>, :type(int), :box_target(1), :package(Bool)));
     Bool.HOW.set_boolification_mode(Bool, 1);
     Bool.HOW.publish_boolification_spec(Bool);
+    Bool.HOW.compose_repr(Bool);
 
     ObjAt.HOW.add_attribute(ObjAt, BOOTSTRAPATTR.new(:name<$!value>, :type(str), :box_target(1), :package(ObjAt)));
+    ObjAt.HOW.compose_repr(ObjAt);
 
     # Set up Stash type, using a Parrot hash under the hood for storage.
     Stash.HOW.add_parent(Stash, Hash);
@@ -793,6 +823,7 @@ BEGIN {
     Stash.HOW.add_parrot_vtable_handler_mapping(EnumMap, 'exists_keyed_str', '$!storage');
     Stash.HOW.add_parrot_vtable_handler_mapping(EnumMap, 'get_iter', '$!storage');
     Stash.HOW.publish_parrot_vtable_handler_mapping(Stash);
+    Stash.HOW.compose_repr(Stash);
 
     # Set this Stash type for the various types of package.
     Perl6::Metamodel::PackageHOW.set_stash_type(Stash, EnumMap);
@@ -873,6 +904,7 @@ BEGIN {
 
     # Setup some regexy/grammary bits.
     Perl6::Metamodel::ClassHOW.add_stash(Grammar);
+    Grammar.HOW.compose_repr(Grammar);
 
     # Export the metamodel bits to a Metamodel namespace so it's available
     # from user land.

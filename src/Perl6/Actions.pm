@@ -1748,9 +1748,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             make declare_variable($/, $past, ~$sigil, ~$twigil, ~$<variable><desigilname>, $<trait>, $<semilist>);
         }
         else {
-            my %cont_info := container_type_info($/, ~$sigil || '$', []);
-            make $*W.build_container_past(%cont_info,
-                $*W.create_container_descriptor(%cont_info<value_type>, 1, 'anon'));
+            make declare_variable($/, $past, ~$sigil, ~$twigil, ~$<variable><desigilname>, $<trait>, $<semilist>);
         }
     }
 
@@ -1771,7 +1769,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 }
             }
 
-            # Create container descriptor and decide on any default value..
+            # Create container descriptor and decide on any default value.
+            if $desigilname eq '' {
+                $/.CURSOR.panic("Cannot declare an anonymous attribute");
+            }
             my $attrname   := ~$sigil ~ '!' ~ $desigilname;
             my %cont_info  := container_type_info($/, $sigil, $*OFTYPE ?? [$*OFTYPE.ast] !! [], $shape);
             my $descriptor := $*W.create_container_descriptor(%cont_info<value_type>, 1, $attrname);
@@ -1826,9 +1827,12 @@ class Perl6::Actions is HLL::Actions does STDActions {
             my $descriptor := $*W.create_container_descriptor(%cont_info<value_type>, 1, $name);
 
             # Install the container.
+            if $desigilname eq '' {
+                $name := QAST::Node.unique('ANON_VAR_');
+            }
             $*W.install_lexical_container($BLOCK, $name, %cont_info, $descriptor,
                 :state($*SCOPE eq 'state'));
-
+            
             # Set scope and type on container, and if needed emit code to
             # reify a generic type.
             if $past.isa(QAST::Var) {
@@ -1867,6 +1871,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
             elsif $shape {
                 $/.CURSOR.panic("Cannot put a shape on an 'our'-scoped variable");
             }
+            elsif $desigilname eq '' {
+                $/.CURSOR.panic("Cannot have an anonymous 'our'-scoped variable");
+            }
+            
             my $lex := QAST::Var.new( :name($name), :scope('lexical') );
             unless $BLOCK.symbol($name) {
                 $lex.decl('var');

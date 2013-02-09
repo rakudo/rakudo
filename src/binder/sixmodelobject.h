@@ -239,7 +239,7 @@ typedef struct SixModel_REPROps_Boxing {
      * them. */
     void * (*get_boxed_ref) (PARROT_INTERP, STable *st, void *data, INTVAL repr_id);
 } REPROps_Boxing;
-typedef struct SixModel_REPROps_Indexing {
+typedef struct SixModel_REPROps_Positional {
     /* Get a flattened native value, of the type specified in value->type. It
      * is the caller's responsibility to make sure the stored data is of the
      * appropriate type. May throw to indicate out of bounds, or vivify. */
@@ -255,28 +255,35 @@ typedef struct SixModel_REPROps_Indexing {
     /* Binds the object at the specified address into the array at the specified index.
      * For arrays of non-reference types, expects a compatible type. */
     void (*bind_pos_boxed) (PARROT_INTERP, STable *st, void *data, INTVAL index, PMC *obj);
-
-    /* Gets the number of elements. */
-    INTVAL (*elems) (PARROT_INTERP, STable *st, void *data);
-
-    /* Pre-allocates the specified number of slots. */
-    void (*preallocate) (PARROT_INTERP, STable *st, void *data, INTVAL count);
-
-    /* Trim to the specified number of slots. */
-    void (*trim_to) (PARROT_INTERP, STable *st, void *data, INTVAL count);
-
-    /* Make a "hole" the specified number of elements in size at the specified index.
-     * Used for implementing things like unshift, splice, etc. */
-    void (*make_hole) (PARROT_INTERP, STable *st, void *data, INTVAL at_index, INTVAL count);
-
-    /* Delete the specified number of elements (that is, actually shuffle the ones
-     * after them into their place). Used for implementing things like shift, splice,
-     * etc. */
-    void (*delete_elems) (PARROT_INTERP, STable *st, void *data, INTVAL at_index, INTVAL count);
-
+    
+    /* Pushes an object. */
+    void (*push_boxed) (PARROT_INTERP, STable *st, void *data, PMC *obj);
+    
+    /* Pops an object. */
+    PMC * (*pop_boxed) (PARROT_INTERP, STable *st, void *data);
+    
+    /* Unshifts an object. */
+    void (*unshift_boxed) (PARROT_INTERP, STable *st, void *data, PMC *obj);
+    
+    /* Shifts an object. */
+    PMC * (*shift_boxed) (PARROT_INTERP, STable *st, void *data);
+    
     /* Gets the STable representing the declared element type. */
     STable * (*get_elem_stable) (PARROT_INTERP, STable *st);
-} REPROps_Indexing;
+} REPROps_Positional;
+typedef struct SixModel_REPROps_Associative {
+    /* Gets the value at the specified key. */
+    PMC * (*at_key_boxed) (PARROT_INTERP, STable *st, void *data, STRING *key);
+    
+    /* Binds a value to the specified key. */
+    void (*bind_key_boxed) (PARROT_INTERP, STable *st, void *data, STRING *key, PMC *value);
+    
+    /* Checks if the specified key exists. */
+    INTVAL (*exists_key) (PARROT_INTERP, STable *st, void *data, STRING *key);
+    
+    /* Deletes the specified key. */
+    void (*delete_key) (PARROT_INTERP, STable *st, void *data, STRING *key);
+} REPROps_Associative;
 struct SixModel_REPROps {
     /* Creates a new type object of this representation, and
      * associates it with the given HOW. Also sets up a new
@@ -311,8 +318,14 @@ struct SixModel_REPROps {
     /* Boxing REPR function table. */
     struct SixModel_REPROps_Boxing *box_funcs;
 
-    /* Indexing REPR function table. */
-    struct SixModel_REPROps_Indexing *idx_funcs;
+    /* Positional REPR function table. */
+    struct SixModel_REPROps_Positional *pos_funcs;
+
+    /* Associative REPR function table. */
+    struct SixModel_REPROps_Associative *ass_funcs;
+    
+    /* Gets the number of elements, if it's relevant. */
+    INTVAL (*elems) (PARROT_INTERP, STable *st, void *data);
     
     /* Gets the storage specification for this representation. */
     storage_spec (*get_storage_spec) (PARROT_INTERP, STable *st);

@@ -142,7 +142,7 @@ role STD {
     }
 
     method heredoc () {
-        my $here := self.'!cursor_start'();
+        my $here := self.'!cursor_start_cur'();
         $here.'!cursor_pos'(self.pos);
         while @herestub_queue {
             my $herestub := nqp::shift(@herestub_queue);
@@ -2973,7 +2973,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     method copyO($from) {
         my $O   := $from<OPER><O>;
-        my $cur := self.'!cursor_start'();
+        my $cur := self.'!cursor_start_cur'();
         $cur.'!cursor_pass'(self.pos());
         nqp::bindattr($cur, NQPCursor, '$!match', $O);
         $cur
@@ -2981,7 +2981,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     method copyOPER($from) {
         my $OPER := $from<OPER>;
-        my $cur  := self.'!cursor_start'();
+        my $cur  := self.'!cursor_start_cur'();
         $cur.'!cursor_pass'(self.pos());
         nqp::bindattr($cur, NQPCursor, '$!match', $OPER);
         $cur

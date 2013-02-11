@@ -605,7 +605,7 @@ my class Str does Stringy {
             if nqp::istype($pat, Regex) {
                 try $caller_dollar_slash = +@matches
                     ?? @matches[ +@matches - 1 ]
-                    !! Cursor.'!cursor_init'(nqp::unbox_s('self')).'!cursor_start'().MATCH;
+                    !! Cursor.'!cursor_init'(nqp::unbox_s('self')).'!cursor_start_cur'().MATCH;
             }
             @matches
         }

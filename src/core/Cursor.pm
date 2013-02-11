@@ -48,7 +48,7 @@ my class Cursor does NQPCursorRole {
     method INTERPOLATE($var, $i = 0) {
         nqp::isconcrete($var) ??
             ($var ~~ Callable ?? $var(self) !! self."!LITERAL"(nqp::unbox_s($var.Str), $i)) !!
-            self."!cursor_start"()
+            self."!cursor_start_cur"()
     }
     
     method OTHERGRAMMAR($grammar, $name, |) {
@@ -63,7 +63,7 @@ my class Cursor does NQPCursorRole {
     method prior() {
         nqp::isconcrete($last_match) ??
             self."!LITERAL"(nqp::unbox_s(~$last_match)) !!
-            self."!cursor_start"()
+            self."!cursor_start_cur"()
     }
 }
 

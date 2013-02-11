@@ -80,7 +80,7 @@ sub read_config {
     my %config = ();
     for my $file (@config_src) {
         no warnings;
-        if (open my $CONFIG, '-|', "$file --show-config") {
+        if (open my $CONFIG, '-|', qq["$file" --show-config]) {
             while (<$CONFIG>) {
                 if (/^([\w:]+)=(.*)/) { $config{$1} = $2 }
             }

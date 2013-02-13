@@ -5218,11 +5218,13 @@ class Perl6::Actions is HLL::Actions does STDActions {
         ($*W.cur_lexpad())[0].push($block);
         my $param := hash( :variable_name('$_'), :nominal_type($*W.find_symbol(['Mu'])));
         if $copy {
-            $param<is_copy> := 1;
-        } else {
-            $param<is_parcel> := 1;
+            $param<container_descriptor> := $*W.create_container_descriptor(
+                    $*W.find_symbol(['Mu']), 0, '$_'
+            );
         }
-        my $sig := $*W.create_signature(nqp::hash('parameters', [$*W.create_parameter($param)]));
+        my $param_obj := $*W.create_parameter($param);
+        if $copy { $param_obj.set_copy() }
+        my $sig := $*W.create_signature(nqp::hash('parameters', [$param_obj]));
         add_signature_binding_code($block, $sig, [$param]);
         return reference_to_code_object(
             $*W.create_code_object($block, 'Block', $sig),

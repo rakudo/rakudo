@@ -150,7 +150,10 @@ my class Buf does Positional {
 }
 
 multi infix:<eqv>(Buf:D $a, Buf:D $b) {
-    $a.WHAT === $b.WHAT && $a.list eqv $b.list;
+    $a.WHAT === $b.WHAT && nqp::p6bool(nqp::iseq_s(
+        nqp::getattr_s(nqp::p6decont($a), Buf, '$!buffer'),
+        nqp::getattr_s(nqp::p6decont($b), Buf, '$!buffer')
+    ));
 }
 multi prefix:<~^>(Buf:D $a) {
     Buf.new($a.list.map: 255 - *);

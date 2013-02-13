@@ -10,6 +10,7 @@ New in 2013.02
 + natively typed variables now work in the REPL
 + better error reporting in the REPL
 + writable $_ in -p and -e one-liner
++ speed up eqv-comparison of Bufs
 
 New in 2013.01
 + sink context; for-loops are now lazy by default

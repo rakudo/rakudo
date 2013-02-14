@@ -33,7 +33,10 @@ MAIN: {
                'with-parrot=s', 'gen-parrot:s', 'parrot-option=s@',
                'parrot-make-option=s@',
                'make-install!', 'makefile-timing!',
-               );
+    ) or do {
+        print_help();
+        exit(1);
+    };
 
     # Print help if it's requested
     if ($options{'help'}) {

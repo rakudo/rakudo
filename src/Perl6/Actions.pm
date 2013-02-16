@@ -5732,6 +5732,7 @@ class Perl6::QActions is HLL::Actions does STDActions {
             $past := self."postprocess_$pp"($/, $past);
         }
         
+        $past.node($/);
         make $past;
     }
     

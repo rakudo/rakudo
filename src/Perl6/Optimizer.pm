@@ -42,6 +42,7 @@ class Perl6::Optimizer {
         %!deadly := nqp::hash();
         %!worrying := nqp::hash();
         my $*DYNAMICALLY_COMPILED := 0;
+        my $*VOID_CONTEXT := 0;
         %!foldable_junction{'&infix:<|>'} :=  '&infix:<||>';
         %!foldable_junction{'&infix:<&>'} :=  '&infix:<&&>';
 
@@ -110,10 +111,10 @@ class Perl6::Optimizer {
         # Visit children.
         if $block<DYNAMICALLY_COMPILED> {
             my $*DYNAMICALLY_COMPILED := 1;
-            self.visit_children($block);
+            self.visit_children($block, :resultchild(+@($block) - 1));
         }
         else {
-            self.visit_children($block);
+            self.visit_children($block, :resultchild(+@($block) - 1));
         }
         
         # Pop block from block stack.
@@ -278,7 +279,10 @@ class Perl6::Optimizer {
         }
         
         # Visit the children.
-        self.visit_children($op);
+        {
+            my $*VOID_CONTEXT := 0;
+            self.visit_children($op);
+        }
         
         # Calls are especially interesting as we may wish to do some
         # kind of inlining.
@@ -428,6 +432,7 @@ class Perl6::Optimizer {
     
     # Handles visiting a QAST::Op :op('handle').
     method visit_handle($op) {
+        my $*VOID_CONTEXT := 0;
         self.visit_children($op, :skip_selectors);
         $op
     }
@@ -436,7 +441,14 @@ class Perl6::Optimizer {
     method visit_want($want) {
         # Just visit the children for now. We ignore the literal strings, so
         # it all works out.
-        self.visit_children($want, :skip_selectors)
+        if $*VOID_CONTEXT && +@($want) == 3 &&  $want[1] eq 'Ss'
+                && nqp::istype($want[2], QAST::SVal) {
+            nqp::say('Useless use of constant string "' ~ $want[2].value ~ '" in void context');
+        }
+        {
+            my $*VOID_CONTEXT := 0;
+            self.visit_children($want, :skip_selectors)
+        }
     }
     
     # Handles visit a variable node.
@@ -533,10 +545,13 @@ class Perl6::Optimizer {
     }
     
     # Visits all of a nodes children, and dispatches appropriately.
-    method visit_children($node, :$skip_selectors) {
+    method visit_children($node, :$skip_selectors, :$resultchild) {
+        my int $r := $resultchild // -1;
         my $i := 0;
         while $i < +@($node) {
+            my $outer_void := $*VOID_CONTEXT;
             unless $skip_selectors && $i % 2 {
+                my $*VOID_CONTEXT := $outer_void || $i != $r;
                 my $visit := $node[$i];
                 if nqp::istype($visit, QAST::Op) {
                     $node[$i] := self.visit_op($visit)
@@ -551,10 +566,10 @@ class Perl6::Optimizer {
                     $node[$i] := self.visit_block($visit);
                 }
                 elsif nqp::istype($visit, QAST::Stmts) {
-                    self.visit_children($visit);
+                    self.visit_children($visit, :resultchild($visit.resultchild // +@($visit) - 1));
                 }
                 elsif nqp::istype($visit, QAST::Stmt) {
-                    self.visit_children($visit);
+                    self.visit_children($visit, :resultchild($visit.resultchild // +@($visit) - 1));
                 }
             }
             $i := $i + 1;

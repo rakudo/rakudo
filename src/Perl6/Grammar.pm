@@ -3770,8 +3770,14 @@ grammar Perl6::RegexGrammar is QRegex::P6Regex::Grammar does STD {
     }
 
     token metachar:sym<rakvar> {
-        <?before <sigil> [<alpha> | \W<alpha> | '(']> <var=.LANG('MAIN', 'variable')>
-        { self.check_variable($<var>) }
+        <?before <sigil> $<twigil>=[<alpha> | \W<alpha> | '(']>
+        <var=.LANG('MAIN', 'variable')>
+        [
+        || $<binding> = ( \s* '=' \s* <quantified_atom> )
+           { self.check_variable($<var>) unless $<twigil> eq '<' }
+        || { self.check_variable($<var>) }
+           [ <?before '.'? <[ \[ \{ \< ]>> <.worry: "Apparent subscript will be treated as regex"> ]?
+        ]
     }
 
     token metachar:sym<qw> {

@@ -1,6 +1,8 @@
 use NQPP6QRegex;
 use QAST;
 
+my $NULL := QAST::Op.new( :op<null> );
+
 # This powers the optimization pass. It takes place after we've done all
 # of the stuff in the grammar and actions, which means CHECK time is over.
 # Thus we're allowed to assume that lexpads are immutable, declarations are
@@ -443,13 +445,28 @@ class Perl6::Optimizer {
         # Just visit the children for now. We ignore the literal strings, so
         # it all works out.
         if $*VOID_CONTEXT && !$*IN_DECLARATION
-                && +@($want) == 3 &&  $want[1] eq 'Ss'
-                && nqp::istype($want[2], QAST::SVal) {
-            my $warning := qq[Useless use of constant string "]
-                        ~ nqp::escape($want[2].value)
-                        ~ qq[" in sink context];
-            self.add_worry($want, $warning);
-            return 1;
+                && +@($want) == 3 && $want.node {
+
+            my $warning;
+            if $want[1] eq 'Ss' && nqp::istype($want[2], QAST::SVal) {
+                $warning := qq[Useless use of constant string "]
+                         ~ nqp::escape($want[2].value)
+                         ~ qq[" in sink context];
+            }
+            elsif $want[1] eq 'Ii' && nqp::istype($want[2], QAST::IVal) {
+                $warning := qq[Useless use of constant integer ]
+                         ~ ~$want[2].value
+                         ~ qq[ in sink context];
+            }
+            elsif $want[1] eq 'Nn' && nqp::istype($want[2], QAST::NVal) {
+                $warning := qq[Useless use of constant floating-point number ]
+                         ~ ~$want[2].value
+                         ~ qq[ in sink context];
+            }
+            if $warning {
+                self.add_worry($want, $warning);
+                return $NULL;
+            }
         }
         {
             my $*VOID_CONTEXT := 0;

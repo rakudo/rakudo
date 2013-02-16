@@ -445,11 +445,16 @@ class Perl6::Optimizer {
         if $*VOID_CONTEXT && !$*IN_DECLARATION
                 && +@($want) == 3 &&  $want[1] eq 'Ss'
                 && nqp::istype($want[2], QAST::SVal) {
-            nqp::say('Useless use of constant string "' ~ $want[2].value ~ '" in void context');
+            my $warning := qq[Useless use of constant string "]
+                        ~ nqp::escape($want[2].value)
+                        ~ qq[" in sink context];
+            self.add_worry($want, $warning);
+            return 1;
         }
         {
             my $*VOID_CONTEXT := 0;
-            self.visit_children($want, :skip_selectors)
+            self.visit_children($want, :skip_selectors);
+            return $want;
         }
     }
     
@@ -561,7 +566,7 @@ class Perl6::Optimizer {
                     $node[$i] := self.visit_op($visit)
                 }
                 elsif nqp::istype($visit, QAST::Want) {
-                    self.visit_want($visit);
+                    $node[$i] := self.visit_want($visit);
                 }
                 elsif nqp::istype($visit, QAST::Var) {
                     self.visit_var($visit);
@@ -729,13 +734,23 @@ class Perl6::Optimizer {
     
     # Adds an entry to the list of things that would cause a check fail.
     method add_deadly($past_node, $message, @extras?) {
+        self.add_memo($past_node, $message, @extras, :type<deadly>);
+    }
+    # Adds an entry to the list of things that would just warn
+    method add_worry($past_node, $message, @extras?) {
+        self.add_memo($past_node, $message, @extras, :type<worry>);
+    }
+
+    method add_memo($past_node, $message, @extras?, :$type!) {
         my $mnode := $past_node.node;
         my $line := HLL::Compiler.lineof($mnode.orig, $mnode.from);
         my $key := $message ~ (+@extras ?? "\n" ~ nqp::join("\n", @extras) !! "");
-        unless %!deadly{$key} {
-            %!deadly{$key} := [];
+        my %cont := $type eq 'deadly' ?? %!deadly !! %!worrying;
+        unless %cont{$key} {
+            %cont{$key} := [];
         }
-        %!deadly{$key}.push($line);
+        %cont{$key}.push($line);
+
     }
     
     my @prim_spec_ops := ['', 'p6box_i', 'p6box_n', 'p6box_s'];

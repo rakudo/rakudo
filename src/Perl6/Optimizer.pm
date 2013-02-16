@@ -324,6 +324,12 @@ class Perl6::Optimizer {
                             }
                         }
                         if $survived {
+                            if $op.node && $*VOID_CONTEXT && !$*IN_DECLARATION {
+                                my str $text := nqp::escape($op.node.Str);
+                                self.add_worry($op, qq[Useless use of constant expression "$text" in sink context]);
+                                return $NULL;
+
+                            }
                             $*W.add_object($ret_value);
                             my $wval := QAST::WVal.new(:value($ret_value));
                             if $op.named {
@@ -468,11 +474,8 @@ class Perl6::Optimizer {
                 return $NULL;
             }
         }
-        {
-            my $*VOID_CONTEXT := 0;
-            self.visit_children($want, :skip_selectors);
-            return $want;
-        }
+        self.visit_children($want, :skip_selectors);
+        $want;
     }
     
     # Handles visit a variable node.

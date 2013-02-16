@@ -43,6 +43,7 @@ class Perl6::Optimizer {
         %!worrying := nqp::hash();
         my $*DYNAMICALLY_COMPILED := 0;
         my $*VOID_CONTEXT := 0;
+        my $*IN_DECLARATION := 0;
         %!foldable_junction{'&infix:<|>'} :=  '&infix:<||>';
         %!foldable_junction{'&infix:<&>'} :=  '&infix:<&&>';
 
@@ -441,7 +442,8 @@ class Perl6::Optimizer {
     method visit_want($want) {
         # Just visit the children for now. We ignore the literal strings, so
         # it all works out.
-        if $*VOID_CONTEXT && +@($want) == 3 &&  $want[1] eq 'Ss'
+        if $*VOID_CONTEXT && !$*IN_DECLARATION
+                && +@($want) == 3 &&  $want[1] eq 'Ss'
                 && nqp::istype($want[2], QAST::SVal) {
             nqp::say('Useless use of constant string "' ~ $want[2].value ~ '" in void context');
         }
@@ -550,8 +552,10 @@ class Perl6::Optimizer {
         my $i := 0;
         while $i < +@($node) {
             my $outer_void := $*VOID_CONTEXT;
+            my $outer_decl := $*IN_DECLARATION;
             unless $skip_selectors && $i % 2 {
-                my $*VOID_CONTEXT := $outer_void || ($r != -1 && $i != $r);
+                my $*VOID_CONTEXT   := $outer_void || ($r != -1 && $i != $r);
+                my $*IN_DECLARATION := $outer_decl || ($i == 0 && nqp::istype($node, QAST::Block));
                 my $visit := $node[$i];
                 if nqp::istype($visit, QAST::Op) {
                     $node[$i] := self.visit_op($visit)

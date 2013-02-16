@@ -551,7 +551,7 @@ class Perl6::Optimizer {
         while $i < +@($node) {
             my $outer_void := $*VOID_CONTEXT;
             unless $skip_selectors && $i % 2 {
-                my $*VOID_CONTEXT := $outer_void || ($i != -1 && $i != $r);
+                my $*VOID_CONTEXT := $outer_void || ($r != -1 && $i != $r);
                 my $visit := $node[$i];
                 if nqp::istype($visit, QAST::Op) {
                     $node[$i] := self.visit_op($visit)

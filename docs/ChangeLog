@@ -11,6 +11,8 @@ New in 2013.02
 + better error reporting in the REPL
 + writable $_ in -p and -e one-liner
 + speed up eqv-comparison of Bufs
++ warnings for useless use of (some) literals, variables and constant
+  expressions in sink context
 
 New in 2013.01
 + sink context; for-loops are now lazy by default

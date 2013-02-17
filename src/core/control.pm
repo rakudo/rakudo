@@ -148,7 +148,7 @@ proto sub eval($, *%) {*}
 multi sub eval(Str $code, :$lang = 'perl6', PseudoStash :$context) {
     my $eval_ctx := nqp::getattr(nqp::p6decont($context // CALLER::), PseudoStash, '$!ctx');
     my $?FILES   := 'eval_' ~ (state $no)++;
-    my $compiler := pir::compreg__PS($lang);
+    my $compiler := nqp::getcomp($lang);
     X::Eval::NoSuchLang.new(:$lang).throw
         if nqp::isnull($compiler);
     my $pbc      := $compiler.compile($code, :outer_ctx($eval_ctx), :global(GLOBAL));

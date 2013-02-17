@@ -8,7 +8,7 @@ my class Attribute {
             unless $package.HOW.declares_method($package, $meth_name) {
                 my $dcpkg := nqp::p6decont($package);
                 my $meth;
-                my int $attr_type = pir::repr_get_primitive_type_spec__IP($!type);
+                my int $attr_type = nqp::objprimspec($!type);
                 if self.rw {
                     $meth  := nqp::p6bool(nqp::iseq_i($attr_type, 0))
                         ??
@@ -78,7 +78,7 @@ my class Attribute {
     
     method get_value(Mu $obj) {
         my $decont := nqp::p6decont($obj);
-        given nqp::p6box_i(pir::repr_get_primitive_type_spec__IP($!type)) {
+        given nqp::p6box_i(nqp::objprimspec($!type)) {
             when 0 { nqp::getattr($decont, $!package, $!name) }
             when 1 { nqp::p6box_i(nqp::getattr_i($decont, $!package, $!name)) }
             when 2 { nqp::p6box_n(nqp::getattr_n($decont, $!package, $!name)) }
@@ -88,7 +88,7 @@ my class Attribute {
     
     method set_value(Mu $obj, Mu \value) {
         my $decont := nqp::p6decont($obj);
-        given nqp::p6box_i(pir::repr_get_primitive_type_spec__IP($!type)) {
+        given nqp::p6box_i(nqp::objprimspec($!type)) {
             when 0 { nqp::bindattr($decont, $!package, $!name, value) }
             when 1 { nqp::p6box_i(nqp::bindattr_i($decont, $!package, $!name, value)) }
             when 2 { nqp::p6box_n(nqp::bindattr_n($decont, $!package, $!name, value)) }

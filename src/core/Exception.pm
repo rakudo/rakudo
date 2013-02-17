@@ -210,7 +210,7 @@ do {
                 $err.print: $ex;
                 $err.print: "\n";
             }
-            $_() for pir::perl6ize_type__PP(@*END_PHASERS);
+            $_() for nqp::p6type(@*END_PHASERS);
         }
         if $! {
             pir::perl6_based_rethrow__0PP(nqp::getattr(nqp::p6decont($!), Exception, '$!ex'), $ex);
@@ -255,7 +255,7 @@ do {
         }
     }
             
-    my Mu $comp := pir::compreg__Ps('perl6');
+    my Mu $comp := nqp::getcomp('perl6');
     $comp.HOW.add_method($comp, 'handle-exception',
         method (|) {
             my Mu $ex := nqp::atpos(pir::perl6_current_args_rpa__P(), 1);
@@ -1204,7 +1204,7 @@ my class X::Item is Exception {
             X::NoDispatcher.new(:$redispatcher).throw;
         };
     my Mu $parrot_c_ex := nqp::getattr(%c_ex, EnumMap, '$!storage');
-    pir::set_hll_global__vsP('P6EX', $parrot_c_ex);
+    nqp::bindcurhllsym('P6EX', $parrot_c_ex);
     0;
 }
 

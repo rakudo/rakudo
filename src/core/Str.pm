@@ -219,13 +219,13 @@ my class Str does Stringy {
         my int $eos = nqp::chars($str);
 
         # S02:3276-3277: Ignore leading and trailing whitespace
-        my int $pos = nqp::findnotcclass(pir::const::CCLASS_WHITESPACE,
+        my int $pos = nqp::findnotcclass(nqp::const::CCLASS_WHITESPACE,
                                                   $str, 0, $eos);
         my int $end = nqp::sub_i($eos, 1);
 
         $end = nqp::sub_i($end, 1)
             while nqp::isge_i($end, $pos)
-               && nqp::iscclass(pir::const::CCLASS_WHITESPACE, $str, $end);
+               && nqp::iscclass(nqp::const::CCLASS_WHITESPACE, $str, $end);
 
         # Return 0 if no non-whitespace characters in string
         return 0 if nqp::islt_i($end, $pos);
@@ -729,7 +729,7 @@ my class Str does Stringy {
     method trim-leading(Str:D:) {
         my str $str = nqp::unbox_s(self);
         my int $pos = nqp::findnotcclass(
-                          pir::const::CCLASS_WHITESPACE,
+                          nqp::const::CCLASS_WHITESPACE,
                           $str, 0, nqp::chars($str));
         nqp::p6box_s(nqp::substr($str, $pos));
     }
@@ -739,7 +739,7 @@ my class Str does Stringy {
         my int $pos = nqp::chars($str) - 1;
         $pos = $pos - 1
             while nqp::isge_i($pos, 0)
-               && nqp::iscclass(pir::const::CCLASS_WHITESPACE, $str, $pos);
+               && nqp::iscclass(nqp::const::CCLASS_WHITESPACE, $str, $pos);
         nqp::islt_i($pos, 0) ?? '' !! nqp::p6box_s(nqp::substr($str, 0, $pos + 1));
     }
 
@@ -747,10 +747,10 @@ my class Str does Stringy {
         my str $str  = nqp::unbox_s(self);
         my int $pos  = nqp::chars($str) - 1;
         my int $left = nqp::findnotcclass(
-                           pir::const::CCLASS_WHITESPACE, $str, 0, $pos + 1);
+                           nqp::const::CCLASS_WHITESPACE, $str, 0, $pos + 1);
         $pos = $pos - 1
             while nqp::isge_i($pos, $left)
-               && nqp::iscclass(pir::const::CCLASS_WHITESPACE, $str, $pos);
+               && nqp::iscclass(nqp::const::CCLASS_WHITESPACE, $str, $pos);
         nqp::islt_i($pos, $left) ?? '' !! nqp::p6box_s(nqp::substr($str, $left, $pos + 1 - $left));
     }
 

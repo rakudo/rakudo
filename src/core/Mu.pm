@@ -271,13 +271,13 @@ my class Mu {
     }
     
     method clone(*%twiddles) {
-        my $cloned := pir::repr_clone__PP(nqp::p6decont(self));
+        my $cloned := nqp::clone(nqp::p6decont(self));
         for self.^attributes() -> $attr {
             my $name := $attr.name;
             my $package := $attr.package;
-            unless pir::repr_get_primitive_type_spec__IP($attr.type) {
+            unless nqp::objprimspec($attr.type) {
                 my $attr_val := nqp::getattr($cloned, $package, $name);
-                nqp::bindattr($cloned, $package, $name, pir::repr_clone__PP($attr_val.VAR))
+                nqp::bindattr($cloned, $package, $name, nqp::clone($attr_val.VAR))
                     if nqp::iscont($attr_val);
             }
             my $acc_name := $name.substr(2);

@@ -2,9 +2,9 @@ sub term:<time>() { nqp::p6box_i(nqp::time_i()) }
 
 {
     my @ARGS;
-    my Mu $argiter := pir::get_hll_global__Ps('$!ARGITER');
+    my Mu $argiter := nqp::getcurhllsym('$!ARGITER');
     @ARGS.push(nqp::p6box_s(nqp::shift($argiter))) while $argiter;
-    nqp::bindkey(pir::get_who__PP(PROCESS), '@ARGS', @ARGS);
+    nqp::bindkey(nqp::who(PROCESS), '@ARGS', @ARGS);
     $PROCESS::ARGFILES = IO::ArgFiles.new(:args(@ARGS));
 
     my %ENV;
@@ -39,14 +39,14 @@ sub term:<time>() { nqp::p6box_i(nqp::time_i()) }
             return $ret;
         }
     }
-    nqp::bindkey(pir::get_who__PP(PROCESS), '%ENV', %ENV);
+    nqp::bindkey(nqp::who(PROCESS), '%ENV', %ENV);
 
     my $VM = {
         name    => 'parrot', # XXX: should be made dynamical
-        config  => pir::perl6ize_type__PP(
+        config  => nqp::p6type(
                         nqp::atpos(pir::getinterp__P, pir::const::IGLOBALS_CONFIG_HASH))
     }
-    nqp::bindkey(pir::get_who__PP(PROCESS), '$VM', $VM);
+    nqp::bindkey(nqp::who(PROCESS), '$VM', $VM);
 
     my Mu $compiler := pir::find_caller_lex__PS('$COMPILER_CONFIG');
     my $PERL = {
@@ -59,10 +59,10 @@ sub term:<time>() { nqp::p6box_i(nqp::time_i()) }
             codename => nqp::p6box_s(nqp::atkey($compiler, 'codename')),
         }
     };
-    nqp::bindkey(pir::get_who__PP(PROCESS), '$PERL', $PERL);
+    nqp::bindkey(nqp::who(PROCESS), '$PERL', $PERL);
 
     my $CWD = nqp::p6box_s(pir::new__PS('OS').cwd);
-    nqp::bindkey(pir::get_who__PP(PROCESS), '$CWD', $CWD);
+    nqp::bindkey(nqp::who(PROCESS), '$CWD', $CWD);
 
     my @INC;
     @INC.push(%ENV<RAKUDOLIB>.split($VM<config><osname> eq 'MSWin32' ?? ';' !! ':')) if %ENV<RAKUDOLIB>;
@@ -82,7 +82,7 @@ sub term:<time>() { nqp::p6box_i(nqp::time_i()) }
         %CUSTOM_LIB<home> = "$home/.perl6/$ver";
         @INC.push(%CUSTOM_LIB<home> ~ '/lib');
     }
-    nqp::bindkey(pir::get_who__PP(PROCESS), '%CUSTOM_LIB', %CUSTOM_LIB);
+    nqp::bindkey(nqp::who(PROCESS), '%CUSTOM_LIB', %CUSTOM_LIB);
 
     my $I := nqp::atkey(nqp::atkey(%*COMPILING, '%?OPTIONS'), 'I');
     if nqp::defined($I) {
@@ -95,23 +95,23 @@ sub term:<time>() { nqp::p6box_i(nqp::time_i()) }
         }
     }
 
-    nqp::bindkey(pir::get_who__PP(PROCESS), '@INC', @INC);
+    nqp::bindkey(nqp::who(PROCESS), '@INC', @INC);
 
     my $PID = nqp::p6box_i(pir::getinterp__P().getpid());
-    nqp::bindkey(pir::get_who__PP(PROCESS), '$PID', $PID);
+    nqp::bindkey(nqp::who(PROCESS), '$PID', $PID);
 
     my $OS = $VM<config><osname>; # XXX: master gets this information with the sysinfo dynop
-    nqp::bindkey(pir::get_who__PP(PROCESS), '$OS', $OS);
+    nqp::bindkey(nqp::who(PROCESS), '$OS', $OS);
 
     my $OSVER = $VM<config><osvers>; # XXX: master gets this information with the sysinfo dynop
-    nqp::bindkey(pir::get_who__PP(PROCESS), '$OSVER', $OSVER);
+    nqp::bindkey(nqp::who(PROCESS), '$OSVER', $OSVER);
 
     my $EXECUTABLE_NAME = 
         nqp::p6box_s(pir::interpinfo__Si(pir::const::INTERPINFO_EXECUTABLE_FULLNAME));
-    nqp::bindkey(pir::get_who__PP(PROCESS), '$EXECUTABLE_NAME', $EXECUTABLE_NAME);
+    nqp::bindkey(nqp::who(PROCESS), '$EXECUTABLE_NAME', $EXECUTABLE_NAME);
     my Mu $comp := pir::compreg__Ps('perl6');
 
     my $PROGRAM_NAME = $comp.user-progname();
-    nqp::bindkey(pir::get_who__PP(PROCESS), '$PROGRAM_NAME', $PROGRAM_NAME);
+    nqp::bindkey(nqp::who(PROCESS), '$PROGRAM_NAME', $PROGRAM_NAME);
 
 }

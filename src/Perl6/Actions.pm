@@ -4427,8 +4427,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
     
     sub flipflop($lhs, $rhs, $min_excl, $max_excl, $one_only) {
         # Need various constants.
-        my $zero  := $*W.add_numeric_constant('Int', 0);
-        my $one   := $*W.add_numeric_constant('Int', 1);
+        my $zero  := $*W.add_numeric_constant(NQPMu, 'Int', 0);
+        my $one   := $*W.add_numeric_constant(NQPMu, 'Int', 1);
         my $nil   := QAST::WVal.new( :value($*W.find_symbol(['Nil'])) );
         my $false := QAST::WVal.new( :value($*W.find_symbol(['Bool', 'False'])) );
         my $true  := QAST::WVal.new( :value($*W.find_symbol(['Bool', 'True'])) );
@@ -4759,12 +4759,12 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
     method numish($/) {
         if $<integer> {
-            make $*W.add_numeric_constant('Int', $<integer>.ast);
+            make $*W.add_numeric_constant($/, 'Int', $<integer>.ast);
         }
         elsif $<dec_number> { make $<dec_number>.ast; }
         elsif $<rad_number> { make $<rad_number>.ast; }
         else {
-            make $*W.add_numeric_constant('Num', +$/);
+            make $*W.add_numeric_constant($/, 'Num', +$/);
         }
     }
 
@@ -4804,11 +4804,11 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my $radix    := +($<radix>.Str);
         if $<bracket>   {
             make QAST::Op.new(:name('&unbase_bracket'), :op('call'),
-                $*W.add_numeric_constant('Int', $radix), $<bracket>.ast);
+                $*W.add_numeric_constant($/, 'Int', $radix), $<bracket>.ast);
         }
         elsif $<circumfix> {
             make QAST::Op.new(:name('&unbase'), :op('call'),
-                $*W.add_numeric_constant('Int', $radix), $<circumfix>.ast);
+                $*W.add_numeric_constant($/, 'Int', $radix), $<circumfix>.ast);
         } else {
             my $intpart  := $<intpart>.Str;
             my $fracpart := $<fracpart> ?? $<fracpart>.Str !! "0";
@@ -5664,9 +5664,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
         if $num {
             if nqp::bool_I($iresult) {
                 my num $result := nqp::mul_n(nqp::div_n(nqp::tonum_I($iresult), nqp::tonum_I($fdivide)), nqp::pow_n($base, $exponent));
-                return $*W.add_numeric_constant('Num', $result);
+                return $*W.add_numeric_constant($/, 'Num', $result);
             } else {
-                return $*W.add_numeric_constant('Num', 0e0);
+                return $*W.add_numeric_constant($/, 'Num', 0e0);
             }
         } else {
             if nqp::defined($exponent) {
@@ -5688,7 +5688,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     $iresult, $fdivide, :nocache(1)
                 );
             } else {
-                return $*W.add_numeric_constant('Int', $iresult);
+                return $*W.add_numeric_constant($/, 'Int', $iresult);
             }
         }
     }
@@ -5732,6 +5732,7 @@ class Perl6::QActions is HLL::Actions does STDActions {
             $past := self."postprocess_$pp"($/, $past);
         }
         
+        $past.node($/);
         make $past;
     }
     

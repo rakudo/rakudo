@@ -1,6 +1,8 @@
 use NQPP6QRegex;
 use QAST;
 
+my $NULL := QAST::Op.new( :op<null> );
+
 # This powers the optimization pass. It takes place after we've done all
 # of the stuff in the grammar and actions, which means CHECK time is over.
 # Thus we're allowed to assume that lexpads are immutable, declarations are
@@ -42,6 +44,8 @@ class Perl6::Optimizer {
         %!deadly := nqp::hash();
         %!worrying := nqp::hash();
         my $*DYNAMICALLY_COMPILED := 0;
+        my $*VOID_CONTEXT := 0;
+        my $*IN_DECLARATION := 0;
         %!foldable_junction{'&infix:<|>'} :=  '&infix:<||>';
         %!foldable_junction{'&infix:<&>'} :=  '&infix:<&&>';
 
@@ -110,10 +114,10 @@ class Perl6::Optimizer {
         # Visit children.
         if $block<DYNAMICALLY_COMPILED> {
             my $*DYNAMICALLY_COMPILED := 1;
-            self.visit_children($block);
+            self.visit_children($block, :resultchild(+@($block) - 1));
         }
         else {
-            self.visit_children($block);
+            self.visit_children($block, :resultchild(+@($block) - 1));
         }
         
         # Pop block from block stack.
@@ -278,7 +282,10 @@ class Perl6::Optimizer {
         }
         
         # Visit the children.
-        self.visit_children($op);
+        {
+            my $*VOID_CONTEXT := 0;
+            self.visit_children($op);
+        }
         
         # Calls are especially interesting as we may wish to do some
         # kind of inlining.
@@ -316,7 +323,22 @@ class Perl6::Optimizer {
                                 $survived := 0;
                             }
                         }
+                        sub widen($m) {
+                            my int $from := $m.from;
+                            my int $to   := $m.to;
+                            for $m.list {
+                                $from := $_.from if $_.from < $from;
+                                $to   := $_.to   if $_.to   > $to;
+                            }
+                            nqp::substr($m.orig, $from, $to - $from);
+                        }
                         if $survived {
+                            if $op.node && $*VOID_CONTEXT && !$*IN_DECLARATION {
+                                my str $text := nqp::escape(widen($op.node));
+                                self.add_worry($op, qq[Useless use of constant expression "$text" in sink context]);
+                                return $NULL;
+
+                            }
                             $*W.add_object($ret_value);
                             my $wval := QAST::WVal.new(:value($ret_value));
                             if $op.named {
@@ -428,6 +450,7 @@ class Perl6::Optimizer {
     
     # Handles visiting a QAST::Op :op('handle').
     method visit_handle($op) {
+        my $*VOID_CONTEXT := 0;
         self.visit_children($op, :skip_selectors);
         $op
     }
@@ -436,7 +459,32 @@ class Perl6::Optimizer {
     method visit_want($want) {
         # Just visit the children for now. We ignore the literal strings, so
         # it all works out.
-        self.visit_children($want, :skip_selectors)
+        if $*VOID_CONTEXT && !$*IN_DECLARATION
+                && +@($want) == 3 && $want.node {
+
+            my $warning;
+            if $want[1] eq 'Ss' && nqp::istype($want[2], QAST::SVal) {
+                $warning := qq[Useless use of constant string "]
+                         ~ nqp::escape($want[2].value)
+                         ~ qq[" in sink context];
+            }
+            elsif $want[1] eq 'Ii' && nqp::istype($want[2], QAST::IVal) {
+                $warning := qq[Useless use of constant integer ]
+                         ~ ~$want[2].value
+                         ~ qq[ in sink context];
+            }
+            elsif $want[1] eq 'Nn' && nqp::istype($want[2], QAST::NVal) {
+                $warning := qq[Useless use of constant floating-point number ]
+                         ~ ~$want[2].value
+                         ~ qq[ in sink context];
+            }
+            if $warning {
+                self.add_worry($want, $warning);
+                return $NULL;
+            }
+        }
+        self.visit_children($want, :skip_selectors);
+        $want;
     }
     
     # Handles visit a variable node.
@@ -533,16 +581,21 @@ class Perl6::Optimizer {
     }
     
     # Visits all of a nodes children, and dispatches appropriately.
-    method visit_children($node, :$skip_selectors) {
+    method visit_children($node, :$skip_selectors, :$resultchild) {
+        my int $r := $resultchild // -1;
         my $i := 0;
         while $i < +@($node) {
+            my $outer_void := $*VOID_CONTEXT;
+            my $outer_decl := $*IN_DECLARATION;
             unless $skip_selectors && $i % 2 {
+                my $*VOID_CONTEXT   := $outer_void || ($r != -1 && $i != $r);
+                my $*IN_DECLARATION := $outer_decl || ($i == 0 && nqp::istype($node, QAST::Block));
                 my $visit := $node[$i];
                 if nqp::istype($visit, QAST::Op) {
                     $node[$i] := self.visit_op($visit)
                 }
                 elsif nqp::istype($visit, QAST::Want) {
-                    self.visit_want($visit);
+                    $node[$i] := self.visit_want($visit);
                 }
                 elsif nqp::istype($visit, QAST::Var) {
                     self.visit_var($visit);
@@ -551,10 +604,10 @@ class Perl6::Optimizer {
                     $node[$i] := self.visit_block($visit);
                 }
                 elsif nqp::istype($visit, QAST::Stmts) {
-                    self.visit_children($visit);
+                    self.visit_children($visit, :resultchild($visit.resultchild // +@($visit) - 1));
                 }
                 elsif nqp::istype($visit, QAST::Stmt) {
-                    self.visit_children($visit);
+                    self.visit_children($visit, :resultchild($visit.resultchild // +@($visit) - 1));
                 }
             }
             $i := $i + 1;
@@ -710,13 +763,23 @@ class Perl6::Optimizer {
     
     # Adds an entry to the list of things that would cause a check fail.
     method add_deadly($past_node, $message, @extras?) {
+        self.add_memo($past_node, $message, @extras, :type<deadly>);
+    }
+    # Adds an entry to the list of things that would just warn
+    method add_worry($past_node, $message, @extras?) {
+        self.add_memo($past_node, $message, @extras, :type<worry>);
+    }
+
+    method add_memo($past_node, $message, @extras?, :$type!) {
         my $mnode := $past_node.node;
         my $line := HLL::Compiler.lineof($mnode.orig, $mnode.from);
         my $key := $message ~ (+@extras ?? "\n" ~ nqp::join("\n", @extras) !! "");
-        unless %!deadly{$key} {
-            %!deadly{$key} := [];
+        my %cont := $type eq 'deadly' ?? %!deadly !! %!worrying;
+        unless %cont{$key} {
+            %cont{$key} := [];
         }
-        %!deadly{$key}.push($line);
+        %cont{$key}.push($line);
+
     }
     
     my @prim_spec_ops := ['', 'p6box_i', 'p6box_n', 'p6box_s'];

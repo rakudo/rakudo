@@ -1307,7 +1307,7 @@ class Perl6::World is HLL::World {
     
     # Adds a numeric constant value (int or num) to the constants table.
     # Returns PAST to do  the lookup of the constant.
-    method add_numeric_constant($type, $value) {
+    method add_numeric_constant($/, $type, $value) {
         if $type eq 'Int' && pir::typeof__SP($value) eq 'Int' {
             if nqp::isbig_I($value) {
                 # cannot unbox to int without loss of information
@@ -1329,6 +1329,9 @@ class Perl6::World is HLL::World {
                     QAST::NVal.new( :value($value) ) );
         }
         $past.returns($const.returns);
+        if $/ {
+            $past.node($/);
+        }
         $past;
     }
     

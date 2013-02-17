@@ -323,9 +323,18 @@ class Perl6::Optimizer {
                                 $survived := 0;
                             }
                         }
+                        sub widen($m) {
+                            my int $from := $m.from;
+                            my int $to   := $m.to;
+                            for $m.list {
+                                $from := $_.from if $_.from < $from;
+                                $to   := $_.to   if $_.to   > $to;
+                            }
+                            nqp::substr($m.orig, $from, $to - $from);
+                        }
                         if $survived {
                             if $op.node && $*VOID_CONTEXT && !$*IN_DECLARATION {
-                                my str $text := nqp::escape($op.node.Str);
+                                my str $text := nqp::escape(widen($op.node));
                                 self.add_worry($op, qq[Useless use of constant expression "$text" in sink context]);
                                 return $NULL;
 

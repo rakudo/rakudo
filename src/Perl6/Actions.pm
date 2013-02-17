@@ -3823,6 +3823,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
         make $past;
     }
 
+    method term:sym<nqp::const>($/) {
+        make QAST::Op.new( :op('const'), :name(~$<const>) );
+    }
+
     method term:sym<*>($/) {
         my $whatever := $*W.find_symbol(['Whatever']);
         make QAST::Op.new(

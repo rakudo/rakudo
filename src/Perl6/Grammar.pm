@@ -2484,6 +2484,10 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         'nqp::' $<op>=[\w+] <args>?
     }
 
+    token term:sym<nqp::const> {
+        'nqp::const::' $<const>=[\w+]
+    }
+
     token term:sym<name> {
         <longname>
         :my $*longname;

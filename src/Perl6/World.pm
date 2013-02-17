@@ -1206,8 +1206,8 @@ class Perl6::World is HLL::World {
         my $p6comp  := pir::compreg__Ps('perl6');
         my $post    := $p6comp.post($compunit);
         my $pir     := $p6comp.pir($post);
-        my $precomp := $p6comp.compile_and_init($pir);
-        my $main    := $precomp.main_sub();
+        my $pbc     := $p6comp.pbc($pir);
+        my $main    := $p6comp.init($pbc);
         $main.get_lexinfo.set_static_lexpad($slp);
         $main();
         
@@ -1216,7 +1216,7 @@ class Perl6::World is HLL::World {
         # to avoid wasting re-compiling them, and also to help make
         # parametric role outer chain work out. Also set up their static
         # lexpads, if they have any.
-        my @all_subs := $precomp.all_subs();
+        my @all_subs := $pbc.all_subs();
         my int $num_subs := nqp::elems(@all_subs);
         my int $i := 0;
         while $i < $num_subs {

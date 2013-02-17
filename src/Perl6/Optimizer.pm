@@ -489,7 +489,16 @@ class Perl6::Optimizer {
     
     # Handles visit a variable node.
     method visit_var($var) {
-        # Nothing to do yet.
+        if  $*VOID_CONTEXT && !$*IN_DECLARATION && $var.name && !$var<sink_ok> {
+            # stuff like Nil is also stored in a QAST::Var, but
+            # we certainly don't want to warn about that one.
+            my str $sigil := nqp::substr($var.name, 0, 1);
+            if $sigil eq '$' || $sigil eq '@' || $sigil eq '%' {
+                self.add_worry($var, "Useless use of variable " ~ $var.name ~ " in sink context");
+                return $NULL;
+            }
+        }
+        $var;
     }
     
     # Checks arguments to see if we're going to be able to do compile
@@ -598,7 +607,7 @@ class Perl6::Optimizer {
                     $node[$i] := self.visit_want($visit);
                 }
                 elsif nqp::istype($visit, QAST::Var) {
-                    self.visit_var($visit);
+                    $node[$i] := self.visit_var($visit);
                 }
                 elsif nqp::istype($visit, QAST::Block) {
                     $node[$i] := self.visit_block($visit);

@@ -1322,6 +1322,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 $past := make_variable($/, [~$/]);
             }
         }
+        if $*IN_DECL eq 'variable' {
+            $past<sink_ok> := 1;
+        }
         make $past;
     }
 

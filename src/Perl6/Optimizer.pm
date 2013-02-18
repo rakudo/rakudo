@@ -12,13 +12,13 @@ class Perl6::Optimizer {
     has @!block_stack;
 
     # How deep a chain we're in, for chaining operators.
-    has $!chain_depth;
+    has int $!chain_depth;
     
     # Unique ID for topic ($_) preservation registers.
-    has $!pres_topic_counter;
+    has int $!pres_topic_counter;
     
     # Unique ID for inline args variables.
-    has $!inline_arg_counter;
+    has int $!inline_arg_counter;
     
     # Things that should cause compilation to fail; keys are errors, value is
     # array of line numbers.
@@ -150,7 +150,7 @@ class Perl6::Optimizer {
         $block
     }
     method is_from_core($name) {
-        my $i := +@!block_stack;
+        my int $i := +@!block_stack;
         while $i > 0 {
             $i := $i - 1;
             my $block := @!block_stack[$i];
@@ -194,7 +194,7 @@ class Perl6::Optimizer {
     # the op itself or some replacement opcode to put in the tree.
     method visit_op($op) {
         # If it's a QAST::Op of type handle, needs some special attention.
-        my $optype := $op.op;
+        my str $optype := $op.op;
         if $optype eq 'handle' {
             return self.visit_handle($op);
         }
@@ -223,10 +223,10 @@ class Perl6::Optimizer {
         if $*LEVEL >= 2 && is_outer_foldable() && nqp::istype($op[0], QAST::Op) && $op[0].op eq "chain" {
             my $exp-side := self.can_chain_junction_be_warped($op[0]);
             if $exp-side != -1 {
-                my $juncop := $op[0][$exp-side].name eq '&infix:<&>' ?? 'if' !! 'unless';
-                my $juncname := %!foldable_junction{$op[0][$exp-side].name};
-                my $chainop := $op[0].op;
-                my $chainname := $op[0].name;
+                my str $juncop := $op[0][$exp-side].name eq '&infix:<&>' ?? 'if' !! 'unless';
+                my str $juncname := %!foldable_junction{$op[0][$exp-side].name};
+                my str $chainop := $op[0].op;
+                my str $chainname := $op[0].name;
                 my $values := $op[0][$exp-side];
                 my $ovalue := $op[0][1 - $exp-side];
 
@@ -292,7 +292,7 @@ class Perl6::Optimizer {
         if $optype eq 'call' && $op.name ne '' {
             # See if we can find the thing we're going to call.
             my $obj;
-            my $found;
+            my int $found := 0;
             try {
                 $obj := self.find_lexical($op.name);
                 $found := 1;
@@ -300,7 +300,7 @@ class Perl6::Optimizer {
             if $found {
                 if nqp::can($obj, 'IS_PURE') && $obj.IS_PURE {
                     # check if all arguments are known at compile time
-                    my $all_args_known := 1;
+                    my int $all_args_known := 1;
                     my @args := [];
                     for @($op) {
                         if nqp::istype($_, QAST::Node)
@@ -314,7 +314,7 @@ class Perl6::Optimizer {
                         }
                     }
                     if $all_args_known {
-                        my $survived := 0;
+                        my int $survived := 0;
                         my $ret_value;
                         try {
                             $ret_value := $obj(|@args);
@@ -420,7 +420,7 @@ class Perl6::Optimizer {
         # compile time. If so, we can reduce it to a sub call in some cases.
         elsif $*LEVEL >= 3 && $op.op eq 'callmethod' && $op.name eq 'dispatch:<!>' {
             if $op[1].has_compile_time_value && nqp::istype($op[1], QAST::Want) && $op[1][1] eq 'Ss' {
-                my $name := $op[1][2].value; # get raw string name
+                my str $name := $op[1][2].value; # get raw string name
                 my $pkg  := $op[2].returns;  # actions always sets this
                 my $meth := $pkg.HOW.find_private_method($pkg, $name);
                 if $meth {
@@ -462,7 +462,7 @@ class Perl6::Optimizer {
         if $*VOID_CONTEXT && !$*IN_DECLARATION
                 && +@($want) == 3 && $want.node {
 
-            my $warning;
+            my str $warning;
             if $want[1] eq 'Ss' && nqp::istype($want[2], QAST::SVal) {
                 $warning := qq[Useless use of constant string "]
                          ~ nqp::escape($want[2].value)
@@ -509,8 +509,8 @@ class Perl6::Optimizer {
         my @types;
         my @flags;
         my @allomorphs;
-        my $num_prim := 0;
-        my $num_allo := 0;
+        my int $num_prim := 0;
+        my int $num_allo := 0;
         
         # Initial analysis.
         for @($op) {
@@ -525,7 +525,7 @@ class Perl6::Optimizer {
             try $ok_type := nqp::istype($type, $!Mu);
             if $ok_type {
                 my $prim := pir::repr_get_primitive_type_spec__IP($type);
-                my $allo := $_.has_compile_time_value && nqp::istype($_, QAST::Want)
+                my str $allo := $_.has_compile_time_value && nqp::istype($_, QAST::Want)
                     ?? $_[1] !! '';
                 @types.push($type);
                 @flags.push($prim);
@@ -542,8 +542,8 @@ class Perl6::Optimizer {
         # a native dispatch with it; takes at least one declaratively
         # native argument to make this happen.
         if @types == 2 && $num_prim == 1 && $num_allo == 1 {
-            my $prim_flag := @flags[0] || @flags[1];
-            my $allo_idx := @allomorphs[0] ?? 0 !! 1;
+            my int $prim_flag := @flags[0] || @flags[1];
+            my int $allo_idx := @allomorphs[0] ?? 0 !! 1;
             if @allomorphs[$allo_idx] eq @allo_map[$prim_flag] {
                 @flags[$allo_idx] := $prim_flag;
             }
@@ -560,7 +560,7 @@ class Perl6::Optimizer {
     
     method report_innevitable_dispatch_failure($op, @types, @flags, $obj, :$protoguilt) {
         my @arg_names;
-        my $i := 0;
+        my int $i := 0;
         while $i < +@types {
             @arg_names.push(
                 @flags[$i] == 1 ?? 'int' !!
@@ -592,7 +592,7 @@ class Perl6::Optimizer {
     # Visits all of a nodes children, and dispatches appropriately.
     method visit_children($node, :$skip_selectors, :$resultchild) {
         my int $r := $resultchild // -1;
-        my $i := 0;
+        my int $i := 0;
         while $i < +@($node) {
             my $outer_void := $*VOID_CONTEXT;
             my $outer_decl := $*IN_DECLARATION;
@@ -626,7 +626,7 @@ class Perl6::Optimizer {
     # Locates a lexical symbol and returns its compile time value. Dies if
     # it does not exist.
     method find_lexical($name) {
-        my $i := +@!block_stack;
+        my int $i := +@!block_stack;
         while $i > 0 {
             $i := $i - 1;
             my $block := @!block_stack[$i];
@@ -646,7 +646,7 @@ class Perl6::Optimizer {
     # Checks if a given lexical is declared, though it needn't have a compile
     # time known value.
     method is_lexical_declared($name) {
-        my $i := +@!block_stack;
+        my int $i := +@!block_stack;
         while $i > 0 {
             $i := $i - 1;
             my $block := @!block_stack[$i];
@@ -751,7 +751,7 @@ class Perl6::Optimizer {
     # If we decide a dispatch at compile time, this emits the direct call.
     method call_ct_chosen_multi($call, $proto, $chosen) {
         my @cands := $proto.dispatchees();
-        my $idx := 0;
+        my int $idx := 0;
         for @cands {
             if $_ =:= $chosen {
                 $call.unshift(QAST::Op.new(

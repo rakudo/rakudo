@@ -5888,7 +5888,8 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions does STDActions {
         make QAST::Regex.new( QAST::Node.new(
                                     QAST::SVal.new( :value('INTERPOLATE') ),
                                     $<var>.ast,
-                                    QAST::IVal.new( :value(%*RX<i> ?? 1 !! 0) ) ),
+                                    QAST::IVal.new( :value(%*RX<i> ?? 1 !! 0) ),
+                                    QAST::IVal.new( :value($*SEQ ?? 1 !! 0) ) ),
                               :rxtype<subrule>, :subtype<method>, :node($/));
     }
 

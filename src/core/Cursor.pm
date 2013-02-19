@@ -45,10 +45,34 @@ my class Cursor does NQPCursorRole {
         $match;
     }
 
-    method INTERPOLATE($var, $i = 0) {
-        nqp::isconcrete($var) ??
-            ($var ~~ Callable ?? $var(self) !! self."!LITERAL"(nqp::unbox_s($var.Str), $i)) !!
+    method INTERPOLATE($var, $i = 0, $s = 0) {
+        if nqp::isconcrete($var) {
+            if nqp::istype($var, Positional) # for array-likes
+            || nqp::istype($var, Capture) {  # for references to arrays
+                my $maxlen := -1;
+                my $cur := self.'!cursor_start_cur'();
+                my $pos := nqp::getattr_i($cur, $?CLASS, '$!from');
+                my $tgt := $cur.target;
+                my $eos := nqp::chars($tgt);
+                for $var.list {
+                    my $topic := $_ ~~ Callable ?? $_(self) !! $_;
+                    my $len := nqp::chars($topic);
+                    if $len > $maxlen && $pos + $len <= $eos
+                        && nqp::substr($tgt, $pos, $len) eq $topic {
+                        $maxlen := $len;
+                        last if $s; # stop here for sequential alternation
+                    }
+                }
+                $cur.'!cursor_pass'($pos + $maxlen, '') if $maxlen >= 0;
+                $cur
+            }
+            else {
+                $var ~~ Callable ?? $var(self) !! self."!LITERAL"(nqp::unbox_s($var.Str), $i)
+            }
+        }
+        else {
             self."!cursor_start_cur"()
+        }
     }
     
     method OTHERGRAMMAR($grammar, $name, |) {

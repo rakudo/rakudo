@@ -299,6 +299,19 @@ class Perl6::Optimizer {
             }
             if $found {
                 if nqp::can($obj, 'IS_PURE') && $obj.IS_PURE {
+                    sub widen($m) {
+                        my int $from := $m.from;
+                        my int $to   := $m.to;
+                        for $m.list {
+                            $from := $_.from if $_.from < $from;
+                            $to   := $_.to   if $_.to   > $to;
+                        }
+                        nqp::substr($m.orig, $from, $to - $from);
+                    }
+                    if $op.node && $*VOID_CONTEXT && !$*IN_DECLARATION {
+                        my str $text := nqp::escape(widen($op.node));
+                        self.add_worry($op, qq[Useless use of expression "$text" in sink context]);
+                    }
                     # check if all arguments are known at compile time
                     my $all_args_known := 1;
                     my @args := [];
@@ -323,22 +336,8 @@ class Perl6::Optimizer {
                                 $survived := 0;
                             }
                         }
-                        sub widen($m) {
-                            my int $from := $m.from;
-                            my int $to   := $m.to;
-                            for $m.list {
-                                $from := $_.from if $_.from < $from;
-                                $to   := $_.to   if $_.to   > $to;
-                            }
-                            nqp::substr($m.orig, $from, $to - $from);
-                        }
                         if $survived {
-                            if $op.node && $*VOID_CONTEXT && !$*IN_DECLARATION {
-                                my str $text := nqp::escape(widen($op.node));
-                                self.add_worry($op, qq[Useless use of constant expression "$text" in sink context]);
-                                return $NULL;
-
-                            }
+                            return $NULL if $*VOID_CONTEXT && !$*IN_DECLARATION;
                             $*W.add_object($ret_value);
                             my $wval := QAST::WVal.new(:value($ret_value));
                             if $op.named {

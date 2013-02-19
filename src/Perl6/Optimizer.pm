@@ -309,8 +309,9 @@ class Perl6::Optimizer {
                         nqp::substr($m.orig, $from, $to - $from);
                     }
                     if $op.node && $*VOID_CONTEXT && !$*IN_DECLARATION {
-                        my str $text := nqp::escape(widen($op.node));
-                        self.add_worry($op, qq[Useless use of expression "$text" in sink context]);
+                        my str $op_txt := nqp::escape($op.node.Str);
+                        my str $expr   := nqp::escape(widen($op.node));
+                        self.add_worry($op, qq[Useless use of "$op_txt" in expression "$expr" in sink context]);
                     }
                     # check if all arguments are known at compile time
                     my $all_args_known := 1;

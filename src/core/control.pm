@@ -151,9 +151,9 @@ multi sub eval(Str $code, :$lang = 'perl6', PseudoStash :$context) {
     my $compiler := pir::compreg__PS($lang);
     X::Eval::NoSuchLang.new(:$lang).throw
         if nqp::isnull($compiler);
-    my $main     := $compiler.compile($code, :outer_ctx($eval_ctx), :global(GLOBAL));
-    $main.set_outer_ctx($eval_ctx);
-    $main();
+    my $mainline := $compiler.compile($code, :outer_ctx($eval_ctx), :global(GLOBAL));
+    $mainline.set_outer_ctx($eval_ctx);
+    $mainline();
 }
 
 

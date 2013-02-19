@@ -1203,13 +1203,13 @@ class Perl6::World is HLL::World {
             :compilation_mode(0),
             $wrapper
         );
-        my $p6comp  := pir::compreg__Ps('perl6');
-        my $post    := $p6comp.post($compunit);
-        my $pir     := $p6comp.pir($post);
-        my $pbc     := $p6comp.pbc($pir);
-        my $main    := $p6comp.init($pbc);
-        $main.get_lexinfo.set_static_lexpad($slp);
-        $main();
+        my $p6comp   := pir::compreg__Ps('perl6');
+        my $post     := $p6comp.post($compunit);
+        my $pir      := $p6comp.pir($post);
+        my $pbc      := $p6comp.pbc($pir);
+        my $mainline := $p6comp.init($pbc);
+        $mainline.get_lexinfo.set_static_lexpad($slp);
+        $mainline();
         
         # Fix up Code object associations (including nested blocks).
         # We un-stub any code objects for already-compiled inner blocks

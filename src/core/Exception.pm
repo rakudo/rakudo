@@ -404,7 +404,7 @@ my role X::Pod                 { }
 
 my class X::NYI is Exception {
     has $.feature;
-    method message() { "$.feature is not yet implemented. Sorry. " }
+    method message() { "$.feature not yet implemented. Sorry. " }
 }
 my class X::Comp::NYI is X::NYI does X::Comp { };
 

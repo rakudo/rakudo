@@ -1949,7 +1949,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         | <DECL=declarator>
         | <DECL=regex_declarator>
         | <DECL=package_declarator>
-        | [<typename><.ws>]+
+        | [<typename>['(' ~ ')' <signature> <.NYI("coercive type declarations")>]?<.ws>]+
           {
             if +$<typename> > 1 {
                 $/.CURSOR.NYI('Multiple prefix constraints');

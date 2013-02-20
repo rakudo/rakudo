@@ -55,35 +55,21 @@ MANDIR         = @mandir@
 DOCDIR         = @prefix@/share/doc
 
 # files we create
-PERL6_PIR     = src/gen/perl6.pir
 PERL6_PBC     = perl6.pbc
 PERL6_EXE     = perl6$(EXE)
-PERL6_ML      = src/gen/perl6-moduleloader.pir
 PERL6_ML_PBC  = blib/Perl6/ModuleLoader.pbc
-PERL6_CF      = src/gen/perl6-constantfolder.pir
 PERL6_CF_PBC  = blib/Perl6/ConstantFolder.pbc
-PERL6_W       = src/gen/perl6-symboltable.pir
 PERL6_W_PBC   = blib/Perl6/World.pbc
-PERL6_G       = src/gen/perl6-grammar.pir
 PERL6_G_PBC   = blib/Perl6/Grammar.pbc
-PERL6_OPS     = src/gen/perl6-ops.pir
 PERL6_OPS_PBC = blib/Perl6/Ops.pbc
-PERL6_A       = src/gen/perl6-actions.pir
 PERL6_A_PBC   = blib/Perl6/Actions.pbc
-PERL6_O       = src/gen/perl6-optimizer.pir
 PERL6_O_PBC   = blib/Perl6/Optimizer.pbc
-PERL6_P       = src/gen/perl6-pod.pir
 PERL6_P_PBC   = blib/Perl6/Pod.pbc
-PERL6_C       = src/gen/perl6-compiler.pir
 PERL6_C_PBC   = blib/Perl6/Compiler.pbc
-PERL6_M       = src/gen/perl6-metamodel.pir
 PERL6_M_PBC   = blib/Perl6/Metamodel.pbc
-PERL6_B       = src/gen/perl6-bootstrap.pir
 PERL6_B_PBC   = blib/Perl6/BOOTSTRAP.pbc
-SETTING_PIR   = src/gen/CORE.setting.pir
 SETTING_PBC   = CORE.setting.pbc
 R_SETTING_SRC = src/RESTRICTED.setting
-R_SETTING_PIR = src/gen/RESTRICTED.setting.pir
 R_SETTING_PBC = RESTRICTED.setting.pbc
 GROUP         = perl6_group
 OPS           = perl6_ops
@@ -253,9 +239,9 @@ CLEANUPS = \
   perl6.c \
   perl6$(O) \
   perl6_group.* \
-  lib/Test.pir \
-  lib/lib.pir \
-  lib/Pod/To/Text.pir \
+  lib/Test.pbc \
+  lib/lib.pbc \
+  lib/Pod/To/Text.pbc \
   rakudo_test_run.tar.gz \
   $(DYNEXT_DIR)/*$(LOAD_EXT) \
   src/gen/CORE.setting \
@@ -285,7 +271,7 @@ HARNESS_WITH_FUDGE = $(PERL) t/harness --fudge --keep-exit-code --icu=$(HAS_ICU)
 STAGESTATS = @stagestats@
 
 # the default target, TODO: make libraries in 'lib' a variable.
-all: check-versions $(PERL6_EXE) $(SETTING_PBC) $(R_SETTING_PBC) lib/lib.pir lib/Test.pir lib/Pod/To/Text.pir
+all: check-versions $(PERL6_EXE) $(SETTING_PBC) $(R_SETTING_PBC) lib/lib.pbc lib/Test.pbc lib/Pod/To/Text.pbc
 
 # the install target
 install: all
@@ -306,12 +292,12 @@ install: all
 	$(CP)     $(SETTING_PBC)      $(DESTDIR)$(PERL6_LANG_DIR)/lib
 	$(CP)     $(R_SETTING_PBC)    $(DESTDIR)$(PERL6_LANG_DIR)/lib
 	$(CP)     lib/Test.pm         $(DESTDIR)$(PERL6_LANG_DIR)/lib
-	$(CP)     lib/Test.pir        $(DESTDIR)$(PERL6_LANG_DIR)/lib
+	$(CP)     lib/Test.pbc        $(DESTDIR)$(PERL6_LANG_DIR)/lib
 	$(CP)     lib/lib.pm6         $(DESTDIR)$(PERL6_LANG_DIR)/lib
-	$(CP)     lib/lib.pir         $(DESTDIR)$(PERL6_LANG_DIR)/lib
+	$(CP)     lib/lib.pbc         $(DESTDIR)$(PERL6_LANG_DIR)/lib
 	$(MKPATH) 					  $(DESTDIR)$(PERL6_LANG_DIR)/lib/Pod/To
 	$(CP)     lib/Pod/To/Text.pm  $(DESTDIR)$(PERL6_LANG_DIR)/lib/Pod/To
-	$(CP)     lib/Pod/To/Text.pir $(DESTDIR)$(PERL6_LANG_DIR)/lib/Pod/To
+	$(CP)     lib/Pod/To/Text.pbc $(DESTDIR)$(PERL6_LANG_DIR)/lib/Pod/To
 	$(MKPATH)                     $(DESTDIR)$(PARROT_LIB_DIR)/dynext
 	$(CP)     $(DYNPMC) $(DYNOPS) $(DESTDIR)$(PARROT_LIB_DIR)/dynext
 	$(MKPATH)                     $(DESTDIR)$(PARROT_BIN_DIR)
@@ -336,86 +322,72 @@ $(PERL6_EXE): $(PERL6_PBC) $(PARROT_DLL_COPY)
 # the complete compiler
 $(PERL6_PBC): $(PERL6_G_PBC) $(PERL6_A_PBC) $(PERL6_C_PBC) $(PERL6_P_PBC) src/main.nqp
 	$(PERL) tools/build/gen-version.pl >src/gen/main-version.nqp
-	$(NQP_EXE) --vmlibs=perl6_group,perl6_ops --target=pir --output=src/gen/perl6.pir \
+	$(NQP_EXE) --vmlibs=perl6_group,perl6_ops --target=pbc --output=$(PERL6_PBC) \
 	    --combine src/main.nqp src/gen/main-version.nqp
-	$(PARROT) $(PARROT_ARGS) -o $(PERL6_PBC) src/gen/perl6.pir
 
 $(PERL6_ML_PBC): $(NQP_EXE) $(DYNEXT_DYNPMC) $(DYNEXT_DYNOPS) src/Perl6/ModuleLoader.pm
-	$(NQP_EXE) --target=pir --output=$(PERL6_ML) --encoding=utf8 \
+	$(NQP_EXE) --target=pbc --output=$(PERL6_ML_PBC) --encoding=utf8 \
 	    src/Perl6/ModuleLoader.pm
-	$(PARROT) $(PARROT_ARGS) -o $(PERL6_ML_PBC) $(PERL6_ML)
 
 $(PERL6_CF_PBC): $(NQP_EXE) $(DYNEXT_DYNPMC) $(DYNEXT_DYNOPS) src/Perl6/ConstantFolder.pm
-	$(NQP_EXE) --target=pir --output=$(PERL6_CF) --encoding=utf8 \
+	$(NQP_EXE) --target=pbc --output=$(PERL6_CF_PBC) --encoding=utf8 \
 	    src/Perl6/ConstantFolder.pm
-	$(PARROT) $(PARROT_ARGS) -o $(PERL6_CF_PBC) $(PERL6_CF)
 
 $(PERL6_W_PBC): $(NQP_EXE) $(PERL6_ML_PBC) src/Perl6/World.pm
-	$(NQP_EXE) --vmlibs=perl6_group,perl6_ops --target=pir --output=$(PERL6_W) --encoding=utf8 \
+	$(NQP_EXE) --vmlibs=perl6_group,perl6_ops --target=pbc --output=$(PERL6_W_PBC) --encoding=utf8 \
 	    src/Perl6/World.pm
-	$(PARROT) $(PARROT_ARGS) -o $(PERL6_W_PBC) $(PERL6_W)
     
 $(PERL6_G_PBC): $(NQP_EXE) $(PERL6_W_PBC) $(PERL6_A_PBC) src/Perl6/Grammar.pm $(PERL6_P_PBC)
-	$(NQP_EXE) --target=pir --output=$(PERL6_G) --encoding=utf8 \
+	$(NQP_EXE) --target=pbc --output=$(PERL6_G_PBC) --encoding=utf8 \
 	    src/Perl6/Grammar.pm
-	$(PARROT) $(PARROT_ARGS) -o $(PERL6_G_PBC) $(PERL6_G)
 
 $(PERL6_OPS_PBC): $(NQP_EXE) $(DYNEXT_DYNPMC) $(DYNEXT_DYNOPS) src/Perl6/Ops.pm
-	$(NQP_EXE) --vmlibs=perl6_group,perl6_ops  --target=pir --output=$(PERL6_OPS) --encoding=utf8 \
+	$(NQP_EXE) --vmlibs=perl6_group,perl6_ops  --target=pbc --output=$(PERL6_OPS_PBC) --encoding=utf8 \
 	    src/Perl6/Ops.pm
-	$(PARROT) $(PARROT_ARGS) -o $(PERL6_OPS_PBC) $(PERL6_OPS)
 
 $(PERL6_A_PBC): $(NQP_EXE) $(DYNEXT_DYNPMC) $(DYNEXT_DYNOPS) src/Perl6/Actions.pm $(PERL6_P_PBC) $(PERL6_CF_PBC) $(PERL6_OPS_PBC)
-	$(NQP_EXE) --vmlibs=perl6_group,perl6_ops  --target=pir --output=$(PERL6_A) --encoding=utf8 \
+	$(NQP_EXE) --vmlibs=perl6_group,perl6_ops  --target=pbc --output=$(PERL6_A_PBC) --encoding=utf8 \
 	    src/Perl6/Actions.pm
-	$(PARROT) $(PARROT_ARGS) -o $(PERL6_A_PBC) $(PERL6_A)
 
 $(PERL6_O_PBC): $(NQP_EXE) $(DYNEXT_DYNPMC) $(DYNEXT_DYNOPS) src/Perl6/Optimizer.pm
-	$(NQP_EXE) --vmlibs=perl6_group,perl6_ops  --target=pir --output=$(PERL6_O) --encoding=utf8 \
+	$(NQP_EXE) --vmlibs=perl6_group,perl6_ops  --target=pbc --output=$(PERL6_O_PBC) --encoding=utf8 \
 	    src/Perl6/Optimizer.pm
-	$(PARROT) $(PARROT_ARGS) -o $(PERL6_O_PBC) $(PERL6_O)
     
 $(PERL6_P_PBC): $(NQP_EXE) $(DYNEXT_DYNPMC) $(DYNEXT_DYNOPS) src/Perl6/Pod.pm
-	$(NQP_EXE) --vmlibs=perl6_group,perl6_ops  --target=pir --output=$(PERL6_P) --encoding=utf8 \
+	$(NQP_EXE) --vmlibs=perl6_group,perl6_ops  --target=pbc --output=$(PERL6_P_PBC) --encoding=utf8 \
 	    src/Perl6/Pod.pm
-	$(PARROT) $(PARROT_ARGS) -o $(PERL6_P_PBC) $(PERL6_P)
 
 $(PERL6_C_PBC): $(NQP_EXE) $(DYNEXT_DYNPMC) $(DYNEXT_DYNOPS) $(PERL6_O_PBC) src/Perl6/Compiler.nqp
-	$(NQP_EXE) --target=pir --output=$(PERL6_C) --encoding=utf8 \
+	$(NQP_EXE) --target=pbc --output=$(PERL6_C_PBC) --encoding=utf8 \
 	    src/Perl6/Compiler.nqp
-	$(PARROT) $(PARROT_ARGS) -o $(PERL6_C_PBC) $(PERL6_C)
 
 $(PERL6_M_PBC): $(NQP_EXE) $(DYNEXT_DYNPMC) $(DYNEXT_DYNOPS) $(METAMODEL_SOURCES)
 	$(PERL) $(GEN_CAT) $(METAMODEL_SOURCES) > src/gen/Metamodel.pm
-	$(NQP_EXE) --target=pir --output=$(PERL6_M) --encoding=utf8 \
+	$(NQP_EXE) --target=pbc --output=$(PERL6_M_PBC) --encoding=utf8 \
 	    --vmlibs=perl6_ops src/gen/Metamodel.pm
-	$(PARROT) $(PARROT_ARGS) -o $(PERL6_M_PBC) $(PERL6_M)
     
 $(PERL6_B_PBC): $(NQP_EXE) $(DYNEXT_DYNPMC) $(DYNEXT_DYNOPS) $(PERL6_M_PBC) $(BOOTSTRAP_SOURCES)
 	$(PERL) $(GEN_CAT) $(BOOTSTRAP_SOURCES) > src/gen/BOOTSTRAP.pm
-	$(NQP_EXE) --target=pir --output=$(PERL6_B) --encoding=utf8 \
+	$(NQP_EXE) --target=pbc --output=$(PERL6_B_PBC) --encoding=utf8 \
 	    --vmlibs=perl6_ops src/gen/BOOTSTRAP.pm
-	$(PARROT) $(PARROT_ARGS) -o $(PERL6_B_PBC) $(PERL6_B)
 
 $(SETTING_PBC): $(PERL6_B_PBC) $(PERL6_EXE) $(CORE_SOURCES)
 	$(PERL) $(GEN_CAT) $(CORE_SOURCES) > src/gen/CORE.setting
 	@echo "The following step can take a long time, please be patient."
-	./$(PERL6_EXE) --setting=NULL --optimize=3 --target=pir --stagestats --output=$(SETTING_PIR) src/gen/CORE.setting
-	$(PARROT) $(PARROT_ARGS) -o $(SETTING_PBC) $(SETTING_PIR)
+	./$(PERL6_EXE) --setting=NULL --optimize=3 --target=pbc --stagestats --output=$(SETTING_PBC) src/gen/CORE.setting
 
 $(R_SETTING_PBC): $(PERL6_B_PBC) $(PERL6_EXE) $(SETTING_PBC) $(R_SETTING_SRC)
-	./$(PERL6_EXE) --target=pir $(STAGESTATS) --output=$(R_SETTING_PIR) $(R_SETTING_SRC)
-	$(PARROT) $(PARROT_ARGS) -o $(R_SETTING_PBC) $(R_SETTING_PIR)
+	./$(PERL6_EXE) --target=pbc $(STAGESTATS) --output=$(R_SETTING_PBC) $(R_SETTING_SRC)
 
 ##  testing targets
-lib/Test.pir: lib/Test.pm $(PERL6_EXE) $(SETTING_PBC)
-	./$(PERL6_EXE) --target=pir --output=lib/Test.pir lib/Test.pm
+lib/Test.pbc: lib/Test.pm $(PERL6_EXE) $(SETTING_PBC)
+	./$(PERL6_EXE) --target=pbc --output=lib/Test.pbc lib/Test.pm
 
-lib/lib.pir: lib/lib.pm6 $(PERL6_EXE) $(SETTING_PBC)
-	./$(PERL6_EXE) --target=pir --output=lib/lib.pir lib/lib.pm6
+lib/lib.pbc: lib/lib.pm6 $(PERL6_EXE) $(SETTING_PBC)
+	./$(PERL6_EXE) --target=pbc --output=lib/lib.pbc lib/lib.pm6
 
-lib/Pod/To/Text.pir: lib/Pod/To/Text.pm $(PERL6_EXE) $(SETTING_PBC)
-	./$(PERL6_EXE) --target=pir --output=lib/Pod/To/Text.pir lib/Pod/To/Text.pm
+lib/Pod/To/Text.pbc: lib/Pod/To/Text.pm $(PERL6_EXE) $(SETTING_PBC)
+	./$(PERL6_EXE) --target=pbc --output=lib/Pod/To/Text.pbc lib/Pod/To/Text.pm
 
 test    : coretest
 

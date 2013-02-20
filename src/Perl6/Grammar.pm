@@ -2264,7 +2264,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*IN_DECL := '';
         [
         | <value>
-        | <typename>
+        | <typename> ['(' ~ ')' <signature> <.NYI("coercive type declarations")>]?
         | where <.ws> <EXPR('m=')>
         ]
         <.ws>

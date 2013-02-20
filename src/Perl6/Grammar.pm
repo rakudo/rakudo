@@ -2612,6 +2612,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         ]
         # parametric type?
         <.unsp>? [ <?before '['> '[' ~ ']' <arglist> ]?
+        <.unsp>? [ <?before '('> '(' ~ ')' <arglist> <.NYI("coercive type declarations")>]?
         [<.ws> 'of' <.ws> <typename> ]?
     }
 

@@ -1540,7 +1540,7 @@ inline op perl6_find_dispatcher(out PMC, in STR) :base_core {
             PMC *str = REPR(type)->allocate(interp, STABLE(type));
             REPR(str)->box_funcs->set_str(interp, STABLE(str), OBJECT_BODY(str), $2);
             PARROT_GC_WRITE_BARRIER(interp, str);
-            Parrot_pcc_invoke_sub_from_c_args(interp, thrower, "P->", str)
+            Parrot_pcc_invoke_sub_from_c_args(interp, thrower, "P->", str);
         }
 
     }
@@ -1618,7 +1618,7 @@ and START blocks should run.
 */
 inline op perl6_state_needs_init(out INT) :base_core {
     PMC *cur_ctx = CURRENT_CONTEXT(interp);
-    $1 = PObj_flag_TEST(P6LEXPAD_STATE_INIT, cur_ctx)
+    $1 = PObj_flag_TEST(P6LEXPAD_STATE_INIT, cur_ctx);
 }
 
 
@@ -1794,8 +1794,7 @@ Containerized elements are automatically skipped.
 =cut
 
 */
-inline op perl6_rpa_find_types(out INT, invar PMC, invar PMC, in INT, in INT)
-{
+inline op perl6_rpa_find_types(out INT, invar PMC, invar PMC, in INT, in INT) {
     PMC *rpa      = $2;
     PMC *types    = $3;
     INTVAL elems  = VTABLE_elements(interp, rpa);
@@ -1959,7 +1958,7 @@ inline op perl6_skip_handlers_in_rethrow(in PMC, in INT) :base_core {
     STRING   *handlers_left_str = Parrot_str_new_constant(interp, "handlers_left");
     INTVAL    handlers_left = VTABLE_get_integer_keyed_str(interp, except, handlers_left_str);
 
-    handlers_left -= $2
+    handlers_left -= $2;
     if (handlers_left < 0)
         handlers_left = 0;
     VTABLE_set_integer_keyed_str(interp, except, handlers_left_str, handlers_left);

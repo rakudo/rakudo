@@ -1626,6 +1626,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                         QAST::Op.new( :op('p6stateinit') ),
                         $past,
                         $orig_past);
+                    $past<nosink> := 1;
                 }
             }
             make $past;

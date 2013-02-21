@@ -1949,7 +1949,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         | <DECL=declarator>
         | <DECL=regex_declarator>
         | <DECL=package_declarator>
-        | [<typename>['(' ~ ')' <signature> <.NYI("coercive type declarations")>]?<.ws>]+
+        | [<typename><.ws>]+
           {
             if +$<typename> > 1 {
                 $/.CURSOR.NYI('Multiple prefix constraints');
@@ -2264,7 +2264,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*IN_DECL := '';
         [
         | <value>
-        | <typename> ['(' ~ ')' <signature> <.NYI("coercive type declarations")>]?
+        | <typename>
         | where <.ws> <EXPR('m=')>
         ]
         <.ws>
@@ -2612,6 +2612,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         ]
         # parametric type?
         <.unsp>? [ <?before '['> '[' ~ ']' <arglist> ]?
+        <.unsp>? [ <?before '('> '(' ~ ')' <arglist> <.NYI("coercive type declarations")>]?
         [<.ws> 'of' <.ws> <typename> ]?
     }
 

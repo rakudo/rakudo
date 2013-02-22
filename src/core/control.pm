@@ -151,9 +151,9 @@ multi sub eval(Str $code, :$lang = 'perl6', PseudoStash :$context) {
     my $compiler := nqp::getcomp($lang);
     X::Eval::NoSuchLang.new(:$lang).throw
         if nqp::isnull($compiler);
-    my $pbc      := $compiler.compile($code, :outer_ctx($eval_ctx), :global(GLOBAL));
-    nqp::atpos($pbc, 0).set_outer_ctx($eval_ctx);
-    $pbc();
+    my $mainline := $compiler.compile($code, :outer_ctx($eval_ctx), :global(GLOBAL));
+    $mainline.set_outer_ctx($eval_ctx);
+    $mainline();
 }
 
 

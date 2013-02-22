@@ -1203,33 +1203,35 @@ class Perl6::World is HLL::World {
             :compilation_mode(0),
             $wrapper
         );
-        my $p6comp  := pir::compreg__Ps('perl6');
-        my $post    := $p6comp.post($compunit);
-        my $pir     := $p6comp.pir($post);
-        my $precomp := $p6comp.evalpmc($pir);
-        $precomp[0].get_lexinfo.set_static_lexpad($slp);
-        $precomp();
+        my $p6comp   := pir::compreg__Ps('perl6');
+        my $post     := $p6comp.post($compunit);
+        my $pir      := $p6comp.pir($post);
+        my $pbc      := $p6comp.pbc($pir);
+        my $mainline := $p6comp.init($pbc);
+        $mainline.get_lexinfo.set_static_lexpad($slp);
+        $mainline();
         
         # Fix up Code object associations (including nested blocks).
         # We un-stub any code objects for already-compiled inner blocks
         # to avoid wasting re-compiling them, and also to help make
         # parametric role outer chain work out. Also set up their static
         # lexpads, if they have any.
-        my int $num_subs := nqp::elems($precomp);
+        my @all_subs := $pbc.all_subs();
+        my int $num_subs := nqp::elems(@all_subs);
         my int $i := 0;
         while $i < $num_subs {
-            my $subid := $precomp[$i].get_subid();
+            my $subid := @all_subs[$i].get_subid();
             if nqp::existskey(%!sub_id_to_code_object, $subid) {
-                pir::perl6_associate_sub_code_object__vPP($precomp[$i],
+                pir::perl6_associate_sub_code_object__vPP(@all_subs[$i],
                     %!sub_id_to_code_object{$subid});
-                nqp::bindattr(%!sub_id_to_code_object{$subid}, $code_type, '$!do', $precomp[$i]);
+                nqp::bindattr(%!sub_id_to_code_object{$subid}, $code_type, '$!do', @all_subs[$i]);
             }
             if nqp::existskey(%!sub_id_to_static_lexpad, $subid) {
-                $precomp[$i].get_lexinfo.set_static_lexpad(%!sub_id_to_static_lexpad{$subid});
+                @all_subs[$i].get_lexinfo.set_static_lexpad(%!sub_id_to_static_lexpad{$subid});
             }
             if nqp::existskey(%!sub_id_to_sc_idx, $subid) {
-                pir::setprop__vPsP($precomp[$i], 'STATIC_CODE_REF', $precomp[$i]);
-                self.update_root_code_ref(%!sub_id_to_sc_idx{$subid}, $precomp[$i]);
+                pir::setprop__vPsP(@all_subs[$i], 'STATIC_CODE_REF', @all_subs[$i]);
+                self.update_root_code_ref(%!sub_id_to_sc_idx{$subid}, @all_subs[$i]);
             }
             $i := $i + 1;
         }
@@ -1239,7 +1241,7 @@ class Perl6::World is HLL::World {
         
         # Return the Parrot Sub that maps to the thing we were originally
         # asked to compile.
-        $precomp[1]
+        @all_subs[1]
     }
     
     # Adds a constant value to the constants table. Returns PAST to do

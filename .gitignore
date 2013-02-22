@@ -8,9 +8,9 @@ Makefile
 *.res
 *.exp
 *.lib
-lib/Test.pir
-lib/Pod/To/Text.pir
-lib/lib.pir
+lib/Test.pbc
+lib/Pod/To/Text.pbc
+lib/lib.pbc
 CORE.setting.pbc
 RESTRICTED.setting.pbc
 SAFE.setting.pbc

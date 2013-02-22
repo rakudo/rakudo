@@ -35,7 +35,9 @@ Parrot, the Perl 6 test suite and the specification.
 
 The following people contributed to this release:
 
-Timo Paulssen, Moritz Lenz, Jonathan Worthington, Tobias Leich, Arne Skjærholt, Carl Mäsak, Tadeusz Sośnierz, Will Coleda, Christoph Otto and Solomon Foster.
+Timo Paulssen, Moritz Lenz, Jonathan Worthington, Tobias Leich, 
+Arne Skjærholt, Carl Mäsak, Tadeusz Sośnierz, Will Coleda, 
+Christoph Otto and Solomon Foster.
 
 If you would like to contribute, see <http://rakudo.org/how-to-help>,
 ask on the perl6-compiler@perl.org mailing list, or ask on IRC #perl6
@@ -43,13 +45,12 @@ on freenode.
 
 The next release of Rakudo (#62), is scheduled for March 21, 2013. 
 A list of the other planned release dates and code names for future releases 
-is available in the "docs/release_guide.pod" file. In general, Rakudo development 
-releases are scheduled to occur soon after each Parrot monthly release. 
-Parrot releases the third Tuesday of each month.
+is available in the "docs/release_guide.pod" file. In general, Rakudo 
+development releases are scheduled to occur soon after each Parrot 
+monthly release.  Parrot releases the third Tuesday of each month.
 
 On behalf of the development team, I encourage you to try the new release,
 to live life to its fullest, to cherish each moment, and to have fun.
-(And, have a good laugh at conspiracy theorists for their doomed end-of-world predictions!)
 
 [*] What's the difference between the Rakudo compiler and the Rakudo
     Star distribution?

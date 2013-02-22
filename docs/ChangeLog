@@ -13,6 +13,8 @@ New in 2013.02
 + speed up eqv-comparison of Bufs
 + warnings for useless use of (some) literals, variables and constant
   expressions in sink context
++ /../ and rx/.../ literals match against $_ in sink context
++ array variable interpolation into regexes
 
 New in 2013.01
 + sink context; for-loops are now lazy by default

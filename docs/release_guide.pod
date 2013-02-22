@@ -281,8 +281,12 @@ Tag the release by its release month ("YYYY.MM") and its code name.
 
 =item 15.
 
-Upload the release tarball to github's download area at
-L<http://github.com/rakudo/rakudo/downloads>.
+Uplaod the tarball to L<http://rakudo.org/downloads/rakudo>:
+
+  $ scp rakudo-2010.02.tar.gz rakudo@rakudo.org:public_html/downloads/rakudo/
+
+If you do not have permissions for that, ask one of (pmichaud, jnthn,
+masak, tadzik, moritz, PerlJam) on #perl6 to do it for you.
 
 =item 16.
 

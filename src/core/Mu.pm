@@ -223,7 +223,7 @@ my class Mu {
     method print() { print(self) }
 
     proto method gist(|) { * }
-    multi method gist(Mu:U:) { self.HOW.name(self) ~ '()' }
+    multi method gist(Mu:U:) { '(' ~ self.HOW.name(self) ~ ')' }
     multi method gist(Mu:D:) { self.perl }
 
     proto method perl(|) { * }

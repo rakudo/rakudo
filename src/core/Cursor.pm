@@ -45,30 +45,56 @@ my class Cursor does NQPCursorRole {
         $match;
     }
 
-    method INTERPOLATE($var, $i = 0, $s = 0) {
+    # INTERPOLATE will iterate over the string $tgt beginning at position 0.
+    # If it can't match against pattern $var (or any element of $var if it is an array)
+    # it will increment $pos and try again. Therefor it is important to only match
+    # against the current position.
+    # $i is case insensitive flag
+    # $s is for sequential matching instead of junctive
+    # $a is true if we are in an assertion
+    method INTERPOLATE($var, $i = 0, $s = 0, $a = 0) {
         if nqp::isconcrete($var) {
-            if nqp::istype($var, Positional) # for array-likes
-            || nqp::istype($var, Capture) {  # for references to arrays
-                my $maxlen := -1;
-                my $cur := self.'!cursor_start_cur'();
-                my $pos := nqp::getattr_i($cur, $?CLASS, '$!from');
-                my $tgt := $cur.target;
-                my $eos := nqp::chars($tgt);
-                for $var.list {
-                    my $topic := $_ ~~ Callable ?? $_(self) !! $_;
-                    my $len := nqp::chars($topic);
-                    if $len > $maxlen && $pos + $len <= $eos
-                        && nqp::substr($tgt, $pos, $len) eq $topic {
-                        $maxlen := $len;
-                        last if $s; # stop here for sequential alternation
-                    }
+            # Call it if it is a routine. This will capture if requested.
+            return $var(self) if $var ~~ Callable;
+            my $maxlen := -1;
+            my $cur := self.'!cursor_start_cur'();
+            my $pos := nqp::getattr_i($cur, $?CLASS, '$!from');
+            my $tgt := $cur.target;
+            my $eos := nqp::chars($tgt);
+
+            for nqp::istype($var, Positional) || nqp::istype($var, Capture)
+                ?? $var.list !! $var -> $topic {
+                my $match;
+                my $len;
+                
+                # We are in a regex assertion, the strings we get will be treated as
+                # regex rules.
+                if $a {
+                    my $rx := eval("my \$x = anon regex \{ ^$topic \}");
+                    $match := (nqp::substr($tgt, $pos, $eos - $pos) ~~ $rx).Str;
+                    $len   := nqp::chars( $match );
                 }
-                $cur.'!cursor_pass'($pos + $maxlen, '') if $maxlen >= 0;
-                $cur
+                # A Regex already.
+                elsif $topic ~~ Regex {
+                    $match := (nqp::substr($tgt, $pos, $eos - $pos) ~~ $topic).Str;
+                    $len   := nqp::chars( $match );
+                }
+                # The pattern is a string.
+                else {
+                    $len   := nqp::chars( $topic );
+                    $match := $len < 1
+                            ||  ($i ?? nqp::lc(nqp::substr($tgt, $pos, $len)) eq nqp::lc($topic)
+                                    !! nqp::substr($tgt, $pos, $len) eq $topic);
+                }
+
+                if $match && $len > $maxlen && $pos + $len <= $eos {
+                    $maxlen := $len;
+                    last if $s; # stop here for sequential alternation
+                }
             }
-            else {
-                $var ~~ Callable ?? $var(self) !! self."!LITERAL"(nqp::unbox_s($var.Str), $i)
-            }
+
+            $cur.'!cursor_pass'($pos + $maxlen, '') if $maxlen >= 0;
+            $cur
         }
         else {
             self."!cursor_start_cur"()

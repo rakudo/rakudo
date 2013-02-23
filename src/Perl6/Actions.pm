@@ -5880,7 +5880,7 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions does STDActions {
         }
         else {
             make QAST::Regex.new( QAST::Node.new(
-                                        QAST::SVal.new( :value('!LITERAL') ),
+                                        QAST::SVal.new( :value('INTERPOLATE') ),
                                         $quote,
                                         QAST::IVal.new( :value(%*RX<i> ?? 1 !! 0) ) ),
                                 :rxtype<subrule>, :subtype<method>, :node($/));
@@ -5900,8 +5900,10 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions does STDActions {
         make QAST::Regex.new( 
                  QAST::Node.new(
                     QAST::SVal.new( :value('INTERPOLATE') ),
-                    QAST::Op.new(
-                        :op<call>, :name<&MAKE_REGEX>, $<codeblock>.ast ) ),
+                    $<codeblock>.ast,
+                    QAST::IVal.new( :value(%*RX<i> ?? 1 !! 0) ),
+                    QAST::IVal.new( :value($*SEQ ?? 1 !! 0) ),
+                    QAST::IVal.new( :value(1) ) ),
                  :rxtype<subrule>, :subtype<method>, :node($/));
     }
 
@@ -5912,11 +5914,13 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions does STDActions {
     }
 
     method assertion:sym<var>($/) {
-        make QAST::Regex.new( 
-                 QAST::Node.new(
-                    QAST::SVal.new( :value('INTERPOLATE') ),
-                    QAST::Op.new( :op<call>, :name<&MAKE_REGEX>, $<var>.ast ) ),
-                 :rxtype<subrule>, :subtype<method>, :node($/));
+        make QAST::Regex.new( QAST::Node.new(
+                                    QAST::SVal.new( :value('INTERPOLATE') ),
+                                    $<var>.ast,
+                                    QAST::IVal.new( :value(%*RX<i> ?? 1 !! 0) ),
+                                    QAST::IVal.new( :value($*SEQ ?? 1 !! 0) ),
+                                    QAST::IVal.new( :value(1) ) ),
+                              :rxtype<subrule>, :subtype<method>, :node($/));
     }
     
     method assertion:sym<name>($/) {

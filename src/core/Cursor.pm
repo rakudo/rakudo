@@ -76,7 +76,11 @@ my class Cursor does NQPCursorRole {
                 }
                 # A Regex already.
                 elsif $topic ~~ Regex {
-                    $match := (nqp::substr($tgt, $pos, $eos - $pos) ~~ $topic).Str;
+                    $match := nqp::substr($tgt, $pos, $eos - $pos) ~~ $topic;
+                    # In order to return the correct result we need to match from the
+                    # current position only.
+                    next if $match.from;
+                    $match := ~$match;
                     $len   := nqp::chars( $match );
                 }
                 # The pattern is a string.

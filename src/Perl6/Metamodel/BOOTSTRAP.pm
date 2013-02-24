@@ -145,7 +145,7 @@ BEGIN {
                 }
             }
             else {
-                my $cd := Metamodel::ContainerDescriptor.new(
+                my $cd := Perl6::Metamodel::ContainerDescriptor.new(
                     :of($type), :rw(1), :name($name));
                 my $scalar := nqp::create(Scalar);
                 nqp::bindattr($scalar, Scalar, '$!descriptor', $cd);

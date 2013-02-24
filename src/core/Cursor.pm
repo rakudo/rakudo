@@ -42,7 +42,7 @@ my class Cursor does NQPCursorRole {
     method MATCH_SAVE() {
         my $match := self.MATCH();
         $last_match := $match if $match;
-        $match;
+        $match || Nil
     }
 
     # INTERPOLATE will iterate over the string $tgt beginning at position 0.
@@ -79,7 +79,7 @@ my class Cursor does NQPCursorRole {
                     $match := nqp::substr($tgt, $pos, $eos - $pos) ~~ $topic;
                     # In order to return the correct result we need to match from the
                     # current position only.
-                    next if $match.from;
+                    next if !$match || $match.from;
                     $match := ~$match;
                     $len   := nqp::chars( $match );
                 }

@@ -63,6 +63,7 @@ part of monthly Parrot releases.
   2012-12-20   Rakudo #59 "Warszawa"           (masak)
   2013-01-17   Rakudo #60 "Sonoma"             (isBEKaml)
   2013-02-21   Rakudo #61 "drinkers"           (tadzik)
+  2013-02-23   2013.02.1                       (moritz)
 
 =head2 Planned 2012 and 2013 releases
 
@@ -128,12 +129,13 @@ the release announcement).
 
 =item *
 
-Create a draft release announcement in docs/announce/YYYY.MM .
+Create a draft release announcement in docs/announce/YYYY.MM.md in
+markdown format.
 You can often use the previous release's file as a starting point,
 updating the release number, version information, name, etc. as
 appropriate.
 
-  $ git add docs/announce/YYYY.MM
+  $ git add docs/announce/YYYY.MM.md
   $ git commit docs
 
 =item *

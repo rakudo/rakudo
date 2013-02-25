@@ -1030,7 +1030,7 @@ my class X::TypeCheck::Splice is X::TypeCheck does X::Comp {
 
 my class X::Assignment::RO is Exception {
     method message {
-        "Cannot assign to a non-container";
+        "Cannot modify an immutable value";
     }
 }
 

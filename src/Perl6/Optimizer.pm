@@ -781,7 +781,7 @@ class Perl6::Optimizer {
 
     method add_memo($past_node, $message, @extras?, :$type!) {
         my $mnode := $past_node.node;
-        my $line := HLL::Compiler.lineof($mnode.orig, $mnode.from);
+        my $line := HLL::Compiler.lineof($mnode.orig, $mnode.from, :cache(1));
         my $key := $message ~ (+@extras ?? "\n" ~ nqp::join("\n", @extras) !! "");
         my %cont := $type eq 'deadly' ?? %!deadly !! %!worrying;
         unless %cont{$key} {

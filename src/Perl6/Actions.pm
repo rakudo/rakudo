@@ -1402,7 +1402,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             }
             if $past.name() eq '$?LINE' {
                 $past := $*W.add_constant('Int', 'int',
-                        HLL::Compiler.lineof($/.orig, $/.from ));
+                        HLL::Compiler.lineof($/.orig, $/.from, :cache(1)));
             }
             else {
                 $past := $*W.add_string_constant(pir::find_caller_lex__Ps('$?FILES') // '<unknown file>');

@@ -3326,7 +3326,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         
         sub push_lines(@target, @pos) {
             for @pos {
-                nqp::push(@target, HLL::Compiler.lineof(self.orig, $_));
+                nqp::push(@target, HLL::Compiler.lineof(self.orig, $_, :cache(1)));
             }
         }
         

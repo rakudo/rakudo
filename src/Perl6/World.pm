@@ -332,7 +332,7 @@ class Perl6::World is HLL::World {
     # during the deserialization.
     method load_module($/, $module_name, $cur_GLOBALish) {
         # Immediate loading.
-        my $line := HLL::Compiler.lineof($/.orig, $/.from);
+        my $line := HLL::Compiler.lineof($/.orig, $/.from, :cache(1));
         my $module := Perl6::ModuleLoader.load_module($module_name, $cur_GLOBALish, :$line);
         
         # During deserialization, ensure that we get this module loaded.
@@ -2384,7 +2384,7 @@ class Perl6::World is HLL::World {
             }
             
             # Build and throw exception object.
-            %opts<line>            := HLL::Compiler.lineof($c.orig, $c.pos);
+            %opts<line>            := HLL::Compiler.lineof($c.orig, $c.pos, :cache(1));
             %opts<modules>         := p6ize_recursive(@*MODULES);
             %opts<pre>             := @locprepost[0];
             %opts<post>            := @locprepost[1];
@@ -2473,7 +2473,7 @@ class Perl6::World is HLL::World {
             $p6ex.SET_FILE_LINE(
                 nqp::box_s(pir::find_caller_lex__Ps('$?FILES'),
                     self.find_symbol(['Str'])),
-                nqp::box_i(HLL::Compiler.lineof($/.orig, $/.from),
+                nqp::box_i(HLL::Compiler.lineof($/.orig, $/.from, :cache(1)),
                     self.find_symbol(['Int'])),
             );
         }

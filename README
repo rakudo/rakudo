@@ -9,7 +9,7 @@ Rakudo Perl 6
     does not contain any of the modules, documentation, or other items
     that would normally come with a full Perl 6 distribution.  If you're
     after more than just the bare compiler, please download the latest
-    Rakudo Star package from http://github.com/rakudo/star/downloads .
+    Rakudo Star package from http://rakudo.org/downloads/star .
 
     For a high-level overview of implemented and missing features,
     please visit http://perl6.org/compilers/features .

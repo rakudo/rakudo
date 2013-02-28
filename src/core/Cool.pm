@@ -69,7 +69,7 @@ my class Cool {
         )
     }
 
-    method substr($start as Int, $length?) { 
+    method substr($start, $length?) { 
         self.Stringy.substr($start, $length);
     }
 

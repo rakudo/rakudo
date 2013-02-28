@@ -829,6 +829,7 @@ BEGIN {
     Perl6::Metamodel::PackageHOW.set_stash_type(Stash, EnumMap);
     Perl6::Metamodel::ModuleHOW.set_stash_type(Stash, EnumMap);
     Perl6::Metamodel::NativeHOW.set_stash_type(Stash, EnumMap);
+    Perl6::Metamodel::VMArrayHOW.set_stash_type(Stash, EnumMap);
     Perl6::Metamodel::ClassHOW.set_stash_type(Stash, EnumMap);
     Perl6::Metamodel::GrammarHOW.set_stash_type(Stash, EnumMap);
     Perl6::Metamodel::ParametricRoleHOW.set_stash_type(Stash, EnumMap);
@@ -1043,6 +1044,7 @@ Perl6::Metamodel::ClassHOW.set_invoke_forwarder(
 Perl6::Metamodel::PackageHOW.set_stash_type(Stash, EnumMap);
 Perl6::Metamodel::ModuleHOW.set_stash_type(Stash, EnumMap);
 Perl6::Metamodel::NativeHOW.set_stash_type(Stash, EnumMap);
+Perl6::Metamodel::VMArrayHOW.set_stash_type(Stash, EnumMap);
 Perl6::Metamodel::ClassHOW.set_stash_type(Stash, EnumMap);
 Perl6::Metamodel::GrammarHOW.set_stash_type(Stash, EnumMap);
 Perl6::Metamodel::ParametricRoleHOW.set_stash_type(Stash, EnumMap);

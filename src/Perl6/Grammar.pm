@@ -1679,6 +1679,11 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*PKGDECL := 'native';
         <sym> <.end_keyword> <package_def>
     }
+    token package_declarator:sym<vmarray> {
+        :my $*OUTERPACKAGE := $*PACKAGE;
+        :my $*PKGDECL := 'vmarray';
+        <sym> <.end_keyword> <package_def>
+    }
     token package_declarator:sym<slang> {
         :my $*OUTERPACKAGE := $*PACKAGE;
         :my $*PKGDECL := 'slang';

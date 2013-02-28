@@ -1465,6 +1465,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
     method package_declarator:sym<role>($/)    { make $<package_def>.ast; }
     method package_declarator:sym<knowhow>($/) { make $<package_def>.ast; }
     method package_declarator:sym<native>($/)  { make $<package_def>.ast; }
+    method package_declarator:sym<vmarray>($/) { make $<package_def>.ast; }
 
     method package_declarator:sym<trusts>($/) {
         $*W.apply_trait($/, '&trait_mod:<trusts>', $*PACKAGE, $<typename>.ast);

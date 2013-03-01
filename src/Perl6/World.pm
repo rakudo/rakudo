@@ -324,7 +324,7 @@ class Perl6::World is HLL::World {
             );
             self.add_load_dependency_task(:deserialize_past($fixup), :fixup_past($fixup));
             
-            return pir::getattribute__PPs($setting, 'lex_pad');
+            return nqp::ctxlexpad($setting);
         }
     }
     
@@ -348,7 +348,7 @@ class Perl6::World is HLL::World {
                 ))));
         }
 
-        return pir::getattribute__PPs($module, 'lex_pad');
+        return nqp::ctxlexpad($module);
     }
     
     # Uses the NQP module loader to load Perl6::ModuleLoader, which
@@ -576,7 +576,7 @@ class Perl6::World is HLL::World {
         # If it's a native type, we're done - no container
         # as we inline natives straight into registers. Do
         # need to take care of initial value though.
-        my $prim := pir::repr_get_primitive_type_spec__IP($descriptor.of);
+        my $prim := nqp::objprimspec($descriptor.of);
         if $prim {
             if $state { nqp::die("Natively typed state variables not yet implemented") }
             if $var {
@@ -743,7 +743,7 @@ class Perl6::World is HLL::World {
         if %param_info<default_is_literal> {
             $flags := $flags + $SIG_ELEM_DEFAULT_IS_LITERAL;
         }
-        my $primspec := pir::repr_get_primitive_type_spec__IP(%param_info<nominal_type>);
+        my $primspec := nqp::objprimspec(%param_info<nominal_type>);
         if $primspec == 1 {
             $flags := $flags + $SIG_ELEM_NATIVE_INT_VALUE;
         }
@@ -907,14 +907,14 @@ class Perl6::World is HLL::World {
                 }
             }
         };
-        my $stub := pir::nqp_fresh_stub__PP(sub (*@pos, *%named) {
+        my $stub := nqp::freshcoderef(sub (*@pos, *%named) {
             unless $precomp {
                 $compiler_thunk();
             }
             $precomp(|@pos, |%named);
         });
         pir::setprop__vPsP($stub, 'COMPILER_THUNK', $compiler_thunk);
-        pir::set__vPS($stub, $code_past.name);
+        nqp::setcodename($stub, $code_past.name);
         nqp::bindattr($code, $code_type, '$!do', $stub);
         
         # Tag it as a static code ref and add it to the root code refs set.
@@ -1504,7 +1504,7 @@ class Perl6::World is HLL::World {
     # Adds a value to an enumeration.
     method create_enum_value($enum_type_obj, $key, $value) {
         # Create directly.
-        my $val := nqp::rebless(pir::repr_clone__PP($value), $enum_type_obj);
+        my $val := nqp::rebless(nqp::clone($value), $enum_type_obj);
         nqp::bindattr($val, $enum_type_obj, '$!key', $key);
         nqp::bindattr($val, $enum_type_obj, '$!value', $value);
         self.add_object($val);
@@ -2402,7 +2402,7 @@ class Perl6::World is HLL::World {
                     %opts{$p.key} := pir::perl6ize_type__PP($p.value);
                 }
             }
-            my $file        := pir::find_caller_lex__Ps('$?FILES');
+            my $file        := nqp::getlexdyn('$?FILES');
             %opts<filename> := nqp::box_s(
                 (nqp::isnull($file) ?? '<unknown file>' !! $file),
                 self.find_symbol(['Str'])
@@ -2471,7 +2471,7 @@ class Perl6::World is HLL::World {
         }
         if nqp::can($p6ex, 'SET_FILE_LINE') {
             $p6ex.SET_FILE_LINE(
-                nqp::box_s(pir::find_caller_lex__Ps('$?FILES'),
+                nqp::box_s(nqp::getlexdyn('$?FILES'),
                     self.find_symbol(['Str'])),
                 nqp::box_i(HLL::Compiler.lineof($/.orig, $/.from, :cache(1)),
                     self.find_symbol(['Int'])),

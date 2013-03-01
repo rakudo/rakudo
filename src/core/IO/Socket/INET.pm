@@ -92,9 +92,7 @@ my class IO::Socket::INET does IO::Socket {
 
     method get() {
         ++$!ins;
-        my Mu $PIO  := nqp::getattr(self, $?CLASS, '$!PIO');
-        $PIO.encoding(nqp::unbox_s(PARROT_ENCODING(self.encoding)));
-        my str $line = $PIO.readline(nqp::unbox_s($!input-line-separator));
+        my str $line = nqp::getattr(self, $?CLASS, '$!PIO').readline(nqp::unbox_s($!input-line-separator)).encode("binary").decode;
         my str $sep = $!input-line-separator;
         my int $len  = nqp::chars($line);
         my int $sep-len = nqp::chars($sep);

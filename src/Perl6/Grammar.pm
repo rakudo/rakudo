@@ -320,13 +320,13 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         # compile the setting, but it still wants some kinda package. We just
         # fudge in knowhow for that.
         my %*HOW;
-        %*HOW<knowhow> := pir::get_knowhow__P();
-        %*HOW<package> := pir::get_knowhow__P();
+        %*HOW<knowhow> := nqp::knowhow();
+        %*HOW<package> := nqp::knowhow();
         
         # Symbol table and serialization context builder - keeps track of
         # objects that cross the compile-time/run-time boundary that are
         # associated with this compilation unit.
-        my $file := pir::find_caller_lex__Ps('$?FILES');
+        my $file := nqp::getlexdyn('$?FILES');
         my $source_id := nqp::sha1(self.target());
         my $*W := nqp::isnull($file) ??
             Perl6::World.new(:handle($source_id)) !!
@@ -864,7 +864,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                 }
             }
             if @*WORRIES {
-                pir::getstderr__P().print($*W.group_exception().gist());
+                nqp::printfh(nqp::getstderr(), $*W.group_exception().gist());
             }
         
             # Install POD-related variables.
@@ -897,14 +897,14 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         # See if we've exported any HOWs.
         if nqp::existskey($UNIT, 'EXPORTHOW') {
             for $UNIT<EXPORTHOW>.WHO {
-                %*HOW{$_.key} := pir::nqp_decontainerize__PP($_.value);
+                %*HOW{$_.key} := nqp::decont($_.value);
             }
         }
     }
 
     token statementlist {
-        :my %*LANG := self.shallow_copy(pir::find_dynamic_lex__Ps('%*LANG'));
-        :my %*HOW  := self.shallow_copy(pir::find_dynamic_lex__Ps('%*HOW'));
+        :my %*LANG := self.shallow_copy(nqp::getlexdyn('%*LANG'));
+        :my %*HOW  := self.shallow_copy(nqp::getlexdyn('%*HOW'));
         :dba('statement list')
         :s
         [
@@ -2168,14 +2168,14 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         | <type_constraint>+
             [
             | $<quant>=['**'|'*'] <param_var>
-            | $<quant>=['\\'|'|'] <param_var> { pir::getstderr__P().print("Obsolete use of | or \\ with sigil on param { $<param_var> }\n") }
+            | $<quant>=['\\'|'|'] <param_var> { nqp::printfh(nqp::getstderr(), "Obsolete use of | or \\ with sigil on param { $<param_var> }\n") }
             | $<quant>=['\\'|'|'] <defterm>?
 
             | [ <param_var> | <named_param> ] $<quant>=['?'|'!'|<?>]
             | <?>
             ]
         | $<quant>=['**'|'*'] <param_var>
-        | $<quant>=['\\'|'|'] <param_var> { pir::getstderr__P().print("Obsolete use of | or \\ with sigil on param { $<param_var> }\n") }
+        | $<quant>=['\\'|'|'] <param_var> { nqp::printfh(nqp::getstderr, "Obsolete use of | or \\ with sigil on param { $<param_var> }\n") }
         | $<quant>=['\\'|'|'] <defterm>?
         | [ <param_var> | <named_param> ] $<quant>=['?'|'!'|<?>]
         | <longname>

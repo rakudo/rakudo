@@ -918,8 +918,8 @@ class Perl6::World is HLL::World {
         nqp::bindattr($code, $code_type, '$!do', $stub);
         
         # Tag it as a static code ref and add it to the root code refs set.
-        pir::setprop__vPsP($stub, 'STATIC_CODE_REF', $stub);
-        pir::setprop__vPsP($stub, 'COMPILER_STUB', $stub);
+        nqp::markcodestatic($stub);
+        nqp::markcodestub($stub);
         my $code_ref_idx := self.add_root_code_ref($stub, $code_past);
         %!sub_id_to_sc_idx{$code_past.cuid()} := $code_ref_idx;
         
@@ -928,7 +928,7 @@ class Perl6::World is HLL::World {
         if self.is_precompilation_mode() {
             my $clone_handler := sub ($orig, $clone) {
                 my $do := nqp::getattr($clone, $code_type, '$!do');
-                pir::setprop__vPsP($do, 'COMPILER_STUB', $do);
+                nqp::markcodestub($do);
                 pir::setprop__0PsP($do, 'CLONE_CALLBACK', $clone_handler);
             };
             pir::setprop__0PsP($stub, 'CLONE_CALLBACK', $clone_handler);
@@ -1002,7 +1002,7 @@ class Perl6::World is HLL::World {
     }
 
     method add_quasi_fixups($quasi_ast, $block) {
-        $quasi_ast := pir::nqp_decontainerize__PP($quasi_ast);
+        $quasi_ast := nqp::decont($quasi_ast);
         self.add_object($quasi_ast);
         unless $quasi_ast.is_quasi_ast {
             return "";
@@ -1225,7 +1225,7 @@ class Perl6::World is HLL::World {
                 $precomp[$i].get_lexinfo.set_static_lexpad(%!sub_id_to_static_lexpad{$subid});
             }
             if nqp::existskey(%!sub_id_to_sc_idx, $subid) {
-                pir::setprop__vPsP($precomp[$i], 'STATIC_CODE_REF', $precomp[$i]);
+                nqp::markcodestatic($precomp[$i]);
                 self.update_root_code_ref(%!sub_id_to_sc_idx{$subid}, $precomp[$i]);
             }
             $i := $i + 1;

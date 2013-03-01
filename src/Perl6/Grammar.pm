@@ -333,9 +333,6 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             Perl6::World.new(:handle($source_id), :description($file));
         $*W.add_initializations();
 
-        # XXX Hack: clear any marks.
-        pir::set_hll_global__vsP('%!MARKHASH', nqp::null());
-
         my $cursor := self.comp_unit;
         $*W.pop_lexpad(); # UNIT
         $*W.pop_lexpad(); # UNIT_OUTER

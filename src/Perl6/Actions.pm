@@ -285,8 +285,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
         # We'll install our view of GLOBAL as the main one; any other
         # compilation unit that is using this one will then replace it
         # with its view later (or be in a position to restore it).
-        my $global_install := QAST::VM.new(
-            pirop => 'set_hll_global vsP',
+        my $global_install := QAST::Op.new(
+            :op('bindcurhllsym'),
             QAST::SVal.new( :value('GLOBAL') ),
             QAST::WVal.new( :value($*GLOBALish) )
         );
@@ -337,8 +337,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
             :post_deserialize($*W.fixup_tasks()),
             :repo_conflict_resolver(QAST::Op.new(
                 :op('callmethod'), :name('resolve_repossession_conflicts'),
-                QAST::VM.new(
-                    pirop => 'get_hll_global Ps',
+                QAST::Op.new(
+                    :op('getcurhllsym'),
                     QAST::SVal.new( :value('ModuleLoader') )
                 )
             )),
@@ -961,7 +961,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
         $past.push(QAST::Op.new(
             :op('callmethod'), :name('load_module'),
-            QAST::VM.new( pirop => 'get_hll_global Ps',
+            QAST::Op.new( :op('getcurhllsym'),
                 QAST::SVal.new( :value('ModuleLoader') ) ),
             $name_past, $*W.symbol_lookup(['GLOBAL'], $/)
         ));

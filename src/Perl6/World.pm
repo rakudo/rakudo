@@ -314,8 +314,8 @@ class Perl6::World is HLL::World {
                     QAST::BVal.new( :value($*UNIT_OUTER) ),
                     QAST::Op.new(
                         :op('callmethod'), :name('load_setting'),
-                        QAST::VM.new(
-                            pirop => 'get_hll_global Ps',
+                        QAST::Op.new(
+                            :op('getcurhllsym'),
                             QAST::SVal.new( :value('ModuleLoader') )
                         ),
                         QAST::SVal.new( :value($setting_name) )
@@ -341,7 +341,7 @@ class Perl6::World is HLL::World {
                 self.perl6_module_loader_code(),
                 QAST::Op.new(
                    :op('callmethod'), :name('load_module'),
-                   QAST::VM.new( pirop => 'get_hll_global Ps',
+                   QAST::Op.new( :op('getcurhllsym'),
                         QAST::SVal.new( :value('ModuleLoader') ) ),
                    QAST::SVal.new( :value($module_name) ),
                    QAST::IVal.new(:value($line), :named('line'))
@@ -355,8 +355,8 @@ class Perl6::World is HLL::World {
     # is a normal NQP module.
     method perl6_module_loader_code() {
         QAST::Stmt.new(
-            QAST::VM.new(
-                pirop => 'load_bytecode vs',
+            QAST::Op.new(
+                :op('loadbytecode'),
                 QAST::SVal.new( :value('ModuleLoader.pbc') )
             ),
             QAST::Op.new(
@@ -2116,7 +2116,7 @@ class Perl6::World is HLL::World {
         
         # Handle fetching GLOBAL.
         if +@name == 1 && @name[0] eq 'GLOBAL' {
-            return QAST::VM.new( pirop => 'get_hll_global Ps',
+            return QAST::Op.new( :op('getcurhllsym'),
                 QAST::SVal.new( :value('GLOBAL') ) );
         }
         
@@ -2176,7 +2176,7 @@ class Perl6::World is HLL::World {
         else {
             my $path := self.is_lexical(@name[0]) ??
                 QAST::Var.new( :name(@name.shift()), :scope('lexical') ) !!
-                QAST::VM.new( pirop => 'get_hll_global Ps',
+                QAST::Op.new( :op('getcurhllsym'),
                     QAST::SVal.new( :value('GLOBAL') ) );
             if @name[0] eq 'GLOBAL' {
                 @name := nqp::clone(@name);

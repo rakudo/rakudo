@@ -232,14 +232,14 @@ BEGIN {
             my $pkg      := nqp::getattr($dcself, Attribute, '$!package');
             my $avc      := nqp::getattr($dcself, Attribute, '$!auto_viv_container');
             my $bc       := nqp::getattr($dcself, Attribute, '$!build_closure');
-            my $ins      := pir::repr_clone__PP($dcself);
+            my $ins      := nqp::clone($dcself);
             if $type.HOW.archetypes.generic {
                 nqp::bindattr($ins, Attribute, '$!type',
                     $type.HOW.instantiate_generic($type, $type_environment));
                 my $cd_ins := $cd.instantiate_generic($type_environment);
                 nqp::bindattr($ins, Attribute, '$!container_descriptor', $cd_ins);
                 my $avc_var  := pir::perl6_var__PP($avc);
-                my $avc_copy := pir::repr_clone__PP($avc_var);
+                my $avc_copy := nqp::clone($avc_var);
                 my @avc_mro  := $avc_var.HOW.mro($avc_var);
                 my $i := 0;
                 $i := $i + 1 while @avc_mro[$i].HOW.is_mixin(@avc_mro[$i]);
@@ -354,7 +354,7 @@ BEGIN {
             # Go through parameters, builidng new list. If any
             # are generic, instantiate them. Otherwise leave them
             # as they are.
-            my $ins    := pir::repr_clone__PP($self);
+            my $ins    := nqp::clone($self);
             my @params := nqp::getattr($self, Signature, '$!params');
             my @ins_params;
             for @params {
@@ -365,7 +365,8 @@ BEGIN {
                     @ins_params.push($_);
                 }
             }
-            pir::setattribute__0PPsP($ins, Signature, '$!params', @ins_params)
+            nqp::bindattr($ins, Signature, '$!params', @ins_params);
+            $ins
         }));
     Signature.HOW.add_method(Signature, 'set_returns', static(sub ($self, $type) {
             nqp::bindattr(pir::perl6_decontainerize__PP($self),
@@ -419,7 +420,7 @@ BEGIN {
     Parameter.HOW.add_method(Parameter, 'instantiate_generic', static(sub ($self, $type_environment) {
             # Clone with the type instantiated.
             my $SIG_ELEM_NOMINAL_GENERIC := 524288;
-            my $ins      := pir::repr_clone__PP($self);
+            my $ins      := nqp::clone($self);
             my $type     := nqp::getattr($self, Parameter, '$!nominal_type');
             my $cd       := nqp::getattr($self, Parameter, '$!container_descriptor');
             my $ins_type := $type.HOW.instantiate_generic($type, $type_environment);
@@ -431,8 +432,9 @@ BEGIN {
                         $flags - $SIG_ELEM_NOMINAL_GENERIC)
                 }
             }
-            pir::setattribute__0PPsP($ins, Parameter, '$!nominal_type', $ins_type);
-            pir::setattribute__0PPsP($ins, Parameter, '$!container_descriptor', $ins_cd)
+            nqp::bindattr($ins, Parameter, '$!nominal_type', $ins_type);
+            nqp::bindattr($ins, Parameter, '$!container_descriptor', $ins_cd);
+            $ins
         }));
     Parameter.HOW.add_method(Parameter, 'set_rw', static(sub ($self) {
             my $SIG_ELEM_IS_RW       := 256;
@@ -444,38 +446,43 @@ BEGIN {
             }
             my $cd := nqp::getattr($dcself, Parameter, '$!container_descriptor');
             if $cd { $cd.set_rw(1) }
-            pir::repr_bind_attr_int__0PPsI($dcself, Parameter, '$!flags', $flags + $SIG_ELEM_IS_RW);
+            nqp::bindattr_i($dcself, Parameter, '$!flags', $flags + $SIG_ELEM_IS_RW);
+            $dcself
         }));
     Parameter.HOW.add_method(Parameter, 'set_copy', static(sub ($self) {
             my $SIG_ELEM_IS_COPY := 512;
             my $dcself := pir::perl6_decontainerize__PP($self);
             my $cd     := nqp::getattr($dcself, Parameter, '$!container_descriptor');
             if $cd { $cd.set_rw(1) }
-            pir::repr_bind_attr_int__0PPsI($dcself, Parameter, '$!flags',
+            nqp::bindattr_i($dcself, Parameter, '$!flags',
                 nqp::getattr_i($dcself, Parameter, '$!flags') + $SIG_ELEM_IS_COPY);
+            $dcself
         }));
     Parameter.HOW.add_method(Parameter, 'set_required', static(sub ($self) {
             my $SIG_ELEM_IS_OPTIONAL := 2048;
             my $dcself := pir::perl6_decontainerize__PP($self);
             my $flags := nqp::getattr_i($dcself, Parameter, '$!flags');
             if $flags +& $SIG_ELEM_IS_OPTIONAL {
-                pir::repr_bind_attr_int__0PPsI($dcself, Parameter, '$!flags',
+                nqp::bindattr_i($dcself, Parameter, '$!flags',
                     $flags - $SIG_ELEM_IS_OPTIONAL);
             }
+            $dcself
         }));
     Parameter.HOW.add_method(Parameter, 'set_parcel', static(sub ($self) {
             my $SIG_ELEM_IS_PARCEL := 1024;
             my $dcself := pir::perl6_decontainerize__PP($self);
             my $flags := nqp::getattr_i($dcself, Parameter, '$!flags');
             unless $flags +& $SIG_ELEM_IS_PARCEL {
-                pir::repr_bind_attr_int__0PPsI($dcself, Parameter, '$!flags',
+                nqp::bindattr_i($dcself, Parameter, '$!flags',
                     $flags + $SIG_ELEM_IS_PARCEL);
             }
+            $dcself
         }));
     Parameter.HOW.add_method(Parameter, 'set_coercion', static(sub ($self, $type) {
             my $dcself := pir::perl6_decontainerize__PP($self);
-            pir::repr_bind_attr_str__0PPsS($dcself, Parameter, '$!coerce_method', $type.HOW.name($type));
-            pir::setattribute__0PPsP($dcself, Parameter, '$!coerce_type', $type);
+            nqp::bindattr_s($dcself, Parameter, '$!coerce_method', $type.HOW.name($type));
+            nqp::bindattr($dcself, Parameter, '$!coerce_type', $type);
+            $dcself
         }));
     Parameter.HOW.compose_repr(Parameter);
     
@@ -491,7 +498,7 @@ BEGIN {
     # Need clone in here, plus generics instantiation.
     Code.HOW.add_method(Code, 'clone', static(sub ($self) {
             my $dcself := pir::perl6_decontainerize__PP($self);
-            my $cloned := pir::repr_clone__PP($dcself);
+            my $cloned := nqp::clone($dcself);
             nqp::bindattr($cloned, Code, '$!do',
                 pir::perl6_associate_sub_code_object__0PP(
                     nqp::clone(nqp::getattr($dcself, Code, '$!do')),
@@ -523,15 +530,16 @@ BEGIN {
                     nqp::clone(nqp::getattr($dcself, Routine, '$!dispatchees')));
             }
             my $sig := nqp::getattr($dcself, Code, '$!signature');
-            pir::setattribute__0PPsP($ins, Code, '$!signature',
-                $sig.instantiate_generic($type_environment))
+            nqp::bindattr($ins, Code, '$!signature',
+                $sig.instantiate_generic($type_environment));
+            $ins
         }));
     Code.HOW.add_method(Code, 'name', static(sub ($self) {
-            ~nqp::getattr(pir::perl6_decontainerize__PP($self),
-                Code, '$!do')
+            nqp::getcodename(nqp::getattr(pir::perl6_decontainerize__PP($self),
+                Code, '$!do'))
         }));
     Code.HOW.add_method(Code, 'set_name', static(sub ($self, $name) {
-            pir::assign__1PS(
+            nqp::setcodename(
                 nqp::getattr(pir::perl6_decontainerize__PP($self), Code, '$!do'),
                 $name)
         }));
@@ -552,7 +560,7 @@ BEGIN {
     Block.HOW.add_attribute(Block, BOOTSTRAPATTR.new(:name<$!phasers>, :type(Mu), :package(Block)));
     Block.HOW.add_method(Block, 'clone', static(sub ($self) {
             my $dcself := pir::perl6_decontainerize__PP($self);
-            my $cloned := pir::repr_clone__PP($dcself);
+            my $cloned := nqp::clone($dcself);
             nqp::bindattr($cloned, Code, '$!do',
                 pir::perl6_associate_sub_code_object__0PP(
                     nqp::clone(nqp::getattr($dcself, Code, '$!do')),
@@ -567,7 +575,7 @@ BEGIN {
                 $P1($P0, $P2)
               no_callback:
             };
-            pir::setattribute__0PPSP($cloned, Block, '$!state_vars', nqp::null());
+            nqp::bindattr($cloned, Block, '$!state_vars', nqp::null());
             $cloned
         }));
     Block.HOW.compose_repr(Block);
@@ -594,9 +602,10 @@ BEGIN {
             my $disp_list := nqp::getattr($dc_self, Routine, '$!dispatchees');
             if nqp::defined($disp_list) {
                 $disp_list.push($dispatchee);
-                pir::setattribute__0PPsP(pir::perl6_decontainerize__PP($dispatchee),
+                nqp::bindattr(pir::perl6_decontainerize__PP($dispatchee),
                     Routine, '$!dispatcher', $dc_self);
-                pir::setattribute__0PPsP($dc_self, Routine, '$!dispatcher_cache', nqp::null());
+                nqp::bindattr($dc_self, Routine, '$!dispatcher_cache', nqp::null());
+                $dc_self
             }
             else {
                 nqp::die("Cannot add a dispatchee to a non-dispatcher code object");
@@ -619,11 +628,13 @@ BEGIN {
         }));
     Routine.HOW.add_method(Routine, 'set_rw', static(sub ($self) {
             my $dcself := pir::perl6_decontainerize__PP($self);
-            pir::repr_bind_attr_int__0PPsi($dcself, Routine, '$!rw', 1);
+            nqp::bindattr_i($dcself, Routine, '$!rw', 1);
+            $dcself
         }));
     Routine.HOW.add_method(Routine, 'set_inline_info', static(sub ($self, $info) {
             my $dcself := pir::perl6_decontainerize__PP($self);
-            pir::repr_bind_attr_obj__0PPsP($dcself, Routine, '$!inline_info', $info);
+            nqp::bindattr($dcself, Routine, '$!inline_info', $info);
+            $dcself
         }));
     Routine.HOW.add_method(Routine, 'inline_info', static(sub ($self) {
             my $dcself := pir::perl6_decontainerize__PP($self);
@@ -631,7 +642,8 @@ BEGIN {
         }));
     Routine.HOW.add_method(Routine, 'set_onlystar', static(sub ($self) {
             my $dcself := pir::perl6_decontainerize__PP($self);
-            pir::repr_bind_attr_int__0PPsi($dcself, Routine, '$!onlystar', 1);
+            nqp::bindattr_i($dcself, Routine, '$!onlystar', 1);
+            $dcself
         }));
     Routine.HOW.compose_repr(Routine);
 

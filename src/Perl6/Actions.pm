@@ -1405,7 +1405,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                         HLL::Compiler.lineof($/.orig, $/.from, :cache(1)));
             }
             else {
-                $past := $*W.add_string_constant(pir::find_caller_lex__Ps('$?FILES') // '<unknown file>');
+                $past := $*W.add_string_constant(nqp::getlexdyn('$?FILES') // '<unknown file>');
             }
         }
         elsif +@name > 1 {
@@ -1927,7 +1927,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $block := $<blockoid>.ast;
             $block.blocktype('declaration');
             if is_clearly_returnless($block) {
-                unless pir::repr_get_primitive_type_spec__IP($block[1].returns) {
+                unless nqp::objprimspec($block[1].returns) {
                     $block[1] := QAST::Op.new(
                         :op('p6decontrv'),
                         $block[1]);
@@ -2174,7 +2174,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $qast
         }
         sub clone_qast($qast) {
-            my $cloned := pir::repr_clone__PP($qast);
+            my $cloned := nqp::clone($qast);
             nqp::bindattr($cloned, QAST::Node, '@!array',
                 nqp::clone(nqp::getattr($cloned, QAST::Node, '@!array')));
             $cloned
@@ -2501,7 +2501,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
         elsif $scope eq '' || $scope eq 'has' {
             my $nocando := $*MULTINESS eq 'multi' ?? 'multi-method' !! 'method';
-            pir::printerr__vS("Useless declaration of a has-scoped $nocando in " ~
+            nqp::printfh(nqp::getstderr(),
+                "Useless declaration of a has-scoped $nocando in " ~
                 ($*PKGDECL || "mainline") ~ "\n");
         }
 
@@ -3614,7 +3615,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             );
         }
         my $macro_ast_qast := nqp::getattr(
-            pir::perl6_decontainerize__PP($macro_ast),
+            nqp::decont($macro_ast),
             $ast_class,
             '$!past'
         );
@@ -4273,7 +4274,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         # Check we know how to bind to the thing on the LHS.
         if $target.isa(QAST::Var) {
             # Check it's not a native type; we can't bind to those.
-            if pir::repr_get_primitive_type_spec__IP($target.returns) {
+            if nqp::objprimspec($target.returns) {
                 $*W.throw($/, ['X', 'Bind', 'NativeType'],
                         name => ($target.name // ''),
                 );
@@ -4351,7 +4352,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $var_sigil := nqp::substr($lhs_ast.name, 0, 1);
         }
         if nqp::istype($lhs_ast, QAST::Var)
-                && pir::repr_get_primitive_type_spec__IP($lhs_ast.returns) {
+                && nqp::objprimspec($lhs_ast.returns) {
             # Native assignment is actually really a bind at low level.
             $past := QAST::Op.new(
                 :op('bind'), :returns($lhs_ast.returns),
@@ -4796,12 +4797,12 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
 
     method dec_number($/) {
-#        pir::say("dec_number: $/");
+#        say("dec_number: $/");
         my $int  := $<int> ?? filter_number(~$<int>) !! "0";
         my $frac := $<frac> ?? filter_number(~$<frac>) !! "0";
         if $<escale> {
             my $e := nqp::islist($<escale>) ?? $<escale>[0] !! $<escale>;
-#            pir::say('dec_number exponent: ' ~ ~$e.ast);
+#            say('dec_number exponent: ' ~ ~$e.ast);
             make radcalc($/, 10, $<coeff>, 10, nqp::unbox_i($e.ast), :num);
         } else {
             make radcalc($/, 10, $<coeff>);
@@ -5606,7 +5607,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
     sub strip_trailing_zeros(str $n) {
         return $n if nqp::index($n, '.') < 0;
         while nqp::index('_0',nqp::substr($n, -1)) >= 0 {
-            $n := pir::chopn__Ssi($n, 1);
+            $n := nqp::substr($n, 0, nqp::chars($n) - 1);
         }
         $n;
     }
@@ -5935,10 +5936,11 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions does STDActions {
             self.subrule_alias($qast, $name);
         }
         elsif !@parts && $name eq 'sym' {
-            my $rxname := pir::chopn__Ssi( 
-                              nqp::substr(%*RX<name>,
-                                          nqp::index(%*RX<name>, ':sym<') + 5),
-                              1);
+            my str $fullrxname := %*RX<name>;
+            my int $loc := nqp::index($fullrxname, ':sym<');
+            $loc := nqp::index($fullrxname, ':sym«')
+                if $loc < 0;
+            my str $rxname := nqp::substr($fullrxname, $loc + 5, nqp::chars($fullrxname) - $loc - 6);
             $qast := QAST::Regex.new(:name('sym'), :rxtype<subcapture>, :node($/),
                 QAST::Regex.new(:rxtype<literal>, $rxname, :node($/)));
         }

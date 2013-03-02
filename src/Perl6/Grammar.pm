@@ -3800,7 +3800,7 @@ grammar Perl6::RegexGrammar is QRegex::P6Regex::Grammar does STD {
     }
 
     token assertion:sym<var> {
-        <?before <sigil>> <var=.LANG('MAIN', 'variable')>
+        <?before <sigil>> <var=.LANG('MAIN', 'term:sym<variable>')>
     }
     
     token assertion:sym<~~> {

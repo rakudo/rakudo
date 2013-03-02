@@ -11,7 +11,6 @@ $ops.add_hll_pirop_mapping('perl6', 'p6list', 'perl6_list_from_rpa', 'PPPP', :in
 $ops.add_hll_pirop_mapping('perl6', 'p6listitems', 'perl6_listitems', 'PP', :inlinable(1));
 $ops.add_hll_pirop_mapping('perl6', 'p6decont', 'perl6_decontainerize', 'PP', :inlinable(1));
 $ops.add_hll_pirop_mapping('perl6', 'p6recont_ro', 'perl6_recontainerize_to_ro', 'PP', :inlinable(1));
-$ops.add_hll_pirop_mapping('perl6', 'ishash', 'perl6_is_hash', 'IP', :inlinable(1));
 $ops.add_hll_pirop_mapping('perl6', 'p6store', 'perl6_container_store', '0PP', :inlinable(1));
 $ops.add_hll_pirop_mapping('perl6', 'p6type', 'perl6ize_type', 'PP', :inlinable(1));
 $ops.add_hll_pirop_mapping('perl6', 'p6takedisp', 'perl6_take_dispatcher', 'v');
@@ -135,5 +134,3 @@ QAST::Operations.add_hll_unbox('perl6', 's', -> $qastcomp, $post {
     $ops
 });
 QAST::Compiler.force_return_boxing_for_hll('perl6');
-
-QAST::Operations.add_core_pirop_mapping('findnotcclass', 'find_not_cclass', 'Iisii');

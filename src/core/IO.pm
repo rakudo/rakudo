@@ -474,7 +474,7 @@ $PROCESS::IN  = open('-');
 $PROCESS::OUT = open('-', :w);
 $PROCESS::ERR = IO.new;
 nqp::bindattr(nqp::p6decont($PROCESS::ERR),
-        IO, '$!PIO', pir::getstderr__P());
+        IO, '$!PIO', nqp::getstderr());
 
 my class X::IO::Rename { ... }
 sub rename(Cool $from as Str, Cool $to as Str) {

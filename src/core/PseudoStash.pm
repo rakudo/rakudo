@@ -23,7 +23,7 @@ my class PseudoStash is EnumMap {
     
     my %pseudoers =
         'MY' => sub ($cur) {
-            my $stash := pir::repr_clone__PP($cur);
+            my $stash := nqp::clone($cur);
             nqp::bindattr_i($stash, PseudoStash, '$!mode', PRECISE_SCOPE);
             pir::set_who__0PP(
                 Metamodel::ModuleHOW.new_type(:name('MY')),
@@ -70,7 +70,7 @@ my class PseudoStash is EnumMap {
                 $stash);
         },
         'DYNAMIC' => sub ($cur) {
-            my $stash := pir::repr_clone__PP($cur);
+            my $stash := nqp::clone($cur);
             nqp::bindattr_i($stash, PseudoStash, '$!mode', DYNAMIC_CHAIN);
             pir::set_who__0PP(
                 Metamodel::ModuleHOW.new_type(:name('DYNAMIC')),

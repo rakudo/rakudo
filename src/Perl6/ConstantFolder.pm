@@ -26,7 +26,7 @@ class Perl6::ConstantFolder {
             my $result := $routine(|@args);
             
             # Add folded symbol into the world (which'll return a PAST ref to it).
-            $world.add_constant_folded_result(pir::nqp_decontainerize__PP($result))
+            $world.add_constant_folded_result(nqp::decont($result))
         }
         else {
             nqp::die("No compile time value obtainable");

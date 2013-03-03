@@ -273,7 +273,7 @@ class Perl6::ModuleLoader {
                 my $preserve_global := pir::get_root_global__Ps('perl6'){'GLOBAL'};
                 nqp::scwbdisable();
                 nqp::loadbytecode($path);
-                pir::nqp_enable_sc_write_barrier__v();
+                nqp::scwbenable();
                 pir::get_root_global__Ps('perl6'){'GLOBAL'} := $preserve_global;
                 unless nqp::defined($*MAIN_CTX) {
                     nqp::die("Unable to load setting $setting_name; maybe it is missing a YOU_ARE_HERE?");

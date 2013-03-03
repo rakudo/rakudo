@@ -146,7 +146,7 @@ class Perl6::ModuleLoader {
                 my %*COMPILING := {};
                 my $*CTXSAVE := self;
                 my $*MAIN_CTX;
-                pir::load_bytecode__vs(%chosen<load>);
+                nqp::loadbytecode(%chosen<load>);
                 %modules_loaded{%chosen<key>} := $module_ctx := $*MAIN_CTX;
                 DEBUG("done loading ", %chosen<load>) if $DEBUG;
             }
@@ -272,7 +272,7 @@ class Perl6::ModuleLoader {
                 my $*MAIN_CTX;
                 my $preserve_global := pir::get_root_global__Ps('perl6'){'GLOBAL'};
                 pir::nqp_disable_sc_write_barrier__v();
-                pir::load_bytecode__vS($path);
+                nqp::loadbytecode($path);
                 pir::nqp_enable_sc_write_barrier__v();
                 pir::get_root_global__Ps('perl6'){'GLOBAL'} := $preserve_global;
                 unless nqp::defined($*MAIN_CTX) {

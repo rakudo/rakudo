@@ -19,7 +19,7 @@ class Perl6::Metamodel::PackageHOW
     method new_type(:$name = '<anon>', :$repr, :$ver, :$auth) {
         if $repr { nqp::die("'package' does not support custom representations") }
         my $metaclass := nqp::create(self);
-        my $obj := pir::repr_type_object_for__PPS($metaclass, 'Uninstantiable');
+        my $obj := nqp::newtype($metaclass, 'Uninstantiable');
         $metaclass.set_name($obj, $name);
         self.add_stash($obj);
     }

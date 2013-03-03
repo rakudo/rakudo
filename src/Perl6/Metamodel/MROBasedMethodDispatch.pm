@@ -56,7 +56,7 @@ role Perl6::Metamodel::MROBasedMethodDispatch {
         
         nqp::setmethcache($obj, %cache);
         unless nqp::can(self, 'has_fallbacks') && self.has_fallbacks($obj) {
-            pir::set_method_cache_authoritativeness__0Pi($obj, $authable);
+            nqp::setmethcacheauth($obj, $authable);
         }
     }
 }

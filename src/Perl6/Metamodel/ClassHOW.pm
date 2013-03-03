@@ -47,7 +47,7 @@ class Perl6::Metamodel::ClassHOW
         $metaclass.set_name($obj, $name);
         $metaclass.set_ver($obj, $ver) if $ver;
         $metaclass.set_auth($obj, $auth) if $auth;
-        pir::set_boolification_spec__0PiP($obj, 5, nqp::null());
+        nqp::setboolspec($obj, 5, nqp::null());
         $obj
     }
     

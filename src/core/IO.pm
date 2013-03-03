@@ -96,7 +96,7 @@ class IO does IO::FileTestable {
         # TODO: catch error, and fail()
         nqp::bindattr(self, IO, '$!PIO',
              $path eq '-'
-                ?? ( $w || $a ?? pir::getstdout__P() !! nqp::getstdin() )
+                ?? ( $w || $a ?? nqp::getstdout() !! nqp::getstdin() )
                 !! nqp::open(nqp::unbox_s($path.Str), nqp::unbox_s($mode))
         );
         $!path = $path;

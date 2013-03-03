@@ -1,6 +1,6 @@
 my $DEBUG := +nqp::atkey(pir::new__Ps('Env'), 'RAKUDO_MODULE_DEBUG');
 sub DEBUG(*@strs) {
-    my $err := pir::getstderr__P();
+    my $err := nqp::getstderr();
     $err.print("MODULE_DEBUG: ");
     for @strs { $err.print($_) };
     $err.print("\n");

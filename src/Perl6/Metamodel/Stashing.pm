@@ -12,7 +12,7 @@ role Perl6::Metamodel::Stashing {
             my $stash_type := nqp::getcurhllsym('StashType');
             my $attr_type := nqp::getcurhllsym('StashAttrType');
             my $stash := nqp::create($stash_type);
-            pir::setattribute__vPPsP($stash, $attr_type, '$!storage', my %symbols);
+            nqp::bindattr($stash, $attr_type, '$!storage', my %symbols);
             nqp::setwho($type_obj, $stash);
         }
         $type_obj

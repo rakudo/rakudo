@@ -32,7 +32,7 @@ class Perl6::Metamodel::ParametricRoleHOW
 
     method new_type(:$name = '<anon>', :$ver, :$auth, :$repr, :$signatured, *%extra) {
         my $metarole := self.new(:signatured($signatured));
-        my $type := pir::repr_type_object_for__PPS($metarole, 'Uninstantiable');
+        my $type := nqp::newtype($metarole, 'Uninstantiable');
         $metarole.set_name($type, $name);
         $metarole.set_ver($type, $ver) if $ver;
         $metarole.set_auth($type, $auth) if $auth;

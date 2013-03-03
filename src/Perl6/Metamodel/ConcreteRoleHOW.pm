@@ -120,6 +120,6 @@ class Perl6::Metamodel::ConcreteRoleHOW
     method publish_type_cache($obj) {
         my @types := [$obj.WHAT];
         for @!role_typecheck_list { @types.push($_) }
-        pir::publish_type_check_cache__0PP($obj, @types)
+        nqp::settypecache($obj, @types)
     }
 }

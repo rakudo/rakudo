@@ -190,7 +190,7 @@ class Perl6::ModuleLoader {
         if nqp::defined($module_ctx) {
             # Merge any globals.
             if +@GLOBALish {
-                my $UNIT := pir::getattribute__PPs($module_ctx, 'lex_pad');
+                my $UNIT := nqp::ctxlexpad($module_ctx);
                 unless nqp::isnull($UNIT<GLOBALish>) {
                     merge_globals(@GLOBALish[0], $UNIT<GLOBALish>);
                 }

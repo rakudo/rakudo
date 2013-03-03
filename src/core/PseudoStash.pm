@@ -12,12 +12,9 @@ my class PseudoStash is EnumMap {
 
     method new() {
         my $obj := nqp::create(self);
-        my $ctx := pir::getattribute__PPs(
-            nqp::atkey(pir::getinterp__P(), 'context'),
-            'caller_ctx');
+        my $ctx := nqp::ctxcaller(nqp::ctx());
         nqp::bindattr($obj, PseudoStash, '$!ctx', $ctx);
-        nqp::bindattr($obj, EnumMap, '$!storage',
-            pir::getattribute__PPs($ctx, 'lex_pad'));
+        nqp::bindattr($obj, EnumMap, '$!storage', nqp::ctxlexpad($ctx));
         $obj
     }
     
@@ -31,12 +28,11 @@ my class PseudoStash is EnumMap {
         },
         'CORE' => sub ($cur) {
             my Mu $ctx := nqp::getattr(nqp::p6decont($cur), PseudoStash, '$!ctx');
-            until nqp::existskey(pir::getattribute__PPs($ctx, 'lex_pad'), '!CORE_MARKER') {
-                $ctx := pir::getattribute__PPs($ctx, 'outer_ctx');
+            until nqp::existskey(nqp::ctxlexpad($ctx), '!CORE_MARKER') {
+                $ctx := nqp::ctxouter($ctx);
             }
             my $stash := nqp::create(PseudoStash);
-            nqp::bindattr($stash, EnumMap, '$!storage',
-                pir::getattribute__PPs($ctx, 'lex_pad'));
+            nqp::bindattr($stash, EnumMap, '$!storage', nqp::ctxlexpad($ctx));
             nqp::bindattr($stash, PseudoStash, '$!ctx', $ctx);
             nqp::bindattr_i($stash, PseudoStash, '$!mode', PRECISE_SCOPE);
             nqp::setwho(
@@ -44,12 +40,10 @@ my class PseudoStash is EnumMap {
                 $stash);
         },
         'CALLER' => sub ($cur) {
-            my Mu $ctx := pir::getattribute__PPs(
-                nqp::getattr(nqp::p6decont($cur), PseudoStash, '$!ctx'),
-                'caller_ctx');
+            my Mu $ctx := nqp::ctxcaller(
+                nqp::getattr(nqp::p6decont($cur), PseudoStash, '$!ctx'));
             my $stash := nqp::create(PseudoStash);
-            nqp::bindattr($stash, EnumMap, '$!storage',
-                pir::getattribute__PPs($ctx, 'lex_pad'));
+            nqp::bindattr($stash, EnumMap, '$!storage', nqp::ctxlexpad($ctx));
             nqp::bindattr($stash, PseudoStash, '$!ctx', $ctx);
             nqp::bindattr_i($stash, PseudoStash, '$!mode', PRECISE_SCOPE);
             nqp::setwho(
@@ -57,12 +51,10 @@ my class PseudoStash is EnumMap {
                 $stash);
         },
         'OUTER' => sub ($cur) {
-            my Mu $ctx := pir::getattribute__PPs(
-                nqp::getattr(nqp::p6decont($cur), PseudoStash, '$!ctx'),
-                'outer_ctx');
+            my Mu $ctx := nqp::ctxouter(
+                nqp::getattr(nqp::p6decont($cur), PseudoStash, '$!ctx'));
             my $stash := nqp::create(PseudoStash);
-            nqp::bindattr($stash, EnumMap, '$!storage',
-                pir::getattribute__PPs($ctx, 'lex_pad'));
+            nqp::bindattr($stash, EnumMap, '$!storage', nqp::ctxlexpad($ctx));
             nqp::bindattr($stash, PseudoStash, '$!ctx', $ctx);
             nqp::bindattr_i($stash, PseudoStash, '$!mode', PRECISE_SCOPE);
             nqp::setwho(
@@ -78,12 +70,11 @@ my class PseudoStash is EnumMap {
         },
         'UNIT' => sub ($cur) {
             my Mu $ctx := nqp::getattr(nqp::p6decont($cur), PseudoStash, '$!ctx');
-            until nqp::existskey(pir::getattribute__PPs($ctx, 'lex_pad'), '!UNIT_MARKER') {
-                $ctx := pir::getattribute__PPs($ctx, 'outer_ctx');
+            until nqp::existskey(nqp::ctxlexpad($ctx), '!UNIT_MARKER') {
+                $ctx := nqp::ctxouter($ctx);
             }
             my $stash := nqp::create(PseudoStash);
-            nqp::bindattr($stash, EnumMap, '$!storage',
-                pir::getattribute__PPs($ctx, 'lex_pad'));
+            nqp::bindattr($stash, EnumMap, '$!storage',nqp::ctxlexpad($ctx));
             nqp::bindattr($stash, PseudoStash, '$!ctx', $ctx);
             nqp::bindattr_i($stash, PseudoStash, '$!mode', PRECISE_SCOPE);
             nqp::setwho(
@@ -94,13 +85,12 @@ my class PseudoStash is EnumMap {
             # Same as UNIT, but go a little further out (two steps, for
             # internals reasons).
             my Mu $ctx := nqp::getattr(nqp::p6decont($cur), PseudoStash, '$!ctx');
-            until nqp::existskey(pir::getattribute__PPs($ctx, 'lex_pad'), '!UNIT_MARKER') {
-                $ctx := pir::getattribute__PPs($ctx, 'outer_ctx');
+            until nqp::existskey(nqp::ctxlexpad($ctx), '!UNIT_MARKER') {
+                $ctx := nqp::ctxouter($ctx);
             }
-            $ctx := pir::getattribute__PPs(pir::getattribute__PPs($ctx, 'outer_ctx'), 'outer_ctx');
+            $ctx := nqp::ctxouter(nqp::ctxouter($ctx));
             my $stash := nqp::create(PseudoStash);
-            nqp::bindattr($stash, EnumMap, '$!storage',
-                pir::getattribute__PPs($ctx, 'lex_pad'));
+            nqp::bindattr($stash, EnumMap, '$!storage', nqp::ctxlexpad($ctx));
             nqp::bindattr($stash, PseudoStash, '$!ctx', $ctx);
             nqp::bindattr_i($stash, PseudoStash, '$!mode', PRECISE_SCOPE);
             nqp::setwho(

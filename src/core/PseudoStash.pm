@@ -25,7 +25,7 @@ my class PseudoStash is EnumMap {
         'MY' => sub ($cur) {
             my $stash := nqp::clone($cur);
             nqp::bindattr_i($stash, PseudoStash, '$!mode', PRECISE_SCOPE);
-            pir::set_who__0PP(
+            nqp::setwho(
                 Metamodel::ModuleHOW.new_type(:name('MY')),
                 $stash);
         },
@@ -39,7 +39,7 @@ my class PseudoStash is EnumMap {
                 pir::getattribute__PPs($ctx, 'lex_pad'));
             nqp::bindattr($stash, PseudoStash, '$!ctx', $ctx);
             nqp::bindattr_i($stash, PseudoStash, '$!mode', PRECISE_SCOPE);
-            pir::set_who__0PP(
+            nqp::setwho(
                 Metamodel::ModuleHOW.new_type(:name('CORE')),
                 $stash);
         },
@@ -52,7 +52,7 @@ my class PseudoStash is EnumMap {
                 pir::getattribute__PPs($ctx, 'lex_pad'));
             nqp::bindattr($stash, PseudoStash, '$!ctx', $ctx);
             nqp::bindattr_i($stash, PseudoStash, '$!mode', PRECISE_SCOPE);
-            pir::set_who__0PP(
+            nqp::setwho(
                 Metamodel::ModuleHOW.new_type(:name('CALLER')),
                 $stash);
         },
@@ -65,14 +65,14 @@ my class PseudoStash is EnumMap {
                 pir::getattribute__PPs($ctx, 'lex_pad'));
             nqp::bindattr($stash, PseudoStash, '$!ctx', $ctx);
             nqp::bindattr_i($stash, PseudoStash, '$!mode', PRECISE_SCOPE);
-            pir::set_who__0PP(
+            nqp::setwho(
                 Metamodel::ModuleHOW.new_type(:name('OUTER')),
                 $stash);
         },
         'DYNAMIC' => sub ($cur) {
             my $stash := nqp::clone($cur);
             nqp::bindattr_i($stash, PseudoStash, '$!mode', DYNAMIC_CHAIN);
-            pir::set_who__0PP(
+            nqp::setwho(
                 Metamodel::ModuleHOW.new_type(:name('DYNAMIC')),
                 $stash);
         },
@@ -86,7 +86,7 @@ my class PseudoStash is EnumMap {
                 pir::getattribute__PPs($ctx, 'lex_pad'));
             nqp::bindattr($stash, PseudoStash, '$!ctx', $ctx);
             nqp::bindattr_i($stash, PseudoStash, '$!mode', PRECISE_SCOPE);
-            pir::set_who__0PP(
+            nqp::setwho(
                 Metamodel::ModuleHOW.new_type(:name('UNIT')),
                 $stash);
         },
@@ -103,7 +103,7 @@ my class PseudoStash is EnumMap {
                 pir::getattribute__PPs($ctx, 'lex_pad'));
             nqp::bindattr($stash, PseudoStash, '$!ctx', $ctx);
             nqp::bindattr_i($stash, PseudoStash, '$!mode', PRECISE_SCOPE);
-            pir::set_who__0PP(
+            nqp::setwho(
                 Metamodel::ModuleHOW.new_type(:name('UNIT')),
                 $stash);
         },

@@ -42,12 +42,12 @@ class Perl6::Metamodel::ClassHOW
 
     method new_type(:$name = '<anon>', :$repr = 'P6opaque', :$ver, :$auth) {
         my $metaclass := self.new();
-        my $obj := pir::repr_type_object_for__PPS($metaclass, $repr);
+        my $obj := nqp::newtype($metaclass, $repr);
         self.add_stash($obj);
         $metaclass.set_name($obj, $name);
         $metaclass.set_ver($obj, $ver) if $ver;
         $metaclass.set_auth($obj, $auth) if $auth;
-        pir::set_boolification_spec__0PiP($obj, 5, nqp::null());
+        nqp::setboolspec($obj, 5, nqp::null());
         $obj
     }
     
@@ -69,7 +69,7 @@ class Perl6::Metamodel::ClassHOW
     # calculate an invokable object.
     method add_fallback($obj, $condition, $calculator) {
         # Adding a fallback means any method cache is no longer authoritative.
-        pir::set_method_cache_authoritativeness__vPi($obj, 0);
+        nqp::setmethcacheauth($obj, 0);
         
         # Add it.
         my %desc;
@@ -224,7 +224,7 @@ class Perl6::Metamodel::ClassHOW
     my $junction_type;
     my $junction_autothreader;
     method setup_junction_fallback($type, $autothreader) {
-        pir::set_method_cache_authoritativeness__vPi($type, 0);
+        nqp::setmethcacheauth($type, 0);
         $junction_type := $type;
         $junction_autothreader := $autothreader;
     }

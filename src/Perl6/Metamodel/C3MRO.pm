@@ -38,7 +38,7 @@ role Perl6::Metamodel::C3MRO {
             unless nqp::can($c.HOW, 'hidden') && $c.HOW.hidden($c) {
                 my $is_hidden := 0;
                 for @hidden {
-                    if pir::nqp_decontainerize__PP($c) =:= pir::nqp_decontainerize__PP($_) {
+                    if nqp::decont($c) =:= nqp::decont($_) {
                         $is_hidden := 1;
                     }
                 }
@@ -75,7 +75,7 @@ role Perl6::Metamodel::C3MRO {
                         # Is current candidate in the tail? If so, reject.
                         my $cur_pos := 1;
                         while $cur_pos <= +$_ {
-                            if pir::nqp_decontainerize__PP($_[$cur_pos]) =:= pir::nqp_decontainerize__PP($cand_class) {
+                            if nqp::decont($_[$cur_pos]) =:= nqp::decont($cand_class) {
                                 $rejected := 1;
                             }
                             $cur_pos := $cur_pos + 1;
@@ -107,7 +107,7 @@ role Perl6::Metamodel::C3MRO {
         while $i < +@merge_list {
             my @new_list;
             for @merge_list[$i] {
-                unless pir::nqp_decontainerize__PP($_) =:= pir::nqp_decontainerize__PP($accepted) {
+                unless nqp::decont($_) =:= nqp::decont($accepted) {
                     @new_list.push($_);
                 }
             }

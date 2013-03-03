@@ -20,7 +20,7 @@ class Perl6::Metamodel::GenericHOW
     # ourself.
     method new_type(:$name) {
         my $meta := self.new();
-        my $obj := pir::repr_type_object_for__PPS($meta, 'Uninstantiable');
+        my $obj := nqp::newtype($meta, 'Uninstantiable');
         $meta.set_name($obj, $name);
         $obj
     }

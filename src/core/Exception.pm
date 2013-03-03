@@ -199,7 +199,7 @@ do {
         my Mu $ex := nqp::atpos(pir::perl6_current_args_rpa__P(), 0);
         try {
             my $e := EXCEPTION($ex);
-            my Mu $err := pir::getstderr__P();
+            my Mu $err := nqp::getstderr();
 
             if $e.is-compile-time || is_runtime($ex.backtrace) {
                 $err.print: $e.gist;
@@ -221,7 +221,7 @@ do {
         my Mu $ex := nqp::atpos(pir::perl6_current_args_rpa__P(), 0);
         my int $type = nqp::atkey_i($ex, 'type');
         if ($type == pir::const::CONTROL_OK) {
-            my Mu $err := pir::getstderr__P();
+            my Mu $err := nqp::getstderr();
             my $msg = nqp::p6box_s(nqp::atkey_s($ex, 'message'));
             $err.print: $msg ?? "$msg" !! "Warning";
             $err.print: Backtrace.new($ex.backtrace, 0).nice(:oneline);

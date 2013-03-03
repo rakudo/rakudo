@@ -112,7 +112,7 @@ class Perl6::Metamodel::WrapDispatcher is Perl6::Metamodel::BaseDispatcher {
     }
     
     method enter(*@pos, *%named) {
-        my $fresh := pir::repr_clone__PP(self);
+        my $fresh := nqp::clone(self);
         my $first := self.candidates[0];
         pir::perl6_set_dispatcher_for_callee__vP($fresh);
         $first(|@pos, |%named)

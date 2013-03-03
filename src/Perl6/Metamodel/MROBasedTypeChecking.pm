@@ -1,8 +1,8 @@
 role Perl6::Metamodel::MROBasedTypeChecking {
     method isa($obj, $type) {
-        my $decont := pir::nqp_decontainerize__PP($type);
+        my $decont := nqp::decont($type);
         for self.mro($obj) {
-            if pir::nqp_decontainerize__PP($_) =:= $decont { return 1 }
+            if nqp::decont($_) =:= $decont { return 1 }
         }
         0
     }
@@ -40,6 +40,6 @@ role Perl6::Metamodel::MROBasedTypeChecking {
                 }
             }
         }
-        pir::publish_type_check_cache__0PP($obj, @tc)
+        nqp::settypecache($obj, @tc)
     }
 }

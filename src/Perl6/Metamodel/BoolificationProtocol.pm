@@ -13,15 +13,15 @@ role Perl6::Metamodel::BoolificationProtocol {
         if $!boolification_mode == 0 {
             my $meth := self.find_method($obj, 'Bool', :no_fallback(1));
             if nqp::defined($meth) {
-                pir::set_boolification_spec__0PiP($obj, 0, $meth)
+                nqp::setboolspec($obj, 0, $meth)
             }
             else {
                 # Default to "not a type object" if we've no available method.
-                pir::set_boolification_spec__0PiP($obj, 5, nqp::null())
+                nqp::setboolspec($obj, 5, nqp::null())
             }
         }
         else {
-            pir::set_boolification_spec__0PiP($obj, $!boolification_mode, nqp::null())
+            nqp::setboolspec($obj, $!boolification_mode, nqp::null())
         }
     }
 }

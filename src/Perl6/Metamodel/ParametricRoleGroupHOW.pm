@@ -38,7 +38,7 @@ class Perl6::Metamodel::ParametricRoleGroupHOW
 
     method new_type(:$name!, :$repr) {
         my $meta := self.new(:selector($selector_creator()));
-        my $type_obj := self.add_stash(pir::repr_type_object_for__PPS($meta, 'Uninstantiable'));
+        my $type_obj := self.add_stash(nqp::newtype($meta, 'Uninstantiable'));
         $meta.set_name($type_obj, $name);
         $meta.set_boolification_mode($type_obj, 5);
         $meta.publish_boolification_spec($type_obj);

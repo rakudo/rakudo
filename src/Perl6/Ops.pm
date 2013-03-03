@@ -1,4 +1,4 @@
-my $ops := pir::compreg__Ps('QAST').operations;
+my $ops := nqp::getcomp('QAST').operations;
 
 # Perl 6 opcode specific mappings.
 $ops.add_hll_pirop_mapping('perl6', 'p6box_i', 'perl6_box_int', 'Pi', :inlinable(1));

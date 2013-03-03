@@ -12,81 +12,72 @@ my class PseudoStash is EnumMap {
 
     method new() {
         my $obj := nqp::create(self);
-        my $ctx := pir::getattribute__PPs(
-            nqp::atkey(pir::getinterp__P(), 'context'),
-            'caller_ctx');
+        my $ctx := nqp::ctxcaller(nqp::ctx());
         nqp::bindattr($obj, PseudoStash, '$!ctx', $ctx);
-        nqp::bindattr($obj, EnumMap, '$!storage',
-            pir::getattribute__PPs($ctx, 'lex_pad'));
+        nqp::bindattr($obj, EnumMap, '$!storage', nqp::ctxlexpad($ctx));
         $obj
     }
     
     my %pseudoers =
         'MY' => sub ($cur) {
-            my $stash := pir::repr_clone__PP($cur);
+            my $stash := nqp::clone($cur);
             nqp::bindattr_i($stash, PseudoStash, '$!mode', PRECISE_SCOPE);
-            pir::set_who__0PP(
+            nqp::setwho(
                 Metamodel::ModuleHOW.new_type(:name('MY')),
                 $stash);
         },
         'CORE' => sub ($cur) {
             my Mu $ctx := nqp::getattr(nqp::p6decont($cur), PseudoStash, '$!ctx');
-            until nqp::existskey(pir::getattribute__PPs($ctx, 'lex_pad'), '!CORE_MARKER') {
-                $ctx := pir::getattribute__PPs($ctx, 'outer_ctx');
+            until nqp::existskey(nqp::ctxlexpad($ctx), '!CORE_MARKER') {
+                $ctx := nqp::ctxouter($ctx);
             }
             my $stash := nqp::create(PseudoStash);
-            nqp::bindattr($stash, EnumMap, '$!storage',
-                pir::getattribute__PPs($ctx, 'lex_pad'));
+            nqp::bindattr($stash, EnumMap, '$!storage', nqp::ctxlexpad($ctx));
             nqp::bindattr($stash, PseudoStash, '$!ctx', $ctx);
             nqp::bindattr_i($stash, PseudoStash, '$!mode', PRECISE_SCOPE);
-            pir::set_who__0PP(
+            nqp::setwho(
                 Metamodel::ModuleHOW.new_type(:name('CORE')),
                 $stash);
         },
         'CALLER' => sub ($cur) {
-            my Mu $ctx := pir::getattribute__PPs(
-                nqp::getattr(nqp::p6decont($cur), PseudoStash, '$!ctx'),
-                'caller_ctx');
+            my Mu $ctx := nqp::ctxcaller(
+                nqp::getattr(nqp::p6decont($cur), PseudoStash, '$!ctx'));
             my $stash := nqp::create(PseudoStash);
-            nqp::bindattr($stash, EnumMap, '$!storage',
-                pir::getattribute__PPs($ctx, 'lex_pad'));
+            nqp::bindattr($stash, EnumMap, '$!storage', nqp::ctxlexpad($ctx));
             nqp::bindattr($stash, PseudoStash, '$!ctx', $ctx);
             nqp::bindattr_i($stash, PseudoStash, '$!mode', PRECISE_SCOPE);
-            pir::set_who__0PP(
+            nqp::setwho(
                 Metamodel::ModuleHOW.new_type(:name('CALLER')),
                 $stash);
         },
         'OUTER' => sub ($cur) {
-            my Mu $ctx := pir::getattribute__PPs(
-                nqp::getattr(nqp::p6decont($cur), PseudoStash, '$!ctx'),
-                'outer_ctx');
+            my Mu $ctx := nqp::ctxouter(
+                nqp::getattr(nqp::p6decont($cur), PseudoStash, '$!ctx'));
             my $stash := nqp::create(PseudoStash);
-            nqp::bindattr($stash, EnumMap, '$!storage',
-                pir::getattribute__PPs($ctx, 'lex_pad'));
+            nqp::bindattr($stash, EnumMap, '$!storage', nqp::ctxlexpad($ctx));
             nqp::bindattr($stash, PseudoStash, '$!ctx', $ctx);
             nqp::bindattr_i($stash, PseudoStash, '$!mode', PRECISE_SCOPE);
-            pir::set_who__0PP(
+            nqp::setwho(
                 Metamodel::ModuleHOW.new_type(:name('OUTER')),
                 $stash);
         },
         'DYNAMIC' => sub ($cur) {
-            my $stash := pir::repr_clone__PP($cur);
+            my $stash := nqp::clone($cur);
             nqp::bindattr_i($stash, PseudoStash, '$!mode', DYNAMIC_CHAIN);
-            pir::set_who__0PP(
+            nqp::setwho(
                 Metamodel::ModuleHOW.new_type(:name('DYNAMIC')),
                 $stash);
         },
         'UNIT' => sub ($cur) {
             my Mu $ctx := nqp::getattr(nqp::p6decont($cur), PseudoStash, '$!ctx');
-            until nqp::existskey(pir::getattribute__PPs($ctx, 'lex_pad'), '!UNIT_MARKER') {
-                $ctx := pir::getattribute__PPs($ctx, 'outer_ctx');
+            until nqp::existskey(nqp::ctxlexpad($ctx), '!UNIT_MARKER') {
+                $ctx := nqp::ctxouter($ctx);
             }
             my $stash := nqp::create(PseudoStash);
-            nqp::bindattr($stash, EnumMap, '$!storage',
-                pir::getattribute__PPs($ctx, 'lex_pad'));
+            nqp::bindattr($stash, EnumMap, '$!storage',nqp::ctxlexpad($ctx));
             nqp::bindattr($stash, PseudoStash, '$!ctx', $ctx);
             nqp::bindattr_i($stash, PseudoStash, '$!mode', PRECISE_SCOPE);
-            pir::set_who__0PP(
+            nqp::setwho(
                 Metamodel::ModuleHOW.new_type(:name('UNIT')),
                 $stash);
         },
@@ -94,16 +85,15 @@ my class PseudoStash is EnumMap {
             # Same as UNIT, but go a little further out (two steps, for
             # internals reasons).
             my Mu $ctx := nqp::getattr(nqp::p6decont($cur), PseudoStash, '$!ctx');
-            until nqp::existskey(pir::getattribute__PPs($ctx, 'lex_pad'), '!UNIT_MARKER') {
-                $ctx := pir::getattribute__PPs($ctx, 'outer_ctx');
+            until nqp::existskey(nqp::ctxlexpad($ctx), '!UNIT_MARKER') {
+                $ctx := nqp::ctxouter($ctx);
             }
-            $ctx := pir::getattribute__PPs(pir::getattribute__PPs($ctx, 'outer_ctx'), 'outer_ctx');
+            $ctx := nqp::ctxouter(nqp::ctxouter($ctx));
             my $stash := nqp::create(PseudoStash);
-            nqp::bindattr($stash, EnumMap, '$!storage',
-                pir::getattribute__PPs($ctx, 'lex_pad'));
+            nqp::bindattr($stash, EnumMap, '$!storage', nqp::ctxlexpad($ctx));
             nqp::bindattr($stash, PseudoStash, '$!ctx', $ctx);
             nqp::bindattr_i($stash, PseudoStash, '$!mode', PRECISE_SCOPE);
-            pir::set_who__0PP(
+            nqp::setwho(
                 Metamodel::ModuleHOW.new_type(:name('UNIT')),
                 $stash);
         },

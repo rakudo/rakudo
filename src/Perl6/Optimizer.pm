@@ -524,7 +524,7 @@ class Perl6::Optimizer {
             my $ok_type := 0;
             try $ok_type := nqp::istype($type, $!Mu);
             if $ok_type {
-                my $prim := pir::repr_get_primitive_type_spec__IP($type);
+                my $prim := nqp::objprimspec($type);
                 my str $allo := $_.has_compile_time_value && nqp::istype($_, QAST::Want)
                     ?? $_[1] !! '';
                 @types.push($type);
@@ -796,7 +796,7 @@ class Perl6::Optimizer {
     sub copy_returns($to, $from) {
         if nqp::can($from, 'returns') {
             my $ret_type := $from.returns();
-            if pir::repr_get_primitive_type_spec__IP($ret_type) -> $primspec {
+            if nqp::objprimspec($ret_type) -> $primspec {
                 $to := QAST::Want.new(
                     :named($to.named),
                     QAST::Op.new( :op(@prim_spec_ops[$primspec]), $to ),

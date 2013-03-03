@@ -111,7 +111,7 @@ my class Cursor does NQPCursorRole {
     }
     
     method RECURSE() {
-        pir::find_dynamic_lex__Ps('$?REGEX')(self)
+        nqp::getlexdyn('$?REGEX')(self)
     }
     
     method prior() {

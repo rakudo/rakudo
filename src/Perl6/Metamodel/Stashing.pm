@@ -3,8 +3,8 @@
 # have a my $stash_type and set/get from that.
 role Perl6::Metamodel::Stashing {
     method set_stash_type($type, $attr_type) {
-        pir::set_hll_global__1SP('StashType', $type);
-        pir::set_hll_global__1SP('StashAttrType', $attr_type);
+        nqp::bindcurhllsym('StashType', $type);
+        nqp::bindcurhllsym('StashAttrType', $attr_type);
     }
     
     method add_stash($type_obj) {

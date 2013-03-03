@@ -271,7 +271,7 @@ class Perl6::ModuleLoader {
                 my $*CTXSAVE := self;
                 my $*MAIN_CTX;
                 my $preserve_global := pir::get_root_global__Ps('perl6'){'GLOBAL'};
-                pir::nqp_disable_sc_write_barrier__v();
+                nqp::scwbdisable();
                 nqp::loadbytecode($path);
                 pir::nqp_enable_sc_write_barrier__v();
                 pir::get_root_global__Ps('perl6'){'GLOBAL'} := $preserve_global;

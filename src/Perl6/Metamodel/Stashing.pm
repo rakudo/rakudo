@@ -8,9 +8,9 @@ role Perl6::Metamodel::Stashing {
     }
     
     method add_stash($type_obj) {
-        unless nqp::isnull(pir::get_hll_global__Ps('StashType')) {
-            my $stash_type := pir::get_hll_global__Ps('StashType');
-            my $attr_type := pir::get_hll_global__Ps('StashAttrType');
+        unless nqp::isnull(nqp::getcurhllsym('StashType')) {
+            my $stash_type := nqp::getcurhllsym('StashType');
+            my $attr_type := nqp::getcurhllsym('StashAttrType');
             my $stash := nqp::create($stash_type);
             pir::setattribute__vPPsP($stash, $attr_type, '$!storage', my %symbols);
             nqp::setwho($type_obj, $stash);

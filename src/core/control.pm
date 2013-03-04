@@ -189,7 +189,7 @@ sub shell($cmd) {
     try {
         $status = 
             nqp::p6box_i(
-                pir::shr__0II(
+                nqp::bitshiftr_i(
                     pir::spawnw__Is(nqp::unbox_s($cmd)),
                     8));
     }

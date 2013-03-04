@@ -41,7 +41,7 @@ class Perl6::Metamodel::ConcreteRoleHOW
     
     method new_type(:@roles, :$name = '<anon>', :$ver, :$auth, :$repr) {
         my $metarole := self.new(:roles(@roles));
-        my $obj := pir::repr_type_object_for__PPS($metarole, 'Uninstantiable');
+        my $obj := nqp::newtype($metarole, 'Uninstantiable');
         $metarole.set_name($obj, $name);
         $metarole.set_ver($obj, $ver) if $ver;
         $metarole.set_auth($obj, $auth) if $auth;
@@ -120,6 +120,6 @@ class Perl6::Metamodel::ConcreteRoleHOW
     method publish_type_cache($obj) {
         my @types := [$obj.WHAT];
         for @!role_typecheck_list { @types.push($_) }
-        pir::publish_type_check_cache__0PP($obj, @types)
+        nqp::settypecache($obj, @types)
     }
 }

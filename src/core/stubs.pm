@@ -16,7 +16,7 @@ my class Enum      { ... }
 my class X::OutOfRange { ... }
 
 sub DYNAMIC(\name) is rw { 
-    my Mu $x := pir::find_dynamic_lex__Ps(nqp::unbox_s(name));
+    my Mu $x := nqp::getlexdyn(nqp::unbox_s(name));
     if nqp::isnull($x) {
         my str $pkgname = pir::replace__Ssiis(nqp::unbox_s(name), 1, 1, '');
         if nqp::existskey(GLOBAL.WHO, $pkgname) { $x := nqp::atkey(GLOBAL.WHO, $pkgname) }

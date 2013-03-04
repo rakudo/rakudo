@@ -1,6 +1,6 @@
 my $DEBUG := +nqp::atkey(pir::new__Ps('Env'), 'RAKUDO_MODULE_DEBUG');
 sub DEBUG(*@strs) {
-    my $err := pir::getstderr__P();
+    my $err := nqp::getstderr();
     $err.print("MODULE_DEBUG: ");
     for @strs { $err.print($_) };
     $err.print("\n");
@@ -146,7 +146,7 @@ class Perl6::ModuleLoader {
                 my %*COMPILING := {};
                 my $*CTXSAVE := self;
                 my $*MAIN_CTX;
-                pir::load_bytecode__vs(%chosen<load>);
+                nqp::loadbytecode(%chosen<load>);
                 %modules_loaded{%chosen<key>} := $module_ctx := $*MAIN_CTX;
                 DEBUG("done loading ", %chosen<load>) if $DEBUG;
             }
@@ -171,7 +171,7 @@ class Perl6::ModuleLoader {
                 # Get the compiler and compile the code, then run it
                 # (which runs the mainline and captures UNIT).
                 my $?FILES   := %chosen<pm>;
-                my $eval     := pir::compreg__Ps('perl6').compile($source);
+                my $eval     := nqp::getcomp('perl6').compile($source);
                 my $*CTXSAVE := self;
                 my $*MAIN_CTX;
                 $eval();
@@ -190,7 +190,7 @@ class Perl6::ModuleLoader {
         if nqp::defined($module_ctx) {
             # Merge any globals.
             if +@GLOBALish {
-                my $UNIT := pir::getattribute__PPs($module_ctx, 'lex_pad');
+                my $UNIT := nqp::ctxlexpad($module_ctx);
                 unless nqp::isnull($UNIT<GLOBALish>) {
                     merge_globals(@GLOBALish[0], $UNIT<GLOBALish>);
                 }
@@ -271,9 +271,9 @@ class Perl6::ModuleLoader {
                 my $*CTXSAVE := self;
                 my $*MAIN_CTX;
                 my $preserve_global := pir::get_root_global__Ps('perl6'){'GLOBAL'};
-                pir::nqp_disable_sc_write_barrier__v();
-                pir::load_bytecode__vS($path);
-                pir::nqp_enable_sc_write_barrier__v();
+                nqp::scwbdisable();
+                nqp::loadbytecode($path);
+                nqp::scwbenable();
                 pir::get_root_global__Ps('perl6'){'GLOBAL'} := $preserve_global;
                 unless nqp::defined($*MAIN_CTX) {
                     nqp::die("Unable to load setting $setting_name; maybe it is missing a YOU_ARE_HERE?");

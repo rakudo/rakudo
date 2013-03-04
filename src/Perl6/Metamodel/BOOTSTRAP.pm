@@ -285,7 +285,7 @@ BEGIN {
     Scalar.HOW.compose_repr(Scalar);
 
     # Scalar needs to be registered as a container type.
-    pir::set_container_spec__vPPsP(Scalar, Scalar, '$!value', nqp::null());
+    nqp::setcontspec(Scalar, Scalar, '$!value', nqp::null());
 
     # class Proxy is Any {
     #    has &!FETCH;
@@ -311,7 +311,7 @@ BEGIN {
         $cont
     }));
     Proxy.HOW.compose(Proxy);
-    pir::set_container_spec__vPPsP(Proxy, nqp::null(), '', $PROXY_FETCH);
+    nqp::setcontspec(Proxy, nqp::null(), '', $PROXY_FETCH);
     Proxy.HOW.compose_repr(Proxy);
 
     # Helper for creating a scalar attribute. Sets it up as a real Perl 6

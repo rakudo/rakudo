@@ -4,12 +4,10 @@ my class Rat is Cool does Rational[Int, Int] {
     method FatRat(Rat:D: Real $?) { FatRat.new($.numerator, $.denominator); }
     multi method perl(Rat:D:) {
         my $d = $.denominator;
-        if ($d != 1) {
-            $d div= 5 while $d %% 5;
-            $d div= 2 while $d %% 2;
-            return self.Str if $d == 1;
-        }
-        $.numerator ~ ( ($d == 1) ?? '.0' !! '/' ~ $.denominator);
+        return $.numerator ~ '.0' if $d == 1;
+        $d div= 5 while $d %% 5;
+        $d div= 2 while $d %% 2;
+        ($d == 1) ?? self.Str !! $.numerator ~ '/' ~ $.denominator;
     }
 }
 

@@ -638,6 +638,18 @@ BEGIN {
             my $TYPE_NATIVE_NUM   := 8;
             my $TYPE_NATIVE_STR   := 16;
             my $TYPE_NATIVE_MASK  := $TYPE_NATIVE_INT +| $TYPE_NATIVE_NUM +| $TYPE_NATIVE_STR;
+
+            my $SIG_ELEM_SLURPY_POS          := 8;
+            my $SIG_ELEM_SLURPY_NAMED        := 16;
+            my $SIG_ELEM_MULTI_INVOCANT      := 128;
+            my $SIG_ELEM_IS_OPTIONAL         := 2048;
+            my $SIG_ELEM_IS_CAPTURE          := 32768;
+            my $SIG_ELEM_UNDEFINED_ONLY      := 65536;
+            my $SIG_ELEM_DEFINED_ONLY        := 131072;
+            my $SIG_ELEM_NOMINAL_GENERIC     := 524288;
+            my $SIG_ELEM_NATIVE_INT_VALUE    := 2097152;
+            my $SIG_ELEM_NATIVE_NUM_VALUE    := 4194304;
+            my $SIG_ELEM_NATIVE_STR_VALUE    := 8388608;
             
             # Takes two candidates and determines if the first one is narrower than the
             # second. Returns a true value if they are.
@@ -726,6 +738,172 @@ BEGIN {
                     && (%a<bind_check> && !%b<bind_check>);
             }
             
+            my $dcself     := nqp::decont($self);
+            my @candidates := nqp::getattr($dcself, Routine, '$!dispatchees');
+            
+            # Create a node for each candidate in the graph.
+            my @graph;
+            for @candidates -> $candidate {
+                # Get hold of signature.
+                my $sig    := nqp::getattr($candidate, Code, '$!signature');
+                my @params := nqp::getattr($sig, Signature, '$!params');
+
+                # Create it an entry.
+                my %info := nqp::hash(
+                    'sub',          $candidate,
+                    'signature',    $sig,
+                    'types',        [],
+                    'type_flags',   [],
+                    'constraints',  []
+                );
+                my int $significant_param := 0;
+                for @params -> $param {
+                    # If it's named (and not slurpy) don't need its type info but we
+                    # will need a bindability check during the dispatch for it. */
+                    my int $flags   := nqp::getattr_i($param, Parameter, '$!flags');
+                    my $named_names := nqp::getattr($param, Parameter, '$!named_names');
+                    unless nqp::isnull($named_names) {
+                        if !($flags +& $SIG_ELEM_IS_OPTIONAL) && nqp::elems($named_names) == 1 {
+                            %info<req_named> := nqp::atpos_s($named_names, 0);
+                        }
+                        %info<bind_check> := 1;
+                        next;
+                    }
+
+                    # If it's got a sub-signature, also need a bind check.
+                    unless nqp::isnull(nqp::getattr($param, Parameter, '$!sub_signature')) {
+                        %info<bind_check> := 1;
+                    }
+
+                    # If it's named slurpy, we're done.
+                    if $flags +& $SIG_ELEM_SLURPY_NAMED {
+                        last;
+                    }
+
+                    # Otherwise, positional or slurpy and contributes to arity.
+                    if $flags +& $SIG_ELEM_SLURPY_POS || $flags +& $SIG_ELEM_IS_CAPTURE {
+                        %info<max_arity> := $SLURPY_ARITY;
+                        last;
+                    }
+                    elsif $flags +& $SIG_ELEM_IS_OPTIONAL {
+                        %info<max_arity>++;
+                    }
+                    else {
+                        %info<max_arity>++;
+                        %info<min_arity>++;
+                    }
+
+                    # Record type info for this parameter.
+                    if $flags +& $SIG_ELEM_NOMINAL_GENERIC {
+                        %info<bind_check> := 1;
+                        %info<types>[$significant_param] := Any;
+                    }
+                    else {
+                        %info<types>[$significant_param] :=
+                            nqp::getattr($param, Parameter, '$!nominal_type');
+                    }
+                    unless nqp::isnull(nqp::getattr($param, Parameter, '$!post_constraints')) {
+                        %info<constraints>[$significant_param] := 1;
+                        %info<bind_check> := 1;
+                    }
+                    if $flags +& $SIG_ELEM_MULTI_INVOCANT {
+                        %info<num_types>++;
+                    }
+                    if $flags +& $SIG_ELEM_DEFINED_ONLY {
+                        %info<type_flags>[$significant_param] := $DEFCON_DEFINED;
+                    }
+                    elsif $flags +& $SIG_ELEM_UNDEFINED_ONLY {
+                        %info<type_flags>[$significant_param] := $DEFCON_UNDEFINED;
+                    }
+                    if $flags +& $SIG_ELEM_NATIVE_INT_VALUE {
+                        %info<type_flags>[$significant_param] := $TYPE_NATIVE_INT
+                            + %info<type_flags>[$significant_param];
+                    }
+                    elsif $flags +& $SIG_ELEM_NATIVE_NUM_VALUE {
+                        %info<type_flags>[$significant_param] := $TYPE_NATIVE_NUM
+                            + %info<type_flags>[$significant_param];
+                    }
+                    elsif $flags +& $SIG_ELEM_NATIVE_STR_VALUE {
+                        %info<type_flags>[$significant_param] := $TYPE_NATIVE_STR
+                            + %info<type_flags>[$significant_param];
+                    }
+                    $significant_param++;
+                }
+
+                # Add it to graph node, and initialize list of edges.
+                nqp::push(@graph, nqp::hash(
+                    'info',      %info,
+                    'edges',     [],
+                    'edges_in',  0,
+                    'edges_out', 0
+                ));
+            }
+
+            # Now analyze type narrowness of the candidates relative to each other
+            # and create the edges.
+            my int $i := 0;
+            my int $j;
+            my int $n := nqp::elems(@candidates);
+            while $i < $n {
+                $j := 0;
+                while $j < $n {
+                    unless $i == $j {
+                        if is_narrower(@graph[$i]<info>, @graph[$j]<info>) {
+                            @graph[$i]<edges>[@graph[$i]<edges_out>] := @graph[$j];
+                            @graph[$i]<edges_out>++;
+                            @graph[$j]<edges_in>++;
+                        }
+                    }
+                    $j++;
+                }
+                $i++;
+            }
+
+            # Perform the topological sort.
+            my int $candidates_to_sort := nqp::elems(@candidates);
+            my @result;
+            while $candidates_to_sort > 0 {
+                my int $rem_results := nqp::elems(@result);
+
+                # Find any nodes that have no incoming edges and add them to
+                # results.
+                $i := 0;
+                while $i < $n {
+                    if @graph[$i]<edges_in> == 0 {
+                        # Add to results.
+                        nqp::push(@result, @graph[$i]<info>);
+                        $candidates_to_sort--;
+                        @graph[$i]<edges_in> := $EDGE_REMOVAL_TODO;
+                    }
+                    $i++;
+                }
+                if $rem_results == nqp::elems(@result) {
+                    nqp::die("Circularity detected in multi sub types");
+                }
+
+                # Now we need to decrement edges in counts for things that had
+                # edges from candidates we added here.
+                $i := 0;
+                while $i < $n {
+                    if @graph[$i]<edges_in> == $EDGE_REMOVAL_TODO {
+                        $j := 0;
+                        while $j < @graph[$i]<edges_out> {
+                            @graph[$i]<edges>[$j]<edges_in>--;
+                            $j++;
+                        }
+                        @graph[$i]<edges_in> := $EDGE_REMOVED;
+                    }
+                    $i++;
+                }
+
+                # This is end of a tied group, so leave a gap.
+                nqp::push(@result, Mu);
+            }
+            
+            # Add final null sentinel.
+            nqp::push(@result, nqp::null());
+
+            @result
         }));
     Routine.HOW.add_method(Routine, 'set_rw', static(sub ($self) {
             my $dcself := pir::perl6_decontainerize__PP($self);

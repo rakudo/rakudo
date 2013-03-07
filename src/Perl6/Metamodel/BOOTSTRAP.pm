@@ -626,6 +626,107 @@ BEGIN {
             nqp::getattr(pir::perl6_decontainerize__PP($self),
                 Routine, '$!dispatchees')
         }));
+    Routine.HOW.add_method(Routine, 'sort_dispatchees', static(sub ($self) {
+            my $SLURPY_ARITY      := nqp::bitshiftl_i(1, 30);
+            my $EDGE_REMOVAL_TODO := -1;
+            my $EDGE_REMOVED      := -2;
+            my $DEFCON_NONE       := 0;
+            my $DEFCON_DEFINED    := 1;
+            my $DEFCON_UNDEFINED  := 2;
+            my $DEFCON_MASK       := $DEFCON_DEFINED +| $DEFCON_UNDEFINED;
+            my $TYPE_NATIVE_INT   := 4;
+            my $TYPE_NATIVE_NUM   := 8;
+            my $TYPE_NATIVE_STR   := 16;
+            my $TYPE_NATIVE_MASK  := $TYPE_NATIVE_INT +| $TYPE_NATIVE_NUM +| $TYPE_NATIVE_STR;
+            
+            # Takes two candidates and determines if the first one is narrower than the
+            # second. Returns a true value if they are.
+            sub is_narrower(%a, %b) {
+                # Work out how many parameters to compare, factoring in slurpiness
+                # and optionals.
+                my int $types_to_check;
+                if %a<num_types> == %b<num_types> {
+                    $types_to_check := %a<num_types>;
+                }
+                elsif %a<min_arity> == %b<min_arity> {
+                    $types_to_check := %a<num_types> > %b<num_types>
+                        ?? %b<num_types>
+                        !! %a<num_types>;
+                }
+                elsif %a<max_arity> != $SLURPY_ARITY && %b<max_arity> == $SLURPY_ARITY {
+                    return 1;
+                }
+                else {
+                    return 0;
+                }
+
+                # Analyse each parameter in the two candidates.
+                my int $i := 0;
+                my int $narrower := 0;
+                my int $tied := 0;
+                while $i < $types_to_check {
+                    my $type_obj_a := %a<types>[$i];
+                    my $type_obj_b := %b<types>[$i];
+                    if nqp::eqaddr($type_obj_a, $type_obj_b) {
+                        # Same type; narrower if first has constraints and other doesn't;
+                        # tied if neither has constraints or both have constraints. */
+                        if %a<constraints>[$i] && !%b<constraints>[$i] {
+                            $narrower++;
+                        }
+                        elsif (!%a<constraints>[$i] && !%b<constraints>[$i])
+                           || (%a<constraints>[$i] && %b<constraints>[$i]) {
+                            $tied++;
+                        }
+                    }
+                    elsif (%a<type_flags>[$i] +& $TYPE_NATIVE_MASK)
+                      && !(%b<type_flags>[$i] +& $TYPE_NATIVE_MASK) {
+                        # Narrower because natives always are.
+                        $narrower++;
+                    }
+                    elsif (%b<type_flags>[$i] +& $TYPE_NATIVE_MASK)
+                      && !(%a<type_flags>[$i] +& $TYPE_NATIVE_MASK) {
+                        # Wider; skip over here so we don't go counting this as tied in
+                        # the next branch.
+                    }
+                    else {
+                        if nqp::istype($type_obj_a, $type_obj_b) {
+                            # Narrower - note it and we're done.
+                            $narrower++;
+                        }
+                        else {
+                            # Make sure it's tied, rather than the other way around.
+                            unless nqp::istype($type_obj_b, $type_obj_a) {
+                                $tied++;
+                            }
+                        }
+                    }
+                    $i++;
+                }
+
+                # If one is narrower than the other from current analysis, we're done.
+                if $narrower >= 1 && $narrower + $tied == $types_to_check {
+                    return 1;
+                }
+
+                # If they aren't tied, we're also done.
+                elsif $tied != $types_to_check {
+                    return 0;
+                }
+                
+                # Otherwise, we see if one has a slurpy and the other not. A lack of
+                # slurpiness makes the candidate narrower.
+                if %a<max_arity> != $SLURPY_ARITY && %b<max_arity> == $SLURPY_ARITY {
+                    return 1;
+                }
+
+                # Also narrower if the first needs a bind check and the second doesn't, if
+                # we wouldn't deem the other one narrower than this one int terms of
+                # slurpyness. Otherwise, they're tied.
+                return !(%b<max_arity> != $SLURPY_ARITY && %a<max_arity> == $SLURPY_ARITY)
+                    && (%a<bind_check> && !%b<bind_check>);
+            }
+            
+        }));
     Routine.HOW.add_method(Routine, 'set_rw', static(sub ($self) {
             my $dcself := pir::perl6_decontainerize__PP($self);
             nqp::bindattr_i($dcself, Routine, '$!rw', 1);

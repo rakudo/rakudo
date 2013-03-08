@@ -924,6 +924,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     rule semilist {
         :dba('semicolon list')
+        ''
         [
         | <?before <[)\]}]> >
         | [<statement><.eat_terminator> ]*
@@ -3460,8 +3461,12 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             if +@parts != 2 {
                 nqp::die("Unable to find starter and stopper from '$opname'");
             }
-            my role Circumfix[$meth_name, $opener, $closer] {
-                token ::($meth_name) { $opener <EXPR> $closer }
+            my role Circumfix[$meth_name, $starter, $stopper] {
+                token ::($meth_name) {
+                    :my $*GOAL := $stopper;
+                    :my $stub := %*LANG<MAIN> := nqp::getlex('$¢').unbalanced($stopper);
+                    $starter ~ $stopper <semilist>
+                }
             }
             self.HOW.mixin(self, Circumfix.HOW.curry(Circumfix, $canname, @parts[0], @parts[1]));
         }
@@ -3483,7 +3488,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                 method ::($meth)($/) {
                     make QAST::Op.new(
                         :op('call'), :name('&' ~ $subname),
-                        $<EXPR>.ast
+                        $<semilist>.ast
                     );
                 }
             };

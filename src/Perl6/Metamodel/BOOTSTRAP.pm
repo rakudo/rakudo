@@ -591,7 +591,8 @@ BEGIN {
     Routine.HOW.add_attribute(Routine, BOOTSTRAPATTR.new(:name<$!yada>, :type(int), :package(Routine)));
     Routine.HOW.add_attribute(Routine, BOOTSTRAPATTR.new(:name<$!package>, :type(Mu), :package(Routine)));
     Routine.HOW.add_attribute(Routine, BOOTSTRAPATTR.new(:name<$!onlystar>, :type(int), :package(Routine)));
-
+    Routine.HOW.add_attribute(Routine, BOOTSTRAPATTR.new(:name<$!dispatch_order>, :type(Mu), :package(Routine)));
+    
     Routine.HOW.add_method(Routine, 'is_dispatcher', static(sub ($self) {
             my $dc_self   := pir::perl6_decontainerize__PP($self);
             my $disp_list := nqp::getattr($dc_self, Routine, '$!dispatchees');
@@ -904,6 +905,320 @@ BEGIN {
             nqp::push(@result, nqp::null());
 
             @result
+        }));
+    Routine.HOW.add_method(Routine, 'find_best_dispatchee', static(sub ($self, $capture, int $many = 0) {        
+            my $DEFCON_DEFINED    := 1;
+            my $DEFCON_UNDEFINED  := 2;
+            my $DEFCON_MASK       := $DEFCON_DEFINED +| $DEFCON_UNDEFINED;
+            my $TYPE_NATIVE_INT   := 4;
+            my $TYPE_NATIVE_NUM   := 8;
+            my $TYPE_NATIVE_STR   := 16;
+            my $TYPE_NATIVE_MASK  := $TYPE_NATIVE_INT +| $TYPE_NATIVE_NUM +| $TYPE_NATIVE_STR;
+            my $BIND_VAL_OBJ      := 0;
+            my $BIND_VAL_INT      := 1;
+            my $BIND_VAL_NUM      := 2;
+            my $BIND_VAL_STR      := 3;
+            
+            # Count arguments.
+            my $num_args := nqp::captureposelems($capture);
+
+            # Get list and number of candidates, triggering a sort if there are none.
+            my $dcself := nqp::decont($self);
+            my @candidates := nqp::getattr($dcself, Routine, '$!dispatch_order');
+            if nqp::isnull(@candidates) {
+                nqp::scwbdisable();
+                @candidates := $dcself.sort_dispatchees();
+                nqp::bindattr($dcself, Routine, '$!dispatch_order', @candidates);
+                nqp::scwbenable();
+            }
+            my $num_candidates := nqp::elems(@candidates);
+
+            # Iterate over the candidates and collect best ones; terminate
+            # when we see two type objects (indicating end).
+            my int $cur_idx := 0;
+            my $cur_candidate;
+            my int $type_check_count;
+            my int $type_mismatch;
+            my int $i;
+            my int $pure_type_result := 1;
+            my $many_res := $many ?? [] !! Mu;
+            my @possibles;
+            while (1) {
+                $cur_candidate := nqp::atpos(@candidates, $cur_idx);
+                
+                unless nqp::isconcrete($cur_candidate) {
+                    # We've hit the end of a tied group now. If any of them have a
+                    # bindability check requirement, we'll do any of those now.
+                    if nqp::elems(@possibles) {
+                        my $new_possibles;
+
+                        $i := 0;
+                        while $i < nqp::elems(@possibles) {
+                            # First, if there's a required named parameter and it was
+                            # not passed, we can very quickly eliminate this candidate
+                            # without doing a full bindability check.
+                            if @possibles[$i]<req_named> {
+                                nqp::die("NYI required name check");
+                                #if (!VTABLE_exists_keyed_str(interp, capture, possibles[i]->req_named)) {
+                                #    /* Required named arg not passed, so we eliminate
+                                #     * it right here. Flag that we've built a list of
+                                #     * new possibles, and that this was not a pure
+                                #     * type-based result that we can cache. */
+                                #    if (!new_possibles)
+                                #        new_possibles = mem_allocate_n_typed(num_candidates, Rakudo_md_candidate_info *);
+                                #    pure_type_result = 0;
+                                #    continue;
+                                #}
+                            }
+
+                            # Otherwise, may need full bind check.
+                            if @possibles[$i]<bind_check> {
+                                nqp::die("Bind check NYI");
+                                #/* We'll invoke the sub (but not re-enter the runloop)
+                                # * and then attempt to bind the signature. */
+                                #PMC      *cthunk, *lexpad, *sig;
+                                #opcode_t *where;
+                                #INTVAL    bind_check_result;
+                                #Rakudo_Code *code_obj = (Rakudo_Code *)PMC_data(possibles[i]->sub);
+                                #cthunk = Parrot_pmc_getprop(interp, code_obj->_do,
+                                #    Parrot_str_new(interp, "COMPILER_THUNK", 0));
+                                #if (!PMC_IS_NULL(cthunk)) {
+                                #    /* We need to do the tie-break on something not yet compiled.
+                                #     * Get it compiled. */
+                                #    Parrot_ext_call(interp, cthunk, "->");
+                                #}
+                                #
+                                #Parrot_pcc_reuse_continuation(interp, CURRENT_CONTEXT(interp), next);
+                                #where  = VTABLE_invoke(interp, possibles[i]->sub, next);
+                                #lexpad = Parrot_pcc_get_lex_pad(interp, CURRENT_CONTEXT(interp));
+                                #sig    = possibles[i]->signature;
+                                #bind_check_result = Rakudo_binding_bind(interp, lexpad,
+                                #      sig, capture, 0, NULL);
+                                #where = VTABLE_invoke(interp, Parrot_pcc_get_continuation(interp, CURRENT_CONTEXT(interp)), where);
+                                #
+                                #/* If we haven't got a possibles storage space, allocate it now. */
+                                #if (!new_possibles)
+                                #    new_possibles = mem_allocate_n_typed(num_candidates, Rakudo_md_candidate_info *);
+                                #
+                                #/* Since we had to do a bindability check, this is not
+                                # * a result we can cache on nominal type. */
+                                #pure_type_result = 0;
+                                #
+                                #/* If we don't fail, need to put this one onto the list
+                                # * (note that needing a junction dispatch is OK). */
+                                #if (bind_check_result != BIND_RESULT_FAIL) {
+                                #    new_possibles[new_possibles_count] = possibles[i];
+                                #    new_possibles_count++;
+                                #    if (!many)
+                                #        break;
+                                #}
+                            }
+                            
+                            # Otherwise, it's just nominal; accept it.
+                            else {
+                                if $new_possibles {
+                                    $new_possibles := [@possibles[$i]];
+                                }
+                                else {
+                                    nqp::push($new_possibles, @possibles[$i]);
+                                }
+                            }
+                        }
+
+                        # If we have an updated list of possibles, use this
+                        # new one from here on in.
+                        if $new_possibles {
+                            @possibles := $new_possibles;
+                        }
+                    }
+
+                    # Now we have eliminated any that fail the bindability check.
+                    # See if we need to push it onto the many list and continue.
+                    # Otherwise, we have the result we were looking for.
+                    if $many {
+                        for @possibles {
+                            nqp::push($many_res, $_)
+                        }
+                    }
+                    elsif @possibles {
+                        last;
+                    }
+                    
+                    # Keep looping and looking, unless we really hit the end.
+                    $cur_idx++;
+                    if nqp::isnull(@candidates[$cur_idx]) {
+                        last;
+                    }
+                    else {
+                        next;
+                    }
+                }
+
+                # Check if it's admissable by arity.
+                if $num_args < $cur_candidate<min_arity>
+                || $num_args > $cur_candidate<max_arity> {
+                    $cur_idx++;
+                    next;
+                }
+
+                # Check if it's admissable by type.
+                $type_check_count := $cur_candidate<num_types> > $num_args
+                    ?? $num_args
+                    !! $cur_candidate<num_types>;
+                $type_mismatch := 0;
+
+                $i := 0;
+                while $i < $type_check_count {
+                    my $type_obj     := nqp::atpos($cur_candidate<types>, $i);
+                    my $type_flags   := nqp::atpos($cur_candidate<type_flags>, $i);
+                    my int $got_prim := 0; # XXX nqp::captureposprimspec($capture, $i);
+                    if $type_flags +& $TYPE_NATIVE_MASK {
+                        # Looking for a natively typed value. Did we get one?
+                        if $got_prim == $BIND_VAL_OBJ {
+                            # Object; won't do.
+                            $type_mismatch := 1;
+                            last;
+                        }
+                        if (($type_flags +& $TYPE_NATIVE_INT) && $got_prim != $BIND_VAL_INT) ||
+                           (($type_flags +& $TYPE_NATIVE_NUM) && $got_prim != $BIND_VAL_NUM) ||
+                           (($type_flags +& $TYPE_NATIVE_STR) && $got_prim != $BIND_VAL_STR) {
+                            # Mismatch.
+                            $type_mismatch := 1;
+                            last;
+                        }
+                    }
+                    else {
+                        my $param;
+                        if $got_prim == $BIND_VAL_OBJ {
+                            $param := nqp::decont(
+                                pir::perl6ize_type__PP(
+                                    nqp::captureposarg($capture, $i)));
+                        }
+                        else {
+                            $param := $got_prim == $BIND_VAL_INT ?? Int !!
+                                      $got_prim == $BIND_VAL_NUM ?? Num !!
+                                                                    Str;
+                        }
+                        unless nqp::eqaddr($type_obj, Mu) || nqp::istype($param, $type_obj) {
+                            $type_mismatch := 1;
+                            last;
+                        }
+                        if $type_flags +& $DEFCON_MASK {
+                            my int $defined := $got_prim != $BIND_VAL_OBJ || nqp::isconcrete($param);
+                            my int $desired := $type_flags +& $DEFCON_MASK;
+                            if ($defined && $desired == $DEFCON_UNDEFINED) ||
+                               (!$defined && $desired == $DEFCON_DEFINED) {
+                                $type_mismatch := 1;
+                                last;
+                            }
+                        }
+                    }
+                    $i++;
+                }
+
+                if $type_mismatch {
+                    $cur_idx++;
+                    next;
+                }
+
+                # If we get here, it's an admissable candidate; add to list.
+                nqp::push(@possibles, $cur_candidate);
+                $cur_idx++;
+            }
+            
+            # If we were looking for many candidates, we're done now.
+            if $many {
+                return $many_res;
+            }
+
+            # Check is default trait if we still have multiple options and we want one.
+            if nqp::elems(@possibles) > 1 {
+                # Locate any default candidates; if we find multiple defaults, this is
+                # no help, so we'll not bother collecting just which ones are good.
+                nqp::die("default trait handling NYI");
+                #Rakudo_md_candidate_info *default_cand = NULL;
+                #INTVAL i;
+                #
+                #for (i = 0; i < possibles_count; i++) {
+                #    PMC * const default_meth = VTABLE_find_method(interp, possibles[i]->sub,
+                #            Parrot_str_new(interp, "default", 0));
+                #    if (!PMC_IS_NULL(default_meth)) {
+                #        PMC *result = PMCNULL;;
+                #        Parrot_ext_call(interp, default_meth, "Pi->P", possibles[i]->sub, &result);
+                #        if (VTABLE_get_bool(interp, result)) {
+                #            if (default_cand == NULL) {
+                #                default_cand = possibles[i];
+                #            }
+                #            else {
+                #                default_cand = NULL;
+                #                break;
+                #            }
+                #        }
+                #    }
+                #}
+                #if (default_cand) {
+                #    possibles[0] = default_cand;
+                #    possibles_count = 1;
+                #}
+            }
+
+            # If we're at a single candidate here, and we also know there's no
+            # type constraints that follow, we can cache the result.
+            if nqp::elems(@possibles) == 1 && $pure_type_result {
+                # XXX Cache addition
+            }
+
+            # Perhaps we found nothing but have junctional arguments?
+            if nqp::elems(@possibles) == 0 && has_junctional_args($capture) {
+                nqp::die("Junctional multi-dispatch NYI");
+                #/* Unshift the proto onto the start of the args and hand back
+                # * the threader. */
+                #VTABLE_unshift_pmc(interp, capture, dispatcher);
+                #junctional_res = Rakudo_types_junction_threader_get();
+            }
+
+            # Need a unique candidate.
+            if nqp::elems(@possibles) == 1 {
+                @possibles[0]<sub>
+            }
+            #else if (!PMC_IS_NULL(junctional_res)) {
+            #    return junctional_res;
+            #}
+            elsif nqp::elems(@possibles) == 0 {
+                # Get signatures of all possible candidates. We dump them in the
+                # order in which we search for them.
+                nqp::die("Bad dispatch reporting NYI");
+                #STRING *signatures = Parrot_str_new(interp, "", 0);
+                #cur_candidate = candidates;
+                #while (1) {
+                #    if (!cur_candidate[0] && !cur_candidate[1])
+                #        break;
+                #    if (cur_candidate[0])
+                #        signatures = dump_signature(interp, signatures, (*cur_candidate)->sub);
+                #    cur_candidate++;
+                #}
+                #
+                #mem_sys_free(possibles);
+                #Parrot_ex_throw_from_c_args(interp, next, 1,
+                #    "Cannot call '%Ss'; none of these signatures match:\n%Ss",
+                #        (candidates[0] ? VTABLE_get_string(interp, candidates[0]->sub) : STRINGNULL),
+                #        signatures);
+                #return PMCNULL;
+            }
+            else {
+                nqp::die("Ambiguous dispatch reporting NYI");
+                #/* Get signatures of ambiguous candidates. */
+                #STRING *signatures = Parrot_str_new(interp, "", 0);
+                #INTVAL i;
+                #for (i = 0; i < possibles_count; i++)
+                #    signatures = dump_signature(interp, signatures, possibles[i]->sub);
+                #
+                #mem_sys_free(possibles);
+                #Parrot_ex_throw_from_c_args(interp, next, 1,
+                #    "Ambiguous call to '%Ss'; these signatures all match:\n%Ss",
+                #        VTABLE_get_string(interp, candidates[0]->sub), signatures);
+                #return PMCNULL;
+            }
         }));
     Routine.HOW.add_method(Routine, 'set_rw', static(sub ($self) {
             my $dcself := pir::perl6_decontainerize__PP($self);

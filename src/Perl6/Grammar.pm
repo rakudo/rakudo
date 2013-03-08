@@ -1337,7 +1337,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         [ <?before [ '(' || \h*<sigil><twigil>?\w ] >
             <.obs('undef as a verb', 'undefine function or assignment of Nil')>
         ]?
-        <.obs('undef as a value', "something more specific:\n\tMu (the \"most undefined\" type object),\n\tan undefined type object such as Int,\n\tNil as an empty list,\n\t!*.defined as a matcher or method,\n\tAny:U as a type constraint\n\tor fail() as a failure return\n\t   ")>
+        <.obs('undef as a value', "something more specific:\n\tMu (the \"most undefined\" type object),\n\tan undefined type object such as Int,\n\t:!defined as a matcher,\n\tAny:U as a type constraint,\n\tNil as the absense of a value\n\tor fail() as a failure return\n\t   ")>
     }
 
     token term:sym<new> {
@@ -1350,7 +1350,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     
     token coloncircumfix($front) {
         [
-        | '<>' <.worry("Pair with <> really means a Nil value, not null string; use :$front" ~ "('') to represent the null string,\n  or :$front" ~ "() to represent Nil more accurately")>
+        | '<>' <.worry("Pair with <> really means an empty list, not null string; use :$front" ~ "('') to represent the null string,\n  or :$front" ~ "() to represent the empty list more accurately")>
         | <circumfix>
         ]
     }

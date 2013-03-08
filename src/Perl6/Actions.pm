@@ -4729,6 +4729,24 @@ class Perl6::Actions is HLL::Actions does STDActions {
         make $past;
     }
 
+    method postcircumfix:sym«<< >>»($/) {
+        my $past := QAST::Op.new( :name('postcircumfix:<{ }>'), :op('callmethod'), :node($/) );
+        my $nib  := $<nibble>.ast;
+        $past.push($nib)
+            unless nqp::istype($nib, QAST::Stmts) && nqp::istype($nib[0], QAST::Op) &&
+            $nib[0].name eq '&infix:<,>' && +@($nib[0]) == 0;
+        make $past;
+    }
+
+    method postcircumfix:sym<« »>($/) {
+        my $past := QAST::Op.new( :name('postcircumfix:<{ }>'), :op('callmethod'), :node($/) );
+        my $nib  := $<nibble>.ast;
+        $past.push($nib)
+            unless nqp::istype($nib, QAST::Stmts) && nqp::istype($nib[0], QAST::Op) &&
+            $nib[0].name eq '&infix:<,>' && +@($nib[0]) == 0;
+        make $past;
+    }
+
     method postcircumfix:sym<( )>($/) {
         make $<arglist>.ast;
     }

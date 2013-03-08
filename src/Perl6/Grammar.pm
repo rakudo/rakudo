@@ -3061,6 +3061,26 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         ]
         <O('%methodcall')>
     }
+    
+    token postcircumfix:sym«<< >>» {
+        :dba('shell-quote words')
+        '<<'
+        [
+        || <nibble(self.quote_lang(%*LANG<Q>, "<<", ">>", ['qq', 'ww']))> '>>'
+        || { $/.CURSOR.panic("Unable to parse quote-words subscript; couldn't find right double-angle quote") }
+        ]
+        <O('%methodcall')>
+    }
+    
+    token postcircumfix:sym<« »> {
+        :dba('shell-quote words')
+        '«'
+        [
+        || <nibble(self.quote_lang(%*LANG<Q>, "«", "»", ['qq', 'ww']))> '»'
+        || { $/.CURSOR.panic("Unable to parse quote-words subscript; couldn't find right double-angle quote") }
+        ]
+        <O('%methodcall')>
+    }
 
     token postcircumfix:sym<( )> {
         :dba('argument list')

@@ -842,6 +842,12 @@ my class X::Syntax::Extension::Category does X::Syntax {
     }
 }
 
+my class X::Syntax::Extension::Null does X::Syntax {
+    method message() {
+        "Null operator is not allowed";
+    }
+}
+
 my class X::Syntax::InfixInTermPosition does X::Syntax {
     has $.infix;
     method message() {

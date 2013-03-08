@@ -3402,6 +3402,11 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     method add_categorical($category, $opname, $canname, $subname, $declarand?) {
         my $self := self;
         
+        # Ensure it's not a null name.
+        if $opname eq '' {
+            self.typed_panic('X::Syntax::Extension::Null');
+        }
+        
         # If we already have the required operator in the grammar, just return.
         if nqp::can(self, $canname) {
             return 1;

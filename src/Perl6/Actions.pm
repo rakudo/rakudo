@@ -211,8 +211,13 @@ class Perl6::Actions is HLL::Actions does STDActions {
             if $<colonpair>[0]<identifier> {
                 $name := $name ~ ~$<colonpair>[0]<identifier>;
             }
-            if $<colonpair>[0]<circumfix><nibble> -> $op_name {
-                $name := $name ~ '<' ~ $*W.colonpair_nibble_to_str($/, $op_name) ~ '>';
+            if $<colonpair>[0]<coloncircumfix> -> $cf {
+                if $cf<circumfix> -> $op_name {
+                    $name := $name ~ '<' ~ $*W.colonpair_nibble_to_str($/, $op_name<nibble>) ~ '>';
+                }
+                else {
+                    $name := $name ~ '<>';
+                }
             }
             make $name;
         }
@@ -1183,6 +1188,12 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
     method fatarrow($/) {
         make make_pair($<key>.Str, $<val>.ast);
+    }
+    
+    method coloncircumfix($/) {
+        make $<circumfix>
+            ?? $<circumfix>.ast
+            !! QAST::Var.new( :name('Nil'), :scope('lexical') );
     }
 
     method colonpair($/) {

@@ -1347,6 +1347,13 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token fatarrow {
         <key=.identifier> \h* '=>' <.ws> <val=.EXPR('i=')>
     }
+    
+    token coloncircumfix($front) {
+        [
+        | '<>' <.worry("Pair with <> really means a Nil value, not null string; use :$front" ~ "('') to represent the null string,\n  or :$front" ~ "() to represent Nil more accurately")>
+        | <circumfix>
+        ]
+    }
 
     token colonpair {
         :my $*key;
@@ -1362,12 +1369,12 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         | <identifier>
             { $*key := $<identifier>.Str; }
             [
-            || <.unsp>? :dba('pair value') <circumfix> { $*value := $<circumfix>; }
+            || <.unsp>? :dba('pair value') <coloncircumfix($*key)> { $*value := $<coloncircumfix>; }
             || { $*value := 1; }
             ]
         | :dba('signature') '(' ~ ')' <fakesignature>
-        | <circumfix>
-            { $*key := ""; $*value := $<circumfix>; }
+        | <coloncircumfix('')>
+            { $*key := ""; $*value := $<coloncircumfix>; }
         | <var=.colonpair_variable>
             { $*key := $<var><desigilname>.Str; $*value := $<var>; self.check_variable($*value); }
         ]
@@ -2027,11 +2034,13 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <.attach_docs>
         <deflongname>?
         {
-            if $<deflongname> && $<deflongname>[0]<colonpair>[0]<circumfix><nibble> -> $cp {
+            if $<deflongname> && $<deflongname>[0]<colonpair>[0]<coloncircumfix> -> $cf {
                 # It's an (potentially new) operator, circumfix, etc. that we
                 # need to tweak into the grammar.
                 my $category := $<deflongname>[0]<name>.Str;
-                my $opname := $*W.colonpair_nibble_to_str($/, $cp);
+                my $opname := $cf<circumfix>
+                    ?? $*W.colonpair_nibble_to_str($/, $cf<circumfix><nibble>)
+                    !! '';
                 my $canname := $category ~ ":sym<" ~ $opname ~ ">";
                 $/.CURSOR.add_categorical($category, $opname, $canname, $<deflongname>[0].ast, $*DECLARAND);
             }
@@ -2086,11 +2095,13 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <.attach_docs>
         <deflongname>?
         {
-            if $<deflongname> && $<deflongname>[0]<colonpair>[0]<circumfix><nibble> -> $cp {
+            if $<deflongname> && $<deflongname>[0]<colonpair>[0]<coloncircumfix> -> $cf {
                 # It's an (potentially new) operator, circumfix, etc. that we
                 # need to tweak into the grammar.
                 my $category := $<deflongname>[0]<name>.Str;
-                my $opname := $*W.colonpair_nibble_to_str($/, $cp);
+                my $opname := $cf<circumfix>
+                    ?? $*W.colonpair_nibble_to_str($/, $cf<circumfix><nibble>)
+                    !! '';
                 my $canname := $category ~ ":sym<" ~ $opname ~ ">";
                 $/.CURSOR.add_categorical($category, $opname, $canname, $<deflongname>[0].ast, $*DECLARAND);
             }

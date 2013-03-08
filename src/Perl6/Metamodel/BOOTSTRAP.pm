@@ -754,7 +754,7 @@ BEGIN {
                     'sub',          $candidate,
                     'signature',    $sig,
                     'types',        [],
-                    'type_flags',   [],
+                    'type_flags',   nqp::list_i(),
                     'constraints',  []
                 );
                 my int $significant_param := 0;
@@ -811,22 +811,22 @@ BEGIN {
                         %info<num_types>++;
                     }
                     if $flags +& $SIG_ELEM_DEFINED_ONLY {
-                        %info<type_flags>[$significant_param] := $DEFCON_DEFINED;
+                        nqp::bindpos_i(%info<type_flags>, $significant_param, $DEFCON_DEFINED);
                     }
                     elsif $flags +& $SIG_ELEM_UNDEFINED_ONLY {
-                        %info<type_flags>[$significant_param] := $DEFCON_UNDEFINED;
+                        nqp::bindpos_i(%info<type_flags>, $significant_param, $DEFCON_UNDEFINED);
                     }
                     if $flags +& $SIG_ELEM_NATIVE_INT_VALUE {
-                        %info<type_flags>[$significant_param] := $TYPE_NATIVE_INT
-                            + %info<type_flags>[$significant_param];
+                        nqp::bindpos_i(%info<type_flags>, $significant_param,
+                            $TYPE_NATIVE_INT + nqp::atpos_i(%info<type_flags>, $significant_param));
                     }
                     elsif $flags +& $SIG_ELEM_NATIVE_NUM_VALUE {
-                        %info<type_flags>[$significant_param] := $TYPE_NATIVE_NUM
-                            + %info<type_flags>[$significant_param];
+                        nqp::bindpos_i(%info<type_flags>, $significant_param,
+                            $TYPE_NATIVE_NUM + nqp::atpos_i(%info<type_flags>, $significant_param));
                     }
                     elsif $flags +& $SIG_ELEM_NATIVE_STR_VALUE {
-                        %info<type_flags>[$significant_param] := $TYPE_NATIVE_STR
-                            + %info<type_flags>[$significant_param];
+                        nqp::bindpos_i(%info<type_flags>, $significant_param,
+                            $TYPE_NATIVE_STR + nqp::atpos_i(%info<type_flags>, $significant_param));
                     }
                     $significant_param++;
                 }
@@ -945,7 +945,7 @@ BEGIN {
             my @possibles;
             while (1) {
                 $cur_candidate := nqp::atpos(@candidates, $cur_idx);
-                
+
                 unless nqp::isconcrete($cur_candidate) {
                     # We've hit the end of a tied group now. If any of them have a
                     # bindability check requirement, we'll do any of those now.
@@ -1017,12 +1017,13 @@ BEGIN {
                             # Otherwise, it's just nominal; accept it.
                             else {
                                 if $new_possibles {
-                                    $new_possibles := [@possibles[$i]];
-                                }
-                                else {
                                     nqp::push($new_possibles, @possibles[$i]);
                                 }
+                                else {
+                                    $new_possibles := [@possibles[$i]];
+                                }
                             }
+                            $i++;
                         }
 
                         # If we have an updated list of possibles, use this
@@ -1046,11 +1047,11 @@ BEGIN {
                     
                     # Keep looping and looking, unless we really hit the end.
                     $cur_idx++;
-                    if nqp::isnull(@candidates[$cur_idx]) {
-                        last;
+                    if nqp::isconcrete(@candidates[$cur_idx]) {
+                        next;
                     }
                     else {
-                        next;
+                        last;
                     }
                 }
 
@@ -1070,7 +1071,7 @@ BEGIN {
                 $i := 0;
                 while $i < $type_check_count {
                     my $type_obj     := nqp::atpos($cur_candidate<types>, $i);
-                    my $type_flags   := nqp::atpos($cur_candidate<type_flags>, $i);
+                    my $type_flags   := nqp::atpos_i($cur_candidate<type_flags>, $i);
                     my int $got_prim := 0; # XXX nqp::captureposprimspec($capture, $i);
                     if $type_flags +& $TYPE_NATIVE_MASK {
                         # Looking for a natively typed value. Did we get one?

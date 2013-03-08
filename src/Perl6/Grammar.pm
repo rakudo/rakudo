@@ -1794,10 +1794,6 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                     unless $*MONKEY_TYPING {
                         $/.CURSOR.typed_panic('X::Syntax::Augment::WithoutMonkeyTyping');
                     }
-                    if $*PKGDECL eq 'role' {
-                        $/.CURSOR.typed_panic('X::Syntax::Augment::Role',
-                                role-name => $longname.text);
-                    }
                     unless @name {
                         $*W.throw($/, 'X::Anon::Augment', package-kind => $*PKGDECL);
                     }
@@ -1810,6 +1806,10 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                             package-kind => $*PKGDECL,
                             package      => $longname.text(),
                         );
+                    }
+                    unless $*PACKAGE.HOW.archetypes.augmentable {
+                        $/.CURSOR.typed_panic('X::Syntax::Augment::Illegal',
+                            package      => $longname.text);
                     }
                 }
                 

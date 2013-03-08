@@ -738,9 +738,9 @@ my class X::Syntax::Augment::WithoutMonkeyTyping does X::Syntax {
     method message() { "augment not allowed without 'use MONKEY_TYPING'" };
 }
 
-my class X::Syntax::Augment::Role does X::Syntax {
-    has $.role-name;
-    method message() { "Cannot augment role $.role-name, since roles are immutable" };
+my class X::Syntax::Augment::Illegal does X::Syntax {
+    has $.package;
+    method message() { "Cannot augment $.package because it is closed" };
 }
 
 my class X::Syntax::Argument::MOPMacro does X::Syntax {

@@ -707,6 +707,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*SCOPE := '';                         # which scope declarator we're under
         :my $*MULTINESS := '';                     # which multi declarator we're under
         :my $*QSIGIL := '';                        # sigil of current interpolation
+        :my $*IN_META := '';                       # parsing a metaoperator like [..]
+        :my $*IN_REDUCE := 0;                      # attempting to parse an [op] construct
         :my $*IN_DECL;                             # what declaration we're in
         :my $*HAS_SELF := '';                      # is 'self' available? (for $.foo style calls)
         :my $*MONKEY_TYPING := 0;                  # whether augment/supersede are allowed
@@ -1611,6 +1613,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
 
     token variable {
+        :my $*IN_META := '';
         <?before <sigil> {
             unless $*LEFTSIGIL {
                 $*LEFTSIGIL := $<sigil>.Str;
@@ -1619,7 +1622,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         [
         || '&'
             [
-            | :dba('infix noun') '[' ~ ']' <infixish>
+            | :dba('infix noun') '[' ~ ']' <infixish('[]')>
             ]
         ||  [
             | <sigil> <twigil>? <desigilname>
@@ -2902,13 +2905,15 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <.ws>
     }
 
-    token infixish {
-        :dba('infix or meta-infix')
-        <!infixstopper>
+    token infixish($in_meta = nqp::getlexdyn('$*IN_META')) {
+        :my $*IN_META := $in_meta;
         <!stdstopper>
+        <!infixstopper>
+        :dba('infix or meta-infix')
         [
         | <colonpair> <OPER=fake_infix>
-        | :dba('bracketed infix') '[' ~ ']' <infixish> {} <OPER=.copyOPER($<infixish>)>
+        | :dba('bracketed infix') '[' ~ ']' <infixish('[]')> {} <OPER=.copyOPER($<infixish>)>
+            [ <!before '='> { self.worry("Useless use of [] around infix op") unless $*IN_META; } ]?
         | <OPER=infix_circumfix_meta_operator>
         | <OPER=infix> <![=]>
         | <OPER=infix_prefix_meta_operator>
@@ -2968,8 +2973,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         
         '['
         [
-        || <op=.infixish> <?before ']'>
-        || $<triangle>=[\\]<op=.infixish> <?before ']'>
+        || <op=.infixish('red')> <?before ']'>
+        || $<triangle>=[\\]<op=.infixish('tri')> <?before ']'>
         || <!>
         ]
         ']'
@@ -2988,14 +2993,14 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     token infix_circumfix_meta_operator:sym<« »> {
         $<opening>=[ '«' | '»' ]
-        {} <infixish>
+        {} <infixish('hyper')>
         $<closing>=[ '«' | '»' || <.missing("« or »")> ]
         {} <O=.copyO($<infixish>)>
     }
 
     token infix_circumfix_meta_operator:sym«<< >>» {
         $<opening>=[ '<<' | '>>' ]
-        {} <infixish>
+        {} <infixish('HYPER')>
         $<closing>=[ '<<' | '>>' || <.missing("<< or >>")> ]
         {} <O=.copyO($<infixish>)>
     }
@@ -3155,12 +3160,12 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token infix:sym<+&>   { <sym>  <O('%multiplicative')> }
     token infix:sym<~&>   { <sym>  <O('%multiplicative')> }
     token infix:sym<?&>   { <sym>  <O('%multiplicative')> }
-    token infix:sym«+<»   { <sym> <!before '<'> <O('%multiplicative')> }
-    token infix:sym«+>»   { <sym> <!before '>'> <O('%multiplicative')> }
+    token infix:sym«+<»   { <sym> [ <!{ $*IN_META }> || <?before '<<'> || <!before '<'> ] <O('%multiplicative')> }
+    token infix:sym«+>»   { <sym> [ <!{ $*IN_META }> || <?before '>>'> || <!before '>'> ] <O('%multiplicative')> }
 
-    token infix:sym«<<» { <sym> \s <.sorryobs('<< to do left shift', '+< or ~<')> }
+    token infix:sym«<<» { <sym> <!{ $*IN_META }> <?before \s> <.sorryobs('<< to do left shift', '+< or ~<')> <O('%multiplicative')> }
 
-    token infix:sym«>>» { <sym> \s <.sorryobs('>> to do right shift', '+> or ~>')> }
+    token infix:sym«>>» { <sym> <!{ $*IN_META }> <?before \s> <.sorryobs('>> to do right shift', '+> or ~>')> <O('%multiplicative')> }
 
     token infix:sym<+>    { <sym>  <O('%additive')> }
     token infix:sym<->    {
@@ -3252,17 +3257,17 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
 
     token infix_prefix_meta_operator:sym<!> {
-        <sym> <infixish> 
+        <sym> <!before '!'> {} [ <infixish('neg')> || <.panic: "Negation metaoperator not followed by valid infix"> ]
         [
         || <?{ $<infixish>.Str eq '=' }> <O('%chaining')>
         || <?{ $<infixish><OPER><O><iffy> }> <O=.copyO($<infixish>)>
         || <.panic("Cannot negate " ~ $<infixish>.Str ~ " because it is not iffy enough")>
         ]
     }
-    token infix_prefix_meta_operator:sym<R> { <sym> <infixish> {} <O=.copyO($<infixish>)> }
-    token infix_prefix_meta_operator:sym<S> { <sym> <infixish> {} <O=.copyO($<infixish>)> }
-    token infix_prefix_meta_operator:sym<X> { <sym> <infixish> <O('%list_infix')> }
-    token infix_prefix_meta_operator:sym<Z> { <sym> <infixish> <O('%list_infix')> }
+    token infix_prefix_meta_operator:sym<R> { <sym> <infixish('R')> {} <O=.copyO($<infixish>)> }
+    token infix_prefix_meta_operator:sym<S> { <sym> <infixish('S')> {} <O=.copyO($<infixish>)> }
+    token infix_prefix_meta_operator:sym<X> { <sym> <infixish('X')> <O('%list_infix')> }
+    token infix_prefix_meta_operator:sym<Z> { <sym> <infixish('Z')> <O('%list_infix')> }
     token infix:sym<minmax> { <sym> >> <O('%list_infix')> }
 
     token infix:sym<:=> {
@@ -3329,7 +3334,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token infix:sym«<<==» { <sym> <O('%sequencer')> }
     token infix:sym«==>>» { <sym> <O('%sequencer')> }
 
-    token infix:sym<..>   { <sym> <O('%structural')> }
+    token infix:sym<..>   { <sym> [<!{ $*IN_META }> <?before ')' | ']'> <.panic: "Please use ..* for indefinite range">]? <O('%structural')> }
     token infix:sym<^..>  { <sym> <O('%structural')> }
     token infix:sym<..^>  { <sym> <O('%structural')> }
     token infix:sym<^..^> { <sym> <O('%structural')> }

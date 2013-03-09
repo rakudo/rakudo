@@ -2560,10 +2560,10 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     token numish {
         [
-        | <dec_number>
-        | <integer>
-        | <rad_number>
         | 'NaN' >>
+        | <integer>
+        | <dec_number>
+        | <rad_number>
         | 'Inf' >>
         | '+Inf' >>
         | '-Inf' >>
@@ -2577,6 +2577,21 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         | $<coeff> = [ <int=.decint> '.' <frac=.decint> ] <escale>?
         | $<coeff> = [ <int=.decint>                    ] <escale>
         ]
+    }
+    
+    token integer {
+        [
+        | 0 [ b '_'? <VALUE=binint>
+            | o '_'? <VALUE=octint>
+            | x '_'? <VALUE=hexint>
+            | d '_'? <VALUE=decint>
+            | <VALUE=decint>
+                <!!{ $/.CURSOR.worry("Leading 0 does not indicate octal in Perl 6; please use 0o" ~ $<VALUE>.Str ~ " if you mean that") }>
+            ]
+        | <VALUE=decint>
+        ]
+        <!!before ['.' <?before \s | ',' | '=' | <terminator> > <.sorry: "Decimal point must be followed by digit">]? >
+        [ <?before '_' '_'+\d> <.sorry: "Only isolated underscores are allowed inside numbers"> ]?
     }
 
     token rad_number {

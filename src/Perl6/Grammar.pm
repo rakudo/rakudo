@@ -963,7 +963,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     token eat_terminator {
         || ';'
-        || <?MARKED('endstmt')>
+        || <?MARKED('endstmt')> <.ws>
         || <?before ')' | ']' | '}' >
         || $
         || <?stopper>
@@ -1036,7 +1036,15 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token terminator:sym<given>  { 'given'  <.end_keyword> }
     token terminator:sym<when>   { 'when'   <.end_keyword> }
 
-    token stdstopper { <?terminator> }
+    token stdstopper {
+        [
+        || <?MARKED('endstmt')> <?>
+        || [
+           | <?terminator>
+           | $
+           ]
+       ]
+    }
 
     ## Statement control
 
@@ -2934,6 +2942,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
 
     token postfixish {
+        <!stdstopper>
+        
         # last whitespace didn't end here
         <!MARKED('ws')>
 

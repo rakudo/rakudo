@@ -1338,6 +1338,45 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         $<sym> = [ '::?' <identifier> ] »
     }
     
+    token infix:sym<lambda> {
+        <?before '{' | '->' > <!{ $*IN_META }> {
+            my $needparens := 0;
+            my $pos := $/.from;
+            my $line := HLL::Compiler.lineof($/.orig, $/.from, :cache(1));
+            my $lex := $*W.cur_lexpad();
+            for 'if', 'unless', 'while', 'until', 'for', 'given', 'when', 'loop', 'sub', 'method' {
+                $needparens++ if $_ eq 'loop';
+                my $m := %*MYSTERY{$_ ~ '-' ~ $lex.cuid};
+                next unless $m;
+                my $m_pos  := $m<pos>[nqp::elems($m<pos>) - 1];
+                my $m_line := HLL::Compiler.lineof($/.orig, $m_pos, :cache(1));
+                if $line - $m_line < 5 {
+                    if $m<ctx> eq '(' {
+                        $/.CURSOR.'!clear_highwater'();
+                        $/.CURSOR.'!cursor_pos'($m_pos);
+                        $/.CURSOR.sorry("Word '$_' interpreted as '$_" ~ "()' function call; please use whitespace " ~
+                            ($needparens ?? 'around the parens' !! 'instead of parens'));
+                        $/.CURSOR.'!cursor_pos'($pos);
+                        $/.CURSOR.panic("Unexpected block in infix position (two terms in a row)");
+                    }
+                    else {
+                        $/.CURSOR.'!clear_highwater'();
+                        $/.CURSOR.'!cursor_pos'($m_pos);
+                        $/.CURSOR.sorry("Word '$_' interpreted as a listop; please use 'do $_' to introduce the statement control word");
+                        $/.CURSOR.'!cursor_pos'($pos);
+                        $/.CURSOR.panic("Unexpected block in infix position (two terms in a row)");
+                    }
+                }
+            }
+        }
+        [
+        || <!{ $*IN_REDUCE }> {
+            $/.CURSOR.panic("Unexpected block in infix position (two terms in a row, or previous statement missing semicolon?)");
+        }
+        || <!>
+        ]
+    }
+    
     token term:sym<undef> {
         <sym> >> {}
         [ <?before \h*'$/' >

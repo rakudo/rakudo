@@ -94,17 +94,21 @@ my class IO::Socket::INET does IO::Socket {
         ++$!ins;
         my Mu $PIO  := nqp::getattr(self, $?CLASS, '$!PIO');
         $PIO.encoding(nqp::unbox_s(PARROT_ENCODING(self.encoding)));
-        my str $line = $PIO.readline(nqp::unbox_s($!input-line-separator));
-        my str $sep = $!input-line-separator;
+        my str $sep = nqp::unbox_s($!input-line-separator);
+        my str $line = $PIO.readline($sep);
         my int $len  = nqp::chars($line);
         my int $sep-len = nqp::chars($sep);
-        $len >= $sep-len && nqp::substr($line, $len - $sep-len) eq nqp::unbox_s($sep)
-            ?? nqp::p6box_s(nqp::substr($line, 0, $len - $sep-len))
-            !! nqp::p6box_s($line);
+        if $len == 0 { Str }
+        elsif $len >= $sep-len && nqp::substr($line, $len - $sep-len) eq $sep {
+            nqp::p6box_s(nqp::substr($line, 0, $len - $sep-len));
+        }
+        else { nqp::p6box_s($line) }
     }
 
     method lines() {
-        gather { take self.get() };
+        gather while (my $line = self.get()).defined {
+            take $line;
+        }
     }
 
     method accept() {

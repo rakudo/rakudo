@@ -2960,7 +2960,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         [
         | <colonpair> <OPER=fake_infix>
         | :dba('bracketed infix') '[' ~ ']' <infixish('[]')> {} <OPER=.copyOPER($<infixish>)>
-            [ <!before '='> { self.worry("Useless use of [] around infix op") unless $*IN_META; } ]?
+            # XXX Gets false positives.
+            #[ <!before '='> { self.worry("Useless use of [] around infix op") unless $*IN_META; } ]?
         | <OPER=infix_circumfix_meta_operator>
         | <OPER=infix> <![=]>
         | <OPER=infix_prefix_meta_operator>

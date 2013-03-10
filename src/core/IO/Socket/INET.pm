@@ -92,17 +92,36 @@ my class IO::Socket::INET does IO::Socket {
 
     method get() {
         ++$!ins;
+
         my Mu $PIO  := nqp::getattr(self, $?CLASS, '$!PIO');
         $PIO.encoding(nqp::unbox_s(PARROT_ENCODING(self.encoding)));
+
         my str $sep = nqp::unbox_s($!input-line-separator);
-        my str $line = $PIO.readline($sep);
-        my int $len  = nqp::chars($line);
         my int $sep-len = nqp::chars($sep);
-        if $len == 0 { Str }
-        elsif $len >= $sep-len && nqp::substr($line, $len - $sep-len) eq $sep {
-            nqp::p6box_s(nqp::substr($line, 0, $len - $sep-len));
+
+        my @chunks;
+        my str $chunk;
+        my int $len;
+
+        # readline() might return without having encountered $sep if the line
+        # is 'too long', so we keep reading until we find it.
+        #
+        # XXX Not 100% sure this works correctly in case of a multi-charater
+        # separator that gets split across chunks:
+        #
+        # While the Parrot-side contains code to handle this, I did not verify
+        # that it works as expected in case of sockets (or other IO handles
+        # where PIO_VF_MULTI_READABLE is not set).
+
+        while $len = nqp::chars($chunk = $PIO.readline($sep)) {
+            if $len >= $sep-len && nqp::substr($chunk, $len - $sep-len) eq $sep {
+                @chunks.push(nqp::p6box_s(nqp::substr($chunk, 0, $len - $sep-len)));
+                last;
+            }
+            else { @chunks.push(nqp::p6box_s($chunk)) }
         }
-        else { nqp::p6box_s($line) }
+
+        @chunks ?? @chunks.join !! Str;
     }
 
     method lines() {

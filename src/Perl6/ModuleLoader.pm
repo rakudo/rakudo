@@ -129,7 +129,7 @@ class Perl6::ModuleLoader {
             if +@*MODULES  == 0 {
                 my %prev        := nqp::hash();
                 %prev<line>     := $line;
-                %prev<filename> := pir::find_caller_lex__Ps('$?FILES');
+                %prev<filename> := nqp::getlexdyn('$?FILES');
                 @*MODULES[0]    := %prev;
             }
             else {

@@ -61,30 +61,87 @@ my class Cursor does NQPCursorRole {
             my $pos := nqp::getattr_i($cur, $?CLASS, '$!from');
             my $tgt := $cur.target;
             my $eos := nqp::chars($tgt);
+            my Mu $nfa := QRegex::NFA.new;
+            my $fate   := 0;
+            my $count  := 0;
+            my $start  := 1;
+            my Mu $alts := nqp::list();
+            my Mu $order := nqp::list();
 
-            for nqp::istype($var, Positional) || nqp::istype($var, Capture)
-                ?? $var.list !! $var -> $topic {
+            if nqp::istype($var, Positional) || nqp::istype($var, Capture) {
+                if $s {
+                    # The order matters for sequential matching, therefor no NFA involved.
+                    $order := $var.list;
+                }
+                else {
+                    # prepare to run the NFA if $var is array-ish.
+                    for $var.list -> $topic {
+                        nqp::push($alts, $topic);
+                        if $a {
+                            # We are in a regex assertion, the strings we get will be treated as
+                            # regex rules.
+                            my $rx := eval( $i  ?? "my \$x = anon regex \{:i ^$topic \}"
+                                                !! "my \$x = anon regex \{ ^$topic \}" );
+                            my Mu $nfas := nqp::findmethod($rx, 'NFA')($rx);
+                            $nfa.mergesubstates($start, 0, $fate, $nfas, Mu);
+                        }
+                        elsif $topic ~~ Regex {
+                            # A Regex already.
+                            my Mu $nfas := nqp::findmethod($topic, 'NFA')($topic);
+                            $nfa.mergesubstates($start, 0, $fate, $nfas, Mu);
+                        }
+                        else {
+                            # The pattern is a string.
+                            my Mu $lit  := QAST::Regex.new( :rxtype<literal>, $topic,
+                                                            :subtype( $i ?? 'ignorecase' !! '') );
+                            my Mu $nfa2 := QRegex::NFA.new;
+                            my Mu $node := nqp::findmethod($nfa2, 'addnode')($nfa2, $lit);
+                            my Mu $save := nqp::findmethod($node, 'save')($node, :non_empty(1));
+                            $nfa.mergesubstates($start, 0, $fate, $save, Mu);
+                        }
+                        $fate := $fate + 1;
+                    }
+
+                    # Now run the NFA
+                    my Mu $fates := nqp::findmethod($nfa, 'run')($nfa, $tgt, $pos);
+                    $fate        := 0;
+                    $count       := nqp::elems($fates);
+                    while nqp::islt_i($fate, $count) {
+                        my $thing := nqp::atpos_i($fates, $fate);
+                        nqp::push($order, nqp::atpos($alts, $thing));
+                        $fate := nqp::add_i($fate, 1);
+                    }
+                }
+            }
+            else {
+                # Use the $var as it is if it's not array-ish.
+                $order := $var;
+            }
+
+            for $order -> $topic {
                 my $match;
                 my $len;
                 
-                # We are in a regex assertion, the strings we get will be treated as
-                # regex rules.
                 if $a {
-                    my $rx := eval("my \$x = anon regex \{ ^$topic \}");
+                    # We are in a regex assertion, the strings we get will be treated as
+                    # regex rules.
+                    my $rx := eval( $i  ?? "my \$x = anon regex \{:i ^$topic \}"
+                                        !! "my \$x = anon regex \{ ^$topic \}" );
                     $match := (nqp::substr($tgt, $pos, $eos - $pos) ~~ $rx).Str;
                     $len   := nqp::chars( $match );
                 }
-                # A Regex already.
                 elsif $topic ~~ Regex {
+                    # A Regex already.
                     $match := nqp::substr($tgt, $pos, $eos - $pos) ~~ $topic;
+                    
                     # In order to return the correct result we need to match from the
                     # current position only.
                     next if $match.from;
                     $match := ~$match;
                     $len   := nqp::chars( $match );
                 }
-                # The pattern is a string.
                 else {
+                    # The pattern is a string.
                     $len   := nqp::chars( $topic );
                     $match := $len < 1
                             ||  ($i ?? nqp::lc(nqp::substr($tgt, $pos, $len)) eq nqp::lc($topic)

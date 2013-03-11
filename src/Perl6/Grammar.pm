@@ -1053,7 +1053,12 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token statement_control:sym<if> {
         <sym> <.end_keyword> :s
         <xblock>
-        [ 'elsif'\s <xblock> ]*
+        [
+            [
+            | 'else'\h*'if' <.sorry: "Please use 'elsif'">
+            | 'elsif'\s <xblock>
+            ]
+        ]*
         [ 'else'\s <else=.pblock> ]?
     }
 

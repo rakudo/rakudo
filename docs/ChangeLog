@@ -1,3 +1,23 @@
+New in 2013.03
++ Type names now gist as (Any) rather than Any()
++ Warn when pure expressions are used in sink context
++ Cool.substr(...) now correctly accepts whatever-star closures
++ Fix character class subtraction bugs
++ Correctly detect undeclared variables in regex assertions
++ :i now respected in character classes
++ Improved output of Rat.perl
++ Implemented shellwords postcircumfix (%h<< $x 'foo bar' >>)
++ User-defined circumfixes now parse a semilist rather than just an expression
+  and handle whitespace correctly
++ Forbid null operators
++ Warn about leading 0 not indicating octal in Perl 6
++ Fix some automatic end of statement on "}" parse bugs
++ Better error message on for(...) {} being interpreted as a function call
++ Array interpolations now properly do LTM
++ Respect :i in constructs like /:i <$var>/
++ Autothread "none" and "all" junctions before "any" and "one"
++ Helpful error if you write "else if" instead of "elsif"
+
 New in 2013.02
 + "Did you mean ..." suggestions for symbol-not-found errors
 + Compile-time optimization of some cases of junctions in boolean context

@@ -700,6 +700,10 @@ my class X::Syntax::UnlessElse does X::Syntax {
     method message() { '"unless" does not take "else", please rewrite using "if"' }
 }
 
+my class X::Syntax::Malformed::Elsif does X::Syntax {
+    method message() { 'please use "elsif" instead of "else if"' }
+}
+
 my class X::Syntax::Reserved does X::Syntax {
     has $.reserved;
     has $.instead = '';

@@ -1055,7 +1055,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <xblock>
         [
             [
-            | 'else'\h*'if' <.sorry: "Please use 'elsif'">
+            | 'else'\h*'if' <.typed_panic: 'X::Syntax::Malformed::Elsif'>
             | 'elsif'\s <xblock>
             ]
         ]*

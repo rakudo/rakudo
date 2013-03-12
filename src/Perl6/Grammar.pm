@@ -1056,6 +1056,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         [
             [
             | 'else'\h*'if' <.typed_panic: 'X::Syntax::Malformed::Elsif'>
+            | 'elif' { $/.CURSOR.typed_panic('X::Syntax::Malformed::Elsif', what => "elif") }
             | 'elsif'\s <xblock>
             ]
         ]*

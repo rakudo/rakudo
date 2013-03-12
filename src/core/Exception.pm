@@ -701,7 +701,8 @@ my class X::Syntax::UnlessElse does X::Syntax {
 }
 
 my class X::Syntax::Malformed::Elsif does X::Syntax {
-    method message() { 'please use "elsif" instead of "else if"' }
+    has $.what = 'else if';
+    method message() { qq{In Perl 6, please use "elsif' instead of "$.what"} }
 }
 
 my class X::Syntax::Reserved does X::Syntax {

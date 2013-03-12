@@ -707,6 +707,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*SCOPE := '';                         # which scope declarator we're under
         :my $*MULTINESS := '';                     # which multi declarator we're under
         :my $*QSIGIL := '';                        # sigil of current interpolation
+        :my $*IN_META := '';                       # parsing a metaoperator like [..]
+        :my $*IN_REDUCE := 0;                      # attempting to parse an [op] construct
         :my $*IN_DECL;                             # what declaration we're in
         :my $*HAS_SELF := '';                      # is 'self' available? (for $.foo style calls)
         :my $*MONKEY_TYPING := 0;                  # whether augment/supersede are allowed
@@ -924,6 +926,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     rule semilist {
         :dba('semicolon list')
+        ''
         [
         | <?before <[)\]}]> >
         | [<statement><.eat_terminator> ]*
@@ -1336,7 +1339,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         [ <?before [ '(' || \h*<sigil><twigil>?\w ] >
             <.obs('undef as a verb', 'undefine function or assignment of Nil')>
         ]?
-        <.obs('undef as a value', "something more specific:\n\tMu (the \"most undefined\" type object),\n\tan undefined type object such as Int,\n\tNil as an empty list,\n\t!*.defined as a matcher or method,\n\tAny:U as a type constraint\n\tor fail() as a failure return\n\t   ")>
+        <.obs('undef as a value', "something more specific:\n\tMu (the \"most undefined\" type object),\n\tan undefined type object such as Int,\n\t:!defined as a matcher,\n\tAny:U as a type constraint,\n\tNil as the absense of a value\n\tor fail() as a failure return\n\t   ")>
     }
 
     token term:sym<new> {
@@ -1345,6 +1348,13 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     token fatarrow {
         <key=.identifier> \h* '=>' <.ws> <val=.EXPR('i=')>
+    }
+    
+    token coloncircumfix($front) {
+        [
+        | '<>' <.worry("Pair with <> really means an empty list, not null string; use :$front" ~ "('') to represent the null string,\n  or :$front" ~ "() to represent the empty list more accurately")>
+        | <circumfix>
+        ]
     }
 
     token colonpair {
@@ -1361,12 +1371,12 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         | <identifier>
             { $*key := $<identifier>.Str; }
             [
-            || <.unsp>? :dba('pair value') <circumfix> { $*value := $<circumfix>; }
+            || <.unsp>? :dba('pair value') <coloncircumfix($*key)> { $*value := $<coloncircumfix>; }
             || { $*value := 1; }
             ]
         | :dba('signature') '(' ~ ')' <fakesignature>
-        | <circumfix>
-            { $*key := ""; $*value := $<circumfix>; }
+        | <coloncircumfix('')>
+            { $*key := ""; $*value := $<coloncircumfix>; }
         | <var=.colonpair_variable>
             { $*key := $<var><desigilname>.Str; $*value := $<var>; self.check_variable($*value); }
         ]
@@ -1603,6 +1613,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
 
     token variable {
+        :my $*IN_META := '';
         <?before <sigil> {
             unless $*LEFTSIGIL {
                 $*LEFTSIGIL := $<sigil>.Str;
@@ -1611,7 +1622,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         [
         || '&'
             [
-            | :dba('infix noun') '[' ~ ']' <infixish>
+            | :dba('infix noun') '[' ~ ']' <infixish('[]')>
             ]
         ||  [
             | <sigil> <twigil>? <desigilname>
@@ -1794,10 +1805,6 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                     unless $*MONKEY_TYPING {
                         $/.CURSOR.typed_panic('X::Syntax::Augment::WithoutMonkeyTyping');
                     }
-                    if $*PKGDECL eq 'role' {
-                        $/.CURSOR.typed_panic('X::Syntax::Augment::Role',
-                                role-name => $longname.text);
-                    }
                     unless @name {
                         $*W.throw($/, 'X::Anon::Augment', package-kind => $*PKGDECL);
                     }
@@ -1810,6 +1817,10 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                             package-kind => $*PKGDECL,
                             package      => $longname.text(),
                         );
+                    }
+                    unless $*PACKAGE.HOW.archetypes.augmentable {
+                        $/.CURSOR.typed_panic('X::Syntax::Augment::Illegal',
+                            package      => $longname.text);
                     }
                 }
                 
@@ -2026,11 +2037,13 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <.attach_docs>
         <deflongname>?
         {
-            if $<deflongname> && $<deflongname>[0]<colonpair>[0]<circumfix><nibble> -> $cp {
+            if $<deflongname> && $<deflongname>[0]<colonpair>[0]<coloncircumfix> -> $cf {
                 # It's an (potentially new) operator, circumfix, etc. that we
                 # need to tweak into the grammar.
                 my $category := $<deflongname>[0]<name>.Str;
-                my $opname := $*W.colonpair_nibble_to_str($/, $cp);
+                my $opname := $cf<circumfix>
+                    ?? $*W.colonpair_nibble_to_str($/, $cf<circumfix><nibble>)
+                    !! '';
                 my $canname := $category ~ ":sym<" ~ $opname ~ ">";
                 $/.CURSOR.add_categorical($category, $opname, $canname, $<deflongname>[0].ast, $*DECLARAND);
             }
@@ -2085,11 +2098,13 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <.attach_docs>
         <deflongname>?
         {
-            if $<deflongname> && $<deflongname>[0]<colonpair>[0]<circumfix><nibble> -> $cp {
+            if $<deflongname> && $<deflongname>[0]<colonpair>[0]<coloncircumfix> -> $cf {
                 # It's an (potentially new) operator, circumfix, etc. that we
                 # need to tweak into the grammar.
                 my $category := $<deflongname>[0]<name>.Str;
-                my $opname := $*W.colonpair_nibble_to_str($/, $cp);
+                my $opname := $cf<circumfix>
+                    ?? $*W.colonpair_nibble_to_str($/, $cf<circumfix><nibble>)
+                    !! '';
                 my $canname := $category ~ ":sym<" ~ $opname ~ ">";
                 $/.CURSOR.add_categorical($category, $opname, $canname, $<deflongname>[0].ast, $*DECLARAND);
             }
@@ -2548,10 +2563,10 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     token numish {
         [
-        | <dec_number>
-        | <integer>
-        | <rad_number>
         | 'NaN' >>
+        | <integer>
+        | <dec_number>
+        | <rad_number>
         | 'Inf' >>
         | '+Inf' >>
         | '-Inf' >>
@@ -2565,6 +2580,21 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         | $<coeff> = [ <int=.decint> '.' <frac=.decint> ] <escale>?
         | $<coeff> = [ <int=.decint>                    ] <escale>
         ]
+    }
+    
+    token integer {
+        [
+        | 0 [ b '_'? <VALUE=binint>
+            | o '_'? <VALUE=octint>
+            | x '_'? <VALUE=hexint>
+            | d '_'? <VALUE=decint>
+            | <VALUE=decint>
+                <!!{ $/.CURSOR.worry("Leading 0 does not indicate octal in Perl 6; please use 0o" ~ $<VALUE>.Str ~ " if you mean that") }>
+            ]
+        | <VALUE=decint>
+        ]
+        <!!before ['.' <?before \s | ',' | '=' | <terminator> > <.sorry: "Decimal point must be followed by digit">]? >
+        [ <?before '_' '_'+\d> <.sorry: "Only isolated underscores are allowed inside numbers"> ]?
     }
 
     token rad_number {
@@ -2875,13 +2905,15 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <.ws>
     }
 
-    token infixish {
-        :dba('infix or meta-infix')
-        <!infixstopper>
+    token infixish($in_meta = nqp::getlexdyn('$*IN_META')) {
+        :my $*IN_META := $in_meta;
         <!stdstopper>
+        <!infixstopper>
+        :dba('infix or meta-infix')
         [
         | <colonpair> <OPER=fake_infix>
-        | :dba('bracketed infix') '[' ~ ']' <infixish> {} <OPER=.copyOPER($<infixish>)>
+        | :dba('bracketed infix') '[' ~ ']' <infixish('[]')> {} <OPER=.copyOPER($<infixish>)>
+            [ <!before '='> { self.worry("Useless use of [] around infix op") unless $*IN_META; } ]?
         | <OPER=infix_circumfix_meta_operator>
         | <OPER=infix> <![=]>
         | <OPER=infix_prefix_meta_operator>
@@ -2941,8 +2973,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         
         '['
         [
-        || <op=.infixish> <?before ']'>
-        || $<triangle>=[\\]<op=.infixish> <?before ']'>
+        || <op=.infixish('red')> <?before ']'>
+        || $<triangle>=[\\]<op=.infixish('tri')> <?before ']'>
         || <!>
         ]
         ']'
@@ -2961,14 +2993,14 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     token infix_circumfix_meta_operator:sym<« »> {
         $<opening>=[ '«' | '»' ]
-        {} <infixish>
+        {} <infixish('hyper')>
         $<closing>=[ '«' | '»' || <.missing("« or »")> ]
         {} <O=.copyO($<infixish>)>
     }
 
     token infix_circumfix_meta_operator:sym«<< >>» {
         $<opening>=[ '<<' | '>>' ]
-        {} <infixish>
+        {} <infixish('HYPER')>
         $<closing>=[ '<<' | '>>' || <.missing("<< or >>")> ]
         {} <O=.copyO($<infixish>)>
     }
@@ -3061,6 +3093,26 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         ]
         <O('%methodcall')>
     }
+    
+    token postcircumfix:sym«<< >>» {
+        :dba('shell-quote words')
+        '<<'
+        [
+        || <nibble(self.quote_lang(%*LANG<Q>, "<<", ">>", ['qq', 'ww']))> '>>'
+        || { $/.CURSOR.panic("Unable to parse quote-words subscript; couldn't find right double-angle quote") }
+        ]
+        <O('%methodcall')>
+    }
+    
+    token postcircumfix:sym<« »> {
+        :dba('shell-quote words')
+        '«'
+        [
+        || <nibble(self.quote_lang(%*LANG<Q>, "«", "»", ['qq', 'ww']))> '»'
+        || { $/.CURSOR.panic("Unable to parse quote-words subscript; couldn't find right double-angle quote") }
+        ]
+        <O('%methodcall')>
+    }
 
     token postcircumfix:sym<( )> {
         :dba('argument list')
@@ -3108,12 +3160,12 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token infix:sym<+&>   { <sym>  <O('%multiplicative')> }
     token infix:sym<~&>   { <sym>  <O('%multiplicative')> }
     token infix:sym<?&>   { <sym>  <O('%multiplicative')> }
-    token infix:sym«+<»   { <sym> <!before '<'> <O('%multiplicative')> }
-    token infix:sym«+>»   { <sym> <!before '>'> <O('%multiplicative')> }
+    token infix:sym«+<»   { <sym> [ <!{ $*IN_META }> || <?before '<<'> || <!before '<'> ] <O('%multiplicative')> }
+    token infix:sym«+>»   { <sym> [ <!{ $*IN_META }> || <?before '>>'> || <!before '>'> ] <O('%multiplicative')> }
 
-    token infix:sym«<<» { <sym> \s <.sorryobs('<< to do left shift', '+< or ~<')> }
+    token infix:sym«<<» { <sym> <!{ $*IN_META }> <?before \s> <.sorryobs('<< to do left shift', '+< or ~<')> <O('%multiplicative')> }
 
-    token infix:sym«>>» { <sym> \s <.sorryobs('>> to do right shift', '+> or ~>')> }
+    token infix:sym«>>» { <sym> <!{ $*IN_META }> <?before \s> <.sorryobs('>> to do right shift', '+> or ~>')> <O('%multiplicative')> }
 
     token infix:sym<+>    { <sym>  <O('%additive')> }
     token infix:sym<->    {
@@ -3205,17 +3257,17 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
 
     token infix_prefix_meta_operator:sym<!> {
-        <sym> <infixish> 
+        <sym> <!before '!'> {} [ <infixish('neg')> || <.panic: "Negation metaoperator not followed by valid infix"> ]
         [
         || <?{ $<infixish>.Str eq '=' }> <O('%chaining')>
         || <?{ $<infixish><OPER><O><iffy> }> <O=.copyO($<infixish>)>
         || <.panic("Cannot negate " ~ $<infixish>.Str ~ " because it is not iffy enough")>
         ]
     }
-    token infix_prefix_meta_operator:sym<R> { <sym> <infixish> {} <O=.copyO($<infixish>)> }
-    token infix_prefix_meta_operator:sym<S> { <sym> <infixish> {} <O=.copyO($<infixish>)> }
-    token infix_prefix_meta_operator:sym<X> { <sym> <infixish> <O('%list_infix')> }
-    token infix_prefix_meta_operator:sym<Z> { <sym> <infixish> <O('%list_infix')> }
+    token infix_prefix_meta_operator:sym<R> { <sym> <infixish('R')> {} <O=.copyO($<infixish>)> }
+    token infix_prefix_meta_operator:sym<S> { <sym> <infixish('S')> {} <O=.copyO($<infixish>)> }
+    token infix_prefix_meta_operator:sym<X> { <sym> <infixish('X')> <O('%list_infix')> }
+    token infix_prefix_meta_operator:sym<Z> { <sym> <infixish('Z')> <O('%list_infix')> }
     token infix:sym<minmax> { <sym> >> <O('%list_infix')> }
 
     token infix:sym<:=> {
@@ -3282,7 +3334,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token infix:sym«<<==» { <sym> <O('%sequencer')> }
     token infix:sym«==>>» { <sym> <O('%sequencer')> }
 
-    token infix:sym<..>   { <sym> <O('%structural')> }
+    token infix:sym<..>   { <sym> [<!{ $*IN_META }> <?before ')' | ']'> <.panic: "Please use ..* for indefinite range">]? <O('%structural')> }
     token infix:sym<^..>  { <sym> <O('%structural')> }
     token infix:sym<..^>  { <sym> <O('%structural')> }
     token infix:sym<^..^> { <sym> <O('%structural')> }
@@ -3381,6 +3433,11 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     method add_categorical($category, $opname, $canname, $subname, $declarand?) {
         my $self := self;
         
+        # Ensure it's not a null name.
+        if $opname eq '' {
+            self.typed_panic('X::Syntax::Extension::Null');
+        }
+        
         # If we already have the required operator in the grammar, just return.
         if nqp::can(self, $canname) {
             return 1;
@@ -3440,8 +3497,12 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             if +@parts != 2 {
                 nqp::die("Unable to find starter and stopper from '$opname'");
             }
-            my role Circumfix[$meth_name, $opener, $closer] {
-                token ::($meth_name) { $opener <EXPR> $closer }
+            my role Circumfix[$meth_name, $starter, $stopper] {
+                token ::($meth_name) {
+                    :my $*GOAL := $stopper;
+                    :my $stub := %*LANG<MAIN> := nqp::getlex('$¢').unbalanced($stopper);
+                    $starter ~ $stopper <semilist>
+                }
             }
             self.HOW.mixin(self, Circumfix.HOW.curry(Circumfix, $canname, @parts[0], @parts[1]));
         }
@@ -3463,7 +3524,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                 method ::($meth)($/) {
                     make QAST::Op.new(
                         :op('call'), :name('&' ~ $subname),
-                        $<EXPR>.ast
+                        $<semilist>.ast
                     );
                 }
             };

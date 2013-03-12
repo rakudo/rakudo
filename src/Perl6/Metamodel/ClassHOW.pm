@@ -31,7 +31,8 @@ class Perl6::Metamodel::ClassHOW
         $invoke_forwarder := $f;
     }
 
-    my $archetypes := Perl6::Metamodel::Archetypes.new( :nominal(1), :inheritable(1) );
+    my $archetypes := Perl6::Metamodel::Archetypes.new(
+        :nominal(1), :inheritable(1), :augmentable(1) );
     method archetypes() {
         $archetypes
     }

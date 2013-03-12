@@ -2619,6 +2619,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $coderef := regex_coderef($/, $*DECLARAND, $<nibble>.ast, $*SCOPE, $name, %sig_info, $*CURPAD, $<trait>);
         }
 
+        # Install &?ROUTINE.
+        $*W.install_lexical_symbol($*CURPAD, '&?ROUTINE', $*DECLARAND);
+
         # Return closure if not in sink context.
         my $closure := block_closure($coderef);
         $closure<sink_past> := QAST::Op.new( :op('null') );
@@ -2680,9 +2683,6 @@ class Perl6::Actions is HLL::Actions does STDActions {
         
         # Install in needed scopes.
         install_method($/, $name, $scope, $code, $outer) if $name ne '';
-
-        # Install &?ROUTINE.
-        $*W.install_lexical_symbol($block, '&?ROUTINE', $code);
 
         # Return a reference to the code object
         reference_to_code_object($code, $past);

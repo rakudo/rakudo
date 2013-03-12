@@ -113,7 +113,9 @@ my class IO::Socket::INET does IO::Socket {
     }
 
     method lines() {
-        gather { take self.get() };
+        gather while (my $line = self.get()).defined {
+            take $line;
+        }
     }
 
     method accept() {

@@ -91,16 +91,25 @@ my class IO::Socket::INET does IO::Socket {
     }
 
     method get() {
-        ++$!ins;
-        my Mu $PIO  := nqp::getattr(self, $?CLASS, '$!PIO');
-        $PIO.encoding(nqp::unbox_s(PARROT_ENCODING(self.encoding)));
-        my str $line = $PIO.readline(nqp::unbox_s($!input-line-separator));
-        my str $sep = $!input-line-separator;
-        my int $len  = nqp::chars($line);
+        my str $encoding = nqp::unbox_s(PARROT_ENCODING($!encoding));
+        my str $sep = pir::trans_encoding__SSI(
+            nqp::unbox_s($!input-line-separator),
+            pir::find_encoding__IS($encoding));
         my int $sep-len = nqp::chars($sep);
-        $len >= $sep-len && nqp::substr($line, $len - $sep-len) eq nqp::unbox_s($sep)
-            ?? nqp::p6box_s(nqp::substr($line, 0, $len - $sep-len))
-            !! nqp::p6box_s($line);
+        
+        my Mu $PIO := nqp::getattr(self, $?CLASS, '$!PIO');
+        $PIO.encoding($encoding);
+        
+        my str $line = $PIO.readline($sep);
+        my int $len  = nqp::chars($line);
+        
+        if $len == 0 { Str }
+        else {
+            ++$!ins;
+            $len >= $sep-len && nqp::substr($line, $len - $sep-len) eq $sep
+                ?? nqp::p6box_s(nqp::substr($line, 0, $len - $sep-len))
+                !! nqp::p6box_s($line);
+        }
     }
 
     method lines() {

@@ -2681,6 +2681,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
         # Install in needed scopes.
         install_method($/, $name, $scope, $code, $outer) if $name ne '';
 
+        # Install &?ROUTINE.
+        $*W.install_lexical_symbol($block, '&?ROUTINE', $code);
+
         # Return a reference to the code object
         reference_to_code_object($code, $past);
     }

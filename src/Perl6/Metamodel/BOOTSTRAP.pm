@@ -963,8 +963,8 @@ BEGIN {
                             # First, if there's a required named parameter and it was
                             # not passed, we can very quickly eliminate this candidate
                             # without doing a full bindability check.
-                            if %info<req_named> -> $name {
-                                unless nqp::captureexistsnamed($capture, $name) {
+                            if nqp::existskey(%info, 'req_named') {
+                                unless nqp::captureexistsnamed($capture, nqp::atkey(%info, 'req_named')) {
                                     # Required named arg not passed, so we eliminate
                                     # it right here. Flag that we've built a list of
                                     # new possibles, and that this was not a pure
@@ -977,8 +977,8 @@ BEGIN {
                             }
 
                             # Otherwise, may need full bind check.
-                            if %info<bind_check> {
-                                my $sub := %info<sub>;
+                            if nqp::existskey(%info, 'bind_check') {
+                                my $sub := nqp::atkey(%info, 'sub');
                                 my $ctf := pir::getprop__PsP("COMPILER_THUNK",
                                     nqp::getattr($sub, Code, '$!do'));
                                 unless nqp::isnull($ctf) {
@@ -996,7 +996,7 @@ BEGIN {
                                 
                                 my $sig := nqp::getattr($sub, Code, '$!signature');
                                 if pir::perl6_is_sig_bindable__IPP($sig, $capture) {
-                                    nqp::push($new_possibles, @possibles[$i]);
+                                    nqp::push($new_possibles, nqp::atpos(@possibles, $i));
                                     $i++;
                                     last unless $many;
                                 }
@@ -1005,10 +1005,10 @@ BEGIN {
                             # Otherwise, it's just nominal; accept it.
                             else {
                                 if $new_possibles {
-                                    nqp::push($new_possibles, @possibles[$i]);
+                                    nqp::push($new_possibles, nqp::atpos(@possibles, $i));
                                 }
                                 else {
-                                    $new_possibles := [@possibles[$i]];
+                                    $new_possibles := [nqp::atpos(@possibles, $i)];
                                 }
                             }
                             $i++;
@@ -1058,8 +1058,8 @@ BEGIN {
 
                 $i := 0;
                 while $i < $type_check_count {
-                    my $type_obj     := nqp::atpos($cur_candidate<types>, $i);
-                    my $type_flags   := nqp::atpos_i($cur_candidate<type_flags>, $i);
+                    my $type_obj     := nqp::atpos(nqp::atkey($cur_candidate, 'types'), $i);
+                    my $type_flags   := nqp::atpos_i(nqp::atkey($cur_candidate, 'type_flags'), $i);
                     my int $got_prim := nqp::captureposprimspec($capture, $i);
                     if $type_flags +& $TYPE_NATIVE_MASK {
                         # Looking for a natively typed value. Did we get one?
@@ -1126,7 +1126,8 @@ BEGIN {
                 # no help, so we'll not bother collecting just which ones are good.
                 my $default_cand;
                 for @possibles {
-                    if nqp::can($_<sub>, 'default') && $_<sub>.default {
+                    my $sub := nqp::atkey($_, 'sub');
+                    if nqp::can($sub, 'default') && $sub.default {
                         if nqp::isconcrete($default_cand) {
                             $default_cand := Mu;
                         }
@@ -1169,7 +1170,7 @@ BEGIN {
 
             # Need a unique candidate.
             if nqp::elems(@possibles) == 1 {
-                @possibles[0]<sub>
+                nqp::atkey(nqp::atpos(@possibles, 0), 'sub')
             }
             elsif nqp::isconcrete($junctional_res) {
                 $junctional_res;

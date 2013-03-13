@@ -377,12 +377,7 @@ class Perl6::Optimizer {
                                 :protoguilt($ct_result_proto == -1));
                         }
                     }
-                    
-                    # Otherwise, inline the proto.
                     if $op.op eq 'chain' { $!chain_depth := $!chain_depth - 1 }
-                    if $*LEVEL >= 2 {
-                        return self.inline_proto($op, $obj);
-                    }
                 }
                 elsif !$dispatcher && nqp::can($obj, 'signature') {
                     # If we know enough about the arguments, do a "trial bind".
@@ -708,16 +703,6 @@ class Perl6::Optimizer {
         );
     }
     
-    # Inlines a proto.
-    method inline_proto($call, $proto) {
-        $call.unshift(QAST::Op.new(
-            :op('p6mdthunk'),
-            QAST::Var.new( :name($call.name), :scope('lexical') )));
-        $call.name(nqp::null());
-        $call.op('call');
-        $call
-    }
-    
     # Inlines a call to a sub.
     method inline_call($call, $code_obj) {
         # If the code object is marked soft, can't inline it.
@@ -755,8 +740,12 @@ class Perl6::Optimizer {
         for @cands {
             if $_ =:= $chosen {
                 $call.unshift(QAST::Op.new(
-                    :op('p6mdcandthunk'),
-                    QAST::Var.new( :name($call.name), :scope('lexical') ),
+                    :op('atpos'),
+                    QAST::Var.new(
+                        :name('$!dispatchees'), :scope('attribute'),
+                        QAST::Var.new( :name($call.name), :scope('lexical') ),
+                        QAST::WVal.new( :value(self.find_lexical('Routine')) )
+                    ),
                     QAST::IVal.new( :value($idx) )
                 ));
                 $call.name(nqp::null());

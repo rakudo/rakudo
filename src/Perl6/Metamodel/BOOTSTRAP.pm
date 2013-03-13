@@ -1622,7 +1622,9 @@ pir::new__PsP('Perl6LexPad', hash()).configure_magicals(
 Perl6::Metamodel::ParametricRoleGroupHOW.set_selector_creator({
     my $sel := nqp::create(Sub);
     my $onlystar := sub (*@pos, *%named) {
-        pir::perl6_enter_multi_dispatch_from_onlystar_block__P();
+        nqp::invokewithcapture(
+            nqp::getcodeobj(nqp::curcode()).find_best_dispatchee(nqp::usecapture()),
+            nqp::usecapture())
     };
     pir::perl6_associate_sub_code_object__vPP($onlystar, $sel);
     nqp::bindattr($sel, Code, '$!do', $onlystar);

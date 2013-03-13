@@ -951,67 +951,50 @@ BEGIN {
                     # bindability check requirement, we'll do any of those now.
                     if nqp::elems(@possibles) {
                         my $new_possibles;
-
+                        my %info;
                         $i := 0;
                         while $i < nqp::elems(@possibles) {
+                            %info := nqp::atpos(@possibles, $i);
+                            
                             # First, if there's a required named parameter and it was
                             # not passed, we can very quickly eliminate this candidate
                             # without doing a full bindability check.
-                            if @possibles[$i]<req_named> {
-                                nqp::die("NYI required name check");
-                                #if (!VTABLE_exists_keyed_str(interp, capture, possibles[i]->req_named)) {
-                                #    /* Required named arg not passed, so we eliminate
-                                #     * it right here. Flag that we've built a list of
-                                #     * new possibles, and that this was not a pure
-                                #     * type-based result that we can cache. */
-                                #    if (!new_possibles)
-                                #        new_possibles = mem_allocate_n_typed(num_candidates, Rakudo_md_candidate_info *);
-                                #    pure_type_result = 0;
-                                #    continue;
-                                #}
+                            if %info<req_named> -> $name {
+                                unless nqp::captureexistsnamed($capture, $name) {
+                                    # Required named arg not passed, so we eliminate
+                                    # it right here. Flag that we've built a list of
+                                    # new possibles, and that this was not a pure
+                                    # type-based result that we can cache.
+                                    $new_possibles := [] unless nqp::islist($new_possibles);
+                                    $pure_type_result := 0;
+                                    $i++;
+                                    next;
+                                }
                             }
 
                             # Otherwise, may need full bind check.
-                            if @possibles[$i]<bind_check> {
-                                nqp::die("Bind check NYI");
-                                #/* We'll invoke the sub (but not re-enter the runloop)
-                                # * and then attempt to bind the signature. */
-                                #PMC      *cthunk, *lexpad, *sig;
-                                #opcode_t *where;
-                                #INTVAL    bind_check_result;
-                                #Rakudo_Code *code_obj = (Rakudo_Code *)PMC_data(possibles[i]->sub);
-                                #cthunk = Parrot_pmc_getprop(interp, code_obj->_do,
-                                #    Parrot_str_new(interp, "COMPILER_THUNK", 0));
-                                #if (!PMC_IS_NULL(cthunk)) {
-                                #    /* We need to do the tie-break on something not yet compiled.
-                                #     * Get it compiled. */
-                                #    Parrot_ext_call(interp, cthunk, "->");
-                                #}
-                                #
-                                #Parrot_pcc_reuse_continuation(interp, CURRENT_CONTEXT(interp), next);
-                                #where  = VTABLE_invoke(interp, possibles[i]->sub, next);
-                                #lexpad = Parrot_pcc_get_lex_pad(interp, CURRENT_CONTEXT(interp));
-                                #sig    = possibles[i]->signature;
-                                #bind_check_result = Rakudo_binding_bind(interp, lexpad,
-                                #      sig, capture, 0, NULL);
-                                #where = VTABLE_invoke(interp, Parrot_pcc_get_continuation(interp, CURRENT_CONTEXT(interp)), where);
-                                #
-                                #/* If we haven't got a possibles storage space, allocate it now. */
-                                #if (!new_possibles)
-                                #    new_possibles = mem_allocate_n_typed(num_candidates, Rakudo_md_candidate_info *);
-                                #
-                                #/* Since we had to do a bindability check, this is not
-                                # * a result we can cache on nominal type. */
-                                #pure_type_result = 0;
-                                #
-                                #/* If we don't fail, need to put this one onto the list
-                                # * (note that needing a junction dispatch is OK). */
-                                #if (bind_check_result != BIND_RESULT_FAIL) {
-                                #    new_possibles[new_possibles_count] = possibles[i];
-                                #    new_possibles_count++;
-                                #    if (!many)
-                                #        break;
-                                #}
+                            if %info<bind_check> {
+                                my $sub := %info<sub>;
+                                my $ctf := pir::getprop__PsP("COMPILER_THUNK", $sub);
+                                unless nqp::isnull($ctf) {
+                                    # We need to do the tie-break on something not yet compiled.
+                                    # Get it compiled.
+                                    $ctf();
+                                }
+                                
+                                # Since we had to do a bindability check, this is not
+                                # a result we can cache on nominal type.
+                                $pure_type_result := 0;
+                                
+                                # If we haven't got a possibles storage space, allocate it now.
+                                $new_possibles := [] unless nqp::islist($new_possibles);
+                                
+                                my $sig := nqp::getattr($sub, Code, '$!signature');
+                                if pir::perl6_is_sig_bindable__IPP($sig, $capture) {
+                                    nqp::push($new_possibles, @possibles[$i]);
+                                    $i++;
+                                    last unless $many;
+                                }
                             }
                             
                             # Otherwise, it's just nominal; accept it.
@@ -1028,7 +1011,7 @@ BEGIN {
 
                         # If we have an updated list of possibles, use this
                         # new one from here on in.
-                        if $new_possibles {
+                        if nqp::islist($new_possibles) {
                             @possibles := $new_possibles;
                         }
                     }
@@ -1072,7 +1055,7 @@ BEGIN {
                 while $i < $type_check_count {
                     my $type_obj     := nqp::atpos($cur_candidate<types>, $i);
                     my $type_flags   := nqp::atpos_i($cur_candidate<type_flags>, $i);
-                    my int $got_prim := 0; # XXX nqp::captureposprimspec($capture, $i);
+                    my int $got_prim := nqp::captureposprimspec($capture, $i);
                     if $type_flags +& $TYPE_NATIVE_MASK {
                         # Looking for a natively typed value. Did we get one?
                         if $got_prim == $BIND_VAL_OBJ {

@@ -609,7 +609,7 @@ inline op perl6_is_sig_bindable(out INT, in PMC, in PMC) :base_core {
 
     /* Call signature binder and stash outcome. */
     result = Rakudo_binding_bind(interp, lexpad, signature, capture, 0, &error)
-        == BIND_RESULT_OK;
+        != BIND_RESULT_FAIL;
 
     /* Invoke the return continuation. */
     VTABLE_invoke(interp, ret_cont, next);

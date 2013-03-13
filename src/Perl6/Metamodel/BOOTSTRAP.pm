@@ -903,7 +903,7 @@ BEGIN {
             }
             
             # Add final null sentinel.
-            nqp::push(@result, nqp::null());
+            nqp::push(@result, Mu);
 
             @result
         }));

@@ -1192,53 +1192,6 @@ inline op perl6_type_check_return_value(in PMC, in PMC) :base_core {
 
 /*
 
-=item perl6_multi_dispatch_thunk()
-
-Creates a multi-dispatch thunk for the specified onlystar dispatcher.
-
-=cut
-
-*/
-inline op perl6_multi_dispatch_thunk(out PMC, in PMC) :base_core {
-    Rakudo_Code *code_obj = (Rakudo_Code *)PMC_data($2);
-    if (PMC_IS_NULL(code_obj->md_thunk)) {
-        code_obj->md_thunk = Parrot_pmc_new(interp,
-                Parrot_pmc_get_type_str(interp, Parrot_str_new_constant(interp, "MDThunk")));
-        PARROT_GC_WRITE_BARRIER(interp, $2);
-        VTABLE_set_pointer(interp, code_obj->md_thunk, &Rakudo_md_dispatch);
-        VTABLE_set_pmc(interp, code_obj->md_thunk, $2);
-    }
-    $1 = code_obj->md_thunk;
-}
-
-
-/*
-
-=item perl6_multi_dispatch_cand_thunk()
-
-Creates a multi-dispatch thunk for calling the candidate at the specified
-index in the dispatchee list (for when we decided the candidate at compile
-time). Also implies that we won't re-do the type check in the binder.
-
-=cut
-
-*/
-inline op perl6_multi_dispatch_cand_thunk(out PMC, in PMC, in INT) :base_core {
-    Rakudo_Code *disp_obj = (Rakudo_Code *)PMC_data($2);
-    PMC         *chosen   = VTABLE_get_pmc_keyed_int(interp, disp_obj->dispatchees, $3);
-    Rakudo_Code *code_obj = (Rakudo_Code *)PMC_data(chosen);
-    if (PMC_IS_NULL(code_obj->md_thunk)) {
-        code_obj->md_thunk = Parrot_pmc_new(interp,
-                Parrot_pmc_get_type_str(interp, Parrot_str_new_constant(interp, "CTMThunk")));
-        PARROT_GC_WRITE_BARRIER(interp, chosen);
-        VTABLE_set_pmc(interp, code_obj->md_thunk, chosen);
-    }
-    $1 = code_obj->md_thunk;
-}
-
-
-/*
-
 =item perl6_get_matching_multis()
 
 Gets the multi dispatcher to find all candidates under the control of

@@ -586,7 +586,6 @@ BEGIN {
     Routine.HOW.add_attribute(Routine, BOOTSTRAPATTR.new(:name<$!dispatchees>, :type(Mu), :package(Routine)));
     Routine.HOW.add_attribute(Routine, BOOTSTRAPATTR.new(:name<$!dispatcher_cache>, :type(Mu), :package(Routine)));
     Routine.HOW.add_attribute(Routine, BOOTSTRAPATTR.new(:name<$!dispatcher>, :type(Mu), :package(Routine)));
-    Routine.HOW.add_attribute(Routine, BOOTSTRAPATTR.new(:name<$!md_thunk>, :type(Mu), :package(Routine)));
     Routine.HOW.add_attribute(Routine, BOOTSTRAPATTR.new(:name<$!rw>, :type(int), :package(Routine)));
     Routine.HOW.add_attribute(Routine, BOOTSTRAPATTR.new(:name<$!inline_info>, :type(Mu), :package(Routine)));
     Routine.HOW.add_attribute(Routine, BOOTSTRAPATTR.new(:name<$!yada>, :type(int), :package(Routine)));
@@ -622,7 +621,6 @@ BEGIN {
             my $clone := $self.clone();
             nqp::bindattr($clone, Routine, '$!dispatchees',
                 nqp::clone(nqp::getattr($self, Routine, '$!dispatchees')));
-            nqp::bindattr($clone, Routine, '$!md_thunk', nqp::null());
             $clone
         }));
     Routine.HOW.add_method(Routine, 'dispatcher', static(sub ($self) {

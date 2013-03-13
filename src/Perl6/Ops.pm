@@ -35,8 +35,6 @@ $ops.add_hll_pirop_mapping('perl6', 'p6return', 'perl6_returncc', '0P');
 $ops.add_hll_pirop_mapping('perl6', 'p6routinereturn', 'perl6_return_from_routine', '0P');
 $ops.add_hll_pirop_mapping('perl6', 'p6assoccode', 'perl6_associate_sub_code_object', 'vPP');
 $ops.add_hll_pirop_mapping('perl6', 'p6getouterctx', 'perl6_get_outer_ctx', 'PP');
-$ops.add_hll_pirop_mapping('perl6', 'p6mdthunk', 'perl6_multi_dispatch_thunk', 'PP');
-$ops.add_hll_pirop_mapping('perl6', 'p6mdcandthunk', 'perl6_multi_dispatch_cand_thunk', 'PPi');
 $ops.add_hll_pirop_mapping('perl6', 'tclc', 'titlecase', 'Ss', :inlinable(1));
 $ops.add_hll_op('perl6', 'p6getcallsig', -> $qastcomp, $op {
     my $reg := $*REGALLOC.fresh_p();

@@ -2152,9 +2152,21 @@ class Perl6::Actions is HLL::Actions does STDActions {
         $p_past.push(QAST::Op.new(
             :op('invokewithcapture'),
             QAST::Op.new(
-                :op('callmethod'), :name('find_best_dispatchee'),
-                QAST::Op.new( :op('getcodeobj'), QAST::Op.new( :op('curcode') ) ),
-                QAST::Op.new( :op('usecapture') )
+                :op('ifnull'),
+                QAST::Op.new(
+                    :op('multicachefind'),
+                    QAST::Var.new(
+                        :name('$!dispatch_cache'), :scope('attribute'),
+                        QAST::Op.new( :op('getcodeobj'), QAST::Op.new( :op('curcode') ) ),
+                        QAST::WVal.new( :value($*W.find_symbol(['Routine'])) ),
+                    ),
+                    QAST::Op.new( :op('usecapture') )
+                ),
+                QAST::Op.new(
+                    :op('callmethod'), :name('find_best_dispatchee'),
+                    QAST::Op.new( :op('getcodeobj'), QAST::Op.new( :op('curcode') ) ),
+                    QAST::Op.new( :op('usecapture') )
+                ),
             ),
             QAST::Op.new( :op('usecapture') )
         ));
@@ -2623,9 +2635,21 @@ class Perl6::Actions is HLL::Actions does STDActions {
         $BLOCK.push(QAST::Op.new(
             :op('invokewithcapture'),
             QAST::Op.new(
-                :op('callmethod'), :name('find_best_dispatchee'),
-                QAST::Op.new( :op('getcodeobj'), QAST::Op.new( :op('curcode') ) ),
-                QAST::Op.new( :op('usecapture') )
+                :op('ifnull'),
+                QAST::Op.new(
+                    :op('multicachefind'),
+                    QAST::Var.new(
+                        :name('$!dispatch_cache'), :scope('attribute'),
+                        QAST::Op.new( :op('getcodeobj'), QAST::Op.new( :op('curcode') ) ),
+                        QAST::WVal.new( :value($*W.find_symbol(['Routine'])) ),
+                    ),
+                    QAST::Op.new( :op('usecapture') )
+                ),
+                QAST::Op.new(
+                    :op('callmethod'), :name('find_best_dispatchee'),
+                    QAST::Op.new( :op('getcodeobj'), QAST::Op.new( :op('curcode') ) ),
+                    QAST::Op.new( :op('usecapture') )
+                )
             ),
             QAST::Op.new( :op('usecapture') )
         ));
@@ -3913,9 +3937,21 @@ class Perl6::Actions is HLL::Actions does STDActions {
             QAST::Op.new(
                 :op('invokewithcapture'),
                 QAST::Op.new(
-                    :op('callmethod'), :name('find_best_dispatchee'),
-                    QAST::Var.new( :name('&*CURRENT_DISPATCHER'), :scope('lexical') ),
-                    QAST::Var.new( :name($dc_name), :scope('local') )
+                    :op('ifnull'),
+                    QAST::Op.new(
+                        :op('multicachefind'),
+                        QAST::Var.new(
+                            :name('$!dispatch_cache'), :scope('attribute'),
+                            QAST::Var.new( :name('&*CURRENT_DISPATCHER'), :scope('lexical') ),
+                            QAST::WVal.new( :value($*W.find_symbol(['Routine'])) ),
+                        ),
+                        QAST::Var.new( :name($dc_name), :scope('local') )
+                    ),
+                    QAST::Op.new(
+                        :op('callmethod'), :name('find_best_dispatchee'),
+                        QAST::Var.new( :name('&*CURRENT_DISPATCHER'), :scope('lexical') ),
+                        QAST::Var.new( :name($dc_name), :scope('local') )
+                    )
                 ),
                 QAST::Var.new( :name($dc_name), :scope('local') )
             ));

@@ -593,6 +593,7 @@ BEGIN {
     Routine.HOW.add_attribute(Routine, BOOTSTRAPATTR.new(:name<$!package>, :type(Mu), :package(Routine)));
     Routine.HOW.add_attribute(Routine, BOOTSTRAPATTR.new(:name<$!onlystar>, :type(int), :package(Routine)));
     Routine.HOW.add_attribute(Routine, BOOTSTRAPATTR.new(:name<$!dispatch_order>, :type(Mu), :package(Routine)));
+    Routine.HOW.add_attribute(Routine, BOOTSTRAPATTR.new(:name<$!dispatch_cache>, :type(Mu), :package(Routine)));
     
     Routine.HOW.add_method(Routine, 'is_dispatcher', static(sub ($self) {
             my $dc_self   := pir::perl6_decontainerize__PP($self);
@@ -608,6 +609,7 @@ BEGIN {
                     Routine, '$!dispatcher', $dc_self);
                 nqp::scwbdisable();
                 nqp::bindattr($dc_self, Routine, '$!dispatch_order', nqp::null());
+                nqp::bindattr($dc_self, Routine, '$!dispatch_cache', nqp::null());
                 nqp::bindattr($dc_self, Routine, '$!dispatcher_cache', nqp::null());
                 nqp::scwbenable();
                 $dc_self
@@ -1145,7 +1147,13 @@ BEGIN {
             # If we're at a single candidate here, and we also know there's no
             # type constraints that follow, we can cache the result.
             if nqp::elems(@possibles) == 1 && $pure_type_result {
-                # XXX Cache addition
+                nqp::scwbdisable();
+                nqp::bindattr($dcself, Routine, '$!dispatch_cache',
+                    nqp::multicacheadd(
+                        nqp::getattr($dcself, Routine, '$!dispatch_cache'),
+                        $capture,
+                        nqp::atkey(nqp::atpos(@possibles, 0), 'sub')));
+                nqp::scwbenable();
             }
 
             # Perhaps we found nothing but have junctional arguments?

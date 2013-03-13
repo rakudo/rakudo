@@ -979,7 +979,8 @@ BEGIN {
                             # Otherwise, may need full bind check.
                             if %info<bind_check> {
                                 my $sub := %info<sub>;
-                                my $ctf := pir::getprop__PsP("COMPILER_THUNK", $sub);
+                                my $ctf := pir::getprop__PsP("COMPILER_THUNK",
+                                    nqp::getattr($sub, Code, '$!do'));
                                 unless nqp::isnull($ctf) {
                                     # We need to do the tie-break on something not yet compiled.
                                     # Get it compiled.

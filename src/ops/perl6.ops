@@ -2120,6 +2120,35 @@ inline op find_dynamic_lex_relative(out PMC, in PMC, in STR) :base_core {
 }
 
 /*
+
+=item find_caller_lex_relative(out PMC, in PMC, in STR)
+
+Finds the lexical named $3 relative to scope $2, following the caller
+chain but also seraching the outer chain for each caller. Places it in $1.
+Places a NULL PMC in $1 if it is not found.
+
+=cut
+
+*/
+inline op find_caller_lex_relative(out PMC, in PMC, in STR) :base_core {
+    STRING  * const lex_name = $3;
+    PMC     * ctx            = $2;
+    PMC     * result         = PMCNULL;
+
+    for (; !PMC_IS_NULL(ctx) && PMC_IS_NULL(result);
+           ctx = Parrot_pcc_get_caller_ctx(interp, ctx))
+    {
+        PMC * const lex_pad = sub_find_pad(interp, lex_name, ctx);
+        if (!PMC_IS_NULL(lex_pad)) {
+            result = VTABLE_get_pmc_keyed_str(interp, lex_pad, lex_name);
+        }
+        if (!result)
+            result = PMCNULL;
+    }
+    $1 = result;
+}
+
+/*
  * Local variables:
  *   c-file-style: "parrot"
  * End:

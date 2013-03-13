@@ -90,11 +90,6 @@ typedef struct candidate_graph_node {
     INTVAL                        edges_out;
 } Rakudo_md_candidate_graph_node;
 
-/* This is the entry point to the multi dispatcher, which chooses a
- * candidate to invoke. */
-PMC *
-Rakudo_md_dispatch(PARROT_INTERP, PMC *dispatcher, PMC *capture, opcode_t *next);
-
 /* This gets all matches for a given capture. */
 PMC *
 Rakudo_md_get_all_matches(PARROT_INTERP, PMC *dispatcher, PMC *capture);

@@ -340,66 +340,6 @@ static Rakudo_md_candidate_info** sort_candidates(PARROT_INTERP, PMC *candidates
 
 /*
 
-=item C<static PMC * find_in_cache(PARROT_INTERP, Rakudo_md_arity_cache cache, PMC *capture, INTVAL num_args)>
-
-Looks for an entry in the multi-dispatch cache.
-
-=cut
-
-*/
-static PMC *
-find_in_cache(PARROT_INTERP, Rakudo_md_cache *cache, PMC *capture, INTVAL num_args) {
-    INTVAL arg_tup[MD_CACHE_MAX_ARITY];
-    INTVAL i, j, entries, t_pos;
-    struct Pcc_cell * pc_positionals;
-    
-    /* If it's zero-arity, return result right off. */
-    if (num_args == 0)
-        return cache->zero_arity;
-
-    /* Create arg tuple. */
-    if (capture->vtable->base_type == enum_class_CallContext)
-        GETATTR_CallContext_positionals(interp, capture, pc_positionals);
-    else
-        return NULL;
-    for (i = 0; i < num_args; i++) {
-        if (pc_positionals[i].type == BIND_VAL_OBJ) {
-            PMC *arg = pc_positionals[i].u.p;
-            if (arg->vtable->base_type == Rakudo_smo_id()) {
-                arg = Rakudo_cont_decontainerize(interp, arg);
-                arg_tup[i] = STABLE(arg)->type_cache_id | (IS_CONCRETE(arg) ? 1 : 0);
-            }
-            else {
-                return NULL;
-            }
-        }
-        else {
-            arg_tup[i] = (pc_positionals[i].type << 1) | 1;
-        }
-    }
-
-    /* Look through entries. */
-    entries = cache->arity_caches[num_args - 1].num_entries;
-    t_pos = 0;
-    for (i = 0; i < entries; i++) {
-        INTVAL match = 1;
-        for (j = 0; j < num_args; j++) {
-            if (cache->arity_caches[num_args - 1].type_ids[t_pos + j] != arg_tup[j]) {
-                match = 0;
-                break;
-            }
-        }
-        if (match)
-            return cache->arity_caches[num_args - 1].results[i];
-        t_pos += num_args;
-    }
-
-    return NULL;
-}
-
-
-/*
-
 =item C<static void add_to_cache(PARROT_INTERP, Rakudo_md_cache *cache, PMC *capture, INTVAL num_args)>
 
 Adds an entry to the multi-dispatch cache.
@@ -868,42 +808,6 @@ static Rakudo_md_candidate_info ** obtain_candidate_list(PARROT_INTERP,
         PARROT_GC_WRITE_BARRIER(interp, dispatcher);
         return cache->candidates;
     }
-}
-
-
-/*
-
-=item C<PMC * Rakudo_md_dispatch(PARROT_INTERP, PMC *dispatcher, opcode_t *next)>
-
-Gets the candidate list, does sorting if we didn't already do so, and
-enters the multi dispatcher.
-
-=cut
-
-*/
-PMC *
-Rakudo_md_dispatch(PARROT_INTERP, PMC *dispatcher, PMC *capture, opcode_t *next) {
-    INTVAL num_cands;
-    Rakudo_md_candidate_info **cands;
-    
-    /* Sane to look in the cache? */
-    Rakudo_Code *code_obj  = (Rakudo_Code *)PMC_data(dispatcher);
-    INTVAL       num_args  = VTABLE_elements(interp, capture);
-    INTVAL       has_cache = !PMC_IS_NULL(code_obj->dispatcher_cache);
-    if (num_args <= MD_CACHE_MAX_ARITY && has_cache) {
-        Rakudo_md_cache *cache = (Rakudo_md_cache *)VTABLE_get_pointer(interp,
-            code_obj->dispatcher_cache);
-        if (num_args == 0 || cache->arity_caches[num_args - 1].num_entries) {
-            PMC *cache_result = find_in_cache(interp, cache, capture, num_args);
-            if (cache_result)
-                return cache_result;
-        }
-    }
-    
-    /* No cache hit, so we need to do a full dispatch. */
-    num_cands = VTABLE_elements(interp, code_obj->dispatchees);
-    cands     = obtain_candidate_list(interp, has_cache, dispatcher, code_obj);
-    return find_best_candidate(interp, cands, num_cands, capture, next, dispatcher, 0);
 }
 
 

@@ -1119,31 +1119,21 @@ BEGIN {
             if nqp::elems(@possibles) > 1 {
                 # Locate any default candidates; if we find multiple defaults, this is
                 # no help, so we'll not bother collecting just which ones are good.
-                nqp::die("default trait handling NYI");
-                #Rakudo_md_candidate_info *default_cand = NULL;
-                #INTVAL i;
-                #
-                #for (i = 0; i < possibles_count; i++) {
-                #    PMC * const default_meth = VTABLE_find_method(interp, possibles[i]->sub,
-                #            Parrot_str_new(interp, "default", 0));
-                #    if (!PMC_IS_NULL(default_meth)) {
-                #        PMC *result = PMCNULL;;
-                #        Parrot_ext_call(interp, default_meth, "Pi->P", possibles[i]->sub, &result);
-                #        if (VTABLE_get_bool(interp, result)) {
-                #            if (default_cand == NULL) {
-                #                default_cand = possibles[i];
-                #            }
-                #            else {
-                #                default_cand = NULL;
-                #                break;
-                #            }
-                #        }
-                #    }
-                #}
-                #if (default_cand) {
-                #    possibles[0] = default_cand;
-                #    possibles_count = 1;
-                #}
+                my $default_cand;
+                for @possibles {
+                    if nqp::can($_<sub>, 'default') && $_<sub>.default {
+                        if nqp::isconcrete($default_cand) {
+                            $default_cand := Mu;
+                        }
+                        else {
+                            $default_cand := $_;
+                        }
+                    }
+                }
+                if nqp::isconcrete($default_cand) {
+                    nqp::pop(@possibles) while @possibles;
+                    @possibles[0] := $default_cand;
+                }
             }
 
             # If we're at a single candidate here, and we also know there's no

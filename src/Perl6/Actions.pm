@@ -5364,7 +5364,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
     sub add_implicit_var($block, $name) {
         $block[0].push(QAST::Var.new( :name($name), :scope('lexical'), :decl('var') ));
-        $block.symbol($name, :scope('lexical'), :lazyinit(1) );
+        $block.symbol($name, :scope('lexical'), :lazyinit(1));
+        try $block.symbol($name, :type($*W.find_symbol(['Mu'])));
     }
 
     sub when_handler_helper($when_block) {

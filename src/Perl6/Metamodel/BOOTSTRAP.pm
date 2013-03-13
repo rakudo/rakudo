@@ -632,29 +632,29 @@ BEGIN {
                 Routine, '$!dispatchees')
         }));
     Routine.HOW.add_method(Routine, 'sort_dispatchees', static(sub ($self) {
-            my $SLURPY_ARITY      := nqp::bitshiftl_i(1, 30);
-            my $EDGE_REMOVAL_TODO := -1;
-            my $EDGE_REMOVED      := -2;
-            my $DEFCON_NONE       := 0;
-            my $DEFCON_DEFINED    := 1;
-            my $DEFCON_UNDEFINED  := 2;
-            my $DEFCON_MASK       := $DEFCON_DEFINED +| $DEFCON_UNDEFINED;
-            my $TYPE_NATIVE_INT   := 4;
-            my $TYPE_NATIVE_NUM   := 8;
-            my $TYPE_NATIVE_STR   := 16;
-            my $TYPE_NATIVE_MASK  := $TYPE_NATIVE_INT +| $TYPE_NATIVE_NUM +| $TYPE_NATIVE_STR;
+            my int $SLURPY_ARITY      := nqp::bitshiftl_i(1, 30);
+            my int $EDGE_REMOVAL_TODO := -1;
+            my int $EDGE_REMOVED      := -2;
+            my int $DEFCON_NONE       := 0;
+            my int $DEFCON_DEFINED    := 1;
+            my int $DEFCON_UNDEFINED  := 2;
+            my int $DEFCON_MASK       := $DEFCON_DEFINED +| $DEFCON_UNDEFINED;
+            my int $TYPE_NATIVE_INT   := 4;
+            my int $TYPE_NATIVE_NUM   := 8;
+            my int $TYPE_NATIVE_STR   := 16;
+            my int $TYPE_NATIVE_MASK  := $TYPE_NATIVE_INT +| $TYPE_NATIVE_NUM +| $TYPE_NATIVE_STR;
 
-            my $SIG_ELEM_SLURPY_POS          := 8;
-            my $SIG_ELEM_SLURPY_NAMED        := 16;
-            my $SIG_ELEM_MULTI_INVOCANT      := 128;
-            my $SIG_ELEM_IS_OPTIONAL         := 2048;
-            my $SIG_ELEM_IS_CAPTURE          := 32768;
-            my $SIG_ELEM_UNDEFINED_ONLY      := 65536;
-            my $SIG_ELEM_DEFINED_ONLY        := 131072;
-            my $SIG_ELEM_NOMINAL_GENERIC     := 524288;
-            my $SIG_ELEM_NATIVE_INT_VALUE    := 2097152;
-            my $SIG_ELEM_NATIVE_NUM_VALUE    := 4194304;
-            my $SIG_ELEM_NATIVE_STR_VALUE    := 8388608;
+            my int $SIG_ELEM_SLURPY_POS          := 8;
+            my int $SIG_ELEM_SLURPY_NAMED        := 16;
+            my int $SIG_ELEM_MULTI_INVOCANT      := 128;
+            my int $SIG_ELEM_IS_OPTIONAL         := 2048;
+            my int $SIG_ELEM_IS_CAPTURE          := 32768;
+            my int $SIG_ELEM_UNDEFINED_ONLY      := 65536;
+            my int $SIG_ELEM_DEFINED_ONLY        := 131072;
+            my int $SIG_ELEM_NOMINAL_GENERIC     := 524288;
+            my int $SIG_ELEM_NATIVE_INT_VALUE    := 2097152;
+            my int $SIG_ELEM_NATIVE_NUM_VALUE    := 4194304;
+            my int $SIG_ELEM_NATIVE_STR_VALUE    := 8388608;
             
             # Takes two candidates and determines if the first one is narrower than the
             # second. Returns a true value if they are.
@@ -759,19 +759,28 @@ BEGIN {
                     'signature',    $sig,
                     'types',        [],
                     'type_flags',   nqp::list_i(),
-                    'constraints',  []
+                    'constraints',  [],
+                    'min_arity',    0,
+                    'max_arity',    0,
+                    'num_types',    0,
                 );
                 my int $significant_param := 0;
+                my int $named_bind_check := 0;
                 for @params -> $param {
-                    # If it's named (and not slurpy) don't need its type info but we
-                    # will need a bindability check during the dispatch for it. */
+                    # If it's a required named (and not slurpy) don't need its type info
+                    # but we will need a bindability check during the dispatch for it.
                     my int $flags   := nqp::getattr_i($param, Parameter, '$!flags');
                     my $named_names := nqp::getattr($param, Parameter, '$!named_names');
                     unless nqp::isnull($named_names) {
-                        if !($flags +& $SIG_ELEM_IS_OPTIONAL) && nqp::elems($named_names) == 1 {
-                            %info<req_named> := nqp::atpos_s($named_names, 0);
+                        if !($flags +& $SIG_ELEM_IS_OPTIONAL) {
+                            if nqp::elems($named_names) == 1 {
+                                %info<req_named> := nqp::atpos_s($named_names, 0);
+                            }
+                            %info<bind_check> := 1;
                         }
-                        %info<bind_check> := 1;
+                        else {
+                            $named_bind_check := 1;
+                        }
                         next;
                     }
 
@@ -780,8 +789,10 @@ BEGIN {
                         %info<bind_check> := 1;
                     }
 
-                    # If it's named slurpy, we're done.
+                    # If it's named slurpy, we're done, also we don't need a bind
+                    # check on account of nameds since we take them all.
                     if $flags +& $SIG_ELEM_SLURPY_NAMED {
+                        $named_bind_check := 0;
                         last;
                     }
 
@@ -833,6 +844,9 @@ BEGIN {
                             $TYPE_NATIVE_STR + nqp::atpos_i(%info<type_flags>, $significant_param));
                     }
                     $significant_param++;
+                }
+                if $named_bind_check {
+                    %info<bind_check> := 1;
                 }
 
                 # Add it to graph node, and initialize list of edges.
@@ -911,20 +925,20 @@ BEGIN {
             @result
         }));
     Routine.HOW.add_method(Routine, 'find_best_dispatchee', static(sub ($self, $capture, int $many = 0) {        
-            my $DEFCON_DEFINED    := 1;
-            my $DEFCON_UNDEFINED  := 2;
-            my $DEFCON_MASK       := $DEFCON_DEFINED +| $DEFCON_UNDEFINED;
-            my $TYPE_NATIVE_INT   := 4;
-            my $TYPE_NATIVE_NUM   := 8;
-            my $TYPE_NATIVE_STR   := 16;
-            my $TYPE_NATIVE_MASK  := $TYPE_NATIVE_INT +| $TYPE_NATIVE_NUM +| $TYPE_NATIVE_STR;
-            my $BIND_VAL_OBJ      := 0;
-            my $BIND_VAL_INT      := 1;
-            my $BIND_VAL_NUM      := 2;
-            my $BIND_VAL_STR      := 3;
+            my int $DEFCON_DEFINED    := 1;
+            my int $DEFCON_UNDEFINED  := 2;
+            my int $DEFCON_MASK       := $DEFCON_DEFINED +| $DEFCON_UNDEFINED;
+            my int $TYPE_NATIVE_INT   := 4;
+            my int $TYPE_NATIVE_NUM   := 8;
+            my int $TYPE_NATIVE_STR   := 16;
+            my int $TYPE_NATIVE_MASK  := $TYPE_NATIVE_INT +| $TYPE_NATIVE_NUM +| $TYPE_NATIVE_STR;
+            my int $BIND_VAL_OBJ      := 0;
+            my int $BIND_VAL_INT      := 1;
+            my int $BIND_VAL_NUM      := 2;
+            my int $BIND_VAL_STR      := 3;
             
             # Count arguments.
-            my $num_args := nqp::captureposelems($capture);
+            my int $num_args := nqp::captureposelems($capture);
 
             # Get list and number of candidates, triggering a sort if there are none.
             my $dcself := nqp::decont($self);
@@ -978,6 +992,7 @@ BEGIN {
 
                             # Otherwise, may need full bind check.
                             if nqp::existskey(%info, 'bind_check') {
+                                #say("bind check for " ~ $self.name());
                                 my $sub := nqp::atkey(%info, 'sub');
                                 my $ctf := pir::getprop__PsP("COMPILER_THUNK",
                                     nqp::getattr($sub, Code, '$!do'));
@@ -1044,16 +1059,16 @@ BEGIN {
                 }
 
                 # Check if it's admissable by arity.
-                if $num_args < $cur_candidate<min_arity>
-                || $num_args > $cur_candidate<max_arity> {
+                if $num_args < nqp::atkey($cur_candidate, 'min_arity')
+                || $num_args > nqp::atkey($cur_candidate, 'max_arity') {
                     $cur_idx++;
                     next;
                 }
 
                 # Check if it's admissable by type.
-                $type_check_count := $cur_candidate<num_types> > $num_args
+                $type_check_count := nqp::atkey($cur_candidate, 'num_types') > $num_args
                     ?? $num_args
-                    !! $cur_candidate<num_types>;
+                    !! nqp::atkey($cur_candidate, 'num_types');
                 $type_mismatch := 0;
 
                 $i := 0;

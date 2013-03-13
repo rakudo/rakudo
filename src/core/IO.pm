@@ -157,7 +157,7 @@ class IO does IO::FileTestable {
     #   0 -- seek from beginning of file
     #   1 -- seek relative to current position
     #   2 -- seek from the end of the file
-    method seek(IO:D: Int:D $whence, Int:D $offset) {
+    method seek(IO:D: Int:D $offset, Int:D $whence) {
         $!PIO.seek(nqp::unbox_i($whence), nqp::unbox_i($offset));
         True;
     }

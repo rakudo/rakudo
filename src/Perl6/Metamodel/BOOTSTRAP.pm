@@ -606,7 +606,10 @@ BEGIN {
                 $disp_list.push($dispatchee);
                 nqp::bindattr(pir::perl6_decontainerize__PP($dispatchee),
                     Routine, '$!dispatcher', $dc_self);
+                nqp::scwbdisable();
+                nqp::bindattr($dc_self, Routine, '$!dispatch_order', nqp::null());
                 nqp::bindattr($dc_self, Routine, '$!dispatcher_cache', nqp::null());
+                nqp::scwbenable();
                 $dc_self
             }
             else {

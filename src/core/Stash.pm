@@ -1,5 +1,5 @@
 my class Stash {
-    multi method at_key(Hash:D: $key is copy, :$global_fallback) is rw {
+    multi method at_key(Stash:D: $key is copy, :$global_fallback) is rw {
         my Mu $storage := nqp::defined(nqp::getattr(self, EnumMap, '$!storage')) ??
             nqp::getattr(self, EnumMap, '$!storage') !!
             nqp::bindattr(self, EnumMap, '$!storage', nqp::hash());

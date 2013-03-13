@@ -168,8 +168,12 @@ my class Cool {
     multi method comb() { self.Str.comb() }
     multi method comb(Regex $matcher, $limit = $Inf) { self.Str.comb($matcher, $limit) }
 
-    proto method subst(|) {*}
+    proto method subst(|) {
+        $/ := nqp::getlexdyn('$/');
+        {*}
+    }
     multi method subst($matcher, $replacement, *%adverbs) {
+        $/ := nqp::getlexdyn('$/');
         self.Stringy.subst($matcher, $replacement, |%adverbs);
     }
 

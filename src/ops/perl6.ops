@@ -575,7 +575,6 @@ Checks if a capture can be bound to a signature.
 inline op perl6_is_sig_bindable(out INT, in PMC, in PMC) :base_core {    
     PMC      *signature = $2;
     PMC      *capture   = $3;
-    STRING   *error     = STRINGNULL;
     PMC      *lexpad, *ctx, *_do, *ret_cont, *call_object;
     opcode_t *next;
     INTVAL    result;
@@ -608,7 +607,7 @@ inline op perl6_is_sig_bindable(out INT, in PMC, in PMC) :base_core {
     lexpad = Parrot_pcc_get_lex_pad(interp, ctx);
 
     /* Call signature binder and stash outcome. */
-    result = Rakudo_binding_bind(interp, lexpad, signature, capture, 0, &error)
+    result = Rakudo_binding_bind(interp, lexpad, signature, capture, 0, NULL)
         != BIND_RESULT_FAIL;
 
     /* Invoke the return continuation. */

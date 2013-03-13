@@ -1,6 +1,8 @@
-my class Junction is Mu {
-    has $!storage;             # elements of Junction
-    has $!type;                # type of Junction
+my class Junction {
+    # From BOOTSTRAP:
+    # also is Mu;
+    # has $!storage;             # elements of Junction
+    # has $!type;                # type of Junction
 
     method new(*@values, :$type) {
         self.bless(*, :storage(@values.eager), :$type);
@@ -47,13 +49,77 @@ my class Junction is Mu {
     }
     
     method postcircumfix:<( )>($c) {
-        AUTOTHREAD(
+        self.AUTOTHREAD(
             -> $obj, |c { $obj(|c) },
             self, |$c);
     }
+    
     method sink(Junction:D:) {
         .?sink for $!storage.list;
         Nil;
+    }
+    
+    method AUTOTHREAD(&call, |args) {
+        my Mu $pos_rpa := nqp::getattr(nqp::p6decont(args), Capture, '$!list');
+        sub thread_junction(int $i) {
+            my Junction $arg := nqp::atpos($pos_rpa, $i);
+            my Str $type := nqp::getattr(nqp::p6decont($arg), Junction, '$!type');
+            my @states := nqp::getattr(nqp::p6decont($arg), Junction, '$!storage');
+
+            my Mu $res := nqp::list();
+            for @states -> $s {
+                # Next line is Officially Naughty, since captures are meant to be
+                # immutable. But hey, it's our capture to be naughty with...
+                nqp::bindpos($pos_rpa, $i, $s);
+                nqp::push($res, call(|args));
+                Nil;
+            }
+            return Junction.new(nqp::p6parcel($res, Nil), :type($type));
+        }
+
+        # Look for a junctional arg in the positionals.
+
+        # we have to autothread the first all or none junction before
+        # doing any one or any junctions.
+        my int $first_one_any = -1;
+        loop (my int $i = 0; $i < nqp::elems($pos_rpa); $i = $i + 1) {
+            # Junctional positional argument?
+            my Mu $arg := nqp::atpos($pos_rpa, $i);
+            if nqp::istype($arg, Junction) {
+                my Str $type := nqp::getattr(nqp::p6decont($arg), Junction, '$!type');
+                if ($type eq "one" || $type eq "any") {
+                    if $first_one_any == -1 {
+                        # save it for later, first make sure we don't have all or none junctions later.
+                        $first_one_any = $i;
+                    }
+                } else {
+                    return thread_junction($i);
+                }
+            }
+        }
+
+        if $first_one_any >= 0 {
+            return thread_junction($first_one_any);
+        }
+
+        # Otherwise, look for one in the nameds.
+        for args.hash.kv -> $k, $v {
+            if nqp::istype($v, Junction) {
+                my Mu $nam_hash := nqp::getattr(nqp::p6decont(args), Capture, '$!hash');
+                my @states := nqp::getattr(nqp::p6decont($v), Junction, '$!storage');
+                my $type   := nqp::getattr(nqp::p6decont($v), Junction, '$!type');
+                my Mu $res := nqp::list();
+                for @states -> $s {
+                    nqp::bindkey($nam_hash, $k, $s);
+                    nqp::push($res, call(|args));
+                    Nil;
+                }
+                return Junction.new(nqp::p6parcel($res, Nil), :type($type));
+            }
+        }
+        
+        # If we get here, wasn't actually anything to autothread.
+        call(|args);
     }
 }
 
@@ -66,71 +132,12 @@ sub infix:<|>(**@values) { Junction.new(@values, :type<any>); }
 sub infix:<&>(**@values) { Junction.new(@values, :type<all>); }
 sub infix:<^>(**@values) { Junction.new(@values, :type<one>); }
 
-sub AUTOTHREAD(&call, |args) {
-    my Mu $pos_rpa := nqp::getattr(nqp::p6decont(args), Capture, '$!list');
-    sub thread_junction(int $i) {
-        my Junction $arg := nqp::atpos($pos_rpa, $i);
-        my Str $type := nqp::getattr(nqp::p6decont($arg), Junction, '$!type');
-        my @states := nqp::getattr(nqp::p6decont($arg), Junction, '$!storage');
-
-        my Mu $res := nqp::list();
-        for @states -> $s {
-            # Next line is Officially Naughty, since captures are meant to be
-            # immutable. But hey, it's our capture to be naughty with...
-            nqp::bindpos($pos_rpa, $i, $s);
-            nqp::push($res, call(|args));
-            Nil;
-        }
-        return Junction.new(nqp::p6parcel($res, Nil), :type($type));
-    }
-
-    # Look for a junctional arg in the positionals.
-
-    # we have to autothread the first all or none junction before
-    # doing any one or any junctions.
-    my int $first_one_any = -1;
-    loop (my int $i = 0; $i < nqp::elems($pos_rpa); $i = $i + 1) {
-        # Junctional positional argument?
-        my Mu $arg := nqp::atpos($pos_rpa, $i);
-        if nqp::istype($arg, Junction) {
-            my Str $type := nqp::getattr(nqp::p6decont($arg), Junction, '$!type');
-            if ($type eq "one" || $type eq "any") {
-                if $first_one_any == -1 {
-                    # save it for later, first make sure we don't have all or none junctions later.
-                    $first_one_any = $i;
-                }
-            } else {
-                return thread_junction($i);
-            }
-        }
-    }
-
-    if $first_one_any >= 0 {
-        return thread_junction($first_one_any);
-    }
-
-    # Otherwise, look for one in the nameds.
-    for args.hash.kv -> $k, $v {
-        if nqp::istype($v, Junction) {
-            my Mu $nam_hash := nqp::getattr(nqp::p6decont(args), Capture, '$!hash');
-            my @states := nqp::getattr(nqp::p6decont($v), Junction, '$!storage');
-            my $type   := nqp::getattr(nqp::p6decont($v), Junction, '$!type');
-            my Mu $res := nqp::list();
-            for @states -> $s {
-                nqp::bindkey($nam_hash, $k, $s);
-                nqp::push($res, call(|args));
-                Nil;
-            }
-            return Junction.new(nqp::p6parcel($res, Nil), :type($type));
-        }
-    }
-    
-    # If we get here, wasn't actually anything to autothread.
-    call(|args);
+sub AUTOTHREAD(|c) {
+    Junction.AUTOTHREAD(|c)
 }
 
 sub AUTOTHREAD_METHOD($name, |c) {
-    AUTOTHREAD(
+    Junction.AUTOTHREAD(
         -> $obj, |c { $obj."$name"(|c) },
         |c);
 }

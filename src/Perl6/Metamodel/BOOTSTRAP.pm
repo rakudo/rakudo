@@ -71,6 +71,7 @@ my stub ObjAt metaclass Perl6::Metamodel::ClassHOW { ... };
 my stub Stash metaclass Perl6::Metamodel::ClassHOW { ... };
 my stub PROCESS metaclass Perl6::Metamodel::ModuleHOW { ... };
 my stub Grammar metaclass Perl6::Metamodel::ClassHOW { ... };
+my stub Junction metaclass Perl6::Metamodel::ClassHOW { ... };
 my stub Metamodel metaclass Perl6::Metamodel::PackageHOW { ... };
 
 # We stick all the declarative bits inside of a BEGIN, so they get
@@ -1143,21 +1144,32 @@ BEGIN {
             }
 
             # Perhaps we found nothing but have junctional arguments?
-            if nqp::elems(@possibles) == 0 && has_junctional_args($capture) {
-                nqp::die("Junctional multi-dispatch NYI");
-                #/* Unshift the proto onto the start of the args and hand back
-                # * the threader. */
-                #VTABLE_unshift_pmc(interp, capture, dispatcher);
-                #junctional_res = Rakudo_types_junction_threader_get();
+            my $junctional_res;
+            if nqp::elems(@possibles) == 0 {
+                my int $has_junc_args := 0;
+                $i := 0;
+                while $i < $num_args {
+                    if !nqp::captureposprimspec($capture, $i) {
+                        if nqp::istype(nqp::captureposarg($capture, $i), Junction) {
+                            $has_junc_args := 1;
+                        }
+                    }
+                    $i++;
+                }
+                if $has_junc_args {
+                    $junctional_res := -> *@pos, *%named {
+                        Junction.AUTOTHREAD($self, |@pos, |%named)
+                    }
+                }
             }
 
             # Need a unique candidate.
             if nqp::elems(@possibles) == 1 {
                 @possibles[0]<sub>
             }
-            #else if (!PMC_IS_NULL(junctional_res)) {
-            #    return junctional_res;
-            #}
+            elsif nqp::isconcrete($junctional_res) {
+                $junctional_res;
+            }
             elsif nqp::elems(@possibles) == 0 {
                 # Get signatures of all possible candidates. We dump them in the
                 # order in which we search for them.
@@ -1380,6 +1392,17 @@ BEGIN {
     Capture.HOW.add_attribute(Capture, BOOTSTRAPATTR.new(:name<$!hash>, :type(Mu), :package(Capture)));
     Capture.HOW.compose_repr(Capture);
     
+    # class Junction is Mu {
+    #     has $!items;
+    #     has $!flattens;
+    #     has $!nextiter;
+    #     ...
+    # }
+    Junction.HOW.add_parent(Junction, Mu);
+    Junction.HOW.add_attribute(Junction, scalar_attr('$!storage', Mu, Junction));
+    Junction.HOW.add_attribute(Junction, scalar_attr('$!type', Mu, Junction));
+    Junction.HOW.compose_repr(Junction);
+    
     # class Bool is Cool {
     #     has int $!value;
     #     ...
@@ -1525,6 +1548,7 @@ BEGIN {
     EXPORT::DEFAULT.WHO<Scalar>    := Scalar;
     EXPORT::DEFAULT.WHO<Proxy>     := Proxy;
     EXPORT::DEFAULT.WHO<Grammar>   := Grammar;
+    EXPORT::DEFAULT.WHO<Junction>  := Junction;
     EXPORT::DEFAULT.WHO<PROCESS>   := $PROCESS;
     EXPORT::DEFAULT.WHO<Bool>      := Bool;
     EXPORT::DEFAULT.WHO<False>     := $false;

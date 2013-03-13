@@ -97,8 +97,7 @@ sub EXCEPTION(|) {
         my int $type = nqp::atkey_i($parrot_ex, 'type');
         my $ex;
         if $type == pir::const::EXCEPTION_METHOD_NOT_FOUND  &&
-            nqp::p6box_s(nqp::atkey_s($parrot_ex, 'message'))
-                ~~ /"Method '" (.+?) "' not found for invocant of class '" (.+)\'$/ {
+            nqp::p6box_s(nqp::atkey_s($parrot_ex, 'message')) ~~ /"Method '" (.*?) "' not found for invocant of class '" (.+)\'$/ {
 
             $ex := X::Method::NotFound.new(
                 method   => ~$0,

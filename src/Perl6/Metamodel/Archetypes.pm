@@ -40,6 +40,9 @@ class Perl6::Metamodel::Archetypes {
     # filled it before it's useful in some way.
     has $!parametric;
     
+    # Are we allowed to augment the type?
+    has $!augmentable;
+    
     method nominal() { $!nominal }
     method nominalizable() { $!nominalizable }
     method inheritable() { $!inheritable }
@@ -48,4 +51,5 @@ class Perl6::Metamodel::Archetypes {
     method composalizable() { $!composalizable }
     method generic() { $!generic }
     method parametric() { $!parametric }
+    method augmentable() { $!augmentable }
 }

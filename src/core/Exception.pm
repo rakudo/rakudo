@@ -700,6 +700,11 @@ my class X::Syntax::UnlessElse does X::Syntax {
     method message() { '"unless" does not take "else", please rewrite using "if"' }
 }
 
+my class X::Syntax::Malformed::Elsif does X::Syntax {
+    has $.what = 'else if';
+    method message() { qq{In Perl 6, please use "elsif' instead of "$.what"} }
+}
+
 my class X::Syntax::Reserved does X::Syntax {
     has $.reserved;
     has $.instead = '';
@@ -738,9 +743,9 @@ my class X::Syntax::Augment::WithoutMonkeyTyping does X::Syntax {
     method message() { "augment not allowed without 'use MONKEY_TYPING'" };
 }
 
-my class X::Syntax::Augment::Role does X::Syntax {
-    has $.role-name;
-    method message() { "Cannot augment role $.role-name, since roles are immutable" };
+my class X::Syntax::Augment::Illegal does X::Syntax {
+    has $.package;
+    method message() { "Cannot augment $.package because it is closed" };
 }
 
 my class X::Syntax::Argument::MOPMacro does X::Syntax {
@@ -810,7 +815,7 @@ my class X::Syntax::NonAssociative does X::Syntax {
     has $.left;
     has $.right;
     method message() {
-        "Operators '$.left' and '$.right' are non-associtiave and require parenthesis";
+        "Operators '$.left' and '$.right' are non-associative and require parenthesis";
     }
 }
 
@@ -839,6 +844,12 @@ my class X::Syntax::Extension::Category does X::Syntax {
     has $.category;
     method message() {
         "Cannot add tokens of category '$.category'";
+    }
+}
+
+my class X::Syntax::Extension::Null does X::Syntax {
+    method message() {
+        "Null operator is not allowed";
     }
 }
 

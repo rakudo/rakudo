@@ -1906,7 +1906,7 @@ class Perl6::World is HLL::World {
         # little cheaty when compiling the setting due to bootstrapping.
         my @pairs;
         for $longname<colonpair> {
-            if $_<circumfix> && !$_<identifier> {
+            if $_<coloncircumfix> && !$_<identifier> {
                 @components[+@components - 1] := @components[+@components - 1]
                         ~ (%*COMPILING<%?OPTIONS><setting> ne 'NULL'
                                 ??  ':<' ~ ~$*W.compile_time_evaluate($_, $_.ast) ~ '>'

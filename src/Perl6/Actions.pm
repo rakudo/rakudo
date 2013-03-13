@@ -211,8 +211,13 @@ class Perl6::Actions is HLL::Actions does STDActions {
             if $<colonpair>[0]<identifier> {
                 $name := $name ~ ~$<colonpair>[0]<identifier>;
             }
-            if $<colonpair>[0]<circumfix><nibble> -> $op_name {
-                $name := $name ~ '<' ~ $*W.colonpair_nibble_to_str($/, $op_name) ~ '>';
+            if $<colonpair>[0]<coloncircumfix> -> $cf {
+                if $cf<circumfix> -> $op_name {
+                    $name := $name ~ '<' ~ $*W.colonpair_nibble_to_str($/, $op_name<nibble>) ~ '>';
+                }
+                else {
+                    $name := $name ~ '<>';
+                }
             }
             make $name;
         }
@@ -1183,6 +1188,12 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
     method fatarrow($/) {
         make make_pair($<key>.Str, $<val>.ast);
+    }
+    
+    method coloncircumfix($/) {
+        make $<circumfix>
+            ?? $<circumfix>.ast
+            !! QAST::Var.new( :name('Nil'), :scope('lexical') );
     }
 
     method colonpair($/) {
@@ -2607,6 +2618,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
         } else {
             $coderef := regex_coderef($/, $*DECLARAND, $<nibble>.ast, $*SCOPE, $name, %sig_info, $*CURPAD, $<trait>);
         }
+
+        # Install &?ROUTINE.
+        $*W.install_lexical_symbol($*CURPAD, '&?ROUTINE', $*DECLARAND);
 
         # Return closure if not in sink context.
         my $closure := block_closure($coderef);
@@ -4721,6 +4735,24 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
 
     method postcircumfix:sym<ang>($/) {
+        my $past := QAST::Op.new( :name('postcircumfix:<{ }>'), :op('callmethod'), :node($/) );
+        my $nib  := $<nibble>.ast;
+        $past.push($nib)
+            unless nqp::istype($nib, QAST::Stmts) && nqp::istype($nib[0], QAST::Op) &&
+            $nib[0].name eq '&infix:<,>' && +@($nib[0]) == 0;
+        make $past;
+    }
+
+    method postcircumfix:sym«<< >>»($/) {
+        my $past := QAST::Op.new( :name('postcircumfix:<{ }>'), :op('callmethod'), :node($/) );
+        my $nib  := $<nibble>.ast;
+        $past.push($nib)
+            unless nqp::istype($nib, QAST::Stmts) && nqp::istype($nib[0], QAST::Op) &&
+            $nib[0].name eq '&infix:<,>' && +@($nib[0]) == 0;
+        make $past;
+    }
+
+    method postcircumfix:sym<« »>($/) {
         my $past := QAST::Op.new( :name('postcircumfix:<{ }>'), :op('callmethod'), :node($/) );
         my $nib  := $<nibble>.ast;
         $past.push($nib)

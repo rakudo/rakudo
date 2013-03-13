@@ -1951,6 +1951,20 @@ class Perl6::Actions is HLL::Actions does STDActions {
             else {
                 $block[1] := wrap_return_handler($block[1]);
             }
+            if $*MULTINESS eq 'proto' {
+                # Also stash the current lexical dispatcher and capture, for the {*}
+                # to resolve.
+                $block[0].push(QAST::Op.new(
+                    :op('bind'),
+                    QAST::Var.new( :name('CURRENT_DISPATCH_CAPTURE'), :scope('lexical'), :decl('var') ),
+                    QAST::Op.new( :op('savecapture') )
+                ));
+                $block[0].push(QAST::Op.new(
+                    :op('bind'),
+                    QAST::Var.new( :name('&*CURRENT_DISPATCHER'), :scope('lexical'), :decl('var') ),
+                    QAST::Op.new( :op('getcodeobj'), QAST::Op.new( :op('curcode') ) )
+                ));
+            }
         }
 
         # Obtain parameters, create signature object and generate code to
@@ -2135,7 +2149,15 @@ class Perl6::Actions is HLL::Actions does STDActions {
     method autogenerate_proto($/, $name, $install_in) {
         my $p_past := $*W.push_lexpad($/);
         $p_past.name(~$name);
-        $p_past.push(QAST::Op.new( :op('p6multidispatch') ));
+        $p_past.push(QAST::Op.new(
+            :op('invokewithcapture'),
+            QAST::Op.new(
+                :op('callmethod'), :name('find_best_dispatchee'),
+                QAST::Op.new( :op('getcodeobj'), QAST::Op.new( :op('curcode') ) ),
+                QAST::Op.new( :op('usecapture') )
+            ),
+            QAST::Op.new( :op('usecapture') )
+        ));
         $*W.pop_lexpad();
         $install_in.push(QAST::Stmt.new($p_past));
         my @p_params := [hash(is_capture => 1, nominal_type => $*W.find_symbol(['Mu']) )];
@@ -2297,6 +2319,20 @@ class Perl6::Actions is HLL::Actions does STDActions {
             }
             else {
                 $past[1] := wrap_return_handler($past[1]);
+            }
+            if $*MULTINESS eq 'proto' {
+                # Also stash the current lexical dispatcher and capture, for the {*}
+                # to resolve.
+                $past[0].push(QAST::Op.new(
+                    :op('bind'),
+                    QAST::Var.new( :name('CURRENT_DISPATCH_CAPTURE'), :scope('lexical'), :decl('var') ),
+                    QAST::Op.new( :op('savecapture') )
+                ));
+                $past[0].push(QAST::Op.new(
+                    :op('bind'),
+                    QAST::Var.new( :name('&*CURRENT_DISPATCHER'), :scope('lexical'), :decl('var') ),
+                    QAST::Op.new( :op('getcodeobj'), QAST::Op.new( :op('curcode') ) )
+                ));
             }
         }
         
@@ -2584,7 +2620,15 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
     method onlystar($/) {
         my $BLOCK := $*CURPAD;
-        $BLOCK.push(QAST::Op.new( :op('p6multidispatch') ));
+        $BLOCK.push(QAST::Op.new(
+            :op('invokewithcapture'),
+            QAST::Op.new(
+                :op('callmethod'), :name('find_best_dispatchee'),
+                QAST::Op.new( :op('getcodeobj'), QAST::Op.new( :op('curcode') ) ),
+                QAST::Op.new( :op('usecapture') )
+            ),
+            QAST::Op.new( :op('usecapture') )
+        ));
         $BLOCK.node($/);
         make $BLOCK;
     }
@@ -3859,7 +3903,22 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
     
     method term:sym<onlystar>($/) {
-        make QAST::Op.new( :op('p6multidispatchlex') );
+        my $dc_name := QAST::Node.unique('dispatch_cap');
+        make QAST::Stmts.new(
+            QAST::Op.new(
+                :op('bind'),
+                QAST::Var.new( :name($dc_name), :scope('local'), :decl('var') ),
+                QAST::Var.new( :name('CURRENT_DISPATCH_CAPTURE'), :scope('lexical') )
+            ),
+            QAST::Op.new(
+                :op('invokewithcapture'),
+                QAST::Op.new(
+                    :op('callmethod'), :name('find_best_dispatchee'),
+                    QAST::Var.new( :name('&*CURRENT_DISPATCHER'), :scope('lexical') ),
+                    QAST::Var.new( :name($dc_name), :scope('local') )
+                ),
+                QAST::Var.new( :name($dc_name), :scope('local') )
+            ));
     }
 
     method args($/) {

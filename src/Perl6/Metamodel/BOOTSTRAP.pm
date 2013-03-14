@@ -1501,16 +1501,12 @@ BEGIN {
     Mu.HOW.add_parrot_vtable_mapping(Mu, 'invoke', $invoke_forwarder);
 
     # If we don't already have a PROCESS, set it up.
-    my $PROCESS;
-    my $hll_ns := pir::get_root_global__PS('perl6');
-    if !nqp::isnull($hll_ns) && nqp::existskey($hll_ns, 'PROCESS') {
-        $PROCESS := $hll_ns<PROCESS>;
-    }
-    else {
+    my $PROCESS := nqp::gethllsym('perl6', 'PROCESS');
+    if nqp::isnull($PROCESS) {
         PROCESS.HOW.compose(PROCESS);
         Perl6::Metamodel::ModuleHOW.add_stash(PROCESS);
         $PROCESS := PROCESS;
-        pir::set_root_global__2PsP(['perl6'], 'PROCESS', $PROCESS);
+        nqp::bindhllsym('perl6', 'PROCESS', $PROCESS);
     }
 
     # Bool::False and Bool::True.
@@ -1675,5 +1671,4 @@ Perl6::Metamodel::ClassHOW.set_default_parent_type(Any);
 Perl6::Metamodel::GrammarHOW.set_default_parent_type(Grammar);
 
 # Put PROCESS in place.
-my $hll_ns := pir::get_root_global__PS('perl6');
-$hll_ns<PROCESS> := PROCESS;
+nqp::bindhllsym('perl6', 'PROCESS', PROCESS);

@@ -39,6 +39,7 @@ role Perl6::Metamodel::MultiMethodContainer {
     method incorporate_multi_candidates($obj) {
         my $num_todo := +@!multi_methods_to_incorporate;
         my $i := 0;
+        my @new_protos;
         while $i != $num_todo {
             # Get method name and code.
             my $name := @!multi_methods_to_incorporate[$i].name;
@@ -77,6 +78,7 @@ role Perl6::Metamodel::MultiMethodContainer {
                             my $copy := $dispatcher.derive_dispatcher();
                             $copy.add_dispatchee($code);
                             self.add_method($obj, $name, $copy);
+                            nqp::push(@new_protos, $copy);
                             $found := 1;
                         }
                     }
@@ -92,9 +94,15 @@ role Perl6::Metamodel::MultiMethodContainer {
                     $proto.set_name($name);
                     $proto.add_dispatchee($code);
                     self.add_method($obj, $name, $proto);
+                    nqp::push(@new_protos, $proto);
                 }
             }
             $i := $i + 1;
+        }
+        for @new_protos {
+            if nqp::can($_, 'sort_dispatchees') {
+                $_.sort_dispatchees();
+            }
         }
         @!multi_methods_to_incorporate := [];
     }

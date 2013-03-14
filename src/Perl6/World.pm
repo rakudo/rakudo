@@ -193,6 +193,10 @@ class Perl6::World is HLL::World {
     # Array of stubs to check and the end of compilation.
     has @!stub_check;
     
+    # Array of protos that can have their candidates pre-sorted at CHECK
+    # time.
+    has @!protos_to_sort;
+    
     # Cached constants that we've built.
     has %!const_cache;
     
@@ -203,6 +207,7 @@ class Perl6::World is HLL::World {
         @!BLOCKS := [];
         @!CODES := [];
         @!stub_check := [];
+        @!protos_to_sort := [];
         @!CHECKs := [];
         %!sub_id_to_code_object := {};
         %!sub_id_to_static_lexpad := {};
@@ -280,7 +285,12 @@ class Perl6::World is HLL::World {
     
     # Pushes a stub on the "stubs to check" list.
     method add_stub_to_check($stub) {
-        @!stub_check[+@!stub_check] := $stub;
+        nqp::push(@!stub_check, $stub);
+    }
+    
+    # Adds a proto to be sorted at CHECK time.
+    method add_proto_to_sort($proto) {
+        nqp::push(@!protos_to_sort, $proto);
     }
     
     # Checks for any stubs that weren't completed.
@@ -293,6 +303,15 @@ class Perl6::World is HLL::World {
         }
         if +@incomplete {
             self.throw($/, 'X::Package::Stubbed', packages => @incomplete);
+        }
+    }
+    
+    # Sorts all protos.
+    method sort_protos() {
+        for @!protos_to_sort {
+            if nqp::can($_, 'sort_dispatchees') {
+                $_.sort_dispatchees();
+            }
         }
     }
     

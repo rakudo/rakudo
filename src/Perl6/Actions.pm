@@ -272,6 +272,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         
         # Checks.
         $*W.assert_stubs_defined($/);
+        $*W.sort_protos();
 
         # Get the block for the unit mainline code.
         my $unit := $*UNIT;
@@ -2140,6 +2141,11 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 self.add_inlining_info_if_possible($/, $code, $block, @params);
             }
         }
+        
+        # If it's a proto, add it to the sort-at-CHECK-time queue.
+        if $*MULTINESS eq 'proto' {
+            $*W.add_proto_to_sort($code);
+        }
 
         my $closure := block_closure(reference_to_code_object($code, $past));
         $closure<sink_past> := QAST::Op.new( :op('null') );
@@ -2177,6 +2183,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         add_signature_binding_code($p_past, $p_sig, @p_params);
         my $code := $*W.create_code_object($p_past, 'Sub', $p_sig, 1);
         $*W.apply_trait($/, '&trait_mod:<is>', $code, :onlystar(1));
+        $*W.add_proto_to_sort($code);
         $code
     }
     
@@ -2398,6 +2405,11 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 multiness       => $*MULTINESS,
                 routine-type    => 'method',
             );
+        }
+        
+        # If it's a proto, add it to the sort-at-CHECK-time queue.
+        if $*MULTINESS eq 'proto' {
+            $*W.add_proto_to_sort($code);
         }
 
         my $closure := block_closure(reference_to_code_object($code, $past));

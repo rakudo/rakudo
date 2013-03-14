@@ -631,7 +631,7 @@ BEGIN {
             nqp::getattr(pir::perl6_decontainerize__PP($self),
                 Routine, '$!dispatchees')
         }));
-    Routine.HOW.add_method(Routine, 'sort_dispatchees', static(sub ($self) {
+    Routine.HOW.add_method(Routine, '!sort_dispatchees_internal', static(sub ($self) {
             my int $SLURPY_ARITY      := nqp::bitshiftl_i(1, 30);
             my int $EDGE_REMOVAL_TODO := -1;
             my int $EDGE_REMOVED      := -2;
@@ -924,6 +924,10 @@ BEGIN {
 
             @result
         }));
+    Routine.HOW.add_method(Routine, 'sort_dispatchees', static(sub ($self) {
+        nqp::bindattr(nqp::decont($self), Routine, '$!dispatch_order',
+            $self.'!sort_dispatchees_internal'());
+    }));
     Routine.HOW.add_method(Routine, 'find_best_dispatchee', static(sub ($self, $capture, int $many = 0) {        
             my int $DEFCON_DEFINED    := 1;
             my int $DEFCON_UNDEFINED  := 2;
@@ -945,7 +949,7 @@ BEGIN {
             my @candidates := nqp::getattr($dcself, Routine, '$!dispatch_order');
             if nqp::isnull(@candidates) {
                 nqp::scwbdisable();
-                @candidates := $dcself.sort_dispatchees();
+                @candidates := $dcself.'!sort_dispatchees_internal'();
                 nqp::bindattr($dcself, Routine, '$!dispatch_order', @candidates);
                 nqp::scwbenable();
             }

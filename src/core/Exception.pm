@@ -1194,6 +1194,25 @@ my class X::Item is Exception {
     method message { "Cannot index {$.aggregate.^name} with $.index" }
 }
 
+my class X::Multi::Ambiguous is Exception {
+    has $.dispatcher;
+    has @.ambiguous;
+    method message {
+        join "\n",
+            "Ambiguous call to '$.dispatcher.name()'; these signatures all match:",
+            @.ambiguous.map(*.signature.perl)
+    }
+}
+
+my class X::Multi::NoMatch is Exception {
+    has $.dispatcher;
+    method message {
+        join "\n",
+            "Cannot call '$.dispatcher.name()'; none of these signatures match:",
+            $.dispatcher.dispatchees.map(*.signature.perl)
+    }
+}
+
 {
     my %c_ex;
     %c_ex{'X::TypeCheck::Binding'} := sub ($got, $expected) is hidden_from_backtrace {
@@ -1214,8 +1233,15 @@ my class X::Item is Exception {
     %c_ex{'X::NoDispatcher'} := sub ($redispatcher) is hidden_from_backtrace {
             X::NoDispatcher.new(:$redispatcher).throw;
         };
+    %c_ex{'X::Multi::Ambiguous'} := sub ($dispatcher, @ambiguous) is hidden_from_backtrace {
+            X::Multi::Ambiguous.new(:$dispatcher, :@ambiguous).throw
+        };
+    %c_ex{'X::Multi::NoMatch'} := sub ($dispatcher) is hidden_from_backtrace {
+            X::Multi::NoMatch.new(:$dispatcher).throw
+        };
     my Mu $parrot_c_ex := nqp::getattr(%c_ex, EnumMap, '$!storage');
     nqp::bindcurhllsym('P6EX', $parrot_c_ex);
+    
     0;
 }
 

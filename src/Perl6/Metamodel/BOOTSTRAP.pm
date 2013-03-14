@@ -1187,39 +1187,27 @@ BEGIN {
                 $junctional_res;
             }
             elsif nqp::elems(@possibles) == 0 {
-                # Get signatures of all possible candidates. We dump them in the
-                # order in which we search for them.
-                nqp::die("Bad dispatch reporting NYI");
-                #STRING *signatures = Parrot_str_new(interp, "", 0);
-                #cur_candidate = candidates;
-                #while (1) {
-                #    if (!cur_candidate[0] && !cur_candidate[1])
-                #        break;
-                #    if (cur_candidate[0])
-                #        signatures = dump_signature(interp, signatures, (*cur_candidate)->sub);
-                #    cur_candidate++;
-                #}
-                #
-                #mem_sys_free(possibles);
-                #Parrot_ex_throw_from_c_args(interp, next, 1,
-                #    "Cannot call '%Ss'; none of these signatures match:\n%Ss",
-                #        (candidates[0] ? VTABLE_get_string(interp, candidates[0]->sub) : STRINGNULL),
-                #        signatures);
-                #return PMCNULL;
+                my %ex := nqp::gethllsym('perl6', 'P6EX');
+                if nqp::isnull(%ex) || !nqp::existskey(%ex, 'X::Multi::NoMatch') {
+                    nqp::die("Cannot call " ~ $self.name() ~
+                        "; no signatures match");
+                }
+                else {
+                    nqp::atkey(%ex, 'X::Multi::NoMatch')($self)
+                }
             }
             else {
-                nqp::die("Ambiguous dispatch reporting NYI");
-                #/* Get signatures of ambiguous candidates. */
-                #STRING *signatures = Parrot_str_new(interp, "", 0);
-                #INTVAL i;
-                #for (i = 0; i < possibles_count; i++)
-                #    signatures = dump_signature(interp, signatures, possibles[i]->sub);
-                #
-                #mem_sys_free(possibles);
-                #Parrot_ex_throw_from_c_args(interp, next, 1,
-                #    "Ambiguous call to '%Ss'; these signatures all match:\n%Ss",
-                #        VTABLE_get_string(interp, candidates[0]->sub), signatures);
-                #return PMCNULL;
+                my %ex := nqp::gethllsym('perl6', 'P6EX');
+                if nqp::isnull(%ex) || !nqp::existskey(%ex, 'X::Multi::Ambiguous') {
+                    nqp::die("Ambiguous call to " ~ $self.name());
+                }
+                else {
+                    my @ambig;
+                    for @possibles {
+                        nqp::push(@ambig, $_<sub>);
+                    }
+                    nqp::atkey(%ex, 'X::Multi::Ambiguous')($self, @ambig)
+                }
             }
         }));
     Routine.HOW.add_method(Routine, 'set_rw', static(sub ($self) {

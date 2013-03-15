@@ -78,7 +78,7 @@ class Perl6::Metamodel::MultiDispatcher is Perl6::Metamodel::BaseDispatcher {
         my $args         := $lexpad<call_sig>;
         my $has_invocant := nqp::existskey($lexpad, 'self');
         my $invocant     := $has_invocant && $lexpad<self>;
-        my @cands        := pir::perl6_get_matching_multis__PPP($disp, $args);
+        my @cands        := $disp.find_best_dispatchee($args, 1);
         self.new(:candidates(@cands), :idx(1), :invocant($invocant),
             :has_invocant($has_invocant))
     }

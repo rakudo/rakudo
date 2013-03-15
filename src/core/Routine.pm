@@ -37,7 +37,7 @@ my class Routine {
         # Call this lexical sub to get rid of 'self' in the signature.
         sub checker(|) {
             my Mu $cap := pir::find_lex__Ps('call_sig');
-            nqp::p6type(pir::perl6_get_matching_multis__PPP($disp, $cap))
+            nqp::p6type($disp.find_best_dispatchee($cap, 1))
         }
         checker(|$c);
     }

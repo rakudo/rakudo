@@ -1096,8 +1096,12 @@ BEGIN {
                     # See if we need to push it onto the many list and continue.
                     # Otherwise, we have the result we were looking for.
                     if $many {
-                        for @possibles {
-                            nqp::push($many_res, $_)
+                        while @possibles {
+                            nqp::push($many_res, nqp::atkey(nqp::shift(@possibles), 'sub'))
+                        }
+                        $cur_idx++;
+                        unless nqp::isconcrete(nqp::atpos(@candidates, $cur_idx)) {
+                            $done := 1;
                         }
                     }
                     elsif @possibles {

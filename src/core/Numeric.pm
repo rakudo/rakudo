@@ -170,9 +170,9 @@ proto sub ceiling($) is pure   { * }
 multi sub ceiling($a)          { $a.Numeric.ceiling }
 multi sub ceiling(Numeric $a)  { $a.ceiling }
 
-proto sub round($) is pure   { * }
-multi sub round($a)          { $a.Numeric.round }
-multi sub round(Numeric $a)  { $a.round }
+proto sub round($, $?) is pure      { * }
+multi sub round($a)                 { $a.Numeric.round }
+multi sub round(Numeric $a)         { $a.round }
 multi sub round(Numeric $a, $scale) { $a.round($scale) }
 
 proto infix:<+>($a?, $b?) is pure   { * }

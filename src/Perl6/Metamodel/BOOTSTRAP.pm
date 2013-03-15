@@ -917,8 +917,11 @@ BEGIN {
             @result
         }));
     Routine.HOW.add_method(Routine, 'sort_dispatchees', static(sub ($self) {
-        nqp::bindattr(nqp::decont($self), Routine, '$!dispatch_order',
-            $self.'!sort_dispatchees_internal'());
+        my $dcself := nqp::decont($self);
+        unless nqp::isnull(nqp::getattr($dcself, Routine, '$!dispatch_order')) {
+            nqp::bindattr($dcself, Routine, '$!dispatch_order',
+                $self.'!sort_dispatchees_internal'());
+        }
     }));
     Routine.HOW.add_method(Routine, 'find_best_dispatchee', static(sub ($self, $capture, int $many = 0) {        
             my int $DEFCON_DEFINED    := 1;

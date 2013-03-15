@@ -765,7 +765,6 @@ BEGIN {
                     'num_types',    0,
                 );
                 my int $significant_param := 0;
-                my int $named_bind_check := 0;
                 for @params -> $param {
                     # If it's a required named (and not slurpy) don't need its type info
                     # but we will need a bindability check during the dispatch for it.
@@ -776,11 +775,8 @@ BEGIN {
                             if nqp::elems($named_names) == 1 {
                                 %info<req_named> := nqp::atpos_s($named_names, 0);
                             }
-                            %info<bind_check> := 1;
                         }
-                        else {
-                            $named_bind_check := 1;
-                        }
+                        %info<bind_check> := 1;
                         next;
                     }
 
@@ -792,7 +788,6 @@ BEGIN {
                     # If it's named slurpy, we're done, also we don't need a bind
                     # check on account of nameds since we take them all.
                     if $flags +& $SIG_ELEM_SLURPY_NAMED {
-                        $named_bind_check := 0;
                         last;
                     }
 
@@ -844,9 +839,6 @@ BEGIN {
                             $TYPE_NATIVE_STR + nqp::atpos_i(%info<type_flags>, $significant_param));
                     }
                     $significant_param++;
-                }
-                if $named_bind_check {
-                    %info<bind_check> := 1;
                 }
 
                 # Add it to graph node, and initialize list of edges.

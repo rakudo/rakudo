@@ -992,9 +992,8 @@ BEGIN {
                             else {
                                 my $param;
                                 if $got_prim == $BIND_VAL_OBJ {
-                                    $param := nqp::decont(
-                                        pir::perl6ize_type__PP(
-                                            nqp::captureposarg($capture, $i)));
+                                    $param := pir::perl6ize_type__PP(
+                                        nqp::captureposarg($capture, $i));
                                 }
                                 else {
                                     $param := $got_prim == $BIND_VAL_INT ?? Int !!

@@ -90,10 +90,6 @@ typedef struct candidate_graph_node {
     INTVAL                        edges_out;
 } Rakudo_md_candidate_graph_node;
 
-/* This gets all matches for a given capture. */
-PMC *
-Rakudo_md_get_all_matches(PARROT_INTERP, PMC *dispatcher, PMC *capture);
-
 /* Tries to resolve a multi-dispatch at compile time. Returns a flag
  * and, if a dispatch is possible, sets the result. */
 INTVAL

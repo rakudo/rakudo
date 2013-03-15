@@ -1051,7 +1051,6 @@ BEGIN {
                                 # new possibles, and that this was not a pure
                                 # type-based result that we can cache.
                                 $new_possibles := [] unless nqp::islist($new_possibles);
-                                $pure_type_result := 0;
                             }
 
                             # Otherwise, may need full bind check.
@@ -1150,13 +1149,15 @@ BEGIN {
             # If we're at a single candidate here, and we also know there's no
             # type constraints that follow, we can cache the result.
             if nqp::elems(@possibles) == 1 && $pure_type_result {
-                nqp::scwbdisable();
-                nqp::bindattr($dcself, Routine, '$!dispatch_cache',
-                    nqp::multicacheadd(
-                        nqp::getattr($dcself, Routine, '$!dispatch_cache'),
-                        $capture,
-                        nqp::atkey(nqp::atpos(@possibles, 0), 'sub')));
-                nqp::scwbenable();
+                if nqp::isnull(pir::getattribute__PPs($capture, 'named')) {
+                    nqp::scwbdisable();
+                    nqp::bindattr($dcself, Routine, '$!dispatch_cache',
+                        nqp::multicacheadd(
+                            nqp::getattr($dcself, Routine, '$!dispatch_cache'),
+                            $capture,
+                            nqp::atkey(nqp::atpos(@possibles, 0), 'sub')));
+                    nqp::scwbenable();
+                }
             }
 
             # Perhaps we found nothing but have junctional arguments?

@@ -135,7 +135,7 @@ class Perl6::ModuleLoader {
             my %trace := nqp::hash();
             %trace<module>   := $module_name;
             %trace<filename> := %chosen<pm>;
-            my $preserve_global := pir::get_root_global__Ps('perl6'){'GLOBAL'};
+            my $preserve_global := nqp::ifnull(nqp::gethllsym('perl6', 'GLOBAL'), NQPMu);
             nqp::push(@*MODULES, %trace);
             if %chosen<load> {
                 %trace<precompiled> := %chosen<load>;
@@ -176,9 +176,9 @@ class Perl6::ModuleLoader {
                 DEBUG("done loading ", %chosen<pm>) if $DEBUG;
 
             }
-            pir::get_root_global__Ps('perl6'){'GLOBAL'} := $preserve_global;
+            nqp::bindhllsym('perl6', 'GLOBAL', $preserve_global);
             CATCH {
-                pir::get_root_global__Ps('perl6'){'GLOBAL'} := $preserve_global;
+                nqp::bindhllsym('perl6', 'GLOBAL', $preserve_global);
                 nqp::rethrow($_);
             }
         }
@@ -267,11 +267,11 @@ class Perl6::ModuleLoader {
                 # Load it.
                 my $*CTXSAVE := self;
                 my $*MAIN_CTX;
-                my $preserve_global := pir::get_root_global__Ps('perl6'){'GLOBAL'};
+                my $preserve_global := nqp::ifnull(nqp::gethllsym('perl6', 'GLOBAL'), NQPMu);
                 nqp::scwbdisable();
                 nqp::loadbytecode($path);
                 nqp::scwbenable();
-                pir::get_root_global__Ps('perl6'){'GLOBAL'} := $preserve_global;
+                nqp::bindhllsym('perl6', 'GLOBAL', $preserve_global);
                 unless nqp::defined($*MAIN_CTX) {
                     nqp::die("Unable to load setting $setting_name; maybe it is missing a YOU_ARE_HERE?");
                 }

@@ -86,8 +86,8 @@ class Perl6::Pod {
             # This is a cheaty and evil hack. This is also the only way
             # I can obtain this information without reimplementing
             # <colonpair> entirely
-            if $colonpair<circumfix> {
-                $val := $colonpair<circumfix>;
+            if $colonpair<coloncircumfix><circumfix> {
+                $val := $colonpair<coloncircumfix><circumfix>;
                 if $val<nibble> {
                     $val := $*W.colonpair_nibble_to_str($/, $val<nibble>);
                 } else {

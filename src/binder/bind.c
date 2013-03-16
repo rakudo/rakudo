@@ -329,7 +329,7 @@ Rakudo_binding_bind_one_param(PARROT_INTERP, PMC *lexpad, Rakudo_Signature *sign
         bv.type = BIND_VAL_OBJ;
         bv.val.o = create_box(interp, orig_bv);
     }
-    else {
+    else if (orig_bv.val.o->vtable->base_type == smo_id) {
         storage_spec spec;
         decont_value = Rakudo_cont_decontainerize(interp, orig_bv.val.o);
         spec = REPR(decont_value)->get_storage_spec(interp, STABLE(decont_value));
@@ -377,6 +377,27 @@ Rakudo_binding_bind_one_param(PARROT_INTERP, PMC *lexpad, Rakudo_Signature *sign
                 return BIND_RESULT_FAIL;
         }
         decont_value = NULL;
+    }
+    else if (orig_bv.val.o->vtable->base_type == enum_class_Integer &&
+             desired_native == SIG_ELEM_NATIVE_INT_VALUE) {
+         bv.type = BIND_VAL_INT;
+         bv.val.i = VTABLE_get_integer(interp, orig_bv.val.o);
+    }
+    else if (orig_bv.val.o->vtable->base_type == enum_class_Float &&
+             desired_native == SIG_ELEM_NATIVE_NUM_VALUE) {
+         bv.type = BIND_VAL_NUM;
+         bv.val.n = VTABLE_get_number(interp, orig_bv.val.o);
+    }
+    else if (orig_bv.val.o->vtable->base_type == enum_class_String &&
+             desired_native == SIG_ELEM_NATIVE_STR_VALUE) {
+         bv.type = BIND_VAL_STR;
+         bv.val.s = VTABLE_get_string(interp, orig_bv.val.o);
+    }
+    else {
+        if (error)
+            *error = Parrot_sprintf_c(interp, "Cannot unbox argument to '%S' as a native type",
+                param->variable_name);
+        return BIND_RESULT_FAIL;
     }
     
     /* By this point, we'll either have an object that we might be able to

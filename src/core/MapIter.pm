@@ -101,6 +101,8 @@ my class MapIter is Iterator {
               catch:
                 .local pmc exception, type
                 .get_results (exception)
+                null $P0
+                perl6_invoke_catchhandler $P0, exception
                 result = getattribute exception, 'payload'
                 push rpa, result
                 type = getattribute exception, 'type'

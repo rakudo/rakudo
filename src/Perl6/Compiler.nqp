@@ -8,10 +8,9 @@ class Perl6::Compiler is HLL::Compiler {
             %options<doc> := 'Text';
         }
 
-        my $hll_ns := pir::get_root_global__Ps('perl6');
         my $argiter := nqp::iterator(@args);
         nqp::shift($argiter) if $argiter && !nqp::defined(%options<e>);
-        $hll_ns<$!ARGITER> := $argiter;
+        nqp::bindhllsym('perl6', '$!ARGITER', $argiter);
         my $super := nqp::findmethod(HLL::Compiler, 'command_eval');
         my %*COMPILING;
         %*COMPILING<%?OPTIONS> := %options;

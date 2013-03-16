@@ -1,29 +1,36 @@
-class Range is Iterable is Cool does Positional {
+my class X::Range::InvalidArg { ... }
+
+my class Range is Iterable is Cool does Positional {
     has $.min;
     has $.max;
     has $.excludes_min;
     has $.excludes_max;
 
     proto method new(|) { * }
-    multi method new($min, $max, :$excludes_min, :$excludes_max) {
-        nqp::create(self).BUILD($min, $max, $excludes_min, $excludes_max)
+    # The order of "method new" declarations matters here, to ensure
+    # appropriate candidate tiebreaking when mixed type arguments 
+    # are present (e.g., Range,Whatever or Real,Range).
+    multi method new(Range $min, $max, :$excludes_min, :$excludes_max) {
+        X::Range::InvalidArg.new(:got($min)).throw;
     }
-    multi method new(Real $min, $max, :$excludes_min, :$excludes_max) {
-        nqp::create(self).BUILD($min, $max.Real, $excludes_min, $excludes_max)
-    }
-    multi method new(Real $min, Whatever $max, :$excludes_min, :$excludes_max) {
-        nqp::create(self).BUILD($min, $Inf, $excludes_min, $excludes_max)
-    }
-    multi method new($min, Whatever $max, :$excludes_min, :$excludes_max) {
-        nqp::create(self).BUILD($min, $Inf, $excludes_min, $excludes_max)
-    }
-    multi method new(Whatever $min, $max, :$excludes_min, :$excludes_max) {
-        nqp::create(self).BUILD(-$Inf, $max, $excludes_min, $excludes_max)
+    multi method new($min, Range $max, :$excludes_min, :$excludes_max) {
+        X::Range::InvalidArg.new(:got($max)).throw;
     }
     multi method new(Whatever $min, Whatever $max, :$excludes_min, :$excludes_max) {
         fail "*..* is not a valid range";
     }
-    
+    multi method new(Whatever $min, $max, :$excludes_min, :$excludes_max) {
+        nqp::create(self).BUILD(-$Inf, $max, $excludes_min, $excludes_max)
+    }
+    multi method new($min, Whatever $max, :$excludes_min, :$excludes_max) {
+        nqp::create(self).BUILD($min, $Inf, $excludes_min, $excludes_max)
+    }
+    multi method new(Real $min, $max, :$excludes_min, :$excludes_max) {
+        nqp::create(self).BUILD($min, $max.Real, $excludes_min, $excludes_max)
+    }
+    multi method new($min, $max, :$excludes_min, :$excludes_max) {
+        nqp::create(self).BUILD($min, $max, $excludes_min, $excludes_max)
+    }
 
     submethod BUILD($min, $max, $excludes_min, $excludes_max) {
         $!min = $min;

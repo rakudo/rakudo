@@ -968,6 +968,13 @@ my class X::Str::Trans::InvalidArg is Exception {
     }
 }
 
+my class X::Range::InvalidArg is Exception {
+    has $.got;
+    method message() {
+        "{$.got.^name} objects are not valid endpoints for Ranges";
+    }
+}
+
 my class X::Sequence::Deduction is Exception {
     method message() { 'Unable to deduce sequence' }
 }

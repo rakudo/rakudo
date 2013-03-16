@@ -12,18 +12,15 @@ class Perl6::ModuleLoader {
     my %settings_loaded;
     
     method ctxsave() {
-        $*MAIN_CTX := Q:PIR {
-            getinterp $P0
-            %r = $P0['context';1]
-        };
+        $*MAIN_CTX := nqp::ctxcaller(nqp::ctx());
         $*CTXSAVE := 0;
     }
     
     method search_path() {
         # See if we have an @*INC set up, and if so just use that.
-        my $hll_ns := pir::get_root_global__PS('perl6');
-        if nqp::existskey($hll_ns, 'PROCESS') && nqp::existskey($hll_ns<PROCESS>.WHO, '@INC') {
-            my $INC := ($hll_ns<PROCESS>.WHO)<@INC>;
+        my $PROCESS := nqp::gethllsym('perl6', 'PROCESS');
+        if !nqp::isnull($PROCESS) && nqp::existskey($PROCESS.WHO, '@INC') {
+            my $INC := ($PROCESS.WHO)<@INC>;
             if nqp::defined($INC) {
                 my @INC := $INC.FLATTENABLE_LIST();
                 if +@INC {
@@ -308,4 +305,4 @@ class Perl6::ModuleLoader {
 
 # We stash this in the perl6 HLL namespace, just so it's easy to
 # locate. Note this makes it invisible inside Perl 6 itself.
-pir::set_root_global__vPsP(['perl6'], 'ModuleLoader', Perl6::ModuleLoader);
+nqp::bindhllsym('perl6', 'ModuleLoader', Perl6::ModuleLoader);

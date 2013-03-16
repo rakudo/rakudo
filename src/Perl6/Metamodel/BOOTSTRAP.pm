@@ -1209,6 +1209,194 @@ BEGIN {
                 }
             }
         }));
+    Routine.HOW.add_method(Routine, 'analyze_dispatch', static(sub ($self, @args, @flags) {
+            # Compile time dispatch result.
+            my $MD_CT_NOT_SURE :=  0;  # Needs a runtime dispatch.
+            my $MD_CT_DECIDED  :=  1;  # Worked it out; see result.
+            my $MD_CT_NO_WAY   := -1;  # Proved it'd never manage to dispatch.
+            
+            # Other constants we need.
+            my int $DEFCON_DEFINED    := 1;
+            my int $DEFCON_UNDEFINED  := 2;
+            my int $DEFCON_MASK       := $DEFCON_DEFINED +| $DEFCON_UNDEFINED;
+            my int $TYPE_NATIVE_INT   := 4;
+            my int $TYPE_NATIVE_NUM   := 8;
+            my int $TYPE_NATIVE_STR   := 16;
+            my int $TYPE_NATIVE_MASK  := $TYPE_NATIVE_INT +| $TYPE_NATIVE_NUM +| $TYPE_NATIVE_STR;
+            my int $BIND_VAL_OBJ      := 0;
+            my int $BIND_VAL_INT      := 1;
+            my int $BIND_VAL_NUM      := 2;
+            my int $BIND_VAL_STR      := 3;
+            
+            # Count arguments.
+            my int $num_args := nqp::elems(@args);
+            
+            # Get list and number of candidates, triggering a sort if there are none.
+            my $dcself := nqp::decont($self);
+            my @candidates := nqp::getattr($dcself, Routine, '$!dispatch_order');
+            if nqp::isnull(@candidates) {
+                nqp::scwbdisable();
+                @candidates := $dcself.'!sort_dispatchees_internal'();
+                nqp::bindattr($dcself, Routine, '$!dispatch_order', @candidates);
+                nqp::scwbenable();
+            }
+            my $num_candidates := nqp::elems(@candidates);
+            
+            # Look through the candidates. If we see anything that needs a bind
+            # check or a definedness check, we can't decide it at compile time,
+            # so bail out immediately.
+            my int $all_native     := 1;
+            my int $cur_idx        := 0;
+            my int $seen_all       := 0;
+            my int $arity_possible := 0;
+            my int $type_possible  := 0;
+            my int $used_defcon;
+            my int $type_mismatch;
+            my int $type_check_count;
+            my int $type_match_possible;
+            my int $i;
+            my $cur_candidate;
+            my $cur_result;
+            while 1 {
+                $cur_candidate := nqp::atpos(@candidates, $cur_idx);
+                $used_defcon := 0;
+
+                # Did we reach the end of a tied group? If so, note we can only
+                # consider the narrowest group, *unless* they are all natively
+                # typed candidates in which case we can look a bit further.
+                # We also exit if we found something.
+                unless nqp::isconcrete($cur_candidate) {
+                    $cur_idx++;
+                    if nqp::isconcrete(nqp::atpos(@candidates, $cur_idx))
+                    && $all_native && !nqp::isconcrete($cur_result) {
+                        next;
+                    }
+                    else {
+                        $seen_all := !nqp::isconcrete(nqp::atpos(@candidates, $cur_idx));
+                        last;
+                    }
+                }
+
+                # Check if it's admissable by arity.
+                if $num_args < nqp::atkey($cur_candidate, 'min_arity')
+                || $num_args > nqp::atkey($cur_candidate, 'max_arity') {
+                    $cur_idx++;
+                    next;
+                }
+                
+                # If we got this far, something at least matched on arity.
+                $arity_possible := 1;
+
+                # Check if it's admissable by type.
+                $type_check_count := nqp::atkey($cur_candidate, 'num_types') > $num_args
+                    ?? $num_args
+                    !! nqp::atkey($cur_candidate, 'num_types');
+                $type_mismatch := 0;
+                $type_match_possible := 1;
+                $i := 0;
+                while $i < $type_check_count {
+                    my $type_obj     := nqp::atpos(nqp::atkey($cur_candidate, 'types'), $i);
+                    my $type_flags   := nqp::atpos_i(nqp::atkey($cur_candidate, 'type_flags'), $i);
+                    my int $got_prim := nqp::atpos(@flags, $i);
+                    if $type_flags +& $TYPE_NATIVE_MASK {
+                        # Looking for a natively typed value. Did we get one?
+                        if $got_prim == $BIND_VAL_OBJ {
+                            # Object; won't do.
+                            $type_mismatch := 1;
+                            last;
+                        }
+                        if (($type_flags +& $TYPE_NATIVE_INT) && $got_prim != $BIND_VAL_INT)
+                        || (($type_flags +& $TYPE_NATIVE_NUM) && $got_prim != $BIND_VAL_NUM)
+                        || (($type_flags +& $TYPE_NATIVE_STR) && $got_prim != $BIND_VAL_STR) {
+                            # Mismatch.
+                            $type_mismatch := 1;
+                            $type_match_possible := 0;
+                            last;
+                        }
+                    }
+                    else {
+                        # Work out parameter.
+                        my $param :=
+                            $got_prim == $BIND_VAL_OBJ ?? nqp::atpos(@args, $i) !!
+                            $got_prim == $BIND_VAL_INT ?? Int !!
+                            $got_prim == $BIND_VAL_NUM ?? Num !!
+                                                          Str;
+                
+                        # If we're here, it's a non-native.
+                        $all_native := 0;
+                        
+                        # Check type. If that doesn't rule it out, then check if it's
+                        # got definedness constraints. If it does, note that; if we
+                        # match but depend on definedness constraints we can't do
+                        # any more.
+                        if !nqp::eqaddr($type_obj, Mu) && !nqp::istype($param, $type_obj) {
+                            $type_mismatch := 1;
+                            
+                            # We didn't match, but that doesn't mean we cannot at
+                            # runtime (e.g. the most we know about the type could
+                            # be that it's Any, but at runtime that feasibly could
+                            # be Int). In some cases we never could though (Str
+                            # passed to an Int parameter).
+                            if !nqp::istype($type_obj, $param) {
+                                $type_match_possible := 0;
+                            }
+                        }
+                        elsif $type_flags +& $DEFCON_MASK {
+                            $used_defcon := 1;
+                        }
+                    }
+                    $i++;
+                }
+                if $type_match_possible {
+                    $type_possible := 1;
+                }
+                if $type_mismatch {
+                    $cur_idx++;
+                    next;
+                }
+                if ($used_defcon) {
+                    return [$MD_CT_NOT_SURE, NQPMu];
+                }
+
+                # If it's possible but needs a bind check, we're not going to be
+                # able to decide it. */
+                if nqp::existskey($cur_candidate, 'bind_check') {
+                    return [$MD_CT_NOT_SURE, NQPMu];
+                }
+
+                # If we get here, it's the result. Well, unless we already had one,
+                # in which case we're in bother 'cus we don't know how to disambiguate
+                # at compile time.
+                if nqp::isconcrete($cur_result) {
+                    return [$MD_CT_NOT_SURE, NQPMu];
+                }
+                else {
+                    $cur_result := nqp::atkey($cur_candidate, 'sub');
+                    $cur_idx++;
+                }
+            }
+            
+            # If we saw all the candidates, and got no result, and the arity never
+            # matched or when it did there was no way any candidates could get
+            # passed matching types, then we know it would never work.
+            if $seen_all && (!$arity_possible || !$type_possible) && !nqp::isconcrete($cur_result) {
+                # Ensure no junctional args before we flag the failure.
+                for @args {
+                    if nqp::istype($_, Junction) {
+                        return [$MD_CT_NOT_SURE, NQPMu];
+                    }
+                }
+                return [$MD_CT_NO_WAY, NQPMu];
+            }
+            
+            # If we got a result, return it.
+            if nqp::isconcrete($cur_result) {
+                return [$MD_CT_DECIDED, $cur_result];
+            }
+
+            # Otherwise, dunno...we'll have to find out at runtime.
+            return [$MD_CT_NOT_SURE, NQPMu];
+        }));
     Routine.HOW.add_method(Routine, 'set_rw', static(sub ($self) {
             my $dcself := pir::perl6_decontainerize__PP($self);
             nqp::bindattr_i($dcself, Routine, '$!rw', 1);

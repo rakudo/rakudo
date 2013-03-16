@@ -95,10 +95,11 @@ class Perl6::Optimizer {
             nqp::die("CHECK FAILED:\n" ~ nqp::join("\n", @fails))
         }
         if +%!worrying {
-            pir::printerr__vs("WARNINGS:\n");
+            my $err := nqp::getstderr();
+            nqp::printfh($err, "WARNINGS:\n");
             my @fails;
             for %!worrying {
-                pir::printerr__vs($_.key ~ " (line" ~ (+$_.value == 1 ?? ' ' !! 's ') ~
+                nqp::printfh($err, $_.key ~ " (line" ~ (+$_.value == 1 ?? ' ' !! 's ') ~
                     nqp::join(', ', $_.value) ~ ")\n");
             }
         }

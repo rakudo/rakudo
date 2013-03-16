@@ -362,7 +362,7 @@ class Perl6::Optimizer {
                         my @types := @ct_arg_info[0];
                         my @flags := @ct_arg_info[1];
                         my $ct_result_proto := pir::perl6_trial_bind_ct__IPPP($obj.signature, @types, @flags);
-                        my @ct_result_multi := pir::perl6_multi_dispatch_ct__PPPP($obj, @types, @flags);
+                        my @ct_result_multi := $obj.analyze_dispatch(@types, @flags);
                         if $ct_result_proto == 1 && @ct_result_multi[0] == 1 {
                             my $chosen := @ct_result_multi[1];
                             if $op.op eq 'chain' { $!chain_depth := $!chain_depth - 1 }

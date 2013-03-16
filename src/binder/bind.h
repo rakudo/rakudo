@@ -63,6 +63,21 @@ typedef struct {
     PMC    *code;               /* The code object the signature is for. */
 } Rakudo_Signature;
 
+/* This is how a Code looks on the inside. Once again, C struct that should
+ * match what P6opaque computes for the Code class. */
+typedef struct {
+    PMC    *st;                 /* S-table, though we don't care about that here. */
+    PMC    *sc;                 /* Serialization context, though we don't care about that here. */
+    PMC    *_do;                /* Lower-level code object. */
+    PMC    *signature;          /* Signature object. */
+    PMC    *state_vars;         /* Storage for state variables. */
+    PMC    *phasers;            /* Hash mapping phaser names to lists of phasers. */
+    PMC    *dispatchees;        /* List of dispatchees, if any. */
+    PMC    *dispatcher_cache;   /* Holder for any dispatcher cache. */
+    PMC    *dispatcher;         /* The parent dispatcher, if any. */
+    INTVAL  rw;                 /* Is it rw? */
+} Rakudo_Code;
+
 /* 
  * ALREADY_CHECKED can be flagged on a CallContext, and indicates that we have
  * determined that all of the arguments can be bound to positional parameters

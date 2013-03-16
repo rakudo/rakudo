@@ -914,9 +914,7 @@ class Perl6::World is HLL::World {
         my $precomp;
         my $compiler_thunk := {
             # Fix up GLOBAL.
-            my $rns    := pir::get_root_namespace__P();
-            my $p6_pns := $rns{'perl6'};
-            $p6_pns{'GLOBAL'} := $*GLOBALish;
+            nqp::bindhllsym('perl6', 'GLOBAL', $*GLOBALish);
             
             # Compile the block.
             $precomp := self.compile_in_context($code_past, $code_type, $slp_type);
@@ -1338,7 +1336,7 @@ class Perl6::World is HLL::World {
     # Adds a numeric constant value (int or num) to the constants table.
     # Returns PAST to do  the lookup of the constant.
     method add_numeric_constant($/, $type, $value) {
-        if $type eq 'Int' && pir::typeof__SP($value) eq 'Int' {
+        if $type eq 'Int' && (try $value.HOW.name($value)) eq 'Int' {
             if nqp::isbig_I($value) {
                 # cannot unbox to int without loss of information
                 return self.add_constant('Int', 'bigint', $value);

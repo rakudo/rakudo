@@ -105,12 +105,12 @@ class Perl6::Metamodel::ConcreteRoleHOW
     }
     
     method type_check($obj, $checkee) {
-        my $decont := pir::perl6_decontainerize__PP($checkee);
+        my $decont := nqp::decont($checkee);
         if $decont =:= $obj.WHAT {
             return 1;
         }
         for @!role_typecheck_list {
-            if pir::perl6_decontainerize__PP($_) =:= $decont {
+            if nqp::decont($_) =:= $decont {
                 return 1;
             }
         }

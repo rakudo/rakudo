@@ -157,77 +157,77 @@ BEGIN {
             $attr
         }));
     Attribute.HOW.add_method(Attribute, 'name', static(sub ($self) {
-            nqp::getattr_s(pir::perl6_decontainerize__PP($self),
+            nqp::getattr_s(nqp::decont($self),
                 Attribute, '$!name');
         }));
     Attribute.HOW.add_method(Attribute, 'type', static(sub ($self) {
-            nqp::getattr(pir::perl6_decontainerize__PP($self),
+            nqp::getattr(nqp::decont($self),
                 Attribute, '$!type');
         }));
     Attribute.HOW.add_method(Attribute, 'container_descriptor', static(sub ($self) {
-            nqp::getattr(pir::perl6_decontainerize__PP($self),
+            nqp::getattr(nqp::decont($self),
                 Attribute, '$!container_descriptor');
         }));
     Attribute.HOW.add_method(Attribute, 'auto_viv_container', static(sub ($self) {
-            nqp::getattr(pir::perl6_decontainerize__PP($self),
+            nqp::getattr(nqp::decont($self),
                 Attribute, '$!auto_viv_container');
         }));
     Attribute.HOW.add_method(Attribute, 'has_accessor', static(sub ($self) {
             pir::perl6_booleanize__PI(
-                nqp::getattr_i(pir::perl6_decontainerize__PP($self),
+                nqp::getattr_i(nqp::decont($self),
                     Attribute, '$!has_accessor'));
         }));
     Attribute.HOW.add_method(Attribute, 'rw', static(sub ($self) {
             pir::perl6_booleanize__PI(
-                nqp::getattr_i(pir::perl6_decontainerize__PP($self),
+                nqp::getattr_i(nqp::decont($self),
                     Attribute, '$!rw'));
         }));
     Attribute.HOW.add_method(Attribute, 'set_rw', static(sub ($self) {
-            nqp::bindattr_i(pir::perl6_decontainerize__PP($self),
+            nqp::bindattr_i(nqp::decont($self),
                 Attribute, '$!rw', 1);
             pir::perl6_booleanize__PI(1)
         }));
     Attribute.HOW.add_method(Attribute, 'set_readonly', static(sub ($self) {
-            nqp::bindattr_i(pir::perl6_decontainerize__PP($self),
+            nqp::bindattr_i(nqp::decont($self),
                 Attribute, '$!ro', 1);
             pir::perl6_booleanize__PI(1)
         }));
     Attribute.HOW.add_method(Attribute, 'default_to_rw', static(sub ($self) {
-            my $dcself := pir::perl6_decontainerize__PP($self);
+            my $dcself := nqp::decont($self);
             unless nqp::getattr_i($dcself, Attribute, '$!ro') {
                 nqp::bindattr_i($dcself, Attribute, '$!rw', 1);
             }
             pir::perl6_booleanize__PI(1)
         }));
     Attribute.HOW.add_method(Attribute, 'set_build', static(sub ($self, $closure) {
-            pir::setattribute__0PPsP(pir::perl6_decontainerize__PP($self),
+            pir::setattribute__0PPsP(nqp::decont($self),
                 Attribute, '$!build_closure', $closure);
         }));
     Attribute.HOW.add_method(Attribute, 'build', static(sub ($self) {
-            nqp::getattr(pir::perl6_decontainerize__PP($self),
+            nqp::getattr(nqp::decont($self),
                 Attribute, '$!build_closure');
         }));
     Attribute.HOW.add_method(Attribute, 'set_box_target', static(sub ($self) {
-            nqp::bindattr_i(pir::perl6_decontainerize__PP($self),
+            nqp::bindattr_i(nqp::decont($self),
                 Attribute, '$!box_target', 1);
             pir::perl6_booleanize__PI(1)
         }));
     Attribute.HOW.add_method(Attribute, 'box_target', static(sub ($self) {
-            nqp::getattr_i(pir::perl6_decontainerize__PP($self),
+            nqp::getattr_i(nqp::decont($self),
                 Attribute, '$!box_target')
         }));
     Attribute.HOW.add_method(Attribute, 'is_generic', static(sub ($self) {
-            my $dcself   := pir::perl6_decontainerize__PP($self);
-            my $type := nqp::getattr(pir::perl6_decontainerize__PP($dcself),
+            my $dcself   := nqp::decont($self);
+            my $type := nqp::getattr(nqp::decont($dcself),
                 Attribute, '$!type');
-            my $package := nqp::getattr(pir::perl6_decontainerize__PP($dcself),
+            my $package := nqp::getattr(nqp::decont($dcself),
                 Attribute, '$!package');
-            my $build := nqp::getattr(pir::perl6_decontainerize__PP($dcself),
+            my $build := nqp::getattr(nqp::decont($dcself),
                 Attribute, '$!build_closure');
             pir::perl6_booleanize__PI($type.HOW.archetypes.generic || $package.HOW.archetypes.generic || nqp::defined($build));
         }));
     Attribute.HOW.add_method(Attribute, 'instantiate_generic', static(sub ($self, $type_environment) {
-            my $dcself   := pir::perl6_decontainerize__PP($self);
+            my $dcself   := nqp::decont($self);
             my $type     := nqp::getattr($dcself, Attribute, '$!type');
             my $cd       := nqp::getattr($dcself, Attribute, '$!container_descriptor');
             my $pkg      := nqp::getattr($dcself, Attribute, '$!package');
@@ -268,11 +268,11 @@ BEGIN {
     Scalar.HOW.add_attribute(Scalar, BOOTSTRAPATTR.new(:name<$!value>, :type(Mu), :package(Scalar)));
     Scalar.HOW.add_attribute(Scalar, BOOTSTRAPATTR.new(:name<$!whence>, :type(Mu), :package(Scalar)));
     Scalar.HOW.add_method(Scalar, 'is_generic', static(sub ($self) {
-        my $dcself := pir::perl6_decontainerize__PP($self);
+        my $dcself := nqp::decont($self);
         nqp::getattr($dcself, Scalar, '$!descriptor').is_generic()
     }));
     Scalar.HOW.add_method(Scalar, 'instantiate_generic', static(sub ($self, $type_environment) {
-        my $dcself := pir::perl6_decontainerize__PP($self);
+        my $dcself := nqp::decont($self);
         nqp::bindattr($dcself, Scalar, '$!descriptor',
             nqp::getattr($dcself, Scalar, '$!descriptor').instantiate_generic(
                 $type_environment));
@@ -299,7 +299,7 @@ BEGIN {
     Proxy.HOW.add_attribute(Proxy, BOOTSTRAPATTR.new(:name<&!FETCH>, :type(Mu), :package(Proxy)));
     Proxy.HOW.add_attribute(Proxy, BOOTSTRAPATTR.new(:name<&!STORE>, :type(Mu), :package(Proxy)));
     Proxy.HOW.add_method(Proxy, 'FETCH', ($PROXY_FETCH := static(sub ($cont) {
-        pir::perl6_decontainerize__PP(
+        nqp::decont(
             nqp::getattr($cont, Proxy, '&!FETCH')(pir::perl6_var__PP($cont)))
     })));
     Proxy.HOW.add_method(Proxy, 'STORE', static(sub ($cont, $val) {
@@ -370,14 +370,14 @@ BEGIN {
             $ins
         }));
     Signature.HOW.add_method(Signature, 'set_returns', static(sub ($self, $type) {
-            nqp::bindattr(pir::perl6_decontainerize__PP($self),
-                Signature, '$!returns', pir::perl6_decontainerize__PP($type));
+            nqp::bindattr(nqp::decont($self),
+                Signature, '$!returns', nqp::decont($type));
         }));
     Signature.HOW.add_method(Signature, 'has_returns', static(sub ($self) {
             pir::perl6_booleanize__PI(
                 nqp::not_i(
                     nqp::isnull(
-                        nqp::getattr(pir::perl6_decontainerize__PP($self),
+                        nqp::getattr(nqp::decont($self),
                             Signature, '$!returns')
                     )
                 )
@@ -440,7 +440,7 @@ BEGIN {
     Parameter.HOW.add_method(Parameter, 'set_rw', static(sub ($self) {
             my $SIG_ELEM_IS_RW       := 256;
             my $SIG_ELEM_IS_OPTIONAL := 2048;
-            my $dcself := pir::perl6_decontainerize__PP($self);
+            my $dcself := nqp::decont($self);
             my $flags  := nqp::getattr_i($dcself, Parameter, '$!flags');
             if $flags +& $SIG_ELEM_IS_OPTIONAL {
                 nqp::die("Cannot use 'is rw' on an optional parameter");
@@ -452,7 +452,7 @@ BEGIN {
         }));
     Parameter.HOW.add_method(Parameter, 'set_copy', static(sub ($self) {
             my $SIG_ELEM_IS_COPY := 512;
-            my $dcself := pir::perl6_decontainerize__PP($self);
+            my $dcself := nqp::decont($self);
             my $cd     := nqp::getattr($dcself, Parameter, '$!container_descriptor');
             if $cd { $cd.set_rw(1) }
             nqp::bindattr_i($dcself, Parameter, '$!flags',
@@ -461,7 +461,7 @@ BEGIN {
         }));
     Parameter.HOW.add_method(Parameter, 'set_required', static(sub ($self) {
             my $SIG_ELEM_IS_OPTIONAL := 2048;
-            my $dcself := pir::perl6_decontainerize__PP($self);
+            my $dcself := nqp::decont($self);
             my $flags := nqp::getattr_i($dcself, Parameter, '$!flags');
             if $flags +& $SIG_ELEM_IS_OPTIONAL {
                 nqp::bindattr_i($dcself, Parameter, '$!flags',
@@ -471,7 +471,7 @@ BEGIN {
         }));
     Parameter.HOW.add_method(Parameter, 'set_parcel', static(sub ($self) {
             my $SIG_ELEM_IS_PARCEL := 1024;
-            my $dcself := pir::perl6_decontainerize__PP($self);
+            my $dcself := nqp::decont($self);
             my $flags := nqp::getattr_i($dcself, Parameter, '$!flags');
             unless $flags +& $SIG_ELEM_IS_PARCEL {
                 nqp::bindattr_i($dcself, Parameter, '$!flags',
@@ -480,7 +480,7 @@ BEGIN {
             $dcself
         }));
     Parameter.HOW.add_method(Parameter, 'set_coercion', static(sub ($self, $type) {
-            my $dcself := pir::perl6_decontainerize__PP($self);
+            my $dcself := nqp::decont($self);
             nqp::bindattr_s($dcself, Parameter, '$!coerce_method', $type.HOW.name($type));
             nqp::bindattr($dcself, Parameter, '$!coerce_type', $type);
             $dcself
@@ -498,7 +498,7 @@ BEGIN {
 
     # Need clone in here, plus generics instantiation.
     Code.HOW.add_method(Code, 'clone', static(sub ($self) {
-            my $dcself := pir::perl6_decontainerize__PP($self);
+            my $dcself := nqp::decont($self);
             my $cloned := nqp::clone($dcself);
             nqp::bindattr($cloned, Code, '$!do',
                 pir::perl6_associate_sub_code_object__0PP(
@@ -518,13 +518,13 @@ BEGIN {
         }));
     Code.HOW.add_method(Code, 'is_generic', static(sub ($self) {
             # Delegate to signature, since it contains all the type info.
-            my $dc_self := pir::perl6_decontainerize__PP($self);
+            my $dc_self := nqp::decont($self);
             nqp::getattr($dc_self, Code, '$!signature').is_generic()
         }));
     Code.HOW.add_method(Code, 'instantiate_generic', static(sub ($self, $type_environment) {
             # Clone the code object, then instantiate the generic signature. Also
             # need to clone dispatchees list.
-            my $dcself := pir::perl6_decontainerize__PP($self);
+            my $dcself := nqp::decont($self);
             my $ins := $self.clone();
             if nqp::defined(nqp::getattr($dcself, Routine, '$!dispatchees')) {
                 nqp::bindattr($ins, Routine, '$!dispatchees',
@@ -536,16 +536,16 @@ BEGIN {
             $ins
         }));
     Code.HOW.add_method(Code, 'name', static(sub ($self) {
-            nqp::getcodename(nqp::getattr(pir::perl6_decontainerize__PP($self),
+            nqp::getcodename(nqp::getattr(nqp::decont($self),
                 Code, '$!do'))
         }));
     Code.HOW.add_method(Code, 'set_name', static(sub ($self, $name) {
             nqp::setcodename(
-                nqp::getattr(pir::perl6_decontainerize__PP($self), Code, '$!do'),
+                nqp::getattr(nqp::decont($self), Code, '$!do'),
                 $name)
         }));
     Code.HOW.add_method(Code, 'id', static(sub ($self) {
-            nqp::where(nqp::getattr(pir::perl6_decontainerize__PP($self),
+            nqp::where(nqp::getattr(nqp::decont($self),
                 Code, '$!do'))
         }));
     Code.HOW.compose_repr(Code);
@@ -560,7 +560,7 @@ BEGIN {
     Block.HOW.add_attribute(Block, BOOTSTRAPATTR.new(:name<$!state_vars>, :type(Mu), :package(Block)));
     Block.HOW.add_attribute(Block, BOOTSTRAPATTR.new(:name<$!phasers>, :type(Mu), :package(Block)));
     Block.HOW.add_method(Block, 'clone', static(sub ($self) {
-            my $dcself := pir::perl6_decontainerize__PP($self);
+            my $dcself := nqp::decont($self);
             my $cloned := nqp::clone($dcself);
             nqp::bindattr($cloned, Code, '$!do',
                 pir::perl6_associate_sub_code_object__0PP(
@@ -595,16 +595,16 @@ BEGIN {
     Routine.HOW.add_attribute(Routine, BOOTSTRAPATTR.new(:name<$!dispatch_cache>, :type(Mu), :package(Routine)));
     
     Routine.HOW.add_method(Routine, 'is_dispatcher', static(sub ($self) {
-            my $dc_self   := pir::perl6_decontainerize__PP($self);
+            my $dc_self   := nqp::decont($self);
             my $disp_list := nqp::getattr($dc_self, Routine, '$!dispatchees');
             pir::perl6_booleanize__PI(nqp::defined($disp_list));
         }));
     Routine.HOW.add_method(Routine, 'add_dispatchee', static(sub ($self, $dispatchee) {
-            my $dc_self   := pir::perl6_decontainerize__PP($self);
+            my $dc_self   := nqp::decont($self);
             my $disp_list := nqp::getattr($dc_self, Routine, '$!dispatchees');
             if nqp::defined($disp_list) {
                 $disp_list.push($dispatchee);
-                nqp::bindattr(pir::perl6_decontainerize__PP($dispatchee),
+                nqp::bindattr(nqp::decont($dispatchee),
                     Routine, '$!dispatcher', $dc_self);
                 nqp::scwbdisable();
                 nqp::bindattr($dc_self, Routine, '$!dispatch_order', nqp::null());
@@ -624,11 +624,11 @@ BEGIN {
             $clone
         }));
     Routine.HOW.add_method(Routine, 'dispatcher', static(sub ($self) {
-            nqp::getattr(pir::perl6_decontainerize__PP($self),
+            nqp::getattr(nqp::decont($self),
                 Routine, '$!dispatcher')
         }));
     Routine.HOW.add_method(Routine, 'dispatchees', static(sub ($self) {
-            nqp::getattr(pir::perl6_decontainerize__PP($self),
+            nqp::getattr(nqp::decont($self),
                 Routine, '$!dispatchees')
         }));
     Routine.HOW.add_method(Routine, '!sort_dispatchees_internal', static(sub ($self) {
@@ -1398,21 +1398,21 @@ BEGIN {
             return [$MD_CT_NOT_SURE, NQPMu];
         }));
     Routine.HOW.add_method(Routine, 'set_rw', static(sub ($self) {
-            my $dcself := pir::perl6_decontainerize__PP($self);
+            my $dcself := nqp::decont($self);
             nqp::bindattr_i($dcself, Routine, '$!rw', 1);
             $dcself
         }));
     Routine.HOW.add_method(Routine, 'set_inline_info', static(sub ($self, $info) {
-            my $dcself := pir::perl6_decontainerize__PP($self);
+            my $dcself := nqp::decont($self);
             nqp::bindattr($dcself, Routine, '$!inline_info', $info);
             $dcself
         }));
     Routine.HOW.add_method(Routine, 'inline_info', static(sub ($self) {
-            my $dcself := pir::perl6_decontainerize__PP($self);
+            my $dcself := nqp::decont($self);
             nqp::getattr($dcself, Routine, '$!inline_info')
         }));
     Routine.HOW.add_method(Routine, 'set_onlystar', static(sub ($self) {
-            my $dcself := pir::perl6_decontainerize__PP($self);
+            my $dcself := nqp::decont($self);
             nqp::bindattr_i($dcself, Routine, '$!onlystar', 1);
             $dcself
         }));
@@ -1436,28 +1436,28 @@ BEGIN {
     Regex.HOW.add_attribute(Regex, scalar_attr('$!nfa', Mu, Regex));
     Regex.HOW.add_attribute(Regex, scalar_attr('$!alt_nfas', Mu, Regex));
     Regex.HOW.add_method(Regex, 'SET_CAPS', static(sub ($self, $caps) {
-            nqp::bindattr(pir::perl6_decontainerize__PP($self), Regex, '$!caps', $caps)
+            nqp::bindattr(nqp::decont($self), Regex, '$!caps', $caps)
         }));
     Regex.HOW.add_method(Regex, 'SET_NFA', static(sub ($self, $nfa) {
-            nqp::bindattr(pir::perl6_decontainerize__PP($self), Regex, '$!nfa', $nfa)
+            nqp::bindattr(nqp::decont($self), Regex, '$!nfa', $nfa)
         }));
     Regex.HOW.add_method(Regex, 'SET_ALT_NFA', static(sub ($self, str $name, $nfa) {
-            my %alts := nqp::getattr(pir::perl6_decontainerize__PP($self), Regex, '$!alt_nfas');
+            my %alts := nqp::getattr(nqp::decont($self), Regex, '$!alt_nfas');
             unless %alts {
                 %alts := nqp::hash();
-                nqp::bindattr(pir::perl6_decontainerize__PP($self), Regex, '$!alt_nfas', %alts);
+                nqp::bindattr(nqp::decont($self), Regex, '$!alt_nfas', %alts);
             }
             nqp::bindkey(%alts, $name, $nfa);
         }));
     Regex.HOW.add_method(Regex, 'CAPS', static(sub ($self) {
-            nqp::getattr(pir::perl6_decontainerize__PP($self), Regex, '$!caps')
+            nqp::getattr(nqp::decont($self), Regex, '$!caps')
         }));
     Regex.HOW.add_method(Regex, 'NFA', static(sub ($self) {
-            nqp::getattr(pir::perl6_decontainerize__PP($self), Regex, '$!nfa')
+            nqp::getattr(nqp::decont($self), Regex, '$!nfa')
         }));
     Regex.HOW.add_method(Regex, 'ALT_NFA', static(sub ($self, str $name) {
             nqp::atkey(
-                nqp::getattr(pir::perl6_decontainerize__PP($self), Regex, '$!alt_nfas'),
+                nqp::getattr(nqp::decont($self), Regex, '$!alt_nfas'),
                 $name)
         }));
     Regex.HOW.compose_repr(Regex);

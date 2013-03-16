@@ -98,17 +98,17 @@ class Perl6::Metamodel::ParametricRoleGroupHOW
     }
     
     method type_check($obj, $checkee) {
-        my $decont := pir::perl6_decontainerize__PP($checkee);
+        my $decont := nqp::decont($checkee);
         if $decont =:= $obj.WHAT {
             return 1;
         }
         for self.prentending_to_be() {
-            if $decont =:= pir::perl6_decontainerize__PP($_) {
+            if $decont =:= nqp::decont($_) {
                 return 1;
             }
         }
         for @!role_typecheck_list {
-            if $decont =:= pir::perl6_decontainerize__PP($_) {
+            if $decont =:= nqp::decont($_) {
                 return 1;
             }
         }

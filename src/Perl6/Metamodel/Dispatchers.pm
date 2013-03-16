@@ -102,7 +102,7 @@ class Perl6::Metamodel::WrapDispatcher is Perl6::Metamodel::BaseDispatcher {
         my @cands := self.candidates;
         my $i := 0;
         while $i < +@cands {
-            if pir::perl6_decontainerize__PP(@cands[$i]) =:= pir::perl6_decontainerize__PP($wrapper) {
+            if nqp::decont(@cands[$i]) =:= nqp::decont($wrapper) {
                 nqp::splice(@cands, [], $i, 1);
                 return 1;
             }

@@ -198,7 +198,7 @@ class Perl6::Metamodel::ClassHOW
     
     method concretization($obj, $ptype) {
         for @!concretizations {
-            if pir::perl6_decontainerize__PP($_[0]) =:= pir::perl6_decontainerize__PP($ptype) {
+            if nqp::decont($_[0]) =:= nqp::decont($ptype) {
                 return $_[1];
             }
         }

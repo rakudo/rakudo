@@ -190,6 +190,11 @@ class Perl6::World is HLL::World {
     # Mapping of sub IDs to SC indexes of code stubs.
     has %!sub_id_to_sc_idx;
     
+    # Mapping of QAST::Stmts node containing fixups, keyed by sub ID. If
+    # we do dynamic compilation then we do the fixups immediately and
+    # then clear this list.
+    has %!code_object_fixup_list;
+    
     # Array of stubs to check and the end of compilation.
     has @!stub_check;
     
@@ -212,6 +217,7 @@ class Perl6::World is HLL::World {
         %!sub_id_to_code_object := {};
         %!sub_id_to_static_lexpad := {};
         %!sub_id_to_sc_idx := {};
+        %!code_object_fixup_list := {};
         %!const_cache := {};
     }
     
@@ -984,6 +990,10 @@ class Perl6::World is HLL::World {
                             QAST::WVal.new( :value($clone) )
                         )));
                 });
+                
+                # Also stash fixups so we can know not to do them if we
+                # do dynamic compilation.
+                %!code_object_fixup_list{$code_past.cuid} := $fixups;
             }
 
 			# Attach the QAST block to the stub.
@@ -1246,6 +1256,10 @@ class Perl6::World is HLL::World {
             if nqp::existskey(%!sub_id_to_sc_idx, $subid) {
                 nqp::markcodestatic($precomp[$i]);
                 self.update_root_code_ref(%!sub_id_to_sc_idx{$subid}, $precomp[$i]);
+            }
+            if nqp::existskey(%!code_object_fixup_list, $subid) {
+                my $fixups := %!code_object_fixup_list{$subid};
+                $fixups.pop() while $fixups.list;
             }
             $i := $i + 1;
         }

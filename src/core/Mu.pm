@@ -515,8 +515,7 @@ multi sub infix:<eqv>(@a, @b) {
 
 sub DUMP(|) {
     say 'Starting sub DUMP';
-    my Mu $args := pir::perl6_current_args_rpa__P();
-    my Mu $topic  := nqp::shift($args);
+    my Mu $topic := nqp::captureposarg(nqp::usecapture(), 0);
     say 'Topic is a: ' ~ pir::typeof__SP($topic);
     if nqp::isnull($topic) { '(null)' }
     elsif nqp::islist($topic) {

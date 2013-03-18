@@ -146,7 +146,7 @@ my class MapIter is Iterator {
         parcel
     }
 
-    method DUMP() {
+    multi method DUMP(MapIter:D:) {
         self.DUMP-ID() ~ '('
           ~ ':reified(' ~ DUMP($!reified) ~ '), '
           ~ ':items(' ~ DUMP($!items) ~'), '

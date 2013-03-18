@@ -240,9 +240,44 @@ my class Mu {
     }
 
     proto method DUMP(|) { * }
-    multi method DUMP(Mu:D:) { self.perl }
     multi method DUMP(Mu:U:) { self.perl }
-    method DUMP-ID() { self.HOW.name(self) ~ '<' ~ self.WHERE ~ '>' }
+    multi method DUMP(Mu:D:) {
+        my @attrs;
+        for self.^attributes() -> $attr {
+            my $name       := $attr.name;
+            my $acc_name   := $name.substr(2);
+            my $build_name := $attr.has_accessor ?? $acc_name !! $name;
+            say 'Looking at attribute: ' ~ $build_name;
+
+            my $value;
+            if $attr.has_accessor {
+                say '--> hit has_accessor';
+                $value := DUMP(self."$acc_name"());
+            }
+            elsif nqp::can($attr, 'get_value') {
+                say '--> hit get_value';
+                $value := DUMP($attr.get_value(self));
+            }
+            else {
+                say '--> hit default case';
+                my $decont  := nqp::p6decont(self);
+                my $package := $attr.package;
+                $value := do given nqp::p6box_i(nqp::objprimspec($attr.type)) {
+                    when 0 {              nqp::getattr(  $decont, $package, $name)  }
+                    when 1 { nqp::p6box_i(nqp::getattr_i($decont, $package, $name)) }
+                    when 2 { nqp::p6box_n(nqp::getattr_n($decont, $package, $name)) }
+                    when 3 { nqp::p6box_s(nqp::getattr_s($decont, $package, $name)) }
+                };
+                # $value := $value.perl;
+                $value := (nqp::iscont(self) ?? "\x25b6" !! '') ~ $value.perl;
+            }
+
+            say '==> Value is:         ' ~ $value;
+            @attrs.push: ':' ~ $build_name ~ '(' ~ $value ~ ')';
+        }
+        self.DUMP-ID() ~ '(' ~  @attrs.join(', ') ~ ')';
+    }
+    method DUMP-ID() { say 'DUMP-ID requested: ' ~ self.HOW.name(self) ~ '<' ~ self.WHERE ~ '>'; self.HOW.name(self) ~ '<' ~ self.WHERE ~ '>' }
     
     proto method isa(|) { * }
     multi method isa(Mu \SELF: Mu $type) {
@@ -479,10 +514,13 @@ multi sub infix:<eqv>(@a, @b) {
 }
 
 sub DUMP(|) {
+    say 'Starting sub DUMP';
     my Mu $args := pir::perl6_current_args_rpa__P();
     my Mu $topic  := nqp::shift($args);
+    say 'Topic is a: ' ~ pir::typeof__SP($topic);
     if nqp::isnull($topic) { '(null)' }
     elsif nqp::islist($topic) {
+        say 'Is list; dumping parts';
         my str $type = pir::typeof__SP($topic);
         $type = 'RPA' if $type eq 'ResizablePMCArray';
         my $s = $type ~ '<' ~ nqp::p6box_s(nqp::where($topic)) ~ '>(';
@@ -490,12 +528,14 @@ sub DUMP(|) {
         $topic := nqp::clone($topic);
         while $topic {
             my Mu $x := nqp::shift($topic);
+            say $s;
             $s = $s ~ $t ~ DUMP($x);
             $t = ', ';
         }
         $s ~ ')'
     }
     else { 
+        say 'Not list; dumping topic';
         nqp::iscont($topic)
           ?? "\x25b6" ~ $topic.DUMP() 
           !! $topic.DUMP()

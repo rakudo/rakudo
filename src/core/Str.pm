@@ -46,6 +46,7 @@ my class Str does Stringy {
     multi method Bool(Str:D:) { self ne '' && self ne '0' }
 
     multi method Str(Str:D:) { self }
+    multi method DUMP(Str:D:) { self.perl }
 
     method Int(Str:D:) { self.Numeric.Int; }
     method Num(Str:D:) { self.Numeric.Num; }

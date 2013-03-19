@@ -29,12 +29,48 @@ typedef struct {
     INTVAL  hint;           /* Hint for use in static/gradual typing. */
 } AttributeIdentifier;
 
-/* Language interop information that we hold if the type is declaring a
- * container of some sort. */
+/* Container specification information, for types that serve as containers.
+ * A container is something that can be assigned into. It may be some kind
+ * of container object (like Perl 6's Scalar) or it may be a reference to a
+ * native lexical or object field. The function table determines the way it
+ * behaves. */
 typedef struct {
-    AttributeIdentifier  value_slot;
-    PMC                 *fetch_method;
+    /* Fetches a value out of a container. Used for decontainerization. */
+    PMC * (*fetch) (PARROT_INTERP, PMC *cont);
+    
+    /* Stores a value in a container. Used for assignment. */
+    void (*store) (PARROT_INTERP, PMC *cont, PMC *obj);
+    
+    /* Stores a value in a container, without any checking of it (this
+     * assumes an optimizer or something else already did it). Used for
+     * assignment. */
+    void (*store_unchecked) (PARROT_INTERP, PMC *cont, PMC *obj);
+    
+    /* Name of this container specification. */
+    STRING *name;
+    
+    /* Marks container data, if any. */
+    void (*gc_mark_data) (PARROT_INTERP, STable *st);
+
+    /* Frees container data, if any. */
+    void (*gc_free_data) (PARROT_INTERP, STable *st);
+    
+    /* Serializes the container data, if any. */
+    void (*serialize) (PARROT_INTERP, STable *st, SerializationWriter *writer);
+    
+    /* Deserializes the container data, if any. */
+    void (*deserialize) (PARROT_INTERP, STable *st, SerializationReader *reader);
 } ContainerSpec;
+
+/* A container configurer knows how to attach a certain type of container
+ * to an STable and configure it. */
+typedef struct {
+    /* Sets this container spec in place for the specified STable. */ 
+    void (*set_container_spec) (PARROT_INTERP, STable *st);
+    
+    /* Configures the container spec with the specified info. */
+    void (*configure_container_spec) (PARROT_INTERP, STable *st, PMC *config);
+} ContainerConfigurer;
 
 /* How do we invoke this thing? Specifies either an attribute to look at for
  * an invokable thing, or alternatively a method to call. */
@@ -138,9 +174,13 @@ struct SixModel_STable {
     INTVAL type_cache_id;
     
     /* If this is a container, then this contains information needed in
-     * order to fetch the value in it. If not, it'll be null, which can
-     * be taken as a "not a container" indication. */
+     * order to fetch the value in it or assign a value to it. If not,
+     * it'll be null, which can be taken as a "not a container" indication. */
     ContainerSpec *container_spec;
+    
+    /* Data that the container spec may need to function. */
+    /* Any data specific to this type that the REPR wants to keep. */
+    void *container_data;
     
     /* If this is invokable, then this contains information needed to
      * figure out how to invoke it. If not, it'll be null. */
@@ -394,6 +434,11 @@ struct SixModel_REPROps {
 #define IS_CONCRETE(o)         (!PObj_flag_TEST(private0, (o)))
 #define MARK_AS_TYPE_OBJECT(o) PObj_flag_SET(private0, (o))
 
+/* Macro for decontainerization. */
+#define DECONT(interp, o) (IS_CONCRETE(o) && STABLE(o)->container_spec ? \
+    STABLE(o)->container_spec->fetch(interp, o) : \
+    o)
+
 /* Write barriers for noticing changes to objects or STables with an SC. */
 typedef void (* obj_sc_barrier_func) (PARROT_INTERP, PMC *obj);
 typedef void (* st_sc_barrier_func) (PARROT_INTERP, STable *st);
@@ -430,5 +475,13 @@ typedef INTVAL (* rf) (PARROT_INTERP, STRING *name, REPROps * (*reg) (PARROT_INT
         VTABLE_get_pointer(interp, \
             VTABLE_get_pmc_keyed_str(interp, interp->root_namespace, \
                 Parrot_str_new_constant(interp, "_REGISTER_REPR"))))(interp, name, reg_func)
+
+/* Dynamic container configuration registration. */
+typedef void (*cspec_conf) (PARROT_INTERP, STRING *name, ContainerConfigurer *configurer);
+#define REGISTER_DYNAMIC_CONTAINER_CONFIG(interp, name, configurer) \
+    ((cspec_conf) \
+        VTABLE_get_pointer(interp, \
+            VTABLE_get_pmc_keyed_str(interp, interp->root_namespace, \
+                Parrot_str_new_constant(interp, "_REGISTER_CONTCONF"))))(interp, name, configurer)
 
 #endif

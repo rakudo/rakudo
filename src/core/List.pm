@@ -150,7 +150,7 @@ my class List does Positional {
         my $i;
         my Mu $v;
         gather while $n > 0 {
-            $i = nqp::rand_I(nqp::p6decont($elems), Int);
+            $i = nqp::rand_I(nqp::decont($elems), Int);
             $elems--; $n--;
             $v := nqp::atpos($rpa, nqp::unbox_i($i));
             # replace selected element with last unpicked one

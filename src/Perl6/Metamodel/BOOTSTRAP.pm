@@ -77,6 +77,9 @@ my stub Metamodel metaclass Perl6::Metamodel::PackageHOW { ... };
 # We stick all the declarative bits inside of a BEGIN, so they get
 # serialized.
 BEGIN {
+    # Ensure Rakudo dynops are initialized.
+    pir::rakudo_dynop_setup__v();
+    
     # Maps code objects to their static self, avoiding them being closures.
     sub static($code) {
         $code.get_lexinfo().get_static_code()
@@ -286,7 +289,7 @@ BEGIN {
     Scalar.HOW.compose_repr(Scalar);
 
     # Scalar needs to be registered as a container type.
-    nqp::setcontspec(Scalar, Scalar, '$!value', nqp::null());
+    nqp::setcontspec(Scalar, 'rakudo_scalar', nqp::null());
 
     # class Proxy is Any {
     #    has &!FETCH;
@@ -295,6 +298,7 @@ BEGIN {
     #    method STORE(\$v) { ... }
     # }
     my $PROXY_FETCH;
+    my $PROXY_STORE;
     Proxy.HOW.add_parent(Proxy, Any);
     Proxy.HOW.add_attribute(Proxy, BOOTSTRAPATTR.new(:name<&!FETCH>, :type(Mu), :package(Proxy)));
     Proxy.HOW.add_attribute(Proxy, BOOTSTRAPATTR.new(:name<&!STORE>, :type(Mu), :package(Proxy)));
@@ -302,9 +306,9 @@ BEGIN {
         nqp::decont(
             nqp::getattr($cont, Proxy, '&!FETCH')(pir::perl6_var__PP($cont)))
     })));
-    Proxy.HOW.add_method(Proxy, 'STORE', static(sub ($cont, $val) {
+    Proxy.HOW.add_method(Proxy, 'STORE', ($PROXY_STORE := static(sub ($cont, $val) {
         nqp::getattr($cont, Proxy, '&!STORE')(pir::perl6_var__PP($cont), $val)
-    }));
+    })));
     Proxy.HOW.add_method(Proxy, 'new', static(sub ($type, :$FETCH, :$STORE) {
         my $cont := nqp::create(Proxy);
         nqp::bindattr($cont, Proxy, '&!FETCH', $FETCH);
@@ -312,7 +316,10 @@ BEGIN {
         $cont
     }));
     Proxy.HOW.compose(Proxy);
-    nqp::setcontspec(Proxy, nqp::null(), '', $PROXY_FETCH);
+    nqp::setcontspec(Proxy, 'code_pair', nqp::hash(
+        'fetch', $PROXY_FETCH,
+        'store', $PROXY_STORE
+    ));
     Proxy.HOW.compose_repr(Proxy);
 
     # Helper for creating a scalar attribute. Sets it up as a real Perl 6

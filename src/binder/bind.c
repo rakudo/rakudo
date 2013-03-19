@@ -290,7 +290,17 @@ Rakudo_binding_assign_attributive(PARROT_INTERP, PMC *lexpad, Rakudo_Parameter *
         Parrot_ext_call(interp, meth, "Pi->P", self, &assignee);
     }
 
-    Rakudo_cont_store(interp, assignee, decont_value, 1, 1);
+    if (STABLE(assignee)->container_spec) {
+        STABLE(assignee)->container_spec->store(interp, assignee, decont_value);
+    }
+    else {
+        if (error)
+            *error = Parrot_sprintf_c(interp,
+                "Unable to bind attributive parameter '$.%S'; accessor did not return a container",
+                param->variable_name);
+        return BIND_RESULT_FAIL;
+    }
+
     return BIND_RESULT_OK;
 }
 
@@ -552,7 +562,16 @@ Rakudo_binding_bind_one_param(PARROT_INTERP, PMC *lexpad, Rakudo_Signature *sign
                 if (param->flags & SIG_ELEM_IS_COPY) {
                     bindee = Rakudo_binding_create_positional(interp,
                         Parrot_pmc_new(interp, enum_class_ResizablePMCArray));
-                    Rakudo_cont_store(interp, bindee, decont_value, 0, 0);
+                    if (STABLE(bindee)->container_spec) {
+                        STABLE(bindee)->container_spec->store_unchecked(interp, bindee, decont_value);
+                    }
+                    else {
+                        if (error)
+                            *error = Parrot_sprintf_c(interp,
+                                "Assignable target not produced for parameter '%S'",
+                                param->variable_name);
+                        return BIND_RESULT_FAIL;
+                    }
                 }
                 VTABLE_set_pmc_keyed_str(interp, lexpad, param->variable_name, bindee);
             }
@@ -563,7 +582,16 @@ Rakudo_binding_bind_one_param(PARROT_INTERP, PMC *lexpad, Rakudo_Signature *sign
                 if (param->flags & SIG_ELEM_IS_COPY) {
                     bindee = Rakudo_binding_create_hash(interp,
                         Parrot_pmc_new(interp, enum_class_Hash));
-                    Rakudo_cont_store(interp, bindee, decont_value, 0, 0);
+                    if (STABLE(bindee)->container_spec) {
+                        STABLE(bindee)->container_spec->store_unchecked(interp, bindee, decont_value);
+                    }
+                    else {
+                        if (error)
+                            *error = Parrot_sprintf_c(interp,
+                                "Assignable target not produced for parameter '%S'",
+                                param->variable_name);
+                        return BIND_RESULT_FAIL;
+                    }
                 }
                 VTABLE_set_pmc_keyed_str(interp, lexpad, param->variable_name, bindee);
             }
@@ -573,7 +601,16 @@ Rakudo_binding_bind_one_param(PARROT_INTERP, PMC *lexpad, Rakudo_Signature *sign
              * in the container descriptor takes care of the rest). */
             else {
                 PMC *new_cont = Rakudo_cont_scalar_from_descriptor(interp, param->container_descriptor);
-                Rakudo_cont_store(interp, new_cont, decont_value, 0, 0);
+                if (STABLE(new_cont)->container_spec) {
+                    STABLE(new_cont)->container_spec->store_unchecked(interp, new_cont, decont_value);
+                }
+                else {
+                    if (error)
+                        *error = Parrot_sprintf_c(interp,
+                            "Assignable target not produced for parameter '%S'",
+                            param->variable_name);
+                    return BIND_RESULT_FAIL;
+                }
                 VTABLE_set_pmc_keyed_str(interp, lexpad, param->variable_name, new_cont);
             }
         }

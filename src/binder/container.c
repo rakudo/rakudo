@@ -9,40 +9,6 @@
 static PMC *scalar_type = NULL;
 void Rakudo_cont_set_scalar_type(PMC *type) { scalar_type = type; }
 
-/* Takes a value potentially in a container and decontainerizes it. If
- * enough was configured to take an optimal slot-access path, just does
- * that. */
-PMC *Rakudo_cont_decontainerize(PARROT_INTERP, PMC *var) {
-    ContainerSpec *spec;
-    
-    /* Fast path for Perl 6 Scalar containers. */
-    if (IS_CONCRETE(var)) {
-        if (STABLE(var)->WHAT == scalar_type)
-            return ((Rakudo_Scalar *)PMC_data(var))->value;
-        
-        /* Otherwise, fall back to the usual API. */
-        spec = STABLE(var)->container_spec;
-        if (spec) {
-            if (!PMC_IS_NULL(spec->value_slot.class_handle)) {
-                /* Just get slot. */
-                return VTABLE_get_attr_keyed(interp, var, spec->value_slot.class_handle,
-                    spec->value_slot.attr_name);
-            }
-            else {
-                /* Invoke FETCH method. */
-                PMC *old_ctx = Parrot_pcc_get_signature(interp, CURRENT_CONTEXT(interp));
-                PMC *cappy   = Parrot_pmc_new(interp, enum_class_CallContext);
-                VTABLE_push_pmc(interp, cappy, var);
-                Parrot_pcc_invoke_from_sig_object(interp, spec->fetch_method, cappy);
-                cappy = Parrot_pcc_get_signature(interp, CURRENT_CONTEXT(interp));
-                Parrot_pcc_set_signature(interp, CURRENT_CONTEXT(interp), old_ctx);
-                return VTABLE_get_pmc_keyed_int(interp, cappy, 0);
-            }
-        }
-    }
-    return var;
-}
-
 /* Grabs obj.HOW.name(obj) so we can display type name in error. */
 static STRING * type_name(PARROT_INTERP, PMC *obj) {
     PMC *how     = STABLE(obj)->HOW;
@@ -57,87 +23,129 @@ static STRING * type_name(PARROT_INTERP, PMC *obj) {
     return VTABLE_get_string_keyed_int(interp, cappy, 0);
 }
 
-/* Does type check and rw check only if needed and then stores. Note that
- * it only really skips them if it's Scalar. */
-void Rakudo_cont_store(PARROT_INTERP, PMC *cont, PMC *value,
-                       INTVAL type_check, INTVAL rw_check) {
+static PMC * rakudo_scalar_fetch(PARROT_INTERP, PMC *cont) {
+    return ((Rakudo_Scalar *)PMC_data(cont))->value;
+}
+
+static void rakudo_scalar_store(PARROT_INTERP, PMC *cont, PMC *value) {
+    Rakudo_Scalar *scalar = (Rakudo_Scalar *)PMC_data(cont);
+    INTVAL rw = 0;
+    INTVAL ok = 0;
+    
     /* Ensure the value we're storing is a 6model type. */
     if (value->vtable->base_type != Rakudo_smo_id())
         Parrot_ex_throw_from_c_args(interp, NULL, EXCEPTION_INVALID_OPERATION,
             "Cannot assign a non-Perl 6 value to a Perl 6 container");
 
-    /* If it's a scalar container, optimized path. */
-    if (PMC_IS_NULL(cont)) {
+    if (!PMC_IS_NULL(scalar->descriptor))
+        rw = ((Rakudo_ContainerDescriptor *)PMC_data(scalar->descriptor))->rw;
+    if (!rw) {
         Parrot_ex_throw_from_c_args(interp, NULL, EXCEPTION_INVALID_OPERATION,
-            "Cannot assign into a PMCNULL container");
+            "Cannot assign to a readonly variable or a value");
     }
-    if (STABLE(cont)->WHAT == scalar_type) {
-        Rakudo_Scalar *scalar = (Rakudo_Scalar *)PMC_data(cont);
-        PMC *value_decont = Rakudo_cont_decontainerize(interp, value);
-        if (rw_check) {
-            INTVAL rw = 0;
-            if (!PMC_IS_NULL(scalar->descriptor))
-                rw = ((Rakudo_ContainerDescriptor *)PMC_data(scalar->descriptor))->rw;
-            if (!rw) {
-                Parrot_ex_throw_from_c_args(interp, NULL, EXCEPTION_INVALID_OPERATION,
-                    "Cannot assign to a readonly variable or a value");
-            }
-        }
-        if (type_check) {
-            INTVAL ok = 0;
-            if (!PMC_IS_NULL(scalar->descriptor)) {
-                Rakudo_ContainerDescriptor *desc = ((Rakudo_ContainerDescriptor *)PMC_data(scalar->descriptor));
-                ok = STABLE(value_decont)->type_check(interp, value_decont, desc->of);
-                if (!ok) {
-                    PMC *thrower = Rakudo_get_thrower(interp, "X::TypeCheck::Assignment");
-                    if PMC_IS_NULL(thrower)
-                        Parrot_ex_throw_from_c_args(interp, NULL, EXCEPTION_INVALID_OPERATION,
-                            "Type check failed in assignment to '%S'; expected '%S' but got '%S'",
-                            desc->name, type_name(interp, desc->of), type_name(interp, value_decont));
-                    else
-                        Parrot_pcc_invoke_sub_from_c_args(interp, thrower,
-                                "SPP->", desc->name, value_decont, desc->of);
-                }
-            }
-            else {
-                Parrot_ex_throw_from_c_args(interp, NULL, EXCEPTION_INVALID_OPERATION,
-                    "Type check failed in assignment");
-            }
-        }
 
-        if (!PMC_IS_NULL(scalar->whence)) {
-            PMC *cappy = Parrot_pmc_new(interp, enum_class_CallContext);
-            Parrot_pcc_invoke_from_sig_object(interp, scalar->whence, cappy);
-            scalar->whence = PMCNULL;
+    if (!PMC_IS_NULL(scalar->descriptor)) {
+        Rakudo_ContainerDescriptor *desc = ((Rakudo_ContainerDescriptor *)PMC_data(scalar->descriptor));
+        ok = STABLE(value)->type_check(interp, value, desc->of);
+        if (!ok) {
+            PMC *thrower = Rakudo_get_thrower(interp, "X::TypeCheck::Assignment");
+            if PMC_IS_NULL(thrower)
+                Parrot_ex_throw_from_c_args(interp, NULL, EXCEPTION_INVALID_OPERATION,
+                    "Type check failed in assignment to '%S'; expected '%S' but got '%S'",
+                    desc->name, type_name(interp, desc->of), type_name(interp, value));
+            else
+                Parrot_pcc_invoke_sub_from_c_args(interp, thrower,
+                        "SPP->", desc->name, value, desc->of);
         }
-        
-        /* If we get here, all is fine; store the value. */
-        scalar->value = value_decont;
-        PARROT_GC_WRITE_BARRIER(interp, cont);
+    }
+    else {
+        Parrot_ex_throw_from_c_args(interp, NULL, EXCEPTION_INVALID_OPERATION,
+            "Type check failed in assignment");
+    }
+
+    if (!PMC_IS_NULL(scalar->whence)) {
+        PMC *cappy = Parrot_pmc_new(interp, enum_class_CallContext);
+        Parrot_pcc_invoke_from_sig_object(interp, scalar->whence, cappy);
+        scalar->whence = PMCNULL;
     }
     
-    /* Otherwise, use STORE call. */
-    else {
-        PMC *meth = STABLE(cont)->container_spec ?
-            STABLE(cont)->find_method(interp, cont, Parrot_str_new(interp, "STORE", 0), NO_HINT) :
-            VTABLE_find_method(interp, cont, Parrot_str_new(interp, "STORE", 0));
-        if (!PMC_IS_NULL(meth)) {
-            PMC *old_ctx = Parrot_pcc_get_signature(interp, CURRENT_CONTEXT(interp));
-            PMC *cappy   = Parrot_pmc_new(interp, enum_class_CallContext);
-            VTABLE_push_pmc(interp, cappy, cont);
-            VTABLE_push_pmc(interp, cappy, value);
-            Parrot_pcc_invoke_from_sig_object(interp, meth, cappy);
-            Parrot_pcc_set_signature(interp, CURRENT_CONTEXT(interp), old_ctx);
-        }
-        else {
-            PMC * thrower = Rakudo_get_thrower(interp, "X::Assignment::RO");
-            if (PMC_IS_NULL(thrower))
-                Parrot_ex_throw_from_c_args(interp, NULL, EXCEPTION_INVALID_OPERATION,
-                    "Cannot assign to a non-container");
-            else
-                Parrot_pcc_invoke_sub_from_c_args(interp, thrower, "->");
-        }
+    /* If we get here, all is fine; store the value. */
+    scalar->value = value;
+    PARROT_GC_WRITE_BARRIER(interp, cont);
+}
+
+static void rakudo_scalar_store_unchecked(PARROT_INTERP, PMC *cont, PMC *value) {
+    Rakudo_Scalar *scalar = (Rakudo_Scalar *)PMC_data(cont);
+    
+    /* Ensure the value we're storing is a 6model type. */
+    if (value->vtable->base_type != Rakudo_smo_id())
+        Parrot_ex_throw_from_c_args(interp, NULL, EXCEPTION_INVALID_OPERATION,
+            "Cannot assign a non-Perl 6 value to a Perl 6 container");
+
+    if (!PMC_IS_NULL(scalar->whence)) {
+        PMC *cappy = Parrot_pmc_new(interp, enum_class_CallContext);
+        Parrot_pcc_invoke_from_sig_object(interp, scalar->whence, cappy);
+        scalar->whence = PMCNULL;
     }
+    
+    /* If we get here, all is fine; store the value. */
+    scalar->value = value;
+    PARROT_GC_WRITE_BARRIER(interp, cont);
+}
+
+static void rakudo_scalar_gc_mark_data(PARROT_INTERP, STable *st) {
+    /* No data to mark. */
+}
+
+static void rakudo_scalar_gc_free_data(PARROT_INTERP, STable *st) {
+    /* No data to free. */
+}
+
+static void rakudo_scalar_serialize(PARROT_INTERP, STable *st, SerializationWriter *writer) {
+    /* No data to serialize. */
+}
+    
+static void rakudo_scalar_deserialize(PARROT_INTERP, STable *st, SerializationReader *reader) {
+    /* No data to deserialize. */
+}
+
+static ContainerSpec *rakudo_scalar_spec = NULL;
+
+static void rakudo_scalar_set_container_spec(PARROT_INTERP, STable *st) {
+    st->container_data = NULL;
+    st->container_spec = rakudo_scalar_spec;
+}
+    
+static void rakudo_scalar_configure_container_spec(PARROT_INTERP, STable *st, PMC *config) {
+    /* Nothing to configure here. */
+}
+
+/* Sets up the container specification for Rakudo's container handling. */
+void Rakudo_cont_register(PARROT_INTERP) {
+    ContainerConfigurer *cc = mem_sys_allocate(sizeof(ContainerConfigurer));
+    
+    rakudo_scalar_spec = mem_sys_allocate(sizeof(ContainerSpec));
+    rakudo_scalar_spec->name = Parrot_str_new_constant(interp, "rakudo_scalar");
+    rakudo_scalar_spec->fetch = rakudo_scalar_fetch;
+    rakudo_scalar_spec->store = rakudo_scalar_store;
+    rakudo_scalar_spec->store_unchecked = rakudo_scalar_store_unchecked;
+    rakudo_scalar_spec->gc_mark_data = rakudo_scalar_gc_mark_data;
+    rakudo_scalar_spec->gc_free_data = rakudo_scalar_gc_free_data;
+    rakudo_scalar_spec->serialize = rakudo_scalar_serialize;
+    rakudo_scalar_spec->deserialize = rakudo_scalar_deserialize;
+    
+    cc->set_container_spec = rakudo_scalar_set_container_spec;
+    cc->configure_container_spec = rakudo_scalar_configure_container_spec;
+    
+    REGISTER_DYNAMIC_CONTAINER_CONFIG(interp,
+        Parrot_str_new_constant(interp, "rakudo_scalar"),
+        cc);
+}
+
+/* Function wrapper around DECONT macro; potentially can go away at some
+ * point. */
+PMC *Rakudo_cont_decontainerize(PARROT_INTERP, PMC *var) {
+    return DECONT(interp, var);
 }
 
 /* Checks if the thing we have is a rw scalar. */

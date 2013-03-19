@@ -255,6 +255,8 @@ static PMC* sub_find_pad(PARROT_INTERP, ARGIN(STRING *lex_name), ARGIN(PMC *ctx)
     }
 }
 
+static INTVAL initialized_ops = 0;
+
 END_OPS_PREAMBLE
 
 /*
@@ -267,9 +269,16 @@ Does various setup tasks on behalf of all of the other dynops.
 
 */
 inline op rakudo_dynop_setup() :base_core {
-    /* Get 6model object type ID. */
-    smo_id = Parrot_pmc_get_type_str(interp, Parrot_str_new_constant(interp, "SixModelObject"));
-    qrpa_id = Parrot_pmc_get_type_str(interp, Parrot_str_new_constant(interp, "QRPA"));
+    if (!initialized_ops) {
+        /* Get 6model object type ID. */
+        smo_id = Parrot_pmc_get_type_str(interp, Parrot_str_new_constant(interp, "SixModelObject"));
+        qrpa_id = Parrot_pmc_get_type_str(interp, Parrot_str_new_constant(interp, "QRPA"));
+        
+        /* Register Rakudo scalar container configuration. */
+        Rakudo_cont_register(interp);
+        
+        initialized_ops = 1;
+    }
 }
 
 

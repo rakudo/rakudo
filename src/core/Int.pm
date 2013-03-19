@@ -55,7 +55,7 @@ my class Int does Real {
     }
 
     method expmod(Int:D: Int:D \base, Int:D \mod) {
-        nqp::expmod_I(self, nqp::p6decont(base), nqp::p6decont(mod), Int);
+        nqp::expmod_I(self, nqp::decont(base), nqp::decont(mod), Int);
     }
     method is-prime(Int:D: Int:D $tries = 100) returns Bool:D {
         nqp::p6bool(nqp::isprime_I(self, nqp::unbox_i($tries)));
@@ -67,91 +67,91 @@ my class Int does Real {
 }
 
 multi prefix:<++>(Int:D \a is rw) {   # XXX
-    a = nqp::add_I(nqp::p6decont(a), nqp::p6box_i(1), Int);
+    a = nqp::add_I(nqp::decont(a), nqp::p6box_i(1), Int);
 }
 multi prefix:<-->(Int:D \a is rw) {   # XXX
-    a = nqp::sub_I(nqp::p6decont(a), nqp::p6box_i(1), Int);
+    a = nqp::sub_I(nqp::decont(a), nqp::p6box_i(1), Int);
 }
 multi postfix:<++>(Int:D \a is rw) {  # XXX
     my Int:D $b = a;
-    a = nqp::add_I(nqp::p6decont(a), nqp::p6box_i(1), Int);
+    a = nqp::add_I(nqp::decont(a), nqp::p6box_i(1), Int);
     $b
 }
 multi postfix:<-->(Int:D \a is rw) {  # XXX
     my Int:D $b = a;
-    a = nqp::sub_I(nqp::p6decont(a), nqp::p6box_i(1), Int);
+    a = nqp::sub_I(nqp::decont(a), nqp::p6box_i(1), Int);
     $b
 }
 
 multi prefix:<->(Int \a) returns Int {
-    nqp::neg_I(nqp::p6decont(a), Int);
+    nqp::neg_I(nqp::decont(a), Int);
 }
 multi prefix:<->(int $a) returns int {
     nqp::neg_i($a)
 }
 
 multi abs(Int:D \a) returns Int:D {
-    nqp::abs_I(nqp::p6decont(a), Int);
+    nqp::abs_I(nqp::decont(a), Int);
 }
 multi abs(int $a) returns int {
     nqp::abs_i($a)
 }
 
 multi infix:<+>(Int:D \a, Int:D \b) returns Int:D {
-    nqp::add_I(nqp::p6decont(a), nqp::p6decont(b), Int);
+    nqp::add_I(nqp::decont(a), nqp::decont(b), Int);
 }
 multi infix:<+>(int $a, int $b) returns int {
     nqp::add_i($a, $b)
 }
 
 multi infix:<->(Int:D \a, Int:D \b) returns Int:D {
-    nqp::sub_I(nqp::p6decont(a), nqp::p6decont(b), Int);
+    nqp::sub_I(nqp::decont(a), nqp::decont(b), Int);
 }
 multi infix:<->(int $a, int $b) returns int {
     nqp::sub_i($a, $b)
 }
 
 multi infix:<*>(Int:D \a, Int:D \b) returns Int {
-    nqp::mul_I(nqp::p6decont(a), nqp::p6decont(b), Int);
+    nqp::mul_I(nqp::decont(a), nqp::decont(b), Int);
 }
 multi infix:<*>(int $a, int $b) returns int {
     nqp::mul_i($a, $b)
 }
 
 multi infix:<div>(Int:D \a, Int:D \b) returns Int {
-    nqp::div_I(nqp::p6decont(a), nqp::p6decont(b), Int);
+    nqp::div_I(nqp::decont(a), nqp::decont(b), Int);
 }
 multi infix:<div>(int $a, int $b) returns int {
     nqp::div_i($a, $b)
 }
 
 multi infix:<%>(Int:D \a, Int:D \b) returns Int {
-    nqp::mod_I(nqp::p6decont(a), nqp::p6decont(b), Int);
+    nqp::mod_I(nqp::decont(a), nqp::decont(b), Int);
 }
 multi infix:<%>(int $a, int $b) returns int {
     nqp::mod_i($a, $b)
 }
 
 multi infix:<**>(Int:D \a, Int:D \b) {
-    nqp::pow_I(nqp::p6decont(a), nqp::p6decont(b), Num, Int);
+    nqp::pow_I(nqp::decont(a), nqp::decont(b), Num, Int);
 }
 
 multi infix:<lcm>(Int:D \a, Int:D \b) returns Int {
-    nqp::lcm_I(nqp::p6decont(a), nqp::p6decont(b), Int);
+    nqp::lcm_I(nqp::decont(a), nqp::decont(b), Int);
 }
 multi infix:<lcm>(int $a, int $b) returns int {
     nqp::lcm_i($a, $b)
 }
 
 multi infix:<gcd>(Int:D \a, Int:D \b) returns Int {
-    nqp::gcd_I(nqp::p6decont(a), nqp::p6decont(b), Int);
+    nqp::gcd_I(nqp::decont(a), nqp::decont(b), Int);
 }
 multi infix:<gcd>(int $a, int $b) returns int {
     nqp::gcd_i($a, $b)
 }
 
 multi infix:<===>(Int:D \a, Int:D \b) {
-    nqp::p6bool(nqp::iseq_I(nqp::p6decont(a), nqp::p6decont(b)))
+    nqp::p6bool(nqp::iseq_I(nqp::decont(a), nqp::decont(b)))
 }
 multi infix:<===>(int $a, int $b) {
     # hey, the optimizer is smart enough to figure that one out for us, no?
@@ -159,7 +159,7 @@ multi infix:<===>(int $a, int $b) {
 }
 
 multi infix:<==>(Int:D \a, Int:D \b) {
-    nqp::p6bool(nqp::iseq_I(nqp::p6decont(a), nqp::p6decont(b)))
+    nqp::p6bool(nqp::iseq_I(nqp::decont(a), nqp::decont(b)))
 }
 multi infix:<==>(int $a, int $b) {
     nqp::p6bool(nqp::iseq_i($a, $b))
@@ -170,70 +170,70 @@ multi infix:<!=>(int $a, int $b) {
 }
 
 multi infix:«<»(Int:D \a, Int:D \b) {
-    nqp::p6bool(nqp::islt_I(nqp::p6decont(a), nqp::p6decont(b)))
+    nqp::p6bool(nqp::islt_I(nqp::decont(a), nqp::decont(b)))
 }
 multi infix:«<»(int $a, int $b) {
     nqp::p6bool(nqp::islt_i($a, $b))
 }
 
 multi infix:«<=»(Int:D \a, Int:D \b) {
-    nqp::p6bool(nqp::isle_I(nqp::p6decont(a), nqp::p6decont(b)))
+    nqp::p6bool(nqp::isle_I(nqp::decont(a), nqp::decont(b)))
 }
 multi infix:«<=»(int $a, int $b) {
     nqp::p6bool(nqp::isle_i($a, $b))
 }
 
 multi infix:«>»(Int:D \a, Int:D \b) {
-    nqp::p6bool(nqp::isgt_I(nqp::p6decont(a), nqp::p6decont(b)))
+    nqp::p6bool(nqp::isgt_I(nqp::decont(a), nqp::decont(b)))
 }
 multi infix:«>»(int $a, int $b) {
     nqp::p6bool(nqp::isgt_i($a, $b))
 }
 
 multi infix:«>=»(Int:D \a, Int:D \b) {
-    nqp::p6bool(nqp::isge_I(nqp::p6decont(a), nqp::p6decont(b)))
+    nqp::p6bool(nqp::isge_I(nqp::decont(a), nqp::decont(b)))
 }
 multi infix:«>=»(int $a, int $b) {
     nqp::p6bool(nqp::isge_i($a, $b))
 }
 
 multi infix:<+|>(Int:D \a, Int:D \b) {
-    nqp::bitor_I(nqp::p6decont(a), nqp::p6decont(b), Int)
+    nqp::bitor_I(nqp::decont(a), nqp::decont(b), Int)
 }
 multi infix:<+|>(int $a, int $b) {
     nqp::bitor_i($a, $b)
 }
 
 multi infix:<+&>(Int:D \a, Int:D \b) {
-    nqp::bitand_I(nqp::p6decont(a), nqp::p6decont(b), Int)
+    nqp::bitand_I(nqp::decont(a), nqp::decont(b), Int)
 }
 multi infix:<+&>(int $a, int $b) {
     nqp::bitand_i($a, $b)
 }
 
 multi infix:<+^>(Int:D \a, Int:D \b) {
-    nqp::bitxor_I(nqp::p6decont(a), nqp::p6decont(b), Int)
+    nqp::bitxor_I(nqp::decont(a), nqp::decont(b), Int)
 }
 multi infix:<+^>(int $a, int $b) {
     nqp::bitxor_i($a, $b);
 }
 
 multi infix:«+<»(Int:D \a, Int:D \b) returns Int:D {
-    nqp::bitshiftl_I(nqp::p6decont(a), nqp::unbox_i(b), Int)
+    nqp::bitshiftl_I(nqp::decont(a), nqp::unbox_i(b), Int)
 }
 multi infix:«+<»(int $a, int $b) {
     nqp::bitshiftl_i($a, $b);
 }
 
 multi infix:«+>»(Int:D \a, Int:D \b) returns Int:D {
-    nqp::bitshiftr_I(nqp::p6decont(a), nqp::unbox_i(b), Int)
+    nqp::bitshiftr_I(nqp::decont(a), nqp::unbox_i(b), Int)
 }
 multi infix:«+>»(int $a, int $b) {
     nqp::bitshiftr_i($a, $b)
 }
 
 multi prefix:<+^>(Int:D \a) {
-    nqp::bitneg_I(nqp::p6decont(a), Int);
+    nqp::bitneg_I(nqp::decont(a), Int);
 }
 multi prefix:<+^>(int $a) {
     nqp::bitneg_i($a);
@@ -248,15 +248,15 @@ multi sub chr(int $x) returns str {
 
 proto sub is-prime($, $?) is pure  {*}
 multi sub is-prime(Int:D \i, Int:D $tries = 100) {
-    nqp::p6bool(nqp::isprime_I(nqp::p6decont(i), nqp::unbox_i($tries)));
+    nqp::p6bool(nqp::isprime_I(nqp::decont(i), nqp::unbox_i($tries)));
 }
 multi sub is-prime(\i, $tries = 100) {
-    nqp::p6bool(nqp::isprime_I(nqp::p6decont(i.Int), nqp::unbox_i($tries.Int)));
+    nqp::p6bool(nqp::isprime_I(nqp::decont(i.Int), nqp::unbox_i($tries.Int)));
 }
 proto sub expmod($, $, $) is pure  {*}
 multi sub expmod(Int:D \base, Int:D \exp, Int:D \mod) {
-    nqp::expmod_I(nqp::p6decont(base), nqp::p6decont(exp), nqp::p6decont(mod), Int);
+    nqp::expmod_I(nqp::decont(base), nqp::decont(exp), nqp::decont(mod), Int);
 }
 multi sub expmod(\base, \exp, \mod) {
-    nqp::expmod_I(nqp::p6decont(base.Int), nqp::p6decont(exp.Int), nqp::p6decont(mod.Int), Int);
+    nqp::expmod_I(nqp::decont(base.Int), nqp::decont(exp.Int), nqp::decont(mod.Int), Int);
 }

@@ -77,7 +77,7 @@ multi trait_mod:<is>(Routine:D $r, :$DEPRECATED!) {
     # we'll add logic here later
 }
 multi trait_mod:<is>(Routine:D $r, Mu :$inlinable!) {
-    $r.set_inline_info(nqp::p6decont($inlinable));
+    $r.set_inline_info(nqp::decont($inlinable));
 }
 multi trait_mod:<is>(Routine:D $r, :$onlystar!) {
     $r.set_onlystar();
@@ -93,7 +93,7 @@ multi trait_mod:<is>(Routine:D $r, :prec(%spec)!) {
     }
     else {
         $r.HOW.mixin($r, Precedence);
-        nqp::bindattr(nqp::p6decont($r), $r.WHAT, '%!prec', %spec);
+        nqp::bindattr(nqp::decont($r), $r.WHAT, '%!prec', %spec);
     }
     0;
 }

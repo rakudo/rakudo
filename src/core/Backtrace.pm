@@ -28,7 +28,7 @@ my class Backtrace is List {
     proto method new(|) {*}
 
     multi method new(Exception $e, Int $offset = 0) {
-        self.new(nqp::getattr(nqp::p6decont($e), Exception, '$!ex').backtrace, $offset);
+        self.new(nqp::getattr(nqp::decont($e), Exception, '$!ex').backtrace, $offset);
     }
 
     multi method new() {

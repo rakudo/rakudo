@@ -1,10 +1,10 @@
 my class Capture {
     submethod BUILD(:@list, :%hash) {
         nqp::bindattr(self, Capture, '$!list',
-            nqp::getattr(nqp::p6decont(@list.Parcel), Parcel, '$!storage')
+            nqp::getattr(nqp::decont(@list.Parcel), Parcel, '$!storage')
         );
         nqp::bindattr(self, Capture, '$!hash',
-            nqp::getattr(nqp::p6decont(%hash), EnumMap, '$!storage')
+            nqp::getattr(nqp::decont(%hash), EnumMap, '$!storage')
         );
         1;
     }

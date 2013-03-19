@@ -23,14 +23,14 @@ my class Exception {
     method throw() is hidden_from_backtrace {
         nqp::bindattr(self, Exception, '$!ex', pir::new__Ps('Exception'))
             unless nqp::defined($!ex);
-        pir::setattribute__vPsP($!ex, 'payload', nqp::p6decont(self));
+        pir::setattribute__vPsP($!ex, 'payload', nqp::decont(self));
         my $msg := self.?message;
         pir::setattribute__0PsP($!ex, 'message', nqp::unbox_s($msg.Str))
             if $msg.defined;
         nqp::throw($!ex)
     }
     method rethrow() is hidden_from_backtrace {
-        pir::setattribute__vPsP($!ex, 'payload', nqp::p6decont(self));
+        pir::setattribute__vPsP($!ex, 'payload', nqp::decont(self));
         nqp::rethrow($!ex)
     }
 
@@ -212,7 +212,7 @@ do {
             $_() for nqp::p6type(@*END_PHASERS);
         }
         if $! {
-            pir::perl6_based_rethrow__0PP(nqp::getattr(nqp::p6decont($!), Exception, '$!ex'), $ex);
+            pir::perl6_based_rethrow__0PP(nqp::getattr(nqp::decont($!), Exception, '$!ex'), $ex);
         }
     }
 

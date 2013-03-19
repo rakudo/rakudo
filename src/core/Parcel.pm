@@ -78,7 +78,7 @@ my class Parcel does Positional {
             if nqp::iscont($x) {
                 # container: scalar assignment
                 nqp::push($tv, $x);
-                nqp::push($tv, $rhs.gimme(1) ?? nqp::p6decont($rhs.shift) !! Nil);
+                nqp::push($tv, $rhs.gimme(1) ?? nqp::decont($rhs.shift) !! Nil);
             }
             elsif nqp::istype($x, Whatever) {
                 # Whatever: skip assigning value

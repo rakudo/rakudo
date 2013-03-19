@@ -885,22 +885,6 @@ inline op set_scalar_container_type(in PMC) :base_core {
 
 /*
 
-=item perl6_decontainerize(out PMC, in PMC)
-
-Strips away any outer container, if one exists. Otherwise, no-op.
-
-=cut
-
-*/
-inline op perl6_decontainerize(out PMC, in PMC) :base_core {
-    $1 = $2->vtable->base_type == smo_id ?
-        Rakudo_cont_decontainerize(interp, $2) :
-        $2;
-}
-
-
-/*
-
 =item perl6_recontainerize_to_ro()
 
 If the passed value is an rw scalar, re-wrap it. Otherwise, just

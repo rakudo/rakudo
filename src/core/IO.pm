@@ -167,7 +167,7 @@ class IO does IO::FileTestable {
 
     method write(IO:D: Buf:D $buf) {
         my str $b = nqp::getattr_s(
-                        nqp::p6decont($buf),
+                        nqp::decont($buf),
                         Buf,
                         '$!buffer'
                     );
@@ -473,7 +473,7 @@ multi sub mkdir($path as Str, $mode = 0o777) {
 $PROCESS::IN  = open('-');
 $PROCESS::OUT = open('-', :w);
 $PROCESS::ERR = IO.new;
-nqp::bindattr(nqp::p6decont($PROCESS::ERR),
+nqp::bindattr(nqp::decont($PROCESS::ERR),
         IO, '$!PIO', nqp::getstderr());
 
 my class X::IO::Rename { ... }

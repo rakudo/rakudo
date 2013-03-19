@@ -6,7 +6,7 @@ my class Signature {
     #   has $!count;           # cached count
     
     multi method ACCEPTS(Signature:D: Capture $topic) {
-        nqp::p6bool(nqp::p6isbindable(self, nqp::p6decont($topic)));
+        nqp::p6bool(nqp::p6isbindable(self, nqp::decont($topic)));
     }
     
     multi method ACCEPTS(Signature:D: @topic) {

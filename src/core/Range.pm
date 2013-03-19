@@ -121,7 +121,7 @@ my class Range is Iterable is Cool does Positional {
                 goto loop
               done:
                 $P0 = perl6_box_bigint value
-                perl6_container_store value_pmc, $P0
+                nqp_assign value_pmc, $P0
                 %r = rpa
             };
         }    

@@ -10,7 +10,6 @@ $ops.add_hll_pirop_mapping('perl6', 'p6listiter', 'perl6_iter_from_rpa', 'PPP', 
 $ops.add_hll_pirop_mapping('perl6', 'p6list', 'perl6_list_from_rpa', 'PPPP', :inlinable(1));
 $ops.add_hll_pirop_mapping('perl6', 'p6listitems', 'perl6_listitems', 'PP', :inlinable(1));
 $ops.add_hll_pirop_mapping('perl6', 'p6recont_ro', 'perl6_recontainerize_to_ro', 'PP', :inlinable(1));
-$ops.add_hll_pirop_mapping('perl6', 'p6store', 'perl6_container_store', '0PP', :inlinable(1));
 $ops.add_hll_pirop_mapping('perl6', 'p6type', 'perl6ize_type', 'PP', :inlinable(1));
 $ops.add_hll_pirop_mapping('perl6', 'p6takedisp', 'perl6_take_dispatcher', 'v');
 $ops.add_hll_pirop_mapping('perl6', 'p6var', 'perl6_var', 'PP', :inlinable(1));

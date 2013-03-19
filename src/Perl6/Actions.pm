@@ -944,7 +944,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 my $*SCOPE := 'my';
                 declare_variable($/, QAST::Stmts.new(), '$', '*', 'FATAL', []);
                 $past := QAST::Op.new(
-                    :op('p6store'), :node($/),
+                    :op('assign'), :node($/),
                     QAST::Var.new( :name('$*FATAL'), :scope('lexical') ),
                     QAST::Op.new( :op('p6bool'), QAST::IVal.new( :value(1) ) )
                 );
@@ -1105,7 +1105,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     :resultchild(0),
                     $block,
                     QAST::Op.new(
-                        :op('p6store'),
+                        :op('assign'),
                         QAST::Var.new( :name<$!>, :scope<lexical> ),
                         QAST::Var.new( :name<Any>, :scope<lexical> )
                     )
@@ -1114,7 +1114,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 # On failure, capture the exception object into $!.
                 'CATCH', QAST::Stmts.new(
                     QAST::Op.new(
-                        :op('p6store'),
+                        :op('assign'),
                         QAST::Var.new(:name<$!>, :scope<lexical>),
                         QAST::Op.new(
                             :name<&EXCEPTION>, :op<call>,
@@ -4489,7 +4489,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $past<nosink> := 1;
         }
         else {
-            $past := QAST::Op.new( :node($/), :op('p6store'),
+            $past := QAST::Op.new( :node($/), :op('assign'),
                 $lhs_ast, $rhs_ast);
         }
         return $past;
@@ -4624,7 +4624,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 ($max_excl ??
                     QAST::Stmts.new(
                         QAST::Op.new(
-                            :op('p6store'),
+                            :op('assign'),
                             QAST::Var.new( :name($state), :scope('lexical') ),
                             $zero
                         ),
@@ -4640,7 +4640,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                             )
                         ),
                         QAST::Op.new(
-                            :op('p6store'),
+                            :op('assign'),
                             QAST::Var.new( :name($state), :scope('lexical') ),
                             $zero
                         ),
@@ -4670,7 +4670,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     $min_excl || $max_excl ?? $nil !! $one,
                     QAST::Stmts.new(
                         QAST::Op.new(
-                            :op('p6store'),
+                            :op('assign'),
                             QAST::Var.new( :name($state), :scope('lexical') ),
                             $one
                         ),
@@ -5160,7 +5160,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             # match, don't assing to $/ (which imposes item context)
             make $past;
         } else {
-            make QAST::Op.new( :op('p6store'),
+            make QAST::Op.new( :op('assign'),
                 QAST::Var.new(:name('$/'), :scope('lexical')),
                 $past
             );
@@ -5477,7 +5477,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     QAST::Var.new( :scope('local'), :name($exceptionreg) )
                 )
             ),
-            QAST::Op.new( :op('p6store'),
+            QAST::Op.new( :op('assign'),
                 QAST::VM.new( :pirop('find_lex_skip_current__Ps'),
                     QAST::SVal.new( :value('$!') )),
                 QAST::Var.new( :scope('lexical'), :name('$_') ),
@@ -6136,7 +6136,7 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions does STDActions {
         my $past :=
             QAST::Stmts.new(
                 QAST::Op.new(
-                    :op('p6store'),
+                    :op('assign'),
                     QAST::Var.new( :name('$/'), :scope<lexical> ),
                     QAST::Op.new(
                         QAST::Var.new( :name('$¢'), :scope<lexical> ),

@@ -1126,7 +1126,7 @@ class Perl6::World is HLL::World {
             :op('while'),
             QAST::Var.new( :name($value_stash), :scope('lexical') ),
             QAST::Op.new(
-                :op('p6store'),
+                :op('assign'),
                 QAST::Op.new(
                     :op('shift'),
                     QAST::Var.new( :name($value_stash), :scope('lexical') )
@@ -1683,7 +1683,7 @@ class Perl6::World is HLL::World {
                 :op('if'),
                 QAST::Op.new( :op('p6stateinit') ),
                 QAST::Op.new(
-                    :op('p6store'),
+                    :op('assign'),
                     QAST::Var.new( :name($sym), :scope('lexical') ),
                     QAST::Op.new( :op('call'), QAST::WVal.new( :value($block) ) )
                 ),

@@ -4,7 +4,7 @@
 ##   Int/Rat/Num operators are in {Int|Rat|Num}.pm
 
 sub infix:<=>(Mu \a, Mu \b) is rw {
-    pir::perl6_container_store__0PP(a, b)
+    nqp::assign(a, b)
 }
 
 proto infix:<does>(Mu, Mu, *%) { * }

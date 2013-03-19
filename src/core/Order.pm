@@ -9,14 +9,14 @@ multi infix:<cmp>(\a, \b) {
 }
 multi infix:<cmp>(Real \a, Real \b) { a.Bridge cmp b.Bridge }
 multi infix:<cmp>(Int:D \a, Int:D \b) {
-    Order.(nqp::p6box_i(nqp::cmp_I(nqp::p6decont(a), nqp::p6decont(b))))
+    Order.(nqp::p6box_i(nqp::cmp_I(nqp::decont(a), nqp::decont(b))))
 }
 multi infix:<cmp>(int $a, int $b) {
     Order.(nqp::p6box_i(nqp::cmp_i($a, $b)))
 }
 
 multi infix:«<=>»(Int:D \a, Int:D \b) {
-    Order.(nqp::p6box_i(nqp::cmp_I(nqp::p6decont(a), nqp::p6decont(b))))
+    Order.(nqp::p6box_i(nqp::cmp_I(nqp::decont(a), nqp::decont(b))))
 }
 multi infix:«<=>»(int $a, int $b) {
     Order.(nqp::p6box_i(nqp::cmp_i($a, $b)))

@@ -38,7 +38,7 @@ my class Hash {
         nqp::push($attrs, '$!descriptor');
         nqp::push($attrs,  $!descriptor );
         nqp::push($attrs, '$!storage'   );
-        nqp::push($attrs,  nqp::getattr(nqp::p6decont(self), EnumMap, '$!storage'));
+        nqp::push($attrs,  nqp::getattr(nqp::decont(self), EnumMap, '$!storage'));
         self.DUMP-OBJECT-ATTRS($attrs, :$indent-step, :%ctx);
     }
 

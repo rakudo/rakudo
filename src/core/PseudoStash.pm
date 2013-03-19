@@ -27,7 +27,7 @@ my class PseudoStash is EnumMap {
                 $stash);
         },
         'CORE' => sub ($cur) {
-            my Mu $ctx := nqp::getattr(nqp::p6decont($cur), PseudoStash, '$!ctx');
+            my Mu $ctx := nqp::getattr(nqp::decont($cur), PseudoStash, '$!ctx');
             until nqp::existskey(nqp::ctxlexpad($ctx), '!CORE_MARKER') {
                 $ctx := nqp::ctxouter($ctx);
             }
@@ -41,7 +41,7 @@ my class PseudoStash is EnumMap {
         },
         'CALLER' => sub ($cur) {
             my Mu $ctx := nqp::ctxcaller(
-                nqp::getattr(nqp::p6decont($cur), PseudoStash, '$!ctx'));
+                nqp::getattr(nqp::decont($cur), PseudoStash, '$!ctx'));
             my $stash := nqp::create(PseudoStash);
             nqp::bindattr($stash, EnumMap, '$!storage', nqp::ctxlexpad($ctx));
             nqp::bindattr($stash, PseudoStash, '$!ctx', $ctx);
@@ -52,7 +52,7 @@ my class PseudoStash is EnumMap {
         },
         'OUTER' => sub ($cur) {
             my Mu $ctx := nqp::ctxouter(
-                nqp::getattr(nqp::p6decont($cur), PseudoStash, '$!ctx'));
+                nqp::getattr(nqp::decont($cur), PseudoStash, '$!ctx'));
             my $stash := nqp::create(PseudoStash);
             nqp::bindattr($stash, EnumMap, '$!storage', nqp::ctxlexpad($ctx));
             nqp::bindattr($stash, PseudoStash, '$!ctx', $ctx);
@@ -69,7 +69,7 @@ my class PseudoStash is EnumMap {
                 $stash);
         },
         'UNIT' => sub ($cur) {
-            my Mu $ctx := nqp::getattr(nqp::p6decont($cur), PseudoStash, '$!ctx');
+            my Mu $ctx := nqp::getattr(nqp::decont($cur), PseudoStash, '$!ctx');
             until nqp::existskey(nqp::ctxlexpad($ctx), '!UNIT_MARKER') {
                 $ctx := nqp::ctxouter($ctx);
             }
@@ -84,7 +84,7 @@ my class PseudoStash is EnumMap {
         'SETTING' => sub ($cur) {
             # Same as UNIT, but go a little further out (two steps, for
             # internals reasons).
-            my Mu $ctx := nqp::getattr(nqp::p6decont($cur), PseudoStash, '$!ctx');
+            my Mu $ctx := nqp::getattr(nqp::decont($cur), PseudoStash, '$!ctx');
             until nqp::existskey(nqp::ctxlexpad($ctx), '!UNIT_MARKER') {
                 $ctx := nqp::ctxouter($ctx);
             }
@@ -99,7 +99,7 @@ my class PseudoStash is EnumMap {
         },
         'OUR' => sub ($cur) {
             pir::find_lex_relative__PPs(
-                nqp::getattr(nqp::p6decont($cur), PseudoStash, '$!ctx'),
+                nqp::getattr(nqp::decont($cur), PseudoStash, '$!ctx'),
                 '$?PACKAGE')
         };
     

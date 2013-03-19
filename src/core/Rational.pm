@@ -24,8 +24,8 @@ my role Rational[::NuT, ::DeT] does Real {
             $numerator   = -$numerator;
             $denominator = -$denominator;
         }
-        nqp::bindattr($new, self.WHAT, '$!numerator',     nqp::p6decont($numerator));
-        nqp::bindattr($new, self.WHAT, '$!denominator',   nqp::p6decont($denominator));
+        nqp::bindattr($new, self.WHAT, '$!numerator',     nqp::decont($numerator));
+        nqp::bindattr($new, self.WHAT, '$!denominator',   nqp::decont($denominator));
         $new;
     }
 
@@ -34,8 +34,8 @@ my role Rational[::NuT, ::DeT] does Real {
         $!denominator == 0
           ?? ($!numerator < 0 ?? -$Inf !! $Inf)
           !! nqp::p6box_n(nqp::div_In(
-                nqp::p6decont($!numerator),
-                nqp::p6decont($!denominator)
+                nqp::decont($!numerator),
+                nqp::decont($!denominator)
              ));
     }
 

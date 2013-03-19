@@ -60,28 +60,28 @@ my &take := -> | {
 my &last := -> | { 
     my $parcel := 
         &RETURN-PARCEL(nqp::p6parcel(pir::perl6_current_args_rpa__P(), Nil));
-    THROW(nqp::p6decont($parcel), 
+    THROW(nqp::decont($parcel), 
           pir::const::CONTROL_LOOP_LAST) 
 };
 
 my &next := -> | { 
     my $parcel := 
         &RETURN-PARCEL(nqp::p6parcel(pir::perl6_current_args_rpa__P(), Nil));
-    THROW(nqp::p6decont($parcel), 
+    THROW(nqp::decont($parcel), 
           pir::const::CONTROL_LOOP_NEXT) 
 };
 
 my &redo := -> | { 
     my $parcel := 
         &RETURN-PARCEL(nqp::p6parcel(pir::perl6_current_args_rpa__P(), Nil));
-    THROW(nqp::p6decont($parcel), 
+    THROW(nqp::decont($parcel), 
           pir::const::CONTROL_LOOP_REDO) 
 };
 
 my &succeed := -> | { 
     my $parcel := 
         &RETURN-PARCEL(nqp::p6parcel(pir::perl6_current_args_rpa__P(), Nil));
-    THROW(nqp::p6decont($parcel), 
+    THROW(nqp::decont($parcel), 
           pir::const::CONTROL_BREAK) 
 };
 
@@ -146,7 +146,7 @@ multi sub warn(*@msg) is hidden_from_backtrace {
 
 proto sub eval($, *%) {*}
 multi sub eval(Str $code, :$lang = 'perl6', PseudoStash :$context) {
-    my $eval_ctx := nqp::getattr(nqp::p6decont($context // CALLER::CALLER::), PseudoStash, '$!ctx');
+    my $eval_ctx := nqp::getattr(nqp::decont($context // CALLER::CALLER::), PseudoStash, '$!ctx');
     my $?FILES   := 'eval_' ~ (state $no)++;
     my $compiler := nqp::getcomp($lang);
     X::Eval::NoSuchLang.new(:$lang).throw

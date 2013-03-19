@@ -60,11 +60,11 @@ my class Junction {
     }
     
     method AUTOTHREAD(&call, |args) {
-        my Mu $pos_rpa := nqp::getattr(nqp::p6decont(args), Capture, '$!list');
+        my Mu $pos_rpa := nqp::getattr(nqp::decont(args), Capture, '$!list');
         sub thread_junction(int $i) {
             my Junction $arg := nqp::atpos($pos_rpa, $i);
-            my Str $type := nqp::getattr(nqp::p6decont($arg), Junction, '$!type');
-            my @states := nqp::getattr(nqp::p6decont($arg), Junction, '$!storage');
+            my Str $type := nqp::getattr(nqp::decont($arg), Junction, '$!type');
+            my @states := nqp::getattr(nqp::decont($arg), Junction, '$!storage');
 
             my Mu $res := nqp::list();
             for @states -> $s {
@@ -86,7 +86,7 @@ my class Junction {
             # Junctional positional argument?
             my Mu $arg := nqp::atpos($pos_rpa, $i);
             if nqp::istype($arg, Junction) {
-                my Str $type := nqp::getattr(nqp::p6decont($arg), Junction, '$!type');
+                my Str $type := nqp::getattr(nqp::decont($arg), Junction, '$!type');
                 if ($type eq "one" || $type eq "any") {
                     if $first_one_any == -1 {
                         # save it for later, first make sure we don't have all or none junctions later.
@@ -105,9 +105,9 @@ my class Junction {
         # Otherwise, look for one in the nameds.
         for args.hash.kv -> $k, $v {
             if nqp::istype($v, Junction) {
-                my Mu $nam_hash := nqp::getattr(nqp::p6decont(args), Capture, '$!hash');
-                my @states := nqp::getattr(nqp::p6decont($v), Junction, '$!storage');
-                my $type   := nqp::getattr(nqp::p6decont($v), Junction, '$!type');
+                my Mu $nam_hash := nqp::getattr(nqp::decont(args), Capture, '$!hash');
+                my @states := nqp::getattr(nqp::decont($v), Junction, '$!storage');
+                my $type   := nqp::getattr(nqp::decont($v), Junction, '$!type');
                 my Mu $res := nqp::list();
                 for @states -> $s {
                     nqp::bindkey($nam_hash, $k, $s);

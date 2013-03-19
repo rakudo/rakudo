@@ -154,8 +154,8 @@ my class Buf does Positional {
 
 multi infix:<eqv>(Buf:D $a, Buf:D $b) {
     $a.WHAT === $b.WHAT && nqp::p6bool(nqp::iseq_s(
-        nqp::getattr_s(nqp::p6decont($a), Buf, '$!buffer'),
-        nqp::getattr_s(nqp::p6decont($b), Buf, '$!buffer')
+        nqp::getattr_s(nqp::decont($a), Buf, '$!buffer'),
+        nqp::getattr_s(nqp::decont($b), Buf, '$!buffer')
     ));
 }
 multi prefix:<~^>(Buf:D $a) {
@@ -164,8 +164,8 @@ multi prefix:<~^>(Buf:D $a) {
 multi infix:<~>(Buf:D $a, Buf:D $b) {
     my Buf $r := nqp::create(Buf);
 
-    my str $ba = nqp::getattr_s(nqp::p6decont($a), Buf, '$!buffer');
-    my str $bb = nqp::getattr_s(nqp::p6decont($b), Buf, '$!buffer');
+    my str $ba = nqp::getattr_s(nqp::decont($a), Buf, '$!buffer');
+    my str $bb = nqp::getattr_s(nqp::decont($b), Buf, '$!buffer');
     nqp::bindattr_s($r, Buf, '$!buffer', nqp::concat_s($ba, $bb));
     $r;
 }

@@ -10,8 +10,8 @@ my class AST {
 
     method incarnate($quasi_context, @unquote_asts) {
         my $incarnation = self.clone();
-        nqp::bindattr(nqp::p6decont($incarnation), AST, '$!past', $incarnation.evaluate_unquotes(@unquote_asts));
-        nqp::bindattr(nqp::p6decont($incarnation), AST, '$!quasi_context', $quasi_context);
+        nqp::bindattr(nqp::decont($incarnation), AST, '$!past', $incarnation.evaluate_unquotes(@unquote_asts));
+        nqp::bindattr(nqp::decont($incarnation), AST, '$!quasi_context', $quasi_context);
         return $incarnation;
     }
 
@@ -24,7 +24,7 @@ my class AST {
                 expected => AST,
                 action   => 'unquote evaluation',
             ).throw unless $_ ~~ AST;
-            nqp::push($pasts, nqp::getattr(nqp::p6decont($_), AST, '$!past'))
+            nqp::push($pasts, nqp::getattr(nqp::decont($_), AST, '$!past'))
         }
         $!past.evaluate_unquotes($pasts);
     }

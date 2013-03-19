@@ -90,14 +90,14 @@ my class Mu {
                     # that slurpy hashes sometimes lead to double containers
                     # somehow...
                     nqp::getattr(self, nqp::atpos($task, 1),
-                        nqp::atpos($task, 3)) = nqp::p6decont(%attrinit{$key_name});
+                        nqp::atpos($task, 3)) = nqp::decont(%attrinit{$key_name});
                 }
             }
             elsif nqp::iseq_i($code, 2) {
                 my $key_name := nqp::p6box_s(nqp::atpos_s($task, 2));
                 if %attrinit.exists($key_name) {
                     nqp::getattr(self, nqp::atpos($task, 1),
-                        nqp::atpos_s($task, 3)) = nqp::p6decont(%attrinit{$key_name});
+                        nqp::atpos_s($task, 3)) = nqp::decont(%attrinit{$key_name});
                 }
                 else {
                     nqp::bindattr(self, nqp::atpos($task, 1),
@@ -108,7 +108,7 @@ my class Mu {
                 my $key_name := nqp::p6box_s(nqp::atpos_s($task, 2));
                 if %attrinit.exists($key_name) {
                     nqp::getattr(self, nqp::atpos($task, 1),
-                        nqp::atpos_s($task, 3)) = nqp::p6decont(%attrinit{$key_name});
+                        nqp::atpos_s($task, 3)) = nqp::decont(%attrinit{$key_name});
                 }
                 else {
                     nqp::bindattr(self, nqp::atpos($task, 1),
@@ -147,14 +147,14 @@ my class Mu {
                 my $key_name := nqp::p6box_s(nqp::atpos_s($task, 2));
                 if %attrinit.exists($key_name) {
                     nqp::getattr(self, nqp::atpos($task, 1),
-                        nqp::atpos_s($task, 3)) = nqp::p6decont(%attrinit{$key_name});
+                        nqp::atpos_s($task, 3)) = nqp::decont(%attrinit{$key_name});
                 }
             }
             elsif nqp::iseq_i($code, 2) {
                 my $key_name := nqp::p6box_s(nqp::atpos_s($task, 2));
                 if %attrinit.exists($key_name) {
                     nqp::getattr(self, nqp::atpos($task, 1),
-                        nqp::atpos_s($task, 3)) = nqp::p6decont(%attrinit{$key_name});
+                        nqp::atpos_s($task, 3)) = nqp::decont(%attrinit{$key_name});
                 }
                 else {
                     nqp::bindattr(self, nqp::atpos($task, 1),
@@ -165,7 +165,7 @@ my class Mu {
                 my $key_name := nqp::p6box_s(nqp::atpos_s($task, 2));
                 if %attrinit.exists($key_name) {
                     nqp::getattr(self, nqp::atpos($task, 1),
-                        nqp::atpos_s($task, 3)) = nqp::p6decont(%attrinit{$key_name});
+                        nqp::atpos_s($task, 3)) = nqp::decont(%attrinit{$key_name});
                 }
                 else {
                     nqp::bindattr(self, nqp::atpos($task, 1),
@@ -249,7 +249,7 @@ my class Mu {
                 $value := $attr.get_value(self);
             }
             elsif nqp::can($attr, 'package') {
-                my Mu $decont  := nqp::p6decont(self);
+                my Mu $decont  := nqp::decont(self);
                 my Mu $package := $attr.package;
 
                 $value := do given nqp::p6box_i(nqp::objprimspec($attr.type)) {
@@ -314,7 +314,7 @@ my class Mu {
     }
     
     method clone(*%twiddles) {
-        my $cloned := nqp::clone(nqp::p6decont(self));
+        my $cloned := nqp::clone(nqp::decont(self));
         for self.^attributes() -> $attr {
             my $name := $attr.name;
             my $package := $attr.package;

@@ -72,7 +72,7 @@ my class Match is Capture is Cool {
     method make(Match:D: Mu $ast) {
         $!ast = $ast;
         nqp::bindattr(
-            nqp::p6decont(self.CURSOR),
+            nqp::decont(self.CURSOR),
             Cursor,
             '$!ast',
             $ast
@@ -82,13 +82,13 @@ my class Match is Capture is Cool {
 
 sub make(Mu $ast) {
     nqp::bindattr(
-        nqp::p6decont(nqp::getlexcaller('$/')),
+        nqp::decont(nqp::getlexcaller('$/')),
         Match,
         '$!ast',
         $ast
     );
     nqp::bindattr(
-        nqp::p6decont(nqp::getlexcaller('$/').CURSOR),
+        nqp::decont(nqp::getlexcaller('$/').CURSOR),
         Cursor,
         '$!ast',
         $ast

@@ -72,7 +72,7 @@ sub ANON_ENUM(*@args) {
 Metamodel::EnumHOW.set_composalizer(-> $type, $name, %enum_values {
     my Mu $r := Metamodel::ParametricRoleHOW.new_type(:name($name));
     $r.HOW.add_attribute($r, Attribute.new(
-        :name('$!' ~ $name), :type(nqp::p6decont($type)),
+        :name('$!' ~ $name), :type(nqp::decont($type)),
         :has_accessor(1), :package($r)));
     for %enum_values.kv -> $key, $value {
         my $meth = method () { self."$name"() === $value }

@@ -197,7 +197,7 @@ sub prefix:<temp>(\cont) is rw {
     }
     if nqp::iscont(cont) {
         nqp::push($temp_restore, cont);
-        nqp::push($temp_restore, nqp::p6decont(cont));
+        nqp::push($temp_restore, nqp::decont(cont));
     }
     elsif nqp::istype(cont, Array) {
         nqp::push($temp_restore, cont);
@@ -222,7 +222,7 @@ sub prefix:<let>(\cont) is rw {
     }
     if nqp::iscont(cont) {
         nqp::push($let_restore, cont);
-        nqp::push($let_restore, nqp::p6decont(cont));
+        nqp::push($let_restore, nqp::decont(cont));
     }
     elsif nqp::istype(cont, Array) {
         nqp::push($let_restore, cont);

@@ -4441,7 +4441,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             # We may need to decontainerize the right, depending on sigil.
             my $sigil := nqp::substr($target.name(), 0, 1);
             if $sigil eq '@' || $sigil eq '%' {
-                $source := QAST::Op.new( :op('p6decont'), $source );
+                $source := QAST::Op.new( :op('decont'), $source );
             }
 
             # Now go by scope.
@@ -4682,7 +4682,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                             $zero
                         ),
                         QAST::Op.new(
-                            :op('p6decont'),
+                            :op('decont'),
                             QAST::Var.new( :name($id ~ '_orig'), :scope('local') )
                         )
                     )),

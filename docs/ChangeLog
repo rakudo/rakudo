@@ -17,6 +17,7 @@ New in 2013.03
 + Respect :i in constructs like /:i <$var>/
 + Autothread "none" and "all" junctions before "any" and "one"
 + Helpful error if you write "else if" instead of "elsif"
++ Throw exception if a Range is used as a Range endpoint
 
 New in 2013.02
 + "Did you mean ..." suggestions for symbol-not-found errors

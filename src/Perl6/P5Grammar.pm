@@ -1444,7 +1444,7 @@ grammar Perl6::P5Grammar is HLL::Grammar does STD {
     method EXPR(str $preclim = '') {
         # Override this so we can set $*LEFTSIGIL.
         my $*LEFTSIGIL := '';
-        nqp::findmethod(HLL::Grammar, 'EXPR')(self, $preclim, :noinfix($preclim eq 'y='));
+        nqp::findmethod(HLL::Grammar, 'EXPR')(self, $preclim, :noinfix($preclim eq 'z='));
     }
 
 #    token termish {
@@ -2096,8 +2096,10 @@ grammar Perl6::P5Grammar is HLL::Grammar does STD {
 #        self.cursor_fresh($lang).nibbler;
 #    }
 
-    token quote:sym<' '>   { "'" <nibble(%*LANG<Q>)> "'" }
-    token quote:sym<" ">   { '"' <nibble(%*LANG<Q>)> '"' }
+    #token quote:sym<' '>   { "'" <nibble(%*LANG<Q>)> "'" }
+    #token quote:sym<" ">   { '"' <nibble(%*LANG<Q>)> '"' }
+    token quote:sym<' '>  { :dba('single quotes') "'" ~ "'" <nibble(self.quote_lang(%*LANG<Q>, "'", "'", ['q']))> }
+    token quote:sym<" ">  { :dba('double quotes') '"' ~ '"' <nibble(self.quote_lang(%*LANG<Q>, '"', '"', ['qq']))> }
 
 # XXX why does this get picked up?
 #    token quote:sym«<<»   { '<<'
@@ -2130,6 +2132,7 @@ grammar Perl6::P5Grammar is HLL::Grammar does STD {
         #'q' <?before \W> <.ws> <quibble(self.cursor_fresh( %*LANG<Q> ).tweak(:q))>
         'q' <?before \W> <.ws> <.quibble(%*LANG<Q>)>
     }
+
     token quote:sym<qw> {
         #'qw' <?before \W> <.ws> <quibble(self.cursor_fresh( %*LANG<Q> ).tweak(:q))>
         'qw' <?before \W> <.ws> <.quibble(%*LANG<Q>)>
@@ -3242,7 +3245,8 @@ grammar Perl6::P5QGrammar is HLL::Grammar does STD {
         token escape:sym<$> {
             :my $*QSIGIL := '$';
             <?before '$'>
-            [ <termish=.LANG('MAIN','termish')> ] || <.panic: "Non-variable \$ must be backslashed">
+#            [ <termish=.LANG('MAIN','termish')> ] || <.panic: "Non-variable \$ must be backslashed">
+            [ <EXPR=.LANG('MAIN', 'EXPR', 'z=')> || { $*W.throw($/, 'X::Backslash::NonVariableDollar') } ]
         }
     } # end role
 
@@ -3279,7 +3283,7 @@ grammar Perl6::P5QGrammar is HLL::Grammar does STD {
             :my $*QSIGIL := '&';
             <?before '&'>
 #            [ :lang(%*LANG<MAIN>) <EXPR('%methodcall')> | <!> ]
-            <EXPR=.LANG('MAIN', 'EXPR', 'y=')>
+            <EXPR=.LANG('MAIN', 'EXPR', 'z=')>
         }
     } # end role
 
@@ -3401,6 +3405,11 @@ grammar Perl6::P5QGrammar is HLL::Grammar does STD {
         }
     }
 
+    method truly($bool, $opt) {
+        self.sorry("Cannot negate $opt adverb") unless $bool;
+        self;
+    }
+    
     method tweak_q($v)          { self.truly($v, ':q'); self.HOW.mixin(self, Perl6::P5QGrammar::q) }
     method tweak_single($v)     { self.tweak_q($v) }
     method tweak_qq($v)         { self.truly($v, ':qq'); self.HOW.mixin(self, Perl6::P5QGrammar::qq); }

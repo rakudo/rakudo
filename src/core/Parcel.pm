@@ -102,7 +102,7 @@ my class Parcel does Positional {
     }
 
     multi method DUMP(Parcel:D:) {
-        self.DUMP-ID() ~ '(:storage(' ~ DUMP($!storage) ~ '))'
+        self.DUMP-ID() ~ '(:$!storage(' ~ DUMP($!storage) ~ '))'
     }
     
     method FLATTENABLE_LIST() { $!storage }

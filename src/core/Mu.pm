@@ -268,8 +268,7 @@ my class Mu {
                     when 2 { nqp::p6box_n(nqp::getattr_n($decont, $package, $name)) }
                     when 3 { nqp::p6box_s(nqp::getattr_s($decont, $package, $name)) }
                 };
-                # $value := $value.perl;
-                $value := (nqp::iscont(self) ?? "\x25b6" !! '') ~ $value.perl;
+                $value := $value.perl;
             }
 
             say '==> Value is:         ' ~ $value;

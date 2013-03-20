@@ -148,13 +148,6 @@ my class Range is Iterable is Cool does Positional {
           ~ $.max.perl
     }
 
-    multi method DUMP(Range:D:) {
-        self.DUMP-ID() ~ '('
-          ~ ':min(' ~ DUMP($!min) ~ '), '
-          ~ ':max(' ~ DUMP($!max) ~ ')'
-          ~ ')'
-    }
-
     proto method roll(|) { * }
     multi method roll(Range:D: Whatever) {
         gather loop { take self.roll }

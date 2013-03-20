@@ -3,6 +3,7 @@ my class Bool {
     multi method Numeric(Bool:D:) { self ?? 1 !! 0 }
     multi method Str(Bool:D:)     { self ?? 'True' !! 'False' }
     multi method gist(Bool:D:)    { self ?? 'True' !! 'False' }
+    multi method DUMP(Bool:D:)    { self.Str }
 
     method Int()     { self ?? 1 !! 0 }
 

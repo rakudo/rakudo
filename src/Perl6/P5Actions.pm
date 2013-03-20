@@ -577,7 +577,10 @@ class Perl6::P5Actions is HLL::Actions does STDActions {
         self.SET_BLOCK_OUTER_CTX($*UNIT_OUTER);
     }
 
-    method termish($/) { say("method P5 termish($/) $<prefixish> $<term> $<postfixish>"); }
+    method termish($/) {
+        say("method P5 termish($/) $<prefixish> $<term> $<postfixish>");
+        make $<term>.ast
+    }
 
     method statementlist($/) {
         say("method P5 statementlist($/)");

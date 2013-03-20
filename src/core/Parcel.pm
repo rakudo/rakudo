@@ -102,7 +102,6 @@ my class Parcel does Positional {
     }
 
     multi method DUMP(Parcel:D:) {
-        say 'Dumping a Parcel; storage is a: ' ~ pir::typeof__SP($!storage);
         self.DUMP-ID() ~ '(:storage(' ~ DUMP($!storage) ~ '))'
     }
     

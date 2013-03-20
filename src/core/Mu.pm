@@ -277,7 +277,7 @@ my class Mu {
         }
         self.DUMP-ID() ~ '(' ~  @attrs.join(', ') ~ ')';
     }
-    method DUMP-ID() { say 'DUMP-ID requested: ' ~ self.HOW.name(self) ~ '<' ~ self.WHERE ~ '>'; self.HOW.name(self) ~ '<' ~ self.WHERE ~ '>' }
+    method DUMP-ID() { self.HOW.name(self) ~ '<' ~ self.WHERE ~ '>' }
     
     proto method isa(|) { * }
     multi method isa(Mu \SELF: Mu $type) {
@@ -514,12 +514,10 @@ multi sub infix:<eqv>(@a, @b) {
 }
 
 sub DUMP(|) {
-    say 'Starting sub DUMP';
     my Mu $topic := nqp::captureposarg(nqp::usecapture(), 0);
-    say 'Topic is a: ' ~ pir::typeof__SP($topic);
+    say '    Topic type is: ' ~ pir::typeof__SP($topic);
     if nqp::isnull($topic) { '(null)' }
     elsif nqp::islist($topic) {
-        say 'Is list; dumping parts';
         my str $type = pir::typeof__SP($topic);
         $type = 'RPA' if $type eq 'ResizablePMCArray';
         my $s = $type ~ '<' ~ nqp::p6box_s(nqp::where($topic)) ~ '>(';
@@ -527,14 +525,12 @@ sub DUMP(|) {
         $topic := nqp::clone($topic);
         while $topic {
             my Mu $x := nqp::shift($topic);
-            say $s;
             $s = $s ~ $t ~ DUMP($x);
             $t = ', ';
         }
         $s ~ ')'
     }
-    else { 
-        say 'Not list; dumping topic';
+    else {
         nqp::iscont($topic)
           ?? "\x25b6" ~ $topic.DUMP() 
           !! $topic.DUMP()

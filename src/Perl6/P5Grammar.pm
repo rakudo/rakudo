@@ -1816,15 +1816,29 @@ grammar Perl6::P5Grammar is HLL::Grammar does STD {
 
     token number:sym<numish> { <numish> }
 
+    #token integer {
+    #    [
+    #    | 0 $<VALUE>=[ b <[01]>+           [ _ <[01]>+ ]*
+    #        | x <.xdigit>+ [ _ <.xdigit>+ ]*
+    #        | d \d+               [ _ \d+]*
+    #        | <[0..7]>+         [ _ <[0..7]>+ ]*
+    #        ]
+    #    | $<VALUE>=[\d+[_\d+]*]
+    #    ]
+    #}
     token integer {
         [
-        | 0 $<VALUE>=[ b <[01]>+           [ _ <[01]>+ ]*
-            | x <.xdigit>+ [ _ <.xdigit>+ ]*
-            | d \d+               [ _ \d+]*
-            | <[0..7]>+         [ _ <[0..7]>+ ]*
+        | 0 [ b '_'? <VALUE=binint>
+            | o '_'? <VALUE=octint>
+            | x '_'? <VALUE=hexint>
+            | d '_'? <VALUE=decint>
+            | <VALUE=decint>
+                <!!{ $/.CURSOR.worry("Leading 0 does not indicate octal in Perl 6; please use 0o" ~ $<VALUE>.Str ~ " if you mean that") }>
             ]
-        | $<VALUE>=[\d+[_\d+]*]
+        | <VALUE=decint>
         ]
+        <!!before ['.' <?before \s | ',' | '=' | <terminator> > <.sorry: "Decimal point must be followed by digit">]? >
+        [ <?before '_' '_'+\d> <.sorry: "Only isolated underscores are allowed inside numbers"> ]?
     }
 
     token rad_number {
@@ -2396,6 +2410,11 @@ grammar Perl6::P5Grammar is HLL::Grammar does STD {
     token postop {
         | <postfix>        { $<O> := $<postfix><O>;       $<sym> := $<postfix><sym>; }
         | <postcircumfix>  { $<O> := $<postcircumfix><O>; $<sym> := $<postcircumfix><sym>; }
+    }
+
+    token privop {
+        '!' <methodop>
+        <O('%methodcall')>
     }
 
     token methodop {

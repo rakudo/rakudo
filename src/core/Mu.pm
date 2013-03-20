@@ -531,7 +531,7 @@ sub DUMP(|) {
     }
     else {
         nqp::iscont($topic)
-          ?? "\x25b6" ~ $topic.DUMP() 
+          ?? "\x25b6" ~ $topic.DUMP()
           !! $topic.DUMP()
     }
 };

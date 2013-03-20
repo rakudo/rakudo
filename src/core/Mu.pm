@@ -257,6 +257,7 @@ my class Mu {
             elsif nqp::can($attr, 'get_value') {
                 say '--> hit get_value';
                 $value := DUMP($attr.get_value(self));
+                # $value := DUMP(nqp::findmethod($attr, 'get_value')($attr, self));
             }
             else {
                 say '--> hit default case';

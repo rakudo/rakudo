@@ -29,7 +29,7 @@ my role STDActions {
     }
 }
 
-class Perl6::Actions is HLL::Actions does STDActions {
+class Perl6::P5Actions is HLL::Actions does STDActions {
     our @MAX_PERL_VERSION;
 
     our $FORBID_PIR;
@@ -38,7 +38,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
     INIT {
         # If, e.g., we support Perl up to v6.1.2, set
         # @MAX_PERL_VERSION to [6, 1, 2].
-        @MAX_PERL_VERSION[0] := 6;
+        @MAX_PERL_VERSION[0] := 5;
 
         $FORBID_PIR := 0;
         $STATEMENT_PRINT := 0;
@@ -580,15 +580,15 @@ class Perl6::Actions is HLL::Actions does STDActions {
     method termish($/) { say("method termish($/)"); }
 
     method statementlist($/) {
-        #say("method statementlist($/)");
+        say("method statementlist($/)");
         my $past := QAST::Stmts.new( :node($/) );
         if $<statement> {
-            #say("method statementlist($/) if statement");
+            say("method statementlist($/) if statement");
             for $<statement> {
-                #say("method statementlist($/) if for statement");
+                say("method statementlist($/) if for statement");
                 my $ast := $_.ast;
                 if $ast {
-                    #say("method statementlist($/) if for statement ast");
+                    say("method statementlist($/) if for statement ast");
                     if $ast<sink_past> {
                         $ast := QAST::Want.new($ast, 'v', $ast<sink_past>);
                     }
@@ -603,11 +603,11 @@ class Perl6::Actions is HLL::Actions does STDActions {
             }
         }
         if +$past.list < 1 {
-            #say("method statementlist($/) list < 1");
+            say("method statementlist($/) list < 1");
             $past.push(QAST::Var.new(:name('Nil'), :scope('lexical')));
         }
         else {
-            #say("method statementlist($/) list >= 1");
+            say("method statementlist($/) list >= 1");
             $past.returns($past[+@($past) - 1].returns);
         }
         make $past;
@@ -625,17 +625,21 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
 
     method statement($/, $key?) {
+        say("method statement($/, $key)");
         my $past;
         if $<EXPR> {
+            say("method statement($/, $key) EXPR");
             my $mc := $<statement_mod_cond>[0];
             my $ml := $<statement_mod_loop>[0];
             $past := $<EXPR>.ast;
             if $mc {
+                say("method statement($/, $key) EXPR mc");
                 $mc.ast.push($past);
                 $mc.ast.push(QAST::Var.new(:name('Nil'), :scope('lexical')));
                 $past := $mc.ast;
             }
             if $ml {
+                say("method statement($/, $key) EXPR ml");
                 my $cond := $ml<smexpr>.ast;
                 if ~$ml<sym> eq 'given' {
                     $past := QAST::Op.new(
@@ -659,8 +663,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 }
             }
         }
-        elsif $<statement_control> { $past := $<statement_control>.ast; }
-        else { $past := 0; }
+        elsif $<statement_control> { say("method statement($/, $key) statement_control"); $past := $<statement_control>.ast; }
+        else { say("method statement($/, $key) past=0"); $past := 0; }
         if $STATEMENT_PRINT && $past {
             $past := QAST::Stmts.new(:node($/),
                 QAST::Op.new(
@@ -967,7 +971,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         make $past;
     }
 
-    method statement_control:sym<require>($/) {
+    method package_declarator:sym<require>($/) {
         my $past := QAST::Stmts.new(:node($/));
         my $name_past := $<module_name>
                         ?? $*W.disect_longname($<module_name><longname>).name_past()
@@ -982,6 +986,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
         if $<module_name> && $<EXPR> {
             my $p6_arglist  := $*W.compile_time_evaluate($/, $<EXPR>[0].ast).list.eager;
+            # XXX Error while compiling op getattr: Operation 'getattr' requires 3 operands, but got 2
             my $arglist     := nqp::getattr($p6_arglist, $*W.find_symbol(['List']), '$!items');
             my $lexpad      := $*W.cur_lexpad();
             my $*SCOPE      := 'my';
@@ -1186,7 +1191,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
     method term:sym<type_declarator>($/)    { make $<type_declarator>.ast; }
     method term:sym<circumfix>($/)          { make $<circumfix>.ast; }
     method term:sym<statement_prefix>($/)   { make $<statement_prefix>.ast; }
-    method term:sym<lambda>($/)             { make block_closure($<pblock>.ast); }
+    method term:sym<value>($/)              { say("method term:sym<value>($/)"); make $<value>.ast; }
     method term:sym<sigterm>($/)            { make $<sigterm>.ast; }
     method term:sym<unquote>($/) {
         make QAST::Unquote.new(:position(+@*UNQUOTE_ASTS));
@@ -3958,7 +3963,87 @@ class Perl6::Actions is HLL::Actions does STDActions {
         make $past;
     }
 
-    method term:sym<value>($/) { make $<value>.ast; }
+    # XXX stubs
+    method term:sym<abs>($/) { make $<value>.ast; }
+    method term:sym<alarm>($/) { make $<value>.ast; }
+    method term:sym<chop>($/) { make $<value>.ast; }
+    method term:sym<chdir>($/) { make $<value>.ast; }
+    method term:sym<close>($/) { make $<value>.ast; }
+    method term:sym<closedir>($/) { make $<value>.ast; }
+    method term:sym<caller>($/) { make $<value>.ast; }
+    method term:sym<chr>($/) { make $<value>.ast; }
+    method term:sym<cos>($/) { make $<value>.ast; }
+    method term:sym<chroot>($/) { make $<value>.ast; }
+    method term:sym<defined>($/) { make $<value>.ast; }
+    method term:sym<delete>($/) { make $<value>.ast; }
+    method term:sym<dbmclose>($/) { make $<value>.ast; }
+    method term:sym<exists>($/) { make $<value>.ast; }
+    method term:sym<int>($/) { make $<value>.ast; }
+    method term:sym<exit>($/) { make $<value>.ast; }
+    method term:sym<try>($/) { make $<value>.ast; }
+    method term:sym<eval>($/) { make $<value>.ast; }
+    method term:sym<eof>($/) { make $<value>.ast; }
+    method term:sym<exp>($/) { make $<value>.ast; }
+    method term:sym<each>($/) { make $<value>.ast; }
+    method term:sym<fileno>($/) { make $<value>.ast; }
+    method term:sym<gmtime>($/) { make $<value>.ast; }
+    method term:sym<getc>($/) { make $<value>.ast; }
+    method term:sym<getpgrp>($/) { make $<value>.ast; }
+    method term:sym<getpbyname>($/) { make $<value>.ast; }
+    method term:sym<getpwnam>($/) { make $<value>.ast; }
+    method term:sym<getpwuid>($/) { make $<value>.ast; }
+    method term:sym<getpeername>($/) { make $<value>.ast; }
+    method term:sym<gethostbyname>($/) { make $<value>.ast; }
+    method term:sym<getnetbyname>($/) { make $<value>.ast; }
+    method term:sym<getsockname>($/) { make $<value>.ast; }
+    method term:sym<getgroupnam>($/) { make $<value>.ast; }
+    method term:sym<getgroupgid>($/) { make $<value>.ast; }
+    method term:sym<hex>($/) { make $<value>.ast; }
+    method term:sym<keys>($/) { make $<value>.ast; }
+    method term:sym<lc>($/) { make $<value>.ast; }
+    method term:sym<lcfirst>($/) { make $<value>.ast; }
+    method term:sym<length>($/) { make $<value>.ast; }
+    method term:sym<localtime>($/) { make $<value>.ast; }
+    method term:sym<log>($/) { make $<value>.ast; }
+    method term:sym<lock>($/) { make $<value>.ast; }
+    method term:sym<lstat>($/) { make $<value>.ast; }
+    method term:sym<ord>($/) { make $<value>.ast; }
+    method term:sym<oct>($/) { make $<value>.ast; }
+    method term:sym<prototype>($/) { make $<value>.ast; }
+    method term:sym<pop>($/) { make $<value>.ast; }
+    method term:sym<pos>($/) { make $<value>.ast; }
+    method term:sym<quotemeta>($/) { make $<value>.ast; }
+    method term:sym<reset>($/) { make $<value>.ast; }
+    method term:sym<rmdir>($/) { make $<value>.ast; }
+    method term:sym<readdir>($/) { make $<value>.ast; }
+    method term:sym<readline>($/) { make $<value>.ast; }
+    method term:sym<backtick>($/) { make $<value>.ast; }
+    method term:sym<rewinddir>($/) { make $<value>.ast; }
+    method term:sym<readlink>($/) { make $<value>.ast; }
+    method term:sym<ref>($/) { make $<value>.ast; }
+    method term:sym<chomp>($/) { make $<value>.ast; }
+    method term:sym<scalar>($/) { make $<value>.ast; }
+    method term:sym<sethostent>($/) { make $<value>.ast; }
+    method term:sym<setnetent>($/) { make $<value>.ast; }
+    method term:sym<setservent>($/) { make $<value>.ast; }
+    method term:sym<setprotoent>($/) { make $<value>.ast; }
+    method term:sym<shift>($/) { make $<value>.ast; }
+    method term:sym<sin>($/) { make $<value>.ast; }
+    method term:sym<sleep>($/) { make $<value>.ast; }
+    method term:sym<sqrt>($/) { make $<value>.ast; }
+    method term:sym<srand>($/) { make $<value>.ast; }
+    method term:sym<stat>($/) { make $<value>.ast; }
+    method term:sym<study>($/) { make $<value>.ast; }
+    method term:sym<tell>($/) { make $<value>.ast; }
+    method term:sym<telldir>($/) { make $<value>.ast; }
+    method term:sym<tied>($/) { make $<value>.ast; }
+    method term:sym<uc>($/) { make $<value>.ast; }
+    method term:sym<ucfirst>($/) { make $<value>.ast; }
+    method term:sym<untie>($/) { make $<value>.ast; }
+    method term:sym<values>($/) { make $<value>.ast; }
+    method term:sym<write>($/) { make $<value>.ast; }
+    method term:sym<local>($/) { make $<value>.ast; }
+    method term:sym<filetest>($/) { make $<value>.ast; }
 
     method circumfix:sym<( )>($/) {
         my $past := $<semilist>.ast;
@@ -4792,13 +4877,16 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
 
     method value:sym<number>($/) {
+        say("method value:sym<number>($/)");
         make $<number>.ast;
     }
     method value:sym<version>($/) {
+        say("method value:sym<version>($/)");
         make $<version>.ast;
     }
 
     method version($/) {
+        say("method version($/)");
         my $v := $*W.find_symbol(['Version']).new(~$<vstr>);
         $*W.add_object($v);
         make QAST::WVal.new( :value($v) );
@@ -4817,11 +4905,14 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
 
     method number:sym<numish>($/) {
+        say("method number:sym<numish>($/)");
         make $<numish>.ast;
     }
 
     method numish($/) {
+        say("method numish($/)");
         if $<integer> {
+            say("method numish($/) integer");
             make $*W.add_numeric_constant($/, 'Int', $<integer>.ast);
         }
         elsif $<dec_number> { make $<dec_number>.ast; }
@@ -5134,7 +5225,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
         $past<is_subst> := 1;
         $past
-}
+    }
 
     method quote:sym<quasi>($/) {
         my $ast_class := $*W.find_symbol(['AST']);
@@ -5759,7 +5850,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
 }
 
-class Perl6::QActions is HLL::Actions does STDActions {
+class Perl6::P5QActions is HLL::Actions does STDActions {
     method nibbler($/) {
         my @asts;
         my $lastlit := '';
@@ -5897,196 +5988,15 @@ class Perl6::QActions is HLL::Actions does STDActions {
     }
 }
 
-class Perl6::RegexActions is QRegex::P6Regex::Actions does STDActions {
-
-    method metachar:sym<:my>($/) {
-        my $past := $<statement>.ast;
-        make QAST::Regex.new( $past, :rxtype('qastnode'), :subtype('declarative') );
-    }
-
-    method metachar:sym<{ }>($/) {
-        make QAST::Regex.new( $<codeblock>.ast,
-                              :rxtype<qastnode>, :node($/) );
-    }
-    
-    method metachar:sym<qw>($/) {
-        my $qast := QAST::Regex.new( :rxtype<alt>, :node($/) );
-        my $nib  := $<nibble>.ast[0];
-        my @nibs := +@($nib) ?? @($nib) !! [$nib];
-        for @nibs {
-            unless $_.has_compile_time_value {
-                $/.CURSOR.panic("Quote words construct too complex to use in a regex");
-            }
-            $qast.push(%*RX<i>
-                ?? QAST::Regex.new( $_.compile_time_value, :rxtype<literal>, :subtype<ignorecase> )
-                !! QAST::Regex.new( $_.compile_time_value, :rxtype<literal> ));
-        }
-        make $qast;
-    }
-    
-    method metachar:sym<'>($/) { self.rxquote($/) }
-    method metachar:sym<">($/) { self.rxquote($/) }
-    method rxquote($/) {
-        my $quote := $<quote>.ast;
-        if $quote.has_compile_time_value {
-            my $qast := QAST::Regex.new( :rxtype<literal>, nqp::unbox_s($quote.compile_time_value) );
-            $qast.subtype('ignorecase') if %*RX<i>;
-            make $qast;
-        }
-        else {
-            make QAST::Regex.new( QAST::Node.new(
-                                        QAST::SVal.new( :value('INTERPOLATE') ),
-                                        $quote,
-                                        QAST::IVal.new( :value(%*RX<i> ?? 1 !! 0) ) ),
-                                :rxtype<subrule>, :subtype<method>, :node($/));
-        }
-    }
-    
-    method metachar:sym<rakvar>($/) {
-        make QAST::Regex.new( QAST::Node.new(
-                                    QAST::SVal.new( :value('INTERPOLATE') ),
-                                    $<var>.ast,
-                                    QAST::IVal.new( :value(%*RX<i> ?? 1 !! 0) ),
-                                    QAST::IVal.new( :value($*SEQ ?? 1 !! 0) ) ),
-                              :rxtype<subrule>, :subtype<method>, :node($/));
-    }
-
-    method assertion:sym<{ }>($/) {
-        make QAST::Regex.new( 
-                 QAST::Node.new(
-                    QAST::SVal.new( :value('INTERPOLATE') ),
-                    $<codeblock>.ast,
-                    QAST::IVal.new( :value(%*RX<i> ?? 1 !! 0) ),
-                    QAST::IVal.new( :value($*SEQ ?? 1 !! 0) ),
-                    QAST::IVal.new( :value(1) ) ),
-                 :rxtype<subrule>, :subtype<method>, :node($/));
-    }
-
-    method assertion:sym<?{ }>($/) {
-        make QAST::Regex.new( $<codeblock>.ast,
-                              :subtype<zerowidth>, :negate( $<zw> eq '!' ),
-                              :rxtype<qastnode>, :node($/) );
-    }
-
-    method assertion:sym<var>($/) {
-        make QAST::Regex.new( QAST::Node.new(
-                                    QAST::SVal.new( :value('INTERPOLATE') ),
-                                    $<var>.ast,
-                                    QAST::IVal.new( :value(%*RX<i> ?? 1 !! 0) ),
-                                    QAST::IVal.new( :value($*SEQ ?? 1 !! 0) ),
-                                    QAST::IVal.new( :value(1) ) ),
-                              :rxtype<subrule>, :subtype<method>, :node($/));
-    }
-    
-    method assertion:sym<name>($/) {
-        my @parts := $*W.disect_longname($<longname>).components();
-        my $name  := @parts.pop();
-        my $qast;
-        if $<assertion> {
-            if +@parts {
-                $/.CURSOR.panic("Can only alias to a short name (without '::')");
-            }
-            $qast := $<assertion>[0].ast;
-            self.subrule_alias($qast, $name);
-        }
-        elsif !@parts && $name eq 'sym' {
-            my str $fullrxname := %*RX<name>;
-            my int $loc := nqp::index($fullrxname, ':sym<');
-            $loc := nqp::index($fullrxname, ':sym«')
-                if $loc < 0;
-            my str $rxname := nqp::substr($fullrxname, $loc + 5, nqp::chars($fullrxname) - $loc - 6);
-            $qast := QAST::Regex.new(:name('sym'), :rxtype<subcapture>, :node($/),
-                QAST::Regex.new(:rxtype<literal>, $rxname, :node($/)));
-        }
-        else {
-            if +@parts {
-                my $gref := QAST::WVal.new( :value($*W.find_symbol(@parts)) );
-                $qast := QAST::Regex.new(:rxtype<subrule>, :subtype<capture>,
-                                         :node($/), QAST::Node.new(
-                                            QAST::SVal.new( :value('OTHERGRAMMAR') ), 
-                                            $gref, QAST::SVal.new( :value($name) )),
-                                         :name(~$<longname>) );
-            } elsif $*W.regex_in_scope('&' ~ $name) {
-                $qast := QAST::Regex.new(:rxtype<subrule>, :subtype<capture>,
-                                         :node($/), QAST::Node.new(
-                                            QAST::SVal.new( :value('INTERPOLATE') ),
-                                            QAST::Var.new( :name('&' ~ $name), :scope('lexical') ) ), 
-                                         :name($name) );
-            }
-            else {
-                $qast := QAST::Regex.new(:rxtype<subrule>, :subtype<capture>,
-                                         :node($/), QAST::Node.new(QAST::SVal.new( :value($name) )), 
-                                         :name($name) );
-            }
-            if $<arglist> {
-                for $<arglist>[0].ast.list { $qast[0].push($_) }
-            }
-            elsif $<nibbler> {
-                my $nibbled := $name eq 'after'
-                    ?? self.flip_ast($<nibbler>[0].ast)
-                    !! $<nibbler>[0].ast;
-                my $sub := %*LANG<Regex-actions>.qbuildsub($nibbled, :anon(1), :addself(1));
-                $qast[0].push($sub);
-            }
-        }
-        make $qast;
-    }
-    
-    method assertion:sym<~~>($/) {
-        if $<num> {
-            $/.CURSOR.panic('Sorry, ~~ regex assertion with a capture is not yet implemented');
-        }
-        elsif $<desigilname> {
-            $/.CURSOR.panic('Sorry, ~~ regex assertion with a capture is not yet implemented');
-        }
-        else {
-            make QAST::Regex.new( :rxtype<subrule>, :subtype<method>,
-                QAST::Node.new(QAST::SVal.new( :value('RECURSE') )), :node($/) );
-        }
-    }
-    
-    method codeblock($/) {
-        my $blockref := $<block>.ast;
-        my $past :=
-            QAST::Stmts.new(
-                QAST::Op.new(
-                    :op('p6store'),
-                    QAST::Var.new( :name('$/'), :scope<lexical> ),
-                    QAST::Op.new(
-                        QAST::Var.new( :name('$¢'), :scope<lexical> ),
-                        :name('MATCH'),
-                        :op('callmethod')
-                    )
-                ),
-                QAST::Op.new(:op<call>, $blockref)
-            );
-        make $past;
-    }
-
-    method arglist($/) {
-        my $arglist := $<arglist>.ast;
-        make $arglist;
-    }
-
-    method create_regex_code_object($block) {
-        $*W.create_code_object($block, 'Regex',
-            $*W.create_signature(nqp::hash('parameters', [])))
-    }
-
-    method store_regex_nfa($code_obj, $block, $nfa) {
-        $code_obj.SET_NFA($nfa.save);
-    }
-}
-
-class Perl6::P5RegexActions is QRegex::P5Regex::Actions does STDActions {
-    method create_regex_code_object($block) {
-        $*W.create_code_object($block, 'Regex',
-            $*W.create_signature(nqp::hash('parameters', [])))
-    }
-
-    method store_regex_nfa($code_obj, $block, $nfa) {
-        $code_obj.SET_NFA($nfa.save);
-    }
-}
+#class Perl6::P5RegexActions is QRegex::P5Regex::Actions does STDActions {
+#    method create_regex_code_object($block) {
+#        $*W.create_code_object($block, 'Regex',
+#            $*W.create_signature(nqp::hash('parameters', [])))
+#    }
+#
+#    method store_regex_nfa($code_obj, $block, $nfa) {
+#        $code_obj.SET_NFA($nfa.save);
+#    }
+#}
 
 # vim: ft=perl6

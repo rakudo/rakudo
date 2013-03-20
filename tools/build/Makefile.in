@@ -64,6 +64,10 @@ PERL6_CF      = src/gen/perl6-constantfolder.pir
 PERL6_CF_PBC  = blib/Perl6/ConstantFolder.pbc
 PERL6_W       = src/gen/perl6-symboltable.pir
 PERL6_W_PBC   = blib/Perl6/World.pbc
+PERL6_P5G     = src/gen/perl6-p5grammar.pir
+PERL6_P5G_PBC = blib/Perl6/P5Grammar.pbc
+PERL6_P5A     = src/gen/perl6-p5actions.pir
+PERL6_P5A_PBC = blib/Perl6/P5Actions.pbc
 PERL6_G       = src/gen/perl6-grammar.pir
 PERL6_G_PBC   = blib/Perl6/Grammar.pbc
 PERL6_OPS     = src/gen/perl6-ops.pir
@@ -293,6 +297,8 @@ install: all
 	$(CP) $(PERL6_ML_PBC)         $(DESTDIR)$(NQP_LANG_DIR)/lib/Perl6/ModuleLoader.pbc
 	$(CP) $(PERL6_CF_PBC)         $(DESTDIR)$(NQP_LANG_DIR)/lib/Perl6/ConstantFolder.pbc
 	$(CP) $(PERL6_W_PBC)          $(DESTDIR)$(NQP_LANG_DIR)/lib/Perl6/World.pbc
+	$(CP) $(PERL6_P5G_PBC)        $(DESTDIR)$(NQP_LANG_DIR)/lib/Perl6/P5Grammar.pbc
+	$(CP) $(PERL6_P5A_PBC)        $(DESTDIR)$(NQP_LANG_DIR)/lib/Perl6/P5Actions.pbc
 	$(CP) $(PERL6_G_PBC)          $(DESTDIR)$(NQP_LANG_DIR)/lib/Perl6/Grammar.pbc
 	$(CP) $(PERL6_OPS_PBC)        $(DESTDIR)$(NQP_LANG_DIR)/lib/Perl6/Ops.pbc
 	$(CP) $(PERL6_A_PBC)          $(DESTDIR)$(NQP_LANG_DIR)/lib/Perl6/Actions.pbc
@@ -334,7 +340,7 @@ $(PERL6_EXE): $(PERL6_PBC) $(PARROT_DLL_COPY)
 @make_dllcopy@
 
 # the complete compiler
-$(PERL6_PBC): $(PERL6_G_PBC) $(PERL6_A_PBC) $(PERL6_C_PBC) $(PERL6_P_PBC) src/main.nqp
+$(PERL6_PBC): $(PERL6_P5G_PBC) $(PERL6_P5A_PBC) $(PERL6_G_PBC) $(PERL6_A_PBC) $(PERL6_C_PBC) $(PERL6_P_PBC) src/main.nqp
 	$(PERL) tools/build/gen-version.pl >src/gen/main-version.nqp
 	$(NQP_EXE) --vmlibs=perl6_group,perl6_ops --target=pir --output=src/gen/perl6.pir \
 	    --combine src/main.nqp src/gen/main-version.nqp
@@ -354,8 +360,18 @@ $(PERL6_W_PBC): $(NQP_EXE) $(PERL6_ML_PBC) src/Perl6/World.pm
 	$(NQP_EXE) --vmlibs=perl6_group,perl6_ops --target=pir --output=$(PERL6_W) --encoding=utf8 \
 	    src/Perl6/World.pm
 	$(PARROT) $(PARROT_ARGS) -o $(PERL6_W_PBC) $(PERL6_W)
-    
-$(PERL6_G_PBC): $(NQP_EXE) $(PERL6_W_PBC) $(PERL6_A_PBC) src/Perl6/Grammar.pm $(PERL6_P_PBC)
+
+$(PERL6_P5G_PBC): $(NQP_EXE) $(PERL6_W_PBC) $(PERL6_P5A_PBC) src/Perl6/P5Grammar.pm $(PERL6_P_PBC)
+	$(NQP_EXE) --target=pir --output=$(PERL6_P5G) --encoding=utf8 \
+	    src/Perl6/P5Grammar.pm
+	$(PARROT) $(PARROT_ARGS) -o $(PERL6_P5G_PBC) $(PERL6_P5G)
+
+$(PERL6_P5A_PBC): $(NQP_EXE) $(DYNEXT_DYNPMC) $(DYNEXT_DYNOPS) src/Perl6/P5Actions.pm $(PERL6_P_PBC) $(PERL6_CF_PBC) $(PERL6_OPS_PBC)
+	$(NQP_EXE) --vmlibs=perl6_group,perl6_ops  --target=pir --output=$(PERL6_P5A) --encoding=utf8 \
+	    src/Perl6/P5Actions.pm
+	$(PARROT) $(PARROT_ARGS) -o $(PERL6_P5A_PBC) $(PERL6_P5A)
+
+$(PERL6_G_PBC): $(NQP_EXE) $(PERL6_W_PBC) $(PERL6_A_PBC) $(PERL6_P5G_PBC) src/Perl6/Grammar.pm $(PERL6_P_PBC)
 	$(NQP_EXE) --target=pir --output=$(PERL6_G) --encoding=utf8 \
 	    src/Perl6/Grammar.pm
 	$(PARROT) $(PARROT_ARGS) -o $(PERL6_G_PBC) $(PERL6_G)

@@ -4,6 +4,7 @@ use NQPP5QRegex;
 use Perl6::Actions;
 use Perl6::World;
 use Perl6::Pod;
+use Perl6::P5Grammar;
 
 role startstop[$start, $stop] {
     token starter { $start }
@@ -311,8 +312,12 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         %*LANG<P5Regex-actions> := Perl6::P5RegexActions;
         %*LANG<Q>               := Perl6::QGrammar;
         %*LANG<Q-actions>       := Perl6::QActions;
+        %*LANG<P5Q>             := Perl6::P5QGrammar;
+        %*LANG<P5Q-actions>     := Perl6::P5QActions;
         %*LANG<MAIN>            := Perl6::Grammar;
         %*LANG<MAIN-actions>    := Perl6::Actions;
+        %*LANG<Perl5>           := Perl6::P5Grammar;
+        %*LANG<Perl5-actions>   := Perl6::P5Actions;
         
         # Package declarator to meta-package mapping. Starts pretty much empty;
         # we get the mappings either imported or supplied by the setting. One
@@ -1156,8 +1161,15 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         $<doc>=[ 'DOC' \h+ ]?
         <sym> <.ws>
         [
-        | <version>
-        | <module_name>
+        || 'v5' [
+                :my $*ACTIONS := %*LANG<Perl5-actions>;
+                { say("P6 use v5"); nqp::rebless($/.CURSOR, %*LANG<Perl5>); }
+                <.ws> ';'
+                #[ <statementlist> || <.panic: "Bad P5 code"> ]
+                [ <statementlist=.LANG('Perl5','statementlist')> || <.panic: "Bad P5 code"> ]
+            ]
+        || <version>
+        || <module_name>
             {
                 $longname := $<module_name><longname>;
                 
@@ -3576,6 +3588,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
         # May also need to add to the actions.
         if $category eq 'circumfix' {
+            say("add_categorical($category, $opname, $canname, $subname, $declarand) circumfix");
             my role CircumfixAction[$meth, $subname] {
                 method ::($meth)($/) {
                     make QAST::Op.new(
@@ -3588,6 +3601,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                 CircumfixAction.HOW.curry(CircumfixAction, $canname, $subname));
         }
         elsif $is_term {
+            say("add_categorical($category, $opname, $canname, $subname, $declarand) is_term");
             my role TermAction[$meth, $subname] {
                 method ::($meth)($/) {
                     make QAST::Op.new(

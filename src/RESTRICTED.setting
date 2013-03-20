@@ -13,8 +13,9 @@ sub rename(|) { restricted('rename')  }
 sub copy(|)   { restricted('copy')    }
 
 my class RESTRICTED is Mu { 
-    method new(|)  { restricted(self.^name) }
-    method gist(|) { restricted(self.^name) }
+    method FALLBACK(|) { restricted(self.^name) }  # NYI, but see S12
+    method new(|)      { restricted(self.^name) }
+    method gist(|)     { restricted(self.^name) }
 }
 
 my class IO is RESTRICTED { }

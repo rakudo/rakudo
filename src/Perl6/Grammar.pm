@@ -312,12 +312,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         %*LANG<P5Regex-actions> := Perl6::P5RegexActions;
         %*LANG<Q>               := Perl6::QGrammar;
         %*LANG<Q-actions>       := Perl6::QActions;
-        %*LANG<P5Q>             := Perl6::P5QGrammar;
-        %*LANG<P5Q-actions>     := Perl6::P5QActions;
         %*LANG<MAIN>            := Perl6::Grammar;
         %*LANG<MAIN-actions>    := Perl6::Actions;
-        %*LANG<Perl5>           := Perl6::P5Grammar;
-        %*LANG<Perl5-actions>   := Perl6::P5Actions;
         
         # Package declarator to meta-package mapping. Starts pretty much empty;
         # we get the mappings either imported or supplied by the setting. One
@@ -1162,11 +1158,18 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <sym> <.ws>
         [
         || 'v5' [
-                :my $*ACTIONS := %*LANG<Perl5-actions>;
-                { say("P6 use v5"); nqp::rebless($/.CURSOR, %*LANG<Perl5>); }
+                {
+                    say("P6 use v5");
+                    %*LANG<MAIN>         := Perl6::P5Grammar;
+                    %*LANG<MAIN-actions> := Perl6::P5Actions;
+                    %*LANG<Q>            := Perl6::P5QGrammar;
+                    %*LANG<Q-actions>    := Perl6::P5QActions;
+                    $*ACTIONS            := %*LANG<MAIN-actions>;
+                    nqp::rebless($/.CURSOR, %*LANG<MAIN>);
+                }
                 <.ws> ';'
-                #[ <statementlist> || <.panic: "Bad P5 code"> ]
-                [ <statementlist=.LANG('Perl5','statementlist')> || <.panic: "Bad P5 code"> ]
+                [ <statementlist> || <.panic: "Bad P5 code"> ]
+                #[ <statementlist=.LANG('MAIN','statementlist')> || <.panic: "Bad P5 code"> ]
             ]
         || <version>
         || <module_name>

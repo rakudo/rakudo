@@ -1242,15 +1242,13 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             if +@positional_imports {
                 if nqp::existskey($module, '&EXPORT') {
                     my $result := $module<&EXPORT>(|@positional_imports);
-                    say($result);
-                    if $result {
-                        say("there was a result");
-                        my $enummapclass := $*W.find_symbol(['EnumMap']);
-                        say("enummap was found");
-                        my $storage := nqp::getattr($result, $enummapclass, '$!storage');
-                        say("storage gotten");
+                    my $EnumMap := $*W.find_symbol(['EnumMap']);
+                    if nqp::istype($result, $EnumMap) {
+                        my $storage := nqp::getattr($result, $EnumMap, '$!storage');
                         $*W.import($/, $storage, $package_source_name);
-                        say("import done");
+                    }
+                    else {
+                        nqp::die("&EXPORT sub did not return an EnumMap");
                     }
                 }
                 else {

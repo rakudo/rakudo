@@ -951,21 +951,28 @@ grammar Perl6::P5Grammar is HLL::Grammar does STD {
     }
 
     # Look for an expression followed by a required lambda.
-    token xblock {
+    #token xblock {
+    #    :my $*GOAL := '{';
+    #    :dba('block expression') '(' ~ ')' <EXPR>
+    #    <.ws>
+    #    <sblock>
+    #}
+    rule xblock($*IMPLICIT = 0) {
         :my $*GOAL := '{';
-        :dba('block expression') '(' ~ ')' <EXPR>
-        <.ws>
-        <sblock>
+        :dba('block expression')
+        '(' ~ ')' <EXPR>
+        <.ws> <sblock($*IMPLICIT)>
     }
 
-    token sblock {
-        :my $*CURLEX;
+    token sblock($*IMPLICIT = 0) {
+        :my $*DECLARAND := $*W.stub_code_object('Block');
+#        :my $*CURLEX;
         :dba('statement block')
         [ <?before '{' > || <.panic: "Missing block"> ]
         <.newlex>
         <blockoid>
-        { @*MEMOS[self.pos]<endstmt> := 2; }
-        <.ws>
+        #{ @*MEMOS[self.pos]<endstmt> := 2; }
+        #<.ws>
     }
 
     token block {
@@ -987,10 +994,12 @@ grammar Perl6::P5Grammar is HLL::Grammar does STD {
         :my %*HANDLERS;
         <.finishlex>
         [
+        | '{YOU_ARE_HERE}' <you_are_here>
         | :dba('block') '{' ~ '}' <statementlist>
-        | <?terminator> <.panic: 'Missing block'>
+        | <?terminator> { $*W.throw($/, 'X::Syntax::Missing', what =>'block') }
         | <?> <.panic: "Malformed block">
         ]
+        { $*CURPAD := $*W.pop_lexpad() }
     }
 
     # statement semantics
@@ -1157,16 +1166,34 @@ grammar Perl6::P5Grammar is HLL::Grammar does STD {
     }
 
 
+    #rule statement_control:sym<if> {
+    #    $<sym>=['if'|'unless']
+    #    <xblock>
+    #    [
+    #        [ <!before 'else'\s*'if'> || <.panic: "Please use 'elsif'"> ]
+    #        'elsif'<?spacey> <elsif=xblock>
+    #    ]*
+    #    [
+    #        'else'<?spacey> <else=sblock>
+    #    ]?
+    #}
     rule statement_control:sym<if> {
-        $<sym>=['if'|'unless']
+        <sym>
         <xblock>
         [
-            [ <!before 'else'\s*'if'> || <.panic: "Please use 'elsif'"> ]
-            'elsif'<?spacey> <elsif=xblock>
+            [
+            | 'else'\h*'if' <.typed_panic: 'X::Syntax::Malformed::Elsif'>
+            | 'elif' { $/.CURSOR.typed_panic('X::Syntax::Malformed::Elsif', what => "elif") }
+            | 'elsif'\s <xblock>
+            ]
         ]*
-        [
-            'else'<?spacey> <else=sblock>
-        ]?
+        [ 'else'\s <else=.pblock> ]?
+    }
+
+    rule statement_control:sym<unless> {
+        <sym>
+        <xblock>
+        [ <!before 'else'> || <.typed_panic: 'X::Syntax::UnlessElse'> ]
     }
 
     rule statement_control:sym<while> {
@@ -1772,8 +1799,20 @@ grammar Perl6::P5Grammar is HLL::Grammar does STD {
         ]
     }
 
+    #token morename {
+    #    '::' <identifier>?
+    #}
     token morename {
-        '::' <identifier>?
+        :my $*QSIGIL := '';
+        '::'
+        [
+        ||  <?before '(' | <alpha> >
+            [
+            | <identifier>
+            | :dba('indirect name') '(' ~ ')' <EXPR>
+            ]
+        || <?before '::'> <.typed_panic: "X::Syntax::Name::Null">
+        ]?
     }
 
     token subname {

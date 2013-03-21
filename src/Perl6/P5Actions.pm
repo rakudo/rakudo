@@ -684,10 +684,10 @@ class Perl6::P5Actions is HLL::Actions does STDActions {
     }
 
     method xblock($/) {
-        make QAST::Op.new( $<EXPR>.ast, $<pblock>.ast, :op('if'), :node($/) );
+        make QAST::Op.new( $<EXPR>.ast, $<sblock>.ast, :op('if'), :node($/) );
     }
 
-    method pblock($/) {
+    method sblock($/) {
         if $<blockoid><you_are_here> {
             make $<blockoid>.ast;
         }
@@ -864,7 +864,7 @@ class Perl6::P5Actions is HLL::Actions does STDActions {
             $past.op($op);
         }
         else {
-            $past := QAST::Op.new( $<EXPR>.ast, pblock_immediate( $<pblock>.ast ),
+            $past := QAST::Op.new( $<EXPR>.ast, pblock_immediate( $<sblock>.ast ),
                                    :op($op), :node($/) );
         }
         make tweak_loop($past);
@@ -3408,7 +3408,7 @@ class Perl6::P5Actions is HLL::Actions does STDActions {
         %arg{~$<identifier>} := ($*W.add_constant('Int', 'int', 1)).compile_time_value;
         make -> $declarand {
             $*W.apply_trait($/, '&trait_mod:<will>', $declarand,
-                ($<pblock>.ast)<code_object>, |%arg);
+                ($<sblock>.ast)<code_object>, |%arg);
         };
     }
 
@@ -4082,7 +4082,7 @@ class Perl6::P5Actions is HLL::Actions does STDActions {
 
     method circumfix:sym<{ }>($/) {
         # If it was {YOU_ARE_HERE}, nothing to do here.
-        my $past := $<pblock>.ast;
+        my $past := $<sblock>.ast;
         if ~$/ eq '{YOU_ARE_HERE}' {
             make $past;
             return 1;
@@ -4093,8 +4093,8 @@ class Perl6::P5Actions is HLL::Actions does STDActions {
         # Note that if it declares any symbols it is also not one.
         my $Pair := $*W.find_symbol(['Pair']);
         my int $is_hash := 0;
-        my $stmts := +$<pblock><blockoid><statementlist><statement>;
-        my $bast  := $<pblock><blockoid>.ast;
+        my $stmts := +$<sblock><blockoid><statementlist><statement>;
+        my $bast  := $<sblock><blockoid>.ast;
         if $bast.symbol('$_')<used> || $bast<also_uses> && $bast<also_uses><$_> {
             # Uses $_, so not a hash.
         }

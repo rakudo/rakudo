@@ -1219,7 +1219,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                     if nqp::istype($tag, $Pair) {
                         $tag := nqp::unbox_s($tag.key);
                         if nqp::existskey($EXPORT, $tag) {
-                            $*W.import($/, $EXPORT{$tag}, $package_source_name);
+                            $*W.import($/, $EXPORT{$tag}.WHO, $package_source_name);
                         }
                         else {
                             nqp::die("Error while importing from '$package_source_name': no such tag '$tag'");
@@ -1236,12 +1236,22 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             }
             for @to_import -> $tag {
                 if nqp::existskey($EXPORT, $tag) {
-                    $*W.import($/, $EXPORT{$tag}, $package_source_name);
+                    $*W.import($/, $EXPORT{$tag}.WHO, $package_source_name);
                 }
             }
             if +@positional_imports {
                 if nqp::existskey($module, '&EXPORT') {
-                    $module<&EXPORT>(|@positional_imports);
+                    my $result := $module<&EXPORT>(|@positional_imports);
+                    say($result);
+                    if $result {
+                        say("there was a result");
+                        my $enummapclass := $*W.find_symbol(['EnumMap']);
+                        say("enummap was found");
+                        my $storage := nqp::getattr($result, $enummapclass, '$!storage');
+                        say("storage gotten");
+                        $*W.import($/, $storage, $package_source_name);
+                        say("import done");
+                    }
                 }
                 else {
                     nqp::die("Error while importing from '$package_source_name': no EXPORT sub, but you provided positional argument in the 'use' statement");

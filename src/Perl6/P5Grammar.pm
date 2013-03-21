@@ -1184,10 +1184,10 @@ grammar Perl6::P5Grammar is HLL::Grammar does STD {
             [
             | 'else'\h*'if' <.typed_panic: 'X::Syntax::Malformed::Elsif'>
             | 'elif' { $/.CURSOR.typed_panic('X::Syntax::Malformed::Elsif', what => "elif") }
-            | 'elsif'\s <xblock>
+            | 'elsif' <xblock>
             ]
         ]*
-        [ 'else'\s <else=.sblock> ]?
+        [ 'else' <else=.sblock> ]?
     }
 
     rule statement_control:sym<unless> {

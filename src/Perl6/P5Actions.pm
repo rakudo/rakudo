@@ -942,10 +942,10 @@ class Perl6::P5Actions is HLL::Actions does STDActions {
     }
 
     method statement_control:sym<use>($/) {
-        say("method P5 statement_control:sym<use>($/)");
+        #say("method P5 statement_control:sym<use>($/)");
         my $past := QAST::Var.new( :name('Nil'), :scope('lexical') );
         if $<version> {
-            say("method P5 statement_control:sym<use>($/) version $<version>");
+            #say("method P5 statement_control:sym<use>($/) version $<version>");
             # TODO: replace this by code that doesn't always die with
             # a useless error message
 #            my $i := -1;
@@ -960,7 +960,7 @@ class Perl6::P5Actions is HLL::Actions does STDActions {
 #            }
         }
         elsif $<module_name> {
-            say("method P5 statement_control:sym<use>($/) module_name $<module_name>");
+            #say("method P5 statement_control:sym<use>($/) module_name $<module_name>");
             if ~$<module_name> eq 'fatal' {
                 my $*SCOPE := 'my';
                 declare_variable($/, QAST::Stmts.new(), '$', '*', 'FATAL', []);
@@ -978,7 +978,7 @@ class Perl6::P5Actions is HLL::Actions does STDActions {
             }
         }
         elsif $<statementlist> {
-            say("method P5 statement_control:sym<use>($/) statementlist $<statementlist>");
+            #say("method P5 statement_control:sym<use>($/) statementlist $<statementlist>");
             $past := $<statementlist>.ast;
         }
         make $past;

@@ -947,7 +947,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
 #                    $/.CURSOR.panic("Perl $<version> required--this is only v$mpv")
 #                }
 #            }
-        } elsif $<module_name> {
+        }
+        elsif $<module_name> {
             if ~$<module_name> eq 'fatal' {
                 my $*SCOPE := 'my';
                 declare_variable($/, QAST::Stmts.new(), '$', '*', 'FATAL', []);
@@ -963,7 +964,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
             elsif ~$<module_name> eq 'Devel::Trace' {
                 $STATEMENT_PRINT := 1;
             }
-        } elsif $<statementlist> { make $<statementlist>.ast; }
+        }
+        elsif $<statementlist> {
+            $past := $<statementlist>.ast;
+        }
         make $past;
     }
 

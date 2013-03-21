@@ -982,7 +982,7 @@ grammar Perl6::P5Grammar is HLL::Grammar does STD {
 
     token blockoid {
         # encapsulate braided languages
-        :my %*LANG;
+        #:my %*LANG;
         :my $*CURPAD;
         :my %*HANDLERS;
         <.finishlex>
@@ -1115,7 +1115,9 @@ grammar Perl6::P5Grammar is HLL::Grammar does STD {
 
     rule statement_control:sym<use> {
         :my $longname;
-        :my $*SCOPE := 'use';
+        :my $*IN_DECL := 'use';
+        :my $*HAS_SELF := '';
+        :my $*SCOPE   := 'use';
         <sym>
         [
         ||  'v6' [
@@ -2549,7 +2551,7 @@ grammar Perl6::P5Grammar is HLL::Grammar does STD {
 
 
     ## additive
-    token infix:sym<.> ()
+    token infix:sym<.>
         { <sym> <O('%additive')> }
 
     token infix:sym<+>

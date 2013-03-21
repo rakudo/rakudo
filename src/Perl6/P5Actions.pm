@@ -5938,7 +5938,8 @@ class Perl6::P5QActions is HLL::Actions does STDActions {
             if $node<ww_atom> {
                 $result.push($node);
             }
-            elsif nqp::istype($node, QAST::Op) && $node.name eq '&infix:<~>' {
+            elsif nqp::istype($node, QAST::Op) && $node.name eq '&infix:<.>' {
+                $node.name('&infix:<~>');
                 walk($node[0]);
                 walk($node[1]);
             }

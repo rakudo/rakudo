@@ -2310,13 +2310,20 @@ grammar Perl6::P5Grammar is HLL::Grammar does STD {
         <.ws>
     }
 
-    token infixish ($in_meta = $*IN_META) {
+    #token infixish ($in_meta = nqp::getlexdyn('$*IN_META')) {
+    #    :my $*IN_META := $in_meta;
+    #    <!stdstopper>
+    #    <!infixstopper>
+    #    :dba('infix or meta-infix')
+    #    <infix>
+    #    { $<O> := $<infix><O>; $<sym> := $<infix><sym>; }
+    #}
+    token infixish($in_meta = nqp::getlexdyn('$*IN_META')) {
         :my $*IN_META := $in_meta;
         <!stdstopper>
         <!infixstopper>
         :dba('infix or meta-infix')
-        <infix>
-        { $<O> := $<infix><O>; $<sym> := $<infix><sym>; }
+        <OPER=infix> <![=]>
     }
 
     token dotty:sym«->» {
@@ -2551,8 +2558,11 @@ grammar Perl6::P5Grammar is HLL::Grammar does STD {
 
 
     ## additive
-    token infix:sym<.>
-        { <sym> <O('%additive')> }
+#    token infix:sym<.>
+        #{ <sym> <O('%additive')> }
+#        { <sym> <O('%concatenation')> }
+    token infix:sym<.>    { <sym>  <O('%concatenation , :op<concat>')> }
+
 
     token infix:sym<+>
         { <sym> <O('%additive')> }

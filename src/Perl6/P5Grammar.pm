@@ -1187,7 +1187,7 @@ grammar Perl6::P5Grammar is HLL::Grammar does STD {
             | 'elsif'\s <xblock>
             ]
         ]*
-        [ 'else'\s <else=.pblock> ]?
+        [ 'else'\s <else=.sblock> ]?
     }
 
     rule statement_control:sym<unless> {

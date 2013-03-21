@@ -225,7 +225,7 @@ Go back to the Rakudo repository, and update the NQP dependency:
 Enter the new version into the F<VERSION> file, and commit the changes:
 
   $ echo YYYY.MM > VERSION
-  $ git commit -m '[release] bump VERSION' VERSION
+  $ git commit -m '[release] bump VERSION' tools/build/NQP_REVISION
 
 =item 10.
 

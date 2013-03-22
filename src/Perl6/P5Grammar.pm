@@ -541,6 +541,10 @@ grammar Perl6::P5Grammar is HLL::Grammar does STD {
     # Lexer routines #
     ##################
 
+    token end_keyword {
+        <!before <[ \( \\ ' \- ]> || \h* '=>'> »
+    }
+
     token ENDSTMT {
         [
         | \h* $$ <.ws> <?MARKER('endstmt')>
@@ -1530,7 +1534,7 @@ grammar Perl6::P5Grammar is HLL::Grammar does STD {
 #        || <.panic: "Malformed $*SCOPE">
 #    }
     token scoped($*SCOPE) {
-        #<.end_keyword>
+        <.end_keyword>
         :dba('scoped declarator')
         [
 #        :my $*DOC := $*DECLARATOR_DOCS;
@@ -1551,8 +1555,8 @@ grammar Perl6::P5Grammar is HLL::Grammar does STD {
 #          <DECL=multi_declarator>
 #        | <DECL=multi_declarator>
         ] <.ws>
-        || <.ws><typo_typename> <!>
-        || <.malformed($*SCOPE)>
+        #|| <.ws><typo_typename> <!>
+        #|| <.malformed($*SCOPE)>
         ]
     }
 
@@ -1561,10 +1565,15 @@ grammar Perl6::P5Grammar is HLL::Grammar does STD {
     token scope_declarator:sym<our>       { <sym> <scoped('our')> }
     token scope_declarator:sym<state>     { <sym> <scoped('state')> }
 
-    rule package_declarator:sym<package> {
+    #rule package_declarator:sym<package> {
+    #    :my $*OUTERPACKAGE := $*PACKAGE;
+    #    :my $*PKGDECL := 'package';
+    #    <sym> <package_def>
+    #}
+    token package_declarator:sym<package> {
         :my $*OUTERPACKAGE := $*PACKAGE;
         :my $*PKGDECL := 'package';
-        <sym> <package_def>
+        <sym> <.end_keyword> <package_def>
     }
 
     rule package_declarator:sym<require> {   # here because of declarational aspects
@@ -1635,7 +1644,7 @@ grammar Perl6::P5Grammar is HLL::Grammar does STD {
         :my $*CURPAD;
         :my $*DOC := $*DECLARATOR_DOCS;
         :my $*DOCEE;
-        <.attach_docs>
+#        <.attach_docs>
         
         # Meta-object will live in here; also set default REPR (a trait
         # may override this, e.g. is repr('...')).

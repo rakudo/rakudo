@@ -950,6 +950,145 @@ grammar Perl6::P5Grammar is HLL::Grammar does STD {
         self;        
     }
 
+    method add_variable($name) {
+        my $categorical := $name ~~ /^'&'((\w+)':<'\s*(\S+?)\s*'>')$/;
+        if $categorical {
+            self.add_categorical(~$categorical[0][0], ~$categorical[0][1], ~$categorical[0], $name);
+        }
+    }
+
+    # Called when we add a new choice to an existing syntactic category, for
+    # example new infix operators add to the infix category. Augments the
+    # grammar as needed.
+    method add_categorical($category, $opname, $canname, $subname, $declarand?) {
+        my $self := self;
+        
+        # Ensure it's not a null name.
+        if $opname eq '' {
+            self.typed_panic('X::Syntax::Extension::Null');
+        }
+        
+        # If we already have the required operator in the grammar, just return.
+        if nqp::can(self, $canname) {
+            return 1;
+        }
+
+        # Work out what default precedence we want, or if it's more special than
+        # just an operator.
+        my $prec;
+        my $is_oper;
+        my $is_term := 0;
+        if $category eq 'infix' {
+            $prec := '%additive';
+            $is_oper := 1;
+        }
+        elsif $category eq 'prefix' {
+            $prec := '%symbolic_unary';
+            $is_oper := 1;
+        }
+        elsif $category eq 'postfix' {
+            $prec := '%autoincrement';
+            $is_oper := 1;
+        }
+        elsif $category eq 'circumfix' {
+            $is_oper := 0;
+        }
+        elsif $category eq 'trait_mod' {
+            return 0;
+        }
+        elsif $category eq 'term' {
+            $is_term := 1;
+        }
+        elsif $category eq 'METAOP_TEST_ASSIGN' {
+            return 0;
+        }
+        else {
+            self.typed_panic('X::Syntax::Extension::Category', :$category);
+        }
+
+        if $is_term {
+            my role Term[$meth_name, $op] {
+                token ::($meth_name) { $<sym>=[$op] }
+            }
+            self.HOW.mixin(self, Term.HOW.curry(Term, $canname, $opname));
+        }
+        # Mix an appropraite role into the grammar for parsing the new op.
+        elsif $is_oper {
+            my role Oper[$meth_name, $op, $precedence, $declarand] {
+                token ::($meth_name) { $<sym>=[$op] <O=.genO($precedence, $declarand)> }
+            }
+            self.HOW.mixin(self, Oper.HOW.curry(Oper, $canname, $opname, $prec, $declarand));
+        }
+        else {
+            # Find opener and closer and parse an EXPR between them.
+            # XXX One day semilist would be nice, but right now that
+            # runs us into fun with terminators.
+            my @parts := nqp::split(' ', $opname);
+            if +@parts != 2 {
+                nqp::die("Unable to find starter and stopper from '$opname'");
+            }
+            my role Circumfix[$meth_name, $starter, $stopper] {
+                token ::($meth_name) {
+                    :my $*GOAL := $stopper;
+                    :my $stub := %*LANG<MAIN> := nqp::getlex('$¢').unbalanced($stopper);
+                    $starter ~ $stopper <semilist>
+                }
+            }
+            self.HOW.mixin(self, Circumfix.HOW.curry(Circumfix, $canname, @parts[0], @parts[1]));
+        }
+
+        # This also becomes the current MAIN. Also place it in %?LANG.
+        %*LANG<MAIN> := self.WHAT;
+        $*W.install_lexical_symbol($*W.cur_lexpad(), '%?LANG', $*W.p6ize_recursive(%*LANG));
+        
+        # Declarand should get precedence traits.
+        if $is_oper && nqp::isconcrete($declarand) {
+            my $base_prec := self.O($prec).MATCH<prec>;
+            $*W.apply_trait(self.MATCH, '&trait_mod:<is>', $declarand,
+                :prec(nqp::hash('prec', $base_prec)));
+        }
+
+        # May also need to add to the actions.
+        if $category eq 'circumfix' {
+            say("add_categorical($category, $opname, $canname, $subname, $declarand) circumfix");
+            my role CircumfixAction[$meth, $subname] {
+                method ::($meth)($/) {
+                    make QAST::Op.new(
+                        :op('call'), :name('&' ~ $subname),
+                        $<semilist>.ast
+                    );
+                }
+            };
+            %*LANG<MAIN-actions> := $*ACTIONS.HOW.mixin($*ACTIONS,
+                CircumfixAction.HOW.curry(CircumfixAction, $canname, $subname));
+        }
+        elsif $is_term {
+            say("add_categorical($category, $opname, $canname, $subname, $declarand) is_term");
+            my role TermAction[$meth, $subname] {
+                method ::($meth)($/) {
+                    make QAST::Op.new(
+                        :op('call'), :name('&' ~ $subname),
+                    );
+                }
+            };
+            %*LANG<MAIN-actions> := $*ACTIONS.HOW.mixin($*ACTIONS,
+                TermAction.HOW.curry(TermAction, $canname, $subname));
+        }
+
+        return 1;
+    }
+
+    method genO($default, $declarand) {
+        my $desc := $default;
+        if nqp::can($declarand, 'prec') {
+            my %extras := $declarand.prec.FLATTENABLE_HASH;
+            for %extras {
+                $desc := "$desc, :" ~ $_.key ~ "<" ~ $_.value ~ ">";
+            }
+        }
+        self.O($desc)
+    }
+
     # Look for an expression followed by a required lambda.
     #token xblock {
     #    :my $*GOAL := '{';
@@ -1129,6 +1268,8 @@ grammar Perl6::P5Grammar is HLL::Grammar does STD {
         :my $*SCOPE   := 'use';
         <sym>
         [
+        ||  'strict'   # noop
+        ||  'warnings' # noop
         ||  'v6' [
                 {
                     say("P5 use v6");
@@ -1282,39 +1423,110 @@ grammar Perl6::P5Grammar is HLL::Grammar does STD {
     # Declarators #
     ###############
 
+#    token variable_declarator {
+#        :my $*IN_DECL := 1;
+#        :my $*DECLARAND;
+#        <variable>
+#        { $*IN_DECL := 0; self.add_variable(~$<variable>) }
+#        <.ws>
+#
+#        <trait>*
+#    }
     token variable_declarator {
-        :my $*IN_DECL := 1;
-        :my $*DECLARAND;
+        :my $*IN_DECL := 'variable';
+        :my $var;
         <variable>
-        { $*IN_DECL := 0; self.add_variable(~$<variable>) }
+        {
+            $var := $<variable>.Str;
+            $/.CURSOR.add_variable($var);
+            $*IN_DECL := '';
+        }
+        [
+            <.unsp>?
+            $<shape>=[
+            | '(' ~ ')' <signature>
+                {
+                    my $sigil := nqp::substr($var, 0, 1);
+                    if $sigil eq '&' {
+                        self.typed_sorry('X::Syntax::Reserved',
+                            reserved => '() shape syntax in routine declarations',
+                            instead => ' (maybe use :() to declare a longname?)'
+                        );
+                    }
+                    elsif $sigil eq '@' {
+                        self.typed_sorry('X::Syntax::Reserved',
+                            reserved => '() shape syntax in array declarations');
+                    }
+                    elsif $sigil eq '%' {
+                        self.typed_sorry('X::Syntax::Reserved',
+                            reserved => '() shape syntax in hash declarations');
+                    }
+                    else {
+                        self.typed_sorry('X::Syntax::Reserved',
+                            reserved => '() shape syntax in variable declarations');
+                    }
+                }
+            | :dba('shape definition') '[' ~ ']' <semilist> <.NYI: "Shaped variable declarations">
+            | :dba('shape definition') '{' ~ '}' <semilist>
+            | <?before '<'> <postcircumfix> <.NYI: "Shaped variable declarations">
+            ]+
+        ]?
         <.ws>
-
+        
         <trait>*
+#        <post_constraint>*
     }
 
-    rule scoped($*SCOPE) {
+#    rule scoped($*SCOPE) {
+#        :dba('scoped declarator')
+#        [
+#        | <declarator>
+#        | <regex_declarator>
+#        | <package_declarator>
+#        ]
+#        || <?before <[A..Z]>><longname>{{
+#                my $t := $<longname>.Str;
+#                if !self.is_known($t) {
+#                    self.sorry("In \"$*SCOPE\" declaration, typename $t must be predeclared (or marked as declarative with :: prefix)");
+#                }
+#            }}
+#            <!> # drop through
+#        || <.panic: "Malformed $*SCOPE">
+#    }
+    token scoped($*SCOPE) {
+        #<.end_keyword>
         :dba('scoped declarator')
         [
-        | <declarator>
-        | <regex_declarator>
-        | <package_declarator>
+#        :my $*DOC := $*DECLARATOR_DOCS;
+#        :my $*DOCEE;
+#        <.attach_docs>
+        <.ws>
+        [
+        | <DECL=declarator>
+        | <DECL=regex_declarator>
+        | <DECL=package_declarator>
+#        | [<typename><.ws>]+
+#          {
+#            if +$<typename> > 1 {
+#                $/.CURSOR.NYI('Multiple prefix constraints');
+#            }
+#            $*OFTYPE := $<typename>[0];
+#          }
+#          <DECL=multi_declarator>
+#        | <DECL=multi_declarator>
+        ] <.ws>
+        || <.ws><typo_typename> <!>
+        || <.malformed($*SCOPE)>
         ]
-        || <?before <[A..Z]>><longname>{{
-                my $t := $<longname>.Str;
-                if !self.is_known($t) {
-                    self.sorry("In \"$*SCOPE\" declaration, typename $t must be predeclared (or marked as declarative with :: prefix)");
-                }
-            }}
-            <!> # drop through
-        || <.panic: "Malformed $*SCOPE">
     }
 
 
-    rule scope_declarator:sym<my>        { <sym> <scoped('my')> }
-    rule scope_declarator:sym<our>       { <sym> <scoped('our')> }
-    rule scope_declarator:sym<state>     { <sym> <scoped('state')> }
+    token scope_declarator:sym<my>        { <sym> <scoped('my')> }
+    token scope_declarator:sym<our>       { <sym> <scoped('our')> }
+    token scope_declarator:sym<state>     { <sym> <scoped('state')> }
 
     rule package_declarator:sym<package> {
+        :my $*OUTERPACKAGE := $*PACKAGE;
         :my $*PKGDECL := 'package';
         <sym> <package_def>
     }
@@ -1327,56 +1539,248 @@ grammar Perl6::P5Grammar is HLL::Grammar does STD {
         ]
     }
 
+#    rule package_def {
+#        :my $longname;
+#        :my $*IN_DECL := 'package';
+#        :my $*HAS_SELF := '';
+#        :my $*DECLARAND;
+#        :my $*NEWPKG;
+#        :my $*NEWLEX;
+#        :my $outer := $*CURLEX;
+#        :my $*CURPKG;
+#        :my $*CURLEX;
+##        { $*SCOPE := $*SCOPE || 'our'; }
+#        '' # XXX
+#        [
+#            [ <longname> { $longname := $<longname>[0]; self.add_name( ~$longname<name> ); } ]?
+#            <.newlex>
+#            <trait>*
+#            <.getdecl>
+#            [
+#            || <?before '{'>
+#                [
+#                    {
+#                        # figure out the actual full package name (nested in outer package)
+#                        if $longname && $*NEWPKG {
+#                            my $shortname := ~$longname<name>;
+#                            $*CURPKG      := $*NEWPKG // $*CURPKG{$shortname ~ '::'};
+#                        }
+#                        $*begin_compunit   := 0;
+#                        $*UNIT<$?LONGNAME> := $*UNIT<$?LONGNAME> || $longname ?? ~$longname<name> !! '';
+#                    }
+#                    { $*IN_DECL := ''; }
+#                    <blockoid>
+#                    <.checkyada>
+#                ]
+#            || <?before ';'>
+#                {
+#                $longname || self.panic("Compilation unit cannot be anonymous");
+#                my $shortname    := ~$longname<name>;
+#                $*CURPKG         := $*NEWPKG // $*CURPKG{$shortname ~ '::'};
+#                $*begin_compunit := 0;
+#
+#                # XXX throws away any role sig above
+#                $*CURLEX := $outer;
+#
+#                $*UNIT<$?LONGNAME> := ~$longname<name>;
+#                }
+#                { $*IN_DECL := ''; }
+#                <statementlist>     # whole rest of file, presumably
+#            || <.panic: "Unable to parse $*PKGDECL definition">
+#            ]
+#        ] || <.panic: "Malformed $*PKGDECL">
+#    }
     rule package_def {
         :my $longname;
+        :my $outer := $*W.cur_lexpad();
+        :my $*DECLARAND;
         :my $*IN_DECL := 'package';
         :my $*HAS_SELF := '';
-        :my $*DECLARAND;
-        :my $*NEWPKG;
-        :my $*NEWLEX;
-        :my $outer := $*CURLEX;
-        :my $*CURPKG;
-        :my $*CURLEX;
-        { $*SCOPE := $*SCOPE || 'our'; }
-        '' # XXX
+        :my $*CURPAD;
+        :my $*DOC := $*DECLARATOR_DOCS;
+        :my $*DOCEE;
+        <.attach_docs>
+        
+        # Meta-object will live in here; also set default REPR (a trait
+        # may override this, e.g. is repr('...')).
+        :my $*PACKAGE;
+        :my $*REPR;
+        
+        # Default to our scoped.
+        { unless $*SCOPE { $*SCOPE := 'our'; } }
+        
         [
-            [ <longname> { $longname := $<longname>[0]; self.add_name( ~$longname<name> ); } ]?
+            [ <longname> { $longname := $*W.disect_longname($<longname>[0]); } ]?
             <.newlex>
+            
+            [ :dba('generic role')
+            <?{ ($*PKGDECL//'') eq 'role' }>
+            { $*PACKAGE := $*OUTERPACKAGE } # in case signature tries to declare a package
+            '[' ~ ']' <signature>
+            { $*IN_DECL := ''; }
+            ]?
+            
             <trait>*
-            <.getdecl>
-            [
-            || <?before '{'>
-                [
-                    {
-                        # figure out the actual full package name (nested in outer package)
-                        if $longname && $*NEWPKG {
-                            my $shortname := ~$longname<name>;
-                            $*CURPKG      := $*NEWPKG // $*CURPKG{$shortname ~ '::'};
+            
+            {
+                # Unless we're augmenting...
+                if $*SCOPE ne 'augment' {
+                    # Locate any existing symbol. Note that it's only a match
+                    # with "my" if we already have a declaration in this scope.
+                    my $exists := 0;
+                    my @name := $longname ??
+                        $longname.type_name_parts('package name', :decl(1)) !!
+                        [];
+                    if @name && $*SCOPE ne 'anon' {
+                        if @name && $*W.already_declared($*SCOPE, $*OUTERPACKAGE, $outer, @name) {
+                            $*PACKAGE := $*W.find_symbol(@name);
+                            $exists := 1;
                         }
-                        $*begin_compunit   := 0;
-                        $*UNIT<$?LONGNAME> := $*UNIT<$?LONGNAME> || $longname ?? ~$longname<name> !! '';
+                    }
+
+                    # If it exists already, then it's either uncomposed (in which
+                    # case we just stubbed it), a role (in which case multiple
+                    # variants are OK) or else an illegal redecl.
+                    if $exists && ($*PKGDECL ne 'role' || !nqp::can($*PACKAGE.HOW, 'configure_punning')) {
+                        if $*PKGDECL eq 'role' || $*PACKAGE.HOW.is_composed($*PACKAGE) {
+                            $*W.throw($/, ['X', 'Redeclaration'],
+                                symbol => $longname.name(),
+                            );
+                        }
+                    }
+                    
+                    # If it's not a role, or it is a role but one with no name,
+                    # then just needs meta-object construction and installation.
+                    elsif $*PKGDECL ne 'role' || !@name {
+                        # Construct meta-object for this package.
+                        my %args;
+                        if @name {
+                            %args<name> := $longname.name();
+                        }
+                        if $*REPR ne '' {
+                            %args<repr> := $*REPR;
+                        }
+                        $*PACKAGE := $*W.pkg_create_mo($/, %*HOW{$*PKGDECL}, |%args);
+                        
+                        # Install it in the symbol table if needed.
+                        if @name {
+                            $*W.install_package($/, @name, $*SCOPE, $*PKGDECL, $*OUTERPACKAGE, $outer, $*PACKAGE);
+                        }
+                    }
+                    
+                    # If it's a named role, a little trickier. We need to make
+                    # a parametric role group for it (unless we got one), and
+                    # then install it in that.
+                    else {
+                        # If the group doesn't exist, create it.
+                        my $group;
+                        if $exists {
+                            $group := $*PACKAGE;
+                        }
+                        else {
+                            $group := $*W.pkg_create_mo($/, %*HOW{'role-group'}, :name($longname.name()));                            
+                            $*W.install_package($/, @name, $*SCOPE, $*PKGDECL, $*OUTERPACKAGE, $outer, $group);
+                        }
+
+                        # Construct role meta-object with group.
+                        $*PACKAGE := $*W.pkg_create_mo($/, %*HOW{$*PKGDECL}, :name($longname.name()),
+                            :group($group), :signatured($<signature> ?? 1 !! 0));
+                    }
+                }
+                else {
+                    # Augment. Ensure we can.
+                    my @name := $longname ??
+                        $longname.type_name_parts('package name', :decl(1)) !!
+                        [];
+                    unless $*MONKEY_TYPING {
+                        $/.CURSOR.typed_panic('X::Syntax::Augment::WithoutMonkeyTyping');
+                    }
+                    unless @name {
+                        $*W.throw($/, 'X::Anon::Augment', package-kind => $*PKGDECL);
+                    }
+                    
+                    # Locate type.
+                    my $found;
+                    try { $*PACKAGE := $*W.find_symbol(@name); $found := 1 }
+                    unless $found {
+                        $*W.throw($/, 'X::Augment::NoSuchType',
+                            package-kind => $*PKGDECL,
+                            package      => $longname.text(),
+                        );
+                    }
+                    unless $*PACKAGE.HOW.archetypes.augmentable {
+                        $/.CURSOR.typed_panic('X::Syntax::Augment::Illegal',
+                            package      => $longname.text);
+                    }
+                }
+                
+                # Install $?PACKAGE, $?ROLE, $?CLASS, and :: variants as needed.
+                my $curpad := $*W.cur_lexpad();
+                unless $curpad.symbol('$?PACKAGE') {
+                    $*W.install_lexical_symbol($curpad, '$?PACKAGE', $*PACKAGE);
+                    $*W.install_lexical_symbol($curpad, '::?PACKAGE', $*PACKAGE);
+                    #if $*PKGDECL eq 'class' || $*PKGDECL eq 'grammar' {
+                    #    $*W.install_lexical_symbol($curpad, '$?CLASS', $*PACKAGE);
+                    #    $*W.install_lexical_symbol($curpad, '::?CLASS', $*PACKAGE);
+                    #}
+                    #elsif $*PKGDECL eq 'role' {
+                    #    $*W.install_lexical_symbol($curpad, '$?ROLE', $*PACKAGE);
+                    #    $*W.install_lexical_symbol($curpad, '::?ROLE', $*PACKAGE);
+                    #    $*W.install_lexical_symbol($curpad, '$?CLASS',
+                    #        $*W.pkg_create_mo($/, %*HOW<generic>, :name('$?CLASS')));
+                    #    $*W.install_lexical_symbol($curpad, '::?CLASS',
+                    #        $*W.pkg_create_mo($/, %*HOW<generic>, :name('::?CLASS')));
+                    #}
+                }
+                
+                # Set declarand as the package.
+                $*DECLARAND := $*PACKAGE;
+                
+                # Apply any traits.
+                #for $<trait> {
+                #    my $applier := $_.ast;
+                #    if $applier {
+                #        $applier($*DECLARAND);
+                #    }
+                #}
+            }
+            
+            { nqp::push(@*PACKAGES, $*PACKAGE); }
+            [
+            || <?[{]> 
+                [
+                {
+                    $*IN_DECL := '';
+                    $*begin_compunit := 0;
+                }
+                <blockoid>
+                ]
+            
+            || ';'
+                [
+                || <?{ $*begin_compunit }>
+                    {
+                        unless $longname {
+                            $/.CURSOR.panic("Compilation unit cannot be anonymous");
+                        }
+                        unless $outer =:= $*UNIT {
+                            $/.CURSOR.panic("Semicolon form of " ~ $*PKGDECL ~ " definition not allowed in subscope;\n  please use block form");
+                        }
+                        #if $*PKGDECL eq 'package' {
+                        #    $/.CURSOR.panic('This appears to be Perl 5 code. If you intended it to be Perl 6 code, please use a Perl 6 style package block like "package Foo { ... }", or "module Foo; ...".');
+                        #}
+                        $*begin_compunit := 0;
                     }
                     { $*IN_DECL := ''; }
-                    <blockoid>
-                    <.checkyada>
+                    <.finishlex>
+                    <statementlist>     # whole rest of file, presumably
+                    { $*CURPAD := $*W.pop_lexpad() }
+                || <.panic("Too late for semicolon form of $*PKGDECL definition")>
                 ]
-            || <?before ';'>
-                {
-                $longname || self.panic("Compilation unit cannot be anonymous");
-                my $shortname    := ~$longname<name>;
-                $*CURPKG         := $*NEWPKG // $*CURPKG{$shortname ~ '::'};
-                $*begin_compunit := 0;
-
-                # XXX throws away any role sig above
-                $*CURLEX := $outer;
-
-                $*UNIT<$?LONGNAME> := ~$longname<name>;
-                }
-                { $*IN_DECL := ''; }
-                <statementlist>     # whole rest of file, presumably
-            || <.panic: "Unable to parse $*PKGDECL definition">
+            || <.panic("Unable to parse $*PKGDECL definition")>
             ]
-        ] || <.panic: "Malformed $*PKGDECL">
+            { nqp::pop(@*PACKAGES); }
+        ] || { $/.CURSOR.malformed($*PKGDECL) }
     }
 
     token declarator {
@@ -1442,7 +1846,7 @@ grammar Perl6::P5Grammar is HLL::Grammar does STD {
 
     rule trait {
         :my $*IN_DECL := 0;
-        ':' <EXPR('%comma')>
+        ':' <EXPR('g=')>
     }
 
     #########
@@ -1782,14 +2186,21 @@ grammar Perl6::P5Grammar is HLL::Grammar does STD {
     token sigil:sym<*>  { <sym> }
     token sigil:sym<$#> { <sym> }
 
+#    token deflongname {
+#        :dba('new name to be defined')
+#        <name>
+#        { self.add_routine( ~$<name> ) if $*IN_DECL; }
+#    }
     token deflongname {
         :dba('new name to be defined')
-        <name>
-        { self.add_routine( ~$<name> ) if $*IN_DECL; }
+        <name> <colonpair>*
     }
 
+#    token longname {
+#        <name>
+#    }
     token longname {
-        <name>
+        <name> {} [ <?before ':' <+alpha+[\< \[ \« ]>> <colonpair> ]*
     }
 
     token name {
@@ -2513,7 +2924,7 @@ grammar Perl6::P5Grammar is HLL::Grammar does STD {
         [
         | <?stdstopper>
         | <EXPR('f=')>
-        | <?>
+        #| <?>
         ]
     }
 
@@ -2628,250 +3039,250 @@ grammar Perl6::P5Grammar is HLL::Grammar does STD {
     ## named unary examples
     # (need \s* to win LTM battle with listops)
     token term:sym<abs>
-        { <sym> » <?before \s*> <.ws> <EXPR('%named_unary')>? }
+        { <sym> » <?before \s*> <.ws> <EXPR('q=')>? }
 
     token term:sym<alarm>
-        { <sym> » <?before \s*> <.ws> <EXPR('%named_unary')>? }
+        { <sym> » <?before \s*> <.ws> <EXPR('q=')>? }
 
     token term:sym<chop>
-        { <sym> » <?before \s*> <.ws> <EXPR('%named_unary')>? }
+        { <sym> » <?before \s*> <.ws> <EXPR('q=')>? }
 
     token term:sym<chdir>
-        { <sym> » <?before \s*> <.ws> <EXPR('%named_unary')>? }
+        { <sym> » <?before \s*> <.ws> <EXPR('q=')>? }
 
     token term:sym<close>
-        { <sym> » <?before \s*> <.ws> <EXPR('%named_unary')>? }
+        { <sym> » <?before \s*> <.ws> <EXPR('q=')>? }
 
     token term:sym<closedir>
-        { <sym> » <?before \s*> <.ws> <EXPR('%named_unary')>? }
+        { <sym> » <?before \s*> <.ws> <EXPR('q=')>? }
 
     token term:sym<caller>
-        { <sym> » <?before \s*> <.ws> <EXPR('%named_unary')>? }
+        { <sym> » <?before \s*> <.ws> <EXPR('q=')>? }
 
     token term:sym<chr>
-        { <sym> » <?before \s*> <.ws> <EXPR('%named_unary')>? }
+        { <sym> » <?before \s*> <.ws> <EXPR('q=')>? }
 
     token term:sym<cos>
-        { <sym> » <?before \s*> <.ws> <EXPR('%named_unary')>? }
+        { <sym> » <?before \s*> <.ws> <EXPR('q=')>? }
 
     token term:sym<chroot>
-        { <sym> » <?before \s*> <.ws> <EXPR('%named_unary')>? }
+        { <sym> » <?before \s*> <.ws> <EXPR('q=')>? }
 
     token term:sym<defined>
-        { <sym> » <?before \s*> <.ws> <EXPR('%named_unary')>? }
+        { <sym> » <?before \s*> <.ws> <EXPR('q=')>? }
 
     token term:sym<delete>
-        { <sym> » <?before \s*> <.ws> <EXPR('%named_unary')>? }
+        { <sym> » <?before \s*> <.ws> <EXPR('q=')>? }
 
     token term:sym<dbmclose>
-        { <sym> » <?before \s*> <.ws> <EXPR('%named_unary')>? }
+        { <sym> » <?before \s*> <.ws> <EXPR('q=')>? }
 
     token term:sym<exists>
-        { <sym> » <?before \s*> <.ws> <EXPR('%named_unary')>? }
+        { <sym> » <?before \s*> <.ws> <EXPR('q=')>? }
 
     token term:sym<int>
-        { <sym> » <?before \s*> <.ws> <EXPR('%named_unary')>? }
+        { <sym> » <?before \s*> <.ws> <EXPR('q=')>? }
 
     token term:sym<exit>
-        { <sym> » <?before \s*> <.ws> <EXPR('%named_unary')>? }
+        { <sym> » <?before \s*> <.ws> <EXPR('q=')>? }
 
     token term:sym<try>
-        { <sym> » <?before \s*> <.ws> <EXPR('%named_unary')>? }
+        { <sym> » <?before \s*> <.ws> <EXPR('q=')>? }
 
     token term:sym<eval>
-        { <sym> » <?before \s*> <.ws> <EXPR('%named_unary')>? }
+        { <sym> » <?before \s*> <.ws> <EXPR('q=')>? }
 
     token term:sym<eof>
-        { <sym> » <?before \s*> <.ws> <EXPR('%named_unary')>? }
+        { <sym> » <?before \s*> <.ws> <EXPR('q=')>? }
 
     token term:sym<exp>
-        { <sym> » <?before \s*> <.ws> <EXPR('%named_unary')>? }
+        { <sym> » <?before \s*> <.ws> <EXPR('q=')>? }
 
     token term:sym<each>
-        { <sym> » <?before \s*> <.ws> <EXPR('%named_unary')>? }
+        { <sym> » <?before \s*> <.ws> <EXPR('q=')>? }
 
     token term:sym<fileno>
-        { <sym> » <?before \s*> <.ws> <EXPR('%named_unary')>? }
+        { <sym> » <?before \s*> <.ws> <EXPR('q=')>? }
 
     token term:sym<gmtime>
-        { <sym> » <?before \s*> <.ws> <EXPR('%named_unary')>? }
+        { <sym> » <?before \s*> <.ws> <EXPR('q=')>? }
 
     token term:sym<getc>
-        { <sym> » <?before \s*> <.ws> <EXPR('%named_unary')>? }
+        { <sym> » <?before \s*> <.ws> <EXPR('q=')>? }
 
     token term:sym<getpgrp>
-        { <sym> » <?before \s*> <.ws> <EXPR('%named_unary')>? }
+        { <sym> » <?before \s*> <.ws> <EXPR('q=')>? }
 
     token term:sym<getpbyname>
-        { <sym> » <?before \s*> <.ws> <EXPR('%named_unary')>? }
+        { <sym> » <?before \s*> <.ws> <EXPR('q=')>? }
 
     token term:sym<getpwnam>
-        { <sym> » <?before \s*> <.ws> <EXPR('%named_unary')>? }
+        { <sym> » <?before \s*> <.ws> <EXPR('q=')>? }
 
     token term:sym<getpwuid>
-        { <sym> » <?before \s*> <.ws> <EXPR('%named_unary')>? }
+        { <sym> » <?before \s*> <.ws> <EXPR('q=')>? }
 
     token term:sym<getpeername>
-        { <sym> » <?before \s*> <.ws> <EXPR('%named_unary')>? }
+        { <sym> » <?before \s*> <.ws> <EXPR('q=')>? }
 
     token term:sym<gethostbyname>
-        { <sym> » <?before \s*> <.ws> <EXPR('%named_unary')>? }
+        { <sym> » <?before \s*> <.ws> <EXPR('q=')>? }
 
     token term:sym<getnetbyname>
-        { <sym> » <?before \s*> <.ws> <EXPR('%named_unary')>? }
+        { <sym> » <?before \s*> <.ws> <EXPR('q=')>? }
 
     token term:sym<getsockname>
-        { <sym> » <?before \s*> <.ws> <EXPR('%named_unary')>? }
+        { <sym> » <?before \s*> <.ws> <EXPR('q=')>? }
 
     token term:sym<getgroupnam>
-        { <sym> » <?before \s*> <.ws> <EXPR('%named_unary')>? }
+        { <sym> » <?before \s*> <.ws> <EXPR('q=')>? }
 
     token term:sym<getgroupgid>
-        { <sym> » <?before \s*> <.ws> <EXPR('%named_unary')>? }
+        { <sym> » <?before \s*> <.ws> <EXPR('q=')>? }
 
     token term:sym<hex>
-        { <sym> » <?before \s*> <.ws> <EXPR('%named_unary')>? }
+        { <sym> » <?before \s*> <.ws> <EXPR('q=')>? }
 
     token term:sym<keys>
-        { <sym> » <?before \s*> <.ws> <EXPR('%named_unary')>? }
+        { <sym> » <?before \s*> <.ws> <EXPR('q=')>? }
 
     token term:sym<lc>
-        { <sym> » <?before \s*> <.ws> <EXPR('%named_unary')>? }
+        { <sym> » <?before \s*> <.ws> <EXPR('q=')>? }
 
     token term:sym<lcfirst>
-        { <sym> » <?before \s*> <.ws> <EXPR('%named_unary')>? }
+        { <sym> » <?before \s*> <.ws> <EXPR('q=')>? }
 
     token term:sym<length>
-        { <sym> » <?before \s*> <.ws> <EXPR('%named_unary')>? }
+        { <sym> » <?before \s*> <.ws> <EXPR('q=')>? }
 
     token term:sym<localtime>
-        { <sym> » <?before \s*> <.ws> <EXPR('%named_unary')>? }
+        { <sym> » <?before \s*> <.ws> <EXPR('q=')>? }
 
     token term:sym<log>
-        { <sym> » <?before \s*> <.ws> <EXPR('%named_unary')>? }
+        { <sym> » <?before \s*> <.ws> <EXPR('q=')>? }
 
     token term:sym<lock>
-        { <sym> » <?before \s*> <.ws> <EXPR('%named_unary')>? }
+        { <sym> » <?before \s*> <.ws> <EXPR('q=')>? }
 
     token term:sym<lstat>
-        { <sym> » <?before \s*> <.ws> <EXPR('%named_unary')>? }
+        { <sym> » <?before \s*> <.ws> <EXPR('q=')>? }
 
     token term:sym<ord>
-        { <sym> » <?before \s*> <.ws> <EXPR('%named_unary')>? }
+        { <sym> » <?before \s*> <.ws> <EXPR('q=')>? }
 
     token term:sym<oct>
-        { <sym> » <?before \s*> <.ws> <EXPR('%named_unary')>? }
+        { <sym> » <?before \s*> <.ws> <EXPR('q=')>? }
 
     token term:sym<prototype>
-        { <sym> » <?before \s*> <.ws> <EXPR('%named_unary')>? }
+        { <sym> » <?before \s*> <.ws> <EXPR('q=')>? }
 
     token term:sym<pop>
-        { <sym> » <?before \s*> <.ws> <EXPR('%named_unary')>? }
+        { <sym> » <?before \s*> <.ws> <EXPR('q=')>? }
 
     token term:sym<pos>
-        { <sym> » <?before \s*> <.ws> <EXPR('%named_unary')>? }
+        { <sym> » <?before \s*> <.ws> <EXPR('q=')>? }
 
     token term:sym<quotemeta>
-        { <sym> » <?before \s*> <.ws> <EXPR('%named_unary')>? }
+        { <sym> » <?before \s*> <.ws> <EXPR('q=')>? }
 
     token term:sym<reset>
-        { <sym> » <?before \s*> <.ws> <EXPR('%named_unary')>? }
+        { <sym> » <?before \s*> <.ws> <EXPR('q=')>? }
 
     token term:sym<rand>
-        { <sym> » <?before \s*> <.ws> <EXPR('%named_unary')>? }
+        { <sym> » <?before \s*> <.ws> <EXPR('q=')>? }
 
     token term:sym<rmdir>
-        { <sym> » <?before \s*> <.ws> <EXPR('%named_unary')>? }
+        { <sym> » <?before \s*> <.ws> <EXPR('q=')>? }
 
     token term:sym<readdir>
-        { <sym> » <?before \s*> <.ws> <EXPR('%named_unary')>? }
+        { <sym> » <?before \s*> <.ws> <EXPR('q=')>? }
 
     token term:sym<readline>
-        { <sym> » <?before \s*> <.ws> <EXPR('%named_unary')>? }
+        { <sym> » <?before \s*> <.ws> <EXPR('q=')>? }
 
     token term:sym<backtick>
-        { <sym> » <?before \s*> <.ws> <EXPR('%named_unary')>? }
+        { <sym> » <?before \s*> <.ws> <EXPR('q=')>? }
 
     token term:sym<rewinddir>
-        { <sym> » <?before \s*> <.ws> <EXPR('%named_unary')>? }
+        { <sym> » <?before \s*> <.ws> <EXPR('q=')>? }
 
     token term:sym<readlink>
-        { <sym> » <?before \s*> <.ws> <EXPR('%named_unary')>? }
+        { <sym> » <?before \s*> <.ws> <EXPR('q=')>? }
 
     token term:sym<ref>
-        { <sym> » <?before \s*> <.ws> <EXPR('%named_unary')>? }
+        { <sym> » <?before \s*> <.ws> <EXPR('q=')>? }
 
     token term:sym<chomp>
-        { <sym> » <?before \s*> <.ws> <EXPR('%named_unary')>? }
+        { <sym> » <?before \s*> <.ws> <EXPR('q=')>? }
 
     token term:sym<scalar>
-        { <sym> » <?before \s*> <.ws> <EXPR('%named_unary')>? }
+        { <sym> » <?before \s*> <.ws> <EXPR('q=')>? }
 
     token term:sym<sethostent>
-        { <sym> » <?before \s*> <.ws> <EXPR('%named_unary')>? }
+        { <sym> » <?before \s*> <.ws> <EXPR('q=')>? }
 
     token term:sym<setnetent>
-        { <sym> » <?before \s*> <.ws> <EXPR('%named_unary')>? }
+        { <sym> » <?before \s*> <.ws> <EXPR('q=')>? }
 
     token term:sym<setservent>
-        { <sym> » <?before \s*> <.ws> <EXPR('%named_unary')>? }
+        { <sym> » <?before \s*> <.ws> <EXPR('q=')>? }
 
     token term:sym<setprotoent>
-        { <sym> » <?before \s*> <.ws> <EXPR('%named_unary')>? }
+        { <sym> » <?before \s*> <.ws> <EXPR('q=')>? }
 
     token term:sym<shift>
-        { <sym> » <?before \s*> <.ws> <EXPR('%named_unary')>? }
+        { <sym> » <?before \s*> <.ws> <EXPR('q=')>? }
 
     token term:sym<sin>
-        { <sym> » <?before \s*> <.ws> <EXPR('%named_unary')>? }
+        { <sym> » <?before \s*> <.ws> <EXPR('q=')>? }
 
     token term:sym<sleep>
-        { <sym> » <?before \s*> <.ws> <EXPR('%named_unary')>? }
+        { <sym> » <?before \s*> <.ws> <EXPR('q=')>? }
 
     token term:sym<sqrt>
-        { <sym> » <?before \s*> <.ws> <EXPR('%named_unary')>? }
+        { <sym> » <?before \s*> <.ws> <EXPR('q=')>? }
 
     token term:sym<srand>
-        { <sym> » <?before \s*> <.ws> <EXPR('%named_unary')>? }
+        { <sym> » <?before \s*> <.ws> <EXPR('q=')>? }
 
     token term:sym<stat>
-        { <sym> » <?before \s*> <.ws> <EXPR('%named_unary')>? }
+        { <sym> » <?before \s*> <.ws> <EXPR('q=')>? }
 
     token term:sym<study>
-        { <sym> » <?before \s*> <.ws> <EXPR('%named_unary')>? }
+        { <sym> » <?before \s*> <.ws> <EXPR('q=')>? }
 
     token term:sym<tell>
-        { <sym> » <?before \s*> <.ws> <EXPR('%named_unary')>? }
+        { <sym> » <?before \s*> <.ws> <EXPR('q=')>? }
 
     token term:sym<telldir>
-        { <sym> » <?before \s*> <.ws> <EXPR('%named_unary')>? }
+        { <sym> » <?before \s*> <.ws> <EXPR('q=')>? }
 
     token term:sym<tied>
-        { <sym> » <?before \s*> <.ws> <EXPR('%named_unary')>? }
+        { <sym> » <?before \s*> <.ws> <EXPR('q=')>? }
 
     token term:sym<uc>
-        { <sym> » <?before \s*> <.ws> <EXPR('%named_unary')>? }
+        { <sym> » <?before \s*> <.ws> <EXPR('q=')>? }
 
     token term:sym<ucfirst>
-        { <sym> » <?before \s*> <.ws> <EXPR('%named_unary')>? }
+        { <sym> » <?before \s*> <.ws> <EXPR('q=')>? }
 
     token term:sym<undef>
-        { <sym> » <?before \s*> <.ws> <EXPR('%named_unary')>? }
+        { <sym> » <?before \s*> <.ws> <EXPR('q=')>? }
 
     token term:sym<untie>
-        { <sym> » <?before \s*> <.ws> <EXPR('%named_unary')>? }
+        { <sym> » <?before \s*> <.ws> <EXPR('q=')>? }
 
     token term:sym<values>
-        { <sym> » <?before \s*> <.ws> <EXPR('%named_unary')>? }
+        { <sym> » <?before \s*> <.ws> <EXPR('q=')>? }
 
     token term:sym<write>
-        { <sym> » <?before \s*> <.ws> <EXPR('%named_unary')>? }
+        { <sym> » <?before \s*> <.ws> <EXPR('q=')>? }
 
     token term:sym<local>
-        { <sym> » <?before \s*> <.ws> <EXPR('%named_unary')>? }
+        { <sym> » <?before \s*> <.ws> <EXPR('q=')>? }
 
     token term:sym<filetest>
-        { '-'<[a..zA..Z]> » <?before \s*> <.ws> <EXPR('%named_unary')>? }
+        { '-'<[a..zA..Z]> » <?before \s*> <.ws> <EXPR('q=')>? }
 
     ## comparisons
     token infix:sym«<=>»
@@ -2951,7 +3362,7 @@ grammar Perl6::P5Grammar is HLL::Grammar does STD {
         :my $*GOAL := ':';
         '?'
         <.ws>
-        <EXPR('%assignment')>
+        <EXPR('h=')>
         [ ':' ||
             [
             || <?before '='> <.panic: "Assignment not allowed within ?:">
@@ -3058,8 +3469,12 @@ grammar Perl6::P5Grammar is HLL::Grammar does STD {
 #        <O('%term')>
 #    }
     token term:sym<identifier> {
-        <identifier> <!{ $*W.is_type([~$<identifier>]) }> <?[(]> <args>
-        { self.add_mystery($<identifier>, $<args>.from, nqp::substr(~$<args>, 0, 1)) }
+        :my $name;
+        <identifier>
+        { $name := ~$<identifier>; }
+        [\h+ <?[(]>]?
+        <args( $*W.is_type($name) )>
+        { self.add_mystery($<identifier>, $<args>.from, nqp::substr(~$<args>, 0, 1)) unless $<args><invocant>; }
     }
     
 
@@ -3076,12 +3491,14 @@ grammar Perl6::P5Grammar is HLL::Grammar does STD {
 #        ]
 #        { $<invocant> := $*INVOCANT_IS; }
 #    }
-    token args {
+    token args($istype = 0) {
         :my $*GOAL := '';
         :dba('argument list')
         [
         | '(' ~ ')' <semiarglist>
-        | [ \s <arglist> ]
+        | <.unsp> '(' ~ ')' <semiarglist>
+        | [<?before \s> <!{ $istype }> <.ws> <!infixstopper> <arglist>]?
+        #| [ \s <arglist> ]
         | <?>
         ]
     }
@@ -3104,7 +3521,7 @@ grammar Perl6::P5Grammar is HLL::Grammar does STD {
     token term:sym<name> {
         <longname>
         :my $*longname;
-        { $*longname := $*W.disect_longname($<longname>) }
+        { say("token term:sym<name> longname:" ~ ~$<longname>); $*longname := $*W.disect_longname($<longname>) }
         [
         ||  <?{ nqp::substr($<longname>.Str, 0, 2) eq '::' || $*W.is_name($*longname.components()) }>
             <.unsp>?
@@ -3115,6 +3532,7 @@ grammar Perl6::P5Grammar is HLL::Grammar does STD {
         || <args> { self.add_mystery($<longname>, $<args>.from, 'termish')
                         unless nqp::index($<longname>.Str, '::') >= 0 }
         ]
+        <O('%term')>
     }
 
     ## loose not
@@ -3208,52 +3626,52 @@ grammar Perl6::P5Grammar is HLL::Grammar does STD {
 
 
 
-    method check_variable ($variable) {
-        my $name := $variable.Str;
-        my $here := self.cursor($variable.from);
-        #self.deb("check_variable $name") if $*DEBUG +& DEBUG::symtab;
-        if $variable<really> { $name := $variable<really> ~ nqp::substr($name,1) }
-        my @parts := $name ~~ /(\$|\@|\%|\&|\*)(.?)/;
-        my $sigil := @parts[0];
-        my $first := @parts[1];
-        return self if $first eq '{';
-        my $ok := 0;
-        $ok := $ok || $*IN_DECL;
-        $ok := $ok || $first lt 'A';
-        $ok := $ok || $sigil eq '*';
-        $ok := $ok || self.is_known($name);
-        $ok := $ok || ($*IN_SORT && ($name eq '$a' || $name eq '$b'));
-        if !$ok {
-            my $id := $name;
-            #$id ~~ s/^\W\W?//;
-            $id := nqp::substr($id, 1, nqp::chars($id) - 1) if $id ~~ /^\W/;
-            $id := nqp::substr($id, 1, nqp::chars($id) - 1) if $id ~~ /^\W/;
-            if $sigil eq '&' {
-                $here.add_mystery($variable<sublongname>, self.pos, 'var')
-            }
-            elsif $name eq '@_' || $name eq '%_' {
-                
-            }
-            else {  # guaranteed fail now
-                if my $scope := @*MEMOS[$variable.from]<declend> {
-                    return $here.sorry("Variable $name is not predeclared (declarators are tighter than comma, so maybe your '$scope' signature needs parens?)");
-                }
-                elsif !($id ~~ /\:\:/) {
-                    if self.is_known('@' ~ $id) {
-                        return $here.sorry("Variable $name is not predeclared (did you mean \@$id?)");
-                    }
-                    elsif self.is_known('%' ~ $id) {
-                        return $here.sorry("Variable $name is not predeclared (did you mean \%$id?)");
-                    }
-                }
-                return $here.sorry("Variable $name is not predeclared");
-            }
-        }
-        elsif $*CURLEX{$name} {
-            $*CURLEX{$name}<used> := $*CURLEX{$name}<used> + 1;
-        }
-        self;
-    }
+#    method check_variable ($variable) {
+#        my $name := $variable.Str;
+#        my $here := self.cursor($variable.from);
+#        #self.deb("check_variable $name") if $*DEBUG +& DEBUG::symtab;
+#        if $variable<really> { $name := $variable<really> ~ nqp::substr($name,1) }
+#        my @parts := $name ~~ /(\$|\@|\%|\&|\*)(.?)/;
+#        my $sigil := @parts[0];
+#        my $first := @parts[1];
+#        return self if $first eq '{';
+#        my $ok := 0;
+#        $ok := $ok || $*IN_DECL;
+#        $ok := $ok || $first lt 'A';
+#        $ok := $ok || $sigil eq '*';
+#        $ok := $ok || self.is_known($name);
+#        $ok := $ok || ($*IN_SORT && ($name eq '$a' || $name eq '$b'));
+#        if !$ok {
+#            my $id := $name;
+#            #$id ~~ s/^\W\W?//;
+#            $id := nqp::substr($id, 1, nqp::chars($id) - 1) if $id ~~ /^\W/;
+#            $id := nqp::substr($id, 1, nqp::chars($id) - 1) if $id ~~ /^\W/;
+#            if $sigil eq '&' {
+#                $here.add_mystery($variable<sublongname>, self.pos, 'var')
+#            }
+#            elsif $name eq '@_' || $name eq '%_' {
+#                
+#            }
+#            else {  # guaranteed fail now
+#                if my $scope := @*MEMOS[$variable.from]<declend> {
+#                    return $here.sorry("Variable $name is not predeclared (declarators are tighter than comma, so maybe your '$scope' signature needs parens?)");
+#                }
+#                elsif !($id ~~ /\:\:/) {
+#                    if self.is_known('@' ~ $id) {
+#                        return $here.sorry("Variable $name is not predeclared (did you mean \@$id?)");
+#                    }
+#                    elsif self.is_known('%' ~ $id) {
+#                        return $here.sorry("Variable $name is not predeclared (did you mean \%$id?)");
+#                    }
+#                }
+#                return $here.sorry("Variable $name is not predeclared");
+#            }
+#        }
+#        elsif $*CURLEX{$name} {
+#            $*CURLEX{$name}<used> := $*CURLEX{$name}<used> + 1;
+#        }
+#        self;
+#    }
 }
 
 grammar Perl6::P5QGrammar is HLL::Grammar does STD {

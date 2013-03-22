@@ -3896,9 +3896,10 @@ class Perl6::P5Actions is HLL::Actions does STDActions {
 
     method args($/) {
         my $past;
-        if    $<semiarglist> { $past := $<semiarglist>.ast; }
-        elsif $<arglist>     { $past := $<arglist>.ast; }
+        if    $<semiarglist> { say("method P5 args($/) semiarglist"); $past := $<semiarglist>.ast; }
+        elsif $<arglist>     { say("method P5 args($/) arglist"); $past := $<arglist>.ast; }
         else {
+            say("method P5 args($/) else");
             $past := QAST::Op.new( :op('call'), :node($/) );
         }
         make $past;
@@ -3923,9 +3924,11 @@ class Perl6::P5Actions is HLL::Actions does STDActions {
     }
 
     method arglist($/) {
+        say("method P5 arglist($/)");
         my $Pair := $*W.find_symbol(['Pair']);
         my $past := QAST::Op.new( :op('call'), :node($/) );        
         if $<EXPR> {
+            say("method P5 arglist($/) EXPR");
             # Make first pass over arguments, finding any duplicate named
             # arguments.
             my $expr := $<EXPR>.ast;

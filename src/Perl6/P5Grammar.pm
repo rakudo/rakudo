@@ -1374,7 +1374,7 @@ grammar Perl6::P5Grammar is HLL::Grammar does STD {
 #        <sblock>
 #    }
     rule statement_control:sym<for> {
-        $<sym>=['for'|'foreach']
+        ['for'|'foreach']
 #        [
 #        ||  '('
 #            <e1=EXPR>? ';'
@@ -1388,8 +1388,8 @@ grammar Perl6::P5Grammar is HLL::Grammar does STD {
 #            <.typed_panic: 'X::Syntax::P5'> ]?
 #        [ <?before '(' <.EXPR>? ';' <.EXPR>? ';' <.EXPR>? ')' >
 #            <.obs('C-style "for (;;)" loop', '"loop (;;)"')> ]?
+        ['my'? <variable_declarator>]?
         <xblock(1)>
-#        <sblock>
     }
 
     rule statement_control:sym<given> {
@@ -2814,7 +2814,8 @@ grammar Perl6::P5Grammar is HLL::Grammar does STD {
 
     token dotty:sym«->» {
         <sym> <dottyop>
-    <O('%methodcall')> }
+        <O('%methodcall')>
+    }
 
     token dottyopish {
         <term=dottyop>
@@ -2978,8 +2979,13 @@ grammar Perl6::P5Grammar is HLL::Grammar does STD {
 
     ## methodcall
 
-    token postfix:sym«->»
-        { '->' }
+#    token postfix:sym«->»
+#        { '->' }
+
+    token postfix:sym«->» {
+        <sym> <dottyop>
+        <O('%methodcall')>
+    }
 
     ## autoincrement
     token postfix:sym<++>

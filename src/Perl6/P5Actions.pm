@@ -3445,6 +3445,8 @@ class Perl6::P5Actions is HLL::Actions does STDActions {
     }
 
     method dotty:sym<.>($/) { make $<dottyop>.ast; }
+    method dotty:sym«->»($/) { make $<dottyop>.ast; }
+    method postfix:sym«->»($/) { make $<dottyop>.ast; }
 
     method dotty:sym<.*>($/) {
         my $past := $<dottyop>.ast;

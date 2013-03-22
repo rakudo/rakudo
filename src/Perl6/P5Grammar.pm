@@ -1397,11 +1397,14 @@ grammar Perl6::P5Grammar is HLL::Grammar does STD {
     rule statement_mod_cond:sym<unless> {<sym> <modifier_expr> }
     rule statement_mod_cond:sym<when>   {<sym> <modifier_expr> }
 
-    rule statement_mod_loop:sym<while> {<sym> <modifier_expr> }
-    rule statement_mod_loop:sym<until> {<sym> <modifier_expr> }
-
-    rule statement_mod_loop:sym<for>   {<sym> <modifier_expr> }
-    rule statement_mod_loop:sym<given> {<sym> <modifier_expr> }
+#    rule statement_mod_loop:sym<while> {<sym> <modifier_expr> }
+#    rule statement_mod_loop:sym<until> {<sym> <modifier_expr> }
+#    rule statement_mod_loop:sym<for>   {<sym> <modifier_expr> }
+#    rule statement_mod_loop:sym<given> {<sym> <modifier_expr> }
+    token statement_mod_loop:sym<while> { <sym> :s <smexpr=.EXPR> }
+    token statement_mod_loop:sym<until> { <sym> :s <smexpr=.EXPR> }
+    token statement_mod_loop:sym<for>   { <sym> :s <smexpr=.EXPR> }
+    token statement_mod_loop:sym<given> { <sym> :s <smexpr=.EXPR> }
 
     ################
     # module names #

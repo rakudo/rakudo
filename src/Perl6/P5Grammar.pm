@@ -1360,18 +1360,36 @@ grammar Perl6::P5Grammar is HLL::Grammar does STD {
         <sym> <xblock>
     }
 
+#    rule statement_control:sym<for> {
+#        ['for'|'foreach']
+#        [
+#        ||  '('
+#            <e1=EXPR>? ';'
+#            <e2=EXPR>? ';'
+#            <e3=EXPR>?
+#        ')'
+#        || ['my'? <variable_declarator>]? '(' ~ ')' <EXPR>
+#        || <.panic: "Malformed loop spec">
+#        ]
+#        <sblock>
+#    }
     rule statement_control:sym<for> {
-        ['for'|'foreach']
-        [
-        ||  '('
-            <e1=EXPR>? ';'
-            <e2=EXPR>? ';'
-            <e3=EXPR>?
-        ')'
-        || ['my'? <variable_declarator>]? '(' ~ ')' <EXPR>
-        || <.panic: "Malformed loop spec">
-        ]
-        <sblock>
+        $<sym>=['for'|'foreach']
+#        [
+#        ||  '('
+#            <e1=EXPR>? ';'
+#            <e2=EXPR>? ';'
+#            <e3=EXPR>?
+#        ')'
+#        || ['my'? <variable_declarator>]? '(' ~ ')' <EXPR>
+#        || <.panic: "Malformed loop spec">
+#        ]
+#        [ <?before 'my'? '$'\w+ '(' >
+#            <.typed_panic: 'X::Syntax::P5'> ]?
+#        [ <?before '(' <.EXPR>? ';' <.EXPR>? ';' <.EXPR>? ')' >
+#            <.obs('C-style "for (;;)" loop', '"loop (;;)"')> ]?
+        <xblock(1)>
+#        <sblock>
     }
 
     rule statement_control:sym<given> {

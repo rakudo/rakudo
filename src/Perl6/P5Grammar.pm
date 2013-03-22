@@ -541,6 +541,13 @@ grammar Perl6::P5Grammar is HLL::Grammar does STD {
     # Lexer routines #
     ##################
 
+    token ENDSTMT {
+        [
+        | \h* $$ <.ws> <?MARKER('endstmt')>
+        | <.unv>? $$ <.ws> <?MARKER('endstmt')>
+        ]?
+    }
+
     token ws {
         :my $old_highexpect := self.'!fresh_highexpect'();
         :dba('whitespace')
@@ -1134,7 +1141,7 @@ grammar Perl6::P5Grammar is HLL::Grammar does STD {
         <.finishlex>
         [
         | '{YOU_ARE_HERE}' <you_are_here>
-        | :dba('block') '{' ~ '}' <statementlist>
+        | :dba('block') '{' ~ '}' <statementlist> <?ENDSTMT>
         | <?terminator> { $*W.throw($/, 'X::Syntax::Missing', what =>'block') }
         | <?> <.panic: "Malformed block">
         ]
@@ -1245,16 +1252,24 @@ grammar Perl6::P5Grammar is HLL::Grammar does STD {
         ]
     }
 
+#    token eat_terminator {
+#        [
+#        #|| ';' [ <?before $> { $*ORIG ~~ s/\;$/ /; } ]?
+#        || ';' [ <?before $> ]?
+#        || <?{ @*MEMOS[self.pos]<endstmt> }> <.ws>
+#        || <?terminator>
+#        || $
+#        #|| {{ if @*MEMOS[self.pos]<ws> { self.pos := @*MEMOS[self.pos]<ws>; } }}   # undo any line transition
+#        #    <.panic: "Confused">
+#        ]
+#    }
     token eat_terminator {
-        [
-        #|| ';' [ <?before $> { $*ORIG ~~ s/\;$/ /; } ]?
-        || ';' [ <?before $> ]?
-        || <?{ @*MEMOS[self.pos]<endstmt> }> <.ws>
-        || <?terminator>
+        || ';'
+        || <?MARKED('endstmt')> <.ws>
+        || <?before ')' | ']' | '}' >
         || $
-        #|| {{ if @*MEMOS[self.pos]<ws> { self.pos := @*MEMOS[self.pos]<ws>; } }}   # undo any line transition
-        #    <.panic: "Confused">
-        ]
+        || <?stopper>
+        || <.typed_panic: 'X::Syntax::Confused'>
     }
 
     #####################
@@ -3496,9 +3511,9 @@ grammar Perl6::P5Grammar is HLL::Grammar does STD {
         :dba('argument list')
         [
         | '(' ~ ')' <semiarglist>
-        | <.unsp> '(' ~ ')' <semiarglist>
-        | [<?before \s> <!{ $istype }> <.ws> <!infixstopper> <arglist>]?
-        #| [ \s <arglist> ]
+        #| <.unsp> '(' ~ ')' <semiarglist>
+        #| [<?before \s> <!{ $istype }> <.ws> <!infixstopper> <arglist>]?
+        | [ \s <arglist> ]
         | <?>
         ]
     }
@@ -3599,7 +3614,7 @@ grammar Perl6::P5Grammar is HLL::Grammar does STD {
     }
 
     # overridden in subgrammars
-    token stopper { <!> }
+    #token stopper { <!> }
 
     # hopefully we can include these tokens in any outer LTM matcher
     #regex stdstopper {

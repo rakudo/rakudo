@@ -203,30 +203,30 @@ class Perl6::P5Actions is HLL::Actions does STDActions {
     }
 
     method deflongname($/) {
-        if $<colonpair> {
-            my $name := ~$<name>;
-            if $<colonpair>[0] {
-                $name := $name ~ ':';
-            }
-            if $<colonpair>[0]<identifier> {
-                $name := $name ~ ~$<colonpair>[0]<identifier>;
-            }
-            if $<colonpair>[0]<coloncircumfix> -> $cf {
-                if $cf<circumfix> -> $op_name {
-                    $name := $name ~ '<' ~ $*W.colonpair_nibble_to_str($/, $op_name<nibble>) ~ '>';
-                }
-                else {
-                    $name := $name ~ '<>';
-                }
-            }
-            make $name;
-        }
-        else {
+#        if $<colonpair> {
+#            my $name := ~$<name>;
+#            if $<colonpair>[0] {
+#                $name := $name ~ ':';
+#            }
+#            if $<colonpair>[0]<identifier> {
+#                $name := $name ~ ~$<colonpair>[0]<identifier>;
+#            }
+#            if $<colonpair>[0]<coloncircumfix> -> $cf {
+#                if $cf<circumfix> -> $op_name {
+#                    $name := $name ~ '<' ~ $*W.colonpair_nibble_to_str($/, $op_name<nibble>) ~ '>';
+#                }
+#                else {
+#                    $name := $name ~ '<>';
+#                }
+#            }
+#            make $name;
+#        }
+#        else {
             make $*W.disect_deflongname($/).name(
                 :dba("$*IN_DECL declaration"),
                 :decl<routine>,
             );
-        }
+#        }
     }
 
     # Turn $code into "for lines() { $code }"
@@ -453,9 +453,9 @@ class Perl6::P5Actions is HLL::Actions does STDActions {
         make $<pod_block>.ast;
     }
 
-    method pod_configuration($/) {
-        make Perl6::Pod::make_config($/);
-    }
+#    method pod_configuration($/) {
+#        make Perl6::Pod::make_config($/);
+#    }
 
     method pod_block:sym<delimited>($/) {
         make Perl6::Pod::any_block($/);
@@ -1194,7 +1194,7 @@ class Perl6::P5Actions is HLL::Actions does STDActions {
     ## Terms
 
     method term:sym<fatarrow>($/)           { make $<fatarrow>.ast; }
-    method term:sym<colonpair>($/)          { make $<colonpair>.ast; }
+#    method term:sym<colonpair>($/)          { make $<colonpair>.ast; }
     method term:sym<variable>($/)           { make $<variable>.ast; }
     method term:sym<package_declarator>($/) { make $<package_declarator>.ast; }
     method term:sym<scope_declarator>($/)   { make $<scope_declarator>.ast; }
@@ -1223,36 +1223,36 @@ class Perl6::P5Actions is HLL::Actions does STDActions {
             !! QAST::Var.new( :name('Nil'), :scope('lexical') );
     }
 
-    method colonpair($/) {
-        if $*key {
-            if $<var> {
-                make make_pair($*key, $<var>.ast);
-            }
-            elsif $*value ~~ NQPMatch {
-                my $val_ast := $*value.ast;
-                if $val_ast.isa(QAST::Stmts) && +@($val_ast) == 1 {
-                    $val_ast := $val_ast[0];
-                }
-                make make_pair($*key, $val_ast);
-            }
-            else {
-                make make_pair($*key, QAST::Op.new(
-                    :op('p6bool'),
-                    QAST::IVal.new( :value($*value) ) 
-                ));
-            }
-        }
-        elsif $<fakesignature> {
-            make $<fakesignature>.ast;
-        }
-        else {
-            make $*value.ast;
-        }
-    }
+#    method colonpair($/) {
+#        if $*key {
+#            if $<var> {
+#                make make_pair($*key, $<var>.ast);
+#            }
+#            elsif $*value ~~ NQPMatch {
+#                my $val_ast := $*value.ast;
+#                if $val_ast.isa(QAST::Stmts) && +@($val_ast) == 1 {
+#                    $val_ast := $val_ast[0];
+#                }
+#                make make_pair($*key, $val_ast);
+#            }
+#            else {
+#                make make_pair($*key, QAST::Op.new(
+#                    :op('p6bool'),
+#                    QAST::IVal.new( :value($*value) ) 
+#                ));
+#            }
+#        }
+#        elsif $<fakesignature> {
+#            make $<fakesignature>.ast;
+#        }
+#        else {
+#            make $*value.ast;
+#        }
+#    }
     
-    method colonpair_variable($/) {
-        make make_variable($/, [~$/]);
-    }
+#    method colonpair_variable($/) {
+#        make make_variable($/, [~$/]);
+#    }
 
     sub make_pair($key_str, $value) {
         my $key := $*W.add_string_constant($key_str);
@@ -3225,16 +3225,16 @@ class Perl6::P5Actions is HLL::Actions does STDActions {
                     $/.CURSOR.panic("Type " ~ ~$<typename><longname> ~
                         " cannot be used as a nominal type on a parameter");
                 }
-                for ($<typename><longname> ?? $<typename><longname><colonpair> !! $<typename><colonpair>) {
-                    if $_<identifier> {
-                        if $_<identifier>.Str eq 'D' {
-                            %*PARAM_INFO<defined_only> := 1;
-                        }
-                        elsif $_<identifier>.Str eq 'U' {
-                            %*PARAM_INFO<undefined_only> := 1;
-                        }
-                    }
-                }
+#                for ($<typename><longname> ?? $<typename><longname><colonpair> !! $<typename><colonpair>) {
+#                    if $_<identifier> {
+#                        if $_<identifier>.Str eq 'D' {
+#                            %*PARAM_INFO<defined_only> := 1;
+#                        }
+#                        elsif $_<identifier>.Str eq 'U' {
+#                            %*PARAM_INFO<undefined_only> := 1;
+#                        }
+#                    }
+#                }
             }
         }
         elsif $<value> {
@@ -3346,7 +3346,8 @@ class Perl6::P5Actions is HLL::Actions does STDActions {
     }
 
     method trait($/) {
-        make $<trait_mod> ?? $<trait_mod>.ast !! $<colonpair>.ast;
+#        make $<trait_mod> ?? $<trait_mod>.ast !! $<colonpair>.ast;
+        make $<trait_mod>.ast;
     }
 
     method trait_mod:sym<is>($/) {
@@ -4244,20 +4245,20 @@ class Perl6::P5Actions is HLL::Actions does STDActions {
         }
         if $key eq 'POSTFIX' {
             # If may be an adverb.
-            if $<colonpair> {
-                my $target := $past := $/[0].ast;
-                if nqp::istype($target, QAST::Op) && $target.op eq 'p6type' {
-                    $target := $target[0];
-                }
-                unless nqp::istype($target, QAST::Op) && ($target.op eq 'call' || $target.op eq 'callmethod') {
-                    $/.CURSOR.panic("You can't adverb that");
-                }
-                my $cpast := $<colonpair>.ast;
-                $cpast[2].named(compile_time_value_str($cpast[1], 'LHS of pair', $/));
-                $target.push($cpast[2]);
-                make $past;
-                return 1;
-            }
+#            if $<colonpair> {
+#                my $target := $past := $/[0].ast;
+#                if nqp::istype($target, QAST::Op) && $target.op eq 'p6type' {
+#                    $target := $target[0];
+#                }
+#                unless nqp::istype($target, QAST::Op) && ($target.op eq 'call' || $target.op eq 'callmethod') {
+#                    $/.CURSOR.panic("You can't adverb that");
+#                }
+#                my $cpast := $<colonpair>.ast;
+#                $cpast[2].named(compile_time_value_str($cpast[1], 'LHS of pair', $/));
+#                $target.push($cpast[2]);
+#                make $past;
+#                return 1;
+#            }
             
             # Method calls may be to a foreign language, and thus return
             # values may need type mapping into Perl 6 land.
@@ -6000,7 +6001,7 @@ class Perl6::P5QActions is HLL::Actions does STDActions {
 
     method escape:sym<' '>($/) { make mark_ww_atom($<quote>.ast); }
     method escape:sym<" ">($/) { make mark_ww_atom($<quote>.ast); }
-    method escape:sym<colonpair>($/) { make mark_ww_atom($<colonpair>.ast); }
+#    method escape:sym<colonpair>($/) { make mark_ww_atom($<colonpair>.ast); }
     sub mark_ww_atom($ast) {
         $ast<ww_atom> := 1;
         $ast;

@@ -1844,6 +1844,7 @@ grammar Perl6::P5Grammar is HLL::Grammar does STD {
     }
 
     rule routine_declarator:sym<sub>       { <sym> <routine_def> }
+    #token routine_declarator:sym<sub>       { <sym> <routine_def> }
 
     rule parensig {
         :dba('signature')
@@ -1860,32 +1861,63 @@ grammar Perl6::P5Grammar is HLL::Grammar does STD {
         return self;
     }
 
+#    rule routine_def {
+#        :my $*CURLEX;
+#        :my $*IN_DECL := 1;
+#        :my $*DECLARAND;
+#        [
+#        ||  <deflongname>
+#            <.newlex(1)>
+#            <parensig>?
+#            <trait>*
+#            <!{
+#                $*IN_DECL := 0;
+#            }>
+#            <blockoid>:!s
+#            { @*MEMOS[self.pos]<endstmt> := 2; }
+#            <.checkyada>
+#            <.getsig>
+#        || <?before \W>
+#            <.newlex(1)>
+#            <parensig>?
+#            <trait>*
+#            <!{
+#                $*IN_DECL := 0;
+#            }>
+#            <blockoid>:!s
+#            <.checkyada>
+#            <.getsig>
+#        ] || <.panic: "Malformed routine">
+#    }
     rule routine_def {
-        :my $*CURLEX;
-        :my $*IN_DECL := 1;
-        :my $*DECLARAND;
+        :my $*IN_DECL := 'sub';
+        :my $*METHODTYPE;
+        :my $*IMPLICIT := 0;
+        :my $*DOC := $*DECLARATOR_DOCS;
+        :my $*DOCEE;
+        :my $*DECLARAND := $*W.stub_code_object('Sub');
         [
         ||  <deflongname>
             <.newlex(1)>
-            <parensig>?
+#            <parensig>?
             <trait>*
             <!{
                 $*IN_DECL := 0;
             }>
             <blockoid>:!s
-            { @*MEMOS[self.pos]<endstmt> := 2; }
-            <.checkyada>
-            <.getsig>
+            #{ @*MEMOS[self.pos]<endstmt> := 2; }
+#            <.checkyada>
+#            <.getsig>
         || <?before \W>
             <.newlex(1)>
-            <parensig>?
+#            <parensig>?
             <trait>*
             <!{
                 $*IN_DECL := 0;
             }>
             <blockoid>:!s
-            <.checkyada>
-            <.getsig>
+#            <.checkyada>
+#            <.getsig>
         ] || <.panic: "Malformed routine">
     }
 
@@ -2231,21 +2263,14 @@ grammar Perl6::P5Grammar is HLL::Grammar does STD {
     token sigil:sym<*>  { <sym> }
     token sigil:sym<$#> { <sym> }
 
-#    token deflongname {
-#        :dba('new name to be defined')
-#        <name>
-#        { self.add_routine( ~$<name> ) if $*IN_DECL; }
-#    }
     token deflongname {
         :dba('new name to be defined')
-        <name> <colonpair>*
+        <name>
+#        { self.add_routine( ~$<name> ) if $*IN_DECL; }
     }
 
-#    token longname {
-#        <name>
-#    }
     token longname {
-        <name> {} [ <?before ':' <+alpha+[\< \[ \« ]>> <colonpair> ]*
+        <name>
     }
 
     token name {
@@ -2255,20 +2280,9 @@ grammar Perl6::P5Grammar is HLL::Grammar does STD {
         ]
     }
 
-    #token morename {
-    #    '::' <identifier>?
-    #}
     token morename {
         :my $*QSIGIL := '';
-        '::'
-        [
-        ||  <?before '(' | <alpha> >
-            [
-            | <identifier>
-            | :dba('indirect name') '(' ~ ')' <EXPR>
-            ]
-        || <?before '::'> <.typed_panic: "X::Syntax::Name::Null">
-        ]?
+        '::' <identifier>?
     }
 
     token subname {

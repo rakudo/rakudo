@@ -1843,8 +1843,8 @@ grammar Perl6::P5Grammar is HLL::Grammar does STD {
         <declarator>
     }
 
-    rule routine_declarator:sym<sub>       { <sym> <routine_def> }
-    #token routine_declarator:sym<sub>       { <sym> <routine_def> }
+    #rule routine_declarator:sym<sub>       { <sym> <routine_def> }
+    token routine_declarator:sym<sub>       { <sym> <.end_keyword> <routine_def> }
 
     rule parensig {
         :dba('signature')
@@ -1896,29 +1896,12 @@ grammar Perl6::P5Grammar is HLL::Grammar does STD {
         :my $*DOC := $*DECLARATOR_DOCS;
         :my $*DOCEE;
         :my $*DECLARAND := $*W.stub_code_object('Sub');
-        [
-        ||  <deflongname>
-            <.newlex(1)>
-#            <parensig>?
-            <trait>*
-            <!{
-                $*IN_DECL := 0;
-            }>
-            <blockoid>:!s
-            #{ @*MEMOS[self.pos]<endstmt> := 2; }
-#            <.checkyada>
-#            <.getsig>
-        || <?before \W>
-            <.newlex(1)>
-#            <parensig>?
-            <trait>*
-            <!{
-                $*IN_DECL := 0;
-            }>
-            <blockoid>:!s
-#            <.checkyada>
-#            <.getsig>
-        ] || <.panic: "Malformed routine">
+        <deflongname>
+        <.newlex>
+        [ '(' <multisig> ')' ]?
+        <trait>*
+        { $*IN_DECL := 0; }
+        <blockoid>
     }
 
     rule trait {

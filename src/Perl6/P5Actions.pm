@@ -1958,10 +1958,10 @@ class Perl6::P5Actions is HLL::Actions does STDActions {
     method routine_def($/) {
         my $block;
 
-        if $<onlystar> {
-            $block := $<onlystar>.ast;
-        }
-        else {
+#        if $<onlystar> {
+#            $block := $<onlystar>.ast;
+#        }
+#        else {
             $block := $<blockoid>.ast;
             $block.blocktype('declaration');
             if is_clearly_returnless($block) {
@@ -1978,41 +1978,43 @@ class Perl6::P5Actions is HLL::Actions does STDActions {
             else {
                 $block[1] := wrap_return_handler($block[1]);
             }
-        }
+#        }
 
         # Obtain parameters, create signature object and generate code to
         # call binder.
-        if $block<placeholder_sig> && $<multisig> {
-            $*W.throw($/, ['X', 'Signature', 'Placeholder'],
-                placeholder => $block<placeholder_sig>[0]<placeholder>,
-            );
-        }
+#        if $block<placeholder_sig> && $<multisig> {
+#            $*W.throw($/, ['X', 'Signature', 'Placeholder'],
+#                placeholder => $block<placeholder_sig>[0]<placeholder>,
+#            );
+#        }
         my %sig_info;
-        if $<multisig> {
-            %sig_info := $<multisig>[0].ast;
-        }
-        else {
-            %sig_info<parameters> := $block<placeholder_sig> ?? $block<placeholder_sig> !!
-                                                                [];
-        }
+#        if $<multisig> {
+#            %sig_info := $<multisig>[0].ast;
+#        }
+#        else {
+#            %sig_info<parameters> := $block<placeholder_sig> ?? $block<placeholder_sig> !!
+#                                                                [];
+            %sig_info<parameters> := [];
+#        }
         my @params := %sig_info<parameters>;
         set_default_parameter_type(@params, 'Any');
-        my $signature := create_signature_object($<multisig> ?? $<multisig>[0] !! $/, %sig_info, $block);
+#        my $signature := create_signature_object($<multisig> ?? $<multisig>[0] !! $/, %sig_info, $block);
+        my $signature := create_signature_object($/, %sig_info, $block);
         add_signature_binding_code($block, $signature, @params);
 
         # Needs a slot that can hold a (potentially unvivified) dispatcher;
         # if this is a multi then we'll need it to vivify to a MultiDispatcher.
-        if $*MULTINESS eq 'multi' {
-            $*W.install_lexical_symbol($block, '$*DISPATCHER', $*W.find_symbol(['MultiDispatcher']));
-        }
-        else {
+#        if $*MULTINESS eq 'multi' {
+#            $*W.install_lexical_symbol($block, '$*DISPATCHER', $*W.find_symbol(['MultiDispatcher']));
+#        }
+#        else {
             add_implicit_var($block, '$*DISPATCHER');
-        }
+#        }
         $block[0].unshift(QAST::Op.new(:op('p6takedisp')));
 
         # Set name.
         if $<deflongname> {
-            $block.name(~$<deflongname>[0].ast);
+            $block.name(~$<deflongname>.ast);
         }
         
         # Finish code object, associating it with the routine body.
@@ -2021,23 +2023,23 @@ class Perl6::P5Actions is HLL::Actions does STDActions {
         $*W.finish_code_object($code, $block, $*MULTINESS eq 'proto', :yada(is_yada($/)));
 
         # attach return type
-        if $*OFTYPE {
-            my $sig := $code.signature;
-            if $sig.has_returns {
-                my $prev_returns := $sig.returns;
-                $*W.throw($*OFTYPE, 'X::Redeclaration',
-                    what    => 'return type for',
-                    symbol  => $code,
-                    postfix => " (previous return type was " 
-                                ~ $prev_returns.HOW.name($prev_returns)
-                                ~ ')',
-                );
-            }
-            $sig.set_returns($*OFTYPE.ast);
-        }
+#        if $*OFTYPE {
+#            my $sig := $code.signature;
+#            if $sig.has_returns {
+#                my $prev_returns := $sig.returns;
+#                $*W.throw($*OFTYPE, 'X::Redeclaration',
+#                    what    => 'return type for',
+#                    symbol  => $code,
+#                    postfix => " (previous return type was " 
+#                                ~ $prev_returns.HOW.name($prev_returns)
+#                                ~ ')',
+#                );
+#            }
+#            $sig.set_returns($*OFTYPE.ast);
+#        }
 
         # Document it
-        Perl6::Pod::document($/, $code, $*DOC);
+#        Perl6::Pod::document($/, $code, $*DOC);
 
         # Install PAST block so that it gets capture_lex'd correctly and also
         # install it in the lexpad.
@@ -2052,54 +2054,54 @@ class Perl6::P5Actions is HLL::Actions does STDActions {
             # If it's a multi, need to associate it with the surrounding
             # proto.
             # XXX Also need to auto-multi things with a proto in scope.
-            my $name := '&' ~ ~$<deflongname>[0].ast;
-            if $*MULTINESS eq 'multi' {
-                # Do we have a proto in the current scope?
-                my $proto;
-                if $outer.symbol($name) {
-                    $proto := $outer.symbol($name)<value>;
-                }
-                else {
-                    unless $*SCOPE eq '' || $*SCOPE eq 'my' {
-                        $*W.throw($/, 'X::Declaration::Scope::Multi',
-                            scope       => $*SCOPE,
-                            declaration => 'multi',
-                        );
-                    }
-                    # None; search outer scopes.
-                    my $new_proto;
-                    try {
-                        $proto := $*W.find_symbol([$name]);
-                    }
-                    if $proto && $proto.is_dispatcher {
-                        # Found in outer scope. Need to derive.
-                        $new_proto := $*W.derive_dispatcher($proto);
-                    }
-                    else {
-                        $new_proto := self.autogenerate_proto($/, $block.name, $outer[0]);
-                    }
+            my $name := '&' ~ ~$<deflongname>.ast;
+#            if $*MULTINESS eq 'multi' {
+#                # Do we have a proto in the current scope?
+#                my $proto;
+#                if $outer.symbol($name) {
+#                    $proto := $outer.symbol($name)<value>;
+#                }
+#                else {
+#                    unless $*SCOPE eq '' || $*SCOPE eq 'my' {
+#                        $*W.throw($/, 'X::Declaration::Scope::Multi',
+#                            scope       => $*SCOPE,
+#                            declaration => 'multi',
+#                        );
+#                    }
+#                    # None; search outer scopes.
+#                    my $new_proto;
+#                    try {
+#                        $proto := $*W.find_symbol([$name]);
+#                    }
+#                    if $proto && $proto.is_dispatcher {
+#                        # Found in outer scope. Need to derive.
+#                        $new_proto := $*W.derive_dispatcher($proto);
+#                    }
+#                    else {
+#                        $new_proto := self.autogenerate_proto($/, $block.name, $outer[0]);
+#                    }
+#
+#                    # Install in current scope.
+#                    $*W.install_lexical_symbol($outer, $name, $new_proto, :clone(1));
+#                    $proto := $new_proto;
+#                }
 
-                    # Install in current scope.
-                    $*W.install_lexical_symbol($outer, $name, $new_proto, :clone(1));
-                    $proto := $new_proto;
-                }
+#                # Ensure it's actually a dispatcher.
+#                unless $proto.is_dispatcher {
+#                    $*W.throw($/, ['X', 'Redeclaration'],
+#                        what    => 'routine',
+#                        symbol  => ~$<deflongname>.ast,
+#                    );
+#                }
 
-                # Ensure it's actually a dispatcher.
-                unless $proto.is_dispatcher {
-                    $*W.throw($/, ['X', 'Redeclaration'],
-                        what    => 'routine',
-                        symbol  => ~$<deflongname>[0].ast,
-                    );
-                }
-
-                # Install the candidate.
-                $*W.add_dispatchee_to_proto($proto, $code);
-            }
-            else {
+#                # Install the candidate.
+#                $*W.add_dispatchee_to_proto($proto, $code);
+#            }
+#            else {
                 # Install.
                 if $outer.symbol($name) {
                     $*W.throw($/, ['X', 'Redeclaration'],
-                            symbol => ~$<deflongname>[0].ast,
+                            symbol => ~$<deflongname>.ast,
                             what   => 'routine',
                     );
                 }
@@ -2127,31 +2129,31 @@ class Perl6::P5Actions is HLL::Actions does STDActions {
                             declaration => 'sub',
                     );
                 }
-            }
+#            }
         }
-        elsif $*MULTINESS {
-            $*W.throw($/, 'X::Anon::Multi', multiness => $*MULTINESS);
-        }
+#        elsif $*MULTINESS {
+#            $*W.throw($/, 'X::Anon::Multi', multiness => $*MULTINESS);
+#        }
 
         # Apply traits.
-        for $<trait> -> $t {
-            if $t.ast { $*W.ex-handle($t, { ($t.ast)($code) }) }
-        }
-        if $<onlystar> {
-            # Protect with try; won't work when declaring the initial
-            # trait_mod proto in CORE.setting!
-            try $*W.apply_trait($/, '&trait_mod:<is>', $*DECLARAND, :onlystar(1));
-        }
+#        for $<trait> -> $t {
+#            if $t.ast { $*W.ex-handle($t, { ($t.ast)($code) }) }
+#        }
+#        if $<onlystar> {
+#            # Protect with try; won't work when declaring the initial
+#            # trait_mod proto in CORE.setting!
+#            try $*W.apply_trait($/, '&trait_mod:<is>', $*DECLARAND, :onlystar(1));
+#        }
         
         # Add inlining information if it's inlinable; also mark soft if the
         # appropriate pragma is in effect.
         if $<deflongname> {
-            if $*SOFT {
-                $*W.find_symbol(['&infix:<does>'])($code, $*W.find_symbol(['SoftRoutine']));
-            }
-            else {
+#            if $*SOFT {
+#                $*W.find_symbol(['&infix:<does>'])($code, $*W.find_symbol(['SoftRoutine']));
+#            }
+#            else {
                 self.add_inlining_info_if_possible($/, $code, $block, @params);
-            }
+#            }
         }
 
         my $closure := block_closure(reference_to_code_object($code, $past));
@@ -2310,10 +2312,10 @@ class Perl6::P5Actions is HLL::Actions does STDActions {
 
     method method_def($/) {
         my $past;
-        if $<onlystar> {
-            $past := $<onlystar>.ast;
-        }
-        else {
+#        if $<onlystar> {
+#            $past := $<onlystar>.ast;
+#        }
+#        else {
             $past := $<blockoid>.ast;
             $past.blocktype('declaration');
             if is_clearly_returnless($past) {
@@ -2325,7 +2327,7 @@ class Perl6::P5Actions is HLL::Actions does STDActions {
             else {
                 $past[1] := wrap_return_handler($past[1]);
             }
-        }
+#        }
         
         my $name;
         if $<longname> {
@@ -2363,9 +2365,9 @@ class Perl6::P5Actions is HLL::Actions does STDActions {
         for $<trait> {
             if $_.ast { ($_.ast)($code) }
         }
-        if $<onlystar> {
-            $*W.apply_trait($/, '&trait_mod:<is>', $*DECLARAND, :onlystar(1));
-        }
+#        if $<onlystar> {
+#            $*W.apply_trait($/, '&trait_mod:<is>', $*DECLARAND, :onlystar(1));
+#        }
 
         # Install method.
         if $name {
@@ -2420,7 +2422,7 @@ class Perl6::P5Actions is HLL::Actions does STDActions {
 
         # Finish code object, associating it with the routine body.
         if $<deflongname> {
-            $block.name(~$<deflongname>[0].ast);
+            $block.name(~$<deflongname>.ast);
         }
         my $code := $*DECLARAND;
         $*W.attach_signature($code, $signature);
@@ -2439,11 +2441,11 @@ class Perl6::P5Actions is HLL::Actions does STDActions {
 
         my $past;
         if $<deflongname> {
-            my $name := '&' ~ ~$<deflongname>[0].ast;
+            my $name := '&' ~ ~$<deflongname>.ast;
             # Install.
             if $outer.symbol($name) {
                 $/.CURSOR.panic("Illegal redeclaration of macro '" ~
-                    ~$<deflongname>[0].ast ~ "'");
+                    ~$<deflongname>.ast ~ "'");
             }
             if $*SCOPE eq '' || $*SCOPE eq 'my' {
                 $*W.install_lexical_symbol($outer, $name, $code);
@@ -2609,12 +2611,12 @@ class Perl6::P5Actions is HLL::Actions does STDActions {
         0
     }
 
-    method onlystar($/) {
-        my $BLOCK := $*CURPAD;
-        $BLOCK.push(QAST::Op.new( :op('p6multidispatch') ));
-        $BLOCK.node($/);
-        make $BLOCK;
-    }
+#    method onlystar($/) {
+#        my $BLOCK := $*CURPAD;
+#        $BLOCK.push(QAST::Op.new( :op('p6multidispatch') ));
+#        $BLOCK.node($/);
+#        make $BLOCK;
+#    }
 
     method regex_declarator:sym<regex>($/, $key?) {
         make $<regex_def>.ast;
@@ -2634,9 +2636,9 @@ class Perl6::P5Actions is HLL::Actions does STDActions {
 
         my %sig_info := $<signature> ?? $<signature>[0].ast !! hash(parameters => []);
         if $*MULTINESS eq 'proto' {
-            unless $<onlystar> {
+#            unless $<onlystar> {
                 $/.CURSOR.panic("Proto regex body must be \{*\} (or <*> or <...>, which are deprecated)");
-            }
+#            }
             my $proto_body := QAST::Op.new(
                 :op('callmethod'), :name('!protoregex'),
                 QAST::Var.new( :name('self'), :scope('local') ),
@@ -3893,9 +3895,9 @@ class Perl6::P5Actions is HLL::Actions does STDActions {
         make $<capterm>.ast;
     }
     
-    method term:sym<onlystar>($/) {
-        make QAST::Op.new( :op('p6multidispatchlex') );
-    }
+#    method term:sym<onlystar>($/) {
+#        make QAST::Op.new( :op('p6multidispatchlex') );
+#    }
 
     method args($/) {
         my $past;

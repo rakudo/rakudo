@@ -1905,16 +1905,18 @@ class Perl6::World is HLL::World {
         # the last part of the name (e.g. for infix:<+>). Need to be a
         # little cheaty when compiling the setting due to bootstrapping.
         my @pairs;
-        for $longname<colonpair> {
-            if $_<coloncircumfix> && !$_<identifier> {
-                @components[+@components - 1] := @components[+@components - 1]
-                        ~ (%*COMPILING<%?OPTIONS><setting> ne 'NULL'
-                                ??  ':<' ~ ~$*W.compile_time_evaluate($_, $_.ast) ~ '>'
-                                !!  ~$_
-                           );
-            }
-            else {
-                @pairs.push($_);
+        if $longname<colonpair> {
+            for $longname<colonpair> {
+                if $_<coloncircumfix> && !$_<identifier> {
+                    @components[+@components - 1] := @components[+@components - 1]
+                            ~ (%*COMPILING<%?OPTIONS><setting> ne 'NULL'
+                                    ??  ':<' ~ ~$*W.compile_time_evaluate($_, $_.ast) ~ '>'
+                                    !!  ~$_
+                               );
+                }
+                else {
+                    @pairs.push($_);
+                }
             }
         }
         nqp::bindattr($result, LongName, '@!colonpairs', @pairs);

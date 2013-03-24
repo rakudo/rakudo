@@ -407,7 +407,6 @@ class Perl6::World is HLL::World {
         # .symbol(...) hash we get away with this for now.
         #my %stash := $package.WHO;
         my $target := self.cur_lexpad();
-        say(%stash);
         
         # First pass: QAST::Block symbol table installation. Also detect any
         # outright conflicts, and handle any situations where we need to merge.
@@ -415,10 +414,7 @@ class Perl6::World is HLL::World {
         my @clash;
         my @clash_onlystar;
         for %stash {
-            say($_.key);
-            #say($_.value);
             if $target.symbol($_.key) -> %sym {
-                say("the if succeeded");
                 # There's already a symbol. However, we may be able to merge
                 # if both are multis and have onlystar dispatchers.
                 my $installed := %sym<value>;
@@ -454,7 +450,6 @@ class Perl6::World is HLL::World {
                 }
             }
             else {
-                say("the if failed, the symbol wasn't there yet");
                 $target.symbol($_.key, :scope('lexical'), :value($_.value));
                 $target[0].push(QAST::Var.new( :scope('lexical'), :name($_.key), :decl('var') ));
                 %to_install{$_.key} := $_.value;

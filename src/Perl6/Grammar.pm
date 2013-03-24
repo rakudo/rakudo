@@ -1239,19 +1239,20 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                     $*W.import($/, $EXPORT{$tag}.WHO, $package_source_name);
                 }
             }
-            if +@positional_imports {
-                if nqp::existskey($module, '&EXPORT') {
-                    my $result := $module<&EXPORT>(|@positional_imports);
-                    my $EnumMap := $*W.find_symbol(['EnumMap']);
-                    if nqp::istype($result, $EnumMap) {
-                        my $storage := nqp::getattr($result, $EnumMap, '$!storage');
-                        $*W.import($/, $storage, $package_source_name);
-                    }
-                    else {
-                        nqp::die("&EXPORT sub did not return an EnumMap");
-                    }
+            if nqp::existskey($module, '&EXPORT') {
+                my $result := $module<&EXPORT>(|@positional_imports);
+                my $EnumMap := $*W.find_symbol(['EnumMap']);
+                if nqp::istype($result, $EnumMap) {
+                    # TODO: decontainerize $result
+                    my $storage := nqp::getattr($result, $EnumMap, '$!storage');
+                    $*W.import($/, $storage, $package_source_name);
                 }
                 else {
+                    nqp::die("&EXPORT sub did not return an EnumMap");
+                }
+            }
+            else {
+                if +@positional_imports {
                     nqp::die("Error while importing from '$package_source_name': no EXPORT sub, but you provided positional argument in the 'use' statement");
                 }
             }

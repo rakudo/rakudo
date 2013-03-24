@@ -222,7 +222,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             make $name;
         }
         else {
-            make $*W.disect_deflongname($/).name(
+            make $*W.dissect_deflongname($/).name(
                 :dba("$*IN_DECL declaration"),
                 :decl<routine>,
             );
@@ -962,7 +962,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
     method statement_control:sym<require>($/) {
         my $past := QAST::Stmts.new(:node($/));
         my $name_past := $<module_name>
-                        ?? $*W.disect_longname($<module_name><longname>).name_past()
+                        ?? $*W.dissect_longname($<module_name><longname>).name_past()
                         !! $<EXPR>[0].ast;
 
         $past.push(QAST::Op.new(
@@ -1317,7 +1317,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         else {
             my $indirect;
             if $<desigilname> && $<desigilname><longname> {
-                my $longname := $*W.disect_longname($<desigilname><longname>);
+                my $longname := $*W.dissect_longname($<desigilname><longname>);
                 if $longname.contains_indirect_lookup() {
                     if $*IN_DECL {
                         $*W.throw($/, ['X', 'Syntax', 'Variable', 'IndirectDeclaration']);
@@ -2357,7 +2357,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         
         my $name;
         if $<longname> {
-            my $longname := $*W.disect_longname($<longname>);
+            my $longname := $*W.dissect_longname($<longname>);
             $name := $longname.name(:dba('method name'),
                             :decl<routine>, :with_adverbs);
         }
@@ -2778,7 +2778,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
         # Get, or find, enumeration base type and create type object with
         # correct base type.
-        my $longname  := $<longname> ?? $*W.disect_longname($<longname>) !! 0;
+        my $longname  := $<longname> ?? $*W.dissect_longname($<longname>) !! 0;
         my $name      := $<longname> ?? $longname.name() !! $<variable><desigilname>;
 
         my $type_obj;
@@ -2925,7 +2925,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             QAST::Op.new( :op('p6bool'), QAST::IVal.new( :value(1) ) ));
 
         # Create the meta-object.
-        my $longname := $<longname> ?? $*W.disect_longname($<longname>[0]) !! 0;
+        my $longname := $<longname> ?? $*W.dissect_longname($<longname>[0]) !! 0;
         my $subset := $<longname> ??
             $*W.create_subset(%*HOW<subset>, $refinee, $refinement, :name($longname.name())) !!
             $*W.create_subset(%*HOW<subset>, $refinee, $refinement);
@@ -3426,7 +3426,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         
             # If we have a type name then we need to dispatch with that type; otherwise
             # we need to dispatch with it as a named argument.
-            my @name := $*W.disect_longname($<longname>).components();
+            my @name := $*W.dissect_longname($<longname>).components();
             if $*W.is_name(@name) {
                 my $trait := $*W.find_symbol(@name);
                 make -> $declarand {
@@ -3529,7 +3529,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         # runs after CHECK time.
         my $past := $<methodop>.ast;
         if $<methodop><longname> {
-            my @parts   := $*W.disect_longname($<methodop><longname>).components();
+            my @parts   := $*W.dissect_longname($<methodop><longname>).components();
             my $name    := @parts.pop;
             if @parts {
                 my $methpkg := $*W.find_symbol(@parts);
@@ -3572,7 +3572,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         if $<longname> {
             # May just be .foo, but could also be .Foo::bar. Also handle the
             # macro-ish cases.
-            my @parts := $*W.disect_longname($<longname>).components();
+            my @parts := $*W.dissect_longname($<longname>).components();
             my $name := @parts.pop;
             if +@parts {
                 $past.unshift($*W.symbol_lookup(@parts, $/));
@@ -4980,7 +4980,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         # GenericHOW, though whether/how it's used depends on context.
         if $<longname> {
             if nqp::substr(~$<longname>, 0, 2) ne '::' {
-                my $longname := $*W.disect_longname($<longname>);
+                my $longname := $*W.dissect_longname($<longname>);
                 my $type := $*W.find_symbol($longname.type_name_parts('type name'));
                 if $<arglist> {
                     $type := $*W.parameterize_type($type, $<arglist>, $/);
@@ -6065,7 +6065,7 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions does STDActions {
     }
     
     method assertion:sym<name>($/) {
-        my @parts := $*W.disect_longname($<longname>).components();
+        my @parts := $*W.dissect_longname($<longname>).components();
         my $name  := @parts.pop();
         my $qast;
         if $<assertion> {

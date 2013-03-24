@@ -1127,7 +1127,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <module_name> [ <.spacey> <arglist> ]? <.ws>
         :my $*HAS_SELF := '';
         {
-            my $longname := $*W.disect_longname($<module_name><longname>);
+            my $longname := $*W.dissect_longname($<module_name><longname>);
             my $module;
             my $found := 0;
             try { $module := $*W.find_symbol($longname.components()); $found := 1; }
@@ -1773,7 +1773,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         { unless $*SCOPE { $*SCOPE := 'our'; } }
         
         [
-            [ <longname> { $longname := $*W.disect_longname($<longname>[0]); } ]?
+            [ <longname> { $longname := $*W.dissect_longname($<longname>[0]); } ]?
             <.newpad>
             
             [ :dba('generic role')
@@ -2248,7 +2248,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         | [ <param_var> | <named_param> ] $<quant>=['?'|'!'|<?>]
         | <longname>
             {
-                my $name := $*W.disect_longname($<longname>);
+                my $name := $*W.dissect_longname($<longname>);
                 $*W.throw($/, ['X', 'Parameter', 'InvalidType'],
                     :typename($name.name),
                     :suggestions($*W.suggest_typename($name.name)));
@@ -2401,7 +2401,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         [
         | <longname>
             {
-                my $longname := $*W.disect_longname($<longname>);
+                my $longname := $*W.dissect_longname($<longname>);
                 my @name := $longname.type_name_parts('enum name', :decl(1));
                 if $*W.already_declared($*SCOPE, $*PACKAGE, $*W.cur_lexpad(), @name) {
                     $*W.throw($/, ['X', 'Redeclaration'],
@@ -2427,7 +2427,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                 [
                     <longname>
                     {
-                        my $longname := $*W.disect_longname($<longname>[0]);
+                        my $longname := $*W.dissect_longname($<longname>[0]);
                         my @name := $longname.type_name_parts('subset name', :decl(1));
                         if $*W.already_declared($*SCOPE, $*PACKAGE, $*W.cur_lexpad(), @name) {
                             $*W.throw($/, ['X', 'Redeclaration'],
@@ -2556,7 +2556,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token term:sym<name> {
         <longname>
         :my $*longname;
-        { $*longname := $*W.disect_longname($<longname>) }
+        { $*longname := $*W.dissect_longname($<longname>) }
         [
         ||  <?{ nqp::substr($<longname>.Str, 0, 2) eq '::' || $*W.is_name($*longname.components()) }>
             <.unsp>?
@@ -2684,7 +2684,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         | '::?'<identifier> <colonpair>*    # parse ::?CLASS as special case
         | <longname>
           <?{
-            my $longname := $*W.disect_longname($<longname>);
+            my $longname := $*W.dissect_longname($<longname>);
             nqp::substr(~$<longname>, 0, 2) eq '::' ??
                 1 !! # ::T introduces a type, so always is one
                 $*W.is_name($longname.type_name_parts('type name'))
@@ -2699,7 +2699,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token typo_typename {
         <longname>
         {
-          my $longname := $*W.disect_longname($<longname>);
+          my $longname := $*W.dissect_longname($<longname>);
           my @suggestions := $*W.suggest_typename($longname.name);
           $/.CURSOR.typed_sorry('X::Undeclared',
                     what => "Type",

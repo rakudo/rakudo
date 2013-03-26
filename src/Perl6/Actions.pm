@@ -1532,7 +1532,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             my @params := %sig_info<parameters>;
             @params.unshift(hash(
                 is_multi_invocant => 1,
-                type_captures     => ['$?CLASS', '::?CLASS']
+                type_captures     => nqp::list_s('$?CLASS', '::?CLASS')
             ));
             set_default_parameter_type(@params, 'Mu');
             my $sig := create_signature_object($<signature>, %sig_info, $block);
@@ -3210,10 +3210,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
 
     method named_param($/) {
-        %*PARAM_INFO<named_names> := %*PARAM_INFO<named_names> || [];
-        if $<name>               { %*PARAM_INFO<named_names>.push(~$<name>); }
-        elsif $<param_var><name> { %*PARAM_INFO<named_names>.push(~$<param_var><name>[0]); }
-        else                     { %*PARAM_INFO<named_names>.push(''); }
+        %*PARAM_INFO<named_names> := %*PARAM_INFO<named_names> || nqp::list_s();
+        if $<name>               { nqp::push_s(%*PARAM_INFO<named_names>, ~$<name>); }
+        elsif $<param_var><name> { nqp::push_s(%*PARAM_INFO<named_names>, ~$<param_var><name>[0]); }
+        else                     { nqp::push_s(%*PARAM_INFO<named_names>, ''); }
     }
 
     method defterm($/) {
@@ -3234,9 +3234,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 # Set up signature so it will find the typename.
                 my $desigilname := nqp::substr(~$<typename>, 2);
                 unless %*PARAM_INFO<type_captures> {
-                    %*PARAM_INFO<type_captures> := []
+                    %*PARAM_INFO<type_captures> := nqp::list_s();
                 }
-                %*PARAM_INFO<type_captures>.push($desigilname);
+                nqp::push_s(%*PARAM_INFO<type_captures>, $desigilname);
 
                 # Install type variable in the static lexpad. Of course,
                 # we'll find the real thing at runtime, but in the static
@@ -5297,7 +5297,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
         # If it's named, just shove it on the end, but before any slurpies.
         elsif $named {
-            %param_info<named_names> := [$ident];
+            %param_info<named_names> := nqp::list_s($ident);
             my @popped;
             while @params
                     && (@params[+@params - 1]<pos_slurpy> || @params[+@params - 1]<named_slurpy>) {

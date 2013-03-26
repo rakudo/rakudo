@@ -3894,7 +3894,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         if $FORBID_PIR {
             nqp::die("pir::op forbidden in safe mode\n");
         }
-        my $pirop := nqp::join(' ', nqp::split('__', ~$<op>));
+        my $pirop := join(' ', nqp::split('__', ~$<op>));
         unless nqp::index($pirop, ' ') > 0 {
             nqp::die("pir::$pirop missing a signature");
         }

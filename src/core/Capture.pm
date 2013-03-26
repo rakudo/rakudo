@@ -50,7 +50,7 @@ my class Capture {
                 nqp::push($gist, nqp::unbox_s((nqp::p6box_s($kv) => $kv.value).gist));
             }
         }
-        nqp::p6box_s(nqp::join(' ', $gist))
+        nqp::p6box_s(join(' ', $gist))
     }
     
     multi method Str(Capture:D:) {
@@ -66,7 +66,7 @@ my class Capture {
                 nqp::push_s($str, nqp::unbox_s((nqp::p6box_s($kv) => $kv.value).Str));
             }
         }
-        nqp::p6box_s(nqp::join(' ', $str))
+        nqp::p6box_s(join(' ', $str))
     }
     
     method Capture(Capture:D:) {

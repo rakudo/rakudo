@@ -26,7 +26,7 @@ my class Buf does Positional {
             nqp::bindpos_s($rsa, $i, nqp::chr(nqp::unbox_i(@codes[$i])));
             $i = $i + 1;
         }
-        $!buffer = nqp::join('', $rsa);
+        $!buffer = join('', $rsa);
         self;
     }
 

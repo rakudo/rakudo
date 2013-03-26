@@ -68,7 +68,7 @@ sub levenshtein($a, $b) {
     }
 
     sub levenshtein_impl($apos, $bpos, $estimate) {
-        my $key := nqp::join(":", ($apos, $bpos));
+        my $key := join(":", ($apos, $bpos));
 
         return %memo{$key} if nqp::existskey(%memo, $key);
 
@@ -1286,7 +1286,7 @@ class Perl6::World is HLL::World {
                 $cache_key := "$type,bigint," ~ nqp::tostr_I(@value[0]);
             } else {
                 $cache_key := "$type,$primitive,"
-                    ~ nqp::join(',', @value)
+                    ~ join(',', @value)
                     ~ $namedkey;
             }
             if nqp::existskey(%!const_cache, $cache_key) {
@@ -1399,7 +1399,7 @@ class Perl6::World is HLL::World {
                     $/.CURSOR.panic($mkerr());
                 }
             }
-            return nqp::join(' ', @pieces);
+            return join(' ', @pieces);
         }
         else {
             $/.CURSOR.panic($mkerr());
@@ -1776,8 +1776,8 @@ class Perl6::World is HLL::World {
             unless $decl && $decl eq 'routine' {
                 @parts.shift() while self.is_pseudo_package(@parts[0]);
             }
-            nqp::join('::', @parts)
-                ~ ($with_adverbs ?? nqp::join('', @!colonpairs) !! '');
+            join('::', @parts)
+                ~ ($with_adverbs ?? join('', @!colonpairs) !! '');
         }
 
         # returns a QAST tree that represents the name
@@ -1800,7 +1800,7 @@ class Perl6::World is HLL::World {
                 }
             }
             else {
-                my $value := nqp::join('::', @!components);
+                my $value := join('::', @!components);
                 QAST::SVal.new(:$value);
             }
         }
@@ -2132,7 +2132,7 @@ class Perl6::World is HLL::World {
             }
             else {
                 nqp::die("Could not locate compile-time value for symbol " ~
-                    nqp::join('::', @name));
+                    join('::', @name));
             }
         }
         
@@ -2143,7 +2143,7 @@ class Perl6::World is HLL::World {
     method symbol_lookup(@name, $/, :$package_only = 0, :$lvalue = 0) {
         # Catch empty names and die helpfully.
         if +@name == 0 { $/.CURSOR.panic("Cannot compile empty name"); }
-        my $orig_name := nqp::join('::', @name);
+        my $orig_name := join('::', @name);
         
         # Handle fetching GLOBAL.
         if +@name == 1 && @name[0] eq 'GLOBAL' {
@@ -2440,7 +2440,7 @@ class Perl6::World is HLL::World {
             );
             return $ex.new(|%opts);
         } else {
-            my @err := ['Error while compiling, type ', nqp::join('::', $ex_type),  "\n"];
+            my @err := ['Error while compiling, type ', join('::', $ex_type),  "\n"];
             for %opts -> $key {
                 @err.push: '  ';
                 @err.push: $key;
@@ -2448,7 +2448,7 @@ class Perl6::World is HLL::World {
                 @err.push: %opts{$key};
                 @err.push: "\n";
             }
-            nqp::findmethod(HLL::Grammar, 'panic')($/.CURSOR, nqp::join('', @err));
+            nqp::findmethod(HLL::Grammar, 'panic')($/.CURSOR, join('', @err));
         }
     }
     

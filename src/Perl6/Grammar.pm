@@ -64,7 +64,7 @@ role STD {
                 }
                 @keybits.push($_[0] ~ '=' ~ $_[1]);
             }
-            nqp::join("\0", @keybits)
+            join("\0", @keybits)
         }
         sub con_lang() {
             my $lang := $l;
@@ -203,13 +203,13 @@ role STD {
     }
     
     method panic(*@args) {
-        self.typed_panic('X::Comp::AdHoc', payload => nqp::join('', @args))
+        self.typed_panic('X::Comp::AdHoc', payload => join('', @args))
     }
     method sorry(*@args) {
-        self.typed_sorry('X::Comp::AdHoc', payload => nqp::join('', @args))
+        self.typed_sorry('X::Comp::AdHoc', payload => join('', @args))
     }
     method worry(*@args) {
-        self.typed_worry('X::Comp::AdHoc', payload => nqp::join('', @args))
+        self.typed_worry('X::Comp::AdHoc', payload => join('', @args))
     }
 
     method typed_panic($type_str, *%opts) {

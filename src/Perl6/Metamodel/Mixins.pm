@@ -8,7 +8,7 @@ role Perl6::Metamodel::Mixins {
         my @role_names;
         for @roles { @role_names.push($_.HOW.name($_)) }
         my $new_name := self.name($obj) ~ '+{' ~
-            nqp::join(',', @role_names) ~ '}';
+            join(',', @role_names) ~ '}';
         
         # Create new type, derive it from ourself and then add
         # all the roles we're mixing it.

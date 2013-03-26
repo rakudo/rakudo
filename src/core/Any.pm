@@ -48,7 +48,7 @@ my class Any {
         nqp::push_s($rsa, nqp::unbox_s($list.shift.Stringy)) 
             while $list.gimme(0);
         nqp::push_s($rsa, '...') if $list.infinite;
-        nqp::p6box_s(nqp::join(nqp::unbox_s($separator.Stringy), $rsa))
+        nqp::p6box_s(join(nqp::unbox_s($separator.Stringy), $rsa))
     }
 
     method map($block) is rw {

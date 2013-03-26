@@ -306,7 +306,7 @@ class Perl6::Pod {
 
     our sub build_pod_string(@content) {
         sub push_strings(@strings, @where) {
-            my $s := subst(nqp::join('', @strings), /\s+/, ' ', :global);
+            my $s := subst(join('', @strings), /\s+/, ' ', :global);
             my $t := $*W.add_constant(
                 'Str', 'str', $s
             ).compile_time_value;

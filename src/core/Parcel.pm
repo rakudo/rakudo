@@ -44,7 +44,7 @@ my class Parcel does Positional {
         my Mu $gist := nqp::list();
         my Mu $iter := nqp::iterator($!storage);
         nqp::push($gist, nqp::unbox_s(nqp::shift($iter).gist)) while $iter;
-        nqp::p6box_s(nqp::join(' ', $gist))
+        nqp::p6box_s(join(' ', $gist))
     }
 
     multi method perl(Parcel:D \SELF:) {

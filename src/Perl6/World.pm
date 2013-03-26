@@ -1835,7 +1835,7 @@ class Perl6::World is HLL::World {
         # Fetches an array of components provided they are all known
         # or resolvable at compile time.
         method type_name_parts($dba, :$decl) {
-            my @name;
+            my @name := nqp::list_s();
             my int $beyond_pp;
             if $decl && $!get_who {
                 my $name := self.text;
@@ -1844,7 +1844,7 @@ class Perl6::World is HLL::World {
             if +@!components == 1 && self.is_pseudo_package(@!components[0]) {
                 my $c := @!components[0];
                 if !$decl || ($decl eq 'routine') {
-                    nqp::push(@name, $c);
+                    nqp::push_s(@name, $c);
                     return @name;
                 }
                 if $c eq 'GLOBAL' {
@@ -1859,7 +1859,7 @@ class Perl6::World is HLL::World {
                 if nqp::istype($_, QAST::Node) {
                     if $_.has_compile_time_value {
                         for nqp::split('::', ~$_.compile_time_value) {
-                            @name.push($_);
+                            nqp::push_s(@name, $_);
                         }
                     }
                     else {
@@ -1868,7 +1868,7 @@ class Perl6::World is HLL::World {
                     }
                 }
                 elsif $beyond_pp || !self.is_pseudo_package($_) {
-                    nqp::push(@name, $_);
+                    nqp::push_s(@name, $_);
                     $beyond_pp := 1;
                 }
                 else {
@@ -1881,7 +1881,7 @@ class Perl6::World is HLL::World {
                         }
                     }
                     else {
-                        nqp::push(@name, $_);
+                        nqp::push_s(@name, $_);
                     }
                 }
             }

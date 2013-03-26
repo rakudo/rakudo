@@ -111,7 +111,7 @@ class Perl6::Metamodel::ClassHOW
         # building the MRO.
         my $was_composed := $!composed;
         unless $!composed {
-            if self.parents($obj, :local(1)) == 0 && self.has_default_parent_type && self.name($obj) ne 'Mu' {
+            if +self.parents($obj, :local(1)) == 0 && self.has_default_parent_type && self.name($obj) ne 'Mu' {
                 self.add_parent($obj, self.get_default_parent_type);
             }
             self.compute_mro($obj);

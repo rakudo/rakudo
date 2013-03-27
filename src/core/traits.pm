@@ -103,7 +103,7 @@ multi trait_mod:<is>(Routine $r, :&equiv) {
         !! die "Routine given to equiv does not appear to be an operator";
 }
 multi trait_mod:<is>(Routine $r, :&tighter) {
-    die "Routine given to tigher does not appear to be an operator"
+    die "Routine given to tighter does not appear to be an operator"
         unless nqp::can(&tighter, 'prec');
     if !nqp::can($r, 'prec') || ($r.prec<prec> // "") !~~ /<[@:]>/ {
         trait_mod:<is>($r, :prec(&tighter.prec))

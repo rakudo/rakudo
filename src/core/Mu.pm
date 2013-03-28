@@ -241,7 +241,7 @@ my class Mu {
 
     proto method DUMP(|) { * }
     multi method DUMP(Mu:U:) { self.perl }
-    multi method DUMP(Mu:D:) {
+    multi method DUMP(Mu:D: :$indent-step = 4) {
         my @attrs;
         for self.^attributes() -> $attr {
             my $name       := $attr.name;
@@ -252,11 +252,11 @@ my class Mu {
             my $value;
             if $attr.has_accessor {
                 # say '--> hit has_accessor';
-                $value := DUMP(self."$acc_name"());
+                $value := DUMP(self."$acc_name"(), :$indent-step);
             }
             elsif nqp::can($attr, 'get_value') {
                 # say '--> hit get_value';
-                $value := DUMP($attr.get_value(self));
+                $value := DUMP($attr.get_value(self), :$indent-step);
                 # $value := DUMP(nqp::findmethod($attr, 'get_value')($attr, self));
             }
             else {
@@ -273,9 +273,17 @@ my class Mu {
             }
 
             # say '==> Value is:         ' ~ $value;
-            @attrs.push: ':' ~ $build_name ~ '(' ~ $value ~ ')';
+            my $with_name = $value ~~ /'<'/
+                ?? ':' ~ $build_name ~ "(\n" ~ $value.indent($indent-step) ~ "\n)"
+                !! ':' ~ $build_name ~ '('   ~ $value                      ~   ')';
+            @attrs.push: $with_name;
         }
-        self.DUMP-ID() ~ '(' ~  @attrs.join(', ') ~ ')';
+
+        my $many := @attrs > 1;
+        self.DUMP-ID() ~ (
+            $many ?? "(\n" ~ (@attrs.join(",\n")).indent($indent-step) ~ "\n)"
+                  !! '('   ~  @attrs.join(', ')                        ~   ')'
+        );
     }
     method DUMP-ID() { self.HOW.name(self) ~ '<' ~ self.WHERE ~ '>' }
     
@@ -513,7 +521,7 @@ multi sub infix:<eqv>(@a, @b) {
     Bool::True
 }
 
-sub DUMP(|) {
+sub DUMP(|args (Mu \topic, :$indent-step = 4)) {
     my Mu $topic := nqp::captureposarg(nqp::usecapture(), 0);
     # say '    $topic type is: ' ~ pir::typeof__SP($topic);
     if nqp::isnull($topic) { '(null)' }
@@ -522,18 +530,23 @@ sub DUMP(|) {
         $type = 'RPA' if $type eq 'ResizablePMCArray';
         my $s = $type ~ '<' ~ nqp::p6box_s(nqp::where($topic)) ~ '>(';
         my $t = '';
+
+        my $many = nqp::elems($topic) > 1;
+        $s = $s ~ "\n" if $many;
+
         $topic := nqp::clone($topic);
         while $topic {
             my Mu $x := nqp::shift($topic);
-            $s = $s ~ $t ~ DUMP($x);
-            $t = ', ';
+            my $dump := DUMP($x, :$indent-step);
+            $s = $s ~ $t ~ $dump.indent($indent-step);
+            $t = $many ?? ",\n" !! ', ';
         }
-        $s ~ ')'
+        $s ~ ($many ?? "\n)" !! ')');
     }
     else {
-        nqp::iscont($topic)
-          ?? "\x25b6" ~ $topic.DUMP()
-          !! $topic.DUMP()
+        my $dump := $topic.DUMP(:$indent-step);
+        nqp::iscont($topic) ?? "\x25b6" ~ $dump !! $dump;
     }
 };
+
 Metamodel::ClassHOW.exclude_parent(Mu);

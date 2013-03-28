@@ -14,7 +14,7 @@ use QRegex;
 # attributes. So, we set up quite a few bits in here, though the aim
 # is to keep it "lagom". :-)
 
-# Bootstrapping Attribute class that we eventually replace with the read
+# Bootstrapping Attribute class that we eventually replace with the real
 # one.
 my class BOOTSTRAPATTR {
     has $!name;

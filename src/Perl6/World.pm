@@ -1903,7 +1903,7 @@ class Perl6::World is HLL::World {
     
     # Takes a longname and turns it into an object representing the
     # name.
-    method disect_longname($longname) {
+    method dissect_longname($longname) {
         # Set up basic info about the long name.
         my $result := nqp::create(LongName);
         nqp::bindattr($result, LongName, '$!match', $longname);
@@ -1952,9 +1952,9 @@ class Perl6::World is HLL::World {
         
         $result
     }
-    method disect_deflongname($deflongname) {
+    method dissect_deflongname($deflongname) {
         # deflongname has the same capture structure as longname
-        self.disect_longname($deflongname);
+        self.dissect_longname($deflongname);
     }
     
     # Checks if a name starts with a pseudo-package.

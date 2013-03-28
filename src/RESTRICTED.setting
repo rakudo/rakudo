@@ -12,7 +12,12 @@ sub rmdir(|)  { restricted('rmdir') }
 sub rename(|) { restricted('rename')  }
 sub copy(|)   { restricted('copy')    }
 
-my class IO { }
-IO.^add_fallback(
-    -> $, $ { True },
-    -> $, $ { restricted('IO') });
+my class RESTRICTED is Mu { 
+    method FALLBACK(|) { restricted(self.^name) }  # NYI, but see S12
+    method new(|)      { restricted(self.^name) }
+    method gist(|)     { restricted(self.^name) }
+}
+
+my class IO is RESTRICTED { }
+my class IO::Socket is RESTRICTED { }
+

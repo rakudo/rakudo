@@ -16,7 +16,12 @@ New in 2013.03
 + Array interpolations now properly do LTM
 + Respect :i in constructs like /:i <$var>/
 + Autothread "none" and "all" junctions before "any" and "one"
-+ Helpful error if you write "else if" instead of "elsif"
++ Helpful error if you write "else if"/"elif" instead of "elsif"
++ Throw exception if a Range is used as a Range endpoint
++ Corrected argument order in IO.seek
++ Multi-dispatch now mostly implemented in NQP, not C
++ Fixed LEAVE (and thus UNDO/KEEP/temp) not firing in multis or upon 'next'
+  in a for loop
 
 New in 2013.02
 + "Did you mean ..." suggestions for symbol-not-found errors

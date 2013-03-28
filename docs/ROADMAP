@@ -42,7 +42,6 @@ Operators
 3 **    logical cascades
 
 Regexes
-2 **    array variable interpolation
 2 **    ~~ inside regexes
 2 *     Null pattern detection (at parse time)
 2 *     :sigspace ignores leading whitespace

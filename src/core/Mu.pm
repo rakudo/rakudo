@@ -247,20 +247,20 @@ my class Mu {
             my $name       := $attr.name;
             my $acc_name   := $name.substr(2);
             my $build_name := $attr.has_accessor ?? $acc_name !! $name;
-            say 'Looking at attribute: ' ~ $build_name;
+            # say 'Looking at attribute: ' ~ $build_name;
 
             my $value;
             if $attr.has_accessor {
-                say '--> hit has_accessor';
+                # say '--> hit has_accessor';
                 $value := DUMP(self."$acc_name"());
             }
             elsif nqp::can($attr, 'get_value') {
-                say '--> hit get_value';
+                # say '--> hit get_value';
                 $value := DUMP($attr.get_value(self));
                 # $value := DUMP(nqp::findmethod($attr, 'get_value')($attr, self));
             }
             else {
-                say '--> hit default case';
+                # say '--> hit default case';
                 my $decont  := nqp::p6decont(self);
                 my $package := $attr.package;
                 $value := do given nqp::p6box_i(nqp::objprimspec($attr.type)) {
@@ -272,7 +272,7 @@ my class Mu {
                 $value := $value.perl;
             }
 
-            say '==> Value is:         ' ~ $value;
+            # say '==> Value is:         ' ~ $value;
             @attrs.push: ':' ~ $build_name ~ '(' ~ $value ~ ')';
         }
         self.DUMP-ID() ~ '(' ~  @attrs.join(', ') ~ ')';
@@ -515,7 +515,7 @@ multi sub infix:<eqv>(@a, @b) {
 
 sub DUMP(|) {
     my Mu $topic := nqp::captureposarg(nqp::usecapture(), 0);
-    say '    Topic type is: ' ~ pir::typeof__SP($topic);
+    # say '    $topic type is: ' ~ pir::typeof__SP($topic);
     if nqp::isnull($topic) { '(null)' }
     elsif nqp::islist($topic) {
         my str $type = pir::typeof__SP($topic);

@@ -276,14 +276,14 @@ my class Mu {
             @attrs.push: ':' ~ $build_name ~ '(' ~ $value ~ ')';
         }
 
-        my $many := @attrs > 1;
-        self.DUMP-ID() ~ (
-            $many ?? "(\n" ~ (@attrs.join(",\n")).indent($indent-step) ~ "\n)"
-                  !! '('   ~  @attrs.join(', ')                        ~   ')'
-        );
+        @attrs.DUMP-PIECES(self.DUMP-ID() ~ '(', :$indent-step);
     }
     method DUMP-ID() { self.HOW.name(self) ~ '<' ~ self.WHERE ~ '>' }
-    
+    method DUMP-PIECES(@pieces: $before, $after = ')', :$indent = @pieces > 1, :$indent-step) {
+        $indent ?? $before ~ "\n" ~ @pieces.join(",\n").indent($indent-step) ~ "\n" ~ $after
+                !! $before ~        @pieces.join(', ')                              ~ $after;
+    }
+
     proto method isa(|) { * }
     multi method isa(Mu \SELF: Mu $type) {
         nqp::p6bool(SELF.HOW.isa(SELF, $type.WHAT))
@@ -521,24 +521,20 @@ multi sub infix:<eqv>(@a, @b) {
 sub DUMP(|args (Mu \topic, :$indent-step = 4)) {
     my Mu $topic := nqp::captureposarg(nqp::usecapture(), 0);
     # say '    $topic type is: ' ~ pir::typeof__SP($topic);
-    if nqp::isnull($topic) { '(null)' }
+    if    nqp::isnull($topic) { '(null)' }
     elsif nqp::islist($topic) {
         my str $type = pir::typeof__SP($topic);
-        $type = 'RPA' if $type eq 'ResizablePMCArray';
-        my $s = $type ~ '<' ~ nqp::p6box_s(nqp::where($topic)) ~ '>(';
-        my $t = '';
+               $type = 'RPA' if $type eq 'ResizablePMCArray';
+        my $before   = $type ~ '<' ~ nqp::p6box_s(nqp::where($topic)) ~ '>(';
 
-        my $many = nqp::elems($topic) > 1;
-        $s = $s ~ "\n" if $many;
-
+        my @pieces;
         $topic := nqp::clone($topic);
         while $topic {
             my Mu $x := nqp::shift($topic);
-            my $dump := DUMP($x, :$indent-step);
-            $s = $s ~ $t ~ $dump.indent($indent-step);
-            $t = $many ?? ",\n" !! ', ';
+            @pieces.push: DUMP($x, :$indent-step);
         }
-        $s ~ ($many ?? "\n)" !! ')');
+
+        @pieces.DUMP-PIECES($before, :$indent-step);
     }
     else {
         my $dump := $topic.DUMP(:$indent-step);

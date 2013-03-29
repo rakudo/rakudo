@@ -198,11 +198,13 @@ my class Range is Iterable is Cool does Positional {
     multi method Numeric (Range:D:) {
         nextsame unless $.max ~~ Numeric and $.min ~~ Numeric;
 
-        my $lo := ($.min + $.excludes_min).ceiling;
-        my $hi := ($.max - $.excludes_max).ceiling;
+        my $diff := $.max - $.min - $.excludes_min;
 
-        return 0 if $hi < $lo;
-        return $hi - $lo +1;
+        # empty range
+        return 0 if $diff < 0;
+
+        my $floor := $diff.floor;
+        return $floor + 1 - ($floor == $diff ?? $.excludes_max !! 0);
     }
 }
 

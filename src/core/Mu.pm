@@ -273,10 +273,7 @@ my class Mu {
             }
 
             # say '==> Value is:         ' ~ $value;
-            my $with_name = $value ~~ /'<'/
-                ?? ':' ~ $build_name ~ "(\n" ~ $value.indent($indent-step) ~ "\n)"
-                !! ':' ~ $build_name ~ '('   ~ $value                      ~   ')';
-            @attrs.push: $with_name;
+            @attrs.push: ':' ~ $build_name ~ '(' ~ $value ~ ')';
         }
 
         my $many := @attrs > 1;

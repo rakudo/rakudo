@@ -518,7 +518,7 @@ multi sub infix:<eqv>(@a, @b) {
     Bool::True
 }
 
-sub DUMP(|args (Mu \topic, :$indent-step = 4)) {
+sub DUMP(|args (*@args, :$indent-step = 4)) {
     my Mu $topic := nqp::captureposarg(nqp::usecapture(), 0);
     # say '    $topic type is: ' ~ pir::typeof__SP($topic);
     if    nqp::isnull($topic) { '(null)' }
@@ -536,9 +536,13 @@ sub DUMP(|args (Mu \topic, :$indent-step = 4)) {
 
         @pieces.DUMP-PIECES($before, :$indent-step);
     }
-    else {
+    elsif nqp::can($topic, 'DUMP') {
         my $dump := $topic.DUMP(:$indent-step);
         nqp::iscont($topic) ?? "\x25b6" ~ $dump !! $dump;
+    }
+    else {
+        my str $type = pir::typeof__SP($topic);
+        $type ~ '<' ~ nqp::p6box_s(nqp::where($topic)) ~ '>(...)';
     }
 };
 

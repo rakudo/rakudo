@@ -101,8 +101,11 @@ my class Parcel does Positional {
         self
     }
 
-    multi method DUMP(Parcel:D:) {
-        self.DUMP-ID() ~ '(:$!storage(' ~ DUMP($!storage) ~ '))'
+    multi method DUMP(Parcel:D: :$indent-step = 4) {
+        my $before = self.DUMP-ID() ~ '(';
+        my @pieces;
+        @pieces.push: ':$!storage(' ~ DUMP($!storage) ~ ')';
+        @pieces.DUMP-PIECES($before, :$indent-step);
     }
 
     method FLATTENABLE_LIST() { $!storage }

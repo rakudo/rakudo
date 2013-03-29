@@ -16,6 +16,14 @@ class GatherIter is Iterator {
             GatherIter, '$!infinite', $infinite);
     }
 
+    multi method DUMP(GatherIter:D: :$indent-step = 4) {
+        my $before := self.DUMP-ID() ~ '(' ~ ("\x221e " if self.infinite);
+        my @pieces;
+        @pieces.push: ':reified(' ~ DUMP($!reified) ~ ')';
+        @pieces.push: ':coro('    ~ DUMP($!coro)    ~ ')';
+        @pieces.DUMP-PIECES($before, :$indent-step);
+    }
+
     method reify($n = 1) { 
         if !$!reified.defined {
             my Mu $rpa := nqp::list();

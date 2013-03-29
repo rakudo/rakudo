@@ -146,11 +146,15 @@ my class MapIter is Iterator {
         parcel
     }
 
-    multi method DUMP(MapIter:D:) {
-        self.DUMP-ID() ~ '('
-          ~ ':reified(' ~ DUMP($!reified) ~ '), '
-          ~ ':items(' ~ DUMP($!items) ~'), '
-          ~ ':listiter(' ~ DUMP($!listiter) ~ ')'
-          ~ ')'
+    multi method DUMP(MapIter:D: :$indent-step = 4) {
+        my $before := self.DUMP-ID() ~ '(';
+        my @pieces;
+        @pieces.push: ':flattens(' ~ DUMP($!flattens) ~ ')';
+        @pieces.push: ':first('    ~ DUMP($!first)    ~ ')';
+        @pieces.push: ':reified('  ~ DUMP($!reified)  ~ ')';
+        @pieces.push: ':items('    ~ DUMP($!items)    ~ ')';
+        @pieces.push: ':listiter(' ~ DUMP($!listiter) ~ ')';
+        @pieces.push: ':block('    ~ DUMP($!block)    ~ ')';
+        @pieces.DUMP-PIECES($before, :$indent-step);
     }
 }

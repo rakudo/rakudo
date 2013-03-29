@@ -69,15 +69,15 @@ my class ListIter {
     method iterator() { self }
     method nextiter() { $!nextiter }
 
-    multi method DUMP(ListIter:D:) {
-        self.DUMP-ID() ~ '('
-          ~ ("\x221e " if self.infinite) ~
-          ~ ':reified('  ~ DUMP($!reified) ~ '), '
-          ~ ':rest('     ~ DUMP($!rest) ~ '), '
-          ~ ':list('     ~ $!list.DUMP-ID() ~ ')'
-          ~ ')'
+    multi method DUMP(ListIter:D: :$indent-step = 4) {
+        my $before := self.DUMP-ID() ~ '(' ~ ("\x221e " if self.infinite);
+        my @pieces;
+        @pieces.push: ':reified('  ~ DUMP($!reified)  ~ ')';
+        @pieces.push: ':nextiter(' ~ DUMP($!nextiter) ~ ')';
+        @pieces.push: ':rest('     ~ DUMP($!rest)     ~ ')';
+        @pieces.push: ':list('     ~ $!list.DUMP-ID() ~ ')';
+        @pieces.DUMP-PIECES($before, :$indent-step);
     }
-         
 }
 
 

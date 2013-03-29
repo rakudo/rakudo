@@ -70,7 +70,7 @@ my class ListIter {
     method nextiter() { $!nextiter }
 
     multi method DUMP(ListIter:D: :$indent-step = 4) {
-        my $before := self.DUMP-ID() ~ '(' ~ ("\x221e " if self.infinite);
+        my $before := ("\x221e" if self.infinite) ~ self.DUMP-ID() ~ '(';
         my @pieces;
         @pieces.push: ':reified('  ~ DUMP($!reified)  ~ ')';
         @pieces.push: ':nextiter(' ~ DUMP($!nextiter) ~ ')';

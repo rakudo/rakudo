@@ -343,7 +343,7 @@ my class List does Positional {
     method FLATTENABLE_HASH() { nqp::hash() }
 
     multi method DUMP(List:D: :$indent-step = 4) {
-        my $before := self.DUMP-ID() ~ '(' ~ ("\x221e " if self.infinite);
+        my $before := ("\x221e" if self.infinite) ~ self.DUMP-ID() ~ '(';
         my @pieces;
         @pieces.push: ':flattens(' ~ DUMP($!flattens) ~ ')';
         @pieces.push: ':items('    ~ DUMP($!items)    ~ ')';

@@ -278,7 +278,7 @@ my class Mu {
 
         @attrs.DUMP-PIECES(self.DUMP-ID() ~ '(', :$indent-step);
     }
-    method DUMP-ID() { self.HOW.name(self) ~ '<' ~ self.WHERE ~ '>' }
+    method DUMP-ID() { self.HOW.name(self) ~ '<' ~ self.WHERE.base(16) ~ '>' }
     method DUMP-PIECES(@pieces: $before, $after = ')', :$indent = @pieces > 1, :$indent-step) {
         $indent ?? $before ~ "\n" ~ @pieces.join(",\n").indent($indent-step) ~ "\n" ~ $after
                 !! $before ~        @pieces.join(', ')                              ~ $after;
@@ -525,7 +525,7 @@ sub DUMP(|args (*@args, :$indent-step = 4)) {
     elsif nqp::islist($topic) {
         my str $type = pir::typeof__SP($topic);
                $type = 'RPA' if $type eq 'ResizablePMCArray';
-        my $before   = $type ~ '<' ~ nqp::p6box_s(nqp::where($topic)) ~ '>(';
+        my $before   = $type ~ '<' ~ nqp::p6box_s(nqp::base_I(nqp::where($topic), 16)) ~ '>(';
 
         my @pieces;
         $topic := nqp::clone($topic);
@@ -542,7 +542,7 @@ sub DUMP(|args (*@args, :$indent-step = 4)) {
     }
     else {
         my str $type = pir::typeof__SP($topic);
-        $type ~ '<' ~ nqp::p6box_s(nqp::where($topic)) ~ '>(...)';
+        $type ~ '<' ~ nqp::p6box_s(nqp::base_I(nqp::where($topic), 16)) ~ '>(...)';
     }
 };
 

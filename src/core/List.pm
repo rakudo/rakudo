@@ -342,12 +342,13 @@ my class List does Positional {
     method FLATTENABLE_LIST() { self.gimme(*); $!items }
     method FLATTENABLE_HASH() { nqp::hash() }
 
-    multi method DUMP(List:D:) {
-        self.DUMP-ID() ~ '('
-          ~ ("\x221e " if self.infinite) ~
-          ~ ':items(' ~ DUMP($!items) ~ '), '
-          ~ ':nextiter(' ~ DUMP($!nextiter) ~ ')'
-          ~ ')'
+    multi method DUMP(List:D: :$indent-step = 4) {
+        my $before := self.DUMP-ID() ~ '(' ~ ("\x221e " if self.infinite);
+        my @pieces;
+        @pieces.push: ':flattens(' ~ DUMP($!flattens) ~ ')';
+        @pieces.push: ':items('    ~ DUMP($!items)    ~ ')';
+        @pieces.push: ':nextiter(' ~ DUMP($!nextiter) ~ ')';
+        @pieces.DUMP-PIECES($before, :$indent-step);
     }
 
     method keys(List:D:) {

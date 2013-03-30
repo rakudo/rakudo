@@ -503,7 +503,7 @@ class Perl6::Optimizer {
     my %allo_rev := nqp::hash('Ii', 1, 'Nn', 2, 'Ss', 3);
     method analyze_args_for_ct_call($op) {
         my @types;
-        my @flags;
+        my @flags := nqp::list_i();
         my @allomorphs;
         my int $num_prim := 0;
         my int $num_allo := 0;
@@ -524,7 +524,7 @@ class Perl6::Optimizer {
                 my str $allo := $_.has_compile_time_value && nqp::istype($_, QAST::Want)
                     ?? $_[1] !! '';
                 @types.push($type);
-                @flags.push($prim);
+                nqp::push_i(@flags, $prim);
                 @allomorphs.push($allo);
                 $num_prim := $num_prim + 1 if $prim;
                 $num_allo := $num_allo + 1 if $allo;
@@ -537,7 +537,7 @@ class Perl6::Optimizer {
         # See if we have an allomorphic constant that may allow us to do
         # a native dispatch with it; takes at least one declaratively
         # native argument to make this happen.
-        if @types == 2 && $num_prim == 1 && $num_allo == 1 {
+        if +@types == 2 && $num_prim == 1 && $num_allo == 1 {
             my int $prim_flag := @flags[0] || @flags[1];
             my int $allo_idx := @allomorphs[0] ?? 0 !! 1;
             if @allomorphs[$allo_idx] eq @allo_map[$prim_flag] {
@@ -547,7 +547,7 @@ class Perl6::Optimizer {
         
         # Alternatively, a single arg that is allomorphic will prefer
         # the literal too.
-        if @types == 1 && $num_allo == 1 {
+        if +@types == 1 && $num_allo == 1 {
             @flags[0] := %allo_rev{@allomorphs[0]} // 0;
         }
         

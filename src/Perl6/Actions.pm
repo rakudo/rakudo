@@ -1863,7 +1863,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 }
             }
         }
-        elsif $*SCOPE eq 'our' {            
+        elsif $*SCOPE eq 'our' {
             # Twigil handling.
             if $twigil eq '.' {
                 add_lexical_accessor($/, $past, $desigilname, $*W.cur_lexpad());
@@ -1891,14 +1891,20 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 $/.CURSOR.panic("Cannot have an anonymous 'our'-scoped variable");
             }
             
-            my $lex := QAST::Var.new( :name($name), :scope('lexical') );
-            unless $BLOCK.symbol($name) {
-                $lex.decl('var');
-                $BLOCK.symbol($name, :scope('lexical'));
+            # Search for the nearest package.
+            my $pkg := $BLOCK;
+            while !$pkg.symbol('$?PACKAGE') && $pkg<outer>.defined {
+                $pkg := $pkg<outer>;
+            }
+            
+            # Declare that variable within that package.
+            unless $pkg.symbol($name) {
+                $pkg.symbol($name, :scope('lexical'));
+                $pkg[0].push( QAST::Var.new( :name($name), :scope('lexical'), :decl('var') ) );
             }
             $BLOCK[0].push(QAST::Op.new(
                 :op('bind'),
-                $lex,
+                QAST::Var.new( :name($name), :scope('lexical') ),
                 $*W.symbol_lookup([$name], $/, :package_only(1), :lvalue(1))));
         }
         else {

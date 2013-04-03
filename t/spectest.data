@@ -221,6 +221,7 @@ S04-declarations/constant.t
 S04-declarations/implicit-parameter.t
 S04-declarations/multiple.t
 S04-declarations/my.t
+S04-declarations/our.t
 S04-declarations/state.t
 S04-exception-handlers/catch.t
 S04-exceptions/fail.t
@@ -728,6 +729,7 @@ integration/advent2009-day23.t
 integration/advent2010-day04.t
 integration/code-blocks-as-sub-args.t
 integration/error-reporting.t  # icu
+integration/lazy-bentley-generator.t
 integration/lexical-array-in-inner-block.t
 integration/lexicals-and-attributes.t
 integration/man-or-boy.t

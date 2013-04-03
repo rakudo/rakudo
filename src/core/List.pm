@@ -342,13 +342,18 @@ my class List does Positional {
     method FLATTENABLE_LIST() { self.gimme(*); $!items }
     method FLATTENABLE_HASH() { nqp::hash() }
 
-    multi method DUMP(List:D: :$indent-step = 4) {
-        my $before := ("\x221e" if self.infinite) ~ self.DUMP-ID() ~ '(';
-        my @pieces;
-        @pieces.push: ':flattens(' ~ DUMP($!flattens) ~ ')';
-        @pieces.push: ':items('    ~ DUMP($!items)    ~ ')';
-        @pieces.push: ':nextiter(' ~ DUMP($!nextiter) ~ ')';
-        @pieces.DUMP-PIECES($before, :$indent-step);
+    multi method DUMP(List:D: :$indent-step = 4, :%ctx?) {
+        return DUMP(self, :$indent-step) unless %ctx;
+
+        my $flags    := ("\x221e" if self.infinite);
+        my Mu $attrs := nqp::list();
+        nqp::push($attrs, '$!flattens');
+        nqp::push($attrs,  $!flattens );
+        nqp::push($attrs, '$!items'   );
+        nqp::push($attrs,  $!items    );
+        nqp::push($attrs, '$!nextiter');
+        nqp::push($attrs,  $!nextiter );
+        self.DUMP-OBJECT-ATTRS($attrs, :$indent-step, :%ctx, :$flags);
     }
 
     method keys(List:D:) {

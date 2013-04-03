@@ -101,11 +101,13 @@ my class Parcel does Positional {
         self
     }
 
-    multi method DUMP(Parcel:D: :$indent-step = 4) {
-        my $before = self.DUMP-ID() ~ '(';
-        my @pieces;
-        @pieces.push: ':$!storage(' ~ DUMP($!storage) ~ ')';
-        @pieces.DUMP-PIECES($before, :$indent-step);
+    multi method DUMP(Parcel:D: :$indent-step = 4, :%ctx?) {
+        return DUMP(self, :$indent-step) unless %ctx;
+
+        my Mu $attrs := nqp::list();
+        nqp::push($attrs, '$!storage');
+        nqp::push($attrs,  $!storage );
+        self.DUMP-OBJECT-ATTRS($attrs, :$indent-step, :%ctx);
     }
 
     method FLATTENABLE_LIST() { $!storage }

@@ -146,15 +146,22 @@ my class MapIter is Iterator {
         parcel
     }
 
-    multi method DUMP(MapIter:D: :$indent-step = 4) {
-        my $before := self.DUMP-ID() ~ '(';
-        my @pieces;
-        @pieces.push: ':flattens(' ~ DUMP($!flattens) ~ ')';
-        @pieces.push: ':first('    ~ DUMP($!first)    ~ ')';
-        @pieces.push: ':reified('  ~ DUMP($!reified)  ~ ')';
-        @pieces.push: ':items('    ~ DUMP($!items)    ~ ')';
-        @pieces.push: ':listiter(' ~ DUMP($!listiter) ~ ')';
-        @pieces.push: ':block('    ~ DUMP($!block)    ~ ')';
-        @pieces.DUMP-PIECES($before, :$indent-step);
+    multi method DUMP(MapIter:D: :$indent-step = 4, :%ctx?) {
+        return DUMP(self, :$indent-step) unless %ctx;
+
+        my Mu $attrs := nqp::list();
+        nqp::push($attrs, '$!flattens');
+        nqp::push($attrs,  $!flattens );
+        nqp::push($attrs, '$!first'   );
+        nqp::push($attrs,  $!first    );
+        nqp::push($attrs, '$!reified' );
+        nqp::push($attrs,  $!reified  );
+        nqp::push($attrs, '$!items'   );
+        nqp::push($attrs,  $!items    );
+        nqp::push($attrs, '$!listiter');
+        nqp::push($attrs,  $!listiter );
+        nqp::push($attrs, '$!block'   );
+        nqp::push($attrs,  $!block    );
+        self.DUMP-OBJECT-ATTRS($attrs, :$indent-step, :%ctx);
     }
 }

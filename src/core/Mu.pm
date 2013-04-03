@@ -241,8 +241,10 @@ my class Mu {
 
     proto method DUMP(|) { * }
     multi method DUMP(Mu:U:) { self.perl }
-    multi method DUMP(Mu:D: :$indent-step = 4) {
-        my @attrs;
+    multi method DUMP(Mu:D: :$indent-step = 4, :%ctx?) {
+        return DUMP(self, :$indent-step) unless %ctx;
+
+        my Mu $attrs := nqp::list();
         for self.^attributes() -> $attr {
             my $name       := $attr.name;
             my $acc_name   := $name.substr(2);
@@ -251,39 +253,49 @@ my class Mu {
 
             my $value;
             if $attr.has_accessor {
-                # say '--> hit has_accessor';
-                $value := DUMP(self."$acc_name"(), :$indent-step);
+                $value := self."$acc_name"();
             }
             elsif nqp::can($attr, 'get_value') {
-                # say '--> hit get_value';
-                $value := DUMP($attr.get_value(self), :$indent-step);
-                # $value := DUMP(nqp::findmethod($attr, 'get_value')($attr, self));
+                $value := $attr.get_value(self);
             }
             else {
-                # say '--> hit default case';
                 my $decont  := nqp::p6decont(self);
                 my $package := $attr.package;
-                $value := do given nqp::p6box_i(nqp::objprimspec($attr.type)) {
+                $value      := do given nqp::p6box_i(nqp::objprimspec($attr.type)) {
                     when 0 {              nqp::getattr(  $decont, $package, $name)  }
                     when 1 { nqp::p6box_i(nqp::getattr_i($decont, $package, $name)) }
                     when 2 { nqp::p6box_n(nqp::getattr_n($decont, $package, $name)) }
                     when 3 { nqp::p6box_s(nqp::getattr_s($decont, $package, $name)) }
                 };
-                $value := nqp::can($value, 'perl')
-                    ?? $value.perl
-                    !! pir::typeof__SP($value) ~ '<' ~ nqp::p6box_s(nqp::base_I(nqp::where($value), 16)) ~ '>(...)';
             }
 
-            # say '==> Value is:         ' ~ $value;
-            @attrs.push: ':' ~ $build_name ~ '(' ~ $value ~ ')';
+            nqp::push($attrs, $build_name);
+            nqp::push($attrs, $value);
         }
 
-        @attrs.DUMP-PIECES(self.DUMP-ID() ~ '(', :$indent-step);
+        self.DUMP-OBJECT-ATTRS($attrs, :$indent-step, :%ctx);
     }
-    method DUMP-ID() { self.HOW.name(self) ~ '<' ~ self.WHERE.base(16) ~ '>' }
     method DUMP-PIECES(@pieces: $before, $after = ')', :$indent = @pieces > 1, :$indent-step) {
         $indent ?? $before ~ "\n" ~ @pieces.join(",\n").indent($indent-step) ~ "\n" ~ $after
                 !! $before ~        @pieces.join(', ')                              ~ $after;
+    }
+    method DUMP-OBJECT-ATTRS(|args (*@args, :$indent-step, :%ctx, :$flags?)) {
+        my Mu  $attrs := nqp::clone(nqp::captureposarg(nqp::usecapture(), 1));
+        my str $where  = nqp::base_I(nqp::where(self), 16);
+        my str $before = ($flags if defined $flags) ~ self.HOW.name(self) ~ '<' ~ %ctx{$where} ~ '>(';
+
+        # say $before;
+        # say '$attrs is a: ' ~ pir::typeof__SP($attrs);
+
+        my @pieces;
+        while $attrs {
+            my str $name  = nqp::shift($attrs);
+            my Mu $value := nqp::shift($attrs);
+            # say 'name:  ' ~ $name;
+            # say 'value: ' ~ $value;
+            @pieces.push: ':' ~ $name ~ '(' ~ DUMP($value, :$indent-step, :%ctx) ~ ')';
+        }
+        @pieces.DUMP-PIECES($before, :$indent-step);
     }
 
     proto method isa(|) { * }
@@ -520,31 +532,45 @@ multi sub infix:<eqv>(@a, @b) {
     Bool::True
 }
 
-sub DUMP(|args (*@args, :$indent-step = 4)) {
-    my Mu $topic := nqp::captureposarg(nqp::usecapture(), 0);
-    # say '    $topic type is: ' ~ pir::typeof__SP($topic);
-    if    nqp::isnull($topic) { '(null)' }
-    elsif nqp::islist($topic) {
-        my str $type = pir::typeof__SP($topic);
-               $type = 'RPA' if $type eq 'ResizablePMCArray';
-        my $before   = $type ~ '<' ~ nqp::p6box_s(nqp::base_I(nqp::where($topic), 16)) ~ '>(';
+sub DUMP(|args (*@args, :$indent-step = 4, :%ctx?)) {
+    my Mu  $topic := nqp::captureposarg(nqp::usecapture(), 0);
+    my str $type   = pir::typeof__SP($topic);
+    my str $where  = nqp::base_I(nqp::where($topic), 16);
 
-        my @pieces;
-        $topic := nqp::clone($topic);
-        while $topic {
-            my Mu $x := nqp::shift($topic);
-            @pieces.push: DUMP($x, :$indent-step);
-        }
+    # say $type ~ ':' ~ $where;
 
-        @pieces.DUMP-PIECES($before, :$indent-step);
-    }
-    elsif nqp::can($topic, 'DUMP') {
-        my $dump := $topic.DUMP(:$indent-step);
-        nqp::iscont($topic) ?? "\x25b6" ~ $dump !! $dump;
+    if %ctx{$where} -> $obj_num {
+        nqp::isconcrete($topic)  ?? '=' ~ $type ~ '<' ~ $obj_num ~ '>' !!
+        nqp::can($topic, 'DUMP') ?? $topic.DUMP(:$indent-step, :%ctx)  !!
+                                    $type;
     }
     else {
-        my str $type = pir::typeof__SP($topic);
-        $type ~ '<' ~ nqp::p6box_s(nqp::base_I(nqp::where($topic), 16)) ~ '>(...)';
+        my int $obj_num = %ctx.elems + 1;
+        %ctx{$where} = $obj_num;
+
+        # say %ctx;
+
+        if    nqp::isnull($topic) { '(null)' }
+        elsif nqp::islist($topic) {
+            $type = 'RPA' if $type eq 'ResizablePMCArray';
+            my $before = $type ~ '<' ~ $obj_num ~ '>(';
+
+            my @pieces;
+            $topic := nqp::clone($topic);
+            while $topic {
+                my Mu $x := nqp::shift($topic);
+                @pieces.push: DUMP($x, :$indent-step, :%ctx);
+            }
+
+            @pieces.DUMP-PIECES($before, :$indent-step);
+        }
+        elsif nqp::can($topic, 'DUMP') {
+            my $dump := $topic.DUMP(:$indent-step, :%ctx);
+            nqp::iscont($topic) ?? "\x25b6" ~ $dump !! $dump;
+        }
+        else {
+            $type ~ '<' ~ $obj_num ~ '>(...)';
+        }
     }
 };
 

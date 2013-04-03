@@ -69,14 +69,20 @@ my class ListIter {
     method iterator() { self }
     method nextiter() { $!nextiter }
 
-    multi method DUMP(ListIter:D: :$indent-step = 4) {
-        my $before := ("\x221e" if self.infinite) ~ self.DUMP-ID() ~ '(';
-        my @pieces;
-        @pieces.push: ':reified('  ~ DUMP($!reified)  ~ ')';
-        @pieces.push: ':nextiter(' ~ DUMP($!nextiter) ~ ')';
-        @pieces.push: ':rest('     ~ DUMP($!rest)     ~ ')';
-        @pieces.push: ':list('     ~ $!list.DUMP-ID() ~ ')';
-        @pieces.DUMP-PIECES($before, :$indent-step);
+    multi method DUMP(ListIter:D: :$indent-step = 4, :%ctx?) {
+        return DUMP(self, :$indent-step) unless %ctx;
+
+        my $flags    := ("\x221e" if self.infinite);
+        my Mu $attrs := nqp::list();
+        nqp::push($attrs, '$!reified' );
+        nqp::push($attrs,  $!reified  );
+        nqp::push($attrs, '$!nextiter');
+        nqp::push($attrs,  $!nextiter );
+        nqp::push($attrs, '$!rest'    );
+        nqp::push($attrs,  $!rest     );
+        nqp::push($attrs, '$!list'    );
+        nqp::push($attrs,  $!list     );
+        self.DUMP-OBJECT-ATTRS($attrs, :$indent-step, :%ctx, :$flags);
     }
 }
 

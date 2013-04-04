@@ -527,12 +527,13 @@ multi sub infix:<eqv>(@a, @b) {
 }
 
 sub DUMP(|args (*@args, :$indent-step = 4, :%ctx?)) {
-    my Mu  $topic := nqp::captureposarg(nqp::usecapture(), 0);
+    my Mu $capture := nqp::usecapture();
+    my Mu $topic   := nqp::captureposarg($capture, 0);
     return "\x25b6" ~ DUMP(nqp::decont($topic), :$indent-step, :%ctx)
         if nqp::iscont($topic);
 
-    my str $type   = pir::typeof__SP($topic);
-    my str $where  = nqp::base_I(nqp::where($topic), 16);
+    my str $type  = pir::typeof__SP($topic);
+    my str $where = nqp::base_I(nqp::where($topic), 16);
 
     if %ctx{$where} -> $obj_num {
         nqp::istype($topic, Bool) ?? $topic.DUMP(:$indent-step, :%ctx)  !!
@@ -562,7 +563,12 @@ sub DUMP(|args (*@args, :$indent-step = 4, :%ctx?)) {
             $topic.DUMP(:$indent-step, :%ctx);
         }
         else {
-            $type ~ '<' ~ $obj_num ~ '>(...)';
+            given nqp::p6box_i(nqp::captureposprimspec($capture, 0)) {
+                when 0 { $type ~ '<' ~ $obj_num ~ '>(...)' }
+                when 1 { nqp::p6box_i(nqp::captureposarg_i($capture, 0)).DUMP(:$indent-step, :%ctx) }
+                when 2 { nqp::p6box_n(nqp::captureposarg_n($capture, 0)).DUMP(:$indent-step, :%ctx) }
+                when 3 { nqp::p6box_s(nqp::captureposarg_s($capture, 0)).DUMP(:$indent-step, :%ctx) }
+            }
         }
     }
 }

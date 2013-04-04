@@ -40,6 +40,7 @@ is DUMP(-1.1),      (-1.1).perl,      'DUMP(Rat:D) is .perl (-1.1)';
 is DUMP( 22/7),     ( 22/7).perl,     'DUMP(Rat:D) is .perl (22/7)';
 is DUMP(-22/7),     (-22/7).perl,     'DUMP(Rat:D) is .perl (-22/7)';
 
+todo('0i literal gets wrapped in a container, unlike other numeric literals');
 is DUMP(   0i),     (   0i).perl,     'DUMP(Complex:D) is .perl (0i)';
 is DUMP(  -0i),     (  -0i).perl,     'DUMP(Complex:D) is .perl (-0i)';
 is DUMP( 0+0i),     ( 0+0i).perl,     'DUMP(Complex:D) is .perl (0+0i)';

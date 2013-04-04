@@ -565,9 +565,9 @@ sub DUMP(|args (*@args, :$indent-step = 4, :%ctx?)) {
         else {
             given nqp::p6box_i(nqp::captureposprimspec($capture, 0)) {
                 when 0 { $type ~ '<' ~ $obj_num ~ '>(...)' }
-                when 1 { nqp::p6box_i(nqp::captureposarg_i($capture, 0)).DUMP(:$indent-step, :%ctx) }
-                when 2 { nqp::p6box_n(nqp::captureposarg_n($capture, 0)).DUMP(:$indent-step, :%ctx) }
-                when 3 { nqp::p6box_s(nqp::captureposarg_s($capture, 0)).DUMP(:$indent-step, :%ctx) }
+                when 1 { nqp::captureposarg_i($capture, 0).DUMP(:$indent-step, :%ctx) }
+                when 2 { nqp::captureposarg_n($capture, 0).DUMP(:$indent-step, :%ctx) }
+                when 3 { nqp::captureposarg_s($capture, 0).DUMP(:$indent-step, :%ctx) }
             }
         }
     }

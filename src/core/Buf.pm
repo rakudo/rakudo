@@ -60,8 +60,11 @@ my class Buf does Positional {
         @l;
     }
 
-    method gist() {
+    multi method gist(Buf:D:) {
         'Buf:0x<' ~ self.list.fmt('%02x', ' ') ~ '>'
+    }
+    multi method perl(Buf:D:) {
+        self.^name ~ '.new(' ~ self.list.join(', ') ~ ')';
     }
 
     method decode(Str:D $encoding = 'utf8') {

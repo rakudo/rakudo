@@ -535,9 +535,10 @@ sub DUMP(|args (*@args, :$indent-step = 4, :%ctx?)) {
     my str $where  = nqp::base_I(nqp::where($topic), 16);
 
     if %ctx{$where} -> $obj_num {
-        nqp::isconcrete($topic)  ?? '=' ~ $type ~ '<' ~ $obj_num ~ '>' !!
-        nqp::can($topic, 'DUMP') ?? $topic.DUMP(:$indent-step, :%ctx)  !!
-                                    $type;
+        nqp::istype($topic, Bool) ?? $topic.DUMP(:$indent-step, :%ctx)  !!
+        nqp::isconcrete($topic)   ?? '=' ~ $type ~ '<' ~ $obj_num ~ '>' !!
+        nqp::can($topic, 'DUMP')  ?? $topic.DUMP(:$indent-step, :%ctx)  !!
+                                     $type;
     }
     else {
         my int $obj_num = %ctx.elems + 1;

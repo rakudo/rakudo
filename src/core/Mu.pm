@@ -249,7 +249,6 @@ my class Mu {
             my $name       := $attr.name;
             my $acc_name   := $name.substr(2);
             my $build_name := $attr.has_accessor ?? $acc_name !! $name;
-            # say 'Looking at attribute: ' ~ $build_name;
 
             my $value;
             if $attr.has_accessor {
@@ -284,15 +283,10 @@ my class Mu {
         my str $where  = nqp::base_I(nqp::where(self), 16);
         my str $before = ($flags if defined $flags) ~ self.HOW.name(self) ~ '<' ~ %ctx{$where} ~ '>(';
 
-        # say $before;
-        # say '$attrs is a: ' ~ pir::typeof__SP($attrs);
-
         my @pieces;
         while $attrs {
             my str $name  = nqp::shift($attrs);
             my Mu $value := nqp::shift($attrs);
-            # say 'name:  ' ~ $name;
-            # say 'value: ' ~ $value;
             @pieces.push: ':' ~ $name ~ '(' ~ DUMP($value, :$indent-step, :%ctx) ~ ')';
         }
         @pieces.DUMP-PIECES($before, :$indent-step);
@@ -537,8 +531,6 @@ sub DUMP(|args (*@args, :$indent-step = 4, :%ctx?)) {
     my str $type   = pir::typeof__SP($topic);
     my str $where  = nqp::base_I(nqp::where($topic), 16);
 
-    # say $type ~ ':' ~ $where;
-
     if %ctx{$where} -> $obj_num {
         nqp::isconcrete($topic)  ?? '=' ~ $type ~ '<' ~ $obj_num ~ '>' !!
         nqp::can($topic, 'DUMP') ?? $topic.DUMP(:$indent-step, :%ctx)  !!
@@ -547,8 +539,6 @@ sub DUMP(|args (*@args, :$indent-step = 4, :%ctx?)) {
     else {
         my int $obj_num = %ctx.elems + 1;
         %ctx{$where} = $obj_num;
-
-        # say %ctx;
 
         if    nqp::isnull($topic) { '(null)' }
         elsif nqp::islist($topic) {
@@ -572,6 +562,6 @@ sub DUMP(|args (*@args, :$indent-step = 4, :%ctx?)) {
             $type ~ '<' ~ $obj_num ~ '>(...)';
         }
     }
-};
+}
 
 Metamodel::ClassHOW.exclude_parent(Mu);

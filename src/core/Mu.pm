@@ -528,6 +528,9 @@ multi sub infix:<eqv>(@a, @b) {
 
 sub DUMP(|args (*@args, :$indent-step = 4, :%ctx?)) {
     my Mu  $topic := nqp::captureposarg(nqp::usecapture(), 0);
+    return "\x25b6" ~ DUMP(nqp::decont($topic), :$indent-step, :%ctx)
+        if nqp::iscont($topic);
+
     my str $type   = pir::typeof__SP($topic);
     my str $where  = nqp::base_I(nqp::where($topic), 16);
 
@@ -555,8 +558,7 @@ sub DUMP(|args (*@args, :$indent-step = 4, :%ctx?)) {
             @pieces.DUMP-PIECES($before, :$indent-step);
         }
         elsif nqp::can($topic, 'DUMP') {
-            my $dump := $topic.DUMP(:$indent-step, :%ctx);
-            nqp::iscont($topic) ?? "\x25b6" ~ $dump !! $dump;
+            $topic.DUMP(:$indent-step, :%ctx);
         }
         else {
             $type ~ '<' ~ $obj_num ~ '>(...)';

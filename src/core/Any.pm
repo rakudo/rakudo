@@ -511,5 +511,6 @@ multi sub sort(*@values)      {
         !!  @values.sort;
 }
 
-multi sub item(*@a) is pure { my $ = @a }
+proto sub item(|) is pure { * }
+multi sub item(*@a) { my $ = @a }
 multi sub item(Mu $a) { $a }

@@ -51,3 +51,12 @@ is DUMP( 1+1i),     ( 1+1i).perl,     'DUMP(Complex:D) is .perl (1+1i)';
 is DUMP( 1-1i),     ( 1-1i).perl,     'DUMP(Complex:D) is .perl (1-1i)';
 is DUMP(-1+1i),     (-1+1i).perl,     'DUMP(Complex:D) is .perl (-1+1i)';
 is DUMP(-1-1i),     (-1-1i).perl,     'DUMP(Complex:D) is .perl (-1-1i)';
+
+# Variables with native primitive types dump as literals
+my int $int = 42;
+my num $num = 12345e0;
+my str $str = 'a string';
+
+is DUMP($int),      DUMP(42),         'DUMP(int) dumps as a literal';
+is DUMP($num),      DUMP(12345e0),    'DUMP(num) dumps as a literal';
+is DUMP($str),      DUMP('a string'), 'DUMP(str) dumps as a literal';

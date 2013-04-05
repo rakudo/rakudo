@@ -74,14 +74,14 @@ my class ListIter {
 
         my $flags    := ("\x221e" if self.infinite);
         my Mu $attrs := nqp::list();
+        nqp::push($attrs, '$!list'    );
+        nqp::push($attrs,  $!list     );
         nqp::push($attrs, '$!reified' );
         nqp::push($attrs,  $!reified  );
         nqp::push($attrs, '$!nextiter');
         nqp::push($attrs,  $!nextiter );
         nqp::push($attrs, '$!rest'    );
         nqp::push($attrs,  $!rest     );
-        nqp::push($attrs, '$!list'    );
-        nqp::push($attrs,  $!list     );
         self.DUMP-OBJECT-ATTRS($attrs, :$indent-step, :%ctx, :$flags);
     }
 }

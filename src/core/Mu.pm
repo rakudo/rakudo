@@ -250,14 +250,14 @@ my class Mu {
             my $acc_name   := $name.substr(2);
             my $build_name := $attr.has_accessor ?? $acc_name !! $name;
 
-            my $value;
+            my Mu $value;
             if $attr.has_accessor {
                 $value := self."$acc_name"();
             }
             elsif nqp::can($attr, 'get_value') {
                 $value := $attr.get_value(self);
             }
-            else {
+            elsif nqp::can($attr, 'package') {
                 my $decont  := nqp::p6decont(self);
                 my $package := $attr.package;
                 $value      := do given nqp::p6box_i(nqp::objprimspec($attr.type)) {
@@ -266,6 +266,9 @@ my class Mu {
                     when 2 { nqp::p6box_n(nqp::getattr_n($decont, $package, $name)) }
                     when 3 { nqp::p6box_s(nqp::getattr_s($decont, $package, $name)) }
                 };
+            }
+            else {
+                next;
             }
 
             nqp::push($attrs, $build_name);
@@ -529,8 +532,10 @@ multi sub infix:<eqv>(@a, @b) {
 sub DUMP(|args (*@args, :$indent-step = 4, :%ctx?)) {
     my Mu $capture := nqp::usecapture();
     my Mu $topic   := nqp::captureposarg($capture, 0);
+
     return "\x25b6" ~ DUMP(nqp::decont($topic), :$indent-step, :%ctx)
         if nqp::iscont($topic);
+    return '(null)' if nqp::isnull($topic);
 
     my str $type  = pir::typeof__SP($topic);
     my str $where = nqp::base_I(nqp::where($topic), 16);

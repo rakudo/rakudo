@@ -550,10 +550,9 @@ sub DUMP(|args (*@args, :$indent-step = 4, :%ctx?)) {
         my int $obj_num = %ctx.elems + 1;
         %ctx{$where} = $obj_num;
 
-        if    nqp::isnull($topic) { '(null)' }
-        elsif nqp::islist($topic) {
+        if    nqp::islist($topic) {
             $type = 'RPA' if $type eq 'ResizablePMCArray';
-            my $before = $type ~ '<' ~ $obj_num ~ '>(';
+            my str $id = $type ~ '<' ~ $obj_num ~ '>';
 
             my @pieces;
             $topic := nqp::clone($topic);
@@ -562,7 +561,17 @@ sub DUMP(|args (*@args, :$indent-step = 4, :%ctx?)) {
                 @pieces.push: DUMP($x, :$indent-step, :%ctx);
             }
 
-            @pieces.DUMP-PIECES($before, :$indent-step);
+            @pieces.DUMP-PIECES($id ~ '(', :$indent-step);
+        }
+        elsif nqp::ishash($topic) {
+            my str $id = $type ~ '<' ~ $obj_num ~ '>';
+
+            my @pieces;
+            for $topic {
+                @pieces.push: $_.key ~ ' => ' ~ DUMP($_.value, :$indent-step, :%ctx);
+            }
+
+            @pieces.DUMP-PIECES($id ~ '(', :$indent-step);
         }
         elsif nqp::can($topic, 'DUMP') {
             $topic.DUMP(:$indent-step, :%ctx);

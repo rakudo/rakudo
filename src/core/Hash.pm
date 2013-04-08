@@ -31,6 +31,17 @@ my class Hash {
           !! '(' ~ self.pairs.map({.perl}).join(', ') ~ ').hash'
     }
 
+    multi method DUMP(Hash:D: :$indent-step = 4, :%ctx?) {
+        return DUMP(self, :$indent-step) unless %ctx;
+
+        my Mu $attrs := nqp::list();
+        nqp::push($attrs, '$!descriptor');
+        nqp::push($attrs,  $!descriptor );
+        nqp::push($attrs, '$!storage'   );
+        nqp::push($attrs,  nqp::getattr(nqp::p6decont(self), EnumMap, '$!storage'));
+        self.DUMP-OBJECT-ATTRS($attrs, :$indent-step, :%ctx);
+    }
+
     method STORE_AT_KEY(\key, Mu $x is copy) is rw {
         nqp::findmethod(EnumMap, 'STORE_AT_KEY')(self, key, $x);
     }

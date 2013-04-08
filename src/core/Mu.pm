@@ -245,22 +245,23 @@ my class Mu {
         return DUMP(self, :$indent-step) unless %ctx;
 
         my Mu $attrs := nqp::list();
-        for self.^attributes() -> $attr {
-            my $name       := $attr.name;
-            my $acc_name   := $name.substr(2);
-            my $build_name := $attr.has_accessor ?? $acc_name !! $name;
+        for self.HOW.attributes(self) -> $attr {
+            my str $name       = $attr.name;
+            my str $acc_name   = nqp::substr($name, 2, nqp::chars($name) - 2);
+            my str $build_name = $attr.has_accessor ?? $acc_name !! $name;
 
             my Mu $value;
-            if $attr.has_accessor {
+            if    $attr.has_accessor {
                 $value := self."$acc_name"();
             }
             elsif nqp::can($attr, 'get_value') {
                 $value := $attr.get_value(self);
             }
             elsif nqp::can($attr, 'package') {
-                my $decont  := nqp::p6decont(self);
-                my $package := $attr.package;
-                $value      := do given nqp::p6box_i(nqp::objprimspec($attr.type)) {
+                my Mu $decont  := nqp::p6decont(self);
+                my Mu $package := $attr.package;
+
+                $value := do given nqp::p6box_i(nqp::objprimspec($attr.type)) {
                     when 0 {              nqp::getattr(  $decont, $package, $name)  }
                     when 1 { nqp::p6box_i(nqp::getattr_i($decont, $package, $name)) }
                     when 2 { nqp::p6box_n(nqp::getattr_n($decont, $package, $name)) }

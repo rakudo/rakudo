@@ -1847,3 +1847,19 @@ Perl6::Metamodel::GrammarHOW.set_default_parent_type(Grammar);
 
 # Put PROCESS in place.
 nqp::bindhllsym('perl6', 'PROCESS', PROCESS);
+
+# HLL interop configuration.
+nqp::sethllconfig('perl6', nqp::hash(
+    'null_value', Mu,
+    'foreign_type_int', Int,
+    'foreign_type_num', Num,
+    'foreign_type_str', Str,
+    'foreign_transform_array', -> $array {
+        pir::perl6_parcel_from_rpa__PPP($array, Mu)
+    },
+    'foreign_transform_hash', -> $hash {
+        my $result := nqp::create(Hash);
+        nqp::bindattr($result, EnumMap, '$!storage', $hash);
+        $result
+    }
+));

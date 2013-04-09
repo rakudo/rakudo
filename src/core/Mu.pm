@@ -572,7 +572,7 @@ sub DUMP(|args (*@args, :$indent-step = 4, :%ctx?)) {
                 for $topic {
                     @pieces.push: $_.key ~ ' => ' ~ DUMP($_.value, :$indent-step, :%ctx);
                 }
-                CATCH { default { @pieces.push: '(unmarshallable)' } }
+                CATCH { default { @pieces.push: '...' } }
             }
 
             @pieces.DUMP-PIECES($id ~ '(', :$indent-step);

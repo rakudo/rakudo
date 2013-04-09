@@ -568,8 +568,11 @@ sub DUMP(|args (*@args, :$indent-step = 4, :%ctx?)) {
             my str $id = $type ~ '<' ~ $obj_num ~ '>';
 
             my @pieces;
-            for $topic {
-                @pieces.push: $_.key ~ ' => ' ~ DUMP($_.value, :$indent-step, :%ctx);
+            {
+                for $topic {
+                    @pieces.push: $_.key ~ ' => ' ~ DUMP($_.value, :$indent-step, :%ctx);
+                }
+                CATCH { default { @pieces.push: '(unmarshallable)' } }
             }
 
             @pieces.DUMP-PIECES($id ~ '(', :$indent-step);

@@ -1,4 +1,4 @@
-# Copyright (C) 2006-2012, The Perl Foundation.
+# Copyright (C) 2006-2013, The Perl Foundation.
 # $Id$
 
 SHELL            = @shell@
@@ -234,6 +234,7 @@ CORE_SOURCES = \
   src/core/Bag.pm \
   src/core/ObjAt.pm \
   src/core/Version.pm \
+  src/core/ForeignCode.pm \
   src/core/operators.pm \
   src/core/metaops.pm \
   src/core/terms.pm \

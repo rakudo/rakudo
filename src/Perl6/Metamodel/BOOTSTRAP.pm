@@ -73,6 +73,7 @@ my stub PROCESS metaclass Perl6::Metamodel::ModuleHOW { ... };
 my stub Grammar metaclass Perl6::Metamodel::ClassHOW { ... };
 my stub Junction metaclass Perl6::Metamodel::ClassHOW { ... };
 my stub Metamodel metaclass Perl6::Metamodel::PackageHOW { ... };
+my stub ForeignCode metaclass Perl6::Metamodel::ClassHOW { ... };
 
 # We stick all the declarative bits inside of a BEGIN, so they get
 # serialized.
@@ -1605,8 +1606,21 @@ BEGIN {
     Bool.HOW.publish_boolification_spec(Bool);
     Bool.HOW.compose_repr(Bool);
 
+    # class ObjAt {
+    #     has str $!value;
+    # }
     ObjAt.HOW.add_attribute(ObjAt, BOOTSTRAPATTR.new(:name<$!value>, :type(str), :box_target(1), :package(ObjAt)));
     ObjAt.HOW.compose_repr(ObjAt);
+    
+    # class ForeignCode {
+    #     has $!do;                # Code object we delegate to
+    #     ... # Uncomposed
+    # }
+    ForeignCode.HOW.add_parent(ForeignCode, Any);
+    ForeignCode.HOW.add_attribute(ForeignCode, BOOTSTRAPATTR.new(:name<$!do>, :type(Mu), :package(ForeignCode)));
+    ForeignCode.HOW.compose_repr(ForeignCode);
+    ForeignCode.HOW.add_parrot_vtable_mapping(ForeignCode, 'invoke', nqp::null());
+    ForeignCode.HOW.add_parrot_vtable_handler_mapping(ForeignCode, 'invoke', '$!do');
 
     # Set up Stash type, using a Parrot hash under the hood for storage.
     Stash.HOW.add_parent(Stash, Hash);
@@ -1651,6 +1665,7 @@ BEGIN {
     Perl6::Metamodel::ClassHOW.add_stash(Array);
     Perl6::Metamodel::ClassHOW.add_stash(Hash);
     Perl6::Metamodel::ClassHOW.add_stash(ObjAt);
+    Perl6::Metamodel::ClassHOW.add_stash(ForeignCode);
 
     # Make Parrot invoke v-table construct a capture and delegate off
     # to postcircumfix:<( )>.
@@ -1747,6 +1762,7 @@ BEGIN {
     EXPORT::DEFAULT.WHO<WrapDispatcher>      := Perl6::Metamodel::WrapDispatcher;
     EXPORT::DEFAULT.WHO<StaticLexPad>        := Perl6::Metamodel::StaticLexPad;
     EXPORT::DEFAULT.WHO<Metamodel>           := Metamodel;
+    EXPORT::DEFAULT.WHO<ForeignCode>         := ForeignCode;
 }
 EXPORT::DEFAULT.WHO<NQPCursorRole> := NQPCursorRole;
 
@@ -1861,6 +1877,11 @@ nqp::sethllconfig('perl6', nqp::hash(
     'foreign_transform_hash', -> $hash {
         my $result := nqp::create(Hash);
         nqp::bindattr($result, EnumMap, '$!storage', $hash);
+        $result
+    },
+    'foreign_transform_code', -> $code {
+        my $result := nqp::create(ForeignCode);
+        nqp::bindattr($result, ForeignCode, '$!do', $code);
         $result
     }
 ));

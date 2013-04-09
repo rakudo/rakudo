@@ -12,7 +12,7 @@ my class Code does Callable {
     multi method Str(Code:D:) { self.name }
 
     method outer(Code:D:) {
-        pir::perl6_code_object_from_parrot_sub__PP($!do.get_outer())
+        nqp::getcodeobj($!do.get_outer())
     }
 
     # returns an identifier for this code object

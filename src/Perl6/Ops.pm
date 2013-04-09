@@ -22,7 +22,6 @@ $ops.add_hll_pirop_mapping('perl6', 'p6bindcaptosig', 'perl6_bind_sig_to_cap', '
 $ops.add_hll_pirop_mapping('perl6', 'p6typecheckrv', 'perl6_type_check_return_value', '0PP', :inlinable(1));
 $ops.add_hll_pirop_mapping('perl6', 'p6decontrv', 'perl6_decontainerize_return_value', 'PP', :inlinable(1));
 $ops.add_hll_pirop_mapping('perl6', 'p6capturelex', 'perl6_capture_lex', '0P');
-$ops.add_hll_pirop_mapping('perl6', 'p6vmcodetoobj', 'perl6_code_object_from_parrot_sub', 'PP');
 $ops.add_hll_pirop_mapping('perl6', 'p6bindassert', 'perl6_assert_bind_ok', '0PP');
 $ops.add_hll_pirop_mapping('perl6', 'p6getpackage', 'perl6_get_package_through_who', 'PPs');
 $ops.add_hll_pirop_mapping('perl6', 'p6stateinit', 'perl6_state_needs_init', 'I');

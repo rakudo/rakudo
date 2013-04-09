@@ -2746,7 +2746,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             :op('bind'),
             QAST::Var.new(:name<$?REGEX>, :scope<lexical>, :decl('var')),
             QAST::Op.new(
-                :op('p6vmcodetoobj'),
+                :op('getcodeobj'),
                 QAST::Op.new( :op('curcode') )
             )));
         $block.symbol('$?REGEX', :scope<lexical>);

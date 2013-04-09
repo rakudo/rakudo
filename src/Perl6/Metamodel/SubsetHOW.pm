@@ -24,7 +24,7 @@ class Perl6::Metamodel::SubsetHOW
 
     method new_type(:$name = '<anon>', :$refinee!, :$refinement!) {
         my $metasubset := self.new(:refinee($refinee), :refinement($refinement));
-        my $type := nqp::newtype($metasubset, 'Uninstantiable');
+        my $type := nqp::settypehll(nqp::newtype($metasubset, 'Uninstantiable'), 'perl6');
         $metasubset.set_name($type, $name);
         pir::stable_set_type_check_mode__0PI($type, 2)
     }

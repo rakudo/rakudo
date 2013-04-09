@@ -48,7 +48,7 @@ class Perl6::Metamodel::CurriedRoleHOW
     method new_type($curried_role, *@pos_args, *%named_args) {
         my $meta := self.new(:curried_role($curried_role), :pos_args(@pos_args),
             :named_args(%named_args));
-        my $type := nqp::newtype($meta, 'Uninstantiable');
+        my $type := nqp::settypehll(nqp::newtype($meta, 'Uninstantiable'), 'perl6');
         pir::stable_set_type_check_mode__0PI($type, 2)
     }
     

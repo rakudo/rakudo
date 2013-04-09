@@ -47,7 +47,7 @@ class Perl6::Metamodel::EnumHOW
     
     method new_type(:$name!, :$base_type!) {
         my $meta := self.new();
-        my $obj  := nqp::newtype($meta, 'P6opaque');
+        my $obj  := nqp::settypehll(nqp::newtype($meta, 'P6opaque'), 'perl6');
         $meta.set_name($obj, $name);
         $meta.set_base_type($meta, $base_type);
         self.add_stash($obj);

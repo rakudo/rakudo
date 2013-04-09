@@ -283,9 +283,10 @@ my class Any {
         self;
     }
     multi method at_pos(Any:U \SELF: $pos) is rw {
-        pir::setattribute__0PPsP(my $v, Scalar, '$!whence',
+        nqp::bindattr(my $v, Scalar, '$!whence',
             -> { SELF.defined || &infix:<=>(SELF, Array.new);
                  SELF.bind_pos($pos, $v) });
+        $v
     }
     
     method all() { all(self.list) }
@@ -394,9 +395,10 @@ my class Any {
         fail "postcircumfix:<\{ \}> not defined for type {self.WHAT.perl}";
     }
     multi method at_key(Any:U \SELF: $key) is rw {
-        pir::setattribute__0PPsP(my $v, Scalar, '$!whence',
+        nqp::bindattr(my $v, Scalar, '$!whence',
             -> { SELF.defined || &infix:<=>(SELF, Hash.new);
                  SELF.bind_key($key, $v) });
+        $v
     }
 
     method reduce(&with) { self.list.reduce(&with) }

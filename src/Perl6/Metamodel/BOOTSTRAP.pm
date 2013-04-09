@@ -201,8 +201,8 @@ BEGIN {
             pir::perl6_booleanize__PI(1)
         }));
     Attribute.HOW.add_method(Attribute, 'set_build', static(sub ($self, $closure) {
-            pir::setattribute__0PPsP(nqp::decont($self),
-                Attribute, '$!build_closure', $closure);
+            nqp::bindattr(nqp::decont($self), Attribute, '$!build_closure', $closure);
+            $self
         }));
     Attribute.HOW.add_method(Attribute, 'build', static(sub ($self) {
             nqp::getattr(nqp::decont($self),
@@ -245,8 +245,8 @@ BEGIN {
                 my @avc_mro  := $avc_var.HOW.mro($avc_var);
                 my $i := 0;
                 $i := $i + 1 while @avc_mro[$i].HOW.is_mixin(@avc_mro[$i]);
-                nqp::bindattr($ins, Attribute, '$!auto_viv_container',
-                    pir::setattribute__0PPsP($avc_copy, @avc_mro[$i], '$!descriptor', $cd_ins));
+                nqp::bindattr($avc_copy, @avc_mro[$i], '$!descriptor', $cd_ins);
+                nqp::bindattr($ins, Attribute, '$!auto_viv_container', $avc_copy);
             }
             if $pkg.HOW.archetypes.generic {
                 nqp::bindattr($ins, Attribute, '$!package',

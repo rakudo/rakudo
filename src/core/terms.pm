@@ -86,7 +86,7 @@ sub term:<time>() { nqp::p6box_i(nqp::time_i()) }
 
     my $I := nqp::atkey(nqp::atkey(%*COMPILING, '%?OPTIONS'), 'I');
     if nqp::defined($I) {
-        if pir::does__IPs($I, 'array') {
+        if nqp::islist($I) {
             my Mu $iter := nqp::iterator($I);
             @INC.unshift: nqp::p6box_s(nqp::shift($iter)) while $iter;
         }

@@ -499,12 +499,11 @@ BEGIN {
 
     # Need clone in here, plus generics instantiation.
     Code.HOW.add_method(Code, 'clone', static(sub ($self) {
-            my $dcself := nqp::decont($self);
-            my $cloned := nqp::clone($dcself);
-            nqp::bindattr($cloned, Code, '$!do',
-                pir::perl6_associate_sub_code_object__0PP(
-                    nqp::clone(nqp::getattr($dcself, Code, '$!do')),
-                    $cloned));
+            my $dcself    := nqp::decont($self);
+            my $cloned    := nqp::clone($dcself);
+            my $do_cloned := nqp::clone(nqp::getattr($dcself, Code, '$!do'));
+            nqp::bindattr($cloned, Code, '$!do', $do_cloned);
+            nqp::setcodeobj($do_cloned, $cloned);
             Q:PIR {
                 $P0 = find_lex '$dcself'
                 $P1 = find_lex 'Code'
@@ -561,12 +560,11 @@ BEGIN {
     Block.HOW.add_attribute(Block, BOOTSTRAPATTR.new(:name<$!state_vars>, :type(Mu), :package(Block)));
     Block.HOW.add_attribute(Block, BOOTSTRAPATTR.new(:name<$!phasers>, :type(Mu), :package(Block)));
     Block.HOW.add_method(Block, 'clone', static(sub ($self) {
-            my $dcself := nqp::decont($self);
-            my $cloned := nqp::clone($dcself);
-            nqp::bindattr($cloned, Code, '$!do',
-                pir::perl6_associate_sub_code_object__0PP(
-                    nqp::clone(nqp::getattr($dcself, Code, '$!do')),
-                    $cloned));
+            my $dcself    := nqp::decont($self);
+            my $cloned    := nqp::clone($dcself);
+            my $do_cloned := nqp::clone(nqp::getattr($dcself, Code, '$!do'));
+            nqp::bindattr($cloned, Code, '$!do', $do_cloned);
+            nqp::setcodeobj($do_cloned, $cloned);
             Q:PIR {
                 $P0 = find_lex '$dcself'
                 $P1 = find_lex 'Code'
@@ -1817,7 +1815,7 @@ Perl6::Metamodel::ParametricRoleGroupHOW.set_selector_creator({
             nqp::getcodeobj(nqp::curcode()).find_best_dispatchee(nqp::usecapture()),
             nqp::usecapture())
     };
-    pir::perl6_associate_sub_code_object__vPP($onlystar, $sel);
+    nqp::setcodeobj($onlystar, $sel);
     nqp::bindattr($sel, Code, '$!do', $onlystar);
     nqp::bindattr($sel, Routine, '$!dispatchees', []);
     $sel

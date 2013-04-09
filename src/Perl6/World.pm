@@ -963,8 +963,8 @@ class Perl6::World is HLL::World {
             unless self.is_precompilation_mode() {
                 $fixups.push(QAST::Stmts.new(
                     self.set_attribute($code, $code_type, '$!do', QAST::BVal.new( :value($code_past) )),
-                    QAST::VM.new(
-                        :pirop('perl6_associate_sub_code_object vPP'),
+                    QAST::Op.new(
+                        :op('setcodeobj'),
                         QAST::BVal.new( :value($code_past) ),
                         QAST::WVal.new( :value($code) )
                     )));
@@ -983,7 +983,7 @@ class Perl6::World is HLL::World {
                         self.set_attribute($clone, $code_type, '$!do',
                             QAST::Var.new( :name($tmp), :scope('local') )),
                         QAST::Op.new(
-                            :op('p6assoccode'),
+                            :op('setcodeobj'),
                             QAST::Var.new( :name($tmp), :scope('local') ),
                             QAST::WVal.new( :value($clone) )
                         )));
@@ -1011,8 +1011,8 @@ class Perl6::World is HLL::World {
 
         # Deserialization also needs to give the Parrot sub its backlink.
         if self.is_precompilation_mode() {
-            $des.push(QAST::VM.new(
-                :pirop('perl6_associate_sub_code_object vPP'),
+            $des.push(QAST::Op.new(
+                :op('setcodeobj'),
                 QAST::BVal.new( :value($code_past) ),
                 QAST::WVal.new( :value($code) )));
         }
@@ -1244,8 +1244,7 @@ class Perl6::World is HLL::World {
         while $i < $num_subs {
             my $subid := $precomp[$i].get_subid();
             if nqp::existskey(%!sub_id_to_code_object, $subid) {
-                pir::perl6_associate_sub_code_object__vPP($precomp[$i],
-                    %!sub_id_to_code_object{$subid});
+                nqp::setcodeobj($precomp[$i], %!sub_id_to_code_object{$subid});
                 nqp::bindattr(%!sub_id_to_code_object{$subid}, $code_type, '$!do', $precomp[$i]);
             }
             if nqp::existskey(%!sub_id_to_static_lexpad, $subid) {

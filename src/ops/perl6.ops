@@ -1052,29 +1052,6 @@ inline op find_method_null_ok(out PMC, in PMC, in STR) :base_core {
 }
 
 
-/*
-
-=item perl6_associate_sub_code_object()
-
-Takes a Parrot Sub in $1 and a code object in $2 and associates the two.
-Actually, it uses a field in the Parrot Sub PMC that Rakudo never makes
-use of. Evil, but saves a prophash for every single code object.
-
-=cut
-
-*/
-inline op perl6_associate_sub_code_object(in PMC, in PMC) :base_core {
-    if ($1->vtable->base_type == enum_class_Sub
-           || $1->vtable->base_type == enum_class_Coroutine) {
-        SETATTR_Sub_multi_signature(interp, $1, $2);
-        PARROT_GC_WRITE_BARRIER(interp, $1);
-    }
-    else {
-        Parrot_ex_throw_from_c_args(interp, NULL, EXCEPTION_INVALID_OPERATION,
-            "Can only use perl6_associate_sub_code_object if first operand is a Sub.");
-    }
-}
-
 
 /*
 

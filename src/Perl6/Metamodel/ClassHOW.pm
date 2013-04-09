@@ -234,7 +234,7 @@ class Perl6::Metamodel::ClassHOW
     method find_method_fallback($obj, $name) {
         # If the object is a junction, need to do a junction dispatch.
         if $obj.WHAT =:= $junction_type && $junction_autothreader {
-            my $p6name := pir::perl6ize_type__PP($name);
+            my $p6name := nqp::hllizefor($name, 'perl6');
             return -> *@pos_args, *%named_args {
                 $junction_autothreader($p6name, |@pos_args, |%named_args)
             };

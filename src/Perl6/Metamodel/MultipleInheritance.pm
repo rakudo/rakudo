@@ -45,9 +45,9 @@ role Perl6::Metamodel::MultipleInheritance {
             for @!parents {
                 my @pt := [$_];
                 @pt.push($_.HOW.parents($_, :tree(1)));
-                @result.push(pir::perl6ize_type__PP(@pt).Array.item);
+                @result.push(nqp::hllizefor(@pt, 'perl6').Array.item);
             }
-            return pir::perl6ize_type__PP(@result);
+            return nqp::hllizefor(@result, 'perl6');
         }
         else {
             # All parents is MRO minus the first thing (which is us).

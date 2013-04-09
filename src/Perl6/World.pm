@@ -35,16 +35,16 @@ sub p6ize_recursive($x) {
         for $x {
             nqp::push(@copy, p6ize_recursive($_));
         }
-        return pir::perl6ize_type__PP(@copy);
+        return nqp::hllizefor(@copy, 'perl6');
     }
     elsif nqp::ishash($x) {
         my %copy := nqp::hash();
         for $x {
             %copy{$_.key} := p6ize_recursive($_.value);
         }
-        return pir::perl6ize_type__PP(%copy).item;
+        return nqp::hllizefor(%copy, 'perl6').item;
     }
-    pir::perl6ize_type__PP($x);
+    nqp::hllizefor($x, 'perl6');
 }
 
 # this levenshtein implementation is used to suggest good alternatives
@@ -2425,12 +2425,12 @@ class Perl6::World is HLL::World {
                 if nqp::islist($p.value) {
                     my @a := [];
                     for $p.value {
-                        nqp::push(@a, pir::perl6ize_type__PP($_));
+                        nqp::push(@a, nqp::hllizefor($_, 'perl6'));
                     }
-                    %opts{$p.key} := pir::perl6ize_type__PP(@a);
+                    %opts{$p.key} := nqp::hllizefor(@a, 'perl6');
                 }
                 else {
-                    %opts{$p.key} := pir::perl6ize_type__PP($p.value);
+                    %opts{$p.key} := nqp::hllizefor($p.value, 'perl6');
                 }
             }
             my $file        := nqp::getlexdyn('$?FILES');

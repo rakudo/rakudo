@@ -995,8 +995,9 @@ BEGIN {
                             else {
                                 my $param;
                                 if $got_prim == $BIND_VAL_OBJ {
-                                    $param := pir::perl6ize_type__PP(
-                                        nqp::captureposarg($capture, $i));
+                                    $param := nqp::hllizefor(
+                                        nqp::captureposarg($capture, $i),
+                                        'perl6');
                                 }
                                 else {
                                     $param := $got_prim == $BIND_VAL_INT ?? Int !!

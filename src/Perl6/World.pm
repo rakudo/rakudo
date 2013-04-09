@@ -1158,7 +1158,7 @@ class Perl6::World is HLL::World {
     # Creates a new container descriptor and adds it to the SC.
     method create_container_descriptor($of, $rw, $name) {
         my $cd_type := self.find_symbol(['ContainerDescriptor']);
-        my $cd      := pir::perl6_create_container_descriptor__PPPis($cd_type, $of, $rw, $name);
+        my $cd      := $cd_type.new(:$of, :$rw, :$name);
         self.add_object($cd);
         $cd
     }

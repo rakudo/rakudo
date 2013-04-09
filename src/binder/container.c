@@ -169,15 +169,3 @@ PMC * Rakudo_cont_scalar_with_value_no_descriptor(PARROT_INTERP, PMC *value) {
     PARROT_GC_WRITE_BARRIER(interp, new_scalar);
     return new_scalar;
 }
-
-/* Creates and populates a new container descriptor. */
-PMC * Rakudo_create_container_descriptor(PARROT_INTERP, PMC *type, PMC *of, INTVAL rw, STRING *name) {
-    PMC *result = REPR(type)->allocate(interp, STABLE(type));
-    Rakudo_ContainerDescriptor *desc = (Rakudo_ContainerDescriptor *)PMC_data(result);
-    REPR(result)->initialize(interp, STABLE(result), OBJECT_BODY(result));
-    desc->of = of;
-    desc->rw = rw;
-    desc->name = name;
-    PARROT_GC_WRITE_BARRIER(interp, result);
-    return result;
-}

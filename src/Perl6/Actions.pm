@@ -81,7 +81,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             'if',           1,
             'unless',       1,
             'handle',       1,
-            'p6type',       1,
+            'hllize',       1,
     );
     sub autosink($past) {
         nqp::istype($past, QAST::Op) && %sinkable{$past.op} && !$past<nosink>
@@ -3690,7 +3690,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
     method term:sym<dotty>($/) {
         my $past := $<dotty>.ast;
         $past.unshift(QAST::Var.new( :name('$_'), :scope('lexical') ) );
-        make QAST::Op.new( :op('p6type'), $past);
+        make QAST::Op.new( :op('hllize'), $past);
     }
 
     sub find_macro_routine(@symbol) {
@@ -4244,7 +4244,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             # If may be an adverb.
             if $<colonpair> {
                 my $target := $past := $/[0].ast;
-                if nqp::istype($target, QAST::Op) && $target.op eq 'p6type' {
+                if nqp::istype($target, QAST::Op) && $target.op eq 'hllize' {
                     $target := $target[0];
                 }
                 unless nqp::istype($target, QAST::Op) && ($target.op eq 'call' || $target.op eq 'callmethod') {
@@ -4274,7 +4274,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $past := whatever_curry($/, (my $orig := $past), $key eq 'INFIX' ?? 2 !! 1);
             if $return_map && $orig =:= $past {
                 $past := QAST::Op.new($past,
-                    :op('p6type'), :returns($past.returns()));
+                    :op('hllize'), :returns($past.returns()));
             }
         }
         make $past;
@@ -4450,7 +4450,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             # Finally, just need to make a bind.
             make QAST::Op.new( :op('bind'), $target, $source );
         }
-        elsif $target.isa(QAST::Op) && $target.op eq 'p6type' &&
+        elsif $target.isa(QAST::Op) && $target.op eq 'hllize' &&
                 $target[0].isa(QAST::Op) && $target[0].op eq 'callmethod' &&
                 ($target[0].name eq 'postcircumfix:<[ ]>' || $target[0].name eq 'postcircumfix:<{ }>') {
             $source.named('BIND');

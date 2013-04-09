@@ -209,7 +209,7 @@ do {
                 $err.print: $ex;
                 $err.print: "\n";
             }
-            $_() for nqp::p6type(@*END_PHASERS);
+            $_() for nqp::hllize(@*END_PHASERS);
         }
         if $! {
             pir::perl6_based_rethrow__0PP(nqp::getattr(nqp::p6decont($!), Exception, '$!ex'), $ex);

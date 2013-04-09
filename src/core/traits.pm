@@ -144,7 +144,7 @@ multi trait_mod:<is>(Parameter:D $param, :$parcel!) {
 
 sub EXPORT_SYMBOL(\exp_name, @tags, Mu \sym) {
     my @export_packages = $*EXPORT;
-    for nqp::p6type(@*PACKAGES) {
+    for nqp::hllize(@*PACKAGES) {
         unless .WHO.exists('EXPORT') {
             .WHO<EXPORT> := Metamodel::PackageHOW.new_type(:name('EXPORT'));
             .WHO<EXPORT>.^compose;

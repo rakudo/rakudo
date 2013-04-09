@@ -43,7 +43,7 @@ sub term:<time>() { nqp::p6box_i(nqp::time_i()) }
 
     my $VM = {
         name    => 'parrot', # XXX: should be made dynamical
-        config  => nqp::p6type(
+        config  => nqp::hllize(
                         nqp::atpos(pir::getinterp__P, pir::const::IGLOBALS_CONFIG_HASH))
     }
     nqp::bindkey(nqp::who(PROCESS), '$VM', $VM);

@@ -178,14 +178,15 @@ do {
     sub is_runtime($bt) {
         for $bt.keys {
             try {
-                return True if nqp::iseq_s($bt[$_]<sub>, 'eval')
+                my Mu $sub := nqp::getattr(nqp::decont($bt[$_]<sub>), ForeignCode, '$!do');
+                return True if nqp::iseq_s(nqp::getcodename($sub), 'eval')
                     && nqp::iseq_s(
-                            nqp::join(';', $bt[$_]<sub>.get_namespace.get_name),
+                            nqp::join(';', $sub.get_namespace.get_name),
                             'nqp'
                     );
-                return False if nqp::iseq_s($bt[$_]<sub>, 'compile')
+                return False if nqp::iseq_s(nqp::getcodename($sub), 'compile')
                     && nqp::iseq_s(
-                            nqp::join(';', $bt[$_]<sub>.get_namespace.get_name),
+                            nqp::join(';', $sub.get_namespace.get_name),
                             'nqp'
                     );
             }

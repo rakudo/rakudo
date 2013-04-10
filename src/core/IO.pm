@@ -212,14 +212,14 @@ class IO does IO::FileTestable {
     # not spec'd
     method copy($dest) {
         try {
-            pir::new__PS('File').copy(nqp::unbox_s(~$.path), nqp::unbox_s(~$dest));
+            nqp::copy(nqp::unbox_s(~$.path), nqp::unbox_s(~$dest));
         }
         $! ?? fail(X::IO::Copy.new(from => $.path, to => $dest, os-error => ~$!)) !! True
     }
 
     my class X::IO::Chmod { ... }
     method chmod($mode) {
-        pir::new__PS('OS').chmod(nqp::unbox_s(~$.path), nqp::unbox_i($mode.Int));
+        nqp::chmod(nqp::unbox_s(~$.path), nqp::unbox_i($mode.Int));
         return True;
         CATCH {
             default {
@@ -320,7 +320,7 @@ sub dir(Cool $path = '.', Mu :$test = none('.', '..')) {
 
 my class X::IO::Unlink { ... }
 sub unlink($path) {
-    pir::new__PS('OS').unlink($path);
+    nqp::unlink($path);
     return True;
     CATCH {
         default {
@@ -334,7 +334,7 @@ sub unlink($path) {
 
 my class X::IO::Rmdir { ... }
 sub rmdir($path) {
-    pir::new__PS('OS').rmdir($path);
+    nqp::rmdir($path);
     return True;
     CATCH {
         default {
@@ -425,7 +425,7 @@ proto sub cwd(|) { * }
 multi sub cwd() {
     return nqp::p6box_s(
 		pir::trans_encoding__Ssi(
-			pir::new__Ps('OS').cwd(),
+			nqp::cwd(),
 			pir::find_encoding__Is('utf8')));
 
     CATCH {
@@ -441,7 +441,7 @@ multi sub cwd() {
 my class X::IO::Chdir { ... }
 proto sub chdir(|) { * }
 multi sub chdir($path as Str) {
-    pir::new__PS('OS').chdir(nqp::unbox_s($path));
+    nqp::chdir(nqp::unbox_s($path));
     $*CWD = cwd();
     return True;
     CATCH {
@@ -457,7 +457,7 @@ multi sub chdir($path as Str) {
 my class X::IO::Mkdir { ... }
 proto sub mkdir(|) { * }
 multi sub mkdir($path as Str, $mode = 0o777) {
-    pir::new__PS('OS').mkdir($path, $mode);
+    nqp::mkdir($path, $mode);
     return True;
     CATCH {
         default {
@@ -478,7 +478,7 @@ nqp::bindattr(nqp::p6decont($PROCESS::ERR),
 
 my class X::IO::Rename { ... }
 sub rename(Cool $from as Str, Cool $to as Str) {
-    pir::new__PS('OS').rename(nqp::unbox_s($from), nqp::unbox_s($to));
+    nqp::rename(nqp::unbox_s($from), nqp::unbox_s($to));
     return True;
     CATCH {
         default {
@@ -495,7 +495,7 @@ sub rename(Cool $from as Str, Cool $to as Str) {
     }
 }
 sub copy(Cool $from as Str, Cool $to as Str) {
-    pir::new__PS('File').copy(nqp::unbox_s($from), nqp::unbox_s($to));
+    nqp::copy(nqp::unbox_s($from), nqp::unbox_s($to));
     return True;
     CATCH {
         default {

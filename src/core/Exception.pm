@@ -51,7 +51,7 @@ my class Exception {
     method fail(Exception:D:) {
         try self.throw;
         my $fail := Failure.new($!);
-        my Mu $return := pir::find_caller_lex__Ps('RETURN');
+        my Mu $return := nqp::getlexcaller('RETURN');
         $return($fail) unless nqp::isnull($return);
         $fail
     }

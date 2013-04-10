@@ -541,7 +541,7 @@ my class Str does Stringy {
                   :continue(:$c), :pos(:$p),
                   :global(:$g), :overlap(:$ov), :exhaustive(:$ex), 
                   :st(:nd(:rd(:th(:$nth)))), :$x) {
-        my $caller_dollar_slash := pir::find_caller_lex__Ps('$/');
+        my $caller_dollar_slash := nqp::getlexcaller('$/');
         my %opts;
         if $p.defined { %opts<p> = $p }
         else { %opts<c> = $c // 0; }
@@ -619,7 +619,7 @@ my class Str does Stringy {
     multi method subst($matcher, $replacement,
                        :ii(:$samecase), :ss(:$samespace),
                        :$SET_CALLER_DOLLAR_SLASH, *%options) {
-        my $caller_dollar_slash := pir::find_caller_lex__Ps('$/');
+        my $caller_dollar_slash := nqp::getlexcaller('$/');
         my $SET_DOLLAR_SLASH     = $SET_CALLER_DOLLAR_SLASH || nqp::istype($matcher, Regex);
         my @matches              = self.match($matcher, |%options);
         try $caller_dollar_slash = $/ if $SET_DOLLAR_SLASH;

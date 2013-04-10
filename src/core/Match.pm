@@ -82,13 +82,13 @@ my class Match is Capture is Cool {
 
 sub make(Mu $ast) {
     nqp::bindattr(
-        nqp::p6decont(pir::find_caller_lex__Ps('$/')),
+        nqp::p6decont(nqp::getlexcaller('$/')),
         Match,
         '$!ast',
         $ast
     );
     nqp::bindattr(
-        nqp::p6decont(pir::find_caller_lex__Ps('$/').CURSOR),
+        nqp::p6decont(nqp::getlexcaller('$/').CURSOR),
         Cursor,
         '$!ast',
         $ast

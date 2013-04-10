@@ -48,7 +48,7 @@ sub term:<time>() { nqp::p6box_i(nqp::time_i()) }
     }
     nqp::bindkey(nqp::who(PROCESS), '$VM', $VM);
 
-    my Mu $compiler := pir::find_caller_lex__PS('$COMPILER_CONFIG');
+    my Mu $compiler := nqp::getlexcaller('$COMPILER_CONFIG');
     my $PERL = {
         name => 'rakudo',
         compiler => {

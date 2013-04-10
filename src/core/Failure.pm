@@ -47,7 +47,7 @@ my &fail := -> *@msg {
     die $value if $*FATAL;
     try die $value;
     my $fail := Failure.new($!);
-    my Mu $return := pir::find_caller_lex__Ps('RETURN');
+    my Mu $return := nqp::getlexcaller('RETURN');
     $return($fail) unless nqp::isnull($return);
     $fail
 }

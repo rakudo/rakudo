@@ -109,7 +109,7 @@ my class Cool {
     }
 
     method flip() {
-        nqp::p6box_s(pir::box__PS(nqp::unbox_s(self.Str)).reverse)
+        nqp::p6box_s(nqp::flip(nqp::unbox_s(self.Str)))
     }
     method trans(*@a) { self.Str.trans(@a) }
 

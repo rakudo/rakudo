@@ -39,7 +39,7 @@ $ops.add_hll_op('perl6', 'p6getcallsig', -> $qastcomp, $op {
     $ops.push_pirop('set', $reg, 'CALL_SIG');
     $ops
 });
-$ops.add_hll_op('perl6', 'p6bool', :inlinable(1), -> $qastcomp, $op {
+my $p6bool := -> $qastcomp, $op {
     my $cpost := $qastcomp.as_post($op[0]);
     my $reg := $*REGALLOC.fresh_p();
     my $ops := $qastcomp.post_new('Ops', :result($reg));
@@ -53,7 +53,15 @@ $ops.add_hll_op('perl6', 'p6bool', :inlinable(1), -> $qastcomp, $op {
         $ops.push_pirop('perl6_booleanize', $reg, $reg_i);
     }
     $ops
-});
+}
+$ops.add_hll_op('perl6', 'p6bool', :inlinable(1), $p6bool);
+
+# Make some of them also available from NQP land, since we use them in the
+# metamodel and bootstrap.
+$ops.add_hll_op('nqp', 'p6bool', :inlinable(1), $p6bool);
+$ops.add_hll_pirop_mapping('nqp', 'p6var', 'perl6_var', 'PP', :inlinable(1));
+$ops.add_hll_pirop_mapping('nqp', 'p6parcel', 'perl6_parcel_from_rpa', 'PPP', :inlinable(1));
+$ops.add_hll_pirop_mapping('nqp', 'p6isbindable', 'perl6_is_sig_bindable', 'IPP');
 
 # Override defor to avoid v-table call.
 $ops.add_hll_op('perl6', 'defor', :inlinable(1), -> $qastcomp, $op {

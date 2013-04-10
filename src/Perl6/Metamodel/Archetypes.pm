@@ -1,3 +1,5 @@
+use Perl6::Ops;
+
 # Provides various properties of the type of type a given meta-object
 # implements. This are used in various ways by the compiler and meta-model
 # to do correct code generation or to detect illegal use of types in

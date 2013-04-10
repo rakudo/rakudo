@@ -174,31 +174,29 @@ BEGIN {
                 Attribute, '$!auto_viv_container');
         }));
     Attribute.HOW.add_method(Attribute, 'has_accessor', static(sub ($self) {
-            pir::perl6_booleanize__PI(
-                nqp::getattr_i(nqp::decont($self),
-                    Attribute, '$!has_accessor'));
+            nqp::p6bool(nqp::getattr_i(nqp::decont($self),
+                Attribute, '$!has_accessor'));
         }));
     Attribute.HOW.add_method(Attribute, 'rw', static(sub ($self) {
-            pir::perl6_booleanize__PI(
-                nqp::getattr_i(nqp::decont($self),
-                    Attribute, '$!rw'));
+            nqp::p6bool(nqp::getattr_i(nqp::decont($self),
+                Attribute, '$!rw'));
         }));
     Attribute.HOW.add_method(Attribute, 'set_rw', static(sub ($self) {
             nqp::bindattr_i(nqp::decont($self),
                 Attribute, '$!rw', 1);
-            pir::perl6_booleanize__PI(1)
+            nqp::p6bool(1)
         }));
     Attribute.HOW.add_method(Attribute, 'set_readonly', static(sub ($self) {
             nqp::bindattr_i(nqp::decont($self),
                 Attribute, '$!ro', 1);
-            pir::perl6_booleanize__PI(1)
+            nqp::p6bool(1)
         }));
     Attribute.HOW.add_method(Attribute, 'default_to_rw', static(sub ($self) {
             my $dcself := nqp::decont($self);
             unless nqp::getattr_i($dcself, Attribute, '$!ro') {
                 nqp::bindattr_i($dcself, Attribute, '$!rw', 1);
             }
-            pir::perl6_booleanize__PI(1)
+            nqp::p6bool(1)
         }));
     Attribute.HOW.add_method(Attribute, 'set_build', static(sub ($self, $closure) {
             nqp::bindattr(nqp::decont($self), Attribute, '$!build_closure', $closure);
@@ -211,7 +209,7 @@ BEGIN {
     Attribute.HOW.add_method(Attribute, 'set_box_target', static(sub ($self) {
             nqp::bindattr_i(nqp::decont($self),
                 Attribute, '$!box_target', 1);
-            pir::perl6_booleanize__PI(1)
+            nqp::p6bool(1)
         }));
     Attribute.HOW.add_method(Attribute, 'box_target', static(sub ($self) {
             nqp::getattr_i(nqp::decont($self),
@@ -225,7 +223,7 @@ BEGIN {
                 Attribute, '$!package');
             my $build := nqp::getattr(nqp::decont($dcself),
                 Attribute, '$!build_closure');
-            pir::perl6_booleanize__PI($type.HOW.archetypes.generic || $package.HOW.archetypes.generic || nqp::defined($build));
+            nqp::p6bool($type.HOW.archetypes.generic || $package.HOW.archetypes.generic || nqp::defined($build));
         }));
     Attribute.HOW.add_method(Attribute, 'instantiate_generic', static(sub ($self, $type_environment) {
             my $dcself   := nqp::decont($self);
@@ -240,7 +238,7 @@ BEGIN {
                     $type.HOW.instantiate_generic($type, $type_environment));
                 my $cd_ins := $cd.instantiate_generic($type_environment);
                 nqp::bindattr($ins, Attribute, '$!container_descriptor', $cd_ins);
-                my $avc_var  := pir::perl6_var__PP($avc);
+                my $avc_var  := nqp::p6var($avc);
                 my $avc_copy := nqp::clone($avc_var);
                 my @avc_mro  := $avc_var.HOW.mro($avc_var);
                 my $i := 0;
@@ -301,10 +299,10 @@ BEGIN {
     Proxy.HOW.add_attribute(Proxy, BOOTSTRAPATTR.new(:name<&!STORE>, :type(Mu), :package(Proxy)));
     Proxy.HOW.add_method(Proxy, 'FETCH', ($PROXY_FETCH := static(sub ($cont) {
         nqp::decont(
-            nqp::getattr($cont, Proxy, '&!FETCH')(pir::perl6_var__PP($cont)))
+            nqp::getattr($cont, Proxy, '&!FETCH')(nqp::p6var($cont)))
     })));
     Proxy.HOW.add_method(Proxy, 'STORE', static(sub ($cont, $val) {
-        nqp::getattr($cont, Proxy, '&!STORE')(pir::perl6_var__PP($cont), $val)
+        nqp::getattr($cont, Proxy, '&!STORE')(nqp::p6var($cont), $val)
     }));
     Proxy.HOW.add_method(Proxy, 'new', static(sub ($type, :$FETCH, :$STORE) {
         my $cont := nqp::create(Proxy);
@@ -350,7 +348,7 @@ BEGIN {
                 my $is_generic := $_.is_generic();
                 if $is_generic { return $is_generic }
             }
-            return pir::perl6_booleanize__PI(0);
+            return nqp::p6bool(0);
         }));
     Signature.HOW.add_method(Signature, 'instantiate_generic', static(sub ($self, $type_environment) {
             # Go through parameters, builidng new list. If any
@@ -375,7 +373,7 @@ BEGIN {
                 Signature, '$!returns', nqp::decont($type));
         }));
     Signature.HOW.add_method(Signature, 'has_returns', static(sub ($self) {
-            pir::perl6_booleanize__PI(
+            nqp::p6bool(
                 nqp::not_i(
                     nqp::isnull(
                         nqp::getattr(nqp::decont($self),
@@ -417,7 +415,7 @@ BEGIN {
     Parameter.HOW.add_method(Parameter, 'is_generic', static(sub ($self) {
             # If nonimnal type is generic, so are we.
             my $type := nqp::getattr($self, Parameter, '$!nominal_type');
-            pir::perl6_booleanize__PI($type.HOW.archetypes.generic)
+            nqp::p6bool($type.HOW.archetypes.generic)
         }));
     Parameter.HOW.add_method(Parameter, 'instantiate_generic', static(sub ($self, $type_environment) {
             # Clone with the type instantiated.
@@ -596,7 +594,7 @@ BEGIN {
     Routine.HOW.add_method(Routine, 'is_dispatcher', static(sub ($self) {
             my $dc_self   := nqp::decont($self);
             my $disp_list := nqp::getattr($dc_self, Routine, '$!dispatchees');
-            pir::perl6_booleanize__PI(nqp::defined($disp_list));
+            nqp::p6bool(nqp::defined($disp_list));
         }));
     Routine.HOW.add_method(Routine, 'add_dispatchee', static(sub ($self, $dispatchee) {
             my $dc_self   := nqp::decont($self);
@@ -1066,7 +1064,7 @@ BEGIN {
                                 $new_possibles := [] unless nqp::islist($new_possibles);
                                 
                                 my $sig := nqp::getattr($sub, Code, '$!signature');
-                                if pir::perl6_is_sig_bindable__IPP($sig, $capture) {
+                                if nqp::p6isbindable($sig, $capture) {
                                     nqp::push($new_possibles, nqp::atpos(@possibles, $i));
                                     unless $many {
                                         # Terminate the loop.
@@ -1870,7 +1868,7 @@ nqp::sethllconfig('perl6', nqp::hash(
     'foreign_type_num', Num,
     'foreign_type_str', Str,
     'foreign_transform_array', -> $array {
-        pir::perl6_parcel_from_rpa__PPP($array, Mu)
+        nqp::p6parcel($array, Mu)
     },
     'foreign_transform_hash', -> $hash {
         my $result := nqp::create(Hash);

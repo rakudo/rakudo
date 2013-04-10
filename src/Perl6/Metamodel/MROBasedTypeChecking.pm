@@ -8,7 +8,7 @@ role Perl6::Metamodel::MROBasedTypeChecking {
     }
     
     method does($obj, $type) {
-        pir::perl6_booleanize__Pi(nqp::istype($obj, $type))
+        nqp::p6bool(nqp::istype($obj, $type))
     }
     
     method type_check($obj, $checkee) {

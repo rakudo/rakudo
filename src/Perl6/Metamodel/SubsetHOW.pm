@@ -61,13 +61,13 @@ class Perl6::Metamodel::SubsetHOW
     
     # Do check when we're on LHS of smartmatch (e.g. Even ~~ Int).
     method type_check($obj, $checkee) {
-        pir::perl6_booleanize__PI(nqp::istrue($checkee.HOW =:= self) ||
+        nqp::p6bool(nqp::istrue($checkee.HOW =:= self) ||
             nqp::istype($!refinee, $checkee))
     }
     
     # Here we check the value itself (when on RHS on smartmatch).
     method accepts_type($obj, $checkee) {
-        pir::perl6_booleanize__PI(
+        nqp::p6bool(
             nqp::istype($checkee, $!refinee) &&
             nqp::istrue($!refinement.ACCEPTS($checkee)))
     }

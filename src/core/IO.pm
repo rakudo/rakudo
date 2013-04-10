@@ -31,15 +31,15 @@ sub prompt($msg) {
 
 my role IO::FileTestable {
     method d() {
-        self.e && nqp::p6bool(nqp::stat(nqp::unbox_s($.path), pir::const::STAT_ISDIR))
+        self.e && nqp::p6bool(nqp::stat(nqp::unbox_s($.path), nqp::const::STAT_ISDIR))
     }
 
     method e() {
-        nqp::p6bool(nqp::stat(nqp::unbox_s($.path), pir::const::STAT_EXISTS))
+        nqp::p6bool(nqp::stat(nqp::unbox_s($.path), nqp::const::STAT_EXISTS))
     }
 
     method f() {
-        self.e && nqp::p6bool(nqp::stat(nqp::unbox_s($.path), pir::const::STAT_ISREG))
+        self.e && nqp::p6bool(nqp::stat(nqp::unbox_s($.path), nqp::const::STAT_ISREG))
     }
 
     method l() {
@@ -53,7 +53,7 @@ my role IO::FileTestable {
     method s() {
         self.e 
           && nqp::p6box_i( nqp::stat(nqp::unbox_s($.path), 
-                                 pir::const::STAT_FILESIZE) );
+                                 nqp::const::STAT_FILESIZE) );
     }
 
     method w() {
@@ -69,15 +69,15 @@ my role IO::FileTestable {
     }
 
     method modified() {
-         nqp::p6box_i(nqp::stat(nqp::unbox_s($.path), pir::const::STAT_MODIFYTIME));
+         nqp::p6box_i(nqp::stat(nqp::unbox_s($.path), nqp::const::STAT_MODIFYTIME));
     }
 
     method accessed() {
-         nqp::p6box_i(nqp::stat(nqp::unbox_s($.path), pir::const::STAT_ACCESSTIME));
+         nqp::p6box_i(nqp::stat(nqp::unbox_s($.path), nqp::const::STAT_ACCESSTIME));
     }
 
     method changed() { 
-         nqp::p6box_i(nqp::stat(nqp::unbox_s($.path), pir::const::STAT_CHANGETIME));
+         nqp::p6box_i(nqp::stat(nqp::unbox_s($.path), nqp::const::STAT_CHANGETIME));
     }
 }
 

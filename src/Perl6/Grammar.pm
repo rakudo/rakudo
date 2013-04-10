@@ -1298,7 +1298,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
 
     token blorst {
-        \s <.ws> [ <?[{]> <block> | <statement> ]
+        \s <.ws> [ <?[{]> <block> | <![;]> <statement> || <.missing: 'block or statement'> ]
     }
 
     ## Statement modifiers

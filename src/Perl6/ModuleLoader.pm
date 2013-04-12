@@ -45,52 +45,72 @@ class Perl6::ModuleLoader {
     
     # Locates files we could potentially load for this module.
     method locate_candidates($module_name, @prefixes) {
-        # Assemble various files we'd look for.
-        my $base_path := nqp::join('/', nqp::split('::', $module_name));
-        my $pbc_path  := $base_path ~ '.pbc';
-        my $pir_path  := $base_path ~ '.pir';
-        my $pm_path   := $base_path ~ '.pm';
-        my $pm6_path  := $base_path ~ '.pm6';
-        
-        # Go through the prefixes and build a candidate list.
+        # If its name contains a slash or dot treat is as a path rather than a package name.
         my @candidates;
-        for @prefixes -> $prefix {
-            $prefix := ~$prefix;
-            my $have_pm  := nqp::stat("$prefix/$pm_path", 0);
-            my $have_pm6 := nqp::stat("$prefix/$pm6_path", 0);
-            my $have_pir := nqp::stat("$prefix/$pir_path", 0);
-            my $have_pbc := nqp::stat("$prefix/$pbc_path", 0);
-            if $have_pm6 {
-                # if there are both .pm and .pm6 we assume that
-                # the former is a Perl 5 module and use the latter
-                $have_pm := 1;
-                $pm_path := $pm6_path;
-            }
-            if $have_pm {
+        if nqp::index($module_name, '.') >= 0 || nqp::index($module_name, '/') >= 0 {
+            if nqp::stat($module_name, 0) {
                 my %cand;
-                %cand<key> := "$prefix/$pm_path";
-                %cand<pm>  := "$prefix/$pm_path";
-                if $have_pir && nqp::stat("$prefix/$pir_path", 7)
-                             >= nqp::stat("$prefix/$pm_path", 7) {
+                %cand<key> := $module_name;
+                my $dot := nqp::rindex($module_name, '.');
+                my $ext := $dot >= 0
+                        ?? nqp::substr($module_name, $dot, nqp::chars($module_name) - $dot)
+                        !! '';
+                if $ext eq 'pbc' || $ext eq 'pir' {
+                    %cand<load> := $module_name;
+                }
+                else {
+                    %cand<pm> := $module_name;
+                }
+                @candidates.push(%cand);
+            }
+        }
+        else {
+            # Assemble various files we'd look for.
+            my $base_path := nqp::join('/', nqp::split('::', $module_name));
+            my $pbc_path  := $base_path ~ '.pbc';
+            my $pir_path  := $base_path ~ '.pir';
+            my $pm_path   := $base_path ~ '.pm';
+            my $pm6_path  := $base_path ~ '.pm6';
+            
+            # Go through the prefixes and build a candidate list.
+            for @prefixes -> $prefix {
+                $prefix := ~$prefix;
+                my $have_pm  := nqp::stat("$prefix/$pm_path", 0);
+                my $have_pm6 := nqp::stat("$prefix/$pm6_path", 0);
+                my $have_pir := nqp::stat("$prefix/$pir_path", 0);
+                my $have_pbc := nqp::stat("$prefix/$pbc_path", 0);
+                if $have_pm6 {
+                    # if there are both .pm and .pm6 we assume that
+                    # the former is a Perl 5 module and use the latter
+                    $have_pm := 1;
+                    $pm_path := $pm6_path;
+                }
+                if $have_pm {
+                    my %cand;
+                    %cand<key> := "$prefix/$pm_path";
+                    %cand<pm>  := "$prefix/$pm_path";
+                    if $have_pir && nqp::stat("$prefix/$pir_path", 7)
+                                 >= nqp::stat("$prefix/$pm_path", 7) {
+                        %cand<load> := "$prefix/$pir_path";
+                    }
+                    elsif $have_pbc && nqp::stat("$prefix/$pbc_path", 7)
+                                    >= nqp::stat("$prefix/$pm_path", 7) {
+                        %cand<load> := "$prefix/$pbc_path";
+                    }
+                    @candidates.push(%cand);
+                }
+                elsif $have_pir {
+                    my %cand;
+                    %cand<key>  := "$prefix/$pir_path";
                     %cand<load> := "$prefix/$pir_path";
+                    @candidates.push(%cand);
                 }
-                elsif $have_pbc && nqp::stat("$prefix/$pbc_path", 7)
-                                >= nqp::stat("$prefix/$pm_path", 7) {
+                elsif $have_pbc {
+                    my %cand;
+                    %cand<key>  := "$prefix/$pbc_path";
                     %cand<load> := "$prefix/$pbc_path";
+                    @candidates.push(%cand);
                 }
-                @candidates.push(%cand);
-            }
-            elsif $have_pir {
-                my %cand;
-                %cand<key>  := "$prefix/$pir_path";
-                %cand<load> := "$prefix/$pir_path";
-                @candidates.push(%cand);
-            }
-            elsif $have_pbc {
-                my %cand;
-                %cand<key>  := "$prefix/$pbc_path";
-                %cand<load> := "$prefix/$pbc_path";
-                @candidates.push(%cand);
             }
         }
         @candidates

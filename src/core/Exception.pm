@@ -296,6 +296,22 @@ my class X::IO::Copy does X::IO is Exception {
     }
 }
 
+my class X::IO::Symlink does X::IO is Exception {
+    has $.target;
+    has $.name;
+    method message() {
+        "Failed to create symlink called '$.name' on target '$.target': $.os-error"
+    }
+}
+
+my class X::IO::Link does X::IO is Exception {
+    has $.target;
+    has $.name;
+    method message() {
+        "Failed to create link called '$.name' on target '$.target': $.os-error"
+    }
+}
+
 my class X::IO::Mkdir does X::IO is Exception {
     has $.path;
     has $.mode;

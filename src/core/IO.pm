@@ -507,5 +507,33 @@ sub copy(Cool $from as Str, Cool $to as Str) {
         }
     }
 }
+my class X::IO::Symlink { ... }
+my class X::IO::Link    { ... }
+sub symlink(Cool $target as Str, Cool $name as Str) {
+    nqp::symlink(nqp::unbox_s($target), nqp::unbox_s($name));
+    return True;
+    CATCH {
+        default {
+            X::IO::Symlink.new(
+                :$target,
+                :$name,
+                os-error => .Str,
+            ).throw;
+        }
+    }
+}
+sub link(Cool $target as Str, Cool $name as Str) {
+    nqp::link(nqp::unbox_s($target), nqp::unbox_s($name));
+    return True;
+    CATCH {
+        default {
+            X::IO::Link.new(
+                :$target,
+                :$name,
+                os-error => .Str,
+            ).throw;
+        }
+    }
+}
 
 sub chmod($mode, $filename) { $filename.IO.chmod($mode); $filename }

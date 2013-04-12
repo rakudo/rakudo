@@ -23,9 +23,10 @@ proto infix:<eq>($?, $?)            { * }
 multi infix:<eq>($x?)          { Bool::True }
 multi infix:<eq>(\a, \b)       { a.Stringy eq b.Stringy }
 
-proto infix:<ne>($?, $?)            { * }
-multi infix:<ne>($x?)          { Bool::True }
-multi infix:<ne>(\a, \b)       { a.Stringy ne b.Stringy }
+proto infix:<ne>(Mu $?, Mu $?)   { * }
+multi infix:<ne>($x?)            { Bool::True }
+multi infix:<ne>(Mu \a, Mu \b)   { a !eq b }
+multi infix:<ne>(Any \a,Any \b)  { a.Stringy ne b.Stringy }
 
 proto infix:<lt>($?, $?)            { * }
 multi infix:<lt>($x?)          { Bool::True }

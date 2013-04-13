@@ -445,15 +445,15 @@ BEGIN {
                 nqp::die("Cannot use 'is rw' on an optional parameter");
             }
             my $cd := nqp::getattr($dcself, Parameter, '$!container_descriptor');
-            if $cd { $cd.set_rw(1) }
+            if nqp::defined($cd) { $cd.set_rw(1) }
             nqp::bindattr_i($dcself, Parameter, '$!flags', $flags + $SIG_ELEM_IS_RW);
-            $dcself
+            nqp::p6bool(nqp::defined($dcself));
         }));
     Parameter.HOW.add_method(Parameter, 'set_copy', static(sub ($self) {
             my $SIG_ELEM_IS_COPY := 512;
             my $dcself := nqp::decont($self);
             my $cd     := nqp::getattr($dcself, Parameter, '$!container_descriptor');
-            if $cd { $cd.set_rw(1) }
+            if nqp::defined($cd) { $cd.set_rw(1) }
             nqp::bindattr_i($dcself, Parameter, '$!flags',
                 nqp::getattr_i($dcself, Parameter, '$!flags') + $SIG_ELEM_IS_COPY);
             $dcself

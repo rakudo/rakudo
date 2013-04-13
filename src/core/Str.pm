@@ -517,7 +517,7 @@ my class Str does Stringy {
             my $ch = self.substr($i, 1);
             $result ~= %esc{$ch} 
                        //  (   ((!$icu && $ch.ord >= 256)
-                               || nqp::iscclass( pir::const::CCLASS_PRINTING,
+                               || nqp::iscclass( nqp::const::CCLASS_PRINTING,
                                                   nqp::unbox_s($ch), 0))
                            ?? $ch
                            !! $ch.ord.fmt('\x[%x]')

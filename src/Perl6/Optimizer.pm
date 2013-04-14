@@ -396,6 +396,13 @@ class Perl6::Optimizer {
                             if $op.named {
                                 $wval.named($op.named);
                             }
+                            # if it's an Int, we can create a Want from it witth an int value.
+                            try {
+                                if nqp::istype($ret_value, self.find_in_setting("Int")) && !nqp::isbig_I($ret_value) {
+                                    return QAST::Want.new($wval,
+                                        "Ii", QAST::IVal.new(:value(nqp::unbox_i($ret_value))));
+                                }
+                            }
                             return $wval;
                         }
                     }

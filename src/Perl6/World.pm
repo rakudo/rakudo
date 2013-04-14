@@ -1230,7 +1230,8 @@ class Perl6::World is HLL::World {
             :compilation_mode(0),
             $wrapper
         );
-        my $precomp := nqp::getcomp('perl6').compile($compunit, :from<optimize>);
+        my $precomp := nqp::getcomp('perl6').compile($compunit,
+            :from<optimize>, :compunit_ok(1));
         $precomp[0].get_lexinfo.set_static_lexpad($slp);
         $precomp();
         

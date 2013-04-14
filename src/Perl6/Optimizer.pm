@@ -186,7 +186,9 @@ class Perl6::Optimizer {
                     $!SETTING := $block;
                 }
             }
-            nqp::die("Optimizer couldn't find CORE while looking for $symbol.");
+            if !nqp::defined($!SETTING) {
+                nqp::die("Optimizer couldn't find CORE while looking for $symbol.");
+            }
         } else {
             if nqp::existskey(%!SETTING_CACHE, $symbol) {
                 return %!SETTING_CACHE{$symbol};

@@ -410,12 +410,24 @@ class Perl6::Optimizer {
                             if $op.named {
                                 $wval.named($op.named);
                             }
-                            # if it's an Int, we can create a Want from it witth an int value.
-                            try {
-                                if nqp::istype($ret_value, self.find_in_setting("Int")) && !nqp::isbig_I(nqp::decont($ret_value)) {
-                                    return QAST::Want.new($wval,
-                                        "Ii", QAST::IVal.new(:value(nqp::unbox_i($ret_value))));
+                            # if it's an Int, Num or Str, we can create a Want
+                            # from it witt an int, num or str value.
+                            my $want;
+                            if nqp::istype($ret_value, self.find_in_setting("Int")) && !nqp::isbig_I(nqp::decont($ret_value)) {
+                                $want := QAST::Want.new($wval,
+                                    "Ii", QAST::IVal.new(:value(nqp::unbox_i($ret_value))));
+                            } elsif nqp::istype($ret_value, self.find_in_setting("Num")) {
+                                $want := QAST::Want.new($wval,
+                                    "Nn", QAST::NVal.new(:value(nqp::unbox_n($ret_value))));
+                            } elsif nqp::istype($ret_value, self.find_in_setting("Str")) {
+                                $want := QAST::Want.new($wval,
+                                    "Ss", QAST::SVal.new(:value(nqp::unbox_s($ret_value))));
+                            }
+                            if nqp::defined($want) {
+                                if $op.named {
+                                    $want.named($op.named);
                                 }
+                                return $want;
                             }
                             return $wval;
                         }

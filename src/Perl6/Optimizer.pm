@@ -30,7 +30,12 @@ class Perl6::Optimizer {
     
     # The type type, Mu.
     has $!Mu;
-    
+    # And the Any type, important for being the "not junction" type.
+    has $!Any;
+
+    # The Setting, which contains things like Signature and Parameter.
+    has $!SETTING;
+
     has %!foldable_junction;
     has %!foldable_outer;
 
@@ -77,6 +82,7 @@ class Perl6::Optimizer {
         }
         nqp::push(@!block_stack, $unit);
         $!Mu := self.find_lexical('Mu');
+        $!Any := self.find_lexical('Any');
         nqp::pop(@!block_stack);
         
         # Walk and optimize the program.
@@ -150,6 +156,7 @@ class Perl6::Optimizer {
         
         $block
     }
+
     method is_from_core($name) {
         my int $i := +@!block_stack;
         while $i > 0 {
@@ -165,6 +172,23 @@ class Perl6::Optimizer {
             }
         }
         return 0;
+    }
+
+    method find_setting() {
+        if nqp::defined($!SETTING) {
+            return $!SETTING;
+        }
+        my int $i := +@!block_stack;
+        while $i > 0 {
+            $i := $i - 1;
+            my $block := @!block_stack[$i];
+            my %sym := $block.symbol("!CORE_MARKER");
+            if +%sym {
+                $!SETTING := $block;
+                return $block;
+            }
+        }
+        nqp::die("Optimizer couldn't find CORE.");
     }
 
     method can_chain_junction_be_warped($node) {
@@ -220,10 +244,37 @@ class Perl6::Optimizer {
             return 0;
         }
 
+        # only if a chain operator handles Any, rather than Mu, in its signature
+        # will autothreading actually happen.
+        sub chain_handles_Any($op) {
+            my $obj;
+            my int $found := 0;
+            try {
+                $obj := self.find_lexical($op);
+                $found := 1;
+            }
+            if $found == 1 {
+                my $signature := self.find_setting().symbol("Signature")<value>;
+                my $iter := nqp::iterator(nqp::getattr($obj.signature, $signature, '$!params'));
+                while $iter {
+                    my $p := nqp::shift($iter);
+                    unless nqp::istype($p.type, $!Any) {
+                        return 0;
+                    }
+                }
+                return 1;
+            } else {
+                return 0;
+            }
+            return 0;
+        }
+
         # we may be able to unfold a junction at compile time.
         if $*LEVEL >= 2 && is_outer_foldable() && nqp::istype($op[0], QAST::Op) && $op[0].op eq "chain" {
             my $exp-side := self.can_chain_junction_be_warped($op[0]);
-            if $exp-side != -1 {
+            if $exp-side != -1 && chain_handles_Any($op[0].name) == 1 {
+                # TODO chain_handles_Any may get more cleverness to check only the parameters that actually have
+                # a junction passed to them, so that in some cases the unfolding may still happen.
                 my str $juncop := $op[0][$exp-side].name eq '&infix:<&>' ?? 'if' !! 'unless';
                 my str $juncname := %!foldable_junction{$op[0][$exp-side].name};
                 my str $chainop := $op[0].op;

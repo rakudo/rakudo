@@ -35,6 +35,7 @@ class Perl6::Optimizer {
 
     # The Setting, which contains things like Signature and Parameter.
     has $!SETTING;
+    has %!SETTING_CACHE;
 
     has %!foldable_junction;
     has %!foldable_outer;
@@ -174,21 +175,34 @@ class Perl6::Optimizer {
         return 0;
     }
 
-    method find_setting() {
-        if nqp::defined($!SETTING) {
-            return $!SETTING;
-        }
-        my int $i := +@!block_stack;
-        while $i > 0 {
-            $i := $i - 1;
-            my $block := @!block_stack[$i];
-            my %sym := $block.symbol("!CORE_MARKER");
-            if +%sym {
-                $!SETTING := $block;
-                return $block;
+    method find_in_setting($symbol) {
+        if !nqp::defined($!SETTING) {
+            my int $i := +@!block_stack;
+            while $i > 0 && !nqp::defined($!SETTING) {
+                $i := $i - 1;
+                my $block := @!block_stack[$i];
+                my %sym := $block.symbol("!CORE_MARKER");
+                if +%sym {
+                    $!SETTING := $block;
+                }
+            }
+            if !nqp::defined($!SETTING) {
+                nqp::die("Optimizer couldn't find CORE while looking for $symbol.");
+            }
+        } else {
+            if nqp::existskey(%!SETTING_CACHE, $symbol) {
+                return %!SETTING_CACHE{$symbol};
             }
         }
-        nqp::die("Optimizer couldn't find CORE.");
+        my %sym := $!SETTING.symbol($symbol);
+        if +%sym {
+            if nqp::existskey(%sym, 'value') {
+                %!SETTING_CACHE{$symbol} := %sym<value>;
+                return %sym<value>;
+            } else {
+                nqp::die("Optimizer: cannot find $symbol in SETTING.");
+            }
+        }
     }
 
     method can_chain_junction_be_warped($node) {
@@ -254,7 +268,7 @@ class Perl6::Optimizer {
                 $found := 1;
             }
             if $found == 1 {
-                my $signature := self.find_setting().symbol("Signature")<value>;
+                my $signature := self.find_in_setting("Signature");
                 my $iter := nqp::iterator(nqp::getattr($obj.signature, $signature, '$!params'));
                 while $iter {
                     my $p := nqp::shift($iter);
@@ -395,6 +409,25 @@ class Perl6::Optimizer {
                             my $wval := QAST::WVal.new(:value($ret_value));
                             if $op.named {
                                 $wval.named($op.named);
+                            }
+                            # if it's an Int, Num or Str, we can create a Want
+                            # from it witt an int, num or str value.
+                            my $want;
+                            if nqp::istype($ret_value, self.find_in_setting("Int")) && !nqp::isbig_I(nqp::decont($ret_value)) {
+                                $want := QAST::Want.new($wval,
+                                    "Ii", QAST::IVal.new(:value(nqp::unbox_i($ret_value))));
+                            } elsif nqp::istype($ret_value, self.find_in_setting("Num")) {
+                                $want := QAST::Want.new($wval,
+                                    "Nn", QAST::NVal.new(:value(nqp::unbox_n($ret_value))));
+                            } elsif nqp::istype($ret_value, self.find_in_setting("Str")) {
+                                $want := QAST::Want.new($wval,
+                                    "Ss", QAST::SVal.new(:value(nqp::unbox_s($ret_value))));
+                            }
+                            if nqp::defined($want) {
+                                if $op.named {
+                                    $want.named($op.named);
+                                }
+                                return $want;
                             }
                             return $wval;
                         }

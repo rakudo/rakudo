@@ -279,13 +279,32 @@ my class List does Positional {
     }
 
     multi method ACCEPTS(List:D: $topic) {
-        my @t = $topic.list;
-        # TODO: Whatever-DWIMmery
-        return False unless self.elems == @t.elems;
-        for ^self.elems {
-            return False unless self.at_pos($_) === @t[$_];
+        my $sseq = self;
+        my $tseq = $topic.list;
+
+        my $spos = 0;
+        my $tpos = 0;
+        while $spos < +$sseq {
+            # if the next element is Whatever
+            if $sseq[$spos] ~~ Whatever {
+                # skip over all of the Whatevers
+                $spos++ while $spos <= +$sseq && $sseq[$spos] ~~ Whatever;
+                # if nothing left, we're done
+                return True if !($spos < +$sseq);
+                # find a target matching our new target
+                $tpos++ while ($tpos < +$tseq) && $tseq[$tpos] !== $sseq[$spos];
+                # return false if we ran out
+                return False if !($tpos < +$tseq);
+            }
+            elsif $tpos >= +$tseq || $tseq[$tpos] !=== $sseq[$spos] {
+                return False;
+            }
+            # skip matching elements
+            $spos++;
+            $tpos++;
         }
-        True;
+        # If nothing left to match, we're successful.
+        $tpos >= +$tseq;
     }
 
     method classify(&test) {

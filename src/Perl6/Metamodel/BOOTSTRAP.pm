@@ -643,6 +643,7 @@ BEGIN {
 
             my int $SIG_ELEM_SLURPY_POS          := 8;
             my int $SIG_ELEM_SLURPY_NAMED        := 16;
+            my int $SIG_ELEM_SLURPY_LOL          := 32;
             my int $SIG_ELEM_MULTI_INVOCANT      := 128;
             my int $SIG_ELEM_IS_OPTIONAL         := 2048;
             my int $SIG_ELEM_IS_CAPTURE          := 32768;
@@ -789,7 +790,7 @@ BEGIN {
                     }
 
                     # Otherwise, positional or slurpy and contributes to arity.
-                    if $flags +& $SIG_ELEM_SLURPY_POS || $flags +& $SIG_ELEM_IS_CAPTURE {
+                    if $flags +& ($SIG_ELEM_SLURPY_POS +| $SIG_ELEM_SLURPY_LOL +| $SIG_ELEM_IS_CAPTURE) {
                         %info<max_arity> := $SLURPY_ARITY;
                         last;
                     }

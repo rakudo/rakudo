@@ -66,7 +66,7 @@ part of monthly Parrot releases.
   2013-02-23   2013.02.1                       (moritz)
   2013-03-21   Rakudo #62 "Singapore"          (masak)
 
-=head2 Planned 2012 and 2013 releases
+=head2 Planned 2013 releases
 
 Dates are based on Parrot's expected release schedule.
 

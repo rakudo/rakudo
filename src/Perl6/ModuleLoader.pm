@@ -44,22 +44,20 @@ class Perl6::ModuleLoader {
     }
     
     # Locates files we could potentially load for this module.
-    method locate_candidates($module_name, @prefixes) {
+    method locate_candidates($module_name, @prefixes, :$file?) {
         # If its name contains a slash or dot treat is as a path rather than a package name.
         my @candidates;
-        if nqp::index($module_name, '.') >= 0 || nqp::index($module_name, '/') >= 0 {
-            if nqp::stat($module_name, 0) {
+        if nqp::defined($file) {
+            if nqp::stat($file, 0) {
                 my %cand;
-                %cand<key> := $module_name;
-                my $dot := nqp::rindex($module_name, '.');
-                my $ext := $dot >= 0
-                        ?? nqp::substr($module_name, $dot, nqp::chars($module_name) - $dot)
-                        !! '';
+                %cand<key> := $file;
+                my $dot := nqp::rindex($file, '.');
+                my $ext := $dot >= 0 ?? nqp::substr($file, $dot, nqp::chars($file) - $dot) !! '';
                 if $ext eq 'pbc' || $ext eq 'pir' {
-                    %cand<load> := $module_name;
+                    %cand<load> := $file;
                 }
                 else {
-                    %cand<pm> := $module_name;
+                    %cand<pm> := $file;
                 }
                 @candidates.push(%cand);
             }
@@ -116,14 +114,19 @@ class Perl6::ModuleLoader {
         @candidates
     }
     
-    method load_module($module_name, *@GLOBALish, :$line) {
+    method load_module($module_name, *@GLOBALish, :$line, :$file?) {
         # Locate all the things that we potentially could load. Choose
         # the first one for now (XXX need to filter by version and auth).
         my @prefixes   := self.search_path();
-        my @candidates := self.locate_candidates($module_name, @prefixes);
+        my @candidates := self.locate_candidates($module_name, @prefixes, :$file);
         if +@candidates == 0 {
-            nqp::die("Could not find $module_name in any of: " ~
-                nqp::join(', ', @prefixes));
+            if nqp::defined($file) {
+                nqp::die("Could not find file '$file' for module $module_name");
+            }
+            else {
+                nqp::die("Could not find $module_name in any of: " ~
+                    nqp::join(', ', @prefixes));
+            }
         }
         my %chosen := @candidates[0];
         

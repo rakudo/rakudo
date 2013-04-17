@@ -1253,9 +1253,11 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     rule statement_control:sym<require> {
         <sym>
         [
-        | <module_name> <EXPR>?
-        | <EXPR>
+        | <module_name>
+        | <file=.variable>
+        | <!before <sigil>> <file=.term>
         ]
+        [ <EXPR> ]?
     }
 
     token statement_control:sym<given> {

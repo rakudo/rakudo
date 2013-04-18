@@ -65,12 +65,12 @@ part of monthly Parrot releases.
   2013-02-21   Rakudo #61 "drinkers"           (tadzik)
   2013-02-23   2013.02.1                       (moritz)
   2013-03-21   Rakudo #62 "Singapore"          (masak)
+  2013-04-18   Rakudo #63 "Albany"             (Coke)
 
 =head2 Planned 2013 releases
 
 Dates are based on Parrot's expected release schedule.
 
-  2013-04-18   Rakudo #63 Coke
   2013-05-23   Rakudo #64 FROGGS
   2013-06-20   Rakudo #65 masak
   2013-07-18   Rakudo #66

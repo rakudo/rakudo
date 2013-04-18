@@ -1,3 +1,20 @@
+New in 2013.04
++ add Capture.Bool()
++ optimize getting size of numeric Range
++ for loops are eager again
++ improvements to DUMP()
++ wrap NQP objects in ForeignCode, allowing perl6 OO calls on them
++ improve some messages on parsefail.
++ add link and symlink to IO
++ reduce compile-time autothreading to avoid issues with !==
++ improve optimizer - caching, constants
++ fix List.ACCEPTS() for Whatever special case
++ bring 'require'  closer to spec, esp. by taking paths
++ bring 'IO::Path' closer to spec
++ remove parrot dynops already provided as nqp ops
++ translate a dynop to nqp code
++ update from pir:: calls to nqp::
+
 New in 2013.03
 + Type names now gist as (Any) rather than Any()
 + Warn when pure expressions are used in sink context

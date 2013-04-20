@@ -7,9 +7,9 @@ use 5.008;
 use lib 'tools/lib';
 use NQP::Configure qw(slurp cmp_rev read_config);
 
-if (-M 'Makefile' > -M 'tools/build/Makefile.in') {
+if (-M 'Makefile' > -M 'tools/build/Makefile-Parrot.in') {
     die <<EOM
-Makefile is older than tools/build/Makefile.in, run something like
+Makefile is older than tools/build/Makefile-Parrot.in, run something like
 
     perl Configure.pl
 

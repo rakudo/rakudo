@@ -1,7 +1,7 @@
 #include "pmc_perl6lexinfo.h"
-#include "../binder/sixmodelobject.h"
-#include "../binder/container.h"
-#include "../binder/bind.h"
+#include "../guts/sixmodelobject.h"
+#include "../guts/container.h"
+#include "../guts/bind.h"
 #include "pmc_sub.h"
 
 /* How StatixLexPad looks on the inside. */

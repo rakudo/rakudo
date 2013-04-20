@@ -41,15 +41,15 @@ PARROT_TOOLS_DIR = $(PARROT_LIB_DIR)/tools
 PARROT_PERL_LIB  = $(PARROT_TOOLS_DIR)/lib
 OPS2C            = $(PARROT_BIN_DIR)/ops2c$(EXE)
 PMC2C            = $(PERL) $(PARROT_TOOLS_DIR)/build/pmc2c.pl
-PMC2C_INCLUDES   = --include src/pmc --include $(PARROT_SRC_DIR) --include $(PARROT_SRC_DIR)/pmc
+PMC2C_INCLUDES   = --include src/vm/parrot/pmc --include $(PARROT_SRC_DIR) --include $(PARROT_SRC_DIR)/pmc
 CINCLUDES        = -I$(PARROT_INCLUDE_DIR) -I$(PARROT_INCLUDE_DIR)/pmc
 LINKARGS         = $(LDFLAGS) $(LD_LOAD_FLAGS) $(LIBPARROT) @libs@ @icu_shared@
 GEN_CAT          = tools/build/gen-cat.pl
 
 # rakudo directories
 DYNEXT_DIR     = dynext
-PMC_DIR        = src/pmc
-OPS_DIR        = src/ops
+PMC_DIR        = src/vm/parrot/pmc
+OPS_DIR        = src/vm/parrot/ops
 PERL6_LANG_DIR = $(PARROT_LIB_DIR)/languages/perl6
 MANDIR         = @mandir@
 DOCDIR         = @prefix@/share/doc
@@ -276,7 +276,7 @@ CLEANUPS = \
   $(OPS_DIR)/*.c \
   $(OPS_DIR)/*$(O) \
   $(OPS_DIR)/*$(LOAD_EXT) \
-  src/binder/*$(O) \
+  src/vm/parrot/guts/*$(O) \
 
 # NOTE: eventually, we should remove --keep-exit-code and --fudge
 #       as the goal is that all tests must pass without fudge
@@ -562,22 +562,22 @@ $(DYNEXT_DYNOPS): $(DYNOPS)
 # spaces and some compilers/linkers forbid a (forced) space.
 # See RT #66558 and TT #700.
 
-$(DYNPMC): $(PMC_SOURCES) src/binder/sixmodelobject.h src/binder/storage_spec.h
+$(DYNPMC): $(PMC_SOURCES) src/vm/parrot/guts/sixmodelobject.h src/vm/parrot/guts/storage_spec.h
 	$(PMC2C) --no-lines --dump $(PMC2C_INCLUDES) $(PMC_SOURCES)
 	$(PMC2C) --no-lines --c $(PMC2C_INCLUDES) $(PMC_SOURCES)
 	$(PMC2C) --no-lines --library $(GROUP) --c $(PMC_SOURCES)
 	$(CC) -c @cc_o_out@$(GROUP)$(O) -I$(PMC_DIR) $(CINCLUDES) $(CFLAGS) $(GROUP).c
 	cd $(PMC_DIR) && $(CC) -c $(CINCLUDES) $(CFLAGS) *.c
-	$(LD) @ld_out@$(DYNPMC) $(GROUP)$(O) src/pmc/*$(O) $(LINKARGS)
+	$(LD) @ld_out@$(DYNPMC) $(GROUP)$(O) src/vm/parrot/pmc/*$(O) $(LINKARGS)
 
-$(DYNOPS): $(OPS_DIR)/$(OPS_SOURCE) src/binder/bind.c src/binder/bind.h src/binder/container.c src/binder/container.h src/binder/types.c src/binder/types.h src/binder/sixmodelobject.h src/binder/storage_spec.h src/binder/exceptions.h src/binder/exceptions.c $(DYNPMC)
+$(DYNOPS): $(OPS_DIR)/$(OPS_SOURCE) src/vm/parrot/guts/bind.c src/vm/parrot/guts/bind.h src/vm/parrot/guts/container.c src/vm/parrot/guts/container.h src/vm/parrot/guts/types.c src/vm/parrot/guts/types.h src/vm/parrot/guts/sixmodelobject.h src/vm/parrot/guts/storage_spec.h src/vm/parrot/guts/exceptions.h src/vm/parrot/guts/exceptions.c $(DYNPMC)
 	cd $(OPS_DIR) && $(OPS2C) C --dynamic $(OPS_SOURCE)
 	cd $(OPS_DIR) && $(CC) -c @cc_o_out@$(OPS)$(O) $(CINCLUDES) $(CFLAGS) $(OPS).c
-	cd src/binder && $(CC) -c @cc_o_out@exceptions$(O) -I../../$(PMC_DIR) $(CINCLUDES) $(CFLAGS) exceptions.c
-	cd src/binder && $(CC) -c @cc_o_out@bind$(O) -I../../$(PMC_DIR) $(CINCLUDES) $(CFLAGS) bind.c
-	cd src/binder && $(CC) -c @cc_o_out@container$(O) -I../../$(PMC_DIR) $(CINCLUDES) $(CFLAGS) container.c
-	cd src/binder && $(CC) -c @cc_o_out@types$(O) -I../../$(PMC_DIR) $(CINCLUDES) $(CFLAGS) types.c
-	cd $(OPS_DIR) && $(LD) @ld_out@$(OPS)$(LOAD_EXT) $(OPS)$(O) ../binder/bind$(O) ../binder/exceptions$(O) ../binder/container$(O) ../binder/types$(O) $(LINKARGS)
+	cd src/vm/parrot/guts && $(CC) -c @cc_o_out@exceptions$(O) -I../../../../$(PMC_DIR) $(CINCLUDES) $(CFLAGS) exceptions.c
+	cd src/vm/parrot/guts && $(CC) -c @cc_o_out@bind$(O) -I../../../../$(PMC_DIR) $(CINCLUDES) $(CFLAGS) bind.c
+	cd src/vm/parrot/guts && $(CC) -c @cc_o_out@container$(O) -I../../../../$(PMC_DIR) $(CINCLUDES) $(CFLAGS) container.c
+	cd src/vm/parrot/guts && $(CC) -c @cc_o_out@types$(O) -I../../../../$(PMC_DIR) $(CINCLUDES) $(CFLAGS) types.c
+	cd $(OPS_DIR) && $(LD) @ld_out@$(OPS)$(LOAD_EXT) $(OPS)$(O) ../guts/bind$(O) ../guts/exceptions$(O) ../guts/container$(O) ../guts/types$(O) $(LINKARGS)
 
 # nqp::makefile <-- tells NQP::Configure to treat this file as a makefile,
 #                   performing win32 slash and makefile conversions

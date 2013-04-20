@@ -14,11 +14,11 @@ BEGIN_OPS_PREAMBLE
 #include "pmc_sub.h"
 #include "pmc_continuation.h"
 #include "pmc_exception.h"
-#include "../binder/bind.h"
-#include "../binder/container.h"
-#include "../binder/types.h"
-#include "../binder/sixmodelobject.h"
-#include "../binder/exceptions.h"
+#include "../guts/bind.h"
+#include "../guts/container.h"
+#include "../guts/types.h"
+#include "../guts/sixmodelobject.h"
+#include "../guts/exceptions.h"
 
 #if PARROT_HAS_ICU
 #  include <unicode/uchar.h>

@@ -98,52 +98,52 @@ PMC_SOURCES = \
 OPS_SOURCE   = perl6.ops
 
 METAMODEL_SOURCES = \
-  src/Perl6/Metamodel/Archetypes.pm \
-  src/Perl6/Metamodel/Naming.pm \
-  src/Perl6/Metamodel/Documenting.pm \
-  src/Perl6/Metamodel/Stashing.pm \
-  src/Perl6/Metamodel/Versioning.pm \
-  src/Perl6/Metamodel/TypePretense.pm \
-  src/Perl6/Metamodel/MethodDelegation.pm \
-  src/Perl6/Metamodel/BoolificationProtocol.pm \
-  src/Perl6/Metamodel/PackageHOW.pm \
-  src/Perl6/Metamodel/ModuleHOW.pm \
-  src/Perl6/Metamodel/GenericHOW.pm \
-  src/Perl6/Metamodel/AttributeContainer.pm \
-  src/Perl6/Metamodel/MethodContainer.pm \
-  src/Perl6/Metamodel/PrivateMethodContainer.pm \
-  src/Perl6/Metamodel/MultiMethodContainer.pm \
-  src/Perl6/Metamodel/RoleContainer.pm \
-  src/Perl6/Metamodel/MultipleInheritance.pm \
-  src/Perl6/Metamodel/DefaultParent.pm \
-  src/Perl6/Metamodel/BaseType.pm \
-  src/Perl6/Metamodel/C3MRO.pm \
-  src/Perl6/Metamodel/MROBasedMethodDispatch.pm \
-  src/Perl6/Metamodel/MROBasedTypeChecking.pm \
-  src/Perl6/Metamodel/Trusting.pm \
-  src/Perl6/Metamodel/Mixins.pm \
-  src/Perl6/Metamodel/BUILDPLAN.pm \
-  src/Perl6/Metamodel/REPRAttributeProtocol.pm \
-  src/Perl6/Metamodel/ParrotInterop.pm \
-  src/Perl6/Metamodel/RolePunning.pm \
-  src/Perl6/Metamodel/RoleToRoleApplier.pm \
-  src/Perl6/Metamodel/ConcreteRoleHOW.pm \
-  src/Perl6/Metamodel/CurriedRoleHOW.pm \
-  src/Perl6/Metamodel/ParametricRoleHOW.pm \
-  src/Perl6/Metamodel/ParametricRoleGroupHOW.pm \
-  src/Perl6/Metamodel/RoleToClassApplier.pm \
-  src/Perl6/Metamodel/ClassHOW.pm \
-  src/Perl6/Metamodel/GrammarHOW.pm \
-  src/Perl6/Metamodel/NativeHOW.pm \
-  src/Perl6/Metamodel/SubsetHOW.pm \
-  src/Perl6/Metamodel/EnumHOW.pm \
-  src/Perl6/Metamodel/ContainerDescriptor.pm \
-  src/Perl6/Metamodel/StaticLexPad.pm \
-  src/Perl6/Metamodel/Dispatchers.pm \
+  src/Perl6/Metamodel/Archetypes.nqp \
+  src/Perl6/Metamodel/Naming.nqp \
+  src/Perl6/Metamodel/Documenting.nqp \
+  src/Perl6/Metamodel/Stashing.nqp \
+  src/Perl6/Metamodel/Versioning.nqp \
+  src/Perl6/Metamodel/TypePretense.nqp \
+  src/Perl6/Metamodel/MethodDelegation.nqp \
+  src/Perl6/Metamodel/BoolificationProtocol.nqp \
+  src/Perl6/Metamodel/PackageHOW.nqp \
+  src/Perl6/Metamodel/ModuleHOW.nqp \
+  src/Perl6/Metamodel/GenericHOW.nqp \
+  src/Perl6/Metamodel/AttributeContainer.nqp \
+  src/Perl6/Metamodel/MethodContainer.nqp \
+  src/Perl6/Metamodel/PrivateMethodContainer.nqp \
+  src/Perl6/Metamodel/MultiMethodContainer.nqp \
+  src/Perl6/Metamodel/RoleContainer.nqp \
+  src/Perl6/Metamodel/MultipleInheritance.nqp \
+  src/Perl6/Metamodel/DefaultParent.nqp \
+  src/Perl6/Metamodel/BaseType.nqp \
+  src/Perl6/Metamodel/C3MRO.nqp \
+  src/Perl6/Metamodel/MROBasedMethodDispatch.nqp \
+  src/Perl6/Metamodel/MROBasedTypeChecking.nqp \
+  src/Perl6/Metamodel/Trusting.nqp \
+  src/Perl6/Metamodel/Mixins.nqp \
+  src/Perl6/Metamodel/BUILDPLAN.nqp \
+  src/Perl6/Metamodel/REPRAttributeProtocol.nqp \
+  src/Perl6/Metamodel/ParrotInterop.nqp \
+  src/Perl6/Metamodel/RolePunning.nqp \
+  src/Perl6/Metamodel/RoleToRoleApplier.nqp \
+  src/Perl6/Metamodel/ConcreteRoleHOW.nqp \
+  src/Perl6/Metamodel/CurriedRoleHOW.nqp \
+  src/Perl6/Metamodel/ParametricRoleHOW.nqp \
+  src/Perl6/Metamodel/ParametricRoleGroupHOW.nqp \
+  src/Perl6/Metamodel/RoleToClassApplier.nqp \
+  src/Perl6/Metamodel/ClassHOW.nqp \
+  src/Perl6/Metamodel/GrammarHOW.nqp \
+  src/Perl6/Metamodel/NativeHOW.nqp \
+  src/Perl6/Metamodel/SubsetHOW.nqp \
+  src/Perl6/Metamodel/EnumHOW.nqp \
+  src/Perl6/Metamodel/ContainerDescriptor.nqp \
+  src/Perl6/Metamodel/StaticLexPad.nqp \
+  src/Perl6/Metamodel/Dispatchers.nqp \
 
 BOOTSTRAP_SOURCES = \
-  src/Perl6/Metamodel/BOOTSTRAP.pm \
-  src/Perl6/Metamodel/EXPORTHOW.pm \
+  src/Perl6/Metamodel/BOOTSTRAP.nqp \
+  src/Perl6/Metamodel/EXPORTHOW.nqp \
   
 # The ordering here is important for bootstrapping reasons. In general:
 # * traits almost certainly have to come first
@@ -340,44 +340,44 @@ $(PERL6_PBC): $(PERL6_G_PBC) $(PERL6_A_PBC) $(PERL6_C_PBC) $(PERL6_P_PBC) src/ma
 	    --combine src/main.nqp src/gen/main-version.nqp
 	$(PARROT) $(PARROT_ARGS) -o $(PERL6_PBC) src/gen/perl6.pir
 
-$(PERL6_ML_PBC): $(NQP_EXE) $(DYNEXT_DYNPMC) $(DYNEXT_DYNOPS) src/Perl6/ModuleLoader.pm
+$(PERL6_ML_PBC): $(NQP_EXE) $(DYNEXT_DYNPMC) $(DYNEXT_DYNOPS) src/Perl6/ModuleLoader.nqp
 	$(NQP_EXE) --target=pir --output=$(PERL6_ML) --encoding=utf8 \
-	    src/Perl6/ModuleLoader.pm
+	    src/Perl6/ModuleLoader.nqp
 	$(PARROT) $(PARROT_ARGS) -o $(PERL6_ML_PBC) $(PERL6_ML)
 
-$(PERL6_CF_PBC): $(NQP_EXE) $(DYNEXT_DYNPMC) $(DYNEXT_DYNOPS) src/Perl6/ConstantFolder.pm
+$(PERL6_CF_PBC): $(NQP_EXE) $(DYNEXT_DYNPMC) $(DYNEXT_DYNOPS) src/Perl6/ConstantFolder.nqp
 	$(NQP_EXE) --target=pir --output=$(PERL6_CF) --encoding=utf8 \
-	    src/Perl6/ConstantFolder.pm
+	    src/Perl6/ConstantFolder.nqp
 	$(PARROT) $(PARROT_ARGS) -o $(PERL6_CF_PBC) $(PERL6_CF)
 
-$(PERL6_W_PBC): $(NQP_EXE) $(PERL6_ML_PBC) src/Perl6/World.pm
+$(PERL6_W_PBC): $(NQP_EXE) $(PERL6_ML_PBC) src/Perl6/World.nqp
 	$(NQP_EXE) --vmlibs=perl6_group,perl6_ops --target=pir --output=$(PERL6_W) --encoding=utf8 \
-	    src/Perl6/World.pm
+	    src/Perl6/World.nqp
 	$(PARROT) $(PARROT_ARGS) -o $(PERL6_W_PBC) $(PERL6_W)
     
-$(PERL6_G_PBC): $(NQP_EXE) $(PERL6_W_PBC) $(PERL6_A_PBC) src/Perl6/Grammar.pm $(PERL6_P_PBC)
+$(PERL6_G_PBC): $(NQP_EXE) $(PERL6_W_PBC) $(PERL6_A_PBC) src/Perl6/Grammar.nqp $(PERL6_P_PBC)
 	$(NQP_EXE) --target=pir --output=$(PERL6_G) --encoding=utf8 \
-	    src/Perl6/Grammar.pm
+	    src/Perl6/Grammar.nqp
 	$(PARROT) $(PARROT_ARGS) -o $(PERL6_G_PBC) $(PERL6_G)
 
-$(PERL6_OPS_PBC): $(NQP_EXE) $(DYNEXT_DYNPMC) $(DYNEXT_DYNOPS) src/Perl6/Ops.pm
+$(PERL6_OPS_PBC): $(NQP_EXE) $(DYNEXT_DYNPMC) $(DYNEXT_DYNOPS) src/Perl6/Ops.nqp
 	$(NQP_EXE) --vmlibs=perl6_group,perl6_ops  --target=pir --output=$(PERL6_OPS) --encoding=utf8 \
-	    src/Perl6/Ops.pm
+	    src/Perl6/Ops.nqp
 	$(PARROT) $(PARROT_ARGS) -o $(PERL6_OPS_PBC) $(PERL6_OPS)
 
-$(PERL6_A_PBC): $(NQP_EXE) $(DYNEXT_DYNPMC) $(DYNEXT_DYNOPS) src/Perl6/Actions.pm $(PERL6_P_PBC) $(PERL6_CF_PBC) $(PERL6_OPS_PBC)
+$(PERL6_A_PBC): $(NQP_EXE) $(DYNEXT_DYNPMC) $(DYNEXT_DYNOPS) src/Perl6/Actions.nqp $(PERL6_P_PBC) $(PERL6_CF_PBC) $(PERL6_OPS_PBC)
 	$(NQP_EXE) --vmlibs=perl6_group,perl6_ops  --target=pir --output=$(PERL6_A) --encoding=utf8 \
-	    src/Perl6/Actions.pm
+	    src/Perl6/Actions.nqp
 	$(PARROT) $(PARROT_ARGS) -o $(PERL6_A_PBC) $(PERL6_A)
 
-$(PERL6_O_PBC): $(NQP_EXE) $(DYNEXT_DYNPMC) $(DYNEXT_DYNOPS) src/Perl6/Optimizer.pm
+$(PERL6_O_PBC): $(NQP_EXE) $(DYNEXT_DYNPMC) $(DYNEXT_DYNOPS) src/Perl6/Optimizer.nqp
 	$(NQP_EXE) --vmlibs=perl6_group,perl6_ops  --target=pir --output=$(PERL6_O) --encoding=utf8 \
-	    src/Perl6/Optimizer.pm
+	    src/Perl6/Optimizer.nqp
 	$(PARROT) $(PARROT_ARGS) -o $(PERL6_O_PBC) $(PERL6_O)
     
-$(PERL6_P_PBC): $(NQP_EXE) $(DYNEXT_DYNPMC) $(DYNEXT_DYNOPS) src/Perl6/Pod.pm
+$(PERL6_P_PBC): $(NQP_EXE) $(DYNEXT_DYNPMC) $(DYNEXT_DYNOPS) src/Perl6/Pod.nqp
 	$(NQP_EXE) --vmlibs=perl6_group,perl6_ops  --target=pir --output=$(PERL6_P) --encoding=utf8 \
-	    src/Perl6/Pod.pm
+	    src/Perl6/Pod.nqp
 	$(PARROT) $(PARROT_ARGS) -o $(PERL6_P_PBC) $(PERL6_P)
 
 $(PERL6_C_PBC): $(NQP_EXE) $(DYNEXT_DYNPMC) $(DYNEXT_DYNOPS) $(PERL6_O_PBC) src/Perl6/Compiler.nqp
@@ -386,15 +386,15 @@ $(PERL6_C_PBC): $(NQP_EXE) $(DYNEXT_DYNPMC) $(DYNEXT_DYNOPS) $(PERL6_O_PBC) src/
 	$(PARROT) $(PARROT_ARGS) -o $(PERL6_C_PBC) $(PERL6_C)
 
 $(PERL6_M_PBC): $(NQP_EXE) $(DYNEXT_DYNPMC) $(DYNEXT_DYNOPS) $(METAMODEL_SOURCES)
-	$(PERL) $(GEN_CAT) $(METAMODEL_SOURCES) > src/gen/Metamodel.pm
+	$(PERL) $(GEN_CAT) $(METAMODEL_SOURCES) > src/gen/Metamodel.nqp
 	$(NQP_EXE) --target=pir --output=$(PERL6_M) --encoding=utf8 \
-	    --vmlibs=perl6_ops src/gen/Metamodel.pm
+	    --vmlibs=perl6_ops src/gen/Metamodel.nqp
 	$(PARROT) $(PARROT_ARGS) -o $(PERL6_M_PBC) $(PERL6_M)
     
 $(PERL6_B_PBC): $(NQP_EXE) $(DYNEXT_DYNPMC) $(DYNEXT_DYNOPS) $(PERL6_M_PBC) $(BOOTSTRAP_SOURCES)
-	$(PERL) $(GEN_CAT) $(BOOTSTRAP_SOURCES) > src/gen/BOOTSTRAP.pm
+	$(PERL) $(GEN_CAT) $(BOOTSTRAP_SOURCES) > src/gen/BOOTSTRAP.nqp
 	$(NQP_EXE) --target=pir --output=$(PERL6_B) --encoding=utf8 \
-	    --vmlibs=perl6_ops src/gen/BOOTSTRAP.pm
+	    --vmlibs=perl6_ops src/gen/BOOTSTRAP.nqp
 	$(PARROT) $(PARROT_ARGS) -o $(PERL6_B_PBC) $(PERL6_B)
 
 $(SETTING_PBC): $(PERL6_B_PBC) $(PERL6_EXE) $(CORE_SOURCES)

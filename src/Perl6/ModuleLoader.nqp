@@ -1,4 +1,4 @@
-my $DEBUG := +nqp::atkey(pir::new__Ps('Env'), 'RAKUDO_MODULE_DEBUG');
+my $DEBUG := +nqp::atkey(nqp::getenvhash(), 'RAKUDO_MODULE_DEBUG');
 sub DEBUG(*@strs) {
     my $err := nqp::getstderr();
     $err.print("MODULE_DEBUG: ");

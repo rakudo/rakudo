@@ -8,7 +8,7 @@ sub term:<time>() { nqp::p6box_i(nqp::time_i()) }
     $PROCESS::ARGFILES = IO::ArgFiles.new(:args(@ARGS));
 
     my %ENV;
-    my Mu $env := pir::new__Ps('Env');
+    my Mu $env := nqp::getenvhash();
     my Mu $enviter := nqp::iterator($env);
     my $key;
     while $enviter {

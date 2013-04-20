@@ -1,0 +1,116 @@
+#! perl
+# Copyright (C) 2009-2013 The Perl Foundation
+
+use 5.008;
+use strict;
+use warnings;
+use Text::ParseWords;
+use Getopt::Long;
+use Cwd;
+use lib "tools/lib";
+use NQP::Configure qw(sorry slurp fill_template_text fill_template_file);
+
+my $lang = 'Rakudo';
+my $lclang = lc $lang;
+my $uclang = uc $lang;
+
+MAIN: {
+    if (-r "config.default") {
+        unshift @ARGV, shellwords(slurp('config.default'));
+    }
+
+    my %config;
+    my $config_status = "${lclang}_config_status";
+    $config{$config_status} = join(' ', map { "\"$_\""} @ARGV);
+
+    my %options;
+    GetOptions(\%options, 'help!', 'prefix=s', 'with-nqp=s',
+               'make-install!', 'makefile-timing!',
+    ) or do {
+        print_help();
+        exit(1);
+    };
+
+    # Print help if it's requested
+    if ($options{'help'}) {
+        print_help();
+        exit(0);
+    }
+
+    my $prefix      = $options{'prefix'} || cwd().'/install';
+    my $with_nqp    = $options{'with-nqp'} ||
+        ($^O eq 'MSWin32' ? 'install-jvm\\nqp' : 'install-jvm/nqp');
+
+    # Save options in config.status
+    unlink('config.status');
+    if (open(my $CONFIG_STATUS, '>', 'config.status')) {
+        print $CONFIG_STATUS
+            "$^X Configure.pl $config{$config_status} \$*\n";
+        close($CONFIG_STATUS);
+    }
+
+    my @errors;
+
+    unless (`$with_nqp --version` =~ /This is nqp .+ JVM/) {
+        push @errors, "No NQP on JVM found; use --with-nqp to specify";
+    }
+
+    sorry(@errors) if @errors;
+
+    print "Using $with_nqp.\n";
+
+    $config{'nqp'} = $with_nqp;
+    $config{'makefile-timing'} = $options{'makefile-timing'};
+    $config{'stagestats'} = '--stagestats' if $options{'makefile-timing'};
+    my $make = $config{'make'} = $^O eq 'MSWin32' ? 'nmake' : 'make';
+    
+    fill_template_file('tools/build/Makefile-JVM.in', 'Makefile', %config);
+
+    {
+        no warnings;
+        print "Cleaning up ...\n";
+        if (open my $CLEAN, '-|', "$make clean") {
+            my @slurp = <$CLEAN>;
+            close($CLEAN);
+        }
+    }
+
+    if ($options{'make-install'}) {
+        system_or_die($make);
+        system_or_die($make, 'install');
+        print "\n$lang has been built and installed.\n";
+    }
+    else {
+        print "\nYou can now use '$make' to build $lang.\n";
+        print "After that, '$make test' will run some tests and\n";
+        print "'$make install' will install $lang.\n";
+    }
+
+    exit 0;
+}
+
+
+#  Print some help text.
+sub print_help {
+    print <<"END";
+Configure.pl - $lang Configure
+
+General Options:
+    --help             Show this text
+    --prefix=dir       Install files in dir
+    --with-nqp=path/to/bin/nqp
+                       NQP JVM to use to build
+    --makefile-timing  Enable timing of individual makefile commands
+
+Configure.pl also reads options from 'config.default' in the current directory.
+END
+
+    return;
+}
+
+# Local Variables:
+#   mode: cperl
+#   cperl-indent-level: 4
+#   fill-column: 100
+# End:
+# vim: expandtab shiftwidth=4:

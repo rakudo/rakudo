@@ -1,0 +1,35 @@
+JAVA    = java
+JAVAC   = javac
+JAR     = jar
+PERL    = perl
+PROVE   = prove
+NQP     = @nqp@
+GEN_CAT = tools/build/gen-cat.pl jvm
+
+PREFIX = @prefix@
+
+MKPATH = $(PERL) -MExtUtils::Command -e mkpath
+CP     = $(PERL) -MExtUtils::Command -e cp
+CHMOD  = $(PERL) -MExtUtils::Command -e chmod
+
+# files we create
+PERL6_CLASS     = perl6.class
+PERL6_ML_CLASS  = blib/Perl6/ModuleLoader.class
+PERL6_CF_CLASS  = blib/Perl6/ConstantFolder.class
+PERL6_W_CLASS   = blib/Perl6/World.class
+PERL6_G_CLASS   = blib/Perl6/Grammar.class
+PERL6_OPS_CLASS = blib/Perl6/Ops.class
+PERL6_A_CLASS   = blib/Perl6/Actions.class
+PERL6_O_CLASS   = blib/Perl6/Optimizer.class
+PERL6_P_CLASS   = blib/Perl6/Pod.class
+PERL6_C_CLASS   = blib/Perl6/Compiler.class
+PERL6_M_CLASS   = blib/Perl6/Metamodel.class
+PERL6_B_CLASS   = blib/Perl6/BOOTSTRAP.class
+SETTING_CLASS   = CORE.setting.class
+R_SETTING_CLASS = RESTRICTED.setting.class
+
+all: $(PERL6_CF_CLASS)
+
+$(PERL6_CF_CLASS): src/Perl6/ConstantFolder.nqp
+	$(NQP) --target=classfile --output=$(PERL6_CF_CLASS) --encoding=utf8 \
+	    src/Perl6/ConstantFolder.nqp

@@ -1,6 +1,7 @@
 src/gen/*
 nqp/
 install/
+install-jvm/
 Makefile
 .*.swp
 *.patch

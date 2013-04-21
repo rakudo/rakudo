@@ -11,6 +11,7 @@ PREFIX = @prefix@
 MKPATH = $(PERL) -MExtUtils::Command -e mkpath
 CP     = $(PERL) -MExtUtils::Command -e cp
 CHMOD  = $(PERL) -MExtUtils::Command -e chmod
+RM_F   = $(PERL) -MExtUtils::Command -e rm_f
 
 # files we create
 PERL6_CLASS     = perl6.class
@@ -28,6 +29,19 @@ PERL6_B_CLASS   = blib/Perl6/BOOTSTRAP.class
 SETTING_CLASS   = CORE.setting.class
 R_SETTING_CLASS = RESTRICTED.setting.class
 
+CLEANUPS = \
+  *.manifest \
+  blib/Perl6/*.class \
+  $(SETTING_CLASS) \
+  $(R_SETTING_CLASS) \
+  lib/Test.class \
+  lib/lib.class \
+  lib/Pod/To/Text.class \
+  rakudo_test_run.tar.gz \
+  src/gen/CORE.setting \
+  src/gen/*.class \
+  src/gen/*.pm \
+
 all: $(PERL6_CF_CLASS) $(PERL6_ML_CLASS)
 
 $(PERL6_ML_CLASS): src/Perl6/ModuleLoader.nqp src/vm/jvm/ModuleLoaderVMConfig.nqp
@@ -38,3 +52,14 @@ $(PERL6_ML_CLASS): src/Perl6/ModuleLoader.nqp src/vm/jvm/ModuleLoaderVMConfig.nq
 $(PERL6_CF_CLASS): src/Perl6/ConstantFolder.nqp
 	$(NQP) --target=classfile --output=$(PERL6_CF_CLASS) --encoding=utf8 \
 	    src/Perl6/ConstantFolder.nqp
+
+##  cleaning
+clean:
+	$(RM_F) $(CLEANUPS)
+
+distclean: realclean
+
+realclean: clean
+	$(RM_F) Makefile
+
+testclean:

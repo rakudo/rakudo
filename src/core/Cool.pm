@@ -168,6 +168,9 @@ my class Cool {
     multi method comb() { self.Str.comb() }
     multi method comb(Regex $matcher, $limit = $Inf) { self.Str.comb($matcher, $limit) }
 
+    proto method lines(|) {*}
+    multi method lines(Cool:D:) { self.Str.lines() }
+
     proto method subst(|) {
         $/ := nqp::getlexdyn('$/');
         {*}

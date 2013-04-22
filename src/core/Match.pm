@@ -78,9 +78,6 @@ my class Match is Capture is Cool {
             $ast
         );
     }
-    method lines(Match:D:) {
-        self.Str.lines
-    }
 }
 
 sub make(Mu $ast) {

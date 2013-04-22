@@ -208,6 +208,9 @@ class Perl6::World is HLL::World {
     # List of CHECK blocks to run.
     has @!CHECKs;
     
+    # Clean-up tasks, to do after CHECK time.
+    has @!cleanup_tasks;
+    
     method BUILD(*%adv) {
         @!BLOCKS := [];
         @!CODES := [];
@@ -219,6 +222,7 @@ class Perl6::World is HLL::World {
         %!sub_id_to_sc_idx := {};
         %!code_object_fixup_list := {};
         %!const_cache := {};
+        @!cleanup_tasks := [];
     }
     
     # Creates a new lexical scope and puts it on top of the stack.
@@ -883,7 +887,12 @@ class Perl6::World is HLL::World {
         nqp::bindattr($signature, $sig_type, '$!code', $code);
     }
     
-    # Takes a code object and the QAST::Block for its body.
+    # Takes a code object and the QAST::Block for its body. Finalizes the
+    # setup of the code object, including populated the $!compstuff array.
+    # This contains 3 elements:
+    #   0 = the QAST::Block object
+    #   1 = the compiler thunk
+    #   2 = the clone callback
     method finish_code_object($code, $code_past, $is_dispatcher = 0, :$yada) {
         my $fixups := QAST::Stmts.new();
         my $des    := QAST::Stmts.new();
@@ -904,6 +913,14 @@ class Perl6::World is HLL::World {
         
         # Stash it under the QAST block unique ID.
         %!sub_id_to_code_object{$code_past.cuid()} := $code;
+        
+        # Create the compiler stuff array and stick it in the code object.
+        # Also add clearup task to remove it again later.
+        my @compstuff;
+        nqp::bindattr($code, $code_type, '$!compstuff', @compstuff);
+        nqp::push(@!cleanup_tasks, sub () {
+            nqp::bindattr($code, $code_type, '$!compstuff', nqp::null());
+        });
         
         # For now, install stub that will dynamically compile the code if
         # we ever try to run it during compilation.
@@ -948,6 +965,9 @@ class Perl6::World is HLL::World {
             my $clone_handler := sub ($orig, $clone) {
                 my $do := nqp::getattr($clone, $code_type, '$!do');
                 nqp::markcodestub($do);
+                nqp::push(@!cleanup_tasks, sub () {
+                    nqp::bindattr($clone, $code_type, '$!compstuff', nqp::null());
+                });
                 pir::setprop__0PsP($do, 'CLONE_CALLBACK', $clone_handler);
             };
             pir::setprop__0PsP($stub, 'CLONE_CALLBACK', $clone_handler);
@@ -968,8 +988,12 @@ class Perl6::World is HLL::World {
                 # If we clone the stub, then we must remember to do a fixup
                 # of it also.
                 pir::setprop__0PsP($stub, 'CLONE_CALLBACK', sub ($orig, $clone) {
-                    my $tmp := $fixups.unique('tmp_block_fixup');
                     self.add_object($clone);
+                    nqp::push(@!cleanup_tasks, sub () {
+                        nqp::bindattr($clone, $code_type, '$!compstuff', nqp::null());
+                    });
+                    
+                    my $tmp := $fixups.unique('tmp_block_fixup');
                     $fixups.push(QAST::Stmt.new(
                         QAST::Op.new(
                             :op('bind'),
@@ -1241,8 +1265,10 @@ class Perl6::World is HLL::World {
         while $i < $num_subs {
             my $subid := $precomp[$i].get_subid();
             if nqp::existskey(%!sub_id_to_code_object, $subid) {
-                nqp::setcodeobj($precomp[$i], %!sub_id_to_code_object{$subid});
-                nqp::bindattr(%!sub_id_to_code_object{$subid}, $code_type, '$!do', $precomp[$i]);
+                my $code_obj := %!sub_id_to_code_object{$subid};
+                nqp::setcodeobj($precomp[$i], $code_obj);
+                nqp::bindattr($code_obj, $code_type, '$!do', $precomp[$i]);
+                nqp::bindattr($code_obj, $code_type, '$!compstuff', nqp::null());
             }
             if nqp::existskey(%!sub_id_to_static_lexpad, $subid) {
                 $precomp[$i].get_lexinfo.set_static_lexpad(%!sub_id_to_static_lexpad{$subid});
@@ -1728,12 +1754,14 @@ class Perl6::World is HLL::World {
         }
     }
     
-    # Runs the CHECK phasers and twiddles the PAST to look them up.
+    # Runs the CHECK phasers and twiddles the QAST to look them up. Also
+    # runs any other cleanup tasks.
     method CHECK() {
         for @!CHECKs {
             my $result := $_[0]();
             $_[1][0] := self.add_constant_folded_result($result);
         }
+        for @!cleanup_tasks { $_() }
     }
     
     # Adds required libraries to a compilation unit.

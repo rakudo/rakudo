@@ -489,11 +489,13 @@ BEGIN {
     # class Code {
     #     has $!do;                # Low level code object
     #     has $!signature;         # Signature object
+    #     has $!compstuff;         # Place for the compiler to hang stuff
     #     ... # Uncomposed
     # }
     Code.HOW.add_parent(Code, Any);
     Code.HOW.add_attribute(Code, BOOTSTRAPATTR.new(:name<$!do>, :type(Mu), :package(Code)));
     Code.HOW.add_attribute(Code, BOOTSTRAPATTR.new(:name<$!signature>, :type(Mu), :package(Code)));
+    Code.HOW.add_attribute(Code, BOOTSTRAPATTR.new(:name<$!compstuff>, :type(Mu), :package(Code)));
 
     # Need clone in here, plus generics instantiation.
     Code.HOW.add_method(Code, 'clone', static(sub ($self) {

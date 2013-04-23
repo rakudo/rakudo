@@ -501,19 +501,14 @@ BEGIN {
     Code.HOW.add_method(Code, 'clone', static(sub ($self) {
             my $dcself    := nqp::decont($self);
             my $cloned    := nqp::clone($dcself);
-            my $do_cloned := nqp::clone(nqp::getattr($dcself, Code, '$!do'));
+            my $do        := nqp::getattr($dcself, Code, '$!do');
+            my $do_cloned := nqp::clone($do);
             nqp::bindattr($cloned, Code, '$!do', $do_cloned);
             nqp::setcodeobj($do_cloned, $cloned);
-            Q:PIR {
-                $P0 = find_lex '$dcself'
-                $P1 = find_lex 'Code'
-                $P0 = getattribute $P0, $P1, '$!do'
-                $P1 = getprop 'CLONE_CALLBACK', $P0
-                if null $P1 goto no_callback
-                $P2 = find_lex '$cloned'
-                $P1($P0, $P2)
-              no_callback:
-            };
+            my $compstuff := nqp::getattr($dcself, Code, '$!compstuff');
+            unless nqp::isnull($compstuff) {
+                $compstuff[2]($do, $cloned);
+            }
             $cloned
         }));
     Code.HOW.add_method(Code, 'is_generic', static(sub ($self) {
@@ -562,19 +557,14 @@ BEGIN {
     Block.HOW.add_method(Block, 'clone', static(sub ($self) {
             my $dcself    := nqp::decont($self);
             my $cloned    := nqp::clone($dcself);
-            my $do_cloned := nqp::clone(nqp::getattr($dcself, Code, '$!do'));
+            my $do        := nqp::getattr($dcself, Code, '$!do');
+            my $do_cloned := nqp::clone($do);
             nqp::bindattr($cloned, Code, '$!do', $do_cloned);
             nqp::setcodeobj($do_cloned, $cloned);
-            Q:PIR {
-                $P0 = find_lex '$dcself'
-                $P1 = find_lex 'Code'
-                $P0 = getattribute $P0, $P1, '$!do'
-                $P1 = getprop 'CLONE_CALLBACK', $P0
-                if null $P1 goto no_callback
-                $P2 = find_lex '$cloned'
-                $P1($P0, $P2)
-              no_callback:
-            };
+            my $compstuff := nqp::getattr($dcself, Code, '$!compstuff');
+            unless nqp::isnull($compstuff) {
+                $compstuff[2]($do, $cloned);
+            }
             nqp::bindattr($cloned, Block, '$!state_vars', nqp::null());
             $cloned
         }));
@@ -1050,12 +1040,12 @@ BEGIN {
                             # Otherwise, may need full bind check.
                             elsif nqp::existskey(%info, 'bind_check') {
                                 my $sub := nqp::atkey(%info, 'sub');
-                                my $ctf := pir::getprop__PsP("COMPILER_THUNK",
-                                    nqp::getattr($sub, Code, '$!do'));
-                                unless nqp::isnull($ctf) {
+                                my $cs := nqp::getattr($sub, Code, '$!compstuff');
+                                unless nqp::isnull($cs) {
                                     # We need to do the tie-break on something not yet compiled.
                                     # Get it compiled.
-                                    $ctf();
+                                    my $ctf := $cs[1];
+                                    $ctf() if $ctf;
                                 }
                                 
                                 # Since we had to do a bindability check, this is not

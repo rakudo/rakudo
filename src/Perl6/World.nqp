@@ -935,8 +935,7 @@ class Perl6::World is HLL::World {
             # Also compile the candidates if this is a proto.
             if $is_dispatcher {
                 for nqp::getattr($code, $routine_type, '$!dispatchees') {
-                    my $stub := nqp::getattr($_, $code_type, '$!do');
-                    my $past := pir::getprop__PsP('PAST_BLOCK', $stub);
+                    my $past := nqp::getattr($_, $code_type, '$!compstuff')[0];
                     if $past {
                         self.compile_in_context($past, $code_type, $slp_type);
                     }
@@ -949,7 +948,7 @@ class Perl6::World is HLL::World {
             }
             $precomp(|@pos, |%named);
         });
-        pir::setprop__vPsP($stub, 'COMPILER_THUNK', $compiler_thunk);
+        @compstuff[1] := $compiler_thunk;
         nqp::setcodename($stub, $code_past.name);
         nqp::bindattr($code, $code_type, '$!do', $stub);
         
@@ -962,15 +961,13 @@ class Perl6::World is HLL::World {
         # If we clone the stub, need to mark it as a dynamic compilation
         # boundary.
         if self.is_precompilation_mode() {
-            my $clone_handler := sub ($orig, $clone) {
+            @compstuff[2] := sub ($orig, $clone) {
                 my $do := nqp::getattr($clone, $code_type, '$!do');
                 nqp::markcodestub($do);
                 nqp::push(@!cleanup_tasks, sub () {
                     nqp::bindattr($clone, $code_type, '$!compstuff', nqp::null());
                 });
-                pir::setprop__0PsP($do, 'CLONE_CALLBACK', $clone_handler);
             };
-            pir::setprop__0PsP($stub, 'CLONE_CALLBACK', $clone_handler);
         }
         
         # Fixup will install the real thing, unless we're in a role, in
@@ -987,12 +984,11 @@ class Perl6::World is HLL::World {
                 
                 # If we clone the stub, then we must remember to do a fixup
                 # of it also.
-                pir::setprop__0PsP($stub, 'CLONE_CALLBACK', sub ($orig, $clone) {
+                @compstuff[2] := sub ($orig, $clone) {
                     self.add_object($clone);
                     nqp::push(@!cleanup_tasks, sub () {
                         nqp::bindattr($clone, $code_type, '$!compstuff', nqp::null());
                     });
-                    
                     my $tmp := $fixups.unique('tmp_block_fixup');
                     $fixups.push(QAST::Stmt.new(
                         QAST::Op.new(
@@ -1007,15 +1003,15 @@ class Perl6::World is HLL::World {
                             QAST::Var.new( :name($tmp), :scope('local') ),
                             QAST::WVal.new( :value($clone) )
                         )));
-                });
+                };
                 
                 # Also stash fixups so we can know not to do them if we
                 # do dynamic compilation.
                 %!code_object_fixup_list{$code_past.cuid} := $fixups;
             }
 
-			# Attach the QAST block to the stub.
-			pir::setprop__0PsP($stub, 'PAST_BLOCK', $code_past);
+            # Stash the QAST block in the comp stuff.
+            @compstuff[0] := $code_past;
         }
         
         # If this is a dispatcher, install dispatchee list that we can

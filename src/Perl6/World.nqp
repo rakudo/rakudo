@@ -1750,13 +1750,16 @@ class Perl6::World is HLL::World {
         }
     }
     
-    # Runs the CHECK phasers and twiddles the QAST to look them up. Also
-    # runs any other cleanup tasks.
+    # Runs the CHECK phasers and twiddles the QAST to look them up.
     method CHECK() {
         for @!CHECKs {
             my $result := $_[0]();
             $_[1][0] := self.add_constant_folded_result($result);
         }
+    }
+    
+    # Does any cleanups needed after compilation.
+    method cleanup() {
         for @!cleanup_tasks { $_() }
     }
     

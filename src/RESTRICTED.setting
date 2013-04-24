@@ -19,5 +19,6 @@ my class RESTRICTED is Mu {
 }
 
 my class IO is RESTRICTED { }
+my class IO::Handle is RESTRICTED { }
 my class IO::Socket is RESTRICTED { }
 

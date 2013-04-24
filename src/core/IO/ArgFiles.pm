@@ -1,4 +1,4 @@
-my class IO::ArgFiles is IO {
+my class IO::ArgFiles is IO::Handle {
     has $.args;
     has $.filename;
     has $!io;
@@ -17,7 +17,7 @@ my class IO::ArgFiles is IO {
         my $x = $!io.get;
         while !$x.defined {
             $!io.close;
-            $!io = IO;
+            $!io = IO::Handle;
             fail "End of argfiles reached" unless $!args;
             $x = self.get;
         }

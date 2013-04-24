@@ -1,5 +1,6 @@
 my class X::IO::Copy { ... }
 my class X::IO::Dir  { ... }
+my class IO { }
 
 sub print(|) {
     my $args := pir::perl6_current_args_rpa__P();
@@ -81,7 +82,7 @@ my role IO::FileTestable {
     }
 }
 
-class IO does IO::FileTestable {
+my class IO::Handle is IO does IO::FileTestable {
     has $!PIO;
     has Int $.ins = 0;
     has $.chomp = Bool::True;
@@ -94,7 +95,7 @@ class IO does IO::FileTestable {
         my $mode =  $p ?? ($w ||  $a ?? 'wp' !! 'rp') !!
                    ($w ?? 'w' !! ($a ?? 'wa' !! 'r' ));
         # TODO: catch error, and fail()
-        nqp::bindattr(self, IO, '$!PIO',
+        nqp::bindattr(self, IO::Handle, '$!PIO',
              $path eq '-'
                 ?? ( $w || $a ?? nqp::getstdout() !! nqp::getstdin() )
                 !! nqp::open(nqp::unbox_s($path.Str), nqp::unbox_s($mode))
@@ -146,7 +147,7 @@ class IO does IO::FileTestable {
         }
     }
 
-    method read(IO:D: Cool:D $bytes as Int) {
+    method read(IO::Handle:D: Cool:D $bytes as Int) {
         my Mu $parrot_buffer := $!PIO.read_bytes(nqp::unbox_i($bytes));
         my $buf := nqp::create(Buf);
         nqp::bindattr_s($buf, Buf, '$!buffer', $parrot_buffer.get_string('binary'));
@@ -157,15 +158,15 @@ class IO does IO::FileTestable {
     #   0 -- seek from beginning of file
     #   1 -- seek relative to current position
     #   2 -- seek from the end of the file
-    method seek(IO:D: Int:D $offset, Int:D $whence) {
+    method seek(IO::Handle:D: Int:D $offset, Int:D $whence) {
         $!PIO.seek(nqp::unbox_i($whence), nqp::unbox_i($offset));
         True;
     }
-    method tell(IO:D:) returns Int {
+    method tell(IO::Handle:D:) returns Int {
         nqp::p6box_i($!PIO.tell);
     }
 
-    method write(IO:D: Buf:D $buf) {
+    method write(IO::Handle:D: Buf:D $buf) {
         my str $b = nqp::getattr_s(
                         nqp::p6decont($buf),
                         Buf,
@@ -188,16 +189,16 @@ class IO does IO::FileTestable {
 
 
     proto method print(|) { * }
-    multi method print(IO:D: Str:D $value) {
+    multi method print(IO::Handle:D: Str:D $value) {
         $!PIO.print(nqp::unbox_s($value));
         Bool::True
     }
-    multi method print(IO:D: *@list) {
+    multi method print(IO::Handle:D: *@list) {
         $!PIO.print(nqp::unbox_s(@list.shift.Str)) while @list.gimme(1);
         Bool::True
     }
 
-    multi method say(IO:D: |) {
+    multi method say(IO::Handle:D: |) {
         my Mu $args := pir::perl6_current_args_rpa__P();
         nqp::shift($args);
         self.print: nqp::shift($args).gist while $args;
@@ -244,7 +245,7 @@ class IO does IO::FileTestable {
     }
 }
 
-my class IO::Path is Cool does IO::FileTestable {
+my class IO::Path is Cool is IO does IO::FileTestable {
     has Str $.basename;
     has Str $.directory = '.';
     has Str $.volume = '';
@@ -285,7 +286,7 @@ my class IO::Path is Cool does IO::FileTestable {
     }
 
     method IO(IO::Path:D: *%opts) {
-        IO.new(:path(~self), |%opts);
+        IO::Handle.new(:path(~self), |%opts);
     }
     method open(IO::Path:D: *%opts) {
         open(~self, |%opts);
@@ -350,7 +351,7 @@ sub rmdir($path) {
 
 proto sub open(|) { * }
 multi sub open($path, :$r, :$w, :$a, :$p, :$bin, :$chomp = Bool::True, :enc(:$encoding) = 'utf8') {
-    IO.new.open($path, :$r, :$w, :$a, :$p, :$bin, :$chomp, :$encoding);
+    IO::Handle.new.open($path, :$r, :$w, :$a, :$p, :$bin, :$chomp, :$encoding);
 }
 
 proto sub lines(|) { * }
@@ -393,7 +394,7 @@ multi sub slurp($filename, :$bin = False) {
     }
 }
 
-multi sub slurp(IO $io = $*ARGFILES) {
+multi sub slurp(IO::Handle $io = $*ARGFILES) {
     $io.slurp;
 }
 
@@ -474,9 +475,9 @@ multi sub mkdir($path as Str, $mode = 0o777) {
 
 $PROCESS::IN  = open('-');
 $PROCESS::OUT = open('-', :w);
-$PROCESS::ERR = IO.new;
+$PROCESS::ERR = IO::Handle.new;
 nqp::bindattr(nqp::p6decont($PROCESS::ERR),
-        IO, '$!PIO', nqp::getstderr());
+        IO::Handle, '$!PIO', nqp::getstderr());
 
 my class X::IO::Rename { ... }
 sub rename(Cool $from as Str, Cool $to as Str) {

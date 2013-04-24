@@ -1,4 +1,4 @@
-my role IO::Socket is IO {
+my role IO::Socket does IO {
     has $!PIO;
     has $!buffer = '';
 

@@ -1,4 +1,4 @@
-my class IO { ... }
+my role  IO { ... }
 my class IO::Handle { ... }
 
 my class Cool {

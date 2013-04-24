@@ -1,6 +1,6 @@
+my role IO { }
 my class X::IO::Copy { ... }
 my class X::IO::Dir  { ... }
-my class IO { }
 
 sub print(|) {
     my $args := pir::perl6_current_args_rpa__P();
@@ -30,7 +30,7 @@ sub prompt($msg) {
     $*IN.get;
 }
 
-my role IO::FileTestable {
+my role IO::FileTestable does IO {
     method d() {
         self.e && nqp::p6bool(nqp::stat(nqp::unbox_s(self.Str), nqp::const::STAT_ISDIR))
     }
@@ -82,7 +82,7 @@ my role IO::FileTestable {
     }
 }
 
-my class IO::Handle is IO does IO::FileTestable {
+my class IO::Handle does IO::FileTestable {
     has $!PIO;
     has Int $.ins = 0;
     has $.chomp = Bool::True;
@@ -245,7 +245,7 @@ my class IO::Handle is IO does IO::FileTestable {
     }
 }
 
-my class IO::Path is Cool is IO does IO::FileTestable {
+my class IO::Path is Cool does IO::FileTestable {
     has Str $.basename;
     has Str $.directory = '.';
     has Str $.volume = '';

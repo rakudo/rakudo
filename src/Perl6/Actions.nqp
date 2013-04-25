@@ -741,8 +741,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
         if $block<placeholder_sig> {
             my $name := $block<placeholder_sig>[0]<variable_name>;
             unless $name eq '%_' || $name eq '@_' {
-                $name := nqp::concat_s(nqp::substr($name, 0, 1),
-                        nqp::concat_s('^', nqp::substr($name, 1)));
+                $name := nqp::concat(nqp::substr($name, 0, 1),
+                        nqp::concat('^', nqp::substr($name, 1)));
             }
 
             $*W.throw( $/, ['X', 'Placeholder', 'Block'],
@@ -1526,8 +1526,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
         if $*PKGDECL ne 'role' && $block<placeholder_sig> {
             my $name := $block<placeholder_sig>[0]<variable_name>;
             unless $name eq '%_' || $name eq '@_' {
-                $name := nqp::concat_s(nqp::substr($name, 0, 1),
-                        nqp::concat_s('^', nqp::substr($name, 1)));
+                $name := nqp::concat(nqp::substr($name, 0, 1),
+                        nqp::concat('^', nqp::substr($name, 1)));
             }
             $*W.throw( $/, ['X', 'Placeholder', 'Block'],
                 placeholder => $name,

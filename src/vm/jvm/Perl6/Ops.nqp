@@ -1,7 +1,6 @@
 # XXX This file is very much a work in progress, steadily updating it from the
 # Parrot original to work for JVM.
-
-my $ops := nqp::getcomp('QAST').operations;
+my $ops := nqp::getcomp('qast').operations;
 
 # Type containing Perl 6 specific ops.
 my $TYPE_P6OPS := 'Lorg/perl6/rakudo/Ops;';

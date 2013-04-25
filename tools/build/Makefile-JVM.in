@@ -42,7 +42,7 @@ CLEANUPS = \
   src/gen/*.class \
   src/gen/*.pm \
 
-all: $(PERL6_G_CLASS)
+all: $(PERL6_G_CLASS) $(PERL6_O_CLASS)
 
 $(PERL6_ML_CLASS): src/Perl6/ModuleLoader.nqp src/vm/jvm/ModuleLoaderVMConfig.nqp
 	$(PERL) $(GEN_CAT) src/vm/jvm/ModuleLoaderVMConfig.nqp src/Perl6/ModuleLoader.nqp > src/gen/ModuleLoader.nqp
@@ -57,7 +57,7 @@ $(PERL6_W_CLASS): $(PERL6_ML_CLASS) src/Perl6/World.nqp
 	$(NQP) --target=classfile --output=$(PERL6_W_CLASS) --encoding=utf8 \
 	    src/Perl6/World.nqp
 
-$(PERL6_P_CLASS): $(NQP_EXE) $(DYNEXT_DYNPMC) $(DYNEXT_DYNOPS) src/Perl6/Pod.nqp
+$(PERL6_P_CLASS): src/Perl6/Pod.nqp
 	$(NQP) --target=classfile --output=$(PERL6_P_CLASS) --encoding=utf8 \
 	    src/Perl6/Pod.nqp
 
@@ -72,6 +72,10 @@ $(PERL6_A_CLASS): src/Perl6/Actions.nqp $(PERL6_P_CLASS) $(PERL6_CF_CLASS) $(PER
 $(PERL6_G_CLASS): src/Perl6/Grammar.nqp $(PERL6_W_CLASS) $(PERL6_A_CLASS) $(PERL6_P_CLASS)
 	$(NQP) --target=classfile --output=$(PERL6_G_CLASS) --encoding=utf8 \
 	    src/Perl6/Grammar.nqp
+
+$(PERL6_O_CLASS): src/Perl6/Optimizer.nqp $(PERL6_OPS_CLASS)
+	$(NQP) --target=classfile --output=$(PERL6_O_CLASS) --encoding=utf8 \
+	    src/Perl6/Optimizer.nqp
 
 ##  cleaning
 clean:

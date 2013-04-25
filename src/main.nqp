@@ -2,12 +2,17 @@ use Perl6::Grammar;
 use Perl6::Actions;
 use Perl6::Compiler;
 
+#?if parrot
 sub MAIN(@ARGS) {
     # Initialize dynops.
     pir::rakudo_dynop_setup__v();
 
     # Bump up Parrot's recursion limit
     pir::getinterp__P().recursion_limit(100000);
+#?endif
+#?if !parrot
+sub MAIN(*@ARGS) {
+#?endif
 
     # Create and configure compiler object.
     my $comp := Perl6::Compiler.new();

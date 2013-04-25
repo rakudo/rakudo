@@ -42,7 +42,7 @@ CLEANUPS = \
   src/gen/*.class \
   src/gen/*.pm \
 
-all: $(PERL6_G_CLASS) $(PERL6_C_CLASS)
+all: $(PERL6_CLASS)
 
 $(PERL6_ML_CLASS): src/Perl6/ModuleLoader.nqp src/vm/jvm/ModuleLoaderVMConfig.nqp
 	$(PERL) $(GEN_CAT) src/vm/jvm/ModuleLoaderVMConfig.nqp src/Perl6/ModuleLoader.nqp > src/gen/ModuleLoader.nqp
@@ -80,6 +80,12 @@ $(PERL6_O_CLASS): src/Perl6/Optimizer.nqp $(PERL6_OPS_CLASS)
 $(PERL6_C_CLASS): src/Perl6/Compiler.nqp $(PERL6_O_CLASS)
 	$(NQP) --target=classfile --output=$(PERL6_C_CLASS) --encoding=utf8 \
 	    src/Perl6/Compiler.nqp
+
+$(PERL6_CLASS): src/main.nqp $(PERL6_G_CLASS) $(PERL6_A_CLASS) $(PERL6_C_CLASS) $(PERL6_P_CLASS)
+	$(PERL) tools/build/gen-version.pl > src/gen/main-version.nqp
+	$(PERL) $(GEN_CAT) src/main.nqp src/gen/main-version.nqp > src/gen/main.nqp
+	$(NQP) --target=classfile --javaclass=perl6 --output=$(PERL6_CLASS) \
+	    src/gen/main.nqp
 
 ##  cleaning
 clean:

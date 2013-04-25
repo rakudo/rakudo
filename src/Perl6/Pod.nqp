@@ -316,7 +316,7 @@ class Perl6::Pod {
         my @res  := [];
         my @strs := [];
         for @content -> $elem {
-            if pir::typeof__SP($elem) eq 'String' {
+            if nqp::isstr($elem) {
                 # don't push the leading whitespace
                 if +@res + @strs == 0 && $elem eq ' ' {
 

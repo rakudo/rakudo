@@ -1,5 +1,6 @@
 use NQPP6QRegex;
 use QAST;
+use Perl6::Ops;
 
 my $NULL := QAST::Op.new( :op<null> );
 
@@ -446,7 +447,7 @@ class Perl6::Optimizer {
                     if +@ct_arg_info {
                         my @types := @ct_arg_info[0];
                         my @flags := @ct_arg_info[1];
-                        my $ct_result_proto := pir::perl6_trial_bind_ct__IPPP($obj.signature, @types, @flags);
+                        my $ct_result_proto := nqp::p6trialbind($obj.signature, @types, @flags);
                         my @ct_result_multi := $obj.analyze_dispatch(@types, @flags);
                         if $ct_result_proto == 1 && @ct_result_multi[0] == 1 {
                             my $chosen := @ct_result_multi[1];
@@ -470,7 +471,7 @@ class Perl6::Optimizer {
                     if +@ct_arg_info {
                         my @types := @ct_arg_info[0];
                         my @flags := @ct_arg_info[1];
-                        my $ct_result := pir::perl6_trial_bind_ct__IPPP($obj.signature, @types, @flags);
+                        my $ct_result := nqp::p6trialbind($obj.signature, @types, @flags);
                         if $ct_result == 1 {
                             if $op.op eq 'chain' { $!chain_depth := $!chain_depth - 1 }
                             #say("# trial bind worked!");

@@ -19,6 +19,7 @@ $ops.add_hll_pirop_mapping('perl6', 'p6definite', 'perl6_definite', 'PP', :inlin
 $ops.add_hll_pirop_mapping('perl6', 'p6bindsig', 'bind_signature', 'v');
 $ops.add_hll_pirop_mapping('perl6', 'p6isbindable', 'perl6_is_sig_bindable', 'IPP');
 $ops.add_hll_pirop_mapping('perl6', 'p6bindcaptosig', 'perl6_bind_sig_to_cap', '0PP');
+$ops.add_hll_pirop_mapping('perl6', 'p6trialbind', 'perl6_trial_bind_ct', 'IPPP');
 $ops.add_hll_pirop_mapping('perl6', 'p6typecheckrv', 'perl6_type_check_return_value', '0PP', :inlinable(1));
 $ops.add_hll_pirop_mapping('perl6', 'p6decontrv', 'perl6_decontainerize_return_value', 'PP', :inlinable(1));
 $ops.add_hll_pirop_mapping('perl6', 'p6capturelex', 'perl6_capture_lex', '0P');
@@ -62,6 +63,7 @@ $ops.add_hll_op('nqp', 'p6bool', :inlinable(1), $p6bool);
 $ops.add_hll_pirop_mapping('nqp', 'p6var', 'perl6_var', 'PP', :inlinable(1));
 $ops.add_hll_pirop_mapping('nqp', 'p6parcel', 'perl6_parcel_from_rpa', 'PPP', :inlinable(1));
 $ops.add_hll_pirop_mapping('nqp', 'p6isbindable', 'perl6_is_sig_bindable', 'IPP');
+$ops.add_hll_pirop_mapping('nqp', 'p6trialbind', 'perl6_trial_bind_ct', 'IPPP');
 
 # Override defor to avoid v-table call.
 $ops.add_hll_op('perl6', 'defor', :inlinable(1), -> $qastcomp, $op {

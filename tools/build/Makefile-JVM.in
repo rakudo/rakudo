@@ -42,7 +42,7 @@ CLEANUPS = \
   src/gen/*.class \
   src/gen/*.pm \
 
-all: $(PERL6_G_CLASS) $(PERL6_O_CLASS)
+all: $(PERL6_G_CLASS) $(PERL6_C_CLASS)
 
 $(PERL6_ML_CLASS): src/Perl6/ModuleLoader.nqp src/vm/jvm/ModuleLoaderVMConfig.nqp
 	$(PERL) $(GEN_CAT) src/vm/jvm/ModuleLoaderVMConfig.nqp src/Perl6/ModuleLoader.nqp > src/gen/ModuleLoader.nqp
@@ -76,6 +76,10 @@ $(PERL6_G_CLASS): src/Perl6/Grammar.nqp $(PERL6_W_CLASS) $(PERL6_A_CLASS) $(PERL
 $(PERL6_O_CLASS): src/Perl6/Optimizer.nqp $(PERL6_OPS_CLASS)
 	$(NQP) --target=classfile --output=$(PERL6_O_CLASS) --encoding=utf8 \
 	    src/Perl6/Optimizer.nqp
+
+$(PERL6_C_CLASS): src/Perl6/Compiler.nqp $(PERL6_O_CLASS)
+	$(NQP) --target=classfile --output=$(PERL6_C_CLASS) --encoding=utf8 \
+	    src/Perl6/Compiler.nqp
 
 ##  cleaning
 clean:

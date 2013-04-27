@@ -13,36 +13,20 @@ class Perl6::Metamodel::BaseDispatcher {
         $!idx := $!idx + 1;
         if self.has_invocant {
             my $inv := self.invocant;
-            pir::perl6_set_dispatcher_for_callee__vP(self);
+            nqp::setdispatcher(self);
             $call($inv, |@pos, |%named);
         }
         else {
-            pir::perl6_set_dispatcher_for_callee__vP(self);
+            nqp::setdispatcher(self);
             $call(|@pos, |%named);
         }
     }
     
     method call_with_capture($capture) {
-        # Extract parts of the capture.
-        my @pos;
-        my %named;
-        my $i := 0;
-        while $i < nqp::elems($capture) {
-            @pos[$i] := $capture[$i];
-            $i := $i + 1;
-        }
-        my @nameds := pir::getattribute__PPs($capture, 'named');
-        unless nqp::isnull(@nameds) {
-            for @nameds {
-                %named{$_} := $capture{$_};
-            }
-        }
-        
-        # Call.
         my $call := @!candidates[$!idx];
         $!idx := $!idx + 1;
-        pir::perl6_set_dispatcher_for_callee__vP(self);
-        $call(|@pos, |%named);
+        nqp::setdispatcher(self);
+        nqp::invokewithcapture($call, $capture)
     }
 }
 
@@ -114,7 +98,7 @@ class Perl6::Metamodel::WrapDispatcher is Perl6::Metamodel::BaseDispatcher {
     method enter(*@pos, *%named) {
         my $fresh := nqp::clone(self);
         my $first := self.candidates[0];
-        pir::perl6_set_dispatcher_for_callee__vP($fresh);
+        nqp::setdispatcher($fresh);
         $first(|@pos, |%named)
     }
 }

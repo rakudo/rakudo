@@ -15,7 +15,9 @@ class Perl6::Metamodel::EnumHOW
     does Perl6::Metamodel::BUILDPLAN
     does Perl6::Metamodel::BoolificationProtocol
     does Perl6::Metamodel::REPRAttributeProtocol
+#?if parrot
     does Perl6::Metamodel::ParrotInterop
+#?endif
 {
     # Hash representing enumeration keys to values.
     has %!values;

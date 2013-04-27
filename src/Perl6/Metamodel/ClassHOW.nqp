@@ -18,7 +18,9 @@ class Perl6::Metamodel::ClassHOW
     does Perl6::Metamodel::Mixins
     does Perl6::Metamodel::BoolificationProtocol
     does Perl6::Metamodel::REPRAttributeProtocol
+#?if parrot
     does Perl6::Metamodel::ParrotInterop
+#?endif
 {
     has @!roles;
     has @!role_typecheck_list;

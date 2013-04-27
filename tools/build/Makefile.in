@@ -207,6 +207,10 @@ CORE_SOURCES = \
   src/core/Parameter.pm \
   src/core/Signature.pm \
   src/core/Buf.pm \
+  src/core/IO/Spec/Unix.pm \
+  src/core/IO/Spec/Win32.pm \
+  src/core/IO/Spec/Cygwin.pm \
+  src/core/IO/Spec.pm \
   src/core/IO.pm \
   src/core/IO/ArgFiles.pm \
   src/core/IO/Socket.pm \

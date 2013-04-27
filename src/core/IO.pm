@@ -246,6 +246,7 @@ my class IO::Handle does IO::FileTestable {
 }
 
 my class IO::Path is Cool does IO::FileTestable {
+    my $Spec := IO::Spec.MODULE;
     has Str $.basename;
     has Str $.directory = '.';
     has Str $.volume = '';
@@ -259,10 +260,11 @@ my class IO::Path is Cool does IO::FileTestable {
     }
 
     multi method new(Str:D $path) {
-        my @chunks    = $path.split('/');
-        my $basename  = @chunks.pop;
-        my $directory = @chunks ?? @chunks.join('/') !! '.';
-        self.new(:$basename, :$directory, :volume(""));
+#        my @chunks    = $path.split('/');
+#        my $basename  = @chunks.pop;
+#        my $directory = @chunks ?? @chunks.join('/') !! '.';
+#        self.new(:$basename, :$directory, :volume(""));
+         self.new( |$Spec.split($path).hash );
     }
 
     multi method Str(IO::Path:D:) {

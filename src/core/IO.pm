@@ -246,7 +246,7 @@ my class IO::Handle does IO::FileTestable {
 }
 
 my class IO::Path is Cool does IO::FileTestable {
-    my $Spec := IO::Spec.MODULE;
+    method SPEC { IO::Spec.MODULE };
     has Str $.basename;
     has Str $.directory = '.';
     has Str $.volume = '';
@@ -260,18 +260,14 @@ my class IO::Path is Cool does IO::FileTestable {
     }
 
     multi method new(Str:D $path) {
-#        my @chunks    = $path.split('/');
-#        my $basename  = @chunks.pop;
-#        my $directory = @chunks ?? @chunks.join('/') !! '.';
-#        self.new(:$basename, :$directory, :volume(""));
-         self.new( |$Spec.split($path).hash );
+         self.new( |$.SPEC.split($path).hash );
     }
 
     multi method Str(IO::Path:D:) {
-        $.directory eq '.' ?? $.basename !! join('/', $.directory, $.basename);
+        $.SPEC.join($.volume, $.directory, $.basename);
     }
     multi method gist(IO::Path:D:) {
-        "{self.^name}<{self.basename}>";
+        "{self.^name}<{self.Str}>";
     }
     multi method Numeric(IO::Path:D:) {
         self.basename.Numeric;
@@ -296,10 +292,60 @@ my class IO::Path is Cool does IO::FileTestable {
     method contents(IO::Path:D: *%opts) {
         dir(~self, |%opts);
     }
+
+    method is-absolute {
+        $.SPEC.file-name-is-absolute(~self);
+    }
+    method is-relative {
+        ! $.SPEC.file-name-is-absolute(~self);
+    }
+    method absolute ($base = $*CWD) {
+        return self.new($.SPEC.rel2abs(~self, $base))
+    }
+    method relative ($relative_to_directory = $*CWD) {
+        return self.new($.SPEC.abs2rel(~self, $relative_to_directory));
+    }
+
+    method cleanup {
+        return self.new($.SPEC.canonpath(~self));
+    }
+    method resolve {
+        fail "Not Yet Implemented: requires readlink()";
+    }
+
+    method parent {
+        if self.is-absolute {
+            return self.new($.SPEC.join($.volume, $.directory, ''));
+        }
+        elsif all($.basename, $.directory) eq $.SPEC.curdir {
+            return self.new(:$.volume, directory=>$.SPEC.curdir, basename=>$.SPEC.updir);
+        }
+        elsif $.basename eq $.SPEC.updir && $.directory eq $.SPEC.curdir 
+           or !grep({$_ ne $.SPEC.updir}, $.SPEC.splitdir($.directory)) {  
+            return self.new(    # If all updirs, then add one more
+                :$.volume,
+                directory => $.SPEC.catdir($.directory, $.SPEC.updir),
+                :$.basename );
+        }
+        else {
+            return self.new( $.SPEC.join($.volume, $.directory, '') );
+        }
+    }
+
+    method child ($childname) {
+        self.new($.SPEC.join: $.volume, $.SPEC.catdir($.directory, $.basename), $childname);
+    }
+
 }
 
-sub dir(Cool $path = '.', Mu :$test = none('.', '..')) {
-    my Mu $RSA := pir::new__PS('OS').readdir(nqp::unbox_s($path.Str));
+my class IO::Path::Unix   is IO::Path { method SPEC { IO::Spec::Unix   };  }
+my class IO::Path::Win32  is IO::Path { method SPEC { IO::Spec::Win32  };  }
+my class IO::Path::Cygwin is IO::Path { method SPEC { IO::Spec::Cygwin };  }
+
+
+sub dir(Cool $directory = '.', Mu :$test = none('.', '..')) {
+    my Mu $RSA := pir::new__PS('OS').readdir(nqp::unbox_s($directory.Str));
+    my $path = $directory.path;
     my int $elems = nqp::elems($RSA);
     my @res;
     loop (my int $i = 0; $i < $elems; $i = $i + 1) {
@@ -307,8 +353,7 @@ sub dir(Cool $path = '.', Mu :$test = none('.', '..')) {
 			nqp::atpos_s($RSA, $i),
 			pir::find_encoding__Is('utf8')));
         if $file ~~ $test {
-            #this should be like IO::Path.child(:basename($file)) because of :volume
-            @res.push: IO::Path.new(:basename($file), :directory($path.Str), :volume(""));
+            @res.push: $path.child($file);
         }
     }
     return @res.list;
@@ -316,7 +361,7 @@ sub dir(Cool $path = '.', Mu :$test = none('.', '..')) {
     CATCH {
         default {
             X::IO::Dir.new(
-                :$path,
+                path => ~$directory,
                 os-error => .Str,
             ).throw;
         }

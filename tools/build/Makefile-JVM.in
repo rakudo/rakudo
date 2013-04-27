@@ -29,6 +29,49 @@ PERL6_B_CLASS   = blib/Perl6/BOOTSTRAP.class
 SETTING_CLASS   = CORE.setting.class
 R_SETTING_CLASS = RESTRICTED.setting.class
 
+METAMODEL_SOURCES = \
+  src/Perl6/Metamodel/Archetypes.nqp \
+  src/Perl6/Metamodel/Naming.nqp \
+  src/Perl6/Metamodel/Documenting.nqp \
+  src/Perl6/Metamodel/Stashing.nqp \
+  src/Perl6/Metamodel/Versioning.nqp \
+  src/Perl6/Metamodel/TypePretense.nqp \
+  src/Perl6/Metamodel/MethodDelegation.nqp \
+  src/Perl6/Metamodel/BoolificationProtocol.nqp \
+  src/Perl6/Metamodel/PackageHOW.nqp \
+  src/Perl6/Metamodel/ModuleHOW.nqp \
+  src/Perl6/Metamodel/GenericHOW.nqp \
+  src/Perl6/Metamodel/AttributeContainer.nqp \
+  src/Perl6/Metamodel/MethodContainer.nqp \
+  src/Perl6/Metamodel/PrivateMethodContainer.nqp \
+  src/Perl6/Metamodel/MultiMethodContainer.nqp \
+  src/Perl6/Metamodel/RoleContainer.nqp \
+  src/Perl6/Metamodel/MultipleInheritance.nqp \
+  src/Perl6/Metamodel/DefaultParent.nqp \
+  src/Perl6/Metamodel/BaseType.nqp \
+  src/Perl6/Metamodel/C3MRO.nqp \
+  src/Perl6/Metamodel/MROBasedMethodDispatch.nqp \
+  src/Perl6/Metamodel/MROBasedTypeChecking.nqp \
+  src/Perl6/Metamodel/Trusting.nqp \
+  src/Perl6/Metamodel/Mixins.nqp \
+  src/Perl6/Metamodel/BUILDPLAN.nqp \
+  src/Perl6/Metamodel/REPRAttributeProtocol.nqp \
+  src/Perl6/Metamodel/RolePunning.nqp \
+  src/Perl6/Metamodel/RoleToRoleApplier.nqp \
+  src/Perl6/Metamodel/ConcreteRoleHOW.nqp \
+  src/Perl6/Metamodel/CurriedRoleHOW.nqp \
+  src/Perl6/Metamodel/ParametricRoleHOW.nqp \
+  src/Perl6/Metamodel/ParametricRoleGroupHOW.nqp \
+  src/Perl6/Metamodel/RoleToClassApplier.nqp \
+  src/Perl6/Metamodel/ClassHOW.nqp \
+  src/Perl6/Metamodel/GrammarHOW.nqp \
+  src/Perl6/Metamodel/NativeHOW.nqp \
+  src/Perl6/Metamodel/SubsetHOW.nqp \
+  src/Perl6/Metamodel/EnumHOW.nqp \
+  src/Perl6/Metamodel/ContainerDescriptor.nqp \
+  src/Perl6/Metamodel/StaticLexPad.nqp \
+  src/Perl6/Metamodel/Dispatchers.nqp \
+
 CLEANUPS = \
   *.manifest \
   blib/Perl6/*.class \
@@ -42,7 +85,7 @@ CLEANUPS = \
   src/gen/*.class \
   src/gen/*.pm \
 
-all: $(PERL6_CLASS)
+all: $(PERL6_CLASS) $(PERL6_M_CLASS)
 
 $(PERL6_ML_CLASS): src/Perl6/ModuleLoader.nqp src/vm/jvm/ModuleLoaderVMConfig.nqp
 	$(PERL) $(GEN_CAT) src/vm/jvm/ModuleLoaderVMConfig.nqp src/Perl6/ModuleLoader.nqp > src/gen/ModuleLoader.nqp
@@ -86,6 +129,11 @@ $(PERL6_CLASS): src/main.nqp $(PERL6_G_CLASS) $(PERL6_A_CLASS) $(PERL6_C_CLASS) 
 	$(PERL) $(GEN_CAT) src/main.nqp src/gen/main-version.nqp > src/gen/main.nqp
 	$(NQP) --target=classfile --javaclass=perl6 --output=$(PERL6_CLASS) \
 	    src/gen/main.nqp
+
+$(PERL6_M_CLASS): $(METAMODEL_SOURCES)
+	$(PERL) $(GEN_CAT) $(METAMODEL_SOURCES) > src/gen/Metamodel.nqp
+	$(NQP) --target=classfile --output=$(PERL6_M_CLASS) --encoding=utf8 \
+	    src/gen/Metamodel.nqp
 
 ##  cleaning
 clean:

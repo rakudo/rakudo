@@ -5,6 +5,12 @@ my $ops := nqp::getcomp('qast').operations;
 # Type containing Perl 6 specific ops.
 my $TYPE_P6OPS := 'Lorg/perl6/rakudo/Ops;';
 
+# Other types we'll refer to.
+my $TYPE_OPS   := 'Lorg/perl6/nqp/runtime/Ops;';
+my $TYPE_SMO   := 'Lorg/perl6/nqp/sixmodel/SixModelObject;';
+my $TYPE_TC    := 'Lorg/perl6/nqp/runtime/ThreadContext;';
+my $TYPE_STR   := 'Ljava/lang/String;';
+
 # Opcode types.
 my $RT_OBJ  := 0;
 my $RT_INT  := 1;
@@ -50,26 +56,43 @@ $ops.map_classlib_hll_op('perl6', 'tclc', $TYPE_P6OPS, 'tclc', [$RT_STR], $RT_ST
 #    $ops.push_pirop('set', $reg, 'CALL_SIG');
 #    $ops
 #});
-#my $p6bool := -> $qastcomp, $op {
-#    my $cpost := $qastcomp.as_post($op[0]);
-#    my $reg := $*REGALLOC.fresh_p();
-#    my $ops := $qastcomp.post_new('Ops', :result($reg));
-#    $ops.push($cpost);
-#    if nqp::lc($qastcomp.infer_type($cpost.result)) eq 'i' {
-#        $ops.push_pirop('perl6_booleanize', $reg, $cpost);
-#    }
-#    else {
-#        my $reg_i := $*REGALLOC.fresh_i();
-#        $ops.push_pirop('istrue', $reg_i, $cpost);
-#        $ops.push_pirop('perl6_booleanize', $reg, $reg_i);
-#    }
-#    $ops
-#}
-#$ops.add_hll_op('perl6', 'p6bool', $p6bool);
+my $p6bool := -> $qastcomp, $op {
+    my $il := JAST::InstructionList.new();
+    my $exprres := $qastcomp.as_jast($op[0]);
+    $il.append($exprres.jast);
+    $*STACK.obtain($il, $exprres);
+    
+    my $cond_type := $exprres.type;
+    if $cond_type == $RT_INT {
+        $il.append(JAST::PushIVal.new( :value(0) ));
+        $il.append(JAST::Instruction.new( :op('lcmp') ));
+    }
+    elsif $cond_type == $RT_NUM {
+        $il.append(JAST::PushNVal.new( :value(0.0) ));
+        $il.append(JAST::Instruction.new( :op('dcmpl') ));
+    }
+    elsif $cond_type == $RT_STR {
+        $il.append(JAST::Instruction.new( :op('invokestatic'),
+            $TYPE_OPS, 'istrue_s', 'Long', $TYPE_STR ));
+        $il.append(JAST::PushIVal.new( :value(0) ));
+        $il.append(JAST::Instruction.new( :op('lcmp') ));
+    }
+    else {
+        $il.append(JAST::Instruction.new( :op('aload_1') ));
+        $il.append(JAST::Instruction.new( :op('invokestatic'),
+            $TYPE_OPS, 'istrue', 'Long', $TYPE_SMO, $TYPE_TC ));
+        $il.append(JAST::PushIVal.new( :value(0) ));
+        $il.append(JAST::Instruction.new( :op('lcmp') ));
+    }
+    $il.append(JAST::Instruction.new( :op('invokestatic'),
+        $TYPE_P6OPS, 'booleanize', $TYPE_SMO, 'I' ));
+    $ops.result($il, $RT_OBJ);
+};
+$ops.add_hll_op('perl6', 'p6bool', $p6bool);
 
 # Make some of them also available from NQP land, since we use them in the
 # metamodel and bootstrap.
-#$ops.add_hll_op('nqp', 'p6bool', $p6bool);
+$ops.add_hll_op('nqp', 'p6bool', $p6bool);
 $ops.map_classlib_hll_op('nqp', 'p6var', $TYPE_P6OPS, 'p6var', [$RT_OBJ], $RT_OBJ, :tc);
 $ops.map_classlib_hll_op('nqp', 'p6parcel', $TYPE_P6OPS, 'p6parcel', [$RT_OBJ, $RT_OBJ], $RT_OBJ, :tc);
 $ops.map_classlib_hll_op('nqp', 'p6isbindable', $TYPE_P6OPS, 'p6isbindable', [$RT_OBJ, $RT_OBJ], $RT_INT, :tc);

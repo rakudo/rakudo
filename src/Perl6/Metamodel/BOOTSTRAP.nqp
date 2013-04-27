@@ -1134,7 +1134,7 @@ BEGIN {
             # If we're at a single candidate here, and we also know there's no
             # type constraints that follow, we can cache the result.
             if nqp::elems(@possibles) == 1 && $pure_type_result {
-                if nqp::isnull(pir::getattribute__PPs($capture, 'named')) {
+                unless nqp::capturehasnameds($capture) {
                     nqp::scwbdisable();
                     nqp::bindattr($dcself, Routine, '$!dispatch_cache',
                         nqp::multicacheadd(

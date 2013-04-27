@@ -336,8 +336,9 @@ $(PERL6_EXE): $(PERL6_PBC) $(PARROT_DLL_COPY)
 # the complete compiler
 $(PERL6_PBC): $(PERL6_G_PBC) $(PERL6_A_PBC) $(PERL6_C_PBC) $(PERL6_P_PBC) src/main.nqp
 	$(PERL) tools/build/gen-version.pl >src/gen/main-version.nqp
+	$(PERL) $(GEN_CAT) src/main.nqp src/gen/main-version.nqp > src/gen/main.nqp
 	$(NQP_EXE) --vmlibs=perl6_group,perl6_ops --target=pir --output=src/gen/perl6.pir \
-	    --combine src/main.nqp src/gen/main-version.nqp
+	    src/gen/main.nqp
 	$(PARROT) $(PARROT_ARGS) -o $(PERL6_PBC) src/gen/perl6.pir
 
 $(PERL6_ML_PBC): $(NQP_EXE) $(DYNEXT_DYNPMC) $(DYNEXT_DYNOPS) src/Perl6/ModuleLoader.nqp src/vm/parrot/ModuleLoaderVMConfig.nqp

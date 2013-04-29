@@ -745,20 +745,6 @@ inline op perl6_set_type_code(in PMC) :base_core {
 
 /*
 
-=item perl6_set_type_packagehow(in PMC)
-
-Sets the package type.
-
-=cut
-
-*/
-inline op perl6_set_type_packagehow(in PMC) :base_core {
-    Rakudo_types_packagehow_set($1);
-}
-
-
-/*
-
 =item perl6_booleanize(out PMC, in INT)
 
 If $2 is non-zero, puts Bool::True in $1. Otherwise puts Bool::False
@@ -1029,21 +1015,6 @@ inline op perl6_definite(out PMC, in PMC) :base_core {
 
 /*
 
-=item find_method_null_ok(out PMC, in PMC, in STR)
-
-Like Parrot's find_method, but returns PMCNULL in $1 if $2 doesn't have a
-method named $3 instead of throwing an exception.
-
-=cut
-
-*/
-inline op find_method_null_ok(out PMC, in PMC, in STR) :base_core {
-    $1 = VTABLE_find_method(interp, $2, $3);
-}
-
-
-/*
-
 =item perl6_decontainerize_return_value()
 
 If the sub is not rw, decontainerizes the return value.
@@ -1097,49 +1068,6 @@ inline op perl6_type_check_return_value(in PMC, in PMC) :base_core {
                             decont_value, rtype);
             }
         }
-    }
-}
-
-
-/*
-
-=item perl6_get_package_through_who
-
-Takes a type object and uses its associated symbol table (in .WHO)
-to look for a package within it. It will auto-vivify the package if
-non exists.
-
-=cut
-
-*/
-inline op perl6_get_package_through_who(out PMC, in PMC, in STR) :base_core {
-    if ($2->vtable->base_type == smo_id) {
-        PMC *who = STABLE($2)->WHO;
-        PMC *pkg = VTABLE_get_pmc_keyed_str(interp, who, $3);
-        if (PMC_IS_NULL(pkg)) {
-            /* Create the package object. This is just like a call:
-             * pkg = PackageHOW.new_type(:name($3))
-             */
-            PMC *pkg_how = Rakudo_types_packagehow_get();
-            PMC *old_ctx = Parrot_pcc_get_signature(interp, CURRENT_CONTEXT(interp));
-            PMC *meth    = VTABLE_find_method(interp, pkg_how,
-                    Parrot_str_new_constant(interp, "new_type"));
-            PMC *cappy   = Parrot_pmc_new(interp, enum_class_CallContext);
-            VTABLE_push_pmc(interp, cappy, pkg_how);
-            VTABLE_set_string_keyed_str(interp, cappy, Parrot_str_new_constant(interp, "name"), $3);
-            Parrot_pcc_invoke_from_sig_object(interp, meth, cappy);
-            cappy = Parrot_pcc_get_signature(interp, CURRENT_CONTEXT(interp));
-            Parrot_pcc_set_signature(interp, CURRENT_CONTEXT(interp), old_ctx);
-            pkg = VTABLE_get_pmc_keyed_int(interp, cappy, 0);
-            
-            /* Install it in the outer package's .WHO. */
-            VTABLE_set_pmc_keyed_str(interp, who, $3, pkg);
-        }
-        $1 = pkg;
-    }
-    else {
-        Parrot_ex_throw_from_c_args(interp, NULL, EXCEPTION_INVALID_OPERATION,
-            "Can only use perl6_get_package_through_who with a SixModelObject");
     }
 }
 

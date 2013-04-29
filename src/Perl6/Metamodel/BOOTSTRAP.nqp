@@ -1791,7 +1791,6 @@ Str.HOW.publish_parrot_vtable_handler_mapping(Str);
 #?endif
 
 # Set up various type mappings.
-pir::perl6_set_type_packagehow__vP(Perl6::Metamodel::PackageHOW);
 pir::perl6_set_types_mu_any__vPP(Mu, Any);
 pir::perl6_set_type_code__vP(Code);
 pir::perl6_set_type_routine__vP(Routine);

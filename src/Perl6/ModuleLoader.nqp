@@ -156,10 +156,10 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
         # Start off merging top-level symbols. Easy when there's no
         # overlap. Otherwise, we need to recurse.
         my %known_symbols;
-        for $target.WHO {
+        for stash_hash($target) {
             %known_symbols{$_.key} := 1;
         }
-        for $source.WHO {
+        for stash_hash($source) {
             my $sym := $_.key;
             if !%known_symbols{$sym} {
                 ($target.WHO){$sym} := $_.value;
@@ -241,6 +241,14 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
             # We could complain about anything else, and may in the future; for
             # now, we let it pass by with "latest wins" semantics.
         }
+    }
+    
+    sub stash_hash($pkg) {
+        my $hash := $pkg.WHO;
+        unless nqp::ishash($hash) {
+            $hash := $hash.FLATTENABLE_HASH();
+        }
+        $hash
     }
 }
 

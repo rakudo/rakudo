@@ -777,7 +777,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             $/.CURSOR.unitstart();
             try {
                 my $EXPORTHOW := $*W.find_symbol(['EXPORTHOW']);
-                for $EXPORTHOW.WHO {
+                for $*W.stash_hash($EXPORTHOW) {
                     %*HOW{$_.key} := $_.value;
                 }
             }
@@ -898,7 +898,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     method import_EXPORTHOW($UNIT) {    
         # See if we've exported any HOWs.
         if nqp::existskey($UNIT, 'EXPORTHOW') {
-            for $UNIT<EXPORTHOW>.WHO {
+            for $*W.stash_hash($UNIT<EXPORTHOW>) {
                 %*HOW{$_.key} := nqp::decont($_.value);
             }
         }
@@ -1210,7 +1210,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     
     sub do_import($/, $module, $package_source_name, $arglist?) {
         if nqp::existskey($module, 'EXPORT') {
-            my $EXPORT := $module<EXPORT>.WHO;
+            my $EXPORT := $*W.stash_hash($module<EXPORT>);
             my @to_import := ['MANDATORY'];
             my @positional_imports := [];
             if nqp::defined($arglist) {

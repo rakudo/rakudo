@@ -338,14 +338,15 @@ BEGIN {
     # Helper for creating a scalar attribute. Sets it up as a real Perl 6
     # Attribute instance, complete with container desciptor and auto-viv
     # container.
-    sub scalar_attr($name, $type, $package) {
+    sub scalar_attr($name, $type, $package, :$associative_delegate) {
         my $cd := Perl6::Metamodel::ContainerDescriptor.new(
             :of($type), :rw(1), :name($name));
         my $scalar := nqp::create(Scalar);
         nqp::bindattr($scalar, Scalar, '$!descriptor', $cd);
         nqp::bindattr($scalar, Scalar, '$!value', $type);
         return Attribute.new( :name($name), :type($type), :package($package),
-            :container_descriptor($cd), :auto_viv_container($scalar));
+            :container_descriptor($cd), :auto_viv_container($scalar),
+            :$associative_delegate);
     }
         
     # class Signature {
@@ -1583,7 +1584,7 @@ BEGIN {
     # }
     EnumMap.HOW.add_parent(EnumMap, Iterable);
     EnumMap.HOW.add_parent(EnumMap, Cool);
-    EnumMap.HOW.add_attribute(EnumMap, scalar_attr('$!storage', Mu, EnumMap));
+    EnumMap.HOW.add_attribute(EnumMap, scalar_attr('$!storage', Mu, EnumMap, :associative_delegate));
     EnumMap.HOW.compose_repr(EnumMap);
 
     # my class Hash is EnumMap {
@@ -1639,16 +1640,8 @@ BEGIN {
     ForeignCode.HOW.set_invocation_attr(ForeignCode, ForeignCode, '$!do');
     ForeignCode.HOW.compose_invocation(ForeignCode);
 
-    # Set up Stash type, using a VM hash under the hood for storage.
+    # Set up Stash type, which is really just a hash.
     Stash.HOW.add_parent(Stash, Hash);
-    Stash.HOW.add_parrot_vtable_handler_mapping(EnumMap, 'get_pmc_keyed', '$!storage');
-    Stash.HOW.add_parrot_vtable_handler_mapping(EnumMap, 'get_pmc_keyed_str', '$!storage');
-    Stash.HOW.add_parrot_vtable_handler_mapping(EnumMap, 'set_pmc_keyed', '$!storage');
-    Stash.HOW.add_parrot_vtable_handler_mapping(EnumMap, 'set_pmc_keyed_str', '$!storage');
-    Stash.HOW.add_parrot_vtable_handler_mapping(EnumMap, 'exists_keyed', '$!storage');
-    Stash.HOW.add_parrot_vtable_handler_mapping(EnumMap, 'exists_keyed_str', '$!storage');
-    Stash.HOW.add_parrot_vtable_handler_mapping(EnumMap, 'get_iter', '$!storage');
-    Stash.HOW.publish_parrot_vtable_handler_mapping(Stash);
     Stash.HOW.compose_repr(Stash);
 
     # Set this Stash type for the various types of package.
@@ -1813,8 +1806,8 @@ pir::perl6_set_types_ins__vPPP(Int, Num, Str);
 pir::perl6_set_types_list_array_lol__vPPPPP(List, ListIter, Array, LoL, Parcel);
 pir::perl6_set_types_enummap_hash__vPP(EnumMap, Hash);
 pir::perl6_set_type_capture__vP(Capture);
-pir::perl6_set_bools__vPP(Bool.WHO<False>, Bool.WHO<True>);
 pir::set_scalar_container_type__vP(Scalar);
+pir::perl6_set_bools__vPP(Bool.WHO<False>, Bool.WHO<True>);
 
 # We'll build container descriptors for $_, $! and $/ that we can
 # share with all of the magically/lazily created scalars.

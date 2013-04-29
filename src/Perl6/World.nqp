@@ -405,7 +405,7 @@ class Perl6::World is HLL::World {
         # StaticLexPad, which of course we need to use when importing. Since we still
         # keep the authoritative copy of stuff from the compiler's view in QAST::Block's
         # .symbol(...) hash we get away with this for now.
-        my %stash := $package.WHO;
+        my %stash := self.stash_hash($package);
         my $target := self.cur_lexpad();
         
         # First pass: QAST::Block symbol table installation. Also detect any
@@ -2088,7 +2088,7 @@ class Perl6::World is HLL::World {
         for @!BLOCKS {
             return 0 if walk_block($_) == 0;
         }
-        for $*GLOBALish.WHO {
+        for self.stash_hash($*GLOBALish) {
             return 0 if $code($_.key, $_.value, hash()) == 0;
         }
     }
@@ -2493,6 +2493,14 @@ class Perl6::World is HLL::World {
         $post    := '<EOL>' if $post eq '';
         
         [$pre, $post]
+    }
+    
+    method stash_hash($pkg) {
+        my $hash := $pkg.WHO;
+        unless nqp::ishash($hash) {
+            $hash := $hash.FLATTENABLE_HASH();
+        }
+        $hash
     }
 
     method ex-handle($/, $code) {

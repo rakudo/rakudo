@@ -50,7 +50,7 @@ my class IO::Spec::Unix {
 
     method no-parent-or-current-test { none('.', '..')  }
 
-    method file-name-is-absolute( $file ) {
+    method is-absolute( $file ) {
         so $file ~~ m/^\//
     }
 
@@ -121,7 +121,7 @@ my class IO::Spec::Unix {
     method abs2rel( $path is copy, $base is copy = Str ) {
         $base = $*CWD unless $base.defined && $base.chars;
 
-        if self.file-name-is-absolute($path) || self.file-name-is-absolute($base) {
+        if self.is-absolute($path) || self.is-absolute($base) {
             $path = self.rel2abs( $path );
             $base = self.rel2abs( $base );
         }
@@ -140,7 +140,7 @@ my class IO::Spec::Unix {
         # For UNC paths, the user might give a volume like //foo/bar that
         # strictly speaking has no directory portion.  Treat it as if it
         # had the root directory for that volume.
-        if !$base_directories.chars && self.file-name-is-absolute( $base ) {
+        if !$base_directories.chars && self.is-absolute( $base ) {
             $base_directories = self.rootdir;
         }
 
@@ -166,8 +166,8 @@ my class IO::Spec::Unix {
     }
 
     method rel2abs( $path, $base is copy = $*CWD) {
-        return self.canonpath($path) if self.file-name-is-absolute($path);
-        if !self.file-name-is-absolute( $base ) {
+        return self.canonpath($path) if self.is-absolute($path);
+        if !self.is-absolute( $base ) {
             $base = self.rel2abs( $base )
         }
         self.catdir( $base, $path );

@@ -23,7 +23,7 @@ my class IO::Spec {
     method MODULE 
        # handles
        # <canonpath curdir updir rootdir devnull tmpdir
-       #  file-name-is-absolute no-parent-or-current-test
+       #  is-absolute no-parent-or-current-test
        #  path split join splitpath catpath catfile
        #  splitdir catdir abs2rel rel2abs>
             { $SPEC }
@@ -40,7 +40,7 @@ my class IO::Spec {
     method rootdir                     { $SPEC.rootdir()                   }
     method devnull                     { $SPEC.devnull()                   }
     method tmpdir                      { $SPEC.tmpdir()                    }
-    method file-name-is-absolute( |c ) { $SPEC.file-name-is-absolute( |c ) }
+    method is-absolute( |c )           { $SPEC.is-absolute( |c )           }
     method no-parent-or-current-test   { $SPEC.no-parent-or-current-test   }
     method path                        { $SPEC.path()                      }
     method split ( |c )                { $SPEC.split( |c )                 }

@@ -24,7 +24,7 @@ my class IO::Spec::Cygwin is IO::Spec::Unix {
 
 
     #| Tests if the file name begins with C<drive_letter:/> or a slash.
-    sub file-name-is-absolute ($file) {
+    sub is-absolute ($file) {
         so $file ~~ / ^ [<[A..Z a..z]> ':']?  <[\\/]>/; # C:/test
     }
 

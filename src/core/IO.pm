@@ -294,10 +294,10 @@ my class IO::Path is Cool does IO::FileTestable {
     }
 
     method is-absolute {
-        $.SPEC.file-name-is-absolute(~self);
+        $.SPEC.is-absolute(~self);
     }
     method is-relative {
-        ! $.SPEC.file-name-is-absolute(~self);
+        ! $.SPEC.is-absolute(~self);
     }
     method absolute ($base = $*CWD) {
         return self.new($.SPEC.rel2abs(~self, $base))
@@ -318,7 +318,8 @@ my class IO::Path is Cool does IO::FileTestable {
             return self.new($.SPEC.join($.volume, $.directory, ''));
         }
         elsif all($.basename, $.directory) eq $.SPEC.curdir {
-            return self.new(:$.volume, directory=>$.SPEC.curdir, basename=>$.SPEC.updir);
+            return self.new(:$.volume, directory=>$.SPEC.curdir,
+                             basename=>$.SPEC.updir);
         }
         elsif $.basename eq $.SPEC.updir && $.directory eq $.SPEC.curdir 
            or !grep({$_ ne $.SPEC.updir}, $.SPEC.splitdir($.directory)) {  
@@ -333,7 +334,9 @@ my class IO::Path is Cool does IO::FileTestable {
     }
 
     method child ($childname) {
-        self.new($.SPEC.join: $.volume, $.SPEC.catdir($.directory, $.basename), $childname);
+        self.new($.SPEC.join: $.volume,
+                              $.SPEC.catdir($.directory, $.basename),
+                              $childname);
     }
 
 }

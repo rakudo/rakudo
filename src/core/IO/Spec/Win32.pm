@@ -51,7 +51,7 @@ my class IO::Spec::Win32 is IO::Spec::Unix {
         return @path;
     }
 
-    method file-name-is-absolute ($path) {
+    method is-absolute ($path) {
         # As of right now, this returns 2 if the path is absolute with a
         # volume, 1 if it's absolute with no volume, 0 otherwise.
         given $path {
@@ -131,7 +131,7 @@ my class IO::Spec::Win32 is IO::Spec::Unix {
 
     method rel2abs ($path is copy, $base? is copy) {
 
-        my $is_abs = self.file-name-is-absolute($path);
+        my $is_abs = self.is-absolute($path);
 
         # Check for volume (should probably document the '2' thing...)
         return self.canonpath( $path ) if $is_abs == 2;
@@ -151,7 +151,7 @@ my class IO::Spec::Win32 is IO::Spec::Unix {
             #$base //= $*CWD ;
             $base = $*CWD;
         }
-        elsif ( !self.file-name-is-absolute( $base ) ) {
+        elsif ( !self.is-absolute( $base ) ) {
             $base = self.rel2abs( $base );
         }
         else {

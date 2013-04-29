@@ -17,4 +17,18 @@ my class Stash {
                  -> { nqp::bindkey($storage, nqp::unbox_s($key), $v) } )
         }
     }
+    
+    method package_at_key(Stash:D: str $key) {
+        my Mu $storage := nqp::defined(nqp::getattr(self, EnumMap, '$!storage')) ??
+            nqp::getattr(self, EnumMap, '$!storage') !!
+            nqp::bindattr(self, EnumMap, '$!storage', nqp::hash());
+        if nqp::existskey($storage, nqp::unbox_s($key)) {
+            nqp::atkey($storage, $key)
+        }
+        else {
+            my $pkg := Metamodel::PackageHOW.new_type(:name($key));
+            $pkg.HOW.compose($pkg);
+            nqp::bindkey($storage, $key, $pkg)
+        }
+    }
 }

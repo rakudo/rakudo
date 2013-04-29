@@ -2237,8 +2237,10 @@ class Perl6::World is HLL::World {
                 @name.shift();
             }
             for @name {
-                $path := QAST::Op.new( :op('p6getpackage'),
-                    $path, QAST::SVal.new( :value(~$_) ));
+                $path := QAST::Op.new(
+                    :op('callmethod'), :name('package_at_key'),
+                    QAST::Op.new( :op('who'), $path ),
+                    QAST::SVal.new( :value(~$_) ));
             }
             $lookup.unshift(QAST::Op.new(:op('who'), $path));
         }

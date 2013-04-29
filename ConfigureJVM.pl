@@ -62,6 +62,8 @@ MAIN: {
     $config{'nqp'} = $with_nqp;
     $config{'makefile-timing'} = $options{'makefile-timing'};
     $config{'stagestats'} = '--stagestats' if $options{'makefile-timing'};
+    $config{'cpsep'} = $^O eq 'MSWin32' ? ';' : ':';
+    $config{'slash'} = $^O eq 'MSWin32' ? '\\' : '/';
     my $make = $config{'make'} = $^O eq 'MSWin32' ? 'nmake' : 'make';
     
     fill_template_file('tools/build/Makefile-JVM.in', 'Makefile', %config);

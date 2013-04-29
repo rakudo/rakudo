@@ -13,6 +13,8 @@ CP     = $(PERL) -MExtUtils::Command -e cp
 CHMOD  = $(PERL) -MExtUtils::Command -e chmod
 RM_F   = $(PERL) -MExtUtils::Command -e rm_f
 
+RUN_PERL6 = $(JAVA) -Xbootclasspath/a:.@cpsep@install-jvm/nqp-runtime.jar@cpsep@install-jvm/asm-4.1.jar -cp install-jvm perl6
+
 # files we create
 PERL6_CLASS     = perl6.class
 PERL6_ML_CLASS  = blib/Perl6/ModuleLoader.class
@@ -76,6 +78,101 @@ METAMODEL_SOURCES = \
 BOOTSTRAP_SOURCES = \
   src/Perl6/Metamodel/BOOTSTRAP.nqp \
   src/Perl6/Metamodel/EXPORTHOW.nqp \
+
+# The ordering here is important for bootstrapping reasons. In general:
+# * traits almost certainly have to come first
+# * stubs have to come after traits since they use them
+# * Attribute needs to come before anything that uses an attribute
+# We break various other circularities in Perl6::Metamodel::BOOTSTRAP.
+# Note that you only really have to worry especially about things that
+# the compiler will instantiate/call methods on while compiling the
+# setting - basically anything that feels MOP-ish.
+CORE_SOURCES = \
+  src/core/traits.pm \
+#  src/core/Positional.pm \
+#  src/core/Associative.pm \
+#  src/core/Callable.pm \
+#  src/core/natives.pm \
+#  src/core/stubs.pm \
+#  src/core/control.pm \
+#  src/core/Mu.pm \
+#  src/core/Stringy.pm \
+#  src/core/Any.pm \
+#  src/core/Scalar.pm \
+#  src/core/Code.pm \
+#  src/core/WhateverCode.pm \
+#  src/core/Block.pm \
+#  src/core/Attribute.pm \
+#  src/core/Routine.pm \
+#  src/core/Sub.pm \
+#  src/core/Macro.pm \
+#  src/core/Method.pm \
+#  src/core/Submethod.pm \
+#  src/core/Junction.pm \
+#  src/core/Cool.pm \
+#  src/core/Enumeration.pm \
+#  src/core/Whatever.pm \
+#  src/core/Bool.pm \
+#  src/core/Numeric.pm \
+#  src/core/Real.pm \
+#  src/core/Int.pm \
+#  src/core/Order.pm \
+#  src/core/UInt64.pm \
+#  src/core/Num.pm \
+#  src/core/Str.pm \
+#  src/core/Capture.pm \
+#  src/core/Parcel.pm \
+#  src/core/Iterable.pm \
+#  src/core/Iterator.pm \
+#  src/core/Nil.pm \
+#  src/core/Range.pm \
+#  src/core/ListIter.pm \
+#  src/core/MapIter.pm \
+#  src/core/GatherIter.pm \
+#  src/core/List.pm \
+#  src/core/LoL.pm \
+#  src/core/Array.pm \
+#  src/core/Enum.pm \
+#  src/core/Pair.pm \
+#  src/core/EnumMap.pm \
+#  src/core/Hash.pm \
+#  src/core/Stash.pm \
+#  src/core/PseudoStash.pm \
+#  src/core/Parameter.pm \
+#  src/core/Signature.pm \
+#  src/core/Buf.pm \
+#  src/core/IO.pm \
+#  src/core/IO/ArgFiles.pm \
+#  src/core/IO/Socket.pm \
+#  src/core/IO/Socket/INET.pm \
+#  src/core/Rational.pm \
+#  src/core/Rat.pm \
+#  src/core/Complex.pm \
+#  src/core/Backtrace.pm \
+#  src/core/Exception.pm \
+#  src/core/Failure.pm \
+#  src/core/Match.pm \
+#  src/core/Cursor.pm \
+#  src/core/Grammar.pm \
+#  src/core/Regex.pm \
+#  src/core/AST.pm \
+#  src/core/CallFrame.pm \
+#  src/core/Main.pm \
+#  src/core/tai-utc.pm \
+#  src/core/Instant.pm \
+#  src/core/Duration.pm \
+#  src/core/Temporal.pm \
+#  src/core/EXPORTHOW.pm \
+#  src/core/Pod.pm \
+#  src/core/Set.pm \
+#  src/core/Bag.pm \
+#  src/core/ObjAt.pm \
+#  src/core/Version.pm \
+#  src/core/ForeignCode.pm \
+#  src/core/operators.pm \
+#  src/core/metaops.pm \
+#  src/core/terms.pm \
+#  src/core/you_are_here.pm \
 
 CLEANUPS = \
   *.manifest \
@@ -144,6 +241,11 @@ $(PERL6_B_CLASS): $(BOOTSTRAP_SOURCES) $(PERL6_M_CLASS)
 	$(PERL) $(GEN_CAT) $(BOOTSTRAP_SOURCES) > src/gen/BOOTSTRAP.nqp
 	$(NQP) --target=classfile --output=$(PERL6_B_CLASS) --encoding=utf8 \
 	    src/gen/BOOTSTRAP.nqp
+
+$(SETTING_CLASS): $(PERL6_CLASS) $(PERL6_B_CLASS) $(CORE_SOURCES)
+	$(PERL) $(GEN_CAT) $(CORE_SOURCES) > src/gen/CORE.setting
+	@echo "The following step can take a long time, please be patient."
+	$(RUN_PERL6) --setting=NULL --optimize=3 --target=classfile --stagestats --output=$(SETTING_CLASS) src/gen/CORE.setting
 
 ##  cleaning
 clean:

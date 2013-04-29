@@ -253,7 +253,7 @@ my class DateTime does Dateish {
     }
 
     multi method new(Str $format, :$timezone is copy = 0, :&formatter=&default-formatter) {
-        $format ~~ /^ (\d**4) '-' (\d\d) '-' (\d\d) T (\d\d) ':' (\d\d) ':' (\d\d) (Z || (<[\-\+]>) (\d\d)(\d\d))? $/
+        $format ~~ /^ (\d**4) '-' (\d\d) '-' (\d\d) T (\d\d) ':' (\d\d) ':' (\d\d) (Z || (<[\-\+]>) (\d\d)(\d\d))**0..1 $/
             or X::Temporal::InvalidFormat.new(
                     invalid-str => $format,
                     target      => 'DateTime',

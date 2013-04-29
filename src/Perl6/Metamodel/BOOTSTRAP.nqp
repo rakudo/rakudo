@@ -78,17 +78,9 @@ my stub ForeignCode metaclass Perl6::Metamodel::ClassHOW { ... };
 # We stick all the declarative bits inside of a BEGIN, so they get
 # serialized.
 BEGIN {
-<<<<<<< HEAD
-=======
     # Ensure Rakudo dynops are initialized.
     pir::rakudo_dynop_setup__v();
-    
-    # Maps code objects to their static self, avoiding them being closures.
-    sub static($code) {
-        $code.get_lexinfo().get_static_code()
-    }
 
->>>>>>> 8b49b7a... Update nqp::setcontspec usages for new protocol.
     # class Mu { ... }
 #?if parrot
     Mu.HOW.add_parrot_vtable_mapping(Mu, 'get_integer',

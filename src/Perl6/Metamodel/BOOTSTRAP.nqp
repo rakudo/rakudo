@@ -27,6 +27,8 @@ my class BOOTSTRAPATTR {
     method package() { $!package }
     method has_accessor() { 0 }
     method has-accessor() { 0 }
+    method positional_delegate() { 0 }
+    method associative_delegate() { 0 }
     method build() { }
     method is_generic() { $!type.HOW.archetypes.generic }
     method instantiate_generic($type_environment) {
@@ -119,6 +121,8 @@ BEGIN {
     #     has $!auto_viv_container;
     #     has $!build_closure;
     #     has $!package;
+    #     has int $!positional_delegate;
+    #     has int $!associative_delegate;
     #     ... # Uncomposed
     # }
     Attribute.HOW.add_parent(Attribute, Any);
@@ -132,10 +136,13 @@ BEGIN {
     Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!build_closure>, :type(Mu), :package(Attribute)));
     Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!package>, :type(Mu), :package(Attribute)));
     Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!box_target>, :type(int), :package(Attribute)));
+    Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!positional_delegate>, :type(int), :package(Attribute)));
+    Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!associative_delegate>, :type(int), :package(Attribute)));
 
     # Need new and accessor methods for Attribute in here for now.
     Attribute.HOW.add_method(Attribute, 'new',
-        nqp::getstaticcode(sub ($self, :$name!, :$type!, :$package!, :$has_accessor, *%other) {
+        nqp::getstaticcode(sub ($self, :$name!, :$type!, :$package!, :$has_accessor,
+                :$positional_delegate = 0, :$associative_delegate = 0, *%other) {
             my $attr := nqp::create($self);
             nqp::bindattr_s($attr, Attribute, '$!name', $name);
             nqp::bindattr($attr, Attribute, '$!type', $type);
@@ -157,6 +164,8 @@ BEGIN {
                 nqp::bindattr($attr, Attribute, '$!container_descriptor', $cd);
                 nqp::bindattr($attr, Attribute, '$!auto_viv_container', $scalar);
             }
+            nqp::bindattr_i($attr, Attribute, '$!positional_delegate', $positional_delegate);
+            nqp::bindattr_i($attr, Attribute, '$!associative_delegate', $associative_delegate);
             $attr
         }));
     Attribute.HOW.add_method(Attribute, 'name', nqp::getstaticcode(sub ($self) {
@@ -216,6 +225,12 @@ BEGIN {
     Attribute.HOW.add_method(Attribute, 'box_target', nqp::getstaticcode(sub ($self) {
             nqp::getattr_i(nqp::decont($self),
                 Attribute, '$!box_target')
+        }));
+    Attribute.HOW.add_method(Attribute, 'positional_delegate', nqp::getstaticcode(sub ($self) {
+            nqp::getattr_i(nqp::decont($self), Attribute, '$!positional_delegate');
+        }));
+    Attribute.HOW.add_method(Attribute, 'associative_delegate', nqp::getstaticcode(sub ($self) {
+            nqp::getattr_i(nqp::decont($self), Attribute, '$!associative_delegate')
         }));
     Attribute.HOW.add_method(Attribute, 'is_generic', nqp::getstaticcode(sub ($self) {
             my $dcself   := nqp::decont($self);

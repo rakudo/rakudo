@@ -29,6 +29,12 @@ role Perl6::Metamodel::REPRAttributeProtocol {
                     if nqp::can($attr, 'auto_viv_container') {
                         %attr_info<auto_viv_container> := $attr.auto_viv_container;
                     }
+                    if $attr.positional_delegate {
+                        %attr_info<positional_delegate> := 1;
+                    }
+                    if $attr.associative_delegate {
+                        %attr_info<associative_delegate> := 1;
+                    }
                     nqp::push(@attrs, %attr_info);
                 }
             

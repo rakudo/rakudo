@@ -628,7 +628,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             || <identifier>
         ]
         <pod_configuration($<spaces>)> <pod_newline>
-        $<pod_content> = <pod_textcontent>?
+        <pod_content=.pod_textcontent>?
     }
 
     token pod_block:sym<paragraph_raw> {
@@ -661,7 +661,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         ]
         <pod_configuration($<spaces>)>
         [\r\n|\s]
-        $<pod_content> = <pod_textcontent>?
+        <pod_content=.pod_textcontent>?
     }
 
     token pod_block:sym<abbreviated_raw> {

@@ -1431,7 +1431,14 @@ in $2 and with flattening $4.
 
 */
 inline op perl6_list_from_rpa(out PMC, in PMC, in PMC, in PMC) :base_core {
-    $1 = Rakudo_binding_list_from_rpa(interp, $2, $3, $4);
+    PMC *items = $2;
+    if (items->vtable->base_type != qrpa_id) {
+        /* Switch aggregate to be a QRPA */
+        PMC *t = Parrot_pmc_new(interp, qrpa_id);
+        VTABLE_splice(interp, t, items, 0, 0);
+        items = t;
+    }
+    $1 = Rakudo_binding_list_from_rpa(interp, items, $3, $4);
 }
 
 
@@ -1449,7 +1456,7 @@ inline op perl6_listitems(out PMC, in PMC) :base_core {
                      Parrot_str_new_constant(interp, "$!items"));
     INTVAL type = items->vtable->base_type;
     if (type != qrpa_id && type != enum_class_ResizablePMCArray) {
-        items = Parrot_pmc_new(interp, enum_class_ResizablePMCArray);
+        items = Parrot_pmc_new(interp, qrpa_id);
         VTABLE_set_attr_keyed(interp, $2, List,
                      Parrot_str_new_constant(interp, "$!items"), items);
     }

@@ -55,3 +55,5 @@ lib/Safe.pir
 rakudo_test_run.tar.gz
 config.status
 config.default
+/bin
+rakudo-runtime.jar

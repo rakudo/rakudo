@@ -13,7 +13,11 @@ CP     = $(PERL) -MExtUtils::Command -e cp
 CHMOD  = $(PERL) -MExtUtils::Command -e chmod
 RM_F   = $(PERL) -MExtUtils::Command -e rm_f
 
-RUN_PERL6 = $(JAVA) -Xbootclasspath/a:.@cpsep@install-jvm/nqp-runtime.jar@cpsep@install-jvm/asm-4.1.jar -cp install-jvm perl6
+RUN_PERL6 = $(JAVA) -Xbootclasspath/a:.@cpsep@install-jvm/nqp-runtime.jar@cpsep@install-jvm/asm-4.1.jar@cpsep@rakudo-runtime.jar -cp install-jvm perl6
+
+RUNTIME_JAVAS = src/vm/jvm/runtime/org/perl6/rakudo/*.java
+
+RUNTIME_JAR = rakudo-runtime.jar
 
 # files we create
 PERL6_CLASS     = perl6.class
@@ -189,6 +193,11 @@ CLEANUPS = \
 
 all: $(PERL6_CLASS) $(PERL6_B_CLASS)
 
+$(RUNTIME_JAR): $(RUNTIME_JAVAS)
+	$(PERL) -MExtUtils::Command -e mkpath bin
+	$(JAVAC) -source 1.7 -cp install-jvm/asm-4.1.jar@cpsep@install-jvm/nqp-runtime.jar -g -d bin $(RUNTIME_JAVAS)
+	$(JAR) cf0 rakudo-runtime.jar -C bin/ .
+
 $(PERL6_ML_CLASS): src/Perl6/ModuleLoader.nqp src/vm/jvm/ModuleLoaderVMConfig.nqp
 	$(PERL) $(GEN_CAT) src/vm/jvm/ModuleLoaderVMConfig.nqp src/Perl6/ModuleLoader.nqp > src/gen/ModuleLoader.nqp
 	$(NQP) --target=classfile --output=$(PERL6_ML_CLASS) --encoding=utf8 \
@@ -226,7 +235,7 @@ $(PERL6_C_CLASS): src/Perl6/Compiler.nqp $(PERL6_O_CLASS)
 	$(NQP) --target=classfile --output=$(PERL6_C_CLASS) --encoding=utf8 \
 	    src/Perl6/Compiler.nqp
 
-$(PERL6_CLASS): src/main.nqp $(PERL6_G_CLASS) $(PERL6_A_CLASS) $(PERL6_C_CLASS) $(PERL6_P_CLASS)
+$(PERL6_CLASS): src/main.nqp $(RUNTIME_JAR) $(PERL6_G_CLASS) $(PERL6_A_CLASS) $(PERL6_C_CLASS) $(PERL6_P_CLASS)
 	$(PERL) tools/build/gen-version.pl > src/gen/main-version.nqp
 	$(PERL) $(GEN_CAT) src/main.nqp src/gen/main-version.nqp > src/gen/main.nqp
 	$(NQP) --target=classfile --javaclass=perl6 --output=$(PERL6_CLASS) \

@@ -455,7 +455,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
 
     token comment:sym<#=(...)> {
-        '#=' <?opener> $<attachment>=<.quibble(%*LANG<Q>)>
+        '#=' <?opener> <attachment=.quibble(%*LANG<Q>)>
     }
 
     token comment:sym<#=> {

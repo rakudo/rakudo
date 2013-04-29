@@ -43,7 +43,7 @@ role Perl6::Metamodel::REPRAttributeProtocol {
             }
             
             # Compose the representation using it.
-            nqp::composetype($obj, hash(attribute => @repr_info));
+            nqp::composetype($obj, nqp::hash('attribute', @repr_info));
             $!composed_repr := 1;
         }
     }

@@ -90,7 +90,7 @@ role Perl6::Metamodel::MultiMethodContainer {
                         nqp::die("Cannot auto-generate a proto method for '$name' in the setting");
                     }
                     my $proto := $autogen_proto.instantiate_generic(
-                        hash( T => $obj ));
+                        nqp::hash('T', $obj));
                     $proto.set_name($name);
                     $proto.add_dispatchee($code);
                     self.add_method($obj, $name, $proto);

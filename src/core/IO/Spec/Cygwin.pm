@@ -31,7 +31,7 @@ my class IO::Spec::Cygwin is IO::Spec::Unix {
     method tmpdir {
         state $tmpdir;
         return $tmpdir if defined $tmpdir;
-        $tmpdir = IO::Spec::Unix._firsttmpdir(
+        $tmpdir = self._firsttmpdir(
              %*ENV<TMPDIR>,
              "/tmp",
              %*ENV<TMP>,

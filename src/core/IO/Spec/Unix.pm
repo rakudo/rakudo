@@ -34,7 +34,7 @@ my class IO::Spec::Unix {
 
     method _firsttmpdir( *@dirlist ) {
         my $tmpdir = @dirlist.first( { .defined && .IO.d && .IO.w } )
-            or fail "No viable candidates for a temporary directory found";
+            or self.curdir;
         self.canonpath( $tmpdir );
     }
 

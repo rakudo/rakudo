@@ -114,4 +114,7 @@ sub term:<time>() { nqp::p6box_i(nqp::time_i()) }
     my $PROGRAM_NAME = $comp.user-progname();
     nqp::bindkey(nqp::who(PROCESS), '$PROGRAM_NAME', $PROGRAM_NAME);
 
+    $PROCESS::TMPDIR = IO::Spec.tmpdir;
+
+
 }

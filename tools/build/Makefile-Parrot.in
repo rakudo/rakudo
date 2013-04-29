@@ -124,6 +124,7 @@ METAMODEL_SOURCES = \
   src/Perl6/Metamodel/Mixins.nqp \
   src/Perl6/Metamodel/BUILDPLAN.nqp \
   src/Perl6/Metamodel/REPRAttributeProtocol.nqp \
+  src/Perl6/Metamodel/InvocationProtocol.nqp \
   src/Perl6/Metamodel/ParrotInterop.nqp \
   src/Perl6/Metamodel/RolePunning.nqp \
   src/Perl6/Metamodel/RoleToRoleApplier.nqp \

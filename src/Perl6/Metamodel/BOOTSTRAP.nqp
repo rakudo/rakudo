@@ -544,8 +544,8 @@ BEGIN {
         
     # Need to actually run the code block. Also need this available before we finish
     # up the stub.
-    Code.HOW.add_parrot_vtable_mapping(Code, 'invoke', nqp::null());
-    Code.HOW.add_parrot_vtable_handler_mapping(Code, 'invoke', '$!do');
+    Code.HOW.set_invocation_attr(Code, 'invoke', '$!do');
+    Code.HOW.compose_invocation(Code);
 
     # class Block is Code { ... }
     Block.HOW.add_parent(Block, Code);
@@ -566,6 +566,7 @@ BEGIN {
             $cloned
         }));
     Block.HOW.compose_repr(Block);
+    Block.HOW.compose_invocation(Block);
 
     # class Routine is Block { ... }
     Routine.HOW.add_parent(Routine, Block);
@@ -1404,18 +1405,22 @@ BEGIN {
             $dcself
         }));
     Routine.HOW.compose_repr(Routine);
+    Routine.HOW.compose_invocation(Routine);
 
     # class Sub is Routine { ... }
     Sub.HOW.add_parent(Sub, Routine);
     Sub.HOW.compose_repr(Sub);
+    Sub.HOW.compose_invocation(Sub);
 
     # class Method is Routine { ... }
     Method.HOW.add_parent(Method, Routine);
     Method.HOW.compose_repr(Method);
+    Method.HOW.compose_invocation(Method);
 
     # class Submethod is Routine { ... }
     Submethod.HOW.add_parent(Submethod, Routine);
     Submethod.HOW.compose_repr(Submethod);
+    Submethod.HOW.compose_invocation(Submethod);
 
     # class Regex is Method { ... }
     Regex.HOW.add_parent(Regex, Method);
@@ -1448,6 +1453,7 @@ BEGIN {
                 $name)
         }));
     Regex.HOW.compose_repr(Regex);
+    Regex.HOW.compose_invocation(Regex);
 
     # class Str is Cool {
     #     has str $!value is box_target;
@@ -1606,8 +1612,8 @@ BEGIN {
     ForeignCode.HOW.add_parent(ForeignCode, Any);
     ForeignCode.HOW.add_attribute(ForeignCode, BOOTSTRAPATTR.new(:name<$!do>, :type(Mu), :package(ForeignCode)));
     ForeignCode.HOW.compose_repr(ForeignCode);
-    ForeignCode.HOW.add_parrot_vtable_mapping(ForeignCode, 'invoke', nqp::null());
-    ForeignCode.HOW.add_parrot_vtable_handler_mapping(ForeignCode, 'invoke', '$!do');
+    ForeignCode.HOW.set_invocation_attr(ForeignCode, ForeignCode, '$!do');
+    ForeignCode.HOW.compose_invocation(ForeignCode);
 
     # Set up Stash type, using a VM hash under the hood for storage.
     Stash.HOW.add_parent(Stash, Hash);
@@ -1654,8 +1660,7 @@ BEGIN {
     Perl6::Metamodel::ClassHOW.add_stash(ObjAt);
     Perl6::Metamodel::ClassHOW.add_stash(ForeignCode);
 
-    # Make Parrot invoke v-table construct a capture and delegate off
-    # to postcircumfix:<( )>.
+    # Default invocation behavior delegates off to postcircumfix:<( )>.
     my $invoke_forwarder :=
         nqp::getstaticcode(sub ($self, *@pos, *%named) {
             if !nqp::isconcrete($self) && !nqp::can($self, 'postcircumfix:<( )>') {
@@ -1676,7 +1681,8 @@ BEGIN {
                 $self.postcircumfix:<( )>($c);
             }
         });
-    Mu.HOW.add_parrot_vtable_mapping(Mu, 'invoke', $invoke_forwarder);
+    Mu.HOW.set_invocation_handler(Mu, $invoke_forwarder);
+    Mu.HOW.compose_invocation(Mu);
 
     # If we don't already have a PROCESS, set it up.
     my $PROCESS := nqp::gethllsym('perl6', 'PROCESS');
@@ -1833,9 +1839,11 @@ Perl6::Metamodel::PackageHOW.delegate_methods_to(Any);
 Perl6::Metamodel::ModuleHOW.pretend_to_be([Any, Mu]);
 Perl6::Metamodel::ModuleHOW.delegate_methods_to(Any);
 
-# Let ClassHOW know about the invocation handler.
-Perl6::Metamodel::ClassHOW.set_invoke_forwarder(
-        Mu.HOW.parrot_vtable_mappings(Mu, :local(1))<invoke>);
+# Let ClassHOW and EnumHOW know about the invocation handler.
+Perl6::Metamodel::ClassHOW.set_default_invoke_handler(
+    Mu.HOW.invocation_handler(Mu));
+Perl6::Metamodel::EnumHOW.set_default_invoke_handler(
+    Mu.HOW.invocation_handler(Mu));
 
 # Set this Stash type for the various types of package (not persisted as it ends
 # up in a lexical...)

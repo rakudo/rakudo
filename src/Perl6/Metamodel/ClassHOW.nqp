@@ -18,6 +18,7 @@ class Perl6::Metamodel::ClassHOW
     does Perl6::Metamodel::Mixins
     does Perl6::Metamodel::BoolificationProtocol
     does Perl6::Metamodel::REPRAttributeProtocol
+    does Perl6::Metamodel::InvocationProtocol
 #?if parrot
     does Perl6::Metamodel::ParrotInterop
 #?endif
@@ -27,11 +28,6 @@ class Perl6::Metamodel::ClassHOW
     has @!concretizations;
     has @!fallbacks;
     has $!composed;
-    
-    my $invoke_forwarder;
-    method set_invoke_forwarder($f) {
-        $invoke_forwarder := $f;
-    }
 
     my $archetypes := Perl6::Metamodel::Archetypes.new(
         :nominal(1), :inheritable(1), :augmentable(1) );
@@ -148,16 +144,12 @@ class Perl6::Metamodel::ClassHOW
         self.publish_method_cache($obj);
         self.publish_boolification_spec($obj);
         
-        # Check if we have a postcircumfix:<( )>, and if so install a
-        # v-table forwarder.
-        if nqp::existskey(self.method_table($obj), 'postcircumfix:<( )>') {
-            self.add_parrot_vtable_mapping($obj, 'invoke', $invoke_forwarder);
-        }
-        
+#?if parrot
         # Install Parrot v-table mappings.
         self.publish_parrot_vtable_mapping($obj);
 		self.publish_parrot_vtable_handler_mapping($obj);
-        
+#?endif
+
         # Create BUILDPLAN.
         self.create_BUILDPLAN($obj);
         
@@ -165,6 +157,9 @@ class Perl6::Metamodel::ClassHOW
         unless $was_composed {
             self.compose_repr($obj);
         }
+        
+        # Compose invocation protocol.
+        self.compose_invocation($obj);
 
         $obj
     }

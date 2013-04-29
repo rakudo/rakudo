@@ -624,30 +624,51 @@ inline op perl6_is_sig_bindable(out INT, in PMC, in PMC) :base_core {
 
 /*
 
-=item perl6_set_types_mu_any(in PMC, in PMC)
+=item p6settypes(in PMC)
 
-Sets the top type.
-
-=cut
-
-*/
-inline op perl6_set_types_mu_any(in PMC, in PMC) :base_core {
-    Rakudo_types_mu_set($1);
-    Rakudo_types_any_set($2);
-}
-
-
-/*
-
-=item perl6_set_type_routine(in PMC)
-
-Sets the routine type.
+Takes the symbols produced by the bootstrap and stashes some of them away for
+use by the guts.
 
 =cut
 
 */
-inline op perl6_set_type_routine(in PMC) :base_core {
-    Rakudo_types_routine_set($1);
+inline op p6settypes(invar PMC) :base_core {
+    Rakudo_types_mu_set(VTABLE_get_pmc_keyed_str(interp, $1,
+        Parrot_str_new_constant(interp, "Mu")));
+    Rakudo_types_any_set(VTABLE_get_pmc_keyed_str(interp, $1,
+        Parrot_str_new_constant(interp, "Any")));
+    Rakudo_types_routine_set(VTABLE_get_pmc_keyed_str(interp, $1,
+        Parrot_str_new_constant(interp, "Routine")));
+    Rakudo_types_int_set(VTABLE_get_pmc_keyed_str(interp, $1,
+        Parrot_str_new_constant(interp, "Int")));
+    Rakudo_types_num_set(VTABLE_get_pmc_keyed_str(interp, $1,
+        Parrot_str_new_constant(interp, "Num")));
+    Rakudo_types_str_set(VTABLE_get_pmc_keyed_str(interp, $1,
+        Parrot_str_new_constant(interp, "Str")));
+    Rakudo_types_list_set(VTABLE_get_pmc_keyed_str(interp, $1,
+        Parrot_str_new_constant(interp, "List")));
+    Rakudo_types_listiter_set(VTABLE_get_pmc_keyed_str(interp, $1,
+        Parrot_str_new_constant(interp, "ListIter")));
+    Rakudo_types_array_set(VTABLE_get_pmc_keyed_str(interp, $1,
+        Parrot_str_new_constant(interp, "Array")));
+    Rakudo_types_lol_set(VTABLE_get_pmc_keyed_str(interp, $1,
+        Parrot_str_new_constant(interp, "LoL")));
+    Rakudo_types_parcel_set(VTABLE_get_pmc_keyed_str(interp, $1,
+        Parrot_str_new_constant(interp, "Parcel")));
+    Rakudo_types_enummap_set(VTABLE_get_pmc_keyed_str(interp, $1,
+        Parrot_str_new_constant(interp, "EnumMap")));
+    Rakudo_types_hash_set(VTABLE_get_pmc_keyed_str(interp, $1,
+        Parrot_str_new_constant(interp, "Hash")));
+    Rakudo_types_capture_set(VTABLE_get_pmc_keyed_str(interp, $1,
+        Parrot_str_new_constant(interp, "Capture")));
+    Rakudo_types_code_set(VTABLE_get_pmc_keyed_str(interp, $1,
+        Parrot_str_new_constant(interp, "Code")));
+    Rakudo_cont_set_scalar_type(VTABLE_get_pmc_keyed_str(interp, $1,
+        Parrot_str_new_constant(interp, "Scalar")));
+    Rakudo_types_bool_false_set(VTABLE_get_pmc_keyed_str(interp, $1,
+        Parrot_str_new_constant(interp, "False")));
+    Rakudo_types_bool_true_set(VTABLE_get_pmc_keyed_str(interp, $1,
+        Parrot_str_new_constant(interp, "True")));
 }
 
 
@@ -668,83 +689,6 @@ inline op perl6_setup_junction_autothreading(in PMC, in PMC) :base_core {
 
 /*
 
-=item perl6_set_types_ins(in PMC, in PMC, in PMC)
-
-Sets the Int/Num/Str types.
-
-=cut
-
-*/
-inline op perl6_set_types_ins(in PMC, in PMC, in PMC) :base_core {
-    Rakudo_types_int_set($1);
-    Rakudo_types_num_set($2);
-    Rakudo_types_str_set($3);
-}
-
-
-/*
-
-=item perl6_set_types_list_array_lol(in PMC, in PMC, in PMC, in PMC, in PMC)
-
-Sets the List, ListIter, Array and LoL types.
-
-=cut
-
-*/
-inline op perl6_set_types_list_array_lol(in PMC, in PMC, in PMC, in PMC, in PMC) :base_core {
-    Rakudo_types_list_set($1);
-    Rakudo_types_listiter_set($2);
-    Rakudo_types_array_set($3);
-    Rakudo_types_lol_set($4);
-    Rakudo_types_parcel_set($5);
-}
-
-
-/*
-
-=item perl6_set_types_enummap_hash(in PMC, in PMC)
-
-Sets the EnumMap and Hash types.
-
-=cut
-
-*/
-inline op perl6_set_types_enummap_hash(in PMC, in PMC) :base_core {
-    Rakudo_types_enummap_set($1);
-    Rakudo_types_hash_set($2);
-}
-
-
-/*
-
-=item perl6_set_type_capture(in PMC)
-
-Sets the Capture type.
-
-=cut
-
-*/
-inline op perl6_set_type_capture(in PMC) :base_core {
-    Rakudo_types_capture_set($1);
-}
-
-
-/*
-
-=item perl6_set_type_code(in PMC)
-
-Sets the Code type.
-
-=cut
-
-*/
-inline op perl6_set_type_code(in PMC) :base_core {
-    Rakudo_types_code_set($1);
-}
-
-
-/*
-
 =item perl6_booleanize(out PMC, in INT)
 
 If $2 is non-zero, puts Bool::True in $1. Otherwise puts Bool::False
@@ -755,21 +699,6 @@ in.
 */
 inline op perl6_booleanize(out PMC, in INT) :base_core {
     $1 = $2 == 0 ? Rakudo_types_bool_false_get() : Rakudo_types_bool_true_get();
-}
-
-
-/*
-
-=item perl6_set_bools(in PMC, in PMC)
-
-Sets and caches the False ($1) and True ($2) values to booleanize to.
-
-=cut
-
-*/
-inline op perl6_set_bools(in PMC, in PMC) :base_core {
-    Rakudo_types_bool_false_set($1);
-    Rakudo_types_bool_true_set($2);
 }
 
 
@@ -842,20 +771,6 @@ inline op perl6_box_bigint(out PMC, in NUM) :base_core {
         $1 = REPR(type)->allocate(interp, STABLE(type));
         REPR($1)->box_funcs->set_num(interp, STABLE($1), OBJECT_BODY($1), $2);
     }
-}
-
-
-/*
-
-=item set_scalar_container_type(in PMC)
-
-Sets the scalar container type.
-
-=cut
-
-*/
-inline op set_scalar_container_type(in PMC) :base_core {
-    Rakudo_cont_set_scalar_type($1);
 }
 
 

@@ -1799,18 +1799,11 @@ Str.HOW.publish_parrot_vtable_handler_mapping(Str);
 #?endif
 
 # Set up various type mappings.
-pir::perl6_set_types_mu_any__vPP(Mu, Any);
-pir::perl6_set_type_code__vP(Code);
-pir::perl6_set_type_routine__vP(Routine);
-pir::perl6_set_types_ins__vPPP(Int, Num, Str);
-pir::perl6_set_types_list_array_lol__vPPPPP(List, ListIter, Array, LoL, Parcel);
-pir::perl6_set_types_enummap_hash__vPP(EnumMap, Hash);
-pir::perl6_set_type_capture__vP(Capture);
-pir::set_scalar_container_type__vP(Scalar);
-pir::perl6_set_bools__vPP(Bool.WHO<False>, Bool.WHO<True>);
+nqp::p6settypes(EXPORT::DEFAULT.WHO);
 
 # We'll build container descriptors for $_, $! and $/ that we can
 # share with all of the magically/lazily created scalars.
+#?if parrot
 my $topic_cd := Perl6::Metamodel::ContainerDescriptor.new(
     :of(Mu), :rw(1), :name('$_'));
 my $error_cd := Perl6::Metamodel::ContainerDescriptor.new(
@@ -1819,6 +1812,7 @@ my $match_cd := Perl6::Metamodel::ContainerDescriptor.new(
     :of(Mu), :rw(1), :name('$/'));
 pir::new__PsP('Perl6LexPad', hash()).configure_magicals(
     $topic_cd, $error_cd, $match_cd, Scalar, Any, EnumMap, Hash, Block);
+#?endif
 
 # Tell parametric role groups how to create a dispatcher.
 Perl6::Metamodel::ParametricRoleGroupHOW.set_selector_creator({

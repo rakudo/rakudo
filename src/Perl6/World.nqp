@@ -1304,7 +1304,7 @@ class Perl6::World is HLL::World {
                 $cache_key := "$type,bigint," ~ nqp::tostr_I(@value[0]);
             } else {
                 $cache_key := "$type,$primitive,"
-                    ~ nqp::join(',', @value)
+                    ~ join(',', @value)
                     ~ $namedkey;
             }
             if nqp::existskey(%!const_cache, $cache_key) {

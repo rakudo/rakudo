@@ -2287,7 +2287,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             # Operations need checking for their inlinability. If they are OK in
             # themselves, it comes down to the children.
             elsif nqp::istype($node, QAST::Op) {
-                if QAST::Operations.is_inlinable('perl6', $node.op) {
+                if nqp::getcomp('QAST').operations.is_inlinable('perl6', $node.op) {
                     my $replacement := clone_qast($node);
                     my int $i := 0;
                     my int $n := +@($node);
@@ -2629,7 +2629,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             return 0 unless
                 # It's a simple operation.
                 nqp::istype($past, QAST::Op)
-                    && QAST::Operations.is_inlinable('perl6', $past.op) ||
+                    && nqp::getcomp('QAST').operations.is_inlinable('perl6', $past.op) ||
                 # Just a variable lookup.
                 nqp::istype($past, QAST::Var) ||
                 # Just a QAST::Want
@@ -3955,7 +3955,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         if $past.op eq 'want' {
             $past[1] := compile_time_value_str($past[1], 'want specification', $/);
         }
-        QAST::Operations.attach_result_type('perl6', $past);
+        nqp::getcomp('QAST').operations.attach_result_type('perl6', $past);
         make $past;
     }
 

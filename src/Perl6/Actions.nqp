@@ -101,13 +101,11 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
     }
 
-
-    # TODO: inline string_to_bigint?
-    my sub string_to_bigint($src, $base) {
+    sub string_to_bigint($src, $base) {
         my $res := nqp::radix_I($base, ~$src, 0, 2, $*W.find_symbol(['Int']));
         $src.CURSOR.panic("'$src' is not a valid number")
-            unless nqp::iseq_i(nqp::unbox_i(nqp::atkey($res, 2)), nqp::chars($src));
-        nqp::atkey($res, 0);
+            unless nqp::iseq_i(nqp::unbox_i(nqp::atpos($res, 2)), nqp::chars($src));
+        nqp::atpos($res, 0);
     }
 
     sub xblock_immediate($xblock) {

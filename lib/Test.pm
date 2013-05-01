@@ -135,7 +135,7 @@ sub skip_rest($reason = '<unknown>') is export {
     $time_before = nqp::p6box_n(nqp::time_n);
 }
 
-sub diag($message) is export {
+sub diag(Mu $message) is export {
     $time_after = nqp::p6box_n(nqp::time_n);
     say $message.Str.subst(rx/^^/, '# ', :g);
     $time_before = nqp::p6box_n(nqp::time_n);

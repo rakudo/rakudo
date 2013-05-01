@@ -40,6 +40,7 @@ my class Cursor does NQPCursorRole {
     }
 
     method MATCH_SAVE() {
+        return Nil if nqp::getattr_i(self, Cursor, '$!pos') < 0;
         my $match := self.MATCH();
         $last_match := $match if $match;
         $match;

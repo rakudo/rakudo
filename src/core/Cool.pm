@@ -1,4 +1,5 @@
-my class IO { ... }
+my role  IO { ... }
+my class IO::Handle { ... }
 
 my class Cool {
 
@@ -168,6 +169,9 @@ my class Cool {
     multi method comb() { self.Str.comb() }
     multi method comb(Regex $matcher, $limit = $Inf) { self.Str.comb($matcher, $limit) }
 
+    proto method lines(|) {*}
+    multi method lines(Cool:D:) { self.Str.lines() }
+
     proto method subst(|) {
         $/ := nqp::getlexdyn('$/');
         {*}
@@ -181,7 +185,7 @@ my class Cool {
     method printf (*@args) {  printf(self, @args) };
     method samecase(Cool:D: Cool $pattern) { self.Stringy.samecase($pattern) }
 
-    method IO() { IO.new(:path(self.Stringy)) }
+    method IO() { IO::Handle.new(:path(self.Stringy)) }
     method trim         () { self.Stringy.trim          };
     method trim-leading () { self.Stringy.trim-leading  };
     method trim-trailing() { self.Stringy.trim-trailing };

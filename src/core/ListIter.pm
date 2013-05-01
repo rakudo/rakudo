@@ -11,8 +11,9 @@ my class ListIter {
         unless nqp::isconcrete($!reified) {
             my $eager = nqp::p6bool(nqp::istype($n, Whatever));
             my $flattens = nqp::p6bool(nqp::isconcrete($!list)) && $!list.flattens;
+            my int $max = 100_000;
             my int $count = $eager
-                ?? 100000
+                ?? $max
                 !! nqp::unbox_i(nqp::istype($n, Int) ?? $n !! $n.Int);
             my $rpa := nqp::list();
             my Mu $x;
@@ -24,7 +25,7 @@ my class ListIter {
                 if nqp::istype($!list, LoL);
             while $!rest && (nqp::elems($rpa) < $count) {
                 $index = pir::perl6_rpa_find_types__IPPii(
-                                 $!rest, $want_types, 0, $count);
+                                 $!rest, $want_types, 0, $max);
                 pir::perl6_shiftpush__0PPi($rpa, $!rest, $index);
                 if $!rest && (nqp::elems($rpa) < $count) {
                     $x := nqp::shift($!rest);

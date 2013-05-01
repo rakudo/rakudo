@@ -1622,8 +1622,8 @@ class Perl6::World is HLL::World {
 
         # Set up capturing code.
         my $capturer := self.cur_lexpad();
-        $capturer[0].push(QAST::VM.new(
-            :pirop('capture_all_outers vP'),
+        $capturer[0].push(QAST::Op.new(
+            :op('p6captureouters'),
             QAST::Var.new(
                 :name('$!list'), :scope('attribute'),
                 QAST::WVal.new( :value($fixup_list) ),
@@ -1769,7 +1769,8 @@ class Perl6::World is HLL::World {
             loadlibs => ['nqp_group', 'nqp_ops', 'perl6_group', 'perl6_ops',
                          'bit_ops', 'math_ops', 'trans_ops', 'io_ops',
                          'obscure_ops', 'os', 'file', 'sys_ops',
-                         'nqp_bigint_ops', 'nqp_dyncall_ops' ]));
+                         'nqp_bigint_ops', 'nqp_dyncall_ops' ],
+            jvm => QAST::Op.new( :op('null') )));
     }
     
     # Represents a longname after having parsed it.
@@ -2339,17 +2340,20 @@ class Perl6::World is HLL::World {
     # Adds various bits of initialization that must always be done early on.
     method add_initializations() {
         if self.is_precompilation_mode() {
-            self.add_load_dependency_task(:deserialize_past(QAST::Stmts.new(
-                QAST::VM.new( :pirop('nqp_dynop_setup v') ),
-                QAST::VM.new( :pirop('nqp_bigint_setup v') ),
-                QAST::VM.new( :pirop('nqp_native_call_setup v') ),
-                QAST::VM.new( :pirop('rakudo_dynop_setup v') ),
-                QAST::Op.new(
-                    :op('callmethod'), :name('hll_map'),
-                    QAST::VM.new( :pirop('getinterp P') ),
-                    QAST::VM.new( :pirop('get_class Ps'), QAST::SVal.new( :value('LexPad') ) ),
-                    QAST::VM.new( :pirop('get_class Ps'), QAST::SVal.new( :value('Perl6LexPad') ) )
-                )
+            self.add_load_dependency_task(:deserialize_past(QAST::VM.new(
+                :parrot(QAST::Stmts.new(
+                    QAST::VM.new( :pirop('nqp_dynop_setup v') ),
+                    QAST::VM.new( :pirop('nqp_bigint_setup v') ),
+                    QAST::VM.new( :pirop('nqp_native_call_setup v') ),
+                    QAST::VM.new( :pirop('rakudo_dynop_setup v') ),
+                    QAST::Op.new(
+                        :op('callmethod'), :name('hll_map'),
+                        QAST::VM.new( :pirop('getinterp P') ),
+                        QAST::VM.new( :pirop('get_class Ps'), QAST::SVal.new( :value('LexPad') ) ),
+                        QAST::VM.new( :pirop('get_class Ps'), QAST::SVal.new( :value('Perl6LexPad') ) )
+                    )
+                )),
+                :jvm(QAST::Op.new( :op('null') ))
             )));
         }
     }

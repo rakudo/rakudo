@@ -720,7 +720,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             
             # Add a slot for a $*DISPATCHER, and a call to take one.
             add_implicit_var($block, '$*DISPATCHER');
-            $block[0].unshift(QAST::Op.new(
+            $block[0].push(QAST::Op.new(
                 :op('takedispatcher'),
                 QAST::SVal.new( :value('$*DISPATCHER') )
             ));
@@ -2025,7 +2025,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         else {
             add_implicit_var($block, '$*DISPATCHER');
         }
-        $block[0].unshift(QAST::Op.new(
+        $block[0].push(QAST::Op.new(
             :op('takedispatcher'),
             QAST::SVal.new( :value('$*DISPATCHER') )
         ));
@@ -2579,11 +2579,11 @@ class Perl6::Actions is HLL::Actions does STDActions {
         # Needs a slot to hold a multi or method dispatcher.
         $*W.install_lexical_symbol($past, '$*DISPATCHER',
             $*W.find_symbol([$*MULTINESS eq 'multi' ?? 'MultiDispatcher' !! 'MethodDispatcher']));
-        $past[0].unshift(QAST::Op.new(
+        $past[0].push(QAST::Op.new(
             :op('takedispatcher'),
             QAST::SVal.new( :value('$*DISPATCHER') )
         ));
-
+        
         # Finish up code object.
         $*W.attach_signature($code, $signature);
         $*W.finish_code_object($code, $past, $*MULTINESS eq 'proto', :yada($yada));

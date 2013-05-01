@@ -7,7 +7,16 @@ import org.perl6.nqp.sixmodel.SixModelObject;
  * Contains implementation of nqp:: ops specific to Rakudo Perl 6.
  */
 public final class Ops {
+    private static SixModelObject False;
+    private static SixModelObject True;
+    
     public static SixModelObject p6settypes(SixModelObject conf, ThreadContext tc) {
+        False = conf.at_key_boxed(tc, "False");
+        True = conf.at_key_boxed(tc, "True");
         return conf;
+    }
+    
+    public static SixModelObject booleanize(int x) {
+        return x == 0 ? False : True;
     }
 }

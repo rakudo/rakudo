@@ -48,12 +48,9 @@ $ops.map_classlib_hll_op('perl6', 'p6return', $TYPE_P6OPS, 'p6return', [$RT_OBJ]
 $ops.map_classlib_hll_op('perl6', 'p6routinereturn', $TYPE_P6OPS, 'p6routinereturn', [$RT_OBJ], $RT_OBJ, :tc);
 $ops.map_classlib_hll_op('perl6', 'p6getouterctx', $TYPE_P6OPS, 'p6getouterctx', [$RT_OBJ], $RT_OBJ, :tc);
 $ops.map_classlib_hll_op('perl6', 'tclc', $TYPE_P6OPS, 'tclc', [$RT_STR], $RT_STR, :tc);
-#$ops.add_hll_op('perl6', 'p6getcallsig', -> $qastcomp, $op {
-#    my $reg := $*REGALLOC.fresh_p();
-#    my $ops := $qastcomp.post_new('Ops', :result($reg));
-#    $ops.push_pirop('set', $reg, 'CALL_SIG');
-#    $ops
-#});
+$ops.add_hll_op('perl6', 'p6getcallsig', -> $qastcomp, $op {
+    $qastcomp.as_jast(QAST::Op.new( :op('usecapture') ))
+});
 my $p6bool := -> $qastcomp, $op {
     my $il := JAST::InstructionList.new();
     my $exprres := $qastcomp.as_jast($op[0]);

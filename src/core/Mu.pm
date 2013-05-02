@@ -202,7 +202,7 @@ my class Mu {
         ''
     }
     multi method Str(Mu:D:) {
-        self.HOW.name(self) ~ '<' ~ self.WHERE ~ '>'
+        self.HOW.name(self) ~ '<' ~ nqp::tostr_I(self.WHERE) ~ '>'
     }
 
     method Stringy() { self.Str }

@@ -1,5 +1,11 @@
 use Perl6::BOOTSTRAP;
 
+# Declare these, as setting mainline doesn't get them automatically (as the
+# Mu/Any/Scalar are not loaded).
+my $!;
+my $/;
+my $_;
+
 # Stub a few things the compiler wants to have really early on.
 my class Pair { ... }
 my class Whatever { ... }

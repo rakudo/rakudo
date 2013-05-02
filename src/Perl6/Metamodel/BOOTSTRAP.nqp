@@ -1806,12 +1806,8 @@ nqp::p6settypes(EXPORT::DEFAULT.WHO);
 #?if parrot
 my $topic_cd := Perl6::Metamodel::ContainerDescriptor.new(
     :of(Mu), :rw(1), :name('$_'));
-my $error_cd := Perl6::Metamodel::ContainerDescriptor.new(
-    :of(Mu), :rw(1), :name('$!'));
-my $match_cd := Perl6::Metamodel::ContainerDescriptor.new(
-    :of(Mu), :rw(1), :name('$/'));
 pir::new__PsP('Perl6LexPad', hash()).configure_magicals(
-    $topic_cd, $error_cd, $match_cd, Scalar, Any, EnumMap, Hash, Block);
+    $topic_cd, Scalar, Any, EnumMap, Hash, Block);
 #?endif
 
 # Tell parametric role groups how to create a dispatcher.

@@ -16,8 +16,6 @@ typedef struct {
 
 /* Some useful types/container descriptors we like to have to hand. */
 static PMC *topic_cd = NULL;
-static PMC *error_cd = NULL;
-static PMC *match_cd = NULL;
 static PMC *Scalar   = NULL;
 static PMC *Any      = NULL;
 static PMC *EnumMap  = NULL;
@@ -314,7 +312,7 @@ Return the LexInfo PMC, if any or a Null PMC.
         result = CTX_REG_PMC(interp, ctx, reg);
         
         if (PMC_IS_NULL(result)) {
-            /* We lazily handle things like $_, $! and $/. */
+            /* We lazily handle things like $_ and %_. */
             PMC    *info;
             INTVAL  fresh_topic;
             GET_ATTR_lexinfo(INTERP, SELF, info);
@@ -324,10 +322,10 @@ Return the LexInfo PMC, if any or a Null PMC.
                                         : steal_outer(interp, ctx, name);
             }
             else if (Parrot_str_equal(interp, name, CONST_STRING(interp, "$!"))) {
-                result = fresh_scalar(interp, error_cd);
+                printf("ooops, $! = %d\n", result);
             }
             else if (Parrot_str_equal(interp, name, CONST_STRING(interp, "$/"))) {
-                result = fresh_scalar(interp, match_cd);
+                printf("ooops, $/ = %d\n", result);
             }
             else if (Parrot_str_equal(interp, name, CONST_STRING(interp, "%_"))) {
                 PMC *storage;
@@ -507,12 +505,10 @@ Get iterator for declared lexicals.
         return VTABLE_get_iter(INTERP, lexinfo);
     }
     
-    METHOD configure_magicals(PMC *_topic_cd, PMC *_error_cd, PMC *_match_cd,
+    METHOD configure_magicals(PMC *_topic_cd,
                               PMC *_Scalar, PMC *_Any, PMC *_EnumMap, PMC *__Hash,
                               PMC *_Block) {
         topic_cd = _topic_cd;
-        error_cd = _error_cd;
-        match_cd = _match_cd;
         Scalar   = _Scalar;
         Any      = _Any;
         EnumMap  = _EnumMap;

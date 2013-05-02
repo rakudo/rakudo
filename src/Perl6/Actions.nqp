@@ -795,20 +795,28 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
     method finishpad($/) {
         # Generate the $_, $/, and $! lexicals if they aren't already
-        # declared. We don't actually give them a value, but rather the
-        # Perl6LexPad will generate containers (and maybe fill them with
-        # the outer's value) on demand.
+        # declared.
         my $BLOCK := $*W.cur_lexpad();
         my $type := $BLOCK<IN_DECL>;
+        if $type eq 'mainline' && %*COMPILING<%?OPTIONS><setting> eq 'NULL' {
+            # Don't do anything in this case; we don't have any symbols yet.
+            return 1;
+        }
         my $is_routine := $type eq 'sub' || $type eq 'method' ||
-                          $type eq 'submethod' || $type eq 'mainline';
+                        $type eq 'submethod' || $type eq 'mainline';
         for ($is_routine ?? <$_ $/ $!> !! ['$_']) {
             # Generate the lexical variable except if...
             #   (1) the block already has one, or
             #   (2) the variable is '$_' and $*IMPLICIT is set
             #       (this case gets handled by getsig)
             unless $BLOCK.symbol($_) || ($_ eq '$_' && $*IMPLICIT) {
-                add_implicit_var($BLOCK, $_);
+                # XXX Will not special-case $_ in the end.
+                if $_ eq '$_' {
+                    add_implicit_var($BLOCK, $_);
+                }
+                else {
+                    $*W.install_lexical_magical($BLOCK, $_);
+                }
             }
         }
     }
@@ -2754,8 +2762,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $block[0].push(QAST::Var.new(:name<$¢>, :scope<lexical>, :decl('var')));
             $block.symbol('$¢', :scope<lexical>);
             unless $use_outer_match {
-                $block[0].push(QAST::Var.new(:name<$/>, :scope<lexical>, :decl('var')));
-                $block.symbol('$/', :scope<lexical>, :lazyinit(1));
+                $*W.install_lexical_magical($block, '$/');
             }
             $past := %*RX<P5>
                 ?? %*LANG<P5Regex-actions>.qbuildsub($qast, $block, code_obj => $code)
@@ -5500,6 +5507,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
     # XXX This isn't quite right yet... need to evaluate these semantics
     sub set_block_handler($/, $handler, $type) {
+        # Handler needs its own $/ and $!.
+        $*W.install_lexical_magical($handler<past_block>, '$!');
+        $*W.install_lexical_magical($handler<past_block>, '$/');
+        
         # unshift handler preamble: create exception object and store it into $_
         my $exceptionreg := $handler.unique('exception_');
         my $handler_preamble := QAST::Stmts.new(
@@ -5516,9 +5527,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 QAST::VM.new( :pirop('find_lex_skip_current__Ps'),
                     QAST::SVal.new( :value('$!') )),
                 QAST::Var.new( :scope('lexical'), :name('$_') ),
-            ),
-            QAST::Var.new( :scope('lexical'), :name('$!'), :decl('var') ),
-            QAST::Var.new( :scope('lexical'), :name('$/'), :decl('var') ),
+            )
         );
         $handler<past_block>.unshift($handler_preamble);
         

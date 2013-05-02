@@ -211,6 +211,9 @@ class Perl6::World is HLL::World {
     # Clean-up tasks, to do after CHECK time.
     has @!cleanup_tasks;
     
+    # Cache of container info and descriptor for magicals.
+    has %!magical_cds;
+    
     method BUILD(*%adv) {
         @!BLOCKS := [];
         @!CODES := [];
@@ -223,6 +226,7 @@ class Perl6::World is HLL::World {
         %!code_object_fixup_list := {};
         %!const_cache := {};
         @!cleanup_tasks := [];
+        %!magical_cds := {};
     }
     
     # Creates a new lexical scope and puts it on top of the stack.
@@ -640,6 +644,44 @@ class Perl6::World is HLL::World {
         $slp.add_static_value(~$name, $cont, 1, ($state ?? 1 !! 0));
 
         1;
+    }
+    
+    # Creates a new container descriptor and adds it to the SC.
+    method create_container_descriptor($of, $rw, $name) {
+        my $cd_type := self.find_symbol(['ContainerDescriptor']);
+        my $cd      := $cd_type.new(:$of, :$rw, :$name);
+        self.add_object($cd);
+        $cd
+    }
+    
+    # Installs one of the magical lexicals ($_, $/ and $!). Uses a cache to
+    # avoid massive duplication of container descriptors.
+    method install_lexical_magical($block, $name) {
+        my %info;
+        my $desc;
+        
+        if nqp::existskey(%!magical_cds, $name) {
+            %info := %!magical_cds{$name}[0];
+            $desc := %!magical_cds{$name}[1];
+        }
+        else {
+            my $Mu     := self.find_symbol(['Mu']);
+            my $Any    := self.find_symbol(['Any']);
+            my $Scalar := self.find_symbol(['Scalar']);
+            
+            %info := nqp::hash(
+                'container_base',  $Scalar,
+                'container_type',  $Scalar,
+                'bind_constraint', $Mu,
+                'value_type',      $Mu,
+                'default_value',   $Any
+            );
+            $desc := self.create_container_descriptor($Mu, 1, $name);
+            
+            %!magical_cds{$name} := [%info, $desc];
+        }
+        
+        self.install_lexical_container($block, $name, %info, $desc);
     }
     
     # Builds PAST that constructs a container.
@@ -1169,14 +1211,6 @@ class Perl6::World is HLL::World {
         my $derived := $proto.derive_dispatcher();
         self.add_object($derived);
         return $derived;
-    }
-    
-    # Creates a new container descriptor and adds it to the SC.
-    method create_container_descriptor($of, $rw, $name) {
-        my $cd_type := self.find_symbol(['ContainerDescriptor']);
-        my $cd      := $cd_type.new(:$of, :$rw, :$name);
-        self.add_object($cd);
-        $cd
     }
     
     # Helper to make PAST for setting an attribute to a value. Value should

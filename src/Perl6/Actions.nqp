@@ -719,7 +719,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             add_signature_binding_code($block, $signature, @params);
             
             # Add a slot for a $*DISPATCHER, and a call to take one.
-            add_implicit_var($block, '$*DISPATCHER');
+            $block[0].push(QAST::Var.new( :name('$*DISPATCHER'), :scope('lexical'), :decl('var') ));
             $block[0].push(QAST::Op.new(
                 :op('takedispatcher'),
                 QAST::SVal.new( :value('$*DISPATCHER') )
@@ -2023,7 +2023,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $*W.install_lexical_symbol($block, '$*DISPATCHER', $*W.find_symbol(['MultiDispatcher']));
         }
         else {
-            add_implicit_var($block, '$*DISPATCHER');
+            $block[0].push(QAST::Var.new( :name('$*DISPATCHER'), :scope('lexical'), :decl('var') ));
         }
         $block[0].push(QAST::Op.new(
             :op('takedispatcher'),

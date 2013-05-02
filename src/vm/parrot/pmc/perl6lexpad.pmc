@@ -321,12 +321,6 @@ Return the LexInfo PMC, if any or a Null PMC.
                 result = fresh_topic ? fresh_scalar(interp, topic_cd)
                                         : steal_outer(interp, ctx, name);
             }
-            else if (Parrot_str_equal(interp, name, CONST_STRING(interp, "$!"))) {
-                printf("ooops, $! = %d\n", result);
-            }
-            else if (Parrot_str_equal(interp, name, CONST_STRING(interp, "$/"))) {
-                printf("ooops, $/ = %d\n", result);
-            }
             else if (Parrot_str_equal(interp, name, CONST_STRING(interp, "%_"))) {
                 PMC *storage;
                 GET_ATTR_default_named_slurpy(INTERP, SELF, storage);

@@ -24,22 +24,21 @@ my class IO::Spec::Cygwin is IO::Spec::Unix {
 
 
     #| Tests if the file name begins with C<drive_letter:/> or a slash.
-    sub is-absolute ($file) {
+    method is-absolute ($file) {
         so $file ~~ / ^ [<[A..Z a..z]> ':']?  <[\\/]>/; # C:/test
     }
 
     method tmpdir {
         state $tmpdir;
-        return $tmpdir if defined $tmpdir;
-        $tmpdir = self._firsttmpdir(
+        return $tmpdir if $tmpdir.defined;
+        $tmpdir = self.canonpath: first( { .defined && .IO.d && .IO.w },
              %*ENV<TMPDIR>,
              "/tmp",
              %*ENV<TMP>,
              %*ENV<TEMP>,
-             'C:/temp',
-             self.curdir );
+             'C:/temp') 
+          || self.curdir;
     }
-
 
     # Paths might have a volume, so we use Win32 splitpath and catpath instead
     method splitpath (|c)     { IO::Spec::Win32.splitpath(|c) }

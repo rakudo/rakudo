@@ -1,36 +1,20 @@
 my class IO::Spec::Win32 is IO::Spec::Unix {
 
     # Some regexes we use for path splitting
-    #What follows below is a hack because rx// and regex { } don't work here
-#     my $slash       = ' [ \\/ | \\\\ ] ';
-#     my $notslash    = ' <-[/\\\\]> ';
-#     my $driveletter = q/<[A..Z a..z]> ':'/;
-#     my $UNCpath     = "$slash ** 2 $notslash+ $slash [$notslash+ | \$]";
-#     my $volume_rx   = "[$driveletter] || [$UNCpath]";
+    my $slash	    = regex {  <[\/ \\]> }
+    my $notslash    = regex { <-[\/ \\]> }
+    my $driveletter = regex { <[A..Z a..z]> ':' }
+    my $UNCpath     = regex { [<$slash> ** 2] <$notslash>+  <$slash>  [<$notslash>+ | $] }
+    my $volume_rx   = regex { <$driveletter> | <$UNCpath> }
 
-
-my $slash	= regex { '/' | '\\' }
-my $notslash    = regex { <-[\/\\]> }
-my $driveletter = regex { <[A..Z a..z]> ':' }
-my $UNCpath     = regex { [<$slash> ** 2] <-[\\\/]>+  <$slash>  [<-[\\\/]>+ | $] }
-my $volume_rx   = regex { $<driveletter>=<$driveletter> | $<UNCpath>=<$UNCpath> }
-
-#    my $slash    := MAKE_REGEX( $str_slash );
-#    my $notslash    := MAKE_REGEX( $str_notslash  );
-#    my $driveletter := MAKE_REGEX( $str_driveletter );
-#    my $UNCpath     := MAKE_REGEX( $str_UNCpath );
-#    my $volume_rx   := MAKE_REGEX( "[$str_driveletter] || [$str_UNCpath]" );
-
-
-    method canonpath ($path)     { self!canon-cat($path)    }
+    method canonpath ($path) { $path.chars ?? self!canon-cat($path) !! '' }
 
     method catdir(*@dirs) {
         return "" unless @dirs;
         return self!canon-cat( "\\", |@dirs ) if @dirs[0] eq "";
         self!canon-cat(|@dirs);
     }
-    method splitdir($dir)        { $dir.split(/<$slash>/)  }
-
+    method splitdir($dir)        { $dir.split($slash)  }
     method catfile(|c)           { self.catdir(|c)     }
     method devnull               { 'nul'               }
     method rootdir               { '\\'                }
@@ -38,33 +22,31 @@ my $volume_rx   = regex { $<driveletter>=<$driveletter> | $<UNCpath>=<$UNCpath> 
     method tmpdir {
         state $tmpdir;
         return $tmpdir if $tmpdir.defined;
-        $tmpdir = self._firsttmpdir(
-#            %*ENV<TMPDIR>,
-#            %*ENV<TEMP>,
-#            %*ENV<TMP>,
+        $tmpdir = self.canonpath: first( { .defined && .IO.d && .IO.w },
+            %*ENV<TMPDIR>,
+            %*ENV<TEMP>,
+            %*ENV<TMP>,
             'SYS:/temp',
             'C:\system\temp',
             'C:/temp',
             '/tmp',
-            '/',
-            self.curdir
-        );
+            '/')
+          || self.curdir;
     }
 
-    method path { 'foo' }
-#        my @path = split(';', %*ENV<PATH>);
-#        @path».=subst(:global, q/"/, '');
-#        @path = grep *.chars, @path;
-#        unshift @path, ".";
-#        return @path;
-#    }
+    method path {
+       my @path = split(';', %*ENV<PATH>);
+       @path».=subst(:global, q/"/, '');
+       @path = grep *.chars, @path;
+       unshift @path, ".";
+       return @path;
+   }
 
     method is-absolute ($path) {
         # As of right now, this returns 2 if the path is absolute with a
         # volume, 1 if it's absolute with no volume, 0 otherwise.
         given $path {
             when /^ [<$driveletter> <$slash> | <$UNCpath>]/ { 2 }
-            #when /^ <$driveletter> <$slash> / { 2 }
             when /^ <$slash> /                              { 1 }
             default                     { 0 }
         }   #/
@@ -185,7 +167,7 @@ my $volume_rx   = regex { $<driveletter>=<$driveletter> | $<UNCpath>=<$UNCpath> 
         my $volumematch =
              $first ~~ /^ ([   <$driveletter> <$slash>?
                             | <$UNCpath>
-                            | [<$slash> ** 2] <-[\\\/]>+
+                            | [<$slash> ** 2] <$notslash>+
                             | <$slash> ])?
                            (.*)
                        /;
@@ -206,9 +188,8 @@ my $volume_rx   = regex { $<driveletter>=<$driveletter> | $<UNCpath>=<$UNCpath> 
 
         $path ~~ s:g/[ ^ | '\\']   '.'  '\\.'*  [ '\\' | $ ]/\\/;  #:: xx/././yy --> xx/yy
 
-        if $*OS ne "MSWin32" {
-            #netware or symbian ... -> ../..
-            #unknown if .... or higher is supported
+        if $*OS eq "symbian"|"NetWare" {
+            # ... -> ../.. -- unknown if .... or higher is supported
             $path ~~ s:g/ <?after ^ | '\\'> '...' <?before '\\' | $ > /..\\../; #::
         }
 
@@ -218,18 +199,15 @@ my $volume_rx   = regex { $<driveletter>=<$driveletter> | $<UNCpath>=<$UNCpath> 
 
         if ( $volume ~~ / '\\' $ / ) {
                             # <vol>\.. --> <vol>\ 
-            $path ~~ s/ ^            # at begin
-                        '..'
-                        '\\..'*        # and more
-                        [ '\\' | $ ]    # at end or followed by slash
-                     //;
+            $path ~~ s/ ^  '..'  '\\..'*  [ '\\' | $ ] //;
         }
 
         if $path eq '' {        # \\HOST\SHARE\ --> \\HOST\SHARE
-            $volume ~~ s/<?before '\\\\' .*> '\\' $ //;
-            return $volume;
+            $volume ~~ s/<?after '\\\\' .*> '\\' $ //;
+            $volume || '.';
         }
-
-        return $path ne "" || $volume ?? $volume ~ $path !! ".";
+	else {
+            $volume ~ $path;
+        }
     }
 }

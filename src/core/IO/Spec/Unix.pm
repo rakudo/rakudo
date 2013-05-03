@@ -41,11 +41,10 @@ my class IO::Spec::Unix {
     method tmpdir {
         state $tmpdir;
         return $tmpdir if $tmpdir.defined;
-        return $tmpdir = self._firsttmpdir(
-                    %*ENV<TMPDIR>,
-                    '/tmp',
-                    self.curdir
-                 );
+        $tmpdir = self.canonpath: first( { .defined && .IO.d && .IO.w },
+                        %*ENV<TMPDIR>,
+                        '/tmp') 
+                    || self.curdir;
     }
 
     method no-parent-or-current-test { none('.', '..')  }

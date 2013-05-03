@@ -51,7 +51,7 @@ my class Exception {
     method fail(Exception:D:) {
         try self.throw;
         my $fail := Failure.new($!);
-        my Mu $return := pir::find_caller_lex__Ps('RETURN');
+        my Mu $return := nqp::getlexcaller('RETURN');
         $return($fail) unless nqp::isnull($return);
         $fail
     }
@@ -178,14 +178,15 @@ do {
     sub is_runtime($bt) {
         for $bt.keys {
             try {
-                return True if nqp::iseq_s($bt[$_]<sub>, 'eval')
+                my Mu $sub := nqp::getattr(nqp::decont($bt[$_]<sub>), ForeignCode, '$!do');
+                return True if nqp::iseq_s(nqp::getcodename($sub), 'eval')
                     && nqp::iseq_s(
-                            nqp::join(';', $bt[$_]<sub>.get_namespace.get_name),
+                            nqp::join(';', $sub.get_namespace.get_name),
                             'nqp'
                     );
-                return False if nqp::iseq_s($bt[$_]<sub>, 'compile')
+                return False if nqp::iseq_s(nqp::getcodename($sub), 'compile')
                     && nqp::iseq_s(
-                            nqp::join(';', $bt[$_]<sub>.get_namespace.get_name),
+                            nqp::join(';', $sub.get_namespace.get_name),
                             'nqp'
                     );
             }
@@ -209,7 +210,7 @@ do {
                 $err.print: $ex;
                 $err.print: "\n";
             }
-            $_() for nqp::p6type(@*END_PHASERS);
+            $_() for nqp::hllize(@*END_PHASERS);
         }
         if $! {
             pir::perl6_based_rethrow__0PP(nqp::getattr(nqp::p6decont($!), Exception, '$!ex'), $ex);
@@ -292,6 +293,22 @@ my class X::IO::Copy does X::IO is Exception {
     has $.to;
     method message() {
         "Failed to copy '$.from' to '$.to': $.os-error"
+    }
+}
+
+my class X::IO::Symlink does X::IO is Exception {
+    has $.target;
+    has $.name;
+    method message() {
+        "Failed to create symlink called '$.name' on target '$.target': $.os-error"
+    }
+}
+
+my class X::IO::Link does X::IO is Exception {
+    has $.target;
+    has $.name;
+    method message() {
+        "Failed to create link called '$.name' on target '$.target': $.os-error"
     }
 }
 

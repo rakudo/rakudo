@@ -28,7 +28,7 @@ my class Pod::Block {
         @chunks.join;
     }
 
-    method gist {
+    multi method gist(Pod::Block:D:) {
         pod-gist(self)
     }
 }
@@ -54,8 +54,8 @@ my class Pod::Block::Declarator is Pod::Block {
     method Str {
         ~@.content
     }
-    method gist {
-        self.Stringy
+    multi method gist(Pod::Block:D:) {
+        self.Str
     }
 }
 

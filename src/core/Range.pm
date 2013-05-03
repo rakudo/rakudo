@@ -148,13 +148,6 @@ my class Range is Iterable is Cool does Positional {
           ~ $.max.perl
     }
 
-    multi method DUMP(Range:D:) {
-        self.DUMP-ID() ~ '('
-          ~ ':min(' ~ DUMP($!min) ~ '), '
-          ~ ':max(' ~ DUMP($!max) ~ ')'
-          ~ ')'
-    }
-
     proto method roll(|) { * }
     multi method roll(Range:D: Whatever) {
         gather loop { take self.roll }
@@ -193,6 +186,18 @@ my class Range is Iterable is Cool does Positional {
                 take $x;
             }
         }
+    }
+
+    multi method Numeric (Range:D:) {
+        nextsame unless $.max ~~ Numeric and $.min ~~ Numeric;
+
+        my $diff := $.max - $.min - $.excludes_min;
+
+        # empty range
+        return 0 if $diff < 0;
+
+        my $floor := $diff.floor;
+        return $floor + 1 - ($floor == $diff ?? $.excludes_max !! 0);
     }
 }
 

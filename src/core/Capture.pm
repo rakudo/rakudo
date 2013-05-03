@@ -69,6 +69,10 @@ my class Capture {
         nqp::p6box_s(nqp::join(' ', $str))
     }
     
+    multi method Bool(Capture:D:) {
+        $!list || $!hash ?? True !! False
+    }
+    
     method Capture(Capture:D:) {
         self
     }

@@ -197,7 +197,6 @@ S03-smartmatch/any-bool.t
 S03-smartmatch/any-callable.t
 S03-smartmatch/any-complex.t
 S03-smartmatch/any-hash-pair.t
-S03-smartmatch/any-hash.t
 S03-smartmatch/any-method.t
 S03-smartmatch/any-num.t
 S03-smartmatch/any-pair.t
@@ -221,6 +220,7 @@ S04-declarations/constant.t
 S04-declarations/implicit-parameter.t
 S04-declarations/multiple.t
 S04-declarations/my.t
+S04-declarations/our.t
 S04-declarations/state.t
 S04-exception-handlers/catch.t
 S04-exceptions/fail.t
@@ -408,6 +408,7 @@ S06-traits/is-readonly.t
 S06-traits/is-rw.t
 S06-traits/misc.t
 S06-traits/precedence.t
+S06-traits/slurpy-is-rw.t
 S09-autovivification/autoincrement.t
 S09-autovivification/autovivification.t
 S09-hashes/objecthash.t
@@ -602,6 +603,7 @@ S32-hash/pairs.t
 S32-hash/push.t
 S32-hash/slice.t
 S32-io/chdir.t
+S32-io/copy.t
 S32-io/dir.t
 S32-io/file-tests.t
 S32-io/io-path.t
@@ -728,6 +730,7 @@ integration/advent2009-day23.t
 integration/advent2010-day04.t
 integration/code-blocks-as-sub-args.t
 integration/error-reporting.t  # icu
+integration/lazy-bentley-generator.t
 integration/lexical-array-in-inner-block.t
 integration/lexicals-and-attributes.t
 integration/man-or-boy.t

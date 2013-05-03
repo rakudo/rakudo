@@ -149,42 +149,18 @@ sub default-formatter(DateTime $dt, Bool :$subseconds) {
          !! 'Z';
 }
 
-my class DateTime-local-timezone does Callable {
-    multi method Str(DateTime-local-timezone:D:) { '<local time zone>' }
-    multi method perl(DateTime-local-timezone:D:) { '$*TZ' }
-
-    method postcircumfix:<( )>($args) { self.offset(|$args) }
-
-    method offset(DateTime:D $dt, $to-utc) {
-        # We construct local and UTC DateTimes, calculate POSIX times
-        # (pretending the local DateTime is actually in UTC), and
-        # return the difference. Surprisingly, this actually works!
-        if $to-utc {
-            my Mu $fia := pir::new__PS('FixedIntegerArray');
-            pir::set__vPI($fia, 9);
-            nqp::bindpos($fia, 0, nqp::unbox_i($dt.whole-second));
-            nqp::bindpos($fia, 1, nqp::unbox_i($dt.minute));
-            nqp::bindpos($fia, 2, nqp::unbox_i($dt.hour));
-            nqp::bindpos($fia, 3, nqp::unbox_i($dt.day));
-            nqp::bindpos($fia, 4, nqp::unbox_i($dt.month));
-            nqp::bindpos($fia, 5, nqp::unbox_i($dt.year));
-            nqp::bindpos($fia, 8, -1);
-            nqp::p6box_i(pir::encodelocaltime__IP($fia)) - $dt.posix(True);
-        } else {
-            my $p = $dt.posix;
-            my ($year, $month, $day, $hour, $minute, $second);
-            my Mu $fia := pir::decodelocaltime__PI(nqp::unbox_i($p.Int));
-            $second = nqp::p6box_i(nqp::atpos_i($fia, 0));
-            $minute = nqp::p6box_i(nqp::atpos_i($fia, 1));
-            $hour   = nqp::p6box_i(nqp::atpos_i($fia, 2));
-            $day    = nqp::p6box_i(nqp::atpos_i($fia, 3));
-            $month  = nqp::p6box_i(nqp::atpos_i($fia, 4));
-            $year   = nqp::p6box_i(nqp::atpos_i($fia, 5));
-            DateTime\
-                .new(:$year, :$month, :$day, :$hour, :$minute, :$second)\
-                .posix - $p;
-        }
-    }
+sub get-local-timezone-offset {
+  my $utc = DateTime.new(now).posix.Int;
+  my Mu $fia := pir::decodelocaltime__PI(nqp::unbox_i($utc));
+  my $second = nqp::p6box_i(nqp::atpos_i($fia, 0));
+  my $minute = nqp::p6box_i(nqp::atpos_i($fia, 1));
+  my $hour   = nqp::p6box_i(nqp::atpos_i($fia, 2));
+  my $day    = nqp::p6box_i(nqp::atpos_i($fia, 3));
+  my $month  = nqp::p6box_i(nqp::atpos_i($fia, 4));
+  my $year   = nqp::p6box_i(nqp::atpos_i($fia, 5));
+  my $local  = DateTime.new(:$year, :$month, :$day, :$hour, :$minute, :$second);
+  my $ltime  = $local.posix(True).Int;
+  $ltime - $utc;
 }
 
 my class DateTime does Dateish {
@@ -197,7 +173,6 @@ my class DateTime does Dateish {
      has     $.second    = 0.0;
      has     $.timezone  = 0; # UTC
      has     &.formatter = &default-formatter;
-     has Int $!saved-offset;
        # Not an optimization but a necessity to ensure that
        # $dt.utc.local.utc is equivalent to $dt.utc. Otherwise,
        # DST-induced ambiguity could ruin our day.
@@ -278,7 +253,7 @@ my class DateTime does Dateish {
     }
 
     multi method new(Str $format, :$timezone is copy = 0, :&formatter=&default-formatter) {
-        $format ~~ /^ (\d**4) '-' (\d\d) '-' (\d\d) T (\d\d) ':' (\d\d) ':' (\d\d) (Z || (<[\-\+]>) (\d\d)(\d\d))? $/
+        $format ~~ /^ (\d**4) '-' (\d\d) '-' (\d\d) T (\d\d) ':' (\d\d) ':' (\d\d) (Z || (<[\-\+]>) (\d\d)(\d\d))**0..1 $/
             or X::Temporal::InvalidFormat.new(
                     invalid-str => $format,
                     target      => 'DateTime',
@@ -339,10 +314,15 @@ my class DateTime does Dateish {
     }
 
     method offset {
-        $!saved-offset or
-            $!timezone ~~ Callable
-         ?? $!timezone(self, True)
-         !! $!timezone
+        $!timezone.Int;
+    }
+
+    method offset-in-minutes {
+        $!timezone.Int / 60;
+    }
+
+    method offset-in-hours {
+        $!timezone.Int / 60 / 60;
     }
 
     method delta($amount, TimeUnit $unit) {
@@ -427,9 +407,7 @@ my class DateTime does Dateish {
     method in-timezone($timezone) {
         $timezone eqv $!timezone and return self;
         my $old-offset = self.offset;
-        my $new-offset = $timezone ~~ Callable
-          ?? $timezone(self.utc, False)
-          !! $timezone;
+        my $new-offset = $timezone.Int;
         my %parts;
         # Is the logic for handling leap seconds right?
         # I don't know, but it passes the tests!
@@ -445,7 +423,7 @@ my class DateTime does Dateish {
            self.ymd-from-daycount\
                (self.get-daycount + floor $c / 24);
         self.clone-without-validating:
-            :$timezone, saved-offset => $new-offset, |%parts;
+            :$timezone, |%parts;
     }
 
     method utc() {
@@ -469,8 +447,6 @@ my class DateTime does Dateish {
             second => $.second.perl,
             (timezone => $.timezone.perl
                 unless $.timezone === 0),
-            (:$!saved-offset
-                if $!saved-offset and $.timezone ~~ Callable),
             (formatter => $.formatter.perl
                 unless &.formatter eqv &default-formatter)
     }
@@ -637,7 +613,7 @@ multi infix:«>»(Date:D $a, Date:D $b) {
     $a.daycount > $b.daycount
 }
 
-$PROCESS::TZ = DateTime-local-timezone.new;
+$PROCESS::TZ = get-local-timezone-offset();
 
 # =begin pod
 # 

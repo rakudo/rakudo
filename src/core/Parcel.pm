@@ -101,10 +101,15 @@ my class Parcel does Positional {
         self
     }
 
-    multi method DUMP(Parcel:D:) {
-        self.DUMP-ID() ~ '(:storage(' ~ DUMP($!storage) ~ '))'
+    multi method DUMP(Parcel:D: :$indent-step = 4, :%ctx?) {
+        return DUMP(self, :$indent-step) unless %ctx;
+
+        my Mu $attrs := nqp::list();
+        nqp::push($attrs, '$!storage');
+        nqp::push($attrs,  $!storage );
+        self.DUMP-OBJECT-ATTRS($attrs, :$indent-step, :%ctx);
     }
-    
+
     method FLATTENABLE_LIST() { $!storage }
     method FLATTENABLE_HASH() { nqp::hash() }
 

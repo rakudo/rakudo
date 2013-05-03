@@ -20,7 +20,7 @@ my class Cursor does NQPCursorRole {
             my Mu $capiter := nqp::iterator($caphash);
             while $capiter {
                 my str $key = nqp::shift_s($capiter);
-                my Mu $value := nqp::p6type(nqp::atkey($caphash, $key));
+                my Mu $value := nqp::hllize(nqp::atkey($caphash, $key));
                 if $key eq '$!from' || $key eq '$!to' {
                     nqp::bindattr_i($match, Match, $key, $value.from);
                 }
@@ -40,6 +40,7 @@ my class Cursor does NQPCursorRole {
     }
 
     method MATCH_SAVE() {
+        return Nil if nqp::getattr_i(self, Cursor, '$!pos') < 0;
         my $match := self.MATCH();
         $last_match := $match if $match;
         $match;

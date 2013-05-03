@@ -16,6 +16,18 @@ class GatherIter is Iterator {
             GatherIter, '$!infinite', $infinite);
     }
 
+    multi method DUMP(GatherIter:D: :$indent-step = 4, :%ctx?) {
+        return DUMP(self, :$indent-step) unless %ctx;
+
+        my $flags    := ("\x221e" if self.infinite);
+        my Mu $attrs := nqp::list();
+        nqp::push($attrs, '$!reified' );
+        nqp::push($attrs,  $!reified  );
+        nqp::push($attrs, '$!coro'    );
+        nqp::push($attrs,  $!coro     );
+        self.DUMP-OBJECT-ATTRS($attrs, :$indent-step, :%ctx, :$flags);
+    }
+
     method reify($n = 1) { 
         if !$!reified.defined {
             my Mu $rpa := nqp::list();

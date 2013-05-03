@@ -40,20 +40,21 @@ my class Backtrace is List {
     multi method new(Parcel $bt, Int $offset = 0) {
         my $new = self.bless(*);
         for $offset .. $bt.elems - 1 {
-            next if nqp::isnull($bt[$_]<sub>);
+            my Mu $sub := nqp::getattr(nqp::decont($bt[$_]<sub>), ForeignCode, '$!do');
+            next if nqp::isnull($sub);
             my $code;
             try {
-                $code = pir::perl6_code_object_from_parrot_sub__PP($bt[$_]<sub>);
+                $code = nqp::getcodeobj($sub);
             };
             my $line     = $bt[$_]<annotations><line>;
             my $file     = $bt[$_]<annotations><file>;
             next unless $line && $file;
             # now *that's* an evil hack
-            next if $file eq 'src/gen/BOOTSTRAP.pm' ||
-                    $file eq 'src\\gen\\BOOTSTRAP.pm';
-            last if $file eq 'src/stage2/gen/NQPHLL.pm' ||
-                    $file eq 'src\\stage2\\gen\\NQPHLL.pm';
-            my $subname  = nqp::p6box_s($bt[$_]<sub>);
+            next if $file eq 'src/gen/BOOTSTRAP.nqp' ||
+                    $file eq 'src\\gen\\BOOTSTRAP.nqp';
+            last if $file eq 'src/stage2/gen/NQPHLL.nqp' ||
+                    $file eq 'src\\stage2\\gen\\NQPHLL.nqp';
+            my $subname  = nqp::p6box_s(nqp::getcodename($sub));
             $subname = '<anon>' if $subname.substr(0, 6) eq '_block';
             $new.push: Backtrace::Frame.new(
                 :$line,

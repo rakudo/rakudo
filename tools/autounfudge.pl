@@ -221,6 +221,7 @@ Valid options:
     --unskip            Try to change 'skip' to 'todo' markers
     --untodo            Try to remove 'todo' markers
     --out               Output patch file (defaults to "autounfudge.patch")
+    --jobs number       Number of threads to use when processing 
 USAGE
 }
 

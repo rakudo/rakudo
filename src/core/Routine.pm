@@ -21,7 +21,7 @@ my class Routine {
     
     method candidates() {
         self.is_dispatcher ??
-            nqp::p6type($!dispatchees) !!
+            nqp::hllize($!dispatchees) !!
             (self,)
     }
     
@@ -36,8 +36,7 @@ my class Routine {
         }
         # Call this lexical sub to get rid of 'self' in the signature.
         sub checker(|) {
-            my Mu $cap := pir::find_lex__Ps('call_sig');
-            nqp::p6type($disp.find_best_dispatchee($cap, 1))
+            nqp::hllize($disp.find_best_dispatchee(nqp::usecapture(), 1))
         }
         checker(|$c);
     }

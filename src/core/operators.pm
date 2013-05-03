@@ -189,7 +189,7 @@ sub undefine(Mu \x) {
 }
 
 sub prefix:<temp>(\cont) is rw {
-    my $temp_restore := pir::find_caller_lex__Ps('!TEMP-RESTORE');
+    my $temp_restore := nqp::getlexcaller('!TEMP-RESTORE');
     my int $i = nqp::elems($temp_restore);
     while $i > 0 {
         $i = $i - 2;
@@ -214,7 +214,7 @@ sub prefix:<temp>(\cont) is rw {
 }
 
 sub prefix:<let>(\cont) is rw {
-    my $let_restore := pir::find_caller_lex__Ps('!LET-RESTORE');
+    my $let_restore := nqp::getlexcaller('!LET-RESTORE');
     my int $i = nqp::elems($let_restore);
     while $i > 0 {
         $i = $i - 2;

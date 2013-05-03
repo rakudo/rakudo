@@ -18,7 +18,7 @@ my class CallFrame {
                 level  = repr_unbox_int $P0
 
                 annon  = interp["annotations"; level]
-                %r     = perl6ize_type annon
+                %r     = nqp_hllize annon
             }
         );
 

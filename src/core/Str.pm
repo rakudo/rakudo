@@ -46,6 +46,7 @@ my class Str does Stringy {
     multi method Bool(Str:D:) { self ne '' && self ne '0' }
 
     multi method Str(Str:D:) { self }
+    multi method DUMP(Str:D:) { self.perl }
 
     method Int(Str:D:) { self.Numeric.Int; }
     method Num(Str:D:) { self.Numeric.Num; }
@@ -516,7 +517,7 @@ my class Str does Stringy {
             my $ch = self.substr($i, 1);
             $result ~= %esc{$ch} 
                        //  (   ((!$icu && $ch.ord >= 256)
-                               || nqp::iscclass( pir::const::CCLASS_PRINTING,
+                               || nqp::iscclass( nqp::const::CCLASS_PRINTING,
                                                   nqp::unbox_s($ch), 0))
                            ?? $ch
                            !! $ch.ord.fmt('\x[%x]')
@@ -540,7 +541,7 @@ my class Str does Stringy {
                   :continue(:$c), :pos(:$p),
                   :global(:$g), :overlap(:$ov), :exhaustive(:$ex), 
                   :st(:nd(:rd(:th(:$nth)))), :$x) {
-        my $caller_dollar_slash := pir::find_caller_lex__Ps('$/');
+        my $caller_dollar_slash := nqp::getlexcaller('$/');
         my %opts;
         if $p.defined { %opts<p> = $p }
         else { %opts<c> = $c // 0; }
@@ -618,7 +619,7 @@ my class Str does Stringy {
     multi method subst($matcher, $replacement,
                        :ii(:$samecase), :ss(:$samespace),
                        :$SET_CALLER_DOLLAR_SLASH, *%options) {
-        my $caller_dollar_slash := pir::find_caller_lex__Ps('$/');
+        my $caller_dollar_slash := nqp::getlexcaller('$/');
         my $SET_DOLLAR_SLASH     = $SET_CALLER_DOLLAR_SLASH || nqp::istype($matcher, Regex);
         my @matches              = self.match($matcher, |%options);
         try $caller_dollar_slash = $/ if $SET_DOLLAR_SLASH;

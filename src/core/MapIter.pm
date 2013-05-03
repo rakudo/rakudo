@@ -146,11 +146,22 @@ my class MapIter is Iterator {
         parcel
     }
 
-    method DUMP() {
-        self.DUMP-ID() ~ '('
-          ~ ':reified(' ~ DUMP($!reified) ~ '), '
-          ~ ':items(' ~ DUMP($!items) ~'), '
-          ~ ':listiter(' ~ DUMP($!listiter) ~ ')'
-          ~ ')'
+    multi method DUMP(MapIter:D: :$indent-step = 4, :%ctx?) {
+        return DUMP(self, :$indent-step) unless %ctx;
+
+        my Mu $attrs := nqp::list();
+        nqp::push($attrs, '$!flattens');
+        nqp::push($attrs,  $!flattens );
+        nqp::push($attrs, '$!first'   );
+        nqp::push($attrs,  $!first    );
+        nqp::push($attrs, '$!reified' );
+        nqp::push($attrs,  $!reified  );
+        nqp::push($attrs, '$!items'   );
+        nqp::push($attrs,  $!items    );
+        nqp::push($attrs, '$!listiter');
+        nqp::push($attrs,  $!listiter );
+        nqp::push($attrs, '$!block'   );
+        nqp::push($attrs,  $!block    );
+        self.DUMP-OBJECT-ATTRS($attrs, :$indent-step, :%ctx);
     }
 }

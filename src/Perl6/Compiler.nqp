@@ -64,6 +64,8 @@ class Perl6::Compiler is HLL::Compiler {
           -h, --help           display this help text
           -n                   run program once for each line of input
           -p                   same as -n, but also print \$_ at the end of lines
+          -I path              adds the path to the module search path
+          -M module            loads the module prior to running the program
           --target=[stage]     specify compilation stage to emit
           --optimize=[level]   use the given level of optimization (0..3)
           -t, --trace=[flags]  enable trace flags, see 'parrot --help-debug'

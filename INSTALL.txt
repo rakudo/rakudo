@@ -4,6 +4,9 @@
     may also need a a git client, which is also needed for fetching the
     test suite.
 
+    Building rakudo can take up to 1G of memory when compiling for the
+    parrot runtime.
+
     In order to fully support Unicode, you'll also want to have the ICU
     library installed (<http://site.icu-project.org/>). Rakudo can run
     without ICU, but some Unicode-related features do not work properly.

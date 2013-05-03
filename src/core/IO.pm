@@ -1,6 +1,4 @@
 my role IO { }
-# my class X::IO::Copy { ... }
-# my class X::IO::Dir  { ... }
 
 sub print(|) {
     my $args := pir::perl6_current_args_rpa__P();
@@ -218,7 +216,6 @@ my class IO::Handle does IO::FileTestable {
         $! ?? fail(X::IO::Copy.new(from => $.path, to => $dest, os-error => ~$!)) !! True
     }
 
-    # my class X::IO::Chmod { ... }
     method chmod($mode) {
         nqp::chmod(nqp::unbox_s(~$.path), nqp::unbox_i($mode.Int));
         return True;
@@ -346,17 +343,18 @@ my class IO::Path::Win32  is IO::Path { method SPEC { IO::Spec::Win32  };  }
 my class IO::Path::Cygwin is IO::Path { method SPEC { IO::Spec::Cygwin };  }
 
 
-sub dir(Cool $directory = '.', Mu :$test = none('.', '..')) {
-    my Mu $RSA := pir::new__PS('OS').readdir(nqp::unbox_s($directory.Str));
-    my $path = $directory.path;
+sub dir(Cool $path = '.', Mu :$test = none('.', '..')) {
+    my Mu $RSA := pir::new__PS('OS').readdir(nqp::unbox_s($path.Str));
     my int $elems = nqp::elems($RSA);
     my @res;
+    my ($directory, $volume) = IO::Spec.splitpath(~$path, :nofile);
     loop (my int $i = 0; $i < $elems; $i = $i + 1) {
         my Str $file := nqp::p6box_s(pir::trans_encoding__Ssi(
 			nqp::atpos_s($RSA, $i),
 			pir::find_encoding__Is('utf8')));
         if $file ~~ $test {
-            @res.push: $path.child($file);
+            #this should be like IO::Path.child(:basename($file)) because of :volume
+            @res.push: IO::Path.new(:basename($file), :$directory, :$volume);
         }
     }
     return @res.list;
@@ -364,14 +362,13 @@ sub dir(Cool $directory = '.', Mu :$test = none('.', '..')) {
     CATCH {
         default {
             X::IO::Dir.new(
-                path => ~$directory,
+                :$path,
                 os-error => .Str,
             ).throw;
         }
     }
 }
 
-# my class X::IO::Unlink { ... }
 sub unlink($path) {
     nqp::unlink($path);
     return True;
@@ -385,7 +382,6 @@ sub unlink($path) {
     }
 }
 
-# my class X::IO::Rmdir { ... }
 sub rmdir($path) {
     nqp::rmdir($path);
     return True;
@@ -473,7 +469,6 @@ multi sub spurt(Cool $filename,
     $fh.close;
 }
 
-# my class X::IO::Cwd { ... }
 proto sub cwd(|) { * }
 multi sub cwd() {
     return nqp::p6box_s(
@@ -491,7 +486,6 @@ multi sub cwd() {
 }
 
 
-# my class X::IO::Chdir { ... }
 proto sub chdir(|) { * }
 multi sub chdir($path as Str) {
     nqp::chdir(nqp::unbox_s($path));
@@ -507,7 +501,6 @@ multi sub chdir($path as Str) {
     }
 }
 
-# my class X::IO::Mkdir { ... }
 proto sub mkdir(|) { * }
 multi sub mkdir($path as Str, $mode = 0o777) {
     nqp::mkdir($path, $mode);
@@ -529,7 +522,6 @@ $PROCESS::ERR = IO::Handle.new;
 nqp::bindattr(nqp::p6decont($PROCESS::ERR),
         IO::Handle, '$!PIO', nqp::getstderr());
 
-# my class X::IO::Rename { ... }
 sub rename(Cool $from as Str, Cool $to as Str) {
     nqp::rename(nqp::unbox_s($from), nqp::unbox_s($to));
     return True;
@@ -560,8 +552,6 @@ sub copy(Cool $from as Str, Cool $to as Str) {
         }
     }
 }
-#my class X::IO::Symlink { ... }
-#my class X::IO::Link    { ... }
 sub symlink(Cool $target as Str, Cool $name as Str) {
     nqp::symlink(nqp::unbox_s($target), nqp::unbox_s($name));
     return True;

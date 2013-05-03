@@ -62,7 +62,7 @@ my class IO::Spec::Unix {
         return @path
     }
 
-    method splitpath( $path, $nofile = False ) {
+    method splitpath( $path, :$nofile = False ) {
         my ( $directory, $file ) = ( '', '' );
 
         if $nofile {
@@ -130,8 +130,8 @@ my class IO::Spec::Unix {
             $base = self.catdir( self.rootdir, $base );
         }
 
-        my ($path_volume, $path_directories) = self.splitpath( $path, 1 );
-        my ($base_volume, $base_directories) = self.splitpath( $base, 1 );
+        my ($path_volume, $path_directories) = self.splitpath( $path, :nofile );
+        my ($base_volume, $base_directories) = self.splitpath( $base, :nofile );
 
         # Can't relativize across volumes
         return $path unless $path_volume eq $base_volume;

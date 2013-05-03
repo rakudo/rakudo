@@ -81,7 +81,7 @@ my class IO::Spec::Win32 is IO::Spec::Unix {
         self.catpath($volume, $directory, $file);
     }
 
-    method splitpath($path as Str, $nofile as Bool = False) { 
+    method splitpath($path as Str, :$nofile = False) { 
 
         my ($volume,$directory,$file) = ('','','');
         if ( $nofile ) {
@@ -148,9 +148,9 @@ my class IO::Spec::Win32 is IO::Spec::Unix {
             $base = self.canonpath( $base );
         }
 
-        my ($path_directories, $path_file) = self.splitpath( $path, False )[1..2] ;
+        my ($path_directories, $path_file) = self.splitpath( $path )[1..2] ;
 
-        my ($base_volume, $base_directories) = self.splitpath( $base, True ) ;
+        my ($base_volume, $base_directories) = self.splitpath( $base, :nofile ) ;
 
         $path = self.catpath( 
                     $base_volume, 

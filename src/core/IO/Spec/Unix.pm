@@ -42,7 +42,7 @@ my class IO::Spec::Unix {
         state $tmpdir;
         return $tmpdir if $tmpdir.defined;
         return $tmpdir = self._firsttmpdir(
-                    %*ENV{'TMPDIR'},
+                    %*ENV<TMPDIR>,
                     '/tmp',
                     self.curdir
                  );

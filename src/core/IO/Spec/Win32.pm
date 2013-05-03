@@ -2,16 +2,24 @@ my class IO::Spec::Win32 is IO::Spec::Unix {
 
     # Some regexes we use for path splitting
     #What follows below is a hack because rx// and regex { } don't work here
-    my $str_slash       = ' [ \\/ | \\\\ ] ';
-    my $str_notslash    = ' <-[/\\\\]> ';
-    my $str_driveletter = q/<[A..Z a..z]> ':'/;
-    my $str_UNCpath     = "$str_slash ** 2 $str_notslash+ $str_slash [$str_notslash+ | \$]";
+#     my $slash       = ' [ \\/ | \\\\ ] ';
+#     my $notslash    = ' <-[/\\\\]> ';
+#     my $driveletter = q/<[A..Z a..z]> ':'/;
+#     my $UNCpath     = "$slash ** 2 $notslash+ $slash [$notslash+ | \$]";
+#     my $volume_rx   = "[$driveletter] || [$UNCpath]";
 
-    my $slash    = MAKE_REGEX( $str_slash );
-    my $notslash    = MAKE_REGEX( $str_notslash  );
-    my $driveletter = MAKE_REGEX( $str_driveletter );
-    my $UNCpath     = MAKE_REGEX( $str_UNCpath );
-    my $volume_rx   = MAKE_REGEX( "[$str_driveletter] || [$str_UNCpath]" );
+
+my $slash	= regex { '/' | '\\' }
+my $notslash    = regex { <-[\/\\]> }
+my $driveletter = regex { <[A..Z a..z]> ':' }
+my $UNCpath     = regex { [<$slash> ** 2] <-[\\\/]>+  <$slash>  [<-[\\\/]>+ | $] }
+my $volume_rx   = regex { $<driveletter>=<$driveletter> | $<UNCpath>=<$UNCpath> }
+
+#    my $slash    := MAKE_REGEX( $str_slash );
+#    my $notslash    := MAKE_REGEX( $str_notslash  );
+#    my $driveletter := MAKE_REGEX( $str_driveletter );
+#    my $UNCpath     := MAKE_REGEX( $str_UNCpath );
+#    my $volume_rx   := MAKE_REGEX( "[$str_driveletter] || [$str_UNCpath]" );
 
 
     method canonpath ($path)     { self!canon-cat($path)    }
@@ -21,7 +29,7 @@ my class IO::Spec::Win32 is IO::Spec::Unix {
         return self!canon-cat( "\\", |@dirs ) if @dirs[0] eq "";
         self!canon-cat(|@dirs);
     }
-    method splitdir($dir)        { $dir.split($slash)  }
+    method splitdir($dir)        { $dir.split(/<$slash>/)  }
 
     method catfile(|c)           { self.catdir(|c)     }
     method devnull               { 'nul'               }
@@ -31,9 +39,9 @@ my class IO::Spec::Win32 is IO::Spec::Unix {
         state $tmpdir;
         return $tmpdir if $tmpdir.defined;
         $tmpdir = self._firsttmpdir(
-            %*ENV<TMPDIR>,
-            %*ENV<TEMP>,
-            %*ENV<TMP>,
+#            %*ENV<TMPDIR>,
+#            %*ENV<TEMP>,
+#            %*ENV<TMP>,
             'SYS:/temp',
             'C:\system\temp',
             'C:/temp',
@@ -43,13 +51,13 @@ my class IO::Spec::Win32 is IO::Spec::Unix {
         );
     }
 
-    method path {
-        my @path = split(';', %*ENV<PATH>);
-        @path».=subst(:global, q/"/, '');
-        @path = grep *.chars, @path;
-        unshift @path, ".";
-        return @path;
-    }
+    method path { 'foo' }
+#        my @path = split(';', %*ENV<PATH>);
+#        @path».=subst(:global, q/"/, '');
+#        @path = grep *.chars, @path;
+#        unshift @path, ".";
+#        return @path;
+#    }
 
     method is-absolute ($path) {
         # As of right now, this returns 2 if the path is absolute with a

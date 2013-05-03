@@ -1243,8 +1243,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                 my $result := $module<&EXPORT>(|@positional_imports);
                 my $EnumMap := $*W.find_symbol(['EnumMap']);
                 if nqp::istype($result, $EnumMap) {
-                    # TODO: decontainerize $result
-                    my $storage := nqp::getattr($result, $EnumMap, '$!storage');
+                    my $storage := $result.hash.FLATTENABLE_HASH();
                     $*W.import($/, $storage, $package_source_name);
                 }
                 else {

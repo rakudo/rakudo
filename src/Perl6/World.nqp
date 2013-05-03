@@ -474,7 +474,9 @@ class Perl6::World is HLL::World {
         # actual static lexpad.
         my $slp := self.get_static_lexpad($target);
         for %to_install {
-            $slp.add_static_value($_.key, $_.value, 0, 0);
+            my $v := $_.value;
+            if nqp::isnull(nqp::getobjsc($v)) { self.add_object($v); }
+            $slp.add_static_value($_.key, $v, 0, 0);
             my $categorical := match($_.key, /^ '&' (\w+) ':<' (.+) '>' $/);
             if $categorical {
                 $/.CURSOR.add_categorical(~$categorical[0], ~$categorical[1],

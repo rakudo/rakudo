@@ -1,3 +1,12 @@
+New in 2013.05
++ IO::Spec, a port of Perl 5's File::Spec
++ support for exporting things form sub EXPORT
++ ?-quantifier in regexes doesn't create arrays in the Match object anymore
++ speedup of repeated shifts of large lists and arrays
++ implemented Cool.lines
++ renamed IO to IO::Handle; IO is now a tag role, as per spec
++ simplify timezone handling
+
 New in 2013.04
 + add Capture.Bool()
 + optimize getting size of numeric Range

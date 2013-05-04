@@ -384,7 +384,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     token module_name {
         <longname>
-        [ <?before '['> :dba('generic role') '[' ~ ']' <arglist> ]**0..1
+        [ <?before '['> :dba('generic role') '[' ~ ']' <arglist> ]?
     }
 
     token end_keyword {
@@ -1124,7 +1124,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     token statement_control:sym<import> {
         <sym> <.ws>
-        <module_name> [ <.spacey> <arglist> ]**0..1 <.ws>
+        <module_name> [ <.spacey> <arglist> ]? <.ws>
         :my $*HAS_SELF := '';
         {
             my $longname := $*W.dissect_longname($<module_name><longname>);
@@ -1135,7 +1135,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                 # todo: fix arglist
                 my $arglist;
                 if $<arglist> {
-                    $arglist := $*W.compile_time_evaluate($/, $<arglist>[0]<EXPR>.ast);
+                    $arglist := $*W.compile_time_evaluate($/, $<arglist><EXPR>.ast);
                     $arglist := nqp::getattr($arglist.list.eager,
                             $*W.find_symbol(['List']), '$!items');
                 }

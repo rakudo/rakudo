@@ -168,7 +168,7 @@ my class IO::Spec::Win32 is IO::Spec::Unix {
              $first ~~ /^ ([   <$driveletter> <$slash>?
                             | <$UNCpath>
                             | [<$slash> ** 2] <$notslash>+
-                            | <$slash> ])?
+                            | <$slash> ]?)
                            (.*)
                        /;
         my $volume = ~$volumematch[0];

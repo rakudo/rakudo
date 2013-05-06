@@ -545,7 +545,7 @@ my class Str does Stringy {
         my %opts;
         if $p.defined { %opts<p> = $p }
         else { %opts<c> = $c // 0; }
-        my $patrx := $pat ~~ Code ?? $pat !! / $pat: /;
+        my $patrx := $pat ~~ Code ?? $pat !! / "$pat": /;
         my $cur := $patrx(Cursor.'!cursor_init'(self, |%opts));
 
         %opts<ov> = $ov if $ov;

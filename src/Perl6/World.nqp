@@ -403,13 +403,12 @@ class Perl6::World is HLL::World {
             ))
     }
     
-    # Imports symbols from the specified package into the current lexical scope.
-    method import($/, $package, $source_package_name) {
+    # Imports symbols from the specified stash into the current lexical scope.
+    method import($/, %stash, $source_package_name) {
         # We'll do this in two passes, since at the start of CORE.setting we import
         # StaticLexPad, which of course we need to use when importing. Since we still
         # keep the authoritative copy of stuff from the compiler's view in QAST::Block's
         # .symbol(...) hash we get away with this for now.
-        my %stash := self.stash_hash($package);
         my $target := self.cur_lexpad();
         
         # First pass: QAST::Block symbol table installation. Also detect any
@@ -478,7 +477,9 @@ class Perl6::World is HLL::World {
         # actual static lexpad.
         my $slp := self.get_static_lexpad($target);
         for %to_install {
-            $slp.add_static_value($_.key, $_.value, 0, 0);
+            my $v := $_.value;
+            if nqp::isnull(nqp::getobjsc($v)) { self.add_object($v); }
+            $slp.add_static_value($_.key, $v, 0, 0);
             my $categorical := match($_.key, /^ '&' (\w+) ':<' (.+) '>' $/);
             if $categorical {
                 $/.CURSOR.add_categorical(~$categorical[0], ~$categorical[1],

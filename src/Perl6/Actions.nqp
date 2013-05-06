@@ -6065,7 +6065,7 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions does STDActions {
         }
         else {
             make QAST::Regex.new( QAST::Node.new(
-                                        QAST::SVal.new( :value('INTERPOLATE') ),
+                                        QAST::SVal.new( :value('!LITERAL') ),
                                         $quote,
                                         QAST::IVal.new( :value(%*RX<i> ?? 1 !! 0) ) ),
                                 :rxtype<subrule>, :subtype<method>, :node($/));

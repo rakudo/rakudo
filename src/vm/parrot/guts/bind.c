@@ -168,6 +168,14 @@ Rakudo_binding_create_positional(PARROT_INTERP, PMC *rpa) {
 }
 
 
+/* Creates a Perl 6 List. */
+static PMC *
+Rakudo_binding_create_list(PARROT_INTERP, PMC *rpa) {
+    return Rakudo_binding_list_from_rpa(interp, rpa, Rakudo_types_list_get(),
+               Rakudo_types_bool_true_get());
+}
+
+
 /* Creates a Perl 6 LoL. */
 static PMC *
 Rakudo_binding_create_lol(PARROT_INTERP, PMC *rpa) {
@@ -928,7 +936,9 @@ Rakudo_binding_bind(PARROT_INTERP, PMC *lexpad, PMC *sig_pmc, PMC *capture,
                 }
                 cur_bv.type = BIND_VAL_OBJ;
                 cur_bv.val.o = param->flags & SIG_ELEM_SLURPY_POS ?
-                    Rakudo_binding_create_positional(interp, temp) :
+                    (param->flags & SIG_ELEM_IS_RW ?
+                        Rakudo_binding_create_list(interp, temp) :
+                        Rakudo_binding_create_positional(interp, temp)) :
                     Rakudo_binding_create_lol(interp, temp);
                 bind_fail = Rakudo_binding_bind_one_param(interp, lexpad, sig, param,
                         cur_bv, no_nom_type_check, error);

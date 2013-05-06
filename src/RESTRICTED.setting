@@ -18,7 +18,6 @@ my class RESTRICTED is Mu {
     method gist(|)     { restricted(self.^name) }
 }
 
-my class IO is RESTRICTED { }
 my class IO::Handle is RESTRICTED { }
 my class IO::Socket is RESTRICTED { }
 

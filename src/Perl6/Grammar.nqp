@@ -384,7 +384,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     token module_name {
         <longname>
-        [ <?before '['> :dba('generic role') '[' ~ ']' <arglist> ]**0..1
+        [ <?before '['> :dba('generic role') '[' ~ ']' <arglist> ]?
     }
 
     token end_keyword {
@@ -1124,7 +1124,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     token statement_control:sym<import> {
         <sym> <.ws>
-        <module_name> [ <.spacey> <arglist> ]**0..1 <.ws>
+        <module_name> [ <.spacey> <arglist> ]? <.ws>
         :my $*HAS_SELF := '';
         {
             my $longname := $*W.dissect_longname($<module_name><longname>);
@@ -1135,7 +1135,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                 # todo: fix arglist
                 my $arglist;
                 if $<arglist> {
-                    $arglist := $*W.compile_time_evaluate($/, $<arglist>[0]<EXPR>.ast);
+                    $arglist := $*W.compile_time_evaluate($/, $<arglist><EXPR>.ast);
                     $arglist := nqp::getattr($arglist.list.eager,
                             $*W.find_symbol(['List']), '$!items');
                 }
@@ -1219,11 +1219,10 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                     if nqp::istype($tag, $Pair) {
                         $tag := nqp::unbox_s($tag.key);
                         if nqp::existskey($EXPORT, $tag) {
-                            $*W.import($/, $EXPORT{$tag}, $package_source_name);
+                            $*W.import($/, $*W.stash_hash($EXPORT{$tag}), $package_source_name);
                         }
                         else {
                             nqp::die("Error while importing from '$package_source_name': no such tag '$tag'");
-
                         }
                     }
                     else {
@@ -1236,14 +1235,22 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             }
             for @to_import -> $tag {
                 if nqp::existskey($EXPORT, $tag) {
-                    $*W.import($/, $EXPORT{$tag}, $package_source_name);
+                    $*W.import($/, $*W.stash_hash($EXPORT{$tag}), $package_source_name);
                 }
             }
-            if +@positional_imports {
-                if nqp::existskey($module, '&EXPORT') {
-                    $module<&EXPORT>(|@positional_imports);
+            if nqp::existskey($module, '&EXPORT') {
+                my $result := $module<&EXPORT>(|@positional_imports);
+                my $EnumMap := $*W.find_symbol(['EnumMap']);
+                if nqp::istype($result, $EnumMap) {
+                    my $storage := $result.hash.FLATTENABLE_HASH();
+                    $*W.import($/, $storage, $package_source_name);
                 }
                 else {
+                    nqp::die("&EXPORT sub did not return an EnumMap");
+                }
+            }
+            else {
+                if +@positional_imports {
                     nqp::die("Error while importing from '$package_source_name': no EXPORT sub, but you provided positional argument in the 'use' statement");
                 }
             }

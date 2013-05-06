@@ -75,9 +75,12 @@ my class IO::Spec::Win32 is IO::Spec::Unix {
         return (:$volume, :$directory, :$basename);
     }
 
-    method join ($volume, $directory is copy, $file) { 
-        $directory = '' if all($directory, $file) eq any('/','\\')
-                or $directory eq '.' && $file.chars;
+    method join ($volume, $directory is copy, $file is copy) { 
+        $directory = '' if $directory eq '.' && $file.chars;
+        if $directory.match( /^<$slash>$/ ) && $file.match( /^<$slash>$/ ) {
+            $file = '';
+            $directory = '' if $volume.chars > 2; #i.e. UNC path
+        }
         self.catpath($volume, $directory, $file);
     }
 
@@ -108,12 +111,12 @@ my class IO::Spec::Win32 is IO::Spec::Unix {
 
         # Make sure the glue separator is present
         # unless it's a relative path like A:foo.txt
-        if $volume ne ''
+        if $volume.chars and $directory.chars
            and $volume !~~ /^<$driveletter>/
            and $volume !~~ /<$slash> $/
            and $directory !~~ /^ <$slash>/
             { $volume ~= '\\' }
-        if $file ne '' and $directory ne ''
+        if $file.chars and $directory.chars
            and $directory !~~ /<$slash> $/
             { $volume ~ $directory ~ '\\' ~ $file; }
         else     { $volume ~ $directory     ~    $file; }

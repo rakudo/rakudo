@@ -701,7 +701,7 @@ my class Str does Stringy {
                 take self.substr($c);
             }
         } else {
-            Nil;
+            ();
         }
     }
 

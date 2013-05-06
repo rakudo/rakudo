@@ -196,7 +196,6 @@ my class Hash {
                     $key  := nqp::atkey(nqp::getattr(self, $?CLASS, '$!keys'), $pair.key);
                     take Pair.new(:key($key), :value($pair.value));
                 }
-                Nil
             }
         }
     }

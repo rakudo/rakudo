@@ -56,7 +56,7 @@ my class Junction {
     
     method sink(Junction:D:) {
         .?sink for $!storage.list;
-        Nil;
+        ();
     }
     
     method AUTOTHREAD(&call, |args) {

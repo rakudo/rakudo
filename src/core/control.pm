@@ -25,7 +25,7 @@ my &THROW :=
 my &RETURN-PARCEL := -> Mu \parcel {
     my Mu $storage := nqp::getattr(parcel, Parcel, '$!storage');
     nqp::iseq_i(nqp::elems($storage), 0)
-      ?? Nil
+      ?? ()
       !! (nqp::iseq_i(nqp::elems($storage), 1)
             ?? nqp::shift($storage)
             !! parcel)

@@ -29,17 +29,6 @@ role STDActions {
     }
 }
 
-my $EMPTY_PARCEL;
-sub nil() {
-    unless nqp::isconcrete($EMPTY_PARCEL) {
-        my $parcel := $*W.find_symbol(['Parcel']);
-        $EMPTY_PARCEL := nqp::create($parcel);
-        nqp::bindattr($EMPTY_PARCEL, $parcel, '$!storage', nqp::list());
-        $*W.add_object($EMPTY_PARCEL);
-    }
-    QAST::WVal.new(:value($EMPTY_PARCEL));
-}
-
 class Perl6::Actions is HLL::Actions does STDActions {
     our @MAX_PERL_VERSION;
 
@@ -609,7 +598,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             }
         }
         if +$past.list < 1 {
-            $past.push(nil());
+            $past.push($*W.nil());
         }
         else {
             $past.returns($past[+@($past) - 1].returns);
@@ -636,7 +625,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $past := $<EXPR>.ast;
             if $mc {
                 $mc.ast.push($past);
-                $mc.ast.push(nil());
+                $mc.ast.push($*W.nil());
                 $past := $mc.ast;
             }
             if $ml {
@@ -829,7 +818,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         # push the else block if any, otherwise 'if' returns C<Nil> (per S04)
         $past.push( $<else>
                     ?? pblock_immediate( $<else>[0].ast )
-                    !!  nil()
+                    !!  $*W.nil()
         );
         # build if/then/elsif structure
         while $count > 0 {
@@ -899,7 +888,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         # Make sure the body is in sink context (for now; in the long run,
         # need to handle the l-value case).
         my $body_past := $loop[1][1];
-        $body_past.push(nil());
+        $body_past.push($*W.nil());
         
         # Handle phasers.
         my $code := $loop[1]<code_object>;
@@ -929,7 +918,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
 
     method statement_control:sym<need>($/) {
-        my $past := nil();
+        my $past := $*W.nil();
         for $<version> {
             # XXX TODO: Version checks.
         }
@@ -937,12 +926,12 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
 
     method statement_control:sym<import>($/) {
-        my $past := nil();
+        my $past := $*W.nil();
         make $past;
     }
 
     method statement_control:sym<use>($/) {
-        my $past := nil();
+        my $past := $*W.nil();
         if $<version> {
             # TODO: replace this by code that doesn't always die with
             # a useless error message
@@ -1022,7 +1011,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $past.push($import_past);
         }
         
-        $past.push(nil());
+        $past.push($*W.nil());
 
         make $past;
     }
@@ -1067,7 +1056,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
         my $block := $<block>.ast;
         set_block_handler($/, $block, 'CATCH');
-        make nil();
+        make $*W.nil();
     }
 
     method statement_control:sym<CONTROL>($/) {
@@ -1076,7 +1065,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
         my $block := $<block>.ast;
         set_block_handler($/, $block, 'CONTROL');
-        make nil();
+        make $*W.nil();
     }
 
     method statement_prefix:sym<BEGIN>($/) { make $*W.add_phaser($/, 'BEGIN', ($<blorst>.ast)<code_object>); }
@@ -1106,7 +1095,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
     method statement_prefix:sym<gather>($/) {
         my $past := block_closure($<blorst>.ast);
-        $past<past_block>.push(nil());
+        $past<past_block>.push($*W.nil());
         make QAST::Op.new( :op('call'), :name('&GATHER'), $past );
     }
 
@@ -1114,7 +1103,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my $blast := QAST::Op.new( :op('call'), $<blorst>.ast );
         make QAST::Stmts.new(
             QAST::Op.new( :name('&eager'), :op('call'), $blast ),
-            nil(),
+            $*W.nil(),
             :node($/)
         );
     }
@@ -1156,7 +1145,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                         QAST::Op.new( :op('null') ),
                         QAST::Op.new( :op('exception') )
                     ),
-                    nil(),
+                    $*W.nil(),
                 )
             );
         }
@@ -1222,7 +1211,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
     method coloncircumfix($/) {
         make $<circumfix>
             ?? $<circumfix>.ast
-            !! nil();
+            !! $*W.nil();
     }
 
     method colonpair($/) {
@@ -1469,7 +1458,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             # If it's a late-bound sub lookup, we may not find it, so be sure
             # to handle the case where the lookup comes back null.
             if $sigil eq '&' {
-                $past := QAST::Op.new( :op('ifnull'), $past, nil());
+                $past := QAST::Op.new( :op('ifnull'), $past, $*W.nil());
             }
         }
         $past
@@ -1847,7 +1836,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             }
 
             # Nothing to emit here; hand back a Nil.
-            $past := nil();
+            $past := $*W.nil();
             $past<metaattr> := $attr;
         }
         elsif $*SCOPE eq 'my' || $*SCOPE eq 'state' {            
@@ -3729,7 +3718,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my $macro_ast := $*W.ex-handle($/, { $macro(|@argument_asts) });
         my $nil_class := $*W.find_symbol(['Nil']);
         if istype($macro_ast, $nil_class) {
-            return nil();
+            return $*W.nil();
         }
         my $ast_class := $*W.find_symbol(['AST']);
         unless istype($macro_ast, $ast_class) {
@@ -3746,7 +3735,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             '$!past'
         );
         unless nqp::defined($macro_ast_qast) {
-            return nil();
+            return $*W.nil();
         }
         my $block := QAST::Block.new(:blocktype<raw>, $macro_ast_qast);
         $*W.add_quasi_fixups($macro_ast, $block);
@@ -4288,7 +4277,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             for $/.list { if $_.ast { $past.push($_.ast); } }
         }
         if $past.op eq 'xor' {
-            $past.push(nil());
+            $past.push($*W.nil());
         }
         if $key eq 'PREFIX' || $key eq 'INFIX' || $key eq 'POSTFIX' {
             $past := whatever_curry($/, (my $orig := $past), $key eq 'INFIX' ?? 2 !! 1);
@@ -5528,7 +5517,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     :op('getpayload'),
                     QAST::Op.new( :op('exception') )
                 )),
-                nil()
+                $*W.nil()
             );
         }
 
@@ -5543,7 +5532,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         else {
             my $prev_content := QAST::Stmts.new();
             $prev_content.push($handler<past_block>.shift()) while +@($handler<past_block>);
-            $prev_content.push(nil());
+            $prev_content.push($*W.nil());
             $handler<past_block>.push(QAST::Op.new(
                 :op('handle'),
                 $prev_content,
@@ -5567,7 +5556,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         %*HANDLERS{$type} := QAST::Stmts.new(
             :node($/),
             QAST::VM.new( :pirop('perl6_invoke_catchhandler__vPP'), $handler, $ex),
-            nil(),
+            $*W.nil(),
         );
     }
 

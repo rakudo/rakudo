@@ -171,6 +171,8 @@ sub levenshtein_candidate_heuristic(@candidates, $target) {
     }
 }
 
+my $EMPTY_PARCEL;
+
 # This builds upon the HLL::World to add the specifics needed by Rakudo Perl 6.
 class Perl6::World is HLL::World {
     # The stack of lexical pads, actually as QAST::Block objects. The
@@ -220,6 +222,17 @@ class Perl6::World is HLL::World {
         %!code_object_fixup_list := {};
         %!const_cache := {};
     }
+
+    method nil() {
+        unless nqp::isconcrete($EMPTY_PARCEL) {
+            my $parcel := $*W.find_symbol(['Parcel']);
+            $EMPTY_PARCEL := nqp::create($parcel);
+            nqp::bindattr($EMPTY_PARCEL, $parcel, '$!storage', nqp::list());
+            $*W.add_object($EMPTY_PARCEL);
+        }
+        QAST::WVal.new(:value($EMPTY_PARCEL));
+    }
+
     
     # Creates a new lexical scope and puts it on top of the stack.
     method push_lexpad($/) {
@@ -1630,7 +1643,7 @@ class Perl6::World is HLL::World {
             return self.add_constant_folded_result($result);
         }
         elsif $phaser eq 'CHECK' {
-            my $result_node := QAST::Stmt.new( QAST::Var.new( :name('Nil'), :scope('lexical') ) );
+            my $result_node := QAST::Stmt.new( self.nil() );
             @!CHECKs := [] unless @!CHECKs;
             @!CHECKs.unshift([$block, $result_node]);
             return $result_node;
@@ -1665,7 +1678,7 @@ class Perl6::World is HLL::World {
                 QAST::Var.new( :name('@*END_PHASERS'), :scope('contextual') ),
                 QAST::WVal.new( :value($block) )
             ));
-            return QAST::Var.new(:name('Nil'), :scope('lexical'));
+            return self.nil();
         }
         elsif $phaser eq 'START' {
             # Create a state variable to hold the phaser's result.
@@ -1726,11 +1739,11 @@ class Perl6::World is HLL::World {
             }
             
             @!CODES[+@!CODES - 1].add_phaser($phaser, $block);
-            return QAST::Var.new(:name('Nil'), :scope('lexical'));
+            return self.nil();
         }
         else {
             @!CODES[+@!CODES - 1].add_phaser($phaser, $block);
-            return QAST::Var.new(:name('Nil'), :scope('lexical'));
+            return self.nil();
         }
     }
     

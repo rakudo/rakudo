@@ -60,7 +60,7 @@ my class EnumMap does Associative {
                 $pair := nqp::shift($iter);
                 take Pair.new(:key($pair.key), :value($pair.value));
             }
-            Nil
+            ();
         }
     }
     method invert() {
@@ -71,7 +71,7 @@ my class EnumMap does Associative {
                 $pair := nqp::shift($iter);
                 take Pair.new(:key($pair.value), :value($pair.key));
             }
-            Nil
+            ();
         }
     }
 

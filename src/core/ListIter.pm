@@ -40,9 +40,6 @@ my class ListIter {
                         nqp::splice($!rest, nqp::getattr($x, Parcel, '$!storage'), 0, 0);
                     
                     }
-                    elsif nqp::not_i(nqp::istype($x, Nil)) {
-                        nqp::push($rpa, $x);
-                    }
                 }
             }
             my $reified := nqp::p6parcel($rpa, Any);

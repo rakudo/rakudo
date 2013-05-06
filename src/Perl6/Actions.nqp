@@ -29,6 +29,17 @@ role STDActions {
     }
 }
 
+my $EMPTY_PARCEL;
+sub nil() {
+    unless nqp::isconcrete($EMPTY_PARCEL) {
+        my $parcel := $*W.find_symbol(['Parcel']);
+        $EMPTY_PARCEL := nqp::create($parcel);
+        nqp::bindattr($EMPTY_PARCEL, $parcel, '$!storage', nqp::list());
+        $*W.add_object($EMPTY_PARCEL);
+    }
+    QAST::WVal.new(:value($EMPTY_PARCEL));
+}
+
 class Perl6::Actions is HLL::Actions does STDActions {
     our @MAX_PERL_VERSION;
 
@@ -598,7 +609,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             }
         }
         if +$past.list < 1 {
-            $past.push(QAST::Var.new(:name('Nil'), :scope('lexical')));
+            $past.push(nil());
         }
         else {
             $past.returns($past[+@($past) - 1].returns);
@@ -625,7 +636,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $past := $<EXPR>.ast;
             if $mc {
                 $mc.ast.push($past);
-                $mc.ast.push(QAST::Var.new(:name('Nil'), :scope('lexical')));
+                $mc.ast.push(nil());
                 $past := $mc.ast;
             }
             if $ml {
@@ -818,7 +829,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         # push the else block if any, otherwise 'if' returns C<Nil> (per S04)
         $past.push( $<else>
                     ?? pblock_immediate( $<else>[0].ast )
-                    !!  QAST::Var.new(:name('Nil'), :scope('lexical'))
+                    !!  nil()
         );
         # build if/then/elsif structure
         while $count > 0 {
@@ -888,7 +899,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         # Make sure the body is in sink context (for now; in the long run,
         # need to handle the l-value case).
         my $body_past := $loop[1][1];
-        $body_past.push(QAST::Var.new( :name('Nil'), :scope('lexical') ));
+        $body_past.push(nil());
         
         # Handle phasers.
         my $code := $loop[1]<code_object>;
@@ -918,7 +929,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
 
     method statement_control:sym<need>($/) {
-        my $past := QAST::Var.new( :name('Nil'), :scope('lexical') );
+        my $past := nil();
         for $<version> {
             # XXX TODO: Version checks.
         }
@@ -926,12 +937,12 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
 
     method statement_control:sym<import>($/) {
-        my $past := QAST::Var.new( :name('Nil'), :scope('lexical') );
+        my $past := nil();
         make $past;
     }
 
     method statement_control:sym<use>($/) {
-        my $past := QAST::Var.new( :name('Nil'), :scope('lexical') );
+        my $past := nil();
         if $<version> {
             # TODO: replace this by code that doesn't always die with
             # a useless error message
@@ -1011,7 +1022,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $past.push($import_past);
         }
         
-        $past.push(QAST::Var.new( :name('Nil'), :scope('lexical') ));
+        $past.push(nil());
 
         make $past;
     }
@@ -1056,7 +1067,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
         my $block := $<block>.ast;
         set_block_handler($/, $block, 'CATCH');
-        make QAST::Var.new( :name('Nil'), :scope('lexical') );
+        make nil();
     }
 
     method statement_control:sym<CONTROL>($/) {
@@ -1065,7 +1076,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
         my $block := $<block>.ast;
         set_block_handler($/, $block, 'CONTROL');
-        make QAST::Var.new( :name('Nil'), :scope('lexical') );
+        make nil();
     }
 
     method statement_prefix:sym<BEGIN>($/) { make $*W.add_phaser($/, 'BEGIN', ($<blorst>.ast)<code_object>); }
@@ -1095,7 +1106,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
     method statement_prefix:sym<gather>($/) {
         my $past := block_closure($<blorst>.ast);
-        $past<past_block>.push(QAST::Var.new( :name('Nil'), :scope('lexical') ));
+        $past<past_block>.push(nil());
         make QAST::Op.new( :op('call'), :name('&GATHER'), $past );
     }
 
@@ -1103,7 +1114,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my $blast := QAST::Op.new( :op('call'), $<blorst>.ast );
         make QAST::Stmts.new(
             QAST::Op.new( :name('&eager'), :op('call'), $blast ),
-            QAST::Var.new( :name('Nil'), :scope('lexical')),
+            nil(),
             :node($/)
         );
     }
@@ -1145,9 +1156,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                         QAST::Op.new( :op('null') ),
                         QAST::Op.new( :op('exception') )
                     ),
-                    QAST::WVal.new(
-                        :value( $*W.find_symbol(['Nil']) ),
-                    ),
+                    nil(),
                 )
             );
         }
@@ -1213,7 +1222,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
     method coloncircumfix($/) {
         make $<circumfix>
             ?? $<circumfix>.ast
-            !! QAST::Var.new( :name('Nil'), :scope('lexical') );
+            !! nil();
     }
 
     method colonpair($/) {
@@ -1460,9 +1469,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             # If it's a late-bound sub lookup, we may not find it, so be sure
             # to handle the case where the lookup comes back null.
             if $sigil eq '&' {
-                $past := QAST::Op.new(
-                    :op('ifnull'), $past,
-                    QAST::Var.new(:name('Nil'), :scope('lexical')));
+                $past := QAST::Op.new( :op('ifnull'), $past, nil());
             }
         }
         $past
@@ -1840,7 +1847,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             }
 
             # Nothing to emit here; hand back a Nil.
-            $past := QAST::Var.new(:name('Nil'), :scope('lexical'));
+            $past := nil();
             $past<metaattr> := $attr;
         }
         elsif $*SCOPE eq 'my' || $*SCOPE eq 'state' {            
@@ -3722,7 +3729,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my $macro_ast := $*W.ex-handle($/, { $macro(|@argument_asts) });
         my $nil_class := $*W.find_symbol(['Nil']);
         if istype($macro_ast, $nil_class) {
-            return QAST::Var.new(:name('Nil'), :scope('lexical'));
+            return nil();
         }
         my $ast_class := $*W.find_symbol(['AST']);
         unless istype($macro_ast, $ast_class) {
@@ -3739,7 +3746,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             '$!past'
         );
         unless nqp::defined($macro_ast_qast) {
-            return QAST::Var.new(:name('Nil'), :scope('lexical'));
+            return nil();
         }
         my $block := QAST::Block.new(:blocktype<raw>, $macro_ast_qast);
         $*W.add_quasi_fixups($macro_ast, $block);
@@ -4281,7 +4288,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             for $/.list { if $_.ast { $past.push($_.ast); } }
         }
         if $past.op eq 'xor' {
-            $past.push(QAST::Var.new(:named<false>, :scope<lexical>, :name<Nil>));
+            $past.push(nil());
         }
         if $key eq 'PREFIX' || $key eq 'INFIX' || $key eq 'POSTFIX' {
             $past := whatever_curry($/, (my $orig := $past), $key eq 'INFIX' ?? 2 !! 1);
@@ -5521,7 +5528,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     :op('getpayload'),
                     QAST::Op.new( :op('exception') )
                 )),
-                QAST::Var.new( :name('Nil'), :scope('lexical') )
+                nil()
             );
         }
 
@@ -5536,7 +5543,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         else {
             my $prev_content := QAST::Stmts.new();
             $prev_content.push($handler<past_block>.shift()) while +@($handler<past_block>);
-            $prev_content.push(QAST::Var.new( :name('Nil'), :scope('lexical') ));
+            $prev_content.push(nil());
             $handler<past_block>.push(QAST::Op.new(
                 :op('handle'),
                 $prev_content,
@@ -5560,7 +5567,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         %*HANDLERS{$type} := QAST::Stmts.new(
             :node($/),
             QAST::VM.new( :pirop('perl6_invoke_catchhandler__vPP'), $handler, $ex),
-            QAST::Var.new( :scope('lexical'), :name('Nil') )
+            nil(),
         );
     }
 

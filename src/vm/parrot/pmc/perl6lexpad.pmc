@@ -13,10 +13,8 @@ typedef struct {
     INTVAL  changed;            /* Has anything in here changed since we last saw it? */
 } Rakudo_StaticLexPad;
 
-/* Some useful types/container descriptors we like to have to hand. */
-static PMC *EnumMap  = NULL;
-static PMC *_Hash    = NULL;
-static PMC *Block    = NULL;
+/* A useful type we like to have to hand. */
+static PMC *Block = NULL;
 
 /* Locates the register number for getting the specified name
  * and type of lexical. */
@@ -63,13 +61,6 @@ pmclass Perl6LexPad
     
     /* The current context, including the registers. */
     ATTR PMC *ctx;
-    
-    /* For %_ we rarely need it, but methods always want to collect it by default.
-     * We can't really statically eliminate it, but we can make sure we only create
-     * it on demand. This contains a Parrot hash by default, or NULL if there's no
-     * named args. The binder sets it, and it'll magically become initialized to
-     * a Perl 6 hash if accessed. */
-    ATTR PMC *default_named_slurpy;
 
     VTABLE void init() {
         Parrot_ex_throw_from_c_args(INTERP, NULL, EXCEPTION_INVALID_OPERATION,
@@ -124,13 +115,11 @@ Return the LexInfo PMC, if any or a Null PMC.
     }
     
     VTABLE void mark() {
-        PMC *lexinfo, *ctx, *default_named_slurpy;
+        PMC *lexinfo, *ctx;
         GET_ATTR_lexinfo(INTERP, SELF, lexinfo);
         GET_ATTR_ctx(INTERP, SELF, ctx);
-        GET_ATTR_default_named_slurpy(INTERP, SELF, default_named_slurpy);
         Parrot_gc_mark_PMC_alive(INTERP, lexinfo);
         Parrot_gc_mark_PMC_alive(INTERP, ctx);
-        Parrot_gc_mark_PMC_alive(INTERP, default_named_slurpy);
     }
 
     VTABLE void set_pointer(void *ctx) {
@@ -275,29 +264,13 @@ Return the LexInfo PMC, if any or a Null PMC.
         Hash *hash;
         INTVAL  reg;
         PMC    *ctx;
-        PMC    *result;
 
         GET_ATTR_lexinfo_hash(INTERP, SELF, hash);
         reg = register_number_for_get(INTERP, hash, name, REGNO_PMC);
         if (reg < 0)
             return PMCNULL;
         GET_ATTR_ctx(INTERP, SELF, ctx);
-        result = CTX_REG_PMC(interp, ctx, reg);
-        
-        if (PMC_IS_NULL(result)) {
-            /* We lazily handle %_. */
-            if (Parrot_str_equal(interp, name, CONST_STRING(interp, "%_"))) {
-                PMC *storage;
-                GET_ATTR_default_named_slurpy(INTERP, SELF, storage);
-                result = REPR(_Hash)->allocate(interp, STABLE(_Hash));
-                REPR(_Hash)->initialize(interp, STABLE(_Hash), OBJECT_BODY(result));
-                if (!PMC_IS_NULL(storage))
-                    VTABLE_set_attr_keyed(interp, result, EnumMap, CONST_STRING(interp, "$!storage"), storage);
-            }
-            VTABLE_set_pmc_keyed_str(interp, SELF, name, result);
-        }
-        
-        return result;
+        return CTX_REG_PMC(interp, ctx, reg);
     }
     
     VTABLE INTVAL get_integer_keyed_str(STRING *name) {
@@ -464,9 +437,7 @@ Get iterator for declared lexicals.
         return VTABLE_get_iter(INTERP, lexinfo);
     }
     
-    METHOD configure_magicals(PMC *_EnumMap, PMC *__Hash, PMC *_Block) {
-        EnumMap  = _EnumMap;
-        _Hash    = __Hash;
+    METHOD configure_magicals(PMC *_Block) {
         Block    = _Block;
     }
 }

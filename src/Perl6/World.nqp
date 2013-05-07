@@ -22,7 +22,6 @@ my $SIG_ELEM_DEFAULT_FROM_OUTER  := 16384;
 my $SIG_ELEM_IS_CAPTURE          := 32768;
 my $SIG_ELEM_UNDEFINED_ONLY      := 65536;
 my $SIG_ELEM_DEFINED_ONLY        := 131072;
-my $SIG_ELEM_METHOD_SLURPY_NAMED := 262144;
 my $SIG_ELEM_NOMINAL_GENERIC     := 524288;
 my $SIG_ELEM_DEFAULT_IS_LITERAL  := 1048576;
 my $SIG_ELEM_NATIVE_INT_VALUE    := 2097152;
@@ -783,9 +782,6 @@ class Perl6::World is HLL::World {
         }
         if %param_info<named_slurpy> {
             $flags := $flags + $SIG_ELEM_SLURPY_NAMED;
-        }
-        if %param_info<is_method_named_slurpy> {
-            $flags := $flags + $SIG_ELEM_METHOD_SLURPY_NAMED;
         }
         if %param_info<pos_lol> {
             $flags := $flags + $SIG_ELEM_SLURPY_LOL;

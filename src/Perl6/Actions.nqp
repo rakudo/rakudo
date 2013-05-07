@@ -2582,8 +2582,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     variable_name => '%_',
                     nominal_type => $*W.find_symbol(['Mu']),
                     named_slurpy => 1,
-                    is_multi_invocant => 1,
-                    is_method_named_slurpy => 1
+                    is_multi_invocant => 1
                 ));
                 $past[0].unshift(QAST::Var.new( :name('%_'), :scope('lexical'), :decl('var') ));
                 $past.symbol('%_', :scope('lexical'), :lazyinit(1));

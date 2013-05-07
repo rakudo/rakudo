@@ -1804,7 +1804,7 @@ nqp::p6settypes(EXPORT::DEFAULT.WHO);
 # We'll build container descriptors for $_, $! and $/ that we can
 # share with all of the magically/lazily created scalars.
 #?if parrot
-pir::new__PsP('Perl6LexPad', hash()).configure_magicals(EnumMap, Hash, Block);
+pir::new__PsP('Perl6LexPad', hash()).configure_magicals(Block);
 #?endif
 
 # Tell parametric role groups how to create a dispatcher.

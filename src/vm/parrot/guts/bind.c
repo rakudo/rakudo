@@ -894,26 +894,19 @@ Rakudo_binding_bind(PARROT_INTERP, PMC *lexpad, PMC *sig_pmc, PMC *capture,
 
         /* Could it be a named slurpy? */
         else if (param->flags & SIG_ELEM_SLURPY_NAMED) {
-            /* Can cheat a bit if it's the default method %_.
-             * We give the hash to the lexpad. */
-            if (param->flags & SIG_ELEM_METHOD_SLURPY_NAMED && lexpad->vtable->base_type == p6l_id) {
-                SETATTR_Perl6LexPad_default_named_slurpy(interp, lexpad, named_args_copy);
-                PARROT_GC_WRITE_BARRIER(interp, lexpad);
-            }
-            else {
-                /* We'll either take the current named arguments copy hash which
-                 * will by definition contain all unbound named parameters and use
-                 * that, or just create an empty one. */
-                PMC *slurpy = PMC_IS_NULL(named_args_copy) ?
-                        Parrot_pmc_new(interp, enum_class_Hash) :
-                        named_args_copy;
-                cur_bv.type = BIND_VAL_OBJ;
-                cur_bv.val.o = Rakudo_binding_create_hash(interp, slurpy);
-                bind_fail = Rakudo_binding_bind_one_param(interp, lexpad, sig, param,
-                        cur_bv, no_nom_type_check, error);
-                if (bind_fail)
-                    return bind_fail;
-            }
+            /* We'll either take the current named arguments copy hash which
+             * will by definition contain all unbound named parameters and use
+             * that. Otherwise, putting Mu in there is fine; Hash is smart
+             * enough to know what to do. */
+            PMC *slurpy = PMC_IS_NULL(named_args_copy) ?
+                    Rakudo_types_mu_get() :
+                    named_args_copy;
+            cur_bv.type = BIND_VAL_OBJ;
+            cur_bv.val.o = Rakudo_binding_create_hash(interp, slurpy);
+            bind_fail = Rakudo_binding_bind_one_param(interp, lexpad, sig, param,
+                    cur_bv, no_nom_type_check, error);
+            if (bind_fail)
+                return bind_fail;
             
             /* Nullify named arguments hash now we've consumed it, to mark all
              * is well. */

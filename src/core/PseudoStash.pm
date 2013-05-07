@@ -98,7 +98,7 @@ my class PseudoStash is EnumMap {
                 $stash);
         },
         'OUR' => sub ($cur) {
-            pir::find_lex_relative__PPs(
+            nqp::getlexrel(
                 nqp::getattr(nqp::decont($cur), PseudoStash, '$!ctx'),
                 '$?PACKAGE')
         };
@@ -115,13 +115,13 @@ my class PseudoStash is EnumMap {
                 Any
         }
         elsif $!mode == DYNAMIC_CHAIN || $!mode == PICK_CHAIN_BY_NAME && substr($key, 1, 1) eq '*' {
-            my $found := pir::find_dynamic_lex_relative__PPs(
+            my $found := nqp::getlexreldyn(
                 nqp::getattr(self, PseudoStash, '$!ctx'),
                 nqp::unbox_s($key));
             nqp::isnull($found) ?? Any !! $found
         }
         else {
-            my $found := pir::find_lex_relative__PPs(
+            my $found := nqp::getlexrel(
                 nqp::getattr(self, PseudoStash, '$!ctx'),
                 nqp::unbox_s($key));
             nqp::isnull($found) ?? Any !! $found
@@ -157,14 +157,14 @@ my class PseudoStash is EnumMap {
         }
         elsif $!mode == DYNAMIC_CHAIN || $!mode == PICK_CHAIN_BY_NAME && substr($key, 1, 1) eq '*' {
             nqp::isnull(
-                pir::find_dynamic_lex_relative__PPs(
+                nqp::getlexreldyn(
                     nqp::getattr(self, PseudoStash, '$!ctx'),
                     nqp::unbox_s($key)))
                 ?? False !! True
         }
         else {
             nqp::isnull(
-                pir::find_lex_relative__PPs(
+                nqp::getlexrel(
                     nqp::getattr(self, PseudoStash, '$!ctx'),
                     nqp::unbox_s($key)))
                 ?? False !! True

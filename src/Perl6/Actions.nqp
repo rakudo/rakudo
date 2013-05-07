@@ -5528,8 +5528,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 )
             ),
             QAST::Op.new( :op('p6store'),
-                QAST::VM.new( :pirop('find_lex_skip_current__Ps'),
-                    QAST::SVal.new( :value('$!') )),
+                QAST::Op.new( :op('getlexouter'), QAST::SVal.new( :value('$!') ) ),
                 QAST::Var.new( :scope('lexical'), :name('$_') ),
             )
         );

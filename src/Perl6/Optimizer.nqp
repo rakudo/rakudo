@@ -761,6 +761,9 @@ class Perl6::Optimizer {
                     $_.op eq 'bind' && $_[0].name eq 'call_sig') {
                 # Don't copy this binder call or setup.
             }
+            elsif nqp::istype($_, QAST::Op) && $_.op eq 'bind' && $_[0].name eq '$_' {
+                # Don't copy the $_ initialization from outer.
+            }
             elsif nqp::istype($_, QAST::Var) && ($_.name eq '$/' || $_.name eq '$!' ||
                     $_.name eq '$_' || $_.name eq '$*DISPATCHER') {
                 # Don't copy this variable node.

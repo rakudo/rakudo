@@ -699,13 +699,21 @@ class Perl6::Actions is HLL::Actions does STDActions {
             else {
                 unless $block.symbol('$_') {
                     if $*IMPLICIT {
+                        $block[0].push(QAST::Var.new( :name('$_'), :scope('lexical'), :decl('var') ));
                         @params.push(hash(
                             :variable_name('$_'), :optional(1),
                             :nominal_type($*W.find_symbol(['Mu'])),
                             :default_from_outer(1), :is_parcel(1),
                         ));
                     }
-                    add_implicit_var($block, '$_');
+                    else {
+                        $block[0].push(QAST::Op.new(
+                            :op('bind'),
+                            QAST::Var.new( :name('$_'), :scope('lexical'), :decl('var') ),
+                            QAST::Op.new( :op('getlexouter'), QAST::SVal.new( :value('$_') ) )
+                        ));
+                    }
+                    $block.symbol('$_', :scope('lexical'), :type($*W.find_symbol(['Mu'])));
                 }
                 %sig_info<parameters> := @params;
             }
@@ -819,8 +827,12 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
         else {
             unless $BLOCK.symbol('$_') || $*IMPLICIT {
-                # XXX Needs further update
-                add_implicit_var($BLOCK, '$_');
+                $BLOCK[0].push(QAST::Op.new(
+                    :op('bind'),
+                    QAST::Var.new( :name('$_'), :scope('lexical'), :decl('var') ),
+                    QAST::Op.new( :op('getlexouter'), QAST::SVal.new( :value('$_') ) )
+                ));
+                $BLOCK.symbol('$_', :scope('lexical'), :type($*W.find_symbol(['Mu'])));
             }
         }
     }
@@ -5454,12 +5466,6 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my $sig := $*W.create_signature(nqp::hash('parameters', [$*W.create_parameter($param)]));
         add_signature_binding_code($past, $sig, [$param]);
         return $*W.create_code_object($past, 'Block', $sig);
-    }
-
-    sub add_implicit_var($block, $name) {
-        $block[0].push(QAST::Var.new( :name($name), :scope('lexical'), :decl('var') ));
-        $block.symbol($name, :scope('lexical'), :lazyinit(1));
-        try $block.symbol($name, :type($*W.find_symbol(['Mu'])));
     }
 
     sub when_handler_helper($when_block) {

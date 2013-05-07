@@ -794,29 +794,33 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
 
     method finishpad($/) {
-        # Generate the $_, $/, and $! lexicals if they aren't already
-        # declared.
+        # Generate the $_, $/, and $! lexicals for routines if they aren't
+        # already declared. For blocks, $_ will come from the outer if it
+        # isn't already declared.
         my $BLOCK := $*W.cur_lexpad();
         my $type := $BLOCK<IN_DECL>;
         if $type eq 'mainline' && %*COMPILING<%?OPTIONS><setting> eq 'NULL' {
-            # Don't do anything in this case; we don't have any symbols yet.
+            # Don't do anything in the case where we are in the mainline of
+            # the setting; we don't have any symbols (Scalar, etc.) yet.
             return 1;
         }
         my $is_routine := $type eq 'sub' || $type eq 'method' ||
-                        $type eq 'submethod' || $type eq 'mainline';
-        for ($is_routine ?? <$_ $/ $!> !! ['$_']) {
+                          $type eq 'submethod' || $type eq 'mainline';
+        if $is_routine {
             # Generate the lexical variable except if...
             #   (1) the block already has one, or
             #   (2) the variable is '$_' and $*IMPLICIT is set
             #       (this case gets handled by getsig)
-            unless $BLOCK.symbol($_) || ($_ eq '$_' && $*IMPLICIT) {
-                # XXX Will not special-case $_ in the end.
-                if $_ eq '$_' {
-                    add_implicit_var($BLOCK, $_);
-                }
-                else {
+            for <$_ $/ $!> {
+                unless $BLOCK.symbol($_) || ($_ eq '$_' && $*IMPLICIT) {
                     $*W.install_lexical_magical($BLOCK, $_);
                 }
+            }
+        }
+        else {
+            unless $BLOCK.symbol('$_') || $*IMPLICIT {
+                # XXX Needs further update
+                add_implicit_var($BLOCK, '$_');
             }
         }
     }

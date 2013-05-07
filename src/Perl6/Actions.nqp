@@ -296,9 +296,6 @@ class Perl6::Actions is HLL::Actions does STDActions {
         );
         $*W.add_fixup_task(:deserialize_past($global_install), :fixup_past($global_install));
 
-        # Mainline should have fresh lexicals.
-        $*W.get_static_lexpad($unit).set_fresh_magicals();
-
         # Get the block for the entire compilation unit.
         my $outer := $*UNIT_OUTER;
         $outer.node($/);

@@ -35,9 +35,6 @@ pmclass Perl6LexInfo
     /* Cache of the flags for when things have state. Actually the name of
      * the variable, or STRINGNULL if none. */
     ATTR PMC *state_flags_cache;
-    
-    /* Does this block get fresh magicals, or just steal the outer ones? */
-    ATTR INTVAL fresh_magicals;
 
     VTABLE void init() {
         SELF.init_pmc(PMCNULL);

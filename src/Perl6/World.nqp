@@ -1076,10 +1076,8 @@ class Perl6::World is HLL::World {
                 QAST::WVal.new( :value($code) )));
         }
 
-        # If it's a routine, flag that it needs fresh magicals.
-        # Also store the namespace, which makes backtraces nicer.
+        # If it's a routine, store the package to make backtraces nicer.
         if nqp::istype($code, $routine_type) {
-            self.get_static_lexpad($code_past).set_fresh_magicals();
             nqp::bindattr($code, $routine_type, '$!package', $*PACKAGE);
         }
             

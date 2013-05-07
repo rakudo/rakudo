@@ -9,10 +9,7 @@ class Perl6::Metamodel::StaticLexPad {
     
     # Has anything changed since the guts last memoized it?
     has int $!changed;
-    
-    # Does this block get fresh magicals?
-    has int $!fresh_magicals;
-    
+
     # Adds a static value (which may actually be a container) to the static
     # lexpad.
     method add_static_value($name, $value, $is_cloned, $is_state) {
@@ -23,11 +20,5 @@ class Perl6::Metamodel::StaticLexPad {
         %!flags{$name} := $flags;
         $!changed := 1;
         $value
-    }
-    
-    # Flag that the block gets fresh magicals.
-    method set_fresh_magicals() {
-        $!fresh_magicals := 1;
-        $!changed := 1;
     }
 }

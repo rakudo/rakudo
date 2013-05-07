@@ -281,34 +281,6 @@ inline op rakudo_dynop_setup() :base_core {
 
 /*
 
-=item find_lex_skip_current(out PMC, in STR)
-
-Finds the lexical named $2 and returns it. However, unlike find_lex this op
-skips the current sub and starts looking immediately at its outers.
-
-=cut
-
-*/
-inline op find_lex_skip_current(out PMC, in STR) :base_core {
-    PMC *ctx = CURRENT_CONTEXT(interp);
-    $1 = PMCNULL;
-
-    while (Parrot_pcc_get_outer_ctx(interp, ctx)) {
-        PMC   * const outer   = Parrot_pcc_get_outer_ctx(interp, ctx);
-        PMC   * const lex_pad = Parrot_pcc_get_lex_pad(interp, outer);
-
-        if (!PMC_IS_NULL(lex_pad) && VTABLE_exists_keyed_str(interp, lex_pad, $2)) {
-            $1 = VTABLE_get_pmc_keyed_str(interp, lex_pad, $2);
-            break;
-        }
-
-        ctx = outer;
-    }
-}
-
-
-/*
-
 =item inline op x_is_uprop(out INT, in STR, in STR, in INT)
 
 Sets a true value in $1 if character $4 in string $3 has the unicode property
@@ -1574,89 +1546,6 @@ inline op perl6_get_outer_ctx(out PMC, in PMC) {
         Parrot_ex_throw_from_c_args(interp, NULL, EXCEPTION_INVALID_OPERATION,
             "Can only use perl6_get_outer_ctx with a SixModelObject");
     }
-}
-
-/*
-
-=item find_lex_relative(out PMC, in PMC, in STR)
-
-Finds the lexical named $3 relative to scope $2, following the outer
-chain. Places it in $1. Places a NULL PMC in $1 if it is not found.
-
-=cut
-
-*/
-inline op find_lex_relative(out PMC, in PMC, in STR) :base_core {
-    PMC *ctx = $2;
-    $1 = PMCNULL;
-
-    while (!PMC_IS_NULL(ctx)) {
-        PMC   * const lex_pad = Parrot_pcc_get_lex_pad(interp, ctx);
-        PMC   * const outer   = Parrot_pcc_get_outer_ctx(interp, ctx);
-
-        if (!PMC_IS_NULL(lex_pad) && VTABLE_exists_keyed_str(interp, lex_pad, $3)) {
-            $1 = VTABLE_get_pmc_keyed_str(interp, lex_pad, $3);
-            break;
-        }
-
-        ctx = outer;
-    }
-}
-
-/*
-
-=item find_dynamic_lex_relative(out PMC, in PMC, in STR)
-
-Finds the lexical named $3 relative to scope $2, following the caller
-chain. Places it in $1. Places a NULL PMC in $1 if it is not found.
-
-=cut
-
-*/
-inline op find_dynamic_lex_relative(out PMC, in PMC, in STR) :base_core {
-    PMC *ctx = $2;
-    $1 = PMCNULL;
-
-    while (!PMC_IS_NULL(ctx)) {
-        PMC   * const lex_pad = Parrot_pcc_get_lex_pad(interp, ctx);
-        PMC   * const caller  = Parrot_pcc_get_caller_ctx(interp, ctx);
-
-        if (!PMC_IS_NULL(lex_pad) && VTABLE_exists_keyed_str(interp, lex_pad, $3)) {
-            $1 = VTABLE_get_pmc_keyed_str(interp, lex_pad, $3);
-            break;
-        }
-
-        ctx = caller;
-    }
-}
-
-/*
-
-=item find_caller_lex_relative(out PMC, in PMC, in STR)
-
-Finds the lexical named $3 relative to scope $2, following the caller
-chain but also seraching the outer chain for each caller. Places it in $1.
-Places a NULL PMC in $1 if it is not found.
-
-=cut
-
-*/
-inline op find_caller_lex_relative(out PMC, in PMC, in STR) :base_core {
-    STRING  * const lex_name = $3;
-    PMC     * ctx            = $2;
-    PMC     * result         = PMCNULL;
-
-    for (; !PMC_IS_NULL(ctx) && PMC_IS_NULL(result);
-           ctx = Parrot_pcc_get_caller_ctx(interp, ctx))
-    {
-        PMC * const lex_pad = sub_find_pad(interp, lex_name, ctx);
-        if (!PMC_IS_NULL(lex_pad)) {
-            result = VTABLE_get_pmc_keyed_str(interp, lex_pad, lex_name);
-        }
-        if (!result)
-            result = PMCNULL;
-    }
-    $1 = result;
 }
 
 /*

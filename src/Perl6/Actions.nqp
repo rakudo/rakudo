@@ -2585,7 +2585,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     is_multi_invocant => 1
                 ));
                 $past[0].unshift(QAST::Var.new( :name('%_'), :scope('lexical'), :decl('var') ));
-                $past.symbol('%_', :scope('lexical'), :lazyinit(1));
+                $past.symbol('%_', :scope('lexical'));
             }
         }
         set_default_parameter_type(@params, 'Any');

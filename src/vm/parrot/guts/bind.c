@@ -7,7 +7,6 @@ Copyright (C) 2009-2011, The Perl Foundation.
 #include "parrot/parrot.h"
 #include "parrot/extend.h"
 #include "pmc_callcontext.h"
-#include "../pmc/pmc_perl6lexpad.h"
 #include "bind.h"
 #include "container.h"
 #include "types.h"
@@ -15,7 +14,6 @@ Copyright (C) 2009-2011, The Perl Foundation.
 
 /* Cache of Parrot type IDs and some strings. */
 static INTVAL smo_id            = 0;
-static INTVAL p6l_id            = 0;
 static INTVAL qrpa_id           = 0;
 static STRING *ACCEPTS          = NULL;
 static STRING *HOW              = NULL;
@@ -62,7 +60,6 @@ static void setup_binder_statics(PARROT_INTERP) {
     INSTANTIATE_GENERIC_str = Parrot_str_new_constant(interp, "instantiate_generic");
     
     smo_id  = Parrot_pmc_get_type_str(interp, Parrot_str_new(interp, "SixModelObject", 0));
-    p6l_id  = Parrot_pmc_get_type_str(interp, Parrot_str_new(interp, "Perl6LexPad", 0));
     qrpa_id = Parrot_pmc_get_type_str(interp, Parrot_str_new(interp, "QRPA", 0));
 }
 

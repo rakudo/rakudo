@@ -7,6 +7,7 @@ NQP     = @nqp@
 GEN_CAT = tools/build/gen-cat.pl jvm
 
 PREFIX = @prefix@
+NQP_PREFIX = @nqp_prefix@
 
 MKPATH = $(PERL) -MExtUtils::Command -e mkpath
 CP     = $(PERL) -MExtUtils::Command -e cp
@@ -14,9 +15,9 @@ CHMOD  = $(PERL) -MExtUtils::Command -e chmod
 RM_F   = $(PERL) -MExtUtils::Command -e rm_f
 RM_RF   = $(PERL) -MExtUtils::Command -e rm_rf
 
-NQP_JARS = install-jvm/nqp-runtime.jar@cpsep@install-jvm/asm-4.1.jar@cpsep@install-jvm/jline-1.0.jar
+NQP_JARS = $(NQP_PREFIX)/nqp-runtime.jar@cpsep@$(NQP_PREFIX)/asm-4.1.jar@cpsep@$(NQP_PREFIX)/jline-1.0.jar
 
-RUN_PERL6 = $(JAVA) -Xbootclasspath/a:.@cpsep@$(NQP_JARS)@cpsep@rakudo-runtime.jar -cp install-jvm perl6
+RUN_PERL6 = $(JAVA) -Xbootclasspath/a:.@cpsep@$(NQP_JARS)@cpsep@rakudo-runtime.jar -cp $(NQP_PREFIX) perl6
 
 RUNTIME_JAVAS = src/vm/jvm/runtime/org/perl6/rakudo/*.java
 

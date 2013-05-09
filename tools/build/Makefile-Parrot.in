@@ -40,15 +40,12 @@ PBC_TO_EXE       = $(PARROT_BIN_DIR)/pbc_to_exe$(EXE)
 PARROT_TOOLS_DIR = $(PARROT_LIB_DIR)/tools
 PARROT_PERL_LIB  = $(PARROT_TOOLS_DIR)/lib
 OPS2C            = $(PARROT_BIN_DIR)/ops2c$(EXE)
-PMC2C            = $(PERL) $(PARROT_TOOLS_DIR)/build/pmc2c.pl
-PMC2C_INCLUDES   = --include src/vm/parrot/pmc --include $(PARROT_SRC_DIR) --include $(PARROT_SRC_DIR)/pmc
 CINCLUDES        = -I$(PARROT_INCLUDE_DIR) -I$(PARROT_INCLUDE_DIR)/pmc
 LINKARGS         = $(LDFLAGS) $(LD_LOAD_FLAGS) $(LIBPARROT) @libs@ @icu_shared@
 GEN_CAT          = tools/build/gen-cat.pl parrot
 
 # rakudo directories
 DYNEXT_DIR     = dynext
-PMC_DIR        = src/vm/parrot/pmc
 OPS_DIR        = src/vm/parrot/ops
 PERL6_LANG_DIR = $(PARROT_LIB_DIR)/languages/perl6
 MANDIR         = @mandir@
@@ -87,13 +84,8 @@ R_SETTING_PIR = src/gen/RESTRICTED.setting.pir
 R_SETTING_PBC = RESTRICTED.setting.pbc
 GROUP         = perl6_group
 OPS           = perl6_ops
-DYNEXT_DYNPMC = $(DYNEXT_DIR)/$(GROUP)$(LOAD_EXT)
 DYNEXT_DYNOPS = $(DYNEXT_DIR)/$(OPS)$(LOAD_EXT)
-DYNPMC        = $(PMC_DIR)/$(GROUP)$(LOAD_EXT)
 DYNOPS        = $(OPS_DIR)/$(OPS)$(LOAD_EXT)
-
-PMC_SOURCES = \
-  $(PMC_DIR)/perl6lexinfo.pmc $(PMC_DIR)/perl6lexpad.pmc \
 
 OPS_SOURCE   = perl6.ops
 
@@ -139,7 +131,6 @@ METAMODEL_SOURCES = \
   src/Perl6/Metamodel/SubsetHOW.nqp \
   src/Perl6/Metamodel/EnumHOW.nqp \
   src/Perl6/Metamodel/ContainerDescriptor.nqp \
-  src/Perl6/Metamodel/StaticLexPad.nqp \
   src/Perl6/Metamodel/Dispatchers.nqp \
 
 BOOTSTRAP_SOURCES = \
@@ -267,16 +258,6 @@ CLEANUPS = \
   src/gen/*.pir \
   src/gen/*.pbc \
   src/gen/*.pm \
-  $(PMC_DIR)/pmc_*.h \
-  $(PMC_DIR)/*.c \
-  $(PMC_DIR)/*.dump \
-  $(PMC_DIR)/*$(O) \
-  $(PMC_DIR)/*$(LOAD_EXT) \
-  $(PMC_DIR)/*.exp \
-  $(PMC_DIR)/*.ilk \
-  $(PMC_DIR)/*.manifest \
-  $(PMC_DIR)/*.pdb \
-  $(PMC_DIR)/*.lib \
   $(OPS_DIR)/*.h \
   $(OPS_DIR)/*.c \
   $(OPS_DIR)/*$(O) \
@@ -318,7 +299,7 @@ install: all
 	$(CP)     lib/Pod/To/Text.pm  $(DESTDIR)$(PERL6_LANG_DIR)/lib/Pod/To
 	$(CP)     lib/Pod/To/Text.pir $(DESTDIR)$(PERL6_LANG_DIR)/lib/Pod/To
 	$(MKPATH)                     $(DESTDIR)$(PARROT_LIB_DIR)/dynext
-	$(CP)     $(DYNPMC) $(DYNOPS) $(DESTDIR)$(PARROT_LIB_DIR)/dynext
+	$(CP)     $(DYNOPS)           $(DESTDIR)$(PARROT_LIB_DIR)/dynext
 	$(MKPATH)                     $(DESTDIR)$(PARROT_BIN_DIR)
 	$(CP)     $(PERL6_EXE)        $(DESTDIR)$(PARROT_BIN_DIR)
 	$(CHMOD)  755                 $(DESTDIR)$(PARROT_BIN_DIR)/$(PERL6_EXE)
@@ -342,23 +323,23 @@ $(PERL6_EXE): $(PERL6_PBC) $(PARROT_DLL_COPY)
 $(PERL6_PBC): $(PERL6_G_PBC) $(PERL6_A_PBC) $(PERL6_C_PBC) $(PERL6_P_PBC) src/main.nqp
 	$(PERL) tools/build/gen-version.pl >src/gen/main-version.nqp
 	$(PERL) $(GEN_CAT) src/main.nqp src/gen/main-version.nqp > src/gen/main.nqp
-	$(NQP_EXE) --vmlibs=perl6_group,perl6_ops --target=pir --output=src/gen/perl6.pir \
+	$(NQP_EXE) --vmlibs=perl6_ops --target=pir --output=src/gen/perl6.pir \
 	    src/gen/main.nqp
 	$(PARROT) $(PARROT_ARGS) -o $(PERL6_PBC) src/gen/perl6.pir
 
-$(PERL6_ML_PBC): $(NQP_EXE) $(DYNEXT_DYNPMC) $(DYNEXT_DYNOPS) src/Perl6/ModuleLoader.nqp src/vm/parrot/ModuleLoaderVMConfig.nqp
+$(PERL6_ML_PBC): $(NQP_EXE) $(DYNEXT_DYNOPS) src/Perl6/ModuleLoader.nqp src/vm/parrot/ModuleLoaderVMConfig.nqp
 	$(PERL) $(GEN_CAT) src/vm/parrot/ModuleLoaderVMConfig.nqp src/Perl6/ModuleLoader.nqp > src/gen/ModuleLoader.nqp
 	$(NQP_EXE) --target=pir --output=$(PERL6_ML) --encoding=utf8 \
 	    src/gen/ModuleLoader.nqp
 	$(PARROT) $(PARROT_ARGS) -o $(PERL6_ML_PBC) $(PERL6_ML)
 
-$(PERL6_CF_PBC): $(NQP_EXE) $(DYNEXT_DYNPMC) $(DYNEXT_DYNOPS) src/Perl6/ConstantFolder.nqp
+$(PERL6_CF_PBC): $(NQP_EXE) $(DYNEXT_DYNOPS) src/Perl6/ConstantFolder.nqp
 	$(NQP_EXE) --target=pir --output=$(PERL6_CF) --encoding=utf8 \
 	    src/Perl6/ConstantFolder.nqp
 	$(PARROT) $(PARROT_ARGS) -o $(PERL6_CF_PBC) $(PERL6_CF)
 
 $(PERL6_W_PBC): $(NQP_EXE) $(PERL6_ML_PBC) src/Perl6/World.nqp
-	$(NQP_EXE) --vmlibs=perl6_group,perl6_ops --target=pir --output=$(PERL6_W) --encoding=utf8 \
+	$(NQP_EXE) --vmlibs=perl6_ops --target=pir --output=$(PERL6_W) --encoding=utf8 \
 	    src/Perl6/World.nqp
 	$(PARROT) $(PARROT_ARGS) -o $(PERL6_W_PBC) $(PERL6_W)
     
@@ -367,38 +348,38 @@ $(PERL6_G_PBC): $(NQP_EXE) $(PERL6_W_PBC) $(PERL6_A_PBC) src/Perl6/Grammar.nqp $
 	    src/Perl6/Grammar.nqp
 	$(PARROT) $(PARROT_ARGS) -o $(PERL6_G_PBC) $(PERL6_G)
 
-$(PERL6_OPS_PBC): $(NQP_EXE) $(DYNEXT_DYNPMC) $(DYNEXT_DYNOPS) src/vm/parrot/Perl6/Ops.nqp
-	$(NQP_EXE) --vmlibs=perl6_group,perl6_ops  --target=pir --output=$(PERL6_OPS) --encoding=utf8 \
+$(PERL6_OPS_PBC): $(NQP_EXE) $(DYNEXT_DYNOPS) src/vm/parrot/Perl6/Ops.nqp
+	$(NQP_EXE) --vmlibs=perl6_ops  --target=pir --output=$(PERL6_OPS) --encoding=utf8 \
 	    src/vm/parrot/Perl6/Ops.nqp
 	$(PARROT) $(PARROT_ARGS) -o $(PERL6_OPS_PBC) $(PERL6_OPS)
 
-$(PERL6_A_PBC): $(NQP_EXE) $(DYNEXT_DYNPMC) $(DYNEXT_DYNOPS) src/Perl6/Actions.nqp $(PERL6_P_PBC) $(PERL6_CF_PBC) $(PERL6_OPS_PBC)
-	$(NQP_EXE) --vmlibs=perl6_group,perl6_ops  --target=pir --output=$(PERL6_A) --encoding=utf8 \
+$(PERL6_A_PBC): $(NQP_EXE) $(DYNEXT_DYNOPS) src/Perl6/Actions.nqp $(PERL6_P_PBC) $(PERL6_CF_PBC) $(PERL6_OPS_PBC)
+	$(NQP_EXE) --vmlibs=perl6_ops  --target=pir --output=$(PERL6_A) --encoding=utf8 \
 	    src/Perl6/Actions.nqp
 	$(PARROT) $(PARROT_ARGS) -o $(PERL6_A_PBC) $(PERL6_A)
 
-$(PERL6_O_PBC): $(NQP_EXE) $(DYNEXT_DYNPMC) $(DYNEXT_DYNOPS) $(PERL6_OPS_PBC) src/Perl6/Optimizer.nqp
-	$(NQP_EXE) --vmlibs=perl6_group,perl6_ops  --target=pir --output=$(PERL6_O) --encoding=utf8 \
+$(PERL6_O_PBC): $(NQP_EXE) $(DYNEXT_DYNOPS) $(PERL6_OPS_PBC) src/Perl6/Optimizer.nqp
+	$(NQP_EXE) --vmlibs=perl6_ops  --target=pir --output=$(PERL6_O) --encoding=utf8 \
 	    src/Perl6/Optimizer.nqp
 	$(PARROT) $(PARROT_ARGS) -o $(PERL6_O_PBC) $(PERL6_O)
     
-$(PERL6_P_PBC): $(NQP_EXE) $(DYNEXT_DYNPMC) $(DYNEXT_DYNOPS) src/Perl6/Pod.nqp
-	$(NQP_EXE) --vmlibs=perl6_group,perl6_ops  --target=pir --output=$(PERL6_P) --encoding=utf8 \
+$(PERL6_P_PBC): $(NQP_EXE) $(DYNEXT_DYNOPS) src/Perl6/Pod.nqp
+	$(NQP_EXE) --vmlibs=perl6_ops  --target=pir --output=$(PERL6_P) --encoding=utf8 \
 	    src/Perl6/Pod.nqp
 	$(PARROT) $(PARROT_ARGS) -o $(PERL6_P_PBC) $(PERL6_P)
 
-$(PERL6_C_PBC): $(NQP_EXE) $(DYNEXT_DYNPMC) $(DYNEXT_DYNOPS) $(PERL6_O_PBC) src/Perl6/Compiler.nqp
+$(PERL6_C_PBC): $(NQP_EXE) $(DYNEXT_DYNOPS) $(PERL6_O_PBC) src/Perl6/Compiler.nqp
 	$(NQP_EXE) --target=pir --output=$(PERL6_C) --encoding=utf8 \
 	    src/Perl6/Compiler.nqp
 	$(PARROT) $(PARROT_ARGS) -o $(PERL6_C_PBC) $(PERL6_C)
 
-$(PERL6_M_PBC): $(NQP_EXE) $(DYNEXT_DYNPMC) $(DYNEXT_DYNOPS) $(METAMODEL_SOURCES) $(PERL6_OPS_PBC)
+$(PERL6_M_PBC): $(NQP_EXE) $(DYNEXT_DYNOPS) $(METAMODEL_SOURCES) $(PERL6_OPS_PBC)
 	$(PERL) $(GEN_CAT) $(METAMODEL_SOURCES) > src/gen/Metamodel.nqp
 	$(NQP_EXE) --target=pir --output=$(PERL6_M) --encoding=utf8 \
 	    --vmlibs=perl6_ops src/gen/Metamodel.nqp
 	$(PARROT) $(PARROT_ARGS) -o $(PERL6_M_PBC) $(PERL6_M)
     
-$(PERL6_B_PBC): $(NQP_EXE) $(DYNEXT_DYNPMC) $(DYNEXT_DYNOPS) $(PERL6_M_PBC) $(BOOTSTRAP_SOURCES)
+$(PERL6_B_PBC): $(NQP_EXE) $(DYNEXT_DYNOPS) $(PERL6_M_PBC) $(BOOTSTRAP_SOURCES)
 	$(PERL) $(GEN_CAT) $(BOOTSTRAP_SOURCES) > src/gen/BOOTSTRAP.nqp
 	$(NQP_EXE) --target=pir --output=$(PERL6_B) --encoding=utf8 \
 	    --vmlibs=perl6_ops src/gen/BOOTSTRAP.nqp
@@ -556,10 +537,6 @@ release: manifest
 	    tar -zcv -T - -f rakudo-$(VERSION).tar.gz
 	rm rakudo-$(VERSION)
 
-$(DYNEXT_DYNPMC): $(DYNPMC)
-	$(CP) $(DYNPMC) $(DYNEXT_DIR)
-	$(CHMOD) 755 $(DYNEXT_DYNPMC)
-
 $(DYNEXT_DYNOPS): $(DYNOPS)
 	$(CP) $(DYNOPS) $(DYNEXT_DIR)
 	$(CHMOD) 755 $(DYNEXT_DYNOPS)
@@ -569,21 +546,13 @@ $(DYNEXT_DYNOPS): $(DYNOPS)
 # spaces and some compilers/linkers forbid a (forced) space.
 # See RT #66558 and TT #700.
 
-$(DYNPMC): $(PMC_SOURCES) src/vm/parrot/guts/sixmodelobject.h src/vm/parrot/guts/storage_spec.h
-	$(PMC2C) --no-lines --dump $(PMC2C_INCLUDES) $(PMC_SOURCES)
-	$(PMC2C) --no-lines --c $(PMC2C_INCLUDES) $(PMC_SOURCES)
-	$(PMC2C) --no-lines --library $(GROUP) --c $(PMC_SOURCES)
-	$(CC) -c @cc_o_out@$(GROUP)$(O) -I$(PMC_DIR) $(CINCLUDES) $(CFLAGS) $(GROUP).c
-	cd $(PMC_DIR) && $(CC) -c $(CINCLUDES) $(CFLAGS) *.c
-	$(LD) @ld_out@$(DYNPMC) $(GROUP)$(O) src/vm/parrot/pmc/*$(O) $(LINKARGS)
-
-$(DYNOPS): $(OPS_DIR)/$(OPS_SOURCE) src/vm/parrot/guts/bind.c src/vm/parrot/guts/bind.h src/vm/parrot/guts/container.c src/vm/parrot/guts/container.h src/vm/parrot/guts/types.c src/vm/parrot/guts/types.h src/vm/parrot/guts/sixmodelobject.h src/vm/parrot/guts/storage_spec.h src/vm/parrot/guts/exceptions.h src/vm/parrot/guts/exceptions.c $(DYNPMC)
+$(DYNOPS): $(OPS_DIR)/$(OPS_SOURCE) src/vm/parrot/guts/bind.c src/vm/parrot/guts/bind.h src/vm/parrot/guts/container.c src/vm/parrot/guts/container.h src/vm/parrot/guts/types.c src/vm/parrot/guts/types.h src/vm/parrot/guts/sixmodelobject.h src/vm/parrot/guts/storage_spec.h src/vm/parrot/guts/exceptions.h src/vm/parrot/guts/exceptions.c
 	cd $(OPS_DIR) && $(OPS2C) C --dynamic $(OPS_SOURCE)
 	cd $(OPS_DIR) && $(CC) -c @cc_o_out@$(OPS)$(O) $(CINCLUDES) $(CFLAGS) $(OPS).c
-	cd src/vm/parrot/guts && $(CC) -c @cc_o_out@exceptions$(O) -I../../../../$(PMC_DIR) $(CINCLUDES) $(CFLAGS) exceptions.c
-	cd src/vm/parrot/guts && $(CC) -c @cc_o_out@bind$(O) -I../../../../$(PMC_DIR) $(CINCLUDES) $(CFLAGS) bind.c
-	cd src/vm/parrot/guts && $(CC) -c @cc_o_out@container$(O) -I../../../../$(PMC_DIR) $(CINCLUDES) $(CFLAGS) container.c
-	cd src/vm/parrot/guts && $(CC) -c @cc_o_out@types$(O) -I../../../../$(PMC_DIR) $(CINCLUDES) $(CFLAGS) types.c
+	cd src/vm/parrot/guts && $(CC) -c @cc_o_out@exceptions$(O) $(CINCLUDES) $(CFLAGS) exceptions.c
+	cd src/vm/parrot/guts && $(CC) -c @cc_o_out@bind$(O) $(CINCLUDES) $(CFLAGS) bind.c
+	cd src/vm/parrot/guts && $(CC) -c @cc_o_out@container$(O) $(CINCLUDES) $(CFLAGS) container.c
+	cd src/vm/parrot/guts && $(CC) -c @cc_o_out@types$(O) $(CINCLUDES) $(CFLAGS) types.c
 	cd $(OPS_DIR) && $(LD) @ld_out@$(OPS)$(LOAD_EXT) $(OPS)$(O) ../guts/bind$(O) ../guts/exceptions$(O) ../guts/container$(O) ../guts/types$(O) $(LINKARGS)
 
 # nqp::makefile <-- tells NQP::Configure to treat this file as a makefile,

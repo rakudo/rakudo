@@ -182,10 +182,7 @@ class Perl6::World is HLL::World {
     # Mapping of sub IDs to their proto code objects; used for fixing
     # up in dynamic compilation.
     has %!sub_id_to_code_object;
-    
-    # Mapping of sub IDs to their static lexpad objects.
-    has %!sub_id_to_static_lexpad;
-    
+
     # Mapping of sub IDs to SC indexes of code stubs.
     has %!sub_id_to_sc_idx;
     
@@ -220,7 +217,6 @@ class Perl6::World is HLL::World {
         @!protos_to_sort := [];
         @!CHECKs := [];
         %!sub_id_to_code_object := {};
-        %!sub_id_to_static_lexpad := {};
         %!sub_id_to_sc_idx := {};
         %!code_object_fixup_list := {};
         %!const_cache := {};
@@ -247,36 +243,6 @@ class Perl6::World is HLL::World {
     # Gets the top lexpad.
     method cur_lexpad() {
         @!BLOCKS[+@!BLOCKS - 1]
-    }
-    
-    # Gets (and creates if needed) the static lexpad object for a QAST block.
-    method get_static_lexpad($pad) {
-        my $pad_id := $pad.cuid();
-        if nqp::existskey(%!sub_id_to_static_lexpad, $pad_id) {
-            return %!sub_id_to_static_lexpad{$pad_id};
-        }
-        
-        # Create it a static lexpad object.
-        my $slp_type_obj := self.find_symbol(['StaticLexPad']);
-        my $slp          := nqp::create($slp_type_obj);
-        nqp::bindattr($slp, $slp_type_obj, '%!static_values', nqp::hash());
-        nqp::bindattr($slp, $slp_type_obj, '%!flags', nqp::hash());
-        
-        # Deserialization and fixup need to associate static lex pad with the
-        # low-level LexInfo.
-        self.add_object($slp);
-        my $fixup := QAST::Op.new(
-            :op('callmethod'), :name('set_static_lexpad'),
-            QAST::VM.new(
-                pir => '    .const "LexInfo" %r = "' ~ $pad.cuid() ~ '"'
-            ),
-            QAST::WVal.new( :value($slp) ));
-        self.add_fixup_task(:deserialize_past($fixup), :fixup_past($fixup));
-        
-        # Stash it under the QAST block unique ID.
-        %!sub_id_to_static_lexpad{$pad.cuid()} := $slp;
-        
-        $slp
     }
     
     # Marks the current lexpad as being a signatured block.
@@ -404,10 +370,7 @@ class Perl6::World is HLL::World {
     
     # Imports symbols from the specified stash into the current lexical scope.
     method import($/, %stash, $source_package_name) {
-        # We'll do this in two passes, since at the start of CORE.setting we import
-        # StaticLexPad, which of course we need to use when importing. Since we still
-        # keep the authoritative copy of stuff from the compiler's view in QAST::Block's
-        # .symbol(...) hash we get away with this for now.
+        # What follows is a two-pass thing for historical reasons.
         my $target := self.cur_lexpad();
         
         # First pass: QAST::Block symbol table installation. Also detect any
@@ -453,7 +416,9 @@ class Perl6::World is HLL::World {
             }
             else {
                 $target.symbol($_.key, :scope('lexical'), :value($_.value));
-                $target[0].push(QAST::Var.new( :scope('lexical'), :name($_.key), :decl('var') ));
+                $target[0].push(QAST::Var.new(
+                    :scope('lexical'), :name($_.key), :decl('static'), :value($_.value)
+                ));
                 %to_install{$_.key} := $_.value;
             }
         }
@@ -472,13 +437,11 @@ class Perl6::World is HLL::World {
             );
         }
         
-        # Second pass: stick everything we still need to install in the
-        # actual static lexpad.
-        my $slp := self.get_static_lexpad($target);
+        # Second pass: make sure installed things are in an SC and handle
+        # categoricals.
         for %to_install {
             my $v := $_.value;
             if nqp::isnull(nqp::getobjsc($v)) { self.add_object($v); }
-            $slp.add_static_value($_.key, $v, 0, 0);
             my $categorical := match($_.key, /^ '&' (\w+) ':<' (.+) '>' $/);
             if $categorical {
                 $/.CURSOR.add_categorical(~$categorical[0], ~$categorical[1],
@@ -486,8 +449,6 @@ class Perl6::World is HLL::World {
                     $_.key, $_.value);
             }
         }
-
-        1;
     }
     
     # Installs something package-y in the right place, creating the nested
@@ -566,8 +527,22 @@ class Perl6::World is HLL::World {
     # gets fixed up at runtime too.
     method install_lexical_symbol($block, $name, $obj, :$clone) {
         # Install the object directly as a block symbol.
-        unless $block.symbol($name) {
-            $block[0].push(QAST::Var.new( :scope('lexical'), :name($name), :decl('var') ));
+        if nqp::isnull(nqp::getobjsc($obj)) {
+            self.add_object($obj);
+        }
+        if $block.symbol($name) {
+            for @($block[0]) {
+                if nqp::istype($_, QAST::Var) && $_.name eq $name {
+                    $_.decl('static');
+                    $_.value($obj);
+                    last;
+                }
+            }
+        }
+        else {
+            $block[0].push(QAST::Var.new(
+                :scope('lexical'), :name($name), :decl('static'), :value($obj)
+            ));
         }
         $block.symbol($name, :scope('lexical'), :value($obj));
         
@@ -581,12 +556,6 @@ class Perl6::World is HLL::World {
                     QAST::Var.new( :name($name), :scope('lexical') )
                 )));
         }
-        
-        # Add to static lexpad.
-        my $slp := self.get_static_lexpad($block);
-        $slp.add_static_value(~$name, $obj, 0, 0);
-
-        1;
     }
     
     # Installs a lexical symbol. Takes a QAST::Block object, name and
@@ -595,37 +564,44 @@ class Perl6::World is HLL::World {
         # Add to block, if needed. Note that it doesn't really have
         # a compile time value.
         my $var;
-        unless $block.symbol($name) {
-            $var := QAST::Var.new( :scope('lexical'), :name($name),
-                :decl('var'), :returns(%cont_info<bind_constraint>) );
+        if $block.symbol($name) {
+            for @($block[0]) {
+                if nqp::istype($_, QAST::Var) && $_.name eq $name {
+                    $var := $_;
+                    last;
+                }
+            }
+        }
+        else {
+            $var := QAST::Var.new(
+                :scope('lexical'), :name($name), :decl('var'),
+                :returns(%cont_info<bind_constraint>)
+            );
             $block[0].push($var);
         }
         $block.symbol($name, :scope('lexical'), :type(%cont_info<bind_constraint>), :descriptor($descriptor));
             
-        # If it's a native type, we're done - no container
-        # as we inline natives straight into registers. Do
-        # need to take care of initial value though.
+        # If it's a native type, no container as we inline natives straight
+        # into registers. Do need to take care of initial value though.
         my $prim := nqp::objprimspec($descriptor.of);
         if $prim {
             if $state { nqp::die("Natively typed state variables not yet implemented") }
-            if $var {
-                if $prim == 1 {
-                    $block[0].push(QAST::Op.new( :op('bind'),
-                        QAST::Var.new( :scope('lexical'), :name($name) ),
-                        QAST::IVal.new( :value(0) ) ))
-                }
-                elsif $prim == 2 {
-                    $block[0].push(QAST::Op.new( :op('bind'),
-                        QAST::Var.new( :scope('lexical'), :name($name) ),
-                        QAST::VM.new(
-                            :pirop('set__Ns'), QAST::SVal.new( :value('NaN') 
-                        ))));
-                }
-                elsif $prim == 3 {
-                    $block[0].push(QAST::Op.new( :op('bind'),
-                        QAST::Var.new( :scope('lexical'), :name($name) ),
-                        QAST::SVal.new( :value('') ) ))
-                }
+            if $prim == 1 {
+                $block[0].push(QAST::Op.new( :op('bind'),
+                    QAST::Var.new( :scope('lexical'), :name($name) ),
+                    QAST::IVal.new( :value(0) ) ))
+            }
+            elsif $prim == 2 {
+                $block[0].push(QAST::Op.new( :op('bind'),
+                    QAST::Var.new( :scope('lexical'), :name($name) ),
+                    QAST::VM.new(
+                        :pirop('set__Ns'), QAST::SVal.new( :value('NaN') 
+                    ))));
+            }
+            elsif $prim == 3 {
+                $block[0].push(QAST::Op.new( :op('bind'),
+                    QAST::Var.new( :scope('lexical'), :name($name) ),
+                    QAST::SVal.new( :value('') ) ))
             }
             return 1;
         }
@@ -637,13 +613,12 @@ class Perl6::World is HLL::World {
             nqp::bindattr($cont, %cont_info<container_base>, '$!value',
                 %cont_info<default_value>);
         }
+        self.add_object($cont);
         $block.symbol($name, :value($cont));
         
-        # Add container to static lexpad.
-        my $slp := self.get_static_lexpad($block);
-        $slp.add_static_value(~$name, $cont, 1, ($state ?? 1 !! 0));
-
-        1;
+        # Tweak var to have container.
+        $var.value($cont);
+        $var.decl($state ?? 'statevar' !! 'contvar');
     }
     
     # Creates a new container descriptor and adds it to the SC.
@@ -945,7 +920,6 @@ class Perl6::World is HLL::World {
         # Locate various interesting symbols.
         my $code_type    := self.find_symbol(['Code']);
         my $routine_type := self.find_symbol(['Routine']);
-        my $slp_type     := self.find_symbol(['StaticLexPad']);
         
         # Attach code object to QAST node.
         $code_past<code_object> := $code;
@@ -969,14 +943,14 @@ class Perl6::World is HLL::World {
             nqp::bindhllsym('perl6', 'GLOBAL', $*GLOBALish);
             
             # Compile the block.
-            $precomp := self.compile_in_context($code_past, $code_type, $slp_type);
+            $precomp := self.compile_in_context($code_past, $code_type);
 
             # Also compile the candidates if this is a proto.
             if $is_dispatcher {
                 for nqp::getattr($code, $routine_type, '$!dispatchees') {
                     my $past := nqp::getattr($_, $code_type, '$!compstuff')[0];
                     if $past {
-                        self.compile_in_context($past, $code_type, $slp_type);
+                        self.compile_in_context($past, $code_type);
                     }
                 }
             }
@@ -1234,7 +1208,7 @@ class Perl6::World is HLL::World {
     # Takes a QAST::Block and compiles it for running during "compile time".
     # We need to do this for BEGIN but also for things that get called in
     # the compilation process, like user defined traits.
-    method compile_in_context($past, $code_type, $slp_type) {
+    method compile_in_context($past, $code_type) {
         # Ensure that we have the appropriate op libs loaded and correct
         # HLL.
         my $wrapper := QAST::Block.new(QAST::Stmts.new(), $past);
@@ -1244,23 +1218,29 @@ class Perl6::World is HLL::World {
         # we can be a bit smarter here some day. But for now we just make a
         # single frame and copy all the visible things into it.
         my %seen;
-        my $slp       := $slp_type.new();
         my $mu        := try { self.find_symbol(['Mu']) };
         my $cur_block := $past;
         while $cur_block {
             my %symbols := $cur_block.symtable();
             for %symbols {
                 unless %seen{$_.key} {
-                    # Add slot for symbol.
+                    # Add symbol.
+                    my %sym := $_.value;
+                    my $value := nqp::existskey(%sym, 'value') ?? %sym<value> !! $mu;
+                    try {
+                        if nqp::isnull(nqp::getobjsc($value)) {
+                            self.add_object($value);
+                        }
+                        CATCH {
+                            $value := $mu;
+                        }
+                    }
                     $wrapper[0].push(QAST::Var.new(
-                        :name($_.key), :scope('lexical'), :decl('var') ));
+                        :name($_.key), :scope('lexical'),
+                        :decl(%sym<state> ?? 'statevar' !! 'static'), :$value
+                    ));
                     $wrapper.symbol($_.key, :scope('lexical'));
                     
-                    # Make static lexpad entry.
-                    my %sym := $_.value;
-                    $slp.add_static_value($_.key,
-                        (nqp::existskey(%sym, 'value') ?? %sym<value> !! $mu),
-                        0, (%sym<state> ?? 1 !! 0));
                 }
                 %seen{$_.key} := 1;
             }
@@ -1277,7 +1257,6 @@ class Perl6::World is HLL::World {
         );
         my $precomp := nqp::getcomp('perl6').compile($compunit,
             :from<optimize>, :compunit_ok(1));
-        $precomp[0].get_lexinfo.set_static_lexpad($slp);
         $precomp();
         
         # Fix up Code object associations (including nested blocks).
@@ -1294,9 +1273,6 @@ class Perl6::World is HLL::World {
                 nqp::setcodeobj($precomp[$i], $code_obj);
                 nqp::bindattr($code_obj, $code_type, '$!do', $precomp[$i]);
                 nqp::bindattr($code_obj, $code_type, '$!compstuff', nqp::null());
-            }
-            if nqp::existskey(%!sub_id_to_static_lexpad, $subid) {
-                $precomp[$i].get_lexinfo.set_static_lexpad(%!sub_id_to_static_lexpad{$subid});
             }
             if nqp::existskey(%!sub_id_to_sc_idx, $subid) {
                 nqp::markcodestatic($precomp[$i]);
@@ -1522,8 +1498,7 @@ class Perl6::World is HLL::World {
         # Compile it immediately (we always compile role bodies as
         # early as possible, but then assume they don't need to be
         # re-compiled and re-fixed up at startup).
-        self.compile_in_context($past, self.find_symbol(['Code']),
-            self.find_symbol(['StaticLexPad']));
+        self.compile_in_context($past, self.find_symbol(['Code']));
     }
     
     # Adds a possible role to a role group.
@@ -1800,7 +1775,7 @@ class Perl6::World is HLL::World {
     # Adds required libraries to a compilation unit.
     method add_libs($comp_unit) {
         $comp_unit.push(QAST::VM.new(
-            loadlibs => ['nqp_group', 'nqp_ops', 'perl6_group', 'perl6_ops',
+            loadlibs => ['nqp_group', 'nqp_ops', 'perl6_ops',
                          'bit_ops', 'math_ops', 'trans_ops', 'io_ops',
                          'obscure_ops', 'os', 'file', 'sys_ops',
                          'nqp_bigint_ops', 'nqp_dyncall_ops' ],
@@ -2384,7 +2359,7 @@ class Perl6::World is HLL::World {
                         :op('callmethod'), :name('hll_map'),
                         QAST::VM.new( :pirop('getinterp P') ),
                         QAST::VM.new( :pirop('get_class Ps'), QAST::SVal.new( :value('LexPad') ) ),
-                        QAST::VM.new( :pirop('get_class Ps'), QAST::SVal.new( :value('Perl6LexPad') ) )
+                        QAST::VM.new( :pirop('get_class Ps'), QAST::SVal.new( :value('NQPLexPad') ) )
                     )
                 )),
                 :jvm(QAST::Op.new( :op('null') ))

@@ -574,7 +574,6 @@ BEGIN {
 
     # class Block is Code { ... }
     Block.HOW.add_parent(Block, Code);
-    Block.HOW.add_attribute(Block, BOOTSTRAPATTR.new(:name<$!state_vars>, :type(Mu), :package(Block)));
     Block.HOW.add_attribute(Block, BOOTSTRAPATTR.new(:name<$!phasers>, :type(Mu), :package(Block)));
     Block.HOW.add_method(Block, 'clone', nqp::getstaticcode(sub ($self) {
             my $dcself    := nqp::decont($self);
@@ -587,7 +586,6 @@ BEGIN {
             unless nqp::isnull($compstuff) {
                 $compstuff[2]($do, $cloned);
             }
-            nqp::bindattr($cloned, Block, '$!state_vars', nqp::null());
             $cloned
         }));
     Block.HOW.compose_repr(Block);
@@ -1770,7 +1768,6 @@ BEGIN {
     EXPORT::DEFAULT.WHO<MethodDispatcher>    := Perl6::Metamodel::MethodDispatcher;
     EXPORT::DEFAULT.WHO<MultiDispatcher>     := Perl6::Metamodel::MultiDispatcher;
     EXPORT::DEFAULT.WHO<WrapDispatcher>      := Perl6::Metamodel::WrapDispatcher;
-    EXPORT::DEFAULT.WHO<StaticLexPad>        := Perl6::Metamodel::StaticLexPad;
     EXPORT::DEFAULT.WHO<Metamodel>           := Metamodel;
     EXPORT::DEFAULT.WHO<ForeignCode>         := ForeignCode;
 }
@@ -1800,12 +1797,6 @@ Str.HOW.publish_parrot_vtable_handler_mapping(Str);
 
 # Set up various type mappings.
 nqp::p6settypes(EXPORT::DEFAULT.WHO);
-
-# We'll build container descriptors for $_, $! and $/ that we can
-# share with all of the magically/lazily created scalars.
-#?if parrot
-pir::new__PsP('Perl6LexPad', hash()).configure_magicals(Block);
-#?endif
 
 # Tell parametric role groups how to create a dispatcher.
 Perl6::Metamodel::ParametricRoleGroupHOW.set_selector_creator({

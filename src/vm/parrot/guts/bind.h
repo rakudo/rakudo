@@ -70,7 +70,6 @@ typedef struct {
     PMC    *_do;                /* Lower-level code object. */
     PMC    *signature;          /* Signature object. */
     PMC    *compstuff;          /* Place for the compiler to hang stuff */
-    PMC    *state_vars;         /* Storage for state variables. */
     PMC    *phasers;            /* Hash mapping phaser names to lists of phasers. */
     PMC    *dispatchees;        /* List of dispatchees, if any. */
     PMC    *dispatcher_cache;   /* Holder for any dispatcher cache. */

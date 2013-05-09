@@ -254,6 +254,19 @@ static PMC* sub_find_pad(PARROT_INTERP, ARGIN(STRING *lex_name), ARGIN(PMC *ctx)
 
 static INTVAL initialized_ops = 0;
 
+PARROT_DYNEXT_EXPORT PMC*
+Parrot_lib_perl6_ops_init(PARROT_INTERP) {
+    /* Map LexPad/LexInfo. */
+    INTVAL hll_id = Parrot_hll_register_HLL(interp, Parrot_str_new_constant(interp, "perl6"));
+    Parrot_hll_register_HLL_type(interp, hll_id,
+        Parrot_pmc_get_type_str(interp, Parrot_str_new_constant(interp, "LexPad")),
+        Parrot_pmc_get_type_str(interp, Parrot_str_new_constant(interp, "NQPLexPad")));
+    Parrot_hll_register_HLL_type(interp, hll_id,
+        Parrot_pmc_get_type_str(interp, Parrot_str_new_constant(interp, "LexInfo")),
+        Parrot_pmc_get_type_str(interp, Parrot_str_new_constant(interp, "NQPLexInfo")));
+    return PMCNULL;
+}
+
 END_OPS_PREAMBLE
 
 /*

@@ -4,7 +4,7 @@ use Perl6::Compiler;
 
 #?if parrot
 sub MAIN(@ARGS) {
-    # Initialize dynops.
+    # Initialize dynops and PMCs.
     pir::rakudo_dynop_setup__v();
 
     # Bump up Parrot's recursion limit

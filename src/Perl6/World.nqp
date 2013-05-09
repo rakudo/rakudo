@@ -589,7 +589,7 @@ class Perl6::World is HLL::World {
     
     # Installs a lexical symbol. Takes a QAST::Block object, name and
     # the type of container to install.
-    method install_lexical_container($block, $name, %cont_info, $descriptor, :$state) {
+    method install_lexical_container($block, $name, %cont_info, $descriptor, :$scope, :$package) {
         # Add to block, if needed. Note that it doesn't really have
         # a compile time value.
         my $var;
@@ -605,7 +605,7 @@ class Perl6::World is HLL::World {
         # need to take care of initial value though.
         my $prim := nqp::objprimspec($descriptor.of);
         if $prim {
-            if $state { nqp::die("Natively typed state variables not yet implemented") }
+            if $scope eq 'state' { nqp::die("Natively typed state variables not yet implemented") }
             if $var {
                 if $prim == 1 {
                     $block[0].push(QAST::Op.new( :op('bind'),
@@ -636,10 +636,11 @@ class Perl6::World is HLL::World {
                 %cont_info<default_value>);
         }
         $block.symbol($name, :value($cont));
+        self.install_package_symbol($package, $name, $cont) if $scope eq 'our';
         
         # Add container to static lexpad.
         my $slp := self.get_static_lexpad($block);
-        $slp.add_static_value(~$name, $cont, 1, ($state ?? 1 !! 0));
+        $slp.add_static_value(~$name, $cont, 1, ($scope eq 'state' ?? 1 !! 0));
 
         1;
     }
@@ -1676,7 +1677,7 @@ class Perl6::World is HLL::World {
             my %info;
             %info<container_type> := %info<container_base> := self.find_symbol(['Scalar']);
             %info<default_value> := %info<bind_constraint> := %info<value_type> := $mu;
-            self.install_lexical_container($pad, $sym, %info, $descriptor, :state(1));
+            self.install_lexical_container($pad, $sym, %info, $descriptor, :scope('state'));
             
             # Generate code that runs the phaser the first time we init
             # the state block, or just evaluates to the existing value

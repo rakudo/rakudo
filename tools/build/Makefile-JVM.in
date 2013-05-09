@@ -80,7 +80,6 @@ METAMODEL_SOURCES = \
   src/Perl6/Metamodel/SubsetHOW.nqp \
   src/Perl6/Metamodel/EnumHOW.nqp \
   src/Perl6/Metamodel/ContainerDescriptor.nqp \
-  src/Perl6/Metamodel/StaticLexPad.nqp \
   src/Perl6/Metamodel/Dispatchers.nqp \
 
 BOOTSTRAP_SOURCES = \

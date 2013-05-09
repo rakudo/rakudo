@@ -1255,28 +1255,30 @@ class Perl6::World is HLL::World {
             :compilation_mode(0),
             $wrapper
         );
-        my $precomp := nqp::getcomp('perl6').compile($compunit,
-            :from<optimize>, :compunit_ok(1));
-        $precomp();
+        my $comp := nqp::getcomp('perl6');
+        my $precomp := $comp.compile($compunit, :from<optimize>, :compunit_ok(1));
+        my $mainline := $comp.backend.compunit_mainline($precomp);
+        $mainline();
         
         # Fix up Code object associations (including nested blocks).
         # We un-stub any code objects for already-compiled inner blocks
         # to avoid wasting re-compiling them, and also to help make
         # parametric role outer chain work out. Also set up their static
         # lexpads, if they have any.
-        my int $num_subs := nqp::elems($precomp);
+        my @coderefs := $comp.backend.compunit_coderefs($precomp);
+        my int $num_subs := nqp::elems(@coderefs);
         my int $i := 0;
         while $i < $num_subs {
-            my $subid := $precomp[$i].get_subid();
+            my $subid := nqp::getcodecuid(@coderefs[$i]);
             if nqp::existskey(%!sub_id_to_code_object, $subid) {
                 my $code_obj := %!sub_id_to_code_object{$subid};
-                nqp::setcodeobj($precomp[$i], $code_obj);
-                nqp::bindattr($code_obj, $code_type, '$!do', $precomp[$i]);
+                nqp::setcodeobj(@coderefs[$i], $code_obj);
+                nqp::bindattr($code_obj, $code_type, '$!do', @coderefs[$i]);
                 nqp::bindattr($code_obj, $code_type, '$!compstuff', nqp::null());
             }
             if nqp::existskey(%!sub_id_to_sc_idx, $subid) {
-                nqp::markcodestatic($precomp[$i]);
-                self.update_root_code_ref(%!sub_id_to_sc_idx{$subid}, $precomp[$i]);
+                nqp::markcodestatic(@coderefs[$i]);
+                self.update_root_code_ref(%!sub_id_to_sc_idx{$subid}, @coderefs[$i]);
             }
             if nqp::existskey(%!code_object_fixup_list, $subid) {
                 my $fixups := %!code_object_fixup_list{$subid};
@@ -1290,7 +1292,7 @@ class Perl6::World is HLL::World {
         
         # Return the Parrot Sub that maps to the thing we were originally
         # asked to compile.
-        $precomp[1]
+        @coderefs[1]
     }
     
     # Adds a constant value to the constants table. Returns PAST to do

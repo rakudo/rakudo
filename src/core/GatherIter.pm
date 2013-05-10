@@ -11,9 +11,10 @@ class GatherIter is Iterator {
             $P1 = find_lex '$coro'
             $P1($P0)
         };
-        pir::setattribute__0PPsP(
-            pir::setattribute__0PPsP(nqp::create(self), GatherIter, '$!coro', $coro),
-            GatherIter, '$!infinite', $infinite);
+        my Mu $new := nqp::create(self);
+        nqp::bindattr($new, GatherIter, '$!coro', $coro);
+        nqp::bindattr($new, GatherIter, '$!infinite', $infinite);
+        $new;
     }
 
     multi method DUMP(GatherIter:D: :$indent-step = 4, :%ctx?) {

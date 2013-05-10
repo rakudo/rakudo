@@ -9,7 +9,7 @@ import org.perl6.nqp.sixmodel.*;
 public final class Ops {
     private static SixModelObject Code;
     private static SixModelObject Signature;
-    private static SixModelObject Parameter;
+    public static SixModelObject Parameter;
     private static SixModelObject False;
     private static SixModelObject True;
     private static boolean initialized = false;

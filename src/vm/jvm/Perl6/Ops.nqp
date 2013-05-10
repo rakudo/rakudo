@@ -40,7 +40,8 @@ $ops.add_hll_op('perl6', 'p6bindsig', -> $qastcomp, $op {
     $il.append(JAST::Instruction.new( :op('aload'), 'csd' ));
     $il.append(JAST::Instruction.new( :op('aload'), '__args' ));
     $il.append(JAST::Instruction.new( :op('invokestatic'), $TYPE_P6OPS,
-        "p6bindsig", 'V', $TYPE_TC, $TYPE_CSD, "[$TYPE_OBJ" ));
+        "p6bindsig", $TYPE_CSD, $TYPE_TC, $TYPE_CSD, "[$TYPE_OBJ" ));
+    $il.append(JAST::Instruction.new( :op('astore'), 'csd' ));
     $ops.result($il, $RT_VOID);
 });
 $ops.map_classlib_hll_op('perl6', 'p6isbindable', $TYPE_P6OPS, 'p6isbindable', [$RT_OBJ, $RT_OBJ], $RT_INT, :tc);

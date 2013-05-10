@@ -40,7 +40,7 @@ public final class Ops {
         return x == 0 ? False : True;
     }
     
-    public static void p6bindsig(ThreadContext tc, CallSiteDescriptor csd, Object[] args) {
+    public static CallSiteDescriptor p6bindsig(ThreadContext tc, CallSiteDescriptor csd, Object[] args) {
         /* Do any flattening before processing begins. */
         CallFrame cf = tc.curFrame;
         if (csd.hasFlattening) {
@@ -64,5 +64,7 @@ public final class Ops {
             case Binder.BIND_RESULT_JUNCTION:
                 throw ExceptionHandling.dieInternal(tc, "Junction re-dispatch NYI");
         }
+        
+        return csd;
     }
 }

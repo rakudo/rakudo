@@ -7,6 +7,7 @@ import org.perl6.nqp.sixmodel.*;
  * Contains implementation of nqp:: ops specific to Rakudo Perl 6.
  */
 public final class Ops {
+    private static SixModelObject Parcel;
     private static SixModelObject Code;
     private static SixModelObject Signature;
     public static SixModelObject Parameter;
@@ -15,6 +16,7 @@ public final class Ops {
     private static boolean initialized = false;
     
     /* Parameter hints for fast lookups. */
+    private static final int HINT_PARCEL_STORAGE = 0;
     private static final int HINT_CODE_DO = 0;
     private static final int HINT_CODE_SIG = 1;
     private static final int HINT_SIG_PARAMS = 0;
@@ -28,6 +30,7 @@ public final class Ops {
     }
     
     public static SixModelObject p6settypes(SixModelObject conf, ThreadContext tc) {
+        Parcel = conf.at_key_boxed(tc, "Parcel");
         Code = conf.at_key_boxed(tc, "Code");
         Signature = conf.at_key_boxed(tc, "Signature");
         Parameter = conf.at_key_boxed(tc, "Parameter");
@@ -66,5 +69,21 @@ public final class Ops {
         }
         
         return csd;
+    }
+    
+    public static SixModelObject p6parcel(SixModelObject array, SixModelObject fill, ThreadContext tc) {
+        SixModelObject parcel = Parcel.st.REPR.allocate(tc, Parcel.st);
+        parcel.initialize(tc);
+        parcel.bind_attribute_boxed(tc, Parcel, "$!storage", HINT_PARCEL_STORAGE, array);
+
+        if (fill != null) {
+            long elems = array.elems(tc);
+            for (long i = 0; i < elems; i++) {
+                if (array.at_pos_boxed(tc, i) == null)
+                    array.bind_pos_boxed(tc, i, fill);
+            }
+        }
+
+        return parcel;
     }
 }

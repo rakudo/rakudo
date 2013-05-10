@@ -567,7 +567,7 @@ BEGIN {
         
     # Need to actually run the code block. Also need this available before we finish
     # up the stub.
-    Code.HOW.set_invocation_attr(Code, 'invoke', '$!do');
+    Code.HOW.set_invocation_attr(Code, Code, '$!do');
     Code.HOW.compose_invocation(Code);
 
     # class Block is Code { ... }

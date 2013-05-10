@@ -252,8 +252,8 @@ $(PERL6_M_CLASS): $(METAMODEL_SOURCES)
 
 $(PERL6_B_CLASS): $(BOOTSTRAP_SOURCES) $(PERL6_M_CLASS)
 	$(PERL) $(GEN_CAT) $(BOOTSTRAP_SOURCES) > src/gen/BOOTSTRAP.nqp
-	$(NQP) --target=classfile --output=$(PERL6_B_CLASS) --encoding=utf8 \
-	    src/gen/BOOTSTRAP.nqp
+	$(PERL) tools\build\nqp-jvm-rr.pl $(NQP) --target=classfile \
+        --output=$(PERL6_B_CLASS) --encoding=utf8 src/gen/BOOTSTRAP.nqp
 
 $(SETTING_CLASS): $(PERL6_CLASS) $(PERL6_B_CLASS) $(CORE_SOURCES)
 	$(PERL) $(GEN_CAT) $(CORE_SOURCES) > src/gen/CORE.setting

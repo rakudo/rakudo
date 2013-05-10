@@ -9,6 +9,15 @@ import org.perl6.nqp.sixmodel.SixModelObject;
 public final class Ops {
     private static SixModelObject False;
     private static SixModelObject True;
+    private static boolean initialized = false;
+    
+    public static SixModelObject p6init(ThreadContext tc) {
+        if (!initialized) {
+            tc.gc.contConfigs.put("rakudo_scalar", new RakudoContainerConfigurer());
+            initialized = true;
+        }
+        return null;
+    }
     
     public static SixModelObject p6settypes(SixModelObject conf, ThreadContext tc) {
         False = conf.at_key_boxed(tc, "False");

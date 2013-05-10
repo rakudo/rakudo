@@ -4,15 +4,15 @@ use Perl6::Compiler;
 
 #?if parrot
 sub MAIN(@ARGS) {
-    # Initialize dynops and PMCs.
-    pir::rakudo_dynop_setup__v();
-
     # Bump up Parrot's recursion limit
     pir::getinterp__P().recursion_limit(100000);
 #?endif
 #?if !parrot
 sub MAIN(*@ARGS) {
 #?endif
+
+    # Initialize Rakudo runtime support.
+    nqp::p6init();
 
     # Create and configure compiler object.
     my $comp := Perl6::Compiler.new();

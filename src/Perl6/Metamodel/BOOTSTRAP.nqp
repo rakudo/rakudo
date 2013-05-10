@@ -80,10 +80,8 @@ my stub ForeignCode metaclass Perl6::Metamodel::ClassHOW { ... };
 # We stick all the declarative bits inside of a BEGIN, so they get
 # serialized.
 BEGIN {
-#?if parrot
-    # Ensure Rakudo dynops are initialized.
-    pir::rakudo_dynop_setup__v();
-#?endif
+    # Ensure Rakudo runtime support is initialized.
+    nqp::p6init();
 
     # class Mu { ... }
 #?if parrot

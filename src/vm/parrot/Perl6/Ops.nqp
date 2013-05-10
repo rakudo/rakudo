@@ -63,6 +63,7 @@ $ops.add_hll_pirop_mapping('nqp', 'p6parcel', 'perl6_parcel_from_rpa', 'PPP', :i
 $ops.add_hll_pirop_mapping('nqp', 'p6isbindable', 'perl6_is_sig_bindable', 'IPP');
 $ops.add_hll_pirop_mapping('nqp', 'p6trialbind', 'perl6_trial_bind_ct', 'IPPP');
 $ops.add_hll_pirop_mapping('nqp', 'p6settypes', 'p6settypes', 'vP', :inlinable(1));
+$ops.add_hll_pirop_mapping('nqp', 'p6init', 'rakudo_dynop_setup', 'v', :inlinable(1));
 
 # Override defor to avoid v-table call.
 $ops.add_hll_op('perl6', 'defor', :inlinable(1), -> $qastcomp, $op {

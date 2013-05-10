@@ -7,15 +7,18 @@ my $TYPE_P6OPS := 'Lorg/perl6/rakudo/Ops;';
 
 # Other types we'll refer to.
 my $TYPE_OPS   := 'Lorg/perl6/nqp/runtime/Ops;';
+my $TYPE_CSD   := 'Lorg/perl6/nqp/runtime/CallSiteDescriptor;';
 my $TYPE_SMO   := 'Lorg/perl6/nqp/sixmodel/SixModelObject;';
 my $TYPE_TC    := 'Lorg/perl6/nqp/runtime/ThreadContext;';
 my $TYPE_STR   := 'Ljava/lang/String;';
+my $TYPE_OBJ   := 'Ljava/lang/Object;';
 
 # Opcode types.
 my $RT_OBJ  := 0;
 my $RT_INT  := 1;
 my $RT_NUM  := 2;
 my $RT_STR  := 3;
+my $RT_VOID := -1;
 
 # Perl 6 opcode specific mappings.
 $ops.map_classlib_hll_op('perl6', 'p6box_i', $TYPE_P6OPS, 'p6box_i', [$RT_INT], $RT_OBJ, :tc);
@@ -31,7 +34,15 @@ $ops.map_classlib_hll_op('perl6', 'p6store', $TYPE_P6OPS, 'p6store', [$RT_OBJ, $
 $ops.map_classlib_hll_op('perl6', 'p6var', $TYPE_P6OPS, 'p6var', [$RT_OBJ], $RT_OBJ, :tc);
 $ops.map_classlib_hll_op('perl6', 'p6reprname', $TYPE_P6OPS, 'p6reprname', [$RT_OBJ], $RT_OBJ, :tc);
 $ops.map_classlib_hll_op('perl6', 'p6definite', $TYPE_P6OPS, 'p6definite', [$RT_OBJ], $RT_OBJ, :tc);
-$ops.map_classlib_hll_op('perl6', 'p6bindsig', $TYPE_P6OPS, 'p6bindsig', [], $RT_OBJ, :tc);
+$ops.add_hll_op('perl6', 'p6bindsig', -> $qastcomp, $op {
+    my $il := JAST::InstructionList.new();
+    $il.append(JAST::Instruction.new( :op('aload_1') ));
+    $il.append(JAST::Instruction.new( :op('aload'), 'csd' ));
+    $il.append(JAST::Instruction.new( :op('aload'), '__args' ));
+    $il.append(JAST::Instruction.new( :op('invokestatic'), $TYPE_P6OPS,
+        "p6bindsig", 'V', $TYPE_TC, $TYPE_CSD, "[$TYPE_OBJ" ));
+    $ops.result($il, $RT_VOID);
+});
 $ops.map_classlib_hll_op('perl6', 'p6isbindable', $TYPE_P6OPS, 'p6isbindable', [$RT_OBJ, $RT_OBJ], $RT_INT, :tc);
 $ops.map_classlib_hll_op('perl6', 'p6bindcaptosig', $TYPE_P6OPS, 'p6bindcaptosig', [$RT_OBJ, $RT_OBJ], $RT_OBJ, :tc);
 $ops.map_classlib_hll_op('perl6', 'p6trialbind', $TYPE_P6OPS, 'p6trialbind', [$RT_OBJ, $RT_OBJ, $RT_OBJ], $RT_INT, :tc);

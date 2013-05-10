@@ -703,13 +703,13 @@ BEGIN {
                             $tied++;
                         }
                     }
-                    elsif (%a<type_flags>[$i] +& $TYPE_NATIVE_MASK)
-                      && !(%b<type_flags>[$i] +& $TYPE_NATIVE_MASK) {
+                    elsif (nqp::atpos_i(%a<type_flags>, $i) +& $TYPE_NATIVE_MASK)
+                      && !(nqp::atpos_i(%b<type_flags>, $i) +& $TYPE_NATIVE_MASK) {
                         # Narrower because natives always are.
                         $narrower++;
                     }
-                    elsif (%b<type_flags>[$i] +& $TYPE_NATIVE_MASK)
-                      && !(%a<type_flags>[$i] +& $TYPE_NATIVE_MASK) {
+                    elsif (nqp::atpos_i(%b<type_flags>, $i) +& $TYPE_NATIVE_MASK)
+                      && !(nqp::atpos_i(%a<type_flags>, $i) +& $TYPE_NATIVE_MASK) {
                         # Wider; skip over here so we don't go counting this as tied in
                         # the next branch.
                     }
@@ -781,7 +781,7 @@ BEGIN {
                     unless nqp::isnull($named_names) {
                         if !($flags +& $SIG_ELEM_IS_OPTIONAL) {
                             if nqp::elems($named_names) == 1 {
-                                %info<req_named> := nqp::atpos_s($named_names, 0);
+                                %info<req_named> := nqp::atpos($named_names, 0);
                             }
                         }
                         %info<bind_check> := 1;

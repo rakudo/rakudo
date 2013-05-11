@@ -1,8 +1,8 @@
 my class Num does Real {
     multi method WHICH(Num:D:) {
         nqp::box_s(
-            nqp::concat_s(
-                nqp::concat_s(nqp::unbox_s(self.^name), '|'),
+            nqp::concat(
+                nqp::concat(nqp::unbox_s(self.^name), '|'),
                 nqp::unbox_n(self)
             ),
             ObjAt

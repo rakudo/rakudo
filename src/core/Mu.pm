@@ -18,8 +18,8 @@ my class Mu {
     }
     multi method WHICH(Mu:D:) {
         nqp::box_s(
-            nqp::concat_s(
-                nqp::concat_s(nqp::unbox_s(self.^name), '|'),
+            nqp::concat(
+                nqp::concat(nqp::unbox_s(self.^name), '|'),
                 nqp::where(self)
             ),
             ObjAt

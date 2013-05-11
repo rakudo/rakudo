@@ -1,8 +1,8 @@
 my class ObjAt {
     multi method WHICH(ObjAt:D:) {
         nqp::box_s(
-            nqp::concat_s(
-                nqp::concat_s(nqp::unbox_s(self.^name), '|'),
+            nqp::concat(
+                nqp::concat(nqp::unbox_s(self.^name), '|'),
                 $!value
             ),
             ObjAt

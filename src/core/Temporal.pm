@@ -501,8 +501,8 @@ my class Date does Dateish {
 
     multi method WHICH(Date:D:) {
         nqp::box_s(
-            nqp::concat_s(
-                nqp::concat_s(nqp::unbox_s(self.^name), '|'),
+            nqp::concat(
+                nqp::concat(nqp::unbox_s(self.^name), '|'),
                 nqp::unbox_i($!daycount)
             ),
             ObjAt

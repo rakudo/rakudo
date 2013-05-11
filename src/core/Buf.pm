@@ -166,7 +166,7 @@ multi infix:<~>(Buf:D $a, Buf:D $b) {
 
     my str $ba = nqp::getattr_s(nqp::decont($a), Buf, '$!buffer');
     my str $bb = nqp::getattr_s(nqp::decont($b), Buf, '$!buffer');
-    nqp::bindattr_s($r, Buf, '$!buffer', nqp::concat_s($ba, $bb));
+    nqp::bindattr_s($r, Buf, '$!buffer', nqp::concat($ba, $bb));
     $r;
 }
 multi sub infix:<~&>(Buf:D $a, Buf:D $b) {

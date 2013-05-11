@@ -3,8 +3,8 @@ my class Rat { ... }
 my class Int does Real {
     multi method WHICH(Int:D:) {
         nqp::box_s(
-            nqp::concat_s(
-                nqp::concat_s(nqp::unbox_s(self.^name), '|'),
+            nqp::concat(
+                nqp::concat(nqp::unbox_s(self.^name), '|'),
                 nqp::tostr_I(self)
             ),
             ObjAt

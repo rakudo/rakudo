@@ -32,8 +32,8 @@ sub PARROT_ENCODING(Str:D $s) {
 my class Str does Stringy {
     multi method WHICH(Str:D:) {
         nqp::box_s(
-            nqp::concat_s(
-                nqp::concat_s(nqp::unbox_s(self.^name), '|'),
+            nqp::concat(
+                nqp::concat(nqp::unbox_s(self.^name), '|'),
                 $!value
             ),
             ObjAt
@@ -995,9 +995,9 @@ multi prefix:<~>(Str:D \a)  returns Str:D { a }
 multi prefix:<~>(str $a)    returns str   { $a }
 
 multi infix:<~>(Str:D \a, Str:D \b) returns Str:D {
-    nqp::p6box_s(nqp::concat_s(nqp::unbox_s(a), nqp::unbox_s(b)))
+    nqp::p6box_s(nqp::concat(nqp::unbox_s(a), nqp::unbox_s(b)))
 }
-multi infix:<~>(str $a, str $b) returns str { nqp::concat_s($a, $b) }
+multi infix:<~>(str $a, str $b) returns str { nqp::concat($a, $b) }
 
 multi infix:<x>(Str:D $s, Int:D $repetition) returns Str:D {
     $repetition < 0

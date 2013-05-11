@@ -4,11 +4,11 @@ my role Rational[::NuT, ::DeT] does Real {
 
     multi method WHICH(Rational:D:) {
         nqp::box_s(
-            nqp::concat_s(
-                nqp::concat_s(nqp::unbox_s(self.^name), '|'),
-                nqp::concat_s(
+            nqp::concat(
+                nqp::concat(nqp::unbox_s(self.^name), '|'),
+                nqp::concat(
                     nqp::tostr_I($!numerator),
-                    nqp::concat_s('/', nqp::tostr_I($!denominator))
+                    nqp::concat('/', nqp::tostr_I($!denominator))
                 )
             ),
             ObjAt

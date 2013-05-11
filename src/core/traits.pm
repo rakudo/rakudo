@@ -103,12 +103,12 @@ multi trait_mod:<is>(Routine:D $r, :prec(%spec)!) {
     }
     0;
 }
-multi trait_mod:<is>(Routine $r, :&equiv) {
+multi trait_mod:<is>(Routine $r, :&equiv!) {
     nqp::can(&equiv, 'prec')
         ?? trait_mod:<is>($r, :prec(&equiv.prec))
         !! die "Routine given to equiv does not appear to be an operator";
 }
-multi trait_mod:<is>(Routine $r, :&tighter) {
+multi trait_mod:<is>(Routine $r, :&tighter!) {
     die "Routine given to tighter does not appear to be an operator"
         unless nqp::can(&tighter, 'prec');
     if !nqp::can($r, 'prec') || ($r.prec<prec> // "") !~~ /<[@:]>/ {
@@ -116,7 +116,7 @@ multi trait_mod:<is>(Routine $r, :&tighter) {
     }
     $r.prec<prec> := $r.prec<prec>.subst(/\=/, '@=');
 }
-multi trait_mod:<is>(Routine $r, :&looser) {
+multi trait_mod:<is>(Routine $r, :&looser!) {
     die "Routine given to looser does not appear to be an operator"
         unless nqp::can(&looser, 'prec');
     if !nqp::can($r, 'prec') || ($r.prec<prec> // "") !~~ /<[@:]>/ {
@@ -124,7 +124,7 @@ multi trait_mod:<is>(Routine $r, :&looser) {
     }
     $r.prec<prec> := $r.prec<prec>.subst(/\=/, ':=');
 }
-multi trait_mod:<is>(Routine $r, :$assoc) {
+multi trait_mod:<is>(Routine $r, :$assoc!) {
     trait_mod:<is>($r, :prec({ :$assoc }))
 }
 

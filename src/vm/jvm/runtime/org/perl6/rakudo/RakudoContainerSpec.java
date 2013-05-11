@@ -11,7 +11,7 @@ public class RakudoContainerSpec extends ContainerSpec {
     
     /* Fetches a value out of a container. Used for decontainerization. */
     public SixModelObject fetch(ThreadContext tc, SixModelObject cont) {
-        throw new RuntimeException("Rakudo scalar fetch NYI");
+        return cont.get_attribute_boxed(tc, Ops.Scalar, "$!value", HINT_value);
     }
     
     /* Stores a value in a container. Used for assignment. */

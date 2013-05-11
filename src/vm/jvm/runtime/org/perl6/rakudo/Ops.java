@@ -7,6 +7,7 @@ import org.perl6.nqp.sixmodel.*;
  * Contains implementation of nqp:: ops specific to Rakudo Perl 6.
  */
 public final class Ops {
+    private static SixModelObject Mu;
     private static SixModelObject Parcel;
     private static SixModelObject Code;
     private static SixModelObject Routine;
@@ -39,6 +40,7 @@ public final class Ops {
     }
     
     public static SixModelObject p6settypes(SixModelObject conf, ThreadContext tc) {
+        Mu = conf.at_key_boxed(tc, "Mu");
         Parcel = conf.at_key_boxed(tc, "Parcel");
         Code = conf.at_key_boxed(tc, "Code");
         Routine = conf.at_key_boxed(tc, "Routine");
@@ -139,6 +141,24 @@ public final class Ops {
         return rv;
     }
     
+    private static final CallSiteDescriptor baThrower = new CallSiteDescriptor(
+        new byte[] { CallSiteDescriptor.ARG_OBJ, CallSiteDescriptor.ARG_OBJ }, null);
+    public static SixModelObject p6bindassert(SixModelObject value, SixModelObject type, ThreadContext tc) {
+        if (type != Mu) {
+            SixModelObject decont = org.perl6.nqp.runtime.Ops.decont(value, tc);
+            if (org.perl6.nqp.runtime.Ops.istype(decont, type, tc) == 0) {
+                SixModelObject thrower = getThrower(tc, "X::TypeCheck::Binding");
+                if (thrower == null)
+                    ExceptionHandling.dieInternal(tc,
+                        "Type check failed in binding");
+                else
+                    org.perl6.nqp.runtime.Ops.invokeDirect(tc, thrower,
+                        baThrower, new Object[] { value, type });
+            }
+        }
+        return value;
+    }
+    
     public static SixModelObject p6captureouters(SixModelObject capList, ThreadContext tc) {
         CallFrame cf = tc.curFrame;
         long elems = capList.elems(tc);
@@ -149,5 +169,10 @@ public final class Ops {
             closure.outer = cf;
         }
         return capList;
+    }
+    
+    public static SixModelObject getThrower(ThreadContext tc, String type) {
+        /* XXX TODO: thrower lookup. */
+        return null;
     }
 }

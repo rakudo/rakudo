@@ -136,6 +136,19 @@ public final class Ops {
         return false;
     }
     
+    public static SixModelObject p6var(SixModelObject cont, ThreadContext tc) {
+        if (cont != null && cont.st.ContainerSpec != null) {
+            SixModelObject wrapper = Scalar.st.REPR.allocate(tc, Scalar.st);
+            wrapper.bind_attribute_boxed(tc, Ops.Scalar, "$!value",
+                RakudoContainerSpec.HINT_value,
+                cont);
+            return wrapper;
+        }
+        else {
+            return cont;
+        }
+    }
+    
     public static SixModelObject p6typecheckrv(SixModelObject rv, SixModelObject routine, ThreadContext tc) {
         System.err.println("p6typecheckrv NYI");
         return rv;

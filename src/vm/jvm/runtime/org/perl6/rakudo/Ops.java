@@ -11,6 +11,10 @@ public final class Ops {
     private static SixModelObject Code;
     private static SixModelObject Signature;
     public static SixModelObject Parameter;
+    public static SixModelObject Int;
+    public static SixModelObject Num;
+    public static SixModelObject Str;
+    public static SixModelObject Junction;
     private static SixModelObject False;
     private static SixModelObject True;
     private static boolean initialized = false;
@@ -34,6 +38,10 @@ public final class Ops {
         Code = conf.at_key_boxed(tc, "Code");
         Signature = conf.at_key_boxed(tc, "Signature");
         Parameter = conf.at_key_boxed(tc, "Parameter");
+        Int = conf.at_key_boxed(tc, "Int");
+        Num = conf.at_key_boxed(tc, "Num");
+        Str = conf.at_key_boxed(tc, "Str");
+        Junction = conf.at_key_boxed(tc, "Junction");
         False = conf.at_key_boxed(tc, "False");
         True = conf.at_key_boxed(tc, "True");
         return conf;
@@ -69,6 +77,12 @@ public final class Ops {
         }
         
         return csd;
+    }
+    
+    public static long p6isbindable(SixModelObject signature, SixModelObject capture, ThreadContext tc) {
+        /* TODO */
+        System.err.println("p6isbindable NYI (always returns true)");
+        return 1;
     }
     
     public static SixModelObject p6parcel(SixModelObject array, SixModelObject fill, ThreadContext tc) {

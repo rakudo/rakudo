@@ -62,6 +62,19 @@ public final class Binder {
     /* Last error, per thread. */
     public static HashMap<ThreadContext, String> lastErrors = new HashMap<ThreadContext, String>();
     
+    private static SixModelObject createBox(ThreadContext tc, Object arg, int flag) {
+        switch (flag) {
+            case CallSiteDescriptor.ARG_INT:
+                return org.perl6.nqp.runtime.Ops.box_i((long)arg, Ops.Int, tc);
+            case CallSiteDescriptor.ARG_NUM:
+                return org.perl6.nqp.runtime.Ops.box_n((double)arg, Ops.Num, tc);
+            case CallSiteDescriptor.ARG_STR:
+                return org.perl6.nqp.runtime.Ops.box_s((String)arg, Ops.Str, tc);
+            default:
+                throw new RuntimeException("Impossible case reached in createBox");
+        }
+    }
+    
     private static String arityFail(ThreadContext tc, SixModelObject params,
             int numParams, int numPosArgs, boolean tooMany) {
         int arity = 0;
@@ -107,12 +120,191 @@ public final class Binder {
                 fail, numPosArgs, arity, count);
     }
     
+    /* Returns an appropriate failure mode (junction fail or normal fail). */
+    private static int junc_or_fail(SixModelObject value) {
+        if (value.st.WHAT == Ops.Junction)
+            return BIND_RESULT_JUNCTION;
+        else
+            return BIND_RESULT_FAIL;
+    }
+    
     /* Binds a single argument into the lexpad, after doing any checks that are
      * needed. Also handles any type captures. If there is a sub signature, then
      * re-enters the binder. Returns one of the BIND_RESULT_* codes. */
     private static int bindOneParam(ThreadContext tc, CallFrame cf, SixModelObject param,
-            Object arg, byte flag, boolean noNomTypeCheck, boolean needError) {
-        System.err.println("bindOneParam NYI");
+            Object origArg, byte origFlag, boolean noNomTypeCheck, boolean needError) {
+        /* Get parameter flags and variable name. */
+        param.get_attribute_native(tc, Ops.Parameter, "$!flags", HINT_flags);
+        int paramFlags = (int)tc.native_i;
+        param.get_attribute_native(tc, Ops.Parameter, "$!variable_name", HINT_variable_name);
+        String varName = tc.native_s;
+        
+        /* We'll put the value to bind into one of the following locals, and
+         * flag will indicate what type of thing it is. */
+        int flag;
+        long arg_i = 0;
+        double arg_n = 0.0;
+        String arg_s = null;
+        SixModelObject arg_o = null;
+        
+        /* Check if boxed/unboxed expections are met. */
+        int desiredNative = paramFlags & SIG_ELEM_NATIVE_VALUE;
+        int gotNative = origFlag & 7;
+        if (desiredNative == 0 && gotNative == CallSiteDescriptor.ARG_OBJ) {
+            flag = gotNative;
+            arg_o = (SixModelObject)origArg;
+        }
+        else if (desiredNative == SIG_ELEM_NATIVE_INT_VALUE && gotNative == CallSiteDescriptor.ARG_INT) {
+            flag = gotNative;
+            arg_i = (long)origArg;
+        }
+        else if (desiredNative == SIG_ELEM_NATIVE_NUM_VALUE && gotNative == CallSiteDescriptor.ARG_NUM) {
+            flag = gotNative;
+            arg_n = (double)origArg;
+        }
+        else if (desiredNative == SIG_ELEM_NATIVE_STR_VALUE && gotNative == CallSiteDescriptor.ARG_STR) {
+            flag = gotNative;
+            arg_s = (String)origArg;
+        }
+        else if (desiredNative == 0) {
+            /* We need to do a boxing operation. */
+            flag = CallSiteDescriptor.ARG_OBJ;
+            arg_o = createBox(tc, origArg, gotNative);
+        }
+        else {
+            /* We need to do an unboxing opeation. */
+            SixModelObject decontValue = org.perl6.nqp.runtime.Ops.decont((SixModelObject)origArg, tc);
+            StorageSpec spec = decontValue.st.REPR.get_storage_spec(tc, decontValue.st);
+            switch (desiredNative) {
+                case SIG_ELEM_NATIVE_INT_VALUE:
+                    if ((spec.can_box & StorageSpec.CAN_BOX_INT) != 0) {
+                        flag = CallSiteDescriptor.ARG_INT;
+                        arg_i = decontValue.get_int(tc);
+                    }
+                    else {
+                        if (needError)
+                            lastErrors.put(tc, String.format(
+                                "Cannot unbox argument to '%s' as a native int",
+                                varName));
+                        return BIND_RESULT_FAIL;
+                    }
+                    break;
+                case SIG_ELEM_NATIVE_NUM_VALUE:
+                    if ((spec.can_box & StorageSpec.CAN_BOX_NUM) != 0) {
+                        flag = CallSiteDescriptor.ARG_NUM;
+                        arg_n = decontValue.get_num(tc);
+                    }
+                    else {
+                        if (needError)
+                            lastErrors.put(tc, String.format(
+                                "Cannot unbox argument to '%s' as a native num",
+                                varName));
+                        return BIND_RESULT_FAIL;
+                    }
+                    break;
+                case SIG_ELEM_NATIVE_STR_VALUE:
+                    if ((spec.can_box & StorageSpec.CAN_BOX_STR) != 0) {
+                        flag = CallSiteDescriptor.ARG_STR;
+                        arg_s = decontValue.get_str(tc);
+                    }
+                    else {
+                        if (needError)
+                            lastErrors.put(tc, String.format(
+                                "Cannot unbox argument to '%s' as a native str",
+                                varName));
+                        return BIND_RESULT_FAIL;
+                    }
+                    break;
+                default:
+                    if (needError)
+                        lastErrors.put(tc, String.format(
+                            "Cannot unbox argument to '%s' as a native type",
+                            varName));
+                    return BIND_RESULT_FAIL;
+            }
+        }
+        
+        /* By this point, we'll either have an object that we might be able to
+         * bind if it passes the type check, or a native value that needs no
+         * further checking. */
+        SixModelObject decontValue = null;
+        if (flag == CallSiteDescriptor.ARG_OBJ) {
+            /* We need to work on the decontainerized value. */
+            decontValue = org.perl6.nqp.runtime.Ops.decont(arg_o, tc);
+            
+            /* HLL map it as needed. */
+            decontValue = org.perl6.nqp.runtime.Ops.hllize(decontValue, tc);
+            
+            /* Skip nominal type check if not needed. */
+            if (!noNomTypeCheck) {
+                System.err.println("Parameter type checking NYI");
+            }
+        }
+        
+        /* TODO: Type captures. */
+        
+        /* TODO: Coercions. */
+        
+        /* If it's not got attributive binding, we'll go about binding it into the
+         * lex pad. */
+        if ((paramFlags & SIG_ELEM_BIND_ATTRIBUTIVE) == 0 && varName != null) {
+            /* Is it native? If so, just go ahead and bind it. */
+            StaticCodeInfo sci = cf.codeRef.staticInfo;
+            if (flag != CallSiteDescriptor.ARG_OBJ) {
+                switch (flag) {
+                    case CallSiteDescriptor.ARG_INT:
+                        cf.iLex[sci.iTryGetLexicalIdx(varName)] = arg_i;
+                        break;
+                    case CallSiteDescriptor.ARG_NUM:
+                        cf.nLex[sci.nTryGetLexicalIdx(varName)] = arg_n;
+                        break;
+                    case CallSiteDescriptor.ARG_STR:
+                        cf.sLex[sci.sTryGetLexicalIdx(varName)] = arg_s;
+                        break;
+                }
+            }
+            
+            /* Otherwise it's some objecty case. */
+            else if ((paramFlags & SIG_ELEM_IS_RW) != 0) {
+                /* XXX TODO Check if rw flag is set; also need to have a
+                 * wrapper container that carries extra constraints. */
+                cf.oLex[sci.oTryGetLexicalIdx(varName)] = decontValue;
+            }
+            else if ((paramFlags & SIG_ELEM_IS_PARCEL) != 0) {
+                /* Just bind the thing as is into the lexpad. */
+                cf.oLex[sci.oTryGetLexicalIdx(varName)] = decontValue;
+            }
+            else {
+                /* If it's an array, copy means make a new one and store,
+                 * and a normal bind is a straightforward binding plus
+                 * adding a constraint. */
+                if ((paramFlags & SIG_ELEM_ARRAY_SIGIL) != 0) {
+                    SixModelObject bindee = decontValue;
+                    if ((paramFlags & SIG_ELEM_IS_COPY) != 0) {
+                        throw new RuntimeException("is copy array param NYI");
+                    }
+                    cf.oLex[sci.oTryGetLexicalIdx(varName)] = bindee;
+                }
+                
+                /* If it's a hash, similar approach to array. */
+                else if ((paramFlags & SIG_ELEM_HASH_SIGIL) != 0) {
+                    SixModelObject bindee = decontValue;
+                    if ((paramFlags & SIG_ELEM_IS_COPY) != 0) {
+                        throw new RuntimeException("is copy hash param NYI");
+                    }
+                    cf.oLex[sci.oTryGetLexicalIdx(varName)] = bindee;
+                }
+                
+                /* If it's a scalar, we always need to wrap it into a new
+                 * container and store it, for copy or ro case (the rw bit
+                 * in the container descriptor takes care of the rest). */
+                else {
+                    throw new RuntimeException("scalar params NYI");
+                }
+            }
+        }
+        
+        System.err.println("bindOneParam NYFI");
         return BIND_RESULT_OK;
     }
     
@@ -148,7 +340,6 @@ public final class Binder {
                  * much nothing. */
                 param.get_attribute_native(tc, Ops.Parameter, "$!variable_name", HINT_variable_name);
                 if (tc.native_s == null) {
-                   System.err.println("cap ok"); 
                    bindFail = BIND_RESULT_OK;
                 }
                 else {
@@ -218,7 +409,6 @@ public final class Binder {
         
         
         /* XXX TODO. */
-        System.err.println("p6bindsig NYI");
         return BIND_RESULT_OK;
     }
     

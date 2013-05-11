@@ -109,14 +109,16 @@ class Array {
             $pos = $pos.Int;
             self.exists($pos)
               ?? nqp::atpos(nqp::getattr(self, List, '$!items'), nqp::unbox_i($pos))
-              !! pir::setattribute__0PPsP($v, Scalar, '$!whence',
-                     -> { nqp::bindpos(nqp::getattr(self, List, '$!items'), nqp::unbox_i($pos), $v) } )
+              !! (nqp::bindattr($v, Scalar, '$!whence',
+                     -> { nqp::bindpos(nqp::getattr(self, List, '$!items'), nqp::unbox_i($pos), $v) } );
+                  $v)
         }
         multi method at_pos(int $pos, TValue $v? is copy) is rw {
             self.exists($pos)
               ?? nqp::atpos(nqp::getattr(self, List, '$!items'), $pos)
-              !! pir::setattribute__0PPsP($v, Scalar, '$!whence',
-                     -> { nqp::bindpos(nqp::getattr(self, List, '$!items'), $pos, $v) } )
+              !! (nqp::bindattr($v, Scalar, '$!whence',
+                     -> { nqp::bindpos(nqp::getattr(self, List, '$!items'), $pos, $v) } );
+                  $v)
         }
         multi method bind_pos($pos is copy, TValue \bindval) is rw {
             $pos = $pos.Int;

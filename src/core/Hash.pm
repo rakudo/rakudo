@@ -118,8 +118,9 @@ my class Hash {
             $key = $key.Str;
             self.exists($key)
               ?? nqp::findmethod(EnumMap, 'at_key')(self, $key)
-              !! pir::setattribute__0PPsP($v, Scalar, '$!whence',
-                     -> { nqp::findmethod(EnumMap, 'STORE_AT_KEY')(self, $key, $v) } )
+              !! (nqp::bindattr($v, Scalar, '$!whence',
+                     -> { nqp::findmethod(EnumMap, 'STORE_AT_KEY')(self, $key, $v) } );
+                  $v)
         }
         method STORE_AT_KEY(Str \key, TValue $x is copy) is rw {
             nqp::findmethod(EnumMap, 'STORE_AT_KEY')(self, key, $x);
@@ -139,7 +140,7 @@ my class Hash {
             my $key_which = key.WHICH;
             self.exists($key_which)
               ?? nqp::findmethod(EnumMap, 'at_key')(self, $key_which)
-              !! pir::setattribute__0PPsP($v, Scalar, '$!whence',
+              !! (nqp::bindattr($v, Scalar, '$!whence',
                  -> {
                         nqp::defined(nqp::getattr(self, $?CLASS, '$!keys')) ||
                             nqp::bindattr(self, $?CLASS, '$!keys', nqp::hash());
@@ -153,7 +154,7 @@ my class Hash {
                             nqp::getattr(self, EnumMap, '$!storage'),
                             nqp::unbox_s($key_which),
                             $v);
-                    })
+                    }); $v)
         }
         method STORE_AT_KEY(TKey \key, TValue $x is copy) is rw {
             my $key_which = key.WHICH;

@@ -111,6 +111,33 @@ public final class Ops {
         return parcel;
     }
     
+    private static final CallSiteDescriptor STORE = new CallSiteDescriptor(
+        new byte[] { CallSiteDescriptor.ARG_OBJ, CallSiteDescriptor.ARG_OBJ }, null);
+    private static final CallSiteDescriptor storeThrower = new CallSiteDescriptor(
+        new byte[] { }, null);
+    public static SixModelObject p6store(SixModelObject cont, SixModelObject value, ThreadContext tc) {
+        ContainerSpec spec = cont.st.ContainerSpec;
+        if (spec != null) {
+            spec.store(tc, cont, org.perl6.nqp.runtime.Ops.decont(value, tc));
+        }
+        else {
+            SixModelObject meth = org.perl6.nqp.runtime.Ops.findmethod(value, "STORE", tc);
+            if (meth != null) {
+                org.perl6.nqp.runtime.Ops.invokeDirect(tc, meth,
+                    STORE, new Object[] { cont, value });
+            }
+            else {
+                SixModelObject thrower = getThrower(tc, "X::Assignment::RO");
+                if (thrower == null)
+                    ExceptionHandling.dieInternal(tc, "Cannot assign to a non-container");
+                else
+                    org.perl6.nqp.runtime.Ops.invokeDirect(tc, meth,
+                        storeThrower, new Object[] { });
+            }
+        }
+        return cont;
+    }
+    
     public static SixModelObject p6decontrv(SixModelObject cont, ThreadContext tc) {
         if (isRWScalar(tc, cont)) {
             tc.curFrame.codeRef.codeObject.get_attribute_native(tc, Routine, "$!rw", HINT_ROUTINE_RW);

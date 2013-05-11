@@ -106,9 +106,13 @@ class Perl6::Metamodel::EnumHOW
         self.publish_type_cache($obj);
         self.publish_method_cache($obj);
         
+#?if parrot
         # Install Parrot v-table mappings.
         self.publish_parrot_vtable_mapping($obj);
 		self.publish_parrot_vtable_handler_mapping($obj);
+#?endif
+        
+        # Publish boolification spec.
         self.publish_boolification_spec($obj);
         
         # Create BUILDPLAN.

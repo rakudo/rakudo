@@ -919,25 +919,27 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my $code := $loop[1]<code_object>;
         my $block_type := $*W.find_symbol(['Block']);
         my $phasers := nqp::getattr($code, $block_type, '$!phasers');
-        if nqp::existskey($phasers, 'NEXT') {
-            my $phascode := $*W.run_phasers_code($code, $block_type, 'NEXT');
-            if +@($loop) == 2 {
-                $loop.push($phascode);
+        unless nqp::isnull($phasers) {
+            if nqp::existskey($phasers, 'NEXT') {
+                my $phascode := $*W.run_phasers_code($code, $block_type, 'NEXT');
+                if +@($loop) == 2 {
+                    $loop.push($phascode);
+                }
+                else {
+                    $loop[2] := QAST::Stmts.new($phascode, $loop[2]);
+                }
             }
-            else {
-                $loop[2] := QAST::Stmts.new($phascode, $loop[2]);
+            if nqp::existskey($phasers, 'FIRST') {
+                $loop := QAST::Stmts.new(
+                    QAST::Op.new( :op('p6setfirstflag'), QAST::WVal.new( :value($code) ) ),
+                    $loop);
             }
-        }
-        if nqp::existskey($phasers, 'FIRST') {
-            $loop := QAST::Stmts.new(
-                QAST::Op.new( :op('p6setfirstflag'), QAST::WVal.new( :value($code) ) ),
-                $loop);
-        }
-        if nqp::existskey($phasers, 'LAST') {
-            $loop := QAST::Stmts.new(
-                :resultchild(0),
-                $loop,
-                $*W.run_phasers_code($code, $block_type, 'LAST'));
+            if nqp::existskey($phasers, 'LAST') {
+                $loop := QAST::Stmts.new(
+                    :resultchild(0),
+                    $loop,
+                    $*W.run_phasers_code($code, $block_type, 'LAST'));
+            }
         }
         $loop
     }

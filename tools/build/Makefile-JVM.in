@@ -121,12 +121,12 @@ CORE_SOURCES = \
   src/core/Whatever.pm \
   src/core/Bool.pm \
   src/core/Numeric.pm \
-#  src/core/Real.pm \
-#  src/core/Int.pm \
-#  src/core/Order.pm \
-#  src/core/UInt64.pm \
-#  src/core/Num.pm \
-#  src/core/Str.pm \
+  src/core/Real.pm \
+  src/core/Int.pm \
+  src/core/Order.pm \
+  src/core/UInt64.pm \
+  src/core/Num.pm \
+  src/core/Str.pm \
 #  src/core/Capture.pm \
 #  src/core/Parcel.pm \
 #  src/core/Iterable.pm \

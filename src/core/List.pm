@@ -405,7 +405,7 @@ my class List does Positional {
     }
 
     method sink() {
-        self.gimme(*, :sink);
+        self.gimme(*, :sink) if self.defined;
         Nil;
     }
 }

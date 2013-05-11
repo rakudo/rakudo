@@ -138,4 +138,16 @@ public final class Ops {
         System.err.println("p6typecheckrv NYI");
         return rv;
     }
+    
+    public static SixModelObject p6captureouters(SixModelObject capList, ThreadContext tc) {
+        CallFrame cf = tc.curFrame;
+        long elems = capList.elems(tc);
+        for (long i = 0; i < elems; i++) {
+            SixModelObject codeObj = capList.at_pos_boxed(tc, i);
+            CodeRef closure = (CodeRef)codeObj.get_attribute_boxed(tc,
+                Code, "$!do", HINT_CODE_DO);
+            closure.outer = cf;
+        }
+        return capList;
+    }
 }

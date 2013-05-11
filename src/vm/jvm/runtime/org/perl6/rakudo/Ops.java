@@ -159,6 +159,13 @@ public final class Ops {
         return value;
     }
     
+    public static SixModelObject p6capturelex(SixModelObject codeObj, ThreadContext tc) {
+        CodeRef closure = (CodeRef)codeObj.get_attribute_boxed(tc,
+                Code, "$!do", HINT_CODE_DO);
+        closure.outer = tc.curFrame;
+        return codeObj;
+    }
+    
     public static SixModelObject p6captureouters(SixModelObject capList, ThreadContext tc) {
         CallFrame cf = tc.curFrame;
         long elems = capList.elems(tc);

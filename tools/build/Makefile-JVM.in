@@ -111,16 +111,16 @@ CORE_SOURCES = \
   src/core/Block.pm \
   src/core/Attribute.pm \
   src/core/Routine.pm \
-#  src/core/Sub.pm \
-#  src/core/Macro.pm \
-#  src/core/Method.pm \
-#  src/core/Submethod.pm \
-#  src/core/Junction.pm \
-#  src/core/Cool.pm \
-#  src/core/Enumeration.pm \
-#  src/core/Whatever.pm \
-#  src/core/Bool.pm \
-#  src/core/Numeric.pm \
+  src/core/Sub.pm \
+  src/core/Macro.pm \
+  src/core/Method.pm \
+  src/core/Submethod.pm \
+  src/core/Junction.pm \
+  src/core/Cool.pm \
+  src/core/Enumeration.pm \
+  src/core/Whatever.pm \
+  src/core/Bool.pm \
+  src/core/Numeric.pm \
 #  src/core/Real.pm \
 #  src/core/Int.pm \
 #  src/core/Order.pm \

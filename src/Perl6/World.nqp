@@ -2490,7 +2490,7 @@ class Perl6::World is HLL::World {
                 @err.push: %opts{$key};
                 @err.push: "\n";
             }
-            nqp::findmethod(HLL::Grammar, 'panic')($/.CURSOR, nqp::join('', @err));
+            nqp::findmethod(HLL::Grammar, 'panic')($/.CURSOR, join('', @err));
         }
     }
     

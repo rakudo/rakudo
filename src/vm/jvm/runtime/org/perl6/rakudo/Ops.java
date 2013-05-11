@@ -133,4 +133,9 @@ public final class Ops {
         }
         return false;
     }
+    
+    public static SixModelObject p6typecheckrv(SixModelObject rv, SixModelObject routine, ThreadContext tc) {
+        System.err.println("p6typecheckrv NYI");
+        return rv;
+    }
 }

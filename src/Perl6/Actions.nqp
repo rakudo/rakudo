@@ -5838,7 +5838,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             }
         }
 
-        $number := strip_trailing_zeros($number);
+        $number := strip_trailing_zeros(~$number);
 
         my $Int := $*W.find_symbol(['Int']);
 

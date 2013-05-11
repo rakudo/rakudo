@@ -67,7 +67,7 @@ sub levenshtein($a, $b) {
     }
 
     sub levenshtein_impl($apos, $bpos, $estimate) {
-        my $key := nqp::join(":", ($apos, $bpos));
+        my $key := join(":", ($apos, $bpos));
 
         return %memo{$key} if nqp::existskey(%memo, $key);
 

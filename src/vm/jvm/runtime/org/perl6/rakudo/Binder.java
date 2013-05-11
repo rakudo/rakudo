@@ -299,7 +299,15 @@ public final class Binder {
                  * container and store it, for copy or ro case (the rw bit
                  * in the container descriptor takes care of the rest). */
                 else {
-                    throw new RuntimeException("scalar params NYI");
+                    STable stScalar = Ops.Scalar.st;
+                    SixModelObject new_cont = stScalar.REPR.allocate(tc, stScalar);
+                    SixModelObject desc = param.get_attribute_boxed(tc, Ops.Parameter,
+                        "$!container_descriptor", HINT_container_descriptor);
+                    new_cont.bind_attribute_boxed(tc, Ops.Scalar, "$!descriptor",
+                        RakudoContainerSpec.HINT_descriptor, desc);
+                    new_cont.bind_attribute_boxed(tc, Ops.Scalar, "$!value",
+                        RakudoContainerSpec.HINT_value, decontValue);
+                    cf.oLex[sci.oTryGetLexicalIdx(varName)] = new_cont;
                 }
             }
         }

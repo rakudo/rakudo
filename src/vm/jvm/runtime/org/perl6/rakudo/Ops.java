@@ -15,6 +15,7 @@ public final class Ops {
     public static SixModelObject Num;
     public static SixModelObject Str;
     public static SixModelObject Junction;
+    public static SixModelObject Scalar;
     private static SixModelObject False;
     private static SixModelObject True;
     private static boolean initialized = false;
@@ -42,6 +43,7 @@ public final class Ops {
         Num = conf.at_key_boxed(tc, "Num");
         Str = conf.at_key_boxed(tc, "Str");
         Junction = conf.at_key_boxed(tc, "Junction");
+        Scalar = conf.at_key_boxed(tc, "Scalar");
         False = conf.at_key_boxed(tc, "False");
         True = conf.at_key_boxed(tc, "True");
         return conf;

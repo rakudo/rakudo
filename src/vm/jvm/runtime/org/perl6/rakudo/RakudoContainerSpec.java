@@ -4,6 +4,11 @@ import org.perl6.nqp.runtime.ThreadContext;
 import org.perl6.nqp.sixmodel.*;
 
 public class RakudoContainerSpec extends ContainerSpec {
+    /* Container related hints. */
+    public static final int HINT_descriptor = 0;
+    public static final int HINT_value = 1;
+    public static final int HINT_whence = 2;
+    
     /* Fetches a value out of a container. Used for decontainerization. */
     public SixModelObject fetch(ThreadContext tc, SixModelObject cont) {
         throw new RuntimeException("Rakudo scalar fetch NYI");

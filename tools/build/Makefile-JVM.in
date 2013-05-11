@@ -103,14 +103,14 @@ CORE_SOURCES = \
   src/core/stubs.pm \
   src/core/control.pm \
   src/core/Mu.pm \
-#  src/core/Stringy.pm \
-#  src/core/Any.pm \
-#  src/core/Scalar.pm \
-#  src/core/Code.pm \
-#  src/core/WhateverCode.pm \
-#  src/core/Block.pm \
-#  src/core/Attribute.pm \
-#  src/core/Routine.pm \
+  src/core/Stringy.pm \
+  src/core/Any.pm \
+  src/core/Scalar.pm \
+  src/core/Code.pm \
+  src/core/WhateverCode.pm \
+  src/core/Block.pm \
+  src/core/Attribute.pm \
+  src/core/Routine.pm \
 #  src/core/Sub.pm \
 #  src/core/Macro.pm \
 #  src/core/Method.pm \

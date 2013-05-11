@@ -247,9 +247,9 @@ public final class Binder {
         
         /* If it's not got attributive binding, we'll go about binding it into the
          * lex pad. */
+        StaticCodeInfo sci = cf.codeRef.staticInfo;
         if ((paramFlags & SIG_ELEM_BIND_ATTRIBUTIVE) == 0 && varName != null) {
             /* Is it native? If so, just go ahead and bind it. */
-            StaticCodeInfo sci = cf.codeRef.staticInfo;
             if (flag != CallSiteDescriptor.ARG_OBJ) {
                 switch (flag) {
                     case CallSiteDescriptor.ARG_INT:
@@ -311,6 +311,10 @@ public final class Binder {
                 }
             }
         }
+        
+        /* Is it the invocant? If so, also have to bind to self lexical. */
+        if ((paramFlags & SIG_ELEM_INVOCANT) != 0)
+            cf.oLex[sci.oTryGetLexicalIdx("self")] = decontValue;
         
         System.err.println("bindOneParam NYFI");
         return BIND_RESULT_OK;

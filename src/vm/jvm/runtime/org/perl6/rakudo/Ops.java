@@ -61,6 +61,24 @@ public final class Ops {
         return x == 0 ? False : True;
     }
     
+    public static SixModelObject p6box_i(long value, ThreadContext tc) {
+        SixModelObject res = Int.st.REPR.allocate(tc, Int.st);
+        res.set_int(tc, value);
+        return res;
+    }
+    
+    public static SixModelObject p6box_n(double value, ThreadContext tc) {
+        SixModelObject res = Num.st.REPR.allocate(tc, Num.st);
+        res.set_num(tc, value);
+        return res;
+    }
+    
+    public static SixModelObject p6box_s(String value, ThreadContext tc) {
+        SixModelObject res = Str.st.REPR.allocate(tc, Str.st);
+        res.set_str(tc, value);
+        return res;
+    }
+    
     public static CallSiteDescriptor p6bindsig(ThreadContext tc, CallSiteDescriptor csd, Object[] args) {
         /* Do any flattening before processing begins. */
         CallFrame cf = tc.curFrame;

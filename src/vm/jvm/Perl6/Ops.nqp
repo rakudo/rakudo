@@ -63,7 +63,15 @@ $ops.map_classlib_hll_op('perl6', 'p6return', $TYPE_P6OPS, 'p6return', [$RT_OBJ]
 $ops.map_classlib_hll_op('perl6', 'p6routinereturn', $TYPE_P6OPS, 'p6routinereturn', [$RT_OBJ], $RT_OBJ, :tc);
 $ops.map_classlib_hll_op('perl6', 'p6getouterctx', $TYPE_P6OPS, 'p6getouterctx', [$RT_OBJ], $RT_OBJ, :tc);
 $ops.map_classlib_hll_op('perl6', 'p6captureouters', $TYPE_P6OPS, 'p6captureouters', [$RT_OBJ], $RT_OBJ, :tc);
-$ops.map_classlib_hll_op('perl6', 'p6argvmarray', $TYPE_P6OPS, 'p6argvmarray', [], $RT_OBJ, :tc);
+$ops.add_hll_op('perl6', 'p6argvmarray', -> $qastcomp, $op {
+    my $il := JAST::InstructionList.new();
+    $il.append(JAST::Instruction.new( :op('aload_1') ));
+    $il.append(JAST::Instruction.new( :op('aload'), 'csd' ));
+    $il.append(JAST::Instruction.new( :op('aload'), '__args' ));
+    $il.append(JAST::Instruction.new( :op('invokestatic'), $TYPE_P6OPS,
+        "p6argvmarray", $TYPE_SMO, $TYPE_TC, $TYPE_CSD, "[$TYPE_OBJ" ));
+    $ops.result($il, $RT_OBJ);
+});
 $ops.map_classlib_hll_op('perl6', 'p6bindattrinvres', $TYPE_P6OPS, 'p6bindattrinvres', [$RT_OBJ, $RT_OBJ, $RT_STR, $RT_OBJ], $RT_OBJ, :tc);
 $ops.map_classlib_hll_op('perl6', 'p6finddispatcher', $TYPE_P6OPS, 'p6finddispatcher', [$RT_STR], $RT_OBJ, :tc);
 $ops.map_classlib_hll_op('perl6', 'p6argsfordispatcher', $TYPE_P6OPS, 'p6argsfordispatcher', [$RT_OBJ], $RT_OBJ, :tc);

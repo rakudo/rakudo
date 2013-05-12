@@ -79,6 +79,30 @@ public final class Ops {
         return res;
     }
     
+    public static SixModelObject p6argvmarray(ThreadContext tc, CallSiteDescriptor csd, Object[] args) {
+        SixModelObject BOOTArray = tc.gc.BOOTArray;
+        SixModelObject res = BOOTArray.st.REPR.allocate(tc, BOOTArray.st);
+        for (int i = 0; i < csd.numPositionals; i++) {
+            SixModelObject toBind;
+            switch (csd.argFlags[i]) {
+                case CallSiteDescriptor.ARG_INT:
+                    toBind = p6box_i((long)args[i], tc);
+                    break;
+                case CallSiteDescriptor.ARG_NUM:
+                    toBind = p6box_n((double)args[i], tc);
+                    break;
+                case CallSiteDescriptor.ARG_STR:
+                    toBind = p6box_s((String)args[i], tc);
+                    break;
+                default:
+                    toBind = org.perl6.nqp.runtime.Ops.hllize((SixModelObject)args[i], tc);
+                    break;
+            }
+            res.bind_pos_boxed(tc, i, toBind);
+        }
+        return res;
+    }
+    
     public static CallSiteDescriptor p6bindsig(ThreadContext tc, CallSiteDescriptor csd, Object[] args) {
         /* Do any flattening before processing begins. */
         CallFrame cf = tc.curFrame;

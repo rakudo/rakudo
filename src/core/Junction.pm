@@ -142,5 +142,5 @@ sub AUTOTHREAD_METHOD($name, |c) {
         |c);
 }
 
-pir::perl6_setup_junction_autothreading__vPP(Junction, &AUTOTHREAD);
+nqp::p6setautothreader(&AUTOTHREAD);
 Mu.HOW.setup_junction_fallback(Junction, &AUTOTHREAD_METHOD);

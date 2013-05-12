@@ -38,6 +38,7 @@ $ops.add_hll_pirop_mapping('perl6', 'p6argsfordispatcher', 'perl6_args_for_dispa
 $ops.add_hll_pirop_mapping('perl6', 'p6shiftpush', 'perl6_shiftpush', '0PPi');
 $ops.add_hll_pirop_mapping('perl6', 'p6arrfindtypes', 'perl6_rpa_find_types', 'IPPii');
 $ops.add_hll_pirop_mapping('perl6', 'p6decodelocaltime', 'decodelocaltime', 'Pi');
+$ops.add_hll_pirop_mapping('perl6', 'p6setautothreader', 'perl6_setup_junction_autothreading', 'vP');
 $ops.add_hll_pirop_mapping('perl6', 'tclc', 'titlecase', 'Ss', :inlinable(1));
 $ops.add_hll_op('perl6', 'p6getcallsig', -> $qastcomp, $op {
     my $reg := $*REGALLOC.fresh_p();

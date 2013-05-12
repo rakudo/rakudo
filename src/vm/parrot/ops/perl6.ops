@@ -654,6 +654,8 @@ inline op p6settypes(invar PMC) :base_core {
         Parrot_str_new_constant(interp, "False")));
     Rakudo_types_bool_true_set(VTABLE_get_pmc_keyed_str(interp, $1,
         Parrot_str_new_constant(interp, "True")));
+    Rakudo_types_junction_set(VTABLE_get_pmc_keyed_str(interp, $1,
+        Parrot_str_new_constant(interp, "Junction")));
 }
 
 
@@ -666,9 +668,8 @@ Sets the junction type and auto-threader.
 =cut
 
 */
-inline op perl6_setup_junction_autothreading(in PMC, in PMC) :base_core {
-    Rakudo_types_junction_set($1);
-    Rakudo_types_junction_threader_set($2);
+inline op perl6_setup_junction_autothreading(in PMC) :base_core {
+    Rakudo_types_junction_threader_set($1);
 }
 
 

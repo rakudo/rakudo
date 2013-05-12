@@ -148,10 +148,10 @@ CORE_SOURCES = \
   src/core/Parameter.pm \
   src/core/Signature.pm \
   src/core/Buf.pm \
-#  src/core/IO.pm \
-#  src/core/IO/ArgFiles.pm \
-#  src/core/IO/Socket.pm \
-#  src/core/IO/Socket/INET.pm \
+  src/core/IO.pm \
+  src/core/IO/ArgFiles.pm \
+  src/core/IO/Socket.pm \
+  src/core/IO/Socket/INET.pm \
   src/core/Rational.pm \
   src/core/Rat.pm \
   src/core/Complex.pm \

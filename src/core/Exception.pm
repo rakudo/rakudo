@@ -231,9 +231,6 @@ do {
                 $resume();
             }
         }
-        if ($type == pir::const::CONTROL_RETURN) {
-            die("stray return control exception");
-        }
         if ($type == pir::const::CONTROL_LOOP_LAST) {
             X::ControlFlow.new(illegal => 'last', enclosing => 'loop construct').throw;
         }

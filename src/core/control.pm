@@ -47,13 +47,13 @@ my &return := -> | {
 my &take-rw := -> | { 
     my $parcel := 
         &RETURN-PARCEL(nqp::p6parcel(nqp::p6argvmarray(), Nil));
-    THROW($parcel, pir::const::CONTROL_TAKE);
+    THROW($parcel, nqp::const::CONTROL_TAKE);
     $parcel
 };
 my &take := -> | { 
     my $parcel := 
         &RETURN-PARCEL(nqp::p6parcel(nqp::p6argvmarray(), Nil));
-    THROW(nqp::p6recont_ro($parcel), pir::const::CONTROL_TAKE);
+    THROW(nqp::p6recont_ro($parcel), nqp::const::CONTROL_TAKE);
     $parcel
 };
 
@@ -61,32 +61,32 @@ my &last := -> | {
     my $parcel := 
         &RETURN-PARCEL(nqp::p6parcel(nqp::p6argvmarray(), Nil));
     THROW(nqp::decont($parcel), 
-          pir::const::CONTROL_LOOP_LAST) 
+          nqp::const::CONTROL_LAST) 
 };
 
 my &next := -> | { 
     my $parcel := 
         &RETURN-PARCEL(nqp::p6parcel(nqp::p6argvmarray(), Nil));
     THROW(nqp::decont($parcel), 
-          pir::const::CONTROL_LOOP_NEXT) 
+          nqp::const::CONTROL_NEXT) 
 };
 
 my &redo := -> | { 
     my $parcel := 
         &RETURN-PARCEL(nqp::p6parcel(nqp::p6argvmarray(), Nil));
     THROW(nqp::decont($parcel), 
-          pir::const::CONTROL_LOOP_REDO) 
+          nqp::const::CONTROL_REDO) 
 };
 
 my &succeed := -> | { 
     my $parcel := 
         &RETURN-PARCEL(nqp::p6parcel(nqp::p6argvmarray(), Nil));
     THROW(nqp::decont($parcel), 
-          pir::const::CONTROL_BREAK) 
+          nqp::const::CONTROL_SUCCEED)
 };
 
 my &proceed := -> {
-    THROW(Nil, pir::const::CONTROL_CONTINUE)
+    THROW(Nil, nqp::const::CONTROL_PROCEED)
 }
 
 my &callwith := -> *@pos, *%named {
@@ -138,7 +138,7 @@ multi sub die(*@msg) is hidden_from_backtrace {
 multi sub warn(*@msg) is hidden_from_backtrace {
     my $ex := nqp::newexception();
     nqp::bindattr($ex, Exception, 'message', @msg.join(''));
-    nqp::bindattr($ex, Exception, 'type', nqp::p6box_i(pir::const::CONTROL_OK));
+    nqp::bindattr($ex, Exception, 'type', nqp::p6box_i(nqp::const::CONTROL_WARN));
     nqp::bindattr($ex, Exception, 'severity', nqp::p6box_i(pir::const::EXCEPT_WARNING));
     nqp::throw($ex);
     0;

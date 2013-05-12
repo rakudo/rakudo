@@ -220,7 +220,7 @@ do {
     sub print_control(|) is hidden_from_backtrace {
         my Mu $ex := nqp::atpos(nqp::p6argvmarray(), 0);
         my int $type = nqp::atkey_i($ex, 'type');
-        if ($type == pir::const::CONTROL_OK) {
+        if ($type == nqp::const::CONTROL_WARN) {
             my Mu $err := nqp::getstderr();
             my $msg = nqp::p6box_s(nqp::atkey_s($ex, 'message'));
             $err.print: $msg ?? "$msg" !! "Warning";
@@ -231,23 +231,23 @@ do {
                 $resume();
             }
         }
-        if ($type == pir::const::CONTROL_LOOP_LAST) {
+        if ($type == nqp::const::CONTROL_LAST) {
             X::ControlFlow.new(illegal => 'last', enclosing => 'loop construct').throw;
         }
-        if ($type == pir::const::CONTROL_LOOP_NEXT) {
+        if ($type == nqp::const::CONTROL_NEXT) {
             X::ControlFlow.new(illegal => 'next', enclosing => 'loop construct').throw;
         }
-        if ($type == pir::const::CONTROL_LOOP_REDO) {
+        if ($type == nqp::const::CONTROL_REDO) {
             X::ControlFlow.new(illegal => 'redo', enclosing => 'loop construct').throw;
         }
-        if ($type == pir::const::CONTROL_CONTINUE) {
+        if ($type == nqp::const::CONTROL_PROCEED) {
             X::ControlFlow.new(illegal => 'proceed', enclosing => 'when clause').throw;
         }
-        if ($type == pir::const::CONTROL_BREAK) {
+        if ($type == nqp::const::CONTROL_SUCCEED) {
             # XXX: should work like leave() ?
             X::ControlFlow.new(illegal => 'succeed', enclosing => 'when clause').throw;
         }
-        if ($type == pir::const::CONTROL_TAKE) {
+        if ($type == nqp::const::CONTROL_TAKE) {
             X::ControlFlow.new(illegal => 'take', enclosing => 'gather').throw;
         }
     }

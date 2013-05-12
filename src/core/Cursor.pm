@@ -69,7 +69,7 @@ my class Cursor does NQPCursorRole {
             my Mu $alts := nqp::list();
             my Mu $order := nqp::list();
 
-            if nqp::istype($var, Positional) || nqp::istype($var, Capture) {
+            if nqp::istype($var, Positional) {
                 if $s {
                     # The order matters for sequential matching, therefor no NFA involved.
                     $order := $var.list;

@@ -1870,7 +1870,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $past := QAST::Var.new(:name('Nil'), :scope('lexical'));
             $past<metaattr> := $attr;
         }
-        elsif $*SCOPE eq 'my' || $*SCOPE eq 'state' {            
+        elsif $*SCOPE eq 'my' || $*SCOPE eq 'our' || $*SCOPE eq 'state' {
             # Twigil handling.
             if $twigil eq '.' {
                 add_lexical_accessor($/, $past, $desigilname, $*W.cur_lexpad());
@@ -1881,6 +1881,17 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     twigil => $twigil,
                     scope  => $*SCOPE,
                 );
+            }
+            if $*SCOPE eq 'our' {
+                if $*OFTYPE {
+                    $/.CURSOR.panic("Cannot put a type constraint on an 'our'-scoped variable");
+                }
+                elsif $shape {
+                    $/.CURSOR.panic("Cannot put a shape on an 'our'-scoped variable");
+                }
+                elsif $desigilname eq '' {
+                    $/.CURSOR.panic("Cannot have an anonymous 'our'-scoped variable");
+                }
             }
 
             # Create a container descriptor. Default to rw and set a
@@ -1893,7 +1904,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 $name := QAST::Node.unique('ANON_VAR_');
             }
             $*W.install_lexical_container($BLOCK, $name, %cont_info, $descriptor,
-                :state($*SCOPE eq 'state'));
+                :scope($*SCOPE), :package($*PACKAGE));
             
             # Set scope and type on container, and if needed emit code to
             # reify a generic type.
@@ -1907,51 +1918,15 @@ class Perl6::Actions is HLL::Actions does STDActions {
                         QAST::Op.new( :op('p6var'), $past ),
                         QAST::Op.new( :op('curlexpad') ));
                 }
+                
+                if $*SCOPE eq 'our' {
+                    $BLOCK[0].push(QAST::Op.new(
+                        :op('bind'),
+                        $past,
+                        $*W.symbol_lookup([$name], $/, :package_only(1), :lvalue(1))
+                    ));
+                }
             }
-        }
-        elsif $*SCOPE eq 'our' {
-            # Twigil handling.
-            if $twigil eq '.' {
-                add_lexical_accessor($/, $past, $desigilname, $*W.cur_lexpad());
-                $name := $sigil ~ $desigilname;
-                $past.name($name);
-                $past.scope('lexical');
-            }
-            elsif $twigil eq '!' {
-                $*W.throw($/, ['X', 'Syntax', 'Variable', 'Twigil'],
-                    twigil => $twigil,
-                    scope  => $*SCOPE,
-                );
-            }
-            elsif $twigil ne '*' {
-                $past.scope('lexical');
-            }
-
-            if $*OFTYPE {
-                $/.CURSOR.panic("Cannot put a type constraint on an 'our'-scoped variable");
-            }
-            elsif $shape {
-                $/.CURSOR.panic("Cannot put a shape on an 'our'-scoped variable");
-            }
-            elsif $desigilname eq '' {
-                $/.CURSOR.panic("Cannot have an anonymous 'our'-scoped variable");
-            }
-            
-            # Search for the nearest package.
-            my $pkg := $BLOCK;
-            while !$pkg.symbol('$?PACKAGE') && $pkg<outer>.defined {
-                $pkg := $pkg<outer>;
-            }
-            
-            # Declare that variable within that package.
-            unless $pkg.symbol($name) {
-                $pkg.symbol($name, :scope('lexical'));
-                $pkg[0].push( QAST::Var.new( :name($name), :scope('lexical'), :decl('var') ) );
-            }
-            $BLOCK[0].push(QAST::Op.new(
-                :op('bind'),
-                QAST::Var.new( :name($name), :scope('lexical') ),
-                $*W.symbol_lookup([$name], $/, :package_only(1), :lvalue(1))));
         }
         else {
             $*W.throw($/, 'X::Comp::NYI',
@@ -4629,7 +4604,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         %cont{'default_value'}   := $zero.compile_time_value;
         $*W.install_lexical_container($*W.cur_lexpad(), $state, %cont,
             $*W.create_container_descriptor(%cont{'bind_constraint'}, 1, $state),
-            :state(1));
+            :scope('state'));
             
         # Twiddle to make special-case RHS * work.
         if istype($rhs.returns, $*W.find_symbol(['Whatever'])) {

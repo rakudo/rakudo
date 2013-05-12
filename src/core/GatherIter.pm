@@ -6,11 +6,7 @@ class GatherIter is Iterator {
     method new($block, Mu :$infinite) {
         my Mu $coro := 
             nqp::clone(nqp::getattr(&coro, Code, '$!do'));
-        Q:PIR {
-            $P0 = find_lex '$block'
-            $P1 = find_lex '$coro'
-            $P1($P0)
-        };
+        nqp::ifnull($coro($block), Nil);
         my Mu $new := nqp::create(self);
         nqp::bindattr($new, GatherIter, '$!coro', $coro);
         nqp::bindattr($new, GatherIter, '$!infinite', $infinite);
@@ -55,6 +51,7 @@ class GatherIter is Iterator {
     method infinite() { $!infinite }
 
     my sub coro(\block) {
+#?if parrot
         Q:PIR {
             .local pmc block, handler, taken
             block = find_lex 'block'
@@ -80,6 +77,10 @@ class GatherIter is Iterator {
             goto gather_done    # should never get here
         };
         True
+#?endif
+#?if !parrot
+        die "GatherIter NYI on JVM backend"
+#?endif
     }
 }
 

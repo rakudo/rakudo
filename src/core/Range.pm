@@ -84,6 +84,7 @@ my class Range is Iterable is Cool does Positional {
                       ?? $!max.Numeric
                       !! $!max;
         my Mu $rpa := nqp::list();
+#?if parrot
         if nqp::istype($value, Int) && nqp::istype($!max, Int) && !nqp::isbig_I(nqp::decont $!max)
            || nqp::istype($value, Num) {
             # Q:PIR optimized for int/num ranges
@@ -126,9 +127,12 @@ my class Range is Iterable is Cool does Positional {
             };
         }    
         else {
+#?endif
           (nqp::push($rpa, $value++); $count--)
               while $count > 0 && ($value cmp $realmax) < $cmpstop;
+#?if parrot
         }
+#?endif
         if ($value cmp $!max) < $cmpstop {
             nqp::push($rpa,
                 ($value.succ cmp $!max < $cmpstop)

@@ -5,8 +5,9 @@ my class CallFrame {
     has %.my;
     method new(Int :$level = 0) {
         my $l = $level + 1;
-        my Mu $interp := pir::getinterp__P;
         my $self := nqp::create(CallFrame);
+#?if parrot
+        my Mu $interp := pir::getinterp__P;
         nqp::bindattr($self, CallFrame, '$!interp', pir::getinterp__P);
         nqp::bindattr($self, CallFrame, '%!annotations',
             Q:PIR {
@@ -36,6 +37,10 @@ my class CallFrame {
         my $h := nqp::create(EnumMap);
         nqp::bindattr($h, EnumMap, '$!storage', $lexpad);
         nqp::bindattr($self, CallFrame, '%!my', $h);
+#?endif
+#?if !parrot
+        die "CallFrame NYI on JVM backend"
+#?endif
 
         $self;
     }

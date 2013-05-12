@@ -50,6 +50,7 @@ my class MapIter is Iterator {
                              && +$block.phasers('NEXT');
             my int $is_sink = $sink ?? 1 !! 0;
 
+#?if parrot
             Q:PIR {
                 .local int argc, count, NEXT, is_sink
                 .local pmc handler, self, MapIter, items, args, result, block, rpa
@@ -119,6 +120,10 @@ my class MapIter is Iterator {
               iter_done:
                 pop_eh
             };
+#?endif
+#?if !parrot
+            die "MapIter NYI on JVM backend"
+#?endif
 
             if $!items || $!listiter {
                 my $nextiter := nqp::create(self).BUILD($!listiter, $!block, $!flattens);

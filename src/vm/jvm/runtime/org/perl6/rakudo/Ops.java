@@ -16,6 +16,8 @@ public final class Ops {
     public static SixModelObject Int;
     public static SixModelObject Num;
     public static SixModelObject Str;
+    private static SixModelObject List;
+    private static SixModelObject ListIter;
     public static SixModelObject Junction;
     public static SixModelObject Scalar;
     private static SixModelObject ContainerDescriptor;
@@ -30,6 +32,13 @@ public final class Ops {
     private static final int HINT_ROUTINE_RW = 7;
     private static final int HINT_SIG_PARAMS = 0;
     private static final int HINT_CD_RW = 1;
+    private static final int HINT_LIST_items = 0;
+    private static final int HINT_LIST_flattens = 1;
+    private static final int HINT_LIST_nextiter = 2;
+    private static final int HINT_LISTITER_reified = 0;
+    private static final int HINT_LISTITER_nextiter = 1;
+    private static final int HINT_LISTITER_rest = 2;
+    private static final int HINT_LISTITER_list = 3;
     
     public static SixModelObject p6init(ThreadContext tc) {
         if (!initialized) {
@@ -49,6 +58,8 @@ public final class Ops {
         Int = conf.at_key_boxed(tc, "Int");
         Num = conf.at_key_boxed(tc, "Num");
         Str = conf.at_key_boxed(tc, "Str");
+        List = conf.at_key_boxed(tc, "List");
+        ListIter = conf.at_key_boxed(tc, "ListIter");
         Junction = conf.at_key_boxed(tc, "Junction");
         Scalar = conf.at_key_boxed(tc, "Scalar");
         ContainerDescriptor = conf.at_key_boxed(tc, "ContainerDescriptor");
@@ -77,6 +88,22 @@ public final class Ops {
         SixModelObject res = Str.st.REPR.allocate(tc, Str.st);
         res.set_str(tc, value);
         return res;
+    }
+    
+    public static SixModelObject p6list(SixModelObject arr, SixModelObject type, SixModelObject flattens, ThreadContext tc) {
+        SixModelObject list = type.st.REPR.allocate(tc, type.st);
+        if (arr != null) 
+            list.bind_attribute_boxed(tc, List, "$!nextiter", HINT_LIST_nextiter,
+                p6listiter(arr, list, tc));
+        list.bind_attribute_boxed(tc, List, "$!flattens", HINT_LIST_flattens, flattens);
+        return list;
+    }
+    
+    public static SixModelObject p6listiter(SixModelObject arr, SixModelObject list, ThreadContext tc) {
+        SixModelObject iter = ListIter.st.REPR.allocate(tc, ListIter.st);
+        iter.bind_attribute_boxed(tc, ListIter, "$!rest", HINT_LISTITER_rest, arr);
+        iter.bind_attribute_boxed(tc, ListIter, "$!list", HINT_LISTITER_list, list);
+        return iter;
     }
     
     public static SixModelObject p6argvmarray(ThreadContext tc, CallSiteDescriptor csd, Object[] args) {

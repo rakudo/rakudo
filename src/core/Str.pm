@@ -176,7 +176,7 @@ my class Str does Stringy {
             my int $ipos = nqp::index($RANGECHAR, $ch0);
             $ipos = $RANGECHAR.index($ch0, $ipos+1) // $ipos;
             my str $ch1 = nqp::substr($RANGECHAR, $ipos-1, 1);
-            $str = pir::replace__Ssiis($str, $r1, 1, $ch1);
+            $str = nqp::replace($str, $r1, 1, $ch1);
             # return if no carry
             return $str if $ch0 gt $ch1;
             # carry to previous position
@@ -195,12 +195,12 @@ my class Str does Stringy {
             my str $ch0  = nqp::substr($str, $r1, 1);
             my int $ipos = nqp::index($RANGECHAR, $ch0);
             my str $ch1  = nqp::substr($RANGECHAR, $ipos+1, 1);
-            $str = pir::replace__Ssiis($str, $r1, 1, $ch1);
+            $str = nqp::replace($str, $r1, 1, $ch1);
             return $str if $ch1 gt $ch0;
             # carry to previous position
             $r1 = $r1 - 1;
             # extend string if carried past first rangechar position
-            $str = pir::replace__Ssiis($str, $r0, 0,
+            $str = nqp::replace($str, $r0, 0,
                        nqp::existskey($carrydigit, $ch1) 
                            ?? nqp::atkey($carrydigit, $ch1)
                            !! $ch1)

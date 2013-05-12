@@ -768,6 +768,10 @@ class Perl6::Optimizer {
                     $_.name eq '$_' || $_.name eq '$*DISPATCHER') {
                 # Don't copy this variable node.
             }
+            elsif nqp::istype($_, QAST::Op) && $_.op eq 'takedispatcher' {
+                # Don't copy the dispatcher take, since the $*DISPATCHER is
+                # also not copied.
+            }
             else {
                 $outer[0].push($_);
             }

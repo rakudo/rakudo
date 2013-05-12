@@ -23,6 +23,7 @@ public final class Ops {
     private static SixModelObject ContainerDescriptor;
     private static SixModelObject False;
     private static SixModelObject True;
+    public static SixModelObject AutoThreader;
     private static boolean initialized = false;
     
     /* Parameter hints for fast lookups. */
@@ -66,6 +67,11 @@ public final class Ops {
         False = conf.at_key_boxed(tc, "False");
         True = conf.at_key_boxed(tc, "True");
         return conf;
+    }
+    
+    public static SixModelObject p6setautothreader(SixModelObject autoThreader, ThreadContext tc) {
+        AutoThreader = autoThreader;
+        return autoThreader;
     }
     
     public static SixModelObject booleanize(int x) {

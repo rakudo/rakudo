@@ -301,7 +301,7 @@ class Perl6::Optimizer {
                 # local var, next time create a reference var op.
                 my %reference;
                 sub refer_to($valop) {
-                    my $id := $valop;
+                    my $id := nqp::where($valop);
                     if nqp::existskey(%reference, $id) {
                         QAST::Var.new(:name(%reference{$id}), :scope<local>);
                     } else {

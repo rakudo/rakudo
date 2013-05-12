@@ -164,6 +164,11 @@ public final class Ops {
         return 1;
     }
     
+    public static long p6trialbind(SixModelObject routine, SixModelObject values, SixModelObject flags, ThreadContext tc) {
+        /* TODO */
+        return Binder.TRIAL_BIND_NOT_SURE;
+    }
+    
     public static SixModelObject p6parcel(SixModelObject array, SixModelObject fill, ThreadContext tc) {
         SixModelObject parcel = Parcel.st.REPR.allocate(tc, Parcel.st);
         parcel.initialize(tc);

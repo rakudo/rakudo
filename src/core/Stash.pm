@@ -13,7 +13,7 @@ my class Stash {
                 !! fail("Could not find symbol '$key'")
         }
         else {
-            pir::setattribute__0PPsP(my $v, Scalar, '$!whence',
+            nqp::p6bindattrinvres(my $v, Scalar, '$!whence',
                  -> { nqp::bindkey($storage, nqp::unbox_s($key), $v) } )
         }
     }

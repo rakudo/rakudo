@@ -1,25 +1,25 @@
 my role IO { }
 
 sub print(|) {
-    my $args := pir::perl6_current_args_rpa__P();
+    my $args := nqp::p6argvmarray();
     $*OUT.print(nqp::shift($args)) while $args;
     Bool::True
 }
 
 sub say(|) {
-    my $args := pir::perl6_current_args_rpa__P();
+    my $args := nqp::p6argvmarray();
     $*OUT.print(nqp::shift($args).gist) while $args;
     $*OUT.print("\n");
 }
 
 sub note(|) {
-    my $args := pir::perl6_current_args_rpa__P();
+    my $args := nqp::p6argvmarray();
     $*ERR.print(nqp::shift($args).gist) while $args;
     $*ERR.print("\n");
 }
 
 sub gist(|) {
-    nqp::p6parcel(pir::perl6_current_args_rpa__P(), Mu).gist
+    nqp::p6parcel(nqp::p6argvmarray(), Mu).gist
 }
 
 sub prompt($msg) {
@@ -197,7 +197,7 @@ my class IO::Handle does IO::FileTestable {
     }
 
     multi method say(IO::Handle:D: |) {
-        my Mu $args := pir::perl6_current_args_rpa__P();
+        my Mu $args := nqp::p6argvmarray();
         nqp::shift($args);
         self.print: nqp::shift($args).gist while $args;
         self.print: "\n";

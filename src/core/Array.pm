@@ -4,7 +4,7 @@ class Array {
     # Has attributes and parent List declared in BOOTSTRAP.    
 
     method new(|) { 
-        my Mu $args := pir::perl6_current_args_rpa__P();
+        my Mu $args := nqp::p6argvmarray();
         nqp::shift($args);
         nqp::p6list($args, self.WHAT, Bool::True);
     }
@@ -20,7 +20,7 @@ class Array {
               || nqp::getattr(self, List, '$!nextiter').defined
                   && self.exists($p)
           ?? nqp::atpos($items, $p)
-          !! pir::setattribute__0PPsP(my $v, Scalar, '$!whence',
+          !! nqp::p6bindattrinvres(my $v, Scalar, '$!whence',
                  -> { nqp::bindpos($items, $p, $v) } )
     }
     multi method at_pos(Array:D: int $pos) is rw {
@@ -30,7 +30,7 @@ class Array {
               || nqp::getattr(self, List, '$!nextiter').defined
                   && self.exists($pos)
           ?? nqp::atpos($items, $pos)
-          !! pir::setattribute__0PPsP(my $v, Scalar, '$!whence',
+          !! nqp::p6bindattrinvres(my $v, Scalar, '$!whence',
                  -> { nqp::bindpos($items, $pos, $v) } )
     }
 
@@ -90,7 +90,7 @@ class Array {
 
     method STORE(|) {
         # get arguments, shift off invocant
-        my $args := pir::perl6_current_args_rpa__P();
+        my $args := nqp::p6argvmarray();
         nqp::shift($args);
         # make an array from them (we can't just use ourself for this,
         # or @a = @a will go terribly wrong); make it eager
@@ -109,16 +109,14 @@ class Array {
             $pos = $pos.Int;
             self.exists($pos)
               ?? nqp::atpos(nqp::getattr(self, List, '$!items'), nqp::unbox_i($pos))
-              !! (nqp::bindattr($v, Scalar, '$!whence',
-                     -> { nqp::bindpos(nqp::getattr(self, List, '$!items'), nqp::unbox_i($pos), $v) } );
-                  $v)
+              !! nqp::p6bindattrinvres($v, Scalar, '$!whence',
+                     -> { nqp::bindpos(nqp::getattr(self, List, '$!items'), nqp::unbox_i($pos), $v) } )
         }
         multi method at_pos(int $pos, TValue $v? is copy) is rw {
             self.exists($pos)
               ?? nqp::atpos(nqp::getattr(self, List, '$!items'), $pos)
-              !! (nqp::bindattr($v, Scalar, '$!whence',
-                     -> { nqp::bindpos(nqp::getattr(self, List, '$!items'), $pos, $v) } );
-                  $v)
+              !! nqp::p6bindattrinvres($v, Scalar, '$!whence',
+                     -> { nqp::bindpos(nqp::getattr(self, List, '$!items'), $pos, $v) } )
         }
         multi method bind_pos($pos is copy, TValue \bindval) is rw {
             $pos = $pos.Int;

@@ -21,7 +21,7 @@ my class Exception {
     }
 
     method throw() is hidden_from_backtrace {
-        nqp::bindattr(self, Exception, '$!ex', pir::new__Ps('Exception'))
+        nqp::bindattr(self, Exception, '$!ex', nqp::newexception())
             unless nqp::defined($!ex);
         pir::setattribute__vPsP($!ex, 'payload', nqp::decont(self));
         my $msg := self.?message;
@@ -88,7 +88,7 @@ my class X::Method::InvalidQualifier is Exception {
 
 
 sub EXCEPTION(|) {
-    my Mu $parrot_ex := nqp::shift(pir::perl6_current_args_rpa__P());
+    my Mu $parrot_ex := nqp::shift(nqp::p6argvmarray());
     my Mu $payload   := nqp::atkey($parrot_ex, 'payload');
     if nqp::p6bool(nqp::istype($payload, Exception)) {
         nqp::bindattr($payload, Exception, '$!ex', $parrot_ex);
@@ -115,7 +115,7 @@ sub EXCEPTION(|) {
 
 my class X::Comp::AdHoc { ... }
 sub COMP_EXCEPTION(|) {
-    my Mu $parrot_ex := nqp::shift(pir::perl6_current_args_rpa__P());
+    my Mu $parrot_ex := nqp::shift(nqp::p6argvmarray());
     my Mu $payload   := nqp::atkey($parrot_ex, 'payload');
     if nqp::p6bool(nqp::istype($payload, Exception)) {
         nqp::bindattr($payload, Exception, '$!ex', $parrot_ex);
@@ -196,7 +196,7 @@ do {
 
 
     sub print_exception(|) is hidden_from_backtrace {
-        my Mu $ex := nqp::atpos(pir::perl6_current_args_rpa__P(), 0);
+        my Mu $ex := nqp::atpos(nqp::p6argvmarray(), 0);
         try {
             my $e := EXCEPTION($ex);
             my Mu $err := nqp::getstderr();
@@ -218,7 +218,7 @@ do {
     }
 
     sub print_control(|) is hidden_from_backtrace {
-        my Mu $ex := nqp::atpos(pir::perl6_current_args_rpa__P(), 0);
+        my Mu $ex := nqp::atpos(nqp::p6argvmarray(), 0);
         my int $type = nqp::atkey_i($ex, 'type');
         if ($type == pir::const::CONTROL_OK) {
             my Mu $err := nqp::getstderr();
@@ -258,7 +258,7 @@ do {
     my Mu $comp := nqp::getcomp('perl6');
     $comp.HOW.add_method($comp, 'handle-exception',
         method (|) {
-            my Mu $ex := nqp::atpos(pir::perl6_current_args_rpa__P(), 1);
+            my Mu $ex := nqp::atpos(nqp::p6argvmarray(), 1);
             pir::perl6_invoke_catchhandler__vPP(&print_exception, $ex);
             nqp::exit(1);
             0;
@@ -266,7 +266,7 @@ do {
     );
     $comp.HOW.add_method($comp, 'handle-control',
         method (|) {
-            my Mu $ex := nqp::atpos(pir::perl6_current_args_rpa__P(), 1);
+            my Mu $ex := nqp::atpos(nqp::p6argvmarray(), 1);
             pir::perl6_invoke_catchhandler__vPP(&print_control, $ex);
             nqp::rethrow($ex);
         }

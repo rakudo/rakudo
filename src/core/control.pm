@@ -33,54 +33,54 @@ my &RETURN-PARCEL := -> Mu \parcel {
 
 my &return-rw := -> | { 
     my $parcel := 
-        &RETURN-PARCEL(nqp::p6parcel(pir::perl6_current_args_rpa__P(), Nil));
+        &RETURN-PARCEL(nqp::p6parcel(nqp::p6argvmarray(), Nil));
     nqp::p6routinereturn($parcel);
     $parcel
 };
 my &return := -> | {
     my $parcel := 
-        &RETURN-PARCEL(nqp::p6parcel(pir::perl6_current_args_rpa__P(), Nil));
+        &RETURN-PARCEL(nqp::p6parcel(nqp::p6argvmarray(), Nil));
     nqp::p6routinereturn(nqp::p6recont_ro($parcel));
     $parcel
 };
 
 my &take-rw := -> | { 
     my $parcel := 
-        &RETURN-PARCEL(nqp::p6parcel(pir::perl6_current_args_rpa__P(), Nil));
+        &RETURN-PARCEL(nqp::p6parcel(nqp::p6argvmarray(), Nil));
     THROW($parcel, pir::const::CONTROL_TAKE);
     $parcel
 };
 my &take := -> | { 
     my $parcel := 
-        &RETURN-PARCEL(nqp::p6parcel(pir::perl6_current_args_rpa__P(), Nil));
+        &RETURN-PARCEL(nqp::p6parcel(nqp::p6argvmarray(), Nil));
     THROW(nqp::p6recont_ro($parcel), pir::const::CONTROL_TAKE);
     $parcel
 };
 
 my &last := -> | { 
     my $parcel := 
-        &RETURN-PARCEL(nqp::p6parcel(pir::perl6_current_args_rpa__P(), Nil));
+        &RETURN-PARCEL(nqp::p6parcel(nqp::p6argvmarray(), Nil));
     THROW(nqp::decont($parcel), 
           pir::const::CONTROL_LOOP_LAST) 
 };
 
 my &next := -> | { 
     my $parcel := 
-        &RETURN-PARCEL(nqp::p6parcel(pir::perl6_current_args_rpa__P(), Nil));
+        &RETURN-PARCEL(nqp::p6parcel(nqp::p6argvmarray(), Nil));
     THROW(nqp::decont($parcel), 
           pir::const::CONTROL_LOOP_NEXT) 
 };
 
 my &redo := -> | { 
     my $parcel := 
-        &RETURN-PARCEL(nqp::p6parcel(pir::perl6_current_args_rpa__P(), Nil));
+        &RETURN-PARCEL(nqp::p6parcel(nqp::p6argvmarray(), Nil));
     THROW(nqp::decont($parcel), 
           pir::const::CONTROL_LOOP_REDO) 
 };
 
 my &succeed := -> | { 
     my $parcel := 
-        &RETURN-PARCEL(nqp::p6parcel(pir::perl6_current_args_rpa__P(), Nil));
+        &RETURN-PARCEL(nqp::p6parcel(nqp::p6argvmarray(), Nil));
     THROW(nqp::decont($parcel), 
           pir::const::CONTROL_BREAK) 
 };
@@ -90,13 +90,13 @@ my &proceed := -> {
 }
 
 my &callwith := -> *@pos, *%named {
-    my Mu $dispatcher := pir::perl6_find_dispatcher__Ps('callwith');
+    my Mu $dispatcher := nqp::p6finddispatcher('callwith');
     $dispatcher.exhausted ?? Nil !!
         $dispatcher.call_with_args(|@pos, |%named)
 };
 
 my &nextwith := -> *@pos, *%named {
-    my Mu $dispatcher := pir::perl6_find_dispatcher__Ps('nextwith');
+    my Mu $dispatcher := nqp::p6finddispatcher('nextwith');
     unless $dispatcher.exhausted {
         nqp::p6routinereturn(nqp::p6recont_ro(
             $dispatcher.call_with_args(|@pos, |%named)))
@@ -105,24 +105,24 @@ my &nextwith := -> *@pos, *%named {
 };
 
 my &callsame := -> {
-    my Mu $dispatcher := pir::perl6_find_dispatcher__Ps('callsame');
+    my Mu $dispatcher := nqp::p6finddispatcher('callsame');
     $dispatcher.exhausted ?? Nil !!
         $dispatcher.call_with_capture(
-            pir::perl6_args_for_dispatcher__PP($dispatcher))
+            nqp::p6argsfordispatcher($dispatcher))
 };
 
 my &nextsame := -> {
-    my Mu $dispatcher := pir::perl6_find_dispatcher__Ps('nextsame');
+    my Mu $dispatcher := nqp::p6finddispatcher('nextsame');
     unless $dispatcher.exhausted {
         nqp::p6routinereturn(nqp::p6recont_ro(
             $dispatcher.call_with_capture(
-                pir::perl6_args_for_dispatcher__PP($dispatcher))))
+                nqp::p6argsfordispatcher($dispatcher))))
     }
     Nil
 };
 
 my &lastcall := -> {
-    pir::perl6_find_dispatcher__Ps('lastcall').last();
+    nqp::p6finddispatcher('lastcall').last();
     True
 };
 
@@ -136,7 +136,7 @@ multi sub die(*@msg) is hidden_from_backtrace {
 }
 
 multi sub warn(*@msg) is hidden_from_backtrace {
-    my $ex := pir::new__Ps('Exception');
+    my $ex := nqp::newexception();
     nqp::bindattr($ex, Exception, 'message', @msg.join(''));
     nqp::bindattr($ex, Exception, 'type', nqp::p6box_i(pir::const::CONTROL_OK));
     nqp::bindattr($ex, Exception, 'severity', nqp::p6box_i(pir::const::EXCEPT_WARNING));

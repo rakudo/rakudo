@@ -64,7 +64,7 @@ my class Parcel does Positional {
 
     method STORE(|) {
         # get the list of rvalues to store and lhs containers
-        my Mu $args := pir::perl6_current_args_rpa__P();
+        my Mu $args := nqp::p6argvmarray();
         nqp::shift($args);
         my $rhs := nqp::p6list($args, List, Bool::True);   # XXX this might need to be Seq
 
@@ -120,7 +120,7 @@ my class Parcel does Positional {
 
 
 my sub infix:<,>(|) is pure {
-    nqp::p6parcel(pir::perl6_current_args_rpa__P(), nqp::null());
+    nqp::p6parcel(nqp::p6argvmarray(), nqp::null());
 }
 
 

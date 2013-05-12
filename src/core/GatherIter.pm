@@ -38,8 +38,8 @@ class GatherIter is Iterator {
                 $count = $count - 1;
             }
             nqp::push($rpa, 
-                pir::setattribute__0PPsP(
-                    pir::setattribute__0PPsP(
+                nqp::p6bindattrinvres(
+                    nqp::p6bindattrinvres(
                         nqp::create(self), GatherIter, '$!coro', $!coro),
                     GatherIter, '$!infinite', $!infinite))
                 unless $end;

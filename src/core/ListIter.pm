@@ -21,12 +21,11 @@ my class ListIter {
             my $want_types := $flattens
                 ?? nqp::list(Iterable, Parcel)
                 !! nqp::list(Iterable);
-            pir::perl6_shiftpush__0PPI($rpa, $!rest, nqp::elems($!rest))
+            nqp::p6shiftpush($rpa, $!rest, nqp::elems($!rest))
                 if nqp::istype($!list, LoL);
             while $!rest && (nqp::elems($rpa) < $count) {
-                $index = pir::perl6_rpa_find_types__IPPii(
-                                 $!rest, $want_types, 0, $max);
-                pir::perl6_shiftpush__0PPi($rpa, $!rest, $index);
+                $index = nqp::p6arrfindtypes($!rest, $want_types, 0, $max);
+                nqp::p6shiftpush($rpa, $!rest, $index);
                 if $!rest && (nqp::elems($rpa) < $count) {
                     $x := nqp::shift($!rest);
                     if nqp::isconcrete($x) {

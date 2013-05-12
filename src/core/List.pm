@@ -6,7 +6,7 @@ my class List does Positional {
     #   has $!nextiter;        # iterator for generating remaining elements
 
     method new(|) {
-        my Mu $args := pir::perl6_current_args_rpa__P();
+        my Mu $args := nqp::p6argvmarray();
         nqp::shift($args);
         nqp::p6list($args, self.WHAT, Mu);
     }
@@ -131,7 +131,7 @@ my class List does Positional {
                                || nqp::not_i(nqp::islist($!items))
                                || nqp::islt_i(nqp::elems($!items), nqp::unbox_i($n));
         nqp::p6parcel(
-            pir::perl6_shiftpush__0PPi(nqp::list(), $!items, nqp::unbox_i($n)),
+            nqp::p6shiftpush(nqp::list(), $!items, nqp::unbox_i($n)),
             Any
         )
     }
@@ -411,15 +411,15 @@ my class List does Positional {
 }
 
 sub eager(|) {
-    nqp::p6parcel(pir::perl6_current_args_rpa__P(), Any).eager
+    nqp::p6parcel(nqp::p6argvmarray(), Any).eager
 }
 
 sub flat(|) {
-    nqp::p6list(pir::perl6_current_args_rpa__P(), List, Bool::True)
+    nqp::p6list(nqp::p6argvmarray(), List, Bool::True)
 }
 
 sub list(|) {
-    nqp::p6list(pir::perl6_current_args_rpa__P(), List, Mu)
+    nqp::p6list(nqp::p6argvmarray(), List, Mu)
 }
 
 proto infix:<xx>(|)       { * }

@@ -8,11 +8,16 @@ my class X::Buf::Pack::NonASCII  { ... };
 
 my class Buf does Positional {
     has str $!buffer;
+#?if parrot
     my int $binary_encoding = pir::find_encoding__Is('binary');
     method BUILD() {
         $!buffer = pir::trans_encoding__Ssi('', $binary_encoding);
         1;
     }
+#?endif
+#?if !parrot
+    method BUILD() { die "Buf NYI on JVM backend" }
+#?endif
     method new(*@codes) {
         my $new := self.bless(*);
         $new!set_codes(@codes);
@@ -68,9 +73,14 @@ my class Buf does Positional {
     }
 
     method decode(Str:D $encoding = 'utf8') {
+#?if parrot
         my $bb := pir::new__Ps('ByteBuffer');
         pir::set__vPs($bb, $!buffer);
         nqp::p6box_s($bb.get_string($encoding eq 'binary' ?? 'binary' !! PARROT_ENCODING($encoding)));
+#?endif
+#?if !parrot
+        die "Buf NYI on JVM backend"
+#?endif
     }
 
     method subbuf(Buf:D: $from = 0, $len = self.elems) {

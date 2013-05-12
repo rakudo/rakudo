@@ -3,7 +3,7 @@ class LoL {
     #    is List;              # parent class
 
     method new(|) { 
-        my Mu $args := pir::perl6_current_args_rpa__P();
+        my Mu $args := nqp::p6argvmarray();
         nqp::shift($args);
         nqp::p6list($args, self.WHAT, Mu);
     }
@@ -12,7 +12,7 @@ class LoL {
         $pos = $pos.Int;
         self.exists($pos)
           ?? nqp::findmethod(List, 'at_pos')(self, $pos)
-          !! pir::setattribute__0PPsP(my $v, Scalar, '$!whence',
+          !! nqp::p6bindattrinvres(my $v, Scalar, '$!whence',
                  -> { nqp::findmethod(List, 'STORE_AT_POS')(self, $pos, $v) } )
     }
 

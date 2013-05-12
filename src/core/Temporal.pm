@@ -151,7 +151,7 @@ sub default-formatter(DateTime $dt, Bool :$subseconds) {
 
 sub get-local-timezone-offset {
   my $utc = DateTime.new(now).posix.Int;
-  my Mu $fia := pir::decodelocaltime__PI(nqp::unbox_i($utc));
+  my Mu $fia := nqp::p6decodelocaltime(nqp::unbox_i($utc));
   my $second = nqp::p6box_i(nqp::atpos_i($fia, 0));
   my $minute = nqp::p6box_i(nqp::atpos_i($fia, 1));
   my $hour   = nqp::p6box_i(nqp::atpos_i($fia, 2));

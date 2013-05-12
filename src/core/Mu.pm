@@ -529,7 +529,15 @@ sub DUMP(|args (*@args, :$indent-step = 4, :%ctx?)) {
         if nqp::iscont($topic);
     return '(null)' if nqp::isnull($topic);
 
+    # On Parrot, not everything is a 6model object, so use the typeof op to
+    # get a real type name. On other platforms, .HOW.name(...) can be relied
+    # on to work.
+#?if parrot
     my str $type  = pir::typeof__SP($topic);
+#?endif
+#?if !parrot
+    my str $type  = $topic.HOW.name($topic);
+#?endif
     my str $where = nqp::base_I(nqp::where($topic), 16);
 
     if %ctx{$where} -> $obj_num {

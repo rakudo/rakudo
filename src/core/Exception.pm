@@ -22,15 +22,15 @@ my class Exception {
 
     method throw() is hidden_from_backtrace {
         nqp::bindattr(self, Exception, '$!ex', nqp::newexception())
-            unless nqp::defined($!ex);
-        pir::setattribute__vPsP($!ex, 'payload', nqp::decont(self));
+            unless nqp::isconcrete($!ex);
+        nqp::setpayload($!ex, nqp::decont(self));
         my $msg := self.?message;
-        pir::setattribute__0PsP($!ex, 'message', nqp::unbox_s($msg.Str))
+        nqp::setmessage($!ex, nqp::unbox_s($msg.Str))
             if $msg.defined;
         nqp::throw($!ex)
     }
     method rethrow() is hidden_from_backtrace {
-        pir::setattribute__vPsP($!ex, 'payload', nqp::decont(self));
+        nqp::setpayload($!ex, nqp::decont(self));
         nqp::rethrow($!ex)
     }
 

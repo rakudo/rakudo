@@ -4,21 +4,14 @@ my class PseudoStash { ... }
 
 my &THROW :=
     -> | {
-        Q:PIR {
-            .local pmc args, payload, type, severity, ex
-            args = perl6_current_args_rpa
-            payload  = args[0]
-            type     = args[1]
-            severity = args[2]
-            unless null severity goto have_severity
-            severity = box .EXCEPT_NORMAL
-          have_severity:
-            ex = root_new ['parrot';'Exception']
-            setattribute ex, 'payload', payload
-            setattribute ex, 'type', type
-            setattribute ex, 'severity', severity
-            throw ex
-        };
+        my Mu $args := nqp::p6argvmarray();
+        my Mu $ex   := nqp::newexception();
+        nqp::setpayload($ex, nqp::atpos($args, 0));
+        nqp::setextype($ex, nqp::atpos($args, 1));
+#?if parrot
+        pir::setattribute__vPsP($ex, 'severity', pir::const::EXCEPT_NORMAL);
+#?endif
+        nqp::throw($ex);
         0
     };
 

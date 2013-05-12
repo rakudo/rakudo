@@ -266,7 +266,12 @@ do {
     $comp.HOW.add_method($comp, 'handle-exception',
         method (|) {
             my Mu $ex := nqp::atpos(nqp::p6argvmarray(), 1);
+#?if parrot
             pir::perl6_invoke_catchhandler__vPP(&print_exception, $ex);
+#?endif
+#?if !parrot
+            print_exception($ex);
+#?endif
             nqp::exit(1);
             0;
         }
@@ -274,7 +279,12 @@ do {
     $comp.HOW.add_method($comp, 'handle-control',
         method (|) {
             my Mu $ex := nqp::atpos(nqp::p6argvmarray(), 1);
+#?if parrot
             pir::perl6_invoke_catchhandler__vPP(&print_control, $ex);
+#?endif
+#?if !parrot
+            print_control($ex);
+#?endif
             nqp::rethrow($ex);
         }
     );

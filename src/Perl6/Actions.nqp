@@ -1168,9 +1168,12 @@ class Perl6::Actions is HLL::Actions does STDActions {
                         ),
                     ),
                     QAST::VM.new(
-                        pirop => 'perl6_invoke_catchhandler 1PP',
-                        QAST::Op.new( :op('null') ),
-                        QAST::Op.new( :op('exception') )
+                        :parrot(QAST::VM.new(
+                            pirop => 'perl6_invoke_catchhandler 1PP',
+                            QAST::Op.new( :op('null') ),
+                            QAST::Op.new( :op('exception') )
+                        )),
+                        :jvm(QAST::Op.new( :op('null') ))
                     ),
                     QAST::WVal.new(
                         :value( $*W.find_symbol(['Nil']) ),
@@ -5567,7 +5570,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
         # as argument and returns the result. The install the handler.
         %*HANDLERS{$type} := QAST::Stmts.new(
             :node($/),
-            QAST::VM.new( :pirop('perl6_invoke_catchhandler__vPP'), $handler, $ex),
+            QAST::VM.new(
+                :parrot(QAST::VM.new( :pirop('perl6_invoke_catchhandler__vPP'), $handler, $ex )),
+                :jvm(QAST::Op.new( :op('call'), $handler ))
+            ),
             QAST::Var.new( :scope('lexical'), :name('Nil') )
         );
     }

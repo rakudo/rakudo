@@ -1,4 +1,5 @@
 my role IO::Socket does IO {
+#?if parrot
     has $!PIO;
     has $!buffer = '';
 
@@ -71,4 +72,5 @@ my role IO::Socket does IO {
         fail("Not connected!") unless $!PIO;
         $!PIO.close().Bool
     }
+#?endif
 }

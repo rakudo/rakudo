@@ -1,4 +1,5 @@
 my class IO::Socket::INET does IO::Socket {
+#?if parrot
     my module PIO {
         constant PF_LOCAL       = 0;
         constant PF_UNIX        = 1;
@@ -134,4 +135,5 @@ my class IO::Socket::INET does IO::Socket {
     method local_address() {
         return nqp::p6box_s(nqp::getattr(self, $?CLASS, '$!PIO').local_address());
     }
+#?endif
 }

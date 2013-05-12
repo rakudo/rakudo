@@ -122,7 +122,7 @@ my class MapIter is Iterator {
             };
 #?endif
 #?if !parrot
-            die "MapIter NYI on JVM backend"
+            die "MapIter NYI on JVM backend";
 #?endif
 
             if $!items || $!listiter {

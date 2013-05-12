@@ -161,6 +161,7 @@ sub exit($status = 0) {
 sub run(*@args ($, *@)) {
     my $error_code;
     try {
+#?if parrot
         $error_code = nqp::p6box_i(
             pir::spawnw__IP(
                 nqp::getattr(
@@ -170,6 +171,10 @@ sub run(*@args ($, *@)) {
                 )
             )
         ) +> 8;
+#?endif
+#?if !parrot
+        die "run is NYI on JVM backend";
+#?endif
         CATCH {
             default {
                 $error_code = 1;
@@ -181,6 +186,7 @@ sub run(*@args ($, *@)) {
 
 sub shell($cmd) {
     my $status = 255;
+#?if parrot
     try {
         $status = 
             nqp::p6box_i(
@@ -188,6 +194,10 @@ sub shell($cmd) {
                     pir::spawnw__Is(nqp::unbox_s($cmd)),
                     8));
     }
+#?endif
+#?if !parrot
+    die "run is NYI on JVM backend";
+#?endif
     $status;
 }
 

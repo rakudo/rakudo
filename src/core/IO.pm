@@ -29,6 +29,7 @@ sub prompt($msg) {
 }
 
 my role IO::FileTestable does IO {
+#?if parrot
     method d() {
         self.e && nqp::p6bool(nqp::stat(nqp::unbox_s(self.Str), nqp::const::STAT_ISDIR))
     }
@@ -62,6 +63,7 @@ my role IO::FileTestable does IO {
     method x() {
         nqp::p6bool(pir::new__Ps('OS').can_execute(nqp::unbox_s(self.Str)))
     }
+#?endif
     
     method z() {
         self.e && self.s == 0;
@@ -344,6 +346,7 @@ my class IO::Path::Cygwin is IO::Path { method SPEC { IO::Spec::Cygwin };  }
 
 
 sub dir(Cool $path = '.', Mu :$test = none('.', '..')) {
+#?if parrot
     my Mu $RSA := pir::new__PS('OS').readdir(nqp::unbox_s($path.Str));
     my int $elems = nqp::elems($RSA);
     my @res;
@@ -358,6 +361,10 @@ sub dir(Cool $path = '.', Mu :$test = none('.', '..')) {
         }
     }
     return @res.list;
+#?endif
+#?if !parrot
+    die "dir is NYI on JVM backend";
+#?endif
 
     CATCH {
         default {
@@ -471,10 +478,15 @@ multi sub spurt(Cool $filename,
 
 proto sub cwd(|) { * }
 multi sub cwd() {
+#?if parrot
     return nqp::p6box_s(
 		pir::trans_encoding__Ssi(
 			nqp::cwd(),
 			pir::find_encoding__Is('utf8')));
+#?endif
+#?if !parrot
+    die "cwd is NYI on JVM backend";
+#?endif
 
     CATCH {
         default {

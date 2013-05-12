@@ -13,7 +13,12 @@ my class IO::Spec {
 );
 
     #  this is really just a way of getting $*OS when it's not in scope yet
+#?if parrot
     my $submodule = %module{ nqp::atkey(nqp::atpos(pir::getinterp__P, pir::const::IGLOBALS_CONFIG_HASH), 'osname') };
+#?endif
+#?if !parrot
+    my $submodule;
+#?endif
     my $SPEC := IO::Spec.WHO{ $submodule // 'Unix' };
 
     method FSTYPE ($OS = $*OS)   { %module{$OS} // 'Unix' }

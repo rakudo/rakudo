@@ -39,7 +39,7 @@ my class CallFrame {
         nqp::bindattr($self, CallFrame, '%!my', $h);
 #?endif
 #?if !parrot
-        die "CallFrame NYI on JVM backend"
+        die "CallFrame NYI on JVM backend";
 #?endif
 
         $self;

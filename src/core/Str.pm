@@ -761,6 +761,7 @@ my class Str does Stringy {
     }
 
     method encode(Str:D $encoding = 'utf8') {
+#?if parrot
         my $buf := Buf.new;
         my $bb := pir::new__Ps('ByteBuffer');
         pir::set__vPS($bb, pir::trans_encoding__SSI(
@@ -769,6 +770,10 @@ my class Str does Stringy {
         ));
         nqp::bindattr_s($buf, Buf, '$!buffer', $bb.get_string('binary'));
         $buf;
+#?endif
+#?if !parrot
+        die "encode is NYI on JVM backend";
+#?endif
     }
 
     method capitalize(Str:D:) is DEPRECATED {

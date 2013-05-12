@@ -42,9 +42,14 @@ sub term:<time>() { nqp::p6box_i(nqp::time_i()) }
     nqp::bindkey(nqp::who(PROCESS), '%ENV', %ENV);
 
     my $VM = {
+#?if parrot
         name    => 'parrot', # XXX: should be made dynamical
         config  => nqp::hllize(
                         nqp::atpos(pir::getinterp__P, pir::const::IGLOBALS_CONFIG_HASH))
+#?endif
+#?if jvm
+        name    => 'jvm'
+#?endif
     }
     nqp::bindkey(nqp::who(PROCESS), '$VM', $VM);
 
@@ -61,9 +66,11 @@ sub term:<time>() { nqp::p6box_i(nqp::time_i()) }
     };
     nqp::bindkey(nqp::who(PROCESS), '$PERL', $PERL);
 
+#?if parrot
     my $CWD = nqp::p6box_s(pir::new__PS('OS').cwd);
     nqp::bindkey(nqp::who(PROCESS), '$CWD', $CWD);
-
+#?endif
+    
     my @INC;
     @INC.push(%ENV<RAKUDOLIB>.split($VM<config><osname> eq 'MSWin32' ?? ';' !! ':')) if %ENV<RAKUDOLIB>;
     @INC.push(%ENV<PERL6LIB>.split($VM<config><osname> eq 'MSWin32' ?? ';' !! ':')) if %ENV<PERL6LIB>;
@@ -97,8 +104,10 @@ sub term:<time>() { nqp::p6box_i(nqp::time_i()) }
 
     nqp::bindkey(nqp::who(PROCESS), '@INC', @INC);
 
+#?if parrot
     my $PID = nqp::p6box_i(pir::getinterp__P().getpid());
     nqp::bindkey(nqp::who(PROCESS), '$PID', $PID);
+#?endif
 
     my $OS = $VM<config><osname>; # XXX: master gets this information with the sysinfo dynop
     nqp::bindkey(nqp::who(PROCESS), '$OS', $OS);
@@ -107,7 +116,12 @@ sub term:<time>() { nqp::p6box_i(nqp::time_i()) }
     nqp::bindkey(nqp::who(PROCESS), '$OSVER', $OSVER);
 
     my $EXECUTABLE_NAME = 
+#?if parrot
         nqp::p6box_s(pir::interpinfo__Si(pir::const::INTERPINFO_EXECUTABLE_FULLNAME));
+#?endif
+#?if jvm
+        'java';
+#?endif
     nqp::bindkey(nqp::who(PROCESS), '$EXECUTABLE_NAME', $EXECUTABLE_NAME);
     my Mu $comp := nqp::getcomp('perl6');
 

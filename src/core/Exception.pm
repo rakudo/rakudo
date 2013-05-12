@@ -94,7 +94,7 @@ sub EXCEPTION(|) {
         nqp::bindattr($payload, Exception, '$!ex', $vm_ex);
         $payload;
     } else {
-        my int $type = nqp::atkey_i($vm_ex, 'type');
+        my int $type = nqp::getextype($vm_ex);
         my $ex;
         if $type == pir::const::EXCEPTION_METHOD_NOT_FOUND &&
             nqp::p6box_s(nqp::getmessage($vm_ex)) ~~ /"Method '" (.*?) "' not found for invocant of class '" (.+)\'$/ {
@@ -219,10 +219,10 @@ do {
 
     sub print_control(|) is hidden_from_backtrace {
         my Mu $ex := nqp::atpos(nqp::p6argvmarray(), 0);
-        my int $type = nqp::atkey_i($ex, 'type');
+        my int $type = nqp::getextype($ex);
         if ($type == nqp::const::CONTROL_WARN) {
             my Mu $err := nqp::getstderr();
-            my $msg = nqp::p6box_s(nqp::atkey_s($ex, 'message'));
+            my $msg = nqp::p6box_s(nqp::getmessage($ex));
             $err.print: $msg ?? "$msg" !! "Warning";
             $err.print: Backtrace.new($ex.backtrace, 0).nice(:oneline);
             $err.print: "\n";

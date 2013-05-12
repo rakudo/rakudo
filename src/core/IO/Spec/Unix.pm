@@ -167,7 +167,7 @@ my class IO::Spec::Unix {
     method rel2abs( $path, $base is copy = $*CWD) {
         return self.canonpath($path) if self.is-absolute($path);
         if !self.is-absolute( $base ) {
-            $base = self.rel2abs( $base )
+            $base = self.rel2abs( $base, $*CWD ) unless $base eq $*CWD;
         }
         self.catdir( $base, $path );
     }

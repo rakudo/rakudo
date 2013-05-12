@@ -88,16 +88,16 @@ my class X::Method::InvalidQualifier is Exception {
 
 
 sub EXCEPTION(|) {
-    my Mu $parrot_ex := nqp::shift(nqp::p6argvmarray());
-    my Mu $payload   := nqp::atkey($parrot_ex, 'payload');
+    my Mu $vm_ex   := nqp::shift(nqp::p6argvmarray());
+    my Mu $payload := nqp::getpayload($vm_ex);
     if nqp::p6bool(nqp::istype($payload, Exception)) {
-        nqp::bindattr($payload, Exception, '$!ex', $parrot_ex);
+        nqp::bindattr($payload, Exception, '$!ex', $vm_ex);
         $payload;
     } else {
-        my int $type = nqp::atkey_i($parrot_ex, 'type');
+        my int $type = nqp::atkey_i($vm_ex, 'type');
         my $ex;
-        if $type == pir::const::EXCEPTION_METHOD_NOT_FOUND  &&
-            nqp::p6box_s(nqp::atkey_s($parrot_ex, 'message')) ~~ /"Method '" (.*?) "' not found for invocant of class '" (.+)\'$/ {
+        if $type == pir::const::EXCEPTION_METHOD_NOT_FOUND &&
+            nqp::p6box_s(nqp::getmessage($vm_ex)) ~~ /"Method '" (.*?) "' not found for invocant of class '" (.+)\'$/ {
 
             $ex := X::Method::NotFound.new(
                 method   => ~$0,
@@ -106,24 +106,24 @@ sub EXCEPTION(|) {
         }
         else {
             $ex := nqp::create(X::AdHoc);
-            nqp::bindattr($ex, X::AdHoc, '$!payload', nqp::p6box_s(nqp::atkey_s($parrot_ex, 'message')));
+            nqp::bindattr($ex, X::AdHoc, '$!payload', nqp::p6box_s(nqp::getmessage($vm_ex)));
         }
-        nqp::bindattr($ex, Exception, '$!ex', $parrot_ex);
+        nqp::bindattr($ex, Exception, '$!ex', $vm_ex);
         $ex;
     }
 }
 
 my class X::Comp::AdHoc { ... }
 sub COMP_EXCEPTION(|) {
-    my Mu $parrot_ex := nqp::shift(nqp::p6argvmarray());
-    my Mu $payload   := nqp::atkey($parrot_ex, 'payload');
+    my Mu $vm_ex   := nqp::shift(nqp::p6argvmarray());
+    my Mu $payload := nqp::getpayload($vm_ex);
     if nqp::p6bool(nqp::istype($payload, Exception)) {
-        nqp::bindattr($payload, Exception, '$!ex', $parrot_ex);
+        nqp::bindattr($payload, Exception, '$!ex', $vm_ex);
         $payload;
     } else {
         my $ex := nqp::create(X::Comp::AdHoc);
-        nqp::bindattr($ex, Exception, '$!ex', $parrot_ex);
-        nqp::bindattr($ex, X::AdHoc, '$!payload', nqp::p6box_s(nqp::atkey_s($parrot_ex, 'message')));
+        nqp::bindattr($ex, Exception, '$!ex', $vm_ex);
+        nqp::bindattr($ex, X::AdHoc, '$!payload', nqp::p6box_s(nqp::getmessage($vm_ex)));
         $ex;
     }
 }

@@ -1378,9 +1378,10 @@ class Perl6::World is HLL::World {
         }
         else {
             $past := QAST::Want.new($const, 'Nn',
-                $value eq 'Inf' || $value eq '-Inf' || $value eq 'NaN' ??
-                    QAST::VM.new( :pirop('set Ns'), QAST::SVal.new( :value(~$value) ) ) !!
-                    QAST::NVal.new( :value($value) ) );
+                $value eq 'Inf'  ?? QAST::Op.new( :op('inf') ) !!
+                $value eq '-Inf' ?? QAST::Op.new( :op('neginf') ) !!
+                $value eq 'NaN'  ?? QAST::Op.new( :op('nan') ) !!
+                                    QAST::NVal.new( :value($value) ) );
         }
         $past.returns($const.returns);
         if $/ {

@@ -200,8 +200,8 @@ sub shell($cmd) {
 # need to come pretty early, because we use it in lots of setting files
 # constant Inf = ...
 # constant NaN = ...
-my $Inf = nqp::p6box_n(pir::set__Ns('Inf'));
-my $NaN = nqp::p6box_n(pir::set__Ns('NaN'));
+my $Inf = nqp::p6box_n(nqp::inf());
+my $NaN = nqp::p6box_n(nqp::nan());
 
 
 sub sleep($seconds = $Inf) {         # fractional seconds also allowed

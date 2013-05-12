@@ -62,11 +62,12 @@ my class Str does Stringy {
         $to_remove = 1 if $last eq "\n" || $last eq "\r";
         $to_remove = 2 if $chars > 1
             && nqp::p6box_s(nqp::substr($sself, $chars - 2)) eq "\r\n";
-        nqp::p6box_s(pir::chopn__Ssi($sself, $to_remove))
+        nqp::p6box_s(nqp::substr($sself, 0, $chars - $to_remove))
     }
 
     method chop(Str:D:) {
-        nqp::p6box_s(pir::chopn__Ssi(nqp::unbox_s(self), 1))
+        my str $sself = nqp::unbox_s(self);
+        nqp::p6box_s(nqp::substr($sself, 0, nqp::chars($sself) - 1))
     }
 
     method substr(Str:D: $start, $length? is copy) {
@@ -247,7 +248,7 @@ my class Str does Stringy {
             # Handle NaN here, to make later parsing simpler
             if nqp::iseq_s(nqp::substr($str, $pos, 3), 'NaN') {
                 $pos = nqp::add_i($pos, 3);
-                return nqp::p6box_n(pir::set__Ns('NaN'));
+                return nqp::p6box_n(nqp::nan());
             }
 
             # Handle any leading +/- sign

@@ -594,9 +594,7 @@ class Perl6::World is HLL::World {
             elsif $prim == 2 {
                 $block[0].push(QAST::Op.new( :op('bind'),
                     QAST::Var.new( :scope('lexical'), :name($name) ),
-                    QAST::VM.new(
-                        :pirop('set__Ns'), QAST::SVal.new( :value('NaN') 
-                    ))));
+                    QAST::Op.new( :op('nan') )));
             }
             elsif $prim == 3 {
                 $block[0].push(QAST::Op.new( :op('bind'),

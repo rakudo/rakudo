@@ -100,7 +100,7 @@ my class Num does Real {
     }
 
     method rand(Num:D: ) {
-        nqp::p6box_n(pir::rand__NN(nqp::unbox_n(self)));
+        nqp::p6box_n(nqp::rand_n(nqp::unbox_n(self)));
     }
 
     method ceiling(Num:D: ) {
@@ -360,12 +360,12 @@ multi infix:«>=»(num $a, num $b) returns Bool:D {
 }
 
 sub rand() returns Num:D {
-    nqp::p6box_n(pir::rand__NN(1));
+    nqp::p6box_n(nqp::rand_n(1));
 }
 
 # TODO: default seed of 'time'
 sub srand(Int $seed) returns Int:D {
-    nqp::p6box_i(pir::srand__0I($seed))
+    nqp::p6box_i(nqp::srand($seed))
 }
 
 multi sub atan2(Num:D $a, Num:D $b = 1e0) {

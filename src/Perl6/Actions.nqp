@@ -5531,8 +5531,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
         # code in our handler throws an exception.
         my $ex := QAST::Op.new( :op('exception') );
         if $handler<past_block><handlers> && nqp::existskey($handler<past_block><handlers>, $type) {
+#?if parrot
             $ex := QAST::VM.new( :pirop('perl6_skip_handlers_in_rethrow__0Pi'),
                 $ex, QAST::IVal.new( :value(1) ));
+#?endif
         }
         else {
             my $prev_content := QAST::Stmts.new();
@@ -5543,10 +5545,15 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 $prev_content,
                 'CATCH',
                 QAST::VM.new(
-                    :pirop('perl6_based_rethrow 1PP'),
-                    QAST::Op.new( :op('exception') ),
-                    QAST::Var.new( :name($exceptionreg), :scope('local') )
-                )));
+                    :parrot(QAST::VM.new(
+                        :pirop('perl6_based_rethrow 1PP'),
+                        QAST::Op.new( :op('exception') ),
+                        QAST::Var.new( :name($exceptionreg), :scope('local') ),
+                    )),
+                    :jvm(QAST::Op.new(
+                        :op('rethrow'),
+                        QAST::Op.new( :op('exception') )
+                    )))));
                 
             # rethrow the exception if we reach the end of the handler
             # (if a when {} clause matches this will get skipped due

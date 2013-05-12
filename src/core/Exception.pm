@@ -217,7 +217,13 @@ do {
             $_() for nqp::hllize(@*END_PHASERS);
         }
         if $! {
+#?if parrot
             pir::perl6_based_rethrow__0PP(nqp::getattr(nqp::decont($!), Exception, '$!ex'), $ex);
+#?endif
+#?if !parrot
+            nqp::rethrow(nqp::getattr(nqp::decont($!), Exception, '$!ex'));
+            $ex
+#?endif
         }
     }
 

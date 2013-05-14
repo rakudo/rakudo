@@ -91,6 +91,11 @@ public final class Ops {
         return x == 0 ? False : True;
     }
     
+    public static SixModelObject p6definite(SixModelObject obj, ThreadContext tc) {
+        obj = org.perl6.nqp.runtime.Ops.decont(obj, tc);
+        return obj instanceof TypeObject ? False : True;
+    }
+    
     public static SixModelObject p6box_i(long value, ThreadContext tc) {
         SixModelObject res = Int.st.REPR.allocate(tc, Int.st);
         res.set_int(tc, value);

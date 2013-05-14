@@ -102,13 +102,13 @@ my class IO::Handle does IO::FileTestable {
         );
         $!path = $path;
         $!chomp = $chomp;
-        $!PIO.encoding($bin ?? 'binary' !! PARROT_ENCODING($encoding));
+        nqp::setencoding($!PIO, $bin ?? 'binary' !! PARROT_ENCODING($encoding));
         self;
     }
 
     method close() {
         # TODO:b catch errors
-        $!PIO.close;
+        nqp::closefh($!PIO);
         Bool::True;
     }
 
@@ -190,11 +190,11 @@ my class IO::Handle does IO::FileTestable {
 
     proto method print(|) { * }
     multi method print(IO::Handle:D: Str:D $value) {
-        $!PIO.print(nqp::unbox_s($value));
+        nqp::printfh($!PIO, nqp::unbox_s($value));
         Bool::True
     }
     multi method print(IO::Handle:D: *@list) {
-        $!PIO.print(nqp::unbox_s(@list.shift.Str)) while @list.gimme(1);
+        nqp::printfh($!PIO, nqp::unbox_s(@list.shift.Str)) while @list.gimme(1);
         Bool::True
     }
 

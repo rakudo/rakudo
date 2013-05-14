@@ -299,6 +299,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         # Get the block for the entire compilation unit.
         my $outer := $*UNIT_OUTER;
         $outer.node($/);
+        $*UNIT_OUTER.unshift(QAST::Var.new( :name('__args__'), :scope('local'), :decl('param'), :slurpy(1) ));
 
         # Load the needed libraries.
         $*W.add_libs($unit);

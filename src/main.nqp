@@ -44,7 +44,7 @@ sub MAIN(*@ARGS) {
 
     # Enter the compiler.
     my $result := $comp.command_line(@ARGS, :encoding('utf8'), :transcode('ascii iso-8859-1'));
-    if nqp::can($result, 'sink') {
+    if !nqp::isnull($result) && nqp::can($result, 'sink') {
         $result.sink();
     }
 

@@ -28,6 +28,7 @@ public final class Ops {
     public static SixModelObject True;
     public static SixModelObject AutoThreader;
     private static boolean initialized = false;
+    private static SixModelObject EMPTYARR;
     
     /* Parameter hints for fast lookups. */
     private static final int HINT_PARCEL_STORAGE = 0;
@@ -47,6 +48,9 @@ public final class Ops {
     public static SixModelObject p6init(ThreadContext tc) {
         if (!initialized) {
             tc.gc.contConfigs.put("rakudo_scalar", new RakudoContainerConfigurer());
+            SixModelObject BOOTArray = tc.gc.BOOTArray;
+            EMPTYARR = BOOTArray.st.REPR.allocate(tc, BOOTArray.st);
+            EMPTYARR.initialize(tc);
             initialized = true;
         }
         return null;
@@ -113,8 +117,7 @@ public final class Ops {
     public static SixModelObject p6listitems(SixModelObject list, ThreadContext tc) {
         SixModelObject items = list.get_attribute_boxed(tc, List, "$!items", HINT_LIST_items);
         if (!(items instanceof VMArrayInstance)) {
-            SixModelObject BOOTArray = tc.gc.BOOTArray;
-            items = BOOTArray.st.REPR.allocate(tc, BOOTArray.st);
+            items = EMPTYARR.clone(tc);
             list.bind_attribute_boxed(tc, List, "$!items", HINT_LIST_items, items);
         }
         return items;
@@ -147,6 +150,29 @@ public final class Ops {
         }
 
         return index;
+    }
+    
+    public static SixModelObject p6shiftpush(SixModelObject a, SixModelObject b, long total, ThreadContext tc) {
+        long count = total;
+        long elems = b.elems(tc);
+        if (count > elems)
+            count = elems;
+
+        if (a != null && total > 0) {
+            long getPos = 0;
+            long setPos = a.elems(tc);
+            a.set_elems(tc, setPos + count);
+            while (count > 0) {
+                a.bind_pos_boxed(tc, setPos, b.at_pos_boxed(tc, getPos));
+                count--;
+                getPos++;
+                setPos++;
+            }
+        }
+        if (total > 0)
+            b.splice(tc, EMPTYARR, 0, total);
+        
+        return a;
     }
     
     public static SixModelObject p6listiter(SixModelObject arr, SixModelObject list, ThreadContext tc) {

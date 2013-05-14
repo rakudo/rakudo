@@ -75,7 +75,7 @@ my class Mu {
         my int $i       = 0;
         while nqp::islt_i($i, $count) {
             my $task := nqp::atpos($build_plan, $i);
-            my int $code = nqp::atpos_i($task, 0);
+            my int $code = nqp::atpos($task, 0);
             $i = nqp::add_i($i, 1);
             if nqp::iseq_i($code, 0) {
                 # Custom BUILD call.
@@ -84,7 +84,7 @@ my class Mu {
             elsif nqp::iseq_i($code, 1) {
                 # See if we have a value to initialize this attr
                 # with.
-                my $key_name := nqp::p6box_s(nqp::atpos_s($task, 2));
+                my $key_name := nqp::p6box_s(nqp::atpos($task, 2));
                 if %attrinit.exists($key_name) {
                     # XXX Should not really need the decontainerize, but seems
                     # that slurpy hashes sometimes lead to double containers
@@ -94,30 +94,30 @@ my class Mu {
                 }
             }
             elsif nqp::iseq_i($code, 2) {
-                my $key_name := nqp::p6box_s(nqp::atpos_s($task, 2));
+                my $key_name := nqp::p6box_s(nqp::atpos($task, 2));
                 if %attrinit.exists($key_name) {
                     nqp::getattr(self, nqp::atpos($task, 1),
-                        nqp::atpos_s($task, 3)) = nqp::decont(%attrinit{$key_name});
+                        nqp::atpos($task, 3)) = nqp::decont(%attrinit{$key_name});
                 }
                 else {
                     nqp::bindattr(self, nqp::atpos($task, 1),
-                        nqp::atpos_s($task, 3), nqp::list())
+                        nqp::atpos($task, 3), nqp::list())
                 }
             }
             elsif nqp::iseq_i($code, 3) {
-                my $key_name := nqp::p6box_s(nqp::atpos_s($task, 2));
+                my $key_name := nqp::p6box_s(nqp::atpos($task, 2));
                 if %attrinit.exists($key_name) {
                     nqp::getattr(self, nqp::atpos($task, 1),
-                        nqp::atpos_s($task, 3)) = nqp::decont(%attrinit{$key_name});
+                        nqp::atpos($task, 3)) = nqp::decont(%attrinit{$key_name});
                 }
                 else {
                     nqp::bindattr(self, nqp::atpos($task, 1),
-                        nqp::atpos_s($task, 3), nqp::hash())
+                        nqp::atpos($task, 3), nqp::hash())
                 }
             }
             elsif nqp::iseq_i($code, 4) {
-                unless nqp::attrinited(self, nqp::atpos($task, 1), nqp::atpos_s($task, 2)) {
-                    my $attr := nqp::getattr(self, nqp::atpos($task, 1), nqp::atpos_s($task, 2));
+                unless nqp::attrinited(self, nqp::atpos($task, 1), nqp::atpos($task, 2)) {
+                    my $attr := nqp::getattr(self, nqp::atpos($task, 1), nqp::atpos($task, 2));
                     $attr = nqp::atpos($task, 3)(self, $attr);
                 }
             }
@@ -135,7 +135,7 @@ my class Mu {
         my int $i       = 0;
         while nqp::islt_i($i, $count) {
             my $task := nqp::atpos($build_plan, $i);
-            my int $code = nqp::atpos_i($task, 0);
+            my int $code = nqp::atpos($task, 0);
             $i = nqp::add_i($i, 1);
             if nqp::iseq_i($code, 0) {
                 # Custom BUILD call.
@@ -144,37 +144,37 @@ my class Mu {
             elsif nqp::iseq_i($code, 1) {
                 # See if we have a value to initialize this attr
                 # with.
-                my $key_name := nqp::p6box_s(nqp::atpos_s($task, 2));
+                my $key_name := nqp::p6box_s(nqp::atpos($task, 2));
                 if %attrinit.exists($key_name) {
                     nqp::getattr(self, nqp::atpos($task, 1),
-                        nqp::atpos_s($task, 3)) = nqp::decont(%attrinit{$key_name});
+                        nqp::atpos($task, 3)) = nqp::decont(%attrinit{$key_name});
                 }
             }
             elsif nqp::iseq_i($code, 2) {
-                my $key_name := nqp::p6box_s(nqp::atpos_s($task, 2));
+                my $key_name := nqp::p6box_s(nqp::atpos($task, 2));
                 if %attrinit.exists($key_name) {
                     nqp::getattr(self, nqp::atpos($task, 1),
-                        nqp::atpos_s($task, 3)) = nqp::decont(%attrinit{$key_name});
+                        nqp::atpos($task, 3)) = nqp::decont(%attrinit{$key_name});
                 }
                 else {
                     nqp::bindattr(self, nqp::atpos($task, 1),
-                        nqp::atpos_s($task, 3), nqp::list())
+                        nqp::atpos($task, 3), nqp::list())
                 }
             }
             elsif nqp::iseq_i($code, 3) {
-                my $key_name := nqp::p6box_s(nqp::atpos_s($task, 2));
+                my $key_name := nqp::p6box_s(nqp::atpos($task, 2));
                 if %attrinit.exists($key_name) {
                     nqp::getattr(self, nqp::atpos($task, 1),
-                        nqp::atpos_s($task, 3)) = nqp::decont(%attrinit{$key_name});
+                        nqp::atpos($task, 3)) = nqp::decont(%attrinit{$key_name});
                 }
                 else {
                     nqp::bindattr(self, nqp::atpos($task, 1),
-                        nqp::atpos_s($task, 3), nqp::hash())
+                        nqp::atpos($task, 3), nqp::hash())
                 }
             }
             elsif nqp::iseq_i($code, 4) {
-                unless nqp::attrinited(self, nqp::atpos($task, 1), nqp::atpos_s($task, 2)) {
-                    my $attr := nqp::getattr(self, nqp::atpos($task, 1), nqp::atpos_s($task, 2));
+                unless nqp::attrinited(self, nqp::atpos($task, 1), nqp::atpos($task, 2)) {
+                    my $attr := nqp::getattr(self, nqp::atpos($task, 1), nqp::atpos($task, 2));
                     $attr = nqp::atpos($task, 3)(self, $attr);
                 }
             }

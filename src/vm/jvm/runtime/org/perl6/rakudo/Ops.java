@@ -8,6 +8,8 @@ import org.perl6.nqp.sixmodel.reprs.VMArrayInstance;
  * Contains implementation of nqp:: ops specific to Rakudo Perl 6.
  */
 public final class Ops {
+    public static final boolean DEBUG_MODE = false;
+    
     public static SixModelObject Mu;
     public static SixModelObject Parcel;
     public static SixModelObject Code;
@@ -227,8 +229,10 @@ public final class Ops {
         }
         
         /* Look up parameters to bind. */
-if (cf.codeRef.staticInfo.name != null)
-    System.err.println("Binding for " + cf.codeRef.staticInfo.name);
+        if (DEBUG_MODE) {
+            if (cf.codeRef.staticInfo.name != null)
+                System.err.println("Binding for " + cf.codeRef.staticInfo.name);
+        }
         SixModelObject sig = cf.codeRef.codeObject
             .get_attribute_boxed(tc, Code, "$!signature", HINT_CODE_SIG);
         SixModelObject params = sig
@@ -247,7 +251,8 @@ if (cf.codeRef.staticInfo.name != null)
     
     public static long p6isbindable(SixModelObject signature, SixModelObject capture, ThreadContext tc) {
         /* TODO */
-        System.err.println("p6isbindable NYI (always returns true)");
+        if (DEBUG_MODE)
+            System.err.println("p6isbindable NYI (always returns true)");
         return 1;
     }
     
@@ -340,7 +345,8 @@ if (cf.codeRef.staticInfo.name != null)
     }
     
     public static SixModelObject p6typecheckrv(SixModelObject rv, SixModelObject routine, ThreadContext tc) {
-        System.err.println("p6typecheckrv NYI");
+        if (DEBUG_MODE)
+            System.err.println("p6typecheckrv NYI");
         return rv;
     }
     

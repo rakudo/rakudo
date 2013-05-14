@@ -141,7 +141,9 @@ public final class Binder {
         int paramFlags = (int)tc.native_i;
         param.get_attribute_native(tc, Ops.Parameter, "$!variable_name", HINT_variable_name);
         String varName = tc.native_s;
-        System.err.println(varName);
+        if (Ops.DEBUG_MODE)
+            System.err.println(varName);
+        
         /* We'll put the value to bind into one of the following locals, and
          * flag will indicate what type of thing it is. */
         int flag;
@@ -240,7 +242,8 @@ public final class Binder {
             
             /* Skip nominal type check if not needed. */
             if (!noNomTypeCheck) {
-                System.err.println("Parameter type checking NYI");
+                if (Ops.DEBUG_MODE)
+                    System.err.println("Parameter type checking NYI");
             }
         }
         
@@ -319,7 +322,9 @@ public final class Binder {
         if ((paramFlags & SIG_ELEM_INVOCANT) != 0)
             cf.oLex[sci.oTryGetLexicalIdx("self")] = decontValue;
         
-        System.err.println("bindOneParam NYFI");
+        if (Ops.DEBUG_MODE)
+            System.err.println("bindOneParam NYFI");
+        
         return BIND_RESULT_OK;
     }
     

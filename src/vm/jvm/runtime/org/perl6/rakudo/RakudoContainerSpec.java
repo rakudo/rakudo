@@ -20,7 +20,8 @@ public class RakudoContainerSpec extends ContainerSpec {
     
     /* Stores a value in a container. Used for assignment. */
     public void store(ThreadContext tc, SixModelObject cont, SixModelObject obj) {
-        System.err.println("scalar store typecheck / rwcheck NYI");
+        if (Ops.DEBUG_MODE)
+            System.err.println("scalar store typecheck / rwcheck NYI");
         
         SixModelObject whence = cont.get_attribute_boxed(tc, Ops.Scalar, "$!whence", HINT_whence);
         if (whence != null)

@@ -314,17 +314,11 @@ my class Any {
     multi method postcircumfix:<{ }>(\SELF: Mu $key, Mu :$BIND! is parcel) is rw {
         SELF.bind_key($key, $BIND)
     }
-    multi method postcircumfix:<{ }>(\SELF: Mu $key, :$delete! where 0 ) is rw {
-        SELF.at_key($key)
-    }
-    multi method postcircumfix:<{ }>(\SELF: Mu $key, :$delete! ) is rw {
+    multi method postcircumfix:<{ }>(\SELF: Mu $key, :$delete! where so $delete ) is rw {
         SELF.delete($key)
     }
-    multi method postcircumfix:<{ }>(\SELF: Mu $key, :$exists! where 0 ) is rw {
-        !SELF.exists($key)
-    }
     multi method postcircumfix:<{ }>(\SELF: Mu $key, :$exists! ) is rw {
-        SELF.exists($key)
+        !( SELF.exists($key) ?^ $exists )
     }
     multi method postcircumfix:<{ }>(\SELF: Mu $key, :$p!) is rw {
         RWPAIR($key, SELF.at_key($key))
@@ -346,27 +340,15 @@ my class Any {
         X::Bind::Slice.new(type => self.WHAT).throw
     }
     multi method postcircumfix:<{ }>(
-      \SELF: Positional \key, :$delete! where 0 ) is rw {
-        nqp::iscont(key) 
-          ?? SELF.at_key(key) 
-          !! key.map({ SELF{$_} }).eager.Parcel
-    }
-    multi method postcircumfix:<{ }>(
-      \SELF: Positional \key, :$delete! ) is rw {
+      \SELF: Positional \key, :$delete! where so $delete ) is rw {
         nqp::iscont(key) 
           ?? SELF.delete(key) 
           !! key.map({ SELF.delete($_) }).eager.Parcel
     }
     multi method postcircumfix:<{ }>(
-      \SELF: Positional \key, :$exists! where 0 ) is rw {
-        nqp::iscont(key) 
-          ?? SELF.exists(key) 
-          !! die("Cannot use exists adverb with a slice")
-    }
-    multi method postcircumfix:<{ }>(
       \SELF: Positional \key, :$exists! ) is rw {
         nqp::iscont(key) 
-          ?? !SELF.exists(key) 
+          ?? !( SELF.exists(key) ?^ $exists )
           !! die("Cannot use exists adverb with a slice")
     }
     multi method postcircumfix:<{ }>(\SELF: Positional \key, :$p!) is rw {
@@ -398,22 +380,22 @@ my class Any {
         X::Bind::Slice.new(type => self.WHAT).throw
     }
     multi method postcircumfix:<{ }>(\SELF: Whatever, :$delete!) is rw {
-        SELF{SELF.keys}:delete($delete)
+        SELF{SELF.keys}:$delete
     }
     multi method postcircumfix:<{ }>(\SELF: Whatever, :$exists!) is rw {
-        SELF{SELF.keys}:exists($exists)
+        SELF{SELF.keys}:$exists
     }
     multi method postcircumfix:<{ }>(\SELF: Whatever, :$p!) is rw {
-        SELF{SELF.keys}:p($p)
+        SELF{SELF.keys}:$p
     }
     multi method postcircumfix:<{ }>(\SELF: Whatever, :$kv!) is rw {
-        SELF{SELF.keys}:kv($kv)
+        SELF{SELF.keys}:$kv
     }
     multi method postcircumfix:<{ }>(\SELF: Whatever, :$k!) is rw {
-        SELF{SELF.keys}:k($k)
+        SELF{SELF.keys}:$k
     }
     multi method postcircumfix:<{ }>(\SELF: Whatever, :$v!) is rw {
-        SELF{SELF.keys}:v($v)
+        SELF{SELF.keys}:$v
     }
 
     proto method at_key(|) { * }

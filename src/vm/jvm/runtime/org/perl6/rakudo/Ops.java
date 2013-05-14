@@ -20,6 +20,7 @@ public final class Ops {
     public static SixModelObject List;
     public static SixModelObject ListIter;
     public static SixModelObject Array;
+    public static SixModelObject EnumMap;
     public static SixModelObject Hash;
     public static SixModelObject Junction;
     public static SixModelObject Scalar;
@@ -69,6 +70,7 @@ public final class Ops {
         List = conf.at_key_boxed(tc, "List");
         ListIter = conf.at_key_boxed(tc, "ListIter");
         Array = conf.at_key_boxed(tc, "Array");
+        EnumMap = conf.at_key_boxed(tc, "EnumMap");
         Hash = conf.at_key_boxed(tc, "Hash");
         Junction = conf.at_key_boxed(tc, "Junction");
         Scalar = conf.at_key_boxed(tc, "Scalar");

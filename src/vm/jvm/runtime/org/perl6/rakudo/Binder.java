@@ -59,6 +59,9 @@ public final class Binder {
     private static final int HINT_container_descriptor = 10;
     private static final int HINT_attr_package = 11;
     
+    /* Other hints. */
+    private static final int HINT_ENUMMAP_storage = 0;
+    
     /* Last error, per thread. */
     public static HashMap<ThreadContext, String> lastErrors = new HashMap<ThreadContext, String>();
     
@@ -424,7 +427,43 @@ public final class Binder {
             
             /* Could it be a named slurpy? */
             else if ((flags & SIG_ELEM_SLURPY_NAMED) != 0) {
-                System.err.println("Slurpy named param NYI");
+                SixModelObject slurpy = Ops.Mu;
+                if (namedArgsCopy != null) {
+                    SixModelObject BOOTHash = tc.gc.BOOTHash;
+                    slurpy = BOOTHash.st.REPR.allocate(tc, BOOTHash.st);
+                    slurpy.initialize(tc);
+                    for (String name : namedArgsCopy.keySet()) {
+                        int lookup = namedArgsCopy.get(name);
+                        switch (lookup & 7) {
+                        case CallSiteDescriptor.ARG_OBJ:
+                            slurpy.bind_key_boxed(tc, name, (SixModelObject)args[lookup >> 3]);
+                            break;
+                        case CallSiteDescriptor.ARG_INT:
+                            slurpy.bind_key_boxed(tc, name, Ops.p6box_i((long)args[lookup >> 3], tc));
+                            break;
+                        case CallSiteDescriptor.ARG_NUM:
+                            slurpy.bind_key_boxed(tc, name, Ops.p6box_n((double)args[lookup >> 3], tc));
+                            break;
+                        case CallSiteDescriptor.ARG_STR:
+                            slurpy.bind_key_boxed(tc, name, Ops.p6box_s((String)args[lookup >> 3], tc));
+                            break;
+                        }
+                    }
+                }
+                
+                SixModelObject bindee = Ops.Hash.st.REPR.allocate(tc, Ops.Hash.st);
+                bindee.initialize(tc);
+                bindee.bind_attribute_boxed(tc, Ops.EnumMap, "$!storage",
+                    HINT_ENUMMAP_storage, slurpy);
+                
+                bindFail = bindOneParam(tc, cf, param, bindee, CallSiteDescriptor.ARG_OBJ,
+                    noNomTypeCheck, needError);
+                if (bindFail != 0)
+                    return bindFail;
+                
+                /* Nullify named arguments hash now we've consumed it, to mark all
+                 * is well. */
+                namedArgsCopy = null;
             }
             
             /* Otherwise, maybe it's a positional of some kind. */

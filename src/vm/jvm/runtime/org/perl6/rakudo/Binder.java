@@ -374,6 +374,14 @@ public final class Binder {
          * any future arity checks. */
         boolean suppressArityFail = false;
         
+        /* If we do have some named args, we want to make a clone of the hash
+         * to work on. We'll delete stuff from it as we bind, and what we have
+         * left over can become the slurpy hash or - if we aren't meant to be
+         * taking one - tell us we have a problem. */
+        HashMap<String, Integer> namedArgsCopy = csd.nameMap == null
+            ? null
+            : new HashMap<String, Integer>(csd.nameMap);
+        
         /* Now we'll walk through the signature and go about binding things. */
         int numPosArgs = csd.numPositionals;
         long numParams = params.elems(tc);
@@ -459,10 +467,44 @@ public final class Binder {
             
             /* Else, it's a non-slurpy named. */
             else {
-                System.err.println("Named arg binding NYI");
+                /* Try and get hold of value. */
+                Integer lookup = null;
+                if (namedArgsCopy != null) {
+                    long numNames = namedNames.elems(tc);
+                    for (long j = 0; j < numNames; j++) {
+                        String name = namedNames.at_pos_boxed(tc, j).get_str(tc);
+                        lookup = namedArgsCopy.remove(name);
+                        if (lookup != null)
+                            break;
+                    }
+                }
+                
+                /* Did we get one? */
+                if (lookup == null) {
+                    /* Nope. We'd better hope this param was optional... */
+                    if ((flags & SIG_ELEM_IS_OPTIONAL) != 0) {
+                        bindFail = bindOneParam(tc, cf, param,
+                            handleOptional(tc, flags, param, cf),
+                            CallSiteDescriptor.ARG_OBJ, false, needError);
+                    }
+                    else if (!suppressArityFail) {
+                        if (needError)
+                            lastErrors.put(tc, "Required named parameter '" +
+                                namedNames.at_pos_boxed(tc, 0).get_str(tc) +
+                                "' not passed");
+                        return BIND_RESULT_FAIL;
+                    }
+                }
+                else {
+                    bindFail = bindOneParam(tc, cf, param, args[lookup >> 3],
+                        (byte)(lookup & 7), noNomTypeCheck, needError);
+                }
+
+                /* If we got a binding failure, return it. */
+                if (bindFail != 0)
+                    return bindFail;
             }
         }
-        
         
         /* XXX TODO. */
         return BIND_RESULT_OK;

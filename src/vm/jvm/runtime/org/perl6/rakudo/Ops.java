@@ -2,6 +2,7 @@ package org.perl6.rakudo;
 
 import org.perl6.nqp.runtime.*;
 import org.perl6.nqp.sixmodel.*;
+import org.perl6.nqp.sixmodel.reprs.VMArrayInstance;
 
 /**
  * Contains implementation of nqp:: ops specific to Rakudo Perl 6.
@@ -107,6 +108,16 @@ public final class Ops {
                 p6listiter(arr, list, tc));
         list.bind_attribute_boxed(tc, List, "$!flattens", HINT_LIST_flattens, flattens);
         return list;
+    }
+    
+    public static SixModelObject p6listitems(SixModelObject list, ThreadContext tc) {
+        SixModelObject items = list.get_attribute_boxed(tc, List, "$!items", HINT_LIST_items);
+        if (!(items instanceof VMArrayInstance)) {
+            SixModelObject BOOTArray = tc.gc.BOOTArray;
+            items = BOOTArray.st.REPR.allocate(tc, BOOTArray.st);
+            list.bind_attribute_boxed(tc, List, "$!items", HINT_LIST_items, items);
+        }
+        return items;
     }
     
     public static SixModelObject p6listiter(SixModelObject arr, SixModelObject list, ThreadContext tc) {

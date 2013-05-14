@@ -141,7 +141,7 @@ public final class Binder {
         int paramFlags = (int)tc.native_i;
         param.get_attribute_native(tc, Ops.Parameter, "$!variable_name", HINT_variable_name);
         String varName = tc.native_s;
-        
+        System.err.println(varName);
         /* We'll put the value to bind into one of the following locals, and
          * flag will indicate what type of thing it is. */
         int flag;

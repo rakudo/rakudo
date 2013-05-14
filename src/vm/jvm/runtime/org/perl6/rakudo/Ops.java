@@ -220,6 +220,8 @@ public final class Ops {
         }
         
         /* Look up parameters to bind. */
+if (cf.codeRef.staticInfo.name != null)
+    System.err.println("Binding for " + cf.codeRef.staticInfo.name);
         SixModelObject sig = cf.codeRef.codeObject
             .get_attribute_boxed(tc, Code, "$!signature", HINT_CODE_SIG);
         SixModelObject params = sig
@@ -368,6 +370,14 @@ public final class Ops {
             closure.outer = cf;
         }
         return capList;
+    }
+    
+    public static SixModelObject p6bindattrinvres(SixModelObject obj, SixModelObject ch, String name, SixModelObject value, ThreadContext tc) {
+        obj.bind_attribute_boxed(tc, org.perl6.nqp.runtime.Ops.decont(ch, tc),
+            name, STable.NO_HINT, value);
+        if (obj.sc != null)
+            org.perl6.nqp.runtime.Ops.scwbObject(tc, obj);
+        return obj;
     }
     
     public static SixModelObject getThrower(ThreadContext tc, String type) {

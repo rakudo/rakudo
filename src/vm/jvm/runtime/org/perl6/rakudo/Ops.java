@@ -318,6 +318,8 @@ if (cf.codeRef.staticInfo.name != null)
         if (!(check instanceof TypeObject) && check.st.WHAT == Scalar) {
             SixModelObject desc = check.get_attribute_boxed(tc, Scalar, "$!descriptor",
                 RakudoContainerSpec.HINT_descriptor);
+            if (desc == null)
+                return false;
             desc.get_attribute_native(tc, ContainerDescriptor, "$!rw", HINT_CD_RW);
             return tc.native_i != 0;
         }

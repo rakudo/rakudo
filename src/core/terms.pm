@@ -55,6 +55,8 @@ sub term:<time>() { nqp::p6box_i(nqp::time_i()) }
     }
     nqp::bindkey(nqp::who(PROCESS), '$VM', $VM);
 
+# XXX Various issues with this stuff on JVM
+#?if !jvm
     my Mu $compiler := nqp::getlexcaller('$COMPILER_CONFIG');
     my $PERL = {
         name => 'rakudo',
@@ -68,10 +70,8 @@ sub term:<time>() { nqp::p6box_i(nqp::time_i()) }
     };
     nqp::bindkey(nqp::who(PROCESS), '$PERL', $PERL);
 
-#?if parrot
     my $CWD = nqp::p6box_s(pir::new__PS('OS').cwd);
     nqp::bindkey(nqp::who(PROCESS), '$CWD', $CWD);
-#?endif
     
     my @INC;
     @INC.push(%ENV<RAKUDOLIB>.split($VM<config><osname> eq 'MSWin32' ?? ';' !! ':')) if %ENV<RAKUDOLIB>;
@@ -106,16 +106,15 @@ sub term:<time>() { nqp::p6box_i(nqp::time_i()) }
 
     nqp::bindkey(nqp::who(PROCESS), '@INC', @INC);
 
-#?if parrot
     my $PID = nqp::p6box_i(pir::getinterp__P().getpid());
     nqp::bindkey(nqp::who(PROCESS), '$PID', $PID);
-#?endif
 
     my $OS = $VM<config><osname>; # XXX: master gets this information with the sysinfo dynop
     nqp::bindkey(nqp::who(PROCESS), '$OS', $OS);
 
     my $OSVER = $VM<config><osvers>; # XXX: master gets this information with the sysinfo dynop
     nqp::bindkey(nqp::who(PROCESS), '$OSVER', $OSVER);
+#?endif
 
     my $EXECUTABLE_NAME = 
 #?if parrot
@@ -130,7 +129,9 @@ sub term:<time>() { nqp::p6box_i(nqp::time_i()) }
     my $PROGRAM_NAME = $comp.user-progname();
     nqp::bindkey(nqp::who(PROCESS), '$PROGRAM_NAME', $PROGRAM_NAME);
 
+# XXX JVM doesn't handle IO::Spec yet
+#?if !jvm
     $PROCESS::TMPDIR = IO::Spec.tmpdir();
-
+#?endif
 
 }

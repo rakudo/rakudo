@@ -29,12 +29,15 @@ my class Failure {
     multi method Str(Failure:D:)  { $!handled ?? ''  !! $!exception.throw; }
     multi method gist(Failure:D:) { $!handled ?? $.perl !! $!exception.throw; }
 
+# XXX JVM backend doesn't like .^ yet.
+#?if !jvm
     Failure.^add_fallback(
         -> $, $ { True },
         method ($name) {
             $!exception.throw;
         }
     );
+#?endif
     method sink() { $!exception.throw unless $!handled }
 
     # class Any has a fallback method, so we need to redefine it here

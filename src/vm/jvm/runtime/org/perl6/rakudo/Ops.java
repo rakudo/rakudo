@@ -20,6 +20,7 @@ public final class Ops {
     public static SixModelObject List;
     public static SixModelObject ListIter;
     public static SixModelObject Array;
+    public static SixModelObject LoL;
     public static SixModelObject EnumMap;
     public static SixModelObject Hash;
     public static SixModelObject Junction;
@@ -28,8 +29,8 @@ public final class Ops {
     public static SixModelObject False;
     public static SixModelObject True;
     public static SixModelObject AutoThreader;
+    public static SixModelObject EMPTYARR;
     private static boolean initialized = false;
-    private static SixModelObject EMPTYARR;
     
     /* Parameter hints for fast lookups. */
     private static final int HINT_PARCEL_STORAGE = 0;
@@ -70,6 +71,7 @@ public final class Ops {
         List = conf.at_key_boxed(tc, "List");
         ListIter = conf.at_key_boxed(tc, "ListIter");
         Array = conf.at_key_boxed(tc, "Array");
+        LoL = conf.at_key_boxed(tc, "LoL");
         EnumMap = conf.at_key_boxed(tc, "EnumMap");
         Hash = conf.at_key_boxed(tc, "Hash");
         Junction = conf.at_key_boxed(tc, "Junction");

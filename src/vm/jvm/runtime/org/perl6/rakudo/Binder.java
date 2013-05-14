@@ -470,7 +470,42 @@ public final class Binder {
             else if (namedNames == null) {
                 /* Slurpy or LoL-slurpy? */
                 if ((flags & (SIG_ELEM_SLURPY_POS | SIG_ELEM_SLURPY_LOL)) != 0) {
-                    System.err.println("Slurpy pos param NYI");
+                    /* Create Perl 6 array, create VM array of all remaining things,
+                     * then store it. */
+                    SixModelObject slurpy = Ops.EMPTYARR.clone(tc);
+                    while (curPosArg < numPosArgs) {
+                        switch (csd.argFlags[curPosArg]) {
+                        case CallSiteDescriptor.ARG_OBJ:
+                            slurpy.push_boxed(tc, (SixModelObject)args[curPosArg]);
+                            break;
+                        case CallSiteDescriptor.ARG_INT:
+                            slurpy.push_boxed(tc, Ops.p6box_i((long)args[curPosArg], tc));
+                            break;
+                        case CallSiteDescriptor.ARG_NUM:
+                            slurpy.push_boxed(tc, Ops.p6box_n((double)args[curPosArg], tc));
+                            break;
+                        case CallSiteDescriptor.ARG_STR:
+                            slurpy.push_boxed(tc, Ops.p6box_s((String)args[curPosArg], tc));
+                            break;
+                        }
+                        curPosArg++;
+                    }
+                    
+                    SixModelObject bindee;
+                    if ((flags & SIG_ELEM_SLURPY_POS) != 0) {
+                        if ((flags & SIG_ELEM_IS_RW) != 0)
+                            bindee = Ops.p6list(slurpy, Ops.List, Ops.True, tc);
+                        else
+                            bindee = Ops.p6list(slurpy, Ops.Array, Ops.True, tc);
+                    }
+                    else {
+                        bindee = Ops.p6list(slurpy, Ops.LoL, Ops.False, tc);
+                    }
+                    
+                    bindFail = bindOneParam(tc, cf, param, bindee, CallSiteDescriptor.ARG_OBJ,
+                        noNomTypeCheck, needError);
+                    if (bindFail != 0)
+                        return bindFail;
                 }
                 
                 /* Otherwise, a positional. */

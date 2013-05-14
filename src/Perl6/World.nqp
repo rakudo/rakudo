@@ -308,7 +308,7 @@ class Perl6::World is HLL::World {
             my $fixup := QAST::Stmt.new(
                 self.perl6_module_loader_code(),
                 QAST::Op.new(
-                    :op('callmethod'), :name('set_outer_ctx'),
+                    :op('forceouterctx'),
                     QAST::BVal.new( :value($*UNIT_OUTER) ),
                     QAST::Op.new(
                         :op('callmethod'), :name('load_setting'),
@@ -355,8 +355,10 @@ class Perl6::World is HLL::World {
         QAST::Stmt.new(
             QAST::Op.new(
                 :op('loadbytecode'),
-                QAST::SVal.new( :value('ModuleLoader.pbc') )
-            ),
+                QAST::VM.new(
+                    :parrot(QAST::SVal.new( :value('ModuleLoader.pbc') )),
+                    :jvm(QAST::SVal.new( :value('ModuleLoader.class') ))
+                )),
             QAST::Op.new(
                 :op('callmethod'), :name('load_module'),
                 QAST::Op.new(

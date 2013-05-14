@@ -10,10 +10,12 @@ sub term:<time>() { nqp::p6box_i(nqp::time_i()) }
     my %ENV;
     my Mu $env := nqp::getenvhash();
     my Mu $enviter := nqp::iterator($env);
+    my $envelem;
     my $key;
     while $enviter {
-        $key = nqp::p6box_s(nqp::shift_s($enviter));
-        %ENV{$key} = nqp::p6box_s(nqp::atkey($env, nqp::unbox_s($key)));
+        $envelem := nqp::shift($enviter);
+        $key = nqp::p6box_s(nqp::iterkey_s($envelem));
+        %ENV{$key} = nqp::p6box_s(nqp::iterval($envelem));
     }
     %ENV does role {
         method at_key($k) {

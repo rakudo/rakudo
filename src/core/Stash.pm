@@ -9,7 +9,7 @@ my class Stash {
         }
         elsif $global_fallback {
             nqp::existskey(GLOBAL.WHO, $key)
-                ?? GLOBAL.WHO.at_pos($key)
+                ?? GLOBAL.WHO.at_key($key)
                 !! fail("Could not find symbol '$key'")
         }
         else {

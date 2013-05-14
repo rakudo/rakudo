@@ -57,3 +57,4 @@ config.status
 config.default
 /bin
 rakudo-runtime.jar
+CORE.setting.class

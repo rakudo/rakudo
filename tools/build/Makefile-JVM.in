@@ -195,7 +195,7 @@ CLEANUPS = \
   src/gen/*.pm \
   $(RUNTIME_JAR)
 
-all: $(PERL6_CLASS) $(PERL6_B_CLASS)
+all: $(PERL6_CLASS) $(SETTING_CLASS)
 
 $(RUNTIME_JAR): $(RUNTIME_JAVAS)
 	$(PERL) -MExtUtils::Command -e mkpath bin

@@ -7,7 +7,7 @@ multi sub infix:<eqv>(Stringy:D $a, Stringy:D $b) {
 proto prefix:<~>($) { * }
 multi prefix:<~>(\a)          { a.Stringy }
 
-proto infix:<~>($?, $?)            { * }
+proto infix:<~>($?, $?) is pure { * }
 multi infix:<~>($x = '')       { $x.Stringy }
 multi infix:<~>(\a, \b)      { a.Stringy ~ b.Stringy }
 

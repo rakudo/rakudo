@@ -320,6 +320,46 @@ public final class Binder {
         return BIND_RESULT_OK;
     }
     
+    /* This takes a signature element and either runs the closure to get a default
+     * value if there is one, or creates an appropriate undefined-ish thingy. */
+    private static SixModelObject handleOptional(ThreadContext tc, int flags, SixModelObject param, CallFrame cf) {
+        /* Is the "get default from outer" flag set? */
+        if ((flags & SIG_ELEM_DEFAULT_FROM_OUTER) != 0) {
+            param.get_attribute_native(tc, Ops.Parameter, "$!variable_name", HINT_variable_name);
+            String varName = tc.native_s;
+            return cf.outer.oLex[cf.outer.codeRef.staticInfo.oTryGetLexicalIdx(varName)];
+        }
+
+        /* Do we have a default value or value closure? */
+        SixModelObject defaultValue = param.get_attribute_boxed(tc, Ops.Parameter,
+            "$!default_value", HINT_default_value);
+        if (defaultValue != null) {
+            if ((flags & SIG_ELEM_DEFAULT_IS_LITERAL) != 0) {
+                return defaultValue;
+            }
+            else {
+                /* Thunk; run it to get a value. */
+                org.perl6.nqp.runtime.Ops.invokeArgless(tc, defaultValue);
+                return org.perl6.nqp.runtime.Ops.result_o(tc.curFrame);
+            }
+        }
+
+        /* Otherwise, go by sigil to pick the correct default type of value. */
+        else {
+            if ((flags & SIG_ELEM_ARRAY_SIGIL) != 0) {
+                return Ops.p6list(null, Ops.Array, Ops.True, tc);
+            }
+            else if ((flags & SIG_ELEM_HASH_SIGIL) != 0) {
+                SixModelObject res = Ops.Hash.st.REPR.allocate(tc, Ops.Hash.st);
+                res.initialize(tc);
+                return res;
+            }
+            else {
+                return param.get_attribute_boxed(tc, Ops.Parameter, "$!nominal_type", HINT_nominal_type);
+            }
+        }
+    }
+    
     /* Takes a signature along with positional and named arguments and binds them
      * into the provided callframe. Returns BIND_RESULT_OK if binding works out,
      * BIND_RESULT_FAIL if there is a failure and BIND_RESULT_JUNCTION if the
@@ -402,7 +442,11 @@ public final class Binder {
                          * if not, we're screwed. Note that we never nominal type check
                          * an optional with no value passed. */
                         if ((flags & SIG_ELEM_IS_OPTIONAL) != 0) {
-                            System.err.println("Optional parameters NYI");
+                            bindFail = bindOneParam(tc, cf, param,
+                                handleOptional(tc, flags, param, cf),
+                                CallSiteDescriptor.ARG_OBJ, false, needError);
+                            if (bindFail != 0)
+                                return bindFail;
                         }
                         else {
                             if (needError)

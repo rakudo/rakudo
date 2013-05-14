@@ -7,22 +7,24 @@ import org.perl6.nqp.sixmodel.*;
  * Contains implementation of nqp:: ops specific to Rakudo Perl 6.
  */
 public final class Ops {
-    private static SixModelObject Mu;
-    private static SixModelObject Parcel;
-    private static SixModelObject Code;
-    private static SixModelObject Routine;
-    private static SixModelObject Signature;
+    public static SixModelObject Mu;
+    public static SixModelObject Parcel;
+    public static SixModelObject Code;
+    public static SixModelObject Routine;
+    public static SixModelObject Signature;
     public static SixModelObject Parameter;
     public static SixModelObject Int;
     public static SixModelObject Num;
     public static SixModelObject Str;
-    private static SixModelObject List;
-    private static SixModelObject ListIter;
+    public static SixModelObject List;
+    public static SixModelObject ListIter;
+    public static SixModelObject Array;
+    public static SixModelObject Hash;
     public static SixModelObject Junction;
     public static SixModelObject Scalar;
-    private static SixModelObject ContainerDescriptor;
-    private static SixModelObject False;
-    private static SixModelObject True;
+    public static SixModelObject ContainerDescriptor;
+    public static SixModelObject False;
+    public static SixModelObject True;
     public static SixModelObject AutoThreader;
     private static boolean initialized = false;
     
@@ -61,6 +63,8 @@ public final class Ops {
         Str = conf.at_key_boxed(tc, "Str");
         List = conf.at_key_boxed(tc, "List");
         ListIter = conf.at_key_boxed(tc, "ListIter");
+        Array = conf.at_key_boxed(tc, "Array");
+        Hash = conf.at_key_boxed(tc, "Hash");
         Junction = conf.at_key_boxed(tc, "Junction");
         Scalar = conf.at_key_boxed(tc, "Scalar");
         ContainerDescriptor = conf.at_key_boxed(tc, "ContainerDescriptor");

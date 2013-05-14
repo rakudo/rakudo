@@ -1856,6 +1856,9 @@ nqp::bindhllsym('perl6', 'PROCESS', PROCESS);
 
 # HLL interop configuration.
 nqp::sethllconfig('perl6', nqp::hash(
+    'int_box', Int,
+    'num_box', Num,
+    'str_box', Str,
     'null_value', Mu,
     'foreign_type_int', Int,
     'foreign_type_num', Num,

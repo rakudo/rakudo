@@ -20,6 +20,9 @@ my $RT_NUM  := 2;
 my $RT_STR  := 3;
 my $RT_VOID := -1;
 
+# Instruction constants.
+my $ALOAD_1     := JAST::Instruction.new( :op('aload_1') );
+
 # Perl 6 opcode specific mappings.
 $ops.map_classlib_hll_op('perl6', 'p6box_i', $TYPE_P6OPS, 'p6box_i', [$RT_INT], $RT_OBJ, :tc);
 $ops.map_classlib_hll_op('perl6', 'p6box_n', $TYPE_P6OPS, 'p6box_n', [$RT_NUM], $RT_OBJ, :tc);
@@ -148,54 +151,27 @@ $ops.map_classlib_hll_op('nqp', 'p6trialbind', $TYPE_P6OPS, 'p6trialbind', [$RT_
 #    $ops.result($rreg);
 #    $ops
 #});
-#
-## Boxing and unboxing configuration.
-#$ops.add_hll_box('perl6', 'i', -> $qastcomp, $post {
-#    my $reg := $*REGALLOC.fresh_p();
-#    my $ops := $qastcomp.post_new('Ops');
-#    $ops.push($post);
-#    $ops.push_pirop('perl6_box_int', $reg, $post);
-#    $ops.result($reg);
-#    $ops
-#});
-#$ops.add_hll_box('perl6', 'n', -> $qastcomp, $post {
-#    my $reg := $*REGALLOC.fresh_p();
-#    my $ops := $qastcomp.post_new('Ops');
-#    $ops.push($post);
-#    $ops.push_pirop('perl6_box_num', $reg, $post);
-#    $ops.result($reg);
-#    $ops
-#});
-#$ops.add_hll_box('perl6', 's', -> $qastcomp, $post {
-#    my $reg := $*REGALLOC.fresh_p();
-#    my $ops := $qastcomp.post_new('Ops');
-#    $ops.push($post);
-#    $ops.push_pirop('perl6_box_str', $reg, $post);
-#    $ops.result($reg);
-#    $ops
-#});
-#$ops.add_hll_unbox('perl6', 'i', -> $qastcomp, $post {
-#    my $reg := $*REGALLOC.fresh_i();
-#    my $ops := $qastcomp.post_new('Ops');
-#    $ops.push($post);
-#    $ops.push_pirop('repr_unbox_int', $reg, $post);
-#    $ops.result($reg);
-#    $ops
-#});
-#$ops.add_hll_unbox('perl6', 'n', -> $qastcomp, $post {
-#    my $reg := $*REGALLOC.fresh_n();
-#    my $ops := $qastcomp.post_new('Ops');
-#    $ops.push($post);
-#    $ops.push_pirop('set', $reg, $post);
-#    $ops.result($reg);
-#    $ops
-#});
-#$ops.add_hll_unbox('perl6', 's', -> $qastcomp, $post {
-#    my $reg := $*REGALLOC.fresh_s();
-#    my $ops := $qastcomp.post_new('Ops');
-#    $ops.push($post);
-#    $ops.push_pirop('set', $reg, $post);
-#    $ops.result($reg);
-#    $ops
-#});
+
+# Boxing and unboxing configuration.
+$ops.add_hll_box('perl6', $RT_INT, -> $qastcomp {
+    my $il := JAST::InstructionList.new();
+    $il.append($ALOAD_1);
+    $il.append(JAST::Instruction.new( :op('invokestatic'), $TYPE_P6OPS,
+        'p6box_i', $TYPE_SMO, 'Long', $TYPE_TC ));
+    $il
+});
+$ops.add_hll_box('perl6', $RT_NUM, -> $qastcomp {
+    my $il := JAST::InstructionList.new();
+    $il.append($ALOAD_1);
+    $il.append(JAST::Instruction.new( :op('invokestatic'), $TYPE_P6OPS,
+        'p6box_n', $TYPE_SMO, 'Double', $TYPE_TC ));
+    $il
+});
+$ops.add_hll_box('perl6', $RT_STR, -> $qastcomp {
+    my $il := JAST::InstructionList.new();
+    $il.append($ALOAD_1);
+    $il.append(JAST::Instruction.new( :op('invokestatic'), $TYPE_P6OPS,
+        'p6box_s', $TYPE_SMO, $TYPE_STR, $TYPE_TC ));
+    $il
+});
 #$ops.force_return_boxing_for_hll('perl6');

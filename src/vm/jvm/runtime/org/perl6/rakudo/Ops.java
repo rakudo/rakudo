@@ -120,6 +120,35 @@ public final class Ops {
         return items;
     }
     
+    public static long p6arrfindtypes(SixModelObject arr, SixModelObject types, long start, long last, ThreadContext tc) {
+        int ntypes = (int)types.elems(tc);
+        SixModelObject[] typeArr = new SixModelObject[ntypes];
+        for (int i = 0; i < ntypes; i++)
+            typeArr[i] = types.at_pos_boxed(tc, i);
+
+        long elems = arr.elems(tc);
+        if (elems < last)
+            last = elems;
+
+        long index;
+        for (index = start; index < last; index++) {
+            SixModelObject val = arr.at_pos_boxed(tc, index);
+            if (val.st.ContainerSpec == null) {
+                boolean found = false;
+                for (int typeIndex = 0; typeIndex < ntypes; typeIndex++) {
+                    if (org.perl6.nqp.runtime.Ops.istype(val, typeArr[typeIndex], tc) != 0) {
+                        found = true;
+                        break;
+                    }
+                }
+                if (found)
+                    break;
+            }
+        }
+
+        return index;
+    }
+    
     public static SixModelObject p6listiter(SixModelObject arr, SixModelObject list, ThreadContext tc) {
         SixModelObject iter = ListIter.st.REPR.allocate(tc, ListIter.st);
         iter.bind_attribute_boxed(tc, ListIter, "$!rest", HINT_LISTITER_rest, arr);

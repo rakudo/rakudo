@@ -308,31 +308,31 @@ my class Any {
     }
 
     # %h<key>
-    multi method postcircumfix:<{ }>(\SELF: $key) is rw {
+    multi method postcircumfix:<{ }>(\SELF: Mu $key) is rw {
         SELF.at_key($key)
     }
-    multi method postcircumfix:<{ }>(\SELF: $key, Mu :$BIND! is parcel) is rw {
+    multi method postcircumfix:<{ }>(\SELF: Mu $key, Mu :$BIND! is parcel) is rw {
         SELF.bind_key($key, $BIND)
     }
-    multi method postcircumfix:<{ }>(\SELF: $key, :$delete! where 0 ) is rw {
+    multi method postcircumfix:<{ }>(\SELF: Mu $key, :$delete! where 0 ) is rw {
         SELF.at_key($key)
     }
-    multi method postcircumfix:<{ }>(\SELF: $key, :$delete! ) is rw {
+    multi method postcircumfix:<{ }>(\SELF: Mu $key, :$delete! ) is rw {
         SELF.delete($key)
     }
-    multi method postcircumfix:<{ }>(\SELF: $key, :$exists! where 0 ) is rw {
+    multi method postcircumfix:<{ }>(\SELF: Mu $key, :$exists! where 0 ) is rw {
         !SELF.exists($key)
     }
-    multi method postcircumfix:<{ }>(\SELF: $key, :$exists! ) is rw {
+    multi method postcircumfix:<{ }>(\SELF: Mu $key, :$exists! ) is rw {
         SELF.exists($key)
     }
-    multi method postcircumfix:<{ }>(\SELF: $key, :$p!) is rw {
+    multi method postcircumfix:<{ }>(\SELF: Mu $key, :$p!) is rw {
         RWPAIR($key, SELF.at_key($key))
     }
-    multi method postcircumfix:<{ }>(\SELF: $key, :$k!) is rw {
+    multi method postcircumfix:<{ }>(\SELF: Mu $key, :$k!) is rw {
         $key
     }
-    multi method postcircumfix:<{ }>(\SELF: $key, :$kv!) is rw {
+    multi method postcircumfix:<{ }>(\SELF: Mu $key, :$kv!) is rw {
         ($key, SELF.at_key($key))
     }
 
@@ -420,7 +420,7 @@ my class Any {
     multi method at_key(Any:D: $key) {
         fail "postcircumfix:<\{ \}> not defined for type {self.WHAT.perl}";
     }
-    multi method at_key(Any:U \SELF: $key) is rw {
+    multi method at_key(Any:U \SELF: Mu $key) is rw {
         nqp::bindattr(my $v, Scalar, '$!whence',
             -> { SELF.defined || &infix:<=>(SELF, Hash.new);
                  SELF.bind_key($key, $v) });

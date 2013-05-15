@@ -67,6 +67,7 @@ MAIN: {
     $config{'stagestats'} = '--stagestats' if $options{'makefile-timing'};
     $config{'cpsep'} = $^O eq 'MSWin32' ? ';' : ':';
     $config{'slash'} = $^O eq 'MSWin32' ? '\\' : '/';
+    $config{'runner'} = $^O eq 'MSWin32' ? 'perl6.bat' : 'perl6';
     my $make = $config{'make'} = $^O eq 'MSWin32' ? 'nmake' : 'make';
     
     fill_template_file('tools/build/Makefile-JVM.in', 'Makefile', %config);

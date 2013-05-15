@@ -188,6 +188,7 @@ CLEANUPS = \
   blib/Perl6/*.class \
   $(SETTING_CLASS) \
   $(R_SETTING_CLASS) \
+  $(PERL6_CLASS) \
   lib/Test.class \
   lib/lib.class \
   lib/Pod/To/Text.class \

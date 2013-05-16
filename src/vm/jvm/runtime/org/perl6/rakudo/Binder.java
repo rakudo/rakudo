@@ -274,11 +274,11 @@ public final class Binder {
             else if ((paramFlags & SIG_ELEM_IS_RW) != 0) {
                 /* XXX TODO Check if rw flag is set; also need to have a
                  * wrapper container that carries extra constraints. */
-                cf.oLex[sci.oTryGetLexicalIdx(varName)] = decontValue;
+                cf.oLex[sci.oTryGetLexicalIdx(varName)] = arg_o;
             }
             else if ((paramFlags & SIG_ELEM_IS_PARCEL) != 0) {
                 /* Just bind the thing as is into the lexpad. */
-                cf.oLex[sci.oTryGetLexicalIdx(varName)] = decontValue;
+                cf.oLex[sci.oTryGetLexicalIdx(varName)] = arg_o;
             }
             else {
                 /* If it's an array, copy means make a new one and store,

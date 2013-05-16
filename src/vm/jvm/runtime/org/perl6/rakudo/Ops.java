@@ -319,6 +319,17 @@ public final class Ops {
         return cont;
     }
     
+    public static SixModelObject p6recont_ro(SixModelObject cont, ThreadContext tc) {
+        if (isRWScalar(tc, cont)) {
+            SixModelObject roCont = Scalar.st.REPR.allocate(tc, Scalar.st);
+            roCont.bind_attribute_boxed(tc, Ops.Scalar, "$!value",
+                RakudoContainerSpec.HINT_value,
+                cont.st.ContainerSpec.fetch(tc, cont));
+            return roCont;
+        }
+        return cont;
+    }
+    
     private static boolean isRWScalar(ThreadContext tc, SixModelObject check) {
         if (!(check instanceof TypeObject) && check.st.WHAT == Scalar) {
             SixModelObject desc = check.get_attribute_boxed(tc, Scalar, "$!descriptor",

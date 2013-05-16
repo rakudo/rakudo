@@ -23,6 +23,8 @@ RUNTIME_JAVAS = src/vm/jvm/runtime/org/perl6/rakudo/*.java
 
 RUNTIME_JAR = rakudo-runtime.jar
 
+RUNNER = @runner@
+
 # files we create
 PERL6_CLASS     = perl6.class
 PERL6_ML_CLASS  = blib/Perl6/ModuleLoader.class
@@ -186,6 +188,7 @@ CLEANUPS = \
   blib/Perl6/*.class \
   $(SETTING_CLASS) \
   $(R_SETTING_CLASS) \
+  $(PERL6_CLASS) \
   lib/Test.class \
   lib/lib.class \
   lib/Pod/To/Text.class \
@@ -193,9 +196,10 @@ CLEANUPS = \
   src/gen/CORE.setting \
   src/gen/*.class \
   src/gen/*.pm \
-  $(RUNTIME_JAR)
+  $(RUNTIME_JAR) \
+  $(RUNNER)
 
-all: $(PERL6_CLASS) $(SETTING_CLASS)
+all: $(PERL6_CLASS) $(SETTING_CLASS) $(RUNNER)
 
 $(RUNTIME_JAR): $(RUNTIME_JAVAS)
 	$(PERL) -MExtUtils::Command -e mkpath bin
@@ -259,6 +263,9 @@ $(SETTING_CLASS): $(PERL6_CLASS) $(PERL6_B_CLASS) $(CORE_SOURCES)
 	$(PERL) $(GEN_CAT) $(CORE_SOURCES) > src/gen/CORE.setting
 	@echo "The following step can take a long time, please be patient."
 	$(RUN_PERL6) --setting=NULL --optimize=3 --target=classfile --stagestats --output=$(SETTING_CLASS) src/gen/CORE.setting
+
+$(RUNNER): 
+	$(PERL) tools/build/create-jvm-runner.pl . $(NQP_PREFIX) $(NQP_JARS)
 
 ##  cleaning
 clean:

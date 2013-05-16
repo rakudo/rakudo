@@ -13,7 +13,7 @@ my $install_to = File::Spec->catfile($prefix, $^O eq 'MSWin32' ? 'perl6.bat' : '
 
 my $preamble = $^O eq 'MSWin32' ? '@' : '#!/bin/sh
 exec ';
-my $postamble = $^O eq 'MSWin32' ? '%*' : '$@';
+my $postamble = $^O eq 'MSWin32' ? '%*' : '"$@"';
 
 open my $fh, ">", $install_to;
 print $fh $preamble;

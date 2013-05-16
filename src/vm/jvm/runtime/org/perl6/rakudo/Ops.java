@@ -382,7 +382,8 @@ public final class Ops {
             SixModelObject codeObj = capList.at_pos_boxed(tc, i);
             CodeRef closure = (CodeRef)codeObj.get_attribute_boxed(tc,
                 Code, "$!do", HINT_CODE_DO);
-            closure.outer = cf;
+            CallFrame ctxToDiddle = closure.outer;
+            ctxToDiddle.outer = tc.curFrame;
         }
         return capList;
     }

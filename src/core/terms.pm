@@ -7,9 +7,19 @@ sub term:<time>() { nqp::p6box_i(nqp::time_i()) }
     nqp::bindkey(nqp::who(PROCESS), '@ARGS', @ARGS);
     $PROCESS::ARGFILES = IO::ArgFiles.new(:args(@ARGS));
 
+    # Evn iterator on Parrot apparently doesn't behave like a normal
+    # hash iterator...
     my %ENV;
     my Mu $env := nqp::getenvhash();
     my Mu $enviter := nqp::iterator($env);
+#?if parrot
+    my $key;
+    while $enviter {
+        $key = nqp::p6box_s(nqp::shift_s($enviter));
+        %ENV{$key} = nqp::p6box_s(nqp::atkey($env, nqp::unbox_s($key)));
+    }
+#?endif
+#?if !parrot
     my $envelem;
     my $key;
     while $enviter {
@@ -17,6 +27,7 @@ sub term:<time>() { nqp::p6box_i(nqp::time_i()) }
         $key = nqp::p6box_s(nqp::iterkey_s($envelem));
         %ENV{$key} = nqp::p6box_s(nqp::iterval($envelem));
     }
+#?endif
     %ENV does role {
         method at_key($k) {
             Proxy.new(

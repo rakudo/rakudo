@@ -249,7 +249,7 @@ $(PERL6_CLASS): src/main.nqp $(RUNTIME_JAR) $(PERL6_G_CLASS) $(PERL6_A_CLASS) $(
 	$(NQP) --target=classfile --javaclass=perl6 --output=$(PERL6_CLASS) \
 	    src/gen/main.nqp
 
-$(PERL6_M_CLASS): $(METAMODEL_SOURCES)
+$(PERL6_M_CLASS): $(METAMODEL_SOURCES) $(PERL6_OPS_CLASS)
 	$(PERL) $(GEN_CAT) $(METAMODEL_SOURCES) > src/gen/Metamodel.nqp
 	$(NQP) --target=classfile --output=$(PERL6_M_CLASS) --encoding=utf8 \
 	    src/gen/Metamodel.nqp

@@ -1271,6 +1271,7 @@ class Perl6::World is HLL::World {
         my @coderefs := $comp.backend.compunit_coderefs($precomp);
         my int $num_subs := nqp::elems(@coderefs);
         my int $i := 0;
+        my $result;
         while $i < $num_subs {
             my $subid := nqp::getcodecuid(@coderefs[$i]);
             if nqp::existskey(%!sub_id_to_code_object, $subid) {
@@ -1287,15 +1288,18 @@ class Perl6::World is HLL::World {
                 my $fixups := %!code_object_fixup_list{$subid};
                 $fixups.pop() while $fixups.list;
             }
+            if $subid eq $past.cuid {
+                $result := @coderefs[$i];
+            }
             $i := $i + 1;
         }
         
         # Flag block as dynamically compiled.
         $past<DYNAMICALLY_COMPILED> := 1;
         
-        # Return the Parrot Sub that maps to the thing we were originally
+        # Return the VM coderef that maps to the thing we were originally
         # asked to compile.
-        @coderefs[1]
+        $result
     }
     
     # Adds a constant value to the constants table. Returns PAST to do

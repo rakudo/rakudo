@@ -137,7 +137,7 @@ my class Hash {
         has $!keys;
         method at_key(TKey \key, TValue $v? is copy) is rw {
             my $key_which = key.WHICH;
-            self.exists($key_which)
+            self.exists(key)
               ?? nqp::findmethod(EnumMap, 'at_key')(self, $key_which)
               !! pir::setattribute__0PPsP($v, Scalar, '$!whence',
                  -> {
@@ -184,6 +184,11 @@ my class Hash {
                 nqp::getattr(self, EnumMap, '$!storage'),
                 nqp::unbox_s($key_which),
                 bindval)
+        }
+        method exists(::?CLASS:D: Mu \key) {
+            nqp::defined($!keys)
+              ?? nqp::p6bool(nqp::existskey($!keys, nqp::unbox_s(key.WHICH)))
+              !! False
         }
         method pairs() {
             return unless nqp::defined(nqp::getattr(self, EnumMap, '$!storage'));

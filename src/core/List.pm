@@ -340,7 +340,9 @@ my class List does Positional {
         }
     }
 
-    multi method gist(List:D:) { self.Str }
+    multi method gist(List:D:) {
+        join ' ', map { $_.defined ?? $_.Str !! $_.perl }, @(self)
+    }
     multi method perl(List:D \SELF:) {
         self.gimme(*);
         self.Parcel.perl ~ '.list'  

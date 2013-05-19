@@ -343,7 +343,7 @@ my class Any {
     multi method postcircumfix:<{ }>(\SELF: Positional \key, :$exists!) is rw {
         nqp::iscont(key) 
           ?? SELF.exists(key) 
-          !! die("Cannot use exists adverb with a slice")
+          !! key.map({ !( SELF.exists($_) ?^ $exists ) }).eager.Parcel;
     }
     multi method postcircumfix:<{ }>(\SELF: Positional \key, :$p!) is rw {
         nqp::iscont(key) 

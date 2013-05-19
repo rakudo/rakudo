@@ -96,18 +96,21 @@ class Perl6::ModuleLoader {
                         %cand<load> := "$prefix/$pbc_path";
                     }
                     @candidates.push(%cand);
++last; # temporary, until we actually don't do just @candidates[0]
                 }
                 elsif $have_pir {
                     my %cand;
                     %cand<key>  := "$prefix/$pir_path";
                     %cand<load> := "$prefix/$pir_path";
                     @candidates.push(%cand);
++last; # temporary, until we actually don't do just @candidates[0]
                 }
                 elsif $have_pbc {
                     my %cand;
                     %cand<key>  := "$prefix/$pbc_path";
                     %cand<load> := "$prefix/$pbc_path";
                     @candidates.push(%cand);
++last; # temporary, until we actually don't do just @candidates[0]
                 }
             }
         }

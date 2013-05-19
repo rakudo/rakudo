@@ -24,6 +24,10 @@ my role Numeric {
 
     method succ() { self + 1 }
     method pred() { self - 1 }
+
+    method kv(Numeric:D:) {
+        nqp::die( "It doesn't make sense to call .kv on a Numeric.  Did you mean :kv?" );
+    }
 }
 
 multi sub infix:<eqv>(Numeric:D $a, Numeric:D $b) {

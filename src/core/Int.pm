@@ -64,6 +64,10 @@ my class Int does Real {
     method floor(Int:D:) { self }
     method round(Int:D:) { self }
     method ceiling(Int:D:) { self }
+
+    method kv(Int:D:) {
+        nqp::die( "It doesn't make sense to call .kv on an Int.  Did you mean :kv?" );
+    }
 }
 
 multi prefix:<++>(Int:D \a is rw) {   # XXX

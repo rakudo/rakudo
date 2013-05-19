@@ -51,6 +51,10 @@ my class Str does Stringy {
     method Int(Str:D:) { self.Numeric.Int; }
     method Num(Str:D:) { self.Numeric.Num; }
 
+    method kv(Str:D:) {
+        nqp::die( "It doesn't make sense to call .kv on a Str.  Did you mean :kv?" );
+    }
+
     multi method ACCEPTS(Str:D: $other) { $other eq self }
 
     method chomp(Str:D:) {

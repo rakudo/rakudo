@@ -499,6 +499,10 @@ my class Date does Dateish {
         );
     }
 
+    multi method new() {
+        fail "Must provide arguments to DateTime.new()";
+    }
+
     multi method WHICH(Date:D:) {
         nqp::box_s(
             nqp::concat_s(

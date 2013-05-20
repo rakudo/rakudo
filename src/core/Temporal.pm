@@ -454,6 +454,10 @@ my class DateTime does Dateish {
             (formatter => $.formatter.perl
                 unless &.formatter eqv &default-formatter)
     }
+
+    multi method gist(DateTime:D:) {
+            self.Str;
+    }
 }
 
 my class Date does Dateish {

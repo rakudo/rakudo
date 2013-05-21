@@ -550,7 +550,6 @@ S16-io/getc.t
 S16-io/say-and-ref.t
 S16-io/say.t
 S16-unfiled/rebindstdhandles.t
-S16-unfiled/slurp.t
 S19-command-line/dash-e.t # icu
 S19-command-line/help.t
 S24-testing/0-compile.t
@@ -619,6 +618,7 @@ S32-io/io-path-cygwin.t
 S32-io/io-path.t
 S32-io/IO-Socket-INET.t
 S32-io/note.t
+S32-io/slurp.t
 S32-list/categorize.t
 S32-list/classify.t
 S32-list/create.t

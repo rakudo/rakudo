@@ -29,6 +29,10 @@ my role Rational[::NuT, ::DeT] does Real {
         $new;
     }
 
+    method kv(Rational:D:) {
+        nqp::die( "It doesn't make sense to call .kv on a Rational.  Did you mean :kv?" );
+    }
+
     method nude() { $!numerator, $!denominator }
     method Num() {
         $!denominator == 0

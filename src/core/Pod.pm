@@ -54,7 +54,7 @@ my class Pod::Block::Declarator is Pod::Block {
     method Str {
         ~@.content
     }
-    multi method gist(Pod::Block:D:) {
+    multi method gist(Pod::Block::Declarator:D:) {
         self.Str
     }
 }

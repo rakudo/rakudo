@@ -680,7 +680,7 @@ S32-str/samecase.t                                         # icu
 S32-str/split-simple.t
 S32-str/split.t
 S32-str/sprintf.t
-S32-str/substr.t
+S32-str/substr.t                                           # icu
 S32-str/substr-rw.t
 S32-str/tclc.t                                             # icu
 S32-str/trim.t

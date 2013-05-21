@@ -71,6 +71,16 @@ my class List does Positional {
         nqp::p6parcel($rpa, Any);
     }
 
+    proto method Set(|) {*}
+    multi method Set() {
+        set self;
+    }
+
+    proto method Bag(|) {*}
+    multi method Bag() {
+        bag self;
+    }
+
     multi method at_pos(List:D: $pos is copy) is rw {
         $pos = $pos.Int;
         self.exists($pos)

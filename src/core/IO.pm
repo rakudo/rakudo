@@ -445,29 +445,45 @@ multi sub slurp(IO::Handle $io = $*ARGFILES) {
 }
 
 proto sub spurt(|) { * }
+multi sub spurt(IO::Handle $fh,
+                Cool $contents,
+                :encoding(:$enc) = 'utf8',
+                :$createonly,
+                :$append) {
+    fail("File '" ~ $fh.path ~ "' already exists, but :createonly was give to spurt")
+        if $createonly && $fh.e;
+    my $mode = $append ?? :a !! :w;
+    $fh.open(:$enc, |$mode);
+    $fh.print($contents);
+    $fh.close;
+}
+multi sub spurt(IO::Handle $fh,
+                Buf $contents,
+                :$createonly,
+                :$append) {
+    fail("File '" ~ $fh.path ~ "' already exists, but :createonly was give to spurt")
+        if $createonly && $fh.e;
+    my $mode = $append ?? :a !! :w;
+    $fh.open(:bin, |$mode);
+    $fh.write($contents);
+    $fh.close;
+}
+
 multi sub spurt(Cool $filename,
                 Cool $contents,
                 :encoding(:$enc) = 'utf8',
                 :$createonly,
                 :$append) {
-    fail("File '$filename' already exists, but :createonly was give to spurt")
-        if $createonly && $filename.IO.e;
-    my $mode = $append ?? :a !! :w;
-    my $fh = open($filename.Str, :$enc, |$mode);
-    $fh.print($contents);
-    $fh.close;
+    spurt($filename.IO, $contents, :$enc, :$createonly, :$append);
 }
+
 multi sub spurt(Cool $filename,
                 Buf $contents,
                 :$createonly,
                 :$append) {
-    fail("File '$filename' already exists, but :createonly was give to spurt")
-        if $createonly && $filename.IO.e;
-    my $mode = $append ?? :a !! :w;
-    my $fh = open($filename.Str, :bin, |$mode);
-    $fh.write($contents);
-    $fh.close;
+    spurt($filename.IO, $contents, :$createonly, :$append);
 }
+
 
 proto sub cwd(|) { * }
 multi sub cwd() {

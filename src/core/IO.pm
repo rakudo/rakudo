@@ -208,6 +208,32 @@ my class IO::Handle does IO::FileTestable {
     }
 
 
+    proto method spurt(|) { * }
+    multi method spurt(Cool $contents,
+                    :encoding(:$enc) = 'utf8',
+                    :$createonly, :$append) {
+    
+        fail("File '" ~ self.path ~ "' already exists, but :createonly was give to spurt")
+            if $createonly && self.e;
+        
+        my $mode = $append ?? :a !! :w;
+        self.open(:$enc, |$mode);
+        self.print($contents);
+        self.close;
+    }
+    
+    multi method spurt(Buf $contents,
+                    :$createonly,
+                    :$append) {
+        fail("File '" ~ self.path ~ "' already exists, but :createonly was give to spurt")
+                if $createonly && self.e;
+        
+        my $mode = $append ?? :a !! :w;
+        self.open(:bin, |$mode);
+        self.write($contents);
+        self.close;
+    }
+
     # not spec'd
     method copy($dest) {
         try {
@@ -445,28 +471,33 @@ multi sub slurp(IO::Handle $io = $*ARGFILES) {
 }
 
 proto sub spurt(|) { * }
+multi sub spurt(IO::Handle $fh,
+                Cool $contents,
+                :encoding(:$enc) = 'utf8',
+                :$createonly,
+                :$append) {
+    $fh.spurt($contents, :$enc, :$createonly, :$append);
+}
+multi sub spurt(IO::Handle $fh,
+                Buf $contents,
+                :$createonly,
+                :$append) {
+    $fh.spurt($contents, :$createonly, :$append);
+}
+
 multi sub spurt(Cool $filename,
                 Cool $contents,
                 :encoding(:$enc) = 'utf8',
                 :$createonly,
                 :$append) {
-    fail("File '$filename' already exists, but :createonly was give to spurt")
-        if $createonly && $filename.IO.e;
-    my $mode = $append ?? :a !! :w;
-    my $fh = open($filename.Str, :$enc, |$mode);
-    $fh.print($contents);
-    $fh.close;
+    $filename.IO.spurt($contents, :$enc, :$createonly, :$append);
 }
+
 multi sub spurt(Cool $filename,
                 Buf $contents,
                 :$createonly,
                 :$append) {
-    fail("File '$filename' already exists, but :createonly was give to spurt")
-        if $createonly && $filename.IO.e;
-    my $mode = $append ?? :a !! :w;
-    my $fh = open($filename.Str, :bin, |$mode);
-    $fh.write($contents);
-    $fh.close;
+    $filename.IO.spurt($contents, :$createonly, :$append);
 }
 
 proto sub cwd(|) { * }

@@ -306,27 +306,51 @@ my class Any {
     multi method postcircumfix:<{ }>(:$BIND!) {
         X::Bind::ZenSlice.new(type => self.WHAT).throw
     }
-    multi method postcircumfix:<{ }>(\SELF: $key) is rw {
+
+    # %h<key>
+    multi method postcircumfix:<{ }>(\SELF: Mu $key) is rw {
         SELF.at_key($key)
     }
-    multi method postcircumfix:<{ }>(\SELF: $key, Mu :$BIND! is parcel) is rw {
+    multi method postcircumfix:<{ }>(\SELF: Mu $key, Mu :$BIND! is parcel) is rw {
         SELF.bind_key($key, $BIND)
     }
-    multi method postcircumfix:<{ }>(\SELF: $key, :$delete!) is rw {
-        SELF.delete($key)
+    multi method postcircumfix:<{ }>(
+      \SELF: Mu $key,
+      :$delete! where so $delete,
+      :$kv = $default, :$p = $default, :$k = $default, :$v = $default
+    ) is rw {
+        $p & $k & $kv & $v === $default   # :delete only
+          ?? SELF.delete($key)                               !!
+        $kv !=== $default
+          ?? ( !$kv | SELF.exists($key)
+                 ?? ( $key, SELF.delete($key) )
+                 !! ()                                     ) !!
+        $p !=== $default
+          ?? ( !$p | SELF.exists($key)
+                 ?? RWPAIR($key, SELF.delete($key))
+                 !! ()                                     ) !!
+        $k !=== $default
+          ?? ( !$k | SELF.exists($key)
+                 ?? ( SELF.delete($key); $key )
+                 !! ()                                     ) !!
+        !$v | SELF.exists($key)
+          ?? SELF.delete($key)
+          !! ();
     }
-    multi method postcircumfix:<{ }>(\SELF: $key, :$exists!) is rw {
-        SELF.exists($key)
+    multi method postcircumfix:<{ }>(\SELF: Mu $key, :$exists! ) is rw {
+        !( SELF.exists($key) ?^ $exists )
     }
-    multi method postcircumfix:<{ }>(\SELF: $key, :$p!) is rw {
+    multi method postcircumfix:<{ }>(\SELF: Mu $key, :$p!) is rw {
         RWPAIR($key, SELF.at_key($key))
     }
-    multi method postcircumfix:<{ }>(\SELF: $key, :$k!) is rw {
+    multi method postcircumfix:<{ }>(\SELF: Mu $key, :$k!) is rw {
         $key
     }
-    multi method postcircumfix:<{ }>(\SELF: $key, :$kv!) is rw {
+    multi method postcircumfix:<{ }>(\SELF: Mu $key, :$kv!) is rw {
         ($key, SELF.at_key($key))
     }
+
+    # %h<a b c>
     multi method postcircumfix:<{ }>(\SELF: Positional \key) is rw {
         nqp::iscont(key) 
           ?? SELF.at_key(key) 
@@ -335,15 +359,53 @@ my class Any {
     multi method postcircumfix:<{ }>(Positional $key, :$BIND!) is rw {
         X::Bind::Slice.new(type => self.WHAT).throw
     }
-    multi method postcircumfix:<{ }>(\SELF: Positional \key, :$delete!) is rw {
-        nqp::iscont(key) 
-          ?? SELF.delete(key) 
-          !! key.map({ SELF.delete($_) }).eager.Parcel
+    multi method postcircumfix:<{ }>(
+      \SELF: Positional \key,
+      :$delete! where so $delete,
+      :$kv = $default, :$p = $default, :$k = $default, :$v = $default
+    ) is rw {
+
+        # handle single key immediately
+        return SELF{key}:$delete:$kv:$p:$k:$v if nqp::iscont(key);
+
+        $kv & $p & $k & $v === $default   # :delete only
+          ?? key.map({ SELF.delete($_) }).eager.Parcel       !!
+        $kv !=== $default
+          ?? ( $kv
+                 ?? key.map( {
+                        SELF.exists($_) ?? ( $_, SELF.delete($_) ) !! ()
+                    } ).eager.Parcel
+                 !! key.map( {
+                        ( $_, SELF.delete($_) )
+                    } ).eager.Parcel                       ) !!
+        $p !=== $default
+          ?? ( $p
+                 ?? key.map( {
+                        SELF.exists($_) ?? RWPAIR($_, SELF.delete($_)) !! ()
+                    } ).eager.Parcel
+                 !! key.map( {
+                        RWPAIR($_, SELF.delete($_))
+                    } ).eager.Parcel                       ) !!
+        $k !=== $default
+          ?? ( $k
+                 ?? key.map( {
+                        SELF.exists($_) ?? ( SELF.delete($_); $_ ) !! ()
+                    } ).eager.Parcel
+                 !! key.map( {
+                        SELF.delete($_); $_
+                    } ).eager.Parcel                       ) !!
+        $v
+          ?? key.map( {
+                 SELF.exists($_) ?? SELF.delete($_) !! ()
+             } ).eager.Parcel
+          !! key.map( {
+                 SELF.delete($_)
+             } ).eager.Parcel;
     }
     multi method postcircumfix:<{ }>(\SELF: Positional \key, :$exists!) is rw {
         nqp::iscont(key) 
-          ?? SELF.exists(key) 
-          !! die("Cannot use exists adverb with a slice")
+          ?? !( SELF.exists(key) ?^ $exists )
+          !! key.map({ !( SELF.exists($_) ?^ $exists ) }).eager.Parcel;
     }
     multi method postcircumfix:<{ }>(\SELF: Positional \key, :$p!) is rw {
         nqp::iscont(key) 
@@ -365,29 +427,35 @@ my class Any {
           ?? SELF.at_key(key)
           !! key.map({ SELF.exists($_) ?? SELF.at_key($_) !! () }).eager.Parcel
     }
+
+    # %h{*}
     multi method postcircumfix:<{ }>(\SELF: Whatever) is rw {
         SELF{SELF.keys}
     }
     multi method postcircumfix:<{ }>(Whatever, :$BIND!) is rw {
         X::Bind::Slice.new(type => self.WHAT).throw
     }
-    multi method postcircumfix:<{ }>(\SELF: Whatever, :$delete!) is rw {
-        SELF{SELF.keys}:delete
+    multi method postcircumfix:<{ }>(
+      \SELF: Whatever,
+      :$delete! where so $delete,
+      :$kv = $default, :$p = $default, :$k = $default, :$v = $default
+    ) is rw {
+        SELF{SELF.keys}:$delete:$kv:$p:$k:$v;
     }
     multi method postcircumfix:<{ }>(\SELF: Whatever, :$exists!) is rw {
-        SELF{SELF.keys}:delete
+        SELF{SELF.keys}:$exists
     }
     multi method postcircumfix:<{ }>(\SELF: Whatever, :$p!) is rw {
-        SELF{SELF.keys}:p
+        SELF{SELF.keys}:$p
     }
     multi method postcircumfix:<{ }>(\SELF: Whatever, :$kv!) is rw {
-        SELF{SELF.keys}:kv
+        SELF{SELF.keys}:$kv
     }
     multi method postcircumfix:<{ }>(\SELF: Whatever, :$k!) is rw {
-        SELF{SELF.keys}:k
+        SELF{SELF.keys}:$k
     }
     multi method postcircumfix:<{ }>(\SELF: Whatever, :$v!) is rw {
-        SELF{SELF.keys}:v
+        SELF{SELF.keys}:$v
     }
 
     proto method at_key(|) { * }

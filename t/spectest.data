@@ -56,6 +56,7 @@ S02-magicals/pid.t
 S02-magicals/progname.t
 S02-magicals/sub.t
 S02-magicals/vm.t
+S02-names/bare-sigil.t
 S02-names/caller.t
 S02-names/identifier.t
 S02-names/indirect.t
@@ -307,6 +308,7 @@ S05-metasyntax/angle-brackets.t
 S05-metasyntax/assertions.t
 S05-metasyntax/changed.t
 S05-metasyntax/charset.t
+S05-metasyntax/delimiters.t
 S05-metasyntax/interpolating-closure.t
 S05-metasyntax/litvar.t
 S05-metasyntax/longest-alternative.t
@@ -548,7 +550,6 @@ S16-io/getc.t
 S16-io/say-and-ref.t
 S16-io/say.t
 S16-unfiled/rebindstdhandles.t
-S16-unfiled/slurp.t
 S19-command-line/dash-e.t # icu
 S19-command-line/help.t
 S24-testing/0-compile.t
@@ -595,8 +596,9 @@ S32-container/roundrobin.t
 S32-container/zip.t
 S32-exceptions/misc.t
 S32-hash/delete.t
-S32-hash/delete_adverb.t
+S32-hash/delete-adverb.t
 S32-hash/exists.t
+S32-hash/exists-adverb.t
 S32-hash/invert.t
 S32-hash/keys_values.t
 S32-hash/kv.t
@@ -616,6 +618,7 @@ S32-io/io-path-cygwin.t
 S32-io/io-path.t
 S32-io/IO-Socket-INET.t
 S32-io/note.t
+S32-io/slurp.t
 S32-list/categorize.t
 S32-list/classify.t
 S32-list/create.t
@@ -677,7 +680,7 @@ S32-str/samecase.t                                         # icu
 S32-str/split-simple.t
 S32-str/split.t
 S32-str/sprintf.t
-S32-str/substr.t
+S32-str/substr.t                                           # icu
 S32-str/substr-rw.t
 S32-str/tclc.t                                             # icu
 S32-str/trim.t

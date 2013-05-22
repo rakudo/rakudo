@@ -489,7 +489,7 @@ my class Mu {
 }
 
 
-proto sub defined(Mu) { * }
+proto sub defined(Mu) is pure { * }
 multi sub defined(Mu \x) { x.defined }
 
 proto sub infix:<~~>(|) { * }

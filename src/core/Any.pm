@@ -2,6 +2,7 @@ my class MapIter { ... }
 my class Range { ... }
 my class X::Bind::Slice { ... }
 my class X::Bind::ZenSlice { ... }
+my $default= [];  # so that we can check passing of parameters to ".hash"
 
 my class Any {
     multi method ACCEPTS(Any:D: Mu \a) { self === a }
@@ -17,7 +18,21 @@ my class Any {
     method uniq() { self.list.uniq }
     method infinite() { Mu }
     method flat() { nqp::p6list(nqp::list(self), List, Bool::True) }
-    method hash() { my %h = self }
+    method hash( :$type = $default, :$of = $default ) {
+
+        # your basic hash
+        if ( $type === $default and $of === $default ) {
+            my %h = self;
+        }
+
+        # need to add type / of info
+        else {
+            my $code= $of === $default ?? "my %h" !! "my {$of.perl} %h";
+            $code ~= "\{{$type.perl}}" unless $type === $default;
+            $code ~= " = self";
+            eval $code;
+        }
+    }
     method list() { nqp::p6list(nqp::list(self), List, Mu) }
     method lol()  { MapIter.new(self.list, { .item }, Mu).list }
     method pick($n = 1) { self.list.pick($n) }
@@ -402,7 +417,8 @@ my class Any {
                  SELF.delete($_)
              } ).eager.Parcel;
     }
-    multi method postcircumfix:<{ }>(\SELF: Positional \key, :$exists!) is rw {
+    multi method postcircumfix:<{ }>(
+      \SELF: Positional \key, :$exists!) is rw {
         nqp::iscont(key) 
           ?? !( SELF.exists(key) ?^ $exists )
           !! key.map({ !( SELF.exists($_) ?^ $exists ) }).eager.Parcel;

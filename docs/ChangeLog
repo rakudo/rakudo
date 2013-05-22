@@ -6,6 +6,7 @@ New in 2013.05
 + implemented Cool.lines
 + renamed IO to IO::Handle; IO is now a tag role, as per spec
 + simplify timezone handling
++ .Set and .Bag methods for List and Parcel
 
 New in 2013.04
 + add Capture.Bool()

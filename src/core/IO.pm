@@ -208,6 +208,32 @@ my class IO::Handle does IO::FileTestable {
     }
 
 
+    proto method spurt(|) { * }
+    multi method spurt(Cool $contents,
+                    :encoding(:$enc) = 'utf8',
+                    :$createonly, :$append) {
+    
+        fail("File '" ~ self.path ~ "' already exists, but :createonly was give to spurt")
+            if $createonly && self.e;
+        
+        my $mode = $append ?? :a !! :w;
+        self.open(:$enc, |$mode);
+        self.print($contents);
+        self.close;
+    }
+    
+    multi method spurt(Buf $contents,
+                    :$createonly,
+                    :$append) {
+        fail("File '" ~ self.path ~ "' already exists, but :createonly was give to spurt")
+                if $createonly && self.e;
+        
+        my $mode = $append ?? :a !! :w;
+        self.open(:bin, |$mode);
+        self.write($contents);
+        self.close;
+    }
+
     # not spec'd
     method copy($dest) {
         try {
@@ -450,23 +476,13 @@ multi sub spurt(IO::Handle $fh,
                 :encoding(:$enc) = 'utf8',
                 :$createonly,
                 :$append) {
-    fail("File '" ~ $fh.path ~ "' already exists, but :createonly was give to spurt")
-        if $createonly && $fh.e;
-    my $mode = $append ?? :a !! :w;
-    $fh.open(:$enc, |$mode);
-    $fh.print($contents);
-    $fh.close;
+    $fh.spurt($contents, :$enc, :$createonly, :$append);
 }
 multi sub spurt(IO::Handle $fh,
                 Buf $contents,
                 :$createonly,
                 :$append) {
-    fail("File '" ~ $fh.path ~ "' already exists, but :createonly was give to spurt")
-        if $createonly && $fh.e;
-    my $mode = $append ?? :a !! :w;
-    $fh.open(:bin, |$mode);
-    $fh.write($contents);
-    $fh.close;
+    $fh.spurt($contents, :$createonly, :$append);
 }
 
 multi sub spurt(Cool $filename,
@@ -474,16 +490,15 @@ multi sub spurt(Cool $filename,
                 :encoding(:$enc) = 'utf8',
                 :$createonly,
                 :$append) {
-    spurt($filename.IO, $contents, :$enc, :$createonly, :$append);
+    $filename.IO.spurt($contents, :$enc, :$createonly, :$append);
 }
 
 multi sub spurt(Cool $filename,
                 Buf $contents,
                 :$createonly,
                 :$append) {
-    spurt($filename.IO, $contents, :$createonly, :$append);
+    $filename.IO.spurt($contents, :$createonly, :$append);
 }
-
 
 proto sub cwd(|) { * }
 multi sub cwd() {

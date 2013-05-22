@@ -619,6 +619,7 @@ S32-io/io-path.t
 S32-io/IO-Socket-INET.t
 S32-io/note.t
 S32-io/slurp.t
+S32-io/spurt.t
 S32-list/categorize.t
 S32-list/classify.t
 S32-list/create.t

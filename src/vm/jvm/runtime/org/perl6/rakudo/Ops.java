@@ -27,6 +27,7 @@ public final class Ops {
     public static SixModelObject Hash;
     public static SixModelObject Junction;
     public static SixModelObject Scalar;
+    public static SixModelObject Capture;
     public static SixModelObject ContainerDescriptor;
     public static SixModelObject False;
     public static SixModelObject True;
@@ -78,6 +79,7 @@ public final class Ops {
         Hash = conf.at_key_boxed(tc, "Hash");
         Junction = conf.at_key_boxed(tc, "Junction");
         Scalar = conf.at_key_boxed(tc, "Scalar");
+        Capture = conf.at_key_boxed(tc, "Capture");
         ContainerDescriptor = conf.at_key_boxed(tc, "ContainerDescriptor");
         False = conf.at_key_boxed(tc, "False");
         True = conf.at_key_boxed(tc, "True");

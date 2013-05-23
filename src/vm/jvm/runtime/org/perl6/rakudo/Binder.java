@@ -61,6 +61,8 @@ public final class Binder {
     
     /* Other hints. */
     private static final int HINT_ENUMMAP_storage = 0;
+    private static final int HINT_CAPTURE_list = 0;
+    private static final int HINT_CAPTURE_hash = 1;
     
     /* Last error, per thread. */
     public static HashMap<ThreadContext, String> lastErrors = new HashMap<ThreadContext, String>();
@@ -411,7 +413,32 @@ public final class Binder {
                    bindFail = BIND_RESULT_OK;
                 }
                 else {
-                    throw new RuntimeException("Capture param binding NYI");
+                    SixModelObject posArgs = Ops.EMPTYARR.clone(tc);
+                    for (int k = curPosArg; k < numPosArgs; k++) {
+                        switch (csd.argFlags[k]) {
+                        case CallSiteDescriptor.ARG_OBJ:
+                            posArgs.push_boxed(tc, (SixModelObject)args[k]);
+                            break;
+                        case CallSiteDescriptor.ARG_INT:
+                            posArgs.push_boxed(tc, Ops.p6box_i((long)args[k], tc));
+                            break;
+                        case CallSiteDescriptor.ARG_NUM:
+                            posArgs.push_boxed(tc, Ops.p6box_n((double)args[k], tc));
+                            break;
+                        case CallSiteDescriptor.ARG_STR:
+                            posArgs.push_boxed(tc, Ops.p6box_s((String)args[k], tc));
+                            break;
+                        }
+                    }                    
+                    SixModelObject namedArgs = vmHashOfRemainingNameds(tc, namedArgsCopy, args);
+                    
+                    SixModelObject capType = Ops.Capture;
+                    SixModelObject capSnap = capType.st.REPR.allocate(tc, capType.st);
+                    capSnap.bind_attribute_boxed(tc, capType, "$!list", HINT_CAPTURE_list, posArgs);
+                    capSnap.bind_attribute_boxed(tc, capType, "$!hash", HINT_CAPTURE_hash, namedArgs);
+                    
+                    bindFail = bindOneParam(tc, cf, param, capSnap, CallSiteDescriptor.ARG_OBJ,
+                        noNomTypeCheck, needError);               
                 }
                 if (bindFail != 0) {
                     return bindFail;
@@ -432,35 +459,11 @@ public final class Binder {
             
             /* Could it be a named slurpy? */
             else if ((flags & SIG_ELEM_SLURPY_NAMED) != 0) {
-                SixModelObject slurpy = Ops.Mu;
-                if (namedArgsCopy != null) {
-                    SixModelObject BOOTHash = tc.gc.BOOTHash;
-                    slurpy = BOOTHash.st.REPR.allocate(tc, BOOTHash.st);
-                    slurpy.initialize(tc);
-                    for (String name : namedArgsCopy.keySet()) {
-                        int lookup = namedArgsCopy.get(name);
-                        switch (lookup & 7) {
-                        case CallSiteDescriptor.ARG_OBJ:
-                            slurpy.bind_key_boxed(tc, name, (SixModelObject)args[lookup >> 3]);
-                            break;
-                        case CallSiteDescriptor.ARG_INT:
-                            slurpy.bind_key_boxed(tc, name, Ops.p6box_i((long)args[lookup >> 3], tc));
-                            break;
-                        case CallSiteDescriptor.ARG_NUM:
-                            slurpy.bind_key_boxed(tc, name, Ops.p6box_n((double)args[lookup >> 3], tc));
-                            break;
-                        case CallSiteDescriptor.ARG_STR:
-                            slurpy.bind_key_boxed(tc, name, Ops.p6box_s((String)args[lookup >> 3], tc));
-                            break;
-                        }
-                    }
-                }
-                
+                SixModelObject slurpy = vmHashOfRemainingNameds(tc, namedArgsCopy, args);
                 SixModelObject bindee = Ops.Hash.st.REPR.allocate(tc, Ops.Hash.st);
                 bindee.initialize(tc);
                 bindee.bind_attribute_boxed(tc, Ops.EnumMap, "$!storage",
                     HINT_ENUMMAP_storage, slurpy);
-                
                 bindFail = bindOneParam(tc, cf, param, bindee, CallSiteDescriptor.ARG_OBJ,
                     noNomTypeCheck, needError);
                 if (bindFail != 0)
@@ -587,6 +590,34 @@ public final class Binder {
         
         /* XXX TODO. */
         return BIND_RESULT_OK;
+    }
+    
+    /* Takes any nameds we didn't capture yet and makes a VM Hash of them. */
+    private static SixModelObject vmHashOfRemainingNameds(ThreadContext tc, HashMap<String, Integer> namedArgsCopy, Object[] args) {
+        SixModelObject slurpy = Ops.Mu;
+        if (namedArgsCopy != null) {
+            SixModelObject BOOTHash = tc.gc.BOOTHash;
+            slurpy = BOOTHash.st.REPR.allocate(tc, BOOTHash.st);
+            slurpy.initialize(tc);
+            for (String name : namedArgsCopy.keySet()) {
+                int lookup = namedArgsCopy.get(name);
+                switch (lookup & 7) {
+                case CallSiteDescriptor.ARG_OBJ:
+                    slurpy.bind_key_boxed(tc, name, (SixModelObject)args[lookup >> 3]);
+                    break;
+                case CallSiteDescriptor.ARG_INT:
+                    slurpy.bind_key_boxed(tc, name, Ops.p6box_i((long)args[lookup >> 3], tc));
+                    break;
+                case CallSiteDescriptor.ARG_NUM:
+                    slurpy.bind_key_boxed(tc, name, Ops.p6box_n((double)args[lookup >> 3], tc));
+                    break;
+                case CallSiteDescriptor.ARG_STR:
+                    slurpy.bind_key_boxed(tc, name, Ops.p6box_s((String)args[lookup >> 3], tc));
+                    break;
+                }
+            }
+        }
+        return slurpy;
     }
     
     public static String lastError(ThreadContext tc) {

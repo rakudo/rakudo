@@ -1,12 +1,29 @@
 New in 2013.05
 + IO::Spec, a port of Perl 5's File::Spec
-+ support for exporting things form sub EXPORT
++ support for exporting things form EXPORT subroutine
 + ?-quantifier in regexes doesn't create arrays in the Match object anymore
-+ speedup of repeated shifts of large lists and arrays
++ speedup of repeated shifts of large lists and arrays by 70%+
 + implemented Cool.lines
 + renamed IO to IO::Handle; IO is now a tag role, as per spec
 + simplify timezone handling
 + .Set and .Bag methods for List and Parcel
++ regex special characters can be used as delimiters
++ allow slice with :exists adverb on hashes …
++ .hash now accepts optional :type and :of named parameters
++ Make :exists and :delete up to spec …
++ fix for autoviv Typed hash problem
++ constant-fold infix:<~>
++ make decl and init of our-scoped arrays/hashes work
++ fix regex interpolation slowdown
++ fix exporting of subroutines
++ fix slurpy is-rw array-parameters
++ failed regex matches return Nil
++ add support for IO::Path::<os subclasses>
++ fix reporting of errors in gather/take.
++ added 125 extra opening/closing bracket-pairs
++ fix build failure on SPARC and PowerPC
++ underlaying nqp layer support parrot and JVM as backend
+> more than 100 not listed changes
 
 New in 2013.04
 + add Capture.Bool()

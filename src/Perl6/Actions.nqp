@@ -151,7 +151,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             %info<container_base>  := $*W.find_symbol(['Hash']);
             %info<bind_constraint> := $*W.find_symbol(['Associative']);
             if $shape {
-                @value_type[0] := $*W.find_symbol(['Mu']) unless +@value_type;
+                @value_type[0] := $*W.find_symbol(['Any']) unless +@value_type;
                 my $shape_ast := $shape[0].ast;
                 if $shape_ast.isa(QAST::Stmts) && +@($shape_ast) == 1 && $shape_ast[0].has_compile_time_value {
                     @value_type[1] := $shape_ast[0].compile_time_value;

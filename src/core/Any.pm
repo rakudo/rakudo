@@ -2,6 +2,7 @@ my class MapIter { ... }
 my class Range { ... }
 my class X::Bind::Slice { ... }
 my class X::Bind::ZenSlice { ... }
+my $default= [];  # so that we can check passing of parameters to ".hash"
 
 my class Any {
     multi method ACCEPTS(Any:D: Mu \a) { self === a }
@@ -17,7 +18,21 @@ my class Any {
     method uniq() { self.list.uniq }
     method infinite() { Mu }
     method flat() { nqp::p6list(nqp::list(self), List, Bool::True) }
-    method hash() { my %h = self }
+    method hash( :$type = $default, :$of = $default ) {
+
+        # your basic hash
+        if ( $type === $default and $of === $default ) {
+            my %h = self;
+        }
+
+        # need to add type / of info
+        else {
+            my $code= $of === $default ?? "my %h" !! "my {$of.perl} %h";
+            $code ~= "\{{$type.perl}}" unless $type === $default;
+            $code ~= " = self";
+            eval $code;
+        }
+    }
     method list() { nqp::p6list(nqp::list(self), List, Mu) }
     method lol()  { MapIter.new(self.list, { .item }, Mu).list }
     method pick($n = 1) { self.list.pick($n) }
@@ -306,17 +321,19 @@ my class Any {
     multi method postcircumfix:<{ }>(:$BIND!) {
         X::Bind::ZenSlice.new(type => self.WHAT).throw
     }
+
+    # %h<key>
     multi method postcircumfix:<{ }>(\SELF: $key) is rw {
         SELF.at_key($key)
     }
     multi method postcircumfix:<{ }>(\SELF: $key, Mu :$BIND! is parcel) is rw {
         SELF.bind_key($key, $BIND)
     }
-    multi method postcircumfix:<{ }>(\SELF: $key, :$delete!) is rw {
+    multi method postcircumfix:<{ }>(\SELF: $key, :$delete! where so $delete) is rw {
         SELF.delete($key)
     }
     multi method postcircumfix:<{ }>(\SELF: $key, :$exists!) is rw {
-        SELF.exists($key)
+        !( SELF.exists($key) ?^ $exists )
     }
     multi method postcircumfix:<{ }>(\SELF: $key, :$p!) is rw {
         RWPAIR($key, SELF.at_key($key))
@@ -327,6 +344,8 @@ my class Any {
     multi method postcircumfix:<{ }>(\SELF: $key, :$kv!) is rw {
         ($key, SELF.at_key($key))
     }
+
+    # %h<a b c>
     multi method postcircumfix:<{ }>(\SELF: Positional \key) is rw {
         nqp::iscont(key) 
           ?? SELF.at_key(key) 
@@ -335,15 +354,17 @@ my class Any {
     multi method postcircumfix:<{ }>(Positional $key, :$BIND!) is rw {
         X::Bind::Slice.new(type => self.WHAT).throw
     }
-    multi method postcircumfix:<{ }>(\SELF: Positional \key, :$delete!) is rw {
+    multi method postcircumfix:<{ }>(
+      \SELF: Positional \key, :$delete! where so $delete ) is rw {
         nqp::iscont(key) 
           ?? SELF.delete(key) 
           !! key.map({ SELF.delete($_) }).eager.Parcel
     }
-    multi method postcircumfix:<{ }>(\SELF: Positional \key, :$exists!) is rw {
+    multi method postcircumfix:<{ }>(
+      \SELF: Positional \key, :$exists!) is rw {
         nqp::iscont(key) 
-          ?? SELF.exists(key) 
-          !! die("Cannot use exists adverb with a slice")
+          ?? !( SELF.exists(key) ?^ $exists )
+          !! key.map({ !( SELF.exists($_) ?^ $exists ) }).eager.Parcel;
     }
     multi method postcircumfix:<{ }>(\SELF: Positional \key, :$p!) is rw {
         nqp::iscont(key) 
@@ -365,6 +386,8 @@ my class Any {
           ?? SELF.at_key(key)
           !! key.map({ SELF.exists($_) ?? SELF.at_key($_) !! () }).eager.Parcel
     }
+
+    # %h{*}
     multi method postcircumfix:<{ }>(\SELF: Whatever) is rw {
         SELF{SELF.keys}
     }
@@ -372,10 +395,10 @@ my class Any {
         X::Bind::Slice.new(type => self.WHAT).throw
     }
     multi method postcircumfix:<{ }>(\SELF: Whatever, :$delete!) is rw {
-        SELF{SELF.keys}:delete
+        SELF{SELF.keys}:$delete
     }
     multi method postcircumfix:<{ }>(\SELF: Whatever, :$exists!) is rw {
-        SELF{SELF.keys}:delete
+        SELF{SELF.keys}:$exists
     }
     multi method postcircumfix:<{ }>(\SELF: Whatever, :$p!) is rw {
         SELF{SELF.keys}:p

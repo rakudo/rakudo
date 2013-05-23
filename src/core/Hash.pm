@@ -114,7 +114,7 @@ my class Hash {
     }
     
     my role TypedHash[::TValue] does Associative[TValue] {
-        method at_key($key is copy, TValue $v? is copy) is rw {
+        method at_key(::?CLASS:D: $key is copy, TValue $v? is copy) is rw {
             $key = $key.Str;
             self.exists($key)
               ?? nqp::findmethod(EnumMap, 'at_key')(self, $key)
@@ -135,7 +135,7 @@ my class Hash {
     }
     my role TypedHash[::TValue, ::TKey] does Associative[TValue] {
         has $!keys;
-        method at_key(TKey \key, TValue $v? is copy) is rw {
+        method at_key(::?CLASS:D: TKey \key, TValue $v? is copy) is rw {
             my $key_which = key.WHICH;
             self.exists($key_which)
               ?? nqp::findmethod(EnumMap, 'at_key')(self, $key_which)

@@ -11,6 +11,10 @@ sub mkdir(|)  { restricted('mkdir')   }
 sub rmdir(|)  { restricted('rmdir') }
 sub rename(|) { restricted('rename')  }
 sub copy(|)   { restricted('copy')    }
+sub spurt(|)  { restricted('spurt')   }
+sub link(|)   { restricted('link')   }
+sub symlink(|){ restricted('symlink') }
+sub chmod(|)  { restricted('chmod')   }
 
 my class RESTRICTED is Mu { 
     method FALLBACK(|) { restricted(self.^name) }  # NYI, but see S12

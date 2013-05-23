@@ -3,6 +3,7 @@ my role Baggy { Any }
 my class Bag is Iterable does Associative does Baggy {
     has %!elems; # should be UInt
 
+    method default { 0 }
     method keys { %!elems.keys }
     method values { %!elems.values }
     method elems returns Int { [+] self.values }
@@ -70,6 +71,7 @@ multi sub infix:<(+)>(Bag $a, Bag $b --> Bag) { bag((set($a) (|) set($b)).map({ 
 my class KeyBag does Associative does Baggy {
     has %!elems; # should be UInt
 
+    method default { 0 }
     method keys { %!elems.keys }
     method values { %!elems.values }
     method elems returns Int { [+] self.values }

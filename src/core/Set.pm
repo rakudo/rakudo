@@ -1,6 +1,7 @@
 my class Set is Iterable does Associative {
     has %!elems;
 
+    method default { False }
     method keys { %!elems.keys }
     method values { %!elems.values }
     method elems returns Int { %!elems.elems }
@@ -103,6 +104,7 @@ multi sub infix:«(>)»(Set $a, Set $b --> Bool) { $a > $b and so $b.keys.all (e
 my class KeySet is Iterable does Associative {
     has %!elems;
 
+    method default { False }
     method keys { %!elems.keys }
     method values { %!elems.values }
     method elems returns Int { %!elems.elems }

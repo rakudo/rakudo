@@ -203,10 +203,26 @@ my class IO::Handle does IO::FileTestable {
         self.print: "\n";
     }
     
-    method slurp() {
-        nqp::p6box_s($!PIO.readall());
-    }
+    method slurp(:$bin, :enc($encoding)) {
+        self.open(:r, :$bin) unless self.opened;
+        self.encoding($encoding) if $encoding.defined;
 
+        if $bin {
+            my $Buf = Buf.new();
+            loop {
+                my $current  = self.read(10_000);
+                $Buf ~= $current;
+                last if $current.bytes == 0;
+            }
+            self.close;
+            $Buf;
+        }
+        else {
+            my $contents = nqp::p6box_s($!PIO.readall());
+            self.close();
+            $contents
+        } 
+    }
 
     proto method spurt(|) { * }
     multi method spurt(Cool $contents,
@@ -265,6 +281,12 @@ my class IO::Handle does IO::FileTestable {
             unless nqp::defined($!PIO);
         $!PIO.flush();
         True;
+    }
+
+    method encoding($enc?) {
+        $enc.defined
+            ?? $!PIO.encoding(PARROT_ENCODING($enc))
+            !! $!PIO.encoding
     }
 }
 
@@ -447,27 +469,12 @@ multi sub close($fh) {
 }
 
 proto sub slurp(|) { * }
-multi sub slurp($filename, :$bin = False) {
-    my $handle = open($filename, :r, :$bin);
-    if $bin {
-        my $Buf = Buf.new();
-        loop {
-            my $current  = $handle.read(10_000);
-            $Buf ~= $current;
-            last if $current.bytes == 0;
-        }
-        $handle.close;
-        $Buf;
-    }
-    else {
-        my $contents = $handle.slurp();
-        $handle.close();
-        $contents
-    }
+multi sub slurp($filename, :$bin = False, :$enc = 'utf8') {
+    $filename.IO.slurp(:$bin, :$enc);
 }
 
-multi sub slurp(IO::Handle $io = $*ARGFILES) {
-    $io.slurp;
+multi sub slurp(IO::Handle $io = $*ARGFILES, :$bin, :$enc) {
+    $io.slurp(:$bin, :$enc);
 }
 
 proto sub spurt(|) { * }

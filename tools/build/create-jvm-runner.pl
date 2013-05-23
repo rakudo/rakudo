@@ -17,7 +17,7 @@ my $postamble = $^O eq 'MSWin32' ? '%*' : '"$@"';
 
 open my $fh, ">", $install_to;
 print $fh $preamble;
-print $fh 'java -Xbootclasspath/a:' . $prefix . $cpsep . $thirdpartyjars . $cpsep . 'rakudo-runtime.jar'
+print $fh 'java -Xms100m -Xbootclasspath/a:' . $prefix . $cpsep . $thirdpartyjars . $cpsep . 'rakudo-runtime.jar'
         . ' -cp ' . $nqpprefix . ' perl6 ';
 print $fh $postamble;
 print $fh "\n";

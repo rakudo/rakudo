@@ -1614,7 +1614,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     # TODO: $"
 
     token special_variable:sym<$,> {
-        <sym> <?before \s | ',' | <terminator> >
+        <sym> <?before \h* <[ = , ; ? : ! ) \] } ]> >
         <.obs('$, variable', ".join() method")>
     }
 

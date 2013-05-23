@@ -22,7 +22,8 @@ New in 2013.05
 + fix reporting of errors in gather/take.
 + added 125 extra opening/closing bracket-pairs
 + fix build failure on SPARC and PowerPC
-+ underlaying nqp layer support parrot and JVM as backend
++ underlying nqp layer supports parrot and JVM as backend, in preparation
+  for JVM support in a future Rakudo release
 > more than 100 not listed changes
 
 New in 2013.04

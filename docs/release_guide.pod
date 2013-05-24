@@ -181,7 +181,7 @@ This can be conveniently done with  "git log --since=yyyy-mm-dd --reverse".
 =item 5.
 
 When it's time to cut the release, finalize the new release 
-announcement in docs/announce/YYYY.MM.  (If one hasn't already
+announcement in docs/announce/YYYY.MM.md .  (If one hasn't already
 been created, see step 1 above.) Highlight areas in which the 
 new release is significant.  If possible, also give some small 
 details about the choice of release name.  (If the details 
@@ -197,7 +197,7 @@ B<Note>: this program requires the perl module L<Date::Simple> be installed.
 
 Please check the result manually for duplicates and other errors.
 
-  $ git add docs/announce/YYYY.MM
+  $ git add docs/announce/YYYY.MM.md
   $ git commit docs
 
 =item 6.
@@ -297,6 +297,9 @@ compiler release announcements ONLY to perl6-compiler@perl.org.
 (We may restart widespread announcements of compiler releases 
 once they are known, or we may begin publishing a single
 announcement for both.)
+
+Don't send out any announcements until the files are actually available
+per step 15 above.
 
 =item 17.
 

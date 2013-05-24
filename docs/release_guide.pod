@@ -313,7 +313,7 @@ You're done!  Celebrate with the appropriate amount of fun.
 
 =head1 COPYRIGHT
 
-Copyright (C) 2009-2012, The Perl Foundation.
+Copyright (C) 2009-2013, The Perl Foundation.
 
 =cut
 

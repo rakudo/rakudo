@@ -29,9 +29,7 @@ my class IO::Spec::Cygwin is IO::Spec::Unix {
     }
 
     method tmpdir {
-        state $tmpdir;
-        return $tmpdir if $tmpdir.defined;
-        $tmpdir = self.canonpath: first( { .defined && .IO.d && .IO.w },
+        self.canonpath: first( { .defined && .IO.d && .IO.w },
              %*ENV<TMPDIR>,
              "/tmp",
              %*ENV<TMP>,

@@ -20,9 +20,7 @@ my class IO::Spec::Win32 is IO::Spec::Unix {
     method rootdir               { '\\'                }
 
     method tmpdir {
-        state $tmpdir;
-        return $tmpdir if $tmpdir.defined;
-        $tmpdir = self.canonpath: first( { .defined && .IO.d && .IO.w },
+        self.canonpath: first( { .defined && .IO.d && .IO.w },
             %*ENV<TMPDIR>,
             %*ENV<TEMP>,
             %*ENV<TMP>,

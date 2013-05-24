@@ -32,19 +32,11 @@ my class IO::Spec::Unix {
     method rootdir { '/' }
     method devnull { '/dev/null' }
 
-    method _firsttmpdir( *@dirlist ) {
-        my $tmpdir = @dirlist.first( { .defined && .IO.d && .IO.w } )
-            or self.curdir;
-        self.canonpath( $tmpdir );
-    }
-
     method tmpdir {
-        state $tmpdir;
-        return $tmpdir if $tmpdir.defined;
-        $tmpdir = self.canonpath: first( { .defined && .IO.d && .IO.w },
-                        %*ENV<TMPDIR>,
-                        '/tmp') 
-                    || self.curdir;
+        self.canonpath: first( { .defined && .IO.d && .IO.w },
+                %*ENV<TMPDIR>,
+                '/tmp') 
+            || self.curdir;
     }
 
     method no-parent-or-current-test { none('.', '..')  }

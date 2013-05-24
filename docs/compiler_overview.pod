@@ -299,7 +299,7 @@ maintainer of Rakudo.  The other contributors and named in F<CREDITS>.
 
 =head1 COPYRIGHT
 
-Copyright (C) 2007-2010, The Perl Foundation.
+Copyright (C) 2007-2013, The Perl Foundation.
 
 =cut
 

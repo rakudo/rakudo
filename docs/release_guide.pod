@@ -298,6 +298,9 @@ compiler release announcements ONLY to perl6-compiler@perl.org.
 once they are known, or we may begin publishing a single
 announcement for both.)
 
+Don't send out any announcements until the files are actually available
+per step 15 above.
+
 =item 17.
 
 Update the Wikipedia entry at L<http://en.wikipedia.org/wiki/Rakudo>.

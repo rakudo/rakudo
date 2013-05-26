@@ -133,6 +133,16 @@ public final class Binder {
             return BIND_RESULT_FAIL;
     }
     
+    /* Binds any type captures. */
+    public static void bindTypeCaptures(ThreadContext tc, SixModelObject typeCaps, CallFrame cf, SixModelObject type) {
+        long elems = typeCaps.elems(tc);
+        StaticCodeInfo sci = cf.codeRef.staticInfo;
+        for (long i = 0; i < elems; i++) {
+            String name = typeCaps.at_pos_boxed(tc, i).get_str(tc);
+            cf.oLex[sci.oTryGetLexicalIdx(name)] = type;
+        }
+    }
+    
     /* Binds a single argument into the lexpad, after doing any checks that are
      * needed. Also handles any type captures. If there is a sub signature, then
      * re-enters the binder. Returns one of the BIND_RESULT_* codes. */
@@ -249,7 +259,11 @@ public final class Binder {
             }
         }
         
-        /* TODO: Type captures. */
+        /* Type captures. */
+        SixModelObject typeCaps = param.get_attribute_boxed(tc, Ops.Parameter,
+            "$!type_captures", HINT_type_captures);
+        if (typeCaps != null)
+            bindTypeCaptures(tc, typeCaps, cf, decontValue.st.WHAT);
         
         /* TODO: Coercions. */
         

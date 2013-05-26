@@ -1220,6 +1220,7 @@ class Perl6::World is HLL::World {
         # Create outer lexical contexts with all symbols visible. Maybe 
         # we can be a bit smarter here some day. But for now we just make a
         # single frame and copy all the visible things into it.
+        $past<DYN_COMP_WRAPPER> := 1;
         my %seen;
         my $mu        := try { self.find_symbol(['Mu']) };
         my $cur_block := $past;

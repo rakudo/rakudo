@@ -203,10 +203,52 @@ my class IO::Handle does IO::FileTestable {
         self.print: "\n";
     }
     
-    method slurp() {
-        nqp::p6box_s($!PIO.readall());
+    method slurp(:$bin, :enc($encoding)) {
+        self.open(:r, :$bin) unless self.opened;
+        self.encoding($encoding) if $encoding.defined;
+
+        if $bin {
+            my $Buf = Buf.new();
+            loop {
+                my $current  = self.read(10_000);
+                $Buf ~= $current;
+                last if $current.bytes == 0;
+            }
+            self.close;
+            $Buf;
+        }
+        else {
+            my $contents = nqp::p6box_s($!PIO.readall());
+            self.close();
+            $contents
+        } 
     }
 
+    proto method spurt(|) { * }
+    multi method spurt(Cool $contents,
+                    :encoding(:$enc) = 'utf8',
+                    :$createonly, :$append) {
+    
+        fail("File '" ~ self.path ~ "' already exists, but :createonly was give to spurt")
+            if $createonly && self.e;
+        
+        my $mode = $append ?? :a !! :w;
+        self.open(:$enc, |$mode);
+        self.print($contents);
+        self.close;
+    }
+    
+    multi method spurt(Buf $contents,
+                    :$createonly,
+                    :$append) {
+        fail("File '" ~ self.path ~ "' already exists, but :createonly was give to spurt")
+                if $createonly && self.e;
+        
+        my $mode = $append ?? :a !! :w;
+        self.open(:bin, |$mode);
+        self.write($contents);
+        self.close;
+    }
 
     # not spec'd
     method copy($dest) {
@@ -239,6 +281,12 @@ my class IO::Handle does IO::FileTestable {
             unless nqp::defined($!PIO);
         $!PIO.flush();
         True;
+    }
+
+    method encoding($enc?) {
+        $enc.defined
+            ?? $!PIO.encoding(PARROT_ENCODING($enc))
+            !! $!PIO.encoding
     }
 }
 
@@ -421,52 +469,42 @@ multi sub close($fh) {
 }
 
 proto sub slurp(|) { * }
-multi sub slurp($filename, :$bin = False) {
-    my $handle = open($filename, :r, :$bin);
-    if $bin {
-        my $Buf = Buf.new();
-        loop {
-            my $current  = $handle.read(10_000);
-            $Buf ~= $current;
-            last if $current.bytes == 0;
-        }
-        $handle.close;
-        $Buf;
-    }
-    else {
-        my $contents = $handle.slurp();
-        $handle.close();
-        $contents
-    }
+multi sub slurp($filename, :$bin = False, :$enc = 'utf8') {
+    $filename.IO.slurp(:$bin, :$enc);
 }
 
-multi sub slurp(IO::Handle $io = $*ARGFILES) {
-    $io.slurp;
+multi sub slurp(IO::Handle $io = $*ARGFILES, :$bin, :$enc) {
+    $io.slurp(:$bin, :$enc);
 }
 
 proto sub spurt(|) { * }
+multi sub spurt(IO::Handle $fh,
+                Cool $contents,
+                :encoding(:$enc) = 'utf8',
+                :$createonly,
+                :$append) {
+    $fh.spurt($contents, :$enc, :$createonly, :$append);
+}
+multi sub spurt(IO::Handle $fh,
+                Buf $contents,
+                :$createonly,
+                :$append) {
+    $fh.spurt($contents, :$createonly, :$append);
+}
+
 multi sub spurt(Cool $filename,
                 Cool $contents,
                 :encoding(:$enc) = 'utf8',
                 :$createonly,
                 :$append) {
-    fail("File '$filename' already exists, but :createonly was give to spurt")
-        if $createonly && $filename.IO.e;
-    my $mode = $append ?? :a !! :w;
-    my $fh = open($filename.Str, :$enc, |$mode);
-    $fh.print($contents);
-    $fh.close;
+    $filename.IO.spurt($contents, :$enc, :$createonly, :$append);
 }
+
 multi sub spurt(Cool $filename,
                 Buf $contents,
                 :$createonly,
                 :$append) {
-    fail("File '$filename' already exists, but :createonly was give to spurt")
-        if $createonly && $filename.IO.e;
-    my $mode = $append ?? :a !! :w;
-    my $fh = open($filename.Str, :bin, |$mode);
-    $fh.write($contents);
-    $fh.close;
+    $filename.IO.spurt($contents, :$createonly, :$append);
 }
 
 proto sub cwd(|) { * }

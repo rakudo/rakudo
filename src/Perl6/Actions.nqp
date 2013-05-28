@@ -3104,7 +3104,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         # Stash any traits.
         %*PARAM_INFO<traits> := $<trait>;
 
-        if %*PARAM_INFO<pos_slurpy> && $<type_constraint> {
+        if (%*PARAM_INFO<pos_slurpy> || %*PARAM_INFO<pos_lol>) && $<type_constraint> {
             $/.CURSOR.sorry("Slurpy positionals with type constraints are not supported.");
         }
 

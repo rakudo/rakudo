@@ -16,7 +16,7 @@ my class IO::Spec::Unix {
                || $path ~~ s {^ ( '//' <-[ / ]>+ ) '/' }   = '/' )
                { $node = ~ $0; }
 
-        $path ~~ s:g { '/'+ }              = '/';     # xx////xx  -> xx/xx  
+        $path ~~ s:g { '//' '/'* }         = '/';     # xx////xx  -> xx/xx  
         $path ~~ s:g { '/.'+ ['/' | $] }   = '/';     # xx/././xx -> xx/xx  
         $path ~~ s { ^ './' <!before $> }  = '';      # ./xx      -> xx
         $path ~~ s { ^ '/..'+ ['/' | $] }  = '/';     # /../..(/xx) -> /(xx)

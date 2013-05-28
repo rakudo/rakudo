@@ -89,7 +89,7 @@ my class IO::Handle does IO::FileTestable {
     proto method open(|) { * }
     multi method open($path? is copy, :$r, :$w, :$a, :$p, :$bin, :$chomp = Bool::True,
             :enc(:$encoding) = 'utf8') {
-        $path //= $.path;
+        $path //= $!path;
         my $mode =  $p ?? ($w ||  $a ?? 'wp' !! 'rp') !!
                    ($w ?? 'w' !! ($a ?? 'wa' !! 'r' ));
         # TODO: catch error, and fail()
@@ -116,7 +116,7 @@ my class IO::Handle does IO::FileTestable {
 
     method get() {
         unless nqp::defined($!PIO) {
-            self.open($.path, :chomp($.chomp));
+            self.open($!path, :chomp($.chomp));
         }
         return Str if self.eof;
         my Str $x = nqp::p6box_s($!PIO.readline);
@@ -131,7 +131,7 @@ my class IO::Handle does IO::FileTestable {
     
     method getc() {
         unless $!PIO {
-            self.open($.path, :chomp($.chomp));
+            self.open($!path, :chomp($.chomp));
         }
         my $c = nqp::p6box_s($!PIO.read(1));
         fail if $c eq '';
@@ -253,18 +253,18 @@ my class IO::Handle does IO::FileTestable {
     # not spec'd
     method copy($dest) {
         try {
-            nqp::copy(nqp::unbox_s(~$.path), nqp::unbox_s(~$dest));
+            nqp::copy(nqp::unbox_s(~$!path), nqp::unbox_s(~$dest));
         }
-        $! ?? fail(X::IO::Copy.new(from => $.path, to => $dest, os-error => ~$!)) !! True
+        $! ?? fail(X::IO::Copy.new(from => $!path, to => $dest, os-error => ~$!)) !! True
     }
 
     method chmod($mode) {
-        nqp::chmod(nqp::unbox_s(~$.path), nqp::unbox_i($mode.Int));
+        nqp::chmod(nqp::unbox_s(~$!path), nqp::unbox_i($mode.Int));
         return True;
         CATCH {
             default {
                 X::IO::Chmod.new(
-                    :$.path,
+                    :$!path,
                     :$mode,
                     os-error => .Str,
                 ).throw;
@@ -272,9 +272,22 @@ my class IO::Handle does IO::FileTestable {
         }
     }
 
-    method Str {
-        $.path
+    method IO { self }
+
+    method path {  IO::Path.new($!path)  }
+
+    multi method Str (IO::Handle:D:) {  $!path  }
+
+    multi method gist (IO::Handle:D:) {
+        self.opened
+            ?? "IO::Handle<$!path>(opened, at line {$.ins} / octet {$.tell})"
+            !! "IO::Handle<$!path>(closed)"
     }
+
+    multi method perl (IO::Handle:D:) {
+        "IO::Handle.new(path => {$!path.perl}, ins => {$!ins.perl}, chomp => {$!chomp.perl})"
+    }
+
 
     method flush() {
         fail("File handle not open, so cannot flush")

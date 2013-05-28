@@ -185,7 +185,7 @@ my class Hash {
                 nqp::unbox_s($key_which),
                 bindval)
         }
-        method exists(::?CLASS:D: Mu \key) {
+        method exists(TKey \key) {
             nqp::defined($!keys)
               ?? nqp::p6bool(nqp::existskey($!keys, nqp::unbox_s(key.WHICH)))
               !! False

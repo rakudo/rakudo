@@ -323,14 +323,14 @@ my class Any {
     }
 
     # %h<key>
-    multi method postcircumfix:<{ }>(\SELF: Mu $key) is rw {
+    multi method postcircumfix:<{ }>(\SELF: $key) is rw {
         SELF.at_key($key)
     }
-    multi method postcircumfix:<{ }>(\SELF: Mu $key, Mu :$BIND! is parcel) is rw {
+    multi method postcircumfix:<{ }>(\SELF: $key, Mu :$BIND! is parcel) is rw {
         SELF.bind_key($key, $BIND)
     }
     multi method postcircumfix:<{ }>(
-      \SELF: Mu $key,
+      \SELF: $key,
       :$delete! where so $delete,
       :$kv = $default, :$p = $default, :$k = $default, :$v = $default
     ) is rw {
@@ -352,16 +352,16 @@ my class Any {
           ?? SELF.delete($key)
           !! ();
     }
-    multi method postcircumfix:<{ }>(\SELF: Mu $key, :$exists! ) is rw {
+    multi method postcircumfix:<{ }>(\SELF: $key, :$exists! ) is rw {
         !( SELF.exists($key) ?^ $exists )
     }
-    multi method postcircumfix:<{ }>(\SELF: Mu $key, :$p!) is rw {
+    multi method postcircumfix:<{ }>(\SELF: $key, :$p!) is rw {
         RWPAIR($key, SELF.at_key($key))
     }
-    multi method postcircumfix:<{ }>(\SELF: Mu $key, :$k!) is rw {
+    multi method postcircumfix:<{ }>(\SELF: $key, :$k!) is rw {
         $key
     }
-    multi method postcircumfix:<{ }>(\SELF: Mu $key, :$kv!) is rw {
+    multi method postcircumfix:<{ }>(\SELF: $key, :$kv!) is rw {
         ($key, SELF.at_key($key))
     }
 

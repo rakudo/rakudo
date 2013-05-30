@@ -64,6 +64,20 @@ my class Int does Real {
     method floor(Int:D:) { self }
     method round(Int:D:) { self }
     method ceiling(Int:D:) { self }
+
+    method msb(Int:D:) {
+        return Nil if self == 0;
+        return 0 if self == -1;
+        my $msb = 0;
+        my $x = self;
+        $x = ($x + 1) * -2 if $x < 0;   # handle negative conversions
+        while $x > 0xff   { $msb += 8; $x +>= 8; }
+        if    $x > 0x0f   { $msb += 4; $x +>= 4; }
+        if    $x +& 0x8   { $msb += 3; }
+        elsif $x +& 0x4   { $msb += 2; }
+        elsif $x +& 0x2   { $msb += 1; }
+        $msb;
+    }
 }
 
 multi prefix:<++>(Int:D \a is rw) {   # XXX
@@ -253,6 +267,7 @@ multi sub is-prime(Int:D \i, Int:D $tries = 100) {
 multi sub is-prime(\i, $tries = 100) {
     nqp::p6bool(nqp::isprime_I(nqp::p6decont(i.Int), nqp::unbox_i($tries.Int)));
 }
+
 proto sub expmod($, $, $) is pure  {*}
 multi sub expmod(Int:D \base, Int:D \exp, Int:D \mod) {
     nqp::expmod_I(nqp::p6decont(base), nqp::p6decont(exp), nqp::p6decont(mod), Int);
@@ -260,3 +275,10 @@ multi sub expmod(Int:D \base, Int:D \exp, Int:D \mod) {
 multi sub expmod(\base, \exp, \mod) {
     nqp::expmod_I(nqp::p6decont(base.Int), nqp::p6decont(exp.Int), nqp::p6decont(mod.Int), Int);
 }
+
+proto sub msb($) {*}
+multi sub msb(Int:D \i) { i.msb }
+
+# proto sub lsb($) {*}
+# multi sub lsb(Int:D \i) { i.lsb }
+

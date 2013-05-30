@@ -65,6 +65,15 @@ my class Int does Real {
     method round(Int:D:) { self }
     method ceiling(Int:D:) { self }
 
+    method lsb(Int:D:) {
+        return Nil if self == 0;
+        my $lsb = 0;
+        my $x = self.abs;
+        while $x +& 0xff == 0 { $lsb += 8; $x +>= 8; }
+        while $x +& 0x01 == 0 { $lsb++; $x +>= 1; }
+        $lsb;
+    }
+
     method msb(Int:D:) {
         return Nil if self == 0;
         return 0 if self == -1;
@@ -276,9 +285,8 @@ multi sub expmod(\base, \exp, \mod) {
     nqp::expmod_I(nqp::p6decont(base.Int), nqp::p6decont(exp.Int), nqp::p6decont(mod.Int), Int);
 }
 
+proto sub lsb($) {*}
+multi sub lsb(Int:D \i) { i.lsb }
+
 proto sub msb($) {*}
 multi sub msb(Int:D \i) { i.msb }
-
-# proto sub lsb($) {*}
-# multi sub lsb(Int:D \i) { i.lsb }
-

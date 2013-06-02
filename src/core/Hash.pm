@@ -3,8 +3,8 @@ my class X::Hash::Store::OddNumber { ... }
 my class Hash {
     # Has attributes and parent EnumMap declared in BOOTSTRAP
 
-    method new(*@args) { @args.hash }
-    
+    method new(*@args, *%args) { @args.hash(|%args) }
+
     multi method at_key(Hash:D: $key is copy) is rw {
         my Mu $storage := nqp::defined(nqp::getattr(self, EnumMap, '$!storage')) ??
             nqp::getattr(self, EnumMap, '$!storage') !!

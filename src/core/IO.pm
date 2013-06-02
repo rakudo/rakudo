@@ -140,7 +140,7 @@ my class IO::Handle does IO::FileTestable {
 
     method lines($limit = $Inf) {
         my $count = 0;
-        gather while (my $line = self.get).defined && ++$count <= $limit {
+        gather while ++$count <= $limit && (my $line = self.get).defined {
             take $line;
         }
     }

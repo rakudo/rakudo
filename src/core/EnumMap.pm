@@ -75,11 +75,11 @@ my class EnumMap does Associative {
         }
     }
 
-    method at_key($key is copy) is rw {
-        $key = $key.Str;
-        self.exists($key)
-            ?? nqp::atkey($!storage, nqp::unbox_s($key))
-            !! Any
+    method at_key($key) is rw {
+        my str $skey = nqp::unbox_s($key.Str);
+        nqp::defined($!storage) && nqp::existskey($!storage, $skey)
+          ?? nqp::atkey($!storage, $skey)
+          !! Any
     }
 
     method STORE_AT_KEY(\key, Mu \value) is rw {

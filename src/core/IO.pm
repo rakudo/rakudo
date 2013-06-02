@@ -405,27 +405,25 @@ my class IO::Path::Cygwin is IO::Path { method SPEC { IO::Spec::Cygwin };  }
 
 
 sub dir(Cool $path = '.', Mu :$test = none('.', '..')) {
-    my Mu $RSA := pir::new__PS('OS').readdir(nqp::unbox_s($path.Str));
-    my int $elems = nqp::elems($RSA);
-    my @res;
-    my ($volume, $directory) = IO::Spec.splitpath(~$path, :nofile);
-    loop (my int $i = 0; $i < $elems; $i = $i + 1) {
-        my Str $file := nqp::p6box_s(pir::trans_encoding__Ssi(
-			nqp::atpos_s($RSA, $i),
-			pir::find_encoding__Is('utf8')));
-        if $file ~~ $test {
-            #this should be like IO::Path.child(:basename($file)) because of :volume
-            @res.push: IO::Path.new(:basename($file), :$directory, :$volume);
-        }
-    }
-    return @res.list;
-
     CATCH {
         default {
             X::IO::Dir.new(
                 :$path,
                 os-error => .Str,
             ).throw;
+        }
+    }
+
+    my Mu $RSA := pir::new__PS('OS').readdir(nqp::unbox_s($path.Str));
+    my int $elems = nqp::elems($RSA);
+    my @res;
+    my ($volume, $directory) = IO::Spec.splitpath(~$path, :nofile);
+    gather loop (my int $i = 0; $i < $elems; $i = $i + 1) {
+        my Str $file := nqp::p6box_s(pir::trans_encoding__Ssi(
+			nqp::atpos_s($RSA, $i),
+			pir::find_encoding__Is('utf8')));
+        if $file ~~ $test {
+            take IO::Path.new(:basename($file), :$directory, :$volume);
         }
     }
 }

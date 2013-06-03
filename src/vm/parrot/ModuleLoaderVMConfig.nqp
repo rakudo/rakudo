@@ -27,7 +27,6 @@ role Perl6::ModuleLoaderVMConfig {
                     %cand<pm> := $file;
                 }
                 @candidates.push(%cand);
-last; # temporary, until we actually don't do just @candidates[0]
             }
         }
         else {
@@ -64,6 +63,7 @@ last; # temporary, until we actually don't do just @candidates[0]
                         %cand<load> := "$prefix/$pbc_path";
                     }
                     @candidates.push(%cand);
+last; # temporary, until we actually don't do just @candidates[0]
                 }
                 elsif $have_pir {
                     my %cand;

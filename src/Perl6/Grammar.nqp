@@ -1466,7 +1466,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
 
     token special_variable:sym<$@> {
-        <sym> <?before \W>
+        <sym> <?before \W | '(' | <sigil> >
         <.obs('$@ variable as eval error', '$!')>
     }
 
@@ -1484,7 +1484,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <.obs('$$ variable', '$*PID')>
     }
     token special_variable:sym<$%> {
-        <sym> <!before \w> <!sigil>
+        <sym> <!before \w | '(' | <sigil> >
         <.obs('$% variable', 'Form module')>
     }
 
@@ -1663,13 +1663,13 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     token desigilname {
         [
-        | <?[$]>
+        | <?before <.sigil> <.sigil> > <variable>
+        | <?before <.sigil> >
             [ <?{ $*IN_DECL }> <.typed_panic: 'X::Syntax::Variable::IndirectDeclaration'> ]?
             <variable> {
                 $*VAR := $<variable>;
                 self.check_variable($*VAR);
             }
-        | <?before <[\@\%\&]> <sigil>* \w > <.panic: "Invalid hard reference syntax">
         | <longname>
         ]
     }

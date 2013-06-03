@@ -27,6 +27,7 @@ role Perl6::ModuleLoaderVMConfig {
                     %cand<pm> := $file;
                 }
                 @candidates.push(%cand);
+last; # temporary, until we actually don't do just @candidates[0]
             }
         }
         else {
@@ -69,12 +70,14 @@ role Perl6::ModuleLoaderVMConfig {
                     %cand<key>  := "$prefix/$pir_path";
                     %cand<load> := "$prefix/$pir_path";
                     @candidates.push(%cand);
+last; # temporary, until we actually don't do just @candidates[0]
                 }
                 elsif $have_pbc {
                     my %cand;
                     %cand<key>  := "$prefix/$pbc_path";
                     %cand<load> := "$prefix/$pbc_path";
                     @candidates.push(%cand);
+last; # temporary, until we actually don't do just @candidates[0]
                 }
             }
         }

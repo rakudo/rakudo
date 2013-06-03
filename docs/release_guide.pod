@@ -66,12 +66,12 @@ part of monthly Parrot releases.
   2013-02-23   2013.02.1                       (moritz)
   2013-03-21   Rakudo #62 "Singapore"          (masak)
   2013-04-18   Rakudo #63 "Albany"             (Coke)
+  2013-05-23   Rakudo #64 "Austin"             (FROGGS)
 
 =head2 Planned 2013 releases
 
 Dates are based on Parrot's expected release schedule.
 
-  2013-05-23   Rakudo #64 "Austin"             FROGGS
   2013-06-20   Rakudo #65                      masak
   2013-07-18   Rakudo #66                      tadzik
   2013-08-22   Rakudo #67
@@ -181,7 +181,7 @@ This can be conveniently done with  "git log --since=yyyy-mm-dd --reverse".
 =item 5.
 
 When it's time to cut the release, finalize the new release 
-announcement in docs/announce/YYYY.MM.  (If one hasn't already
+announcement in docs/announce/YYYY.MM.md .  (If one hasn't already
 been created, see step 1 above.) Highlight areas in which the 
 new release is significant.  If possible, also give some small 
 details about the choice of release name.  (If the details 
@@ -197,7 +197,7 @@ B<Note>: this program requires the perl module L<Date::Simple> be installed.
 
 Please check the result manually for duplicates and other errors.
 
-  $ git add docs/announce/YYYY.MM
+  $ git add docs/announce/YYYY.MM.md
   $ git commit docs
 
 =item 6.
@@ -298,6 +298,9 @@ compiler release announcements ONLY to perl6-compiler@perl.org.
 once they are known, or we may begin publishing a single
 announcement for both.)
 
+Don't send out any announcements until the files are actually available
+per step 15 above.
+
 =item 17.
 
 Update the Wikipedia entry at L<http://en.wikipedia.org/wiki/Rakudo>.
@@ -310,7 +313,7 @@ You're done!  Celebrate with the appropriate amount of fun.
 
 =head1 COPYRIGHT
 
-Copyright (C) 2009-2012, The Perl Foundation.
+Copyright (C) 2009-2013, The Perl Foundation.
 
 =cut
 

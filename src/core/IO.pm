@@ -91,7 +91,7 @@ my class IO::Handle does IO::FileTestable {
     proto method open(|) { * }
     multi method open($path? is copy, :$r, :$w, :$a, :$p, :$bin, :$chomp = Bool::True,
             :enc(:$encoding) = 'utf8') {
-        $path //= $.path;
+        $path //= $!path;
         my $mode =  $p ?? ($w ||  $a ?? 'wp' !! 'rp') !!
                    ($w ?? 'w' !! ($a ?? 'wa' !! 'r' ));
         # TODO: catch error, and fail()
@@ -118,7 +118,7 @@ my class IO::Handle does IO::FileTestable {
 
     method get() {
         unless nqp::defined($!PIO) {
-            self.open($.path, :chomp($.chomp));
+            self.open($!path, :chomp($.chomp));
         }
         return Str if self.eof;
         my Str $x = nqp::p6box_s($!PIO.readline);
@@ -133,7 +133,7 @@ my class IO::Handle does IO::FileTestable {
     
     method getc() {
         unless $!PIO {
-            self.open($.path, :chomp($.chomp));
+            self.open($!path, :chomp($.chomp));
         }
         my $c = nqp::p6box_s($!PIO.read(1));
         fail if $c eq '';
@@ -142,7 +142,7 @@ my class IO::Handle does IO::FileTestable {
 
     method lines($limit = $Inf) {
         my $count = 0;
-        gather while (my $line = self.get).defined && ++$count <= $limit {
+        gather while ++$count <= $limit && (my $line = self.get).defined {
             take $line;
         }
     }
@@ -255,18 +255,18 @@ my class IO::Handle does IO::FileTestable {
     # not spec'd
     method copy($dest) {
         try {
-            nqp::copy(nqp::unbox_s(~$.path), nqp::unbox_s(~$dest));
+            nqp::copy(nqp::unbox_s(~$!path), nqp::unbox_s(~$dest));
         }
-        $! ?? fail(X::IO::Copy.new(from => $.path, to => $dest, os-error => ~$!)) !! True
+        $! ?? fail(X::IO::Copy.new(from => $!path, to => $dest, os-error => ~$!)) !! True
     }
 
     method chmod($mode) {
-        nqp::chmod(nqp::unbox_s(~$.path), nqp::unbox_i($mode.Int));
+        nqp::chmod(nqp::unbox_s(~$!path), nqp::unbox_i($mode.Int));
         return True;
         CATCH {
             default {
                 X::IO::Chmod.new(
-                    :$.path,
+                    :$!path,
                     :$mode,
                     os-error => .Str,
                 ).throw;
@@ -274,9 +274,22 @@ my class IO::Handle does IO::FileTestable {
         }
     }
 
-    method Str {
-        $.path
+    method IO { self }
+
+    method path {  IO::Path.new($!path)  }
+
+    multi method Str (IO::Handle:D:) {  $!path  }
+
+    multi method gist (IO::Handle:D:) {
+        self.opened
+            ?? "IO::Handle<$!path>(opened, at line {$.ins} / octet {$.tell})"
+            !! "IO::Handle<$!path>(closed)"
     }
+
+    multi method perl (IO::Handle:D:) {
+        "IO::Handle.new(path => {$!path.perl}, ins => {$!ins.perl}, chomp => {$!chomp.perl})"
+    }
+
 
     method flush() {
         fail("File handle not open, so cannot flush")
@@ -395,25 +408,6 @@ my class IO::Path::Cygwin is IO::Path { method SPEC { IO::Spec::Cygwin };  }
 
 sub dir(Cool $path = '.', Mu :$test = none('.', '..')) {
 #?if parrot
-    my Mu $RSA := pir::new__PS('OS').readdir(nqp::unbox_s($path.Str));
-    my int $elems = nqp::elems($RSA);
-    my @res;
-    my ($volume, $directory) = IO::Spec.splitpath(~$path, :nofile);
-    loop (my int $i = 0; $i < $elems; $i = $i + 1) {
-        my Str $file := nqp::p6box_s(pir::trans_encoding__Ssi(
-			nqp::atpos_s($RSA, $i),
-			pir::find_encoding__Is('utf8')));
-        if $file ~~ $test {
-            #this should be like IO::Path.child(:basename($file)) because of :volume
-            @res.push: IO::Path.new(:basename($file), :$directory, :$volume);
-        }
-    }
-    return @res.list;
-#?endif
-#?if !parrot
-    die "dir is NYI on JVM backend";
-#?endif
-
     CATCH {
         default {
             X::IO::Dir.new(
@@ -422,6 +416,23 @@ sub dir(Cool $path = '.', Mu :$test = none('.', '..')) {
             ).throw;
         }
     }
+
+    my Mu $RSA := pir::new__PS('OS').readdir(nqp::unbox_s($path.Str));
+    my int $elems = nqp::elems($RSA);
+    my @res;
+    my ($volume, $directory) = IO::Spec.splitpath(~$path, :nofile);
+    gather loop (my int $i = 0; $i < $elems; $i = $i + 1) {
+        my Str $file := nqp::p6box_s(pir::trans_encoding__Ssi(
+			nqp::atpos_s($RSA, $i),
+			pir::find_encoding__Is('utf8')));
+        if $file ~~ $test {
+            take IO::Path.new(:basename($file), :$directory, :$volume);
+        }
+    }
+#?endif
+#?if !parrot
+    die "dir is NYI on JVM backend";
+#?endif
 }
 
 sub unlink($path) {

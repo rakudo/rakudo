@@ -198,4 +198,8 @@ class Perl6::Metamodel::ParametricRoleHOW
         $conc.HOW.compose($conc);
         return $conc;
     }
+    
+    method mro($obj) {
+        [$obj]
+    }
 }

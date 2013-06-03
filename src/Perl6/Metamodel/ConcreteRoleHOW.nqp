@@ -122,4 +122,8 @@ class Perl6::Metamodel::ConcreteRoleHOW
         for @!role_typecheck_list { @types.push($_) }
         nqp::settypecache($obj, @types)
     }
+    
+    method mro($obj) {
+        [$obj]
+    }
 }

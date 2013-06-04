@@ -14,7 +14,7 @@ Rakudo Perl 6
     For a high-level overview of implemented and missing features,
     please visit http://perl6.org/compilers/features .
 
-  Building Rakudo
+  Building Rakudo on Parrot
     See the INSTALL.txt file for detailed prerequisites and build and
     installation instructions. The short version is
 
@@ -28,6 +28,20 @@ Rakudo Perl 6
     Rakudo from outside the build directory. But don't worry, it
     installs locally by default, so you don't need any administrator
     privileges for carrying out this step.
+
+  Building Rakudo on JVM
+    You need the JDK 1.7 installed and a make program. These instructions
+    assume you have nqp checked out inside of your Rakudo directory. Then:
+    
+    $ cd nqp
+    $ perl ConfigureJVM.pl --prefix=../install-jvm
+    $ make install
+    $ cd ..
+    $ perl ConfigureJVM.pl
+    $ make
+    
+    Note that Rakudo on JVM is currently much less capable than Rakudo on
+    Parrot.
 
   Where to get help or answers to questions
     There are several mailing lists, IRC channels, and wikis available with

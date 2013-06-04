@@ -41,7 +41,7 @@ Rakudo Perl 6
     $ make
     
     Note that Rakudo on JVM is currently much less capable than Rakudo on
-    Parrot.
+    Parrot.  For example, rakudo-jvm is known to fail many tests.
 
   Where to get help or answers to questions
     There are several mailing lists, IRC channels, and wikis available with

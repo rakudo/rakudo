@@ -43,6 +43,13 @@ Rakudo Perl 6
     Note that Rakudo on JVM is currently much less capable than Rakudo on
     Parrot.  For example, rakudo-jvm is known to fail many tests.
 
+    If you get an out of memory error building rakudo on the JVM, you may
+    need to modify your NQP runner to limit memory use. e.g. Adding
+
+    -Xms500m -Xmx2g 
+
+    as options passed to java in the installed nqp / nqp.bat.
+
   Where to get help or answers to questions
     There are several mailing lists, IRC channels, and wikis available with
     help for Perl 6 and Rakudo on Parrot. Figuring out the right one to use

@@ -254,6 +254,7 @@ my class IO::Handle does IO::FileTestable {
 
     # not spec'd
     method copy($dest) {
+        warn "IO::Handle.copy is deprecated.  Please use IO::Path.copy instead.";
         try {
             nqp::copy(nqp::unbox_s(~$!path), nqp::unbox_s(~$dest));
         }
@@ -397,6 +398,17 @@ my class IO::Path is Cool does IO::FileTestable {
         self.new($.SPEC.join: $.volume,
                               $.SPEC.catdir($.directory, $.basename),
                               $childname);
+    }
+
+    method copy($dest, :$createonly = False) {
+        if $createonly and $dest.path.e {
+            fail(X::IO::Copy.new(from => $.Str, to => $dest,
+                    os-error => "Destination file $dest exists and :createonly passed to copy."));
+        }
+        try {
+            nqp::copy(nqp::unbox_s($.Str), nqp::unbox_s(~$dest));
+        }
+        $! ?? fail(X::IO::Copy.new(from => $.Str, to => $dest, os-error => ~$!)) !! True
     }
 
 }

@@ -766,13 +766,16 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             # from e.g. REPL) and the real UNIT.
             $*UNIT_OUTER := $*W.push_lexpad($/);
             $*UNIT := $*W.push_lexpad($/);
-            $*UNIT<IN_DECL> := 'mainline';
             
             # If we already have a specified outer context, then that's
             # our setting. Otherwise, load one.
             my $have_outer := nqp::defined(%*COMPILING<%?OPTIONS><outer_ctx>);
-            unless $have_outer {
+            if $have_outer {
+                $*UNIT<IN_DECL> := 'eval';
+            }
+            else {
                 $*SETTING := $*W.load_setting($/, %*COMPILING<%?OPTIONS><setting> // 'CORE');
+                $*UNIT<IN_DECL> := 'mainline';
             }
             $/.CURSOR.unitstart();
             try {

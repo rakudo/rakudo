@@ -5302,7 +5302,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
     sub add_placeholder_parameter($/, $sigil, $ident, :$named, :$pos_slurpy, :$named_slurpy, :$full_name) {
         # Ensure we're not trying to put a placeholder in the mainline.
         my $block := $*W.cur_lexpad();
-        if $block<IN_DECL> eq 'mainline' {
+        if $block<IN_DECL> eq 'mainline' || $block<IN_DECL> eq 'eval' {
             $*W.throw($/, ['X', 'Placeholder', 'Mainline'],
                 placeholder => $full_name,
             );

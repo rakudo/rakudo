@@ -232,7 +232,7 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
             # If it's a Stash in conflict, we make sure any original entries get
             # appropriately copied.
             if $orig.HOW.name($orig) eq 'Stash' {
-                for $orig {
+                for $orig.FLATTENABLE_HASH() {
                     unless nqp::existskey($current, $_.key) {
                         $current{$_.key} := $_.value;
                     }

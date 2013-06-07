@@ -346,16 +346,16 @@ my class Any {
             SELF.delete($key);
 
             if $kv & $p === $default {                  # :delete:exists?
-                $wasthere ?^ $exists
+                !( $wasthere ?^ $exists )
             }
-            elsif $kv !=== $default {                   # :delete:exists:kv?
-                !$kv | $wasthere ?? ( $key, $wasthere ?^ $exists ) !! ();
+            elsif $kv !=== $default {                   # :delete:exists?:kv?
+                !$kv | $wasthere ?? ( $key, !( $wasthere ?^ $exists ) ) !! ();
             }
-            elsif $p !=== $default {                    # :delete:exists:p?
-                !$p | $wasthere ?? RWPAIR($key, $wasthere ?^ $exists) !! ();
+            elsif $p !=== $default {                    # :delete:exists?:p?
+                !$p | $wasthere ?? RWPAIR($key, !($wasthere ?^ $exists) ) !! ();
             }
         }
-        elsif $kv !=== $default {                       # :delete:kv?
+        elsif $kv !=== $default {                       # :delete?:kv?
             !$kv | SELF.exists($key) ?? ( $key, SELF.delete($key) ) !! ();
         }
         elsif $p !=== $default {                        # :delete:p?
@@ -414,19 +414,19 @@ my class Any {
             if $p & $kv === $default {                    # :delete:exists?
                 key.map( {
                     SELF.delete($_) if $wasthere = SELF.exists($_);
-                    $wasthere ?^ $exists;
+                    !( $wasthere ?^ $exists );
                 } ).eager.Parcel
             }
             elsif $kv !=== $default {                     # :delete:exists?:kv?
                 key.map( {
                     SELF.delete($_) if $wasthere = SELF.exists($_);
-                    !$kv | $wasthere ?? ( $_, $wasthere ?^ $exists ) !! ()
+                    !$kv | $wasthere ?? ( $_, !( $wasthere ?^ $exists ) ) !! ()
                 } ).eager.Parcel
             }
             elsif $p !=== $default {                      # :delete:exists?:p?
                 key.map( {
                     SELF.delete($_) if $wasthere = SELF.exists($_);
-                    !$p | $wasthere ?? RWPAIR( $_, $wasthere ?^ $exists ) !! ()
+                    !$p | $wasthere ?? RWPAIR($_,!($wasthere ?^ $exists)) !! ()
                 } ).eager.Parcel
             }
         }

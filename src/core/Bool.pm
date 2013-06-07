@@ -59,7 +59,7 @@ multi infix:<?|>(Mu \a, Mu \b)        { a.Bool || b.Bool }
 
 proto infix:<?^>(|) is pure           { * }
 multi infix:<?^>(Mu $x = Bool::False) { $x.Bool }
-multi infix:<?^>(Mu \a, Mu \b)        { a.Bool ^^ b.Bool }
+multi infix:<?^>(Mu \a, Mu \b)        { nqp::p6bool(nqp::xor(a.Bool,b.Bool )) }
 
 # These operators are normally handled as macros in the compiler;
 # we define them here for use as arguments to functions.

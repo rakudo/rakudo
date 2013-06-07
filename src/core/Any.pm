@@ -332,25 +332,41 @@ my class Any {
     multi method postcircumfix:<{ }>(
       \SELF: $key,
       :$delete! where so $delete,
-      :$kv = $default, :$p = $default, :$k = $default, :$v = $default
+      :$exists = $default,
+      :$kv     = $default,
+      :$p      = $default,
+      :$k      = $default,
+      :$v      = $default
     ) is rw {
-        $p & $k & $kv & $v === $default   # :delete only
-          ?? SELF.delete($key)                               !!
-        $kv !=== $default
-          ?? ( !$kv | SELF.exists($key)
-                 ?? ( $key, SELF.delete($key) )
-                 !! ()                                     ) !!
-        $p !=== $default
-          ?? ( !$p | SELF.exists($key)
-                 ?? RWPAIR($key, SELF.delete($key))
-                 !! ()                                     ) !!
-        $k !=== $default
-          ?? ( !$k | SELF.exists($key)
-                 ?? ( SELF.delete($key); $key )
-                 !! ()                                     ) !!
-        !$v | SELF.exists($key)
-          ?? SELF.delete($key)
-          !! ();
+        if $exists & $kv & $p & $k & $v === $default {  # :delete
+            SELF.delete($key);
+        }
+        elsif $exists !=== $default {
+            my $wasthere = SELF.exists($key);
+            SELF.delete($key);
+
+            if $kv & $p === $default {                  # :delete:exists?
+                $wasthere ?^ $exists
+            }
+            elsif $kv !=== $default {                   # :delete:exists:kv?
+                !$kv | $wasthere ?? ( $key, $wasthere ?^ $exists ) !! ();
+            }
+            elsif $p !=== $default {                    # :delete:exists:p?
+                !$p | $wasthere ?? RWPAIR($key, $wasthere ?^ $exists) !! ();
+            }
+        }
+        elsif $kv !=== $default {                       # :delete:kv?
+            !$kv | SELF.exists($key) ?? ( $key, SELF.delete($key) ) !! ();
+        }
+        elsif $p !=== $default {                        # :delete:p?
+            !$p | SELF.exists($key) ?? RWPAIR($key, SELF.delete($key)) !! ();
+        }
+        elsif $k !=== $default {                        # :delete:k?
+            !$k | SELF.exists($key) ?? ( SELF.delete($key); $key ) !! ();
+        }
+        else {                                          # :delete:v?
+            !$v | SELF.exists($key) ?? SELF.delete($key) !! ();
+        }
     }
     multi method postcircumfix:<{ }>(\SELF: $key, :$exists! ) is rw {
         !( SELF.exists($key) ?^ $exists )
@@ -377,45 +393,79 @@ my class Any {
     multi method postcircumfix:<{ }>(
       \SELF: Positional \key,
       :$delete! where so $delete,
-      :$kv = $default, :$p = $default, :$k = $default, :$v = $default
+      :$exists = $default,
+      :$kv     = $default,
+      :$p      = $default,
+      :$k      = $default,
+      :$v      = $default
     ) is rw {
 
-        # handle single key immediately
-        return SELF{key}:$delete:$kv:$p:$k:$v if nqp::iscont(key);
+        if nqp::iscont(key) { # handle single key immediately
+            SELF{key}:$delete:$exists:$kv:$p:$k:$v;
+        }
+        elsif $exists & $kv & $p & $k & $v === $default { # :delete
+            key.map( { SELF.delete($_) } ).eager.Parcel;
+        }
 
-        $kv & $p & $k & $v === $default   # :delete only
-          ?? key.map({ SELF.delete($_) }).eager.Parcel       !!
-        $kv !=== $default
-          ?? ( $kv
-                 ?? key.map( {
-                        SELF.exists($_) ?? ( $_, SELF.delete($_) ) !! ()
-                    } ).eager.Parcel
-                 !! key.map( {
-                        ( $_, SELF.delete($_) )
-                    } ).eager.Parcel                       ) !!
-        $p !=== $default
-          ?? ( $p
-                 ?? key.map( {
-                        SELF.exists($_) ?? RWPAIR($_, SELF.delete($_)) !! ()
-                    } ).eager.Parcel
-                 !! key.map( {
-                        RWPAIR($_, SELF.delete($_))
-                    } ).eager.Parcel                       ) !!
-        $k !=== $default
-          ?? ( $k
-                 ?? key.map( {
-                        SELF.exists($_) ?? ( SELF.delete($_); $_ ) !! ()
-                    } ).eager.Parcel
-                 !! key.map( {
-                        SELF.delete($_); $_
-                    } ).eager.Parcel                       ) !!
-        $v
-          ?? key.map( {
-                 SELF.exists($_) ?? SELF.delete($_) !! ()
-             } ).eager.Parcel
-          !! key.map( {
-                 SELF.delete($_)
-             } ).eager.Parcel;
+        elsif $exists !=== $default {
+            # no need to initialize every iteration of map
+            my $wasthere;
+
+            if $p & $kv === $default {                    # :delete:exists?
+                key.map( {
+                    SELF.delete($_) if $wasthere = SELF.exists($_);
+                    $wasthere ?^ $exists;
+                } ).eager.Parcel
+            }
+            elsif $kv !=== $default {                     # :delete:exists?:kv?
+                key.map( {
+                    SELF.delete($_) if $wasthere = SELF.exists($_);
+                    !$kv | $wasthere ?? ( $_, $wasthere ?^ $exists ) !! ()
+                } ).eager.Parcel
+            }
+            elsif $p !=== $default {                      # :delete:exists?:p?
+                key.map( {
+                    SELF.delete($_) if $wasthere = SELF.exists($_);
+                    !$p | $wasthere ?? RWPAIR( $_, $wasthere ?^ $exists ) !! ()
+                } ).eager.Parcel
+            }
+        }
+        elsif $kv !=== $default {                         # :delete:kv?
+            $kv
+              ?? key.map( {
+                     SELF.exists($_) ?? ( $_, SELF.delete($_) ) !! ()
+                 } ).eager.Parcel
+              !! key.map( {
+                     ( $_, SELF.delete($_) )
+                 } ).eager.Parcel;
+        }
+        elsif $p !=== $default {                          # :delete:p?
+            $p
+              ?? key.map( {
+                     SELF.exists($_) ?? RWPAIR($_, SELF.delete($_)) !! ()
+                 } ).eager.Parcel
+              !! key.map( {
+                     RWPAIR($_, SELF.delete($_))
+                 } ).eager.Parcel;
+        }
+        elsif $k !=== $default {                          # :delete:k?
+            $k
+              ?? key.map( {
+                     SELF.exists($_) ?? ( SELF.delete($_); $_ ) !! ()
+                 } ).eager.Parcel
+              !! key.map( {
+                     SELF.delete($_); $_
+                 } ).eager.Parcel;
+        }
+        else {                                            # :delete:v?
+            $v
+              ?? key.map( {
+                     SELF.exists($_) ?? SELF.delete($_) !! ()
+                 } ).eager.Parcel
+              !! key.map( {
+                     SELF.delete($_)
+                 } ).eager.Parcel;
+        }
     }
     multi method postcircumfix:<{ }>(
       \SELF: Positional \key, :$exists!) is rw {
@@ -454,9 +504,13 @@ my class Any {
     multi method postcircumfix:<{ }>(
       \SELF: Whatever,
       :$delete! where so $delete,
-      :$kv = $default, :$p = $default, :$k = $default, :$v = $default
+      :$exists = $default,
+      :$kv     = $default,
+      :$p      = $default,
+      :$k      = $default,
+      :$v      = $default
     ) is rw {
-        SELF{SELF.keys}:$delete:$kv:$p:$k:$v;
+        SELF{SELF.keys}:$delete:$exists:$kv:$p:$k:$v;
     }
     multi method postcircumfix:<{ }>(\SELF: Whatever, :$exists!) is rw {
         SELF{SELF.keys}:$exists

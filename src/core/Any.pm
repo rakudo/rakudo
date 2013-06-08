@@ -368,8 +368,26 @@ my class Any {
             !$v | SELF.exists($key) ?? SELF.delete($key) !! ();
         }
     }
-    multi method postcircumfix:<{ }>(\SELF: $key, :$exists! ) is rw {
-        !( SELF.exists($key) ?^ $exists )
+    multi method postcircumfix:<{ }>(
+      \SELF: $key,
+      :$exists!,
+      :$kv = $default,
+      :$p  = $default,
+      :$k  = $default
+    ) is rw {
+        my $wasthere= SELF.exists($key);
+        if $kv & $p & $k === $default {                 # :exists?
+            !( $wasthere ?^ $exists )
+        }
+        elsif $kv !=== $default {                       # :exists?:kv?
+            !$kv | $wasthere ?? ( $key, !( $wasthere ?^ $exists ) ) !! ();
+        }
+        elsif $p !=== $default {                        # :exists:p?
+            !$p | $wasthere ?? RWPAIR($key, !( $wasthere ?^ $exists )) !! ();
+        }
+        else {                                          # :exists:k?
+            !$k | $wasthere ?? $key !! ();
+        }
     }
     multi method postcircumfix:<{ }>(\SELF: $key, :$p!) is rw {
         RWPAIR($key, SELF.at_key($key))
@@ -468,10 +486,42 @@ my class Any {
         }
     }
     multi method postcircumfix:<{ }>(
-      \SELF: Positional \key, :$exists!) is rw {
-        nqp::iscont(key) 
-          ?? !( SELF.exists(key) ?^ $exists )
-          !! key.map({ !( SELF.exists($_) ?^ $exists ) }).eager.Parcel;
+      \SELF: Positional \key,
+      :$exists!,
+      :$kv = $default,
+      :$p  = $default,
+      :$k  = $default
+    ) is rw {
+
+        if nqp::iscont(key) { # handle single key immediately
+            SELF{key}:$exists:$kv:$p:$k;
+        }
+        if $kv & $p & $k === $default {                 # :exists?
+            key.map({ !( SELF.exists($_) ?^ $exists ) }).eager.Parcel;
+        }
+        elsif $kv !=== $default {                       # :exists?:kv?
+            $kv
+              ?? key.map( {
+                     SELF.exists($_) ?? ( $_, $exists ) !! ()
+                 } ).eager.Parcel
+              !! key.map( {
+                     ( $_, !( SELF.exists($_) ?^ $exists ) )
+                 } ).eager.Parcel;
+        }
+        elsif $p !=== $default {                        # :exists:p?
+            $p
+              ?? key.map( {
+                     SELF.exists($_) ?? RWPAIR( $_, $exists ) !! ()
+                 } ).eager.Parcel
+              !! key.map( {
+                     RWPAIR( $_, !( SELF.exists($_) ?^ $exists ) )
+                 } ).eager.Parcel;
+        }
+        else {                                          # :exists:k?
+            $k
+              ?? key.map( { SELF.exists($_) ?? $_ !! () } ).eager.Parcel
+              !! key.eager.Parcel
+        }
     }
     multi method postcircumfix:<{ }>(\SELF: Positional \key, :$p!) is rw {
         nqp::iscont(key) 
@@ -512,8 +562,14 @@ my class Any {
     ) is rw {
         SELF{SELF.keys}:$delete:$exists:$kv:$p:$k:$v;
     }
-    multi method postcircumfix:<{ }>(\SELF: Whatever, :$exists!) is rw {
-        SELF{SELF.keys}:$exists
+    multi method postcircumfix:<{ }>(
+      \SELF: Whatever,
+      :$exists!,
+      :$kv = $default,
+      :$p  = $default,
+      :$k  = $default
+    ) is rw {
+        SELF{SELF.keys}:$exists:$kv:$p:$k
     }
     multi method postcircumfix:<{ }>(\SELF: Whatever, :$p!) is rw {
         SELF{SELF.keys}:$p

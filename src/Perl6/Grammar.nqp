@@ -2899,31 +2899,31 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     ## Operators
 
     INIT {
-        Perl6::Grammar.O(':prec<y=>, :assoc<unary>', '%methodcall');
-        Perl6::Grammar.O(':prec<x=>, :assoc<unary>', '%autoincrement');
-        Perl6::Grammar.O(':prec<w=>, :assoc<right>', '%exponentiation');
-        Perl6::Grammar.O(':prec<v=>, :assoc<unary>', '%symbolic_unary');
-        Perl6::Grammar.O(':prec<u=>, :assoc<left>',  '%multiplicative');
-        Perl6::Grammar.O(':prec<t=>, :assoc<left>',  '%additive');
-        Perl6::Grammar.O(':prec<s=>, :assoc<left>',  '%replication');
-        Perl6::Grammar.O(':prec<r=>, :assoc<left>',  '%concatenation');
-        Perl6::Grammar.O(':prec<q=>, :assoc<list>', '%junctive_and');
-        Perl6::Grammar.O(':prec<p=>, :assoc<list>', '%junctive_or');
-        Perl6::Grammar.O(':prec<o=>, :assoc<unary>', '%named_unary');
-        Perl6::Grammar.O(':prec<n=>, :assoc<non>',  '%structural');
-        Perl6::Grammar.O(':prec<m=>, :assoc<left>, :iffy<1>, :pasttype<chain>',  '%chaining');
-        Perl6::Grammar.O(':prec<l=>, :assoc<left>',  '%tight_and');
-        Perl6::Grammar.O(':prec<k=>, :assoc<list>',  '%tight_or');
-        Perl6::Grammar.O(':prec<j=>, :assoc<right>', '%conditional');
-        Perl6::Grammar.O(':prec<i=>, :assoc<right>', '%item_assignment');
-        Perl6::Grammar.O(':prec<i=>, :assoc<right>, :sub<e=>', '%list_assignment');
-        Perl6::Grammar.O(':prec<h=>, :assoc<unary>', '%loose_unary');
-        Perl6::Grammar.O(':prec<g=>, :assoc<list>, :nextterm<nulltermish>',  '%comma');
-        Perl6::Grammar.O(':prec<f=>, :assoc<list>',  '%list_infix');
-        Perl6::Grammar.O(':prec<e=>, :assoc<right>', '%list_prefix');
-        Perl6::Grammar.O(':prec<d=>, :assoc<left>',  '%loose_and');
-        Perl6::Grammar.O(':prec<c=>, :assoc<list>',  '%loose_or');
-        Perl6::Grammar.O(':prec<b=>, :assoc<list>',  '%sequencer');
+        Perl6::Grammar.O(':prec<y=>, :assoc<unary>, :dba<methodcall>, :fiddly<1>', '%methodcall');
+        Perl6::Grammar.O(':prec<x=>, :assoc<unary>, :dba<autoincrement>', '%autoincrement');
+        Perl6::Grammar.O(':prec<w=>, :assoc<right>, :dba<exponentiation>', '%exponentiation');
+        Perl6::Grammar.O(':prec<v=>, :assoc<unary>, :dba<symbolic unary>', '%symbolic_unary');
+        Perl6::Grammar.O(':prec<u=>, :assoc<left>, :dba<multiplicative>',  '%multiplicative');
+        Perl6::Grammar.O(':prec<t=>, :assoc<left>, :dba<additive>',  '%additive');
+        Perl6::Grammar.O(':prec<s=>, :assoc<left>, :dba<replication>',  '%replication');
+        Perl6::Grammar.O(':prec<r=>, :assoc<left>, :dba<concatenation>',  '%concatenation');
+        Perl6::Grammar.O(':prec<q=>, :assoc<list>, :dba<junctive and>', '%junctive_and');
+        Perl6::Grammar.O(':prec<p=>, :assoc<list>, :dba<junctive or>', '%junctive_or');
+        Perl6::Grammar.O(':prec<o=>, :assoc<unary>, :dba<named unary>', '%named_unary');
+        Perl6::Grammar.O(':prec<n=>, :assoc<non>, :dba<structural infix>',  '%structural');
+        Perl6::Grammar.O(':prec<m=>, :assoc<left>, :dba<chaining>, :iffy<1>, :pasttype<chain>',  '%chaining');
+        Perl6::Grammar.O(':prec<l=>, :assoc<left>, :dba<tight and>',  '%tight_and');
+        Perl6::Grammar.O(':prec<k=>, :assoc<list>, :dba<tight or>',  '%tight_or');
+        Perl6::Grammar.O(':prec<j=>, :assoc<right>, :dba<conditional>, :fiddly<1>', '%conditional');
+        Perl6::Grammar.O(':prec<i=>, :assoc<right>, :dba<item assignment>', '%item_assignment');
+        Perl6::Grammar.O(':prec<i=>, :assoc<right>, :dba<list assignment>, :sub<e=>, :fiddly<1>', '%list_assignment');
+        Perl6::Grammar.O(':prec<h=>, :assoc<unary>, :dba<loose unary>', '%loose_unary');
+        Perl6::Grammar.O(':prec<g=>, :assoc<list>, :dba<comma>, :nextterm<nulltermish>, :fiddly<1>',  '%comma');
+        Perl6::Grammar.O(':prec<f=>, :assoc<list>, :dba<list infix>',  '%list_infix');
+        Perl6::Grammar.O(':prec<e=>, :assoc<right>, :dba<list prefix>', '%list_prefix');
+        Perl6::Grammar.O(':prec<d=>, :assoc<left>, :dba<loose and>',  '%loose_and');
+        Perl6::Grammar.O(':prec<c=>, :assoc<list>, :dba<loose or>',  '%loose_or');
+        Perl6::Grammar.O(':prec<b=>, :assoc<list>, :dba<sequencer>',  '%sequencer');
     }
 
     token termish {
@@ -3039,8 +3039,15 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     proto token prefix_postfix_meta_operator { <...> }
     
+    method can_meta($op, $meta) {
+        !$op<OPER><O><fiddly> ||
+            self.sorry("Cannot " ~ $meta ~ " " ~ $op<OPER><sym> ~ " because " ~ $op<OPER><O><dba> ~ " operators are too fiddly");
+        self;
+    }
+    
     regex term:sym<reduce> {
         :my $*IN_REDUCE := 1;
+        :my $op;
         <?before '['\S+']'>
         
         '['
@@ -3050,6 +3057,9 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         || <!>
         ]
         ']'
+        { $op := $<op>; }
+        
+        <.can_meta($op, "reduce with")>
 
         <args>
     }
@@ -3362,7 +3372,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token prefix:sym<not>  { <sym> >> <O('%loose_unary')> }
 
     token infix:sym<,>    {
-        <sym>  <O('%comma')>
+        <sym>  <O('%comma, :fiddly<0>')>
         # TODO: should be <.worry>, not <.panic>
         [ <?before \h*'...'> <.panic: "Comma found before apparent series operator; please remove comma (or put parens\n    around the ... listop, or use 'fail' instead of ...)"> ]?
     }

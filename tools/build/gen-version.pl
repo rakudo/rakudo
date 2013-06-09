@@ -14,7 +14,7 @@ close($fh);
 chomp $VERSION;
 my ($version, $release, $codename) = split(' ', $VERSION, 3);
 
-if (-d '.git' && open(my $GIT, '-|', "git describe --match '2*'")) {
+if (-d '.git' && open(my $GIT, '-|', q|git describe --match "2*"|)) {
     $version = <$GIT>;
     close($GIT);
 }

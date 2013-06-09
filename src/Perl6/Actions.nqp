@@ -2119,7 +2119,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 }
 
                 # Ensure it's actually a dispatcher.
-                unless $proto.is_dispatcher {
+                unless nqp::can($proto, 'is_dispatcher') && $proto.is_dispatcher {
                     $*W.throw($/, ['X', 'Redeclaration'],
                         what    => 'routine',
                         symbol  => ~$<deflongname>[0].ast,

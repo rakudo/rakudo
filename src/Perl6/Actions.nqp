@@ -3674,11 +3674,6 @@ class Perl6::Actions is HLL::Actions does STDActions {
            $*W.throw($/, ['X', 'Syntax', 'Argument', 'MOPMacro'], macro => $name);
         }
     }
-
-    ## temporary Bool::True/False generation
-    method term:sym<boolean>($/) {
-        make QAST::Op.new( :op<p6bool>, QAST::IVal.new( :value($<value> eq 'True') ) );
-    }
     
     method term:sym<::?IDENT>($/) {
         make instantiated_type([~$/], $/);

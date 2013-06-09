@@ -1349,9 +1349,6 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token term:sym<value>              { <value> }
     token term:sym<unquote>            { '{{{' <?{ $*IN_QUASI }> <statementlist> '}}}' }
 
-    # XXX temporary Bool::True/Bool::False until we can get a permanent definition
-    token term:sym<boolean> { 'Bool::'? $<value>=[True|False] » }
-
     token term:sym<::?IDENT> {
         $<sym> = [ '::?' <identifier> ] »
     }

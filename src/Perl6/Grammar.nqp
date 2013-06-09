@@ -1448,7 +1448,11 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
     
     token colonpair_variable {
-        <sigil> {} <twigil>**0..1 <desigilname>
+        <sigil> {}
+        [
+        | <twigil>**0..1 <desigilname>
+        | $<capvar>='<' <desigilname> '>'
+        ]
     }
 
     proto token special_variable { <...> }

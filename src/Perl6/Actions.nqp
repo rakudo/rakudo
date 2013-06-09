@@ -1275,7 +1275,17 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
     
     method colonpair_variable($/) {
-        make make_variable($/, [~$/]);
+        if $<capvar> {
+            make QAST::Op.new(
+                :op('callmethod'),
+                :name('postcircumfix:<{ }>'),
+                QAST::Var.new(:name('$/'), :scope('lexical')),
+                $*W.add_string_constant(~$<desigilname>)
+            );
+        }
+        else {
+            make make_variable($/, [~$/]);
+        }
     }
 
     sub make_pair($key_str, $value) {

@@ -30,6 +30,10 @@ my class Num does Real {
     }
 
     method Rat(Num:D: Real $epsilon = 1.0e-6, :$fat) {
+        if nqp::isnanorinf(nqp::unbox_n(self)) {
+            return self;
+        }
+
         my sub modf($num) { my $q = $num.Int; $num - $q, $q; }
 
         (self == $Inf || self == -$Inf) && fail("Cannot coerce Inf to a Rat");

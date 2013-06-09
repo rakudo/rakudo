@@ -382,11 +382,8 @@ my class Any {
         elsif $kv !=== $default {                       # :exists?:kv?
             !$kv | $wasthere ?? ( $key, !( $wasthere ?^ $exists ) ) !! ();
         }
-        elsif $p !=== $default {                        # :exists:p?
+        else {                                          # :exists:p?
             !$p | $wasthere ?? RWPAIR($key, !( $wasthere ?^ $exists )) !! ();
-        }
-        else {                                          # :exists:k?
-            !$k | $wasthere ?? $key !! ();
         }
     }
     multi method postcircumfix:<{ }>(\SELF: $key, :$p!) is rw {
@@ -508,7 +505,7 @@ my class Any {
                      ( $_, !( SELF.exists($_) ?^ $exists ) )
                  } ).eager.Parcel;
         }
-        elsif $p !=== $default {                        # :exists:p?
+        else {                                          # :exists:p?
             $p
               ?? key.map( {
                      SELF.exists($_) ?? RWPAIR( $_, $exists ) !! ()
@@ -516,11 +513,6 @@ my class Any {
               !! key.map( {
                      RWPAIR( $_, !( SELF.exists($_) ?^ $exists ) )
                  } ).eager.Parcel;
-        }
-        else {                                          # :exists:k?
-            $k
-              ?? key.map( { SELF.exists($_) ?? $_ !! () } ).eager.Parcel
-              !! key.eager.Parcel
         }
     }
     multi method postcircumfix:<{ }>(\SELF: Positional \key, :$p!) is rw {

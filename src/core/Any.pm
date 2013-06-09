@@ -387,14 +387,15 @@ my class Any {
         }
     }
     multi method postcircumfix:<{ }>(\SELF: $key, :$kv!) is rw {
-        ($key, SELF.at_key($key))
+        !$kv | SELF.exists($key) ?? ( $key, SELF.at_key($key) ) !! ();
     }
     multi method postcircumfix:<{ }>(\SELF: $key, :$p!) is rw {
-        RWPAIR($key, SELF.at_key($key))
+        !$p | SELF.exists($key) ?? RWPAIR( $key, SELF.at_key($key) ) !! ();
     }
     multi method postcircumfix:<{ }>(\SELF: $key, :$k!) is rw {
-        $key
+        !$k | SELF.exists($key) ?? $key !! ();
     }
+    #there is no multi method postcircumfix:<{ }>(\SELF: $key, :$v!)
 
     # %h<a b c>
     multi method postcircumfix:<{ }>(\SELF: Positional \key) is rw {
@@ -516,24 +517,56 @@ my class Any {
         }
     }
     multi method postcircumfix:<{ }>(\SELF: Positional \key, :$kv!) is rw {
-        nqp::iscont(key) 
-          ?? (key, SELF.at_key(key))
-          !! key.map({ SELF.exists($_) ?? ($_, SELF.at_key($_)) !! () }).eager.Parcel
+        if nqp::iscont(key) { # handle single key immediately
+            SELF{key}:$kv;
+        }
+        elsif $kv {
+            key.map( {
+                SELF.exists($_) ?? ($_, SELF.at_key($_)) !! ()
+            } ).eager.Parcel
+        }
+        else {
+            key.map( {
+                ( $_, SELF.at_key($_) )
+            } ).eager.Parcel;
+        }
     }
     multi method postcircumfix:<{ }>(\SELF: Positional \key, :$p!) is rw {
-        nqp::iscont(key) 
-          ?? RWPAIR(key, SELF.at_key(key))
-          !! key.map({ SELF.exists($_) ?? RWPAIR($_, SELF.at_key($_)) !! () }).eager.Parcel
+        if nqp::iscont(key) { # handle single key immediately
+            SELF{key}:$p;
+        }
+        elsif $p {
+            key.map( {
+                SELF.exists($_) ?? RWPAIR($_, SELF.at_key($_)) !! ()
+            } ).eager.Parcel
+        }
+        else {
+            key.map( {
+                RWPAIR( $_, SELF.at_key($_) )
+            } ).eager.Parcel;
+        }
     }
     multi method postcircumfix:<{ }>(\SELF: Positional \key, :$k!) is rw {
-        nqp::iscont(key) 
-          ?? key
-          !! key.map({ SELF.exists($_) ?? $_ !! () }).eager.Parcel
+        if nqp::iscont(key) { # handle single key immediately
+            SELF{key}:$k;
+        }
+        elsif $k {
+            key.grep( { SELF.exists($_) } ).eager.Parcel
+        }
+        else {
+            key
+        }
     }
     multi method postcircumfix:<{ }>(\SELF: Positional \key, :$v!) is rw {
-        nqp::iscont(key) 
-          ?? SELF.at_key(key)
-          !! key.map({ SELF.exists($_) ?? SELF.at_key($_) !! () }).eager.Parcel
+        if nqp::iscont(key) { # handle single key immediately
+            SELF{key}:$v;
+        }
+        elsif $v {
+            key.map( { SELF.exists($_) ?? SELF.at_key($_) !! () } ).eager.Parcel
+        }
+        else {
+            key.map( { SELF.at_key($_) } ).eager.Parcel;
+        }
     }
 
     # %h{*}

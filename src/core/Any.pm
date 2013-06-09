@@ -53,7 +53,7 @@ my class Any {
         for self.list {
             return $_ if $test.ACCEPTS($_);
         }
-        fail 'No values matched';
+        Nil;
     }
 
     method join($separator = '') {

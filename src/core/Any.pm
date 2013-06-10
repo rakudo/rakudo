@@ -218,15 +218,6 @@ my class Any {
                    ?? { last if $_ >= SELF.list.gimme($_ + 1); SELF[$_] }
                    !! { SELF[$_] }).eager.Parcel;
     }
-    multi method postcircumfix:<[ ]>(\SELF: Positional \pos, :$p!) is rw {
-        if nqp::iscont(pos) {
-            fail "Cannot use negative index {pos} on {SELF.WHAT.perl}" if pos < 0;
-            return RWPAIR(pos, SELF.at_pos(pos))
-        }
-        my $list = pos.flat;
-        $list.gimme(*);
-        $list.map({ last if $_ >= SELF.list.gimme($_ + 1); RWPAIR($_, SELF[$_]) }).eager.Parcel;
-    }
     multi method postcircumfix:<[ ]>(\SELF: Positional \pos, :$kv!) is rw {
         if nqp::iscont(pos) {
             fail "Cannot use negative index {pos} on {SELF.WHAT.perl}" if pos < 0;
@@ -235,6 +226,15 @@ my class Any {
         my $list = pos.flat;
         $list.gimme(*);
         $list.map({ last if $_ >= SELF.list.gimme($_ + 1); ($_, SELF[$_]) }).eager.Parcel;
+    }
+    multi method postcircumfix:<[ ]>(\SELF: Positional \pos, :$p!) is rw {
+        if nqp::iscont(pos) {
+            fail "Cannot use negative index {pos} on {SELF.WHAT.perl}" if pos < 0;
+            return RWPAIR(pos, SELF.at_pos(pos))
+        }
+        my $list = pos.flat;
+        $list.gimme(*);
+        $list.map({ last if $_ >= SELF.list.gimme($_ + 1); RWPAIR($_, SELF[$_]) }).eager.Parcel;
     }
     multi method postcircumfix:<[ ]>(\SELF: Positional \pos, :$k!) is rw {
         if nqp::iscont(pos) {
@@ -260,11 +260,11 @@ my class Any {
     multi method postcircumfix:<[ ]>(\SELF: Callable $block) is rw {
         SELF[$block(|(SELF.elems xx $block.count))]
     }
-    multi method postcircumfix:<[ ]>(\SELF: Callable $block, :$p!) is rw {
-        SELF[$block(|(SELF.elems xx $block.count))]:p
-    }
     multi method postcircumfix:<[ ]>(\SELF: Callable $block, :$kv!) is rw {
         SELF[$block(|(SELF.elems xx $block.count))]:kv
+    }
+    multi method postcircumfix:<[ ]>(\SELF: Callable $block, :$p!) is rw {
+        SELF[$block(|(SELF.elems xx $block.count))]:p
     }
     multi method postcircumfix:<[ ]>(\SELF: Callable $block, :$k!) is rw {
         SELF[$block(|(SELF.elems xx $block.count))]:k
@@ -275,11 +275,11 @@ my class Any {
     multi method postcircumfix:<[ ]>(\SELF: Whatever) is rw {
         SELF[^SELF.elems]
     }
-    multi method postcircumfix:<[ ]>(\SELF: Whatever, :$p!) is rw {
-        SELF[^SELF.elems]:p
-    }
     multi method postcircumfix:<[ ]>(\SELF: Whatever, :$kv!) is rw {
         SELF[^SELF.elems]:kv
+    }
+    multi method postcircumfix:<[ ]>(\SELF: Whatever, :$p!) is rw {
+        SELF[^SELF.elems]:p
     }
     multi method postcircumfix:<[ ]>(\SELF: Whatever, :$k!) is rw {
         SELF[^SELF.elems]:k
@@ -314,9 +314,9 @@ my class Any {
     ########
     proto method postcircumfix:<{ }>(|) { * }
     multi method postcircumfix:<{ }>() { self }
+    multi method postcircumfix:<{ }>(:$kv!) { self.kv }
     multi method postcircumfix:<{ }>(:$p!) { self.pairs }
     multi method postcircumfix:<{ }>(:$k!) { self.keys }
-    multi method postcircumfix:<{ }>(:$kv!) { self.kv }
     multi method postcircumfix:<{ }>(:$v!) { self.values }
     multi method postcircumfix:<{ }>(:$BIND!) {
         X::Bind::ZenSlice.new(type => self.WHAT).throw

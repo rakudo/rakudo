@@ -597,16 +597,16 @@ my class Any {
         SELF{SELF.keys}:$exists:$kv:$p:$k
     }
     multi method postcircumfix:<{ }>(\SELF: Whatever, :$kv!) is rw {
-        SELF{SELF.keys}:$kv
+        SELF.kv;
     }
     multi method postcircumfix:<{ }>(\SELF: Whatever, :$p!) is rw {
-        SELF{SELF.keys}:$p
+        SELF.pairs
     }
     multi method postcircumfix:<{ }>(\SELF: Whatever, :$k!) is rw {
-        SELF{SELF.keys}:$k
+        SELF.keys
     }
     multi method postcircumfix:<{ }>(\SELF: Whatever, :$v!) is rw {
-        SELF{SELF.keys}:$v
+        SELF.values
     }
 
     proto method at_key(|) { * }

@@ -276,13 +276,13 @@ my class Any {
         SELF[^SELF.elems]
     }
     multi method postcircumfix:<[ ]>(\SELF: Whatever, :$kv!) is rw {
-        SELF[^SELF.elems]:kv
+        SELF[^SELF.elems]:$kv
     }
     multi method postcircumfix:<[ ]>(\SELF: Whatever, :$p!) is rw {
-        SELF[^SELF.elems]:p
+        SELF[^SELF.elems]:$p
     }
     multi method postcircumfix:<[ ]>(\SELF: Whatever, :$k!) is rw {
-        SELF[^SELF.elems]:k
+        SELF[^SELF.elems]:$k
     }
     multi method postcircumfix:<[ ]>(Whatever, :$BIND!) is rw {
         X::Bind::Slice.new(type => self.WHAT).throw;

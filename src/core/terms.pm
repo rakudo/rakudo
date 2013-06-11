@@ -81,7 +81,7 @@ sub term:<time>() { nqp::p6box_i(nqp::time_i()) }
     };
     nqp::bindkey(nqp::who(PROCESS), '$PERL', $PERL);
 
-    my $CWD = nqp::p6box_s(pir::new__PS('OS').cwd);
+    my $CWD = nqp::p6box_s(pir::new__PS('OS').cwd).path;
     nqp::bindkey(nqp::who(PROCESS), '$CWD', $CWD);
     
     my @INC;
@@ -142,7 +142,7 @@ sub term:<time>() { nqp::p6box_i(nqp::time_i()) }
 
 # XXX JVM doesn't handle IO::Spec yet
 #?if !jvm
-    $PROCESS::TMPDIR = IO::Spec.tmpdir();
+    $PROCESS::TMPDIR = IO::Spec.tmpdir().path;
 #?endif
 
 }

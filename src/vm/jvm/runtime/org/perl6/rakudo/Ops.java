@@ -55,7 +55,6 @@ public final class Ops {
             tc.gc.contConfigs.put("rakudo_scalar", new RakudoContainerConfigurer());
             SixModelObject BOOTArray = tc.gc.BOOTArray;
             EMPTYARR = BOOTArray.st.REPR.allocate(tc, BOOTArray.st);
-            EMPTYARR.initialize(tc);
             initialized = true;
         }
         return null;
@@ -265,7 +264,6 @@ public final class Ops {
     
     public static SixModelObject p6parcel(SixModelObject array, SixModelObject fill, ThreadContext tc) {
         SixModelObject parcel = Parcel.st.REPR.allocate(tc, Parcel.st);
-        parcel.initialize(tc);
         parcel.bind_attribute_boxed(tc, Parcel, "$!storage", HINT_PARCEL_STORAGE, array);
 
         if (fill != null) {

@@ -375,7 +375,6 @@ public final class Binder {
             }
             else if ((flags & SIG_ELEM_HASH_SIGIL) != 0) {
                 SixModelObject res = Ops.Hash.st.REPR.allocate(tc, Ops.Hash.st);
-                res.initialize(tc);
                 return res;
             }
             else {
@@ -475,7 +474,6 @@ public final class Binder {
             else if ((flags & SIG_ELEM_SLURPY_NAMED) != 0) {
                 SixModelObject slurpy = vmHashOfRemainingNameds(tc, namedArgsCopy, args);
                 SixModelObject bindee = Ops.Hash.st.REPR.allocate(tc, Ops.Hash.st);
-                bindee.initialize(tc);
                 bindee.bind_attribute_boxed(tc, Ops.EnumMap, "$!storage",
                     HINT_ENUMMAP_storage, slurpy);
                 bindFail = bindOneParam(tc, cf, param, bindee, CallSiteDescriptor.ARG_OBJ,
@@ -612,7 +610,6 @@ public final class Binder {
         if (namedArgsCopy != null) {
             SixModelObject BOOTHash = tc.gc.BOOTHash;
             slurpy = BOOTHash.st.REPR.allocate(tc, BOOTHash.st);
-            slurpy.initialize(tc);
             for (String name : namedArgsCopy.keySet()) {
                 int lookup = namedArgsCopy.get(name);
                 switch (lookup & 7) {

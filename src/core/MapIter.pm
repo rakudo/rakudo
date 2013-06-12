@@ -122,7 +122,8 @@ my class MapIter is Iterator {
             };
 #?endif
 #?if !parrot
-            die "MapIter NYI on JVM backend";
+            nqp::p6mapiter(MapIter, $!items, $rpa, nqp::unbox_i($argc),
+                nqp::unbox_i($count), self, $block);
 #?endif
 
             if $!items || $!listiter {

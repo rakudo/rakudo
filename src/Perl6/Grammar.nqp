@@ -302,6 +302,7 @@ role STD {
 }
 
 grammar Perl6::Grammar is HLL::Grammar does STD {
+    my $sc_id := 0;
     method TOP() {
         # Language braid.
         my %*LANG;
@@ -327,7 +328,10 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         # objects that cross the compile-time/run-time boundary that are
         # associated with this compilation unit.
         my $file := nqp::getlexdyn('$?FILES');
-        my $source_id := nqp::sha1(self.target());
+        my $source_id := nqp::sha1(
+            nqp::defined(%*COMPILING<%?OPTIONS><outer_ctx>)
+                ?? self.target() ~ $sc_id++
+                !! self.target());
         my $*W := nqp::isnull($file) ??
             Perl6::World.new(:handle($source_id)) !!
             Perl6::World.new(:handle($source_id), :description($file));

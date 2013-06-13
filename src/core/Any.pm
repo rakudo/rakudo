@@ -18,19 +18,21 @@ my class Any {
     method uniq() { self.list.uniq }
     method infinite() { Mu }
     method flat() { nqp::p6list(nqp::list(self), List, Bool::True) }
-    method hash( :$type = $default, :$of = $default ) {
+    method hash( :$keytype = $default, :$of = $default ) {
 
         # your basic hash
-        if ( $type === $default and $of === $default ) {
-            my %h = self;
+        if ( $keytype === $default and $of === $default ) {
+            my % = self;
         }
 
         # need to add type / of info
         else {
-            my $code= $of === $default ?? "my %h" !! "my {$of.perl} %h";
-            $code ~= "\{{$type.perl}}" unless $type === $default;
-            $code ~= " = self";
-            eval $code;
+            Hash[
+              $of      === $default ?? Any !!
+                  ( $of.DEFINITE      ?? ::($of)      !! $of ),
+              $keytype === $default ?? Str !!
+                  ( $keytype.DEFINITE ?? ::($keytype) !! $keytype ),
+            ].new(self);
         }
     }
     method list() { nqp::p6list(nqp::list(self), List, Mu) }

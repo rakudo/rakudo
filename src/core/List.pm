@@ -318,16 +318,16 @@ my class List does Positional {
         $tpos >= +$tseq;
     }
 
-    method classify(&test, :$keytype = Str, :$of = Any ) {
+    method classify( &test, :$keytype = Str, :$of = Any ) {
         fail 'Cannot .classify an infinite list' if self.infinite; # MMD?
         my $result = Hash.new( :$of, :$keytype );
         for @.list {
             $result{test $_}.push: $_;
         }
-        $result
+        $result.pairs;
     }
 
-    method categorize(&test) {
+    method categorize( &test, :$keytype = Str, :$of = Any ) {
         fail 'Cannot .categorize an infinite list' if self.infinite; #MMD?
         my $result = Hash.new( :$of, :$keytype );
         for @.list {
@@ -336,7 +336,7 @@ my class List does Positional {
                 $result{$k}.push: $_;
             }
         }
-        $result;
+        $result.pairs;
     }
 
     # This needs a way of taking a user-defined comparison

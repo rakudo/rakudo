@@ -336,7 +336,7 @@ my class List does Positional {
                 %result{$k}.push: $_;
             }
         }
-        %result.pairs;
+        %result
     }
 
     # This needs a way of taking a user-defined comparison

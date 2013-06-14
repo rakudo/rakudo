@@ -18,23 +18,7 @@ my class Any {
     method uniq() { self.list.uniq }
     method infinite() { Mu }
     method flat() { nqp::p6list(nqp::list(self), List, Bool::True) }
-    method hash( :$keytype = $default, :$of = $default ) {
-
-        # your basic hash
-        if ( $keytype === $default and $of === $default ) {
-            my % = self;
-        }
-
-        # need to add type / of info
-        else {
-            Hash[
-              $of      === $default ?? Any !!
-                  ( $of.DEFINITE      ?? ::($of)      !! $of ),
-              $keytype === $default ?? Str !!
-                  ( $keytype.DEFINITE ?? ::($keytype) !! $keytype ),
-            ].new(self);
-        }
-    }
+    method hash() { my % = self }
     method list() { nqp::p6list(nqp::list(self), List, Mu) }
     method lol()  { MapIter.new(self.list, { .item }, Mu).list }
     method pick($n = 1) { self.list.pick($n) }

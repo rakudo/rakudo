@@ -333,7 +333,6 @@ my class List does Positional {
         for @.list {
             my @k = test $_;
             for @k -> $k {
-                %result{$k} //= [];
                 %result{$k}.push: $_;
             }
         }

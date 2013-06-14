@@ -147,12 +147,12 @@ my class List does Positional {
     }
 
     method pick($n is copy = 1) {
+        fail "Cannot .pick from infinite list" if self.infinite; #MMD?
         ## We use a version of Fisher-Yates shuffle here to
         ## replace picked elements with elements from the end
         ## of the list, resulting in an O(n) algorithm.
         my $elems = self.elems;
         return unless $elems;
-        fail "Cannot .pick from infinite list" if $!nextiter.defined;
         $n = +$Inf if nqp::istype($n, Whatever);
         $n = $elems if $n > $elems;
         return self.at_pos($elems.rand.floor) if $n == 1;
@@ -171,24 +171,24 @@ my class List does Positional {
     }
 
     method pop() is rw {
+        fail 'Cannot .pop from an infinite list' if self.infinite; #MMD?
         my $elems = self.elems;
-        fail '.pop from an infinite list NYI' if $!nextiter.defined;
         $elems > 0
           ?? nqp::pop($!items)
           !! fail 'Element popped from empty list';
     }
 
     multi method push(List:D: *@values) {
+        fail 'Cannot .push to an infinite list' if self.infinite; #MMD?
         my $pos = self.elems;
-        fail '.push on infinite lists NYI' if $!nextiter.defined;
         self.STORE_AT_POS($pos++, @values.shift) while @values.gimme(1);
         self;
     }
 
     method roll($n is copy = 1) {
+        fail "Cannot .roll from an infinite list" if self.infinite; #MMD?
         my $elems = self.elems;
         return unless $elems;
-        fail ".roll from infinite list NYI" if $!nextiter.defined;
         $n = +$Inf if nqp::istype($n, Whatever);
         return self.at_pos($elems.rand.floor) if $n == 1;
         gather while $n > 0 {
@@ -198,8 +198,8 @@ my class List does Positional {
     }
 
     method reverse() {
+        fail 'Cannot .reverse an infinite list' if self.infinite; #MMD?
         self.gimme(*);
-        fail 'Cannot reverse an infinite list' if self.infinite;
         my Mu $rev  := nqp::list();
         my Mu $orig := nqp::clone($!items);
         nqp::push($rev, nqp::pop($orig)) while $orig;
@@ -209,8 +209,8 @@ my class List does Positional {
     }
 
     method rotate(Int $n is copy = 1) {
+        fail 'Cannot .rotate an infinite list' if self.infinite; # MMD?
         self.gimme(*);
-        fail 'Cannot rotate an infinite list' if self.infinite;
         my Mu $res := nqp::clone($!items);
         $n %= nqp::p6box_i(nqp::elems($!items));
         if $n > 0 {
@@ -266,6 +266,7 @@ my class List does Positional {
     }
 
     method sort($by = &infix:<cmp>) {
+        fail 'Cannot .sort an infinite list' if self.infinite; #MMD?
         # We defer to Parrot's ResizablePMCArray.sort method here.
         # Instead of sorting elements directly, we sort a Parcel of
         # indices from 0..^$list.elems, then use that Parcel as
@@ -318,6 +319,7 @@ my class List does Positional {
     }
 
     method classify(&test) {
+        fail 'Cannot .classify an infinite list' if self.infinite; # MMD?
         my %result;
         for @.list {
             %result{test $_}.push: $_;
@@ -326,6 +328,7 @@ my class List does Positional {
     }
 
     method categorize(&test) {
+        fail 'Cannot .categorize an infinite list' if self.infinite; #MMD?
         my %result;
         for @.list {
             my @k = test $_;

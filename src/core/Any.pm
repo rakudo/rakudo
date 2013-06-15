@@ -2,9 +2,9 @@ my class MapIter { ... }
 my class Range { ... }
 my class X::Bind::Slice { ... }
 my class X::Bind::ZenSlice { ... }
-my $default= [];  # so that we can check passing of parameters to ".hash"
 
 my class Any {
+    my $default= [];  # so that we can check passing of parameters to ".hash"
     multi method ACCEPTS(Any:D: Mu \a) { self === a }
 
     ########

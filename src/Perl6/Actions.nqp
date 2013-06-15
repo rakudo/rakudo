@@ -165,14 +165,16 @@ class Perl6::Actions is HLL::Actions does STDActions {
                                 }
                             }
                         } else {
-                            nqp::die("Invalid hash shape; type expected");
+                            $*W.throw($/, "X::Comp::AdHoc",
+                                payload => "Invalid hash shape; type expected");
                         }
                     } elsif +@($shape_ast) > 1 {
                         $*W.throw($/, 'X::Comp::NYI',
                             feature => "multidimensional shaped hashes");
                     }
                 } else {
-                    nqp::die("Invalid hash shape; type expected");
+                    $*W.throw($/, "X::Comp::AdHoc",
+                        payload => "Invalid hash shape; type expected");
                 }
             }
             if @value_type {

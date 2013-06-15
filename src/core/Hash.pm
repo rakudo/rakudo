@@ -103,6 +103,61 @@ my class Hash {
         self
     }
 
+    proto method classify(|) { * }
+    multi method classify( &test, *@list ) {
+        fail 'Cannot .classify an infinite list' if @list.infinite;
+        for @list {
+            self{test $_}.push: $_;
+        }
+        self;
+    }
+    multi method classify( %test, *@list ) {
+        fail 'Cannot .classify an infinite list' if @list.infinite;
+        for @list {
+            self{ %test{$_} }.push: $_;
+        }
+        self;
+    }
+    multi method classify( @test, *@list ) {
+        fail 'Cannot .classify an infinite list' if @list.infinite;
+        for @list {
+            self{ @test[$_] }.push: $_;
+        }
+        self;
+    }
+
+    proto method categorize(|) { * }
+    multi method categorize( &test, *@list ) {
+        fail 'Cannot .categorize an infinite list' if @list.infinite;
+        for @list {
+            my @k = test $_;
+            for @k -> $k {
+                self{$k}.push: $_;
+            }
+        }
+        self;
+    }
+    multi method categorize( %test, *@list ) {
+        fail 'Cannot .categorize an infinite list' if @list.infinite;
+        for @list {
+            my @k = %test{$_};
+            for @k -> $k {
+                self{$k}.push: $_;
+            }
+        }
+        self;
+    }
+    multi method categorize( @test, *@list ) {
+        fail 'Cannot .categorize an infinite list' if @list.infinite;
+        for @list {
+            my @k = @test[$_];
+            for @k -> $k {
+                self{$k}.push: $_;
+            }
+        }
+        self;
+    }
+
     # push a value onto a hash slot, constructing an array if necessary
     method !_push_construct(Mu $key, Mu $value) {
         if self.exists($key) {

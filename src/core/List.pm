@@ -318,26 +318,9 @@ my class List does Positional {
         $tpos >= +$tseq;
     }
 
-    method classify(&test) {
-        fail 'Cannot .classify an infinite list' if self.infinite; # MMD?
-        my %result;
-        for @.list {
-            %result{test $_}.push: $_;
-        }
-        %result;
-    }
+    method classify ($test) { {}.classify( $test, @.list ) }
 
-    method categorize(&test) {
-        fail 'Cannot .categorize an infinite list' if self.infinite; #MMD?
-        my %result;
-        for @.list {
-            my @k = test $_;
-            for @k -> $k {
-                %result{$k}.push: $_;
-            }
-        }
-        %result.pairs;
-    }
+    method categorize ($test) { {}.categorize( $test, @.list ) }
 
     # This needs a way of taking a user-defined comparison
     # specifier, but AFAIK nothing has been spec'd yet.
@@ -457,7 +440,6 @@ multi sub push(\a, *@elems) { a.push: @elems }
 sub reverse(*@a)            { @a.reverse }
 sub rotate(@a, Int $n = 1)  { @a.rotate($n) }
 sub reduce (&with, *@list)  { @list.reduce(&with) }
-sub categorize(&mapper, *@a){ @a.categorize(&mapper)}
 sub splice(@arr, $offset = 0, $size?, *@values) {
     @arr.splice($offset, $size, @values)
 }

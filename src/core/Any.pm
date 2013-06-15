@@ -14,7 +14,8 @@ my class Any {
     method eager() { nqp::p6list(nqp::list(self), List, Bool::True).eager }
     method elems() { self.list.elems }
     method end()   { self.list.end }
-    method classify(&t) { self.list.classify(&t) }
+    method classify($test)   { {}.classify(   $test, self.list ) }
+    method categorize($test) { {}.categorize( $test, self.list ) }
     method uniq() { self.list.uniq }
     method infinite() { Mu }
     method flat() { nqp::p6list(nqp::list(self), List, Bool::True) }
@@ -706,7 +707,10 @@ proto end(|) { * }
 multi end($a) { $a.end }
 
 proto classify(|) { * }
-multi classify(&test, *@items) { @items.classify(&test) }
+multi classify( $test, *@items ) { {}.classify( $test, @items ) }
+
+proto categorize(|) { * }
+multi categorize( $test, *@items ) { {}.categorize( $test, @items ) }
 
 proto uniq(|) { * }
 multi uniq(*@values) { @values.uniq }

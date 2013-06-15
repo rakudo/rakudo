@@ -153,11 +153,28 @@ class Perl6::Actions is HLL::Actions does STDActions {
             if $shape {
                 @value_type[0] := $*W.find_symbol(['Any']) unless +@value_type;
                 my $shape_ast := $shape[0].ast;
-                if $shape_ast.isa(QAST::Stmts) && +@($shape_ast) == 1 && $shape_ast[0].has_compile_time_value {
-                    @value_type[1] := $shape_ast[0].compile_time_value;
-                }
-                else {
-                    nqp::die("Invalid hash shape; type expected");
+                if $shape_ast.isa(QAST::Stmts) {
+                    if +@($shape_ast) == 1 {
+                        if $shape_ast[0].has_compile_time_value {
+                            @value_type[1] := $shape_ast[0].compile_time_value;
+                        } elsif (my $op_ast := $shape_ast[0]).isa(QAST::Op) {
+                            if $op_ast.op eq "call" && +@($op_ast) == 2 {
+                                if !nqp::isconcrete($op_ast[0].value) && !nqp::isconcrete($op_ast[1].value) {
+                                    $*W.throw($/, 'X::Comp::NYI',
+                                        feature => "coercive type declarations");
+                                }
+                            }
+                        } else {
+                            $*W.throw($/, "X::Comp::AdHoc",
+                                payload => "Invalid hash shape; type expected");
+                        }
+                    } elsif +@($shape_ast) > 1 {
+                        $*W.throw($/, 'X::Comp::NYI',
+                            feature => "multidimensional shaped hashes");
+                    }
+                } else {
+                    $*W.throw($/, "X::Comp::AdHoc",
+                        payload => "Invalid hash shape; type expected");
                 }
             }
             if @value_type {

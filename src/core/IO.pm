@@ -360,10 +360,10 @@ my class IO::Path is Cool does IO::FileTestable {
     method is-relative {
         ! $.SPEC.is-absolute(~self);
     }
-    method absolute ($base = $*CWD) {
+    method absolute ($base = ~$*CWD) {
         return self.new($.SPEC.rel2abs(~self, $base))
     }
-    method relative ($relative_to_directory = $*CWD) {
+    method relative ($relative_to_directory = ~$*CWD) {
         return self.new($.SPEC.abs2rel(~self, $relative_to_directory));
     }
 
@@ -400,7 +400,7 @@ my class IO::Path is Cool does IO::FileTestable {
                               $childname);
     }
 
-    method copy($dest, :$createonly = False) {
+    method copy(IO::Path:D: $dest, :$createonly = False) {
         if $createonly and $dest.path.e {
             fail(X::IO::Copy.new(from => $.Str, to => $dest,
                     os-error => "Destination file $dest exists and :createonly passed to copy."));
@@ -409,6 +409,38 @@ my class IO::Path is Cool does IO::FileTestable {
             nqp::copy(nqp::unbox_s($.Str), nqp::unbox_s(~$dest));
         }
         $! ?? fail(X::IO::Copy.new(from => $.Str, to => $dest, os-error => ~$!)) !! True
+    }
+
+    method rename (Cool $to) {
+        nqp::rename(nqp::unbox_s(~self), nqp::unbox_s($to));
+        return self.new($to);
+        CATCH {
+            default {
+                if .Str ~~ /'rename failed: '(.*)/ {
+                    X::IO::Rename.new(
+                        :from(~self),
+                        :$to,
+                        os-error => $0.Str,
+                    ).throw;
+                } else {
+                    die "Unexpected error: $_";
+                }
+            }
+        }
+    }
+
+    method chmod(IO::Path:D: Int $mode) {
+        nqp::chmod(nqp::unbox_s(~self), nqp::unbox_i($mode.Int));
+        return True;
+        CATCH {
+            default {
+                X::IO::Chmod.new(
+                    path=> ~self,
+                    :$mode,
+                    os-error => .Str,
+                ).throw;
+            }
+        }
     }
 
 }

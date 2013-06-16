@@ -125,6 +125,10 @@ my $p6bool := -> $qastcomp, $op {
 };
 $ops.add_hll_op('perl6', 'p6bool', $p6bool);
 
+$ops.add_hll_op('perl6', 'p6handletake', -> $qastcomp, $op {
+    $qastcomp.as_jast(QAST::Op.new( :op('handle'), $op[0], 'TAKE', $op[1]));
+});
+
 # MapIter core.
 $ops.add_hll_op('perl6', 'p6mapiter', -> $qastcomp, $op {
     # Create labels.

@@ -340,6 +340,14 @@ my class IO::Path is Cool does IO::FileTestable {
         self.basename.Int;
     }
 
+    method succ(IO::Path:D:) {
+        self.new(:$.volume, :$.directory, basename=> $.basename.succ)
+    }
+    method pred(IO::Path:D:) {
+        self.new(:$.volume, :$.directory, basename=> $.basename.pred)
+    }
+
+
     method path(IO::Path:D:) {
         self;
     }

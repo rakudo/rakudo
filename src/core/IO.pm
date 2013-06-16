@@ -350,9 +350,6 @@ my class IO::Path is Cool does IO::FileTestable {
     method open(IO::Path:D: *%opts) {
         open(~self, |%opts);
     }
-    method contents(IO::Path:D: *%opts) {
-        dir(~self, |%opts);
-    }
 
     method is-absolute {
         $.SPEC.is-absolute(~self);
@@ -371,7 +368,8 @@ my class IO::Path is Cool does IO::FileTestable {
         return self.new($.SPEC.canonpath(~self));
     }
     method resolve {
-        fail "Not Yet Implemented: requires readlink()";
+        # NYI: requires readlink()
+        X::NYI.new(feature=>'IO::Path.resolve').fail
     }
 
     method parent {
@@ -443,6 +441,33 @@ my class IO::Path is Cool does IO::FileTestable {
         }
     }
 
+    method contents(IO::Path:D: Mu :$test = none('.', '..')) {
+#?if parrot
+        CATCH {
+            default {
+                X::IO::Dir.new(
+                    path => ~self,
+                    os-error => .Str,
+                ).throw;
+            }
+        }
+
+        my Mu $RSA := pir::new__PS('OS').readdir(nqp::unbox_s(self.Str));
+        my int $elems = nqp::elems($RSA);
+        gather loop (my int $i = 0; $i < $elems; $i = $i + 1) {
+            my Str $file := nqp::p6box_s(pir::trans_encoding__Ssi(
+			nqp::atpos_s($RSA, $i),
+			pir::find_encoding__Is('utf8')));
+            if $file ~~ $test {
+                take self.child($file);
+            }
+        }
+#?endif
+#?if !parrot
+        die "dir is NYI on JVM backend";
+#?endif
+    }
+
 }
 
 my class IO::Path::Unix   is IO::Path { method SPEC { IO::Spec::Unix   };  }
@@ -451,32 +476,7 @@ my class IO::Path::Cygwin is IO::Path { method SPEC { IO::Spec::Cygwin };  }
 
 
 sub dir(Cool $path = '.', Mu :$test = none('.', '..')) {
-#?if parrot
-    CATCH {
-        default {
-            X::IO::Dir.new(
-                :$path,
-                os-error => .Str,
-            ).throw;
-        }
-    }
-
-    my Mu $RSA := pir::new__PS('OS').readdir(nqp::unbox_s($path.Str));
-    my int $elems = nqp::elems($RSA);
-    my @res;
-    my ($volume, $directory) = IO::Spec.splitpath(~$path, :nofile);
-    gather loop (my int $i = 0; $i < $elems; $i = $i + 1) {
-        my Str $file := nqp::p6box_s(pir::trans_encoding__Ssi(
-			nqp::atpos_s($RSA, $i),
-			pir::find_encoding__Is('utf8')));
-        if $file ~~ $test {
-            take IO::Path.new(:basename($file), :$directory, :$volume);
-        }
-    }
-#?endif
-#?if !parrot
-    die "dir is NYI on JVM backend";
-#?endif
+    $path.path.contents(:$test)
 }
 
 sub unlink($path) {

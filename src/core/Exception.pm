@@ -205,14 +205,19 @@ do {
             my $e := EXCEPTION($ex);
             my Mu $err := nqp::getstderr();
 
+#?if parrot
             if $e.is-compile-time || is_runtime($ex.backtrace) {
-                $err.print: $e.gist;
-                $err.print: "\n";
+#?endif
+#?if jvm
+            if $e.is-compile-time || is_runtime(nqp::backtrace($ex)) {
+#?endif
+                nqp::printfh($err, $e.gist);
+                nqp::printfh($err, "\n");
             }
             else {
-                $err.print: "===SORRY!===\n";
-                $err.print: $ex;
-                $err.print: "\n";
+                nqp::printfh($err, "===SORRY!===\n");
+                nqp::printfh($err, $e.Str);
+                nqp::printfh($err, "\n");
             }
             $_() for nqp::hllize(@*END_PHASERS);
         }
@@ -233,9 +238,14 @@ do {
         if ($type == nqp::const::CONTROL_WARN) {
             my Mu $err := nqp::getstderr();
             my $msg = nqp::p6box_s(nqp::getmessage($ex));
-            $err.print: $msg ?? "$msg" !! "Warning";
-            $err.print: Backtrace.new($ex.backtrace, 0).nice(:oneline);
-            $err.print: "\n";
+            nqp::printfh($err, $msg ?? "$msg" !! "Warning");
+#?if parrot
+            nqp::printfh($err, Backtrace.new($ex.backtrace, 0).nice(:oneline));
+#?endif
+#?if jvm
+            nqp::printfh($err, Backtrace.new(nqp::backtrace($ex), 0).nice(:oneline));
+#?endif
+            nqp::printfh($err, "\n");
             my $resume := nqp::atkey($ex, 'resume');
             if ($resume) {
                 $resume();

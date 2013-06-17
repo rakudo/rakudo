@@ -63,6 +63,7 @@ public final class Binder {
     private static final int HINT_ENUMMAP_storage = 0;
     private static final int HINT_CAPTURE_list = 0;
     private static final int HINT_CAPTURE_hash = 1;
+    private static final int HINT_SIG_params = 0;
     
     /* Last error, per thread. */
     public static HashMap<ThreadContext, String> lastErrors = new HashMap<ThreadContext, String>();
@@ -337,13 +338,73 @@ public final class Binder {
         /* Is it the invocant? If so, also have to bind to self lexical. */
         if ((paramFlags & SIG_ELEM_INVOCANT) != 0)
             cf.oLex[sci.oTryGetLexicalIdx("self")] = decontValue;
-        
+
+        /* TODO: post_constraints. */
+
+        /* TODO: attributives. */
+
+        SixModelObject subSignature = param.get_attribute_boxed(tc, Ops.Parameter,
+            "$!sub_signature", HINT_sub_signature);
+
+        /* If it has a sub-signature, bind that. */
+        if (subSignature != null && flag == CallSiteDescriptor.ARG_OBJ) {
+            /* Turn value into a capture, unless we already have one. */
+            SixModelObject capture = null;
+            int result;
+            if ((paramFlags & SIG_ELEM_IS_CAPTURE) != 0) {
+                capture = decontValue;
+            }
+            else {
+                SixModelObject meth = org.perl6.nqp.runtime.Ops.findmethod(decontValue, "Capture", tc);
+                if (meth == null) {
+                    if (needError)
+                        lastErrors.put(tc, "Could not turn argument into capture");
+                    return BIND_RESULT_FAIL;
+                }
+                org.perl6.nqp.runtime.Ops.invokeDirect(tc, meth, org.perl6.nqp.runtime.Ops.invocantCallSite, new Object[] { decontValue });
+                capture = org.perl6.nqp.runtime.Ops.result_o(tc.curFrame);
+            }
+
+            SixModelObject subParams = subSignature
+                .get_attribute_boxed(tc, Ops.Signature, "$!params", HINT_SIG_params);
+            /* Recurse into signature binder. */
+            CallSiteDescriptor subCsd = explodeCapture(tc, capture);
+            result = bind(tc, cf, subParams, subCsd, tc.flatArgs, noNomTypeCheck, needError);
+            if (result != BIND_RESULT_OK)
+            {
+                if (needError) {
+                    /* Note in the error message that we're in a sub-signature. */
+                    lastErrors.put(tc, lastErrors.get(tc) + " in sub-signature");
+
+                    /* Have we a variable name? */
+                    if (varName != null) {
+                        lastErrors.put(tc, lastErrors.get(tc) + " of parameter " + varName);
+                    }
+                }
+                return result;
+            }
+        }
+
         if (Ops.DEBUG_MODE)
             System.err.println("bindOneParam NYFI");
         
         return BIND_RESULT_OK;
     }
-    
+
+    private static final CallSiteDescriptor exploder = new CallSiteDescriptor(new byte[] {
+        CallSiteDescriptor.ARG_OBJ | CallSiteDescriptor.ARG_FLAT,
+            CallSiteDescriptor.ARG_OBJ | CallSiteDescriptor.ARG_FLAT | CallSiteDescriptor.ARG_NAMED
+    }, null);
+    private static CallSiteDescriptor explodeCapture(ThreadContext tc, SixModelObject capture) {
+        capture = org.perl6.nqp.runtime.Ops.decont(capture, tc);
+
+        SixModelObject capType = Ops.Capture;
+        SixModelObject list = capture.get_attribute_boxed(tc, capType, "$!list", HINT_CAPTURE_list);
+        SixModelObject hash = capture.get_attribute_boxed(tc, capType, "$!hash", HINT_CAPTURE_hash);
+
+        return exploder.explodeFlattening(tc.curFrame, new Object[] { list, hash });
+    }
+
     /* This takes a signature element and either runs the closure to get a default
      * value if there is one, or creates an appropriate undefined-ish thingy. */
     private static SixModelObject handleOptional(ThreadContext tc, int flags, SixModelObject param, CallFrame cf) {

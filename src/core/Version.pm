@@ -3,12 +3,20 @@ class Version {
     has Bool $.plus = False;
 
     multi method new(Str:D $s) {
-        my @parts = $s.comb(/:r '*' || \d+ || <.alpha>+/);
-        for @parts {
-            $_ .= Numeric if .Numeric.defined ;
-            $_ = * if $_ eq '*';
+        #?if jvm
+        if $s eq "6" {
+            self.bless(*, :parts(["6"]), :!plus);
+        } else {
+        #?endif
+            my @parts = $s.comb(/:r '*' || \d+ || <.alpha>+/);
+            for @parts {
+                $_ .= Numeric if .Numeric.defined ;
+                $_ = * if $_ eq '*';
+            }
+            self.bless(*, :parts(@parts), :plus($s.substr(*-1) eq '+'));
+        #?if jvm
         }
-        self.bless(*, :parts(@parts), :plus($s.substr(*-1) eq '+'));
+        #?endif
     };
 
     multi method Str(Version:D:) {

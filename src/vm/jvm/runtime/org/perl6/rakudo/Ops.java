@@ -411,4 +411,61 @@ public final class Ops {
         /* XXX TODO: thrower lookup. */
         return null;
     }
+
+    private static CallFrame find_common_ctx(CallFrame ctx1, CallFrame ctx2) {
+        int depth1 = 0;
+        int depth2 = 0;
+        CallFrame ctx;
+
+        for (ctx = ctx1; ctx != null; ctx = ctx.caller, depth1++)
+            if (ctx == ctx2)
+                return ctx;
+        for (ctx = ctx2; ctx != null; ctx = ctx.caller, depth2++)
+            if (ctx == ctx1)
+                return ctx;
+        for (; depth1 > depth2; depth2++)
+            ctx1 = ctx1.caller;
+        for (; depth2 > depth1; depth1++)
+            ctx2 = ctx2.caller;
+        while (ctx1 != ctx2) {
+            ctx1 = ctx1.caller;
+            ctx2 = ctx2.caller;
+        }
+        return ctx1;
+    }
+
+    private static SixModelObject getremotelex(CallFrame pad, String name) { /* use for sub_find_pad */
+        CallFrame curFrame = pad;
+        while (curFrame != null) {
+            Integer found = curFrame.codeRef.staticInfo.oTryGetLexicalIdx(name);
+            if (found != null)
+                return curFrame.oLex[found];
+            curFrame = curFrame.outer;
+        }
+        return null;
+    }
+
+    public static SixModelObject p6routinereturn(SixModelObject in, ThreadContext tc) {
+        CallFrame ctx = tc.curFrame;
+        SixModelObject cont = null;
+
+        for (ctx = ctx.caller; ctx != null; ctx = ctx.caller) {
+            cont = getremotelex(ctx, "RETURN");
+            if (cont != null) break;
+        }
+
+        if (!(cont instanceof Lexotic)) {
+            SixModelObject thrower = getThrower(tc, "X::ControlFlow::Return");
+            if (thrower == null)
+                ExceptionHandling.dieInternal(tc, "Attempt to return outside of any Routine");
+            else
+                org.perl6.nqp.runtime.Ops.invokeArgless(tc, thrower);
+        }
+
+        // rewinding is handled by finally blocks in the generated subs
+        LexoticException throwee = tc.theLexotic;
+        throwee.target = ((Lexotic)cont).target;
+        throwee.payload = in;
+        throw throwee;
+    }
 }

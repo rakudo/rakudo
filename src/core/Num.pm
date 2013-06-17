@@ -151,16 +151,16 @@ my class Num does Real {
         nqp::p6box_n(nqp::asec_n(nqp::unbox_n(self)));
     }
     method cosec(Num:D:) {
-        nqp::p6box_n(nqp::div_n(1, nqp::sin_n(nqp::unbox_n(self))));
+        nqp::p6box_n(nqp::div_n(1e0, nqp::sin_n(nqp::unbox_n(self))));
     }
     method acosec(Num:D:) {
-        nqp::p6box_n(nqp::asin_n(nqp::div_n(1, nqp::unbox_n(self))));
+        nqp::p6box_n(nqp::asin_n(nqp::div_n(1e0, nqp::unbox_n(self))));
     }
     method cotan(Num:D:) {
-        nqp::p6box_n(nqp::div_n(1, nqp::tan_n(nqp::unbox_n(self))));
+        nqp::p6box_n(nqp::div_n(1e0, nqp::tan_n(nqp::unbox_n(self))));
     }
     method acotan(Num:D:) {
-        nqp::p6box_n(nqp::atan_n(nqp::div_n(1, nqp::unbox_n(self))));
+        nqp::p6box_n(nqp::atan_n(nqp::div_n(1e0, nqp::unbox_n(self))));
     }
     proto method sinh(|) {*}
     multi method sinh(Num:D: ) {
@@ -168,7 +168,7 @@ my class Num does Real {
     }
     proto method asinh(|) {*}
     multi method asinh(Num:D: ) {
-        (self + (self * self + 1).sqrt).log;
+        (self + (self * self + 1e0).sqrt).log;
     }
     proto method cosh(|) {*}
     multi method cosh(Num:D: ) {
@@ -176,7 +176,7 @@ my class Num does Real {
     }
     proto method acosh(|) {*}
     multi method acosh(Num:D: ) {
-        (self + (self * self - 1).sqrt).log;
+        (self + (self * self - 1e0).sqrt).log;
     }
     proto method tanh(|) {*}
     multi method tanh(Num:D: ) {
@@ -184,7 +184,7 @@ my class Num does Real {
     }
     proto method atanh(|) {*}
     multi method atanh(Num:D: ) {
-        ((1 + self) / (1 - self)).log / 2;
+        ((1e0 + self) / (1e0 - self)).log / 2e0;
     }
     proto method sech(|) {*}
     multi method sech(Num:D: ) {
@@ -192,23 +192,23 @@ my class Num does Real {
     }
     proto method asech(|) {*}
     multi method asech(Num:D: ) {
-        (1 / self).acosh;
+        (1e0 / self).acosh;
     }
     proto method cosech(|) {*}
     multi method cosech(Num:D: ) {
-        nqp::p6box_n(nqp::div_n(1, nqp::sinh_n(nqp::unbox_n(self))));
+        nqp::p6box_n(nqp::div_n(1e0, nqp::sinh_n(nqp::unbox_n(self))));
     }
     proto method acosech(|) {*}
     multi method acosech(Num:D: ) {
-        (1 / self).asinh;
+        (1e0 / self).asinh;
     }
     proto method cotanh(|) {*}
     multi method cotanh(Num:D: ) {
-        nqp::p6box_n(nqp::div_n(1, nqp::tanh_n(nqp::unbox_n(self))));
+        nqp::p6box_n(nqp::div_n(1e0, nqp::tanh_n(nqp::unbox_n(self))));
     }
     proto method acotanh(|) {*}
     multi method acotanh(Num:D: ) {
-        (1 / self).atanh;
+        (1e0 / self).atanh;
     }
 }
 
@@ -216,20 +216,20 @@ my constant pi = 3.14159_26535_89793_238e0;
 my constant e  = 2.71828_18284_59045_235e0;
 
 multi prefix:<++>(Num:D \a is rw) {   # XXX
-    a = nqp::p6box_n(nqp::add_n(nqp::unbox_n(a), 1))
+    a = nqp::p6box_n(nqp::add_n(nqp::unbox_n(a), 1e0))
 }
 multi prefix:<++>(Num:U \a is rw) {   # XXX
     a = 1e0;
 }
 multi prefix:<-->(Num:D \a is rw) {   # XXX
-    a = nqp::p6box_n(nqp::sub_n(nqp::unbox_n(a), 1))
+    a = nqp::p6box_n(nqp::sub_n(nqp::unbox_n(a), 1e0))
 }
 multi prefix:<-->(Num:U \a is rw) {   # XXX
     a = -1e0;
 }
 multi postfix:<++>(Num:D \a is rw) {  # XXX
     my $b = a;
-    a = nqp::p6box_n(nqp::add_n(nqp::unbox_n(a), 1));
+    a = nqp::p6box_n(nqp::add_n(nqp::unbox_n(a), 1e0));
     $b
 }
 multi postfix:<++>(Num:U \a is rw) {   # XXX
@@ -238,12 +238,12 @@ multi postfix:<++>(Num:U \a is rw) {   # XXX
 }
 multi postfix:<-->(Num:D \a is rw) {  # XXX
     my $b = a;
-    a = nqp::p6box_n(nqp::sub_n(nqp::unbox_n(a), 1));
+    a = nqp::p6box_n(nqp::sub_n(nqp::unbox_n(a), 1e0));
     $b
 }
 multi postfix:<-->(Num:U \a is rw) {   # XXX
     a = -1e0;
-    0
+    0e0
 }
 
 multi prefix:<->(Num:D \a) {
@@ -364,7 +364,7 @@ multi infix:«>=»(num $a, num $b) returns Bool:D {
 }
 
 sub rand() returns Num:D {
-    nqp::p6box_n(nqp::rand_n(1));
+    nqp::p6box_n(nqp::rand_n(1e0));
 }
 
 # TODO: default seed of 'time'
@@ -377,10 +377,10 @@ multi sub atan2(Num:D $a, Num:D $b = 1e0) {
 }
 
 multi sub cosec(Num:D \x) {
-    nqp::p6box_n(nqp::div_n(1, nqp::sin_n(nqp::unbox_n(x))));
+    nqp::p6box_n(nqp::div_n(1e0, nqp::sin_n(nqp::unbox_n(x))));
 }
 multi sub acosec(Num:D \x) {
-    nqp::p6box_n(nqp::asin_n(nqp::div_n(1, nqp::unbox_n(x))));
+    nqp::p6box_n(nqp::asin_n(nqp::div_n(1e0, nqp::unbox_n(x))));
 }
 
 multi sub log(num $x) {
@@ -413,10 +413,10 @@ multi sub asec(num $x) {
 }
 
 multi sub cotan(num $x) {
-    nqp::div_n(1, nqp::tan_n($x));
+    nqp::div_n(1e0, nqp::tan_n($x));
 }
 multi sub acotan(num $x) {
-    nqp::div_n(1, nqp::atan_n($x));
+    nqp::div_n(1e0, nqp::atan_n($x));
 }
 multi sub sinh(num $x) {
     nqp::sinh_n($x);
@@ -435,7 +435,7 @@ multi sub tanh(num $x) {
     nqp::tanh_n($x);
 }
 multi sub atanh(num $x) {
-    log((1 + $x) / (1 - $x)) / 2e0;
+    log((1e0 + $x) / (1e0 - $x)) / 2e0;
 }
 multi sub sech(num $x) {
     nqp::sech_n($x);

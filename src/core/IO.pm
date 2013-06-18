@@ -261,18 +261,8 @@ my class IO::Handle does IO::FileTestable {
         $! ?? fail(X::IO::Copy.new(from => $!path, to => $dest, os-error => ~$!)) !! True
     }
 
-    method chmod($mode) {
-        nqp::chmod(nqp::unbox_s(~$!path), nqp::unbox_i($mode.Int));
-        return True;
-        CATCH {
-            default {
-                X::IO::Chmod.new(
-                    :$!path,
-                    :$mode,
-                    os-error => .Str,
-                ).throw;
-            }
-        }
+    method chmod(Int $mode) {
+        self.path.chmod($mode)
     }
 
     method IO { self }
@@ -340,6 +330,14 @@ my class IO::Path is Cool does IO::FileTestable {
         self.basename.Int;
     }
 
+    method succ(IO::Path:D:) {
+        self.new(:$.volume, :$.directory, basename=> $.basename.succ)
+    }
+    method pred(IO::Path:D:) {
+        self.new(:$.volume, :$.directory, basename=> $.basename.pred)
+    }
+
+
     method path(IO::Path:D:) {
         self;
     }
@@ -350,9 +348,6 @@ my class IO::Path is Cool does IO::FileTestable {
     method open(IO::Path:D: *%opts) {
         open(~self, |%opts);
     }
-    method contents(IO::Path:D: *%opts) {
-        dir(~self, |%opts);
-    }
 
     method is-absolute {
         $.SPEC.is-absolute(~self);
@@ -360,10 +355,10 @@ my class IO::Path is Cool does IO::FileTestable {
     method is-relative {
         ! $.SPEC.is-absolute(~self);
     }
-    method absolute ($base = $*CWD) {
+    method absolute ($base = ~$*CWD) {
         return self.new($.SPEC.rel2abs(~self, $base))
     }
-    method relative ($relative_to_directory = $*CWD) {
+    method relative ($relative_to_directory = ~$*CWD) {
         return self.new($.SPEC.abs2rel(~self, $relative_to_directory));
     }
 
@@ -371,7 +366,8 @@ my class IO::Path is Cool does IO::FileTestable {
         return self.new($.SPEC.canonpath(~self));
     }
     method resolve {
-        fail "Not Yet Implemented: requires readlink()";
+        # NYI: requires readlink()
+        X::NYI.new(feature=>'IO::Path.resolve').fail
     }
 
     method parent {
@@ -400,7 +396,7 @@ my class IO::Path is Cool does IO::FileTestable {
                               $childname);
     }
 
-    method copy($dest, :$createonly = False) {
+    method copy(IO::Path:D: $dest, :$createonly = False) {
         if $createonly and $dest.path.e {
             fail(X::IO::Copy.new(from => $.Str, to => $dest,
                     os-error => "Destination file $dest exists and :createonly passed to copy."));
@@ -411,6 +407,47 @@ my class IO::Path is Cool does IO::FileTestable {
         $! ?? fail(X::IO::Copy.new(from => $.Str, to => $dest, os-error => ~$!)) !! True
     }
 
+    method chmod(IO::Path:D: Int $mode) {
+        nqp::chmod(nqp::unbox_s(~self), nqp::unbox_i($mode.Int));
+        return True;
+        CATCH {
+            default {
+                X::IO::Chmod.new(
+                    path=> ~self,
+                    :$mode,
+                    os-error => .Str,
+                ).throw;
+            }
+        }
+    }
+
+    method contents(IO::Path:D: Mu :$test = none('.', '..')) {
+#?if parrot
+        CATCH {
+            default {
+                X::IO::Dir.new(
+                    path => ~self,
+                    os-error => .Str,
+                ).throw;
+            }
+        }
+
+        my Mu $RSA := pir::new__PS('OS').readdir(nqp::unbox_s(self.Str));
+        my int $elems = nqp::elems($RSA);
+        gather loop (my int $i = 0; $i < $elems; $i = $i + 1) {
+            my Str $file := nqp::p6box_s(pir::trans_encoding__Ssi(
+			nqp::atpos_s($RSA, $i),
+			pir::find_encoding__Is('utf8')));
+            if $file ~~ $test {
+                take self.child($file);
+            }
+        }
+#?endif
+#?if !parrot
+        die "dir is NYI on JVM backend";
+#?endif
+    }
+
 }
 
 my class IO::Path::Unix   is IO::Path { method SPEC { IO::Spec::Unix   };  }
@@ -419,35 +456,10 @@ my class IO::Path::Cygwin is IO::Path { method SPEC { IO::Spec::Cygwin };  }
 
 
 sub dir(Cool $path = '.', Mu :$test = none('.', '..')) {
-#?if parrot
-    CATCH {
-        default {
-            X::IO::Dir.new(
-                :$path,
-                os-error => .Str,
-            ).throw;
-        }
-    }
-
-    my Mu $RSA := pir::new__PS('OS').readdir(nqp::unbox_s($path.Str));
-    my int $elems = nqp::elems($RSA);
-    my @res;
-    my ($volume, $directory) = IO::Spec.splitpath(~$path, :nofile);
-    gather loop (my int $i = 0; $i < $elems; $i = $i + 1) {
-        my Str $file := nqp::p6box_s(pir::trans_encoding__Ssi(
-			nqp::atpos_s($RSA, $i),
-			pir::find_encoding__Is('utf8')));
-        if $file ~~ $test {
-            take IO::Path.new(:basename($file), :$directory, :$volume);
-        }
-    }
-#?endif
-#?if !parrot
-    die "dir is NYI on JVM backend";
-#?endif
+    $path.path.contents(:$test)
 }
 
-sub unlink($path) {
+sub unlink($path as Str) {
     nqp::unlink($path);
     return True;
     CATCH {
@@ -460,7 +472,7 @@ sub unlink($path) {
     }
 }
 
-sub rmdir($path) {
+sub rmdir($path as Str) {
     nqp::rmdir($path);
     return True;
     CATCH {
@@ -652,4 +664,4 @@ sub link(Cool $target as Str, Cool $name as Str) {
     }
 }
 
-sub chmod($mode, $filename) { $filename.IO.chmod($mode); $filename }
+sub chmod($mode, $filename) { $filename.path.chmod($mode); $filename }

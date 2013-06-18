@@ -417,24 +417,6 @@ my class IO::Path is Cool does IO::FileTestable {
         $! ?? fail(X::IO::Copy.new(from => $.Str, to => $dest, os-error => ~$!)) !! True
     }
 
-    method rename (Cool $to) {
-        nqp::rename(nqp::unbox_s(~self), nqp::unbox_s($to));
-        return self.new($to);
-        CATCH {
-            default {
-                if .Str ~~ /'rename failed: '(.*)/ {
-                    X::IO::Rename.new(
-                        :from(~self),
-                        :$to,
-                        os-error => $0.Str,
-                    ).throw;
-                } else {
-                    die "Unexpected error: $_";
-                }
-            }
-        }
-    }
-
     method chmod(IO::Path:D: Int $mode) {
         nqp::chmod(nqp::unbox_s(~self), nqp::unbox_i($mode.Int));
         return True;
@@ -487,7 +469,7 @@ sub dir(Cool $path = '.', Mu :$test = none('.', '..')) {
     $path.path.contents(:$test)
 }
 
-sub unlink($path) {
+sub unlink($path as Str) {
     nqp::unlink($path);
     return True;
     CATCH {
@@ -500,7 +482,7 @@ sub unlink($path) {
     }
 }
 
-sub rmdir($path) {
+sub rmdir($path as Str) {
     nqp::rmdir($path);
     return True;
     CATCH {

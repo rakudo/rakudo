@@ -89,6 +89,9 @@ sub SEQUENCE($left, Mu $right, :$exclude_end) {
     my sub succpred($cmp) {
         ($cmp < 0) ?? { $^x.succ } !! ( $cmp > 0 ?? { $^x.pred } !! { $^x } )
     }
+    my sub unisuccpred($cmp) {
+        ($cmp < 0) ?? { $^x.ord.succ.chr } !! ( $cmp > 0 ?? { $^x.ord.pred.chr } !! { $^x } )
+    }
 
     (GATHER({
         my @left := $left.flat;
@@ -114,7 +117,11 @@ sub SEQUENCE($left, Mu $right, :$exclude_end) {
             elsif $tail.grep({ $_ ~~ Numeric}).elems != $tail.elems {
                 # non-numeric
                 if $tail.elems == 1 {
-                    $code = $infinite ??  { $^x.succ } !! succpred($a cmp $endpoint);
+                    if $a ~~ Stringy && $endpoint ~~ Stringy && $a.codes == 1 && $endpoint.codes == 1 {
+                        $code = $infinite ?? { $^x.ord.succ.chr } !! unisuccpred($a.ord cmp $endpoint.ord);
+                    } else {
+                        $code = $infinite ??  { $^x.succ } !! succpred($a cmp $endpoint);
+                    }
                 }
                 else {
                     $code = succpred($tail[*-2] cmp $tail[*-1]);

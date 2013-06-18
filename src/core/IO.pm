@@ -261,18 +261,8 @@ my class IO::Handle does IO::FileTestable {
         $! ?? fail(X::IO::Copy.new(from => $!path, to => $dest, os-error => ~$!)) !! True
     }
 
-    method chmod($mode) {
-        nqp::chmod(nqp::unbox_s(~$!path), nqp::unbox_i($mode.Int));
-        return True;
-        CATCH {
-            default {
-                X::IO::Chmod.new(
-                    :$!path,
-                    :$mode,
-                    os-error => .Str,
-                ).throw;
-            }
-        }
+    method chmod(Int $mode) {
+        self.path.chmod($mode)
     }
 
     method IO { self }
@@ -674,4 +664,4 @@ sub link(Cool $target as Str, Cool $name as Str) {
     }
 }
 
-sub chmod($mode, $filename) { $filename.IO.chmod($mode); $filename }
+sub chmod($mode, $filename) { $filename.path.chmod($mode); $filename }

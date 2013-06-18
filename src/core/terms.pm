@@ -54,20 +54,30 @@ sub term:<time>() { nqp::p6box_i(nqp::time_i()) }
     }
     nqp::bindkey(nqp::who(PROCESS), '%ENV', %ENV);
 
-    my $VM = {
 #?if parrot
+    my $VM = {
         name    => 'parrot', # XXX: should be made dynamical
         config  => nqp::hllize(
                         nqp::atpos(pir::getinterp__P, pir::const::IGLOBALS_CONFIG_HASH))
+    }
 #?endif
 #?if jvm
-        name    => 'jvm'
-#?endif
+    my %PROPS;
+    $env := nqp::jvmgetproperties();
+    $enviter := nqp::iterator($env);
+    while $enviter {
+        $envelem := nqp::shift($enviter);
+        $key = nqp::p6box_s(nqp::iterkey_s($envelem));
+        %PROPS{$key} = nqp::p6box_s(nqp::iterval($envelem));
     }
+    my $VM = {
+        name    => 'jvm',
+        properties => %PROPS,
+    }
+#?endif
     nqp::bindkey(nqp::who(PROCESS), '$VM', $VM);
 
 # XXX Various issues with this stuff on JVM
-#?if !jvm
     my Mu $compiler := nqp::getlexcaller('$COMPILER_CONFIG');
     my $PERL = {
         name => 'rakudo',
@@ -81,6 +91,7 @@ sub term:<time>() { nqp::p6box_i(nqp::time_i()) }
     };
     nqp::bindkey(nqp::who(PROCESS), '$PERL', $PERL);
 
+#?if !jvm
     my $CWD = nqp::p6box_s(pir::new__PS('OS').cwd).path;
     nqp::bindkey(nqp::who(PROCESS), '$CWD', $CWD);
     

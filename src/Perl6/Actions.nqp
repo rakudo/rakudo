@@ -2234,7 +2234,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 QAST::Op.new(
                     :op('callmethod'), :name('find_best_dispatchee'),
                     QAST::Op.new( :op('getcodeobj'), QAST::Op.new( :op('curcode') ) ),
-                    QAST::Op.new( :op('usecapture') )
+                    QAST::Op.new( :op('savecapture') )
                 ),
             ),
             QAST::Op.new( :op('usecapture') )
@@ -2725,7 +2725,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 QAST::Op.new(
                     :op('callmethod'), :name('find_best_dispatchee'),
                     QAST::Op.new( :op('getcodeobj'), QAST::Op.new( :op('curcode') ) ),
-                    QAST::Op.new( :op('usecapture') )
+                    QAST::Op.new( :op('savecapture') )
                 )
             ),
             QAST::Op.new( :op('usecapture') )

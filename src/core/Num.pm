@@ -1,3 +1,5 @@
+my class X::Numeric::DivideByZero { ... };
+
 my class Num does Real {
     multi method WHICH(Num:D:) {
         nqp::box_s(
@@ -282,10 +284,14 @@ multi infix:<*>(num $a, num $b) {
 }
 
 multi infix:</>(Num:D \a, Num:D \b) {
-    nqp::p6box_n(nqp::div_n(nqp::unbox_n(a), nqp::unbox_n(b)))
+    nqp::if(b,
+        nqp::p6box_n(nqp::div_n(nqp::unbox_n(a), nqp::unbox_n(b))),
+        fail X::Numeric::DivideByZero.new);
 }
 multi infix:</>(num $a, num $b) {
-    nqp::div_n($a, $b)
+    nqp::if($b,
+        nqp::div_n($a, $b),
+        fail X::Numeric::DivideByZero.new);
 }
 
 multi infix:<%>(Num:D \a, Num:D \b) {

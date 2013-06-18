@@ -1,4 +1,5 @@
 my class Rat { ... }
+my class X::Numeric::DivideByZero { ... }
 
 my class Int does Real {
     multi method WHICH(Int:D:) {
@@ -141,11 +142,15 @@ multi infix:<*>(int $a, int $b) returns int {
     nqp::mul_i($a, $b)
 }
 
-multi infix:<div>(Int:D \a, Int:D \b) returns Int {
-    nqp::div_I(nqp::decont(a), nqp::decont(b), Int);
+multi infix:<div>(Int:D \a, Int:D \b) {
+    nqp::if(b,
+        nqp::div_I(nqp::decont(a), nqp::decont(b), Int),
+        fail X::Numeric::DivideByZero.new())
 }
-multi infix:<div>(int $a, int $b) returns int {
-    nqp::div_i($a, $b)
+multi infix:<div>(int $a, int $b) {
+    nqp::if($b,
+        nqp::div_i($a, $b),
+        fail X::Numeric::DivideByZero.new());
 }
 
 multi infix:<%>(Int:D \a, Int:D \b) returns Int {

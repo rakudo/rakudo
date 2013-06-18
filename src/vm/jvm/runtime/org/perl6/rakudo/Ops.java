@@ -225,10 +225,7 @@ public final class Ops {
             csd = csd.explodeFlattening(cf, args);
             args = tc.flatArgs;
         }
-        else {
-            tc.flatArgs = args;
-        }
-        
+
         /* Look up parameters to bind. */
         if (DEBUG_MODE) {
             if (cf.codeRef.staticInfo.name != null)
@@ -246,7 +243,9 @@ public final class Ops {
             case Binder.BIND_RESULT_JUNCTION:
                 throw ExceptionHandling.dieInternal(tc, "Junction re-dispatch NYI");
         }
-        
+
+        /* The binder may, for a variety of reasons, wind up calling Perl 6 code and overwriting flatArgs, so it needs to be set at the end to return reliably */
+        tc.flatArgs = args;
         return csd;
     }
     

@@ -91,10 +91,35 @@ sub term:<time>() { nqp::p6box_i(nqp::time_i()) }
     };
     nqp::bindkey(nqp::who(PROCESS), '$PERL', $PERL);
 
+#?if jvm
+    my @INC;
+    @INC.push(%ENV<RAKUDOLIB>.split($VM<properties><path.separator>)) if %ENV<RAKUDOLIB>;
+    @INC.push(%ENV<PERL6LIB>.split($VM<properties><path.separator>)) if %ENV<PERL6LIB>;
+
+    my $I := nqp::atkey(nqp::atkey(%*COMPILING, '%?OPTIONS'), 'I');
+    if nqp::defined($I) {
+        if nqp::islist($I) {
+            my Mu $iter := nqp::iterator($I);
+            @INC.unshift: nqp::p6box_s(nqp::shift($iter)) while $iter;
+        }
+        else {
+            @INC.unshift: nqp::p6box_s($I);
+        }
+    }
+
+    nqp::bindkey(nqp::who(PROCESS), '@INC', @INC);
+
+    my $OS = $VM<properties><os.name>;
+    nqp::bindkey(nqp::who(PROCESS), '$OS', $OS);
+
+    my $OSVER = $VM<properties><os.version>;
+    nqp::bindkey(nqp::who(PROCESS), '$OSVER', $OSVER);
+#?endif
+
 #?if !jvm
     my $CWD = nqp::p6box_s(pir::new__PS('OS').cwd).path;
     nqp::bindkey(nqp::who(PROCESS), '$CWD', $CWD);
-    
+
     my @INC;
     @INC.push(%ENV<RAKUDOLIB>.split($VM<config><osname> eq 'MSWin32' ?? ';' !! ':')) if %ENV<RAKUDOLIB>;
     @INC.push(%ENV<PERL6LIB>.split($VM<config><osname> eq 'MSWin32' ?? ';' !! ':')) if %ENV<PERL6LIB>;

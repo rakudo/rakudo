@@ -186,6 +186,7 @@ my class Cool {
     method samecase(Cool:D: Cool $pattern) { self.Stringy.samecase($pattern) }
 
     method IO() { IO::Handle.new(:path(self.Stringy)) }
+    method path() { self.Stringy.path }
     method trim         () { self.Stringy.trim          };
     method trim-leading () { self.Stringy.trim-leading  };
     method trim-trailing() { self.Stringy.trim-trailing };

@@ -10,7 +10,12 @@ class Array {
     }
     
     multi method at_pos(Array:D: $pos) is rw {
+#?if jvm
+        if nqp::istype($pos, Num) && nqp::isnanorinf($pos) {
+#?endif
+#?if !jvm
         if nqp::isnanorinf($pos) {
+#?endif
             X::Item.new(aggregate => self, index => $pos).throw;
         }
         my int $p = nqp::unbox_i($pos.Int);

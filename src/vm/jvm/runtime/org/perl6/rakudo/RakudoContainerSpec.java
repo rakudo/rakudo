@@ -15,32 +15,34 @@ public class RakudoContainerSpec extends ContainerSpec {
     
     /* Fetches a value out of a container. Used for decontainerization. */
     public SixModelObject fetch(ThreadContext tc, SixModelObject cont) {
-        return cont.get_attribute_boxed(tc, Ops.Scalar, "$!value", HINT_value);
+        return cont.get_attribute_boxed(tc, Ops.key.getGC(tc).Scalar, "$!value", HINT_value);
     }
     
     /* Stores a value in a container. Used for assignment. */
     public void store(ThreadContext tc, SixModelObject cont, SixModelObject obj) {
+        SixModelObject Scalar = Ops.key.getGC(tc).Scalar;
         if (Ops.DEBUG_MODE)
             System.err.println("scalar store typecheck / rwcheck NYI");
         
-        SixModelObject whence = cont.get_attribute_boxed(tc, Ops.Scalar, "$!whence", HINT_whence);
+        SixModelObject whence = cont.get_attribute_boxed(tc, Scalar, "$!whence", HINT_whence);
         if (whence != null)
             org.perl6.nqp.runtime.Ops.invokeDirect(tc, whence,
                 WHENCE, new Object[] { });
         
-        cont.bind_attribute_boxed(tc, Ops.Scalar, "$!value", HINT_value, obj);
+        cont.bind_attribute_boxed(tc, Scalar, "$!value", HINT_value, obj);
     }
     
     /* Stores a value in a container, without any checking of it (this
      * assumes an optimizer or something else already did it). Used for
      * assignment. */
     public void storeUnchecked(ThreadContext tc, SixModelObject cont, SixModelObject obj) {
-        SixModelObject whence = cont.get_attribute_boxed(tc, Ops.Scalar, "$!whence", HINT_whence);
+        SixModelObject Scalar = Ops.key.getGC(tc).Scalar;
+        SixModelObject whence = cont.get_attribute_boxed(tc, Scalar, "$!whence", HINT_whence);
         if (whence != null)
             org.perl6.nqp.runtime.Ops.invokeDirect(tc, whence,
                 WHENCE, new Object[] { });
         
-        cont.bind_attribute_boxed(tc, Ops.Scalar, "$!value", HINT_value, obj);
+        cont.bind_attribute_boxed(tc, Scalar, "$!value", HINT_value, obj);
     }
     
     /* Name of this container specification. */

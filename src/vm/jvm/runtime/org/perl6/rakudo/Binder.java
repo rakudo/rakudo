@@ -65,20 +65,20 @@ public final class Binder {
     private static final int HINT_CAPTURE_hash = 1;
     private static final int HINT_SIG_params = 0;
 
-    private static SixModelObject createBox(ThreadContext tc, Object arg, int flag) {
+    private static SixModelObject createBox(ThreadContext tc, Ops.GlobalExt gcx, Object arg, int flag) {
         switch (flag) {
             case CallSiteDescriptor.ARG_INT:
-                return org.perl6.nqp.runtime.Ops.box_i((long)arg, Ops.Int, tc);
+                return org.perl6.nqp.runtime.Ops.box_i((long)arg, gcx.Int, tc);
             case CallSiteDescriptor.ARG_NUM:
-                return org.perl6.nqp.runtime.Ops.box_n((double)arg, Ops.Num, tc);
+                return org.perl6.nqp.runtime.Ops.box_n((double)arg, gcx.Num, tc);
             case CallSiteDescriptor.ARG_STR:
-                return org.perl6.nqp.runtime.Ops.box_s((String)arg, Ops.Str, tc);
+                return org.perl6.nqp.runtime.Ops.box_s((String)arg, gcx.Str, tc);
             default:
                 throw new RuntimeException("Impossible case reached in createBox");
         }
     }
     
-    private static String arityFail(ThreadContext tc, SixModelObject params,
+    private static String arityFail(ThreadContext tc, Ops.GlobalExt gcx, SixModelObject params,
             int numParams, int numPosArgs, boolean tooMany) {
         int arity = 0;
         int count = 0;
@@ -87,10 +87,10 @@ public final class Binder {
         /* Work out how many we could have been passed. */
         for (int i = 0; i < numParams; i++) {
             SixModelObject param = params.at_pos_boxed(tc, i);
-            param.get_attribute_native(tc, Ops.Parameter, "$!flags", HINT_flags);
+            param.get_attribute_native(tc, gcx.Parameter, "$!flags", HINT_flags);
             int flags = (int)tc.native_i;
             SixModelObject namedNames = param.get_attribute_boxed(tc,
-                Ops.Parameter, "$!named_names", HINT_named_names);
+                gcx.Parameter, "$!named_names", HINT_named_names);
 
             if (namedNames != null)
                 continue;
@@ -124,8 +124,8 @@ public final class Binder {
     }
     
     /* Returns an appropriate failure mode (junction fail or normal fail). */
-    private static int junc_or_fail(SixModelObject value) {
-        if (value.st.WHAT == Ops.Junction)
+    private static int junc_or_fail(Ops.GlobalExt gcx, SixModelObject value) {
+        if (value.st.WHAT == gcx.Junction)
             return BIND_RESULT_JUNCTION;
         else
             return BIND_RESULT_FAIL;
@@ -144,12 +144,12 @@ public final class Binder {
     /* Binds a single argument into the lexpad, after doing any checks that are
      * needed. Also handles any type captures. If there is a sub signature, then
      * re-enters the binder. Returns one of the BIND_RESULT_* codes. */
-    private static int bindOneParam(ThreadContext tc, CallFrame cf, SixModelObject param,
+    private static int bindOneParam(ThreadContext tc, Ops.GlobalExt gcx, CallFrame cf, SixModelObject param,
             Object origArg, byte origFlag, boolean noNomTypeCheck, String[] error) {
         /* Get parameter flags and variable name. */
-        param.get_attribute_native(tc, Ops.Parameter, "$!flags", HINT_flags);
+        param.get_attribute_native(tc, gcx.Parameter, "$!flags", HINT_flags);
         int paramFlags = (int)tc.native_i;
-        param.get_attribute_native(tc, Ops.Parameter, "$!variable_name", HINT_variable_name);
+        param.get_attribute_native(tc, gcx.Parameter, "$!variable_name", HINT_variable_name);
         String varName = tc.native_s;
         if (Ops.DEBUG_MODE)
             System.err.println(varName);
@@ -184,7 +184,7 @@ public final class Binder {
         else if (desiredNative == 0) {
             /* We need to do a boxing operation. */
             flag = CallSiteDescriptor.ARG_OBJ;
-            arg_o = createBox(tc, origArg, gotNative);
+            arg_o = createBox(tc, gcx, origArg, gotNative);
         }
         else {
             /* We need to do an unboxing opeation. */
@@ -258,7 +258,7 @@ public final class Binder {
         }
         
         /* Type captures. */
-        SixModelObject typeCaps = param.get_attribute_boxed(tc, Ops.Parameter,
+        SixModelObject typeCaps = param.get_attribute_boxed(tc, gcx.Parameter,
             "$!type_captures", HINT_type_captures);
         if (typeCaps != null)
             bindTypeCaptures(tc, typeCaps, cf, decontValue.st.WHAT);
@@ -319,13 +319,13 @@ public final class Binder {
                  * container and store it, for copy or ro case (the rw bit
                  * in the container descriptor takes care of the rest). */
                 else {
-                    STable stScalar = Ops.Scalar.st;
+                    STable stScalar = gcx.Scalar.st;
                     SixModelObject new_cont = stScalar.REPR.allocate(tc, stScalar);
-                    SixModelObject desc = param.get_attribute_boxed(tc, Ops.Parameter,
+                    SixModelObject desc = param.get_attribute_boxed(tc, gcx.Parameter,
                         "$!container_descriptor", HINT_container_descriptor);
-                    new_cont.bind_attribute_boxed(tc, Ops.Scalar, "$!descriptor",
+                    new_cont.bind_attribute_boxed(tc, gcx.Scalar, "$!descriptor",
                         RakudoContainerSpec.HINT_descriptor, desc);
-                    new_cont.bind_attribute_boxed(tc, Ops.Scalar, "$!value",
+                    new_cont.bind_attribute_boxed(tc, gcx.Scalar, "$!value",
                         RakudoContainerSpec.HINT_value, decontValue);
                     cf.oLex[sci.oTryGetLexicalIdx(varName)] = new_cont;
                 }
@@ -340,7 +340,7 @@ public final class Binder {
 
         /* TODO: attributives. */
 
-        SixModelObject subSignature = param.get_attribute_boxed(tc, Ops.Parameter,
+        SixModelObject subSignature = param.get_attribute_boxed(tc, gcx.Parameter,
             "$!sub_signature", HINT_sub_signature);
 
         /* If it has a sub-signature, bind that. */
@@ -363,10 +363,10 @@ public final class Binder {
             }
 
             SixModelObject subParams = subSignature
-                .get_attribute_boxed(tc, Ops.Signature, "$!params", HINT_SIG_params);
+                .get_attribute_boxed(tc, gcx.Signature, "$!params", HINT_SIG_params);
             /* Recurse into signature binder. */
-            CallSiteDescriptor subCsd = explodeCapture(tc, capture);
-            result = bind(tc, cf, subParams, subCsd, tc.flatArgs, noNomTypeCheck, error);
+            CallSiteDescriptor subCsd = explodeCapture(tc, gcx, capture);
+            result = bind(tc, gcx, cf, subParams, subCsd, tc.flatArgs, noNomTypeCheck, error);
             if (result != BIND_RESULT_OK)
             {
                 if (error != null) {
@@ -392,10 +392,10 @@ public final class Binder {
         CallSiteDescriptor.ARG_OBJ | CallSiteDescriptor.ARG_FLAT,
             CallSiteDescriptor.ARG_OBJ | CallSiteDescriptor.ARG_FLAT | CallSiteDescriptor.ARG_NAMED
     }, null);
-    private static CallSiteDescriptor explodeCapture(ThreadContext tc, SixModelObject capture) {
+    private static CallSiteDescriptor explodeCapture(ThreadContext tc, Ops.GlobalExt gcx, SixModelObject capture) {
         capture = org.perl6.nqp.runtime.Ops.decont(capture, tc);
 
-        SixModelObject capType = Ops.Capture;
+        SixModelObject capType = gcx.Capture;
         SixModelObject list = capture.get_attribute_boxed(tc, capType, "$!list", HINT_CAPTURE_list);
         SixModelObject hash = capture.get_attribute_boxed(tc, capType, "$!hash", HINT_CAPTURE_hash);
 
@@ -404,16 +404,16 @@ public final class Binder {
 
     /* This takes a signature element and either runs the closure to get a default
      * value if there is one, or creates an appropriate undefined-ish thingy. */
-    private static SixModelObject handleOptional(ThreadContext tc, int flags, SixModelObject param, CallFrame cf) {
+    private static SixModelObject handleOptional(ThreadContext tc, Ops.GlobalExt gcx, int flags, SixModelObject param, CallFrame cf) {
         /* Is the "get default from outer" flag set? */
         if ((flags & SIG_ELEM_DEFAULT_FROM_OUTER) != 0) {
-            param.get_attribute_native(tc, Ops.Parameter, "$!variable_name", HINT_variable_name);
+            param.get_attribute_native(tc, gcx.Parameter, "$!variable_name", HINT_variable_name);
             String varName = tc.native_s;
             return cf.outer.oLex[cf.outer.codeRef.staticInfo.oTryGetLexicalIdx(varName)];
         }
 
         /* Do we have a default value or value closure? */
-        SixModelObject defaultValue = param.get_attribute_boxed(tc, Ops.Parameter,
+        SixModelObject defaultValue = param.get_attribute_boxed(tc, gcx.Parameter,
             "$!default_value", HINT_default_value);
         if (defaultValue != null) {
             if ((flags & SIG_ELEM_DEFAULT_IS_LITERAL) != 0) {
@@ -429,14 +429,14 @@ public final class Binder {
         /* Otherwise, go by sigil to pick the correct default type of value. */
         else {
             if ((flags & SIG_ELEM_ARRAY_SIGIL) != 0) {
-                return Ops.p6list(null, Ops.Array, Ops.True, tc);
+                return Ops.p6list(null, gcx.Array, gcx.True, tc);
             }
             else if ((flags & SIG_ELEM_HASH_SIGIL) != 0) {
-                SixModelObject res = Ops.Hash.st.REPR.allocate(tc, Ops.Hash.st);
+                SixModelObject res = gcx.Hash.st.REPR.allocate(tc, gcx.Hash.st);
                 return res;
             }
             else {
-                return param.get_attribute_boxed(tc, Ops.Parameter, "$!nominal_type", HINT_nominal_type);
+                return param.get_attribute_boxed(tc, gcx.Parameter, "$!nominal_type", HINT_nominal_type);
             }
         }
     }
@@ -445,7 +445,7 @@ public final class Binder {
      * into the provided callframe. Returns BIND_RESULT_OK if binding works out,
      * BIND_RESULT_FAIL if there is a failure and BIND_RESULT_JUNCTION if the
      * failure was because of a Junction being passed (meaning we need to auto-thread). */
-    public static int bind(ThreadContext tc, CallFrame cf, SixModelObject params,
+    public static int bind(ThreadContext tc, Ops.GlobalExt gcx, CallFrame cf, SixModelObject params,
             CallSiteDescriptor csd, Object[] args,
             boolean noNomTypeCheck, String[] error) {
         int bindFail = BIND_RESULT_OK;
@@ -469,22 +469,22 @@ public final class Binder {
         for (long i = 0; i < numParams; i++) {
             /* Get parameter, its flags and any named names. */
             SixModelObject param = params.at_pos_boxed(tc, i);
-            param.get_attribute_native(tc, Ops.Parameter, "$!flags", HINT_flags);
+            param.get_attribute_native(tc, gcx.Parameter, "$!flags", HINT_flags);
             int flags = (int)tc.native_i;
             SixModelObject namedNames = param.get_attribute_boxed(tc,
-                Ops.Parameter, "$!named_names", HINT_named_names);
+                gcx.Parameter, "$!named_names", HINT_named_names);
             
             /* Is it looking for us to bind a capture here? */
             if ((flags & SIG_ELEM_IS_CAPTURE) != 0) {
                 /* Capture the arguments from this point forwards into a Capture.
                  * Of course, if there's no variable name we can (cheaply) do pretty
                  * much nothing. */
-                param.get_attribute_native(tc, Ops.Parameter, "$!variable_name", HINT_variable_name);
+                param.get_attribute_native(tc, gcx.Parameter, "$!variable_name", HINT_variable_name);
                 if (tc.native_s == null) {
                    bindFail = BIND_RESULT_OK;
                 }
                 else {
-                    SixModelObject posArgs = Ops.EMPTYARR.clone(tc);
+                    SixModelObject posArgs = gcx.EMPTYARR.clone(tc);
                     for (int k = curPosArg; k < numPosArgs; k++) {
                         switch (csd.argFlags[k]) {
                         case CallSiteDescriptor.ARG_OBJ:
@@ -501,14 +501,14 @@ public final class Binder {
                             break;
                         }
                     }                    
-                    SixModelObject namedArgs = vmHashOfRemainingNameds(tc, namedArgsCopy, args);
+                    SixModelObject namedArgs = vmHashOfRemainingNameds(tc, gcx, namedArgsCopy, args);
                     
-                    SixModelObject capType = Ops.Capture;
+                    SixModelObject capType = gcx.Capture;
                     SixModelObject capSnap = capType.st.REPR.allocate(tc, capType.st);
                     capSnap.bind_attribute_boxed(tc, capType, "$!list", HINT_CAPTURE_list, posArgs);
                     capSnap.bind_attribute_boxed(tc, capType, "$!hash", HINT_CAPTURE_hash, namedArgs);
                     
-                    bindFail = bindOneParam(tc, cf, param, capSnap, CallSiteDescriptor.ARG_OBJ,
+                    bindFail = bindOneParam(tc, gcx, cf, param, capSnap, CallSiteDescriptor.ARG_OBJ,
                         noNomTypeCheck, error);               
                 }
                 if (bindFail != 0) {
@@ -522,7 +522,7 @@ public final class Binder {
                 }
                 else {
                     SixModelObject nextParam = params.at_pos_boxed(tc, i + 1);
-                    nextParam.get_attribute_native(tc, Ops.Parameter, "$!flags", HINT_flags);
+                    nextParam.get_attribute_native(tc, gcx.Parameter, "$!flags", HINT_flags);
                     if (((int)tc.native_i & (SIG_ELEM_SLURPY_POS | SIG_ELEM_SLURPY_NAMED)) != 0)
                         suppressArityFail = true;
                 }
@@ -530,11 +530,11 @@ public final class Binder {
             
             /* Could it be a named slurpy? */
             else if ((flags & SIG_ELEM_SLURPY_NAMED) != 0) {
-                SixModelObject slurpy = vmHashOfRemainingNameds(tc, namedArgsCopy, args);
-                SixModelObject bindee = Ops.Hash.st.REPR.allocate(tc, Ops.Hash.st);
-                bindee.bind_attribute_boxed(tc, Ops.EnumMap, "$!storage",
+                SixModelObject slurpy = vmHashOfRemainingNameds(tc, gcx, namedArgsCopy, args);
+                SixModelObject bindee = gcx.Hash.st.REPR.allocate(tc, gcx.Hash.st);
+                bindee.bind_attribute_boxed(tc, gcx.EnumMap, "$!storage",
                     HINT_ENUMMAP_storage, slurpy);
-                bindFail = bindOneParam(tc, cf, param, bindee, CallSiteDescriptor.ARG_OBJ,
+                bindFail = bindOneParam(tc, gcx, cf, param, bindee, CallSiteDescriptor.ARG_OBJ,
                     noNomTypeCheck, error);
                 if (bindFail != 0)
                     return bindFail;
@@ -550,7 +550,7 @@ public final class Binder {
                 if ((flags & (SIG_ELEM_SLURPY_POS | SIG_ELEM_SLURPY_LOL)) != 0) {
                     /* Create Perl 6 array, create VM array of all remaining things,
                      * then store it. */
-                    SixModelObject slurpy = Ops.EMPTYARR.clone(tc);
+                    SixModelObject slurpy = gcx.EMPTYARR.clone(tc);
                     while (curPosArg < numPosArgs) {
                         switch (csd.argFlags[curPosArg]) {
                         case CallSiteDescriptor.ARG_OBJ:
@@ -572,15 +572,15 @@ public final class Binder {
                     SixModelObject bindee;
                     if ((flags & SIG_ELEM_SLURPY_POS) != 0) {
                         if ((flags & SIG_ELEM_IS_RW) != 0)
-                            bindee = Ops.p6list(slurpy, Ops.List, Ops.True, tc);
+                            bindee = Ops.p6list(slurpy, gcx.List, gcx.True, tc);
                         else
-                            bindee = Ops.p6list(slurpy, Ops.Array, Ops.True, tc);
+                            bindee = Ops.p6list(slurpy, gcx.Array, gcx.True, tc);
                     }
                     else {
-                        bindee = Ops.p6list(slurpy, Ops.LoL, Ops.False, tc);
+                        bindee = Ops.p6list(slurpy, gcx.LoL, gcx.False, tc);
                     }
                     
-                    bindFail = bindOneParam(tc, cf, param, bindee, CallSiteDescriptor.ARG_OBJ,
+                    bindFail = bindOneParam(tc, gcx, cf, param, bindee, CallSiteDescriptor.ARG_OBJ,
                         noNomTypeCheck, error);
                     if (bindFail != 0)
                         return bindFail;
@@ -591,7 +591,7 @@ public final class Binder {
                     /* Do we have a value?. */
                     if (curPosArg < numPosArgs) {
                         /* Easy - just bind that. */
-                        bindFail = bindOneParam(tc, cf, param, args[curPosArg],
+                        bindFail = bindOneParam(tc, gcx, cf, param, args[curPosArg],
                             csd.argFlags[curPosArg], noNomTypeCheck, error);
                         if (bindFail != 0)
                             return bindFail;
@@ -602,15 +602,15 @@ public final class Binder {
                          * if not, we're screwed. Note that we never nominal type check
                          * an optional with no value passed. */
                         if ((flags & SIG_ELEM_IS_OPTIONAL) != 0) {
-                            bindFail = bindOneParam(tc, cf, param,
-                                handleOptional(tc, flags, param, cf),
+                            bindFail = bindOneParam(tc, gcx, cf, param,
+                                handleOptional(tc, gcx, flags, param, cf),
                                 CallSiteDescriptor.ARG_OBJ, false, error);
                             if (bindFail != 0)
                                 return bindFail;
                         }
                         else {
                             if (error != null)
-                                error[0] = arityFail(tc, params, (int)numParams, numPosArgs, false);
+                                error[0] = arityFail(tc, gcx, params, (int)numParams, numPosArgs, false);
                             return BIND_RESULT_FAIL;
                         }
                     }
@@ -635,8 +635,8 @@ public final class Binder {
                 if (lookup == null) {
                     /* Nope. We'd better hope this param was optional... */
                     if ((flags & SIG_ELEM_IS_OPTIONAL) != 0) {
-                        bindFail = bindOneParam(tc, cf, param,
-                            handleOptional(tc, flags, param, cf),
+                        bindFail = bindOneParam(tc, gcx, cf, param,
+                            handleOptional(tc, gcx, flags, param, cf),
                             CallSiteDescriptor.ARG_OBJ, false, error);
                     }
                     else if (!suppressArityFail) {
@@ -648,7 +648,7 @@ public final class Binder {
                     }
                 }
                 else {
-                    bindFail = bindOneParam(tc, cf, param, args[lookup >> 3],
+                    bindFail = bindOneParam(tc, gcx, cf, param, args[lookup >> 3],
                         (byte)(lookup & 7), noNomTypeCheck, error);
                 }
 
@@ -663,8 +663,8 @@ public final class Binder {
     }
     
     /* Takes any nameds we didn't capture yet and makes a VM Hash of them. */
-    private static SixModelObject vmHashOfRemainingNameds(ThreadContext tc, HashMap<String, Integer> namedArgsCopy, Object[] args) {
-        SixModelObject slurpy = Ops.Mu;
+    private static SixModelObject vmHashOfRemainingNameds(ThreadContext tc, Ops.GlobalExt gcx, HashMap<String, Integer> namedArgsCopy, Object[] args) {
+        SixModelObject slurpy = gcx.Mu;
         if (namedArgsCopy != null) {
             SixModelObject BOOTHash = tc.gc.BOOTHash;
             slurpy = BOOTHash.st.REPR.allocate(tc, BOOTHash.st);

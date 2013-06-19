@@ -3013,7 +3013,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         [ <!{ $*QSIGIL }> [ <.unsp> | '\\' ] ]?
 
         :dba('postfix')
-        <postfix_prefix_meta_operator>**0..1
+        [ ['.' <.unsp>?]? <postfix_prefix_meta_operator> <.unsp>?]**0..1
         [
         | <OPER=postfix>
         | <OPER=postcircumfix>

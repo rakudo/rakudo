@@ -130,8 +130,7 @@ my class Hash {
     multi method categorize( &test, *@list ) {
         fail 'Cannot .categorize an infinite list' if @list.infinite;
         for @list {
-            my @k = test $_;
-            for @k -> $k {
+            for test($_) -> $k {
                 self{$k}.push: $_;
             }
         }
@@ -140,8 +139,7 @@ my class Hash {
     multi method categorize( %test, *@list ) {
         fail 'Cannot .categorize an infinite list' if @list.infinite;
         for @list {
-            my @k = %test{$_};
-            for @k -> $k {
+            for %test{$_} -> $k {
                 self{$k}.push: $_;
             }
         }
@@ -150,8 +148,7 @@ my class Hash {
     multi method categorize( @test, *@list ) {
         fail 'Cannot .categorize an infinite list' if @list.infinite;
         for @list {
-            my @k = @test[$_];
-            for @k -> $k {
+            for @test[$_] -> $k {
                 self{$k}.push: $_;
             }
         }

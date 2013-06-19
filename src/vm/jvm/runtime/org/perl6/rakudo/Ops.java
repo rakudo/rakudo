@@ -2,6 +2,7 @@ package org.perl6.rakudo;
 
 import org.perl6.nqp.runtime.*;
 import org.perl6.nqp.sixmodel.*;
+import org.perl6.nqp.sixmodel.reprs.LexoticInstance;
 import org.perl6.nqp.sixmodel.reprs.VMArrayInstance;
 
 /**
@@ -453,7 +454,7 @@ public final class Ops {
             if (cont != null) break;
         }
 
-        if (!(cont instanceof Lexotic)) {
+        if (!(cont instanceof LexoticInstance)) {
             SixModelObject thrower = getThrower(tc, "X::ControlFlow::Return");
             if (thrower == null)
                 ExceptionHandling.dieInternal(tc, "Attempt to return outside of any Routine");
@@ -463,7 +464,7 @@ public final class Ops {
 
         // rewinding is handled by finally blocks in the generated subs
         LexoticException throwee = tc.theLexotic;
-        throwee.target = ((Lexotic)cont).target;
+        throwee.target = ((LexoticInstance)cont).target;
         throwee.payload = in;
         throw throwee;
     }

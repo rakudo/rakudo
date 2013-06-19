@@ -64,10 +64,7 @@ public final class Binder {
     private static final int HINT_CAPTURE_list = 0;
     private static final int HINT_CAPTURE_hash = 1;
     private static final int HINT_SIG_params = 0;
-    
-    /* Last error, per thread. */
-    public static HashMap<ThreadContext, String> lastErrors = new HashMap<ThreadContext, String>();
-    
+
     private static SixModelObject createBox(ThreadContext tc, Object arg, int flag) {
         switch (flag) {
             case CallSiteDescriptor.ARG_INT:
@@ -148,7 +145,7 @@ public final class Binder {
      * needed. Also handles any type captures. If there is a sub signature, then
      * re-enters the binder. Returns one of the BIND_RESULT_* codes. */
     private static int bindOneParam(ThreadContext tc, CallFrame cf, SixModelObject param,
-            Object origArg, byte origFlag, boolean noNomTypeCheck, boolean needError) {
+            Object origArg, byte origFlag, boolean noNomTypeCheck, String[] error) {
         /* Get parameter flags and variable name. */
         param.get_attribute_native(tc, Ops.Parameter, "$!flags", HINT_flags);
         int paramFlags = (int)tc.native_i;
@@ -200,10 +197,10 @@ public final class Binder {
                         arg_i = decontValue.get_int(tc);
                     }
                     else {
-                        if (needError)
-                            lastErrors.put(tc, String.format(
+                        if (error != null)
+                            error[0] = String.format(
                                 "Cannot unbox argument to '%s' as a native int",
-                                varName));
+                                varName);
                         return BIND_RESULT_FAIL;
                     }
                     break;
@@ -213,10 +210,10 @@ public final class Binder {
                         arg_n = decontValue.get_num(tc);
                     }
                     else {
-                        if (needError)
-                            lastErrors.put(tc, String.format(
+                        if (error != null)
+                            error[0] = String.format(
                                 "Cannot unbox argument to '%s' as a native num",
-                                varName));
+                                varName);
                         return BIND_RESULT_FAIL;
                     }
                     break;
@@ -226,18 +223,18 @@ public final class Binder {
                         arg_s = decontValue.get_str(tc);
                     }
                     else {
-                        if (needError)
-                            lastErrors.put(tc, String.format(
+                        if (error != null)
+                            error[0] = String.format(
                                 "Cannot unbox argument to '%s' as a native str",
-                                varName));
+                                varName);
                         return BIND_RESULT_FAIL;
                     }
                     break;
                 default:
-                    if (needError)
-                        lastErrors.put(tc, String.format(
+                    if (error != null)
+                        error[0] = String.format(
                             "Cannot unbox argument to '%s' as a native type",
-                            varName));
+                            varName);
                     return BIND_RESULT_FAIL;
             }
         }
@@ -357,8 +354,8 @@ public final class Binder {
             else {
                 SixModelObject meth = org.perl6.nqp.runtime.Ops.findmethod(decontValue, "Capture", tc);
                 if (meth == null) {
-                    if (needError)
-                        lastErrors.put(tc, "Could not turn argument into capture");
+                    if (error != null)
+                        error[0] = "Could not turn argument into capture";
                     return BIND_RESULT_FAIL;
                 }
                 org.perl6.nqp.runtime.Ops.invokeDirect(tc, meth, org.perl6.nqp.runtime.Ops.invocantCallSite, new Object[] { decontValue });
@@ -369,16 +366,16 @@ public final class Binder {
                 .get_attribute_boxed(tc, Ops.Signature, "$!params", HINT_SIG_params);
             /* Recurse into signature binder. */
             CallSiteDescriptor subCsd = explodeCapture(tc, capture);
-            result = bind(tc, cf, subParams, subCsd, tc.flatArgs, noNomTypeCheck, needError);
+            result = bind(tc, cf, subParams, subCsd, tc.flatArgs, noNomTypeCheck, error);
             if (result != BIND_RESULT_OK)
             {
-                if (needError) {
+                if (error != null) {
                     /* Note in the error message that we're in a sub-signature. */
-                    lastErrors.put(tc, lastErrors.get(tc) + " in sub-signature");
+                    error[0] += " in sub-signature";
 
                     /* Have we a variable name? */
                     if (varName != null) {
-                        lastErrors.put(tc, lastErrors.get(tc) + " of parameter " + varName);
+                        error[0] += " of parameter " + varName;
                     }
                 }
                 return result;
@@ -450,7 +447,7 @@ public final class Binder {
      * failure was because of a Junction being passed (meaning we need to auto-thread). */
     public static int bind(ThreadContext tc, CallFrame cf, SixModelObject params,
             CallSiteDescriptor csd, Object[] args,
-            boolean noNomTypeCheck, boolean needError) {
+            boolean noNomTypeCheck, String[] error) {
         int bindFail = BIND_RESULT_OK;
         int curPosArg = 0;
         
@@ -512,7 +509,7 @@ public final class Binder {
                     capSnap.bind_attribute_boxed(tc, capType, "$!hash", HINT_CAPTURE_hash, namedArgs);
                     
                     bindFail = bindOneParam(tc, cf, param, capSnap, CallSiteDescriptor.ARG_OBJ,
-                        noNomTypeCheck, needError);               
+                        noNomTypeCheck, error);               
                 }
                 if (bindFail != 0) {
                     return bindFail;
@@ -538,7 +535,7 @@ public final class Binder {
                 bindee.bind_attribute_boxed(tc, Ops.EnumMap, "$!storage",
                     HINT_ENUMMAP_storage, slurpy);
                 bindFail = bindOneParam(tc, cf, param, bindee, CallSiteDescriptor.ARG_OBJ,
-                    noNomTypeCheck, needError);
+                    noNomTypeCheck, error);
                 if (bindFail != 0)
                     return bindFail;
                 
@@ -584,7 +581,7 @@ public final class Binder {
                     }
                     
                     bindFail = bindOneParam(tc, cf, param, bindee, CallSiteDescriptor.ARG_OBJ,
-                        noNomTypeCheck, needError);
+                        noNomTypeCheck, error);
                     if (bindFail != 0)
                         return bindFail;
                 }
@@ -595,7 +592,7 @@ public final class Binder {
                     if (curPosArg < numPosArgs) {
                         /* Easy - just bind that. */
                         bindFail = bindOneParam(tc, cf, param, args[curPosArg],
-                            csd.argFlags[curPosArg], noNomTypeCheck, needError);
+                            csd.argFlags[curPosArg], noNomTypeCheck, error);
                         if (bindFail != 0)
                             return bindFail;
                         curPosArg++;
@@ -607,13 +604,13 @@ public final class Binder {
                         if ((flags & SIG_ELEM_IS_OPTIONAL) != 0) {
                             bindFail = bindOneParam(tc, cf, param,
                                 handleOptional(tc, flags, param, cf),
-                                CallSiteDescriptor.ARG_OBJ, false, needError);
+                                CallSiteDescriptor.ARG_OBJ, false, error);
                             if (bindFail != 0)
                                 return bindFail;
                         }
                         else {
-                            if (needError)
-                                lastErrors.put(tc, arityFail(tc, params, (int)numParams, numPosArgs, false));
+                            if (error != null)
+                                error[0] = arityFail(tc, params, (int)numParams, numPosArgs, false);
                             return BIND_RESULT_FAIL;
                         }
                     }
@@ -640,19 +637,19 @@ public final class Binder {
                     if ((flags & SIG_ELEM_IS_OPTIONAL) != 0) {
                         bindFail = bindOneParam(tc, cf, param,
                             handleOptional(tc, flags, param, cf),
-                            CallSiteDescriptor.ARG_OBJ, false, needError);
+                            CallSiteDescriptor.ARG_OBJ, false, error);
                     }
                     else if (!suppressArityFail) {
-                        if (needError)
-                            lastErrors.put(tc, "Required named parameter '" +
+                        if (error != null)
+                            error[0] = "Required named parameter '" +
                                 namedNames.at_pos_boxed(tc, 0).get_str(tc) +
-                                "' not passed");
+                                "' not passed";
                         return BIND_RESULT_FAIL;
                     }
                 }
                 else {
                     bindFail = bindOneParam(tc, cf, param, args[lookup >> 3],
-                        (byte)(lookup & 7), noNomTypeCheck, needError);
+                        (byte)(lookup & 7), noNomTypeCheck, error);
                 }
 
                 /* If we got a binding failure, return it. */
@@ -690,9 +687,5 @@ public final class Binder {
             }
         }
         return slurpy;
-    }
-    
-    public static String lastError(ThreadContext tc) {
-        return lastErrors.get(tc);
     }
 }

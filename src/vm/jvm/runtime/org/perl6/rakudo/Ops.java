@@ -238,9 +238,10 @@ public final class Ops {
             .get_attribute_boxed(tc, Signature, "$!params", HINT_SIG_PARAMS);
         
         /* Run binder, and handle any errors. */
-        switch (Binder.bind(tc, cf, params, csd, args, false, true)) {
+        String[] error = new String[1];
+        switch (Binder.bind(tc, cf, params, csd, args, false, error)) {
             case Binder.BIND_RESULT_FAIL:
-                throw ExceptionHandling.dieInternal(tc, Binder.lastError(tc));
+                throw ExceptionHandling.dieInternal(tc, error[0]);
             case Binder.BIND_RESULT_JUNCTION:
                 throw ExceptionHandling.dieInternal(tc, "Junction re-dispatch NYI");
         }

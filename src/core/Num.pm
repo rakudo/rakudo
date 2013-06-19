@@ -284,14 +284,12 @@ multi infix:<*>(num $a, num $b) {
 }
 
 multi infix:</>(Num:D \a, Num:D \b) {
-    nqp::if(b,
-        nqp::p6box_n(nqp::div_n(nqp::unbox_n(a), nqp::unbox_n(b))),
-        fail X::Numeric::DivideByZero.new);
+    fail X::Numeric::DivideByZero.new unless b;
+    nqp::p6box_n(nqp::div_n(nqp::unbox_n(a), nqp::unbox_n(b)))
 }
 multi infix:</>(num $a, num $b) {
-    nqp::if($b,
-        nqp::div_n($a, $b),
-        fail X::Numeric::DivideByZero.new);
+    fail X::Numeric::DivideByZero.new unless $b;
+    nqp::div_n($a, $b)
 }
 
 multi infix:<%>(Num:D \a, Num:D \b) {

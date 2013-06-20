@@ -298,27 +298,49 @@ my class IO::Handle does IO::FileTestable {
 
 my class IO::Path is Cool does IO::FileTestable {
     method SPEC { IO::Spec.MODULE };
-    has Str $.basename;
-    has Str $.directory = '.';
-    has Str $.volume = '';
+    has Str $.path;
 
     method dir() {
         die "IO::Path.dir is deprecated in favor of .directory";
     }
-    submethod BUILD(:$!basename, :$!directory, :$!volume, :$dir) {
+    submethod BUILD(:$!path!, :$dir) { 
         die "Named paramter :dir in IO::Path.new deprecated in favor of :directory"
             if defined $dir;
     }
 
+    multi method new(:$basename!, :$directory = '.', :$volume = '') {
+        self.new: path=>$.SPEC.join($volume, $directory, $basename);
+    }
+
     multi method new(Str:D $path) {
-         self.new( |$.SPEC.split($path).hash );
+        self.new(:$path)
+    }
+
+    method path(IO::Path:D:) {
+        self;
+    }
+
+    method parts {
+        $.SPEC.split($!path).hash
+    }
+    method basename {
+        self.parts<basename>
+    }
+    method directory {
+        self.parts<directory>
+    }
+    method volume {
+        self.parts<volume>
     }
 
     multi method Str(IO::Path:D:) {
-        $.SPEC.join($.volume, $.directory, $.basename);
+         $!path;
     }
     multi method gist(IO::Path:D:) {
-        "{self.^name}<{self.Str}>";
+        "{self.^name}<{ $!path }>";
+    }
+    multi method perl(IO::Path:D:) {
+         "IO::Path.new(path => " ~ $.Str.perl ~ ")";
     }
     multi method Numeric(IO::Path:D:) {
         self.basename.Numeric;
@@ -337,37 +359,32 @@ my class IO::Path is Cool does IO::FileTestable {
         self.new(:$.volume, :$.directory, basename=> $.basename.pred)
     }
 
-
-    method path(IO::Path:D:) {
-        self;
-    }
-
     method IO(IO::Path:D: *%opts) {
-        IO::Handle.new(:path(~self), |%opts);
+        IO::Handle.new(:$!path, |%opts);
     }
     method open(IO::Path:D: *%opts) {
-        open(~self, |%opts);
+        open($!path, |%opts);
     }
 
     method is-absolute {
-        $.SPEC.is-absolute(~self);
+        $.SPEC.is-absolute($!path);
     }
     method is-relative {
-        ! $.SPEC.is-absolute(~self);
+        ! $.SPEC.is-absolute($!path);
     }
     method absolute ($base = ~$*CWD) {
-        return self.new($.SPEC.rel2abs(~self, $base))
+        return self.new($.SPEC.rel2abs($!path, $base));
     }
     method relative ($relative_to_directory = ~$*CWD) {
-        return self.new($.SPEC.abs2rel(~self, $relative_to_directory));
+        return self.new($.SPEC.abs2rel($!path, $relative_to_directory));
     }
 
     method cleanup {
-        return self.new($.SPEC.canonpath(~self));
+        return self.new($.SPEC.canonpath($!path));
     }
     method resolve {
         # NYI: requires readlink()
-        X::NYI.new(feature=>'IO::Path.resolve').fail
+        X::NYI.new(feature=>'IO::Path.resolve').fail;
     }
 
     method parent {
@@ -391,29 +408,27 @@ my class IO::Path is Cool does IO::FileTestable {
     }
 
     method child ($childname) {
-        self.new($.SPEC.join: $.volume,
-                              $.SPEC.catdir($.directory, $.basename),
-                              $childname);
+        self.new: path => $.SPEC.catfile($!path, $childname);
     }
 
     method copy(IO::Path:D: $dest, :$createonly = False) {
         if $createonly and $dest.path.e {
-            fail(X::IO::Copy.new(from => $.Str, to => $dest,
+            fail(X::IO::Copy.new(from => $!path, to => $dest,
                     os-error => "Destination file $dest exists and :createonly passed to copy."));
         }
         try {
-            nqp::copy(nqp::unbox_s($.Str), nqp::unbox_s(~$dest));
+            nqp::copy(nqp::unbox_s($!path), nqp::unbox_s(~$dest));
         }
-        $! ?? fail(X::IO::Copy.new(from => $.Str, to => $dest, os-error => ~$!)) !! True
+        $! ?? fail(X::IO::Copy.new(from => $!path, to => $dest, os-error => ~$!)) !! True
     }
 
     method chmod(IO::Path:D: Int $mode) {
-        nqp::chmod(nqp::unbox_s(~self), nqp::unbox_i($mode.Int));
+        nqp::chmod(nqp::unbox_s($!path), nqp::unbox_i($mode.Int));
         return True;
         CATCH {
             default {
                 X::IO::Chmod.new(
-                    path=> ~self,
+                    :$!path,
                     :$mode,
                     os-error => .Str,
                 ).throw;
@@ -426,13 +441,13 @@ my class IO::Path is Cool does IO::FileTestable {
         CATCH {
             default {
                 X::IO::Dir.new(
-                    path => ~self,
+                    :$!path,
                     os-error => .Str,
                 ).throw;
             }
         }
 
-        my Mu $RSA := pir::new__PS('OS').readdir(nqp::unbox_s(self.Str));
+        my Mu $RSA := pir::new__PS('OS').readdir(nqp::unbox_s($!path));
         my int $elems = nqp::elems($RSA);
         gather loop (my int $i = 0; $i < $elems; $i = $i + 1) {
             my Str $file := nqp::p6box_s(pir::trans_encoding__Ssi(

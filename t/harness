@@ -82,9 +82,9 @@ if ($archive) {
 
 if ($jvm) {
     unlink("TESTTOKEN");
-    $ENV{HARNESS_PERL} = "$^X ./eval-client.pl TESTTOKEN run";
+    $ENV{HARNESS_PERL} = "$^X .${slash}eval-client.pl TESTTOKEN run";
 
-    system "./perl6-eval-server &";
+    system ".${slash}perl6-eval-server &";
     sleep 1;
 }
 

@@ -144,6 +144,36 @@ public final class Binder {
         }
     }
     
+    /* Assigns an attributive parameter to the desired attribute. */
+    private static int assignAttributive(ThreadContext tc, CallFrame cf, String varName,
+            int paramFlags, SixModelObject attrPackage, SixModelObject value, boolean needError) {
+        /* Find self. */
+        StaticCodeInfo sci = cf.codeRef.staticInfo;
+        Integer selfIdx = sci.oTryGetLexicalIdx("self");
+        if (selfIdx == null) {
+            if (needError)
+                lastErrors.put(tc, String.format(
+                    "Unable to bind attributive parameter '%s' - could not find self",
+                    varName));
+            return BIND_RESULT_FAIL;
+        }
+        SixModelObject self = cf.oLex[selfIdx];
+
+        /* If it's private, just need to fetch the attribute. */
+        SixModelObject assignee;
+        if ((paramFlags & SIG_ELEM_BIND_PRIVATE_ATTR) != 0) {
+            assignee = self.get_attribute_boxed(tc, attrPackage, varName, STable.NO_HINT);
+        }
+
+        /* Otherwise if it's public, do a method call to get the assignee. */
+        else {
+            throw new RuntimeException("$.x parameters NYI");
+        }
+
+        Ops.p6store(assignee, value, tc);
+        return BIND_RESULT_OK;
+    }
+    
     /* Binds a single argument into the lexpad, after doing any checks that are
      * needed. Also handles any type captures. If there is a sub signature, then
      * re-enters the binder. Returns one of the BIND_RESULT_* codes. */
@@ -342,11 +372,23 @@ public final class Binder {
         /* TODO: post_constraints. */
 
         /* TODO: attributives. */
-
-        SixModelObject subSignature = param.get_attribute_boxed(tc, Ops.Parameter,
-            "$!sub_signature", HINT_sub_signature);
+        if ((paramFlags & SIG_ELEM_BIND_ATTRIBUTIVE) != 0) {
+            if (flag != CallSiteDescriptor.ARG_OBJ) {
+                if (needError)
+                    lastErrors.put(tc,
+                        "Native attributive binding not yet implemented");
+                return BIND_RESULT_FAIL;
+            }
+            int result = assignAttributive(tc, cf, varName, paramFlags,
+                param.get_attribute_boxed(tc, Ops.Parameter, "$!attr_package", HINT_attr_package),
+                decontValue, needError);
+            if (result != BIND_RESULT_OK)
+                return result;
+        }
 
         /* If it has a sub-signature, bind that. */
+        SixModelObject subSignature = param.get_attribute_boxed(tc, Ops.Parameter,
+            "$!sub_signature", HINT_sub_signature);
         if (subSignature != null && flag == CallSiteDescriptor.ARG_OBJ) {
             /* Turn value into a capture, unless we already have one. */
             SixModelObject capture = null;

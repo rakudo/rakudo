@@ -117,7 +117,9 @@ sub term:<time>() { nqp::p6box_i(nqp::time_i()) }
 #?endif
 
 #?if !jvm
-    my $CWD = nqp::p6box_s(pir::new__PS('OS').cwd).path;
+    my $CWD = nqp::p6box_s(pir::trans_encoding__Ssi(
+        pir::new__PS('OS').cwd,
+        pir::find_encoding__Is('utf8'))).path;
     nqp::bindkey(nqp::who(PROCESS), '$CWD', $CWD);
 
     my @INC;

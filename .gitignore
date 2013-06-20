@@ -58,3 +58,8 @@ config.default
 /bin
 rakudo-runtime.jar
 CORE.setting.class
+perl6-jdb-server
+perl6-jdb-server.bat
+perl6-eval-server
+perl6-eval-server.bat
+eval-client.pl

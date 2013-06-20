@@ -272,13 +272,13 @@ $(RUNNER):
 
 ##  testing targets
 lib/Test.class: lib/Test.pm $(PERL6_CLASS) $(SETTING_CLASS) $(RUNNER)
-	./$(RUNNER) --target=classfile --output=lib/Test.class lib/Test.pm
+	.@slash@$(RUNNER) --target=classfile --output=lib/Test.class lib/Test.pm
 
 lib/lib.class: lib/lib.pm6 $(PERL6_CLASS) $(SETTING_CLASS) $(RUNNER)
-	./$(RUNNER) --target=classfile --output=lib/lib.class lib/lib.pm6
+	.@slash@$(RUNNER) --target=classfile --output=lib/lib.class lib/lib.pm6
 
 lib/Pod/To/Text.class: lib/Pod/To/Text.pm $(PERL6_CLASS) $(SETTING_CLASS) $(RUNNER)
-	./$(RUNNER) --target=classfile --output=lib/Pod/To/Text.class lib/Pod/To/Text.pm
+	.@slash@$(RUNNER) --target=classfile --output=lib/Pod/To/Text.class lib/Pod/To/Text.pm
 
 test    : coretest
 

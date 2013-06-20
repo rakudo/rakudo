@@ -119,8 +119,9 @@ my $p6bool := -> $qastcomp, $op {
         $il.append(JAST::PushIVal.new( :value(0) ));
         $il.append(JAST::Instruction.new( :op('lcmp') ));
     }
+    $il.append(JAST::Instruction.new( :op('aload'), 'tc' ));
     $il.append(JAST::Instruction.new( :op('invokestatic'),
-        $TYPE_P6OPS, 'booleanize', $TYPE_SMO, 'I' ));
+        $TYPE_P6OPS, 'booleanize', $TYPE_SMO, 'I', $TYPE_TC ));
     $ops.result($il, $RT_OBJ);
 };
 $ops.add_hll_op('perl6', 'p6bool', $p6bool);

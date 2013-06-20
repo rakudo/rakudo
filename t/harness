@@ -28,6 +28,7 @@ GetOptions(
     'stress:1'          => \my $do_stress,
     'archive=s'         => \my $archive,
     'parrot_revision=s' => \my $parrot_revision,
+    'jvm'               => \my $jvm,
     'help|h' => sub { pod2usage(1); },
 ) or pod2usage(2);
 
@@ -79,9 +80,17 @@ if ($archive) {
     if $ENV{SMOLDER_SUBMITTER};
 }
 
+if ($jvm) {
+    unlink("TESTTOKEN");
+    $ENV{HARNESS_PERL} = "$^X ./eval-client.pl TESTTOKEN run";
+
+    system "./perl6-eval-server &";
+    sleep 1;
+}
+
 if (eval "require $tap_harness_class;") {
     my %harness_options = (
-        exec        => [$ENV{HARNESS_PERL}],
+        exec        => $jvm ? [$^X, "./eval-client.pl", "TESTTOKEN", "run"] : [$ENV{HARNESS_PERL}],
         verbosity   => 0+$Test::Harness::verbose,
         jobs        => $jobs || $ENV{TEST_JOBS} || 1,
         ignore_exit => 1,
@@ -96,6 +105,10 @@ elsif ($archive) {
 }
 else {
     runtests(@tfiles);
+}
+
+if ($jvm) {
+    system "$^X ./eval-client.pl TESTTOKEN exit";
 }
 
 # adapted to return only files ending in '.t'
@@ -130,7 +143,7 @@ sub all_in {
 }
 
 sub fudge {
-    my $impl = 'rakudo';
+    my $impl = $jvm ? 'rakudo.jvm' : 'rakudo';
     my $cmd  = join ' ', $^X, 't/spec/fudgeall',
                          @pass_through_options, $impl, @_;
     return split ' ', `$cmd`;

@@ -243,13 +243,19 @@ do {
             nqp::printfh($err, Backtrace.new($ex.backtrace, 0).nice(:oneline));
 #?endif
 #?if jvm
-            nqp::printfh($err, Backtrace.new(nqp::backtrace($ex), 0).nice(:oneline));
+#            XXX Backtraces busted
+#            nqp::printfh($err, Backtrace.new(nqp::backtrace($ex), 0).nice(:oneline));
 #?endif
             nqp::printfh($err, "\n");
+#?if parrot
             my $resume := nqp::atkey($ex, 'resume');
             if ($resume) {
                 $resume();
             }
+#?endif
+#?if !parrot
+            nqp::resume($ex)
+#?endif
         }
         if ($type == nqp::const::CONTROL_LAST) {
             X::ControlFlow.new(illegal => 'last', enclosing => 'loop construct').throw;
@@ -1222,6 +1228,12 @@ my class X::Numeric::Real is Exception {
 
     method message() {
         "Can not convert $.source to {$.target.^name}: $.reason";
+    }
+}
+
+my class X::Numeric::DivideByZero is Exception {
+    method message() {
+        "Divide by zero";
     }
 }
 

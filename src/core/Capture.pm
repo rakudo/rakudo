@@ -29,6 +29,10 @@ my class Capture {
         $enum;
     }
 
+    method exists(Capture:D: $key ) {
+        nqp::p6bool(nqp::existskey($!hash, nqp::unbox_s($key.Str)));
+    }
+
     method list(Capture:D:) {
         nqp::p6list(nqp::clone($!list), List, Mu);
     }

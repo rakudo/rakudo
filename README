@@ -41,7 +41,8 @@ Rakudo Perl 6
     $ make
     
     Note that Rakudo on JVM is currently much less capable than Rakudo on
-    Parrot.  For example, rakudo-jvm is known to fail many tests.
+    Parrot.  For example, rakudo-jvm passes 'make test' but is known to
+    fail many spectests.
 
     If you get an out of memory error building rakudo on the JVM, you may
     need to modify your NQP runner to limit memory use. e.g. Adding

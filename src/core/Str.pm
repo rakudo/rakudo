@@ -309,9 +309,9 @@ my class Str does Stringy {
                         if nqp::iseq_i($p, -1);
                     $pos    = $p;
 
-                    my num $exp  = nqp::atpos($parse, 0);
-                    my num $coef = $frac ?? nqp::add_n($int, nqp::div_n($frac, $base)) !! $int;
-                    return nqp::p6box_n(nqp::mul_n($coef, nqp::pow_n(10, $exp)));
+                    my num $exp  = nqp::atpos($parse, 0).Num;
+                    my num $coef = $frac ?? nqp::add_n($int.Num, nqp::div_n($frac.Num, $base.Num)) !! $int.Num;
+                    return nqp::p6box_n(nqp::mul_n($coef, nqp::pow_n(10e0, $exp)));
                 }
 
                 # Multiplier with exponent, if single '*' is present

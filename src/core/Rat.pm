@@ -5,8 +5,10 @@ my class Rat is Cool does Rational[Int, Int] {
     multi method perl(Rat:D:) {
         my $d = $.denominator;
         return $.numerator ~ '.0' if $d == 1;
-        $d div= 5 while $d %% 5;
-        $d div= 2 while $d %% 2;
+        unless $d == 0 {
+            $d div= 5 while $d %% 5;
+            $d div= 2 while $d %% 2;
+        }
         ($d == 1) ?? self.Str !! '<' ~ $.numerator ~ '/' ~ $.denominator ~ '>';
     }
 }

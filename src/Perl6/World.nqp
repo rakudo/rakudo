@@ -554,9 +554,11 @@ class Perl6::World is HLL::World {
                 :op('bind'),
                 QAST::Var.new( :name($name), :scope('lexical') ),
                 QAST::Op.new(
-                    :op('callmethod'), :name('clone'),
-                    QAST::Var.new( :name($name), :scope('lexical') )
-                )));
+                    :op('p6capturelex'),
+                    QAST::Op.new(
+                        :op('callmethod'), :name('clone'),
+                        QAST::Var.new( :name($name), :scope('lexical') )
+                    ))));
         }
     }
     

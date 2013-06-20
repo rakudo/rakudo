@@ -3974,8 +3974,13 @@ class Perl6::Actions is HLL::Actions does STDActions {
         $/.CURSOR.panic("nqp::op forbidden in safe mode\n") if $FORBID_PIR;
         my @args := $<args> ?? $<args>[0].ast.list !! [];
         my $past := QAST::Op.new( :op(~$<op>), |@args );
-        if $past.op eq 'want' {
-            $past[1] := compile_time_value_str($past[1], 'want specification', $/);
+        if $past.op eq 'want' || $past.op eq 'handle' {
+            my int $i := 1;
+            my int $n := nqp::elems($past.list);
+            while $i < $n {
+                $past[$i] := compile_time_value_str($past[$i], 'want specification', $/);
+                $i := $i + 2;
+            }
         }
         nqp::getcomp('QAST').operations.attach_result_type('perl6', $past);
         make $past;

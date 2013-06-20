@@ -122,8 +122,38 @@ my class MapIter is Iterator {
             };
 #?endif
 #?if !parrot
-            nqp::p6mapiter(MapIter, $!items, $rpa, nqp::unbox_i($argc),
-                nqp::unbox_i($count), self, $block);
+            my int $state = 1;
+            my int $itmp;
+            my Mu $args := nqp::list();
+            nqp::while(($state && nqp::elems($rpa) < $count), nqp::handle(
+                nqp::stmts(
+                    nqp::if(nqp::iseq_i($state, 1), nqp::stmts(
+                        ($itmp = nqp::elems($!items)),
+                        nqp::unless($itmp >= $argc, nqp::stmts(
+                            ($itmp = $argc - $itmp),
+                            nqp::if($!listiter, $!listiter.reify($itmp))
+                        )),
+                        nqp::setelems($args, 0),
+                        nqp::p6shiftpush($args, $!items, $argc),
+                        nqp::if($args, $state = 2, $state = 0)
+                    )),
+                    nqp::if(nqp::iseq_i($state, 2), nqp::stmts(
+                        nqp::push($rpa, nqp::p6invokeflat($block, $args)),
+                        $state = 3
+                    )),
+                    nqp::if(nqp::iseq_i($state, 3), nqp::stmts(
+                        nqp::if($NEXT, $block.fire_phasers('NEXT')),
+                        ($state = 1)
+                    ))
+                ),
+                'LAST', nqp::stmts(
+                    ($!items := Any),
+                    ($!listiter := Any),
+                    ($state = 0)
+                ),
+                'REDO', $state = 2,
+                'NEXT', $state = 3
+            ));
 #?endif
 
             if $!items || $!listiter {

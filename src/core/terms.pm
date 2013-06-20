@@ -63,8 +63,8 @@ sub term:<time>() { nqp::p6box_i(nqp::time_i()) }
 #?endif
 #?if jvm
     my %PROPS;
-    $env := nqp::jvmgetproperties();
-    $enviter := nqp::iterator($env);
+    my $jenv := nqp::jvmgetproperties();
+    $enviter := nqp::iterator($jenv);
     while $enviter {
         $envelem := nqp::shift($enviter);
         $key = nqp::p6box_s(nqp::iterkey_s($envelem));

@@ -468,4 +468,12 @@ public final class Ops {
         throwee.payload = in;
         throw throwee;
     }
+    
+    public static String tclc(String in, ThreadContext tc) {
+        if (in.length() == 0)
+            return in;
+        int first = in.codePointAt(0);
+        return new String(Character.toChars(Character.toTitleCase(first)))
+            + in.substring(Character.charCount(first)).toLowerCase();
+    }
 }

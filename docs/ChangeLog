@@ -27,7 +27,7 @@ New in 2013.06
 + syntax parser now allows a dot before hyper postfix
 + Str.succ added for codepoints \x2581..\x2588
 + Cool.path implemented
-+ implement sequences between 1-codepoint strings implemented
++ sequences between 1-codepoint strings implemented
 + div and / fail with X::Numeric::DivisionByZero (rather than dying)
 + doing .perl on Rat with denominator 0 doesn't go into an infinite loop anymore
 + Capture.exists implemented

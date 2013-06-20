@@ -1225,6 +1225,12 @@ my class X::Numeric::Real is Exception {
     }
 }
 
+my class X::Numeric::DivideByZero is Exception {
+    method message() {
+        "Divide by zero";
+    }
+}
+
 my class X::PseudoPackage::InDeclaration does X::Comp {
     has $.pseudo-package;
     has $.action;

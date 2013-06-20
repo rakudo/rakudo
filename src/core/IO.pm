@@ -359,9 +359,6 @@ my class IO::Path is Cool does IO::FileTestable {
         self.new(:$.volume, :$.directory, basename=> $.basename.pred)
     }
 
-
-
-
     method IO(IO::Path:D: *%opts) {
         IO::Handle.new(:$!path, |%opts);
     }
@@ -411,9 +408,7 @@ my class IO::Path is Cool does IO::FileTestable {
     }
 
     method child ($childname) {
-        self.new($.SPEC.join: $.volume,
-                              $.SPEC.catdir($.directory, $.basename),
-                              $childname);
+        self.new: path => $.SPEC.catfile($!path, $childname);
     }
 
     method copy(IO::Path:D: $dest, :$createonly = False) {

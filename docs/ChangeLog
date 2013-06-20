@@ -1,4 +1,5 @@
 New in 2013.06
++ JVM backend added - passes initial sanity tests
 + type captures in signature binder implemented
 + IO::Spec::Unix.canonpath made more efficient
 + IO::Handle methods gist, perl, path added

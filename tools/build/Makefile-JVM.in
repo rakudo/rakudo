@@ -202,7 +202,7 @@ CLEANUPS = \
 HARNESS_WITH_FUDGE = $(PERL) t/harness --fudge --keep-exit-code --jvm
 HARNESS = $(PERL) t/harness --jvm
 
-all: $(PERL6_CLASS) $(SETTING_CLASS) $(RUNNER)
+all: $(PERL6_CLASS) $(SETTING_CLASS) $(RUNNER) lib/Test.class lib/lib.class lib/Pod/To/Text.class
 
 $(RUNTIME_JAR): $(RUNTIME_JAVAS)
 	$(PERL) -MExtUtils::Command -e mkpath bin

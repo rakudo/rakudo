@@ -26,7 +26,7 @@ MAIN: {
 
     my %options;
     GetOptions(\%options, 'help!', 'prefix=s', 'with-nqp=s',
-               'make-install!', 'makefile-timing!',
+               'make-install!', 'makefile-timing!', 'no-clean!'
     ) or do {
         print_help();
         exit(1);
@@ -72,7 +72,7 @@ MAIN: {
     
     fill_template_file('tools/build/Makefile-JVM.in', 'Makefile', %config);
 
-    {
+    unless ($options{'no-clean'}) {
         no warnings;
         print "Cleaning up ...\n";
         if (open my $CLEAN, '-|', "$make clean") {

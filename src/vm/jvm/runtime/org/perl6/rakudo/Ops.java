@@ -314,7 +314,7 @@ public final class Ops {
             spec.store(tc, cont, org.perl6.nqp.runtime.Ops.decont(value, tc));
         }
         else {
-            SixModelObject meth = org.perl6.nqp.runtime.Ops.findmethod(value, "STORE", tc);
+            SixModelObject meth = org.perl6.nqp.runtime.Ops.findmethod(cont, "STORE", tc);
             if (meth != null) {
                 org.perl6.nqp.runtime.Ops.invokeDirect(tc, meth,
                     STORE, new Object[] { cont, value });

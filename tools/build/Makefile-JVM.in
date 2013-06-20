@@ -199,6 +199,9 @@ CLEANUPS = \
   $(RUNTIME_JAR) \
   $(RUNNER)
 
+HARNESS_WITH_FUDGE = $(PERL) t/harness --fudge --keep-exit-code --jvm
+HARNESS = $(PERL) t/harness --jvm
+
 all: $(PERL6_CLASS) $(SETTING_CLASS) $(RUNNER)
 
 $(RUNTIME_JAR): $(RUNTIME_JAVAS)
@@ -264,8 +267,75 @@ $(SETTING_CLASS): $(PERL6_CLASS) $(PERL6_B_CLASS) $(CORE_SOURCES)
 	@echo "The following step can take a long time, please be patient."
 	$(RUN_PERL6) --setting=NULL --optimize=3 --target=classfile --stagestats --output=$(SETTING_CLASS) src/gen/CORE.setting
 
-$(RUNNER): 
+$(RUNNER):
 	$(PERL) tools/build/create-jvm-runner.pl . $(NQP_PREFIX) $(NQP_JARS)
+
+##  testing targets
+lib/Test.class: lib/Test.pm all
+	./$(RUNNER) --target=classfile --output=lib/Test.class lib/Test.pm
+
+lib/lib.class: lib/lib.pm6 all
+	./$(RUNNER) --target=classfile --output=lib/lib.class lib/lib.pm6
+
+lib/Pod/To/Text.class: lib/Pod/To/Text.pm all
+	./$(RUNNER) --target=classfile --output=lib/Pod/To/Text.class lib/Pod/To/Text.pm
+
+test    : coretest
+
+fulltest: coretest stresstest
+
+coretest: all
+	$(HARNESS) t/00-parrot t/01-sanity
+
+# Run the spectests that we know work.
+spectest_regression: spectest
+spectest: testable t/spectest.data
+	$(HARNESS_WITH_FUDGE) --tests-from-file=t/spectest.data
+
+spectest_full: testable
+	$(HARNESS_WITH_FUDGE) t/spec
+
+quicktest: testable t/spectest.data
+	$(HARNESS_WITH_FUDGE) --tests-from-file=t/spectest.data --long=0
+
+stresstest: testable t/spectest.data
+	$(HARNESS_WITH_FUDGE) --tests-from-file=t/spectest.data --stress=1
+
+spectest_checkout : t/spec
+t/spec :
+	git clone git://github.com/perl6/roast.git t/spec
+	-cd t/spec/ && git config remote.origin.pushurl git@github.com:perl6/roast.git
+
+spectest_update :
+	-cd t/spec && git pull
+
+rakudo_test_run.tar.gz: testable t/spectest.data
+	- $(HARNESS_WITH_FUDGE) --tests-from-file=t/spectest.data --archive rakudo_test_run.tar.gz
+
+#spectest_smolder: rakudo_test_run.tar.gz
+#	./perl6 -e "shell qqx[git log -1 --pretty=format:%H].fmt(qq[curl -F architecture=@cpuarch@ -F platform=@osname@ -F revision=%s -F report_file=@rakudo_test_run.tar.gz -F username=parrot-autobot -F password=qa_rocks http://smolder.parrot.org/app/projects/process_add_report/5])"
+
+testable : all spectest_checkout spectest_update
+
+t/localtest.data:
+	$(PERL) -MExtUtils::Command -e test_f $@
+
+# Run the tests in t/localtest.data
+localtest: all spectest_checkout t/localtest.data
+	@$(HARNESS_WITH_FUDGE) --tests-from-file=t/localtest.data
+
+# Run the tests in t/localtest.data with a higher verbosity
+localtest_loud: all spectest_checkout t/localtest.data
+	@$(HARNESS_WITH_FUDGE) --tests-from-file=t/localtest.data --verbosity=1
+
+# Run many tests of your choice.
+# make sometests TESTFILES=t/foo/bar
+sometests: all
+	@$(HARNESS_WITH_FUDGE) $(TESTFILES)
+
+# Run a single test
+t/*.t t/*/*.t t/*/*/*.t: all spectest_checkout
+	@$(HARNESS_WITH_FUDGE) --verbosity=1 $@
 
 ##  cleaning
 clean:

@@ -20,7 +20,7 @@ my class IO::Spec::Win32 is IO::Spec::Unix {
     method rootdir               { '\\'                }
 
     method tmpdir {
-        self.canonpath: first( { .defined && .IO.d && .IO.w },
+        first( { .defined && .IO.d && .IO.w },
             %*ENV<TMPDIR>,
             %*ENV<TEMP>,
             %*ENV<TMP>,

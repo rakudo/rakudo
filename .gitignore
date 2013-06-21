@@ -9,6 +9,7 @@ Makefile
 *.res
 *.exp
 *.lib
+*.jar
 lib/Test.pir
 lib/Pod/To/Text.pir
 lib/lib.pir

@@ -432,7 +432,7 @@ my class Mu {
             unless nqp::objprimspec($attr.type) {
                 my $attr_val := nqp::getattr($cloned, $package, $name);
                 nqp::bindattr($cloned, $package, $name, nqp::clone($attr_val.VAR))
-                    if nqp::iscont($attr_val);
+                    if nqp::iscont($attr_val) || nqp::index('@%', nqp::substr($name, 0, 1)) >= 0;
             }
             my $acc_name := $name.substr(2);
             if $attr.has-accessor && %twiddles.exists($acc_name) {

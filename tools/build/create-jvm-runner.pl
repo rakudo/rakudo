@@ -7,7 +7,10 @@ use 5.008;
 use File::Spec;
 use File::Copy 'cp';
 
-my ($prefix, $nqpprefix, $thirdpartyjars) = @ARGV;
+my $USAGE = "Usage: $0 <prefix> <nqp prefix> <third party jars>\n";
+
+my ($prefix, $nqpprefix, $thirdpartyjars) = @ARGV
+    or die $USAGE;
 
 my $cpsep = $^O eq 'MSWin32' ? ';' : ':';
 my $bat   = $^O eq 'MSWin32' ? '.bat' : '';
@@ -33,4 +36,5 @@ my $jopts = '-Xms100m -Xbootclasspath/a:' . $prefix . $cpsep . $thirdpartyjars .
 install "perl6", "java $jopts perl6";
 install "perl6-jdb-server", "java -Xdebug -Xrunjdwp:transport=dt_socket,address=8000,server=y,suspend=n $jopts perl6";
 install "perl6-eval-server", "java $jopts org.perl6.nqp.runtime.EvalServer TESTTOKEN " . File::Spec->catfile($prefix,"perl6.class");
-cp(File::Spec->catfile($nqpprefix,"eval-client.pl"), ".");
+cp(File::Spec->catfile($nqpprefix,"eval-client.pl"), ".")
+    or die "Couldn't copy 'eval-client.pl' into $nqpprefix: $!";

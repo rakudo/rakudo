@@ -465,7 +465,7 @@ public final class Binder {
         CallSiteDescriptor.ARG_OBJ | CallSiteDescriptor.ARG_FLAT,
             CallSiteDescriptor.ARG_OBJ | CallSiteDescriptor.ARG_FLAT | CallSiteDescriptor.ARG_NAMED
     }, null);
-    private static CallSiteDescriptor explodeCapture(ThreadContext tc, Ops.GlobalExt gcx, SixModelObject capture) {
+    public static CallSiteDescriptor explodeCapture(ThreadContext tc, Ops.GlobalExt gcx, SixModelObject capture) {
         capture = org.perl6.nqp.runtime.Ops.decont(capture, tc);
 
         SixModelObject capType = gcx.Capture;

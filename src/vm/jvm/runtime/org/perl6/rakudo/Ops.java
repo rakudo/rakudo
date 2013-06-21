@@ -278,6 +278,24 @@ public final class Ops {
         return csd;
     }
     
+    public static SixModelObject p6bindcaptosig(SixModelObject sig, SixModelObject cap, ThreadContext tc) {
+        CallFrame cf = tc.curFrame;
+        
+        GlobalExt gcx = key.getGC(tc);
+        CallSiteDescriptor csd = Binder.explodeCapture(tc, gcx, cap);
+        SixModelObject params = sig.get_attribute_boxed(tc, gcx.Signature,
+            "$!params", HINT_SIG_PARAMS);
+        
+        String[] error = new String[1];
+        switch (Binder.bind(tc, gcx, cf, params, csd, tc.flatArgs, false, error)) {
+            case Binder.BIND_RESULT_FAIL:
+            case Binder.BIND_RESULT_JUNCTION:
+                throw ExceptionHandling.dieInternal(tc, error[0]);
+            default:
+                return sig;
+        }        
+    }
+    
     public static long p6isbindable(SixModelObject signature, SixModelObject capture, ThreadContext tc) {
         /* TODO */
         if (DEBUG_MODE)

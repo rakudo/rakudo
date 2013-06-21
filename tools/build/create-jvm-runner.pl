@@ -31,7 +31,7 @@ sub install {
     chmod 0755, $install_to if $^O ne 'MSWin32';
 }
 
-my $jopts = '-Xms100m -Xbootclasspath/a:' . $prefix . $cpsep . $thirdpartyjars . $cpsep . 'rakudo-runtime.jar -cp ' . $nqpprefix;
+my $jopts = '-Xms100m -Xbootclasspath/a:' . $prefix . $cpsep . $thirdpartyjars . $cpsep . "rakudo-runtime.jar${cpsep}perl6.jar -cp " . $nqpprefix;
 
 install "perl6", "java $jopts perl6";
 install "perl6-jdb-server", "java -Xdebug -Xrunjdwp:transport=dt_socket,address=8000,server=y,suspend=n $jopts perl6";

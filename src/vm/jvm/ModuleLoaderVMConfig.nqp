@@ -14,7 +14,7 @@ role Perl6::ModuleLoaderVMConfig {
                 %cand<key> := $file;
                 my $dot := nqp::rindex($file, '.');
                 my $ext := $dot >= 0 ?? nqp::substr($file, $dot, nqp::chars($file) - $dot) !! '';
-                if $ext eq 'class' {
+                if $ext eq 'class' || $ext eq 'jar' {
                     %cand<load> := $file;
                 }
                 else {
@@ -27,6 +27,7 @@ role Perl6::ModuleLoaderVMConfig {
             # Assemble various files we'd look for.
             my $base_path  := nqp::join('/', nqp::split('::', $module_name));
             my $class_path := $base_path ~ '.class';
+            my $jar_path   := $base_path ~ '.jar';
             my $pm_path    := $base_path ~ '.pm';
             my $pm6_path   := $base_path ~ '.pm6';
             
@@ -36,11 +37,17 @@ role Perl6::ModuleLoaderVMConfig {
                 my $have_pm    := nqp::stat("$prefix/$pm_path", 0);
                 my $have_pm6   := nqp::stat("$prefix/$pm6_path", 0);
                 my $have_class := nqp::stat("$prefix/$class_path", 0);
+                my $have_jar   := nqp::stat("$prefix/$jar_path", 0);
                 if $have_pm6 {
                     # if there are both .pm and .pm6 we assume that
                     # the former is a Perl 5 module and use the latter
                     $have_pm := 1;
                     $pm_path := $pm6_path;
+                }
+                if $have_jar {
+                    # might be good to error here?
+                    $have_class := 1;
+                    $class_path := $jar_path;
                 }
                 if $have_pm {
                     my %cand;
@@ -65,7 +72,7 @@ role Perl6::ModuleLoaderVMConfig {
     
     # Finds a setting to load.
     method find_setting($setting_name) {
-        my $path := "$setting_name.setting.class";
+        my $path := "$setting_name.setting.jar";
         my @prefixes := self.search_path();
         for @prefixes -> $prefix {
             $prefix := ~$prefix;

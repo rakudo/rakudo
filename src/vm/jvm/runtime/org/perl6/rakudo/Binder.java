@@ -325,7 +325,40 @@ public final class Binder {
         if (typeCaps != null)
             bindTypeCaptures(tc, typeCaps, cf, decontValue.st.WHAT);
         
-        /* TODO: Coercions. */
+        /* Do a coercion, if one is needed. */
+        SixModelObject coerceType = param.get_attribute_boxed(tc, gcx.Parameter,
+            "$!coerce_type", HINT_coerce_type);
+        if (coerceType != null) {
+            /* Coercing natives not possible - nothing to call a method on. */
+            if (flag != CallSiteDescriptor.ARG_OBJ) {
+                if (error == null)
+                    error[1] = String.format(
+                        "Unable to coerce natively typed parameter '%s'",
+                        varName);
+                return BIND_RESULT_FAIL;
+            }
+            
+            /* Only coerce if we don't already have the correct type. */
+            if (org.perl6.nqp.runtime.Ops.istype(decontValue, coerceType, tc) == 0) {
+                param.get_attribute_native(tc, gcx.Parameter, "$!coerce_method", HINT_coerce_method);
+                String methName = tc.native_s;
+                SixModelObject coerceMeth = org.perl6.nqp.runtime.Ops.findmethod(tc,
+                    decontValue, methName);
+                if (coerceMeth != null) {
+                    org.perl6.nqp.runtime.Ops.invokeDirect(tc, coerceMeth,
+                        org.perl6.nqp.runtime.Ops.invocantCallSite,
+                        new Object[] { decontValue });
+                    decontValue = org.perl6.nqp.runtime.Ops.result_o(tc.curFrame);
+                }
+                else {
+                    if (error != null)
+                        error[0] = String.format(
+                            "Unable to coerce value for '%s' to %s; no coercion method defined",
+                            varName, methName);
+                    return BIND_RESULT_FAIL;
+                }
+            }
+        }
         
         /* If it's not got attributive binding, we'll go about binding it into the
          * lex pad. */

@@ -1940,10 +1940,11 @@ class Perl6::World is HLL::World {
 
         # Checks if a name component is a pseudo-package.
         method is_pseudo_package($comp) {
+            !nqp::istype($comp, QAST::Node) && (
             $comp eq 'CORE' || $comp eq 'SETTING' || $comp eq 'UNIT' ||
             $comp eq 'OUTER' || $comp eq 'MY' || $comp eq 'OUR' ||
             $comp eq 'PROCESS' || $comp eq 'GLOBAL' || $comp eq 'CALLER' ||
-            $comp eq 'DYNAMIC' || $comp eq 'COMPILING' || $comp eq 'PARENT'
+            $comp eq 'DYNAMIC' || $comp eq 'COMPILING' || $comp eq 'PARENT')
         }
     }
     

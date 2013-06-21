@@ -139,10 +139,6 @@ my $p6bool := -> $qastcomp, $op {
 };
 $ops.add_hll_op('perl6', 'p6bool', $p6bool);
 
-$ops.add_hll_op('perl6', 'p6handletake', -> $qastcomp, $op {
-    $qastcomp.as_jast(QAST::Op.new( :op('handle'), $op[0], 'TAKE', $op[1]));
-});
-
 $ops.add_hll_op('perl6', 'p6invokeflat', -> $qastcomp, $op {
     $op[1].flat(1);
     $qastcomp.as_jast(QAST::Op.new( :op('call'), $op[0], $op[1]));

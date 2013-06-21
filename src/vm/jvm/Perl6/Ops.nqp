@@ -10,6 +10,7 @@ my $TYPE_OPS   := 'Lorg/perl6/nqp/runtime/Ops;';
 my $TYPE_CSD   := 'Lorg/perl6/nqp/runtime/CallSiteDescriptor;';
 my $TYPE_SMO   := 'Lorg/perl6/nqp/sixmodel/SixModelObject;';
 my $TYPE_TC    := 'Lorg/perl6/nqp/runtime/ThreadContext;';
+my $TYPE_CF    := 'Lorg/perl6/nqp/runtime/CallFrame;';
 my $TYPE_STR   := 'Ljava/lang/String;';
 my $TYPE_OBJ   := 'Ljava/lang/Object;';
 
@@ -67,7 +68,18 @@ $ops.map_classlib_hll_op('perl6', 'p6setpre', $TYPE_P6OPS, 'p6setpre', [], $RT_O
 $ops.map_classlib_hll_op('perl6', 'p6clearpre', $TYPE_P6OPS, 'p6clearpre', [], $RT_OBJ, :tc);
 $ops.map_classlib_hll_op('perl6', 'p6setfirstflag', $TYPE_P6OPS, 'p6setfirstflag', [$RT_OBJ], $RT_OBJ, :tc);
 $ops.map_classlib_hll_op('perl6', 'p6takefirstflag', $TYPE_P6OPS, 'p6takefirstflag', [], $RT_INT, :tc);
-$ops.map_classlib_hll_op('perl6', 'p6return', $TYPE_P6OPS, 'p6return', [$RT_OBJ], $RT_OBJ, :tc);
+$ops.add_hll_op('perl6', 'p6return', -> $qastcomp, $op {
+    my $il := JAST::InstructionList.new();
+    my $exprres := $qastcomp.as_jast($op[0], :want($RT_OBJ));
+    $il.append($exprres.jast);
+    $*STACK.obtain($il, $exprres);
+    $il.append(JAST::Instruction.new( :op('dup') ));
+    $il.append(JAST::Instruction.new( :op('aload'), 'cf' ));
+    $il.append(JAST::Instruction.new( :op('invokestatic'), $TYPE_OPS,
+        'return_o', 'Void', $TYPE_SMO, $TYPE_CF ));
+    $il.append(JAST::Instruction.new( :op('return') ));
+    $ops.result($il, $RT_OBJ);
+});
 $ops.map_classlib_hll_op('perl6', 'p6routinereturn', $TYPE_P6OPS, 'p6routinereturn', [$RT_OBJ], $RT_OBJ, :tc);
 $ops.map_classlib_hll_op('perl6', 'p6getouterctx', $TYPE_P6OPS, 'p6getouterctx', [$RT_OBJ], $RT_OBJ, :tc);
 $ops.map_classlib_hll_op('perl6', 'p6captureouters', $TYPE_P6OPS, 'p6captureouters', [$RT_OBJ], $RT_OBJ, :tc);

@@ -1,5 +1,7 @@
 package org.perl6.rakudo;
 
+import java.util.Arrays;
+import java.util.Comparator;
 import org.perl6.nqp.runtime.*;
 import org.perl6.nqp.sixmodel.*;
 import org.perl6.nqp.sixmodel.reprs.LexoticInstance;
@@ -508,5 +510,24 @@ public final class Ops {
         int first = in.codePointAt(0);
         return new String(Character.toChars(Character.toTitleCase(first)))
             + in.substring(Character.charCount(first)).toLowerCase();
+    }
+    
+    private static final CallSiteDescriptor SortCSD = new CallSiteDescriptor(
+        new byte[] { CallSiteDescriptor.ARG_OBJ, CallSiteDescriptor.ARG_OBJ }, null);
+    public static SixModelObject p6sort(SixModelObject indices, final SixModelObject comparator, final ThreadContext tc) {
+        int elems = (int)indices.elems(tc);
+        SixModelObject[] sortable = new SixModelObject[elems];
+        for (int i = 0; i < elems; i++)
+            sortable[i] = indices.at_pos_boxed(tc, i);
+        Arrays.sort(sortable, new Comparator<SixModelObject>() {
+            public int compare(SixModelObject a, SixModelObject b) {
+                org.perl6.nqp.runtime.Ops.invokeDirect(tc, comparator, SortCSD,
+                    new Object[] { a, b });
+                return (int)org.perl6.nqp.runtime.Ops.result_i(tc.curFrame);
+            }
+        });
+        for (int i = 0; i < elems; i++)
+            indices.bind_pos_boxed(tc, i, sortable[i]);
+        return indices;
     }
 }

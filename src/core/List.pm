@@ -280,11 +280,11 @@ my class List does Positional {
         # for sorting.
         if ($by.?count // 2) < 2 {
             my $list = self.map($by).eager;
-            $index_rpa.sort(-> $a, $b { $list[$a] cmp $list[$b] || $a <=> $b });
+            nqp::p6sort($index_rpa, -> $a, $b { $list[$a] cmp $list[$b] || $a <=> $b });
         }
         else {
             my $list = self.eager;
-            $index_rpa.sort(-> $a, $b { $by($list[$a],$list[$b]) || $a <=> $b });
+            nqp::p6sort($index_rpa, -> $a, $b { $by($list[$a],$list[$b]) || $a <=> $b });
         }
         self[$index];
     }

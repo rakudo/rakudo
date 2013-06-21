@@ -46,6 +46,12 @@ $ops.add_hll_op('perl6', 'p6getcallsig', -> $qastcomp, $op {
     $ops.push_pirop('set', $reg, 'CALL_SIG');
     $ops
 });
+$ops.add_hll_op('perl6', 'p6sort', -> $qastcomp, $op {
+    $qastcomp.as_post(QAST::Op.new(
+        :op('callmethod'), :name('sort'),
+        $op[0], $op[1]
+    ))
+});
 my $p6bool := -> $qastcomp, $op {
     my $cpost := $qastcomp.as_post($op[0]);
     my $reg := $*REGALLOC.fresh_p();

@@ -482,7 +482,14 @@ public final class Binder {
         if ((flags & SIG_ELEM_DEFAULT_FROM_OUTER) != 0) {
             param.get_attribute_native(tc, gcx.Parameter, "$!variable_name", HINT_variable_name);
             String varName = tc.native_s;
-            return cf.outer.oLex[cf.outer.codeRef.staticInfo.oTryGetLexicalIdx(varName)];
+            CallFrame curOuter = cf.outer;
+            while (curOuter != null) {
+                Integer idx = curOuter.codeRef.staticInfo.oTryGetLexicalIdx(varName);
+                if (idx != null)
+                    return curOuter.oLex[idx];
+                curOuter = curOuter.outer;
+            }
+            return null;
         }
 
         /* Do we have a default value or value closure? */

@@ -171,6 +171,14 @@ public final class Binder {
         return BIND_RESULT_OK;
     }
     
+    /* Returns an appropriate failure mode (junction fail or normal fail). */
+    private static int juncOrFail(ThreadContext tc, Ops.GlobalExt gcx, SixModelObject value) {
+        if (value.st.WHAT == gcx.Junction)
+            return BIND_RESULT_JUNCTION;
+        else
+            return BIND_RESULT_FAIL;
+    }
+    
     /* Binds a single argument into the lexpad, after doing any checks that are
      * needed. Also handles any type captures. If there is a sub signature, then
      * re-enters the binder. Returns one of the BIND_RESULT_* codes. */
@@ -282,8 +290,32 @@ public final class Binder {
             
             /* Skip nominal type check if not needed. */
             if (!noNomTypeCheck) {
-                if (Ops.DEBUG_MODE)
-                    System.err.println("Parameter type checking NYI");
+                /* Is the nominal type generic and in need of instantiation? (This
+                 * can happen in (::T, T) where we didn't learn about the type until
+                 * during the signature bind). */
+                SixModelObject nomType = param.get_attribute_boxed(tc, gcx.Parameter,
+                    "$!nominal_type", HINT_nominal_type);
+                if ((paramFlags & SIG_ELEM_NOMINAL_GENERIC) != 0) {
+                    SixModelObject HOW = nomType.st.HOW;
+                    SixModelObject ig = org.perl6.nqp.runtime.Ops.findmethod(tc, HOW,
+                        "instantiate_generic");
+                    throw new RuntimeException("Generic type parameter binding NYI");
+                }
+
+                /* If not, do the check. If the wanted nominal type is Mu, then
+                 * anything goes. */
+                if (nomType != gcx.Mu && org.perl6.nqp.runtime.Ops.istype(decontValue, nomType, tc) == 0) {
+                    /* Type check failed; produce error if needed. */
+                    if (error != null) {
+                        /* XXX include types */
+                        error[0] = String.format(
+                            "Nominal type check failed for parameter '%s'",
+                            varName);
+                    }
+                
+                    /* Report junction failure mode if it's a junction. */
+                    return juncOrFail(tc, gcx, decontValue);
+                }
             }
         }
         

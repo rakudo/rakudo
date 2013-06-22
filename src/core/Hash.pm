@@ -254,8 +254,8 @@ my class Hash {
                 my Mu $key;
                 while $iter {
                     $pair := nqp::shift($iter);
-                    $key  := nqp::atkey(nqp::getattr(self, $?CLASS, '$!keys'), $pair.key);
-                    take Pair.new(:key($key), :value($pair.value));
+                    $key  := nqp::atkey(nqp::getattr(self, $?CLASS, '$!keys'), nqp::iterkey_s($pair));
+                    take Pair.new(:key($key), :value(nqp::iterval($pair)));
                 }
                 Nil
             }

@@ -20,16 +20,28 @@ public class RakudoContainerSpec extends ContainerSpec {
     
     /* Stores a value in a container. Used for assignment. */
     public void store(ThreadContext tc, SixModelObject cont, SixModelObject obj) {
-        SixModelObject Scalar = Ops.key.getGC(tc).Scalar;
-        if (Ops.DEBUG_MODE)
-            System.err.println("scalar store typecheck / rwcheck NYI");
+        Ops.GlobalExt gcx = Ops.key.getGC(tc);
         
-        SixModelObject whence = cont.get_attribute_boxed(tc, Scalar, "$!whence", HINT_whence);
+        long rw = 0;
+        SixModelObject desc = cont.get_attribute_boxed(tc, gcx.Scalar,
+            "$!descriptor", HINT_descriptor);
+        if (desc != null) {
+            desc.get_attribute_native(tc, gcx.ContainerDescriptor, "$!rw", Ops.HINT_CD_RW);
+            rw = tc.native_i;
+        }
+        if (rw == 0)
+            throw ExceptionHandling.dieInternal(tc,
+                "Cannot assign to a readonly variable or a value");
+        
+        if (Ops.DEBUG_MODE)
+            System.err.println("scalar store typecheck NYI");
+        
+        SixModelObject whence = cont.get_attribute_boxed(tc, gcx.Scalar, "$!whence", HINT_whence);
         if (whence != null)
             org.perl6.nqp.runtime.Ops.invokeDirect(tc, whence,
                 WHENCE, new Object[] { });
         
-        cont.bind_attribute_boxed(tc, Scalar, "$!value", HINT_value, obj);
+        cont.bind_attribute_boxed(tc, gcx.Scalar, "$!value", HINT_value, obj);
     }
     
     /* Stores a value in a container, without any checking of it (this

@@ -4888,8 +4888,16 @@ class Perl6::Actions is HLL::Actions does STDActions {
     method postcircumfix:sym<[ ]>($/) {
         my $past := QAST::Op.new( :name('postcircumfix:<[ ]>'), :op('callmethod'), :node($/) );
         if $<semilist><statement> {
-            my $slast := $<semilist>.ast;
-            $past.push($slast);
+            if +$<semilist><statement> > 1 {
+                my $commast := QAST::Op.new( :op('call'), :name('&infix:<,>'));
+                while +@($<semilist>.ast) {
+                    $commast.unshift($<semilist>.ast.pop);
+                }
+                $past.push( QAST::Op.new( :op('callmethod'), :name('lol'), $commast) );
+            } else {
+                my $slast := $<semilist>.ast;
+                $past.push($slast);
+            }
         }
         make $past;
     }

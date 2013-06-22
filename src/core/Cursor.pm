@@ -144,10 +144,11 @@ my class Cursor does NQPCursorRole {
                 }
                 else {
                     # The pattern is a string.
-                    $len   := nqp::chars( $topic );
+                    my str $topic_str = $topic.Str;
+                    $len   := nqp::chars( $topic_str );
                     $match := $len < 1
-                            ||  ($i ?? nqp::lc(nqp::substr($tgt, $pos, $len)) eq nqp::lc($topic)
-                                    !! nqp::substr($tgt, $pos, $len) eq $topic);
+                            ||  ($i ?? nqp::lc(nqp::substr($tgt, $pos, $len)) eq nqp::lc($topic_str)
+                                    !! nqp::substr($tgt, $pos, $len) eq $topic_str);
                 }
 
                 if $match && $len > $maxlen && $pos + $len <= $eos {

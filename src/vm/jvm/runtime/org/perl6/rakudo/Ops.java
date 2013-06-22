@@ -270,7 +270,15 @@ public final class Ops {
             case Binder.BIND_RESULT_FAIL:
                 throw ExceptionHandling.dieInternal(tc, error[0]);
             case Binder.BIND_RESULT_JUNCTION:
-                throw ExceptionHandling.dieInternal(tc, "Junction re-dispatch NYI");
+                /* Invoke the auto-threader. */
+                csd = csd.injectInvokee(tc, args, cf.codeRef.codeObject);
+                args = tc.flatArgs;
+                org.perl6.nqp.runtime.Ops.invokeDirect(tc, gcx.AutoThreader, csd, args);
+                org.perl6.nqp.runtime.Ops.return_o(
+                    org.perl6.nqp.runtime.Ops.result_o(cf), cf);
+                
+                /* Return null to indicate immediate return to the routine. */
+                return null;
         }
 
         /* The binder may, for a variety of reasons, wind up calling Perl 6 code and overwriting flatArgs, so it needs to be set at the end to return reliably */

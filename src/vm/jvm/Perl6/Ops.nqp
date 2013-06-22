@@ -50,10 +50,21 @@ $ops.add_hll_op('perl6', 'p6bindsig', -> $qastcomp, $op {
     $il.append(JAST::Instruction.new( :op('aload'), '__args' ));
     $il.append(JAST::Instruction.new( :op('invokestatic'), $TYPE_P6OPS,
         "p6bindsig", $TYPE_CSD, $TYPE_TC, $TYPE_CSD, "[$TYPE_OBJ" ));
+    $il.append(JAST::Instruction.new( :op('dup') ));
+    
+    my $natlbl := JAST::Label.new( :name('p6bindsig_no_autothread') );
+    $il.append(JAST::Instruction.new( :op('ifnonnull'), $natlbl ));
+    $il.append(JAST::Instruction.new( :op('aload'), 'cf' ));
+    $il.append(JAST::Instruction.new( :op('invokevirtual'),
+        $TYPE_CF, 'leave', 'Void' ));
+    $il.append(JAST::Instruction.new( :op('return') ));
+    $il.append($natlbl);
+    
     $il.append(JAST::Instruction.new( :op('astore'), 'csd' ));
     $il.append(JAST::Instruction.new( :op('aload_1') ));
     $il.append(JAST::Instruction.new( :op('getfield'), $TYPE_TC, 'flatArgs', "[$TYPE_OBJ" ));
     $il.append(JAST::Instruction.new( :op('astore'), '__args' ));
+
     $ops.result($il, $RT_VOID);
 });
 $ops.map_classlib_hll_op('perl6', 'p6isbindable', $TYPE_P6OPS, 'p6isbindable', [$RT_OBJ, $RT_OBJ], $RT_INT, :tc);

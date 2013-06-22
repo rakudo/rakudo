@@ -19,7 +19,7 @@ my class Num does Real {
             nqp::fromnum_I(nqp::unbox_n(self), Int);
     }
 
-    multi method new() { nqp::box_n(0, self) }
+    multi method new() { nqp::box_n(0e0, self) }
     multi method new($n) { nqp::box_n($n.Num, self) }
     
     multi method perl(Num:D:) {

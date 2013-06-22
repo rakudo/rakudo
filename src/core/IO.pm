@@ -113,7 +113,7 @@ my class IO::Handle does IO::FileTestable {
     }
 
     method eof() {
-        nqp::p6bool($!PIO.eof);
+        nqp::p6bool(nqp::eoffh($!PIO));
     }
 
     method get() {
@@ -121,7 +121,7 @@ my class IO::Handle does IO::FileTestable {
             self.open($!path, :chomp($.chomp));
         }
         return Str if self.eof;
-        my Str $x = nqp::p6box_s($!PIO.readline);
+        my Str $x = nqp::p6box_s(nqp::readlinefh($!PIO));
         # XXX don't fail() as long as it's fatal
         # fail('end of file') if self.eof && $x eq '';
         $x.=chomp if $.chomp;
@@ -220,7 +220,7 @@ my class IO::Handle does IO::FileTestable {
             $Buf;
         }
         else {
-            my $contents = nqp::p6box_s($!PIO.readall());
+            my $contents = nqp::p6box_s(nqp::readallfh($!PIO));
             self.close();
             $contents
         } 
@@ -291,7 +291,7 @@ my class IO::Handle does IO::FileTestable {
 
     method encoding($enc?) {
         $enc.defined
-            ?? $!PIO.encoding(PARROT_ENCODING($enc))
+            ?? nqp::setencoding($!PIO, PARROT_ENCODING($enc))
             !! $!PIO.encoding
     }
 }

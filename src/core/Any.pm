@@ -475,13 +475,12 @@ my class Any {
       :$exists!,
       :$kv = $default,
       :$p  = $default,
-      :$k  = $default
     ) is rw {
 
         if nqp::iscont(key) { # handle single key immediately
-            SELF{key}:$exists:$kv:$p:$k;
+            SELF{key}:$exists:$kv:$p;
         }
-        if $kv & $p & $k === $default {                 # :exists?
+        if $kv & $p === $default {                      # :exists?
             key.map({ !( SELF.exists($_) ?^ $exists ) }).eager.Parcel;
         }
         elsif $kv !=== $default {                       # :exists?:kv?

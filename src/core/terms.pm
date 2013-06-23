@@ -155,15 +155,15 @@ sub term:<time>() { nqp::p6box_i(nqp::time_i()) }
 
     nqp::bindkey(nqp::who(PROCESS), '@INC', @INC);
 
-    my $PID = nqp::p6box_i(pir::getinterp__P().getpid());
-    nqp::bindkey(nqp::who(PROCESS), '$PID', $PID);
-
     my $OS = $VM<config><osname>; # XXX: master gets this information with the sysinfo dynop
     nqp::bindkey(nqp::who(PROCESS), '$OS', $OS);
 
     my $OSVER = $VM<config><osvers>; # XXX: master gets this information with the sysinfo dynop
     nqp::bindkey(nqp::who(PROCESS), '$OSVER', $OSVER);
 #?endif
+
+    my $PID = nqp::p6box_i(nqp::getpid());
+    nqp::bindkey(nqp::who(PROCESS), '$PID', $PID);
 
     my $EXECUTABLE_NAME = 
 #?if parrot

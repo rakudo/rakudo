@@ -89,6 +89,10 @@ $ops.add_hll_op('perl6', 'p6return', -> $qastcomp, $op {
     $il.append(JAST::Instruction.new( :op('invokestatic'), $TYPE_OPS,
         'return_o', 'Void', $TYPE_SMO, $TYPE_CF ));
     $il.append(JAST::Instruction.new( :op('aload'), 'cf' ));
+    $il.append(JAST::Instruction.new( :op('getfield'), $TYPE_CF, 'outer', $TYPE_CF ));
+    $il.append(JAST::Instruction.new( :op('iconst_1') ));
+    $il.append(JAST::Instruction.new( :op('putfield'), $TYPE_CF, 'exitAfterUnwind', "Z" ));
+    $il.append(JAST::Instruction.new( :op('aload'), 'cf' ));
     $il.append(JAST::Instruction.new( :op('invokevirtual'),
         $TYPE_CF, 'leave', 'Void' ));
     $il.append(JAST::Instruction.new( :op('return') ));

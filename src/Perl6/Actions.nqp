@@ -5564,10 +5564,12 @@ class Perl6::Actions is HLL::Actions does STDActions {
         # code in our handler throws an exception.
         my $ex := QAST::Op.new( :op('exception') );
         if $handler<past_block><handlers> && nqp::existskey($handler<past_block><handlers>, $type) {
-#?if parrot
-            $ex := QAST::VM.new( :pirop('perl6_skip_handlers_in_rethrow__0Pi'),
-                $ex, QAST::IVal.new( :value(1) ));
-#?endif
+            $ex := QAST::VM.new(
+                :parrot(QAST::VM.new(
+                    :pirop('perl6_skip_handlers_in_rethrow__0Pi'),
+                    $ex,
+                    QAST::IVal.new( :value(1) ))),
+                :jvm($ex));
         }
         else {
             my $prev_content := QAST::Stmts.new();
@@ -5602,7 +5604,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             :node($/),
             QAST::VM.new(
                 :parrot(QAST::VM.new( :pirop('perl6_invoke_catchhandler__vPP'), $handler, $ex )),
-                :jvm(QAST::Op.new( :op('call'), $handler ))
+                :jvm(QAST::Op.new( :op('call'), $handler, $ex ))
             ),
             QAST::Var.new( :scope('lexical'), :name('Nil') )
         );

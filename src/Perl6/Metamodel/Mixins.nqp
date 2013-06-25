@@ -2,8 +2,11 @@ role Perl6::Metamodel::Mixins {
     has $!is_mixin;
     method set_is_mixin($obj) { $!is_mixin := 1 }
     method is_mixin($obj) { $!is_mixin }
+    method flush_cache($obj) { <...> }
 
     method mixin($obj, *@roles) {
+        # Flush its cache as promised, otherwise outdated NFAs will stick around.
+        self.flush_cache($obj) if !nqp::isnull($obj) || self.is_mixin($obj);
         # Work out a type name for the post-mixed-in role.
         my @role_names;
         for @roles { @role_names.push($_.HOW.name($_)) }

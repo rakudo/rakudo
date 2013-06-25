@@ -39,7 +39,7 @@ my role Real does Numeric {
     method floor() { self.Bridge.floor }
     method ceiling() { self.Bridge.ceiling }
     # cannot use '0.5' here, because Rat isn't initialized yet
-    method round(Real $scale = 1) { (self / $scale + 1/2).floor * $scale }
+    method round($scale as Real = 1) { (self / $scale + 1/2).floor * $scale }
     method unpolar(Real $angle) {
         Complex.new(self * $angle.cos, self * $angle.sin);
     }

@@ -66,7 +66,7 @@ my class Int does Real {
     method ceiling(Int:D:) { self }
     proto method round(|) {*}
     multi method round(Int:D:) { self }
-    multi method round(Int:D: Real $scale) { (self / $scale + 1/2).floor * $scale }
+    multi method round(Int:D: $scale as Real) { (self / $scale + 1/2).floor * $scale }
 
     method lsb(Int:D:) {
         return Nil if self == 0;

@@ -2,7 +2,7 @@ role Perl6::Metamodel::Mixins {
     has $!is_mixin;
     method set_is_mixin($obj) { $!is_mixin := 1 }
     method is_mixin($obj) { $!is_mixin }
-    method flush_cache($obj) { <...> }
+    method flush_cache($obj) { }
 
     method mixin($obj, *@roles) {
         # Flush its cache as promised, otherwise outdated NFAs will stick around.

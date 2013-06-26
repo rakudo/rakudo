@@ -540,19 +540,15 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
         :my $endtag;
         $<code>=<[A..Z]>
-        { nqp::say("parsed a code: " ~ $<code> ~ " with allow, in, angle:" ~ 
-                   $*POD_ALLOW_FCODES ~ " " ~ $*POD_IN_FORMATTINGCODE ~ " " ~
-                   $*POD_ANGLE_COUNT) }
         $<begin-tag>=['<'+ <!before '<'> | '«'] { $*POD_IN_FORMATTINGCODE := 1 }
         <?{
-            nqp::say("going to build a formatting code from " ~ $<code>);
             if ~$<begin-tag> eq '«' {
-            $endtag := "'»'";
+            $endtag := "»";
             $*POD_ANGLE_COUNT := -1;
             1
           } else {
             my $ct := nqp::chars($<begin-tag>);
-            $endtag := "'" ~ nqp::x(">", $ct) ~ "'";
+            $endtag := nqp::x(">", $ct);
             my $rv := $*POD_ANGLE_COUNT == 0 || $*POD_ANGLE_COUNT >= $ct;
             $*POD_ANGLE_COUNT := $ct;
             $rv;
@@ -560,33 +556,28 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         }>
         {
             if $<code>.Str eq "V" || $<code>.Str eq "C" {
-                nqp::say("forbidding FCODES");
                 $*POD_ALLOW_FCODES := 0;
             }
         }
         $<content>=[ <pod_string_character> ]+?
-        <$endtag>
+        $endtag
     }
 
     token pod_balanced_braces {
+        <?{ $*POD_IN_FORMATTINGCODE }>
         :my $endtag;
         [
+            $<braces>=['<'+ <!before '<'>||'>'+ <!before '>'>]
+            <?{ nqp::chars($<braces>) < $*POD_ANGLE_COUNT || $*POD_ANGLE_COUNT < 0 }>
+          ||
             <?{ $*POD_ANGLE_COUNT >= 1 }>
             $<start>=['<'+] <!before '<'>
-            { nqp::say("pod_balanced braces with angle count >= 1") }
-            <?{ nqp::chars(~$<start>) == $*POD_ANGLE_COUNT || $*POD_ANGLE_COUNT < 0 }>
+            <?{ nqp::chars($<start>) == $*POD_ANGLE_COUNT || $*POD_ANGLE_COUNT < 0 }>
             {
-                $endtag := "'" ~ nqp::x(">", nqp::chars($<start>)) ~ "'";
-                nqp::say("looking forward to seeing a " ~ $endtag);
+                $endtag := nqp::x(">", nqp::chars($<start>));
             }
-            $<content>=[ <pod_string_character>+?]
-            <$endtag> <!before '>'>
-            { nqp::say("found a balanced braces text!") }
-          ||
-            <?{ $*POD_ANGLE_COUNT < 0 }>
-            $<braces>=['<'+ <!before '<'>||'>'+ <!before '>'>]
-            { nqp::say("pod_balanced braces with angle count < 0") }
-            { nqp::chars($<braces>) < $*POD_ANGLE_COUNT || $*POD_ANGLE_COUNT < 0 }
+            $<content>=[ <pod_string_character>*?]
+            <!after '>'> $<endtag>=[$endtag]
         ]
     }
 

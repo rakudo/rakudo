@@ -101,5 +101,5 @@ my class Attribute {
     method readonly() { !self.rw }
     method package() { $!package }
     multi method Str(Attribute:D:) { self.name }
-    multi method gist(Attribute:D:) { self.name }
+    multi method gist(Attribute:D:) { self.type.^name ~ " " ~ self.name }
 }

@@ -579,9 +579,24 @@ class Perl6::Actions is HLL::Actions does STDActions {
         make Perl6::Pod::build_pod_string(@content);
     }
 
+    method pod_balanced_braces($/) {
+        if $<endtag> {
+            my @content := [~$<start>];
+            for $<pod_string_character> {
+                @content.push($_.ast)
+            }
+            @content.push($<endtag>);
+            make Perl6::Pod::build_pod_string(@content);
+        } else {
+            make ~$<braces>
+        }
+    }
+
     method pod_string_character($/) {
         if $<pod_formatting_code> {
             make $<pod_formatting_code>.ast
+        } elsif $<pod_balanced_braces> {
+            make $<pod_balanced_braces>.ast
         } else {
             make ~$<char>;
         }

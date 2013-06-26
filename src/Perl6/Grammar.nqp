@@ -533,19 +533,52 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
 
     token pod_formatting_code {
-        :my $*POD_IN_FORMATTINGCODE := nqp::getlexdyn('$*POD_IN_FORMATTINGCODE');
         :my $*POD_ALLOW_FCODES := nqp::getlexdyn('$*POD_ALLOW_FCODES');
+        :my $*POD_IN_FORMATTINGCODE := nqp::getlexdyn('$*POD_IN_FORMATTINGCODE');
+        :my $*POD_ANGLE_COUNT := nqp::getlexdyn('$*POD_ANGLE_COUNT');
+        <?{ $*POD_ALLOW_FCODES }>
+
+        :my $endtag;
         $<code>=<[A..Z]>
         $<begin-tag>=['<'+ <!before '<'> | '«'] { $*POD_IN_FORMATTINGCODE := 1 }
-        <?{ $*POD_ALLOW_FCODES }>
+        <?{
+            if ~$<begin-tag> eq '«' {
+            $endtag := "'»'";
+            $*POD_ANGLE_COUNT := -1;
+            1
+          } else {
+            my $ct := nqp::chars($<begin-tag>);
+            $endtag := "'" ~ nqp::x(">", $ct) ~ "'";
+            my $rv := $*POD_ANGLE_COUNT == 0 || $*POD_ANGLE_COUNT >= $ct;
+            $*POD_ANGLE_COUNT := $ct;
+            $rv;
+          }
+        }>
         {
             if $<code>.Str eq "V" || $<code>.Str eq "C" {
                 $*POD_ALLOW_FCODES := 0;
             }
         }
         $<content>=[ <pod_string_character> ]+?
-        [<?{ $<begin-tag> eq '«' }> '»' |
-         $<end-tag>=['>'+] <?{ $<begin-tag>.Str ne '«' && nqp::chars($<begin-tag>.Str) == nqp::chars($<end-tag>.Str) }> ]
+        <$endtag>
+    }
+
+    token pod_balanced_braces {
+        :my $endtag;
+        [
+            <?{ $*POD_ANGLE_COUNT >= 1 }>
+            $<start>=['<'+] <!before '<'>
+            <?{ nqp::chars(~$<start>) == $*POD_ANGLE_COUNT || $*POD_ANGLE_COUNT < 0 }>
+            {
+                $endtag := "'" ~ nqp::x(">", nqp::chars($<start>)) ~ "'";
+            }
+            $<content>=[ <pod_string_character>+?]
+            <$endtag> <!before '>'>
+          ||
+            <?{ $*POD_ANGLE_COUNT < 0 }>
+            $<braces>=['<'+ <!before '<'>||'>'+ <!before '>'>]
+            { nqp::chars($<braces>) < $*POD_ANGLE_COUNT || $*POD_ANGLE_COUNT < 0 }
+        ]
     }
 
     token pod_string {
@@ -553,7 +586,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
 
     token pod_string_character {
-        <pod_formatting_code> || $<char>=[ \N || [
+        <pod_balanced_braces> || <pod_formatting_code> || $<char>=[ \N || [
             <?{ $*POD_IN_FORMATTINGCODE == 1}> \n <!before \h* '=' \w>
             ]
         ]
@@ -751,6 +784,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*ALLOW_CODE := 0;                     # pod stuff
         :my $*POD_IN_FORMATTINGCODE := 0;          # pod stuff
         :my $*POD_ALLOW_FCODES := 1;               # pod stuff
+        :my $*POD_ANGLE_COUNT := 0;                # pod stuff
         :my $*IN_REGEX_ASSERTION := 0;
         :my $*SOFT := 0;                           # is the soft pragma in effect
         :my $*IN_PROTO := 0;                       # are we inside a proto?

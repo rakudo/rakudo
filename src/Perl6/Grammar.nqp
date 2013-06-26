@@ -533,10 +533,19 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
 
     token pod_formatting_code {
+        :my $*POD_IN_FORMATTINGCODE := nqp::getlexdyn('$*POD_IN_FORMATTINGCODE');
+        :my $*POD_ALLOW_FCODES := nqp::getlexdyn('$*POD_ALLOW_FCODES');
         $<code>=<[A..Z]>
-        '<' { $*POD_IN_FORMATTINGCODE := 1 }
-        $<content>=[ <!before '>'> <pod_string_character> ]+
-        '>' { $*POD_IN_FORMATTINGCODE := 0 }
+        $<begin-tag>=['<'+ <!before '<'> | '«'] { $*POD_IN_FORMATTINGCODE := 1 }
+        <?{ $*POD_ALLOW_FCODES }>
+        {
+            if $<code>.Str eq "V" || $<code>.Str eq "C" {
+                $*POD_ALLOW_FCODES := 0;
+            }
+        }
+        $<content>=[ <pod_string_character> ]+?
+        [<?{ $<begin-tag> eq '«' }> '»' |
+         $<end-tag>=['>'+] <?{ $<begin-tag>.Str ne '«' && nqp::chars($<begin-tag>.Str) == nqp::chars($<end-tag>.Str) }> ]
     }
 
     token pod_string {
@@ -741,6 +750,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*VMARGIN    := 0;                     # pod stuff
         :my $*ALLOW_CODE := 0;                     # pod stuff
         :my $*POD_IN_FORMATTINGCODE := 0;          # pod stuff
+        :my $*POD_ALLOW_FCODES := 1;               # pod stuff
         :my $*IN_REGEX_ASSERTION := 0;
         :my $*SOFT := 0;                           # is the soft pragma in effect
         :my $*IN_PROTO := 0;                       # are we inside a proto?

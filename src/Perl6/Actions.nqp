@@ -50,7 +50,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $past,
             'v',
             QAST::Op.new(
-                :op('local_lifetime'),
+                :op('locallifetime'),
                 QAST::Stmts.new(
                     QAST::Op.new(:op<bind>,
                         QAST::Var.new(:$name, :scope<local>, :decl<var>),
@@ -1371,7 +1371,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     # And finally evaluate to the smart-match result.
                     QAST::Var.new( :name($result_var), :scope('local') )
                 );
-                $past := QAST::Op.new( :op('local_lifetime'), $past, $result_var );
+                $past := QAST::Op.new( :op('locallifetime'), $past, $result_var );
             }
             else {
                 my $name := ~$<sigil> eq '@' ?? 'list' !!
@@ -4036,7 +4036,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 ),
                 QAST::Var.new( :name($dc_name), :scope('local') )
             ));
-        make QAST::Op.new( :op('local_lifetime'), $stmts, $dc_name );
+        make QAST::Op.new( :op('locallifetime'), $stmts, $dc_name );
     }
 
     method args($/) {
@@ -4117,7 +4117,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             }
         }
 
-        make $past; # TODO figure out how to work a local_lifetime in here
+        make $past; # TODO figure out how to work a locallifetime in here
     }
 
     method term:sym<value>($/) { make $<value>.ast; }
@@ -4391,7 +4391,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     ),
                     QAST::Var.new( :scope('local'), :name($tmp) )
                 );
-                $_ := QAST::Op.new( :op('local_lifetime'), $_, $tmp );
+                $_ := QAST::Op.new( :op('locallifetime'), $_, $tmp );
             }
             else {
                 $/.CURSOR.panic('Sorry, do not know how to handle this case of a feed operator yet.');
@@ -4434,7 +4434,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
 
         QAST::Op.new(
-            :op('local_lifetime'),
+            :op('locallifetime'),
             QAST::Stmt.new(
                 # Stash original $_.
                 QAST::Op.new( :op('bind'),
@@ -4759,7 +4759,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             )
         ));
         
-        QAST::Op.new( :op('local_lifetime'), $ff_code, $id ~ '_lhs', $id ~ '_rhs' );
+        QAST::Op.new( :op('locallifetime'), $ff_code, $id ~ '_lhs', $id ~ '_rhs' );
     }
 
     method prefixish($/) {

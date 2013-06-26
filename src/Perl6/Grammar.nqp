@@ -730,7 +730,9 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
 
     token pod_code_parent {
-        'pod' <!before \w> || 'item' \d* <!before \w>
+        || 'pod' <!before \w>
+        || 'output' <!before \w>
+        || 'item' \d* <!before \w>
         # TODO: Also Semantic blocks one day
     }
 

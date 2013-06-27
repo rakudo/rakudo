@@ -140,7 +140,7 @@ my class Any {
     }
 
     sub RWPAIR(\k, \v) {
-        my \p = nqp::create(Pair);
+        my \p := nqp::create(Pair);
         nqp::bindattr(p, Enum, '$!key', k);
         nqp::bindattr(p, Enum, '$!value', v);
         p

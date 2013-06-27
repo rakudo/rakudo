@@ -207,6 +207,7 @@ sub shell($cmd) {
 # constant NaN = ...
 my $Inf = nqp::p6box_n(nqp::inf());
 my $NaN = nqp::p6box_n(nqp::nan());
+# EM 20130627 attempt at using constants failed during optimizing phase
 
 
 sub sleep($seconds = $Inf) {         # fractional seconds also allowed

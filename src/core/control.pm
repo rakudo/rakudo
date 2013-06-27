@@ -173,7 +173,7 @@ sub run(*@args ($, *@)) {
         ) +> 8;
 #?endif
 #?if !parrot
-        die "run is NYI on JVM backend";
+        die "run is NYI on non-Parrot backend";
 #?endif
         CATCH {
             default {
@@ -196,7 +196,7 @@ sub shell($cmd) {
     }
 #?endif
 #?if !parrot
-    die "run is NYI on JVM backend";
+    die "shell is NYI on non-Parrot backend";
 #?endif
     $status;
 }

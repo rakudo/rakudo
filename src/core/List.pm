@@ -99,7 +99,7 @@ my class List does Positional {
         # Get as many elements as we can.  If gimme stops before
         # reaching the end of the list, assume the list is infinite.
         my $n = self.gimme(*);
-        $!nextiter.defined ?? nqp::p6box_n(nqp::inf()) !! $n
+        $!nextiter.defined ?? $Inf !! $n
     }
 
     method exists(\pos) {

@@ -15,7 +15,7 @@ CHMOD  = $(PERL) -MExtUtils::Command -e chmod
 RM_F   = $(PERL) -MExtUtils::Command -e rm_f
 RM_RF   = $(PERL) -MExtUtils::Command -e rm_rf
 
-NQP_JARS = $(NQP_PREFIX)/nqp-runtime.jar@cpsep@$(NQP_PREFIX)/asm-4.1.jar@cpsep@$(NQP_PREFIX)/jline-1.0.jar
+NQP_JARS = $(NQP_PREFIX)/nqp-runtime.jar@cpsep@$(NQP_PREFIX)/asm-4.1.jar@cpsep@$(NQP_PREFIX)/asm-tree-4.1.jar@cpsep@$(NQP_PREFIX)/jline-1.0.jar
 
 RUN_PERL6 = $(JAVA) -Xms500m -Xmx2g -Xbootclasspath/a:.@cpsep@$(NQP_JARS)@cpsep@rakudo-runtime.jar@cpsep@perl6.jar -cp $(NQP_PREFIX) perl6
 

@@ -217,8 +217,7 @@ sub sleep($seconds = $Inf) {         # fractional seconds also allowed
     } else {
         nqp::sleep($seconds.Num);
     }
-    my $time2 = time;
-    return $time2 - $time1;
+    return time - $time1;
 }
 
 sub QX($cmd) {

@@ -200,6 +200,10 @@ my class Complex is Cool does Numeric {
         Complex.new( self.re.round($scale), self.im.round($scale) );
     }
 
+    method truncate(Complex:D:) {
+        Complex.new( self.re.truncate, self.im.truncate );
+    }
+
 }
 
 multi sub prefix:<->(Complex:D \a) returns Complex:D {

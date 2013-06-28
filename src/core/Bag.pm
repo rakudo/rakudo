@@ -131,18 +131,18 @@ my class KeyBag does Associative does Baggy {
         my @inverse-mapping;
         my $a = 0;
         for %!elems.pairs -> $pair {
-            $a += $pair.value;
-            @inverse-mapping.push((+$a) => $pair.key);
+            my $b = $a + $pair.value;
+            @inverse-mapping.push(($a..^$b) => $pair.key);
+            $a = $b;
         }
 
         sub choose {
             my $choice = $a.rand;
             my $i = 0;
             eager do for @inverse-mapping -> $im {
-                if $choice ~~ $i ..^ +$im.key {
+                if $choice ~~ $im.key {
                     return $im.value;
                 }
-                $i = $im.key;
             }
         }
 

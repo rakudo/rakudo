@@ -139,11 +139,12 @@ my class KeyBag does Associative does Baggy {
         sub choose {
             my $choice = $a.rand;
             my $i = 0;
-            eager do for @inverse-mapping -> $im {
+            for @inverse-mapping -> $im {
                 if $choice ~~ $im.key {
                     return $im.value;
                 }
             }
+            fail "Problem with KeyBag.roll";
         }
 
         return choose() xx * if $count ~~ Whatever;

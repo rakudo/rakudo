@@ -24,7 +24,9 @@ my class Num does Real {
     
     multi method perl(Num:D:) {
         my $res = self.Str;
-        if nqp::isnanorinf(nqp::unbox_n(self)) || $res.index('e').defined {
+        if nqp::isnanorinf(nqp::unbox_n(self))
+           || $res.index('e').defined
+           || $res.index('E').defined {
             $res;
         } else {
             $res ~ 'e0';

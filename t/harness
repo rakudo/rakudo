@@ -84,7 +84,9 @@ if ($jvm) {
     unlink("TESTTOKEN");
     $ENV{HARNESS_PERL} = "$^X .${slash}eval-client.pl TESTTOKEN run";
 
-    system ".${slash}perl6-eval-server &";
+    no warnings 'once';
+    # leak the filehandle; it will be closed at exit, robustly telling the server to terminate
+    open JVMSERVER, "| .${slash}perl6-eval-server -bind-stdin -cookie TESTTOKEN -app .${slash}perl6.jar" or die "cannot fork eval server: $!\n";
     sleep 1;
 }
 
@@ -105,10 +107,6 @@ elsif ($archive) {
 }
 else {
     runtests(@tfiles);
-}
-
-if ($jvm) {
-    system "$^X ./eval-client.pl TESTTOKEN exit";
 }
 
 # adapted to return only files ending in '.t'

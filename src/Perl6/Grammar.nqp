@@ -1314,12 +1314,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
 
     token blorst {
-        \s <.ws>
-        [
-        | <?[{]> <block>
-        | <![;]> :my $*BLORST_BLOCK := $*W.push_lexpad($/); <statement>
-        || <.missing: 'block or statement'>
-        ]
+        \s <.ws> [ <?[{]> <block> | <![;]> <statement> || <.missing: 'block or statement'> ]
     }
 
     ## Statement modifiers

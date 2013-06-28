@@ -1207,7 +1207,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
 
     method blorst($/) {
-        make $<block> ?? $<block>.ast !! make_thunk_ref($<statement>.ast, $/);
+        make $<block>
+            ?? $<block>.ast
+            !! make_thunk_ref($<statement>.ast, $/, $*BLORST_BLOCK);
     }
 
     # Statement modifiers
@@ -5428,8 +5430,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         return $closure;
     }
 
-    sub make_thunk_ref($to_thunk, $/) {
-        my $block := $*W.push_lexpad($/);
+    sub make_thunk_ref($to_thunk, $/, $block = $*W.push_lexpad($/)) {
         $block.push(QAST::Stmts.new(autosink($to_thunk)));
         $*W.pop_lexpad();
         reference_to_code_object(

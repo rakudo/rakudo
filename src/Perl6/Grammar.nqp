@@ -2834,7 +2834,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <babble($l)>
         { my $B := $<babble><B>.ast; $lang := $B[0]; $start := $B[1]; $stop := $B[2]; }
 
-        $start <left=.nibble($lang)> [ $stop || <.panic: "Couldn't find terminator $stop"> ]
+        $start <left=.nibble($lang)> [ $stop || <.panic("Couldn't find terminator $stop")> ]
         [ <?{ $start ne $stop }>
             <.ws>
             [ <?[ \[ \{ \( \< ]> <.obs('brackets around replacement', 'assignment syntax')> ]?
@@ -2845,7 +2845,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             [ <right=.EXPR('i')> || <.panic: "Assignment operator missing its expression"> ]
         ||
             { $lang := self.quote_lang($lang2, $stop, $stop, @lang2tweaks); }
-            <right=.nibble($lang)> $stop || <.panic: "Malformed replacement part; couldn't find final $stop">
+            <right=.nibble($lang)> $stop || <.panic("Malformed replacement part; couldn't find final $stop")>
         ]
     }
 

@@ -220,6 +220,27 @@ sub sleep($seconds = $Inf) {         # fractional seconds also allowed
     return time - $time1;
 }
 
+my %interval_wakeup;            # needs to be hidden from GLOBAL:: somehow
+sub interval($seconds ) {       # fractional seconds also allowed
+
+    my $time = now.Num;
+    my $wakeup := %interval_wakeup{"thread_id"} //= $time; # XXX thread ID
+
+    # already past our morning call
+    if $time >= $wakeup  {
+        $wakeup += $seconds;
+        0;
+    }
+
+    # still time to sleep
+    else {
+        my $slept = $wakeup - $time;
+        nqp::sleep($slept);
+        $wakeup += $seconds;
+        $slept;
+    }
+}
+
 sub QX($cmd) {
     my Mu $pio := nqp::open(nqp::unbox_s($cmd), 'rp');
     fail "Unable to execute '$cmd'" unless $pio;

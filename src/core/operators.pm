@@ -190,10 +190,7 @@ multi sub infix:<...>($a, Mu $b) { SEQUENCE($a, $b) }
 proto sub infix:<...^>(|) { * }
 multi sub infix:<...^>($a, Mu $b) { SEQUENCE($a, $b, :exclude_end(1)) }
 
-sub undefine(Mu \x) {
-    my $undefined;
-    x = $undefined;
-}
+sub undefine(Mu \x) { x = Nil }
 
 sub prefix:<temp>(\cont) is rw {
     my $temp_restore := nqp::getlexcaller('!TEMP-RESTORE');

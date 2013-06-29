@@ -635,7 +635,9 @@ my class Str does Stringy {
             try $caller_dollar_slash = $m if $SET_DOLLAR_SLASH;
             $result ~= self.substr($prev, $m.from - $prev);
 
-            my $real_replacement = ~($replacement ~~ Callable ?? $replacement($m) !! $replacement);
+            my $real_replacement = ~($replacement ~~ Callable
+                ?? ($replacement.count == 0 ?? $replacement !! $replacement($m))
+                !! $replacement);
             $real_replacement    = $real_replacement.samecase(~$m) if $samecase;
             $real_replacement    = $real_replacement.samespace(~$m) if $samespace;
             $result ~= $real_replacement;

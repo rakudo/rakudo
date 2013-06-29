@@ -166,19 +166,19 @@ my class Any {
     }
     multi method postcircumfix:<[ ]>($pos, :$kv!) is rw {
         fail "Cannot use negative index $pos on {self.WHAT.perl}" if $pos < 0;
-        $kv & !self.exists($pos) ?? Nil !! ($pos, self.at_pos($pos));
+        $kv & !self.exists($pos) ?? () !! ($pos, self.at_pos($pos));
     }
     multi method postcircumfix:<[ ]>($pos, :$p!) is rw {
         fail "Cannot use negative index $pos on {self.WHAT.perl}" if $pos < 0;
-        $p & !self.exists($pos) ?? Nil !! RWPAIR($pos, self.at_pos($pos));
+        $p & !self.exists($pos) ?? () !! RWPAIR($pos, self.at_pos($pos));
     }
     multi method postcircumfix:<[ ]>($pos, :$k!) is rw {
         fail "Cannot use negative index $pos on {self.WHAT.perl}" if $pos < 0;
-        $k & !self.exists($pos) ?? Nil !! $pos;
+        $k & !self.exists($pos) ?? () !! $pos;
     }
     multi method postcircumfix:<[ ]>($pos, :$v!) is rw {
         fail "Cannot use negative index $pos on {self.WHAT.perl}" if $pos < 0;
-        $v & !self.exists($pos) ?? Nil !! self.at_pos($pos);
+        $v & !self.exists($pos) ?? () !! self.at_pos($pos);
     }
 
     # @a[1]
@@ -192,19 +192,19 @@ my class Any {
     }
     multi method postcircumfix:<[ ]>(int $pos, :$kv!) is rw {
         fail "Cannot use negative index $pos on {self.WHAT.perl}" if $pos < 0;
-        $kv & !self.exists($pos) ?? Nil !! ($pos, self.at_pos($pos));
+        $kv & !self.exists($pos) ?? () !! ($pos, self.at_pos($pos));
     }
     multi method postcircumfix:<[ ]>(int $pos, :$p!) is rw {
         fail "Cannot use negative index $pos on {self.WHAT.perl}" if $pos < 0;
-        $p & !self.exists($pos) ?? Nil !! RWPAIR($pos, self.at_pos($pos));
+        $p & !self.exists($pos) ?? () !! RWPAIR($pos, self.at_pos($pos));
     }
     multi method postcircumfix:<[ ]>(int $pos, :$k!) is rw {
         fail "Cannot use negative index $pos on {self.WHAT.perl}" if $pos < 0;
-        $k & !self.exists($pos) ?? Nil !! $pos;
+        $k & !self.exists($pos) ?? () !! $pos;
     }
     multi method postcircumfix:<[ ]>(int $pos, :$v!) is rw {
         fail "Cannot use negative index $pos on {self.WHAT.perl}" if $pos < 0;
-        $v & !self.exists($pos) ?? Nil !! self.at_pos($pos);
+        $v & !self.exists($pos) ?? () !! self.at_pos($pos);
     }
 
     # @a[@i]
@@ -408,23 +408,23 @@ my class Any {
                 !( $wasthere ?^ $exists )
             }
             elsif $kv !=== $default {                   # :delete:exists?:kv?
-                !$kv | $wasthere ?? ( $key, !( $wasthere ?^ $exists ) ) !! Nil
+                !$kv | $wasthere ?? ( $key, !( $wasthere ?^ $exists ) ) !! ();
             }
             elsif $p !=== $default {                    # :delete:exists?:p?
-                !$p | $wasthere ?? RWPAIR($key, !($wasthere ?^ $exists) ) !! Nil
+                !$p | $wasthere ?? RWPAIR($key, !($wasthere ?^ $exists) ) !! ();
             }
         }
         elsif $kv !=== $default {                       # :delete?:kv?
-            !$kv | SELF.exists($key) ?? ( $key, SELF.delete($key) ) !! Nil
+            !$kv | SELF.exists($key) ?? ( $key, SELF.delete($key) ) !! ();
         }
         elsif $p !=== $default {                        # :delete:p?
-            !$p | SELF.exists($key) ?? RWPAIR($key, SELF.delete($key)) !! Nil
+            !$p | SELF.exists($key) ?? RWPAIR($key, SELF.delete($key)) !! ();
         }
         elsif $k !=== $default {                        # :delete:k?
-            !$k | SELF.exists($key) ?? ( SELF.delete($key); $key ) !! Nil
+            !$k | SELF.exists($key) ?? ( SELF.delete($key); $key ) !! ();
         }
         else {                                          # :delete:v?
-            !$v | SELF.exists($key) ?? SELF.delete($key) !! Nil
+            !$v | SELF.exists($key) ?? SELF.delete($key) !! ();
         }
     }
     multi method postcircumfix:<{ }>(
@@ -439,20 +439,20 @@ my class Any {
             !( $wasthere ?^ $exists )
         }
         elsif $kv !=== $default {                       # :exists?:kv?
-            !$kv | $wasthere ?? ( $key, !( $wasthere ?^ $exists ) ) !! Nil
+            !$kv | $wasthere ?? ( $key, !( $wasthere ?^ $exists ) ) !! ();
         }
         else {                                          # :exists:p?
-            !$p | $wasthere ?? RWPAIR($key, !( $wasthere ?^ $exists )) !! Nil
+            !$p | $wasthere ?? RWPAIR($key, !( $wasthere ?^ $exists )) !! ();
         }
     }
     multi method postcircumfix:<{ }>(\SELF: $key, :$kv!) is rw {
-        !$kv | SELF.exists($key) ?? ( $key, SELF.at_key($key) ) !! Nil
+        !$kv | SELF.exists($key) ?? ( $key, SELF.at_key($key) ) !! ();
     }
     multi method postcircumfix:<{ }>(\SELF: $key, :$p!) is rw {
-        !$p | SELF.exists($key) ?? RWPAIR( $key, SELF.at_key($key) ) !! Nil
+        !$p | SELF.exists($key) ?? RWPAIR( $key, SELF.at_key($key) ) !! ();
     }
     multi method postcircumfix:<{ }>(\SELF: $key, :$k!) is rw {
-        !$k | SELF.exists($key) ?? $key !! Nil
+        !$k | SELF.exists($key) ?? $key !! ();
     }
     #there is no multi method postcircumfix:<{ }>(\SELF: $key, :$v!)
 
@@ -495,20 +495,20 @@ my class Any {
             elsif $kv !=== $default {                     # :delete:exists?:kv?
                 key.map( {
                     SELF.delete($_) if $wasthere = SELF.exists($_);
-                    !$kv | $wasthere ?? ( $_, !( $wasthere ?^ $exists ) ) !! Nil
+                    !$kv | $wasthere ?? ( $_, !( $wasthere ?^ $exists ) ) !! ()
                 } ).eager.Parcel
             }
             elsif $p !=== $default {                      # :delete:exists?:p?
                 key.map( {
                     SELF.delete($_) if $wasthere = SELF.exists($_);
-                    !$p | $wasthere ?? RWPAIR($_,!($wasthere ?^ $exists)) !! Nil
+                    !$p | $wasthere ?? RWPAIR($_,!($wasthere ?^ $exists)) !! ()
                 } ).eager.Parcel
             }
         }
         elsif $kv !=== $default {                         # :delete:kv?
             $kv
               ?? key.map( {
-                     SELF.exists($_) ?? ( $_, SELF.delete($_) ) !! Nil
+                     SELF.exists($_) ?? ( $_, SELF.delete($_) ) !! ()
                  } ).eager.Parcel
               !! key.map( {
                      ( $_, SELF.delete($_) )
@@ -517,7 +517,7 @@ my class Any {
         elsif $p !=== $default {                          # :delete:p?
             $p
               ?? key.map( {
-                     SELF.exists($_) ?? RWPAIR($_, SELF.delete($_)) !! Nil
+                     SELF.exists($_) ?? RWPAIR($_, SELF.delete($_)) !! ()
                  } ).eager.Parcel
               !! key.map( {
                      RWPAIR($_, SELF.delete($_))
@@ -526,7 +526,7 @@ my class Any {
         elsif $k !=== $default {                          # :delete:k?
             $k
               ?? key.map( {
-                     SELF.exists($_) ?? ( SELF.delete($_); $_ ) !! Nil
+                     SELF.exists($_) ?? ( SELF.delete($_); $_ ) !! ()
                  } ).eager.Parcel
               !! key.map( {
                      SELF.delete($_); $_
@@ -535,7 +535,7 @@ my class Any {
         else {                                            # :delete:v?
             $v
               ?? key.map( {
-                     SELF.exists($_) ?? SELF.delete($_) !! Nil
+                     SELF.exists($_) ?? SELF.delete($_) !! ()
                  } ).eager.Parcel
               !! key.map( {
                      SELF.delete($_)
@@ -558,7 +558,7 @@ my class Any {
         elsif $kv !=== $default {                       # :exists?:kv?
             $kv
               ?? key.map( {
-                     SELF.exists($_) ?? ( $_, $exists ) !! Nil
+                     SELF.exists($_) ?? ( $_, $exists ) !! ()
                  } ).eager.Parcel
               !! key.map( {
                      ( $_, !( SELF.exists($_) ?^ $exists ) )
@@ -567,7 +567,7 @@ my class Any {
         else {                                          # :exists:p?
             $p
               ?? key.map( {
-                     SELF.exists($_) ?? RWPAIR( $_, $exists ) !! Nil
+                     SELF.exists($_) ?? RWPAIR( $_, $exists ) !! ()
                  } ).eager.Parcel
               !! key.map( {
                      RWPAIR( $_, !( SELF.exists($_) ?^ $exists ) )
@@ -580,7 +580,7 @@ my class Any {
         }
         elsif $kv {
             key.map( {
-                SELF.exists($_) ?? ($_, SELF.at_key($_)) !! Nil
+                SELF.exists($_) ?? ($_, SELF.at_key($_)) !! ()
             } ).eager.Parcel
         }
         else {
@@ -595,7 +595,7 @@ my class Any {
         }
         elsif $p {
             key.map( {
-                SELF.exists($_) ?? RWPAIR($_, SELF.at_key($_)) !! Nil
+                SELF.exists($_) ?? RWPAIR($_, SELF.at_key($_)) !! ()
             } ).eager.Parcel
         }
         else {
@@ -620,7 +620,7 @@ my class Any {
             SELF{key}:$v;
         }
         elsif $v {
-            key.map( { SELF.exists($_) ?? SELF.at_key($_) !! Nil } ).eager.Parcel
+            key.map( { SELF.exists($_) ?? SELF.at_key($_) !! () } ).eager.Parcel
         }
         else {
             key.map( { SELF.at_key($_) } ).eager.Parcel;

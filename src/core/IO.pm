@@ -458,8 +458,24 @@ my class IO::Path is Cool does IO::FileTestable {
             }
         }
 #?endif
-#?if !parrot
-        die "dir is NYI on JVM backend";
+#?if jvm
+        my Mu $dirh := nqp::opendir($!path);
+        my $next = 1;
+        gather {
+            take $_.path if $_ ~~ $test for ".", "..";
+            while $next {
+                my Str $elem := nqp::nextfiledir($dirh);
+                if nqp::isnull_s($elem) {
+                    nqp::closedir($dirh);
+                    $next = 0;
+                } else {
+                    if $elem.substr(0, 2) eq "./" {
+                        $elem := $elem.substr(2);
+                    }
+                    take $elem.path if $elem ~~ $test;
+                }
+            }
+        }
 #?endif
     }
 

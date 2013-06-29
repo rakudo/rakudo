@@ -29,7 +29,6 @@ sub prompt($msg) {
 }
 
 my role IO::FileTestable does IO {
-#?if parrot
     method d() {
         self.e && nqp::p6bool(nqp::stat(nqp::unbox_s(self.Str), nqp::const::STAT_ISDIR))
     }
@@ -42,18 +41,19 @@ my role IO::FileTestable does IO {
         self.e && nqp::p6bool(nqp::stat(nqp::unbox_s(self.Str), nqp::const::STAT_ISREG))
     }
 
+    method s() {
+        self.e
+          && nqp::p6box_i( nqp::stat(nqp::unbox_s(self.Str),
+                                 nqp::const::STAT_FILESIZE) );
+    }
+
+#?if parrot
     method l() {
         nqp::p6bool(pir::new__Ps('File').is_link(nqp::unbox_s(self.Str)))
     }
 
     method r() {
         nqp::p6bool(pir::new__Ps('OS').can_read(nqp::unbox_s(self.Str)))
-    }
-
-    method s() {
-        self.e 
-          && nqp::p6box_i( nqp::stat(nqp::unbox_s(self.Str), 
-                                 nqp::const::STAT_FILESIZE) );
     }
 
     method w() {

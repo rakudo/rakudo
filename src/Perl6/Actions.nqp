@@ -2017,20 +2017,6 @@ class Perl6::Actions is HLL::Actions does STDActions {
             else {
                 $block[1] := wrap_return_handler($block[1]);
             }
-            if $*MULTINESS eq 'proto' {
-                # Also stash the current lexical dispatcher and capture, for the {*}
-                # to resolve.
-                $block[0].push(QAST::Op.new(
-                    :op('bind'),
-                    QAST::Var.new( :name('CURRENT_DISPATCH_CAPTURE'), :scope('lexical'), :decl('var') ),
-                    QAST::Op.new( :op('savecapture') )
-                ));
-                $block[0].push(QAST::Op.new(
-                    :op('bind'),
-                    QAST::Var.new( :name('&*CURRENT_DISPATCHER'), :scope('lexical'), :decl('var') ),
-                    QAST::Op.new( :op('getcodeobj'), QAST::Op.new( :op('curcode') ) )
-                ));
-            }
         }
 
         # Obtain parameters, create signature object and generate code to
@@ -2065,6 +2051,21 @@ class Perl6::Actions is HLL::Actions does STDActions {
             :op('takedispatcher'),
             QAST::SVal.new( :value('$*DISPATCHER') )
         ));
+        
+        # If it's a proto but not an onlystar, need some variables for the
+        # {*} implementation to use.
+        if $*MULTINESS eq 'proto' && !$<onlystar> {
+            $block[0].push(QAST::Op.new(
+                :op('bind'),
+                QAST::Var.new( :name('CURRENT_DISPATCH_CAPTURE'), :scope('lexical'), :decl('var') ),
+                QAST::Op.new( :op('savecapture') )
+            ));
+            $block[0].push(QAST::Op.new(
+                :op('bind'),
+                QAST::Var.new( :name('&*CURRENT_DISPATCHER'), :scope('lexical'), :decl('var') ),
+                QAST::Op.new( :op('getcodeobj'), QAST::Op.new( :op('curcode') ) )
+            ));
+        }
 
         # Set name.
         if $<deflongname> {
@@ -2407,20 +2408,6 @@ class Perl6::Actions is HLL::Actions does STDActions {
             else {
                 $past[1] := wrap_return_handler($past[1]);
             }
-            if $*MULTINESS eq 'proto' {
-                # Also stash the current lexical dispatcher and capture, for the {*}
-                # to resolve.
-                $past[0].push(QAST::Op.new(
-                    :op('bind'),
-                    QAST::Var.new( :name('CURRENT_DISPATCH_CAPTURE'), :scope('lexical'), :decl('var') ),
-                    QAST::Op.new( :op('savecapture') )
-                ));
-                $past[0].push(QAST::Op.new(
-                    :op('bind'),
-                    QAST::Var.new( :name('&*CURRENT_DISPATCHER'), :scope('lexical'), :decl('var') ),
-                    QAST::Op.new( :op('getcodeobj'), QAST::Op.new( :op('curcode') ) )
-                ));
-            }
         }
         
         my $name;
@@ -2445,6 +2432,23 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $<longname> && $*W.is_lexical('$?CLASS') ?? '$?CLASS' !! 'Mu']);
         my $code := methodize_block($/, $*DECLARAND, $past, %sig_info, $inv_type, :yada(is_yada($/)));
 
+        # If it's a proto but not an onlystar, need some variables for the
+        # {*} implementation to use.
+        if $*MULTINESS eq 'proto' && !$<onlystar> {
+            # Also stash the current lexical dispatcher and capture, for the {*}
+            # to resolve.
+            $past[0].push(QAST::Op.new(
+                :op('bind'),
+                QAST::Var.new( :name('CURRENT_DISPATCH_CAPTURE'), :scope('lexical'), :decl('var') ),
+                QAST::Op.new( :op('savecapture') )
+            ));
+            $past[0].push(QAST::Op.new(
+                :op('bind'),
+                QAST::Var.new( :name('&*CURRENT_DISPATCHER'), :scope('lexical'), :decl('var') ),
+                QAST::Op.new( :op('getcodeobj'), QAST::Op.new( :op('curcode') ) )
+            ));
+        }
+        
         # Document it
         Perl6::Pod::document($/, $code, $*DOC);
 

@@ -5563,8 +5563,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
         
         # unshift handler preamble: create exception object and store it into $_
         my $exceptionreg := $handler.unique('exception_');
-        my $handler_preamble := QAST::Stmts.new(
-            QAST::Var.new( :scope('local'), :name($exceptionreg), :decl('param') ),
+        $handler<past_block>[0].unshift(QAST::Var.new(
+            :scope('local'), :name($exceptionreg), :decl('param')
+        ));
+        $handler<past_block>[0].push(QAST::Stmts.new(
             QAST::Op.new(
                 :op('bind'),
                 QAST::Var.new( :scope('lexical'), :name('$_') ),
@@ -5577,8 +5579,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 QAST::Op.new( :op('getlexouter'), QAST::SVal.new( :value('$!') ) ),
                 QAST::Var.new( :scope('lexical'), :name('$_') ),
             )
-        );
-        $handler<past_block>.unshift($handler_preamble);
+        ));
         
         # If the handler has a succeed handler, then make sure we sink
         # the exception it will produce.

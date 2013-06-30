@@ -331,8 +331,8 @@ public final class Binder {
         if (coerceType != null) {
             /* Coercing natives not possible - nothing to call a method on. */
             if (flag != CallSiteDescriptor.ARG_OBJ) {
-                if (error == null)
-                    error[1] = String.format(
+                if (error != null)
+                    error[0] = String.format(
                         "Unable to coerce natively typed parameter '%s'",
                         varName);
                 return BIND_RESULT_FAIL;

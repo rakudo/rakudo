@@ -710,28 +710,39 @@ class Perl6::Actions is HLL::Actions does STDActions {
             elsif $block<placeholder_sig> {
                 @params := $block<placeholder_sig>;
                 %sig_info<parameters> := @params;
+                if $*IMPLICIT {
+                    $block[0].push(QAST::Op.new(
+                        :op('bind'),
+                        QAST::Var.new( :name('$_'), :scope('lexical') ),
+                        QAST::Op.new( :op('getlexouter'), QAST::SVal.new( :value('$_') ) )
+                    ));
+                }
             }
             elsif $<signature> {
                 %sig_info := $<signature>.ast;
                 @params := %sig_info<parameters>;
+                if $*IMPLICIT {
+                    $block[0].push(QAST::Op.new(
+                        :op('bind'),
+                        QAST::Var.new( :name('$_'), :scope('lexical') ),
+                        QAST::Op.new( :op('getlexouter'), QAST::SVal.new( :value('$_') ) )
+                    ));
+                }
             }
             else {
-                unless $block.symbol('$_') {
-                    if $*IMPLICIT {
-                        $block[0].push(QAST::Var.new( :name('$_'), :scope('lexical'), :decl('var') ));
-                        @params.push(hash(
-                            :variable_name('$_'), :optional(1),
-                            :nominal_type($*W.find_symbol(['Mu'])),
-                            :default_from_outer(1), :is_parcel(1),
-                        ));
-                    }
-                    else {
-                        $block[0].push(QAST::Op.new(
-                            :op('bind'),
-                            QAST::Var.new( :name('$_'), :scope('lexical'), :decl('var') ),
-                            QAST::Op.new( :op('getlexouter'), QAST::SVal.new( :value('$_') ) )
-                        ));
-                    }
+                if $*IMPLICIT {
+                    @params.push(hash(
+                        :variable_name('$_'), :optional(1),
+                        :nominal_type($*W.find_symbol(['Mu'])),
+                        :default_from_outer(1), :is_parcel(1),
+                    ));
+                }
+                elsif !$block.symbol('$_') {
+                    $block[0].push(QAST::Op.new(
+                        :op('bind'),
+                        QAST::Var.new( :name('$_'), :scope('lexical'), :decl('var') ),
+                        QAST::Op.new( :op('getlexouter'), QAST::SVal.new( :value('$_') ) )
+                    ));
                     $block.symbol('$_', :scope('lexical'), :type($*W.find_symbol(['Mu'])));
                 }
                 %sig_info<parameters> := @params;
@@ -845,12 +856,17 @@ class Perl6::Actions is HLL::Actions does STDActions {
             }
         }
         else {
-            unless $BLOCK.symbol('$_') || $*IMPLICIT {
-                $BLOCK[0].push(QAST::Op.new(
-                    :op('bind'),
-                    QAST::Var.new( :name('$_'), :scope('lexical'), :decl('var') ),
-                    QAST::Op.new( :op('getlexouter'), QAST::SVal.new( :value('$_') ) )
-                ));
+            unless $BLOCK.symbol('$_') {
+                if $*IMPLICIT {
+                    $BLOCK[0].push(QAST::Var.new( :name('$_'), :scope('lexical'), :decl('var') ));
+                }
+                else {
+                    $BLOCK[0].push(QAST::Op.new(
+                        :op('bind'),
+                        QAST::Var.new( :name('$_'), :scope('lexical'), :decl('var') ),
+                        QAST::Op.new( :op('getlexouter'), QAST::SVal.new( :value('$_') ) )
+                    ));
+                }
                 $BLOCK.symbol('$_', :scope('lexical'), :type($*W.find_symbol(['Mu'])));
             }
         }
@@ -5551,7 +5567,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             QAST::Var.new( :scope('local'), :name($exceptionreg), :decl('param') ),
             QAST::Op.new(
                 :op('bind'),
-                QAST::Var.new( :scope('lexical'), :name('$_'), :decl('var') ),
+                QAST::Var.new( :scope('lexical'), :name('$_') ),
                 QAST::Op.new(
                     :op('call'), :name('&EXCEPTION'),
                     QAST::Var.new( :scope('local'), :name($exceptionreg) )

@@ -406,7 +406,11 @@ public final class Binder {
                 else if ((paramFlags & SIG_ELEM_HASH_SIGIL) != 0) {
                     SixModelObject bindee = decontValue;
                     if ((paramFlags & SIG_ELEM_IS_COPY) != 0) {
-                        throw new RuntimeException("is copy hash param NYI");
+                        SixModelObject BOOTHash = tc.gc.BOOTHash;
+                        bindee = gcx.Hash.st.REPR.allocate(tc, gcx.Hash.st);
+                        bindee.bind_attribute_boxed(tc, gcx.EnumMap, "$!storage",
+                            HINT_ENUMMAP_storage, BOOTHash.st.REPR.allocate(tc, BOOTHash.st));
+                        Ops.p6store(bindee, decontValue, tc);
                     }
                     cf.oLex[sci.oTryGetLexicalIdx(varName)] = bindee;
                 }

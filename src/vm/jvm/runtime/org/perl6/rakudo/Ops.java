@@ -591,4 +591,54 @@ public final class Ops {
         tcx.firstPhaserCodeBlock = null;
         return matches ? 1 : 0;
     }
+    
+    private static final CallSiteDescriptor dispVivifier = new CallSiteDescriptor(
+        new byte[] { CallSiteDescriptor.ARG_OBJ, CallSiteDescriptor.ARG_OBJ, CallSiteDescriptor.ARG_OBJ }, null);
+    private static final CallSiteDescriptor dispThrower = new CallSiteDescriptor(
+        new byte[] { CallSiteDescriptor.ARG_STR }, null);
+    public static SixModelObject p6finddispatcher(String usage, ThreadContext tc) {
+        SixModelObject dispatcher = null;
+        
+        CallFrame ctx = tc.curFrame;
+        while (ctx != null) {
+            /* Do we have a dispatcher here? */
+            StaticCodeInfo sci = ctx.codeRef.staticInfo;
+            Integer dispLexIdx = sci.oTryGetLexicalIdx("$*DISPATCHER");
+            if (dispLexIdx != null) {
+                SixModelObject maybeDispatcher = ctx.oLex[dispLexIdx];
+                if (maybeDispatcher != null) {
+                    dispatcher = maybeDispatcher;
+                    if (dispatcher instanceof TypeObject) {
+                        /* Need to vivify it. */
+                        SixModelObject meth = org.perl6.nqp.runtime.Ops.findmethod(dispatcher, "vivify_for", tc);
+                        SixModelObject p6sub = ctx.codeRef.codeObject;
+                        SixModelObject ContextRef = tc.gc.ContextRef;
+                        SixModelObject wrap = ContextRef.st.REPR.allocate(tc, ContextRef.st);
+                        ((ContextRefInstance)wrap).context = ctx;
+                        org.perl6.nqp.runtime.Ops.invokeDirect(tc, meth,
+                            dispVivifier, new Object[] { dispatcher, p6sub, wrap });
+                        dispatcher = org.perl6.nqp.runtime.Ops.result_o(tc.curFrame);
+                        ctx.oLex[dispLexIdx] = dispatcher;
+                    }
+                    break;
+                }
+            }
+
+            /* Follow dynamic chain. */
+            ctx = ctx.caller;
+        }
+        
+        if (dispatcher == null) {
+            SixModelObject thrower = getThrower(tc, "X::NoDispatcher");
+            if (thrower == null) {
+                ExceptionHandling.dieInternal(tc,
+                    usage + " is not in the dynamic scope of a dispatcher");
+            } else {
+                org.perl6.nqp.runtime.Ops.invokeDirect(tc, thrower,
+                    dispThrower, new Object[] { usage });
+            }
+        }
+        
+        return dispatcher;
+    }
 }

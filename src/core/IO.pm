@@ -566,16 +566,16 @@ multi sub spurt(Cool $filename,
 
 proto sub cwd(|) { * }
 multi sub cwd() {
-#?if parrot
     return nqp::p6box_s(
+#?if parrot
 		pir::trans_encoding__Ssi(
 			nqp::cwd(),
-			pir::find_encoding__Is('utf8')));
+			pir::find_encoding__Is('utf8'))
 #?endif
 #?if !parrot
-    die "cwd is NYI on JVM backend";
+			nqp::cwd(),
 #?endif
-
+    );
     CATCH {
         default {
             X::IO::Cwd.new(

@@ -1064,7 +1064,7 @@ class Perl6::World is HLL::World {
         unless $quasi_ast.is_quasi_ast {
             return "";
         }
-        my $fixups := QAST::Op.new(:name<set_outer_ctx>, :op<callmethod>,
+        my $fixups := QAST::Op.new(:op<forceouterctx>,
            QAST::BVal.new(:value($block)),
            QAST::Op.new(
                 :op<p6getouterctx>,

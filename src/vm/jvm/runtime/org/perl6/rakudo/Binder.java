@@ -396,7 +396,8 @@ public final class Binder {
                 if ((paramFlags & SIG_ELEM_ARRAY_SIGIL) != 0) {
                     SixModelObject bindee = decontValue;
                     if ((paramFlags & SIG_ELEM_IS_COPY) != 0) {
-                        throw new RuntimeException("is copy array param NYI");
+                        bindee = Ops.p6list(gcx.EMPTYARR.clone(tc), gcx.Array, gcx.True, tc);
+                        Ops.p6store(bindee, decontValue, tc);
                     }
                     cf.oLex[sci.oTryGetLexicalIdx(varName)] = bindee;
                 }

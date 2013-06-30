@@ -9,7 +9,7 @@ role Perl6::Metamodel::Mixins {
         self.flush_cache($obj) if !nqp::isnull($obj) || self.is_mixin($obj);
         # Work out a type name for the post-mixed-in role.
         my @role_names;
-        for @roles { @role_names.push($_.HOW.name($_)) }
+        for @roles { @role_names.push(~$_.HOW.name($_)) }
         my $new_name := self.name($obj) ~ '+{' ~
             nqp::join(',', @role_names) ~ '}';
         

@@ -15,7 +15,7 @@ public final class Ops {
     public static final boolean DEBUG_MODE = false;
 
     public static class ThreadExt {
-        // not currently used
+        public SixModelObject firstPhaserCodeBlock;
         public ThreadExt(ThreadContext tc) { }
     }
 
@@ -575,5 +575,20 @@ public final class Ops {
     
     public static long p6stateinit(ThreadContext tc) {
         return tc.curFrame.stateInit ? 1 : 0;
+    }
+    
+    public static SixModelObject p6setfirstflag(SixModelObject codeObj, ThreadContext tc) {
+        GlobalExt gcx = key.getGC(tc);
+        ThreadExt tcx = key.getTC(tc);
+        tcx.firstPhaserCodeBlock = codeObj.get_attribute_boxed(tc,
+            gcx.Code, "$!do", HINT_CODE_DO);
+        return codeObj;
+    }
+    
+    public static long p6takefirstflag(ThreadContext tc) {
+        ThreadExt tcx = key.getTC(tc);
+        boolean matches = tcx.firstPhaserCodeBlock == tc.curFrame.codeRef;
+        tcx.firstPhaserCodeBlock = null;
+        return matches ? 1 : 0;
     }
 }

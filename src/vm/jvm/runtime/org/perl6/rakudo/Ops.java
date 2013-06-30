@@ -4,6 +4,7 @@ import java.util.Arrays;
 import java.util.Comparator;
 import org.perl6.nqp.runtime.*;
 import org.perl6.nqp.sixmodel.*;
+import org.perl6.nqp.sixmodel.reprs.ContextRefInstance;
 import org.perl6.nqp.sixmodel.reprs.LexoticInstance;
 import org.perl6.nqp.sixmodel.reprs.VMArrayInstance;
 
@@ -444,6 +445,17 @@ public final class Ops {
                 gcx.Code, "$!do", HINT_CODE_DO);
         closure.outer = tc.curFrame;
         return codeObj;
+    }
+    
+    public static SixModelObject p6getouterctx(SixModelObject codeObj, ThreadContext tc) {
+        GlobalExt gcx = key.getGC(tc);
+        codeObj = org.perl6.nqp.runtime.Ops.decont(codeObj, tc);
+        CodeRef closure = (CodeRef)codeObj.get_attribute_boxed(tc,
+                gcx.Code, "$!do", HINT_CODE_DO);
+        SixModelObject ContextRef = tc.gc.ContextRef;
+        SixModelObject wrap = ContextRef.st.REPR.allocate(tc, ContextRef.st);
+        ((ContextRefInstance)wrap).context = closure.outer;
+        return wrap;
     }
     
     public static SixModelObject p6captureouters(SixModelObject capList, ThreadContext tc) {

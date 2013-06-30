@@ -14,8 +14,8 @@ my class Num does Real {
     method Bridge(Num:D:) { self }
     
     method Int(Num:D:) {
-        (self == $Inf || self == -$Inf) ??
-            fail("Cannot coerce Inf to an Int") !!
+        nqp::isnanorinf(nqp::unbox_n(self)) ??
+            fail("Cannot coerce Inf or NaN to an Int") !!
             nqp::fromnum_I(nqp::unbox_n(self), Int);
     }
 

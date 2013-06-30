@@ -443,7 +443,11 @@ public final class Ops {
         GlobalExt gcx = key.getGC(tc);
         CodeRef closure = (CodeRef)codeObj.get_attribute_boxed(tc,
                 gcx.Code, "$!do", HINT_CODE_DO);
-        closure.outer = tc.curFrame;
+        StaticCodeInfo wantedStaticInfo = closure.staticInfo.outerStaticInfo;
+        if (tc.curFrame.codeRef.staticInfo == wantedStaticInfo)
+            closure.outer = tc.curFrame;
+        else if (tc.curFrame.outer.codeRef.staticInfo == wantedStaticInfo)
+            closure.outer = tc.curFrame.outer;
         return codeObj;
     }
     

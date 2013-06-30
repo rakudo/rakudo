@@ -1773,6 +1773,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     rule package_def {
         :my $longname;
         :my $outer := $*W.cur_lexpad();
+        :my $*IMPLICIT := 0;
         :my $*DECLARAND;
         :my $*IN_DECL := 'package';
         :my $*HAS_SELF := '';

@@ -362,7 +362,7 @@ public final class Ops {
     
     public static SixModelObject p6decontrv(SixModelObject cont, ThreadContext tc) {
         GlobalExt gcx = key.getGC(tc);
-        if (isRWScalar(tc, gcx, cont)) {
+        if (cont != null && isRWScalar(tc, gcx, cont)) {
             tc.curFrame.codeRef.codeObject.get_attribute_native(tc, gcx.Routine, "$!rw", HINT_ROUTINE_RW);
             if (tc.native_i == 0) {
                 /* Recontainerize to RO. */

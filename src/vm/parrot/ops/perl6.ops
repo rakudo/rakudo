@@ -656,6 +656,8 @@ inline op p6settypes(invar PMC) :base_core {
         Parrot_str_new_constant(interp, "True")));
     Rakudo_types_junction_set(VTABLE_get_pmc_keyed_str(interp, $1,
         Parrot_str_new_constant(interp, "Junction")));
+    Rakudo_types_nil_set(VTABLE_get_pmc_keyed_str(interp, $1,
+        Parrot_str_new_constant(interp, "Nil")));
 }
 
 

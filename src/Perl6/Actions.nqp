@@ -1925,17 +1925,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $past<metaattr> := $attr;
         }
         elsif $*SCOPE eq 'my' || $*SCOPE eq 'our' || $*SCOPE eq 'state' {
-            # Twigil handling.
-            if $twigil eq '.' {
-                add_lexical_accessor($/, $past, $desigilname, $*W.cur_lexpad());
-                $name := $sigil ~ $desigilname;
-            }
-            elsif $twigil eq '!' {
-                $*W.throw($/, ['X', 'Syntax', 'Variable', 'Twigil'],
-                    twigil => $twigil,
-                    scope  => $*SCOPE,
-                );
-            }
+            # Some things can't be done to our vars.
             if $*SCOPE eq 'our' {
                 if $*OFTYPE {
                     $/.CURSOR.panic("Cannot put a type constraint on an 'our'-scoped variable");
@@ -1980,6 +1970,18 @@ class Perl6::Actions is HLL::Actions does STDActions {
                         $*W.symbol_lookup([$name], $/, :package_only(1), :lvalue(1))
                     ));
                 }
+            }
+            
+            # Twigil handling.
+            if $twigil eq '.' {
+                add_lexical_accessor($/, $past, $desigilname, $*W.cur_lexpad());
+                $name := $sigil ~ $desigilname;
+            }
+            elsif $twigil eq '!' {
+                $*W.throw($/, ['X', 'Syntax', 'Variable', 'Twigil'],
+                    twigil => $twigil,
+                    scope  => $*SCOPE,
+                );
             }
         }
         else {

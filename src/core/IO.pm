@@ -460,14 +460,13 @@ my class IO::Path is Cool does IO::FileTestable {
 #?endif
 #?if jvm
         my Mu $dirh := nqp::opendir($!path);
-        my $next = 1;
         gather {
             take $_.path if $_ ~~ $test for ".", "..";
-            while $next {
+            loop {
                 my Str $elem := nqp::nextfiledir($dirh);
                 if nqp::isnull_s($elem) {
                     nqp::closedir($dirh);
-                    $next = 0;
+                    last;
                 } else {
                     if $elem.substr(0, 2) eq "./" {
                         $elem := $elem.substr(2);

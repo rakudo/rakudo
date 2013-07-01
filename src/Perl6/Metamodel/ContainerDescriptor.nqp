@@ -2,19 +2,23 @@ class Perl6::Metamodel::ContainerDescriptor {
     has     $!of;
     has int $!rw;
     has str $!name;
+    has     $!default;
     
-    method BUILD(:$of, :$rw, :$name) {
+    method BUILD(:$of, :$rw, :$name, :$default) {
         $!of := $of;
         $!rw := $rw;
         $!name := $name;
+        $!default := $default;
     }
     
     method of() { $!of }
     method rw() { $!rw }
     method name() { $!name }
+    method default() { $!default }
     
     method set_of($of) { $!of := $of }
     method set_rw($rw) { $!rw := $rw }
+    method set_default($default) { $!default := $default }
     
     method is_generic() {
         $!of.HOW.archetypes.generic

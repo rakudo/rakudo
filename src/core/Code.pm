@@ -18,6 +18,6 @@ my class Code does Callable {
     # returns an identifier for this code object
     # that is the same even for cloned closures
     method static_id(Code:D:) {
-        nqp::p6box_i(nqp::where($!do.get_lexinfo));
+        nqp::p6box_i(nqp::where(nqp::getstaticcode($!do)));
     }
 }

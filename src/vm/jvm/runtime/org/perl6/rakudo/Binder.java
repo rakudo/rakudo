@@ -509,6 +509,10 @@ public final class Binder {
         SixModelObject capType = gcx.Capture;
         SixModelObject list = capture.get_attribute_boxed(tc, capType, "$!list", HINT_CAPTURE_list);
         SixModelObject hash = capture.get_attribute_boxed(tc, capType, "$!hash", HINT_CAPTURE_hash);
+        if (list == null)
+            list = gcx.EMPTYARR;
+        if (hash == null)
+            hash = gcx.EMPTYHASH;
 
         return exploder.explodeFlattening(tc.curFrame, new Object[] { list, hash });
     }

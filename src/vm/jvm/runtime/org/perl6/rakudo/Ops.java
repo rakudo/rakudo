@@ -43,6 +43,7 @@ public final class Ops {
         public SixModelObject True;
         public SixModelObject AutoThreader;
         public SixModelObject EMPTYARR;
+        public SixModelObject EMPTYHASH;
         boolean initialized;
 
         public GlobalExt(ThreadContext tc) { }
@@ -71,6 +72,8 @@ public final class Ops {
             tc.gc.contConfigs.put("rakudo_scalar", new RakudoContainerConfigurer());
             SixModelObject BOOTArray = tc.gc.BOOTArray;
             gcx.EMPTYARR = BOOTArray.st.REPR.allocate(tc, BOOTArray.st);
+            SixModelObject BOOTHash = tc.gc.BOOTHash;
+            gcx.EMPTYHASH = BOOTHash.st.REPR.allocate(tc, BOOTHash.st);
             gcx.initialized = true;
         }
         return null;

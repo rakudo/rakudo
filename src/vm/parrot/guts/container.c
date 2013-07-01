@@ -5,6 +5,7 @@
 #include "sixmodelobject.h"
 #include "bind.h"
 #include "exceptions.h"
+#include "types.h"
 
 static PMC *scalar_type = NULL;
 void Rakudo_cont_set_scalar_type(PMC *type) { scalar_type = type; }
@@ -43,14 +44,19 @@ static void rakudo_scalar_store(PARROT_INTERP, PMC *cont, PMC *value) {
         Rakudo_ContainerDescriptor *desc = ((Rakudo_ContainerDescriptor *)PMC_data(scalar->descriptor));
         ok = STABLE(value)->type_check(interp, value, desc->of);
         if (!ok) {
-            PMC *thrower = Rakudo_get_thrower(interp, "X::TypeCheck::Assignment");
-            if PMC_IS_NULL(thrower)
-                Parrot_ex_throw_from_c_args(interp, NULL, EXCEPTION_INVALID_OPERATION,
-                    "Type check failed in assignment to '%S'; expected '%S' but got '%S'",
-                    desc->name, type_name(interp, desc->of), type_name(interp, value));
-            else
-                Parrot_pcc_invoke_sub_from_c_args(interp, thrower,
-                        "SPP->", desc->name, value, desc->of);
+            if ( STABLE(value)->WHAT == Rakudo_types_nil_get() ) {
+                value = desc->the_default;
+            }
+            else {
+                PMC *thrower = Rakudo_get_thrower(interp, "X::TypeCheck::Assignment");
+                if PMC_IS_NULL(thrower)
+                    Parrot_ex_throw_from_c_args(interp, NULL, EXCEPTION_INVALID_OPERATION,
+                        "Type check failed in assignment to '%S'; expected '%S' but got '%S'",
+                        desc->name, type_name(interp, desc->of), type_name(interp, value));
+                else
+                    Parrot_pcc_invoke_sub_from_c_args(interp, thrower,
+                            "SPP->", desc->name, value, desc->of);
+            }
         }
     }
     else {

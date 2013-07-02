@@ -4,6 +4,7 @@ import java.util.*;
 
 import org.perl6.nqp.runtime.*;
 import org.perl6.nqp.sixmodel.*;
+import org.perl6.nqp.sixmodel.reprs.ContextRefInstance;
 
 public final class Binder {
     /* Possible results of binding. */
@@ -182,6 +183,8 @@ public final class Binder {
     /* Binds a single argument into the lexpad, after doing any checks that are
      * needed. Also handles any type captures. If there is a sub signature, then
      * re-enters the binder. Returns one of the BIND_RESULT_* codes. */
+    private static final CallSiteDescriptor genIns = new CallSiteDescriptor(
+        new byte[] { CallSiteDescriptor.ARG_OBJ, CallSiteDescriptor.ARG_OBJ, CallSiteDescriptor.ARG_OBJ }, null);
     private static final CallSiteDescriptor ACCEPTS_o = new CallSiteDescriptor(
         new byte[] { CallSiteDescriptor.ARG_OBJ, CallSiteDescriptor.ARG_OBJ }, null);
     private static final CallSiteDescriptor ACCEPTS_i = new CallSiteDescriptor(
@@ -307,7 +310,12 @@ public final class Binder {
                     SixModelObject HOW = nomType.st.HOW;
                     SixModelObject ig = org.perl6.nqp.runtime.Ops.findmethod(tc, HOW,
                         "instantiate_generic");
-                    throw new RuntimeException("Generic type parameter binding NYI");
+                    SixModelObject ContextRef = tc.gc.ContextRef;
+                    SixModelObject cc = ContextRef.st.REPR.allocate(tc, ContextRef.st);
+                    ((ContextRefInstance)cc).context = cf;
+                    org.perl6.nqp.runtime.Ops.invokeDirect(tc, ig, genIns,
+                        new Object[] { HOW, nomType, cc });
+                    nomType = org.perl6.nqp.runtime.Ops.result_o(tc.curFrame);
                 }
 
                 /* If not, do the check. If the wanted nominal type is Mu, then

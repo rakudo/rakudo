@@ -150,15 +150,6 @@ CORE_SOURCES = \
   src/core/Parameter.pm \
   src/core/Signature.pm \
   src/core/Buf.pm \
-  src/core/Regex.pm \
-  src/core/IO/Spec/Unix.pm \
-  src/core/IO/Spec/Win32.pm \
-  src/core/IO/Spec/Cygwin.pm \
-  src/core/IO/Spec.pm \
-  src/core/IO.pm \
-  src/core/IO/ArgFiles.pm \
-  src/core/IO/Socket.pm \
-  src/core/IO/Socket/INET.pm \
   src/core/Rational.pm \
   src/core/Rat.pm \
   src/core/Complex.pm \
@@ -168,6 +159,15 @@ CORE_SOURCES = \
   src/core/Match.pm \
   src/core/Cursor.pm \
   src/core/Grammar.pm \
+  src/core/Regex.pm \
+  src/core/IO/Spec/Unix.pm \
+  src/core/IO/Spec/Win32.pm \
+  src/core/IO/Spec/Cygwin.pm \
+  src/core/IO/Spec.pm \
+  src/core/IO.pm \
+  src/core/IO/ArgFiles.pm \
+  src/core/IO/Socket.pm \
+  src/core/IO/Socket/INET.pm \
   src/core/AST.pm \
   src/core/CallFrame.pm \
   src/core/Main.pm \

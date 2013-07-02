@@ -454,10 +454,8 @@ public final class Binder {
                 /* Check we meet the constraint. */
                 SixModelObject consType = postConstraints.at_pos_boxed(tc, i);
                 SixModelObject acceptsMeth = org.perl6.nqp.runtime.Ops.findmethod(consType, "ACCEPTS", tc);
-
-                /*if (STABLE(cons_type)->type_check(interp, cons_type, code_type))
-                    Parrot_sub_capture_lex(interp,
-                        VTABLE_get_attr_keyed(interp, cons_type, code_type, DO_str));*/
+                if (org.perl6.nqp.runtime.Ops.istype(consType, gcx.Code, tc) != 0)
+                    Ops.p6capturelex(consType, tc);
                 switch (flag) {
                     case CallSiteDescriptor.ARG_INT:
                         org.perl6.nqp.runtime.Ops.invokeDirect(tc, acceptsMeth,

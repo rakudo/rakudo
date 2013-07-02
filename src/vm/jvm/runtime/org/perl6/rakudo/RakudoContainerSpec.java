@@ -44,7 +44,7 @@ public class RakudoContainerSpec extends ContainerSpec {
                     gcx.ContainerDescriptor, "$!default", Ops.HINT_CD_DEFAULT);
             }
             else {
-                desc.get_attribute_boxed(tc, gcx.ContainerDescriptor, "$!default", Ops.HINT_CD_DEFAULT);
+                desc.get_attribute_native(tc, gcx.ContainerDescriptor, "$!name", Ops.HINT_CD_NAME);
                 String name = tc.native_s;
                 SixModelObject thrower = Ops.getThrower(tc, "X::TypeCheck::Assignment");
                 if (thrower == null)

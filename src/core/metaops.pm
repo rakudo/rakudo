@@ -54,28 +54,44 @@ sub METAOP_ZIP(\op, &reduce) {
 }
 
 sub METAOP_REDUCE_LEFT(\op, :$triangle) {
-    my $x := $triangle ??
-        (sub (*@values) {
+    if ($triangle) {
+        return sub (*@values) {
             return () unless @values.gimme(1);
             GATHER({
-                my $result := @values.shift;
-                take $result;
-                take ($result := op.($result, @values.shift))
-                    while @values.gimme(1);
-            }, :infinite(@values.infinite))
-        }) !!
-        (sub (*@values) {
-            return op.() unless @values.gimme(1);
-            my $result := @values.shift;
-            return op.($result) unless @values.gimme(1);
-            my int $i;
-            while my int $c = @values.gimme(1000) {
-                $i = 0;
-                $result := op.($result, @values.shift)
-                    while ($i = $i + 1) <= $c;
-            }
-            $result;
-        })
+                    my $result := @values.shift;
+                    take $result;
+                    take ($result := op.($result, @values.shift))
+                        while @values.gimme(1);
+                }, :infinite(@values.infinite))
+
+        }
+    }
+
+    multi sub reduce (*@values) {
+        return op.() unless @values.gimme(1);
+        my $result := @values.shift;
+        return op.($result) unless @values.gimme(1);
+        my int $i;
+        while my int $c = @values.gimme(1000) {
+            $i = 0;
+            $result := op.($result, @values.shift)
+                while ($i = $i + 1) <= $c;
+        }
+        $result;
+    }
+
+    # Range optimizations
+    multi sub reduce ((Range $values)) {
+        if (op === &infix:<+> && $values.min ~~ Int && $values.max ~~ Int) {
+            my $min = $values.excludes_min ?? $values.min + 1 !! $values.min;
+            my $max = $values.excludes_max ?? $values.max - 1 !! $values.max;
+            return (($max - $min + 1) * ($max + $min)) / 2;
+        }
+
+        reduce($values.list);
+    }
+
+    return &reduce;
 }
 
 sub METAOP_REDUCE_RIGHT(\op, :$triangle) {

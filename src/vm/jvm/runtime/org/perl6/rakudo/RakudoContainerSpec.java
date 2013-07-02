@@ -19,7 +19,9 @@ public class RakudoContainerSpec extends ContainerSpec {
     }
     
     /* Stores a value in a container. Used for assignment. */
-    public void store(ThreadContext tc, SixModelObject cont, SixModelObject obj) {
+    private static final CallSiteDescriptor storeThrower = new CallSiteDescriptor(
+        new byte[] { CallSiteDescriptor.ARG_STR, CallSiteDescriptor.ARG_OBJ, CallSiteDescriptor.ARG_OBJ }, null);
+    public void store(ThreadContext tc, SixModelObject cont, SixModelObject value) {
         Ops.GlobalExt gcx = Ops.key.getGC(tc);
         
         long rw = 0;
@@ -33,15 +35,33 @@ public class RakudoContainerSpec extends ContainerSpec {
             throw ExceptionHandling.dieInternal(tc,
                 "Cannot assign to a readonly variable or a value");
         
-        if (Ops.DEBUG_MODE)
-            System.err.println("scalar store typecheck NYI");
+        SixModelObject of = desc.get_attribute_boxed(tc,
+            gcx.ContainerDescriptor, "$!of", Ops.HINT_CD_OF);
+        long ok = org.perl6.nqp.runtime.Ops.istype(value, of, tc);
+        if (ok == 0) {
+            if (value.st.WHAT == gcx.Nil) {
+                value = desc.get_attribute_boxed(tc,
+                    gcx.ContainerDescriptor, "$!default", Ops.HINT_CD_DEFAULT);
+            }
+            else {
+                desc.get_attribute_boxed(tc, gcx.ContainerDescriptor, "$!default", Ops.HINT_CD_DEFAULT);
+                String name = tc.native_s;
+                SixModelObject thrower = Ops.getThrower(tc, "X::TypeCheck::Assignment");
+                if (thrower == null)
+                    throw ExceptionHandling.dieInternal(tc,
+                        "Type check failed in assignment to '" + name + "'");
+                else
+                    org.perl6.nqp.runtime.Ops.invokeDirect(tc, thrower,
+                        storeThrower, new Object[] { name, value, of });
+            }
+        }
         
         SixModelObject whence = cont.get_attribute_boxed(tc, gcx.Scalar, "$!whence", HINT_whence);
         if (whence != null)
             org.perl6.nqp.runtime.Ops.invokeDirect(tc, whence,
                 WHENCE, new Object[] { });
         
-        cont.bind_attribute_boxed(tc, gcx.Scalar, "$!value", HINT_value, obj);
+        cont.bind_attribute_boxed(tc, gcx.Scalar, "$!value", HINT_value, value);
     }
     
     /* Stores a value in a container, without any checking of it (this

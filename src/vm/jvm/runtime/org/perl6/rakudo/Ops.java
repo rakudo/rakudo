@@ -33,6 +33,7 @@ public final class Ops {
         public SixModelObject ListIter;
         public SixModelObject Array;
         public SixModelObject LoL;
+        public SixModelObject Nil;
         public SixModelObject EnumMap;
         public SixModelObject Hash;
         public SixModelObject Junction;
@@ -57,7 +58,10 @@ public final class Ops {
     private static final int HINT_CODE_SIG = 1;
     private static final int HINT_ROUTINE_RW = 7;
     private static final int HINT_SIG_PARAMS = 0;
+    public static final int HINT_CD_OF = 0;
     public static final int HINT_CD_RW = 1;
+    public static final int HINT_CD_NAME = 2;
+    public static final int HINT_CD_DEFAULT = 3;
     private static final int HINT_LIST_items = 0;
     private static final int HINT_LIST_flattens = 1;
     private static final int HINT_LIST_nextiter = 2;

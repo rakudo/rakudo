@@ -4,6 +4,7 @@ import java.util.Arrays;
 import java.util.Comparator;
 import org.perl6.nqp.runtime.*;
 import org.perl6.nqp.sixmodel.*;
+import org.perl6.nqp.sixmodel.reprs.CallCaptureInstance;
 import org.perl6.nqp.sixmodel.reprs.ContextRefInstance;
 import org.perl6.nqp.sixmodel.reprs.LexoticInstance;
 import org.perl6.nqp.sixmodel.reprs.VMArrayInstance;
@@ -58,6 +59,7 @@ public final class Ops {
     private static final int HINT_CODE_SIG = 1;
     private static final int HINT_ROUTINE_RW = 7;
     private static final int HINT_SIG_PARAMS = 0;
+    private static final int HINT_SIG_CODE = 4;
     public static final int HINT_CD_OF = 0;
     public static final int HINT_CD_RW = 1;
     public static final int HINT_CD_NAME = 2;
@@ -312,11 +314,43 @@ public final class Ops {
         }        
     }
     
-    public static long p6isbindable(SixModelObject signature, SixModelObject capture, ThreadContext tc) {
-        /* TODO */
-        if (DEBUG_MODE)
-            System.err.println("p6isbindable NYI (always returns true)");
-        return 1;
+    public static long p6isbindable(SixModelObject sig, SixModelObject cap, ThreadContext tc) {
+        GlobalExt gcx = key.getGC(tc);
+        
+        CallSiteDescriptor csd;
+        Object[] args;
+        if (cap instanceof CallCaptureInstance) {
+            CallCaptureInstance cc = (CallCaptureInstance)cap;
+            csd = cc.descriptor;
+            args = cc.args;
+        } else {
+            csd = Binder.explodeCapture(tc, gcx, cap);
+            args = tc.flatArgs;
+        }
+        
+        SixModelObject params = sig.get_attribute_boxed(tc, gcx.Signature,
+            "$!params", HINT_SIG_PARAMS);
+        SixModelObject codeObj = sig.get_attribute_boxed(tc, gcx.Signature,
+            "$!code", HINT_SIG_CODE);
+        CodeRef cr = (CodeRef)codeObj.get_attribute_boxed(tc, gcx.Code,
+            "$!do", HINT_CODE_DO);
+
+        CallFrame cf = new CallFrame(tc, cr);
+        try {
+            switch (Binder.bind(tc, gcx, cf, params, csd, args, false, null)) {
+                case Binder.BIND_RESULT_FAIL:
+                    return 0;
+                default:
+                    return 1;
+            }
+        }
+        catch (Throwable t) {
+            t.printStackTrace();
+            throw t;
+        }
+        finally {
+            tc.curFrame = tc.curFrame.caller;
+        }
     }
     
     public static long p6trialbind(SixModelObject routine, SixModelObject values, SixModelObject flags, ThreadContext tc) {

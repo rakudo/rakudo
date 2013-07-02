@@ -345,10 +345,6 @@ public final class Ops {
                     return 1;
             }
         }
-        catch (Throwable t) {
-            t.printStackTrace();
-            throw t;
-        }
         finally {
             tc.curFrame = tc.curFrame.caller;
         }

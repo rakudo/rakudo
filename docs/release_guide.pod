@@ -74,8 +74,8 @@ part of monthly Parrot releases.
 Dates are based on Parrot's expected release schedule.
 
   2013-07-18   Rakudo #66                      tadzik
-  2013-08-22   Rakudo #67
-  2013-09-19   Rakudo #68
+  2013-08-22   Rakudo #67                      moritz
+  2013-09-19   Rakudo #68                      masak
   2013-10-17   Rakudo #69                      Coke
   2013-11-21   Rakudo #70
   2013-12-19   Rakudo #71

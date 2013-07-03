@@ -326,8 +326,9 @@ my class List does Positional {
     # specifier, but AFAIK nothing has been spec'd yet.
     method uniq() {
         my $seen := nqp::hash();
+        my str $which;
         gather sink for @.list {
-            my str $which = nqp::unbox_s($_.WHICH);
+            $which = nqp::unbox_s($_.WHICH);
             unless nqp::existskey($seen, $which) {
                 take $_;
                 nqp::bindkey($seen, $which, 1);

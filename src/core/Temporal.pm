@@ -621,10 +621,7 @@ multi infix:«>»(Date:D $a, Date:D $b) {
     $a.daycount > $b.daycount
 }
 
-# XXX JVM doesn't handle DateTime stuff properly yet
-#?if !jvm
 $PROCESS::TZ = get-local-timezone-offset();
-#?endif
 
 # =begin pod
 # 

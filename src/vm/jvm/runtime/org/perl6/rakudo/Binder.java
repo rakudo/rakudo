@@ -4,6 +4,7 @@ import java.util.*;
 
 import org.perl6.nqp.runtime.*;
 import org.perl6.nqp.sixmodel.*;
+import org.perl6.nqp.sixmodel.reprs.ContextRefInstance;
 
 public final class Binder {
     /* Possible results of binding. */
@@ -182,6 +183,16 @@ public final class Binder {
     /* Binds a single argument into the lexpad, after doing any checks that are
      * needed. Also handles any type captures. If there is a sub signature, then
      * re-enters the binder. Returns one of the BIND_RESULT_* codes. */
+    private static final CallSiteDescriptor genIns = new CallSiteDescriptor(
+        new byte[] { CallSiteDescriptor.ARG_OBJ, CallSiteDescriptor.ARG_OBJ, CallSiteDescriptor.ARG_OBJ }, null);
+    private static final CallSiteDescriptor ACCEPTS_o = new CallSiteDescriptor(
+        new byte[] { CallSiteDescriptor.ARG_OBJ, CallSiteDescriptor.ARG_OBJ }, null);
+    private static final CallSiteDescriptor ACCEPTS_i = new CallSiteDescriptor(
+        new byte[] { CallSiteDescriptor.ARG_OBJ, CallSiteDescriptor.ARG_INT }, null);
+    private static final CallSiteDescriptor ACCEPTS_n = new CallSiteDescriptor(
+        new byte[] { CallSiteDescriptor.ARG_OBJ, CallSiteDescriptor.ARG_NUM }, null);
+    private static final CallSiteDescriptor ACCEPTS_s = new CallSiteDescriptor(
+        new byte[] { CallSiteDescriptor.ARG_OBJ, CallSiteDescriptor.ARG_STR }, null);
     private static int bindOneParam(ThreadContext tc, Ops.GlobalExt gcx, CallFrame cf, SixModelObject param,
             Object origArg, byte origFlag, boolean noNomTypeCheck, String[] error) {
         /* Get parameter flags and variable name. */
@@ -299,7 +310,12 @@ public final class Binder {
                     SixModelObject HOW = nomType.st.HOW;
                     SixModelObject ig = org.perl6.nqp.runtime.Ops.findmethod(tc, HOW,
                         "instantiate_generic");
-                    throw new RuntimeException("Generic type parameter binding NYI");
+                    SixModelObject ContextRef = tc.gc.ContextRef;
+                    SixModelObject cc = ContextRef.st.REPR.allocate(tc, ContextRef.st);
+                    ((ContextRefInstance)cc).context = cf;
+                    org.perl6.nqp.runtime.Ops.invokeDirect(tc, ig, genIns,
+                        new Object[] { HOW, nomType, cc });
+                    nomType = org.perl6.nqp.runtime.Ops.result_o(tc.curFrame);
                 }
 
                 /* If not, do the check. If the wanted nominal type is Mu, then
@@ -436,7 +452,45 @@ public final class Binder {
         if ((paramFlags & SIG_ELEM_INVOCANT) != 0)
             cf.oLex[sci.oTryGetLexicalIdx("self")] = decontValue;
 
-        /* TODO: post_constraints. */
+        /* Handle any constraint types (note that they may refer to the parameter by
+         * name, so we need to have bound it already). */
+        SixModelObject postConstraints = param.get_attribute_boxed(tc, gcx.Parameter,
+            "$!post_contraints", HINT_post_constraints);
+        if (postConstraints != null) {
+            long numConstraints = postConstraints.elems(tc);
+            for (long i = 0; i < numConstraints; i++) {
+                /* Check we meet the constraint. */
+                SixModelObject consType = postConstraints.at_pos_boxed(tc, i);
+                SixModelObject acceptsMeth = org.perl6.nqp.runtime.Ops.findmethod(consType, "ACCEPTS", tc);
+                if (org.perl6.nqp.runtime.Ops.istype(consType, gcx.Code, tc) != 0)
+                    Ops.p6capturelex(consType, tc);
+                switch (flag) {
+                    case CallSiteDescriptor.ARG_INT:
+                        org.perl6.nqp.runtime.Ops.invokeDirect(tc, acceptsMeth,
+                            ACCEPTS_i, new Object[] { consType, arg_i });
+                        break;
+                    case CallSiteDescriptor.ARG_NUM:
+                        org.perl6.nqp.runtime.Ops.invokeDirect(tc, acceptsMeth,
+                            ACCEPTS_n, new Object[] { consType, arg_n });
+                        break;
+                    case CallSiteDescriptor.ARG_STR:
+                        org.perl6.nqp.runtime.Ops.invokeDirect(tc, acceptsMeth,
+                            ACCEPTS_s, new Object[] { consType, arg_s });
+                        break;
+                    default:
+                        org.perl6.nqp.runtime.Ops.invokeDirect(tc, acceptsMeth,
+                            ACCEPTS_o, new Object[] { consType, arg_o });
+                        break;
+                }
+                long result = org.perl6.nqp.runtime.Ops.istrue(
+                    org.perl6.nqp.runtime.Ops.result_o(tc.curFrame), tc);
+                if (result == 0) {
+                    if (error != null)
+                        error[0] = "Constraint type check failed for parameter '" + varName + "'";
+                    return BIND_RESULT_FAIL;
+                }
+            }
+        }
 
         /* TODO: attributives. */
         if ((paramFlags & SIG_ELEM_BIND_ATTRIBUTIVE) != 0) {

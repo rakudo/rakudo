@@ -970,9 +970,8 @@ my class Str does Stringy {
         my Int $outdent = $steps ~~ Whatever ?? $common-prefix
                                              !! -$steps;
 
-        warn sprintf('Asked to remove %d spaces, ' ~
-                     'but the shortest indent is %d spaces',
-                     $outdent, $common-prefix) if $outdent > $common-prefix;
+        warn "Asked to remove $outdent spaces, but the shortest indent is $common-prefix spaces"
+            if $outdent > $common-prefix;
 
         # Work backwards from the right end of the indent whitespace, removing
         # array elements up to # (or over, in the case of tab-explosion)

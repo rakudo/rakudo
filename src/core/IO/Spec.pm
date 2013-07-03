@@ -8,6 +8,9 @@ my class IO::Spec {
         'Win32'   => 'Win32',
         'cygwin'  => 'Cygwin',
         'Cygwin'  => 'Cygwin',
+        'qnx'     => 'QNX',
+        'QNX'     => 'QNX',
+        'nto'     => 'QNX',
         # <MacOS Mac>  »=>» 'Mac',
         # 'VMS'     => 'VMS'
 );

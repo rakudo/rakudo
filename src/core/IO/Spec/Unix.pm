@@ -2,19 +2,8 @@ my class IO::Spec { ... }
 
 my class IO::Spec::Unix {
 
-    method canonpath( $path is copy ) {
-        $path;
-        return unless $path.defined;
-
-        # Handle POSIX-style node names beginning with double slash (qnx, nto)
-        # (POSIX says: "a pathname that begins with two successive slashes
-        # may be interpreted in an implementation-defined manner, although
-        # more than two leading slashes shall be treated as a single slash.")
-        my $node = '';
-        if ( so $*OS eq 'qnx'|'nto' )   #double slashes special on these OSes
-           && (   $path ~~ s {^ ( '//' <-[ / ]>+ ) '/'? $} = ''
-               || $path ~~ s {^ ( '//' <-[ / ]>+ ) '/' }   = '/' )
-               { $node = ~ $0; }
+    method canonpath( $path is copy --> Str ) {
+        return '' if $path eq '';
 
         $path ~~ s:g { '//' '/'* }         = '/';     # xx////xx  -> xx/xx  
         $path ~~ s:g { '/.'+ ['/' | $] }   = '/';     # xx/././xx -> xx/xx  
@@ -23,11 +12,10 @@ my class IO::Spec::Unix {
         unless $path eq "/" {
             $path ~~ s { '/' $ }       = '';      # xx/       -> xx    :)
         }
-
-        return "$node$path";
+        $path;
     }
 
-    method curdir {    '.'  }
+    method curdir {  '.' }
     method updir  { '..' }
     method rootdir { '/' }
     method devnull { '/dev/null' }

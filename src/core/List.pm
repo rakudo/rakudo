@@ -335,6 +335,15 @@ my class List does Positional {
         }
     }
 
+    my @secret;
+    method squish() {
+        my $last = @secret;
+        gather sink for @.list {
+            take $_ if $_ !=== $last;
+            $last = $_;
+        }
+    }
+
     multi method gist(List:D:) { join ' ', map { $_.gist }, @(self) }
     multi method perl(List:D \SELF:) {
         self.gimme(*);

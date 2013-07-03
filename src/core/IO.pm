@@ -379,8 +379,8 @@ my class IO::Path is Cool does IO::FileTestable {
         return self.new($.SPEC.abs2rel($!path, $relative_to_directory));
     }
 
-    method cleanup {
-        return self.new($.SPEC.canonpath($!path));
+    method cleanup (:$parent) {
+        return self.new($.SPEC.canonpath($!path, :$parent));
     }
     method resolve {
         # NYI: requires readlink()
@@ -437,7 +437,7 @@ my class IO::Path is Cool does IO::FileTestable {
     }
 
     method contents(IO::Path:D: Mu :$test = none('.', '..')) {
-#?if parrot
+
         CATCH {
             default {
                 X::IO::Dir.new(
@@ -446,7 +446,7 @@ my class IO::Path is Cool does IO::FileTestable {
                 ).throw;
             }
         }
-
+#?if parrot
         my Mu $RSA := pir::new__PS('OS').readdir(nqp::unbox_s($!path));
         my int $elems = nqp::elems($RSA);
         gather loop (my int $i = 0; $i < $elems; $i = $i + 1) {
@@ -484,6 +484,7 @@ my class IO::Path is Cool does IO::FileTestable {
 my class IO::Path::Unix   is IO::Path { method SPEC { IO::Spec::Unix   };  }
 my class IO::Path::Win32  is IO::Path { method SPEC { IO::Spec::Win32  };  }
 my class IO::Path::Cygwin is IO::Path { method SPEC { IO::Spec::Cygwin };  }
+my class IO::Path::QNX    is IO::Path { method SPEC { IO::Spec::QNX    };  }
 
 
 sub dir(Cool $path = '.', Mu :$test = none('.', '..')) {

@@ -2,17 +2,21 @@ my class IO::Spec { ... }
 
 my class IO::Spec::Unix {
 
-    method canonpath( $path is copy --> Str ) {
+    method canonpath( $path is copy, :$parent --> Str) {
         return '' if $path eq '';
 
         $path ~~ s:g { '//' '/'* }         = '/';     # xx////xx  -> xx/xx  
         $path ~~ s:g { '/.'+ ['/' | $] }   = '/';     # xx/././xx -> xx/xx  
         $path ~~ s { ^ './' <!before $> }  = '';      # ./xx      -> xx
+        if $parent {
+            while $path ~~ s:g {  [^ | <?after '/'>] <!before '../'> <-[/]>+ '/..' ['/' | $ ] } = '' { };
+            $path = '.' if $path eq '';
+        }
         $path ~~ s { ^ '/..'+ ['/' | $] }  = '/';     # /../..(/xx) -> /(xx)
         unless $path eq "/" {
             $path ~~ s { '/' $ }       = '';      # xx/       -> xx    :)
         }
-        $path;
+        $path
     }
 
     method curdir {  '.' }

@@ -180,6 +180,7 @@ my class List does Positional {
 
     multi method push(List:D: *@values) {
         fail 'Cannot .push to an infinite list' if self.infinite; #MMD?
+        fail 'Cannot .push an infinite list' if @values.infinite;
         my $pos = self.elems;
         self.STORE_AT_POS($pos++, @values.shift) while @values.gimme(1);
         self;
@@ -232,6 +233,7 @@ my class List does Positional {
     }
 
     multi method unshift(List:D: *@elems) {
+        fail 'Cannot .unshift an infinite list' if @elems.infinite;
         nqp::p6listitems(self);
         while @elems {
             nqp::unshift($!items, @elems.pop)

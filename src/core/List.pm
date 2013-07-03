@@ -326,22 +326,18 @@ my class List does Positional {
     # specifier, but AFAIK nothing has been spec'd yet.
     method uniq() {
         my $seen := nqp::hash();
-        gather sink for @.list {
-             my str $which = nqp::unbox_s($_.WHICH);
-             unless nqp::existskey($seen, $which) {
-                 take $_;
-                 nqp::bindkey($seen, $which, 1);
-             }
-        }
+        my str $which;
+        grep {
+            $which = nqp::unbox_s($_.WHICH);
+            nqp::bindkey($seen, $which, 1) unless nqp::existskey($seen, $which);
+        }, @.list;
     }
 
     my @secret;
     method squish() {
         my $last = @secret;
-        gather sink for @.list {
-            take $_ if $_ !=== $last;
-            $last = $_;
-        }
+        my $grepped;
+        grep { $grepped = $_ !=== $last; $last = $_; $grepped }, @.list;
     }
 
     multi method gist(List:D:) { join ' ', map { $_.gist }, @(self) }

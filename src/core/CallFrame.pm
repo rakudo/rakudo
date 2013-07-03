@@ -1,5 +1,4 @@
 my class CallFrame {
-    has Mu $!interp;
     has Int $.level;
     has %.annotations;
     has %.my;
@@ -8,7 +7,6 @@ my class CallFrame {
         my $self := nqp::create(CallFrame);
 #?if parrot
         my Mu $interp := pir::getinterp__P;
-        nqp::bindattr($self, CallFrame, '$!interp', pir::getinterp__P);
         nqp::bindattr($self, CallFrame, '%!annotations',
             Q:PIR {
                 .local pmc interp, annon
@@ -39,7 +37,19 @@ my class CallFrame {
         nqp::bindattr($self, CallFrame, '%!my', $h);
 #?endif
 #?if !parrot
-        die "CallFrame NYI on JVM backend";
+        my $i = $l;
+        my Mu $ctx := nqp::ctx();
+        while $i-- {
+            $ctx := nqp::ctxcaller($ctx);
+        }
+        my $h := nqp::create(EnumMap);
+        nqp::bindattr($h, EnumMap, '$!storage', $ctx);
+        nqp::bindattr($self, CallFrame, '%!my', $h);
+        
+        my $e  := nqp::handle(nqp::die(''), 'CATCH', nqp::exception());
+        my $bt := nqp::backtrace($e);
+        nqp::bindattr($self, CallFrame, '%!annotations',
+            nqp::hllize(nqp::atkey(nqp::atpos($bt, $l), 'annotations')));
 #?endif
 
         $self;

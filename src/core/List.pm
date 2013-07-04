@@ -170,7 +170,7 @@ my class List does Positional {
         }
     }
 
-    method pop() is rw {
+    method pop() {
         fail 'Cannot .pop from an infinite list' if self.infinite; #MMD?
         my $elems = self.elems;
         $elems > 0
@@ -232,11 +232,12 @@ my class List does Positional {
           !! fail 'Element shifted from empty list';
     }
 
+    my method pop_rw() is rw { nqp::pop($!items) };
     multi method unshift(List:D: *@elems) {
         fail 'Cannot .unshift an infinite list' if @elems.infinite;
         nqp::p6listitems(self);
         while @elems {
-            nqp::unshift($!items, @elems.pop)
+            nqp::unshift($!items, @elems.pop_rw)
         }
         self
     }

@@ -8,7 +8,7 @@ my class IO::Spec::Win32 is IO::Spec::Unix {
     my $volume_rx   = regex { <$driveletter> | <$UNCpath> }
 
     method canonpath ($path, :$parent) {
-        $path.chars ?? self!canon-cat($path, :$parent) !! '';
+        $path eq '' ?? '' !! self!canon-cat($path, :$parent);
     }
 
     method catdir(*@dirs) {

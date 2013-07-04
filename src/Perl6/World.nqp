@@ -625,9 +625,9 @@ class Perl6::World is HLL::World {
     }
     
     # Creates a new container descriptor and adds it to the SC.
-    method create_container_descriptor($of, $rw, $name) {
+    method create_container_descriptor($of, $rw, $name, $default = $of) {
         my $cd_type := self.find_symbol(['ContainerDescriptor']);
-        my $cd      := $cd_type.new(:$of, :$rw, :$name, :default($of) );
+        my $cd := $cd_type.new( :$of, :$rw, :$name, :$default );
         self.add_object($cd);
         $cd
     }
@@ -654,8 +654,8 @@ class Perl6::World is HLL::World {
                 'value_type',      $Mu,
                 'default_value',   $Any
             );
-            $desc := self.create_container_descriptor($Mu, 1, $name);
-            
+            $desc := self.create_container_descriptor($Mu, 1, $name, $Any);
+
             %!magical_cds{$name} := [%info, $desc];
         }
         

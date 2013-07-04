@@ -1760,8 +1760,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 else {
                     my %cont_info := container_type_info($/, $_<sigil> || '$', []);
                     $list.push($*W.build_container_past(
-                        %cont_info,
-                        $*W.create_container_descriptor(%cont_info<value_type>, 1, 'anon')));
+                      %cont_info,
+                      $*W.create_container_descriptor(
+                        %cont_info<value_type>, 1, 'anon', %cont_info<default_value>)));
                 }
             }
             
@@ -1891,7 +1892,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
             }
             my $attrname   := ~$sigil ~ '!' ~ $desigilname;
             my %cont_info  := container_type_info($/, $sigil, $*OFTYPE ?? [$*OFTYPE.ast] !! [], $shape);
-            my $descriptor := $*W.create_container_descriptor(%cont_info<value_type>, 1, $attrname);
+            my $descriptor := $*W.create_container_descriptor(
+              %cont_info<value_type>, 1, $attrname, %cont_info<default_value>);
 
             # Create meta-attribute and add it.
             my $metaattr := %*HOW{$*PKGDECL ~ '-attr'};
@@ -1941,7 +1943,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
             # Create a container descriptor. Default to rw and set a
             # type if we have one; a trait may twiddle with that later.
             my %cont_info := container_type_info($/, $sigil, $*OFTYPE ?? [$*OFTYPE.ast] !! [], $shape);
-            my $descriptor := $*W.create_container_descriptor(%cont_info<value_type>, 1, $name);
+            my $descriptor := $*W.create_container_descriptor(
+              %cont_info<value_type>, 1, $name, %cont_info<default_value>);
 
             # Install the container.
             if $desigilname eq '' {

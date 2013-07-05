@@ -8,6 +8,7 @@ my class Hash {
         %h.STORE(@args) if @args;
         %h;
     }
+    method keyof () { Any }
     
     multi method at_key(Hash:D: $key is copy) is rw {
         my Mu $storage := nqp::defined(nqp::getattr(self, EnumMap, '$!storage')) ??
@@ -191,6 +192,7 @@ my class Hash {
     }
     my role TypedHash[::TValue, ::TKey] does Associative[TValue] {
         has $!keys;
+        method keyof () { TKey }
         method at_key(::?CLASS:D: TKey \key, TValue $v? is copy) is rw {
             my $key_which = key.WHICH;
             self.exists(key)

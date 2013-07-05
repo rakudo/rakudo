@@ -124,36 +124,66 @@ my class MapIter is Iterator {
 #?if !parrot
             my int $state = 1;
             my int $itmp;
+            my Mu $items := $!items;
             my Mu $args := nqp::list();
-            nqp::while(($state && nqp::elems($rpa) < $count), nqp::handle(
-                nqp::stmts(
-                    nqp::if(nqp::iseq_i($state, 1), nqp::stmts(
-                        ($itmp = nqp::elems($!items)),
-                        nqp::unless($itmp >= $argc, nqp::stmts(
-                            ($itmp = $argc - $itmp),
-                            nqp::if($!listiter, $!listiter.reify($itmp))
+            my Mu $arg;
+            if $argc == 1 && !$NEXT {
+                # Fast path case: only 1 argument for each block, no NEXT phaser.
+                nqp::while(($state && nqp::elems($rpa) < $count), nqp::handle(
+                    nqp::stmts(
+                        nqp::if(nqp::iseq_i($state, 1), nqp::stmts(
+                            nqp::unless(nqp::elems($items), nqp::stmts(
+                                nqp::if($!listiter, $!listiter.reify(1))
+                            )),
+                            nqp::if($items, 
+                                nqp::stmts(($arg := nqp::shift($items)), $state = 2),
+                                $state = 0)
                         )),
-                        nqp::setelems($args, 0),
-                        nqp::p6shiftpush($args, $!items, $argc),
-                        nqp::if($args, $state = 2, $state = 0)
-                    )),
-                    nqp::if(nqp::iseq_i($state, 2), nqp::stmts(
-                        nqp::push($rpa, nqp::p6invokeflat($block, $args)),
-                        $state = 3
-                    )),
-                    nqp::if(nqp::iseq_i($state, 3), nqp::stmts(
-                        nqp::if($NEXT, $block.fire_phasers('NEXT')),
-                        ($state = 1)
-                    ))
-                ),
-                'LAST', nqp::stmts(
-                    ($!items := Any),
-                    ($!listiter := Any),
-                    ($state = 0)
-                ),
-                'REDO', $state = 2,
-                'NEXT', $state = 3
-            ));
+                        nqp::if(nqp::iseq_i($state, 2), nqp::stmts(
+                            nqp::push($rpa, $block($arg)),
+                            $state = 1
+                        ))
+                    ),
+                    'LAST', nqp::stmts(
+                        ($!items := Any),
+                        ($!listiter := Any),
+                        ($state = 0)
+                    ),
+                    'REDO', $state = 2,
+                    'NEXT', $state = 1
+                ));
+            }
+            else {
+                nqp::while(($state && nqp::elems($rpa) < $count), nqp::handle(
+                    nqp::stmts(
+                        nqp::if(nqp::iseq_i($state, 1), nqp::stmts(
+                            ($itmp = nqp::elems($items)),
+                            nqp::unless($itmp >= $argc, nqp::stmts(
+                                ($itmp = $argc - $itmp),
+                                nqp::if($!listiter, $!listiter.reify($itmp))
+                            )),
+                            nqp::setelems($args, 0),
+                            nqp::p6shiftpush($args, $items, $argc),
+                            nqp::if($args, $state = 2, $state = 0)
+                        )),
+                        nqp::if(nqp::iseq_i($state, 2), nqp::stmts(
+                            nqp::push($rpa, nqp::p6invokeflat($block, $args)),
+                            $state = 3
+                        )),
+                        nqp::if(nqp::iseq_i($state, 3), nqp::stmts(
+                            nqp::if($NEXT, $block.fire_phasers('NEXT')),
+                            ($state = 1)
+                        ))
+                    ),
+                    'LAST', nqp::stmts(
+                        ($!items := Any),
+                        ($!listiter := Any),
+                        ($state = 0)
+                    ),
+                    'REDO', $state = 2,
+                    'NEXT', $state = 3
+                ));
+            }
 #?endif
 
             if $!items || $!listiter {

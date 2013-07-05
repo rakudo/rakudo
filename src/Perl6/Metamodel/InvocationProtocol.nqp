@@ -34,7 +34,7 @@ role Perl6::Metamodel::InvocationProtocol {
         # the default invocation forwarder. Otherwise, see if we or
         # a parent has an invocation attr.
         my $pcmeth := self.find_method($obj, 'postcircumfix:<( )>', :no_fallback(1));
-        if !nqp::isnull(pcmeth) && nqp::isconcrete($pcmeth) {
+        if !nqp::isnull(pcmeth) && nqp::defined($pcmeth) {
             nqp::die('Default invocation handler is not invokable')
                 unless nqp::isinvokable($default_invoke_handler);
             nqp::setinvokespec($obj, nqp::null(), nqp::null_s(),

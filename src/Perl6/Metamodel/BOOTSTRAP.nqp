@@ -468,7 +468,7 @@ BEGIN {
             my $cd := nqp::getattr($dcself, Parameter, '$!container_descriptor');
             if nqp::defined($cd) { $cd.set_rw(1) }
             nqp::bindattr_i($dcself, Parameter, '$!flags', $flags + $SIG_ELEM_IS_RW);
-            nqp::p6bool(nqp::defined($dcself));
+            $dcself
         }));
     Parameter.HOW.add_method(Parameter, 'set_copy', nqp::getstaticcode(sub ($self) {
             my $SIG_ELEM_IS_COPY := 512;

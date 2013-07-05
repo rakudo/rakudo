@@ -5476,7 +5476,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             );
         }
         my $param_obj := $*W.create_parameter($param);
-        if $copy { $param_obj.set_copy() }
+        if $copy { $param_obj.set_copy() } else { $param_obj.set_rw() }
         my $sig := $*W.create_signature(nqp::hash('parameters', [$param_obj]));
         add_signature_binding_code($block, $sig, [$param]);
         return reference_to_code_object(

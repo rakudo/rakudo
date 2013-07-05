@@ -40,12 +40,6 @@ $ops.add_hll_pirop_mapping('perl6', 'p6arrfindtypes', 'perl6_rpa_find_types', 'I
 $ops.add_hll_pirop_mapping('perl6', 'p6decodelocaltime', 'decodelocaltime', 'Pi');
 $ops.add_hll_pirop_mapping('perl6', 'p6setautothreader', 'perl6_setup_junction_autothreading', 'vP');
 $ops.add_hll_pirop_mapping('perl6', 'tclc', 'titlecase', 'Ss', :inlinable(1));
-$ops.add_hll_op('perl6', 'p6getcallsig', -> $qastcomp, $op {
-    my $reg := $*REGALLOC.fresh_p();
-    my $ops := $qastcomp.post_new('Ops', :result($reg));
-    $ops.push_pirop('set', $reg, 'CALL_SIG');
-    $ops
-});
 $ops.add_hll_op('perl6', 'p6sort', -> $qastcomp, $op {
     $qastcomp.as_post(QAST::Op.new(
         :op('callmethod'), :name('sort'),

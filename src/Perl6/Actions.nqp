@@ -2300,9 +2300,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
         for @($past[0]) {
             if nqp::istype($_, QAST::Var) && $_.scope eq 'lexical' {
                 my $name := $_.name;
-                return 0 if $name ne '$_' &&
+                return 0 if $name ne '$*DISPATCHER' && $name ne '$_' &&
                     $name ne '$/' && $name ne '$!' && $name ne '&?ROUTINE' &&
-                    $name ne '$*DISPATCHER' && $name ne 'call_sig' &&
                     !nqp::existskey(%arg_placeholders, $name);
             }
         }
@@ -4212,7 +4211,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         if $is_hash {
             for $past<past_block>.symtable() {
                 my $sym := $_.key;
-                if $sym ne 'call_sig' && $sym ne '$_' && $sym ne '$*DISPATCHER' {
+                if $sym ne '$_' && $sym ne '$*DISPATCHER' {
                     $is_hash := 0;
                 }
             }
@@ -5354,11 +5353,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         $block.arity($arity);
 
         # Flag that we do custom arguments processing, and invoke the binder.
-        # Need to expose the arguments as a lexical, for things like deferral.
         $block.custom_args(1);
-        $block[0].push(QAST::Op.new( :op('bind'),
-            QAST::Var.new( :name('call_sig'), :scope('lexical'), :decl('var') ),
-            QAST::Op.new( :op('p6getcallsig') ) ));
         $block[0].push(QAST::Op.new( :op('p6bindsig') ));
 
         $block;

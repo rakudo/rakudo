@@ -127,9 +127,15 @@ my class MapIter is Iterator {
             my Mu $items := $!items;
             my Mu $args := nqp::list();
             my Mu $arg;
+            
+            # Pre-size (set to count we want, then back to zero, which leaves
+            # the backing array at $count).
+            nqp::setelems($rpa, $count);
+            nqp::setelems($rpa, 0);
+            
             if $argc == 1 && !$NEXT {
                 # Fast path case: only 1 argument for each block, no NEXT phaser.
-                nqp::while(($state && nqp::elems($rpa) < $count), nqp::handle(
+                nqp::while(($state && nqp::islt_i(nqp::elems($rpa), $count)), nqp::handle(
                     nqp::stmts(
                         nqp::if(nqp::iseq_i($state, 1), nqp::stmts(
                             nqp::unless(nqp::elems($items), nqp::stmts(
@@ -154,7 +160,7 @@ my class MapIter is Iterator {
                 ));
             }
             else {
-                nqp::while(($state && nqp::elems($rpa) < $count), nqp::handle(
+                nqp::while(($state && nqp::islt_i(nqp::elems($rpa), $count)), nqp::handle(
                     nqp::stmts(
                         nqp::if(nqp::iseq_i($state, 1), nqp::stmts(
                             ($itmp = nqp::elems($items)),

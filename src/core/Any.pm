@@ -39,7 +39,7 @@ my class Any {
     }
     method first(Mu $test) is rw {
         for self.list {
-            return $_ if $test.ACCEPTS($_);
+            return $_ if $_ ~~ $test;
         }
         Nil;
     }

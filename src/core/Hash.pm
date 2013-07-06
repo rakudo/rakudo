@@ -271,5 +271,5 @@ my class Hash {
 }
 
 
-sub circumfix:<{ }>(*@elems) { my $x = Hash.new(@elems); }
+sub circumfix:<{ }>(*@elems) { my $ = Hash.new(@elems) }
 sub hash(*@a, *%h) { my % = @a, %h }

@@ -263,6 +263,8 @@ public final class Ops {
             csd = csd.explodeFlattening(cf, args);
             args = tc.flatArgs;
         }
+        cf.csd = csd;
+        cf.args = args;
 
         /* Look up parameters to bind. */
         if (DEBUG_MODE) {
@@ -631,7 +633,8 @@ public final class Ops {
     }
     
     private static final CallSiteDescriptor dispVivifier = new CallSiteDescriptor(
-        new byte[] { CallSiteDescriptor.ARG_OBJ, CallSiteDescriptor.ARG_OBJ, CallSiteDescriptor.ARG_OBJ }, null);
+        new byte[] { CallSiteDescriptor.ARG_OBJ, CallSiteDescriptor.ARG_OBJ,
+                     CallSiteDescriptor.ARG_OBJ, CallSiteDescriptor.ARG_OBJ }, null);
     private static final CallSiteDescriptor dispThrower = new CallSiteDescriptor(
         new byte[] { CallSiteDescriptor.ARG_STR }, null);
     public static SixModelObject p6finddispatcher(String usage, ThreadContext tc) {
@@ -650,11 +653,18 @@ public final class Ops {
                         /* Need to vivify it. */
                         SixModelObject meth = org.perl6.nqp.runtime.Ops.findmethod(dispatcher, "vivify_for", tc);
                         SixModelObject p6sub = ctx.codeRef.codeObject;
+                        
                         SixModelObject ContextRef = tc.gc.ContextRef;
                         SixModelObject wrap = ContextRef.st.REPR.allocate(tc, ContextRef.st);
                         ((ContextRefInstance)wrap).context = ctx;
+                        
+                        SixModelObject CallCapture = tc.gc.CallCapture;
+                        CallCaptureInstance cc = (CallCaptureInstance)CallCapture.st.REPR.allocate(tc, CallCapture.st);
+                        cc.descriptor = ctx.csd;
+                        cc.args = ctx.args;
+                        
                         org.perl6.nqp.runtime.Ops.invokeDirect(tc, meth,
-                            dispVivifier, new Object[] { dispatcher, p6sub, wrap });
+                            dispVivifier, new Object[] { dispatcher, p6sub, wrap, cc });
                         dispatcher = org.perl6.nqp.runtime.Ops.result_o(tc.curFrame);
                         ctx.oLex[dispLexIdx] = dispatcher;
                     }
@@ -678,6 +688,37 @@ public final class Ops {
         }
         
         return dispatcher;
+    }
+    
+    public static SixModelObject p6argsfordispatcher(SixModelObject disp, ThreadContext tc) {
+        SixModelObject result = null;
+        
+        CallFrame ctx = tc.curFrame;
+        while (ctx != null) {
+            /* Do we have the dispatcher we're looking for? */
+            StaticCodeInfo sci = ctx.codeRef.staticInfo;
+            Integer dispLexIdx = sci.oTryGetLexicalIdx("$*DISPATCHER");
+            if (dispLexIdx != null) {
+                SixModelObject maybeDispatcher = ctx.oLex[dispLexIdx];
+                if (maybeDispatcher == disp) {
+                    /* Found; grab args. */
+                    SixModelObject CallCapture = tc.gc.CallCapture;
+                    CallCaptureInstance cc = (CallCaptureInstance)CallCapture.st.REPR.allocate(tc, CallCapture.st);
+                    cc.descriptor = ctx.csd;
+                    cc.args = ctx.args;
+                    result = cc;
+                    break;
+                }
+            }
+
+            /* Follow dynamic chain. */
+            ctx = ctx.caller;
+        }
+        
+        if (result == null)
+            throw ExceptionHandling.dieInternal(tc,
+                "Could not find arguments for dispatcher");
+        return result;
     }
     
     public static SixModelObject p6decodelocaltime(long sinceEpoch, ThreadContext tc) {

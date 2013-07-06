@@ -1,4 +1,3 @@
-my class Nil { ... }
 my class X::Eval::NoSuchLang { ... }
 my class PseudoStash { ... }
 

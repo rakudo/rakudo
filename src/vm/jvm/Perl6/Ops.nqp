@@ -169,27 +169,28 @@ $ops.map_classlib_hll_op('nqp', 'p6parcel', $TYPE_P6OPS, 'p6parcel', [$RT_OBJ, $
 $ops.map_classlib_hll_op('nqp', 'p6isbindable', $TYPE_P6OPS, 'p6isbindable', [$RT_OBJ, $RT_OBJ], $RT_INT, :tc);
 $ops.map_classlib_hll_op('nqp', 'p6trialbind', $TYPE_P6OPS, 'p6trialbind', [$RT_OBJ, $RT_OBJ, $RT_OBJ], $RT_INT, :tc);
 
-## Override defor to avoid v-table call.
-#$ops.add_hll_op('perl6', 'defor', -> $qastcomp, $op {
-#    if +$op.list != 2 {
-#        nqp::die("Operation 'defor' needs 2 operands");
-#    }
-#    my $ops := PIRT::Ops.new();
-#    my $lbl := PIRT::Label.new(:name('defor'));
-#    my $dreg := $*REGALLOC.fresh_p();
-#    my $rreg := $*REGALLOC.fresh_p();
-#    my $test := $qastcomp.coerce($qastcomp.as_post($op[0]), 'P');
-#    my $then := $qastcomp.coerce($qastcomp.as_post($op[1]), 'P');
-#    $ops.push($test);
-#    $ops.push_pirop('set', $rreg, $test);
-#    $ops.push_pirop('callmethod', "'defined'", $rreg, :result($dreg));
-#    $ops.push_pirop('if', $dreg, $lbl);
-#    $ops.push($then);
-#    $ops.push_pirop('set', $rreg, $then);
-#    $ops.push($lbl);
-#    $ops.result($rreg);
-#    $ops
-#});
+# Override defor to call defined method.
+QAST::OperationsJAST.add_hll_op('perl6', 'defor', -> $qastcomp, $op {
+    if +$op.list != 2 {
+        nqp::die("Operation 'defor' needs 2 operands");
+    }
+    my $tmp := $op.unique('defined');
+    $qastcomp.as_jast(QAST::Stmts.new(
+        QAST::Op.new(
+            :op('bind'),
+            QAST::Var.new( :name($tmp), :scope('local'), :decl('var') ),
+            $op[0]
+        ),
+        QAST::Op.new(
+            :op('if'),
+            QAST::Op.new(
+                :op('callmethod'), :name('defined'),
+                QAST::Var.new( :name($tmp), :scope('local') )
+            ),
+            QAST::Var.new( :name($tmp), :scope('local') ),
+            $op[1]
+        )))
+});
 
 # Boxing and unboxing configuration.
 $ops.add_hll_box('perl6', $RT_INT, -> $qastcomp {

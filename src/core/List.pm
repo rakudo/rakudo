@@ -233,7 +233,6 @@ my class List does Positional {
     }
 
     multi method unshift(List:D: *@elems) {
-        fail 'Cannot .unshift an infinite list' if @elems.infinite;
         nqp::p6listitems(self);
         while @elems {
             nqp::unshift($!items, @elems.pop)

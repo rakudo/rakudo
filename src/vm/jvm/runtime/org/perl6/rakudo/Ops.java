@@ -268,8 +268,8 @@ public final class Ops {
 
         /* Look up parameters to bind. */
         if (DEBUG_MODE) {
-            if (cf.codeRef.staticInfo.name != null)
-                System.err.println("Binding for " + cf.codeRef.staticInfo.name);
+            if (cf.codeRef.name != null)
+                System.err.println("Binding for " + cf.codeRef.name);
         }
         GlobalExt gcx = key.getGC(tc);
         SixModelObject sig = cf.codeRef.codeObject

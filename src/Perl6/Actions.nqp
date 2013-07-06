@@ -4180,7 +4180,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
         # element of which is either a hash or a pair, it's a hash constructor.
         # Note that if it declares any symbols it is also not one.
         my $Pair := $*W.find_symbol(['Pair']);
-        my int $is_hash := 0;
+        my int $is_hash   := 0;
+        my int $has_stuff := 1;
         my $stmts := +$<pblock><blockoid><statementlist><statement>;
         my $bast  := $<pblock><blockoid>.ast;
         if $bast.symbol('$_')<used> || $bast<also_uses> && $bast<also_uses><$_> {
@@ -4188,7 +4189,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
         elsif $stmts == 0 {
             # empty block, so a hash
-            $is_hash := 1;
+            $is_hash   := 1;
+            $has_stuff := 0;
         }
         elsif $stmts == 1 {
             my $elem := $past<past_block>[1][0][0];
@@ -4223,13 +4225,15 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 :name('&circumfix:<{ }>'),
                 :node($/)
             );
-            for @children {
-                if nqp::istype($_, QAST::Stmt) {
-                    # Mustn't use QAST::Stmt here, as it will cause register
-                    # re-use within a statemnet, which is a problem.
-                    $_ := QAST::Stmts.new( |$_.list );
+            if $has_stuff {
+                for @children {
+                    if nqp::istype($_, QAST::Stmt) {
+                        # Mustn't use QAST::Stmt here, as it will cause register
+                        # re-use within a statemnet, which is a problem.
+                        $_ := QAST::Stmts.new( |$_.list );
+                    }
+                    $past.push($_);
                 }
-                $past.push($_);
             }
         }
         else {

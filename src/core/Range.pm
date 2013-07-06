@@ -83,7 +83,12 @@ my class Range is Iterable is Cool does Positional {
         my $realmax = nqp::istype($!min, Numeric) && !nqp::istype($!max, Callable) && !nqp::istype($!max, Whatever)
                       ?? $!max.Numeric
                       !! $!max;
+        
+        # Pre-size the buffer, to avoid reallocations.
         my Mu $rpa := nqp::list();
+        nqp::setelems($rpa, $count == $Inf ?? 256 !! $count.Int);
+        nqp::setelems($rpa, 0);
+        
         if nqp::istype($value, Int) && nqp::istype($!max, Int) && !nqp::isbig_I(nqp::decont $!max)
            || nqp::istype($value, Num) {
             # optimized for int/num ranges

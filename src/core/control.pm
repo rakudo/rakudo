@@ -195,7 +195,9 @@ sub shell($cmd) {
     }
 #?endif
 #?if !parrot
-    die "shell is NYI on non-Parrot backend";
+    try {
+        $status = nqp::shell($cmd); 
+    }
 #?endif
     $status;
 }

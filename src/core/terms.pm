@@ -78,7 +78,7 @@ sub term:<time>() { nqp::p6box_i(nqp::time_i()) }
     nqp::bindkey(nqp::who(PROCESS), '$VM', $VM);
 
 # XXX Various issues with this stuff on JVM
-    my Mu $compiler := nqp::getlexcaller('$COMPILER_CONFIG');
+    my Mu $compiler := nqp::getcurhllsym('$COMPILER_CONFIG');
     my $PERL = {
         name => 'rakudo',
         compiler => {

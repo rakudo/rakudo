@@ -13,7 +13,7 @@ $comp.parseactions(Perl6::Actions);
 $comp.addstage('syntaxcheck', :before<ast>);
 $comp.addstage('optimize', :after<ast>);
 hll-config($comp.config);
-my $COMPILER_CONFIG := $comp.config;
+nqp::bindhllsym('perl6', '$COMPILER_CONFIG', $comp.config);
 
 # Add extra command line options.
 my @clo := $comp.commandline_options();
@@ -29,6 +29,9 @@ my @clo := $comp.commandline_options();
 
 # Set up END block list, which we'll run at exit.
 nqp::bindhllsym('perl6', '@END_PHASERS', []);
+
+# In an embedding environment, let @*ARGS be empty instead of crashing
+nqp::bindhllsym('perl6', '$!ARGITER', 0);
 
 #?if parrot
 sub MAIN(@ARGS) {

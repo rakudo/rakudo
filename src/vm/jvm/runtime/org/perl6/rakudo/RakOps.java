@@ -13,7 +13,7 @@ import org.perl6.nqp.sixmodel.reprs.VMArrayInstance;
 /**
  * Contains implementation of nqp:: ops specific to Rakudo Perl 6.
  */
-public final class Ops {
+public final class RakOps {
     public static final boolean DEBUG_MODE = false;
 
     public static class ThreadExt {
@@ -125,7 +125,7 @@ public final class Ops {
     
     public static SixModelObject p6definite(SixModelObject obj, ThreadContext tc) {
         GlobalExt gcx = key.getGC(tc);
-        obj = org.perl6.nqp.runtime.Ops.decont(obj, tc);
+        obj = Ops.decont(obj, tc);
         return obj instanceof TypeObject ? gcx.False : gcx.True;
     }
     
@@ -186,7 +186,7 @@ public final class Ops {
             if (val.st.ContainerSpec == null) {
                 boolean found = false;
                 for (int typeIndex = 0; typeIndex < ntypes; typeIndex++) {
-                    if (org.perl6.nqp.runtime.Ops.istype(val, typeArr[typeIndex], tc) != 0) {
+                    if (Ops.istype(val, typeArr[typeIndex], tc) != 0) {
                         found = true;
                         break;
                     }
@@ -248,7 +248,7 @@ public final class Ops {
                     toBind = p6box_s((String)args[i], tc);
                     break;
                 default:
-                    toBind = org.perl6.nqp.runtime.Ops.hllize((SixModelObject)args[i], tc);
+                    toBind = Ops.hllize((SixModelObject)args[i], tc);
                     break;
             }
             res.bind_pos_boxed(tc, i, toBind);
@@ -286,9 +286,9 @@ public final class Ops {
                 /* Invoke the auto-threader. */
                 csd = csd.injectInvokee(tc, args, cf.codeRef.codeObject);
                 args = tc.flatArgs;
-                org.perl6.nqp.runtime.Ops.invokeDirect(tc, gcx.AutoThreader, csd, args);
-                org.perl6.nqp.runtime.Ops.return_o(
-                    org.perl6.nqp.runtime.Ops.result_o(cf), cf);
+                Ops.invokeDirect(tc, gcx.AutoThreader, csd, args);
+                Ops.return_o(
+                    Ops.result_o(cf), cf);
                 
                 /* Return null to indicate immediate return to the routine. */
                 return null;
@@ -380,12 +380,12 @@ public final class Ops {
     public static SixModelObject p6store(SixModelObject cont, SixModelObject value, ThreadContext tc) {
         ContainerSpec spec = cont.st.ContainerSpec;
         if (spec != null) {
-            spec.store(tc, cont, org.perl6.nqp.runtime.Ops.decont(value, tc));
+            spec.store(tc, cont, Ops.decont(value, tc));
         }
         else {
-            SixModelObject meth = org.perl6.nqp.runtime.Ops.findmethod(cont, "STORE", tc);
+            SixModelObject meth = Ops.findmethod(cont, "STORE", tc);
             if (meth != null) {
-                org.perl6.nqp.runtime.Ops.invokeDirect(tc, meth,
+                Ops.invokeDirect(tc, meth,
                     STORE, new Object[] { cont, value });
             }
             else {
@@ -393,7 +393,7 @@ public final class Ops {
                 if (thrower == null)
                     ExceptionHandling.dieInternal(tc, "Cannot assign to a non-container");
                 else
-                    org.perl6.nqp.runtime.Ops.invokeDirect(tc, meth,
+                    Ops.invokeDirect(tc, meth,
                         storeThrower, new Object[] { });
             }
         }
@@ -465,14 +465,14 @@ public final class Ops {
     public static SixModelObject p6bindassert(SixModelObject value, SixModelObject type, ThreadContext tc) {
         GlobalExt gcx = key.getGC(tc);
         if (type != gcx.Mu) {
-            SixModelObject decont = org.perl6.nqp.runtime.Ops.decont(value, tc);
-            if (org.perl6.nqp.runtime.Ops.istype(decont, type, tc) == 0) {
+            SixModelObject decont = Ops.decont(value, tc);
+            if (Ops.istype(decont, type, tc) == 0) {
                 SixModelObject thrower = getThrower(tc, "X::TypeCheck::Binding");
                 if (thrower == null)
                     ExceptionHandling.dieInternal(tc,
                         "Type check failed in binding");
                 else
-                    org.perl6.nqp.runtime.Ops.invokeDirect(tc, thrower,
+                    Ops.invokeDirect(tc, thrower,
                         baThrower, new Object[] { value, type });
             }
         }
@@ -493,7 +493,7 @@ public final class Ops {
     
     public static SixModelObject p6getouterctx(SixModelObject codeObj, ThreadContext tc) {
         GlobalExt gcx = key.getGC(tc);
-        codeObj = org.perl6.nqp.runtime.Ops.decont(codeObj, tc);
+        codeObj = Ops.decont(codeObj, tc);
         CodeRef closure = (CodeRef)codeObj.get_attribute_boxed(tc,
                 gcx.Code, "$!do", HINT_CODE_DO);
         SixModelObject ContextRef = tc.gc.ContextRef;
@@ -517,10 +517,10 @@ public final class Ops {
     }
     
     public static SixModelObject p6bindattrinvres(SixModelObject obj, SixModelObject ch, String name, SixModelObject value, ThreadContext tc) {
-        obj.bind_attribute_boxed(tc, org.perl6.nqp.runtime.Ops.decont(ch, tc),
+        obj.bind_attribute_boxed(tc, Ops.decont(ch, tc),
             name, STable.NO_HINT, value);
         if (obj.sc != null)
-            org.perl6.nqp.runtime.Ops.scwbObject(tc, obj);
+            Ops.scwbObject(tc, obj);
         return obj;
     }
     
@@ -576,7 +576,7 @@ public final class Ops {
             if (thrower == null)
                 ExceptionHandling.dieInternal(tc, "Attempt to return outside of any Routine");
             else
-                org.perl6.nqp.runtime.Ops.invokeArgless(tc, thrower);
+                Ops.invokeArgless(tc, thrower);
         }
 
         // rewinding is handled by finally blocks in the generated subs
@@ -603,9 +603,9 @@ public final class Ops {
             sortable[i] = indices.at_pos_boxed(tc, i);
         Arrays.sort(sortable, new Comparator<SixModelObject>() {
             public int compare(SixModelObject a, SixModelObject b) {
-                org.perl6.nqp.runtime.Ops.invokeDirect(tc, comparator, SortCSD,
+                Ops.invokeDirect(tc, comparator, SortCSD,
                     new Object[] { a, b });
-                return (int)org.perl6.nqp.runtime.Ops.result_i(tc.curFrame);
+                return (int)Ops.result_i(tc.curFrame);
             }
         });
         for (int i = 0; i < elems; i++)
@@ -651,7 +651,7 @@ public final class Ops {
                     dispatcher = maybeDispatcher;
                     if (dispatcher instanceof TypeObject) {
                         /* Need to vivify it. */
-                        SixModelObject meth = org.perl6.nqp.runtime.Ops.findmethod(dispatcher, "vivify_for", tc);
+                        SixModelObject meth = Ops.findmethod(dispatcher, "vivify_for", tc);
                         SixModelObject p6sub = ctx.codeRef.codeObject;
                         
                         SixModelObject ContextRef = tc.gc.ContextRef;
@@ -663,9 +663,9 @@ public final class Ops {
                         cc.descriptor = ctx.csd;
                         cc.args = ctx.args;
                         
-                        org.perl6.nqp.runtime.Ops.invokeDirect(tc, meth,
+                        Ops.invokeDirect(tc, meth,
                             dispVivifier, new Object[] { dispatcher, p6sub, wrap, cc });
-                        dispatcher = org.perl6.nqp.runtime.Ops.result_o(tc.curFrame);
+                        dispatcher = Ops.result_o(tc.curFrame);
                         ctx.oLex[dispLexIdx] = dispatcher;
                     }
                     break;
@@ -682,7 +682,7 @@ public final class Ops {
                 ExceptionHandling.dieInternal(tc,
                     usage + " is not in the dynamic scope of a dispatcher");
             } else {
-                org.perl6.nqp.runtime.Ops.invokeDirect(tc, thrower,
+                Ops.invokeDirect(tc, thrower,
                     dispThrower, new Object[] { usage });
             }
         }

@@ -66,20 +66,20 @@ public final class Binder {
     private static final int HINT_CAPTURE_hash = 1;
     private static final int HINT_SIG_params = 0;
 
-    private static SixModelObject createBox(ThreadContext tc, Ops.GlobalExt gcx, Object arg, int flag) {
+    private static SixModelObject createBox(ThreadContext tc, RakOps.GlobalExt gcx, Object arg, int flag) {
         switch (flag) {
             case CallSiteDescriptor.ARG_INT:
-                return org.perl6.nqp.runtime.Ops.box_i((long)arg, gcx.Int, tc);
+                return Ops.box_i((long)arg, gcx.Int, tc);
             case CallSiteDescriptor.ARG_NUM:
-                return org.perl6.nqp.runtime.Ops.box_n((double)arg, gcx.Num, tc);
+                return Ops.box_n((double)arg, gcx.Num, tc);
             case CallSiteDescriptor.ARG_STR:
-                return org.perl6.nqp.runtime.Ops.box_s((String)arg, gcx.Str, tc);
+                return Ops.box_s((String)arg, gcx.Str, tc);
             default:
                 throw new RuntimeException("Impossible case reached in createBox");
         }
     }
     
-    private static String arityFail(ThreadContext tc, Ops.GlobalExt gcx, SixModelObject params,
+    private static String arityFail(ThreadContext tc, RakOps.GlobalExt gcx, SixModelObject params,
             int numParams, int numPosArgs, boolean tooMany) {
         int arity = 0;
         int count = 0;
@@ -125,7 +125,7 @@ public final class Binder {
     }
     
     /* Returns an appropriate failure mode (junction fail or normal fail). */
-    private static int junc_or_fail(Ops.GlobalExt gcx, SixModelObject value) {
+    private static int junc_or_fail(RakOps.GlobalExt gcx, SixModelObject value) {
         if (value.st.WHAT == gcx.Junction)
             return BIND_RESULT_JUNCTION;
         else
@@ -168,12 +168,12 @@ public final class Binder {
             throw new RuntimeException("$.x parameters NYI");
         }
 
-        Ops.p6store(assignee, value, tc);
+        RakOps.p6store(assignee, value, tc);
         return BIND_RESULT_OK;
     }
     
     /* Returns an appropriate failure mode (junction fail or normal fail). */
-    private static int juncOrFail(ThreadContext tc, Ops.GlobalExt gcx, SixModelObject value) {
+    private static int juncOrFail(ThreadContext tc, RakOps.GlobalExt gcx, SixModelObject value) {
         if (value.st.WHAT == gcx.Junction)
             return BIND_RESULT_JUNCTION;
         else
@@ -193,14 +193,14 @@ public final class Binder {
         new byte[] { CallSiteDescriptor.ARG_OBJ, CallSiteDescriptor.ARG_NUM }, null);
     private static final CallSiteDescriptor ACCEPTS_s = new CallSiteDescriptor(
         new byte[] { CallSiteDescriptor.ARG_OBJ, CallSiteDescriptor.ARG_STR }, null);
-    private static int bindOneParam(ThreadContext tc, Ops.GlobalExt gcx, CallFrame cf, SixModelObject param,
+    private static int bindOneParam(ThreadContext tc, RakOps.GlobalExt gcx, CallFrame cf, SixModelObject param,
             Object origArg, byte origFlag, boolean noNomTypeCheck, String[] error) {
         /* Get parameter flags and variable name. */
         param.get_attribute_native(tc, gcx.Parameter, "$!flags", HINT_flags);
         int paramFlags = (int)tc.native_i;
         param.get_attribute_native(tc, gcx.Parameter, "$!variable_name", HINT_variable_name);
         String varName = tc.native_s;
-        if (Ops.DEBUG_MODE)
+        if (RakOps.DEBUG_MODE)
             System.err.println(varName);
         
         /* We'll put the value to bind into one of the following locals, and
@@ -237,7 +237,7 @@ public final class Binder {
         }
         else {
             /* We need to do an unboxing opeation. */
-            SixModelObject decontValue = org.perl6.nqp.runtime.Ops.decont((SixModelObject)origArg, tc);
+            SixModelObject decontValue = Ops.decont((SixModelObject)origArg, tc);
             StorageSpec spec = decontValue.st.REPR.get_storage_spec(tc, decontValue.st);
             switch (desiredNative) {
                 case SIG_ELEM_NATIVE_INT_VALUE:
@@ -294,10 +294,10 @@ public final class Binder {
         SixModelObject decontValue = null;
         if (flag == CallSiteDescriptor.ARG_OBJ) {
             /* We need to work on the decontainerized value. */
-            decontValue = org.perl6.nqp.runtime.Ops.decont(arg_o, tc);
+            decontValue = Ops.decont(arg_o, tc);
             
             /* HLL map it as needed. */
-            decontValue = org.perl6.nqp.runtime.Ops.hllize(decontValue, tc);
+            decontValue = Ops.hllize(decontValue, tc);
             
             /* Skip nominal type check if not needed. */
             if (!noNomTypeCheck) {
@@ -308,19 +308,19 @@ public final class Binder {
                     "$!nominal_type", HINT_nominal_type);
                 if ((paramFlags & SIG_ELEM_NOMINAL_GENERIC) != 0) {
                     SixModelObject HOW = nomType.st.HOW;
-                    SixModelObject ig = org.perl6.nqp.runtime.Ops.findmethod(tc, HOW,
+                    SixModelObject ig = Ops.findmethod(tc, HOW,
                         "instantiate_generic");
                     SixModelObject ContextRef = tc.gc.ContextRef;
                     SixModelObject cc = ContextRef.st.REPR.allocate(tc, ContextRef.st);
                     ((ContextRefInstance)cc).context = cf;
-                    org.perl6.nqp.runtime.Ops.invokeDirect(tc, ig, genIns,
+                    Ops.invokeDirect(tc, ig, genIns,
                         new Object[] { HOW, nomType, cc });
-                    nomType = org.perl6.nqp.runtime.Ops.result_o(tc.curFrame);
+                    nomType = Ops.result_o(tc.curFrame);
                 }
 
                 /* If not, do the check. If the wanted nominal type is Mu, then
                  * anything goes. */
-                if (nomType != gcx.Mu && org.perl6.nqp.runtime.Ops.istype(decontValue, nomType, tc) == 0) {
+                if (nomType != gcx.Mu && Ops.istype(decontValue, nomType, tc) == 0) {
                     /* Type check failed; produce error if needed. */
                     if (error != null) {
                         /* XXX include types */
@@ -355,16 +355,16 @@ public final class Binder {
             }
             
             /* Only coerce if we don't already have the correct type. */
-            if (org.perl6.nqp.runtime.Ops.istype(decontValue, coerceType, tc) == 0) {
+            if (Ops.istype(decontValue, coerceType, tc) == 0) {
                 param.get_attribute_native(tc, gcx.Parameter, "$!coerce_method", HINT_coerce_method);
                 String methName = tc.native_s;
-                SixModelObject coerceMeth = org.perl6.nqp.runtime.Ops.findmethod(tc,
+                SixModelObject coerceMeth = Ops.findmethod(tc,
                     decontValue, methName);
                 if (coerceMeth != null) {
-                    org.perl6.nqp.runtime.Ops.invokeDirect(tc, coerceMeth,
-                        org.perl6.nqp.runtime.Ops.invocantCallSite,
+                    Ops.invokeDirect(tc, coerceMeth,
+                        Ops.invocantCallSite,
                         new Object[] { decontValue });
-                    decontValue = org.perl6.nqp.runtime.Ops.result_o(tc.curFrame);
+                    decontValue = Ops.result_o(tc.curFrame);
                 }
                 else {
                     if (error != null)
@@ -412,8 +412,8 @@ public final class Binder {
                 if ((paramFlags & SIG_ELEM_ARRAY_SIGIL) != 0) {
                     SixModelObject bindee = decontValue;
                     if ((paramFlags & SIG_ELEM_IS_COPY) != 0) {
-                        bindee = Ops.p6list(gcx.EMPTYARR.clone(tc), gcx.Array, gcx.True, tc);
-                        Ops.p6store(bindee, decontValue, tc);
+                        bindee = RakOps.p6list(gcx.EMPTYARR.clone(tc), gcx.Array, gcx.True, tc);
+                        RakOps.p6store(bindee, decontValue, tc);
                     }
                     cf.oLex[sci.oTryGetLexicalIdx(varName)] = bindee;
                 }
@@ -426,7 +426,7 @@ public final class Binder {
                         bindee = gcx.Hash.st.REPR.allocate(tc, gcx.Hash.st);
                         bindee.bind_attribute_boxed(tc, gcx.EnumMap, "$!storage",
                             HINT_ENUMMAP_storage, BOOTHash.st.REPR.allocate(tc, BOOTHash.st));
-                        Ops.p6store(bindee, decontValue, tc);
+                        RakOps.p6store(bindee, decontValue, tc);
                     }
                     cf.oLex[sci.oTryGetLexicalIdx(varName)] = bindee;
                 }
@@ -461,29 +461,29 @@ public final class Binder {
             for (long i = 0; i < numConstraints; i++) {
                 /* Check we meet the constraint. */
                 SixModelObject consType = postConstraints.at_pos_boxed(tc, i);
-                SixModelObject acceptsMeth = org.perl6.nqp.runtime.Ops.findmethod(consType, "ACCEPTS", tc);
-                if (org.perl6.nqp.runtime.Ops.istype(consType, gcx.Code, tc) != 0)
-                    Ops.p6capturelex(consType, tc);
+                SixModelObject acceptsMeth = Ops.findmethod(consType, "ACCEPTS", tc);
+                if (Ops.istype(consType, gcx.Code, tc) != 0)
+                    RakOps.p6capturelex(consType, tc);
                 switch (flag) {
                     case CallSiteDescriptor.ARG_INT:
-                        org.perl6.nqp.runtime.Ops.invokeDirect(tc, acceptsMeth,
+                        Ops.invokeDirect(tc, acceptsMeth,
                             ACCEPTS_i, new Object[] { consType, arg_i });
                         break;
                     case CallSiteDescriptor.ARG_NUM:
-                        org.perl6.nqp.runtime.Ops.invokeDirect(tc, acceptsMeth,
+                        Ops.invokeDirect(tc, acceptsMeth,
                             ACCEPTS_n, new Object[] { consType, arg_n });
                         break;
                     case CallSiteDescriptor.ARG_STR:
-                        org.perl6.nqp.runtime.Ops.invokeDirect(tc, acceptsMeth,
+                        Ops.invokeDirect(tc, acceptsMeth,
                             ACCEPTS_s, new Object[] { consType, arg_s });
                         break;
                     default:
-                        org.perl6.nqp.runtime.Ops.invokeDirect(tc, acceptsMeth,
+                        Ops.invokeDirect(tc, acceptsMeth,
                             ACCEPTS_o, new Object[] { consType, arg_o });
                         break;
                 }
-                long result = org.perl6.nqp.runtime.Ops.istrue(
-                    org.perl6.nqp.runtime.Ops.result_o(tc.curFrame), tc);
+                long result = Ops.istrue(
+                    Ops.result_o(tc.curFrame), tc);
                 if (result == 0) {
                     if (error != null)
                         error[0] = "Constraint type check failed for parameter '" + varName + "'";
@@ -517,14 +517,14 @@ public final class Binder {
                 capture = decontValue;
             }
             else {
-                SixModelObject meth = org.perl6.nqp.runtime.Ops.findmethod(decontValue, "Capture", tc);
+                SixModelObject meth = Ops.findmethod(decontValue, "Capture", tc);
                 if (meth == null) {
                     if (error != null)
                         error[0] = "Could not turn argument into capture";
                     return BIND_RESULT_FAIL;
                 }
-                org.perl6.nqp.runtime.Ops.invokeDirect(tc, meth, org.perl6.nqp.runtime.Ops.invocantCallSite, new Object[] { decontValue });
-                capture = org.perl6.nqp.runtime.Ops.result_o(tc.curFrame);
+                Ops.invokeDirect(tc, meth, Ops.invocantCallSite, new Object[] { decontValue });
+                capture = Ops.result_o(tc.curFrame);
             }
 
             SixModelObject subParams = subSignature
@@ -547,7 +547,7 @@ public final class Binder {
             }
         }
 
-        if (Ops.DEBUG_MODE)
+        if (RakOps.DEBUG_MODE)
             System.err.println("bindOneParam NYFI");
         
         return BIND_RESULT_OK;
@@ -557,8 +557,8 @@ public final class Binder {
         CallSiteDescriptor.ARG_OBJ | CallSiteDescriptor.ARG_FLAT,
             CallSiteDescriptor.ARG_OBJ | CallSiteDescriptor.ARG_FLAT | CallSiteDescriptor.ARG_NAMED
     }, null);
-    public static CallSiteDescriptor explodeCapture(ThreadContext tc, Ops.GlobalExt gcx, SixModelObject capture) {
-        capture = org.perl6.nqp.runtime.Ops.decont(capture, tc);
+    public static CallSiteDescriptor explodeCapture(ThreadContext tc, RakOps.GlobalExt gcx, SixModelObject capture) {
+        capture = Ops.decont(capture, tc);
 
         SixModelObject capType = gcx.Capture;
         SixModelObject list = capture.get_attribute_boxed(tc, capType, "$!list", HINT_CAPTURE_list);
@@ -573,7 +573,7 @@ public final class Binder {
 
     /* This takes a signature element and either runs the closure to get a default
      * value if there is one, or creates an appropriate undefined-ish thingy. */
-    private static SixModelObject handleOptional(ThreadContext tc, Ops.GlobalExt gcx, int flags, SixModelObject param, CallFrame cf) {
+    private static SixModelObject handleOptional(ThreadContext tc, RakOps.GlobalExt gcx, int flags, SixModelObject param, CallFrame cf) {
         /* Is the "get default from outer" flag set? */
         if ((flags & SIG_ELEM_DEFAULT_FROM_OUTER) != 0) {
             param.get_attribute_native(tc, gcx.Parameter, "$!variable_name", HINT_variable_name);
@@ -597,15 +597,15 @@ public final class Binder {
             }
             else {
                 /* Thunk; run it to get a value. */
-                org.perl6.nqp.runtime.Ops.invokeArgless(tc, defaultValue);
-                return org.perl6.nqp.runtime.Ops.result_o(tc.curFrame);
+                Ops.invokeArgless(tc, defaultValue);
+                return Ops.result_o(tc.curFrame);
             }
         }
 
         /* Otherwise, go by sigil to pick the correct default type of value. */
         else {
             if ((flags & SIG_ELEM_ARRAY_SIGIL) != 0) {
-                return Ops.p6list(null, gcx.Array, gcx.True, tc);
+                return RakOps.p6list(null, gcx.Array, gcx.True, tc);
             }
             else if ((flags & SIG_ELEM_HASH_SIGIL) != 0) {
                 SixModelObject res = gcx.Hash.st.REPR.allocate(tc, gcx.Hash.st);
@@ -621,7 +621,7 @@ public final class Binder {
      * into the provided callframe. Returns BIND_RESULT_OK if binding works out,
      * BIND_RESULT_FAIL if there is a failure and BIND_RESULT_JUNCTION if the
      * failure was because of a Junction being passed (meaning we need to auto-thread). */
-    public static int bind(ThreadContext tc, Ops.GlobalExt gcx, CallFrame cf, SixModelObject params,
+    public static int bind(ThreadContext tc, RakOps.GlobalExt gcx, CallFrame cf, SixModelObject params,
             CallSiteDescriptor csd, Object[] args,
             boolean noNomTypeCheck, String[] error) {
         int bindFail = BIND_RESULT_OK;
@@ -667,13 +667,13 @@ public final class Binder {
                             posArgs.push_boxed(tc, (SixModelObject)args[k]);
                             break;
                         case CallSiteDescriptor.ARG_INT:
-                            posArgs.push_boxed(tc, Ops.p6box_i((long)args[k], tc));
+                            posArgs.push_boxed(tc, RakOps.p6box_i((long)args[k], tc));
                             break;
                         case CallSiteDescriptor.ARG_NUM:
-                            posArgs.push_boxed(tc, Ops.p6box_n((double)args[k], tc));
+                            posArgs.push_boxed(tc, RakOps.p6box_n((double)args[k], tc));
                             break;
                         case CallSiteDescriptor.ARG_STR:
-                            posArgs.push_boxed(tc, Ops.p6box_s((String)args[k], tc));
+                            posArgs.push_boxed(tc, RakOps.p6box_s((String)args[k], tc));
                             break;
                         }
                     }                    
@@ -733,13 +733,13 @@ public final class Binder {
                             slurpy.push_boxed(tc, (SixModelObject)args[curPosArg]);
                             break;
                         case CallSiteDescriptor.ARG_INT:
-                            slurpy.push_boxed(tc, Ops.p6box_i((long)args[curPosArg], tc));
+                            slurpy.push_boxed(tc, RakOps.p6box_i((long)args[curPosArg], tc));
                             break;
                         case CallSiteDescriptor.ARG_NUM:
-                            slurpy.push_boxed(tc, Ops.p6box_n((double)args[curPosArg], tc));
+                            slurpy.push_boxed(tc, RakOps.p6box_n((double)args[curPosArg], tc));
                             break;
                         case CallSiteDescriptor.ARG_STR:
-                            slurpy.push_boxed(tc, Ops.p6box_s((String)args[curPosArg], tc));
+                            slurpy.push_boxed(tc, RakOps.p6box_s((String)args[curPosArg], tc));
                             break;
                         }
                         curPosArg++;
@@ -748,12 +748,12 @@ public final class Binder {
                     SixModelObject bindee;
                     if ((flags & SIG_ELEM_SLURPY_POS) != 0) {
                         if ((flags & SIG_ELEM_IS_RW) != 0)
-                            bindee = Ops.p6list(slurpy, gcx.List, gcx.True, tc);
+                            bindee = RakOps.p6list(slurpy, gcx.List, gcx.True, tc);
                         else
-                            bindee = Ops.p6list(slurpy, gcx.Array, gcx.True, tc);
+                            bindee = RakOps.p6list(slurpy, gcx.Array, gcx.True, tc);
                     }
                     else {
-                        bindee = Ops.p6list(slurpy, gcx.LoL, gcx.False, tc);
+                        bindee = RakOps.p6list(slurpy, gcx.LoL, gcx.False, tc);
                     }
                     
                     bindFail = bindOneParam(tc, gcx, cf, param, bindee, CallSiteDescriptor.ARG_OBJ,
@@ -839,7 +839,7 @@ public final class Binder {
     }
     
     /* Takes any nameds we didn't capture yet and makes a VM Hash of them. */
-    private static SixModelObject vmHashOfRemainingNameds(ThreadContext tc, Ops.GlobalExt gcx, HashMap<String, Integer> namedArgsCopy, Object[] args) {
+    private static SixModelObject vmHashOfRemainingNameds(ThreadContext tc, RakOps.GlobalExt gcx, HashMap<String, Integer> namedArgsCopy, Object[] args) {
         SixModelObject slurpy = gcx.Mu;
         if (namedArgsCopy != null) {
             SixModelObject BOOTHash = tc.gc.BOOTHash;
@@ -851,13 +851,13 @@ public final class Binder {
                     slurpy.bind_key_boxed(tc, name, (SixModelObject)args[lookup >> 3]);
                     break;
                 case CallSiteDescriptor.ARG_INT:
-                    slurpy.bind_key_boxed(tc, name, Ops.p6box_i((long)args[lookup >> 3], tc));
+                    slurpy.bind_key_boxed(tc, name, RakOps.p6box_i((long)args[lookup >> 3], tc));
                     break;
                 case CallSiteDescriptor.ARG_NUM:
-                    slurpy.bind_key_boxed(tc, name, Ops.p6box_n((double)args[lookup >> 3], tc));
+                    slurpy.bind_key_boxed(tc, name, RakOps.p6box_n((double)args[lookup >> 3], tc));
                     break;
                 case CallSiteDescriptor.ARG_STR:
-                    slurpy.bind_key_boxed(tc, name, Ops.p6box_s((String)args[lookup >> 3], tc));
+                    slurpy.bind_key_boxed(tc, name, RakOps.p6box_s((String)args[lookup >> 3], tc));
                     break;
                 }
             }

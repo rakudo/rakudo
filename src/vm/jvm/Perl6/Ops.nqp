@@ -3,7 +3,7 @@
 my $ops := nqp::getcomp('QAST').operations;
 
 # Type containing Perl 6 specific ops.
-my $TYPE_P6OPS := 'Lorg/perl6/rakudo/Ops;';
+my $TYPE_P6OPS := 'Lorg/perl6/rakudo/RakOps;';
 
 # Other types we'll refer to.
 my $TYPE_OPS   := 'Lorg/perl6/nqp/runtime/Ops;';

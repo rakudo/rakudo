@@ -219,7 +219,7 @@ do {
                 nqp::printfh($err, $e.Str);
                 nqp::printfh($err, "\n");
             }
-            $_() for nqp::hllize(@*END_PHASERS);
+            $_() for nqp::hllize(nqp::getcurhllsym('@END_PHASERS'));
         }
         if $! {
 #?if parrot

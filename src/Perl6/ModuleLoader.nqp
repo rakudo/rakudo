@@ -56,7 +56,7 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
         }
         my %chosen := @candidates[0];
         
-        my @MODULES := nqp::clone(@*MODULES);
+        my @MODULES := nqp::clone(@*MODULES // []);
         for @MODULES -> $m {
             if $m<module> eq $module_name {
                 nqp::die("Circular module loading detected involving module '$module_name'");

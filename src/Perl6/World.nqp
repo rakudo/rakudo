@@ -1695,7 +1695,10 @@ class Perl6::World is HLL::World {
         elsif $phaser eq 'END' {
             $*UNIT[0].push(QAST::Op.new(
                 :op('callmethod'), :name('unshift'),
-                QAST::Var.new( :name('@*END_PHASERS'), :scope('contextual') ),
+                QAST::Op.new(
+                    :op('getcurhllsym'),
+                    QAST::SVal.new( :value('@END_PHASERS') ),
+                ),
                 QAST::WVal.new( :value($block) )
             ));
             return QAST::Var.new(:name('Nil'), :scope('lexical'));
@@ -2468,7 +2471,7 @@ class Perl6::World is HLL::World {
             
             # Build and throw exception object.
             %opts<line>            := HLL::Compiler.lineof($c.orig, $c.pos, :cache(1));
-            %opts<modules>         := p6ize_recursive(@*MODULES);
+            %opts<modules>         := p6ize_recursive(@*MODULES // []);
             %opts<pre>             := @locprepost[0];
             %opts<post>            := @locprepost[1];
             %opts<highexpect>      := p6ize_recursive(@expected) if @expected;

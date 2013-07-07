@@ -152,7 +152,7 @@ multi sub eval(Str $code, :$lang = 'perl6', PseudoStash :$context) {
 
 
 sub exit($status = 0) {
-    $_() for nqp::hllize(@*END_PHASERS);
+    $_() for nqp::hllize(nqp::getcurhllsym('@END_PHASERS'));
     nqp::exit(nqp::unbox_i($status.Int));
     $status;
 }

@@ -170,7 +170,7 @@ my class List does Positional {
         }
     }
 
-    method pop() is rw {
+    method pop() is parcel {
         fail 'Cannot .pop from an infinite list' if self.infinite; #MMD?
         my $elems = self.elems;
         $elems > 0
@@ -225,7 +225,7 @@ my class List does Positional {
         $rlist;
     }
 
-    method shift() is rw {
+    method shift() is parcel {
         # make sure we have at least one item, then shift+return it
         nqp::islist($!items) && nqp::existspos($!items, 0) || self.gimme(1)
           ?? nqp::shift($!items) 

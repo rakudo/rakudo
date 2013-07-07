@@ -76,6 +76,9 @@ multi trait_mod:<is>(Attribute:D $attr, :$box_target!) {
 multi trait_mod:<is>(Routine:D $r, :$rw!) {
     $r.set_rw();
 }
+multi trait_mod:<is>(Routine:D $r, :$parcel!) {
+    $r.set_rw(); # for now, until we have real parcel handling
+}
 multi trait_mod:<is>(Routine:D $r, :$default!) {
     $r does role { method default() { True } }
 }

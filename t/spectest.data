@@ -60,6 +60,7 @@ S02-names/bare-sigil.t
 S02-names/caller.t
 S02-names/identifier.t
 S02-names/indirect.t
+S02-names/is_default.t
 S02-names/our.t
 S02-names/pseudo.t
 S02-names/symbolic-deref.t

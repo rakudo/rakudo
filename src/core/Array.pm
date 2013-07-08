@@ -141,8 +141,13 @@ class Array {
         }
         # XXX some methods to come here...
     }
-    method PARAMETERIZE_TYPE(Mu $t) {
-        self but TypedArray[$t.WHAT]
+    method PARAMETERIZE_TYPE(Mu $t, |c) {
+        if c.elems == 0 {
+            self but TypedArray[$t.WHAT]
+        }
+        else {
+            die "Can only type-constraint Array with [ValueType]"
+        }
     }
 }
 

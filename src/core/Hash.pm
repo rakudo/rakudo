@@ -280,9 +280,15 @@ my class Hash {
         }
     }
     method PARAMETERIZE_TYPE(Mu $t, |c) {
-        c.elems ??
-            self but TypedHash[$t.WHAT, c[0]] !!
+        if c.elems == 0 {
             self but TypedHash[$t.WHAT]
+        }
+        elsif c.elems == 1 {
+            self but TypedHash[$t.WHAT, c[0]]
+        }
+        else {
+            die "Can only type-constraint Hash with [ValueType] or [ValueType,KeyType]";
+        }
     }
 }
 

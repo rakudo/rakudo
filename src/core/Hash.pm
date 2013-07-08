@@ -189,6 +189,11 @@ my class Hash {
                 nqp::unbox_s($key.Str),
                 bindval)
         }
+        multi method perl(::?CLASS:D \SELF:) {
+            "Hash[{TValue.perl}].new("
+              ~ self.pairs.map({.perl}).join(', ')
+              ~ ')';
+        }
     }
     my role TypedHash[::TValue, ::TKey] does Associative[TValue] {
         has $!keys;
@@ -261,6 +266,11 @@ my class Hash {
                 }
                 Nil
             }
+        }
+        multi method perl(::?CLASS:D \SELF:) {
+            "Hash[{TValue.perl},{TKey.perl}].new("
+              ~ self.pairs.map({.perl}).join(', ')
+              ~ ')';
         }
     }
     method PARAMETERIZE_TYPE(Mu $t, |c) {

@@ -132,6 +132,13 @@ class Array {
             self.gimme($pos + 1);
             nqp::bindpos(nqp::getattr(self, List, '$!items'), $pos, bindval)
         }
+        multi method perl(::?CLASS:D \SELF:) {
+            'Array['
+              ~ TValue.perl
+              ~ '].new('
+              ~ self.map({.perl}).join(', ')
+              ~ ')';
+        }
         # XXX some methods to come here...
     }
     method PARAMETERIZE_TYPE(Mu $t) {

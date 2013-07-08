@@ -190,7 +190,9 @@ my class Hash {
                 bindval)
         }
         multi method perl(::?CLASS:D \SELF:) {
-            "Hash[{TValue.perl}].new("
+            'Hash['
+              ~ TValue.perl
+              ~ '].new('
               ~ self.pairs.map({.perl}).join(', ')
               ~ ')';
         }
@@ -268,7 +270,11 @@ my class Hash {
             }
         }
         multi method perl(::?CLASS:D \SELF:) {
-            "Hash[{TValue.perl},{TKey.perl}].new("
+            'Hash['
+              ~ TValue.perl
+              ~ ','
+              ~ TKey.perl
+              ~ '].new('
               ~ self.pairs.map({.perl}).join(', ')
               ~ ')';
         }

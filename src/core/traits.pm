@@ -2,9 +2,9 @@ use Perl6::BOOTSTRAP;
 
 # Declare these, as setting mainline doesn't get them automatically (as the
 # Mu/Any/Scalar are not loaded).
-my $!;
-my $/;
-my $_;
+my $! is default(Nil);
+my $/ is default(Nil);
+my $_ is default(Nil);
 
 # Stub a few things the compiler wants to have really early on.
 my class Pair { ... }

@@ -48,8 +48,16 @@ my class Any {
         my $list = (self,).flat.eager;
         my Mu $rsa := nqp::list_s();
         $list.gimme(4);        # force reification of at least 4 elements
-        nqp::push_s($rsa, nqp::unbox_s($list.shift.Stringy)) 
-            while $list.gimme(0);
+        unless $list.infinite {  # presize array
+            nqp::setelems($rsa, nqp::unbox_i($list.elems));
+            nqp::setelems($rsa, 0);
+        }
+        my $tmp;
+        while $list.gimme(0) {
+            $tmp := $list.shift;
+            nqp::push_s($rsa,
+              nqp::unbox_s(nqp::istype($tmp, Str) ?? $tmp !! $tmp.Str));
+        }
         nqp::push_s($rsa, '...') if $list.infinite;
         nqp::p6box_s(nqp::join(nqp::unbox_s($separator.Stringy), $rsa))
     }

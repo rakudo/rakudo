@@ -185,6 +185,7 @@ CORE_SOURCES = \
   src/core/operators.pm \
   src/core/metaops.pm \
   src/core/terms.pm \
+  src/vm/jvm/core/Threading.pm \
   src/core/you_are_here.pm \
 
 CLEANUPS = \

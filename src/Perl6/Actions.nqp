@@ -582,10 +582,21 @@ class Perl6::Actions is HLL::Actions does STDActions {
     method pod_balanced_braces($/) {
         if $<endtag> {
             my @content := [];
+            my $last-was-string := 1;
             @content.push(~$<start>);
             if $<pod_string_character> {
                 for $<pod_string_character> {
-                    @content.push($_.ast)
+                    if nqp::isstr($_.ast) {
+                        if $last-was-string {
+                            @content.push(@content.pop ~ $_.ast);
+                        } else {
+                            @content.push($_.ast);
+                            $last-was-string := 0;
+                        }
+                    } else {
+                        @content.push($_.ast);
+                        $last-was-string := 0;
+                    }
                 }
             }
             @content.push(~$<endtag>);

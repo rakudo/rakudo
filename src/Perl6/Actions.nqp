@@ -30,18 +30,17 @@ role STDActions {
             sub descend($node) {
                 if nqp::istype($node, QAST::Want) {
                     if +@($node) == 3 && $node[1] eq "Ss" {
-                        my $strval := nqp::unbox_s($node[0].compile_time_value);
+                        my $strval := $node[0].compile_time_value;
                         if !$in-fresh-line {
                             if $strval ~~ /\n/ {
-                                $strval := nqp::box_s(nqp::x(" ", -$indent) ~ $strval, $*W.find_symbol(["Str"]));
+                                my $strbox := nqp::box_s(nqp::x(" ", -$indent) ~ nqp::unbox_s($strval), $*W.find_symbol(["Str"]));
+                                $strval := nqp::unbox_s($strbox.indent($indent));
                                 $in-fresh-line := 1;
+                                return $*W.add_string_constant($strval);
                             }
-                        }
-                        if $in-fresh-line {
-                            return QAST::Op.new(
-                                    :op('callmethod'), :name('indent'),
-                                    $*W.add_string_constant($strval),
-                                    QAST::IVal.new( :value($indent) ));
+                        } else {
+                            $strval := nqp::unbox_s($strval.indent($indent));
+                            return $*W.add_string_constant($strval);
                         }
                     }
                 } elsif nqp::istype($node, QAST::Op) && $node.op eq 'call' && $node.name eq '&infix:<~>' {

@@ -21,11 +21,48 @@ role STDActions {
             $origast.push($*W.add_string_constant($dedented));
         }
         else {
-            $origast.push(QAST::Op.new(
-                :op('callmethod'), :name('indent'),
-                $doc.MATCH.ast,
-                QAST::IVal.new( :value($indent) )));
+            # we need to remove spaces from the beginnings of only textual lines,
+            # so we have to track after each concatenation if the spaces at the
+            # beginning of our chunk belong to a fresh line or come after an
+            # interpolation or something
+            my $in-fresh-line := 1;
+
+            sub descend($node) {
+                if nqp::istype($node, QAST::Want) {
+                    if +@($node) == 3 && $node[1] eq "Ss" {
+                        my $strval := nqp::unbox_s($node[0].compile_time_value);
+                        if !$in-fresh-line {
+                            if $strval ~~ /\n/ {
+                                $strval := nqp::box_s(nqp::x(" ", -$indent) ~ $strval, $*W.find_symbol(["Str"]));
+                                $in-fresh-line := 1;
+                            }
+                        }
+                        if $in-fresh-line {
+                            return QAST::Op.new(
+                                    :op('callmethod'), :name('indent'),
+                                    $*W.add_string_constant($strval),
+                                    QAST::IVal.new( :value($indent) ));
+                        }
+                    }
+                } elsif nqp::istype($node, QAST::Op) && $node.op eq 'call' && $node.name eq '&infix:<~>' {
+                    my @results;
+                    # since we have the $in-fresh-line state, we need to traverse
+                    # and replace the child nodes in order
+                    for @($node) {
+                        nqp::push(@results, descend($node.shift))
+                    }
+                    for @results {
+                        nqp::push($node, $_)
+                    }
+                    return $node;
+                }
+                $in-fresh-line := 0;
+                return $node
+            }
+
+            $origast.push(descend($docast))
         }
+        return $origast;
     }
 }
 

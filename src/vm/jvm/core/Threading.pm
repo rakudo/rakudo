@@ -43,31 +43,56 @@ my class Thread {
 # C<async> function.
 my enum PromiseStatus (:Planned(0), :Running(1), :Completed(2), :Failed(3));
 my class Promise {
-    # Things we will use from the JVM.
-    my $interop   := nqp::jvmbootinterop();
-    my \Semaphore := $interop.typeForName('java.util.concurrent.Semaphore');
+# Things we will use from the JVM.
+    my $interop       := nqp::jvmbootinterop();
+    my \Semaphore     := $interop.typeForName('java.util.concurrent.Semaphore');
+    my \ReentrantLock := $interop.typeForName('java.util.concurrent.locks.ReentrantLock');
     
     has $.scheduler;
     has $.status;
+    has &!code;
     has $!result;
+    has @!thens;
     has Mu $!ready_semaphore;
+    has Mu $!then_lock;
     
-    submethod BUILD(:$!scheduler!, :&code!) {
+    submethod BUILD(:$!scheduler!, :&!code!, :$unscheduled = False) {
         $!status = Planned;
         $!ready_semaphore := Semaphore.'constructor/new/(I)V'(-1);
+        $!then_lock := ReentrantLock.'constructor/new/()V'();
+        self!schedule() unless $unscheduled;
+    }
+    
+    method !schedule() {
         $!scheduler.schedule({
             $!status = Running;
-            $!result = code();
+            $!result = &!code();
             $!status = Completed;
             $!ready_semaphore.'method/release/(I)V'(32768);
+            self!schedule_thens();
             CATCH {
                 default {
                     $!result = $_;
                     $!status = Failed;
                     $!ready_semaphore.'method/release/(I)V'(32768);
+                    self!schedule_thens();
                 }
             }
         })
+    }
+    
+    method !schedule_then($fulfilled) {
+        my $orig_code = &!code;
+        &!code = { $orig_code($fulfilled) }
+        self!schedule();
+    }
+    
+    method !schedule_thens() {
+        $!then_lock.lock();
+        while @!thens {
+            @!thens.shift()!schedule_then(self)
+        }
+        $!then_lock.unlock();
     }
     
     method result() {
@@ -82,6 +107,23 @@ my class Promise {
         }
         elsif $!status == Failed {
             $!result.rethrow
+        }
+    }
+    
+    method then(&code) {
+        $!then_lock.lock();
+        if $!status == any(Failed, Completed) {
+            # Already have the result, schedule immediately.
+            $!then_lock.unlock();
+            Promise.new(:$!scheduler, :code({ code(self) }))
+        }
+        else {
+            # Create a (currently unscheduled) promise and add it to
+            # the list.
+            my $then_promise = Promise.new(:$!scheduler, :code(&code), :unscheduled);
+            @!thens.push($then_promise);
+            $!then_lock.unlock();
+            $then_promise
         }
     }
 }

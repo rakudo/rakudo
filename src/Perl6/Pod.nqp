@@ -100,6 +100,24 @@ class Perl6::Pod {
 
                 $val := $*W.add_constant('Int', 'int', $truth).compile_time_value;
             }
+
+            if $key eq "allow" {
+                my $chars := nqp::chars($val);
+                my $pos := 0;
+                while $pos < $chars {
+                    my $char := nqp::substr($val, $pos, 1);
+                    if $char eq " " {
+                        $pos := $pos + 1;
+                    } else {
+                        my $bitval := nqp::ord($char) - nqp::ord("A");
+                        if $bitval >= 0 && $bitval <= 25 {
+                            $*POD_ALLOW_FCODES := $*POD_ALLOW_FCODES +| (2 ** $bitval);
+                        }
+                        $pos := $pos + 2;
+                    }
+                }
+            }
+
             $key := $*W.add_constant('Str', 'str', $key).compile_time_value;
             $val := $*W.add_constant('Str', 'str', $val).compile_time_value;
             @pairs.push(

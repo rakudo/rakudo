@@ -133,7 +133,7 @@ sub formatting2text($pod) {
     if $pod.type ~~ %formats {
         return colored($text, %formats{$pod.type});
     }
-    twine2text($pod.content)
+    $text
 }
 
 sub twine2text($twine) {

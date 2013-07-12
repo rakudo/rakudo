@@ -4,13 +4,20 @@ method render($pod) {
     pod2text($pod)
 }
 
+my &colored;
+if %*ENV<POD_TO_TEXT_ANSI> {
+    &colored = try { eval q{ use Term::ANSIColor; &colored } } // sub ($text, $color) { $text }
+} else {
+    &colored = sub ($text, $color) { $text }
+}
+
 sub pod2text($pod) is export {
     my @declarators;
     given $pod {
         when Pod::Heading      { heading2text($pod)             }
         when Pod::Block::Code  { code2text($pod)                }
         when Pod::Block::Named { named2text($pod)               }
-        when Pod::Block::Para  { para2text($pod)                }
+        when Pod::Block::Para  { $pod.content.map({pod2text($_)}).join("") }
         when Pod::Block::Table { table2text($pod)               }
         when Pod::Block::Declarator { declarator2text($pod)     }
         when Pod::Item         { item2text($pod)                }
@@ -107,8 +114,26 @@ sub signature2text($params) {
       !! "()";
 }
 
+my %formats = {
+        "C" => "bold",
+        "L" => "underline",
+        "D" => "underline",
+        "R" => "inverse"
+    };
+
+my %only_first_part = bag <D X L>;
+
 sub formatting2text($pod) {
-    twine2text($pod.content)
+    my $text = twine2text($pod.content);
+    if $pod.type ~~ %only_first_part {
+        if $text ~~ /'|'/ {
+            $text = $/.prematch
+        }
+    }
+    if $pod.type ~~ %formats {
+        return colored($text, %formats{$pod.type});
+    }
+    $text
 }
 
 sub twine2text($twine) {

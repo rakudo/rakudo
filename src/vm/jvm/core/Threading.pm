@@ -150,9 +150,13 @@ my class ThreadPoolScheduler {
     # management of the pool size.
     has Mu $!outstanding;
     
+    # Have we started any threads yet?
+    has int $!started_any;
+    
     # Adds a new thread to the pool, respecting the maximum.
     method !maybe_new_thread() {
         if $!thread_start_semaphore.'method/tryAcquire/(I)Z'(1) {
+            $!started_any = 1;
             Thread.start(:app_lifetime, {
                 loop {
                     my Mu $task := $interop.javaObjectToSixmodel($!queue.take());
@@ -163,9 +167,7 @@ my class ThreadPoolScheduler {
         }
     }
     
-    submethod BUILD(:$initial_threads = 1, :$max_threads = 4) {
-        die "Must have at least one thread pool thread"
-            if $initial_threads < 1;
+    submethod BUILD(:$initial_threads = 0, :$max_threads = 4) {
         die "Initial thread pool threads must be less than or equal to maximim threads"
             if $initial_threads > $max_threads;
         $!queue := LinkedBlockingQueue.'constructor/new/()V'();
@@ -176,7 +178,7 @@ my class ThreadPoolScheduler {
     
     method schedule(&code) {
         self!maybe_new_thread()
-            if $!outstanding.incrementAndGet() > 1;
+            if !$!started_any || $!outstanding.incrementAndGet() > 1;
         $!queue.add($interop.sixmodelToJavaObject(&code));
     }
     

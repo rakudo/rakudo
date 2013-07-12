@@ -193,3 +193,15 @@ $PROCESS::SCHEDULER = ThreadPoolScheduler.new();
 sub async(&code) {
     Promise.new(:scheduler($*SCHEDULER), :&code);
 }
+
+# Waits for a promise to be delivered and, once it is, unwraps the result.
+# This should be made more efficient by using continuations to suspend any
+# task running in the thread pool that awaits; for now, this cheat gets the
+# basic idea in place.
+proto sub await(|) { * }
+multi sub await(Promise $p) {
+    $p.result
+}
+multi sub await(*@promises) {
+    @promises.eager.map(&await)
+}

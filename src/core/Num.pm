@@ -302,7 +302,10 @@ multi infix:<%>(num $a, num $b) {
 }
 
 multi infix:<**>(Num:D \a, Num:D \b) {
+#?if jvm
+    # Parrot takes care of this for you in pow_n
     return 1 if a == 1 && !b.isNaN;
+#?endif
     nqp::p6box_n(nqp::pow_n(nqp::unbox_n(a), nqp::unbox_n(b)))
 }
 multi infix:<**>(num $a, num $b) {

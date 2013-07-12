@@ -47,24 +47,22 @@ my role IO::FileTestable does IO {
                                  nqp::const::STAT_FILESIZE) );
     }
 
-#?if parrot
     method l() {
-        nqp::p6bool(pir::new__Ps('File').is_link(nqp::unbox_s(self.Str)))
+        nqp::p6bool(nqp::fileislink(self.Str))
     }
 
     method r() {
-        nqp::p6bool(pir::new__Ps('OS').can_read(nqp::unbox_s(self.Str)))
+        nqp::p6bool(nqp::filereadable(self.Str))
     }
 
     method w() {
-        nqp::p6bool(pir::new__Ps('OS').can_write(nqp::unbox_s(self.Str)))
+        nqp::p6bool(nqp::filewritable(self.Str))
     }
 
     method x() {
-        nqp::p6bool(pir::new__Ps('OS').can_execute(nqp::unbox_s(self.Str)))
+        nqp::p6bool(nqp::fileexecutable(self.Str))
     }
-#?endif
-    
+
     method z() {
         self.e && self.s == 0;
     }

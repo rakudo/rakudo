@@ -295,13 +295,7 @@ multi infix:</>(num $a, num $b) {
 }
 
 multi infix:<%>(Num:D \a, Num:D \b) {
-#?if jvm
-    # This can surely be done more efficiently, but this works.
-    a - floor(a / b) * b;
-#?endif
-#?if !jvm
     nqp::p6box_n(nqp::mod_n(nqp::unbox_n(a), nqp::unbox_n(b)))
-#?endif
 }
 multi infix:<%>(num $a, num $b) {
     nqp::mod_n($a, $b)

@@ -6,10 +6,6 @@
 # is not the preferred way to work in Perl 6. It's a building block for the
 # interesting things.
 my class Thread {
-    # Things we will use from the JVM.
-    my $interop   := nqp::jvmbootinterop();
-    my \JVMThread := $interop.typeForName('java.lang.Thread');
-    
     # This thread's underlying JVM thread object.
     has Mu $!jvm_thread;
     
@@ -18,7 +14,9 @@ my class Thread {
     has $.app_lifetime;
    
     submethod BUILD(:&code!, :$!app_lifetime) {
-        $!jvm_thread := JVMThread."constructor/new/(Ljava/lang/Runnable;)V"(
+        my $interop   := nqp::jvmbootinterop();
+        my \JVMThread := $interop.typeForName('java.lang.Thread');
+        $!jvm_thread  := JVMThread."constructor/new/(Ljava/lang/Runnable;)V"(
             $interop.proxy('java.lang.Runnable', nqp::hash('run', nqp::decont(&code))));
         $!jvm_thread.setDaemon(1) if $!app_lifetime;
     }
@@ -43,11 +41,6 @@ my class Thread {
 # C<async> function.
 my enum PromiseStatus (:Planned(0), :Running(1), :Completed(2), :Failed(3));
 my class Promise {
-# Things we will use from the JVM.
-    my $interop       := nqp::jvmbootinterop();
-    my \Semaphore     := $interop.typeForName('java.util.concurrent.Semaphore');
-    my \ReentrantLock := $interop.typeForName('java.util.concurrent.locks.ReentrantLock');
-    
     has $.scheduler;
     has $.status;
     has &!code;
@@ -57,6 +50,9 @@ my class Promise {
     has Mu $!then_lock;
     
     submethod BUILD(:$!scheduler!, :&!code!, :$unscheduled = False) {
+        my $interop       := nqp::jvmbootinterop();
+        my \Semaphore     := $interop.typeForName('java.util.concurrent.Semaphore');
+        my \ReentrantLock := $interop.typeForName('java.util.concurrent.locks.ReentrantLock');
         $!status = Planned;
         $!ready_semaphore := Semaphore.'constructor/new/(I)V'(-1);
         $!then_lock := ReentrantLock.'constructor/new/()V'();
@@ -132,12 +128,6 @@ my class Promise {
 # pool of threads and schedules work items in the order they are added
 # using them.
 my class ThreadPoolScheduler {
-    # Things we will use from the JVM.
-    my $interop := nqp::jvmbootinterop();
-    my \LinkedBlockingQueue := $interop.typeForName('java.util.concurrent.LinkedBlockingQueue');
-    my \Semaphore := $interop.typeForName('java.util.concurrent.Semaphore');
-    my \AtomicInteger := $interop.typeForName('java.util.concurrent.atomic.AtomicInteger');
-    
     # A concurrent work queue that blocks any worker threads that poll it
     # when empty until some work arrives.
     has Mu $!queue;
@@ -150,12 +140,17 @@ my class ThreadPoolScheduler {
     # management of the pool size.
     has Mu $!outstanding;
     
+    # Initial and maximum thereads.
+    has $!initial_threads;
+    has $!max_threads;
+    
     # Have we started any threads yet?
     has int $!started_any;
     
     # Adds a new thread to the pool, respecting the maximum.
     method !maybe_new_thread() {
         if $!thread_start_semaphore.'method/tryAcquire/(I)Z'(1) {
+            my $interop := nqp::jvmbootinterop();
             $!started_any = 1;
             Thread.start(:app_lifetime, {
                 loop {
@@ -167,16 +162,23 @@ my class ThreadPoolScheduler {
         }
     }
     
-    submethod BUILD(:$initial_threads = 0, :$max_threads = 4) {
+    submethod BUILD(:$!initial_threads = 0, :$!max_threads = 4) {
         die "Initial thread pool threads must be less than or equal to maximim threads"
-            if $initial_threads > $max_threads;
-        $!queue := LinkedBlockingQueue.'constructor/new/()V'();
-        $!thread_start_semaphore := Semaphore.'constructor/new/(I)V'($max_threads.Int);
-        $!outstanding := AtomicInteger.'constructor/new/()V'();
-        self!maybe_new_thread() for 1..$initial_threads;
+            if $!initial_threads > $!max_threads;
     }
     
     method schedule(&code) {
+        my $interop := nqp::jvmbootinterop();
+        unless $!started_any {
+            # Things we will use from the JVM.
+            my \LinkedBlockingQueue := $interop.typeForName('java.util.concurrent.LinkedBlockingQueue');
+            my \Semaphore := $interop.typeForName('java.util.concurrent.Semaphore');
+            my \AtomicInteger := $interop.typeForName('java.util.concurrent.atomic.AtomicInteger');
+            $!queue := LinkedBlockingQueue.'constructor/new/()V'();
+            $!thread_start_semaphore := Semaphore.'constructor/new/(I)V'($!max_threads.Int);
+            $!outstanding := AtomicInteger.'constructor/new/()V'();
+            self!maybe_new_thread() for 1..$!initial_threads;
+        }
         self!maybe_new_thread()
             if !$!started_any || $!outstanding.incrementAndGet() > 1;
         $!queue.add($interop.sixmodelToJavaObject(&code));

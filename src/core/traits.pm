@@ -261,6 +261,12 @@ multi trait_mod:<is>(Routine:D $r, :$pure!) {
     });
 }
 
+multi trait_mod:<is>(Routine $r, :$nodal!) {
+    $r.HOW.mixin($r, role {
+        method IS_NODAL { True }
+    });
+}
+
 proto trait_mod:<returns>(|) { * }
 multi trait_mod:<returns>(Routine:D $target, Mu:U $type) {
     my $sig := $target.signature;

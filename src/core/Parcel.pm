@@ -38,7 +38,7 @@ my class Parcel does Positional {
 
     method at_pos(Parcel:D: \x) is rw { self.flat.at_pos(x); }
 
-    proto method postcircumfix:<[ ]>(|)                  { * }
+    proto method postcircumfix:<[ ]>(|) is nodal         { * }
     multi method postcircumfix:<[ ]>() is rw              { self.flat }
     multi method postcircumfix:<[ ]>(Parcel:D: \x) is rw  { self.flat.[x] }
 

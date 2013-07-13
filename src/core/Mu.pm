@@ -528,7 +528,13 @@ my class Mu {
     }
 
     method dispatch:<hyper>(Mu \SELF: $name, |c) {
-        hyper( -> \obj { obj."$name"(|c) }, SELF )
+        my Mu $own_meth = SELF.^find_method($name);
+        if $own_meth && nqp::can($own_meth, 'IS_NODAL') && $own_meth.IS_NODAL {
+            # XXX should be able to pass $own_meth instead of the pointy block?
+            hyper( -> \obj { obj."$name"(|c) }, SELF, :nodal )
+        } else {
+            hyper( -> \obj { obj."$name"(|c) }, SELF )
+        }
     }
     
     method WALK(:$name!, :$canonical, :$ascendant, :$descendant, :$preorder, :$breadth,

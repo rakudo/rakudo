@@ -196,9 +196,15 @@ multi sub hyper(\op, \a, \b, :$dwim-left, :$dwim-right) {
     ).eager
 }
 
-multi sub hyper(\op, \obj) {
+multi sub hyper(\op, \obj, :$nodal) {
     my Mu $rpa := nqp::list();
-    my Mu $items := nqp::p6listitems(obj.flat.eager);
+    my int $descend = !($nodal || nqp::can(op, 'IS_NODAL') && op.IS_NODAL);
+    my Mu $items;
+    if $descend {
+        $items := nqp::p6listitems(obj.flat.eager);
+    } else {
+        $items := nqp::p6listitems(obj.tree.eager);
+    }
     my Mu $o;
     # We process the elements in two passes, end to start, to 
     # prevent users from relying on a sequential ordering of hyper.
@@ -209,7 +215,7 @@ multi sub hyper(\op, \obj) {
         nqp::stmts(
             ($o := nqp::atpos($items, $i)),
             nqp::bindpos($rpa, $i, 
-                nqp::if(nqp::istype($o, Iterable),
+                nqp::if(nqp::istype($o, Iterable) && $descend,
                         $o.new(hyper(op, $o)).item,
                         op.($o))),
             $i = nqp::sub_i($i, 2)
@@ -221,7 +227,7 @@ multi sub hyper(\op, \obj) {
         nqp::stmts(
             ($o := nqp::atpos($items, $i)),
             nqp::bindpos($rpa, $i, 
-                nqp::if(nqp::istype($o, Iterable),
+                nqp::if(nqp::istype($o, Iterable) && $descend,
                         $o.new(hyper(op, $o)).item,
                         op.($o))),
             $i = nqp::sub_i($i, 2)

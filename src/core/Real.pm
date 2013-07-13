@@ -114,6 +114,9 @@ multi infix:«>=»(Real \a, Real \b)  { a.Bridge >= b.Bridge }
 
 multi prefix:<->(Real \a)            { -a.Bridge }
 
+# NOTE: According to the spec, infix:<mod> is "Not coercive, 
+# so fails on differing types."  This implemention ignores
+# that constraint.
 proto sub infix:<mod>($, $) {*}
 multi sub infix:<mod>(Real $a, Real $b) {
     $a - ($a.Bridge.Int div $b.Bridge.Int) * $b;

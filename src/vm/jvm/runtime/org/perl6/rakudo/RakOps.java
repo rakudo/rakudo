@@ -60,6 +60,7 @@ public final class RakOps {
     private static final int HINT_CODE_SIG = 1;
     private static final int HINT_ROUTINE_RW = 7;
     private static final int HINT_SIG_PARAMS = 0;
+    private static final int HINT_SIG_RETURNS = 1;
     private static final int HINT_SIG_CODE = 4;
     public static final int HINT_CD_OF = 0;
     public static final int HINT_CD_RW = 1;
@@ -454,9 +455,29 @@ public final class RakOps {
         }
     }
     
+    private static final CallSiteDescriptor rvThrower = new CallSiteDescriptor(
+        new byte[] { CallSiteDescriptor.ARG_OBJ, CallSiteDescriptor.ARG_OBJ }, null);
     public static SixModelObject p6typecheckrv(SixModelObject rv, SixModelObject routine, ThreadContext tc) {
-        if (DEBUG_MODE)
-            System.err.println("p6typecheckrv NYI");
+        GlobalExt gcx = key.getGC(tc);
+        SixModelObject sig = routine.get_attribute_boxed(tc, gcx.Code, "$!signature", HINT_CODE_SIG);
+        SixModelObject rtype = sig.get_attribute_boxed(tc, gcx.Signature, "$!returns", HINT_SIG_RETURNS);
+        if (rtype != null) {
+            SixModelObject decontValue = Ops.decont(rv, tc);
+            if (Ops.istype(decontValue, rtype, tc) == 0) {
+                /* Straight type check failed, but it's possible we're returning
+                 * an Int that can unbox into an int or similar. */
+                StorageSpec spec = rtype.st.REPR.get_storage_spec(tc, rtype.st);
+                if (spec.inlineable == 0 || Ops.istype(rtype, decontValue.st.WHAT, tc) == 0) {
+                    SixModelObject thrower = getThrower(tc, "X::TypeCheck::Return");
+                    if (thrower == null)
+                        throw ExceptionHandling.dieInternal(tc,
+                            "Type check failed for return value");
+                    else
+                        Ops.invokeDirect(tc, thrower,
+                            rvThrower, new Object[] { decontValue, rtype });
+                }
+            }
+        }
         return rv;
     }
     

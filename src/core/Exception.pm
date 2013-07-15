@@ -544,7 +544,7 @@ my class X::Undeclared::Symbols does X::Comp {
     }
     method message() {
         sub l(@l) {
-            my @lu = @l.uniq.sort;
+            my @lu = @l.map({ nqp::hllize($_) }).uniq.sort;
             'used at line' ~ (@lu == 1 ?? ' ' !! 's ') ~ @lu.join(', ')
         }
         sub s(@s) {

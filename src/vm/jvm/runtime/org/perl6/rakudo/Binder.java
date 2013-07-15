@@ -834,7 +834,38 @@ public final class Binder {
             }
         }
         
-        /* XXX TODO. */
+        /* Do we have any left-over args? */
+        if (curPosArg < numPosArgs && !suppressArityFail) {
+            /* Oh noes, too many positionals passed. */
+            if (error != null)
+                error[0] = arityFail(tc, gcx, params, (int)numParams, numPosArgs, true);
+            return BIND_RESULT_FAIL;
+        }
+        if (namedArgsCopy != null && namedArgsCopy.size() > 0) {
+            /* Oh noes, unexpected named args. */
+            if (error != null) {
+                int numExtra = namedArgsCopy.size();
+                if (numExtra == 1) {
+                    for (String name : namedArgsCopy.keySet())
+                        error[0] = "Unexpected named parameter '" + name + "' passed";
+                }
+                else {
+                    boolean first = true;
+                    error[0] = numExtra + " unexpected named parameters passed (";
+                    for (String name : namedArgsCopy.keySet()) {
+                        if (!first)
+                            error[0] += ", ";
+                        else
+                            first = false;
+                        error[0] += name;
+                    }
+                    error[0] += ")";
+                }
+            }
+            return BIND_RESULT_FAIL;
+        }
+
+        /* If we get here, we're done. */
         return BIND_RESULT_OK;
     }
     

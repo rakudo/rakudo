@@ -546,8 +546,8 @@ public final class RakOps {
     }
     
     public static SixModelObject getThrower(ThreadContext tc, String type) {
-        /* XXX TODO: thrower lookup. */
-        return null;
+        SixModelObject exHash = Ops.gethllsym("perl6", "P6EX", tc);
+        return exHash == null ? null : Ops.atkey(exHash, type, tc);
     }
 
     private static CallFrame find_common_ctx(CallFrame ctx1, CallFrame ctx2) {

@@ -12,7 +12,7 @@ my class Code does Callable {
     multi method Str(Code:D:) { self.name }
 
     method outer(Code:D:) {
-        nqp::getcodeobj(nqp::findmethod($!do, 'get_outer')($!do))
+        nqp::getcodeobj(nqp::p6staticouter($!do))
     }
 
     # returns an identifier for this code object

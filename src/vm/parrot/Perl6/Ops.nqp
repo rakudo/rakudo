@@ -62,6 +62,12 @@ my $p6bool := -> $qastcomp, $op {
     $ops
 }
 $ops.add_hll_op('perl6', 'p6bool', :inlinable(1), $p6bool);
+$ops.add_hll_op('perl6', 'p6staticouter', -> $qastcomp, $op {
+    $qastcomp.as_post(QAST::Op.new(
+        :op('callmethod'), :name('get_outer'),
+        $op[0]
+    ))
+});
 
 # Make some of them also available from NQP land, since we use them in the
 # metamodel and bootstrap.

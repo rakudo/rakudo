@@ -765,4 +765,11 @@ public final class RakOps {
         
         return result;
     }
+    
+    public static SixModelObject p6staticouter(SixModelObject code, ThreadContext tc) {
+        if (code instanceof CodeRef)
+            return ((CodeRef)code).staticInfo.outerStaticInfo.staticCode;
+        else
+            throw ExceptionHandling.dieInternal(tc, "p6staticouter must be used on a CodeRef");
+    }
 }

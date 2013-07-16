@@ -183,16 +183,10 @@ do {
         for $bt.keys {
             try {
                 my Mu $sub := nqp::getattr(nqp::decont($bt[$_]<sub>), ForeignCode, '$!do');
-                return True if nqp::iseq_s(nqp::getcodename($sub), 'eval')
-                    && nqp::iseq_s(
-                            nqp::join(';', $sub.get_namespace.get_name),
-                            'nqp'
-                    );
-                return False if nqp::iseq_s(nqp::getcodename($sub), 'compile')
-                    && nqp::iseq_s(
-                            nqp::join(';', $sub.get_namespace.get_name),
-                            'nqp'
-                    );
+                my Mu $codeobj := nqp::ifnull(nqp::getcodeobj($sub), Mu);
+                my $is_nqp = $codeobj && $codeobj.HOW.name($codeobj) eq 'NQPRoutine';
+                return True if nqp::iseq_s(nqp::getcodename($sub), 'eval') && $is_nqp;
+                return False if nqp::iseq_s(nqp::getcodename($sub), 'compile') && $is_nqp;
             }
         }
         return False;

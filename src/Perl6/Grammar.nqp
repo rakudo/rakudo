@@ -2608,7 +2608,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token term:sym<!!!> { <sym> <args> }
 
     token term:sym<identifier> {
-        <identifier> <!{ $*W.is_type([~$<identifier>]) }> <?[(]> <args>
+        <identifier> <!{ $*W.is_type([~$<identifier>]) }> <?before <.unsp>|'('> <args>
         { self.add_mystery($<identifier>, $<args>.from, nqp::substr(~$<args>, 0, 1)) }
     }
     
@@ -2658,6 +2658,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :dba('argument list')
         [
         | '(' ~ ')' <semiarglist>
+        | <.unsp> '(' ~ ')' <semiarglist>
         | [ \s <arglist> ]
         | <?>
         ]

@@ -1872,7 +1872,7 @@ Perl6::Metamodel::GrammarHOW.set_default_parent_type(Grammar);
 # Put PROCESS in place.
 nqp::bindhllsym('perl6', 'PROCESS', PROCESS);
 
-# HLL interop configuration.
+# HLL configuration: interop, boxing and exit handling.
 nqp::sethllconfig('perl6', nqp::hash(
     'int_box', Int,
     'num_box', Num,
@@ -1893,5 +1893,48 @@ nqp::sethllconfig('perl6', nqp::hash(
         my $result := nqp::create(ForeignCode);
         nqp::bindattr($result, ForeignCode, '$!do', $code);
         $result
+    },
+    'exit_handler', -> $coderef, $resultish {
+        my $code := nqp::getcodeobj($coderef);
+        my %phasers := nqp::getattr($code, Block, '$!phasers');
+        unless nqp::isnull(%phasers) {
+            my @leaves := nqp::atkey(%phasers, '!LEAVE-ORDER');
+            my @keeps  := nqp::atkey(%phasers, 'KEEP');
+            my @undos  := nqp::atkey(%phasers, 'UNDO');
+            unless nqp::isnull(@leaves) {
+                my int $n := nqp::elems(@leaves);
+                my int $i := 0;
+                my int $run;
+                my $phaser;
+                while $i < $n {
+                    $phaser := nqp::decont(nqp::atpos(@leaves, $i));
+                    $run := 1;
+                    unless nqp::isnull(@keeps) {
+                        for @keeps {
+                            if nqp::decont($_) =:= $phaser {
+                                $run := !nqp::isnull($resultish) && 
+                                         nqp::isconcrete($resultish) &&
+                                         $resultish.defined;
+                                last;
+                            }
+                        }
+                    }
+                    unless nqp::isnull(@undos) {
+                        for @undos {
+                            if nqp::decont($_) =:= $phaser {
+                                $run := nqp::isnull($resultish) ||
+                                        !nqp::isconcrete($resultish) ||
+                                        !$resultish.defined;
+                                last;
+                            }
+                        }
+                    }
+                    if $run {
+                        $phaser();
+                    }
+                    $i++;
+                }
+            }
+        }
     }
 ));

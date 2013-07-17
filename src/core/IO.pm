@@ -458,7 +458,6 @@ my class IO::Path is Cool does IO::FileTestable {
 #?endif
 #?if jvm
         my Mu $dirh := nqp::opendir($!path);
-        my $next = 1;
         gather {
             take $_.path if $_ ~~ $test for ".", "..";
             loop {

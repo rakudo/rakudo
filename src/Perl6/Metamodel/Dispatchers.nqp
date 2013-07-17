@@ -26,7 +26,7 @@ class Perl6::Metamodel::BaseDispatcher {
         my $call := @!candidates[$!idx];
         $!idx := $!idx + 1;
         nqp::setdispatcher(self);
-        nqp::invokewithcapture($call, $capture)
+        nqp::invokewithcapture(nqp::decont($call), $capture)
     }
 }
 

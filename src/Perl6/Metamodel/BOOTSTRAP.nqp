@@ -1897,7 +1897,7 @@ nqp::sethllconfig('perl6', nqp::hash(
     'exit_handler', -> $coderef, $resultish {
         my $code := nqp::getcodeobj($coderef);
         my %phasers := nqp::getattr($code, Block, '$!phasers');
-        unless nqp::isnull(%phasers) {
+        unless nqp::isnull(%phasers) || nqp::p6inpre() {
             my @leaves := nqp::atkey(%phasers, '!LEAVE-ORDER');
             my @keeps  := nqp::atkey(%phasers, 'KEEP');
             my @undos  := nqp::atkey(%phasers, 'UNDO');
@@ -1932,6 +1932,16 @@ nqp::sethllconfig('perl6', nqp::hash(
                     if $run {
                         $phaser();
                     }
+                    $i++;
+                }
+            }
+            
+            my @posts := nqp::atkey(%phasers, 'POST');
+            unless nqp::isnull(@posts) {
+                my int $n := nqp::elems(@posts);
+                my int $i := 0;
+                while $i < $n {
+                    nqp::atpos(@posts, $i)(nqp::isnull($resultish, Mu));
                     $i++;
                 }
             }

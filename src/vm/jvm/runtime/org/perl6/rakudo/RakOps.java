@@ -1,5 +1,6 @@
 package org.perl6.rakudo;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Comparator;
@@ -18,6 +19,7 @@ public final class RakOps {
 
     public static class ThreadExt {
         public SixModelObject firstPhaserCodeBlock;
+        public ArrayList<CallFrame> prePhaserFrames = new ArrayList<CallFrame>();
         public ThreadExt(ThreadContext tc) { }
     }
 
@@ -651,6 +653,23 @@ public final class RakOps {
         boolean matches = tcx.firstPhaserCodeBlock == tc.curFrame.codeRef;
         tcx.firstPhaserCodeBlock = null;
         return matches ? 1 : 0;
+    }
+    
+    public static SixModelObject p6setpre(ThreadContext tc) {
+        ThreadExt tcx = key.getTC(tc);
+        tcx.prePhaserFrames.add(tc.curFrame);
+        return null;
+    }
+    
+    public static SixModelObject p6clearpre(ThreadContext tc) {
+        ThreadExt tcx = key.getTC(tc);
+        tcx.prePhaserFrames.remove(tc.curFrame);
+        return null;
+    }
+    
+    public static long p6inpre(ThreadContext tc) {
+        ThreadExt tcx = key.getTC(tc);
+        return tcx.prePhaserFrames.remove(tc.curFrame.caller) ? 1 : 0;
     }
     
     private static final CallSiteDescriptor dispVivifier = new CallSiteDescriptor(

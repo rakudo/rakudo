@@ -1750,6 +1750,7 @@ class Perl6::World is HLL::World {
             
             if $phaser eq 'POST' {
                 # Needs $_ that can be set to the return value.
+                $phaser_past.custom_args(1);
                 $phaser_past[0].unshift(QAST::Op.new( :op('p6bindsig') ));
                 if $phaser_past.symbol('$_') {
                     for @($phaser_past[0]) {

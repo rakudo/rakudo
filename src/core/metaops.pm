@@ -198,7 +198,7 @@ multi sub hyper(\op, \a, \b, :$dwim-left, :$dwim-right) {
 
 multi sub hyper(\op, \obj, :$nodal) {
     my Mu $rpa := nqp::list();
-    my int $descend = !($nodal || nqp::can(op, 'IS_NODAL') && op.IS_NODAL);
+    my int $descend = !($nodal || (nqp::can(op, 'nodal') && op.nodal));
     my Mu $items;
     if $descend {
         $items := nqp::p6listitems(obj.flat.eager);
@@ -236,9 +236,9 @@ multi sub hyper(\op, \obj, :$nodal) {
     nqp::p6parcel($rpa, Nil);
 }
 
-multi sub hyper(\op, Associative \h) {
+multi sub hyper(\op, Associative \h, :$nodal) {
     my @keys = h.keys;
-    hash @keys Z hyper(op, h{@keys})
+    hash @keys Z hyper(op, h{@keys}, :$nodal)
 }
 
 multi sub hyper(\op, Associative \a, Associative \b, :$dwim-left, :$dwim-right) {

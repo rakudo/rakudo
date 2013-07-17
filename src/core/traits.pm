@@ -261,10 +261,11 @@ multi trait_mod:<is>(Routine:D $r, :$pure!) {
     });
 }
 
-multi trait_mod:<is>(Routine $r, :$nodal!) {
-    $r.HOW.mixin($r, role {
-        method IS_NODAL { True }
-    });
+multi trait_mod:<is>(Routine:D $r, :$nodal!) {
+    $r.HOW.set_nodal($r);
+}
+multi trait_mod:<is>(Mu:U $type, :$nodal!) {
+    $type.HOW.set_nodal($type);
 }
 
 proto trait_mod:<returns>(|) { * }

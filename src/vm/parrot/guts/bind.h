@@ -74,7 +74,7 @@ typedef struct {
     PMC    *dispatchees;        /* List of dispatchees, if any. */
     PMC    *dispatcher_cache;   /* Holder for any dispatcher cache. */
     PMC    *dispatcher;         /* The parent dispatcher, if any. */
-    INTVAL  rw;                 /* Is it rw? */
+    INTVAL  flags;              /* Is it rw (0b1) or nodal (0b10)? */
 } Rakudo_Code;
 
 /* 

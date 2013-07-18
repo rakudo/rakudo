@@ -38,10 +38,8 @@ my class Any {
         self.map({ $_ if $_ ~~ $test });
     }
     method first(Mu $test) is rw {
-        for self.list {
-            return $_ if $_ ~~ $test;
-        }
-        Nil;
+        my @results := self.grep($test);
+        @results ?? @results[0] !! Nil;
     }
 
     method join($separator = '') {

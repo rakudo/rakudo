@@ -8,7 +8,8 @@ use Text::ParseWords;
 use Getopt::Long;
 use Cwd qw(cwd realpath);
 use lib "tools/lib";
-use NQP::Configure qw(sorry slurp fill_template_text fill_template_file);
+use NQP::Configure qw(sorry slurp fill_template_text fill_template_file
+                      system_or_die);
 use File::Basename;
 
 my $lang = 'Rakudo';
@@ -38,7 +39,8 @@ MAIN: {
         exit(0);
     }
 
-    my $prefix      = $options{'prefix'} || cwd().'/install';
+    my $prefix      = $options{'prefix'} || 
+        ($^O eq 'MSWin32' ? cwd().'\\install-jvm' : cwd().'/install-jvm');
     my $with_nqp    = $options{'with-nqp'} ||
         ($^O eq 'MSWin32' ? 'install-jvm\\nqp' : 'install-jvm/nqp');
 

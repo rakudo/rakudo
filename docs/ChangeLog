@@ -1,12 +1,25 @@
 New in 2013.07
-+ Huge progress in JVM backend (feature-wise almost on par with parrot)
++ Huge progress in JVM backend (feature-wise almost on par with Parrot)
 + List.first is now lazy
 + unspace before argument lists is now supported
 + fixed handling of indented heredocs
 + basic support for threads and promises (JVM only)
 + improved sprintf and other formatting routines
++ keyof method for typed hashes to get key type
 + Hash.perl nows works for typed hashes
 + 'is parcel' and 'is default' traits (work in progress)
++ Parcel.new now works
++ slight optimization to join of many items
++ implemented canonpath for Win32 IO::Spec
++ implemented squish
++ made []:(kv|p|k|v) work according to spec
++ properly parse Pod formatting codes with brackets other than <...>
++ the POD_TO_TEXT_ANSI environment variable now leads to some formatting
+  being applied by Pod::To::Text
++ declaration of multiple operators in a scope now generates much smaller
+  serialized output
++ Int.round method now takes a scale argument
++ implemented Complex.ceiling, Complex.floor, Complex.round
 
 New in 2013.06
 + JVM backend added - passes initial sanity tests

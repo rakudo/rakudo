@@ -2797,7 +2797,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 my $nocando := $*MULTINESS eq 'multi' ?? 'multi-method' !! 'method';
                 nqp::printfh(nqp::getstderr(),
                     "Useless declaration of a has-scoped $nocando in " ~
-                    ($*PKGDECL || "mainline") ~ "\n");
+                    ($*PKGDECL || "mainline") ~ " (did you mean 'my $*METHODTYPE $name'?)\n");
             }
         }
 

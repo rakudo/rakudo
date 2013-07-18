@@ -51,7 +51,7 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
             }
             else {
                 nqp::die("Could not find $module_name in any of: " ~
-                    nqp::join(', ', @prefixes));
+                    join(', ', @prefixes));
             }
         }
         my %chosen := @candidates[0];

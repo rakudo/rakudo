@@ -528,9 +528,13 @@ my class Mu {
     }
 
     method dispatch:<hyper>(Mu \SELF: $name, |c) {
-        my Mu $own_meth = SELF.^find_method($name);
-        if $own_meth && nqp::can($own_meth, 'nodal') && $own_meth.nodal {
-            # XXX should be able to pass $own_meth instead of the pointy block?
+        # this is an approximation for correct nodality-or-not behavior
+        # we inspect the first element of our list and try to find the least
+        # derived version of the method we're supposed to call. If it's
+        # marked nodal, we consider the rest of the list's elements to have
+        # a method of the same name that's nodal as well.
+        my Mu $least_derived_meth = (SELF[0].^can($name) || [Mu])[*-1];
+        if $least_derived_meth && nqp::can($least_derived_meth, 'nodal') && $least_derived_meth.nodal {
             hyper( -> \obj { obj."$name"(|c) }, SELF, :nodal )
         } else {
             hyper( -> \obj { obj."$name"(|c) }, SELF )

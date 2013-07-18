@@ -1,7 +1,10 @@
 role Perl6::ModuleLoaderVMConfig {
     method vm_search_paths() {
-        # XXX TODO
-        []
+        my @search_paths;
+        for nqp::jvmclasspaths() -> $path {
+            @search_paths.push($path);
+        }
+        @search_paths
     }
     
     # Locates files we could potentially load for this module.

@@ -6,7 +6,7 @@ use strict;
 use warnings;
 use Text::ParseWords;
 use Getopt::Long;
-use Cwd;
+use Cwd qw(cwd realpath);
 use lib "tools/lib";
 use NQP::Configure qw(sorry slurp fill_template_text fill_template_file);
 use File::Basename;
@@ -62,7 +62,7 @@ MAIN: {
 
     $config{'prefix'} = $prefix;
     $config{'nqp'} = $with_nqp;
-    $config{'nqp_prefix'} = dirname($with_nqp);
+    $config{'nqp_prefix'} = realpath(dirname($with_nqp));
     $config{'makefile-timing'} = $options{'makefile-timing'};
     $config{'stagestats'} = '--stagestats' if $options{'makefile-timing'};
     $config{'cpsep'} = $^O eq 'MSWin32' ? ';' : ':';

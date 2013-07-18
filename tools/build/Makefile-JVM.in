@@ -9,6 +9,8 @@ GEN_CAT = tools/build/gen-cat.pl jvm
 PREFIX = @prefix@
 NQP_PREFIX = @nqp_prefix@
 
+PERL6_LANG_DIR = $(PREFIX)/languages/perl6
+
 MKPATH = $(PERL) -MExtUtils::Command -e mkpath
 CP     = $(PERL) -MExtUtils::Command -e cp
 CHMOD  = $(PERL) -MExtUtils::Command -e chmod
@@ -39,7 +41,9 @@ PERL6_C_JAR   = blib/Perl6/Compiler.jar
 PERL6_M_JAR   = blib/Perl6/Metamodel.jar
 PERL6_B_JAR   = blib/Perl6/BOOTSTRAP.jar
 SETTING_JAR   = CORE.setting.jar
-R_SETTING_JAR = RESTRICTED.setting.jar
+
+PERL6_LANG_JARS = $(PERL6_ML_JAR) $(PERL6_CF_JAR) $(PERL6_W_JAR) $(PERL6_G_JAR) $(PERL6_OPS_JAR) $(PERL6_A_JAR) \
+  $(PERL6_O_JAR) $(PERL6_P_JAR) $(PERL6_C_JAR) $(PERL6_M_JAR) $(PERL6_B_JAR)
 
 METAMODEL_SOURCES = \
   src/Perl6/Metamodel/Archetypes.nqp \
@@ -192,11 +196,13 @@ CLEANUPS = \
   *.manifest \
   blib/Perl6/*.jar \
   $(SETTING_JAR) \
-  $(R_SETTING_JAR) \
   $(PERL6_JAR) \
   lib/Test.jar \
   lib/lib.jar \
   lib/Pod/To/Text.jar \
+  blib/Test.jar \
+  blib/lib.jar \
+  blib/Pod/To/Text.jar \
   rakudo_test_run.tar.gz \
   src/gen/CORE.setting \
   src/gen/*.jar \
@@ -208,7 +214,7 @@ CLEANUPS = \
 HARNESS_WITH_FUDGE = $(PERL) t/harness --fudge --keep-exit-code --jvm
 HARNESS = $(PERL) t/harness --jvm
 
-all: $(PERL6_JAR) $(SETTING_JAR) $(RUNNER) lib/Test.jar lib/lib.jar lib/Pod/To/Text.jar
+all: $(PERL6_JAR) $(SETTING_JAR) $(RUNNER) blib/Test.jar blib/lib.jar blib/Pod/To/Text.jar
 
 $(RUNTIME_JAR): $(RUNTIME_JAVAS)
 	$(PERL) -MExtUtils::Command -e mkpath bin
@@ -274,17 +280,18 @@ $(SETTING_JAR): $(PERL6_JAR) $(PERL6_B_JAR) $(CORE_SOURCES)
 	$(RUN_PERL6) --setting=NULL --optimize=3 --target=jar --stagestats --output=$(SETTING_JAR) src/gen/CORE.setting
 
 $(RUNNER):
-	$(PERL) tools/build/create-jvm-runner.pl . $(NQP_PREFIX) $(NQP_JARS)
+	$(PERL) tools/build/create-jvm-runner.pl dev . $(NQP_PREFIX) $(NQP_JARS)
 
 ##  testing targets
-lib/Test.jar: lib/Test.pm $(PERL6_JAR) $(SETTING_JAR) $(RUNNER)
-	.@slash@$(RUNNER) --target=jar --output=lib/Test.jar lib/Test.pm
+blib/Test.jar: lib/Test.pm $(PERL6_JAR) $(SETTING_JAR) $(RUNNER)
+	.@slash@$(RUNNER) --target=jar --output=blib/Test.jar lib/Test.pm
 
-lib/lib.jar: lib/lib.pm6 $(PERL6_JAR) $(SETTING_JAR) $(RUNNER)
-	.@slash@$(RUNNER) --target=jar --output=lib/lib.jar lib/lib.pm6
+blib/lib.jar: lib/lib.pm6 $(PERL6_JAR) $(SETTING_JAR) $(RUNNER)
+	.@slash@$(RUNNER) --target=jar --output=blib/lib.jar lib/lib.pm6
 
-lib/Pod/To/Text.jar: lib/Pod/To/Text.pm $(PERL6_JAR) $(SETTING_JAR) $(RUNNER)
-	.@slash@$(RUNNER) --target=jar --output=lib/Pod/To/Text.jar lib/Pod/To/Text.pm
+blib/Pod/To/Text.jar: lib/Pod/To/Text.pm $(PERL6_JAR) $(SETTING_JAR) $(RUNNER)
+	$(MKPATH) blib/Pod/To
+	.@slash@$(RUNNER) --target=jar --output=blib/Pod/To/Text.jar lib/Pod/To/Text.pm
 
 test    : coretest
 
@@ -342,6 +349,20 @@ sometests: all
 # Run a single test
 t/*.t t/*/*.t t/*/*/*.t: all spectest_checkout
 	@$(HARNESS_WITH_FUDGE) --verbosity=1 $@
+
+install:	tools/build/create-jvm-runner.pl
+	$(MKPATH) $(PREFIX)/bin
+	$(MKPATH) $(PERL6_LANG_DIR)/lib/Perl6
+	$(MKPATH) $(PERL6_LANG_DIR)/runtime
+	$(CP) $(PERL6_LANG_JARS) $(PERL6_LANG_DIR)/lib/Perl6
+	$(CP) $(SETTING_JAR) $(PERL6_LANG_DIR)/runtime
+	$(CP) $(PERL6_JAR) $(PERL6_LANG_DIR)/runtime
+	$(CP) $(RUNTIME_JAR) $(PERL6_LANG_DIR)/runtime
+	$(CP) blib/Test.jar $(PERL6_LANG_DIR)/lib
+	$(CP) blib/lib.jar $(PERL6_LANG_DIR)/lib
+	$(MKPATH) $(PERL6_LANG_DIR)/lib/Pod/To
+	$(CP) blib/Pod/To/Text.jar $(PERL6_LANG_DIR)/lib/Pod/To
+	$(PERL) tools/build/create-jvm-runner.pl install $(PREFIX) $(NQP_PREFIX) $(NQP_JARS)
 
 ##  cleaning
 clean:

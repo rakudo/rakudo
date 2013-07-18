@@ -1894,6 +1894,7 @@ nqp::sethllconfig('perl6', nqp::hash(
         nqp::bindattr($result, ForeignCode, '$!do', $code);
         $result
     },
+#?if !parrot
     'exit_handler', -> $coderef, $resultish {
         my $code := nqp::getcodeobj($coderef);
         my %phasers := nqp::getattr($code, Block, '$!phasers');
@@ -1941,10 +1942,11 @@ nqp::sethllconfig('perl6', nqp::hash(
                 my int $n := nqp::elems(@posts);
                 my int $i := 0;
                 while $i < $n {
-                    nqp::atpos(@posts, $i)(nqp::isnull($resultish, Mu));
+                    nqp::atpos(@posts, $i)(nqp::ifnull($resultish, Mu));
                     $i++;
                 }
             }
         }
     }
+#?endif
 ));

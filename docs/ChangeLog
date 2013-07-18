@@ -1,3 +1,13 @@
+New in 2013.07
++ Huge progress in JVM backend (feature-wise almost on par with parrot)
++ List.first is now lazy
++ unspace before argument lists is now supported
++ fixed handling of indented heredocs
++ basic support for threads and promises (JVM only)
++ improved sprintf and other formatting routines
++ Hash.perl nows works for typed hashes
++ 'is parcel' and 'is default' traits (work in progress)
+
 New in 2013.06
 + JVM backend added - passes initial sanity tests
 + type captures in signature binder implemented

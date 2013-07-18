@@ -1180,6 +1180,21 @@ inline op perl6_clear_checking_pre() :base_core {
 
 /*
 
+=item perl6_in_checking_pre() (out INT)
+
+The checking PRE blocks flag on a context.
+
+=cut
+
+*/
+inline op perl6_in_checking_pre(out INT) :base_core {
+    PMC * const ctx = CURRENT_CONTEXT(interp);
+    $1 = PObj_flag_TEST(P6_CHECKING_PRE, ctx);
+}
+
+
+/*
+
 =item perl6_parcel_from_rpa(out PMC, in PMC, in PMC)
 
 Creates a Perl 6 Parcel object from the RPA in $2, replacing

@@ -25,6 +25,7 @@ $ops.add_hll_pirop_mapping('perl6', 'p6bindassert', 'perl6_assert_bind_ok', '0PP
 $ops.add_hll_pirop_mapping('perl6', 'p6stateinit', 'perl6_state_needs_init', 'I');
 $ops.add_hll_pirop_mapping('perl6', 'p6setpre', 'perl6_set_checking_pre', 'v');
 $ops.add_hll_pirop_mapping('perl6', 'p6clearpre', 'perl6_clear_checking_pre', 'v');
+$ops.add_hll_pirop_mapping('perl6', 'p6inpre', 'perl6_in_checking_pre', 'I');
 $ops.add_hll_pirop_mapping('perl6', 'p6setfirstflag', 'perl6_set_block_first_flag', '0P');
 $ops.add_hll_pirop_mapping('perl6', 'p6takefirstflag', 'perl6_take_block_first_flag', 'I');
 $ops.add_hll_pirop_mapping('perl6', 'p6return', 'perl6_returncc', '0P');

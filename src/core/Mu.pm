@@ -533,7 +533,8 @@ my class Mu {
         # derived version of the method we're supposed to call. If it's
         # marked nodal, we consider the rest of the list's elements to have
         # a method of the same name that's nodal as well.
-        my Mu $least_derived_meth = (SELF[0].^can($name) || [Mu])[*-1];
+        my @candidates := (SELF[0].^can($name) || [Mu]);
+        my Mu $least_derived_meth = @candidates[+@candidates-1];
         if $least_derived_meth && nqp::can($least_derived_meth, 'nodal') && $least_derived_meth.nodal {
             hyper( -> \obj { obj."$name"(|c) }, SELF, :nodal )
         } else {

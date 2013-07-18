@@ -1,4 +1,4 @@
-my class List does Positional {
+my class List is nodal does Positional {
     # declared in BOOTSTRAP.pm:
     #   is Iterable;           # parent class
     #   has Mu $!items;        # RPA of our reified elements

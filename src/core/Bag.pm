@@ -1,6 +1,6 @@
 my role Baggy { Any }
 
-my class Bag is Iterable does Associative does Baggy {
+my class Bag is Iterable is nodal does Associative does Baggy {
     has %!elems; # should be UInt
 
     method default { 0 }

@@ -933,7 +933,7 @@ inline op perl6_decontainerize_return_value(out PMC, in PMC) :base_core {
         Rakudo_Code *code;
         GETATTR_Sub_multi_signature(interp, parrot_sub, p6sub);
         code = (Rakudo_Code *)PMC_data(p6sub);
-        $1 = code->rw ? $2 : Rakudo_cont_scalar_with_value_no_descriptor(interp, 
+        $1 = (code->flags & 1) ? $2 : Rakudo_cont_scalar_with_value_no_descriptor(interp,
             Rakudo_cont_decontainerize(interp, $2));
     }
     else {

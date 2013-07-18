@@ -595,7 +595,7 @@ BEGIN {
     Routine.HOW.add_attribute(Routine, BOOTSTRAPATTR.new(:name<$!dispatchees>, :type(Mu), :package(Routine)));
     Routine.HOW.add_attribute(Routine, BOOTSTRAPATTR.new(:name<$!dispatcher_cache>, :type(Mu), :package(Routine)));
     Routine.HOW.add_attribute(Routine, BOOTSTRAPATTR.new(:name<$!dispatcher>, :type(Mu), :package(Routine)));
-    Routine.HOW.add_attribute(Routine, BOOTSTRAPATTR.new(:name<$!rw>, :type(int), :package(Routine)));
+    Routine.HOW.add_attribute(Routine, BOOTSTRAPATTR.new(:name<$!flags>, :type(int), :package(Routine)));
     Routine.HOW.add_attribute(Routine, BOOTSTRAPATTR.new(:name<$!inline_info>, :type(Mu), :package(Routine)));
     Routine.HOW.add_attribute(Routine, BOOTSTRAPATTR.new(:name<$!yada>, :type(int), :package(Routine)));
     Routine.HOW.add_attribute(Routine, BOOTSTRAPATTR.new(:name<$!package>, :type(Mu), :package(Routine)));
@@ -1419,7 +1419,16 @@ BEGIN {
         }));
     Routine.HOW.add_method(Routine, 'set_rw', nqp::getstaticcode(sub ($self) {
             my $dcself := nqp::decont($self);
-            nqp::bindattr_i($dcself, Routine, '$!rw', 1);
+            my $flags := nqp::getattr_i($dcself, Routine, '$!flags');
+            $flags := $flags +| 1;
+            nqp::bindattr_i($dcself, Routine, '$!flags', $flags);
+            $dcself
+        }));
+    Routine.HOW.add_method(Routine, 'set_nodal', nqp::getstaticcode(sub ($self) {
+            my $dcself := nqp::decont($self);
+            my $flags := nqp::getattr_i($dcself, Routine, '$!flags');
+            $flags := $flags +| 2;
+            nqp::bindattr_i($dcself, Routine, '$!flags', $flags);
             $dcself
         }));
     Routine.HOW.add_method(Routine, 'set_inline_info', nqp::getstaticcode(sub ($self, $info) {

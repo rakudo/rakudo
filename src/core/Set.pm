@@ -1,4 +1,4 @@
-my class Set is Iterable does Associative {
+my class Set is nodal is Iterable does Associative {
     has %!elems;
 
     method default { False }

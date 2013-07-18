@@ -1,4 +1,4 @@
-my class Iterable {
+my class Iterable is nodal {
     method elems()    { self.list.elems }
     method infinite() { Mu }
     method item($self:) { $self }

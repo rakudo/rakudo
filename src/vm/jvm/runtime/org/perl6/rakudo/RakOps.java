@@ -60,7 +60,7 @@ public final class RakOps {
     private static final int HINT_PARCEL_STORAGE = 0;
     private static final int HINT_CODE_DO = 0;
     private static final int HINT_CODE_SIG = 1;
-    private static final int HINT_ROUTINE_RW = 7;
+    private static final int HINT_ROUTINE_FLAGS = 7;
     private static final int HINT_SIG_PARAMS = 0;
     private static final int HINT_SIG_RETURNS = 1;
     private static final int HINT_SIG_CODE = 4;
@@ -406,8 +406,8 @@ public final class RakOps {
     public static SixModelObject p6decontrv(SixModelObject cont, ThreadContext tc) {
         GlobalExt gcx = key.getGC(tc);
         if (cont != null && isRWScalar(tc, gcx, cont)) {
-            tc.curFrame.codeRef.codeObject.get_attribute_native(tc, gcx.Routine, "$!rw", HINT_ROUTINE_RW);
-            if (tc.native_i == 0) {
+            tc.curFrame.codeRef.codeObject.get_attribute_native(tc, gcx.Routine, "$!flags", HINT_ROUTINE_FLAGS);
+            if (tc.native_i & 1 == 0) {
                 /* Recontainerize to RO. */
                 SixModelObject roCont = gcx.Scalar.st.REPR.allocate(tc, gcx.Scalar.st);
                 roCont.bind_attribute_boxed(tc, gcx.Scalar, "$!value",

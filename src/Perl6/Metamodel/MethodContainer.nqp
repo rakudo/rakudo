@@ -9,6 +9,9 @@ role Perl6::Metamodel::MethodContainer {
     # Cache that expires when we add methods (primarily to support NFA stuff).
     has %!cache;
 
+    # Should methods be marked nodal in this class?
+    has $!meth_nodal_by_default;
+
     # Add a method.
     method add_method($obj, $name, $code_obj) {
         # Adding a method means any cache is no longer authoritative.
@@ -33,6 +36,10 @@ role Perl6::Metamodel::MethodContainer {
         }
         %!cache := {};
         @!method_order[+@!method_order] := $code_obj;
+        # Add a nodal trait if we're nodal by default
+        if $!meth_nodal_by_default {
+            $code_obj.set_nodal;
+        }
     }
 
     # Gets the method hierarchy.
@@ -82,5 +89,9 @@ role Perl6::Metamodel::MethodContainer {
         nqp::existskey(%!cache, $key) ??
             %!cache{$key} !!
             (%!cache{$key} := $value_generator())
+    }
+
+    method set_nodal($obj) {
+        $!meth_nodal_by_default := 1;
     }
 }

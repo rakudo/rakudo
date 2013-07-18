@@ -1,4 +1,4 @@
-my class Parcel does Positional {
+my class Parcel does Positional is nodal {
     # declared in BOOTSTRAP.pm:
     #    is Cool;              # parent class
     #    has $!storage;        # RPA of Parcel's elements
@@ -38,7 +38,7 @@ my class Parcel does Positional {
 
     method at_pos(Parcel:D: \x) is rw { self.flat.at_pos(x); }
 
-    proto method postcircumfix:<[ ]>(|)                  { * }
+    proto method postcircumfix:<[ ]>(|)                   { * }
     multi method postcircumfix:<[ ]>() is rw              { self.flat }
     multi method postcircumfix:<[ ]>(Parcel:D: \x) is rw  { self.flat.[x] }
 

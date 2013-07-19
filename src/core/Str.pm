@@ -129,6 +129,7 @@ my class Str does Stringy {
         ~ "\x[2460,2461,2462,2463,2464,2465,2466,2467,2468,2469,246A,246B,246C,246D,246E,246F,2470,2471,2472,2473,2460]" # circled digits 1..20
         ~ "\x[2474,2475,2476,2477,2478,2479,247A,247B,247C,247D,247E,247F,2480,2481,2482,2483,2484,2485,2486,2487,2474]" # parenthesized digits 1..20
         ~ "\x[249C,249D,249E,249F,24A0,24A1,24A2,24A3,24A4,24A5,24A6,24A7,24A8,24A9,24AA,24AB,24AC,24AD,24AE,24AF,24B0,24B1,24B2,24B3,24B4,24B5,249C]" # parenthesized latin lc
+        ~ "\x[2581,2582,2583,2584,2585,2586,2587,2588]" # lower blocks
         ~ "\x[2680,2681,2682,2683,2684,2685,2680]" # die faces
         ~ "\x[2776,2777,2778,2779,277A,277B,277C,277D,277E,277F,2776]"; # dingbat negative circled 1..10
 
@@ -308,9 +309,9 @@ my class Str does Stringy {
                         if nqp::iseq_i($p, -1);
                     $pos    = $p;
 
-                    my num $exp  = nqp::atpos($parse, 0);
-                    my num $coef = $frac ?? nqp::add_n($int, nqp::div_n($frac, $base)) !! $int;
-                    return nqp::p6box_n(nqp::mul_n($coef, nqp::pow_n(10, $exp)));
+                    my num $exp  = nqp::atpos($parse, 0).Num;
+                    my num $coef = $frac ?? nqp::add_n($int.Num, nqp::div_n($frac.Num, $base.Num)) !! $int.Num;
+                    return nqp::p6box_n(nqp::mul_n($coef, nqp::pow_n(10e0, $exp)));
                 }
 
                 # Multiplier with exponent, if single '*' is present
@@ -634,7 +635,9 @@ my class Str does Stringy {
             try $caller_dollar_slash = $m if $SET_DOLLAR_SLASH;
             $result ~= self.substr($prev, $m.from - $prev);
 
-            my $real_replacement = ~($replacement ~~ Callable ?? $replacement($m) !! $replacement);
+            my $real_replacement = ~($replacement ~~ Callable
+                ?? ($replacement.count == 0 ?? $replacement() !! $replacement($m))
+                !! $replacement);
             $real_replacement    = $real_replacement.samecase(~$m) if $samecase;
             $real_replacement    = $real_replacement.samespace(~$m) if $samespace;
             $result ~= $real_replacement;
@@ -967,9 +970,8 @@ my class Str does Stringy {
         my Int $outdent = $steps ~~ Whatever ?? $common-prefix
                                              !! -$steps;
 
-        warn sprintf('Asked to remove %d spaces, ' ~
-                     'but the shortest indent is %d spaces',
-                     $outdent, $common-prefix) if $outdent > $common-prefix;
+        warn "Asked to remove $outdent spaces, but the shortest indent is $common-prefix spaces"
+            if $outdent > $common-prefix;
 
         # Work backwards from the right end of the indent whitespace, removing
         # array elements up to # (or over, in the case of tab-explosion)

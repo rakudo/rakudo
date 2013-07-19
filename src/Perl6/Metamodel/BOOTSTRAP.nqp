@@ -41,6 +41,7 @@ my class BOOTSTRAPATTR {
 # Stub all types.
 my stub Mu metaclass Perl6::Metamodel::ClassHOW { ... };
 my stub Any metaclass Perl6::Metamodel::ClassHOW { ... };
+my stub Nil metaclass Perl6::Metamodel::ClassHOW { ... };
 my stub Cool metaclass Perl6::Metamodel::ClassHOW { ... };
 my stub Attribute metaclass Perl6::Metamodel::ClassHOW { ... };
 my stub Scalar metaclass Perl6::Metamodel::ClassHOW { ... };
@@ -468,7 +469,7 @@ BEGIN {
             my $cd := nqp::getattr($dcself, Parameter, '$!container_descriptor');
             if nqp::defined($cd) { $cd.set_rw(1) }
             nqp::bindattr_i($dcself, Parameter, '$!flags', $flags + $SIG_ELEM_IS_RW);
-            nqp::p6bool(nqp::defined($dcself));
+            $dcself
         }));
     Parameter.HOW.add_method(Parameter, 'set_copy', nqp::getstaticcode(sub ($self) {
             my $SIG_ELEM_IS_COPY := 512;
@@ -655,6 +656,7 @@ BEGIN {
 
             my int $SIG_ELEM_SLURPY_POS          := 8;
             my int $SIG_ELEM_SLURPY_NAMED        := 16;
+            my int $SIG_ELEM_SLURPY_LOL          := 32;
             my int $SIG_ELEM_MULTI_INVOCANT      := 128;
             my int $SIG_ELEM_IS_OPTIONAL         := 2048;
             my int $SIG_ELEM_IS_CAPTURE          := 32768;
@@ -801,7 +803,7 @@ BEGIN {
                     }
 
                     # Otherwise, positional or slurpy and contributes to arity.
-                    if $flags +& $SIG_ELEM_SLURPY_POS || $flags +& $SIG_ELEM_IS_CAPTURE {
+                    if $flags +& ($SIG_ELEM_SLURPY_POS +| $SIG_ELEM_SLURPY_LOL +| $SIG_ELEM_IS_CAPTURE) {
                         %info<max_arity> := $SLURPY_ARITY;
                         last;
                     }
@@ -970,6 +972,7 @@ BEGIN {
             my $many_res := $many ?? [] !! Mu;
             my @possibles;
             my int $done := 0;
+            my int $done_bind_check := 0;
             until $done {
                 $cur_candidate := nqp::atpos(@candidates, $cur_idx);
 
@@ -1076,6 +1079,14 @@ BEGIN {
                                 $new_possibles := [] unless nqp::islist($new_possibles);
                                 
                                 my $sig := nqp::getattr($sub, Code, '$!signature');
+#?if !parrot
+                                unless $done_bind_check {
+                                    # Need a copy of the capture, as we may later do a
+                                    # multi-dispatch when evaluating the constraint.
+                                    $capture := nqp::clone($capture);
+                                    $done_bind_check := 1;
+                                }
+#?endif
                                 if nqp::p6isbindable($sig, $capture) {
                                     nqp::push($new_possibles, nqp::atpos(@possibles, $i));
                                     unless $many {
@@ -1531,6 +1542,12 @@ BEGIN {
     # }
     Iterator.HOW.add_parent(Iterator, Iterable);
     Iterator.HOW.compose_repr(Iterator);
+
+    # class Nil is Iterator
+    #    ...
+    # }
+    Nil.HOW.add_parent(Nil, Iterator);
+    Nil.HOW.compose_repr(Nil);
     
     # class ListIter is Iterator {
     #     has $!reified;
@@ -1737,6 +1754,7 @@ BEGIN {
     EXPORT::DEFAULT.WHO<Mu>        := Mu;
     EXPORT::DEFAULT.WHO<Any>       := Any;
     EXPORT::DEFAULT.WHO<Cool>      := Cool;
+    EXPORT::DEFAULT.WHO<Nil>       := Nil;
     EXPORT::DEFAULT.WHO<Attribute> := Attribute;
     EXPORT::DEFAULT.WHO<Signature> := Signature;
     EXPORT::DEFAULT.WHO<Parameter> := Parameter;
@@ -1863,7 +1881,7 @@ Perl6::Metamodel::GrammarHOW.set_default_parent_type(Grammar);
 # Put PROCESS in place.
 nqp::bindhllsym('perl6', 'PROCESS', PROCESS);
 
-# HLL interop configuration.
+# HLL configuration: interop, boxing and exit handling.
 nqp::sethllconfig('perl6', nqp::hash(
     'int_box', Int,
     'num_box', Num,
@@ -1884,5 +1902,60 @@ nqp::sethllconfig('perl6', nqp::hash(
         my $result := nqp::create(ForeignCode);
         nqp::bindattr($result, ForeignCode, '$!do', $code);
         $result
+    },
+#?if !parrot
+    'exit_handler', -> $coderef, $resultish {
+        my $code := nqp::getcodeobj($coderef);
+        my %phasers := nqp::getattr($code, Block, '$!phasers');
+        unless nqp::isnull(%phasers) || nqp::p6inpre() {
+            my @leaves := nqp::atkey(%phasers, '!LEAVE-ORDER');
+            my @keeps  := nqp::atkey(%phasers, 'KEEP');
+            my @undos  := nqp::atkey(%phasers, 'UNDO');
+            unless nqp::isnull(@leaves) {
+                my int $n := nqp::elems(@leaves);
+                my int $i := 0;
+                my int $run;
+                my $phaser;
+                while $i < $n {
+                    $phaser := nqp::decont(nqp::atpos(@leaves, $i));
+                    $run := 1;
+                    unless nqp::isnull(@keeps) {
+                        for @keeps {
+                            if nqp::decont($_) =:= $phaser {
+                                $run := !nqp::isnull($resultish) && 
+                                         nqp::isconcrete($resultish) &&
+                                         $resultish.defined;
+                                last;
+                            }
+                        }
+                    }
+                    unless nqp::isnull(@undos) {
+                        for @undos {
+                            if nqp::decont($_) =:= $phaser {
+                                $run := nqp::isnull($resultish) ||
+                                        !nqp::isconcrete($resultish) ||
+                                        !$resultish.defined;
+                                last;
+                            }
+                        }
+                    }
+                    if $run {
+                        $phaser();
+                    }
+                    $i++;
+                }
+            }
+            
+            my @posts := nqp::atkey(%phasers, 'POST');
+            unless nqp::isnull(@posts) {
+                my int $n := nqp::elems(@posts);
+                my int $i := 0;
+                while $i < $n {
+                    nqp::atpos(@posts, $i)(nqp::ifnull($resultish, Mu));
+                    $i++;
+                }
+            }
+        }
     }
+#?endif
 ));

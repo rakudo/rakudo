@@ -1,3 +1,60 @@
+New in 2013.07
++ Huge progress in JVM backend (feature-wise almost on par with Parrot)
++ List.first is now lazy
++ unspace before argument lists is now supported
++ fixed handling of indented heredocs
++ basic support for threads and promises (JVM only)
++ improved sprintf and other formatting routines
++ keyof method for typed hashes to get key type
++ Hash.perl nows works for typed hashes
++ 'is parcel' and 'is default' traits (work in progress)
++ Parcel.new now works
++ slight optimization to join of many items
++ implemented canonpath for Win32 IO::Spec
++ implemented squish
++ made []:(kv|p|k|v) work according to spec
++ properly parse Pod formatting codes with brackets other than <...>
++ the POD_TO_TEXT_ANSI environment variable now leads to some formatting
+  being applied by Pod::To::Text
++ declaration of multiple operators in a scope now generates much smaller
+  serialized output
++ Int.round method now takes a scale argument
++ implemented Complex.ceiling, Complex.floor, Complex.round
+
+New in 2013.06
++ JVM backend added - passes initial sanity tests
++ type captures in signature binder implemented
++ IO::Spec::Unix.canonpath made more efficient
++ IO::Handle methods gist, perl, path added
++ Int.msb and Int.lsb implemented
++ dir() is now lazy
++ lines($limit) now doesn't read an extra line
++ .^mro methods added to a few role metaclasses
++ $/ and $! now visible in eval/REPL
++ IO::Handle.copy moved to IO::Path.copy
++ .{} adverb combinations all implemented
++ :$<foo> colonpair syntax implemented
++ 'my &foo; multi foo() { }' gives better error message
++ reduce() more aware of fiddliness
++ &first now returns Nil instead of failing
++ $*CWD and $*TMPDIR now contain IO::Path objects
++ REPL bug fixed when same line issued twice
++ pick/pop/push/roll/reverse/rotate/sort/classify/categorize
+  now fail immediately if the list is infinite
++ categorize now returns a Hash, not a Parcel of Pairs
++ "undef" warning now refers to Any, not Mu
++ improved error messages for hash shapes
++ Hash.(classify|categorize) implemented
++ IO::Path.chmod implemented
++ IO::Path.succ and .pred implemented
++ syntax parser now allows a dot before hyper postfix
++ Str.succ added for codepoints \x2581..\x2588
++ Cool.path implemented
++ sequences between 1-codepoint strings implemented
++ div and / fail with X::Numeric::DivisionByZero (rather than dying)
++ doing .perl on Rat with denominator 0 doesn't go into an infinite loop anymore
++ Capture.exists implemented
+
 New in 2013.05
 + IO::Spec, a port of Perl 5's File::Spec
 + support for exporting things form EXPORT subroutine

@@ -3,10 +3,31 @@ class GatherIter is Iterator {
     has $!reified;             # Parcel of this iterator's results
     has $!infinite;            # true if iterator is known infinite
 
+#?if jvm
+    my $GATHER_PROMPT = [];
+    my $SENTINEL := [];
+#?endif
     method new($block, Mu :$infinite) {
+#?if parrot
         my Mu $coro := 
             nqp::clone(nqp::getattr(&coro, Code, '$!do'));
         nqp::ifnull($coro($block), Nil);
+#?endif
+#?if jvm
+        my Mu $takings;
+        my Mu $state;
+        my sub yield() {
+            nqp::continuationcontrol(0, $GATHER_PROMPT, -> Mu \c {
+                $state := sub () is rw { nqp::continuationinvoke(c, -> | { Nil }); };
+            });
+        }
+        $state := sub () is rw {
+            nqp::handle( $block().eager(),
+                'TAKE', ($takings := nqp::getpayload(nqp::exception()); yield(); nqp::resume(nqp::exception())));
+            $takings := $SENTINEL; yield();
+        };
+        my $coro := sub () is rw { nqp::continuationreset($GATHER_PROMPT, $state); $takings };
+#?endif
         my Mu $new := nqp::create(self);
         nqp::bindattr($new, GatherIter, '$!coro', $coro);
         nqp::bindattr($new, GatherIter, '$!infinite', $infinite);
@@ -33,7 +54,12 @@ class GatherIter is Iterator {
             my $count = nqp::istype($n, Whatever) ?? 1 !! $n;
             while !$end && $count > 0 {
                 $parcel := $!coro();
+#?if parrot
                 $end = nqp::p6bool(nqp::isnull($parcel));
+#?endif
+#?if jvm
+                $end = nqp::p6bool(nqp::eqaddr($parcel, $SENTINEL));
+#?endif
                 nqp::push($rpa, $parcel) unless $end;
                 $count = $count - 1;
             }
@@ -50,8 +76,8 @@ class GatherIter is Iterator {
 
     method infinite() { $!infinite }
 
-    my sub coro(\block) {
 #?if parrot
+    my sub coro(\block) {
         Q:PIR {
             .local pmc block, handler, taken
             block = find_lex 'block'
@@ -77,11 +103,8 @@ class GatherIter is Iterator {
             goto gather_done    # should never get here
         };
         True
-#?endif
-#?if !parrot
-        die "GatherIter NYI on JVM backend"
-#?endif
     }
+#?endif
 }
 
 

@@ -99,7 +99,7 @@ my class List does Positional {
         # Get as many elements as we can.  If gimme stops before
         # reaching the end of the list, assume the list is infinite.
         my $n = self.gimme(*);
-        $!nextiter.defined ?? nqp::p6box_n('Inf') !! $n
+        $!nextiter.defined ?? $Inf !! $n
     }
 
     method exists(\pos) {
@@ -147,12 +147,12 @@ my class List does Positional {
     }
 
     method pick($n is copy = 1) {
+        fail "Cannot .pick from infinite list" if self.infinite; #MMD?
         ## We use a version of Fisher-Yates shuffle here to
         ## replace picked elements with elements from the end
         ## of the list, resulting in an O(n) algorithm.
         my $elems = self.elems;
         return unless $elems;
-        fail "Cannot .pick from infinite list" if $!nextiter.defined;
         $n = +$Inf if nqp::istype($n, Whatever);
         $n = $elems if $n > $elems;
         return self.at_pos($elems.rand.floor) if $n == 1;
@@ -170,25 +170,26 @@ my class List does Positional {
         }
     }
 
-    method pop() is rw {
+    method pop() is parcel {
+        fail 'Cannot .pop from an infinite list' if self.infinite; #MMD?
         my $elems = self.elems;
-        fail '.pop from an infinite list NYI' if $!nextiter.defined;
         $elems > 0
           ?? nqp::pop($!items)
           !! fail 'Element popped from empty list';
     }
 
     multi method push(List:D: *@values) {
+        fail 'Cannot .push to an infinite list' if self.infinite; #MMD?
+        fail 'Cannot .push an infinite list' if @values.infinite;
         my $pos = self.elems;
-        fail '.push on infinite lists NYI' if $!nextiter.defined;
         self.STORE_AT_POS($pos++, @values.shift) while @values.gimme(1);
         self;
     }
 
     method roll($n is copy = 1) {
+        fail "Cannot .roll from an infinite list" if self.infinite; #MMD?
         my $elems = self.elems;
         return unless $elems;
-        fail ".roll from infinite list NYI" if $!nextiter.defined;
         $n = +$Inf if nqp::istype($n, Whatever);
         return self.at_pos($elems.rand.floor) if $n == 1;
         gather while $n > 0 {
@@ -198,8 +199,8 @@ my class List does Positional {
     }
 
     method reverse() {
+        fail 'Cannot .reverse an infinite list' if self.infinite; #MMD?
         self.gimme(*);
-        fail 'Cannot reverse an infinite list' if self.infinite;
         my Mu $rev  := nqp::list();
         my Mu $orig := nqp::clone($!items);
         nqp::push($rev, nqp::pop($orig)) while $orig;
@@ -209,8 +210,8 @@ my class List does Positional {
     }
 
     method rotate(Int $n is copy = 1) {
+        fail 'Cannot .rotate an infinite list' if self.infinite; # MMD?
         self.gimme(*);
-        fail 'Cannot rotate an infinite list' if self.infinite;
         my Mu $res := nqp::clone($!items);
         $n %= nqp::p6box_i(nqp::elems($!items));
         if $n > 0 {
@@ -224,7 +225,7 @@ my class List does Positional {
         $rlist;
     }
 
-    method shift() is rw {
+    method shift() is parcel {
         # make sure we have at least one item, then shift+return it
         nqp::islist($!items) && nqp::existspos($!items, 0) || self.gimme(1)
           ?? nqp::shift($!items) 
@@ -266,6 +267,7 @@ my class List does Positional {
     }
 
     method sort($by = &infix:<cmp>) {
+        fail 'Cannot .sort an infinite list' if self.infinite; #MMD?
         # We defer to Parrot's ResizablePMCArray.sort method here.
         # Instead of sorting elements directly, we sort a Parcel of
         # indices from 0..^$list.elems, then use that Parcel as
@@ -279,11 +281,11 @@ my class List does Positional {
         # for sorting.
         if ($by.?count // 2) < 2 {
             my $list = self.map($by).eager;
-            $index_rpa.sort(-> $a, $b { $list[$a] cmp $list[$b] || $a <=> $b });
+            nqp::p6sort($index_rpa, -> $a, $b { $list[$a] cmp $list[$b] || $a <=> $b });
         }
         else {
             my $list = self.eager;
-            $index_rpa.sort(-> $a, $b { $by($list[$a],$list[$b]) || $a <=> $b });
+            nqp::p6sort($index_rpa, -> $a, $b { $by($list[$a],$list[$b]) || $a <=> $b });
         }
         self[$index];
     }
@@ -317,37 +319,38 @@ my class List does Positional {
         $tpos >= +$tseq;
     }
 
-    method classify(&test) {
-        my %result;
-        for @.list {
-            %result{test $_}.push: $_;
-        }
-        %result
-    }
+    method classify ($test) { {}.classify( $test, @.list ) }
 
-    method categorize(&test) {
-        my %result;
-        for @.list {
-            my @k = test $_;
-            for @k -> $k {
-                %result{$k} //= [];
-                %result{$k}.push: $_;
-            }
-        }
-        %result.pairs;
-    }
+    method categorize ($test) { {}.categorize( $test, @.list ) }
 
     # This needs a way of taking a user-defined comparison
     # specifier, but AFAIK nothing has been spec'd yet.
     method uniq() {
         my $seen := nqp::hash();
-        gather sink for @.list {
-             my str $which = nqp::unbox_s($_.WHICH);
-             unless nqp::existskey($seen, $which) {
-                 take $_;
-                 nqp::bindkey($seen, $which, 1);
-             }
-        }
+        my str $which;
+        map {
+            $which = nqp::unbox_s($_.WHICH);
+            if nqp::existskey($seen, $which) {
+                Nil;
+            }
+            else {
+                nqp::bindkey($seen, $which, 1);
+                $_;
+            }
+        }, @.list;
+    }
+    my @secret;
+    method squish() {
+        my $last = @secret;
+        map {
+            if $_ !=== $last {
+                $last = $_;
+                $_;
+            }
+            else {
+                Nil;
+            }
+        }, @.list;
     }
 
     multi method gist(List:D:) { join ' ', map { $_.gist }, @(self) }
@@ -455,7 +458,6 @@ multi sub push(\a, *@elems) { a.push: @elems }
 sub reverse(*@a)            { @a.reverse }
 sub rotate(@a, Int $n = 1)  { @a.rotate($n) }
 sub reduce (&with, *@list)  { @list.reduce(&with) }
-sub categorize(&mapper, *@a){ @a.categorize(&mapper)}
 sub splice(@arr, $offset = 0, $size?, *@values) {
     @arr.splice($offset, $size, @values)
 }

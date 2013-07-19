@@ -40,11 +40,11 @@ $ops.add_hll_pirop_mapping('perl6', 'p6arrfindtypes', 'perl6_rpa_find_types', 'I
 $ops.add_hll_pirop_mapping('perl6', 'p6decodelocaltime', 'decodelocaltime', 'Pi');
 $ops.add_hll_pirop_mapping('perl6', 'p6setautothreader', 'perl6_setup_junction_autothreading', 'vP');
 $ops.add_hll_pirop_mapping('perl6', 'tclc', 'titlecase', 'Ss', :inlinable(1));
-$ops.add_hll_op('perl6', 'p6getcallsig', -> $qastcomp, $op {
-    my $reg := $*REGALLOC.fresh_p();
-    my $ops := $qastcomp.post_new('Ops', :result($reg));
-    $ops.push_pirop('set', $reg, 'CALL_SIG');
-    $ops
+$ops.add_hll_op('perl6', 'p6sort', -> $qastcomp, $op {
+    $qastcomp.as_post(QAST::Op.new(
+        :op('callmethod'), :name('sort'),
+        $op[0], $op[1]
+    ))
 });
 my $p6bool := -> $qastcomp, $op {
     my $cpost := $qastcomp.as_post($op[0]);
@@ -62,6 +62,12 @@ my $p6bool := -> $qastcomp, $op {
     $ops
 }
 $ops.add_hll_op('perl6', 'p6bool', :inlinable(1), $p6bool);
+$ops.add_hll_op('perl6', 'p6staticouter', -> $qastcomp, $op {
+    $qastcomp.as_post(QAST::Op.new(
+        :op('callmethod'), :name('get_outer'),
+        $op[0]
+    ))
+});
 
 # Make some of them also available from NQP land, since we use them in the
 # metamodel and bootstrap.

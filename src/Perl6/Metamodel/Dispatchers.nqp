@@ -26,14 +26,14 @@ class Perl6::Metamodel::BaseDispatcher {
         my $call := @!candidates[$!idx];
         $!idx := $!idx + 1;
         nqp::setdispatcher(self);
-        nqp::invokewithcapture($call, $capture)
+        nqp::invokewithcapture(nqp::decont($call), $capture)
     }
 }
 
 class Perl6::Metamodel::MethodDispatcher is Perl6::Metamodel::BaseDispatcher {
     has $!obj;
     
-    method vivify_for($sub, $lexpad) {
+    method vivify_for($sub, $lexpad, $args) {
         my $obj      := $lexpad<self>;
         my $name     := $sub.name;
         my @mro      := nqp::can($obj.HOW, 'mro_unhidden')
@@ -57,9 +57,8 @@ class Perl6::Metamodel::MultiDispatcher is Perl6::Metamodel::BaseDispatcher {
     has $!has_invocant;
     has $!invocant;
     
-    method vivify_for($sub, $lexpad) {
+    method vivify_for($sub, $lexpad, $args) {
         my $disp         := $sub.dispatcher();
-        my $args         := $lexpad<call_sig>;
         my $has_invocant := nqp::existskey($lexpad, 'self');
         my $invocant     := $has_invocant && $lexpad<self>;
         my @cands        := $disp.find_best_dispatchee($args, 1);

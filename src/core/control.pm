@@ -1,4 +1,3 @@
-my class Nil { ... }
 my class X::Eval::NoSuchLang { ... }
 my class PseudoStash { ... }
 
@@ -153,7 +152,7 @@ multi sub eval(Str $code, :$lang = 'perl6', PseudoStash :$context) {
 
 
 sub exit($status = 0) {
-    $_() for nqp::hllize(@*END_PHASERS);
+    $_() for nqp::hllize(nqp::getcurhllsym('@END_PHASERS'));
     nqp::exit(nqp::unbox_i($status.Int));
     $status;
 }
@@ -173,7 +172,7 @@ sub run(*@args ($, *@)) {
         ) +> 8;
 #?endif
 #?if !parrot
-        die "run is NYI on JVM backend";
+        die "run is NYI on non-Parrot backend";
 #?endif
         CATCH {
             default {
@@ -196,7 +195,9 @@ sub shell($cmd) {
     }
 #?endif
 #?if !parrot
-    die "run is NYI on JVM backend";
+    try {
+        $status = nqp::shell($cmd); 
+    }
 #?endif
     $status;
 }
@@ -207,6 +208,7 @@ sub shell($cmd) {
 # constant NaN = ...
 my $Inf = nqp::p6box_n(nqp::inf());
 my $NaN = nqp::p6box_n(nqp::nan());
+# EM 20130627 attempt at using constants failed during optimizing phase
 
 
 sub sleep($seconds = $Inf) {         # fractional seconds also allowed
@@ -216,8 +218,28 @@ sub sleep($seconds = $Inf) {         # fractional seconds also allowed
     } else {
         nqp::sleep($seconds.Num);
     }
-    my $time2 = time;
-    return $time2 - $time1;
+    return time - $time1;
+}
+
+my %interval_wakeup;            # needs to be hidden from GLOBAL:: somehow
+sub interval($seconds ) {       # fractional seconds also allowed
+
+    my $time = now.Num;
+    my $wakeup := %interval_wakeup{"thread_id"} //= $time; # XXX thread ID
+
+    # already past our morning call
+    if $time >= $wakeup  {
+        $wakeup += $seconds;
+        0;
+    }
+
+    # still time to sleep
+    else {
+        my $slept = $wakeup - $time;
+        nqp::sleep($slept);
+        $wakeup += $seconds;
+        $slept;
+    }
 }
 
 sub QX($cmd) {

@@ -1,6 +1,8 @@
 use v6;
 use Test;
 
+plan 44;
+
 # Undefined values DUMP as .perl
 is DUMP(Mu),        Mu.perl,          'DUMP(:U) is .perl (Mu)';
 is DUMP(Junction),  Junction.perl,    'DUMP(:U) is .perl (Junction)';

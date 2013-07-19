@@ -97,10 +97,10 @@ class Perl6::Optimizer {
                 my @parts := nqp::split("\n", $_.key);
                 my $headline := @parts.shift();
                 @fails.push("$headline (line" ~ (+$_.value == 1 ?? ' ' !! 's ') ~
-                    nqp::join(', ', $_.value) ~ ")" ~
-                    (+@parts ?? "\n" ~ nqp::join("\n", @parts) !! ""));
+                    join(', ', $_.value) ~ ")" ~
+                    (+@parts ?? "\n" ~ join("\n", @parts) !! ""));
             }
-            nqp::die("CHECK FAILED:\n" ~ nqp::join("\n", @fails))
+            nqp::die("CHECK FAILED:\n" ~ join("\n", @fails))
         }
         if +%!worrying {
             my $err := nqp::getstderr();
@@ -108,7 +108,7 @@ class Perl6::Optimizer {
             my @fails;
             for %!worrying {
                 nqp::printfh($err, $_.key ~ " (line" ~ (+$_.value == 1 ?? ' ' !! 's ') ~
-                    nqp::join(', ', $_.value) ~ ")\n");
+                    join(', ', $_.value) ~ ")\n");
             }
         }
         
@@ -655,7 +655,7 @@ class Perl6::Optimizer {
             $obj.name ~ "' will never work with " ~
             (+@arg_names == 0 ??
                 "no arguments" !!
-                "argument types (" ~ nqp::join(', ', @arg_names) ~ ")"),
+                "argument types (" ~ join(', ', @arg_names) ~ ")"),
             $obj.is_dispatcher && !$protoguilt ??
                 multi_sig_list($obj) !!
                 ["    Expected: " ~ $obj.signature.perl]);
@@ -864,7 +864,7 @@ class Perl6::Optimizer {
     method add_memo($past_node, $message, @extras?, :$type!) {
         my $mnode := $past_node.node;
         my $line := HLL::Compiler.lineof($mnode.orig, $mnode.from, :cache(1));
-        my $key := $message ~ (+@extras ?? "\n" ~ nqp::join("\n", @extras) !! "");
+        my $key := $message ~ (+@extras ?? "\n" ~ join("\n", @extras) !! "");
         my %cont := $type eq 'deadly' ?? %!deadly !! %!worrying;
         unless %cont{$key} {
             %cont{$key} := [];

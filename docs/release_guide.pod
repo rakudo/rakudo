@@ -67,17 +67,17 @@ part of monthly Parrot releases.
   2013-03-21   Rakudo #62 "Singapore"          (masak)
   2013-04-18   Rakudo #63 "Albany"             (Coke)
   2013-05-23   Rakudo #64 "Austin"             (FROGGS)
+  2013-06-20   Rakudo #65 "Poznan"             (masak)
+  2013-07-18   Rakudo #66 "Edinburgh"          (moritz,lizmat)
 
 =head2 Planned 2013 releases
 
 Dates are based on Parrot's expected release schedule.
 
-  2013-06-20   Rakudo #65                      masak
-  2013-07-18   Rakudo #66                      tadzik
-  2013-08-22   Rakudo #67
-  2013-09-19   Rakudo #68
-  2013-10-17   Rakudo #69
-  2013-11-21   Rakudo #70
+  2013-08-22   Rakudo #67                      moritz
+  2013-09-19   Rakudo #68                      masak
+  2013-10-17   Rakudo #69                      Coke
+  2013-11-21   Rakudo #70                      lizmat
   2013-12-19   Rakudo #71
 
 =head2 Suggested .pm group names for future releases
@@ -277,15 +277,15 @@ If there are any problems, fix them and go back to step 8.
 
 Tag the release by its release month ("YYYY.MM") and its code name.
 
-  $ git tag -a -m"tag release #nn" YYYY.MM    # e.g., 2010.02
+  $ git tag -a -m"tag release #nn" YYYY.MM    # e.g., 2013.08
   $ git tag -a -m"tag release #nn" CODENAME   # e.g., "Bratislava"
   $ git push --tags
 
 =item 15.
 
-Uplaod the tarball to L<http://rakudo.org/downloads/rakudo>:
+Upload the tarball to L<http://rakudo.org/downloads/rakudo>:
 
-  $ scp rakudo-2010.02.tar.gz rakudo@rakudo.org:public_html/downloads/rakudo/
+  $ scp rakudo-YYYY.MM.tar.gz rakudo@rakudo.org:public_html/downloads/rakudo/
 
 If you do not have permissions for that, ask one of (pmichaud, jnthn,
 masak, tadzik, moritz, PerlJam) on #perl6 to do it for you.

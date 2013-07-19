@@ -554,9 +554,11 @@ class Perl6::World is HLL::World {
                 :op('bind'),
                 QAST::Var.new( :name($name), :scope('lexical') ),
                 QAST::Op.new(
-                    :op('callmethod'), :name('clone'),
-                    QAST::Var.new( :name($name), :scope('lexical') )
-                )));
+                    :op('p6capturelex'),
+                    QAST::Op.new(
+                        :op('callmethod'), :name('clone'),
+                        QAST::Var.new( :name($name), :scope('lexical') )
+                    ))));
         }
     }
     
@@ -634,9 +636,9 @@ class Perl6::World is HLL::World {
     }
     
     # Creates a new container descriptor and adds it to the SC.
-    method create_container_descriptor($of, $rw, $name) {
+    method create_container_descriptor($of, $rw, $name, $default = $of) {
         my $cd_type := self.find_symbol(['ContainerDescriptor']);
-        my $cd      := $cd_type.new(:$of, :$rw, :$name);
+        my $cd := $cd_type.new( :$of, :$rw, :$name, :$default );
         self.add_object($cd);
         $cd
     }
@@ -663,8 +665,8 @@ class Perl6::World is HLL::World {
                 'value_type',      $Mu,
                 'default_value',   $Any
             );
-            $desc := self.create_container_descriptor($Mu, 1, $name);
-            
+            $desc := self.create_container_descriptor($Mu, 1, $name, $Any);
+
             %!magical_cds{$name} := [%info, $desc];
         }
         
@@ -1083,7 +1085,7 @@ class Perl6::World is HLL::World {
         unless $quasi_ast.is_quasi_ast {
             return "";
         }
-        my $fixups := QAST::Op.new(:name<set_outer_ctx>, :op<callmethod>,
+        my $fixups := QAST::Op.new(:op<forceouterctx>,
            QAST::BVal.new(:value($block)),
            QAST::Op.new(
                 :op<p6getouterctx>,
@@ -1143,6 +1145,7 @@ class Perl6::World is HLL::World {
                     $code_past[+@($code_past) - 1] := QAST::Op.new(
                         :op('p6return'),
                         $code_past[+@($code_past) - 1]);
+                    $code_past.has_exit_handler(1);
                 }
             }
         }
@@ -1454,7 +1457,7 @@ class Perl6::World is HLL::World {
                     $/.CURSOR.panic($mkerr());
                 }
             }
-            return nqp::join(' ', @pieces);
+            return join(' ', @pieces);
         }
         else {
             $/.CURSOR.panic($mkerr());
@@ -1714,7 +1717,10 @@ class Perl6::World is HLL::World {
         elsif $phaser eq 'END' {
             $*UNIT[0].push(QAST::Op.new(
                 :op('callmethod'), :name('unshift'),
-                QAST::Var.new( :name('@*END_PHASERS'), :scope('contextual') ),
+                QAST::Op.new(
+                    :op('getcurhllsym'),
+                    QAST::SVal.new( :value('@END_PHASERS') ),
+                ),
                 QAST::WVal.new( :value($block) )
             ));
             return QAST::Var.new(:name('Nil'), :scope('lexical'));
@@ -1765,6 +1771,7 @@ class Perl6::World is HLL::World {
             
             if $phaser eq 'POST' {
                 # Needs $_ that can be set to the return value.
+                $phaser_past.custom_args(1);
                 $phaser_past[0].unshift(QAST::Op.new( :op('p6bindsig') ));
                 if $phaser_past.symbol('$_') {
                     for @($phaser_past[0]) {
@@ -1841,8 +1848,8 @@ class Perl6::World is HLL::World {
             unless $decl && $decl eq 'routine' {
                 @parts.shift() while self.is_pseudo_package(@parts[0]);
             }
-            nqp::join('::', @parts)
-                ~ ($with_adverbs ?? nqp::join('', @!colonpairs) !! '');
+            join('::', @parts)
+                ~ ($with_adverbs ?? join('', @!colonpairs) !! '');
         }
 
         # returns a QAST tree that represents the name
@@ -1865,7 +1872,7 @@ class Perl6::World is HLL::World {
                 }
             }
             else {
-                my $value := nqp::join('::', @!components);
+                my $value := join('::', @!components);
                 QAST::SVal.new(:$value);
             }
         }
@@ -1959,10 +1966,11 @@ class Perl6::World is HLL::World {
 
         # Checks if a name component is a pseudo-package.
         method is_pseudo_package($comp) {
+            !nqp::istype($comp, QAST::Node) && (
             $comp eq 'CORE' || $comp eq 'SETTING' || $comp eq 'UNIT' ||
             $comp eq 'OUTER' || $comp eq 'MY' || $comp eq 'OUR' ||
             $comp eq 'PROCESS' || $comp eq 'GLOBAL' || $comp eq 'CALLER' ||
-            $comp eq 'DYNAMIC' || $comp eq 'COMPILING' || $comp eq 'PARENT'
+            $comp eq 'DYNAMIC' || $comp eq 'COMPILING' || $comp eq 'PARENT')
         }
     }
     
@@ -2197,7 +2205,7 @@ class Perl6::World is HLL::World {
             }
             else {
                 nqp::die("Could not locate compile-time value for symbol " ~
-                    nqp::join('::', @name));
+                    join('::', @name));
             }
         }
         
@@ -2208,7 +2216,7 @@ class Perl6::World is HLL::World {
     method symbol_lookup(@name, $/, :$package_only = 0, :$lvalue = 0) {
         # Catch empty names and die helpfully.
         if +@name == 0 { $/.CURSOR.panic("Cannot compile empty name"); }
-        my $orig_name := nqp::join('::', @name);
+        my $orig_name := join('::', @name);
         
         # Handle fetching GLOBAL.
         if +@name == 1 && @name[0] eq 'GLOBAL' {
@@ -2486,7 +2494,7 @@ class Perl6::World is HLL::World {
             
             # Build and throw exception object.
             %opts<line>            := HLL::Compiler.lineof($c.orig, $c.pos, :cache(1));
-            %opts<modules>         := p6ize_recursive(@*MODULES);
+            %opts<modules>         := p6ize_recursive(@*MODULES // []);
             %opts<pre>             := @locprepost[0];
             %opts<post>            := @locprepost[1];
             %opts<highexpect>      := p6ize_recursive(@expected) if @expected;
@@ -2510,7 +2518,7 @@ class Perl6::World is HLL::World {
             );
             return $ex.new(|%opts);
         } else {
-            my @err := ['Error while compiling, type ', nqp::join('::', $ex_type),  "\n"];
+            my @err := ['Error while compiling, type ', join('::', $ex_type),  "\n"];
             for %opts -> $key {
                 @err.push: '  ';
                 @err.push: $key;

@@ -2,9 +2,9 @@ my class MapIter { ... }
 my class Range { ... }
 my class X::Bind::Slice { ... }
 my class X::Bind::ZenSlice { ... }
-my $default= [];  # so that we can check passing of parameters to ".hash"
 
 my class Any {
+    my $default= [];  # so that we can check passing of parameters to ".hash"
     multi method ACCEPTS(Any:D: Mu \a) { self === a }
 
     ########
@@ -14,25 +14,13 @@ my class Any {
     method eager() { nqp::p6list(nqp::list(self), List, Bool::True).eager }
     method elems() { self.list.elems }
     method end()   { self.list.end }
-    method classify(&t) { self.list.classify(&t) }
+    method classify($test)   { {}.classify(   $test, self.list ) }
+    method categorize($test) { {}.categorize( $test, self.list ) }
     method uniq() { self.list.uniq }
+    method squish() { self.list.squish }
     method infinite() { Mu }
     method flat() { nqp::p6list(nqp::list(self), List, Bool::True) }
-    method hash( :$type = $default, :$of = $default ) {
-
-        # your basic hash
-        if ( $type === $default and $of === $default ) {
-            my %h = self;
-        }
-
-        # need to add type / of info
-        else {
-            my $code= $of === $default ?? "my %h" !! "my {$of.perl} %h";
-            $code ~= "\{{$type.perl}}" unless $type === $default;
-            $code ~= " = self";
-            eval $code;
-        }
-    }
+    method hash() { my % = self }
     method list() { nqp::p6list(nqp::list(self), List, Mu) }
     method lol()  { MapIter.new(self.list, { .item }, Mu).list }
     method pick($n = 1) { self.list.pick($n) }
@@ -50,18 +38,24 @@ my class Any {
         self.map({ $_ if $_ ~~ $test });
     }
     method first(Mu $test) is rw {
-        for self.list {
-            return $_ if $test.ACCEPTS($_);
-        }
-        fail 'No values matched';
+        my @results := self.grep($test);
+        @results ?? @results[0] !! Nil;
     }
 
     method join($separator = '') {
         my $list = (self,).flat.eager;
         my Mu $rsa := nqp::list_s();
         $list.gimme(4);        # force reification of at least 4 elements
-        nqp::push_s($rsa, nqp::unbox_s($list.shift.Stringy)) 
-            while $list.gimme(0);
+        unless $list.infinite {  # presize array
+            nqp::setelems($rsa, nqp::unbox_i($list.elems));
+            nqp::setelems($rsa, 0);
+        }
+        my $tmp;
+        while $list.gimme(0) {
+            $tmp := $list.shift;
+            nqp::push_s($rsa,
+              nqp::unbox_s(nqp::istype($tmp, Str) ?? $tmp !! $tmp.Str));
+        }
         nqp::push_s($rsa, '...') if $list.infinite;
         nqp::p6box_s(nqp::join(nqp::unbox_s($separator.Stringy), $rsa))
     }
@@ -153,7 +147,7 @@ my class Any {
     }
 
     sub RWPAIR(\k, \v) {
-        my \p = nqp::create(Pair);
+        my \p := nqp::create(Pair);
         nqp::bindattr(p, Enum, '$!key', k);
         nqp::bindattr(p, Enum, '$!value', v);
         p
@@ -161,131 +155,203 @@ my class Any {
     
     proto method postcircumfix:<[ ]>(|) { * }
     multi method postcircumfix:<[ ]>() { self.list }
-    multi method postcircumfix:<[ ]>(:$p!) { self.pairs }
     multi method postcircumfix:<[ ]>(:$kv!) { self.kv }
+    multi method postcircumfix:<[ ]>(:$p!) { self.pairs }
     multi method postcircumfix:<[ ]>(:$k!) { self.keys }
     multi method postcircumfix:<[ ]>(:$BIND!) {
         X::Bind::ZenSlice.new(type => self.WHAT).throw
     }
+
+    # @a[$x]
     multi method postcircumfix:<[ ]>(\SELF: $pos) is rw {
         fail "Cannot use negative index $pos on {SELF.WHAT.perl}" if $pos < 0;
-        SELF.at_pos($pos)
+        SELF.at_pos($pos);
     }
     multi method postcircumfix:<[ ]>($pos, Mu :$BIND! is parcel) is rw {
         fail "Cannot use negative index $pos on {self.WHAT.perl}" if $pos < 0;
-        self.bind_pos($pos, $BIND)
-    }
-    multi method postcircumfix:<[ ]>($pos, :$p!) is rw {
-        fail "Cannot use negative index $pos on {self.WHAT.perl}" if $pos < 0;
-        $p ?? RWPAIR($pos, self.at_pos($pos)) !! self.at_pos($pos)
+        self.bind_pos($pos, $BIND);
     }
     multi method postcircumfix:<[ ]>($pos, :$kv!) is rw {
         fail "Cannot use negative index $pos on {self.WHAT.perl}" if $pos < 0;
-        $kv ?? ($pos, self.at_pos($pos)) !! self.at_pos($pos)
+        $kv & !self.exists($pos) ?? () !! ($pos, self.at_pos($pos));
+    }
+    multi method postcircumfix:<[ ]>($pos, :$p!) is rw {
+        fail "Cannot use negative index $pos on {self.WHAT.perl}" if $pos < 0;
+        $p & !self.exists($pos) ?? () !! RWPAIR($pos, self.at_pos($pos));
     }
     multi method postcircumfix:<[ ]>($pos, :$k!) is rw {
         fail "Cannot use negative index $pos on {self.WHAT.perl}" if $pos < 0;
-        $k ?? $pos !! self.at_pos($pos)
+        $k & !self.exists($pos) ?? () !! $pos;
     }
+    multi method postcircumfix:<[ ]>($pos, :$v!) is rw {
+        fail "Cannot use negative index $pos on {self.WHAT.perl}" if $pos < 0;
+        $v & !self.exists($pos) ?? () !! self.at_pos($pos);
+    }
+
+    # @a[1]
     multi method postcircumfix:<[ ]>(\SELF: int $pos) is rw {
         fail "Cannot use negative index $pos on {SELF.WHAT.perl}" if $pos < 0;
-        SELF.at_pos($pos)
+        SELF.at_pos($pos);
     }
     multi method postcircumfix:<[ ]>(int $pos, Mu :$BIND! is parcel) is rw {
         fail "Cannot use negative index $pos on {self.WHAT.perl}" if $pos < 0;
-        self.bind_pos($pos, $BIND)
-    }
-    multi method postcircumfix:<[ ]>(int $pos, :$p!) is rw {
-        fail "Cannot use negative index $pos on {self.WHAT.perl}" if $pos < 0;
-        $p ?? RWPAIR($pos, self.at_pos($pos)) !! self.at_pos($pos)
+        self.bind_pos($pos, $BIND);
     }
     multi method postcircumfix:<[ ]>(int $pos, :$kv!) is rw {
         fail "Cannot use negative index $pos on {self.WHAT.perl}" if $pos < 0;
-        $kv ?? ($pos, self.at_pos($pos)) !! self.at_pos($pos)
+        $kv & !self.exists($pos) ?? () !! ($pos, self.at_pos($pos));
+    }
+    multi method postcircumfix:<[ ]>(int $pos, :$p!) is rw {
+        fail "Cannot use negative index $pos on {self.WHAT.perl}" if $pos < 0;
+        $p & !self.exists($pos) ?? () !! RWPAIR($pos, self.at_pos($pos));
     }
     multi method postcircumfix:<[ ]>(int $pos, :$k!) is rw {
         fail "Cannot use negative index $pos on {self.WHAT.perl}" if $pos < 0;
-        $k ?? $pos !! self.at_pos($pos)
+        $k & !self.exists($pos) ?? () !! $pos;
     }
+    multi method postcircumfix:<[ ]>(int $pos, :$v!) is rw {
+        fail "Cannot use negative index $pos on {self.WHAT.perl}" if $pos < 0;
+        $v & !self.exists($pos) ?? () !! self.at_pos($pos);
+    }
+
+    # @a[@i]
     multi method postcircumfix:<[ ]>(\SELF: Positional \pos) is rw {
         if nqp::iscont(pos) {
-            fail "Cannot use negative index {pos} on {SELF.WHAT.perl}" if pos < 0;
-            return SELF.at_pos(pos)
+            SELF.at_pos(pos);
         }
-        my $list = pos.flat;
-        $list.gimme(*);
-        $list.map($list.infinite
-                   ?? { last if $_ >= SELF.list.gimme($_ + 1); SELF[$_] }
-                   !! { SELF[$_] }).eager.Parcel;
-    }
-    multi method postcircumfix:<[ ]>(\SELF: Positional \pos, :$p!) is rw {
-        if nqp::iscont(pos) {
-            fail "Cannot use negative index {pos} on {SELF.WHAT.perl}" if pos < 0;
-            return RWPAIR(pos, SELF.at_pos(pos))
+        else {
+            my $positions = pos.flat;
+            $positions.gimme(*);
+            if $positions.infinite {
+                my $list = SELF.list;
+                $positions.map( {
+                    last if $_ >= $list.gimme($_ + 1);
+                    SELF[$_];
+                } ).eager.Parcel;
+            }
+            else {
+                $positions.map( { SELF[$_] } ).eager.Parcel;
+            }
         }
-        my $list = pos.flat;
-        $list.gimme(*);
-        $list.map({ last if $_ >= SELF.list.gimme($_ + 1); RWPAIR($_, SELF[$_]) }).eager.Parcel;
-    }
-    multi method postcircumfix:<[ ]>(\SELF: Positional \pos, :$kv!) is rw {
-        if nqp::iscont(pos) {
-            fail "Cannot use negative index {pos} on {SELF.WHAT.perl}" if pos < 0;
-            return (pos, SELF.at_pos(pos))
-        }
-        my $list = pos.flat;
-        $list.gimme(*);
-        $list.map({ last if $_ >= SELF.list.gimme($_ + 1); ($_, SELF[$_]) }).eager.Parcel;
-    }
-    multi method postcircumfix:<[ ]>(\SELF: Positional \pos, :$k!) is rw {
-        if nqp::iscont(pos) {
-            fail "Cannot use negative index {pos} on {SELF.WHAT.perl}" if pos < 0;
-            pos
-        }
-        my $list = pos.flat;
-        $list.gimme(*);
-        $list.map({ last if $_ >= SELF.list.gimme($_ + 1); $_ }).eager.Parcel;
-    }
-    multi method postcircumfix:<[ ]>(\SELF: Positional \pos, :$v!) is rw {
-        if nqp::iscont(pos) {
-            fail "Cannot use negative index {pos} on {SELF.WHAT.perl}" if pos < 0;
-            SELF.at_pos(pos)
-        }
-        my $list = pos.flat;
-        $list.gimme(*);
-        $list.map({ last if $_ >= SELF.list.gimme($_ + 1); SELF[$_] }).eager.Parcel;
     }
     multi method postcircumfix:<[ ]>(Positional $pos, :$BIND!) is rw {
         X::Bind::Slice.new(type => self.WHAT).throw;
     }
+    multi method postcircumfix:<[ ]>(\SELF: Positional \pos, :$kv!) is rw {
+        if nqp::iscont(pos) {
+            SELF[pos]:$kv;
+        }
+        else {
+            my $positions = pos.flat;
+            $positions.gimme(*);
+            if $positions.infinite {
+                my $list = SELF.list;
+                $positions.map( {
+                    last if $_ >= $list.gimme($_ + 1);
+                    SELF[$_]:$kv;
+                } ).eager.Parcel;
+            }
+            else {
+                $positions.map( { SELF[$_]:$kv } ).eager.Parcel;
+            }
+        }
+    }
+    multi method postcircumfix:<[ ]>(\SELF: Positional \pos, :$p!) is rw {
+        if nqp::iscont(pos) {
+            SELF[pos]:$p;
+        }
+        else {
+            my $positions = pos.flat;
+            $positions.gimme(*);
+            if $positions.infinite {
+                my $list = SELF.list;
+                $positions.map( {
+                    last if $_ >= $list.gimme($_ + 1);
+                    SELF[$_]:$p;
+                } ).eager.Parcel;
+            }
+            else {
+                $positions.map( { SELF[$_]:$p } ).eager.Parcel;
+            }
+        }
+    }
+    multi method postcircumfix:<[ ]>(\SELF: Positional \pos, :$k!) is rw {
+        if nqp::iscont(pos) {
+            SELF[pos]:$k;
+        }
+        else {
+            my $positions = pos.flat;
+            $positions.gimme(*);
+            if $positions.infinite {
+                my $list = SELF.list;
+                $positions.map( {
+                    last if $_ >= $list.gimme($_ + 1);
+                    SELF[$_]:$k;
+                } ).eager.Parcel;
+            }
+            else {
+                $positions.map( { SELF[$_]:$k } ).eager.Parcel;
+            }
+        }
+    }
+    multi method postcircumfix:<[ ]>(\SELF: Positional \pos, :$v!) is rw {
+        if nqp::iscont(pos) {
+            SELF[pos]:$v;
+        }
+        else {
+            my $positions = pos.flat;
+            $positions.gimme(*);
+            if $positions.infinite {
+                my $list = SELF.list;
+                $positions.map( {
+                    last if $_ >= $list.gimme($_ + 1);
+                    SELF[$_]:$v;
+                } ).eager.Parcel;
+            }
+            else {
+                $positions.map( { SELF[$_]:$v } ).eager.Parcel;
+            }
+        }
+    }
+
+    # @a[->{}]
     multi method postcircumfix:<[ ]>(\SELF: Callable $block) is rw {
         SELF[$block(|(SELF.elems xx $block.count))]
-    }
-    multi method postcircumfix:<[ ]>(\SELF: Callable $block, :$p!) is rw {
-        SELF[$block(|(SELF.elems xx $block.count))]:p
-    }
-    multi method postcircumfix:<[ ]>(\SELF: Callable $block, :$kv!) is rw {
-        SELF[$block(|(SELF.elems xx $block.count))]:kv
-    }
-    multi method postcircumfix:<[ ]>(\SELF: Callable $block, :$k!) is rw {
-        SELF[$block(|(SELF.elems xx $block.count))]:k
     }
     multi method postcircumfix:<[ ]>(Callable $block, :$BIND!) is rw {
         X::Bind::Slice.new(type => self.WHAT).throw;
     }
+    multi method postcircumfix:<[ ]>(\SELF: Callable $block, :$kv!) is rw {
+        SELF[$block(|(SELF.elems xx $block.count))]:$kv
+    }
+    multi method postcircumfix:<[ ]>(\SELF: Callable $block, :$p!) is rw {
+        SELF[$block(|(SELF.elems xx $block.count))]:$p
+    }
+    multi method postcircumfix:<[ ]>(\SELF: Callable $block, :$k!) is rw {
+        SELF[$block(|(SELF.elems xx $block.count))]:$k
+    }
+    multi method postcircumfix:<[ ]>(\SELF: Callable $block, :$v!) is rw {
+        SELF[$block(|(SELF.elems xx $block.count))]:$v
+    }
+
+    # @a[*]
     multi method postcircumfix:<[ ]>(\SELF: Whatever) is rw {
         SELF[^SELF.elems]
     }
-    multi method postcircumfix:<[ ]>(\SELF: Whatever, :$p!) is rw {
-        SELF[^SELF.elems]:p
-    }
-    multi method postcircumfix:<[ ]>(\SELF: Whatever, :$kv!) is rw {
-        SELF[^SELF.elems]:kv
-    }
-    multi method postcircumfix:<[ ]>(\SELF: Whatever, :$k!) is rw {
-        SELF[^SELF.elems]:k
-    }
     multi method postcircumfix:<[ ]>(Whatever, :$BIND!) is rw {
         X::Bind::Slice.new(type => self.WHAT).throw;
+    }
+    multi method postcircumfix:<[ ]>(\SELF: Whatever, :$kv!) is rw {
+        SELF[^SELF.elems]:$kv
+    }
+    multi method postcircumfix:<[ ]>(\SELF: Whatever, :$p!) is rw {
+        SELF[^SELF.elems]:$p
+    }
+    multi method postcircumfix:<[ ]>(\SELF: Whatever, :$k!) is rw {
+        SELF[^SELF.elems]:$k
+    }
+    multi method postcircumfix:<[ ]>(\SELF: Whatever, :$v!) is rw {
+        SELF[^SELF.elems]:$v
     }
 
     proto method at_pos(|) {*}
@@ -314,9 +380,9 @@ my class Any {
     ########
     proto method postcircumfix:<{ }>(|) { * }
     multi method postcircumfix:<{ }>() { self }
+    multi method postcircumfix:<{ }>(:$kv!) { self.kv }
     multi method postcircumfix:<{ }>(:$p!) { self.pairs }
     multi method postcircumfix:<{ }>(:$k!) { self.keys }
-    multi method postcircumfix:<{ }>(:$kv!) { self.kv }
     multi method postcircumfix:<{ }>(:$v!) { self.values }
     multi method postcircumfix:<{ }>(:$BIND!) {
         X::Bind::ZenSlice.new(type => self.WHAT).throw
@@ -332,38 +398,70 @@ my class Any {
     multi method postcircumfix:<{ }>(
       \SELF: $key,
       :$delete! where so $delete,
-      :$kv = $default, :$p = $default, :$k = $default, :$v = $default
+      :$exists = $default,
+      :$kv     = $default,
+      :$p      = $default,
+      :$k      = $default,
+      :$v      = $default
     ) is rw {
-        $p & $k & $kv & $v === $default   # :delete only
-          ?? SELF.delete($key)                               !!
-        $kv !=== $default
-          ?? ( !$kv | SELF.exists($key)
-                 ?? ( $key, SELF.delete($key) )
-                 !! ()                                     ) !!
-        $p !=== $default
-          ?? ( !$p | SELF.exists($key)
-                 ?? RWPAIR($key, SELF.delete($key))
-                 !! ()                                     ) !!
-        $k !=== $default
-          ?? ( !$k | SELF.exists($key)
-                 ?? ( SELF.delete($key); $key )
-                 !! ()                                     ) !!
-        !$v | SELF.exists($key)
-          ?? SELF.delete($key)
-          !! ();
+        if $exists & $kv & $p & $k & $v === $default {  # :delete
+            SELF.delete($key);
+        }
+        elsif $exists !=== $default {
+            my $wasthere = SELF.exists($key);
+            SELF.delete($key);
+
+            if $kv & $p === $default {                  # :delete:exists?
+                !( $wasthere ?^ $exists )
+            }
+            elsif $kv !=== $default {                   # :delete:exists?:kv?
+                !$kv | $wasthere ?? ( $key, !( $wasthere ?^ $exists ) ) !! ();
+            }
+            elsif $p !=== $default {                    # :delete:exists?:p?
+                !$p | $wasthere ?? RWPAIR($key, !($wasthere ?^ $exists) ) !! ();
+            }
+        }
+        elsif $kv !=== $default {                       # :delete?:kv?
+            !$kv | SELF.exists($key) ?? ( $key, SELF.delete($key) ) !! ();
+        }
+        elsif $p !=== $default {                        # :delete:p?
+            !$p | SELF.exists($key) ?? RWPAIR($key, SELF.delete($key)) !! ();
+        }
+        elsif $k !=== $default {                        # :delete:k?
+            !$k | SELF.exists($key) ?? ( SELF.delete($key); $key ) !! ();
+        }
+        else {                                          # :delete:v?
+            !$v | SELF.exists($key) ?? SELF.delete($key) !! ();
+        }
     }
-    multi method postcircumfix:<{ }>(\SELF: $key, :$exists! ) is rw {
-        !( SELF.exists($key) ?^ $exists )
-    }
-    multi method postcircumfix:<{ }>(\SELF: $key, :$p!) is rw {
-        RWPAIR($key, SELF.at_key($key))
-    }
-    multi method postcircumfix:<{ }>(\SELF: $key, :$k!) is rw {
-        $key
+    multi method postcircumfix:<{ }>(
+      \SELF: $key,
+      :$exists!,
+      :$kv = $default,
+      :$p  = $default,
+      :$k  = $default
+    ) is rw {
+        my $wasthere= SELF.exists($key);
+        if $kv & $p & $k === $default {                 # :exists?
+            !( $wasthere ?^ $exists )
+        }
+        elsif $kv !=== $default {                       # :exists?:kv?
+            !$kv | $wasthere ?? ( $key, !( $wasthere ?^ $exists ) ) !! ();
+        }
+        else {                                          # :exists:p?
+            !$p | $wasthere ?? RWPAIR($key, !( $wasthere ?^ $exists )) !! ();
+        }
     }
     multi method postcircumfix:<{ }>(\SELF: $key, :$kv!) is rw {
-        ($key, SELF.at_key($key))
+        !$kv | SELF.exists($key) ?? ( $key, SELF.at_key($key) ) !! ();
     }
+    multi method postcircumfix:<{ }>(\SELF: $key, :$p!) is rw {
+        !$p | SELF.exists($key) ?? RWPAIR( $key, SELF.at_key($key) ) !! ();
+    }
+    multi method postcircumfix:<{ }>(\SELF: $key, :$k!) is rw {
+        !$k | SELF.exists($key) ?? $key !! ();
+    }
+    #there is no multi method postcircumfix:<{ }>(\SELF: $key, :$v!)
 
     # %h<a b c>
     multi method postcircumfix:<{ }>(\SELF: Positional \key) is rw {
@@ -377,71 +475,163 @@ my class Any {
     multi method postcircumfix:<{ }>(
       \SELF: Positional \key,
       :$delete! where so $delete,
-      :$kv = $default, :$p = $default, :$k = $default, :$v = $default
+      :$exists = $default,
+      :$kv     = $default,
+      :$p      = $default,
+      :$k      = $default,
+      :$v      = $default
     ) is rw {
 
-        # handle single key immediately
-        return SELF{key}:$delete:$kv:$p:$k:$v if nqp::iscont(key);
+        if nqp::iscont(key) { # handle single key immediately
+            SELF{key}:$delete:$exists:$kv:$p:$k:$v;
+        }
+        elsif $exists & $kv & $p & $k & $v === $default { # :delete
+            key.map( { SELF.delete($_) } ).eager.Parcel;
+        }
 
-        $kv & $p & $k & $v === $default   # :delete only
-          ?? key.map({ SELF.delete($_) }).eager.Parcel       !!
-        $kv !=== $default
-          ?? ( $kv
-                 ?? key.map( {
-                        SELF.exists($_) ?? ( $_, SELF.delete($_) ) !! ()
-                    } ).eager.Parcel
-                 !! key.map( {
-                        ( $_, SELF.delete($_) )
-                    } ).eager.Parcel                       ) !!
-        $p !=== $default
-          ?? ( $p
-                 ?? key.map( {
-                        SELF.exists($_) ?? RWPAIR($_, SELF.delete($_)) !! ()
-                    } ).eager.Parcel
-                 !! key.map( {
-                        RWPAIR($_, SELF.delete($_))
-                    } ).eager.Parcel                       ) !!
-        $k !=== $default
-          ?? ( $k
-                 ?? key.map( {
-                        SELF.exists($_) ?? ( SELF.delete($_); $_ ) !! ()
-                    } ).eager.Parcel
-                 !! key.map( {
-                        SELF.delete($_); $_
-                    } ).eager.Parcel                       ) !!
-        $v
-          ?? key.map( {
-                 SELF.exists($_) ?? SELF.delete($_) !! ()
-             } ).eager.Parcel
-          !! key.map( {
-                 SELF.delete($_)
-             } ).eager.Parcel;
+        elsif $exists !=== $default {
+            # no need to initialize every iteration of map
+            my $wasthere;
+
+            if $p & $kv === $default {                    # :delete:exists?
+                key.map( {
+                    SELF.delete($_) if $wasthere = SELF.exists($_);
+                    !( $wasthere ?^ $exists );
+                } ).eager.Parcel
+            }
+            elsif $kv !=== $default {                     # :delete:exists?:kv?
+                key.map( {
+                    SELF.delete($_) if $wasthere = SELF.exists($_);
+                    !$kv | $wasthere ?? ( $_, !( $wasthere ?^ $exists ) ) !! ()
+                } ).eager.Parcel
+            }
+            elsif $p !=== $default {                      # :delete:exists?:p?
+                key.map( {
+                    SELF.delete($_) if $wasthere = SELF.exists($_);
+                    !$p | $wasthere ?? RWPAIR($_,!($wasthere ?^ $exists)) !! ()
+                } ).eager.Parcel
+            }
+        }
+        elsif $kv !=== $default {                         # :delete:kv?
+            $kv
+              ?? key.map( {
+                     SELF.exists($_) ?? ( $_, SELF.delete($_) ) !! ()
+                 } ).eager.Parcel
+              !! key.map( {
+                     ( $_, SELF.delete($_) )
+                 } ).eager.Parcel;
+        }
+        elsif $p !=== $default {                          # :delete:p?
+            $p
+              ?? key.map( {
+                     SELF.exists($_) ?? RWPAIR($_, SELF.delete($_)) !! ()
+                 } ).eager.Parcel
+              !! key.map( {
+                     RWPAIR($_, SELF.delete($_))
+                 } ).eager.Parcel;
+        }
+        elsif $k !=== $default {                          # :delete:k?
+            $k
+              ?? key.map( {
+                     SELF.exists($_) ?? ( SELF.delete($_); $_ ) !! ()
+                 } ).eager.Parcel
+              !! key.map( {
+                     SELF.delete($_); $_
+                 } ).eager.Parcel;
+        }
+        else {                                            # :delete:v?
+            $v
+              ?? key.map( {
+                     SELF.exists($_) ?? SELF.delete($_) !! ()
+                 } ).eager.Parcel
+              !! key.map( {
+                     SELF.delete($_)
+                 } ).eager.Parcel;
+        }
     }
     multi method postcircumfix:<{ }>(
-      \SELF: Positional \key, :$exists!) is rw {
-        nqp::iscont(key) 
-          ?? !( SELF.exists(key) ?^ $exists )
-          !! key.map({ !( SELF.exists($_) ?^ $exists ) }).eager.Parcel;
-    }
-    multi method postcircumfix:<{ }>(\SELF: Positional \key, :$p!) is rw {
-        nqp::iscont(key) 
-          ?? RWPAIR(key, SELF.at_key(key))
-          !! key.map({ SELF.exists($_) ?? RWPAIR($_, SELF.at_key($_)) !! () }).eager.Parcel
+      \SELF: Positional \key,
+      :$exists!,
+      :$kv = $default,
+      :$p  = $default,
+    ) is rw {
+
+        if nqp::iscont(key) { # handle single key immediately
+            SELF{key}:$exists:$kv:$p;
+        }
+        if $kv & $p === $default {                      # :exists?
+            key.map({ !( SELF.exists($_) ?^ $exists ) }).eager.Parcel;
+        }
+        elsif $kv !=== $default {                       # :exists?:kv?
+            $kv
+              ?? key.map( {
+                     SELF.exists($_) ?? ( $_, $exists ) !! ()
+                 } ).eager.Parcel
+              !! key.map( {
+                     ( $_, !( SELF.exists($_) ?^ $exists ) )
+                 } ).eager.Parcel;
+        }
+        else {                                          # :exists:p?
+            $p
+              ?? key.map( {
+                     SELF.exists($_) ?? RWPAIR( $_, $exists ) !! ()
+                 } ).eager.Parcel
+              !! key.map( {
+                     RWPAIR( $_, !( SELF.exists($_) ?^ $exists ) )
+                 } ).eager.Parcel;
+        }
     }
     multi method postcircumfix:<{ }>(\SELF: Positional \key, :$kv!) is rw {
-        nqp::iscont(key) 
-          ?? (key, SELF.at_key(key))
-          !! key.map({ SELF.exists($_) ?? ($_, SELF.at_key($_)) !! () }).eager.Parcel
+        if nqp::iscont(key) { # handle single key immediately
+            SELF{key}:$kv;
+        }
+        elsif $kv {
+            key.map( {
+                SELF.exists($_) ?? ($_, SELF.at_key($_)) !! ()
+            } ).eager.Parcel
+        }
+        else {
+            key.map( {
+                ( $_, SELF.at_key($_) )
+            } ).eager.Parcel;
+        }
+    }
+    multi method postcircumfix:<{ }>(\SELF: Positional \key, :$p!) is rw {
+        if nqp::iscont(key) { # handle single key immediately
+            SELF{key}:$p;
+        }
+        elsif $p {
+            key.map( {
+                SELF.exists($_) ?? RWPAIR($_, SELF.at_key($_)) !! ()
+            } ).eager.Parcel
+        }
+        else {
+            key.map( {
+                RWPAIR( $_, SELF.at_key($_) )
+            } ).eager.Parcel;
+        }
     }
     multi method postcircumfix:<{ }>(\SELF: Positional \key, :$k!) is rw {
-        nqp::iscont(key) 
-          ?? key
-          !! key.map({ SELF.exists($_) ?? $_ !! () }).eager.Parcel
+        if nqp::iscont(key) { # handle single key immediately
+            SELF{key}:$k;
+        }
+        elsif $k {
+            key.map( { $_ if SELF.exists($_) } ).eager.Parcel
+        }
+        else {
+            key
+        }
     }
     multi method postcircumfix:<{ }>(\SELF: Positional \key, :$v!) is rw {
-        nqp::iscont(key) 
-          ?? SELF.at_key(key)
-          !! key.map({ SELF.exists($_) ?? SELF.at_key($_) !! () }).eager.Parcel
+        if nqp::iscont(key) { # handle single key immediately
+            SELF{key}:$v;
+        }
+        elsif $v {
+            key.map( { SELF.exists($_) ?? SELF.at_key($_) !! () } ).eager.Parcel
+        }
+        else {
+            key.map( { SELF.at_key($_) } ).eager.Parcel;
+        }
     }
 
     # %h{*}
@@ -454,24 +644,34 @@ my class Any {
     multi method postcircumfix:<{ }>(
       \SELF: Whatever,
       :$delete! where so $delete,
-      :$kv = $default, :$p = $default, :$k = $default, :$v = $default
+      :$exists = $default,
+      :$kv     = $default,
+      :$p      = $default,
+      :$k      = $default,
+      :$v      = $default
     ) is rw {
-        SELF{SELF.keys}:$delete:$kv:$p:$k:$v;
+        SELF{SELF.keys}:$delete:$exists:$kv:$p:$k:$v;
     }
-    multi method postcircumfix:<{ }>(\SELF: Whatever, :$exists!) is rw {
-        SELF{SELF.keys}:$exists
-    }
-    multi method postcircumfix:<{ }>(\SELF: Whatever, :$p!) is rw {
-        SELF{SELF.keys}:$p
+    multi method postcircumfix:<{ }>(
+      \SELF: Whatever,
+      :$exists!,
+      :$kv = $default,
+      :$p  = $default,
+      :$k  = $default
+    ) is rw {
+        SELF{SELF.keys}:$exists:$kv:$p:$k
     }
     multi method postcircumfix:<{ }>(\SELF: Whatever, :$kv!) is rw {
-        SELF{SELF.keys}:$kv
+        SELF.kv;
+    }
+    multi method postcircumfix:<{ }>(\SELF: Whatever, :$p!) is rw {
+        SELF.pairs
     }
     multi method postcircumfix:<{ }>(\SELF: Whatever, :$k!) is rw {
-        SELF{SELF.keys}:$k
+        SELF.keys
     }
     multi method postcircumfix:<{ }>(\SELF: Whatever, :$v!) is rw {
-        SELF{SELF.keys}:$v
+        SELF.values
     }
 
     proto method at_key(|) { * }
@@ -585,10 +785,16 @@ proto end(|) { * }
 multi end($a) { $a.end }
 
 proto classify(|) { * }
-multi classify(&test, *@items) { @items.classify(&test) }
+multi classify( $test, *@items ) { {}.classify( $test, @items ) }
+
+proto categorize(|) { * }
+multi categorize( $test, *@items ) { {}.categorize( $test, @items ) }
 
 proto uniq(|) { * }
 multi uniq(*@values) { @values.uniq }
+
+proto squish(|) { * }
+multi squish(*@values) { @values.squish }
 
 proto sub sort(|) {*}
 multi sub sort(*@values)      {

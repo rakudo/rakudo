@@ -6,9 +6,10 @@ use strict;
 use warnings;
 use Text::ParseWords;
 use Getopt::Long;
-use Cwd;
+use Cwd qw(cwd realpath);
 use lib "tools/lib";
-use NQP::Configure qw(sorry slurp fill_template_text fill_template_file);
+use NQP::Configure qw(sorry slurp fill_template_text fill_template_file
+                      system_or_die);
 use File::Basename;
 
 my $lang = 'Rakudo';
@@ -26,7 +27,7 @@ MAIN: {
 
     my %options;
     GetOptions(\%options, 'help!', 'prefix=s', 'with-nqp=s',
-               'make-install!', 'makefile-timing!',
+               'make-install!', 'makefile-timing!', 'no-clean!'
     ) or do {
         print_help();
         exit(1);
@@ -38,7 +39,8 @@ MAIN: {
         exit(0);
     }
 
-    my $prefix      = $options{'prefix'} || cwd().'/install';
+    my $prefix      = $options{'prefix'} || 
+        ($^O eq 'MSWin32' ? cwd().'\\install-jvm' : cwd().'/install-jvm');
     my $with_nqp    = $options{'with-nqp'} ||
         ($^O eq 'MSWin32' ? 'install-jvm\\nqp' : 'install-jvm/nqp');
 
@@ -62,7 +64,7 @@ MAIN: {
 
     $config{'prefix'} = $prefix;
     $config{'nqp'} = $with_nqp;
-    $config{'nqp_prefix'} = dirname($with_nqp);
+    $config{'nqp_prefix'} = realpath(dirname($with_nqp));
     $config{'makefile-timing'} = $options{'makefile-timing'};
     $config{'stagestats'} = '--stagestats' if $options{'makefile-timing'};
     $config{'cpsep'} = $^O eq 'MSWin32' ? ';' : ':';
@@ -72,7 +74,7 @@ MAIN: {
     
     fill_template_file('tools/build/Makefile-JVM.in', 'Makefile', %config);
 
-    {
+    unless ($options{'no-clean'}) {
         no warnings;
         print "Cleaning up ...\n";
         if (open my $CLEAN, '-|', "$make clean") {

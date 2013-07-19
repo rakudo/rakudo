@@ -58,7 +58,12 @@ my class EnumMap does Associative {
             my Mu $pair;
             while $iter {
                 $pair := nqp::shift($iter);
+#?if jvm
+                take Pair.new(:key(nqp::p6box_s(nqp::iterkey_s($pair))), :value(nqp::iterval($pair)));
+#?endif
+#?if parrot
                 take Pair.new(:key($pair.key), :value($pair.value));
+#?endif
             }
             Nil
         }
@@ -69,7 +74,12 @@ my class EnumMap does Associative {
             my Mu $pair;
             while $iter {
                 $pair := nqp::shift($iter);
+#?if jvm
+                take Pair.new(:key(nqp::iterval($pair)), :value(nqp::p6box_s(nqp::iterkey_s($pair))));
+#?endif
+#?if parrot
                 take Pair.new(:key($pair.value), :value($pair.key));
+#?endif
             }
             Nil
         }

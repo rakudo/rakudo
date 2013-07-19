@@ -51,12 +51,12 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
             }
             else {
                 nqp::die("Could not find $module_name in any of: " ~
-                    nqp::join(', ', @prefixes));
+                    join(', ', @prefixes));
             }
         }
         my %chosen := @candidates[0];
         
-        my @MODULES := nqp::clone(@*MODULES);
+        my @MODULES := nqp::clone(@*MODULES // []);
         for @MODULES -> $m {
             if $m<module> eq $module_name {
                 nqp::die("Circular module loading detected involving module '$module_name'");
@@ -109,10 +109,18 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
                 
                 # Read source file.
                 DEBUG("loading ", %chosen<pm>) if $DEBUG;
+#?if parrot
                 my $fh := nqp::open(%chosen<pm>, 'r');
                 $fh.encoding('utf8');
                 my $source := $fh.readall();
                 $fh.close();
+#?endif
+#?if jvm
+                my $fh := nqp::open(%chosen<pm>, 'r');
+                nqp::setencoding($fh, 'utf8');
+                my $source := nqp::readallfh($fh);
+                nqp::closefh($fh);
+#?endif
                 
                 # Get the compiler and compile the code, then run it
                 # (which runs the mainline and captures UNIT).

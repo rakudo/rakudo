@@ -186,6 +186,24 @@ my class Complex is Cool does Numeric {
     method acotanh(Complex:D:) {
         (1 / self).atanh;
     }
+
+    method floor(Complex:D:) {
+        Complex.new( self.re.floor, self.im.floor );
+    }
+
+    method ceiling(Complex:D:) {
+        Complex.new( self.re.ceiling, self.im.ceiling );
+    }
+
+    proto method round(|) {*}
+    multi method round(Complex:D: $scale as Real = 1) {
+        Complex.new( self.re.round($scale), self.im.round($scale) );
+    }
+
+    method truncate(Complex:D:) {
+        Complex.new( self.re.truncate, self.im.truncate );
+    }
+
 }
 
 multi sub prefix:<->(Complex:D \a) returns Complex:D {

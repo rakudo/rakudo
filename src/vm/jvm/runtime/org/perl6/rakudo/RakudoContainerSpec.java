@@ -15,32 +15,66 @@ public class RakudoContainerSpec extends ContainerSpec {
     
     /* Fetches a value out of a container. Used for decontainerization. */
     public SixModelObject fetch(ThreadContext tc, SixModelObject cont) {
-        return cont.get_attribute_boxed(tc, Ops.Scalar, "$!value", HINT_value);
+        return cont.get_attribute_boxed(tc, RakOps.key.getGC(tc).Scalar, "$!value", HINT_value);
     }
     
     /* Stores a value in a container. Used for assignment. */
-    public void store(ThreadContext tc, SixModelObject cont, SixModelObject obj) {
-        if (Ops.DEBUG_MODE)
-            System.err.println("scalar store typecheck / rwcheck NYI");
+    private static final CallSiteDescriptor storeThrower = new CallSiteDescriptor(
+        new byte[] { CallSiteDescriptor.ARG_STR, CallSiteDescriptor.ARG_OBJ, CallSiteDescriptor.ARG_OBJ }, null);
+    public void store(ThreadContext tc, SixModelObject cont, SixModelObject value) {
+        RakOps.GlobalExt gcx = RakOps.key.getGC(tc);
         
-        SixModelObject whence = cont.get_attribute_boxed(tc, Ops.Scalar, "$!whence", HINT_whence);
+        long rw = 0;
+        SixModelObject desc = cont.get_attribute_boxed(tc, gcx.Scalar,
+            "$!descriptor", HINT_descriptor);
+        if (desc != null) {
+            desc.get_attribute_native(tc, gcx.ContainerDescriptor, "$!rw", RakOps.HINT_CD_RW);
+            rw = tc.native_i;
+        }
+        if (rw == 0)
+            throw ExceptionHandling.dieInternal(tc,
+                "Cannot assign to a readonly variable or a value");
+        
+        SixModelObject of = desc.get_attribute_boxed(tc,
+            gcx.ContainerDescriptor, "$!of", RakOps.HINT_CD_OF);
+        long ok = Ops.istype(value, of, tc);
+        if (ok == 0) {
+            if (value.st.WHAT == gcx.Nil) {
+                value = desc.get_attribute_boxed(tc,
+                    gcx.ContainerDescriptor, "$!default", RakOps.HINT_CD_DEFAULT);
+            }
+            else {
+                desc.get_attribute_native(tc, gcx.ContainerDescriptor, "$!name", RakOps.HINT_CD_NAME);
+                String name = tc.native_s;
+                SixModelObject thrower = RakOps.getThrower(tc, "X::TypeCheck::Assignment");
+                if (thrower == null)
+                    throw ExceptionHandling.dieInternal(tc,
+                        "Type check failed in assignment to '" + name + "'");
+                else
+                    Ops.invokeDirect(tc, thrower,
+                        storeThrower, new Object[] { name, value, of });
+            }
+        }
+        
+        SixModelObject whence = cont.get_attribute_boxed(tc, gcx.Scalar, "$!whence", HINT_whence);
         if (whence != null)
-            org.perl6.nqp.runtime.Ops.invokeDirect(tc, whence,
+            Ops.invokeDirect(tc, whence,
                 WHENCE, new Object[] { });
         
-        cont.bind_attribute_boxed(tc, Ops.Scalar, "$!value", HINT_value, obj);
+        cont.bind_attribute_boxed(tc, gcx.Scalar, "$!value", HINT_value, value);
     }
     
     /* Stores a value in a container, without any checking of it (this
      * assumes an optimizer or something else already did it). Used for
      * assignment. */
     public void storeUnchecked(ThreadContext tc, SixModelObject cont, SixModelObject obj) {
-        SixModelObject whence = cont.get_attribute_boxed(tc, Ops.Scalar, "$!whence", HINT_whence);
+        SixModelObject Scalar = RakOps.key.getGC(tc).Scalar;
+        SixModelObject whence = cont.get_attribute_boxed(tc, Scalar, "$!whence", HINT_whence);
         if (whence != null)
-            org.perl6.nqp.runtime.Ops.invokeDirect(tc, whence,
+            Ops.invokeDirect(tc, whence,
                 WHENCE, new Object[] { });
         
-        cont.bind_attribute_boxed(tc, Ops.Scalar, "$!value", HINT_value, obj);
+        cont.bind_attribute_boxed(tc, Scalar, "$!value", HINT_value, obj);
     }
     
     /* Name of this container specification. */

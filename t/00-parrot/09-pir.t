@@ -4,6 +4,13 @@
 
 use v6;
 
+BEGIN {
+    unless $*VM<name> eq 'parrot' {
+        say '1..0 # SKIP This is not Parrot and cannot run PIR blocks';
+        exit 0;
+    }
+}
+
 say '1..3';
 
 ## inline directly

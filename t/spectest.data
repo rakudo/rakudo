@@ -60,6 +60,7 @@ S02-names/bare-sigil.t
 S02-names/caller.t
 S02-names/identifier.t
 S02-names/indirect.t
+S02-names/is_default.t
 S02-names/our.t
 S02-names/pseudo.t
 S02-names/symbolic-deref.t
@@ -92,6 +93,7 @@ S02-types/infinity.t
 S02-types/instants-and-durations.t
 S02-types/keybag.t
 S02-types/keyset.t
+S02-types/lazy-lists.t
 S02-types/lists.t
 S02-types/mixed_multi_dimensional.t
 S02-types/multi_dimensional_array.t
@@ -157,6 +159,7 @@ S03-operators/equality.t
 S03-operators/eqv.t
 S03-operators/flip-flop.t
 S03-operators/gcd.t
+S03-operators/div.t
 S03-operators/identity.t
 S03-operators/increment.t
 S03-operators/inplace.t
@@ -585,6 +588,7 @@ S32-array/exists.t
 S32-array/keys_values.t
 S32-array/kv.t
 S32-array/pairs.t
+S32-array/perl.t
 S32-array/pop.t
 S32-array/push.t
 S32-array/rotate.t
@@ -603,6 +607,7 @@ S32-hash/invert.t
 S32-hash/keys_values.t
 S32-hash/kv.t
 S32-hash/pairs.t
+S32-hash/perl.t
 S32-hash/push.t
 S32-hash/slice.t
 S32-io/chdir.t
@@ -636,6 +641,7 @@ S32-list/reverse.t
 S32-list/roll.t
 S32-list/sort.t
 S32-list/uniq.t
+S32-list/squish.t
 S32-num/abs.t
 S32-num/base.t
 S32-num/complex.t
@@ -755,6 +761,8 @@ integration/role-composition-vs-attribute.t
 integration/rule-in-class-Str.t
 integration/say-crash.t
 integration/substr-after-match-in-gather-in-for.t
+integration/topic_in_double_loop.t
+integration/variables-in-do.t
 integration/weird-errors.t
 rosettacode/greatest_element_of_a_list.t  
 rosettacode/sierpinski_triangle.t

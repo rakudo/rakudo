@@ -16,6 +16,8 @@ my class ListIter {
                 ?? $max
                 !! nqp::unbox_i(nqp::istype($n, Int) ?? $n !! $n.Int);
             my $rpa := nqp::list();
+            nqp::setelems($rpa, $count);
+            nqp::setelems($rpa, 0);
             my Mu $x;
             my int $index;
             my $want_types := $flattens

@@ -83,14 +83,19 @@ my class Range is Iterable is Cool does Positional {
         my $realmax = nqp::istype($!min, Numeric) && !nqp::istype($!max, Callable) && !nqp::istype($!max, Whatever)
                       ?? $!max.Numeric
                       !! $!max;
+        
+        # Pre-size the buffer, to avoid reallocations.
         my Mu $rpa := nqp::list();
-#?if parrot
+        nqp::setelems($rpa, $count == $Inf ?? 256 !! $count.Int);
+        nqp::setelems($rpa, 0);
+        
         if nqp::istype($value, Int) && nqp::istype($!max, Int) && !nqp::isbig_I(nqp::decont $!max)
            || nqp::istype($value, Num) {
-            # Q:PIR optimized for int/num ranges
+            # optimized for int/num ranges
             $value = $value.Num;
             my $max = $!max.Num;
             my $box_int = nqp::p6bool(nqp::istype($!min, Int));
+#?if parrot
             Q:PIR {
                 .local pmc rpa, value_pmc, count_pmc
                 .local num value, count, max
@@ -125,14 +130,29 @@ my class Range is Iterable is Cool does Positional {
                 perl6_container_store value_pmc, $P0
                 %r = rpa
             };
+#?endif
+#?if !parrot
+            my num $nvalue = $value;
+            my num $ncount = $count;
+            my num $nmax = $max;
+            my int $icmpstop = $cmpstop;
+            my int $ibox_int = $box_int;
+            nqp::while(
+                (nqp::isgt_n($ncount, 0e0) && nqp::islt_i(nqp::cmp_n($nvalue, $nmax), $icmpstop)),
+                nqp::stmts(
+                    nqp::push($rpa, $ibox_int
+                        ?? nqp::p6box_i($nvalue)
+                        !! nqp::p6box_n($nvalue)),
+                    ($nvalue = nqp::add_n($nvalue, 1e0)),
+                    ($ncount = nqp::sub_n($ncount, 1e0))
+                ));
+            $value = nqp::p6box_i($nvalue);
+#?endif
         }    
         else {
-#?endif
           (nqp::push($rpa, $value++); $count--)
               while $count > 0 && ($value cmp $realmax) < $cmpstop;
-#?if parrot
         }
-#?endif
         if ($value cmp $!max) < $cmpstop {
             nqp::push($rpa,
                 ($value.succ cmp $!max < $cmpstop)

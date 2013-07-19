@@ -3,7 +3,12 @@ my class X::Hash::Store::OddNumber { ... }
 my class Hash {
     # Has attributes and parent EnumMap declared in BOOTSTRAP
 
-    method new(*@args) { @args.hash }
+    method new(*@args) { 
+        my %h := nqp::create(self);
+        %h.STORE(@args) if @args;
+        %h;
+    }
+    method keyof () { Any }
     
     multi method at_key(Hash:D: $key is copy) is rw {
         my Mu $storage := nqp::defined(nqp::getattr(self, EnumMap, '$!storage')) ??
@@ -99,6 +104,58 @@ my class Hash {
         self
     }
 
+    proto method classify(|) { * }
+    multi method classify( &test, *@list ) {
+        fail 'Cannot .classify an infinite list' if @list.infinite;
+        for @list {
+            self{test $_}.push: $_;
+        }
+        self;
+    }
+    multi method classify( %test, *@list ) {
+        fail 'Cannot .classify an infinite list' if @list.infinite;
+        for @list {
+            self{ %test{$_} }.push: $_;
+        }
+        self;
+    }
+    multi method classify( @test, *@list ) {
+        fail 'Cannot .classify an infinite list' if @list.infinite;
+        for @list {
+            self{ @test[$_] }.push: $_;
+        }
+        self;
+    }
+
+    proto method categorize(|) { * }
+    multi method categorize( &test, *@list ) {
+        fail 'Cannot .categorize an infinite list' if @list.infinite;
+        for @list {
+            for test($_) -> $k {
+                self{$k}.push: $_;
+            }
+        }
+        self;
+    }
+    multi method categorize( %test, *@list ) {
+        fail 'Cannot .categorize an infinite list' if @list.infinite;
+        for @list {
+            for %test{$_} -> $k {
+                self{$k}.push: $_;
+            }
+        }
+        self;
+    }
+    multi method categorize( @test, *@list ) {
+        fail 'Cannot .categorize an infinite list' if @list.infinite;
+        for @list {
+            for @test[$_] -> $k {
+                self{$k}.push: $_;
+            }
+        }
+        self;
+    }
+
     # push a value onto a hash slot, constructing an array if necessary
     method !_push_construct(Mu $key, Mu $value) {
         if self.exists($key) {
@@ -132,9 +189,17 @@ my class Hash {
                 nqp::unbox_s($key.Str),
                 bindval)
         }
+        multi method perl(::?CLASS:D \SELF:) {
+            'Hash['
+              ~ TValue.perl
+              ~ '].new('
+              ~ self.pairs.map({.perl}).join(', ')
+              ~ ')';
+        }
     }
     my role TypedHash[::TValue, ::TKey] does Associative[TValue] {
         has $!keys;
+        method keyof () { TKey }
         method at_key(::?CLASS:D: TKey \key, TValue $v? is copy) is rw {
             my $key_which = key.WHICH;
             self.exists(key)
@@ -198,20 +263,35 @@ my class Hash {
                 my Mu $key;
                 while $iter {
                     $pair := nqp::shift($iter);
-                    $key  := nqp::atkey(nqp::getattr(self, $?CLASS, '$!keys'), $pair.key);
-                    take Pair.new(:key($key), :value($pair.value));
+                    $key  := nqp::atkey(nqp::getattr(self, $?CLASS, '$!keys'), nqp::iterkey_s($pair));
+                    take Pair.new(:key($key), :value(nqp::iterval($pair)));
                 }
                 Nil
             }
         }
+        multi method perl(::?CLASS:D \SELF:) {
+            'Hash['
+              ~ TValue.perl
+              ~ ','
+              ~ TKey.perl
+              ~ '].new('
+              ~ self.pairs.map({.perl}).join(', ')
+              ~ ')';
+        }
     }
     method PARAMETERIZE_TYPE(Mu $t, |c) {
-        c.elems ??
-            self but TypedHash[$t.WHAT, c[0]] !!
+        if c.elems == 0 {
             self but TypedHash[$t.WHAT]
+        }
+        elsif c.elems == 1 {
+            self but TypedHash[$t.WHAT, c[0]]
+        }
+        else {
+            die "Can only type-constraint Hash with [ValueType] or [ValueType,KeyType]";
+        }
     }
 }
 
 
-sub circumfix:<{ }>(*@elems) { my $x = Hash.new.STORE(@elems); }
+sub circumfix:<{ }>(*@elems) { my $ = Hash.new(@elems) }
 sub hash(*@a, *%h) { my % = @a, %h }

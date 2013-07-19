@@ -183,16 +183,10 @@ do {
         for $bt.keys {
             try {
                 my Mu $sub := nqp::getattr(nqp::decont($bt[$_]<sub>), ForeignCode, '$!do');
-                return True if nqp::iseq_s(nqp::getcodename($sub), 'eval')
-                    && nqp::iseq_s(
-                            nqp::join(';', $sub.get_namespace.get_name),
-                            'nqp'
-                    );
-                return False if nqp::iseq_s(nqp::getcodename($sub), 'compile')
-                    && nqp::iseq_s(
-                            nqp::join(';', $sub.get_namespace.get_name),
-                            'nqp'
-                    );
+                my Mu $codeobj := nqp::ifnull(nqp::getcodeobj($sub), Mu);
+                my $is_nqp = $codeobj && $codeobj.HOW.name($codeobj) eq 'NQPRoutine';
+                return True if nqp::iseq_s(nqp::getcodename($sub), 'eval') && $is_nqp;
+                return False if nqp::iseq_s(nqp::getcodename($sub), 'compile') && $is_nqp;
             }
         }
         return False;
@@ -205,16 +199,21 @@ do {
             my $e := EXCEPTION($ex);
             my Mu $err := nqp::getstderr();
 
+#?if parrot
             if $e.is-compile-time || is_runtime($ex.backtrace) {
-                $err.print: $e.gist;
-                $err.print: "\n";
+#?endif
+#?if jvm
+            if $e.is-compile-time || is_runtime(nqp::backtrace($ex)) {
+#?endif
+                nqp::printfh($err, $e.gist);
+                nqp::printfh($err, "\n");
             }
             else {
-                $err.print: "===SORRY!===\n";
-                $err.print: $ex;
-                $err.print: "\n";
+                nqp::printfh($err, "===SORRY!===\n");
+                nqp::printfh($err, $e.Str);
+                nqp::printfh($err, "\n");
             }
-            $_() for nqp::hllize(@*END_PHASERS);
+            $_() for nqp::hllize(nqp::getcurhllsym('@END_PHASERS'));
         }
         if $! {
 #?if parrot
@@ -233,13 +232,24 @@ do {
         if ($type == nqp::const::CONTROL_WARN) {
             my Mu $err := nqp::getstderr();
             my $msg = nqp::p6box_s(nqp::getmessage($ex));
-            $err.print: $msg ?? "$msg" !! "Warning";
-            $err.print: Backtrace.new($ex.backtrace, 0).nice(:oneline);
-            $err.print: "\n";
+            nqp::printfh($err, $msg ?? "$msg" !! "Warning");
+#?if parrot
+            nqp::printfh($err, Backtrace.new($ex.backtrace, 0).nice(:oneline));
+#?endif
+#?if jvm
+#            XXX Backtraces busted
+#            nqp::printfh($err, Backtrace.new(nqp::backtrace($ex), 0).nice(:oneline));
+#?endif
+            nqp::printfh($err, "\n");
+#?if parrot
             my $resume := nqp::atkey($ex, 'resume');
             if ($resume) {
                 $resume();
             }
+#?endif
+#?if !parrot
+            nqp::resume($ex)
+#?endif
         }
         if ($type == nqp::const::CONTROL_LAST) {
             X::ControlFlow.new(illegal => 'last', enclosing => 'loop construct').throw;
@@ -528,7 +538,7 @@ my class X::Undeclared::Symbols does X::Comp {
     }
     method message() {
         sub l(@l) {
-            my @lu = @l.uniq.sort;
+            my @lu = @l.map({ nqp::hllize($_) }).uniq.sort;
             'used at line' ~ (@lu == 1 ?? ' ' !! 's ') ~ @lu.join(', ')
         }
         sub s(@s) {
@@ -1212,6 +1222,12 @@ my class X::Numeric::Real is Exception {
 
     method message() {
         "Can not convert $.source to {$.target.^name}: $.reason";
+    }
+}
+
+my class X::Numeric::DivideByZero is Exception {
+    method message() {
+        "Divide by zero";
     }
 }
 

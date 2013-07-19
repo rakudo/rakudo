@@ -29,7 +29,6 @@ sub prompt($msg) {
 }
 
 my role IO::FileTestable does IO {
-#?if parrot
     method d() {
         self.e && nqp::p6bool(nqp::stat(nqp::unbox_s(self.Str), nqp::const::STAT_ISDIR))
     }
@@ -42,29 +41,28 @@ my role IO::FileTestable does IO {
         self.e && nqp::p6bool(nqp::stat(nqp::unbox_s(self.Str), nqp::const::STAT_ISREG))
     }
 
-    method l() {
-        nqp::p6bool(pir::new__Ps('File').is_link(nqp::unbox_s(self.Str)))
-    }
-
-    method r() {
-        nqp::p6bool(pir::new__Ps('OS').can_read(nqp::unbox_s(self.Str)))
-    }
-
     method s() {
-        self.e 
-          && nqp::p6box_i( nqp::stat(nqp::unbox_s(self.Str), 
+        self.e
+          && nqp::p6box_i( nqp::stat(nqp::unbox_s(self.Str),
                                  nqp::const::STAT_FILESIZE) );
     }
 
+    method l() {
+        nqp::p6bool(nqp::fileislink(self.Str))
+    }
+
+    method r() {
+        nqp::p6bool(nqp::filereadable(self.Str))
+    }
+
     method w() {
-        nqp::p6bool(pir::new__Ps('OS').can_write(nqp::unbox_s(self.Str)))
+        nqp::p6bool(nqp::filewritable(self.Str))
     }
 
     method x() {
-        nqp::p6bool(pir::new__Ps('OS').can_execute(nqp::unbox_s(self.Str)))
+        nqp::p6bool(nqp::fileexecutable(self.Str))
     }
-#?endif
-    
+
     method z() {
         self.e && self.s == 0;
     }
@@ -113,7 +111,7 @@ my class IO::Handle does IO::FileTestable {
     }
 
     method eof() {
-        nqp::p6bool($!PIO.eof);
+        nqp::p6bool(nqp::eoffh($!PIO));
     }
 
     method get() {
@@ -121,7 +119,7 @@ my class IO::Handle does IO::FileTestable {
             self.open($!path, :chomp($.chomp));
         }
         return Str if self.eof;
-        my Str $x = nqp::p6box_s($!PIO.readline);
+        my Str $x = nqp::p6box_s(nqp::readlinefh($!PIO));
         # XXX don't fail() as long as it's fatal
         # fail('end of file') if self.eof && $x eq '';
         $x.=chomp if $.chomp;
@@ -220,7 +218,7 @@ my class IO::Handle does IO::FileTestable {
             $Buf;
         }
         else {
-            my $contents = nqp::p6box_s($!PIO.readall());
+            my $contents = nqp::p6box_s(nqp::readallfh($!PIO));
             self.close();
             $contents
         } 
@@ -261,18 +259,8 @@ my class IO::Handle does IO::FileTestable {
         $! ?? fail(X::IO::Copy.new(from => $!path, to => $dest, os-error => ~$!)) !! True
     }
 
-    method chmod($mode) {
-        nqp::chmod(nqp::unbox_s(~$!path), nqp::unbox_i($mode.Int));
-        return True;
-        CATCH {
-            default {
-                X::IO::Chmod.new(
-                    :$!path,
-                    :$mode,
-                    os-error => .Str,
-                ).throw;
-            }
-        }
+    method chmod(Int $mode) {
+        self.path.chmod($mode)
     }
 
     method IO { self }
@@ -301,34 +289,56 @@ my class IO::Handle does IO::FileTestable {
 
     method encoding($enc?) {
         $enc.defined
-            ?? $!PIO.encoding(PARROT_ENCODING($enc))
+            ?? nqp::setencoding($!PIO, PARROT_ENCODING($enc))
             !! $!PIO.encoding
     }
 }
 
 my class IO::Path is Cool does IO::FileTestable {
     method SPEC { IO::Spec.MODULE };
-    has Str $.basename;
-    has Str $.directory = '.';
-    has Str $.volume = '';
+    has Str $.path;
 
     method dir() {
         die "IO::Path.dir is deprecated in favor of .directory";
     }
-    submethod BUILD(:$!basename, :$!directory, :$!volume, :$dir) {
+    submethod BUILD(:$!path!, :$dir) { 
         die "Named paramter :dir in IO::Path.new deprecated in favor of :directory"
             if defined $dir;
     }
 
+    multi method new(:$basename!, :$directory = '.', :$volume = '') {
+        self.new: path=>$.SPEC.join($volume, $directory, $basename);
+    }
+
     multi method new(Str:D $path) {
-         self.new( |$.SPEC.split($path).hash );
+        self.new(:$path)
+    }
+
+    method path(IO::Path:D:) {
+        self;
+    }
+
+    method parts {
+        $.SPEC.split($!path).hash
+    }
+    method basename {
+        self.parts<basename>
+    }
+    method directory {
+        self.parts<directory>
+    }
+    method volume {
+        self.parts<volume>
     }
 
     multi method Str(IO::Path:D:) {
-        $.SPEC.join($.volume, $.directory, $.basename);
+         $!path;
     }
     multi method gist(IO::Path:D:) {
-        "{self.^name}<{self.Str}>";
+        "{self.^name}<{ $!path }>";
+    }
+    multi method perl(IO::Path:D:) {
+         "IO::Path.new(path => " ~ $.Str.perl ~ ")";
     }
     multi method Numeric(IO::Path:D:) {
         self.basename.Numeric;
@@ -340,38 +350,39 @@ my class IO::Path is Cool does IO::FileTestable {
         self.basename.Int;
     }
 
-    method path(IO::Path:D:) {
-        self;
+    method succ(IO::Path:D:) {
+        self.new(:$.volume, :$.directory, basename=> $.basename.succ)
+    }
+    method pred(IO::Path:D:) {
+        self.new(:$.volume, :$.directory, basename=> $.basename.pred)
     }
 
     method IO(IO::Path:D: *%opts) {
-        IO::Handle.new(:path(~self), |%opts);
+        IO::Handle.new(:$!path, |%opts);
     }
     method open(IO::Path:D: *%opts) {
-        open(~self, |%opts);
-    }
-    method contents(IO::Path:D: *%opts) {
-        dir(~self, |%opts);
+        open($!path, |%opts);
     }
 
     method is-absolute {
-        $.SPEC.is-absolute(~self);
+        $.SPEC.is-absolute($!path);
     }
     method is-relative {
-        ! $.SPEC.is-absolute(~self);
+        ! $.SPEC.is-absolute($!path);
     }
-    method absolute ($base = $*CWD) {
-        return self.new($.SPEC.rel2abs(~self, $base))
+    method absolute ($base = ~$*CWD) {
+        return self.new($.SPEC.rel2abs($!path, $base));
     }
-    method relative ($relative_to_directory = $*CWD) {
-        return self.new($.SPEC.abs2rel(~self, $relative_to_directory));
+    method relative ($relative_to_directory = ~$*CWD) {
+        return self.new($.SPEC.abs2rel($!path, $relative_to_directory));
     }
 
-    method cleanup {
-        return self.new($.SPEC.canonpath(~self));
+    method cleanup (:$parent) {
+        return self.new($.SPEC.canonpath($!path, :$parent));
     }
     method resolve {
-        fail "Not Yet Implemented: requires readlink()";
+        # NYI: requires readlink()
+        X::NYI.new(feature=>'IO::Path.resolve').fail;
     }
 
     method parent {
@@ -395,20 +406,75 @@ my class IO::Path is Cool does IO::FileTestable {
     }
 
     method child ($childname) {
-        self.new($.SPEC.join: $.volume,
-                              $.SPEC.catdir($.directory, $.basename),
-                              $childname);
+        self.new: path => $.SPEC.catfile($!path, $childname);
     }
 
-    method copy($dest, :$createonly = False) {
+    method copy(IO::Path:D: $dest, :$createonly = False) {
         if $createonly and $dest.path.e {
-            fail(X::IO::Copy.new(from => $.Str, to => $dest,
+            fail(X::IO::Copy.new(from => $!path, to => $dest,
                     os-error => "Destination file $dest exists and :createonly passed to copy."));
         }
         try {
-            nqp::copy(nqp::unbox_s($.Str), nqp::unbox_s(~$dest));
+            nqp::copy(nqp::unbox_s($!path), nqp::unbox_s(~$dest));
         }
-        $! ?? fail(X::IO::Copy.new(from => $.Str, to => $dest, os-error => ~$!)) !! True
+        $! ?? fail(X::IO::Copy.new(from => $!path, to => $dest, os-error => ~$!)) !! True
+    }
+
+    method chmod(IO::Path:D: Int $mode) {
+        nqp::chmod(nqp::unbox_s($!path), nqp::unbox_i($mode.Int));
+        return True;
+        CATCH {
+            default {
+                X::IO::Chmod.new(
+                    :$!path,
+                    :$mode,
+                    os-error => .Str,
+                ).throw;
+            }
+        }
+    }
+
+    method contents(IO::Path:D: Mu :$test = none('.', '..')) {
+
+        CATCH {
+            default {
+                X::IO::Dir.new(
+                    :$!path,
+                    os-error => .Str,
+                ).throw;
+            }
+        }
+#?if parrot
+        my Mu $RSA := pir::new__PS('OS').readdir(nqp::unbox_s($!path));
+        my int $elems = nqp::elems($RSA);
+        gather loop (my int $i = 0; $i < $elems; $i = $i + 1) {
+            my Str $file := nqp::p6box_s(pir::trans_encoding__Ssi(
+			nqp::atpos_s($RSA, $i),
+			pir::find_encoding__Is('utf8')));
+            if $file ~~ $test {
+                take self.child($file);
+            }
+        }
+#?endif
+#?if jvm
+        my Mu $dirh := nqp::opendir($!path);
+        my $next = 1;
+        gather {
+            take $_.path if $_ ~~ $test for ".", "..";
+            loop {
+                my Str $elem := nqp::nextfiledir($dirh);
+                if nqp::isnull_s($elem) {
+                    nqp::closedir($dirh);
+                    last;
+                } else {
+                    if $elem.substr(0, 2) eq any("./", ".\\") {
+                        $elem := $elem.substr(2);
+                    }
+                    take $elem.path if $elem ~~ $test;
+                }
+            }
+        }
+#?endif
     }
 
 }
@@ -416,38 +482,14 @@ my class IO::Path is Cool does IO::FileTestable {
 my class IO::Path::Unix   is IO::Path { method SPEC { IO::Spec::Unix   };  }
 my class IO::Path::Win32  is IO::Path { method SPEC { IO::Spec::Win32  };  }
 my class IO::Path::Cygwin is IO::Path { method SPEC { IO::Spec::Cygwin };  }
+my class IO::Path::QNX    is IO::Path { method SPEC { IO::Spec::QNX    };  }
 
 
 sub dir(Cool $path = '.', Mu :$test = none('.', '..')) {
-#?if parrot
-    CATCH {
-        default {
-            X::IO::Dir.new(
-                :$path,
-                os-error => .Str,
-            ).throw;
-        }
-    }
-
-    my Mu $RSA := pir::new__PS('OS').readdir(nqp::unbox_s($path.Str));
-    my int $elems = nqp::elems($RSA);
-    my @res;
-    my ($volume, $directory) = IO::Spec.splitpath(~$path, :nofile);
-    gather loop (my int $i = 0; $i < $elems; $i = $i + 1) {
-        my Str $file := nqp::p6box_s(pir::trans_encoding__Ssi(
-			nqp::atpos_s($RSA, $i),
-			pir::find_encoding__Is('utf8')));
-        if $file ~~ $test {
-            take IO::Path.new(:basename($file), :$directory, :$volume);
-        }
-    }
-#?endif
-#?if !parrot
-    die "dir is NYI on JVM backend";
-#?endif
+    $path.path.contents(:$test)
 }
 
-sub unlink($path) {
+sub unlink($path as Str) {
     nqp::unlink($path);
     return True;
     CATCH {
@@ -460,7 +502,7 @@ sub unlink($path) {
     }
 }
 
-sub rmdir($path) {
+sub rmdir($path as Str) {
     nqp::rmdir($path);
     return True;
     CATCH {
@@ -539,16 +581,16 @@ multi sub spurt(Cool $filename,
 
 proto sub cwd(|) { * }
 multi sub cwd() {
-#?if parrot
     return nqp::p6box_s(
+#?if parrot
 		pir::trans_encoding__Ssi(
 			nqp::cwd(),
-			pir::find_encoding__Is('utf8')));
+			pir::find_encoding__Is('utf8'))
 #?endif
 #?if !parrot
-    die "cwd is NYI on JVM backend";
+			nqp::cwd(),
 #?endif
-
+    );
     CATCH {
         default {
             X::IO::Cwd.new(
@@ -652,4 +694,4 @@ sub link(Cool $target as Str, Cool $name as Str) {
     }
 }
 
-sub chmod($mode, $filename) { $filename.IO.chmod($mode); $filename }
+sub chmod($mode, $filename) { $filename.path.chmod($mode); $filename }

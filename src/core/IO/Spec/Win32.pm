@@ -7,20 +7,23 @@ my class IO::Spec::Win32 is IO::Spec::Unix {
     my $UNCpath     = regex { [<$slash> ** 2] <$notslash>+  <$slash>  [<$notslash>+ | $] }
     my $volume_rx   = regex { <$driveletter> | <$UNCpath> }
 
-    method canonpath ($path) { $path.chars ?? self!canon-cat($path) !! '' }
+    method canonpath ($path, :$parent) {
+        $path eq '' ?? '' !! self!canon-cat($path, :$parent);
+    }
 
     method catdir(*@dirs) {
         return "" unless @dirs;
         return self!canon-cat( "\\", |@dirs ) if @dirs[0] eq "";
         self!canon-cat(|@dirs);
     }
+
     method splitdir($dir)        { $dir.split($slash)  }
     method catfile(|c)           { self.catdir(|c)     }
     method devnull               { 'nul'               }
     method rootdir               { '\\'                }
 
     method tmpdir {
-        self.canonpath: first( { .defined && .IO.d && .IO.w },
+        first( { .defined && .IO.d && .IO.w },
             %*ENV<TMPDIR>,
             %*ENV<TEMP>,
             %*ENV<TMP>,
@@ -163,17 +166,15 @@ my class IO::Spec::Win32 is IO::Spec::Unix {
     }
 
 
-    method !canon-cat ( $first is copy, *@rest ) {
+    method !canon-cat ( $first, *@rest, :$parent --> Str) {
 
-        my $volumematch =
-             $first ~~ /^ ([   <$driveletter> <$slash>?
-                            | <$UNCpath>
-                            | [<$slash> ** 2] <$notslash>+
-                            | <$slash> ]?)
-                           (.*)
-                       /;
-        my $volume = ~$volumematch[0];
-        $first =     ~$volumematch[1];
+        $first ~~ /^ ([   <$driveletter> <$slash>?
+                        | <$UNCpath>
+                        | [<$slash> ** 2] <$notslash>+
+                        | <$slash> ]?)
+                       (.*)
+                   /;
+        my Str ($volume, $path) = ~$0, ~$1;
 
         $volume.=subst(:g, '/', '\\');
         if $volume ~~ /^<$driveletter>/ {
@@ -183,23 +184,15 @@ my class IO::Spec::Win32 is IO::Spec::Unix {
             $volume ~= '\\';
         }
 
-        my $path = join "\\", $first, @rest.flat;
-
-        $path ~~ s:g/ <$slash>+ /\\/;    #:: xx/yy --> xx\yy & xx\\yy --> xx\yy
-
-        $path ~~ s:g/[ ^ | '\\']   '.'  '\\.'*  [ '\\' | $ ]/\\/;  #:: xx/././yy --> xx/yy
-
-        if $*OS eq "symbian"|"NetWare" {
-            # ... -> ../.. -- unknown if .... or higher is supported
-            $path ~~ s:g/ <?after ^ | '\\'> '...' <?before '\\' | $ > /..\\../; #::
+        $path = join "\\", $path, @rest.flat;
+        $path ~~ s:g/ <$slash>+ /\\/;                              # /xx\\yy   --> \xx\yy
+        $path ~~ s:g/[ ^ | '\\']   '.'  '\\.'*  [ '\\' | $ ]/\\/;  # xx/././yy --> xx/yy
+        if $parent {
+            while $path ~~ s:g { [^ | <?after '\\'>] <!before '..\\'> <-[\\]>+ '\\..' ['\\' | $ ] } = '' { };
         }
-
         $path ~~ s/^ '\\'+ //;        # \xx --> xx  NOTE: this is *not* root
         $path ~~ s/ '\\'+ $//;        # xx\ --> xx
-
-
-        if ( $volume ~~ / '\\' $ / ) {
-                            # <vol>\.. --> <vol>\ 
+        if $volume ~~ / '\\' $ / {    # <vol>\.. --> <vol>\ 
             $path ~~ s/ ^  '..'  '\\..'*  [ '\\' | $ ] //;
         }
 

@@ -1,17 +1,21 @@
-# XXX This file is very much a work in progress, steadily updating it from the
-# Parrot original to work for JVM.
 my $ops := nqp::getcomp('QAST').operations;
 
 # Type containing Perl 6 specific ops.
-my $TYPE_P6OPS := 'Lorg/perl6/rakudo/Ops;';
+my $TYPE_P6OPS := 'Lorg/perl6/rakudo/RakOps;';
 
 # Other types we'll refer to.
 my $TYPE_OPS   := 'Lorg/perl6/nqp/runtime/Ops;';
 my $TYPE_CSD   := 'Lorg/perl6/nqp/runtime/CallSiteDescriptor;';
 my $TYPE_SMO   := 'Lorg/perl6/nqp/sixmodel/SixModelObject;';
 my $TYPE_TC    := 'Lorg/perl6/nqp/runtime/ThreadContext;';
+my $TYPE_CF    := 'Lorg/perl6/nqp/runtime/CallFrame;';
 my $TYPE_STR   := 'Ljava/lang/String;';
 my $TYPE_OBJ   := 'Ljava/lang/Object;';
+
+# Exception categories.
+my $EX_CAT_NEXT    := 4;
+my $EX_CAT_REDO    := 8;
+my $EX_CAT_LAST    := 16;
 
 # Opcode types.
 my $RT_OBJ  := 0;
@@ -44,10 +48,21 @@ $ops.add_hll_op('perl6', 'p6bindsig', -> $qastcomp, $op {
     $il.append(JAST::Instruction.new( :op('aload'), '__args' ));
     $il.append(JAST::Instruction.new( :op('invokestatic'), $TYPE_P6OPS,
         "p6bindsig", $TYPE_CSD, $TYPE_TC, $TYPE_CSD, "[$TYPE_OBJ" ));
+    $il.append(JAST::Instruction.new( :op('dup') ));
+    
+    my $natlbl := JAST::Label.new( :name('p6bindsig_no_autothread') );
+    $il.append(JAST::Instruction.new( :op('ifnonnull'), $natlbl ));
+    $il.append(JAST::Instruction.new( :op('aload'), 'cf' ));
+    $il.append(JAST::Instruction.new( :op('invokevirtual'),
+        $TYPE_CF, 'leave', 'Void' ));
+    $il.append(JAST::Instruction.new( :op('return') ));
+    $il.append($natlbl);
+    
     $il.append(JAST::Instruction.new( :op('astore'), 'csd' ));
     $il.append(JAST::Instruction.new( :op('aload_1') ));
     $il.append(JAST::Instruction.new( :op('getfield'), $TYPE_TC, 'flatArgs', "[$TYPE_OBJ" ));
     $il.append(JAST::Instruction.new( :op('astore'), '__args' ));
+
     $ops.result($il, $RT_VOID);
 });
 $ops.map_classlib_hll_op('perl6', 'p6isbindable', $TYPE_P6OPS, 'p6isbindable', [$RT_OBJ, $RT_OBJ], $RT_INT, :tc);
@@ -60,9 +75,28 @@ $ops.map_classlib_hll_op('perl6', 'p6bindassert', $TYPE_P6OPS, 'p6bindassert', [
 $ops.map_classlib_hll_op('perl6', 'p6stateinit', $TYPE_P6OPS, 'p6stateinit', [], $RT_INT, :tc);
 $ops.map_classlib_hll_op('perl6', 'p6setpre', $TYPE_P6OPS, 'p6setpre', [], $RT_OBJ, :tc);
 $ops.map_classlib_hll_op('perl6', 'p6clearpre', $TYPE_P6OPS, 'p6clearpre', [], $RT_OBJ, :tc);
+$ops.map_classlib_hll_op('perl6', 'p6inpre', $TYPE_P6OPS, 'p6inpre', [], $RT_INT, :tc);
 $ops.map_classlib_hll_op('perl6', 'p6setfirstflag', $TYPE_P6OPS, 'p6setfirstflag', [$RT_OBJ], $RT_OBJ, :tc);
 $ops.map_classlib_hll_op('perl6', 'p6takefirstflag', $TYPE_P6OPS, 'p6takefirstflag', [], $RT_INT, :tc);
-$ops.map_classlib_hll_op('perl6', 'p6return', $TYPE_P6OPS, 'p6return', [$RT_OBJ], $RT_OBJ, :tc);
+$ops.add_hll_op('perl6', 'p6return', -> $qastcomp, $op {
+    my $il := JAST::InstructionList.new();
+    my $exprres := $qastcomp.as_jast($op[0], :want($RT_OBJ));
+    $il.append($exprres.jast);
+    $*STACK.obtain($il, $exprres);
+    $il.append(JAST::Instruction.new( :op('dup') ));
+    $il.append(JAST::Instruction.new( :op('aload'), 'cf' ));
+    $il.append(JAST::Instruction.new( :op('invokestatic'), $TYPE_OPS,
+        'return_o', 'Void', $TYPE_SMO, $TYPE_CF ));
+    $il.append(JAST::Instruction.new( :op('aload'), 'cf' ));
+    $il.append(JAST::Instruction.new( :op('getfield'), $TYPE_CF, 'outer', $TYPE_CF ));
+    $il.append(JAST::Instruction.new( :op('iconst_1') ));
+    $il.append(JAST::Instruction.new( :op('putfield'), $TYPE_CF, 'exitAfterUnwind', "Z" ));
+    $il.append(JAST::Instruction.new( :op('aload'), 'cf' ));
+    $il.append(JAST::Instruction.new( :op('invokevirtual'),
+        $TYPE_CF, 'leave', 'Void' ));
+    $il.append(JAST::Instruction.new( :op('return') ));
+    $ops.result($il, $RT_OBJ);
+});
 $ops.map_classlib_hll_op('perl6', 'p6routinereturn', $TYPE_P6OPS, 'p6routinereturn', [$RT_OBJ], $RT_OBJ, :tc);
 $ops.map_classlib_hll_op('perl6', 'p6getouterctx', $TYPE_P6OPS, 'p6getouterctx', [$RT_OBJ], $RT_OBJ, :tc);
 $ops.map_classlib_hll_op('perl6', 'p6captureouters', $TYPE_P6OPS, 'p6captureouters', [$RT_OBJ], $RT_OBJ, :tc);
@@ -83,9 +117,8 @@ $ops.map_classlib_hll_op('perl6', 'p6arrfindtypes', $TYPE_P6OPS, 'p6arrfindtypes
 $ops.map_classlib_hll_op('perl6', 'p6decodelocaltime', $TYPE_P6OPS, 'p6decodelocaltime', [$RT_INT], $RT_OBJ, :tc);
 $ops.map_classlib_hll_op('perl6', 'p6setautothreader', $TYPE_P6OPS, 'p6setautothreader', [$RT_OBJ], $RT_OBJ, :tc);
 $ops.map_classlib_hll_op('perl6', 'tclc', $TYPE_P6OPS, 'tclc', [$RT_STR], $RT_STR, :tc);
-$ops.add_hll_op('perl6', 'p6getcallsig', -> $qastcomp, $op {
-    $qastcomp.as_jast(QAST::Op.new( :op('usecapture') ))
-});
+$ops.map_classlib_hll_op('perl6', 'p6sort', $TYPE_P6OPS, 'p6sort', [$RT_OBJ, $RT_OBJ], $RT_OBJ, :tc);
+$ops.map_classlib_hll_op('perl6', 'p6staticouter', $TYPE_P6OPS, 'p6staticouter', [$RT_OBJ], $RT_OBJ, :tc);
 my $p6bool := -> $qastcomp, $op {
     my $il := JAST::InstructionList.new();
     my $exprres := $qastcomp.as_jast($op[0]);
@@ -114,11 +147,17 @@ my $p6bool := -> $qastcomp, $op {
         $il.append(JAST::PushIVal.new( :value(0) ));
         $il.append(JAST::Instruction.new( :op('lcmp') ));
     }
+    $il.append(JAST::Instruction.new( :op('aload'), 'tc' ));
     $il.append(JAST::Instruction.new( :op('invokestatic'),
-        $TYPE_P6OPS, 'booleanize', $TYPE_SMO, 'I' ));
+        $TYPE_P6OPS, 'booleanize', $TYPE_SMO, 'I', $TYPE_TC ));
     $ops.result($il, $RT_OBJ);
 };
 $ops.add_hll_op('perl6', 'p6bool', $p6bool);
+
+$ops.add_hll_op('perl6', 'p6invokeflat', -> $qastcomp, $op {
+    $op[1].flat(1);
+    $qastcomp.as_jast(QAST::Op.new( :op('call'), $op[0], $op[1]));
+});
 
 # Make some of them also available from NQP land, since we use them in the
 # metamodel and bootstrap.
@@ -129,28 +168,30 @@ $ops.map_classlib_hll_op('nqp', 'p6var', $TYPE_P6OPS, 'p6var', [$RT_OBJ], $RT_OB
 $ops.map_classlib_hll_op('nqp', 'p6parcel', $TYPE_P6OPS, 'p6parcel', [$RT_OBJ, $RT_OBJ], $RT_OBJ, :tc);
 $ops.map_classlib_hll_op('nqp', 'p6isbindable', $TYPE_P6OPS, 'p6isbindable', [$RT_OBJ, $RT_OBJ], $RT_INT, :tc);
 $ops.map_classlib_hll_op('nqp', 'p6trialbind', $TYPE_P6OPS, 'p6trialbind', [$RT_OBJ, $RT_OBJ, $RT_OBJ], $RT_INT, :tc);
+$ops.map_classlib_hll_op('nqp', 'p6inpre', $TYPE_P6OPS, 'p6inpre', [], $RT_INT, :tc);
 
-## Override defor to avoid v-table call.
-#$ops.add_hll_op('perl6', 'defor', -> $qastcomp, $op {
-#    if +$op.list != 2 {
-#        nqp::die("Operation 'defor' needs 2 operands");
-#    }
-#    my $ops := PIRT::Ops.new();
-#    my $lbl := PIRT::Label.new(:name('defor'));
-#    my $dreg := $*REGALLOC.fresh_p();
-#    my $rreg := $*REGALLOC.fresh_p();
-#    my $test := $qastcomp.coerce($qastcomp.as_post($op[0]), 'P');
-#    my $then := $qastcomp.coerce($qastcomp.as_post($op[1]), 'P');
-#    $ops.push($test);
-#    $ops.push_pirop('set', $rreg, $test);
-#    $ops.push_pirop('callmethod', "'defined'", $rreg, :result($dreg));
-#    $ops.push_pirop('if', $dreg, $lbl);
-#    $ops.push($then);
-#    $ops.push_pirop('set', $rreg, $then);
-#    $ops.push($lbl);
-#    $ops.result($rreg);
-#    $ops
-#});
+# Override defor to call defined method.
+QAST::OperationsJAST.add_hll_op('perl6', 'defor', -> $qastcomp, $op {
+    if +$op.list != 2 {
+        nqp::die("Operation 'defor' needs 2 operands");
+    }
+    my $tmp := $op.unique('defined');
+    $qastcomp.as_jast(QAST::Stmts.new(
+        QAST::Op.new(
+            :op('bind'),
+            QAST::Var.new( :name($tmp), :scope('local'), :decl('var') ),
+            $op[0]
+        ),
+        QAST::Op.new(
+            :op('if'),
+            QAST::Op.new(
+                :op('callmethod'), :name('defined'),
+                QAST::Var.new( :name($tmp), :scope('local') )
+            ),
+            QAST::Var.new( :name($tmp), :scope('local') ),
+            $op[1]
+        )))
+});
 
 # Boxing and unboxing configuration.
 $ops.add_hll_box('perl6', $RT_INT, -> $qastcomp {

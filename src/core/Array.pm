@@ -13,7 +13,12 @@ class Array {
     }
     
     multi method at_pos(Array:D: $pos) is rw {
+#?if jvm
+        if nqp::istype($pos, Num) && nqp::isnanorinf($pos) {
+#?endif
+#?if !jvm
         if nqp::isnanorinf($pos) {
+#?endif
             X::Item.new(aggregate => self, index => $pos).throw;
         }
         my int $p = nqp::unbox_i($pos.Int);
@@ -168,10 +173,22 @@ class Array {
             self.gimme($pos + 1);
             nqp::bindpos(nqp::getattr(self, List, '$!items'), $pos, bindval)
         }
+        multi method perl(::?CLASS:D \SELF:) {
+            'Array['
+              ~ TValue.perl
+              ~ '].new('
+              ~ self.map({.perl}).join(', ')
+              ~ ')';
+        }
         # XXX some methods to come here...
     }
-    method PARAMETERIZE_TYPE(Mu $t) {
-        self but TypedArray[$t.WHAT]
+    method PARAMETERIZE_TYPE(Mu $t, |c) {
+        if c.elems == 0 {
+            self but TypedArray[$t.WHAT]
+        }
+        else {
+            die "Can only type-constraint Array with [ValueType]"
+        }
     }
 }
 

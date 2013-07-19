@@ -499,9 +499,10 @@ Rakudo_binding_bind_one_param(PARROT_INTERP, PMC *lexpad, Rakudo_Signature *sign
     if (!PMC_IS_NULL(param->coerce_type)) {
         /* Coercing natives not possible - nothing to call a method on. */
         if (bv.type != BIND_VAL_OBJ) {
-            *error = Parrot_sprintf_c(interp,
-                "Unable to coerce natively typed parameter '%S'",
-                param->variable_name);
+            if (error)
+                *error = Parrot_sprintf_c(interp,
+                    "Unable to coerce natively typed parameter '%S'",
+                    param->variable_name);
             return BIND_RESULT_FAIL;
         }
 

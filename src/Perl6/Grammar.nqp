@@ -302,6 +302,7 @@ role STD {
 }
 
 grammar Perl6::Grammar is HLL::Grammar does STD {
+    my $sc_id := 0;
     method TOP() {
         # Language braid.
         my %*LANG;
@@ -327,7 +328,10 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         # objects that cross the compile-time/run-time boundary that are
         # associated with this compilation unit.
         my $file := nqp::getlexdyn('$?FILES');
-        my $source_id := nqp::sha1(self.target());
+        my $source_id := nqp::sha1(
+            nqp::defined(%*COMPILING<%?OPTIONS><outer_ctx>)
+                ?? self.target() ~ $sc_id++
+                !! self.target());
         my $*W := nqp::isnull($file) ??
             Perl6::World.new(:handle($source_id)) !!
             Perl6::World.new(:handle($source_id), :description($file));
@@ -529,10 +533,55 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
 
     token pod_formatting_code {
+        :my $*POD_ALLOW_FCODES := nqp::getlexdyn('$*POD_ALLOW_FCODES');
+        :my $*POD_IN_FORMATTINGCODE := nqp::getlexdyn('$*POD_IN_FORMATTINGCODE');
+        :my $*POD_ANGLE_COUNT := nqp::getlexdyn('$*POD_ANGLE_COUNT');
+        <?{ $*POD_ALLOW_FCODES }>
+
+        :my $endtag;
         $<code>=<[A..Z]>
-        '<' { $*POD_IN_FORMATTINGCODE := 1 }
-        $<content>=[ <!before '>'> <pod_string_character> ]+
-        '>' { $*POD_IN_FORMATTINGCODE := 0 }
+        $<begin-tag>=['<'+ <!before '<'> | '«'] { $*POD_IN_FORMATTINGCODE := 1 }
+        <?{
+            my $codenum := nqp::ord($<code>.Str) - nqp::ord("A");
+            if !($*POD_ALLOW_FCODES +& (2 ** $codenum)) {
+                0
+            } elsif ~$<begin-tag> eq '«' {
+              $endtag := "»";
+              $*POD_ANGLE_COUNT := -1;
+              1
+            } else {
+              my $ct := nqp::chars($<begin-tag>);
+              $endtag := nqp::x(">", $ct);
+              my $rv := $*POD_ANGLE_COUNT == 0 || $*POD_ANGLE_COUNT >= $ct;
+              $*POD_ANGLE_COUNT := $ct;
+              $rv;
+            }
+        }>
+        {
+            if $<code>.Str eq "V" || $<code>.Str eq "C" {
+                $*POD_ALLOW_FCODES := 0;
+            }
+        }
+        $<content>=[ <pod_string_character> ]+?
+        $endtag
+    }
+
+    token pod_balanced_braces {
+        <?{ $*POD_IN_FORMATTINGCODE }>
+        :my $endtag;
+        [
+            $<braces>=['<'+ <!before '<'>||'>'+ <!before '>'>]
+            <?{ nqp::chars($<braces>) < $*POD_ANGLE_COUNT || $*POD_ANGLE_COUNT < 0 }>
+          ||
+            <?{ $*POD_ANGLE_COUNT >= 1 }>
+            $<start>=['<'+] <!before '<'>
+            <?{ nqp::chars($<start>) == $*POD_ANGLE_COUNT || $*POD_ANGLE_COUNT < 0 }>
+            {
+                $endtag := nqp::x(">", nqp::chars($<start>));
+            }
+            $<content>=[ <pod_string_character>*?]
+            <!after '>'> $<endtag>=[$endtag]
+        ]
     }
 
     token pod_string {
@@ -540,7 +589,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
 
     token pod_string_character {
-        <pod_formatting_code> || $<char>=[ \N || [
+        <pod_balanced_braces> || <pod_formatting_code> || $<char>=[ \N || [
             <?{ $*POD_IN_FORMATTINGCODE == 1}> \n <!before \h* '=' \w>
             ]
         ]
@@ -580,6 +629,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             <pod_code_parent> { $*ALLOW_CODE := 1 }
             || <identifier>
         ]
+        :my $*POD_ALLOW_FCODES := nqp::getlexdyn('$*POD_ALLOW_FCODES');
         <pod_configuration($<spaces>)> <pod_newline>+
         [
          <pod_content> *
@@ -593,6 +643,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         ^^
         $<spaces> = [ \h* ]
         '=begin' \h+ 'table'
+            :my $*POD_ALLOW_FCODES := nqp::getlexdyn('$*POD_ALLOW_FCODES');
             <pod_configuration($<spaces>)> <pod_newline>+
         [
          <table_row>*
@@ -627,6 +678,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             <pod_code_parent> { $*ALLOW_CODE := 1 }
             || <identifier>
         ]
+        :my $*POD_ALLOW_FCODES := nqp::getlexdyn('$*POD_ALLOW_FCODES');
         <pod_configuration($<spaces>)> <pod_newline>
         <pod_content=.pod_textcontent>**0..1
     }
@@ -635,6 +687,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         ^^
         $<spaces> = [ \h* ]
         '=for' \h+ $<type>=[ 'code' | 'comment' ]
+        :my $*POD_ALLOW_FCODES := nqp::getlexdyn('$*POD_ALLOW_FCODES');
         <pod_configuration($<spaces>)> <pod_newline>
         $<pod_content> = [ \h* <!before '=' \w> \N+ \n ]+
     }
@@ -643,6 +696,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         ^^
         $<spaces> = [ \h* ]
         '=for' \h+ 'table'
+            :my $*POD_ALLOW_FCODES := nqp::getlexdyn('$*POD_ALLOW_FCODES');
             <pod_configuration($<spaces>)> <pod_newline>
         [ <!before \h* \n> <table_row>]*
     }
@@ -659,6 +713,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             <pod_code_parent> { $*ALLOW_CODE := 1 }
             || <identifier>
         ]
+        :my $*POD_ALLOW_FCODES := nqp::getlexdyn('$*POD_ALLOW_FCODES');
         <pod_configuration($<spaces>)>
         [\r\n|\s]
         <pod_content=.pod_textcontent>**0..1
@@ -668,6 +723,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         ^^
         $<spaces> = [ \h* ]
         '=' $<type>=[ 'code' | 'comment' ]
+        :my $*POD_ALLOW_FCODES := nqp::getlexdyn('$*POD_ALLOW_FCODES');
         <pod_configuration($<spaces>)> [\r\n|\s]
         $<pod_content> = [ \h* <!before '=' \w> \N+ \n ]*
     }
@@ -675,6 +731,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token pod_block:sym<abbreviated_table> {
         ^^
         $<spaces> = [ \h* ]
+        :my $*POD_ALLOW_FCODES := nqp::getlexdyn('$*POD_ALLOW_FCODES');
         '=table' <pod_configuration($<spaces>)> <pod_newline>
         [ <!before \h* \n> <table_row>]*
     }
@@ -684,7 +741,9 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
 
     token pod_code_parent {
-        'pod' <!before \w> || 'item' \d* <!before \w>
+        || 'pod' <!before \w>
+        || 'output' <!before \w>
+        || 'item' \d* <!before \w>
         # TODO: Also Semantic blocks one day
     }
 
@@ -737,6 +796,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*VMARGIN    := 0;                     # pod stuff
         :my $*ALLOW_CODE := 0;                     # pod stuff
         :my $*POD_IN_FORMATTINGCODE := 0;          # pod stuff
+        :my $*POD_ALLOW_FCODES := 0b11111111111111111111111111; # allow which fcodes?
+        :my $*POD_ANGLE_COUNT := 0;                # pod stuff
         :my $*IN_REGEX_ASSERTION := 0;
         :my $*SOFT := 0;                           # is the soft pragma in effect
         :my $*IN_PROTO := 0;                       # are we inside a proto?
@@ -1349,9 +1410,6 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token term:sym<value>              { <value> }
     token term:sym<unquote>            { '{{{' <?{ $*IN_QUASI }> <statementlist> '}}}' }
 
-    # XXX temporary Bool::True/Bool::False until we can get a permanent definition
-    token term:sym<boolean> { 'Bool::'? $<value>=[True|False] » }
-
     token term:sym<::?IDENT> {
         $<sym> = [ '::?' <identifier> ] »
     }
@@ -1404,7 +1462,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         [ <?before [ '(' || \h*<sigil><twigil>**0..1\w ] >
             <.obs('undef as a verb', 'undefine function or assignment of Nil')>
         ]?
-        <.obs('undef as a value', "something more specific:\n\tMu (the \"most undefined\" type object),\n\tan undefined type object such as Int,\n\t:!defined as a matcher,\n\tAny:U as a type constraint,\n\tNil as the absense of a value\n\tor fail() as a failure return\n\t   ")>
+        <.obs('undef as a value', "something more specific:\n\tAny (the \"whatever\" type object),\n\tan undefined type object such as Int,\n\t:!defined as a matcher,\n\tAny:U as a type constraint,\n\tNil as the absence of a value\n\tor fail() as a failure return\n\t   ")>
     }
 
     token term:sym<new> {
@@ -1448,7 +1506,11 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
     
     token colonpair_variable {
-        <sigil> {} <twigil>**0..1 <desigilname>
+        <sigil> {}
+        [
+        | <twigil>**0..1 <desigilname>
+        | $<capvar>='<' <desigilname> '>'
+        ]
     }
 
     proto token special_variable { <...> }
@@ -1768,6 +1830,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     rule package_def {
         :my $longname;
         :my $outer := $*W.cur_lexpad();
+        :my $*IMPLICIT := 0;
         :my $*DECLARAND;
         :my $*IN_DECL := 'package';
         :my $*HAS_SELF := '';
@@ -2545,7 +2608,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token term:sym<!!!> { <sym> <args> }
 
     token term:sym<identifier> {
-        <identifier> <!{ $*W.is_type([~$<identifier>]) }> <?[(]> <args>
+        <identifier> <!{ $*W.is_type([~$<identifier>]) }> <?before <.unsp>|'('> <args>
         { self.add_mystery($<identifier>, $<args>.from, nqp::substr(~$<args>, 0, 1)) }
     }
     
@@ -2595,6 +2658,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :dba('argument list')
         [
         | '(' ~ ')' <semiarglist>
+        | <.unsp> '(' ~ ')' <semiarglist>
         | [ \s <arglist> ]
         | <?>
         ]
@@ -2829,7 +2893,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <babble($l)>
         { my $B := $<babble><B>.ast; $lang := $B[0]; $start := $B[1]; $stop := $B[2]; }
 
-        $start <left=.nibble($lang)> [ $stop || <.panic: "Couldn't find terminator $stop"> ]
+        $start <left=.nibble($lang)> [ $stop || <.panic("Couldn't find terminator $stop")> ]
         [ <?{ $start ne $stop }>
             <.ws>
             [ <?[ \[ \{ \( \< ]> <.obs('brackets around replacement', 'assignment syntax')> ]?
@@ -2840,7 +2904,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             [ <right=.EXPR('i')> || <.panic: "Assignment operator missing its expression"> ]
         ||
             { $lang := self.quote_lang($lang2, $stop, $stop, @lang2tweaks); }
-            <right=.nibble($lang)> $stop || <.panic: "Malformed replacement part; couldn't find final $stop">
+            <right=.nibble($lang)> $stop || <.panic("Malformed replacement part; couldn't find final $stop")>
         ]
     }
 
@@ -2895,31 +2959,31 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     ## Operators
 
     INIT {
-        Perl6::Grammar.O(':prec<y=>, :assoc<unary>', '%methodcall');
-        Perl6::Grammar.O(':prec<x=>, :assoc<unary>', '%autoincrement');
-        Perl6::Grammar.O(':prec<w=>, :assoc<right>', '%exponentiation');
-        Perl6::Grammar.O(':prec<v=>, :assoc<unary>', '%symbolic_unary');
-        Perl6::Grammar.O(':prec<u=>, :assoc<left>',  '%multiplicative');
-        Perl6::Grammar.O(':prec<t=>, :assoc<left>',  '%additive');
-        Perl6::Grammar.O(':prec<s=>, :assoc<left>',  '%replication');
-        Perl6::Grammar.O(':prec<r=>, :assoc<left>',  '%concatenation');
-        Perl6::Grammar.O(':prec<q=>, :assoc<list>', '%junctive_and');
-        Perl6::Grammar.O(':prec<p=>, :assoc<list>', '%junctive_or');
-        Perl6::Grammar.O(':prec<o=>, :assoc<unary>', '%named_unary');
-        Perl6::Grammar.O(':prec<n=>, :assoc<non>',  '%structural');
-        Perl6::Grammar.O(':prec<m=>, :assoc<left>, :iffy<1>, :pasttype<chain>',  '%chaining');
-        Perl6::Grammar.O(':prec<l=>, :assoc<left>',  '%tight_and');
-        Perl6::Grammar.O(':prec<k=>, :assoc<list>',  '%tight_or');
-        Perl6::Grammar.O(':prec<j=>, :assoc<right>', '%conditional');
-        Perl6::Grammar.O(':prec<i=>, :assoc<right>', '%item_assignment');
-        Perl6::Grammar.O(':prec<i=>, :assoc<right>, :sub<e=>', '%list_assignment');
-        Perl6::Grammar.O(':prec<h=>, :assoc<unary>', '%loose_unary');
-        Perl6::Grammar.O(':prec<g=>, :assoc<list>, :nextterm<nulltermish>',  '%comma');
-        Perl6::Grammar.O(':prec<f=>, :assoc<list>',  '%list_infix');
-        Perl6::Grammar.O(':prec<e=>, :assoc<right>', '%list_prefix');
-        Perl6::Grammar.O(':prec<d=>, :assoc<left>',  '%loose_and');
-        Perl6::Grammar.O(':prec<c=>, :assoc<list>',  '%loose_or');
-        Perl6::Grammar.O(':prec<b=>, :assoc<list>',  '%sequencer');
+        Perl6::Grammar.O(':prec<y=>, :assoc<unary>, :dba<methodcall>, :fiddly<1>', '%methodcall');
+        Perl6::Grammar.O(':prec<x=>, :assoc<unary>, :dba<autoincrement>', '%autoincrement');
+        Perl6::Grammar.O(':prec<w=>, :assoc<right>, :dba<exponentiation>', '%exponentiation');
+        Perl6::Grammar.O(':prec<v=>, :assoc<unary>, :dba<symbolic unary>', '%symbolic_unary');
+        Perl6::Grammar.O(':prec<u=>, :assoc<left>, :dba<multiplicative>',  '%multiplicative');
+        Perl6::Grammar.O(':prec<t=>, :assoc<left>, :dba<additive>',  '%additive');
+        Perl6::Grammar.O(':prec<s=>, :assoc<left>, :dba<replication>',  '%replication');
+        Perl6::Grammar.O(':prec<r=>, :assoc<left>, :dba<concatenation>',  '%concatenation');
+        Perl6::Grammar.O(':prec<q=>, :assoc<list>, :dba<junctive and>', '%junctive_and');
+        Perl6::Grammar.O(':prec<p=>, :assoc<list>, :dba<junctive or>', '%junctive_or');
+        Perl6::Grammar.O(':prec<o=>, :assoc<unary>, :dba<named unary>', '%named_unary');
+        Perl6::Grammar.O(':prec<n=>, :assoc<non>, :dba<structural infix>',  '%structural');
+        Perl6::Grammar.O(':prec<m=>, :assoc<left>, :dba<chaining>, :iffy<1>, :pasttype<chain>',  '%chaining');
+        Perl6::Grammar.O(':prec<l=>, :assoc<left>, :dba<tight and>',  '%tight_and');
+        Perl6::Grammar.O(':prec<k=>, :assoc<list>, :dba<tight or>',  '%tight_or');
+        Perl6::Grammar.O(':prec<j=>, :assoc<right>, :dba<conditional>, :fiddly<1>', '%conditional');
+        Perl6::Grammar.O(':prec<i=>, :assoc<right>, :dba<item assignment>', '%item_assignment');
+        Perl6::Grammar.O(':prec<i=>, :assoc<right>, :dba<list assignment>, :sub<e=>, :fiddly<1>', '%list_assignment');
+        Perl6::Grammar.O(':prec<h=>, :assoc<unary>, :dba<loose unary>', '%loose_unary');
+        Perl6::Grammar.O(':prec<g=>, :assoc<list>, :dba<comma>, :nextterm<nulltermish>, :fiddly<1>',  '%comma');
+        Perl6::Grammar.O(':prec<f=>, :assoc<list>, :dba<list infix>',  '%list_infix');
+        Perl6::Grammar.O(':prec<e=>, :assoc<right>, :dba<list prefix>', '%list_prefix');
+        Perl6::Grammar.O(':prec<d=>, :assoc<left>, :dba<loose and>',  '%loose_and');
+        Perl6::Grammar.O(':prec<c=>, :assoc<list>, :dba<loose or>',  '%loose_or');
+        Perl6::Grammar.O(':prec<b=>, :assoc<list>, :dba<sequencer>',  '%sequencer');
     }
 
     token termish {
@@ -3008,7 +3072,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         [ <!{ $*QSIGIL }> [ <.unsp> | '\\' ] ]?
 
         :dba('postfix')
-        <postfix_prefix_meta_operator>**0..1
+        [ ['.' <.unsp>?]? <postfix_prefix_meta_operator> <.unsp>?]**0..1
         [
         | <OPER=postfix>
         | <OPER=postcircumfix>
@@ -3035,8 +3099,15 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     proto token prefix_postfix_meta_operator { <...> }
     
+    method can_meta($op, $meta) {
+        !$op<OPER><O><fiddly> ||
+            self.sorry("Cannot " ~ $meta ~ " " ~ $op<OPER><sym> ~ " because " ~ $op<OPER><O><dba> ~ " operators are too fiddly");
+        self;
+    }
+    
     regex term:sym<reduce> {
         :my $*IN_REDUCE := 1;
+        :my $op;
         <?before '['\S+']'>
         
         '['
@@ -3046,6 +3117,9 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         || <!>
         ]
         ']'
+        { $op := $<op>; }
+        
+        <.can_meta($op, "reduce with")>
 
         <args>
     }
@@ -3358,7 +3432,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token prefix:sym<not>  { <sym> >> <O('%loose_unary')> }
 
     token infix:sym<,>    {
-        <sym>  <O('%comma')>
+        <sym>  <O('%comma, :fiddly<0>')>
         # TODO: should be <.worry>, not <.panic>
         [ <?before \h*'...'> <.panic: "Comma found before apparent series operator; please remove comma (or put parens\n    around the ... listop, or use 'fail' instead of ...)"> ]?
     }

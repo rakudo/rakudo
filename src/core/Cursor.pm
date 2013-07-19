@@ -19,7 +19,8 @@ my class Cursor does NQPCursorRole {
             my Mu $caphash := nqp::findmethod(Cursor, 'CAPHASH')(self);
             my Mu $capiter := nqp::iterator($caphash);
             while $capiter {
-                my str $key = nqp::shift_s($capiter);
+                my Mu $kv := nqp::shift($capiter);
+                my str $key = nqp::iterkey_s($kv);
                 my Mu $value := nqp::hllize(nqp::atkey($caphash, $key));
                 if $key eq '$!from' || $key eq '$!to' {
                     nqp::bindattr_i($match, Match, $key, $value.from);
@@ -143,10 +144,11 @@ my class Cursor does NQPCursorRole {
                 }
                 else {
                     # The pattern is a string.
-                    $len   := nqp::chars( $topic );
+                    my str $topic_str = $topic.Str;
+                    $len   := nqp::chars( $topic_str );
                     $match := $len < 1
-                            ||  ($i ?? nqp::lc(nqp::substr($tgt, $pos, $len)) eq nqp::lc($topic)
-                                    !! nqp::substr($tgt, $pos, $len) eq $topic);
+                            ||  ($i ?? nqp::lc(nqp::substr($tgt, $pos, $len)) eq nqp::lc($topic_str)
+                                    !! nqp::substr($tgt, $pos, $len) eq $topic_str);
                 }
 
                 if $match && $len > $maxlen && $pos + $len <= $eos {

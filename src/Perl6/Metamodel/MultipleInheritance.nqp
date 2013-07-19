@@ -19,11 +19,11 @@ role Perl6::Metamodel::MultipleInheritance {
         if self.is_composed($obj) {
             nqp::die("Parents cannot be added to a class after it has been composed");
         }
-        if $parent =:= $obj {
+        if nqp::decont($parent) =:= nqp::decont($obj) {
             nqp::die("Class " ~ self.name($obj) ~ " cannot inherit from itself");
         }
         for @!parents {
-            if $_ =:= $parent {
+            if nqp::decont($_) =:= nqp::decont($parent) {
                 nqp::die("Package '" ~ self.name($obj) ~
                     "' already has parent '" ~
                     $parent.HOW.name($parent) ~ "'");

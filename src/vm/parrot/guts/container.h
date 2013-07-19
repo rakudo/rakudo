@@ -5,6 +5,7 @@ typedef struct {
     PMC    *of;                 /* Type of value. */
     INTVAL  rw;                 /* Non-zero if we can write. */
     STRING *name;               /* The name of the container, if any. */
+    PMC    *the_default;        /* The default value if any. */
 } Rakudo_ContainerDescriptor;
 
 /* The Scalar class. Depends on P6opaque object layout. */

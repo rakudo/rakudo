@@ -76,6 +76,10 @@ D: Random small bug fixes
 E: rogers-perl6@rgrjr.dyndns.org
 U: rgrjr
 
+N: Brent Laabs
+U: labster
+E: bslaabs@gmail.com
+
 N: Bruce Gray
 U: util
 E: bruce.gray@acm.org
@@ -84,14 +88,13 @@ N: Bruce Keeler
 U: bkeeler
 D: variable interpolation into regexes
 
-
 N: Bryan C. Warnock
 D: The First Perl 6 Summarizer
 D: Little things here and there in pre-Parrot days.
 D: And, yes, {sigh}, *that* Warnock.
 E: bwarnock@raba.com
 
-N: Carl Masak
+N: Carl Mäsak
 E: cmasak@gmail.com
 U: masak
 
@@ -151,6 +154,14 @@ E: david.romano+p6i@gmail.com
 N: Dino Morelli
 D: PGE tests
 E: dmorelli@reactorweb.net
+
+N: Donald Hunter
+U: donaldh
+E: donald@sealgair.com
+
+N: Elizabeth Mattijsen
+U: lizmat
+E: liz@dijkmat.nl
 
 N: Florian Ragwitz
 U: rafl
@@ -330,6 +341,10 @@ U: rurban
 E: rurban@cpan.org
 D: cygwin fixes
 
+N: Rob Hoelz
+U: hoelzro
+E: rob@hoelz.ro
+
 N: Robert Spier
 D: Keeps us running
 U: robert
@@ -347,6 +362,10 @@ N: Solomon Foster
 U: colomon
 E: colomon@gmail.com
 
+N: Stefan O'Rear
+U: sorear
+E: stefanor@cox.net
+
 N: Stéphane Payrard
 D: Various code fixes and improvements
 
@@ -355,11 +374,19 @@ U: tene
 D: Minor Rakudo patches
 E: tene@allalone.org
 
+N: Timo Paulssen
+U: timotimo
+E: timonator@perpetuum-immobile.de
+
 N: Timothy Totten
 U: novus
 D: Temporal (DateTime/Date) modifications
 E: supernovus@gmail.com
 W: http://huri.net/
+
+N: Tobias Leich
+U: FROGGS
+E: email@froggs.de
 
 N: Tyler Curtis
 U: tcurtis

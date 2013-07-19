@@ -2,7 +2,11 @@
 use strict;
 use warnings;
 
-my @OPTS = ('--keep-exit-code', 'rakudo');
+my $version = `./perl6 --version`;
+
+my $impl = ($version =~ /jvm/i) ? "rakudo.jvm" : "rakudo.parrot";
+
+my @OPTS = ('--keep-exit-code', $impl);
 
 if (@ARGV) {
     my $file = $ARGV[0];

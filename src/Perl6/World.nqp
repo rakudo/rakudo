@@ -613,6 +613,17 @@ class Perl6::World is HLL::World {
             nqp::bindattr($cont, %cont_info<container_base>, '$!value',
                 %cont_info<default_value>);
         }
+        if nqp::existskey(%cont_info, 'container_shape') {
+            $block[0].push(
+                QAST::Op.new(
+                    :op('bindattr'),
+                    QAST::Var.new(:scope('lexical'), :name($name)),
+                    QAST::WVal.new(:value(%cont_info<container_base>)),
+                    QAST::SVal.new(:value('$!shape')),
+                    %cont_info<container_shape>
+                )
+            );
+        }
         self.add_object($cont);
         $block.symbol($name, :value($cont));
         self.install_package_symbol($package, $name, $cont) if $scope eq 'our';
@@ -688,6 +699,16 @@ class Perl6::World is HLL::World {
                 QAST::WVal.new( :value(%cont_info<container_base>) ),
                 QAST::SVal.new( :value('$!value') ),
                 QAST::WVal.new( :value(%cont_info<default_value>) )));
+        }
+
+        if nqp::existskey(%cont_info, 'container_shape') {
+            $cont_code.push(QAST::Op.new(
+                :op('bindattr'),
+                QAST::Var.new(:name($tmp), :scope('local')),
+                QAST::WVal.new(:value(%cont_info<container_base>)),
+                QAST::SVal.new(:value('$!shape')),
+                %cont_info<container_shape>
+            ));
         }
         
         $cont_code

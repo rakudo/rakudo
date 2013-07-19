@@ -76,6 +76,7 @@ my stub Grammar metaclass Perl6::Metamodel::ClassHOW { ... };
 my stub Junction metaclass Perl6::Metamodel::ClassHOW { ... };
 my stub Metamodel metaclass Perl6::Metamodel::PackageHOW { ... };
 my stub ForeignCode metaclass Perl6::Metamodel::ClassHOW { ... };
+my stub Whatever metaclass Perl6::Metamodel::ClassHOW { ... };
 
 # We stick all the declarative bits inside of a BEGIN, so they get
 # serialized.
@@ -1560,10 +1561,12 @@ BEGIN {
 
     # class Array is List {
     #     has $!descriptor;
+    #     has $!shape;
     #     ...
     # }
     Array.HOW.add_parent(Array, List);
     Array.HOW.add_attribute(Array, BOOTSTRAPATTR.new(:name<$!descriptor>, :type(Mu), :package(Array)));
+    Array.HOW.add_attribute(Array, scalar_attr('$!shape', Mu, Array));
     Array.HOW.compose_repr(Array);
 
     # class LoL is List {
@@ -1636,6 +1639,10 @@ BEGIN {
     ForeignCode.HOW.set_invocation_attr(ForeignCode, ForeignCode, '$!do');
     ForeignCode.HOW.compose_invocation(ForeignCode);
 
+    # class Whatever { }
+    Whatever.HOW.add_parent(Whatever, Any);
+    Whatever.HOW.compose_repr(Whatever);
+
     # Set up Stash type, which is really just a hash.
     Stash.HOW.add_parent(Stash, Hash);
     Stash.HOW.compose_repr(Stash);
@@ -1672,6 +1679,7 @@ BEGIN {
     Perl6::Metamodel::ClassHOW.add_stash(Hash);
     Perl6::Metamodel::ClassHOW.add_stash(ObjAt);
     Perl6::Metamodel::ClassHOW.add_stash(ForeignCode);
+    Perl6::Metamodel::ClassHOW.add_stash(Whatever);
 
     # Default invocation behavior delegates off to postcircumfix:<( )>.
     my $invoke_forwarder :=
@@ -1762,6 +1770,7 @@ BEGIN {
     EXPORT::DEFAULT.WHO<Bool>      := Bool;
     EXPORT::DEFAULT.WHO<False>     := $false;
     EXPORT::DEFAULT.WHO<True>      := $true;
+    EXPORT::DEFAULT.WHO<Whatever>  := Whatever;
     EXPORT::DEFAULT.WHO<ContainerDescriptor> := Perl6::Metamodel::ContainerDescriptor;
     EXPORT::DEFAULT.WHO<MethodDispatcher>    := Perl6::Metamodel::MethodDispatcher;
     EXPORT::DEFAULT.WHO<MultiDispatcher>     := Perl6::Metamodel::MultiDispatcher;

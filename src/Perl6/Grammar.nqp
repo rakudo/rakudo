@@ -2071,9 +2071,9 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                             reserved => '() shape syntax in variable declarations');
                     }
                 }
-            | :dba('shape definition') '[' ~ ']' <semilist> <.NYI: "Shaped variable declarations">
+            | :dba('shape definition') '[' ~ ']' <semilist>
             | :dba('shape definition') '{' ~ '}' <semilist>
-            | <?before '<'> <postcircumfix> <.NYI: "Shaped variable declarations">
+            | <?before '<'> <postcircumfix>
             ]+
         ]**0..1
         <.ws>

@@ -31,6 +31,7 @@ public final class Ops {
     public static SixModelObject ContainerDescriptor;
     public static SixModelObject False;
     public static SixModelObject True;
+    public static SixModelObject Whatever;
     public static SixModelObject AutoThreader;
     public static SixModelObject EMPTYARR;
     private static boolean initialized = false;
@@ -49,6 +50,7 @@ public final class Ops {
     private static final int HINT_LISTITER_nextiter = 1;
     private static final int HINT_LISTITER_rest = 2;
     private static final int HINT_LISTITER_list = 3;
+    private static final int HINT_ARRAY_shape = 0;
     
     public static SixModelObject p6init(ThreadContext tc) {
         if (!initialized) {
@@ -83,6 +85,7 @@ public final class Ops {
         ContainerDescriptor = conf.at_key_boxed(tc, "ContainerDescriptor");
         False = conf.at_key_boxed(tc, "False");
         True = conf.at_key_boxed(tc, "True");
+        Whatever = conf.at_key_boxed(tc, "Whatever");
         return conf;
     }
     
@@ -124,6 +127,9 @@ public final class Ops {
             list.bind_attribute_boxed(tc, List, "$!nextiter", HINT_LIST_nextiter,
                 p6listiter(arr, list, tc));
         list.bind_attribute_boxed(tc, List, "$!flattens", HINT_LIST_flattens, flattens);
+        if (type == Array)
+            list.bind_attribute_boxed(tc, Array, "$!shape", HINT_ARRAY_shape,
+                Whatever.st.REPR.allocate(tc, Whatever.st));
         return list;
     }
     

@@ -2104,7 +2104,7 @@ class Perl6::World is HLL::World {
             for %symtable -> $symp {
                 if nqp::existskey($symp.value, 'value') {
                     my $val := $symp.value<value>;
-                    if nqp::istype($val, QAST::Block) {
+                    if (try nqp::istype($val, QAST::Block)) {
                         return 0 if walk_block($val) == 0;
                     } else {
                         return 0 if $code($symp.key, $val, $symp.value) == 0;

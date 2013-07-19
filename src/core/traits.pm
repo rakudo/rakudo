@@ -43,6 +43,9 @@ multi trait_mod:<is>(Mu:U $type, :$nativesize!) {
 multi trait_mod:<is>(Mu:U $type, :$hidden!) {
     $type.HOW.set_hidden($type);
 }
+multi trait_mod:<is>(Mu:U $type, Mu :$array_type!) {
+    $type.HOW.set_array_type($type, $array_type);
+}
 multi trait_mod:<is>(Mu:U $type, *%fail) {
     if %fail.keys[0] !eq $type.HOW.name($type) {
         X::Inheritance::UnknownParent.new(

@@ -178,6 +178,7 @@ CORE_SOURCES = \
   src/core/Order.pm \
   src/core/UInt64.pm \
   src/core/Num.pm \
+  src/core/Buf.pm \
   src/core/Str.pm \
   src/core/Capture.pm \
   src/core/Parcel.pm \
@@ -199,7 +200,6 @@ CORE_SOURCES = \
   src/core/PseudoStash.pm \
   src/core/Parameter.pm \
   src/core/Signature.pm \
-  src/core/Buf.pm \
   src/core/Rational.pm \
   src/core/Rat.pm \
   src/core/Complex.pm \

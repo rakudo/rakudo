@@ -1916,13 +1916,13 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                             $group := $*PACKAGE;
                         }
                         else {
-                            $group := $*W.pkg_create_mo($/, %*HOW{'role-group'}, :name($longname.name()));                            
+                            $group := $*W.pkg_create_mo($/, %*HOW{'role-group'}, :name($longname.name()), :repr($*REPR));
                             $*W.install_package($/, @name, $*SCOPE, $*PKGDECL, $*OUTERPACKAGE, $outer, $group);
                         }
 
                         # Construct role meta-object with group.
                         $*PACKAGE := $*W.pkg_create_mo($/, %*HOW{$*PKGDECL}, :name($longname.name()),
-                            :group($group), :signatured($<signature> ?? 1 !! 0));
+                            :repr($*REPR), :group($group), :signatured($<signature> ?? 1 !! 0));
                     }
                 }
                 else {

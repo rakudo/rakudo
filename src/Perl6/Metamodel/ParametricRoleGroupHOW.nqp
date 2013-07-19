@@ -41,13 +41,16 @@ class Perl6::Metamodel::ParametricRoleGroupHOW
         my $type_obj := self.add_stash(nqp::settypehll(
             nqp::newtype($meta, 'Uninstantiable'), 'perl6'));
         $meta.set_name($type_obj, $name);
+        $meta.set_pun_repr($meta, $repr) if $repr;
         $meta.set_boolification_mode($type_obj, 5);
         $meta.publish_boolification_spec($type_obj);
         $type_obj
     }
     
     method parameterize($obj, *@pos_args, *%named_args) {
-        $currier.new_type($obj, |@pos_args, |%named_args)
+        my $curried := $currier.new_type($obj, |@pos_args, |%named_args);
+        $curried.HOW.set_pun_repr($curried, self.pun_repr($obj));
+        $curried
     }
     
     method add_possibility($obj, $possible) {

@@ -139,6 +139,13 @@ my class RoleToClassApplier {
             }
         }
         
+        # Copy any array_type.
+        if nqp::can($to_compose_meta, 'is_array_type') {
+            if $to_compose_meta.is_array_type($to_compose) {
+                $target.HOW.set_array_type($target, $to_compose_meta.array_type($to_compose));
+            }
+        }
+        
         1;
     }
 }

@@ -1,4 +1,4 @@
-my role Buf[::T = int8] does Positional[T] does Stringy is repr('VMArray') is array_type(T) {
+my role Blob[::T = int8] does Positional[T] does Stringy is repr('VMArray') is array_type(T) {
     proto method new(|) { * }
     multi method new() {
         nqp::create(self)
@@ -18,24 +18,24 @@ my role Buf[::T = int8] does Positional[T] does Stringy is repr('VMArray') is ar
         self.new(@values)
     }
     
-    multi method at_pos(Buf:D: $i) {
+    multi method at_pos(Blob:D: $i) {
         nqp::atpos_i(self, $i.Int)
     }
-    multi method at_pos(Buf:D: Int $i) {
+    multi method at_pos(Blob:D: Int $i) {
         nqp::atpos_i(self, $i)
     }
-    multi method at_pos(Buf:D: int $i) {
+    multi method at_pos(Blob:D: int $i) {
         nqp::atpos_i(self, $i)
     }
     
-    multi method Bool(Buf:D:) {
+    multi method Bool(Blob:D:) {
         nqp::p6bool(nqp::elems(self));
     }
 
-    method elems(Buf:D:) {
+    method elems(Blob:D:) {
         nqp::p6box_i(nqp::elems(self));
     }
-    method bytes(Buf:D:) {
+    method bytes(Blob:D:) {
         self.elems
     }
     method chars()       { X::Buf::AsStr.new(method => 'chars').throw }
@@ -55,14 +55,14 @@ my role Buf[::T = int8] does Positional[T] does Stringy is repr('VMArray') is ar
         @l;
     }
 
-    multi method gist(Buf:D:) {
+    multi method gist(Blob:D:) {
         'Buf:0x<' ~ self.list.fmt('%02x', ' ') ~ '>'
     }
-    multi method perl(Buf:D:) {
+    multi method perl(Blob:D:) {
         self.^name ~ '.new(' ~ self.list.join(', ') ~ ')';
     }
     
-    method subbuf(Buf:D: $from = 0, $len = self.elems - $from) {
+    method subbuf(Blob:D: $from = 0, $len = self.elems - $from) {
         my $ret := nqp::create(self);
         my int $llen = $len.Int;
         nqp::setelems($ret, $llen);
@@ -76,7 +76,7 @@ my role Buf[::T = int8] does Positional[T] does Stringy is repr('VMArray') is ar
         $ret
     }
     
-    method unpack(Buf:D: $template) {
+    method unpack(Blob:D: $template) {
         my @bytes = self.list;
         my @fields;
         for $template.comb(/<[a..zA..Z]>[\d+|'*']?/) -> $unit {
@@ -144,7 +144,30 @@ my role Buf[::T = int8] does Positional[T] does Stringy is repr('VMArray') is ar
 
     # XXX: the pack.t spectest file seems to require this method
     # not sure if it should be changed to list there...
-    method contents(Buf:D:) { self.list }
+    method contents(Blob:D:) { self.list }
+    
+    method encoding() { Any }
+}
+
+constant blob8 = Blob[int8];
+constant blob16 = Blob[int16];
+constant blob32 = Blob[int32];
+constant blob64 = Blob[int64];
+
+my class utf8 does Blob[int8] is repr('VMArray') {
+    method encoding() { 'utf-8' }
+}
+
+my class utf16 does Blob[int16] is repr('VMArray') {
+    method encoding() { 'utf-16' }
+}
+
+my class utf32 does Blob[int32] is repr('VMArray') {
+    method encoding() { 'utf-32' }
+}
+
+my role Buf[::T = int8] does Blob[T] is repr('VMArray') is array_type(T) {
+    # TODO: override at_pos so we get mutability
 }
 
 constant buf8 = Buf[int8];

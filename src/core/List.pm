@@ -328,20 +328,29 @@ my class List does Positional {
     method uniq() {
         my $seen := nqp::hash();
         my str $which;
-        gather sink for @.list {
+        map {
             $which = nqp::unbox_s($_.WHICH);
-            unless nqp::existskey($seen, $which) {
-                take $_;
-                nqp::bindkey($seen, $which, 1);
+            if nqp::existskey($seen, $which) {
+                Nil;
             }
-        }
+            else {
+                nqp::bindkey($seen, $which, 1);
+                $_;
+            }
+        }, @.list;
     }
-
     my @secret;
     method squish() {
         my $last = @secret;
-        my $grepped;
-        grep { $grepped = $_ !=== $last; $last = $_; $grepped }, @.list;
+        map {
+            if $_ !=== $last {
+                $last = $_;
+                $_;
+            }
+            else {
+                Nil;
+            }
+        }, @.list;
     }
 
     multi method gist(List:D:) { join ' ', map { $_.gist }, @(self) }

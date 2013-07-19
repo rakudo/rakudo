@@ -607,7 +607,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         '=begin' \h+ $<type>=[ 'code' | 'comment' ] {}
         <pod_configuration($<spaces>)> <pod_newline>+
         [
-         $<pod_content> = [ .*? ]
+         $<spaces> $<pod_content> = [ .*? ]
          ^^ $<spaces> '=end' \h+ $<type> <pod_newline>
          ||  <.typed_panic: 'X::Syntax::Pod::BeginWithoutEnd'>
         ]
@@ -689,7 +689,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         '=for' \h+ $<type>=[ 'code' | 'comment' ]
         :my $*POD_ALLOW_FCODES := nqp::getlexdyn('$*POD_ALLOW_FCODES');
         <pod_configuration($<spaces>)> <pod_newline>
-        $<pod_content> = [ \h* <!before '=' \w> \N+ \n ]+
+        $<spaces> $<pod_content> = [ \h* <!before '=' \w> \N+ \n ]+
     }
 
     token pod_block:sym<paragraph_table> {
@@ -725,7 +725,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         '=' $<type>=[ 'code' | 'comment' ]
         :my $*POD_ALLOW_FCODES := nqp::getlexdyn('$*POD_ALLOW_FCODES');
         <pod_configuration($<spaces>)> [\r\n|\s]
-        $<pod_content> = [ \h* <!before '=' \w> \N+ \n ]*
+        $<spaces> $<pod_content> = [ \h* <!before '=' \w> \N+ \n ]*
     }
 
     token pod_block:sym<abbreviated_table> {

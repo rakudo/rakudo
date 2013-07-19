@@ -57,9 +57,14 @@ class Perl6::Pod {
         return $past.compile_time_value;
     }
 
-    our sub raw_block($/) {
+    our sub raw_block($/, $override_text?) {
         my $config := $<pod_configuration>.ast;
-        my $str := $*W.add_constant('Str', 'str', ~$<pod_content>);
+        my $str;
+        if $override_text {
+            $str := $*W.add_constant('Str', 'str', ~$override_text);
+        } else {
+            $str := $*W.add_constant('Str', 'str', ~$<pod_content>);
+        }
         my $content := serialize_array([$str.compile_time_value]);
         my $type := $<type>.Str eq 'code' ?? 'Pod::Block::Code'
                                           !! 'Pod::Block::Comment';

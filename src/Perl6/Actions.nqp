@@ -519,7 +519,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
 
     method pod_block:sym<delimited_raw>($/) {
-        make Perl6::Pod::raw_block($/);
+        my $s := $<spaces>.Str;
+        my $t := subst($<pod_content>.Str, /\n$s/, "\n", :global);
+        $t    := subst($t, /\n$/, ''); # chomp!
+        make Perl6::Pod::raw_block($/, $t);
     }
 
     method pod_block:sym<delimited_table>($/) {
@@ -531,7 +534,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
 
     method pod_block:sym<paragraph_raw>($/) {
-        make Perl6::Pod::raw_block($/);
+        my $s := $<spaces>.Str;
+        my $t := subst($<pod_content>.Str, /\n$s/, "\n", :global);
+        $t    := subst($t, /\n$/, ''); # chomp!
+        make Perl6::Pod::raw_block($/, $t);
     }
 
     method pod_block:sym<paragraph_table>($/) {
@@ -543,7 +549,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
 
     method pod_block:sym<abbreviated_raw>($/) {
-        make Perl6::Pod::raw_block($/);
+        my $s := $<spaces>.Str;
+        my $t := subst($<pod_content>.Str, /\n$s/, "\n", :global);
+        $t    := subst($t, /\n$/, ''); # chomp!
+        make Perl6::Pod::raw_block($/, $t);
     }
 
     method pod_block:sym<abbreviated_table>($/) {

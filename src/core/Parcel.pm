@@ -1,7 +1,7 @@
 my class Parcel does Positional {
     # declared in BOOTSTRAP.pm:
     #    is Cool;              # parent class
-    #    has $!storage;        # RPA of Parcel's elements
+    #    has $!storage;        # VM's array of Parcel's elements
 
     submethod BUILD() { $!storage := nqp::list() }
 

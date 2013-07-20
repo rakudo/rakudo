@@ -4,7 +4,7 @@ my class ListIter {
     # Attributes defined in BOOTSTRAP.pm:
     #   has $!reified;         # return value for already-reified iterator
     #   has $!nextiter;        # next iterator in sequence, if any
-    #   has Mu $!rest;         # RPA of elements remaining to be reified
+    #   has Mu $!rest;         # VM's array of elements remaining to be reified
     #   has $!list;            # List object associated with this iterator
     
     method reify($n = 1, :$sink) {

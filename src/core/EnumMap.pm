@@ -45,13 +45,13 @@ my class EnumMap does Associative {
             ~ ')';
     }
 
-    method iterator() { self.pairs.iterator }
-    method list() { self.pairs }
+    method iterator(EnumMap:D:) { self.pairs.iterator }
+    method list(EnumMap:D:) { self.pairs }
 
-    method keys()   { self.pairs.map( { $_.key } ) }
-    method kv()     { self.pairs.map( { $_.kv } ) }
-    method values() { self.pairs.map( { $_.value } ) }
-    method pairs() {
+    method keys(EnumMap:D:)   { self.pairs.map( { $_.key } ) }
+    method kv(EnumMap:D:)     { self.pairs.map( { $_.kv } ) }
+    method values(EnumMap:D:) { self.pairs.map( { $_.value } ) }
+    method pairs(EnumMap:D:) {
         return unless nqp::defined($!storage);
         gather {
             my Mu $iter := nqp::iterator($!storage);
@@ -68,7 +68,8 @@ my class EnumMap does Associative {
             Nil
         }
     }
-    method invert() {
+    method invert(EnumMap:D:) {
+        return unless nqp::defined($!storage);
         gather {
             my Mu $iter := nqp::iterator($!storage);
             my Mu $pair;
@@ -98,7 +99,7 @@ my class EnumMap does Associative {
         nqp::bindkey($!storage, nqp::unbox_s(key.Str), value)
     }
     
-    method Capture() {
+    method Capture(EnumMap:D:) {
         my $cap := nqp::create(Capture);
         nqp::bindattr($cap, Capture, '$!hash', $!storage);
         $cap
@@ -111,7 +112,7 @@ my class EnumMap does Associative {
         $!storage
     }
 
-    method fmt($format = "%s\t\%s", $sep = "\n") {
+    method fmt(EnumMap:D: $format = "%s\t\%s", $sep = "\n") {
         self.pairs.fmt($format, $sep);
     }
     

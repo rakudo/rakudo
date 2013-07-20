@@ -662,7 +662,9 @@ sub DUMP(|args (*@args, :$indent-step = 4, :%ctx?)) {
         %ctx{$where} = $obj_num;
 
         if    nqp::islist($topic) {
+#?if parrot
             $type = 'RPA' if $type eq 'ResizablePMCArray';
+#?endif
             my str $id = $type ~ '<' ~ $obj_num ~ '>';
 
             my @pieces;

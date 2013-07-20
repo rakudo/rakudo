@@ -38,11 +38,11 @@ my role Blob[::T = int8] does Positional[T] does Stringy is repr('VMArray') is a
     method bytes(Blob:D:) {
         self.elems
     }
-    method chars()       { X::Buf::AsStr.new(method => 'chars').throw }
-    multi method Str()   { X::Buf::AsStr.new(method => 'Str'  ).throw }
+    method chars(Blob:D:)       { X::Buf::AsStr.new(method => 'chars').throw }
+    multi method Str(Blob:D:)   { X::Buf::AsStr.new(method => 'Str'  ).throw }
 
-    method Numeric { self.elems }
-    method Int     { self.elems }
+    method Numeric(Blob:D:) { self.elems }
+    method Int(Blob:D:)     { self.elems }
     
     method decode(Blob:D: $encoding = 'utf-8') {
         nqp::p6box_s(nqp::decode(self, NORMALIZE_ENCODING($encoding)))
@@ -260,4 +260,71 @@ multi sub pack(Str $template, *@items) {
     }
 
     return Buf.new(@bytes);
+}
+
+multi infix:<~>(Blob:D $a, Blob:D $b) {
+    ($a.WHAT === $b.WHAT ?? $a !! Buf).new($a.list, $b.list)
+}
+
+multi prefix:<~^>(Blob:D $a) {
+    $a ~~ Blob[int16] ?? $a.new($a.list.map: 0xFFFF - *) !!
+    $a ~~ Blob[int32] ?? $a.new($a.list.map: 0xFFFFFFFF - *) !!
+                         $a.new($a.list.map: 0xFF - *);
+}
+
+multi sub infix:<~&>(Blob:D $a, Blob:D $b) {
+    my $minlen := $a.elems min $b.elems;
+    my @anded-contents = $a.list[^$minlen] >>+&<< $b.list[^$minlen];
+    @anded-contents.push: 0 xx ($a.elems - @anded-contents.elems);
+    @anded-contents.push: 0 xx ($b.elems - @anded-contents.elems);
+    ($a.WHAT === $b.WHAT ?? $a !! Buf).new(@anded-contents);
+}
+
+multi sub infix:<~|>(Blob:D $a, Blob:D $b) {
+    my $minlen = $a.elems min $b.elems;
+    my @ored-contents = $a.list[^$minlen] «+|» $b.list[^$minlen];
+    @ored-contents.push: $a.list[@ored-contents.elems ..^ $a.elems];
+    @ored-contents.push: $b.list[@ored-contents.elems ..^ $b.elems];
+    ($a.WHAT === $b.WHAT ?? $a !! Buf).new(@ored-contents);
+}
+
+multi sub infix:<~^>(Blob:D $a, Blob:D $b) {
+    my $minlen = $a.elems min $b.elems;
+    my @xored-contents = $a.list[^$minlen] «+^» $b.list[^$minlen];
+    @xored-contents.push: $a.list[@xored-contents.elems ..^ $a.elems];
+    @xored-contents.push: $b.list[@xored-contents.elems ..^ $b.elems];
+    ($a.WHAT === $b.WHAT ?? $a !! Buf).new(@xored-contents);
+}
+
+multi infix:<eqv>(Blob:D $a, Blob:D $b) {
+    $a.WHAT === $b.WHAT && $a.elems == $b.elems &&
+        [&&] $a.list Z== $b.list
+}
+
+multi sub infix:<cmp>(Blob:D $a, Blob:D $b) {
+    [||] $a.list Z<=> $b.list or $a.elems <=> $b.elems
+}
+
+multi sub infix:<eq>(Blob:D $a, Blob:D $b) {
+    $a.elems == $b.elems && $a.list eq $b.list
+}
+
+multi sub infix:<ne>(Blob:D $a, Blob:D $b) {
+    not $a eq $b;
+}
+
+multi sub infix:<lt>(Blob:D $a, Blob:D $b) {
+    ($a cmp $b) == -1
+}
+
+multi sub infix:<gt>(Blob:D $a, Blob:D $b) {
+    ($a cmp $b) ==  1
+}
+
+multi sub infix:<le>(Blob:D $a, Blob:D $b) {
+    ($a cmp $b) !=  1
+}
+
+multi sub infix:<ge>(Blob:D $a, Blob:D $b) {
+    ($a cmp $b) != -1
 }

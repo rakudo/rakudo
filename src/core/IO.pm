@@ -100,7 +100,7 @@ my class IO::Handle does IO::FileTestable {
         );
         $!path = $path;
         $!chomp = $chomp;
-        nqp::setencoding($!PIO, $bin ?? 'binary' !! PARROT_ENCODING($encoding));
+        nqp::setencoding($!PIO, $bin ?? 'binary' !! NORMALIZE_ENCODING($encoding));
         self;
     }
 
@@ -289,7 +289,7 @@ my class IO::Handle does IO::FileTestable {
 
     method encoding($enc?) {
         $enc.defined
-            ?? nqp::setencoding($!PIO, PARROT_ENCODING($enc))
+            ?? nqp::setencoding($!PIO, NORMALIZE_ENCODING($enc))
             !! $!PIO.encoding
     }
 }

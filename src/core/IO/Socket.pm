@@ -12,7 +12,7 @@ my role IO::Socket does IO {
             unless $bin {
                 my Mu $bb := pir::new__Ps('ByteBuffer');
                 pir::set__vPs($bb, $r);
-                $r = $bb.get_string(PARROT_ENCODING('utf8'));
+                $r = $bb.get_string(NORMALIZE_ENCODING('utf8'));
             }
             $!buffer ~= nqp::p6box_s($r);
         }

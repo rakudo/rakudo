@@ -466,17 +466,31 @@ Rakudo_binding_bind_one_param(PARROT_INTERP, PMC *lexpad, Rakudo_Signature *sign
             if (param->flags & SIG_ELEM_DEFINEDNES_CHECK) {
                 INTVAL defined = IS_CONCRETE(decont_value);
                 if (defined && param->flags & SIG_ELEM_UNDEFINED_ONLY) {
-                    if (error)
-                        *error = Parrot_sprintf_c(interp,
-                            "Parameter '%S' requires a type object, but an object instance was passed",
-                            param->variable_name);
+                    if (error) {
+                        if (param->flags & SIG_ELEM_INVOCANT) {
+                            *error = Parrot_sprintf_c(interp,
+                                "Invocant requires a type object, but an object instance was passed" );
+                        }
+                        else {
+                            *error = Parrot_sprintf_c(interp,
+                                "Parameter '%S' requires a type object, but an object instance was passed",
+                                param->variable_name);
+                        }
+                    }
                     return junc_or_fail(interp, decont_value);
                 }
                 if (!defined && param->flags & SIG_ELEM_DEFINED_ONLY) {
-                    if (error)
-                        *error = Parrot_sprintf_c(interp,
-                            "Parameter '%S' requires an instance, but a type object was passed",
-                            param->variable_name);
+                    if (error) {
+                        if (param->flags & SIG_ELEM_INVOCANT) {
+                            *error = Parrot_sprintf_c(interp,
+                                "Invocant requires an instance, but a type object was passed" );
+                        }
+                        else {
+                            *error = Parrot_sprintf_c(interp,
+                                "Parameter '%S' requires an instance, but a type object was passed",
+                                param->variable_name);
+                        }
+                    }
                     return junc_or_fail(interp, decont_value);
                 }
             }

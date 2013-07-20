@@ -44,7 +44,11 @@ my role Blob[::T = int8] does Positional[T] does Stringy is repr('VMArray') is a
     method Numeric { self.elems }
     method Int     { self.elems }
     
-    method list() {
+    method decode(Blob:D: $encoding = 'utf-8') {
+        nqp::p6box_s(nqp::decode(self, NORMALIZE_ENCODING($encoding)))
+    }
+    
+    method list(Blob:D:) {
         my @l;
         my int $n = nqp::elems(self);
         my int $i = 0;
@@ -155,15 +159,36 @@ constant blob32 = Blob[int32];
 constant blob64 = Blob[int64];
 
 my class utf8 does Blob[int8] is repr('VMArray') {
+    method decode(utf8:D: $encoding = 'utf-8') {
+        my $enc = NORMALIZE_ENCODING($encoding);
+        die "Can not decode a utf-8 buffer as if it were $encoding"
+            unless $enc eq 'utf8';
+        nqp::p6box_s(nqp::decode(self, 'utf8'))
+    }
     method encoding() { 'utf-8' }
+    multi method Str(utf8:D:) { self.decode }
 }
 
 my class utf16 does Blob[int16] is repr('VMArray') {
+    method decode(utf16:D: $encoding = 'utf-16') {
+        my $enc = NORMALIZE_ENCODING($encoding);
+        die "Can not decode a utf-16 buffer as if it were $encoding"
+            unless $enc eq 'utf16';
+        nqp::p6box_s(nqp::decode(self, 'utf16'))
+    }
     method encoding() { 'utf-16' }
+    multi method Str(utf16:D:) { self.decode }
 }
 
 my class utf32 does Blob[int32] is repr('VMArray') {
+    method decode(utf32:D: $encoding = 'utf-32') {
+        my $enc = NORMALIZE_ENCODING($encoding);
+        die "Can not decode a utf-32 buffer as if it were $encoding"
+            unless $enc eq 'utf32';
+        nqp::p6box_s(nqp::decode(self, 'utf32'))
+    }
     method encoding() { 'utf-32' }
+    multi method Str(utf32:D:) { self.decode }
 }
 
 my role Buf[::T = int8] does Blob[T] is repr('VMArray') is array_type(T) {

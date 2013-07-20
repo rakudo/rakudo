@@ -75,7 +75,7 @@ my class Cool {
     method fmt($format = '%s') {
 #?if jvm
         unless $sprintfHandlerInitialized {
-            nqp::sprintfAddHandler(SprintfHandler.new);
+            nqp::sprintfaddargumenthandler(SprintfHandler.new);
             $sprintfHandlerInitialized = True;
         }
 #?endif
@@ -254,7 +254,7 @@ multi sub tclc(Cool $x)        { tclc $x.Str }
 sub sprintf(Cool $format, *@args) {
 #?if jvm
     unless $sprintfHandlerInitialized {
-        nqp::sprintfAddHandler(SprintfHandler.new);
+        nqp::sprintfaddargumenthandler(SprintfHandler.new);
         $sprintfHandlerInitialized = True;
     }
 #?endif

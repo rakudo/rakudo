@@ -769,7 +769,7 @@ my class Str does Stringy {
     method encode(Str:D $encoding = 'utf8') {
         my $enc      := NORMALIZE_ENCODING($encoding);
         my $enc_type := %enc_type.exists($enc) ?? %enc_type{$enc} !! blob8;
-        nqp::encode(nqp::unbox_s(self), nqp::unbox_s($enc), nqp::decont($enc_type))
+        nqp::encode(nqp::unbox_s(self), nqp::unbox_s($enc), nqp::decont($enc_type.new))
     }
 
     method capitalize(Str:D:) is DEPRECATED {

@@ -146,9 +146,16 @@ my class IO::Handle does IO::FileTestable {
     }
 
     method read(IO::Handle:D: Cool:D $bytes as Int) {
+        my $buf := buf8.new();
+#?if parrot
+        # Relies on nqp::encode passing the binary encoding straight on down
+        # to Parrot.
         my Mu $parrot_buffer := $!PIO.read_bytes(nqp::unbox_i($bytes));
-        my $buf := nqp::create(Buf);
-        nqp::bindattr_s($buf, Buf, '$!buffer', $parrot_buffer.get_string('binary'));
+        nqp::encode($parrot_buffer.get_string('binary'), 'binary', $buf);
+#?endif
+#?if !parrot
+        die "IO::Handle.read NYI on this backend";
+#?endif
         $buf;
     }
     # second arguemnt should probably be an enum
@@ -164,16 +171,18 @@ my class IO::Handle does IO::FileTestable {
         nqp::p6box_i($!PIO.tell);
     }
 
-    method write(IO::Handle:D: Buf:D $buf) {
-        my str $b = nqp::getattr_s(
-                        nqp::decont($buf),
-                        Buf,
-                        '$!buffer'
-                    );
+    method write(IO::Handle:D: Blob:D $buf) {
+#?if parrot
+        # This relies on the Parrot 'binary' encoding and that nqp::decode
+        # passes encoding straight down to Parrot.
         my str $encoding = $!PIO.encoding;
         $!PIO.encoding('binary');
-        $!PIO.print($b);
+        $!PIO.print(nqp::decode(nqp::decont($buf), 'binary'));
         $!PIO.encoding($encoding) unless $encoding eq 'binary';
+#?endif
+#?if !parrot
+        die "IO::Handle.write NYI on this backend";
+#?endif
         True;
     }
 
@@ -208,7 +217,7 @@ my class IO::Handle does IO::FileTestable {
         self.encoding($encoding) if $encoding.defined;
 
         if $bin {
-            my $Buf = Buf.new();
+            my $Buf = buf8.new();
             loop {
                 my $current  = self.read(10_000);
                 $Buf ~= $current;
@@ -238,7 +247,7 @@ my class IO::Handle does IO::FileTestable {
         self.close;
     }
     
-    multi method spurt(Buf $contents,
+    multi method spurt(Blob $contents,
                     :$createonly,
                     :$append) {
         fail("File '" ~ self.path ~ "' already exists, but :createonly was give to spurt")
@@ -558,7 +567,7 @@ multi sub spurt(IO::Handle $fh,
     $fh.spurt($contents, :$enc, :$createonly, :$append);
 }
 multi sub spurt(IO::Handle $fh,
-                Buf $contents,
+                Blob $contents,
                 :$createonly,
                 :$append) {
     $fh.spurt($contents, :$createonly, :$append);
@@ -573,7 +582,7 @@ multi sub spurt(Cool $filename,
 }
 
 multi sub spurt(Cool $filename,
-                Buf $contents,
+                Blob $contents,
                 :$createonly,
                 :$append) {
     $filename.IO.spurt($contents, :$createonly, :$append);

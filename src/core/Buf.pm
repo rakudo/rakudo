@@ -1,3 +1,7 @@
+my class X::Buf::AsStr { ... }
+my class X::Buf::Pack { ... }
+my class X::Buf::Pack::NonASCII { ... }
+
 my role Blob[::T = int8] does Positional[T] does Stringy is repr('VMArray') is array_type(T) {
     proto method new(|) { * }
     multi method new() {

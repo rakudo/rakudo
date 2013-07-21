@@ -151,7 +151,7 @@ my class IO::Handle does IO::FileTestable {
         nqp::bindattr_s($buf, Buf, '$!buffer', $parrot_buffer.get_string('binary'));
         $buf;
     }
-    # first arguemnt should probably be an enum
+    # second arguemnt should probably be an enum
     # valid values for $whence:
     #   0 -- seek from beginning of file
     #   1 -- seek relative to current position

@@ -27,9 +27,7 @@ my role IO::Socket does IO {
         }
 
         if $bin {
-            my $buf := Buf.new;
-            nqp::bindattr_s($buf, Buf, '$!buffer', nqp::unbox_s($rec));
-            $buf
+            nqp::encode(nqp::unbox_s($rec), 'binary', buf8.new);
         }
         else {
             $rec
@@ -38,14 +36,13 @@ my role IO::Socket does IO {
 
     method read(IO::Socket:D: Cool $bufsize as Int) {
         fail('Socket not available') unless $!PIO;
-        my $res = Buf.new;
+        my $res = buf8.new;
         my $buf;
         repeat {
-            $buf := nqp::create(Buf);
+            $buf := buf8.new;
             my Mu $parrot_buf := pir::new__PS('ByteBuffer');
             pir::set__vPS($parrot_buf, $!PIO.read(nqp::unbox_i($bufsize - $res.elems)));
-            nqp::bindattr_s($buf, Buf, '$!buffer',
-                    $parrot_buf.get_string('binary'));
+            nqp::encode($parrot_buf.get_string('binary'), 'binary', $buf);
             $res = $res ~ $buf;
         } while $res.elems < $bufsize && $buf.elems;
         $res;
@@ -63,9 +60,9 @@ my role IO::Socket does IO {
         $!PIO.send(nqp::unbox_s($string)).Bool;
     }
 
-    method write(Buf:D $buf) {
+    method write(Blob:D $buf) {
         fail('Socket not available') unless $!PIO;
-        $!PIO.send(nqp::unbox_s( $buf.decode('binary') )).Bool;
+        $!PIO.send(nqp::unbox_s(nqp::decode(nqp::decont($buf), 'binary') )).Bool;
     }
 
     method close () {

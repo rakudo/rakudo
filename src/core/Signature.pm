@@ -1,6 +1,6 @@
 my class Signature {
     # declared in BOOTSTRAP.pm:
-    #   has $!params;          # RPA of parameters
+    #   has $!params;          # VM's array of parameters
     #   has $!returns;         # return type
     #   has $!arity;           # cached arity
     #   has $!count;           # cached count

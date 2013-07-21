@@ -616,7 +616,7 @@ my class Any {
             SELF{key}:$k;
         }
         elsif $k {
-            key.grep( { SELF.exists($_) } ).eager.Parcel
+            key.map( { $_ if SELF.exists($_) } ).eager.Parcel
         }
         else {
             key

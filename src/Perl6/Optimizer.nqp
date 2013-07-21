@@ -459,7 +459,7 @@ class Perl6::Optimizer {
                             }
                         }
                         elsif $ct_result_proto == -1 || @ct_result_multi[0] == -1 {
-                            self.report_innevitable_dispatch_failure($op, @types, @flags, $obj,
+                            self.report_inevitable_dispatch_failure($op, @types, @flags, $obj,
                                 :protoguilt($ct_result_proto == -1));
                         }
                     }
@@ -482,7 +482,7 @@ class Perl6::Optimizer {
                             }
                         }
                         elsif $ct_result == -1 {
-                            self.report_innevitable_dispatch_failure($op, @types, @flags, $obj);
+                            self.report_inevitable_dispatch_failure($op, @types, @flags, $obj);
                         }
                     }
                 }
@@ -639,7 +639,7 @@ class Perl6::Optimizer {
         [@types, @flags]
     }
     
-    method report_innevitable_dispatch_failure($op, @types, @flags, $obj, :$protoguilt) {
+    method report_inevitable_dispatch_failure($op, @types, @flags, $obj, :$protoguilt) {
         my @arg_names;
         my int $i := 0;
         while $i < +@types {

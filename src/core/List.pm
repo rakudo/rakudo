@@ -1,7 +1,7 @@
 my class List does Positional {
     # declared in BOOTSTRAP.pm:
     #   is Iterable;           # parent class
-    #   has Mu $!items;        # RPA of our reified elements
+    #   has Mu $!items;        # VM's array of our reified elements
     #   has $!flattens;        # true if this list flattens its parcels
     #   has $!nextiter;        # iterator for generating remaining elements
 

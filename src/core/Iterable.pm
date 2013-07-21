@@ -1,6 +1,6 @@
 my class Iterable {
     method elems()    { self.list.elems }
-    method infinite() { Mu }
+    method infinite() { Nil }
     method item($self:) { $self }
     
     method fmt($format = '%s', $separator = ' ') {

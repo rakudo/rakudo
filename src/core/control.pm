@@ -215,7 +215,11 @@ sub sleep($seconds = $Inf) {         # fractional seconds also allowed
     my $time1 = time;
     if $seconds ~~ $Inf {
         nqp::sleep(1e16) while True;
-    } else {
+    }
+    elsif $seconds < 0 {
+        fail "Cannot go {abs $seconds} seconds back in time";
+    }
+    else {
         nqp::sleep($seconds.Num);
     }
     return time - $time1;

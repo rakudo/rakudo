@@ -1,97 +1,90 @@
-# the real Buf should be something parametric and much more awesome.
-# this is merely a placeholder until people who know their stuff build
-# the Real Thing.
+my class X::Buf::AsStr { ... }
+my class X::Buf::Pack { ... }
+my class X::Buf::Pack::NonASCII { ... }
 
-my class X::Buf::AsStr { ... };
-my class X::Buf::Pack  { ... };
-my class X::Buf::Pack::NonASCII  { ... };
-
-my class Buf does Positional {
-    has str $!buffer;
-#?if parrot
-    my int $binary_encoding = pir::find_encoding__Is('binary');
-    method BUILD() {
-        $!buffer = pir::trans_encoding__Ssi('', $binary_encoding);
-        1;
+my role Blob[::T = int8] does Positional[T] does Stringy is repr('VMArray') is array_type(T) {
+    proto method new(|) { * }
+    multi method new() {
+        nqp::create(self)
     }
-#?endif
-#?if !parrot
-    method BUILD() { die "Buf NYI on JVM backend" }
-#?endif
-    method new(*@codes) {
-        my $new := self.bless(*);
-        $new!set_codes(@codes);
-        $new;
-    }
-    method !set_codes(@codes) {
-        my int $bytes = @codes.elems;
-        my $rsa := nqp::list_s();
-        my int $i = 0;
-        while $i < $bytes {
-            nqp::bindpos_s($rsa, $i, nqp::chr(nqp::unbox_i(@codes[$i])));
+    multi method new(@values) {
+        my $buf := nqp::create(self);
+        my int $n = @values.elems;
+        my int $i;
+        nqp::setelems($buf, $n);
+        while $i < $n {
+            nqp::bindpos_i($buf, $i, @values.at_pos($i));
             $i = $i + 1;
         }
-        $!buffer = nqp::join('', $rsa);
-        self;
+        $buf
+    }
+    multi method new(*@values) {
+        self.new(@values)
+    }
+    
+    multi method at_pos(Blob:D: $i) {
+        nqp::atpos_i(self, $i.Int)
+    }
+    multi method at_pos(Blob:D: Int $i) {
+        nqp::atpos_i(self, $i)
+    }
+    multi method at_pos(Blob:D: int $i) {
+        nqp::atpos_i(self, $i)
+    }
+    
+    multi method Bool(Blob:D:) {
+        nqp::p6bool(nqp::elems(self));
     }
 
-    method at_pos(Buf:D: Int:D $idx) {
-        nqp::p6box_i(nqp::ord(nqp::substr($!buffer, nqp::unbox_i($idx), 1)));
+    method elems(Blob:D:) {
+        nqp::p6box_i(nqp::elems(self));
     }
-
-    multi method Bool(Buf:D:) {
-        nqp::p6bool(nqp::chars($!buffer));
+    method bytes(Blob:D:) {
+        self.elems
     }
+    method chars(Blob:D:)       { X::Buf::AsStr.new(method => 'chars').throw }
+    multi method Str(Blob:D:)   { X::Buf::AsStr.new(method => 'Str'  ).throw }
 
-    method elems(Buf:D:) {
-        nqp::p6box_i(nqp::chars($!buffer));
+    method Numeric(Blob:D:) { self.elems }
+    method Int(Blob:D:)     { self.elems }
+    
+    method decode(Blob:D: $encoding = 'utf-8') {
+        nqp::p6box_s(nqp::decode(self, NORMALIZE_ENCODING($encoding)))
     }
-    method bytes(Buf:D:) { self.elems }
-    method chars()       { X::Buf::AsStr.new(method => 'chars').throw }
-    multi method Str()   { X::Buf::AsStr.new(method => 'Str'  ).throw }
-
-
-    method Numeric { self.elems }
-    method Int     { self.elems }
-
-    method list() {
+    
+    method list(Blob:D:) {
         my @l;
-        my int $bytes = nqp::chars($!buffer);
+        my int $n = nqp::elems(self);
         my int $i = 0;
-        while $i < $bytes {
-            @l[$i] = nqp::p6box_i(nqp::ord(nqp::substr($!buffer, $i, 1)));
+        while $i < $n {
+            @l[$i] = nqp::atpos_i(self, $i);
             $i = $i + 1;
         }
         @l;
     }
 
-    multi method gist(Buf:D:) {
+    multi method gist(Blob:D:) {
         'Buf:0x<' ~ self.list.fmt('%02x', ' ') ~ '>'
     }
-    multi method perl(Buf:D:) {
+    multi method perl(Blob:D:) {
         self.^name ~ '.new(' ~ self.list.join(', ') ~ ')';
     }
-
-    method decode(Str:D $encoding = 'utf8') {
-#?if parrot
-        my $bb := pir::new__Ps('ByteBuffer');
-        pir::set__vPs($bb, $!buffer);
-        nqp::p6box_s($bb.get_string($encoding eq 'binary' ?? 'binary' !! PARROT_ENCODING($encoding)));
-#?endif
-#?if !parrot
-        die "Buf NYI on JVM backend"
-#?endif
-    }
-
-    method subbuf(Buf:D: $from = 0, $len = self.elems) {
+    
+    method subbuf(Blob:D: $from = 0, $len = self.elems - $from) {
         my $ret := nqp::create(self);
-        nqp::bindattr_s($ret, Buf, '$!buffer',
-            nqp::substr($!buffer, nqp::unbox_i($from), nqp::unbox_i($len))
-        );
-        $ret;
+        my int $llen = $len.Int;
+        nqp::setelems($ret, $llen);
+        my int $i = 0;
+        my int $f = $from.Int;
+        while $i < $llen {
+            nqp::bindpos_i($ret, $i, nqp::atpos_i(self, $f));
+            $i = $i + 1;
+            $f = $f + 1;
+        }
+        $ret
     }
-
-    method unpack(Buf:D: $template) {
+    
+    method unpack(Blob:D: $template) {
         my @bytes = self.list;
         my @fields;
         for $template.comb(/<[a..zA..Z]>[\d+|'*']?/) -> $unit {
@@ -159,72 +152,57 @@ my class Buf does Positional {
 
     # XXX: the pack.t spectest file seems to require this method
     # not sure if it should be changed to list there...
-    method contents(Buf:D:) { self.list }
+    method contents(Blob:D:) { self.list }
+    
+    method encoding() { Any }
 }
 
-multi infix:<eqv>(Buf:D $a, Buf:D $b) {
-    $a.WHAT === $b.WHAT && nqp::p6bool(nqp::iseq_s(
-        nqp::getattr_s(nqp::decont($a), Buf, '$!buffer'),
-        nqp::getattr_s(nqp::decont($b), Buf, '$!buffer')
-    ));
-}
-multi prefix:<~^>(Buf:D $a) {
-    Buf.new($a.list.map: 255 - *);
-}
-multi infix:<~>(Buf:D $a, Buf:D $b) {
-    my Buf $r := nqp::create(Buf);
+constant blob8 = Blob[int8];
+constant blob16 = Blob[int16];
+constant blob32 = Blob[int32];
+constant blob64 = Blob[int64];
 
-    my str $ba = nqp::getattr_s(nqp::decont($a), Buf, '$!buffer');
-    my str $bb = nqp::getattr_s(nqp::decont($b), Buf, '$!buffer');
-    nqp::bindattr_s($r, Buf, '$!buffer', nqp::concat($ba, $bb));
-    $r;
-}
-multi sub infix:<~&>(Buf:D $a, Buf:D $b) {
-    my $minlen := $a.elems min $b.elems;
-    my @anded-contents = $a.list[^$minlen] >>+&<< $b.list[^$minlen];
-    @anded-contents.push: 0 xx ($a.elems - @anded-contents.elems);
-    @anded-contents.push: 0 xx ($b.elems - @anded-contents.elems);
-    Buf.new(@anded-contents);
+my class utf8 does Blob[int8] is repr('VMArray') {
+    method decode(utf8:D: $encoding = 'utf-8') {
+        my $enc = NORMALIZE_ENCODING($encoding);
+        die "Can not decode a utf-8 buffer as if it were $encoding"
+            unless $enc eq 'utf8';
+        nqp::p6box_s(nqp::decode(self, 'utf8'))
+    }
+    method encoding() { 'utf-8' }
+    multi method Str(utf8:D:) { self.decode }
 }
 
-
-multi sub infix:<~|>(Buf:D $a, Buf:D $b) {
-    my $minlen = $a.elems min $b.elems;
-    my @ored-contents = $a.list[^$minlen] «+|» $b.list[^$minlen];
-    @ored-contents.push: $a.list[@ored-contents.elems ..^ $a.elems];
-    @ored-contents.push: $b.list[@ored-contents.elems ..^ $b.elems];
-    Buf.new(@ored-contents);
+my class utf16 does Blob[int16] is repr('VMArray') {
+    method decode(utf16:D: $encoding = 'utf-16') {
+        my $enc = NORMALIZE_ENCODING($encoding);
+        die "Can not decode a utf-16 buffer as if it were $encoding"
+            unless $enc eq 'utf16';
+        nqp::p6box_s(nqp::decode(self, 'utf16'))
+    }
+    method encoding() { 'utf-16' }
+    multi method Str(utf16:D:) { self.decode }
 }
 
-multi sub infix:<~^>(Buf:D $a, Buf:D $b) {
-    my $minlen = $a.elems min $b.elems;
-    my @xored-contents = $a.list[^$minlen] «+^» $b.list[^$minlen];
-    @xored-contents.push: $a.list[@xored-contents.elems ..^ $a.elems];
-    @xored-contents.push: $b.list[@xored-contents.elems ..^ $b.elems];
-    Buf.new(@xored-contents);
+my class utf32 does Blob[int32] is repr('VMArray') {
+    method decode(utf32:D: $encoding = 'utf-32') {
+        my $enc = NORMALIZE_ENCODING($encoding);
+        die "Can not decode a utf-32 buffer as if it were $encoding"
+            unless $enc eq 'utf32';
+        nqp::p6box_s(nqp::decode(self, 'utf32'))
+    }
+    method encoding() { 'utf-32' }
+    multi method Str(utf32:D:) { self.decode }
 }
 
-multi sub infix:<cmp>(Buf:D $a, Buf:D $b) {
-    [||] $a.list Z<=> $b.list or $a.elems <=> $b.elems
+my role Buf[::T = int8] does Blob[T] is repr('VMArray') is array_type(T) {
+    # TODO: override at_pos so we get mutability
 }
-multi sub infix:<eq>(Buf:D $a, Buf:D $b) {
-    $a.elems == $b.elems && $a.list eq $b.list
-}
-multi sub infix:<ne>(Buf:D $a, Buf:D $b) {
-    not $a eq $b;
-}
-multi sub infix:<lt>(Buf:D $a, Buf:D $b) {
-    ($a cmp $b) == -1
-}
-multi sub infix:<gt>(Buf:D $a, Buf:D $b) {
-    ($a cmp $b) ==  1
-}
-multi sub infix:<le>(Buf:D $a, Buf:D $b) {
-    ($a cmp $b) !=  1
-}
-multi sub infix:<ge>(Buf:D $a, Buf:D $b) {
-    ($a cmp $b) != -1
-}
+
+constant buf8 = Buf[int8];
+constant buf16 = Buf[int16];
+constant buf32 = Buf[int32];
+constant buf64 = Buf[int64];
 
 multi sub pack(Str $template, *@items) {
     my @bytes;
@@ -286,4 +264,71 @@ multi sub pack(Str $template, *@items) {
     }
 
     return Buf.new(@bytes);
+}
+
+multi infix:<~>(Blob:D $a, Blob:D $b) {
+    ($a.WHAT === $b.WHAT ?? $a !! Buf).new($a.list, $b.list)
+}
+
+multi prefix:<~^>(Blob:D $a) {
+    $a ~~ Blob[int16] ?? $a.new($a.list.map: 0xFFFF - *) !!
+    $a ~~ Blob[int32] ?? $a.new($a.list.map: 0xFFFFFFFF - *) !!
+                         $a.new($a.list.map: 0xFF - *);
+}
+
+multi sub infix:<~&>(Blob:D $a, Blob:D $b) {
+    my $minlen := $a.elems min $b.elems;
+    my @anded-contents = $a.list[^$minlen] >>+&<< $b.list[^$minlen];
+    @anded-contents.push: 0 xx ($a.elems - @anded-contents.elems);
+    @anded-contents.push: 0 xx ($b.elems - @anded-contents.elems);
+    ($a.WHAT === $b.WHAT ?? $a !! Buf).new(@anded-contents);
+}
+
+multi sub infix:<~|>(Blob:D $a, Blob:D $b) {
+    my $minlen = $a.elems min $b.elems;
+    my @ored-contents = $a.list[^$minlen] «+|» $b.list[^$minlen];
+    @ored-contents.push: $a.list[@ored-contents.elems ..^ $a.elems];
+    @ored-contents.push: $b.list[@ored-contents.elems ..^ $b.elems];
+    ($a.WHAT === $b.WHAT ?? $a !! Buf).new(@ored-contents);
+}
+
+multi sub infix:<~^>(Blob:D $a, Blob:D $b) {
+    my $minlen = $a.elems min $b.elems;
+    my @xored-contents = $a.list[^$minlen] «+^» $b.list[^$minlen];
+    @xored-contents.push: $a.list[@xored-contents.elems ..^ $a.elems];
+    @xored-contents.push: $b.list[@xored-contents.elems ..^ $b.elems];
+    ($a.WHAT === $b.WHAT ?? $a !! Buf).new(@xored-contents);
+}
+
+multi infix:<eqv>(Blob:D $a, Blob:D $b) {
+    $a.WHAT === $b.WHAT && $a.elems == $b.elems &&
+        [&&] $a.list Z== $b.list
+}
+
+multi sub infix:<cmp>(Blob:D $a, Blob:D $b) {
+    [||] $a.list Z<=> $b.list or $a.elems <=> $b.elems
+}
+
+multi sub infix:<eq>(Blob:D $a, Blob:D $b) {
+    $a.elems == $b.elems && $a.list eq $b.list
+}
+
+multi sub infix:<ne>(Blob:D $a, Blob:D $b) {
+    not $a eq $b;
+}
+
+multi sub infix:<lt>(Blob:D $a, Blob:D $b) {
+    ($a cmp $b) == -1
+}
+
+multi sub infix:<gt>(Blob:D $a, Blob:D $b) {
+    ($a cmp $b) ==  1
+}
+
+multi sub infix:<le>(Blob:D $a, Blob:D $b) {
+    ($a cmp $b) !=  1
+}
+
+multi sub infix:<ge>(Blob:D $a, Blob:D $b) {
+    ($a cmp $b) != -1
 }

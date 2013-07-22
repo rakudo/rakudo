@@ -12,7 +12,7 @@ my role IO::Socket does IO {
             unless $bin {
                 my Mu $bb := pir::new__Ps('ByteBuffer');
                 pir::set__vPs($bb, $r);
-                $r = $bb.get_string(PARROT_ENCODING('utf8'));
+                $r = $bb.get_string(NORMALIZE_ENCODING('utf8'));
             }
             $!buffer ~= nqp::p6box_s($r);
         }
@@ -27,9 +27,7 @@ my role IO::Socket does IO {
         }
 
         if $bin {
-            my $buf := Buf.new;
-            nqp::bindattr_s($buf, Buf, '$!buffer', nqp::unbox_s($rec));
-            $buf
+            nqp::encode(nqp::unbox_s($rec), 'binary', buf8.new);
         }
         else {
             $rec
@@ -38,17 +36,15 @@ my role IO::Socket does IO {
 
     method read(IO::Socket:D: Cool $bufsize as Int) {
         fail('Socket not available') unless $!PIO;
-        my $res = Buf.new;
-        my $buf;
+        my str $res;
+        my str $read;
         repeat {
-            $buf := nqp::create(Buf);
             my Mu $parrot_buf := pir::new__PS('ByteBuffer');
-            pir::set__vPS($parrot_buf, $!PIO.read(nqp::unbox_i($bufsize - $res.elems)));
-            nqp::bindattr_s($buf, Buf, '$!buffer',
-                    $parrot_buf.get_string('binary'));
-            $res = $res ~ $buf;
-        } while $res.elems < $bufsize && $buf.elems;
-        $res;
+            pir::set__vPS($parrot_buf, $!PIO.read(nqp::unbox_i($bufsize - nqp::chars($res))));
+            $read = $parrot_buf.get_string('binary');
+            $res = nqp::concat($res, $read);
+        } while nqp::chars($res) < $bufsize && nqp::chars($read);
+        nqp::encode(nqp::unbox_s($res), 'binary', buf8.new);
     }
 
     method poll(Int $bitmask, $seconds) {
@@ -63,9 +59,9 @@ my role IO::Socket does IO {
         $!PIO.send(nqp::unbox_s($string)).Bool;
     }
 
-    method write(Buf:D $buf) {
+    method write(Blob:D $buf) {
         fail('Socket not available') unless $!PIO;
-        $!PIO.send(nqp::unbox_s( $buf.decode('binary') )).Bool;
+        $!PIO.send(nqp::decode(nqp::decont($buf), 'binary')).Bool;
     }
 
     method close () {

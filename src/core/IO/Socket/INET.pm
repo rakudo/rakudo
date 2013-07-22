@@ -78,7 +78,6 @@ my class IO::Socket::INET does IO::Socket {
             $PIO.bind($addr);
         }
 
-        # $PIO.encoding(nqp::unbox_s(PARROT_ENCODING(self.encoding)));
         if $.listen { 
             $PIO.listen($.listen);
         }
@@ -92,7 +91,7 @@ my class IO::Socket::INET does IO::Socket {
     }
 
     method get() {
-        my str $encoding = nqp::unbox_s(PARROT_ENCODING($!encoding));
+        my str $encoding = nqp::unbox_s(NORMALIZE_ENCODING($!encoding));
         my str $sep = pir::trans_encoding__SSI(
             nqp::unbox_s($!input-line-separator),
             pir::find_encoding__IS($encoding));

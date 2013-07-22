@@ -13,6 +13,7 @@ class Perl6::Metamodel::ParametricRoleHOW
     does Perl6::Metamodel::Stashing
     does Perl6::Metamodel::TypePretense
     does Perl6::Metamodel::RolePunning
+    does Perl6::Metamodel::ArrayType
 {
     has $!composed;
     has $!body_block;
@@ -36,6 +37,7 @@ class Perl6::Metamodel::ParametricRoleHOW
         $metarole.set_name($type, $name);
         $metarole.set_ver($type, $ver) if $ver;
         $metarole.set_auth($type, $auth) if $auth;
+        $metarole.set_pun_repr($type, $repr) if $repr;
         if nqp::existskey(%extra, 'group') {
             $metarole.set_group($type, %extra<group>);
         }
@@ -193,6 +195,16 @@ class Perl6::Metamodel::ParametricRoleHOW
                 $p := $p.HOW.instantiate_generic($p, $type_env);
             }
             $conc.HOW.add_parent($conc, $p);
+        }
+        
+        # Resolve any array type being passed along (only really used in the
+        # punning case, since roles are the way we get generic types).
+        if self.is_array_type($obj) {
+            my $at := self.array_type($obj);
+            if $at.HOW.archetypes.generic {
+                $at := $at.HOW.instantiate_generic($at, $type_env);
+            }
+            $conc.HOW.set_array_type($conc, $at);
         }
         
         $conc.HOW.compose($conc);

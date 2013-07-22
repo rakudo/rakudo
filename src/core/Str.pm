@@ -1,7 +1,6 @@
 my class Cursor {... }
 my class Range  {... }
 my class Match  {... }
-my class Buf    {... }
 my class IO::Path         { ... }
 my class X::Str::Numeric  { ... }
 my class X::Str::Match::x { ... }
@@ -11,9 +10,18 @@ my class X::Str::Trans::InvalidArg { ... }
 
 my $?TABSTOP = 8;
 
-sub PARROT_ENCODING(Str:D $s) {
-    my %map = (
+sub NORMALIZE_ENCODING(Str:D $s) {
+    state %map = (
+        # fast mapping for identicals
+        'utf8'              => 'utf8',
+        'utf16'             => 'utf16',
+        'utf32'             => 'utf32',
+        'ascii'             => 'ascii',
+        'iso-8859-1'        => 'iso-8859-1',
+        # with dash
         'utf-8'             => 'utf8',
+        'utf-16'            => 'utf16',
+        'utf-32'            => 'utf32',
         # according to http://de.wikipedia.org/wiki/ISO-8859-1
         'iso_8859-1:1987'   => 'iso-8859-1',
         'iso_8859-1'        => 'iso-8859-1',
@@ -25,8 +33,7 @@ sub PARROT_ENCODING(Str:D $s) {
         'ibm819'            => 'iso-8859-1',
         'cp819'             => 'iso-8859-1',
     );
-    my Str $lc = lc($s);
-    %map{$lc} // $lc;
+    %map{$s} // %map{lc $s} // lc $s;
 }
 
 my class Str does Stringy {
@@ -763,20 +770,11 @@ my class Str does Stringy {
         self.comb( / \S+ /, $limit );
     }
 
+    my %enc_type = utf8 => utf8, utf16 => utf16, utf32 => utf32;
     method encode(Str:D $encoding = 'utf8') {
-#?if parrot
-        my $buf := Buf.new;
-        my $bb := pir::new__Ps('ByteBuffer');
-        pir::set__vPS($bb, pir::trans_encoding__SSI(
-            nqp::unbox_s(self),
-            pir::find_encoding__IS(nqp::unbox_s(PARROT_ENCODING($encoding)))
-        ));
-        nqp::bindattr_s($buf, Buf, '$!buffer', $bb.get_string('binary'));
-        $buf;
-#?endif
-#?if !parrot
-        die "encode is NYI on JVM backend";
-#?endif
+        my $enc      := NORMALIZE_ENCODING($encoding);
+        my $enc_type := %enc_type.exists($enc) ?? %enc_type{$enc} !! blob8;
+        nqp::encode(nqp::unbox_s(self), nqp::unbox_s($enc), nqp::decont($enc_type.new))
     }
 
     method capitalize(Str:D:) is DEPRECATED {

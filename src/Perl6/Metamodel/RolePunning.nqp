@@ -11,15 +11,28 @@ role Perl6::Metamodel::RolePunning {
     # Did we make a pun?
     has $!made_pun;
     
+    # Representation to pun to, if any.
+    has str $!pun_repr;
+    
     # Configures the punning.
     method configure_punning($my_pun_meta, %my_exceptions) {
         $pun_meta := $my_pun_meta;
         %exceptions := %my_exceptions;
     }
     
+    method set_pun_repr($obj, $repr) {
+        $!pun_repr := $repr
+    }
+    
+    method pun_repr($obj) {
+        $!pun_repr
+    }
+    
     # Produces the pun.
     method make_pun($obj) {
-        my $pun := $pun_meta.new_type(:name(self.name($obj)));
+        my $pun := $!pun_repr
+            ?? $pun_meta.new_type(:name(self.name($obj)), :repr($!pun_repr))
+            !! $pun_meta.new_type(:name(self.name($obj)));
         $pun.HOW.add_role($pun, $obj);
         $pun.HOW.compose($pun);
         $pun

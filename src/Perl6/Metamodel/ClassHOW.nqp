@@ -16,8 +16,9 @@ class Perl6::Metamodel::ClassHOW
     does Perl6::Metamodel::Trusting
     does Perl6::Metamodel::BUILDPLAN
     does Perl6::Metamodel::Mixins
+    does Perl6::Metamodel::ArrayType
     does Perl6::Metamodel::BoolificationProtocol
-    does Perl6::Metamodel::REPRAttributeProtocol
+    does Perl6::Metamodel::REPRComposeProtocol
     does Perl6::Metamodel::InvocationProtocol
 #?if parrot
     does Perl6::Metamodel::ParrotInterop

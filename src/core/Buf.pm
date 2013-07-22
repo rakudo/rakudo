@@ -267,7 +267,26 @@ multi sub pack(Str $template, *@items) {
 }
 
 multi infix:<~>(Blob:D $a, Blob:D $b) {
-    ($a.WHAT === $b.WHAT ?? $a !! Buf).new($a.list, $b.list)
+    my $res := ($a.WHAT === $b.WHAT ?? $a !! Buf).new;
+    my $adc := nqp::decont($a);
+    my $bdc := nqp::decont($b);
+    my int $alen = nqp::elems($adc);
+    my int $blen = nqp::elems($bdc);
+    nqp::setelems($res, $alen + $blen);
+    my int $s = 0;
+    my int $d = 0;
+    while $s < $alen {
+        nqp::bindpos_i($res, $d, nqp::atpos_i($adc, $s));
+        $s = $s + 1;
+        $d = $d + 1;
+    }
+    $s = 0;
+    while $s < $blen {
+        nqp::bindpos_i($res, $d, nqp::atpos_i($bdc, $s));
+        $s = $s + 1;
+        $d = $d + 1;
+    }
+    $res
 }
 
 multi prefix:<~^>(Blob:D $a) {

@@ -12,10 +12,16 @@ my $?TABSTOP = 8;
 
 sub NORMALIZE_ENCODING(Str:D $s) {
     state %map = (
+        # fast mapping for identicals
+        'utf8'              => 'utf8',
+        'utf16'             => 'utf16',
+        'utf32'             => 'utf32',
+        'ascii'             => 'ascii',
+        'iso-8859-1'        => 'iso-8859-1',
+        # with dash
         'utf-8'             => 'utf8',
         'utf-16'            => 'utf16',
         'utf-32'            => 'utf32',
-        'ascii'             => 'ascii',
         # according to http://de.wikipedia.org/wiki/ISO-8859-1
         'iso_8859-1:1987'   => 'iso-8859-1',
         'iso_8859-1'        => 'iso-8859-1',
@@ -27,8 +33,7 @@ sub NORMALIZE_ENCODING(Str:D $s) {
         'ibm819'            => 'iso-8859-1',
         'cp819'             => 'iso-8859-1',
     );
-    my Str $lc = lc($s);
-    %map{$lc} // $lc;
+    %map{$s} // %map{lc $s} // lc $s;
 }
 
 my class Str does Stringy {

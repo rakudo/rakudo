@@ -11,7 +11,7 @@ my class X::Str::Trans::InvalidArg { ... }
 my $?TABSTOP = 8;
 
 sub NORMALIZE_ENCODING(Str:D $s) {
-    my %map = (
+    state %map = (
         'utf-8'             => 'utf8',
         'utf-16'            => 'utf16',
         'utf-32'            => 'utf32',

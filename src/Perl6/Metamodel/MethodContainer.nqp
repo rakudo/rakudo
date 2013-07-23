@@ -11,26 +11,33 @@ role Perl6::Metamodel::MethodContainer {
 
     # Add a method.
     method add_method($obj, $name, $code_obj) {
-        # Adding a method means any cache is no longer authoritative.
-        nqp::setmethcacheauth($obj, 0);
+
+        # We may get Parrot subs in here during BOOTSTRAP; the try is to cope
+        # with them.
+        my $method_type := "Method";
+        try { $method_type := $code_obj.HOW.name($code_obj) };
         
         # Ensure we haven't already got it.
         if nqp::existskey(%!methods, $name) || nqp::existskey(%!submethods, $name) {
-            nqp::die("Package '" ~ self.name($obj) ~ "' already has a method '" ~
-                $name ~ "' (did you mean to declare a multi-method?)");
+            nqp::die("Package '"
+              ~ self.name($obj)
+              ~ "' already has a "
+              ~ $method_type
+              ~ " '"
+              ~ $name
+              ~ "' (did you mean to declare a multi-method?)");
         }
         
         # Add to correct table depending on if it's a Submethod. Note, we
-        # may get Parrot subs in here during BOOTSTRAP; the try is to cope
-        # with them.
-        my $is_submethod := 0;
-        try { $is_submethod := $code_obj.HOW.name($code_obj) eq 'Submethod' }
-        if $is_submethod {
+        if $method_type eq 'Submethod' {
             %!submethods{$name} := $code_obj;
         }
         else {
             %!methods{$name} := $code_obj;
         }
+
+        # Adding a method means any cache is no longer authoritative.
+        nqp::setmethcacheauth($obj, 0);
         %!cache := {};
         @!method_order[+@!method_order] := $code_obj;
     }

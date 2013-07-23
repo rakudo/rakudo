@@ -18,7 +18,7 @@ my class Any {
     method categorize($test) { {}.categorize( $test, self.list ) }
     method uniq() { self.list.uniq }
     method squish() { self.list.squish }
-    method infinite() { Mu }
+    method infinite() { Nil }
     method flat() { nqp::p6list(nqp::list(self), List, Bool::True) }
     method hash() { my % = self }
     method list() { nqp::p6list(nqp::list(self), List, Mu) }

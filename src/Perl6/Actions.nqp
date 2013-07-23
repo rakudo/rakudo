@@ -2727,14 +2727,16 @@ class Perl6::Actions is HLL::Actions does STDActions {
         else {
             $meta_meth := $*MULTINESS eq 'multi' ?? 'add_multi_method' !! 'add_method';
         }
-        if $scope ne 'anon' && nqp::can($*PACKAGE.HOW, $meta_meth) {
-            $*W.pkg_add_method($/, $*PACKAGE, $meta_meth, $name, $code);
-        }
-        elsif $scope eq '' || $scope eq 'has' {
-            my $nocando := $*MULTINESS eq 'multi' ?? 'multi-method' !! 'method';
-            nqp::printfh(nqp::getstderr(),
-                "Useless declaration of a has-scoped $nocando in " ~
-                ($*PKGDECL || "mainline") ~ "\n");
+        if $scope eq '' || $scope eq 'has' {
+            if nqp::can($*PACKAGE.HOW, $meta_meth) {
+                $*W.pkg_add_method($/, $*PACKAGE, $meta_meth, $name, $code);
+            }
+            else {
+                my $nocando := $*MULTINESS eq 'multi' ?? 'multi-method' !! 'method';
+                nqp::printfh(nqp::getstderr(),
+                    "Useless declaration of a has-scoped $nocando in " ~
+                    ($*PKGDECL || "mainline") ~ "\n");
+            }
         }
 
         # May also need it in lexpad and/or package.

@@ -303,7 +303,7 @@ sub infix:<andthen>(*@a) {
 
 # We attach precedence information to all operators here. This is instead of
 # putting the traits directly on the op bodies, since some of the things that
-# the traits are implemented using aren't defiend that early.
+# the traits are implemented using aren't defined that early.
 BEGIN {
     my Mu $methodcall     := nqp::hash('prec', 'y=');
     my Mu $autoincrement  := nqp::hash('prec', 'x=');

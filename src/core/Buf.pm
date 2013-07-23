@@ -2,7 +2,7 @@ my class X::Buf::AsStr { ... }
 my class X::Buf::Pack { ... }
 my class X::Buf::Pack::NonASCII { ... }
 
-my role Blob[::T = int8] does Positional[T] does Stringy is repr('VMArray') is array_type(T) {
+my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is array_type(T) {
     proto method new(|) { * }
     multi method new() {
         nqp::create(self)
@@ -158,12 +158,12 @@ my role Blob[::T = int8] does Positional[T] does Stringy is repr('VMArray') is a
     method encoding() { Any }
 }
 
-constant blob8 = Blob[int8];
-constant blob16 = Blob[int16];
-constant blob32 = Blob[int32];
-constant blob64 = Blob[int64];
+constant blob8 = Blob[uint8];
+constant blob16 = Blob[uint16];
+constant blob32 = Blob[uint32];
+constant blob64 = Blob[uint64];
 
-my class utf8 does Blob[int8] is repr('VMArray') {
+my class utf8 does Blob[uint8] is repr('VMArray') {
     method decode(utf8:D: $encoding = 'utf-8') {
         my $enc = NORMALIZE_ENCODING($encoding);
         die "Can not decode a utf-8 buffer as if it were $encoding"
@@ -174,7 +174,7 @@ my class utf8 does Blob[int8] is repr('VMArray') {
     multi method Str(utf8:D:) { self.decode }
 }
 
-my class utf16 does Blob[int16] is repr('VMArray') {
+my class utf16 does Blob[uint16] is repr('VMArray') {
     method decode(utf16:D: $encoding = 'utf-16') {
         my $enc = NORMALIZE_ENCODING($encoding);
         die "Can not decode a utf-16 buffer as if it were $encoding"
@@ -185,7 +185,7 @@ my class utf16 does Blob[int16] is repr('VMArray') {
     multi method Str(utf16:D:) { self.decode }
 }
 
-my class utf32 does Blob[int32] is repr('VMArray') {
+my class utf32 does Blob[uint32] is repr('VMArray') {
     method decode(utf32:D: $encoding = 'utf-32') {
         my $enc = NORMALIZE_ENCODING($encoding);
         die "Can not decode a utf-32 buffer as if it were $encoding"
@@ -196,14 +196,14 @@ my class utf32 does Blob[int32] is repr('VMArray') {
     multi method Str(utf32:D:) { self.decode }
 }
 
-my role Buf[::T = int8] does Blob[T] is repr('VMArray') is array_type(T) {
+my role Buf[::T = uint8] does Blob[T] is repr('VMArray') is array_type(T) {
     # TODO: override at_pos so we get mutability
 }
 
-constant buf8 = Buf[int8];
-constant buf16 = Buf[int16];
-constant buf32 = Buf[int32];
-constant buf64 = Buf[int64];
+constant buf8 = Buf[uint8];
+constant buf16 = Buf[uint16];
+constant buf32 = Buf[uint32];
+constant buf64 = Buf[uint64];
 
 multi sub pack(Str $template, *@items) {
     my @bytes;

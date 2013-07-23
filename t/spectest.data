@@ -579,6 +579,7 @@ S29-context/sleep.t
 S29-conversions/hash.t
 S29-conversions/ord_and_chr.t                              #icu
 S29-os/system.t
+S32-io/IO-Socket-INET.t  # out of order to give more wallclock in parallel tests
 S32-array/bool.t
 S32-array/create.t
 S32-array/delete.t
@@ -621,7 +622,6 @@ S32-io/io-path-unix.t
 S32-io/io-path-win.t
 S32-io/io-path-cygwin.t
 S32-io/io-path.t
-S32-io/IO-Socket-INET.t
 S32-io/note.t
 S32-io/slurp.t
 S32-io/spurt.t

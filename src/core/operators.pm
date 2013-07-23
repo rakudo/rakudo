@@ -80,7 +80,8 @@ multi infix:<but>(Mu:U \obj, @roles) {
 }
 
 sub SEQUENCE($left, Mu $right, :$exclude_end) {
-    my @right := nqp::istype($right, Junction) ?? [$right] !! $right.flat;
+    my @right := nqp::istype($right, Junction) || !$right.DEFINITE
+      ?? [$right] !! $right.flat;
     my $endpoint = @right.shift;
     my $infinite = $endpoint ~~ Whatever || $endpoint === $Inf;
     $endpoint = Bool::False if $infinite;

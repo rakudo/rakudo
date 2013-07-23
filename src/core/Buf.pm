@@ -44,6 +44,7 @@ my role Blob[::T = int8] does Positional[T] does Stringy is repr('VMArray') is a
     }
     method chars(Blob:D:)       { X::Buf::AsStr.new(method => 'chars').throw }
     multi method Str(Blob:D:)   { X::Buf::AsStr.new(method => 'Str'  ).throw }
+    multi method Stringy(Blob:D:) { self }
 
     method Numeric(Blob:D:) { self.elems }
     method Int(Blob:D:)     { self.elems }

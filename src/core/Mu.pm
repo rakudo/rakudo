@@ -316,7 +316,8 @@ my class Mu {
         self.HOW.name(self) ~ '<' ~ nqp::tostr_I(self.WHERE) ~ '>'
     }
 
-    method Stringy() { self.Str }
+    proto method Stringy(|) { * }
+    multi method Stringy() { self.Str }
     
     method item(Mu \item:) is rw { item }
     

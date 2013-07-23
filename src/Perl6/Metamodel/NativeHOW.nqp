@@ -9,6 +9,7 @@ class Perl6::Metamodel::NativeHOW
     does Perl6::Metamodel::MROBasedTypeChecking
 {
     has $!nativesize;
+    has int $!unsigned;
     has $!composed;
 
     my $archetypes := Perl6::Metamodel::Archetypes.new( :nominal(1), :inheritable(1) );
@@ -37,6 +38,7 @@ class Perl6::Metamodel::NativeHOW
             my $info := nqp::hash();
             $info<integer> := nqp::hash();
             $info<integer><bits> := nqp::unbox_i($!nativesize);
+            $info<integer><unsigned> := 1 if $!unsigned;
             $info<float> := nqp::hash();
             $info<float><bits> := nqp::unbox_i($!nativesize);
             nqp::composetype($obj, $info);
@@ -54,6 +56,14 @@ class Perl6::Metamodel::NativeHOW
     
     method nativesize($obj) {
         $!nativesize
+    }
+    
+    method set_unsigned($obj, $unsigned) {
+        $!unsigned := $unsigned ?? 1 !! 0
+    }
+    
+    method unsigned($obj) {
+        $!unsigned
     }
     
     method method_table($obj) { nqp::hash() }

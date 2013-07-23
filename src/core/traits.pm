@@ -40,6 +40,9 @@ multi trait_mod:<is>(Mu:U $type, :$rw!) {
 multi trait_mod:<is>(Mu:U $type, :$nativesize!) {
     $type.HOW.set_nativesize($type, $nativesize);
 }
+multi trait_mod:<is>(Mu:U $type, :$unsigned!) {
+    $type.HOW.set_unsigned($type, $unsigned);
+}
 multi trait_mod:<is>(Mu:U $type, :$hidden!) {
     $type.HOW.set_hidden($type);
 }

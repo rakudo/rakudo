@@ -94,7 +94,7 @@ my class Any {
               nqp::unbox_s(nqp::istype($tmp, Str) ?? $tmp !! $tmp.Str));
         }
         nqp::push_s($rsa, '...') if $list.infinite;
-        nqp::p6box_s(nqp::join(nqp::unbox_s($separator.Stringy), $rsa))
+        nqp::p6box_s(nqp::join(nqp::unbox_s($separator.Str), $rsa))
     }
 
     method min($by = &infix:<cmp>) {

@@ -168,8 +168,8 @@ sub METAOP_HYPER_CALL(\list, |args) { hyper(-> $c { $c(|args) }, list) }
 
 proto sub hyper(|) { * }
 multi sub hyper(\op, \a, \b, :$dwim-left, :$dwim-right) { 
-    my @alist := a.flat;
-    my @blist := b.flat;
+    my @alist := a.DEFINITE ?? a.flat !! [a];
+    my @blist := b.DEFINITE ?? b.flat !! [b];
     my $elems = 0;
     if $dwim-left && $dwim-right { $elems = max(@alist.elems, @blist.elems) }
     elsif $dwim-left { $elems = @blist.elems }

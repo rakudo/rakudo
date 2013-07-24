@@ -13,10 +13,24 @@ my class Any {
 
     # primitives
     method infinite() { Nil }
-    method list() { nqp::p6list(nqp::list(self), List, Mu) }
-    method flat() { nqp::p6list(nqp::list(self), List, Bool::True) }
-    method eager() { nqp::p6list(nqp::list(self), List, Bool::True).eager }
-    method hash() { my % = self }
+    method list() {
+        nqp::p6list(
+          self.DEFINITE ?? nqp::list(self) !! nqp::list(), List, Mu
+        );
+    }
+    method flat() {
+        nqp::p6list(
+          self.DEFINITE ?? nqp::list(self) !! nqp::list(), List, Bool::True
+        );
+    }
+    method eager() {
+        nqp::p6list(
+          self.DEFINITE ?? nqp::list(self) !! nqp::list(), List, Bool::True
+        ).eager;
+    }
+    method hash() {
+        my % = self.DEFINITE ?? self !! ();
+    }
 
     # derived from .list
     method elems() { self.list.elems }

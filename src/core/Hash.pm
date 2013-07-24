@@ -69,6 +69,7 @@ my class Hash {
     }
 
     proto method delete(|) { * }
+    multi method delete(Hash:U:) { Nil }
     multi method delete($key as Str) {
         my Mu $val = self.at_key($key);
         nqp::deletekey(

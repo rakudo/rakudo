@@ -5,8 +5,10 @@ my class EnumMap does Associative {
     multi method Bool(EnumMap:D:) {
         nqp::p6bool(nqp::defined($!storage) ?? nqp::elems($!storage) !! 0)
     }
-    method elems(EnumMap:D:) {
-        nqp::defined($!storage) ?? nqp::p6box_i(nqp::elems($!storage)) !! 0
+    method elems(EnumMap:) {
+        self.DEFINITE && nqp::defined($!storage)
+          ?? nqp::p6box_i(nqp::elems($!storage))
+          !! 0
     }
 
     multi method ACCEPTS(EnumMap:D: Any $topic) {
@@ -26,6 +28,7 @@ my class EnumMap does Associative {
     }
     
     proto method exists(|) {*}
+    multi method exists(EnumMap:U:) { False }
     multi method exists(EnumMap:D: Str:D \key) {
         nqp::p6bool(
             nqp::defined($!storage)
@@ -45,14 +48,15 @@ my class EnumMap does Associative {
             ~ ')';
     }
 
-    method iterator(EnumMap:D:) { self.pairs.iterator }
-    method list(EnumMap:D:) { self.pairs }
+    method iterator(EnumMap:) { self.pairs.iterator }
+    method list(EnumMap:) { self.pairs }
 
-    method keys(EnumMap:D:)   { self.pairs.map( { $_.key } ) }
-    method kv(EnumMap:D:)     { self.pairs.map( { $_.kv } ) }
-    method values(EnumMap:D:) { self.pairs.map( { $_.value } ) }
-    method pairs(EnumMap:D:) {
-        return unless nqp::defined($!storage);
+    method keys(EnumMap:)   { self.pairs.map( { $_.key } ) }
+    method kv(EnumMap:)     { self.pairs.map( { $_.kv } ) }
+    method values(EnumMap:) { self.pairs.map( { $_.value } ) }
+
+    method pairs(EnumMap:) {
+        return unless self.DEFINITE && nqp::defined($!storage);
         gather {
             my Mu $iter := nqp::iterator($!storage);
             my Mu $pair;
@@ -68,8 +72,8 @@ my class EnumMap does Associative {
             Nil
         }
     }
-    method invert(EnumMap:D:) {
-        return unless nqp::defined($!storage);
+    method invert(EnumMap:) {
+        return unless self.DEFINITE && nqp::defined($!storage);
         gather {
             my Mu $iter := nqp::iterator($!storage);
             my Mu $pair;
@@ -112,7 +116,7 @@ my class EnumMap does Associative {
         $!storage
     }
 
-    method fmt(EnumMap:D: $format = "%s\t\%s", $sep = "\n") {
+    method fmt(EnumMap: $format = "%s\t\%s", $sep = "\n") {
         self.pairs.fmt($format, $sep);
     }
     

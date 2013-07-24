@@ -96,6 +96,7 @@ my class List does Positional {
     method eager() { self.gimme(*); self }
 
     method elems() {
+        return 0 unless self.DEFINITE;
         # Get as many elements as we can.  If gimme stops before
         # reaching the end of the list, assume the list is infinite.
         my $n = self.gimme(*);
@@ -103,11 +104,13 @@ my class List does Positional {
     }
 
     method exists(\pos) {
+        return False unless self.DEFINITE;
         self.gimme(pos + 1);
         nqp::p6bool(nqp::existspos($!items, nqp::unbox_i(pos)))
     }
 
     method gimme($n, :$sink) {
+        return unless self.DEFINITE;
         # loop through iterators until we have at least $n elements
         my int $count = nqp::elems(nqp::p6listitems(self));
         my $eager = nqp::p6bool(nqp::istype($n, Whatever) || $n == $Inf);
@@ -388,24 +391,28 @@ my class List does Positional {
         self.DUMP-OBJECT-ATTRS($attrs, :$indent-step, :%ctx, :$flags);
     }
 
-    method keys(List:D:) {
+    method keys(List:) {
+        return unless self.DEFINITE;
         (0..self.end).list;
     }
-    method values(List:D:) {
+    method values(List:) {
+        return unless self.DEFINITE;
         my Mu $rpa := nqp::clone(nqp::p6listitems(self));
         nqp::push($rpa, $!nextiter) if $!nextiter.defined;
         nqp::p6list($rpa, List, self.flattens);
     }
-    method pairs(List:D:) {
+    method pairs(List:) {
+        return unless self.DEFINITE;
         self.keys.map: {; $_ => self.at_pos($_) };
     }
-    method kv(List:D:) {
+    method kv(List:) {
         self.keys.map: { ($_, self.at_pos($_)) };
     }
 
-    method reduce(List:D: &with) {
+    method reduce(List: &with) {
         fail('can only reduce with arity 2')
             unless &with.arity <= 2 <= &with.count;
+        return unless self.DEFINITE;
         my Mu $val;
         for self.keys {
             if $_ == 0 {

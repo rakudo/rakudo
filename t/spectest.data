@@ -579,7 +579,6 @@ S29-context/sleep.t
 S29-conversions/hash.t
 S29-conversions/ord_and_chr.t                              #icu
 S29-os/system.t
-S32-io/IO-Socket-INET.t  # out of order to give more wallclock in parallel tests
 S32-array/bool.t
 S32-array/create.t
 S32-array/delete.t
@@ -766,3 +765,4 @@ integration/variables-in-do.t
 integration/weird-errors.t
 rosettacode/greatest_element_of_a_list.t  
 rosettacode/sierpinski_triangle.t
+S32-io/IO-Socket-INET.t  # last to prevent load interference

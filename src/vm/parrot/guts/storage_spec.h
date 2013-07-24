@@ -24,6 +24,9 @@ typedef struct {
     
     /* The types that this one can box/unbox to. */
     INTVAL can_box;
+    
+    /* For ints, whether it's an usigned value. */
+    INTVAL is_unsigned;
 } storage_spec;
 
 /* Inlined or not. */

@@ -146,7 +146,7 @@ my class MapIter is Iterator {
                                 $state = 0)
                         )),
                         nqp::if(nqp::iseq_i($state, 2), nqp::stmts(
-                            nqp::push($rpa, $block($arg)),
+                            ($sink ?? $block($arg) !! nqp::push($rpa, $block($arg))),
                             $state = 1
                         ))
                     ),
@@ -173,7 +173,9 @@ my class MapIter is Iterator {
                             nqp::if($args, $state = 2, $state = 0)
                         )),
                         nqp::if(nqp::iseq_i($state, 2), nqp::stmts(
-                            nqp::push($rpa, nqp::p6invokeflat($block, $args)),
+                            ($sink
+                                ?? nqp::p6invokeflat($block, $args)
+                                !! nqp::push($rpa, nqp::p6invokeflat($block, $args))),
                             $state = 3
                         )),
                         nqp::if(nqp::iseq_i($state, 3), nqp::stmts(

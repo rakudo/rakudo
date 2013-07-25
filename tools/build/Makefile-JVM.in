@@ -117,6 +117,7 @@ CORE_SOURCES = \
   src/core/WhateverCode.pm \
   src/core/Block.pm \
   src/core/Attribute.pm \
+  src/core/Variable.pm \
   src/core/Routine.pm \
   src/core/Sub.pm \
   src/core/Macro.pm \

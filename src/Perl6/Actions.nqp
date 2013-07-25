@@ -2016,7 +2016,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             if $desigilname eq '' {
                 $name := QAST::Node.unique('ANON_VAR_');
             }
-            $*W.install_lexical_container($BLOCK, $name, %cont_info, $descriptor,
+            my $cont := $*W.install_lexical_container($BLOCK, $name, %cont_info, $descriptor,
                 :scope($*SCOPE), :package($*PACKAGE));
             
             # Set scope and type on container, and if needed emit code to
@@ -2051,6 +2051,20 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     twigil => $twigil,
                     scope  => $*SCOPE,
                 );
+            }
+            
+            # Apply any traits.
+            if $trait_list {
+                my $Variable := $*W.find_symbol(['Variable']);
+                my $varvar   := nqp::create($Variable);
+                nqp::bindattr_s($varvar, $Variable, '$!name', $name);
+                nqp::bindattr_s($varvar, $Variable, '$!scope', $*SCOPE);
+                nqp::bindattr($varvar, $Variable, '$!var', $cont);
+                nqp::bindattr($varvar, $Variable, '$!block', $*DECLARAND);
+                for $trait_list {
+                    my $applier := $_.ast;
+                    if $applier { $applier($varvar); }
+                }
             }
         }
         else {

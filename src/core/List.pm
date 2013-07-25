@@ -174,8 +174,8 @@ my class List does Positional {
     }
 
     method pop() is parcel {
-        fail 'Cannot .pop from an infinite list' if self.infinite; #MMD?
-        my $elems = self.elems;
+        my $elems = self.gimme(*);
+        fail 'Cannot .pop from an infinite list' if $!nextiter.defined;
         $elems > 0
           ?? nqp::pop($!items)
           !! fail 'Element popped from empty list';
@@ -190,11 +190,12 @@ my class List does Positional {
     }
 
     method roll($n is copy = 1) {
-        fail "Cannot .roll from an infinite list" if self.infinite; #MMD?
-        my $elems = self.elems;
+        my $elems = self.gimme(*);
+        fail 'Cannot .roll from an infinite list' if $!nextiter.defined;
         return unless $elems;
         $n = +$Inf if nqp::istype($n, Whatever);
         return self.at_pos($elems.rand.floor) if $n == 1;
+
         gather while $n > 0 {
             take nqp::atpos($!items, nqp::unbox_i($elems.rand.floor.Int));
             $n--;
@@ -202,8 +203,8 @@ my class List does Positional {
     }
 
     method reverse() {
-        fail 'Cannot .reverse an infinite list' if self.infinite; #MMD?
         self.gimme(*);
+        fail 'Cannot .reverse from an infinite list' if $!nextiter.defined;
         my Mu $rev  := nqp::list();
         my Mu $orig := nqp::clone($!items);
         nqp::push($rev, nqp::pop($orig)) while $orig;
@@ -213,8 +214,8 @@ my class List does Positional {
     }
 
     method rotate(Int $n is copy = 1) {
-        fail 'Cannot .rotate an infinite list' if self.infinite; # MMD?
         self.gimme(*);
+        fail 'Cannot .rotate an infinite list' if $!nextiter.defined;
         my Mu $res := nqp::clone($!items);
         $n %= nqp::p6box_i(nqp::elems($!items));
         if $n > 0 {

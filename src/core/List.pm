@@ -182,9 +182,9 @@ my class List does Positional {
     }
 
     multi method push(List:D: *@values) {
-        fail 'Cannot .push to an infinite list' if self.infinite; #MMD?
         fail 'Cannot .push an infinite list' if @values.infinite;
-        my $pos = self.elems;
+        my $pos = self.gimme(*);
+        fail 'Cannot .push an infinite list' if $!nextiter.defined;
         self.STORE_AT_POS($pos++, @values.shift) while @values.gimme(1);
         self;
     }
@@ -370,7 +370,7 @@ my class List does Positional {
         parcel
     }
 
-    method STORE_AT_POS(\pos, Mu \v) is rw {
+    method STORE_AT_POS(Int \pos, Mu \v) is rw {
         nqp::bindpos($!items, nqp::unbox_i(pos), v)
     }
 

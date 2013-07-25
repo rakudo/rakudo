@@ -85,7 +85,7 @@ class Array {
 
     method shape() { $!shape }
 
-    method pop() is rw {
+    method pop() is parcel {
         fail 'Cannot pop from a shaped array' unless nqp::istype($!shape, Whatever);
         nqp::findmethod(List, 'pop')(self)
     }
@@ -95,7 +95,7 @@ class Array {
         nqp::findmethod(List, 'push')(self, |@values)
     }
 
-    method shift() is rw {
+    method shift() is parcel {
         fail 'Cannot shift from a shaped array' unless nqp::istype($!shape, Whatever);
         nqp::findmethod(List, 'shift')(self)
     }
@@ -122,17 +122,15 @@ class Array {
         nqp::findmethod(List, 'REIFY')(self, parcel, nextiter)
     }
 
-    method STORE_AT_POS(\pos, Mu $v is copy) is rw {
-        my $pos = nqp::unbox_i(pos);
+    method STORE_AT_POS($pos, Mu $v is copy) is rw {
         fail "Index $pos is too large for this shaped array" unless nqp::istype($!shape, Whatever) or $pos < $!shape;
-        nqp::findmethod(List, 'STORE_AT_POS')(self, pos, $v);
+        nqp::findmethod(List, 'STORE_AT_POS')(self, $pos, $v);
     }
 
     method STORE(|) {
         # get arguments, shift off invocant
         my $args := nqp::p6argvmarray();
         nqp::shift($args);
-        fail "Too many elements for this shaped array" unless nqp::istype($!shape, Whatever) or nqp::elems($args) < $!shape;
         # make an array from them (we can't just use ourself for this,
         # or @a = @a will go terribly wrong); make it eager
         my $list := nqp::p6list($args, Array, Mu);

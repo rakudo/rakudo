@@ -184,7 +184,7 @@ my class List does Positional {
     multi method push(List:D: *@values) {
         fail 'Cannot .push an infinite list' if @values.infinite;
         my $pos = self.gimme(*);
-        fail 'Cannot .push an infinite list' if $!nextiter.defined;
+        fail 'Cannot .push to an infinite list' if $!nextiter.defined;
         self.STORE_AT_POS($pos++, @values.shift) while @values.gimme(1);
         self;
     }

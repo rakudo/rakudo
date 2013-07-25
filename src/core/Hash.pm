@@ -256,19 +256,25 @@ my class Hash {
               ?? nqp::p6bool(nqp::existskey($!keys, nqp::unbox_s(key.WHICH)))
               !! False
         }
-        method pairs() {
-            return unless nqp::defined(nqp::getattr(self, EnumMap, '$!storage'));
-            gather {
-                my Mu $iter := nqp::iterator(nqp::getattr(self, EnumMap, '$!storage'));
-                my Mu $pair;
-                my Mu $key;
-                while $iter {
-                    $pair := nqp::shift($iter);
-                    $key  := nqp::atkey(nqp::getattr(self, $?CLASS, '$!keys'), nqp::iterkey_s($pair));
-                    take Pair.new(:key($key), :value(nqp::iterval($pair)));
-                }
-                Nil
-            }
+        method keys(EnumMap:) {
+            return unless self.DEFINITE && nqp::defined($!keys);
+            HashIter.new(self, :keystore($!keys), :k).list
+        }
+        method kv(EnumMap:) {
+            return unless self.DEFINITE && nqp::defined($!keys);
+            HashIter.new(self, :keystore($!keys), :kv).list
+        }
+        method values(EnumMap:) {
+            return unless self.DEFINITE && nqp::defined($!keys);
+            HashIter.new(self, :keystore($!keys), :v).list
+        }
+        method pairs(EnumMap:) {
+            return unless self.DEFINITE && nqp::defined($!keys);
+            HashIter.new(self, :keystore($!keys), :pairs).list
+        }
+        method invert(EnumMap:) {
+            return unless self.DEFINITE && nqp::defined($!keys);
+            HashIter.new(self, :keystore($!keys), :invert).list
         }
         multi method perl(::?CLASS:D \SELF:) {
             'Hash['

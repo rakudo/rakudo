@@ -992,9 +992,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
                         QAST::Op.new(:name('&infix:<,>'), :op('call'), $xblock[0]),
                         block_closure($xblock[1])
         );
-        $past := QAST::Op.new(
-            :op<callmethod>, :name<eager>, $past
-        );
+        $past := QAST::Want.new(
+            QAST::Op.new( :op<callmethod>, :name<eager>, $past ),
+            'v', QAST::Op.new( :op<callmethod>, :name<sink>, $past ));
         make $past;
     }
 

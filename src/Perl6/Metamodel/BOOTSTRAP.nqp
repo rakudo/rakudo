@@ -1833,15 +1833,15 @@ Perl6::Metamodel::ParametricRoleGroupHOW.set_selector_creator({
 Perl6::Metamodel::ParametricRoleGroupHOW.pretend_to_be([Cool, Any, Mu]);
 Perl6::Metamodel::ParametricRoleGroupHOW.configure_punning(
     Perl6::Metamodel::ClassHOW,
-    hash( ACCEPTS => Mu ));
+    hash( ACCEPTS => Mu, item => Mu ));
 Perl6::Metamodel::ParametricRoleHOW.pretend_to_be([Cool, Any, Mu]);
 Perl6::Metamodel::ParametricRoleHOW.configure_punning(
     Perl6::Metamodel::ClassHOW,
-    hash( ACCEPTS => Mu ));
+    hash( ACCEPTS => Mu, item => Mu ));
 Perl6::Metamodel::CurriedRoleHOW.pretend_to_be([Cool, Any, Mu]);
 Perl6::Metamodel::CurriedRoleHOW.configure_punning(
     Perl6::Metamodel::ClassHOW,
-    hash( ACCEPTS => Mu ));
+    hash( ACCEPTS => Mu, item => Mu ));
     
 # Similar for packages and modules, but just has methods from Any.
 Perl6::Metamodel::PackageHOW.pretend_to_be([Any, Mu]);

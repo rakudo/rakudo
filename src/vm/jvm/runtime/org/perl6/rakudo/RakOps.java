@@ -46,6 +46,7 @@ public final class RakOps {
         public SixModelObject ContainerDescriptor;
         public SixModelObject False;
         public SixModelObject True;
+        public SixModelObject Whatever;
         public SixModelObject AutoThreader;
         public SixModelObject EMPTYARR;
         public SixModelObject EMPTYHASH;
@@ -75,6 +76,7 @@ public final class RakOps {
     private static final int HINT_LISTITER_nextiter = 1;
     private static final int HINT_LISTITER_rest = 2;
     private static final int HINT_LISTITER_list = 3;
+    private static final int HINT_ARRAY_shape = 0;
     
     public static SixModelObject p6init(ThreadContext tc) {
         GlobalExt gcx = key.getGC(tc);
@@ -112,6 +114,7 @@ public final class RakOps {
         gcx.ContainerDescriptor = conf.at_key_boxed(tc, "ContainerDescriptor");
         gcx.False = conf.at_key_boxed(tc, "False");
         gcx.True = conf.at_key_boxed(tc, "True");
+        gcx.Whatever = conf.at_key_boxed(tc, "Whatever");
         return conf;
     }
     
@@ -160,6 +163,9 @@ public final class RakOps {
             list.bind_attribute_boxed(tc, gcx.List, "$!nextiter", HINT_LIST_nextiter,
                 p6listiter(arr, list, tc));
         list.bind_attribute_boxed(tc, gcx.List, "$!flattens", HINT_LIST_flattens, flattens);
+        if (type = gcx.Array)
+            list.bind_attribute_boxed(tc, gcx.Array, "$!shape", HINT_ARRAY_shape,
+                gcx.Whatever.st.REPR.allocate(tc, gcx.Whatever.st));
         return list;
     }
     

@@ -27,6 +27,7 @@ static STRING *REST_str         = NULL;
 static STRING *LIST_str         = NULL;
 static STRING *HASH_str         = NULL;
 static STRING *FLATTENS_str     = NULL;
+static STRING *SHAPE_str        = NULL;
 static STRING *NEXTITER_str     = NULL;
 static STRING *HASH_SIGIL_str   = NULL;
 static STRING *ARRAY_SIGIL_str  = NULL;
@@ -51,6 +52,7 @@ static void setup_binder_statics(PARROT_INTERP) {
     LIST_str         = Parrot_str_new_constant(interp, "$!list");
     HASH_str         = Parrot_str_new_constant(interp, "$!hash");
     FLATTENS_str     = Parrot_str_new_constant(interp, "$!flattens");
+    SHAPE_str        = Parrot_str_new_constant(interp, "$!shape");
     NEXTITER_str     = Parrot_str_new_constant(interp, "$!nextiter");
     HASH_SIGIL_str   = Parrot_str_new_constant(interp, "%");
     ARRAY_SIGIL_str  = Parrot_str_new_constant(interp, "@");
@@ -155,13 +157,18 @@ Rakudo_binding_list_from_rpa(PARROT_INTERP, PMC *rpa, PMC *type, PMC *flattens) 
     VTABLE_set_attr_keyed(interp, list, List, FLATTENS_str, flattens);
     return list;
 }
-   
+
 
 /* Creates a Perl 6 Array. */
 static PMC *
 Rakudo_binding_create_positional(PARROT_INTERP, PMC *rpa) {
-    return Rakudo_binding_list_from_rpa(interp, rpa, Rakudo_types_array_get(),
-               Rakudo_types_bool_true_get());
+    PMC *Array = Rakudo_types_array_get();
+    PMC *Whatever = Rakudo_types_whatever_get();
+    PMC *list = Rakudo_binding_list_from_rpa(interp, rpa, Array,
+        Rakudo_types_bool_true_get());
+    VTABLE_set_attr_keyed(interp, list, Array, SHAPE_str,
+        REPR(Whatever)->allocate(interp, STABLE(Whatever)));
+    return list;
 }
 
 

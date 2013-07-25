@@ -27,6 +27,7 @@ static PMC * Capture    = NULL;
 static PMC * Code       = NULL;
 static PMC * BoolFalse  = NULL;
 static PMC * BoolTrue   = NULL;
+static PMC * Whatever   = NULL;
 static PMC * JunctionThreader = NULL;
 
 static INTVAL ownedhash_id = 0;
@@ -88,6 +89,9 @@ PMC * Rakudo_types_bool_false_get(void) { return BoolFalse; }
 
 void Rakudo_types_bool_true_set(PMC * type) { BoolTrue = type; }
 PMC * Rakudo_types_bool_true_get(void) { return BoolTrue; }
+
+void Rakudo_types_whatever_set(PMC * type) { Whatever = type; }
+PMC * Rakudo_types_whatever_get(void) { return Whatever; }
 
 void Rakudo_types_junction_threader_set(PMC * threader) { JunctionThreader = threader; }
 PMC * Rakudo_types_junction_threader_get(void) { return JunctionThreader; }

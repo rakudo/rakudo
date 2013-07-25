@@ -184,7 +184,13 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 %info<value_type>     := $*W.find_symbol(['Mu']);
             }
             if $shape {
-                $*W.throw($/, 'X::Comp::NYI', feature => 'Shaped arrays');
+                %info<container_shape> := $shape[0].ast;
+            } else {
+                my $whatever := $*W.find_symbol(['Whatever']);
+                %info<container_shape> := QAST::Op.new(
+                    :op('callmethod'), :node($/), :name('new'), :returns($whatever),
+                    QAST::Var.new(:name('Whatever'), :scope('lexical'))
+                );
             }
         }
         elsif $sigil eq '%' {

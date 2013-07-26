@@ -20,7 +20,7 @@ multi trait_mod:<is>(Variable:D $v, :$rw!) {
     nqp::getattr($v.var, $v.VAR.WHAT, '$!descriptor').set_rw($rw);
 }
 multi trait_mod:<of>(Variable:D $v, Mu:U $of ) {
-    nqp::getattr($v.var, $v.VAR.WHAT, '$!descriptor').set_of($of);
+    nqp::getattr($v.var, $v.VAR.WHAT, '$!descriptor').set_of(nqp::decont($of));
 }
 
 multi trait_mod:<is>(Variable:D $v, Mu:U $is ) {

@@ -34,6 +34,9 @@ multi trait_mod:<is>(Variable:D $v, :$dynamic!) {
 }
 
 # phaser traits
+multi trait_mod:<will>(Variable:D $v, $block, |c ) {
+    die "You can not 'will {c.hash.keys}' on a variable";
+}
 multi trait_mod:<will>(Variable:D $v, $block, :$begin! ) {
     $v.block.add_phaser('BEGIN', $block)
 }

@@ -321,8 +321,20 @@ multi sub infix:<~^>(Blob:D $a, Blob:D $b) {
 }
 
 multi infix:<eqv>(Blob:D $a, Blob:D $b) {
-    $a.WHAT === $b.WHAT && $a.elems == $b.elems &&
-        [&&] $a.list Z== $b.list
+    if $a.WHAT === $b.WHAT && $a.elems == $b.elems {
+        my int $n  = $a.elems;
+        my int $i  = 0;
+        my Mu $da := nqp::decont($a);
+        my Mu $db := nqp::decont($b);
+        while $i < $n {
+            return False unless nqp::iseq_i(nqp::atpos_i($da, $i), nqp::atpos_i($db, $i));
+            $i = $i + 1;
+        }
+        True
+    }
+    else {
+        False
+    }
 }
 
 multi sub infix:<cmp>(Blob:D $a, Blob:D $b) {

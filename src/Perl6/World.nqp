@@ -1506,13 +1506,17 @@ class Perl6::World is HLL::World {
             nqp::bindattr($cont, %cont_info<container_base>, '$!value',
                 %cont_info<default_value>);
         }
+        if nqp::existskey(%cont_info, 'container_shape') {
+            nqp::bindattr($cont, %cont_info<container_base>, '$!shape',
+                nqp::create(self.find_symbol(['Whatever'])));
+        }
         
         # Create meta-attribute instance and add right away. Also add
         # it to the SC.
         my $attr := $meta_attr.new(:auto_viv_container($cont), |%lit_args, |%obj_args);
         $obj.HOW.add_attribute($obj, $attr);
         self.add_object($attr);
-        
+
         # Return attribute that was built.
         $attr
     }

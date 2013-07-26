@@ -123,8 +123,8 @@ class Array {
     }
 
     method STORE_AT_POS(Int \pos, Mu $v is copy) is rw {
-        fail "Index $pos is too large for this shaped array"
-            unless nqp::istype($!shape, Whatever) or $pos < $!shape;
+        fail pos.fmt("Index %d is too large for this shaped array")
+            unless nqp::istype($!shape, Whatever) or pos < $!shape;
         nqp::bindpos(nqp::getattr(self, List, '$!items'),
             nqp::unbox_i(pos), $v)
     }

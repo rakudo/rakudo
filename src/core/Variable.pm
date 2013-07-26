@@ -11,16 +11,16 @@ my class Variable {
 # container traits
 multi trait_mod:<is>(Variable:D $v, :$default!) {
     $v.var = $default;  # make sure we start with the default
-    nqp::getattr($v.var, $v.VAR.WHAT, '$!descriptor').set_default($default);
+    nqp::getattr($v.var, $v.var.VAR.WHAT, '$!descriptor').set_default($default);
 }
 multi trait_mod:<is>(Variable:D $v, :$readonly!) {
-    nqp::getattr($v.var, $v.VAR.WHAT, '$!descriptor').set_rw(!$readonly);
+    nqp::getattr($v.var, $v.var.VAR.WHAT, '$!descriptor').set_rw(!$readonly);
 }
 multi trait_mod:<is>(Variable:D $v, :$rw!) {
-    nqp::getattr($v.var, $v.VAR.WHAT, '$!descriptor').set_rw($rw);
+    nqp::getattr($v.var, $v.var.VAR.WHAT, '$!descriptor').set_rw($rw);
 }
 multi trait_mod:<of>(Variable:D $v, Mu:U $of ) {
-    nqp::getattr($v.var, $v.VAR.WHAT, '$!descriptor').set_of(nqp::decont($of));
+    nqp::getattr($v.var, $v.var.VAR.WHAT, '$!descriptor').set_of(nqp::decont($of));
 }
 
 multi trait_mod:<is>(Variable:D $v, Mu:U $is ) {

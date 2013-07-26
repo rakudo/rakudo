@@ -11,3 +11,9 @@ multi trait_mod:<is>(Variable:D $v, :$default!) {
     $v.var = $default;
     nqp::getattr($v.var, $v.VAR.WHAT, '$!descriptor').set_default($default);
 }
+multi trait_mod:<is>(Variable:D $v, :$readonly!) {
+    nqp::getattr($v.var, $v.VAR.WHAT, '$!descriptor').set_rw(!$readonly);
+}
+multi trait_mod:<is>(Variable:D $v, :$rw!) {
+    nqp::getattr($v.var, $v.VAR.WHAT, '$!descriptor').set_rw($rw);
+}

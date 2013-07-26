@@ -35,53 +35,53 @@ multi trait_mod:<is>(Variable:D $v, :$dynamic!) {
 
 # phaser traits
 multi trait_mod:<will>(Variable:D $v, $block, :$begin! ) {
-# not sure what needs to happen here yet
+    $v.block.add_phaser('BEGIN', $block)
 }
 multi trait_mod:<will>(Variable:D $v, $block, :$check! ) {
-# not sure what needs to happen here yet
+    $v.block.add_phaser('CHECK', $block)
 }
 multi trait_mod:<will>(Variable:D $v, $block, :$final! ) {
-# not sure what needs to happen here yet
+    $v.block.add_phaser('FINAL', $block)
 }
 multi trait_mod:<will>(Variable:D $v, $block, :$init! ) {
-# not sure what needs to happen here yet
+    $v.block.add_phaser('INIT', $block)
 }
 multi trait_mod:<will>(Variable:D $v, $block, :$end! ) {
-# not sure what needs to happen here yet
+    $v.block.add_phaser('END', $block)
 }
 multi trait_mod:<will>(Variable:D $v, $block, :$enter! ) {
-# not sure what needs to happen here yet
+    $v.block.add_phaser('ENTER', $block)
 }
 multi trait_mod:<will>(Variable:D $v, $block, :$leave! ) {
-# not sure what needs to happen here yet
+    $v.block.add_phaser('LEAVE', $block)
 }
 multi trait_mod:<will>(Variable:D $v, $block, :$keep! ) {
-# not sure what needs to happen here yet
+    $v.block.add_phaser('KEEP', $block)
 }
 multi trait_mod:<will>(Variable:D $v, $block, :$undo! ) {
-# not sure what needs to happen here yet
+    $v.block.add_phaser('UNDO', $block)
 }
 multi trait_mod:<will>(Variable:D $v, $block, :$first! ) {
-# not sure what needs to happen here yet
+    $v.block.add_phaser('FIRST', $block)
 }
 multi trait_mod:<will>(Variable:D $v, $block, :$next! ) {
-# not sure what needs to happen here yet
+    $v.block.add_phaser('NEXT', $block)
 }
 multi trait_mod:<will>(Variable:D $v, $block, :$last! ) {
-# not sure what needs to happen here yet
+    $v.block.add_phaser('LAST', $block)
 }
 multi trait_mod:<will>(Variable:D $v, $block, :$pre! ) {
-# not sure what needs to happen here yet
+    $v.block.add_phaser('PRE', $block)
 }
 multi trait_mod:<will>(Variable:D $v, $block, :$post! ) {
-# not sure what needs to happen here yet
+    $v.block.add_phaser('POST', $block)
 }
 multi trait_mod:<will>(Variable:D $v, $block, :$catch! ) {
-# not sure what needs to happen here yet
+    $v.block.add_phaser('CATCH', $block)
 }
 multi trait_mod:<will>(Variable:D $v, $block, :$control! ) {
-# not sure what needs to happen here yet
+    $v.block.add_phaser('CONTROL', $block)
 }
 multi trait_mod:<will>(Variable:D $v, $block, :$compose! ) {
-# not sure what needs to happen here yet
+    $v.block.add_phaser('COMPOSE', $block)
 }

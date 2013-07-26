@@ -17,3 +17,9 @@ multi trait_mod:<is>(Variable:D $v, :$readonly!) {
 multi trait_mod:<is>(Variable:D $v, :$rw!) {
     nqp::getattr($v.var, $v.VAR.WHAT, '$!descriptor').set_rw($rw);
 }
+multi trait_mod:<is>(Variable:D $v, :$dynamic!) {
+# not sure what needs to happen here yet
+}
+multi trait_mod:<is>(Variable:D $v, :$context!) {
+# unspecced, but spectested
+}

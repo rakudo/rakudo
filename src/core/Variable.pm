@@ -8,24 +8,28 @@ my class Variable {
 # Variable traits come here, not in traits.pm, since we declare Variable
 # in the setting rather than BOOTSTRAP.
 multi trait_mod:<is>(Variable:D $v, :$default!) {
-    $v.var = $default;
+    $v.var = $default;  # make sure we start with the default
     nqp::getattr($v.var, $v.VAR.WHAT, '$!descriptor').set_default($default);
 }
+
 multi trait_mod:<is>(Variable:D $v, :$readonly!) {
     nqp::getattr($v.var, $v.VAR.WHAT, '$!descriptor').set_rw(!$readonly);
 }
 multi trait_mod:<is>(Variable:D $v, :$rw!) {
     nqp::getattr($v.var, $v.VAR.WHAT, '$!descriptor').set_rw($rw);
 }
+
 multi trait_mod:<is>(Variable:D $v, Mu:U $of ) {
     nqp::getattr($v.var, $v.VAR.WHAT, '$!descriptor').set_of($of);
 }
 multi trait_mod:<of>(Variable:D $v, Mu:U $of ) {
     nqp::getattr($v.var, $v.VAR.WHAT, '$!descriptor').set_of($of);
 }
+
 multi trait_mod:<is>(Variable:D $v, :$dynamic!) {
 # not sure what needs to happen here yet
 }
 multi trait_mod:<is>(Variable:D $v, :$context!) {
+# not sure what needs to happen here yet
 # unspecced, but spectested
 }

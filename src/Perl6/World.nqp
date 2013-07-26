@@ -223,7 +223,7 @@ class Perl6::World is HLL::World {
         @!cleanup_tasks := [];
         %!magical_cds := {};
     }
-    
+
     # Creates a new lexical scope and puts it on top of the stack.
     method push_lexpad($/) {
         # Create pad, link to outer and add to stack.
@@ -1508,7 +1508,7 @@ class Perl6::World is HLL::World {
         }
         if nqp::existskey(%cont_info, 'container_shape') {
             nqp::bindattr($cont, %cont_info<container_base>, '$!shape',
-                nqp::create(self.find_symbol(['Whatever'])));
+                self.compile_time_evaluate($/, %cont_info<container_shape>));
         }
         
         # Create meta-attribute instance and add right away. Also add

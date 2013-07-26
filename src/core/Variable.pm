@@ -24,8 +24,7 @@ multi trait_mod:<of>(Variable:D $v, Mu:U $of ) {
 }
 
 multi trait_mod:<is>(Variable:D $v, Mu:U $is ) {
-# not sure what needs to happen here yet, do we need an extra attribute?
-#    nqp::getattr($v.var, $v.VAR.WHAT, '$!descriptor').set_of($of);
+    die "Variable trait 'is {$is.perl}' has not yet been implemented.\nDid you mean 'of {$is.perl}'?";
 }
 
 # visibility traits

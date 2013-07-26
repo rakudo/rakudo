@@ -32,10 +32,6 @@ multi trait_mod:<is>(Variable:D $v, Mu:U $is ) {
 multi trait_mod:<is>(Variable:D $v, :$dynamic!) {
 # not sure what needs to happen here yet
 }
-multi trait_mod:<is>(Variable:D $v, :$context!) {
-# not sure what needs to happen here yet
-# unspecced, but spectested
-}
 
 # phaser traits
 multi trait_mod:<will>(Variable:D $v, Block:D :$begin ) {

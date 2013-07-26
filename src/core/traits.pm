@@ -153,9 +153,9 @@ multi trait_mod:<is>(Parameter:D $param, :$parcel!) {
 
 # Declare these, as setting mainline doesn't get them automatically (as the
 # Mu/Any/Scalar are not loaded).
-my $! is default(Nil);
-my $/ is default(Nil);
-my $_ is default(Nil);
+my $!;
+my $/;
+my $_;
 
 sub EXPORT_SYMBOL(\exp_name, @tags, Mu \sym) {
     my @export_packages = $*EXPORT;

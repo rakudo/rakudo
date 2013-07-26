@@ -605,7 +605,7 @@ class Perl6::World is HLL::World {
                     QAST::Var.new( :scope('lexical'), :name($name) ),
                     QAST::SVal.new( :value('') ) ))
             }
-            return 1;
+            return nqp::null();
         }
         
         # Build container.
@@ -622,6 +622,9 @@ class Perl6::World is HLL::World {
         # Tweak var to have container.
         $var.value($cont);
         $var.decl($scope eq 'state' ?? 'statevar' !! 'contvar');
+        
+        # Evaluate to the container.
+        $cont
     }
     
     # Creates a new container descriptor and adds it to the SC.

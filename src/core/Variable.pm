@@ -34,54 +34,54 @@ multi trait_mod:<is>(Variable:D $v, :$dynamic!) {
 }
 
 # phaser traits
-multi trait_mod:<will>(Variable:D $v, Block:D :$begin ) {
+multi trait_mod:<will>(Variable:D $v, Block:D :$begin! ) {
 # not sure what needs to happen here yet
 }
-multi trait_mod:<will>(Variable:D $v, Block:D :$check ) {
+multi trait_mod:<will>(Variable:D $v, Block:D :$check! ) {
 # not sure what needs to happen here yet
 }
-multi trait_mod:<will>(Variable:D $v, Block:D :$final ) {
+multi trait_mod:<will>(Variable:D $v, Block:D :$final! ) {
 # not sure what needs to happen here yet
 }
-multi trait_mod:<will>(Variable:D $v, Block:D :$init ) {
+multi trait_mod:<will>(Variable:D $v, Block:D :$init! ) {
 # not sure what needs to happen here yet
 }
-multi trait_mod:<will>(Variable:D $v, Block:D :$end ) {
+multi trait_mod:<will>(Variable:D $v, Block:D :$end! ) {
 # not sure what needs to happen here yet
 }
-multi trait_mod:<will>(Variable:D $v, Block:D :$enter ) {
+multi trait_mod:<will>(Variable:D $v, Block:D :$enter! ) {
 # not sure what needs to happen here yet
 }
-multi trait_mod:<will>(Variable:D $v, Block:D :$leave ) {
+multi trait_mod:<will>(Variable:D $v, Block:D :$leave! ) {
 # not sure what needs to happen here yet
 }
-multi trait_mod:<will>(Variable:D $v, Block:D :$keep ) {
+multi trait_mod:<will>(Variable:D $v, Block:D :$keep! ) {
 # not sure what needs to happen here yet
 }
-multi trait_mod:<will>(Variable:D $v, Block:D :$undo ) {
+multi trait_mod:<will>(Variable:D $v, Block:D :$undo! ) {
 # not sure what needs to happen here yet
 }
-multi trait_mod:<will>(Variable:D $v, Block:D :$first ) {
+multi trait_mod:<will>(Variable:D $v, Block:D :$first! ) {
 # not sure what needs to happen here yet
 }
-multi trait_mod:<will>(Variable:D $v, Block:D :$next ) {
+multi trait_mod:<will>(Variable:D $v, Block:D :$next! ) {
 # not sure what needs to happen here yet
 }
-multi trait_mod:<will>(Variable:D $v, Block:D :$last ) {
+multi trait_mod:<will>(Variable:D $v, Block:D :$last! ) {
 # not sure what needs to happen here yet
 }
-multi trait_mod:<will>(Variable:D $v, Block:D :$pre ) {
+multi trait_mod:<will>(Variable:D $v, Block:D :$pre! ) {
 # not sure what needs to happen here yet
 }
-multi trait_mod:<will>(Variable:D $v, Block:D :$post ) {
+multi trait_mod:<will>(Variable:D $v, Block:D :$post! ) {
 # not sure what needs to happen here yet
 }
-multi trait_mod:<will>(Variable:D $v, Block:D :$catch ) {
+multi trait_mod:<will>(Variable:D $v, Block:D :$catch! ) {
 # not sure what needs to happen here yet
 }
-multi trait_mod:<will>(Variable:D $v, Block:D :$control ) {
+multi trait_mod:<will>(Variable:D $v, Block:D :$control! ) {
 # not sure what needs to happen here yet
 }
-multi trait_mod:<will>(Variable:D $v, Block:D :$compose ) {
+multi trait_mod:<will>(Variable:D $v, Block:D :$compose! ) {
 # not sure what needs to happen here yet
 }

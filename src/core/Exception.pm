@@ -451,6 +451,16 @@ my class X::NYI is Exception {
 }
 my class X::Comp::NYI is X::NYI does X::Comp { };
 
+my class X::Trait is Exception {
+    has $.type;       # is, will, of etc.
+    has $.subtype;    # wrong subtype being tried
+    has $.declaring;  # variable, sub, parameter, etc.
+    method message () {
+        "You cannot say '$.type $.subtype' in a $.declaring declaration."
+    }
+}
+my class X::Comp::Trait is X::Trait does X::Comp { };
+
 my class X::OutOfRange is Exception {
     has $.what = 'Argument';
     has $.got = '<unknown>';

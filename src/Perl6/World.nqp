@@ -386,6 +386,9 @@ class Perl6::World is HLL::World {
                 # if both are multis and have onlystar dispatchers.
                 my $installed := %sym<value>;
                 my $foreign := $_.value;
+                if $installed =:= $foreign {
+                    next;
+                }
                 if nqp::can($installed, 'is_dispatcher') && $installed.is_dispatcher
                 && nqp::can($foreign, 'is_dispatcher') && $foreign.is_dispatcher {
                     # Both dispatchers, but are they onlystar? If so, we can

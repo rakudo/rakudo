@@ -437,7 +437,20 @@ my class Mu {
             }
             my $acc_name := $name.substr(2);
             if $attr.has-accessor && %twiddles.exists($acc_name) {
-                nqp::getattr($cloned, $package, $name) = %twiddles{$acc_name};
+                sub is_kind($sigil) {
+                    nqp::index($sigil, nqp::substr($name, 0, 1)) >= 0
+                }
+                # we don't want to update the original hash/array because a new one was supplied,
+                # create a new one to hold the value and bind the attribute
+                if is_kind('@') {
+                    my @list_value = %twiddles{$acc_name};
+                    nqp::bindattr($cloned, $package, $name, @list_value);
+                } elsif is_kind('%') {
+                    my %hash_value = %twiddles{$acc_name};
+                    nqp::bindattr($cloned, $package, $name, %hash_value);
+                } else {
+                    nqp::bindattr($cloned, $package, $name, %twiddles{$acc_name});
+                }
             }
         }
         $cloned

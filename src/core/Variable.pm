@@ -1,3 +1,7 @@
+# for our tantrums
+my class X::Comp::NYI { ... };
+my class X::Comp::Trait { ... };
+
 # Variable traits come here, not in traits.pm, since we declare Variable
 # in the setting rather than BOOTSTRAP.
 
@@ -10,10 +14,27 @@ my class Variable {
 
 # "is" traits
 multi trait_mod:<is>(Variable:D $v, |c ) {
-    die "You cannot say 'is {c.hash.keys}' in a variable declaration.";
+    X::Comp::Trait.new(
+      file            => $?FILE,
+      line            => $?LINE,
+      column          => 1,
+      is-compile-time => True,
+
+      type            => 'is',
+      subtype         => c.hash.keys[0],
+      declaring       => 'variable',
+      highexpect      => <TypeObject default dynamic>,
+    ).throw;
 }
 multi trait_mod:<is>(Variable:D $v, Mu:U $is ) {
-    die "Variable trait 'is {$is.perl}' has not yet been implemented.";
+    X::Comp::NYI.new(
+      file            => $?FILE,
+      line            => $?LINE,
+      column          => 1,
+      is-compile-time => True,
+
+      feature         => "Variable trait 'is TypeObject'",
+    ).throw;
 }
 multi trait_mod:<is>(Variable:D $v, :$default!) {
     $v.var = $default;  # make sure we start with the default
@@ -31,7 +52,17 @@ multi trait_mod:<is>(Variable:D $v, :$dynamic!) {
 
 # "of" traits
 multi trait_mod:<of>(Variable:D $v, |c ) {
-    die "You cannot say 'of {c.hash.keys}' in a variable declaration.";
+    X::Comp::Trait.new(
+      file            => $?FILE,
+      line            => $?LINE,
+      column          => 1,
+      is-compile-time => True,
+
+      type            => 'of',
+      subtype         => c.hash.keys[0],
+      declaring       => 'variable',
+      highexpect      => <TypeObject>,
+    ).throw;
 }
 multi trait_mod:<of>(Variable:D $v, Mu:U $of ) {
     nqp::getattr($v.var, $v.var.VAR.WHAT, '$!descriptor').set_of(nqp::decont($of));
@@ -39,7 +70,17 @@ multi trait_mod:<of>(Variable:D $v, Mu:U $of ) {
 
 # phaser traits
 multi trait_mod:<will>(Variable:D $v, $block, |c ) {
-    die "You cannot say 'will {c.hash.keys}' in a variable declaration.";
+    X::Comp::Trait.new(
+      file            => $?FILE,
+      line            => $?LINE,
+      column          => 1,
+      is-compile-time => True,
+
+      type            => 'will',
+      subtype         => c.hash.keys[0],
+      declaring       => 'variable',
+      highexpect      => <begin check final init end enter leave keep undo first next last pre post catch control compose>,
+    ).throw;
 }
 multi trait_mod:<will>(Variable:D $v, $block, :$begin! ) {
     $v.block.add_phaser('BEGIN', $block)

@@ -143,6 +143,9 @@ class Array {
         # the array we just created
         nqp::bindattr(self, List, '$!items', Mu);
         nqp::bindattr(self, List, '$!nextiter', nqp::p6listiter(nqp::list($list), self));
+        if self.infinite {
+            self = self.splice(0, $!shape, self);
+        }
         self
     }
 

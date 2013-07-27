@@ -8,7 +8,13 @@ my class Variable {
     has $.block;
 }
 
-# container traits
+# "is" traits
+multi trait_mod:<is>(Variable:D $v, |c ) {
+    die "You cannot say 'is {c.hash.keys}' in a variable declaration.";
+}
+multi trait_mod:<is>(Variable:D $v, Mu:U $is ) {
+    die "Variable trait 'is {$is.perl}' has not yet been implemented.";
+}
 multi trait_mod:<is>(Variable:D $v, :$default!) {
     $v.var = $default;  # make sure we start with the default
     nqp::getattr($v.var, $v.var.VAR.WHAT, '$!descriptor').set_default($default);
@@ -19,22 +25,21 @@ multi trait_mod:<is>(Variable:D $v, :$readonly!) {
 multi trait_mod:<is>(Variable:D $v, :$rw!) {
     nqp::getattr($v.var, $v.var.VAR.WHAT, '$!descriptor').set_rw($rw);
 }
-multi trait_mod:<of>(Variable:D $v, Mu:U $of ) {
-    nqp::getattr($v.var, $v.var.VAR.WHAT, '$!descriptor').set_of(nqp::decont($of));
-}
-
-multi trait_mod:<is>(Variable:D $v, Mu:U $is ) {
-    die "Variable trait 'is {$is.perl}' has not yet been implemented.";
-}
-
-# visibility traits
 multi trait_mod:<is>(Variable:D $v, :$dynamic!) {
 # not sure what needs to happen here yet
 }
 
+# "of" traits
+multi trait_mod:<of>(Variable:D $v, |c ) {
+    die "You cannot say 'of {c.hash.keys}' in a variable declaration.";
+}
+multi trait_mod:<of>(Variable:D $v, Mu:U $of ) {
+    nqp::getattr($v.var, $v.var.VAR.WHAT, '$!descriptor').set_of(nqp::decont($of));
+}
+
 # phaser traits
 multi trait_mod:<will>(Variable:D $v, $block, |c ) {
-    die "You cannot say 'will {c.hash.keys}' in a variable declaration";
+    die "You cannot say 'will {c.hash.keys}' in a variable declaration.";
 }
 multi trait_mod:<will>(Variable:D $v, $block, :$begin! ) {
     $v.block.add_phaser('BEGIN', $block)

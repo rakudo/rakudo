@@ -24,7 +24,7 @@ multi trait_mod:<of>(Variable:D $v, Mu:U $of ) {
 }
 
 multi trait_mod:<is>(Variable:D $v, Mu:U $is ) {
-    die "Variable trait 'is {$is.perl}' has not yet been implemented.\nDid you mean 'of {$is.perl}'?";
+    die "Variable trait 'is {$is.perl}' has not yet been implemented.";
 }
 
 # visibility traits

@@ -375,6 +375,16 @@ my class Any {
         SELF[^SELF.elems]:$v
     }
 
+    multi method postcircumfix:<[ ]>(\SELF: LoL $coords) is rw {
+        my $subcoords = $coords[1..^*].lol;
+        if +@$subcoords == 1 {
+            $subcoords = $subcoords[0].list;
+        }
+        return-rw do for $coords[0].list {
+            SELF[$_][@$subcoords];
+        }
+    }
+
     proto method at_pos(|) {*}
     multi method at_pos(Any:D: $pos) {
         fail X::OutOfRange.new(

@@ -87,8 +87,3 @@ multi trait_mod:<will>(Variable:D $v, $block, :$control! ) {
 multi trait_mod:<will>(Variable:D $v, $block, :$compose! ) {
     $v.block.add_phaser('COMPOSE', $block)
 }
-multi trait_mod:<will>(Variable:D $v, $block, :$start! ) {
-    die "Variable trait 'will start' can only be applied to state variables"
-      if $v.scope ne 'state';
-    $v.block.add_phaser('START', $block)
-}

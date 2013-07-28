@@ -1202,7 +1202,6 @@ class Perl6::Actions is HLL::Actions does STDActions {
     method statement_prefix:sym<BEGIN>($/) { make $*W.add_phaser($/, 'BEGIN', ($<blorst>.ast)<code_object>); }
     method statement_prefix:sym<CHECK>($/) { make $*W.add_phaser($/, 'CHECK', ($<blorst>.ast)<code_object>); }
     method statement_prefix:sym<INIT>($/)  { make $*W.add_phaser($/, 'INIT', ($<blorst>.ast)<code_object>, ($<blorst>.ast)<past_block>); }
-    method statement_prefix:sym<START>($/) { make $*W.add_phaser($/, 'START', ($<blorst>.ast)<code_object>); }
     method statement_prefix:sym<ENTER>($/) { make $*W.add_phaser($/, 'ENTER', ($<blorst>.ast)<code_object>); }
     method statement_prefix:sym<FIRST>($/) { make $*W.add_phaser($/, 'FIRST', ($<blorst>.ast)<code_object>); }
     
@@ -1228,6 +1227,33 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my $past := block_closure($<blorst>.ast);
         $past<past_block>.push(QAST::Var.new( :name('Nil'), :scope('lexical') ));
         make QAST::Op.new( :op('call'), :name('&GATHER'), $past );
+    }
+
+    method statement_prefix:sym<once>($/) {
+        my $past := block_closure($<blorst>.ast);
+        $past<past_block>.push(QAST::Var.new( :name('Nil'), :scope('lexical')));
+
+        # create state variable to remember whether we ran the block
+        my $pad := $*W.cur_lexpad();
+        my $sym := $pad.unique('once_');
+        my $mu := $*W.find_symbol(['Mu']);
+        my $descriptor := $*W.create_container_descriptor($mu, 1, $sym);
+        my %info;
+        %info<container_type> := %info<container_base> := $*W.find_symbol(['Scalar']);
+        %info<default_value> := %info<bind_constraint> := %info<value_type> := $mu;
+        $*W.install_lexical_container($pad, $sym, %info, $descriptor, :scope('state'));
+
+        # generate code that runs the block only once
+        make QAST::Op.new(
+            :op('if'),
+            QAST::Op.new( :op('p6stateinit') ),
+            QAST::Op.new(
+                :op('p6store'),
+                QAST::Var.new( :name($sym), :scope('lexical') ),
+                QAST::Op.new( :op('call'), $<blorst>.ast )
+            ),
+            QAST::Var.new( :name($sym), :scope('lexical') )
+        );
     }
 
     method statement_prefix:sym<sink>($/) {

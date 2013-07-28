@@ -1710,30 +1710,6 @@ class Perl6::World is HLL::World {
             ));
             return QAST::Var.new(:name('Nil'), :scope('lexical'));
         }
-        elsif $phaser eq 'START' {
-            # Create a state variable to hold the phaser's result.
-            my $pad := self.cur_lexpad();
-            my $sym := $pad.unique('START_');
-            my $mu := self.find_symbol(['Mu']);
-            my $descriptor := self.create_container_descriptor($mu, 1, $sym);
-            my %info;
-            %info<container_type> := %info<container_base> := self.find_symbol(['Scalar']);
-            %info<default_value> := %info<bind_constraint> := %info<value_type> := $mu;
-            self.install_lexical_container($pad, $sym, %info, $descriptor, :scope('state'));
-            
-            # Generate code that runs the phaser the first time we init
-            # the state block, or just evaluates to the existing value
-            # in other cases.
-            make QAST::Op.new(
-                :op('if'),
-                QAST::Op.new( :op('p6stateinit') ),
-                QAST::Op.new(
-                    :op('p6store'),
-                    QAST::Var.new( :name($sym), :scope('lexical') ),
-                    QAST::Op.new( :op('call'), QAST::WVal.new( :value($block) ) )
-                ),
-                QAST::Var.new( :name($sym), :scope('lexical') ));
-        }
         elsif $phaser eq 'PRE' || $phaser eq 'POST' {
             my $what := self.add_string_constant($phaser);
             $what.named('phaser');

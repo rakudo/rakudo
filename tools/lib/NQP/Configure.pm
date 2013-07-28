@@ -32,14 +32,14 @@ our $nqp_git = 'git://github.com/perl6/nqp.git';
 our $par_git = 'git://github.com/parrot/parrot.git';
 
 use constant {
-	PARROT => 1,
-	JVM => 2,
-	UNKNOWN_VM => 0
+    PARROT => 1,
+    JVM => 2,
+    UNKNOWN_VM => 0
 };
 
 use constant AVAILABLE_VM => {
-	'Parrot' => 1,
-	'JVM' => 2
+    'Parrot' => 1,
+    'JVM' => 2
 };
 
 sub sorry {
@@ -255,13 +255,13 @@ sub gen_nqp {
     my $nqp_want = shift;
     my $options  = shift; #@_;
 
-	 my $slash       = $^O eq 'MSWin32' ? '\\' : '/';
-	 my $vm          = AVAILABLE_VM->{$options->{'vm'} || 'Parrot'};
+    my $slash       = $^O eq 'MSWin32' ? '\\' : '/';
+    my $vm          = AVAILABLE_VM->{$options->{'vm'} || 'Parrot'};
     my $gen_nqp     = $options->{'gen-nqp'};
     my $with_parrot = $options->{'with-parrot'};
     my $gen_parrot  = $options->{'gen-parrot'};
     my $prefix      = $options->{'prefix'} || cwd() . $slash . 'install' .
-	                   ($vm == JVM ? '-jvm' : '');
+                      ($vm == JVM ? '-jvm' : '');
     my $startdir    = cwd();
 
     my $PARROT_REVISION = 'nqp/tools/build/PARROT_REVISION';
@@ -275,7 +275,7 @@ sub gen_nqp {
         $nqp_exe = fill_template_text('@bindir@/nqp@ext@', %config);
         %config = read_config($nqp_exe);
     }
-	 else {
+    else {
         $nqp_exe = "$prefix/" . ($vm == JVM ? '' : 'bin/') . "nqp$exe";
         %config = read_config($nqp_exe);
     }

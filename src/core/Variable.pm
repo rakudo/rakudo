@@ -37,12 +37,6 @@ multi trait_mod:<is>(Variable:D $v, :$default!) {
     $v.var = $default;  # make sure we start with the default
     nqp::getattr($v.var, $v.var.VAR.WHAT, '$!descriptor').set_default($default);
 }
-multi trait_mod:<is>(Variable:D $v, :$readonly!) {
-    nqp::getattr($v.var, $v.var.VAR.WHAT, '$!descriptor').set_rw(!$readonly);
-}
-multi trait_mod:<is>(Variable:D $v, :$rw!) {
-    nqp::getattr($v.var, $v.var.VAR.WHAT, '$!descriptor').set_rw($rw);
-}
 multi trait_mod:<is>(Variable:D $v, :$dynamic!) {
 # must be a noop for now, as apparently outer scope lexicals are *always*
 # visible with the CALLER:: interface, even if they're *not* marked as

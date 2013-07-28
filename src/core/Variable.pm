@@ -122,7 +122,7 @@ multi trait_mod:<will>(Variable:D $v, $block, :$catch! ) {
     $v.throw( 'X::Comp::NYI',
       feature => "Variable trait 'will catch {...}'",
     );
-i#    $v.block.add_phaser('CATCH', $block)   # doesn't work :-(
+#    $v.block.add_phaser('CATCH', $block)   # doesn't work :-(
 }
 multi trait_mod:<will>(Variable:D $v, $block, :$control! ) {
     $v.throw( 'X::Comp::NYI',

@@ -17,7 +17,6 @@ multi trait_mod:<is>(Variable:D $v, |c ) {
     X::Comp::Trait.new(
       file            => $?FILE,
       line            => $?LINE,
-      column          => 1,
       is-compile-time => True,
 
       type            => 'is',
@@ -30,7 +29,6 @@ multi trait_mod:<is>(Variable:D $v, Mu:U $is ) {
     X::Comp::NYI.new(
       file            => $?FILE,
       line            => $?LINE,
-      column          => 1,
       is-compile-time => True,
 
       feature         => "Variable trait 'is TypeObject'",
@@ -55,7 +53,6 @@ multi trait_mod:<of>(Variable:D $v, |c ) {
     X::Comp::Trait.new(
       file            => $?FILE,
       line            => $?LINE,
-      column          => 1,
       is-compile-time => True,
 
       type            => 'of',
@@ -73,7 +70,6 @@ multi trait_mod:<will>(Variable:D $v, $block, |c ) {
     X::Comp::Trait.new(
       file            => $?FILE,
       line            => $?LINE,
-      column          => 1,
       is-compile-time => True,
 
       type            => 'will',

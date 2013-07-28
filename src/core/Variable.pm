@@ -10,6 +10,8 @@ my class Variable {
     has str $.scope;
     has $.var is rw;
     has $.block;
+    has $.world;
+    has $.slash;
 }
 
 # "is" traits

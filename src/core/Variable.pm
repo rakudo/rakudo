@@ -69,19 +69,27 @@ multi trait_mod:<will>(Variable:D $v, $block, |c ) {
     );
 }
 multi trait_mod:<will>(Variable:D $v, $block, :$begin! ) {
-    $v.block.add_phaser('BEGIN', $block)
+    $block(); # no need to delay execution
 }
 multi trait_mod:<will>(Variable:D $v, $block, :$check! ) {
-    $v.block.add_phaser('CHECK', $block)
+    $v.world.add_phaser($v.slash, 'CHECK', $block)
 }
 multi trait_mod:<will>(Variable:D $v, $block, :$final! ) {
-    $v.block.add_phaser('FINAL', $block)
+    $v.throw( 'X::Comp::NYI',
+      feature => "Variable trait 'will final {...}'",
+    );
 }
 multi trait_mod:<will>(Variable:D $v, $block, :$init! ) {
-    $v.block.add_phaser('INIT', $block)
+    $v.throw( 'X::Comp::NYI',
+      feature => "Variable trait 'will init {...}'",
+    );
+#    $v.world.add_phaser($v.slash, 'INIT', $block)  # doesn't work :-(
 }
 multi trait_mod:<will>(Variable:D $v, $block, :$end! ) {
-    $v.block.add_phaser('END', $block)
+    $v.throw( 'X::Comp::NYI',
+      feature => "Variable trait 'will end {...}'",
+    );
+#    $v.world.add_phaser($v.slash, 'END', $block)  # doesn't work :-(
 }
 multi trait_mod:<will>(Variable:D $v, $block, :$enter! ) {
     $v.block.add_phaser('ENTER', $block)
@@ -111,11 +119,19 @@ multi trait_mod:<will>(Variable:D $v, $block, :$post! ) {
     $v.block.add_phaser('POST', $block)
 }
 multi trait_mod:<will>(Variable:D $v, $block, :$catch! ) {
-    $v.block.add_phaser('CATCH', $block)
+    $v.throw( 'X::Comp::NYI',
+      feature => "Variable trait 'will catch {...}'",
+    );
+i#    $v.block.add_phaser('CATCH', $block)   # doesn't work :-(
 }
 multi trait_mod:<will>(Variable:D $v, $block, :$control! ) {
-    $v.block.add_phaser('CONTROL', $block)
+    $v.throw( 'X::Comp::NYI',
+      feature => "Variable trait 'will control {...}'",
+    );
+#    $v.block.add_phaser('CONTROL', $block)   # doesn't work :-(
 }
 multi trait_mod:<will>(Variable:D $v, $block, :$compose! ) {
-    $v.block.add_phaser('COMPOSE', $block)
+    $v.throw( 'X::Comp::NYI',
+      feature => "Variable trait 'will compose {...}'",
+    );
 }

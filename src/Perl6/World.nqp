@@ -2443,7 +2443,10 @@ class Perl6::World is HLL::World {
             # that location.
             my $c := $/.CURSOR;
             my @expected;
-            if $c.'!highwater'() >= $c.pos() {
+            if %opts<expected> {
+                @expected := %opts<expected>;
+            }
+            elsif $c.'!highwater'() >= $c.pos() {
                 my @raw_expected := $c.'!highexpect'();
                 $c.'!cursor_pos'($c.'!highwater'());
                 my %seen;

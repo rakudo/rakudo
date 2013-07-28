@@ -12,29 +12,26 @@ my class Variable {
     has $.block;
     has $.world;
     has $.slash;
+
+    # make throwing easier
+    submethod throw ( |c ) {
+        self.world.throw( self.slash, |c );
+    }
 }
 
 # "is" traits
 multi trait_mod:<is>(Variable:D $v, |c ) {
-    X::Comp::Trait.new(
-      file            => $?FILE,
-      line            => $?LINE,
-      is-compile-time => True,
-
-      type            => 'is',
-      subtype         => c.hash.keys[0],
-      declaring       => 'variable',
-      highexpect      => <TypeObject default dynamic>,
-    ).throw;
+    $v.throw( 'X::Comp::Trait', 
+      type      => 'is',
+      subtype   => c.hash.keys[0],
+      declaring => 'variable',
+      expected  => <TypeObject default dynamic>,
+    );
 }
 multi trait_mod:<is>(Variable:D $v, Mu:U $is ) {
-    X::Comp::NYI.new(
-      file            => $?FILE,
-      line            => $?LINE,
-      is-compile-time => True,
-
-      feature         => "Variable trait 'is TypeObject'",
-    ).throw;
+    $v.throw( 'X::Comp::NYI',
+      feature => "Variable trait 'is TypeObject'",
+    );
 }
 multi trait_mod:<is>(Variable:D $v, :$default!) {
     $v.var = $default;  # make sure we start with the default
@@ -47,21 +44,19 @@ multi trait_mod:<is>(Variable:D $v, :$rw!) {
     nqp::getattr($v.var, $v.var.VAR.WHAT, '$!descriptor').set_rw($rw);
 }
 multi trait_mod:<is>(Variable:D $v, :$dynamic!) {
-# not sure what needs to happen here yet
+# must be a noop for now, as apparently outer scope lexicals are *always*
+# visible with the CALLER:: interface, even if they're *not* marked as
+# "is dynamic"
 }
 
 # "of" traits
 multi trait_mod:<of>(Variable:D $v, |c ) {
-    X::Comp::Trait.new(
-      file            => $?FILE,
-      line            => $?LINE,
-      is-compile-time => True,
-
-      type            => 'of',
-      subtype         => c.hash.keys[0],
-      declaring       => 'variable',
-      highexpect      => <TypeObject>,
-    ).throw;
+    $v.throw( 'X::Comp::Trait', 
+      type      => 'of',
+      subtype   => c.hash.keys[0],
+      declaring => 'variable',
+      expected  => <TypeObject>,
+    );
 }
 multi trait_mod:<of>(Variable:D $v, Mu:U $of ) {
     nqp::getattr($v.var, $v.var.VAR.WHAT, '$!descriptor').set_of(nqp::decont($of));
@@ -69,16 +64,12 @@ multi trait_mod:<of>(Variable:D $v, Mu:U $of ) {
 
 # phaser traits
 multi trait_mod:<will>(Variable:D $v, $block, |c ) {
-    X::Comp::Trait.new(
-      file            => $?FILE,
-      line            => $?LINE,
-      is-compile-time => True,
-
-      type            => 'will',
-      subtype         => c.hash.keys[0],
-      declaring       => 'variable',
-      highexpect      => <begin check final init end enter leave keep undo first next last pre post catch control compose>,
-    ).throw;
+    $v.throw( 'X::Comp::Trait',
+      type      => 'will',
+      subtype   => c.hash.keys[0],
+      declaring => 'variable',
+      expected  => <begin check final init end enter leave keep undo first next last pre post catch control compose>,
+    );
 }
 multi trait_mod:<will>(Variable:D $v, $block, :$begin! ) {
     $v.block.add_phaser('BEGIN', $block)

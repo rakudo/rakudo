@@ -241,7 +241,6 @@ S04-phasers/multiple.t
 S04-phasers/next.t
 S04-phasers/pre-post.t
 S04-phasers/rvalue.t
-S04-phasers/start.t
 S04-statement-modifiers/for.t
 S04-statement-modifiers/given.t 
 S04-statement-modifiers/if.t
@@ -262,6 +261,7 @@ S04-statements/loop.t
 S04-statements/map-and-sort-in-for.t
 S04-statements/next.t
 S04-statements/no-implicit-block.t
+S04-statements/once.t
 S04-statements/redo.t
 S04-statements/repeat.t
 S04-statements/return.t

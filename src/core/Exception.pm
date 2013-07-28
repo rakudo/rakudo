@@ -456,7 +456,7 @@ my class X::Trait is Exception {
     has $.subtype;    # wrong subtype being tried
     has $.declaring;  # variable, sub, parameter, etc.
     method message () {
-        "You cannot say '$.type $.subtype' in a $.declaring declaration."
+        "You cannot say '$.type $.subtype' in a$.declaring declaration."
     }
 }
 my class X::Comp::Trait is X::Trait does X::Comp { };

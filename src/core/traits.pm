@@ -6,6 +6,7 @@ my class X::Composition::NotComposable { ... }
 my class X::Import::MissingSymbols   { ... }
 my class X::Redeclaration { ... }
 my class X::Inheritance::SelfInherit { ... }
+my class X::Comp::Trait { ... };
 
 proto trait_mod:<is>(|) { * }
 multi trait_mod:<is>(Mu:U $child, Mu:U $parent) {
@@ -51,6 +52,16 @@ multi trait_mod:<is>(Mu:U $type, *%fail) {
     }
 }
 
+multi trait_mod:<is>(Attribute:D $attr, |c ) {
+    X::Comp::Trait.new(
+      file       => $?FILE,
+      line       => $?LINE,
+      type       => 'is',
+      subtype    => c.hash.keys[0],
+      declaring  => 'n attribute',
+      highexpect => <rw readonly box_target>,
+    ).throw;
+}
 multi trait_mod:<is>(Attribute:D $attr, :$rw!) {
     $attr.set_rw();
 }
@@ -61,6 +72,18 @@ multi trait_mod:<is>(Attribute:D $attr, :$box_target!) {
     $attr.set_box_target();
 }
 
+multi trait_mod:<is>(Routine:D $r, |c ) {
+    X::Comp::Trait.new(
+      file       => $?FILE,
+      line       => $?LINE,
+      type       => 'is',
+      subtype    => c.hash.keys[0],
+      declaring  => ' ' ~ lc( $r.^name ),
+      highexpect => ('rw parcel hidden_from_backtrace',
+                     'pure default DEPRECATE inlinable',
+                     'prec equiv tighter looser assoc' ),
+    ).throw;
+}
 multi trait_mod:<is>(Routine:D $r, :$rw!) {
     $r.set_rw();
 }
@@ -123,6 +146,16 @@ multi trait_mod:<is>(Routine $r, :$assoc!) {
 # point we wrote its proto, we do it manually here.
 BEGIN &trait_mod:<is>.set_onlystar();
 
+multi trait_mod:<is>(Parameter:D $param, |c ) {
+    X::Comp::Trait.new(
+      file       => $?FILE,
+      line       => $?LINE,
+      type       => 'is',
+      subtype    => c.hash.keys[0],
+      declaring  => ' parameter',
+      highexpect => <rw readonly copy required parcel>,
+    ).throw;
+}
 multi trait_mod:<is>(Parameter:D $param, :$readonly!) {
     # This is the default.
 }

@@ -24,7 +24,7 @@ multi trait_mod:<is>(Variable:D $v, |c ) {
     $v.throw( 'X::Comp::Trait', 
       type      => 'is',
       subtype   => c.hash.keys[0],
-      declaring => 'variable',
+      declaring => ' variable',
       expected  => <TypeObject default dynamic>,
     );
 }
@@ -48,7 +48,7 @@ multi trait_mod:<of>(Variable:D $v, |c ) {
     $v.throw( 'X::Comp::Trait', 
       type      => 'of',
       subtype   => c.hash.keys[0],
-      declaring => 'variable',
+      declaring => ' variable',
       expected  => <TypeObject>,
     );
 }
@@ -61,7 +61,7 @@ multi trait_mod:<will>(Variable:D $v, $block, |c ) {
     $v.throw( 'X::Comp::Trait',
       type      => 'will',
       subtype   => c.hash.keys[0],
-      declaring => 'variable',
+      declaring => ' variable',
       expected  => ('begin check final init end',
                     'enter leave keep undo',
                     'first next last pre post',

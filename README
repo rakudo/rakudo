@@ -30,14 +30,9 @@ Rakudo Perl 6
     privileges for carrying out this step.
 
   Building Rakudo on JVM
-    You need the JDK 1.7 installed and a make program. These instructions
-    assume you have nqp checked out inside of your Rakudo directory. Then:
+    You need the JDK 1.7 installed and a make program. Then:
     
-    $ cd nqp
-    $ perl ConfigureJVM.pl --prefix=../install-jvm
-    $ make install
-    $ cd ..
-    $ perl ConfigureJVM.pl
+    $ perl Configure.pl --vm=JVM --gen-nqp
     $ make
     
     Note that Rakudo on JVM is currently less capable than Rakudo on Parrot.

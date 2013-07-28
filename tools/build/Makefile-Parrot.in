@@ -147,7 +147,7 @@ BOOTSTRAP_SOURCES = \
 # the compiler will instantiate/call methods on while compiling the
 # setting - basically anything that feels MOP-ish.
 CORE_SOURCES = \
-  src/core/must_be_first.pm \
+  src/core/core_prologue.pm \
   src/core/traits.pm \
   src/core/Positional.pm \
   src/core/Associative.pm \
@@ -238,7 +238,7 @@ CORE_SOURCES = \
   src/core/operators.pm \
   src/core/metaops.pm \
   src/core/terms.pm \
-  src/core/must_be_last.pm \
+  src/core/core_epilogue.pm \
 
 DOCS = README CREDITS LICENSE docs/*
 

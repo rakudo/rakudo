@@ -62,7 +62,10 @@ multi trait_mod:<will>(Variable:D $v, $block, |c ) {
       type      => 'will',
       subtype   => c.hash.keys[0],
       declaring => 'variable',
-      expected  => <begin check final init end enter leave keep undo first next last pre post catch control compose>,
+      expected  => ('begin check final init end',
+                    'enter leave keep undo',
+                    'first next last pre post',
+                    'catch control compose'),
     );
 }
 multi trait_mod:<will>(Variable:D $v, $block, :$begin! ) {

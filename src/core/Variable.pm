@@ -65,7 +65,7 @@ multi trait_mod:<will>(Variable:D $v, $block, |c ) {
       expected  => ('begin check final init end',
                     'enter leave keep undo',
                     'first next last pre post',
-                    'catch control compose'),
+                    'compose'),
     );
 }
 multi trait_mod:<will>(Variable:D $v, $block, :$begin! ) {
@@ -117,18 +117,6 @@ multi trait_mod:<will>(Variable:D $v, $block, :$pre! ) {
 }
 multi trait_mod:<will>(Variable:D $v, $block, :$post! ) {
     $v.block.add_phaser('POST', $block)
-}
-multi trait_mod:<will>(Variable:D $v, $block, :$catch! ) {
-    $v.throw( 'X::Comp::NYI',
-      feature => "Variable trait 'will catch {...}'",
-    );
-#    $v.block.add_phaser('CATCH', $block)   # doesn't work :-(
-}
-multi trait_mod:<will>(Variable:D $v, $block, :$control! ) {
-    $v.throw( 'X::Comp::NYI',
-      feature => "Variable trait 'will control {...}'",
-    );
-#    $v.block.add_phaser('CONTROL', $block)   # doesn't work :-(
 }
 multi trait_mod:<will>(Variable:D $v, $block, :$compose! ) {
     $v.throw( 'X::Comp::NYI',

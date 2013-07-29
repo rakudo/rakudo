@@ -231,6 +231,18 @@ multi trait_mod:<is>(Mu \sym, :$export!, :$SYMBOL!) {
     EXPORT_SYMBOL($SYMBOL, @tags, sym);
 }
 
+
+# this should be identical Mu:D, :docs, otherwise the fallback Routine:D, |c
+# will catch it and declare "docs" to be an unknown trait
+multi trait_mod:<is>(Routine:D $docee, :$docs!) {
+    $docee does role {
+        has $!WHY;
+        method WHY          { $!WHY      }
+        method set_docs($d) { $!WHY = $d }
+    }
+    $docee.set_docs($docs);
+    $docs.set_docee($docee);
+}
 multi trait_mod:<is>(Mu:D $docee, :$docs!) {
     $docee does role {
         has $!WHY;

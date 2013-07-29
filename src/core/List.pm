@@ -183,9 +183,9 @@ my class List does Positional {
 
     multi method push(List:D: *@values) {
         fail 'Cannot .push an infinite list' if @values.infinite;
-        my $elems = self.gimme(*);
+        self.gimme(*);
         fail 'Cannot .push to an infinite list' if $!nextiter.defined;
-        nqp::bindattr( self, List, '$!items', nqp::list() ) if $elems == 0;
+        nqp::p6listitems(self);
         nqp::push( $!items, @values.shift ) while @values.gimme(1);
         self;
     }
@@ -237,11 +237,10 @@ my class List does Positional {
           !! fail 'Element shifted from empty list';
     }
 
-    multi method unshift(List:D: *@elems) {
+    multi method unshift(List:D: *@values) {
+        fail 'Cannot .unshift an infinite list' if @values.infinite;
         nqp::p6listitems(self);
-        while @elems {
-            nqp::unshift($!items, @elems.pop)
-        }
+        nqp::unshift($!items, @values.pop) while @values.gimme(1);
         self
     }
 

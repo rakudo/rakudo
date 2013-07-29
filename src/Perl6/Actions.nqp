@@ -2087,7 +2087,6 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 nqp::bindattr_s($varvar, $Variable, '$!scope', $*SCOPE);
                 nqp::bindattr($varvar, $Variable, '$!var', $cont);
                 nqp::bindattr($varvar, $Variable, '$!block', $*DECLARAND);
-                nqp::bindattr($varvar, $Variable, '$!world', $*W);
                 nqp::bindattr($varvar, $Variable, '$!slash', $/);
                 for $trait_list {
                     my $applier := $_.ast;

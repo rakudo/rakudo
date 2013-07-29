@@ -10,12 +10,11 @@ my class Variable {
     has str $.scope;
     has $.var is rw;
     has $.block;
-    has $.world;
     has $.slash;
 
     # make throwing easier
     submethod throw ( |c ) {
-        self.world.throw( self.slash, |c );
+        $*W.throw( self.slash, |c );
     }
 }
 
@@ -72,7 +71,7 @@ multi trait_mod:<will>(Variable:D $v, $block, :$begin! ) {
     $block(); # no need to delay execution
 }
 multi trait_mod:<will>(Variable:D $v, $block, :$check! ) {
-    $v.world.add_phaser($v.slash, 'CHECK', $block)
+    $*W.add_phaser($v.slash, 'CHECK', $block)
 }
 multi trait_mod:<will>(Variable:D $v, $block, :$final! ) {
     $v.throw( 'X::Comp::NYI',
@@ -83,13 +82,13 @@ multi trait_mod:<will>(Variable:D $v, $block, :$init! ) {
     $v.throw( 'X::Comp::NYI',
       feature => "Variable trait 'will init {...}'",
     );
-#    $v.world.add_phaser($v.slash, 'INIT', $block)  # doesn't work :-(
+#    $*W.add_phaser($v.slash, 'INIT', $block)  # doesn't work :-(
 }
 multi trait_mod:<will>(Variable:D $v, $block, :$end! ) {
     $v.throw( 'X::Comp::NYI',
       feature => "Variable trait 'will end {...}'",
     );
-#    $v.world.add_phaser($v.slash, 'END', $block)  # doesn't work :-(
+#    $*W.add_phaser($v.slash, 'END', $block)  # doesn't work :-(
 }
 multi trait_mod:<will>(Variable:D $v, $block, :$enter! ) {
     $v.block.add_phaser('ENTER', $block)

@@ -1,3 +1,6 @@
+# for our tantrums
+my class X::TypeCheck { ... }
+
 my class List does Positional {
     # declared in BOOTSTRAP.pm:
     #   is Iterable;           # parent class
@@ -193,14 +196,64 @@ my class List does Positional {
         self.gimme(*);
         fail 'Cannot .push to an infinite list' if $!nextiter.defined;
         nqp::p6listitems(self);
-        nqp::push( $!items, @values.shift ) while @values.gimme(1);
+
+        # don't bother with type checks
+        if ( self.of =:= Mu ) {
+            nqp::push( $!items, @values.shift ) while @values.gimme(1);
+        }
+
+        # we must check types
+        else {
+            my $of = self.of;
+            while @values.gimme(1) {
+                my $value := @values.shift;
+                if $value ~~ $of {
+                    nqp::push( $!items, $value );
+                }
+
+                # huh?
+                else {
+                    X::TypeCheck.new(
+                      operation => '.push',
+                      expected  => $of,
+                      got       => $value,
+                    ).throw;
+                }
+            }
+        }
+
         self;
     }
 
     multi method unshift(List:D: *@values) {
         fail 'Cannot .unshift an infinite list' if @values.infinite;
         nqp::p6listitems(self);
-        nqp::unshift($!items, @values.pop) while @values.gimme(1);
+
+        # don't bother with type checks
+        if ( self.of =:= Mu ) {
+            nqp::unshift($!items, @values.pop) while @values;
+        }
+
+        # we must check types
+        else {
+            my $of = self.of;
+            while @values {
+                my $value := @values.pop;
+                if $value ~~ $of {
+                    nqp::unshift($!items, $value);
+                }
+
+                # huh?
+                else {
+                    X::TypeCheck.new(
+                      operation => '.unshift',
+                      expected  => $of,
+                      got       => $value,
+                    ).throw;
+                }
+            }
+        }
+
         self
     }
 

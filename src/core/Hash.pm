@@ -108,20 +108,77 @@ my class Hash {
     proto method classify(|) { * }
     multi method classify( &test, *@list ) {
         fail 'Cannot .classify an infinite list' if @list.infinite;
-        nqp::push( nqp::p6listitems(nqp::decont(self{test $_} //= [])), $_ )
-          for @list;
+        if @list {
+
+            # multi-level classify
+            if test(@list[0]) ~~ List {
+                for @list -> $l {
+                    my @keys  = test($l);
+                    my $last := @keys.pop;
+                    my $hash  = self;
+                    $hash = $hash{$_} //= self.new for @keys;
+                    nqp::push(
+                      nqp::p6listitems(nqp::decont($hash{$last} //= [])), $l );
+                }
+            }
+
+            # just a simple classify
+            else {
+                nqp::push(
+                  nqp::p6listitems(nqp::decont(self{test $_} //= [])), $_ )
+                  for @list;
+            }
+        }
         self;
     }
     multi method classify( %test, *@list ) {
         fail 'Cannot .classify an infinite list' if @list.infinite;
-        nqp::push( nqp::p6listitems(nqp::decont(self{%test{$_}} //= [])), $_ )
-          for @list;
+        if @list {
+
+            # multi-level classify
+            if %test{@list[0]} ~~ List {
+                for @list -> $l {
+                    my @keys  = %test{$l};
+                    my $last := @keys.pop;
+                    my $hash  = self;
+                    $hash = $hash{$_} //= self.new for @keys;
+                    nqp::push(
+                      nqp::p6listitems(nqp::decont($hash{$last} //= [])), $l );
+                }
+            }
+
+            # just a simple classify
+            else {
+                nqp::push(
+                  nqp::p6listitems(nqp::decont(self{%test{$_}} //= [])), $_ )
+                  for @list;
+            }
+        }
         self;
     }
     multi method classify( @test, *@list ) {
         fail 'Cannot .classify an infinite list' if @list.infinite;
-        nqp::push( nqp::p6listitems(nqp::decont(self{@test[$_]} //= [])), $_ )
-          for @list;
+        if @list {
+
+            # multi-level classify
+            if @test[@list[0]] ~~ List {
+                for @list -> $l {
+                    my @keys  = @test[$l];
+                    my $last := @keys.pop;
+                    my $hash  = self;
+                    $hash = $hash{$_} //= self.new for @keys;
+                    nqp::push(
+                      nqp::p6listitems(nqp::decont($hash{$last} //= [])), $l );
+                }
+            }
+
+            # just a simple classify
+            else {
+                nqp::push(
+                  nqp::p6listitems(nqp::decont(self{@test[$_]} //= [])), $_ )
+                  for @list;
+            }
+        }
         self;
     }
 

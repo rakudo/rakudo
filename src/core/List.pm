@@ -181,6 +181,13 @@ my class List does Positional {
           !! fail 'Element popped from empty list';
     }
 
+    method shift() is parcel {
+        # make sure we have at least one item, then shift+return it
+        nqp::islist($!items) && nqp::existspos($!items, 0) || self.gimme(1)
+          ?? nqp::shift($!items) 
+          !! fail 'Element shifted from empty list';
+    }
+
     multi method push(List:D: *@values) {
         fail 'Cannot .push an infinite list' if @values.infinite;
         self.gimme(*);
@@ -188,6 +195,13 @@ my class List does Positional {
         nqp::p6listitems(self);
         nqp::push( $!items, @values.shift ) while @values.gimme(1);
         self;
+    }
+
+    multi method unshift(List:D: *@values) {
+        fail 'Cannot .unshift an infinite list' if @values.infinite;
+        nqp::p6listitems(self);
+        nqp::unshift($!items, @values.pop) while @values.gimme(1);
+        self
     }
 
     method roll($n is copy = 1) {
@@ -228,20 +242,6 @@ my class List does Positional {
         my $rlist := nqp::create(self.WHAT);
         nqp::bindattr($rlist, List, '$!items', $res);
         $rlist;
-    }
-
-    method shift() is parcel {
-        # make sure we have at least one item, then shift+return it
-        nqp::islist($!items) && nqp::existspos($!items, 0) || self.gimme(1)
-          ?? nqp::shift($!items) 
-          !! fail 'Element shifted from empty list';
-    }
-
-    multi method unshift(List:D: *@values) {
-        fail 'Cannot .unshift an infinite list' if @values.infinite;
-        nqp::p6listitems(self);
-        nqp::unshift($!items, @values.pop) while @values.gimme(1);
-        self
     }
 
     method splice($offset = 0, $size?, *@values) {

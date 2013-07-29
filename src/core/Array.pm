@@ -21,7 +21,7 @@ class Array {
 #?endif
             X::Item.new(aggregate => self, index => $pos).throw;
         }
-        my int $p = nqp::unbox_i($pos.Int);
+        my int $p = self.map_index($pos.Int);
         fail "Index $p is too large for this shaped array" unless nqp::istype($!shape, Whatever) or $p < $!shape;
         my Mu $items := nqp::p6listitems(self);
         # hotpath check for element existence (RT #111848)
@@ -32,7 +32,8 @@ class Array {
           !! nqp::p6bindattrinvres(my $v, Scalar, '$!whence',
                  -> { nqp::bindpos($items, $p, $v) } )
     }
-    multi method at_pos(Array:D: int $pos) is rw {
+    multi method at_pos(Array:D: int $p) is rw {
+        my int $pos = self.map_index($p);
         fail "Index $pos is too large for this shaped array" unless nqp::istype($!shape, Whatever) or $pos < $!shape;
         my Mu $items := nqp::p6listitems(self);
         # hotpath check for element existence (RT #111848)
@@ -45,13 +46,14 @@ class Array {
     }
 
     proto method bind_pos(|) { * }
-    multi method bind_pos($pos is copy, Mu \bindval) is rw {
-        $pos = $pos.Int;
+    multi method bind_pos($p is copy, Mu \bindval) is rw {
+        my int $pos = self.map_index($p.Int);
         fail "Index $pos is too large for this shaped array" unless nqp::istype($!shape, Whatever) or $pos < $!shape;
         self.gimme($pos + 1);
-        nqp::bindpos(nqp::getattr(self, List, '$!items'), nqp::unbox_i($pos), bindval);
+        nqp::bindpos(nqp::getattr(self, List, '$!items'), $pos, bindval);
     }
-    multi method bind_pos(int $pos, Mu \bindval) is rw {
+    multi method bind_pos(int $p, Mu \bindval) is rw {
+        my int $pos = self.map_index($p);
         fail "Index $pos is too large for this shaped array" unless nqp::istype($!shape, Whatever) or $pos < $!shape;
         self.gimme($pos + 1);
         nqp::bindpos(nqp::getattr(self, List, '$!items'), $pos, bindval)
@@ -61,9 +63,9 @@ class Array {
         my $elems = @array.elems;
         my @result;
         for @indices -> $index {
-            my $i = $index ~~ Callable
-                        ?? $index($elems)
-                        !! +$index;
+            my int $i = self.map_index($index ~~ Callable
+                                       ?? $index($elems)
+                                       !! +$index);
             @result.push(@array[$i]);
             undefine @array[$i];
 
@@ -85,6 +87,19 @@ class Array {
 
     method shape() { $!shape }
 
+    # FIXME: this should probably be private
+    proto method map_index(|) { * }
+    multi method map_index(Int $pos --> int) {
+        return nqp::unbox_i(nqp::decont($!index_map)($pos).floor.Int)
+            if nqp::istype($!index_map, Code);
+        nqp::unbox_i($pos)
+    }
+    multi method map_index(int $pos --> int) {
+        return nqp::unbox_i(nqp::decont($!index_map)(nqp::p6box_i($pos)).floor.Int)
+            if nqp::istype($!index_map, Code);
+        $pos
+    }
+
     method pop() is parcel {
         fail 'Cannot pop from a shaped array' unless nqp::istype($!shape, Whatever);
         nqp::findmethod(List, 'pop')(self)
@@ -105,6 +120,10 @@ class Array {
         nqp::findmethod(List, 'unshift')(self, |@values);
     }
 
+    method exists(\pos) {
+        nqp::findmethod(List, 'exists')(self, self.map_index(pos))
+    }
+
     multi method perl(Array:D \SELF:) {
         nqp::iscont(SELF)
           ?? '[' ~ self.map({.perl}).join(', ') ~ ']'
@@ -122,11 +141,11 @@ class Array {
         nqp::findmethod(List, 'REIFY')(self, parcel, nextiter)
     }
 
-    method STORE_AT_POS(Int \pos, Mu $v is copy) is rw {
-        fail pos.fmt("Index %d is too large for this shaped array")
-            unless nqp::istype($!shape, Whatever) or pos < $!shape;
-        nqp::bindpos(nqp::getattr(self, List, '$!items'),
-            nqp::unbox_i(pos), $v)
+    method STORE_AT_POS(Int \p, Mu $v is copy) is rw {
+        my int $pos = self.map_index(p.Int);
+        fail "Index $pos is too large for this shaped array"
+            unless nqp::istype($!shape, Whatever) or $pos < $!shape;
+        nqp::bindpos(nqp::getattr(self, List, '$!items'), $pos, $v)
     }
 
     method STORE(|) {
@@ -148,28 +167,30 @@ class Array {
     }
 
     my role TypedArray[::TValue] does Positional[TValue] {
-        multi method at_pos($pos is copy, TValue $v? is copy) is rw {
-            $pos = $pos.Int;
-            fail "Index $pos is too large for this shaped array" unless nqp::istype(self.shape, Whatever) or $pos < self.shape;
-            self.exists($pos)
-              ?? nqp::atpos(nqp::getattr(self, List, '$!items'), nqp::unbox_i($pos))
-              !! nqp::p6bindattrinvres($v, Scalar, '$!whence',
-                     -> { nqp::bindpos(nqp::getattr(self, List, '$!items'), nqp::unbox_i($pos), $v) } )
-        }
-        multi method at_pos(int $pos, TValue $v? is copy) is rw {
+        multi method at_pos($p is copy, TValue $v? is copy) is rw {
+            my int $pos = self.map_index($p.Int);
             fail "Index $pos is too large for this shaped array" unless nqp::istype(self.shape, Whatever) or $pos < self.shape;
             self.exists($pos)
               ?? nqp::atpos(nqp::getattr(self, List, '$!items'), $pos)
               !! nqp::p6bindattrinvres($v, Scalar, '$!whence',
                      -> { nqp::bindpos(nqp::getattr(self, List, '$!items'), $pos, $v) } )
         }
-        multi method bind_pos($pos is copy, TValue \bindval) is rw {
-            $pos = $pos.Int;
+        multi method at_pos(int $p, TValue $v? is copy) is rw {
+            my int $pos = self.map_index($p);
+            fail "Index $pos is too large for this shaped array" unless nqp::istype(self.shape, Whatever) or $pos < self.shape;
+            self.exists($pos)
+              ?? nqp::atpos(nqp::getattr(self, List, '$!items'), $pos)
+              !! nqp::p6bindattrinvres($v, Scalar, '$!whence',
+                     -> { nqp::bindpos(nqp::getattr(self, List, '$!items'), $pos, $v) } )
+        }
+        multi method bind_pos($p is copy, TValue \bindval) is rw {
+            my int $pos = self.map_index($p.Int);
             fail "Index $pos is too large for this shaped array" unless nqp::istype(self.shape, Whatever) or $pos < self.shape;
             self.gimme($pos + 1);
-            nqp::bindpos(nqp::getattr(self, List, '$!items'), nqp::unbox_i($pos), bindval)
+            nqp::bindpos(nqp::getattr(self, List, '$!items'), $pos, bindval)
         }
-        multi method bind_pos(int $pos, TValue \bindval) is rw {
+        multi method bind_pos(int $p, TValue \bindval) is rw {
+            my int $pos = self.map_index($p);
             fail "Index $pos is too large for this shaped array" unless nqp::istype(self.shape, Whatever) or $pos < self.shape;
             self.gimme($pos + 1);
             nqp::bindpos(nqp::getattr(self, List, '$!items'), $pos, bindval)

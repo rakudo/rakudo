@@ -184,7 +184,31 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 %info<value_type>     := $*W.find_symbol(['Mu']);
             }
             if $shape {
-                %info<container_shape> := $shape[0].ast;
+                my $shape_ast := $shape[0].ast;
+                if +@($shape_ast) == 1 {
+                    my $map_ast := $shape_ast[0].pop;
+                    if +@($map_ast) > 1 &&
+                            $map_ast[1].isa(QAST::Node) &&
+                            $map_ast[1].has_compile_time_value &&
+                            $map_ast[1].compile_time_value eq 'map' &&
+                            $map_ast[2][0][0].isa(QAST::Node) &&
+                            $map_ast[2][0][0].has_compile_time_value {
+                        my $comp_val := $map_ast[2][0][0].compile_time_value;
+                        if $comp_val.isa($*W.find_symbol(['Block'])) ||
+                                $comp_val.isa($*W.find_symbol(['WhateverCode'])) {
+                            %info<container_index_map> := $map_ast[2];
+                        }
+                    }
+                    if nqp::existskey(%info, 'container_index_map') {
+                        $shape_ast[0] := $shape_ast[0][0] if +@($shape_ast[0]) == 1;
+                    } else {
+                        $shape_ast[0].push($map_ast);
+                    }
+                } else {
+                    $*W.throw($/, 'X::Comp::NYI',
+                        feature => 'multidimensional shaped arrays');
+                }
+                %info<container_shape> := $shape_ast;
             } else {
                 my $whatever := $*W.find_symbol(['Whatever']);
                 %info<container_shape> := QAST::Op.new(

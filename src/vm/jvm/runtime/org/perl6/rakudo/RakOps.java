@@ -76,7 +76,7 @@ public final class RakOps {
     private static final int HINT_LISTITER_nextiter = 1;
     private static final int HINT_LISTITER_rest = 2;
     private static final int HINT_LISTITER_list = 3;
-    private static final int HINT_ARRAY_shape = 5;
+    private static final int HINT_ARRAY_shape = 6;
     
     public static SixModelObject p6init(ThreadContext tc) {
         GlobalExt gcx = key.getGC(tc);

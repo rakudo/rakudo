@@ -108,51 +108,45 @@ my class Hash {
     proto method classify(|) { * }
     multi method classify( &test, *@list ) {
         fail 'Cannot .classify an infinite list' if @list.infinite;
-        for @list {
-            self{test $_}.push: $_;
-        }
+        nqp::push( nqp::p6listitems(nqp::decont(self{test $_} //= [])), $_ )
+          for @list;
         self;
     }
     multi method classify( %test, *@list ) {
         fail 'Cannot .classify an infinite list' if @list.infinite;
-        for @list {
-            self{ %test{$_} }.push: $_;
-        }
+        nqp::push( nqp::p6listitems(nqp::decont(self{%test{$_}} //= [])), $_ )
+          for @list;
         self;
     }
     multi method classify( @test, *@list ) {
         fail 'Cannot .classify an infinite list' if @list.infinite;
-        for @list {
-            self{ @test[$_] }.push: $_;
-        }
+        nqp::push( nqp::p6listitems(nqp::decont(self{@test[$_]} //= [])), $_ )
+          for @list;
         self;
     }
 
     proto method categorize(|) { * }
     multi method categorize( &test, *@list ) {
         fail 'Cannot .categorize an infinite list' if @list.infinite;
-        for @list {
-            for test($_) -> $k {
-                self{$k}.push: $_;
-            }
+        for @list -> $l {
+            nqp::push( nqp::p6listitems(nqp::decont(self{$_} //= [])), $l )
+              for test($l);
         }
         self;
     }
     multi method categorize( %test, *@list ) {
         fail 'Cannot .categorize an infinite list' if @list.infinite;
-        for @list {
-            for %test{$_} -> $k {
-                self{$k}.push: $_;
-            }
+        for @list -> $l {
+            nqp::push( nqp::p6listitems(nqp::decont(self{$_} //= [])), $l )
+              for %test{$l};
         }
         self;
     }
     multi method categorize( @test, *@list ) {
         fail 'Cannot .categorize an infinite list' if @list.infinite;
-        for @list {
-            for @test[$_] -> $k {
-                self{$k}.push: $_;
-            }
+        for @list -> $l {
+            nqp::push( nqp::p6listitems(nqp::decont(self{$_} //= [])), $l )
+              for @test[$l];
         }
         self;
     }

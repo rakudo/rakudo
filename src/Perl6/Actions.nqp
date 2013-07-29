@@ -186,23 +186,18 @@ class Perl6::Actions is HLL::Actions does STDActions {
             if $shape {
                 my $shape_ast := $shape[0].ast;
                 if +@($shape_ast) == 1 {
-                    my $map_ast := $shape_ast[0].pop;
-                    if +@($map_ast) > 1 &&
-                            $map_ast[1].isa(QAST::Node) &&
-                            $map_ast[1].has_compile_time_value &&
-                            $map_ast[1].compile_time_value eq 'map' &&
-                            $map_ast[2][0][0].isa(QAST::Node) &&
-                            $map_ast[2][0][0].has_compile_time_value {
-                        my $comp_val := $map_ast[2][0][0].compile_time_value;
-                        if $comp_val.isa($*W.find_symbol(['Block'])) ||
-                                $comp_val.isa($*W.find_symbol(['WhateverCode'])) {
-                            %info<container_index_map> := $map_ast[2];
+                    my $sast_size := +@($shape_ast[0]);
+                    if $sast_size > 1 {
+                        my $map_ast := $shape_ast[0][$sast_size - 1];
+                        if nqp::istype($map_ast[1], QAST::Node) &&
+                                $map_ast[1].has_compile_time_value &&
+                                $map_ast[1].compile_time_value eq 'map' {
+                            %info<container_index_map> := $shape_ast[0].pop[2];
+                            $shape_ast[0] := $shape_ast[0][0] if +@($shape_ast[0]) == 1;
                         }
-                    }
-                    if nqp::existskey(%info, 'container_index_map') {
-                        $shape_ast[0] := $shape_ast[0][0] if +@($shape_ast[0]) == 1;
-                    } else {
-                        $shape_ast[0].push($map_ast);
+                    } elsif $sast_size == 0 {
+                        $*W.throw($/, 'X::Comp::AdHoc',
+                            payload => 'empty shape definition');
                     }
                 } else {
                     $*W.throw($/, 'X::Comp::NYI',

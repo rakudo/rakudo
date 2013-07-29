@@ -183,9 +183,10 @@ my class List does Positional {
 
     multi method push(List:D: *@values) {
         fail 'Cannot .push an infinite list' if @values.infinite;
-        my $pos = self.gimme(*);
+        my $elems = self.gimme(*);
         fail 'Cannot .push to an infinite list' if $!nextiter.defined;
-        self.STORE_AT_POS($pos++, @values.shift) while @values.gimme(1);
+        nqp::bindattr( self, List, '$!items', nqp::list() ) if $elems == 0;
+        nqp::push( $!items, @values.shift ) while @values.gimme(1);
         self;
     }
 
@@ -369,10 +370,6 @@ my class List does Positional {
                     nqp::elems($!items), 0);
         nqp::bindattr(self, List, '$!nextiter', nextiter);
         parcel
-    }
-
-    method STORE_AT_POS(Int \pos, Mu \v) is rw {
-        nqp::bindpos($!items, nqp::unbox_i(pos), v)
     }
 
     method FLATTENABLE_LIST() { self.gimme(*); $!items }

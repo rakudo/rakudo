@@ -89,11 +89,6 @@ class Array {
         nqp::findmethod(List, 'REIFY')(self, parcel, nextiter)
     }
 
-    method STORE_AT_POS(Int \pos, Mu $v is copy) is rw {
-        nqp::bindpos(nqp::getattr(self, List, '$!items'),
-            nqp::unbox_i(pos), $v)
-    }
-
     method STORE(|) {
         # get arguments, shift off invocant
         my $args := nqp::p6argvmarray();

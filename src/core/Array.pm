@@ -88,16 +88,11 @@ class Array {
     method shape() { $!shape }
 
     # FIXME: this should probably be private
-    proto method map_index(|) { * }
-    multi method map_index(Int $pos --> int) {
+    method map_index($pos --> int) {
         return nqp::unbox_i(nqp::decont($!index_map)($pos).floor.Int)
             if nqp::istype($!index_map, Code);
+        return nqp::unbox_i($!index_map) if nqp::istype($!index_map, Any);
         nqp::unbox_i($pos)
-    }
-    multi method map_index(int $pos --> int) {
-        return nqp::unbox_i(nqp::decont($!index_map)(nqp::p6box_i($pos)).floor.Int)
-            if nqp::istype($!index_map, Code);
-        $pos
     }
 
     method pop() is parcel {

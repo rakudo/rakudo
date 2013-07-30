@@ -478,6 +478,12 @@ my class List does Positional {
         self.gimme(*, :sink) if self.defined;
         Nil;
     }
+
+    # this is a remnant of a previous implementation of .push(), which
+    # apparently is used by LoL.  Please remove when no longer necessary.
+    method STORE_AT_POS(Int \pos, Mu \v) is rw {
+        nqp::bindpos($!items, nqp::unbox_i(pos), v)
+    }
 }
 
 sub eager(|) {

@@ -1608,7 +1608,9 @@ BEGIN {
     Hash.HOW.add_attribute(Hash, BOOTSTRAPATTR.new(:name<$!descriptor>, :type(Mu), :package(Hash)));
     Hash.HOW.compose_repr(Hash);
 
-    # class Capture {
+    # class Capture is Any {
+    #     has $!list;
+    #     has $!hash;
     #     ...
     # }
     Capture.HOW.add_parent(Capture, Any);
@@ -1617,9 +1619,8 @@ BEGIN {
     Capture.HOW.compose_repr(Capture);
     
     # class Junction is Mu {
-    #     has $!items;
-    #     has $!flattens;
-    #     has $!nextiter;
+    #     has $!storage;
+    #     has $!type;
     #     ...
     # }
     Junction.HOW.add_parent(Junction, Mu);
@@ -1637,7 +1638,7 @@ BEGIN {
     Bool.HOW.publish_boolification_spec(Bool);
     Bool.HOW.compose_repr(Bool);
 
-    # class ObjAt {
+    # class ObjAt is Any {
     #     has str $!value;
     # }
     ObjAt.HOW.add_attribute(ObjAt, BOOTSTRAPATTR.new(:name<$!value>, :type(str), :box_target(1), :package(ObjAt)));
@@ -1654,6 +1655,8 @@ BEGIN {
     ForeignCode.HOW.compose_invocation(ForeignCode);
 
     # Set up Stash type, which is really just a hash.
+    # class Stash is Hash {
+    # }
     Stash.HOW.add_parent(Stash, Hash);
     Stash.HOW.compose_repr(Stash);
 

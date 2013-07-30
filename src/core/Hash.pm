@@ -185,25 +185,91 @@ my class Hash {
     proto method categorize(|) { * }
     multi method categorize( &test, *@list ) {
         fail 'Cannot .categorize an infinite list' if @list.infinite;
-        for @list -> $l {
-            nqp::push( nqp::p6listitems(nqp::decont(self{$_} //= [])), $l )
-              for test($l);
+        if @list {
+
+            # multi-level categorize
+            if test(@list[0])[0] ~~ List {
+                for @list -> $l {
+                    for test($l) -> $k {
+                        my @keys = @($k);
+                        my $last := @keys.pop;
+                        my $hash  = self;
+                        $hash = $hash{$_} //= self.new for @keys;
+                        nqp::push(
+                          nqp::p6listitems(
+                            nqp::decont($hash{$last} //= [])), $l );
+                    }
+                }
+            }
+
+            # just a simple categorize
+            else {
+                for @list -> $l {
+                    nqp::push(
+                      nqp::p6listitems(nqp::decont(self{$_} //= [])), $l )
+                      for test($l);
+                }
+            }
         }
         self;
     }
     multi method categorize( %test, *@list ) {
         fail 'Cannot .categorize an infinite list' if @list.infinite;
-        for @list -> $l {
-            nqp::push( nqp::p6listitems(nqp::decont(self{$_} //= [])), $l )
-              for %test{$l};
+        if @list {
+
+            # multi-level categorize
+            if %test{@list[0]}[0] ~~ List {
+                for @list -> $l {
+                    for %test{$l} -> $k {
+                        my @keys = @($k);
+                        my $last := @keys.pop;
+                        my $hash  = self;
+                        $hash = $hash{$_} //= self.new for @keys;
+                        nqp::push(
+                          nqp::p6listitems(
+                            nqp::decont($hash{$last} //= [])), $l );
+                    }
+                }
+            }
+
+            # just a simple categorize
+            else {
+                for @list -> $l {
+                    nqp::push(
+                      nqp::p6listitems(nqp::decont(self{$_} //= [])), $l )
+                      for %test{$l};
+                }
+            }
         }
         self;
     }
     multi method categorize( @test, *@list ) {
         fail 'Cannot .categorize an infinite list' if @list.infinite;
-        for @list -> $l {
-            nqp::push( nqp::p6listitems(nqp::decont(self{$_} //= [])), $l )
-              for @test[$l];
+        if @list {
+
+            # multi-level categorize
+            if @test[@list[0]][0] ~~ List {
+                for @list -> $l {
+                    for @test[$l] -> $k {
+                        my @keys = @($k);
+                        my $last := @keys.pop;
+                        my $hash  = self;
+                        $hash = $hash{$_} //= self.new for @keys;
+                        nqp::push(
+                          nqp::p6listitems(
+                            nqp::decont($hash{$last} //= [])), $l );
+                    }
+                }
+            }
+
+            # just a simple categorize
+            else {
+                for @list -> $l {
+                    nqp::push(
+                      nqp::p6listitems(nqp::decont(self{$_} //= [])), $l )
+                      for @test[$l];
+                }
+            }
         }
         self;
     }

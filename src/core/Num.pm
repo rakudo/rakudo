@@ -1,6 +1,9 @@
 my class X::Numeric::DivideByZero { ... };
 
-my class Num does Real {
+my class Num does Real { # declared in BOOTSTRAP
+    # class Num is Cool {
+    #     has num $!value is box_target;
+
     multi method WHICH(Num:D:) {
         nqp::box_s(
             nqp::concat(

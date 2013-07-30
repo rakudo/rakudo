@@ -36,7 +36,10 @@ sub NORMALIZE_ENCODING(Str:D $s) {
     %map{$s} // %map{lc $s} // lc $s;
 }
 
-my class Str does Stringy {
+my class Str does Stringy { # declared in BOOTSTRAP
+    # class Str is Cool {
+    #     has str $!value is box_target;
+
     multi method WHICH(Str:D:) {
         nqp::box_s(
             nqp::concat(

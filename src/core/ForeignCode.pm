@@ -1,6 +1,10 @@
 # Takes a foreign code object and tries to make it feel somewhat like a Perl
 # 6 one. Note that it doesn't have signature information we can know about.
-my class ForeignCode does Callable {
+
+my class ForeignCode does Callable { # declared in BOOTSTRAP
+    # class ForeignCode {
+    #     has $!do;                # Code object we delegate to
+
     method arity() { self.signature.arity }
     
     method count() { self.signature.count }

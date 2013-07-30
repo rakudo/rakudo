@@ -1,7 +1,8 @@
 my class X::Item { ... };
 
-class Array {
-    # Has attributes and parent List declared in BOOTSTRAP.    
+class Array { # declared in BOOTSTRAP
+    # class Array is List {
+    #     has $!descriptor;
 
     method new(|) { 
         my Mu $args := nqp::p6argvmarray();

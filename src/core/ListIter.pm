@@ -1,7 +1,7 @@
 my class List { ... }
 
-my class ListIter {
-    # Attributes defined in BOOTSTRAP.pm:
+my class ListIter { # declared in BOOTSTRAP
+    # class ListIter is Iterator {
     #   has $!reified;         # return value for already-reified iterator
     #   has $!nextiter;        # next iterator in sequence, if any
     #   has Mu $!rest;         # VM's array of elements remaining to be reified

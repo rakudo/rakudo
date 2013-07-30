@@ -1,4 +1,7 @@
-my class Bool {
+my class Bool { # declared in BOOTSTRAP
+    # class Bool is Cool {
+    #     has int $!value;
+
     multi method Bool(Bool:D:)    { self }
     multi method Numeric(Bool:D:) { self ?? 1 !! 0 }
     multi method Str(Bool:D:)     { self ?? 'True' !! 'False' }

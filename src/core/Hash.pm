@@ -1,7 +1,8 @@
 my class X::Hash::Store::OddNumber { ... }
 
-my class Hash {
-    # Has attributes and parent EnumMap declared in BOOTSTRAP
+my class Hash { # declared in BOOTSTRAP
+    # my class Hash is EnumMap {
+    #     has $!descriptor;
 
     method new(*@args) { 
         my %h := nqp::create(self);

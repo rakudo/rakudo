@@ -1,4 +1,6 @@
-my class Regex {
+my class Regex { # declared in BOOTSTRAP
+    # class Regex is Method { ... }
+
     multi method ACCEPTS(Regex:D \SELF: Mu \topic) {
         my $dollar_slash := nqp::getlexrelcaller(
             nqp::ctxcaller(nqp::ctxcaller(nqp::ctx())),

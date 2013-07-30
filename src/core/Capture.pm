@@ -1,4 +1,8 @@
-my class Capture {
+my class Capture { # declared in BOOTSTRAP
+    # class Capture is Any {
+    #     has $!list;   # positional parameters
+    #     has $!hash;   # named parameters
+
     submethod BUILD(:@list, :%hash) {
         nqp::bindattr(self, Capture, '$!list',
             nqp::getattr(nqp::decont(@list.Parcel), Parcel, '$!storage')

@@ -1,6 +1,6 @@
-class LoL {
-    # declared in BOOTSTRAP:
-    #    is List;              # parent class
+class LoL { # declared in BOOTSTRAP
+    # class LoL is List {
+    #     has $!descriptor;
 
     method new(|) { 
         my Mu $args := nqp::p6argvmarray();

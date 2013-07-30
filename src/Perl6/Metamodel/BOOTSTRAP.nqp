@@ -1641,6 +1641,7 @@ BEGIN {
     # class ObjAt is Any {
     #     has str $!value;
     # }
+    ObjAt.HOW.add_parent(ObjAt, Any);
     ObjAt.HOW.add_attribute(ObjAt, BOOTSTRAPATTR.new(:name<$!value>, :type(str), :box_target(1), :package(ObjAt)));
     ObjAt.HOW.compose_repr(ObjAt);
     

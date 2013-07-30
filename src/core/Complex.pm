@@ -400,11 +400,14 @@ multi sub infix:</>(Real \a, Complex:D \b) returns Complex:D {
     Complex.new(a, 0) / b;
 }
 
-multi sub infix:<**>(Complex:D $z is copy, Int:D \n where n > 0) {
-    [*] gather for n, * div 2 ...^ 0 -> $n {
-    take $z unless $n %% 2;
+multi sub infix:<**>(Complex:D $z is copy, Int:D $n is copy where $n > 0) {
+    my $p = 1;
+    until $n == 0 {
+	$p *= $z unless $n %% 2;
+	$n div= 2;
 	$z *= $z;
     }
+    return $p;
 }
 multi sub infix:<**>(Complex:D \z, Int:D \n where n < 0) { 1/ z**(-n) }
 multi sub infix:<**>(Complex:D \a, Complex:D \b) returns Complex:D {

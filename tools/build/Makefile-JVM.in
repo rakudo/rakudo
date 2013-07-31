@@ -151,6 +151,7 @@ CORE_SOURCES = \
   src/core/Array.pm \
   src/core/Enum.pm \
   src/core/Pair.pm \
+  src/core/HashIter.pm \
   src/core/EnumMap.pm \
   src/core/Hash.pm \
   src/core/Stash.pm \

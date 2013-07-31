@@ -35,8 +35,8 @@ my class Any {
     # derived from .list
     method elems() { self.list.elems }
     method end()   { self.list.end }
-    method classify($test)   { {}.classify(   $test, self.list ) }
-    method categorize($test) { {}.categorize( $test, self.list ) }
+    method classify($test)   { {}.classify_list(   $test, self.list ) }
+    method categorize($test) { {}.categorize_list( $test, self.list ) }
     method uniq() { self.list.uniq }
     method squish() { self.list.squish }
     method pick($n = 1) { self.list.pick($n) }
@@ -806,10 +806,10 @@ proto end(|) { * }
 multi end($a) { $a.end }
 
 proto classify(|) { * }
-multi classify( $test, *@items ) { {}.classify( $test, @items ) }
+multi classify( $test, *@items ) { {}.classify_list( $test, @items ) }
 
 proto categorize(|) { * }
-multi categorize( $test, *@items ) { {}.categorize( $test, @items ) }
+multi categorize( $test, *@items ) { {}.categorize_list( $test, @items ) }
 
 proto uniq(|) { * }
 multi uniq(*@values) { @values.uniq }

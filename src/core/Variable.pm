@@ -79,15 +79,11 @@ multi trait_mod:<will>(Variable:D $v, $block, :$final! ) {
     );
 }
 multi trait_mod:<will>(Variable:D $v, $block, :$init! ) {
-    $v.throw( 'X::Comp::NYI',
-      feature => "Variable trait 'will init {...}'",
-    );
+# for some reason exceptions are caught and not rethrown
 #    $*W.add_phaser($v.slash, 'INIT', $block)  # doesn't work :-(
 }
 multi trait_mod:<will>(Variable:D $v, $block, :$end! ) {
-    $v.throw( 'X::Comp::NYI',
-      feature => "Variable trait 'will end {...}'",
-    );
+# for some reason exceptions are caught and not rethrown
 #    $*W.add_phaser($v.slash, 'END', $block)  # doesn't work :-(
 }
 multi trait_mod:<will>(Variable:D $v, $block, :$enter! ) {
@@ -118,7 +114,6 @@ multi trait_mod:<will>(Variable:D $v, $block, :$post! ) {
     $v.block.add_phaser('POST', $block)
 }
 multi trait_mod:<will>(Variable:D $v, $block, :$compose! ) {
-    $v.throw( 'X::Comp::NYI',
-      feature => "Variable trait 'will compose {...}'",
-    );
+# for some reason exceptions are caught and not rethrown
+#    $*W.add_phaser($v.slash, 'COMPOSE', $block)  # doesn't work :-(
 }

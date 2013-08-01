@@ -14,7 +14,20 @@ role STDActions {
     method trim_heredoc($doc, $stop, $origast) {
         $origast.pop();
         $origast.pop();
-        my int $indent := -nqp::chars($stop.MATCH<ws>.Str);
+
+        my str $ws := $stop.MATCH<ws>.Str;
+        my int $actualchars := nqp::chars($ws);
+        my int $indent := -$actualchars;
+
+        my int $tabstop := $*W.find_symbol(['$?TABSTOP']);
+        my int $checkidx := 0;
+        while $checkidx < $actualchars {
+            if nqp::substr($ws, $checkidx, 1) eq "\t" {
+                $indent := $indent - ($tabstop - 1);
+            }
+            $checkidx := $checkidx + 1;
+        }
+
         my $docast := $doc.MATCH.ast;
         if $docast.has_compile_time_value {
             my $dedented := nqp::unbox_s($docast.compile_time_value.indent($indent));

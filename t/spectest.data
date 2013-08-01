@@ -226,6 +226,7 @@ S04-declarations/multiple.t
 S04-declarations/my.t
 S04-declarations/our.t
 S04-declarations/state.t
+S04-declarations/will.t
 S04-exception-handlers/catch.t
 S04-exceptions/fail.t
 S04-phasers/ascending-order.t

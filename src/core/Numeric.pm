@@ -1,3 +1,6 @@
+# for our tantrums
+my class X::Numeric::DivideByZero { ... }
+
 my role Numeric {
     multi method Numeric(Numeric:D:) { self }
 
@@ -204,7 +207,10 @@ multi infix:<%>(\a, \b)    { a.Real % b.Real }
 proto infix:<%%>($a?, $b?) is pure  { * }
 multi infix:<%%>()           { fail "No zero-arg meaning for infix:<%%>" }
 multi infix:<%%>($x)         { Bool::True }
-multi infix:<%%>(\a, \b)   { a.Real % b.Real == 0 }
+multi infix:<%%>(\a, \b)   {
+    fail X::Numeric::DivideByZero.new(using => 'infix:<%%>') unless b;
+    a.Real % b.Real == 0;
+}
 
 proto infix:<lcm>($a?, $b?) is pure  { * }
 multi infix:<lcm>(Int $x = 1) { $x }

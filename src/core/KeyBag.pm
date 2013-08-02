@@ -81,4 +81,152 @@ my class KeyBag does Associative does Baggy {
         return choose() if $count == 1;
         return choose() xx $count;
     }
+
+    proto method classify_list(|) { * }
+    multi method classify_list( &test, *@list ) {
+        fail 'Cannot .classify an infinite list' if @list.infinite;
+        if @list {
+
+            # multi-level classify
+            if test(@list[0]) ~~ List {
+                for @list -> $l {
+                    my @keys  = test($l);
+                    my $last := @keys.pop;
+                    my $bag   = self;
+                    $bag = $bag{$_} //= self.new for @keys;
+                    $bag{$last}++;
+                }
+            }
+
+            # just a simple classify
+            else {
+                self{test $_}++ for @list;
+            }
+        }
+        self;
+    }
+    multi method classify_list( %test, *@list ) {
+        fail 'Cannot .classify an infinite list' if @list.infinite;
+        if @list {
+
+            # multi-level classify
+            if %test{@list[0]} ~~ List {
+                for @list -> $l {
+                    my @keys  = %test{$l};
+                    my $last := @keys.pop;
+                    my $bag   = self;
+                    $bag = $bag{$_} //= self.new for @keys;
+                    $bag{$last}++;
+                }
+            }
+
+            # just a simple classify
+            else {
+                self{%test{$_}}++ for @list;
+            }
+        }
+        self;
+    }
+    multi method classify_list( @test, *@list ) {
+        fail 'Cannot .classify an infinite list' if @list.infinite;
+        if @list {
+
+            # multi-level classify
+            if @test[@list[0]] ~~ List {
+                for @list -> $l {
+                    my @keys  = @test[$l];
+                    my $last := @keys.pop;
+                    my $bag   = self;
+                    $bag = $bag{$_} //= self.new for @keys;
+                    $bag{$last}++;
+                }
+            }
+
+            # just a simple classify
+            else {
+                self{@test[$_]}++ for @list;
+            }
+        }
+        self;
+    }
+
+    proto method categorize_list(|) { * }
+    multi method categorize_list( &test, *@list ) {
+        fail 'Cannot .categorize an infinite list' if @list.infinite;
+        if @list {
+
+            # multi-level categorize
+            if test(@list[0])[0] ~~ List {
+                for @list -> $l {
+                    for test($l) -> $k {
+                        my @keys  = @($k);
+                        my $last := @keys.pop;
+                        my $bag   = self;
+                        $bag = $bag{$_} //= self.new for @keys;
+                        $bag{$last}++;
+                    }
+                }
+            }
+
+            # just a simple categorize
+            else {
+                for @list -> $l {
+                    self{$_}++ for test($l);
+                }
+            }
+        }
+        self;
+    }
+    multi method categorize_list( %test, *@list ) {
+        fail 'Cannot .categorize an infinite list' if @list.infinite;
+        if @list {
+
+            # multi-level categorize
+            if %test{@list[0]}[0] ~~ List {
+                for @list -> $l {
+                    for %test{$l} -> $k {
+                        my @keys  = @($k);
+                        my $last := @keys.pop;
+                        my $bag   = self;
+                        $bag = $bag{$_} //= self.new for @keys;
+                        $bag{$last}++;
+                    }
+                }
+            }
+
+            # just a simple categorize
+            else {
+                for @list -> $l {
+                    self{$_}++ for %test{$l};
+                }
+            }
+        }
+        self;
+    }
+    multi method categorize_list( @test, *@list ) {
+        fail 'Cannot .categorize an infinite list' if @list.infinite;
+        if @list {
+
+            # multi-level categorize
+            if @test[@list[0]][0] ~~ List {
+                for @list -> $l {
+                    for @test[$l] -> $k {
+                        my @keys  = @($k);
+                        my $last := @keys.pop;
+                        my $bag   = self;
+                        $bag = $bag{$_} //= self.new for @keys;
+                        $bag{$last}++;
+                    }
+                }
+            }
+
+            # just a simple categorize
+            else {
+                for @list -> $l {
+                    self{$_}++ for @test[$l];
+                }
+            }
+        }
+        self;
+    }
 }

@@ -375,10 +375,6 @@ my class List does Positional { # declared in BOOTSTRAP
         $tpos >= +$tseq;
     }
 
-    method classify ($test) { {}.classify_list( $test, @.list ) }
-
-    method categorize ($test) { {}.categorize_list( $test, @.list ) }
-
     # This needs a way of taking a user-defined comparison
     # specifier, but AFAIK nothing has been spec'd yet.
     method uniq() {

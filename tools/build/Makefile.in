@@ -1,0 +1,488 @@
+# Copyright (C) 2006-2013, The Perl Foundation.
+# $Id$
+
+SHELL  = @shell@
+BINDIR = @bindir@
+EXE    = @exe@
+
+PERL          = perl
+CP            = $(PERL) -MExtUtils::Command -e cp
+MV            = $(PERL) -MExtUtils::Command -e mv
+RM_F          = $(PERL) -MExtUtils::Command -e rm_f
+RM_RF         = $(PERL) -MExtUtils::Command -e rm_rf
+MKPATH        = $(PERL) -MExtUtils::Command -e mkpath
+CHMOD         = $(PERL) -MExtUtils::Command -e chmod
+
+# locations of nqp resources
+NQP_EXE          = @nqp@
+GEN_CAT          = tools/build/gen-cat.pl $(VM)
+REQ_DLL_COPY     = @dllcopy@
+
+# rakudo directories
+PERL6_LANG_DIR = $(PERL6_LANG_DIR_PREFIX)/languages/perl6
+DOCDIR         = @prefix@/share/doc
+
+RUNNER = @runner@
+
+# files we create
+PERL6_IR      = src/gen/perl6$(IREXT)
+PERL6_OBJ     = perl6$(BCEXT)
+PERL6_ML      = src/gen/perl6-moduleloader$(IREXT)
+PERL6_ML_OBJ  = $(BLIB)/Perl6/ModuleLoader$(BCEXT)
+PERL6_CF      = src/gen/perl6-constantfolder$(IREXT)
+PERL6_CF_OBJ  = $(BLIB)/Perl6/ConstantFolder$(BCEXT)
+PERL6_W       = src/gen/perl6-symboltable$(IREXT)
+PERL6_W_OBJ   = $(BLIB)/Perl6/World$(BCEXT)
+PERL6_G       = src/gen/perl6-grammar$(IREXT)
+PERL6_G_OBJ   = $(BLIB)/Perl6/Grammar$(BCEXT)
+PERL6_OPS     = src/gen/perl6-ops$(IREXT)
+PERL6_OPS_OBJ = $(BLIB)/Perl6/Ops$(BCEXT)
+PERL6_A       = src/gen/perl6-actions$(IREXT)
+PERL6_A_OBJ   = $(BLIB)/Perl6/Actions$(BCEXT)
+PERL6_O       = src/gen/perl6-optimizer$(IREXT)
+PERL6_O_OBJ   = $(BLIB)/Perl6/Optimizer$(BCEXT)
+PERL6_P       = src/gen/perl6-pod$(IREXT)
+PERL6_P_OBJ   = $(BLIB)/Perl6/Pod$(BCEXT)
+PERL6_C       = src/gen/perl6-compiler$(IREXT)
+PERL6_C_OBJ   = $(BLIB)/Perl6/Compiler$(BCEXT)
+PERL6_M       = src/gen/perl6-metamodel$(IREXT)
+PERL6_M_OBJ   = $(BLIB)/Perl6/Metamodel$(BCEXT)
+PERL6_B       = src/gen/perl6-bootstrap$(IREXT)
+PERL6_B_OBJ   = $(BLIB)/Perl6/BOOTSTRAP$(BCEXT)
+SETTING_IR    = src/gen/CORE.setting$(IREXT)
+SETTING_OBJ   = CORE.setting$(BCEXT)
+R_SETTING_SRC = src/RESTRICTED.setting
+R_SETTING_IR  = src/gen/RESTRICTED.setting$(IREXT)
+R_SETTING_OBJ = RESTRICTED.setting$(BCEXT)
+
+METAMODEL_SOURCES = \
+  src/Perl6/Metamodel/Archetypes.nqp \
+  src/Perl6/Metamodel/Naming.nqp \
+  src/Perl6/Metamodel/Documenting.nqp \
+  src/Perl6/Metamodel/Stashing.nqp \
+  src/Perl6/Metamodel/Versioning.nqp \
+  src/Perl6/Metamodel/TypePretense.nqp \
+  src/Perl6/Metamodel/MethodDelegation.nqp \
+  src/Perl6/Metamodel/BoolificationProtocol.nqp \
+  src/Perl6/Metamodel/PackageHOW.nqp \
+  src/Perl6/Metamodel/ModuleHOW.nqp \
+  src/Perl6/Metamodel/GenericHOW.nqp \
+  src/Perl6/Metamodel/AttributeContainer.nqp \
+  src/Perl6/Metamodel/MethodContainer.nqp \
+  src/Perl6/Metamodel/PrivateMethodContainer.nqp \
+  src/Perl6/Metamodel/MultiMethodContainer.nqp \
+  src/Perl6/Metamodel/RoleContainer.nqp \
+  src/Perl6/Metamodel/MultipleInheritance.nqp \
+  src/Perl6/Metamodel/DefaultParent.nqp \
+  src/Perl6/Metamodel/BaseType.nqp \
+  src/Perl6/Metamodel/C3MRO.nqp \
+  src/Perl6/Metamodel/MROBasedMethodDispatch.nqp \
+  src/Perl6/Metamodel/MROBasedTypeChecking.nqp \
+  src/Perl6/Metamodel/Trusting.nqp \
+  src/Perl6/Metamodel/Mixins.nqp \
+  src/Perl6/Metamodel/BUILDPLAN.nqp \
+  src/Perl6/Metamodel/REPRComposeProtocol.nqp \
+  src/Perl6/Metamodel/InvocationProtocol.nqp \
+  $(VM_METAMODEL_SOURCES) \
+  src/Perl6/Metamodel/RolePunning.nqp \
+  src/Perl6/Metamodel/ArrayType.nqp \
+  src/Perl6/Metamodel/RoleToRoleApplier.nqp \
+  src/Perl6/Metamodel/ConcreteRoleHOW.nqp \
+  src/Perl6/Metamodel/CurriedRoleHOW.nqp \
+  src/Perl6/Metamodel/ParametricRoleHOW.nqp \
+  src/Perl6/Metamodel/ParametricRoleGroupHOW.nqp \
+  src/Perl6/Metamodel/RoleToClassApplier.nqp \
+  src/Perl6/Metamodel/ClassHOW.nqp \
+  src/Perl6/Metamodel/GrammarHOW.nqp \
+  src/Perl6/Metamodel/NativeHOW.nqp \
+  src/Perl6/Metamodel/SubsetHOW.nqp \
+  src/Perl6/Metamodel/EnumHOW.nqp \
+  src/Perl6/Metamodel/ContainerDescriptor.nqp \
+  src/Perl6/Metamodel/Dispatchers.nqp \
+
+BOOTSTRAP_SOURCES = \
+  src/Perl6/Metamodel/BOOTSTRAP.nqp \
+  src/Perl6/Metamodel/EXPORTHOW.nqp \
+  
+# The ordering here is important for bootstrapping reasons. In general:
+# * traits almost certainly have to come first
+# * stubs have to come after traits since they use them
+# * Attribute needs to come before anything that uses an attribute
+# We break various other circularities in Perl6::Metamodel::BOOTSTRAP.
+# Note that you only really have to worry especially about things that
+# the compiler will instantiate/call methods on while compiling the
+# setting - basically anything that feels MOP-ish.
+CORE_SOURCES = \
+  src/core/traits.pm \
+  src/core/Positional.pm \
+  src/core/Associative.pm \
+  src/core/Callable.pm \
+  src/core/natives.pm \
+  src/core/stubs.pm \
+  src/core/control.pm \
+  src/core/Mu.pm \
+  src/core/Stringy.pm \
+  src/core/Any.pm \
+  src/core/Scalar.pm \
+  src/core/Code.pm \
+  src/core/WhateverCode.pm \
+  src/core/Block.pm \
+  src/core/Attribute.pm \
+  src/core/Routine.pm \
+  src/core/Sub.pm \
+  src/core/Macro.pm \
+  src/core/Method.pm \
+  src/core/Submethod.pm \
+  src/core/Junction.pm \
+  src/core/Cool.pm \
+  src/core/Enumeration.pm \
+  src/core/Whatever.pm \
+  src/core/Bool.pm \
+  src/core/Numeric.pm \
+  src/core/Real.pm \
+  src/core/Int.pm \
+  src/core/Order.pm \
+  src/core/UInt64.pm \
+  src/core/Num.pm \
+  src/core/Buf.pm \
+  src/core/Str.pm \
+  src/core/Capture.pm \
+  src/core/Parcel.pm \
+  src/core/Iterable.pm \
+  src/core/Iterator.pm \
+  src/core/Nil.pm \
+  src/core/Range.pm \
+  src/core/ListIter.pm \
+  src/core/MapIter.pm \
+  src/core/GatherIter.pm \
+  src/core/List.pm \
+  src/core/LoL.pm \
+  src/core/Array.pm \
+  src/core/Enum.pm \
+  src/core/Pair.pm \
+  src/core/EnumMap.pm \
+  src/core/Hash.pm \
+  src/core/Stash.pm \
+  src/core/PseudoStash.pm \
+  src/core/Parameter.pm \
+  src/core/Signature.pm \
+  src/core/Rational.pm \
+  src/core/Rat.pm \
+  src/core/Complex.pm \
+  src/core/Backtrace.pm \
+  src/core/Exception.pm \
+  src/core/Failure.pm \
+  src/core/Match.pm \
+  src/core/Cursor.pm \
+  src/core/Grammar.pm \
+  src/core/Regex.pm \
+  src/core/IO/Spec/Unix.pm \
+  src/core/IO/Spec/Win32.pm \
+  src/core/IO/Spec/Cygwin.pm \
+  src/core/IO/Spec/QNX.pm \
+  src/core/IO/Spec.pm \
+  src/core/IO.pm \
+  src/core/IO/ArgFiles.pm \
+  src/core/IO/Socket.pm \
+  src/core/IO/Socket/INET.pm \
+  src/core/AST.pm \
+  src/core/CallFrame.pm \
+  src/core/Main.pm \
+  src/core/tai-utc.pm \
+  src/core/Instant.pm \
+  src/core/Duration.pm \
+  src/core/Temporal.pm \
+  src/core/EXPORTHOW.pm \
+  src/core/Pod.pm \
+  src/core/Set.pm \
+  src/core/Bag.pm \
+  src/core/ObjAt.pm \
+  src/core/Version.pm \
+  src/core/ForeignCode.pm \
+  src/core/operators.pm \
+  src/core/metaops.pm \
+  src/core/terms.pm \
+  src/vm/$(VM)/core/Threading.pm \
+  src/core/you_are_here.pm \
+
+DOCS = README CREDITS LICENSE docs/*
+
+CLEANUPS = \
+  *.manifest \
+  $(PERL6_OBJ) \
+  $(RUNNER) \
+  $(SETTING_OBJ) \
+  $(R_SETTING_OBJ) \
+  $(REQ_DLL_COPY) \
+  $(TEST_BLIB)/Test$(IREXT) \
+  $(TEST_BLIB)/lib$(IREXT) \
+  $(TEST_BLIB)/Pod/To/Text$(IREXT) \
+  rakudo_test_run.tar.gz \
+  src/gen/CORE.setting \
+  src/gen/*$(IREXT) \
+  src/gen/*$(BCEXT) \
+  src/gen/*.pm \
+  $(VM_CLEANUPS)
+
+# NOTE: eventually, we should remove HARNESS_WITH_FUDGE
+#       as the goal is that all tests must pass without fudge
+HARNESS_WITH_FUDGE = $(HARNESS) --fudge --keep-exit-code
+HARNESS = $(PERL) t/harness $(HARNESS_ARGS)
+
+STAGESTATS = @stagestats@
+
+all-general: check-versions $(RUNNER) $(SETTING_OBJ) $(R_SETTING_OBJ) $(TEST_BLIB)/lib$(IREXT) $(TEST_BLIB)/Test$(IREXT) $(TEST_BLIB)/Pod/To/Text$(IREXT)
+
+# the install target
+install-general: all
+	$(MKPATH)                                  $(DESTDIR)$(BINDIR)
+	$(MKPATH)                                  $(DESTDIR)$(PERL6_LANG_DIR)/lib/Perl6
+	$(CP) $(PERL6_ML_OBJ)                      $(DESTDIR)$(PERL6_LANG_DIR)/lib/Perl6/ModuleLoader$(BCEXT)
+	$(CP) $(PERL6_CF_OBJ)                      $(DESTDIR)$(PERL6_LANG_DIR)/lib/Perl6/ConstantFolder$(BCEXT)
+	$(CP) $(PERL6_W_OBJ)                       $(DESTDIR)$(PERL6_LANG_DIR)/lib/Perl6/World$(BCEXT)
+	$(CP) $(PERL6_G_OBJ)                       $(DESTDIR)$(PERL6_LANG_DIR)/lib/Perl6/Grammar$(BCEXT)
+	$(CP) $(PERL6_OPS_OBJ)                     $(DESTDIR)$(PERL6_LANG_DIR)/lib/Perl6/Ops$(BCEXT)
+	$(CP) $(PERL6_A_OBJ)                       $(DESTDIR)$(PERL6_LANG_DIR)/lib/Perl6/Actions$(BCEXT)
+	$(CP) $(PERL6_O_OBJ)                       $(DESTDIR)$(PERL6_LANG_DIR)/lib/Perl6/Optimizer$(BCEXT)
+	$(CP) $(PERL6_P_OBJ)                       $(DESTDIR)$(PERL6_LANG_DIR)/lib/Perl6/Pod$(BCEXT)
+	$(CP) $(PERL6_C_OBJ)                       $(DESTDIR)$(PERL6_LANG_DIR)/lib/Perl6/Compiler$(BCEXT)
+	$(CP) $(PERL6_M_OBJ)                       $(DESTDIR)$(PERL6_LANG_DIR)/lib/Perl6/Metamodel$(BCEXT)
+	$(CP) $(PERL6_B_OBJ)                       $(DESTDIR)$(PERL6_LANG_DIR)/lib/Perl6/BOOTSTRAP$(BCEXT)
+	$(MKPATH)                                  $(DESTDIR)$(PERL6_LANG_DIR)/$(RUNTIME_DIR)
+	$(CP)     $(PERL6_OBJ)                     $(DESTDIR)$(PERL6_LANG_DIR)/$(PERL6_RUNTIME_DIR)
+	$(CP)     $(SETTING_OBJ)                   $(DESTDIR)$(PERL6_LANG_DIR)/$(RUNTIME_DIR)
+	$(CP)     $(R_SETTING_OBJ)                 $(DESTDIR)$(PERL6_LANG_DIR)/$(RUNTIME_DIR)
+	$(CP)     $(LIB)/Test.pm                   $(DESTDIR)$(PERL6_LANG_DIR)/lib
+	$(CP)     $(TEST_BLIB)/Test$(IREXT)        $(DESTDIR)$(PERL6_LANG_DIR)/lib
+	$(CP)     $(LIB)/lib.pm6                   $(DESTDIR)$(PERL6_LANG_DIR)/lib
+	$(CP)     $(TEST_BLIB)/lib$(IREXT)         $(DESTDIR)$(PERL6_LANG_DIR)/lib
+	$(MKPATH)                                  $(DESTDIR)$(PERL6_LANG_DIR)/lib/Pod/To
+	$(CP)     $(LIB)/Pod/To/Text.pm            $(DESTDIR)$(PERL6_LANG_DIR)/lib/Pod/To
+	$(CP)     $(TEST_BLIB)/Pod/To/Text$(IREXT) $(DESTDIR)$(PERL6_LANG_DIR)/lib/Pod/To
+	$(MKPATH)                                  $(DESTDIR)$(DOCDIR)/rakudo
+	$(MKPATH)                                  $(DESTDIR)$(DOCDIR)/rakudo/announce
+	-$(CP)    $(DOCS)                          $(DESTDIR)$(DOCDIR)/rakudo
+	$(CP)     docs/announce/*                  $(DESTDIR)$(DOCDIR)/rakudo/announce
+
+xmas: $(RUNNER) $(SETTING_OBJ) $(R_SETTING_OBJ)
+
+##  targets for building a standalone perl6 executable.
+$(RUNNER): $(PERL6_OBJ) $(REQ_DLL_COPY)
+	$(GEN_RUNNER) $(PERL6_OBJ)
+
+# the complete compiler
+$(PERL6_OBJ): $(VM_RUNTIME_OBJ) $(PERL6_G_OBJ) $(PERL6_A_OBJ) $(PERL6_C_OBJ) $(PERL6_P_OBJ) src/main.nqp
+	$(PERL) tools/build/gen-version.pl > src/gen/main-version.nqp
+	$(PERL) $(GEN_CAT) src/main.nqp src/gen/main-version.nqp > src/gen/main.nqp
+	$(NQP_EXE) $(GEN_PERL6_IR_ARGS) --target=$(IR) --output=src/gen/perl6$(IREXT) \
+	    src/gen/main.nqp
+	$(GEN_OBJ) -o $(PERL6_OBJ) src/gen/perl6$(IREXT)
+
+$(PERL6_ML_OBJ): $(NQP_EXE) $(VM_DYNOPS) src/Perl6/ModuleLoader.nqp src/vm/$(VM)/ModuleLoaderVMConfig.nqp
+	$(PERL) $(GEN_CAT) src/vm/$(VM)/ModuleLoaderVMConfig.nqp src/Perl6/ModuleLoader.nqp > src/gen/ModuleLoader.nqp
+	$(NQP_EXE) --target=$(IR) --output=$(PERL6_ML) --encoding=utf8 \
+	    src/gen/ModuleLoader.nqp
+	$(GEN_OBJ) -o $(PERL6_ML_OBJ) $(PERL6_ML)
+
+$(PERL6_CF_OBJ): $(NQP_EXE) $(VM_DYNOPS) src/Perl6/ConstantFolder.nqp
+	$(NQP_EXE) --target=$(IR) --output=$(PERL6_CF) --encoding=utf8 \
+	    src/Perl6/ConstantFolder.nqp
+	$(GEN_OBJ) -o $(PERL6_CF_OBJ) $(PERL6_CF)
+
+$(PERL6_W_OBJ): $(NQP_EXE) $(PERL6_ML_OBJ) src/Perl6/World.nqp
+	$(NQP_EXE) $(VMLIBS) --target=$(IR) --output=$(PERL6_W) --encoding=utf8 \
+	    src/Perl6/World.nqp
+	$(GEN_OBJ) -o $(PERL6_W_OBJ) $(PERL6_W)
+    
+$(PERL6_G_OBJ): $(NQP_EXE) $(PERL6_W_OBJ) $(PERL6_A_OBJ) src/Perl6/Grammar.nqp $(PERL6_P_OBJ)
+	$(NQP_EXE) --target=$(IR) --output=$(PERL6_G) --encoding=utf8 \
+	    src/Perl6/Grammar.nqp
+	$(GEN_OBJ) -o $(PERL6_G_OBJ) $(PERL6_G)
+
+$(PERL6_OPS_OBJ): $(NQP_EXE) $(VM_DYNOPS) src/vm/$(VM)/Perl6/Ops.nqp
+	$(NQP_EXE) $(VMLIBS) --target=$(IR) --output=$(PERL6_OPS) --encoding=utf8 \
+	    src/vm/$(VM)/Perl6/Ops.nqp
+	$(GEN_OBJ) -o $(PERL6_OPS_OBJ) $(PERL6_OPS)
+
+$(PERL6_A_OBJ): $(NQP_EXE) $(VM_DYNOPS) src/Perl6/Actions.nqp $(PERL6_P_OBJ) $(PERL6_CF_OBJ) $(PERL6_OPS_OBJ)
+	$(NQP_EXE) $(VMLIBS) --target=$(IR) --output=$(PERL6_A) --encoding=utf8 \
+	    src/Perl6/Actions.nqp
+	$(GEN_OBJ) -o $(PERL6_A_OBJ) $(PERL6_A)
+
+$(PERL6_O_OBJ): $(NQP_EXE) $(VM_DYNOPS) $(PERL6_OPS_OBJ) src/Perl6/Optimizer.nqp
+	$(NQP_EXE) $(VMLIBS) --target=$(IR) --output=$(PERL6_O) --encoding=utf8 \
+	    src/Perl6/Optimizer.nqp
+	$(GEN_OBJ) -o $(PERL6_O_OBJ) $(PERL6_O)
+    
+$(PERL6_P_OBJ): $(NQP_EXE) $(VM_DYNOPS) src/Perl6/Pod.nqp
+	$(NQP_EXE) $(VMLIBS) --target=$(IR) --output=$(PERL6_P) --encoding=utf8 \
+	    src/Perl6/Pod.nqp
+	$(GEN_OBJ) -o $(PERL6_P_OBJ) $(PERL6_P)
+
+$(PERL6_C_OBJ): $(NQP_EXE) $(VM_DYNOPS) $(PERL6_O_OBJ) src/Perl6/Compiler.nqp
+	$(NQP_EXE) --target=$(IR) --output=$(PERL6_C) --encoding=utf8 \
+	    src/Perl6/Compiler.nqp
+	$(GEN_OBJ) -o $(PERL6_C_OBJ) $(PERL6_C)
+
+$(PERL6_M_OBJ): $(NQP_EXE) $(VM_DYNOPS) $(METAMODEL_SOURCES) $(PERL6_OPS_OBJ)
+	$(PERL) $(GEN_CAT) $(METAMODEL_SOURCES) > src/gen/Metamodel.nqp
+	$(NQP_EXE) --target=$(IR) --output=$(PERL6_M) --encoding=utf8 \
+	    $(VMLIBS) src/gen/Metamodel.nqp
+	$(GEN_OBJ) -o $(PERL6_M_OBJ) $(PERL6_M)
+    
+$(PERL6_B_OBJ): $(NQP_EXE) $(VM_DYNOPS) $(PERL6_M_OBJ) $(BOOTSTRAP_SOURCES)
+	$(PERL) $(GEN_CAT) $(BOOTSTRAP_SOURCES) > src/gen/BOOTSTRAP.nqp
+	$(GEN_B_IR) $(NQP_EXE) --target=$(IR) --output=$(PERL6_B) \
+	    --encoding=utf8 $(VMLIBS) src/gen/BOOTSTRAP.nqp
+	$(GEN_OBJ) -o $(PERL6_B_OBJ) $(PERL6_B)
+
+$(SETTING_OBJ): $(PERL6_B_OBJ) $(RUNNER) $(CORE_SOURCES)
+	$(PERL) $(GEN_CAT) $(CORE_SOURCES) > src/gen/CORE.setting
+	@echo "The following step can take a long time, please be patient."
+	$(RUN_PERL6) --setting=NULL --optimize=3 --target=$(IR) --stagestats --output=$(SETTING_IR) src/gen/CORE.setting
+	$(GEN_OBJ) -o $(SETTING_OBJ) $(SETTING_IR)
+
+$(R_SETTING_OBJ): $(PERL6_B_OBJ) $(RUNNER) $(SETTING_OBJ) $(R_SETTING_SRC)
+	$(RUN_PERL6) --target=$(IR) $(STAGESTATS) --output=$(R_SETTING_IR) $(R_SETTING_SRC)
+	$(GEN_OBJ) -o $(R_SETTING_OBJ) $(R_SETTING_IR)
+
+##  testing targets
+$(TEST_BLIB)/Test$(IREXT): $(LIB)/Test.pm $(RUNNER) $(SETTING_OBJ)
+	./$(RUNNER) --target=$(IR) --output=$(TEST_BLIB)/Test$(IREXT) $(LIB)/Test.pm
+
+$(TEST_BLIB)/lib$(IREXT): $(LIB)/lib.pm6 $(RUNNER) $(SETTING_OBJ)
+	./$(RUNNER) --target=$(IR) --output=$(TEST_BLIB)/lib$(IREXT) $(LIB)/lib.pm6
+
+$(TEST_BLIB)/Pod/To/Text$(IREXT): $(LIB)/Pod/To/Text.pm $(RUNNER) $(SETTING_OBJ)
+	$(MKPATH) $(TEST_BLIB)/Pod/To
+	./$(RUNNER) --target=$(IR) --output=$(TEST_BLIB)/Pod/To/Text$(IREXT) $(LIB)/Pod/To/Text.pm
+
+test    : coretest
+
+fulltest: coretest stresstest
+
+coretest: all
+	$(HARNESS) t/00-parrot t/01-sanity
+
+# Run the spectests that we know work.
+spectest_regression: spectest
+spectest: testable t/spectest.data
+	$(HARNESS_WITH_FUDGE) --tests-from-file=t/spectest.data
+
+spectest_full: testable
+	$(HARNESS_WITH_FUDGE) t/spec
+
+quicktest: testable t/spectest.data
+	$(HARNESS_WITH_FUDGE) --tests-from-file=t/spectest.data --long=0
+
+stresstest: testable t/spectest.data
+	$(HARNESS_WITH_FUDGE) --tests-from-file=t/spectest.data --stress=1
+
+spectest_checkout : t/spec
+t/spec :
+	git clone git://github.com/perl6/roast.git t/spec
+	-cd t/spec/ && git config remote.origin.pushurl git@github.com:perl6/roast.git
+
+
+spectest_update :
+	-cd t/spec && git pull
+
+rakudo_test_run.tar.gz: testable t/spectest.data
+	- $(HARNESS_WITH_FUDGE) --tests-from-file=t/spectest.data --archive rakudo_test_run.tar.gz $(VM_REVISION_ARGS)
+
+testable : all spectest_checkout spectest_update
+
+t/localtest.data:
+	$(PERL) -MExtUtils::Command -e test_f $@
+
+# Run the tests in t/localtest.data
+localtest: all spectest_checkout t/localtest.data
+	@$(HARNESS_WITH_FUDGE) --tests-from-file=t/localtest.data
+
+# Run the tests in t/localtest.data with a higher verbosity
+localtest_loud: all spectest_checkout t/localtest.data
+	@$(HARNESS_WITH_FUDGE) --tests-from-file=t/localtest.data --verbosity=1
+
+# Run many tests of your choice.
+# make sometests TESTFILES=t/foo/bar
+sometests: all
+	@$(HARNESS_WITH_FUDGE) $(TESTFILES)
+
+# Run a single test
+t/*.t t/*/*.t t/*/*/*.t: all spectest_checkout
+	@$(HARNESS_WITH_FUDGE) --verbosity=1 $@
+
+##  cleaning
+clean:
+	$(RM_RF) $(CLEANUPS)
+
+distclean: realclean
+
+realclean: clean
+	$(RM_F) Makefile
+
+testclean:
+
+
+##  miscellaneous targets
+# a listing of all targets meant to be called by users
+help:
+	@echo ""
+	@echo "Following targets are available for the user:"
+	@echo ""
+	@echo "  all:               perl6$(BCEXT)"
+	@echo "                     This is the default."
+	@echo "  $(RUNNER):         Some want a pony, others are satisfied with an executable."
+	@echo "  xmas:              Christmas is when Perl 6 is released. Alias of perl6$(EXE)."
+	@echo ""
+	@echo "Testing:"
+	@echo "  test:              Run Rakudo's sanity tests."
+	@echo "  spectest:          Run the tests of the official test suite that are expected to pass."
+	@echo "  fulltest:          Run sanity tests and spectests."
+	@echo "  spectest_full:     Run all tests of the official test suite."
+	@echo "  localtest:         Run the official tests given in t/localtest.data."
+	@echo "  spectest_checkout: Performs git checkout of official test suite."
+	@echo "  spectest_update:   Performs git update of official test suite."
+	@echo "  testable:          Create the perl6 executable, compile the Test library,"
+	@echo "                     and update official test suite."
+	@echo ""
+	@echo "Maintenance:"
+	@echo "  perlcritic:        Run Perl::Critic on all the Perl 5 code."
+	@echo ""
+	@echo "Cleaning:"
+	@echo "  clean:             Basic cleaning up."
+	@echo "  distclean:         Removes also anything built, in theory."
+	@echo "  realclean:         Removes also files generated by 'Configure.pl'."
+	@echo "  testclean:         Clean up test results."
+	@echo ""
+	@echo "Misc:"
+	@echo "  help:              Print this help message."
+	@echo ""
+
+check-versions:
+	@$(PERL) tools/build/check-versions.pl  $(NQP_EXE)
+
+config:
+	$(PERL) Configure.pl
+
+CRITIC_FILES=Configure.pl t/harness build/ tools/
+
+perlcritic:
+	perlcritic -1 --profile tools/util/perlcritic.conf $(CRITIC_FILES)
+
+manifest:
+	echo MANIFEST >MANIFEST
+	git ls-files | $(PERL) -ne '/^\./ || print' >>MANIFEST
+	cd t/spec && git clean -xdf
+	find t/spec -type f | grep -v '\.git' >>MANIFEST
+	sort -u -o MANIFEST MANIFEST
+
+release: manifest
+	[ -n "$(VERSION)" ] || ( echo "\nTry 'make release VERSION=yyyy.mm'\n\n"; exit 1 )
+	[ -d rakudo-$(VERSION) ] || ln -s . rakudo-$(VERSION)
+	$(PERL) -ne 'print "rakudo-$(VERSION)/$$_"' MANIFEST | \
+	    tar -zcv -T - -f rakudo-$(VERSION).tar.gz
+	rm rakudo-$(VERSION)
+
+# nqp::makefile <-- tells NQP::Configure to treat this file as a makefile,
+#                   performing win32 slash and makefile conversions

@@ -292,7 +292,8 @@ sub gen_nqp {
 
     if (defined $gen_parrot) {
         my ($par_want) = split(' ', slurp($PARROT_REVISION));
-        $with_parrot = gen_parrot($par_want, %$options, prefix => $prefix);
+        $options->{'prefix'} = $prefix;
+        $with_parrot = gen_parrot($par_want, $options);
         %config = read_parrot_config($with_parrot);
     }
     elsif ($vm == PARROT && !%config) {
@@ -329,14 +330,14 @@ sub gen_nqp {
 
 sub gen_parrot {
     my $par_want = shift;
-    my %options  = @_;
+    my $options  = shift;
 
-    my $prefix     = $options{'prefix'} || cwd()."/install";
-    my $gen_parrot = $options{'gen-parrot'};
-    my @opts       = @{ $options{'parrot-option'} || ["--optimize"] };
+    my $prefix     = $options->{'prefix'} || cwd()."/install";
+    my $gen_parrot = $options->{'gen-parrot'};
+    my @opts       = @{ $options->{'parrot-option'} || ["--optimize"] };
     my $startdir   = cwd();
 
-    my $par_exe  = "$options{'prefix'}/bin/parrot$exe";
+    my $par_exe  = "$options->{'prefix'}/bin/parrot$exe";
     my %config   = read_parrot_config($par_exe);
 
     my $par_have = $config{'parrot::git_describe'} || '';
@@ -374,7 +375,7 @@ sub gen_parrot {
     %config = read_parrot_config('config_lib.pir');
     my $make = $config{'parrot::make'} or
         die "Unable to determine value for 'make' from parrot config\n";
-    system_or_die($make, 'install-dev', @{$options{'parrot-make-option'}});
+    system_or_die($make, 'install-dev', @{$options->{'parrot-make-option'}});
     chdir($startdir);
 
     print "Parrot installed.\n";

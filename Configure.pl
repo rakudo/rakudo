@@ -144,15 +144,25 @@ MAIN: {
         $config{'cpsep'} = $^O eq 'MSWin32' ? ';' : ':';
         $config{'runner'} = $^O eq 'MSWin32' ? 'perl6.bat' : 'perl6';
         $config{'make'} = $^O eq 'MSWin32' ? 'nmake' : 'make';
-    } elsif ($vm == PARROT and $^O eq 'MSWin32' or $^O eq 'cygwin') {
-        $config{'dll'} = '$(PARROT_BIN_DIR)/$(PARROT_LIB_SHARED)';
-        $config{'dllcopy'} = '$(PARROT_LIB_SHARED)';
-        $config{'make_dllcopy'} =
-            '$(PARROT_DLL_COPY): $(PARROT_DLL)'."\n\t".'$(CP) $(PARROT_DLL) .';
+    } elsif ($vm == PARROT) {
+        if ($^O eq 'MSWin32' or $^O eq 'cygwin') {
+            $config{'dll'} = '$(BINDIR)/$(PARROT_LIB_SHARED)';
+            $config{'dllcopy'} = '$(PARROT_LIB_SHARED)';
+            $config{'make_dllcopy'} =
+                '$(REQ_DLL_COPY): $(PARROT_DLL)'."\n\t".'$(CP) $(PARROT_DLL) .';
+        }
+        $config{'nqp'} = '$(BINDIR)/nqp$(EXE)';
+        $config{'runner'} = $^O eq 'MSWin32' ? 'perl6.exe' : 'perl6';
     }
 
     my $make = fill_template_text('@make@', %config);
-    fill_template_file(sprintf('tools/build/Makefile-%s.in', $vm_name), 'Makefile', %config);
+
+    fill_template_file('tools/build/Makefile.in', 'Makefile-Common', %config);
+    my $contents = fill_template_text(slurp(sprintf('tools/build/Makefile-%s.in', $vm_name)), %config);
+    $contents = "all: all-general\n" . $contents . "\ninclude Makefile-Common";
+    open(my $fh, '>', 'Makefile');
+    print $fh $contents;
+    close $fh;
 
     unless ($options{'no-clean'}) {
         no warnings;

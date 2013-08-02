@@ -1,378 +1,51 @@
+GEN_OBJ = $(PERL) tools/build/mv.pl
+GEN_PERL6_IR_ARGS = --javaclass=perl6
+GEN_RUNNER = $(PERL) tools/build/create-jvm-runner.pl dev . $(NQP_PREFIX) $(NQP_JARS)
+GEN_B_IR = $(PERL) tools/build/nqp-jvm-rr.pl
+VMLIBS =
+VM = jvm
+IR = jar
+IREXT = .$(IR)
+BCEXT = $(IREXT)
+LIB = lib
+TEST_BLIB = $(BLIB)
+BLIB = blib
+RUNTIME_DIR = runtime
+PERL6_LANG_DIR_PREFIX = $(PREFIX)
+PERL6_RUNTIME_DIR = $(RUNTIME_DIR)
+RUN_PERL6 = $(JAVA) -Xms500m -Xmx2g -Xbootclasspath/a:.@cpsep@$(NQP_JARS)@cpsep@rakudo-runtime.jar@cpsep@perl6.jar -cp $(NQP_PREFIX) perl6
+HARNESS_ARGS = --jvm
+VM_REVISION_ARGS =
+VM_RUNTIME_OBJ = rakudo-runtime.jar
+VM_DYNOPS =
+VM_METAMODEL_SOURCES =
+VM_CLEANUPS = \
+  $(BLIB)/Perl6/*.jar \
+  bin \
+  $(VM_RUNTIME_OBJ)
+
 JAVA    = java
 JAVAC   = javac
 JAR     = jar
-PERL    = perl
-PROVE   = prove
-NQP     = @nqp@
-GEN_CAT = tools/build/gen-cat.pl jvm
 
 PREFIX = @prefix@
 NQP_PREFIX = @nqp_prefix@
 
-PERL6_LANG_DIR = $(PREFIX)/languages/perl6
-
-MKPATH = $(PERL) -MExtUtils::Command -e mkpath
-CP     = $(PERL) -MExtUtils::Command -e cp
-CHMOD  = $(PERL) -MExtUtils::Command -e chmod
-RM_F   = $(PERL) -MExtUtils::Command -e rm_f
-RM_RF   = $(PERL) -MExtUtils::Command -e rm_rf
-
 NQP_JARS = $(NQP_PREFIX)/nqp-runtime.jar@cpsep@$(NQP_PREFIX)/asm-4.1.jar@cpsep@$(NQP_PREFIX)/asm-tree-4.1.jar@cpsep@$(NQP_PREFIX)/jline-1.0.jar
-
-RUN_PERL6 = $(JAVA) -Xms500m -Xmx2g -Xbootclasspath/a:.@cpsep@$(NQP_JARS)@cpsep@rakudo-runtime.jar@cpsep@perl6.jar -cp $(NQP_PREFIX) perl6
 
 RUNTIME_JAVAS = src/vm/jvm/runtime/org/perl6/rakudo/*.java
 
-RUNTIME_JAR = rakudo-runtime.jar
-
-RUNNER = @runner@
-
-# files we create
-PERL6_JAR     = perl6.jar
-PERL6_ML_JAR  = blib/Perl6/ModuleLoader.jar
-PERL6_CF_JAR  = blib/Perl6/ConstantFolder.jar
-PERL6_W_JAR   = blib/Perl6/World.jar
-PERL6_G_JAR   = blib/Perl6/Grammar.jar
-PERL6_OPS_JAR = blib/Perl6/Ops.jar
-PERL6_A_JAR   = blib/Perl6/Actions.jar
-PERL6_O_JAR   = blib/Perl6/Optimizer.jar
-PERL6_P_JAR   = blib/Perl6/Pod.jar
-PERL6_C_JAR   = blib/Perl6/Compiler.jar
-PERL6_M_JAR   = blib/Perl6/Metamodel.jar
-PERL6_B_JAR   = blib/Perl6/BOOTSTRAP.jar
-SETTING_JAR   = CORE.setting.jar
-
-PERL6_LANG_JARS = $(PERL6_ML_JAR) $(PERL6_CF_JAR) $(PERL6_W_JAR) $(PERL6_G_JAR) $(PERL6_OPS_JAR) $(PERL6_A_JAR) \
-  $(PERL6_O_JAR) $(PERL6_P_JAR) $(PERL6_C_JAR) $(PERL6_M_JAR) $(PERL6_B_JAR)
-
-METAMODEL_SOURCES = \
-  src/Perl6/Metamodel/Archetypes.nqp \
-  src/Perl6/Metamodel/Naming.nqp \
-  src/Perl6/Metamodel/Documenting.nqp \
-  src/Perl6/Metamodel/Stashing.nqp \
-  src/Perl6/Metamodel/Versioning.nqp \
-  src/Perl6/Metamodel/TypePretense.nqp \
-  src/Perl6/Metamodel/MethodDelegation.nqp \
-  src/Perl6/Metamodel/BoolificationProtocol.nqp \
-  src/Perl6/Metamodel/PackageHOW.nqp \
-  src/Perl6/Metamodel/ModuleHOW.nqp \
-  src/Perl6/Metamodel/GenericHOW.nqp \
-  src/Perl6/Metamodel/AttributeContainer.nqp \
-  src/Perl6/Metamodel/MethodContainer.nqp \
-  src/Perl6/Metamodel/PrivateMethodContainer.nqp \
-  src/Perl6/Metamodel/MultiMethodContainer.nqp \
-  src/Perl6/Metamodel/RoleContainer.nqp \
-  src/Perl6/Metamodel/MultipleInheritance.nqp \
-  src/Perl6/Metamodel/DefaultParent.nqp \
-  src/Perl6/Metamodel/BaseType.nqp \
-  src/Perl6/Metamodel/C3MRO.nqp \
-  src/Perl6/Metamodel/MROBasedMethodDispatch.nqp \
-  src/Perl6/Metamodel/MROBasedTypeChecking.nqp \
-  src/Perl6/Metamodel/Trusting.nqp \
-  src/Perl6/Metamodel/Mixins.nqp \
-  src/Perl6/Metamodel/BUILDPLAN.nqp \
-  src/Perl6/Metamodel/REPRComposeProtocol.nqp \
-  src/Perl6/Metamodel/InvocationProtocol.nqp \
-  src/Perl6/Metamodel/RolePunning.nqp \
-  src/Perl6/Metamodel/ArrayType.nqp \
-  src/Perl6/Metamodel/RoleToRoleApplier.nqp \
-  src/Perl6/Metamodel/ConcreteRoleHOW.nqp \
-  src/Perl6/Metamodel/CurriedRoleHOW.nqp \
-  src/Perl6/Metamodel/ParametricRoleHOW.nqp \
-  src/Perl6/Metamodel/ParametricRoleGroupHOW.nqp \
-  src/Perl6/Metamodel/RoleToClassApplier.nqp \
-  src/Perl6/Metamodel/ClassHOW.nqp \
-  src/Perl6/Metamodel/GrammarHOW.nqp \
-  src/Perl6/Metamodel/NativeHOW.nqp \
-  src/Perl6/Metamodel/SubsetHOW.nqp \
-  src/Perl6/Metamodel/EnumHOW.nqp \
-  src/Perl6/Metamodel/ContainerDescriptor.nqp \
-  src/Perl6/Metamodel/Dispatchers.nqp \
-
-BOOTSTRAP_SOURCES = \
-  src/Perl6/Metamodel/BOOTSTRAP.nqp \
-  src/Perl6/Metamodel/EXPORTHOW.nqp \
-
-# The ordering here is important for bootstrapping reasons. In general:
-# * traits almost certainly have to come first
-# * stubs have to come after traits since they use them
-# * Attribute needs to come before anything that uses an attribute
-# We break various other circularities in Perl6::Metamodel::BOOTSTRAP.
-# Note that you only really have to worry especially about things that
-# the compiler will instantiate/call methods on while compiling the
-# setting - basically anything that feels MOP-ish.
-CORE_SOURCES = \
-  src/core/traits.pm \
-  src/core/Positional.pm \
-  src/core/Associative.pm \
-  src/core/Callable.pm \
-  src/core/natives.pm \
-  src/core/stubs.pm \
-  src/core/control.pm \
-  src/core/Mu.pm \
-  src/core/Stringy.pm \
-  src/core/Any.pm \
-  src/core/Scalar.pm \
-  src/core/Code.pm \
-  src/core/WhateverCode.pm \
-  src/core/Block.pm \
-  src/core/Attribute.pm \
-  src/core/Routine.pm \
-  src/core/Sub.pm \
-  src/core/Macro.pm \
-  src/core/Method.pm \
-  src/core/Submethod.pm \
-  src/core/Junction.pm \
-  src/core/Cool.pm \
-  src/core/Enumeration.pm \
-  src/core/Whatever.pm \
-  src/core/Bool.pm \
-  src/core/Numeric.pm \
-  src/core/Real.pm \
-  src/core/Int.pm \
-  src/core/Order.pm \
-  src/core/UInt64.pm \
-  src/core/Num.pm \
-  src/core/Buf.pm \
-  src/core/Str.pm \
-  src/core/Capture.pm \
-  src/core/Parcel.pm \
-  src/core/Iterable.pm \
-  src/core/Iterator.pm \
-  src/core/Nil.pm \
-  src/core/Range.pm \
-  src/core/ListIter.pm \
-  src/core/MapIter.pm \
-  src/core/GatherIter.pm \
-  src/core/List.pm \
-  src/core/LoL.pm \
-  src/core/Array.pm \
-  src/core/Enum.pm \
-  src/core/Pair.pm \
-  src/core/EnumMap.pm \
-  src/core/Hash.pm \
-  src/core/Stash.pm \
-  src/core/PseudoStash.pm \
-  src/core/Parameter.pm \
-  src/core/Signature.pm \
-  src/core/Rational.pm \
-  src/core/Rat.pm \
-  src/core/Complex.pm \
-  src/core/Backtrace.pm \
-  src/core/Exception.pm \
-  src/core/Failure.pm \
-  src/core/Match.pm \
-  src/core/Cursor.pm \
-  src/core/Grammar.pm \
-  src/core/Regex.pm \
-  src/core/IO/Spec/Unix.pm \
-  src/core/IO/Spec/Win32.pm \
-  src/core/IO/Spec/Cygwin.pm \
-  src/core/IO/Spec.pm \
-  src/core/IO.pm \
-  src/core/IO/ArgFiles.pm \
-  src/core/IO/Socket.pm \
-  src/core/IO/Socket/INET.pm \
-  src/core/AST.pm \
-  src/core/CallFrame.pm \
-  src/core/Main.pm \
-  src/core/tai-utc.pm \
-  src/core/Instant.pm \
-  src/core/Duration.pm \
-  src/core/Temporal.pm \
-  src/core/EXPORTHOW.pm \
-  src/core/Pod.pm \
-  src/core/Set.pm \
-  src/core/Bag.pm \
-  src/core/ObjAt.pm \
-  src/core/Version.pm \
-  src/core/ForeignCode.pm \
-  src/core/operators.pm \
-  src/core/metaops.pm \
-  src/core/terms.pm \
-  src/vm/jvm/core/Threading.pm \
-  src/core/you_are_here.pm \
-
-CLEANUPS = \
-  *.manifest \
-  blib/Perl6/*.jar \
-  $(SETTING_JAR) \
-  $(PERL6_JAR) \
-  lib/Test.jar \
-  lib/lib.jar \
-  lib/Pod/To/Text.jar \
-  blib/Test.jar \
-  blib/lib.jar \
-  blib/Pod/To/Text.jar \
-  rakudo_test_run.tar.gz \
-  src/gen/CORE.setting \
-  src/gen/*.jar \
-  src/gen/*.jar \
-  src/gen/*.pm \
-  $(RUNTIME_JAR) \
-  $(RUNNER)
-
-HARNESS_WITH_FUDGE = $(PERL) t/harness --fudge --keep-exit-code --jvm
-HARNESS = $(PERL) t/harness --jvm
-
-all: $(PERL6_JAR) $(SETTING_JAR) $(RUNNER) blib/Test.jar blib/lib.jar blib/Pod/To/Text.jar
-
-$(RUNTIME_JAR): $(RUNTIME_JAVAS)
-	$(PERL) -MExtUtils::Command -e mkpath bin
+$(VM_RUNTIME_OBJ): $(RUNTIME_JAVAS)
+	$(MKPATH) bin
 	$(JAVAC) -source 1.7 -cp $(NQP_JARS) -g -d bin $(RUNTIME_JAVAS)
-	$(JAR) cf0 rakudo-runtime.jar -C bin/ .
-
-$(PERL6_ML_JAR): src/Perl6/ModuleLoader.nqp src/vm/jvm/ModuleLoaderVMConfig.nqp
-	$(PERL) $(GEN_CAT) src/vm/jvm/ModuleLoaderVMConfig.nqp src/Perl6/ModuleLoader.nqp > src/gen/ModuleLoader.nqp
-	$(NQP) --target=jar --output=$(PERL6_ML_JAR) --encoding=utf8 \
-	    src/gen/ModuleLoader.nqp
-
-$(PERL6_CF_JAR): src/Perl6/ConstantFolder.nqp
-	$(NQP) --target=jar --output=$(PERL6_CF_JAR) --encoding=utf8 \
-	    src/Perl6/ConstantFolder.nqp
-
-$(PERL6_W_JAR): $(PERL6_ML_JAR) src/Perl6/World.nqp
-	$(NQP) --target=jar --output=$(PERL6_W_JAR) --encoding=utf8 \
-	    src/Perl6/World.nqp
-
-$(PERL6_P_JAR): src/Perl6/Pod.nqp
-	$(NQP) --target=jar --output=$(PERL6_P_JAR) --encoding=utf8 \
-	    src/Perl6/Pod.nqp
-
-$(PERL6_OPS_JAR): src/vm/jvm/Perl6/Ops.nqp
-	$(NQP) --target=jar --output=$(PERL6_OPS_JAR) --encoding=utf8 \
-	    src/vm/jvm/Perl6/Ops.nqp
-
-$(PERL6_A_JAR): src/Perl6/Actions.nqp $(PERL6_P_JAR) $(PERL6_CF_JAR) $(PERL6_OPS_JAR)
-	$(NQP) --target=jar --output=$(PERL6_A_JAR) --encoding=utf8 \
-	    src/Perl6/Actions.nqp
-
-$(PERL6_G_JAR): src/Perl6/Grammar.nqp $(PERL6_W_JAR) $(PERL6_A_JAR) $(PERL6_P_JAR)
-	$(NQP) --target=jar --output=$(PERL6_G_JAR) --encoding=utf8 \
-	    src/Perl6/Grammar.nqp
-
-$(PERL6_O_JAR): src/Perl6/Optimizer.nqp $(PERL6_OPS_JAR)
-	$(NQP) --target=jar --output=$(PERL6_O_JAR) --encoding=utf8 \
-	    src/Perl6/Optimizer.nqp
-
-$(PERL6_C_JAR): src/Perl6/Compiler.nqp $(PERL6_O_JAR)
-	$(NQP) --target=jar --output=$(PERL6_C_JAR) --encoding=utf8 \
-	    src/Perl6/Compiler.nqp
-
-$(PERL6_JAR): src/main.nqp $(RUNTIME_JAR) $(PERL6_G_JAR) $(PERL6_A_JAR) $(PERL6_C_JAR) $(PERL6_P_JAR)
-	$(PERL) tools/build/gen-version.pl > src/gen/main-version.nqp
-	$(PERL) $(GEN_CAT) src/main.nqp src/gen/main-version.nqp > src/gen/main.nqp
-	$(NQP) --target=jar --javaclass=perl6 --output=$(PERL6_JAR) \
-	    src/gen/main.nqp
-
-$(PERL6_M_JAR): $(METAMODEL_SOURCES) $(PERL6_OPS_JAR)
-	$(PERL) $(GEN_CAT) $(METAMODEL_SOURCES) > src/gen/Metamodel.nqp
-	$(NQP) --target=jar --output=$(PERL6_M_JAR) --encoding=utf8 \
-	    src/gen/Metamodel.nqp
-
-$(PERL6_B_JAR): $(BOOTSTRAP_SOURCES) $(PERL6_M_JAR)
-	$(PERL) $(GEN_CAT) $(BOOTSTRAP_SOURCES) > src/gen/BOOTSTRAP.nqp
-	$(PERL) tools/build/nqp-jvm-rr.pl $(NQP) --target=jar \
-        --output=$(PERL6_B_JAR) --encoding=utf8 src/gen/BOOTSTRAP.nqp
-
-$(SETTING_JAR): $(PERL6_JAR) $(PERL6_B_JAR) $(CORE_SOURCES)
-	$(PERL) $(GEN_CAT) $(CORE_SOURCES) > src/gen/CORE.setting
-	@echo "The following step can take a long time, please be patient."
-	$(RUN_PERL6) --setting=NULL --optimize=3 --target=jar --stagestats --output=$(SETTING_JAR) src/gen/CORE.setting
-
-$(RUNNER):
-	$(PERL) tools/build/create-jvm-runner.pl dev . $(NQP_PREFIX) $(NQP_JARS)
-
-##  testing targets
-blib/Test.jar: lib/Test.pm $(PERL6_JAR) $(SETTING_JAR) $(RUNNER)
-	.@slash@$(RUNNER) --target=jar --output=blib/Test.jar lib/Test.pm
-
-blib/lib.jar: lib/lib.pm6 $(PERL6_JAR) $(SETTING_JAR) $(RUNNER)
-	.@slash@$(RUNNER) --target=jar --output=blib/lib.jar lib/lib.pm6
-
-blib/Pod/To/Text.jar: lib/Pod/To/Text.pm $(PERL6_JAR) $(SETTING_JAR) $(RUNNER)
-	$(MKPATH) blib/Pod/To
-	.@slash@$(RUNNER) --target=jar --output=blib/Pod/To/Text.jar lib/Pod/To/Text.pm
-
-test    : coretest
-
-fulltest: coretest stresstest
-
-coretest: all
-	$(HARNESS) t/00-parrot t/01-sanity
-
-# Run the spectests that we know work.
-spectest_regression: spectest
-spectest: testable t/spectest.data
-	$(HARNESS_WITH_FUDGE) --tests-from-file=t/spectest.data
-
-spectest_full: testable
-	$(HARNESS_WITH_FUDGE) t/spec
-
-quicktest: testable t/spectest.data
-	$(HARNESS_WITH_FUDGE) --tests-from-file=t/spectest.data --long=0
-
-stresstest: testable t/spectest.data
-	$(HARNESS_WITH_FUDGE) --tests-from-file=t/spectest.data --stress=1
-
-spectest_checkout : t/spec
-t/spec :
-	git clone git://github.com/perl6/roast.git t/spec
-	-cd t/spec/ && git config remote.origin.pushurl git@github.com:perl6/roast.git
-
-spectest_update :
-	-cd t/spec && git pull
-
-rakudo_test_run.tar.gz: testable t/spectest.data
-	- $(HARNESS_WITH_FUDGE) --tests-from-file=t/spectest.data --archive rakudo_test_run.tar.gz
+	$(JAR) cf0 $(VM_RUNTIME_OBJ) -C bin/ .
 
 #spectest_smolder: rakudo_test_run.tar.gz
 #	./perl6 -e "shell qqx[git log -1 --pretty=format:%H].fmt(qq[curl -F architecture=@cpuarch@ -F platform=@osname@ -F revision=%s -F report_file=@rakudo_test_run.tar.gz -F username=parrot-autobot -F password=qa_rocks http://smolder.parrot.org/app/projects/process_add_report/5])"
 
-testable : all spectest_checkout spectest_update
-
-t/localtest.data:
-	$(PERL) -MExtUtils::Command -e test_f $@
-
-# Run the tests in t/localtest.data
-localtest: all spectest_checkout t/localtest.data
-	@$(HARNESS_WITH_FUDGE) --tests-from-file=t/localtest.data
-
-# Run the tests in t/localtest.data with a higher verbosity
-localtest_loud: all spectest_checkout t/localtest.data
-	@$(HARNESS_WITH_FUDGE) --tests-from-file=t/localtest.data --verbosity=1
-
-# Run many tests of your choice.
-# make sometests TESTFILES=t/foo/bar
-sometests: all
-	@$(HARNESS_WITH_FUDGE) $(TESTFILES)
-
-# Run a single test
-t/*.t t/*/*.t t/*/*/*.t: all spectest_checkout
-	@$(HARNESS_WITH_FUDGE) --verbosity=1 $@
-
-install:	tools/build/create-jvm-runner.pl
+install: tools/build/create-jvm-runner.pl install-general
 	$(MKPATH) $(PREFIX)/bin
-	$(MKPATH) $(PERL6_LANG_DIR)/lib/Perl6
-	$(MKPATH) $(PERL6_LANG_DIR)/runtime
-	$(CP) $(PERL6_LANG_JARS) $(PERL6_LANG_DIR)/lib/Perl6
-	$(CP) $(SETTING_JAR) $(PERL6_LANG_DIR)/runtime
-	$(CP) $(PERL6_JAR) $(PERL6_LANG_DIR)/runtime
-	$(CP) $(RUNTIME_JAR) $(PERL6_LANG_DIR)/runtime
-	$(CP) blib/Test.jar $(PERL6_LANG_DIR)/lib
-	$(CP) blib/lib.jar $(PERL6_LANG_DIR)/lib
-	$(MKPATH) $(PERL6_LANG_DIR)/lib/Pod/To
-	$(CP) blib/Pod/To/Text.jar $(PERL6_LANG_DIR)/lib/Pod/To
+	$(CP) $(RUNTIME_JAR) $(PERL6_LANG_DIR)/$(RUNTIME_DIR)
 	$(PERL) tools/build/create-jvm-runner.pl install $(PREFIX) $(NQP_PREFIX) $(NQP_JARS)
 
-##  cleaning
-clean:
-	$(RM_F) $(CLEANUPS)
-	$(RM_RF) bin
-
-distclean: realclean
-
-realclean: clean
-	$(RM_F) Makefile
-
-testclean:
+# nqp::makefile

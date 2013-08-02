@@ -148,18 +148,20 @@ multi infix:<*>(int $a, int $b) returns int {
 }
 
 multi infix:<div>(Int:D \a, Int:D \b) {
-    fail X::Numeric::DivideByZero.new() unless b;
+    fail X::Numeric::DivideByZero.new(:using<div>) unless b;
     nqp::div_I(nqp::decont(a), nqp::decont(b), Int)
 }
 multi infix:<div>(int $a, int $b) {
-    fail X::Numeric::DivideByZero.new() unless $b;
+    fail X::Numeric::DivideByZero.new(:using<div>) unless $b;
     nqp::div_i($a, $b)
 }
 
 multi infix:<%>(Int:D \a, Int:D \b) returns Int {
+    fail X::Numeric::DivideByZero.new(:using<%>) unless b;
     nqp::mod_I(nqp::decont(a), nqp::decont(b), Int);
 }
 multi infix:<%>(int $a, int $b) returns int {
+    fail X::Numeric::DivideByZero.new(:using<%>) unless $b;
     nqp::mod_i($a, $b)
 }
 

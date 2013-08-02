@@ -289,18 +289,20 @@ multi infix:<*>(num $a, num $b) {
 }
 
 multi infix:</>(Num:D \a, Num:D \b) {
-    fail X::Numeric::DivideByZero.new unless b;
+    fail X::Numeric::DivideByZero.new(:using</>) unless b;
     nqp::p6box_n(nqp::div_n(nqp::unbox_n(a), nqp::unbox_n(b)))
 }
 multi infix:</>(num $a, num $b) {
-    fail X::Numeric::DivideByZero.new unless $b;
+    fail X::Numeric::DivideByZero.new(:using</>) unless $b;
     nqp::div_n($a, $b)
 }
 
 multi infix:<%>(Num:D \a, Num:D \b) {
+    fail X::Numeric::DivideByZero.new(:using<%>) unless b;
     nqp::p6box_n(nqp::mod_n(nqp::unbox_n(a), nqp::unbox_n(b)))
 }
 multi infix:<%>(num $a, num $b) {
+    fail X::Numeric::DivideByZero.new(:using<%>) unless $b;
     nqp::mod_n($a, $b)
 }
 

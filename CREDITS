@@ -30,7 +30,9 @@ E: eternaleye@gmail.com
 N: Alex Lyon
 U: Arcterus
 E: arcterus@mail.com
-D: Shaped arrays, merge of JVM and Parrot configuration files
+D: Shaped arrays
+D: Merge of JVM and Parrot configuration files
+D: Makefile portabilization
 
 N: Allison Randal
 D: Parrot Architect (0.4.6...)

@@ -11,7 +11,8 @@ our @EXPORT_OK = qw(sorry slurp system_or_die
                     git_checkout
                     verify_install
                     gen_nqp gen_parrot
-                    PARROT JVM UNKNOWN_VM AVAILABLE_VM);
+                    PARROT JVM UNKNOWN_VM AVAILABLE_VM
+                    VM_TO_NAME);
 
 our $exe = $^O eq 'MSWin32' ? '.exe' : '';
 
@@ -38,8 +39,13 @@ use constant {
 };
 
 use constant AVAILABLE_VM => {
-    'Parrot' => 1,
-    'JVM' => 2
+    'parrot' => PARROT,
+    'jvm' => JVM
+};
+
+use constant VM_TO_NAME => {
+    PARROT() => 'Parrot',
+    JVM() => 'JVM'
 };
 
 sub sorry {
@@ -253,10 +259,10 @@ sub verify_install {
 
 sub gen_nqp {
     my $nqp_want = shift;
-    my $options  = shift; #@_;
+    my $options  = shift;
 
     my $slash       = $^O eq 'MSWin32' ? '\\' : '/';
-    my $vm          = AVAILABLE_VM->{$options->{'vm'} || 'Parrot'};
+    my $vm          = AVAILABLE_VM->{lc($options->{'vm'} || 'parrot')};
     my $gen_nqp     = $options->{'gen-nqp'};
     my $with_parrot = $options->{'with-parrot'};
     my $gen_parrot  = $options->{'gen-parrot'};

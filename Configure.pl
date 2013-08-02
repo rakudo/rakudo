@@ -11,7 +11,8 @@ use lib 'tools/lib';
 use NQP::Configure qw(sorry slurp cmp_rev gen_nqp read_config 
                       fill_template_text fill_template_file
                       system_or_die verify_install
-                      JVM PARROT UNKNOWN_VM AVAILABLE_VM);
+                      JVM PARROT UNKNOWN_VM AVAILABLE_VM
+                      VM_TO_NAME);
 use File::Basename;
 
 my $lang = 'Rakudo';
@@ -49,8 +50,7 @@ MAIN: {
         exit(0);
     }
 
-    my $vm_name  = $options{'vm'} || 'Parrot';
-    my $vm       = AVAILABLE_VM->{$vm_name};
+    my $vm       = AVAILABLE_VM->{lc($options{'vm'} || 'parrot')} || UNKNOWN_VM;
     my $prefix   = $options{'prefix'} || cwd() . $config{'slash'} . 'install' .
                                          ($vm == JVM ? '-jvm' : '');
     my $with_nqp = $options{'with-nqp'};
@@ -92,7 +92,7 @@ MAIN: {
     my @errors;
 
     if ($vm == UNKNOWN_VM) {
-        push @errors, "$vm_name is not a valid VM.  The available options are JVM and Parrot";
+        push @errors, "$options{'vm'} is not a valid VM.  The available options are JVM and Parrot";
     }
 
     my %nqp_config;
@@ -158,7 +158,7 @@ MAIN: {
     my $make = fill_template_text('@make@', %config);
 
     fill_template_file('tools/build/Makefile.in', 'Makefile-Common', %config);
-    my $contents = fill_template_text(slurp(sprintf('tools/build/Makefile-%s.in', $vm_name)), %config);
+    my $contents = fill_template_text(slurp(sprintf('tools/build/Makefile-%s.in', VM_TO_NAME->{$vm})), %config);
     $contents = "all: all-general\n" . $contents . "\ninclude Makefile-Common";
     open(my $fh, '>', 'Makefile');
     print $fh $contents;

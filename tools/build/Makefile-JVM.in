@@ -187,6 +187,7 @@ CORE_SOURCES = \
   src/core/Pod.pm \
   src/core/Set.pm \
   src/core/Bag.pm \
+  src/core/KeyBag.pm \
   src/core/ObjAt.pm \
   src/core/Version.pm \
   src/core/ForeignCode.pm \

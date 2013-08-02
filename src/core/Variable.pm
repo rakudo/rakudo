@@ -111,7 +111,8 @@ multi trait_mod:<will>(Variable:D $v, $block, :$pre! ) {
     $v.block.add_phaser('PRE', $block)
 }
 multi trait_mod:<will>(Variable:D $v, $block, :$post! ) {
-    $v.block.add_phaser('POST', $block)
+# for some reason exceptions are caught and not rethrown
+#    $v.block.add_phaser('POST', $block)  # doesn't work :-(
 }
 multi trait_mod:<will>(Variable:D $v, $block, :$compose! ) {
 # for some reason exceptions are caught and not rethrown

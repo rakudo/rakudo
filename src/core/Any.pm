@@ -35,8 +35,6 @@ my class Any {
     # derived from .list
     method elems() { self.list.elems }
     method end()   { self.list.end }
-    method classify($test)   { {}.classify_list(   $test, self.list ) }
-    method categorize($test) { {}.categorize_list( $test, self.list ) }
     method uniq() { self.list.uniq }
     method squish() { self.list.squish }
     method pick($n = 1) { self.list.pick($n) }
@@ -48,6 +46,22 @@ my class Any {
     method kv()     { self.list.kv }
     method pairs()  { self.list.pairs }
     method reduce(&with) { self.list.reduce(&with) }
+
+    proto method classify(|) { * }
+    multi method classify($test)   {
+        {}.classify_list( $test, self.list );
+    }
+    multi method classify($test, :$into!)   {
+        ( $into // $into.new ).classify_list( $test, self.list );
+    }
+
+    proto method categorize(|) { * }
+    multi method categorize($test) {
+        {}.categorize_list( $test, self.list );
+    }
+    multi method categorize($test, :$into!) {
+        ( $into // $into.new ).categorize_list( $test, self.list );
+    }
 
     # derived from MapIter/list
     method lol()  {
@@ -807,9 +821,15 @@ multi end($a) { $a.end }
 
 proto classify(|) { * }
 multi classify( $test, *@items ) { {}.classify_list( $test, @items ) }
+#multi classify( $test, *@items, :$into! ) {   # problem in MMD
+#    ( $into // $into.new).classify_list( $test, @items );
+#}
 
 proto categorize(|) { * }
 multi categorize( $test, *@items ) { {}.categorize_list( $test, @items ) }
+#multi categorize( $test, *@items, :$into! ) {   # problem in MMD
+#    ( $into // $into.new).categorize_list( $test, @items );
+#}
 
 proto uniq(|) { * }
 multi uniq(*@values) { @values.uniq }

@@ -22,7 +22,7 @@ my class KeyBag does Associative does Baggy {
         my %e;
         sub register-arg($arg) {
             given $arg {
-                when Pair { if .value { if %e.exists(.key) { %e{.key} += .value } else { %e{.key} = .value } } }
+                when Pair { %e{.key} += .value if .value }
                 when Set | KeySet { for .keys -> $key { %e{$key}++; } }
                 when Associative { for .pairs -> $p { register-arg($p) } }
                 when Positional { for .list -> $p { register-arg($p) } }

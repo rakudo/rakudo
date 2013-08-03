@@ -392,20 +392,7 @@ my class List does Positional { # declared in BOOTSTRAP
         }, @.list;
     }
     my @secret;
-    proto method squish(|) {*}
-    multi method squish() {
-        my $last = @secret;
-        map {
-            if $_ === $last {
-                Nil;
-            }
-            else {
-                $last = $_;
-                $_;
-            }
-        }, @.list;
-    }
-    multi method squish(:&with = &[===]) {
+    method squish(:&with = &[===]) {
         my $last = @secret;
         map {
             if with($_,$last) {

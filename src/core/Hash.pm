@@ -106,8 +106,8 @@ my class Hash { # declared in BOOTSTRAP
         self
     }
 
-    proto method classify_list(|) { * }
-    multi method classify_list( &test, *@list ) {
+    proto method classify-list(|) { * }
+    multi method classify-list( &test, *@list ) {
         fail 'Cannot .classify an infinite list' if @list.infinite;
         if @list {
 
@@ -132,7 +132,7 @@ my class Hash { # declared in BOOTSTRAP
         }
         self;
     }
-    multi method classify_list( %test, *@list ) {
+    multi method classify-list( %test, *@list ) {
         fail 'Cannot .classify an infinite list' if @list.infinite;
         if @list {
 
@@ -157,7 +157,7 @@ my class Hash { # declared in BOOTSTRAP
         }
         self;
     }
-    multi method classify_list( @test, *@list ) {
+    multi method classify-list( @test, *@list ) {
         fail 'Cannot .classify an infinite list' if @list.infinite;
         if @list {
 
@@ -183,8 +183,8 @@ my class Hash { # declared in BOOTSTRAP
         self;
     }
 
-    proto method categorize_list(|) { * }
-    multi method categorize_list( &test, *@list ) {
+    proto method categorize-list(|) { * }
+    multi method categorize-list( &test, *@list ) {
         fail 'Cannot .categorize an infinite list' if @list.infinite;
         if @list {
 
@@ -214,7 +214,7 @@ my class Hash { # declared in BOOTSTRAP
         }
         self;
     }
-    multi method categorize_list( %test, *@list ) {
+    multi method categorize-list( %test, *@list ) {
         fail 'Cannot .categorize an infinite list' if @list.infinite;
         if @list {
 
@@ -244,7 +244,7 @@ my class Hash { # declared in BOOTSTRAP
         }
         self;
     }
-    multi method categorize_list( @test, *@list ) {
+    multi method categorize-list( @test, *@list ) {
         fail 'Cannot .categorize an infinite list' if @list.infinite;
         if @list {
 

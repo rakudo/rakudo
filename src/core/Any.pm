@@ -49,18 +49,18 @@ my class Any {
 
     proto method classify(|) { * }
     multi method classify($test)   {
-        {}.classify_list( $test, self.list );
+        {}.classify-list( $test, self.list );
     }
     multi method classify($test, :$into!)   {
-        ( $into // $into.new ).classify_list( $test, self.list );
+        ( $into // $into.new ).classify-list( $test, self.list );
     }
 
     proto method categorize(|) { * }
     multi method categorize($test) {
-        {}.categorize_list( $test, self.list );
+        {}.categorize-list( $test, self.list );
     }
     multi method categorize($test, :$into!) {
-        ( $into // $into.new ).categorize_list( $test, self.list );
+        ( $into // $into.new ).categorize-list( $test, self.list );
     }
 
     # derived from MapIter/list
@@ -820,15 +820,15 @@ proto end(|) { * }
 multi end($a) { $a.end }
 
 proto classify(|) { * }
-multi classify( $test, *@items ) { {}.classify_list( $test, @items ) }
+multi classify( $test, *@items ) { {}.classify-list( $test, @items ) }
 #multi classify( $test, *@items, :$into! ) {   # problem in MMD
-#    ( $into // $into.new).classify_list( $test, @items );
+#    ( $into // $into.new).classify-list( $test, @items );
 #}
 
 proto categorize(|) { * }
-multi categorize( $test, *@items ) { {}.categorize_list( $test, @items ) }
+multi categorize( $test, *@items ) { {}.categorize-list( $test, @items ) }
 #multi categorize( $test, *@items, :$into! ) {   # problem in MMD
-#    ( $into // $into.new).categorize_list( $test, @items );
+#    ( $into // $into.new).categorize-list( $test, @items );
 #}
 
 proto uniq(|) { * }

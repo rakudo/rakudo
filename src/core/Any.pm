@@ -36,7 +36,7 @@ my class Any {
     method elems() { self.list.elems }
     method end()   { self.list.end }
     method uniq() { self.list.uniq }
-    method squish() { self.list.squish }
+    method squish(|c) { self.list.squish(|c) }
     method pick($n = 1) { self.list.pick($n) }
     method roll($n = 1) { self.list.roll($n) }
     method reverse() { self.list.reverse }
@@ -835,7 +835,7 @@ proto uniq(|) { * }
 multi uniq(*@values) { @values.uniq }
 
 proto squish(|) { * }
-multi squish(*@values) { @values.squish }
+multi squish(*@values, |c) { @values.squish(|c) }
 
 proto sub sort(|) {*}
 multi sub sort(*@values)      {

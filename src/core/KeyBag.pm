@@ -17,23 +17,24 @@ my class KeyBag does Associative does Baggy {
     method exists_key($k) { self.exists($k) }
     method delete_key($k) { %!elems.delete($k) }
 
-    # Constructor
-    method new(*@args --> KeyBag) {
-        my %e;
+    sub REGISTER ( @args, $e = {} ) {
         sub register-arg($arg) {
             given $arg {
-                when Pair { %e{.key} += .value if .value }
-                when Set | KeySet { for .keys -> $key { %e{$key}++; } }
+                when Pair { $e{.key} += .value if .value }
+                when Set | KeySet { for .keys -> $key { $e{$key}++; } }
                 when Associative { for .pairs -> $p { register-arg($p) } }
                 when Positional { for .list -> $p { register-arg($p) } }
-                default { %e{$_}++; }
+                default { $e{$_}++; }
             }
         }
 
-        for @args {
-            register-arg($_);
-        }
-        self.bless(*, :elems(%e));
+        register-arg($_) for @args;
+        $e;
+    }
+
+    # Constructor
+    method new(*@args --> KeyBag) {
+        self.bless(*, :elems( REGISTER(@args) ));
     }
 
     submethod BUILD (:%!elems) { }

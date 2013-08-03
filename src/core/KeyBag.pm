@@ -47,25 +47,8 @@ my class KeyBag does Associative does Baggy {
     method list() { %!elems.keys }
     method pairs() { %!elems.pairs }
 
-    method push(*@values) {
-        my $previous;
-        my $has_previous;
-        for @values -> $e {
-            if $has_previous {
-                self{$previous} += $e;
-                $has_previous = 0;
-            }
-            elsif $e.^isa(Enum) {
-                self{$e.key} += $e.value;
-            }
-            else {
-                $previous = $e;
-                $has_previous = 1;
-            }
-        }
-        if $has_previous {
-            warn "Trailing item in KeyBag.push";
-        }
+    method push(*@args) {
+        REGISTER( @args, %!elems );
         self
     }
 

@@ -236,3 +236,7 @@ my class KeyBag does Associative does Baggy {
         self;
     }
 }
+
+sub keybag(*@a) returns KeyBag {
+    KeyBag.new(|@a);
+}

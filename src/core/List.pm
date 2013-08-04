@@ -378,57 +378,87 @@ my class List does Positional { # declared in BOOTSTRAP
     proto method uniq(|) {*}
     multi method uniq() {
         my $seen := nqp::hash();
-        my str $which;
+        my str $target;
         map {
-            $which = nqp::unbox_s($_.WHICH);
-            if nqp::existskey($seen, $which) {
+            $target = nqp::unbox_s($_.WHICH);
+            if nqp::existskey($seen, $target) {
                 Nil;
             }
             else {
-                nqp::bindkey($seen, $which, 1);
+                nqp::bindkey($seen, $target, 1);
                 $_;
+            }
+        }, @.list;
+    }
+    multi method uniq( :&as!, :&with! ) {
+        my @seen;  # should be Mu, but doesn't work in settings :-(
+        my Mu $target;
+        map {
+            $target = &as($_);
+            if first( { with($target,$_) }, @seen ) =:= Nil {
+                @seen.push($target);
+                $_;
+            }
+            else {
+                Nil;
             }
         }, @.list;
     }
     multi method uniq( :&as! ) {
         my $seen := nqp::hash();
-        my str $which;
+        my str $target;
         map {
-            $which = &as($_);
-            if nqp::existskey($seen, $which) {
+            $target = &as($_).WHICH;
+            if nqp::existskey($seen, $target) {
                 Nil;
             }
             else {
-                nqp::bindkey($seen, $which, 1);
+                nqp::bindkey($seen, $target, 1);
                 $_;
+            }
+        }, @.list;
+    }
+    multi method uniq( :&with! ) {
+        nextwith() if &with === &[===]; # use optimized version
+
+        my @seen;  # should be Mu, but doesn't work in settings :-(
+        my Mu $target;
+        map {
+            $target := $_;
+            if first( { with($target,$_) }, @seen ) =:= Nil {
+                @seen.push($target);
+                $_;
+            }
+            else {
+                Nil;
             }
         }, @.list;
     }
 
     my @secret;
     proto method squish(|) {*}
-    multi method squish() {
-        my $last = @secret;
-        map {
-            if $_ === $last {
-                Nil;
-            }
-            else {
-                $last = $_;
-                $_;
-            }
-        }, @.list;
-    }
-    multi method squish( :&as! ) {
+    multi method squish( :&as!, :&with = &[===] ) {
         my $last = @secret;
         my str $which;
         map {
             $which = &as($_);
-            if $which === $last {
+            if with($which,$last) {
                 Nil;
             }
             else {
                 $last = $which;
+                $_;
+            }
+        }, @.list;
+    }
+    multi method squish( :&with = &[===] ) {
+        my $last = @secret;
+        map {
+            if with($_,$last) {
+                Nil;
+            }
+            else {
+                $last = $_;
                 $_;
             }
         }, @.list;

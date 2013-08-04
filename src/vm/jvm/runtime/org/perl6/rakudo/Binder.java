@@ -895,4 +895,128 @@ public final class Binder {
         }
         return slurpy;
     }
+    
+    /* Compile time trial binding; tries to determine at compile time whether
+     * certain binds will/won't work. */
+    public static int trialBind(ThreadContext tc, RakOps.GlobalExt gcx, SixModelObject params,
+            CallSiteDescriptor csd, Object[] args) {
+        /* If there's a single capture parameter, then we're OK. (Worth
+         * handling especially as it's the common case for protos). */
+        int numParams = (int)params.elems(tc);
+        if (numParams == 1) {
+            SixModelObject param = params.at_pos_boxed(tc, 0);
+            param.get_attribute_native(tc, gcx.Parameter, "$!flags", HINT_flags);
+            int flags = (int)tc.native_i;
+            if ((flags & SIG_ELEM_IS_CAPTURE) != 0)
+                return TRIAL_BIND_OK;
+        }
+            
+        /* Walk through the signature and consider the parameters. */
+        int numPosArgs = csd.numPositionals;
+        int curPosArg = 0;
+        for (int i = 0; i < numParams; i++) {
+            /* If the parameter is anything other than a boring old
+             * positional parameter, we won't analyze it. */
+            SixModelObject param = params.at_pos_boxed(tc, i);
+            param.get_attribute_native(tc, gcx.Parameter, "$!flags", HINT_flags);
+            int flags = (int)tc.native_i;
+            if ((flags & ~(
+                    SIG_ELEM_MULTI_INVOCANT | SIG_ELEM_IS_PARCEL |
+                    SIG_ELEM_IS_COPY | SIG_ELEM_ARRAY_SIGIL |
+                    SIG_ELEM_HASH_SIGIL | SIG_ELEM_NATIVE_VALUE |
+                    SIG_ELEM_IS_OPTIONAL)) != 0)
+                return TRIAL_BIND_NOT_SURE;
+            SixModelObject namedNames = param.get_attribute_boxed(tc,
+                gcx.Parameter, "$!named_names", HINT_named_names);
+            if (namedNames != null)
+                return TRIAL_BIND_NOT_SURE;
+            SixModelObject postConstraints = param.get_attribute_boxed(tc,
+                gcx.Parameter, "$!post_constraints", HINT_post_constraints);
+            if (postConstraints != null)
+                return TRIAL_BIND_NOT_SURE;
+            SixModelObject typeCaptures = param.get_attribute_boxed(tc,
+                gcx.Parameter, "$!type_captures", HINT_type_captures);
+            if (typeCaptures != null)
+                return TRIAL_BIND_NOT_SURE;
+
+            /* Do we have an argument for this parameter? */
+            if (curPosArg >= numPosArgs) {
+                /* No; if it's not optional, fail.*/
+                if ((flags & SIG_ELEM_IS_OPTIONAL) == 0)
+                    return TRIAL_BIND_NO_WAY;
+            }
+            else {
+                /* Yes, need to consider type. */
+                int gotPrim = csd.argFlags[curPosArg];
+                if ((flags & SIG_ELEM_NATIVE_VALUE) != 0) {
+                    if (gotPrim == CallSiteDescriptor.ARG_OBJ) {
+                        /* We got an object; if we aren't sure we can unbox, we can't
+                         * be sure about the dispatch. */
+                        SixModelObject arg = (SixModelObject)args[i];
+                        StorageSpec spec = arg.st.REPR.get_storage_spec(tc, arg.st);
+                        switch (flags & SIG_ELEM_NATIVE_VALUE) {
+                            case SIG_ELEM_NATIVE_INT_VALUE:
+                                if ((spec.can_box & StorageSpec.CAN_BOX_INT) == 0)
+                                    return TRIAL_BIND_NOT_SURE;
+                                break;
+                            case SIG_ELEM_NATIVE_NUM_VALUE:
+                                if ((spec.can_box & StorageSpec.CAN_BOX_NUM) == 0)
+                                    return TRIAL_BIND_NOT_SURE;
+                                break;
+                            case SIG_ELEM_NATIVE_STR_VALUE:
+                                if ((spec.can_box & StorageSpec.CAN_BOX_STR) == 0)
+                                    return TRIAL_BIND_NOT_SURE;
+                                break;
+                            default:
+                                /* WTF... */
+                                return TRIAL_BIND_NOT_SURE;
+                        }
+                    }
+                    else {
+                        /* If it's the wrong type of native, there's no way it
+                        * can ever bind. */
+                        if (((flags & SIG_ELEM_NATIVE_INT_VALUE) != 0 && gotPrim != CallSiteDescriptor.ARG_INT) ||
+                            ((flags & SIG_ELEM_NATIVE_NUM_VALUE) != 0 && gotPrim != CallSiteDescriptor.ARG_NUM) ||
+                            ((flags & SIG_ELEM_NATIVE_STR_VALUE) != 0 && gotPrim != CallSiteDescriptor.ARG_STR))
+                            return TRIAL_BIND_NO_WAY;
+                    }
+                }
+                else {
+                    /* Work out a parameter type to consider, and see if it matches. */
+                    SixModelObject arg =
+                        gotPrim == CallSiteDescriptor.ARG_OBJ ? (SixModelObject)args[curPosArg] :
+                        gotPrim == CallSiteDescriptor.ARG_INT ? gcx.Int :
+                        gotPrim == CallSiteDescriptor.ARG_NUM ? gcx.Num :
+                                                                gcx.Str;
+                    SixModelObject nominalType = param.get_attribute_boxed(tc,
+                        gcx.Parameter, "$!nominal_type", HINT_nominal_type);
+                    if (nominalType != gcx.Mu && Ops.istype(arg, nominalType, tc) == 0) {
+                        /* If it failed because we got a junction, may auto-thread;
+                         * hand back "not sure" for now. */
+                        if (arg.st.WHAT == gcx.Junction)
+                            return TRIAL_BIND_NOT_SURE;
+                        
+                        /* It failed to, but that doesn't mean it can't work at runtime;
+                         * we perhaps want an Int, and the most we know is we have an Any,
+                         * which would include Int. However, the Int ~~ Str case can be
+                         * rejected now, as there's no way it'd ever match. Basically, we
+                         * just flip the type check around. */
+                        return Ops.istype(nominalType, arg, tc) != 0
+                            ? TRIAL_BIND_NOT_SURE
+                            : TRIAL_BIND_NO_WAY;
+                    }
+                }
+            }
+
+            /* Continue to next argument. */
+            curPosArg++;
+        }
+
+        /* If we have any left over arguments, it's a binding fail. */
+        if (curPosArg < numPosArgs)
+            return TRIAL_BIND_NO_WAY;
+
+        /* Otherwise, if we get there, all is well. */
+        return TRIAL_BIND_OK;
+    }
 }

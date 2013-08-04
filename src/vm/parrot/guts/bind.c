@@ -1,6 +1,6 @@
 /*
 $Id$
-Copyright (C) 2009-2011, The Perl Foundation.
+Copyright (C) 2009-2013, The Perl Foundation.
 */
 
 #define PARROT_IN_EXTENSION
@@ -1105,11 +1105,12 @@ INTVAL Rakudo_binding_trial_bind(PARROT_INTERP, PMC *sig_pmc, PMC *capture) {
                 VTABLE_get_pmc_keyed_int(interp, params, i));
         
         /* If the parameter is anything other than a boring old
-         * required positional parameter, we won't analyze it. */
+         * positional parameter, we won't analyze it. */
         if (param->flags & ~(
                 SIG_ELEM_MULTI_INVOCANT | SIG_ELEM_IS_PARCEL |
                 SIG_ELEM_IS_COPY | SIG_ELEM_ARRAY_SIGIL |
-                SIG_ELEM_HASH_SIGIL | SIG_ELEM_NATIVE_VALUE))
+                SIG_ELEM_HASH_SIGIL | SIG_ELEM_NATIVE_VALUE |
+                SIG_ELEM_IS_OPTIONAL))
             return TRIAL_BIND_NOT_SURE;
         if (!PMC_IS_NULL(param->named_names))
             return TRIAL_BIND_NOT_SURE;
@@ -1118,66 +1119,70 @@ INTVAL Rakudo_binding_trial_bind(PARROT_INTERP, PMC *sig_pmc, PMC *capture) {
         if (!PMC_IS_NULL(param->type_captures))
             return TRIAL_BIND_NOT_SURE;
 
-        /* Did we pass too few required arguments? If so, fail. */
-        if (cur_pos_arg >= num_pos_args)
-            return TRIAL_BIND_NO_WAY;
-            
-        /* Otherwise, need to consider type. */
-        got_prim = pc_positionals[cur_pos_arg].type;
-        if (param->flags & SIG_ELEM_NATIVE_VALUE) {
-            if (got_prim == BIND_VAL_OBJ) {
-                /* We got an object; if we aren't sure we can unbox, we can't
-                 * be sure about the dispatch. */
-                PMC *arg = pc_positionals[cur_pos_arg].u.p;
-                storage_spec spec = REPR(arg)->get_storage_spec(interp, STABLE(arg));
-                switch (param->flags & SIG_ELEM_NATIVE_VALUE) {
-                    case SIG_ELEM_NATIVE_INT_VALUE:
-                        if (!(spec.can_box & STORAGE_SPEC_CAN_BOX_INT))
+        /* Do we have an argument for this parameter? */
+        if (cur_pos_arg >= num_pos_args) {
+            /* No; if it's not optional, fail.*/
+            if (!(param->flags & SIG_ELEM_IS_OPTIONAL))
+                return TRIAL_BIND_NO_WAY;
+        }
+        else {
+            /* Yes, need to consider type. */
+            got_prim = pc_positionals[cur_pos_arg].type;
+            if (param->flags & SIG_ELEM_NATIVE_VALUE) {
+                if (got_prim == BIND_VAL_OBJ) {
+                    /* We got an object; if we aren't sure we can unbox, we can't
+                    * be sure about the dispatch. */
+                    PMC *arg = pc_positionals[cur_pos_arg].u.p;
+                    storage_spec spec = REPR(arg)->get_storage_spec(interp, STABLE(arg));
+                    switch (param->flags & SIG_ELEM_NATIVE_VALUE) {
+                        case SIG_ELEM_NATIVE_INT_VALUE:
+                            if (!(spec.can_box & STORAGE_SPEC_CAN_BOX_INT))
+                                return TRIAL_BIND_NOT_SURE;
+                            break;
+                        case SIG_ELEM_NATIVE_NUM_VALUE:
+                            if (!(spec.can_box & STORAGE_SPEC_CAN_BOX_NUM))
+                                return TRIAL_BIND_NOT_SURE;
+                            break;
+                        case SIG_ELEM_NATIVE_STR_VALUE:
+                            if (!(spec.can_box & STORAGE_SPEC_CAN_BOX_STR))
+                                return TRIAL_BIND_NOT_SURE;
+                            break;
+                        default:
+                            /* WTF... */
                             return TRIAL_BIND_NOT_SURE;
-                        break;
-                    case SIG_ELEM_NATIVE_NUM_VALUE:
-                        if (!(spec.can_box & STORAGE_SPEC_CAN_BOX_NUM))
-                            return TRIAL_BIND_NOT_SURE;
-                        break;
-                    case SIG_ELEM_NATIVE_STR_VALUE:
-                        if (!(spec.can_box & STORAGE_SPEC_CAN_BOX_STR))
-                            return TRIAL_BIND_NOT_SURE;
-                        break;
-                    default:
-                        /* WTF... */
-                        return TRIAL_BIND_NOT_SURE;
+                    }
+                }
+                else {
+                    /* If it's the wrong type of native, there's no way it
+                    * can ever bind. */
+                    if (((param->flags & SIG_ELEM_NATIVE_INT_VALUE) && got_prim != BIND_VAL_INT) ||
+                        ((param->flags & SIG_ELEM_NATIVE_NUM_VALUE) && got_prim != BIND_VAL_NUM) ||
+                        ((param->flags & SIG_ELEM_NATIVE_STR_VALUE) && got_prim != BIND_VAL_STR))
+                        return TRIAL_BIND_NO_WAY;
                 }
             }
             else {
-                /* If it's the wrong type of native, there's no way it
-                 * can ever bind. */
-                if (((param->flags & SIG_ELEM_NATIVE_INT_VALUE) && got_prim != BIND_VAL_INT) ||
-                    ((param->flags & SIG_ELEM_NATIVE_NUM_VALUE) && got_prim != BIND_VAL_NUM) ||
-                    ((param->flags & SIG_ELEM_NATIVE_STR_VALUE) && got_prim != BIND_VAL_STR))
-                    return TRIAL_BIND_NO_WAY;
-            }
-        }
-        else {
-            /* Work out a parameter type to consider, and see if it matches. */
-            PMC * const arg =
-                got_prim == BIND_VAL_OBJ ? pc_positionals[cur_pos_arg].u.p :
-                got_prim == BIND_VAL_INT ? Rakudo_types_int_get() :
-                got_prim == BIND_VAL_NUM ? Rakudo_types_num_get() :
-                                           Rakudo_types_str_get();
-            if (param->nominal_type != Rakudo_types_mu_get() &&
-                    !STABLE(arg)->type_check(interp, arg, param->nominal_type)) {
-                /* If it failed because we got a junction, may auto-thread;
-                 * hand back "not sure" for now. */
-                if (STABLE(arg)->WHAT == Rakudo_types_junction_get())
-                    return TRIAL_BIND_NOT_SURE;
-                
-                /* It failed to, but that doesn't mean it can't work at runtime;
-                 * we perhaps want an Int, and the most we know is we have an Any,
-                 * which would include Int. However, the Int ~~ Str case can be
-                 * rejected now, as there's no way it'd ever match. Basically, we
-                 * just flip the type check around. */
-                return STABLE(param->nominal_type)->type_check(interp, param->nominal_type, arg) ?
-                    TRIAL_BIND_NOT_SURE : TRIAL_BIND_NO_WAY;
+                /* Work out a parameter type to consider, and see if it matches. */
+                PMC * const arg =
+                    got_prim == BIND_VAL_OBJ ? pc_positionals[cur_pos_arg].u.p :
+                    got_prim == BIND_VAL_INT ? Rakudo_types_int_get() :
+                    got_prim == BIND_VAL_NUM ? Rakudo_types_num_get() :
+                                            Rakudo_types_str_get();
+                if (param->nominal_type != Rakudo_types_mu_get() &&
+                        !STABLE(arg)->type_check(interp, arg, param->nominal_type)) {
+                    /* If it failed because we got a junction, may auto-thread;
+                    * hand back "not sure" for now. */
+                    if (STABLE(arg)->WHAT == Rakudo_types_junction_get())
+                        return TRIAL_BIND_NOT_SURE;
+                    
+                    /* It failed to, but that doesn't mean it can't work at runtime;
+                    * we perhaps want an Int, and the most we know is we have an Any,
+                    * which would include Int. However, the Int ~~ Str case can be
+                    * rejected now, as there's no way it'd ever match. Basically, we
+                    * just flip the type check around. */
+                    return STABLE(param->nominal_type)->type_check(interp, param->nominal_type, arg) ?
+                        TRIAL_BIND_NOT_SURE : TRIAL_BIND_NO_WAY;
+                }
             }
         }
 

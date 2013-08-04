@@ -35,7 +35,7 @@ my class Any {
     # derived from .list
     method elems() { self.list.elems }
     method end()   { self.list.end }
-    method uniq() { self.list.uniq }
+    method uniq(|c) { self.list.uniq(|c) }
     method squish(|c) { self.list.squish(|c) }
     method pick($n = 1) { self.list.pick($n) }
     method roll($n = 1) { self.list.roll($n) }
@@ -832,7 +832,7 @@ multi categorize( $test, *@items ) { {}.categorize-list( $test, @items ) }
 #}
 
 proto uniq(|) { * }
-multi uniq(*@values) { @values.uniq }
+multi uniq(*@values, |c) { @values.uniq(|c) }
 
 proto squish(|) { * }
 multi squish(*@values, |c) { @values.squish(|c) }

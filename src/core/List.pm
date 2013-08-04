@@ -375,9 +375,8 @@ my class List does Positional { # declared in BOOTSTRAP
         $tpos >= +$tseq;
     }
 
-    # This needs a way of taking a user-defined comparison
-    # specifier, but AFAIK nothing has been spec'd yet.
-    method uniq() {
+    proto method uniq(|) {*}
+    multi method uniq() {
         my $seen := nqp::hash();
         my str $which;
         map {
@@ -391,15 +390,45 @@ my class List does Positional { # declared in BOOTSTRAP
             }
         }, @.list;
     }
+    multi method uniq( :&as! ) {
+        my $seen := nqp::hash();
+        my str $which;
+        map {
+            $which = &as($_);
+            if nqp::existskey($seen, $which) {
+                Nil;
+            }
+            else {
+                nqp::bindkey($seen, $which, 1);
+                $_;
+            }
+        }, @.list;
+    }
+
     my @secret;
-    method squish(:&with = &[===]) {
+    proto method squish(|) {*}
+    multi method squish() {
         my $last = @secret;
         map {
-            if with($_,$last) {
+            if $_ === $last {
                 Nil;
             }
             else {
                 $last = $_;
+                $_;
+            }
+        }, @.list;
+    }
+    multi method squish( :&as! ) {
+        my $last = @secret;
+        my str $which;
+        map {
+            $which = &as($_);
+            if $which === $last {
+                Nil;
+            }
+            else {
+                $last = $which;
                 $_;
             }
         }, @.list;

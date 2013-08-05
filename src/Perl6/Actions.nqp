@@ -2148,6 +2148,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 unless nqp::objprimspec($block[1].returns) {
                     $block[1] := QAST::Op.new(
                         :op('p6decontrv'),
+                        QAST::WVal.new( :value($*DECLARAND) ),
                         $block[1]);
                 }
                 $block[1] := QAST::Op.new(
@@ -2542,7 +2543,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             if is_clearly_returnless($past) {
                 $past[1] := QAST::Op.new(
                     :op('p6typecheckrv'),
-                    QAST::Op.new( :op('p6decontrv'), $past[1]),
+                    QAST::Op.new( :op('p6decontrv'), QAST::WVal.new( :value($*DECLARAND) ), $past[1] ),
                     QAST::WVal.new( :value($*DECLARAND) ));
             }
             else {
@@ -2637,6 +2638,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         if is_clearly_returnless($block) {
             $block[1] := QAST::Op.new(
                 :op('p6decontrv'),
+                QAST::WVal.new( :value($*DECLARAND) ),
                 $block[1]);
         }
         else {
@@ -5930,7 +5932,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     :op<lexotic>, :name<RETURN>,
                     # If we fall off the bottom, decontainerize if
                     # rw not set.
-                    QAST::Op.new( :op('p6decontrv'), $past )
+                    QAST::Op.new( :op('p6decontrv'), QAST::WVal.new( :value($*DECLARAND) ), $past )
                 ),
                 QAST::Op.new(
                     :op<bind>,

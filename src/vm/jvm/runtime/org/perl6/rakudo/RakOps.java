@@ -432,10 +432,10 @@ public final class RakOps {
         return cont;
     }
     
-    public static SixModelObject p6decontrv(SixModelObject cont, ThreadContext tc) {
+    public static SixModelObject p6decontrv(SixModelObject routine, SixModelObject cont, ThreadContext tc) {
         GlobalExt gcx = key.getGC(tc);
         if (cont != null && isRWScalar(tc, gcx, cont)) {
-            tc.curFrame.codeRef.codeObject.get_attribute_native(tc, gcx.Routine, "$!rw", HINT_ROUTINE_RW);
+            routine.get_attribute_native(tc, gcx.Routine, "$!rw", HINT_ROUTINE_RW);
             if (tc.native_i == 0) {
                 /* Recontainerize to RO. */
                 SixModelObject roCont = gcx.Scalar.st.REPR.allocate(tc, gcx.Scalar.st);

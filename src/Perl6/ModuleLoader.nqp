@@ -10,6 +10,13 @@ sub DEBUG(*@strs) {
 class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
     my %modules_loaded;
     my %settings_loaded;
+    my %language_module_loaders;
+    
+    method register_language_module_loader($lang, $loader) {
+        nqp::die("Language loader already registered for $lang")
+            if nqp::existskey(%language_module_loaders, $lang);
+        %language_module_loaders{$lang} := $loader;
+    }
     
     method ctxsave() {
         $*MAIN_CTX := nqp::ctxcaller(nqp::ctx());
@@ -43,7 +50,13 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
     method load_module($module_name, %opts, *@GLOBALish, :$line, :$file?) {
         # See if we need to load it from elsewhere.
         if nqp::existskey(%opts, 'from') {
-            nqp::die("Do not know how to load code from " ~ %opts<from>);
+            if nqp::existskey(%language_module_loaders, %opts<from>) {
+                return %language_module_loaders{%opts<from>}.load_module($module_name,
+                    %opts, |@GLOBALish, :$line, :$file);
+            }
+            else {
+                nqp::die("Do not know how to load code from " ~ %opts<from>);
+            }
         }
         
         # Locate all the things that we potentially could load. Choose

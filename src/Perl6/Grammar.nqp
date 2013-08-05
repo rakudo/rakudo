@@ -1246,23 +1246,23 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             [
             || <.spacey> <arglist> <?{ $<arglist><EXPR> }>
                 {
+                    my $lnd     := $*W.dissect_longname($longname);
+                    my $name    := $lnd.name;
                     my $arglist := $*W.compile_time_evaluate($/,
                             $<arglist><EXPR>.ast);
-                    $arglist := nqp::getattr($arglist.list.eager,
+                    $arglist    := nqp::getattr($arglist.list.eager,
                             $*W.find_symbol(['List']), '$!items');
-                    my $module := $*W.load_module($/,
-                                                    ~$longname,
-                                                    $*GLOBALish);
-                    do_import($/, $module, ~$longname, $arglist);
+                    my $module  := $*W.load_module($/, $name, $*GLOBALish);
+                    do_import($/, $module, $name, $arglist);
                     $/.CURSOR.import_EXPORTHOW($module);
                 }
             || { 
                     unless ~$<doc> && !%*COMPILING<%?OPTIONS><doc> {
                         if $longname {
-                            my $module := $*W.load_module($/,
-                                                          ~$longname,
-                                                           $*GLOBALish);
-                            do_import($/, $module, ~$longname);
+                            my $lnd    := $*W.dissect_longname($longname);
+                            my $name   := $lnd.name;
+                            my $module := $*W.load_module($/, $name, $*GLOBALish);
+                            do_import($/, $module, $name);
                             $/.CURSOR.import_EXPORTHOW($module);
                         }
                     }

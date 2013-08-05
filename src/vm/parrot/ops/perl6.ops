@@ -951,7 +951,7 @@ $1 against it.
 =cut
 
 */
-inline op perl6_type_check_return_value(in PMC, in PMC) :base_core {
+inline op perl6_type_check_return_value(invar PMC, invar PMC) :base_core {
     PMC *sig_pmc = ((Rakudo_Code *)PMC_data($2))->signature;
     PMC *rtype   = ((Rakudo_Signature *)PMC_data(sig_pmc))->rtype;
     if (!PMC_IS_NULL(rtype)) {
@@ -965,7 +965,9 @@ inline op perl6_type_check_return_value(in PMC, in PMC) :base_core {
                 PMC * const thrower = Rakudo_get_thrower(interp, "X::TypeCheck::Return");
                 if (PMC_IS_NULL(thrower))
                     Parrot_ex_throw_from_c_args(interp, NULL, EXCEPTION_INVALID_OPERATION,
-                        "Type check failed for return value");
+                        "Type check failed for return value; wanted %Ss but got %Ss",
+                        VTABLE_name(interp, rtype),
+                        VTABLE_name(interp, decont_value));
                 else
                     Parrot_pcc_invoke_sub_from_c_args(interp, thrower, "PP->",
                             decont_value, rtype);

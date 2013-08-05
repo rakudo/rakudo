@@ -9,6 +9,7 @@ use QAST;
 role STDActions {
     method quibble($/) {
         make $<nibble>.ast;
+        $/.prune;
     }
     
     method trim_heredoc($doc, $stop, $origast) {
@@ -282,7 +283,6 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 :decl<routine>,
             );
         }
-        $/.prune;
     }
 
     # Turn $code into "for lines() { $code }"
@@ -5011,6 +5011,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my $args := $<args>.ast;
         $args.name('&infix:<,>');
         make QAST::Op.new(:node($/), :op<call>, $metapast, $args);
+        $/.prune;
     }
 
     method infix_circumfix_meta_operator:sym«<< >>»($/) {
@@ -5136,16 +5137,17 @@ class Perl6::Actions is HLL::Actions does STDActions {
         make QAST::WVal.new( :value($v) );
     }
 
-    method decint($/) { make string_to_bigint( $/, 10); }
-    method hexint($/) { make string_to_bigint( $/, 16); }
-    method octint($/) { make string_to_bigint( $/, 8 ); }
-    method binint($/) { make string_to_bigint( $/, 2 ); }
+    method decint($/) { make string_to_bigint( $/, 10); $/.prune; }
+    method hexint($/) { make string_to_bigint( $/, 16); $/.prune; }
+    method octint($/) { make string_to_bigint( $/, 8 ); $/.prune; }
+    method binint($/) { make string_to_bigint( $/, 2 ); $/.prune; }
 
 
     method number:sym<complex>($/) {
         my $re := $*W.add_constant('Num', 'num', 0e0);
         my $im := $*W.add_constant('Num', 'num', +~$<im>);
         make $*W.add_constant('Complex', 'type_new', $re.compile_time_value, $im.compile_time_value);
+        $/.prune;
     }
 
     method number:sym<numish>($/) {
@@ -5161,6 +5163,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         else {
             make $*W.add_numeric_constant($/, 'Num', +$/);
         }
+        $/.prune;
     }
 
     # filter out underscores and similar stuff

@@ -901,9 +901,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             my $M := %*COMPILING<%?OPTIONS><M>;
             if nqp::defined($M) {
                 for nqp::islist($M) ?? $M !! [$M] -> $longname {
-                    my $module := $*W.load_module($/,
-                                                    $longname,
-                                                    $*GLOBALish);
+                    my $module := $*W.load_module($/, $longname, {}, $*GLOBALish);
                     do_import($/, $module, $longname);
                     $/.CURSOR.import_EXPORTHOW($module);
                 }
@@ -1181,7 +1179,10 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         ]+ % ','
         {
             for $<module_name> {
-                $*W.load_module($/, ~$_<longname>, $*GLOBALish);
+                my $lnd  := $*W.dissect_longname($_<longname>);
+                my $name := $lnd.name;
+                my %cp   := $lnd.colonpairs_hash('need');
+                $*W.load_module($/, $name, %cp, $*GLOBALish);
             }
         }
     }
@@ -1203,7 +1204,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                     $arglist := nqp::getattr($arglist.list.eager,
                             $*W.find_symbol(['List']), '$!items');
                 }
-                do_import($/, $module.WHO, ~$<module_name><longname>, $arglist);
+                do_import($/, $module.WHO, $longname.name, $arglist);
             }
             else {
                 $/.CURSOR.panic("Could not find module " ~ ~$<module_name> ~
@@ -1248,11 +1249,12 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                 {
                     my $lnd     := $*W.dissect_longname($longname);
                     my $name    := $lnd.name;
+                    my %cp      := $lnd.colonpairs_hash('use');
                     my $arglist := $*W.compile_time_evaluate($/,
                             $<arglist><EXPR>.ast);
                     $arglist    := nqp::getattr($arglist.list.eager,
                             $*W.find_symbol(['List']), '$!items');
-                    my $module  := $*W.load_module($/, $name, $*GLOBALish);
+                    my $module  := $*W.load_module($/, $name, %cp, $*GLOBALish);
                     do_import($/, $module, $name, $arglist);
                     $/.CURSOR.import_EXPORTHOW($module);
                 }
@@ -1261,7 +1263,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                         if $longname {
                             my $lnd    := $*W.dissect_longname($longname);
                             my $name   := $lnd.name;
-                            my $module := $*W.load_module($/, $name, $*GLOBALish);
+                            my %cp     := $lnd.colonpairs_hash('use');
+                            my $module := $*W.load_module($/, $name, %cp, $*GLOBALish);
                             do_import($/, $module, $name);
                             $/.CURSOR.import_EXPORTHOW($module);
                         }

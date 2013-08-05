@@ -40,7 +40,12 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
         @search_paths
     }
     
-    method load_module($module_name, *@GLOBALish, :$line, :$file?) {
+    method load_module($module_name, %opts, *@GLOBALish, :$line, :$file?) {
+        # See if we need to load it from elsewhere.
+        if nqp::existskey(%opts, 'from') {
+            nqp::die("Do not know how to load code from " ~ %opts<from>);
+        }
+        
         # Locate all the things that we potentially could load. Choose
         # the first one for now (XXX need to filter by version and auth).
         my @prefixes   := self.search_path();

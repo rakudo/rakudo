@@ -2384,6 +2384,7 @@ class Perl6::World is HLL::World {
         %opts<panic> := @panic[0] if @panic;
         %opts<sorrows> := p6ize_recursive(@*SORROWS) if @*SORROWS;
         %opts<worries> := p6ize_recursive(@*WORRIES) if @*WORRIES;
+        %opts<filename> := nqp::box_s(nqp::getlexdyn('$?FILES'), self.find_symbol(['Str']));
         try {
             my $group_type := self.find_symbol(['X', 'Comp', 'Group']);
             return $group_type.new(|%opts);

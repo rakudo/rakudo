@@ -282,6 +282,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 :decl<routine>,
             );
         }
+        $/.prune;
     }
 
     # Turn $code into "for lines() { $code }"
@@ -423,6 +424,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         # Do any final compiler state cleanup tasks.
         $*W.cleanup();
 
+        $/.prune;
         make $compunit;
     }
     
@@ -491,6 +493,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 $/, 'INIT', $*W.create_simple_code_object($block, 'Block'), $block
             );
         }
+        $/.prune;
     }
 
     method pod_content_toplevel($/) {
@@ -504,6 +507,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             }
         }
         make $child;
+        $/.prune;
     }
 
     method pod_content:sym<block>($/) {
@@ -613,6 +617,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             @content.push($_.ast)
         }
         make Perl6::Pod::build_pod_string(@content);
+        $/.prune;
     }
 
     method pod_balanced_braces($/) {
@@ -641,6 +646,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         } else {
             make ~$<braces>
         }
+        $/.prune;
     }
 
     method pod_string_character($/) {
@@ -651,6 +657,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         } else {
             make ~$<char>;
         }
+        $/.prune;
     }
 
     method table_row($/) {
@@ -753,10 +760,12 @@ class Perl6::Actions is HLL::Actions does STDActions {
             );
         }
         make $past;
+        $/.prune;
     }
 
     method xblock($/) {
         make QAST::Op.new( $<EXPR>.ast, $<pblock>.ast, :op('if'), :node($/) );
+        $/.prune;
     }
 
     method pblock($/) {
@@ -859,6 +868,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         $*W.finish_code_object($*DECLARAND, $block);
         my $ref := reference_to_code_object($*DECLARAND, $block);
         $ref<uninstall_if_immediately_used> := $uninst;
+        $/.prune;
         make $ref;
     }
 
@@ -956,18 +966,21 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $past := xblock_immediate( $<xblock>[$count].ast );
             $past.push($else);
         }
+        $/.prune;
         make $past;
     }
 
     method statement_control:sym<unless>($/) {
         my $past := xblock_immediate( $<xblock>.ast );
         $past.op('unless');
+        $/.prune;
         make $past;
     }
 
     method statement_control:sym<while>($/) {
         my $past := xblock_immediate( $<xblock>.ast );
         $past.op(~$<sym>);
+        $/.prune;
         make tweak_loop($past);
     }
 
@@ -982,6 +995,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $past := QAST::Op.new( $<EXPR>.ast, pblock_immediate( $<pblock>.ast ),
                                    :op($op), :node($/) );
         }
+        $/.prune;
         make tweak_loop($past);
     }
 
@@ -995,6 +1009,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         $past := QAST::Want.new(
             QAST::Op.new( :op<callmethod>, :name<eager>, $past ),
             'v', QAST::Op.new( :op<callmethod>, :name<sink>, $past ));
+        $/.prune;
         make $past;
     }
 
@@ -1010,6 +1025,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         if $<e1> {
             $loop := QAST::Stmts.new( $<e1>[0].ast, $loop, :node($/) );
         }
+        $/.prune;
         make $loop;
     }
     
@@ -1053,11 +1069,13 @@ class Perl6::Actions is HLL::Actions does STDActions {
         for $<version> {
             # XXX TODO: Version checks.
         }
+        $/.prune;
         make $past;
     }
 
     method statement_control:sym<import>($/) {
         my $past := QAST::Var.new( :name('Nil'), :scope('lexical') );
+        $/.prune;
         make $past;
     }
 
@@ -1093,6 +1111,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 $STATEMENT_PRINT := 1;
             }
         }
+        $/.prune;
         make $past;
     }
 
@@ -1144,6 +1163,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         
         $past.push(QAST::Var.new( :name('Nil'), :scope('lexical') ));
 
+        $/.prune;
         make $past;
     }
 
@@ -1151,6 +1171,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my $past := $<xblock>.ast;
         $past.push($past.shift); # swap [0] and [1] elements
         $past.op('call');
+        $/.prune;
         make $past;
     }
 
@@ -1170,6 +1191,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         # and ensure continue/succeed handlers are in place and that a
         # succeed happens after the block.
         $pblock := pblock_immediate($pblock);
+        $/.prune;
         make QAST::Op.new( :op('if'), :node( $/ ),
             $match_past, when_handler_helper($pblock)
         );
@@ -1179,6 +1201,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         # We always execute this, so just need the block, however we also
         # want to make sure we succeed after running it.
         make when_handler_helper($<block>.ast);
+        $/.prune;
     }
 
     method statement_control:sym<CATCH>($/) {
@@ -1187,6 +1210,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
         my $block := $<block>.ast;
         set_block_handler($/, $block, 'CATCH');
+        $/.prune;
         make QAST::Var.new( :name('Nil'), :scope('lexical') );
     }
 
@@ -1196,6 +1220,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
         my $block := $<block>.ast;
         set_block_handler($/, $block, 'CONTROL');
+        $/.prune;
         make QAST::Var.new( :name('Nil'), :scope('lexical') );
     }
 
@@ -1217,16 +1242,19 @@ class Perl6::Actions is HLL::Actions does STDActions {
     method statement_prefix:sym<DOC>($/)   {
         $*W.add_phaser($/, ~$<phase>, ($<blorst>.ast)<code_object>)
             if %*COMPILING<%?OPTIONS><doc>;
+        $/.prune;
     }
 
     method statement_prefix:sym<do>($/) {
         make QAST::Op.new( :op('call'), $<blorst>.ast );
+        $/.prune;
     }
 
     method statement_prefix:sym<gather>($/) {
         my $past := block_closure($<blorst>.ast);
         $past<past_block>.push(QAST::Var.new( :name('Nil'), :scope('lexical') ));
         make QAST::Op.new( :op('call'), :name('&GATHER'), $past );
+        $/.prune;
     }
 
     method statement_prefix:sym<once>($/) {
@@ -1254,6 +1282,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             ),
             QAST::Var.new( :name($sym), :scope('lexical') )
         );
+        $/.prune;
     }
 
     method statement_prefix:sym<sink>($/) {
@@ -1263,6 +1292,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             QAST::Var.new( :name('Nil'), :scope('lexical')),
             :node($/)
         );
+        $/.prune;
     }
 
     method statement_prefix:sym<try>($/) {
@@ -1312,6 +1342,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             );
         }
         make $past;
+        $/.prune;
     }
 
     method blorst($/) {
@@ -1930,6 +1961,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         else {
             $/.CURSOR.panic('Unknown declarator type');
         }
+        $/.prune;
     }
 
     method multi_declarator:sym<multi>($/) { make $<declarator> ?? $<declarator>.ast !! $<routine_def>.ast }

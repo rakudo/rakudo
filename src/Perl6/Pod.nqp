@@ -357,8 +357,8 @@ class Perl6::Pod {
     # returns array of arrays of strings (cells)
     our sub splitrows(@rows) {
         my @suspects := []; #positions that might be cell delimiters
-                            # values: 1     – impossibru!
-                            #         unset – mebbe
+                            # values: 1     - impossibru!
+                            #         unset - mebbe
 
         my $i := 0;
         while $i < +@rows {

@@ -966,21 +966,18 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $past := xblock_immediate( $<xblock>[$count].ast );
             $past.push($else);
         }
-        $/.prune;
         make $past;
     }
 
     method statement_control:sym<unless>($/) {
         my $past := xblock_immediate( $<xblock>.ast );
         $past.op('unless');
-        $/.prune;
         make $past;
     }
 
     method statement_control:sym<while>($/) {
         my $past := xblock_immediate( $<xblock>.ast );
         $past.op(~$<sym>);
-        $/.prune;
         make tweak_loop($past);
     }
 
@@ -995,7 +992,6 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $past := QAST::Op.new( $<EXPR>.ast, pblock_immediate( $<pblock>.ast ),
                                    :op($op), :node($/) );
         }
-        $/.prune;
         make tweak_loop($past);
     }
 
@@ -1009,7 +1005,6 @@ class Perl6::Actions is HLL::Actions does STDActions {
         $past := QAST::Want.new(
             QAST::Op.new( :op<callmethod>, :name<eager>, $past ),
             'v', QAST::Op.new( :op<callmethod>, :name<sink>, $past ));
-        $/.prune;
         make $past;
     }
 
@@ -1025,7 +1020,6 @@ class Perl6::Actions is HLL::Actions does STDActions {
         if $<e1> {
             $loop := QAST::Stmts.new( $<e1>[0].ast, $loop, :node($/) );
         }
-        $/.prune;
         make $loop;
     }
     
@@ -1242,19 +1236,16 @@ class Perl6::Actions is HLL::Actions does STDActions {
     method statement_prefix:sym<DOC>($/)   {
         $*W.add_phaser($/, ~$<phase>, ($<blorst>.ast)<code_object>)
             if %*COMPILING<%?OPTIONS><doc>;
-        $/.prune;
     }
 
     method statement_prefix:sym<do>($/) {
         make QAST::Op.new( :op('call'), $<blorst>.ast );
-        $/.prune;
     }
 
     method statement_prefix:sym<gather>($/) {
         my $past := block_closure($<blorst>.ast);
         $past<past_block>.push(QAST::Var.new( :name('Nil'), :scope('lexical') ));
         make QAST::Op.new( :op('call'), :name('&GATHER'), $past );
-        $/.prune;
     }
 
     method statement_prefix:sym<once>($/) {
@@ -1282,7 +1273,6 @@ class Perl6::Actions is HLL::Actions does STDActions {
             ),
             QAST::Var.new( :name($sym), :scope('lexical') )
         );
-        $/.prune;
     }
 
     method statement_prefix:sym<sink>($/) {
@@ -1292,7 +1282,6 @@ class Perl6::Actions is HLL::Actions does STDActions {
             QAST::Var.new( :name('Nil'), :scope('lexical')),
             :node($/)
         );
-        $/.prune;
     }
 
     method statement_prefix:sym<try>($/) {
@@ -1342,7 +1331,6 @@ class Perl6::Actions is HLL::Actions does STDActions {
             );
         }
         make $past;
-        $/.prune;
     }
 
     method blorst($/) {

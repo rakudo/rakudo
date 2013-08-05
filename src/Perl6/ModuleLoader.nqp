@@ -161,15 +161,17 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
         # Provided we have a mainline and need to do global merging...
         if nqp::defined($module_ctx) {
             # Merge any globals.
+            my $UNIT := nqp::ctxlexpad($module_ctx);
             if +@GLOBALish {
-                my $UNIT := nqp::ctxlexpad($module_ctx);
                 unless nqp::isnull($UNIT<GLOBALish>) {
                     merge_globals(@GLOBALish[0], $UNIT<GLOBALish>);
                 }
             }
+            return $UNIT;
         }
-
-        return $module_ctx;
+        else {
+            return {};
+        }
     }
     
     # This is a first cut of the globals merger. For another approach,

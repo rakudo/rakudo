@@ -354,7 +354,7 @@ class Perl6::World is HLL::World {
                 ))));
         }
 
-        return nqp::ctxlexpad($module);
+        return $module;
     }
     
     # Uses the NQP module loader to load Perl6::ModuleLoader, which

@@ -40,6 +40,10 @@ my class Thread {
 # completed or even yet to start. Typically, a promise is created using the
 # C<async> function.
 my enum PromiseStatus (:Planned(0), :Running(1), :Completed(2), :Failed(3));
+my class X::Promise::Code {
+    has $.attempted;
+    method message() { "Can not $!attempted a code-based promise" }
+}
 my class Promise {
     has $.scheduler;
     has $.status;
@@ -49,32 +53,49 @@ my class Promise {
     has Mu $!ready_semaphore;
     has Mu $!then_lock;
     
-    submethod BUILD(:$!scheduler!, :&!code!, :$unscheduled = False) {
+    submethod BUILD(:$!scheduler = $*SCHEDULER, :&!code, :$scheduled = True) {
         my $interop       := nqp::jvmbootinterop();
         my \Semaphore     := $interop.typeForName('java.util.concurrent.Semaphore');
         my \ReentrantLock := $interop.typeForName('java.util.concurrent.locks.ReentrantLock');
         $!status = Planned;
         $!ready_semaphore := Semaphore.'constructor/new/(I)V'(-1);
         $!then_lock := ReentrantLock.'constructor/new/()V'();
-        self!schedule() unless $unscheduled;
+        self!schedule() if &!code && $scheduled;
     }
     
     method !schedule() {
         $!scheduler.schedule({
             $!status = Running;
-            $!result = &!code();
-            $!status = Completed;
-            $!ready_semaphore.'method/release/(I)V'(32768);
-            self!schedule_thens();
+            self!keep(&!code());
             CATCH {
                 default {
-                    $!result = $_;
-                    $!status = Failed;
-                    $!ready_semaphore.'method/release/(I)V'(32768);
-                    self!schedule_thens();
+                    self!break($_);
                 }
             }
         })
+    }
+    
+    method keep($result) {
+        X::Promise::Code.new(attempted => 'keep').throw if &!code;
+        self!keep($result)
+    }
+    
+    method !keep($!result) {
+        $!status = Completed;
+        $!ready_semaphore.'method/release/(I)V'(32768);
+        self!schedule_thens();
+        $!result
+    }
+    
+    method break($result) {
+        X::Promise::Code.new(attempted => 'break').throw if &!code;
+        self!break($result)
+    }
+    
+    method !break($!result) {
+        $!status = Failed;
+        $!ready_semaphore.'method/release/(I)V'(32768);
+        self!schedule_thens();
     }
     
     method !schedule_then($fulfilled) {
@@ -116,7 +137,7 @@ my class Promise {
         else {
             # Create a (currently unscheduled) promise and add it to
             # the list.
-            my $then_promise = Promise.new(:$!scheduler, :code(&code), :unscheduled);
+            my $then_promise = Promise.new(:$!scheduler, :code(&code), :!scheduled);
             @!thens.push($then_promise);
             $!then_lock.unlock();
             $then_promise

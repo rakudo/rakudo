@@ -49,9 +49,10 @@ public final class RakOps {
         public SixModelObject AutoThreader;
         public SixModelObject EMPTYARR;
         public SixModelObject EMPTYHASH;
+        public RakudoJavaInterop rakudoInterop;
         boolean initialized;
 
-        public GlobalExt(ThreadContext tc) { }
+        public GlobalExt(ThreadContext tc) {}
     }
 
     public static ContextKey<ThreadExt, GlobalExt> key = new ContextKey< >(ThreadExt.class, GlobalExt.class);
@@ -84,6 +85,7 @@ public final class RakOps {
             gcx.EMPTYARR = BOOTArray.st.REPR.allocate(tc, BOOTArray.st);
             SixModelObject BOOTHash = tc.gc.BOOTHash;
             gcx.EMPTYHASH = BOOTHash.st.REPR.allocate(tc, BOOTHash.st);
+            gcx.rakudoInterop = new RakudoJavaInterop(tc.gc);
             gcx.initialized = true;
         }
         return null;
@@ -819,5 +821,10 @@ public final class RakOps {
             return ((CodeRef)code).staticInfo.outerStaticInfo.staticCode;
         else
             throw ExceptionHandling.dieInternal(tc, "p6staticouter must be used on a CodeRef");
+    }
+
+    public static SixModelObject jvmrakudointerop(ThreadContext tc) {
+        GlobalExt gcx = key.getGC(tc);
+        return BootJavaInterop.RuntimeSupport.boxJava(gcx.rakudoInterop, gcx.rakudoInterop.getSTableForClass(RakudoJavaInterop.class));
     }
 }

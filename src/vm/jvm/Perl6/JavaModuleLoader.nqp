@@ -1,9 +1,14 @@
 class Perl6::JavaModuleLoader {
     my $interop;
+    my $interop_loader;
+    
+    method set_interop_loader($loader) {
+        $interop_loader := $loader;
+    }
     
     method load_module($module_name, %opts, *@GLOBALish, :$line, :$file?) {
         # Load interop support if needed.
-        $interop := nqp::jvmbootinterop() unless nqp::isconcrete($interop);
+        $interop := $interop_loader() unless nqp::isconcrete($interop);
         
         # Try to get hold of the type.
         my @parts := nqp::split('::', $module_name);
@@ -30,3 +35,4 @@ class Perl6::JavaModuleLoader {
 }
 
 Perl6::ModuleLoader.register_language_module_loader('java', Perl6::JavaModuleLoader);
+nqp::bindhllsym('perl6', 'JavaModuleLoader', Perl6::JavaModuleLoader);

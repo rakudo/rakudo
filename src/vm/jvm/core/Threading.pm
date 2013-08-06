@@ -201,7 +201,7 @@ my class ThreadPoolScheduler {
             self!maybe_new_thread() for 1..$!initial_threads;
         }
         self!maybe_new_thread()
-            if !$!started_any || $!outstanding.incrementAndGet() > 1;
+            if !$!started_any || $!outstanding.incrementAndGet() > 0;
         $!queue.add($interop.sixmodelToJavaObject(&code));
     }
     

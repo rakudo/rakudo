@@ -112,48 +112,10 @@ my class KeyBag does Associative does Baggy {
         self;
     }
     multi method classify-list( %test, *@list ) {
-        fail 'Cannot .classify an infinite list' if @list.infinite;
-        if @list {
-
-            # multi-level classify
-            if %test{@list[0]} ~~ List {
-                for @list -> $l {
-                    my @keys  = %test{$l};
-                    my $last := @keys.pop;
-                    my $bag   = self;
-                    $bag = $bag{$_} //= self.new for @keys;
-                    $bag{$last}++;
-                }
-            }
-
-            # just a simple classify
-            else {
-                self{%test{$_}}++ for @list;
-            }
-        }
-        self;
+        self.classify-list( { %test{$^a} }, @list );  # nextwith doesn't work
     }
     multi method classify-list( @test, *@list ) {
-        fail 'Cannot .classify an infinite list' if @list.infinite;
-        if @list {
-
-            # multi-level classify
-            if @test[@list[0]] ~~ List {
-                for @list -> $l {
-                    my @keys  = @test[$l];
-                    my $last := @keys.pop;
-                    my $bag   = self;
-                    $bag = $bag{$_} //= self.new for @keys;
-                    $bag{$last}++;
-                }
-            }
-
-            # just a simple classify
-            else {
-                self{@test[$_]}++ for @list;
-            }
-        }
-        self;
+        self.classify-list( { @test[$^a] }, @list );  # nextwith doesn't work
     }
 
     proto method categorize-list(|) { * }
@@ -184,56 +146,10 @@ my class KeyBag does Associative does Baggy {
         self;
     }
     multi method categorize-list( %test, *@list ) {
-        fail 'Cannot .categorize an infinite list' if @list.infinite;
-        if @list {
-
-            # multi-level categorize
-            if %test{@list[0]}[0] ~~ List {
-                for @list -> $l {
-                    for %test{$l} -> $k {
-                        my @keys  = @($k);
-                        my $last := @keys.pop;
-                        my $bag   = self;
-                        $bag = $bag{$_} //= self.new for @keys;
-                        $bag{$last}++;
-                    }
-                }
-            }
-
-            # just a simple categorize
-            else {
-                for @list -> $l {
-                    self{$_}++ for %test{$l};
-                }
-            }
-        }
-        self;
+        self.categorize-list( { %test{$^a} }, @list );  # nextwith doesn't work
     }
     multi method categorize-list( @test, *@list ) {
-        fail 'Cannot .categorize an infinite list' if @list.infinite;
-        if @list {
-
-            # multi-level categorize
-            if @test[@list[0]][0] ~~ List {
-                for @list -> $l {
-                    for @test[$l] -> $k {
-                        my @keys  = @($k);
-                        my $last := @keys.pop;
-                        my $bag   = self;
-                        $bag = $bag{$_} //= self.new for @keys;
-                        $bag{$last}++;
-                    }
-                }
-            }
-
-            # just a simple categorize
-            else {
-                for @list -> $l {
-                    self{$_}++ for @test[$l];
-                }
-            }
-        }
-        self;
+        self.categorize-list( { @test[$^a] }, @list );  # nextwith doesn't work
     }
 }
 

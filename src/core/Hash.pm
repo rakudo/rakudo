@@ -133,54 +133,10 @@ my class Hash { # declared in BOOTSTRAP
         self;
     }
     multi method classify-list( %test, *@list ) {
-        fail 'Cannot .classify an infinite list' if @list.infinite;
-        if @list {
-
-            # multi-level classify
-            if %test{@list[0]} ~~ List {
-                for @list -> $l {
-                    my @keys  = %test{$l};
-                    my $last := @keys.pop;
-                    my $hash  = self;
-                    $hash = $hash{$_} //= self.new for @keys;
-                    nqp::push(
-                      nqp::p6listitems(nqp::decont($hash{$last} //= [])), $l );
-                }
-            }
-
-            # just a simple classify
-            else {
-                nqp::push(
-                  nqp::p6listitems(nqp::decont(self{%test{$_}} //= [])), $_ )
-                  for @list;
-            }
-        }
-        self;
+        self.classify-list( { %test{$^a} }, @list );  # nextwith doesn't work
     }
     multi method classify-list( @test, *@list ) {
-        fail 'Cannot .classify an infinite list' if @list.infinite;
-        if @list {
-
-            # multi-level classify
-            if @test[@list[0]] ~~ List {
-                for @list -> $l {
-                    my @keys  = @test[$l];
-                    my $last := @keys.pop;
-                    my $hash  = self;
-                    $hash = $hash{$_} //= self.new for @keys;
-                    nqp::push(
-                      nqp::p6listitems(nqp::decont($hash{$last} //= [])), $l );
-                }
-            }
-
-            # just a simple classify
-            else {
-                nqp::push(
-                  nqp::p6listitems(nqp::decont(self{@test[$_]} //= [])), $_ )
-                  for @list;
-            }
-        }
-        self;
+        self.classify-list( { @test[$^a] }, @list );  # nextwith doesn't work
     }
 
     proto method categorize-list(|) { * }
@@ -215,64 +171,10 @@ my class Hash { # declared in BOOTSTRAP
         self;
     }
     multi method categorize-list( %test, *@list ) {
-        fail 'Cannot .categorize an infinite list' if @list.infinite;
-        if @list {
-
-            # multi-level categorize
-            if %test{@list[0]}[0] ~~ List {
-                for @list -> $l {
-                    for %test{$l} -> $k {
-                        my @keys = @($k);
-                        my $last := @keys.pop;
-                        my $hash  = self;
-                        $hash = $hash{$_} //= self.new for @keys;
-                        nqp::push(
-                          nqp::p6listitems(
-                            nqp::decont($hash{$last} //= [])), $l );
-                    }
-                }
-            }
-
-            # just a simple categorize
-            else {
-                for @list -> $l {
-                    nqp::push(
-                      nqp::p6listitems(nqp::decont(self{$_} //= [])), $l )
-                      for %test{$l};
-                }
-            }
-        }
-        self;
+        self.categorize-list( { %test{$^a} }, @list );  # nextwith doesn't work
     }
     multi method categorize-list( @test, *@list ) {
-        fail 'Cannot .categorize an infinite list' if @list.infinite;
-        if @list {
-
-            # multi-level categorize
-            if @test[@list[0]][0] ~~ List {
-                for @list -> $l {
-                    for @test[$l] -> $k {
-                        my @keys = @($k);
-                        my $last := @keys.pop;
-                        my $hash  = self;
-                        $hash = $hash{$_} //= self.new for @keys;
-                        nqp::push(
-                          nqp::p6listitems(
-                            nqp::decont($hash{$last} //= [])), $l );
-                    }
-                }
-            }
-
-            # just a simple categorize
-            else {
-                for @list -> $l {
-                    nqp::push(
-                      nqp::p6listitems(nqp::decont(self{$_} //= [])), $l )
-                      for @test[$l];
-                }
-            }
-        }
-        self;
+        self.categorize-list( { @test[$^a] }, @list );  # nextwith doesn't work
     }
 
     # push a value onto a hash slot, constructing an array if necessary

@@ -8,7 +8,9 @@ class Perl6::JavaModuleLoader {
         # Try to get hold of the type.
         my @parts := nqp::split('::', $module_name);
         my $jname := nqp::join('.', @parts);
-        my $type  := try $interop.typeForName($jname);
+        my $type  := nqp::existskey(%opts, 'jar')
+                        ?? $interop.typeForNameFromJAR($jname, nqp::decont(%opts<jar>))
+                        !! $interop.typeForName($jname);
         if $type =:= NQPMu {
             nqp::die("Could not locate Java module $jname");
         }

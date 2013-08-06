@@ -404,7 +404,7 @@ my class X::Comp::Group is Exception {
         if $.panic || @.sorrows {
             my $color = %*ENV<RAKUDO_ERROR_COLOR> // $*OS ne 'MSWin32';
             my ($red, $clear) = $color ?? ("\e[31m", "\e[0m") !! ("", "");
-            $r ~= "$red==={$clear}SORRY!$red===$clear Error while compiling $.filename\n";
+            $r ~= "$red==={$clear}SORRY!$red===$clear\n";
             for @.sorrows {
                 $r ~= .gist(:!sorry, :!expect) ~ "\n";
             }

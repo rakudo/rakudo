@@ -133,10 +133,10 @@ my class Hash { # declared in BOOTSTRAP
         self;
     }
     multi method classify-list( %test, *@list ) {
-        self.classify-list( { %test{$^a} }, @list );  # nextwith doesn't work
+        self.classify-list( { %test{$^a} }, @list );
     }
     multi method classify-list( @test, *@list ) {
-        self.classify-list( { @test[$^a] }, @list );  # nextwith doesn't work
+        self.classify-list( { @test[$^a] }, @list );
     }
 
     proto method categorize-list(|) { * }
@@ -171,10 +171,10 @@ my class Hash { # declared in BOOTSTRAP
         self;
     }
     multi method categorize-list( %test, *@list ) {
-        self.categorize-list( { %test{$^a} }, @list );  # nextwith doesn't work
+        self.categorize-list( { %test{$^a} }, @list );
     }
     multi method categorize-list( @test, *@list ) {
-        self.categorize-list( { @test[$^a] }, @list );  # nextwith doesn't work
+        self.categorize-list( { @test[$^a] }, @list );
     }
 
     # push a value onto a hash slot, constructing an array if necessary

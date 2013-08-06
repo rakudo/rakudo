@@ -50,6 +50,7 @@ public final class RakOps {
         public SixModelObject EMPTYARR;
         public SixModelObject EMPTYHASH;
         public RakudoJavaInterop rakudoInterop;
+        public SixModelObject JavaHOW;
         boolean initialized;
 
         public GlobalExt(ThreadContext tc) {}
@@ -114,6 +115,7 @@ public final class RakOps {
         gcx.ContainerDescriptor = conf.at_key_boxed(tc, "ContainerDescriptor");
         gcx.False = conf.at_key_boxed(tc, "False");
         gcx.True = conf.at_key_boxed(tc, "True");
+        gcx.JavaHOW = conf.at_key_boxed(tc, "Metamodel").st.WHO.at_key_boxed(tc, "JavaHOW");
         return conf;
     }
     

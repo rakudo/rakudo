@@ -88,6 +88,7 @@ METAMODEL_SOURCES = \
   src/Perl6/Metamodel/EnumHOW.nqp \
   src/Perl6/Metamodel/ContainerDescriptor.nqp \
   src/Perl6/Metamodel/Dispatchers.nqp \
+  src/vm/jvm/Perl6/Metamodel/JavaHOW.nqp \
 
 BOOTSTRAP_SOURCES = \
   src/Perl6/Metamodel/BOOTSTRAP.nqp \

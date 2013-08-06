@@ -1243,8 +1243,6 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
 
     method statement_prefix:sym<once>($/) {
-        my $past := block_closure($<blorst>.ast);
-        $past<past_block>.push(QAST::Var.new( :name('Nil'), :scope('lexical')));
 
         # create state variable to remember whether we ran the block
         my $pad := $*W.cur_lexpad();

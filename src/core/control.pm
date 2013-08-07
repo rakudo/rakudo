@@ -120,8 +120,8 @@ my &lastcall := -> {
 
 my &samewith := -> *@pos, *%named {
     my $my   = callframe(1).my;
-    my $self = $my<self>
-      || die "Could not find 'self'";
+    my $self = $my<self>;
+    die "Could not find 'self'" if !$self.DEFINITE;
     my $dispatcher = $my<&?ROUTINE>.dispatcher
       || die "Could not find dispatcher";
     $dispatcher( $self, |@pos, |%named );

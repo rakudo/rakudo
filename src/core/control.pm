@@ -118,6 +118,15 @@ my &lastcall := -> {
     True
 };
 
+my &samewith := -> *@pos, *%named {
+    my $caller = callframe(1);
+    my $self   = $caller.my<self>
+      || die "Could not find 'self'";
+    my $dispatcher = $caller.my<&?ROUTINE>.dispatcher
+      || die "Could not find dispatcher";
+    $dispatcher( $self, |@pos, |%named );
+}
+
 proto sub die(|) is hidden_from_backtrace {*};
 multi sub die(Exception $e) is hidden_from_backtrace { $e.throw }
 multi sub die($payload) is hidden_from_backtrace {

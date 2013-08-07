@@ -75,7 +75,7 @@ my class Promise {
         })
     }
     
-    method keep($result) {
+    method keep(Promise:D: $result) {
         X::Promise::Code.new(attempted => 'keep').throw if &!code;
         self!keep($result)
     }
@@ -87,7 +87,7 @@ my class Promise {
         $!result
     }
     
-    method break($result) {
+    method break(Promise:D: $result) {
         X::Promise::Code.new(attempted => 'break').throw if &!code;
         self!break($result)
     }
@@ -112,7 +112,7 @@ my class Promise {
         $!then_lock.unlock();
     }
     
-    method result() {
+    method result(Promise:D:) {
         # One important missing optimization here is that if the promise is
         # not yet started, then the work can be done immediately by the
         # thing that is blocking on it.
@@ -127,7 +127,7 @@ my class Promise {
         }
     }
     
-    method then(&code) {
+    method then(Promise:D: &code) {
         $!then_lock.lock();
         if $!status == any(Failed, Completed) {
             # Already have the result, schedule immediately.
@@ -142,6 +142,22 @@ my class Promise {
             $!then_lock.unlock();
             $then_promise
         }
+    }
+    
+    my Mu $timer;
+    method sleep(Promise:U: $seconds) {
+        once {
+            my Mu \Timer := nqp::jvmbootinterop().typeForName('java.util.Timer');
+            $timer       := Timer.'constructor/new/(Z)V'(True);
+            Nil;
+        }
+        my $p = Promise.new;
+        $timer.'method/schedule/(Ljava/util/TimerTask;J)V'(
+            nqp::jvmbootinterop().proxy(
+                'java.util.TimerTask',
+                nqp::hash('run', -> { $p.keep(True) })),
+            ($seconds * 1000).Int);
+        $p
     }
 }
 

@@ -44,6 +44,10 @@ my class X::Promise::Code {
     has $.attempted;
     method message() { "Can not $!attempted a code-based promise" }
 }
+my class X::Promise::Combinator {
+    has $.combinator;
+    method message() { "Can only use $!combinator to combine other Promise objects" }
+}
 my class Promise {
     has $.scheduler;
     has $.status;
@@ -127,6 +131,10 @@ my class Promise {
         }
     }
     
+    method has_result(Promise:D:) {
+        so $!status == any(Failed, Completed)
+    }
+    
     method then(Promise:D: &code) {
         $!then_lock.lock();
         if $!status == any(Failed, Completed) {
@@ -157,6 +165,36 @@ my class Promise {
                 'java.util.TimerTask',
                 nqp::hash('run', -> { $p.keep(True) })),
             ($seconds * 1000).Int);
+        $p
+    }
+    
+    method anyof(Promise:U: *@promises) {
+        X::Promise::Combinator.new(combinator => 'anyof').throw
+            unless @promises >>~~>> Promise;
+        self!until_n_kept(@promises, 1)
+    }
+    
+    method allof(Promise:U: *@promises) {
+        X::Promise::Combinator.new(combinator => 'allof').throw
+            unless @promises >>~~>> Promise;
+        self!until_n_kept(@promises, @promises.elems)
+    }
+    
+    my Mu $AtomicInteger;
+    method !until_n_kept(@promises, Int $n) {
+        once {
+            $AtomicInteger := nqp::jvmbootinterop().typeForName('java.util.concurrent.atomic.AtomicInteger');
+            Nil;
+        }
+        my Mu $c := $AtomicInteger.'constructor/new/(I)V'(nqp::decont($n));
+        my $p = Promise.new;
+        for @promises {
+            .then({
+                if $c.'decrementAndGet'() == 0 {
+                    $p.keep(Nil)
+                }
+            })
+        }
         $p
     }
 }

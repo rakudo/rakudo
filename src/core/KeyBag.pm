@@ -112,10 +112,10 @@ my class KeyBag does Associative does Baggy {
         self;
     }
     multi method classify-list( %test, *@list ) {
-        self.classify-list( { %test{$^a} }, @list );
+        samewith( { %test{$^a} }, @list );
     }
     multi method classify-list( @test, *@list ) {
-        self.classify-list( { @test[$^a] }, @list );
+        samewith( { @test[$^a] }, @list );
     }
 
     proto method categorize-list(|) { * }
@@ -146,10 +146,10 @@ my class KeyBag does Associative does Baggy {
         self;
     }
     multi method categorize-list( %test, *@list ) {
-        self.categorize-list( { %test{$^a} }, @list );
+        samewith( { %test{$^a} }, @list );
     }
     multi method categorize-list( @test, *@list ) {
-        self.categorize-list( { @test[$^a] }, @list );
+        samewith( { @test[$^a] }, @list );
     }
 }
 

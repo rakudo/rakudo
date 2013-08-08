@@ -69,6 +69,11 @@ my class Hash { # declared in BOOTSTRAP
         self
     }
 
+    method default() {
+        my $d := $!descriptor;
+        nqp::isnull($d) ?? Mu !! $d.default;
+    }
+
     proto method delete(|) { * }
     multi method delete(Hash:U:) { Nil }
     multi method delete($key as Str) {

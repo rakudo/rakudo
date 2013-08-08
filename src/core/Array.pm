@@ -73,6 +73,11 @@ class Array { # declared in BOOTSTRAP
 
     method flattens() { 1 }
 
+    method default() {
+        my $d := $!descriptor;
+        nqp::isnull($d) ?? Mu !! $d.default;
+    }
+
     multi method perl(Array:D \SELF:) {
         nqp::iscont(SELF)
           ?? '[' ~ self.map({.perl}).join(', ') ~ ']'

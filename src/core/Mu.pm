@@ -329,10 +329,6 @@ my class Mu {
     multi method gist(Mu:U:) { '(' ~ self.HOW.name(self) ~ ')' }
     multi method gist(Mu:D:) { self.perl }
 
-    proto method of(|) { * }
-    multi method of(Mu:U:) { '(' ~ self.HOW.name(self) ~ ')' }
-    multi method of(Mu:D:) { self.VAR.WHAT.of }
-
     proto method perl(|) { * }
     multi method perl(Mu:U:) { self.HOW.name(self) }
     multi method perl(Mu:D:) {

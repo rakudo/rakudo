@@ -40,15 +40,15 @@ my class Thread {
 # completed or even yet to start. Typically, a promise is created using the
 # C<async> function.
 my enum PromiseStatus (:Planned(0), :Running(1), :Kept(2), :Broken(3));
-my class X::Promise::Code {
+my class X::Promise::Code is Exception {
     has $.attempted;
     method message() { "Can not $!attempted a code-based promise" }
 }
-my class X::Promise::Combinator {
+my class X::Promise::Combinator is Exception {
     has $.combinator;
     method message() { "Can only use $!combinator to combine other Promise objects" }
 }
-my class X::Promise::CauseOnlyValidOnBroken {
+my class X::Promise::CauseOnlyValidOnBroken is Exception {
     method message() { "Can only call cause on a broken promise" }
 }
 my class Promise {

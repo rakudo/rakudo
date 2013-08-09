@@ -96,7 +96,7 @@ my class Promise {
     
     method break(Promise:D: $result) {
         X::Promise::Code.new(attempted => 'break').throw if &!code;
-        self!break($result)
+        self!break($result ~~ Exception ?? $result !! X::AdHoc.new(payload => $result))
     }
     
     method !break($!result) {

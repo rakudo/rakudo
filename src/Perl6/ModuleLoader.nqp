@@ -10,6 +10,13 @@ sub DEBUG(*@strs) {
 class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
     my %modules_loaded;
     my %settings_loaded;
+    my %language_module_loaders;
+    
+    method register_language_module_loader($lang, $loader) {
+        nqp::die("Language loader already registered for $lang")
+            if nqp::existskey(%language_module_loaders, $lang);
+        %language_module_loaders{$lang} := $loader;
+    }
     
     method ctxsave() {
         $*MAIN_CTX := nqp::ctxcaller(nqp::ctx());
@@ -40,7 +47,18 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
         @search_paths
     }
     
-    method load_module($module_name, *@GLOBALish, :$line, :$file?) {
+    method load_module($module_name, %opts, *@GLOBALish, :$line, :$file?) {
+        # See if we need to load it from elsewhere.
+        if nqp::existskey(%opts, 'from') {
+            if nqp::existskey(%language_module_loaders, %opts<from>) {
+                return %language_module_loaders{%opts<from>}.load_module($module_name,
+                    %opts, |@GLOBALish, :$line, :$file);
+            }
+            else {
+                nqp::die("Do not know how to load code from " ~ %opts<from>);
+            }
+        }
+        
         # Locate all the things that we potentially could load. Choose
         # the first one for now (XXX need to filter by version and auth).
         my @prefixes   := self.search_path();
@@ -143,15 +161,17 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
         # Provided we have a mainline and need to do global merging...
         if nqp::defined($module_ctx) {
             # Merge any globals.
+            my $UNIT := nqp::ctxlexpad($module_ctx);
             if +@GLOBALish {
-                my $UNIT := nqp::ctxlexpad($module_ctx);
                 unless nqp::isnull($UNIT<GLOBALish>) {
                     merge_globals(@GLOBALish[0], $UNIT<GLOBALish>);
                 }
             }
+            return $UNIT;
         }
-
-        return $module_ctx;
+        else {
+            return {};
+        }
     }
     
     # This is a first cut of the globals merger. For another approach,

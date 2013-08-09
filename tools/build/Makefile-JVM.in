@@ -88,6 +88,7 @@ METAMODEL_SOURCES = \
   src/Perl6/Metamodel/EnumHOW.nqp \
   src/Perl6/Metamodel/ContainerDescriptor.nqp \
   src/Perl6/Metamodel/Dispatchers.nqp \
+  src/vm/jvm/Perl6/Metamodel/JavaHOW.nqp \
 
 BOOTSTRAP_SOURCES = \
   src/Perl6/Metamodel/BOOTSTRAP.nqp \
@@ -227,8 +228,8 @@ $(RUNTIME_JAR): $(RUNTIME_JAVAS)
 	$(JAVAC) -source 1.7 -cp $(NQP_JARS) -g -d bin $(RUNTIME_JAVAS)
 	$(JAR) cf0 rakudo-runtime.jar -C bin/ .
 
-$(PERL6_ML_JAR): src/Perl6/ModuleLoader.nqp src/vm/jvm/ModuleLoaderVMConfig.nqp
-	$(PERL) $(GEN_CAT) src/vm/jvm/ModuleLoaderVMConfig.nqp src/Perl6/ModuleLoader.nqp > src/gen/ModuleLoader.nqp
+$(PERL6_ML_JAR): src/Perl6/ModuleLoader.nqp src/vm/jvm/ModuleLoaderVMConfig.nqp src/vm/jvm/Perl6/JavaModuleLoader.nqp
+	$(PERL) $(GEN_CAT) src/vm/jvm/ModuleLoaderVMConfig.nqp src/Perl6/ModuleLoader.nqp src/vm/jvm/Perl6/JavaModuleLoader.nqp > src/gen/ModuleLoader.nqp
 	$(NQP) --target=jar --output=$(PERL6_ML_JAR) --encoding=utf8 \
 	    src/gen/ModuleLoader.nqp
 

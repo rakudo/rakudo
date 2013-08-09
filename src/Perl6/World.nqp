@@ -328,13 +328,20 @@ class Perl6::World is HLL::World {
     
     # Loads a module immediately, and also makes sure we load it
     # during the deserialization.
-    method load_module($/, $module_name, $cur_GLOBALish) {
+    method load_module($/, $module_name, %opts, $cur_GLOBALish) {
         # Immediate loading.
-        my $line := HLL::Compiler.lineof($/.orig, $/.from, :cache(1));
-        my $module := Perl6::ModuleLoader.load_module($module_name, $cur_GLOBALish, :$line);
+        my $line   := HLL::Compiler.lineof($/.orig, $/.from, :cache(1));
+        my $module := Perl6::ModuleLoader.load_module($module_name, %opts,
+            $cur_GLOBALish, :$line);
         
         # During deserialization, ensure that we get this module loaded.
         if self.is_precompilation_mode() {
+            my $opt_hash := QAST::Op.new( :op('hash') );
+            for %opts {
+                self.add_object($_.value);
+                $opt_hash.push(QAST::SVal.new( :value($_.key) ));
+                $opt_hash.push(QAST::WVal.new( :value($_.value) ));
+            }
             self.add_load_dependency_task(:deserialize_past(QAST::Stmts.new(
                 self.perl6_module_loader_code(),
                 QAST::Op.new(
@@ -342,11 +349,12 @@ class Perl6::World is HLL::World {
                    QAST::Op.new( :op('getcurhllsym'),
                         QAST::SVal.new( :value('ModuleLoader') ) ),
                    QAST::SVal.new( :value($module_name) ),
+                   $opt_hash,
                    QAST::IVal.new(:value($line), :named('line'))
                 ))));
         }
 
-        return nqp::ctxlexpad($module);
+        return $module;
     }
     
     # Uses the NQP module loader to load Perl6::ModuleLoader, which
@@ -1919,6 +1927,20 @@ class Perl6::World is HLL::World {
                 }
             }
             @name
+        }
+        
+        method colonpairs_hash($dba) {
+            my %result;
+            for @!colonpairs {
+                if $_<identifier> {
+                    my $pair := $*W.compile_time_evaluate($_, $_.ast);
+                    %result{$pair.key} := $pair.value;
+                }
+                else {
+                    $_.CURSOR.panic("Colonpair too complex in $dba");
+                }
+            }
+            %result
         }
         
         method get_who() {

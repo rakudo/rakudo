@@ -247,7 +247,7 @@ my class Channel {
     
     method send(Channel:D: \item) {
         X::Channel::SendOnCompleted.new.throw if $!completed;
-        $!queue.add($interop.sixmodelToJavaObject(item))
+        $!queue.add($interop.sixmodelToJavaObject(nqp::decont(item)))
     }
     
     method receive(Channel:D:) {

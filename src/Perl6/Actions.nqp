@@ -1119,6 +1119,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             QAST::Op.new( :op('getcurhllsym'),
                 QAST::SVal.new( :value('ModuleLoader') ) ),
             $name_past,
+            QAST::Op.new( :op('hash') ),
             $*W.symbol_lookup(['GLOBAL'], $/),
         );
         if $<module_name> {

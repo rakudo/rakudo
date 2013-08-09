@@ -201,8 +201,13 @@ my class Promise {
         my $p = Promise.new;
         for @promises {
             .then({
-                if $c.'decrementAndGet'() == 0 {
-                    $p.keep(Nil)
+                if .status == Completed {
+                    if $c.'decrementAndGet'() == 0 {
+                        $p.keep(Nil)
+                    }
+                }
+                else {
+                    $p.break(.cause)
                 }
             })
         }

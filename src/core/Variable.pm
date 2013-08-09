@@ -33,13 +33,15 @@ multi trait_mod:<is>(Variable:D $v, Mu:U $is ) {
     );
 }
 multi trait_mod:<is>(Variable:D $v, :$default!) {
+    my $var  := $v.var;
+    my $what := $var.VAR.WHAT;
     # make sure we start with the default if a scalar
-    $v.var = $default if $v.var.VAR.WHAT ~~ Scalar;
+    $var = $default if $what ~~ Scalar;
     nqp::getattr(
-      $v.var,
-      $v.var.VAR.WHAT.perl ~~ m/\+/ # we have types mixed in
-        ?? $v.var.VAR.WHAT.^mro[1]  # (Hash+{TypedHash}) -> (Hash)
-        !! $v.var.VAR.WHAT,
+      $var,
+      $what.perl ~~ m/\+/ # we have types mixed in
+        ?? $what.^mro[1]  # (Hash+{TypedHash}) -> (Hash)
+        !! $what,
       '$!descriptor',
     ).set_default($default);
 }

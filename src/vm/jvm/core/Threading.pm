@@ -39,7 +39,7 @@ my class Thread {
 # A promise represents a piece of asynchronous work, which may be in progress,
 # completed or even yet to start. Typically, a promise is created using the
 # C<async> function.
-my enum PromiseStatus (:Planned(0), :Running(1), :Completed(2), :Failed(3));
+my enum PromiseStatus (:Planned(0), :Running(1), :Kept(2), :Broken(3));
 my class X::Promise::Code {
     has $.attempted;
     method message() { "Can not $!attempted a code-based promise" }
@@ -88,7 +88,7 @@ my class Promise {
     }
     
     method !keep($!result) {
-        $!status = Completed;
+        $!status = Kept;
         $!ready_semaphore.'method/release/(I)V'(32768);
         self!schedule_thens();
         $!result
@@ -100,7 +100,7 @@ my class Promise {
     }
     
     method !break($!result) {
-        $!status = Failed;
+        $!status = Broken;
         $!ready_semaphore.'method/release/(I)V'(32768);
         self!schedule_thens();
     }
@@ -123,32 +123,32 @@ my class Promise {
         # One important missing optimization here is that if the promise is
         # not yet started, then the work can be done immediately by the
         # thing that is blocking on it.
-        if $!status == none(Failed, Completed) {
+        if $!status == none(Broken, Kept) {
             $!ready_semaphore.'method/acquire/()V'();
         }
-        if $!status == Completed {
+        if $!status == Kept {
             $!result
         }
-        elsif $!status == Failed {
-            $!result.rethrow
+        elsif $!status == Broken {
+            $!result.throw
         }
     }
     
     method has_result(Promise:D:) {
-        so $!status == any(Failed, Completed)
+        so $!status == any(Broken, Kept)
     }
     
     method cause(Promise:D:) {
-        if $!status == Failed {
+        if $!status == Broken {
             $!result
         } else {
-            X::Promise::CauseOnlyValidOnFailed.new.throw
+            X::Promise::CauseOnlyValidOnBroken.new.throw
         }
     }
     
     method then(Promise:D: &code) {
         $!then_lock.lock();
-        if $!status == any(Failed, Completed) {
+        if $!status == any(Broken, Kept) {
             # Already have the result, schedule immediately.
             $!then_lock.unlock();
             Promise.new(:$!scheduler, :code({ code(self) }))
@@ -201,7 +201,7 @@ my class Promise {
         my $p = Promise.new;
         for @promises {
             .then({
-                if .status == Completed {
+                if .status == Kept {
                     if $c.'decrementAndGet'() == 0 {
                         $p.keep(Nil)
                     }

@@ -48,6 +48,9 @@ my class X::Promise::Combinator {
     has $.combinator;
     method message() { "Can only use $!combinator to combine other Promise objects" }
 }
+my class X::Promise::CauseOnlyValidOnBroken {
+    method message() { "Can only call cause on a broken promise" }
+}
 my class Promise {
     has $.scheduler;
     has $.status;
@@ -133,6 +136,14 @@ my class Promise {
     
     method has_result(Promise:D:) {
         so $!status == any(Failed, Completed)
+    }
+    
+    method cause(Promise:D:) {
+        if $!status == Failed {
+            $!result
+        } else {
+            X::Promise::CauseOnlyValidOnFailed.new.throw
+        }
     }
     
     method then(Promise:D: &code) {

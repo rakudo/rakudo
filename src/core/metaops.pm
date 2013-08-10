@@ -185,15 +185,25 @@ multi sub hyper(\op, \a, \b, :$dwim-left, :$dwim-right) {
     @alist := (@alist xx *).munch($elems) if @alist.elems < $elems;
     @blist := (@blist xx *).munch($elems) if @blist.elems < $elems;
 
-    (@alist Z @blist).map(
-        -> \x, \y {
-            Iterable.ACCEPTS(x)
-              ?? x.new(hyper(op, x, y, :$dwim-left, :$dwim-right)).item
-              !! (Iterable.ACCEPTS(y)
-                    ?? y.new(hyper(op, x, y, :$dwim-left, :$dwim-right)).item
-                    !! op.(x, y))
-        }
-    ).eager
+#?if parrot
+    my $op-str := ~op;
+    if $op-str eq 'infix:<+>' {
+        nqp::p6list(nqp::hyper_MT(a, b, 'nqp_bigint_add', Array, Int), List, Mu)
+    }
+    else {
+#?endif
+        (@alist Z @blist).map(
+            -> \x, \y {
+                Iterable.ACCEPTS(x)
+                  ?? x.new(hyper(op, x, y, :$dwim-left, :$dwim-right)).item
+                  !! (Iterable.ACCEPTS(y)
+                        ?? y.new(hyper(op, x, y, :$dwim-left, :$dwim-right)).item
+                        !! op.(x, y))
+            }
+        ).eager
+#?if parrot
+    }
+#?endif
 }
 
 multi sub hyper(\op, \obj) {

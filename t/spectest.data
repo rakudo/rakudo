@@ -665,6 +665,7 @@ S32-num/sqrt.t
 S32-num/stringify.t
 S32-num/unpolar.t
 S32-scalar/defined.t
+S32-scalar/perl.t
 S32-scalar/undef.t
 S32-str/append.t
 S32-str/bool.t

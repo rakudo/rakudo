@@ -100,6 +100,123 @@ $ops.add_hll_op('perl6', 'defor', :inlinable(1), -> $qastcomp, $op {
     $ops.result($rreg);
     $ops
 });
+$ops.add_hll_op('perl6', 'hyper_MT', :inlinable(1), -> $qastcomp, $op {
+    if +$op.list != 5 {
+        nqp::die("Operation 'hyper_MT' needs 5 operands");
+    }
+
+    # input array A and B
+    my $arr_a := $qastcomp.coerce($qastcomp.as_post( QAST::Op.new( :op<callmethod>, :name<FLATTENABLE_LIST>, $op[0] ) ), 'P');
+    my $arr_b := $qastcomp.coerce($qastcomp.as_post( QAST::Op.new( :op<callmethod>, :name<FLATTENABLE_LIST>, $op[1] ) ), 'P');
+
+    # the operation to perform, e.g. 'nqp_bigint_add'
+    unless $op[2].has_compile_time_value {
+        nqp::die("Operation must be known at compile time in op 'hyper_MT'");
+    }
+    my $operation := nqp::unbox_s($op[2].compile_time_value);
+
+    # result register type usually Array or List
+    my $rreg := $qastcomp.coerce($qastcomp.as_post( QAST::Op.new( :op<callmethod>, :name<FLATTENABLE_LIST>,
+                    QAST::Op.new( :op<callmethod>, :name<new>, $op[3] ) ) ), 'P');
+    
+    # slot type, would be Int if it is a mathematical operation
+    my $obj := $qastcomp.coerce($qastcomp.as_post( $op[4] ), 'P');
+
+    my $n := $*REGALLOC.fresh_p();
+    # create a proxy (green thread) that will write to a shared variable
+    my $write_ops := PIRT::Ops.new();
+    $write_ops.push_pirop(".param pmc results");
+    $write_ops.push_pirop(".local pmc interp, task, offset, n");
+    $write_ops.push_pirop(".local int i");
+    $write_ops.push_pirop("interp = getinterp");
+    $write_ops.push_pirop("task = interp.'current_task'()");
+    $write_ops.push_pirop("n = pop task");
+    $write_ops.push_pirop("i = n"); # XXX this is a hack
+    $write_ops.push_pirop("offset = pop task");
+    $write_ops.push_pirop('perl6_box_int', $n, 'i');
+    $write_ops.push_pirop("results[offset] = $n");
+    my $write_sub := PIRT::Sub.new();
+    $write_sub.push($write_ops);
+    $write_sub.subid('write_task');
+
+    # create the op itself
+    my $add_i_ops := PIRT::Ops.new();
+    $add_i_ops.push($write_sub);
+    $add_i_ops.push_pirop(".param pmc offset");
+    $add_i_ops.push_pirop(".local pmc interp, task, results, array_a, array_b, write_task");
+    $add_i_ops.push_pirop(".local int a, b");
+    $add_i_ops.push_pirop("interp = getinterp");
+    $add_i_ops.push_pirop("task = interp.'current_task'()");
+    $add_i_ops.push_pirop("array_b = pop task");
+    $add_i_ops.push_pirop("array_a = pop task");
+    $add_i_ops.push_pirop("results = pop task");
+    $add_i_ops.push_pirop("a = array_a[offset]"); # XXX this is a hack
+    $add_i_ops.push_pirop("b = array_b[offset]"); # XXX this is a hack
+    my $a := $*REGALLOC.fresh_p();
+    my $b := $*REGALLOC.fresh_p();
+    my $c := $*REGALLOC.fresh_p();
+    my $sub_pmc := $*REGALLOC.fresh_p();
+    $add_i_ops.push_pirop('perl6_box_int', $a, 'a');
+    $add_i_ops.push_pirop('perl6_box_int', $b, 'b');
+    $add_i_ops.push($obj);
+    $add_i_ops.push_pirop("$operation $c, $a, $b, $obj");
+    $add_i_ops.push_pirop("write_task = new ['Task']");
+    $add_i_ops.push_pirop("push write_task, offset");
+    $add_i_ops.push_pirop('push', 'write_task', $c);
+    $add_i_ops.push_pirop(".const 'Sub' \$P0 = 'write_task'");
+    $add_i_ops.push_pirop("setattribute write_task, 'code', \$P0");
+    $add_i_ops.push_pirop("setattribute write_task, 'data', results");
+    $add_i_ops.push_pirop("interp.'schedule_proxied'(write_task, results)");
+    $add_i_ops.push_pirop("wait write_task");
+    my $add_i_sub := PIRT::Sub.new();
+    $add_i_sub.push($add_i_ops);
+    $add_i_sub.subid('hyper_task');
+    
+    # the main sub, it iterates over the input arrays and creates threads (tasks)
+    my $ops := PIRT::Ops.new();
+    $ops.push($add_i_sub);
+    $ops.push_pirop(".local pmc task, operation, starter, offset, end, interp, tasks, array_a, array_b, number");
+    $ops.push_pirop(".local int offset_i");
+    
+    $ops.push_pirop("tasks = new ['ResizablePMCArray']");
+    $ops.push($arr_a);
+    $ops.push_pirop('set', 'array_a', $arr_a);
+    $ops.push($arr_b);
+    $ops.push_pirop('set', 'array_b', $arr_b);
+    $ops.push($rreg);
+    
+    $ops.push_pirop("offset = new ['Integer']");
+    $ops.push_pirop("offset = 0");
+    $ops.push_pirop("end = new ['Integer']");
+    my $end := $*REGALLOC.fresh_i();
+    $ops.push_pirop("$end = '&prefix:<+>'(array_a)");
+    $ops.push_pirop("end = $end");
+    
+    $ops.push_pirop("offset_i = offset");
+    $ops.push_pirop("spawn_tasks:");
+    $ops.push_pirop("task = new ['Task']");
+    $ops.push_pirop('push', 'task', $rreg);
+    $ops.push_pirop("push task, array_a");
+    $ops.push_pirop("push task, array_b");
+    $ops.push_pirop(".const 'Sub' \$P0 = 'hyper_task'");
+    $ops.push_pirop("setattribute task, 'code', \$P0");
+    $ops.push_pirop("number = new ['Integer']");
+    $ops.push_pirop("number = offset_i");
+    $ops.push_pirop("setattribute task, 'data', number");
+    $ops.push_pirop("push tasks, task");
+    $ops.push_pirop("schedule task");
+    $ops.push_pirop("inc offset_i");
+    $ops.push_pirop("if end > offset_i goto spawn_tasks");
+    
+    $ops.push_pirop("offset_i = offset");
+    $ops.push_pirop("join_tasks:");
+    $ops.push_pirop("task = tasks[offset_i]");
+    $ops.push_pirop("wait task");
+    $ops.push_pirop("inc offset_i");
+    $ops.push_pirop("if end > offset_i goto join_tasks");
+    $ops.result($rreg);
+    $ops
+});
 
 # Boxing and unboxing configuration.
 QAST::Operations.add_hll_box('perl6', 'i', -> $qastcomp, $post {

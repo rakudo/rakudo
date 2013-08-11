@@ -106,17 +106,20 @@ my class PseudoStash is EnumMap {
     
     method at_key($key is copy) is rw {
         $key = $key.Str;
+        my Mu $nkey := nqp::unbox_s($key);
         if %pseudoers.exists($key) {
             %pseudoers{$key}(self)
         }
         elsif nqp::bitand_i($!mode, PRECISE_SCOPE) {
             my Mu $store := nqp::getattr(self, EnumMap, '$!storage');
-            my Mu $res := nqp::existskey($store, nqp::unbox_s($key)) ??
-                            nqp::atkey($store, nqp::unbox_s($key)) !!
+            my Mu $res := nqp::existskey($store, $nkey) ??
+                            nqp::atkey($store, $nkey) !!
                             Any;
             if !($res =:= Any) && nqp::bitand_i($!mode, REQUIRE_DYNAMIC) {
-                if !$res.VAR.dynamic {
-                    die "You're trying to access a non-dynamic variable through CALLER.";
+                if !$res.VAR.dynamic
+                  && nqp::substr($nkey, 1, 1) ne '*'
+                  && $key ne '$_' && $key ne '$/' && $key ne '$!' {
+                    die "You're trying to access $key through CALLER, but it is not dynamic."
                 }
             }
             $res;
@@ -124,13 +127,13 @@ my class PseudoStash is EnumMap {
         elsif nqp::bitand_i($!mode, nqp::bitor_i(DYNAMIC_CHAIN, PICK_CHAIN_BY_NAME)) && substr($key, 1, 1) eq '*' {
             my $found := nqp::getlexreldyn(
                 nqp::getattr(self, PseudoStash, '$!ctx'),
-                nqp::unbox_s($key));
+                $nkey);
             nqp::isnull($found) ?? Any !! $found
         }
         else {
             my $found := nqp::getlexrel(
                 nqp::getattr(self, PseudoStash, '$!ctx'),
-                nqp::unbox_s($key));
+                $nkey);
             nqp::isnull($found) ?? Any !! $found
         }
     }

@@ -8,7 +8,8 @@ my class PseudoStash is EnumMap {
     my int constant PICK_CHAIN_BY_NAME = 0;
     my int constant STATIC_CHAIN       = 1;
     my int constant DYNAMIC_CHAIN      = 2;
-    my int constant PRECISE_SCOPE      = 3;
+    my int constant PRECISE_SCOPE      = 4;
+    my int constant REQUIRE_DYNAMIC    = 8;
 
     method new() {
         my $obj := nqp::create(self);
@@ -45,7 +46,7 @@ my class PseudoStash is EnumMap {
             my $stash := nqp::create(PseudoStash);
             nqp::bindattr($stash, EnumMap, '$!storage', nqp::ctxlexpad($ctx));
             nqp::bindattr($stash, PseudoStash, '$!ctx', $ctx);
-            nqp::bindattr_i($stash, PseudoStash, '$!mode', PRECISE_SCOPE);
+            nqp::bindattr_i($stash, PseudoStash, '$!mode', PRECISE_SCOPE +| REQUIRE_DYNAMIC);
             nqp::setwho(
                 Metamodel::ModuleHOW.new_type(:name('CALLER')),
                 $stash);
@@ -108,13 +109,19 @@ my class PseudoStash is EnumMap {
         if %pseudoers.exists($key) {
             %pseudoers{$key}(self)
         }
-        elsif $!mode == PRECISE_SCOPE {
+        elsif nqp::bitand_i($!mode, PRECISE_SCOPE) {
             my Mu $store := nqp::getattr(self, EnumMap, '$!storage');
-            nqp::existskey($store, nqp::unbox_s($key)) ??
-                nqp::atkey($store, nqp::unbox_s($key)) !!
-                Any
+            my Mu $res := nqp::existskey($store, nqp::unbox_s($key)) ??
+                            nqp::atkey($store, nqp::unbox_s($key)) !!
+                            Any;
+            if !($res =:= Any) && nqp::bitand_i($!mode, REQUIRE_DYNAMIC) {
+                if !$res.VAR.dynamic {
+                    die "You're trying to access a non-dynamic variable through CALLER.";
+                }
+            }
+            $res;
         }
-        elsif $!mode == DYNAMIC_CHAIN || $!mode == PICK_CHAIN_BY_NAME && substr($key, 1, 1) eq '*' {
+        elsif nqp::bitand_i($!mode, nqp::bitor_i(DYNAMIC_CHAIN, PICK_CHAIN_BY_NAME)) && substr($key, 1, 1) eq '*' {
             my $found := nqp::getlexreldyn(
                 nqp::getattr(self, PseudoStash, '$!ctx'),
                 nqp::unbox_s($key));
@@ -133,11 +140,11 @@ my class PseudoStash is EnumMap {
         if %pseudoers.exists($key) {
             X::Bind.new(target => "pseudo-package $key").throw;
         }
-        elsif $!mode == PRECISE_SCOPE {
+        elsif nqp::bitand_i($!mode, PRECISE_SCOPE) {
             my Mu $store := nqp::getattr(self, EnumMap, '$!storage');
             nqp::bindkey($store, nqp::unbox_s($key), value)
         }
-        elsif $!mode == DYNAMIC_CHAIN || $!mode == PICK_CHAIN_BY_NAME && substr($key, 1, 1) eq '*' {
+        elsif nqp::bitand_i($!mode, nqp::bitor_i(DYNAMIC_CHAIN, PICK_CHAIN_BY_NAME)) && substr($key, 1, 1) eq '*' {
             die "Binding to dynamic variables not yet implemented";
         }
         else {
@@ -150,12 +157,12 @@ my class PseudoStash is EnumMap {
         if %pseudoers.exists($key) {
             True
         }
-        elsif $!mode == PRECISE_SCOPE {
+        elsif nqp::bitand_i($!mode, PRECISE_SCOPE) {
             nqp::p6bool(nqp::existskey(
                 nqp::getattr(self, EnumMap, '$!storage'),
                 nqp::unbox_s($key)))
         }
-        elsif $!mode == DYNAMIC_CHAIN || $!mode == PICK_CHAIN_BY_NAME && substr($key, 1, 1) eq '*' {
+        elsif nqp::bitand_i($!mode, nqp::bitor_i(DYNAMIC_CHAIN, PICK_CHAIN_BY_NAME)) && substr($key, 1, 1) eq '*' {
             nqp::isnull(
                 nqp::getlexreldyn(
                     nqp::getattr(self, PseudoStash, '$!ctx'),

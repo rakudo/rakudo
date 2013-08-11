@@ -46,9 +46,15 @@ multi trait_mod:<is>(Variable:D $v, :$default!) {
     ).set_default($default);
 }
 multi trait_mod:<is>(Variable:D $v, :$dynamic!) {
-# must be a noop for now, as apparently outer scope lexicals are *always*
-# visible with the CALLER:: interface, even if they're *not* marked as
-# "is dynamic"
+    my $var  := $v.var;
+    my $what := $var.VAR.WHAT;
+    nqp::getattr(
+      $var,
+      $what.perl ~~ m/\+/ # we have types mixed in
+        ?? $what.^mro[1]  # (Hash+{TypedHash}) -> (Hash)
+        !! $what,
+      '$!descriptor',
+    ).set_dynamic($dynamic);
 }
 
 # "of" traits

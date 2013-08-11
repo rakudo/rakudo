@@ -1,4 +1,5 @@
 my class X::Bind { ... }
+my class X::Caller::NotDynamic { ... }
 
 my class PseudoStash is EnumMap {
     has Mu $!ctx;
@@ -119,7 +120,9 @@ my class PseudoStash is EnumMap {
                 if !$res.VAR.dynamic
                   && nqp::substr($nkey, 1, 1) ne '*'
                   && $key ne '$_' && $key ne '$/' && $key ne '$!' {
-                    die "You're trying to access $key through CALLER, but it is not dynamic."
+                    X::Caller::NotDynamic.new(
+                        symbol => $key,
+                    ).throw;
                 }
             }
             $res;

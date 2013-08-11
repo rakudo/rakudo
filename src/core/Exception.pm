@@ -1281,6 +1281,13 @@ my class X::Multi::NoMatch is Exception {
     }
 }
 
+my class X::Caller::NotDynamic is Exception {
+    has $.symbol;
+    method message() {
+        "Cannot access '$.symbol' through CALLER, because it is not declared as dynamic";
+    }
+}
+
 {
     my %c_ex;
     %c_ex{'X::TypeCheck::Binding'} := sub ($got, $expected) is hidden_from_backtrace {

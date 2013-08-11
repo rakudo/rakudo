@@ -16,10 +16,20 @@ my class Hash { # declared in BOOTSTRAP
             nqp::getattr(self, EnumMap, '$!storage') !!
             nqp::bindattr(self, EnumMap, '$!storage', nqp::hash());
         $key = $key.Str;
-        nqp::existskey($storage, nqp::unbox_s($key))
-          ?? nqp::atkey($storage, nqp::unbox_s($key))
-          !! nqp::p6bindattrinvres(my $v, Scalar, '$!whence',
-                 -> { nqp::bindkey($storage, nqp::unbox_s($key), $v) } )
+        if nqp::existskey($storage, nqp::unbox_s($key)) {
+            nqp::atkey($storage, nqp::unbox_s($key));
+        }
+        else {
+            my $default := self.VAR.default;
+            nqp::p6bindattrinvres(
+              my $v = (nqp::istype($default,Any)
+                ?? $default
+                !! (nqp::istype(self.VAR.of,Any) ?? self.VAR.of !! Any )),
+              Scalar,
+              '$!whence',
+              -> { nqp::bindkey($storage, nqp::unbox_s($key), $v) }
+            );
+        }
     }
 
     method bind_key($key, Mu \bindval) is rw {
@@ -199,10 +209,20 @@ my class Hash { # declared in BOOTSTRAP
     my role TypedHash[::TValue] does Associative[TValue] {
         method at_key(::?CLASS:D: $key is copy, TValue $v? is copy) is rw {
             $key = $key.Str;
-            self.exists($key)
-              ?? nqp::findmethod(EnumMap, 'at_key')(self, $key)
-              !! nqp::p6bindattrinvres($v, Scalar, '$!whence',
-                     -> { nqp::findmethod(EnumMap, 'STORE_AT_KEY')(self, $key, $v) } )
+            if self.exists($key) {
+                nqp::findmethod(EnumMap, 'at_key')(self, $key);
+            }
+            else {
+                my $default := self.VAR.default;
+                nqp::p6bindattrinvres(
+                  $v //= (nqp::istype($default,Any)
+                    ?? $default
+                    !! (nqp::istype(self.VAR.of,Any) ?? self.VAR.of !! Any)),
+                  Scalar,
+                  '$!whence',
+                  -> { nqp::findmethod(EnumMap, 'STORE_AT_KEY')(self,$key,$v) }
+                );
+            }
         }
         method STORE_AT_KEY(Str \key, TValue $x is copy) is rw {
             nqp::findmethod(EnumMap, 'STORE_AT_KEY')(self, key, $x);
@@ -228,10 +248,18 @@ my class Hash { # declared in BOOTSTRAP
         method keyof () { TKey }
         method at_key(::?CLASS:D: TKey \key, TValue $v? is copy) is rw {
             my $key_which = key.WHICH;
-            self.exists(key)
-              ?? nqp::findmethod(EnumMap, 'at_key')(self, $key_which)
-              !! nqp::p6bindattrinvres($v, Scalar, '$!whence',
-                 -> {
+            if self.exists(key) {
+                nqp::findmethod(EnumMap, 'at_key')(self, $key_which);
+            }
+            else {
+                my $default := self.VAR.default;
+                nqp::p6bindattrinvres(
+                  $v //= (nqp::istype($default,Any)
+                    ?? $default
+                    !! (nqp::istype(self.VAR.of,Any) ?? self.VAR.of !! Any)),
+                  Scalar,
+                  '$!whence',
+                   -> {
                         nqp::defined(nqp::getattr(self, $?CLASS, '$!keys')) ||
                             nqp::bindattr(self, $?CLASS, '$!keys', nqp::hash());
                         nqp::defined(nqp::getattr(self, EnumMap, '$!storage')) ||
@@ -244,7 +272,8 @@ my class Hash { # declared in BOOTSTRAP
                             nqp::getattr(self, EnumMap, '$!storage'),
                             nqp::unbox_s($key_which),
                             $v);
-                    })
+                    });
+            }
         }
         method STORE_AT_KEY(TKey \key, TValue $x is copy) is rw {
             my $key_which = key.WHICH;

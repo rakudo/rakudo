@@ -22,22 +22,42 @@ class Array { # declared in BOOTSTRAP
         my int $p = nqp::unbox_i($pos.Int);
         my Mu $items := nqp::p6listitems(self);
         # hotpath check for element existence (RT #111848)
-        nqp::existspos($items, $p)
-              || nqp::getattr(self, List, '$!nextiter').defined
-                  && self.exists($p)
-          ?? nqp::atpos($items, $p)
-          !! nqp::p6bindattrinvres(my $v, Scalar, '$!whence',
-                 -> { nqp::bindpos($items, $p, $v) } )
+        if nqp::existspos($items, $p)
+          || nqp::getattr(self, List, '$!nextiter').defined
+          && self.exists($p) {
+            nqp::atpos($items, $p);
+        }
+        else {
+            my $default := self.VAR.default;
+            nqp::p6bindattrinvres(
+              my $v = (nqp::istype($default,Any)
+                ?? $default
+                !! (nqp::istype(self.VAR.of,Any) ?? self.VAR.of !! Any)),
+              Scalar,
+              '$!whence',
+              -> { nqp::bindpos($items, $p, $v) }
+            );
+        }
     }
     multi method at_pos(Array:D: int $pos) is rw {
         my Mu $items := nqp::p6listitems(self);
         # hotpath check for element existence (RT #111848)
-        nqp::existspos($items, $pos)
-              || nqp::getattr(self, List, '$!nextiter').defined
-                  && self.exists($pos)
-          ?? nqp::atpos($items, $pos)
-          !! nqp::p6bindattrinvres(my $v, Scalar, '$!whence',
-                 -> { nqp::bindpos($items, $pos, $v) } )
+        if nqp::existspos($items, $pos)
+          || nqp::getattr(self, List, '$!nextiter').defined
+          && self.exists($pos) {
+            nqp::atpos($items, $pos);
+        }
+        else {
+            my $default := self.VAR.default;
+            nqp::p6bindattrinvres(
+              my $v = (nqp::istype($default,Any)
+                ?? $default
+                !! (nqp::istype(self.VAR.of,Any) ?? self.VAR.of !! Any)),
+              Scalar,
+              '$!whence',
+              -> { nqp::bindpos($items, $pos, $v) }
+            );
+        }
     }
 
     proto method bind_pos(|) { * }
@@ -114,16 +134,39 @@ class Array { # declared in BOOTSTRAP
     my role TypedArray[::TValue] does Positional[TValue] {
         multi method at_pos($pos is copy, TValue $v? is copy) is rw {
             $pos = $pos.Int;
-            self.exists($pos)
-              ?? nqp::atpos(nqp::getattr(self, List, '$!items'), nqp::unbox_i($pos))
-              !! nqp::p6bindattrinvres($v, Scalar, '$!whence',
-                     -> { nqp::bindpos(nqp::getattr(self, List, '$!items'), nqp::unbox_i($pos), $v) } )
+            if self.exists($pos) {
+                nqp::atpos(
+                  nqp::getattr(self, List, '$!items'), nqp::unbox_i($pos)
+                );
+            }
+            else {
+                my $default := self.VAR.default;
+                nqp::p6bindattrinvres(
+                  $v //= (nqp::istype($default,Any)
+                    ?? $default
+                    !! (nqp::istype(self.VAR.of,Any) ?? self.VAR.of !! Any)),
+                  Scalar,
+                  '$!whence',
+                  -> { nqp::bindpos(
+                    nqp::getattr(self,List,'$!items'), nqp::unbox_i($pos),$v) }
+                );
+            }
         }
         multi method at_pos(int $pos, TValue $v? is copy) is rw {
-            self.exists($pos)
-              ?? nqp::atpos(nqp::getattr(self, List, '$!items'), $pos)
-              !! nqp::p6bindattrinvres($v, Scalar, '$!whence',
-                     -> { nqp::bindpos(nqp::getattr(self, List, '$!items'), $pos, $v) } )
+            if self.exists($pos) {
+                nqp::atpos(nqp::getattr(self, List, '$!items'), $pos);
+            }
+            else {
+                my $default := self.VAR.default;
+                nqp::p6bindattrinvres(
+                  $v //= (nqp::istype($default,Any)
+                    ?? $default
+                    !! (nqp::istype(self.VAR.of,Any) ?? self.VAR.of !! Any)),
+                  Scalar,
+                  '$!whence',
+                  -> { nqp::bindpos(nqp::getattr(self, List,'$!items'),$pos,$v)}
+                );
+            }
         }
         multi method bind_pos($pos is copy, TValue \bindval) is rw {
             $pos = $pos.Int;

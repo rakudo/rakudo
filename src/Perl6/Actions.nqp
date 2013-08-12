@@ -1,7 +1,6 @@
 use NQPP6QRegex;
 use NQPP5QRegex;
 use Perl6::Pod;
-use Perl6::ConstantFolder;
 use Perl6::Ops;
 use QRegex;
 use QAST;
@@ -3069,21 +3068,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             my $cur_key;
             if istype($_.returns(), $Pair) {
                 $cur_key := $_[1].compile_time_value;
-                if $_[2].has_compile_time_value {
-                    $cur_value := $_[2].compile_time_value;
-                }
-                else {
-                    my int $ok := 0;
-                    try {
-                        $cur_value := Perl6::ConstantFolder.fold(
-                                        $_[2], $*W.cur_lexpad(), $*W
-                                    ).compile_time_value;
-                        $ok := 1;
-                    }
-                    unless $ok {
-                        $cur_value := $*W.compile_time_evaluate($<term>, $_[2]);
-                    }
-                }
+                $cur_value := $*W.compile_time_evaluate($<term>, $_[2]);
                 if $has_base_type {
                     unless istype($cur_value, $base_type) {
                         $/.CURSOR.panic("Type error in enum. Got '"

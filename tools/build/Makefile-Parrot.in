@@ -57,8 +57,6 @@ PERL6_PBC     = perl6.pbc
 PERL6_EXE     = perl6$(EXE)
 PERL6_ML      = src/gen/perl6-moduleloader.pir
 PERL6_ML_PBC  = blib/Perl6/ModuleLoader.pbc
-PERL6_CF      = src/gen/perl6-constantfolder.pir
-PERL6_CF_PBC  = blib/Perl6/ConstantFolder.pbc
 PERL6_W       = src/gen/perl6-symboltable.pir
 PERL6_W_PBC   = blib/Perl6/World.pbc
 PERL6_G       = src/gen/perl6-grammar.pir
@@ -284,7 +282,6 @@ all: check-versions $(PERL6_EXE) $(SETTING_PBC) $(R_SETTING_PBC) lib/lib.pir lib
 install: all
 	$(MKPATH)                     $(DESTDIR)$(NQP_LANG_DIR)/lib/Perl6
 	$(CP) $(PERL6_ML_PBC)         $(DESTDIR)$(NQP_LANG_DIR)/lib/Perl6/ModuleLoader.pbc
-	$(CP) $(PERL6_CF_PBC)         $(DESTDIR)$(NQP_LANG_DIR)/lib/Perl6/ConstantFolder.pbc
 	$(CP) $(PERL6_W_PBC)          $(DESTDIR)$(NQP_LANG_DIR)/lib/Perl6/World.pbc
 	$(CP) $(PERL6_G_PBC)          $(DESTDIR)$(NQP_LANG_DIR)/lib/Perl6/Grammar.pbc
 	$(CP) $(PERL6_OPS_PBC)        $(DESTDIR)$(NQP_LANG_DIR)/lib/Perl6/Ops.pbc
@@ -340,11 +337,6 @@ $(PERL6_ML_PBC): $(NQP_EXE) $(DYNEXT_DYNOPS) src/Perl6/ModuleLoader.nqp src/vm/p
 	    src/gen/ModuleLoader.nqp
 	$(PARROT) $(PARROT_ARGS) -o $(PERL6_ML_PBC) $(PERL6_ML)
 
-$(PERL6_CF_PBC): $(NQP_EXE) $(DYNEXT_DYNOPS) src/Perl6/ConstantFolder.nqp
-	$(NQP_EXE) --target=pir --output=$(PERL6_CF) --encoding=utf8 \
-	    src/Perl6/ConstantFolder.nqp
-	$(PARROT) $(PARROT_ARGS) -o $(PERL6_CF_PBC) $(PERL6_CF)
-
 $(PERL6_W_PBC): $(NQP_EXE) $(PERL6_ML_PBC) src/Perl6/World.nqp
 	$(NQP_EXE) --vmlibs=perl6_ops --target=pir --output=$(PERL6_W) --encoding=utf8 \
 	    src/Perl6/World.nqp
@@ -360,7 +352,7 @@ $(PERL6_OPS_PBC): $(NQP_EXE) $(DYNEXT_DYNOPS) src/vm/parrot/Perl6/Ops.nqp
 	    src/vm/parrot/Perl6/Ops.nqp
 	$(PARROT) $(PARROT_ARGS) -o $(PERL6_OPS_PBC) $(PERL6_OPS)
 
-$(PERL6_A_PBC): $(NQP_EXE) $(DYNEXT_DYNOPS) src/Perl6/Actions.nqp $(PERL6_P_PBC) $(PERL6_CF_PBC) $(PERL6_OPS_PBC)
+$(PERL6_A_PBC): $(NQP_EXE) $(DYNEXT_DYNOPS) src/Perl6/Actions.nqp $(PERL6_P_PBC) $(PERL6_OPS_PBC)
 	$(NQP_EXE) --vmlibs=perl6_ops  --target=pir --output=$(PERL6_A) --encoding=utf8 \
 	    src/Perl6/Actions.nqp
 	$(PARROT) $(PARROT_ARGS) -o $(PERL6_A_PBC) $(PERL6_A)

@@ -30,7 +30,6 @@ RUNNER = @runner@
 # files we create
 PERL6_JAR     = perl6.jar
 PERL6_ML_JAR  = blib/Perl6/ModuleLoader.jar
-PERL6_CF_JAR  = blib/Perl6/ConstantFolder.jar
 PERL6_W_JAR   = blib/Perl6/World.jar
 PERL6_G_JAR   = blib/Perl6/Grammar.jar
 PERL6_OPS_JAR = blib/Perl6/Ops.jar
@@ -42,7 +41,7 @@ PERL6_M_JAR   = blib/Perl6/Metamodel.jar
 PERL6_B_JAR   = blib/Perl6/BOOTSTRAP.jar
 SETTING_JAR   = CORE.setting.jar
 
-PERL6_LANG_JARS = $(PERL6_ML_JAR) $(PERL6_CF_JAR) $(PERL6_W_JAR) $(PERL6_G_JAR) $(PERL6_OPS_JAR) $(PERL6_A_JAR) \
+PERL6_LANG_JARS = $(PERL6_ML_JAR) $(PERL6_W_JAR) $(PERL6_G_JAR) $(PERL6_OPS_JAR) $(PERL6_A_JAR) \
   $(PERL6_O_JAR) $(PERL6_P_JAR) $(PERL6_C_JAR) $(PERL6_M_JAR) $(PERL6_B_JAR)
 
 METAMODEL_SOURCES = \
@@ -233,10 +232,6 @@ $(PERL6_ML_JAR): src/Perl6/ModuleLoader.nqp src/vm/jvm/ModuleLoaderVMConfig.nqp 
 	$(NQP) --target=jar --output=$(PERL6_ML_JAR) --encoding=utf8 \
 	    src/gen/ModuleLoader.nqp
 
-$(PERL6_CF_JAR): src/Perl6/ConstantFolder.nqp
-	$(NQP) --target=jar --output=$(PERL6_CF_JAR) --encoding=utf8 \
-	    src/Perl6/ConstantFolder.nqp
-
 $(PERL6_W_JAR): $(PERL6_ML_JAR) src/Perl6/World.nqp
 	$(NQP) --target=jar --output=$(PERL6_W_JAR) --encoding=utf8 \
 	    src/Perl6/World.nqp
@@ -249,7 +244,7 @@ $(PERL6_OPS_JAR): src/vm/jvm/Perl6/Ops.nqp
 	$(NQP) --target=jar --output=$(PERL6_OPS_JAR) --encoding=utf8 \
 	    src/vm/jvm/Perl6/Ops.nqp
 
-$(PERL6_A_JAR): src/Perl6/Actions.nqp $(PERL6_P_JAR) $(PERL6_CF_JAR) $(PERL6_OPS_JAR)
+$(PERL6_A_JAR): src/Perl6/Actions.nqp $(PERL6_P_JAR) $(PERL6_OPS_JAR)
 	$(NQP) --target=jar --output=$(PERL6_A_JAR) --encoding=utf8 \
 	    src/Perl6/Actions.nqp
 

@@ -754,6 +754,15 @@ my class X::Syntax::UnlessElse does X::Syntax {
     method message() { '"unless" does not take "else", please rewrite using "if"' }
 }
 
+my class X::Syntax::IfAsFunction does X::Syntax {
+    has $.word;
+    has $.needparens;
+    method message {
+        "Word '$.word' interpreted as '{$.word}()' function call; please use whitespace "
+            ~ ($.needparens ?? 'around the parens' !! 'instead of parens')
+    }
+}
+
 my class X::Syntax::Malformed::Elsif does X::Syntax {
     has $.what = 'else if';
     method message() { qq{In Perl 6, please use "elsif' instead of "$.what"} }

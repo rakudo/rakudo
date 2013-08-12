@@ -1434,8 +1434,10 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                     if $m<ctx> eq '(' {
                         $/.CURSOR.'!clear_highwater'();
                         $/.CURSOR.'!cursor_pos'($m_pos);
-                        $/.CURSOR.sorry("Word '$_' interpreted as '$_" ~ "()' function call; please use whitespace " ~
-                            ($needparens ?? 'around the parens' !! 'instead of parens'));
+                        $/.CURSOR.typed_sorry('X::Syntax::IfAsFunction',
+                                word => $_,
+                                :$needparens,
+                        );
                         $/.CURSOR.'!cursor_pos'($pos);
                         $/.CURSOR.panic("Unexpected block in infix position (two terms in a row)");
                     }

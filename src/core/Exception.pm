@@ -754,7 +754,7 @@ my class X::Syntax::UnlessElse does X::Syntax {
     method message() { '"unless" does not take "else", please rewrite using "if"' }
 }
 
-my class X::Syntax::IfAsFunction does X::Syntax {
+my class X::Syntax::KeywordAsFunction does X::Syntax {
     has $.word;
     has $.needparens;
     method message {

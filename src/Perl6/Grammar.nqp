@@ -1434,7 +1434,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                     if $m<ctx> eq '(' {
                         $/.CURSOR.'!clear_highwater'();
                         $/.CURSOR.'!cursor_pos'($m_pos);
-                        $/.CURSOR.typed_sorry('X::Syntax::IfAsFunction',
+                        $/.CURSOR.typed_sorry('X::Syntax::KeywordAsFunction',
                                 word => $_,
                                 :$needparens,
                         );

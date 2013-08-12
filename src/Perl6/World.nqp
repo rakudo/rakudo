@@ -374,7 +374,8 @@ class Perl6::World is HLL::World {
                     QAST::SVal.new( :value('nqp') ),
                     QAST::SVal.new( :value('ModuleLoader') )
                 ),
-                QAST::SVal.new( :value('Perl6::ModuleLoader') )
+                QAST::SVal.new( :value('Perl6::ModuleLoader') ),
+                QAST::Op.new( :op('hash') )
             ))
     }
     

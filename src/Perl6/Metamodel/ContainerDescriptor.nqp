@@ -5,11 +5,12 @@ class Perl6::Metamodel::ContainerDescriptor {
     has     $!default;
     has int $!dynamic;
     
-    method BUILD(:$of, :$rw, :$name, :$default) {
+    method BUILD(:$of, :$rw, :$name, :$default, :$dynamic) {
         $!of := $of;
         $!rw := $rw;
         $!name := $name;
         $!default := $default;
+        $!dynamic := $dynamic;
     }
     
     method of() { $!of }

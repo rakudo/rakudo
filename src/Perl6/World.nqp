@@ -639,9 +639,9 @@ class Perl6::World is HLL::World {
     }
     
     # Creates a new container descriptor and adds it to the SC.
-    method create_container_descriptor($of, $rw, $name, $default = $of) {
+    method create_container_descriptor($of, $rw, $name, $default = $of, $dynamic = 0) {
         my $cd_type := self.find_symbol(['ContainerDescriptor']);
-        my $cd := $cd_type.new( :$of, :$rw, :$name, :$default );
+        my $cd := $cd_type.new( :$of, :$rw, :$name, :$default, :$dynamic );
         self.add_object($cd);
         $cd
     }
@@ -658,7 +658,7 @@ class Perl6::World is HLL::World {
         }
         else {
             my $Mu     := self.find_symbol(['Mu']);
-            my $Any    := self.find_symbol(['Any']);
+            my $Nil    := self.find_symbol(['Nil']);
             my $Scalar := self.find_symbol(['Scalar']);
             
             %info := nqp::hash(
@@ -666,9 +666,9 @@ class Perl6::World is HLL::World {
                 'container_type',  $Scalar,
                 'bind_constraint', $Mu,
                 'value_type',      $Mu,
-                'default_value',   $Any
+                'default_value',   $Nil,
             );
-            $desc := self.create_container_descriptor($Mu, 1, $name, $Any);
+            $desc := self.create_container_descriptor($Mu, 1, $name, $Nil, 1);
 
             %!magical_cds{$name} := [%info, $desc];
         }

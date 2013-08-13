@@ -538,36 +538,48 @@ multi sub await(Channel $c) {
 
 # Takes a list of pairs, mapping a Channel or Promise to code. Invokes the
 # code block of whichever Channel receives first whichever Promise is kept
-# or broken first. Evaluates to the result of that code block. If none of
-# the channels have a value or none of the promises have a result, blocks
-# until one does.
+# or broken first. Evaluates to the result of that code block.
+# If none of the channels have a value or none of the promises have a result,
+# then the default block is ran. If there is no default block, select() blocks
+# until one channel or promise is ready.
+# If more than one channel/promise is ready, select() picks one at random
 proto sub select(|) { * }
-multi sub select(*@selectors) {
-    # XXX Crappy spinning implementation; do something better soon.
-    my $found;
-    my $arg;
-    until $found {
+multi sub select(*@selectors, :$default) {
+    multi is-ready(Promise $p) {
+        if $p.has_result {
+            return (True, $p)
+        }
+        return (False, False)
+    }
+
+    multi is-ready(Channel $c) {
+        my $selected = $c.poll;
+        unless $selected === Nil {
+            return (True, $selected)
+        }
+        return (False, False)
+    }
+    multi is-ready(Any $c) {
+        die "Cannot use select on a " ~ .^name;
+    }
+
+    loop {
+        my @ready;
+        my @waiting;
         for @selectors -> $s {
             die "select expects to be passed a list of pairs" unless $s ~~ Pair;
-            given $s.key {
-                when Promise {
-                    if .has_result {
-                        $found := $s.value();
-                        $arg   := $_;
-                    }
-                }
-                when Channel {
-                    my \selected := .poll;
-                    unless selected === Nil {
-                        $found := $s.value();
-                        $arg   := selected;
-                    }
-                }
-                default {
-                    die "Cannot use select on a " ~ .^name;
-                }
+            my $arg = is-ready($s.key);
+            if $arg[0] {
+                @ready.push: $s.value => $arg[1]
+            } else {
+                @waiting.push: $s
             }
         }
+        if @ready {
+            my $choice = @ready.pick;
+            return $choice.key.($choice.value)
+        } elsif $default {
+            return $default.()
+        }
     }
-    $found($arg)
 }

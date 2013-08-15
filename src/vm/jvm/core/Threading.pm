@@ -425,7 +425,7 @@ my class ThreadPoolScheduler {
         }
     }
     
-    submethod BUILD(:$!initial_threads = 0, :$!max_threads = 4) {
+    submethod BUILD(:$!initial_threads = 0, :$!max_threads = 16) {
         die "Initial thread pool threads must be less than or equal to maximim threads"
             if $!initial_threads > $!max_threads;
     }

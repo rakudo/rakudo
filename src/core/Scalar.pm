@@ -16,4 +16,5 @@ my class Scalar {
         my $d := $!descriptor;
         nqp::isnull($d) ?? Mu !! $d.dynamic;
     }
+    method descriptor() { $!descriptor }
 }

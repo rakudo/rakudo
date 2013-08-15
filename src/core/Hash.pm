@@ -10,7 +10,7 @@ my class Hash { # declared in BOOTSTRAP
         %h;
     }
     method keyof () { Any }
-    
+
     multi method at_key(Hash:D: $key is copy) is rw {
         my Mu $storage := nqp::defined(nqp::getattr(self, EnumMap, '$!storage')) ??
             nqp::getattr(self, EnumMap, '$!storage') !!
@@ -20,13 +20,17 @@ my class Hash { # declared in BOOTSTRAP
             nqp::atkey($storage, nqp::unbox_s($key));
         }
         else {
-            my $default := self.VAR.default;
+            my $var     := self.VAR;
+            my $default := $var.default;
+            my $of      := $var.of;
+            my $v = nqp::istype($default,Any)
+              ?? $default
+              !! nqp::istype($of,Any) ?? $of !! Any;
+            my $d := $v.VAR.descriptor;
+            $d.set_default($default);
+            $d.set_of($of);
             nqp::p6bindattrinvres(
-              my $v = (nqp::istype($default,Any)
-                ?? $default
-                !! (nqp::istype(self.VAR.of,Any) ?? self.VAR.of !! Any )),
-              Scalar,
-              '$!whence',
+              $v, Scalar, '$!whence',
               -> { nqp::bindkey($storage, nqp::unbox_s($key), $v) }
             );
         }
@@ -213,13 +217,17 @@ my class Hash { # declared in BOOTSTRAP
                 nqp::findmethod(EnumMap, 'at_key')(self, $key);
             }
             else {
-                my $default := self.VAR.default;
+                my $var     := self.VAR;
+                my $default := $var.default;
+                my $of      := $var.of;
+                $v //= nqp::istype($default,Any)
+                  ?? $default
+                  !! nqp::istype($of,Any) ?? $of !! Any;
+                my $d := $v.VAR.descriptor;
+                $d.set_default($default);
+                $d.set_of($of);
                 nqp::p6bindattrinvres(
-                  $v //= (nqp::istype($default,Any)
-                    ?? $default
-                    !! (nqp::istype(self.VAR.of,Any) ?? self.VAR.of !! Any)),
-                  Scalar,
-                  '$!whence',
+                  $v, Scalar, '$!whence',
                   -> { nqp::findmethod(EnumMap, 'STORE_AT_KEY')(self,$key,$v) }
                 );
             }
@@ -252,13 +260,17 @@ my class Hash { # declared in BOOTSTRAP
                 nqp::findmethod(EnumMap, 'at_key')(self, $key_which);
             }
             else {
-                my $default := self.VAR.default;
+                my $var     := self.VAR;
+                my $default := $var.default;
+                my $of      := $var.of;
+                $v //= nqp::istype($default,Any)
+                  ?? $default
+                  !! nqp::istype($of,Any) ?? $of !! Any;
+                my $d := $v.VAR.descriptor;
+                $d.set_default($default);
+                $d.set_of($of);
                 nqp::p6bindattrinvres(
-                  $v //= (nqp::istype($default,Any)
-                    ?? $default
-                    !! (nqp::istype(self.VAR.of,Any) ?? self.VAR.of !! Any)),
-                  Scalar,
-                  '$!whence',
+                  $v, Scalar, '$!whence',
                    -> {
                         nqp::defined(nqp::getattr(self, $?CLASS, '$!keys')) ||
                             nqp::bindattr(self, $?CLASS, '$!keys', nqp::hash());
@@ -352,7 +364,6 @@ my class Hash { # declared in BOOTSTRAP
         }
     }
 }
-
 
 sub circumfix:<{ }>(*@elems) { my $ = Hash.new(@elems) }
 sub hash(*@a, *%h) { my % = @a, %h }

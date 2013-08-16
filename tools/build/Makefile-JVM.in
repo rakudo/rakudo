@@ -174,8 +174,6 @@ CORE_SOURCES = \
   src/core/IO/Spec.pm \
   src/core/IO.pm \
   src/core/IO/ArgFiles.pm \
-  src/core/IO/Socket.pm \
-  src/core/IO/Socket/INET.pm \
   src/core/AST.pm \
   src/core/CallFrame.pm \
   src/core/Main.pm \
@@ -196,6 +194,8 @@ CORE_SOURCES = \
   src/core/metaops.pm \
   src/core/terms.pm \
   src/vm/jvm/core/Threading.pm \
+  src/vm/jvm/core/IO/Socket.pm \
+  src/vm/jvm/core/IO/Socket/INET.pm \
   src/core/core_epilogue.pm \
 
 CLEANUPS = \

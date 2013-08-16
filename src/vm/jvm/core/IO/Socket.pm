@@ -24,24 +24,19 @@ my role IO::Socket does IO {
             $!buffer = '';
         }
 
-        if $bin {
-            nqp::encode(nqp::unbox_s($rec), 'binary', buf8.new);
-        }
-        else {
-            $rec
-        }
+        $rec
     }
 
     method read(IO::Socket:D: Cool $bufsize as Int) {
         fail('Socket not available') unless $!sock;
-        my str $res;
-        my str $read;
+        my $res = blob8.new;
+        my $read;
         repeat {
-            my $bytes = nqp::read($!sock, nqp::decont(blob8.new), $bufsize - nqp::chars($res));
-            $read = nqp::encode(nqp::unbox_s($bytes), 'binary', buf8.new);
-            $res = nqp::concat($res, $read);
-        } while nqp::chars($res) < $bufsize && nqp::chars($read);
-        nqp::encode(nqp::unbox_s($res), 'binary', buf8.new);
+            my $bytes = nqp::read($!sock, nqp::decont(blob8.new), $bufsize - $res.bytes);
+            $read = $bytes;
+            $res ~= $read;
+        } while $res.bytes < $bufsize && $read.bytes;
+        $res
     }
 
     method poll(Int $bitmask, $seconds) {

@@ -17,5 +17,4 @@ my class Scalar {
         nqp::isnull($d) ?? Mu !! $d.dynamic;
     }
     method descriptor() { $!descriptor }
-    method is_mixin() { False }
 }

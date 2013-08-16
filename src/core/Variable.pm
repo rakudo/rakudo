@@ -39,9 +39,7 @@ multi trait_mod:<is>(Variable:D $v, :$default!) {
     $var = $default if $what ~~ Scalar;
     nqp::getattr(
       $var,
-      $what.perl ~~ m/\+/ # we have types mixed in
-        ?? $what.^mro[1]  # (Hash+{TypedHash}) -> (Hash)
-        !! $what,
+      $what.^mro.first( { !.is_mixin } ),
       '$!descriptor',
     ).set_default($default);
 }
@@ -50,9 +48,7 @@ multi trait_mod:<is>(Variable:D $v, :$dynamic!) {
     my $what := $var.VAR.WHAT;
     nqp::getattr(
       $var,
-      $what.perl ~~ m/\+/ # we have types mixed in
-        ?? $what.^mro[1]  # (Hash+{TypedHash}) -> (Hash)
-        !! $what,
+      $what.^mro.first( { !.is_mixin } ),
       '$!descriptor',
     ).set_dynamic($dynamic);
 }

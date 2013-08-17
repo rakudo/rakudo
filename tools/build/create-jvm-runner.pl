@@ -24,6 +24,7 @@ my $postamble = $^O eq 'MSWin32' ? ' %*' : ' "$@"';
 my $bindir = $type eq 'install' ? File::Spec->catfile($prefix, 'bin') : $prefix;
 my $jardir = $type eq 'install' ? File::Spec->catfile($prefix, 'languages', 'perl6', 'runtime') : $prefix;
 my $libdir = $type eq 'install' ? File::Spec->catfile($prefix, 'languages', 'perl6', 'lib') : 'blib';
+my $nqplibdir = File::Spec->catfile($nqpprefix, 'languages', 'nqp', 'lib');
 
 sub install {
     my ($name, $command) = @_;
@@ -44,12 +45,12 @@ my $bootclasspath = join($cpsep,
     $jardir,
     $libdir));
     
-my $classpath = join($cpsep, ($jardir, $libdir, $nqpprefix));
+my $classpath = join($cpsep, ($jardir, $libdir, $nqplibdir));
 
 my $jopts = '-Xms100m -Xbootclasspath/a:' . $bootclasspath . ' -cp ' . $classpath;
 
 install "perl6", "java $jopts perl6";
 install "perl6-jdb-server", "java -Xdebug -Xrunjdwp:transport=dt_socket,address=8000,server=y,suspend=n $jopts perl6";
 install "perl6-eval-server", "java $jopts org.perl6.nqp.tools.EvalServer";
-cp(File::Spec->catfile($nqpprefix,"eval-client.pl"), ".")
-    or die "Couldn't copy 'eval-client.pl' into $nqpprefix: $!";
+cp(File::Spec->catfile($nqpprefix,'bin','eval-client.pl'), '.')
+    or die "Couldn't copy 'eval-client.pl' from $nqpprefix: $!";

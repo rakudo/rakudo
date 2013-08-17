@@ -352,7 +352,7 @@ sometests: all
 t/*.t t/*/*.t t/*/*/*.t: all spectest_checkout
 	@$(HARNESS_WITH_FUDGE) --verbosity=1 $@
 
-install:	tools/build/create-jvm-runner.pl
+install: all tools/build/create-jvm-runner.pl
 	$(MKPATH) $(PREFIX)/bin
 	$(MKPATH) $(PERL6_LANG_DIR)/lib/Perl6
 	$(MKPATH) $(PERL6_LANG_DIR)/runtime

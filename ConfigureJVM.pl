@@ -9,7 +9,7 @@ use Getopt::Long;
 use Cwd qw(cwd realpath);
 use lib "tools/lib";
 use NQP::Configure qw(sorry slurp fill_template_text fill_template_file
-                      system_or_die);
+                      system_or_die read_config);
 use File::Basename;
 
 my $lang = 'Rakudo';
@@ -58,13 +58,22 @@ MAIN: {
         push @errors, "No NQP on JVM found; use --with-nqp to specify";
     }
 
+    my %nqp_config = read_config($with_nqp) 
+        or push @errors, "Unable to read configuration from $with_nqp.";
+        
+    unless (defined $nqp_config{'jvm::runtime.jars'}) {
+    	push @errors, "jvm::runtime.jars value not available from $with_nqp --show-config.";
+    }
+
     sorry(@errors) if @errors;
 
     print "Using $with_nqp.\n";
 
     $config{'prefix'} = $prefix;
     $config{'nqp'} = $with_nqp;
-    $config{'nqp_prefix'} = realpath(dirname($with_nqp));
+    $config{'nqp_prefix'} = $nqp_config{'jvm::runtime.prefix'};
+    $config{'nqp_jars'} = $nqp_config{'jvm::runtime.jars'};
+    $config{'nqp_classpath'} = $nqp_config{'jvm::runtime.classpath'};
     $config{'makefile-timing'} = $options{'makefile-timing'};
     $config{'stagestats'} = '--stagestats' if $options{'makefile-timing'};
     $config{'cpsep'} = $^O eq 'MSWin32' ? ';' : ':';

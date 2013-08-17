@@ -41,13 +41,12 @@ sub install {
 my $bootclasspath = join($cpsep,
     ($thirdpartyjars,
     File::Spec->catfile($jardir, 'rakudo-runtime.jar'),
-    File::Spec->catfile($jardir, 'perl6.jar'),
-    $jardir,
-    $libdir));
+    File::Spec->catfile($jardir, 'perl6.jar')));
     
 my $classpath = join($cpsep, ($jardir, $libdir, $nqplibdir));
-
-my $jopts = '-Xms100m -Xbootclasspath/a:' . $bootclasspath . ' -cp ' . $classpath;
+my $jopts = '-Xms100m -Xbootclasspath/a:' . $bootclasspath 
+          . ' -cp ' . $classpath
+          . ' -Dperl6.prefix=' . $prefix;
 
 install "perl6", "java $jopts perl6";
 install "perl6-jdb-server", "java -Xdebug -Xrunjdwp:transport=dt_socket,address=8000,server=y,suspend=n $jopts perl6";

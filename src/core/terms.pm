@@ -91,59 +91,39 @@ sub term:<time>() { nqp::p6box_i(nqp::time_i()) }
     };
     nqp::bindkey(nqp::who(PROCESS), '$PERL', $PERL);
 
+    my @INC;
 #?if jvm
-    my @INC;
-    @INC.push(%ENV<RAKUDOLIB>.split($VM<properties><path.separator>)) if %ENV<RAKUDOLIB>;
-    @INC.push(%ENV<PERL6LIB>.split($VM<properties><path.separator>)) if %ENV<PERL6LIB>;
-
-    my $I := nqp::atkey(nqp::atkey(%*COMPILING, '%?OPTIONS'), 'I');
-    if nqp::defined($I) {
-        if nqp::islist($I) {
-            my Mu $iter := nqp::iterator($I);
-            @INC.unshift: nqp::p6box_s(nqp::shift($iter)) while $iter;
-        }
-        else {
-            @INC.unshift: nqp::p6box_s($I);
-        }
-    }
-
-    nqp::bindkey(nqp::who(PROCESS), '@INC', @INC);
-
-    my $OS = $VM<properties><os.name>;
-    nqp::bindkey(nqp::who(PROCESS), '$OS', $OS);
-
-    my $OSVER = $VM<properties><os.version>;
-    nqp::bindkey(nqp::who(PROCESS), '$OSVER', $OSVER);
+    my $pathsep := $VM<properties><path.separator>;
 #?endif
-
-    ## duplicate src/core/IO.pm::cwd
-    my $CWD = nqp::p6box_s(
-#?if parrot
-        pir::trans_encoding__Ssi(
-            nqp::cwd(),
-            pir::find_encoding__Is('utf8'))
-#?endif
-#?if !parrot
-            nqp::cwd(),
-#?endif
-    );
-
-    nqp::bindkey(nqp::who(PROCESS), '$CWD', $CWD);
-
 #?if !jvm
+    my $pathsep := $VM<config><osname> eq 'MSWin32' ?? ';' !! ':';
+#?endif
+    @INC.push(%ENV<RAKUDOLIB>.split($pathsep)) if %ENV<RAKUDOLIB>;
+    @INC.push(%ENV<PERL6LIB>.split($pathsep)) if %ENV<PERL6LIB>;
+    
+#?if jvm
+    for nqp::jvmclasspaths() -> $path {
+        @INC.push($path) if nqp::stat($path, nqp::const::STAT_ISDIR);
+    }
+#?endif    
 
-    my @INC;
-    @INC.push(%ENV<RAKUDOLIB>.split($VM<config><osname> eq 'MSWin32' ?? ';' !! ':')) if %ENV<RAKUDOLIB>;
-    @INC.push(%ENV<PERL6LIB>.split($VM<config><osname> eq 'MSWin32' ?? ';' !! ':')) if %ENV<PERL6LIB>;
-    my $prefix := $VM<config><libdir> ~ $VM<config><versiondir> ~ '/languages/perl6';
+    my $prefix :=
+#?if jvm
+         $VM<properties><perl6.prefix>
+#?endif
+#?if !jvm
+         $VM<config><libdir> ~ $VM<config><versiondir>
+#?endif
+         ~ '/languages/perl6';
+
     my %CUSTOM_LIB;
-
     %CUSTOM_LIB<perl>   = $prefix;
     %CUSTOM_LIB<vendor> = $prefix ~ '/vendor';
     %CUSTOM_LIB<site>   = $prefix ~ '/site';
     @INC.push(%CUSTOM_LIB<site>   ~ '/lib');
     @INC.push(%CUSTOM_LIB<vendor> ~ '/lib');
     @INC.push(%CUSTOM_LIB<perl>   ~ '/lib');
+
     try {
         my $home := %ENV<HOME> // %ENV<HOMEDRIVE> ~ %ENV<HOMEPATH>;
         my $ver  := nqp::p6box_s(nqp::atkey($compiler, 'version'));
@@ -165,6 +145,28 @@ sub term:<time>() { nqp::p6box_i(nqp::time_i()) }
 
     nqp::bindkey(nqp::who(PROCESS), '@INC', @INC);
 
+    ## duplicate src/core/IO.pm::cwd
+    my $CWD = nqp::p6box_s(
+#?if parrot
+        pir::trans_encoding__Ssi(
+            nqp::cwd(),
+            pir::find_encoding__Is('utf8'))
+#?endif
+#?if !parrot
+            nqp::cwd(),
+#?endif
+    );
+
+    nqp::bindkey(nqp::who(PROCESS), '$CWD', $CWD);
+
+#?if jvm
+    my $OS = $VM<properties><os.name>;
+    nqp::bindkey(nqp::who(PROCESS), '$OS', $OS);
+
+    my $OSVER = $VM<properties><os.version>;
+    nqp::bindkey(nqp::who(PROCESS), '$OSVER', $OSVER);
+#?endif
+#?if !jvm
     my $OS = $VM<config><osname>; # XXX: master gets this information with the sysinfo dynop
     nqp::bindkey(nqp::who(PROCESS), '$OS', $OS);
 

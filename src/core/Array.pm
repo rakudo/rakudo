@@ -28,17 +28,13 @@ class Array { # declared in BOOTSTRAP
             nqp::atpos($items, $p);
         }
         else {
-            my $var     := self.VAR;
-            my $default := $var.default;
-            my $of      := $var.of;
-            my $v = nqp::istype($default,Any)
-              ?? $default
-              !! nqp::istype($of,Any) ?? $of !! Any;
-            my $d := $v.VAR.descriptor;
-            $d.set_default($default);
-            $d.set_of($of);
+            my $default := self.VAR.default;
             nqp::p6bindattrinvres(
-              $v, Scalar, '$!whence',
+              my $v = (nqp::istype($default,Any)
+                ?? $default
+                !! (nqp::istype(self.VAR.of,Any) ?? self.VAR.of !! Any)),
+              Scalar,
+              '$!whence',
               -> { nqp::bindpos($items, $p, $v) }
             );
         }
@@ -52,17 +48,13 @@ class Array { # declared in BOOTSTRAP
             nqp::atpos($items, $pos);
         }
         else {
-            my $var     := self.VAR;
-            my $default := $var.default;
-            my $of      := $var.of;
-            my $v = nqp::istype($default,Any)
-              ?? $default
-              !! nqp::istype($of,Any) ?? $of !! Any;
-            my $d := $v.VAR.descriptor;
-            $d.set_default($default);
-            $d.set_of($of);
+            my $default := self.VAR.default;
             nqp::p6bindattrinvres(
-              $v, Scalar, '$!whence',
+              my $v = (nqp::istype($default,Any)
+                ?? $default
+                !! (nqp::istype(self.VAR.of,Any) ?? self.VAR.of !! Any)),
+              Scalar,
+              '$!whence',
               -> { nqp::bindpos($items, $pos, $v) }
             );
         }
@@ -148,17 +140,13 @@ class Array { # declared in BOOTSTRAP
                 );
             }
             else {
-                my $var     := self.VAR;
-                my $default := $var.default;
-                my $of      := $var.of;
-                $v //= nqp::istype($default,Any)
-                  ?? $default
-                  !! nqp::istype($of,Any) ?? $of !! Any;
-                my $d := $v.VAR.descriptor;
-                $d.set_default($default);
-                $d.set_of($of);
+                my $default := self.VAR.default;
                 nqp::p6bindattrinvres(
-                  $v, Scalar, '$!whence',
+                  $v //= (nqp::istype($default,Any)
+                    ?? $default
+                    !! (nqp::istype(self.VAR.of,Any) ?? self.VAR.of !! Any)),
+                  Scalar,
+                  '$!whence',
                   -> { nqp::bindpos(
                     nqp::getattr(self,List,'$!items'), nqp::unbox_i($pos),$v) }
                 );
@@ -169,17 +157,13 @@ class Array { # declared in BOOTSTRAP
                 nqp::atpos(nqp::getattr(self, List, '$!items'), $pos);
             }
             else {
-                my $var     := self.VAR;
-                my $default := $var.default;
-                my $of      := $var.of;
-                $v //= nqp::istype($default,Any)
-                  ?? $default
-                  !! nqp::istype($of,Any) ?? $of !! Any;
-                my $d := $v.VAR.descriptor;
-                $d.set_default($default);
-                $d.set_of($of);
+                my $default := self.VAR.default;
                 nqp::p6bindattrinvres(
-                  $v, Scalar, '$!whence',
+                  $v //= (nqp::istype($default,Any)
+                    ?? $default
+                    !! (nqp::istype(self.VAR.of,Any) ?? self.VAR.of !! Any)),
+                  Scalar,
+                  '$!whence',
                   -> { nqp::bindpos(nqp::getattr(self, List,'$!items'),$pos,$v)}
                 );
             }

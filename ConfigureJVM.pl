@@ -42,7 +42,7 @@ MAIN: {
     my $prefix      = $options{'prefix'} || 
         ($^O eq 'MSWin32' ? cwd().'\\install-jvm' : cwd().'/install-jvm');
     my $with_nqp    = $options{'with-nqp'} ||
-        ($^O eq 'MSWin32' ? 'install-jvm\\nqp' : 'install-jvm/nqp');
+        ($^O eq 'MSWin32' ? 'install-jvm\\bin\\nqp' : 'install-jvm/bin/nqp');
 
     # Save options in config.status
     unlink('config.status');

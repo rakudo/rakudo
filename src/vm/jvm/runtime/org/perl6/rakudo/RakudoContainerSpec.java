@@ -23,7 +23,7 @@ public class RakudoContainerSpec extends ContainerSpec {
         new byte[] { CallSiteDescriptor.ARG_STR, CallSiteDescriptor.ARG_OBJ, CallSiteDescriptor.ARG_OBJ }, null);
     public void store(ThreadContext tc, SixModelObject cont, SixModelObject value) {
         RakOps.GlobalExt gcx = RakOps.key.getGC(tc);
-        
+
         long rw = 0;
         SixModelObject desc = cont.get_attribute_boxed(tc, gcx.Scalar,
             "$!descriptor", HINT_descriptor);
@@ -34,26 +34,24 @@ public class RakudoContainerSpec extends ContainerSpec {
         if (rw == 0)
             throw ExceptionHandling.dieInternal(tc,
                 "Cannot assign to a readonly variable or a value");
-        
+
+        if (value.st.WHAT == gcx.Nil)
+            value = desc.get_attribute_boxed(tc,
+                gcx.ContainerDescriptor, "$!default", RakOps.HINT_CD_DEFAULT);
+                
         SixModelObject of = desc.get_attribute_boxed(tc,
             gcx.ContainerDescriptor, "$!of", RakOps.HINT_CD_OF);
         long ok = Ops.istype(value, of, tc);
         if (ok == 0) {
-            if (value.st.WHAT == gcx.Nil) {
-                value = desc.get_attribute_boxed(tc,
-                    gcx.ContainerDescriptor, "$!default", RakOps.HINT_CD_DEFAULT);
-            }
-            else {
-                desc.get_attribute_native(tc, gcx.ContainerDescriptor, "$!name", RakOps.HINT_CD_NAME);
-                String name = tc.native_s;
-                SixModelObject thrower = RakOps.getThrower(tc, "X::TypeCheck::Assignment");
-                if (thrower == null)
-                    throw ExceptionHandling.dieInternal(tc,
-                        "Type check failed in assignment to '" + name + "'");
-                else
-                    Ops.invokeDirect(tc, thrower,
-                        storeThrower, new Object[] { name, value, of });
-            }
+            desc.get_attribute_native(tc, gcx.ContainerDescriptor, "$!name", RakOps.HINT_CD_NAME);
+            String name = tc.native_s;
+            SixModelObject thrower = RakOps.getThrower(tc, "X::TypeCheck::Assignment");
+            if (thrower == null)
+                throw ExceptionHandling.dieInternal(tc,
+                    "Type check failed in assignment to '" + name + "'");
+            else
+                Ops.invokeDirect(tc, thrower,
+                    storeThrower, new Object[] { name, value, of });
         }
         
         SixModelObject whence = cont.get_attribute_boxed(tc, gcx.Scalar, "$!whence", HINT_whence);

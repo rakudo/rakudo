@@ -55,8 +55,9 @@ my class Hash { # declared in BOOTSTRAP
         self.DUMP-OBJECT-ATTRS($attrs, :$indent-step, :%ctx);
     }
 
-    method STORE_AT_KEY(\key, Mu $x is copy) is rw {
-        nqp::findmethod(EnumMap, 'STORE_AT_KEY')(self, key, $x);
+    method STORE_AT_KEY(\key, Mu $x) is rw {
+        my $v := nqp::p6scalarfromdesc($!descriptor);
+        nqp::findmethod(EnumMap, 'STORE_AT_KEY')(self, key, $v = $x);
     }
 
     method STORE(\to_store) is hidden_from_backtrace {
@@ -218,8 +219,10 @@ my class Hash { # declared in BOOTSTRAP
                 );
             }
         }
-        method STORE_AT_KEY(Str \key, TValue $x is copy) is rw {
-            nqp::findmethod(EnumMap, 'STORE_AT_KEY')(self, key, $x);
+        method STORE_AT_KEY(Str \key, TValue $x) is rw {
+            my $v :=
+              nqp::p6scalarfromdesc(nqp::getattr(self, Hash, '$!descriptor'));
+            nqp::findmethod(EnumMap, 'STORE_AT_KEY')(self, key, $v = $x);
         }
         method bind_key($key, TValue \bindval) is rw {
             nqp::defined(nqp::getattr(self, EnumMap, '$!storage')) ||
@@ -266,7 +269,7 @@ my class Hash { # declared in BOOTSTRAP
                     });
             }
         }
-        method STORE_AT_KEY(TKey \key, TValue $x is copy) is rw {
+        method STORE_AT_KEY(TKey \key, TValue $x) is rw {
             my $key_which = key.WHICH;
             nqp::defined(nqp::getattr(self, $?CLASS, '$!keys')) ||
                 nqp::bindattr(self, $?CLASS, '$!keys', nqp::hash());
@@ -276,10 +279,12 @@ my class Hash { # declared in BOOTSTRAP
                 nqp::getattr(self, $?CLASS, '$!keys'),
                 nqp::unbox_s($key_which),
                 key);
+            my $v :=
+              nqp::p6scalarfromdesc(nqp::getattr(self, Hash, '$!descriptor'));
             nqp::bindkey(
                 nqp::getattr(self, EnumMap, '$!storage'),
                 nqp::unbox_s($key_which),
-                $x);
+                $v = $x);
         }
         method bind_key(TKey \key, TValue \bindval) is rw {
             my $key_which = key.WHICH;

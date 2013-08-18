@@ -197,7 +197,6 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 %info<value_type>     := $*W.find_symbol(['Mu']);
                 %info<default_value>  := $*W.find_symbol(['Any']);
             }
-            %info<default_value> := %info<value_type>;
             if $shape {
                 $*W.throw($/, 'X::Comp::NYI', feature => 'Shaped arrays');
             }

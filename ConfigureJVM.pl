@@ -110,7 +110,7 @@ MAIN: {
 #  Print some help text.
 sub print_help {
     print <<"END";
-Configure.pl - $lang Configure
+ConfigureJVM.pl - $lang Configure
 
 General Options:
     --help             Show this text
@@ -119,7 +119,7 @@ General Options:
                        NQP JVM to use to build
     --makefile-timing  Enable timing of individual makefile commands
 
-Configure.pl also reads options from 'config.default' in the current directory.
+ConfigureJVM.pl also reads options from 'config.default' in the current directory.
 END
 
     return;

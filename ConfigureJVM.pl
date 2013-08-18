@@ -44,6 +44,8 @@ MAIN: {
     my $with_nqp    = $options{'with-nqp'} ||
         ($^O eq 'MSWin32' ? 'install-jvm\\bin\\nqp' : 'install-jvm/bin/nqp');
     my $gen_nqp     = $options{'gen-nqp'};
+    
+    $prefix = realpath($prefix);
 
     # Save options in config.status
     unlink('config.status');

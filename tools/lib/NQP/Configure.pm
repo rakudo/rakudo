@@ -246,6 +246,7 @@ sub gen_nqp {
     my $gen_nqp     = $options{'gen-nqp'};
     my $with_parrot = $options{'with-parrot'};
     my $gen_parrot  = $options{'gen-parrot'};
+    my $with_jvm    = $options{'with-jvm'};
     my $prefix      = $options{'prefix'} || cwd().'/install';
     my $startdir    = cwd();
 
@@ -275,7 +276,11 @@ sub gen_nqp {
         git_checkout($nqp_git, 'nqp', $nqp_want);
     }
 
-    if (defined $gen_parrot) {
+    if (defined $with_jvm) {
+        $config{'bindir'} = "$prefix/bin";
+        $config{'exe'} = $exe;
+    }
+    elsif (defined $gen_parrot) {
         my ($par_want) = split(' ', slurp($PARROT_REVISION));
         $with_parrot = gen_parrot($par_want, %options, prefix => $prefix);
         %config = read_parrot_config($with_parrot);
@@ -285,13 +290,14 @@ sub gen_nqp {
         $with_parrot = fill_template_text('@bindir@/parrot@exe@', %config);
     }
 
-    if ($nqp_ok && -M $nqp_exe < -M $with_parrot) {
+    if ($nqp_ok && ($with_jvm || -M $nqp_exe < -M $with_parrot)) {
         print "$nqp_exe is NQP $nqp_have.\n";
         return $nqp_exe;
     }
 
-    my @cmd = ($^X, 'Configure.pl', "--with-parrot=$with_parrot",
-               "--make-install");
+    my @cmd = defined $with_jvm
+        ? ($^X, 'ConfigureJVM.pl', "--prefix=$prefix", "--make-install")
+        : ($^X, 'Configure.pl', "--with-parrot=$with_parrot", "--make-install");
     print "Building NQP ...\n";
     chdir("$startdir/nqp");
     print "@cmd\n";

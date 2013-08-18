@@ -9,7 +9,7 @@ use Getopt::Long;
 use Cwd qw(cwd realpath);
 use lib "tools/lib";
 use NQP::Configure qw(sorry slurp fill_template_text fill_template_file
-                      system_or_die read_config);
+                      system_or_die read_config gen_nqp);
 use File::Basename;
 
 my $lang = 'Rakudo';
@@ -26,7 +26,7 @@ MAIN: {
     $config{$config_status} = join(' ', map { "\"$_\""} @ARGV);
 
     my %options;
-    GetOptions(\%options, 'help!', 'prefix=s', 'with-nqp=s',
+    GetOptions(\%options, 'help!', 'prefix=s', 'with-nqp=s', 'gen-nqp:s',
                'make-install!', 'makefile-timing!', 'no-clean!'
     ) or do {
         print_help();
@@ -43,6 +43,7 @@ MAIN: {
         ($^O eq 'MSWin32' ? cwd().'\\install-jvm' : cwd().'/install-jvm');
     my $with_nqp    = $options{'with-nqp'} ||
         ($^O eq 'MSWin32' ? 'install-jvm\\bin\\nqp' : 'install-jvm/bin/nqp');
+    my $gen_nqp     = $options{'gen-nqp'};
 
     # Save options in config.status
     unlink('config.status');
@@ -51,11 +52,20 @@ MAIN: {
             "$^X Configure.pl $config{$config_status} \$*\n";
         close($CONFIG_STATUS);
     }
+    
+    # determine the version of NQP we want
+    my ($nqp_want) = split(' ', slurp('tools/build/NQP_REVISION'));
+
+    if (defined $gen_nqp) {
+    	$options{'with-jvm'} = 1;
+    	$options{'prefix'} = $prefix;
+        $with_nqp = gen_nqp($nqp_want, %options);
+    }
 
     my @errors;
 
     unless (`$with_nqp --version` =~ /This is nqp .+ JVM/) {
-        push @errors, "No NQP on JVM found; use --with-nqp to specify";
+        push @errors, "No NQP on JVM found; use --with-nqp to specify or --gen-nqp";
     }
 
     my %nqp_config = read_config($with_nqp) 
@@ -115,6 +125,7 @@ ConfigureJVM.pl - $lang Configure
 General Options:
     --help             Show this text
     --prefix=dir       Install files in dir
+    --gen-nqp[=branch] Download and build NQP
     --with-nqp=path/to/bin/nqp
                        NQP JVM to use to build
     --makefile-timing  Enable timing of individual makefile commands

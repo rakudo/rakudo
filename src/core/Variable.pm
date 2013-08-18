@@ -43,7 +43,7 @@ multi trait_mod:<is>(Variable:D $v, :$default!) {
         ?? $what.^mro[1]  # (Hash+{TypedHash}) -> (Hash)
         !! $what,
       '$!descriptor',
-    ).set_default($default);
+    ).set_default(nqp::decont($default));
 }
 multi trait_mod:<is>(Variable:D $v, :$dynamic!) {
     my $var  := $v.var;

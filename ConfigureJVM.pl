@@ -55,6 +55,11 @@ MAIN: {
         close($CONFIG_STATUS);
     }
     
+    # require --with-nqp or --gen-nqp or find executable nqp at default locaton
+    if (!defined $gen_nqp && !defined $options{'with-nqp'} && ! -x $with_nqp) {
+        die("$with_nqp is not executable; use --with-nqp or use --gen-nqp");
+    }
+    
     # determine the version of NQP we want
     my ($nqp_want) = split(' ', slurp('tools/build/NQP_REVISION'));
 

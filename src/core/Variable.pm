@@ -36,12 +36,10 @@ multi trait_mod:<is>(Variable:D $v, :$default!) {
     my $var  := $v.var;
     my $what := $var.VAR.WHAT;
     # make sure we start with the default if a scalar
-    $var = $default if $what ~~ Scalar;
+    $var = $default if nqp::istype($what, Scalar);
     nqp::getattr(
       $var,
-      $what.perl ~~ m/\+/ # we have types mixed in
-        ?? $what.^mro[1]  # (Hash+{TypedHash}) -> (Hash)
-        !! $what,
+      $what.HOW.mixin_base($what),
       '$!descriptor',
     ).set_default(nqp::decont($default));
 }
@@ -50,9 +48,7 @@ multi trait_mod:<is>(Variable:D $v, :$dynamic!) {
     my $what := $var.VAR.WHAT;
     nqp::getattr(
       $var,
-      $what.perl ~~ m/\+/ # we have types mixed in
-        ?? $what.^mro[1]  # (Hash+{TypedHash}) -> (Hash)
-        !! $what,
+      $what.HOW.mixin_base($what),
       '$!descriptor',
     ).set_dynamic($dynamic);
 }
@@ -67,7 +63,13 @@ multi trait_mod:<of>(Variable:D $v, |c ) {
     );
 }
 multi trait_mod:<of>(Variable:D $v, Mu:U $of ) {
-    nqp::getattr($v.var, $v.var.VAR.WHAT, '$!descriptor').set_of(nqp::decont($of));
+    my $var  := $v.var;
+    my $what := $var.VAR.WHAT;
+    nqp::getattr(
+        $var,
+        $what.HOW.mixin_base($what),
+        '$!descriptor'
+    ).set_of(nqp::decont($of));
 }
 
 # phaser traits

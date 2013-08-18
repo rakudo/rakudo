@@ -28,14 +28,11 @@ class Array { # declared in BOOTSTRAP
             nqp::atpos($items, $p);
         }
         else {
-            my $default := self.VAR.default;
             nqp::p6bindattrinvres(
-              my $v = (nqp::istype($default,Any)
-                ?? $default
-                !! (nqp::istype(self.VAR.of,Any) ?? self.VAR.of !! Any)),
-              Scalar,
-              '$!whence',
-              -> { nqp::bindpos($items, $p, $v) }
+                (my \v := nqp::p6scalarfromdesc($!descriptor)),
+                Scalar,
+                '$!whence',
+                -> { nqp::bindpos($items, $p, v) }
             );
         }
     }
@@ -48,14 +45,11 @@ class Array { # declared in BOOTSTRAP
             nqp::atpos($items, $pos);
         }
         else {
-            my $default := self.VAR.default;
             nqp::p6bindattrinvres(
-              my $v = (nqp::istype($default,Any)
-                ?? $default
-                !! (nqp::istype(self.VAR.of,Any) ?? self.VAR.of !! Any)),
-              Scalar,
-              '$!whence',
-              -> { nqp::bindpos($items, $pos, $v) }
+                (my \v := nqp::p6scalarfromdesc($!descriptor)),
+                Scalar,
+                '$!whence',
+                -> { nqp::bindpos($items, $pos, v) }
             );
         }
     }
@@ -109,7 +103,7 @@ class Array { # declared in BOOTSTRAP
         my Mu $iter := nqp::iterator($rpa);
         my int $i = 0;
         while $iter {
-            nqp::bindpos($rpa, $i, my $v = nqp::shift($iter));
+            nqp::bindpos($rpa, $i, nqp::p6scalarfromdesc($!descriptor) = nqp::shift($iter));
             $i = $i + 1;
         }
         nqp::findmethod(List, 'REIFY')(self, parcel, nextiter)
@@ -132,7 +126,7 @@ class Array { # declared in BOOTSTRAP
     }
 
     my role TypedArray[::TValue] does Positional[TValue] {
-        multi method at_pos($pos is copy, TValue $v? is copy) is rw {
+        multi method at_pos($pos is copy) is rw {
             $pos = $pos.Int;
             if self.exists($pos) {
                 nqp::atpos(
@@ -140,15 +134,12 @@ class Array { # declared in BOOTSTRAP
                 );
             }
             else {
-                my $default := self.VAR.default;
                 nqp::p6bindattrinvres(
-                  $v //= (nqp::istype($default,Any)
-                    ?? $default
-                    !! (nqp::istype(self.VAR.of,Any) ?? self.VAR.of !! Any)),
-                  Scalar,
-                  '$!whence',
-                  -> { nqp::bindpos(
-                    nqp::getattr(self,List,'$!items'), nqp::unbox_i($pos),$v) }
+                    (my \v := nqp::p6scalarfromdesc(nqp::getattr(self, Array, '$!descriptor'))),
+                    Scalar,
+                    '$!whence',
+                    -> { nqp::bindpos(
+                      nqp::getattr(self,List,'$!items'), nqp::unbox_i($pos), v) }
                 );
             }
         }
@@ -157,14 +148,11 @@ class Array { # declared in BOOTSTRAP
                 nqp::atpos(nqp::getattr(self, List, '$!items'), $pos);
             }
             else {
-                my $default := self.VAR.default;
                 nqp::p6bindattrinvres(
-                  $v //= (nqp::istype($default,Any)
-                    ?? $default
-                    !! (nqp::istype(self.VAR.of,Any) ?? self.VAR.of !! Any)),
-                  Scalar,
-                  '$!whence',
-                  -> { nqp::bindpos(nqp::getattr(self, List,'$!items'),$pos,$v)}
+                    (my \v := nqp::p6scalarfromdesc(nqp::getattr(self, Array, '$!descriptor'))),
+                    Scalar,
+                    '$!whence',
+                    -> { nqp::bindpos(nqp::getattr(self, List,'$!items'), $pos, v)}
                 );
             }
         }

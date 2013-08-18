@@ -107,6 +107,7 @@ public final class RakOps {
         gcx.ListIter = conf.at_key_boxed(tc, "ListIter");
         gcx.Array = conf.at_key_boxed(tc, "Array");
         gcx.LoL = conf.at_key_boxed(tc, "LoL");
+        gcx.Nil = conf.at_key_boxed(tc, "Nil");
         gcx.EnumMap = conf.at_key_boxed(tc, "EnumMap");
         gcx.Hash = conf.at_key_boxed(tc, "Hash");
         gcx.Junction = conf.at_key_boxed(tc, "Junction");

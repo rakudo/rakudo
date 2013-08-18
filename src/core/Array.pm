@@ -91,6 +91,10 @@ class Array { # declared in BOOTSTRAP
         my $d := $!descriptor;
         nqp::isnull($d) ?? Mu !! $d.default;
     }
+    method dynamic() {
+        my $d := $!descriptor;
+        nqp::isnull($d) ?? Mu !! $d.dynamic;
+    }
 
     multi method perl(Array:D \SELF:) {
         nqp::iscont(SELF)

@@ -190,11 +190,14 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 %info<bind_constraint> := $*W.parameterize_type_with_args(
                     %info<bind_constraint>, [@value_type[0]], nqp::hash());
                 %info<value_type>      := @value_type[0];
+                %info<default_value>   := @value_type[0];
             }
             else {
                 %info<container_type> := %info<container_base>;
                 %info<value_type>     := $*W.find_symbol(['Mu']);
+                %info<default_value>  := $*W.find_symbol(['Any']);
             }
+            %info<default_value> := %info<value_type>;
             if $shape {
                 $*W.throw($/, 'X::Comp::NYI', feature => 'Shaped arrays');
             }
@@ -235,10 +238,12 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 %info<bind_constraint> := $*W.parameterize_type_with_args(
                     %info<bind_constraint>, @value_type, nqp::hash());
                 %info<value_type>      := @value_type[0];
+                %info<default_value>   := @value_type[0];
             }
             else {
                 %info<container_type> := %info<container_base>;
                 %info<value_type>     := $*W.find_symbol(['Mu']);
+                %info<default_value>  := $*W.find_symbol(['Any']);
             }
         }
         elsif $sigil eq '&' {
@@ -250,7 +255,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     %info<bind_constraint>, [@value_type[0]], nqp::hash());
             }
             %info<value_type>     := %info<bind_constraint>;
-            %info<default_value>   := $*W.find_symbol(['Any']);
+            %info<default_value>  := $*W.find_symbol(['Any']);
+            %info<scalar_value>   := $*W.find_symbol(['Any']);
         }
         else {
             %info<container_base>     := $*W.find_symbol(['Scalar']);
@@ -265,6 +271,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 %info<value_type>      := $*W.find_symbol(['Mu']);
                 %info<default_value>   := $*W.find_symbol(['Any']);
             }
+            %info<scalar_value> := %info<default_value>;
         }
         %info
     }
@@ -1251,7 +1258,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my $descriptor := $*W.create_container_descriptor($mu, 1, $sym);
         my %info;
         %info<container_type> := %info<container_base> := $*W.find_symbol(['Scalar']);
-        %info<default_value> := %info<bind_constraint> := %info<value_type> := $mu;
+        %info<scalar_value> := %info<default_value> := %info<bind_constraint> := %info<value_type> := $mu;
         $*W.install_lexical_container($pad, $sym, %info, $descriptor, :scope('state'));
 
         # generate code that runs the block only once
@@ -4785,6 +4792,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         %cont{'container_type'}  := $*W.find_symbol(['Scalar']);
         %cont{'container_base'}  := %cont{'container_type'};
         %cont{'default_value'}   := $zero.compile_time_value;
+        %cont{'scalar_value'}    := $zero.compile_time_value;
         $*W.install_lexical_container($*W.cur_lexpad(), $state, %cont,
             $*W.create_container_descriptor(%cont{'bind_constraint'}, 1, $state),
             :scope('state'));

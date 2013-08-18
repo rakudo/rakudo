@@ -622,9 +622,9 @@ class Perl6::World is HLL::World {
         # Build container.
         my $cont := nqp::create(%cont_info<container_type>);
         nqp::bindattr($cont, %cont_info<container_base>, '$!descriptor', $descriptor);
-        if nqp::existskey(%cont_info, 'default_value') {
+        if nqp::existskey(%cont_info, 'scalar_value') {
             nqp::bindattr($cont, %cont_info<container_base>, '$!value',
-                %cont_info<default_value>);
+                %cont_info<scalar_value>);
         }
         self.add_object($cont);
         $block.symbol($name, :value($cont));
@@ -667,6 +667,7 @@ class Perl6::World is HLL::World {
                 'bind_constraint', $Mu,
                 'value_type',      $Mu,
                 'default_value',   $Nil,
+                'scalar_value',    $Nil,
             );
             $desc := self.create_container_descriptor($Mu, 1, $name, $Nil, 1);
 
@@ -697,13 +698,13 @@ class Perl6::World is HLL::World {
         
         # Default contents, if applicable (note, slurpy param as we can't
         # use definedness here, as it's a type object we'd be checking).
-        if nqp::existskey(%cont_info, 'default_value') {
+        if nqp::existskey(%cont_info, 'scalar_value') {
             $cont_code.push(QAST::Op.new(
                 :op('bindattr'),
                 QAST::Var.new( :name($tmp), :scope('local') ),
                 QAST::WVal.new( :value(%cont_info<container_base>) ),
                 QAST::SVal.new( :value('$!value') ),
-                QAST::WVal.new( :value(%cont_info<default_value>) )));
+                QAST::WVal.new( :value(%cont_info<scalar_value>) )));
         }
         
         $cont_code
@@ -1495,9 +1496,9 @@ class Perl6::World is HLL::World {
         # Build container.
         my $cont := nqp::create(%cont_info<container_type>);
         nqp::bindattr($cont, %cont_info<container_base>, '$!descriptor', $descriptor);
-        if nqp::existskey(%cont_info, 'default_value') {
+        if nqp::existskey(%cont_info, 'scalar_value') {
             nqp::bindattr($cont, %cont_info<container_base>, '$!value',
-                %cont_info<default_value>);
+                %cont_info<scalar_value>);
         }
         
         # Create meta-attribute instance and add right away. Also add

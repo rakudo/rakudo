@@ -105,7 +105,7 @@ class Array { # declared in BOOTSTRAP
         my Mu $iter := nqp::iterator($rpa);
         my int $i = 0;
         while $iter {
-            nqp::bindpos($rpa, $i, my $v = nqp::shift($iter));
+            nqp::bindpos($rpa, $i, nqp::p6scalarfromdesc($!descriptor) = nqp::shift($iter));
             $i = $i + 1;
         }
         nqp::findmethod(List, 'REIFY')(self, parcel, nextiter)

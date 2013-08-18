@@ -210,7 +210,6 @@ my class Hash { # declared in BOOTSTRAP
                 nqp::findmethod(EnumMap, 'at_key')(self, $key);
             }
             else {
-                my $default := self.VAR.default;
                 nqp::p6bindattrinvres(
                     (my \v := nqp::p6scalarfromdesc(nqp::getattr(self, Hash, '$!descriptor'))),
                     Scalar,
@@ -247,7 +246,6 @@ my class Hash { # declared in BOOTSTRAP
                 nqp::findmethod(EnumMap, 'at_key')(self, $key_which);
             }
             else {
-                my $default := self.VAR.default;
                 nqp::p6bindattrinvres(
                     (my \v := nqp::p6scalarfromdesc(nqp::getattr(self, Hash, '$!descriptor'))),
                     Scalar,

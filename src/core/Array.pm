@@ -28,7 +28,6 @@ class Array { # declared in BOOTSTRAP
             nqp::atpos($items, $p);
         }
         else {
-            my $default := self.VAR.default;
             nqp::p6bindattrinvres(
                 (my \v := nqp::p6scalarfromdesc($!descriptor)),
                 Scalar,
@@ -46,7 +45,6 @@ class Array { # declared in BOOTSTRAP
             nqp::atpos($items, $pos);
         }
         else {
-            my $default := self.VAR.default;
             nqp::p6bindattrinvres(
                 (my \v := nqp::p6scalarfromdesc($!descriptor)),
                 Scalar,
@@ -136,7 +134,6 @@ class Array { # declared in BOOTSTRAP
                 );
             }
             else {
-                my $default := self.VAR.default;
                 nqp::p6bindattrinvres(
                     (my \v := nqp::p6scalarfromdesc(nqp::getattr(self, Array, '$!descriptor'))),
                     Scalar,
@@ -151,7 +148,6 @@ class Array { # declared in BOOTSTRAP
                 nqp::atpos(nqp::getattr(self, List, '$!items'), $pos);
             }
             else {
-                my $default := self.VAR.default;
                 nqp::p6bindattrinvres(
                     (my \v := nqp::p6scalarfromdesc(nqp::getattr(self, Array, '$!descriptor'))),
                     Scalar,

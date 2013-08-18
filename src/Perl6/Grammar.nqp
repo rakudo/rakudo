@@ -995,6 +995,12 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         ]
     }
 
+    token label {
+        :my $label;
+        <identifier> ':' <?before \s> <.ws>
+
+}
+
     token statement {
         :my $*QSIGIL := '';
         :my $*SCOPE := '';
@@ -1003,6 +1009,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <!stopper>
         <!!{ nqp::rebless($/.CURSOR, %*LANG<MAIN>) }>
         [
+        | <label> <statement>
         | <statement_control>
         | <EXPR> :dba('statement end')
             [

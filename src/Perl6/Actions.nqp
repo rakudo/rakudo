@@ -759,6 +759,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 }
             }
         }
+        elsif $<statement> { $past := $<statement>.ast; }
         elsif $<statement_control> { $past := $<statement_control>.ast; }
         else { $past := 0; }
         if $STATEMENT_PRINT && $past {

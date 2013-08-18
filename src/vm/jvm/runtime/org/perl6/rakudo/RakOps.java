@@ -25,6 +25,7 @@ public final class RakOps {
 
     public static class GlobalExt {
         public SixModelObject Mu;
+        public SixModelObject Any;
         public SixModelObject Parcel;
         public SixModelObject Code;
         public SixModelObject Routine;
@@ -51,6 +52,7 @@ public final class RakOps {
         public SixModelObject EMPTYHASH;
         public RakudoJavaInterop rakudoInterop;
         public SixModelObject JavaHOW;
+        public SixModelObject defaultContainerDescriptor;
         boolean initialized;
 
         public GlobalExt(ThreadContext tc) {}
@@ -95,6 +97,7 @@ public final class RakOps {
     public static SixModelObject p6settypes(SixModelObject conf, ThreadContext tc) {
         GlobalExt gcx = key.getGC(tc);
         gcx.Mu = conf.at_key_boxed(tc, "Mu");
+        gcx.Any = conf.at_key_boxed(tc, "Any");
         gcx.Parcel = conf.at_key_boxed(tc, "Parcel");
         gcx.Code = conf.at_key_boxed(tc, "Code");
         gcx.Routine = conf.at_key_boxed(tc, "Routine");
@@ -117,6 +120,21 @@ public final class RakOps {
         gcx.False = conf.at_key_boxed(tc, "False");
         gcx.True = conf.at_key_boxed(tc, "True");
         gcx.JavaHOW = conf.at_key_boxed(tc, "Metamodel").st.WHO.at_key_boxed(tc, "JavaHOW");
+        
+        SixModelObject defCD = gcx.ContainerDescriptor.st.REPR.allocate(tc,
+            gcx.ContainerDescriptor.st);
+        defCD.bind_attribute_boxed(tc, gcx.ContainerDescriptor,
+            "$!of", HINT_CD_OF, gcx.Mu);
+        tc.native_s = "<element>";
+        defCD.bind_attribute_native(tc, gcx.ContainerDescriptor,
+            "$!name", HINT_CD_NAME);
+        tc.native_i = 1;
+        defCD.bind_attribute_native(tc, gcx.ContainerDescriptor,
+            "$!rw", HINT_CD_RW);
+        defCD.bind_attribute_boxed(tc, gcx.ContainerDescriptor,
+            "$!default", HINT_CD_DEFAULT, gcx.Any);
+        gcx.defaultContainerDescriptor = defCD;
+        
         return conf;
     }
     
@@ -450,6 +468,23 @@ public final class RakOps {
                 return roCont;
             }
         }
+        return cont;
+    }
+    
+    public static SixModelObject p6scalarfromdesc(SixModelObject desc, ThreadContext tc) {
+        GlobalExt gcx = key.getGC(tc);
+
+        if (desc == null || desc instanceof TypeObject)
+            desc = gcx.defaultContainerDescriptor;
+        SixModelObject defVal = desc.get_attribute_boxed(tc, gcx.ContainerDescriptor,
+            "$!default", HINT_CD_DEFAULT);
+
+        SixModelObject cont = gcx.Scalar.st.REPR.allocate(tc, gcx.Scalar.st);
+        cont.bind_attribute_boxed(tc, gcx.Scalar, "$!descriptor",
+            RakudoContainerSpec.HINT_descriptor, desc);
+        cont.bind_attribute_boxed(tc, gcx.Scalar, "$!value", RakudoContainerSpec.HINT_value,
+            defVal);
+
         return cont;
     }
     

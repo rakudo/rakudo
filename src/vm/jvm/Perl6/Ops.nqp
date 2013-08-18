@@ -153,6 +153,7 @@ my $p6bool := -> $qastcomp, $op {
     $ops.result($il, $RT_OBJ);
 };
 $ops.add_hll_op('perl6', 'p6bool', $p6bool);
+$ops.map_classlib_hll_op('perl6', 'p6scalarfromdesc', $TYPE_P6OPS, 'p6scalarfromdesc', [$RT_OBJ], $RT_OBJ, :tc);
 
 $ops.add_hll_op('perl6', 'p6invokeflat', -> $qastcomp, $op {
     $op[1].flat(1);

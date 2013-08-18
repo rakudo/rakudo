@@ -252,6 +252,8 @@ static PMC* sub_find_pad(PARROT_INTERP, ARGIN(STRING *lex_name), ARGIN(PMC *ctx)
     }
 }
 
+static PMC *defaultContainerDescriptor = NULL;
+
 static INTVAL initialized_ops = 0;
 
 PARROT_DYNEXT_EXPORT PMC*
@@ -658,6 +660,20 @@ inline op p6settypes(invar PMC) :base_core {
         Parrot_str_new_constant(interp, "Junction")));
     Rakudo_types_nil_set(VTABLE_get_pmc_keyed_str(interp, $1,
         Parrot_str_new_constant(interp, "Nil")));
+
+    {
+        PMC *CD = VTABLE_get_pmc_keyed_str(interp, $1,
+            Parrot_str_new_constant(interp, "ContainerDescriptor"));
+        PMC *defCD = REPR(CD)->allocate(interp, STABLE(CD));
+        Rakudo_ContainerDescriptor *cd = ((Rakudo_ContainerDescriptor *)PMC_data(defCD));
+        REPR(defCD)->initialize(interp, STABLE(defCD), OBJECT_BODY(defCD));
+        cd->of          = Rakudo_types_mu_get();
+        cd->name        = Parrot_str_new_constant(interp, "<element>");
+        cd->rw          = 1;
+        cd->the_default = Rakudo_types_any_get();
+        defaultContainerDescriptor = defCD;
+        Parrot_pmc_gc_register(interp, defaultContainerDescriptor);
+    }
 }
 
 
@@ -1560,6 +1576,28 @@ inline op perl6_get_outer_ctx(out PMC, in PMC) {
         Parrot_ex_throw_from_c_args(interp, NULL, EXCEPTION_INVALID_OPERATION,
             "Can only use perl6_get_outer_ctx with a SixModelObject");
     }
+}
+
+/*
+
+=item p6scalarfromdesc
+
+Creates a Scalar from the specified descriptor.
+
+=cut
+
+*/
+inline op p6scalarfromdesc(out PMC, invar PMC) {
+    PMC *cont;
+    PMC *desc = $2;
+    
+    if (PMC_IS_NULL($2) || !IS_CONCRETE($2))
+        desc = defaultContainerDescriptor;
+
+    cont = Rakudo_cont_scalar_from_descriptor(interp, desc);
+    ((Rakudo_Scalar *)PMC_data(cont))->value = ((Rakudo_ContainerDescriptor *)PMC_data(desc))->the_default;
+    
+    $1 = cont;
 }
 
 /*

@@ -639,7 +639,7 @@ class Perl6::World is HLL::World {
     }
     
     # Creates a new container descriptor and adds it to the SC.
-    method create_container_descriptor($of, $rw, $name, $default = $of, $dynamic = nqp::substr($name, 1, 1) eq "*") {
+    method create_container_descriptor($of, $rw, $name, $default = $of, $dynamic = nqp::chars($name) > 1 && nqp::substr($name, 1, 1) eq "*") {
         my $cd_type := self.find_symbol(['ContainerDescriptor']);
         my $cd := $cd_type.new( :$of, :$rw, :$name, :$default, :$dynamic );
         self.add_object($cd);

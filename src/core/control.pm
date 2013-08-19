@@ -205,7 +205,7 @@ sub shell($cmd) {
 #?endif
 #?if !parrot
     try {
-        $status = nqp::shell($cmd); 
+        $status = nqp::shell($cmd, $*CWD); 
     }
 #?endif
     $status;

@@ -93,7 +93,7 @@ class Array { # declared in BOOTSTRAP
     }
     method dynamic() {
         my $d := $!descriptor;
-        nqp::isnull($d) ?? Mu !! $d.dynamic;
+        nqp::isnull($d) ?? Mu !! so $d.dynamic;
     }
 
     multi method perl(Array:D \SELF:) {

@@ -83,7 +83,7 @@ my class Hash { # declared in BOOTSTRAP
     }
     method dynamic() {
         my $d := $!descriptor;
-        nqp::isnull($d) ?? Mu !! $d.dynamic;
+        nqp::isnull($d) ?? Mu !! so $d.dynamic;
     }
 
     proto method delete(|) { * }

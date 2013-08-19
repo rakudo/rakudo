@@ -346,10 +346,14 @@ my class Hash { # declared in BOOTSTRAP
     }
     method PARAMETERIZE_TYPE(Mu $t, |c) {
         if c.elems == 0 {
-            self but TypedHash[$t.WHAT]
+            my $what := self but TypedHash[$t.WHAT];
+            $what.HOW.set_name(self, "Hash[{$t.HOW.name(self)}]");
+            $what;
         }
         elsif c.elems == 1 {
-            self but TypedHash[$t.WHAT, c[0]]
+            my $what := self but TypedHash[$t.WHAT, c[0]];
+            $what.HOW.set_name(self, "Hash[{$t.HOW.name(self)},{c[0].HOW.name(self)}]");
+            $what;
         }
         else {
             die "Can only type-constraint Hash with [ValueType] or [ValueType,KeyType]";

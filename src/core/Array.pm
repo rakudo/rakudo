@@ -184,7 +184,9 @@ class Array { # declared in BOOTSTRAP
     }
     method PARAMETERIZE_TYPE(Mu $t, |c) {
         if c.elems == 0 {
-            self but TypedArray[$t.WHAT]
+            my $what := self but TypedArray[$t.WHAT];
+            $what.HOW.set_name(self, "Array[{$t.HOW.name(self)}]");
+            $what;
         }
         else {
             die "Can only type-constraint Array with [ValueType]"

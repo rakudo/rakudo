@@ -87,6 +87,10 @@ class Array { # declared in BOOTSTRAP
 
     method flattens() { 1 }
 
+    method of() {
+        my $d := $!descriptor;
+        nqp::isnull($d) ?? Mu !! $d.of;
+    }
     method default() {
         my $d := $!descriptor;
         nqp::isnull($d) ?? Mu !! $d.default;

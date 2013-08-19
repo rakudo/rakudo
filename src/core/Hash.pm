@@ -77,6 +77,10 @@ my class Hash { # declared in BOOTSTRAP
         self
     }
 
+    method of() {
+        my $d := $!descriptor;
+        nqp::isnull($d) ?? Mu !! $d.of;
+    }
     method default() {
         my $d := $!descriptor;
         nqp::isnull($d) ?? Mu !! $d.default;

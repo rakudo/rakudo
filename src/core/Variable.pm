@@ -65,11 +65,14 @@ multi trait_mod:<of>(Variable:D $v, |c ) {
 multi trait_mod:<of>(Variable:D $v, Mu:U $of ) {
     my $var  := $v.var;
     my $what := $var.VAR.WHAT;
+    my $how  := $what.HOW;
     nqp::getattr(
         $var,
-        $what.HOW.mixin_base($what),
+        $how.mixin_base($what),
         '$!descriptor'
     ).set_of(nqp::decont($of));
+    # probably can go if we have a COMPOSE phaser for PARAMETERIZE
+    $how.set_name($what,"{$how.name($what)}[{$of.HOW.name($of)}]");
 }
 
 # phaser traits

@@ -347,12 +347,14 @@ my class Hash { # declared in BOOTSTRAP
     method PARAMETERIZE_TYPE(Mu $t, |c) {
         if c.elems == 0 {
             my $what := self but TypedHash[$t.WHAT];
-            $what.HOW.set_name(self, "Hash[{$t.HOW.name(self)}]");
+            # needs to be done in COMPOSE phaser when that works
+            $what.HOW.set_name(self,"{self.HOW.name(self)}[{$t.HOW.name($t)}]");
             $what;
         }
         elsif c.elems == 1 {
             my $what := self but TypedHash[$t.WHAT, c[0]];
-            $what.HOW.set_name(self, "Hash[{$t.HOW.name(self)},{c[0].HOW.name(self)}]");
+            # needs to be done in COMPOSE phaser when that works
+            $what.HOW.set_name(self,"{self.HOW.name(self)}[{$t.HOW.name($t)},{c[0].HOW.name(c[0])}]");
             $what;
         }
         else {

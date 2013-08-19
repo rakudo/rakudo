@@ -69,7 +69,7 @@ multi trait_mod:<of>(Variable:D $v, Mu:U $of ) {
         $var,
         $what.HOW.mixin_base($what),
         '$!descriptor'
-    ).set_of($of.HOW.mixin_base($of));
+    ).set_of(nqp::decont($of));
 }
 
 # phaser traits

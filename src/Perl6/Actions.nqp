@@ -6396,6 +6396,40 @@ class Perl6::P5RegexActions is QRegex::P5Regex::Actions does STDActions {
             $*W.create_signature(nqp::hash('parameters', [])))
     }
 
+    method p5metachar:sym<(?{ })>($/) {
+        make QAST::Regex.new( $<codeblock>.ast,
+                              :rxtype<qastnode>, :node($/) );
+    }
+
+    method p5metachar:sym<(??{ })>($/) {
+        make QAST::Regex.new( 
+                 QAST::Node.new(
+                    QAST::SVal.new( :value('INTERPOLATE') ),
+                    $<codeblock>.ast,
+                    QAST::IVal.new( :value(%*RX<i> ?? 1 !! 0) ),
+                    QAST::IVal.new( :value(1) ),
+                    QAST::IVal.new( :value(1) ) ),
+                 :rxtype<subrule>, :subtype<method>, :node($/));
+    }
+
+    method codeblock($/) {
+        my $blockref := $<block>.ast;
+        my $past :=
+            QAST::Stmts.new(
+                QAST::Op.new(
+                    :op('p6store'),
+                    QAST::Var.new( :name('$/'), :scope<lexical> ),
+                    QAST::Op.new(
+                        QAST::Var.new( :name('$¢'), :scope<lexical> ),
+                        :name('MATCH'),
+                        :op('callmethod')
+                    )
+                ),
+                QAST::Op.new(:op<call>, $blockref)
+            );
+        make $past;
+    }
+
     method store_regex_nfa($code_obj, $block, $nfa) {
         $code_obj.SET_NFA($nfa.save);
     }

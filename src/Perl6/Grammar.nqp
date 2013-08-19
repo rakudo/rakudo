@@ -4053,4 +4053,16 @@ grammar Perl6::RegexGrammar is QRegex::P6Regex::Grammar does STD {
 
 grammar Perl6::P5RegexGrammar is QRegex::P5Regex::Grammar does STD {
     token rxstopper { <stopper> }
+    
+    token p5metachar:sym<(?{ })> {
+        '(?' <?[{]> <codeblock> ')'
+    }
+    
+    token p5metachar:sym<(??{ })> {
+        '(??' <?[{]> <codeblock> ')'
+    }
+    
+    token codeblock {
+        <block=.LANG('MAIN','block')>
+    }
 }

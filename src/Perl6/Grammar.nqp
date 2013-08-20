@@ -776,6 +776,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*METHODTYPE;                          # the current type of method we're in, if any
         :my $*PKGDECL;                             # what type of package we're in, if any
         :my %*MYSTERY;                             # names we assume may be post-declared functions
+        :my $*CCSTATE := '';
         
         # Error related. There are three levels: worry (just a warning), sorry
         # (fatal but not immediately so) and panic (immediately deadly). There
@@ -2936,6 +2937,36 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <rx_adverbs>
         <sibble(%*RX<P5> ?? %*LANG<P5Regex> !! %*LANG<Regex>, %*LANG<Q>, ['qq'])>
         <.old_rx_mods>?
+    }
+
+    token tribble ($l, $lang2 = $l, @lang2tweaks?) {
+        :my $lang;
+        :my $start;
+        :my $stop;
+        :my $*CCSTATE := '';
+        <babble($l)>
+        { my $B := $<babble><B>.ast; $lang := $B[0]; $start := $B[1]; $stop := $B[2]; }
+        $start <left=.nibble($lang)> [ $stop || <.panic: "Couldn't find terminator $stop"> ]
+        { $*CCSTATE := ''; }
+        [ <?{ $start ne $stop }>
+            <.ws> <quibble($lang2)>
+        ||
+            { $lang := self.quote_lang($lang2, $stop, $stop, @lang2tweaks); }
+            <right=.nibble($lang)> $stop || <.panic("Malformed replacement part; couldn't find final $stop")>
+        ]
+    }
+
+    token quote:sym<tr> {
+        <sym> (s)**0..1 >>
+        :my %*RX;
+        {
+            %*RX<tr> := 1 if $/[0]
+        }
+        <rx_adverbs>
+        <tribble(%*RX<P5> ?? %*LANG<P5Regex> !! %*LANG<Regex>, %*LANG<Q>, ['qq'])>
+        #                                                       should be ['cc'], but NYI...
+        <.old_rx_mods>?
+        <.NYI('tr///')>
     }
 
     token old_rx_mods {

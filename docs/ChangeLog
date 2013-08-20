@@ -3,25 +3,25 @@ New in 2013.08
 + "is dynamic" traits on variables, $/, $!, $_ are dynamic
 + "of TypeObject" trait on variables
 + .VAR.default/dynamic/of return the state of these traits
-+ assigning Nil, calling undefine() restores the default value
++ Assigning Nil, calling undefine() restores the default value
 + .WHAT more accurately returns a type object for specifically typed cases
 + Option --gen-nqp for ConfigureJVM.pl
 + Include file name in parser errors
-+ parse labels, tr/// (both don't do anything useful under the hood yet)
++ Parse labels, tr/// (both don't do anything useful under the hood yet)
 + CALLER::<$var> now only works on dynamic variables, as per spec.
 + Improvements to Threads, including Channel and KeyReducer (JVM only)
 + Asynchronous file reading (JVM only)
 + Improved JVM interop, including 'use :from<java>' (JVM only)
 + Fixed subroutine inlining on JVM
-+ reimplementation of Buf as a role
++ Reimplementation of Buf as a role
 + "once" phaser fully implemented
-+ named parameters "with" and "as" on uniq/squish
-+ samewith() for calling method on same dispatcher again
++ Named parameters "with" and "as" on uniq/squish
++ "samewith()" for calling method on same dispatcher again
 + "will" variable trait partially implemented ($_ not set yet)
-+ solved a slowdown when declaring custom operators
-+ improved P5-regexes (backslash sequences, code blocks)
-+ make type objects appear as Nil in non-scalar contexts
-+ various optimizations, code cleanups and error message enhancements
++ Solved a slowdown when declaring custom operators
++ Improved P5-regexes (backslash sequences, code blocks)
++ Make type objects appear as Nil in non-scalar contexts
++ Various optimizations, code cleanups and error message enhancements
 
 New in 2013.07
 + Huge progress in JVM backend (feature-wise almost on par with Parrot)

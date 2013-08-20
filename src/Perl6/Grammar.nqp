@@ -776,6 +776,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*METHODTYPE;                          # the current type of method we're in, if any
         :my $*PKGDECL;                             # what type of package we're in, if any
         :my %*MYSTERY;                             # names we assume may be post-declared functions
+        :my $*CCSTATE := '';
         
         # Error related. There are three levels: worry (just a warning), sorry
         # (fatal but not immediately so) and panic (immediately deadly). There
@@ -2938,6 +2939,35 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <.old_rx_mods>?
     }
 
+    token tribble ($l, $lang2 = $l, @lang2tweaks?) {
+        :my $lang;
+        :my $start;
+        :my $stop;
+        :my $*CCSTATE := '';
+        <babble($l)>
+        { my $B := $<babble><B>.ast; $lang := $B[0]; $start := $B[1]; $stop := $B[2]; }
+        $start <left=.nibble($lang)> [ $stop || <.panic: "Couldn't find terminator $stop"> ]
+        { $*CCSTATE := ''; }
+        [ <?{ $start ne $stop }>
+            <.ws> <quibble($lang2)>
+        ||
+            { $lang := self.quote_lang($lang2, $stop, $stop, @lang2tweaks); }
+            <right=.nibble($lang)> $stop || <.panic("Malformed replacement part; couldn't find final $stop")>
+        ]
+    }
+
+    token quote:sym<tr> {
+        <sym> (s)**0..1 >>
+        :my %*RX;
+        {
+            %*RX<tr> := 1 if $/[0]
+        }
+        <rx_adverbs>
+        <tribble(%*RX<P5> ?? %*LANG<P5Regex> !! %*LANG<Regex>, %*LANG<Q>, ['cc'])>
+        <.old_rx_mods>?
+        <.NYI('tr///')>
+    }
+
     token old_rx_mods {
         (<[ i g s m x c e ]>)
         {
@@ -3933,6 +3963,68 @@ grammar Perl6::QGrammar is HLL::Grammar does STD {
         }
     }
     
+    role cc {
+        token stopper { \' }
+
+        method ccstate ($s) {
+            if $*CCSTATE eq '..' {
+                $*CCSTATE := '';
+            }
+            else {
+                $*CCSTATE := $s;
+            }
+            self;
+        }
+
+        # (must not allow anything to match . in nibbler or we'll lose track of state)
+        token escape:ws { \s+ [ <?before '#'> <.ws> ]? }
+        token escape:sym<#> { '#' <.panic: "Please backslash # for literal char or put whitespace in front for comment"> }
+        token escape:sym<\\> { <sym> <item=.backslash> <.ccstate('\\' ~ $<item>.Str)> }
+        token escape:sym<..> { <sym>
+            [
+            || <?{ ($*CCSTATE eq '') || ($*CCSTATE eq '..') }> <.sorry("Range missing start character on the left")>
+            || <?before \s* <!stopper> <!before '..'> \S >
+            || <.sorry("Range missing stop character on the right")>
+            ]
+            { $*CCSTATE := '..'; }
+        }
+
+        token escape:sym<-> {
+            '-' <?{ $*CCSTATE ne '' }> \s* <!stopper> \S 
+            <.obs('- as character range','.. (or \\- if you mean a literal hyphen)')>
+        }
+        token escape:ch { $<ch> = [\S] <.ccstate($<ch>.Str)> }
+
+        token backslash:stopper { <text=.stopper> }
+        token backslash:a { :i <sym> }
+        token backslash:b { :i <sym> }
+        token backslash:c { :i <sym> <charspec> }
+        token backslash:d { :i <sym> { $*CCSTATE := '' } }
+        token backslash:e { :i <sym> }
+        token backslash:f { :i <sym> }
+        token backslash:h { :i <sym> { $*CCSTATE := '' } }
+        token backslash:n { :i <sym> }
+        token backslash:o { :i :dba('octal character') <sym> [ <octint> | '[' ~ ']' <octints> ] }
+        token backslash:r { :i <sym> }
+        token backslash:s { :i <sym> { $*CCSTATE := '' } }
+        token backslash:t { :i <sym> }
+        token backslash:v { :i <sym> { $*CCSTATE := '' } }
+        token backslash:w { :i <sym> { $*CCSTATE := '' } }
+        token backslash:x { :i :dba('hex character') <sym> [ <hexint> | '[' ~ ']' <hexints> ] }
+        token backslash:sym<0> { <sym> }
+
+        # keep random backslashes like qq does
+        token backslash:misc { {}
+            [
+            | $<text>=(\W)
+            | $<x>=(\w) <.sorry("Unrecognized backslash sequence: '\\" ~ $<x> ~ "'")>
+            ] 
+        }
+        multi method tweak_q($v) { self.panic("Too late for :q") }
+        multi method tweak_qq($v) { self.panic("Too late for :qq") }
+        multi method tweak_cc($v) { self.panic("Too late for :cc") }
+    }
+
     method truly($bool, $opt) {
         self.sorry("Cannot negate $opt adverb") unless $bool;
         self;
@@ -3962,6 +4054,8 @@ grammar Perl6::QGrammar is HLL::Grammar does STD {
     method tweak_words($v)      { self.tweak_w($v) }
     method tweak_ww($v)         { self.HOW.mixin(self, $v ?? ww1 !! ww0) }
     method tweak_quotewords($v) { self.tweak_ww($v) }
+
+    method tweak_cc($v)         { self.truly($v, ':cc'); self.HOW.mixin(self, cc); }
 
     method tweak_to($v) {
         self.truly($v, ':to');

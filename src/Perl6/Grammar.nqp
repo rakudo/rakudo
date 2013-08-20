@@ -4055,6 +4055,8 @@ grammar Perl6::QGrammar is HLL::Grammar does STD {
     method tweak_ww($v)         { self.HOW.mixin(self, $v ?? ww1 !! ww0) }
     method tweak_quotewords($v) { self.tweak_ww($v) }
 
+    method tweak_cc($v) { self.HOW.mixin(self, $v ?? ww1 !! ww0) }
+
     method tweak_to($v) {
         self.truly($v, ':to');
         %*LANG<Q>.HOW.mixin(%*LANG<Q>, to.HOW.curry(to, self))

@@ -1355,12 +1355,12 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     rule statement_control:sym<CONTROL> {<sym> <block(1)> }
 
     proto token statement_prefix { <...> }
-    token statement_prefix:sym<BEGIN> { <sym> <blorst> }
-    token statement_prefix:sym<CHECK> { <sym> <blorst> }
-    token statement_prefix:sym<INIT>  { <sym> <blorst> }
-    token statement_prefix:sym<START> { <sym> <blorst> }
-    token statement_prefix:sym<ENTER> { <sym> <blorst> }
-    token statement_prefix:sym<FIRST> { <sym> <blorst> }
+    token statement_prefix:sym<BEGIN>   { <sym> <blorst> }
+    token statement_prefix:sym<COMPOSE> { <sym> <blorst> }
+    token statement_prefix:sym<CHECK>   { <sym> <blorst> }
+    token statement_prefix:sym<INIT>    { <sym> <blorst> }
+    token statement_prefix:sym<ENTER>   { <sym> <blorst> }
+    token statement_prefix:sym<FIRST>   { <sym> <blorst> }
     
     token statement_prefix:sym<END>   { <sym> <blorst> }
     token statement_prefix:sym<LEAVE> { <sym> <blorst> }

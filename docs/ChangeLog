@@ -1,3 +1,17 @@
+New in 2013.08
++ "is default" traits on variables
++ assigning Nil restores the default value
++ Option --gen-nqp for ConfigureJVM.pl
++ Include file name in parser errors
++ parse labels, tr/// (both don't do anything useful under the hood yet)
++ CALLER::<$var> now only works on dynamic variables, as per spec.
++ Improvements to Threads, including Channel and KeyReducer (JVM only)
++ Asynchronous file reading (JVM only)
++ Improved JVM interop, including 'use :from<java>' (JVM only)
++ Fixed subroutine inlining on JVM
++ "once" phaser implemented
++ "will" variable trait implemented
+
 New in 2013.07
 + Huge progress in JVM backend (feature-wise almost on par with Parrot)
 + List.first is now lazy

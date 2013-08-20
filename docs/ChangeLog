@@ -11,6 +11,9 @@ New in 2013.08
 + Fixed subroutine inlining on JVM
 + "once" phaser implemented
 + "will" variable trait implemented
++ solved a slowdown when declaring custom operators
++ improved P5-regexes (backslash sequences, code blocks)
+
 
 New in 2013.07
 + Huge progress in JVM backend (feature-wise almost on par with Parrot)

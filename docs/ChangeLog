@@ -18,6 +18,7 @@ New in 2013.08
 + Named parameters "with" and "as" on uniq/squish
 + "samewith()" for calling method on same dispatcher again
 + "will" variable trait partially implemented ($_ not set yet)
++ Interpolating strings into heredocs now dedents properly
 + Solved a slowdown when declaring custom operators
 + Improved P5-regexes (backslash sequences, code blocks)
 + Make type objects appear as Nil in non-scalar contexts

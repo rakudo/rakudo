@@ -28,6 +28,7 @@ sub term:<time>() { nqp::p6box_i(nqp::time_i()) }
         %ENV{$key} = nqp::p6box_s(nqp::iterval($envelem));
     }
 #?endif
+#?if parrot
     %ENV does role {
         method at_key($k) {
             Proxy.new(
@@ -52,6 +53,7 @@ sub term:<time>() { nqp::p6box_i(nqp::time_i()) }
             return $ret;
         }
     }
+#?endif    
     nqp::bindkey(nqp::who(PROCESS), '%ENV', %ENV);
 
 #?if parrot
@@ -146,7 +148,7 @@ sub term:<time>() { nqp::p6box_i(nqp::time_i()) }
     nqp::bindkey(nqp::who(PROCESS), '@INC', @INC);
 
     ## duplicate src/core/IO.pm::cwd
-    my $CWD = nqp::p6box_s(
+    my $CWD = IO::Path.new(nqp::p6box_s(
 #?if parrot
         pir::trans_encoding__Ssi(
             nqp::cwd(),
@@ -155,7 +157,7 @@ sub term:<time>() { nqp::p6box_i(nqp::time_i()) }
 #?if !parrot
             nqp::cwd(),
 #?endif
-    );
+    ));
 
     nqp::bindkey(nqp::who(PROCESS), '$CWD', $CWD);
 

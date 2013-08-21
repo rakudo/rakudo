@@ -912,14 +912,13 @@ my class X::Syntax::Perl5Var does X::Syntax {
       '%^H' => '$?FOO variables',
     ;
     method message() {
-        my $v = ~($.name ~~ m/ <[ $ @ % & ]> [ \^ <[ A..Z ]> | \W ] /);
-        %m{$v}
-          ?? "Unsupported use of {$v} variable; in Perl 6 please use {%m{$v}}"
-          !! 'Unknown Perl 5 like special variable not supported';
+        my $v = $.name ~~ m/ <[ $ @ % & ]> [ \^ <[ A..Z ]> | \W ] /;
+        $v
+          ?? %m{~$v}
+            ?? "Unsupported use of $v variable; in Perl 6 please use {%m{~$v}}"
+            !! "Unsupported use of $v variable"
+          !! 'Non-declarative sigil is missing its name';
     }
-}
-my class X::Syntax::SigilWithoutName does X::Syntax {
-    method message() { 'Non-declarative sigil is missing its name' }
 }
 
 my class X::Syntax::Self::WithoutObject does X::Syntax {

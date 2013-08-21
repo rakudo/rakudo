@@ -5489,6 +5489,11 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 placeholder => $full_name,
             );
         }
+
+        # don't allow $^A..Z as placeholders, as per spec
+        elsif nqp::chars($full_name) == 3 && nqp::substr($full_name,2,1) ~~ /^<[A..Z]>$/ {
+            $*W.throw($/, ['X', 'Syntax', 'Perl5Var'], name => $full_name );
+        }
         
         # Obtain/create placeholder parameter list.
         my @params := $block<placeholder_sig> || ($block<placeholder_sig> := []);

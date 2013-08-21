@@ -5482,17 +5482,18 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
     # Adds a placeholder parameter to this block's signature.
     sub add_placeholder_parameter($/, $sigil, $ident, :$named, :$pos_slurpy, :$named_slurpy, :$full_name) {
-        # Ensure we're not trying to put a placeholder in the mainline.
         my $block := $*W.cur_lexpad();
-        if $block<IN_DECL> eq 'mainline' || $block<IN_DECL> eq 'eval' {
+
+        # don't allow $^A..Z as placeholders, as per spec
+        if nqp::chars($full_name) == 3 && nqp::substr($full_name,2,1) ~~ /^<[A..Z]>$/ {
+            $*W.throw($/, ['X', 'Syntax', 'Perl5Var'], name => $full_name );
+        }
+
+        # ensure we're not trying to put a placeholder in the mainline.
+        elsif $block<IN_DECL> eq 'mainline' || $block<IN_DECL> eq 'eval' {
             $*W.throw($/, ['X', 'Placeholder', 'Mainline'],
                 placeholder => $full_name,
             );
-        }
-
-        # don't allow $^A..Z as placeholders, as per spec
-        elsif nqp::chars($full_name) == 3 && nqp::substr($full_name,2,1) ~~ /^<[A..Z]>$/ {
-            $*W.throw($/, ['X', 'Syntax', 'Perl5Var'], name => $full_name );
         }
         
         # Obtain/create placeholder parameter list.

@@ -23,6 +23,7 @@ New in 2013.08
 + Improved P5-regexes (backslash sequences, code blocks)
 + Make type objects appear as Nil in non-scalar contexts
 + Placeholder variables $^A .. $^Z no longer allowed, as per spec
++ printf %d now supports bigints also on Parrot
 + Various optimizations, code cleanups and error message enhancements
 
 New in 2013.07

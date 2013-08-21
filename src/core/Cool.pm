@@ -73,12 +73,10 @@ my class Cool {
     }
 
     method fmt($format = '%s') {
-#?if jvm
         unless $sprintfHandlerInitialized {
             nqp::sprintfaddargumenthandler(SprintfHandler.new);
             $sprintfHandlerInitialized = True;
         }
-#?endif
         nqp::p6box_s(
             nqp::sprintf(nqp::unbox_s($format.Stringy), nqp::list(self))
         )
@@ -252,12 +250,10 @@ proto sub tclc($) is pure      { * }
 multi sub tclc(Cool $x)        { tclc $x.Str }
 
 sub sprintf(Cool $format, *@args) {
-#?if jvm
     unless $sprintfHandlerInitialized {
         nqp::sprintfaddargumenthandler(SprintfHandler.new);
         $sprintfHandlerInitialized = True;
     }
-#?endif
 
     @args.gimme(*);
     nqp::p6box_s(

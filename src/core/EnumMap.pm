@@ -99,7 +99,12 @@ my class EnumMap does Associative { # declared in BOOTSTRAP
     }
 
     method fmt(EnumMap: $format = "%s\t\%s", $sep = "\n") {
-        self.pairs.fmt($format, $sep);
+        if nqp::sprintfdirectives($format) == 1 {
+            self.keys.fmt($format, $sep);
+        }
+        else {
+            self.pairs.fmt($format, $sep);
+        }
     }
     
     method hash(\SELF:) is rw {

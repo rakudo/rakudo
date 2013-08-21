@@ -853,8 +853,72 @@ my class X::Syntax::Missing does X::Syntax {
     method message() { "Missing $.what" }
 }
 
-my class X::Syntax::SigilWithoutName does X::Syntax {
-    method message() { 'Non-declarative sigil is missing its name' }
+my class X::Syntax::Perl5Var does X::Syntax {
+    has $.name;
+    my %m =
+      '$*'  => '^^ and $$',
+      '$"'  => '.join() method',
+      '$$'  => '$*PID',
+      '$('  => '$*GID',
+      '$)'  => '$*EGID',
+      '$<'  => '$*UID',
+      '$>'  => '$*EUID',
+      '$;'  => 'real multidimensional hashes',
+      '$&'  => '$<>',
+      '$`'  => 'explicit pattern before <(',
+      '$\'' => 'explicit pattern after )>',
+      '$,'  => '$*OUT.output_field_separator()',
+      '$.'  => "the filehandle's .line method",
+      '$\\' => "the filehandle's .ors attribute",
+      '$|'  => ':autoflush on open',
+      '$?'  => '$! for handling child errors also',
+      '$@'  => '$!',
+      '$#'  => '.fmt',
+      '$['  => 'user-defined array indices',
+      '$]'  => '$*PERL_VERSION',
+
+      '$^C' => 'COMPILING namespace',
+      '$^D' => '$*DEBUGGING',
+      '$^E' => '$!.extended_os_error',
+      '$^F' => '$*SYSTEM_FD_MAX',
+      '$^H' => '$?FOO variables',
+      '$^I' => '$*INPLACE',
+      '$^M' => 'a global form such as $*M',
+      '$^N' => '$/[*-1]',
+      '$^O' => '$?OS or $*OS',
+      '$^R' => 'an explicit result variable',
+      '$^S' => 'context function',
+      '$^T' => '$*BASETIME',
+      '$^V' => '$*PERL_VERSION',
+      '$^W' => '$*WARNING',
+      '$^X' => '$*EXECUTABLE_NAME',
+
+      '$:'  => 'Form module',
+      '$-'  => 'Form module',
+      '$+'  => 'Form module',
+      '$='  => 'Form module',
+      '$%'  => 'Form module',
+      '$^'  => 'Form module',
+      '$~'  => 'Form module',
+      '$^A' => 'Form module',
+      '$^L' => 'Form module',
+
+      '@-'  => '.from method',
+      '@+'  => '.to method',
+
+      '%-'  => '.from method',
+      '%+'  => '.to method',
+      '%!'  => 'your time to implement this in Perl6',
+      '%^H' => '$?FOO variables',
+    ;
+    method message() {
+        my $v = $.name ~~ m/ <[ $ @ % & ]> [ \^ <[ A..Z ]> | \W ] /;
+        $v
+          ?? %m{~$v}
+            ?? "Unsupported use of $v variable; in Perl 6 please use {%m{~$v}}"
+            !! "Unsupported use of $v variable"
+          !! 'Non-declarative sigil is missing its name';
+    }
 }
 
 my class X::Syntax::Self::WithoutObject does X::Syntax {

@@ -1773,7 +1773,10 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             | :dba('contextualizer') <sigil> '(' ~ ')' <semilist> [<?{ $*IN_DECL }> <.panic: "Cannot declare a contextualizer">]?
             | $<sigil>=['$'] $<desigilname>=[<[/_!]>]
             | <sigil> <?{ $*IN_DECL }>
-            | <!{ $*QSIGIL }> <.typed_panic: 'X::Syntax::SigilWithoutName'>
+            | <!{ $*QSIGIL }> {
+                $/.CURSOR.typed_panic( 'X::Syntax::Perl5Var',
+                  name => nqp::substr(~$/.orig, $/.to - 1, 3 ) )
+              }
             ]
         ]
         [ <?{ $<twigil> && $<twigil>[0] eq '.' }>

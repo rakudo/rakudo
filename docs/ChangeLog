@@ -22,6 +22,7 @@ New in 2013.08
 + Solved a slowdown when declaring custom operators
 + Improved P5-regexes (backslash sequences, code blocks)
 + Make type objects appear as Nil in non-scalar contexts
++ Placeholder variables $^A .. $^Z no longer allowed, as per spec
 + Various optimizations, code cleanups and error message enhancements
 
 New in 2013.07

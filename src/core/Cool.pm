@@ -9,7 +9,8 @@ my class SprintfHandler {
 
 my $sprintfHandlerInitialized = False;
 
-my class Cool {
+my class Cool { # declared in BOOTSTRAP
+    # class Cool is Any {
 
     ## numeric methods
 

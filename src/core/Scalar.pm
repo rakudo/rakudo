@@ -1,5 +1,8 @@
-# This is mostly set up in BOOTSTRAP.pm.
-my class Scalar {
+my class Scalar { # declared in BOOTSTRAP
+    # class Scalar is Any {
+    #     has $!descriptor;
+    #     has $!value;
+
     method name() {
         my $d := $!descriptor;
         nqp::isnull($d) ?? Str !! $d.name()

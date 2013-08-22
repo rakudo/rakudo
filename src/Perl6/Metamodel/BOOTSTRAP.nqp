@@ -111,7 +111,7 @@ BEGIN {
     Cool.HOW.add_parent(Cool, Any);
     Cool.HOW.compose_repr(Cool);
 
-    # class Attribute {
+    # class Attribute is Any {
     #     has str $!name;
     #     has int $!rw;
     #     has int $!has_accessor;
@@ -348,7 +348,7 @@ BEGIN {
             :$associative_delegate);
     }
         
-    # class Signature {
+    # class Signature is Any{
     #    has $!params;
     #    has $!returns;
     #    has $!arity;
@@ -405,7 +405,7 @@ BEGIN {
         }));
     Signature.HOW.compose_repr(Signature);
         
-    # class Parameter {
+    # class Parameter is Any {
     #     has str $!variable_name
     #     has $!named_names
     #     has $!type_captures

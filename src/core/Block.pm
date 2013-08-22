@@ -1,4 +1,6 @@
-my class Block {
+my class Block { # declared in BOOTSTRAP
+    # class Block is Code { ... }
+
     method add_phaser(Str $name, &block) {
         nqp::isnull($!phasers) &&
             nqp::bindattr(self, Block, '$!phasers', nqp::hash());

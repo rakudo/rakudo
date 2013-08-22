@@ -2,7 +2,7 @@ my class X::Constructor::Positional { ... }
 my class X::Method::NotFound        { ... }
 my class X::Method::InvalidQualifier { ... }
 
-my class Mu {
+my class Mu { # declared in BOOTSTRAP
     proto method ACCEPTS(|) { * }
     multi method ACCEPTS(Mu:U: Mu \topic) {
         nqp::p6bool(nqp::istype(topic, self))

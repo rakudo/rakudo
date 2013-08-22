@@ -3,7 +3,9 @@ my class Range { ... }
 my class X::Bind::Slice { ... }
 my class X::Bind::ZenSlice { ... }
 
-my class Any {
+my class Any { # declared in BOOTSTRAP
+    # my class Any is Mu {
+
     my $default= [];  # so that we can check passing of parameters to ".hash"
     multi method ACCEPTS(Any:D: Mu \a) { self === a }
 

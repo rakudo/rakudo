@@ -7,7 +7,9 @@ my role SoftRoutine {
     method soft() { True }
 }
 
-my class Routine {
+my class Routine { # declared in BOOTSTRAP
+    # class Routine is Block {
+
     method of() { self.signature.returns }
     method returns() { self.signature.returns }
     method rw() { $!rw }

@@ -554,9 +554,11 @@ S16-filehandles/open.t
 S16-filehandles/unlink.t
 S16-io/bare-say.t
 S16-io/basic-open.t
+S16-io/cwd.t
 S16-io/getc.t
 S16-io/say-and-ref.t
 S16-io/say.t
+S16-io/tmpdir.t
 S16-unfiled/rebindstdhandles.t
 S19-command-line/dash-e.t # icu
 S19-command-line/help.t

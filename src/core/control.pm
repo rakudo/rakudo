@@ -205,7 +205,8 @@ sub shell($cmd) {
 #?endif
 #?if !parrot
     try {
-        $status = nqp::shell($cmd); 
+        my Mu $hash := nqp::getattr(%*ENV, EnumMap, '$!storage');
+        $status = nqp::shell($cmd, $*CWD.Str, $hash);
     }
 #?endif
     $status;

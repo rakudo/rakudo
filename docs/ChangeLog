@@ -13,7 +13,12 @@ New in 2013.08
 + Asynchronous file reading (JVM only)
 + Improved JVM interop, including 'use :from<java>' (JVM only)
 + Fixed subroutine inlining on JVM
++ Fixed %*CUSTOM_LIB on JVM
+* Fixed sink context handling on JVM
 + Reimplementation of Buf as a role
++ Implemented Blob role
++ Implemented sized/encoded Buf/Blob types (buf8, blob8, utf8, etc.)
++ Str.encode now returns most specific appropriate type
 + "once" phaser fully implemented
 + Named parameters "with" and "as" on uniq/squish
 + "samewith()" for calling method on same dispatcher again
@@ -24,6 +29,9 @@ New in 2013.08
 + Make type objects appear as Nil in non-scalar contexts
 + Placeholder variables $^A .. $^Z no longer allowed, as per spec
 + printf %d now supports bigints also on Parrot
++ my and our scoped methods no longer go into the method table
++ Implemented keybag(), KeyBag.push, KeyBag.categorize
++ Re-implemented hash iteration for a performance win
 + Various optimizations, code cleanups and error message enhancements
 
 New in 2013.07

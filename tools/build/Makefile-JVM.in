@@ -19,7 +19,7 @@ RM_RF   = $(PERL) -MExtUtils::Command -e rm_rf
 
 NQP_JARS = @nqp_jars@
 
-RUN_PERL6 = $(JAVA) -Xms500m -Xmx2g -Xbootclasspath/a:.@cpsep@$(NQP_JARS)@cpsep@rakudo-runtime.jar@cpsep@perl6.jar -cp @nqp_classpath@ perl6
+RUN_PERL6 = $(JAVA) -Xss1m -Xms500m -Xmx1600m -Xbootclasspath/a:.@cpsep@$(NQP_JARS)@cpsep@rakudo-runtime.jar@cpsep@perl6.jar -cp @nqp_classpath@ perl6
 
 RUNTIME_JAVAS = src/vm/jvm/runtime/org/perl6/rakudo/*.java
 

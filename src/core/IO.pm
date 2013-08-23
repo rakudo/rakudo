@@ -90,13 +90,14 @@ my class IO::Handle does IO::FileTestable {
     multi method open($path? is copy, :$r, :$w, :$a, :$p, :$bin, :$chomp = Bool::True,
             :enc(:$encoding) = 'utf8') {
         $path //= $!path;
+        my $abspath = defined $*CWD ?? IO::Spec.rel2abs($path) !! $path;
         my $mode =  $p ?? ($w ||  $a ?? 'wp' !! 'rp') !!
                    ($w ?? 'w' !! ($a ?? 'wa' !! 'r' ));
         # TODO: catch error, and fail()
         nqp::bindattr(self, IO::Handle, '$!PIO',
              $path eq '-'
                 ?? ( $w || $a ?? nqp::getstdout() !! nqp::getstdin() )
-                !! nqp::open(nqp::unbox_s($path.Str), nqp::unbox_s($mode))
+                !! nqp::open(nqp::unbox_s($abspath.Str), nqp::unbox_s($mode))
         );
         $!path = $path;
         $!chomp = $chomp;
@@ -168,7 +169,14 @@ my class IO::Handle does IO::FileTestable {
         True;
     }
     method tell(IO::Handle:D:) returns Int {
-        nqp::p6box_i($!PIO.tell);
+        nqp::p6box_i(
+#?if parrot
+            $!PIO.tell
+#?endif
+#?if jvm
+            nqp::tellfh($!PIO)
+#?endif
+        );
     }
 
     method write(IO::Handle:D: Blob:D $buf) {
@@ -495,11 +503,12 @@ my class IO::Path::QNX    is IO::Path { method SPEC { IO::Spec::QNX    };  }
 
 
 sub dir(Cool $path = '.', Mu :$test = none('.', '..')) {
-    $path.path.contents(:$test)
+    $path.path.absolute.contents(:$test)
 }
 
 sub unlink($path as Str) {
-    nqp::unlink($path);
+    my $abspath = IO::Spec.rel2abs($path);
+    nqp::unlink($abspath);
     return True;
     CATCH {
         default {
@@ -512,7 +521,8 @@ sub unlink($path as Str) {
 }
 
 sub rmdir($path as Str) {
-    nqp::rmdir($path);
+    my $abspath = IO::Spec.rel2abs($path);
+    nqp::rmdir($abspath);
     return True;
     CATCH {
         default {
@@ -588,46 +598,62 @@ multi sub spurt(Cool $filename,
     $filename.IO.spurt($contents, :$createonly, :$append);
 }
 
-proto sub cwd(|) { * }
-multi sub cwd() {
-    return nqp::p6box_s(
+{
+    proto sub cwd(|) { * }
+    multi sub cwd() {
+        return nqp::p6box_s(
 #?if parrot
-		pir::trans_encoding__Ssi(
-			nqp::cwd(),
-			pir::find_encoding__Is('utf8'))
+            pir::trans_encoding__Ssi(
+                nqp::cwd(),
+                pir::find_encoding__Is('utf8'))
 #?endif
 #?if !parrot
-			nqp::cwd(),
+            nqp::cwd(),
 #?endif
-    );
-    CATCH {
-        default {
-            X::IO::Cwd.new(
-                os-error => .Str,
-            ).throw;
+        );
+        CATCH {
+            default {
+                X::IO::Cwd.new(
+                    os-error => .Str,
+                ).throw;
+            }
         }
     }
+    PROCESS::<&cwd> := &cwd;
 }
 
+proto sub cwd(|) { * }
+multi sub cwd() {
+    $*CWD
+} 
+
+{
+    proto sub chdir(|) { * }
+    multi sub chdir($path as Str) {
+        nqp::chdir(nqp::unbox_s($path));
+        $*CWD = IO::Path.new(cwd());
+        return True;
+        CATCH {
+            default {
+                X::IO::Chdir.new(
+                    :$path,
+                    os-error => .Str,
+                ).throw;
+            }
+        }
+    }
+    PROCESS::<&chdir> := &chdir;
+}
 
 proto sub chdir(|) { * }
 multi sub chdir($path as Str) {
-    nqp::chdir(nqp::unbox_s($path));
-    $*CWD = cwd();
-    return True;
-    CATCH {
-        default {
-            X::IO::Chdir.new(
-                :$path,
-                os-error => .Str,
-            ).throw;
-        }
-    }
+    $*CWD = IO::Path.new(IO::Spec.rel2abs($path));
 }
 
 proto sub mkdir(|) { * }
 multi sub mkdir($path as Str, $mode = 0o777) {
-    nqp::mkdir($path, $mode);
+    my $abspath = IO::Spec.rel2abs($path);
+    nqp::mkdir($abspath, $mode);
     return True;
     CATCH {
         default {
@@ -647,7 +673,9 @@ nqp::bindattr(nqp::decont($PROCESS::ERR),
         IO::Handle, '$!PIO', nqp::getstderr());
 
 sub rename(Cool $from as Str, Cool $to as Str) {
-    nqp::rename(nqp::unbox_s($from), nqp::unbox_s($to));
+    my $absfrom = IO::Spec.rel2abs($from);
+    my $absto = IO::Spec.rel2abs($to);
+    nqp::rename(nqp::unbox_s($absfrom), nqp::unbox_s($absto));
     return True;
     CATCH {
         default {
@@ -664,7 +692,9 @@ sub rename(Cool $from as Str, Cool $to as Str) {
     }
 }
 sub copy(Cool $from as Str, Cool $to as Str) {
-    nqp::copy(nqp::unbox_s($from), nqp::unbox_s($to));
+    my $absfrom = IO::Spec.rel2abs($from);
+    my $absto = IO::Spec.rel2abs($to);
+    nqp::copy(nqp::unbox_s($absfrom), nqp::unbox_s($absto));
     return True;
     CATCH {
         default {
@@ -677,7 +707,8 @@ sub copy(Cool $from as Str, Cool $to as Str) {
     }
 }
 sub symlink(Cool $target as Str, Cool $name as Str) {
-    nqp::symlink(nqp::unbox_s($target), nqp::unbox_s($name));
+    my $abstarget = IO::Spec.rel2abs($target);
+    nqp::symlink(nqp::unbox_s($abstarget), nqp::unbox_s($name));
     return True;
     CATCH {
         default {
@@ -690,7 +721,8 @@ sub symlink(Cool $target as Str, Cool $name as Str) {
     }
 }
 sub link(Cool $target as Str, Cool $name as Str) {
-    nqp::link(nqp::unbox_s($target), nqp::unbox_s($name));
+    my $abstarget = IO::Spec.rel2abs($target);
+    nqp::link(nqp::unbox_s($abstarget), nqp::unbox_s($name));
     return True;
     CATCH {
         default {
@@ -703,4 +735,4 @@ sub link(Cool $target as Str, Cool $name as Str) {
     }
 }
 
-sub chmod($mode, $filename) { $filename.path.chmod($mode); $filename }
+sub chmod($mode, $filename) { $filename.path.absolute.chmod($mode); $filename }

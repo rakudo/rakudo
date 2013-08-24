@@ -10,7 +10,9 @@ sub DEBUG(*@strs) {
 class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
     my %modules_loaded;
     my %settings_loaded;
-    my %language_module_loaders;
+    my %language_module_loaders := nqp::hash(
+        'NQP', nqp::gethllsym('nqp', 'ModuleLoader'),
+    ); 
     
     method register_language_module_loader($lang, $loader) {
         nqp::die("Language loader already registered for $lang")
@@ -51,6 +53,14 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
         # See if we need to load it from elsewhere.
         if nqp::existskey(%opts, 'from') {
             if nqp::existskey(%language_module_loaders, %opts<from>) {
+                # We expect that custom module loaders will accept a Stash, only
+                # NQP expects a hash and therefor needs special handling.
+                if +@GLOBALish && %opts<from> eq 'NQP' {
+                    my $target := nqp::knowhow().new_type(:name('GLOBALish'));
+                    nqp::setwho($target, @GLOBALish[0].WHO.FLATTENABLE_HASH());
+                    return %language_module_loaders{%opts<from>}.load_module($module_name,
+                        %opts, $target, :$line, :$file);
+                }
                 return %language_module_loaders{%opts<from>}.load_module($module_name,
                     %opts, |@GLOBALish, :$line, :$file);
             }

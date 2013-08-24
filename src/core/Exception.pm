@@ -908,7 +908,6 @@ my class X::Syntax::Perl5Var does X::Syntax {
 
       '%-'  => '.from method',
       '%+'  => '.to method',
-      '%!'  => 'your time to implement this in Perl6',
       '%^H' => '$?FOO variables',
     ;
     method message() {

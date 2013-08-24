@@ -491,9 +491,20 @@ my class IO::Path is Cool does IO::FileTestable {
         if ($!) {
             fail X::IO::Rmdir.new(
                     :$!path,
-                    os-error => .Str);
+                    os-error => $!.Str);
         }
 
+        return True;
+    }
+
+    method mkdir($mode = 0o777) {
+        try nqp::mkdir($!path, $mode);
+        if ($!) {
+            fail X::IO::Mkdir.new(
+                :$!path,
+                :$mode,
+                os-error => $!.Str);
+        }
         return True;
     }
 }
@@ -626,19 +637,8 @@ multi sub chdir($path as Str) {
     }
 }
 
-proto sub mkdir(|) { * }
-multi sub mkdir($path as Str, $mode = 0o777) {
-    nqp::mkdir($path, $mode);
-    return True;
-    CATCH {
-        default {
-            X::IO::Mkdir.new(
-                :$path,
-                :$mode,
-                os-error => .Str,
-            ).throw;
-        }
-    }
+sub mkdir(Cool $path, $mode = 0o777) {
+    $path.path.mkdir($path, :$mode);
 }
 
 $PROCESS::IN  = open('-');

@@ -486,6 +486,16 @@ my class IO::Path is Cool does IO::FileTestable {
 #?endif
     }
 
+    method rmdir(IO::Path:D:) {
+        try nqp::rmdir($!path);
+        if ($!) {
+            fail X::IO::Rmdir.new(
+                    :$!path,
+                    os-error => .Str);
+        }
+
+        return True;
+    }
 }
 
 my class IO::Path::Unix   is IO::Path { method SPEC { IO::Spec::Unix   };  }
@@ -511,17 +521,8 @@ sub unlink($path as Str) {
     }
 }
 
-sub rmdir($path as Str) {
-    nqp::rmdir($path);
-    return True;
-    CATCH {
-        default {
-            X::IO::Rmdir.new(
-                :$path,
-                os-error => .Str,
-            ).throw;
-        }
-    }
+sub rmdir(Cool $path) {
+    return $path.path.rmdir();
 }
 
 proto sub open(|) { * }

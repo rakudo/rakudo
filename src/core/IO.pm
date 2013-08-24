@@ -638,7 +638,7 @@ multi sub chdir($path as Str) {
 }
 
 sub mkdir(Cool $path, $mode = 0o777) {
-    $path.path.mkdir($path, :$mode);
+    $path.path.mkdir($mode);
 }
 
 $PROCESS::IN  = open('-');

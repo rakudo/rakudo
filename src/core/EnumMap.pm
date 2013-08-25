@@ -98,8 +98,8 @@ my class EnumMap does Associative { # declared in BOOTSTRAP
         $!storage
     }
 
-    method fmt(EnumMap: $format = "%s\t\%s", $sep = "\n") {
-        if nqp::sprintfdirectives($format) == 1 {
+    method fmt(EnumMap: Cool $format = "%s\t\%s", $sep = "\n") {
+        if nqp::p6box_i(nqp::sprintfdirectives( nqp::unbox_s($format.Stringy) )) == 1 {
             self.keys.fmt($format, $sep);
         }
         else {

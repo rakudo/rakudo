@@ -34,7 +34,7 @@ my class KeyBag does Associative does Baggy {
 
     # Constructor
     method new(*@args --> KeyBag) {
-        self.bless(*, :elems( REGISTER(@args) ));
+        self.bless(:elems( REGISTER(@args) ));
     }
 
     submethod BUILD (:%!elems) { }

@@ -312,7 +312,7 @@ my class KeyReducer {
     has $!obtained;
     
     method new($initializer, $reducer) {
-        self.bless(*, :$initializer, :$reducer)
+        self.bless(:$initializer, :$reducer)
     }
     
     my Mu $interop;

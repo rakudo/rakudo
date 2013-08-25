@@ -48,7 +48,7 @@ my class Mu { # declared in BOOTSTRAP
     
     proto method new(|) { * }
     multi method new(*%attrinit) {
-        self.bless(*, |%attrinit);
+        self.bless(|%attrinit);
     }
     multi method new($, *@) {
         X::Constructor::Positional.new(:type( self )).throw();
@@ -58,12 +58,12 @@ my class Mu { # declared in BOOTSTRAP
         nqp::create(self)
     }
     
-    method bless(Mu \candidate, *@autovivs, *%attrinit) {
-        # If we were passed *, then need to create a candidate.
-        my $cand := nqp::istype(candidate, Whatever) ??
-            nqp::create(self) !!
-            candidate;
-        $cand.BUILDALL(@autovivs, %attrinit);
+    method bless(*@autovivs, *%attrinit) {
+        if @autovivs && nqp::istype(@autovivs[0], Whatever) {
+            warn "Passing an object candidate to Mu.bless is deprecated";
+            @autovivs.shift;
+        }
+        nqp::create(self).BUILDALL(@autovivs, %attrinit);
     }
     
     method BUILDALL(@autovivs, %attrinit) {

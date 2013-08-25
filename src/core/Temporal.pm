@@ -182,7 +182,7 @@ my class DateTime does Dateish {
     }
  
     multi method new(Int :$year!, :&formatter=&default-formatter, *%_) {
-        my $dt = self.bless(*, :$year, :&formatter, |%_);
+        my $dt = self.bless(:$year, :&formatter, |%_);
         $dt.check-date;
         $dt.check-time;
         $dt;
@@ -251,7 +251,7 @@ my class DateTime does Dateish {
         my $day   = $e - (153 * $m + 2) div 5 + 1;
         my $month = $m + 3 - 12 * ($m div 10);
         my $year  = $b * 100 + $d - 4800 + $m div 10;
-        self.bless(*, :$year, :$month, :$day,
+        self.bless(:$year, :$month, :$day,
             :$hour, :$minute, :$second,
             :&formatter).in-timezone($timezone);
     }
@@ -297,7 +297,7 @@ my class DateTime does Dateish {
     method clone-without-validating(*%_) { # A premature optimization.
         my %args = { :$!year, :$!month, :$!day, :$!hour, :$!minute,
                      :$!second, :$!timezone, :&!formatter, %_ };
-        self.bless(*, |%args);
+        self.bless(|%args);
     }
 
     method Instant() {
@@ -472,7 +472,7 @@ my class Date does Dateish {
     method get-daycount { $!daycount }
 
     multi method new(:$year!, :$month = 1, :$day = 1) {
-        my $d = self.bless(*, :$year, :$month, :$day);
+        my $d = self.bless(:$year, :$month, :$day);
         $d.check-date;
         $d!set-daycount(self.daycount-from-ymd($year,$month,$day));
         $d;
@@ -501,7 +501,7 @@ my class Date does Dateish {
     }
 
     multi method new(DateTime $dt) {
-        self.bless(*, 
+        self.bless(
             :year($dt.year), :month($dt.month), :day($dt.day),
             :daycount(self.daycount-from-ymd($dt.year,$dt.month,$dt.day))
         );
@@ -519,7 +519,7 @@ my class Date does Dateish {
 
     method new-from-daycount($daycount) {
         my ($year, $month, $day) = self.ymd-from-daycount($daycount);
-        self.bless(*, :$daycount, :$year, :$month, :$day);
+        self.bless(:$daycount, :$year, :$month, :$day);
     }
 
     method today() {

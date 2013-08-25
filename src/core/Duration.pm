@@ -2,7 +2,7 @@ my class Duration is Cool does Real {
     has Rat $.x = 0;
       # A linear count of seconds.
 
-    method new($x) { self.bless: *, x => $x.Rat }
+    method new($x) { self.bless: x => $x.Rat }
 
     method Bridge(Duration:D:) { $!x.Num }
     method Rat(Duration:D:)    { $!x     }

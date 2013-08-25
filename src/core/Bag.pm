@@ -31,7 +31,7 @@ my class Bag is Iterable does Associative does Baggy {
         for @args {
             register-arg($_);
         }
-        self.bless(*, :elems(%e));
+        self.bless(:elems(%e));
     }
 
     submethod BUILD (:%!elems) { }

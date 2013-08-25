@@ -43,7 +43,7 @@ my class Backtrace is List {
 
     # note that parrot backtraces are RPAs, marshalled to us as Parcel
     multi method new(Parcel $bt, Int $offset = 0) {
-        my $new = self.bless(*);
+        my $new = self.bless();
         for $offset .. $bt.elems - 1 {
             my Mu $sub := nqp::getattr(nqp::decont($bt[$_]<sub>), ForeignCode, '$!do');
             next if nqp::isnull($sub);

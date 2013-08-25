@@ -33,7 +33,7 @@ my class KeySet is Iterable does Associative {
         for @args {
             register-arg($_);
         }
-        self.bless(*, :elems(%e));
+        self.bless(:elems(%e));
     }
 
     submethod BUILD (:%!elems) { }

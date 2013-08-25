@@ -63,7 +63,7 @@ my class IO::Socket::INET does IO::Socket {
         %args<listen>.=Bool if %args.exists('listen');
 
         #TODO: Learn what protocols map to which socket types and then determine which is needed.
-        self.bless(*, |%args)!initialize()
+        self.bless(|%args)!initialize()
     }
     
     method !initialize() {
@@ -121,7 +121,7 @@ my class IO::Socket::INET does IO::Socket {
     method accept() {
         #my $new_sock := nqp::create($?CLASS);
         ## A solution as proposed by moritz
-        my $new_sock := $?CLASS.bless(*, :$!family, :$!proto, :$!type, :$!input-line-separator);
+        my $new_sock := $?CLASS.bless(:$!family, :$!proto, :$!type, :$!input-line-separator);
         nqp::getattr($new_sock, $?CLASS, '$!buffer') = '';
         nqp::bindattr($new_sock, $?CLASS, '$!PIO', nqp::getattr(self, $?CLASS, '$!PIO').accept());
         return $new_sock;

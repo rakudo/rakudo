@@ -4,7 +4,7 @@ my class Junction { # declared in BOOTSTRAP
     #     has $!type;                # type of Junction
 
     method new(*@values, :$type) {
-        self.bless(*, :storage(@values.eager), :$type);
+        self.bless(:storage(@values.eager), :$type);
     }
 
     multi method Bool(Junction:D:) {

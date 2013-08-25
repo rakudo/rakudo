@@ -1095,16 +1095,16 @@ multi prefix:<~^>(Str \a) {
 
 # XXX: String-wise shifts NYI
 multi infix:«~>»(Str:D \a, Int:D \b) returns Str:D {
-    fail "infix:«~>» NYI";
+    X::NYI.new(feature => "infix:«~>»").throw;
 }
 multi infix:«~>»(str $a, int $b) {
-    fail "infix:«~>» NYI";
+    X::NYI.new(feature => "infix:«~>»").throw;
 }
 multi infix:«~<»(Str:D \a, Int:D \b) returns Str:D {
-    fail "infix:«~<» NYI";
+    X::NYI.new(feature => "infix:«~<»").throw;
 }
 multi infix:«~<»(str $a, int $b) {
-    fail "infix:«~<» NYI";
+    X::NYI.new(feature => "infix:«~<»").throw;
 }
 
 multi sub ords(Str $s) returns List:D {

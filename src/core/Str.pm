@@ -1093,6 +1093,20 @@ multi prefix:<~^>(Str \a) {
     fail "prefix:<~^> NYI";   # XXX
 }
 
+# XXX: String-wise shifts NYI
+multi infix:«~>»(Str:D \a, Int:D \b) returns Str:D {
+    fail "infix:«~>» NYI";
+}
+multi infix:«~>»(str $a, int $b) {
+    fail "infix:«~>» NYI";
+}
+multi infix:«~<»(Str:D \a, Int:D \b) returns Str:D {
+    fail "infix:«~<» NYI";
+}
+multi infix:«~<»(str $a, int $b) {
+    fail "infix:«~<» NYI";
+}
+
 multi sub ords(Str $s) returns List:D {
     my Int $c  = $s.chars;
     my str $ns = nqp::unbox_s($s);

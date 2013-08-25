@@ -1,7 +1,7 @@
 Rakudo Roadmap
 --------------
 
-Last updated: 2012-12-28
+Last updated: 2013-08-25
 
 This document serves as a guide to the major goals for Rakudo
 development, as things stood in December 2011. They have been
@@ -29,7 +29,6 @@ rescue yourself from a goal, etc.
 
 Compiler Performance/Portability Improvements (jnthn)
 2 **    finish up any remaining s/pir::/nqp::/
-2 ?     re-organize Rakudo, build process, etc. for multi-backend
 3 **    Optimizing multis for `[+] 1..10` and `[<=] 1..10` etc.
 
 Macros (masak)
@@ -52,7 +51,7 @@ Regexes
 3 **    <cut> and <commit>
 
 Built-ins/Data Structures
-2 ***   throwing typed exceptions (moritz)
+2 **    throwing typed exceptions (moritz)
 2 ***   packed arrays (jnthn)
 2 ***** NFG strings, .codes, .graphs, etc.
 2 **    Rat/FatRat/Rational cleanup

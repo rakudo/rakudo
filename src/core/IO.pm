@@ -647,7 +647,22 @@ multi sub cwd() {
 
 proto sub chdir(|) { * }
 multi sub chdir($path as Str) {
-    $*CWD = IO::Path.new(IO::Spec.rel2abs($path));
+    my $tmp = $*CWD;
+    for $path.split('/') -> $segment {
+        given $segment {
+            when '..' { $tmp .= parent; }
+            when '.' { }
+            default { $tmp .= child($segment); }
+        }
+    }
+    if $tmp.d {
+        $*CWD = $tmp; 
+    } else {
+        X::IO::Chdir.new(
+            path => $tmp,
+            os-error => 'Directory does not exist'
+        ).throw;
+    }
 }
 
 proto sub mkdir(|) { * }

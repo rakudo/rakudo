@@ -90,7 +90,7 @@ my class IO::Handle does IO::FileTestable {
     multi method open($path? is copy, :$r, :$w, :$a, :$p, :$bin, :$chomp = Bool::True,
             :enc(:$encoding) = 'utf8') {
         $path //= $!path;
-        my $abspath = defined $*CWD ?? IO::Spec.rel2abs($path) !! $path;
+        my $abspath = defined($*CWD) ?? IO::Spec.rel2abs($path) !! $path;
         my $mode =  $p ?? ($w ||  $a ?? 'wp' !! 'rp') !!
                    ($w ?? 'w' !! ($a ?? 'wa' !! 'r' ));
         # TODO: catch error, and fail()
@@ -154,8 +154,8 @@ my class IO::Handle does IO::FileTestable {
         my Mu $parrot_buffer := $!PIO.read_bytes(nqp::unbox_i($bytes));
         nqp::encode($parrot_buffer.get_string('binary'), 'binary', $buf);
 #?endif
-#?if !parrot
-        die "IO::Handle.read NYI on this backend";
+#?if jvm
+        nqp::readfh($!PIO, $buf, nqp::unbox_i($bytes));
 #?endif
         $buf;
     }
@@ -188,8 +188,8 @@ my class IO::Handle does IO::FileTestable {
         $!PIO.print(nqp::decode(nqp::decont($buf), 'binary'));
         $!PIO.encoding($encoding) unless $encoding eq 'binary';
 #?endif
-#?if !parrot
-        die "IO::Handle.write NYI on this backend";
+#?if jvm
+        nqp::writefh($!PIO, nqp::decont($buf));
 #?endif
         True;
     }
@@ -647,19 +647,23 @@ multi sub cwd() {
 
 proto sub chdir(|) { * }
 multi sub chdir($path as Str) {
-    my $tmp = $*CWD;
-    for $path.split('/') -> $segment {
-        given $segment {
-            when '..' { $tmp .= parent; }
-            when '.' { }
-            default { $tmp .= child($segment); }
+    my $newpath = IO::Path.new($path);
+    if $newpath.is-relative {
+        my $tmp = $*CWD;
+        for IO::Spec.splitdir($newpath) -> $segment {
+            given $segment {
+                when '..' { $tmp .= parent; }
+                when '.' { }
+                default { $tmp .= child($segment); }
+            }
         }
+        $newpath = $tmp;
     }
-    if $tmp.d {
-        $*CWD = $tmp; 
+    if $newpath.d {
+        $*CWD = $newpath; 
     } else {
         X::IO::Chdir.new(
-            path => $tmp,
+            path => $newpath,
             os-error => 'Directory does not exist'
         ).throw;
     }

@@ -486,6 +486,27 @@ my class IO::Path is Cool does IO::FileTestable {
 #?endif
     }
 
+    method rmdir(IO::Path:D:) {
+        try nqp::rmdir($!path);
+        if ($!) {
+            fail X::IO::Rmdir.new(
+                    :$!path,
+                    os-error => $!.Str);
+        }
+
+        return True;
+    }
+
+    method mkdir($mode = 0o777) {
+        try nqp::mkdir($!path, $mode);
+        if ($!) {
+            fail X::IO::Mkdir.new(
+                :$!path,
+                :$mode,
+                os-error => $!.Str);
+        }
+        return True;
+    }
 }
 
 my class IO::Path::Unix   is IO::Path { method SPEC { IO::Spec::Unix   };  }
@@ -511,17 +532,8 @@ sub unlink($path as Str) {
     }
 }
 
-sub rmdir($path as Str) {
-    nqp::rmdir($path);
-    return True;
-    CATCH {
-        default {
-            X::IO::Rmdir.new(
-                :$path,
-                os-error => .Str,
-            ).throw;
-        }
-    }
+sub rmdir(Cool $path) {
+    return $path.path.rmdir();
 }
 
 proto sub open(|) { * }
@@ -625,19 +637,8 @@ multi sub chdir($path as Str) {
     }
 }
 
-proto sub mkdir(|) { * }
-multi sub mkdir($path as Str, $mode = 0o777) {
-    nqp::mkdir($path, $mode);
-    return True;
-    CATCH {
-        default {
-            X::IO::Mkdir.new(
-                :$path,
-                :$mode,
-                os-error => .Str,
-            ).throw;
-        }
-    }
+sub mkdir(Cool $path, $mode = 0o777) {
+    $path.path.mkdir($mode);
 }
 
 $PROCESS::IN  = open('-');

@@ -14,7 +14,9 @@ my class Any { # declared in BOOTSTRAP
     ########
 
     # primitives
-    method infinite() { Nil }
+    method infinite()   { Nil }
+    method exists($key) { False }
+    method delete($key) { Nil }
     method list() {
         nqp::p6list(
           self.DEFINITE ?? nqp::list(self) !! nqp::list(), List, Mu

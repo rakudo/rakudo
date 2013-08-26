@@ -9,7 +9,7 @@ class Array { # declared in BOOTSTRAP
         nqp::shift($args);
         nqp::p6list($args, self.WHAT, Bool::True);
     }
-    
+
     multi method at_pos(Array:D: $pos) is rw {
 #?if jvm
         if nqp::istype($pos, Num) && nqp::isnanorinf($pos) {
@@ -87,6 +87,11 @@ class Array { # declared in BOOTSTRAP
 
     method flattens() { 1 }
 
+    # introspection
+    method name() {
+        my $d := $!descriptor;
+        nqp::isnull($d) ?? Str !! $d.name()
+    }
     method of() {
         my $d := $!descriptor;
         nqp::isnull($d) ?? Mu !! $d.of;
@@ -99,7 +104,6 @@ class Array { # declared in BOOTSTRAP
         my $d := $!descriptor;
         nqp::isnull($d) ?? Mu !! so $d.dynamic;
     }
-
     multi method perl(Array:D \SELF:) {
         nqp::iscont(SELF)
           ?? '[' ~ self.map({.perl}).join(', ') ~ ']'

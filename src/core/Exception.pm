@@ -462,6 +462,17 @@ my class X::Trait::Unknown is Exception {
 }
 my class X::Comp::Trait::Unknown is X::Trait::Unknown does X::Comp { };
 
+my class X::Trait::NotOnNative is Exception {
+    has $.type;       # is, will, of etc.
+    has $.subtype;    # wrong subtype being tried
+    has $.native;     # type of native (optional)
+    method message () {
+        "Can't use trait '$.type $.subtype' on a native"
+          ~ ( $.native ?? " $.native." !! "." );
+    }
+}
+my class X::Comp::Trait::NotOnNative is X::Trait::NotOnNative does X::Comp { };
+
 my class X::OutOfRange is Exception {
     has $.what = 'Argument';
     has $.got = '<unknown>';

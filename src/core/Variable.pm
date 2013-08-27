@@ -1,6 +1,7 @@
 # for our tantrums
 my class X::Comp::NYI { ... };
 my class X::Comp::Trait::Unknown { ... };
+my class X::Comp::Trait::NotOnNative { ... };
 
 # Variable traits come here, not in traits.pm, since we declare Variable
 # in the setting rather than BOOTSTRAP.
@@ -13,7 +14,7 @@ my class Variable {
     has $.slash;
 
     # make throwing easier
-    submethod throw ( |c ) {
+    submethod throw ( |c ) is hidden_from_backtrace {
         $*W.throw( self.slash, |c );
     }
 }
@@ -35,11 +36,16 @@ multi trait_mod:<is>(Variable:D $v, Mu:U $is ) {
 multi trait_mod:<is>(Variable:D $v, :$default!) {
     my $var  := $v.var;
     my $what := $var.VAR.WHAT;
-    nqp::getattr(
-      $var,
-      $what.HOW.mixin_base($what),
-      '$!descriptor',
-    ).set_default(nqp::decont($default));
+    try { nqp::getattr(
+            $var,
+            $what.HOW.mixin_base($what),
+            '$!descriptor',
+          ).set_default(nqp::decont($default));
+        CATCH {
+            $v.throw( 'X::Comp::Trait::NotOnNative',
+              :type<is>, :subtype<default> ); # can't find out native type yet
+        }
+    }
 
     # make sure we start with the default if a scalar
     $var = $default if nqp::istype($what, Scalar);
@@ -47,11 +53,16 @@ multi trait_mod:<is>(Variable:D $v, :$default!) {
 multi trait_mod:<is>(Variable:D $v, :$dynamic!) {
     my $var  := $v.var;
     my $what := $var.VAR.WHAT;
-    nqp::getattr(
-      $var,
-      $what.HOW.mixin_base($what),
-      '$!descriptor',
-    ).set_dynamic($dynamic);
+    try { nqp::getattr(
+            $var,
+            $what.HOW.mixin_base($what),
+            '$!descriptor',
+          ).set_dynamic($dynamic);
+        CATCH {
+            $v.throw( 'X::Comp::Trait::NotOnNative',
+              :type<is>, :subtype<dynamic> ); # can't find out native type yet
+        }
+    }
 }
 
 # "of" traits
@@ -67,11 +78,16 @@ multi trait_mod:<of>(Variable:D $v, Mu:U $of ) {
     my $var  := $v.var;
     my $what := $var.VAR.WHAT;
     my $how  := $what.HOW;
-    nqp::getattr(
-        $var,
-        $how.mixin_base($what),
-        '$!descriptor'
-    ).set_of(nqp::decont($of));
+    try { nqp::getattr(
+            $var,
+            $how.mixin_base($what),
+            '$!descriptor'
+          ).set_of(nqp::decont($of));
+        CATCH {
+            $v.throw( 'X::Comp::Trait::NotOnNative',
+              :type<of>, :subtype($of.HOW.name($of)) ); # can't find out native type yet
+        }
+    }
     # probably can go if we have a COMPOSE phaser for PARAMETERIZE
     $how.set_name($what,"{$how.name($what)}[{$of.HOW.name($of)}]");
 }

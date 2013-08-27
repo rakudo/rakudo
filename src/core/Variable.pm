@@ -35,13 +35,14 @@ multi trait_mod:<is>(Variable:D $v, Mu:U $is ) {
 multi trait_mod:<is>(Variable:D $v, :$default!) {
     my $var  := $v.var;
     my $what := $var.VAR.WHAT;
-    # make sure we start with the default if a scalar
-    $var = $default if nqp::istype($what, Scalar);
     nqp::getattr(
       $var,
       $what.HOW.mixin_base($what),
       '$!descriptor',
     ).set_default(nqp::decont($default));
+
+    # make sure we start with the default if a scalar
+    $var = $default if nqp::istype($what, Scalar);
 }
 multi trait_mod:<is>(Variable:D $v, :$dynamic!) {
     my $var  := $v.var;

@@ -462,7 +462,7 @@ my class IO::Path is Cool does IO::FileTestable {
             }
         }
 #?if parrot
-        my Mu $RSA := pir::new__PS('OS').readdir(nqp::unbox_s($!path));
+        my Mu $RSA := pir::new__PS('OS').readdir(nqp::unbox_s(self.absolute.Str));
         my int $elems = nqp::elems($RSA);
         gather loop (my int $i = 0; $i < $elems; $i = $i + 1) {
             my Str $file := nqp::p6box_s(pir::trans_encoding__Ssi(
@@ -474,7 +474,7 @@ my class IO::Path is Cool does IO::FileTestable {
         }
 #?endif
 #?if jvm
-        my Mu $dirh := nqp::opendir($!path);
+        my Mu $dirh := nqp::opendir(self.absolute.Str);
         my $next = 1;
         gather {
             take $_.path if $_ ~~ $test for ".", "..";
@@ -484,6 +484,7 @@ my class IO::Path is Cool does IO::FileTestable {
                     nqp::closedir($dirh);
                     last;
                 } else {
+                    $elem := $elem.substr($*CWD.chars + 1) if self.is-relative;
                     if $elem.substr(0, 2) eq any("./", ".\\") {
                         $elem := $elem.substr(2);
                     }
@@ -503,7 +504,7 @@ my class IO::Path::QNX    is IO::Path { method SPEC { IO::Spec::QNX    };  }
 
 
 sub dir(Cool $path = '.', Mu :$test = none('.', '..')) {
-    $path.path.absolute.contents(:$test)
+    $path.path.contents(:$test)
 }
 
 sub unlink($path as Str) {

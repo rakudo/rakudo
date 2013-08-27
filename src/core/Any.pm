@@ -716,7 +716,7 @@ my class Any { # declared in BOOTSTRAP
     # internals
     proto method at_key(|) { * }
     multi method at_key(Any:D: $key) {
-        fail "postcircumfix:<\{ \}> binding not defined for type {self.WHAT.perl}";
+        fail "postcircumfix:<\{ \}> not defined for type {self.WHAT.perl}";
     }
     multi method at_key(Any:U \SELF: $key) is rw {
         nqp::bindattr(my $v, Scalar, '$!whence',
@@ -726,7 +726,7 @@ my class Any { # declared in BOOTSTRAP
     }
     proto method bind_key(|) { * }
     multi method bind_key(Any:D: $key, $BIND ) {
-        fail "postcircumfix:<\{ \}> not defined for type {self.WHAT.perl}";
+        fail "postcircumfix:<\{ \}> binding not defined for type {self.WHAT.perl}";
     }
     multi method bind_key(Any:U \SELF: $key, $BIND ) is rw {
         &infix:<=>(SELF, Hash.new);

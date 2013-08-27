@@ -95,43 +95,6 @@ my class Range is Iterable is Cool does Positional {
             $value = $value.Num;
             my $max = $!max.Num;
             my $box_int = nqp::p6bool(nqp::istype($!min, Int));
-#?if parrot
-            Q:PIR {
-                .local pmc rpa, value_pmc, count_pmc
-                .local num value, count, max
-                .local int cmpstop, box_int
-                rpa = find_lex '$rpa'
-                value_pmc = find_lex '$value'
-                value = repr_unbox_num value_pmc
-                count_pmc = find_lex '$count'
-                count = repr_unbox_num count_pmc
-                $P0 = find_lex '$max'
-                max = repr_unbox_num $P0
-                $P0 = find_lex '$cmpstop'
-                cmpstop = repr_unbox_int $P0
-                $P0 = find_lex '$box_int'
-                box_int = repr_unbox_int $P0
-              loop:
-                unless count > 0 goto done
-                $I0 = cmp value, max
-                unless $I0 < cmpstop goto done
-                unless box_int goto box_num
-                $P0 = perl6_box_bigint value
-                goto box_done
-             box_num:
-                $P0 = perl6_box_num value
-             box_done:
-                push rpa, $P0
-                inc value
-                dec count
-                goto loop
-              done:
-                $P0 = perl6_box_bigint value
-                perl6_container_store value_pmc, $P0
-                %r = rpa
-            };
-#?endif
-#?if !parrot
             my num $nvalue = $value;
             my num $ncount = $count;
             my num $nmax = $max;
@@ -147,7 +110,6 @@ my class Range is Iterable is Cool does Positional {
                     ($ncount = nqp::sub_n($ncount, 1e0))
                 ));
             $value = nqp::p6box_i($nvalue);
-#?endif
         }    
         else {
           (nqp::push($rpa, $value++); $count--)

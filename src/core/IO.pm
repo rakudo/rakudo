@@ -30,37 +30,40 @@ sub prompt($msg) {
 
 my role IO::FileTestable does IO {
     method d() {
-        self.e && nqp::p6bool(nqp::stat(nqp::unbox_s(self.Str), nqp::const::STAT_ISDIR))
+        self.e && nqp::p6bool(nqp::stat(nqp::unbox_s(IO::Spec.rel2abs(self.Str)), 
+                                        nqp::const::STAT_ISDIR))
     }
 
     method e() {
-        nqp::p6bool(nqp::stat(nqp::unbox_s(self.Str), nqp::const::STAT_EXISTS))
+        nqp::p6bool(nqp::stat(nqp::unbox_s(IO::Spec.rel2abs(self.Str)), 
+                              nqp::const::STAT_EXISTS))
     }
 
     method f() {
-        self.e && nqp::p6bool(nqp::stat(nqp::unbox_s(self.Str), nqp::const::STAT_ISREG))
+        self.e && nqp::p6bool(nqp::stat(nqp::unbox_s(IO::Spec.rel2abs(self.Str)), 
+                              nqp::const::STAT_ISREG))
     }
 
     method s() {
         self.e
-          && nqp::p6box_i( nqp::stat(nqp::unbox_s(self.Str),
+          && nqp::p6box_i( nqp::stat(nqp::unbox_s(IO::Spec.rel2abs(self.Str)),
                                  nqp::const::STAT_FILESIZE) );
     }
 
     method l() {
-        nqp::p6bool(nqp::fileislink(self.Str))
+        nqp::p6bool(nqp::fileislink(IO::Spec.rel2abs(self.Str)))
     }
 
     method r() {
-        nqp::p6bool(nqp::filereadable(self.Str))
+        nqp::p6bool(nqp::filereadable(IO::Spec.rel2abs(self.Str)))
     }
 
     method w() {
-        nqp::p6bool(nqp::filewritable(self.Str))
+        nqp::p6bool(nqp::filewritable(IO::Spec.rel2abs(self.Str)))
     }
 
     method x() {
-        nqp::p6bool(nqp::fileexecutable(self.Str))
+        nqp::p6bool(nqp::fileexecutable(IO::Spec.rel2abs(self.Str)))
     }
 
     method z() {
@@ -68,15 +71,18 @@ my role IO::FileTestable does IO {
     }
 
     method modified() {
-         nqp::p6box_i(nqp::stat(nqp::unbox_s(self.Str), nqp::const::STAT_MODIFYTIME));
+         nqp::p6box_i(nqp::stat(nqp::unbox_s(IO::Spec.rel2abs(self.Str)),
+                                nqp::const::STAT_MODIFYTIME));
     }
 
     method accessed() {
-         nqp::p6box_i(nqp::stat(nqp::unbox_s(self.Str), nqp::const::STAT_ACCESSTIME));
+         nqp::p6box_i(nqp::stat(nqp::unbox_s(IO::Spec.rel2abs(self.Str)),
+                                nqp::const::STAT_ACCESSTIME));
     }
 
     method changed() { 
-         nqp::p6box_i(nqp::stat(nqp::unbox_s(self.Str), nqp::const::STAT_CHANGETIME));
+         nqp::p6box_i(nqp::stat(nqp::unbox_s(IO::Spec.rel2abs(self.Str)),
+                                nqp::const::STAT_CHANGETIME));
     }
 }
 
@@ -647,6 +653,7 @@ multi sub cwd() {
 }
 
 proto sub chdir(|) { * }
+multi sub chdir(IO::Path:D $path) { chdir $path.Str }
 multi sub chdir($path as Str) {
     my $newpath = IO::Path.new($path);
     if $newpath.is-relative {

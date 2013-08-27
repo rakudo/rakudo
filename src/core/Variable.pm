@@ -1,6 +1,6 @@
 # for our tantrums
 my class X::Comp::NYI { ... };
-my class X::Comp::Trait { ... };
+my class X::Comp::Trait::Unknown { ... };
 
 # Variable traits come here, not in traits.pm, since we declare Variable
 # in the setting rather than BOOTSTRAP.
@@ -20,7 +20,7 @@ my class Variable {
 
 # "is" traits
 multi trait_mod:<is>(Variable:D $v, |c ) {
-    $v.throw( 'X::Comp::Trait', 
+    $v.throw( 'X::Comp::Trait::Unknown', 
       type      => 'is',
       subtype   => c.hash.keys[0],
       declaring => ' variable',
@@ -56,7 +56,7 @@ multi trait_mod:<is>(Variable:D $v, :$dynamic!) {
 
 # "of" traits
 multi trait_mod:<of>(Variable:D $v, |c ) {
-    $v.throw( 'X::Comp::Trait', 
+    $v.throw( 'X::Comp::Trait::Unknown', 
       type      => 'of',
       subtype   => c.hash.keys[0],
       declaring => ' variable',
@@ -78,7 +78,7 @@ multi trait_mod:<of>(Variable:D $v, Mu:U $of ) {
 
 # phaser traits
 multi trait_mod:<will>(Variable:D $v, $block, |c ) {
-    $v.throw( 'X::Comp::Trait',
+    $v.throw( 'X::Comp::Trait::Unknown',
       type      => 'will',
       subtype   => c.hash.keys[0],
       declaring => ' variable',

@@ -277,13 +277,14 @@ my class IO::Handle does IO::FileTestable {
     method copy($dest) {
         warn "IO::Handle.copy is deprecated.  Please use IO::Path.copy instead.";
         try {
-            nqp::copy(nqp::unbox_s(~$!path), nqp::unbox_s(~$dest));
+            nqp::copy(nqp::unbox_s(IO::Spec.rel2abs(~$!path)), 
+                      nqp::unbox_s(IO::Spec.rel2abs(~$dest)));
         }
         $! ?? fail(X::IO::Copy.new(from => $!path, to => $dest, os-error => ~$!)) !! True
     }
 
     method chmod(Int $mode) {
-        self.path.chmod($mode)
+        self.path.absolute.chmod($mode)
     }
 
     method IO { self }
@@ -433,18 +434,19 @@ my class IO::Path is Cool does IO::FileTestable {
     }
 
     method copy(IO::Path:D: $dest, :$createonly = False) {
-        if $createonly and $dest.path.e {
+        my $absdest = IO::Spec.rel2abs($dest);
+        if $createonly and $absdest.e {
             fail(X::IO::Copy.new(from => $!path, to => $dest,
                     os-error => "Destination file $dest exists and :createonly passed to copy."));
         }
         try {
-            nqp::copy(nqp::unbox_s($!path), nqp::unbox_s(~$dest));
+            nqp::copy(nqp::unbox_s(IO::Spec.rel2abs($!path)), nqp::unbox_s(~$absdest));
         }
         $! ?? fail(X::IO::Copy.new(from => $!path, to => $dest, os-error => ~$!)) !! True
     }
 
     method chmod(IO::Path:D: Int $mode) {
-        nqp::chmod(nqp::unbox_s($!path), nqp::unbox_i($mode.Int));
+        nqp::chmod(nqp::unbox_s(IO::Spec.rel2abs($!path)), nqp::unbox_i($mode.Int));
         return True;
         CATCH {
             default {

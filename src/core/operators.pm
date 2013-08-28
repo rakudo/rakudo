@@ -318,66 +318,79 @@ BEGIN {
     my Mu $junctive_or    := nqp::hash('prec', 'p=');
     my Mu $structural     := nqp::hash('prec', 'n=');
     my Mu $chaining       := nqp::hash('prec', 'm=', 'iffy', 1, 'pasttype', 'chain');
+    my Mu $iffy           := nqp::hash('prec', 'u=', 'iffy', 1);
+
     trait_mod:<is>(&postfix:<i>, :prec($methodcall));
-    trait_mod:<is>(&prefix:<++>, :prec($autoincrement));
-    trait_mod:<is>(&prefix:<-->, :prec($autoincrement));
+
+    trait_mod:<is>(&prefix:<++>,  :prec($autoincrement));
+    trait_mod:<is>(&prefix:<-->,  :prec($autoincrement));
     trait_mod:<is>(&postfix:<++>, :prec($autoincrement));
     trait_mod:<is>(&postfix:<-->, :prec($autoincrement));
+
     trait_mod:<is>(&infix:<**>, :prec($exponentiation));
-    trait_mod:<is>(&prefix:<+>, :prec($symbolic_unary));
-    trait_mod:<is>(&prefix:<~>, :prec($symbolic_unary));
-    trait_mod:<is>(&prefix:<->, :prec($symbolic_unary));
-    trait_mod:<is>(&prefix:<?>, :prec($symbolic_unary));
-    trait_mod:<is>(&prefix:<!>, :prec($symbolic_unary));
+
+    trait_mod:<is>(&prefix:<+>,  :prec($symbolic_unary));
+    trait_mod:<is>(&prefix:<~>,  :prec($symbolic_unary));
+    trait_mod:<is>(&prefix:<->,  :prec($symbolic_unary));
+    trait_mod:<is>(&prefix:<?>,  :prec($symbolic_unary));
+    trait_mod:<is>(&prefix:<!>,  :prec($symbolic_unary));
     trait_mod:<is>(&prefix:<+^>, :prec($symbolic_unary));
     trait_mod:<is>(&prefix:<~^>, :prec($symbolic_unary));
     trait_mod:<is>(&prefix:<?^>, :prec($symbolic_unary));
-    trait_mod:<is>(&prefix:<^>, :prec($symbolic_unary));
-    trait_mod:<is>(&infix:<*>, :prec($multiplicative));
-    trait_mod:<is>(&infix:</>, :prec($multiplicative));
+    trait_mod:<is>(&prefix:<^>,  :prec($symbolic_unary));
+
+    trait_mod:<is>(&infix:<*>,   :prec($multiplicative));
+    trait_mod:<is>(&infix:</>,   :prec($multiplicative));
     trait_mod:<is>(&infix:<div>, :prec($multiplicative));
     trait_mod:<is>(&infix:<gcd>, :prec($multiplicative));
     trait_mod:<is>(&infix:<lcm>, :prec($multiplicative));
-    trait_mod:<is>(&infix:<%>, :prec($multiplicative));
+    trait_mod:<is>(&infix:<%>,   :prec($multiplicative));
     trait_mod:<is>(&infix:<mod>, :prec($multiplicative));
-    trait_mod:<is>(&infix:<%%>, :prec(nqp::hash('prec', 'u=', 'iffy', 1)));
-    trait_mod:<is>(&infix:<+&>, :prec($multiplicative));
-    trait_mod:<is>(&infix:<~&>, :prec($multiplicative));
-    trait_mod:<is>(&infix:<?&>, :prec($multiplicative));
-    trait_mod:<is>(&infix:<+>, :prec($additive));
-    trait_mod:<is>(&infix:<->, :prec($additive));
+    trait_mod:<is>(&infix:<+&>,  :prec($multiplicative));
+    trait_mod:<is>(&infix:<~&>,  :prec($multiplicative));
+    trait_mod:<is>(&infix:<?&>,  :prec($multiplicative));
+
+    trait_mod:<is>(&infix:<%%>, :prec($iffy));
+
+    trait_mod:<is>(&infix:<+>,  :prec($additive));
+    trait_mod:<is>(&infix:<->,  :prec($additive));
     trait_mod:<is>(&infix:<+|>, :prec($additive));
     trait_mod:<is>(&infix:<+^>, :prec($additive));
     trait_mod:<is>(&infix:<~|>, :prec($additive));
     trait_mod:<is>(&infix:<~^>, :prec($additive));
     trait_mod:<is>(&infix:<?|>, :prec($additive));
     trait_mod:<is>(&infix:<?^>, :prec($additive));
-    trait_mod:<is>(&infix:<x>, :prec($replication));
+
+    trait_mod:<is>(&infix:<x>,  :prec($replication));
     trait_mod:<is>(&infix:<xx>, :prec($replication));
+
     trait_mod:<is>(&infix:<~>, :prec($concatenation));
+
     trait_mod:<is>(&infix:<&>, :prec($junctive_and));
     trait_mod:<is>(&infix:<|>, :prec($junctive_or));
     trait_mod:<is>(&infix:<^>, :prec($junctive_or));
-    trait_mod:<is>(&infix:<==>, :prec($chaining));
-    trait_mod:<is>(&infix:<!=>, :prec($chaining));
-    trait_mod:<is>(&infix:<eq>, :prec($chaining));
-    trait_mod:<is>(&infix:<ne>, :prec($chaining));
-    trait_mod:<is>(&infix:<le>, :prec($chaining));
-    trait_mod:<is>(&infix:<ge>, :prec($chaining));
-    trait_mod:<is>(&infix:<lt>, :prec($chaining));
-    trait_mod:<is>(&infix:<gt>, :prec($chaining));
-    trait_mod:<is>(&infix:<=:=>, :prec($chaining));
-    trait_mod:<is>(&infix:<===>, :prec($chaining));
-    trait_mod:<is>(&infix:<eqv>, :prec($chaining));
+
+    trait_mod:<is>(&infix:<==>,     :prec($chaining));
+    trait_mod:<is>(&infix:<!=>,     :prec($chaining));
+    trait_mod:<is>(&infix:<eq>,     :prec($chaining));
+    trait_mod:<is>(&infix:<ne>,     :prec($chaining));
+    trait_mod:<is>(&infix:<le>,     :prec($chaining));
+    trait_mod:<is>(&infix:<ge>,     :prec($chaining));
+    trait_mod:<is>(&infix:<lt>,     :prec($chaining));
+    trait_mod:<is>(&infix:<gt>,     :prec($chaining));
+    trait_mod:<is>(&infix:<=:=>,    :prec($chaining));
+    trait_mod:<is>(&infix:<===>,    :prec($chaining));
+    trait_mod:<is>(&infix:<eqv>,    :prec($chaining));
     trait_mod:<is>(&infix:<before>, :prec($chaining));
-    trait_mod:<is>(&infix:<after>, :prec($chaining));
-    trait_mod:<is>(&infix:<~~>, :prec($chaining));
-    trait_mod:<is>(&infix:<..>, :prec($structural));
-    trait_mod:<is>(&infix:<^..>, :prec($structural));
-    trait_mod:<is>(&infix:<..^>, :prec($structural));
+    trait_mod:<is>(&infix:<after>,  :prec($chaining));
+    trait_mod:<is>(&infix:<~~>,     :prec($chaining));
+
+    trait_mod:<is>(&infix:<..>,   :prec($structural));
+    trait_mod:<is>(&infix:<^..>,  :prec($structural));
+    trait_mod:<is>(&infix:<..^>,  :prec($structural));
     trait_mod:<is>(&infix:<^..^>, :prec($structural));
-    trait_mod:<is>(&infix:<leg>, :prec($structural));
-    trait_mod:<is>(&infix:<cmp>, :prec($structural));
-    trait_mod:<is>(&infix:<but>, :prec($structural));
+    trait_mod:<is>(&infix:<leg>,  :prec($structural));
+    trait_mod:<is>(&infix:<cmp>,  :prec($structural));
+    trait_mod:<is>(&infix:<but>,  :prec($structural));
     trait_mod:<is>(&infix:<does>, :prec($structural));
 }

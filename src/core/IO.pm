@@ -30,37 +30,40 @@ sub prompt($msg) {
 
 my role IO::FileTestable does IO {
     method d() {
-        self.e && nqp::p6bool(nqp::stat(nqp::unbox_s(self.Str), nqp::const::STAT_ISDIR))
+        self.e && nqp::p6bool(nqp::stat(nqp::unbox_s(IO::Spec.rel2abs(self.Str)), 
+                                        nqp::const::STAT_ISDIR))
     }
 
     method e() {
-        nqp::p6bool(nqp::stat(nqp::unbox_s(self.Str), nqp::const::STAT_EXISTS))
+        nqp::p6bool(nqp::stat(nqp::unbox_s(IO::Spec.rel2abs(self.Str)), 
+                              nqp::const::STAT_EXISTS))
     }
 
     method f() {
-        self.e && nqp::p6bool(nqp::stat(nqp::unbox_s(self.Str), nqp::const::STAT_ISREG))
+        self.e && nqp::p6bool(nqp::stat(nqp::unbox_s(IO::Spec.rel2abs(self.Str)), 
+                              nqp::const::STAT_ISREG))
     }
 
     method s() {
         self.e
-          && nqp::p6box_i( nqp::stat(nqp::unbox_s(self.Str),
+          && nqp::p6box_i( nqp::stat(nqp::unbox_s(IO::Spec.rel2abs(self.Str)),
                                  nqp::const::STAT_FILESIZE) );
     }
 
     method l() {
-        nqp::p6bool(nqp::fileislink(self.Str))
+        nqp::p6bool(nqp::fileislink(IO::Spec.rel2abs(self.Str)))
     }
 
     method r() {
-        nqp::p6bool(nqp::filereadable(self.Str))
+        nqp::p6bool(nqp::filereadable(IO::Spec.rel2abs(self.Str)))
     }
 
     method w() {
-        nqp::p6bool(nqp::filewritable(self.Str))
+        nqp::p6bool(nqp::filewritable(IO::Spec.rel2abs(self.Str)))
     }
 
     method x() {
-        nqp::p6bool(nqp::fileexecutable(self.Str))
+        nqp::p6bool(nqp::fileexecutable(IO::Spec.rel2abs(self.Str)))
     }
 
     method z() {
@@ -68,15 +71,18 @@ my role IO::FileTestable does IO {
     }
 
     method modified() {
-         nqp::p6box_i(nqp::stat(nqp::unbox_s(self.Str), nqp::const::STAT_MODIFYTIME));
+         nqp::p6box_i(nqp::stat(nqp::unbox_s(IO::Spec.rel2abs(self.Str)),
+                                nqp::const::STAT_MODIFYTIME));
     }
 
     method accessed() {
-         nqp::p6box_i(nqp::stat(nqp::unbox_s(self.Str), nqp::const::STAT_ACCESSTIME));
+         nqp::p6box_i(nqp::stat(nqp::unbox_s(IO::Spec.rel2abs(self.Str)),
+                                nqp::const::STAT_ACCESSTIME));
     }
 
     method changed() { 
-         nqp::p6box_i(nqp::stat(nqp::unbox_s(self.Str), nqp::const::STAT_CHANGETIME));
+         nqp::p6box_i(nqp::stat(nqp::unbox_s(IO::Spec.rel2abs(self.Str)),
+                                nqp::const::STAT_CHANGETIME));
     }
 }
 
@@ -90,13 +96,14 @@ my class IO::Handle does IO::FileTestable {
     multi method open($path? is copy, :$r, :$w, :$a, :$p, :$bin, :$chomp = Bool::True,
             :enc(:$encoding) = 'utf8') {
         $path //= $!path;
+        my $abspath = defined($*CWD) ?? IO::Spec.rel2abs($path) !! $path;
         my $mode =  $p ?? ($w ||  $a ?? 'wp' !! 'rp') !!
                    ($w ?? 'w' !! ($a ?? 'wa' !! 'r' ));
         # TODO: catch error, and fail()
         nqp::bindattr(self, IO::Handle, '$!PIO',
              $path eq '-'
                 ?? ( $w || $a ?? nqp::getstdout() !! nqp::getstdin() )
-                !! nqp::open(nqp::unbox_s($path.Str), nqp::unbox_s($mode))
+                !! nqp::open(nqp::unbox_s($abspath.Str), nqp::unbox_s($mode))
         );
         $!path = $path;
         $!chomp = $chomp;
@@ -153,8 +160,8 @@ my class IO::Handle does IO::FileTestable {
         my Mu $parrot_buffer := $!PIO.read_bytes(nqp::unbox_i($bytes));
         nqp::encode($parrot_buffer.get_string('binary'), 'binary', $buf);
 #?endif
-#?if !parrot
-        die "IO::Handle.read NYI on this backend";
+#?if jvm
+        nqp::readfh($!PIO, $buf, nqp::unbox_i($bytes));
 #?endif
         $buf;
     }
@@ -168,7 +175,14 @@ my class IO::Handle does IO::FileTestable {
         True;
     }
     method tell(IO::Handle:D:) returns Int {
-        nqp::p6box_i($!PIO.tell);
+        nqp::p6box_i(
+#?if parrot
+            $!PIO.tell
+#?endif
+#?if jvm
+            nqp::tellfh($!PIO)
+#?endif
+        );
     }
 
     method write(IO::Handle:D: Blob:D $buf) {
@@ -180,8 +194,8 @@ my class IO::Handle does IO::FileTestable {
         $!PIO.print(nqp::decode(nqp::decont($buf), 'binary'));
         $!PIO.encoding($encoding) unless $encoding eq 'binary';
 #?endif
-#?if !parrot
-        die "IO::Handle.write NYI on this backend";
+#?if jvm
+        nqp::writefh($!PIO, nqp::decont($buf));
 #?endif
         True;
     }
@@ -263,13 +277,14 @@ my class IO::Handle does IO::FileTestable {
     method copy($dest) {
         warn "IO::Handle.copy is deprecated.  Please use IO::Path.copy instead.";
         try {
-            nqp::copy(nqp::unbox_s(~$!path), nqp::unbox_s(~$dest));
+            nqp::copy(nqp::unbox_s(IO::Spec.rel2abs(~$!path)), 
+                      nqp::unbox_s(IO::Spec.rel2abs(~$dest)));
         }
         $! ?? fail(X::IO::Copy.new(from => $!path, to => $dest, os-error => ~$!)) !! True
     }
 
     method chmod(Int $mode) {
-        self.path.chmod($mode)
+        self.path.absolute.chmod($mode)
     }
 
     method IO { self }
@@ -419,18 +434,19 @@ my class IO::Path is Cool does IO::FileTestable {
     }
 
     method copy(IO::Path:D: $dest, :$createonly = False) {
-        if $createonly and $dest.path.e {
+        my $absdest = IO::Spec.rel2abs($dest);
+        if $createonly and $absdest.e {
             fail(X::IO::Copy.new(from => $!path, to => $dest,
                     os-error => "Destination file $dest exists and :createonly passed to copy."));
         }
         try {
-            nqp::copy(nqp::unbox_s($!path), nqp::unbox_s(~$dest));
+            nqp::copy(nqp::unbox_s(IO::Spec.rel2abs($!path)), nqp::unbox_s(~$absdest));
         }
         $! ?? fail(X::IO::Copy.new(from => $!path, to => $dest, os-error => ~$!)) !! True
     }
 
     method chmod(IO::Path:D: Int $mode) {
-        nqp::chmod(nqp::unbox_s($!path), nqp::unbox_i($mode.Int));
+        nqp::chmod(nqp::unbox_s(IO::Spec.rel2abs($!path)), nqp::unbox_i($mode.Int));
         return True;
         CATCH {
             default {
@@ -454,7 +470,7 @@ my class IO::Path is Cool does IO::FileTestable {
             }
         }
 #?if parrot
-        my Mu $RSA := pir::new__PS('OS').readdir(nqp::unbox_s($!path));
+        my Mu $RSA := pir::new__PS('OS').readdir(nqp::unbox_s(self.absolute.Str));
         my int $elems = nqp::elems($RSA);
         gather loop (my int $i = 0; $i < $elems; $i = $i + 1) {
             my Str $file := nqp::p6box_s(pir::trans_encoding__Ssi(
@@ -466,7 +482,7 @@ my class IO::Path is Cool does IO::FileTestable {
         }
 #?endif
 #?if jvm
-        my Mu $dirh := nqp::opendir($!path);
+        my Mu $dirh := nqp::opendir(self.absolute.Str);
         my $next = 1;
         gather {
             take $_.path if $_ ~~ $test for ".", "..";
@@ -476,6 +492,7 @@ my class IO::Path is Cool does IO::FileTestable {
                     nqp::closedir($dirh);
                     last;
                 } else {
+                    $elem := $elem.substr($*CWD.chars + 1) if self.is-relative;
                     if $elem.substr(0, 2) eq any("./", ".\\") {
                         $elem := $elem.substr(2);
                     }
@@ -499,7 +516,8 @@ sub dir(Cool $path = '.', Mu :$test = none('.', '..')) {
 }
 
 sub unlink($path as Str) {
-    nqp::unlink($path);
+    my $abspath = IO::Spec.rel2abs($path);
+    nqp::unlink($abspath);
     return True;
     CATCH {
         default {
@@ -512,7 +530,8 @@ sub unlink($path as Str) {
 }
 
 sub rmdir($path as Str) {
-    nqp::rmdir($path);
+    my $abspath = IO::Spec.rel2abs($path);
+    nqp::rmdir($abspath);
     return True;
     CATCH {
         default {
@@ -588,46 +607,82 @@ multi sub spurt(Cool $filename,
     $filename.IO.spurt($contents, :$createonly, :$append);
 }
 
-proto sub cwd(|) { * }
-multi sub cwd() {
-    return nqp::p6box_s(
+{
+    proto sub cwd(|) { * }
+    multi sub cwd() {
+        return nqp::p6box_s(
 #?if parrot
-		pir::trans_encoding__Ssi(
-			nqp::cwd(),
-			pir::find_encoding__Is('utf8'))
+            pir::trans_encoding__Ssi(
+                nqp::cwd(),
+                pir::find_encoding__Is('utf8'))
 #?endif
 #?if !parrot
-			nqp::cwd(),
+            nqp::cwd(),
 #?endif
-    );
-    CATCH {
-        default {
-            X::IO::Cwd.new(
-                os-error => .Str,
-            ).throw;
+        );
+        CATCH {
+            default {
+                X::IO::Cwd.new(
+                    os-error => .Str,
+                ).throw;
+            }
         }
     }
+    PROCESS::<&cwd> := &cwd;
 }
 
+proto sub cwd(|) { * }
+multi sub cwd() {
+    $*CWD
+} 
+
+{
+    proto sub chdir(|) { * }
+    multi sub chdir($path as Str) {
+        nqp::chdir(nqp::unbox_s($path));
+        $*CWD = IO::Path.new(cwd());
+        return True;
+        CATCH {
+            default {
+                X::IO::Chdir.new(
+                    :$path,
+                    os-error => .Str,
+                ).throw;
+            }
+        }
+    }
+    PROCESS::<&chdir> := &chdir;
+}
 
 proto sub chdir(|) { * }
+multi sub chdir(IO::Path:D $path) { chdir $path.Str }
 multi sub chdir($path as Str) {
-    nqp::chdir(nqp::unbox_s($path));
-    $*CWD = cwd();
-    return True;
-    CATCH {
-        default {
-            X::IO::Chdir.new(
-                :$path,
-                os-error => .Str,
-            ).throw;
+    my $newpath = IO::Path.new($path);
+    if $newpath.is-relative {
+        my $tmp = $*CWD;
+        for IO::Spec.splitdir($newpath) -> $segment {
+            given $segment {
+                when '..' { $tmp .= parent; }
+                when '.' { }
+                default { $tmp .= child($segment); }
+            }
         }
+        $newpath = $tmp;
+    }
+    if $newpath.d {
+        $*CWD = $newpath; 
+    } else {
+        X::IO::Chdir.new(
+            path => $newpath,
+            os-error => 'Directory does not exist'
+        ).throw;
     }
 }
 
 proto sub mkdir(|) { * }
 multi sub mkdir($path as Str, $mode = 0o777) {
-    nqp::mkdir($path, $mode);
+    my $abspath = IO::Spec.rel2abs($path);
+    nqp::mkdir($abspath, $mode);
     return True;
     CATCH {
         default {
@@ -647,7 +702,9 @@ nqp::bindattr(nqp::decont($PROCESS::ERR),
         IO::Handle, '$!PIO', nqp::getstderr());
 
 sub rename(Cool $from as Str, Cool $to as Str) {
-    nqp::rename(nqp::unbox_s($from), nqp::unbox_s($to));
+    my $absfrom = IO::Spec.rel2abs($from);
+    my $absto = IO::Spec.rel2abs($to);
+    nqp::rename(nqp::unbox_s($absfrom), nqp::unbox_s($absto));
     return True;
     CATCH {
         default {
@@ -664,7 +721,9 @@ sub rename(Cool $from as Str, Cool $to as Str) {
     }
 }
 sub copy(Cool $from as Str, Cool $to as Str) {
-    nqp::copy(nqp::unbox_s($from), nqp::unbox_s($to));
+    my $absfrom = IO::Spec.rel2abs($from);
+    my $absto = IO::Spec.rel2abs($to);
+    nqp::copy(nqp::unbox_s($absfrom), nqp::unbox_s($absto));
     return True;
     CATCH {
         default {
@@ -677,7 +736,8 @@ sub copy(Cool $from as Str, Cool $to as Str) {
     }
 }
 sub symlink(Cool $target as Str, Cool $name as Str) {
-    nqp::symlink(nqp::unbox_s($target), nqp::unbox_s($name));
+    my $abstarget = IO::Spec.rel2abs($target);
+    nqp::symlink(nqp::unbox_s($abstarget), nqp::unbox_s($name));
     return True;
     CATCH {
         default {
@@ -690,7 +750,8 @@ sub symlink(Cool $target as Str, Cool $name as Str) {
     }
 }
 sub link(Cool $target as Str, Cool $name as Str) {
-    nqp::link(nqp::unbox_s($target), nqp::unbox_s($name));
+    my $abstarget = IO::Spec.rel2abs($target);
+    nqp::link(nqp::unbox_s($abstarget), nqp::unbox_s($name));
     return True;
     CATCH {
         default {
@@ -703,4 +764,4 @@ sub link(Cool $target as Str, Cool $name as Str) {
     }
 }
 
-sub chmod($mode, $filename) { $filename.path.chmod($mode); $filename }
+sub chmod($mode, $filename) { $filename.path.absolute.chmod($mode); $filename }

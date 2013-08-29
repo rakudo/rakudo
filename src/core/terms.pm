@@ -147,7 +147,7 @@ sub term:<time>() { nqp::p6box_i(nqp::time_i()) }
         nqp::p6box_s(pir::interpinfo__Si(pir::const::INTERPINFO_EXECUTABLE_FULLNAME));
 #?endif
 #?if jvm
-        'java';
+        'perl6';
 #?endif
     nqp::bindkey(nqp::who(PROCESS), '$EXECUTABLE_NAME', $EXECUTABLE_NAME);
     my Mu $comp := nqp::getcomp('perl6');

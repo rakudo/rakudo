@@ -229,15 +229,16 @@ CORE_SOURCES = \
   src/core/Temporal.pm \
   src/core/EXPORTHOW.pm \
   src/core/Pod.pm \
-  src/core/Set.pm \
-  src/core/KeySet.pm \
   src/core/Bag.pm \
   src/core/KeyBag.pm \
+  src/core/Set.pm \
+  src/core/KeySet.pm \
   src/core/ObjAt.pm \
   src/core/Version.pm \
   src/core/ForeignCode.pm \
   src/core/operators.pm \
   src/core/metaops.pm \
+  src/core/precedence.pm \
   src/core/terms.pm \
   src/core/core_epilogue.pm \
 

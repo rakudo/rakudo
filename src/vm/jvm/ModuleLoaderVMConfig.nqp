@@ -9,19 +9,23 @@ role Perl6::ModuleLoaderVMConfig {
     
     # Locates files we could potentially load for this module.
     method locate_candidates($module_name, @prefixes, :$file?) {
+        my $PROCESS := nqp::gethllsym('perl6', 'PROCESS');
+        my $curdir := !nqp::isnull($PROCESS) && nqp::existskey($PROCESS.WHO, '$CWD')
+                    ?? nqp::atkey($PROCESS.WHO, '$CWD') ~ '/'
+                    !! '';
         # If its name contains a slash or dot treat is as a path rather than a package name.
         my @candidates;
         if nqp::defined($file) {
-            if nqp::stat($file, 0) {
+            if nqp::stat($curdir ~ $file, 0) {
                 my %cand;
-                %cand<key> := $file;
+                %cand<key> := $curdir ~ $file;
                 my $dot := nqp::rindex($file, '.');
                 my $ext := $dot >= 0 ?? nqp::substr($file, $dot, nqp::chars($file) - $dot) !! '';
                 if $ext eq 'class' || $ext eq 'jar' {
-                    %cand<load> := $file;
+                    %cand<load> := $curdir ~ $file;
                 }
                 else {
-                    %cand<pm> := $file;
+                    %cand<pm> := $curdir ~ $file;
                 }
                 @candidates.push(%cand);
             }

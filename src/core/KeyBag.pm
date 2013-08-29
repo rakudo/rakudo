@@ -10,6 +10,11 @@ my class KeyBag does Associative does Baggy {
     method Numeric { self.elems }
     method Real { self.elems }
     method hash { %!elems.hash }
+    method Set { set self.keys }
+    method KeySet { KeySet.new(self.keys) }
+    method Bag { Bag.new-from-pairs(self.hash) }
+    method KeyBag { self }
+
     method at_key($k) {
         Proxy.new(FETCH => { %!elems.exists($k) ?? %!elems{$k} !! 0 },
                   STORE => -> $, $value { if $value > 0 { %!elems{$k} = $value } else { %!elems.delete($k) }});
@@ -17,45 +22,49 @@ my class KeyBag does Associative does Baggy {
     method exists_key($k) { self.exists($k) }
     method delete_key($k) { %!elems.delete($k) }
 
-    sub REGISTER ( @args, $e = {} ) {
-        sub register-arg($arg) {
-            given $arg {
-                when Pair { $e{.key} += .value if .value }
-                when Set | KeySet { for .keys -> $key { $e{$key}++; } }
-                when Associative { for .pairs -> $p { register-arg($p) } }
-                when Positional { for .list -> $p { register-arg($p) } }
-                default { $e{$_}++; }
-            }
-        }
-
-        register-arg($_) for @args;
-        $e;
-    }
-
     # Constructor
     method new(*@args --> KeyBag) {
-        self.bless(:elems( REGISTER(@args) ));
+        my %e;
+        %e{$_}++ for @args;
+        self.bless(:elems(%e));
+    }
+    method new-from-pairs(*@pairs --> KeyBag) {
+        my %e;
+        for @pairs {
+            when Pair { %e{.key} = .value + (%e{.key} // 0); }
+            %e{$_}++;
+        }
+        for %e -> $p {
+            die "Negative values are not allowed in KeyBags" if $p.value < 0;
+            %e.delete($p.key) if $p.value == 0;
+        }
+        self.bless(:elems(%e));
     }
 
     submethod BUILD (:%!elems) { }
 
+    method ACCEPTS($other) {
+        self.defined
+          ?? $other (<+) self && self (<+) $other
+          !! $other.^does(self);
+    }
+
     multi method Str(Bag:D:) { ~ self.pairs.map: { .key xx .value } }
     multi method gist(Any:D $ : --> Str) { "keybag({ self.pairs>>.gist.join(', ') })" }
-    multi method perl(Any:D $ : --> Str) { 'KeyBag.new(' ~ %!elems.perl ~ ')' }
+    multi method perl(Any:D $ : --> Str) {
+        self.defined
+          ?? %!elems.perl ~ '.KeyBag'
+          !! "KeyBag";
+    }
 
     method iterator() { %!elems.pairs.iterator }
     method list() { %!elems.keys }
     method pairs() { %!elems.pairs }
 
-    method push(*@args) {
-        REGISTER( @args, %!elems );
-        self
-    }
-
     method pick($count = 1) {
         return self.roll if $count ~~ Num && $count == 1;
 
-        my $temp-bag = KeyBag.new(self);
+        my $temp-bag = KeyBag.new-from-pairs(self.hash);
         my $lc = $count ~~ Whatever ?? Inf !! $count;
         gather while $temp-bag && $lc-- {
             my $choice = $temp-bag.roll;

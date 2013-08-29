@@ -1,5 +1,10 @@
+my class Bag { ... }
+my class KeyBag { ... }
+my class KeySet { ... }
 my class MapIter { ... }
+my class Pair { ... }
 my class Range { ... }
+my class Set { ... }
 my class X::Bind::Slice { ... }
 my class X::Bind::ZenSlice { ... }
 
@@ -739,6 +744,25 @@ my class Any { # declared in BOOTSTRAP
         nqp::findmethod($list, 'FLATTENABLE_LIST')($list);
     }
     method FLATTENABLE_HASH() { nqp::hash() }
+
+    method Set() {
+        my @keys;
+        for self.list() {
+            when Pair { @keys.push(.key) if .value }
+            default   { @keys.push($_) }
+        }
+        Set.new(@keys);
+    }
+    method KeySet() {
+        my @keys;
+        for self.list() {
+            when Pair { @keys.push(.key) if .value; }
+            default   { @keys.push($_) }
+        }
+        KeySet.new(@keys);
+    }
+    method Bag()    {    Bag.new-from-pairs(self.list) }
+    method KeyBag() { KeyBag.new-from-pairs(self.list) }
 }
 Metamodel::ClassHOW.exclude_parent(Any);
 

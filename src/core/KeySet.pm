@@ -20,27 +20,25 @@ my class KeySet is Iterable does Associative {
     # Constructor
     method new(*@args --> KeySet) {
         my %e;
-        sub register-arg($arg) {
-            given $arg {
-                when Pair { %e{.key} = True; }
-                when Set | KeySet { for .keys -> $key { %e{$key} = True; } }
-                when Associative { for .pairs -> $p { register-arg($p); } }
-                when Positional { for .list -> $p { register-arg($p); } }
-                default { %e{$_} = True; }
-            }
-        }
-
-        for @args {
-            register-arg($_);
-        }
+        %e{$_} = True for @args;
         self.bless(:elems(%e));
     }
 
     submethod BUILD (:%!elems) { }
 
+    method ACCEPTS($other) {
+        self.defined
+          ?? $other (<=) self && self (<=) $other
+          !! $other.^does(self);
+    }
+
     multi method Str(Any:D $ : --> Str) { ~%!elems.keys }
     multi method gist(Any:D $ : --> Str) { "keyset({ %!elems.keys».gist.join(', ') })" }
-    multi method perl(Any:D $ : --> Str) { 'KeySet.new(' ~ join(', ', map { .perl }, %!elems.keys) ~ ')' }
+    multi method perl(Any:D $ : --> Str) {
+        self.defined
+          ?? 'KeySet.new(' ~ join(', ', map { .perl }, %!elems.keys) ~ ')'
+          !! "KeySet";
+    }
 
     method iterator() { %!elems.keys.iterator }
     method list() { %!elems.keys }

@@ -44,8 +44,8 @@ only sub infix:<(|)>(**@p) {
     }
 }
 # U+222A UNION
-only sub infix:<<"\x222A">>(**@p) {
-    infix:<(|)>(@p);
+only sub infix:<<"\x222A">>(|p) {
+    infix:<(|)>(|p);
 }
 
 only sub infix:<(&)>(**@p) {
@@ -60,8 +60,8 @@ only sub infix:<(&)>(**@p) {
     }
 }
 # U+2229 INTERSECTION
-only sub infix:<<"\x2229">>(**@p) {
-    infix:<(&)>(@p);
+only sub infix:<<"\x2229">>(|p) {
+    infix:<(&)>(|p);
 }
 
 only sub infix:<(-)>(**@p) {

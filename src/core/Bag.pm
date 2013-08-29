@@ -6,8 +6,8 @@ only sub infix:<(.)>(**@p) {
     Bag.new-from-pairs($set.map({ ; $_ => [*] @bags>>.{$_} }));
 }
 # U+228D MULTISET MULTIPLICATION
-only sub infix:<<"\x228D">>(**@p) {
-    infix:<(.)>(@p);
+only sub infix:<<"\x228D">>(|p) {
+    infix:<(.)>(|p);
 }
 
 only sub infix:<(+)>(**@p) {
@@ -16,8 +16,8 @@ only sub infix:<(+)>(**@p) {
     Bag.new-from-pairs($set.map({ ; $_ => [+] @bags>>.{$_} }));
 }
 # U+228E MULTISET UNION
-only sub infix:<<"\x228E">>(**@p) {
-    infix:<(+)>(@p);
+only sub infix:<<"\x228E">>(|p) {
+    infix:<(+)>(|p);
 }
 
 proto sub infix:<<(<+)>>($, $ --> Bool) {*}

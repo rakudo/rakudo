@@ -70,7 +70,7 @@ my class Bag is Iterable does Associative does Baggy {
     # Constructor
     method new(*@args --> Bag) {
         my %e;
-        %e{$_} = True for @args;
+        %e{$_}++ for @args;
         self.bless(:elems(%e));
     }
     method new-from-pairs(*@pairs --> Bag) {

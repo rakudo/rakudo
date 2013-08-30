@@ -188,7 +188,8 @@ class Array { # declared in BOOTSTRAP
     }
     method PARAMETERIZE_TYPE(Mu $t, |c) {
         if c.elems == 0 {
-            my $what := self but TypedArray[$t.WHAT];
+#            my $what := self but TypedArray[$t.WHAT]; # you can't do this yet
+            my $what := self.HOW.mixin(self.WHAT, TypedArray[$t.WHAT]);
             # needs to be done in COMPOSE phaser when that works
             $what.HOW.set_name(self,"{self.HOW.name(self)}[{$t.HOW.name($t)}]");
             $what;

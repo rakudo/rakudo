@@ -1995,11 +1995,18 @@ class Perl6::World is HLL::World {
         my @pairs;
         for $longname<colonpair> {
             if $_<coloncircumfix> && !$_<identifier> {
-                @components[+@components - 1] := @components[+@components - 1]
-                        ~ (%*COMPILING<%?OPTIONS><setting> ne 'NULL'
-                                ??  ':<' ~ ~$*W.compile_time_evaluate($_, $_.ast) ~ '>'
-                                !!  ~$_
-                           );
+                my $cp_str;
+                if %*COMPILING<%?OPTIONS><setting> ne 'NULL' {
+                    # Safe to evaluate it directly; no bootstrap issues.
+                    $cp_str := ':<' ~ ~$*W.compile_time_evaluate($_, $_.ast) ~ '>';
+                }
+                else {
+                    my $ast := $_.ast;
+                    $cp_str := nqp::istype($ast, QAST::Want) && nqp::istype($ast[2], QAST::SVal)
+                        ?? ':<' ~ $ast[2].value ~ '>'
+                        !! ~$_;
+                }
+                @components[+@components - 1] := @components[+@components - 1] ~ $cp_str;
             }
             else {
                 @pairs.push($_);

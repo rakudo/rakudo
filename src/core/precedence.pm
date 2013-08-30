@@ -65,11 +65,11 @@ BEGIN {
     trait_mod:<is>(&infix:<&>,          :prec($junctive_and));
     trait_mod:<is>(&infix:<(&)>,        :prec($junctive_and));
 #    trait_mod:<is>(&infix:<<"\x2229">>, :prec($junctive_and));
+    trait_mod:<is>(&infix:<(.)>,        :prec($junctive_and));
+#    trait_mod:<is>(&infix:<<"\x228D">>, :prec($junctive_and));
 
     trait_mod:<is>(&infix:<|>,          :prec($junctive_or));
     trait_mod:<is>(&infix:<^>,          :prec($junctive_or));
-    trait_mod:<is>(&infix:<(.)>,        :prec($junctive_or));
-#    trait_mod:<is>(&infix:<<"\x228D">>, :prec($junctive_or));
     trait_mod:<is>(&infix:<(+)>,        :prec($junctive_or));
 #    trait_mod:<is>(&infix:<<"\x228E">>, :prec($junctive_or));
     trait_mod:<is>(&infix:<(|)>,        :prec($junctive_or));

@@ -1189,6 +1189,14 @@ my class X::Assignment::RO is Exception {
     }
 }
 
+my class X::Immutable is Exception {
+    has $.typename;
+    has $.method;
+    method message {
+        "Cannot call '$.method' on an immutable '$.typename'";
+    }
+}
+
 my class X::NoDispatcher is Exception {
     has $.redispatcher;
     method message() {

@@ -630,6 +630,7 @@ S32-io/io-path-win.t
 S32-io/io-path-cygwin.t
 S32-io/io-path.t
 S32-io/note.t
+S32-io/other.t
 S32-io/slurp.t
 S32-io/spurt.t
 S32-list/categorize.t

@@ -351,7 +351,7 @@ my class Hash { # declared in BOOTSTRAP
     }
     method PARAMETERIZE_TYPE(Mu $t, |c) {
         if c.elems == 0 {
-#            my $what := self but TypedHash[$t.WHAT]; # can't do that yet
+#            my $what := self but TypedHash[$t.WHAT]; # too early in bootstrap
             my $what := self.HOW.mixin(self.WHAT, TypedHash[$t.WHAT]);
             # needs to be done in COMPOSE phaser when that works
             $what.HOW.set_name(self,"{self.HOW.name(self)}[{$t.HOW.name($t)}]");
@@ -359,7 +359,7 @@ my class Hash { # declared in BOOTSTRAP
         }
         elsif c.elems == 1 {
             my $what := self.HOW.mixin(self.WHAT, TypedHash[$t.WHAT,c[0]]);
-#            my $what := self but TypedHash[$t.WHAT, c[0]]; # can't do that yet
+#            my $what := self but TypedHash[$t.WHAT, c[0]]; # too early in bootstrap
             # needs to be done in COMPOSE phaser when that works
             $what.HOW.set_name(self,"{self.HOW.name(self)}[{$t.HOW.name($t)},{c[0].HOW.name(c[0])}]");
             $what;

@@ -28,7 +28,8 @@ my class Range is Iterable is Cool does Positional {
     multi method new(Real $min, $max, :$excludes_min, :$excludes_max) {
         nqp::create(self).BUILD($min, $max.Real, $excludes_min, $excludes_max)
     }
-    multi method new($min, $max, :$excludes_min, :$excludes_max) {
+    multi method new($min is copy, $max, :$excludes_min, :$excludes_max) {
+        $min = +$min if $min ~~ any(Parcel|List);
         nqp::create(self).BUILD($min, $max, $excludes_min, $excludes_max)
     }
 

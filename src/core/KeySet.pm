@@ -5,7 +5,7 @@ my class KeySet is Iterable does Associative {
     method keys { %!elems.keys }
     method values { %!elems.values }
     method elems returns Int { %!elems.elems }
-    method exists($a) returns Bool { %!elems.exists($a) && %!elems{$a} }
+    method exists($a) returns Bool { %!elems.exists($a) }
     method delete($k) { %!elems.delete($k) }
     method Bool { %!elems.Bool }
     method Numeric { %!elems.Numeric }

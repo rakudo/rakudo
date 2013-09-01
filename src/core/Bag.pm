@@ -8,6 +8,9 @@ my class Bag is Iterable does Associative does Baggy {
     method values { %!elems.values }
     method elems returns Int { [+] self.values }
     method exists($a) returns Bool { %!elems.exists($a) }
+    method delete($a) is hidden_from_backtrace {
+        X::Method::NotFound.new( method => 'delete', typename => self.^name ).throw;
+    }
     method Bool { %!elems.Bool }
     method Numeric { self.elems }
     method Real { self.elems }

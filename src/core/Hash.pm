@@ -9,8 +9,7 @@ my class Hash { # declared in BOOTSTRAP
         %h.STORE(@args) if @args;
         %h;
     }
-    method keyof () { Any }
-    
+
     multi method at_key(Hash:D: $key is copy) is rw {
         my Mu $storage := nqp::defined(nqp::getattr(self, EnumMap, '$!storage')) ??
             nqp::getattr(self, EnumMap, '$!storage') !!
@@ -77,6 +76,12 @@ my class Hash { # declared in BOOTSTRAP
         self
     }
 
+    # introspection
+    method name() {
+        my $d := $!descriptor;
+        nqp::isnull($d) ?? Str !! $d.name()
+    }
+    method keyof () { Any }
     method of() {
         my $d := $!descriptor;
         nqp::isnull($d) ?? Mu !! $d.of;

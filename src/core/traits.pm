@@ -6,7 +6,7 @@ my class X::Composition::NotComposable { ... }
 my class X::Import::MissingSymbols   { ... }
 my class X::Redeclaration { ... }
 my class X::Inheritance::SelfInherit { ... }
-my class X::Comp::Trait { ... };
+my class X::Comp::Trait::Unknown { ... };
 
 proto trait_mod:<is>(|) { * }
 multi trait_mod:<is>(Mu:U $child, Mu:U $parent) {
@@ -53,7 +53,7 @@ multi trait_mod:<is>(Mu:U $type, *%fail) {
 }
 
 multi trait_mod:<is>(Attribute:D $attr, |c ) {
-    X::Comp::Trait.new(
+    X::Comp::Trait::Unknown.new(
       file       => $?FILE,
       line       => $?LINE,
       type       => 'is',
@@ -73,7 +73,7 @@ multi trait_mod:<is>(Attribute:D $attr, :$box_target!) {
 }
 
 multi trait_mod:<is>(Routine:D $r, |c ) {
-    X::Comp::Trait.new(
+    X::Comp::Trait::Unknown.new(
       file       => $?FILE,
       line       => $?LINE,
       type       => 'is',
@@ -147,7 +147,7 @@ multi trait_mod:<is>(Routine $r, :$assoc!) {
 BEGIN &trait_mod:<is>.set_onlystar();
 
 multi trait_mod:<is>(Parameter:D $param, |c ) {
-    X::Comp::Trait.new(
+    X::Comp::Trait::Unknown.new(
       file       => $?FILE,
       line       => $?LINE,
       type       => 'is',

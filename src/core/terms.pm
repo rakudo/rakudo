@@ -33,15 +33,15 @@ sub term:<time>() { nqp::p6box_i(nqp::time_i()) }
         method at_key($k) {
             Proxy.new(
                     FETCH => {
-                        if nqp::p6bool(nqp::existskey($env, nqp::unbox_s($k))) {
-                            nqp::p6box_s(nqp::atkey($env, nqp::unbox_s($k)))
+                        if nqp::p6bool(nqp::existskey(%ENV, nqp::unbox_s($k))) {
+                            nqp::p6box_s(nqp::atkey(%ENV, nqp::unbox_s($k)))
                         }
                         else {
                             Any
                         }
                     },
                     STORE => -> $, $v {
-                        nqp::bindkey($env, nqp::unbox_s($k),
+                        nqp::bindkey(%ENV, nqp::unbox_s($k),
                             nqp::unbox_s(($v // '').Str))
                     }
             )
@@ -49,7 +49,7 @@ sub term:<time>() { nqp::p6box_i(nqp::time_i()) }
 
         method delete($k) {
             my $ret = self.at_key($k);
-            nqp::deletekey($env, nqp::unbox_s($k));
+            nqp::deletekey(%ENV, nqp::unbox_s($k));
             return $ret;
         }
     }

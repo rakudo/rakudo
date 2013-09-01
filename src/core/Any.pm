@@ -14,7 +14,9 @@ my class Any { # declared in BOOTSTRAP
     ########
 
     # primitives
-    method infinite() { Nil }
+    method infinite()   { Nil }
+    method exists($key) { False }
+    method delete($key) { Nil }
     method list() {
         nqp::p6list(
           self.DEFINITE ?? nqp::list(self) !! nqp::list(), List, Mu
@@ -721,6 +723,15 @@ my class Any { # declared in BOOTSTRAP
             -> { SELF.defined || &infix:<=>(SELF, Hash.new);
                  SELF.bind_key($key, $v) });
         $v
+    }
+    proto method bind_key(|) { * }
+    multi method bind_key(Any:D: $key, $BIND ) {
+        fail "postcircumfix:<\{ \}> binding not defined for type {self.WHAT.perl}";
+    }
+    multi method bind_key(Any:U \SELF: $key, $BIND ) is rw {
+        &infix:<=>(SELF, Hash.new);
+        SELF.bind_key($key, $BIND);
+        $BIND
     }
 
     method FLATTENABLE_LIST() { 

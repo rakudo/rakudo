@@ -194,21 +194,10 @@ sub run(*@args ($, *@)) {
 
 sub shell($cmd) {
     my $status = 255;
-#?if parrot
-    try {
-        $status = 
-            nqp::p6box_i(
-                nqp::bitshiftr_i(
-                    pir::spawnw__Is(nqp::unbox_s($cmd)),
-                    8));
-    }
-#?endif
-#?if !parrot
     try {
         my Mu $hash := nqp::getattr(%*ENV, EnumMap, '$!storage');
-        $status = nqp::shell($cmd, $*CWD.Str, $hash);
+        $status = nqp::shell($cmd, $*CWD.Str, $hash) +> 8;
     }
-#?endif
     $status;
 }
 

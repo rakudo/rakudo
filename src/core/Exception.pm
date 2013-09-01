@@ -452,7 +452,7 @@ my class X::NYI is Exception {
 }
 my class X::Comp::NYI is X::NYI does X::Comp { };
 
-my class X::Trait is Exception {
+my class X::Trait::Unknown is Exception {
     has $.type;       # is, will, of etc.
     has $.subtype;    # wrong subtype being tried
     has $.declaring;  # variable, sub, parameter, etc.
@@ -460,7 +460,18 @@ my class X::Trait is Exception {
         "Can't use unknown trait '$.type $.subtype' in a$.declaring declaration."
     }
 }
-my class X::Comp::Trait is X::Trait does X::Comp { };
+my class X::Comp::Trait::Unknown is X::Trait::Unknown does X::Comp { };
+
+my class X::Trait::NotOnNative is Exception {
+    has $.type;       # is, will, of etc.
+    has $.subtype;    # wrong subtype being tried
+    has $.native;     # type of native (optional)
+    method message () {
+        "Can't use trait '$.type $.subtype' on a native"
+          ~ ( $.native ?? " $.native." !! "." );
+    }
+}
+my class X::Comp::Trait::NotOnNative is X::Trait::NotOnNative does X::Comp { };
 
 my class X::OutOfRange is Exception {
     has $.what = 'Argument';

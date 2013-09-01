@@ -2961,15 +2961,11 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
 
     token quote:sym<tr> {
-        <sym> (s)**0..1 >>
+        <sym>
         :my %*RX;
-        {
-            %*RX<tr> := 1 if $/[0]
-        }
         <rx_adverbs>
         <tribble(%*RX<P5> ?? %*LANG<P5Regex> !! %*LANG<Regex>, %*LANG<Q>, ['cc'])>
         <.old_rx_mods>?
-        <.NYI('tr///')>
     }
 
     token old_rx_mods {

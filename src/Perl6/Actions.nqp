@@ -5419,6 +5419,18 @@ class Perl6::Actions is HLL::Actions does STDActions {
         $multiple;
     }
 
+    method quote:sym<tr>($/) {
+        my $left  := ~$<tribble><left>;
+        my $right := ~$<tribble><right>;
+        make QAST::Op.new(:op<p6store>,
+            QAST::Var.new(:name('$_'), :scope<lexical>),
+            QAST::Op.new(:op<callmethod>, :name<trans>,
+                QAST::Var.new(:name('$_'), :scope<lexical>),
+                make_pair($left, QAST::SVal.new(:value($right))),
+            )
+        );
+    }
+
     method quote:sym<s>($/) {
         # Build the regex.
         my $rx_block := QAST::Block.new(QAST::Stmts.new, QAST::Stmts.new, :node($/));

@@ -20,8 +20,8 @@ my class Any { # declared in BOOTSTRAP
 
     # primitives
     method infinite()   { Nil }
-    method exists($key) { False }
-    method delete($key) { Nil }
+    method exists(Any:U: $key) { False }
+    method delete(Any:U: $key) { Nil }
     method list() {
         nqp::p6list(
           self.DEFINITE ?? nqp::list(self) !! nqp::list(), List, Mu

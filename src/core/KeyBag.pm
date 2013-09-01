@@ -6,6 +6,7 @@ my class KeyBag does Associative does Baggy {
     method values { %!elems.values }
     method elems returns Int { [+] self.values }
     method exists($a) returns Bool { %!elems.exists($a) }
+    method delete($k) { %!elems.delete($k) }
     method Bool { %!elems.Bool }
     method Numeric { self.elems }
     method Real { self.elems }

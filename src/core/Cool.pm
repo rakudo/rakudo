@@ -212,9 +212,6 @@ my class Cool { # declared in BOOTSTRAP
     method Int()  { self.Numeric.Int }
     method Num()  { self.Numeric.Num }
     method Rat()  { self.Numeric.Rat }
-
-    method set()  { set self }
-    method bag()  { bag self }
 }
 Metamodel::ClassHOW.exclude_parent(Cool);
 

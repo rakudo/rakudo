@@ -7,19 +7,9 @@ sub term:<time>() { nqp::p6box_i(nqp::time_i()) }
     nqp::bindkey(nqp::who(PROCESS), '@ARGS', @ARGS);
     $PROCESS::ARGFILES = IO::ArgFiles.new(:args(@ARGS));
 
-    # Evn iterator on Parrot apparently doesn't behave like a normal
-    # hash iterator...
     my %ENV;
     my Mu $env := nqp::getenvhash();
     my Mu $enviter := nqp::iterator($env);
-#?if parrot
-    my $key;
-    while $enviter {
-        $key = nqp::p6box_s(nqp::shift_s($enviter));
-        %ENV{$key} = nqp::p6box_s(nqp::atkey($env, nqp::unbox_s($key)));
-    }
-#?endif
-#?if !parrot
     my $envelem;
     my $key;
     while $enviter {
@@ -27,33 +17,6 @@ sub term:<time>() { nqp::p6box_i(nqp::time_i()) }
         $key = nqp::p6box_s(nqp::iterkey_s($envelem));
         %ENV{$key} = nqp::p6box_s(nqp::iterval($envelem));
     }
-#?endif
-#?if parrot
-    %ENV does role {
-        method at_key($k) {
-            Proxy.new(
-                    FETCH => {
-                        if nqp::p6bool(nqp::existskey(%ENV, nqp::unbox_s($k))) {
-                            nqp::p6box_s(nqp::atkey(%ENV, nqp::unbox_s($k)))
-                        }
-                        else {
-                            Any
-                        }
-                    },
-                    STORE => -> $, $v {
-                        nqp::bindkey(%ENV, nqp::unbox_s($k),
-                            nqp::unbox_s(($v // '').Str))
-                    }
-            )
-        }
-
-        method delete($k) {
-            my $ret = self.at_key($k);
-            nqp::deletekey(%ENV, nqp::unbox_s($k));
-            return $ret;
-        }
-    }
-#?endif    
     nqp::bindkey(nqp::who(PROCESS), '%ENV', %ENV);
 
 #?if parrot
@@ -184,7 +147,7 @@ sub term:<time>() { nqp::p6box_i(nqp::time_i()) }
         nqp::p6box_s(pir::interpinfo__Si(pir::const::INTERPINFO_EXECUTABLE_FULLNAME));
 #?endif
 #?if jvm
-        'java';
+        'perl6';
 #?endif
     nqp::bindkey(nqp::who(PROCESS), '$EXECUTABLE_NAME', $EXECUTABLE_NAME);
     my Mu $comp := nqp::getcomp('perl6');

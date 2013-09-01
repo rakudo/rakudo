@@ -196,7 +196,7 @@ sub shell($cmd) {
     my $status = 255;
     try {
         my Mu $hash := nqp::getattr(%*ENV, EnumMap, '$!storage');
-        $status = nqp::shell($cmd, $*CWD.Str, $hash) +> 8;
+        $status = nqp::shell($cmd, $*CWD.Str, $hash);
     }
     $status;
 }

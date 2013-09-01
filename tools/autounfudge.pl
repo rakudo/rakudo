@@ -87,6 +87,12 @@ GetOptions  'impl=s'        => \$impl,
 my $path_sep = $^O eq 'MSWin32' ? ';' : ':';
 my $slash    = $^O eq 'MSWin32' ? '\\' : '/';
 $ENV{PERL6LIB} = join($path_sep, qw/lib ./) unless $keep_env;
+my $impl_re = quotemeta $impl;
+
+if ($impl eq 'rakudo') {
+    my $postfix = $jvm ? 'jvm' : 'parrot';
+    $impl_re = qr{rakudo(?:\.$postfix)?(?=\s)};
+}
 
 my %fh;
 sub eval_server {
@@ -162,7 +168,7 @@ sub auto_unfudge_file {
     print "Processing file '$file_name'\n";
     my @fudge_lines;
     while (<$f>) {
-        push @fudge_lines, [$. , $_] if m/^\s*#\?$impl/ &&
+        push @fudge_lines, [$. , $_] if m/^\s*#\?$impl_re/ &&
             !m/unspecced|unicode|utf-?8|noauto/i;
     }
     close $f;
@@ -239,6 +245,7 @@ Valid options:
     --untodo            Try to remove 'todo' markers
     --out               Output patch file (defaults to "autounfudge.patch")
     --jobs number       Number of threads to use when processing 
+    --jvm               For Rakudo running on the JVM
 USAGE
 }
 

@@ -3135,8 +3135,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
 
     token postop {
-        | <postfix>
-        | <postcircumfix>
+        | <postfix>         $<O> = {$<postfix><O>} $<sym> = {$<postfix><sym>}
+        | <postcircumfix>   $<O> = {$<postcircumfix><O>} $<sym> = {$<postcircumfix><sym>}
     }
 
     proto token prefix_circumfix_meta_operator { <...> }
@@ -3230,7 +3230,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :dba('dotty method or postfix')
         [
         | <methodop>
-        | <!alpha> <postop>
+        | <colonpair>
+        | <!alpha> <postop> $<O> = {$<postop><O>} $<sym> = {$<postop><sym>}
         ]
     }
 

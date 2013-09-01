@@ -3703,14 +3703,13 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
 
     method postop($/) {
-        #make $<postfix> ?? $<postfix>.ast !! $<postcircumfix>.ast;
-        make
-        $<postfix> ?? $<postfix>.ast
-                      || QAST::Op.new( :name('&postfix:<' ~ $<postfix>.Str ~ '>'),
-                                       :op<call> )
-                   !! $<postcircumfix>.ast
-                      || QAST::Op.new( :name('&postcircumfix:<' ~ $<postcircumfix>.Str ~ '>'),
-                                       :op<call> );
+        if $<postfix> {
+            make $<postfix>.ast
+                 || QAST::Op.new( :name('&postfix:<' ~ $<postfix>.Str ~ '>'), :op<call> )
+        } else {
+            make $<postcircumfix>.ast
+                 || QAST::Op.new( :name('&postcircumfix:<' ~ $<postcircumfix>.Str ~ '>'), :op<call> );
+        }
     }
 
     method dotty:sym<.>($/) { make $<dottyop>.ast; }

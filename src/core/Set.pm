@@ -187,7 +187,6 @@ my class Set is Iterable does Associative {
     method KeyBag { KeyBag.new(self.keys) }
 
     method at_key($k) { ?(%!elems{$k} // False) }
-    method exists_key($k) { self.exists($k) }
 
     # Constructor
     method new(*@args --> Set) {

@@ -65,7 +65,6 @@ my class Bag is Iterable does Associative does Baggy {
     method KeyBag { KeyBag.new-from-pairs(self.hash) }
 
     method at_key($k) { +(%!elems{$k} // 0) }
-    method exists_key($k) { self.exists($k) }
 
     # Constructor
     method new(*@args --> Bag) {

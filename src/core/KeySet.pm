@@ -14,8 +14,6 @@ my class KeySet is Iterable does Associative {
         Proxy.new(FETCH => { %!elems.exists($k) ?? True !! False },
                   STORE => -> $, $value { if $value { %!elems{$k} = True } else { %!elems.delete($k) }});
     }
-    method exists_key($k) { self.exists($k) }
-    method delete_key($k) { %!elems.delete($k) }
 
     # Constructor
     method new(*@args --> KeySet) {

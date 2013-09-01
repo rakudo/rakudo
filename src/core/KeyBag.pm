@@ -19,8 +19,6 @@ my class KeyBag does Associative does Baggy {
         Proxy.new(FETCH => { %!elems.exists($k) ?? %!elems{$k} !! 0 },
                   STORE => -> $, $value { if $value > 0 { %!elems{$k} = $value } else { %!elems.delete($k) }});
     }
-    method exists_key($k) { self.exists($k) }
-    method delete_key($k) { %!elems.delete($k) }
 
     # Constructor
     method new(*@args --> KeyBag) {

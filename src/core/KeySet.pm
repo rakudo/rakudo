@@ -5,15 +5,25 @@ my class KeySet is Iterable does Associative {
     method keys { %!elems.keys }
     method values { %!elems.values }
     method elems returns Int { %!elems.elems }
-    method exists($a) returns Bool { %!elems.exists($a) }
+    method exists($k) returns Bool { %!elems.exists($k) }
     method delete($k) { %!elems.delete($k) }
     method Bool { %!elems.Bool }
     method Numeric { %!elems.Numeric }
     method Real { %!elems.Numeric.Real }
     method hash { %!elems.hash }
     method at_key($k) {
-        Proxy.new(FETCH => { %!elems.exists($k) ?? True !! False },
-                  STORE => -> $, $value { if $value { %!elems{$k} = True } else { %!elems.delete($k) }});
+        Proxy.new(
+          FETCH => {
+              so %!elems.exists($k)
+          },
+          STORE => -> $, $value {
+              if $value {
+                  %!elems{$k} = True;
+              }
+              else {
+                  %!elems.delete($k)
+              }
+          });
     }
 
     # Constructor

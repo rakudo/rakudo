@@ -116,7 +116,10 @@ my class Cool { # declared in BOOTSTRAP
     }
 
     method ord() {
-        nqp::p6box_i(nqp::ord(nqp::unbox_s(self.Str)))
+        my $s := self.Str;
+        $s.chars
+          ?? nqp::p6box_i(nqp::ord(nqp::unbox_s($s)))
+          !! Any;
     }
     method chr() {
         self.Int.chr;

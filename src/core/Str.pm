@@ -991,14 +991,6 @@ my class Str does Stringy { # declared in BOOTSTRAP
         nqp::p6box_i(nqp::chars(nqp::unbox_s(self)))
     }
 
-    method tc(Str:D:) returns Str:D {
-        my $u := nqp::unbox_s(self);
-        nqp::p6box_s(nqp::tclc(nqp::substr($u,0,1)) ~ nqp::substr($u,1));
-    }
-    method tclc(Str:D:) returns Str:D {
-        nqp::p6box_s(nqp::tclc(nqp::unbox_s(self)))
-    }
-
     method path(Str:D:) returns IO::Path:D {
         IO::Path.new(self)
     }
@@ -1155,12 +1147,4 @@ sub substr-rw($s is rw, $from = 0, $chars = $s.chars - $from) {
                ~ $s.substr($from + $chars);
         }
     );
-}
-
-multi sub tc(Str:D $s) returns Str:D {
-    my $u := nqp::unbox_s($s);
-    nqp::p6box_s(nqp::tclc(nqp::substr($u,0,1)) ~ nqp::substr($u,1));
-}
-multi sub tclc(Str:D $s) returns Str:D {
-    nqp::p6box_s(nqp::tclc(nqp::unbox_s($s)));
 }

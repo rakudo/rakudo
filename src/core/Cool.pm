@@ -96,17 +96,15 @@ my class Cool { # declared in BOOTSTRAP
     }
 
     method tc() {
-        self.Str.tc;
+        my $u := nqp::unbox_s(self.Str);
+        nqp::p6box_s(nqp::uc(nqp::substr($u,0,1)) ~ nqp::substr($u,1));
     }
 
     method tclc() {
-        self.Str.tclc;
+        nqp::p6box_s(nqp::tclc(nqp::unbox_s(self.Str)))
     }
 
-    method ucfirst() is DEPRECATED {
-        my $self-str = self.Str;
-        $self-str eq '' ?? '' !! $self-str.substr(0, 1).uc ~ $self-str.substr(1)
-    }
+    method ucfirst() is DEPRECATED { self.tc }
 
     method capitalize() is DEPRECATED { self.Stringy.capitalize }
     method wordcase()   { self.Str.wordcase }
@@ -230,8 +228,9 @@ sub lc(Cool $s)                    { $s.lc }
 sub ord(Cool $s)                   { $s.ord }
 sub substr(Cool $s,$pos,$chars?)   { $s.substr($pos,$chars) }
 sub uc(Cool $s)                    { $s.uc }
-
 sub ucfirst(Cool $s) is DEPRECATED { $s.ucfirst }
+sub tc(Cool $s)                    { $s.tc }
+sub tclc(Cool $s)                  { $s.tclc }
 
 proto sub rindex($, $, $?) is pure { * };
 multi sub rindex(Cool $s, Cool $needle, Cool $pos) { $s.rindex($needle, $pos) };
@@ -250,9 +249,6 @@ multi sub capitalize(Cool $x)  {$x.Stringy.capitalize }
 proto sub wordcase($) is pure { * }
 multi sub wordcase(Str:D $x) {$x.wordcase }
 multi sub wordcase(Cool $x)  {$x.Str.wordcase }
-
-proto sub tclc($) is pure      { * }
-multi sub tclc(Cool $x)        { tclc $x.Str }
 
 sub sprintf(Cool $format, *@args) {
     unless $sprintfHandlerInitialized {

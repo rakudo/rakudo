@@ -95,6 +95,10 @@ my class Cool { # declared in BOOTSTRAP
         nqp::p6box_s(nqp::lc(nqp::unbox_s(self.Str)))
     }
 
+    method tc() {
+        self.Str.tc;
+    }
+
     method tclc() {
         self.Str.tclc;
     }

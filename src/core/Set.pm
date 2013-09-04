@@ -211,7 +211,7 @@ my class Set is Iterable does Associative {
           !! $other.^does(self);
     }
 
-    multi method Str(Set:D --> Str) { ~%!elems.values() }
+    multi method Str(Set:D --> Str) { ~ %!elems.values }
     multi method gist(Set:D $ : --> Str) {
         my $name := self.^name;
         ( $name eq 'Set' ?? 'set' !! "$name.new" )

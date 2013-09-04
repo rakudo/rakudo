@@ -1,56 +1,30 @@
-my class KeySet is Iterable does Associative {
-    has %!elems;
+my class KeySet is Set {
 
-    method default { False }
-    method keys { %!elems.keys }
-    method values { %!elems.values }
-    method elems returns Int { %!elems.elems }
-    method exists($k) returns Bool { %!elems.exists($k) }
-    method delete($k) { %!elems.delete($k) }
-    method Bool { %!elems.Bool }
-    method Numeric { %!elems.Numeric }
-    method Real { %!elems.Numeric.Real }
-    method hash { %!elems.hash }
+    method delete($k) {
+        my $elems := nqp::getattr(self, Set, '%!elems');
+        my $key   := $k.WHICH;
+        return False unless nqp::existskey($elems, nqp::unbox_s($key));
+
+        $elems.delete($key);
+        True;
+    }
+
     method at_key($k) {
         Proxy.new(
           FETCH => {
-              so %!elems.exists($k)
+              so nqp::existskey(nqp::getattr(self, Set, '%!elems'), nqp::unbox_s($k.WHICH));
           },
           STORE => -> $, $value {
               if $value {
-                  %!elems{$k} = True;
+                  nqp::getattr(self, Set, '%!elems'){$k.WHICH} = $k;
               }
               else {
-                  %!elems.delete($k)
+                  nqp::getattr(self, Set, '%!elems').delete($k.WHICH);
               }
+              so $value;
           });
     }
 
-    # Constructor
-    method new(*@args --> KeySet) {
-        my %e;
-        %e{$_} = True for @args;
-        self.bless(:elems(%e));
-    }
-
-    submethod BUILD (:%!elems) { }
-
-    method ACCEPTS($other) {
-        self.defined
-          ?? $other (<=) self && self (<=) $other
-          !! $other.^does(self);
-    }
-
-    multi method Str(Any:D $ : --> Str) { ~%!elems.keys }
-    multi method gist(Any:D $ : --> Str) { "keyset({ %!elems.keys».gist.join(', ') })" }
-    multi method perl(Any:D $ : --> Str) {
-        self.defined
-          ?? 'KeySet.new(' ~ join(', ', map { .perl }, %!elems.keys) ~ ')'
-          !! "KeySet";
-    }
-
-    method iterator() { %!elems.keys.iterator }
-    method list() { %!elems.keys }
-    method pick($count = 1) { %!elems.keys.pick($count) }
-    method roll($count = 1) { %!elems.keys.roll($count) }
+    multi method gist(Any:D $ : --> Str) { self.^name ~ ".new({ nqp::getattr(self, Set, '%!elems').values».gist.join(', ') })" }
+    multi method perl(Any:D $ : --> Str) { self.^name ~ '.new(' ~ join(', ', map { .perl }, nqp::getattr(self, Set, '%!elems').values) ~ ')' }
 }

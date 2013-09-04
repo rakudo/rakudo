@@ -1,10 +1,6 @@
-my class Bag { ... }
-my class KeyBag { ... }
-my class KeySet { ... }
 my class MapIter { ... }
 my class Pair { ... }
 my class Range { ... }
-my class Set { ... }
 my class X::Bind::Slice { ... }
 my class X::Bind::ZenSlice { ... }
 

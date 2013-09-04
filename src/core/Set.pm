@@ -170,28 +170,36 @@ my class Set is Iterable does Associative {
     has %!elems;
 
     method default { False }
-    method keys { %!elems.keys }
-    method values { %!elems.values }
+    method keys { %!elems.values }
+    method values { %!elems.elems x True }
     method elems returns Int { %!elems.elems }
-    method exists($a) returns Bool { %!elems.exists($a) }
-    method delete($a) is hidden_from_backtrace {
+    method exists($k) returns Bool {
+        so nqp::existskey(%!elems, nqp::unbox_s($k.WHICH));
+    }
+    method delete($k) is hidden_from_backtrace {
         X::Immutable.new( method => 'delete', typename => self.^name ).throw;
     }
     method Bool { %!elems.Bool }
     method Numeric { %!elems.Numeric }
     method Real { %!elems.Numeric.Real }
-    method hash { %!elems.hash }
     method Set { self }
-    method KeySet { KeySet.new(self.keys) }
-    method Bag { bag self.keys }
-    method KeyBag { KeyBag.new(self.keys) }
+    method KeySet { KeySet.new(self.values) }
+    method Bag { bag self.values }
+    method KeyBag { KeyBag.new(self.values) }
 
-    method at_key($k) { ?(%!elems{$k} // False) }
+    method at_key($k) returns Bool {
+        so nqp::existskey(%!elems, nqp::unbox_s($k.WHICH));
+    }
 
-    # Constructor
+    method hash {
+        my %e;
+        %e{$_} = True for %!elems.values;
+        %e;
+    }
+
     method new(*@args --> Set) {
         my %e;
-        %e{$_} = True for @args;
+        %e{$_.WHICH} = $_ for @args;
         self.bless(:elems(%e));
     }
 
@@ -203,14 +211,14 @@ my class Set is Iterable does Associative {
           !! $other.^does(self);
     }
 
-    multi method Str(Any:D $ : --> Str) { ~%!elems.keys() }
-    multi method gist(Any:D $ : --> Str) { "set({ %!elems.keys».gist.join(', ') })" }
-    multi method perl(Any:D $ : --> Str) { 'set(' ~ join(', ', map { .perl }, %!elems.keys) ~ ')' }
+    multi method Str(Any:D $ : --> Str) { ~%!elems.values() }
+    multi method gist(Any:D $ : --> Str) { "set({ %!elems.values».gist.join(', ') })" }
+    multi method perl(Any:D $ : --> Str) { 'set(' ~ join(', ', map { .perl }, %!elems.values) ~ ')' }
 
-    method iterator() { %!elems.keys.iterator }
-    method list() { %!elems.keys }
-    method pick($count = 1) { %!elems.keys.pick($count) }
-    method roll($count = 1) { %!elems.keys.roll($count) }
+    method iterator() { %!elems.values.iterator }
+    method list() { %!elems.values }
+    method pick($count = 1) { %!elems.values.pick($count) }
+    method roll($count = 1) { %!elems.values.roll($count) }
 
     # TODO: WHICH will require the capability for >1 pointer in ObjAt
 }

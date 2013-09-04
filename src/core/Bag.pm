@@ -47,41 +47,54 @@ only sub infix:<<"\x227D">>($a, $b --> Bool) {
 my class Bag is Iterable does Associative does Baggy {
     has %!elems; # should be UInt
 
-    method default { 0 }
-    method keys { %!elems.keys }
-    method values { %!elems.values }
-    method elems returns Int { [+] self.values }
-    method exists($a) returns Bool { %!elems.exists($a) }
-    method delete($a) is hidden_from_backtrace {
+    method default(--> Int) { 0 }
+    method keys { %!elems.values.map( {.key} ) }
+    method values { %!elems.values.map( {.value} ) }
+    method elems(--> Int) { [+] self.values }
+    method exists($k --> Bool) { %!elems.exists($k.WHICH) }
+    method delete($a --> Int) is hidden_from_backtrace {
         X::Immutable.new( method => 'delete', typename => self.^name ).throw;
     }
     method Bool { %!elems.Bool }
     method Numeric { self.elems }
     method Real { self.elems }
-    method hash { %!elems.hash }
     method Set { set self.keys }
     method KeySet { KeySet.new(self.keys) }
     method Bag { self }
-    method KeyBag { KeyBag.new-from-pairs(self.hash) }
+    method KeyBag { KeyBag.new-from-pairs(%!elems.values) }
 
-    method at_key($k) { +(%!elems{$k} // 0) }
+    method at_key($k --> Int) {
+        my $key := $k.WHICH;
+        nqp::existskey(%!elems, nqp::unbox_s($key))
+          ?? %!elems{$key}.value
+          !! 0;
+    }
 
-    # Constructor
+    method hash(--> Hash) { %!elems.values.hash }
+
     method new(*@args --> Bag) {
         my %e;
-        %e{$_}++ for @args;
+        # need explicit signature because of #119609
+        -> $_ { (%e{$_.WHICH} //= ($_ => 0)).value++ } for @args;
         self.bless(:elems(%e));
     }
     method new-from-pairs(*@pairs --> Bag) {
         my %e;
         for @pairs {
-            when Pair { %e{.key} = .value + (%e{.key} // 0); }
-            %e{$_}++;
+            when Pair {
+                (%e{$_.key.WHICH} //= ($_ => 0)).value += $_.value;
+            }
+            default {
+                (%e{$_.WHICH} //= ($_ => 0)).value++;
+            }
         }
+        my @toolow;
         for %e -> $p {
-            die "Negative values are not allowed in Bags" if $p.value < 0;
-            %e.delete($p.key) if $p.value == 0;
+            my $pair := $p.value;
+            @toolow.push( $pair.key ) if $pair.value <  0;
+            %e.delete($p.key)         if $pair.value <= 0;
         }
+        die "Found negative values for {@toolow} in {self.^name}" if @toolow;
         self.bless(:elems(%e));
     }
 
@@ -93,20 +106,36 @@ my class Bag is Iterable does Associative does Baggy {
           !! $other.^does(self);
     }
 
-    multi method Str(Any:D $ : --> Str) { ~ self.pairs.map: { .key xx .value } }
-    multi method gist(Any:D $ : --> Str) { "bag({ self.pairs>>.gist.join(', ') })" }
-    multi method perl(Any:D $ : --> Str) {
-        self.defined
-          ?? '(' ~ %!elems.perl ~ ').Bag'
-          !! "Bag";
-   }
+    multi method Str(Bag:D $ : --> Str) { ~ self.pairs.map({ .key xx .value }) }
+    multi method gist(Bag:D $ : --> Str) {
+        my $name := self.^name;
+        ( $name eq 'Bag' ?? 'bag' !! "$name.new" )
+        ~ '('
+        ~ %!elems.values.map( {
+            .value > 1  # rather arbitrarily
+              ?? "{.key.gist} xx {.value}"
+              !! .key.gist xx .value
+        } ).join(', ')
+        ~ ')';
+    }
+    multi method perl(Bag:D $ : --> Str) {
+        my $name := self.^name;
+        ( $name eq 'Bag' ?? 'bag' !! "$name.new" )
+        ~ '('
+        ~ %!elems.values.map( {
+            .value > 1  # rather arbitrarily
+              ?? "{.key.perl} xx {.value}"
+              !! .key.perl xx .value
+        } ).join(',')
+        ~ ')';
+    }
 
-    method iterator() { %!elems.pairs.iterator }
-    method list() { %!elems.keys }
-    method pairs() { %!elems.pairs }
+    method iterator() { %!elems.values.iterator }
+    method list() { self.keys }
+    method pairs() { %!elems.values }
 
-    method pick($count = 1) { self.KeyBag.pick($count) }
-    method roll($count = 1) { self.KeyBag.roll($count) }
+    method pick($count = 1) { self.pairs.map({ .key xx .value }).pick($count) }
+    method roll($count = 1) { self.pairs.map({ .key xx .value }).roll($count) }
 }
 
 sub bag(*@a) returns Bag {

@@ -169,14 +169,14 @@ only sub infix:<<"\x2285">>($a, $b --> Bool) {
 my class Set is Iterable does Associative {
     has %!elems;
 
-    method default { False }
+    method default(--> Bool) { False }
     method keys { %!elems.values }
-    method values { %!elems.elems x True }
-    method elems returns Int { %!elems.elems }
-    method exists($k) returns Bool {
+    method values { True xx %!elems.elems }
+    method elems(--> Int) { %!elems.elems }
+    method exists($k --> Bool) {
         so nqp::existskey(%!elems, nqp::unbox_s($k.WHICH));
     }
-    method delete($k) is hidden_from_backtrace {
+    method delete($k --> Bool) is hidden_from_backtrace {
         X::Immutable.new( method => 'delete', typename => self.^name ).throw;
     }
     method Bool { %!elems.Bool }
@@ -187,11 +187,11 @@ my class Set is Iterable does Associative {
     method Bag { bag self.values }
     method KeyBag { KeyBag.new(self.values) }
 
-    method at_key($k) returns Bool {
+    method at_key($k --> Bool) {
         so nqp::existskey(%!elems, nqp::unbox_s($k.WHICH));
     }
 
-    method hash {
+    method hash(--> Hash) {
         my %e;
         %e{$_} = True for %!elems.values;
         %e;
@@ -211,9 +211,21 @@ my class Set is Iterable does Associative {
           !! $other.^does(self);
     }
 
-    multi method Str(Any:D $ : --> Str) { ~%!elems.values() }
-    multi method gist(Any:D $ : --> Str) { "set({ %!elems.values».gist.join(', ') })" }
-    multi method perl(Any:D $ : --> Str) { 'set(' ~ join(', ', map { .perl }, %!elems.values) ~ ')' }
+    multi method Str(Set:D --> Str) { ~%!elems.values() }
+    multi method gist(Set:D $ : --> Str) {
+        my $name := self.^name;
+        ( $name eq 'Set' ?? 'set' !! "$name.new" )
+        ~ '('
+        ~ %!elems.values.map( {.gist} ).join(', ')
+        ~ ')';
+    }
+    multi method perl(Set:D $ : --> Str) {
+        my $name := self.^name;
+        ( $name eq 'Set' ?? 'set' !! "$name.new" )
+        ~ '('
+        ~ %!elems.values.map( {.perl} ).join(',')
+        ~ ')';
+    }
 
     method iterator() { %!elems.values.iterator }
     method list() { %!elems.values }

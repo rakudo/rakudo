@@ -1,6 +1,6 @@
 my class KeySet is Set {
 
-    method delete($k) {
+    method delete($k --> Bool) {
         my $elems := nqp::getattr(self, Set, '%!elems');
         my $key   := $k.WHICH;
         return False unless nqp::existskey($elems, nqp::unbox_s($key));
@@ -9,7 +9,7 @@ my class KeySet is Set {
         True;
     }
 
-    method at_key($k) {
+    method at_key($k --> Bool) {
         Proxy.new(
           FETCH => {
               so nqp::existskey(nqp::getattr(self, Set, '%!elems'), nqp::unbox_s($k.WHICH));
@@ -24,7 +24,4 @@ my class KeySet is Set {
               so $value;
           });
     }
-
-    multi method gist(Any:D $ : --> Str) { self.^name ~ ".new({ nqp::getattr(self, Set, '%!elems').values».gist.join(', ') })" }
-    multi method perl(Any:D $ : --> Str) { self.^name ~ '.new(' ~ join(', ', map { .perl }, nqp::getattr(self, Set, '%!elems').values) ~ ')' }
 }

@@ -37,7 +37,7 @@ only sub infix:<(|)>(**@p) {
     my $set = Set.new: @p.map(*.Set.keys);
     if @p.grep(Baggy) {
         my @bags = @p.map(*.Bag);
-        Bag.new-from-pairs($set.map({ ; $_ => [max] @bags>>.{$_} }));
+        Bag.new-fp($set.map({ ; $_ => [max] @bags>>.{$_} }));
     }
     else {
         $set;
@@ -52,7 +52,7 @@ only sub infix:<(&)>(**@p) {
     my $base_set = @p ?? @p[0].Set !! set();
     if @p.grep(Baggy) {
         my @bags = @p.map(*.Bag);
-        Bag.new-from-pairs($base_set.map({ ; $_ => [min] @bags>>.{$_} }));
+        Bag.new-fp($base_set.map({ ; $_ => [min] @bags>>.{$_} }));
     }
     else {
         my @sets = @p.map(*.Set);
@@ -69,7 +69,7 @@ only sub infix:<(-)>(**@p) {
     if @p[0] ~~ Baggy {
         my @bags = @p.map(*.Bag);
         my $base = @bags.shift;
-        Bag.new-from-pairs($base.keys.map({ ; $_ => $base{$_} - [+] @bags>>.{$_} }));
+        Bag.new-fp($base.keys.map({ ; $_ => $base{$_} - [+] @bags>>.{$_} }));
     }
     else {
         my @sets = @p.map(*.Set);

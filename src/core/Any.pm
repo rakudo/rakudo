@@ -757,8 +757,8 @@ my class Any { # declared in BOOTSTRAP
         }
         KeySet.new(@keys);
     }
-    method Bag()    {    Bag.new-from-pairs(self.list) }
-    method KeyBag() { KeyBag.new-from-pairs(self.list) }
+    method Bag()    {    Bag.new-fp(self.list) }
+    method KeyBag() { KeyBag.new-fp(self.list) }
 }
 Metamodel::ClassHOW.exclude_parent(Any);
 

@@ -1,111 +1,80 @@
-my class KeyBag does Associative does Baggy {
-    has %!elems; # should be UInt
+my class KeyBag is Bag {
 
-    method default { 0 }
-    method keys { %!elems.keys }
-    method values { %!elems.values }
-    method elems returns Int { [+] self.values }
-    method exists($k) returns Bool { %!elems.exists($k) }
-    method delete($k) { %!elems.delete($k) }
-    method Bool { %!elems.Bool }
-    method Numeric { self.elems }
-    method Real { self.elems }
-    method hash { %!elems.hash }
-    method Set { set self.keys }
-    method KeySet { KeySet.new(self.keys) }
-    method Bag { Bag.new-from-pairs(self.hash) }
+    method delete($k) {
+        nqp::getattr(self, Bag, '%!elems').delete($k.WHICH).value;
+    }
+    method Bag { Bag.new-fp(nqp::getattr(self, Bag, '%!elems').values) }
     method KeyBag { self }
 
     method at_key($k) {
         Proxy.new(
           FETCH => {
-              %!elems{$k} // 0;
+              my $key   := $k.WHICH;
+              my $elems := nqp::getattr(self, Bag, '%!elems');
+              nqp::existskey($elems, nqp::unbox_s($key))
+                ?? $elems{$key}.value
+                !! 0;
           },
           STORE => -> $, $value {
               if $value > 0 {
-                  %!elems{$k} = $value;
+                  (nqp::getattr(self, Bag, '%!elems'){$k.WHICH}
+                    //= ($k => 0)).value = $value;
+              }
+              elsif $value == 0 {
+                  my $key   := $k.WHICH;
+                  my $elems := nqp::getattr(self, Bag, '%!elems');
+                  if nqp::existskey($elems, nqp::unbox_s($key)) {
+                      my $value = $elems{$key}.value;
+                      $elems.delete($key);
+                      $value;
+                  }
+                  else {
+                      0;
+                  }
               }
               else {
-                  %!elems.delete($k);
+                  fail "Cannot put negative value $value for $k in {self.^name}";
               }
+              $value;
           }
         );
     }
 
-    # Constructor
-    method new(*@args --> KeyBag) {
-        my %e;
-        %e{$_}++ for @args;
-        self.bless(:elems(%e));
-    }
-    method new-from-pairs(*@pairs --> KeyBag) {
-        my %e;
-        for @pairs {
-            when Pair { %e{.key} = .value + (%e{.key} // 0); }
-            %e{$_}++;
-        }
-        for %e -> $p {
-            die "Negative values are not allowed in KeyBags" if $p.value < 0;
-            %e.delete($p.key) if $p.value == 0;
-        }
-        self.bless(:elems(%e));
-    }
-
-    submethod BUILD (:%!elems) { }
-
-    method ACCEPTS($other) {
-        self.defined
-          ?? $other (<+) self && self (<+) $other
-          !! $other.^does(self);
-    }
-
-    multi method Str(Bag:D:) { ~ self.pairs.map: { .key xx .value } }
-    multi method gist(Any:D $ : --> Str) { "keybag({ self.pairs>>.gist.join(', ') })" }
-    multi method perl(Any:D $ : --> Str) {
-        self.defined
-          ?? %!elems.perl ~ '.KeyBag'
-          !! "KeyBag";
-    }
-
-    method iterator() { %!elems.pairs.iterator }
-    method list() { %!elems.keys }
-    method pairs() { %!elems.pairs }
-
-    method pick($count = 1) {
-        return self.roll if $count ~~ Num && $count == 1;
-
-        my $temp-bag = KeyBag.new-from-pairs(self.hash);
-        my $lc = $count ~~ Whatever ?? Inf !! $count;
-        gather while $temp-bag && $lc-- {
-            my $choice = $temp-bag.roll;
-            take $choice;
-            $temp-bag{$choice}--;
-        }
-    }
-    method roll($count = 1) {
-        my @inverse-mapping;
-        my $a = 0;
-        for %!elems.pairs -> $pair {
-            my $b = $a + $pair.value;
-            @inverse-mapping.push(($a..^$b) => $pair.key);
-            $a = $b;
-        }
-
-        sub choose {
-            my $choice = $a.rand;
-            my $i = 0;
-            for @inverse-mapping -> $im {
-                if $choice ~~ $im.key {
-                    return $im.value;
-                }
-            }
-            fail "Problem with KeyBag.roll";
-        }
-
-        return choose() xx * if $count ~~ Whatever;
-        return choose() if $count == 1;
-        return choose() xx $count;
-    }
+#    method pick($count = 1) {
+#        return self.roll if $count ~~ Num && $count == 1;
+#
+#        my $temp-bag = KeyBag.new-fp(self.hash);
+#        my $lc = $count ~~ Whatever ?? Inf !! $count;
+#        gather while $temp-bag && $lc-- {
+#            my $choice = $temp-bag.roll;
+#            take $choice;
+#            $temp-bag{$choice}--;
+#        }
+#    }
+#    method roll($count = 1) {
+#        my @inverse-mapping;
+#        my $a = 0;
+#        for %!elems.pairs -> $pair {
+#            my $b = $a + $pair.value;
+#            @inverse-mapping.push(($a..^$b) => $pair.key);
+#            $a = $b;
+#        }
+#
+#        sub choose {
+#            my $choice = $a.rand;
+#            my $i = 0;
+#            for @inverse-mapping -> $im {
+#                if $choice ~~ $im.key {
+#                    return $im.value;
+#                }
+#            }
+#            fail "Problem with KeyBag.roll";
+#        }
+#
+#        return choose() xx * if $count ~~ Whatever;
+#        return choose() if $count == 1;
+#        return choose() xx $count;
+#    }
 
     proto method classify-list(|) { * }
     multi method classify-list( &test, *@list ) {

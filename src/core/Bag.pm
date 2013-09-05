@@ -3,7 +3,7 @@ my role Baggy { Any }
 only sub infix:<(.)>(**@p) {
     my $set = Set.new: @p.map(*.Set.keys);
     my @bags = @p.map(*.Bag);
-    Bag.new-from-pairs($set.map({ ; $_ => [*] @bags>>.{$_} }));
+    Bag.new-fp($set.map({ ; $_ => [*] @bags>>.{$_} }));
 }
 # U+228D MULTISET MULTIPLICATION
 only sub infix:<<"\x228D">>(|p) {
@@ -13,7 +13,7 @@ only sub infix:<<"\x228D">>(|p) {
 only sub infix:<(+)>(**@p) {
     my $set = Set.new: @p.map(*.Set.keys);
     my @bags = @p.map(*.Bag);
-    Bag.new-from-pairs($set.map({ ; $_ => [+] @bags>>.{$_} }));
+    Bag.new-fp($set.map({ ; $_ => [+] @bags>>.{$_} }));
 }
 # U+228E MULTISET UNION
 only sub infix:<<"\x228E">>(|p) {
@@ -61,7 +61,7 @@ my class Bag is Iterable does Associative does Baggy {
     method Set { set self.keys }
     method KeySet { KeySet.new(self.keys) }
     method Bag { self }
-    method KeyBag { KeyBag.new-from-pairs(%!elems.values) }
+    method KeyBag { KeyBag.new-fp(%!elems.values) }
 
     method at_key($k --> Int) {
         my $key := $k.WHICH;
@@ -78,11 +78,11 @@ my class Bag is Iterable does Associative does Baggy {
         -> $_ { (%e{$_.WHICH} //= ($_ => 0)).value++ } for @args;
         self.bless(:elems(%e));
     }
-    method new-from-pairs(*@pairs --> Bag) {
+    method new-fp(*@pairs --> Bag) {
         my %e;
         for @pairs {
             when Pair {
-                (%e{$_.key.WHICH} //= ($_ => 0)).value += $_.value;
+                (%e{$_.key.WHICH} //= ($_.key => 0)).value += $_.value;
             }
             default {
                 (%e{$_.WHICH} //= ($_ => 0)).value++;
@@ -113,20 +113,14 @@ my class Bag is Iterable does Associative does Baggy {
         ~ '('
         ~ %!elems.values.map( {
             .value > 1  # rather arbitrarily
-              ?? "{.key.gist} xx {.value}"
+              ?? "{.key.gist}({.value})"
               !! .key.gist xx .value
         } ).join(', ')
         ~ ')';
     }
     multi method perl(Bag:D $ : --> Str) {
-        my $name := self.^name;
-        ( $name eq 'Bag' ?? 'bag' !! "$name.new" )
-        ~ '('
-        ~ %!elems.values.map( {
-            .value > 1  # rather arbitrarily
-              ?? "{.key.perl} xx {.value}"
-              !! .key.perl xx .value
-        } ).join(',')
+        "{self.^name}.new-fp("
+        ~ %!elems.values.map( {"{.key.perl}=>{.value}"} ).join(',')
         ~ ')';
     }
 

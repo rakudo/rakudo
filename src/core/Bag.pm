@@ -94,7 +94,7 @@ my class Bag is Iterable does Associative does Baggy {
             @toolow.push( $pair.key ) if $pair.value <  0;
             %e.delete($p.key)         if $pair.value <= 0;
         }
-        die "Found negative values for {@toolow} in {self.^name}" if @toolow;
+        fail "Found negative values for {@toolow} in {self.^name}" if @toolow;
         self.bless(:elems(%e));
     }
 

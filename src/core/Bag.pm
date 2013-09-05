@@ -44,7 +44,7 @@ only sub infix:<<"\x227D">>($a, $b --> Bool) {
     $a (>+) $b;
 }
 
-my class Bag is Iterable does Associative does Baggy {
+my class Bag does Associative does Baggy {
     has %!elems; # should be UInt
 
     method default(--> Int) { 0 }
@@ -124,7 +124,6 @@ my class Bag is Iterable does Associative does Baggy {
         ~ ')';
     }
 
-    method iterator() { %!elems.values.iterator }
     method list() { self.keys }
     method pairs() { %!elems.values }
 

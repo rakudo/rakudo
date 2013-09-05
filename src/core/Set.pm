@@ -166,7 +166,7 @@ only sub infix:<<"\x2285">>($a, $b --> Bool) {
     $a !(>) $b;
 }
 
-my class Set is Iterable does Associative {
+my class Set does Associative {
     has %!elems;
 
     method default(--> Bool) { False }
@@ -227,7 +227,6 @@ my class Set is Iterable does Associative {
         ~ ')';
     }
 
-    method iterator() { %!elems.values.iterator }
     method list() { %!elems.values }
     method pick($count = 1) { %!elems.values.pick($count) }
     method roll($count = 1) { %!elems.values.roll($count) }

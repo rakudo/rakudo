@@ -134,8 +134,12 @@ my class Bag is Iterable does Associative does Baggy {
     method list() { self.keys }
     method pairs() { %!elems.values }
 
-    method pick($count = 1) { self.pairs.map({ .key xx .value }).pick($count) }
-    method roll($count = 1) { self.pairs.map({ .key xx .value }).roll($count) }
+    method pick($count = 1) {
+        %!elems.values.map({ .key xx .value }).pick($count);
+    }
+    method roll($count = 1) {
+        %!elems.values.map({ .key xx .value }).roll($count);
+    }
 }
 
 sub bag(*@a) returns Bag {

@@ -235,6 +235,4 @@ my class Set is Iterable does Associative {
     # TODO: WHICH will require the capability for >1 pointer in ObjAt
 }
 
-sub set(*@args --> Set) {
-    Set.new(@args);
-}
+sub set(*@args --> Set) { Set.new(@args) }

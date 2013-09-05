@@ -136,6 +136,4 @@ my class Bag is Iterable does Associative does Baggy {
     }
 }
 
-sub bag(*@a) returns Bag {
-    Bag.new(|@a);
-}
+sub bag(*@args --> Bag) { Bag.new(|@args) }

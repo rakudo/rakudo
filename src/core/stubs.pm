@@ -15,6 +15,9 @@ my class FatRat    { ... }
 my class Enum      { ... }
 my class X::OutOfRange { ... }
 
+my role Baggy { ... }
+my role Setty { ... }
+
 sub DYNAMIC(\name) is rw { 
     my Mu $x := nqp::getlexdyn(nqp::unbox_s(name));
     if nqp::isnull($x) {

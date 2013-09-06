@@ -185,8 +185,10 @@ CORE_SOURCES = \
   src/core/Temporal.pm \
   src/core/EXPORTHOW.pm \
   src/core/Pod.pm \
+  src/core/Baggy.pm \
   src/core/Bag.pm \
   src/core/KeyBag.pm \
+  src/core/Setty.pm \
   src/core/Set.pm \
   src/core/KeySet.pm \
   src/core/ObjAt.pm \

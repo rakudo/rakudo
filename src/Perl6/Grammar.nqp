@@ -1105,6 +1105,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token terminator:sym<for>    { 'for'    <.end_keyword> }
     token terminator:sym<given>  { 'given'  <.end_keyword> }
     token terminator:sym<when>   { 'when'   <.end_keyword> }
+    token terminator:sym<arrow>  { '-->' }
+    
 
     token stdstopper {
         [
@@ -2298,7 +2300,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
 
     rule param_sep {
-        $<sep>=[','|':'|';;'|';'] { @*seps.push($<sep>) }
+        '' $<sep>=[','|':'|';;'|';'] { @*seps.push($<sep>) }
     }
 
     # XXX Not really implemented yet.
@@ -2318,7 +2320,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my @*seps := nqp::list();
         <.ws>
         [
-        | <?before '-->' | ')' | ']' | '{' | ':'\s >
+        | <?before '-->' | ')' | ']' | '{' | ':'\s | ';;' >
         | [ <parameter> || <.malformed('parameter')> ]
         ]+ % <param_sep>
         <.ws>
@@ -2429,7 +2431,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         [
         | <value>
         | <typename>
-        | where <.ws> <EXPR('m=')>
+        | where <.ws> <EXPR('i=')>
         ]
         <.ws>
     }
@@ -2440,7 +2442,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         [
         | '[' ~ ']' <signature>
         | '(' ~ ')' <signature>
-        | where <EXPR('m=')>
+        | where <EXPR('i=')>
         ]
     }
 

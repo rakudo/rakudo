@@ -8,6 +8,8 @@ my class KeySet is Set {
         $elems.delete($key);
         True;
     }
+    method Set { Set.new(self.values) }
+    method KeySet { self }
 
     method at_key($k --> Bool) {
         Proxy.new(

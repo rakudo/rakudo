@@ -140,7 +140,3 @@ my class KeyBag is Bag {
         samewith( { @test[$^a] }, @list );
     }
 }
-
-sub keybag(*@a) returns KeyBag {
-    KeyBag.new(|@a);
-}

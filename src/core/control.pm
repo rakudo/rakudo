@@ -181,7 +181,10 @@ sub run(*@args ($, *@)) {
         ) +> 8;
 #?endif
 #?if !parrot
-        die "run is NYI on non-Parrot backend";
+        my Mu $hash := nqp::getattr(%*ENV, EnumMap, '$!storage');
+        $error_code = nqp::p6box_i(
+            nqp::spawn(nqp::getattr(@args.eager, List, '$!items'), $*CWD.Str, $hash)
+        ) +> 8;
 #?endif
         CATCH {
             default {
@@ -196,7 +199,7 @@ sub shell($cmd) {
     my $status = 255;
     try {
         my Mu $hash := nqp::getattr(%*ENV, EnumMap, '$!storage');
-        $status = nqp::shell($cmd, $*CWD.Str, $hash);
+        $status = nqp::p6box_i(nqp::shell($cmd, $*CWD.Str, $hash));
     }
     $status;
 }
@@ -246,12 +249,22 @@ sub interval($seconds ) {       # fractional seconds also allowed
 }
 
 sub QX($cmd) {
-    my Mu $pio := nqp::open(nqp::unbox_s($cmd), 'rp');
+#?if parrot    
+    my Mu $pio := nqp::open(nqp::unbox_s($cmd), 'rp');    
     fail "Unable to execute '$cmd'" unless $pio;
     $pio.encoding('utf8');
     my $result = nqp::p6box_s($pio.readall());
     $pio.close();
     $result;
+#?endif
+#?if !parrot
+    my Mu $env := nqp::getattr(%*ENV, EnumMap, '$!storage');
+    my Mu $pio := nqp::openpipe(nqp::unbox_s($cmd), $*CWD.Str, $env, '');
+    fail "Unable to execute '$cmd'" unless $pio;
+    my $result = nqp::p6box_s(nqp::readallfh($pio));
+    nqp::closefh($pio);
+    $result;
+#?endif    
 }
 
 sub EXHAUST(|) {

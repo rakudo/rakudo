@@ -71,16 +71,53 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
         self.^name ~ '.new(' ~ self.list.join(', ') ~ ')';
     }
     
-    method subbuf(Blob:D: $from = 0, $len = self.elems - $from) {
+    method subbuf(Blob:D: $from = 0, $len is copy = self.elems - $from) {
+
+        if ($len < 0) {
+            X::OutOfRange.new(
+                what => "Len element to subbuf",
+                got  => $len,
+                range => (0..self.elems)).fail;
+        }
+
+
         my $ret := nqp::create(self);
+
+        my int $ifrom = nqp::unbox_i(
+            nqp::istype($from, Callable)
+                ?? $from(nqp::p6box_i(self.elems))
+                !! $from.Int);
+
+        if ($ifrom < 0) {
+            X::OutOfRange.new(
+                what    => 'From argument to subbuf',
+                got     => $from,
+                range   => (0..self.elems),
+                comment => "use *{$ifrom} if you want to index relative to the end"
+            ).fail;
+        }
+
+        if ($ifrom > self.elems) {
+            X::OutOfRange.new(
+                what => 'From argument to subbuf',
+                got  => $from,
+                range => (0..self.elems),
+            ).fail;
+        }
+
+        return $ret
+            if $ifrom == self.elems;
+
+        $len = self.elems - $ifrom
+            if $len > self.elems;
+
         my int $llen = $len.Int;
         nqp::setelems($ret, $llen);
         my int $i = 0;
-        my int $f = $from.Int;
         while $i < $llen {
-            nqp::bindpos_i($ret, $i, nqp::atpos_i(self, $f));
+            nqp::bindpos_i($ret, $i, nqp::atpos_i(self, $ifrom));
             $i = $i + 1;
-            $f = $f + 1;
+            $ifrom = $ifrom + 1;
         }
         $ret
     }

@@ -117,11 +117,11 @@ my class Cool { # declared in BOOTSTRAP
         self.Str.chop
     }
 
-    method ord() {
+    method ord(--> Int) {
         my $s := self.Str;
         $s.chars
           ?? nqp::p6box_i(nqp::ord(nqp::unbox_s($s)))
-          !! Any;
+          !! Int;
     }
     method chr() {
         self.Int.chr;

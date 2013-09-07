@@ -741,22 +741,8 @@ my class Any { # declared in BOOTSTRAP
     }
     method FLATTENABLE_HASH() { nqp::hash() }
 
-    method Set() {
-        my @keys;
-        for self.list() {
-            when Pair { @keys.push(.key) if .value }
-            default   { @keys.push($_) }
-        }
-        Set.new(@keys);
-    }
-    method KeySet() {
-        my @keys;
-        for self.list() {
-            when Pair { @keys.push(.key) if .value; }
-            default   { @keys.push($_) }
-        }
-        KeySet.new(@keys);
-    }
+    method Set()    {    Set.new-fp(self.list) }
+    method KeySet() { KeySet.new-fp(self.list) }
     method Bag()    {    Bag.new-fp(self.list) }
     method KeyBag() { KeyBag.new-fp(self.list) }
 }

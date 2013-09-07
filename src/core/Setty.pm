@@ -52,6 +52,18 @@ my role Setty does Associative {
         %e{$_.WHICH} = $_ for @args;
         self.bless(:elems(%e));
     }
+    method new-fp(*@pairs --> Setty) {
+        my %e;
+        for @pairs {
+            when Pair {
+                %e{.key.WHICH} //= $_.key if .value;
+            }
+            default {
+                %e{.WHICH} //= $_;
+            }
+        }
+        self.bless(:elems(%e));
+    }
 
     method ACCEPTS($other) {
         self.defined

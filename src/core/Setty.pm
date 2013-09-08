@@ -2,6 +2,8 @@ my role Setty does Associative {
     has %!elems;
 
 #- specific methods for users of role ------------------------------------------
+    method BUILD (:%!elems) {}
+
     method at_key($k --> Bool) {
         Proxy.new(
           FETCH => {

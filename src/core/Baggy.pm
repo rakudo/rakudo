@@ -2,6 +2,8 @@ my role Baggy does Associative {
     has %!elems; # should be UInt
 
 #- specific methods for users of role ------------------------------------------
+    method BUILD (:%!elems) {}
+
     method at_key($k) {
         Proxy.new(
           FETCH => {

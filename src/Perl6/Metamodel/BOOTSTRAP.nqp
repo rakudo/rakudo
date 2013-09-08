@@ -434,9 +434,11 @@ BEGIN {
     Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!container_descriptor>, :type(Mu), :package(Parameter)));
     Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!attr_package>, :type(Mu), :package(Parameter)));
     Parameter.HOW.add_method(Parameter, 'is_generic', nqp::getstaticcode(sub ($self) {
-            # If nonimnal type is generic, so are we.
+            # If nonimnal type or attr_package is generic, so are we.
             my $type := nqp::getattr($self, Parameter, '$!nominal_type');
-            nqp::p6bool($type.HOW.archetypes.generic)
+            my $ap   := nqp::getattr($self, Parameter, '$!attr_package');
+            nqp::p6bool($type.HOW.archetypes.generic ||
+                (!nqp::isnull($ap) && $ap.HOW.archetypes.generic))
         }));
     Parameter.HOW.add_method(Parameter, 'instantiate_generic', nqp::getstaticcode(sub ($self, $type_environment) {
             # Clone with the type instantiated.
@@ -444,8 +446,16 @@ BEGIN {
             my $ins      := nqp::clone($self);
             my $type     := nqp::getattr($self, Parameter, '$!nominal_type');
             my $cd       := nqp::getattr($self, Parameter, '$!container_descriptor');
-            my $ins_type := $type.HOW.instantiate_generic($type, $type_environment);
-            my $ins_cd   := nqp::isnull($cd) ?? $cd !! $cd.instantiate_generic($type_environment);
+            my $ap       := nqp::getattr($self, Parameter, '$!attr_package');
+            my $ins_type := $type;
+            my $ins_cd   := $cd;
+            if $type.HOW.archetypes.generic {
+                $ins_type := $type.HOW.instantiate_generic($type, $type_environment);
+                $ins_cd   := nqp::isnull($cd) ?? $cd !! $cd.instantiate_generic($type_environment);
+            }
+            my $ins_ap := !nqp::isnull($ap) && $ap.HOW.archetypes.generic
+                ?? $ap.HOW.instantiate_generic($ap, $type_environment)
+                !! $ap;
             unless $ins_type.HOW.archetypes.generic {
                 my $flags := nqp::getattr_i($ins, Parameter, '$!flags');
                 if $flags +& $SIG_ELEM_NOMINAL_GENERIC {
@@ -455,6 +465,7 @@ BEGIN {
             }
             nqp::bindattr($ins, Parameter, '$!nominal_type', $ins_type);
             nqp::bindattr($ins, Parameter, '$!container_descriptor', $ins_cd);
+            nqp::bindattr($ins, Parameter, '$!attr_package', $ins_ap);
             $ins
         }));
     Parameter.HOW.add_method(Parameter, 'set_rw', nqp::getstaticcode(sub ($self) {

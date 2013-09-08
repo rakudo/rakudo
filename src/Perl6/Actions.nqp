@@ -3371,8 +3371,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 }
             }
             elsif $twigil eq '!' {
-                %*PARAM_INFO<bind_attr> := 1;
-                %*PARAM_INFO<attr_package> := $*PACKAGE;
+                %*PARAM_INFO<bind_attr>    := 1;
+                %*PARAM_INFO<attr_package> := $*W.find_symbol(['$?CLASS']);
             }
             elsif $twigil eq '.' {
                 %*PARAM_INFO<bind_accessor> := 1;

@@ -73,7 +73,7 @@ my role Setty does Associative {
           !! $other.^does(self);
     }
 
-    multi method Str(Setty:D --> Str) { ~ %!elems.values }
+    multi method Str(Setty:D $ : --> Str) { ~ %!elems.values }
     multi method gist(Setty:D $ : --> Str) {
         my $name := self.^name;
         ( $name eq 'Set' ?? 'set' !! "$name.new" )

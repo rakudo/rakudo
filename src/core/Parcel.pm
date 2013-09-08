@@ -117,16 +117,6 @@ my class Parcel does Positional { # declared in BOOTSTRAP
     method fmt($format = '%s', $separator = ' ') {
         self.list.fmt($format, $separator);
     }
-
-    proto method Set(|) {*}
-    multi method Set() {
-        set self;
-    }
-
-    proto method Bag(|) {*}
-    multi method Bag() {
-        bag self;
-    }
 }
 
 

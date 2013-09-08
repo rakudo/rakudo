@@ -40,8 +40,6 @@ my role Setty does Associative {
     method Bool { %!elems.Bool }
     method Numeric { %!elems.Numeric }
     method Real { %!elems.Numeric.Real }
-    method Bag { bag self.values }
-    method KeyBag { KeyBag.new(self.values) }
 
     method hash(--> Hash) {
         my %e;

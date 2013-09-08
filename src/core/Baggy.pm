@@ -49,8 +49,6 @@ my role Baggy does Associative {
     method Bool { %!elems.Bool }
     method Numeric { self.elems }
     method Real { self.elems }
-    method Set { set self.keys }
-    method KeySet { KeySet.new(self.keys) }
 
     method hash(--> Hash) { %!elems.values.hash }
 

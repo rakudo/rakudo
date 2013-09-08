@@ -90,6 +90,7 @@ my role Setty does Associative {
     }
 
     method list() { %!elems.values }
+    method pairs() { %!elems.values.map({ $_ => True }) } 
     method pick($count = 1) { %!elems.values.pick($count) }
     method roll($count = 1) { %!elems.values.roll($count) }
 

@@ -2,10 +2,6 @@ my role Baggy does Associative {
     has %!elems; # should be UInt
 
 #- specific methods for users of role ------------------------------------------
-    submethod BUILD (:%elems)  {
-        nqp::bindattr(self, KeyBag, '%!elems', %elems);
-    }
-
     method at_key($k) {
         Proxy.new(
           FETCH => {

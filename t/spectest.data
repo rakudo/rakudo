@@ -525,7 +525,7 @@ S13-overloading/typecasting-mixed.t
 S13-overloading/typecasting-short.t
 S13-type-casting/methods.t
 S14-roles/anonymous.t
-# S14-roles/attributes.t # err: Attribute $!a1 not declared in class C1
+S14-roles/attributes.t
 S14-roles/basic.t
 S14-roles/bool.t
 S14-roles/composition.t

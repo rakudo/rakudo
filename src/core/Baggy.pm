@@ -1,5 +1,7 @@
 my role Baggy does Associative {
-    has %!elems; # should be UInt
+    has %!elems;
+#         |-- key.WHICH
+#              |-- (key => value)
 
 #- specific methods for users of role ------------------------------------------
     method BUILD (:%!elems) {}

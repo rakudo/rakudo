@@ -1,5 +1,7 @@
 my role Setty does Associative {
     has %!elems;
+#         |-- key.WHICH
+#              |-- key
 
 #- specific methods for users of role ------------------------------------------
     method BUILD (:%!elems) {}

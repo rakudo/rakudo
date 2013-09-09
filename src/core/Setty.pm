@@ -146,14 +146,22 @@ only sub infix:<<"\x222A">>(|p) {
 }
 
 only sub infix:<(&)>(**@p) {
-    my $base_set = @p ?? @p[0].Set !! set();
     if @p.grep(Baggy) {
-        my @bags = @p.map(*.Bag);
-        Bag.new-fp($base_set.map({ ; $_ => [min] @bags>>.{$_} }));
+        my $keybag = @p ?? @p.shift.KeyBag !! KeyBag.new;
+        for @p.map(*.Bag) -> $bag {
+            $bag{$_}
+              ?? $keybag{$_} min= $bag{$_}
+              !! $keybag.delete($_)
+              for $keybag.keys;
+        }
+        Bag.new-fp($keybag.pairs);
     }
     else {
-        my @sets = @p.map(*.Set);
-        Set.new($base_set.grep: -> $k { @sets>>.{$k}.all });
+        my $keyset = @p ?? @p.shift.KeySet !! KeySet.new;
+        for @p.map(*.Set) -> $set {
+            $set{$_} || $keyset.delete($_) for $keyset.keys;
+        }
+        Set.new($keyset.keys);
     }
 }
 # U+2229 INTERSECTION

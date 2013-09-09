@@ -148,7 +148,7 @@ only sub infix:<<"\x222A">>(|p) {
 only sub infix:<(&)>(**@p) {
     if @p.first(Baggy) {
         my $keybag = @p ?? @p.shift.KeyBag !! KeyBag.new;
-        for @p.map(*.Bag) -> $bag {
+        for @p.map(*.Bag(:view)) -> $bag {
             $bag{$_}
               ?? $keybag{$_} min= $bag{$_}
               !! $keybag.delete($_)
@@ -158,7 +158,7 @@ only sub infix:<(&)>(**@p) {
     }
     else {
         my $keyset = @p ?? @p.shift.KeySet !! KeySet.new;
-        for @p.map(*.Set) -> $set {
+        for @p.map(*.Set(:view)) -> $set {
             $set{$_} || $keyset.delete($_) for $keyset.keys;
         }
         Set.new($keyset.keys);
@@ -172,12 +172,12 @@ only sub infix:<<"\x2229">>(|p) {
 only sub infix:<(-)>(**@p) {
     return set() unless @p;
     if @p[0] ~~ Baggy {
-        my @bags = @p.map(*.Bag);
+        my @bags = @p.map(*.Bag(:view));
         my $base = @bags.shift;
         Bag.new-fp($base.keys.map({ ; $_ => $base{$_} - [+] @bags>>.{$_} }));
     }
     else {
-        my @sets = @p.map(*.Set);
+        my @sets = @p.map(*.Set(:view));
         my $base = @sets.shift;
         Set.new: $base.keys.grep(* !(elem) @sets.any );
     }

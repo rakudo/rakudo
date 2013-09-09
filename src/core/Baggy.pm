@@ -214,8 +214,8 @@ my role Baggy does Associative {
 }
 
 only sub infix:<(.)>(**@p) {
-    my $set = Set.new: @p.map(*.Set.keys);
-    my @bags = @p.map(*.Bag);
+    my $set = Set.new: @p.map(*.Set(:view).keys);
+    my @bags = @p.map(*.Bag(:view));
     Bag.new-fp($set.map({ ; $_ => [*] @bags>>.{$_} }));
 }
 # U+228D MULTISET MULTIPLICATION
@@ -224,8 +224,8 @@ only sub infix:<<"\x228D">>(|p) {
 }
 
 only sub infix:<(+)>(**@p) {
-    my $set = Set.new: @p.map(*.Set.keys);
-    my @bags = @p.map(*.Bag);
+    my $set = Set.new: @p.map(*.Set(:view).keys);
+    my @bags = @p.map(*.Bag(:view));
     Bag.new-fp($set.map({ ; $_ => [+] @bags>>.{$_} }));
 }
 # U+228E MULTISET UNION

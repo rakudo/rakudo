@@ -100,7 +100,7 @@ my role Setty does Associative {
 
 proto sub infix:<(elem)>($, $ --> Bool) {*}
 multi sub infix:<(elem)>($a, Any $b --> Bool) {
-    $a (elem) $b.Set;
+    $a (elem) $b.Set(:view);
 }
 multi sub infix:<(elem)>($a, Set $b --> Bool) {
     $b.exists($a);
@@ -116,7 +116,7 @@ only sub infix:<<"\x2209">>($a, $b --> Bool) {
 
 proto sub infix:<(cont)>($, $ --> Bool) {*}
 multi sub infix:<(cont)>(Any $a, $b --> Bool) {
-    $a.Set (cont) $b;
+    $a.Set(:view) (cont) $b;
 }
 multi sub infix:<(cont)>(Set $a, $b --> Bool) {
     $a.exists($b);
@@ -139,7 +139,7 @@ only sub infix:<(|)>(**@p) {
         $keybag.Bag(:view);
     }
     else {
-        Set.new( @p.map(*.Set.keys) );
+        Set.new( @p.map(*.Set(:view).keys) );
     }
 }
 # U+222A UNION
@@ -221,7 +221,7 @@ only sub infix:<<"\x2296">>($a, $b --> Setty) {
 
 # TODO: polymorphic eqv
 # multi sub infix:<eqv>(Any $a, Any $b --> Bool) {
-#     $a.Set eqv $b.Set
+#     $a.Set(:view) eqv $b.Set(:view);
 # }
 # multi sub infix:<eqv>(Setty $a, Setty $b --> Bool) {
 #     $a == $b and so $a.keys.all (elem) $b

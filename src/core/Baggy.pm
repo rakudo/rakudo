@@ -105,48 +105,47 @@ my role Baggy does Associative {
     method list() { self.keys }
     method pairs() { %!elems.values }
 
-    method pick($count = 1) {
-        %!elems.values.map({ .key xx .value }).pick($count);
-    }
-    method roll($count = 1) {
-        %!elems.values.map({ .key xx .value }).roll($count);
+    method pick ($count = 1) {
+        return self.roll if $count ~~ Num && $count == 1;
+
+        my $elems = self.elems;
+        my $picks = $elems min $count;
+        my @pairs = self.pairs.map( { $_.key => $_.value } );;
+
+        map {
+            my $rand = $elems.rand.Int;
+            my $seen = 0;
+            my $pick;
+            for @pairs -> $pair {
+                next if ( $seen += $pair.value ) <= $rand;
+
+                $pick = $pair.key;
+                $pair.value--;
+                $elems--;
+                last;
+            }
+            $pick;
+        }, 1 .. $picks;
     }
 
-#    method pick($count = 1) {
-#        return self.roll if $count ~~ Num && $count == 1;
-#
-#        my $temp-bag = KeyBag.new-fp(self.hash);
-#        my $lc = $count ~~ Whatever ?? Inf !! $count;
-#        gather while $temp-bag && $lc-- {
-#            my $choice = $temp-bag.roll;
-#            take $choice;
-#            $temp-bag{$choice}--;
-#        }
-#    }
-#    method roll($count = 1) {
-#        my @inverse-mapping;
-#        my $a = 0;
-#        for %!elems.pairs -> $pair {
-#            my $b = $a + $pair.value;
-#            @inverse-mapping.push(($a..^$b) => $pair.key);
-#            $a = $b;
-#        }
-#
-#        sub choose {
-#            my $choice = $a.rand;
-#            my $i = 0;
-#            for @inverse-mapping -> $im {
-#                if $choice ~~ $im.key {
-#                    return $im.value;
-#                }
-#            }
-#            fail "Problem with KeyBag.roll";
-#        }
-#
-#        return choose() xx * if $count ~~ Whatever;
-#        return choose() if $count == 1;
-#        return choose() xx $count;
-#    }
+    method roll ($count = 1) {
+        my $elems  = self.elems;
+        my $rolls  = $count ~~ Num ?? $elems min $count !! $count;
+        my @pairs := self.pairs;
+
+        map {
+            my $rand = $elems.rand.Int;
+            my $seen = 0;
+            my $roll;
+            for @pairs -> $pair {
+                next if ( $seen += $pair.value ) <= $rand;
+
+                $roll = $pair.key;
+                last;
+            }
+            $roll;
+        }, 1 .. $rolls;
+    }
 
     proto method classify-list(|) { * }
     multi method classify-list( &test, *@list ) {

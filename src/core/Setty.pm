@@ -187,8 +187,8 @@ only sub infix:<(-)>(**@p) {
     }
 }
 # U+2216 SET MINUS
-only sub infix:<<"\x2216">>($a, $b) {
-    $a (-) $b;
+only sub infix:<<"\x2216">>(|p) {
+    infix:<(-)>(|p);
 }
 
 proto sub infix:<(^)>($, $ --> Setty) {*}

@@ -132,7 +132,7 @@ only sub infix:<<"\x220C">>($a, $b --> Bool) {
 
 only sub infix:<(|)>(**@p) {
     my $set = Set.new: @p.map(*.Set.keys);
-    if @p.first(Baggy) {
+    if @p.grep(Baggy) {
         my @bags = @p.map(*.Bag);
         Bag.new-fp($set.map({ ; $_ => [max] @bags>>.{$_} }));
     }
@@ -146,7 +146,7 @@ only sub infix:<<"\x222A">>(|p) {
 }
 
 only sub infix:<(&)>(**@p) {
-    if @p.first(Baggy) {
+    if @p.grep(Baggy) {
         my $keybag = @p ?? @p.shift.KeyBag !! KeyBag.new;
         for @p.map(*.Bag(:view)) -> $bag {
             $bag{$_}

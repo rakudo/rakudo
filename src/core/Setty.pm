@@ -191,7 +191,7 @@ only sub infix:<<"\x2216">>($a, $b) {
 
 proto sub infix:<(^)>($, $ --> Setty) {*}
 multi sub infix:<(^)>(Any $a, Any $b --> Setty) {
-    $a.Set (^) $b.Set;
+    $a.Set(:view) (^) $b.Set(:view);
 }
 multi sub infix:<(^)>(Set $a, Set $b --> Setty) {
     ($a (-) $b) (|) ($b (-) $a);
@@ -211,7 +211,7 @@ only sub infix:<<"\x2296">>($a, $b --> Setty) {
 
 proto sub infix:<<(<=)>>($, $ --> Bool) {*}
 multi sub infix:<<(<=)>>(Any $a, Any $b --> Bool) {
-    $a.Set (<=) $b.Set;
+    $a.Set(:view) (<=) $b.Set(:view);
 }
 multi sub infix:<<(<=)>>(Setty $a, Setty $b --> Bool) {
     $a <= $b and so $a.keys.all (elem) $b
@@ -227,7 +227,7 @@ only sub infix:<<"\x2288">>($a, $b --> Bool) {
 
 proto sub infix:<<(<)>>($, $ --> Bool) {*}
 multi sub infix:<<(<)>>(Any $a, Any $b --> Bool) {
-    $a.Set (<) $b.Set;
+    $a.Set(:view) (<) $b.Set(:view);
 }
 multi sub infix:<<(<)>>(Setty $a, Setty $b --> Bool) {
     $a < $b and so $a.keys.all (elem) $b;
@@ -243,7 +243,7 @@ only sub infix:<<"\x2284">>($a, $b --> Bool) {
 
 proto sub infix:<<(>=)>>($, $ --> Bool) {*}
 multi sub infix:<<(>=)>>(Any $a, Any $b --> Bool) {
-    $a.Set (>=) $b.Set
+    $a.Set(:view) (>=) $b.Set(:view);
 }
 multi sub infix:<<(>=)>>(Setty $a, Setty $b --> Bool) {
     $a >= $b and so $b.keys.all (elem) $a;
@@ -259,7 +259,7 @@ only sub infix:<<"\x2289">>($a, $b --> Bool) {
 
 proto sub infix:<<(>)>>($, $ --> Bool) {*}
 multi sub infix:<<(>)>>(Any $a, Any $b --> Bool) {
-    $a.Set (>) $b.Set;
+    $a.Set(:view) (>) $b.Set(:view);
 }
 multi sub infix:<<(>)>>(Setty $a, Setty $b --> Bool) {
     $a > $b and so $b.keys.all (elem) $a;

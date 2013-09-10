@@ -239,7 +239,7 @@ only sub infix:<<"\x228E">>(|p) {
 
 proto sub infix:<<(<+)>>($, $ --> Bool) {*}
 multi sub infix:<<(<+)>>(Any $a, Any $b --> Bool) {
-    $a.Bag (<+) $b.Bag;
+    $a.Bag(:view) (<+) $b.Bag(:view);
 }
 multi sub infix:<<(<+)>>(Baggy $a, Baggy $b --> Bool) {
     so all $a.keys.map({ $a{$_} <= $b{$_} })
@@ -254,7 +254,7 @@ multi sub infix:<<(>+)>>(Baggy $a, Baggy $b --> Bool) {
     so all $b.keys.map({ $b{$_} <= $a{$_} });
 }
 multi sub infix:<<(>+)>>(Any $a, Any $b --> Bool) {
-    $a.Bag (>+) $b.Bag;
+    $a.Bag(:view) (>+) $b.Bag(:view);
 }
 # U+227D SUCCEEDS OR EQUAL TO
 only sub infix:<<"\x227D">>($a, $b --> Bool) {

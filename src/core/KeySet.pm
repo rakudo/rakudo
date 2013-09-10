@@ -11,5 +11,5 @@ my class KeySet does Setty {
         }
     }
 
-    method KeySet { self }
+    method KeySet (:$clone) { $clone ?? KeySet.new(self.keys) !! self }
 }

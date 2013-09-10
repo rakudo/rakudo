@@ -151,7 +151,9 @@ only sub infix:<(&)>(**@p) {
     return set() unless @p;
 
     if @p.grep(Baggy) {
-        my $keybag = @p.shift.KeyBag;
+        my $keybag = @p[0] ~~ KeyBag
+          ?? KeyBag.new-fp(@p.shift.pairs)
+          !! @p.shift.KeyBag;
         for @p.map(*.Bag(:view)) -> $bag {
             $bag{$_}
               ?? $keybag{$_} min= $bag{$_}
@@ -161,7 +163,9 @@ only sub infix:<(&)>(**@p) {
         $keybag.Bag(:view);
     }
     else {
-        my $keyset = @p.shift.KeySet;
+        my $keyset = @p[0] ~~ KeySet
+          ?? KeySet.new(@p.shift.keys)
+          !! @p.shift.KeySet;
         for @p.map(*.Set(:view)) -> $set {
             $set{$_} || $keyset.delete($_) for $keyset.keys;
         }
@@ -177,7 +181,9 @@ only sub infix:<(-)>(**@p) {
     return set() unless @p;
 
     if @p[0] ~~ Baggy {
-        my $keybag = @p.shift.KeyBag;
+        my $keybag = @p[0] ~~ KeyBag
+          ?? KeyBag.new-fp(@p.shift.pairs)
+          !! @p.shift.KeyBag;
         for @p.map(*.Bag(:view)) -> $bag {
             $bag{$_} < $keybag{$_}
               ?? $keybag{$_} -= $bag{$_}
@@ -187,7 +193,9 @@ only sub infix:<(-)>(**@p) {
         $keybag.Bag(:view);
     }
     else {
-        my $keyset = @p.shift.KeySet;
+        my $keyset = @p[0] ~~ KeySet
+          ?? KeySet.new(@p.shift.keys)
+          !! @p.shift.KeySet;
         for @p.map(*.Set(:view)) -> $set {
             $set{$_} && $keyset.delete($_) for $keyset.keys;
         }

@@ -11,5 +11,5 @@ my class KeySet does Setty {
         }
     }
 
-    method KeySet { KeySet.new(self.keys) }
+    method KeySet { self }
 }

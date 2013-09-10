@@ -10,5 +10,5 @@ my class KeyBag does Baggy {
             Bag.new-fp(nqp::getattr(self, KeyBag, '%!elems').values);
         }
     }           
-    method KeyBag (:$clone) { $clone ?? KeyBag.new-fp(self.pairs) !! self }
+    method KeyBag { KeyBag.new-fp(self.pairs) }
 }

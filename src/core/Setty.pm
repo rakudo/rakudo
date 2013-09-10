@@ -149,7 +149,7 @@ only sub infix:<(&)>(**@p) {
     return set() unless @p;
 
     if @p.grep(Baggy) {
-        my $keybag = @p.shift.KeyBag(:clone);
+        my $keybag = @p.shift.KeyBag;
         for @p.map(*.Bag(:view)) -> $bag {
             $bag{$_}
               ?? $keybag{$_} min= $bag{$_}
@@ -159,7 +159,7 @@ only sub infix:<(&)>(**@p) {
         $keybag.Bag(:view);
     }
     else {
-        my $keyset = @p.shift.KeySet(:clone);
+        my $keyset = @p.shift.KeySet;
         for @p.map(*.Set(:view)) -> $set {
             $set{$_} || $keyset.delete($_) for $keyset.keys;
         }

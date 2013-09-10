@@ -131,13 +131,15 @@ only sub infix:<<"\x220C">>($a, $b --> Bool) {
 }
 
 only sub infix:<(|)>(**@p) {
-    my $set = Set.new: @p.map(*.Set.keys);
     if @p.grep(Baggy) {
-        my @bags = @p.map(*.Bag);
-        Bag.new-fp($set.map({ ; $_ => [max] @bags>>.{$_} }));
+        my $keybag = KeyBag.new;
+        for @p.map(*.Bag(:view)) -> $bag {
+            $keybag{$_} max= $bag{$_} for $bag.keys;
+        }
+        $keybag.Bag(:view);
     }
     else {
-        $set;
+        Set.new( @p.map(*.Set.keys) );
     }
 }
 # U+222A UNION

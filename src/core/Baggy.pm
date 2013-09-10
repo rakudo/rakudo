@@ -224,9 +224,13 @@ only sub infix:<<"\x228D">>(|p) {
 }
 
 only sub infix:<(+)>(**@p) {
-    my $set = Set.new: @p.map(*.Set(:view).keys);
-    my @bags = @p.map(*.Bag(:view));
-    Bag.new-fp($set.map({ ; $_ => [+] @bags>>.{$_} }));
+    return bag() unless @p;
+
+    my $keybag = @p.shift.KeyBag;
+    for @p.map(*.Bag(:view)) -> $bag {
+        $keybag{$_} += $bag{$_} for $bag.keys;
+    }
+    $keybag.Bag(:view);
 }
 # U+228E MULTISET UNION
 only sub infix:<<"\x228E">>(|p) {

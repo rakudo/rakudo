@@ -175,15 +175,23 @@ only sub infix:<<"\x2229">>(|p) {
 
 only sub infix:<(-)>(**@p) {
     return set() unless @p;
+
     if @p[0] ~~ Baggy {
-        my @bags = @p.map(*.Bag(:view));
-        my $base = @bags.shift;
-        Bag.new-fp($base.keys.map({ ; $_ => $base{$_} - [+] @bags>>.{$_} }));
+        my $keybag = @p.shift.KeyBag;
+        for @p.map(*.Bag(:view)) -> $bag {
+            $bag{$_} < $keybag{$_}
+              ?? $keybag{$_} -= $bag{$_}
+              !! $keybag.delete($_)
+              for $keybag.keys;
+        }
+        $keybag.Bag(:view);
     }
     else {
-        my @sets = @p.map(*.Set(:view));
-        my $base = @sets.shift;
-        Set.new: $base.keys.grep(* !(elem) @sets.any );
+        my $keyset = @p.shift.KeySet;
+        for @p.map(*.Set(:view)) -> $set {
+            $set{$_} && $keyset.delete($_) for $keyset.keys;
+        }
+        $keyset.Set(:view);
     }
 }
 # U+2216 SET MINUS

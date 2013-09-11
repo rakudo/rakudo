@@ -623,8 +623,8 @@ multi infix:«>»(Date:D $a, Date:D $b) {
 
 $PROCESS::TZ = get-local-timezone-offset();
 
-sub sleep($seconds = $Inf --> Nil) {
-    if $seconds ~~ ($Inf|Whatever) {
+sub sleep($seconds = Inf --> Nil) {
+    if $seconds ~~ (Inf|Whatever) {
         nqp::sleep(1e16) while True;
     }
     elsif $seconds > 0 {
@@ -633,12 +633,8 @@ sub sleep($seconds = $Inf --> Nil) {
     Nil;
 }
 
-sub sleep-timer ($seconds = $Inf --> Duration) {
-    if $seconds ~~ ($Inf|Whatever) {
-        nqp::sleep(1e16) while True;
-        Duration.new($Inf);
-    }
-    elsif $seconds <= 0 {
+sub sleep-timer (Real $seconds = Inf --> Duration) {
+    if $seconds <= 0 {
         Duration.new(0);
     }
     else {
@@ -648,21 +644,12 @@ sub sleep-timer ($seconds = $Inf --> Duration) {
     }
 }
 
-proto sub sleep-till (|) {*}
-multi sub sleep-till (Instant $till --> Bool) {
+sub sleep-till (Instant $till --> Bool) {
     my $seconds = $till - now;
     return False if $seconds < 0;
 
     1 while $seconds = sleep-timer($seconds);
     True;
-}
-multi sub sleep-till (Inf $till --> Bool) { # when Inf works at this point
-    nqp::sleep(1e16) while True;
-    True;  # at the end of times
-}
-multi sub sleep-till (Whatever $till --> Bool) {
-    nqp::sleep(1e16) while True;
-    True;  # at the end of times
 }
 
 # =begin pod

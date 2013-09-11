@@ -7,7 +7,6 @@ my class Bag { ... }
 my class KeyBag { ... }
 my class KeySet { ... }
 my class Set { ... }
-my class KeyHash is Iterable does Associative { }
 my class Seq is List does Positional { }
 my class Exception { ... }
 my class X::AdHoc  { ... }

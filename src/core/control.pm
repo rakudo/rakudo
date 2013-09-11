@@ -212,42 +212,6 @@ my $Inf = nqp::p6box_n(nqp::inf());
 my $NaN = nqp::p6box_n(nqp::nan());
 # EM 20130627 attempt at using constants failed during optimizing phase
 
-
-sub sleep($seconds = $Inf) {         # fractional seconds also allowed
-    my $time1 = time;
-    if $seconds ~~ $Inf {
-        nqp::sleep(1e16) while True;
-    }
-    elsif $seconds < 0 {
-        fail "Cannot go {abs $seconds} seconds back in time";
-    }
-    else {
-        nqp::sleep($seconds.Num);
-    }
-    return time - $time1;
-}
-
-my %interval_wakeup;            # needs to be hidden from GLOBAL:: somehow
-sub interval($seconds ) {       # fractional seconds also allowed
-
-    my $time = now.Num;
-    my $wakeup := %interval_wakeup{"thread_id"} //= $time; # XXX thread ID
-
-    # already past our morning call
-    if $time >= $wakeup  {
-        $wakeup += $seconds;
-        0;
-    }
-
-    # still time to sleep
-    else {
-        my $slept = $wakeup - $time;
-        nqp::sleep($slept);
-        $wakeup += $seconds;
-        $slept;
-    }
-}
-
 sub QX($cmd) {
 #?if parrot    
     my Mu $pio := nqp::open(nqp::unbox_s($cmd), 'rp');    

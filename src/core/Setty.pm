@@ -1,35 +1,7 @@
 my role Setty does Associative {
     has %!elems; # key.WHICH => key
 
-#- specific methods for users of role ------------------------------------------
     method BUILD (:%!elems) {}
-
-    method at_key($k --> Bool) {
-        Proxy.new(
-          FETCH => {
-              so nqp::getattr(self, KeySet, '%!elems').exists($k.WHICH);
-          },
-          STORE => -> $, $value {
-              if $value {
-                  nqp::getattr(self, KeySet, '%!elems'){$k.WHICH} = $k;
-              }
-              else {
-                  nqp::getattr(self, KeySet, '%!elems').delete($k.WHICH);
-              }
-              so $value;
-          });
-    }
-
-    method delete($k --> Bool) {
-        my $elems := nqp::getattr(self, KeySet, '%!elems');
-        my $key   := $k.WHICH;
-        return False unless $elems.exists($key);
-
-        $elems.delete($key);
-        True;
-    }
-#-------------------------------------------------------------------------------
-
     method default(--> Bool) { False }
     method keys { %!elems.values }
     method values { True xx %!elems.elems }

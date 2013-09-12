@@ -30,13 +30,12 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
         $absolute_path_func ?? $absolute_path_func($path) !! $path;
     }
     
-
     method ctxsave() {
         $*MAIN_CTX := nqp::ctxcaller(nqp::ctx());
         $*CTXSAVE := 0;
     }
     
-    method search_path() {        
+    method search_path() {
         # See if we have an @*INC set up, and if so just use that.
         my $PROCESS := nqp::gethllsym('perl6', 'PROCESS');
         if !nqp::isnull($PROCESS) && nqp::existskey($PROCESS.WHO, '@INC') {

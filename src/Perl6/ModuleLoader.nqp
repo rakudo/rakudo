@@ -10,6 +10,8 @@ sub DEBUG(*@strs) {
 class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
     my %modules_loaded;
     my %settings_loaded;
+    my $absolute_path_func;
+    
     my %language_module_loaders := nqp::hash(
         'NQP', nqp::gethllsym('nqp', 'ModuleLoader'),
     ); 
@@ -20,12 +22,21 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
         %language_module_loaders{$lang} := $loader;
     }
     
+    method register_absolute_path_func($func) {
+        $absolute_path_func := $func;
+    }
+    
+    method absolute_path($path) {
+        $absolute_path_func ?? $absolute_path_func($path) !! $path;
+    }
+    
+
     method ctxsave() {
         $*MAIN_CTX := nqp::ctxcaller(nqp::ctx());
         $*CTXSAVE := 0;
     }
     
-    method search_path() {
+    method search_path() {        
         # See if we have an @*INC set up, and if so just use that.
         my $PROCESS := nqp::gethllsym('perl6', 'PROCESS');
         if !nqp::isnull($PROCESS) && nqp::existskey($PROCESS.WHO, '@INC') {
@@ -37,7 +48,7 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
                 }
             }
         }
-        
+
         # Too early to have @*INC; probably no setting yet loaded to provide
         # the PROCESS initialization.
         my @search_paths;

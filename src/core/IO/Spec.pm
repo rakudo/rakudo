@@ -61,3 +61,7 @@ my class IO::Spec {
     method abs2rel( |c )               { $SPEC.abs2rel( |c )               }
     method rel2abs( |c )               { $SPEC.rel2abs( |c )               }
 }
+
+nqp::gethllsym('perl6', 'ModuleLoader').register_absolute_path_func(
+    sub ($path) { return IO::Spec.rel2abs($path); }
+);

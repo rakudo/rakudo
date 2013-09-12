@@ -9,23 +9,20 @@ role Perl6::ModuleLoaderVMConfig {
     
     # Locates files we could potentially load for this module.
     method locate_candidates($module_name, @prefixes, :$file?) {
-        my $PROCESS := nqp::gethllsym('perl6', 'PROCESS');
-        my $curdir := !nqp::isnull($PROCESS) && nqp::existskey($PROCESS.WHO, '$CWD')
-                    ?? nqp::atkey($PROCESS.WHO, '$CWD') ~ '/'
-                    !! '';
         # If its name contains a slash or dot treat is as a path rather than a package name.
         my @candidates;
         if nqp::defined($file) {
-            if nqp::stat($curdir ~ $file, 0) {
+            $file := nqp::gethllsym('perl6', 'ModuleLoader').absolute_path($file);
+            if nqp::stat($file, 0) {
                 my %cand;
-                %cand<key> := $curdir ~ $file;
+                %cand<key> := $file;
                 my $dot := nqp::rindex($file, '.');
                 my $ext := $dot >= 0 ?? nqp::substr($file, $dot, nqp::chars($file) - $dot) !! '';
                 if $ext eq 'class' || $ext eq 'jar' {
-                    %cand<load> := $curdir ~ $file;
+                    %cand<load> := $file;
                 }
                 else {
-                    %cand<pm> := $curdir ~ $file;
+                    %cand<pm> := $file;
                 }
                 @candidates.push(%cand);
             }
@@ -40,7 +37,7 @@ role Perl6::ModuleLoaderVMConfig {
             
             # Go through the prefixes and build a candidate list.
             for @prefixes -> $prefix {
-                $prefix := ~$prefix;
+                $prefix := nqp::gethllsym('perl6', 'ModuleLoader').absolute_path(~$prefix);
                 my $have_pm    := nqp::stat("$prefix/$pm_path", 0);
                 my $have_pm6   := nqp::stat("$prefix/$pm6_path", 0);
                 my $have_class := nqp::stat("$prefix/$class_path", 0);
@@ -82,7 +79,7 @@ role Perl6::ModuleLoaderVMConfig {
         my $path := "$setting_name.setting.jar";
         my @prefixes := self.search_path();
         for @prefixes -> $prefix {
-            $prefix := ~$prefix;
+            $prefix := nqp::gethllsym('perl6', 'ModuleLoader').absolute_path(~$prefix);
             if nqp::stat("$prefix/$path", 0) {
                 $path := "$prefix/$path";
                 last;

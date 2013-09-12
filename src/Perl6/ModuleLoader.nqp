@@ -10,6 +10,8 @@ sub DEBUG(*@strs) {
 class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
     my %modules_loaded;
     my %settings_loaded;
+    my $absolute_path_func;
+    
     my %language_module_loaders := nqp::hash(
         'NQP', nqp::gethllsym('nqp', 'ModuleLoader'),
     ); 
@@ -18,6 +20,14 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
         nqp::die("Language loader already registered for $lang")
             if nqp::existskey(%language_module_loaders, $lang);
         %language_module_loaders{$lang} := $loader;
+    }
+    
+    method register_absolute_path_func($func) {
+        $absolute_path_func := $func;
+    }
+    
+    method absolute_path($path) {
+        $absolute_path_func ?? $absolute_path_func($path) !! $path;
     }
     
     method ctxsave() {
@@ -37,7 +47,7 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
                 }
             }
         }
-        
+
         # Too early to have @*INC; probably no setting yet loaded to provide
         # the PROCESS initialization.
         my @search_paths;

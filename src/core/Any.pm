@@ -7,7 +7,7 @@ my class X::Bind::ZenSlice { ... }
 my class Any { # declared in BOOTSTRAP
     # my class Any is Mu {
 
-    my $default= [];  # so that we can check passing of parameters to ".hash"
+    my $default= [];  # so that we can check missing parameters
     multi method ACCEPTS(Any:D: Mu \a) { self === a }
 
     ########

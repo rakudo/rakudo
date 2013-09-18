@@ -73,16 +73,13 @@ my class List does Positional { # declared in BOOTSTRAP
         nqp::p6parcel($rpa, Any);
     }
 
-    multi method at_pos(List:D: $pos is copy) is rw {
-        $pos = $pos.Int;
-        self.exists($pos)
-          ?? nqp::atpos($!items, nqp::unbox_i($pos))
-          !! Nil
-    }
-    multi method at_pos(List:D: int $pos) is rw {
-        self.exists($pos)
-            ?? nqp::atpos($!items, $pos)
-            !! Nil;
+    method default() { Nil }
+    multi method at_pos(List:D: \pos) is rw {
+        return Nil unless self.DEFINITE;
+        self.gimme(pos + 1);
+        nqp::existspos($!items, nqp::unbox_i(pos.Int))
+          ?? nqp::atpos($!items, nqp::unbox_i(pos.Int))
+          !! self.VAR.default;
     }
 
     method eager() { self.gimme(*); self }

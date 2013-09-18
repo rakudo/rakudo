@@ -2230,7 +2230,7 @@ class Perl6::World is HLL::World {
                     );
                 }
                 $lookup := QAST::Op.new(
-                    :op('callmethod'), :name('postcircumfix:<{ }>'),
+                    :op('call'), :name('&postcircumfix:<{ }>'),
                     $lookup,
                     self.add_string_constant($_));
             }

@@ -96,9 +96,9 @@ my class List does Positional { # declared in BOOTSTRAP
     }
 
     method exists(\pos) {
-        return False unless self.DEFINITE;
+        return False if !self.DEFINITE || pos < 0;
         self.gimme(pos + 1);
-        nqp::p6bool(nqp::existspos($!items, nqp::unbox_i(pos)))
+        nqp::p6bool( !nqp::isnull(nqp::atpos($!items, nqp::unbox_i(pos))) );
     }
 
     method gimme($n, :$sink) {

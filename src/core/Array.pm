@@ -65,24 +65,22 @@ class Array { # declared in BOOTSTRAP
         nqp::bindpos(nqp::getattr(self, List, '$!items'), $pos, bindval)
     }
     
-    method delete(@array is rw: *@indices) {
-        my $elems = @array.elems;
-        my @result;
-        for @indices -> $index {
-            my $i = $index ~~ Callable
-                        ?? $index($elems)
-                        !! +$index;
-            @result.push(@array[$i]);
-            undefine @array[$i];
+    method delete(\pos) {
+        return Nil if pos < 0;
 
-            # next seems unnecessary but handles an obscure
-            # edge case
-            if $i == (@array - 1) {
-                @array.pop;
-            }
+        my $value := self.at_pos(pos);
+        my $items := nqp::getattr(self,List,'$!items');
+
+        if pos == self.end {
+            my $pos = pos;
+            nqp::pop($items);
+            nqp::pop($items)
+              while --$pos >= 0 && nqp::isnull(nqp::atpos($items,$pos));
         }
-        @array.pop while ?@array && !defined @array[@array.elems - 1];
-        return @result;
+        else {
+            nqp::bindpos($items, pos, nqp::null());
+        }
+        $value;
     }
 
     method flattens() { 1 }

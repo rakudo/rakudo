@@ -1,3 +1,13 @@
+New in 2013.09
++ candidate argument to bless removed (per spec change)
++ @a.VAR.name and %h.VAR.name implemented
++ The $var.++ and $var.() syntaxes work
++ Lots of improvements on the Set and Bag types
++ [op]() with relational operators vacuously return True
++ tr/// implemented
++ Sockets on JVM implemented
++ sleep(), sleep-time() and sleep-till() updated to spec
+
 New in 2013.08
 + "is default" traits on variables, $/, $!, $_ are default Nil
 + "is dynamic" traits on variables, $/, $!, $_ are dynamic

@@ -79,6 +79,12 @@ Dates are based on Parrot's expected release schedule.
   2013-10-17   Rakudo #69                      Coke
   2013-11-21   Rakudo #70                      lizmat
   2013-12-19   Rakudo #71
+  2014-01-23   Rakudo #72
+  2014-02-20   Rakudo #73
+  2014-03-20   Rakudo #74
+  2014-04-17   Rakudo #75
+  2014-05-22   Rakudo #76
+  2014-06-19   Rakudo #77
 
 =head2 Suggested .pm group names for future releases
 

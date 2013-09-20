@@ -10,69 +10,7 @@ code name based on an active Perl Mongers group.  Rakudo's
 February 2009 release is #14; prior releases were bundled as
 part of monthly Parrot releases.
 
-=head2 Development releases
-
-  2009-02-26   Rakudo #14 "Vienna"             (pmichaud)
-  2009-03-20   Rakudo #15 "Oslo"               (pmichaud)
-  2009-04-23   Rakudo #16 "Bratislava"         (pmichaud)
-  2009-05-21   Rakudo #17 "Stockholm"          (pmichaud)
-  2009-06-18   Rakudo #18 "Pittsburgh"         (pmichaud)
-  2009-07-23   Rakudo #19 "Chicago"            (moritz)
-  2009-08-20   Rakudo #20 "PDX"                (kyle)
-  2009-09-17   Rakudo #21 "Seattle"            (particle)
-  2009-10-22   Rakudo #22 "Thousand Oaks"      (duff)
-  2009-11-19   Rakudo #23 "Lisbon"             (masak)
-  2009-12-17   Rakudo #24 "Seoul"              (chromatic)
-  2010-01-22   Rakudo #25 "Minneapolis"        (pmichaud)
-  2010-02-18   Rakudo #26 "Amsterdam"          (mberends)
-  2010-03-18   Rakudo #27 "Copenhagen"         (smash)
-  2010-04-22   Rakudo #28 "Moscow"             (moritz)
-  2010-05-20   Rakudo #29 "Erlangen"           (colomon)
-  2010-06-17   Rakudo #30 "Kiev"               (masak)
-  2010-07-22   Rakudo #31 "Atlanta"            (Coke)
-  2010-08-19   Rakudo #32 "Pisa"               (mathw)
-  2010-09-23   Rakudo #33 "Milan"              (moritz)
-  2010-10-21   Rakudo #34 "Paris"              (duff)
-  2010-11-18   Rakudo #35 "Melbourne"          (masak)
-  2010-12-23   Rakudo #36 "New York"           (smash)
-  2011-01-20   Rakudo #37 "BristolBath"        (tadzik)
-  2011-02-17   Rakudo #38 "Toulouse"           (arnsholt)
-  2011-03-17   Rakudo #39 "Orlando"            (jdhore)
-  2011-04-21   Rakudo #40 "ZA"                 (duff)
-  2011-05-19   Rakudo #41 "Dahut"              (jdhore)
-  2011-06-23   Rakudo #42 "Bruxelles"          (jdhore)
-  2011-07-21   Rakudo #43 "Beijing"            (mberends,moritz)
-  2011-08-18    -- none --
-  2011-09-30   Rakudo #44 "Riga"               (tadzik)
-  2011-10-20   Rakudo #45 "Houston"            (duff)
-  2011-11-17   Rakudo #46 "London"             (tadzik)
-  2011-12-22   Rakudo #47 "Columbus"           (moritz)
-  2012-01-23   Rakudo #48 "Toronto"            (moritz)
-  2012-02-23   Rakudo #49 "SPb"                (masak)
-  2012-03-22   Rakudo #50 "Argentina"          (masak)
-  2012-04-19   Rakudo #51 "Brazos Valley"      (Coke)
-  2012-04-25   2012.04.1                       (moritz)
-  2012-05-17   Rakudo #52 "MadMongers"         (tadzik)
-  2012-06-21   Rakudo #53 "Strasbourg"         (duff)
-  2012-07-19   Rakudo #54 "Tallinn"            (masak)
-  2012-08-23   Rakudo #55 "Frankfurt"          (tadzik,moritz)
-  2012-09-20   Rakudo #56 "Perl"               (masak)
-  2012-09-29   2012.09.1                       (pmichaud)
-  2012-10-18   Rakudo #57 "Tokyo"              (duff)
-  2012-11-22   Rakudo #58 "Walnut"             (FROGGS)
-  2012-12-20   Rakudo #59 "Warszawa"           (masak)
-  2013-01-17   Rakudo #60 "Sonoma"             (isBEKaml)
-  2013-02-21   Rakudo #61 "drinkers"           (tadzik)
-  2013-02-23   2013.02.1                       (moritz)
-  2013-03-21   Rakudo #62 "Singapore"          (masak)
-  2013-04-18   Rakudo #63 "Albany"             (Coke)
-  2013-05-23   Rakudo #64 "Austin"             (FROGGS)
-  2013-06-20   Rakudo #65 "Poznan"             (masak)
-  2013-07-18   Rakudo #66 "Edinburgh"          (moritz,lizmat)
-  2013-08-22   Rakudo #67 "Bicycle"            (moritz)
-  2013-09-19   Rakudo #68 "Shanghai"           (masak)
-
-=head2 Planned 2013 releases
+=head2 Planned future releases
 
 Dates are based on Parrot's expected release schedule.
 
@@ -88,7 +26,7 @@ Dates are based on Parrot's expected release schedule.
 
 =head2 Suggested .pm group names for future releases
 
-More names can be gotten from L<http://www.pm.org> if you 
+Names can be gotten from L<http://www.pm.org> if you 
 can't think of one with any particular significance to Perl 
 6 or Rakudo.
 
@@ -136,10 +74,9 @@ the release announcement).
 =item *
 
 Create a draft release announcement in docs/announce/YYYY.MM.md in
-markdown format.
-You can often use the previous release's file as a starting point,
-updating the release number, version information, name, etc. as
-appropriate.
+markdown format.  You can often use the previous release's file as a
+starting point, updating the release number, version information, name,
+etc. as appropriate.
 
   $ git add docs/announce/YYYY.MM.md
   $ git commit docs
@@ -208,7 +145,7 @@ Please check the result manually for duplicates and other errors.
 
 =item 6.
 
-Update the release dates and names at the top of this file
+Update the release dates and names at the bottom of this file
 (F<docs/release_guide.pod>).  Also improve these instructions if
 you find any steps that are missing.
 
@@ -316,6 +253,68 @@ Update the Wikipedia entry at L<http://en.wikipedia.org/wiki/Rakudo>.
 You're done!  Celebrate with the appropriate amount of fun.
 
 =back
+
+=head2 Development releases so far
+
+  2009-02-26   Rakudo #14 "Vienna"             (pmichaud)
+  2009-03-20   Rakudo #15 "Oslo"               (pmichaud)
+  2009-04-23   Rakudo #16 "Bratislava"         (pmichaud)
+  2009-05-21   Rakudo #17 "Stockholm"          (pmichaud)
+  2009-06-18   Rakudo #18 "Pittsburgh"         (pmichaud)
+  2009-07-23   Rakudo #19 "Chicago"            (moritz)
+  2009-08-20   Rakudo #20 "PDX"                (kyle)
+  2009-09-17   Rakudo #21 "Seattle"            (particle)
+  2009-10-22   Rakudo #22 "Thousand Oaks"      (duff)
+  2009-11-19   Rakudo #23 "Lisbon"             (masak)
+  2009-12-17   Rakudo #24 "Seoul"              (chromatic)
+  2010-01-22   Rakudo #25 "Minneapolis"        (pmichaud)
+  2010-02-18   Rakudo #26 "Amsterdam"          (mberends)
+  2010-03-18   Rakudo #27 "Copenhagen"         (smash)
+  2010-04-22   Rakudo #28 "Moscow"             (moritz)
+  2010-05-20   Rakudo #29 "Erlangen"           (colomon)
+  2010-06-17   Rakudo #30 "Kiev"               (masak)
+  2010-07-22   Rakudo #31 "Atlanta"            (Coke)
+  2010-08-19   Rakudo #32 "Pisa"               (mathw)
+  2010-09-23   Rakudo #33 "Milan"              (moritz)
+  2010-10-21   Rakudo #34 "Paris"              (duff)
+  2010-11-18   Rakudo #35 "Melbourne"          (masak)
+  2010-12-23   Rakudo #36 "New York"           (smash)
+  2011-01-20   Rakudo #37 "BristolBath"        (tadzik)
+  2011-02-17   Rakudo #38 "Toulouse"           (arnsholt)
+  2011-03-17   Rakudo #39 "Orlando"            (jdhore)
+  2011-04-21   Rakudo #40 "ZA"                 (duff)
+  2011-05-19   Rakudo #41 "Dahut"              (jdhore)
+  2011-06-23   Rakudo #42 "Bruxelles"          (jdhore)
+  2011-07-21   Rakudo #43 "Beijing"            (mberends,moritz)
+  2011-08-18    -- none --
+  2011-09-30   Rakudo #44 "Riga"               (tadzik)
+  2011-10-20   Rakudo #45 "Houston"            (duff)
+  2011-11-17   Rakudo #46 "London"             (tadzik)
+  2011-12-22   Rakudo #47 "Columbus"           (moritz)
+  2012-01-23   Rakudo #48 "Toronto"            (moritz)
+  2012-02-23   Rakudo #49 "SPb"                (masak)
+  2012-03-22   Rakudo #50 "Argentina"          (masak)
+  2012-04-19   Rakudo #51 "Brazos Valley"      (Coke)
+  2012-04-25   2012.04.1                       (moritz)
+  2012-05-17   Rakudo #52 "MadMongers"         (tadzik)
+  2012-06-21   Rakudo #53 "Strasbourg"         (duff)
+  2012-07-19   Rakudo #54 "Tallinn"            (masak)
+  2012-08-23   Rakudo #55 "Frankfurt"          (tadzik,moritz)
+  2012-09-20   Rakudo #56 "Perl"               (masak)
+  2012-09-29   2012.09.1                       (pmichaud)
+  2012-10-18   Rakudo #57 "Tokyo"              (duff)
+  2012-11-22   Rakudo #58 "Walnut"             (FROGGS)
+  2012-12-20   Rakudo #59 "Warszawa"           (masak)
+  2013-01-17   Rakudo #60 "Sonoma"             (isBEKaml)
+  2013-02-21   Rakudo #61 "drinkers"           (tadzik)
+  2013-02-23   2013.02.1                       (moritz)
+  2013-03-21   Rakudo #62 "Singapore"          (masak)
+  2013-04-18   Rakudo #63 "Albany"             (Coke)
+  2013-05-23   Rakudo #64 "Austin"             (FROGGS)
+  2013-06-20   Rakudo #65 "Poznan"             (masak)
+  2013-07-18   Rakudo #66 "Edinburgh"          (moritz,lizmat)
+  2013-08-22   Rakudo #67 "Bicycle"            (moritz)
+  2013-09-19   Rakudo #68 "Shanghai"           (masak)
 
 =head1 COPYRIGHT
 

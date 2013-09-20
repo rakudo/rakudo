@@ -371,15 +371,15 @@ sub SLICE_ONE ( \SELF, $one, $array, $delete, $exists, $kv, $p, $k, $v ) {
         elsif $exists !=== $default {         # :delete:exists(0|1):*
             my $wasthere = SELF.exists($one);
             SELF.delete($one);
-            if $kv & $p === $default {        # :delete:exists(0|1)
+            if $kv & $p & $k & $v === $default { # :delete:exists(0|1)
                 !( $wasthere ?^ $exists )
             }
-            elsif $kv !=== $default {         # :delete:exists(0|1):kv(0|1)
+            elsif $p & $k & $v === $default {   # :delete:exists(0|1):kv(0|1)
                 !$kv | $wasthere
                   ?? ( $one, !( $wasthere ?^ $exists ) ) 
                   !! ();
             }
-            elsif $p !=== $default {          # :delete:exists(0|1):p(0|1)
+            elsif $k & $v === $default {        # :delete:exists(0|1):p(0|1)
                 !$p | $wasthere
                   ?? RWPAIR($one, !($wasthere ?^ $exists) )
                   !! ();
@@ -388,19 +388,19 @@ sub SLICE_ONE ( \SELF, $one, $array, $delete, $exists, $kv, $p, $k, $v ) {
                 fail "cannot combine these adverbs";
             }
         }
-        elsif $kv !=== $default {             # :delete:kv(0|1)
+        elsif $p & $k & $v === $default {     # :delete:kv(0|1)
             !$kv | SELF.exists($one)
               ?? ( $one, SELF.delete($one) )
               !! ();
         }
-        elsif $p !=== $default {              # :delete:p(0|1)
+        elsif $k & $v === $default {          # :delete:p(0|1)
             !$p | SELF.exists($one)
               ?? RWPAIR($one, SELF.delete($one))
               !! ();
         }
-        elsif $k !=== $default {              # :delete:k(0|1)
+        elsif $v === $default {               # :delete:k(0|1)
             !$k | SELF.exists($one)
-              ?? ( SELF.delete($one); $one )
+              ?? do { SELF.delete($one); $one }
               !! ();
         }
         else {                                # :delete:v(0|1)
@@ -411,15 +411,15 @@ sub SLICE_ONE ( \SELF, $one, $array, $delete, $exists, $kv, $p, $k, $v ) {
     }
     elsif $exists !=== $default {             # :!delete?:exists(0|1):*
         my $wasthere= SELF.exists($one);
-        if $kv & $p & $k & $v === $default {         # :!delete?:exists(0|1)
+        if $kv & $p & $k & $v === $default {    # :!delete?:exists(0|1)
             !( $wasthere ?^ $exists )
         }
-        elsif $kv !=== $default {               # :!delete?:exists(0|1):kv(0|1)
+        elsif $p & $k & $v === $default {       # :!delete?:exists(0|1):kv(0|1)
             !$kv | $wasthere
               ?? ( $one, !( $wasthere ?^ $exists ) )
               !! ();
         }
-        elsif $p !=== $default {                # :!delete?:exists(0|1):p(0|1)
+        elsif $k & $v === $default {            # :!delete?:exists(0|1):p(0|1)
             !$p | $wasthere
               ?? RWPAIR($one, !( $wasthere ?^ $exists ))
               !! ();
@@ -473,7 +473,6 @@ sub SLICE_SOME ( \SELF, $some, $array, $delete, $exists, $kv, $p, $k, $v ) {
     if $delete === True {                # :delete:*
         if $exists !=== $default {         # :delete:exists(0|1):*
             my $wasthere; # no need to initialize every iteration of map
-
             if $kv & $p & $k & $v === $default { # :delete:exists(0|1)
                 $some.map( {
                     SELF.delete($_) if $wasthere = SELF.exists($_);
@@ -555,7 +554,7 @@ sub SLICE_SOME ( \SELF, $some, $array, $delete, $exists, $kv, $p, $k, $v ) {
         if $kv & $p & $k & $v === $default { # :!delete?:exists(0|1)
             $some.map({ !( SELF.exists($_) ?^ $exists ) }).eager.Parcel;
         }
-        elsif $p & $k & $p === $default {   # :!delete?:exists(0|1):kv(0|1)
+        elsif $p & $k & $v === $default {   # :!delete?:exists(0|1):kv(0|1)
             $kv
               ?? $some.map( {
                      SELF.exists($_) ?? ( $_, $exists ) !! ()

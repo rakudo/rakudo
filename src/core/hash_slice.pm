@@ -4,7 +4,7 @@ proto sub postcircumfix:<{ }>(|) { * }
 
 # %h<key>
 multi sub postcircumfix:<{ }>(\SELF, $key, Mu :$BIND! is parcel) is rw {
-    SELF.bind_key($key, $BIND)
+    SELF.bind_key($key, $BIND);
 }
 multi sub postcircumfix:<{ }>( \SELF, $key ) is rw { SELF.at_key($key) }
 multi sub postcircumfix:<{ }>(
@@ -20,13 +20,13 @@ multi sub postcircumfix:<{ }>(
 }
 
 # %h<a b c>
-multi sub postcircumfix:<{ }>(\SELF, Positional $key, :$BIND!) is rw {
-    X::Bind::Slice.new(type => SELF.WHAT).throw
+multi sub postcircumfix:<{ }>(\SELF, Positional \key, :$BIND!) is rw {
+    X::Bind::Slice.new(type => SELF.WHAT).throw;
 }
 multi sub postcircumfix:<{ }>( \SELF, Positional \key ) is rw {
     nqp::iscont(key) 
       ?? SELF.at_key(key) 
-      !! key.map({ SELF{$_} }).eager.Parcel
+      !! key.map({ SELF{$_} }).eager.Parcel;
 }
 multi sub postcircumfix:<{ }>(
   \SELF, Positional \key,
@@ -42,7 +42,7 @@ multi sub postcircumfix:<{ }>(
 
 # %h{*}
 multi sub postcircumfix:<{ }>(\SELF, Whatever, :$BIND!) is rw {
-    X::Bind::Slice.new(type => SELF.WHAT).throw
+    X::Bind::Slice.new(type => SELF.WHAT).throw;
 }
 multi sub postcircumfix:<{ }>( \SELF, Whatever ) is rw { SELF{SELF.keys} }
 multi sub postcircumfix:<{ }>(
@@ -59,7 +59,7 @@ multi sub postcircumfix:<{ }>(
 
 # %h{}
 multi sub postcircumfix:<{ }>(\SELF, :$BIND!) {
-    X::Bind::ZenSlice.new(type => SELF.WHAT).throw
+    X::Bind::ZenSlice.new(type => SELF.WHAT).throw;
 }
 multi sub postcircumfix:<{ }>( \SELF ) { SELF }
 multi sub postcircumfix:<{ }>(

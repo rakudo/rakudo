@@ -4,7 +4,7 @@ proto sub postcircumfix:<[ ]>(|) { * }
 
 # @a[pos]
 multi sub postcircumfix:<[ ]>(\SELF, $pos, Mu :$BIND! is parcel) is rw {
-    SELF.bind_key($pos, $BIND)
+    SELF.bind_pos($pos, $BIND);
 }
 multi sub postcircumfix:<[ ]>( \SELF, $pos ) is rw { SELF.at_pos($pos) }
 multi sub postcircumfix:<[ ]>(
@@ -20,16 +20,16 @@ multi sub postcircumfix:<[ ]>(
 }
 
 # @a[pos1 pos2 pos3]
-multi sub postcircumfix:<[ ]>(\SELF, Positional $pos, :$BIND!) is rw {
-    X::Bind::Slice.new(type => SELF.WHAT).throw
+multi sub postcircumfix:<[ ]>(\SELF, Positional \pos, :$BIND!) is rw {
+    X::Bind::Slice.new(type => SELF.WHAT).throw;
 }
-multi sub postcircumfix:<[ ]>( \SELF, Positional \key ) is rw {
-    nqp::iscont(key) 
-      ?? SELF.at_pos(key) 
-      !! key.map({ SELF[$_] }).eager.Parcel
+multi sub postcircumfix:<[ ]>( \SELF, Positional \pos ) is rw {
+    nqp::iscont(pos) 
+      ?? SELF.at_pos(pos) 
+      !! pos.map({ SELF[$_] }).eager.Parcel;
 }
 multi sub postcircumfix:<[ ]>(
-  \SELF, Positional \key,
+  \SELF, Positional \pos,
   :$delete = $default,
   :$exists = $default,
   :$kv     = $default,
@@ -37,12 +37,12 @@ multi sub postcircumfix:<[ ]>(
   :$k      = $default,
   :$v      = $default
 ) is rw {
-    SLICE_MORE( SELF, key, True, $delete, $exists, $kv, $p, $k, $v );
+    SLICE_MORE( SELF, pos, True, $delete, $exists, $kv, $p, $k, $v );
 }
 
 # @a[*]
 multi sub postcircumfix:<[ ]>(\SELF, Whatever, :$BIND!) is rw {
-    X::Bind::Slice.new(type => SELF.WHAT).throw
+    X::Bind::Slice.new(type => SELF.WHAT).throw;
 }
 multi sub postcircumfix:<[ ]>( \SELF, Whatever ) is rw { SELF[SELF.keys] }
 multi sub postcircumfix:<[ ]>(
@@ -59,7 +59,7 @@ multi sub postcircumfix:<[ ]>(
 
 # @a[]
 multi sub postcircumfix:<[ ]>(\SELF, :$BIND!) {
-    X::Bind::ZenSlice.new(type => SELF.WHAT).throw
+    X::Bind::ZenSlice.new(type => SELF.WHAT).throw;
 }
 multi sub postcircumfix:<[ ]>( \SELF ) { SELF }
 multi sub postcircumfix:<[ ]>(

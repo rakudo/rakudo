@@ -1,14 +1,15 @@
 =head1 release_guide.pod - guide to Rakudo releases
 
-Rakudo's development release cycle is based on Parrot's release
-cycle.  Parrot releases the third Tuesday of each month; Rakudo
-will generally issue its own development release two days after
-the Parrot release.
+Rakudo's development release cycle is based on Parrot's release cycle.
+Parrot releases are scheduled for the third Tuesday of each month;
+Rakudo will generally issue its own development release two days later
+(on Thursday).
 
-Each development release is given a sequential number and a 
-code name based on an active Perl Mongers group.  Rakudo's
-February 2009 release is #14; prior releases were bundled as
-part of monthly Parrot releases.
+Each development release is given a sequential number and a code name
+based on an active Perl Mongers group.  Rakudo's February 2009 release
+is #14; prior releases were bundled as part of monthly Parrot releases.
+For releases made so far, see the list of development releases at the
+end of this document.
 
 =head2 Planned future releases
 
@@ -32,14 +33,11 @@ can't think of one with any particular significance to Perl
 
 =head2 Steps to create a release (for release managers)
 
-Each Rakudo development release is timed to occur two
-days after a Parrot monthly release.
-
 =over 4
 
 =item 1.
 
-A few days before the Parrot release, it's a good idea to...
+A few days before the Rakudo release, it's a good idea to...
 
 =over 4
 
@@ -48,19 +46,6 @@ A few days before the Parrot release, it's a good idea to...
 Remind people of the upcoming release, invite people to
 update the ChangeLog file, update the ROADMAP, choose a
 release name, etc.
-
-=item *
-
-Verify that the Parrot master branch is able to build Rakudo
-and run the spectest suite. Also check the smolder reports
-at L<http://smolder.parrot.org/app/projects/smoke_reports/5>.
-
-=item *
-
-If Parrot's master branch exhibits any problems building or running
-Rakudo (that require changes to Parrot to fix), immediately
-report them to the Parrot development team so they can be
-fixed prior to Parrot's release.
 
 =item *
 
@@ -93,12 +78,6 @@ in a year not reflected by the file's copyright notice.)
 
 =item 2.
 
-The short period following the Parrot release until the
-Rakudo release is generally intended for fixing bugs,
-updating documentation, and so on.
-
-=item 3.
-
 Update Rakudo's leap-second tables:
 
   $ perl tools/update-tai-utc.pl src/core/tai-utc.pm
@@ -113,7 +92,7 @@ will be unchanged.
 
 B<Note>: this program requires the perl module L<Time::y2038> be installed.
 
-=item 4.
+=item 3.
 
 As the actual release date nears, review the git log history
 to see if any additional items need to be added to the ChangeLog.
@@ -121,7 +100,7 @@ This can be conveniently done with  "git log --since=yyyy-mm-dd --reverse".
 
   $ git commit docs/ChangeLog
 
-=item 5.
+=item 4.
 
 When it's time to cut the release, finalize the new release 
 announcement in docs/announce/YYYY.MM.md .  (If one hasn't already
@@ -143,7 +122,7 @@ Please check the result manually for duplicates and other errors.
   $ git add docs/announce/YYYY.MM.md
   $ git commit docs
 
-=item 6.
+=item 5.
 
 Update the release dates and names at the bottom of this file
 (F<docs/release_guide.pod>).  Also improve these instructions if
@@ -151,33 +130,33 @@ you find any steps that are missing.
 
   $ git commit docs/release_guide.pod
 
-=item 7.
+=item 6.
 
 Create an NQP release with the same C<YYYY.MM> version number
 as Rakudo. Follow NQP's C<docs/release_guide.pod> file to do that.
 
-=item 8.
+=item 7.
 
 Go back to the Rakudo repository, and update the NQP dependency:
 
   $ echo YYYY.MM > tools/build/NQP_REVISION
   $ git commit -m '[release] bump NQP revision' tools/build/NQP_REVISION
 
-=item 9.
+=item 8.
 
 Enter the new version into the F<VERSION> file, and commit the changes:
 
   $ echo YYYY.MM > VERSION
   $ git commit -m '[release] bump VERSION' VERSION
 
-=item 10.
+=item 9.
 
 Make sure any locally modified files have been pushed back to github.
 
   $ git status
   $ git push
 
-=item 11.
+=item 10.
 
 Make sure everything compiles and runs from a known clean state:
 
@@ -201,7 +180,7 @@ Often this means fixing a bug, fudging a test, or (temporarily?)
 commenting out a test file in t/spectest.data .  Use your best
 judgment or ask others if uncertain what to do here.
 
-=item 12.
+=item 11.
 
 Create a tarball by entering C<make release VERSION=YYYY.MM>,
 where YYYY.MM is the month for which the release is being made.
@@ -210,13 +189,13 @@ This will create a tarball file named C<rakudo-YYYY.MM.tar.gz>.
 B<Caution>: this step removes any untracked files in F<t/spec>.
 So please make a backup if you have any important data in there.
 
-=item 13.
+=item 12.
 
 Unpack the tar file into another area, and test that it
 builds and runs properly using the same process in step 8.
 If there are any problems, fix them and go back to step 8.
 
-=item 14.
+=item 13.
 
 Tag the release by its release month ("YYYY.MM") and its code name.
 
@@ -224,7 +203,7 @@ Tag the release by its release month ("YYYY.MM") and its code name.
   $ git tag -a -m"tag release #nn" CODENAME   # e.g., "Bratislava"
   $ git push --tags
 
-=item 15.
+=item 14.
 
 Upload the tarball to L<http://rakudo.org/downloads/rakudo>:
 
@@ -233,7 +212,7 @@ Upload the tarball to L<http://rakudo.org/downloads/rakudo>:
 If you do not have permissions for that, ask one of (pmichaud, jnthn,
 masak, tadzik, moritz, PerlJam) on #perl6 to do it for you.
 
-=item 16.
+=item 15.
 
 To avoid public confusion with Rakudo Star releases, we now publish 
 compiler release announcements ONLY to perl6-compiler@perl.org.  
@@ -242,13 +221,13 @@ once they are known, or we may begin publishing a single
 announcement for both.)
 
 Don't send out any announcements until the files are actually available
-per step 15 above.
+per step 14 above.
 
-=item 17.
+=item 16.
 
 Update the Wikipedia entry at L<http://en.wikipedia.org/wiki/Rakudo>.
 
-=item 18.
+=item 17.
 
 You're done!  Celebrate with the appropriate amount of fun.
 

@@ -2511,19 +2511,18 @@ class Perl6::World is HLL::World {
                 (nqp::isnull($file) ?? '<unknown file>' !! $file),
                 self.find_symbol(['Str'])
             );
-            try { return $ex.new(|%opts) }
+            return $ex.new(|%opts);
+        } else {
+            my @err := ['Error while compiling, type ', join('::', $ex_type),  "\n"];
+            for %opts -> $key {
+                @err.push: '  ';
+                @err.push: $key;
+                @err.push: ': ';
+                @err.push: %opts{$key};
+                @err.push: "\n";
+            }
+            nqp::findmethod(HLL::Grammar, 'panic')($/.CURSOR, join('', @err));
         }
-
-        # could not make exception, panic now
-        my @err := ['Error while compiling, type ', join('::', $ex_type),  "\n"];
-        for %opts -> $key {
-            @err.push: '  ';
-            @err.push: $key;
-            @err.push: ': ';
-            @err.push: %opts{$key};
-            @err.push: "\n";
-        }
-        nqp::findmethod(HLL::Grammar, 'panic')($/.CURSOR, join('', @err));
     }
     
     method locprepost($c) {

@@ -170,6 +170,7 @@ sub run(*@args ($, *@)) {
     my $error_code;
     try {
 #?if parrot
+        nqp::chdir($*CWD);
         $error_code = nqp::p6box_i(
             pir::spawnw__IP(
                 nqp::getattr(
@@ -214,6 +215,7 @@ my $NaN = nqp::p6box_n(nqp::nan());
 
 sub QX($cmd) {
 #?if parrot    
+    nqp::chdir($*CWD);
     my Mu $pio := nqp::open(nqp::unbox_s($cmd), 'rp');    
     fail "Unable to execute '$cmd'" unless $pio;
     $pio.encoding('utf8');

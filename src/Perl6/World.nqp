@@ -2445,7 +2445,6 @@ class Perl6::World is HLL::World {
             }
         };
 
-        my $exception;
         if $type_found {
             # If the highwater is beyond the current position, force the cursor to
             # that location.
@@ -2512,19 +2511,19 @@ class Perl6::World is HLL::World {
                 (nqp::isnull($file) ?? '<unknown file>' !! $file),
                 self.find_symbol(['Str'])
             );
-            try { $exception := $ex.new(|%opts) }
+            try { return $ex.new(|%opts) }
         }
-        if !$exception {
-            my @err := ['Error while compiling, type ', join('::', $ex_type),  "\n"];
-            for %opts -> $key {
-                @err.push: '  ';
-                @err.push: $key;
-                @err.push: ': ';
-                @err.push: %opts{$key};
-                @err.push: "\n";
-            }
-            nqp::findmethod(HLL::Grammar, 'panic')($/.CURSOR, join('', @err));
+
+        # could not make exception, panic now
+        my @err := ['Error while compiling, type ', join('::', $ex_type),  "\n"];
+        for %opts -> $key {
+            @err.push: '  ';
+            @err.push: $key;
+            @err.push: ': ';
+            @err.push: %opts{$key};
+            @err.push: "\n";
         }
+        nqp::findmethod(HLL::Grammar, 'panic')($/.CURSOR, join('', @err));
     }
     
     method locprepost($c) {

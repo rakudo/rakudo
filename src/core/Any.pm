@@ -469,24 +469,24 @@ sub SLICE_ONE ( \SELF, $one, $array, $delete, $exists, $kv, $p, $k, $v ) {
 } #SLICE_ONE
 
 # internal >1 element hash/array access with adverbs
-sub SLICE_SOME ( \SELF, $some, $array, $delete, $exists, $kv, $p, $k, $v ) {
+sub SLICE_MORE ( \SELF, $more, $array, $delete, $exists, $kv, $p, $k, $v ) {
     if $delete === True {                # :delete:*
         if $exists !=== $default {         # :delete:exists(0|1):*
             my $wasthere; # no need to initialize every iteration of map
             if $kv & $p & $k & $v === $default { # :delete:exists(0|1)
-                $some.map( {
+                $more.map( {
                     SELF.delete($_) if $wasthere = SELF.exists($_);
                     !( $wasthere ?^ $exists );
                 } ).eager.Parcel
             }
             elsif $p & $k & $v === $default { # :delete:exists(0|1):kv(0|1)
-                $some.map( {
+                $more.map( {
                     SELF.delete($_) if $wasthere = SELF.exists($_);
                     !$kv | $wasthere ?? ($_, !( $wasthere ?^ $exists )) !! ()
                 } ).eager.Parcel
             }
             elsif $k & $v === $default {      # :delete:exists(0|1):p(0|1)
-                $some.map( {
+                $more.map( {
                     SELF.delete($_) if $wasthere = SELF.exists($_);
                     !$p | $wasthere ?? RWPAIR($_,!($wasthere ?^ $exists)) !! ()
                 } ).eager.Parcel
@@ -498,10 +498,10 @@ sub SLICE_SOME ( \SELF, $some, $array, $delete, $exists, $kv, $p, $k, $v ) {
         elsif $kv !=== $default {           # :delete:kv(0|1):*
             if $p & $k & $v === $default {    # :delete:kv(0|1)
                 $kv
-                  ?? $some.map( {
+                  ?? $more.map( {
                          SELF.exists($_) ?? ( $_, SELF.delete($_) ) !! ()
                      } ).eager.Parcel
-                  !! $some.map( {
+                  !! $more.map( {
                          ( $_, SELF.delete($_) )
                      } ).eager.Parcel;
             }
@@ -512,10 +512,10 @@ sub SLICE_SOME ( \SELF, $some, $array, $delete, $exists, $kv, $p, $k, $v ) {
         elsif $p !=== $default {            # :delete:p(0|1):*
             if $k & $v === $default {         # :delete:p(0|1)
                 $p
-                  ?? $some.map( {
+                  ?? $more.map( {
                          SELF.exists($_) ?? RWPAIR($_, SELF.delete($_)) !! ()
                      } ).eager.Parcel
-                  !! $some.map( {
+                  !! $more.map( {
                          RWPAIR($_, SELF.delete($_))
                      } ).eager.Parcel;
             }
@@ -526,10 +526,10 @@ sub SLICE_SOME ( \SELF, $some, $array, $delete, $exists, $kv, $p, $k, $v ) {
         elsif $k !=== $default {            # :delete:k(0|1):*
             if $v === $default {              # :delete:k(0|1)
                 $k
-                  ?? $some.map( {
+                  ?? $more.map( {
                          SELF.exists($_) ?? ( SELF.delete($_); $_ ) !! ()
                      } ).eager.Parcel
-                  !! $some.map( {
+                  !! $more.map( {
                          SELF.delete($_); $_
                      } ).eager.Parcel;
             }
@@ -539,36 +539,36 @@ sub SLICE_SOME ( \SELF, $some, $array, $delete, $exists, $kv, $p, $k, $v ) {
         }
         elsif $v !=== $default {            # :delete:v(0|1)
             $v
-              ?? $some.map( {
+              ?? $more.map( {
                      SELF.exists($_) ?? SELF.delete($_) !! ()
                  } ).eager.Parcel
-              !! $some.map( {
+              !! $more.map( {
                      SELF.delete($_)
                  } ).eager.Parcel;
         }
         else {                              # :delete
-            $some.map( { SELF.delete($_) } ).eager.Parcel;
+            $more.map( { SELF.delete($_) } ).eager.Parcel;
         }
     }
     elsif $exists !=== $default {         # :!delete?:exists(0|1):*
         if $kv & $p & $k & $v === $default { # :!delete?:exists(0|1)
-            $some.map({ !( SELF.exists($_) ?^ $exists ) }).eager.Parcel;
+            $more.map({ !( SELF.exists($_) ?^ $exists ) }).eager.Parcel;
         }
         elsif $p & $k & $v === $default {   # :!delete?:exists(0|1):kv(0|1)
             $kv
-              ?? $some.map( {
+              ?? $more.map( {
                      SELF.exists($_) ?? ( $_, $exists ) !! ()
                  } ).eager.Parcel
-              !! $some.map( {
+              !! $more.map( {
                      ( $_, !( SELF.exists($_) ?^ $exists ) )
                  } ).eager.Parcel;
         }
         elsif $k & $v === $default {        # :!delete?:exists(0|1):p(0|1)
             $p
-              ?? $some.map( {
+              ?? $more.map( {
                      SELF.exists($_) ?? RWPAIR( $_, $exists ) !! ()
                  } ).eager.Parcel
-              !! $some.map( {
+              !! $more.map( {
                      RWPAIR( $_, !( SELF.exists($_) ?^ $exists ) )
                  } ).eager.Parcel;
         }
@@ -579,12 +579,12 @@ sub SLICE_SOME ( \SELF, $some, $array, $delete, $exists, $kv, $p, $k, $v ) {
     elsif $kv !=== $default {             # :!delete?:kv(0|1):*
         if $p & $k & $v === $default {      # :!delete?:kv(0|1)
             $kv
-              ?? $some.map( {
+              ?? $more.map( {
                      SELF.exists($_)
                        ?? ($_, $array ?? SELF.at_pos($_) !! SELF.at_key($_))
                        !! ()
                  } ).eager.Parcel
-              !! $some.map( {
+              !! $more.map( {
                      ( $_, $array ?? SELF.at_pos($_) !! SELF.at_key($_) )
                  } ).eager.Parcel;
         }
@@ -595,12 +595,12 @@ sub SLICE_SOME ( \SELF, $some, $array, $delete, $exists, $kv, $p, $k, $v ) {
     elsif $p !=== $default {              # :!delete?:p(0|1):*
         if $k & $v === $default {           # :!delete?:p(0|1)
             $p
-              ?? $some.map( {
+              ?? $more.map( {
                      SELF.exists($_)
                        ?? RWPAIR($_, $array ?? SELF.at_pos($_) !! SELF.at_key($_))
                        !! ()
                  } ).eager.Parcel
-              !! $some.map( {
+              !! $more.map( {
                      RWPAIR( $_, $array ?? SELF.at_pos($_) !! SELF.at_key($_) )
                  } ).eager.Parcel;
         }
@@ -611,23 +611,23 @@ sub SLICE_SOME ( \SELF, $some, $array, $delete, $exists, $kv, $p, $k, $v ) {
     elsif $k !=== $default {              # :!delete?:k(0|1):*
         if $v === $default {                # :!delete?:k(0|1)
             $k
-              ?? $some.map( { $_ if SELF.exists($_) } ).eager.Parcel
-              !! $some;
+              ?? $more.map( { $_ if SELF.exists($_) } ).eager.Parcel
+              !! $more;
         }
         else {
             fail "cannot combine these adverbs";
         }
     }
     elsif $v === True {                    # :!delete?:v
-        $some.map( {
+        $more.map( {
             SELF.exists($_)
               ?? ($array ?? SELF.at_pos($_) !! SELF.at_key($_))
               !! ()
         } ).eager.Parcel;
     }
     else {                                 # :!delete?:v?
-        $some.map( {
+        $more.map( {
             $array ?? SELF.at_pos($_) !! SELF.at_key($_)
         } ).eager.Parcel;
     }
-} #SLICE_SOME
+} #SLICE_MORE

@@ -2445,6 +2445,7 @@ class Perl6::World is HLL::World {
             }
         };
 
+        my $exception;
         if $type_found {
             # If the highwater is beyond the current position, force the cursor to
             # that location.
@@ -2511,8 +2512,9 @@ class Perl6::World is HLL::World {
                 (nqp::isnull($file) ?? '<unknown file>' !! $file),
                 self.find_symbol(['Str'])
             );
-            return $ex.new(|%opts);
-        } else {
+            try { $exception := $ex.new(|%opts) }
+        }
+        if !$exception {
             my @err := ['Error while compiling, type ', join('::', $ex_type),  "\n"];
             for %opts -> $key {
                 @err.push: '  ';

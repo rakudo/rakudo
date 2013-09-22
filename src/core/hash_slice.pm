@@ -9,83 +9,23 @@ multi sub postcircumfix:<{ }>( \SELF, $key ) is rw {   # NOT SELECTED
 multi sub postcircumfix:<{ }>(\SELF, $key, Mu :$BIND! is parcel) is rw {
     SELF.bind_key($key, $BIND);
 }
-multi sub postcircumfix:<{ }>(
-  \SELF,
-  $key,
-  :$delete!,
-  :$exists = $default,
-  :$kv     = $default,
-  :$p      = $default,
-  :$k      = $default,
-  :$v      = $default
-) is rw {
-    SLICE_ONE( SELF, $key,
-      False, $delete, $exists, $kv, $p, $k, $v );
+multi sub postcircumfix:<{ }>( \SELF, $key, :$delete!, *%other ) is rw {
+    SLICE_ONE( SELF, $key, False, :$delete, |%other );
 }
-multi sub postcircumfix:<{ }>(
-  \SELF,
-  $key,
-  :$delete = $default,
-  :$exists!,
-  :$kv     = $default,
-  :$p      = $default,
-  :$k      = $default,
-  :$v      = $default
-) is rw {
-    SLICE_ONE( SELF, $key,
-      False, $delete, $exists, $kv, $p, $k, $v );
+multi sub postcircumfix:<{ }>( \SELF, $key, :$exists!, *%other ) is rw {
+    SLICE_ONE( SELF, $key, False, :$exists, |%other );
 }
-multi sub postcircumfix:<{ }>(
-  \SELF,
-  $key,
-  :$delete = $default,
-  :$exists = $default,
-  :$kv!,
-  :$p      = $default,
-  :$k      = $default,
-  :$v      = $default
-) is rw {
-    SLICE_ONE( SELF, $key,
-      False, $delete, $exists, $kv, $p, $k, $v );
+multi sub postcircumfix:<{ }>( \SELF, $key, :$kv!, *%other ) is rw {
+    SLICE_ONE( SELF, $key, False, :$kv, |%other );
 }
-multi sub postcircumfix:<{ }>(
-  \SELF,
-  $key,
-  :$delete = $default,
-  :$exists = $default,
-  :$kv     = $default,
-  :$p!,
-  :$k      = $default,
-  :$v      = $default
-) is rw {
-    SLICE_ONE( SELF, $key,
-      False, $delete, $exists, $kv, $p, $k, $v );
+multi sub postcircumfix:<{ }>( \SELF, $key, :$p!, *%other ) is rw {
+    SLICE_ONE( SELF, $key, False, :$p, |%other );
 }
-multi sub postcircumfix:<{ }>(
-  \SELF,
-  $key,
-  :$delete = $default,
-  :$exists = $default,
-  :$kv     = $default,
-  :$p      = $default,
-  :$k!,
-  :$v      = $default
-) is rw {
-    SLICE_ONE( SELF, $key,
-      False, $delete, $exists, $kv, $p, $k, $v );
+multi sub postcircumfix:<{ }>( \SELF, $key, :$k!, *%other ) is rw {
+    SLICE_ONE( SELF, $key, False, :$k, |%other );
 }
-multi sub postcircumfix:<{ }>(
-  \SELF,
-  $key,
-  :$delete = $default,
-  :$exists = $default,
-  :$kv     = $default,
-  :$p      = $default,
-  :$k      = $default,
-  :$v!
-) is rw {
-    SLICE_ONE( SELF, $key,
-      False, $delete, $exists, $kv, $p, $k, $v );
+multi sub postcircumfix:<{ }>( \SELF, $key, :$v!, *%other ) is rw {
+    SLICE_ONE( SELF, $key, False, :$v, |%other );
 }
 
 # %h<a b c>

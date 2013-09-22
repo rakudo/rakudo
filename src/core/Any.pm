@@ -363,108 +363,191 @@ sub RWPAIR(\k, \v) {   # internal fast pair creation
 }
 
 # internal 1 element hash/array access with adverbs
-sub SLICE_ONE ( \SELF, $one, $array, $delete, $exists, $kv, $p, $k, $v ) {
-    if $delete === True {                # :delete:*
-        if $exists & $kv & $p & $k & $v === $default { # :delete
-            SELF.delete($one);
+sub SLICE_ONE ( \SELF, $one, $array, *%adv ) {
+    fail "Cannot use negative index $one on {SELF.WHAT.perl}"
+      if $array && $one < 0;
+
+    my %a = %adv.clone;
+    my @nogo;
+    my $return = do {
+        if %a.delete('delete') {              # :delete:*
+            if !%a {                            # :delete
+                SELF.delete($one);
+            }
+            elsif %a.exists('exists') {         # :delete:exists(0|1):*
+                my $exists   := %a.delete('exists');
+                my $wasthere := SELF.exists($one);
+                SELF.delete($one);
+                if !%a {                          # :delete:exists(0|1)
+                    !( $wasthere ?^ $exists )
+                }
+                elsif %a.exists('kv') {           # :delete:exists(0|1):kv(0|1)
+                    my $kv := %a.delete('kv');
+                    if !%a {
+                        !$kv | $wasthere
+                          ?? ( $one, !( $wasthere ?^ $exists ) ) 
+                          !! ();
+                    }
+                    else {
+                        @nogo = <delete exists kv>;
+                    }
+                }
+                elsif %a.exists('p') {            # :delete:exists(0|1):p(0|1)
+                    my $p := %a.delete('p');
+                    if !%a {
+                        !$p | $wasthere
+                          ?? RWPAIR($one, !($wasthere ?^ $exists) )
+                          !! ();
+                    }
+                    else {
+                        @nogo = <delete exists p>;
+                    }
+                }
+                else {
+                    @nogo = <delete exists>;
+                }
+            }
+            elsif %a.exists('kv') {             # :delete:kv(0|1)
+                my $kv := %a.delete('kv');
+                if !%a {
+                    !$kv | SELF.exists($one)
+                      ?? ( $one, SELF.delete($one) )
+                      !! ();
+                }
+                else {
+                    @nogo = <delete kv>;
+                }
+            }
+            elsif %a.exists('p') {              # :delete:p(0|1)
+                my $p := %a.delete('p');
+                if !%a {
+                    !$p | SELF.exists($one)
+                      ?? RWPAIR($one, SELF.delete($one))
+                      !! ();
+                }
+                else {
+                    @nogo = <delete p>;
+                }
+            }
+            elsif %a.exists('k') {              # :delete:k(0|1)
+                my $k := %a.delete('k');
+                if !%a {
+                    !$k | SELF.exists($one)
+                      ?? do { SELF.delete($one); $one }
+                      !! ();
+                }
+                else {
+                    @nogo = <delete k>;
+                }
+            }
+            elsif %a.exists('v') {              # :delete:v(0|1)
+                my $v := %a.delete('v');
+                if !%a {
+                    !$v | SELF.exists($one)
+                      ?? SELF.delete($one)
+                      !! ();
+                }
+                else {
+                    @nogo = <delete v>;
+                }
+            }
         }
-        elsif $exists !=== $default {         # :delete:exists(0|1):*
-            my $wasthere = SELF.exists($one);
-            SELF.delete($one);
-            if $kv & $p & $k & $v === $default { # :delete:exists(0|1)
+        elsif %a.exists('exists') {           # :!delete?:exists(0|1):*
+            my $exists := %a.delete('exists');
+            my $wasthere= SELF.exists($one);
+            if !%a {                            # :!delete?:exists(0|1)
                 !( $wasthere ?^ $exists )
             }
-            elsif $p & $k & $v === $default {   # :delete:exists(0|1):kv(0|1)
-                !$kv | $wasthere
-                  ?? ( $one, !( $wasthere ?^ $exists ) ) 
-                  !! ();
+            elsif %a.exists('kv') {             # :!delete?:exists(0|1):kv(0|1)
+                my $kv := %a.delete('kv');
+                if !%a {
+                    !$kv | $wasthere
+                      ?? ( $one, !( $wasthere ?^ $exists ) )
+                      !! ();
+                }
+                else {
+                    @nogo = <exists kv>;
+                }
             }
-            elsif $k & $v === $default {        # :delete:exists(0|1):p(0|1)
-                !$p | $wasthere
-                  ?? RWPAIR($one, !($wasthere ?^ $exists) )
+            elsif %a.exists('p') {              # :!delete?:exists(0|1):p(0|1)
+                my $p := %a.delete('p');
+                if !%a {
+                    !$p | $wasthere
+                      ?? RWPAIR($one, !( $wasthere ?^ $exists ))
+                      !! ();
+                }
+                else {
+                    @nogo = <exists p>;
+                }
+            }
+            else {
+                @nogo = <exists>;
+            }
+        }
+        elsif %a.exists('kv') {               # :!delete?:kv(0|1):*
+            my $kv := %a.delete('kv');
+            if !%a {                            # :!delete?:kv(0|1)
+                !$kv | SELF.exists($one)
+                  ?? ($one, $array ?? SELF.at_pos($one) !! SELF.at_key($one))
                   !! ();
             }
             else {
-                fail "cannot combine these adverbs";
+                @nogo = <kv>;
             }
         }
-        elsif $p & $k & $v === $default {     # :delete:kv(0|1)
-            !$kv | SELF.exists($one)
-              ?? ( $one, SELF.delete($one) )
-              !! ();
+        elsif %a.exists('p') {                # :!delete?:p(0|1):*
+            my $p := %a.delete('p');
+            if !%a {                            # :!delete?:p(0|1)
+                !$p | SELF.exists($one)
+                  ?? RWPAIR($one,
+                       $array ?? SELF.at_pos($one) !! SELF.at_key($one))
+                  !! ();
+            }
+            else {
+                @nogo = <p>;
+            }
         }
-        elsif $k & $v === $default {          # :delete:p(0|1)
-            !$p | SELF.exists($one)
-              ?? RWPAIR($one, SELF.delete($one))
-              !! ();
+        elsif %a.exists('k') {                # :!delete?:k(0|1):*
+            my $k := %a.delete('k');
+            if !%a {                            # :!delete?:k(0|1)
+                !$k | SELF.exists($one)
+                  ?? $one
+                  !! ();
+            }
+            else {
+                @nogo = <k>;
+            }
         }
-        elsif $v === $default {               # :delete:k(0|1)
-            !$k | SELF.exists($one)
-              ?? do { SELF.delete($one); $one }
-              !! ();
+        elsif %a.exists('v') {                # :!delete?:v(0|1):*
+            my $v := %a.delete('v');            # :!delete?:v(0|1)
+            if !%a {
+                !$v | SELF.exists($one)
+                  ?? ($array ?? SELF.at_pos($one) !! SELF.at_key($one))
+                  !! ();
+            }
+            else {
+                @nogo = <v>;
+            }
         }
-        else {                                # :delete:v(0|1)
-            !$v | SELF.exists($one)
-              ?? SELF.delete($one)
-              !! ();
+    };
+
+    if @nogo || %a {
+        @nogo.unshift('delete')  # recover any :delete if necessary
+          if @nogo && @nogo[0] ne 'delete' && %adv.exists('delete');
+        @nogo.push( %a<delete exists kv p k v>:delete:k ); # all valid params
+
+        if %a.elems {
+            %a.elems > 1
+              ?? fail "{%a.elems} unexpected named parameters ({%a.keys.join(', ')}) passed to {SELF.WHAT.perl}"
+              !! fail "Unexpected named parameter '{%a.keys}' passed to {SELF.WHAT.perl}";
         }
-    }
-    elsif $exists !=== $default {             # :!delete?:exists(0|1):*
-        my $wasthere= SELF.exists($one);
-        if $kv & $p & $k & $v === $default {    # :!delete?:exists(0|1)
-            !( $wasthere ?^ $exists )
-        }
-        elsif $p & $k & $v === $default {       # :!delete?:exists(0|1):kv(0|1)
-            !$kv | $wasthere
-              ?? ( $one, !( $wasthere ?^ $exists ) )
-              !! ();
-        }
-        elsif $k & $v === $default {            # :!delete?:exists(0|1):p(0|1)
-            !$p | $wasthere
-              ?? RWPAIR($one, !( $wasthere ?^ $exists ))
-              !! ();
-        }
+
         else {
-            fail "cannot combine these adverbs";
+            fail "Unsupported combination of named parameters ({@nogo.join(', ')}) passed to {SELF.WHAT.perl}";
         }
     }
-    elsif $kv !=== $default {                 # :!delete?:kv(0|1):*
-        if $p & $k & $v === $default {          # :!delete?:kv(0|1)
-            !$kv | SELF.exists($one)
-              ?? ($one, $array ?? SELF.at_pos($one) !! SELF.at_key($one))
-              !! ();
-        }
-        else {
-            fail "cannot combine these adverbs";
-        }
-    }
-    elsif $p !=== $default {                  # :!delete?:p(0|1):*
-        if $k & $v === $default {               # :!delete?:p(0|1)
-            !$p | SELF.exists($one)
-              ?? RWPAIR($one, $array ?? SELF.at_pos($one) !! SELF.at_key($one))
-              !! ();
-        }
-        else {
-            fail "cannot combine these adverbs";
-        }
-    }
-    elsif $k !=== $default {                  # :!delete?:k(0|1):*
-        if $v === $default {                    # :!delete?:k(0|1)
-            !$k | SELF.exists($one)
-              ?? $one
-              !! ();
-        }
-        else {
-            fail "cannot combine these adverbs";
-        }
-    }
-    elsif $v !=== $default {                  # :!delete?:v(0|1)
-        !$v | SELF.exists($one)
-          ?? ($array ?? SELF.at_pos($one) !! SELF.at_key($one))
-          !! ();
-    }
-    else {                                    # :!delete?
-        $array ?? SELF.at_pos($one) !! SELF.at_key($one);
+    else {
+        $return;
     }
 } #SLICE_ONE
 

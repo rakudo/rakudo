@@ -23,89 +23,23 @@ multi sub postcircumfix:<[ ]>(\SELF, int $pos, Mu :$BIND! is parcel) is rw {
     fail "Cannot use negative index $pos on {SELF.WHAT.perl}" if $pos < 0;
     SELF.bind_pos($pos, $BIND);
 }
-multi sub postcircumfix:<[ ]>(
-  \SELF,
-  int $pos,
-  :$delete!,
-  :$exists = $default,
-  :$kv     = $default,
-  :$p      = $default,
-  :$k      = $default,
-  :$v      = $default
-) is rw {
-    fail "Cannot use negative index $pos on {SELF.WHAT.perl}" if $pos < 0;
-    SLICE_ONE( SELF, $pos,
-      True, $delete, $exists, $kv, $p, $k, $v );
+multi sub postcircumfix:<[ ]>( \SELF, int $pos, :$delete!, *%other ) is rw {
+    SLICE_ONE( SELF, $pos, True, :$delete, |%other );
 }
-multi sub postcircumfix:<[ ]>(
-  \SELF,
-  int $pos,
-  :$delete = $default,
-  :$exists!,
-  :$kv     = $default,
-  :$p      = $default,
-  :$k      = $default,
-  :$v      = $default
-) is rw {
-    fail "Cannot use negative index $pos on {SELF.WHAT.perl}" if $pos < 0;
-    SLICE_ONE( SELF, $pos,
-      True, $delete, $exists, $kv, $p, $k, $v );
+multi sub postcircumfix:<[ ]>( \SELF, int $pos, :$exists!, *%other ) is rw {
+    SLICE_ONE( SELF, $pos, True, :$exists, |%other );
 }
-multi sub postcircumfix:<[ ]>(
-  \SELF,
-  int $pos,
-  :$delete = $default,
-  :$exists = $default,
-  :$kv!,
-  :$p      = $default,
-  :$k      = $default,
-  :$v      = $default
-) is rw {
-    fail "Cannot use negative index $pos on {SELF.WHAT.perl}" if $pos < 0;
-    SLICE_ONE( SELF, $pos,
-      True, $delete, $exists, $kv, $p, $k, $v );
+multi sub postcircumfix:<[ ]>( \SELF, int $pos, :$kv!, *%other ) is rw {
+    SLICE_ONE( SELF, $pos, True, :$kv, |%other );
 }
-multi sub postcircumfix:<[ ]>(
-  \SELF,
-  int $pos,
-  :$delete = $default,
-  :$exists = $default,
-  :$kv     = $default,
-  :$p!,
-  :$k      = $default,
-  :$v      = $default
-) is rw {
-    fail "Cannot use negative index $pos on {SELF.WHAT.perl}" if $pos < 0;
-    SLICE_ONE( SELF, $pos,
-      True, $delete, $exists, $kv, $p, $k, $v );
+multi sub postcircumfix:<[ ]>( \SELF, int $pos, :$p!, *%other ) is rw {
+    SLICE_ONE( SELF, $pos, True, :$p, |%other );
 }
-multi sub postcircumfix:<[ ]>(
-  \SELF,
-  int $pos,
-  :$delete = $default,
-  :$exists = $default,
-  :$kv     = $default,
-  :$p      = $default,
-  :$k!,
-  :$v      = $default
-) is rw {
-    fail "Cannot use negative index $pos on {SELF.WHAT.perl}" if $pos < 0;
-    SLICE_ONE( SELF, $pos,
-      True, $delete, $exists, $kv, $p, $k, $v );
+multi sub postcircumfix:<[ ]>( \SELF, int $pos, :$k!, *%other ) is rw {
+    SLICE_ONE( SELF, $pos, True, :$k, |%other );
 }
-multi sub postcircumfix:<[ ]>(
-  \SELF,
-  int $pos,
-  :$delete = $default,
-  :$exists = $default,
-  :$kv     = $default,
-  :$p      = $default,
-  :$k      = $default,
-  :$v!
-) is rw {
-    fail "Cannot use negative index $pos on {SELF.WHAT.perl}" if $pos < 0;
-    SLICE_ONE( SELF, $pos,
-      True, $delete, $exists, $kv, $p, $k, $v );
+multi sub postcircumfix:<[ ]>( \SELF, int $pos, :$v!, *%other ) is rw {
+    SLICE_ONE( SELF, $pos, True, :$v, |%other );
 }
 
 # @a[$x]
@@ -117,89 +51,23 @@ multi sub postcircumfix:<[ ]>(\SELF, $pos, Mu :$BIND! is parcel) is rw {
     fail "Cannot use negative index $pos on {SELF.WHAT.perl}" if $pos < 0;
     SELF.bind_pos($pos, $BIND);
 }
-multi sub postcircumfix:<[ ]>(
-  \SELF,
-  $pos,
-  :$delete!,
-  :$exists = $default,
-  :$kv     = $default,
-  :$p      = $default,
-  :$k      = $default,
-  :$v      = $default
-) is rw {
-    fail "Cannot use negative index $pos on {SELF.WHAT.perl}" if $pos < 0;
-    SLICE_ONE( SELF, $pos,
-      True, $delete, $exists, $kv, $p, $k, $v );
+multi sub postcircumfix:<[ ]>( \SELF, $pos, :$delete!, *%other ) is rw {
+    SLICE_ONE( SELF, $pos, True, :$delete, |%other );
 }
-multi sub postcircumfix:<[ ]>(
-  \SELF,
-  $pos,
-  :$delete = $default,
-  :$exists!,
-  :$kv     = $default,
-  :$p      = $default,
-  :$k      = $default,
-  :$v      = $default
-) is rw {
-    fail "Cannot use negative index $pos on {SELF.WHAT.perl}" if $pos < 0;
-    SLICE_ONE( SELF, $pos,
-      True, $delete, $exists, $kv, $p, $k, $v );
+multi sub postcircumfix:<[ ]>( \SELF, $pos, :$exists!, *%other ) is rw {
+    SLICE_ONE( SELF, $pos, True, :$exists, |%other );
 }
-multi sub postcircumfix:<[ ]>(
-  \SELF,
-  $pos,
-  :$delete = $default,
-  :$exists = $default,
-  :$kv!,
-  :$p      = $default,
-  :$k      = $default,
-  :$v      = $default
-) is rw {
-    fail "Cannot use negative index $pos on {SELF.WHAT.perl}" if $pos < 0;
-    SLICE_ONE( SELF, $pos,
-      True, $delete, $exists, $kv, $p, $k, $v );
+multi sub postcircumfix:<[ ]>( \SELF, $pos, :$kv!, *%other ) is rw {
+    SLICE_ONE( SELF, $pos, True, :$kv, |%other );
 }
-multi sub postcircumfix:<[ ]>(
-  \SELF,
-  $pos,
-  :$delete = $default,
-  :$exists = $default,
-  :$kv     = $default,
-  :$p!,
-  :$k      = $default,
-  :$v      = $default
-) is rw {
-    fail "Cannot use negative index $pos on {SELF.WHAT.perl}" if $pos < 0;
-    SLICE_ONE( SELF, $pos,
-      True, $delete, $exists, $kv, $p, $k, $v );
+multi sub postcircumfix:<[ ]>( \SELF, $pos, :$p!, *%other ) is rw {
+    SLICE_ONE( SELF, $pos, True, :$p, |%other );
 }
-multi sub postcircumfix:<[ ]>(
-  \SELF,
-  $pos,
-  :$delete = $default,
-  :$exists = $default,
-  :$kv     = $default,
-  :$p      = $default,
-  :$k!,
-  :$v      = $default
-) is rw {
-    fail "Cannot use negative index $pos on {SELF.WHAT.perl}" if $pos < 0;
-    SLICE_ONE( SELF, $pos,
-      True, $delete, $exists, $kv, $p, $k, $v );
+multi sub postcircumfix:<[ ]>( \SELF, $pos, :$k!, *%other ) is rw {
+    SLICE_ONE( SELF, $pos, True, :$k, |%other );
 }
-multi sub postcircumfix:<[ ]>(
-  \SELF,
-  $pos,
-  :$delete = $default,
-  :$exists = $default,
-  :$kv     = $default,
-  :$p      = $default,
-  :$k      = $default,
-  :$v!
-) is rw {
-    fail "Cannot use negative index $pos on {SELF.WHAT.perl}" if $pos < 0;
-    SLICE_ONE( SELF, $pos,
-      True, $delete, $exists, $kv, $p, $k, $v );
+multi sub postcircumfix:<[ ]>( \SELF, $pos, :$v!, *%other ) is rw {
+    SLICE_ONE( SELF, $pos, True, :$v, |%other );
 }
 
 # @a[@i]

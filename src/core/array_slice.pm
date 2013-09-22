@@ -1,5 +1,17 @@
 # all sub postcircumfix [] candidates here please
 
+sub POSITIONS (\SELF, \pos) {
+    my $positions = pos.flat;
+    $positions.gimme(*);
+    return $positions.eager.Parcel unless $positions.infinite;
+
+    my $list = SELF.list;
+    $positions.map( {
+        last if $_ >= $list.gimme( $_ + 1 );
+        $_;
+    } ).eager.Parcel;
+}
+
 proto sub postcircumfix:<[ ]>(|) { * }
 
 # @a[1]
@@ -197,7 +209,7 @@ multi sub postcircumfix:<[ ]>( \SELF, Positional \pos ) is rw {  # NOT SELECTED
         SELF.at_pos(pos);
     }
     else {
-        pos.map({ SELF[$_] }).eager.Parcel;
+        POSITIONS(SELF,pos).map({ SELF[$_] }).eager.Parcel;
     }
 }
 multi sub postcircumfix:<[ ]>(\SELF, Positional \pos, :$BIND!) is rw {
@@ -213,7 +225,7 @@ multi sub postcircumfix:<[ ]>(
   :$k      = $default,
   :$v      = $default
 ) is rw {
-   SLICE_MORE( SELF, pos,
+   SLICE_MORE( SELF, POSITIONS(SELF,pos),
      True, $delete, $exists, $kv, $p, $k, $v );
 }
 multi sub postcircumfix:<[ ]>(
@@ -226,7 +238,7 @@ multi sub postcircumfix:<[ ]>(
   :$k      = $default,
   :$v      = $default
 ) is rw {
-   SLICE_MORE( SELF, pos,
+   SLICE_MORE( SELF, POSITIONS(SELF,pos),
      True, $delete, $exists, $kv, $p, $k, $v );
 }
 multi sub postcircumfix:<[ ]>(
@@ -239,7 +251,7 @@ multi sub postcircumfix:<[ ]>(
   :$k      = $default,
   :$v      = $default
 ) is rw {
-   SLICE_MORE( SELF, pos,
+   SLICE_MORE( SELF, POSITIONS(SELF,pos),
      True, $delete, $exists, $kv, $p, $k, $v );
 }
 multi sub postcircumfix:<[ ]>(
@@ -252,7 +264,7 @@ multi sub postcircumfix:<[ ]>(
   :$k      = $default,
   :$v      = $default
 ) is rw {
-   SLICE_MORE( SELF, pos,
+   SLICE_MORE( SELF, POSITIONS(SELF,pos),
      True, $delete, $exists, $kv, $p, $k, $v );
 }
 multi sub postcircumfix:<[ ]>(
@@ -265,7 +277,7 @@ multi sub postcircumfix:<[ ]>(
   :$k!,
   :$v      = $default
 ) is rw {
-   SLICE_MORE( SELF, pos,
+   SLICE_MORE( SELF, POSITIONS(SELF,pos),
      True, $delete, $exists, $kv, $p, $k, $v );
 }
 multi sub postcircumfix:<[ ]>(
@@ -278,7 +290,7 @@ multi sub postcircumfix:<[ ]>(
   :$k      = $default,
   :$v!
 ) is rw {
-   SLICE_MORE( SELF, pos,
+   SLICE_MORE( SELF, POSITIONS(SELF,pos),
      True, $delete, $exists, $kv, $p, $k, $v );
 }
 

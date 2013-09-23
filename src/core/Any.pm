@@ -549,6 +549,9 @@ sub SLICE_ONE ( \SELF, $one, $array, *%adv ) {
                 @nogo = <v>;
             }
         }
+        elsif !%a {                           # :!delete
+            $array ?? SELF.at_pos($one) !! SELF.at_key($one);
+        }
     };
 
     @nogo || %a
@@ -769,6 +772,9 @@ sub SLICE_MORE ( \SELF, $more, $array, *%adv ) {
             else {
                 @nogo = <v>;
             }
+        }
+        elsif !%a {                        # :!delete
+            $more.list.map( { $at(SELF,$_) } ).eager.Parcel;
         }
     }
 

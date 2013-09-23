@@ -3,7 +3,7 @@
 proto sub postcircumfix:<{ }>(|) { * }
 
 # %h<key>
-multi sub postcircumfix:<{ }>( \SELF, $key ) is rw {   # NOT SELECTED
+multi sub postcircumfix:<{ }>( \SELF, $key ) is rw {
     SELF.at_key($key);
 }
 multi sub postcircumfix:<{ }>(\SELF, $key, Mu :$BIND! is parcel) is rw {
@@ -29,7 +29,7 @@ multi sub postcircumfix:<{ }>( \SELF, $key, :$v!, *%other ) is rw {
 }
 
 # %h<a b c>
-multi sub postcircumfix:<{ }>( \SELF, Positional \key ) is rw {  # NOT SELECTED
+multi sub postcircumfix:<{ }>( \SELF, Positional \key ) is rw {
     nqp::iscont(key) 
       ?? SELF.at_key(key) 
       !! key.map({ SELF{$_} }).eager.Parcel;
@@ -57,7 +57,7 @@ multi sub postcircumfix:<{ }>(\SELF, Positional \key, :$v!, *%other) is rw {
 }
 
 # %h{*}
-multi sub postcircumfix:<{ }>( \SELF, Whatever ) is rw {  # NOT SELECTED
+multi sub postcircumfix:<{ }>( \SELF, Whatever ) is rw {
     SELF{SELF.keys};
 }
 multi sub postcircumfix:<{ }>(\SELF, Whatever, :$BIND!) is rw {
@@ -83,7 +83,7 @@ multi sub postcircumfix:<{ }>(\SELF, Whatever, :$p!, *%other) is rw {
 }
 
 # %h{}
-multi sub postcircumfix:<{ }>( \SELF ) is rw {  # NOT SELECTED
+multi sub postcircumfix:<{ }>( \SELF ) is rw {
     SELF;
 }
 multi sub postcircumfix:<{ }>(\SELF, :$BIND!) is rw {

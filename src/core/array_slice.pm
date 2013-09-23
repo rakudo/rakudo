@@ -15,7 +15,7 @@ sub POSITIONS (\SELF, \pos) { # handle possible infinite slices
 proto sub postcircumfix:<[ ]>(|) { * }
 
 # @a[1]
-multi sub postcircumfix:<[ ]>( \SELF, int $pos ) is rw {  # NOT SELECTED
+multi sub postcircumfix:<[ ]>( \SELF, int $pos ) is rw {
     fail "Cannot use negative index $pos on {SELF.WHAT.perl}" if $pos < 0;
     SELF.at_pos($pos);
 }
@@ -43,7 +43,7 @@ multi sub postcircumfix:<[ ]>( \SELF, int $pos, :$v!, *%other ) is rw {
 }
 
 # @a[$x]
-multi sub postcircumfix:<[ ]>( \SELF, $pos ) is rw {    # NOT SELECTED
+multi sub postcircumfix:<[ ]>( \SELF, $pos ) is rw {
     fail "Cannot use negative index $pos on {SELF.WHAT.perl}" if $pos < 0;
     SELF.at_pos($pos);
 }
@@ -71,7 +71,7 @@ multi sub postcircumfix:<[ ]>( \SELF, $pos, :$v!, *%other ) is rw {
 }
 
 # @a[@i]
-multi sub postcircumfix:<[ ]>( \SELF, Positional \pos ) is rw {  # NOT SELECTED
+multi sub postcircumfix:<[ ]>( \SELF, Positional \pos ) is rw {
     if nqp::iscont(pos)  {
         fail "Cannot use negative index {pos} on {SELF.WHAT.perl}" if pos < 0;
         SELF.at_pos(pos);
@@ -103,7 +103,7 @@ multi sub postcircumfix:<[ ]>(\SELF, Positional \pos, :$v!, *%other) is rw {
 }
 
 # @a[->{}]
-multi sub postcircumfix:<[ ]>( \SELF, Callable $block ) is rw { # NOT SELECTED
+multi sub postcircumfix:<[ ]>( \SELF, Callable $block ) is rw {
     SELF[$block(|(SELF.elems xx $block.count))];
 }
 multi sub postcircumfix:<[ ]>(\SELF, Callable $block, :$BIND!) is rw {
@@ -135,7 +135,7 @@ multi sub postcircumfix:<[ ]>(\SELF, Callable $block, :$v!, *%other) is rw {
 }
 
 # @a[*]
-multi sub postcircumfix:<[ ]>( \SELF, Whatever ) is rw {  # NOT SELECTED
+multi sub postcircumfix:<[ ]>( \SELF, Whatever ) is rw {
     SELF[SELF.keys];
 }
 multi sub postcircumfix:<[ ]>(\SELF, Whatever, :$BIND!) is rw {
@@ -161,7 +161,7 @@ multi sub postcircumfix:<[ ]>(\SELF, Whatever, :$v!, *%other) is rw {
 }
 
 # @a[]
-multi sub postcircumfix:<[ ]>( \SELF ) is rw {  # NOT SELECTED
+multi sub postcircumfix:<[ ]>( \SELF ) is rw {
     SELF.list;
 }
 multi sub postcircumfix:<[ ]>(\SELF, :$BIND!) is rw {

@@ -362,6 +362,12 @@ sub RWPAIR(\k, \v) {   # internal fast pair creation
     p
 }
 
+sub OBJECT_HUH (\SELF) {
+    my $huh = SELF.WHAT.perl;
+    try { $huh ~= " {SELF.VAR.name}" };
+    $huh;
+}
+
 sub SLICE_HUH ( \SELF, @nogo, %a, %adv ) {
     @nogo.unshift('delete')  # recover any :delete if necessary
       if @nogo && @nogo[0] ne 'delete' && %adv.exists('delete');
@@ -369,12 +375,12 @@ sub SLICE_HUH ( \SELF, @nogo, %a, %adv ) {
 
     if %a.elems {
         %a.elems > 1
-              ?? fail "{%a.elems} unexpected named parameters ({%a.keys.join(', ')}) passed to {SELF.WHAT.perl}"
-          !! fail "Unexpected named parameter '{%a.keys}' passed to {SELF.WHAT.perl}";
+              ?? fail "{%a.elems} unexpected named parameters ({%a.keys.join(', ')}) passed to {OBJECT_HUH(SELF)}"
+          !! fail "Unexpected named parameter '{%a.keys}' passed to {OBJECT_HUH(SELF)}";
     }
 
     else {
-        fail "Unsupported combination of named parameters ({@nogo.join(', ')}) passed to {SELF.WHAT.perl}";
+        fail "Unsupported combination of named parameters ({@nogo.join(', ')}) passed to {OBJECT_HUH(SELF)}";
     }
 } #SLICE_HUH
 

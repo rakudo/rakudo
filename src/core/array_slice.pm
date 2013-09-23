@@ -142,22 +142,22 @@ multi sub postcircumfix:<[ ]>(\SELF, Whatever, :$BIND!) is rw {
     X::Bind::Slice.new(type => SELF.WHAT).throw;
 }
 multi sub postcircumfix:<[ ]>(\SELF, Whatever, :$delete!, *%other) is rw {
-   SLICE_MORE( SELF, SELF.keys, True, !$delete, |%other );
+   SLICE_MORE( SELF, SELF.keys, True, :$delete, |%other );
 }
 multi sub postcircumfix:<[ ]>(\SELF, Whatever, :$exists!, *%other) is rw {
-   SLICE_MORE( SELF, SELF.keys, True, !$exists, |%other );
+   SLICE_MORE( SELF, SELF.keys, True, :$exists, |%other );
 }
 multi sub postcircumfix:<[ ]>(\SELF, Whatever, :$kv!, *%other) is rw {
-   SLICE_MORE( SELF, SELF.keys, True, !$kv, |%other );
+   SLICE_MORE( SELF, SELF.keys, True, :$kv, |%other );
 }
 multi sub postcircumfix:<[ ]>(\SELF, Whatever, :$p!, *%other) is rw {
-   SLICE_MORE( SELF, SELF.keys, True, !$p, |%other );
+   SLICE_MORE( SELF, SELF.keys, True, :$p, |%other );
 }
 multi sub postcircumfix:<[ ]>(\SELF, Whatever, :$k!, *%other) is rw {
-   SLICE_MORE( SELF, SELF.keys, True, !$k, |%other );
+   SLICE_MORE( SELF, SELF.keys, True, :$k, |%other );
 }
 multi sub postcircumfix:<[ ]>(\SELF, Whatever, :$v!, *%other) is rw {
-   SLICE_MORE( SELF, SELF.keys, True, !$v, |%other );
+   SLICE_MORE( SELF, SELF.keys, True, :$v, |%other );
 }
 
 # @a[]
@@ -168,20 +168,20 @@ multi sub postcircumfix:<[ ]>(\SELF, :$BIND!) is rw {
     X::Bind::ZenSlice.new(type => SELF.WHAT).throw;
 }
 multi sub postcircumfix:<[ ]>(\SELF, :$delete!, *%other) is rw {
-   SLICE_MORE( SELF, SELF.keys, True, !$delete, |%other );
+   SLICE_MORE( SELF, SELF.keys, True, :$delete, |%other );
 }
 multi sub postcircumfix:<[ ]>(\SELF, :$exists!, *%other) is rw {
-   SLICE_MORE( SELF, SELF.keys, True, !$exists, |%other );
+   SLICE_MORE( SELF, SELF.keys, True, :$exists, |%other );
 }
 multi sub postcircumfix:<[ ]>(\SELF, :$kv!, *%other) is rw {
-   SLICE_MORE( SELF, SELF.keys, True, !$kv, |%other );
+   SLICE_MORE( SELF, SELF.keys, True, :$kv, |%other );
 }
 multi sub postcircumfix:<[ ]>(\SELF, :$p!, *%other) is rw {
-   SLICE_MORE( SELF, SELF.keys, True, !$p, |%other );
+   SLICE_MORE( SELF, SELF.keys, True, :$p, |%other );
 }
 multi sub postcircumfix:<[ ]>(\SELF, :$k!, *%other) is rw {
-   SLICE_MORE( SELF, SELF.keys, True, !$k, |%other );
+   SLICE_MORE( SELF, SELF.keys, True, :$k, |%other );
 }
 multi sub postcircumfix:<[ ]>(\SELF, :$v!, *%other) is rw {
-   SLICE_MORE( SELF, SELF.keys, True, !$v, |%other );
+   SLICE_MORE( SELF, SELF.keys, True, :$v, |%other );
 }

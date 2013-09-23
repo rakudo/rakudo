@@ -113,7 +113,8 @@ CORE_SOURCES = \
   src/core/Mu.pm \
   src/core/Stringy.pm \
   src/core/Any.pm \
-  src/core/Any2.pm \
+  src/core/array_slice.pm \
+  src/core/hash_slice.pm \
   src/core/Scalar.pm \
   src/core/Code.pm \
   src/core/WhateverCode.pm \

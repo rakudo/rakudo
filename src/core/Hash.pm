@@ -105,12 +105,6 @@ my class Hash { # declared in BOOTSTRAP
         );
         $val;
     }
-    multi method delete(@keys) {
-        @keys.map({ self.delete($^key) })
-    }
-    multi method delete(*@keys) {
-        @keys.map({ self.delete($^key) })
-    }
 
     method push(*@values) {
         my $previous;

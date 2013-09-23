@@ -368,7 +368,7 @@ sub OBJECT_HUH (\SELF) {
     $huh;
 }
 
-sub SLICE_HUH ( \SELF, @nogo, %a, %adv ) {
+sub SLICE_HUH ( \SELF, @nogo, %a, %adv ) is hidden_from_backtrace {
     @nogo.unshift('delete')  # recover any :delete if necessary
       if @nogo && @nogo[0] ne 'delete' && %adv.exists('delete');
     @nogo.push( %a<delete exists kv p k v>:delete:k ); # all valid params
@@ -385,7 +385,7 @@ sub SLICE_HUH ( \SELF, @nogo, %a, %adv ) {
 } #SLICE_HUH
 
 # internal 1 element hash/array access with adverbs
-sub SLICE_ONE ( \SELF, $one, $array, *%adv ) {
+sub SLICE_ONE ( \SELF, $one, $array, *%adv ) is hidden_from_backtrace {
     fail "Cannot use negative index $one on {SELF.WHAT.perl}"
       if $array && $one < 0;
 
@@ -566,7 +566,7 @@ sub SLICE_ONE ( \SELF, $one, $array, *%adv ) {
 } #SLICE_ONE
 
 # internal >1 element hash/array access with adverbs
-sub SLICE_MORE ( \SELF, $more, $array, *%adv ) {
+sub SLICE_MORE ( \SELF, $more, $array, *%adv ) is hidden_from_backtrace {
     my %a = %adv.clone;
     my @nogo;
 

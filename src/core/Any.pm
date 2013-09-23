@@ -385,6 +385,7 @@ sub SLICE_ONE ( \SELF, $one, $array, *%adv ) {
 
     my %a = %adv.clone;
     my @nogo;
+
     my $return = do {
         if %a.delete('delete') {              # :delete:*
             if !%a {                            # :delete
@@ -751,7 +752,7 @@ sub SLICE_MORE ( \SELF, $more, $array, *%adv ) {
                   !! $more;
             }
             else {
-                @nogo = <p>;
+                @nogo = <k>;
             }
         }
         elsif %a.exists('v') {             # :!delete?:v(0|1):*

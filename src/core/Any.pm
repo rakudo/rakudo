@@ -568,13 +568,13 @@ sub SLICE_MORE ( \SELF, $more, $array, *%adv ) {
         if %a.delete('delete') {           # :delete:*
             my $de = SELF.can( $array ?? 'delete' !! 'delete' )[0];
             if !%a {                         # :delete
-                $more.map( { $de(SELF,$_) } ).eager.Parcel;
+                $more.list.map( { $de(SELF,$_) } ).eager.Parcel;
             }
             elsif %a.exists('exists') {      # :delete:exists(0|1):*
                 my $exists := %a.delete('exists');
                 my $wasthere; # no need to initialize every iteration of map
                 if !%a {                       # :delete:exists(0|1)
-                    $more.map( {
+                    $more.list.map( {
                         $de(SELF,$_) if $wasthere = $ex(SELF,$_);
                         !( $wasthere ?^ $exists );
                     } ).eager.Parcel
@@ -582,7 +582,7 @@ sub SLICE_MORE ( \SELF, $more, $array, *%adv ) {
                 elsif %a.exists('kv') {        # :delete:exists(0|1):kv(0|1):*
                     my $kv := %a.delete('kv');
                     if !%a {                     # :delete:exists(0|1):kv(0|1)
-                        $more.map( {
+                        $more.list.map( {
                             $de(SELF,$_) if $wasthere = $ex(SELF,$_);
                             !$kv | $wasthere
                               ?? ($_, !( $wasthere ?^ $exists ))
@@ -596,7 +596,7 @@ sub SLICE_MORE ( \SELF, $more, $array, *%adv ) {
                 elsif %a.exists('p') {         # :delete:exists(0|1):p(0|1):*
                     my $p := %a.delete('p');
                     if !%a {                     # :delete:exists(0|1):p(0|1)
-                        $more.map( {
+                        $more.list.map( {
                             $de(SELF,$_) if $wasthere = $ex(SELF,$_);
                             !$p | $wasthere
                               ?? RWPAIR($_,!($wasthere ?^ $exists))
@@ -615,10 +615,10 @@ sub SLICE_MORE ( \SELF, $more, $array, *%adv ) {
                 my $kv := %a.delete('kv');
                 if !%a {                       # :delete:kv(0|1)
                     $kv
-                      ?? $more.map( {
+                      ?? $more.list.map( {
                              $ex(SELF,$_) ?? ( $_, $de(SELF,$_) ) !! ()
                          } ).eager.Parcel
-                      !! $more.map( {
+                      !! $more.list.map( {
                              ( $_, $de(SELF,$_) )
                          } ).eager.Parcel;
                 }
@@ -630,10 +630,10 @@ sub SLICE_MORE ( \SELF, $more, $array, *%adv ) {
                 my $p := %a.delete('p');
                 if !%a {                       # :delete:p(0|1)
                     $p
-                      ?? $more.map( {
+                      ?? $more.list.map( {
                              $ex(SELF,$_) ?? RWPAIR($_, $de(SELF,$_)) !! ()
                          } ).eager.Parcel
-                      !! $more.map( {
+                      !! $more.list.map( {
                              RWPAIR($_, $de(SELF,$_))
                          } ).eager.Parcel;
                 }
@@ -645,10 +645,10 @@ sub SLICE_MORE ( \SELF, $more, $array, *%adv ) {
                 my $k := %a.delete('k');
                 if !%a {                       # :delete:k(0|1)
                     $k
-                      ?? $more.map( {
+                      ?? $more.list.map( {
                              $ex(SELF,$_) ?? ( $de(SELF,$_); $_ ) !! ()
                          } ).eager.Parcel
-                      !! $more.map( {
+                      !! $more.list.map( {
                              $de(SELF,$_); $_
                          } ).eager.Parcel;
                 }
@@ -660,10 +660,10 @@ sub SLICE_MORE ( \SELF, $more, $array, *%adv ) {
                 my $v := %a.delete('v');
                 if !%a {                       # :delete:v(0|1)
                     $v
-                      ?? $more.map( {
+                      ?? $more.list.map( {
                              $ex(SELF,$_) ?? $de(SELF,$_) !! ()
                      } ).eager.Parcel
-                      !! $more.map( {
+                      !! $more.list.map( {
                              $de(SELF,$_)
                      } ).eager.Parcel;
                 }
@@ -678,16 +678,16 @@ sub SLICE_MORE ( \SELF, $more, $array, *%adv ) {
         elsif %a.exists('exists') {        # :!delete?:exists(0|1):*
             my $exists := %a.delete('exists');
             if !%a {                         # :!delete?:exists(0|1)
-                $more.map({ !( $ex(SELF,$_) ?^ $exists ) }).eager.Parcel;
+                $more.list.map({ !( $ex(SELF,$_) ?^ $exists ) }).eager.Parcel;
             }
             elsif %a.exists('kv') {          # :!delete?:exists(0|1):kv(0|1):*
                 my $kv := %a.delete('kv');
                 if !%a {                       # :!delete?:exists(0|1):kv(0|1)
                     $kv
-                      ?? $more.map( {
+                      ?? $more.list.map( {
                              $ex(SELF,$_) ?? ( $_, $exists ) !! ()
                          } ).eager.Parcel
-                      !! $more.map( {
+                      !! $more.list.map( {
                              ( $_, !( $ex(SELF,$_) ?^ $exists ) )
                          } ).eager.Parcel;
                 }
@@ -699,10 +699,10 @@ sub SLICE_MORE ( \SELF, $more, $array, *%adv ) {
                 my $p := %a.delete('p');
                 if !%a {                       # :!delete?:exists(0|1):p(0|1)
                     $p
-                      ?? $more.map( {
+                      ?? $more.list.map( {
                              $ex(SELF,$_) ?? RWPAIR( $_, $exists ) !! ()
                          } ).eager.Parcel
-                      !! $more.map( {
+                      !! $more.list.map( {
                              RWPAIR( $_, !( $ex(SELF,$_) ?^ $exists ) )
                          } ).eager.Parcel;
                 }
@@ -718,10 +718,10 @@ sub SLICE_MORE ( \SELF, $more, $array, *%adv ) {
             my $kv := %a.delete('kv');
             if !%a {                         # :!delete?:kv(0|1)
                 $kv
-                  ?? $more.map( {
+                  ?? $more.list.map( {
                          $ex(SELF,$_) ?? ($_, $at(SELF,$_)) !! ()
                      } ).eager.Parcel
-                  !! $more.map( {
+                  !! $more.list.map( {
                          ($_, $at(SELF,$_))
                      } ).eager.Parcel;
             }
@@ -733,10 +733,10 @@ sub SLICE_MORE ( \SELF, $more, $array, *%adv ) {
             my $p := %a.delete('p');
             if !%a {                         # :!delete?:p(0|1)
                 $p
-                  ?? $more.map( {
+                  ?? $more.list.map( {
                          $ex(SELF,$_) ?? RWPAIR($_, $at(SELF,$_)) !! ()
                      } ).eager.Parcel
-                  !! $more.map( {
+                  !! $more.list.map( {
                          RWPAIR( $_, $at(SELF,$_) )
                      } ).eager.Parcel;
             }
@@ -748,8 +748,8 @@ sub SLICE_MORE ( \SELF, $more, $array, *%adv ) {
             my $k := %a.delete('k');
             if !%a {                         # :!delete?:k(0|1)
                 $k
-                  ?? $more.map( { $_ if $ex(SELF,$_) } ).eager.Parcel
-                  !! $more;
+                  ?? $more.list.map( { $_ if $ex(SELF,$_) } ).eager.Parcel
+                  !! $more.list.eager.Parcel;
             }
             else {
                 @nogo = <k>;
@@ -758,7 +758,7 @@ sub SLICE_MORE ( \SELF, $more, $array, *%adv ) {
         elsif %a.exists('v') {             # :!delete?:v(0|1):*
             my $v := %a.delete('v');
             if !%a {                         # :!delete?:v(0|1)
-                $more.map( {
+                $more.list.map( {
                     $ex(SELF,$_) ?? $at(SELF,$_) !! ()
                 } ).eager.Parcel;
             }

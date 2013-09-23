@@ -748,7 +748,7 @@ sub SLICE_MORE ( \SELF, $more, $array, *%adv ) {
             my $k := %a.delete('k');
             if !%a {                         # :!delete?:k(0|1)
                 $k
-                  ?? $more.list.map( { $_ if $ex(SELF,$_) } ).eager.Parcel
+                  ?? $more.list.map( { $ex(SELF,$_) ?? $_ !! () } ).eager.Parcel
                   !! $more.list.eager.Parcel;
             }
             else {
@@ -758,9 +758,13 @@ sub SLICE_MORE ( \SELF, $more, $array, *%adv ) {
         elsif %a.exists('v') {             # :!delete?:v(0|1):*
             my $v := %a.delete('v');
             if !%a {                         # :!delete?:v(0|1)
-                $more.list.map( {
-                    $ex(SELF,$_) ?? $at(SELF,$_) !! ()
-                } ).eager.Parcel;
+                $v
+                  ??  $more.list.map( {
+                          $ex(SELF,$_) ?? $at(SELF,$_) !! ()
+                      } ).eager.Parcel
+                  !!  $more.list.map( {
+                          $at(SELF,$_)
+                      } ).eager.Parcel;
             }
             else {
                 @nogo = <v>;

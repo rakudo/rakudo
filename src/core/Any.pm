@@ -362,6 +362,22 @@ sub RWPAIR(\k, \v) {   # internal fast pair creation
     p
 }
 
+sub SLICE_HUH ( \SELF, @nogo, %a, %adv ) {
+    @nogo.unshift('delete')  # recover any :delete if necessary
+      if @nogo && @nogo[0] ne 'delete' && %adv.exists('delete');
+    @nogo.push( %a<delete exists kv p k v>:delete:k ); # all valid params
+
+    if %a.elems {
+        %a.elems > 1
+              ?? fail "{%a.elems} unexpected named parameters ({%a.keys.join(', ')}) passed to {SELF.WHAT.perl}"
+          !! fail "Unexpected named parameter '{%a.keys}' passed to {SELF.WHAT.perl}";
+    }
+
+    else {
+        fail "Unsupported combination of named parameters ({@nogo.join(', ')}) passed to {SELF.WHAT.perl}";
+    }
+} #SLICE_HUH
+
 # internal 1 element hash/array access with adverbs
 sub SLICE_ONE ( \SELF, $one, $array, *%adv ) {
     fail "Cannot use negative index $one on {SELF.WHAT.perl}"
@@ -451,6 +467,9 @@ sub SLICE_ONE ( \SELF, $one, $array, *%adv ) {
                     @nogo = <delete v>;
                 }
             }
+            else {
+                @nogo = <delete>;
+            }
         }
         elsif %a.exists('exists') {           # :!delete?:exists(0|1):*
             my $exists := %a.delete('exists');
@@ -531,186 +550,224 @@ sub SLICE_ONE ( \SELF, $one, $array, *%adv ) {
         }
     };
 
-    if @nogo || %a {
-        @nogo.unshift('delete')  # recover any :delete if necessary
-          if @nogo && @nogo[0] ne 'delete' && %adv.exists('delete');
-        @nogo.push( %a<delete exists kv p k v>:delete:k ); # all valid params
-
-        if %a.elems {
-            %a.elems > 1
-              ?? fail "{%a.elems} unexpected named parameters ({%a.keys.join(', ')}) passed to {SELF.WHAT.perl}"
-              !! fail "Unexpected named parameter '{%a.keys}' passed to {SELF.WHAT.perl}";
-        }
-
-        else {
-            fail "Unsupported combination of named parameters ({@nogo.join(', ')}) passed to {SELF.WHAT.perl}";
-        }
-    }
-    else {
-        $return;
-    }
+    @nogo || %a
+      ?? SLICE_HUH( SELF, @nogo, %a, %adv )
+      !! $return;
 } #SLICE_ONE
 
 # internal >1 element hash/array access with adverbs
-sub SLICE_MORE ( \SELF, $more, $array, $delete, $exists, $kv, $p, $k, $v ) {
-    if $delete === True {                # :delete:*
-        if $exists !=== $default {         # :delete:exists(0|1):*
-            my $wasthere; # no need to initialize every iteration of map
-            if $kv & $p & $k & $v === $default { # :delete:exists(0|1)
-                $more.map( {
-                    SELF.delete($_) if $wasthere = SELF.exists($_);
-                    !( $wasthere ?^ $exists );
-                } ).eager.Parcel
+sub SLICE_MORE ( \SELF, $more, $array, *%adv ) {
+    my %a = %adv.clone;
+    my @nogo;
+
+    my $at = SELF.can( $array ?? 'at_pos' !! 'at_key' )[0];
+    my $ex = SELF.can( $array ?? 'exists' !! 'exists' )[0];
+
+    my $return = do {
+        if %a.delete('delete') {           # :delete:*
+            my $de = SELF.can( $array ?? 'delete' !! 'delete' )[0];
+            if !%a {                         # :delete
+                $more.map( { $de(SELF,$_) } ).eager.Parcel;
             }
-            elsif $p & $k & $v === $default { # :delete:exists(0|1):kv(0|1)
-                $more.map( {
-                    SELF.delete($_) if $wasthere = SELF.exists($_);
-                    !$kv | $wasthere ?? ($_, !( $wasthere ?^ $exists )) !! ()
-                } ).eager.Parcel
+            elsif %a.exists('exists') {      # :delete:exists(0|1):*
+                my $exists := %a.delete('exists');
+                my $wasthere; # no need to initialize every iteration of map
+                if !%a {                       # :delete:exists(0|1)
+                    $more.map( {
+                        $de(SELF,$_) if $wasthere = $ex(SELF,$_);
+                        !( $wasthere ?^ $exists );
+                    } ).eager.Parcel
+                }
+                elsif %a.exists('kv') {        # :delete:exists(0|1):kv(0|1):*
+                    my $kv := %a.delete('kv');
+                    if !%a {                     # :delete:exists(0|1):kv(0|1)
+                        $more.map( {
+                            $de(SELF,$_) if $wasthere = $ex(SELF,$_);
+                            !$kv | $wasthere
+                              ?? ($_, !( $wasthere ?^ $exists ))
+                              !! ()
+                        } ).eager.Parcel
+                    }
+                    else {
+                        @nogo = <delete exists kv>;
+                    }
+                }
+                elsif %a.exists('p') {         # :delete:exists(0|1):p(0|1):*
+                    my $p := %a.delete('p');
+                    if !%a {                     # :delete:exists(0|1):p(0|1)
+                        $more.map( {
+                            $de(SELF,$_) if $wasthere = $ex(SELF,$_);
+                            !$p | $wasthere
+                              ?? RWPAIR($_,!($wasthere ?^ $exists))
+                              !! ()
+                        } ).eager.Parcel
+                    }
+                    else {
+                        @nogo = <delete exists p>;
+                    }
+                }
+                else {
+                    @nogo = <delete exists>;
+                }
             }
-            elsif $k & $v === $default {      # :delete:exists(0|1):p(0|1)
-                $more.map( {
-                    SELF.delete($_) if $wasthere = SELF.exists($_);
-                    !$p | $wasthere ?? RWPAIR($_,!($wasthere ?^ $exists)) !! ()
-                } ).eager.Parcel
+            elsif %a.exists('kv') {          # :delete:kv(0|1):*
+                my $kv := %a.delete('kv');
+                if !%a {                       # :delete:kv(0|1)
+                    $kv
+                      ?? $more.map( {
+                             $ex(SELF,$_) ?? ( $_, $de(SELF,$_) ) !! ()
+                         } ).eager.Parcel
+                      !! $more.map( {
+                             ( $_, $de(SELF,$_) )
+                         } ).eager.Parcel;
+                }
+                else {
+                    @nogo = <delete kv>;
+                }
+            }
+            elsif %a.exists('p') {           # :delete:p(0|1):*
+                my $p := %a.delete('p');
+                if !%a {                       # :delete:p(0|1)
+                    $p
+                      ?? $more.map( {
+                             $ex(SELF,$_) ?? RWPAIR($_, $de(SELF,$_)) !! ()
+                         } ).eager.Parcel
+                      !! $more.map( {
+                             RWPAIR($_, $de(SELF,$_))
+                         } ).eager.Parcel;
+                }
+                else {
+                    @nogo = <delete p>;
+                }
+            }
+            elsif %a.exists('k') {           # :delete:k(0|1):*
+                my $k := %a.delete('k');
+                if !%a {                       # :delete:k(0|1)
+                    $k
+                      ?? $more.map( {
+                             $ex(SELF,$_) ?? ( $de(SELF,$_); $_ ) !! ()
+                         } ).eager.Parcel
+                      !! $more.map( {
+                             $de(SELF,$_); $_
+                         } ).eager.Parcel;
+                }
+                else {
+                    @nogo = <delete k>;
+                }
+            }
+            elsif %a.exists('v') {           # :delete:v(0|1):*
+                my $v := %a.delete('v');
+                if !%a {                       # :delete:v(0|1)
+                    $v
+                      ?? $more.map( {
+                             $ex(SELF,$_) ?? $de(SELF,$_) !! ()
+                     } ).eager.Parcel
+                      !! $more.map( {
+                             $de(SELF,$_)
+                     } ).eager.Parcel;
+                }
+                else {
+                    @nogo = <delete v>;
+                }
             }
             else {
-                fail "cannot combine these adverbs";
+                @nogo = <delete>;
             }
         }
-        elsif $kv !=== $default {           # :delete:kv(0|1):*
-            if $p & $k & $v === $default {    # :delete:kv(0|1)
+        elsif %a.exists('exists') {        # :!delete?:exists(0|1):*
+            my $exists := %a.delete('exists');
+            if !%a {                         # :!delete?:exists(0|1)
+                $more.map({ !( $ex(SELF,$_) ?^ $exists ) }).eager.Parcel;
+            }
+            elsif %a.exists('kv') {          # :!delete?:exists(0|1):kv(0|1):*
+                my $kv := %a.delete('kv');
+                if !%a {                       # :!delete?:exists(0|1):kv(0|1)
+                    $kv
+                      ?? $more.map( {
+                             $ex(SELF,$_) ?? ( $_, $exists ) !! ()
+                         } ).eager.Parcel
+                      !! $more.map( {
+                             ( $_, !( $ex(SELF,$_) ?^ $exists ) )
+                         } ).eager.Parcel;
+                }
+                else {
+                    @nogo = <exists kv>;
+                }
+            }
+            elsif %a.exists('p') {           # :!delete?:exists(0|1):p(0|1):*
+                my $p := %a.delete('p');
+                if !%a {                       # :!delete?:exists(0|1):p(0|1)
+                    $p
+                      ?? $more.map( {
+                             $ex(SELF,$_) ?? RWPAIR( $_, $exists ) !! ()
+                         } ).eager.Parcel
+                      !! $more.map( {
+                             RWPAIR( $_, !( $ex(SELF,$_) ?^ $exists ) )
+                         } ).eager.Parcel;
+                }
+                else {
+                    @nogo = <exists p>;
+                }
+            }
+            else {
+                @nogo = <exists>;
+            }
+        }
+        elsif %a.exists('kv') {            # :!delete?:kv(0|1):*
+            my $kv := %a.delete('kv');
+            if !%a {                         # :!delete?:kv(0|1)
                 $kv
                   ?? $more.map( {
-                         SELF.exists($_) ?? ( $_, SELF.delete($_) ) !! ()
+                         $ex(SELF,$_) ?? ($_, $at(SELF,$_)) !! ()
                      } ).eager.Parcel
                   !! $more.map( {
-                         ( $_, SELF.delete($_) )
+                         ($_, $at(SELF,$_))
                      } ).eager.Parcel;
             }
             else {
-                fail "cannot combine these adverbs";
+                @nogo = <kv>;
             }
         }
-        elsif $p !=== $default {            # :delete:p(0|1):*
-            if $k & $v === $default {         # :delete:p(0|1)
+        elsif %a.exists('p') {             # :!delete?:p(0|1):*
+            my $p := %a.delete('p');
+            if !%a {                         # :!delete?:p(0|1)
                 $p
                   ?? $more.map( {
-                         SELF.exists($_) ?? RWPAIR($_, SELF.delete($_)) !! ()
+                         $ex(SELF,$_) ?? RWPAIR($_, $at(SELF,$_)) !! ()
                      } ).eager.Parcel
                   !! $more.map( {
-                         RWPAIR($_, SELF.delete($_))
+                         RWPAIR( $_, $at(SELF,$_) )
                      } ).eager.Parcel;
             }
             else {
-                fail "cannot combine these adverbs";
+                @nogo = <p>
             }
         }
-        elsif $k !=== $default {            # :delete:k(0|1):*
-            if $v === $default {              # :delete:k(0|1)
+        elsif %a.exists('k') {             # :!delete?:k(0|1):*
+            my $k := %a.delete('k');
+            if !%a {                         # :!delete?:k(0|1)
                 $k
-                  ?? $more.map( {
-                         SELF.exists($_) ?? ( SELF.delete($_); $_ ) !! ()
-                     } ).eager.Parcel
-                  !! $more.map( {
-                         SELF.delete($_); $_
-                     } ).eager.Parcel;
+                  ?? $more.map( { $_ if $ex(SELF,$_) } ).eager.Parcel
+                  !! $more;
             }
             else {
-                fail "cannot combine these adverbs";
+                @nogo = <p>;
             }
         }
-        elsif $v !=== $default {            # :delete:v(0|1)
-            $v
-              ?? $more.map( {
-                     SELF.exists($_) ?? SELF.delete($_) !! ()
-                 } ).eager.Parcel
-              !! $more.map( {
-                     SELF.delete($_)
-                 } ).eager.Parcel;
-        }
-        else {                              # :delete
-            $more.map( { SELF.delete($_) } ).eager.Parcel;
-        }
-    }
-    elsif $exists !=== $default {         # :!delete?:exists(0|1):*
-        if $kv & $p & $k & $v === $default { # :!delete?:exists(0|1)
-            $more.map({ !( SELF.exists($_) ?^ $exists ) }).eager.Parcel;
-        }
-        elsif $p & $k & $v === $default {   # :!delete?:exists(0|1):kv(0|1)
-            $kv
-              ?? $more.map( {
-                     SELF.exists($_) ?? ( $_, $exists ) !! ()
-                 } ).eager.Parcel
-              !! $more.map( {
-                     ( $_, !( SELF.exists($_) ?^ $exists ) )
-                 } ).eager.Parcel;
-        }
-        elsif $k & $v === $default {        # :!delete?:exists(0|1):p(0|1)
-            $p
-              ?? $more.map( {
-                     SELF.exists($_) ?? RWPAIR( $_, $exists ) !! ()
-                 } ).eager.Parcel
-              !! $more.map( {
-                     RWPAIR( $_, !( SELF.exists($_) ?^ $exists ) )
-                 } ).eager.Parcel;
-        }
-        else {
-            fail "cannot combine these adverbs";
+        elsif %a.exists('v') {             # :!delete?:v(0|1):*
+            my $v := %a.delete('v');
+            if !%a {                         # :!delete?:v(0|1)
+                $more.map( {
+                    $ex(SELF,$_) ?? $at(SELF,$_) !! ()
+                } ).eager.Parcel;
+            }
+            else {
+                @nogo = <v>;
+            }
         }
     }
-    elsif $kv !=== $default {             # :!delete?:kv(0|1):*
-        if $p & $k & $v === $default {      # :!delete?:kv(0|1)
-            $kv
-              ?? $more.map( {
-                     SELF.exists($_)
-                       ?? ($_, $array ?? SELF.at_pos($_) !! SELF.at_key($_))
-                       !! ()
-                 } ).eager.Parcel
-              !! $more.map( {
-                     ( $_, $array ?? SELF.at_pos($_) !! SELF.at_key($_) )
-                 } ).eager.Parcel;
-        }
-        else {
-            fail "cannot combine these adverbs";
-        }
-    }
-    elsif $p !=== $default {              # :!delete?:p(0|1):*
-        if $k & $v === $default {           # :!delete?:p(0|1)
-            $p
-              ?? $more.map( {
-                     SELF.exists($_)
-                       ?? RWPAIR($_, $array ?? SELF.at_pos($_) !! SELF.at_key($_))
-                       !! ()
-                 } ).eager.Parcel
-              !! $more.map( {
-                     RWPAIR( $_, $array ?? SELF.at_pos($_) !! SELF.at_key($_) )
-                 } ).eager.Parcel;
-        }
-        else {
-            fail "cannot combine these adverbs";
-        }
-    }
-    elsif $k !=== $default {              # :!delete?:k(0|1):*
-        if $v === $default {                # :!delete?:k(0|1)
-            $k
-              ?? $more.map( { $_ if SELF.exists($_) } ).eager.Parcel
-              !! $more;
-        }
-        else {
-            fail "cannot combine these adverbs";
-        }
-    }
-    elsif $v === True {                    # :!delete?:v
-        $more.map( {
-            SELF.exists($_)
-              ?? ($array ?? SELF.at_pos($_) !! SELF.at_key($_))
-              !! ()
-        } ).eager.Parcel;
-    }
-    else {                                 # :!delete?:v?
-        $more.map( {
-            $array ?? SELF.at_pos($_) !! SELF.at_key($_)
-        } ).eager.Parcel;
-    }
+
+    @nogo || %a
+      ?? SLICE_HUH( SELF, @nogo, %a, %adv )
+      !! $return;
 } #SLICE_MORE

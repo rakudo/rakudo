@@ -1,6 +1,6 @@
 # all sub postcircumfix [] candidates here please
 
-sub POSITIONS (\SELF, \pos) {
+sub POSITIONS (\SELF, \pos) { # handle possible infinite slices
     my $positions = pos.flat;
     $positions.gimme(*);
     return $positions.eager.Parcel unless $positions.infinite;
@@ -83,83 +83,23 @@ multi sub postcircumfix:<[ ]>( \SELF, Positional \pos ) is rw {  # NOT SELECTED
 multi sub postcircumfix:<[ ]>(\SELF, Positional \pos, :$BIND!) is rw {
     X::Bind::Slice.new(type => SELF.WHAT).throw;
 }
-multi sub postcircumfix:<[ ]>(
-  \SELF,
-  Positional \pos,
-  :$delete!,
-  :$exists = $default,
-  :$kv     = $default,
-  :$p      = $default,
-  :$k      = $default,
-  :$v      = $default
-) is rw {
-   SLICE_MORE( SELF, POSITIONS(SELF,pos),
-     True, $delete, $exists, $kv, $p, $k, $v );
+multi sub postcircumfix:<[ ]>(\SELF,Positional \pos,:$delete!,*%other) is rw {
+   SLICE_MORE( SELF, POSITIONS(SELF,pos), True, :$delete, |%other );
 }
-multi sub postcircumfix:<[ ]>(
-  \SELF,
-  Positional \pos,
-  :$delete = $default,
-  :$exists!,
-  :$kv     = $default,
-  :$p      = $default,
-  :$k      = $default,
-  :$v      = $default
-) is rw {
-   SLICE_MORE( SELF, POSITIONS(SELF,pos),
-     True, $delete, $exists, $kv, $p, $k, $v );
+multi sub postcircumfix:<[ ]>(\SELF,Positional \pos,:$exists!,*%other) is rw {
+   SLICE_MORE( SELF, POSITIONS(SELF,pos), True, :$exists, |%other );
 }
-multi sub postcircumfix:<[ ]>(
-  \SELF,
-  Positional \pos,
-  :$delete = $default,
-  :$exists = $default,
-  :$kv!,
-  :$p      = $default,
-  :$k      = $default,
-  :$v      = $default
-) is rw {
-   SLICE_MORE( SELF, POSITIONS(SELF,pos),
-     True, $delete, $exists, $kv, $p, $k, $v );
+multi sub postcircumfix:<[ ]>(\SELF, Positional \pos, :$kv!, *%other) is rw {
+   SLICE_MORE( SELF, POSITIONS(SELF,pos), True, :$kv, |%other );
 }
-multi sub postcircumfix:<[ ]>(
-  \SELF,
-  Positional \pos,
-  :$delete = $default,
-  :$exists = $default,
-  :$kv     = $default,
-  :$p!,
-  :$k      = $default,
-  :$v      = $default
-) is rw {
-   SLICE_MORE( SELF, POSITIONS(SELF,pos),
-     True, $delete, $exists, $kv, $p, $k, $v );
+multi sub postcircumfix:<[ ]>(\SELF, Positional \pos, :$p!, *%other) is rw {
+   SLICE_MORE( SELF, POSITIONS(SELF,pos), True, :$p, |%other );
 }
-multi sub postcircumfix:<[ ]>(
-  \SELF,
-  Positional \pos,
-  :$delete = $default,
-  :$exists = $default,
-  :$kv     = $default,
-  :$p      = $default,
-  :$k!,
-  :$v      = $default
-) is rw {
-   SLICE_MORE( SELF, POSITIONS(SELF,pos),
-     True, $delete, $exists, $kv, $p, $k, $v );
+multi sub postcircumfix:<[ ]>(\SELF, Positional \pos, :$k!, *%other) is rw {
+   SLICE_MORE( SELF, POSITIONS(SELF,pos), True, :$k, |%other );
 }
-multi sub postcircumfix:<[ ]>(
-  \SELF,
-  Positional \pos,
-  :$delete = $default,
-  :$exists = $default,
-  :$kv     = $default,
-  :$p      = $default,
-  :$k      = $default,
-  :$v!
-) is rw {
-   SLICE_MORE( SELF, POSITIONS(SELF,pos),
-     True, $delete, $exists, $kv, $p, $k, $v );
+multi sub postcircumfix:<[ ]>(\SELF, Positional \pos, :$v!, *%other) is rw {
+   SLICE_MORE( SELF, POSITIONS(SELF,pos), True, :$v, |%other );
 }
 
 # @a[->{}]
@@ -169,83 +109,29 @@ multi sub postcircumfix:<[ ]>( \SELF, Callable $block ) is rw { # NOT SELECTED
 multi sub postcircumfix:<[ ]>(\SELF, Callable $block, :$BIND!) is rw {
     X::Bind::Slice.new(type => SELF.WHAT).throw;
 }
-multi sub postcircumfix:<[ ]>(
-  \SELF,
-  Callable $block,
-  :$delete!,
-  :$exists = $default,
-  :$kv     = $default,
-  :$p      = $default,
-  :$k      = $default,
-  :$v      = $default
-) is rw {
-    SLICE_MORE( SELF, $block(|(SELF.elems xx $block.count)),
-      True, $delete, $exists, $kv, $p, $k, $v );
+multi sub postcircumfix:<[ ]>(\SELF,Callable $block,:$delete!,*%other) is rw {
+   SLICE_MORE( SELF, $block(|(SELF.elems xx $block.count)),
+     True, :$delete, |%other );
 }
-multi sub postcircumfix:<[ ]>(
-  \SELF,
-  Callable $block,
-  :$delete = $default,
-  :$exists!,
-  :$kv     = $default,
-  :$p      = $default,
-  :$k      = $default,
-  :$v      = $default
-) is rw {
-    SLICE_MORE( SELF, $block(|(SELF.elems xx $block.count)),
-      True, $delete, $exists, $kv, $p, $k, $v );
+multi sub postcircumfix:<[ ]>(\SELF,Callable $block,:$exists!,*%other) is rw {
+   SLICE_MORE( SELF, $block(|(SELF.elems xx $block.count)),
+     True, :$exists, |%other );
 }
-multi sub postcircumfix:<[ ]>(
-  \SELF,
-  Callable $block,
-  :$delete = $default,
-  :$exists = $default,
-  :$kv!,
-  :$p      = $default,
-  :$k      = $default,
-  :$v      = $default
-) is rw {
-    SLICE_MORE( SELF, $block(|(SELF.elems xx $block.count)),
-      True, $delete, $exists, $kv, $p, $k, $v );
+multi sub postcircumfix:<[ ]>(\SELF, Callable $block, :$kv!, *%other) is rw {
+   SLICE_MORE( SELF, $block(|(SELF.elems xx $block.count)),
+     True, :$kv, |%other );
 }
-multi sub postcircumfix:<[ ]>(
-  \SELF,
-  Callable $block,
-  :$delete = $default,
-  :$exists = $default,
-  :$kv     = $default,
-  :$p!,
-  :$k      = $default,
-  :$v      = $default
-) is rw {
-    SLICE_MORE( SELF, $block(|(SELF.elems xx $block.count)),
-      True, $delete, $exists, $kv, $p, $k, $v );
+multi sub postcircumfix:<[ ]>(\SELF, Callable $block, :$p!, *%other) is rw {
+   SLICE_MORE( SELF, $block(|(SELF.elems xx $block.count)),
+     True, :$p, |%other );
 }
-multi sub postcircumfix:<[ ]>(
-  \SELF,
-  Callable $block,
-  :$delete = $default,
-  :$exists = $default,
-  :$kv     = $default,
-  :$p      = $default,
-  :$k!,
-  :$v      = $default
-) is rw {
-    SLICE_MORE( SELF, $block(|(SELF.elems xx $block.count)),
-      True, $delete, $exists, $kv, $p, $k, $v );
+multi sub postcircumfix:<[ ]>(\SELF, Callable $block, :$k!, *%other) is rw {
+   SLICE_MORE( SELF, $block(|(SELF.elems xx $block.count)),
+     True, :$k, |%other );
 }
-multi sub postcircumfix:<[ ]>(
-  \SELF,
-  Callable $block,
-  :$delete = $default,
-  :$exists = $default,
-  :$kv     = $default,
-  :$p      = $default,
-  :$k      = $default,
-  :$v!
-) is rw {
-    SLICE_MORE( SELF, $block(|(SELF.elems xx $block.count)),
-      True, $delete, $exists, $kv, $p, $k, $v );
+multi sub postcircumfix:<[ ]>(\SELF, Callable $block, :$v!, *%other) is rw {
+   SLICE_MORE( SELF, $block(|(SELF.elems xx $block.count)),
+     True, :$v, |%other );
 }
 
 # @a[*]
@@ -255,83 +141,23 @@ multi sub postcircumfix:<[ ]>( \SELF, Whatever ) is rw {  # NOT SELECTED
 multi sub postcircumfix:<[ ]>(\SELF, Whatever, :$BIND!) is rw {
     X::Bind::Slice.new(type => SELF.WHAT).throw;
 }
-multi sub postcircumfix:<[ ]>(
-  \SELF,
-  Whatever,
-  :$delete!,
-  :$exists = $default,
-  :$kv     = $default,
-  :$p      = $default,
-  :$k      = $default,
-  :$v      = $default
-) is rw {
-   SLICE_MORE( SELF, SELF.keys,
-     True, $delete, $exists, $kv, $p, $k, $v );
+multi sub postcircumfix:<[ ]>(\SELF, Whatever, :$delete!, *%other) is rw {
+   SLICE_MORE( SELF, SELF.keys, True, !$delete, |%other );
 }
-multi sub postcircumfix:<[ ]>(
-  \SELF,
-  Whatever,
-  :$delete = $default,
-  :$exists!,
-  :$kv     = $default,
-  :$p      = $default,
-  :$k      = $default,
-  :$v      = $default
-) is rw {
-   SLICE_MORE( SELF, SELF.keys,
-     True, $delete, $exists, $kv, $p, $k, $v );
+multi sub postcircumfix:<[ ]>(\SELF, Whatever, :$exists!, *%other) is rw {
+   SLICE_MORE( SELF, SELF.keys, True, !$exists, |%other );
 }
-multi sub postcircumfix:<[ ]>(
-  \SELF,
-  Whatever,
-  :$delete = $default,
-  :$exists = $default,
-  :$kv!,
-  :$p      = $default,
-  :$k      = $default,
-  :$v      = $default
-) is rw {
-   SLICE_MORE( SELF, SELF.keys,
-     True, $delete, $exists, $kv, $p, $k, $v );
+multi sub postcircumfix:<[ ]>(\SELF, Whatever, :$kv!, *%other) is rw {
+   SLICE_MORE( SELF, SELF.keys, True, !$kv, |%other );
 }
-multi sub postcircumfix:<[ ]>(
-  \SELF,
-  Whatever,
-  :$delete = $default,
-  :$exists = $default,
-  :$kv     = $default,
-  :$p!,
-  :$k      = $default,
-  :$v      = $default
-) is rw {
-   SLICE_MORE( SELF, SELF.keys,
-     True, $delete, $exists, $kv, $p, $k, $v );
+multi sub postcircumfix:<[ ]>(\SELF, Whatever, :$p!, *%other) is rw {
+   SLICE_MORE( SELF, SELF.keys, True, !$p, |%other );
 }
-multi sub postcircumfix:<[ ]>(
-  \SELF,
-  Whatever,
-  :$delete = $default,
-  :$exists = $default,
-  :$kv     = $default,
-  :$p      = $default,
-  :$k!,
-  :$v      = $default
-) is rw {
-   SLICE_MORE( SELF, SELF.keys,
-     True, $delete, $exists, $kv, $p, $k, $v );
+multi sub postcircumfix:<[ ]>(\SELF, Whatever, :$k!, *%other) is rw {
+   SLICE_MORE( SELF, SELF.keys, True, !$k, |%other );
 }
-multi sub postcircumfix:<[ ]>(
-  \SELF,
-  Whatever,
-  :$delete = $default,
-  :$exists = $default,
-  :$kv     = $default,
-  :$p      = $default,
-  :$k      = $default,
-  :$v!
-) is rw {
-   SLICE_MORE( SELF, SELF.keys,
-     True, $delete, $exists, $kv, $p, $k, $v );
+multi sub postcircumfix:<[ ]>(\SELF, Whatever, :$v!, *%other) is rw {
+   SLICE_MORE( SELF, SELF.keys, True, !$v, |%other );
 }
 
 # @a[]
@@ -341,75 +167,21 @@ multi sub postcircumfix:<[ ]>( \SELF ) is rw {  # NOT SELECTED
 multi sub postcircumfix:<[ ]>(\SELF, :$BIND!) is rw {
     X::Bind::ZenSlice.new(type => SELF.WHAT).throw;
 }
-multi sub postcircumfix:<[ ]>(
-  \SELF,
-  :$delete!,
-  :$exists = $default,
-  :$kv     = $default,
-  :$p      = $default,
-  :$k      = $default,
-  :$v      = $default
-) is rw {
-    SLICE_MORE( SELF, SELF.keys,
-      True, $delete, $exists, $kv, $p, $k, $v );
+multi sub postcircumfix:<[ ]>(\SELF, :$delete!, *%other) is rw {
+   SLICE_MORE( SELF, SELF.keys, True, !$delete, |%other );
 }
-multi sub postcircumfix:<[ ]>(
-  \SELF,
-  :$delete = $default,
-  :$exists!,
-  :$kv     = $default,
-  :$p      = $default,
-  :$k      = $default,
-  :$v      = $default
-) is rw {
-    SLICE_MORE( SELF, SELF.keys,
-      True, $delete, $exists, $kv, $p, $k, $v );
+multi sub postcircumfix:<[ ]>(\SELF, :$exists!, *%other) is rw {
+   SLICE_MORE( SELF, SELF.keys, True, !$exists, |%other );
 }
-multi sub postcircumfix:<[ ]>(
-  \SELF,
-  :$delete = $default,
-  :$exists = $default,
-  :$kv!,
-  :$p      = $default,
-  :$k      = $default,
-  :$v      = $default
-) is rw {
-    SLICE_MORE( SELF, SELF.keys,
-      True, $delete, $exists, $kv, $p, $k, $v );
+multi sub postcircumfix:<[ ]>(\SELF, :$kv!, *%other) is rw {
+   SLICE_MORE( SELF, SELF.keys, True, !$kv, |%other );
 }
-multi sub postcircumfix:<[ ]>(
-  \SELF,
-  :$delete = $default,
-  :$exists = $default,
-  :$kv     = $default,
-  :$p!,
-  :$k      = $default,
-  :$v      = $default
-) is rw {
-    SLICE_MORE( SELF, SELF.keys,
-      True, $delete, $exists, $kv, $p, $k, $v );
+multi sub postcircumfix:<[ ]>(\SELF, :$p!, *%other) is rw {
+   SLICE_MORE( SELF, SELF.keys, True, !$p, |%other );
 }
-multi sub postcircumfix:<[ ]>(
-  \SELF,
-  :$delete = $default,
-  :$exists = $default,
-  :$kv     = $default,
-  :$p      = $default,
-  :$k!,
-  :$v      = $default
-) is rw {
-    SLICE_MORE( SELF, SELF.keys,
-      True, $delete, $exists, $kv, $p, $k, $v );
+multi sub postcircumfix:<[ ]>(\SELF, :$k!, *%other) is rw {
+   SLICE_MORE( SELF, SELF.keys, True, !$k, |%other );
 }
-multi sub postcircumfix:<[ ]>(
-  \SELF,
-  :$delete = $default,
-  :$exists = $default,
-  :$kv     = $default,
-  :$p      = $default,
-  :$k      = $default,
-  :$v!
-) is rw {
-    SLICE_MORE( SELF, SELF.keys,
-      True, $delete, $exists, $kv, $p, $k, $v );
+multi sub postcircumfix:<[ ]>(\SELF, :$v!, *%other) is rw {
+   SLICE_MORE( SELF, SELF.keys, True, !$v, |%other );
 }

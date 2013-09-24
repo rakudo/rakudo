@@ -1,6 +1,6 @@
 class LoL { # declared in BOOTSTRAP
     # class LoL is List {
-    #     has $!descriptor;
+    #     has Mu $!descriptor;
 
     method new(|) { 
         my Mu $args := nqp::p6argvmarray();

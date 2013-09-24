@@ -1,7 +1,8 @@
 my class Scalar { # declared in BOOTSTRAP
     # class Scalar is Any {
-    #     has $!descriptor;
-    #     has $!value;
+    #     has Mu $!descriptor;
+    #     has Mu $!value;
+    #     has Mu $!whence;
 
     method name() {
         my $d := $!descriptor;

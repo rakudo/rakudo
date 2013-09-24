@@ -3,7 +3,7 @@ my class X::Numeric::DivideByZero { ... }
 
 my class Int does Real { # declared in BOOTSTRAP
     # class Int is Cool {
-    #     has int $!value is box_target;
+    #     has bigint $!value is box_target;
 
     multi method WHICH(Int:D:) {
         nqp::box_s(

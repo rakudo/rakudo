@@ -3,11 +3,11 @@ my class Attribute { # declared in BOOTSTRAP
     #     has str $!name;
     #     has int $!rw;
     #     has int $!has_accessor;
-    #     has $!type;
-    #     has $!container_descriptor;
-    #     has $!auto_viv_container;
-    #     has $!build_closure;
-    #     has $!package;
+    #     has Mu $!type;
+    #     has Mu $!container_descriptor;
+    #     has Mu $!auto_viv_container;
+    #     has Mu $!build_closure;
+    #     has Mu $!package;
     #     has int $!positional_delegate;
     #     has int $!associative_delegate;
 

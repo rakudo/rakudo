@@ -1,7 +1,7 @@
 my class Junction { # declared in BOOTSTRAP
     # class Junction is Mu {
-    #     has $!storage;             # elements of Junction
-    #     has $!type;                # type of Junction
+    #     has Mu $!storage;             # elements of Junction
+    #     has Mu $!type;                # type of Junction
 
     method new(*@values, :$type) {
         self.bless(:storage(@values.eager), :$type);

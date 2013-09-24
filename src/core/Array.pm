@@ -2,7 +2,7 @@ my class X::Item { ... };
 
 class Array { # declared in BOOTSTRAP
     # class Array is List {
-    #     has $!descriptor;
+    #     has Mu $!descriptor;
 
     method new(|) { 
         my Mu $args := nqp::p6argvmarray();

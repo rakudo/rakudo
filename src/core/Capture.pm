@@ -1,7 +1,7 @@
 my class Capture { # declared in BOOTSTRAP
     # class Capture is Any {
-    #     has $!list;   # positional parameters
-    #     has $!hash;   # named parameters
+    #     has Mu $!list;   # positional parameters
+    #     has Mu $!hash;   # named parameters
 
     submethod BUILD(:@list, :%hash) {
         nqp::bindattr(self, Capture, '$!list',

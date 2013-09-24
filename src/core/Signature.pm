@@ -1,10 +1,10 @@
 my class Signature { # declared in BOOTSTRAP
     # class Signature is Any {
-    #   has $!params;          # VM's array of parameters
-    #   has $!returns;         # return type
-    #   has $!arity;           # cached arity
-    #   has $!count;           # cached count
-    #   has $!code;
+    #   has Mu $!params;          # VM's array of parameters
+    #   has Mu $!returns;         # return type
+    #   has Mu $!arity;           # cached arity
+    #   has Mu $!count;           # cached count
+    #   has Mu $!code;
     
     multi method ACCEPTS(Signature:D: Capture $topic) {
         nqp::p6bool(nqp::p6isbindable(self, nqp::decont($topic)));

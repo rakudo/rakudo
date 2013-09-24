@@ -3,9 +3,9 @@ my class X::TypeCheck { ... }
 
 my class List does Positional { # declared in BOOTSTRAP
     # class List is Iterable is Cool
-    #   has $!items;        # VM's array of our reified elements
-    #   has $!flattens;     # true if this list flattens its parcels
-    #   has $!nextiter;     # iterator for generating remaining elements
+    #   has Mu $!items;        # VM's array of our reified elements
+    #   has Mu $!flattens;     # true if this list flattens its parcels
+    #   has Mu $!nextiter;     # iterator for generating remaining elements
 
     method new(|) {
         my Mu $args := nqp::p6argvmarray();

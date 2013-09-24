@@ -1,17 +1,17 @@
 my class Parameter { # declared in BOOTSTRAP
     # class Parameter is Any {
     #     has str $!variable_name
-    #     has $!named_names
-    #     has $!type_captures
+    #     has Mu $!named_names
+    #     has Mu $!type_captures
     #     has int $!flags
-    #     has $!nominal_type
-    #     has $!post_constraints
-    #     has $!coerce_type
+    #     has Mu $!nominal_type
+    #     has Mu $!post_constraints
+    #     has Mu $!coerce_type
     #     has str $!coerce_method
-    #     has $!sub_signature
-    #     has $!default_value
-    #     has $!container_descriptor;
-    #     has $!attr_package;
+    #     has Mu $!sub_signature
+    #     has Mu $!default_value
+    #     has Mu $!container_descriptor;
+    #     has Mu $!attr_package;
 
     my constant $SIG_ELEM_BIND_CAPTURE       = 1;
     my constant $SIG_ELEM_BIND_PRIVATE_ATTR  = 2;

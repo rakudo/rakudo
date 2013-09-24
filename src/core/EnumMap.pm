@@ -1,6 +1,6 @@
 my class EnumMap does Associative { # declared in BOOTSTRAP
     # my class EnumMap is Iterable is Cool {
-    #   has $!storage;         # Parrot Hash PMC of key->value mappings
+    #   has Mu $!storage;
 
     multi method Bool(EnumMap:D:) {
         nqp::p6bool(nqp::defined($!storage) ?? nqp::elems($!storage) !! 0)

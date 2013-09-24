@@ -1,8 +1,8 @@
 my class Code does Callable { # declared in BOOTSTRAP
     # class Code is Any {
-    #     has $!do;                # Low level code object
-    #     has $!signature;         # Signature object
-    #     has $!compstuff;         # Place for the compiler to hang stuff
+    #     has Mu $!do;                # Low level code object
+    #     has Mu $!signature;         # Signature object
+    #     has Mu $!compstuff;         # Place for the compiler to hang stuff
 
     multi method ACCEPTS(Code:D $self: Mu $topic) {
         $self.count ?? $self($topic) !! $self()

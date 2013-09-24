@@ -2,7 +2,7 @@ my class X::Hash::Store::OddNumber { ... }
 
 my class Hash { # declared in BOOTSTRAP
     # my class Hash is EnumMap {
-    #     has $!descriptor;
+    #     has Mu $!descriptor;
 
     method new(*@args) { 
         my %h := nqp::create(self);

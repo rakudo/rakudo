@@ -1,5 +1,8 @@
 my class Regex { # declared in BOOTSTRAP
-    # class Regex is Method { ... }
+    # class Regex is Method {
+    #     has Mu $!caps;
+    #     has Mu $!nfa;
+    #     has Mu $!alt_nfas
 
     multi method ACCEPTS(Regex:D \SELF: Mu \topic) {
         my $dollar_slash := nqp::getlexrelcaller(

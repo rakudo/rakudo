@@ -6,7 +6,7 @@ my class X::Composition::NotComposable { ... }
 my class X::Import::MissingSymbols   { ... }
 my class X::Redeclaration { ... }
 my class X::Inheritance::SelfInherit { ... }
-my class X::Comp::Trait::Unknown { ... };
+my class X::Comp::Trait::Unknown { ... }
 
 proto trait_mod:<is>(|) { * }
 multi trait_mod:<is>(Mu:U $child, Mu:U $parent) {
@@ -94,7 +94,7 @@ multi trait_mod:<is>(Routine:D $r, :$default!) {
     $r does role { method default() { True } }
 }
 multi trait_mod:<is>(Routine:D $r, :$DEPRECATED!) {
-    # we'll add logic here later
+    $r.add_phaser( 'ENTER', -> { once DEPRECATED($DEPRECATED) } );
 }
 multi trait_mod:<is>(Routine:D $r, Mu :$inlinable!) {
     $r.set_inline_info(nqp::decont($inlinable));

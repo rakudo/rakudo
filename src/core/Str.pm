@@ -781,7 +781,8 @@ my class Str does Stringy { # declared in BOOTSTRAP
         nqp::encode(nqp::unbox_s(self), nqp::unbox_s($enc), nqp::decont($enc_type.new))
     }
 
-    method capitalize(Str:D:) is DEPRECATED {
+    method capitalize(Str:D:) { # is DEPRECATED doesn't work in settings
+        once DEPRECATED('tclc');
         self.subst(:g, rx/\w+/, -> $_ { .Str.tclc });
     }
     method wordcase(Str:D: :&filter = &tclc, Mu :$where = True) {

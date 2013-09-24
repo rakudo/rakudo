@@ -104,9 +104,15 @@ my class Cool { # declared in BOOTSTRAP
         nqp::p6box_s(nqp::tclc(nqp::unbox_s(self.Str)))
     }
 
-    method ucfirst() is DEPRECATED { self.tc }
+    method ucfirst() { # is DEPRECATED doesn't work in settings
+        once DEPRECATED('tc');
+        self.tc;
+    }
 
-    method capitalize() is DEPRECATED { self.Stringy.capitalize }
+    method capitalize() { # is DEPRECATED doesn't work in settings
+        once DEPRECATED('tclc');
+        self.Stringy.tclc;
+    }
     method wordcase()   { self.Str.wordcase }
 
     method chomp() {
@@ -220,6 +226,20 @@ my class Cool { # declared in BOOTSTRAP
 }
 Metamodel::ClassHOW.exclude_parent(Cool);
 
+sub ucfirst(Cool $s) { # is DEPRECATED doesn't work in settings
+    once DEPRECATED('tc');
+    $s.tc;
+}
+proto sub capitalize($) { * }
+multi sub capitalize(Str:D $x) { # is DEPRECATED doesn't work in settings
+    once DEPRECATED('tclc');
+    $x.tclc;
+}
+multi sub capitalize(Cool $x)  { # is DEPRECATED doesn't work in settings
+    once DEPRECATED('tclc');
+    $x.Stringy.tclc;
+}
+
 sub chop(Cool $s)                  { $s.chop }
 sub chomp(Cool $s)                 { $s.chomp }
 sub flip(Cool $s)                  { $s.flip }
@@ -228,7 +248,6 @@ sub lc(Cool $s)                    { $s.lc }
 sub ord(Cool $s)                   { $s.ord }
 sub substr(Cool $s,$pos,$chars?)   { $s.substr($pos,$chars) }
 sub uc(Cool $s)                    { $s.uc }
-sub ucfirst(Cool $s) is DEPRECATED { $s.ucfirst }
 sub tc(Cool $s)                    { $s.tc }
 sub tclc(Cool $s)                  { $s.tclc }
 
@@ -241,10 +260,6 @@ multi sub ords(Cool $s)       { ords($s.Stringy) }
 
 proto sub comb($, $, $?)            { * }
 multi sub comb(Regex $matcher, Cool $input, $limit = *) { $input.comb($matcher, $limit) }
-
-proto sub capitalize($) is DEPRECATED { * }
-multi sub capitalize(Str:D $x) {$x.capitalize }
-multi sub capitalize(Cool $x)  {$x.Stringy.capitalize }
 
 proto sub wordcase($) is pure { * }
 multi sub wordcase(Str:D $x) {$x.wordcase }

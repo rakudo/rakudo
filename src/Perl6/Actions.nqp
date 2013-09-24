@@ -1504,6 +1504,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 my $name := ~$<sigil> eq '@' ?? 'list' !!
                             ~$<sigil> eq '%' ?? 'hash' !!
                                                 'item';
+                # @() and %()
+                $past := QAST::Var.new( :name('$/'), :scope('lexical') ) if ~$<semilist> eq '';
+
                 $past := QAST::Op.new( :op('callmethod'), :name($name), $past );
             }
         }

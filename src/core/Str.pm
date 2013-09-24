@@ -782,7 +782,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
 
     method capitalize(Str:D:) is DEPRECATED {
-        self.subst(:g, rx/\w+/, -> $_ { .Str.lc.ucfirst });
+        self.subst(:g, rx/\w+/, -> $_ { .Str.tclc });
     }
     method wordcase(Str:D: :&filter = &tclc, Mu :$where = True) {
         self.subst(:g, / [<:L> \w* ] +% <['\-]> /, -> $m {

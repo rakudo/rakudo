@@ -448,7 +448,7 @@ public final class RakOps {
                 if (thrower == null)
                     ExceptionHandling.dieInternal(tc, "Cannot assign to a non-container");
                 else
-                    Ops.invokeDirect(tc, meth,
+                    Ops.invokeDirect(tc, thrower,
                         storeThrower, new Object[] { });
             }
         }

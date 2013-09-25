@@ -16,11 +16,12 @@ my class IO::Spec {
 );
 
     #  this is really just a way of getting $*OS when it's not in scope yet
-#?if parrot
-    my $submodule = %module{ nqp::atkey(nqp::atpos(pir::getinterp__P, pir::const::IGLOBALS_CONFIG_HASH), 'osname') };
-#?endif
-#?if !parrot
     my $submodule;
+#?if parrot
+    $submodule = %module{ nqp::atkey(nqp::atpos(pir::getinterp__P, pir::const::IGLOBALS_CONFIG_HASH), 'osname') };
+#?endif
+#?if jvm
+    $submodule = %module{ nqp::p6box_s(nqp::atkey(nqp::jvmgetproperties(), 'os.name')) };
 #?endif
     my $SPEC := IO::Spec.WHO{ $submodule // 'Unix' };
 

@@ -364,7 +364,7 @@ public final class Binder {
                     Ops.invokeDirect(tc, coerceMeth,
                         Ops.invocantCallSite,
                         new Object[] { decontValue });
-                    decontValue = Ops.result_o(tc.curFrame);
+                    decontValue = Ops.decont(Ops.result_o(tc.curFrame), tc);
                 }
                 else {
                     if (error != null)

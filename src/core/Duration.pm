@@ -6,7 +6,7 @@ my class Duration is Cool does Real {
 
     method Bridge(Duration:D:) { $!x.Num }
     method Rat(Duration:D:)    { $!x     }
-    method Num(Duration:D:)    { $!x     }
+    method Num(Duration:D:)    { $!x.Num }
 
     multi method Str(Duration:D:) { ~$.x }
 

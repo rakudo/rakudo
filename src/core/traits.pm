@@ -94,7 +94,16 @@ multi trait_mod:<is>(Routine:D $r, :$default!) {
     $r does role { method default() { True } }
 }
 multi trait_mod:<is>(Routine:D $r, :$DEPRECATED!) {
-    $r.add_phaser( 'ENTER', -> { once DEPRECATED($DEPRECATED) } );
+    my $old = $r.WHAT ~~ Method
+#      ?? "Method {nqp::getattr($r,'Routine','$!package')}.{$r.name}"
+      ?? "Method '{$r.name}'"   # getattr for package fails
+      !! "Sub '{$r.name}'";
+    my $new = $DEPRECATED ~~ Bool
+      ?? "something else"
+      !! $DEPRECATED;
+    $r.add_phaser( 'ENTER', -> {
+        once DEPRECATED($old, $new);
+    } );
 }
 multi trait_mod:<is>(Routine:D $r, Mu :$inlinable!) {
     $r.set_inline_info(nqp::decont($inlinable));

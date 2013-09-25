@@ -1,6 +1,6 @@
 
-sub DEPRECATED ($changeto) {
-    warn "please change to $changeto";
+sub DEPRECATED ( $old, $new ) is hidden_from_backtrace {
+    warn "$old has been deprecated, please use $new instead";
 }
 
 # Re-parent meta-objects so they appear to be under Any.

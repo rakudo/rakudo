@@ -105,12 +105,12 @@ my class Cool { # declared in BOOTSTRAP
     }
 
     method ucfirst() { # is DEPRECATED doesn't work in settings
-        once DEPRECATED('tc');
+        once DEPRECATED('Method Cool.ucfirst', 'tc');
         self.tc;
     }
 
     method capitalize() { # is DEPRECATED doesn't work in settings
-        once DEPRECATED('tclc');
+        once DEPRECATED('Method Cool.capitalize', 'tclc');
         self.Stringy.tclc;
     }
     method wordcase()   { self.Str.wordcase }
@@ -227,16 +227,16 @@ my class Cool { # declared in BOOTSTRAP
 Metamodel::ClassHOW.exclude_parent(Cool);
 
 sub ucfirst(Cool $s) { # is DEPRECATED doesn't work in settings
-    once DEPRECATED('tc');
+    once DEPRECATED("Sub 'ucfirst'", "'tc'");
     $s.tc;
 }
 proto sub capitalize($) { * }
 multi sub capitalize(Str:D $x) { # is DEPRECATED doesn't work in settings
-    once DEPRECATED('tclc');
+    once DEPRECATED("Sub 'capitalize'", "'tclc'");
     $x.tclc;
 }
 multi sub capitalize(Cool $x)  { # is DEPRECATED doesn't work in settings
-    once DEPRECATED('tclc');
+    once DEPRECATED("Sub 'capitalize'", "'tclc'");
     $x.Stringy.tclc;
 }
 

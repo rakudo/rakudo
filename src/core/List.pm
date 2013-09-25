@@ -431,7 +431,7 @@ my class List does Positional { # declared in BOOTSTRAP
         my $last = @secret;
         my str $which;
         map {
-            $which = &as($_);
+            $which = &as($_).Str;
             if with($which,$last) {
                 Nil;
             }

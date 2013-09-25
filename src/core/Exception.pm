@@ -98,6 +98,10 @@ sub EXCEPTION(|) {
         my $ex;
 #?if parrot
         if $type == pir::const::EXCEPTION_METHOD_NOT_FOUND &&
+#?endif
+#?if !parrot
+        if
+#?endif
             nqp::p6box_s(nqp::getmessage($vm_ex)) ~~ /"Method '" (.*?) "' not found for invocant of class '" (.+)\'$/ {
 
             $ex := X::Method::NotFound.new(
@@ -106,12 +110,10 @@ sub EXCEPTION(|) {
             );
         }
         else {
-#?endif
+
             $ex := nqp::create(X::AdHoc);
             nqp::bindattr($ex, X::AdHoc, '$!payload', nqp::p6box_s(nqp::getmessage($vm_ex)));
-#?if parrot
         }
-#?endif
         nqp::bindattr($ex, Exception, '$!ex', $vm_ex);
         $ex;
     }

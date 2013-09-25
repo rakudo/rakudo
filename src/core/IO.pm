@@ -113,7 +113,8 @@ my class IO::Handle does IO::FileTestable {
 
     method close() {
         # TODO:b catch errors
-        nqp::closefh($!PIO);
+        nqp::closefh($!PIO) if nqp::istrue($!PIO);
+        $!PIO := Mu;
         Bool::True;
     }
 
@@ -255,8 +256,12 @@ my class IO::Handle does IO::FileTestable {
         fail("File '" ~ self.path ~ "' already exists, but :createonly was give to spurt")
             if $createonly && self.e;
         
-        my $mode = $append ?? :a !! :w;
-        self.open(:$enc, |$mode);
+        if self.opened {
+            self.encoding($enc);
+        } else {
+            my $mode = $append ?? :a !! :w;
+            self.open(:$enc, |$mode);
+        }
         self.print($contents);
         self.close;
     }
@@ -267,8 +272,10 @@ my class IO::Handle does IO::FileTestable {
         fail("File '" ~ self.path ~ "' already exists, but :createonly was give to spurt")
                 if $createonly && self.e;
         
-        my $mode = $append ?? :a !! :w;
-        self.open(:bin, |$mode);
+        unless self.opened {
+            my $mode = $append ?? :a !! :w;
+            self.open(:bin, |$mode);
+        }
         self.write($contents);
         self.close;
     }

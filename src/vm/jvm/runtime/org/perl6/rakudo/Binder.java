@@ -320,7 +320,7 @@ public final class Binder {
 
                 /* If not, do the check. If the wanted nominal type is Mu, then
                  * anything goes. */
-                if (nomType != gcx.Mu && Ops.istype(decontValue, nomType, tc) == 0) {
+                if (nomType != gcx.Mu && Ops.istype_nodecont(decontValue, nomType, tc) == 0) {
                     /* Type check failed; produce error if needed. */
                     if (error != null) {
                         /* XXX include types */

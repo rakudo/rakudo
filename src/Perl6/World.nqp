@@ -891,6 +891,7 @@ class Perl6::World is HLL::World {
         my $code := self.stub_code_object($type);
         self.attach_signature($code, $signature);
         self.finish_code_object($code, $code_past, $is_dispatcher, :yada($yada));
+        self.add_phasers_handling_code($code, $code_past);
         $code
     }
 
@@ -931,9 +932,6 @@ class Perl6::World is HLL::World {
         
         # Remove it from the code objects stack.
         @!CODES.pop();
-        
-        # Handle any phasers.
-        self.add_phasers_handling_code($code, $code_past);
                 
         # Locate various interesting symbols.
         my $code_type    := self.find_symbol(['Code']);

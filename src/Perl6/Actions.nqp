@@ -341,6 +341,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         if $*DECLARAND {
             $*W.attach_signature($*DECLARAND, $*W.create_signature(nqp::hash('parameters', [])));
             $*W.finish_code_object($*DECLARAND, $*UNIT);
+            $*W.add_phasers_handling_code($*DECLARAND, $*UNIT);
         }
         
         # Checks.
@@ -854,6 +855,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             ($*W.cur_lexpad())[0].push(my $uninst := QAST::Stmts.new($block));
             $*W.attach_signature($*DECLARAND, $signature);
             $*W.finish_code_object($*DECLARAND, $block);
+            $*W.add_phasers_handling_code($*DECLARAND, $block);
             my $ref := reference_to_code_object($*DECLARAND, $block);
             $ref<uninstall_if_immediately_used> := $uninst;
             make $ref;
@@ -876,6 +878,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         ($*W.cur_lexpad())[0].push(my $uninst := QAST::Stmts.new($block));
         $*W.attach_signature($*DECLARAND, $*W.create_signature(nqp::hash('parameters', [])));
         $*W.finish_code_object($*DECLARAND, $block);
+        $*W.add_phasers_handling_code($*DECLARAND, $block);
         my $ref := reference_to_code_object($*DECLARAND, $block);
         $ref<uninstall_if_immediately_used> := $uninst;
         make $ref;
@@ -2350,7 +2353,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
             # trait_mod proto in CORE.setting!
             try $*W.apply_trait($/, '&trait_mod:<is>', $*DECLARAND, :onlystar(1));
         }
-        
+
+        # Handle any phasers.
+        $*W.add_phasers_handling_code($code, $block);
+
         # Add inlining information if it's inlinable; also mark soft if the
         # appropriate pragma is in effect.
         if $<deflongname> {
@@ -2727,6 +2733,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         for $<trait> {
             if $_.ast { ($_.ast)($code) }
         }
+        $*W.add_phasers_handling_code($code, $past);
 
         my $closure := block_closure(reference_to_code_object($code, $past));
         $closure<sink_past> := QAST::Op.new( :op('null') );
@@ -2777,6 +2784,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         # Finish up code object.
         $*W.attach_signature($code, $signature);
         $*W.finish_code_object($code, $past, $*MULTINESS eq 'proto', :yada($yada));
+        $*W.add_phasers_handling_code($code, $past);
         return $code;
     }
 

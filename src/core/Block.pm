@@ -34,4 +34,21 @@ my class Block { # declared in BOOTSTRAP
         }
         ()
     }
+
+    method pop_phaser(Str $name) {
+        unless nqp::isnull($!phasers) {
+            if nqp::existskey($!phasers, nqp::unbox_s($name)) {
+                my $phasers := nqp::atkey($!phasers, nqp::unbox_s($name));
+                unless nqp::isnull($phasers) {
+                    nqp::pop($phasers);
+#                    if nqp::elems($phasers) == 0 {
+#                        nqp::deletekey($!phasers, nqp::unbox_s($name));
+#                        if nqp::elems($!phasers) == 0 {
+#                            $!phasers := nqp::null;
+#                        }
+#                    }
+                }
+            }
+        }
+    }
 }

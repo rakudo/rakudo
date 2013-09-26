@@ -141,7 +141,7 @@ my class IO::Handle does IO::FileTestable {
         unless $!PIO {
             self.open($!path, :chomp($.chomp));
         }
-        my $c = nqp::p6box_s($!PIO.read(1));
+        my $c = nqp::p6box_s(nqp::getcfh($!PIO));
         fail if $c eq '';
         $c;
     }

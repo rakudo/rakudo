@@ -101,8 +101,7 @@ multi trait_mod:<is>(Routine:D $r, :$DEPRECATED!) {
       ?? "something else"
       !! $DEPRECATED;
     $r.add_phaser( 'ENTER', -> {
-        DEPRECATED($old, $new);
-        $r.pop_phaser('ENTER');
+        once DEPRECATED($old, $new);
     } );
 }
 multi trait_mod:<is>(Routine:D $r, Mu :$inlinable!) {

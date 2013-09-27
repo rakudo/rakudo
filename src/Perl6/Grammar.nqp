@@ -386,6 +386,26 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <name> <colonpair>*
     }
 
+    token defterm {     # XXX this is probably too general
+        :dba('new term to be defined')
+        <identifier>
+        [
+        | <colonpair>+
+            {
+                if $<colonpair>[0]<coloncircumfix> -> $cf {
+                    my $category := $<identifier>.Str;
+                    my $opname := $cf<circumfix>
+                        ?? $*W.colonpair_nibble_to_str($/, $cf<circumfix><nibble>)
+                        !! '';
+                    my $canname  := $category ~ ":sym<" ~ $opname ~ ">";
+                    my $termname := $category ~ ":<" ~ $opname ~ ">";
+                    $/.CURSOR.add_categorical($category, $opname, $canname, $termname);
+                }
+            }
+        | <?>
+        ]
+    }
+
     token module_name {
         <longname>
         [ <?before '['> :dba('generic role') '[' ~ ']' <arglist> ]?
@@ -2338,14 +2358,14 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             [
             | $<quant>=['**'|'*'] <param_var>
             | $<quant>=['\\'|'|'] <param_var> { nqp::printfh(nqp::getstderr(), "Obsolete use of | or \\ with sigil on param { $<param_var> }\n") }
-            | $<quant>=['\\'|'|'] <defterm>**0..1
+            | $<quant>=['\\'|'|'] <defterm>?
 
             | [ <param_var> | <named_param> ] $<quant>=['?'|'!'|<?>]
             | <?>
             ]
         | $<quant>=['**'|'*'] <param_var>
         | $<quant>=['\\'|'|'] <param_var> { nqp::printfh(nqp::getstderr, "Obsolete use of | or \\ with sigil on param { $<param_var> }\n") }
-        | $<quant>=['\\'|'|'] <defterm>**0..1
+        | $<quant>=['\\'|'|'] <defterm>?
         | [ <param_var> | <named_param> ] $<quant>=['?'|'!'|<?>]
         | <longname>
             {
@@ -2388,11 +2408,6 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                 $*zone := 'var';
             }
         }
-    }
-
-    token defterm {
-        :dba('new term to be defined')
-        <identifier>
     }
 
     token param_var {
@@ -2550,7 +2565,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <sym> <.end_keyword> <.ws>
 
         [
-        | <identifier>
+        | '\\'? <defterm>
         | <variable>
         | <?>
         ]
@@ -3755,8 +3770,15 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                     );
                 }
             };
+            my role TermActionConstant[$meth, $name] {
+                method ::($meth)($/) {
+                    make QAST::Var.new( :$name, :scope('lexical') );
+                }
+            };
             %*LANG<MAIN-actions> := $*ACTIONS.HOW.mixin($*ACTIONS,
-                TermAction.HOW.curry(TermAction, $canname, $subname));
+                $*IN_DECL eq 'constant'
+                    ?? TermAction.HOW.curry(TermActionConstant, $canname, $subname)
+                    !! TermAction.HOW.curry(TermAction, $canname, $subname));
         }
 
         return 1;

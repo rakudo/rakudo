@@ -301,6 +301,27 @@ class Perl6::Actions is HLL::Actions does STDActions {
             );
         }
     }
+    
+    method defterm($/) {
+        my $name := ~$<identifier>;
+        if $<colonpair> {
+            if $<colonpair>[0] {
+                $name := $name ~ ':';
+            }
+            if $<colonpair>[0]<identifier> {
+                $name := $name ~ ~$<colonpair>[0]<identifier>;
+            }
+            if $<colonpair>[0]<coloncircumfix> -> $cf {
+                if $cf<circumfix> -> $op_name {
+                    $name := $name ~ '<' ~ $*W.colonpair_nibble_to_str($/, $op_name<nibble>) ~ '>';
+                }
+                else {
+                    $name := $name ~ '<>';
+                }
+            }
+        }
+        make $name;
+    }
 
     # Turn $code into "for lines() { $code }"
     sub wrap_option_n_code($/, $code) {
@@ -3182,8 +3203,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
         # Provided it's named, install it.
         my $name;
-        if $<identifier> {
-            $name := ~$<identifier>;
+        if $<defterm> {
+            $name := $<defterm>.ast;
         }
         elsif $<variable> {
             # Don't handle twigil'd case yet.
@@ -3290,6 +3311,15 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
 
     method parameter($/) {
+        # If it's a defterm, need to do parameter setup here.
+        if $<defterm> {
+            my $name := $<defterm>.ast;
+            %*PARAM_INFO<variable_name> := $name;
+            %*PARAM_INFO<desigilname>   := $name;
+            %*PARAM_INFO<sigil>         := '';
+            self.declare_param($/, $name);
+        }
+        
         # Sanity checks.
         my $quant := $<quant>;
         if $<default_value> {
@@ -3424,7 +3454,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $cur_pad.symbol(%*PARAM_INFO<variable_name>, :descriptor(%*PARAM_INFO<container_descriptor>),
                 :type(%*PARAM_INFO<nominal_type>));
         } else {
-            $cur_pad[0].push(QAST::Var.new( :name(~$/), :scope('lexical'), :decl('var') ));
+            $cur_pad[0].push(QAST::Var.new( :name($name), :scope('lexical'), :decl('var') ));
         }
         $cur_pad.symbol($name, :scope('lexical'));
     }
@@ -3434,14 +3464,6 @@ class Perl6::Actions is HLL::Actions does STDActions {
         if $<name>               { %*PARAM_INFO<named_names>.push(~$<name>); }
         elsif $<param_var><name> { %*PARAM_INFO<named_names>.push(~$<param_var><name>[0]); }
         else                     { %*PARAM_INFO<named_names>.push(''); }
-    }
-
-    method defterm($/) {
-        my $name := ~$<identifier>;
-        %*PARAM_INFO<variable_name> := $name;
-        %*PARAM_INFO<desigilname>   := $name;
-        %*PARAM_INFO<sigil>         := '';
-        self.declare_param($/, $name);
     }
 
     method default_value($/) {

@@ -4124,6 +4124,8 @@ grammar Perl6::RegexGrammar is QRegex::P6Regex::Grammar does STD {
         self.typed_sorry('X::Syntax::Regex::NullRegex');
     }
 
+    token normspace { <?before \s | '#'> <.LANG('MAIN', 'ws')> }
+
     token rxstopper { <stopper> }
 
     token metachar:sym<:my> {

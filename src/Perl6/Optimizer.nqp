@@ -661,7 +661,7 @@ class Perl6::Optimizer {
                 "argument types (" ~ join(', ', @arg_names) ~ ")"),
             $obj.is_dispatcher && !$protoguilt ??
                 multi_sig_list($obj) !!
-                ["    Expected: " ~ $obj.signature.perl]);
+                ["    Expected: " ~ try { $obj.signature.perl } ]);
     }
     
     # Signature list for multis.

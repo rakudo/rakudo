@@ -12,15 +12,15 @@ my class EnumMap does Associative { # declared in BOOTSTRAP
     }
 
     multi method ACCEPTS(EnumMap:D: Any $topic) {
-        so self.exists($topic.any);
+        so self.exists_key($topic.any);
     }
 
     multi method ACCEPTS(EnumMap:D: Cool:D $topic) {
-        so self.exists($topic);
+        so self.exists_key($topic);
     }
 
     multi method ACCEPTS(EnumMap:D: Positional $topic) {
-        so self.exists($topic.any);
+        so self.exists_key($topic.any);
     }
 
     multi method ACCEPTS(EnumMap:D: Regex $topic) {
@@ -28,14 +28,24 @@ my class EnumMap does Associative { # declared in BOOTSTRAP
     }
     
     proto method exists(|) {*}
-    multi method exists(EnumMap:U:) { False }
-    multi method exists(EnumMap:D: Str:D \key) {
+    multi method exists (EnumMap:U:) {  # is DEPRECATED doesn't work in settings
+        once DEPRECATED("Method 'EnumMap.exists'","'exists_key'");
+        self.exists_key;
+    }
+    multi method exists (EnumMap:D: \key) { # is DEPRECATED doesn't work in settings
+        once DEPRECATED("Method 'EnumMap.exists'","'exists_key'");
+        self.exists_key(key);
+    }
+
+    proto method exists_key(|) {*}
+    multi method exists_key(EnumMap:U:) { False }
+    multi method exists_key(EnumMap:D: Str:D \key) {
         nqp::p6bool(
             nqp::defined($!storage)
             && nqp::existskey($!storage, nqp::unbox_s(key))
         )
     }
-    multi method exists(EnumMap:D: \key) {
+    multi method exists_key(EnumMap:D: \key) {
         nqp::p6bool(
             nqp::defined($!storage)
             && nqp::existskey($!storage, nqp::unbox_s(key.Stringy))
@@ -115,7 +125,7 @@ my class EnumMap does Associative { # declared in BOOTSTRAP
 multi sub infix:<eqv>(EnumMap:D $a, EnumMap:D $b) {
     if +$a != +$b { return Bool::False }
     for $a.kv -> $k, $v {
-        unless $b.exists($k) && $b{$k} eqv $v {
+        unless $b.exists_key($k) && $b{$k} eqv $v {
             return Bool::False;
         }
     }

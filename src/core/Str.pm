@@ -777,7 +777,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
     my %enc_type = utf8 => utf8, utf16 => utf16, utf32 => utf32;
     method encode(Str:D $encoding = 'utf8') {
         my $enc      := NORMALIZE_ENCODING($encoding);
-        my $enc_type := %enc_type.exists($enc) ?? %enc_type{$enc} !! blob8;
+        my $enc_type := %enc_type.exists_key($enc) ?? %enc_type{$enc} !! blob8;
         nqp::encode(nqp::unbox_s(self), nqp::unbox_s($enc), nqp::decont($enc_type.new))
     }
 

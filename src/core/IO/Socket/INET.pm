@@ -59,7 +59,7 @@ my class IO::Socket::INET does IO::Socket {
             }
         }
 
-        %args<listen>.=Bool if %args.exists('listen');
+        %args<listen>.=Bool if %args.exists_key('listen');
 
         #TODO: Learn what protocols map to which socket types and then determine which is needed.
         self.bless(|%args)!initialize()

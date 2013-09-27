@@ -189,7 +189,7 @@ my $_;
 sub EXPORT_SYMBOL(\exp_name, @tags, Mu \sym) {
     my @export_packages = $*EXPORT;
     for nqp::hllize(@*PACKAGES) {
-        unless .WHO.exists('EXPORT') {
+        unless .WHO.exists_key('EXPORT') {
             .WHO<EXPORT> := Metamodel::PackageHOW.new_type(:name('EXPORT'));
             .WHO<EXPORT>.^compose;
         }
@@ -198,7 +198,7 @@ sub EXPORT_SYMBOL(\exp_name, @tags, Mu \sym) {
     for @export_packages -> $p {
         for @tags -> $tag {
             my $install_in;
-            if $p.WHO.exists($tag) {
+            if $p.WHO.exists_key($tag) {
                 $install_in := $p.WHO.{$tag};
             }
             else {
@@ -206,7 +206,7 @@ sub EXPORT_SYMBOL(\exp_name, @tags, Mu \sym) {
                 $install_in.HOW.compose($install_in);
                 $p.WHO{$tag} := $install_in;
             }
-            if $install_in.WHO.exists(exp_name) {
+            if $install_in.WHO.exists_key(exp_name) {
                 unless ($install_in.WHO){exp_name} =:= sym {
                     X::Export::NameClash.new(symbol => exp_name).throw;
                 }

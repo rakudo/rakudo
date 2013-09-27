@@ -75,12 +75,12 @@ my class List does Positional { # declared in BOOTSTRAP
 
     multi method at_pos(List:D: $pos is copy) is rw {
         $pos = $pos.Int;
-        self.exists($pos)
+        self.exists_pos($pos)
           ?? nqp::atpos($!items, nqp::unbox_i($pos))
           !! Nil
     }
     multi method at_pos(List:D: int $pos) is rw {
-        self.exists($pos)
+        self.exists_pos($pos)
             ?? nqp::atpos($!items, $pos)
             !! Nil;
     }
@@ -95,7 +95,11 @@ my class List does Positional { # declared in BOOTSTRAP
         $!nextiter.defined ?? $Inf !! $n
     }
 
-    method exists(\pos) {
+    method exists (\pos) {  # is DEPRECATED doesn't work in settings
+        once DEPRECATED("Method 'List.exists'","'exists_pos'");
+        self.exists_pos(pos);
+    }
+    method exists_pos(\pos) {
         return False if !self.DEFINITE || pos < 0;
         self.gimme(pos + 1);
         nqp::p6bool( !nqp::isnull(nqp::atpos($!items, nqp::unbox_i(pos))) );

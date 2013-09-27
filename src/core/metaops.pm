@@ -237,7 +237,7 @@ multi sub hyper(\op, Associative \h) {
 
 multi sub hyper(\op, Associative \a, Associative \b, :$dwim-left, :$dwim-right) {
     my %k;
-    for a.keys { %k{$_} = 1 if !$dwim-left || b.exists($_) }
+    for a.keys { %k{$_} = 1 if !$dwim-left || b.exists_key($_) }
     for b.keys { %k{$_} = 1 if !$dwim-right }
     my @keys = %k.keys;
     hash @keys Z hyper(op, a{@keys}, b{@keys}, :$dwim-left, :$dwim-right)

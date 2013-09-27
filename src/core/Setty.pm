@@ -6,7 +6,11 @@ my role Setty does Associative {
     method keys { %!elems.values }
     method values { True xx %!elems.elems }
     method elems(--> Int) { %!elems.elems }
-    method exists($k --> Bool) {
+    method exists ($k --> Bool) {  # is DEPRECATED doesn't work in settings
+        once DEPRECATED("Method 'Setty.exists'","'exists_key'");
+        self.exists_key($k);
+    }
+    method exists_key($k --> Bool) {
         so nqp::existskey(%!elems, nqp::unbox_s($k.WHICH));
     }
     method Bool { %!elems.Bool }
@@ -75,7 +79,7 @@ multi sub infix:<(elem)>($a, Any $b --> Bool) {
     $a (elem) $b.Set(:view);
 }
 multi sub infix:<(elem)>($a, Set $b --> Bool) {
-    $b.exists($a);
+    $b.exists_key($a);
 }
 # U+2208 ELEMENT OF
 only sub infix:<<"\x2208">>($a, $b --> Bool) {
@@ -91,7 +95,7 @@ multi sub infix:<(cont)>(Any $a, $b --> Bool) {
     $a.Set(:view) (cont) $b;
 }
 multi sub infix:<(cont)>(Set $a, $b --> Bool) {
-    $a.exists($b);
+    $a.exists_key($b);
 }
 # U+220B CONTAINS AS MEMBER
 only sub infix:<<"\x220B">>($a, $b --> Bool) {

@@ -33,7 +33,11 @@ my class Capture { # declared in BOOTSTRAP
         $enum;
     }
 
-    method exists(Capture:D: $key ) {
+    method exists (Capture:D: $key ) {  # is DEPRECATED doesn't work in settings
+        once DEPRECATED("Method 'Capture.exists'","'exists_key'");
+        self.exists_key($key);
+    }
+    method exists_key(Capture:D: $key ) {
         nqp::p6bool(nqp::existskey($!hash, nqp::unbox_s($key.Str)));
     }
 

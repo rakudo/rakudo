@@ -5,7 +5,7 @@ my class KeyBag does Baggy {
           FETCH => {
               my $key   := $k.WHICH;
               my $elems := nqp::getattr(self, KeyBag, '%!elems');
-              $elems.exists($key) ?? $elems{$key}.value !! 0;
+              $elems.exists_key($key) ?? $elems{$key}.value !! 0;
           },
           STORE => -> $, $value {
               if $value > 0 {
@@ -26,7 +26,7 @@ my class KeyBag does Baggy {
     method delete($k) {
         my $key   := $k.WHICH;
         my $elems := nqp::getattr(self, KeyBag, '%!elems');
-        if $elems.exists($key) {
+        if $elems.exists_key($key) {
             my $value = $elems{$key}.value;
             $elems.delete($key);
             $value;

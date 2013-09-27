@@ -262,11 +262,11 @@ sub INDIRECT_NAME_LOOKUP($root, *@chunks) is rw {
             $name = @chunks.join('::');
         }
     }
-    my Mu $thing := $root.exists($first) ?? $root{$first} !!
-                    GLOBAL::.exists($first) ?? GLOBAL::{$first} !!
+    my Mu $thing := $root.exists_key($first) ?? $root{$first} !!
+                    GLOBAL::.exists_key($first) ?? GLOBAL::{$first} !!
                     X::NoSuchSymbol.new(symbol => $name).fail;
     for @parts {
-        X::NoSuchSymbol.new(symbol => $name).fail unless $thing.WHO.exists($_);
+        X::NoSuchSymbol.new(symbol => $name).fail unless $thing.WHO.exists_key($_);
         $thing := $thing.WHO{$_};
     }
     $thing;
@@ -275,13 +275,13 @@ sub INDIRECT_NAME_LOOKUP($root, *@chunks) is rw {
 sub REQUIRE_IMPORT($package-name, *@syms) {
     my $package = CALLER::OUR::($package-name);
     my $who     = $package.WHO;
-    unless $who.exists('EXPORT') {
+    unless $who.exists_key('EXPORT') {
         die "Trying to import symbols @syms.join(', ') from '$package-name', but it does not export anything";
     }
     $who := $who<EXPORT>.WHO<DEFAULT>.WHO;
     my @missing;
     for @syms {
-        unless $who.exists($_) {
+        unless $who.exists_key($_) {
             @missing.push: $_;
             next;
         }

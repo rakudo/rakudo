@@ -108,7 +108,7 @@ my class PseudoStash is EnumMap {
     method at_key($key is copy) is rw {
         $key = $key.Str;
         my Mu $nkey := nqp::unbox_s($key);
-        if %pseudoers.exists($key) {
+        if %pseudoers.exists_key($key) {
             %pseudoers{$key}(self)
         }
         elsif nqp::bitand_i($!mode, PRECISE_SCOPE) {
@@ -141,7 +141,7 @@ my class PseudoStash is EnumMap {
     
     method bind_key($key is copy, \value) {
         $key = $key.Str;
-        if %pseudoers.exists($key) {
+        if %pseudoers.exists_key($key) {
             X::Bind.new(target => "pseudo-package $key").throw;
         }
         elsif nqp::bitand_i($!mode, PRECISE_SCOPE) {
@@ -156,9 +156,13 @@ my class PseudoStash is EnumMap {
         }
     }
     
-    method exists($key is copy) {
+    method exists ($key) {  # is DEPRECATED doesn't work in settings
+        once DEPRECATED("Method 'PsuedoStash.exists'","'exists_key'");
+        self.exists_key($key);
+    }
+    method exists_key($key is copy) {
         $key = $key.Str;
-        if %pseudoers.exists($key) {
+        if %pseudoers.exists_key($key) {
             True
         }
         elsif nqp::bitand_i($!mode, PRECISE_SCOPE) {

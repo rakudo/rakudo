@@ -24,7 +24,7 @@ class Array { # declared in BOOTSTRAP
         # hotpath check for element existence (RT #111848)
         if nqp::existspos($items, $p)
           || nqp::getattr(self, List, '$!nextiter').defined
-          && self.exists($p) {
+          && self.exists_pos($p) {
             nqp::atpos($items, $p);
         }
         else {
@@ -41,7 +41,7 @@ class Array { # declared in BOOTSTRAP
         # hotpath check for element existence (RT #111848)
         if nqp::existspos($items, $pos)
           || nqp::getattr(self, List, '$!nextiter').defined
-          && self.exists($pos) {
+          && self.exists_pos($pos) {
             nqp::atpos($items, $pos);
         }
         else {
@@ -138,7 +138,7 @@ class Array { # declared in BOOTSTRAP
     my role TypedArray[::TValue] does Positional[TValue] {
         multi method at_pos($pos is copy) is rw {
             $pos = $pos.Int;
-            if self.exists($pos) {
+            if self.exists_pos($pos) {
                 nqp::atpos(
                   nqp::getattr(self, List, '$!items'), nqp::unbox_i($pos)
                 );
@@ -154,7 +154,7 @@ class Array { # declared in BOOTSTRAP
             }
         }
         multi method at_pos(int $pos, TValue $v? is copy) is rw {
-            if self.exists($pos) {
+            if self.exists_pos($pos) {
                 nqp::atpos(nqp::getattr(self, List, '$!items'), $pos);
             }
             else {

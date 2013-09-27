@@ -199,7 +199,7 @@ my class Hash { # declared in BOOTSTRAP
 
     # push a value onto a hash slot, constructing an array if necessary
     method !_push_construct(Mu $key, Mu $value) {
-        if self.exists($key) {
+        if self.exists_key($key) {
             if self.{$key}.^isa(Array) {
                 self.{$key}.push($value);
             } else {
@@ -214,7 +214,7 @@ my class Hash { # declared in BOOTSTRAP
     my role TypedHash[::TValue] does Associative[TValue] {
         method at_key(::?CLASS:D: $key is copy) is rw {
             $key = $key.Str;
-            if self.exists($key) {
+            if self.exists_key($key) {
                 nqp::findmethod(EnumMap, 'at_key')(self, $key);
             }
             else {
@@ -252,7 +252,7 @@ my class Hash { # declared in BOOTSTRAP
         method keyof () { TKey }
         method at_key(::?CLASS:D: TKey \key) is rw {
             my $key_which = key.WHICH;
-            if self.exists(key) {
+            if self.exists_key(key) {
                 nqp::findmethod(EnumMap, 'at_key')(self, $key_which);
             }
             else {
@@ -308,7 +308,11 @@ my class Hash { # declared in BOOTSTRAP
                 nqp::unbox_s($key_which),
                 bindval)
         }
-        method exists(TKey \key) {
+        method exists (TKey \key) {  # is DEPRECATED doesn't work in settings
+            once DEPRECATED("Method 'Hash.exists'","'exists_key'");
+            self.exists_key(key);
+        }
+        method exists_key(TKey \key) {
             nqp::defined($!keys)
               ?? nqp::p6bool(nqp::existskey($!keys, nqp::unbox_s(key.WHICH)))
               !! False

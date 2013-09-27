@@ -9,7 +9,7 @@ my class Set does Setty {
     }
 
     method at_key($k --> Bool) {
-        so nqp::getattr(self, Set, '%!elems').exists($k.WHICH);
+        so nqp::getattr(self, Set, '%!elems').exists_key($k.WHICH);
     }
 
     method delete($k --> Bool) is hidden_from_backtrace {

@@ -3,7 +3,7 @@ my class KeySet does Setty {
     method at_key($k --> Bool) {
         Proxy.new(
           FETCH => {
-              so nqp::getattr(self, KeySet, '%!elems').exists($k.WHICH);
+              so nqp::getattr(self, KeySet, '%!elems').exists_key($k.WHICH);
           },
           STORE => -> $, $value {
               if $value {
@@ -19,7 +19,7 @@ my class KeySet does Setty {
     method delete($k --> Bool) {
         my $elems := nqp::getattr(self, KeySet, '%!elems');
         my $key   := $k.WHICH;
-        return False unless $elems.exists($key);
+        return False unless $elems.exists_key($key);
 
         $elems.delete($key);
         True;

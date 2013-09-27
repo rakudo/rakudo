@@ -6,7 +6,13 @@ my role Baggy does Associative {
     method keys { %!elems.values.map( {.key} ) }
     method values { %!elems.values.map( {.value} ) }
     method elems(--> Int) { [+] self.values }
-    method exists($k --> Bool) { %!elems.exists($k.WHICH) }
+    method exists ($k --> Bool) {  # is DEPRECATED doesn't work in settings
+        once DEPRECATED("Method 'Baggy.exists'","'exists_key'");
+        self.exists_key($k);
+    }
+    method exists_key($k --> Bool) {
+        %!elems.exists_key($k.WHICH);
+    }
     method Bool { %!elems.Bool }
     method Numeric { self.elems }
     method Real { self.elems }

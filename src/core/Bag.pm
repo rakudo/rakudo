@@ -13,7 +13,7 @@ my class Bag does Baggy {
     method at_key($k --> Int) {
         my $elems := nqp::getattr(self, Bag, '%!elems');
         my $key   := $k.WHICH;
-        $elems.exists($key)
+        $elems.exists_key($key)
           ?? $elems{$key}.value
           !! 0;
     }

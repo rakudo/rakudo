@@ -87,7 +87,7 @@ my class Mu { # declared in BOOTSTRAP
                 # See if we have a value to initialize this attr
                 # with.
                 my $key_name := nqp::p6box_s(nqp::atpos_s($task, 2));
-                if %attrinit.exists($key_name) {
+                if %attrinit.exists_key($key_name) {
                     # XXX Should not really need the decontainerize, but seems
                     # that slurpy hashes sometimes lead to double containers
                     # somehow...
@@ -97,7 +97,7 @@ my class Mu { # declared in BOOTSTRAP
             }
             elsif nqp::iseq_i($code, 2) {
                 my $key_name := nqp::p6box_s(nqp::atpos_s($task, 2));
-                if %attrinit.exists($key_name) {
+                if %attrinit.exists_key($key_name) {
                     nqp::getattr(self, nqp::atpos($task, 1),
                         nqp::atpos_s($task, 3)) = nqp::decont(%attrinit{$key_name});
                 }
@@ -108,7 +108,7 @@ my class Mu { # declared in BOOTSTRAP
             }
             elsif nqp::iseq_i($code, 3) {
                 my $key_name := nqp::p6box_s(nqp::atpos_s($task, 2));
-                if %attrinit.exists($key_name) {
+                if %attrinit.exists_key($key_name) {
                     nqp::getattr(self, nqp::atpos($task, 1),
                         nqp::atpos_s($task, 3)) = nqp::decont(%attrinit{$key_name});
                 }
@@ -141,7 +141,7 @@ my class Mu { # declared in BOOTSTRAP
                 # See if we have a value to initialize this attr
                 # with.
                 my $key_name := nqp::p6box_s(nqp::atpos($task, 2));
-                if %attrinit.exists($key_name) {
+                if %attrinit.exists_key($key_name) {
                     # XXX Should not really need the decontainerize, but seems
                     # that slurpy hashes sometimes lead to double containers
                     # somehow...
@@ -151,7 +151,7 @@ my class Mu { # declared in BOOTSTRAP
             }
             elsif nqp::iseq_i($code, 2) {
                 my $key_name := nqp::p6box_s(nqp::atpos($task, 2));
-                if %attrinit.exists($key_name) {
+                if %attrinit.exists_key($key_name) {
                     nqp::getattr(self, nqp::atpos($task, 1),
                         nqp::atpos($task, 3)) = nqp::decont(%attrinit{$key_name});
                 }
@@ -162,7 +162,7 @@ my class Mu { # declared in BOOTSTRAP
             }
             elsif nqp::iseq_i($code, 3) {
                 my $key_name := nqp::p6box_s(nqp::atpos($task, 2));
-                if %attrinit.exists($key_name) {
+                if %attrinit.exists_key($key_name) {
                     nqp::getattr(self, nqp::atpos($task, 1),
                         nqp::atpos($task, 3)) = nqp::decont(%attrinit{$key_name});
                 }
@@ -204,14 +204,14 @@ my class Mu { # declared in BOOTSTRAP
                 # See if we have a value to initialize this attr
                 # with.
                 my $key_name := nqp::p6box_s(nqp::atpos_s($task, 2));
-                if %attrinit.exists($key_name) {
+                if %attrinit.exists_key($key_name) {
                     nqp::getattr(self, nqp::atpos($task, 1),
                         nqp::atpos_s($task, 3)) = nqp::decont(%attrinit{$key_name});
                 }
             }
             elsif nqp::iseq_i($code, 2) {
                 my $key_name := nqp::p6box_s(nqp::atpos_s($task, 2));
-                if %attrinit.exists($key_name) {
+                if %attrinit.exists_key($key_name) {
                     nqp::getattr(self, nqp::atpos($task, 1),
                         nqp::atpos_s($task, 3)) = nqp::decont(%attrinit{$key_name});
                 }
@@ -222,7 +222,7 @@ my class Mu { # declared in BOOTSTRAP
             }
             elsif nqp::iseq_i($code, 3) {
                 my $key_name := nqp::p6box_s(nqp::atpos_s($task, 2));
-                if %attrinit.exists($key_name) {
+                if %attrinit.exists_key($key_name) {
                     nqp::getattr(self, nqp::atpos($task, 1),
                         nqp::atpos_s($task, 3)) = nqp::decont(%attrinit{$key_name});
                 }
@@ -255,14 +255,14 @@ my class Mu { # declared in BOOTSTRAP
                 # See if we have a value to initialize this attr
                 # with.
                 my $key_name := nqp::p6box_s(nqp::atpos($task, 2));
-                if %attrinit.exists($key_name) {
+                if %attrinit.exists_key($key_name) {
                     nqp::getattr(self, nqp::atpos($task, 1),
                         nqp::atpos($task, 3)) = nqp::decont(%attrinit{$key_name});
                 }
             }
             elsif nqp::iseq_i($code, 2) {
                 my $key_name := nqp::p6box_s(nqp::atpos($task, 2));
-                if %attrinit.exists($key_name) {
+                if %attrinit.exists_key($key_name) {
                     nqp::getattr(self, nqp::atpos($task, 1),
                         nqp::atpos($task, 3)) = nqp::decont(%attrinit{$key_name});
                 }
@@ -273,7 +273,7 @@ my class Mu { # declared in BOOTSTRAP
             }
             elsif nqp::iseq_i($code, 3) {
                 my $key_name := nqp::p6box_s(nqp::atpos($task, 2));
-                if %attrinit.exists($key_name) {
+                if %attrinit.exists_key($key_name) {
                     nqp::getattr(self, nqp::atpos($task, 1),
                         nqp::atpos($task, 3)) = nqp::decont(%attrinit{$key_name});
                 }
@@ -436,7 +436,7 @@ my class Mu { # declared in BOOTSTRAP
                     if nqp::iscont($attr_val);
             }
             my $acc_name := $name.substr(2);
-            if $attr.has-accessor && %twiddles.exists($acc_name) {
+            if $attr.has-accessor && %twiddles.exists_key($acc_name) {
                 nqp::getattr($cloned, $package, $name) = %twiddles{$acc_name};
             }
         }
@@ -448,7 +448,7 @@ my class Mu { # declared in BOOTSTRAP
         for self.^attributes -> $attr {
             if $attr.has-accessor {
                 my $name = $attr.name.substr(2);
-                unless %attrs.exists($name) {
+                unless %attrs.exists_key($name) {
                     %attrs{$name} = self."$name"();
                 }
             }

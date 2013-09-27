@@ -7,7 +7,7 @@ my role Baggy does Associative {
     method values { %!elems.values.map( {.value} ) }
     method elems(--> Int) { [+] self.values }
     method exists ($k --> Bool) {  # is DEPRECATED doesn't work in settings
-        once DEPRECATED("Method 'Baggy.exists'","'exists_key'");
+        once DEPRECATED("Method 'Baggy.exists'","the :exists adverb");
         self.exists_key($k);
     }
     method exists_key($k --> Bool) {

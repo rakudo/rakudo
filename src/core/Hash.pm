@@ -309,7 +309,7 @@ my class Hash { # declared in BOOTSTRAP
                 bindval)
         }
         method exists (TKey \key) {  # is DEPRECATED doesn't work in settings
-            once DEPRECATED("Method 'Hash.exists'","'exists_key'");
+            once DEPRECATED("Method 'Hash.exists'","the :exists adverb");
             self.exists_key(key);
         }
         method exists_key(TKey \key) {

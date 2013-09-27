@@ -12,7 +12,7 @@ my class Any { # declared in BOOTSTRAP
     # primitives
     method infinite()   { Nil }
     method exists (Any:U: $key) {  # is DEPRECATED doesn't work in settings
-        once DEPRECATED("Method 'Any.exists'", "'exists_key' or 'exists_pos'");
+        once DEPRECATED("Method 'Any.exists'", "the :exists adverb");
         False;
     }
     method exists_key(Any:U: $key) { False }

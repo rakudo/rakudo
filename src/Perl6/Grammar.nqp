@@ -2637,6 +2637,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     token term:sym<time> { <sym> <.end_keyword> }
 
+    token term:sym<<∅>> { <sym> <.end_keyword> }
+
     token term:sym<rand> {
         <sym> »
         [ <?before '('? \h* [\d|'$']> <.obs('rand(N)', 'N.rand or (1..N).pick')> ]?

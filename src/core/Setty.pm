@@ -71,9 +71,6 @@ my role Setty does Associative {
     # TODO: WHICH will require the capability for >1 pointer in ObjAt
 }
 
-# U+2205 EMPTY SET
-#constant term:<<"\x2205">> = set();  # invoke() not implemented in class 'QAST::Want'
-
 proto sub infix:<(elem)>($, $ --> Bool) {*}
 multi sub infix:<(elem)>($a, Any $b --> Bool) {
     $a (elem) $b.Set(:view);
@@ -266,5 +263,3 @@ only sub infix:<<"\x2283">>($a, $b --> Bool) {
 only sub infix:<<"\x2285">>($a, $b --> Bool) {
     $a !(>) $b;
 }
-
-sub set(*@args --> Set) { Set.new(@args) }

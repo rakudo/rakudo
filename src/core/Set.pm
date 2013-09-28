@@ -19,3 +19,7 @@ my class Set does Setty {
     method Set { self }
     method KeySet { KeySet.new(self.keys) }
 }
+
+sub set(*@args --> Set) { Set.new(@args) }
+# U+2205 EMPTY SET
+#constant term:<<"\x2205">> = set();  #Cannot call ACCEPTS; no signatures match

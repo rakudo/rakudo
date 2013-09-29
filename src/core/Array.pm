@@ -65,7 +65,11 @@ class Array { # declared in BOOTSTRAP
         nqp::bindpos(nqp::getattr(self, List, '$!items'), $pos, bindval)
     }
     
-    method delete(\pos) {
+    method delete (\pos) {  # is DEPRECATED doesn't work in settings
+        once DEPRECATED("Method 'Array.delete'","the :delete adverb");
+        self.delete_pos(pos);
+    }
+    method delete_pos(\pos) {
         return Nil if pos < 0;
 
         my $value := self.at_pos(pos);

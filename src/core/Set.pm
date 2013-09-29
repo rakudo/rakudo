@@ -12,7 +12,11 @@ my class Set does Setty {
         so nqp::getattr(self, Set, '%!elems').exists_key($k.WHICH);
     }
 
-    method delete($k --> Bool) is hidden_from_backtrace {
+    method delete ($a --> Bool) {  # is DEPRECATED doesn't work in settings
+        once DEPRECATED("Method 'Set.delete'","the :delete adverb");
+        self.delete_key($a);
+    }
+    method delete_key($k --> Bool) is hidden_from_backtrace {
         X::Immutable.new( method => 'delete', typename => self.^name ).throw;
     }
 

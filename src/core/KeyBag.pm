@@ -23,7 +23,11 @@ my class KeyBag does Baggy {
         );
     }
 
-    method delete($k) {
+    method delete($k) {  # is DEPRECATED doesn't work in settings
+        once DEPRECATED("Method 'KeyBag.delete'","the :delete adverb");
+        self.delete_key($k);
+    }
+    method delete_key($k) {
         my $key   := $k.WHICH;
         my $elems := nqp::getattr(self, KeyBag, '%!elems');
         if $elems.exists_key($key) {

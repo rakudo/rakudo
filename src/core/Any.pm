@@ -17,7 +17,12 @@ my class Any { # declared in BOOTSTRAP
     }
     method exists_key(Any:U: $key) { False }
     method exists_pos(Any:U: $pos) { False }
-    method delete(Any:U: $key) { Nil }
+    method delete (Any:U: $key) {  # is DEPRECATED doesn't work in settings
+        once DEPRECATED("Method 'Any.delete'", "the :delete adverb");
+        Nil;
+    }
+    method delete_key(Any:U: $key) { Nil }
+    method delete_pos(Any:U: $pos) { Nil }
     method list() {
         nqp::p6list(
           self.DEFINITE ?? nqp::list(self) !! nqp::list(), List, Mu

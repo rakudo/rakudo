@@ -16,7 +16,11 @@ my class KeySet does Setty {
           });
     }
 
-    method delete($k --> Bool) {
+    method delete($k) {  # is DEPRECATED doesn't work in settings
+        once DEPRECATED("Method 'KeySet.delete'","the :delete adverb");
+        self.delete_key($k);
+    }
+    method delete_key($k --> Bool) {
         my $elems := nqp::getattr(self, KeySet, '%!elems');
         my $key   := $k.WHICH;
         return False unless $elems.exists_key($key);

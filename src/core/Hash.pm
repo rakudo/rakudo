@@ -96,8 +96,18 @@ my class Hash { # declared in BOOTSTRAP
     }
 
     proto method delete(|) { * }
-    multi method delete(Hash:U:) { Nil }
-    multi method delete($key as Str) {
+    multi method delete(Hash:U:) {  # is DEPRECATED doesn't work in settings
+        once DEPRECATED("Method 'Hash.delete'","the :delete adverb");
+        self.delete_key;
+    }
+    multi method delete($key as Str) {  # is DEPRECATED doesn't work in settings
+        once DEPRECATED("Method 'Hash.delete'","the :delete adverb");
+        self.delete_key($key);
+    }
+
+    proto method delete_key(|) { * }
+    multi method delete_key(Hash:U:) { Nil }
+    multi method delete_key($key as Str) {
         my Mu $val = self.at_key($key);
         nqp::deletekey(
             nqp::getattr(self, EnumMap, '$!storage'),

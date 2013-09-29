@@ -1354,8 +1354,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         }
     }
 
-    rule statement_control:sym<require> {
-        <sym>
+    token statement_control:sym<require> {
+        <sym> <.ws> :s
         [
         | <module_name>
         | <file=.variable>
@@ -1370,8 +1370,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token statement_control:sym<when> {
         <sym> <.end_keyword> :s <xblock>
     }
-    rule statement_control:sym<default> {
-        <sym><.end_keyword> <block>
+    token statement_control:sym<default> {
+        <sym> <.end_keyword> :s <block>
     }
 
     rule statement_control:sym<CATCH> {<sym> <block(1)> }

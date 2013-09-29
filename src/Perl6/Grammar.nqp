@@ -142,30 +142,35 @@ role STD {
     }
 
     method heredoc () {
-        my $here := self.'!cursor_start_cur'();
-        $here.'!cursor_pos'(self.pos);
-        while @herestub_queue {
-            my $herestub := nqp::shift(@herestub_queue);
-            my $*DELIM := $herestub.delim;
-            my $lang := $herestub.lang.HOW.mixin($herestub.lang, herestop);
-            my $doc := $here.nibble($lang);
-            if $doc {
-                # Match stopper.
-                my $stop := $lang.'!cursor_init'(self.orig(), :p($doc.pos), :shared(self.'!shared'())).stopper();
-                unless $stop {
+        if @herestub_queue {
+            my $here := self.'!cursor_start_cur'();
+            $here.'!cursor_pos'(self.pos);
+            while @herestub_queue {
+                my $herestub := nqp::shift(@herestub_queue);
+                my $*DELIM := $herestub.delim;
+                my $lang := $herestub.lang.HOW.mixin($herestub.lang, herestop);
+                my $doc := $here.nibble($lang);
+                if $doc {
+                    # Match stopper.
+                    my $stop := $lang.'!cursor_init'(self.orig(), :p($doc.pos), :shared(self.'!shared'())).stopper();
+                    unless $stop {
+                        self.panic("Ending delimiter $*DELIM not found");
+                    }
+                    $here.'!cursor_pos'($stop.pos);
+                    
+                    # Get it trimmed and AST updated.
+                    $*ACTIONS.trim_heredoc($doc, $stop, $herestub.orignode.MATCH.ast);
+                }
+                else {
                     self.panic("Ending delimiter $*DELIM not found");
                 }
-                $here.'!cursor_pos'($stop.pos);
-                
-                # Get it trimmed and AST updated.
-                $*ACTIONS.trim_heredoc($doc, $stop, $herestub.orignode.MATCH.ast);
             }
-            else {
-                self.panic("Ending delimiter $*DELIM not found");
-            }
+            $here.'!cursor_pass'($here.pos);
+            $here
         }
-        $here.'!cursor_pass'($here.pos);
-        $here
+        else {
+            self
+        }
     }
 
     method queue_heredoc($delim, $lang) {

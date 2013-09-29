@@ -130,7 +130,7 @@ only sub infix:<(&)>(**@p) {
         for @p.map(*.Bag(:view)) -> $bag {
             $bag{$_}
               ?? $keybag{$_} min= $bag{$_}
-              !! $keybag.delete($_)
+              !! $keybag.delete_key($_)
               for $keybag.keys;
         }
         $keybag.Bag(:view);
@@ -140,7 +140,7 @@ only sub infix:<(&)>(**@p) {
           ?? KeySet.new(@p.shift.keys)
           !! @p.shift.KeySet;
         for @p.map(*.Set(:view)) -> $set {
-            $set{$_} || $keyset.delete($_) for $keyset.keys;
+            $set{$_} || $keyset.delete_key($_) for $keyset.keys;
         }
         $keyset.Set(:view);
     }
@@ -160,7 +160,7 @@ only sub infix:<(-)>(**@p) {
         for @p.map(*.Bag(:view)) -> $bag {
             $bag{$_} < $keybag{$_}
               ?? $keybag{$_} -= $bag{$_}
-              !! $keybag.delete($_)
+              !! $keybag.delete_key($_)
               for $keybag.keys;
         }
         $keybag.Bag(:view);
@@ -170,7 +170,7 @@ only sub infix:<(-)>(**@p) {
           ?? KeySet.new(@p.shift.keys)
           !! @p.shift.KeySet;
         for @p.map(*.Set(:view)) -> $set {
-            $set{$_} && $keyset.delete($_) for $keyset.keys;
+            $set{$_} && $keyset.delete_key($_) for $keyset.keys;
         }
         $keyset.Set(:view);
     }

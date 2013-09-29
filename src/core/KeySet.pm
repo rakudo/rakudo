@@ -10,7 +10,7 @@ my class KeySet does Setty {
                   nqp::getattr(self, KeySet, '%!elems'){$k.WHICH} = $k;
               }
               else {
-                  nqp::getattr(self, KeySet, '%!elems').delete($k.WHICH);
+                  nqp::getattr(self, KeySet, '%!elems').delete_key($k.WHICH);
               }
               so $value;
           });
@@ -25,7 +25,7 @@ my class KeySet does Setty {
         my $key   := $k.WHICH;
         return False unless $elems.exists_key($key);
 
-        $elems.delete($key);
+        $elems.delete_key($key);
         True;
     }
 

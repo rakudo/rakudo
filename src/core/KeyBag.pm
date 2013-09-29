@@ -13,7 +13,7 @@ my class KeyBag does Baggy {
                     //= ($k => 0)).value = $value;
               }
               elsif $value == 0 {
-                  self.delete($k);
+                  self.delete_key($k);
               }
               else {
                   fail "Cannot put negative value $value for $k in {self.^name}";
@@ -32,7 +32,7 @@ my class KeyBag does Baggy {
         my $elems := nqp::getattr(self, KeyBag, '%!elems');
         if $elems.exists_key($key) {
             my $value = $elems{$key}.value;
-            $elems.delete($key);
+            $elems.delete_key($key);
             $value;
         }
         else {

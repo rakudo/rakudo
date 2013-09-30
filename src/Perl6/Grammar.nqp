@@ -353,10 +353,6 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token apostrophe {
         <[ ' \- ]>
     }
-    
-    token ident {
-        <.alpha> \w*
-    }
 
     token identifier {
         <.ident> [ <.apostrophe> <.ident> ]*

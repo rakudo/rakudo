@@ -424,18 +424,26 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         ]?
     }
 
-    token ws {
+    # ws is highly performance sensitive. So, we check if we already marked it
+    # at this point with a simple method, and only if that is not the case do
+    # we bother doing any pattern matching.
+    method ws() {
+        if self.MARKED('ws') {
+            self
+        }
+        else {
+            self._ws()
+        }
+    }
+    token _ws {
         :my $old_highexpect := self.'!fresh_highexpect'();
         :dba('whitespace')
+        <!ww>
         [
-        ||  <?MARKED('ws')>
-        ||  <!ww>
-            [
-            | <.vws> <.heredoc>
-            | <.unv>
-            ]*
-            <?MARKER('ws')>
-        ]
+        | <.vws> <.heredoc>
+        | <.unv>
+        ]*
+        <?MARKER('ws')>
         :my $stub := self.'!set_highexpect'($old_highexpect);
     }
     

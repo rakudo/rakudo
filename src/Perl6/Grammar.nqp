@@ -1022,8 +1022,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token label {
         :my $label;
         <identifier> ':' <?before \s> <.ws>
-
-}
+    }
 
     token statement {
         :my $*QSIGIL := '';

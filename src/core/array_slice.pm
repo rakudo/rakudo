@@ -3,7 +3,9 @@
 sub POSITIONS (\SELF, \pos) { # handle possible infinite slices
     my $positions = pos.flat;
     $positions.gimme(*);
-    return $positions.eager.Parcel unless $positions.infinite;
+    return $positions.map( {
+        $_ ~~ Callable ?? $_(|(SELF.elems xx $_.count)) !! $_
+    } ).eager.Parcel unless $positions.infinite;
 
     my $list = SELF.list;
     $positions.map( {
@@ -110,28 +112,22 @@ multi sub postcircumfix:<[ ]>(\SELF, Callable $block, :$BIND!) is rw {
     X::Bind::Slice.new(type => SELF.WHAT).throw;
 }
 multi sub postcircumfix:<[ ]>(\SELF,Callable $block,:$delete!,*%other) is rw {
-   SLICE_MORE( SELF, $block(|(SELF.elems xx $block.count)),
-     True, :$delete, |%other );
+   SLICE_MORE( SELF, POSITIONS(SELF,$block), True, :$delete, |%other );
 }
 multi sub postcircumfix:<[ ]>(\SELF,Callable $block,:$exists!,*%other) is rw {
-   SLICE_MORE( SELF, $block(|(SELF.elems xx $block.count)),
-     True, :$exists, |%other );
+   SLICE_MORE( SELF, POSITIONS(SELF,$block), True, :$exists, |%other );
 }
 multi sub postcircumfix:<[ ]>(\SELF, Callable $block, :$kv!, *%other) is rw {
-   SLICE_MORE( SELF, $block(|(SELF.elems xx $block.count)),
-     True, :$kv, |%other );
+   SLICE_MORE( SELF, POSITIONS(SELF,$block), True, :$kv, |%other );
 }
 multi sub postcircumfix:<[ ]>(\SELF, Callable $block, :$p!, *%other) is rw {
-   SLICE_MORE( SELF, $block(|(SELF.elems xx $block.count)),
-     True, :$p, |%other );
+   SLICE_MORE( SELF, POSITIONS(SELF,$block), True, :$p, |%other );
 }
 multi sub postcircumfix:<[ ]>(\SELF, Callable $block, :$k!, *%other) is rw {
-   SLICE_MORE( SELF, $block(|(SELF.elems xx $block.count)),
-     True, :$k, |%other );
+   SLICE_MORE( SELF, POSITIONS(SELF,$block), True, :$k, |%other );
 }
 multi sub postcircumfix:<[ ]>(\SELF, Callable $block, :$v!, *%other) is rw {
-   SLICE_MORE( SELF, $block(|(SELF.elems xx $block.count)),
-     True, :$v, |%other );
+   SLICE_MORE( SELF, POSITIONS(SELF,$block), True, :$v, |%other );
 }
 
 # @a[*]

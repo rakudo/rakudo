@@ -415,7 +415,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token end_keyword {
         <!before <[ \( \\ ' \- ]> || \h* '=>'> »
     }
-    token spacey { <?before [\s|'#'] > }
+    token spacey { <?[\s#]> }
 
     token ENDSTMT {
         [
@@ -448,7 +448,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
     
     token unsp {
-        \\ <?before [\s|'#'] >
+        \\ <?[\s#]>
         :dba('unspace')
         [
         | <.vws>
@@ -4036,7 +4036,7 @@ grammar Perl6::QGrammar is HLL::Grammar does STD {
         }
 
         # (must not allow anything to match . in nibbler or we'll lose track of state)
-        token escape:ws { \s+ [ <?before '#' > <.ws> ]? }
+        token escape:ws { \s+ [ <?[#]> <.ws> ]? }
         token escape:sym<#> { '#' <.panic: "Please backslash # for literal char or put whitespace in front for comment"> }
         token escape:sym<\\> { <sym> <item=.backslash> <.ccstate('\\' ~ $<item>.Str)> }
         token escape:sym<..> { <sym>

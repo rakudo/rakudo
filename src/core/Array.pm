@@ -70,19 +70,23 @@ class Array { # declared in BOOTSTRAP
         self.delete_pos(pos);
     }
     method delete_pos(\pos) {
-        return Nil if pos < 0;
+        fail "Cannot use negative index {pos} on {self.WHAT.perl}" if pos < 0;
 
-        my $value := self.at_pos(pos);
+        my $value := self.at_pos(pos); # needed for reification
         my $items := nqp::getattr(self,List,'$!items');
+        my $end   := self.end;
 
-        if pos == self.end {
+        if pos == $end {
             my $pos = pos;
             nqp::pop($items);
             nqp::pop($items)
               while --$pos >= 0 && nqp::isnull(nqp::atpos($items,$pos));
         }
-        else {
+        elsif pos < $end {
             nqp::bindpos($items, pos, nqp::null());
+        }
+        else {
+            return self.default;
         }
         $value;
     }

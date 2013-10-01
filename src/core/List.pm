@@ -77,7 +77,7 @@ my class List does Positional { # declared in BOOTSTRAP
         $pos = $pos.Int;
         self.exists_pos($pos)
           ?? nqp::atpos($!items, nqp::unbox_i($pos))
-          !! Nil
+          !! Nil;
     }
     multi method at_pos(List:D: int $pos) is rw {
         self.exists_pos($pos)

@@ -18,6 +18,7 @@ my role Baggy does Associative {
     method Real { self.elems }
 
     method hash(--> Hash) { %!elems.values.hash }
+    method invert(--> List) { %!elems.values.map: { ( .value => .key ) } }
 
     method new(*@args --> Baggy) {
         my %e;

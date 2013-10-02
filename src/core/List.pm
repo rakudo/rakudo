@@ -534,30 +534,30 @@ my class List does Positional { # declared in BOOTSTRAP
     }
 
     my sub combinations(Int $n, Int $k) {
-	return [] if $k == 0;
-	return () if $k > $n;
-	gather {
-	    take [0, (1..^$n)[@$_]] for combinations($n-1, $k-1);
-	    take [(1..^$n)[@$_]]    for combinations($n-1, $k  );
-	}
+        return [] if $k == 0;
+        return () if $k > $n;
+        gather {
+            take [0, (1..^$n)[@$_]] for combinations($n-1, $k-1);
+            take [(1..^$n)[@$_]]    for combinations($n-1, $k  );
+        }
     }
     proto method combinations($) {*}
     multi method combinations( Int $of ) {
-	gather take self[@$_] for combinations self.elems, $of
+        gather take self[@$_] for combinations self.elems, $of
     }
     multi method combinations( Range $of = 0 .. * ) {
-	X::NYI.new.throw;
+        X::NYI.new.throw;
     }
 
     my sub permutations(Int $n) {
-	$n == 1 ?? ( [0,] ) !!
-	gather for ^$n -> $i {
-	    my @i = grep none($i), ^$n;
-	    take [$i, @i[@$_]] for permutations($n - 1);
-	}
+        $n == 1 ?? ( [0,] ) !!
+        gather for ^$n -> $i {
+            my @i = grep none($i), ^$n;
+            take [$i, @i[@$_]] for permutations($n - 1);
+        }
     }
     method permutations() {
-	gather take self[@$_] for permutations self.elems;
+        gather take self[@$_] for permutations self.elems;
     }
 }
 

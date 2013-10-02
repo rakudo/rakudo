@@ -69,10 +69,7 @@ multi sub ok(Mu $cond, $desc = '') is export {
 }
 
 multi sub nok(Mu $cond, $desc = '') is export {
-    $time_after = nqp::p6box_n(nqp::time_n);
-    my $ok = proclaim(!$cond, $desc);
-    $time_before = nqp::p6box_n(nqp::time_n);
-    return $ok;
+    ok !$cond, $desc;
 }
 
 multi sub is(Mu $got, Mu $expected, $desc = '') is export {
@@ -89,11 +86,7 @@ multi sub is(Mu $got, Mu $expected, $desc = '') is export {
 }
 
 multi sub isnt(Mu $got, Mu $expected, $desc = '') is export {
-    $time_after = nqp::p6box_n(nqp::time_n);
-    my $test = !($got eq $expected);
-    my $ok = proclaim($test, $desc);
-    $time_before = nqp::p6box_n(nqp::time_n);
-    return $ok;
+    is $got, none($expected), $desc
 }
 
 multi sub is_approx(Mu $got, Mu $expected, $desc = '') is export {

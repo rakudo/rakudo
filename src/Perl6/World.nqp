@@ -1276,7 +1276,8 @@ class Perl6::World is HLL::World {
             $wrapper
         );
         my $comp := nqp::getcomp('perl6');
-        my $precomp := $comp.compile($compunit, :from<optimize>, :compunit_ok(1));
+        my $precomp := $comp.compile($compunit, :from<optimize>, :compunit_ok(1),
+             :lineposcache($*LINEPOSCACHE));
         my $mainline := $comp.backend.compunit_mainline($precomp);
         $mainline();
         

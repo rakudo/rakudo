@@ -3281,7 +3281,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         [
             [
             | <?[(]> <args>
-            | ':' <?[\s{]> <!{ $*QSIGIL }> <args=.arglist>
+            | ':' <?before \s | '{'> <!{ $*QSIGIL }> <args=.arglist>
             ]
             || <!{ $*QSIGIL }> <?>
             || <?{ $*QSIGIL }> <?['.']> <?>

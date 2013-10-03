@@ -448,7 +448,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
     
     token unsp {
-        \\ <?[\s#]>
+        \\ <?before \s | '#'>
         :dba('unspace')
         [
         | <.vws>

@@ -1,4 +1,4 @@
-my role Baggy does Associative {
+my role Baggy does QuantHash {
     has %!elems;  # key.WHICH => (key=>value)
 
     method BUILD (:%!elems) {}

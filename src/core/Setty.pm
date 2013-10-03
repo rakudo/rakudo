@@ -1,4 +1,4 @@
-my role Setty does Associative {
+my role Setty does QuantHash {
     has %!elems; # key.WHICH => key
 
     method BUILD (:%!elems) {}

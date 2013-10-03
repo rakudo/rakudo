@@ -10,6 +10,7 @@ my class FatRat    { ... }
 my class Enum      { ... }
 my class X::OutOfRange { ... }
 
+my role QuantHash { ... }
 my role Setty { ... }
 my class Set { ... }
 my class SetHash { ... }

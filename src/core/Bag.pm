@@ -27,5 +27,5 @@ my class Bag does Baggy {
     }
 
     method Bag { self }
-    method KeyBag { KeyBag.new-fp(nqp::getattr(self, Bag, '%!elems').values) }
+    method BagHash { BagHash.new-fp(nqp::getattr(self, Bag, '%!elems').values) }
 }

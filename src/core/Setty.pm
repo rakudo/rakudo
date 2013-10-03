@@ -105,7 +105,7 @@ only sub infix:<<"\x220C">>($a, $b --> Bool) {
 
 only sub infix:<(|)>(**@p) {
     if @p.grep(Baggy) {
-        my $keybag = KeyBag.new;
+        my $keybag = BagHash.new;
         for @p.map(*.Bag(:view)) -> $bag {
             $keybag{$_} max= $bag{$_} for $bag.keys;
         }
@@ -124,9 +124,9 @@ only sub infix:<(&)>(**@p) {
     return set() unless @p;
 
     if @p.grep(Baggy) {
-        my $keybag = @p[0] ~~ KeyBag
-          ?? KeyBag.new-fp(@p.shift.pairs)
-          !! @p.shift.KeyBag;
+        my $keybag = @p[0] ~~ BagHash
+          ?? BagHash.new-fp(@p.shift.pairs)
+          !! @p.shift.BagHash;
         for @p.map(*.Bag(:view)) -> $bag {
             $bag{$_}
               ?? $keybag{$_} min= $bag{$_}
@@ -136,9 +136,9 @@ only sub infix:<(&)>(**@p) {
         $keybag.Bag(:view);
     }
     else {
-        my $keyset = @p[0] ~~ KeySet
-          ?? KeySet.new(@p.shift.keys)
-          !! @p.shift.KeySet;
+        my $keyset = @p[0] ~~ SetHash
+          ?? SetHash.new(@p.shift.keys)
+          !! @p.shift.SetHash;
         for @p.map(*.Set(:view)) -> $set {
             $set{$_} || $keyset.delete_key($_) for $keyset.keys;
         }
@@ -154,9 +154,9 @@ only sub infix:<(-)>(**@p) {
     return set() unless @p;
 
     if @p[0] ~~ Baggy {
-        my $keybag = @p[0] ~~ KeyBag
-          ?? KeyBag.new-fp(@p.shift.pairs)
-          !! @p.shift.KeyBag;
+        my $keybag = @p[0] ~~ BagHash
+          ?? BagHash.new-fp(@p.shift.pairs)
+          !! @p.shift.BagHash;
         for @p.map(*.Bag(:view)) -> $bag {
             $bag{$_} < $keybag{$_}
               ?? $keybag{$_} -= $bag{$_}
@@ -166,9 +166,9 @@ only sub infix:<(-)>(**@p) {
         $keybag.Bag(:view);
     }
     else {
-        my $keyset = @p[0] ~~ KeySet
-          ?? KeySet.new(@p.shift.keys)
-          !! @p.shift.KeySet;
+        my $keyset = @p[0] ~~ SetHash
+          ?? SetHash.new(@p.shift.keys)
+          !! @p.shift.SetHash;
         for @p.map(*.Set(:view)) -> $set {
             $set{$_} && $keyset.delete_key($_) for $keyset.keys;
         }

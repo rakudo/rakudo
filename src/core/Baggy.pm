@@ -181,9 +181,9 @@ my role Baggy does Associative {
 }
 
 only sub infix:<(.)>(**@p) {
-    my $keybag = @p[0] ~~ KeyBag
-      ?? KeyBag.new-fp(@p.shift.pairs)
-      !! @p.shift.KeyBag;
+    my $keybag = @p[0] ~~ BagHash
+      ?? BagHash.new-fp(@p.shift.pairs)
+      !! @p.shift.BagHash;
     for @p.map(*.Bag(:view)) -> $bag {
         $bag{$_}
           ?? $keybag{$_} *= $bag{$_}
@@ -200,9 +200,9 @@ only sub infix:<<"\x228D">>(|p) {
 only sub infix:<(+)>(**@p) {
     return bag() unless @p;
 
-    my $keybag = @p[0] ~~ KeyBag
-      ?? KeyBag.new-fp(@p.shift.pairs)
-      !! @p.shift.KeyBag;
+    my $keybag = @p[0] ~~ BagHash
+      ?? BagHash.new-fp(@p.shift.pairs)
+      !! @p.shift.BagHash;
     for @p.map(*.Bag(:view)) -> $bag {
         $keybag{$_} += $bag{$_} for $bag.keys;
     }

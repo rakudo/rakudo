@@ -21,7 +21,7 @@ my class Set does Setty {
     }
 
     method Set { self }
-    method KeySet { KeySet.new(self.keys) }
+    method SetHash { SetHash.new(self.keys) }
 }
 
 sub set(*@args --> Set) { Set.new(@args) }

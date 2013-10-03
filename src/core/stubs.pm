@@ -3,10 +3,6 @@
 # Code/Block/Routine/Sub/Method and Str/Int/Num. They are built in BOOTSTRAP.pm
 # in Perl6::Metamodel for now, though should be a BEGIN block in CORE.setting
 # in the end.
-my class Bag { ... }
-my class KeyBag { ... }
-my class KeySet { ... }
-my class Set { ... }
 my class Seq is List does Positional { }
 my class Exception { ... }
 my class X::AdHoc  { ... }
@@ -14,8 +10,13 @@ my class FatRat    { ... }
 my class Enum      { ... }
 my class X::OutOfRange { ... }
 
-my role Baggy { ... }
 my role Setty { ... }
+my class Set { ... }
+my class SetHash { ... }
+
+my role Baggy { ... }
+my class Bag { ... }
+my class BagHash { ... }
 
 sub DYNAMIC(\name) is rw { 
     my Mu $x := nqp::getlexdyn(nqp::unbox_s(name));

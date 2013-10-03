@@ -6,6 +6,7 @@ my role Setty does QuantHash {
     method keys { %!elems.values }
     method values { True xx %!elems.elems }
     method elems(--> Int) { %!elems.elems }
+    method total(--> Int) { %!elems.elems }
     method exists ($k --> Bool) {  # is DEPRECATED doesn't work in settings
         once DEPRECATED("Method 'Setty.exists'","the :exists adverb");
         self.exists_key($k);

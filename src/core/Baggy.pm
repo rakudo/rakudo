@@ -5,7 +5,8 @@ my role Baggy does QuantHash {
     method default(--> Int) { 0 }
     method keys { %!elems.values.map( {.key} ) }
     method values { %!elems.values.map( {.value} ) }
-    method elems(--> Int) { [+] self.values }
+    method elems(--> Int) { %!elems.elems }
+    method total(--> Int) { [+] self.values }
     method exists ($k --> Bool) {  # is DEPRECATED doesn't work in settings
         once DEPRECATED("Method 'Baggy.exists'","the :exists adverb");
         self.exists_key($k);
@@ -14,8 +15,8 @@ my role Baggy does QuantHash {
         %!elems.exists_key($k.WHICH);
     }
     method Bool { %!elems.Bool }
-    method Numeric { self.elems }
-    method Real { self.elems }
+    method Numeric { self.total }
+    method Real { self.total }
 
     method hash(--> Hash) { %!elems.values.hash }
     method invert(--> List) { %!elems.values.map: { ( .value => .key ) } }
@@ -76,12 +77,12 @@ my role Baggy does QuantHash {
     method pick ($count = 1) {
         return self.roll if $count ~~ Num && $count == 1;
 
-        my $elems = self.elems;
-        my $picks = $elems min $count;
+        my $total = self.total;
+        my $picks = $total min $count;
         my @pairs = self.pairs.map( { $_.key => $_.value } );;
 
         map {
-            my $rand = $elems.rand.Int;
+            my $rand = $total.rand.Int;
             my $seen = 0;
             my $pick;
             for @pairs -> $pair {
@@ -89,7 +90,7 @@ my role Baggy does QuantHash {
 
                 $pick = $pair.key;
                 $pair.value--;
-                $elems--;
+                $total--;
                 last;
             }
             $pick;
@@ -97,12 +98,12 @@ my role Baggy does QuantHash {
     }
 
     method roll ($count = 1) {
-        my $elems  = self.elems;
-        my $rolls  = $count ~~ Num ?? $elems min $count !! $count;
+        my $total  = self.total;
+        my $rolls  = $count ~~ Num ?? $total min $count !! $count;
         my @pairs := self.pairs;
 
         map {
-            my $rand = $elems.rand.Int;
+            my $rand = $total.rand.Int;
             my $seen = 0;
             my $roll;
             for @pairs -> $pair {

@@ -69,6 +69,7 @@ $ops.add_hll_op('perl6', 'p6staticouter', -> $qastcomp, $op {
     ))
 });
 $ops.add_hll_pirop_mapping('perl6', 'p6scalarfromdesc', 'p6scalarfromdesc', 'PP', :inlinable(1));
+$ops.add_hll_pirop_mapping('perl6', 'p6invokehandler', 'perl6_invoke_catchhandler', 'vPP');
 
 # Make some of them also available from NQP land, since we use them in the
 # metamodel and bootstrap.

@@ -5826,10 +5826,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         # as argument and returns the result. The install the handler.
         %*HANDLERS{$type} := QAST::Stmts.new(
             :node($/),
-            QAST::VM.new(
-                :parrot(QAST::VM.new( :pirop('perl6_invoke_catchhandler__vPP'), $handler, $ex )),
-                :jvm(QAST::Op.new( :op('call'), $handler, $ex ))
-            ),
+            QAST::Op.new( :op('p6invokehandler'), $handler, $ex ),
             QAST::Var.new( :scope('lexical'), :name('Nil') )
         );
     }

@@ -132,6 +132,9 @@ my class Cool { # declared in BOOTSTRAP
     method chr() {
         self.Int.chr;
     }
+    method chrs(Cool:D:) {
+        self>>.chr.join;
+    }
 
     method flip() {
         nqp::p6box_s(nqp::flip(nqp::unbox_s(self.Str)))

@@ -13,7 +13,7 @@ my class KeyBag does Baggy {
                     //= ($k => 0)).value = $value;
               }
               elsif $value == 0 {
-                  self.delete($k);
+                  self.delete_key($k);
               }
               else {
                   fail "Cannot put negative value $value for $k in {self.^name}";
@@ -23,12 +23,16 @@ my class KeyBag does Baggy {
         );
     }
 
-    method delete($k) {
+    method delete($k) {  # is DEPRECATED doesn't work in settings
+        once DEPRECATED("Method 'KeyBag.delete'","the :delete adverb");
+        self.delete_key($k);
+    }
+    method delete_key($k) {
         my $key   := $k.WHICH;
         my $elems := nqp::getattr(self, KeyBag, '%!elems');
         if $elems.exists_key($key) {
             my $value = $elems{$key}.value;
-            $elems.delete($key);
+            $elems.delete_key($key);
             $value;
         }
         else {

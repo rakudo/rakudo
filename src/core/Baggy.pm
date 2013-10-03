@@ -18,6 +18,7 @@ my role Baggy does Associative {
     method Real { self.elems }
 
     method hash(--> Hash) { %!elems.values.hash }
+    method invert(--> List) { %!elems.values.map: { ( .value => .key ) } }
 
     method new(*@args --> Baggy) {
         my %e;
@@ -39,7 +40,7 @@ my role Baggy does Associative {
         for %e -> $p {
             my $pair := $p.value;
             @toolow.push( $pair.key ) if $pair.value <  0;
-            %e.delete($p.key)         if $pair.value <= 0;
+            %e.delete_key($p.key)     if $pair.value <= 0;
         }
         fail "Found negative values for {@toolow} in {self.^name}" if @toolow;
         self.bless(:elems(%e));
@@ -186,7 +187,7 @@ only sub infix:<(.)>(**@p) {
     for @p.map(*.Bag(:view)) -> $bag {
         $bag{$_}
           ?? $keybag{$_} *= $bag{$_}
-          !! $keybag.delete($_)
+          !! $keybag.delete_key($_)
           for $keybag.keys;
     }
     $keybag.Bag(:view);

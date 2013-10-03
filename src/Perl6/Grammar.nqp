@@ -2649,6 +2649,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     token term:sym<time> { <sym> <.end_keyword> }
 
+    token term:sym<<∅>> { <sym> <.end_keyword> }
+
     token term:sym<rand> {
         <sym> »
         [ <?before '('? \h* [\d|'$']> <.obs('rand(N)', 'N.rand or (1..N).pick')> ]?
@@ -4135,6 +4137,8 @@ grammar Perl6::RegexGrammar is QRegex::P6Regex::Grammar does STD {
     method throw_null_pattern() {
         self.typed_sorry('X::Syntax::Regex::NullRegex');
     }
+
+    token normspace { <?before \s | '#'> <.LANG('MAIN', 'ws')> }
 
     token rxstopper { <stopper> }
 

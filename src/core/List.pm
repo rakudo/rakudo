@@ -77,7 +77,7 @@ my class List does Positional { # declared in BOOTSTRAP
         $pos = $pos.Int;
         self.exists_pos($pos)
           ?? nqp::atpos($!items, nqp::unbox_i($pos))
-          !! Nil
+          !! Nil;
     }
     multi method at_pos(List:D: int $pos) is rw {
         self.exists_pos($pos)
@@ -531,6 +531,33 @@ my class List does Positional { # declared in BOOTSTRAP
     # apparently is used by LoL.  Please remove when no longer necessary.
     method STORE_AT_POS(Int \pos, Mu \v) is rw {
         nqp::bindpos($!items, nqp::unbox_i(pos), v)
+    }
+
+    my sub combinations(Int $n, Int $k) {
+        return [] if $k == 0;
+        return () if $k > $n;
+        gather {
+            take [0, (1..^$n)[@$_]] for combinations($n-1, $k-1);
+            take [(1..^$n)[@$_]]    for combinations($n-1, $k  );
+        }
+    }
+    proto method combinations($) {*}
+    multi method combinations( Int $of ) {
+        gather take self[@$_] for combinations self.elems, $of
+    }
+    multi method combinations( Range $of = 0 .. * ) {
+        X::NYI.new.throw;
+    }
+
+    my sub permutations(Int $n) {
+        $n == 1 ?? ( [0,] ) !!
+        gather for ^$n -> $i {
+            my @i = grep none($i), ^$n;
+            take [$i, @i[@$_]] for permutations($n - 1);
+        }
+    }
+    method permutations() {
+        gather take self[@$_] for permutations self.elems;
     }
 }
 

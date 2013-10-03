@@ -18,7 +18,11 @@ my class Bag does Baggy {
           !! 0;
     }
 
-    method delete($a --> Int) is hidden_from_backtrace {
+    method delete ($a --> Int) {  # is DEPRECATED doesn't work in settings
+        once DEPRECATED("Method 'Bag.delete'","the :delete adverb");
+        self.delete_key($a);
+    }
+    method delete_key($a --> Int) is hidden_from_backtrace {
         X::Immutable.new( method => 'delete', typename => self.^name ).throw;
     }
 

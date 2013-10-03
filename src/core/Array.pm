@@ -65,20 +65,28 @@ class Array { # declared in BOOTSTRAP
         nqp::bindpos(nqp::getattr(self, List, '$!items'), $pos, bindval)
     }
     
-    method delete(\pos) {
-        return Nil if pos < 0;
+    method delete (\pos) {  # is DEPRECATED doesn't work in settings
+        once DEPRECATED("Method 'Array.delete'","the :delete adverb");
+        self.delete_pos(pos);
+    }
+    method delete_pos(\pos) {
+        fail "Cannot use negative index {pos} on {self.WHAT.perl}" if pos < 0;
 
-        my $value := self.at_pos(pos);
+        my $value := self.at_pos(pos); # needed for reification
         my $items := nqp::getattr(self,List,'$!items');
+        my $end   := self.end;
 
-        if pos == self.end {
+        if pos == $end {
             my $pos = pos;
             nqp::pop($items);
             nqp::pop($items)
               while --$pos >= 0 && nqp::isnull(nqp::atpos($items,$pos));
         }
-        else {
+        elsif pos < $end {
             nqp::bindpos($items, pos, nqp::null());
+        }
+        else {
+            return self.default;
         }
         $value;
     }

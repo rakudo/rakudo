@@ -3896,6 +3896,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
         make QAST::Op.new( :op('call'), :name('&term:<time>'), :node($/) );
     }
 
+    method term:sym<∅>($/) {
+        make QAST::Op.new( :op('call'), :name('&set'), :node($/) );
+    }
+
     method term:sym<rand>($/) {
         make QAST::Op.new( :op('call'), :name('&rand'), :node($/) );
     }

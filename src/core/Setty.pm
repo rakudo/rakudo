@@ -71,9 +71,6 @@ my role Setty does Associative {
     # TODO: WHICH will require the capability for >1 pointer in ObjAt
 }
 
-# U+2205 EMPTY SET
-#constant term:<<"\x2205">> = set();  # invoke() not implemented in class 'QAST::Want'
-
 proto sub infix:<(elem)>($, $ --> Bool) {*}
 multi sub infix:<(elem)>($a, Any $b --> Bool) {
     $a (elem) $b.Set(:view);
@@ -133,7 +130,7 @@ only sub infix:<(&)>(**@p) {
         for @p.map(*.Bag(:view)) -> $bag {
             $bag{$_}
               ?? $keybag{$_} min= $bag{$_}
-              !! $keybag.delete($_)
+              !! $keybag.delete_key($_)
               for $keybag.keys;
         }
         $keybag.Bag(:view);
@@ -143,7 +140,7 @@ only sub infix:<(&)>(**@p) {
           ?? KeySet.new(@p.shift.keys)
           !! @p.shift.KeySet;
         for @p.map(*.Set(:view)) -> $set {
-            $set{$_} || $keyset.delete($_) for $keyset.keys;
+            $set{$_} || $keyset.delete_key($_) for $keyset.keys;
         }
         $keyset.Set(:view);
     }
@@ -163,7 +160,7 @@ only sub infix:<(-)>(**@p) {
         for @p.map(*.Bag(:view)) -> $bag {
             $bag{$_} < $keybag{$_}
               ?? $keybag{$_} -= $bag{$_}
-              !! $keybag.delete($_)
+              !! $keybag.delete_key($_)
               for $keybag.keys;
         }
         $keybag.Bag(:view);
@@ -173,7 +170,7 @@ only sub infix:<(-)>(**@p) {
           ?? KeySet.new(@p.shift.keys)
           !! @p.shift.KeySet;
         for @p.map(*.Set(:view)) -> $set {
-            $set{$_} && $keyset.delete($_) for $keyset.keys;
+            $set{$_} && $keyset.delete_key($_) for $keyset.keys;
         }
         $keyset.Set(:view);
     }
@@ -266,5 +263,3 @@ only sub infix:<<"\x2283">>($a, $b --> Bool) {
 only sub infix:<<"\x2285">>($a, $b --> Bool) {
     $a !(>) $b;
 }
-
-sub set(*@args --> Set) { Set.new(@args) }

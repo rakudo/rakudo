@@ -17,7 +17,12 @@ my class Any { # declared in BOOTSTRAP
     }
     method exists_key(Any:U: $key) { False }
     method exists_pos(Any:U: $pos) { False }
-    method delete(Any:U: $key) { Nil }
+    method delete (Any:U: $key) {  # is DEPRECATED doesn't work in settings
+        once DEPRECATED("Method 'Any.delete'", "the :delete adverb");
+        Nil;
+    }
+    method delete_key(Any:U: $key) { Nil }
+    method delete_pos(Any:U: $pos) { Nil }
     method list() {
         nqp::p6list(
           self.DEFINITE ?? nqp::list(self) !! nqp::list(), List, Mu
@@ -400,19 +405,20 @@ sub SLICE_ONE ( \SELF, $one, $array, *%adv ) is hidden_from_backtrace {
     my @nogo;
 
     my $return = do {
-        if %a.delete('delete') {              # :delete:*
+        if %a.delete_key('delete') {          # :delete:*
+            my $de = SELF.can( $array ?? 'delete_pos' !! 'delete_key' )[0];
             if !%a {                            # :delete
-                SELF.delete($one);
+                $de(SELF,$one);
             }
             elsif %a.exists_key('exists') {     # :delete:exists(0|1):*
-                my $exists   := %a.delete('exists');
+                my $exists   := %a.delete_key('exists');
                 my $wasthere := $ex(SELF,$one);
-                SELF.delete($one);
+                $de(SELF,$one);
                 if !%a {                          # :delete:exists(0|1)
                     !( $wasthere ?^ $exists )
                 }
                 elsif %a.exists_key('kv') {       # :delete:exists(0|1):kv(0|1)
-                    my $kv := %a.delete('kv');
+                    my $kv := %a.delete_key('kv');
                     if !%a {
                         !$kv | $wasthere
                           ?? ( $one, !( $wasthere ?^ $exists ) ) 
@@ -423,7 +429,7 @@ sub SLICE_ONE ( \SELF, $one, $array, *%adv ) is hidden_from_backtrace {
                     }
                 }
                 elsif %a.exists_key('p') {        # :delete:exists(0|1):p(0|1)
-                    my $p := %a.delete('p');
+                    my $p := %a.delete_key('p');
                     if !%a {
                         !$p | $wasthere
                           ?? RWPAIR($one, !($wasthere ?^ $exists) )
@@ -438,10 +444,10 @@ sub SLICE_ONE ( \SELF, $one, $array, *%adv ) is hidden_from_backtrace {
                 }
             }
             elsif %a.exists_key('kv') {         # :delete:kv(0|1)
-                my $kv := %a.delete('kv');
+                my $kv := %a.delete_key('kv');
                 if !%a {
                     !$kv | $ex(SELF,$one)
-                      ?? ( $one, SELF.delete($one) )
+                      ?? ( $one, $de(SELF,$one) )
                       !! ();
                 }
                 else {
@@ -449,10 +455,10 @@ sub SLICE_ONE ( \SELF, $one, $array, *%adv ) is hidden_from_backtrace {
                 }
             }
             elsif %a.exists_key('p') {          # :delete:p(0|1)
-                my $p := %a.delete('p');
+                my $p := %a.delete_key('p');
                 if !%a {
                     !$p | $ex(SELF,$one)
-                      ?? RWPAIR($one, SELF.delete($one))
+                      ?? RWPAIR($one, $de(SELF,$one))
                       !! ();
                 }
                 else {
@@ -460,10 +466,10 @@ sub SLICE_ONE ( \SELF, $one, $array, *%adv ) is hidden_from_backtrace {
                 }
             }
             elsif %a.exists_key('k') {          # :delete:k(0|1)
-                my $k := %a.delete('k');
+                my $k := %a.delete_key('k');
                 if !%a {
                     !$k | $ex(SELF,$one)
-                      ?? do { SELF.delete($one); $one }
+                      ?? do { $de(SELF,$one); $one }
                       !! ();
                 }
                 else {
@@ -471,10 +477,10 @@ sub SLICE_ONE ( \SELF, $one, $array, *%adv ) is hidden_from_backtrace {
                 }
             }
             elsif %a.exists_key('v') {          # :delete:v(0|1)
-                my $v := %a.delete('v');
+                my $v := %a.delete_key('v');
                 if !%a {
                     !$v | $ex(SELF,$one)
-                      ?? SELF.delete($one)
+                      ?? $de(SELF,$one)
                       !! ();
                 }
                 else {
@@ -486,13 +492,13 @@ sub SLICE_ONE ( \SELF, $one, $array, *%adv ) is hidden_from_backtrace {
             }
         }
         elsif %a.exists_key('exists') {       # :!delete?:exists(0|1):*
-            my $exists  := %a.delete('exists');
+            my $exists  := %a.delete_key('exists');
             my $wasthere = $ex(SELF,$one);
             if !%a {                            # :!delete?:exists(0|1)
                 !( $wasthere ?^ $exists )
             }
             elsif %a.exists_key('kv') {         # :!delete?:exists(0|1):kv(0|1)
-                my $kv := %a.delete('kv');
+                my $kv := %a.delete_key('kv');
                 if !%a {
                     !$kv | $wasthere
                       ?? ( $one, !( $wasthere ?^ $exists ) )
@@ -503,7 +509,7 @@ sub SLICE_ONE ( \SELF, $one, $array, *%adv ) is hidden_from_backtrace {
                 }
             }
             elsif %a.exists_key('p') {          # :!delete?:exists(0|1):p(0|1)
-                my $p := %a.delete('p');
+                my $p := %a.delete_key('p');
                 if !%a {
                     !$p | $wasthere
                       ?? RWPAIR($one, !( $wasthere ?^ $exists ))
@@ -518,7 +524,7 @@ sub SLICE_ONE ( \SELF, $one, $array, *%adv ) is hidden_from_backtrace {
             }
         }
         elsif %a.exists_key('kv') {           # :!delete?:kv(0|1):*
-            my $kv := %a.delete('kv');
+            my $kv := %a.delete_key('kv');
             if !%a {                            # :!delete?:kv(0|1)
                 !$kv | $ex(SELF,$one)
                   ?? ($one, $array ?? SELF.at_pos($one) !! SELF.at_key($one))
@@ -529,7 +535,7 @@ sub SLICE_ONE ( \SELF, $one, $array, *%adv ) is hidden_from_backtrace {
             }
         }
         elsif %a.exists_key('p') {            # :!delete?:p(0|1):*
-            my $p := %a.delete('p');
+            my $p := %a.delete_key('p');
             if !%a {                            # :!delete?:p(0|1)
                 !$p | $ex(SELF,$one)
                   ?? RWPAIR($one,
@@ -541,7 +547,7 @@ sub SLICE_ONE ( \SELF, $one, $array, *%adv ) is hidden_from_backtrace {
             }
         }
         elsif %a.exists_key('k') {            # :!delete?:k(0|1):*
-            my $k := %a.delete('k');
+            my $k := %a.delete_key('k');
             if !%a {                            # :!delete?:k(0|1)
                 !$k | $ex(SELF,$one)
                   ?? $one
@@ -552,7 +558,7 @@ sub SLICE_ONE ( \SELF, $one, $array, *%adv ) is hidden_from_backtrace {
             }
         }
         elsif %a.exists_key('v') {            # :!delete?:v(0|1):*
-            my $v := %a.delete('v');            # :!delete?:v(0|1)
+            my $v := %a.delete_key('v');            # :!delete?:v(0|1)
             if !%a {
                 !$v | $ex(SELF,$one)
                   ?? ($array ?? SELF.at_pos($one) !! SELF.at_key($one))
@@ -581,13 +587,13 @@ sub SLICE_MORE ( \SELF, $more, $array, *%adv ) is hidden_from_backtrace {
     my $ex = SELF.can( $array ?? 'exists_pos' !! 'exists_key' )[0];
 
     my $return = do {
-        if %a.delete('delete') {           # :delete:*
-            my $de = SELF.can( $array ?? 'delete' !! 'delete' )[0];
+        if %a.delete_key('delete') {       # :delete:*
+            my $de = SELF.can( $array ?? 'delete_pos' !! 'delete_key' )[0];
             if !%a {                         # :delete
                 $more.list.map( { $de(SELF,$_) } ).eager.Parcel;
             }
             elsif %a.exists_key('exists') {  # :delete:exists(0|1):*
-                my $exists := %a.delete('exists');
+                my $exists := %a.delete_key('exists');
                 my $wasthere; # no need to initialize every iteration of map
                 if !%a {                       # :delete:exists(0|1)
                     $more.list.map( {
@@ -596,7 +602,7 @@ sub SLICE_MORE ( \SELF, $more, $array, *%adv ) is hidden_from_backtrace {
                     } ).eager.Parcel
                 }
                 elsif %a.exists_key('kv') {    # :delete:exists(0|1):kv(0|1):*
-                    my $kv := %a.delete('kv');
+                    my $kv := %a.delete_key('kv');
                     if !%a {                     # :delete:exists(0|1):kv(0|1)
                         $more.list.map( {
                             $de(SELF,$_) if $wasthere = $ex(SELF,$_);
@@ -610,7 +616,7 @@ sub SLICE_MORE ( \SELF, $more, $array, *%adv ) is hidden_from_backtrace {
                     }
                 }
                 elsif %a.exists_key('p') {     # :delete:exists(0|1):p(0|1):*
-                    my $p := %a.delete('p');
+                    my $p := %a.delete_key('p');
                     if !%a {                     # :delete:exists(0|1):p(0|1)
                         $more.list.map( {
                             $de(SELF,$_) if $wasthere = $ex(SELF,$_);
@@ -628,7 +634,7 @@ sub SLICE_MORE ( \SELF, $more, $array, *%adv ) is hidden_from_backtrace {
                 }
             }
             elsif %a.exists_key('kv') {      # :delete:kv(0|1):*
-                my $kv := %a.delete('kv');
+                my $kv := %a.delete_key('kv');
                 if !%a {                       # :delete:kv(0|1)
                     $kv
                       ?? $more.list.map( {
@@ -643,7 +649,7 @@ sub SLICE_MORE ( \SELF, $more, $array, *%adv ) is hidden_from_backtrace {
                 }
             }
             elsif %a.exists_key('p') {       # :delete:p(0|1):*
-                my $p := %a.delete('p');
+                my $p := %a.delete_key('p');
                 if !%a {                       # :delete:p(0|1)
                     $p
                       ?? $more.list.map( {
@@ -658,7 +664,7 @@ sub SLICE_MORE ( \SELF, $more, $array, *%adv ) is hidden_from_backtrace {
                 }
             }
             elsif %a.exists_key('k') {       # :delete:k(0|1):*
-                my $k := %a.delete('k');
+                my $k := %a.delete_key('k');
                 if !%a {                       # :delete:k(0|1)
                     $k
                       ?? $more.list.map( {
@@ -673,7 +679,7 @@ sub SLICE_MORE ( \SELF, $more, $array, *%adv ) is hidden_from_backtrace {
                 }
             }
             elsif %a.exists_key('v') {       # :delete:v(0|1):*
-                my $v := %a.delete('v');
+                my $v := %a.delete_key('v');
                 if !%a {                       # :delete:v(0|1)
                     $v
                       ?? $more.list.map( {
@@ -692,12 +698,12 @@ sub SLICE_MORE ( \SELF, $more, $array, *%adv ) is hidden_from_backtrace {
             }
         }
         elsif %a.exists_key('exists') {    # :!delete?:exists(0|1):*
-            my $exists := %a.delete('exists');
+            my $exists := %a.delete_key('exists');
             if !%a {                         # :!delete?:exists(0|1)
                 $more.list.map({ !( $ex(SELF,$_) ?^ $exists ) }).eager.Parcel;
             }
             elsif %a.exists_key('kv') {      # :!delete?:exists(0|1):kv(0|1):*
-                my $kv := %a.delete('kv');
+                my $kv := %a.delete_key('kv');
                 if !%a {                       # :!delete?:exists(0|1):kv(0|1)
                     $kv
                       ?? $more.list.map( {
@@ -712,7 +718,7 @@ sub SLICE_MORE ( \SELF, $more, $array, *%adv ) is hidden_from_backtrace {
                 }
             }
             elsif %a.exists_key('p') {       # :!delete?:exists(0|1):p(0|1):*
-                my $p := %a.delete('p');
+                my $p := %a.delete_key('p');
                 if !%a {                       # :!delete?:exists(0|1):p(0|1)
                     $p
                       ?? $more.list.map( {
@@ -731,7 +737,7 @@ sub SLICE_MORE ( \SELF, $more, $array, *%adv ) is hidden_from_backtrace {
             }
         }
         elsif %a.exists_key('kv') {        # :!delete?:kv(0|1):*
-            my $kv := %a.delete('kv');
+            my $kv := %a.delete_key('kv');
             if !%a {                         # :!delete?:kv(0|1)
                 $kv
                   ?? $more.list.map( {
@@ -746,7 +752,7 @@ sub SLICE_MORE ( \SELF, $more, $array, *%adv ) is hidden_from_backtrace {
             }
         }
         elsif %a.exists_key('p') {         # :!delete?:p(0|1):*
-            my $p := %a.delete('p');
+            my $p := %a.delete_key('p');
             if !%a {                         # :!delete?:p(0|1)
                 $p
                   ?? $more.list.map( {
@@ -761,7 +767,7 @@ sub SLICE_MORE ( \SELF, $more, $array, *%adv ) is hidden_from_backtrace {
             }
         }
         elsif %a.exists_key('k') {         # :!delete?:k(0|1):*
-            my $k := %a.delete('k');
+            my $k := %a.delete_key('k');
             if !%a {                         # :!delete?:k(0|1)
                 $k
                   ?? $more.list.map( { $ex(SELF,$_) ?? $_ !! () } ).eager.Parcel
@@ -772,7 +778,7 @@ sub SLICE_MORE ( \SELF, $more, $array, *%adv ) is hidden_from_backtrace {
             }
         }
         elsif %a.exists_key('v') {         # :!delete?:v(0|1):*
-            my $v := %a.delete('v');
+            my $v := %a.delete_key('v');
             if !%a {                         # :!delete?:v(0|1)
                 $v
                   ??  $more.list.map( {

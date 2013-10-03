@@ -5186,19 +5186,6 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
     }
 
-    # filter out underscores and similar stuff
-    sub filter_number($n) {
-        my int $i := 0;
-        my str $allowed := '0123456789';
-        my str $result := '';
-        while $i < nqp::chars($n) {
-            my $char := nqp::substr($n, $i, 1);
-            $result := $result ~ $char if nqp::index($allowed, $char) >= 0;
-            $i++;
-        }
-        $result;
-    }
-
     method escale($/) {
         make $<sign> eq '-'
             ??  nqp::neg_I($<decint>.ast, $<decint>.ast)
@@ -5207,12 +5194,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
     method dec_number($/) {
 #        say("dec_number: $/");
-        my $int  := $<int> ?? filter_number(~$<int>) !! "0";
-        my $frac := $<frac> ?? filter_number(~$<frac>) !! "0";
         if $<escale> {
-            my $e := nqp::islist($<escale>) ?? $<escale>[0] !! $<escale>;
 #            say('dec_number exponent: ' ~ ~$e.ast);
-            make radcalc($/, 10, $<coeff>, 10, nqp::unbox_i($e.ast), :num);
+            make radcalc($/, 10, $<coeff>, 10, nqp::unbox_i($<escale>.ast), :num);
         } else {
             make radcalc($/, 10, $<coeff>);
         }

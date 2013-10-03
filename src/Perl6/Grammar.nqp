@@ -2760,8 +2760,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token dec_number {
         :dba('decimal number')
         [
-        | $<coeff> = [               '.' <frac=.decint> ] <escale>**0..1
-        | $<coeff> = [ <int=.decint> '.' <frac=.decint> ] <escale>**0..1
+        | $<coeff> = [               '.' <frac=.decint> ] <escale>?
+        | $<coeff> = [ <int=.decint> '.' <frac=.decint> ] <escale>?
         | $<coeff> = [ <int=.decint>                    ] <escale>
         ]
     }

@@ -314,7 +314,7 @@ my class IO::Handle does IO::FileTestable {
     method flush() {
         fail("File handle not open, so cannot flush")
             unless nqp::defined($!PIO);
-        $!PIO.flush();
+        nqp::flushfh($!PIO);
         True;
     }
 

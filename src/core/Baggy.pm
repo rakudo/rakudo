@@ -53,7 +53,9 @@ my role Baggy does QuantHash {
           !! $other.^does(self);
     }
 
-    multi method Str(Baggy:D $ : --> Str) { ~ self.pairs.map({ .key xx .value }) }
+    multi method Str(Baggy:D $ : --> Str) {
+        ~ %!elems.values.map({ .key xx .value });
+    }
     multi method gist(Baggy:D $ : --> Str) {
         my $name := self.^name;
         ( $name eq 'Bag' ?? 'bag' !! "$name.new" )
@@ -79,7 +81,7 @@ my role Baggy does QuantHash {
 
         my $total = self.total;
         my $picks = $total min $count;
-        my @pairs = self.pairs.map( { $_.key => $_.value } );;
+        my @pairs = %!elems.values.map( { $_.key => $_.value } );
 
         map {
             my $rand = $total.rand.Int;
@@ -100,7 +102,7 @@ my role Baggy does QuantHash {
     method roll ($count = 1) {
         my $total  = self.total;
         my $rolls  = $count ~~ Num ?? $total min $count !! $count;
-        my @pairs := self.pairs;
+        my @pairs := %!elems.values;
 
         map {
             my $rand = $total.rand.Int;

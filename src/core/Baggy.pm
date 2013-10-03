@@ -54,17 +54,17 @@ my role Baggy does QuantHash {
     }
 
     multi method Str(Baggy:D $ : --> Str) {
-        ~ %!elems.values.map({ .key xx .value });
+        ~ %!elems.values.map( {
+              .value == 1 ?? .key.gist !! "{.key.gist}({.value})"
+          } );
     }
     multi method gist(Baggy:D $ : --> Str) {
         my $name := self.^name;
         ( $name eq 'Bag' ?? 'bag' !! "$name.new" )
         ~ '('
         ~ %!elems.values.map( {
-            .value > 1  # rather arbitrarily
-              ?? "{.key.gist}({.value})"
-              !! .key.gist xx .value
-        } ).join(', ')
+              .value == 1 ?? .key.gist !! "{.key.gist}({.value})"
+          } ).join(', ')
         ~ ')';
     }
     multi method perl(Baggy:D $ : --> Str) {

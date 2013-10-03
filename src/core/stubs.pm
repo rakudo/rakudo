@@ -19,6 +19,10 @@ my role Baggy { ... }
 my class Bag { ... }
 my class BagHash { ... }
 
+my role Mixy { ... }
+my class Mix { ... }
+my class MixHash { ... }
+
 sub DYNAMIC(\name) is rw { 
     my Mu $x := nqp::getlexdyn(nqp::unbox_s(name));
     if nqp::isnull($x) {
@@ -38,4 +42,3 @@ sub DYNAMIC(\name) is rw {
     }
     Dummy.HOW.set_autogen_proto(&Dummy::AUTOGEN);
 }
-

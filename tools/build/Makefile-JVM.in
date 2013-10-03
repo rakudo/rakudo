@@ -192,6 +192,9 @@ CORE_SOURCES = \
   src/core/Baggy.pm \
   src/core/Bag.pm \
   src/core/BagHash.pm \
+  src/core/Mixy.pm \
+  src/core/Mix.pm \
+  src/core/MixHash.pm \
   src/core/set_operators.pm \
   src/core/ObjAt.pm \
   src/core/Version.pm \

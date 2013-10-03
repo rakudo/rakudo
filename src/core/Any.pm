@@ -242,6 +242,8 @@ my class Any { # declared in BOOTSTRAP
     method SetHash() { SetHash.new-fp(self.list) }
     method Bag()     {     Bag.new-fp(self.list) }
     method BagHash() { BagHash.new-fp(self.list) }
+    method Mix()     {     Mix.new-fp(self.list) }
+    method MixHash() { MixHash.new-fp(self.list) }
 }
 Metamodel::ClassHOW.exclude_parent(Any);
 

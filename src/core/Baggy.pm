@@ -31,7 +31,7 @@ my role Baggy does QuantHash {
         my %e;
         for @pairs {
             when Pair {
-                (%e{$_.key.WHICH} //= ($_.key => 0)).value += $_.value;
+                (%e{$_.key.WHICH} //= ($_.key => 0)).value += $_.value.Int;
             }
             default {
                 (%e{$_.WHICH} //= ($_ => 0)).value++;

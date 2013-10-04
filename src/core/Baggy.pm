@@ -85,7 +85,7 @@ my role Baggy does QuantHash {
         my $picks  = $total min $count;
         my @pairs := $BIND
           ?? %!elems.values
-          !! %!elems.values.map( { .key => .value } );
+          !! %!elems.values.map( { $_.key => $_.value } );
 
         map {
             my $rand = $total.rand.Int;

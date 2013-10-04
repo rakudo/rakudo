@@ -21,4 +21,6 @@ my class Mix does Mixy {
 
     method Mix { self }
     method MixHash { MixHash.new-fp(nqp::getattr(self, Mix, '%!elems').values) }
+    method Bag     {     Bag.new-fp(nqp::getattr(self, Mix, '%!elems').values) }
+    method BagHash { BagHash.new-fp(nqp::getattr(self, Mix, '%!elems').values) }
 }

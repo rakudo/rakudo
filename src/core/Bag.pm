@@ -29,6 +29,8 @@ my class Bag does Baggy {
         X::Immutable.new( method => 'grab', typename => self.^name ).throw;
     }
 
-    method Bag { self }
+    method Bag     { self }
     method BagHash { BagHash.new-fp(nqp::getattr(self, Bag, '%!elems').values) }
+    method Mix     {     Mix.new-fp(nqp::getattr(self, Bag, '%!elems').values) }
+    method MixHash { MixHash.new-fp(nqp::getattr(self, Bag, '%!elems').values) }
 }

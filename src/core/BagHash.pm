@@ -51,4 +51,10 @@ my class BagHash does Baggy {
         }
     }           
     method BagHash { self }
+    method Mix     {
+        Mix.new-fp(nqp::getattr(self, BagHash, '%!elems').values);
+    }
+    method MixHash {
+        MixHash.new-fp(nqp::getattr(self, BagHash, '%!elems').values);
+    }
 }

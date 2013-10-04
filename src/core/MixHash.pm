@@ -48,4 +48,10 @@ my class MixHash does Mixy {
         }
     }           
     method MixHash { self }
+    method Bag     {
+        Bag.new-fp(nqp::getattr(self, MixHash, '%!elems').values);
+    }
+    method BagHash {
+        BagHash.new-fp(nqp::getattr(self, MixHash, '%!elems').values);
+    }
 }

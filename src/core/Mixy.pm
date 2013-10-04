@@ -14,6 +14,10 @@ my role Mixy does Baggy  {  # should really be QuantHash, but that's for later
         ~ ')';
     }
 
+    method grab ($count = 1) {
+        fail ".grab is not supported on a {.self.^name}";
+    }
+
     method pick ($count = 1) {
         fail ".pick is not supported on a {.self.^name}";
     }

@@ -23,7 +23,10 @@ my class Bag does Baggy {
         self.delete_key($a);
     }
     method delete_key($a --> Int) is hidden_from_backtrace {
-        X::Immutable.new( method => 'delete', typename => self.^name ).throw;
+        X::Immutable.new( method => 'delete_key', typename => self.^name ).throw;
+    }
+    method grab($count = 1 --> Int) is hidden_from_backtrace {
+        X::Immutable.new( method => 'grab', typename => self.^name ).throw;
     }
 
     method Bag { self }

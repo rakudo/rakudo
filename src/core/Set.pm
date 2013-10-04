@@ -17,7 +17,10 @@ my class Set does Setty {
         self.delete_key($a);
     }
     method delete_key($k --> Bool) is hidden_from_backtrace {
-        X::Immutable.new( method => 'delete', typename => self.^name ).throw;
+        X::Immutable.new( method => 'delete_key', typename => self.^name ).throw;
+    }
+    method grab ($count = 1) {
+        X::Immutable.new( method => 'grab', typename => self.^name ).throw;
     }
 
     method Set { self }

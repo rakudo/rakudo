@@ -76,12 +76,16 @@ my role Baggy does QuantHash {
     method list() { self.keys }
     method pairs() { %!elems.values }
 
-    method pick ($count = 1) {
-        return self.roll if $count ~~ Num && $count == 1;
+    method grab ($count = 1) { self.pick($count, :BIND) }
 
-        my $total = self.total;
-        my $picks = $total min $count;
-        my @pairs = %!elems.values.map( { $_.key => $_.value } );
+    method pick ($count = 1, :$BIND) {
+        return self.roll if $count ~~ Num && $count == 1 && !$BIND;
+
+        my $total  = self.total;
+        my $picks  = $total min $count;
+        my @pairs := $BIND
+          ?? %!elems.values
+          !! %!elems.values.map( { .key => .value } );
 
         map {
             my $rand = $total.rand.Int;

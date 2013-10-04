@@ -14,7 +14,10 @@ my class Mix does Mixy {
         self.delete_key($a);
     }
     method delete_key($a --> Real) is hidden_from_backtrace {
-        X::Immutable.new( method => 'delete', typename => self.^name ).throw;
+        X::Immutable.new( method => 'delete_key', typename => self.^name ).throw;
+    }
+    method grab($count = 1 --> Real) is hidden_from_backtrace {
+        X::Immutable.new( method => 'grab', typename => self.^name ).throw;
     }
 
     method Mix { self }

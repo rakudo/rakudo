@@ -546,7 +546,10 @@ my class List does Positional { # declared in BOOTSTRAP
         gather take self[@$_] for combinations self.elems, $of
     }
     multi method combinations( Range $of = 0 .. * ) {
-        X::NYI.new.throw;
+	gather for @$of {
+	    last if $_ > self.elems;
+	    take self.combinations($_);
+	}
     }
 
     my sub permutations(Int $n) {

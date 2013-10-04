@@ -1,10 +1,13 @@
 my class Set does Setty {
+    has Int $!total;
     has $!WHICH;
 
+    submethod total { $!total }
     submethod WHICH { $!WHICH }
     submethod BUILD (:%elems) {
         my @keys := %elems.keys.sort;
-        $!WHICH = self.^name ~ '|' ~ @keys.sort;
+        $!total  := %elems.elems;
+        $!WHICH  := self.^name ~ '|' ~ @keys.sort;
         nqp::bindattr(self, Set, '%!elems', %elems);
     }
 

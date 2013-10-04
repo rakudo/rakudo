@@ -1,5 +1,4 @@
 my class Mix does Mixy {
-    has $!WHICH;
 
     method at_key($k --> Real) {
         my $elems := nqp::getattr(self, Mix, '%!elems');

@@ -15,8 +15,6 @@ my role Setty does QuantHash {
         so nqp::existskey(%!elems, nqp::unbox_s($k.WHICH));
     }
     method Bool { %!elems.Bool }
-    method Numeric { %!elems.Numeric }
-    method Real { %!elems.Numeric.Real }
 
     method hash(--> Hash) {
         my %e;

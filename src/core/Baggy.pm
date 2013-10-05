@@ -15,8 +15,6 @@ my role Baggy does QuantHash {
         %!elems.exists_key($k.WHICH);
     }
     method Bool { %!elems.Bool }
-    method Numeric { self.total }
-    method Real { self.total }
 
     method hash(--> Hash) { %!elems.values.hash }
     method invert(--> List) { %!elems.values.map: { ( .value => .key ) } }

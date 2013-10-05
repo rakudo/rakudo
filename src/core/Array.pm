@@ -1,4 +1,5 @@
 my class X::Item { ... };
+my class X::TypeCheck { ... };
 
 class Array { # declared in BOOTSTRAP
     # class Array is List {
@@ -7,6 +8,7 @@ class Array { # declared in BOOTSTRAP
     method new(|) { 
         my Mu $args := nqp::p6argvmarray();
         nqp::shift($args);
+
         nqp::p6list($args, self.WHAT, Bool::True);
     }
 
@@ -144,6 +146,27 @@ class Array { # declared in BOOTSTRAP
     }
 
     my role TypedArray[::TValue] does Positional[TValue] {
+        method new(|) { 
+            my Mu $args := nqp::p6argvmarray();
+            nqp::shift($args);
+            
+            my $list := nqp::p6list($args, self.WHAT, Bool::True);
+
+            my $of = self.of;
+            if ( $of !=:= Mu ) {
+                for @$list {
+                    if $_ !~~ $of {
+                        X::TypeCheck.new(
+                          operation => '.new',
+                          expected  => $of,
+                          got       => $_,
+                        ).throw;
+                    }
+                }
+            }
+
+            $list;
+        }
         multi method at_pos($pos is copy) is rw {
             $pos = $pos.Int;
             if self.exists_pos($pos) {

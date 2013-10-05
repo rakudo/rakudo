@@ -68,9 +68,9 @@ my role Baggy does QuantHash {
         ~ ')';
     }
     multi method perl(Baggy:D $ : --> Str) {
-        "{self.^name}.new-fp("
+        '('
         ~ %!elems.values.map( {"{.key.perl}=>{.value}"} ).join(',')
-        ~ ')';
+        ~ ").{self.^name}"
     }
 
     method list() { self.keys }

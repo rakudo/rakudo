@@ -1,6 +1,8 @@
 my class Set does Setty {
+    has Int $!total;
     has $!WHICH;
 
+    method total { $!total //= nqp::getattr(self, Set, '%!elems').elems }
     submethod WHICH { $!WHICH }
     submethod BUILD (:%elems) {
         my @keys := %elems.keys.sort;

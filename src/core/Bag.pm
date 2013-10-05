@@ -1,6 +1,11 @@
 my class Bag does Baggy {
+    has Int $!total;
     has $!WHICH;
 
+    method total {
+        $!total //=
+          [+] nqp::getattr(self, Bag, '%!elems').values.map( { .value } );
+    }
     submethod WHICH { $!WHICH }
     submethod BUILD (:%elems)  {
         my @keys := %elems.keys.sort;

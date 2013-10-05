@@ -33,11 +33,11 @@ only sub infix:<<"\x220C">>($a, $b --> Bool) {
 
 only sub infix:<(|)>(**@p) {
     if @p.grep(Baggy) {
-        my $keybag = BagHash.new;
+        my $baghash = BagHash.new;
         for @p.map(*.Bag(:view)) -> $bag {
-            $keybag{$_} max= $bag{$_} for $bag.keys;
+            $baghash{$_} max= $bag{$_} for $bag.keys;
         }
-        $keybag.Bag(:view);
+        $baghash.Bag(:view);
     }
     else {
         Set.new( @p.map(*.Set(:view).keys) );
@@ -52,25 +52,25 @@ only sub infix:<(&)>(**@p) {
     return set() unless @p;
 
     if @p.grep(Baggy) {
-        my $keybag = @p[0] ~~ BagHash
+        my $baghash = @p[0] ~~ BagHash
           ?? BagHash.new-fp(@p.shift.pairs)
           !! @p.shift.BagHash;
         for @p.map(*.Bag(:view)) -> $bag {
             $bag{$_}
-              ?? $keybag{$_} min= $bag{$_}
-              !! $keybag.delete_key($_)
-              for $keybag.keys;
+              ?? $baghash{$_} min= $bag{$_}
+              !! $baghash.delete_key($_)
+              for $baghash.keys;
         }
-        $keybag.Bag(:view);
+        $baghash.Bag(:view);
     }
     else {
-        my $keyset = @p[0] ~~ SetHash
+        my $sethash = @p[0] ~~ SetHash
           ?? SetHash.new(@p.shift.keys)
           !! @p.shift.SetHash;
         for @p.map(*.Set(:view)) -> $set {
-            $set{$_} || $keyset.delete_key($_) for $keyset.keys;
+            $set{$_} || $sethash.delete_key($_) for $sethash.keys;
         }
-        $keyset.Set(:view);
+        $sethash.Set(:view);
     }
 }
 # U+2229 INTERSECTION
@@ -82,25 +82,25 @@ only sub infix:<(-)>(**@p) {
     return set() unless @p;
 
     if @p[0] ~~ Baggy {
-        my $keybag = @p[0] ~~ BagHash
+        my $baghash = @p[0] ~~ BagHash
           ?? BagHash.new-fp(@p.shift.pairs)
           !! @p.shift.BagHash;
         for @p.map(*.Bag(:view)) -> $bag {
-            $bag{$_} < $keybag{$_}
-              ?? $keybag{$_} -= $bag{$_}
-              !! $keybag.delete_key($_)
-              for $keybag.keys;
+            $bag{$_} < $baghash{$_}
+              ?? $baghash{$_} -= $bag{$_}
+              !! $baghash.delete_key($_)
+              for $baghash.keys;
         }
-        $keybag.Bag(:view);
+        $baghash.Bag(:view);
     }
     else {
-        my $keyset = @p[0] ~~ SetHash
+        my $sethash = @p[0] ~~ SetHash
           ?? SetHash.new(@p.shift.keys)
           !! @p.shift.SetHash;
         for @p.map(*.Set(:view)) -> $set {
-            $set{$_} && $keyset.delete_key($_) for $keyset.keys;
+            $set{$_} && $sethash.delete_key($_) for $sethash.keys;
         }
-        $keyset.Set(:view);
+        $sethash.Set(:view);
     }
 }
 # U+2216 SET MINUS
@@ -193,16 +193,16 @@ only sub infix:<<"\x2285">>($a, $b --> Bool) {
 }
 
 only sub infix:<(.)>(**@p) {
-    my $keybag = @p[0] ~~ BagHash
+    my $baghash = @p[0] ~~ BagHash
       ?? BagHash.new-fp(@p.shift.pairs)
       !! @p.shift.BagHash;
     for @p.map(*.Bag(:view)) -> $bag {
         $bag{$_}
-          ?? $keybag{$_} *= $bag{$_}
-          !! $keybag.delete_key($_)
-          for $keybag.keys;
+          ?? $baghash{$_} *= $bag{$_}
+          !! $baghash.delete_key($_)
+          for $baghash.keys;
     }
-    $keybag.Bag(:view);
+    $baghash.Bag(:view);
 }
 # U+228D MULTISET MULTIPLICATION
 only sub infix:<<"\x228D">>(|p) {
@@ -212,13 +212,13 @@ only sub infix:<<"\x228D">>(|p) {
 only sub infix:<(+)>(**@p) {
     return bag() unless @p;
 
-    my $keybag = @p[0] ~~ BagHash
+    my $baghash = @p[0] ~~ BagHash
       ?? BagHash.new-fp(@p.shift.pairs)
       !! @p.shift.BagHash;
     for @p.map(*.Bag(:view)) -> $bag {
-        $keybag{$_} += $bag{$_} for $bag.keys;
+        $baghash{$_} += $bag{$_} for $bag.keys;
     }
-    $keybag.Bag(:view);
+    $baghash.Bag(:view);
 }
 # U+228E MULTISET UNION
 only sub infix:<<"\x228E">>(|p) {

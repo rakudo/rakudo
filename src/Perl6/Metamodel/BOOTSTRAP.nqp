@@ -1677,6 +1677,8 @@ BEGIN {
         nqp::getstaticcode(sub ($self, *@pos, *%named) {
             if !nqp::isconcrete($self) && !nqp::can($self, 'postcircumfix:<( )>') {
                 my $coercer_name := $self.HOW.name($self);
+                nqp::die("Cannot coerce to $coercer_name with named parameters")
+                  if +%named;
                 if +@pos == 1 {
                     @pos[0]."$coercer_name"()
                 }

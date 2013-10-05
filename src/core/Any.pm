@@ -21,8 +21,18 @@ my class Any { # declared in BOOTSTRAP
         once DEPRECATED("Method 'Any.delete'", "the :delete adverb");
         Nil;
     }
-    method delete_key(Any:U: $key) { Nil }
-    method delete_pos(Any:U: $pos) { Nil }
+    proto method delete_key(|) { * }
+    multi method delete_key(Any:U: $key) { Nil }
+    multi method delete_key(Any:D: $key) {
+        fail "Can not remove values from a {self.^name}";
+    }
+
+    proto method delete_pos(|) { * }
+    multi method delete_pos(Any:U: $pos) { Nil }
+    multi method delete_pos(Any:D: $pos) {
+        fail "Can not remove elements from a {self.^name}";
+    }
+
     method list() {
         nqp::p6list(
           self.DEFINITE ?? nqp::list(self) !! nqp::list(), List, Mu

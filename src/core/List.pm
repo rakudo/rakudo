@@ -10,6 +10,7 @@ my class List does Positional { # declared in BOOTSTRAP
     method new(|) {
         my Mu $args := nqp::p6argvmarray();
         nqp::shift($args);
+
         nqp::p6list($args, self.WHAT, Mu);
     }
 

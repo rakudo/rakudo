@@ -75,7 +75,9 @@ my role Baggy does QuantHash {
     method pairs() { %!elems.values }
 
     method grab ($count = 1) {
-        ROLLPICKGRAB(self, $count, %!elems.values);
+        my @grab = ROLLPICKGRAB(self, $count, %!elems.values);
+        %!elems{ @grab.map({.WHICH}).grep: { %!elems{$_}.value == 0 } }:delete;
+        @grab;
     }
     method pick ($count = 1) {
         ROLLPICKGRAB(self, $count, %!elems.values.map: { (.key => .value) });

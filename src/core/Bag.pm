@@ -33,6 +33,9 @@ my class Bag does Baggy {
     method grab($count = 1 --> Int) is hidden_from_backtrace {
         X::Immutable.new( method => 'grab', typename => self.^name ).throw;
     }
+    method grabpairs($count = 1 --> Int) is hidden_from_backtrace {
+        X::Immutable.new( method => 'grabpairs', typename => self.^name ).throw;
+    }
 
     method Bag     { self }
     method BagHash { BagHash.new-fp(nqp::getattr(self, Bag, '%!elems').values) }

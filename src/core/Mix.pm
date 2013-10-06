@@ -23,6 +23,9 @@ my class Mix does Mixy {
     method grab($count = 1 --> Real) is hidden_from_backtrace {
         X::Immutable.new( method => 'grab', typename => self.^name ).throw;
     }
+    method grabpairs($count = 1 --> Real) is hidden_from_backtrace {
+        X::Immutable.new( method => 'grabpairs', typename => self.^name ).throw;
+    }
 
     method Mix { self }
     method MixHash { MixHash.new-fp(nqp::getattr(self, Mix, '%!elems').values) }

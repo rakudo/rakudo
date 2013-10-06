@@ -24,6 +24,9 @@ my class Set does Setty {
     method grab ($count = 1) {
         X::Immutable.new( method => 'grab', typename => self.^name ).throw;
     }
+    method grabpairs ($count = 1) {
+        X::Immutable.new( method => 'grabpairs', typename => self.^name ).throw;
+    }
 
     method Set { self }
     method SetHash { SetHash.new(self.keys) }

@@ -13,6 +13,10 @@ my class Backtrace::Frame {
         $s eq 'mu' ?? '' !! $s;
     }
 
+    method package(Backtrace::Frame:D:) {
+        $.code.package;
+    }
+
     multi method Str(Backtrace::Frame:D:) {
         my $s = self.subtype;
         $s ~= ' ' if $s.chars;

@@ -74,50 +74,38 @@ my role Baggy does QuantHash {
     method list() { self.keys }
     method pairs() { %!elems.values }
 
-    method grab ($count = 1) { self.pick($count, :BIND) }
+    method grab ($count = 1) {
+        ROLLPICKGRAB(self, $count, %!elems.values);
+    }
+    method pick ($count = 1) {
+        ROLLPICKGRAB(self, $count, %!elems.values.map: { (.key => .value) });
+    }
+    method roll ($count = 1) {
+        ROLLPICKGRAB(self, $count, %!elems.values, :keep);
+    }
 
-    method pick ($count = 1, :$BIND) {
-        return self.roll if $count ~~ Num && $count == 1 && !$BIND;
-
-        my $total  = self.total;
-        my $picks  = $total min $count;
-        my @pairs := $BIND
-          ?? %!elems.values
-          !! %!elems.values.map( { $_.key => $_.value } );
+    sub ROLLPICKGRAB ($self, $count, @pairs is rw, :$keep) is hidden_from_backtrace {
+        my $total = $self.total;
+        my $todo  = $count ~~ Num
+          ?? $total min $count
+          !! ($count ~~ Whatever ?? $total !! $count);
 
         map {
             my $rand = $total.rand.Int;
             my $seen = 0;
-            my $pick;
+            my $selected;
             for @pairs -> $pair {
                 next if ( $seen += $pair.value ) <= $rand;
 
-                $pick = $pair.key;
+                $selected = $pair.key;
+                last if $keep;
+
                 $pair.value--;
                 $total--;
                 last;
             }
-            $pick;
-        }, 1 .. $picks;
-    }
-
-    method roll ($count = 1) {
-        my $total  = self.total;
-        my $rolls  = $count ~~ Num ?? $total min $count !! $count;
-        my @pairs := %!elems.values;
-
-        map {
-            my $rand = $total.rand.Int;
-            my $seen = 0;
-            my $roll;
-            for @pairs -> $pair {
-                next if ( $seen += $pair.value ) <= $rand;
-
-                $roll = $pair.key;
-                last;
-            }
-            $roll;
-        }, 1 .. $rolls;
+            $selected;
+        }, 1 .. $todo;
     }
 
     proto method classify-list(|) { * }

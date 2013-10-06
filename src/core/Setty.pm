@@ -64,7 +64,9 @@ my role Setty does QuantHash {
 
     method list() { %!elems.values }
     method pairs() { %!elems.values.map({ $_ => True }) } 
-    method grab($count = 1) { (%!elems{ %!elems.keys.pick($count) }:delete).list }
+    method grab($count = 1) {
+        (%!elems{ %!elems.keys.pick($count) }:delete).list;
+    }
     method pick($count = 1) { %!elems.values.pick($count) }
     method roll($count = 1) { %!elems.values.roll($count) }
 

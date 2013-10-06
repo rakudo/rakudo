@@ -108,6 +108,10 @@ my role Baggy does QuantHash {
         }, 1 .. $todo;
     }
 
+    method grabpairs($count = 1) {
+        (%!elems{ %!elems.keys.pick($count) }:delete).list;
+    }
+
     proto method classify-list(|) { * }
     multi method classify-list( &test, *@list ) {
         fail 'Cannot .classify an infinite list' if @list.infinite;

@@ -71,7 +71,7 @@ my class Backtrace is List {
         $new;
     }
 
-    method next-interesting-index(Backtrace:D: Int $idx is copy = 0) {
+    method next-interesting-index(Backtrace:D: Int $idx is copy = 0, :$named) {
         ++$idx;
         # NOTE: the < $.end looks like an off-by-one error
         # but it turns out that a simple   perl6 -e 'die "foo"'
@@ -79,7 +79,9 @@ my class Backtrace is List {
         # consider the last one
         loop (; $idx < self.end; ++$idx) {
             my $cand = self.at_pos($idx);
-            return $idx unless $cand.is-hidden;
+            next if $cand.is-hidden;          # hidden is never interesting
+            next if $named && !$cand.subname; # only want named ones
+            return $idx;
         }
         Int;
     }

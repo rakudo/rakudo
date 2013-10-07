@@ -2643,6 +2643,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         if $<onlystar> {
             $*W.apply_trait($/, '&trait_mod:<is>', $*DECLARAND, :onlystar(1));
         }
+        $*W.add_phasers_handling_code($code, $past);
 
         # Install method.
         if $name {

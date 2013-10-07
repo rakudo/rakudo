@@ -203,6 +203,7 @@ CORE_SOURCES = \
   src/core/metaops.pm \
   src/core/precedence.pm \
   src/core/terms.pm \
+  src/core/Deprecations.pm \
   src/vm/jvm/core/Threading.pm \
   src/core/IO/Socket.pm \
   src/core/IO/Socket/INET.pm \

@@ -86,8 +86,8 @@ my class Backtrace is List {
             my $cand = self.at_pos($idx);
             next if $cand.is-hidden;          # hidden is never interesting
             next if $named && !$cand.subname; # only want named ones
-            next if $noproto                       # no proto's please
-              && try { $cand.code.is_dispatcher }; # if a dispatcher
+            next if $noproto                  # no proto's please
+              && $cand.code.?is_dispatcher;   #  if a dispatcher
             return $idx;
         }
         Int;

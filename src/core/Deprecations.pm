@@ -10,13 +10,38 @@ class Deprecation {
     has %.callsites;    # places where called (file -> line -> count)
 
     method WHICH { ($!file,$!type,$!package,$!name).join(':') }
+
+    proto method report (|) { * }
+    multi method report (Deprecation:U:) {
+        return Nil unless %DEPRECATIONS;
+
+        my $message = "Saw {+%DEPRECATIONS} call{ 's' if +%DEPRECATIONS != 1 } to deprecated code during execution.\n";
+        $message ~= ("=" x 80) ~ "\n";
+        for %DEPRECATIONS.values -> $d {
+            $message ~= $d.report;
+            $message ~= ("-" x 80) ~ "\n";
+        }
+
+        %DEPRECATIONS = ();  # reset for new batches if applicable
+
+        $message.chop;
+    }
+    multi method report (Deprecation:D:) {
+        my $message = "$.type $.name (from $.package) called at:\n";
+        for %.callsites.kv -> $file, $lines {
+            $message ~=
+              "  $file, line{ 's' if +$lines > 1 } {$lines.keys.join(',')}\n";
+        }
+        $message ~= "Please use $.alternative instead.\n";
+        $message;
+    }
 }
 
 sub DEPRECATED ($alternative) {
 
     my $bt = Backtrace.new;
-    my $deprecated = $bt[ my $index = $bt.next-interesting-index(2,:named) ];
-    my $callsite   = $bt[ $bt.next-interesting-index($index) ];
+    my $deprecated = $bt[ my $index = $bt.next-interesting-index(2, :named) ];
+    my $callsite   = $bt[$index = $bt.next-interesting-index($index, :noproto)];
 
     # get object, existing or new
     my $what = Deprecation.new(
@@ -33,23 +58,12 @@ sub DEPRECATED ($alternative) {
 } 
 
 END {
-    if %DEPRECATIONS {
+    if my $message = Deprecation.report {
         my Mu $err := nqp::getstderr();
         my sub say2 ($s) { nqp::printfh($err, "$s\n") }
 
-        say2 "Saw {+%DEPRECATIONS} call{ 's' if +%DEPRECATIONS != 1 } to deprecated code during execution.";
-        say2 "=" x 80;
-
-        for %DEPRECATIONS.values -> $d {
-            say2 "{$d.type} {$d.name} (from {$d.package}) called at:";
-            for $d.callsites.kv -> $file, $lines {
-                say2 "  $file, line{ 's' if +$lines > 1 } {$lines.keys.join(',')}";
-            }
-            say2 "Please use {$d.alternative} instead.";
-            say2 "-" x 80;
-        }
-
-        say2 "Please contact the author to have these calls to deprecated";
-        say2 "code adapted, so that this message will disappear!";
+        say2 $message;
+        say2 "Please contact the author to have these calls to deprecated code adapted,";
+        say2 "so that this message will disappear!";
     }
 }

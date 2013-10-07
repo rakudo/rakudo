@@ -15,7 +15,7 @@ my class Set does Setty {
     }
 
     method delete ($a --> Bool) {  # is DEPRECATED doesn't work in settings
-        once DEPRECATED("Method 'Set.delete'","the :delete adverb");
+        DEPRECATED("the :delete adverb");
         self.delete_key($a);
     }
     method delete_key($k --> Bool) is hidden_from_backtrace {

@@ -94,15 +94,10 @@ multi trait_mod:<is>(Routine:D $r, :$default!) {
     $r does role { method default() { True } }
 }
 multi trait_mod:<is>(Routine:D $r, :$DEPRECATED!) {
-    my $old := $r.WHAT ~~ Method
-      ?? "Method '{$r.name}'" # suggestions for getting the package name welcome
-      !! "Sub '{$r.name}'";
     my $new := $DEPRECATED ~~ Bool
       ?? "something else"
       !! $DEPRECATED;
-    $r.add_phaser( 'ENTER', -> {
-        once DEPRECATED($old, $new);
-    } );
+    $r.add_phaser( 'ENTER', -> { DEPRECATED($new) } );
 }
 multi trait_mod:<is>(Routine:D $r, Mu :$inlinable!) {
     $r.set_inline_info(nqp::decont($inlinable));

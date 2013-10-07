@@ -12,13 +12,13 @@ my class Any { # declared in BOOTSTRAP
     # primitives
     method infinite()   { Nil }
     method exists (Any:U: $key) {  # is DEPRECATED doesn't work in settings
-        once DEPRECATED("Method 'Any.exists'", "the :exists adverb");
+        DEPRECATED("the :exists adverb");
         False;
     }
     method exists_key(Any:U: $key) { False }
     method exists_pos(Any:U: $pos) { False }
     method delete (Any:U: $key) {  # is DEPRECATED doesn't work in settings
-        once DEPRECATED("Method 'Any.delete'", "the :delete adverb");
+        DEPRECATED("the :delete adverb");
         Nil;
     }
     proto method delete_key(|) { * }

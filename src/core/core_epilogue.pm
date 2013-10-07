@@ -1,8 +1,3 @@
-
-sub DEPRECATED ( $old, $new ) is hidden_from_backtrace {
-    warn "$old has been deprecated, please use $new instead";
-}
-
 # Re-parent meta-objects so they appear to be under Any.
 BEGIN {
     Perl6::Metamodel::ClassHOW.HOW.reparent(Perl6::Metamodel::ClassHOW, Any);

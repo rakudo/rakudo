@@ -34,7 +34,7 @@ my class Capture { # declared in BOOTSTRAP
     }
 
     method exists (Capture:D: $key ) {  # is DEPRECATED doesn't work in settings
-        once DEPRECATED("Method 'Capture.exists'","the :exists adverb");
+        DEPRECATED("the :exists adverb");
         self.exists_key($key);
     }
     method exists_key(Capture:D: $key ) {

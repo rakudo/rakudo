@@ -24,7 +24,7 @@ my class BagHash does Baggy {
     }
 
     method delete($k) {  # is DEPRECATED doesn't work in settings
-        once DEPRECATED("Method 'BagHash.delete'","the :delete adverb");
+        DEPRECATED("the :delete adverb");
         self.delete_key($k);
     }
     method delete_key($k) {

@@ -97,11 +97,11 @@ my class Hash { # declared in BOOTSTRAP
 
     proto method delete(|) { * }
     multi method delete(Hash:U:) {  # is DEPRECATED doesn't work in settings
-        once DEPRECATED("Method 'Hash.delete'","the :delete adverb");
+        DEPRECATED("the :delete adverb");
         self.delete_key;
     }
     multi method delete($key as Str) {  # is DEPRECATED doesn't work in settings
-        once DEPRECATED("Method 'Hash.delete'","the :delete adverb");
+        DEPRECATED("the :delete adverb");
         self.delete_key($key);
     }
 
@@ -319,7 +319,7 @@ my class Hash { # declared in BOOTSTRAP
                 bindval)
         }
         method exists (TKey \key) {  # is DEPRECATED doesn't work in settings
-            once DEPRECATED("Method 'Hash.exists'","the :exists adverb");
+            DEPRECATED("the :exists adverb");
             self.exists_key(key);
         }
         method exists_key(TKey \key) {

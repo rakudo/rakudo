@@ -24,7 +24,7 @@ my class Bag does Baggy {
     }
 
     method delete ($a --> Int) {  # is DEPRECATED doesn't work in settings
-        once DEPRECATED("Method 'Bag.delete'","the :delete adverb");
+        DEPRECATED("the :delete adverb");
         self.delete_key($a);
     }
     method delete_key($a --> Int) is hidden_from_backtrace {

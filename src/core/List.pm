@@ -97,7 +97,7 @@ my class List does Positional { # declared in BOOTSTRAP
     }
 
     method exists (\pos) {  # is DEPRECATED doesn't work in settings
-        once DEPRECATED("Method 'List.exists'","the :exists adverb");
+        DEPRECATED("the :exists adverb");
         self.exists_pos(pos);
     }
     method exists_pos(\pos) {

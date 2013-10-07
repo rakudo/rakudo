@@ -157,7 +157,7 @@ my class PseudoStash is EnumMap {
     }
     
     method exists ($key) {  # is DEPRECATED doesn't work in settings
-        once DEPRECATED("Method 'PsuedoStash.exists'","the :exists adverb");
+        DEPRECATED("the :exists adverb");
         self.exists_key($key);
     }
     method exists_key($key is copy) {

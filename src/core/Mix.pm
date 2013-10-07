@@ -14,7 +14,7 @@ my class Mix does Mixy {
     }
 
     method delete ($a --> Real) {  # is DEPRECATED doesn't work in settings
-        once DEPRECATED("Method 'Mix.delete'","the :delete adverb");
+        DEPRECATED("the :delete adverb");
         self.delete_key($a);
     }
     method delete_key($a --> Real) is hidden_from_backtrace {

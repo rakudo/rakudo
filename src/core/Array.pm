@@ -68,7 +68,7 @@ class Array { # declared in BOOTSTRAP
     }
     
     method delete (\pos) {  # is DEPRECATED doesn't work in settings
-        once DEPRECATED("Method 'Array.delete'","the :delete adverb");
+        DEPRECATED("the :delete adverb");
         self.delete_pos(pos);
     }
     method delete_pos(\pos) {

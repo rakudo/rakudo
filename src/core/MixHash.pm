@@ -21,7 +21,7 @@ my class MixHash does Mixy {
     }
 
     method delete($k) {  # is DEPRECATED doesn't work in settings
-        once DEPRECATED("Method 'MixHash.delete'","the :delete adverb");
+        DEPRECATED("the :delete adverb");
         self.delete_key($k);
     }
     method delete_key($k) {

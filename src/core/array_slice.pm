@@ -17,7 +17,7 @@ sub POSITIONS (\SELF, \pos) { # handle possible infinite slices
 proto sub postcircumfix:<[ ]>(|) { * }
 
 # @a[1]
-multi sub postcircumfix:<[ ]>( \SELF, int $pos ) is rw {
+multi sub postcircumfix:<[ ]>( \SELF, int $pos ) is rw is default {
     fail "Cannot use negative index $pos on {SELF.WHAT.perl}" if $pos < 0;
     SELF.at_pos($pos);
 }
@@ -25,23 +25,8 @@ multi sub postcircumfix:<[ ]>(\SELF, int $pos, Mu :$BIND! is parcel) is rw {
     fail "Cannot use negative index $pos on {SELF.WHAT.perl}" if $pos < 0;
     SELF.bind_pos($pos, $BIND);
 }
-multi sub postcircumfix:<[ ]>( \SELF, int $pos, :$delete!, *%other ) is rw {
-    SLICE_ONE( SELF, $pos, True, :$delete, |%other );
-}
-multi sub postcircumfix:<[ ]>( \SELF, int $pos, :$exists!, *%other ) is rw {
-    SLICE_ONE( SELF, $pos, True, :$exists, |%other );
-}
-multi sub postcircumfix:<[ ]>( \SELF, int $pos, :$kv!, *%other ) is rw {
-    SLICE_ONE( SELF, $pos, True, :$kv, |%other );
-}
-multi sub postcircumfix:<[ ]>( \SELF, int $pos, :$p!, *%other ) is rw {
-    SLICE_ONE( SELF, $pos, True, :$p, |%other );
-}
-multi sub postcircumfix:<[ ]>( \SELF, int $pos, :$k!, *%other ) is rw {
-    SLICE_ONE( SELF, $pos, True, :$k, |%other );
-}
-multi sub postcircumfix:<[ ]>( \SELF, int $pos, :$v!, *%other ) is rw {
-    SLICE_ONE( SELF, $pos, True, :$v, |%other );
+multi sub postcircumfix:<[ ]>( \SELF, int $pos, *%adv ) is rw {
+    SLICE_ONE( SELF, $pos, True, |%adv );
 }
 
 # @a[$x]

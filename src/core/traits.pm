@@ -91,9 +91,7 @@ multi trait_mod:<is>(Routine:D $r, :$parcel!) {
     $r.set_rw(); # for now, until we have real parcel handling
 }
 multi trait_mod:<is>(Routine:D $r, :$default!) {
-    # needed in bootstrap of postcircumfix:<[ ]> where infix:<does> isn't
-    # defined yet, so cheat.
-    $r.HOW.mixin($r, role { method default() { True } });
+    $r does role { method default() { True } }
 }
 multi trait_mod:<is>(Routine:D $r, :$DEPRECATED!) {
     my $new := $DEPRECATED ~~ Bool

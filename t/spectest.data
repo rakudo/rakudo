@@ -595,6 +595,7 @@ S32-array/bool.t
 S32-array/create.t
 S32-array/delete.t
 S32-array/delete-adverb.t
+S32-array/delete-adverb-native.t
 S32-array/elems.t
 S32-array/end.t
 S32-array/exists.t

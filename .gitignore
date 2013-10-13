@@ -10,6 +10,7 @@ Makefile
 *.exp
 *.lib
 *.jar
+*.moarvm
 lib/Test.pir
 lib/Pod/To/Text.pir
 lib/lib.pir

@@ -810,7 +810,11 @@ my class Str does Stringy { # declared in BOOTSTRAP
         submethod BUILD(:$!source, :$!c, :$!s, :$!d) { }
 
         method add_substitution($key, $value) {
-            push @!substitutions, ($!c ?? /<!$key>./ !! $key) => $value;
+            my $match = $key;
+            $match = /[<!$key>.]+/ if $!c and $!s;
+            $match = /<!$key>./ if $!c;
+            $match = /<$key>+/ if $!s;
+            push @!substitutions, $match => $value;
         }
 
         submethod compare_substitution($substitution, Int $pos, Int $length) {
@@ -864,6 +868,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
                 my $result = $!next_substitution.value;
                 $!substituted_text
                     = nqp::unbox_s(($result ~~ Callable ?? $result() !! $result).Str);
+                $!substituted_text = $!unsubstituted_text if $!s and not $!substituted_text;
                 self.increment_index($!next_substitution.key);
             }
 
@@ -899,7 +904,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
             else {
                 my @from = expand $p.key;
                 my @to = expand $p.value || '' xx @from;
-                @to := $d ?? (@to, '' xx @from - @to) !! @to xx ceiling(@from/@to);
+                @to = $d ?? (@to, '' xx @from - @to) !! (@to xx ceiling(@from/@to));
                 for @from Z @to -> $f, $t {
                     $lsm.add_substitution($f, $t);
                 }

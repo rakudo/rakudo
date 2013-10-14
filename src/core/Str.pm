@@ -803,11 +803,14 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
         has str $.unsubstituted_text;
         has str $.substituted_text;
+
+        # Trans flags
+        has $!c; has $!s; has $!d;
         
-        submethod BUILD(:$!source) { }
+        submethod BUILD(:$!source, :$!c, :$!s, :$!d) { }
 
         method add_substitution($key, $value) {
-            push @!substitutions, $key => $value;
+            push @!substitutions, ($!c ?? /<!$key>./ !! $key) => $value;
         }
 
         submethod compare_substitution($substitution, Int $pos, Int $length) {
@@ -868,7 +871,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         }
     }
 
-    method trans(Str:D: *@changes) {
+    method trans(Str:D: *@changes, :$c, :$s, :$d) {
         my sub expand($s) {
             return $s.list if $s ~~ Iterable|Positional;
             gather for $s.comb(/ (\w) '..' (\w) | . /, :match) {
@@ -881,7 +884,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
             }
         }
 
-        my $lsm = LSM.new(:source(self));
+        my $lsm = LSM.new(:source(self), :$c, :$s, :$d);
         for (@changes) -> $p {
             X::Str::Trans::InvalidArg.new(got => $p).throw unless $p ~~ Pair;
             if $p.key ~~ Regex {
@@ -895,8 +898,9 @@ my class Str does Stringy { # declared in BOOTSTRAP
             }
             else {
                 my @from = expand $p.key;
-                my @to = expand $p.value;
-                for @from Z (@to ?? @to xx ceiling(@from / @to) !! '' xx @from) -> $f, $t {
+                my @to = expand $p.value || '' xx @from;
+                @to := $d ?? (@to, '' xx @from - @to) !! @to xx ceiling(@from/@to);
+                for @from Z @to -> $f, $t {
                     $lsm.add_substitution($f, $t);
                 }
             }

@@ -868,7 +868,6 @@ my class Str does Stringy { # declared in BOOTSTRAP
                 my $result = $!next_substitution.value;
                 $!substituted_text
                     = nqp::unbox_s(($result ~~ Callable ?? $result() !! $result).Str);
-                $!substituted_text = $!unsubstituted_text if $!s and not $!substituted_text;
                 self.increment_index($!next_substitution.key);
             }
 

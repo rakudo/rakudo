@@ -123,6 +123,13 @@ my class Mu { # declared in BOOTSTRAP
                     $attr = nqp::atpos($task, 3)(self, $attr);
                 }
             }
+            elsif nqp::iseq_i($code, 5) || nqp::iseq_i($code, 6) || nqp::iseq_i($code, 7) {
+                my $key_name := nqp::p6box_s(nqp::atpos($task, 2));
+                if %attrinit.exists_key($key_name) {
+                    nqp::bindattr(self, nqp::atpos($task, 1), nqp::atpos($task, 3),
+                        nqp::decont(%attrinit{$key_name}));
+                }
+            }
             else {
                 die "Invalid BUILDALLPLAN";
             }
@@ -175,6 +182,27 @@ my class Mu { # declared in BOOTSTRAP
                 unless nqp::attrinited(self, nqp::atpos($task, 1), nqp::atpos($task, 2)) {
                     my $attr := nqp::getattr(self, nqp::atpos($task, 1), nqp::atpos($task, 2));
                     $attr = nqp::atpos($task, 3)(self, $attr);
+                }
+            }
+            elsif nqp::iseq_i($code, 5) {
+                my $key_name := nqp::p6box_s(nqp::atpos($task, 2));
+                if %attrinit.exists_key($key_name) {
+                    nqp::bindattr_i(self, nqp::atpos($task, 1), nqp::atpos($task, 3),
+                        nqp::decont(%attrinit{$key_name}));
+                }
+            }
+            elsif nqp::iseq_i($code, 6) {
+                my $key_name := nqp::p6box_s(nqp::atpos($task, 2));
+                if %attrinit.exists_key($key_name) {
+                    nqp::bindattr_n(self, nqp::atpos($task, 1), nqp::atpos($task, 3),
+                        nqp::decont(%attrinit{$key_name}));
+                }
+            }
+            elsif nqp::iseq_i($code, 7) {
+                my $key_name := nqp::p6box_s(nqp::atpos($task, 2));
+                if %attrinit.exists_key($key_name) {
+                    nqp::bindattr_s(self, nqp::atpos($task, 1), nqp::atpos($task, 3),
+                        nqp::decont(%attrinit{$key_name}));
                 }
             }
             else {
@@ -237,6 +265,13 @@ my class Mu { # declared in BOOTSTRAP
                     $attr = nqp::atpos($task, 3)(self, $attr);
                 }
             }
+            elsif nqp::iseq_i($code, 5) || nqp::iseq_i($code, 6) || nqp::iseq_i($code, 7) {
+                my $key_name := nqp::p6box_s(nqp::atpos($task, 2));
+                if %attrinit.exists_key($key_name) {
+                    nqp::bindattr(self, nqp::atpos($task, 1), nqp::atpos($task, 3),
+                        nqp::decont(%attrinit{$key_name}));
+                }
+            }
             else {
                 die "Invalid BUILDALLPLAN";
             }
@@ -286,6 +321,27 @@ my class Mu { # declared in BOOTSTRAP
                 unless nqp::attrinited(self, nqp::atpos($task, 1), nqp::atpos($task, 2)) {
                     my $attr := nqp::getattr(self, nqp::atpos($task, 1), nqp::atpos($task, 2));
                     $attr = nqp::atpos($task, 3)(self, $attr);
+                }
+            }
+            elsif nqp::iseq_i($code, 5) {
+                my $key_name := nqp::p6box_s(nqp::atpos($task, 2));
+                if %attrinit.exists_key($key_name) {
+                    nqp::bindattr_i(self, nqp::atpos($task, 1), nqp::atpos($task, 3),
+                        nqp::decont(%attrinit{$key_name}));
+                }
+            }
+            elsif nqp::iseq_i($code, 6) {
+                my $key_name := nqp::p6box_s(nqp::atpos($task, 2));
+                if %attrinit.exists_key($key_name) {
+                    nqp::bindattr_n(self, nqp::atpos($task, 1), nqp::atpos($task, 3),
+                        nqp::decont(%attrinit{$key_name}));
+                }
+            }
+            elsif nqp::iseq_i($code, 7) {
+                my $key_name := nqp::p6box_s(nqp::atpos($task, 2));
+                if %attrinit.exists_key($key_name) {
+                    nqp::bindattr_s(self, nqp::atpos($task, 1), nqp::atpos($task, 3),
+                        nqp::decont(%attrinit{$key_name}));
                 }
             }
             else {

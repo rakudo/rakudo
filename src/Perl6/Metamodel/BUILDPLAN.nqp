@@ -12,6 +12,9 @@ role Perl6::Metamodel::BUILDPLAN {
     #   2 class name attr_name = try to find initialization value, or set nqp::list()
     #   3 class name attr_name = try to find initialization value, or set nqp::hash()
     #   4 class attr_name code = call default value closure if needed
+    #   5 class name attr_name = set a native int attribute
+    #   6 class name attr_name = set a native num attribute
+    #   7 class name attr_name = set a native str attribute
     method create_BUILDPLAN($obj) {
         # First, we'll create the build plan for just this class.
         my @plan;
@@ -31,7 +34,13 @@ role Perl6::Metamodel::BUILDPLAN {
                 if $_.has_accessor {
                     my $attr_name := $_.name;
                     my $name      := nqp::substr($attr_name, 2);
-                    @plan[+@plan] :=  [1, $obj, $name, $attr_name];
+                    my $typespec  := nqp::objprimspec($_.type);
+                    if $typespec == 1 || $typespec == 2 || $typespec == 3 {
+                        @plan[+@plan] :=  [4 + $typespec,
+                                              $obj, $name, $attr_name];
+                    } else {
+                        @plan[+@plan] :=  [1, $obj, $name, $attr_name];
+                    }
                 }
             }
         }

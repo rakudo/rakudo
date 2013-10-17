@@ -89,7 +89,8 @@ commit the new version:
 But probably there won't be any new leap seconds, in which case the file
 will be unchanged.
 
-B<Note>: this program requires the perl module L<Time::y2038> be installed.
+B<Note>: this program requires the perl modules L<Time::y2038> and
+L<LWP::Simple> be installed.
 
 =item 3.
 

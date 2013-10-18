@@ -1,3 +1,11 @@
+New in 2013.10
+
++ postcircumfix {} and [] are now implemented as multi subs rather than multi methods.  This should allow for better optimization in the future.
++ Add support for "is deprecated", making it easy for early adopters to stay current.
++ Track multiple spec changes for various container classes.
++ Greatly reduce object creation during Regex parsing.
++ Various portability fixes.
+
 New in 2013.09
 + candidate argument to bless removed (per spec change)
 + @a.VAR.name and %h.VAR.name implemented

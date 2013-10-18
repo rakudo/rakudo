@@ -5,6 +5,9 @@ New in 2013.10
 + Track multiple spec changes for various container classes.
 + Greatly reduce object creation during Regex parsing.
 + Various portability fixes.
++ qx// and run() now auto-quote correctly
++ Allow #`[...]-style comments in regexes
++ unlink() behaves like P5's, it deletes write-protected files on windows
 
 New in 2013.09
 + candidate argument to bless removed (per spec change)

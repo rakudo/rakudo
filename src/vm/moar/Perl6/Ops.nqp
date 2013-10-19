@@ -1,9 +1,37 @@
 # XXX this file stolen from Rakudo's JVM backend; will uncomemnt/adapt it as
 # we go about the porting.
 
-my $ops := nqp::getcomp('qast').operations;
+# Operand read/write/literal flags.
+my $MVM_operand_literal     := 0;
+my $MVM_operand_read_reg    := 1;
+my $MVM_operand_write_reg   := 2;
+my $MVM_operand_read_lex    := 3;
+my $MVM_operand_write_lex   := 4;
+my $MVM_operand_rw_mask     := 7;
+
+# Register data types.
+my $MVM_reg_int64           := 4;
+my $MVM_reg_num64           := 6;
+my $MVM_reg_str             := 7;
+my $MVM_reg_obj             := 8;
+
+# Operand data types.
+my $MVM_operand_int64       := nqp::bitshiftl_i($MVM_reg_int64, 3);
+my $MVM_operand_num64       := nqp::bitshiftl_i($MVM_reg_num64, 3);
+my $MVM_operand_str         := nqp::bitshiftl_i($MVM_reg_str, 3);
+my $MVM_operand_obj         := nqp::bitshiftl_i($MVM_reg_obj, 3);
+
+# Register MoarVM extops.
+use MASTNodes;
+MAST::ExtOpRegistry.register_extop('p6init');
+MAST::ExtOpRegistry.register_extop('p6trialbind',
+    $MVM_operand_int64 +| $MVM_operand_write_reg,
+    $MVM_operand_obj   +| $MVM_operand_read_reg,
+    $MVM_operand_obj   +| $MVM_operand_read_reg,
+    $MVM_operand_obj   +| $MVM_operand_read_reg);
 
 # Perl 6 opcode specific mappings.
+my $ops := nqp::getcomp('qast').operations;
 #$ops.map_classlib_hll_op('perl6', 'p6box_i', $TYPE_P6OPS, 'p6box_i', [$RT_INT], $RT_OBJ, :tc);
 #$ops.map_classlib_hll_op('perl6', 'p6box_n', $TYPE_P6OPS, 'p6box_n', [$RT_NUM], $RT_OBJ, :tc);
 #$ops.map_classlib_hll_op('perl6', 'p6box_s', $TYPE_P6OPS, 'p6box_s', [$RT_STR], $RT_OBJ, :tc);
@@ -22,7 +50,7 @@ my $ops := nqp::getcomp('qast').operations;
 #});
 #$ops.map_classlib_hll_op('perl6', 'p6isbindable', $TYPE_P6OPS, 'p6isbindable', [$RT_OBJ, $RT_OBJ], $RT_INT, :tc);
 #$ops.map_classlib_hll_op('perl6', 'p6bindcaptosig', $TYPE_P6OPS, 'p6bindcaptosig', [$RT_OBJ, $RT_OBJ], $RT_OBJ, :tc);
-#$ops.map_classlib_hll_op('perl6', 'p6trialbind', $TYPE_P6OPS, 'p6trialbind', [$RT_OBJ, $RT_OBJ, $RT_OBJ], $RT_INT, :tc);
+$ops.add_hll_moarop_mapping('perl6', 'p6trialbind', 'p6trialbind');
 #$ops.map_classlib_hll_op('perl6', 'p6typecheckrv', $TYPE_P6OPS, 'p6typecheckrv', [$RT_OBJ, $RT_OBJ], $RT_OBJ, :tc);
 #$ops.map_classlib_hll_op('perl6', 'p6decontrv', $TYPE_P6OPS, 'p6decontrv', [$RT_OBJ, $RT_OBJ], $RT_OBJ, :tc);
 #$ops.map_classlib_hll_op('perl6', 'p6capturelex', $TYPE_P6OPS, 'p6capturelex', [$RT_OBJ], $RT_OBJ, :tc, :!inlinable);
@@ -68,12 +96,12 @@ $ops.add_hll_op('perl6', 'p6invokeflat', -> $qastcomp, $op {
 # Make some of them also available from NQP land, since we use them in the
 # metamodel and bootstrap.
 #$ops.add_hll_op('nqp', 'p6bool', $p6bool);
-#$ops.map_classlib_hll_op('nqp', 'p6init', $TYPE_P6OPS, 'p6init', [], $RT_OBJ, :tc);
+$ops.add_hll_moarop_mapping('nqp', 'p6init', 'p6init');
 #$ops.map_classlib_hll_op('nqp', 'p6settypes', $TYPE_P6OPS, 'p6settypes', [$RT_OBJ], $RT_OBJ, :tc);
 #$ops.map_classlib_hll_op('nqp', 'p6var', $TYPE_P6OPS, 'p6var', [$RT_OBJ], $RT_OBJ, :tc);
 #$ops.map_classlib_hll_op('nqp', 'p6parcel', $TYPE_P6OPS, 'p6parcel', [$RT_OBJ, $RT_OBJ], $RT_OBJ, :tc);
 #$ops.map_classlib_hll_op('nqp', 'p6isbindable', $TYPE_P6OPS, 'p6isbindable', [$RT_OBJ, $RT_OBJ], $RT_INT, :tc);
-#$ops.map_classlib_hll_op('nqp', 'p6trialbind', $TYPE_P6OPS, 'p6trialbind', [$RT_OBJ, $RT_OBJ, $RT_OBJ], $RT_INT, :tc);
+$ops.add_hll_moarop_mapping('nqp', 'p6trialbind', 'p6trialbind');
 #$ops.map_classlib_hll_op('nqp', 'p6inpre', $TYPE_P6OPS, 'p6inpre', [], $RT_INT, :tc);
 
 # Override defor to call defined method.

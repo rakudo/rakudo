@@ -24,6 +24,8 @@ my $MVM_operand_obj         := nqp::bitshiftl_i($MVM_reg_obj, 3);
 # Register MoarVM extops.
 use MASTNodes;
 MAST::ExtOpRegistry.register_extop('p6init');
+MAST::ExtOpRegistry.register_extop('p6settypes',
+    $MVM_operand_obj   +| $MVM_operand_read_reg);
 MAST::ExtOpRegistry.register_extop('p6trialbind',
     $MVM_operand_int64 +| $MVM_operand_write_reg,
     $MVM_operand_obj   +| $MVM_operand_read_reg,
@@ -32,6 +34,19 @@ MAST::ExtOpRegistry.register_extop('p6trialbind',
 MAST::ExtOpRegistry.register_extop('p6bool',
     $MVM_operand_obj   +| $MVM_operand_write_reg,
     $MVM_operand_int64 +| $MVM_operand_read_reg);
+MAST::ExtOpRegistry.register_extop('p6var',
+    $MVM_operand_obj   +| $MVM_operand_write_reg,
+    $MVM_operand_obj   +| $MVM_operand_read_reg);
+MAST::ExtOpRegistry.register_extop('p6parcel',
+    $MVM_operand_obj   +| $MVM_operand_write_reg,
+    $MVM_operand_obj   +| $MVM_operand_read_reg,
+    $MVM_operand_obj   +| $MVM_operand_read_reg);
+MAST::ExtOpRegistry.register_extop('p6isbindable',
+    $MVM_operand_int64 +| $MVM_operand_write_reg,
+    $MVM_operand_obj   +| $MVM_operand_read_reg,
+    $MVM_operand_obj   +| $MVM_operand_read_reg);
+MAST::ExtOpRegistry.register_extop('p6inpre',
+    $MVM_operand_int64 +| $MVM_operand_write_reg);
 
 # Perl 6 opcode specific mappings.
 my $ops := nqp::getcomp('qast').operations;
@@ -140,12 +155,12 @@ $ops.add_hll_op('perl6', 'p6invokeflat', -> $qastcomp, $op {
 # metamodel and bootstrap.
 $ops.add_hll_op('nqp', 'p6bool', $p6bool);
 $ops.add_hll_moarop_mapping('nqp', 'p6init', 'p6init');
-#$ops.map_classlib_hll_op('nqp', 'p6settypes', $TYPE_P6OPS, 'p6settypes', [$RT_OBJ], $RT_OBJ, :tc);
-#$ops.map_classlib_hll_op('nqp', 'p6var', $TYPE_P6OPS, 'p6var', [$RT_OBJ], $RT_OBJ, :tc);
-#$ops.map_classlib_hll_op('nqp', 'p6parcel', $TYPE_P6OPS, 'p6parcel', [$RT_OBJ, $RT_OBJ], $RT_OBJ, :tc);
-#$ops.map_classlib_hll_op('nqp', 'p6isbindable', $TYPE_P6OPS, 'p6isbindable', [$RT_OBJ, $RT_OBJ], $RT_INT, :tc);
+$ops.add_hll_moarop_mapping('nqp', 'p6settypes', 'p6settypes', 0);
+$ops.add_hll_moarop_mapping('nqp', 'p6var', 'p6var');
+$ops.add_hll_moarop_mapping('nqp', 'p6parcel', 'p6parcel');
+$ops.add_hll_moarop_mapping('nqp', 'p6isbindable', 'p6isbindable');
 $ops.add_hll_moarop_mapping('nqp', 'p6trialbind', 'p6trialbind');
-#$ops.map_classlib_hll_op('nqp', 'p6inpre', $TYPE_P6OPS, 'p6inpre', [], $RT_INT, :tc);
+$ops.add_hll_moarop_mapping('nqp', 'p6inpre', 'p6inpre');
 
 # Override defor to call defined method.
 $ops.add_hll_op('perl6', 'defor', -> $qastcomp, $op {

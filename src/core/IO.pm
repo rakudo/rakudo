@@ -113,7 +113,7 @@ my class IO::Handle does IO::FileTestable {
 
     method close() {
         # TODO:b catch errors
-        nqp::closefh($!PIO) if nqp::istrue($!PIO);
+        nqp::closefh($!PIO) if nqp::defined($!PIO);
         $!PIO := Mu;
         Bool::True;
     }

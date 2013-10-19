@@ -29,6 +29,9 @@ MAST::ExtOpRegistry.register_extop('p6trialbind',
     $MVM_operand_obj   +| $MVM_operand_read_reg,
     $MVM_operand_obj   +| $MVM_operand_read_reg,
     $MVM_operand_obj   +| $MVM_operand_read_reg);
+MAST::ExtOpRegistry.register_extop('p6bool',
+    $MVM_operand_obj   +| $MVM_operand_write_reg,
+    $MVM_operand_int64 +| $MVM_operand_read_reg);
 
 # Perl 6 opcode specific mappings.
 my $ops := nqp::getcomp('qast').operations;
@@ -80,10 +83,50 @@ $ops.add_hll_moarop_mapping('perl6', 'p6trialbind', 'p6trialbind');
 #$ops.map_classlib_hll_op('perl6', 'tclc', $TYPE_P6OPS, 'tclc', [$RT_STR], $RT_STR, :tc);
 #$ops.map_classlib_hll_op('perl6', 'p6sort', $TYPE_P6OPS, 'p6sort', [$RT_OBJ, $RT_OBJ], $RT_OBJ, :tc);
 #$ops.map_classlib_hll_op('perl6', 'p6staticouter', $TYPE_P6OPS, 'p6staticouter', [$RT_OBJ], $RT_OBJ, :tc);
-#my $p6bool := -> $qastcomp, $op {
-#    # XXX
-#};
-#$ops.add_hll_op('perl6', 'p6bool', $p6bool);
+my $p6bool := -> $qastcomp, $op {
+    # Compile instructions.
+    my @ops;
+    my $exprres := $qastcomp.as_mast($op[0]);
+    push_ilist(@ops, $exprres);
+
+    # Go by result kind.
+    my $res_reg   := $*REGALLOC.fresh_o();
+    my $cond_kind := $exprres.result_kind;
+    if $cond_kind == $MVM_reg_int64 {
+        nqp::push(@ops, MAST::ExtOp.new( :op('p6bool'), :cu($*MAST_COMPUNIT),
+            $res_reg, $exprres.result_reg ));
+    }
+    elsif $cond_kind == $MVM_reg_num64 {
+        my $tmp_reg := $*REGALLOC.fresh_i();
+        my $zero_reg := $*REGALLOC.fresh_n();
+        nqp::push(@ops, MAST::Op.new( :op('const_n64'), $zero_reg, MAST::NVal.new( :value(0.0) ) ));
+        nqp::push(@ops, MAST::Op.new( :op('eq_n'), $tmp_reg, $exprres.result_reg, $zero_reg ));
+        nqp::push(@ops, MAST::ExtOp.new( :op('p6bool'), :cu($*MAST_COMPUNIT),
+            $res_reg, $tmp_reg ));
+        $*REGALLOC.release_register($zero_reg, $MVM_reg_num64);
+        $*REGALLOC.release_register($tmp_reg, $MVM_reg_int64);
+    }
+    elsif $cond_kind == $MVM_reg_str {
+        my $tmp_reg := $*REGALLOC.fresh_i();
+        nqp::push(@ops, MAST::Op.new( :op('istrue_s'), $tmp_reg, $exprres.result_reg ));
+        nqp::push(@ops, MAST::ExtOp.new( :op('p6bool'), :cu($*MAST_COMPUNIT),
+            $res_reg, $tmp_reg ));
+        $*REGALLOC.release_register($tmp_reg, $MVM_reg_int64);
+    }
+    elsif $cond_kind == $MVM_reg_obj {
+        my $tmp_reg := $*REGALLOC.fresh_i();
+        nqp::push(@ops, MAST::Op.new( :op('istrue'), $tmp_reg, $exprres.result_reg ));
+        nqp::push(@ops, MAST::ExtOp.new( :op('p6bool'), :cu($*MAST_COMPUNIT),
+            $res_reg, $tmp_reg ));
+        $*REGALLOC.release_register($tmp_reg, $MVM_reg_int64);
+    }
+    else {
+        nqp::die('Unknown register type in p6bool');
+    }
+    $*REGALLOC.release_register($exprres.result_reg, $exprres.result_kind);
+    MAST::InstructionList.new(@ops, $res_reg, $MVM_reg_obj)
+};
+$ops.add_hll_op('perl6', 'p6bool', $p6bool);
 #$ops.map_classlib_hll_op('perl6', 'p6scalarfromdesc', $TYPE_P6OPS, 'p6scalarfromdesc', [$RT_OBJ], $RT_OBJ, :tc);
 $ops.add_hll_op('perl6', 'p6invokehandler', -> $qastcomp, $op {
     $qastcomp.as_mast(QAST::Op.new( :op('call'), $op[0], $op[1] ));
@@ -95,7 +138,7 @@ $ops.add_hll_op('perl6', 'p6invokeflat', -> $qastcomp, $op {
 
 # Make some of them also available from NQP land, since we use them in the
 # metamodel and bootstrap.
-#$ops.add_hll_op('nqp', 'p6bool', $p6bool);
+$ops.add_hll_op('nqp', 'p6bool', $p6bool);
 $ops.add_hll_moarop_mapping('nqp', 'p6init', 'p6init');
 #$ops.map_classlib_hll_op('nqp', 'p6settypes', $TYPE_P6OPS, 'p6settypes', [$RT_OBJ], $RT_OBJ, :tc);
 #$ops.map_classlib_hll_op('nqp', 'p6var', $TYPE_P6OPS, 'p6var', [$RT_OBJ], $RT_OBJ, :tc);
@@ -137,3 +180,7 @@ $ops.add_hll_op('perl6', 'defor', -> $qastcomp, $op {
 #$ops.add_hll_box('perl6', $RT_STR, -> $qastcomp {
 #    # XXX
 #});
+
+sub push_ilist(@dest, $src) {
+    nqp::splice(@dest, $src.instructions, +@dest, 0);
+}

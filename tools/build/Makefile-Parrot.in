@@ -42,12 +42,12 @@ PARROT_PERL_LIB  = $(PARROT_TOOLS_DIR)/lib
 OPS2C            = $(PARROT_BIN_DIR)/ops2c$(EXE)
 CINCLUDES        = -I$(PARROT_INCLUDE_DIR) -I$(PARROT_INCLUDE_DIR)/pmc
 LINKARGS         = $(LDFLAGS) $(LD_LOAD_FLAGS) $(LIBPARROT) @libs@ @icu_shared@
-GEN_CAT          = tools/build/gen-cat.pl parrot
+P_GEN_CAT          = tools/build/gen-cat.pl parrot
 
 # rakudo directories
 DYNEXT_DIR     = dynext
 OPS_DIR        = src/vm/parrot/ops
-PERL6_LANG_DIR = $(PARROT_LIB_DIR)/languages/perl6
+P_PERL6_LANG_DIR = $(PARROT_LIB_DIR)/languages/perl6
 MANDIR         = @mandir@
 DOCDIR         = @prefix@/share/doc
 
@@ -254,7 +254,7 @@ CORE_SOURCES = \
 
 DOCS = README CREDITS LICENSE docs/*
 
-CLEANUPS = \
+P_CLEANUPS = \
   *.manifest \
   *.pdb \
   $(PERL6_PBC) \
@@ -302,17 +302,17 @@ install: all
 	$(CP) $(PERL6_C_PBC)          $(DESTDIR)$(NQP_LANG_DIR)/lib/Perl6/Compiler.pbc
 	$(CP) $(PERL6_M_PBC)          $(DESTDIR)$(NQP_LANG_DIR)/lib/Perl6/Metamodel.pbc
 	$(CP) $(PERL6_B_PBC)          $(DESTDIR)$(NQP_LANG_DIR)/lib/Perl6/BOOTSTRAP.pbc
-	$(MKPATH)                     $(DESTDIR)$(PERL6_LANG_DIR)/lib
-	$(CP)     $(PERL6_PBC)        $(DESTDIR)$(PERL6_LANG_DIR)
-	$(CP)     $(SETTING_PBC)      $(DESTDIR)$(PERL6_LANG_DIR)/lib
-	$(CP)     $(R_SETTING_PBC)    $(DESTDIR)$(PERL6_LANG_DIR)/lib
-	$(CP)     lib/Test.pm         $(DESTDIR)$(PERL6_LANG_DIR)/lib
-	$(CP)     lib/Test.pir        $(DESTDIR)$(PERL6_LANG_DIR)/lib
-	$(CP)     lib/lib.pm6         $(DESTDIR)$(PERL6_LANG_DIR)/lib
-	$(CP)     lib/lib.pir         $(DESTDIR)$(PERL6_LANG_DIR)/lib
-	$(MKPATH) 					  $(DESTDIR)$(PERL6_LANG_DIR)/lib/Pod/To
-	$(CP)     lib/Pod/To/Text.pm  $(DESTDIR)$(PERL6_LANG_DIR)/lib/Pod/To
-	$(CP)     lib/Pod/To/Text.pir $(DESTDIR)$(PERL6_LANG_DIR)/lib/Pod/To
+	$(MKPATH)                     $(DESTDIR)$(P_PERL6_LANG_DIR)/lib
+	$(CP)     $(PERL6_PBC)        $(DESTDIR)$(P_PERL6_LANG_DIR)
+	$(CP)     $(SETTING_PBC)      $(DESTDIR)$(P_PERL6_LANG_DIR)/lib
+	$(CP)     $(R_SETTING_PBC)    $(DESTDIR)$(P_PERL6_LANG_DIR)/lib
+	$(CP)     lib/Test.pm         $(DESTDIR)$(P_PERL6_LANG_DIR)/lib
+	$(CP)     lib/Test.pir        $(DESTDIR)$(P_PERL6_LANG_DIR)/lib
+	$(CP)     lib/lib.pm6         $(DESTDIR)$(P_PERL6_LANG_DIR)/lib
+	$(CP)     lib/lib.pir         $(DESTDIR)$(P_PERL6_LANG_DIR)/lib
+	$(MKPATH) 					  $(DESTDIR)$(P_PERL6_LANG_DIR)/lib/Pod/To
+	$(CP)     lib/Pod/To/Text.pm  $(DESTDIR)$(P_PERL6_LANG_DIR)/lib/Pod/To
+	$(CP)     lib/Pod/To/Text.pir $(DESTDIR)$(P_PERL6_LANG_DIR)/lib/Pod/To
 	$(MKPATH)                     $(DESTDIR)$(PARROT_LIB_DIR)/dynext
 	$(CP)     $(DYNOPS)           $(DESTDIR)$(PARROT_LIB_DIR)/dynext
 	$(MKPATH)                     $(DESTDIR)$(PARROT_BIN_DIR)
@@ -337,13 +337,13 @@ $(PERL6_EXE): $(PERL6_PBC) $(PARROT_DLL_COPY)
 # the complete compiler
 $(PERL6_PBC): $(PERL6_G_PBC) $(PERL6_A_PBC) $(PERL6_C_PBC) $(PERL6_P_PBC) src/main.nqp
 	$(PERL) tools/build/gen-version.pl >src/gen/main-version.nqp
-	$(PERL) $(GEN_CAT) src/main.nqp src/gen/main-version.nqp > src/gen/main.nqp
+	$(PERL) $(P_GEN_CAT) src/main.nqp src/gen/main-version.nqp > src/gen/main.nqp
 	$(NQP_EXE) --vmlibs=perl6_ops --target=pir --output=src/gen/perl6.pir \
 	    src/gen/main.nqp
 	$(PARROT) $(PARROT_ARGS) -o $(PERL6_PBC) src/gen/perl6.pir
 
 $(PERL6_ML_PBC): $(NQP_EXE) $(DYNEXT_DYNOPS) src/Perl6/ModuleLoader.nqp src/vm/parrot/ModuleLoaderVMConfig.nqp
-	$(PERL) $(GEN_CAT) src/vm/parrot/ModuleLoaderVMConfig.nqp src/Perl6/ModuleLoader.nqp > src/gen/ModuleLoader.nqp
+	$(PERL) $(P_GEN_CAT) src/vm/parrot/ModuleLoaderVMConfig.nqp src/Perl6/ModuleLoader.nqp > src/gen/ModuleLoader.nqp
 	$(NQP_EXE) --target=pir --output=$(PERL6_ML) --encoding=utf8 \
 	    src/gen/ModuleLoader.nqp
 	$(PARROT) $(PARROT_ARGS) -o $(PERL6_ML_PBC) $(PERL6_ML)
@@ -384,19 +384,19 @@ $(PERL6_C_PBC): $(NQP_EXE) $(DYNEXT_DYNOPS) $(PERL6_O_PBC) src/Perl6/Compiler.nq
 	$(PARROT) $(PARROT_ARGS) -o $(PERL6_C_PBC) $(PERL6_C)
 
 $(PERL6_M_PBC): $(NQP_EXE) $(DYNEXT_DYNOPS) $(METAMODEL_SOURCES) $(PERL6_OPS_PBC)
-	$(PERL) $(GEN_CAT) $(METAMODEL_SOURCES) > src/gen/Metamodel.nqp
+	$(PERL) $(P_GEN_CAT) $(METAMODEL_SOURCES) > src/gen/Metamodel.nqp
 	$(NQP_EXE) --target=pir --output=$(PERL6_M) --encoding=utf8 \
 	    --vmlibs=perl6_ops src/gen/Metamodel.nqp
 	$(PARROT) $(PARROT_ARGS) -o $(PERL6_M_PBC) $(PERL6_M)
     
 $(PERL6_B_PBC): $(NQP_EXE) $(DYNEXT_DYNOPS) $(PERL6_M_PBC) $(BOOTSTRAP_SOURCES)
-	$(PERL) $(GEN_CAT) $(BOOTSTRAP_SOURCES) > src/gen/BOOTSTRAP.nqp
+	$(PERL) $(P_GEN_CAT) $(BOOTSTRAP_SOURCES) > src/gen/BOOTSTRAP.nqp
 	$(NQP_EXE) --target=pir --output=$(PERL6_B) --encoding=utf8 \
 	    --vmlibs=perl6_ops src/gen/BOOTSTRAP.nqp
 	$(PARROT) $(PARROT_ARGS) -o $(PERL6_B_PBC) $(PERL6_B)
 
 $(SETTING_PBC): $(PERL6_B_PBC) $(PERL6_EXE) $(CORE_SOURCES)
-	$(PERL) $(GEN_CAT) $(CORE_SOURCES) > src/gen/CORE.setting
+	$(PERL) $(P_GEN_CAT) $(CORE_SOURCES) > src/gen/CORE.setting
 	@echo "The following step can take a long time, please be patient."
 	./$(PERL6_EXE) --setting=NULL --optimize=3 --target=pir --stagestats --output=$(SETTING_PIR) src/gen/CORE.setting
 	$(PARROT) $(PARROT_ARGS) -o $(SETTING_PBC) $(SETTING_PIR)
@@ -475,7 +475,7 @@ t/*.t t/*/*.t t/*/*/*.t: all spectest_checkout
 
 ##  cleaning
 clean:
-	$(RM_F) $(CLEANUPS)
+	$(RM_F) $(P_CLEANUPS)
 
 distclean: realclean
 

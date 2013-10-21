@@ -283,7 +283,7 @@ P_CLEANUPS = \
 
 # NOTE: eventually, we should remove --keep-exit-code and --fudge
 #       as the goal is that all tests must pass without fudge
-HARNESS_WITH_FUDGE = $(PERL) t/harness --fudge --keep-exit-code --icu=$(HAS_ICU)
+P_HARNESS_WITH_FUDGE = $(PERL) t/harness --fudge --keep-exit-code --icu=$(HAS_ICU)
 
 STAGESTATS = @stagestats@
 
@@ -426,16 +426,16 @@ coretest: all
 # Run the spectests that we know work.
 spectest_regression: spectest
 spectest: testable t/spectest.data
-	$(HARNESS_WITH_FUDGE) --tests-from-file=t/spectest.data
+	$(P_HARNESS_WITH_FUDGE) --tests-from-file=t/spectest.data
 
 spectest_full: testable
-	$(HARNESS_WITH_FUDGE) t/spec
+	$(P_HARNESS_WITH_FUDGE) t/spec
 
 quicktest: testable t/spectest.data
-	$(HARNESS_WITH_FUDGE) --tests-from-file=t/spectest.data --long=0
+	$(P_HARNESS_WITH_FUDGE) --tests-from-file=t/spectest.data --long=0
 
 stresstest: testable t/spectest.data
-	$(HARNESS_WITH_FUDGE) --tests-from-file=t/spectest.data --stress=1
+	$(P_HARNESS_WITH_FUDGE) --tests-from-file=t/spectest.data --stress=1
 
 spectest_checkout : t/spec
 t/spec :
@@ -447,7 +447,7 @@ spectest_update :
 	-cd t/spec && git pull
 
 rakudo_test_run.tar.gz: testable t/spectest.data
-	- $(HARNESS_WITH_FUDGE) --tests-from-file=t/spectest.data --archive rakudo_test_run.tar.gz --parrot_revision @git_describe@
+	- $(P_HARNESS_WITH_FUDGE) --tests-from-file=t/spectest.data --archive rakudo_test_run.tar.gz --parrot_revision @git_describe@
 
 spectest_smolder: rakudo_test_run.tar.gz
 	./perl6 -e "shell qqx[git log -1 --pretty=format:%H].fmt(qq[curl -F architecture=@cpuarch@ -F platform=@osname@ -F revision=%s -F report_file=@rakudo_test_run.tar.gz -F username=parrot-autobot -F password=qa_rocks http://smolder.parrot.org/app/projects/process_add_report/5])"
@@ -459,20 +459,20 @@ t/localtest.data:
 
 # Run the tests in t/localtest.data
 localtest: all spectest_checkout t/localtest.data
-	@$(HARNESS_WITH_FUDGE) --tests-from-file=t/localtest.data
+	@$(P_HARNESS_WITH_FUDGE) --tests-from-file=t/localtest.data
 
 # Run the tests in t/localtest.data with a higher verbosity
 localtest_loud: all spectest_checkout t/localtest.data
-	@$(HARNESS_WITH_FUDGE) --tests-from-file=t/localtest.data --verbosity=1
+	@$(P_HARNESS_WITH_FUDGE) --tests-from-file=t/localtest.data --verbosity=1
 
 # Run many tests of your choice.
 # make sometests TESTFILES=t/foo/bar
 sometests: all
-	@$(HARNESS_WITH_FUDGE) $(TESTFILES)
+	@$(P_HARNESS_WITH_FUDGE) $(TESTFILES)
 
 # Run a single test
 t/*.t t/*/*.t t/*/*/*.t: all spectest_checkout
-	@$(HARNESS_WITH_FUDGE) --verbosity=1 $@
+	@$(P_HARNESS_WITH_FUDGE) --verbosity=1 $@
 
 ##  cleaning
 clean:

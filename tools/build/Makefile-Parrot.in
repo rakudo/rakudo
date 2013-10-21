@@ -1,5 +1,12 @@
+PERL    = @perl@
+PROVE   = prove
+MKPATH  = $(PERL) -MExtUtils::Command -e mkpath
+CHMOD   = $(PERL) -MExtUtils::Command -e chmod
+CP      = $(PERL) -MExtUtils::Command -e cp
+RM_F    = $(PERL) -MExtUtils::Command -e rm_f
+RM_RF   = $(PERL) -MExtUtils::Command -e rm_rf
+
 # Copyright (C) 2006-2013, The Perl Foundation.
-# $Id$
 
 SHELL            = @shell@
 PARROT_ARGS      =
@@ -22,12 +29,6 @@ LD_LOAD_FLAGS = @ld_load_flags@
 LIBPARROT     = @inst_libparrot_ldflags@
 O             = @o@
 LOAD_EXT      = @load_ext@
-PERL          = @perl@
-CP            = @cp@
-MV            = @mv@
-RM_F          = @rm_f@
-MKPATH        = $(PERL) -MExtUtils::Command -e mkpath
-CHMOD         = $(PERL) -MExtUtils::Command -e chmod
 POD2MAN       = @pod2man@
 
 # locations of parrot and nqp resources
@@ -475,12 +476,12 @@ t/*.t t/*/*.t t/*/*/*.t: all spectest_checkout
 
 ##  cleaning
 clean:
-	$(RM_F) $(P_CLEANUPS)
+	$(RM_RF) $(P_CLEANUPS)
 
 distclean: realclean
 
 realclean: clean
-	$(RM_F) Makefile
+	$(RM_RF) Makefile
 
 testclean:
 

@@ -78,7 +78,7 @@ MAIN: {
             or push @errors, "Unable to read configuration from $with_nqp.";
     }
     else {
-        %nqp_config = read_config("$prefix/bin/nqp$exe", "nqp$exe")
+        %nqp_config = read_config("$prefix/bin/nqp-p$exe", "nqp-p$exe")
             or push @errors, "Unable to find an NQP executable.";
         $with_nqp = fill_template_text('@bindir@/nqp@exe@', %nqp_config)
     }

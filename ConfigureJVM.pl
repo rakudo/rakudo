@@ -38,11 +38,9 @@ MAIN: {
         print_help();
         exit(0);
     }
-
-    my $prefix      = $options{'prefix'} || 
-        ($^O eq 'MSWin32' ? cwd().'\\install-jvm' : cwd().'/install-jvm');
-    my $with_nqp    = $options{'with-nqp'} ||
-        ($^O eq 'MSWin32' ? 'install-jvm\\bin\\nqp' : 'install-jvm/bin/nqp');
+    my $slash       = $^O eq 'MSWin32' ? '\\' : '/';
+    my $prefix      = $options{'prefix'} || cwd() . "${slash}install";
+    my $with_nqp    = $options{'with-nqp'} || "$prefix${slash}bin${slash}nqp-j";
     my $gen_nqp     = $options{'gen-nqp'};
     
     $prefix = realpath($prefix);
@@ -94,7 +92,7 @@ MAIN: {
     $config{'makefile-timing'} = $options{'makefile-timing'};
     $config{'stagestats'} = '--stagestats' if $options{'makefile-timing'};
     $config{'cpsep'} = $^O eq 'MSWin32' ? ';' : ':';
-    $config{'slash'} = $^O eq 'MSWin32' ? '\\' : '/';
+    $config{'slash'} = $slash;
     $config{'runner'} = $^O eq 'MSWin32' ? 'perl6.bat' : 'perl6';
     my $make = $config{'make'} = $^O eq 'MSWin32' ? 'nmake' : 'make';
     

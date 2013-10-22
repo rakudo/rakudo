@@ -19,3 +19,6 @@ t/spec :
 
 spectest_update :
 	-cd t/spec && git pull
+
+t/localtest.data:
+	$(PERL) -MExtUtils::Command -e test_f $@

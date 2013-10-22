@@ -208,7 +208,7 @@ J_CLEANUPS = \
   blib/Test.jar \
   blib/lib.jar \
   blib/Pod/To/Text.jar \
-  rakudo_test_run.tar.gz \
+  j-rakudo_test_run.tar.gz \
   src/gen/j-CORE.setting \
   src/gen/*.jar \
   src/gen/*.jar \
@@ -319,16 +319,14 @@ j-quicktest: j-testable t/spectest.data
 j-stresstest: j-testable t/spectest.data
 	$(J_HARNESS_WITH_FUDGE) --tests-from-file=t/spectest.data --stress=1
 
-rakudo_test_run.tar.gz: j-testable t/spectest.data
-	- $(J_HARNESS_WITH_FUDGE) --tests-from-file=t/spectest.data --archive rakudo_test_run.tar.gz
+j-rakudo_test_run.tar.gz: j-testable t/spectest.data
+	- $(J_HARNESS_WITH_FUDGE) --tests-from-file=t/spectest.data --archive j-rakudo_test_run.tar.gz
 
 #spectest_smolder: rakudo_test_run.tar.gz
 #	./perl6 -e "shell qqx[git log -1 --pretty=format:%H].fmt(qq[curl -F architecture=@cpuarch@ -F platform=@osname@ -F revision=%s -F report_file=@rakudo_test_run.tar.gz -F username=parrot-autobot -F password=qa_rocks http://smolder.parrot.org/app/projects/process_add_report/5])"
 
 j-testable : j-all spectest_checkout spectest_update
 
-t/localtest.data:
-	$(PERL) -MExtUtils::Command -e test_f $@
 
 # Run the tests in t/localtest.data
 localtest: j-all spectest_checkout t/localtest.data

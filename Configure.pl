@@ -263,9 +263,8 @@ Configure.pl - $lang Configure
 
 General Options:
     --help             Show this text
-    --prefix=dir       Install files in dir
-    --with-nqp=path/to/bin/nqp
-                       NQP executable to use to build $lang
+    --prefix=dir       Install files in dir; also look for executables there
+    --backends=parrot,jvm  Which backend(s) to use
     --gen-nqp[=branch]
                        Download and build a copy of NQP
         --with-parrot=path/to/bin/parrot

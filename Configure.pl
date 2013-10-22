@@ -207,6 +207,7 @@ MAIN: {
         $config{'nqp_prefix'} = $nqp_config{'jvm::runtime.prefix'};
         $config{'nqp_jars'} = $nqp_config{'jvm::runtime.jars'};
         $config{'nqp_classpath'} = $nqp_config{'jvm::runtime.classpath'};
+        $config{'j_runner'} = $^O eq 'MSWin32' ? 'perl6-j.bat' : 'perl6-j';
 
 
         fill_template_file('tools/build/Makefile-JVM.in', $MAKEFILE, %config);

@@ -17,7 +17,7 @@ RUNTIME_JAVAS = src/vm/jvm/runtime/org/perl6/rakudo/*.java
 
 RUNTIME_JAR = rakudo-runtime.jar
 
-RUNNER = @runner@
+RUNNER = @j_runner@
 
 # files we create
 PERL6_JAR     = perl6.jar

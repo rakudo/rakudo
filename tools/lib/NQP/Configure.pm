@@ -264,7 +264,7 @@ sub gen_nqp {
     my $nqp_want = shift;
     my %options  = @_;
 
-    my $backend     = $options{'backend'};
+    my $backends    = $options{'backends'};
     my $gen_nqp     = $options{'gen-nqp'};
     my $gen_parrot  = $options{'gen-parrot'};
     my $prefix      = $options{'prefix'} || cwd().'/install';
@@ -272,59 +272,64 @@ sub gen_nqp {
 
     my $PARROT_REVISION = 'nqp/tools/build/PARROT_REVISION';
 
-    my %config;
-    my $nqp_exe;
-    if ($backend eq 'parrot') {
-        %config = read_parrot_config("$prefix/bin/parrot")
+    my (%impls, %need);
+
+    if ($backends =~ /parrot/) {
+        my %c = read_parrot_config("$prefix/bin/parrot")
             or die "Unable to read parrot configuration from $prefix/bin/parrot\n";
-        $prefix  = $config{'parrot::prefix'};
-        $nqp_exe = fill_template_text('@bindir@/nqp-p@ext@', %config);
-        %config = read_config($nqp_exe);
+        my $bin = fill_template_text('@bindir@/nqp-p@ext@', %c);
+        $impls{parrot}{bin} = $bin;
+        %c  = read_config($bin);
+        my $nqp_have = $c{'nqp::version'};
+        my $nqp_ok   = $nqp_have && cmp_rev($nqp_have, $nqp_want) >= 0;
+        if ($nqp_ok) {
+            $impls{parrot}{config} = \%c;
+        }
+        else {
+            $need{parrot} = 1;
+        }
     }
-    elsif ($backend eq 'jvm') {
-        $nqp_exe = "$prefix/bin/nqp$exe";
-        %config = read_config($nqp_exe);
+    if ($backends =~ /jvm/) {
+        my $bin = "$prefix/bin/nqp-j$exe";
+        $impls{jvm}{bin} = $bin;
+        my %c = read_config($bin);
+        my $nqp_have = $c{'nqp::version'} || '';
+        my $nqp_ok   = $nqp_have && cmp_rev($nqp_have, $nqp_want) >= 0;
+        if ($nqp_ok) {
+            $impls{jvm}{config} = \%c;
+        }
+        else {
+            $need{jvm} = 1;
+        }
     }
 
-    my $nqp_have = $config{'nqp::version'} || '';
-    my $nqp_ok   = $nqp_have && cmp_rev($nqp_have, $nqp_want) >= 0;
+    return %impls unless %need;
+
     if ($gen_nqp) {
         my $nqp_repo = git_checkout($nqp_git, 'nqp', $gen_nqp, $nqp_push);
-        $nqp_ok = $nqp_have eq $nqp_repo;
     }
-    elsif (!$nqp_ok || defined $gen_parrot && !-f $PARROT_REVISION) {
+    elsif (defined $gen_parrot && !-f $PARROT_REVISION) {
         git_checkout($nqp_git, 'nqp', $nqp_want, $nqp_push);
     }
 
-    my $with_parrot;
-    if ($backend eq 'jvm') {
-        $config{'bindir'} = "$prefix/bin";
-        $config{'exe'} = $exe;
-    }
-    elsif (defined $gen_parrot) {
+    if ($need{parrot} && defined $gen_parrot) {
         my ($par_want) = split(' ', slurp($PARROT_REVISION));
-        $with_parrot = gen_parrot($par_want, %options, prefix => $prefix);
-        %config = read_parrot_config($with_parrot);
-    }
-    elsif (!%config) {
-        %config = read_parrot_config("$prefix/bin/parrot$exe", "parrot$exe");
-        $with_parrot = fill_template_text('@bindir@/parrot@exe@', %config);
+        gen_parrot($par_want, %options, prefix => $prefix);
     }
 
-    if ($with_parrot && $nqp_ok && -M $nqp_exe < -M $with_parrot) {
-        print "$nqp_exe is NQP $nqp_have.\n";
-        return $nqp_exe;
-    }
+    return %impls unless defined($gen_nqp) || defined($gen_parrot);
 
     my @cmd = ($^X, 'Configure.pl', "--prefix=\"$prefix\"",
-               "--make-install");
+               "--backends=$backends", "--make-install");
     print "Building NQP ...\n";
     chdir("$startdir/nqp");
     print "@cmd\n";
     system_or_die(@cmd);
     chdir($startdir);
-    my $postfix = substr $backend, 0, 1;
-    return fill_template_text("\@bindir\@/nqp-$postfix\@exe\@", %config);
+    for (keys %need) {
+        $impls{$_}{config} = read_config($impls{$_}{bin});
+    }
+    return %impls;
 }
 
 

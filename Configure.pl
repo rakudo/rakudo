@@ -98,6 +98,7 @@ MAIN: {
     $config{'makefile-timing'} = $options{'makefile-timing'};
     $config{'stagestats'} = '--stagestats' if $options{'makefile-timing'};
     $config{'cpsep'} = $^O eq 'MSWin32' ? ';' : ':';
+    $config{'shell'} = $^O eq 'MSWin32' ? 'cmd' : 'sh';
     my $make = $config{'make'} = $^O eq 'MSWin32' ? 'nmake' : 'make';
 
     open my $MAKEFILE, '>', 'Makefile'
@@ -115,40 +116,23 @@ MAIN: {
 
     fill_template_file('tools/build/Makefile-common.in', $MAKEFILE, %config);
 
-    my $gen_nqp     = $options{'gen-nqp'};
-
     # determine the version of NQP we want
     my ($nqp_want) = split(' ', slurp('tools/build/NQP_REVISION'));
 
+    my %binaries;
+    my %impls = gen_nqp($nqp_want, prefix => $prefix, backends => join(',', sort keys %backends), %options);
+
+    my @errors;
     if ($backends{parrot}) {
-        my $gen_parrot  = $options{'gen-parrot'};
-        my $nqp_p       = "$prefix/bin/nqp-p";
-        $nqp_p = undef unless -x $nqp_p;
-
-        # --with-parrot and --gen-parrot imply --gen-nqp
-        if (!defined $gen_nqp && !defined $nqp_p && (defined $gen_parrot)) {
-            $gen_nqp = '';
-        }
-
-        if (defined $gen_nqp) {
-            $nqp_p = gen_nqp($nqp_want, %options, backend => 'parrot');
-        }
-
-        my @errors;
-
         my %nqp_config;
-        if ($nqp_p) {
-            %nqp_config = read_config($nqp_p)
-                or push @errors, "Unable to read configuration from $nqp_p.";
+        if ($impls{parrot}{config}) {
+            %nqp_config = %{ $impls{parrot}{config} };
         }
         else {
-            %nqp_config = read_config("$prefix/bin/nqp-p$exe", "nqp-p$exe")
-                or push @errors, "Unable to find an NQP executable.";
-            $nqp_p = fill_template_text('@bindir@/nqp-p@exe@', %nqp_config)
+            push @errors, "Cannot obtain configuration from NQP on parrot";
         }
 
-        %config = (%config, %nqp_config);
-        my $nqp_have = $config{'nqp::version'} || '';
+        my $nqp_have = $nqp_config{'nqp::version'} || '';
         if ($nqp_have && cmp_rev($nqp_have, $nqp_want) < 0) {
             push @errors, "NQP revision $nqp_want required (currently $nqp_have).";
         }
@@ -156,15 +140,15 @@ MAIN: {
         if (!@errors) {
             push @errors, verify_install([ @NQP::Configure::required_parrot_files,
                                         @NQP::Configure::required_nqp_files ],
-                                        %config);
+                                        %config, %nqp_config);
             push @errors,
             "(Perhaps you need to 'make install', 'make install-dev',",
             "or install the 'devel' package for NQP or Parrot?)"
             if @errors;
         }
 
-        if (@errors && !defined $gen_nqp) {
-            push @errors, 
+        if (@errors && !defined $options{'gen-nqp'}) {
+            push @errors,
             "\nTo automatically clone (git) and build a copy of NQP $nqp_want,",
             "try re-running Configure.pl with the '--gen-nqp' or '--gen-parrot'",
             "options.  Or, use '--prefix=' to explicitly",
@@ -173,11 +157,8 @@ MAIN: {
 
         sorry(@errors) if @errors;
 
-        print "Using $nqp_p (version $config{'nqp::version'}).\n";
+        print "Using $impls{parrot}{bin} (version $nqp_config{'nqp::version'}).\n";
 
-        $config{'makefile-timing'} = $options{'makefile-timing'};
-        $config{'stagestats'} = '--stagestats' if $options{'makefile-timing'};
-        $config{'shell'} = $^O eq 'MSWin32' ? 'cmd' : 'sh';
         if ($^O eq 'MSWin32' or $^O eq 'cygwin') {
             $config{'dll'} = '$(PARROT_BIN_DIR)/$(PARROT_LIB_SHARED)';
             $config{'dllcopy'} = '$(PARROT_LIB_SHARED)';
@@ -185,42 +166,32 @@ MAIN: {
                 '$(PARROT_DLL_COPY): $(PARROT_DLL)'."\n\t".'$(CP) $(PARROT_DLL) .';
         }
 
-        my $make = fill_template_text('@make@', %config);
-        fill_template_file('tools/build/Makefile-Parrot.in', $MAKEFILE, %config);
+        my $make = fill_template_text('@make@', %config, %nqp_config);
+        fill_template_file('tools/build/Makefile-Parrot.in', $MAKEFILE, %config, %nqp_config);
     }
     if ($backends{jvm}) {
-        my $nqp_j = "$prefix/bin/nqp-j";
-        $nqp_j = undef unless -x $nqp_j;
-        if (!defined $gen_nqp && !defined $nqp_j) {
-            die "$prefix/bin/nqp-j does not exists or is not executable (maybe use --gen-nqp?\n";
-        }
 
-        if (defined $gen_nqp) {
-            $options{'with-jvm'} = 1;
-            $options{'prefix'} = $prefix;
-            $nqp_j = gen_nqp($nqp_want, %options, backend => 'jvm');
+        my %nqp_config;
+        if ( $impls{jvm}{config} ) {
+            %nqp_config = %{ $impls{jvm}{config} };
         }
-        my @errors;
-
-        unless (`$nqp_j --version` =~ /This is nqp .+ JVM/) {
-            push @errors, "No NQP on JVM found; use --with-nqp to specify or --gen-nqp";
+        else {
+            push @errors, "Unable to read configuration from NQP on the JVM";
         }
-        $config{j_nqp} = $nqp_j;
+        my $bin = $impls{jvm}{bin};
 
-        my %nqp_config = read_config($nqp_j)
-            or push @errors, "Unable to read configuration from $nqp_j.";
-        unless (defined $nqp_config{'jvm::runtime.jars'}) {
-            push @errors, "jvm::runtime.jars value not available from $nqp_j --show-config.";
+        if (!@errors && !defined $nqp_config{'jvm::runtime.jars'}) {
+            push @errors, "jvm::runtime.jars value not available from $bin --show-config.";
         }
 
         sorry(@errors) if @errors;
 
-        print "Using $nqp_j.\n";
+        print "Using $bin.\n";
 
-        $config{'nqp_prefix'} = $nqp_config{'jvm::runtime.prefix'};
-        $config{'nqp_jars'} = $nqp_config{'jvm::runtime.jars'};
+        $config{'nqp_prefix'}    = $nqp_config{'jvm::runtime.prefix'};
+        $config{'nqp_jars'}      = $nqp_config{'jvm::runtime.jars'};
         $config{'nqp_classpath'} = $nqp_config{'jvm::runtime.classpath'};
-        $config{'j_runner'} = $^O eq 'MSWin32' ? 'perl6-j.bat' : 'perl6-j';
+        $config{'j_runner'}      = $^O eq 'MSWin32' ? 'perl6-j.bat' : 'perl6-j';
 
 
         fill_template_file('tools/build/Makefile-JVM.in', $MAKEFILE, %config);

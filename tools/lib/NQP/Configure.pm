@@ -276,15 +276,20 @@ sub gen_nqp {
     my (%impls, %need);
 
     if ($backends =~ /parrot/) {
-        my %c = read_parrot_config("$prefix/bin/parrot")
-            or die "Unable to read parrot configuration from $prefix/bin/parrot\n";
-        my $bin = fill_template_text('@bindir@/nqp-p@ext@', %c);
-        $impls{parrot}{bin} = $bin;
-        %c  = read_config($bin);
-        my $nqp_have = $c{'nqp::version'};
-        my $nqp_ok   = $nqp_have && cmp_rev($nqp_have, $nqp_want) >= 0;
-        if ($nqp_ok) {
-            $impls{parrot}{config} = \%c;
+        my %c = read_parrot_config("$prefix/bin/parrot");
+
+        if (%c) {
+            my $bin = fill_template_text('@bindir@/nqp-p@ext@', %c);
+            $impls{parrot}{bin} = $bin;
+            %c  = read_config($bin);
+            my $nqp_have = $c{'nqp::version'};
+            my $nqp_ok   = $nqp_have && cmp_rev($nqp_have, $nqp_want) >= 0;
+            if ($nqp_ok) {
+                $impls{parrot}{config} = \%c;
+            }
+            else {
+                $need{parrot} = 1;
+            }
         }
         else {
             $need{parrot} = 1;
@@ -315,7 +320,10 @@ sub gen_nqp {
 
     if ($need{parrot} && defined $gen_parrot) {
         my ($par_want) = split(' ', slurp($PARROT_REVISION));
-        gen_parrot($par_want, %options, prefix => $prefix);
+        my $parrot = gen_parrot($par_want, %options, prefix => $prefix);
+        my %c = read_parrot_config($parrot);
+        $impls{parrot}{bin} = fill_template_text('@bindir@/nqp-p@ext@', %c);
+        $impls{parrot}{config} = \%c;
     }
 
     return %impls unless defined($gen_nqp) || defined($gen_parrot);
@@ -330,7 +338,9 @@ sub gen_nqp {
     chdir($startdir);
 
     for my $k (keys %need) {
-        $impls{$k}{config} = { read_config($impls{$k}{bin}) };
+        my %c = read_config($impls{$k}{bin});
+        %c = (%{ $impls{$k}{config} || {} }, %c);
+        $impls{$k}{config} = \%c;
     }
     return %impls;
 }

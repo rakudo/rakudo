@@ -89,7 +89,7 @@ J_METAMODEL_SOURCES = \
 # Note that you only really have to worry especially about things that
 # the compiler will instantiate/call methods on while compiling the
 # setting - basically anything that feels MOP-ish.
-CORE_SOURCES = \
+J_CORE_SOURCES = \
   src/core/core_prologue.pm \
   src/core/traits.pm \
   src/core/Positional.pm \
@@ -275,8 +275,8 @@ $(PERL6_B_JAR): $(BOOTSTRAP_SOURCES) $(PERL6_M_JAR)
 	$(PERL) tools/build/nqp-jvm-rr.pl $(J_NQP) --target=jar \
         --output=$(PERL6_B_JAR) --encoding=utf8 src/gen/BOOTSTRAP.nqp
 
-$(SETTING_JAR): $(PERL6_JAR) $(PERL6_B_JAR) $(CORE_SOURCES)
-	$(PERL) $(J_GEN_CAT) $(CORE_SOURCES) > src/gen/j-CORE.setting
+$(SETTING_JAR): $(PERL6_JAR) $(PERL6_B_JAR) $(J_CORE_SOURCES)
+	$(PERL) $(J_GEN_CAT) $(J_CORE_SOURCES) > src/gen/j-CORE.setting
 	@echo "The following step can take a long time, please be patient."
 	$(RUN_PERL6) --setting=NULL --optimize=3 --target=jar --stagestats --output=$(SETTING_JAR) src/gen/j-CORE.setting
 

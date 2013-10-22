@@ -33,7 +33,7 @@ PARROT_PERL_LIB  = $(PARROT_TOOLS_DIR)/lib
 OPS2C            = $(PARROT_BIN_DIR)/ops2c$(EXE)
 CINCLUDES        = -I$(PARROT_INCLUDE_DIR) -I$(PARROT_INCLUDE_DIR)/pmc
 LINKARGS         = $(LDFLAGS) $(LD_LOAD_FLAGS) $(LIBPARROT) @libs@ @icu_shared@
-P_GEN_CAT          = tools/build/gen-cat.pl parrot
+P_GEN_CAT        = tools/build/gen-cat.pl parrot
 
 # rakudo directories
 DYNEXT_DIR     = dynext
@@ -131,7 +131,7 @@ P_METAMODEL_SOURCES = \
 # Note that you only really have to worry especially about things that
 # the compiler will instantiate/call methods on while compiling the
 # setting - basically anything that feels MOP-ish.
-CORE_SOURCES = \
+P_CORE_SOURCES = \
   src/core/core_prologue.pm \
   src/core/traits.pm \
   src/core/Positional.pm \
@@ -382,8 +382,8 @@ $(PERL6_B_PBC): $(NQP_EXE) $(DYNEXT_DYNOPS) $(PERL6_M_PBC) $(BOOTSTRAP_SOURCES)
 	    --vmlibs=perl6_ops src/gen/BOOTSTRAP.nqp
 	$(PARROT) $(PARROT_ARGS) -o $(PERL6_B_PBC) $(PERL6_B)
 
-$(SETTING_PBC): $(PERL6_B_PBC) $(PERL6_EXE) $(CORE_SOURCES)
-	$(PERL) $(P_GEN_CAT) $(CORE_SOURCES) > src/gen/p-CORE.setting
+$(SETTING_PBC): $(PERL6_B_PBC) $(PERL6_EXE) $(P_CORE_SOURCES)
+	$(PERL) $(P_GEN_CAT) $(P_CORE_SOURCES) > src/gen/p-CORE.setting
 	@echo "The following step can take a long time, please be patient."
 	./$(PERL6_EXE) --setting=NULL --optimize=3 --target=pir --stagestats --output=$(SETTING_PIR) src/gen/p-CORE.setting
 	$(PARROT) $(PARROT_ARGS) -o $(SETTING_PBC) $(SETTING_PIR)

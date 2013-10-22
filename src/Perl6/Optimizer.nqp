@@ -655,10 +655,10 @@ class Perl6::Optimizer {
         }
         self.add_deadly($op,
             ($protoguilt ?? "Calling proto of '" !! "Calling '") ~ 
-            $obj.name ~ "' will never work with " ~
+            $obj.name ~ "' will never work with" ~
             (+@arg_names == 0 ??
-                "no arguments" !!
-                "argument types (" ~ join(', ', @arg_names) ~ ")"),
+                "out arguments" !!
+                " argument types (" ~ join(', ', @arg_names) ~ ")"),
             $obj.is_dispatcher && !$protoguilt ??
                 multi_sig_list($obj) !!
                 ["    Expected: " ~ try $obj.signature.perl ]);

@@ -32,7 +32,7 @@ MAIN: {
     my %options;
     GetOptions(\%options, 'help!', 'prefix=s',
                 'backends=s',
-               'with-nqp-p=s', 'gen-nqp-p:s',
+               'gen-nqp:s',
                'with-parrot=s', 'gen-parrot:s', 'parrot-option=s@',
                'parrot-make-option=s@',
                'make-install!', 'makefile-timing!',

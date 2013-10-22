@@ -82,6 +82,7 @@ sub cmp_rev {
 sub read_config {
     my @config_src = @_;
     my %config = ();
+    local $_;
     for my $file (@config_src) {
         no warnings;
         if (open my $CONFIG, '-|', "$file --show-config") {
@@ -320,15 +321,16 @@ sub gen_nqp {
     return %impls unless defined($gen_nqp) || defined($gen_parrot);
 
     my $backends_to_build = join ',', sort keys %need;
-    my @cmd = ($^X, 'Configure.pl', "--prefix=\"$prefix\"",
+    my @cmd = ($^X, 'Configure.pl', "--prefix=$prefix",
                "--backends=$backends", "--make-install");
     print "Building NQP ...\n";
     chdir("$startdir/nqp");
     print "@cmd\n";
     system_or_die(@cmd);
     chdir($startdir);
-    for (keys %need) {
-        $impls{$_}{config} = read_config($impls{$_}{bin});
+
+    for my $k (keys %need) {
+        $impls{$k}{config} = { read_config($impls{$k}{bin}) };
     }
     return %impls;
 }

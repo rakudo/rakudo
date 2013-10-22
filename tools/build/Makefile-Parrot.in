@@ -1,13 +1,3 @@
-PERL    = @perl@
-PROVE   = prove
-MKPATH  = $(PERL) -MExtUtils::Command -e mkpath
-CHMOD   = $(PERL) -MExtUtils::Command -e chmod
-CP      = $(PERL) -MExtUtils::Command -e cp
-RM_F    = $(PERL) -MExtUtils::Command -e rm_f
-RM_RF   = $(PERL) -MExtUtils::Command -e rm_rf
-
-# Copyright (C) 2006-2013, The Perl Foundation.
-
 SHELL            = @shell@
 PARROT_ARGS      =
 
@@ -88,7 +78,7 @@ DYNOPS        = $(OPS_DIR)/$(OPS)$(LOAD_EXT)
 
 OPS_SOURCE   = perl6.ops
 
-METAMODEL_SOURCES = \
+P_METAMODEL_SOURCES = \
   src/Perl6/Metamodel/Archetypes.nqp \
   src/Perl6/Metamodel/Naming.nqp \
   src/Perl6/Metamodel/Documenting.nqp \
@@ -133,10 +123,6 @@ METAMODEL_SOURCES = \
   src/Perl6/Metamodel/ContainerDescriptor.nqp \
   src/Perl6/Metamodel/Dispatchers.nqp \
 
-BOOTSTRAP_SOURCES = \
-  src/Perl6/Metamodel/BOOTSTRAP.nqp \
-  src/Perl6/Metamodel/EXPORTHOW.nqp \
-  
 # The ordering here is important for bootstrapping reasons. In general:
 # * traits almost certainly have to come first
 # * stubs have to come after traits since they use them
@@ -384,8 +370,8 @@ $(PERL6_C_PBC): $(NQP_EXE) $(DYNEXT_DYNOPS) $(PERL6_O_PBC) src/Perl6/Compiler.nq
 	    src/Perl6/Compiler.nqp
 	$(PARROT) $(PARROT_ARGS) -o $(PERL6_C_PBC) $(PERL6_C)
 
-$(PERL6_M_PBC): $(NQP_EXE) $(DYNEXT_DYNOPS) $(METAMODEL_SOURCES) $(PERL6_OPS_PBC)
-	$(PERL) $(P_GEN_CAT) $(METAMODEL_SOURCES) > src/gen/Metamodel.nqp
+$(PERL6_M_PBC): $(NQP_EXE) $(DYNEXT_DYNOPS) $(P_METAMODEL_SOURCES) $(PERL6_OPS_PBC)
+	$(PERL) $(P_GEN_CAT) $(P_METAMODEL_SOURCES) > src/gen/Metamodel.nqp
 	$(NQP_EXE) --target=pir --output=$(PERL6_M) --encoding=utf8 \
 	    --vmlibs=perl6_ops src/gen/Metamodel.nqp
 	$(PARROT) $(PARROT_ARGS) -o $(PERL6_M_PBC) $(PERL6_M)

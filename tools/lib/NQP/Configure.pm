@@ -25,7 +25,7 @@ our @required_parrot_files = qw(
 );
 
 our @required_nqp_files = qw(
-    @bindir@/nqp@exe@
+    @bindir@/nqp-p@exe@
 );
 
 our $nqp_git = 'http://github.com/perl6/nqp.git';

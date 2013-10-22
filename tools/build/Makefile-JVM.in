@@ -1,11 +1,3 @@
-PERL    = @perl@
-PROVE   = prove
-MKPATH  = $(PERL) -MExtUtils::Command -e mkpath
-CHMOD   = $(PERL) -MExtUtils::Command -e chmod
-CP      = $(PERL) -MExtUtils::Command -e cp
-RM_F    = $(PERL) -MExtUtils::Command -e rm_f
-RM_RF   = $(PERL) -MExtUtils::Command -e rm_rf
-
 JAVA    = java
 JAVAC   = javac
 JAR     = jar
@@ -44,7 +36,7 @@ SETTING_JAR   = CORE.setting.jar
 PERL6_LANG_JARS = $(PERL6_ML_JAR) $(PERL6_W_JAR) $(PERL6_G_JAR) $(PERL6_OPS_JAR) $(PERL6_A_JAR) \
   $(PERL6_O_JAR) $(PERL6_P_JAR) $(PERL6_C_JAR) $(PERL6_M_JAR) $(PERL6_B_JAR)
 
-METAMODEL_SOURCES = \
+J_METAMODEL_SOURCES = \
   src/Perl6/Metamodel/Archetypes.nqp \
   src/Perl6/Metamodel/Naming.nqp \
   src/Perl6/Metamodel/Documenting.nqp \
@@ -88,10 +80,6 @@ METAMODEL_SOURCES = \
   src/Perl6/Metamodel/ContainerDescriptor.nqp \
   src/Perl6/Metamodel/Dispatchers.nqp \
   src/vm/jvm/Perl6/Metamodel/JavaHOW.nqp \
-
-BOOTSTRAP_SOURCES = \
-  src/Perl6/Metamodel/BOOTSTRAP.nqp \
-  src/Perl6/Metamodel/EXPORTHOW.nqp \
 
 # The ordering here is important for bootstrapping reasons. In general:
 # * traits almost certainly have to come first
@@ -277,8 +265,8 @@ $(PERL6_JAR): src/main.nqp $(RUNTIME_JAR) $(PERL6_G_JAR) $(PERL6_A_JAR) $(PERL6_
 	$(J_NQP) --target=jar --javaclass=perl6 --output=$(PERL6_JAR) \
 	    src/gen/main.nqp
 
-$(PERL6_M_JAR): $(METAMODEL_SOURCES) $(PERL6_OPS_JAR)
-	$(PERL) $(J_GEN_CAT) $(METAMODEL_SOURCES) > src/gen/Metamodel.nqp
+$(PERL6_M_JAR): $(J_METAMODEL_SOURCES) $(PERL6_OPS_JAR)
+	$(PERL) $(J_GEN_CAT) $(J_METAMODEL_SOURCES) > src/gen/Metamodel.nqp
 	$(J_NQP) --target=jar --output=$(PERL6_M_JAR) --encoding=utf8 \
 	    src/gen/Metamodel.nqp
 

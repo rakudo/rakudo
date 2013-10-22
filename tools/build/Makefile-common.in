@@ -1,0 +1,13 @@
+# Copyright (C) 2006-2013, The Perl Foundation.
+
+PERL    = @perl@
+PROVE   = prove
+MKPATH  = $(PERL) -MExtUtils::Command -e mkpath
+CHMOD   = $(PERL) -MExtUtils::Command -e chmod
+CP      = $(PERL) -MExtUtils::Command -e cp
+RM_F    = $(PERL) -MExtUtils::Command -e rm_f
+RM_RF   = $(PERL) -MExtUtils::Command -e rm_rf
+
+BOOTSTRAP_SOURCES = \
+  src/Perl6/Metamodel/BOOTSTRAP.nqp \
+  src/Perl6/Metamodel/EXPORTHOW.nqp \

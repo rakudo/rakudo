@@ -264,10 +264,9 @@ sub gen_nqp {
     my $nqp_want = shift;
     my %options  = @_;
 
+    my $backend     = $options{'backend'};
     my $gen_nqp     = $options{'gen-nqp'};
-    my $with_parrot = $options{'with-parrot'};
     my $gen_parrot  = $options{'gen-parrot'};
-    my $with_jvm    = $options{'with-jvm'};
     my $prefix      = $options{'prefix'} || cwd().'/install';
     my $startdir    = cwd();
 
@@ -275,14 +274,14 @@ sub gen_nqp {
 
     my %config;
     my $nqp_exe;
-    if ($with_parrot) {
-        %config = read_parrot_config($with_parrot)
-            or die "Unable to read parrot configuration from $with_parrot\n";
+    if ($backend eq 'parrot') {
+        %config = read_parrot_config("$prefix/bin/parrot")
+            or die "Unable to read parrot configuration from $prefix/bin/parrot\n";
         $prefix  = $config{'parrot::prefix'};
-        $nqp_exe = fill_template_text('@bindir@/nqp@ext@', %config);
+        $nqp_exe = fill_template_text('@bindir@/nqp-p@ext@', %config);
         %config = read_config($nqp_exe);
     }
-    elsif ($prefix) {
+    elsif ($backend eq 'jvm') {
         $nqp_exe = "$prefix/bin/nqp$exe";
         %config = read_config($nqp_exe);
     }
@@ -297,7 +296,8 @@ sub gen_nqp {
         git_checkout($nqp_git, 'nqp', $nqp_want, $nqp_push);
     }
 
-    if (defined $with_jvm) {
+    my $with_parrot;
+    if ($backend eq 'jvm') {
         $config{'bindir'} = "$prefix/bin";
         $config{'exe'} = $exe;
     }
@@ -311,19 +311,20 @@ sub gen_nqp {
         $with_parrot = fill_template_text('@bindir@/parrot@exe@', %config);
     }
 
-    if ($nqp_ok && -M $nqp_exe < -M $with_parrot) {
+    if ($with_parrot && $nqp_ok && -M $nqp_exe < -M $with_parrot) {
         print "$nqp_exe is NQP $nqp_have.\n";
         return $nqp_exe;
     }
 
-    my @cmd = ($^X, 'Configure.pl', "--with-parrot=\"$with_parrot\"",
+    my @cmd = ($^X, 'Configure.pl', "--prefix=\"$prefix\"",
                "--make-install");
     print "Building NQP ...\n";
     chdir("$startdir/nqp");
     print "@cmd\n";
     system_or_die(@cmd);
     chdir($startdir);
-    return fill_template_text('@bindir@/nqp@exe@', %config);
+    my $postfix = substr $backend, 0, 1;
+    return fill_template_text("\@bindir\@/nqp-$postfix\@exe\@", %config);
 }
 
 

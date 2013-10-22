@@ -33,7 +33,7 @@ MAIN: {
     GetOptions(\%options, 'help!', 'prefix=s',
                 'backends=s',
                'gen-nqp:s',
-               'with-parrot=s', 'gen-parrot:s', 'parrot-option=s@',
+               'gen-parrot:s', 'parrot-option=s@',
                'parrot-make-option=s@',
                'make-install!', 'makefile-timing!',
     ) or do {
@@ -121,18 +121,17 @@ MAIN: {
     my ($nqp_want) = split(' ', slurp('tools/build/NQP_REVISION'));
 
     if ($backends{parrot}) {
-        my $with_parrot = $options{'with-parrot'};
         my $gen_parrot  = $options{'gen-parrot'};
         my $nqp_p       = "$prefix/bin/nqp-p";
         $nqp_p = undef unless -x $nqp_p;
 
         # --with-parrot and --gen-parrot imply --gen-nqp
-        if (!defined $gen_nqp && !defined $nqp_p && (defined $with_parrot || defined $gen_parrot)) {
+        if (!defined $gen_nqp && !defined $nqp_p && (defined $gen_parrot)) {
             $gen_nqp = '';
         }
 
         if (defined $gen_nqp) {
-            $nqp_p = gen_nqp($nqp_want, %options);
+            $nqp_p = gen_nqp($nqp_want, %options, backend => 'parrot');
         }
 
         my @errors;
@@ -145,7 +144,7 @@ MAIN: {
         else {
             %nqp_config = read_config("$prefix/bin/nqp-p$exe", "nqp-p$exe")
                 or push @errors, "Unable to find an NQP executable.";
-            $nqp_p = fill_template_text('@bindir@/nqp@exe@', %nqp_config)
+            $nqp_p = fill_template_text('@bindir@/nqp-p@exe@', %nqp_config)
         }
 
         %config = (%config, %nqp_config);
@@ -168,8 +167,8 @@ MAIN: {
             push @errors, 
             "\nTo automatically clone (git) and build a copy of NQP $nqp_want,",
             "try re-running Configure.pl with the '--gen-nqp' or '--gen-parrot'",
-            "options.  Or, use '--with-nqp=' or '--with-parrot=' to explicitly",
-            "specify the NQP or Parrot executable to use to build $lang.";
+            "options.  Or, use '--prefix=' to explicitly",
+            "specify the path where the NQP and Parrot executable can be found that are use to build $lang.";
         }
 
         sorry(@errors) if @errors;
@@ -199,7 +198,7 @@ MAIN: {
         if (defined $gen_nqp) {
             $options{'with-jvm'} = 1;
             $options{'prefix'} = $prefix;
-            $nqp_j = gen_nqp($nqp_want, %options);
+            $nqp_j = gen_nqp($nqp_want, %options, backend => 'jvm');
         }
         my @errors;
 
@@ -267,8 +266,6 @@ General Options:
     --backends=parrot,jvm  Which backend(s) to use
     --gen-nqp[=branch]
                        Download and build a copy of NQP
-        --with-parrot=path/to/bin/parrot
-                       Parrot executable to use to build NQP
         --gen-parrot[=branch]
                        Download and build a copy of Parrot
         --parrot-option='--option'

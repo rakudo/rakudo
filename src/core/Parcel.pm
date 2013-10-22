@@ -35,6 +35,20 @@ my class Parcel does Positional { # declared in BOOTSTRAP
     method list()  { nqp::p6list(nqp::clone($!storage), List, Mu) }
     method lol()   { nqp::p6list(nqp::clone($!storage), LoL, Mu) }
 
+    method rotate (Int $n is copy = 1) {
+        my Mu $storage := nqp::clone($!storage);
+        $n %= nqp::p6box_i(nqp::elems($!storage));
+        if $n > 0 {
+            nqp::push($storage, nqp::shift($storage)) while $n--;
+        }
+        elsif $n < 0 {
+            nqp::unshift($storage, nqp::pop($storage)) while $n++;
+        }
+        my $parcel := nqp::create(self.WHAT);
+        nqp::bindattr($parcel, Parcel, '$!storage', $storage);
+        $parcel;
+    }
+
     method at_pos(Parcel:D: \x) is rw { self.flat.at_pos(x); }
 
     proto method postcircumfix:<[ ]>(|)                  { * }

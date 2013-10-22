@@ -1,7 +1,7 @@
 JAVA    = java
 JAVAC   = javac
 JAR     = jar
-J_NQP   = @nqp@
+J_NQP   = @j_nqp@
 J_GEN_CAT = tools/build/gen-cat.pl jvm
 
 PREFIX = @prefix@
@@ -209,7 +209,7 @@ J_CLEANUPS = \
   blib/lib.jar \
   blib/Pod/To/Text.jar \
   rakudo_test_run.tar.gz \
-  src/gen/CORE.setting \
+  src/gen/j-CORE.setting \
   src/gen/*.jar \
   src/gen/*.jar \
   src/gen/*.pm \
@@ -219,7 +219,7 @@ J_CLEANUPS = \
 J_HARNESS_WITH_FUDGE = $(PERL) t/harness --fudge --keep-exit-code --jvm
 HARNESS = $(PERL) t/harness --jvm
 
-all: $(PERL6_JAR) $(SETTING_JAR) $(RUNNER) blib/Test.jar blib/lib.jar blib/Pod/To/Text.jar
+j-all: $(PERL6_JAR) $(SETTING_JAR) $(RUNNER) blib/Test.jar blib/lib.jar blib/Pod/To/Text.jar
 
 $(RUNTIME_JAR): $(RUNTIME_JAVAS)
 	$(PERL) -MExtUtils::Command -e mkpath bin
@@ -276,9 +276,9 @@ $(PERL6_B_JAR): $(BOOTSTRAP_SOURCES) $(PERL6_M_JAR)
         --output=$(PERL6_B_JAR) --encoding=utf8 src/gen/BOOTSTRAP.nqp
 
 $(SETTING_JAR): $(PERL6_JAR) $(PERL6_B_JAR) $(CORE_SOURCES)
-	$(PERL) $(J_GEN_CAT) $(CORE_SOURCES) > src/gen/CORE.setting
+	$(PERL) $(J_GEN_CAT) $(CORE_SOURCES) > src/gen/j-CORE.setting
 	@echo "The following step can take a long time, please be patient."
-	$(RUN_PERL6) --setting=NULL --optimize=3 --target=jar --stagestats --output=$(SETTING_JAR) src/gen/CORE.setting
+	$(RUN_PERL6) --setting=NULL --optimize=3 --target=jar --stagestats --output=$(SETTING_JAR) src/gen/j-CORE.setting
 
 $(RUNNER):
 	$(PERL) tools/build/create-jvm-runner.pl dev . $(NQP_PREFIX) $(NQP_JARS)
@@ -294,64 +294,55 @@ blib/Pod/To/Text.jar: lib/Pod/To/Text.pm $(PERL6_JAR) $(SETTING_JAR) $(RUNNER)
 	$(MKPATH) blib/Pod/To
 	.@slash@$(RUNNER) --target=jar --output=blib/Pod/To/Text.jar lib/Pod/To/Text.pm
 
-test    : coretest
+j-test    : j-coretest
 
-fulltest: coretest stresstest
+j-fulltest: j-coretest j-stresstest
 
-coretest: all
+j-coretest: all
 	$(HARNESS) t/00-parrot t/01-sanity
 
 # Run the spectests that we know work.
-spectest_regression: spectest
-spectest: testable t/spectest.data
+j-spectest: j-testable t/spectest.data
 	$(J_HARNESS_WITH_FUDGE) --tests-from-file=t/spectest.data
 
-spectest_full: testable
+j-spectest_full: j-testable
 	$(J_HARNESS_WITH_FUDGE) t/spec
 
-quicktest: testable t/spectest.data
+j-quicktest: j-testable t/spectest.data
 	$(J_HARNESS_WITH_FUDGE) --tests-from-file=t/spectest.data --long=0
 
-stresstest: testable t/spectest.data
+j-stresstest: j-testable t/spectest.data
 	$(J_HARNESS_WITH_FUDGE) --tests-from-file=t/spectest.data --stress=1
 
-spectest_checkout : t/spec
-t/spec :
-	git clone git://github.com/perl6/roast.git t/spec
-	-cd t/spec/ && git config remote.origin.pushurl git@github.com:perl6/roast.git
-
-spectest_update :
-	-cd t/spec && git pull
-
-rakudo_test_run.tar.gz: testable t/spectest.data
+rakudo_test_run.tar.gz: j-testable t/spectest.data
 	- $(J_HARNESS_WITH_FUDGE) --tests-from-file=t/spectest.data --archive rakudo_test_run.tar.gz
 
 #spectest_smolder: rakudo_test_run.tar.gz
 #	./perl6 -e "shell qqx[git log -1 --pretty=format:%H].fmt(qq[curl -F architecture=@cpuarch@ -F platform=@osname@ -F revision=%s -F report_file=@rakudo_test_run.tar.gz -F username=parrot-autobot -F password=qa_rocks http://smolder.parrot.org/app/projects/process_add_report/5])"
 
-testable : all spectest_checkout spectest_update
+j-testable : j-all spectest_checkout spectest_update
 
 t/localtest.data:
 	$(PERL) -MExtUtils::Command -e test_f $@
 
 # Run the tests in t/localtest.data
-localtest: all spectest_checkout t/localtest.data
+localtest: j-all spectest_checkout t/localtest.data
 	@$(J_HARNESS_WITH_FUDGE) --tests-from-file=t/localtest.data
 
 # Run the tests in t/localtest.data with a higher verbosity
-localtest_loud: all spectest_checkout t/localtest.data
+localtest_loud: j-all spectest_checkout t/localtest.data
 	@$(J_HARNESS_WITH_FUDGE) --tests-from-file=t/localtest.data --verbosity=1
 
 # Run many tests of your choice.
 # make sometests TESTFILES=t/foo/bar
-sometests: all
+sometests: j-all
 	@$(J_HARNESS_WITH_FUDGE) $(TESTFILES)
 
 # Run a single test
-t/*.t t/*/*.t t/*/*/*.t: all spectest_checkout
+t/*.t t/*/*.t t/*/*/*.t: j-all spectest_checkout
 	@$(J_HARNESS_WITH_FUDGE) --verbosity=1 $@
 
-install: all tools/build/create-jvm-runner.pl
+j-install: j-all tools/build/create-jvm-runner.pl
 	$(MKPATH) $(PREFIX)/bin
 	$(MKPATH) $(PERL6_LANG_DIR)/lib/Perl6
 	$(MKPATH) $(PERL6_LANG_DIR)/runtime
@@ -366,13 +357,13 @@ install: all tools/build/create-jvm-runner.pl
 	$(PERL) tools/build/create-jvm-runner.pl install $(PREFIX) $(NQP_PREFIX) $(NQP_JARS)
 
 ##  cleaning
-clean:
+j-clean:
 	$(RM_F) $(J_CLEANUPS)
 	$(RM_RF) bin
 
-distclean: realclean
+j-distclean: realclean
 
-realclean: clean
+j-realclean: clean
 	$(RM_F) Makefile
 
-testclean:
+j-testclean:

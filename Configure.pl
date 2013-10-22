@@ -192,6 +192,7 @@ MAIN: {
         unless (`$nqp_j --version` =~ /This is nqp .+ JVM/) {
             push @errors, "No NQP on JVM found; use --with-nqp to specify or --gen-nqp";
         }
+        $config{j_nqp} = $nqp_j;
 
         my %nqp_config = read_config($nqp_j)
             or push @errors, "Unable to read configuration from $nqp_j.";

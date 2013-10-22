@@ -66,7 +66,7 @@ PERL6_M       = src/gen/perl6-metamodel.pir
 PERL6_M_PBC   = blib/Perl6/Metamodel.pbc
 PERL6_B       = src/gen/perl6-bootstrap.pir
 PERL6_B_PBC   = blib/Perl6/BOOTSTRAP.pbc
-SETTING_PIR   = src/gen/CORE.setting.pir
+SETTING_PIR   = src/gen/p-CORE.setting.pir
 SETTING_PBC   = CORE.setting.pbc
 R_SETTING_SRC = src/RESTRICTED.setting
 R_SETTING_PIR = src/gen/RESTRICTED.setting.pir
@@ -257,7 +257,7 @@ P_CLEANUPS = \
   lib/Pod/To/Text.pir \
   rakudo_test_run.tar.gz \
   $(DYNEXT_DIR)/*$(LOAD_EXT) \
-  src/gen/CORE.setting \
+  src/gen/p-CORE.setting \
   src/gen/*.pir \
   src/gen/*.pbc \
   src/gen/*.pm \
@@ -274,10 +274,10 @@ P_HARNESS_WITH_FUDGE = $(PERL) t/harness --fudge --keep-exit-code --icu=$(HAS_IC
 STAGESTATS = @stagestats@
 
 # the default target, TODO: make libraries in 'lib' a variable.
-all: check-versions $(PERL6_EXE) $(SETTING_PBC) $(R_SETTING_PBC) lib/lib.pir lib/Test.pir lib/Pod/To/Text.pir
+p-all: p-check-versions $(PERL6_EXE) $(SETTING_PBC) $(R_SETTING_PBC) lib/lib.pir lib/Test.pir lib/Pod/To/Text.pir
 
 # the install target
-install: all
+p-install: p-all
 	$(MKPATH)                     $(DESTDIR)$(NQP_LANG_DIR)/lib/Perl6
 	$(CP) $(PERL6_ML_PBC)         $(DESTDIR)$(NQP_LANG_DIR)/lib/Perl6/ModuleLoader.pbc
 	$(CP) $(PERL6_W_PBC)          $(DESTDIR)$(NQP_LANG_DIR)/lib/Perl6/World.pbc
@@ -383,9 +383,9 @@ $(PERL6_B_PBC): $(NQP_EXE) $(DYNEXT_DYNOPS) $(PERL6_M_PBC) $(BOOTSTRAP_SOURCES)
 	$(PARROT) $(PARROT_ARGS) -o $(PERL6_B_PBC) $(PERL6_B)
 
 $(SETTING_PBC): $(PERL6_B_PBC) $(PERL6_EXE) $(CORE_SOURCES)
-	$(PERL) $(P_GEN_CAT) $(CORE_SOURCES) > src/gen/CORE.setting
+	$(PERL) $(P_GEN_CAT) $(CORE_SOURCES) > src/gen/p-CORE.setting
 	@echo "The following step can take a long time, please be patient."
-	./$(PERL6_EXE) --setting=NULL --optimize=3 --target=pir --stagestats --output=$(SETTING_PIR) src/gen/CORE.setting
+	./$(PERL6_EXE) --setting=NULL --optimize=3 --target=pir --stagestats --output=$(SETTING_PIR) src/gen/p-CORE.setting
 	$(PARROT) $(PARROT_ARGS) -o $(SETTING_PBC) $(SETTING_PIR)
 
 $(R_SETTING_PBC): $(PERL6_B_PBC) $(PERL6_EXE) $(SETTING_PBC) $(R_SETTING_SRC)
@@ -402,74 +402,65 @@ lib/lib.pir: lib/lib.pm6 $(PERL6_EXE) $(SETTING_PBC)
 lib/Pod/To/Text.pir: lib/Pod/To/Text.pm $(PERL6_EXE) $(SETTING_PBC)
 	./$(PERL6_EXE) --target=pir --output=lib/Pod/To/Text.pir lib/Pod/To/Text.pm
 
-test    : coretest
+p-test    : p-coretest
 
-fulltest: coretest stresstest
+p-fulltest: p-coretest p-stresstest
 
-coretest: all
+p-coretest: p-all
 	$(PERL) t/harness t/00-parrot t/01-sanity
 
 # Run the spectests that we know work.
-spectest_regression: spectest
-spectest: testable t/spectest.data
+p-spectest: p-testable t/spectest.data
 	$(P_HARNESS_WITH_FUDGE) --tests-from-file=t/spectest.data
 
-spectest_full: testable
+p-spectest_full: p-testable
 	$(P_HARNESS_WITH_FUDGE) t/spec
 
-quicktest: testable t/spectest.data
+p-quicktest: p-testable t/spectest.data
 	$(P_HARNESS_WITH_FUDGE) --tests-from-file=t/spectest.data --long=0
 
-stresstest: testable t/spectest.data
+p-stresstest: p-testable t/spectest.data
 	$(P_HARNESS_WITH_FUDGE) --tests-from-file=t/spectest.data --stress=1
 
-spectest_checkout : t/spec
-t/spec :
-	git clone git://github.com/perl6/roast.git t/spec
-	-cd t/spec/ && git config remote.origin.pushurl git@github.com:perl6/roast.git
 
-
-spectest_update :
-	-cd t/spec && git pull
-
-rakudo_test_run.tar.gz: testable t/spectest.data
+rakudo_test_run.tar.gz: p-testable t/spectest.data
 	- $(P_HARNESS_WITH_FUDGE) --tests-from-file=t/spectest.data --archive rakudo_test_run.tar.gz --parrot_revision @git_describe@
 
-spectest_smolder: rakudo_test_run.tar.gz
+p-spectest_smolder: rakudo_test_run.tar.gz
 	./perl6 -e "shell qqx[git log -1 --pretty=format:%H].fmt(qq[curl -F architecture=@cpuarch@ -F platform=@osname@ -F revision=%s -F report_file=@rakudo_test_run.tar.gz -F username=parrot-autobot -F password=qa_rocks http://smolder.parrot.org/app/projects/process_add_report/5])"
 
-testable : all spectest_checkout spectest_update
+p-testable : p-all spectest_checkout spectest_update
 
 t/localtest.data:
 	$(PERL) -MExtUtils::Command -e test_f $@
 
 # Run the tests in t/localtest.data
-localtest: all spectest_checkout t/localtest.data
+p-localtest: p-all spectest_checkout t/localtest.data
 	@$(P_HARNESS_WITH_FUDGE) --tests-from-file=t/localtest.data
 
 # Run the tests in t/localtest.data with a higher verbosity
-localtest_loud: all spectest_checkout t/localtest.data
+p-localtest_loud: p-all spectest_checkout t/localtest.data
 	@$(P_HARNESS_WITH_FUDGE) --tests-from-file=t/localtest.data --verbosity=1
 
 # Run many tests of your choice.
 # make sometests TESTFILES=t/foo/bar
-sometests: all
+p-sometests: p-all
 	@$(P_HARNESS_WITH_FUDGE) $(TESTFILES)
 
 # Run a single test
-t/*.t t/*/*.t t/*/*/*.t: all spectest_checkout
+t/*.t t/*/*.t t/*/*/*.t: p-all spectest_checkout
 	@$(P_HARNESS_WITH_FUDGE) --verbosity=1 $@
 
 ##  cleaning
-clean:
+p-clean:
 	$(RM_RF) $(P_CLEANUPS)
 
-distclean: realclean
+p-distclean: realclean
 
-realclean: clean
+p-realclean: clean
 	$(RM_RF) Makefile
 
-testclean:
+p-testclean:
 
 
 ##  miscellaneous targets
@@ -507,7 +498,7 @@ help:
 	@echo "  help:              Print this help message."
 	@echo ""
 
-check-versions:
+p-check-versions:
 	@$(PERL) tools/build/check-versions.pl  $(NQP_EXE)
 
 config:

@@ -319,6 +319,7 @@ sub gen_nqp {
 
     return %impls unless defined($gen_nqp) || defined($gen_parrot);
 
+    my $backends_to_build = join ',', sort keys %need;
     my @cmd = ($^X, 'Configure.pl', "--prefix=\"$prefix\"",
                "--backends=$backends", "--make-install");
     print "Building NQP ...\n";

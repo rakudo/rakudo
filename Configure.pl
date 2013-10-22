@@ -99,6 +99,12 @@ MAIN: {
     open my $MAKEFILE, '>', 'Makefile'
         or die "Cannot open 'Makefile' for writing: $!";
 
+    my @prefixes = sort map substr($_, 0, 1), keys %backends;
+    for my $t (qw/all clean test spectest install/) {
+        print $MAKEFILE "$t: ", join(' ', map "$_-$t", @prefixes), "\n";
+    }
+
+
     fill_template_file('tools/build/Makefile-common.in', $MAKEFILE, %config);
 
     my $gen_nqp     = $options{'gen-nqp'};

@@ -23,6 +23,11 @@ multi trait_mod:<is>(Mu:U $child, Mu:U $parent) {
         ).throw;
     }
 }
+multi trait_mod:<is>(Mu:U $child, :$DEPRECATED!) {
+# add COMPOSE phaser for this child, which will add an ENTER phaser to an
+# existing "new" method, or create a "new" method with a call to DEPRECATED
+# and a nextsame.
+}
 multi trait_mod:<is>(Mu:U $type, :$rw!) {
     $type.HOW.set_rw($type);
 }

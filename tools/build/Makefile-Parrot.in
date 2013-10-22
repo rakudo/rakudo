@@ -45,7 +45,7 @@ DOCDIR         = @prefix@/share/doc
 # files we create
 PERL6_PIR     = src/gen/perl6.pir
 PERL6_PBC     = perl6.pbc
-PERL6_EXE     = perl6$(EXE)
+PERL6_EXE     = perl6-p$(EXE)
 PERL6_ML      = src/gen/perl6-moduleloader.pir
 PERL6_ML_PBC  = blib/Perl6/ModuleLoader.pbc
 PERL6_W       = src/gen/perl6-symboltable.pir
@@ -317,16 +317,16 @@ xmas: $(PERL6_EXE) $(SETTING_PBC) $(R_SETTING_PBC)
 
 ##  targets for building a standalone perl6 executable.
 $(PERL6_EXE): $(PERL6_PBC) $(PARROT_DLL_COPY)
-	$(PBC_TO_EXE) $(PERL6_PBC)
+	$(PBC_TO_EXE) -o$(PERL6_EXE) $(PERL6_PBC)
 
 @make_dllcopy@
 
 # the complete compiler
 $(PERL6_PBC): $(PERL6_G_PBC) $(PERL6_A_PBC) $(PERL6_C_PBC) $(PERL6_P_PBC) src/main.nqp
 	$(PERL) tools/build/gen-version.pl >src/gen/main-version.nqp
-	$(PERL) $(P_GEN_CAT) src/main.nqp src/gen/main-version.nqp > src/gen/main.nqp
+	$(PERL) $(P_GEN_CAT) src/main.nqp src/gen/main-version.nqp > src/gen/p-main.nqp
 	$(NQP_EXE) --vmlibs=perl6_ops --target=pir --output=src/gen/perl6.pir \
-	    src/gen/main.nqp
+	    src/gen/p-main.nqp
 	$(PARROT) $(PARROT_ARGS) -o $(PERL6_PBC) src/gen/perl6.pir
 
 $(PERL6_ML_PBC): $(NQP_EXE) $(DYNEXT_DYNOPS) src/Perl6/ModuleLoader.nqp src/vm/parrot/ModuleLoaderVMConfig.nqp

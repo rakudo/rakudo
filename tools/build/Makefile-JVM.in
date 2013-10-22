@@ -261,9 +261,9 @@ $(PERL6_C_JAR): src/Perl6/Compiler.nqp $(PERL6_O_JAR)
 
 $(PERL6_JAR): src/main.nqp $(RUNTIME_JAR) $(PERL6_G_JAR) $(PERL6_A_JAR) $(PERL6_C_JAR) $(PERL6_P_JAR)
 	$(PERL) tools/build/gen-version.pl > src/gen/main-version.nqp
-	$(PERL) $(J_GEN_CAT) src/main.nqp src/gen/main-version.nqp > src/gen/main.nqp
+	$(PERL) $(J_GEN_CAT) src/main.nqp src/gen/main-version.nqp > src/gen/j-main.nqp
 	$(J_NQP) --target=jar --javaclass=perl6 --output=$(PERL6_JAR) \
-	    src/gen/main.nqp
+	    src/gen/j-main.nqp
 
 $(PERL6_M_JAR): $(J_METAMODEL_SOURCES) $(PERL6_OPS_JAR)
 	$(PERL) $(J_GEN_CAT) $(J_METAMODEL_SOURCES) > src/gen/Metamodel.nqp

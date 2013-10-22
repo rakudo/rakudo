@@ -319,6 +319,10 @@ xmas: $(PERL6_EXE) $(SETTING_PBC) $(R_SETTING_PBC)
 $(PERL6_EXE): $(PERL6_PBC) $(PARROT_DLL_COPY)
 	$(PBC_TO_EXE) -o$(PERL6_EXE) $(PERL6_PBC)
 
+p-runner-default: p-all
+	$(CP) $(PERL6_EXE) perl6$(EXE)
+	$(CHMOD) 755  perl6$(EXE)
+
 @make_dllcopy@
 
 # the complete compiler
@@ -447,9 +451,6 @@ p-localtest_loud: p-all spectest_checkout t/localtest.data
 p-sometests: p-all
 	@$(P_HARNESS_WITH_FUDGE) $(TESTFILES)
 
-# Run a single test
-t/*.t t/*/*.t t/*/*/*.t: p-all spectest_checkout
-	@$(P_HARNESS_WITH_FUDGE) --verbosity=1 $@
 
 ##  cleaning
 p-clean:

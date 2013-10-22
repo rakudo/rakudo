@@ -283,6 +283,11 @@ $(SETTING_JAR): $(PERL6_JAR) $(PERL6_B_JAR) $(J_CORE_SOURCES)
 $(RUNNER):
 	$(PERL) tools/build/create-jvm-runner.pl dev . $(NQP_PREFIX) $(NQP_JARS)
 
+j-runner-default: j-all
+	$(CP) $(RUNNER) perl6$(BAT)
+	$(CHMOD) 755 perl6$(BAT)
+
+
 ##  testing targets
 blib/Test.jar: lib/Test.pm $(PERL6_JAR) $(SETTING_JAR) $(RUNNER)
 	.@slash@$(RUNNER) --target=jar --output=blib/Test.jar lib/Test.pm
@@ -337,10 +342,6 @@ localtest_loud: j-all spectest_checkout t/localtest.data
 # make sometests TESTFILES=t/foo/bar
 sometests: j-all
 	@$(J_HARNESS_WITH_FUDGE) $(TESTFILES)
-
-# Run a single test
-t/*.t t/*/*.t t/*/*/*.t: j-all spectest_checkout
-	@$(J_HARNESS_WITH_FUDGE) --verbosity=1 $@
 
 j-install: j-all tools/build/create-jvm-runner.pl
 	$(MKPATH) $(PREFIX)/bin

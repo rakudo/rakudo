@@ -170,7 +170,7 @@ MAIN: {
         fill_template_file('tools/build/Makefile-Parrot.in', $MAKEFILE, %config, %nqp_config);
     }
     if ($backends{jvm}) {
-
+        $config{j_nqp} = $impls{jvm}{bin};
         my %nqp_config;
         if ( $impls{jvm}{config} ) {
             %nqp_config = %{ $impls{jvm}{config} };

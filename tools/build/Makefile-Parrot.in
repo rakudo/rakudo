@@ -334,9 +334,9 @@ $(PERL6_PBC): $(PERL6_G_PBC) $(PERL6_A_PBC) $(PERL6_C_PBC) $(PERL6_P_PBC) src/ma
 	$(PARROT) $(PARROT_ARGS) -o $(PERL6_PBC) src/gen/perl6.pir
 
 $(PERL6_ML_PBC): $(NQP_EXE) $(DYNEXT_DYNOPS) src/Perl6/ModuleLoader.nqp src/vm/parrot/ModuleLoaderVMConfig.nqp
-	$(PERL) $(P_GEN_CAT) src/vm/parrot/ModuleLoaderVMConfig.nqp src/Perl6/ModuleLoader.nqp > src/gen/ModuleLoader.nqp
+	$(PERL) $(P_GEN_CAT) src/vm/parrot/ModuleLoaderVMConfig.nqp src/Perl6/ModuleLoader.nqp > src/gen/p-ModuleLoader.nqp
 	$(NQP_EXE) --target=pir --output=$(PERL6_ML) --encoding=utf8 \
-	    src/gen/ModuleLoader.nqp
+	    src/gen/p-ModuleLoader.nqp
 	$(PARROT) $(PARROT_ARGS) -o $(PERL6_ML_PBC) $(PERL6_ML)
 
 $(PERL6_W_PBC): $(NQP_EXE) $(PERL6_ML_PBC) src/Perl6/World.nqp

@@ -227,9 +227,9 @@ $(RUNTIME_JAR): $(RUNTIME_JAVAS)
 	$(JAR) cf0 rakudo-runtime.jar -C bin/ .
 
 $(PERL6_ML_JAR): src/Perl6/ModuleLoader.nqp src/vm/jvm/ModuleLoaderVMConfig.nqp src/vm/jvm/Perl6/JavaModuleLoader.nqp
-	$(PERL) $(J_GEN_CAT) src/vm/jvm/ModuleLoaderVMConfig.nqp src/Perl6/ModuleLoader.nqp src/vm/jvm/Perl6/JavaModuleLoader.nqp > src/gen/ModuleLoader.nqp
+	$(PERL) $(J_GEN_CAT) src/vm/jvm/ModuleLoaderVMConfig.nqp src/Perl6/ModuleLoader.nqp src/vm/jvm/Perl6/JavaModuleLoader.nqp > src/gen/j-ModuleLoader.nqp
 	$(J_NQP) --target=jar --output=$(PERL6_ML_JAR) --encoding=utf8 \
-	    src/gen/ModuleLoader.nqp
+	    src/gen/j-ModuleLoader.nqp
 
 $(PERL6_W_JAR): $(PERL6_ML_JAR) src/Perl6/World.nqp
 	$(J_NQP) --target=jar --output=$(PERL6_W_JAR) --encoding=utf8 \

@@ -1,5 +1,5 @@
 #!/usr/bin/perl
-# Copyright (C) 2008-2011, The Perl Foundation.
+# Copyright (C) 2008-2013, The Perl Foundation.
 
 use strict;
 use warnings;
@@ -7,9 +7,12 @@ use 5.008;
 use lib 'tools/lib';
 use NQP::Configure qw(slurp cmp_rev read_config);
 
-if (-M 'Makefile' > -M 'tools/build/Makefile-Parrot.in') {
+if (-M 'Makefile' > -M 'tools/build/Makefile-Parrot.in' ||
+        -M 'Makefile' > -M 'tools/build/Makefile-JVM.in' ||
+        -M 'Makefile' > -M 'tools/build/Makefile.in') {
     die <<EOM
-Makefile is older than tools/build/Makefile-Parrot.in, run something like
+Makefile is older than tools/build/Makefile.in, tools/build/Makefile-Parrot.in,
+or tools/build/Makefile-JVM.in; run something like
 
     perl Configure.pl
 

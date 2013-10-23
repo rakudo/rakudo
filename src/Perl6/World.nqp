@@ -625,6 +625,17 @@ class Perl6::World is HLL::World {
                     %cont_info<container_shape>
                 )
             );
+            if nqp::existskey(%cont_info, 'container_index_map') {
+                $block[0].push(
+                    QAST::Op.new(
+                        :op('bindattr'),
+                        QAST::Var.new(:scope('lexical'), :name($name)),
+                        QAST::WVal.new(:value(%cont_info<container_base>)),
+                        QAST::SVal.new(:value('$!index_map')),
+                        %cont_info<container_index_map>
+                    )
+                );
+            }
         }
         self.add_object($cont);
         $block.symbol($name, :value($cont));

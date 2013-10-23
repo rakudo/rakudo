@@ -10,7 +10,9 @@ our @EXPORT_OK = qw(sorry slurp system_or_die
                     fill_template_file fill_template_text 
                     git_checkout
                     verify_install
-                    gen_nqp gen_parrot);
+                    gen_nqp gen_parrot
+                    PARROT JVM UNKNOWN_VM AVAILABLE_VM
+                    VM_TO_NAME);
 
 our $exe = $^O eq 'MSWin32' ? '.exe' : '';
 
@@ -29,6 +31,22 @@ our @required_nqp_files = qw(
 
 our $nqp_git = 'git://github.com/perl6/nqp.git';
 our $par_git = 'git://github.com/parrot/parrot.git';
+
+use constant {
+    PARROT => 1,
+    JVM => 2,
+    UNKNOWN_VM => 0
+};
+
+use constant AVAILABLE_VM => {
+    'parrot' => PARROT,
+    'jvm' => JVM
+};
+
+use constant VM_TO_NAME => {
+    PARROT() => 'Parrot',
+    JVM() => 'JVM'
+};
 
 sub sorry {
     my @msg = @_;
@@ -241,12 +259,15 @@ sub verify_install {
 
 sub gen_nqp {
     my $nqp_want = shift;
-    my %options  = @_;
+    my $options  = shift;
 
-    my $gen_nqp     = $options{'gen-nqp'};
-    my $with_parrot = $options{'with-parrot'};
-    my $gen_parrot  = $options{'gen-parrot'};
-    my $prefix      = $options{'prefix'} || cwd().'/install';
+    my $slash       = $^O eq 'MSWin32' ? '\\' : '/';
+    my $vm          = AVAILABLE_VM->{lc($options->{'vm'} || 'parrot')};
+    my $gen_nqp     = $options->{'gen-nqp'};
+    my $with_parrot = $options->{'with-parrot'};
+    my $gen_parrot  = $options->{'gen-parrot'};
+    my $prefix      = $options->{'prefix'} || cwd() . $slash . 'install' .
+                      ($vm == JVM ? '-jvm' : '');
     my $startdir    = cwd();
 
     my $PARROT_REVISION = 'nqp/tools/build/PARROT_REVISION';
@@ -260,8 +281,8 @@ sub gen_nqp {
         $nqp_exe = fill_template_text('@bindir@/nqp@ext@', %config);
         %config = read_config($nqp_exe);
     }
-    elsif ($prefix) {
-        $nqp_exe = "$prefix/bin/nqp$exe";
+    else {
+        $nqp_exe = "$prefix/" . ($vm == JVM ? '' : 'bin/') . "nqp$exe";
         %config = read_config($nqp_exe);
     }
 
@@ -277,21 +298,33 @@ sub gen_nqp {
 
     if (defined $gen_parrot) {
         my ($par_want) = split(' ', slurp($PARROT_REVISION));
-        $with_parrot = gen_parrot($par_want, %options, prefix => $prefix);
+        $options->{'prefix'} = $prefix;
+        $with_parrot = gen_parrot($par_want, $options);
         %config = read_parrot_config($with_parrot);
     }
-    elsif (!%config) {
+    elsif ($vm == PARROT && !%config) {
         %config = read_parrot_config("$prefix/bin/parrot$exe", "parrot$exe");
         $with_parrot = fill_template_text('@bindir@/parrot@exe@', %config);
     }
 
-    if ($nqp_ok && -M $nqp_exe < -M $with_parrot) {
+    if ($vm == JVM) {
+        $options->{'bindir'} = $config{'bindir'} = $prefix;
+        $options->{'exe'} = $config{'exe'} = $^O eq 'MSWin32' ? '.exe' : '';
+    }
+
+    if ($nqp_ok && ($vm != PARROT || -M $nqp_exe < -M $with_parrot)) {
         print "$nqp_exe is NQP $nqp_have.\n";
         return $nqp_exe;
     }
 
-    my @cmd = ($^X, 'Configure.pl', "--with-parrot=$with_parrot",
-               "--make-install");
+    my @cmd;
+    if ($vm == PARROT) {
+        @cmd = ($^X, 'Configure.pl', "--with-parrot=$with_parrot",
+                     "--make-install");
+    } elsif ($vm == JVM) {
+        @cmd = ($^X, 'ConfigureJVM.pl', '--prefix=../install-jvm',
+                     '--make-install');
+    }
     print "Building NQP ...\n";
     chdir("$startdir/nqp");
     print "@cmd\n";
@@ -303,14 +336,14 @@ sub gen_nqp {
 
 sub gen_parrot {
     my $par_want = shift;
-    my %options  = @_;
+    my $options  = shift;
 
-    my $prefix     = $options{'prefix'} || cwd()."/install";
-    my $gen_parrot = $options{'gen-parrot'};
-    my @opts       = @{ $options{'parrot-option'} || ["--optimize"] };
+    my $prefix     = $options->{'prefix'} || cwd()."/install";
+    my $gen_parrot = $options->{'gen-parrot'};
+    my @opts       = @{ $options->{'parrot-option'} || ["--optimize"] };
     my $startdir   = cwd();
 
-    my $par_exe  = "$options{'prefix'}/bin/parrot$exe";
+    my $par_exe  = "$options->{'prefix'}/bin/parrot$exe";
     my %config   = read_parrot_config($par_exe);
 
     my $par_have = $config{'parrot::git_describe'} || '';
@@ -348,7 +381,7 @@ sub gen_parrot {
     %config = read_parrot_config('config_lib.pir');
     my $make = $config{'parrot::make'} or
         die "Unable to determine value for 'make' from parrot config\n";
-    system_or_die($make, 'install-dev', @{$options{'parrot-make-option'}});
+    system_or_die($make, 'install-dev', @{$options->{'parrot-make-option'}});
     chdir($startdir);
 
     print "Parrot installed.\n";

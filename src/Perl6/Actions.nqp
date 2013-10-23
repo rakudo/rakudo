@@ -184,7 +184,26 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 %info<value_type>     := $*W.find_symbol(['Mu']);
             }
             if $shape {
-                %info<container_shape> := $shape[0].ast;
+                my $shape_ast := $shape[0].ast;
+                if +@($shape_ast) == 1 {
+                    my $sast_size := +@($shape_ast[0]);
+                    if $sast_size > 1 {
+                        my $map_ast := $shape_ast[0][$sast_size - 1];
+                        if nqp::istype($map_ast[1], QAST::Node) &&
+                                $map_ast[1].has_compile_time_value &&
+                                $map_ast[1].compile_time_value eq 'map' {
+                            %info<container_index_map> := $shape_ast[0].pop[2];
+                            $shape_ast[0] := $shape_ast[0][0] if +@($shape_ast[0]) == 1;
+                        }
+                    } elsif $sast_size == 0 {
+                        $*W.throw($/, 'X::Comp::AdHoc',
+                            payload => 'empty shape definition');
+                    }
+                } else {
+                    $*W.throw($/, 'X::Comp::NYI',
+                        feature => 'multidimensional shaped arrays');
+                }
+                %info<container_shape> := $shape_ast;
             } else {
                 my $whatever := $*W.find_symbol(['Whatever']);
                 %info<container_shape> := QAST::Op.new(

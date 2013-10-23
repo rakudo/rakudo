@@ -1579,11 +1579,13 @@ BEGIN {
     # class Array is List {
     #     has $!descriptor;
     #     has $!shape;
+    #     has $!index_map;
     #     ...
     # }
     Array.HOW.add_parent(Array, List);
     Array.HOW.add_attribute(Array, BOOTSTRAPATTR.new(:name<$!descriptor>, :type(Mu), :package(Array)));
     Array.HOW.add_attribute(Array, scalar_attr('$!shape', Mu, Array));
+    Array.HOW.add_attribute(Array, scalar_attr('$!index_map', Mu, Array));
     Array.HOW.compose_repr(Array);
 
     # class LoL is List {

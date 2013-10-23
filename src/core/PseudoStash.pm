@@ -155,11 +155,6 @@ my class PseudoStash is EnumMap {
             die "This case of binding is not yet implemented";
         }
     }
-    
-    method exists ($key) {  # is DEPRECATED doesn't work in settings
-        DEPRECATED("the :exists adverb");
-        self.exists_key($key);
-    }
     method exists_key($key is copy) {
         $key = $key.Str;
         if %pseudoers.exists_key($key) {

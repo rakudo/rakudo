@@ -12,7 +12,7 @@ my role Setty does QuantHash {
         self.exists_key($k);
     }
     method exists_key($k --> Bool) {
-        so nqp::existskey(%!elems, nqp::unbox_s($k.WHICH));
+        so ( %!elems && nqp::existskey(%!elems, nqp::unbox_s($k.WHICH)) );
     }
     method Bool { %!elems.Bool }
 
@@ -23,7 +23,7 @@ my role Setty does QuantHash {
     }
 
     method new(*@args --> Setty) {
-        my %e = ();  # need (), otherwise Set.new<a>:exists fails
+        my %e;
         %e{$_.WHICH} = $_ for @args;
         self.bless(:elems(%e));
     }

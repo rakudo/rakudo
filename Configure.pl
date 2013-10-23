@@ -171,6 +171,7 @@ MAIN: {
     }
     if ($backends{jvm}) {
         $config{j_nqp} = $impls{jvm}{bin};
+        $config{j_nqp} =~ s{/}{\\}g if $^O eq 'MSWin32';
         my %nqp_config;
         if ( $impls{jvm}{config} ) {
             %nqp_config = %{ $impls{jvm}{config} };

@@ -14,6 +14,7 @@ our @EXPORT_OK = qw(sorry slurp system_or_die
                     gen_nqp gen_parrot);
 
 our $exe = $^O eq 'MSWin32' ? '.exe' : '';
+our $bat = $^O eq 'MSWin32' ? '.bat' : '';
 
 our @required_parrot_files = qw(
     @bindir@/parrot@exe@
@@ -296,7 +297,7 @@ sub gen_nqp {
         }
     }
     if ($backends =~ /jvm/) {
-        my $bin = "$prefix/bin/nqp-j$exe";
+        my $bin = "$prefix/bin/nqp-j$bat";
         $impls{jvm}{bin} = $bin;
         my %c = read_config($bin);
         my $nqp_have = $c{'nqp::version'} || '';

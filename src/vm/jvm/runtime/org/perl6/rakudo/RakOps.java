@@ -525,6 +525,14 @@ public final class RakOps {
             return cont;
         }
     }
+
+    public static SixModelObject p6reprname(SixModelObject obj, ThreadContext tc) {
+        GlobalExt gcx = key.getGC(tc);
+        obj = Ops.decont(obj, tc);
+        SixModelObject name = gcx.Str.st.REPR.allocate(tc, gcx.Str.st);
+        name.set_str(tc, obj.st.REPR.name);
+        return name;
+    }
     
     private static final CallSiteDescriptor rvThrower = new CallSiteDescriptor(
         new byte[] { CallSiteDescriptor.ARG_OBJ, CallSiteDescriptor.ARG_OBJ }, null);

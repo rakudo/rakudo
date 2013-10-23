@@ -13,9 +13,8 @@ end of this document.
 
 =head2 Planned future releases
 
-Dates are based on Parrot's expected release schedule.
+Releases are typically on the third Thursday of each month.
 
-  2013-10-17   Rakudo #69                      Coke
   2013-11-21   Rakudo #70                      lizmat
   2013-12-19   Rakudo #71
   2014-01-23   Rakudo #72
@@ -90,7 +89,8 @@ commit the new version:
 But probably there won't be any new leap seconds, in which case the file
 will be unchanged.
 
-B<Note>: this program requires the perl module L<Time::y2038> be installed.
+B<Note>: this program requires the perl modules L<Time::y2038> and
+L<LWP::Simple> be installed.
 
 =item 3.
 
@@ -294,6 +294,7 @@ You're done!  Celebrate with the appropriate amount of fun.
   2013-07-18   Rakudo #66 "Edinburgh"          (moritz,lizmat)
   2013-08-22   Rakudo #67 "Bicycle"            (moritz)
   2013-09-19   Rakudo #68 "Shanghai"           (masak)
+  2013-10-17   Rakudo #69 "Roederbergweg"      (Coke)
 
 =head1 COPYRIGHT
 

@@ -88,12 +88,14 @@ S02-types/bool.t
 S02-types/capture.t
 S02-types/catch_type_cast_mismatch.t
 S02-types/declare.t
+S02-types/deprecations.t
 S02-types/fatrat.t
 S02-types/flattening.t
 S02-types/hash_ref.t
 S02-types/hash.t
 S02-types/infinity.t
 S02-types/instants-and-durations.t
+S02-types/isDEPRECATED.t
 S02-types/lazy-lists.t
 S02-types/lists.t
 S02-types/mix.t

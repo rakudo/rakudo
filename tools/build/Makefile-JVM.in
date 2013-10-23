@@ -266,14 +266,14 @@ $(PERL6_JAR): src/main.nqp $(RUNTIME_JAR) $(PERL6_G_JAR) $(PERL6_A_JAR) $(PERL6_
 	    src/gen/j-main.nqp
 
 $(PERL6_M_JAR): $(J_METAMODEL_SOURCES) $(PERL6_OPS_JAR)
-	$(PERL) $(J_GEN_CAT) $(J_METAMODEL_SOURCES) > src/gen/Metamodel.nqp
+	$(PERL) $(J_GEN_CAT) $(J_METAMODEL_SOURCES) > src/gen/j-Metamodel.nqp
 	$(J_NQP) --target=jar --output=$(PERL6_M_JAR) --encoding=utf8 \
-	    src/gen/Metamodel.nqp
+	    src/gen/j-Metamodel.nqp
 
 $(PERL6_B_JAR): $(BOOTSTRAP_SOURCES) $(PERL6_M_JAR)
-	$(PERL) $(J_GEN_CAT) $(BOOTSTRAP_SOURCES) > src/gen/BOOTSTRAP.nqp
+	$(PERL) $(J_GEN_CAT) $(BOOTSTRAP_SOURCES) > src/gen/j-BOOTSTRAP.nqp
 	$(PERL) tools/build/nqp-jvm-rr.pl $(J_NQP) --target=jar \
-        --output=$(PERL6_B_JAR) --encoding=utf8 src/gen/BOOTSTRAP.nqp
+        --output=$(PERL6_B_JAR) --encoding=utf8 src/gen/j-BOOTSTRAP.nqp
 
 $(SETTING_JAR): $(PERL6_JAR) $(PERL6_B_JAR) $(J_CORE_SOURCES)
 	$(PERL) $(J_GEN_CAT) $(J_CORE_SOURCES) > src/gen/j-CORE.setting

@@ -375,15 +375,15 @@ $(PERL6_C_PBC): $(NQP_EXE) $(DYNEXT_DYNOPS) $(PERL6_O_PBC) src/Perl6/Compiler.nq
 	$(PARROT) $(PARROT_ARGS) -o $(PERL6_C_PBC) $(PERL6_C)
 
 $(PERL6_M_PBC): $(NQP_EXE) $(DYNEXT_DYNOPS) $(P_METAMODEL_SOURCES) $(PERL6_OPS_PBC)
-	$(PERL) $(P_GEN_CAT) $(P_METAMODEL_SOURCES) > src/gen/Metamodel.nqp
+	$(PERL) $(P_GEN_CAT) $(P_METAMODEL_SOURCES) > src/gen/p-Metamodel.nqp
 	$(NQP_EXE) --target=pir --output=$(PERL6_M) --encoding=utf8 \
-	    --vmlibs=perl6_ops src/gen/Metamodel.nqp
+	    --vmlibs=perl6_ops src/gen/p-Metamodel.nqp
 	$(PARROT) $(PARROT_ARGS) -o $(PERL6_M_PBC) $(PERL6_M)
     
 $(PERL6_B_PBC): $(NQP_EXE) $(DYNEXT_DYNOPS) $(PERL6_M_PBC) $(BOOTSTRAP_SOURCES)
-	$(PERL) $(P_GEN_CAT) $(BOOTSTRAP_SOURCES) > src/gen/BOOTSTRAP.nqp
+	$(PERL) $(P_GEN_CAT) $(BOOTSTRAP_SOURCES) > src/gen/p-BOOTSTRAP.nqp
 	$(NQP_EXE) --target=pir --output=$(PERL6_B) --encoding=utf8 \
-	    --vmlibs=perl6_ops src/gen/BOOTSTRAP.nqp
+	    --vmlibs=perl6_ops src/gen/p-BOOTSTRAP.nqp
 	$(PARROT) $(PARROT_ARGS) -o $(PERL6_B_PBC) $(PERL6_B)
 
 $(SETTING_PBC): $(PERL6_B_PBC) $(PERL6_EXE) $(P_CORE_SOURCES)

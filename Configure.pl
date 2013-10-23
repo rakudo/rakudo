@@ -31,7 +31,7 @@ MAIN: {
 
     my %options;
     GetOptions(\%options, 'help!', 'prefix=s',
-                'backends=s',
+                'backends=s', 'no-clean!',
                'gen-nqp:s',
                'gen-parrot:s', 'parrot-option=s@',
                'parrot-make-option=s@',
@@ -110,7 +110,8 @@ MAIN: {
 
     my $launcher = substr($default_backend, 0, 1) . '-runner-default';
     print $MAKEFILE "all: ", join(' ', map("$_-all", @prefixes), $launcher), "\n";
-    for my $t (qw/clean test spectest coretest install/) {
+    print $MAKEFILE "install: ", join(' ', map("$_-install", @prefixes), $launcher . '-install'), "\n";
+    for my $t (qw/clean test spectest coretest/) {
         print $MAKEFILE "$t: ", join(' ', map "$_-$t", @prefixes), "\n";
     }
 
@@ -203,7 +204,7 @@ MAIN: {
 
     close $MAKEFILE or die "Cannot write 'Makefile': $!";
 
-    {
+    unless ($options{'no-clean'}) {
         no warnings;
         print "Cleaning up ...\n";
         if (open my $CLEAN, '-|', "$make clean") {

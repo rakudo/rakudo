@@ -355,6 +355,11 @@ j-install: j-all tools/build/create-jvm-runner.pl
 	$(CP) blib/Pod/To/Text.jar $(PERL6_LANG_DIR)/lib/Pod/To
 	$(PERL) tools/build/create-jvm-runner.pl install $(PREFIX) $(NQP_PREFIX) $(NQP_JARS)
 
+j-runner-default-install: j-all
+	$(PERL) tools/build/create-jvm-runner.pl install $(PREFIX) $(NQP_PREFIX) $(NQP_JARS)
+	$(CP) $(PREFIX)/bin/perl6-j$(BAT) $(PREFIX)/bin/perl6$(BAT)
+	$(CHMOD) 755 $(PREFIX)/bin/perl6$(BAT)
+
 ##  cleaning
 j-clean:
 	$(RM_F) $(J_CLEANUPS)

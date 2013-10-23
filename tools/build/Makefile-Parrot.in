@@ -313,6 +313,10 @@ p-install: p-all
 	-$(POD2MAN) docs/running.pod --name=perl6 > $(DESTDIR)$(MANDIR)/man1/perl6.1
 	-$(POD2MAN) docs/running.pod --name=rakudo > $(DESTDIR)$(MANDIR)/man1/rakudo.1
 
+p-runner-default-install: p-all
+	$(CP)     $(PERL6_EXE)        $(DESTDIR)$(PARROT_BIN_DIR)/perl6$(EXE)
+	$(CHMOD)  755                 $(DESTDIR)$(PARROT_BIN_DIR)/perl6$(EXE)
+
 xmas: $(PERL6_EXE) $(SETTING_PBC) $(R_SETTING_PBC)
 
 ##  targets for building a standalone perl6 executable.

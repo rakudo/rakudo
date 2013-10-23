@@ -23,6 +23,11 @@ multi trait_mod:<is>(Mu:U $child, Mu:U $parent) {
         ).throw;
     }
 }
+multi trait_mod:<is>(Mu:U $child, :$DEPRECATED!) {
+# add COMPOSE phaser for this child, which will add an ENTER phaser to an
+# existing "new" method, or create a "new" method with a call to DEPRECATED
+# and a nextsame.
+}
 multi trait_mod:<is>(Mu:U $type, :$rw!) {
     $type.HOW.set_rw($type);
 }
@@ -70,6 +75,10 @@ multi trait_mod:<is>(Attribute:D $attr, :$readonly!) {
 }
 multi trait_mod:<is>(Attribute:D $attr, :$box_target!) {
     $attr.set_box_target();
+}
+multi trait_mod:<is>(Attribute:D $attr, :$DEPRECATED!) {
+# need to add a COMPOSE phaser to the class, that will add an ENTER phaser
+# to the (possibly auto-generated) accessor method.
 }
 
 multi trait_mod:<is>(Routine:D $r, |c ) {

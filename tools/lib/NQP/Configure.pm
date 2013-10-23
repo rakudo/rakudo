@@ -312,10 +312,7 @@ sub gen_nqp {
 
     return %impls unless %need;
 
-    if ($gen_nqp) {
-        my $nqp_repo = git_checkout($nqp_git, 'nqp', $gen_nqp, $nqp_push);
-    }
-    elsif (defined $gen_parrot && !-f $PARROT_REVISION) {
+    if (defined $gen_nqp || defined $gen_parrot) {
         git_checkout($nqp_git, 'nqp', $nqp_want, $nqp_push);
     }
 

@@ -1,6 +1,3 @@
-# Copyright (C) 2006-2013, The Perl Foundation.
-# $Id$
-
 SHELL            = @shell@
 PARROT_ARGS      =
 
@@ -22,19 +19,13 @@ LD_LOAD_FLAGS = @ld_load_flags@
 LIBPARROT     = @inst_libparrot_ldflags@
 O             = @o@
 LOAD_EXT      = @load_ext@
-PERL          = @perl@
-CP            = @cp@
-MV            = @mv@
-RM_F          = @rm_f@
-MKPATH        = $(PERL) -MExtUtils::Command -e mkpath
-CHMOD         = $(PERL) -MExtUtils::Command -e chmod
 POD2MAN       = @pod2man@
 
 # locations of parrot and nqp resources
 PARROT           = $(PARROT_BIN_DIR)/parrot$(EXE)
 PARROT_DLL        = @dll@
 PARROT_DLL_COPY   = @dllcopy@
-NQP_EXE          = $(PARROT_BIN_DIR)/nqp$(EXE)
+NQP_EXE          = $(PARROT_BIN_DIR)/nqp-p$(EXE)
 NQP_LANG_DIR     = $(PARROT_LIB_DIR)/languages/nqp
 PBC_TO_EXE       = $(PARROT_BIN_DIR)/pbc_to_exe$(EXE)
 PARROT_TOOLS_DIR = $(PARROT_LIB_DIR)/tools
@@ -42,19 +33,19 @@ PARROT_PERL_LIB  = $(PARROT_TOOLS_DIR)/lib
 OPS2C            = $(PARROT_BIN_DIR)/ops2c$(EXE)
 CINCLUDES        = -I$(PARROT_INCLUDE_DIR) -I$(PARROT_INCLUDE_DIR)/pmc
 LINKARGS         = $(LDFLAGS) $(LD_LOAD_FLAGS) $(LIBPARROT) @libs@ @icu_shared@
-GEN_CAT          = tools/build/gen-cat.pl parrot
+P_GEN_CAT        = tools/build/gen-cat.pl parrot
 
 # rakudo directories
 DYNEXT_DIR     = dynext
 OPS_DIR        = src/vm/parrot/ops
-PERL6_LANG_DIR = $(PARROT_LIB_DIR)/languages/perl6
+P_PERL6_LANG_DIR = $(PARROT_LIB_DIR)/languages/perl6
 MANDIR         = @mandir@
 DOCDIR         = @prefix@/share/doc
 
 # files we create
 PERL6_PIR     = src/gen/perl6.pir
 PERL6_PBC     = perl6.pbc
-PERL6_EXE     = perl6$(EXE)
+PERL6_EXE     = perl6-p$(EXE)
 PERL6_ML      = src/gen/perl6-moduleloader.pir
 PERL6_ML_PBC  = blib/Perl6/ModuleLoader.pbc
 PERL6_W       = src/gen/perl6-symboltable.pir
@@ -75,7 +66,7 @@ PERL6_M       = src/gen/perl6-metamodel.pir
 PERL6_M_PBC   = blib/Perl6/Metamodel.pbc
 PERL6_B       = src/gen/perl6-bootstrap.pir
 PERL6_B_PBC   = blib/Perl6/BOOTSTRAP.pbc
-SETTING_PIR   = src/gen/CORE.setting.pir
+SETTING_PIR   = src/gen/p-CORE.setting.pir
 SETTING_PBC   = CORE.setting.pbc
 R_SETTING_SRC = src/RESTRICTED.setting
 R_SETTING_PIR = src/gen/RESTRICTED.setting.pir
@@ -87,7 +78,7 @@ DYNOPS        = $(OPS_DIR)/$(OPS)$(LOAD_EXT)
 
 OPS_SOURCE   = perl6.ops
 
-METAMODEL_SOURCES = \
+P_METAMODEL_SOURCES = \
   src/Perl6/Metamodel/Archetypes.nqp \
   src/Perl6/Metamodel/Naming.nqp \
   src/Perl6/Metamodel/Documenting.nqp \
@@ -132,10 +123,6 @@ METAMODEL_SOURCES = \
   src/Perl6/Metamodel/ContainerDescriptor.nqp \
   src/Perl6/Metamodel/Dispatchers.nqp \
 
-BOOTSTRAP_SOURCES = \
-  src/Perl6/Metamodel/BOOTSTRAP.nqp \
-  src/Perl6/Metamodel/EXPORTHOW.nqp \
-  
 # The ordering here is important for bootstrapping reasons. In general:
 # * traits almost certainly have to come first
 # * stubs have to come after traits since they use them
@@ -144,7 +131,7 @@ BOOTSTRAP_SOURCES = \
 # Note that you only really have to worry especially about things that
 # the compiler will instantiate/call methods on while compiling the
 # setting - basically anything that feels MOP-ish.
-CORE_SOURCES = \
+P_CORE_SOURCES = \
   src/core/core_prologue.pm \
   src/core/traits.pm \
   src/core/Positional.pm \
@@ -254,7 +241,7 @@ CORE_SOURCES = \
 
 DOCS = README CREDITS LICENSE docs/*
 
-CLEANUPS = \
+P_CLEANUPS = \
   *.manifest \
   *.pdb \
   $(PERL6_PBC) \
@@ -268,9 +255,9 @@ CLEANUPS = \
   lib/Test.pir \
   lib/lib.pir \
   lib/Pod/To/Text.pir \
-  rakudo_test_run.tar.gz \
+  p-rakudo_test_run.tar.gz \
   $(DYNEXT_DIR)/*$(LOAD_EXT) \
-  src/gen/CORE.setting \
+  src/gen/p-CORE.setting \
   src/gen/*.pir \
   src/gen/*.pbc \
   src/gen/*.pm \
@@ -282,15 +269,15 @@ CLEANUPS = \
 
 # NOTE: eventually, we should remove --keep-exit-code and --fudge
 #       as the goal is that all tests must pass without fudge
-HARNESS_WITH_FUDGE = $(PERL) t/harness --fudge --keep-exit-code --icu=$(HAS_ICU)
+P_HARNESS_WITH_FUDGE = $(PERL) t/harness --fudge --keep-exit-code --icu=$(HAS_ICU)
 
 STAGESTATS = @stagestats@
 
 # the default target, TODO: make libraries in 'lib' a variable.
-all: check-versions $(PERL6_EXE) $(SETTING_PBC) $(R_SETTING_PBC) lib/lib.pir lib/Test.pir lib/Pod/To/Text.pir
+p-all: p-check-versions $(PERL6_EXE) $(SETTING_PBC) $(R_SETTING_PBC) lib/lib.pir lib/Test.pir lib/Pod/To/Text.pir
 
 # the install target
-install: all
+p-install: p-all
 	$(MKPATH)                     $(DESTDIR)$(NQP_LANG_DIR)/lib/Perl6
 	$(CP) $(PERL6_ML_PBC)         $(DESTDIR)$(NQP_LANG_DIR)/lib/Perl6/ModuleLoader.pbc
 	$(CP) $(PERL6_W_PBC)          $(DESTDIR)$(NQP_LANG_DIR)/lib/Perl6/World.pbc
@@ -302,17 +289,17 @@ install: all
 	$(CP) $(PERL6_C_PBC)          $(DESTDIR)$(NQP_LANG_DIR)/lib/Perl6/Compiler.pbc
 	$(CP) $(PERL6_M_PBC)          $(DESTDIR)$(NQP_LANG_DIR)/lib/Perl6/Metamodel.pbc
 	$(CP) $(PERL6_B_PBC)          $(DESTDIR)$(NQP_LANG_DIR)/lib/Perl6/BOOTSTRAP.pbc
-	$(MKPATH)                     $(DESTDIR)$(PERL6_LANG_DIR)/lib
-	$(CP)     $(PERL6_PBC)        $(DESTDIR)$(PERL6_LANG_DIR)
-	$(CP)     $(SETTING_PBC)      $(DESTDIR)$(PERL6_LANG_DIR)/lib
-	$(CP)     $(R_SETTING_PBC)    $(DESTDIR)$(PERL6_LANG_DIR)/lib
-	$(CP)     lib/Test.pm         $(DESTDIR)$(PERL6_LANG_DIR)/lib
-	$(CP)     lib/Test.pir        $(DESTDIR)$(PERL6_LANG_DIR)/lib
-	$(CP)     lib/lib.pm6         $(DESTDIR)$(PERL6_LANG_DIR)/lib
-	$(CP)     lib/lib.pir         $(DESTDIR)$(PERL6_LANG_DIR)/lib
-	$(MKPATH) 					  $(DESTDIR)$(PERL6_LANG_DIR)/lib/Pod/To
-	$(CP)     lib/Pod/To/Text.pm  $(DESTDIR)$(PERL6_LANG_DIR)/lib/Pod/To
-	$(CP)     lib/Pod/To/Text.pir $(DESTDIR)$(PERL6_LANG_DIR)/lib/Pod/To
+	$(MKPATH)                     $(DESTDIR)$(P_PERL6_LANG_DIR)/lib
+	$(CP)     $(PERL6_PBC)        $(DESTDIR)$(P_PERL6_LANG_DIR)
+	$(CP)     $(SETTING_PBC)      $(DESTDIR)$(P_PERL6_LANG_DIR)/lib
+	$(CP)     $(R_SETTING_PBC)    $(DESTDIR)$(P_PERL6_LANG_DIR)/lib
+	$(CP)     lib/Test.pm         $(DESTDIR)$(P_PERL6_LANG_DIR)/lib
+	$(CP)     lib/Test.pir        $(DESTDIR)$(P_PERL6_LANG_DIR)/lib
+	$(CP)     lib/lib.pm6         $(DESTDIR)$(P_PERL6_LANG_DIR)/lib
+	$(CP)     lib/lib.pir         $(DESTDIR)$(P_PERL6_LANG_DIR)/lib
+	$(MKPATH) 					  $(DESTDIR)$(P_PERL6_LANG_DIR)/lib/Pod/To
+	$(CP)     lib/Pod/To/Text.pm  $(DESTDIR)$(P_PERL6_LANG_DIR)/lib/Pod/To
+	$(CP)     lib/Pod/To/Text.pir $(DESTDIR)$(P_PERL6_LANG_DIR)/lib/Pod/To
 	$(MKPATH)                     $(DESTDIR)$(PARROT_LIB_DIR)/dynext
 	$(CP)     $(DYNOPS)           $(DESTDIR)$(PARROT_LIB_DIR)/dynext
 	$(MKPATH)                     $(DESTDIR)$(PARROT_BIN_DIR)
@@ -326,26 +313,34 @@ install: all
 	-$(POD2MAN) docs/running.pod --name=perl6 > $(DESTDIR)$(MANDIR)/man1/perl6.1
 	-$(POD2MAN) docs/running.pod --name=rakudo > $(DESTDIR)$(MANDIR)/man1/rakudo.1
 
+p-runner-default-install: p-all
+	$(CP)     $(PERL6_EXE)        $(DESTDIR)$(PARROT_BIN_DIR)/perl6$(EXE)
+	$(CHMOD)  755                 $(DESTDIR)$(PARROT_BIN_DIR)/perl6$(EXE)
+
 xmas: $(PERL6_EXE) $(SETTING_PBC) $(R_SETTING_PBC)
 
 ##  targets for building a standalone perl6 executable.
 $(PERL6_EXE): $(PERL6_PBC) $(PARROT_DLL_COPY)
-	$(PBC_TO_EXE) $(PERL6_PBC)
+	$(PBC_TO_EXE) -o$(PERL6_EXE) $(PERL6_PBC)
+
+p-runner-default: p-all
+	$(CP) $(PERL6_EXE) perl6$(EXE)
+	$(CHMOD) 755  perl6$(EXE)
 
 @make_dllcopy@
 
 # the complete compiler
 $(PERL6_PBC): $(PERL6_G_PBC) $(PERL6_A_PBC) $(PERL6_C_PBC) $(PERL6_P_PBC) src/main.nqp
 	$(PERL) tools/build/gen-version.pl >src/gen/main-version.nqp
-	$(PERL) $(GEN_CAT) src/main.nqp src/gen/main-version.nqp > src/gen/main.nqp
+	$(PERL) $(P_GEN_CAT) src/main.nqp src/gen/main-version.nqp > src/gen/p-main.nqp
 	$(NQP_EXE) --vmlibs=perl6_ops --target=pir --output=src/gen/perl6.pir \
-	    src/gen/main.nqp
+	    src/gen/p-main.nqp
 	$(PARROT) $(PARROT_ARGS) -o $(PERL6_PBC) src/gen/perl6.pir
 
 $(PERL6_ML_PBC): $(NQP_EXE) $(DYNEXT_DYNOPS) src/Perl6/ModuleLoader.nqp src/vm/parrot/ModuleLoaderVMConfig.nqp
-	$(PERL) $(GEN_CAT) src/vm/parrot/ModuleLoaderVMConfig.nqp src/Perl6/ModuleLoader.nqp > src/gen/ModuleLoader.nqp
+	$(PERL) $(P_GEN_CAT) src/vm/parrot/ModuleLoaderVMConfig.nqp src/Perl6/ModuleLoader.nqp > src/gen/p-ModuleLoader.nqp
 	$(NQP_EXE) --target=pir --output=$(PERL6_ML) --encoding=utf8 \
-	    src/gen/ModuleLoader.nqp
+	    src/gen/p-ModuleLoader.nqp
 	$(PARROT) $(PARROT_ARGS) -o $(PERL6_ML_PBC) $(PERL6_ML)
 
 $(PERL6_W_PBC): $(NQP_EXE) $(PERL6_ML_PBC) src/Perl6/World.nqp
@@ -383,22 +378,22 @@ $(PERL6_C_PBC): $(NQP_EXE) $(DYNEXT_DYNOPS) $(PERL6_O_PBC) src/Perl6/Compiler.nq
 	    src/Perl6/Compiler.nqp
 	$(PARROT) $(PARROT_ARGS) -o $(PERL6_C_PBC) $(PERL6_C)
 
-$(PERL6_M_PBC): $(NQP_EXE) $(DYNEXT_DYNOPS) $(METAMODEL_SOURCES) $(PERL6_OPS_PBC)
-	$(PERL) $(GEN_CAT) $(METAMODEL_SOURCES) > src/gen/Metamodel.nqp
+$(PERL6_M_PBC): $(NQP_EXE) $(DYNEXT_DYNOPS) $(P_METAMODEL_SOURCES) $(PERL6_OPS_PBC)
+	$(PERL) $(P_GEN_CAT) $(P_METAMODEL_SOURCES) > src/gen/p-Metamodel.nqp
 	$(NQP_EXE) --target=pir --output=$(PERL6_M) --encoding=utf8 \
-	    --vmlibs=perl6_ops src/gen/Metamodel.nqp
+	    --vmlibs=perl6_ops src/gen/p-Metamodel.nqp
 	$(PARROT) $(PARROT_ARGS) -o $(PERL6_M_PBC) $(PERL6_M)
     
 $(PERL6_B_PBC): $(NQP_EXE) $(DYNEXT_DYNOPS) $(PERL6_M_PBC) $(BOOTSTRAP_SOURCES)
-	$(PERL) $(GEN_CAT) $(BOOTSTRAP_SOURCES) > src/gen/BOOTSTRAP.nqp
+	$(PERL) $(P_GEN_CAT) $(BOOTSTRAP_SOURCES) > src/gen/p-BOOTSTRAP.nqp
 	$(NQP_EXE) --target=pir --output=$(PERL6_B) --encoding=utf8 \
-	    --vmlibs=perl6_ops src/gen/BOOTSTRAP.nqp
+	    --vmlibs=perl6_ops src/gen/p-BOOTSTRAP.nqp
 	$(PARROT) $(PARROT_ARGS) -o $(PERL6_B_PBC) $(PERL6_B)
 
-$(SETTING_PBC): $(PERL6_B_PBC) $(PERL6_EXE) $(CORE_SOURCES)
-	$(PERL) $(GEN_CAT) $(CORE_SOURCES) > src/gen/CORE.setting
+$(SETTING_PBC): $(PERL6_B_PBC) $(PERL6_EXE) $(P_CORE_SOURCES)
+	$(PERL) $(P_GEN_CAT) $(P_CORE_SOURCES) > src/gen/p-CORE.setting
 	@echo "The following step can take a long time, please be patient."
-	./$(PERL6_EXE) --setting=NULL --optimize=3 --target=pir --stagestats --output=$(SETTING_PIR) src/gen/CORE.setting
+	./$(PERL6_EXE) --setting=NULL --optimize=3 --target=pir --stagestats --output=$(SETTING_PIR) src/gen/p-CORE.setting
 	$(PARROT) $(PARROT_ARGS) -o $(SETTING_PBC) $(SETTING_PIR)
 
 $(R_SETTING_PBC): $(PERL6_B_PBC) $(PERL6_EXE) $(SETTING_PBC) $(R_SETTING_SRC)
@@ -415,74 +410,58 @@ lib/lib.pir: lib/lib.pm6 $(PERL6_EXE) $(SETTING_PBC)
 lib/Pod/To/Text.pir: lib/Pod/To/Text.pm $(PERL6_EXE) $(SETTING_PBC)
 	./$(PERL6_EXE) --target=pir --output=lib/Pod/To/Text.pir lib/Pod/To/Text.pm
 
-test    : coretest
+p-test    : p-coretest
 
-fulltest: coretest stresstest
+p-fulltest: p-coretest p-stresstest
 
-coretest: all
+p-coretest: p-all
 	$(PERL) t/harness t/00-parrot t/01-sanity
 
 # Run the spectests that we know work.
-spectest_regression: spectest
-spectest: testable t/spectest.data
-	$(HARNESS_WITH_FUDGE) --tests-from-file=t/spectest.data
+p-spectest: p-testable t/spectest.data
+	$(P_HARNESS_WITH_FUDGE) --tests-from-file=t/spectest.data
 
-spectest_full: testable
-	$(HARNESS_WITH_FUDGE) t/spec
+p-spectest_full: p-testable
+	$(P_HARNESS_WITH_FUDGE) t/spec
 
-quicktest: testable t/spectest.data
-	$(HARNESS_WITH_FUDGE) --tests-from-file=t/spectest.data --long=0
+p-quicktest: p-testable t/spectest.data
+	$(P_HARNESS_WITH_FUDGE) --tests-from-file=t/spectest.data --long=0
 
-stresstest: testable t/spectest.data
-	$(HARNESS_WITH_FUDGE) --tests-from-file=t/spectest.data --stress=1
+p-stresstest: p-testable t/spectest.data
+	$(P_HARNESS_WITH_FUDGE) --tests-from-file=t/spectest.data --stress=1
 
-spectest_checkout : t/spec
-t/spec :
-	git clone git://github.com/perl6/roast.git t/spec
-	-cd t/spec/ && git config remote.origin.pushurl git@github.com:perl6/roast.git
+p-rakudo_test_run.tar.gz: p-testable t/spectest.data
+	- $(P_HARNESS_WITH_FUDGE) --tests-from-file=t/spectest.data --archive p-rakudo_test_run.tar.gz --parrot_revision @git_describe@
 
+p-spectest_smolder: rakudo_test_run.tar.gz
+	./perl6 -e "shell qqx[git log -1 --pretty=format:%H].fmt(qq[curl -F architecture=@cpuarch@ -F platform=@osname@ -F revision=%s -F report_file=@p-rakudo_test_run.tar.gz -F username=parrot-autobot -F password=qa_rocks http://smolder.parrot.org/app/projects/process_add_report/5])"
 
-spectest_update :
-	-cd t/spec && git pull
-
-rakudo_test_run.tar.gz: testable t/spectest.data
-	- $(HARNESS_WITH_FUDGE) --tests-from-file=t/spectest.data --archive rakudo_test_run.tar.gz --parrot_revision @git_describe@
-
-spectest_smolder: rakudo_test_run.tar.gz
-	./perl6 -e "shell qqx[git log -1 --pretty=format:%H].fmt(qq[curl -F architecture=@cpuarch@ -F platform=@osname@ -F revision=%s -F report_file=@rakudo_test_run.tar.gz -F username=parrot-autobot -F password=qa_rocks http://smolder.parrot.org/app/projects/process_add_report/5])"
-
-testable : all spectest_checkout spectest_update
-
-t/localtest.data:
-	$(PERL) -MExtUtils::Command -e test_f $@
+p-testable : p-all spectest_checkout spectest_update
 
 # Run the tests in t/localtest.data
-localtest: all spectest_checkout t/localtest.data
-	@$(HARNESS_WITH_FUDGE) --tests-from-file=t/localtest.data
+p-localtest: p-all spectest_checkout t/localtest.data
+	@$(P_HARNESS_WITH_FUDGE) --tests-from-file=t/localtest.data
 
 # Run the tests in t/localtest.data with a higher verbosity
-localtest_loud: all spectest_checkout t/localtest.data
-	@$(HARNESS_WITH_FUDGE) --tests-from-file=t/localtest.data --verbosity=1
+p-localtest_loud: p-all spectest_checkout t/localtest.data
+	@$(P_HARNESS_WITH_FUDGE) --tests-from-file=t/localtest.data --verbosity=1
 
 # Run many tests of your choice.
 # make sometests TESTFILES=t/foo/bar
-sometests: all
-	@$(HARNESS_WITH_FUDGE) $(TESTFILES)
+p-sometests: p-all
+	@$(P_HARNESS_WITH_FUDGE) $(TESTFILES)
 
-# Run a single test
-t/*.t t/*/*.t t/*/*/*.t: all spectest_checkout
-	@$(HARNESS_WITH_FUDGE) --verbosity=1 $@
 
 ##  cleaning
-clean:
-	$(RM_F) $(CLEANUPS)
+p-clean:
+	$(RM_RF) $(P_CLEANUPS)
 
-distclean: realclean
+p-distclean: realclean
 
-realclean: clean
-	$(RM_F) Makefile
+p-realclean: clean
+	$(RM_RF) Makefile
 
-testclean:
+p-testclean:
 
 
 ##  miscellaneous targets
@@ -520,7 +499,7 @@ help:
 	@echo "  help:              Print this help message."
 	@echo ""
 
-check-versions:
+p-check-versions:
 	@$(PERL) tools/build/check-versions.pl  $(NQP_EXE)
 
 config:

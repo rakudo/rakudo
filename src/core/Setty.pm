@@ -23,7 +23,7 @@ my role Setty does QuantHash {
     }
 
     method new(*@args --> Setty) {
-        my %e;
+        my %e = ();  # need (), otherwise Set.new<a>:exists fails
         %e{$_.WHICH} = $_ for @args;
         self.bless(:elems(%e));
     }

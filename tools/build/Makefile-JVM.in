@@ -4,10 +4,8 @@ JAR     = jar
 J_NQP   = @j_nqp@
 J_GEN_CAT = tools/build/gen-cat.pl jvm
 
-PREFIX = @prefix@
 NQP_PREFIX = @nqp_prefix@
 
-PERL6_LANG_DIR = $(PREFIX)/languages/perl6
 
 NQP_JARS = @nqp_jars@
 

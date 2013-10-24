@@ -8,10 +8,12 @@ CP      = $(PERL) -MExtUtils::Command -e cp
 RM_F    = $(PERL) -MExtUtils::Command -e rm_f
 RM_RF   = $(PERL) -MExtUtils::Command -e rm_rf
 
+PREFIX = @prefix@
+PERL6_LANG_DIR = $(PREFIX)/languages/perl6
+
 BOOTSTRAP_SOURCES = \
   src/Perl6/Metamodel/BOOTSTRAP.nqp \
   src/Perl6/Metamodel/EXPORTHOW.nqp \
-
 
 COMMON_BOOTSTRAP_SOURCES = \
   src/Perl6/Metamodel/Archetypes.nqp \

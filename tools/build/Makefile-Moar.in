@@ -1,10 +1,7 @@
 M_GEN_CAT = tools/build/gen-cat.pl moar
 
-PREFIX = @prefix@
 MOAR   = $(PREFIX)/bin/moar@exe@
 M_NQP  = $(PREFIX)/bin/nqp-m@runner_suffix@
-
-PERL6_LANG_DIR = $(PREFIX)/languages/perl6
 
 M_RUNNER = perl6-m@runner_suffix@
 

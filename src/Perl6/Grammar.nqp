@@ -1000,15 +1000,15 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         }
     }
 
-    token statementlist {
+    rule statementlist {
         :my %*LANG := self.shallow_copy(nqp::getlexdyn('%*LANG'));
         :my %*HOW  := self.shallow_copy(nqp::getlexdyn('%*HOW'));
         :dba('statement list')
-        :s
+        ''
         [
         | $
         | <?before <[\)\]\}]>>
-        | [<statement><.eat_terminator> ]*
+        | [ <statement> <.eat_terminator> ]*
         ]
     }
 
@@ -1152,10 +1152,10 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     ## Statement control
 
-    proto token statement_control { <...> }
+    proto rule statement_control { <...> }
 
-    token statement_control:sym<if> {
-        <sym> <.end_keyword> :s
+    rule statement_control:sym<if> {
+        <sym><.end_keyword> {}
         <xblock>
         [
             [
@@ -1167,19 +1167,19 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         [ 'else'\s <else=.pblock> ]**0..1
     }
 
-    token statement_control:sym<unless> {
-        <sym> <.end_keyword> :s
+    rule statement_control:sym<unless> {
+        <sym><.end_keyword> {}
         <xblock>
         [ <!before 'else'> || <.typed_panic: 'X::Syntax::UnlessElse'> ]
     }
 
-    token statement_control:sym<while> {
-        $<sym>=[while|until] <.end_keyword> :s
+    rule statement_control:sym<while> {
+        $<sym>=[while|until]<.end_keyword> {}
         <xblock>
     }
 
-    token statement_control:sym<repeat> {
-        <sym> <.end_keyword> :s
+    rule statement_control:sym<repeat> {
+        <sym><.end_keyword> {}
         [
         | $<wu>=[while|until]\s <xblock>
         | <pblock>
@@ -1188,8 +1188,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         ]
     }
 
-    token statement_control:sym<for> {
-        <sym> <.end_keyword> :s
+    rule statement_control:sym<for> {
+        <sym><.end_keyword> {}
         [ <?before 'my'? '$'\w+ '(' >
             <.typed_panic: 'X::Syntax::P5'> ]?
         [ <?before '(' <.EXPR>? ';' <.EXPR>? ';' <.EXPR>? ')' >
@@ -1197,14 +1197,14 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <xblock(1)>
     }
 
-    token statement_control:sym<foreach> {
-        <sym> <.end_keyword> <.obs("'foreach'", "'for'")>
+    rule statement_control:sym<foreach> {
+        <sym><.end_keyword> <.obs("'foreach'", "'for'")>
     }
 
     token statement_control:sym<loop> {
-        <sym> <.end_keyword>
+        <sym><.end_keyword>
         [ <?[({]> <.sorry: "Whitespace required after 'loop'"> ]?
-        :s
+        :s''
         [ '('
             <e1=.EXPR>**0..1 ';'
             <e2=.EXPR>**0..1 ';'
@@ -1213,12 +1213,12 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <block>
     }
 
-    token statement_control:sym<need> {
-        <sym> <.ws>
+    rule statement_control:sym<need> {
+        <sym>
         [
         | <version>
         | <module_name>
-        ]+ % ','
+        ] +% ','
         {
             for $<module_name> {
                 my $lnd  := $*W.dissect_longname($_<longname>);
@@ -1366,8 +1366,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         }
     }
 
-    token statement_control:sym<require> {
-        <sym> <.ws> :s
+    rule statement_control:sym<require> {
+        <sym>
         [
         | <module_name>
         | <file=.variable>
@@ -1376,14 +1376,14 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         [ <EXPR> ]**0..1
     }
 
-    token statement_control:sym<given> {
-        <sym> <.end_keyword> :s <xblock(1)>
+    rule statement_control:sym<given> {
+        <sym><.end_keyword> <xblock(1)>
     }
-    token statement_control:sym<when> {
-        <sym> <.end_keyword> :s <xblock>
+    rule statement_control:sym<when> {
+        <sym><.end_keyword> <xblock>
     }
-    token statement_control:sym<default> {
-        <sym> <.end_keyword> :s <block>
+    rule statement_control:sym<default> {
+        <sym><.end_keyword> <block>
     }
 
     rule statement_control:sym<CATCH> {<sym> <block(1)> }
@@ -1423,20 +1423,20 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     ## Statement modifiers
 
-    proto token statement_mod_cond { <...> }
+    proto rule statement_mod_cond { <...> }
 
-    rule modifier_expr { <EXPR> }
+    token modifier_expr { <EXPR> }
 
-    token statement_mod_cond:sym<if>     { <sym> <modifier_expr> }
-    token statement_mod_cond:sym<unless> { <sym> <modifier_expr> }
-    token statement_mod_cond:sym<when>   { <sym> <modifier_expr> }
+    rule statement_mod_cond:sym<if>     { <sym> <modifier_expr> }
+    rule statement_mod_cond:sym<unless> { <sym> <modifier_expr> }
+    rule statement_mod_cond:sym<when>   { <sym> <modifier_expr> }
 
-    proto token statement_mod_loop { <...> }
+    proto rule statement_mod_loop { <...> }
 
-    token statement_mod_loop:sym<while> { <sym> :s <smexpr=.EXPR> }
-    token statement_mod_loop:sym<until> { <sym> :s <smexpr=.EXPR> }
-    token statement_mod_loop:sym<for>   { <sym> :s <smexpr=.EXPR> }
-    token statement_mod_loop:sym<given> { <sym> :s <smexpr=.EXPR> }
+    rule statement_mod_loop:sym<while> { <sym> <smexpr=.EXPR> }
+    rule statement_mod_loop:sym<until> { <sym> <smexpr=.EXPR> }
+    rule statement_mod_loop:sym<for>   { <sym> <smexpr=.EXPR> }
+    rule statement_mod_loop:sym<given> { <sym> <smexpr=.EXPR> }
 
     ## Terms
 
@@ -1874,8 +1874,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token package_declarator:sym<trusts> {
         <sym> <.ws> <typename>
     }
-    token package_declarator:sym<also> {
-        <sym>:s
+    rule package_declarator:sym<also> {
+        <sym>
         [ <trait>+ || <.panic: "No valid trait found after also"> ]
     }
 
@@ -2336,7 +2336,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
 
     # XXX Not really implemented yet.
-    rule multisig {
+    token multisig {
         :my $*SCOPE := 'my';
         <signature>
     }
@@ -2387,6 +2387,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                     :suggestions($*W.suggest_typename($name.name)));
             }
         ]
+        <.ws>
         <trait>*
         <post_constraint>*
         <default_value>**0..1
@@ -2503,7 +2504,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <regex_def>
     }
 
-    rule regex_def {<.end_keyword> [
+    rule regex_def {
+        <.end_keyword>
         :my $*CURPAD;
         :my $*HAS_SELF := 'complete';
         :my $*DECLARAND := $*W.stub_code_object('Regex');
@@ -2518,7 +2520,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             |<nibble(self.quote_lang(%*RX<P5> ?? %*LANG<P5Regex> !! %*LANG<Regex>, '{', '}'))>]'}'<?ENDSTMT>
           { $*CURPAD := $*W.pop_lexpad() }
         ] || <.malformed('regex')>
-    ] }
+    }
 
     proto token type_declarator { <...> }
 
@@ -2546,10 +2548,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <?[<(«]> <term> <.ws>
     }
 
-    token type_declarator:sym<subset> {
-        <sym> :my $*IN_DECL := 'subset';
-        <.end_keyword>
-        :s
+    rule type_declarator:sym<subset> {
+        <sym><.end_keyword> :my $*IN_DECL := 'subset';
         [
             [
                 [
@@ -2623,15 +2623,15 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         ]
     }
 
-    proto token trait_mod { <...> }
-    token trait_mod:sym<is>      { <sym>:s <longname><circumfix>**0..1 }
-    token trait_mod:sym<hides>   { <sym>:s <typename> }
-    token trait_mod:sym<does>    { <sym>:s <typename> }
-    token trait_mod:sym<will>    { <sym>:s <identifier> <pblock> }
-    token trait_mod:sym<of>      { <sym>:s <typename> }
-    token trait_mod:sym<as>      { <sym>:s <typename> }
-    token trait_mod:sym<returns> { <sym>:s <typename> }
-    token trait_mod:sym<handles> { <sym>:s <term> }
+    proto rule trait_mod { <...> }
+    rule trait_mod:sym<is>      { <sym> <longname><circumfix>**0..1 }
+    rule trait_mod:sym<hides>   { <sym> <typename> }
+    rule trait_mod:sym<does>    { <sym> <typename> }
+    rule trait_mod:sym<will>    { <sym> <identifier> <pblock> }
+    rule trait_mod:sym<of>      { <sym> <typename> }
+    rule trait_mod:sym<as>      { <sym> <typename> }
+    rule trait_mod:sym<returns> { <sym> <typename> }
+    rule trait_mod:sym<handles> { <sym> <term> }
 
 
     ## Terms

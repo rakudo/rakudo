@@ -1,7 +1,15 @@
+CC      = @moar::cc@
+LD      = @moar::ld@
+CFLAGS  = @moar::cflags@ @moar::ccmiscflags@ @moar::ccoptiflags@ @moar::ccwarnflags@
+LDFLAGS = @moar::ldflags@ @moar::ldmiscflags@ @moar::ldoptiflags@ @moar::ldlibs@
+
+PERL    = perl
+PROVE   = prove
 M_GEN_CAT = tools/build/gen-cat.pl moar
 
-MOAR   = $(PREFIX)/bin/moar@exe@
-M_NQP  = $(PREFIX)/bin/nqp-m@runner_suffix@
+PREFIX = @prefix@
+MOAR   = $(PREFIX)@slash@bin@slash@moar@exe@
+M_NQP  = $(PREFIX)@slash@bin@slash@nqp@runner_suffix@
 
 M_RUNNER = perl6-m@runner_suffix@
 
@@ -18,6 +26,11 @@ PERL6_C_MOAR   = blib/Perl6/Compiler.moarvm
 PERL6_M_MOAR   = blib/Perl6/Metamodel.moarvm
 PERL6_B_MOAR   = blib/Perl6/BOOTSTRAP.moarvm
 SETTING_MOAR   = CORE.setting.moarvm
+
+M_PERL6_OPS_DIR  = dynext
+M_PERL6_OPS_DLL  = $(M_PERL6_OPS_DIR)/@perl6_ops_dll@
+M_PERL6_OPS_OBJ  = $(M_PERL6_OPS_DIR)/perl6_ops@moar::obj@
+M_PERL6_OPS_SRC  = src/vm/moar/ops/perl6_ops.c
 
 M_PERL6_LANG_OUTPUT = \
     $(PERL6_ML_MOAR) $(PERL6_W_MOAR) $(PERL6_G_MOAR) $(PERL6_OPS_MOAR) \
@@ -164,6 +177,13 @@ HARNESS = $(PERL) t/harness
 
 m-all: $(PERL6_MOAR) $(SETTING_MOAR) $(M_RUNNER) blib/Test.moarvm blib/lib.moarvm blib/Pod/To/Text.moarvm
 
+$(M_PERL6_OPS_DLL): $(M_PERL6_OPS_SRC) Makefile
+	$(CC) @moar::ccswitch@ @moar::ccshared@ $(CFLAGS) -I$(PREFIX)/include/libatomic_ops \
+	    -I$(PREFIX)/include/dyncall -I$(PREFIX)/include/linenoise -I$(PREFIX)/include/moar \
+	    -I$(PREFIX)/include/sha1 -I$(PREFIX)/include/tinymt  -I$(PREFIX)/include/libtommath \
+	    -I$(PREFIX)/include/libuv -I$(PREFIX)/include @moar::ccout@$(M_PERL6_OPS_OBJ) $(M_PERL6_OPS_SRC)
+	$(LD) @moar::ldswitch@ @moar::ldshared@ $(LDFLAGS) @moar::ldout@$(M_PERL6_OPS_DLL) $(M_PERL6_OPS_OBJ)
+
 $(PERL6_ML_MOAR): src/Perl6/ModuleLoader.nqp src/vm/moar/ModuleLoaderVMConfig.nqp
 	$(PERL) $(M_GEN_CAT) src/vm/moar/ModuleLoaderVMConfig.nqp src/Perl6/ModuleLoader.nqp > src/gen/m-ModuleLoader.nqp
 	$(M_NQP) --target=mbc --output=$(PERL6_ML_MOAR) --encoding=utf8 \
@@ -177,7 +197,7 @@ $(PERL6_P_MOAR): src/Perl6/Pod.nqp
 	$(M_NQP) --target=mbc --output=$(PERL6_P_MOAR) --encoding=utf8 \
 	    src/Perl6/Pod.nqp
 
-$(PERL6_OPS_MOAR): src/vm/moar/Perl6/Ops.nqp
+$(PERL6_OPS_MOAR): src/vm/moar/Perl6/Ops.nqp $(M_PERL6_OPS_DLL)
 	$(M_NQP) --target=mbc --output=$(PERL6_OPS_MOAR) --encoding=utf8 \
 	    src/vm/moar/Perl6/Ops.nqp
 
@@ -294,6 +314,3 @@ m-realclean: clean
 	$(RM_F) Makefile
 
 m-testclean:
-
-# nqp::makefile <-- tells NQP::Configure to treat this file as a makefile,
-#                   performing win32 slash and makefile conversions

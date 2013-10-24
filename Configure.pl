@@ -214,6 +214,8 @@ MAIN: {
 
         print "Using $config{m_nqp}.\n";
 
+        $config{'perl6_ops_dll'} = sprintf($nqp_config{'moar::dll'}, 'perl6_ops_moar');
+
         fill_template_file('tools/build/Makefile-Moar.in', $MAKEFILE, %config, %nqp_config);
     }
 

@@ -40,13 +40,6 @@ PERL6_OPS_DLL  = $(PERL6_OPS_DIR)/@perl6_ops_dll@
 PERL6_OPS_OBJ  = $(PERL6_OPS_DIR)/perl6_ops@moar::obj@
 PERL6_OPS_SRC  = src/vm/moar/ops/perl6_ops.c
 
-$(PERL6_OPS_DLL): $(PERL6_OPS_SRC) Makefile
-	$(CC) @moar::ccswitch@ @moar::ccshared@ $(CFLAGS) -I$(PREFIX)/include/libatomic_ops \
-	    -I$(PREFIX)/include/dyncall -I$(PREFIX)/include/linenoise -I$(PREFIX)/include/moar \
-	    -I$(PREFIX)/include/sha1 -I$(PREFIX)/include/tinymt  -I$(PREFIX)/include/libtommath \
-	    -I$(PREFIX)/include/libuv -I$(PREFIX)/include @moar::ccout@$(PERL6_OPS_OBJ) $(PERL6_OPS_SRC)
-	$(LD) @moar::ldswitch@ @moar::ldshared@ $(LDFLAGS) @moar::ldout@$(PERL6_OPS_DLL) $(PERL6_OPS_OBJ)
-
 PERL6_LANG_OUTPUT = \
     $(PERL6_ML_MOAR) $(PERL6_W_MOAR) $(PERL6_G_MOAR) $(PERL6_OPS_MOAR) \
     $(PERL6_A_MOAR) $(PERL6_O_MOAR) $(PERL6_P_MOAR) $(PERL6_C_MOAR) \
@@ -238,6 +231,13 @@ HARNESS = $(PERL) t/harness
 
 all: $(PERL6_MOAR) $(SETTING_MOAR) $(RUNNER) blib/Test.moarvm blib/lib.moarvm blib/Pod/To/Text.moarvm
 
+$(PERL6_OPS_DLL): $(PERL6_OPS_SRC) Makefile
+	$(CC) @moar::ccswitch@ @moar::ccshared@ $(CFLAGS) -I$(PREFIX)/include/libatomic_ops \
+	    -I$(PREFIX)/include/dyncall -I$(PREFIX)/include/linenoise -I$(PREFIX)/include/moar \
+	    -I$(PREFIX)/include/sha1 -I$(PREFIX)/include/tinymt  -I$(PREFIX)/include/libtommath \
+	    -I$(PREFIX)/include/libuv -I$(PREFIX)/include @moar::ccout@$(PERL6_OPS_OBJ) $(PERL6_OPS_SRC)
+	$(LD) @moar::ldswitch@ @moar::ldshared@ $(LDFLAGS) @moar::ldout@$(PERL6_OPS_DLL) $(PERL6_OPS_OBJ)
+
 $(PERL6_ML_MOAR): src/Perl6/ModuleLoader.nqp src/vm/moar/ModuleLoaderVMConfig.nqp
 	$(PERL) $(GEN_CAT) src/vm/moar/ModuleLoaderVMConfig.nqp src/Perl6/ModuleLoader.nqp > src/gen/ModuleLoader.nqp
 	$(NQP) --target=mbc --output=$(PERL6_ML_MOAR) --encoding=utf8 \
@@ -251,7 +251,7 @@ $(PERL6_P_MOAR): src/Perl6/Pod.nqp
 	$(NQP) --target=mbc --output=$(PERL6_P_MOAR) --encoding=utf8 \
 	    src/Perl6/Pod.nqp
 
-$(PERL6_OPS_MOAR): src/vm/moar/Perl6/Ops.nqp
+$(PERL6_OPS_MOAR): src/vm/moar/Perl6/Ops.nqp $(PERL6_OPS_DLL)
 	$(NQP) --target=mbc --output=$(PERL6_OPS_MOAR) --encoding=utf8 \
 	    src/vm/moar/Perl6/Ops.nqp
 

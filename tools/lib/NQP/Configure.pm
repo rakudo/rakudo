@@ -296,17 +296,20 @@ sub gen_nqp {
             $need{parrot} = 1;
         }
     }
-    if ($backends =~ /jvm/) {
-        my $bin = "$prefix/bin/nqp-j$bat";
-        $impls{jvm}{bin} = $bin;
-        my %c = read_config($bin);
-        my $nqp_have = $c{'nqp::version'} || '';
-        my $nqp_ok   = $nqp_have && cmp_rev($nqp_have, $nqp_want) >= 0;
-        if ($nqp_ok) {
-            $impls{jvm}{config} = \%c;
-        }
-        else {
-            $need{jvm} = 1;
+    for my $b (qw/jvm moar/) {
+        if ($backends =~ /$b/) {
+            my $postfix = substr $b, 0, 1;
+            my $bin = "$prefix/bin/nqp-$postfix$bat";
+            $impls{$b}{bin} = $bin;
+            my %c = read_config($bin);
+            my $nqp_have = $c{'nqp::version'} || '';
+            my $nqp_ok   = $nqp_have && cmp_rev($nqp_have, $nqp_want) >= 0;
+            if ($nqp_ok) {
+                $impls{$b}{config} = \%c;
+            }
+            else {
+                $need{$b} = 1;
+            }
         }
     }
 

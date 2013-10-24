@@ -48,7 +48,7 @@ MAIN: {
     }
 
     my $prefix         = $options{'prefix'} || cwd().'/install';
-    my %known_backends = (parrot => 1, jvm => 1);
+    my %known_backends = (parrot => 1, jvm => 1, moar => 1);
     my %letter_to_backend;
     my $default_backend;
     for (keys %known_backends) {
@@ -81,7 +81,7 @@ MAIN: {
             }
         }
         unless (%backends) {
-            die "No suitable nqp executables found! Please specify some --backends, or a --prefix that contains nqp-{p,j} executables\n";
+            die "No suitable nqp executables found! Please specify some --backends, or a --prefix that contains nqp-{p,j,m} executables\n";
         }
     }
 
@@ -99,6 +99,8 @@ MAIN: {
     $config{'stagestats'} = '--stagestats' if $options{'makefile-timing'};
     $config{'cpsep'} = $^O eq 'MSWin32' ? ';' : ':';
     $config{'shell'} = $^O eq 'MSWin32' ? 'cmd' : 'sh';
+    $config{'runner_suffix'} = $^O eq 'MSWin32' ? '.bat' : '';
+
     my $make = $config{'make'} = $^O eq 'MSWin32' ? 'nmake' : 'make';
 
     open my $MAKEFILE, '>', 'Makefile'
@@ -197,6 +199,22 @@ MAIN: {
 
 
         fill_template_file('tools/build/Makefile-JVM.in', $MAKEFILE, %config);
+    }
+    if ($backends{moar}) {
+        $config{m_nqp} = $impls{moar}{bin};
+        $config{m_nqp} =~ s{/}{\\}g if $^O eq 'MSWin32';
+        my %nqp_config;
+        if ( $impls{moar}{config} ) {
+            %nqp_config = %{ $impls{moar}{config} };
+        }
+        else {
+            push @errors, "Unable to read configuration from NQP on MoarVM";
+        }
+        sorry(@errors) if @errors;
+
+        print "Using $config{m_nqp}.\n";
+
+        fill_template_file('tools/build/Makefile-Moar.in', $MAKEFILE, %config, %nqp_config);
     }
 
     my $l = uc substr($default_backend, 0, 1);

@@ -14,12 +14,12 @@ my class Mu { # declared in BOOTSTRAP
 
     proto method WHICH(|) {*}
     multi method WHICH(Mu:U:) {
-        nqp::box_s(nqp::unbox_s(self.^name), ObjAt);
+        nqp::box_s(nqp::unbox_s(self.HOW.name(self)), ObjAt);
     }
     multi method WHICH(Mu:D:) {
         nqp::box_s(
             nqp::concat(
-                nqp::concat(nqp::unbox_s(self.^name), '|'),
+                nqp::concat(nqp::unbox_s(self.HOW.name(self)), '|'),
                 nqp::where(self)
             ),
             ObjAt
@@ -298,18 +298,18 @@ my class Mu { # declared in BOOTSTRAP
     
     proto method Numeric(|) { * }
     multi method Numeric(Mu:U \v:) {
-        warn "use of uninitialized value of type {self.^name} in numeric context";
+        warn "use of uninitialized value of type {self.HOW.name(self)} in numeric context";
         0
     }
     proto method Real(|) { * }
     multi method Real(Mu:U \v:) {
-        warn "use of uninitialized value of type {self.^name} in numeric context";
+        warn "use of uninitialized value of type {self.HOW.name(self)} in numeric context";
         0
     }
     
     proto method Str(|) { * }
     multi method Str(Mu:U \v:) {
-        warn "use of uninitialized value of type {self.^name} in string context";
+        warn "use of uninitialized value of type {self.HOW.name(self)} in string context";
         ''
     }
     multi method Str(Mu:D:) {
@@ -339,7 +339,7 @@ my class Mu { # declared in BOOTSTRAP
                         ~ ' => '
                         ~ self."$name"().perl
         }
-        self.^name() ~ '.new(' ~  @attrs.join(', ') ~ ')';
+        self.HOW.name(self) ~ '.new(' ~  @attrs.join(', ') ~ ')';
     }
 
     proto method DUMP(|) { * }
@@ -503,7 +503,7 @@ my class Mu { # declared in BOOTSTRAP
         if @result.elems == 0 {
             X::Method::NotFound.new(
                     method   => $name,
-                    typename => SELF.^name,
+                    typename => SELF.HOW.name(SELF),
             ).throw;
         }
         @result

@@ -12,7 +12,7 @@ my role Setty does QuantHash {
         self.exists_key($k);
     }
     method exists_key($k --> Bool) {
-        so nqp::existskey(%!elems, nqp::unbox_s($k.WHICH));
+        so ( %!elems && nqp::existskey(%!elems, nqp::unbox_s($k.WHICH)) );
     }
     method Bool { %!elems.Bool }
 

@@ -231,7 +231,7 @@ $(PERL6_M_MOAR): $(M_METAMODEL_SOURCES) $(PERL6_OPS_MOAR)
 $(PERL6_B_MOAR): $(BOOTSTRAP_SOURCES) $(PERL6_M_MOAR)
 	$(PERL) $(M_GEN_CAT) $(BOOTSTRAP_SOURCES) > src/gen/m-BOOTSTRAP.nqp
 	$(M_NQP) --target=mbc --output=$(PERL6_B_MOAR) --encoding=utf8 \
-        src/gen/m-BOOTSTRAP.nqp
+        --vmlibs=$(M_PERL6_OPS_DLL)=Rakudo_ops_init src/gen/m-BOOTSTRAP.nqp
 
 $(SETTING_MOAR): $(PERL6_MOAR) $(PERL6_B_MOAR) $(M_CORE_SOURCES)
 	$(PERL) $(M_GEN_CAT) $(M_CORE_SOURCES) > src/gen/m-CORE.setting

@@ -215,6 +215,10 @@ MAIN: {
         print "Using $config{m_nqp}.\n";
 
         $config{'perl6_ops_dll'} = sprintf($nqp_config{'moar::dll'}, 'perl6_ops_moar');
+        
+        # Windows tweaks.
+        $config{'moarimplib'} = $^O eq 'MSWin32' ? "$prefix/bin/moar.dll.lib" : '';
+        $nqp_config{'moar::ldshared'} =~ s{/implib\S+}{};
 
         fill_template_file('tools/build/Makefile-Moar.in', $MAKEFILE, %config, %nqp_config);
     }

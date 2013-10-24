@@ -9,7 +9,7 @@ M_GEN_CAT = tools/build/gen-cat.pl moar
 
 PREFIX = @prefix@
 MOAR   = $(PREFIX)@slash@bin@slash@moar@exe@
-M_NQP  = $(PREFIX)@slash@bin@slash@nqp@runner_suffix@
+M_NQP  = $(PREFIX)@slash@bin@slash@nqp-m@runner_suffix@
 
 M_RUNNER = perl6-m@runner_suffix@
 
@@ -182,7 +182,7 @@ $(M_PERL6_OPS_DLL): $(M_PERL6_OPS_SRC) Makefile
 	    -I$(PREFIX)/include/dyncall -I$(PREFIX)/include/linenoise -I$(PREFIX)/include/moar \
 	    -I$(PREFIX)/include/sha1 -I$(PREFIX)/include/tinymt  -I$(PREFIX)/include/libtommath \
 	    -I$(PREFIX)/include/libuv -I$(PREFIX)/include @moar::ccout@$(M_PERL6_OPS_OBJ) $(M_PERL6_OPS_SRC)
-	$(LD) @moar::ldswitch@ @moar::ldshared@ $(LDFLAGS) @moar::ldout@$(M_PERL6_OPS_DLL) $(M_PERL6_OPS_OBJ)
+	$(LD) @moar::ldswitch@ @moar::ldshared@ $(LDFLAGS) @moar::ldout@$(M_PERL6_OPS_DLL) $(M_PERL6_OPS_OBJ) @moarimplib@
 
 $(PERL6_ML_MOAR): src/Perl6/ModuleLoader.nqp src/vm/moar/ModuleLoaderVMConfig.nqp
 	$(PERL) $(M_GEN_CAT) src/vm/moar/ModuleLoaderVMConfig.nqp src/Perl6/ModuleLoader.nqp > src/gen/m-ModuleLoader.nqp

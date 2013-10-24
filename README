@@ -19,7 +19,7 @@ Rakudo Perl 6
     installation instructions. The short version is
 
     $ # recommended: install libicu-dev and libreadline-dev packages
-    $ perl Configure.pl --gen-parrot
+    $ perl Configure.pl --gen-parrot --backends=parrot
     $ make
     $ make spectest # optional
     $ make install # IMPORTANT, installs to install/bin/perl6

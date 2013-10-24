@@ -48,7 +48,7 @@ my $jopts = '-Xms100m -Xbootclasspath/a:' . $bootclasspath
           . ' -cp ' . $classpath
           . ' -Dperl6.prefix=' . $prefix;
 
-install "perl6", "java $jopts perl6";
+install "perl6-j", "java $jopts perl6";
 install "perl6-jdb-server", "java -Xdebug -Xrunjdwp:transport=dt_socket,address=8000,server=y,suspend=n $jopts perl6";
 install "perl6-eval-server", "java $jopts org.perl6.nqp.tools.EvalServer";
 cp(File::Spec->catfile($nqpprefix,'bin','eval-client.pl'), '.')

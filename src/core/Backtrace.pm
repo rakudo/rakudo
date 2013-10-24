@@ -49,6 +49,7 @@ my class Backtrace is List {
     multi method new(Parcel $bt, Int $offset = 0) {
         my $new = self.bless();
         for $offset .. $bt.elems - 1 {
+            next unless defined $bt[$_]<sub>;
             my Mu $sub := nqp::getattr(nqp::decont($bt[$_]<sub>), ForeignCode, '$!do');
             next if nqp::isnull($sub);
             my $code;

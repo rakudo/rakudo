@@ -88,7 +88,7 @@ sub read_config {
         no warnings;
         if (open my $CONFIG, '-|', "$file --show-config") {
             while (<$CONFIG>) {
-                if (/^(\S+)=(.*)/) { $config{$1} = $2 }
+                if (/^([^\s=]+)=(.*)/) { $config{$1} = $2 }
             }
             close($CONFIG);
         }

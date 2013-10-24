@@ -70,6 +70,9 @@ MAIN: {
         or push @errors, "Unable to read configuration from $nqp_to_use.";
         
     sorry(@errors) if @errors;
+    
+    %config = (%nqp_config, %config);
+    $config{'perl6_ops_dll'} = sprintf($config{'moar::dll'}, 'perl6_ops_moar');
 
     print "Using $nqp_to_use.\n";
 

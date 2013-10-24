@@ -8,8 +8,8 @@ PROVE   = prove
 GEN_CAT = tools/build/gen-cat.pl moar
 
 PREFIX = @prefix@
-MOAR   = $(PREFIX)/bin/moar@exe@
-NQP    = $(PREFIX)/bin/nqp@runner_suffix@
+MOAR   = $(PREFIX)@slash@bin@slash@moar@exe@
+NQP    = $(PREFIX)@slash@bin@slash@nqp@runner_suffix@
 
 PERL6_LANG_DIR = $(PREFIX)/languages/perl6
 
@@ -20,7 +20,6 @@ RM_F   = $(PERL) -MExtUtils::Command -e rm_f
 RM_RF  = $(PERL) -MExtUtils::Command -e rm_rf
 
 RUNNER = perl6@runner_suffix@
-PREFIX = @moar::prefix@
 
 # files we create
 PERL6_MOAR     = perl6.moarvm
@@ -389,6 +388,3 @@ realclean: clean
 	$(RM_F) Makefile
 
 testclean:
-
-# nqp::makefile <-- tells NQP::Configure to treat this file as a makefile,
-#                   performing win32 slash and makefile conversions

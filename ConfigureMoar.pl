@@ -52,6 +52,7 @@ MAIN: {
     }
     sorry(@errors) if @errors;
     $prefix = realpath($prefix);
+    $prefix =~ s{/}{\\}g if $^O eq 'MSWin32';
 
     # Save options in config.status
     unlink('config.status');

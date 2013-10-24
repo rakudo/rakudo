@@ -6,6 +6,6 @@ static void p6init(MVMThreadContext *tc) {
 }
 
 /* Registers the extops with MoarVM. */
-void Rakudo_ops_init(MVMThreadContext *tc) {
+MVM_DLL_EXPORT void Rakudo_ops_init(MVMThreadContext *tc) {
     MVM_ext_register_extop(tc, "p6init",  p6init, 0, NULL);
 }

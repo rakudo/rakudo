@@ -45,7 +45,7 @@ $(PERL6_OPS_DLL): $(PERL6_OPS_SRC) Makefile
 	$(CC) @moar::ccswitch@ @moar::ccshared@ $(CFLAGS) -I$(PREFIX)/include/libatomic_ops \
 	    -I$(PREFIX)/include/dyncall -I$(PREFIX)/include/linenoise -I$(PREFIX)/include/moar \
 	    -I$(PREFIX)/include/sha1 -I$(PREFIX)/include/tinymt  -I$(PREFIX)/include/libtommath \
-	    -I$(PREFIX)/include/libuv @moar::ccout@ $(PERL6_OPS_OBJ) $(PERL6_OPS_SRC)
+	    -I$(PREFIX)/include/libuv @moar::ccout@$(PERL6_OPS_OBJ) $(PERL6_OPS_SRC)
 	$(LD) @moar::ldswitch@ @moar::ldshared@ $(LDFLAGS) @moar::ldout@ $(PERL6_OPS_DLL) $(PERL6_OPS_OBJ)
 
 PERL6_LANG_OUTPUT = \

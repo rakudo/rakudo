@@ -1,8 +1,15 @@
 #define MVM_SHARED 1
 #include "moar.h"
+#include "container.h"
+
+/* Are we initialized yet? */
+static int initialized = 0;
 
 /* Initializes the Perl 6 extension ops. */
 static void p6init(MVMThreadContext *tc) {
+    if (!initialized) {
+        Rakudo_containers_setup(tc);
+    }
 }
 
 /* Registers the extops with MoarVM. */

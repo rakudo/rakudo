@@ -2953,7 +2953,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 QAST::SVal.new( :value($name) ));
             $coderef := regex_coderef($/, $*DECLARAND, $proto_body, $*SCOPE, $name, %sig_info, $*CURPAD, $<trait>, :proto(1));
         } else {
-            $coderef := regex_coderef($/, $*DECLARAND, $<nibble>.ast, $*SCOPE, $name, %sig_info, $*CURPAD, $<trait>);
+            $coderef := regex_coderef($/, $*DECLARAND, $<nibble>.ast, $*SCOPE, $name, %sig_info, $*CURPAD, $<trait>) if $<nibble>.ast;
         }
 
         # Install &?ROUTINE.
@@ -5381,7 +5381,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my %sig_info := hash(parameters => []);
         my $block := QAST::Block.new(QAST::Stmts.new, QAST::Stmts.new, :node($/));
         my $coderef := regex_coderef($/, $*W.stub_code_object('Regex'),
-            $<nibble>.ast, 'anon', '', %sig_info, $block, :use_outer_match(1));
+            $<nibble>.ast, 'anon', '', %sig_info, $block, :use_outer_match(1)) if $<nibble>.ast;
         # Return closure if not in sink context.
         my $closure := block_closure($coderef);
         $closure<sink_past> := QAST::Op.new( :op<callmethod>, :name<Bool>, $closure);
@@ -5393,7 +5393,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         self.handle_and_check_adverbs($/, %SHARED_ALLOWED_ADVERBS, 'rx', $block);
         my %sig_info := hash(parameters => []);
         my $coderef := regex_coderef($/, $*W.stub_code_object('Regex'),
-            $<quibble>.ast, 'anon', '', %sig_info, $block, :use_outer_match(1));
+            $<quibble>.ast, 'anon', '', %sig_info, $block, :use_outer_match(1)) if $<quibble>.ast;
         my $past := block_closure($coderef);
         $past<sink_past> := QAST::Op.new(:op<callmethod>, :name<Bool>, $past);
         make $past;
@@ -5402,7 +5402,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my $block := QAST::Block.new(QAST::Stmts.new, QAST::Stmts.new, :node($/));
         my %sig_info := hash(parameters => []);
         my $coderef := regex_coderef($/, $*W.stub_code_object('Regex'),
-            $<quibble>.ast, 'anon', '', %sig_info, $block, :use_outer_match(1));
+            $<quibble>.ast, 'anon', '', %sig_info, $block, :use_outer_match(1)) if $<quibble>.ast;
 
         my $past := QAST::Op.new(
             :node($/),
@@ -5461,7 +5461,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my $rx_block := QAST::Block.new(QAST::Stmts.new, QAST::Stmts.new, :node($/));
         my %sig_info := hash(parameters => []);
         my $rx_coderef := regex_coderef($/, $*W.stub_code_object('Regex'),
-            $<sibble><left>.ast, 'anon', '', %sig_info, $rx_block, :use_outer_match(1));
+            $<sibble><left>.ast, 'anon', '', %sig_info, $rx_block, :use_outer_match(1)) if $<sibble><left>.ast;
 
         # Quote needs to be closure-i-fied.
         my $closure := block_closure(make_thunk_ref($<sibble><right>.ast, $<sibble><right>));

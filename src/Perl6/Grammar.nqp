@@ -2513,11 +2513,14 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
           <deflongname>**0..1
           { if $<deflongname> { %*RX<name> := ~$<deflongname>[0].ast } }
           { $*IN_DECL := '' }
-          <.newpad>
-          [ [ ':'?'(' <signature> ')'] | <trait> ]*
-          '{'[
-            | ['*'|'<...>'|'<*>'] <?{ $*MULTINESS eq 'proto' }> $<onlystar>={1}
-            |<nibble(self.quote_lang(%*RX<P5> ?? %*LANG<P5Regex> !! %*LANG<Regex>, '{', '}'))>]'}'<?ENDSTMT>
+           <.newpad>
+          [ [ ':'?'(' <signature> ')' ] | <trait> ]*
+          '{'
+          [
+          | ['*'|'<...>'|'<*>'] <?{ $*MULTINESS eq 'proto' }> $<onlystar>={1}
+          | <nibble(self.quote_lang(%*RX<P5> ?? %*LANG<P5Regex> !! %*LANG<Regex>, '{', '}'))>
+          ]
+          '}'<?ENDSTMT>
           { $*CURPAD := $*W.pop_lexpad() }
         ] || <.malformed('regex')>
     }
@@ -4159,16 +4162,18 @@ grammar Perl6::RegexGrammar is QRegex::P6Regex::Grammar does STD {
         || { self.check_variable($<var>) }
            [ <?before '.'? <[ \[ \{ \< ]>> <.worry: "Apparent subscript will be treated as regex"> ]?
         ]
+        <.SIGOK>
     }
 
     token metachar:sym<qw> {
         <?before '<' \s >  # (note required whitespace)
         '<' <nibble(self.quote_lang(%*LANG<Q>, "<", ">", ['q', 'w']))> '>'
+        <.SIGOK>
     }
     
-    token metachar:sym<'> { <?[']> <quote=.LANG('MAIN','quote')> }
+    token metachar:sym<'> { <?[']> <quote=.LANG('MAIN','quote')> <.SIGOK> }
 
-    token metachar:sym<"> { <?["]> <quote=.LANG('MAIN','quote')> }
+    token metachar:sym<"> { <?["]> <quote=.LANG('MAIN','quote')> <.SIGOK> }
     
     token assertion:sym<{ }> {
         <?[{]> <codeblock>

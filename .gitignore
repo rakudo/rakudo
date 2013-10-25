@@ -42,6 +42,8 @@ docs/test_summary.times
 dynext/perl6_*.bundle
 dynext/perl6_*.so
 dynext/perl6_*.dll
+dynext/*.o
+dynext/*.obj
 perl6_group.?
 perl6_group.obj
 libparrot.dll

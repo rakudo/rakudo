@@ -59,8 +59,8 @@ MAIN: {
         for my $b (split /,\s*/, $options{backends}) {
             $b = lc $b;
             unless ($known_backends{$b}) {
-                die "Uknown backend '$b'; Supported backends are: ",
-                    join(", ", sort keys %backends),
+                die "Unknown backend '$b'; Supported backends are: " ~ 
+                    join(", ", sort keys %backends) ~
                     "\n";
             }
             $backends{$b} = 1;

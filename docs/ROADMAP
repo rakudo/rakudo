@@ -42,7 +42,6 @@ Operators
 
 Regexes
 2 **    ~~ inside regexes
-2 *     Null pattern detection (at parse time)
 3 **    <*foo>
 3 **    <~~0>, <~~foo>
 3 ***   explicit backtracking control (::, :::)

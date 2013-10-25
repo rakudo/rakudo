@@ -7,6 +7,8 @@ J_GEN_CAT = tools/build/gen-cat.pl jvm
 PREFIX = @prefix@
 NQP_PREFIX = @nqp_prefix@
 
+J_BUILD_DIR = gen/jvm
+
 PERL6_LANG_DIR = $(PREFIX)/languages/perl6
 
 NQP_JARS = @nqp_jars@
@@ -15,7 +17,7 @@ RUN_PERL6 = $(JAVA) -Xss1m -Xms500m -Xmx1600m -Xbootclasspath/a:.@cpsep@$(NQP_JA
 
 RUNTIME_JAVAS = src/vm/jvm/runtime/org/perl6/rakudo/*.java
 
-RUNTIME_JAR = rakudo-runtime.jar
+RUNTIME_JAR = $(J_BUILD_DIR)/rakudo-runtime.jar
 
 RUNNER = @j_runner@
 
@@ -209,10 +211,7 @@ J_CLEANUPS = \
   blib/lib.jar \
   blib/Pod/To/Text.jar \
   j-rakudo_test_run.tar.gz \
-  src/gen/j-CORE.setting \
-  src/gen/*.jar \
-  src/gen/*.jar \
-  src/gen/*.pm \
+  $(J_BUILD_DIR)/* \
   $(RUNTIME_JAR) \
   $(RUNNER)
 
@@ -227,9 +226,9 @@ $(RUNTIME_JAR): $(RUNTIME_JAVAS)
 	$(JAR) cf0 rakudo-runtime.jar -C bin/ .
 
 $(PERL6_ML_JAR): src/Perl6/ModuleLoader.nqp src/vm/jvm/ModuleLoaderVMConfig.nqp src/vm/jvm/Perl6/JavaModuleLoader.nqp
-	$(PERL) $(J_GEN_CAT) src/vm/jvm/ModuleLoaderVMConfig.nqp src/Perl6/ModuleLoader.nqp src/vm/jvm/Perl6/JavaModuleLoader.nqp > src/gen/j-ModuleLoader.nqp
+	$(PERL) $(J_GEN_CAT) src/vm/jvm/ModuleLoaderVMConfig.nqp src/Perl6/ModuleLoader.nqp src/vm/jvm/Perl6/JavaModuleLoader.nqp > $(J_BUILD_DIR)/ModuleLoader.nqp
 	$(J_NQP) --target=jar --output=$(PERL6_ML_JAR) --encoding=utf8 \
-	    src/gen/j-ModuleLoader.nqp
+	    $(J_BUILD_DIR)/ModuleLoader.nqp
 
 $(PERL6_W_JAR): $(PERL6_ML_JAR) src/Perl6/World.nqp
 	$(J_NQP) --target=jar --output=$(PERL6_W_JAR) --encoding=utf8 \
@@ -260,25 +259,25 @@ $(PERL6_C_JAR): src/Perl6/Compiler.nqp $(PERL6_O_JAR)
 	    src/Perl6/Compiler.nqp
 
 $(PERL6_JAR): src/main.nqp $(RUNTIME_JAR) $(PERL6_G_JAR) $(PERL6_A_JAR) $(PERL6_C_JAR) $(PERL6_P_JAR)
-	$(PERL) tools/build/gen-version.pl > src/gen/main-version.nqp
-	$(PERL) $(J_GEN_CAT) src/main.nqp src/gen/main-version.nqp > src/gen/j-main.nqp
+	$(PERL) tools/build/gen-version.pl > $(J_BUILD_DIR)/main-version.nqp
+	$(PERL) $(J_GEN_CAT) src/main.nqp $(J_BUILD_DIR)/main-version.nqp > $(J_BUILD_DIR)/main.nqp
 	$(J_NQP) --target=jar --javaclass=perl6 --output=$(PERL6_JAR) \
-	    src/gen/j-main.nqp
+	    $(J_BUILD_DIR)/main.nqp
 
 $(PERL6_M_JAR): $(J_METAMODEL_SOURCES) $(PERL6_OPS_JAR)
-	$(PERL) $(J_GEN_CAT) $(J_METAMODEL_SOURCES) > src/gen/j-Metamodel.nqp
+	$(PERL) $(J_GEN_CAT) $(J_METAMODEL_SOURCES) > $(J_BUILD_DIR)/Metamodel.nqp
 	$(J_NQP) --target=jar --output=$(PERL6_M_JAR) --encoding=utf8 \
-	    src/gen/j-Metamodel.nqp
+	    $(J_BUILD_DIR)/Metamodel.nqp
 
 $(PERL6_B_JAR): $(BOOTSTRAP_SOURCES) $(PERL6_M_JAR)
-	$(PERL) $(J_GEN_CAT) $(BOOTSTRAP_SOURCES) > src/gen/j-BOOTSTRAP.nqp
+	$(PERL) $(J_GEN_CAT) $(BOOTSTRAP_SOURCES) > $(J_BUILD_DIR)/BOOTSTRAP.nqp
 	$(PERL) tools/build/nqp-jvm-rr.pl $(J_NQP) --target=jar \
-        --output=$(PERL6_B_JAR) --encoding=utf8 src/gen/j-BOOTSTRAP.nqp
+        --output=$(PERL6_B_JAR) --encoding=utf8 $(J_BUILD_DIR)/BOOTSTRAP.nqp
 
 $(SETTING_JAR): $(PERL6_JAR) $(PERL6_B_JAR) $(J_CORE_SOURCES)
-	$(PERL) $(J_GEN_CAT) $(J_CORE_SOURCES) > src/gen/j-CORE.setting
+	$(PERL) $(J_GEN_CAT) $(J_CORE_SOURCES) > $(J_BUILD_DIR)/CORE.setting
 	@echo "The following step can take a long time, please be patient."
-	$(RUN_PERL6) --setting=NULL --optimize=3 --target=jar --stagestats --output=$(SETTING_JAR) src/gen/j-CORE.setting
+	$(RUN_PERL6) --setting=NULL --optimize=3 --target=jar --stagestats --output=$(SETTING_JAR) $(J_BUILD_DIR)/CORE.setting
 
 $(RUNNER):
 	$(PERL) tools/build/create-jvm-runner.pl dev . $(NQP_PREFIX) $(NQP_JARS)

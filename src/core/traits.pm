@@ -69,9 +69,11 @@ multi trait_mod:<is>(Attribute:D $attr, |c ) {
 }
 multi trait_mod:<is>(Attribute:D $attr, :$rw!) {
     $attr.set_rw();
+    warn "useless use of 'is rw' on $attr.name()" unless $attr.has_accessor;
 }
 multi trait_mod:<is>(Attribute:D $attr, :$readonly!) {
     $attr.set_readonly();
+    warn "useless use of 'is readonly' on $attr.name()" unless $attr.has_accessor;
 }
 multi trait_mod:<is>(Attribute:D $attr, :$box_target!) {
     $attr.set_box_target();

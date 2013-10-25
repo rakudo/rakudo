@@ -28,7 +28,6 @@ remove completed ones, re-prioritize, volunteer for a goal,
 rescue yourself from a goal, etc.
 
 Compiler Performance/Portability Improvements (jnthn)
-2 **    finish up any remaining s/pir::/nqp::/
 3 **    Optimizing multis for `[+] 1..10` and `[<=] 1..10` etc.
 
 Macros (masak)

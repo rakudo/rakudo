@@ -238,6 +238,9 @@ P_CORE_SOURCES = \
   src/core/precedence.pm \
   src/core/terms.pm \
   src/core/Deprecations.pm \
+  src/core/OS/Addr.pm \
+  src/core/OS/Name.pm \
+  src/core/OS.pm \
   src/core/core_epilogue.pm \
 
 DOCS = README CREDITS LICENSE docs/*

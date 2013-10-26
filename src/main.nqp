@@ -39,8 +39,11 @@ nqp::bindhllsym('perl6', '$!ARGITER', 0);
 #?if parrot
 sub MAIN(@ARGS) {
 #?endif
-#?if !parrot
+#?if jvm
 sub MAIN(*@ARGS) {
+#?endif
+#?if moar
+sub MAIN(@ARGS) {
 #?endif
     # Enter the compiler.
     my $result := $comp.command_line(@ARGS, :encoding('utf8'), :transcode('ascii iso-8859-1'));

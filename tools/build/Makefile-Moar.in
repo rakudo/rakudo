@@ -11,6 +11,8 @@ PREFIX = @prefix@
 MOAR   = $(PREFIX)@slash@bin@slash@moar@exe@
 M_NQP  = $(PREFIX)@slash@bin@slash@nqp-m@runner_suffix@
 
+RUN_PERL6 = $(MOAR) --libpath="$(PREFIX)@slash@languages@slash@nqp@slash@lib" perl6.moarvm
+
 M_RUNNER = perl6-m@runner_suffix@
 
 # files we create
@@ -227,7 +229,7 @@ $(PERL6_MOAR): src/main.nqp $(PERL6_G_MOAR) $(PERL6_A_MOAR) $(PERL6_C_MOAR) $(PE
 	$(PERL) tools/build/gen-version.pl > src/gen/main-version.nqp
 	$(PERL) $(M_GEN_CAT) src/main.nqp src/gen/main-version.nqp > src/gen/m-main.nqp
 	$(M_NQP) --target=mbc --output=$(PERL6_MOAR) \
-	    src/gen/m-main.nqp
+	    --vmlibs=$(M_PERL6_OPS_DLL)=Rakudo_ops_init src/gen/m-main.nqp
 
 $(PERL6_M_MOAR): $(M_METAMODEL_SOURCES) $(PERL6_OPS_MOAR)
 	$(PERL) $(M_GEN_CAT) $(M_METAMODEL_SOURCES) > src/gen/m-Metamodel.nqp

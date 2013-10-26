@@ -17,7 +17,7 @@ RUN_PERL6 = $(JAVA) -Xss1m -Xms500m -Xmx1600m -Xbootclasspath/a:.@cpsep@$(NQP_JA
 
 RUNTIME_JAVAS = src/vm/jvm/runtime/org/perl6/rakudo/*.java
 
-RUNTIME_JAR = $(J_BUILD_DIR)/rakudo-runtime.jar
+RUNTIME_JAR = rakudo-runtime.jar
 
 RUNNER = @j_runner@
 

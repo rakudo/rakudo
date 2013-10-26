@@ -600,7 +600,6 @@ S32-array/delete-adverb.t
 S32-array/delete-adverb-native.t
 S32-array/elems.t
 S32-array/end.t
-S32-array/exists.t
 S32-array/exists-adverb.t
 S32-array/keys_values.t
 S32-array/kv.t

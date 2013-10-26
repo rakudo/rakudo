@@ -2,8 +2,14 @@
 #include "moar.h"
 #include "container.h"
 
+#define GET_REG(tc, idx) (*tc->interp_reg_base)[*((MVMuint16 *)(*tc->interp_cur_op + idx))]
+
 /* Are we initialized yet? */
 static int initialized = 0;
+
+/* Types we need. */
+static MVMObject *True = NULL;
+static MVMObject *False = NULL;
 
 /* Initializes the Perl 6 extension ops. */
 static void p6init(MVMThreadContext *tc) {
@@ -13,11 +19,20 @@ static void p6init(MVMThreadContext *tc) {
 }
 
 /* Stashes away various type references. */
+#define get_type(tc, hash, name, varname) do { \
+    MVMString *key = MVM_string_utf8_decode((tc), (tc)->instance->VMString, (name), strlen((name))); \
+    (varname) = MVM_repr_at_key_boxed((tc), (hash), key); \
+    MVM_gc_root_add_permanent(tc, (MVMCollectable **)&varname); \
+} while (0)
 static MVMuint8 s_p6settypes[] = {
     MVM_operand_obj | MVM_operand_read_reg
 };
 static void p6settypes(MVMThreadContext *tc) {
-    /* XXX TO DO */
+    MVMObject *conf = GET_REG(tc, 0).o;
+    MVMROOT(tc, conf, {
+        get_type(tc, conf, "True", True);
+        get_type(tc, conf, "False", False);
+    });
 }
 
 /* Stashes away various type references. */
@@ -26,7 +41,7 @@ static MVMuint8 s_p6bool[] = {
     MVM_operand_int64 | MVM_operand_read_reg,
 };
 static void p6bool(MVMThreadContext *tc) {
-    /* XXX TO DO */
+     GET_REG(tc, 0).o = GET_REG(tc, 2).i64 ? True : False;
 }
 
 /* Registers the extops with MoarVM. */

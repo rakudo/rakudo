@@ -49,7 +49,7 @@ MAST::ExtOpRegistry.register_extop('p6inpre',
     $MVM_operand_int64 +| $MVM_operand_write_reg);
 
 # Perl 6 opcode specific mappings.
-my $ops := nqp::getcomp('qast').operations;
+my $ops := nqp::getcomp('QAST').operations;
 #$ops.map_classlib_hll_op('perl6', 'p6box_i', $TYPE_P6OPS, 'p6box_i', [$RT_INT], $RT_OBJ, :tc);
 #$ops.map_classlib_hll_op('perl6', 'p6box_n', $TYPE_P6OPS, 'p6box_n', [$RT_NUM], $RT_OBJ, :tc);
 #$ops.map_classlib_hll_op('perl6', 'p6box_s', $TYPE_P6OPS, 'p6box_s', [$RT_STR], $RT_OBJ, :tc);

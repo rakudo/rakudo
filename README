@@ -34,7 +34,7 @@ Rakudo Perl 6
     will fetch an appropriate revision of nqp, build it, and then build
     rakudo on the jvm.
     
-    $ perl ConfigureJVM.pl --gen-nqp
+    $ perl Configure.pl --gen-nqp --backends=jvm
     $ make
     
     Note that Rakudo on JVM implements a slightly different set of features

@@ -35,7 +35,7 @@ static void p6settypes(MVMThreadContext *tc) {
     });
 }
 
-/* Stashes away various type references. */
+/* Turns zero to False and non-zero to True. */
 static MVMuint8 s_p6bool[] = {
     MVM_operand_obj | MVM_operand_write_reg,
     MVM_operand_int64 | MVM_operand_read_reg,
@@ -44,9 +44,32 @@ static void p6bool(MVMThreadContext *tc) {
      GET_REG(tc, 0).o = GET_REG(tc, 2).i64 ? True : False;
 }
 
+/* Type-checks the return value of a routine. */
+/* XXX Due to potential nested runloop calls, this may not want doing in C. */
+static MVMuint8 s_p6typecheckrv[] = {
+    MVM_operand_obj | MVM_operand_read_reg,
+    MVM_operand_obj | MVM_operand_read_reg,
+};
+static void p6typecheckrv(MVMThreadContext *tc) {
+     /* XXX */
+}
+
+/* Decontainerizes the return value of a routine as needed. */
+static MVMuint8 s_p6decontrv[] = {
+    MVM_operand_obj | MVM_operand_write_reg,
+    MVM_operand_obj | MVM_operand_read_reg,
+    MVM_operand_obj | MVM_operand_read_reg,
+};
+static void p6decontrv(MVMThreadContext *tc) {
+     /* XXX TODO */
+     GET_REG(tc, 0).o = GET_REG(tc, 4).o;
+}
+
 /* Registers the extops with MoarVM. */
 MVM_DLL_EXPORT void Rakudo_ops_init(MVMThreadContext *tc) {
     MVM_ext_register_extop(tc, "p6init",  p6init, 0, NULL);
     MVM_ext_register_extop(tc, "p6settypes",  p6settypes, 1, s_p6settypes);
     MVM_ext_register_extop(tc, "p6bool",  p6bool, 2, s_p6bool);
+    MVM_ext_register_extop(tc, "p6typecheckrv",  p6typecheckrv, 2, s_p6typecheckrv);
+    MVM_ext_register_extop(tc, "p6decontrv",  p6decontrv, 3, s_p6decontrv);
 }

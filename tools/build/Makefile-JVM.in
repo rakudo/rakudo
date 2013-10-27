@@ -281,7 +281,7 @@ $(SETTING_JAR): $(PERL6_JAR) $(PERL6_B_JAR) $(J_CORE_SOURCES)
 	$(RUN_PERL6) --setting=NULL --optimize=3 --target=jar --stagestats --output=$(SETTING_JAR) $(J_BUILD_DIR)/CORE.setting
 
 $(RUNNER):
-	$(PERL) tools/build/create-jvm-runner.pl dev . $(NQP_PREFIX) $(NQP_JARS)
+	$(PERL) tools/build/create-jvm-runner.pl dev . . $(NQP_PREFIX) $(NQP_JARS)
 
 j-runner-default: j-all
 	$(CP) $(RUNNER) perl6$(BAT)
@@ -342,23 +342,23 @@ sometests: j-all
 	@$(J_HARNESS_WITH_FUDGE) $(TESTFILES)
 
 j-install: j-all tools/build/create-jvm-runner.pl
-	$(MKPATH) $(PREFIX)/bin
-	$(MKPATH) $(PERL6_LANG_DIR)/lib/Perl6
-	$(MKPATH) $(PERL6_LANG_DIR)/runtime
-	$(CP) $(PERL6_LANG_JARS) $(PERL6_LANG_DIR)/lib/Perl6
-	$(CP) $(SETTING_JAR) $(PERL6_LANG_DIR)/runtime
-	$(CP) $(PERL6_JAR) $(PERL6_LANG_DIR)/runtime
-	$(CP) $(RUNTIME_JAR) $(PERL6_LANG_DIR)/runtime
-	$(CP) blib/Test.jar $(PERL6_LANG_DIR)/lib
-	$(CP) blib/lib.jar $(PERL6_LANG_DIR)/lib
-	$(MKPATH) $(PERL6_LANG_DIR)/lib/Pod/To
-	$(CP) blib/Pod/To/Text.jar $(PERL6_LANG_DIR)/lib/Pod/To
-	$(PERL) tools/build/create-jvm-runner.pl install $(PREFIX) $(NQP_PREFIX) $(NQP_JARS)
+	$(MKPATH) $(DESTDIR)$(PREFIX)/bin
+	$(MKPATH) $(DESTDIR)$(PERL6_LANG_DIR)/lib/Perl6
+	$(MKPATH) $(DESTDIR)$(PERL6_LANG_DIR)/runtime
+	$(CP) $(PERL6_LANG_JARS) $(DESTDIR)$(PERL6_LANG_DIR)/lib/Perl6
+	$(CP) $(SETTING_JAR) $(DESTDIR)$(PERL6_LANG_DIR)/runtime
+	$(CP) $(PERL6_JAR) $(DESTDIR)$(PERL6_LANG_DIR)/runtime
+	$(CP) $(RUNTIME_JAR) $(DESTDIR)$(PERL6_LANG_DIR)/runtime
+	$(CP) blib/Test.jar $(DESTDIR)$(PERL6_LANG_DIR)/lib
+	$(CP) blib/lib.jar $(DESTDIR)$(PERL6_LANG_DIR)/lib
+	$(MKPATH) $(DESTDIR)$(PERL6_LANG_DIR)/lib/Pod/To
+	$(CP) blib/Pod/To/Text.jar $(DESTDIR)$(PERL6_LANG_DIR)/lib/Pod/To
+	$(PERL) tools/build/create-jvm-runner.pl install $(DESTDIR) $(PREFIX) $(NQP_PREFIX) $(NQP_JARS)
 
 j-runner-default-install: j-all
-	$(PERL) tools/build/create-jvm-runner.pl install $(PREFIX) $(NQP_PREFIX) $(NQP_JARS)
-	$(CP) $(PREFIX)/bin/perl6-j$(BAT) $(PREFIX)/bin/perl6$(BAT)
-	$(CHMOD) 755 $(PREFIX)/bin/perl6$(BAT)
+	$(PERL) tools/build/create-jvm-runner.pl install $(DESTDIR) $(PREFIX) $(NQP_PREFIX) $(NQP_JARS)
+	$(CP) $(DESTDIR)$(PREFIX)/bin/perl6-j$(BAT) $(DESTDIR)$(PREFIX)/bin/perl6$(BAT)
+	$(CHMOD) 755 $(DESTDIR)$(PREFIX)/bin/perl6$(BAT)
 
 ##  cleaning
 j-clean:

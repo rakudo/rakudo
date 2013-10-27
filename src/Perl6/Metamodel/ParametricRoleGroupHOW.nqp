@@ -106,7 +106,7 @@ class Perl6::Metamodel::ParametricRoleGroupHOW
         if $decont =:= $obj.WHAT {
             return 1;
         }
-        for self.prentending_to_be() {
+        for self.pretending_to_be() {
             if $decont =:= nqp::decont($_) {
                 return 1;
             }

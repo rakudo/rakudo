@@ -5,7 +5,7 @@ role Perl6::Metamodel::TypePretense {
         @pretending := @types;
     }
     
-    method prentending_to_be() {
+    method pretending_to_be() {
         @pretending
     }
     
@@ -13,7 +13,7 @@ role Perl6::Metamodel::TypePretense {
         if $obj =:= $checkee {
             return 1;
         }
-        for self.prentending_to_be() {
+        for self.pretending_to_be() {
             if $checkee =:= $_ {
                 return 1;
             }

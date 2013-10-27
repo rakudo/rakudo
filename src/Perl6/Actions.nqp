@@ -5886,6 +5886,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
         %curried{'&infix:<^..^>'} := 1;
         %curried{'&infix:<xx>'}   := 1;
         %curried{'callmethod'}    := 2;
+        %curried{'&postcircumfix:<[ ]>'} := 2;
+        %curried{'&postcircumfix:<{ }>'} := 2;
     }
     sub whatever_curry($/, $past, $upto_arity) {
         my $Whatever := $*W.find_symbol(['Whatever']);
@@ -5905,6 +5907,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
             
             # Or not a call and an op in the list of alloweds.
                 || ($past.op ne 'call' && %curried{$past.op} // 0)
+
+            # or one of our new postcircumfix subs that used to be methods
+                || ($past.op eq 'call' && nqp::index($past.name, '&postcircumfix:') == 0 &&
+                    %curried{$past.name} // 0)
             );
         my int $i := 0;
         my int $whatevers := 0;

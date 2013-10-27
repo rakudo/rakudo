@@ -63,9 +63,6 @@ my $ops := nqp::getcomp('QAST').operations;
 #$ops.map_classlib_hll_op('perl6', 'p6var', $TYPE_P6OPS, 'p6var', [$RT_OBJ], $RT_OBJ, :tc);
 #$ops.map_classlib_hll_op('perl6', 'p6reprname', $TYPE_P6OPS, 'p6reprname', [$RT_OBJ], $RT_OBJ, :tc);
 #$ops.map_classlib_hll_op('perl6', 'p6definite', $TYPE_P6OPS, 'p6definite', [$RT_OBJ], $RT_OBJ, :tc);
-#$ops.add_hll_op('perl6', 'p6bindsig', :!inlinable, -> $qastcomp, $op {
-#    # XXX
-#});
 #$ops.map_classlib_hll_op('perl6', 'p6isbindable', $TYPE_P6OPS, 'p6isbindable', [$RT_OBJ, $RT_OBJ], $RT_INT, :tc);
 #$ops.map_classlib_hll_op('perl6', 'p6bindcaptosig', $TYPE_P6OPS, 'p6bindcaptosig', [$RT_OBJ, $RT_OBJ], $RT_OBJ, :tc);
 $ops.add_hll_moarop_mapping('perl6', 'p6trialbind', 'p6trialbind');
@@ -195,6 +192,18 @@ $ops.add_hll_op('perl6', 'defor', -> $qastcomp, $op {
 #$ops.add_hll_box('perl6', $RT_STR, -> $qastcomp {
 #    # XXX
 #});
+
+# Signature binding related bits.
+proto sub bind_sig($capture) {
+    nqp::die("Signature binding NYI");
+}
+$ops.add_hll_op('perl6', 'p6bindsig', :!inlinable, -> $qastcomp, $op {
+    $qastcomp.as_mast(QAST::Op.new(
+        :op('call'),
+        QAST::WVal.new( :value(nqp::getcodeobj(&bind_sig)) ),
+        QAST::Op.new( :op('savecapture') )
+    ));
+});
 
 sub push_ilist(@dest, $src) {
     nqp::splice(@dest, $src.instructions, +@dest, 0);

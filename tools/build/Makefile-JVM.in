@@ -353,10 +353,10 @@ j-install: j-all tools/build/create-jvm-runner.pl
 	$(CP) blib/lib.jar $(DESTDIR)$(PERL6_LANG_DIR)/lib
 	$(MKPATH) $(DESTDIR)$(PERL6_LANG_DIR)/lib/Pod/To
 	$(CP) blib/Pod/To/Text.jar $(DESTDIR)$(PERL6_LANG_DIR)/lib/Pod/To
-	$(PERL) tools/build/create-jvm-runner.pl install $(DESTDIR) $(PREFIX) $(NQP_PREFIX) $(NQP_JARS)
+	$(PERL) tools/build/create-jvm-runner.pl install "$(DESTDIR)" $(PREFIX) $(NQP_PREFIX) $(NQP_JARS)
 
 j-runner-default-install: j-all
-	$(PERL) tools/build/create-jvm-runner.pl install $(DESTDIR) $(PREFIX) $(NQP_PREFIX) $(NQP_JARS)
+	$(PERL) tools/build/create-jvm-runner.pl install "$(DESTDIR)" $(PREFIX) $(NQP_PREFIX) $(NQP_JARS)
 	$(CP) $(DESTDIR)$(PREFIX)/bin/perl6-j$(BAT) $(DESTDIR)$(PREFIX)/bin/perl6$(BAT)
 	$(CHMOD) 755 $(DESTDIR)$(PREFIX)/bin/perl6$(BAT)
 

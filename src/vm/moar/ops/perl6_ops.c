@@ -65,6 +65,28 @@ static void p6decontrv(MVMThreadContext *tc) {
      GET_REG(tc, 0).o = GET_REG(tc, 4).o;
 }
 
+static MVMuint8 s_p6capturelex[] = {
+    MVM_operand_obj | MVM_operand_write_reg,
+    MVM_operand_obj | MVM_operand_read_reg,
+};
+static void p6capturelex(MVMThreadContext *tc) {
+    MVMCode *codeObj = (MVMCode *)GET_REG(tc, 2).o;
+    MVMCode *closure;
+    MVMStaticFrame *wantedStaticInfo;
+    if (REPR(codeObj)->ID != MVM_REPR_ID_MVMCode)
+        MVM_exception_throw_adhoc(tc, "p6capturelex needs a code ref");
+
+    closure = (MVMCode *)codeObj->body.code_object;
+
+    wantedStaticInfo = closure->body.sf->body.outer;
+    if (tc->cur_frame->static_info == wantedStaticInfo)
+        closure->body.outer = tc->cur_frame;
+    else if (tc->cur_frame->outer->static_info == wantedStaticInfo)
+        closure->body.outer = tc->cur_frame->outer;
+
+    GET_REG(tc, 0).o = (MVMObject *)codeObj;
+}
+
 /* Registers the extops with MoarVM. */
 MVM_DLL_EXPORT void Rakudo_ops_init(MVMThreadContext *tc) {
     MVM_ext_register_extop(tc, "p6init",  p6init, 0, NULL);
@@ -72,4 +94,5 @@ MVM_DLL_EXPORT void Rakudo_ops_init(MVMThreadContext *tc) {
     MVM_ext_register_extop(tc, "p6bool",  p6bool, 2, s_p6bool);
     MVM_ext_register_extop(tc, "p6typecheckrv",  p6typecheckrv, 2, s_p6typecheckrv);
     MVM_ext_register_extop(tc, "p6decontrv",  p6decontrv, 3, s_p6decontrv);
+    MVM_ext_register_extop(tc, "p6capturelex",  p6capturelex, 2, s_p6capturelex);
 }

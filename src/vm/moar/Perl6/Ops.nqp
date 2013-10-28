@@ -48,6 +48,9 @@ MAST::ExtOpRegistry.register_extop('p6decontrv',
     $MVM_operand_obj   +| $MVM_operand_write_reg,
     $MVM_operand_obj   +| $MVM_operand_read_reg,
     $MVM_operand_obj   +| $MVM_operand_read_reg);
+MAST::ExtOpRegistry.register_extop('p6capturelex',
+    $MVM_operand_obj   +| $MVM_operand_write_reg,
+    $MVM_operand_obj   +| $MVM_operand_read_reg);
 MAST::ExtOpRegistry.register_extop('p6isbindable',
     $MVM_operand_int64 +| $MVM_operand_write_reg,
     $MVM_operand_obj   +| $MVM_operand_read_reg,
@@ -75,7 +78,7 @@ my $ops := nqp::getcomp('QAST').operations;
 $ops.add_hll_moarop_mapping('perl6', 'p6trialbind', 'p6trialbind');
 $ops.add_hll_moarop_mapping('perl6', 'p6typecheckrv', 'p6typecheckrv', 0);
 $ops.add_hll_moarop_mapping('perl6', 'p6decontrv', 'p6decontrv');
-#$ops.map_classlib_hll_op('perl6', 'p6capturelex', $TYPE_P6OPS, 'p6capturelex', [$RT_OBJ], $RT_OBJ, :tc, :!inlinable);
+$ops.add_hll_moarop_mapping('perl6', 'p6capturelex', 'p6capturelex');
 #$ops.map_classlib_hll_op('perl6', 'p6bindassert', $TYPE_P6OPS, 'p6bindassert', [$RT_OBJ, $RT_OBJ], $RT_OBJ, :tc);
 #$ops.map_classlib_hll_op('perl6', 'p6stateinit', $TYPE_P6OPS, 'p6stateinit', [], $RT_INT, :tc, :!inlinable);
 #$ops.map_classlib_hll_op('perl6', 'p6setpre', $TYPE_P6OPS, 'p6setpre', [], $RT_OBJ, :tc);

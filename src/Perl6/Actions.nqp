@@ -1346,7 +1346,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
                             QAST::Op.new( :op('null') ),
                             QAST::Op.new( :op('exception') )
                         )),
-                        :jvm(QAST::Op.new( :op('null') ))
+                        :jvm(QAST::Op.new( :op('null') )),
+                        :moar(QAST::Op.new( :op('null') ))
                     ),
                     QAST::WVal.new(
                         :value( $*W.find_symbol(['Nil']) ),
@@ -5778,7 +5779,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     :pirop('perl6_skip_handlers_in_rethrow__0Pi'),
                     $ex,
                     QAST::IVal.new( :value(1) ))),
-                :jvm($ex));
+                :jvm($ex),
+                :moar($ex));
         }
         else {
             my $prev_content := QAST::Stmts.new();
@@ -5795,6 +5797,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
                         QAST::Var.new( :name($exceptionreg), :scope('local') ),
                     )),
                     :jvm(QAST::Op.new(
+                        :op('rethrow'),
+                        QAST::Op.new( :op('exception') )
+                    )),
+                    :moar(QAST::Op.new(
                         :op('rethrow'),
                         QAST::Op.new( :op('exception') )
                     )))));

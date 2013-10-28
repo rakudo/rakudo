@@ -365,7 +365,8 @@ class Perl6::World is HLL::World {
                 :op('loadbytecode'),
                 QAST::VM.new(
                     :parrot(QAST::SVal.new( :value('ModuleLoader.pbc') )),
-                    :jvm(QAST::SVal.new( :value('ModuleLoader.class') ))
+                    :jvm(QAST::SVal.new( :value('ModuleLoader.class') )),
+                    :moar(QAST::SVal.new( :value('ModuleLoader.moarvm') ))
                 )),
             QAST::Op.new(
                 :op('callmethod'), :name('load_module'),
@@ -1787,7 +1788,8 @@ class Perl6::World is HLL::World {
                          'bit_ops', 'math_ops', 'trans_ops', 'io_ops',
                          'obscure_ops', 'os', 'file', 'sys_ops',
                          'nqp_bigint_ops', 'nqp_dyncall_ops' ],
-            jvm => QAST::Op.new( :op('null') )));
+            jvm => QAST::Op.new( :op('null') ),
+            moar => QAST::Op.new( :op('null') )));
     }
     
     # Represents a longname after having parsed it.
@@ -2392,7 +2394,8 @@ class Perl6::World is HLL::World {
                         QAST::VM.new( :pirop('get_class Ps'), QAST::SVal.new( :value('NQPLexPad') ) )
                     )
                 )),
-                :jvm(QAST::Op.new( :op('null') ))
+                :jvm(QAST::Op.new( :op('null') )),
+                :moar(QAST::Op.new( :op('null') ))
             )));
         }
     }

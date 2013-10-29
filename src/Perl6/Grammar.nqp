@@ -280,8 +280,12 @@ role STD {
             my $name := $varast.name;
             if $name ne '%_' && $name ne '@_' && !$*W.is_lexical($name) {
                 if $var<sigil> ne '&' {
-                    my @suggestions := $*W.suggest_lexicals($name);
-                    $*W.throw($var, ['X', 'Undeclared'], symbol => $varast.name(), suggestions => @suggestions);
+                    my $decl := nqp::clone($varast);
+                    $decl.decl('contvar');
+                    $*UNIT[0].push($decl);
+                    $*UNIT.symbol($name, :scope<lexical>);
+#                    my @suggestions := $*W.suggest_lexicals($name);
+#                    $*W.throw($var, ['X', 'Undeclared'], symbol => $varast.name(), suggestions => @suggestions);
                 }
                 else {
                     $var.CURSOR.add_mystery($varast.name, $var.to, 'var');

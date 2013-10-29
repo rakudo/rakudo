@@ -318,7 +318,7 @@ sub gen_nqp {
     return %impls unless %need;
 
     if (defined $gen_nqp || defined $gen_parrot) {
-        git_checkout($nqp_git, 'nqp', $nqp_want, $nqp_push);
+        git_checkout($nqp_git, 'nqp', $gen_nqp || $nqp_want, $nqp_push);
     }
 
     if ($need{parrot} && defined $gen_parrot) {

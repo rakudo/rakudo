@@ -121,7 +121,7 @@ MAIN: {
     my ($nqp_want) = split(' ', slurp('tools/build/NQP_REVISION'));
 
     my %binaries;
-    my %impls = gen_nqp($nqp_want, prefix => $prefix, backends => join(',', sort keys %backends), %options);
+    my %impls = gen_nqp($options{'gen-nqp'} || $nqp_want, prefix => $prefix, backends => join(',', sort keys %backends), %options);
 
     my @errors;
     if ($backends{parrot}) {

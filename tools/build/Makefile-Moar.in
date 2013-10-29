@@ -246,8 +246,8 @@ $(SETTING_MOAR): $(PERL6_MOAR) $(PERL6_B_MOAR) $(M_CORE_SOURCES)
 	@echo "The following step can take a long time, please be patient."
 	$(RUN_PERL6) --setting=NULL --optimize=3 --target=mbc --stagestats --output=$(SETTING_MOAR) src/gen/m-CORE.setting
 
-$(M_RUNNER):
-	$(PERL) tools/build/create-moar-runner.pl dev . $(PREFIX)
+$(M_RUNNER): tools/build/gen-moar-runner.pl $(PERL6_MOAR)
+	$(PERL) tools/build/gen-moar-runner.pl $(MOAR) .
 
 ##  testing targets
 blib/Test.moarvm: lib/Test.pm $(PERL6_MOAR) $(SETTING_MOAR) $(M_RUNNER)

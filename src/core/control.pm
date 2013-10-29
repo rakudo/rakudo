@@ -166,43 +166,26 @@ sub exit($status = 0) {
     $status;
 }
 
+my class Proc::Status { ... }
+
 sub run(*@args ($, *@)) {
-    my $error_code;
+    my $status = Proc::Status.new( :exit(255) );
     try {
-#?if parrot
-        nqp::chdir($*CWD);
-        $error_code = nqp::p6box_i(
-            pir::spawnw__IP(
-                nqp::getattr(
-                    @args.eager,
-                    List,
-                    '$!items'
-                )
-            )
-        ) +> 8;
-#?endif
-#?if !parrot
         my Mu $hash := nqp::getattr(%*ENV, EnumMap, '$!storage');
-        $error_code = nqp::p6box_i(
+        $status.status( nqp::p6box_i(
             nqp::spawn(nqp::getattr(@args.eager, List, '$!items'), $*CWD.Str, $hash)
-        ) +> 8;
-#?endif
-        CATCH {
-            default {
-                $error_code = 1;
-            }
-        }
+        ) );
     }
-    $error_code but !$error_code;
+    $status
 }
 
 sub shell($cmd) {
-    my $status = 255;
+    my $status = Proc::Status.new( :exit(255) );
     try {
         my Mu $hash := nqp::getattr(%*ENV, EnumMap, '$!storage');
-        $status = nqp::p6box_i(nqp::shell($cmd, $*CWD.Str, $hash));
+        $status.status( nqp::p6box_i(nqp::shell($cmd, $*CWD.Str, $hash)) );
     }
-    $status;
+    $status
 }
 
 # XXX: Temporary definition of $Inf and $NaN until we have constants ava

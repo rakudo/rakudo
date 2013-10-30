@@ -47,11 +47,14 @@ my class Thread {
     }
 
     multi method Str(Thread:D:) {
-        "Thread<$.id>($.name)" 
+        "Thread<$.id>($.name)"
     }
 }
 
 {
+    # This code is a little funky to avoid hitting jvmbootinterop at startup
+    # even if we never use anything that needs it. This is because it carries
+    # some cost and may have a bad interaction with the evalserver.
     my $init_thread;
     PROCESS::<$THREAD> := Proxy.new(
         FETCH => -> | {

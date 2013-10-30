@@ -13,6 +13,10 @@ my class Backtrace::Frame {
         $s eq 'mu' ?? '' !! $s;
     }
 
+    method package(Backtrace::Frame:D:) {
+        $.code.package;
+    }
+
     multi method Str(Backtrace::Frame:D:) {
         my $s = self.subtype;
         $s ~= ' ' if $s.chars;
@@ -43,8 +47,9 @@ my class Backtrace is List {
 
     # note that parrot backtraces are RPAs, marshalled to us as Parcel
     multi method new(Parcel $bt, Int $offset = 0) {
-        my $new = self.bless(*);
+        my $new = self.bless();
         for $offset .. $bt.elems - 1 {
+            next unless defined $bt[$_]<sub>;
             my Mu $sub := nqp::getattr(nqp::decont($bt[$_]<sub>), ForeignCode, '$!do');
             next if nqp::isnull($sub);
             my $code;
@@ -71,7 +76,8 @@ my class Backtrace is List {
         $new;
     }
 
-    method next-interesting-index(Backtrace:D: Int $idx is copy = 0) {
+    method next-interesting-index(Backtrace:D:
+      Int $idx is copy = 0, :$named, :$noproto) {
         ++$idx;
         # NOTE: the < $.end looks like an off-by-one error
         # but it turns out that a simple   perl6 -e 'die "foo"'
@@ -79,7 +85,11 @@ my class Backtrace is List {
         # consider the last one
         loop (; $idx < self.end; ++$idx) {
             my $cand = self.at_pos($idx);
-            return $idx unless $cand.is-hidden;
+            next if $cand.is-hidden;          # hidden is never interesting
+            next if $named && !$cand.subname; # only want named ones
+            next if $noproto                  # no proto's please
+              && $cand.code.?is_dispatcher;   #  if a dispatcher
+            return $idx;
         }
         Int;
     }

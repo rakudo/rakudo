@@ -3,17 +3,25 @@
 # Code/Block/Routine/Sub/Method and Str/Int/Num. They are built in BOOTSTRAP.pm
 # in Perl6::Metamodel for now, though should be a BEGIN block in CORE.setting
 # in the end.
-my class Whatever { ... }
-my class Bag { ... }
-my class KeyBag { ... }
-my class KeySet { ... }
-my class KeyHash is Iterable does Associative { }
 my class Seq is List does Positional { }
 my class Exception { ... }
 my class X::AdHoc  { ... }
 my class FatRat    { ... }
 my class Enum      { ... }
 my class X::OutOfRange { ... }
+
+my role QuantHash { ... }
+my role Setty { ... }
+my class Set { ... }
+my class SetHash { ... }
+
+my role Baggy { ... }
+my class Bag { ... }
+my class BagHash { ... }
+
+my role Mixy { ... }
+my class Mix { ... }
+my class MixHash { ... }
 
 sub DYNAMIC(\name) is rw { 
     my Mu $x := nqp::getlexdyn(nqp::unbox_s(name));
@@ -34,4 +42,3 @@ sub DYNAMIC(\name) is rw {
     }
     Dummy.HOW.set_autogen_proto(&Dummy::AUTOGEN);
 }
-

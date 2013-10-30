@@ -36,11 +36,7 @@ my class Failure {
         }
     );
     method sink() { $!exception.throw unless $!handled }
-
-    # class Any has a fallback method, so we need to redefine it here
-    method postcircumfix:<{ }>(|c) { $!exception.throw }
 }
-
 
 my &fail := -> *@msg {
     my $value = @msg == 1 ?? @msg[0] !! @msg.join('');

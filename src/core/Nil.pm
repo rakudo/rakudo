@@ -1,5 +1,6 @@
-my class Nil is Cool {
-    # Has attributes and parent Iterator declared in BOOTSTRAP
+my class Nil is Cool { # declared in BOOTSTRAP
+    # class Nil is Iterator {
+
     method new() { Nil }
     method iterator() { self }
     method reify($n?) { () }

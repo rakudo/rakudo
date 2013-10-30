@@ -1,3 +1,70 @@
+New in 2013.11
+
++ leading whitespace is ignored for :sigspace
++ refactored build system that allows building rakudo on both backends in the same place
++ better null pattern detection in regexes
++ gethostname function implement
++ warn when private attributes are a marked rw or readonly
++ "is DEPRECATED" trait now does something useful
++ Parcel.rotate implemented
+
+New in 2013.10
+
++ postcircumfix {} and [] are now implemented as multi subs rather than multi methods.  This should allow for better optimization in the future.
++ Add support for "is deprecated", making it easy for early adopters to stay current.
++ Track multiple spec changes for various container classes.
++ Greatly reduce object creation during Regex parsing.
++ Various portability fixes.
++ qx// and run() now auto-quote correctly
++ Allow #`[...]-style comments in regexes
++ unlink() behaves like P5's, it deletes write-protected files on windows
+
+New in 2013.09
++ candidate argument to bless removed (per spec change)
++ @a.VAR.name and %h.VAR.name implemented
++ The $var.++ and $var.() syntaxes work
++ Lots of improvements on the Set and Bag types
++ [op]() with relational operators vacuously return True
++ tr/// implemented
++ Sockets on JVM implemented
++ sleep(), sleep-time() and sleep-till() updated to spec
+
+New in 2013.08
++ "is default" traits on variables, $/, $!, $_ are default Nil
++ "is dynamic" traits on variables, $/, $!, $_ are dynamic
++ "of TypeObject" trait on variables
++ .VAR.default/dynamic/of return the state of these traits
++ Assigning Nil, calling undefine() restores the default value
++ .WHAT more accurately returns a type object for specifically typed cases
++ Option --gen-nqp for ConfigureJVM.pl
++ Include file name in parser errors
++ Parse labels, tr/// (both don't do anything useful under the hood yet)
++ CALLER::<$var> now only works on dynamic variables, as per spec.
++ Improvements to Threads, including Channel and KeyReducer (JVM only)
++ Asynchronous file reading (JVM only)
++ Improved JVM interop, including 'use :from<java>' (JVM only)
++ Fixed subroutine inlining on JVM
++ Fixed %*CUSTOM_LIB on JVM
+* Fixed sink context handling on JVM
++ Reimplementation of Buf as a role
++ Implemented Blob role
++ Implemented sized/encoded Buf/Blob types (buf8, blob8, utf8, etc.)
++ Str.encode now returns most specific appropriate type
++ "once" phaser fully implemented
++ Named parameters "with" and "as" on uniq/squish
++ "samewith()" for calling method on same dispatcher again
++ "will" variable trait partially implemented ($_ not set yet)
++ Interpolating strings into heredocs now dedents properly
++ Solved a slowdown when declaring custom operators
++ Improved P5-regexes (backslash sequences, code blocks)
++ Make type objects appear as Nil in non-scalar contexts
++ Placeholder variables $^A .. $^Z no longer allowed, as per spec
++ printf %d now supports bigints also on Parrot
++ my and our scoped methods no longer go into the method table
++ Implemented keybag(), KeyBag.push, KeyBag.categorize
++ Re-implemented hash iteration for a performance win
++ Various optimizations, code cleanups and error message enhancements
+
 New in 2013.07
 + Huge progress in JVM backend (feature-wise almost on par with Parrot)
 + List.first is now lazy

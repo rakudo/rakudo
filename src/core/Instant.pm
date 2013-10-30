@@ -6,7 +6,7 @@ my class Instant is Cool does Real {
       # tai-utc::initial-offset. Thus, $.x matches TAI from 1970
       # to the present.
 
-    method new($x) { self.bless: *, x => $x.Rat }
+    method new($x) { self.bless: x => $x.Rat }
 
     method from-posix($posix, Bool $prefer-leap-second = False) {
     # $posix is in general not expected to be an integer.

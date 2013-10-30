@@ -1,6 +1,9 @@
 my class X::Numeric::DivideByZero { ... };
 
-my class Num does Real {
+my class Num does Real { # declared in BOOTSTRAP
+    # class Num is Cool {
+    #     has num $!value is box_target;
+
     multi method WHICH(Num:D:) {
         nqp::box_s(
             nqp::concat(
@@ -295,9 +298,11 @@ multi infix:</>(num $a, num $b) {
 }
 
 multi infix:<%>(Num:D \a, Num:D \b) {
+    fail X::Numeric::DivideByZero.new(:using<%>) unless b;
     nqp::p6box_n(nqp::mod_n(nqp::unbox_n(a), nqp::unbox_n(b)))
 }
 multi infix:<%>(num $a, num $b) {
+    fail X::Numeric::DivideByZero.new(:using<%>) unless $b;
     nqp::mod_n($a, $b)
 }
 

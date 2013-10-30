@@ -22,6 +22,7 @@ class Perl6::Metamodel::CurriedRoleHOW
     has $!curried_role;
     has @!pos_args;
     has %!named_args;
+    has $!name;
 
     my $archetypes_g := Perl6::Metamodel::Archetypes.new( :composable(1), :inheritalizable(1), :parametric(1), :generic(1) );
     my $archetypes_ng := Perl6::Metamodel::Archetypes.new( :nominal(1), :composable(1), :inheritalizable(1), :parametric(1) );
@@ -46,8 +47,18 @@ class Perl6::Metamodel::CurriedRoleHOW
     }
     
     method new_type($curried_role, *@pos_args, *%named_args) {
+        # construct a name
+        my $name := $curried_role.HOW.name($curried_role);
+        if @pos_args {
+            my @pieces := nqp::list_s();
+            for @pos_args {
+                nqp::push_s(@pieces, $_.HOW.name($_));
+            }
+            $name := $name ~ "[" ~ nqp::join(",", @pieces) ~ "]";
+        }
+
         my $meta := self.new(:curried_role($curried_role), :pos_args(@pos_args),
-            :named_args(%named_args));
+            :named_args(%named_args), :name($name));
         my $type := nqp::settypehll(nqp::newtype($meta, 'Uninstantiable'), 'perl6');
         nqp::settypecheckmode($type, 2)
     }
@@ -74,7 +85,7 @@ class Perl6::Metamodel::CurriedRoleHOW
     }
     
     method name($obj) {
-        $!curried_role.HOW.name($!curried_role)
+        $!name
     }
     
     method curried_role($obj) {

@@ -1,7 +1,6 @@
-my class Parcel does Positional {
-    # declared in BOOTSTRAP.pm:
-    #    is Cool;              # parent class
-    #    has $!storage;        # VM's array of Parcel's elements
+my class Parcel does Positional { # declared in BOOTSTRAP
+    # class Parcel is Cool {
+    #    has Mu $!storage;        # VM's array of Parcel's elements
 
     submethod BUILD() { $!storage := nqp::list() }
 
@@ -36,11 +35,30 @@ my class Parcel does Positional {
     method list()  { nqp::p6list(nqp::clone($!storage), List, Mu) }
     method lol()   { nqp::p6list(nqp::clone($!storage), LoL, Mu) }
 
-    method at_pos(Parcel:D: \x) is rw { self.flat.at_pos(x); }
+    method reverse() {
+        my Mu $reverse  := nqp::list();
+        my Mu $original := nqp::clone($!storage);
+        nqp::push($reverse, nqp::pop($original)) while $original;
+        my $parcel := nqp::create(self.WHAT);
+        nqp::bindattr($parcel, Parcel, '$!storage', $reverse);
+        $parcel;
+    }
 
-    proto method postcircumfix:<[ ]>(|)                  { * }
-    multi method postcircumfix:<[ ]>() is rw              { self.flat }
-    multi method postcircumfix:<[ ]>(Parcel:D: \x) is rw  { self.flat.[x] }
+    method rotate (Int $n is copy = 1) {
+        my Mu $storage := nqp::clone($!storage);
+        $n %= nqp::p6box_i(nqp::elems($!storage));
+        if $n > 0 {
+            nqp::push($storage, nqp::shift($storage)) while $n--;
+        }
+        elsif $n < 0 {
+            nqp::unshift($storage, nqp::pop($storage)) while $n++;
+        }
+        my $parcel := nqp::create(self.WHAT);
+        nqp::bindattr($parcel, Parcel, '$!storage', $storage);
+        $parcel;
+    }
+
+    method at_pos(Parcel:D: \x) is rw { self.flat.at_pos(x); }
 
     multi method gist(Parcel:D:) {
         my Mu $gist := nqp::list();
@@ -117,16 +135,6 @@ my class Parcel does Positional {
 
     method fmt($format = '%s', $separator = ' ') {
         self.list.fmt($format, $separator);
-    }
-
-    proto method Set(|) {*}
-    multi method Set() {
-        set self;
-    }
-
-    proto method Bag(|) {*}
-    multi method Bag() {
-        bag self;
     }
 }
 

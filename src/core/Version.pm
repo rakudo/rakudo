@@ -8,7 +8,7 @@ class Version {
             $_ .= Numeric if .Numeric.defined ;
             $_ = * if $_ eq '*';
         }
-        self.bless(*, :parts(@parts), :plus($s.substr(*-1) eq '+'));
+        self.bless(:parts(@parts), :plus($s.substr(*-1) eq '+'));
     };
 
     multi method Str(Version:D:) {

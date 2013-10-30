@@ -31,4 +31,12 @@ role Perl6::Metamodel::Mixins {
         # low level op. Otherwise, we just return the new type object
         nqp::isconcrete($obj) ?? nqp::rebless($obj, $new_type) !! $new_type
     }
+    
+    method mixin_base($obj) {
+        for self.mro($obj) {
+            unless $_.HOW.is_mixin($_) {
+                return $_;
+            }
+        }
+    }
 }

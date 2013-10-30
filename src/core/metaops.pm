@@ -126,8 +126,8 @@ sub METAOP_REDUCE_LIST(\op, :$triangle) {
 sub METAOP_REDUCE_CHAIN(\op, :$triangle) {
     $triangle
         ??  sub (*@values) {
+                my $state = True;
                 my Mu $current = @values.shift;
-                my $state = op.();
                 gather {
                     take $state;
                     while $state && @values.gimme(1) {
@@ -140,7 +140,7 @@ sub METAOP_REDUCE_CHAIN(\op, :$triangle) {
 
             }
         !! sub (*@values) {
-                my $state = op.();
+                my $state = True;
                 my Mu $current = @values.shift;
                 while @values.gimme(1) {
                     $state = op.($current, @values[0]);
@@ -237,7 +237,7 @@ multi sub hyper(\op, Associative \h) {
 
 multi sub hyper(\op, Associative \a, Associative \b, :$dwim-left, :$dwim-right) {
     my %k;
-    for a.keys { %k{$_} = 1 if !$dwim-left || b.exists($_) }
+    for a.keys { %k{$_} = 1 if !$dwim-left || b.exists_key($_) }
     for b.keys { %k{$_} = 1 if !$dwim-right }
     my @keys = %k.keys;
     hash @keys Z hyper(op, a{@keys}, b{@keys}, :$dwim-left, :$dwim-right)

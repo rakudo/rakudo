@@ -98,6 +98,10 @@ sub EXCEPTION(|) {
         my $ex;
 #?if parrot
         if $type == pir::const::EXCEPTION_METHOD_NOT_FOUND &&
+#?endif
+#?if !parrot
+        if
+#?endif
             nqp::p6box_s(nqp::getmessage($vm_ex)) ~~ /"Method '" (.*?) "' not found for invocant of class '" (.+)\'$/ {
 
             $ex := X::Method::NotFound.new(
@@ -106,12 +110,10 @@ sub EXCEPTION(|) {
             );
         }
         else {
-#?endif
+
             $ex := nqp::create(X::AdHoc);
             nqp::bindattr($ex, X::AdHoc, '$!payload', nqp::p6box_s(nqp::getmessage($vm_ex)));
-#?if parrot
         }
-#?endif
         nqp::bindattr($ex, Exception, '$!ex', $vm_ex);
         $ex;
     }
@@ -132,51 +134,6 @@ sub COMP_EXCEPTION(|) {
     }
 }
 
-my class X::Comp::Group is Exception {
-    has $.panic;
-    has @.sorrows;
-    has @.worries;
-    
-    method is-compile-time() { True }
-    
-    method gist(::?CLASS:D:) {
-        my $r = "";
-        if $.panic || @.sorrows {
-            my $color = %*ENV<RAKUDO_ERROR_COLOR> // $*OS ne 'MSWin32';
-            my ($red, $clear) = $color ?? ("\e[31m", "\e[0m") !! ("", "");
-            $r ~= "$red==={$clear}SORRY!$red===$clear\n";
-            for @.sorrows {
-                $r ~= .gist(:!sorry, :!expect) ~ "\n";
-            }
-            if $.panic {
-                $r ~= $.panic.gist(:!sorry) ~ "\n";
-            }
-        }
-        if @.worries {
-            $r ~= $.panic || @.sorrows
-                ?? "Other potential difficulties:\n"
-                !! "Potential difficulties:\n";
-            for @.worries {
-                $r ~= .gist(:!sorry, :!expect).indent(4) ~ "\n";
-            }
-        }
-        $r
-    }
-    
-    method message() {
-        my @m;
-        for @.sorrows {
-            @m.push(.message);
-        }
-        if $.panic {
-            @m.push($.panic.message);
-        }
-        for @.worries {
-            @m.push(.message);
-        }
-        @m.join("\n")
-    }
-}
 
 do {
     sub is_runtime($bt) {
@@ -428,12 +385,58 @@ my role X::Comp is Exception {
     method sorry_heading() {
         my $color = %*ENV<RAKUDO_ERROR_COLOR> // $*OS ne 'MSWin32';
         my ($red, $clear) = $color ?? ("\e[31m", "\e[0m") !! ("", "");
-        "$red==={$clear}SORRY!$red===$clear\n"
+        "$red==={$clear}SORRY!$red===$clear Error while compiling $.filename\n"
     }
     method SET_FILE_LINE($file, $line) {
         $!filename = $file;
         $!line     = $line;
         $!is-compile-time = True;
+    }
+}
+
+my class X::Comp::Group is Exception {
+    has $.panic;
+    has @.sorrows;
+    has @.worries;
+
+    method is-compile-time() { True }
+
+    multi method gist(::?CLASS:D:) {
+        my $r = "";
+        if $.panic || @.sorrows {
+            my $color = %*ENV<RAKUDO_ERROR_COLOR> // $*OS ne 'MSWin32';
+            my ($red, $clear) = $color ?? ("\e[31m", "\e[0m") !! ("", "");
+            $r ~= "$red==={$clear}SORRY!$red===$clear\n";
+            for @.sorrows {
+                $r ~= .gist(:!sorry, :!expect) ~ "\n";
+            }
+            if $.panic {
+                $r ~= $.panic.gist(:!sorry) ~ "\n";
+            }
+        }
+        if @.worries {
+            $r ~= $.panic || @.sorrows
+                ?? "Other potential difficulties:\n"
+                !! "Potential difficulties:\n";
+            for @.worries {
+                $r ~= .gist(:!sorry, :!expect).indent(4) ~ "\n";
+            }
+        }
+        $r
+    }
+
+    method message() {
+        my @m;
+        for @.sorrows {
+            @m.push(.message);
+        }
+        if $.panic {
+            @m.push($.panic.message);
+        }
+        for @.worries {
+            @m.push(.message);
+        }
+        @m.join("\n")
     }
 }
 
@@ -450,6 +453,27 @@ my class X::NYI is Exception {
     method message() { "$.feature not yet implemented. Sorry. " }
 }
 my class X::Comp::NYI is X::NYI does X::Comp { };
+
+my class X::Trait::Unknown is Exception {
+    has $.type;       # is, will, of etc.
+    has $.subtype;    # wrong subtype being tried
+    has $.declaring;  # variable, sub, parameter, etc.
+    method message () {
+        "Can't use unknown trait '$.type $.subtype' in a$.declaring declaration."
+    }
+}
+my class X::Comp::Trait::Unknown is X::Trait::Unknown does X::Comp { };
+
+my class X::Trait::NotOnNative is Exception {
+    has $.type;       # is, will, of etc.
+    has $.subtype;    # wrong subtype being tried
+    has $.native;     # type of native (optional)
+    method message () {
+        "Can't use trait '$.type $.subtype' on a native"
+          ~ ( $.native ?? " $.native." !! "." );
+    }
+}
+my class X::Comp::Trait::NotOnNative is X::Trait::NotOnNative does X::Comp { };
 
 my class X::OutOfRange is Exception {
     has $.what = 'Argument';
@@ -743,6 +767,15 @@ my class X::Syntax::UnlessElse does X::Syntax {
     method message() { '"unless" does not take "else", please rewrite using "if"' }
 }
 
+my class X::Syntax::KeywordAsFunction does X::Syntax {
+    has $.word;
+    has $.needparens;
+    method message {
+        "Word '$.word' interpreted as '{$.word}()' function call; please use whitespace "
+            ~ ($.needparens ?? 'around the parens' !! 'instead of parens')
+    }
+}
+
 my class X::Syntax::Malformed::Elsif does X::Syntax {
     has $.what = 'else if';
     method message() { qq{In Perl 6, please use "elsif' instead of "$.what"} }
@@ -833,8 +866,71 @@ my class X::Syntax::Missing does X::Syntax {
     method message() { "Missing $.what" }
 }
 
-my class X::Syntax::SigilWithoutName does X::Syntax {
-    method message() { 'Non-declarative sigil is missing its name' }
+my class X::Syntax::Perl5Var does X::Syntax {
+    has $.name;
+    my %m =
+      '$*'  => '^^ and $$',
+      '$"'  => '.join() method',
+      '$$'  => '$*PID',
+      '$('  => '$*GID',
+      '$)'  => '$*EGID',
+      '$<'  => '$*UID',
+      '$>'  => '$*EUID',
+      '$;'  => 'real multidimensional hashes',
+      '$&'  => '$<>',
+      '$`'  => 'explicit pattern before <(',
+      '$\'' => 'explicit pattern after )>',
+      '$,'  => '$*OUT.output_field_separator()',
+      '$.'  => "the filehandle's .line method",
+      '$\\' => "the filehandle's .ors attribute",
+      '$|'  => ':autoflush on open',
+      '$?'  => '$! for handling child errors also',
+      '$@'  => '$!',
+      '$#'  => '.fmt',
+      '$['  => 'user-defined array indices',
+      '$]'  => '$*PERL_VERSION',
+
+      '$^C' => 'COMPILING namespace',
+      '$^D' => '$*DEBUGGING',
+      '$^E' => '$!.extended_os_error',
+      '$^F' => '$*SYSTEM_FD_MAX',
+      '$^H' => '$?FOO variables',
+      '$^I' => '$*INPLACE',
+      '$^M' => 'a global form such as $*M',
+      '$^N' => '$/[*-1]',
+      '$^O' => '$?OS or $*OS',
+      '$^R' => 'an explicit result variable',
+      '$^S' => 'context function',
+      '$^T' => '$*BASETIME',
+      '$^V' => '$*PERL_VERSION',
+      '$^W' => '$*WARNING',
+      '$^X' => '$*EXECUTABLE_NAME',
+
+      '$:'  => 'Form module',
+      '$-'  => 'Form module',
+      '$+'  => 'Form module',
+      '$='  => 'Form module',
+      '$%'  => 'Form module',
+      '$^'  => 'Form module',
+      '$~'  => 'Form module',
+      '$^A' => 'Form module',
+      '$^L' => 'Form module',
+
+      '@-'  => '.from method',
+      '@+'  => '.to method',
+
+      '%-'  => '.from method',
+      '%+'  => '.to method',
+      '%^H' => '$?FOO variables',
+    ;
+    method message() {
+        my $v = $.name ~~ m/ <[ $ @ % & ]> [ \^ <[ A..Z ]> | \W ] /;
+        $v
+          ?? %m{~$v}
+            ?? "Unsupported use of $v variable; in Perl 6 please use {%m{~$v}}"
+            !! "Unsupported use of $v variable"
+          !! 'Non-declarative sigil is missing its name';
+    }
 }
 
 my class X::Syntax::Self::WithoutObject does X::Syntax {
@@ -1095,6 +1191,14 @@ my class X::Assignment::RO is Exception {
     }
 }
 
+my class X::Immutable is Exception {
+    has $.typename;
+    has $.method;
+    method message {
+        "Cannot call '$.method' on an immutable '$.typename'";
+    }
+}
+
 my class X::NoDispatcher is Exception {
     has $.redispatcher;
     method message() {
@@ -1226,8 +1330,9 @@ my class X::Numeric::Real is Exception {
 }
 
 my class X::Numeric::DivideByZero is Exception {
+    has $.using;
     method message() {
-        "Divide by zero";
+        "Divide by zero" ~ ( $.using ?? " using $.using" !! '' );
     }
 }
 
@@ -1266,6 +1371,13 @@ my class X::Multi::NoMatch is Exception {
         join "\n",
             "Cannot call '$.dispatcher.name()'; none of these signatures match:",
             $.dispatcher.dispatchees.map(*.signature.perl)
+    }
+}
+
+my class X::Caller::NotDynamic is Exception {
+    has $.symbol;
+    method message() {
+        "Cannot access '$.symbol' through CALLER, because it is not declared as dynamic";
     }
 }
 

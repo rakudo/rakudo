@@ -1,11 +1,10 @@
-my class Junction {
-    # From BOOTSTRAP:
-    # also is Mu;
-    # has $!storage;             # elements of Junction
-    # has $!type;                # type of Junction
+my class Junction { # declared in BOOTSTRAP
+    # class Junction is Mu {
+    #     has Mu $!storage;             # elements of Junction
+    #     has Mu $!type;                # type of Junction
 
     method new(*@values, :$type) {
-        self.bless(*, :storage(@values.eager), :$type);
+        self.bless(:storage(@values.eager), :$type);
     }
 
     multi method Bool(Junction:D:) {

@@ -1,4 +1,18 @@
-my class Parameter {
+my class Parameter { # declared in BOOTSTRAP
+    # class Parameter is Any {
+    #     has str $!variable_name
+    #     has Mu $!named_names
+    #     has Mu $!type_captures
+    #     has int $!flags
+    #     has Mu $!nominal_type
+    #     has Mu $!post_constraints
+    #     has Mu $!coerce_type
+    #     has str $!coerce_method
+    #     has Mu $!sub_signature
+    #     has Mu $!default_value
+    #     has Mu $!container_descriptor;
+    #     has Mu $!attr_package;
+
     my constant $SIG_ELEM_BIND_CAPTURE       = 1;
     my constant $SIG_ELEM_BIND_PRIVATE_ATTR  = 2;
     my constant $SIG_ELEM_BIND_PUBLIC_ATTR   = 4;

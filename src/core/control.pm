@@ -118,6 +118,15 @@ my &lastcall := -> {
     True
 };
 
+my &samewith := -> *@pos, *%named {
+    my $my   = callframe(1).my;
+    my $self = $my<self>;
+    die "Could not find 'self'" if !$self.DEFINITE;
+    my $dispatcher = $my<&?ROUTINE>.dispatcher
+      || die "Could not find dispatcher";
+    $dispatcher( $self, |@pos, |%named );
+}
+
 proto sub die(|) is hidden_from_backtrace {*};
 multi sub die(Exception $e) is hidden_from_backtrace { $e.throw }
 multi sub die($payload) is hidden_from_backtrace {
@@ -157,49 +166,26 @@ sub exit($status = 0) {
     $status;
 }
 
+my class Proc::Status { ... }
+
 sub run(*@args ($, *@)) {
-    my $error_code;
+    my $status = Proc::Status.new( :exit(255) );
     try {
-#?if parrot
-        $error_code = nqp::p6box_i(
-            pir::spawnw__IP(
-                nqp::getattr(
-                    @args.eager,
-                    List,
-                    '$!items'
-                )
-            )
-        ) +> 8;
-#?endif
-#?if !parrot
-        die "run is NYI on non-Parrot backend";
-#?endif
-        CATCH {
-            default {
-                $error_code = 1;
-            }
-        }
+        my Mu $hash := nqp::getattr(%*ENV, EnumMap, '$!storage');
+        $status.status( nqp::p6box_i(
+            nqp::spawn(nqp::getattr(@args.eager, List, '$!items'), $*CWD.Str, $hash)
+        ) );
     }
-    $error_code but !$error_code;
+    $status
 }
 
 sub shell($cmd) {
-    my $status = 255;
-#?if parrot
+    my $status = Proc::Status.new( :exit(255) );
     try {
-        $status = 
-            nqp::p6box_i(
-                nqp::bitshiftr_i(
-                    pir::spawnw__Is(nqp::unbox_s($cmd)),
-                    8));
+        my Mu $hash := nqp::getattr(%*ENV, EnumMap, '$!storage');
+        $status.status( nqp::p6box_i(nqp::shell($cmd, $*CWD.Str, $hash)) );
     }
-#?endif
-#?if !parrot
-    try {
-        $status = nqp::shell($cmd); 
-    }
-#?endif
-    $status;
+    $status
 }
 
 # XXX: Temporary definition of $Inf and $NaN until we have constants ava
@@ -210,49 +196,24 @@ my $Inf = nqp::p6box_n(nqp::inf());
 my $NaN = nqp::p6box_n(nqp::nan());
 # EM 20130627 attempt at using constants failed during optimizing phase
 
-
-sub sleep($seconds = $Inf) {         # fractional seconds also allowed
-    my $time1 = time;
-    if $seconds ~~ $Inf {
-        nqp::sleep(1e16) while True;
-    }
-    elsif $seconds < 0 {
-        fail "Cannot go {abs $seconds} seconds back in time";
-    }
-    else {
-        nqp::sleep($seconds.Num);
-    }
-    return time - $time1;
-}
-
-my %interval_wakeup;            # needs to be hidden from GLOBAL:: somehow
-sub interval($seconds ) {       # fractional seconds also allowed
-
-    my $time = now.Num;
-    my $wakeup := %interval_wakeup{"thread_id"} //= $time; # XXX thread ID
-
-    # already past our morning call
-    if $time >= $wakeup  {
-        $wakeup += $seconds;
-        0;
-    }
-
-    # still time to sleep
-    else {
-        my $slept = $wakeup - $time;
-        nqp::sleep($slept);
-        $wakeup += $seconds;
-        $slept;
-    }
-}
-
 sub QX($cmd) {
-    my Mu $pio := nqp::open(nqp::unbox_s($cmd), 'rp');
+#?if parrot    
+    nqp::chdir($*CWD);
+    my Mu $pio := nqp::open(nqp::unbox_s($cmd), 'rp');    
     fail "Unable to execute '$cmd'" unless $pio;
     $pio.encoding('utf8');
     my $result = nqp::p6box_s($pio.readall());
     $pio.close();
     $result;
+#?endif
+#?if !parrot
+    my Mu $env := nqp::getattr(%*ENV, EnumMap, '$!storage');
+    my Mu $pio := nqp::openpipe(nqp::unbox_s($cmd), $*CWD.Str, $env, '');
+    fail "Unable to execute '$cmd'" unless $pio;
+    my $result = nqp::p6box_s(nqp::readallfh($pio));
+    nqp::closefh($pio);
+    $result;
+#?endif    
 }
 
 sub EXHAUST(|) {

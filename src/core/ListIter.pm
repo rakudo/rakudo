@@ -1,11 +1,11 @@
 my class List { ... }
 
-my class ListIter {
-    # Attributes defined in BOOTSTRAP.pm:
-    #   has $!reified;         # return value for already-reified iterator
-    #   has $!nextiter;        # next iterator in sequence, if any
+my class ListIter { # declared in BOOTSTRAP
+    # class ListIter is Iterator {
+    #   has Mu $!reified;      # return value for already-reified iterator
+    #   has Mu $!nextiter;     # next iterator in sequence, if any
     #   has Mu $!rest;         # VM's array of elements remaining to be reified
-    #   has $!list;            # List object associated with this iterator
+    #   has Mu $!list;         # List object associated with this iterator
     
     method reify($n = 1, :$sink) {
         unless nqp::isconcrete($!reified) {

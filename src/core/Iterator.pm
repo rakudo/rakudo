@@ -1,6 +1,5 @@
-my class Iterator {
-    # declared in BOOTSTRAP.pm
-    #    is Iterable;          # parent class
+my class Iterator { # declared in BOOTSTRAP
+    # class Iterator is Iterable {
 
     method iterator() { nqp::decont(self) }
 }

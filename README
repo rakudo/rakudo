@@ -19,7 +19,7 @@ Rakudo Perl 6
     installation instructions. The short version is
 
     $ # recommended: install libicu-dev and libreadline-dev packages
-    $ perl Configure.pl --gen-parrot
+    $ perl Configure.pl --gen-parrot --backends=parrot
     $ make
     $ make spectest # optional
     $ make install # IMPORTANT, installs to install/bin/perl6
@@ -31,18 +31,14 @@ Rakudo Perl 6
 
   Building Rakudo on JVM
     You need the JDK 1.7 installed and a make program. These instructions
-    assume you have nqp checked out inside of your Rakudo directory. Then:
+    will fetch an appropriate revision of nqp, build it, and then build
+    rakudo on the jvm.
     
-    $ cd nqp
-    $ perl ConfigureJVM.pl --prefix=../install-jvm
-    $ make install
-    $ cd ..
-    $ perl ConfigureJVM.pl
+    $ perl Configure.pl --gen-nqp --backends=jvm
     $ make
     
-    Note that Rakudo on JVM is currently less capable than Rakudo on Parrot.
-    For example, rakudo-jvm passes 'make test' but is known to fail some
-    spectests still.
+    Note that Rakudo on JVM implements a slightly different set of features
+    than Rakudo on Parrot.
 
     If you get an out of memory error building rakudo on the JVM, you may
     need to modify your NQP runner to limit memory use. e.g. Adding

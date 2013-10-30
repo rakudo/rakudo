@@ -7,7 +7,19 @@ my role SoftRoutine {
     method soft() { True }
 }
 
-my class Routine {
+my class Routine { # declared in BOOTSTRAP
+    # class Routine is Block {
+    #     has Mu $!dispatchees;
+    #     has Mu $!dispatcher_cache;
+    #     has Mu $!dispatcher;
+    #     has int $!rw;
+    #     has Mu $!inline_info;
+    #     has int $!yada;
+    #     has Mu $!package;
+    #     has int $!onlystar;
+    #     has Mu $!dispatch_order;
+    #     has Mu $!dispatch_cache;
+
     method of() { self.signature.returns }
     method returns() { self.signature.returns }
     method rw() { $!rw }

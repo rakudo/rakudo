@@ -1,6 +1,6 @@
-class LoL {
-    # declared in BOOTSTRAP:
-    #    is List;              # parent class
+class LoL { # declared in BOOTSTRAP
+    # class LoL is List {
+    #     has Mu $!descriptor;
 
     method new(|) { 
         my Mu $args := nqp::p6argvmarray();
@@ -10,7 +10,7 @@ class LoL {
     
     method at_pos($pos is copy) {
         $pos = $pos.Int;
-        self.exists($pos)
+        self.exists_pos($pos)
           ?? nqp::findmethod(List, 'at_pos')(self, $pos)
           !! nqp::p6bindattrinvres(my $v, Scalar, '$!whence',
                  -> { nqp::findmethod(List, 'STORE_AT_POS')(self, $pos, $v) } )

@@ -1,15 +1,3 @@
-use Perl6::BOOTSTRAP;
-
-# Stub a few things the compiler wants to have really early on.
-my class Pair { ... }
-my class Whatever { ... }
-my class WhateverCode { ... }
-
-# Stub these or we can't use any sigil other than $.
-my role Positional { ... }
-my role Associative { ... }
-my role Callable { ... }
-
 # for errors
 my class X::Inheritance::Unsupported { ... }
 my class X::Inheritance::UnknownParent { ... }
@@ -18,6 +6,7 @@ my class X::Composition::NotComposable { ... }
 my class X::Import::MissingSymbols   { ... }
 my class X::Redeclaration { ... }
 my class X::Inheritance::SelfInherit { ... }
+my class X::Comp::Trait::Unknown { ... }
 
 proto trait_mod:<is>(|) { * }
 multi trait_mod:<is>(Mu:U $child, Mu:U $parent) {
@@ -33,6 +22,11 @@ multi trait_mod:<is>(Mu:U $child, Mu:U $parent) {
             :$parent,
         ).throw;
     }
+}
+multi trait_mod:<is>(Mu:U $child, :$DEPRECATED!) {
+# add COMPOSE phaser for this child, which will add an ENTER phaser to an
+# existing "new" method, or create a "new" method with a call to DEPRECATED
+# and a nextsame.
 }
 multi trait_mod:<is>(Mu:U $type, :$rw!) {
     $type.HOW.set_rw($type);
@@ -63,16 +57,44 @@ multi trait_mod:<is>(Mu:U $type, *%fail) {
     }
 }
 
+multi trait_mod:<is>(Attribute:D $attr, |c ) {
+    X::Comp::Trait::Unknown.new(
+      file       => $?FILE,
+      line       => $?LINE,
+      type       => 'is',
+      subtype    => c.hash.keys[0],
+      declaring  => 'n attribute',
+      highexpect => <rw readonly box_target>,
+    ).throw;
+}
 multi trait_mod:<is>(Attribute:D $attr, :$rw!) {
     $attr.set_rw();
+    warn "useless use of 'is rw' on $attr.name()" unless $attr.has_accessor;
 }
 multi trait_mod:<is>(Attribute:D $attr, :$readonly!) {
     $attr.set_readonly();
+    warn "useless use of 'is readonly' on $attr.name()" unless $attr.has_accessor;
 }
 multi trait_mod:<is>(Attribute:D $attr, :$box_target!) {
     $attr.set_box_target();
 }
+multi trait_mod:<is>(Attribute:D $attr, :$DEPRECATED!) {
+# need to add a COMPOSE phaser to the class, that will add an ENTER phaser
+# to the (possibly auto-generated) accessor method.
+}
 
+multi trait_mod:<is>(Routine:D $r, |c ) {
+    X::Comp::Trait::Unknown.new(
+      file       => $?FILE,
+      line       => $?LINE,
+      type       => 'is',
+      subtype    => c.hash.keys[0],
+      declaring  => ' ' ~ lc( $r.^name ),
+      highexpect => ('rw parcel hidden_from_backtrace',
+                     'pure default DEPRECATED inlinable',
+                     'prec equiv tighter looser assoc' ),
+    ).throw;
+}
 multi trait_mod:<is>(Routine:D $r, :$rw!) {
     $r.set_rw();
 }
@@ -83,7 +105,10 @@ multi trait_mod:<is>(Routine:D $r, :$default!) {
     $r does role { method default() { True } }
 }
 multi trait_mod:<is>(Routine:D $r, :$DEPRECATED!) {
-    # we'll add logic here later
+    my $new := $DEPRECATED ~~ Bool
+      ?? "something else"
+      !! $DEPRECATED;
+    $r.add_phaser( 'ENTER', -> { DEPRECATED($new) } );
 }
 multi trait_mod:<is>(Routine:D $r, Mu :$inlinable!) {
     $r.set_inline_info(nqp::decont($inlinable));
@@ -135,6 +160,16 @@ multi trait_mod:<is>(Routine $r, :$assoc!) {
 # point we wrote its proto, we do it manually here.
 BEGIN &trait_mod:<is>.set_onlystar();
 
+multi trait_mod:<is>(Parameter:D $param, |c ) {
+    X::Comp::Trait::Unknown.new(
+      file       => $?FILE,
+      line       => $?LINE,
+      type       => 'is',
+      subtype    => c.hash.keys[0],
+      declaring  => ' parameter',
+      highexpect => <rw readonly copy required parcel>,
+    ).throw;
+}
 multi trait_mod:<is>(Parameter:D $param, :$readonly!) {
     # This is the default.
 }
@@ -153,14 +188,14 @@ multi trait_mod:<is>(Parameter:D $param, :$parcel!) {
 
 # Declare these, as setting mainline doesn't get them automatically (as the
 # Mu/Any/Scalar are not loaded).
-my $! is default(Nil);
-my $/ is default(Nil);
-my $_ is default(Nil);
+my $!;
+my $/;
+my $_;
 
 sub EXPORT_SYMBOL(\exp_name, @tags, Mu \sym) {
     my @export_packages = $*EXPORT;
     for nqp::hllize(@*PACKAGES) {
-        unless .WHO.exists('EXPORT') {
+        unless .WHO.exists_key('EXPORT') {
             .WHO<EXPORT> := Metamodel::PackageHOW.new_type(:name('EXPORT'));
             .WHO<EXPORT>.^compose;
         }
@@ -169,7 +204,7 @@ sub EXPORT_SYMBOL(\exp_name, @tags, Mu \sym) {
     for @export_packages -> $p {
         for @tags -> $tag {
             my $install_in;
-            if $p.WHO.exists($tag) {
+            if $p.WHO.exists_key($tag) {
                 $install_in := $p.WHO.{$tag};
             }
             else {
@@ -177,7 +212,7 @@ sub EXPORT_SYMBOL(\exp_name, @tags, Mu \sym) {
                 $install_in.HOW.compose($install_in);
                 $p.WHO{$tag} := $install_in;
             }
-            if $install_in.WHO.exists(exp_name) {
+            if $install_in.WHO.exists_key(exp_name) {
                 unless ($install_in.WHO){exp_name} =:= sym {
                     X::Export::NameClash.new(symbol => exp_name).throw;
                 }
@@ -210,6 +245,18 @@ multi trait_mod:<is>(Mu \sym, :$export!, :$SYMBOL!) {
     EXPORT_SYMBOL($SYMBOL, @tags, sym);
 }
 
+
+# this should be identical Mu:D, :docs, otherwise the fallback Routine:D, |c
+# will catch it and declare "docs" to be an unknown trait
+multi trait_mod:<is>(Routine:D $docee, :$docs!) {
+    $docee does role {
+        has $!WHY;
+        method WHY          { $!WHY      }
+        method set_docs($d) { $!WHY = $d }
+    }
+    $docee.set_docs($docs);
+    $docs.set_docee($docee);
+}
 multi trait_mod:<is>(Mu:D $docee, :$docs!) {
     $docee does role {
         has $!WHY;

@@ -479,8 +479,9 @@ my class ThreadPoolScheduler {
             $!outstanding := AtomicInteger.'constructor/new/()V'();
             self!maybe_new_thread() for 1..$!initial_threads;
         }
+        my $outstanding = $!outstanding.incrementAndGet();
         self!maybe_new_thread()
-            if !$!started_any || $!outstanding.incrementAndGet() > 0;
+            if !$!started_any || $outstanding > 1;
         $!queue.add($interop.sixmodelToJavaObject(&code));
     }
     

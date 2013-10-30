@@ -73,6 +73,113 @@ my class Thread {
         });
 }
 
+# Schedulers do this role. It mostly serves as an interface for the things
+# that schedulers must do, as well as a way to factor out some common "sugar"
+# and infrastructure.
+my role Scheduler {
+    has &.uncaught_handler is rw;
+
+    method handle_uncaught($exception) {
+        my $ch = &!uncaught_handler;
+        if $ch {
+            $ch($exception);
+        }
+        else {
+            # No default handler, so terminate the application.
+            note "Unhandled exception in code scheduled on thread " ~ $*THREAD.id;
+            note $exception.gist;
+            exit(1);
+        }
+    }
+
+    method schedule(&code) { ... }
+
+    method schedule_with_catch(&code, &catch) {
+        self.schedule({
+            code();
+            CATCH { default { catch($_) } }
+        })
+    }
+
+    method outstanding() { ... }
+}
+
+# The ThreadPoolScheduler is a straightforward scheduler that maintains a
+# pool of threads and schedules work items in the order they are added
+# using them.
+my class ThreadPoolScheduler does Scheduler {
+    # A concurrent work queue that blocks any worker threads that poll it
+    # when empty until some work arrives.
+    has Mu $!queue;
+    
+    # Semaphore to ensure we don't start more than the maximum number of
+    # threads allowed.
+    has Mu $!thread_start_semaphore;
+    
+    # Atomic integer roughly tracking outstanding work, used for rough
+    # management of the pool size.
+    has Mu $!outstanding;
+    
+    # Initial and maximum thereads.
+    has $!initial_threads;
+    has $!max_threads;
+    
+    # Have we started any threads yet?
+    has int $!started_any;
+    
+    # Adds a new thread to the pool, respecting the maximum.
+    method !maybe_new_thread() {
+        if $!thread_start_semaphore.'method/tryAcquire/(I)Z'(1) {
+            my $interop := nqp::jvmbootinterop();
+            $!started_any = 1;
+            Thread.start(:app_lifetime, {
+                loop {
+                    my Mu $task := $interop.javaObjectToSixmodel($!queue.take());
+                    try {
+                        $task();
+                        CATCH {
+                            default {
+                                self.handle_uncaught($_)
+                            }
+                        }
+                    }
+                    $!outstanding.decrementAndGet();
+                }
+            });
+        }
+    }
+    
+    submethod BUILD(:$!initial_threads = 0, :$!max_threads = 16) {
+        die "Initial thread pool threads must be less than or equal to maximum threads"
+            if $!initial_threads > $!max_threads;
+    }
+    
+    method schedule(&code) {
+        my $interop := nqp::jvmbootinterop();
+        unless $!started_any {
+            # Things we will use from the JVM.
+            my \LinkedBlockingQueue := $interop.typeForName('java.util.concurrent.LinkedBlockingQueue');
+            my \Semaphore := $interop.typeForName('java.util.concurrent.Semaphore');
+            my \AtomicInteger := $interop.typeForName('java.util.concurrent.atomic.AtomicInteger');
+            $!queue := LinkedBlockingQueue.'constructor/new/()V'();
+            $!thread_start_semaphore := Semaphore.'constructor/new/(I)V'($!max_threads.Int);
+            $!outstanding := AtomicInteger.'constructor/new/()V'();
+            self!maybe_new_thread() for 1..$!initial_threads;
+        }
+        my $outstanding = $!outstanding.incrementAndGet();
+        self!maybe_new_thread()
+            if !$!started_any || $outstanding > 1;
+        $!queue.add($interop.sixmodelToJavaObject(&code));
+    }
+    
+    method outstanding() {
+        $!outstanding.get()
+    }
+}
+
+# This thread pool scheduler will be the default one.
+$PROCESS::SCHEDULER = ThreadPoolScheduler.new();
+
 # A promise represents a piece of asynchronous work, which may be in progress,
 # completed or even yet to start. Typically, a promise is created using the
 # C<async> function.
@@ -423,113 +530,6 @@ my class KeyReducer {
         $!exception ?? $!exception.throw !! %!result
     }
 }
-
-# Schedulers do this role. It mostly serves as an interface for the things
-# that schedulers must do, as well as a way to factor out some common "sugar"
-# and infrastructure.
-my role Scheduler {
-    has &.uncaught_handler is rw;
-
-    method handle_uncaught($exception) {
-        my $ch = &!uncaught_handler;
-        if $ch {
-            $ch($exception);
-        }
-        else {
-            # No default handler, so terminate the application.
-            note "Unhandled exception in code scheduled on thread " ~ $*THREAD.id;
-            note $exception.gist;
-            exit(1);
-        }
-    }
-
-    method schedule(&code) { ... }
-
-    method schedule_with_catch(&code, &catch) {
-        self.schedule({
-            code();
-            CATCH { default { catch($_) } }
-        })
-    }
-
-    method outstanding() { ... }
-}
-
-# The ThreadPoolScheduler is a straightforward scheduler that maintains a
-# pool of threads and schedules work items in the order they are added
-# using them.
-my class ThreadPoolScheduler does Scheduler {
-    # A concurrent work queue that blocks any worker threads that poll it
-    # when empty until some work arrives.
-    has Mu $!queue;
-    
-    # Semaphore to ensure we don't start more than the maximum number of
-    # threads allowed.
-    has Mu $!thread_start_semaphore;
-    
-    # Atomic integer roughly tracking outstanding work, used for rough
-    # management of the pool size.
-    has Mu $!outstanding;
-    
-    # Initial and maximum thereads.
-    has $!initial_threads;
-    has $!max_threads;
-    
-    # Have we started any threads yet?
-    has int $!started_any;
-    
-    # Adds a new thread to the pool, respecting the maximum.
-    method !maybe_new_thread() {
-        if $!thread_start_semaphore.'method/tryAcquire/(I)Z'(1) {
-            my $interop := nqp::jvmbootinterop();
-            $!started_any = 1;
-            Thread.start(:app_lifetime, {
-                loop {
-                    my Mu $task := $interop.javaObjectToSixmodel($!queue.take());
-                    try {
-                        $task();
-                        CATCH {
-                            default {
-                                self.handle_uncaught($_)
-                            }
-                        }
-                    }
-                    $!outstanding.decrementAndGet();
-                }
-            });
-        }
-    }
-    
-    submethod BUILD(:$!initial_threads = 0, :$!max_threads = 16) {
-        die "Initial thread pool threads must be less than or equal to maximum threads"
-            if $!initial_threads > $!max_threads;
-    }
-    
-    method schedule(&code) {
-        my $interop := nqp::jvmbootinterop();
-        unless $!started_any {
-            # Things we will use from the JVM.
-            my \LinkedBlockingQueue := $interop.typeForName('java.util.concurrent.LinkedBlockingQueue');
-            my \Semaphore := $interop.typeForName('java.util.concurrent.Semaphore');
-            my \AtomicInteger := $interop.typeForName('java.util.concurrent.atomic.AtomicInteger');
-            $!queue := LinkedBlockingQueue.'constructor/new/()V'();
-            $!thread_start_semaphore := Semaphore.'constructor/new/(I)V'($!max_threads.Int);
-            $!outstanding := AtomicInteger.'constructor/new/()V'();
-            self!maybe_new_thread() for 1..$!initial_threads;
-        }
-        my $outstanding = $!outstanding.incrementAndGet();
-        self!maybe_new_thread()
-            if !$!started_any || $outstanding > 1;
-        $!queue.add($interop.sixmodelToJavaObject(&code));
-    }
-    
-    method outstanding() {
-        $!outstanding.get()
-    }
-}
-
-# This thread pool scheduler will be the default one.
-$PROCESS::SCHEDULER = ThreadPoolScheduler.new();
 
 # Very basic asynchronous I/O support for files. Work in progress. Things that
 # would nomally return something scalar-ish produce a Promise. Things that

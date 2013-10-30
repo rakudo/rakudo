@@ -215,15 +215,12 @@ my class Promise {
     }
     
     method !schedule() {
-        $!scheduler.schedule({
-            $!status = Running;
-            self!keep(&!code());
-            CATCH {
-                default {
-                    self!break($_);
-                }
-            }
-        })
+        $!scheduler.schedule_with_catch(
+            {
+                $!status = Running;
+                self!keep(&!code());
+            },
+            -> $ex { self!break($ex) })
     }
     
     method keep(Promise:D: $result) {

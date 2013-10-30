@@ -1,4 +1,4 @@
-# This file contains early work on threading support for Rakudo on the JVM.
+# This file contains early work on concurrency support for Rakudo on the JVM.
 # The implementation is clearly VM specific, however the aim is to iterate
 # towards a backend-independent API.
 
@@ -8,32 +8,66 @@
 my class Thread {
     # This thread's underlying JVM thread object.
     has Mu $!jvm_thread;
-    
+
     # Is the thread's lifetime bounded by that of the application, such
     # that when it exits, so does the thread?
-    has $.app_lifetime;
-   
-    submethod BUILD(:&code!, :$!app_lifetime) {
+    has Bool $.app_lifetime;
+
+    # Thread's (user-defined) name.
+    has Str $.name;
+
+    submethod BUILD(:&code!, :$!app_lifetime as Bool = False, :$!name as Str = "<anon>") {
         my $interop   := nqp::jvmbootinterop();
         my \JVMThread := $interop.typeForName('java.lang.Thread');
         $!jvm_thread  := JVMThread."constructor/new/(Ljava/lang/Runnable;)V"(
-            $interop.proxy('java.lang.Runnable', nqp::hash('run', nqp::decont(&code))));
+            $interop.proxy('java.lang.Runnable', nqp::hash('run',
+                {
+                    my $*THREAD = self;
+                    code();
+                })));
         $!jvm_thread.setDaemon(1) if $!app_lifetime;
     }
-    
-    method start(&code, :$app_lifetime) {
-        Thread.new(:&code, :$app_lifetime).run()
+
+    method start(&code, *%adverbs) {
+        Thread.new(:&code, |%adverbs).run()
     }
-    
+
     method run(Thread:D:) {
         $!jvm_thread.start();
         self
     }
-    
+
+    method id(Thread:D:) {
+        $!jvm_thread.getId();
+    }
+
     method join(Thread:D:) {
         $!jvm_thread.'method/join/()V'();
         self
     }
+
+    multi method Str(Thread:D:) {
+        "Thread<$.id>($.name)" 
+    }
+}
+
+{
+    my $init_thread;
+    PROCESS::<$THREAD> := Proxy.new(
+        FETCH => -> | {
+            unless nqp::isconcrete($init_thread) {
+                my $interop   := nqp::jvmbootinterop();
+                my \JVMThread := $interop.typeForName('java.lang.Thread');
+                $init_thread  := nqp::create(Thread);
+                nqp::bindattr($init_thread, Thread, '$!jvm_thread', JVMThread.currentThread());
+                nqp::bindattr($init_thread, Thread, '$!app_lifetime', False);
+                nqp::bindattr($init_thread, Thread, '$!name', 'Initial thread');
+            }
+            $init_thread
+        },
+        STORE => -> | {
+            X::Assignment::RO.new.throw
+        });
 }
 
 # A promise represents a piece of asynchronous work, which may be in progress,

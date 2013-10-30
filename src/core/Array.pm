@@ -200,7 +200,8 @@ class Array { # declared in BOOTSTRAP
         # the array we just created
         nqp::bindattr(self, List, '$!items', Mu);
         nqp::bindattr(self, List, '$!nextiter', nqp::p6listiter(nqp::list($list), self));
-        self = self.splice(0, $!shape, self) if self.infinite;
+        self = self.splice(0, $!shape, self)
+          if self.infinite or (not nqp::istype($!shape, Whatever) and self.elems > $!shape);
         self
     }
 

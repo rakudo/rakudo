@@ -424,10 +424,41 @@ my class KeyReducer {
     }
 }
 
+# Schedulers do this role. It mostly serves as an interface for the things
+# that schedulers must do, as well as a way to factor out some common "sugar"
+# and infrastructure.
+my role Scheduler {
+    has &.uncaught_handler is rw;
+
+    method handle_uncaught($exception) {
+        my $ch = &!uncaught_handler;
+        if $ch {
+            $ch($exception);
+        }
+        else {
+            # No default handler, so terminate the application.
+            note "Unhandled exception in code scheduled on thread " ~ $*THREAD.id;
+            note $exception.gist;
+            exit(1);
+        }
+    }
+
+    method schedule(&code) { ... }
+
+    method schedule_with_catch(&code, &catch) {
+        self.schedule({
+            code();
+            CATCH { default { catch($_) } }
+        })
+    }
+
+    method outstanding() { ... }
+}
+
 # The ThreadPoolScheduler is a straightforward scheduler that maintains a
 # pool of threads and schedules work items in the order they are added
 # using them.
-my class ThreadPoolScheduler {
+my class ThreadPoolScheduler does Scheduler {
     # A concurrent work queue that blocks any worker threads that poll it
     # when empty until some work arrives.
     has Mu $!queue;
@@ -455,7 +486,14 @@ my class ThreadPoolScheduler {
             Thread.start(:app_lifetime, {
                 loop {
                     my Mu $task := $interop.javaObjectToSixmodel($!queue.take());
-                    $task();
+                    try {
+                        $task();
+                        CATCH {
+                            default {
+                                self.handle_uncaught($_)
+                            }
+                        }
+                    }
                     $!outstanding.decrementAndGet();
                 }
             });

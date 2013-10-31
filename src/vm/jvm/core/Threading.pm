@@ -337,6 +337,10 @@ my class Promise {
         so $!status == any(Broken, Kept)
     }
     
+    multi method Bool(Promise:D:) {
+        self.has_result
+    }
+    
     method cause(Promise:D:) {
         if $!status == Broken {
             $!result

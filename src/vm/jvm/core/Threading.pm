@@ -234,6 +234,34 @@ my class ThreadPoolScheduler does Scheduler {
 # This thread pool scheduler will be the default one.
 $PROCESS::SCHEDULER = ThreadPoolScheduler.new();
 
+# Scheduler that always does things immediately, on the current thread.
+my class CurrentThreadScheduler does Scheduler {
+    method handle_uncaught($exception) {
+        $exception.throw
+    }
+
+    method schedule(&code) {
+        code()
+    }
+
+    method schedule_in(&code, $delay) {
+        sleep $delay;
+        code();
+    }
+
+    method schedule_every(&code, $interval, $delay = 0) {
+        sleep $delay;
+        loop {
+            code();
+            sleep $interval;
+        }
+    }
+
+    method outstanding() {
+        0
+    }
+}
+
 # A promise is a synchronization mechanism for a piece of work that will
 # produce a single result (keeping the promise) or fail (breaking the
 # promise).

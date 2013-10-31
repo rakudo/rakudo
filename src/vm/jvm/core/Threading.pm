@@ -28,11 +28,11 @@ my class Thread {
         $!jvm_thread.setDaemon(1) if $!app_lifetime;
     }
 
-    method start(&code, *%adverbs) {
-        Thread.new(:&code, |%adverbs).run()
+    method run(&code, *%adverbs) {
+        Thread.new(:&code, |%adverbs).start()
     }
 
-    method run(Thread:D:) {
+    method start(Thread:D:) {
         $!jvm_thread.start();
         self
     }
@@ -159,7 +159,7 @@ my class ThreadPoolScheduler does Scheduler {
         if $!thread_start_semaphore.'method/tryAcquire/(I)Z'(1) {
             my $interop := nqp::jvmbootinterop();
             $!started_any = 1;
-            Thread.start(:app_lifetime, {
+            Thread.run(:app_lifetime, {
                 loop {
                     my Mu $task := $interop.javaObjectToSixmodel($!queue.take());
                     try {

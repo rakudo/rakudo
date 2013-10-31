@@ -699,7 +699,7 @@ multi sub select(*@selectors, :$default) {
     }
 
     multi is-ready(Channel $c) {
-        my $selected = $c.poll;
+        my $selected is default(Nil) = $c.poll;
         unless $selected === Nil {
             return (True, $selected)
         }
@@ -709,6 +709,7 @@ multi sub select(*@selectors, :$default) {
         die "Cannot use select on a " ~ .^name;
     }
 
+    my $choice;
     loop {
         my @ready;
         my @waiting;
@@ -722,10 +723,17 @@ multi sub select(*@selectors, :$default) {
             }
         }
         if @ready {
-            my $choice = @ready.pick;
-            return $choice.key.($choice.value)
+            $choice = @ready.pick;
+            last;
         } elsif $default {
-            return $default.()
+            $choice = $default;
+            last;
+        }
+        else {
+            Thread.yield;
         }
     }
+    nqp::istype($choice, Pair)
+        ?? $choice.key.($choice.value)
+        !! $choice.()
 }

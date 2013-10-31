@@ -25,11 +25,11 @@ A main program drives parsing, code generation and runtime execution
 
 =item 3.
 
-A grammar parses user programs (F<Perl6/Grammar.pm>)
+A grammar parses user programs (F<Perl6/Grammar.nqp>)
 
 =item 4.
 
-Action methods build a Parrot Abstract Syntax Tree (F<Perl6/Actions.pm>)
+Action methods build a Parrot Abstract Syntax Tree (F<Perl6/Actions.nqp>)
 
 =item 5.
 
@@ -158,7 +158,7 @@ exceptions for syntax errors.
 
 =head2 4. Actions
 
-The F<Perl6/Actions.pm> file defines the code that the compiler
+The F<Perl6/Actions.nqp> file defines the code that the compiler
 generates when it matches each token or rule.  The output is a tree
 hierarchy of objects representing language syntax elements, such as a
 statement.  The tree is called a Parrot Abstract Syntax Tree (PAST).

@@ -73,6 +73,28 @@ my class Thread {
         });
 }
 
+# A simple, reentrant lock mechanism.
+my class Lock {
+    has $!lock;
+
+    submethod BUILD() {
+        my \ReentrantLock := nqp::jvmbootinterop().typeForName('java.util.concurrent.locks.ReentrantLock');
+        $!lock            := ReentrantLock.'constructor/new/()V'();
+    }
+
+    method lock() { $!lock.lock() }
+
+    method unlock() { $!lock.unlock() }
+
+    method run(&code) {
+        $!lock.lock();
+        my \res := code();
+        $!lock.unlock();
+        CATCH { $!lock.unlock(); }
+        res
+    }
+}
+
 # Schedulers do this role. It mostly serves as an interface for the things
 # that schedulers must do, as well as a way to factor out some common "sugar"
 # and infrastructure.

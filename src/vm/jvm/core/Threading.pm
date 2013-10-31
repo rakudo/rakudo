@@ -49,6 +49,10 @@ my class Thread {
     multi method Str(Thread:D:) {
         "Thread<$.id>($.name)"
     }
+
+    method yield(Thread:U:) {
+        nqp::jvmbootinterop().typeForName('java.lang.Thread').yield();
+    }
 }
 
 {

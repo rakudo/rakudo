@@ -39,7 +39,7 @@ my role Mixy does Baggy  {  # should really be QuantHash, but that's for later
     }
 
     method roll ($count = 1) {
-        my $total  = self.total;
+        my $total  = [+] self.values.grep: * > 0;
         my $rolls  = $count ~~ Num ?? $total min $count !! $count;
 #        my @pairs := %!elems.values;
         my @pairs := self.pairs;

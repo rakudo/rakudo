@@ -109,10 +109,6 @@ my class Cool { # declared in BOOTSTRAP
         self.tc;
     }
 
-    method capitalize() { # is DEPRECATED doesn't work in settings
-        DEPRECATED("'tclc'");
-        self.Stringy.tclc;
-    }
     method wordcase()   { self.Str.wordcase }
 
     method chomp() {
@@ -232,15 +228,6 @@ Metamodel::ClassHOW.exclude_parent(Cool);
 sub ucfirst(Cool $s) { # is DEPRECATED doesn't work in settings
     DEPRECATED("'tc'");
     $s.tc;
-}
-proto sub capitalize($) { * }
-multi sub capitalize(Str:D $x) { # is DEPRECATED doesn't work in settings
-    DEPRECATED("'tclc'");
-    $x.tclc;
-}
-multi sub capitalize(Cool $x)  { # is DEPRECATED doesn't work in settings
-    DEPRECATED("'tclc'");
-    $x.Stringy.tclc;
 }
 
 sub chop(Cool $s)                  { $s.chop }

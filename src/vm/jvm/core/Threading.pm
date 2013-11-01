@@ -333,10 +333,11 @@ my class Promise {
     }
     
     method break(Promise:D: $result) {
-        self.keeper.break($result ~~ Exception ?? $result !! X::AdHoc.new(payload => $result))
+        self.keeper.break($result)
     }
     
-    method !break($!result) {
+    method !break($result) {
+        $!result = $result ~~ Exception ?? $result !! X::AdHoc.new(payload => $result);
         $!status = Broken;
         $!ready_semaphore.'method/release/(I)V'(32768);
         self!schedule_thens();
@@ -557,8 +558,9 @@ my class Channel {
         $!queue.add($interop.sixmodelToJavaObject(CHANNEL_CLOSE))
     }
     
-    method fail($error) {
+    method fail($error is copy) {
         $!closed = 1;
+        $error = X::AdHoc.new(payload => $error) unless nqp::istype($error, Exception);
         $!queue.add($interop.sixmodelToJavaObject(CHANNEL_FAIL.new(:$error)))
     }
     

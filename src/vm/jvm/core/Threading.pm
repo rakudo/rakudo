@@ -574,6 +574,118 @@ my class Channel {
     }
 }
 
+# Anything that can be subscribed to does this role. It provides the basic
+# subscription management infrastructure, as well as various coercions that
+# turn Subscribable things into something else.
+my role Subscribable {
+    my class Subscription {
+        has &.next;
+        has &.last;
+        has &.fail;
+        has $.subscribable;
+        method unsubscribe() {
+            $!subscribable.unsubscribe(self)
+        }
+    }
+
+    has @!subscriptions;
+    has $!subscriptions_lock = Lock.new;
+
+    method subscribe(&next, &last?, &fail?) {
+        my $sub = Subscription.new(:&next, :&last, :&fail, :subscribable(self));
+        $!subscriptions_lock.run({
+            @!subscriptions.push($sub);
+        });
+        $sub
+    }
+
+    method unsubscribe(Subscription $s) {
+        $!subscriptions_lock.run({
+            @!subscriptions.=grep(* !=== $s);
+        });
+    }
+
+    method subscriptions() {
+        # Shallow clone to provide safe snapshot.
+        my @subs;
+        $!subscriptions_lock.run({ @subs = @!subscriptions });
+        @subs
+    }
+
+    method Channel() {
+        my $c = Channel.new();
+        self.subscribe(
+            -> \val { $c.send(val) },
+            { $c.close },
+            -> $ex { $c.fail($ex) });
+        $c
+    }
+
+    method list() {
+        # Use a Channel to handle any asynchrony.
+        my $c = self.Channel;
+        (1..*).map(sub ($) {
+            select(
+                $c        => -> \val { return val },
+                $c.closed => -> $p { $p.result; last }
+            )
+        })
+    }
+}
+
+# Something that can be subscribed to, and enables messages to be published to
+# all subscribers. Note that there are no replay semantics; anybody who will
+# subscribe too late will miss things.
+my class Publisher does Subscribable {
+    method next(\msg) {
+        for self.subscriptions {
+            .next().(msg)
+        }
+        Nil;
+    }
+
+    method last() {
+        for self.subscriptions {
+            if .last -> $l { $l() }
+        }
+        Nil;
+    }
+
+    method fail($ex) {
+        for self.subscriptions {
+            if .fail -> $t { $t($ex) }
+        }
+        Nil;
+    }
+}
+
+# Various generators and combinators are provided by Publish.
+my class Publish {
+    method for(*@values, :$scheduler = $*SCHEDULER) {
+        my class AsyncValuesSubscribable does Subscribable {
+            has @!values;
+            has $!scheduler;
+
+            submethod BUILD(:@!values, :$!scheduler) {}
+
+            method subscribe(|c) {
+                my $sub = self.Subscribable::subscribe(|c);
+                $!scheduler.schedule_with_catch(
+                    {
+                        for @!values -> \val {
+                            $sub.next().(val);
+                        }
+                        if $sub.last -> $l { $l() }
+                    },
+                    -> $ex { if $sub.fail -> $t { $t($ex) } }
+                );
+                $sub
+            }
+        }
+        AsyncValuesSubscribable.new(:@values, :$scheduler)
+    }
+}
+
 # A KeyReducer provides a thread-safe way to compose a hash from multiple
 # sources.
 my class X::KeyReducer::ResultObtained is Exception {

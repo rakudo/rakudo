@@ -576,7 +576,9 @@ my class Channel {
 
 # Anything that can be subscribed to does this role. It provides the basic
 # subscription management infrastructure, as well as various coercions that
-# turn Subscribable things into something else.
+# turn Subscribable things into something else and convenience forms of calls
+# to SubscribableOperations.
+my class SubscribableOperations { ... }
 my role Subscribable {
     my class Subscription {
         has &.next;
@@ -630,6 +632,223 @@ my role Subscribable {
                 $c.closed => -> $p { $p.result; last }
             )
         })
+    }
+
+    method do(&side_effect) { SubscribableOperations.do(self, &side_effect) }
+    method grep(&filter)    { SubscribableOperations.grep(self, &filter) }
+    method map(&mapper)     { SubscribableOperations.map(self, &mapper) }
+    method merge($s)        { SubscribableOperations.merge(self, $s) }
+    method zip($s, *@with)  { SubscribableOperations.zip(self, $s, |@with) }
+}
+
+# The on meta-combinator provides a mechanism for implementing thread-safe
+# combinators on Subscribables. It subscribes to a bunch of sources, but will
+# only let one of the specified callbacks to handle their next/last/fail run
+# at a time. A little bit actor-like.
+my class X::Subscribable::On::BadSetup is Exception {
+    method message() {
+        "on requires a callable that returns a list of pairs with Subscribable keys"
+    }
+}
+my class X::Subscribable::On::NoNext is Exception {
+    method message() {
+        "on requires that next be specified for each subscribable"
+    }
+}
+sub on(&setup) {
+    my class OnSubscribable does Subscribable {
+        has &!setup;
+        
+        submethod BUILD(:&!setup) { }
+
+        method !add_source($source, $lock, :&next, :&last is copy, :&fail is copy) {
+            unless defined &next {
+                X::Subscribable::On::NoNext.new.throw;
+            }
+            unless defined &last {
+                &last = { self.last }
+            }
+            unless defined &fail {
+                &fail = -> $ex { self.fail($ex) }
+            }
+            $source.subscribe(
+                -> \val {
+                    $lock.run({ next(val) });
+                    CATCH { self.fail($_) }
+                },
+                {
+                    $lock.run({ last() });
+                    CATCH { self.fail($_) }
+                },
+                -> $ex {
+                    $lock.run({ fail($ex) });
+                    CATCH { self.fail($_) }
+                }
+            );
+        }
+        
+        method subscribe(|c) {
+            my $sub = self.Subscribable::subscribe(|c);
+            my @subscriptions = &!setup(self);
+            my $lock = Lock.new;
+            for @subscriptions -> $ssn {
+                unless $ssn ~~ Pair && $ssn.key ~~ Subscribable {
+                    X::Subscribable::On::BadSetup.new.throw;
+                }
+                given $ssn.value {
+                    when EnumMap {
+                        self!add_source($ssn.key, $lock, |$ssn.value);
+                    }
+                    when Callable {
+                        self!add_source($ssn.key, $lock, next => $ssn.value);
+                    }
+                    default {
+                        X::Subscribable::On::BadSetup.new.throw;
+                    }
+                }
+            }
+            $sub
+        }
+
+        method next(\msg) {
+            for self.subscriptions {
+                .next().(msg)
+            }
+            Nil;
+        }
+
+        method last() {
+            for self.subscriptions {
+                if .last -> $l { $l() }
+            }
+            Nil;
+        }
+
+        method fail($ex) {
+            for self.subscriptions {
+                if .fail -> $t { $t($ex) }
+            }
+            Nil;
+        }
+    }
+
+    OnSubscribable.new(:&setup)
+}
+
+# Operations we can do on Subscribables. Note, many of them need to compose
+# the Subscribable role into classes they create along the way, so they must
+# be declared outside of Subscribable.
+my class SubscribableOperations is repr('Uninstantiable') {
+    # Private versions of the methods to relay events to subscribers, used in
+    # implementing various operations.
+    my role PrivatePublishing {
+        method !next(\msg) {
+            for self.subscriptions {
+                .next().(msg)
+            }
+            Nil;
+        }
+
+        method !last() {
+            for self.subscriptions {
+                if .last { .last().() }
+            }
+            Nil;
+        }
+
+        method !fail($ex) {
+            for self.subscriptions {
+                if .fail { .fail().($ex) }
+            }
+            Nil;
+        }
+    }
+    
+    method do($a, &side_effect) {
+        on -> $res {
+            $a => sub (\val) { side_effect(val); $res.next(val) }
+        }
+    }
+    
+    method grep(Subscribable $a, &filter) {
+        my class GrepSubscribable does Subscribable does PrivatePublishing {
+            has $!source;
+            has &!filter;
+            
+            submethod BUILD(:$!source, :&!filter) { }
+            
+            method subscribe(|c) {
+                my $sub = self.Subscribable::subscribe(|c);
+                my $ssn = $!source.subscribe(
+                    -> \val {
+                        if (filter(val)) { self!next(val) }
+                    },
+                    { self!last(); },
+                    -> $ex { self!fail($ex) }
+                );
+                $sub
+            }
+        }
+        GrepSubscribable.new(:source($a), :&filter)
+    }
+    
+    method map(Subscribable $a, &mapper) {
+        my class MapSubscribable does Subscribable does PrivatePublishing {
+            has $!source;
+            has &!mapper;
+            
+            submethod BUILD(:$!source, :&!mapper) { }
+            
+            method subscribe(|c) {
+                my $sub = self.Subscribable::subscribe(|c);
+                my $ssn = $!source.subscribe(
+                    -> \val {
+                        self!next(mapper(val))
+                    },
+                    { self!last(); },
+                    -> $ex { self!fail($ex) }
+                );
+                $sub
+            }
+        }
+        MapSubscribable.new(:source($a), :&mapper)
+    }
+    
+    method merge(Subscribable $a, Subscribable $b) {
+        my $lasts = 0;
+        on -> $res {
+            $a => {
+                next => sub ($val) { $res.next($val) },
+                last => {
+                    $res.last() if ++$lasts == 2;
+                }
+            },
+            $b => {
+                next => sub ($val) { $res.next($val) },
+                last => {
+                    $res.last() if ++$lasts == 2;
+                }
+            }
+        }
+    }
+    
+    method zip(Subscribable $a, Subscribable $b, &with = &infix:<,>) {
+        my @as;
+        my @bs;
+        on -> $res {
+            $a => sub ($val) {
+                @as.push($val);
+                if @as && @bs {
+                    $res.next(with(@as.shift, @bs.shift));
+                }
+            },
+            $b => sub ($val) {
+                @bs.push($val);
+                if @as && @bs {
+                    $res.next(with(@as.shift, @bs.shift));
+                }
+            }
+        }
     }
 }
 

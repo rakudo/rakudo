@@ -480,6 +480,9 @@ my class Channel {
     # received and the channel is thus closed.
     has $!closed_promise;
     
+    # Closed promise's keeper.
+    has $!closed_promise_keeper;
+    
     # Flag for if the channel is closed to senders.
     has $!closed;
     
@@ -493,6 +496,7 @@ my class Channel {
         my \LinkedBlockingQueue := $interop.typeForName('java.util.concurrent.LinkedBlockingQueue');
         $!queue := LinkedBlockingQueue.'constructor/new/()V'();
         $!closed_promise = Promise.new;
+        $!closed_promise_keeper = $!closed_promise.keeper;
     }
     
     method send(Channel:D: \item) {
@@ -503,11 +507,11 @@ my class Channel {
     method receive(Channel:D:) {
         my \msg := $interop.javaObjectToSixmodel($!queue.take());
         if nqp::istype(msg, CHANNEL_CLOSE) {
-            $!closed_promise.keep(Nil);
+            $!closed_promise_keeper.keep(Nil);
             X::Channel::ReceiveOnClosed.new.throw
         }
         elsif nqp::istype(msg, CHANNEL_FAIL) {
-            $!closed_promise.break(msg.error);
+            $!closed_promise_keeper.break(msg.error);
             die msg.error;
         }
         msg
@@ -520,11 +524,11 @@ my class Channel {
         } else {
             my \msg := $interop.javaObjectToSixmodel(fetched);
             if nqp::istype(msg, CHANNEL_CLOSE) {
-                $!closed_promise.keep(Nil);
+                $!closed_promise_keeper.keep(Nil);
                 Nil
             }
             elsif nqp::istype(msg, CHANNEL_FAIL) {
-                $!closed_promise.break(msg.error);
+                $!closed_promise_keeper.break(msg.error);
                 Nil
             }
             else {
@@ -540,11 +544,11 @@ my class Channel {
         } else {
             my \msg := $interop.javaObjectToSixmodel(fetched);
             if nqp::istype(msg, CHANNEL_CLOSE) {
-                $!closed_promise.keep(Nil);
+                $!closed_promise_keeper.keep(Nil);
                 Nil
             }
             elsif nqp::istype(msg, CHANNEL_FAIL) {
-                $!closed_promise.break(msg.error);
+                $!closed_promise_keeper.break(msg.error);
                 Nil
             }
             else {

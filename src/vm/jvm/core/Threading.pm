@@ -881,7 +881,7 @@ my class Publisher does Subscribable {
 # Various generators and combinators are provided by Publish.
 my class Publish {
     method for(*@values, :$scheduler = $*SCHEDULER) {
-        my class AsyncValuesSubscribable does Subscribable {
+        my class ForSubscribable does Subscribable {
             has @!values;
             has $!scheduler;
 
@@ -901,7 +901,7 @@ my class Publish {
                 $sub
             }
         }
-        AsyncValuesSubscribable.new(:@values, :$scheduler)
+        ForSubscribable.new(:@values, :$scheduler)
     }
 }
 

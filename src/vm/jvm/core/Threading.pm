@@ -781,7 +781,7 @@ my class SubscribableOperations is repr('Uninstantiable') {
                 my $sub = self.Subscribable::subscribe(|c);
                 my $ssn = $!source.subscribe(
                     -> \val {
-                        if (filter(val)) { self!next(val) }
+                        if (&!filter(val)) { self!next(val) }
                     },
                     { self!last(); },
                     -> $ex { self!fail($ex) }
@@ -803,7 +803,7 @@ my class SubscribableOperations is repr('Uninstantiable') {
                 my $sub = self.Subscribable::subscribe(|c);
                 my $ssn = $!source.subscribe(
                     -> \val {
-                        self!next(mapper(val))
+                        self!next(&!mapper(val))
                     },
                     { self!last(); },
                     -> $ex { self!fail($ex) }

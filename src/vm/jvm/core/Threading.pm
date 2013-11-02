@@ -1048,7 +1048,7 @@ my class IO::Async::File {
         nqp::p6bool(nqp::istrue($!PIO));
     }
     
-    method slurp(:$bin, :enc($encoding)) {
+    method slurp(IO::Async::File:D: :$bin, :enc($encoding)) {
         self.open(:r, :$bin) unless self.opened;
         self.encoding($encoding) if $encoding.defined;
 

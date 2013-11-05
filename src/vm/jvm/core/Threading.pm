@@ -781,7 +781,7 @@ my class SubscribableOperations is repr('Uninstantiable') {
                 my $sub = self.Subscribable::subscribe(|c);
                 my $ssn = $!source.subscribe(
                     -> \val {
-                        if (filter(val)) { self!next(val) }
+                        if (&!filter(val)) { self!next(val) }
                     },
                     { self!last(); },
                     -> $ex { self!fail($ex) }
@@ -803,7 +803,7 @@ my class SubscribableOperations is repr('Uninstantiable') {
                 my $sub = self.Subscribable::subscribe(|c);
                 my $ssn = $!source.subscribe(
                     -> \val {
-                        self!next(mapper(val))
+                        self!next(&!mapper(val))
                     },
                     { self!last(); },
                     -> $ex { self!fail($ex) }
@@ -902,6 +902,29 @@ my class Publish {
             }
         }
         ForSubscribable.new(:@values, :$scheduler)
+    }
+
+    method interval($interval, $delay = 0, :$scheduler = $*SCHEDULER) {
+        my class IntervalSubscribable does Subscribable {
+            has $!scheduler;
+            has $!interval;
+            has $!delay;
+
+            submethod BUILD(:$!scheduler, :$!interval, :$!delay) {}
+
+            method subscribe(|c) {
+                my $sub = self.Subscribable::subscribe(|c);
+                $!scheduler.schedule_every(
+                    {
+                        state $i = 0;
+                        $sub.next().($i++);
+                    },
+                    $!interval, $!delay
+                );
+                $sub
+            }
+        }
+        IntervalSubscribable.new(:$interval, :$delay, :$scheduler)
     }
 }
 
@@ -1025,7 +1048,7 @@ my class IO::Async::File {
         nqp::p6bool(nqp::istrue($!PIO));
     }
     
-    method slurp(:$bin, :enc($encoding)) {
+    method slurp(IO::Async::File:D: :$bin, :enc($encoding)) {
         self.open(:r, :$bin) unless self.opened;
         self.encoding($encoding) if $encoding.defined;
 

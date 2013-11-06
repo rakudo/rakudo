@@ -580,6 +580,7 @@ my class Mu { # declared in BOOTSTRAP
     }
     
     method dispatch:<.=>(\mutate: $name, |c) is rw {
+        $/ := nqp::getlexcaller('$/');
         mutate = mutate."$name"(|c)
     }
     

@@ -54,8 +54,8 @@
     </rdf:RDF>
   </metadata>
   <sodipodi:namedview
-     inkscape:window-height="776"
-     inkscape:window-width="1280"
+     inkscape:window-height="1042"
+     inkscape:window-width="1906"
      inkscape:pageshadow="2"
      inkscape:pageopacity="0.0"
      guidetolerance="10.0"
@@ -66,13 +66,13 @@
      pagecolor="#ffffff"
      id="base"
      showgrid="false"
-     inkscape:zoom="1.4142136"
-     inkscape:cx="238.0254"
-     inkscape:cy="213.17704"
+     inkscape:zoom="2.0000001"
+     inkscape:cx="331.57916"
+     inkscape:cy="198.5165"
      inkscape:window-x="0"
-     inkscape:window-y="24"
+     inkscape:window-y="0"
      inkscape:current-layer="svg2"
-     inkscape:window-maximized="1"
+     inkscape:window-maximized="0"
      fit-margin-top="5"
      fit-margin-left="5"
      fit-margin-right="5"
@@ -83,9 +83,9 @@
      id="defs4" />
   <a
      xlink:href="architecture.html#core-setting"
-     transform="matrix(0.5,0,0,0.5,17.715316,-37.789196)"
+     target="_top"
      id="a66"
-     target="_top">
+     transform="matrix(0.5,0,0,0.5,17.715316,-37.789196)">
     <rect
        width="188.60774"
        height="163.09328"
@@ -108,8 +108,9 @@
   </a>
   <a
      xlink:href="architecture.html#the-world"
-     target="_top"
-     id="a3082">
+     transform="matrix(1,0,0,0.53827803,0,20.606619)"
+     id="a3082"
+     target="_top">
     <g
        id="g3075">
       <rect
@@ -122,20 +123,7 @@
       <g
          id="g3070">
         <a
-           id="a3066">
-          <text
-             xml:space="preserve"
-             style="font-size:13.05000019px;font-style:normal;font-weight:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;font-family:Bitstream Vera Sans"
-             x="-175.05045"
-             y="336.58728"
-             id="text3853"
-             sodipodi:linespacing="125%"
-             transform="matrix(0,-1,1,0,0,0)"><tspan
-               sodipodi:role="line"
-               id="tspan3855"
-               x="-175.05045"
-               y="336.58728">The World (NQP)</tspan></text>
-        </a>
+           id="a3066" />
       </g>
     </g>
   </a>
@@ -146,9 +134,9 @@
      style="font-size:medium;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;text-indent:0;text-align:start;text-decoration:none;line-height:normal;letter-spacing:normal;word-spacing:normal;text-transform:none;direction:ltr;block-progression:tb;writing-mode:lr-tb;text-anchor:start;baseline-shift:baseline;color:#000000;fill:#ffbb55;fill-opacity:1;stroke:none;stroke-width:10;marker:none;visibility:visible;display:inline;overflow:visible;enable-background:accumulate;font-family:Sans;-inkscape-font-specification:Sans" />
   <a
      xlink:href="architecture.html#parser"
-     transform="matrix(0.5,0,0,0.5,12.2667,-77.083296)"
+     id="a61"
      target="_top"
-     id="a61">
+     transform="matrix(0.5,0,0,0.5,12.2667,-77.083296)">
     <desc
        id="desc3046">The Perl 6 source code is transformed in various stages. The first one is the parser stage, which creates a parse tree out of the Perl 6 source code.
 
@@ -187,9 +175,9 @@ The parser stage is implemented in &quot;Not Quite Perl 6&quot; (NQP) and is par
      inkscape:transform-center-y="-0.02913637" />
   <a
      xlink:href="architecture.html#action-methods"
-     transform="matrix(0.5,0,0,0.5,12.266679,-97.23971)"
+     id="action-methods"
      target="_top"
-     id="action-methods">
+     transform="matrix(0.5,0,0,0.5,12.266679,-97.23971)">
     <desc
        id="desc3064">The action methods are applied to the parse tree at the same time as the parser builds it. The result of this process is the Abstract Syntax Tree that is sent to the QAST compiler.</desc>
     <title
@@ -216,11 +204,47 @@ The parser stage is implemented in &quot;Not Quite Perl 6&quot; (NQP) and is par
      inkscape:connector-curvature="0"
      inkscape:transform-center-x="-0.9144769"
      inkscape:transform-center-y="0.6733995" />
+  <path
+     style="fill:#ffbb55"
+     d="m 173.92967,5.2812122 0,17.9062498 -18.5,0.03125 51.6875,19.5625 49.84375,-19.78125 -18.53125,0.03125 0,-17.7499998 -64.5,0 z"
+     id="rect2463"
+     inkscape:connector-curvature="0" />
+  <text
+     x="206.18925"
+     y="16.676073"
+     id="text2473"
+     xml:space="preserve"
+     style="font-size:12.36547184px;font-style:normal;font-weight:normal;text-align:center;text-anchor:middle;fill:#000000;fill-opacity:1;stroke:none;font-family:Bitstream Vera Sans"><tspan
+       x="206.18925"
+       y="16.676073"
+       id="tspan2475">Perl 6</tspan><tspan
+       x="206.18925"
+       y="32.132919"
+       id="tspan2483">source</tspan></text>
+  <g
+     id="g4134"
+     transform="translate(-9.9999997,0)">
+    <path
+       inkscape:connector-curvature="0"
+       id="rect2437"
+       d="m 173.92967,128.09875 0,17.9375 -18.5,0.0313 51.6875,19.53125 49.84375,-19.78125 -18.53125,0.0313 0,-17.75 -64.5,0 z"
+       style="fill:#ffbb55" />
+    <text
+       style="font-size:18.04409218px;font-style:normal;font-weight:normal;fill:#000000;fill-opacity:1;stroke:none;font-family:Bitstream Vera Sans"
+       xml:space="preserve"
+       id="text2493"
+       transform="scale(1.0498159,0.95254797)"
+       y="156.27069"
+       x="171.37122"><tspan
+         id="tspan2495"
+         y="156.27069"
+         x="171.37122">QAST</tspan></text>
+  </g>
   <a
      xlink:href="architecture.html#pirt-serializer"
-     transform="matrix(0.5,0,0,0.5,12.26668,-98.103967)"
+     id="a41"
      target="_top"
-     id="a41">
+     transform="matrix(0.24634516,0,0,0.24634516,187.40789,37.189413)">
     <rect
        width="333.35034"
        height="61.619305"
@@ -240,9 +264,9 @@ The parser stage is implemented in &quot;Not Quite Perl 6&quot; (NQP) and is par
   </a>
   <a
      xlink:href="architecture.html#qast-compiler"
-     transform="matrix(0.5,0,0,0.5,12.26668,-98.091211)"
+     id="a46"
      target="_top"
-     id="a46">
+     transform="matrix(0.24634516,0,0,0.24634516,187.40789,36.032696)">
     <rect
        width="333.35034"
        height="61.619305"
@@ -262,9 +286,9 @@ The parser stage is implemented in &quot;Not Quite Perl 6&quot; (NQP) and is par
   </a>
   <a
      xlink:href="architecture.html#imcc"
-     transform="matrix(0.5,0,0,0.5,12.266678,-98.116724)"
+     id="a51"
      target="_top"
-     id="a51">
+     transform="matrix(0.24634516,0,0,0.24634516,187.40789,37.183128)">
     <rect
        width="333.35034"
        height="61.619305"
@@ -284,71 +308,39 @@ The parser stage is implemented in &quot;Not Quite Perl 6&quot; (NQP) and is par
   </a>
   <path
      style="fill:#ffbb55"
-     d="m 173.92967,5.2812122 0,17.9062498 -18.5,0.03125 51.6875,19.5625 49.84375,-19.78125 -18.53125,0.03125 0,-17.7499998 -64.5,0 z"
-     id="rect2463"
-     inkscape:connector-curvature="0" />
-  <text
-     x="206.18925"
-     y="16.676073"
-     id="text2473"
-     xml:space="preserve"
-     style="font-size:12.36547184px;font-style:normal;font-weight:normal;text-align:center;text-anchor:middle;fill:#000000;fill-opacity:1;stroke:none;font-family:Bitstream Vera Sans"><tspan
-       x="206.18925"
-       y="16.676073"
-       id="tspan2475">Perl 6</tspan><tspan
-       x="206.18925"
-       y="32.132919"
-       id="tspan2483">source</tspan></text>
-  <path
-     style="fill:#ffbb55"
-     d="m 173.92967,128.09875 0,17.9375 -18.5,0.0313 51.6875,19.53125 49.84375,-19.78125 -18.53125,0.0313 0,-17.75 -64.5,0 z"
-     id="rect2437"
-     inkscape:connector-curvature="0" />
-  <text
-     x="171.37122"
-     y="156.27069"
-     transform="scale(1.0498159,0.95254797)"
-     id="text2493"
-     xml:space="preserve"
-     style="font-size:18.04409218px;font-style:normal;font-weight:normal;fill:#000000;fill-opacity:1;stroke:none;font-family:Bitstream Vera Sans"><tspan
-       x="171.37122"
-       y="156.27069"
-       id="tspan2495">QAST</tspan></text>
-  <path
-     style="fill:#ffbb55"
-     d="m 173.92967,199.88707 0,17.90625 -18.5,0.0313 51.6875,19.53125 49.84375,-19.75 -18.53125,0.0313 0,-17.75 -64.5,0 z"
+     d="m 267.05768,184.00672 0,8.82223 -9.11477,0.0154 25.46593,9.62286 24.55754,-9.73063 -9.13017,0.0154 0,-8.74526 -31.77853,0 z"
      id="rect2443"
      inkscape:connector-curvature="0" />
   <text
-     x="176.26109"
-     y="231.39738"
+     x="259.60025"
+     y="203.79201"
      transform="scale(1.0498159,0.95254797)"
      id="text2501"
      xml:space="preserve"
-     style="font-size:18.04409218px;font-style:normal;font-weight:normal;fill:#000000;fill-opacity:1;stroke:none;font-family:Bitstream Vera Sans"><tspan
-       x="176.26109"
-       y="231.39738"
+     style="font-size:8.89014912px;font-style:normal;font-weight:normal;fill:#000000;fill-opacity:1;stroke:none;font-family:Bitstream Vera Sans"><tspan
+       x="259.60025"
+       y="203.79201"
        id="tspan2503">PIRT</tspan></text>
   <path
      style="fill:#ffbb55"
-     d="m 173.92967,271.67537 0,17.9375 -18.5,0.0313 51.6875,19.53125 49.84375,-19.78125 -18.53125,0.0313 0,-17.75 -64.5,0 z"
+     d="m 267.05768,219.37612 0,8.83763 -9.11477,0.0154 25.46593,9.62286 24.55754,-9.74603 -9.13017,0.0154 0,-8.74525 -31.77853,0 z"
      id="rect2449"
      inkscape:connector-curvature="0" />
   <text
-     x="184.78178"
-     y="301.65015"
+     x="267.00845"
+     y="236.76695"
      transform="scale(1.0306645,0.97024783)"
      id="text2525"
      xml:space="preserve"
-     style="font-size:18.37937927px;font-style:normal;font-weight:normal;fill:#000000;fill-opacity:1;stroke:none;font-family:Bitstream Vera Sans"><tspan
-       x="184.78178"
-       y="301.65015"
+     style="font-size:9.05534172px;font-style:normal;font-weight:normal;fill:#000000;fill-opacity:1;stroke:none;font-family:Bitstream Vera Sans"><tspan
+       x="267.00845"
+       y="236.76695"
        id="tspan2527">PIR</tspan></text>
   <a
      xlink:href="architecture.html#parrot-runtime"
-     transform="matrix(0.5,0,0,0.5,12.266687,-98.428182)"
+     target="_top"
      id="a101"
-     target="_top">
+     transform="matrix(0.24634516,0,0,0.24634516,187.4079,37.029676)">
     <desc
        id="desc3042">The POST compiler emits PIR, which IMCC transforms into byte code. IMCC is parrot's PIR compiler, written in C and statically linked into parrot. The byte code (PBC) can then be stored to disk, or executed in memory by a so-called run core or run loop, which is in some sense the heart of parrot - or one of the hearts, because there are several different ones available (one for just-in-time compilation (JIT), one for debugging etc.).
 
@@ -374,23 +366,24 @@ There are also some supporting custom types and operations in Rakudo called dyna
   </a>
   <path
      style="fill:#ffbb55"
-     d="m 173.92967,343.46366 0,17.90625 -18.5,0.0313 51.6875,19.53125 49.84375,-19.75 -18.5,0.0313 0,-17.75 -64.53125,0 z"
+     d="m 267.05768,254.74551 0,8.82224 -9.11477,0.0154 25.46593,9.62286 24.55754,-9.73064 -9.11477,0.0154 0,-8.74525 -31.79393,0 z"
      id="rect2531"
      inkscape:connector-curvature="0" />
   <text
-     style="font-size:18.04409218px;font-style:normal;font-weight:normal;fill:#000000;fill-opacity:1;stroke:none;font-family:Bitstream Vera Sans"
+     style="font-size:8.89014912px;font-style:normal;font-weight:normal;fill:#000000;fill-opacity:1;stroke:none;font-family:Bitstream Vera Sans"
      xml:space="preserve"
      id="text2539"
      transform="scale(1.0498159,0.95254797)"
-     y="382.36429"
-     x="178.24348"><tspan
+     y="278.17194"
+     x="260.57697"><tspan
        id="tspan2541"
-       y="382.36429"
-       x="178.24348">PBC</tspan></text>
+       y="278.17194"
+       x="260.57697">PBC</tspan></text>
   <a
      xlink:href="architecture.html#pmc-dynops"
-     target="_top"
-     id="a3110">
+     transform="matrix(0.49269032,0,0,0.49269032,181.36422,85.524288)"
+     id="a3110"
+     target="_top">
     <g
        id="g3104">
       <rect
@@ -420,13 +413,13 @@ There are also some supporting custom types and operations in Rakudo called dyna
   </a>
   <path
      style="fill:#ffbb55"
-     d="m 304.45517,318.86055 -4.34646,0 -0.008,-4.48275 -7.83783,12.52446 7.89841,12.0777 -0.008,-4.49033 6.86003,0 0,-15.62908 z"
+     d="m 331.36634,242.6238 -2.14146,0 -0.004,-2.20861 -3.86162,6.17068 3.89147,5.95057 -0.004,-2.21235 3.37987,0 0,-7.70029 z"
      id="rect2437-7-3-2-2"
      inkscape:connector-curvature="0"
      sodipodi:nodetypes="ccccccccc" />
   <path
      style="fill:#ffbb55"
-     d="m 304.45517,390.64887 -4.34646,0 -0.008,-4.48276 -7.83783,12.52447 7.89841,12.07769 -0.008,-4.49033 6.86003,0 0,-15.62907 z"
+     d="m 331.36634,277.99321 -2.14146,0 -0.004,-2.20861 -3.86162,6.17068 3.89147,5.95056 -0.004,-2.21234 3.37987,0 0,-7.70029 z"
      id="rect2437-7-3-2-4"
      inkscape:connector-curvature="0"
      sodipodi:nodetypes="ccccccccc" />
@@ -443,45 +436,244 @@ There are also some supporting custom types and operations in Rakudo called dyna
      inkscape:connector-curvature="0"
      sodipodi:nodetypes="cccccccc" />
   <g
-     id="g6110"
-     transform="translate(-2.4649472,0)">
-    <g
-       transform="translate(0,-2.358656)"
-       id="g6056">
-      <path
-         style="fill:#ff9955"
-         d="m 292.81255,58.580862 8.03125,0 0,4.0625 9.34375,-8.6875 -9.34375,-8.6875 0,4.03125 -8.03125,0 z"
-         id="rect2652-0"
-         inkscape:connector-curvature="0"
-         sodipodi:nodetypes="cccccccc" />
-      <path
-         style="fill:#ff9955"
-         d="m 310.18755,75.955963 -8.03125,0 0,4.0625 -9.34375,-8.6875 9.34375,-8.6875 0,4.03125 8.03125,0 z"
-         id="rect2652-0-5"
-         inkscape:connector-curvature="0"
-         sodipodi:nodetypes="cccccccc" />
-    </g>
-    <g
-       transform="translate(0,0.202175)"
-       id="g6052">
-      <path
-         style="fill:#ff9955"
-         d="m 292.81255,107.04927 8.03125,0 0,4.0625 9.34375,-8.6875 -9.34375,-8.6875 0,4.03125 -8.03125,0 z"
-         id="rect2652-7"
-         inkscape:connector-curvature="0"
-         sodipodi:nodetypes="cccccccc" />
-      <path
-         style="fill:#ff9955"
-         d="m 310.18755,124.42437 -8.03125,0 0,4.0625 -9.34375,-8.6875 9.34375,-8.6875 0,4.03125 8.03125,0 z"
-         id="rect2652-0-9"
-         inkscape:connector-curvature="0"
-         sodipodi:nodetypes="cccccccc" />
-    </g>
+     id="g6056"
+     transform="translate(-2.4649472,-2.358656)">
     <path
        sodipodi:nodetypes="cccccccc"
        inkscape:connector-curvature="0"
-       id="rect2652-0-3"
-       d="m 310.18755,187.72728 -8.03125,0 0,4.0625 -9.34375,-8.6875 9.34375,-8.6875 0,4.03125 8.03125,0 z"
+       id="rect2652-0"
+       d="m 292.81255,58.580862 8.03125,0 0,4.0625 9.34375,-8.6875 -9.34375,-8.6875 0,4.03125 -8.03125,0 z"
        style="fill:#ff9955" />
+    <path
+       sodipodi:nodetypes="cccccccc"
+       inkscape:connector-curvature="0"
+       id="rect2652-0-5"
+       d="m 310.18755,75.955963 -8.03125,0 0,4.0625 -9.34375,-8.6875 9.34375,-8.6875 0,4.03125 8.03125,0 z"
+       style="fill:#ff9955" />
+  </g>
+  <g
+     id="g6052"
+     transform="translate(-2.4649472,0.202175)">
+    <path
+       sodipodi:nodetypes="cccccccc"
+       inkscape:connector-curvature="0"
+       id="rect2652-7"
+       d="m 292.81255,107.04927 8.03125,0 0,4.0625 9.34375,-8.6875 -9.34375,-8.6875 0,4.03125 -8.03125,0 z"
+       style="fill:#ff9955" />
+    <path
+       sodipodi:nodetypes="cccccccc"
+       inkscape:connector-curvature="0"
+       id="rect2652-0-9"
+       d="m 310.18755,124.42437 -8.03125,0 0,4.0625 -9.34375,-8.6875 9.34375,-8.6875 0,4.03125 8.03125,0 z"
+       style="fill:#ff9955" />
+  </g>
+  <g
+     id="g4077"
+     transform="translate(-1.1767883,-0.378354)">
+    <a
+       xlink:href="/home/moritz/p6/rakudo/architecture.html#pirt-serializer"
+       transform="matrix(0.24634516,0,0,0.24634516,96.240561,36.40476)"
+       target="_top"
+       id="a41-1">
+      <rect
+         style="fill:#72abff;fill-opacity:1;fill-rule:evenodd;stroke:none"
+         id="rect2391-3"
+         y="675.17944"
+         x="221.18207"
+         height="61.619305"
+         width="333.35034" />
+      <text
+         style="font-size:26.11718369px;font-style:normal;font-weight:normal;fill:#000000;fill-opacity:1;stroke:none;font-family:Bitstream Vera Sans"
+         xml:space="preserve"
+         id="text2547-6"
+         y="714.18896"
+         x="254.03218"><tspan
+           id="tspan2549-9"
+           y="714.18896"
+           x="254.03218">JAST serializer (NQP)</tspan></text>
+    </a>
+    <a
+       xlink:href="/home/moritz/p6/rakudo/architecture.html#qast-compiler"
+       transform="matrix(0.24634516,0,0,0.24634516,96.240561,36.41105)"
+       target="_top"
+       id="a46-9">
+      <rect
+         style="fill:#72abff;fill-opacity:1;fill-rule:evenodd;stroke:none"
+         id="rect2389-6"
+         y="531.57733"
+         x="221.18207"
+         height="61.619305"
+         width="333.35034" />
+      <text
+         style="font-size:26.11718369px;font-style:normal;font-weight:normal;fill:#000000;fill-opacity:1;stroke:none;font-family:Bitstream Vera Sans"
+         xml:space="preserve"
+         id="text2551-6"
+         y="569.59216"
+         x="249.47952"><tspan
+           id="tspan2553-1"
+           y="569.59216"
+           x="249.47952">QAST compiler (NQP)</tspan></text>
+    </a>
+    <a
+       xlink:href="/home/moritz/p6/rakudo/architecture.html#imcc"
+       transform="matrix(0.24634516,0,0,0.24634516,96.615561,36.14848)"
+       target="_top"
+       id="a51-2">
+      <rect
+         style="fill:#00ffff;fill-opacity:1;fill-rule:evenodd;stroke:none"
+         id="rect2393-6"
+         y="818.78156"
+         x="221.18207"
+         height="61.619305"
+         width="333.35034" />
+      <text
+         style="font-size:26.11718369px;font-style:normal;font-weight:normal;fill:#000000;fill-opacity:1;stroke:none;font-family:Bitstream Vera Sans"
+         xml:space="preserve"
+         id="text2555-9"
+         y="855.60168"
+         x="249.13359"><tspan
+           id="tspan2557-1"
+           y="855.60168"
+           x="249.13359">Java Virtual Machine</tspan></text>
+    </a>
+    <path
+       inkscape:connector-curvature="0"
+       id="rect2443-7"
+       d="m 175.89035,183.22207 0,8.82223 -9.11477,0.0154 25.46593,9.62286 24.55754,-9.73063 -9.13017,0.0154 0,-8.74526 -31.77853,0 z"
+       style="fill:#ffbb55" />
+    <text
+       style="font-size:8.89014912px;font-style:normal;font-weight:normal;fill:#000000;fill-opacity:1;stroke:none;font-family:Bitstream Vera Sans"
+       xml:space="preserve"
+       id="text2501-4"
+       transform="scale(1.0498159,0.95254797)"
+       y="202.96828"
+       x="172.759"><tspan
+         id="tspan2503-1"
+         y="202.96828"
+         x="172.759">JAST</tspan></text>
+    <path
+       inkscape:connector-curvature="0"
+       id="rect2449-0"
+       d="m 175.89035,218.59147 0,8.83763 -9.11477,0.0154 25.46593,9.62286 24.55754,-9.74603 -9.13017,0.0154 0,-8.74525 -31.77853,0 z"
+       style="fill:#ffbb55" />
+    <text
+       style="font-size:9.05534172px;font-style:normal;font-weight:normal;fill:#000000;fill-opacity:1;stroke:none;font-family:Bitstream Vera Sans"
+       xml:space="preserve"
+       id="text2525-3"
+       transform="scale(1.0306645,0.97024783)"
+       y="235.95824"
+       x="178.55353"><tspan
+         id="tspan2527-1"
+         y="235.95824"
+         x="178.55353">JVM</tspan></text>
+  </g>
+  <text
+     xml:space="preserve"
+     style="font-size:12px;font-style:normal;font-weight:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;font-family:Sans"
+     x="-122.32886"
+     y="328.75763"
+     id="text3980"
+     sodipodi:linespacing="125%"
+     transform="matrix(0,-1,1,0,0,0)"><tspan
+       sodipodi:role="line"
+       id="tspan3982"
+       x="-122.32886"
+       y="328.75763">Perl6::World</tspan><tspan
+       sodipodi:role="line"
+       x="-122.32886"
+       y="343.75763"
+       id="tspan3984">(NQP)</tspan></text>
+  <g
+     id="g4058">
+    <a
+       xlink:href="/home/moritz/p6/rakudo/architecture.html#pirt-serializer"
+       transform="matrix(0.24634516,0,0,0.24634516,2.9071399,36.026406)"
+       target="_top"
+       id="a41-1-1">
+      <rect
+         style="fill:#72abff;fill-opacity:1;fill-rule:evenodd;stroke:none"
+         id="rect2391-3-1"
+         y="675.17944"
+         x="221.18207"
+         height="61.619305"
+         width="333.35034" />
+      <text
+         style="font-size:26.11718369px;font-style:normal;font-weight:normal;fill:#000000;fill-opacity:1;stroke:none;font-family:Bitstream Vera Sans"
+         xml:space="preserve"
+         id="text2547-6-9"
+         y="714.18896"
+         x="254.03218"><tspan
+           id="tspan2549-9-2"
+           y="714.18896"
+           x="254.03218">MAST serializer (NQP)</tspan></text>
+    </a>
+    <a
+       xlink:href="/home/moritz/p6/rakudo/architecture.html#qast-compiler"
+       transform="matrix(0.24634516,0,0,0.24634516,2.9071399,36.032696)"
+       target="_top"
+       id="a46-9-4">
+      <rect
+         style="fill:#72abff;fill-opacity:1;fill-rule:evenodd;stroke:none"
+         id="rect2389-6-5"
+         y="531.57733"
+         x="221.18207"
+         height="61.619305"
+         width="333.35034" />
+      <text
+         style="font-size:26.11718369px;font-style:normal;font-weight:normal;fill:#000000;fill-opacity:1;stroke:none;font-family:Bitstream Vera Sans"
+         xml:space="preserve"
+         id="text2551-6-0"
+         y="569.59216"
+         x="249.47952"><tspan
+           id="tspan2553-1-3"
+           y="569.59216"
+           x="249.47952">QAST compiler (NQP)</tspan></text>
+    </a>
+    <rect
+       width="82.11924"
+       height="15.179618"
+       x="57.769272"
+       y="237.47299"
+       id="rect2393-6-3"
+       style="fill:#00ffff;fill-opacity:1;fill-rule:evenodd;stroke:none" />
+    <text
+       x="85.810417"
+       y="247.3624"
+       id="text2555-9-5"
+       xml:space="preserve"
+       style="font-size:6.43384171px;font-style:normal;font-weight:normal;fill:#000000;fill-opacity:1;stroke:none;font-family:Bitstream Vera Sans"><tspan
+         x="85.810417"
+         y="247.3624"
+         id="tspan2557-1-9">MoarVM</tspan></text>
+    <path
+       inkscape:connector-curvature="0"
+       id="rect2443-7-0"
+       d="m 82.556929,182.84371 0,8.82223 -9.11477,0.0154 25.46593,9.62286 24.557541,-9.73063 -9.13017,0.0154 0,-8.74526 -31.778531,0 z"
+       style="fill:#ffbb55" />
+    <text
+       style="font-size:8.89014912px;font-style:normal;font-weight:normal;fill:#000000;fill-opacity:1;stroke:none;font-family:Bitstream Vera Sans"
+       xml:space="preserve"
+       id="text2501-4-6"
+       transform="scale(1.0498159,0.95254797)"
+       y="202.57108"
+       x="83.854446"><tspan
+         id="tspan2503-1-8"
+         y="202.57108"
+         x="83.854446">MAST</tspan></text>
+    <path
+       inkscape:connector-curvature="0"
+       id="rect2449-0-6"
+       d="m 82.556929,218.21311 0,8.83763 -9.11477,0.0154 25.46593,9.62286 24.557541,-9.74603 -9.13017,0.0154 0,-8.74525 -31.778531,0 z"
+       style="fill:#ffbb55" />
+    <text
+       style="font-size:9.05534172px;font-style:normal;font-weight:normal;fill:#000000;fill-opacity:1;stroke:none;font-family:Bitstream Vera Sans"
+       xml:space="preserve"
+       id="text2525-3-2"
+       transform="scale(1.0306645,0.97024783)"
+       y="235.56828"
+       x="83.294662"><tspan
+         id="tspan2527-1-9"
+         y="235.56828"
+         x="83.294662">moar</tspan></text>
   </g>
 </svg>

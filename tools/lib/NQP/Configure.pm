@@ -10,7 +10,7 @@ our @EXPORT_OK = qw(sorry slurp system_or_die
                     read_parrot_config read_config
                     fill_template_file fill_template_text 
                     git_checkout
-                    verify_install
+                    verify_install gen_moar
                     gen_nqp gen_parrot);
 
 our $exe = $^O eq 'MSWin32' ? '.exe' : '';
@@ -31,9 +31,11 @@ our @required_nqp_files = qw(
 
 our $nqp_git = 'http://github.com/perl6/nqp.git';
 our $par_git = 'http://github.com/parrot/parrot.git';
+our $moar_git= 'https://github.com/MoarVM/MoarVM.git';
 
 our $nqp_push = 'git@github.com:perl6/nqp.git';
 our $par_push = 'git@github.com:parrot/parrot.git';
+our $moar_push= 'git@github.com:MoarVM/MoarVM.git';
 
 sub sorry {
     my @msg = @_;
@@ -316,7 +318,7 @@ sub gen_nqp {
     return %impls unless %need;
 
     if (defined $gen_nqp || defined $gen_parrot) {
-        git_checkout($nqp_git, 'nqp', $nqp_want, $nqp_push);
+        git_checkout($nqp_git, 'nqp', $gen_nqp || $nqp_want, $nqp_push);
     }
 
     if ($need{parrot} && defined $gen_parrot) {
@@ -387,7 +389,7 @@ sub gen_parrot {
     $prefix =~ s{\\}{/}g;
 
     print "\nConfiguring Parrot ...\n";
-    my @cmd = ($^X, "Configure.pl", @opts, "--prefix=\"$prefix\"");
+    my @cmd = ($^X, "Configure.pl", @opts, "--prefix=$prefix");
     print "@cmd\n";
     system_or_die(@cmd);
 
@@ -406,6 +408,52 @@ sub gen_parrot {
 
     print "Parrot installed.\n";
     return fill_template_text('@bindir@/parrot@exe@', %config);
+}
+
+sub gen_moar {
+    my $moar_want = shift;
+    my %options  = @_;
+
+    my $prefix     = $options{'prefix'} || cwd()."/install";
+    my $gen_moar   = $options{'gen-moar'};
+    my @opts       = @{ $options{'moar-option'} || [] };
+    push @opts, "--optimize";
+    my $startdir   = cwd();
+
+    my $moar_exe   = "$prefix/bin/moar$exe";
+    my $moar_have  = qx{ $moar_exe --version };
+    if ($moar_have) {
+        $moar_have = $moar_have =~ /version (\S+)/ ? $1 : undef;
+    }
+
+    my $moar_ok   = $moar_have && cmp_rev($moar_have, $moar_want) >= 0;
+    if ($moar_ok) {
+        print "Found $moar_exe version $moar_have, which is new enough.\n";
+        return $moar_exe;
+    }
+    elsif ($moar_have) {
+        print "Found $moar_exe version $moar_have, which is too old.\n";
+    }
+
+    return unless defined $gen_moar;
+
+    my $moar_repo = git_checkout($moar_git, 'MoarVM', $gen_moar || $moar_want, $moar_push);
+
+    unless (cmp_rev($moar_repo, $moar_want) >= 0) {
+        die "You asked me to build $gen_moar, but $moar_repo is not new enough to satisfy version $moar_want\n";
+    }
+
+    chdir("$startdir/MoarVM") or die $!;
+
+    $prefix =~ s{\\}{/}g;
+    print "\nConfiguring and building MoarVM ...\n";
+    my @cmd = ($^X, "Configure.pl", @opts, "--prefix=$prefix", '--make-install');
+    print "@cmd\n";
+    system_or_die(@cmd);
+
+    chdir($startdir);
+
+    return $moar_exe;
 }
 
 

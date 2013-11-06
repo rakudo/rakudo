@@ -1,7 +1,7 @@
 Rakudo Roadmap
 --------------
 
-Last updated: 2013-08-25
+Last updated: 2013-10-25
 
 This document serves as a guide to the major goals for Rakudo
 development, as things stood in December 2011. They have been
@@ -28,7 +28,6 @@ remove completed ones, re-prioritize, volunteer for a goal,
 rescue yourself from a goal, etc.
 
 Compiler Performance/Portability Improvements (jnthn)
-2 **    finish up any remaining s/pir::/nqp::/
 3 **    Optimizing multis for `[+] 1..10` and `[<=] 1..10` etc.
 
 Macros (masak)
@@ -42,7 +41,6 @@ Operators
 
 Regexes
 2 **    ~~ inside regexes
-2 *     Null pattern detection (at parse time)
 3 **    <*foo>
 3 **    <~~0>, <~~foo>
 3 ***   explicit backtracking control (::, :::)
@@ -53,7 +51,6 @@ Built-ins/Data Structures
 2 ***   packed arrays (jnthn)
 2 ***** NFG strings, .codes, .graphs, etc.
 2 **    Rat/FatRat/Rational cleanup
-2 ***   other S02 data types -- KeySet, KeyBag (tadzik)
 2 **    sized/shaped arrays (jnthn)
 2 ***   val() (japhb)
 2 **    Correct type smiley support (:U, :D, :T, etc.) (jnthn)

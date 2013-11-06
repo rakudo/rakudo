@@ -1,3 +1,13 @@
+New in 2013.11
+
++ leading whitespace is ignored for :sigspace
++ refactored build system that allows building rakudo on both backends in the same place
++ better null pattern detection in regexes
++ gethostname function implement
++ warn when private attributes are a marked rw or readonly
++ "is DEPRECATED" trait now does something useful
++ Parcel.rotate implemented
+
 New in 2013.10
 
 + postcircumfix {} and [] are now implemented as multi subs rather than multi methods.  This should allow for better optimization in the future.

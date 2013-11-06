@@ -117,7 +117,7 @@ class Perl6::Metamodel::ParametricRoleHOW
         if $!in_group && $decont =:= $!group {
             return 1;
         }
-        for self.prentending_to_be() {
+        for self.pretending_to_be() {
             if $decont =:= nqp::decont($_) {
                 return 1;
             }

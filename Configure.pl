@@ -6,6 +6,7 @@ use strict;
 use warnings;
 use Text::ParseWords;
 use Getopt::Long;
+use File::Spec;
 use Cwd;
 use lib 'tools/lib';
 use NQP::Configure qw(sorry slurp cmp_rev gen_nqp read_config 
@@ -47,7 +48,9 @@ MAIN: {
         exit(0);
     }
 
-    my $prefix         = $options{'prefix'} || cwd().'/install';
+    $options{prefix} ||= 'install';
+    $options{prefix} = File::Spec->rel2abs($options{prefix});
+    my $prefix         = $options{'prefix'};
     my %known_backends = (parrot => 1, jvm => 1, moar => 1);
     my %letter_to_backend;
     my $default_backend;

@@ -7,9 +7,9 @@ use 5.008;
 use File::Spec;
 use File::Copy 'cp';
 
-my $USAGE = "Usage: $0 <type> <prefix> <nqp prefix> <third party jars>\n";
+my $USAGE = "Usage: $0 <type> <destdir> <prefix> <nqp prefix> <third party jars>\n";
 
-my ($type, $prefix, $nqpprefix, $thirdpartyjars) = @ARGV
+my ($type, $destdir, $prefix, $nqpprefix, $thirdpartyjars) = @ARGV
     or die $USAGE;
 
 die "Invalid target type $type" unless $type eq 'dev' || $type eq 'install';
@@ -29,8 +29,9 @@ my $nqplibdir = File::Spec->catfile($nqpprefix, 'languages', 'nqp', 'lib');
 sub install {
     my ($name, $command) = @_;
 
-    my $install_to = File::Spec->catfile($bindir, "$name$bat");
+    my $install_to = File::Spec->catfile($destdir, $bindir, "$name$bat");
 
+    print "Creating '$install_to'\n";
     open my $fh, ">", $install_to or die "open: $!";
     print $fh $preamble, $command, $postamble, "\n" or die "print: $!";
     close $fh or die "close: $!";

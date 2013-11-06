@@ -1985,17 +1985,16 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                 }
                 else {
                     # Augment. Ensure we can.
-                    my @name := $longname ??
-                        $longname.type_name_parts('package name', :decl(1)) !!
-                        [];
-                    unless $*MONKEY_TYPING {
+                    if !$*MONKEY_TYPING && $longname.text ne 'Cool' {
                         $/.CURSOR.typed_panic('X::Syntax::Augment::WithoutMonkeyTyping');
                     }
-                    unless @name {
+                    elsif !$longname {
                         $*W.throw($/, 'X::Anon::Augment', package-kind => $*PKGDECL);
                     }
-                    
+
                     # Locate type.
+                    my @name := 
+                      $longname.type_name_parts('package name', :decl(1));
                     my $found;
                     try { $*PACKAGE := $*W.find_symbol(@name); $found := 1 }
                     unless $found {

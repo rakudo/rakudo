@@ -678,42 +678,74 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
 
     multi method split(Str:D: Regex $pat, $limit = *, :$all) {
-        return ().list if $limit ~~ Numeric && $limit <= 0;
+        return ().list
+          if $limit ~~ Numeric && $limit <= 0;
         my @matches = nqp::istype($limit, Whatever)
-                        ?? self.match($pat, :g)
-                        !! self.match($pat, :x(1..$limit-1), :g);
-        gather {
-            my $prev-pos = 0;
-            for @matches {
-                take self.substr($prev-pos, .from - $prev-pos);
-                take $_ if $all;
+          ?? self.match($pat, :g)
+          !! self.match($pat, :x(1..$limit-1), :g);
+
+        # add dummy for last
+        push @matches, Match.new( :from(self.chars) );
+        my $prev-pos = 0;
+
+        if ($all) {
+            my $elems = +@matches;
+            map {
+                my $value = self.substr($prev-pos, .from - $prev-pos);
                 $prev-pos = .to;
-            }
-            take self.substr($prev-pos);
+                # we don't want the dummy object
+                --$elems ?? ($value, $_) !! $value;
+            }, @matches;
+        }
+        else {
+            map {
+                my $value = self.substr($prev-pos, .from - $prev-pos);
+                $prev-pos = .to;
+                $value;
+            }, @matches;
         }
     }
+
     multi method split(Str:D: Cool $delimiter, $limit = *, :$all) {
         my $match-string = $delimiter.Str;
         return if self eq '' && $delimiter eq '';
-        my $c = 0;
-        my $l = $limit ~~ Whatever ?? $Inf !! $limit - 1;
-        return ().list if $l < 0;
 
-        gather {
-            while $l-- > 0 {
-                if ($match-string eq "") {
-                    last unless $c + 1 < self.chars;
-                    take self.substr($c, 1);
-                    $c++;
-                } else {
-                    my $m = self.index($match-string, $c);
-                    last unless $m.defined;
-                    take self.substr($c, $m - $c);
-                    take $match-string if $all;
-                    $c = $m + $match-string.chars;
+        my $l = $limit ~~ Whatever ?? $Inf !! $limit;
+        return ().list     if $l <= 0;
+        return (self).list if $l == 1;
+
+        my $c = 0;
+        my $done = 0;
+        if $match-string eq "" {
+            my $chars = self.chars;
+            map {
+                last if $done;
+
+                if --$chars and --$l {
+                    self.substr($c++, 1);
                 }
-            }
-            take self.substr($c);
+                else {
+                    $done = 1;
+                    self.substr($c);
+                }
+            }, 1 .. $l;
+        }
+        else {
+            my $width = $match-string.chars;
+            map {
+                last if $done;
+
+                my $m = self.index($match-string, $c);
+                if $m.defined and --$l {
+                    my $value = self.substr($c, $m - $c);
+                    $c = $m + $width;
+                    $all ?? ($value,$match-string) !! $value;
+                }
+                else {
+                    $done = 1;
+                    self.substr($c);
+                }
+            }, 1 .. $l;
         }
     }
 

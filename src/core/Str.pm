@@ -698,25 +698,22 @@ my class Str does Stringy { # declared in BOOTSTRAP
         my $c = 0;
         my $l = $limit ~~ Whatever ?? $Inf !! $limit - 1;
         return ().list if $l < 0;
-        if $l >= 0 {
-            gather {
-                while $l-- > 0 {
-                    if ($match-string eq "") {
-                        last unless $c + 1 < self.chars;
-                        take self.substr($c, 1);
-                        $c++;
-                    } else {
-                        my $m = self.index($match-string, $c);
-                        last unless $m.defined;
-                        take self.substr($c, $m - $c);
-                        take $match-string if $all;
-                        $c = $m + $match-string.chars;
-                    }
+
+        gather {
+            while $l-- > 0 {
+                if ($match-string eq "") {
+                    last unless $c + 1 < self.chars;
+                    take self.substr($c, 1);
+                    $c++;
+                } else {
+                    my $m = self.index($match-string, $c);
+                    last unless $m.defined;
+                    take self.substr($c, $m - $c);
+                    take $match-string if $all;
+                    $c = $m + $match-string.chars;
                 }
-                take self.substr($c);
             }
-        } else {
-            Nil;
+            take self.substr($c);
         }
     }
 

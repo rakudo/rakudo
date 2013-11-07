@@ -58,11 +58,12 @@ my class Thread {
 {
     # This code is a little funky to avoid hitting jvmbootinterop at startup
     # even if we never use anything that needs it. This is because it carries
-    # some cost and may have a bad interaction with the evalserver.
+    # some cost and has a very bad interaction with the evalserver.
+    my int $not_yet = 1;
     my $init_thread;
     PROCESS::<$THREAD> := Proxy.new(
         FETCH => -> | {
-            unless nqp::isconcrete($init_thread) {
+            unless nqp::isconcrete($init_thread) || $not_yet {
                 my $interop   := nqp::jvmbootinterop();
                 my \JVMThread := $interop.typeForName('java.lang.Thread');
                 $init_thread  := nqp::create(Thread);
@@ -75,6 +76,7 @@ my class Thread {
         STORE => -> | {
             X::Assignment::RO.new.throw
         });
+    $not_yet = 0;
 }
 
 # A simple, reentrant lock mechanism.

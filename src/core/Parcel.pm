@@ -78,8 +78,14 @@ my class Parcel does Positional { # declared in BOOTSTRAP
             else {
                 $perl = $perl ~ ',';
             }
+            $perl ~ ')'
         }
-        $perl ~ ')';
+        elsif nqp::iscont(SELF) {
+            $perl ~ ' )' # beause $() is about Matches...
+        }
+        else {
+            $perl ~ ')'
+        }
     }
 
     method STORE(|) {

@@ -51,7 +51,6 @@ my class ThreadPoolScheduler does Scheduler {
             if $!initial_threads > $!max_threads;
     }
     
-    proto method cue(|) { * }
     multi method cue(&code) {
         self!initialize unless $!started_any;
         my $outstanding = $!outstanding.incrementAndGet();

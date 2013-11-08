@@ -5,7 +5,6 @@ my class CurrentThreadScheduler does Scheduler {
         $exception.throw
     }
 
-    proto method cue(|) { * }
     multi method cue(&code) {
         code()
     }

@@ -1,46 +1,47 @@
 # Anything that can be subscribed to does this role. It provides the basic
-# subscription management infrastructure, as well as various coercions that
-# turn Subscribable things into something else and convenience forms of calls
-# to SubscribableOperations.
-my class SubscribableOperations { ... }
-my role Subscribable {
-    my class Subscription {
+# supply management infrastructure, as well as various coercions that
+# turn Supply-like things into something else and convenience forms of calls
+# to SupplyOperations.
+
+my class SupplyOperations { ... }
+my role Supply {
+    my class Tap {
         has &.next;
         has &.last;
         has &.fail;
-        has $.subscribable;
-        method unsubscribe() {
-            $!subscribable.unsubscribe(self)
+        has $.supply;
+        method untap() {
+            $!supply.untap(self)
         }
     }
 
-    has @!subscriptions;
-    has $!subscriptions_lock = Lock.new;
+    has @!tappers;
+    has $!tappers_lock = Lock.new;
 
-    method subscribe(&next, &last?, &fail?) {
-        my $sub = Subscription.new(:&next, :&last, :&fail, :subscribable(self));
-        $!subscriptions_lock.run({
-            @!subscriptions.push($sub);
+    method tap(&next, &last?, &fail?) {
+        my $sub = Tap.new(:&next, :&last, :&fail, :supply(self));
+        $!tappers_lock.protect({
+            @!tappers.push($sub);
         });
         $sub
     }
 
-    method unsubscribe(Subscription $s) {
-        $!subscriptions_lock.run({
-            @!subscriptions.=grep(* !=== $s);
+    method untap(Tap $t) {
+        $!tappers_lock.protect({
+            @!tappers .= grep(* !=== $t);
         });
     }
 
-    method subscriptions() {
+    method tappers() {
         # Shallow clone to provide safe snapshot.
-        my @subs;
-        $!subscriptions_lock.run({ @subs = @!subscriptions });
-        @subs
+        my @tappers;
+        $!tappers_lock.protect({ @tappers = @!tappers });
+        @tappers
     }
 
     method Channel() {
         my $c = Channel.new();
-        self.subscribe(
+        self.tap(
             -> \val { $c.send(val) },
             { $c.close },
             -> $ex { $c.fail($ex) });
@@ -58,36 +59,38 @@ my role Subscribable {
         })
     }
 
-    method do(&side_effect) { SubscribableOperations.do(self, &side_effect) }
-    method grep(&filter)    { SubscribableOperations.grep(self, &filter) }
-    method map(&mapper)     { SubscribableOperations.map(self, &mapper) }
-    method merge($s)        { SubscribableOperations.merge(self, $s) }
-    method zip($s, *@with)  { SubscribableOperations.zip(self, $s, |@with) }
+    method do(&side_effect) { SupplyOperations.do(self, &side_effect) }
+    method grep(&filter)    { SupplyOperations.grep(self, &filter) }
+    method map(&mapper)     { SupplyOperations.map(self, &mapper) }
+    method merge($s)        { SupplyOperations.merge(self, $s) }
+    method zip($s, *@with)  { SupplyOperations.zip(self, $s, |@with) }
 }
 
 # The on meta-combinator provides a mechanism for implementing thread-safe
-# combinators on Subscribables. It subscribes to a bunch of sources, but will
+# combinators on Supplies. It subscribes to a bunch of sources, but will
 # only let one of the specified callbacks to handle their next/last/fail run
 # at a time. A little bit actor-like.
-my class X::Subscribable::On::BadSetup is Exception {
+my class X::Supply::On::BadSetup is Exception {
     method message() {
-        "on requires a callable that returns a list of pairs with Subscribable keys"
+        "on requires a callable that returns a list of pairs with Supply keys"
     }
 }
-my class X::Subscribable::On::NoNext is Exception {
+my class X::Supply::On::NoNext is Exception {
     method message() {
-        "on requires that next be specified for each subscribable"
+        "on requires that next be specified for each supply"
     }
 }
 sub on(&setup) {
-    my class OnSubscribable does Subscribable {
+    my class OnSupply does Supply {
         has &!setup;
         
         submethod BUILD(:&!setup) { }
 
-        method !add_source($source, $lock, :&next, :&last is copy, :&fail is copy) {
+        method !add_source(
+          $source, $lock, :&next, :&last is copy, :&fail is copy
+        ) {
             unless defined &next {
-                X::Subscribable::On::NoNext.new.throw;
+                X::Supply::On::NoNext.new.throw;
             }
             unless defined &last {
                 &last = { self.last }
@@ -95,39 +98,40 @@ sub on(&setup) {
             unless defined &fail {
                 &fail = -> $ex { self.fail($ex) }
             }
-            $source.subscribe(
+            $source.tap(
                 -> \val {
-                    $lock.run({ next(val) });
+                    $lock.protect({ next(val) });
                     CATCH { self.fail($_) }
                 },
                 {
-                    $lock.run({ last() });
+                    $lock.protect({ last() });
                     CATCH { self.fail($_) }
                 },
                 -> $ex {
-                    $lock.run({ fail($ex) });
+                    $lock.protect({ fail($ex) });
                     CATCH { self.fail($_) }
                 }
             );
         }
         
-        method subscribe(|c) {
-            my $sub = self.Subscribable::subscribe(|c);
-            my @subscriptions = &!setup(self);
-            my $lock = Lock.new;
-            for @subscriptions -> $ssn {
-                unless $ssn ~~ Pair && $ssn.key ~~ Subscribable {
-                    X::Subscribable::On::BadSetup.new.throw;
+        method tap(|c) {
+            my $sub     = self.Supply::tap(|c);
+            my @tappers = &!setup(self);
+            my $lock    = Lock.new;
+
+            for @tappers -> $tap {
+                unless $tap ~~ Pair && $tap.key ~~ Supply {
+                    X::Supply::On::BadSetup.new.throw;
                 }
-                given $ssn.value {
+                given $tap.value {
                     when EnumMap {
-                        self!add_source($ssn.key, $lock, |$ssn.value);
+                        self!add_source($tap.key, $lock, |$tap.value);
                     }
                     when Callable {
-                        self!add_source($ssn.key, $lock, next => $ssn.value);
+                        self!add_source($tap.key, $lock, next => $tap.value);
                     }
                     default {
-                        X::Subscribable::On::BadSetup.new.throw;
+                        X::Supply::On::BadSetup.new.throw;
                     }
                 }
             }
@@ -135,26 +139,26 @@ sub on(&setup) {
         }
 
         method next(\msg) {
-            for self.subscriptions {
+            for self.tappers {
                 .next().(msg)
             }
             Nil;
         }
 
         method last() {
-            for self.subscriptions {
+            for self.tappers {
                 if .last -> $l { $l() }
             }
             Nil;
         }
 
         method fail($ex) {
-            for self.subscriptions {
+            for self.tappers {
                 if .fail -> $t { $t($ex) }
             }
             Nil;
         }
     }
 
-    OnSubscribable.new(:&setup)
+    OnSupply.new(:&setup)
 }

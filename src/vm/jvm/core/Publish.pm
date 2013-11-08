@@ -1,14 +1,15 @@
 # Various generators and combinators are provided by Publish.
+
 my class Publish {
     method for(*@values, :$scheduler = $*SCHEDULER) {
-        my class ForSubscribable does Subscribable {
+        my class ForSupply does Supply {
             has @!values;
             has $!scheduler;
 
             submethod BUILD(:@!values, :$!scheduler) {}
 
-            method subscribe(|c) {
-                my $sub = self.Subscribable::subscribe(|c);
+            method tap(|c) {
+                my $sub = self.Supply::tap(|c);
                 $!scheduler.schedule_with_catch(
                     {
                         for @!values -> \val {
@@ -21,19 +22,19 @@ my class Publish {
                 $sub
             }
         }
-        ForSubscribable.new(:@values, :$scheduler)
+        ForSupply.new(:@values, :$scheduler)
     }
 
     method interval($interval, $delay = 0, :$scheduler = $*SCHEDULER) {
-        my class IntervalSubscribable does Subscribable {
+        my class IntervalSupply does Supply {
             has $!scheduler;
             has $!interval;
             has $!delay;
 
             submethod BUILD(:$!scheduler, :$!interval, :$!delay) {}
 
-            method subscribe(|c) {
-                my $sub = self.Subscribable::subscribe(|c);
+            method tap(|c) {
+                my $sub = self.Supply::tap(|c);
                 $!scheduler.schedule_every(
                     {
                         state $i = 0;
@@ -44,6 +45,6 @@ my class Publish {
                 $sub
             }
         }
-        IntervalSubscribable.new(:$interval, :$delay, :$scheduler)
+        IntervalSupply.new(:$interval, :$delay, :$scheduler)
     }
 }

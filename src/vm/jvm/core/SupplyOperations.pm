@@ -1,26 +1,27 @@
-# Operations we can do on Subscribables. Note, many of them need to compose
-# the Subscribable role into classes they create along the way, so they must
-# be declared outside of Subscribable.
-my class SubscribableOperations is repr('Uninstantiable') {
+# Operations we can do on Supplies. Note, many of them need to compose
+# the Supply role into classes they create along the way, so they must
+# be declared outside of Supply.
+
+my class SupplyOperations is repr('Uninstantiable') {
     # Private versions of the methods to relay events to subscribers, used in
     # implementing various operations.
     my role PrivatePublishing {
         method !next(\msg) {
-            for self.subscriptions {
+            for self.tappers {
                 .next().(msg)
             }
             Nil;
         }
 
         method !last() {
-            for self.subscriptions {
+            for self.tappers {
                 if .last { .last().() }
             }
             Nil;
         }
 
         method !fail($ex) {
-            for self.subscriptions {
+            for self.tappers {
                 if .fail { .fail().($ex) }
             }
             Nil;
@@ -33,16 +34,16 @@ my class SubscribableOperations is repr('Uninstantiable') {
         }
     }
     
-    method grep(Subscribable $a, &filter) {
-        my class GrepSubscribable does Subscribable does PrivatePublishing {
+    method grep(Supply $a, &filter) {
+        my class GrepSupply does Supply does PrivatePublishing {
             has $!source;
             has &!filter;
             
             submethod BUILD(:$!source, :&!filter) { }
             
-            method subscribe(|c) {
-                my $sub = self.Subscribable::subscribe(|c);
-                my $ssn = $!source.subscribe(
+            method tap(|c) {
+                my $sub = self.Supply::tap(|c);
+                my $tap = $!source.tap(
                     -> \val {
                         if (&!filter(val)) { self!next(val) }
                     },
@@ -52,19 +53,19 @@ my class SubscribableOperations is repr('Uninstantiable') {
                 $sub
             }
         }
-        GrepSubscribable.new(:source($a), :&filter)
+        GrepSupply.new(:source($a), :&filter)
     }
     
-    method map(Subscribable $a, &mapper) {
-        my class MapSubscribable does Subscribable does PrivatePublishing {
+    method map(Supply $a, &mapper) {
+        my class MapSupply does Supply does PrivatePublishing {
             has $!source;
             has &!mapper;
             
             submethod BUILD(:$!source, :&!mapper) { }
             
-            method subscribe(|c) {
-                my $sub = self.Subscribable::subscribe(|c);
-                my $ssn = $!source.subscribe(
+            method tap(|c) {
+                my $sub = self.Supply::tap(|c);
+                my $tap = $!source.tap(
                     -> \val {
                         self!next(&!mapper(val))
                     },
@@ -74,10 +75,10 @@ my class SubscribableOperations is repr('Uninstantiable') {
                 $sub
             }
         }
-        MapSubscribable.new(:source($a), :&mapper)
+        MapSupply.new(:source($a), :&mapper)
     }
     
-    method merge(Subscribable $a, Subscribable $b) {
+    method merge(Supply $a, Supply $b) {
         my $lasts = 0;
         on -> $res {
             $a => {
@@ -95,7 +96,7 @@ my class SubscribableOperations is repr('Uninstantiable') {
         }
     }
     
-    method zip(Subscribable $a, Subscribable $b, &with = &infix:<,>) {
+    method zip(Supply $a, Supply $b, &with = &infix:<,>) {
         my @as;
         my @bs;
         on -> $res {

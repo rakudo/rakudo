@@ -11,7 +11,7 @@ my class Lock {
 
     method unlock() { $!lock.unlock() }
 
-    method run(&code) {
+    method protect(&code) {
         $!lock.lock();
         my \res := code();
         $!lock.unlock();

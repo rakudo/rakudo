@@ -121,13 +121,13 @@ my class Promise {
     method then(Promise:D: &code) {
         $!lock.lock();
         if $!status == any(Broken, Kept) {
-            # Already have the result, run immediately.
+            # Already have the result, start immediately.
             $!lock.unlock();
-            Promise.run(:$!scheduler, :code({ code(self) }))
+            Promise.start(:$!scheduler, :code({ code(self) }))
         }
         else {
             # Create a Promise, and push 2 entries to @!thens: something that
-            # runs the then code, and something that handles its exceptions.
+            # starts the then code, and something that handles its exceptions.
             # They will be sent to the scheduler when this promise is kept or
             # broken.
             my $then_promise = Promise.new(:$!scheduler);
@@ -139,7 +139,7 @@ my class Promise {
         }
     }
     
-    method run(Promise:U: &code, :$scheduler = $*SCHEDULER) {
+    method start(Promise:U: &code, :$scheduler = $*SCHEDULER) {
         my $p = Promise.new(:$scheduler);
         my $k = $p.keeper;
         $scheduler.schedule_with_catch(
@@ -196,6 +196,4 @@ my class Promise {
 
 # Schedules a piece of asynchronous work using the current scheduler, and
 # returns a Promise that represents it.
-sub async(&code) {
-    Promise.run(&code);
-}
+sub start(&code) { Promise.start(&code) }

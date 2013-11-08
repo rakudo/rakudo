@@ -29,7 +29,7 @@ my class ThreadPoolScheduler does Scheduler {
         if $!thread_start_semaphore.'method/tryAcquire/(I)Z'(1) {
             my $interop := nqp::jvmbootinterop();
             $!started_any = 1;
-            Thread.run(:app_lifetime, {
+            Thread.start(:app_lifetime, {
                 loop {
                     my Mu $task := $interop.javaObjectToSixmodel($!queue.take());
                     try {
@@ -64,7 +64,7 @@ my class ThreadPoolScheduler does Scheduler {
         $!timer.'method/schedule/(Ljava/util/TimerTask;J)V'(
             nqp::jvmbootinterop().proxy(
                 'java.util.TimerTask',
-                nqp::hash('run', -> { code() })),
+                nqp::hash('start', -> { code() })),
             ($delay * 1000).Int);
     }
 
@@ -73,7 +73,7 @@ my class ThreadPoolScheduler does Scheduler {
         $!timer.'method/scheduleAtFixedRate/(Ljava/util/TimerTask;JJ)V'(
             nqp::jvmbootinterop().proxy(
                 'java.util.TimerTask',
-                nqp::hash('run', -> { code() })),
+                nqp::hash('start', -> { code() })),
             ($delay * 1000).Int,
             ($interval * 1000).Int);
     }

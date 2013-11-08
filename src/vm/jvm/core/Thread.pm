@@ -20,7 +20,7 @@ my class Thread {
         my $interop   := nqp::jvmbootinterop();
         my \JVMThread := $interop.typeForName('java.lang.Thread');
         $!jvm_thread  := JVMThread."constructor/new/(Ljava/lang/Runnable;)V"(
-            $interop.proxy('java.lang.Runnable', nqp::hash('run',
+            $interop.proxy('java.lang.Runnable', nqp::hash('start',
                 {
                     my $*THREAD = self;
                     code();
@@ -28,11 +28,11 @@ my class Thread {
         $!jvm_thread.setDaemon(1) if $!app_lifetime;
     }
 
-    method run(&code, *%adverbs) {
-        Thread.new(:&code, |%adverbs).start()
+    method start(&code, *%adverbs) {
+        Thread.new(:&code, |%adverbs).jvm_start()
     }
 
-    method start(Thread:D:) {
+    method jvm_start(Thread:D:) {
         $!jvm_thread.start();
         self
     }

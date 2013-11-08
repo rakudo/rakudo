@@ -64,7 +64,7 @@ my class ThreadPoolScheduler does Scheduler {
         $!timer.'method/schedule/(Ljava/util/TimerTask;J)V'(
             nqp::jvmbootinterop().proxy(
                 'java.util.TimerTask',
-                nqp::hash('start', -> { code() })),
+                nqp::hash('run', -> { code() })),
             ($delay * 1000).Int);
     }
 
@@ -73,7 +73,7 @@ my class ThreadPoolScheduler does Scheduler {
         $!timer.'method/scheduleAtFixedRate/(Ljava/util/TimerTask;JJ)V'(
             nqp::jvmbootinterop().proxy(
                 'java.util.TimerTask',
-                nqp::hash('start', -> { code() })),
+                nqp::hash('run', -> { code() })),
             ($delay * 1000).Int,
             ($interval * 1000).Int);
     }

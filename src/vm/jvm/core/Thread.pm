@@ -20,7 +20,7 @@ my class Thread {
         my $interop   := nqp::jvmbootinterop();
         my \JVMThread := $interop.typeForName('java.lang.Thread');
         $!jvm_thread  := JVMThread."constructor/new/(Ljava/lang/Runnable;)V"(
-            $interop.proxy('java.lang.Runnable', nqp::hash('start',
+            $interop.proxy('java.lang.Runnable', nqp::hash('run',
                 {
                     my $*THREAD = self;
                     code();

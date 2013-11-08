@@ -51,37 +51,39 @@ my class ThreadPoolScheduler does Scheduler {
             if $!initial_threads > $!max_threads;
     }
     
-    method schedule(&code) {
+    proto method cue(|) { * }
+    multi method cue(&code) {
         self!initialize unless $!started_any;
         my $outstanding = $!outstanding.incrementAndGet();
         self!maybe_new_thread()
             if !$!started_any || $outstanding > 1;
         $!queue.add(nqp::jvmbootinterop().sixmodelToJavaObject(&code));
     }
-
-    method schedule_in(&code, $delay) {
-        self!initialize() unless $!started_any;
-        $!timer.'method/schedule/(Ljava/util/TimerTask;J)V'(
-            nqp::jvmbootinterop().proxy(
-                'java.util.TimerTask',
-                nqp::hash('run', -> { code() })),
-            ($delay * 1000).Int);
+    multi method cue(&code, :$in!) {
+        self!cue_in(&code, $in);
     }
-
-    method schedule_every(&code, $interval, $delay = 0) {
-        self!initialize() unless $!started_any;
-        $!timer.'method/scheduleAtFixedRate/(Ljava/util/TimerTask;JJ)V'(
-            nqp::jvmbootinterop().proxy(
-                'java.util.TimerTask',
-                nqp::hash('run', -> { code() })),
-            ($delay * 1000).Int,
-            ($interval * 1000).Int);
+    multi method cue(&code, :$every!, :$in = 0) {
+        self!cue_in(&code, $in, $every);
+    }
+    multi method cue(&code, :$at!, :$every, :$in) {
+        die "Cannot specify :at and :in at the same time" if $in.defined;
+        self!cue_in(&code, $at - now, $every);
     }
 
     method outstanding() {
         $!outstanding.get()
     }
-    
+
+    method !cue_in(&code, $in, $every?) {
+        self!initialize() unless $!started_any;
+        $!timer.'method/scheduleAtFixedRate/(Ljava/util/TimerTask;JJ)V'(
+            nqp::jvmbootinterop().proxy(
+                'java.util.TimerTask',
+                nqp::hash('run', -> { code() })),
+            ($in * 1000).Int,
+            ( $every.defined ?? ($every * 1000).Int !! () ) );
+    }
+
     method !initialize() {
         # Things we will use from the JVM.
         my $interop              := nqp::jvmbootinterop();

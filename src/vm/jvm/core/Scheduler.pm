@@ -1,6 +1,7 @@
 # Schedulers do this role. It mostly serves as an interface for the things
 # that schedulers must do, as well as a way to factor out some common "sugar"
 # and infrastructure.
+
 my role Scheduler {
     has &.uncaught_handler is rw;
 
@@ -17,16 +18,18 @@ my role Scheduler {
         }
     }
 
-    method schedule(&code) { ... }
+    proto method cue(|) { * }
+    multi method cue(&code) { ... }
+    multi method cue(&code, :$in!) { ... }
+    multi method cue(&code, :$every!, :$in = 0) { ... }
+    multi method cue(&code, :$at!, :$every, :$in) { ... }
 
-    method schedule_with_catch(&code, &catch) {
-        self.schedule({
+    method cue_with_catch(&code, &catch) {
+        self.cue({
             code();
             CATCH { default { catch($_) } }
         })
     }
     
-    method schedule_in(&code, $delay) { ... }
-    method schedule_every(&code, $interval, $delay = 0) { ... }
     method outstanding() { ... }
 }

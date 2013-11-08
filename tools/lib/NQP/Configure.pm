@@ -285,10 +285,11 @@ sub gen_nqp {
             my $bin = fill_template_text('@bindir@/nqp-p@ext@', %c);
             $impls{parrot}{bin} = $bin;
             %c  = read_config($bin);
+            $impls{parrot}{config} = \%c;
             my $nqp_have = $c{'nqp::version'};
             my $nqp_ok   = $nqp_have && cmp_rev($nqp_have, $nqp_want) >= 0;
             if ($nqp_ok) {
-                $impls{parrot}{config} = \%c;
+                $impls{parrot}{ok} = 1;
             }
             else {
                 $need{parrot} = 1;
@@ -305,9 +306,10 @@ sub gen_nqp {
             $impls{$b}{bin} = $bin;
             my %c = read_config($bin);
             my $nqp_have = $c{'nqp::version'} || '';
+            $impls{$b}{config} = \%c;
             my $nqp_ok   = $nqp_have && cmp_rev($nqp_have, $nqp_want) >= 0;
             if ($nqp_ok) {
-                $impls{$b}{config} = \%c;
+                $impls{$b}{ok} = 1;
             }
             else {
                 $need{$b} = 1;

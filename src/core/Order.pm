@@ -1,8 +1,8 @@
 ## Order enumeration, for cmp and <=>
 my enum Order (:Less(-1), :Same(0), :More(1));
 
-sub Increase { DEPRECATED("Less"); Less }
-sub Decrease { DEPRECATED("More"); More }
+only Increase () { DEPRECATED("Less"); Less }
+only Decrease  (){ DEPRECATED("More"); More }
 
 proto infix:<cmp>($, $) { * }
 multi infix:<cmp>(\a, \b) {

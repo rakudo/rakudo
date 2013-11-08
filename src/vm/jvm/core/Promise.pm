@@ -9,14 +9,14 @@ my class X::Promise::Combinator is Exception {
 my class X::Promise::CauseOnlyValidOnBroken is Exception {
     method message() { "Can only call cause on a broken promise" }
 }
-my class X::Promise::KeeperTaken is Exception {
-    method message() { "Access denied to keep/break this Promise; the keeper was already taken" }
+my class X::Promise::Vowed is Exception {
+    method message() { "Access denied to keep/break this Promise; already vowed" }
 }
 my class Promise {
     has $.scheduler;
     has $.status;
     has $!result;
-    has int $!keeper_taken;
+    has int $!vow_taken;
     has Mu $!ready_semaphore;
     has Mu $!lock;
     has @!thens;
@@ -30,12 +30,12 @@ my class Promise {
         $!status           = Planned;
     }
     
-    # A Promise::Keeper is used to enable the right to keep/break a promise
-    # to be restricted to a given "owner". Taking the keeper for a Promise
+    # A Promise::Vow is used to enable the right to keep/break a promise
+    # to be restricted to a given "owner". Taking the Vow for a Promise
     # prevents anybody else from getting hold of it.
-    class Keeper { ... }
-    trusts Keeper;
-    class Keeper {
+    class Vow { ... }
+    trusts Vow;
+    class Vow {
         has $.promise;
         method keep(\result) {
             $!promise!Promise::keep(result)
@@ -44,21 +44,21 @@ my class Promise {
             $!promise!Promise::break(exception)
         }
     }
-    method keeper() {
+    method vow() {
         $!lock.lock();
-        if $!keeper_taken {
+        if $!vow_taken {
             $!lock.unlock();
-            X::Promise::KeeperTaken.new.throw
+            X::Promise::Vowed.new.throw
         }
-        my $k := nqp::create(Keeper);
-        nqp::bindattr($k, Keeper, '$!promise', self);
-        $!keeper_taken = 1;
+        my $vow := nqp::create(Vow);
+        nqp::bindattr($vow, Vow, '$!promise', self);
+        $!vow_taken = 1;
         $!lock.unlock();
-        $k
+        $vow
     }
 
     method keep(Promise:D: $result) {
-        self.keeper.keep($result)
+        self.vow.keep($result)
     }
     
     method !keep($!result) {
@@ -69,7 +69,7 @@ my class Promise {
     }
     
     method break(Promise:D: $result) {
-        self.keeper.break($result)
+        self.vow.break($result)
     }
     
     method !break($result) {
@@ -131,27 +131,27 @@ my class Promise {
             # They will be sent to the scheduler when this promise is kept or
             # broken.
             my $then_promise = Promise.new(:$!scheduler);
-            my $k = $then_promise.keeper;
-            @!thens.push({ $k.keep(code(self)) });
-            @!thens.push(-> $ex { $k.break($ex) });
+            my $vow = $then_promise.vow;
+            @!thens.push({ $vow.keep(code(self)) });
+            @!thens.push(-> $ex { $vow.break($ex) });
             $!lock.unlock();
             $then_promise
         }
     }
     
     method start(Promise:U: &code, :$scheduler = $*SCHEDULER) {
-        my $p = Promise.new(:$scheduler);
-        my $k = $p.keeper;
+        my $p   = Promise.new(:$scheduler);
+        my $vow = $p.vow;
         $scheduler.schedule_with_catch(
-            { $k.keep(code()) },
-            -> $ex { $k.break($ex) });
+            { $vow.keep(code()) },
+            -> $ex { $vow.break($ex) });
         $p
     }
     
     method sleep(Promise:U: $seconds, :$scheduler = $*SCHEDULER) {
-        my $p = Promise.new(:$scheduler);
-        my $k = $p.keeper;
-        $scheduler.schedule_in({ $k.keep(True) }, $seconds);
+        my $p   = Promise.new(:$scheduler);
+        my $vow = $p.vow;
+        $scheduler.schedule_in({ $vow.keep(True) }, $seconds);
         $p
     }
     
@@ -174,18 +174,18 @@ my class Promise {
             Nil;
         }
         my Mu $c := $AtomicInteger.'constructor/new/(I)V'(nqp::decont($n));
-        my $p = Promise.new;
-        my $k = $p.keeper;
+        my $p   = Promise.new;
+        my $vow = $p.vow;
         for @promises -> $cand {
             $cand.then({
                 if .status == Kept {
                     if $c.'decrementAndGet'() == 0 {
-                        $k.keep(True)
+                        $vow.keep(True)
                     }
                 }
                 else {
                     if $c.'getAndAdd'(-($n + 1)) > 0 {
-                        $k.break(.cause)
+                        $vow.break(.cause)
                     }
                 }
             })

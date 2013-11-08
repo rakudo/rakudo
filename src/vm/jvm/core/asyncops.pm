@@ -2,6 +2,7 @@
 # and, once it can, unwraps or returns the result. This should be made more
 # efficient by using continuations to suspend any task running in the thread
 # pool that blocks; for now, this cheat gets the basic idea in place.
+
 proto sub await(|) { * }
 multi sub await(Promise $p) {
     $p.result
@@ -17,54 +18,58 @@ multi sub await(Channel $c) {
 # code block of whichever Channel receives first whichever Promise is kept
 # or broken first. Evaluates to the result of that code block.
 # If none of the channels have a value or none of the promises have a result,
-# then the default block is ran. If there is no default block, select() blocks
+# then the default block is ran. If there is no default block, winner() blocks
 # until one channel or promise is ready.
-# If more than one channel/promise is ready, select() picks one at random
-proto sub select(|) { * }
-multi sub select(*@selectors, :$default) {
-    multi is-ready(Promise $p) {
-        if $p.has_result {
-            return (True, $p)
+# If more than one channel/promise is ready, winner() picks one at random
+
+proto sub winner(|) { * }
+multi sub winner(*@contestants, :$default) {
+    multi is-ready(Promise $contestant) {
+        if $contestant.has_result {
+            return (True, $contestant)
         }
         return (False, False)
     }
 
     multi is-ready(Channel $c) {
-        my $selected is default(Nil) = $c.poll;
-        unless $selected === Nil {
-            return (True, $selected)
+        my $contestant is default(Nil) = $c.poll;
+        unless $contestant === Nil {
+            return (True, $contestant)
         }
         return (False, False)
     }
     multi is-ready(Any $c) {
-        die "Cannot use select on a " ~ .^name;
+        die "Cannot use winner on a " ~ .^name;
     }
 
-    my $choice;
+    if @contestants.grep: { $_ !~~ Pair } {
+       die "winner() expects to be passed a list of pairs";
+    }
+
+    my $winner;
     loop {
         my @ready;
         my @waiting;
-        for @selectors -> $s {
-            die "select expects to be passed a list of pairs" unless $s ~~ Pair;
-            my $arg = is-ready($s.key);
+        for @contestants -> $c {
+            my $arg = is-ready($c.key);
             if $arg[0] {
-                @ready.push: $s.value => $arg[1]
+                @ready.push: $c.value => $arg[1]
             } else {
-                @waiting.push: $s
+                @waiting.push: $c
             }
         }
         if @ready {
-            $choice = @ready.pick;
+            $winner = @ready.pick;
             last;
         } elsif $default {
-            $choice = $default;
+            $winner = $default;
             last;
         }
         else {
             Thread.yield;
         }
     }
-    nqp::istype($choice, Pair)
-        ?? $choice.key.($choice.value)
-        !! $choice.()
+    nqp::istype($winner, Pair)
+        ?? $winner.key.($winner.value)
+        !! $winner.()
 }

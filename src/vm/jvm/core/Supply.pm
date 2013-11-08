@@ -51,7 +51,7 @@ my role Subscribable {
         # Use a Channel to handle any asynchrony.
         my $c = self.Channel;
         (1..*).map(sub ($) {
-            select(
+            winner(
                 $c        => -> \val { return val },
                 $c.closed => -> $p { $p.result; last }
             )

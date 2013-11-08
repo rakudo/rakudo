@@ -328,6 +328,7 @@ sub gen_nqp {
         my $parrot = gen_parrot($par_want, %options, prefix => $prefix);
         my %c = read_parrot_config($parrot);
         $impls{parrot}{bin} = fill_template_text('@bindir@/nqp-p@ext@', %c);
+        $impls{parrot}{ok} = 1;
         $impls{parrot}{config} = \%c;
     }
 
@@ -346,6 +347,7 @@ sub gen_nqp {
         my %c = read_config($impls{$k}{bin});
         %c = (%{ $impls{$k}{config} || {} }, %c);
         $impls{$k}{config} = \%c;
+        $impls{$k}{ok} = 1;
     }
     return %impls;
 }

@@ -328,13 +328,20 @@ class Perl6::World is HLL::World {
     
     # Loads a module immediately, and also makes sure we load it
     # during the deserialization.
-    method load_module($/, $module_name, $cur_GLOBALish) {
+    method load_module($/, $module_name, %opts, $cur_GLOBALish) {
         # Immediate loading.
-        my $line := HLL::Compiler.lineof($/.orig, $/.from, :cache(1));
-        my $module := Perl6::ModuleLoader.load_module($module_name, $cur_GLOBALish, :$line);
+        my $line   := HLL::Compiler.lineof($/.orig, $/.from, :cache(1));
+        my $module := Perl6::ModuleLoader.load_module($module_name, %opts,
+            $cur_GLOBALish, :$line);
         
         # During deserialization, ensure that we get this module loaded.
         if self.is_precompilation_mode() {
+            my $opt_hash := QAST::Op.new( :op('hash') );
+            for %opts {
+                self.add_object($_.value);
+                $opt_hash.push(QAST::SVal.new( :value($_.key) ));
+                $opt_hash.push(QAST::WVal.new( :value($_.value) ));
+            }
             self.add_load_dependency_task(:deserialize_past(QAST::Stmts.new(
                 self.perl6_module_loader_code(),
                 QAST::Op.new(
@@ -342,11 +349,12 @@ class Perl6::World is HLL::World {
                    QAST::Op.new( :op('getcurhllsym'),
                         QAST::SVal.new( :value('ModuleLoader') ) ),
                    QAST::SVal.new( :value($module_name) ),
+                   $opt_hash,
                    QAST::IVal.new(:value($line), :named('line'))
                 ))));
         }
 
-        return nqp::ctxlexpad($module);
+        return $module;
     }
     
     # Uses the NQP module loader to load Perl6::ModuleLoader, which
@@ -386,6 +394,9 @@ class Perl6::World is HLL::World {
                 # if both are multis and have onlystar dispatchers.
                 my $installed := %sym<value>;
                 my $foreign := $_.value;
+                if $installed =:= $foreign {
+                    next;
+                }
                 if nqp::can($installed, 'is_dispatcher') && $installed.is_dispatcher
                 && nqp::can($foreign, 'is_dispatcher') && $foreign.is_dispatcher {
                     # Both dispatchers, but are they onlystar? If so, we can
@@ -605,15 +616,15 @@ class Perl6::World is HLL::World {
                     QAST::Var.new( :scope('lexical'), :name($name) ),
                     QAST::SVal.new( :value('') ) ))
             }
-            return 1;
+            return nqp::null();
         }
         
         # Build container.
         my $cont := nqp::create(%cont_info<container_type>);
         nqp::bindattr($cont, %cont_info<container_base>, '$!descriptor', $descriptor);
-        if nqp::existskey(%cont_info, 'default_value') {
+        if nqp::existskey(%cont_info, 'scalar_value') {
             nqp::bindattr($cont, %cont_info<container_base>, '$!value',
-                %cont_info<default_value>);
+                %cont_info<scalar_value>);
         }
         if nqp::existskey(%cont_info, 'container_shape') {
             $block[0].push(
@@ -625,6 +636,17 @@ class Perl6::World is HLL::World {
                     %cont_info<container_shape>
                 )
             );
+            if nqp::existskey(%cont_info, 'container_index_map') {
+                $block[0].push(
+                    QAST::Op.new(
+                        :op('bindattr'),
+                        QAST::Var.new(:scope('lexical'), :name($name)),
+                        QAST::WVal.new(:value(%cont_info<container_base>)),
+                        QAST::SVal.new(:value('$!index_map')),
+                        %cont_info<container_index_map>
+                    )
+                );
+            }
         }
         self.add_object($cont);
         $block.symbol($name, :value($cont));
@@ -633,12 +655,15 @@ class Perl6::World is HLL::World {
         # Tweak var to have container.
         $var.value($cont);
         $var.decl($scope eq 'state' ?? 'statevar' !! 'contvar');
+        
+        # Evaluate to the container.
+        $cont
     }
     
     # Creates a new container descriptor and adds it to the SC.
-    method create_container_descriptor($of, $rw, $name, $default = $of) {
+    method create_container_descriptor($of, $rw, $name, $default = $of, $dynamic = nqp::chars($name) > 2 && nqp::substr($name, 1, 1) eq "*") {
         my $cd_type := self.find_symbol(['ContainerDescriptor']);
-        my $cd := $cd_type.new( :$of, :$rw, :$name, :$default );
+        my $cd := $cd_type.new( :$of, :$rw, :$name, :$default, :$dynamic );
         self.add_object($cd);
         $cd
     }
@@ -655,7 +680,7 @@ class Perl6::World is HLL::World {
         }
         else {
             my $Mu     := self.find_symbol(['Mu']);
-            my $Any    := self.find_symbol(['Any']);
+            my $Nil    := self.find_symbol(['Nil']);
             my $Scalar := self.find_symbol(['Scalar']);
             
             %info := nqp::hash(
@@ -663,9 +688,10 @@ class Perl6::World is HLL::World {
                 'container_type',  $Scalar,
                 'bind_constraint', $Mu,
                 'value_type',      $Mu,
-                'default_value',   $Any
+                'default_value',   $Nil,
+                'scalar_value',    $Nil,
             );
-            $desc := self.create_container_descriptor($Mu, 1, $name, $Any);
+            $desc := self.create_container_descriptor($Mu, 1, $name, $Nil, 1);
 
             %!magical_cds{$name} := [%info, $desc];
         }
@@ -694,13 +720,13 @@ class Perl6::World is HLL::World {
         
         # Default contents, if applicable (note, slurpy param as we can't
         # use definedness here, as it's a type object we'd be checking).
-        if nqp::existskey(%cont_info, 'default_value') {
+        if nqp::existskey(%cont_info, 'scalar_value') {
             $cont_code.push(QAST::Op.new(
                 :op('bindattr'),
                 QAST::Var.new( :name($tmp), :scope('local') ),
                 QAST::WVal.new( :value(%cont_info<container_base>) ),
                 QAST::SVal.new( :value('$!value') ),
-                QAST::WVal.new( :value(%cont_info<default_value>) )));
+                QAST::WVal.new( :value(%cont_info<scalar_value>) )));
         }
 
         if nqp::existskey(%cont_info, 'container_shape') {
@@ -897,6 +923,7 @@ class Perl6::World is HLL::World {
         my $code := self.stub_code_object($type);
         self.attach_signature($code, $signature);
         self.finish_code_object($code, $code_past, $is_dispatcher, :yada($yada));
+        self.add_phasers_handling_code($code, $code_past);
         $code
     }
 
@@ -937,9 +964,6 @@ class Perl6::World is HLL::World {
         
         # Remove it from the code objects stack.
         @!CODES.pop();
-        
-        # Handle any phasers.
-        self.add_phasers_handling_code($code, $code_past);
                 
         # Locate various interesting symbols.
         my $code_type    := self.find_symbol(['Code']);
@@ -1284,7 +1308,8 @@ class Perl6::World is HLL::World {
             $wrapper
         );
         my $comp := nqp::getcomp('perl6');
-        my $precomp := $comp.compile($compunit, :from<optimize>, :compunit_ok(1));
+        my $precomp := $comp.compile($compunit, :from<optimize>, :compunit_ok(1),
+             :lineposcache($*LINEPOSCACHE));
         my $mainline := $comp.backend.compunit_mainline($precomp);
         $mainline();
         
@@ -1502,9 +1527,9 @@ class Perl6::World is HLL::World {
         # Build container.
         my $cont := nqp::create(%cont_info<container_type>);
         nqp::bindattr($cont, %cont_info<container_base>, '$!descriptor', $descriptor);
-        if nqp::existskey(%cont_info, 'default_value') {
+        if nqp::existskey(%cont_info, 'scalar_value') {
             nqp::bindattr($cont, %cont_info<container_base>, '$!value',
-                %cont_info<default_value>);
+                %cont_info<scalar_value>);
         }
         if nqp::existskey(%cont_info, 'container_shape') {
             nqp::bindattr($cont, %cont_info<container_base>, '$!shape',
@@ -1729,30 +1754,6 @@ class Perl6::World is HLL::World {
             ));
             return QAST::Var.new(:name('Nil'), :scope('lexical'));
         }
-        elsif $phaser eq 'START' {
-            # Create a state variable to hold the phaser's result.
-            my $pad := self.cur_lexpad();
-            my $sym := $pad.unique('START_');
-            my $mu := self.find_symbol(['Mu']);
-            my $descriptor := self.create_container_descriptor($mu, 1, $sym);
-            my %info;
-            %info<container_type> := %info<container_base> := self.find_symbol(['Scalar']);
-            %info<default_value> := %info<bind_constraint> := %info<value_type> := $mu;
-            self.install_lexical_container($pad, $sym, %info, $descriptor, :scope('state'));
-            
-            # Generate code that runs the phaser the first time we init
-            # the state block, or just evaluates to the existing value
-            # in other cases.
-            make QAST::Op.new(
-                :op('if'),
-                QAST::Op.new( :op('p6stateinit') ),
-                QAST::Op.new(
-                    :op('p6store'),
-                    QAST::Var.new( :name($sym), :scope('lexical') ),
-                    QAST::Op.new( :op('call'), QAST::WVal.new( :value($block) ) )
-                ),
-                QAST::Var.new( :name($sym), :scope('lexical') ));
-        }
         elsif $phaser eq 'PRE' || $phaser eq 'POST' {
             my $what := self.add_string_constant($phaser);
             $what.named('phaser');
@@ -1964,6 +1965,20 @@ class Perl6::World is HLL::World {
             @name
         }
         
+        method colonpairs_hash($dba) {
+            my %result;
+            for @!colonpairs {
+                if $_<identifier> {
+                    my $pair := $*W.compile_time_evaluate($_, $_.ast);
+                    %result{$pair.key} := $pair.value;
+                }
+                else {
+                    $_.CURSOR.panic("Colonpair too complex in $dba");
+                }
+            }
+            %result
+        }
+        
         method get_who() {
             $!get_who
         }
@@ -2015,11 +2030,18 @@ class Perl6::World is HLL::World {
         my @pairs;
         for $longname<colonpair> {
             if $_<coloncircumfix> && !$_<identifier> {
-                @components[+@components - 1] := @components[+@components - 1]
-                        ~ (%*COMPILING<%?OPTIONS><setting> ne 'NULL'
-                                ??  ':<' ~ ~$*W.compile_time_evaluate($_, $_.ast) ~ '>'
-                                !!  ~$_
-                           );
+                my $cp_str;
+                if %*COMPILING<%?OPTIONS><setting> ne 'NULL' {
+                    # Safe to evaluate it directly; no bootstrap issues.
+                    $cp_str := ':<' ~ ~$*W.compile_time_evaluate($_, $_.ast) ~ '>';
+                }
+                else {
+                    my $ast := $_.ast;
+                    $cp_str := nqp::istype($ast, QAST::Want) && nqp::istype($ast[2], QAST::SVal)
+                        ?? ':<' ~ $ast[2].value ~ '>'
+                        !! ~$_;
+                }
+                @components[+@components - 1] := @components[+@components - 1] ~ $cp_str;
             }
             else {
                 @pairs.push($_);
@@ -2243,7 +2265,7 @@ class Perl6::World is HLL::World {
                     );
                 }
                 $lookup := QAST::Op.new(
-                    :op('callmethod'), :name('postcircumfix:<{ }>'),
+                    :op('call'), :name('&postcircumfix:<{ }>'),
                     $lookup,
                     self.add_string_constant($_));
             }
@@ -2427,6 +2449,7 @@ class Perl6::World is HLL::World {
         %opts<panic> := @panic[0] if @panic;
         %opts<sorrows> := p6ize_recursive(@*SORROWS) if @*SORROWS;
         %opts<worries> := p6ize_recursive(@*WORRIES) if @*WORRIES;
+        %opts<filename> := nqp::box_s(nqp::getlexdyn('$?FILES'), self.find_symbol(['Str']));
         try {
             my $group_type := self.find_symbol(['X', 'Comp', 'Group']);
             return $group_type.new(|%opts);
@@ -2462,7 +2485,10 @@ class Perl6::World is HLL::World {
             # that location.
             my $c := $/.CURSOR;
             my @expected;
-            if $c.'!highwater'() >= $c.pos() {
+            if %opts<expected> {
+                @expected := %opts<expected>;
+            }
+            elsif $c.'!highwater'() >= $c.pos() {
                 my @raw_expected := $c.'!highexpect'();
                 $c.'!cursor_pos'($c.'!highwater'());
                 my %seen;
@@ -2520,18 +2546,17 @@ class Perl6::World is HLL::World {
                 (nqp::isnull($file) ?? '<unknown file>' !! $file),
                 self.find_symbol(['Str'])
             );
-            return $ex.new(|%opts);
-        } else {
-            my @err := ['Error while compiling, type ', join('::', $ex_type),  "\n"];
-            for %opts -> $key {
-                @err.push: '  ';
-                @err.push: $key;
-                @err.push: ': ';
-                @err.push: %opts{$key};
-                @err.push: "\n";
-            }
-            nqp::findmethod(HLL::Grammar, 'panic')($/.CURSOR, join('', @err));
+            try { return $ex.new(|%opts) };
         }
+        my @err := ['Error while compiling, type ', join('::', $ex_type),  "\n"];
+        for %opts -> $key {
+            @err.push: '  ';
+            @err.push: $key;
+            @err.push: ': ';
+            @err.push: %opts{$key};
+            @err.push: "\n";
+        }
+        nqp::findmethod(HLL::Grammar, 'panic')($/.CURSOR, join('', @err));
     }
     
     method locprepost($c) {

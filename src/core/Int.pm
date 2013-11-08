@@ -1,7 +1,10 @@
 my class Rat { ... }
 my class X::Numeric::DivideByZero { ... }
 
-my class Int does Real {
+my class Int does Real { # declared in BOOTSTRAP
+    # class Int is Cool {
+    #     has bigint $!value is box_target;
+
     multi method WHICH(Int:D:) {
         nqp::box_s(
             nqp::concat(
@@ -145,18 +148,20 @@ multi infix:<*>(int $a, int $b) returns int {
 }
 
 multi infix:<div>(Int:D \a, Int:D \b) {
-    fail X::Numeric::DivideByZero.new() unless b;
+    fail X::Numeric::DivideByZero.new unless b;
     nqp::div_I(nqp::decont(a), nqp::decont(b), Int)
 }
 multi infix:<div>(int $a, int $b) {
-    fail X::Numeric::DivideByZero.new() unless $b;
+    fail X::Numeric::DivideByZero.new unless $b;
     nqp::div_i($a, $b)
 }
 
 multi infix:<%>(Int:D \a, Int:D \b) returns Int {
+    fail X::Numeric::DivideByZero.new(using => 'infix:<%>') unless b;
     nqp::mod_I(nqp::decont(a), nqp::decont(b), Int);
 }
 multi infix:<%>(int $a, int $b) returns int {
+    fail X::Numeric::DivideByZero.new(using => 'infix:<%>') unless $b;
     nqp::mod_i($a, $b)
 }
 

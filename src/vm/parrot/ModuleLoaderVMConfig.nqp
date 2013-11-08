@@ -15,6 +15,7 @@ role Perl6::ModuleLoaderVMConfig {
         # If its name contains a slash or dot treat is as a path rather than a package name.
         my @candidates;
         if nqp::defined($file) {
+            $file := nqp::gethllsym('perl6', 'ModuleLoader').absolute_path($file);
             if nqp::stat($file, 0) {
                 my %cand;
                 %cand<key> := $file;
@@ -39,7 +40,7 @@ role Perl6::ModuleLoaderVMConfig {
             
             # Go through the prefixes and build a candidate list.
             for @prefixes -> $prefix {
-                $prefix := ~$prefix;
+                $prefix := nqp::gethllsym('perl6', 'ModuleLoader').absolute_path(~$prefix);
                 my $have_pm  := nqp::stat("$prefix/$pm_path", 0);
                 my $have_pm6 := nqp::stat("$prefix/$pm6_path", 0);
                 my $have_pir := nqp::stat("$prefix/$pir_path", 0);
@@ -89,7 +90,7 @@ last; # temporary, until we actually don't do just @candidates[0]
         my $path := "$setting_name.setting.pbc";
         my @prefixes := self.search_path();
         for @prefixes -> $prefix {
-            $prefix := ~$prefix;
+            $prefix := nqp::gethllsym('perl6', 'ModuleLoader').absolute_path(~$prefix);
             if nqp::stat("$prefix/$path", 0) {
                 $path := "$prefix/$path";
                 last;

@@ -6,6 +6,7 @@ typedef struct {
     INTVAL  rw;                 /* Non-zero if we can write. */
     STRING *name;               /* The name of the container, if any. */
     PMC    *the_default;        /* The default value if any. */
+    INTVAL *is_dynamic;         /* The container is dynamically visible */
 } Rakudo_ContainerDescriptor;
 
 /* The Scalar class. Depends on P6opaque object layout. */

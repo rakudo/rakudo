@@ -9,7 +9,8 @@ my class SprintfHandler {
 
 my $sprintfHandlerInitialized = False;
 
-my class Cool {
+my class Cool { # declared in BOOTSTRAP
+    # class Cool is Any {
 
     ## numeric methods
 
@@ -73,12 +74,10 @@ my class Cool {
     }
 
     method fmt($format = '%s') {
-#?if jvm
         unless $sprintfHandlerInitialized {
             nqp::sprintfaddargumenthandler(SprintfHandler.new);
             $sprintfHandlerInitialized = True;
         }
-#?endif
         nqp::p6box_s(
             nqp::sprintf(nqp::unbox_s($format.Stringy), nqp::list(self))
         )
@@ -96,16 +95,24 @@ my class Cool {
         nqp::p6box_s(nqp::lc(nqp::unbox_s(self.Str)))
     }
 
+    method tc() {
+        my $u := nqp::unbox_s(self.Str);
+        nqp::p6box_s(nqp::uc(nqp::substr($u,0,1)) ~ nqp::substr($u,1));
+    }
+
     method tclc() {
-        self.Str.tclc;
+        nqp::p6box_s(nqp::tclc(nqp::unbox_s(self.Str)))
     }
 
-    method ucfirst() is DEPRECATED {
-        my $self-str = self.Str;
-        $self-str eq '' ?? '' !! $self-str.substr(0, 1).uc ~ $self-str.substr(1)
+    method ucfirst() { # is DEPRECATED doesn't work in settings
+        DEPRECATED("'tc'");
+        self.tc;
     }
 
-    method capitalize() is DEPRECATED { self.Stringy.capitalize }
+    method capitalize() { # is DEPRECATED doesn't work in settings
+        DEPRECATED("'tclc'");
+        self.Stringy.tclc;
+    }
     method wordcase()   { self.Str.wordcase }
 
     method chomp() {
@@ -116,11 +123,17 @@ my class Cool {
         self.Str.chop
     }
 
-    method ord() {
-        nqp::p6box_i(nqp::ord(nqp::unbox_s(self.Str)))
+    method ord(--> Int) {
+        my $s := self.Str;
+        $s.chars
+          ?? nqp::p6box_i(nqp::ord(nqp::unbox_s($s)))
+          !! Int;
     }
     method chr() {
         self.Int.chr;
+    }
+    method chrs(Cool:D:) {
+        self>>.chr.join;
     }
 
     method flip() {
@@ -213,11 +226,22 @@ my class Cool {
     method Int()  { self.Numeric.Int }
     method Num()  { self.Numeric.Num }
     method Rat()  { self.Numeric.Rat }
-
-    method set()  { set self }
-    method bag()  { bag self }
 }
 Metamodel::ClassHOW.exclude_parent(Cool);
+
+sub ucfirst(Cool $s) { # is DEPRECATED doesn't work in settings
+    DEPRECATED("'tc'");
+    $s.tc;
+}
+proto sub capitalize($) { * }
+multi sub capitalize(Str:D $x) { # is DEPRECATED doesn't work in settings
+    DEPRECATED("'tclc'");
+    $x.tclc;
+}
+multi sub capitalize(Cool $x)  { # is DEPRECATED doesn't work in settings
+    DEPRECATED("'tclc'");
+    $x.Stringy.tclc;
+}
 
 sub chop(Cool $s)                  { $s.chop }
 sub chomp(Cool $s)                 { $s.chomp }
@@ -227,8 +251,8 @@ sub lc(Cool $s)                    { $s.lc }
 sub ord(Cool $s)                   { $s.ord }
 sub substr(Cool $s,$pos,$chars?)   { $s.substr($pos,$chars) }
 sub uc(Cool $s)                    { $s.uc }
-
-sub ucfirst(Cool $s) is DEPRECATED { $s.ucfirst }
+sub tc(Cool $s)                    { $s.tc }
+sub tclc(Cool $s)                  { $s.tclc }
 
 proto sub rindex($, $, $?) is pure { * };
 multi sub rindex(Cool $s, Cool $needle, Cool $pos) { $s.rindex($needle, $pos) };
@@ -240,24 +264,15 @@ multi sub ords(Cool $s)       { ords($s.Stringy) }
 proto sub comb($, $, $?)            { * }
 multi sub comb(Regex $matcher, Cool $input, $limit = *) { $input.comb($matcher, $limit) }
 
-proto sub capitalize($) is DEPRECATED { * }
-multi sub capitalize(Str:D $x) {$x.capitalize }
-multi sub capitalize(Cool $x)  {$x.Stringy.capitalize }
-
 proto sub wordcase($) is pure { * }
 multi sub wordcase(Str:D $x) {$x.wordcase }
 multi sub wordcase(Cool $x)  {$x.Str.wordcase }
 
-proto sub tclc($) is pure      { * }
-multi sub tclc(Cool $x)        { tclc $x.Str }
-
 sub sprintf(Cool $format, *@args) {
-#?if jvm
     unless $sprintfHandlerInitialized {
         nqp::sprintfaddargumenthandler(SprintfHandler.new);
         $sprintfHandlerInitialized = True;
     }
-#?endif
 
     @args.gimme(*);
     nqp::p6box_s(

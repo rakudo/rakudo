@@ -14,6 +14,7 @@ my module tai-utc {
 
     # our @leap-second-dates = <
     our sub leap-second-dates() {
+        BEGIN
         #BEGIN leap-second-dates
         <
         1972-06-30
@@ -54,6 +55,7 @@ my module tai-utc {
 
     # Ambiguous POSIX times.
     our sub leap-second-posix() {
+        BEGIN
         #BEGIN leap-second-posix
         <
           78796800

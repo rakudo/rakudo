@@ -181,9 +181,8 @@ sub SEQUENCE($left, Mu $right, :$exclude_end) {
 }
 
 # XXX Wants to be a macro when we have them.
-sub WHAT(\x) {
-    x.WHAT
-}
+sub WHAT(\x) { x.WHAT }
+sub VAR (\x) { x.VAR }
 
 proto sub infix:<...>(|) { * }
 multi sub infix:<...>($a, Mu $b) { SEQUENCE($a, $b) }
@@ -263,11 +262,11 @@ sub INDIRECT_NAME_LOOKUP($root, *@chunks) is rw {
             $name = @chunks.join('::');
         }
     }
-    my Mu $thing := $root.exists($first) ?? $root{$first} !!
-                    GLOBAL::.exists($first) ?? GLOBAL::{$first} !!
+    my Mu $thing := $root.exists_key($first) ?? $root{$first} !!
+                    GLOBAL::.exists_key($first) ?? GLOBAL::{$first} !!
                     X::NoSuchSymbol.new(symbol => $name).fail;
     for @parts {
-        X::NoSuchSymbol.new(symbol => $name).fail unless $thing.WHO.exists($_);
+        X::NoSuchSymbol.new(symbol => $name).fail unless $thing.WHO.exists_key($_);
         $thing := $thing.WHO{$_};
     }
     $thing;
@@ -276,13 +275,13 @@ sub INDIRECT_NAME_LOOKUP($root, *@chunks) is rw {
 sub REQUIRE_IMPORT($package-name, *@syms) {
     my $package = CALLER::OUR::($package-name);
     my $who     = $package.WHO;
-    unless $who.exists('EXPORT') {
+    unless $who.exists_key('EXPORT') {
         die "Trying to import symbols @syms.join(', ') from '$package-name', but it does not export anything";
     }
     $who := $who<EXPORT>.WHO<DEFAULT>.WHO;
     my @missing;
     for @syms {
-        unless $who.exists($_) {
+        unless $who.exists_key($_) {
             @missing.push: $_;
             next;
         }
@@ -300,84 +299,4 @@ sub infix:<andthen>(*@a) {
         $current := .count ?? $_(|$current) !! $_();
     }
     $current;
-}
-
-# We attach precedence information to all operators here. This is instead of
-# putting the traits directly on the op bodies, since some of the things that
-# the traits are implemented using aren't defined that early.
-BEGIN {
-    my Mu $methodcall     := nqp::hash('prec', 'y=');
-    my Mu $autoincrement  := nqp::hash('prec', 'x=');
-    my Mu $exponentiation := nqp::hash('prec', 'w=');
-    my Mu $symbolic_unary := nqp::hash('prec', 'v=');
-    my Mu $multiplicative := nqp::hash('prec', 'u=');
-    my Mu $additive       := nqp::hash('prec', 't=');
-    my Mu $replication    := nqp::hash('prec', 's=');
-    my Mu $concatenation  := nqp::hash('prec', 'r=');
-    my Mu $junctive_and   := nqp::hash('prec', 'q=');
-    my Mu $junctive_or    := nqp::hash('prec', 'p=');
-    my Mu $structural     := nqp::hash('prec', 'n=');
-    my Mu $chaining       := nqp::hash('prec', 'm=', 'iffy', 1, 'pasttype', 'chain');
-    trait_mod:<is>(&postfix:<i>, :prec($methodcall));
-    trait_mod:<is>(&prefix:<++>, :prec($autoincrement));
-    trait_mod:<is>(&prefix:<-->, :prec($autoincrement));
-    trait_mod:<is>(&postfix:<++>, :prec($autoincrement));
-    trait_mod:<is>(&postfix:<-->, :prec($autoincrement));
-    trait_mod:<is>(&infix:<**>, :prec($exponentiation));
-    trait_mod:<is>(&prefix:<+>, :prec($symbolic_unary));
-    trait_mod:<is>(&prefix:<~>, :prec($symbolic_unary));
-    trait_mod:<is>(&prefix:<->, :prec($symbolic_unary));
-    trait_mod:<is>(&prefix:<?>, :prec($symbolic_unary));
-    trait_mod:<is>(&prefix:<!>, :prec($symbolic_unary));
-    trait_mod:<is>(&prefix:<+^>, :prec($symbolic_unary));
-    trait_mod:<is>(&prefix:<~^>, :prec($symbolic_unary));
-    trait_mod:<is>(&prefix:<?^>, :prec($symbolic_unary));
-    trait_mod:<is>(&prefix:<^>, :prec($symbolic_unary));
-    trait_mod:<is>(&infix:<*>, :prec($multiplicative));
-    trait_mod:<is>(&infix:</>, :prec($multiplicative));
-    trait_mod:<is>(&infix:<div>, :prec($multiplicative));
-    trait_mod:<is>(&infix:<gcd>, :prec($multiplicative));
-    trait_mod:<is>(&infix:<lcm>, :prec($multiplicative));
-    trait_mod:<is>(&infix:<%>, :prec($multiplicative));
-    trait_mod:<is>(&infix:<mod>, :prec($multiplicative));
-    trait_mod:<is>(&infix:<%%>, :prec(nqp::hash('prec', 'u=', 'iffy', 1)));
-    trait_mod:<is>(&infix:<+&>, :prec($multiplicative));
-    trait_mod:<is>(&infix:<~&>, :prec($multiplicative));
-    trait_mod:<is>(&infix:<?&>, :prec($multiplicative));
-    trait_mod:<is>(&infix:<+>, :prec($additive));
-    trait_mod:<is>(&infix:<->, :prec($additive));
-    trait_mod:<is>(&infix:<+|>, :prec($additive));
-    trait_mod:<is>(&infix:<+^>, :prec($additive));
-    trait_mod:<is>(&infix:<~|>, :prec($additive));
-    trait_mod:<is>(&infix:<~^>, :prec($additive));
-    trait_mod:<is>(&infix:<?|>, :prec($additive));
-    trait_mod:<is>(&infix:<?^>, :prec($additive));
-    trait_mod:<is>(&infix:<x>, :prec($replication));
-    trait_mod:<is>(&infix:<xx>, :prec($replication));
-    trait_mod:<is>(&infix:<~>, :prec($concatenation));
-    trait_mod:<is>(&infix:<&>, :prec($junctive_and));
-    trait_mod:<is>(&infix:<|>, :prec($junctive_or));
-    trait_mod:<is>(&infix:<^>, :prec($junctive_or));
-    trait_mod:<is>(&infix:<==>, :prec($chaining));
-    trait_mod:<is>(&infix:<!=>, :prec($chaining));
-    trait_mod:<is>(&infix:<eq>, :prec($chaining));
-    trait_mod:<is>(&infix:<ne>, :prec($chaining));
-    trait_mod:<is>(&infix:<le>, :prec($chaining));
-    trait_mod:<is>(&infix:<ge>, :prec($chaining));
-    trait_mod:<is>(&infix:<lt>, :prec($chaining));
-    trait_mod:<is>(&infix:<gt>, :prec($chaining));
-    trait_mod:<is>(&infix:<=:=>, :prec($chaining));
-    trait_mod:<is>(&infix:<===>, :prec($chaining));
-    trait_mod:<is>(&infix:<eqv>, :prec($chaining));
-    trait_mod:<is>(&infix:<before>, :prec($chaining));
-    trait_mod:<is>(&infix:<after>, :prec($chaining));
-    trait_mod:<is>(&infix:<~~>, :prec($chaining));
-    trait_mod:<is>(&infix:<..>, :prec($structural));
-    trait_mod:<is>(&infix:<^..>, :prec($structural));
-    trait_mod:<is>(&infix:<..^>, :prec($structural));
-    trait_mod:<is>(&infix:<^..^>, :prec($structural));
-    trait_mod:<is>(&infix:<leg>, :prec($structural));
-    trait_mod:<is>(&infix:<cmp>, :prec($structural));
-    trait_mod:<is>(&infix:<but>, :prec($structural));
-    trait_mod:<is>(&infix:<does>, :prec($structural));
 }

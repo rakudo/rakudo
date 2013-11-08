@@ -36,7 +36,10 @@ sub NORMALIZE_ENCODING(Str:D $s) {
     %map{$s} // %map{lc $s} // lc $s;
 }
 
-my class Str does Stringy {
+my class Str does Stringy { # declared in BOOTSTRAP
+    # class Str is Cool {
+    #     has str $!value is box_target;
+
     multi method WHICH(Str:D:) {
         nqp::box_s(
             nqp::concat(
@@ -774,13 +777,10 @@ my class Str does Stringy {
     my %enc_type = utf8 => utf8, utf16 => utf16, utf32 => utf32;
     method encode(Str:D $encoding = 'utf8') {
         my $enc      := NORMALIZE_ENCODING($encoding);
-        my $enc_type := %enc_type.exists($enc) ?? %enc_type{$enc} !! blob8;
+        my $enc_type := %enc_type.exists_key($enc) ?? %enc_type{$enc} !! blob8;
         nqp::encode(nqp::unbox_s(self), nqp::unbox_s($enc), nqp::decont($enc_type.new))
     }
 
-    method capitalize(Str:D:) is DEPRECATED {
-        self.subst(:g, rx/\w+/, -> $_ { .Str.lc.ucfirst });
-    }
     method wordcase(Str:D: :&filter = &tclc, Mu :$where = True) {
         self.subst(:g, / [<:L> \w* ] +% <['\-]> /, -> $m {
             my Str $s = $m.Str;
@@ -988,10 +988,6 @@ my class Str does Stringy {
         nqp::p6box_i(nqp::chars(nqp::unbox_s(self)))
     }
 
-    method tclc(Str:D:) returns Str:D {
-        nqp::p6box_s(nqp::tclc(nqp::unbox_s(self)))
-    }
-
     method path(Str:D:) returns IO::Path:D {
         IO::Path.new(self)
     }
@@ -1148,8 +1144,4 @@ sub substr-rw($s is rw, $from = 0, $chars = $s.chars - $from) {
                ~ $s.substr($from + $chars);
         }
     );
-}
-
-multi sub tclc(Str:D $s) returns Str:D {
-    nqp::p6box_s(nqp::tclc(nqp::unbox_s($s)));
 }

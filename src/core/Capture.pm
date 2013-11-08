@@ -1,4 +1,8 @@
-my class Capture {
+my class Capture { # declared in BOOTSTRAP
+    # class Capture is Any {
+    #     has Mu $!list;   # positional parameters
+    #     has Mu $!hash;   # named parameters
+
     submethod BUILD(:@list, :%hash) {
         nqp::bindattr(self, Capture, '$!list',
             nqp::getattr(nqp::decont(@list.Parcel), Parcel, '$!storage')
@@ -29,7 +33,11 @@ my class Capture {
         $enum;
     }
 
-    method exists(Capture:D: $key ) {
+    method exists (Capture:D: $key ) {  # is DEPRECATED doesn't work in settings
+        DEPRECATED("the :exists adverb");
+        self.exists_key($key);
+    }
+    method exists_key(Capture:D: $key ) {
         nqp::p6bool(nqp::existskey($!hash, nqp::unbox_s($key.Str)));
     }
 

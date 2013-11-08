@@ -121,7 +121,7 @@ my %formats = {
         "R" => "inverse"
     };
 
-my %only_first_part = bag <D X L>;
+my %only_first_part := bag <D X L>;
 
 sub formatting2text($pod) {
     my $text = twine2text($pod.content);

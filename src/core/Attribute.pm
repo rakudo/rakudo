@@ -1,5 +1,16 @@
-# Attributes for this are already set up in bootstrap.
-my class Attribute {
+my class Attribute { # declared in BOOTSTRAP
+    # class Attribute is Any {
+    #     has str $!name;
+    #     has int $!rw;
+    #     has int $!has_accessor;
+    #     has Mu $!type;
+    #     has Mu $!container_descriptor;
+    #     has Mu $!auto_viv_container;
+    #     has Mu $!build_closure;
+    #     has Mu $!package;
+    #     has int $!positional_delegate;
+    #     has int $!associative_delegate;
+
     method compose(Mu $package) {
         # Generate accessor method, if we're meant to have one.
         if self.has_accessor {

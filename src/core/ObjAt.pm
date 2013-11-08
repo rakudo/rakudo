@@ -1,4 +1,7 @@
-my class ObjAt {
+my class ObjAt { # declared in BOOTSTRAP
+    # class ObjAt is Any {
+    #     has str $!value;
+
     multi method WHICH(ObjAt:D:) {
         nqp::box_s(
             nqp::concat(

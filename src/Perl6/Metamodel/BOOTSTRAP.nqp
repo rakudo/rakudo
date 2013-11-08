@@ -112,19 +112,17 @@ BEGIN {
     Cool.HOW.add_parent(Cool, Any);
     Cool.HOW.compose_repr(Cool);
 
-    # class Attribute {
+    # class Attribute is Any {
     #     has str $!name;
     #     has int $!rw;
     #     has int $!has_accessor;
-    #     has $!type;
-    #     has $!container_descriptor;
-    #     has $!auto_viv_container;
-    #     has $!build_closure;
-    #     has $!package;
+    #     has Mu $!type;
+    #     has Mu $!container_descriptor;
+    #     has Mu $!auto_viv_container;
+    #     has Mu $!build_closure;
+    #     has Mu $!package;
     #     has int $!positional_delegate;
     #     has int $!associative_delegate;
-    #     ... # Uncomposed
-    # }
     Attribute.HOW.add_parent(Attribute, Any);
     Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!name>, :type(str), :package(Attribute)));
     Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!rw>, :type(int), :package(Attribute)));
@@ -275,10 +273,9 @@ BEGIN {
     Attribute.HOW.compose_repr(Attribute);
     
     # class Scalar is Any {
-    #     has $!descriptor;
-    #     has $!value;
-    #     ...
-    # }
+    #     has Mu $!descriptor;
+    #     has Mu $!value;
+    #     has Mu $!whence;
     Scalar.HOW.add_parent(Scalar, Any);
     Scalar.HOW.add_attribute(Scalar, BOOTSTRAPATTR.new(:name<$!descriptor>, :type(Mu), :package(Scalar)));
     Scalar.HOW.add_attribute(Scalar, BOOTSTRAPATTR.new(:name<$!value>, :type(Mu), :package(Scalar)));
@@ -305,11 +302,8 @@ BEGIN {
     nqp::setcontspec(Scalar, 'rakudo_scalar', nqp::null());
 
     # class Proxy is Any {
-    #    has &!FETCH;
-    #    has &!STORE;
-    #    method FETCH() { ... }
-    #    method STORE(\$v) { ... }
-    # }
+    #    has Mu &!FETCH;
+    #    has Mu &!STORE;
     my $PROXY_FETCH;
     my $PROXY_STORE;
     Proxy.HOW.add_parent(Proxy, Any);
@@ -349,14 +343,12 @@ BEGIN {
             :$associative_delegate);
     }
         
-    # class Signature {
-    #    has $!params;
-    #    has $!returns;
-    #    has $!arity;
-    #    has $!count;
-    #    has $!code;
-    #     ... # Uncomposed
-    # }
+    # class Signature is Any{
+    #    has Mu $!params;
+    #    has Mu $!returns;
+    #    has Mu $!arity;
+    #    has Mu $!count;
+    #    has Mu $!code;
     Signature.HOW.add_parent(Signature, Any);
     Signature.HOW.add_attribute(Signature, BOOTSTRAPATTR.new(:name<$!params>, :type(Mu), :package(Signature)));
     Signature.HOW.add_attribute(Signature, BOOTSTRAPATTR.new(:name<$!returns>, :type(Mu), :package(Signature)));
@@ -406,21 +398,19 @@ BEGIN {
         }));
     Signature.HOW.compose_repr(Signature);
         
-    # class Parameter {
+    # class Parameter is Any {
     #     has str $!variable_name
-    #     has $!named_names
-    #     has $!type_captures
+    #     has Mu $!named_names
+    #     has Mu $!type_captures
     #     has int $!flags
-    #     has $!nominal_type
-    #     has $!post_constraints
-    #     has $!coerce_type
+    #     has Mu $!nominal_type
+    #     has Mu $!post_constraints
+    #     has Mu $!coerce_type
     #     has str $!coerce_method
-    #     has $!sub_signature
-    #     has $!default_value
-    #     has $!container_descriptor;
-    #     has $!attr_package;
-    #     ... # Uncomposed
-    # }
+    #     has Mu $!sub_signature
+    #     has Mu $!default_value
+    #     has Mu $!container_descriptor;
+    #     has Mu $!attr_package;
     Parameter.HOW.add_parent(Parameter, Any);
     Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!variable_name>, :type(str), :package(Parameter)));
     Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!named_names>, :type(Mu), :package(Parameter)));
@@ -435,9 +425,11 @@ BEGIN {
     Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!container_descriptor>, :type(Mu), :package(Parameter)));
     Parameter.HOW.add_attribute(Parameter, BOOTSTRAPATTR.new(:name<$!attr_package>, :type(Mu), :package(Parameter)));
     Parameter.HOW.add_method(Parameter, 'is_generic', nqp::getstaticcode(sub ($self) {
-            # If nonimnal type is generic, so are we.
+            # If nonimnal type or attr_package is generic, so are we.
             my $type := nqp::getattr($self, Parameter, '$!nominal_type');
-            nqp::p6bool($type.HOW.archetypes.generic)
+            my $ap   := nqp::getattr($self, Parameter, '$!attr_package');
+            nqp::p6bool($type.HOW.archetypes.generic ||
+                (!nqp::isnull($ap) && $ap.HOW.archetypes.generic))
         }));
     Parameter.HOW.add_method(Parameter, 'instantiate_generic', nqp::getstaticcode(sub ($self, $type_environment) {
             # Clone with the type instantiated.
@@ -445,8 +437,16 @@ BEGIN {
             my $ins      := nqp::clone($self);
             my $type     := nqp::getattr($self, Parameter, '$!nominal_type');
             my $cd       := nqp::getattr($self, Parameter, '$!container_descriptor');
-            my $ins_type := $type.HOW.instantiate_generic($type, $type_environment);
-            my $ins_cd   := nqp::isnull($cd) ?? $cd !! $cd.instantiate_generic($type_environment);
+            my $ap       := nqp::getattr($self, Parameter, '$!attr_package');
+            my $ins_type := $type;
+            my $ins_cd   := $cd;
+            if $type.HOW.archetypes.generic {
+                $ins_type := $type.HOW.instantiate_generic($type, $type_environment);
+                $ins_cd   := nqp::isnull($cd) ?? $cd !! $cd.instantiate_generic($type_environment);
+            }
+            my $ins_ap := !nqp::isnull($ap) && $ap.HOW.archetypes.generic
+                ?? $ap.HOW.instantiate_generic($ap, $type_environment)
+                !! $ap;
             unless $ins_type.HOW.archetypes.generic {
                 my $flags := nqp::getattr_i($ins, Parameter, '$!flags');
                 if $flags +& $SIG_ELEM_NOMINAL_GENERIC {
@@ -456,6 +456,7 @@ BEGIN {
             }
             nqp::bindattr($ins, Parameter, '$!nominal_type', $ins_type);
             nqp::bindattr($ins, Parameter, '$!container_descriptor', $ins_cd);
+            nqp::bindattr($ins, Parameter, '$!attr_package', $ins_ap);
             $ins
         }));
     Parameter.HOW.add_method(Parameter, 'set_rw', nqp::getstaticcode(sub ($self) {
@@ -509,11 +510,9 @@ BEGIN {
     Parameter.HOW.compose_repr(Parameter);
     
     # class Code {
-    #     has $!do;                # Low level code object
-    #     has $!signature;         # Signature object
-    #     has $!compstuff;         # Place for the compiler to hang stuff
-    #     ... # Uncomposed
-    # }
+    #     has Mu $!do;                # Low level code object
+    #     has Mu $!signature;         # Signature object
+    #     has Mu $!compstuff;         # Place for the compiler to hang stuff
     Code.HOW.add_parent(Code, Any);
     Code.HOW.add_attribute(Code, BOOTSTRAPATTR.new(:name<$!do>, :type(Mu), :package(Code)));
     Code.HOW.add_attribute(Code, BOOTSTRAPATTR.new(:name<$!signature>, :type(Mu), :package(Code)));
@@ -572,7 +571,8 @@ BEGIN {
     Code.HOW.set_invocation_attr(Code, Code, '$!do');
     Code.HOW.compose_invocation(Code);
 
-    # class Block is Code { ... }
+    # class Block is Code {
+    #     has Mu $!phasers;                # phasers for this block
     Block.HOW.add_parent(Block, Code);
     Block.HOW.add_attribute(Block, BOOTSTRAPATTR.new(:name<$!phasers>, :type(Mu), :package(Block)));
     Block.HOW.add_method(Block, 'clone', nqp::getstaticcode(sub ($self) {
@@ -591,7 +591,17 @@ BEGIN {
     Block.HOW.compose_repr(Block);
     Block.HOW.compose_invocation(Block);
 
-    # class Routine is Block { ... }
+    # class Routine is Block {
+    #     has Mu $!dispatchees;
+    #     has Mu $!dispatcher_cache;
+    #     has Mu $!dispatcher;
+    #     has int $!rw;
+    #     has Mu $!inline_info;
+    #     has int $!yada;
+    #     has Mu $!package;
+    #     has int $!onlystar;
+    #     has Mu $!dispatch_order;
+    #     has Mu $!dispatch_cache;
     Routine.HOW.add_parent(Routine, Block);
     Routine.HOW.add_attribute(Routine, BOOTSTRAPATTR.new(:name<$!dispatchees>, :type(Mu), :package(Routine)));
     Routine.HOW.add_attribute(Routine, BOOTSTRAPATTR.new(:name<$!dispatcher_cache>, :type(Mu), :package(Routine)));
@@ -667,11 +677,11 @@ BEGIN {
             my int $SIG_ELEM_NATIVE_NUM_VALUE    := 4194304;
             my int $SIG_ELEM_NATIVE_STR_VALUE    := 8388608;
             
-            # Takes two candidates and determines if the first one is narrower than the
-            # second. Returns a true value if they are.
+            # Takes two candidates and determines if the first one is narrower
+            # than the second. Returns a true value if they are.
             sub is_narrower(%a, %b) {
-                # Work out how many parameters to compare, factoring in slurpiness
-                # and optionals.
+                # Work out how many parameters to compare, factoring in
+                # slurpiness and optionals.
                 my int $types_to_check;
                 if %a<num_types> == %b<num_types> {
                     $types_to_check := %a<num_types>;
@@ -861,8 +871,8 @@ BEGIN {
                 ));
             }
 
-            # Now analyze type narrowness of the candidates relative to each other
-            # and create the edges.
+            # Now analyze type narrowness of the candidates relative to each
+            # other and create the edges.
             my int $i := 0;
             my int $j;
             my int $n := nqp::elems(@candidates);
@@ -1440,22 +1450,25 @@ BEGIN {
     Routine.HOW.compose_repr(Routine);
     Routine.HOW.compose_invocation(Routine);
 
-    # class Sub is Routine { ... }
+    # class Sub is Routine {
     Sub.HOW.add_parent(Sub, Routine);
     Sub.HOW.compose_repr(Sub);
     Sub.HOW.compose_invocation(Sub);
 
-    # class Method is Routine { ... }
+    # class Method is Routine {
     Method.HOW.add_parent(Method, Routine);
     Method.HOW.compose_repr(Method);
     Method.HOW.compose_invocation(Method);
 
-    # class Submethod is Routine { ... }
+    # class Submethod is Routine {
     Submethod.HOW.add_parent(Submethod, Routine);
     Submethod.HOW.compose_repr(Submethod);
     Submethod.HOW.compose_invocation(Submethod);
 
-    # class Regex is Method { ... }
+    # class Regex is Method {
+    #     has Mu $!caps;
+    #     has Mu $!nfa;
+    #     has Mu $!alt_nfas
     Regex.HOW.add_parent(Regex, Method);
     Regex.HOW.add_attribute(Regex, scalar_attr('$!caps', Mu, Regex));
     Regex.HOW.add_attribute(Regex, scalar_attr('$!nfa', Mu, Regex));
@@ -1490,8 +1503,6 @@ BEGIN {
 
     # class Str is Cool {
     #     has str $!value is box_target;
-    #     ...
-    # }
     Str.HOW.add_parent(Str, Cool);
     Str.HOW.add_attribute(Str, BOOTSTRAPATTR.new(:name<$!value>, :type(str), :box_target(1), :package(Str)));
     Str.HOW.set_boolification_mode(Str, 4);
@@ -1505,9 +1516,7 @@ BEGIN {
     Str.HOW.compose_repr(Str);
 
     # class Int is Cool {
-    #     has int $!value is box_target;
-    #     ...
-    # }
+    #     has bigint $!value is box_target;
     Int.HOW.add_parent(Int, Cool);
     Int.HOW.add_attribute(Int, BOOTSTRAPATTR.new(:name<$!value>, :type(bigint), :box_target(1), :package(Int)));
     Int.HOW.set_boolification_mode(Int, 6);
@@ -1516,8 +1525,6 @@ BEGIN {
 
     # class Num is Cool {
     #     has num $!value is box_target;
-    #     ...
-    # }
     Num.HOW.add_parent(Num, Cool);
     Num.HOW.add_attribute(Num, BOOTSTRAPATTR.new(:name<$!value>, :type(num), :box_target(1), :package(Num)));
     Num.HOW.set_boolification_mode(Num, 2);
@@ -1525,37 +1532,28 @@ BEGIN {
     Num.HOW.compose_repr(Num);
 
     # class Parcel is Cool {
-    #     ...
-    # }
+    #     has Mu $!storage;    # VM's array of Parcel's elements
     Parcel.HOW.add_parent(Parcel, Cool);
     Parcel.HOW.add_attribute(Parcel, scalar_attr('$!storage', Mu, Parcel));
     Parcel.HOW.compose_repr(Parcel);
 
     # class Iterable is Any {
-    #     ...
-    # }
     Iterable.HOW.add_parent(Iterable, Any);
     Iterable.HOW.compose_repr(Iterable);
 
     # class Iterator is Iterable {
-    #     ...
-    # }
     Iterator.HOW.add_parent(Iterator, Iterable);
     Iterator.HOW.compose_repr(Iterator);
 
-    # class Nil is Iterator
-    #    ...
-    # }
+    # class Nil is Iterator {
     Nil.HOW.add_parent(Nil, Iterator);
     Nil.HOW.compose_repr(Nil);
     
     # class ListIter is Iterator {
-    #     has $!reified;
-    #     has $!nextiter;
-    #     has $!rest;
-    #     has $!list;
-    #    ...
-    # }
+    #     has Mu $!reified;
+    #     has Mu $!nextiter;
+    #     has Mu $!rest;
+    #     has Mu $!list;
     ListIter.HOW.add_parent(ListIter, Iterator);
     ListIter.HOW.add_attribute(ListIter, scalar_attr('$!reified', Mu, ListIter));
     ListIter.HOW.add_attribute(ListIter, scalar_attr('$!nextiter', Mu, ListIter));
@@ -1564,11 +1562,9 @@ BEGIN {
     ListIter.HOW.compose_repr(ListIter);
     
     # class List is Iterable is Cool {
-    #     has $!items;
-    #     has $!flattens;
-    #     has $!nextiter;
-    #     ...
-    # }
+    #     has Mu $!items;
+    #     has Mu $!flattens;
+    #     has Mu $!nextiter;
     List.HOW.add_parent(List, Iterable);
     List.HOW.add_parent(List, Cool);
     List.HOW.add_attribute(List, scalar_attr('$!items', Mu, List));
@@ -1577,54 +1573,45 @@ BEGIN {
     List.HOW.compose_repr(List);
 
     # class Array is List {
-    #     has $!descriptor;
-    #     has $!shape;
-    #     ...
-    # }
+    #     has Mu $!descriptor;
+    #     has Mu $!shape;
+    #     has Mu $!index_map;
     Array.HOW.add_parent(Array, List);
     Array.HOW.add_attribute(Array, BOOTSTRAPATTR.new(:name<$!descriptor>, :type(Mu), :package(Array)));
     Array.HOW.add_attribute(Array, scalar_attr('$!shape', Mu, Array));
+    Array.HOW.add_attribute(Array, scalar_attr('$!index_map', Mu, Array));
     Array.HOW.compose_repr(Array);
 
     # class LoL is List {
-    #     has $!descriptor;
-    #     ...
-    # }
+    #     has Mu $!descriptor;
     LoL.HOW.add_parent(LoL, List);
     LoL.HOW.add_attribute(LoL, BOOTSTRAPATTR.new(:name<$!descriptor>, :type(Mu), :package(LoL)));
     LoL.HOW.compose_repr(LoL);
 
     # my class EnumMap is Iterable is Cool {
-    #     has $!storage;
-    #     ...
-    # }
+    #     has Mu $!storage;
     EnumMap.HOW.add_parent(EnumMap, Iterable);
     EnumMap.HOW.add_parent(EnumMap, Cool);
     EnumMap.HOW.add_attribute(EnumMap, scalar_attr('$!storage', Mu, EnumMap, :associative_delegate));
     EnumMap.HOW.compose_repr(EnumMap);
 
     # my class Hash is EnumMap {
-    #     has $!descriptor;
-    #     ...
-    # }
+    #     has Mu $!descriptor;
     Hash.HOW.add_parent(Hash, EnumMap);
     Hash.HOW.add_attribute(Hash, BOOTSTRAPATTR.new(:name<$!descriptor>, :type(Mu), :package(Hash)));
     Hash.HOW.compose_repr(Hash);
 
-    # class Capture {
-    #     ...
-    # }
+    # class Capture is Any {
+    #     has Mu $!list;
+    #     has Mu $!hash;
     Capture.HOW.add_parent(Capture, Any);
     Capture.HOW.add_attribute(Capture, BOOTSTRAPATTR.new(:name<$!list>, :type(Mu), :package(Capture)));
     Capture.HOW.add_attribute(Capture, BOOTSTRAPATTR.new(:name<$!hash>, :type(Mu), :package(Capture)));
     Capture.HOW.compose_repr(Capture);
     
     # class Junction is Mu {
-    #     has $!items;
-    #     has $!flattens;
-    #     has $!nextiter;
-    #     ...
-    # }
+    #     has Mu $!storage;
+    #     has Mu $!type;
     Junction.HOW.add_parent(Junction, Mu);
     Junction.HOW.add_attribute(Junction, scalar_attr('$!storage', Mu, Junction));
     Junction.HOW.add_attribute(Junction, scalar_attr('$!type', Mu, Junction));
@@ -1632,24 +1619,20 @@ BEGIN {
     
     # class Bool is Cool {
     #     has int $!value;
-    #     ...
-    # }
     Bool.HOW.add_parent(Bool, Cool);
     Bool.HOW.add_attribute(Bool, BOOTSTRAPATTR.new(:name<$!value>, :type(int), :box_target(1), :package(Bool)));
     Bool.HOW.set_boolification_mode(Bool, 1);
     Bool.HOW.publish_boolification_spec(Bool);
     Bool.HOW.compose_repr(Bool);
 
-    # class ObjAt {
+    # class ObjAt is Any {
     #     has str $!value;
-    # }
+    ObjAt.HOW.add_parent(ObjAt, Any);
     ObjAt.HOW.add_attribute(ObjAt, BOOTSTRAPATTR.new(:name<$!value>, :type(str), :box_target(1), :package(ObjAt)));
     ObjAt.HOW.compose_repr(ObjAt);
     
     # class ForeignCode {
-    #     has $!do;                # Code object we delegate to
-    #     ... # Uncomposed
-    # }
+    #     has Mu $!do;                # Code object we delegate to
     ForeignCode.HOW.add_parent(ForeignCode, Any);
     ForeignCode.HOW.add_attribute(ForeignCode, BOOTSTRAPATTR.new(:name<$!do>, :type(Mu), :package(ForeignCode)));
     ForeignCode.HOW.compose_repr(ForeignCode);
@@ -1661,6 +1644,7 @@ BEGIN {
     Whatever.HOW.compose_repr(Whatever);
 
     # Set up Stash type, which is really just a hash.
+    # class Stash is Hash {
     Stash.HOW.add_parent(Stash, Hash);
     Stash.HOW.compose_repr(Stash);
 
@@ -1703,6 +1687,8 @@ BEGIN {
         nqp::getstaticcode(sub ($self, *@pos, *%named) {
             if !nqp::isconcrete($self) && !nqp::can($self, 'postcircumfix:<( )>') {
                 my $coercer_name := $self.HOW.name($self);
+                nqp::die("Cannot coerce to $coercer_name with named parameters")
+                  if +%named;
                 if +@pos == 1 {
                     @pos[0]."$coercer_name"()
                 }
@@ -1842,15 +1828,15 @@ Perl6::Metamodel::ParametricRoleGroupHOW.set_selector_creator({
 Perl6::Metamodel::ParametricRoleGroupHOW.pretend_to_be([Cool, Any, Mu]);
 Perl6::Metamodel::ParametricRoleGroupHOW.configure_punning(
     Perl6::Metamodel::ClassHOW,
-    hash( ACCEPTS => Mu ));
+    hash( ACCEPTS => Mu, item => Mu ));
 Perl6::Metamodel::ParametricRoleHOW.pretend_to_be([Cool, Any, Mu]);
 Perl6::Metamodel::ParametricRoleHOW.configure_punning(
     Perl6::Metamodel::ClassHOW,
-    hash( ACCEPTS => Mu ));
+    hash( ACCEPTS => Mu, item => Mu ));
 Perl6::Metamodel::CurriedRoleHOW.pretend_to_be([Cool, Any, Mu]);
 Perl6::Metamodel::CurriedRoleHOW.configure_punning(
     Perl6::Metamodel::ClassHOW,
-    hash( ACCEPTS => Mu ));
+    hash( ACCEPTS => Mu, item => Mu ));
     
 # Similar for packages and modules, but just has methods from Any.
 Perl6::Metamodel::PackageHOW.pretend_to_be([Any, Mu]);
@@ -1959,3 +1945,11 @@ nqp::sethllconfig('perl6', nqp::hash(
     }
 #?endif
 ));
+
+#?if jvm
+# On JVM, set up JVM interop bits.
+nqp::gethllsym('perl6', 'JavaModuleLoader').set_interop_loader(-> {
+    nqp::jvmrakudointerop()
+});
+Perl6::Metamodel::JavaHOW.pretend_to_be([Any, Mu]);
+#?endif

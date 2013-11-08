@@ -68,6 +68,7 @@ our $debug = 0;
 our $out_filename = 'autounfudge.patch';
 my $exclude = '(?!)';
 our $threads_num = 1;
+my $jvm;
 
 GetOptions  'impl=s'        => \$impl,
             'debug'         => \$debug,
@@ -80,10 +81,30 @@ GetOptions  'impl=s'        => \$impl,
             'out=s'         => \$out_filename,
             'exclude'       => \$exclude,
             'jobs=i'        => \$threads_num,
+            'jvm'           => \$jvm,
             or usage();
 
 my $path_sep = $^O eq 'MSWin32' ? ';' : ':';
+my $slash    = $^O eq 'MSWin32' ? '\\' : '/';
 $ENV{PERL6LIB} = join($path_sep, qw/lib ./) unless $keep_env;
+my $impl_re = quotemeta $impl;
+
+if ($impl eq 'rakudo') {
+    my $postfix = $jvm ? 'jvm' : 'parrot';
+    $impl_re = qr{rakudo(?:\.$postfix)?(?=\s)};
+}
+
+my %fh;
+sub eval_server {
+    # leak the filehandle; it will be closed at exit, robustly telling the server to terminate
+    return unless $jvm;
+    my $token = int(100_000 * rand);
+    
+    open my $pipe, "| .${slash}perl6-eval-server -bind-stdin -cookie $token -app .${slash}perl6.jar" or die "cannot fork eval server: $!\n";
+    $fh{$token} = $pipe;
+    sleep 1;
+    return $token;
+}
 
 my @files;
 
@@ -119,8 +140,9 @@ if ($threads_num > 1) {
     my $queue = Thread::Queue->new;
     for (1..$threads_num) {
         threads->create(sub {
+                my $token = eval_server();
                 while(my $file_name = $queue->dequeue) {
-                    auto_unfudge_file($file_name);
+                    auto_unfudge_file($file_name, $token);
                 }
             });
     }
@@ -130,14 +152,15 @@ if ($threads_num > 1) {
     $_->join for threads->list;
 }
 else {
+    my $token = eval_server();
     for (@files) {
-        auto_unfudge_file($_);
+        auto_unfudge_file($_, $token);
     }
 }
 
 
 sub auto_unfudge_file {
-    my $file_name = shift;
+    my ($file_name, $token) = @_;
 
     return unless defined $file_name;
     open my $f, '<:encoding(UTF-8)', $file_name
@@ -145,7 +168,7 @@ sub auto_unfudge_file {
     print "Processing file '$file_name'\n";
     my @fudge_lines;
     while (<$f>) {
-        push @fudge_lines, [$. , $_] if m/^\s*#\?$impl/ &&
+        push @fudge_lines, [$. , $_] if m/^\s*#\?$impl_re/ &&
             !m/unspecced|unicode|utf-?8|noauto/i;
     }
     close $f;
@@ -158,7 +181,7 @@ sub auto_unfudge_file {
     }
     my $fudged = fudge($file_name);
     print "Fudged: $fudged\n" if $debug;
-    if (!tests_ok($fudged)){
+    if (!tests_ok($fudged, $token)){
         print "File '$file_name' doesn't even pass in its current state\n";
         return;
     }
@@ -167,7 +190,7 @@ sub auto_unfudge_file {
         print "trying line $to_unfudge->[0]...\n" if $debug;
         next if $to_unfudge->[1] =~ m/\btodo\b/ && !$untodo;
         $fudged = fudge(unfudge_some($file_name, [$to_unfudge->[0], '']));
-        if (tests_ok($fudged)){
+        if (tests_ok($fudged, $token)){
             print "WOOOOOT: Can remove fudge instruction on line $to_unfudge->[0]\n"
                 if $debug;
             push @to_unfudge, [$to_unfudge->[0], ''],
@@ -175,7 +198,7 @@ sub auto_unfudge_file {
         elsif ($unskip && $to_unfudge->[1] =~ s/\bskip\b/todo/) {
             # try to replace 'skip' with 'todo'-markers
             $fudged = fudge(unfudge_some($file_name, $to_unfudge));
-            if (tests_ok($fudged)){
+            if (tests_ok($fudged, $token)){
                 print "s/skip/todo/ successful\n" if $debug;
                 push @to_unfudge, $to_unfudge;
             }
@@ -222,6 +245,7 @@ Valid options:
     --untodo            Try to remove 'todo' markers
     --out               Output patch file (defaults to "autounfudge.patch")
     --jobs number       Number of threads to use when processing 
+    --jvm               For Rakudo running on the JVM
 USAGE
 }
 
@@ -250,10 +274,10 @@ sub unfudge_some {
 }
 
 sub tests_ok {
-    my $fn = shift;
+    my ($fn, $token) = @_;
 
     $fn =~ s/\s+\z//;
-    my $harness = get_harness();
+    my $harness = get_harness($token);
     my $agg = TAP::Parser::Aggregator->new();
     $agg->start();
     $harness->aggregate_tests($agg, $fn);
@@ -265,9 +289,10 @@ sub tests_ok {
 }
 
 sub get_harness {
+    my $token = shift;
     return TAP::Harness->new({
             verbosity   => -2,
-            exec        => [$^X, 'tools/perl6-limited.pl'],
+            exec        => $jvm ? [$^X, "./eval-client.pl", $token, "run"] : [$^X, 'tools/perl6-limited.pl'],
             merge       => 1,
     });
 }

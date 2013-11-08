@@ -1,5 +1,4 @@
 my class IO::Socket::INET does IO::Socket {
-#?if parrot
     my module PIO {
         constant PF_LOCAL       = 0;
         constant PF_UNIX        = 1;
@@ -60,30 +59,47 @@ my class IO::Socket::INET does IO::Socket {
             }
         }
 
-        %args<listen>.=Bool if %args.exists('listen');
+        %args<listen>.=Bool if %args.exists_key('listen');
 
         #TODO: Learn what protocols map to which socket types and then determine which is needed.
-        self.bless(*, |%args)!initialize()
+        self.bless(|%args)!initialize()
     }
     
     method !initialize() {
+#?if parrot
         my $PIO := Q:PIR { %r = root_new ['parrot';'Socket'] };
         $PIO.socket($.family, $.type, $.proto);        
-        
+#?endif
+#?if !parrot
+        my $PIO := nqp::socket($.listen ?? 10 !! 0);
+#?endif
         #Quoting perl5's SIO::INET:
         #If Listen is defined then a listen socket is created, else if the socket type, 
         #which is derived from the protocol, is SOCK_STREAM then connect() is called.
         if $.listen || $.localhost || $.localport {
+#?if parrot
             my $addr := $PIO.sockaddr($.localhost || "0.0.0.0", $.localport || 0);
             $PIO.bind($addr);
+#?endif
+#?if !parrot
+            nqp::bindsock($PIO, nqp::unbox_s($.localhost || "0.0.0.0"),
+                                 nqp::unbox_i($.localport || 0));
+#?endif
         }
 
-        if $.listen { 
+        if $.listen {
+#?if parrot
             $PIO.listen($.listen);
+#?endif
         }
         elsif $.type == PIO::SOCK_STREAM {
+#?if parrot
             my $addr := $PIO.sockaddr($.host, $.port);
             $PIO.connect($addr);
+#?endif
+#?if !parrot
+            my $addr := nqp::connect($PIO, nqp::unbox_s($.host), nqp::unbox_i($.port));
+#?endif
         }
         
         nqp::bindattr(self, $?CLASS, '$!PIO', $PIO);
@@ -91,6 +107,7 @@ my class IO::Socket::INET does IO::Socket {
     }
 
     method get() {
+#?if parrot
         my str $encoding = nqp::unbox_s(NORMALIZE_ENCODING($!encoding));
         my str $sep = pir::trans_encoding__SSI(
             nqp::unbox_s($!input-line-separator),
@@ -101,6 +118,16 @@ my class IO::Socket::INET does IO::Socket {
         $PIO.encoding($encoding);
         
         my str $line = $PIO.readline($sep);
+#?endif
+#?if !parrot
+        my str $sep = nqp::unbox_s($!input-line-separator);
+        my int $sep-len = nqp::chars($sep);
+        
+        my Mu $io := nqp::getattr(self, $?CLASS, '$!PIO');
+        nqp::setencoding($io, nqp::unbox_s($!encoding));
+        nqp::setinputlinesep($io, $sep);
+        my Str $line = nqp::p6box_s(nqp::readlinefh($io));
+#?endif
         my int $len  = nqp::chars($line);
         
         if $len == 0 { Str }
@@ -119,20 +146,35 @@ my class IO::Socket::INET does IO::Socket {
     }
 
     method accept() {
-        #my $new_sock := nqp::create($?CLASS);
         ## A solution as proposed by moritz
-        my $new_sock := $?CLASS.bless(*, :$!family, :$!proto, :$!type, :$!input-line-separator);
-        nqp::getattr($new_sock, $?CLASS, '$!buffer') = '';
-        nqp::bindattr($new_sock, $?CLASS, '$!PIO', nqp::getattr(self, $?CLASS, '$!PIO').accept());
+        my $new_sock := $?CLASS.bless(:$!family, :$!proto, :$!type, :$!input-line-separator);
+        nqp::getattr($new_sock, $?CLASS, '$!buffer') =
+#?if parrot
+            '';
+#?endif
+#?if !parrot
+            buf8.new;
+#?endif
+        nqp::bindattr($new_sock, $?CLASS, '$!PIO',
+#?if parrot
+            nqp::getattr(self, $?CLASS, '$!PIO').accept()
+#?endif
+#?if !parrot
+            nqp::accept(nqp::getattr(self, $?CLASS, '$!PIO'))
+#?endif
+        );
         return $new_sock;
     }
 
     method remote_address() {
+#?if parrot
         return nqp::p6box_s(nqp::getattr(self, $?CLASS, '$!PIO').remote_address());
+#?endif
     }
 
     method local_address() {
+#?if parrot
         return nqp::p6box_s(nqp::getattr(self, $?CLASS, '$!PIO').local_address());
-    }
 #?endif
+    }
 }

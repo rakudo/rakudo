@@ -61,6 +61,8 @@ S02-names/caller.t
 S02-names/identifier.t
 S02-names/indirect.t
 S02-names/is_default.t
+S02-names/is_dynamic.t
+S02-names/name.t
 S02-names/our.t
 S02-names/pseudo.t
 S02-names/symbolic-deref.t
@@ -81,20 +83,23 @@ S02-types/array.t
 S02-types/assigning-refs.t
 S02-types/autovivification.t
 S02-types/bag.t
+S02-types/baghash.t
 S02-types/bool.t
 S02-types/capture.t
 S02-types/catch_type_cast_mismatch.t
 S02-types/declare.t
+S02-types/deprecations.t
 S02-types/fatrat.t
 S02-types/flattening.t
 S02-types/hash_ref.t
 S02-types/hash.t
 S02-types/infinity.t
 S02-types/instants-and-durations.t
-S02-types/keybag.t
-S02-types/keyset.t
+S02-types/isDEPRECATED.t
 S02-types/lazy-lists.t
 S02-types/lists.t
+S02-types/mix.t
+S02-types/mixhash.t
 S02-types/mixed_multi_dimensional.t
 S02-types/multi_dimensional_array.t
 S02-types/nan.t
@@ -108,6 +113,7 @@ S02-types/parcel.t
 S02-types/parsing-bool.t
 S02-types/range.t
 S02-types/set.t
+S02-types/sethash.t
 S02-types/sigils-and-types.t
 S02-types/subscripts_and_context.t
 S02-types/subset.t
@@ -226,6 +232,7 @@ S04-declarations/multiple.t
 S04-declarations/my.t
 S04-declarations/our.t
 S04-declarations/state.t
+S04-declarations/will.t
 S04-exception-handlers/catch.t
 S04-exceptions/fail.t
 S04-phasers/ascending-order.t
@@ -236,12 +243,12 @@ S04-phasers/end.t
 S04-phasers/enter-leave.t
 S04-phasers/eval-in-begin.t
 S04-phasers/first.t
+S04-phasers/in-eval.t
 S04-phasers/keep-undo.t
 S04-phasers/multiple.t
 S04-phasers/next.t
 S04-phasers/pre-post.t
 S04-phasers/rvalue.t
-S04-phasers/start.t
 S04-statement-modifiers/for.t
 S04-statement-modifiers/given.t 
 S04-statement-modifiers/if.t
@@ -262,6 +269,7 @@ S04-statements/loop.t
 S04-statements/map-and-sort-in-for.t
 S04-statements/next.t
 S04-statements/no-implicit-block.t
+S04-statements/once.t
 S04-statements/redo.t
 S04-statements/repeat.t
 S04-statements/return.t
@@ -288,6 +296,7 @@ S05-grammar/signatures.t
 S05-grammar/ws.t
 S05-interpolation/lexicals.t
 S05-interpolation/regex-in-variable.t
+S05-mass/charsets.t
 S05-mass/named-chars.t                                     # icu
 S05-mass/properties-block.t                                # icu
 S05-mass/properties-derived.t                              # icu
@@ -368,6 +377,7 @@ S06-multi/unpackability.t
 S06-multi/value-based.t
 S06-operator-overloading/imported-subs.t
 S06-operator-overloading/methods.t
+S06-operator-overloading/semicolon.t
 S06-operator-overloading/sub.t
 S06-operator-overloading/workout.t
 S06-other/anon-hashes-vs-blocks.t
@@ -392,6 +402,7 @@ S06-signature/named-parameters.t
 S06-signature/named-placeholders.t
 S06-signature/named-renaming.t
 S06-signature/optional.t
+S06-signature/outside-subroutine.t
 S06-signature/passing-arrays.t
 S06-signature/passing-hashes.t
 S06-signature/positional-placeholders.t
@@ -483,6 +494,7 @@ S12-introspection/methods.t
 S12-introspection/parents.t
 S12-introspection/roles.t
 S12-introspection/walk.t
+S12-introspection/WHAT.t
 S12-methods/accessors.t
 S12-methods/attribute-params.t
 S12-methods/calling_sets.t
@@ -518,7 +530,7 @@ S13-overloading/typecasting-mixed.t
 S13-overloading/typecasting-short.t
 S13-type-casting/methods.t
 S14-roles/anonymous.t
-# S14-roles/attributes.t # err: Attribute $!a1 not declared in class C1
+S14-roles/attributes.t
 S14-roles/basic.t
 S14-roles/bool.t
 S14-roles/composition.t
@@ -549,9 +561,11 @@ S16-filehandles/open.t
 S16-filehandles/unlink.t
 S16-io/bare-say.t
 S16-io/basic-open.t
+S16-io/cwd.t
 S16-io/getc.t
 S16-io/say-and-ref.t
 S16-io/say.t
+S16-io/tmpdir.t
 S16-unfiled/rebindstdhandles.t
 S19-command-line/dash-e.t # icu
 S19-command-line/help.t
@@ -582,9 +596,11 @@ S29-os/system.t
 S32-array/bool.t
 S32-array/create.t
 S32-array/delete.t
+S32-array/delete-adverb.t
+S32-array/delete-adverb-native.t
 S32-array/elems.t
 S32-array/end.t
-S32-array/exists.t
+S32-array/exists-adverb.t
 S32-array/keys_values.t
 S32-array/kv.t
 S32-array/pairs.t
@@ -622,6 +638,7 @@ S32-io/io-path-win.t
 S32-io/io-path-cygwin.t
 S32-io/io-path.t
 S32-io/note.t
+S32-io/other.t
 S32-io/slurp.t
 S32-io/spurt.t
 S32-list/categorize.t
@@ -664,6 +681,7 @@ S32-num/sqrt.t
 S32-num/stringify.t
 S32-num/unpolar.t
 S32-scalar/defined.t
+S32-scalar/perl.t
 S32-scalar/undef.t
 S32-str/append.t
 S32-str/bool.t
@@ -672,7 +690,7 @@ S32-str/chomp.t
 S32-str/chop.t
 S32-str/comb.t                                             # icu
 S32-str/encode.t
-S32-str/flip.t
+S32-str/flip.t                                             # icu
 S32-str/indent.t                                           # icu
 S32-str/index.t
 S32-str/lc.t                                               # icu

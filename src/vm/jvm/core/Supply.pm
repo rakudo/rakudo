@@ -10,8 +10,8 @@ my role Supply {
         has &.last;
         has &.fail;
         has $.supply;
-        method untap() {
-            $!supply.untap(self)
+        method close() {
+            $!supply.close(self)
         }
     }
 
@@ -26,7 +26,7 @@ my role Supply {
         $sub
     }
 
-    method untap(Tap $t) {
+    method close(Tap $t) {
         $!tappers_lock.protect({
             @!tappers .= grep(* !=== $t);
         });

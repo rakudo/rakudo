@@ -186,6 +186,17 @@ sub VAR (\x) { x.VAR }
 
 proto sub infix:<...>(|) { * }
 multi sub infix:<...>($a, Mu $b) { SEQUENCE($a, $b) }
+multi sub infix:<...>(**@lol) {
+    my @ret;
+    my int $i = 0;
+    my int $m = +@lol;
+    while $m - $i >= 2 {
+        @ret.push( SEQUENCE(@lol[$i], @lol[$i + 1].list[0], :exclude_end(1)) );
+        $i = nqp::add_i($i, 1);
+    }
+    @ret.push( @lol[$i] ) if $m > $i;
+    @ret
+}
 
 proto sub infix:<...^>(|) { * }
 multi sub infix:<...^>($a, Mu $b) { SEQUENCE($a, $b, :exclude_end(1)) }

@@ -1987,14 +1987,37 @@ my class Binder {
             # Get parameter object and its flags.
             my $param := nqp::atpos(@params, $i);
             my int $flags := nqp::getattr_i($param, Parameter, '$!flags');
+            my str $var_name := nqp::getattr_s($param, Parameter, '$!variable_name');
             $i := $i + 1;
             
             # Is it looking for us to bind a capture here?
+            my int $bind_fail;
             if $flags +& $SIG_ELEM_IS_CAPTURE {
                 # Capture the arguments from this point forwards into a Capture.
                 # Of course, if there's no variable name we can (cheaply) do pretty
                 # much nothing.
-                nqp::die('Capture binding NYI');
+                if nqp::isnull_s($var_name) {
+                    $bind_fail := $BIND_RESULT_OK;
+                }
+                else {
+                    nqp::die('Capture binding NYI');
+                }
+                if ($bind_fail) {
+                    return $bind_fail;
+                }
+                elsif $i == $num_params {
+                    # Since a capture acts as "the ultimate slurpy" in a sense, if
+                    # this is the last parameter in the signature we can return
+                    # success right off the bat.
+                    return BIND_RESULT_OK;
+                }
+                else {
+                    my $next_param := nqp::atpos(@params, $i);
+                    my int $next_flags := nqp::getattr_i($next_param, Parameter, '$!flags');
+                    if $next_flags +& ($SIG_ELEM_SLURPY_POS +| $SIG_ELEM_SLURPY_NAMED) {
+                        $suppress_arity_fail := 1;
+                    }
+                }
             }
             
             # Could it be a named slurpy?

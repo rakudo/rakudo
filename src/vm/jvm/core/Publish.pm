@@ -10,7 +10,7 @@ my class Publish {
 
             method tap(|c) {
                 my $sub = self.Supply::tap(|c);
-                $!scheduler.schedule_with_catch(
+                $!scheduler.cue_with_catch(
                     {
                         for @!values -> \val {
                             $sub.next().(val);

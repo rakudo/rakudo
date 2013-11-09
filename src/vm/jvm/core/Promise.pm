@@ -82,7 +82,7 @@ my class Promise {
     method !schedule_thens() {
         $!lock.lock();
         while @!thens {
-            $!scheduler.schedule_with_catch(@!thens.shift, @!thens.shift)
+            $!scheduler.cue_with_catch(@!thens.shift, @!thens.shift)
         }
         $!lock.unlock();
     }
@@ -142,7 +142,7 @@ my class Promise {
     method start(Promise:U: &code, :$scheduler = $*SCHEDULER) {
         my $p   = Promise.new(:$scheduler);
         my $vow = $p.vow;
-        $scheduler.schedule_with_catch(
+        $scheduler.cue_with_catch(
             { $vow.keep(code()) },
             -> $ex { $vow.break($ex) });
         $p

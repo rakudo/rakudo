@@ -207,14 +207,22 @@ $ops.add_hll_op('perl6', 'defor', -> $qastcomp, $op {
 #});
 
 # Signature binding related bits.
-proto sub bind_sig($capture) {
-    nqp::die("Signature binding NYI");
-}
+our $Binder;
 $ops.add_hll_op('perl6', 'p6bindsig', :!inlinable, -> $qastcomp, $op {
     $qastcomp.as_mast(QAST::Op.new(
-        :op('call'),
-        QAST::WVal.new( :value(nqp::getcodeobj(&bind_sig)) ),
+        :op('callmethod'), :name('bind_sig'),
+        QAST::WVal.new( :value($Binder) ),
         QAST::Op.new( :op('savecapture') )
+    ));
+});
+proto sub set_binder($b) {
+    $Binder := $b;
+}
+$ops.add_hll_op('nqp', 'p6setbinder', -> $qastcomp, $op {
+    $qastcomp.as_mast(QAST::Op.new(
+        :op('call'),
+        QAST::WVal.new( :value(nqp::getcodeobj(&set_binder)) ),
+        |@($op)
     ));
 });
 

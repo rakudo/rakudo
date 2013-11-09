@@ -1935,6 +1935,113 @@ nqp::sethllconfig('perl6', nqp::hash(
 #?endif
 ));
 
+#?if moar
+# On MoarVM, implement the signature binder.
+my class Binder {
+    # Flags that can be set on a signature element.
+    my int $SIG_ELEM_BIND_CAPTURE        := 1;
+    my int $SIG_ELEM_BIND_PRIVATE_ATTR   := 2;
+    my int $SIG_ELEM_BIND_PUBLIC_ATTR    := 4;
+    my int $SIG_ELEM_BIND_ATTRIBUTIVE    := ($SIG_ELEM_BIND_PRIVATE_ATTR +| $SIG_ELEM_BIND_PUBLIC_ATTR);
+    my int $SIG_ELEM_SLURPY_POS          := 8;
+    my int $SIG_ELEM_SLURPY_NAMED        := 16;
+    my int $SIG_ELEM_SLURPY_LOL          := 32;
+    my int $SIG_ELEM_SLURPY              := ($SIG_ELEM_SLURPY_POS +| SIG_ELEM_SLURPY_NAMED +| $SIG_ELEM_SLURPY_LOL);
+    my int $SIG_ELEM_INVOCANT            := 64;
+    my int $SIG_ELEM_MULTI_INVOCANT      := 128;
+    my int $SIG_ELEM_IS_RW               := 256;
+    my int $SIG_ELEM_IS_COPY             := 512;
+    my int $SIG_ELEM_IS_PARCEL           := 1024;
+    my int $SIG_ELEM_IS_OPTIONAL         := 2048;
+    my int $SIG_ELEM_ARRAY_SIGIL         := 4096;
+    my int $SIG_ELEM_HASH_SIGIL          := 8192;
+    my int $SIG_ELEM_DEFAULT_FROM_OUTER  := 16384;
+    my int $SIG_ELEM_IS_CAPTURE          := 32768;
+    my int $SIG_ELEM_UNDEFINED_ONLY      := 65536;
+    my int $SIG_ELEM_DEFINED_ONLY        := 131072;
+    my int $SIG_ELEM_DEFINEDNES_CHECK    := ($SIG_ELEM_UNDEFINED_ONLY +| $SIG_ELEM_DEFINED_ONLY);
+    my int $SIG_ELEM_NOMINAL_GENERIC     := 524288;
+    my int $SIG_ELEM_DEFAULT_IS_LITERAL  := 1048576;
+    my int $SIG_ELEM_NATIVE_INT_VALUE    := 2097152;
+    my int $SIG_ELEM_NATIVE_NUM_VALUE    := 4194304;
+    my int $SIG_ELEM_NATIVE_STR_VALUE    := 8388608;
+    my int $SIG_ELEM_NATIVE_VALUE        := ($SIG_ELEM_NATIVE_INT_VALUE +| $SIG_ELEM_NATIVE_NUM_VALUE +| $SIG_ELEM_NATIVE_STR_VALUE);
+
+    # Binding reuslt flags.
+    my int $BIND_RESULT_OK       := 0;
+    my int $BIND_RESULT_FAIL     := 1;
+    my int $BIND_RESULT_JUNCTION := 2;
+    
+    sub bind($capture, $sig, $lexpad, $error) {
+        # Get params.
+        my @params := nqp::getattr($sig, Signature, '$!params');
+
+        # Now we'll walk through the signature and go about binding things.
+        my $named_names;
+        my int $cur_pos_arg := 0;
+        my int $num_pos_args := nqp::captureposelems($capture);
+        my int $suppress_arity_fail := 0;
+        my int $num_params := nqp::elems(@params);
+        my int $i := 0;
+        while $i < $num_params {
+            # Get parameter object and its flags.
+            my $param := nqp::atpos(@params, $i);
+            my int $flags := nqp::getattr_i($param, Parameter, '$!flags');
+            $i := $i + 1;
+            
+            # Is it looking for us to bind a capture here?
+            if $flags +& $SIG_ELEM_IS_CAPTURE {
+                # Capture the arguments from this point forwards into a Capture.
+                # Of course, if there's no variable name we can (cheaply) do pretty
+                # much nothing.
+                nqp::die('Capture binding NYI');
+            }
+            
+            # Could it be a named slurpy?
+            elsif $flags +& $SIG_ELEM_SLURPY_NAMED {
+                nqp::die('Named slurpy param binding NYI');
+            }
+            
+            # Otherwise, maybe it's a positional.
+            elsif nqp::isnull($named_names := nqp::getattr($param, Parameter, '$!named_names')) {
+                nqp::die('Positional parameter binding NYI');
+            }
+            
+            # Else, it's a non-slurpy named.
+            else {
+                nqp::die('Named parameter binding NYI');
+            }
+        }
+        
+        # XXX Missing/excess args checking.
+        
+        # If we get here, we're done.
+        return $BIND_RESULT_OK;
+    }
+
+    method bind_sig($capture) {
+        # Get signature and lexpad.
+        my $caller := nqp::getcodeobj(nqp::callercode());
+        my $sig    := nqp::getattr($caller, Code, '$!signature');
+        my $lexpad := nqp::ctxcaller(nqp::ctx());
+        
+        # Call binder.
+        my @error;
+        my int $bind_res := bind($capture, $sig, $lexpad, @error);
+        if $bind_res {
+            if $bind_res == $BIND_RESULT_JUNCTION {
+                nqp::die('Junction auto-threading NYI');
+            }
+            else {
+                nqp::die(@error[0]);
+            }
+            0
+        }
+    }
+}
+nqp::p6setbinder(Binder);
+#?endif
+
 #?if jvm
 # On JVM, set up JVM interop bits.
 nqp::gethllsym('perl6', 'JavaModuleLoader').set_interop_loader(-> {

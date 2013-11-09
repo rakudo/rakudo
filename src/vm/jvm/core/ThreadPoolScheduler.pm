@@ -51,26 +51,30 @@ my class ThreadPoolScheduler does Scheduler {
             if $!initial_threads > $!max_threads;
     }
     
-    method cue(&code, :$at, :$in, :$every ) {
+    method cue(&code, :$at, :$in, :$every, :&catch ) {
         die "Cannot specify :at and :in at the same time"
           if $at.defined and $in.defined;
         my $delay = $at ?? $at - now !! $in // 0;
         self!initialize unless $!started_any;
 
+        my &block = &catch
+          ?? -> { code(); CATCH { default { catch($_) } } }
+          !! -> { code() };
+
         # need repeating
         if $every {
             $!timer.'method/scheduleAtFixedRate/(Ljava/util/TimerTask;JJ)V'(
               nqp::jvmbootinterop().proxy(
-                'java.util.TimerTask', nqp::hash('run', -> { code() })),
+                'java.util.TimerTask', nqp::hash('run', &block)),
               ($delay * 1000).Int,
               ($every * 1000).Int);
         }
 
         # only after waiting a bit
-        elsif $delay {
+        elsif $delay or &catch {
             $!timer.'method/schedule/(Ljava/util/TimerTask;J)V'(
               nqp::jvmbootinterop().proxy(
-                'java.util.TimerTask', nqp::hash('run', -> { code() })),
+                'java.util.TimerTask', nqp::hash('run', &block)),
               ($delay * 1000).Int);
         }
 

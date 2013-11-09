@@ -51,44 +51,40 @@ my class ThreadPoolScheduler does Scheduler {
             if $!initial_threads > $!max_threads;
     }
     
-    proto method cue(|) { * }
-    multi method cue(&code) {
+    method cue(&code, :$at, :$in, :$every ) {
+        die "Cannot specify :at and :in at the same time"
+          if $at.defined and $in.defined;
+        my $delay = $at ?? $at - now !! $in // 0;
         self!initialize unless $!started_any;
-        my $loads = $!loads.incrementAndGet();
-        self!maybe_new_thread()
-            if !$!started_any || $loads > 1;
-        $!queue.add(nqp::jvmbootinterop().sixmodelToJavaObject(&code));
-    }
-    multi method cue(&code, :$in!) {
-        self!cue_in(&code, $in );
-    }
-    multi method cue(&code, :$every!, :$in = 0) {
-        self!cue_in(&code, $in, $every);
-    }
-    multi method cue(&code, :$at!, :$every, :$in) {
-        die "Cannot specify :at and :in at the same time" if $in.defined;
-        self!cue_in(&code, $at - now, $every);
-    }
 
-    method loads() {
-        $!loads.get()
-    }
-
-    method !cue_in(&code, $in, $every?) {
-        self!initialize() unless $!started_any;
+        # need repeating
         if $every {
             $!timer.'method/scheduleAtFixedRate/(Ljava/util/TimerTask;JJ)V'(
               nqp::jvmbootinterop().proxy(
                 'java.util.TimerTask', nqp::hash('run', -> { code() })),
-              ($in * 1000).Int,
+              ($delay * 1000).Int,
               ($every * 1000).Int);
         }
-        else {
+
+        # only after waiting a bit
+        elsif $delay {
             $!timer.'method/schedule/(Ljava/util/TimerTask;J)V'(
               nqp::jvmbootinterop().proxy(
                 'java.util.TimerTask', nqp::hash('run', -> { code() })),
-              ($in * 1000).Int);
+              ($delay * 1000).Int);
         }
+
+        # just cue the code
+        else {
+            my $loads = $!loads.incrementAndGet();
+            self!maybe_new_thread()
+                if !$!started_any || $loads > 1;
+            $!queue.add(nqp::jvmbootinterop().sixmodelToJavaObject(&code));
+        }
+    }
+
+    method loads() {
+        $!loads.get()
     }
 
     method !initialize() {

@@ -5,28 +5,21 @@ my class CurrentThreadScheduler does Scheduler {
         $exception.throw
     }
 
-    proto method cue(|) { * }
-    multi method cue(&code) {
-        code()
-    }
-    multi method cue(&code, :$in!) {
-        sleep $in;
-        code();
-    }
-    multi method cue (&code, :$every!, :$in ) {
-        sleep $in if $in.defined;
-        loop {
-            code();
-            sleep $every;
+    method cue(&code, :$at, :$in, :$every ) {
+        die "Cannot specify :at and :in at the same time"
+          if $at.defined and $in.defined;
+
+        my $delay = $at ?? $at - now !! $in;
+        sleep $delay if $delay;
+
+        if $every {
+            loop {
+                code();
+                sleep $every;
+            }
         }
-    }
-    multi method cue (&code, :$at!, :$every, :$in ) {
-        die "Cannot specify :at and :in at the same time" if $in.defined;
-        sleep $at - now;
-        loop {
+        else {
             code();
-            last unless $every.defined;
-            sleep $every;
         }
     }
 

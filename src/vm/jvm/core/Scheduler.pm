@@ -18,7 +18,7 @@ my role Scheduler {
         }
     }
 
-    multi method cue { ... }
+    method cue { ... }
 
     method cue_with_catch(&code, &catch) {
         self.cue({

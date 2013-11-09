@@ -60,7 +60,7 @@ my class ThreadPoolScheduler does Scheduler {
         $!queue.add(nqp::jvmbootinterop().sixmodelToJavaObject(&code));
     }
     multi method cue(&code, :$in!) {
-        self!cue_in(&code, $in, Any);
+        self!cue_in(&code, $in );
     }
     multi method cue(&code, :$every!, :$in = 0) {
         self!cue_in(&code, $in, $every);
@@ -74,7 +74,7 @@ my class ThreadPoolScheduler does Scheduler {
         $!outstanding.get()
     }
 
-    method !cue_in(&code, $in, $every) {
+    method !cue_in(&code, $in, $every?) {
         self!initialize() unless $!started_any;
         if $every {
             $!timer.'method/scheduleAtFixedRate/(Ljava/util/TimerTask;JJ)V'(
@@ -84,7 +84,7 @@ my class ThreadPoolScheduler does Scheduler {
               ($every * 1000).Int);
         }
         else {
-            $!timer.'method/scheduleAtFixedRate/(Ljava/util/TimerTask;JJ)V'(
+            $!timer.'method/schedule/(Ljava/util/TimerTask;J)V'(
               nqp::jvmbootinterop().proxy(
                 'java.util.TimerTask', nqp::hash('run', -> { code() })),
               ($in * 1000).Int);

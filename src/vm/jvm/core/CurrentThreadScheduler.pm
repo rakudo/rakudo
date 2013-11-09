@@ -30,5 +30,5 @@ my class CurrentThreadScheduler does Scheduler {
         }
     }
 
-    method outstanding() { 0 }
+    method loads() { 0 }
 }

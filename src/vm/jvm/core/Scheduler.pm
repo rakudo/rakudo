@@ -27,5 +27,5 @@ my role Scheduler {
         })
     }
     
-    method outstanding() { ... }
+    method loads() { ... }
 }

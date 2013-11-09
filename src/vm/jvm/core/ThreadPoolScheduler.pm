@@ -12,7 +12,7 @@ my class ThreadPoolScheduler does Scheduler {
     
     # Atomic integer roughly tracking outstanding work, used for rough
     # management of the pool size.
-    has Mu $!outstanding;
+    has Mu $!loads;
     
     # Initial and maximum thereads.
     has $!initial_threads;
@@ -40,7 +40,7 @@ my class ThreadPoolScheduler does Scheduler {
                             }
                         }
                     }
-                    $!outstanding.decrementAndGet();
+                    $!loads.decrementAndGet();
                 }
             });
         }
@@ -54,9 +54,9 @@ my class ThreadPoolScheduler does Scheduler {
     proto method cue(|) { * }
     multi method cue(&code) {
         self!initialize unless $!started_any;
-        my $outstanding = $!outstanding.incrementAndGet();
+        my $loads = $!loads.incrementAndGet();
         self!maybe_new_thread()
-            if !$!started_any || $outstanding > 1;
+            if !$!started_any || $loads > 1;
         $!queue.add(nqp::jvmbootinterop().sixmodelToJavaObject(&code));
     }
     multi method cue(&code, :$in!) {
@@ -70,8 +70,8 @@ my class ThreadPoolScheduler does Scheduler {
         self!cue_in(&code, $at - now, $every);
     }
 
-    method outstanding() {
-        $!outstanding.get()
+    method loads() {
+        $!loads.get()
     }
 
     method !cue_in(&code, $in, $every?) {
@@ -100,7 +100,7 @@ my class ThreadPoolScheduler does Scheduler {
         my \Timer                := $interop.typeForName('java.util.Timer');
         $!queue                  := LinkedBlockingQueue.'constructor/new/()V'();
         $!thread_start_semaphore := Semaphore.'constructor/new/(I)V'($!max_threads.Int);
-        $!outstanding            := AtomicInteger.'constructor/new/()V'();
+        $!loads                  := AtomicInteger.'constructor/new/()V'();
         $!timer                  := Timer.'constructor/new/(Z)V'(True);
         self!maybe_new_thread() for 1..$!initial_threads;
     }

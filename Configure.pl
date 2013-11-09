@@ -131,8 +131,11 @@ MAIN: {
     my @errors;
     if ($backends{parrot}) {
         my %nqp_config;
-        if ($impls{parrot}{config}) {
+        if ($impls{parrot}{ok}) {
             %nqp_config = %{ $impls{parrot}{config} };
+        }
+        elsif ($impls{parrot}{config}) {
+            push @errors, "The nqp-p is too old";
         }
         else {
             push @errors, "Cannot obtain configuration from NQP on parrot";
@@ -179,8 +182,11 @@ MAIN: {
         $config{j_nqp} = $impls{jvm}{bin};
         $config{j_nqp} =~ s{/}{\\}g if $^O eq 'MSWin32';
         my %nqp_config;
-        if ( $impls{jvm}{config} ) {
+        if ( $impls{jvm}{ok} ) {
             %nqp_config = %{ $impls{jvm}{config} };
+        }
+        elsif ( $impls{jvm}{config} ) {
+            push @errors, "nqp-j is too old";
         }
         else {
             push @errors, "Unable to read configuration from NQP on the JVM";

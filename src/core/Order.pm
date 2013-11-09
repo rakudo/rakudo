@@ -1,10 +1,13 @@
 ## Order enumeration, for cmp and <=>
-my enum Order (:Increase(-1), :Same(0), :Decrease(1));
+my enum Order (:Less(-1), :Same(0), :More(1));
+
+only Increase () { DEPRECATED("Less"); Less }
+only Decrease  (){ DEPRECATED("More"); More }
 
 proto infix:<cmp>($, $) { * }
 multi infix:<cmp>(\a, \b) {
-    return Order::Increase if a === -$Inf || b === $Inf;
-    return Order::Decrease if a ===  $Inf || b === -$Inf;
+    return Order::Less if a === -$Inf || b === $Inf;
+    return Order::More if a ===  $Inf || b === -$Inf;
     a.Stringy cmp b.Stringy
 }
 multi infix:<cmp>(Real \a, Real \b) { a.Bridge cmp b.Bridge }

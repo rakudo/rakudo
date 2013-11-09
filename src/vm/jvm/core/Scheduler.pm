@@ -18,11 +18,7 @@ my role Scheduler {
         }
     }
 
-    proto method cue(|) { * }
-    multi method cue(&code) { ... }
-    multi method cue(&code, :$in!) { ... }
-    multi method cue(&code, :$every!, :$in = 0) { ... }
-    multi method cue(&code, :$at!, :$every, :$in) { ... }
+    multi method cue { ... }
 
     method cue_with_catch(&code, &catch) {
         self.cue({

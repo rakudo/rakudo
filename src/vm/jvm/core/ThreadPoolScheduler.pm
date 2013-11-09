@@ -51,6 +51,7 @@ my class ThreadPoolScheduler does Scheduler {
             if $!initial_threads > $!max_threads;
     }
     
+    proto method cue(|) { * }
     multi method cue(&code) {
         self!initialize unless $!started_any;
         my $outstanding = $!outstanding.incrementAndGet();
@@ -59,7 +60,7 @@ my class ThreadPoolScheduler does Scheduler {
         $!queue.add(nqp::jvmbootinterop().sixmodelToJavaObject(&code));
     }
     multi method cue(&code, :$in!) {
-        self!cue_in(&code, $in);
+        self!cue_in(&code, $in, Any);
     }
     multi method cue(&code, :$every!, :$in = 0) {
         self!cue_in(&code, $in, $every);
@@ -73,14 +74,21 @@ my class ThreadPoolScheduler does Scheduler {
         $!outstanding.get()
     }
 
-    method !cue_in(&code, $in, $every?) {
+    method !cue_in(&code, $in, $every) {
         self!initialize() unless $!started_any;
-        $!timer.'method/scheduleAtFixedRate/(Ljava/util/TimerTask;JJ)V'(
-            nqp::jvmbootinterop().proxy(
-                'java.util.TimerTask',
-                nqp::hash('run', -> { code() })),
-            ($in * 1000).Int,
-            ( $every.defined ?? ($every * 1000).Int !! () ) );
+        if $every {
+            $!timer.'method/scheduleAtFixedRate/(Ljava/util/TimerTask;JJ)V'(
+              nqp::jvmbootinterop().proxy(
+                'java.util.TimerTask', nqp::hash('run', -> { code() })),
+              ($in * 1000).Int,
+              ($every * 1000).Int);
+        }
+        else {
+            $!timer.'method/scheduleAtFixedRate/(Ljava/util/TimerTask;JJ)V'(
+              nqp::jvmbootinterop().proxy(
+                'java.util.TimerTask', nqp::hash('run', -> { code() })),
+              ($in * 1000).Int);
+        }
     }
 
     method !initialize() {

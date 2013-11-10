@@ -3167,7 +3167,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             QAST::Op.new( :op('p6bool'), QAST::IVal.new( :value(1) ) ));
 
         # Create the meta-object.
-        my $longname := $<longname> ?? $*W.dissect_longname($<longname>[0]) !! 0;
+        my $longname := $<longname> ?? $*W.dissect_longname($<longname>) !! 0;
         my $subset := $<longname> ??
             $*W.create_subset(%*HOW<subset>, $refinee, $refinement, :name($longname.name())) !!
             $*W.create_subset(%*HOW<subset>, $refinee, $refinement);

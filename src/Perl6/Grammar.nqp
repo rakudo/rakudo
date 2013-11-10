@@ -1900,7 +1900,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         { unless $*SCOPE { $*SCOPE := 'our'; } }
         
         [
-            [ <longname> { $longname := $*W.dissect_longname($<longname>[0]); } ]**0..1
+            [ <longname> { $longname := $*W.dissect_longname($<longname>); } ]?
             <.newpad>
             
             [ :dba('generic role')
@@ -2557,7 +2557,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                 [
                     <longname>
                     {
-                        my $longname := $*W.dissect_longname($<longname>[0]);
+                        my $longname := $*W.dissect_longname($<longname>);
                         my @name := $longname.type_name_parts('subset name', :decl(1));
                         if $*W.already_declared($*SCOPE, $*PACKAGE, $*W.cur_lexpad(), @name) {
                             $*W.throw($/, ['X', 'Redeclaration'],
@@ -2565,7 +2565,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                             );
                         }
                     }
-                ]**0..1
+                ]?
                 { $*IN_DECL := '' }
                 <trait>*
                 [ where <EXPR('e=')> ]**0..1

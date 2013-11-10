@@ -1,6 +1,7 @@
 # The ThreadPoolScheduler is a straightforward scheduler that maintains a
 # pool of threads and schedules work items in the order they are added
 # using them.
+
 my class ThreadPoolScheduler does Scheduler {
     # A concurrent work queue that blocks any worker threads that poll it
     # when empty until some work arrives.
@@ -14,7 +15,7 @@ my class ThreadPoolScheduler does Scheduler {
     # management of the pool size.
     has Mu $!loads;
     
-    # Initial and maximum thereads.
+    # Initial and maximum threads.
     has $!initial_threads;
     has $!max_threads;
     

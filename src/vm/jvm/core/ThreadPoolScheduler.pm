@@ -57,15 +57,15 @@ my class ThreadPoolScheduler does Scheduler {
         my $delay = $at ?? $at - now !! $in // 0;
         self!initialize unless $!started_any;
 
-        my &block = &catch
+        my $hash := nqp::hash( 'run', &catch
           ?? -> { code(); CATCH { default { catch($_) } } }
-          !! -> { code() };
+          !! -> { code() }
+        );
 
         # need repeating
         if $every {
             $!timer.'method/scheduleAtFixedRate/(Ljava/util/TimerTask;JJ)V'(
-              nqp::jvmbootinterop().proxy(
-                'java.util.TimerTask', nqp::hash('run', -> { block() })),
+              nqp::jvmbootinterop().proxy('java.util.TimerTask', $hash),
               ($delay * 1000).Int,
               ($every * 1000).Int);
         }
@@ -73,8 +73,7 @@ my class ThreadPoolScheduler does Scheduler {
         # only after waiting a bit
         elsif $delay or &catch {
             $!timer.'method/schedule/(Ljava/util/TimerTask;J)V'(
-              nqp::jvmbootinterop().proxy(
-                'java.util.TimerTask', nqp::hash('run', -> { block() })),
+              nqp::jvmbootinterop().proxy('java.util.TimerTask', $hash),
               ($delay * 1000).Int);
         }
 

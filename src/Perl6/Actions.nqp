@@ -1852,24 +1852,24 @@ class Perl6::Actions is HLL::Actions does STDActions {
             if $<initializer> {
                 my $orig_past := $past;
                 if $*SCOPE eq 'has' {
-                    if $<initializer>[0]<sym> eq '=' {
-                        self.install_attr_init($<initializer>[0], $past<metaattr>,
-                            $<initializer>[0].ast, $*ATTR_INIT_BLOCK);
+                    if $<initializer><sym> eq '=' {
+                        self.install_attr_init($<initializer>, $past<metaattr>,
+                            $<initializer>.ast, $*ATTR_INIT_BLOCK);
                     }
                     else {
-                        $/.CURSOR.panic("Cannot use " ~ $<initializer>[0]<sym> ~
+                        $/.CURSOR.panic("Cannot use " ~ $<initializer><sym> ~
                             " to initialize an attribute");
                     }
                 }
-                elsif $<initializer>[0]<sym> eq '=' {
-                    $past := assign_op($/, $past, $<initializer>[0].ast);
+                elsif $<initializer><sym> eq '=' {
+                    $past := assign_op($/, $past, $<initializer>.ast);
                 }
-                elsif $<initializer>[0]<sym> eq '.=' {
-                    $past := make_dot_equals($past, $<initializer>[0].ast);
+                elsif $<initializer><sym> eq '.=' {
+                    $past := make_dot_equals($past, $<initializer>.ast);
                 }
                 else {
-                    $past := bind_op($/, $past, $<initializer>[0].ast,
-                        $<initializer>[0]<sym> eq '::=');
+                    $past := bind_op($/, $past, $<initializer>.ast,
+                        $<initializer><sym> eq '::=');
                 }
                 if $*SCOPE eq 'state' {
                     $past := QAST::Op.new( :op('if'),
@@ -1906,12 +1906,12 @@ class Perl6::Actions is HLL::Actions does STDActions {
             
             if $<initializer> {
                 my $orig_list := $list;
-                if $<initializer>[0]<sym> eq '=' {
+                if $<initializer><sym> eq '=' {
                     $/.CURSOR.panic("Cannot assign to a list of 'has' scoped declarations")
                         if $*SCOPE eq 'has';
-                    $list := assign_op($/, $list, $<initializer>[0].ast);
+                    $list := assign_op($/, $list, $<initializer>.ast);
                 }
-                elsif $<initializer>[0]<sym> eq '.=' {
+                elsif $<initializer><sym> eq '.=' {
                     $/.CURSOR.panic("Cannot use .= initializer with a list of declarations");
                 }
                 else {
@@ -1924,7 +1924,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                         QAST::WVal.new( :value($signature) ),
                         QAST::Op.new(
                             :op('callmethod'), :name('Capture'),
-                            $<initializer>[0].ast
+                            $<initializer>.ast
                         )
                     );
                 }

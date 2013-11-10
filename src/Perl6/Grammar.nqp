@@ -2086,10 +2086,10 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             [ <term_init=initializer> || <.sorry("Term definition requires an initializer")> ]
         | <variable_declarator>
           [
-          || <?{ $*SCOPE eq 'has' }> <.newpad> <initializer>**0..1 { $*ATTR_INIT_BLOCK := $*W.pop_lexpad() }
-          || <initializer>**0..1
+          || <?{ $*SCOPE eq 'has' }> <.newpad> <initializer>? { $*ATTR_INIT_BLOCK := $*W.pop_lexpad() }
+          || <initializer>?
           ]
-        | '(' ~ ')' <signature> <trait>* <.ws> <initializer>**0..1
+        | '(' ~ ')' <signature> <trait>* <.ws> <initializer>?
         | <routine_declarator>
         | <regex_declarator>
         | <type_declarator>

@@ -254,8 +254,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     %info<bind_constraint>, [@value_type[0]], nqp::hash());
             }
             %info<value_type>     := %info<bind_constraint>;
-            %info<default_value>  := $*W.find_symbol(['Any']);
-            %info<scalar_value>   := $*W.find_symbol(['Any']);
+            %info<default_value>  := $*W.find_symbol(['Callable']);
+            %info<scalar_value>   := $*W.find_symbol(['Callable']);
         }
         else {
             %info<container_base>     := $*W.find_symbol(['Scalar']);

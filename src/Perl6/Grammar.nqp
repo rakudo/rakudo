@@ -375,7 +375,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             | :dba('indirect name') '(' ~ ')' <EXPR>
             ]
         || <?before '::'> <.typed_panic: "X::Syntax::Name::Null">
-        ]**0..1
+        ]?
     }
 
     token longname {

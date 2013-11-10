@@ -1972,10 +1972,10 @@ class Perl6::World is HLL::World {
         }
         for $name<morename> {
             if $_<identifier> {
-                @components.push(~$_<identifier>[0]);
+                @components.push(~$_<identifier>);
             }
             elsif $_<EXPR> {
-                my $EXPR := $_<EXPR>[0].ast;
+                my $EXPR := $_<EXPR>.ast;
                 @components.push($EXPR);
             }
             else {

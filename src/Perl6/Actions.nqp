@@ -3374,7 +3374,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             # Set name, if there is one.
             if $<name> {
                 %*PARAM_INFO<variable_name> := ~$/;
-                %*PARAM_INFO<desigilname> := ~$<name>[0];
+                %*PARAM_INFO<desigilname> := ~$<name>;
             }
             %*PARAM_INFO<sigil> := my $sigil := ~$<sigil>;
 
@@ -3419,7 +3419,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             elsif $twigil eq '.' {
                 %*PARAM_INFO<bind_accessor> := 1;
                 if $<name> {
-                    %*PARAM_INFO<variable_name> := ~$<name>[0];
+                    %*PARAM_INFO<variable_name> := ~$<name>;
                 }
                 else {
                     $/.CURSOR.panic("Cannot declare $. parameter in signature without an accessor name");
@@ -3429,7 +3429,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 if $twigil eq ':' {
                     $/.CURSOR.typed_sorry('X::Parameter::Placeholder',
                         parameter => ~$/,
-                        right     => ':' ~ $<sigil> ~ ~$<name>[0],
+                        right     => ':' ~ $<sigil> ~ ~$<name>,
                     );
                 }
                 else {
@@ -3463,7 +3463,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
     method named_param($/) {
         %*PARAM_INFO<named_names> := %*PARAM_INFO<named_names> || [];
         if $<name>               { %*PARAM_INFO<named_names>.push(~$<name>); }
-        elsif $<param_var><name> { %*PARAM_INFO<named_names>.push(~$<param_var><name>[0]); }
+        elsif $<param_var><name> { %*PARAM_INFO<named_names>.push(~$<param_var><name>); }
         else                     { %*PARAM_INFO<named_names>.push(''); }
     }
 

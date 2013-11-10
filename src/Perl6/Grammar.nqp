@@ -2432,7 +2432,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
           || <name=.identifier>
           || <name=.decint> { $*W.throw($/, 'X::Syntax::Variable::Numeric', what => 'parameter') }
           || $<name>=[<[/!]>]
-          ]**0..1
+          ]?
         ]
     }
 

@@ -1167,7 +1167,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         $past.push($op);
 
         if $<EXPR> {
-            my $p6_arglist  := $*W.compile_time_evaluate($/, $<EXPR>[0].ast).list.eager;
+            my $p6_arglist  := $*W.compile_time_evaluate($/, $<EXPR>.ast).list.eager;
             my $arglist     := nqp::getattr($p6_arglist, $*W.find_symbol(['List']), '$!items');
             my $lexpad      := $*W.cur_lexpad();
             my $*SCOPE      := 'my';

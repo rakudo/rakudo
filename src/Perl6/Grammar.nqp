@@ -1373,7 +1373,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         | <file=.variable>
         | <!sigil> <file=.term>
         ]
-        [ <EXPR> ]**0..1
+        <EXPR>?
     }
 
     rule statement_control:sym<given> {

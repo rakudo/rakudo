@@ -19,13 +19,6 @@ my role Scheduler {
     }
 
     method cue { ... }
-
-    method cue_with_catch(&code, &catch) {
-        self.cue({
-            code();
-            CATCH { default { catch($_) } }
-        })
-    }
     
     method loads() { ... }
 }

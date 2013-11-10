@@ -82,7 +82,7 @@ my class Promise {
     method !schedule_thens() {
         $!lock.lock();
         while @!thens {
-            $!scheduler.cue_with_catch(@!thens.shift, @!thens.shift)
+            $!scheduler.cue(@!thens.shift, :catch(@!thens.shift))
         }
         $!lock.unlock();
     }
@@ -142,16 +142,16 @@ my class Promise {
     method start(Promise:U: &code, :$scheduler = $*SCHEDULER) {
         my $p   = Promise.new(:$scheduler);
         my $vow = $p.vow;
-        $scheduler.cue_with_catch(
+        $scheduler.cue(
             { $vow.keep(code()) },
-            -> $ex { $vow.break($ex) });
+            :catch(-> $ex { $vow.break($ex) }) );
         $p
     }
     
     method sleep(Promise:U: $seconds, :$scheduler = $*SCHEDULER) {
         my $p   = Promise.new(:$scheduler);
         my $vow = $p.vow;
-        $scheduler.schedule_in({ $vow.keep(True) }, $seconds);
+        $scheduler.cue({ $vow.keep(True) }, :in($seconds));
         $p
     }
     

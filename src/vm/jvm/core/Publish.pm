@@ -10,14 +10,14 @@ my class Publish {
 
             method tap(|c) {
                 my $sub = self.Supply::tap(|c);
-                $!scheduler.cue_with_catch(
+                $!scheduler.cue(
                     {
                         for @!values -> \val {
                             $sub.next().(val);
                         }
                         if $sub.last -> $l { $l() }
                     },
-                    -> $ex { if $sub.fail -> $t { $t($ex) } }
+                    :catch(-> $ex { if $sub.fail -> $t { $t($ex) } })
                 );
                 $sub
             }
@@ -35,12 +35,12 @@ my class Publish {
 
             method tap(|c) {
                 my $sub = self.Supply::tap(|c);
-                $!scheduler.schedule_every(
+                $!scheduler.cue(
                     {
                         state $i = 0;
                         $sub.next().($i++);
                     },
-                    $!interval, $!delay
+                    :every($!interval), :in($!delay)
                 );
                 $sub
             }

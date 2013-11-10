@@ -8,7 +8,7 @@ my class MapIter is Iterator {
 
     method new($list, $block, Mu $flattens = Bool::True) { 
         my $new := nqp::create(self);
-        $new.BUILD(nqp::p6listiter(nqp::qlist(nqp::decont($list)), $new), 
+        $new.BUILD(nqp::p6listiter(nqp::list(nqp::decont($list)), $new), 
                    $block, $flattens, True);
         $new;
     }
@@ -32,7 +32,7 @@ my class MapIter is Iterator {
             my Mu $rpa := nqp::list();
 
             if $!first {
-                $!items := nqp::qlist();
+                $!items := nqp::list();
                 nqp::p6setfirstflag($block)
                   if (nqp::can($block, 'phasers') && $block.phasers('FIRST'));
             }

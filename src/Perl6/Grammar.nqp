@@ -1508,7 +1508,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             <.obs('$/ variable as input record separator',
                  "the filehandle's .slurp method")>
         ]?
-        [ <?before [ '(' || \h*<sigil><twigil>**0..1\w ] >
+        [ <?before [ '(' || \h*<sigil><twigil>?\w ] >
             <.obs('undef as a verb', 'undefine function or assignment of Nil')>
         ]?
         <.obs('undef as a value', "something more specific:\n\tAny (the \"whatever\" type object),\n\tan undefined type object such as Int,\n\t:!defined as a matcher,\n\tAny:U as a type constraint,\n\tNil as the absence of a value\n\tor fail() as a failure return\n\t   ")>
@@ -1557,7 +1557,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token colonpair_variable {
         <sigil> {}
         [
-        | <twigil>**0..1 <desigilname>
+        | <twigil>? <desigilname>
         | $<capvar>='<' <desigilname> '>'
         ]
     }
@@ -1801,7 +1801,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             | :dba('infix noun') '[' ~ ']' <infixish('[]')>
             ]
         ||  [
-            | <sigil> <twigil>**0..1 <desigilname>
+            | <sigil> <twigil>? <desigilname>
             | <special_variable>
             | <sigil> $<index>=[\d+] [ <?{ $*IN_DECL}> <.typed_panic: "X::Syntax::Variable::Numeric">]?
             | <sigil> <?[<]> [ <?{ $*IN_DECL }> <.typed_panic('X::Syntax::Variable::Match')>]?  <postcircumfix>
@@ -1814,9 +1814,9 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
               }
             ]
         ]
-        [ <?{ $<twigil> && $<twigil>[0] eq '.' }>
+        [ <?{ $<twigil> && $<twigil> eq '.' }>
             [ <.unsp> | '\\' | <?> ] <?[(]> <arglist=.postcircumfix>
-        ]**0..1
+        ]?
     }
 
     token sigil { <[$@%&]> }
@@ -2427,7 +2427,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         [
         | '[' ~ ']' <signature>
         | '(' ~ ')' <signature>
-        | <sigil> <twigil>**0..1
+        | <sigil> <twigil>?
           [
           || <name=.identifier>
           || <name=.decint> { $*W.throw($/, 'X::Syntax::Variable::Numeric', what => 'parameter') }

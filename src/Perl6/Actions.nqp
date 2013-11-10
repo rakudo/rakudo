@@ -1563,7 +1563,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 }
                 else {
                     $past := make_variable($/, $longname.variable_components(
-                        ~$<sigil>, $<twigil> ?? ~$<twigil>[0] !! ''));
+                        ~$<sigil>, $<twigil> ?? ~$<twigil> !! ''));
                 }
             }
             else {
@@ -1577,7 +1577,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
 
     sub make_variable($/, @name) {
-        make_variable_from_parts($/, @name, $<sigil>.Str, $<twigil>[0], ~$<desigilname>);
+        make_variable_from_parts($/, @name, $<sigil>.Str, $<twigil>, ~$<desigilname>);
     }
 
     sub make_variable_from_parts($/, @name, $sigil, $twigil, $desigilname) {
@@ -1607,7 +1607,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 $*W.throw($/, ['X', 'Syntax', 'VirtualCall'], call => $past.name());
             }
             # Need to transform this to a method call.
-            $past := $<arglist> ?? $<arglist>[0].ast !! QAST::Op.new();
+            $past := $<arglist> ?? $<arglist>.ast !! QAST::Op.new();
             $past.op('callmethod');
             $past.name($desigilname);
             $past.unshift(QAST::Var.new( :name('self'), :scope('lexical') ));
@@ -1990,7 +1990,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
     method variable_declarator($/) {
         my $past   := $<variable>.ast;
         my $sigil  := $<variable><sigil>;
-        my $twigil := $<variable><twigil>[0];
+        my $twigil := $<variable><twigil>;
         my $name   := ~$sigil ~ ~$twigil ~ ~$<variable><desigilname>;
         if $<variable><desigilname> {
             my $lex := $*W.cur_lexpad();
@@ -3404,7 +3404,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             }
 
             # Handle twigil.
-            my $twigil := $<twigil> ?? ~$<twigil>[0] !! '';
+            my $twigil := $<twigil> ?? ~$<twigil> !! '';
             %*PARAM_INFO<twigil> := $twigil;
             if $twigil eq '' || $twigil eq '*' {
                 # Need to add the name.

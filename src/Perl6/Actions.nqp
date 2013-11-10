@@ -3246,7 +3246,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
     method capterm($/) {
         # Construct a Parcel, and then call .Capture to coerce it to a capture.
         my $past := $<termish> ?? $<termish>.ast !!
-                    $<capture> ?? $<capture>[0].ast !!
+                    $<capture> ?? $<capture>.ast !!
                     QAST::Op.new( :op('call'), :name('&infix:<,>') );
         unless $past.isa(QAST::Op) && $past.name eq '&infix:<,>' {
             $past := QAST::Op.new( :op('call'), :name('&infix:<,>'), $past );

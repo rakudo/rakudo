@@ -4152,7 +4152,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
         my $past := QAST::VM.new( :pirop($pirop), :node($/) );
         if $<args> {
-            for $<args>[0].ast.list {
+            for $<args>.ast.list {
                 $past.push($_);
             }
         }
@@ -4165,7 +4165,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
     method term:sym<nqp::op>($/) {
         $/.CURSOR.panic("nqp::op forbidden in safe mode\n") if $FORBID_PIR;
-        my @args := $<args> ?? $<args>[0].ast.list !! [];
+        my @args := $<args> ?? $<args>.ast.list !! [];
         my $past := QAST::Op.new( :op(~$<op>), |@args );
         if $past.op eq 'want' || $past.op eq 'handle' {
             my int $i := 1;

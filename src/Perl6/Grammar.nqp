@@ -2670,7 +2670,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
     
     token term:sym<pir::op> {
-        'pir::' $<op>=[\w+] <args>**0..1
+        'pir::' $<op>=[\w+] <args>?
     }
 
     token term:sym<pir::const> {
@@ -2678,7 +2678,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
 
     token term:sym<nqp::op> {
-        'nqp::' $<op>=[\w+] <args>**0..1
+        'nqp::' $<op>=[\w+] <args>?
     }
 
     token term:sym<nqp::const> {

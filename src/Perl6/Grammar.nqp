@@ -1164,7 +1164,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             | 'elsif'\s <xblock>
             ]
         ]*
-        [ 'else'\s <else=.pblock> ]**0..1
+        [ 'else'\s <else=.pblock> ]?
     }
 
     rule statement_control:sym<unless> {
@@ -1206,10 +1206,10 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         [ <?[({]> <.sorry: "Whitespace required after 'loop'"> ]?
         :s''
         [ '('
-            <e1=.EXPR>**0..1 ';'
-            <e2=.EXPR>**0..1 ';'
-            <e3=.EXPR>**0..1
-        ')' ]**0..1
+            <e1=.EXPR>? ';'
+            <e2=.EXPR>? ';'
+            <e3=.EXPR>?
+        ')' ]?
         <block>
     }
 

@@ -989,7 +989,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my $past := xblock_immediate( $<xblock>[$count].ast );
         # push the else block if any, otherwise 'if' returns C<Nil> (per S04)
         $past.push( $<else>
-                    ?? pblock_immediate( $<else>[0].ast )
+                    ?? pblock_immediate( $<else>.ast )
                     !!  QAST::Var.new(:name('Nil'), :scope('lexical'))
         );
         # build if/then/elsif structure
@@ -1043,15 +1043,15 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
     method statement_control:sym<loop>($/) {
         my $block := pblock_immediate($<block>.ast);
-        my $cond := $<e2> ?? $<e2>[0].ast !! QAST::Var.new(:name<True>, :scope<lexical>);
+        my $cond := $<e2> ?? $<e2>.ast !! QAST::Var.new(:name<True>, :scope<lexical>);
         my $loop := QAST::Op.new( $cond, :op('while'), :node($/) );
         $loop.push($block);
         if $<e3> {
-            $loop.push($<e3>[0].ast);
+            $loop.push($<e3>.ast);
         }
         $loop := tweak_loop($loop);
         if $<e1> {
-            $loop := QAST::Stmts.new( $<e1>[0].ast, $loop, :node($/) );
+            $loop := QAST::Stmts.new( $<e1>.ast, $loop, :node($/) );
         }
         make $loop;
     }

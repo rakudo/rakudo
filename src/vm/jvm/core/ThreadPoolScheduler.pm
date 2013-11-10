@@ -65,7 +65,7 @@ my class ThreadPoolScheduler does Scheduler {
         if $every {
             $!timer.'method/scheduleAtFixedRate/(Ljava/util/TimerTask;JJ)V'(
               nqp::jvmbootinterop().proxy(
-                'java.util.TimerTask', nqp::hash('run', &block)),
+                'java.util.TimerTask', nqp::hash('run', -> { block() })),
               ($delay * 1000).Int,
               ($every * 1000).Int);
         }
@@ -74,7 +74,7 @@ my class ThreadPoolScheduler does Scheduler {
         elsif $delay or &catch {
             $!timer.'method/schedule/(Ljava/util/TimerTask;J)V'(
               nqp::jvmbootinterop().proxy(
-                'java.util.TimerTask', nqp::hash('run', &block)),
+                'java.util.TimerTask', nqp::hash('run', -> { block() })),
               ($delay * 1000).Int);
         }
 

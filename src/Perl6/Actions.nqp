@@ -2203,7 +2203,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
         my %sig_info;
         if $<multisig> {
-            %sig_info := $<multisig>[0].ast;
+            %sig_info := $<multisig>.ast;
         }
         else {
             %sig_info<parameters> := $block<placeholder_sig> ?? $block<placeholder_sig> !!
@@ -2211,7 +2211,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
         my @params := %sig_info<parameters>;
         set_default_parameter_type(@params, 'Any');
-        my $signature := create_signature_object($<multisig> ?? $<multisig>[0] !! $/, %sig_info, $block);
+        my $signature := create_signature_object($<multisig> ?? $<multisig> !! $/, %sig_info, $block);
         add_signature_binding_code($block, $signature, @params);
 
         # Needs a slot that can hold a (potentially unvivified) dispatcher;
@@ -2604,7 +2604,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         $past.name($name ?? $name !! '<anon>');
 
         # Do the various tasks to trun the block into a method code object.
-        my %sig_info := $<multisig> ?? $<multisig>[0].ast !! hash(parameters => []);
+        my %sig_info := $<multisig> ?? $<multisig>.ast !! hash(parameters => []);
         my $inv_type  := $*W.find_symbol([
             $<longname> && $*W.is_lexical('$?CLASS') ?? '$?CLASS' !! 'Mu']);
         my $code := methodize_block($/, $*DECLARAND, $past, %sig_info, $inv_type, :yada(is_yada($/)));
@@ -2691,7 +2691,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
         my %sig_info;
         if $<multisig> {
-            %sig_info := $<multisig>[0].ast;
+            %sig_info := $<multisig>.ast;
         }
         else {
             %sig_info<parameters> := $block<placeholder_sig> ?? $block<placeholder_sig> !!
@@ -2699,7 +2699,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
         my @params := %sig_info<parameters>;
         set_default_parameter_type(@params, 'Any');
-        my $signature := create_signature_object($<multisig> ?? $<multisig>[0] !! $/, %sig_info, $block);
+        my $signature := create_signature_object($<multisig> ?? $<multisig> !! $/, %sig_info, $block);
         add_signature_binding_code($block, $signature, @params);
 
         # Finish code object, associating it with the routine body.

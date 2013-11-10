@@ -2234,7 +2234,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             }
         }
         <.newpad>
-        [ '(' <multisig> ')' ]**0..1
+        [ '(' <multisig> ')' ]?
         <trait>*
         { $*IN_DECL := ''; }
         [
@@ -2254,7 +2254,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         [
             <.newpad>
             [
-            | $<specials>=[<[ ! ^ ]>?]<longname> [ '(' <multisig> ')' ]**0..1 <trait>*
+            | $<specials>=[<[ ! ^ ]>?]<longname> [ '(' <multisig> ')' ]? <trait>*
             | '(' <multisig> ')' <trait>*
             | <sigil>'.':!s
                 :dba('subscript signature')
@@ -2295,7 +2295,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             }
         }
         <.newpad>
-        [ '(' <multisig> ')' ]**0..1
+        [ '(' <multisig> ')' ]?
         <trait>*
         { $*IN_DECL := ''; }
         [

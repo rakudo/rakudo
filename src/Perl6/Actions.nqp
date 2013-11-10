@@ -2244,7 +2244,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
         # Set name.
         if $<deflongname> {
-            $block.name(~$<deflongname>[0].ast);
+            $block.name(~$<deflongname>.ast);
         }
         
         # Finish code object, associating it with the routine body.
@@ -2284,7 +2284,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             # If it's a multi, need to associate it with the surrounding
             # proto.
             # XXX Also need to auto-multi things with a proto in scope.
-            my $name := '&' ~ ~$<deflongname>[0].ast;
+            my $name := '&' ~ ~$<deflongname>.ast;
             if $*MULTINESS eq 'multi' {
                 # Do we have a proto in the current scope?
                 my $proto;
@@ -2320,7 +2320,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 unless nqp::can($proto, 'is_dispatcher') && $proto.is_dispatcher {
                     $*W.throw($/, ['X', 'Redeclaration'],
                         what    => 'routine',
-                        symbol  => ~$<deflongname>[0].ast,
+                        symbol  => ~$<deflongname>.ast,
                     );
                 }
 
@@ -2331,7 +2331,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 # Install.
                 if $outer.symbol($name) {
                     $*W.throw($/, ['X', 'Redeclaration'],
-                            symbol => ~$<deflongname>[0].ast,
+                            symbol => ~$<deflongname>.ast,
                             what   => 'routine',
                     );
                 }
@@ -2704,7 +2704,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
         # Finish code object, associating it with the routine body.
         if $<deflongname> {
-            $block.name(~$<deflongname>[0].ast);
+            $block.name(~$<deflongname>.ast);
         }
         my $code := $*DECLARAND;
         $*W.attach_signature($code, $signature);
@@ -2723,11 +2723,11 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
         my $past;
         if $<deflongname> {
-            my $name := '&' ~ ~$<deflongname>[0].ast;
+            my $name := '&' ~ ~$<deflongname>.ast;
             # Install.
             if $outer.symbol($name) {
                 $/.CURSOR.panic("Illegal redeclaration of macro '" ~
-                    ~$<deflongname>[0].ast ~ "'");
+                    ~$<deflongname>.ast ~ "'");
             }
             if $*SCOPE eq '' || $*SCOPE eq 'my' {
                 $*W.install_lexical_symbol($outer, $name, $code);

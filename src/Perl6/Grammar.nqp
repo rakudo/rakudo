@@ -2220,17 +2220,17 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*DOCEE;
         :my $*DECLARAND := $*W.stub_code_object('Sub');
         <.attach_docs>
-        <deflongname>**0..1
+        <deflongname>?
         {
-            if $<deflongname> && $<deflongname>[0]<colonpair>[0]<coloncircumfix> -> $cf {
+            if $<deflongname> && $<deflongname><colonpair>[0]<coloncircumfix> -> $cf {
                 # It's an (potentially new) operator, circumfix, etc. that we
                 # need to tweak into the grammar.
-                my $category := $<deflongname>[0]<name>.Str;
+                my $category := $<deflongname><name>.Str;
                 my $opname := $cf<circumfix>
                     ?? $*W.colonpair_nibble_to_str($/, $cf<circumfix><nibble>)
                     !! '';
                 my $canname := $category ~ ":sym<" ~ $opname ~ ">";
-                $/.CURSOR.add_categorical($category, $opname, $canname, $<deflongname>[0].ast, $*DECLARAND);
+                $/.CURSOR.add_categorical($category, $opname, $canname, $<deflongname>.ast, $*DECLARAND);
             }
         }
         <.newpad>
@@ -2281,17 +2281,17 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*DOCEE;
         :my $*DECLARAND := $*W.stub_code_object('Macro');
         <.attach_docs>
-        <deflongname>**0..1
+        <deflongname>?
         {
-            if $<deflongname> && $<deflongname>[0]<colonpair>[0]<coloncircumfix> -> $cf {
+            if $<deflongname> && $<deflongname><colonpair>[0]<coloncircumfix> -> $cf {
                 # It's an (potentially new) operator, circumfix, etc. that we
                 # need to tweak into the grammar.
-                my $category := $<deflongname>[0]<name>.Str;
+                my $category := $<deflongname><name>.Str;
                 my $opname := $cf<circumfix>
                     ?? $*W.colonpair_nibble_to_str($/, $cf<circumfix><nibble>)
                     !! '';
                 my $canname := $category ~ ":sym<" ~ $opname ~ ">";
-                $/.CURSOR.add_categorical($category, $opname, $canname, $<deflongname>[0].ast, $*DECLARAND);
+                $/.CURSOR.add_categorical($category, $opname, $canname, $<deflongname>.ast, $*DECLARAND);
             }
         }
         <.newpad>
@@ -2509,8 +2509,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*HAS_SELF := 'complete';
         :my $*DECLARAND := $*W.stub_code_object('Regex');
         [
-          <deflongname>**0..1
-          { if $<deflongname> { %*RX<name> := ~$<deflongname>[0].ast } }
+          <deflongname>?
+          { if $<deflongname> { %*RX<name> := ~$<deflongname>.ast } }
           { $*IN_DECL := '' }
            <.newpad>
           [ [ ':'?'(' <signature> ')' ] | <trait> ]*

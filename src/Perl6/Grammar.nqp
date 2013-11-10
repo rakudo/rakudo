@@ -1908,7 +1908,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             { $*PACKAGE := $*OUTERPACKAGE } # in case signature tries to declare a package
             '[' ~ ']' <signature>
             { $*IN_DECL := ''; }
-            ]**0..1
+            ]?
             
             <trait>*
             
@@ -1975,7 +1975,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                         # Construct role meta-object with group.
                         sub needs_args($s) {
                             return 0 if !$s;
-                            my @params := $s[0].ast<parameters>;
+                            my @params := $s.ast<parameters>;
                             return 0 if nqp::elems(@params) == 0;
                             return nqp::elems(@params) > 1 || !@params[0]<optional>;
                         }
@@ -2195,7 +2195,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             | :dba('shape definition') '{' ~ '}' <semilist>
             | <?[<]> <postcircumfix> <.NYI: "Shaped variable declarations">
             ]+
-        ]**0..1
+        ]?
         <.ws>
         
         <trait>*

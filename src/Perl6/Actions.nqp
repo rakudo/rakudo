@@ -1764,7 +1764,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         if $*PKGDECL eq 'role' {
             # Set up signature. Needs to have $?CLASS as an implicit
             # parameter, since any mention of it is generic.
-            my %sig_info := $<signature> ?? $<signature>[0].ast !! hash(parameters => []);
+            my %sig_info := $<signature> ?? $<signature>.ast !! hash(parameters => []);
             my @params := %sig_info<parameters>;
             @params.unshift(hash(
                 is_multi_invocant => 1,

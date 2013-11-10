@@ -1545,7 +1545,7 @@ class Perl6::World is HLL::World {
         # we find something without one.
         my @pos_args;
         my %named_args;
-        for @($arglist[0].ast) {
+        for @($arglist) {
             my $val;
             if $_.has_compile_time_value {
                 $val := $_.compile_time_value;

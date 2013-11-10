@@ -3301,7 +3301,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
         %signature<parameters> := @parameter_infos;
         if $<typename> {
-            %signature<returns> := $<typename>[0].ast;
+            %signature<returns> := $<typename>.ast;
         }
 
         # Mark current block as having a signature.
@@ -4096,18 +4096,18 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 
                 # Do we know all the arguments at compile time?
                 my int $all_compile_time := 1;
-                for @($<arglist>[0].ast) {
+                for @($<arglist>.ast) {
                     unless $_.has_compile_time_value {
                         $all_compile_time := 0;
                     }
                 }
                 if $all_compile_time {
-                    my $curried := $*W.parameterize_type($ptype, $<arglist>, $/);
+                    my $curried := $*W.parameterize_type($ptype, $<arglist>.ast, $/);
                     $past := QAST::WVal.new( :value($curried) );
                 }
                 else {
                     my $ptref := QAST::WVal.new( :value($ptype) );
-                    $past := $<arglist>[0].ast;
+                    $past := $<arglist>.ast;
                     $past.op('callmethod');
                     $past.name('parameterize');
                     $past.unshift($ptref);
@@ -5238,11 +5238,11 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 my $longname := $*W.dissect_longname($<longname>);
                 my $type := $*W.find_symbol($longname.type_name_parts('type name'));
                 if $<arglist> {
-                    $type := $*W.parameterize_type($type, $<arglist>, $/);
+                    $type := $*W.parameterize_type($type, $<arglist>[0].ast, $/);
                 }
                 if $<typename> {
                     $type := $*W.parameterize_type_with_args($type,
-                        [$<typename>[0].ast], hash());
+                        [$<typename>.ast], hash());
                 }
                 make $type;
             }
@@ -6355,7 +6355,7 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions does STDActions {
             if +@parts {
                 $/.CURSOR.panic("Can only alias to a short name (without '::')");
             }
-            $qast := $<assertion>[0].ast;
+            $qast := $<assertion>.ast;
             self.subrule_alias($qast, $name);
         }
         elsif !@parts && $name eq 'sym' {
@@ -6388,12 +6388,12 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions does STDActions {
                                          :name($name) );
             }
             if $<arglist> {
-                for $<arglist>[0].ast.list { $qast[0].push($_) }
+                for $<arglist>.ast.list { $qast[0].push($_) }
             }
             elsif $<nibbler> {
                 my $nibbled := $name eq 'after'
-                    ?? self.flip_ast($<nibbler>[0].ast)
-                    !! $<nibbler>[0].ast;
+                    ?? self.flip_ast($<nibbler>.ast)
+                    !! $<nibbler>.ast;
                 my $sub := %*LANG<Regex-actions>.qbuildsub($nibbled, :anon(1), :addself(1));
                 $qast[0].push($sub);
             }

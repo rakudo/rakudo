@@ -2356,7 +2356,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         ]+ % <param_sep>
         <.ws>
         { $*IN_DECL := ''; }
-        [ '-->' <.ws> <typename> || '-->' <.ws> <typo_typename> ]**0..1
+        [ '-->' <.ws> <typename> || '-->' <.ws> <typo_typename> ]?
         { $*LEFTSIGIL := '@'; }
     }
 
@@ -2695,7 +2695,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             [
                 <?{ $*W.is_type($*longname.components()) }>
                 <?[[]> :dba('type parameter') '[' ~ ']' <arglist>
-            ]**0..1
+            ]?
         || <args> { self.add_mystery($<longname>, $<args>.from, 'termish')
                         unless nqp::index($<longname>.Str, '::') >= 0 }
         ]
@@ -2826,7 +2826,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         # parametric type?
         <.unsp>? [ <?[[]> '[' ~ ']' <arglist> ]**0..1
         <.unsp>? [ <?[(]> '(' ~ ')' <arglist> <.NYI("coercive type declarations")>]**0..1
-        [<.ws> 'of' <.ws> <typename> ]**0..1
+        [<.ws> 'of' <.ws> <typename> ]?
     }
 
     token typo_typename {
@@ -4208,7 +4208,7 @@ grammar Perl6::RegexGrammar is QRegex::P6Regex::Grammar does STD {
             | ':' <arglist>
             | '(' <arglist> ')'
             | <.normspace> <nibbler>
-            ]**0..1
+            ]?
     }
 }
 

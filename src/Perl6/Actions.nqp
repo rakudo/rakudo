@@ -3163,7 +3163,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
         # If we have a refinement, make sure it's thunked if needed. If none,
         # just always true.
-        my $refinement := make_where_block($<EXPR> ?? $<EXPR>[0].ast !!
+        my $refinement := make_where_block($<EXPR> ?? $<EXPR>.ast !!
             QAST::Op.new( :op('p6bool'), QAST::IVal.new( :value(1) ) ));
 
         # Create the meta-object.

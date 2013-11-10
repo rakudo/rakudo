@@ -2568,7 +2568,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                 ]?
                 { $*IN_DECL := '' }
                 <trait>*
-                [ where <EXPR('e=')> ]**0..1
+                [ where <EXPR('e=')> ]?
             ]
             || <.malformed('subset')>
         ]

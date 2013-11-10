@@ -186,6 +186,21 @@ sub VAR (\x) { x.VAR }
 
 proto sub infix:<...>(|) { * }
 multi sub infix:<...>($a, Mu $b) { SEQUENCE($a, $b) }
+multi sub infix:<...>(**@lol) {
+    my @ret;
+    my int $i = 0;
+    my int $m = +@lol - 1;
+    while $m > $i {
+        @ret := (@ret,
+            SEQUENCE(
+                @lol[$i],             # from-range, specifies steps
+                @lol[$i + 1].list[0], # to, we only need the endpoint (= first item)
+                :exclude_end( ($i = nqp::add_i($i, 1)) < $m ) # exlude the end unless we are at the end
+            )
+        ).flat;
+    }
+    @ret
+}
 
 proto sub infix:<...^>(|) { * }
 multi sub infix:<...^>($a, Mu $b) { SEQUENCE($a, $b, :exclude_end(1)) }

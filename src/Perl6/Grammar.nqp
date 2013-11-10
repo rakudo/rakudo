@@ -1047,16 +1047,16 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         | <EXPR> :dba('statement end')
             [
             || <?MARKED('endstmt')>
-            || :dba('statement modifier') <.ws> <statement_mod_cond> <statement_mod_loop>**0..1
+            || :dba('statement modifier') <.ws> <statement_mod_cond> <statement_mod_loop>?
             || :dba('statement modifier loop') <.ws> <statement_mod_loop>
                 {
                     my $sp := $<EXPR><statement_prefix>;
                     if $sp && $sp<sym> eq 'do' {
-                        my $s := $<statement_mod_loop>[0]<sym>;
+                        my $s := $<statement_mod_loop><sym>;
                         $/.CURSOR.obs("do..." ~ $s, "repeat...while or repeat...until");
                     }
                 }
-            ]**0..1
+            ]?
         | <?[;]>
         | <?stopper>
         | {} <.panic: "Bogus statement">

@@ -7,6 +7,7 @@ New in 2013.11
 + warn when private attributes are a marked rw or readonly
 + "is DEPRECATED" trait now does something useful
 + Parcel.rotate implemented
++ Order::Increase/Decrease are deprecated.  Please use Order::Less/More.
 
 New in 2013.10
 

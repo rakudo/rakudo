@@ -49,14 +49,9 @@ multi sub winner(*@contestants, :$default) {
     my $winner;
     loop {
         my @ready;
-        my @waiting;
         for @contestants -> $c {
             my $arg = is-ready($c.key);
-            if $arg[0] {
-                @ready.push: $c.value => $arg[1]
-            } else {
-                @waiting.push: $c
-            }
+            @ready.push: $c.value => $arg[1] if $arg[0];
         }
         if @ready {
             $winner = @ready.pick;

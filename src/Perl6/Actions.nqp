@@ -254,8 +254,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     %info<bind_constraint>, [@value_type[0]], nqp::hash());
             }
             %info<value_type>     := %info<bind_constraint>;
-            %info<default_value>  := $*W.find_symbol(['Any']);
-            %info<scalar_value>   := $*W.find_symbol(['Any']);
+            %info<default_value>  := $*W.find_symbol(['Callable']);
+            %info<scalar_value>   := $*W.find_symbol(['Callable']);
         }
         else {
             %info<container_base>     := $*W.find_symbol(['Scalar']);
@@ -746,8 +746,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
     method statement($/, $key?) {
         my $past;
         if $<EXPR> {
-            my $mc := $<statement_mod_cond>[0];
-            my $ml := $<statement_mod_loop>[0];
+            my $mc := $<statement_mod_cond>;
+            my $ml := $<statement_mod_loop>;
             $past := $<EXPR>.ast;
             if $mc {
                 $mc.ast.push($past);
@@ -989,7 +989,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my $past := xblock_immediate( $<xblock>[$count].ast );
         # push the else block if any, otherwise 'if' returns C<Nil> (per S04)
         $past.push( $<else>
-                    ?? pblock_immediate( $<else>[0].ast )
+                    ?? pblock_immediate( $<else>.ast )
                     !!  QAST::Var.new(:name('Nil'), :scope('lexical'))
         );
         # build if/then/elsif structure
@@ -1043,15 +1043,15 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
     method statement_control:sym<loop>($/) {
         my $block := pblock_immediate($<block>.ast);
-        my $cond := $<e2> ?? $<e2>[0].ast !! QAST::Var.new(:name<True>, :scope<lexical>);
+        my $cond := $<e2> ?? $<e2>.ast !! QAST::Var.new(:name<True>, :scope<lexical>);
         my $loop := QAST::Op.new( $cond, :op('while'), :node($/) );
         $loop.push($block);
         if $<e3> {
-            $loop.push($<e3>[0].ast);
+            $loop.push($<e3>.ast);
         }
         $loop := tweak_loop($loop);
         if $<e1> {
-            $loop := QAST::Stmts.new( $<e1>[0].ast, $loop, :node($/) );
+            $loop := QAST::Stmts.new( $<e1>.ast, $loop, :node($/) );
         }
         make $loop;
     }
@@ -1167,7 +1167,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         $past.push($op);
 
         if $<EXPR> {
-            my $p6_arglist  := $*W.compile_time_evaluate($/, $<EXPR>[0].ast).list.eager;
+            my $p6_arglist  := $*W.compile_time_evaluate($/, $<EXPR>.ast).list.eager;
             my $arglist     := nqp::getattr($p6_arglist, $*W.find_symbol(['List']), '$!items');
             my $lexpad      := $*W.cur_lexpad();
             my $*SCOPE      := 'my';
@@ -1564,7 +1564,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 }
                 else {
                     $past := make_variable($/, $longname.variable_components(
-                        ~$<sigil>, $<twigil> ?? ~$<twigil>[0] !! ''));
+                        ~$<sigil>, $<twigil> ?? ~$<twigil> !! ''));
                 }
             }
             else {
@@ -1578,7 +1578,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
 
     sub make_variable($/, @name) {
-        make_variable_from_parts($/, @name, $<sigil>.Str, $<twigil>[0], ~$<desigilname>);
+        make_variable_from_parts($/, @name, $<sigil>.Str, $<twigil>, ~$<desigilname>);
     }
 
     sub make_variable_from_parts($/, @name, $sigil, $twigil, $desigilname) {
@@ -1608,7 +1608,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 $*W.throw($/, ['X', 'Syntax', 'VirtualCall'], call => $past.name());
             }
             # Need to transform this to a method call.
-            $past := $<arglist> ?? $<arglist>[0].ast !! QAST::Op.new();
+            $past := $<arglist> ?? $<arglist>.ast !! QAST::Op.new();
             $past.op('callmethod');
             $past.name($desigilname);
             $past.unshift(QAST::Var.new( :name('self'), :scope('lexical') ));
@@ -1765,7 +1765,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         if $*PKGDECL eq 'role' {
             # Set up signature. Needs to have $?CLASS as an implicit
             # parameter, since any mention of it is generic.
-            my %sig_info := $<signature> ?? $<signature>[0].ast !! hash(parameters => []);
+            my %sig_info := $<signature> ?? $<signature>.ast !! hash(parameters => []);
             my @params := %sig_info<parameters>;
             @params.unshift(hash(
                 is_multi_invocant => 1,
@@ -1853,24 +1853,24 @@ class Perl6::Actions is HLL::Actions does STDActions {
             if $<initializer> {
                 my $orig_past := $past;
                 if $*SCOPE eq 'has' {
-                    if $<initializer>[0]<sym> eq '=' {
-                        self.install_attr_init($<initializer>[0], $past<metaattr>,
-                            $<initializer>[0].ast, $*ATTR_INIT_BLOCK);
+                    if $<initializer><sym> eq '=' {
+                        self.install_attr_init($<initializer>, $past<metaattr>,
+                            $<initializer>.ast, $*ATTR_INIT_BLOCK);
                     }
                     else {
-                        $/.CURSOR.panic("Cannot use " ~ $<initializer>[0]<sym> ~
+                        $/.CURSOR.panic("Cannot use " ~ $<initializer><sym> ~
                             " to initialize an attribute");
                     }
                 }
-                elsif $<initializer>[0]<sym> eq '=' {
-                    $past := assign_op($/, $past, $<initializer>[0].ast);
+                elsif $<initializer><sym> eq '=' {
+                    $past := assign_op($/, $past, $<initializer>.ast);
                 }
-                elsif $<initializer>[0]<sym> eq '.=' {
-                    $past := make_dot_equals($past, $<initializer>[0].ast);
+                elsif $<initializer><sym> eq '.=' {
+                    $past := make_dot_equals($past, $<initializer>.ast);
                 }
                 else {
-                    $past := bind_op($/, $past, $<initializer>[0].ast,
-                        $<initializer>[0]<sym> eq '::=');
+                    $past := bind_op($/, $past, $<initializer>.ast,
+                        $<initializer><sym> eq '::=');
                 }
                 if $*SCOPE eq 'state' {
                     $past := QAST::Op.new( :op('if'),
@@ -1907,12 +1907,12 @@ class Perl6::Actions is HLL::Actions does STDActions {
             
             if $<initializer> {
                 my $orig_list := $list;
-                if $<initializer>[0]<sym> eq '=' {
+                if $<initializer><sym> eq '=' {
                     $/.CURSOR.panic("Cannot assign to a list of 'has' scoped declarations")
                         if $*SCOPE eq 'has';
-                    $list := assign_op($/, $list, $<initializer>[0].ast);
+                    $list := assign_op($/, $list, $<initializer>.ast);
                 }
-                elsif $<initializer>[0]<sym> eq '.=' {
+                elsif $<initializer><sym> eq '.=' {
                     $/.CURSOR.panic("Cannot use .= initializer with a list of declarations");
                 }
                 else {
@@ -1925,7 +1925,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                         QAST::WVal.new( :value($signature) ),
                         QAST::Op.new(
                             :op('callmethod'), :name('Capture'),
-                            $<initializer>[0].ast
+                            $<initializer>.ast
                         )
                     );
                 }
@@ -1991,7 +1991,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
     method variable_declarator($/) {
         my $past   := $<variable>.ast;
         my $sigil  := $<variable><sigil>;
-        my $twigil := $<variable><twigil>[0];
+        my $twigil := $<variable><twigil>;
         my $name   := ~$sigil ~ ~$twigil ~ ~$<variable><desigilname>;
         if $<variable><desigilname> {
             my $lex := $*W.cur_lexpad();
@@ -2204,7 +2204,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
         my %sig_info;
         if $<multisig> {
-            %sig_info := $<multisig>[0].ast;
+            %sig_info := $<multisig>.ast;
         }
         else {
             %sig_info<parameters> := $block<placeholder_sig> ?? $block<placeholder_sig> !!
@@ -2212,7 +2212,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
         my @params := %sig_info<parameters>;
         set_default_parameter_type(@params, 'Any');
-        my $signature := create_signature_object($<multisig> ?? $<multisig>[0] !! $/, %sig_info, $block);
+        my $signature := create_signature_object($<multisig> ?? $<multisig> !! $/, %sig_info, $block);
         add_signature_binding_code($block, $signature, @params);
 
         # Needs a slot that can hold a (potentially unvivified) dispatcher;
@@ -2245,7 +2245,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
         # Set name.
         if $<deflongname> {
-            $block.name(~$<deflongname>[0].ast);
+            $block.name(~$<deflongname>.ast);
         }
         
         # Finish code object, associating it with the routine body.
@@ -2285,7 +2285,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             # If it's a multi, need to associate it with the surrounding
             # proto.
             # XXX Also need to auto-multi things with a proto in scope.
-            my $name := '&' ~ ~$<deflongname>[0].ast;
+            my $name := '&' ~ ~$<deflongname>.ast;
             if $*MULTINESS eq 'multi' {
                 # Do we have a proto in the current scope?
                 my $proto;
@@ -2321,7 +2321,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 unless nqp::can($proto, 'is_dispatcher') && $proto.is_dispatcher {
                     $*W.throw($/, ['X', 'Redeclaration'],
                         what    => 'routine',
-                        symbol  => ~$<deflongname>[0].ast,
+                        symbol  => ~$<deflongname>.ast,
                     );
                 }
 
@@ -2332,7 +2332,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 # Install.
                 if $outer.symbol($name) {
                     $*W.throw($/, ['X', 'Redeclaration'],
-                            symbol => ~$<deflongname>[0].ast,
+                            symbol => ~$<deflongname>.ast,
                             what   => 'routine',
                     );
                 }
@@ -2605,7 +2605,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         $past.name($name ?? $name !! '<anon>');
 
         # Do the various tasks to trun the block into a method code object.
-        my %sig_info := $<multisig> ?? $<multisig>[0].ast !! hash(parameters => []);
+        my %sig_info := $<multisig> ?? $<multisig>.ast !! hash(parameters => []);
         my $inv_type  := $*W.find_symbol([
             $<longname> && $*W.is_lexical('$?CLASS') ?? '$?CLASS' !! 'Mu']);
         my $code := methodize_block($/, $*DECLARAND, $past, %sig_info, $inv_type, :yada(is_yada($/)));
@@ -2692,7 +2692,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
         my %sig_info;
         if $<multisig> {
-            %sig_info := $<multisig>[0].ast;
+            %sig_info := $<multisig>.ast;
         }
         else {
             %sig_info<parameters> := $block<placeholder_sig> ?? $block<placeholder_sig> !!
@@ -2700,12 +2700,12 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
         my @params := %sig_info<parameters>;
         set_default_parameter_type(@params, 'Any');
-        my $signature := create_signature_object($<multisig> ?? $<multisig>[0] !! $/, %sig_info, $block);
+        my $signature := create_signature_object($<multisig> ?? $<multisig> !! $/, %sig_info, $block);
         add_signature_binding_code($block, $signature, @params);
 
         # Finish code object, associating it with the routine body.
         if $<deflongname> {
-            $block.name(~$<deflongname>[0].ast);
+            $block.name(~$<deflongname>.ast);
         }
         my $code := $*DECLARAND;
         $*W.attach_signature($code, $signature);
@@ -2724,11 +2724,11 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
         my $past;
         if $<deflongname> {
-            my $name := '&' ~ ~$<deflongname>[0].ast;
+            my $name := '&' ~ ~$<deflongname>.ast;
             # Install.
             if $outer.symbol($name) {
                 $/.CURSOR.panic("Illegal redeclaration of macro '" ~
-                    ~$<deflongname>[0].ast ~ "'");
+                    ~$<deflongname>.ast ~ "'");
             }
             if $*SCOPE eq '' || $*SCOPE eq 'my' {
                 $*W.install_lexical_symbol($outer, $name, $code);
@@ -3164,11 +3164,11 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
         # If we have a refinement, make sure it's thunked if needed. If none,
         # just always true.
-        my $refinement := make_where_block($<EXPR> ?? $<EXPR>[0].ast !!
+        my $refinement := make_where_block($<EXPR> ?? $<EXPR>.ast !!
             QAST::Op.new( :op('p6bool'), QAST::IVal.new( :value(1) ) ));
 
         # Create the meta-object.
-        my $longname := $<longname> ?? $*W.dissect_longname($<longname>[0]) !! 0;
+        my $longname := $<longname> ?? $*W.dissect_longname($<longname>) !! 0;
         my $subset := $<longname> ??
             $*W.create_subset(%*HOW<subset>, $refinee, $refinement, :name($longname.name())) !!
             $*W.create_subset(%*HOW<subset>, $refinee, $refinement);
@@ -3247,7 +3247,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
     method capterm($/) {
         # Construct a Parcel, and then call .Capture to coerce it to a capture.
         my $past := $<termish> ?? $<termish>.ast !!
-                    $<capture> ?? $<capture>[0].ast !!
+                    $<capture> ?? $<capture>.ast !!
                     QAST::Op.new( :op('call'), :name('&infix:<,>') );
         unless $past.isa(QAST::Op) && $past.name eq '&infix:<,>' {
             $past := QAST::Op.new( :op('call'), :name('&infix:<,>'), $past );
@@ -3302,7 +3302,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
         %signature<parameters> := @parameter_infos;
         if $<typename> {
-            %signature<returns> := $<typename>[0].ast;
+            %signature<returns> := $<typename>.ast;
         }
 
         # Mark current block as having a signature.
@@ -3375,7 +3375,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             # Set name, if there is one.
             if $<name> {
                 %*PARAM_INFO<variable_name> := ~$/;
-                %*PARAM_INFO<desigilname> := ~$<name>[0];
+                %*PARAM_INFO<desigilname> := ~$<name>;
             }
             %*PARAM_INFO<sigil> := my $sigil := ~$<sigil>;
 
@@ -3405,7 +3405,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             }
 
             # Handle twigil.
-            my $twigil := $<twigil> ?? ~$<twigil>[0] !! '';
+            my $twigil := $<twigil> ?? ~$<twigil> !! '';
             %*PARAM_INFO<twigil> := $twigil;
             if $twigil eq '' || $twigil eq '*' {
                 # Need to add the name.
@@ -3420,7 +3420,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             elsif $twigil eq '.' {
                 %*PARAM_INFO<bind_accessor> := 1;
                 if $<name> {
-                    %*PARAM_INFO<variable_name> := ~$<name>[0];
+                    %*PARAM_INFO<variable_name> := ~$<name>;
                 }
                 else {
                     $/.CURSOR.panic("Cannot declare $. parameter in signature without an accessor name");
@@ -3430,7 +3430,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 if $twigil eq ':' {
                     $/.CURSOR.typed_sorry('X::Parameter::Placeholder',
                         parameter => ~$/,
-                        right     => ':' ~ $<sigil> ~ ~$<name>[0],
+                        right     => ':' ~ $<sigil> ~ ~$<name>,
                     );
                 }
                 else {
@@ -3464,7 +3464,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
     method named_param($/) {
         %*PARAM_INFO<named_names> := %*PARAM_INFO<named_names> || [];
         if $<name>               { %*PARAM_INFO<named_names>.push(~$<name>); }
-        elsif $<param_var><name> { %*PARAM_INFO<named_names>.push(~$<param_var><name>[0]); }
+        elsif $<param_var><name> { %*PARAM_INFO<named_names>.push(~$<param_var><name>); }
         else                     { %*PARAM_INFO<named_names>.push(''); }
     }
 
@@ -4097,18 +4097,18 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 
                 # Do we know all the arguments at compile time?
                 my int $all_compile_time := 1;
-                for @($<arglist>[0].ast) {
+                for @($<arglist>.ast) {
                     unless $_.has_compile_time_value {
                         $all_compile_time := 0;
                     }
                 }
                 if $all_compile_time {
-                    my $curried := $*W.parameterize_type($ptype, $<arglist>, $/);
+                    my $curried := $*W.parameterize_type($ptype, $<arglist>.ast, $/);
                     $past := QAST::WVal.new( :value($curried) );
                 }
                 else {
                     my $ptref := QAST::WVal.new( :value($ptype) );
-                    $past := $<arglist>[0].ast;
+                    $past := $<arglist>.ast;
                     $past.op('callmethod');
                     $past.name('parameterize');
                     $past.unshift($ptref);
@@ -4153,7 +4153,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
         my $past := QAST::VM.new( :pirop($pirop), :node($/) );
         if $<args> {
-            for $<args>[0].ast.list {
+            for $<args>.ast.list {
                 $past.push($_);
             }
         }
@@ -4166,7 +4166,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
     method term:sym<nqp::op>($/) {
         $/.CURSOR.panic("nqp::op forbidden in safe mode\n") if $FORBID_PIR;
-        my @args := $<args> ?? $<args>[0].ast.list !! [];
+        my @args := $<args> ?? $<args>.ast.list !! [];
         my $past := QAST::Op.new( :op(~$<op>), |@args );
         if $past.op eq 'want' || $past.op eq 'handle' {
             my int $i := 1;
@@ -5239,11 +5239,11 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 my $longname := $*W.dissect_longname($<longname>);
                 my $type := $*W.find_symbol($longname.type_name_parts('type name'));
                 if $<arglist> {
-                    $type := $*W.parameterize_type($type, $<arglist>, $/);
+                    $type := $*W.parameterize_type($type, $<arglist>[0].ast, $/);
                 }
                 if $<typename> {
                     $type := $*W.parameterize_type_with_args($type,
-                        [$<typename>[0].ast], hash());
+                        [$<typename>.ast], hash());
                 }
                 make $type;
             }
@@ -6361,7 +6361,7 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions does STDActions {
             if +@parts {
                 $/.CURSOR.panic("Can only alias to a short name (without '::')");
             }
-            $qast := $<assertion>[0].ast;
+            $qast := $<assertion>.ast;
             self.subrule_alias($qast, $name);
         }
         elsif !@parts && $name eq 'sym' {
@@ -6394,12 +6394,12 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions does STDActions {
                                          :name($name) );
             }
             if $<arglist> {
-                for $<arglist>[0].ast.list { $qast[0].push($_) }
+                for $<arglist>.ast.list { $qast[0].push($_) }
             }
             elsif $<nibbler> {
                 my $nibbled := $name eq 'after'
-                    ?? self.flip_ast($<nibbler>[0].ast)
-                    !! $<nibbler>[0].ast;
+                    ?? self.flip_ast($<nibbler>.ast)
+                    !! $<nibbler>.ast;
                 my $sub := %*LANG<Regex-actions>.qbuildsub($nibbled, :anon(1), :addself(1));
                 $qast[0].push($sub);
             }

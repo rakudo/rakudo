@@ -57,33 +57,42 @@ my class ThreadPoolScheduler does Scheduler {
         my $delay = $at ?? $at - now !! $in // 0;
         self!initialize unless $!started_any;
 
-        my &block = &catch
-          ?? -> { code(); CATCH { default { catch($_) } } }
-          !! -> { code() };
-
         # need repeating
         if $every {
             $!timer.'method/scheduleAtFixedRate/(Ljava/util/TimerTask;JJ)V'(
               nqp::jvmbootinterop().proxy(
-                'java.util.TimerTask', nqp::hash('run', &block)),
+                'java.util.TimerTask',
+                nqp::hash( 'run', &catch
+                  ?? -> { code(); CATCH { default { catch($_) } } }
+                  !! -> { code() }
+                )
+              ),
               ($delay * 1000).Int,
               ($every * 1000).Int);
         }
 
         # only after waiting a bit
-        elsif $delay or &catch {
+        elsif $delay {
             $!timer.'method/schedule/(Ljava/util/TimerTask;J)V'(
               nqp::jvmbootinterop().proxy(
-                'java.util.TimerTask', nqp::hash('run', &block)),
+                'java.util.TimerTask',
+                nqp::hash( 'run', &catch
+                  ?? -> { code(); CATCH { default { catch($_) } } }
+                  !! -> { code() }
+                )
+              ),
               ($delay * 1000).Int);
         }
 
         # just cue the code
         else {
+            my &run := &catch 
+               ?? -> { code(); CATCH { default { catch($_) } } }
+               !! &code;
             my $loads = $!loads.incrementAndGet();
             self!maybe_new_thread()
                 if !$!started_any || $loads > 1;
-            $!queue.add(nqp::jvmbootinterop().sixmodelToJavaObject(&code));
+            $!queue.add(nqp::jvmbootinterop().sixmodelToJavaObject(&run));
         }
     }
 

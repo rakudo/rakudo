@@ -257,7 +257,7 @@ my class DateTime does Dateish {
     }
 
     multi method new(Str $format, :$timezone is copy = 0, :&formatter=&default-formatter) {
-        $format ~~ /^ (\d**4) '-' (\d\d) '-' (\d\d) T (\d\d) ':' (\d\d) ':' (\d\d) (Z || (<[\-\+]>) (\d\d)(\d\d))**0..1 $/
+        $format ~~ /^ (\d**4) '-' (\d\d) '-' (\d\d) T (\d\d) ':' (\d\d) ':' (\d\d) (Z || (<[\-\+]>) (\d\d)(\d\d))? $/
             or X::Temporal::InvalidFormat.new(
                     invalid-str => $format,
                     target      => 'DateTime',
@@ -275,9 +275,9 @@ my class DateTime does Dateish {
             if $6 eq 'Z' {
                 $timezone = 0;                
             } else {
-                $timezone = (($6[0][1]*60 + $6[0][2]) * 60).Int;
+                $timezone = (($6[1]*60 + $6[2]) * 60).Int;
                   # RAKUDO: .Int is needed to avoid to avoid the nasty '-0'.
-                $6[0][0] eq '-' and $timezone = -$timezone;
+                $6[0] eq '-' and $timezone = -$timezone;
             }
         }
         self.new(:$year, :$month, :$day, :$hour, :$minute,

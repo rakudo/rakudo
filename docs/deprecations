@@ -1,3 +1,9 @@
+Deprecations in 2013.11
+
+    Order::Increase and Order::Decrease are now called Order::Less and
+    Order::More.  Using "Increase" or "Decrease" will now generate
+    "is DEPRECATED" warnings at the end of execution.
+
 Deprecations in 2012.12
 
     'for'-loops will be lazy (just like map), and only be automatically

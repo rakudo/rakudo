@@ -51,6 +51,7 @@ if ($list_file) {
             next if ($fudgespec =~ m/icu/)    && !$do_icu && !$jvm;
             next if ($fudgespec =~ m/long/)   && !$do_long;
             next if ($fudgespec =~ m/stress/) && !$do_stress;
+            next if ($fudgespec =~ m/jvm/)    && !$jvm;
         }
         $fn = "t/spec/$fn" unless $fn =~ m/^t\Q$slash\Espec\Q$slash\E/;
         $fn =~ s{/}{$slash}g;

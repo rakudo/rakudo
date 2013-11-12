@@ -11,7 +11,7 @@ PREFIX = @prefix@
 MOAR   = $(PREFIX)@slash@bin@slash@moar@exe@
 M_NQP  = $(PREFIX)@slash@bin@slash@nqp-m@runner_suffix@
 
-RUN_PERL6 = $(MOAR) --libpath="$(PREFIX)@slash@languages@slash@nqp@slash@lib" perl6.moarvm
+M_RUN_PERL6 = $(MOAR) --libpath="$(PREFIX)@slash@languages@slash@nqp@slash@lib" perl6.moarvm
 
 M_RUNNER = perl6-m@runner_suffix@
 
@@ -244,7 +244,7 @@ $(PERL6_B_MOAR): $(BOOTSTRAP_SOURCES) $(PERL6_M_MOAR)
 $(SETTING_MOAR): $(PERL6_MOAR) $(PERL6_B_MOAR) $(M_CORE_SOURCES)
 	$(PERL) $(M_GEN_CAT) $(M_CORE_SOURCES) > src/gen/m-CORE.setting
 	@echo "The following step can take a long time, please be patient."
-	$(RUN_PERL6) --setting=NULL --optimize=3 --target=mbc --stagestats --output=$(SETTING_MOAR) src/gen/m-CORE.setting
+	$(M_RUN_PERL6) --setting=NULL --optimize=3 --target=mbc --stagestats --output=$(SETTING_MOAR) src/gen/m-CORE.setting
 
 $(M_RUNNER): tools/build/gen-moar-runner.pl $(PERL6_MOAR)
 	$(PERL) tools/build/gen-moar-runner.pl $(MOAR) .

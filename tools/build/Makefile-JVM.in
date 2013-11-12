@@ -12,7 +12,7 @@ PERL6_LANG_DIR = $(PREFIX)/languages/perl6
 
 NQP_JARS = @nqp_jars@
 
-RUN_PERL6 = $(JAVA) -Xss1m -Xms500m -Xmx1600m -Xbootclasspath/a:.@cpsep@$(NQP_JARS)@cpsep@rakudo-runtime.jar@cpsep@perl6.jar -cp @nqp_classpath@ perl6
+J_RUN_PERL6 = $(JAVA) -Xss1m -Xms500m -Xmx1600m -Xbootclasspath/a:.@cpsep@$(NQP_JARS)@cpsep@rakudo-runtime.jar@cpsep@perl6.jar -cp @nqp_classpath@ perl6
 
 RUNTIME_JAVAS = src/vm/jvm/runtime/org/perl6/rakudo/*.java
 
@@ -248,7 +248,7 @@ $(PERL6_B_JAR): $(BOOTSTRAP_SOURCES) $(PERL6_M_JAR)
 $(SETTING_JAR): $(PERL6_JAR) $(PERL6_B_JAR) $(J_CORE_SOURCES)
 	$(PERL) $(J_GEN_CAT) $(J_CORE_SOURCES) > $(J_BUILD_DIR)/CORE.setting
 	@echo "The following step can take a long time, please be patient."
-	$(RUN_PERL6) --setting=NULL --optimize=3 --target=jar --stagestats --output=$(SETTING_JAR) $(J_BUILD_DIR)/CORE.setting
+	$(J_RUN_PERL6) --setting=NULL --optimize=3 --target=jar --stagestats --output=$(SETTING_JAR) $(J_BUILD_DIR)/CORE.setting
 
 $(RUNNER):
 	$(PERL) tools/build/create-jvm-runner.pl dev . . $(NQP_PREFIX) $(NQP_JARS)

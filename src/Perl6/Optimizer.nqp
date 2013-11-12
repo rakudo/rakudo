@@ -284,9 +284,18 @@ class Perl6::Optimizer {
         }
 
         # we may be able to unfold a junction at compile time.
-        if $*LEVEL >= 2 && is_outer_foldable() && nqp::istype($op[0], QAST::Op) && $op[0].op eq "chain" {
-            my $exp-side := self.can_chain_junction_be_warped($op[0]);
-            if $exp-side != -1 && chain_handles_Any($op[0].name) == 1 {
+        if $*LEVEL >= 2 && is_outer_foldable() && nqp::istype($op[0], QAST::Op) {
+            my $proceed := 0;
+            my $exp-side;
+            if $op[0].op eq "chain" {
+                $exp-side := self.can_chain_junction_be_warped($op[0]);
+                $proceed := $exp-side != -1 && chain_handles_Any($op[0].name) == 1
+            } elsif $op[0].op eq 'callmethod' && $op[0].name eq 'ACCEPTS' {
+                $exp-side := self.can_chain_junction_be_warped($op[0]);
+                # we should only ever find the 0nd child (the invocant) to be a junction anyway.
+                $proceed := $exp-side == 0;
+            }
+            if $proceed {
                 # TODO chain_handles_Any may get more cleverness to check only the parameters that actually have
                 # a junction passed to them, so that in some cases the unfolding may still happen.
                 my str $juncop := $op[0][$exp-side].name eq '&infix:<&>' ?? 'if' !! 'unless';

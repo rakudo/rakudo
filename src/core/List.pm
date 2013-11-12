@@ -535,7 +535,7 @@ my class List does Positional { # declared in BOOTSTRAP
     }
 
     my sub combinations(Int $n, Int $k) {
-        return [] if $k == 0;
+        return [] if $k <= 0;
         return () if $k > $n;
         gather {
             take [0, (1..^$n)[@$_]] for combinations($n-1, $k-1);

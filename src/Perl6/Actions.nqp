@@ -4319,7 +4319,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         else {
             my $last := $past[ $size - 1 ];
             $past.returns($last.returns);
-            if nqp::defined($last.arity) {
+            if nqp::istype($last, QAST::Block) {
                 $past.arity($last.arity);
             }
         }

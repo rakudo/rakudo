@@ -800,7 +800,8 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
 
     method words(Str:D: $limit = *) {
-        self.comb( / \S+ /, $limit );
+        my @chunks := self.comb( / \S+ /, $limit );
+        +@chunks == 1 ?? @chunks[0] !! @chunks
     }
 
     my %enc_type = utf8 => utf8, utf16 => utf16, utf32 => utf32;

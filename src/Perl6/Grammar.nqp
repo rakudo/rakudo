@@ -517,21 +517,21 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     proto token pod_content { <...> }
 
-    token pod_content:sym<block> {
+    token pod_content:block {
         <pod_newline>*
         <pod_block>
         <pod_newline>*
     }
 
     # any number of paragraphs of text
-    token pod_content:sym<text> {
+    token pod_content:text {
         <pod_newline>*
         <pod_textcontent>+ % <pod_newline>+
         <pod_newline>*
     }
 
     # not a block, just a directive
-    token pod_content:sym<config> {
+    token pod_content:config {
         <pod_newline>*
         ^^ \h* '=config' \h+ $<type>=\S+ <pod_configuration>
         <pod_newline>+
@@ -540,7 +540,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     proto token pod_textcontent { <...> }
 
     # text not being code
-    token pod_textcontent:sym<regular> {
+    token pod_textcontent:regular {
         $<spaces>=[ \h* ]
          <?{ !$*ALLOW_CODE
              || ($<spaces>.to - $<spaces>.from) <= $*VMARGIN }>
@@ -550,7 +550,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         ] +
     }
 
-    token pod_textcontent:sym<code> {
+    token pod_textcontent:code {
         $<spaces>=[ \h* ]
         <?{ $*ALLOW_CODE
             && ($<spaces>.to - $<spaces>.from) > $*VMARGIN }>
@@ -631,7 +631,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         [ [\n $spaces '=']? \h+ <colonpair> ]*
     }
 
-    token pod_block:sym<delimited_raw> {
+    token pod_block:delimited_raw {
         ^^
         $<spaces> = [ \h* ]
         '=begin' \h+ $<type>=[ 'code' | 'comment' ] {}
@@ -643,7 +643,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         ]
     }
 
-    token pod_block:sym<delimited> {
+    token pod_block:delimited {
         ^^
         $<spaces> = [ \h* ]
         '=begin'
@@ -669,7 +669,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
 
 
-    token pod_block:sym<delimited_table> {
+    token pod_block:delimited_table {
         ^^
         $<spaces> = [ \h* ]
         '=begin' \h+ 'table'
@@ -686,7 +686,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         \h* <!before '=' \w> \N* \n
     }
 
-    token pod_block:sym<end> {
+    token pod_block:end {
         ^^ \h*
         [
             | '=begin' \h+ 'END' <pod_newline>
@@ -696,7 +696,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         .*
     }
 
-    token pod_block:sym<paragraph> {
+    token pod_block:paragraph {
         ^^
         $<spaces> = [ \h* ]
         '=for' \h+ <!before 'END'>
@@ -713,7 +713,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <pod_content=.pod_textcontent>**0..1
     }
 
-    token pod_block:sym<paragraph_raw> {
+    token pod_block:paragraph_raw {
         ^^
         $<spaces> = [ \h* ]
         '=for' \h+ $<type>=[ 'code' | 'comment' ]
@@ -722,7 +722,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         $<pod_content> = [ \h* <!before '=' \w> \N+ \n ]+
     }
 
-    token pod_block:sym<paragraph_table> {
+    token pod_block:paragraph_table {
         ^^
         $<spaces> = [ \h* ]
         '=for' \h+ 'table'
@@ -731,7 +731,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         [ <!before \h* \n> <table_row>]*
     }
 
-    token pod_block:sym<abbreviated> {
+    token pod_block:abbreviated {
         ^^
         $<spaces> = [ \h* ]
         '=' <!before begin || end || for || END || config>
@@ -749,7 +749,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <pod_content=.pod_textcontent>**0..1
     }
 
-    token pod_block:sym<abbreviated_raw> {
+    token pod_block:abbreviated_raw {
         ^^
         $<spaces> = [ \h* ]
         '=' $<type>=[ 'code' | 'comment' ]
@@ -758,7 +758,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         $<pod_content> = [ \h* <!before '=' \w> \N+ \n ]*
     }
 
-    token pod_block:sym<abbreviated_table> {
+    token pod_block:abbreviated_table {
         ^^
         $<spaces> = [ \h* ]
         :my $*POD_ALLOW_FCODES := nqp::getlexdyn('$*POD_ALLOW_FCODES');
@@ -1129,15 +1129,15 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token terminator:sym<)> { <?[)]> }
     token terminator:sym<]> { <?[\]]> }
     token terminator:sym<}> { <?[}]> }
-    token terminator:sym<ang> { <?[>]> <?{ $*IN_REGEX_ASSERTION }> }
-    token terminator:sym<if>     { 'if'     <.end_keyword> }
-    token terminator:sym<unless> { 'unless' <.end_keyword> }
-    token terminator:sym<while>  { 'while'  <.end_keyword> }
-    token terminator:sym<until>  { 'until'  <.end_keyword> }
-    token terminator:sym<for>    { 'for'    <.end_keyword> }
-    token terminator:sym<given>  { 'given'  <.end_keyword> }
-    token terminator:sym<when>   { 'when'   <.end_keyword> }
-    token terminator:sym<arrow>  { '-->' }
+    token terminator:sym«>» { <?[>]> <?{ $*IN_REGEX_ASSERTION }> }
+    token terminator:if     { 'if'     <.end_keyword> }
+    token terminator:unless { 'unless' <.end_keyword> }
+    token terminator:while  { 'while'  <.end_keyword> }
+    token terminator:until  { 'until'  <.end_keyword> }
+    token terminator:for    { 'for'    <.end_keyword> }
+    token terminator:given  { 'given'  <.end_keyword> }
+    token terminator:when   { 'when'   <.end_keyword> }
+    token terminator:sym«-->»  { <sym> }
     
 
     token stdstopper {
@@ -1154,7 +1154,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     proto rule statement_control { <...> }
 
-    rule statement_control:sym<if> {
+    rule statement_control:if {
         <sym><.end_keyword> {}
         <xblock>
         [
@@ -1167,18 +1167,18 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         [ 'else'\s <else=.pblock> ]?
     }
 
-    rule statement_control:sym<unless> {
+    rule statement_control:unless {
         <sym><.end_keyword> {}
         <xblock>
         [ <!before 'else'> || <.typed_panic: 'X::Syntax::UnlessElse'> ]
     }
 
-    rule statement_control:sym<while> {
+    rule statement_control:while {
         $<sym>=[while|until]<.end_keyword> {}
         <xblock>
     }
 
-    rule statement_control:sym<repeat> {
+    rule statement_control:repeat {
         <sym><.end_keyword> {}
         [
         | $<wu>=[while|until]\s <xblock>
@@ -1188,7 +1188,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         ]
     }
 
-    rule statement_control:sym<for> {
+    rule statement_control:for {
         <sym><.end_keyword> {}
         [ <?before 'my'? '$'\w+ '(' >
             <.typed_panic: 'X::Syntax::P5'> ]?
@@ -1197,11 +1197,11 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <xblock(1)>
     }
 
-    rule statement_control:sym<foreach> {
+    rule statement_control:foreach {
         <sym><.end_keyword> <.obs("'foreach'", "'for'")>
     }
 
-    token statement_control:sym<loop> {
+    token statement_control:loop {
         <sym><.end_keyword>
         [ <?[({]> <.sorry: "Whitespace required after 'loop'"> ]?
         :s''
@@ -1213,7 +1213,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <block>
     }
 
-    rule statement_control:sym<need> {
+    rule statement_control:need {
         <sym>
         [
         | <version>
@@ -1229,7 +1229,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         }
     }
 
-    token statement_control:sym<import> {
+    token statement_control:import {
         <sym> <.ws>
         <module_name> [ <.spacey> <arglist> ]? <.ws>
         :my $*HAS_SELF := '';
@@ -1255,7 +1255,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         }
     }
 
-    token statement_control:sym<use> {
+    token statement_control:use {
         :my $longname;
         :my $*IN_DECL := 'use';
         :my $*HAS_SELF := '';
@@ -1366,7 +1366,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         }
     }
 
-    rule statement_control:sym<require> {
+    rule statement_control:require {
         <sym>
         [
         | <module_name>
@@ -1376,43 +1376,43 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <EXPR>?
     }
 
-    rule statement_control:sym<given> {
+    rule statement_control:given {
         <sym><.end_keyword> <xblock(1)>
     }
-    rule statement_control:sym<when> {
+    rule statement_control:when {
         <sym><.end_keyword> <xblock>
     }
-    rule statement_control:sym<default> {
+    rule statement_control:default {
         <sym><.end_keyword> <block>
     }
 
-    rule statement_control:sym<CATCH> {<sym> <block(1)> }
-    rule statement_control:sym<CONTROL> {<sym> <block(1)> }
+    rule statement_control:CATCH {<sym> <block(1)> }
+    rule statement_control:CONTROL {<sym> <block(1)> }
 
     proto token statement_prefix { <...> }
-    token statement_prefix:sym<BEGIN>   { <sym> <blorst> }
-    token statement_prefix:sym<COMPOSE> { <sym> <blorst> }
-    token statement_prefix:sym<TEMP>    { <sym> <blorst> }
-    token statement_prefix:sym<CHECK>   { <sym> <blorst> }
-    token statement_prefix:sym<INIT>    { <sym> <blorst> }
-    token statement_prefix:sym<ENTER>   { <sym> <blorst> }
-    token statement_prefix:sym<FIRST>   { <sym> <blorst> }
+    token statement_prefix:BEGIN   { <sym> <blorst> }
+    token statement_prefix:COMPOSE { <sym> <blorst> }
+    token statement_prefix:TEMP    { <sym> <blorst> }
+    token statement_prefix:CHECK   { <sym> <blorst> }
+    token statement_prefix:INIT    { <sym> <blorst> }
+    token statement_prefix:ENTER   { <sym> <blorst> }
+    token statement_prefix:FIRST   { <sym> <blorst> }
     
-    token statement_prefix:sym<END>   { <sym> <blorst> }
-    token statement_prefix:sym<LEAVE> { <sym> <blorst> }
-    token statement_prefix:sym<KEEP>  { <sym> <blorst> }
-    token statement_prefix:sym<UNDO>  { <sym> <blorst> }
-    token statement_prefix:sym<NEXT>  { <sym> <blorst> }
-    token statement_prefix:sym<LAST>  { <sym> <blorst> }
-    token statement_prefix:sym<PRE>   { <sym> <blorst> }
-    token statement_prefix:sym<POST>  { <sym> <blorst> }
+    token statement_prefix:END   { <sym> <blorst> }
+    token statement_prefix:LEAVE { <sym> <blorst> }
+    token statement_prefix:KEEP  { <sym> <blorst> }
+    token statement_prefix:UNDO  { <sym> <blorst> }
+    token statement_prefix:NEXT  { <sym> <blorst> }
+    token statement_prefix:LAST  { <sym> <blorst> }
+    token statement_prefix:PRE   { <sym> <blorst> }
+    token statement_prefix:POST  { <sym> <blorst> }
     
-    token statement_prefix:sym<sink>  { <sym> <blorst> }
-    token statement_prefix:sym<try>   { <sym> <blorst> }
-    token statement_prefix:sym<gather>{ <sym> <blorst> }
-    token statement_prefix:sym<once>  { <sym> <blorst> }
-    token statement_prefix:sym<do>    { <sym> <blorst> }
-    token statement_prefix:sym<DOC>   {
+    token statement_prefix:sink   { <sym> <blorst> }
+    token statement_prefix:try    { <sym> <blorst> }
+    token statement_prefix:gather { <sym> <blorst> }
+    token statement_prefix:once   { <sym> <blorst> }
+    token statement_prefix:do     { <sym> <blorst> }
+    token statement_prefix:DOC    {
         <sym> \s <.ws> $<phase>=['BEGIN' || 'CHECK' || 'INIT']
         <blorst>
     }
@@ -1427,41 +1427,41 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     token modifier_expr { <EXPR> }
 
-    rule statement_mod_cond:sym<if>     { <sym> <modifier_expr> }
-    rule statement_mod_cond:sym<unless> { <sym> <modifier_expr> }
-    rule statement_mod_cond:sym<when>   { <sym> <modifier_expr> }
+    rule statement_mod_cond:if     { <sym> <modifier_expr> }
+    rule statement_mod_cond:unless { <sym> <modifier_expr> }
+    rule statement_mod_cond:when   { <sym> <modifier_expr> }
 
     proto rule statement_mod_loop { <...> }
 
-    rule statement_mod_loop:sym<while> { <sym> <smexpr=.EXPR> }
-    rule statement_mod_loop:sym<until> { <sym> <smexpr=.EXPR> }
-    rule statement_mod_loop:sym<for>   { <sym> <smexpr=.EXPR> }
-    rule statement_mod_loop:sym<given> { <sym> <smexpr=.EXPR> }
+    rule statement_mod_loop:while { <sym> <smexpr=.EXPR> }
+    rule statement_mod_loop:until { <sym> <smexpr=.EXPR> }
+    rule statement_mod_loop:for   { <sym> <smexpr=.EXPR> }
+    rule statement_mod_loop:given { <sym> <smexpr=.EXPR> }
 
     ## Terms
 
-    token term:sym<fatarrow>           { <fatarrow> }
-    token term:sym<colonpair>          { <colonpair> }
-    token term:sym<variable>           { <variable> { $*VAR := $<variable> } }
-    token term:sym<package_declarator> { <package_declarator> }
-    token term:sym<scope_declarator>   { <scope_declarator> }
-    token term:sym<routine_declarator> { <routine_declarator> }
-    token term:sym<multi_declarator>   { <?before 'multi'|'proto'|'only'> <multi_declarator> }
-    token term:sym<regex_declarator>   { <regex_declarator> }
-    token term:sym<circumfix>          { <circumfix> }
-    token term:sym<statement_prefix>   { <statement_prefix> }
+    token term:fatarrow           { <fatarrow> }
+    token term:colonpair          { <colonpair> }
+    token term:variable           { <variable> { $*VAR := $<variable> } }
+    token term:package_declarator { <package_declarator> }
+    token term:scope_declarator   { <scope_declarator> }
+    token term:routine_declarator { <routine_declarator> }
+    token term:multi_declarator   { <?before 'multi'|'proto'|'only'> <multi_declarator> }
+    token term:regex_declarator   { <regex_declarator> }
+    token term:circumfix          { <circumfix> }
+    token term:statement_prefix   { <statement_prefix> }
     token term:sym<**>                 { <sym> <.NYI('HyperWhatever (**)')> }
     token term:sym<*>                  { <sym> }
-    token term:sym<lambda>             { <?lambda> <pblock> }
-    token term:sym<type_declarator>    { <type_declarator> }
-    token term:sym<value>              { <value> }
-    token term:sym<unquote>            { '{{{' <?{ $*IN_QUASI }> <statementlist> '}}}' }
+    token term:lambda             { <?lambda> <pblock> }
+    token term:type_declarator    { <type_declarator> }
+    token term:value              { <value> }
+    token term:unquote            { '{{{' <?{ $*IN_QUASI }> <statementlist> '}}}' }
 
     token term:sym<::?IDENT> {
         $<sym> = [ '::?' <identifier> ] »
     }
     
-    token infix:sym<lambda> {
+    token infix:lambda {
         <?before '{' | '->' > <!{ $*IN_META }> {
             my $needparens := 0;
             my $pos := $/.from;
@@ -1514,7 +1514,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <.obs('undef as a value', "something more specific:\n\tAny (the \"whatever\" type object),\n\tan undefined type object such as Int,\n\t:!defined as a matcher,\n\tAny:U as a type constraint,\n\tNil as the absence of a value\n\tor fail() as a failure return\n\t   ")>
     }
 
-    token term:sym<new> {
+    token term:new {
         'new' \h+ <longname> \h* <![:]> <.obs("C++ constructor syntax", "method call syntax")>
     }
 
@@ -1831,50 +1831,50 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token twigil:sym<=> { <sym> <?before \w> }
 
     proto token package_declarator { <...> }
-    token package_declarator:sym<package> {
+    token package_declarator:package {
         :my $*OUTERPACKAGE := $*PACKAGE;
         :my $*PKGDECL := 'package';
         <sym> <.end_keyword> <package_def>
     }
-    token package_declarator:sym<module> {
+    token package_declarator:module {
         :my $*OUTERPACKAGE := $*PACKAGE;
         :my $*PKGDECL := 'module';
         <sym> <.end_keyword> <package_def>
     }
-    token package_declarator:sym<class> {
+    token package_declarator:class {
         :my $*OUTERPACKAGE := $*PACKAGE;
         :my $*PKGDECL := 'class';
         <sym> <.end_keyword> <package_def>
     }
-    token package_declarator:sym<grammar> {
+    token package_declarator:grammar {
         :my $*OUTERPACKAGE := $*PACKAGE;
         :my $*PKGDECL := 'grammar';
         <sym> <.end_keyword> <package_def>
     }
-    token package_declarator:sym<role> {
+    token package_declarator:role {
         :my $*OUTERPACKAGE := $*PACKAGE;
         :my $*PKGDECL := 'role';
         <sym> <.end_keyword> <package_def>
     }
-    token package_declarator:sym<knowhow> {
+    token package_declarator:knowhow {
         :my $*OUTERPACKAGE := $*PACKAGE;
         :my $*PKGDECL := 'knowhow';
         <sym> <.end_keyword> <package_def>
     }
-    token package_declarator:sym<native> {
+    token package_declarator:native {
         :my $*OUTERPACKAGE := $*PACKAGE;
         :my $*PKGDECL := 'native';
         <sym> <.end_keyword> <package_def>
     }
-    token package_declarator:sym<slang> {
+    token package_declarator:slang {
         :my $*OUTERPACKAGE := $*PACKAGE;
         :my $*PKGDECL := 'slang';
         <sym> <.end_keyword> <package_def>
     }
-    token package_declarator:sym<trusts> {
+    token package_declarator:trusts {
         <sym> <.ws> <typename>
     }
-    rule package_declarator:sym<also> {
+    rule package_declarator:also {
         <sym>
         [ <trait>+ || <.panic: "No valid trait found after also"> ]
     }
@@ -2097,36 +2097,36 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
 
     proto token multi_declarator { <...> }
-    token multi_declarator:sym<multi> {
+    token multi_declarator:multi {
         <sym> :my $*MULTINESS := 'multi'; <.end_keyword>
         <.ws> [ <declarator> || <routine_def('sub')> || <.malformed('multi')> ]
     }
-    token multi_declarator:sym<proto> {
+    token multi_declarator:proto {
         <sym> :my $*MULTINESS := 'proto'; :my $*IN_PROTO := 1; <.end_keyword>
         <.ws> [ <declarator> || <routine_def('sub')> || <.malformed('proto')> ]
     }
-    token multi_declarator:sym<only> {
+    token multi_declarator:only {
         <sym> :my $*MULTINESS := 'only'; <.end_keyword>
         <.ws> [ <declarator> || <routine_def('sub')> || <.malformed('only')>]
     }
-    token multi_declarator:sym<null> {
+    token multi_declarator:null {
         :my $*MULTINESS := '';
         <declarator>
     }
 
     proto token scope_declarator { <...> }
-    token scope_declarator:sym<my>        { <sym> <scoped('my')> }
-    token scope_declarator:sym<our>       { <sym> <scoped('our')> }
-    token scope_declarator:sym<has>       {
+    token scope_declarator:my        { <sym> <scoped('my')> }
+    token scope_declarator:our       { <sym> <scoped('our')> }
+    token scope_declarator:has       {
         <sym>
         :my $*HAS_SELF := 'partial';
         :my $*ATTR_INIT_BLOCK;
         <scoped('has')>
     }
-    token scope_declarator:sym<augment>   { <sym> <scoped('augment')> }
-    token scope_declarator:sym<anon>      { <sym> <scoped('anon')> }
-    token scope_declarator:sym<state>     { <sym> <scoped('state')> }
-    token scope_declarator:sym<supersede> {
+    token scope_declarator:augment   { <sym> <scoped('augment')> }
+    token scope_declarator:anon      { <sym> <scoped('anon')> }
+    token scope_declarator:state     { <sym> <scoped('state')> }
+    token scope_declarator:supersede {
         <sym> <scoped('supersede')> <.NYI('"supersede"')>
     }
 
@@ -2203,13 +2203,13 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
 
     proto token routine_declarator { <...> }
-    token routine_declarator:sym<sub>
+    token routine_declarator:sub
         { <sym> <.end_keyword> <routine_def('sub')> }
-    token routine_declarator:sym<method>
+    token routine_declarator:method
         { <sym> <.end_keyword> <method_def('method')> }
-    token routine_declarator:sym<submethod>
+    token routine_declarator:submethod
         { <sym> <.end_keyword> <method_def('submethod')> }
-    token routine_declarator:sym<macro>
+    token routine_declarator:macro
         { <sym> <.end_keyword> <macro_def()> }
 
     rule routine_def($d) {
@@ -2474,7 +2474,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
 
     proto token regex_declarator { <...> }
-    token regex_declarator:sym<rule> {
+    token regex_declarator:rule {
         <sym>
         :my %*RX;
         :my $*METHODTYPE := 'rule';
@@ -2485,7 +2485,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         }
         <regex_def>
     }
-    token regex_declarator:sym<token> {
+    token regex_declarator:token {
         <sym>
         :my %*RX;
         :my $*METHODTYPE := 'token';
@@ -2495,7 +2495,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         }
         <regex_def>
     }
-    token regex_declarator:sym<regex> {
+    token regex_declarator:regex {
         <sym>
         :my %*RX;
         :my $*METHODTYPE := 'regex';
@@ -2526,7 +2526,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     proto token type_declarator { <...> }
 
-    token type_declarator:sym<enum> {
+    token type_declarator:enum {
         :my $*IN_DECL := 'enum';
         :my $*DECLARAND;
         <sym>  <.end_keyword> <.ws>
@@ -2550,7 +2550,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <?[<(«]> <term> <.ws>
     }
 
-    rule type_declarator:sym<subset> {
+    rule type_declarator:subset {
         <sym><.end_keyword> :my $*IN_DECL := 'subset';
         [
             [
@@ -2574,7 +2574,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         ]
     }
 
-    token type_declarator:sym<constant> {
+    token type_declarator:constant {
         :my $*IN_DECL := 'constant';
         <sym> <.end_keyword> <.ws>
 
@@ -2626,14 +2626,14 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
 
     proto rule trait_mod { <...> }
-    rule trait_mod:sym<is>      { <sym> <longname><circumfix>**0..1 }
-    rule trait_mod:sym<hides>   { <sym> <typename> }
-    rule trait_mod:sym<does>    { <sym> <typename> }
-    rule trait_mod:sym<will>    { <sym> <identifier> <pblock> }
-    rule trait_mod:sym<of>      { <sym> <typename> }
-    rule trait_mod:sym<as>      { <sym> <typename> }
-    rule trait_mod:sym<returns> { <sym> <typename> }
-    rule trait_mod:sym<handles> { <sym> <term> }
+    rule trait_mod:is      { <sym> <longname><circumfix>**0..1 }
+    rule trait_mod:hides   { <sym> <typename> }
+    rule trait_mod:does    { <sym> <typename> }
+    rule trait_mod:will    { <sym> <identifier> <pblock> }
+    rule trait_mod:of      { <sym> <typename> }
+    rule trait_mod:as      { <sym> <typename> }
+    rule trait_mod:returns { <sym> <typename> }
+    rule trait_mod:handles { <sym> <term> }
 
 
     ## Terms
@@ -2653,7 +2653,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     token term:sym<<∅>> { <sym> <.end_keyword> }
 
-    token term:sym<rand> {
+    token term:rand {
         <sym> »
         [ <?before '('? \h* [\d|'$']> <.obs('rand(N)', 'N.rand or (1..N).pick')> ]?
         [ <?before '()'> <.obs('rand()', 'rand')> ]?
@@ -2664,7 +2664,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token term:sym<???> { <sym> <args> }
     token term:sym<!!!> { <sym> <args> }
 
-    token term:sym<identifier> {
+    token term:identifier {
         <identifier> <!{ $*W.is_type([~$<identifier>]) }> <?before <.unsp>|'('> <args>
         { self.add_mystery($<identifier>, $<args>.from, nqp::substr(~$<args>, 0, 1)) }
     }
@@ -2685,7 +2685,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         'nqp::const::' $<const>=[\w+]
     }
 
-    token term:sym<name> {
+    token term:name {
         <longname>
         :my $*longname;
         { $*longname := $*W.dissect_longname($<longname>) }
@@ -2701,11 +2701,11 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         ]
     }
 
-    token term:sym<dotty> { <dotty> }
+    token term:dotty { <dotty> }
 
-    token term:sym<capterm> { <capterm> }
+    token term:capterm { <capterm> }
     
-    token term:sym<onlystar> {
+    token term:onlystar {
         '{*}' <?ENDSTMT>
         [ <?{ $*IN_PROTO }> || <.panic: '{*} may only appear in proto'> ]
     }
@@ -2739,13 +2739,13 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
 
     proto token value { <...> }
-    token value:sym<quote>  { <quote> }
-    token value:sym<number> { <number> }
-    token value:sym<version> { <version> }
+    token value:quote  { <quote> }
+    token value:number { <number> }
+    token value:version { <version> }
 
     proto token number { <...> }
-    token number:sym<complex>  { <im=.numish>'\\'?'i' }
-    token number:sym<numish>   { <numish> }
+    token number:complex  { <im=.numish>'\\'?'i' }
+    token number:numish   { <numish> }
 
     token numish {
         [
@@ -2872,23 +2872,23 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
     
     proto token quote_mod   {*}
-    token quote_mod:sym<w>  { <sym> }
-    token quote_mod:sym<ww> { <sym> }
+    token quote_mod:w  { <sym> }
+    token quote_mod:ww { <sym> }
     # XXX uncomment this when it's implemented
-    #token quote_mod:sym<p>  { <sym> }
-    token quote_mod:sym<x>  { <sym> }
-    token quote_mod:sym<to> { <sym> }
-    token quote_mod:sym<s>  { <sym> }
-    token quote_mod:sym<a>  { <sym> }
-    token quote_mod:sym<h>  { <sym> }
-    token quote_mod:sym<f>  { <sym> }
-    token quote_mod:sym<c>  { <sym> }
-    token quote_mod:sym<b>  { <sym> }
+    #token quote_mod:p  { <sym> }
+    token quote_mod:x  { <sym> }
+    token quote_mod:to { <sym> }
+    token quote_mod:s  { <sym> }
+    token quote_mod:a  { <sym> }
+    token quote_mod:h  { <sym> }
+    token quote_mod:f  { <sym> }
+    token quote_mod:c  { <sym> }
+    token quote_mod:b  { <sym> }
 
     proto token quote { <...> }
-    token quote:sym<apos>  { :dba('single quotes') "'" ~ "'" <nibble(self.quote_lang(%*LANG<Q>, "'", "'", ['q']))> }
-    token quote:sym<dblq>  { :dba('double quotes') '"' ~ '"' <nibble(self.quote_lang(%*LANG<Q>, '"', '"', ['qq']))> }
-    token quote:sym<q> {
+    token quote:sym<' '>  { :dba('single quotes') "'" ~ "'" <nibble(self.quote_lang(%*LANG<Q>, "'", "'", ['q']))> }
+    token quote:sym<" ">  { :dba('double quotes') '"' ~ '"' <nibble(self.quote_lang(%*LANG<Q>, '"', '"', ['qq']))> }
+    token quote:q {
         :my $qm;
         'q'
         [
@@ -2896,7 +2896,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         | » <![(]> <.ws> <quibble(%*LANG<Q>, 'q')>
         ]
     }
-    token quote:sym<qq> {
+    token quote:qq {
         :my $qm;
         'qq'
         [
@@ -2904,7 +2904,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         | » <![(]> <.ws> <quibble(%*LANG<Q>, 'qq')>
         ]
     }
-    token quote:sym<Q> {
+    token quote:Q {
         :my $qm;
         'Q'
         [
@@ -2920,7 +2920,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         '/' <nibble(self.quote_lang(%*LANG<Regex>, '/', '/'))> [ '/' || <.panic: "Unable to parse regex; couldn't find final '/'"> ]
         <.old_rx_mods>?
     }
-    token quote:sym<rx>   {
+    token quote:rx   {
         <sym> >> 
         :my %*RX;
         <rx_adverbs>
@@ -2928,7 +2928,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <!old_rx_mods>
     }
 
-    token quote:sym<m> {
+    token quote:m {
         <sym> (s)**0..1>>
         :my %*RX;
         { %*RX<s> := 1 if $/[0] }
@@ -2937,7 +2937,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <!old_rx_mods>
     }
 
-    token quote:sym<qr> {
+    token quote:qr {
         <sym> <.end_keyword> <.obs('qr for regex quoting', 'rx//')>
     }
 
@@ -2965,7 +2965,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         ]
     }
 
-    token quote:sym<s> {
+    token quote:s {
         <sym> (s)**0..1 >>
         :my %*RX;
         {
@@ -2993,7 +2993,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         ]
     }
 
-    token quote:sym<tr> {
+    token quote:tr {
         <sym>
         :my %*RX;
         <rx_adverbs>
@@ -3016,7 +3016,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         }
     }
 
-    token quote:sym<quasi> {
+    token quote:quasi {
         <sym> <.ws> <![(]>
         :my $*IN_QUASI := 1;
         :my @*UNQUOTE_ASTS := [];
@@ -3025,7 +3025,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     token circumfix:sym<( )> { :dba('parenthesized expression') '(' ~ ')' <semilist> }
     token circumfix:sym<[ ]> { :dba('array composer') '[' ~ ']' <semilist> }
-    token circumfix:sym<ang> {
+    token circumfix:sym«< >» {
         :dba('quote words')
         '<' ~ '>'
         [
@@ -3187,7 +3187,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         self;
     }
     
-    regex term:sym<reduce> {
+    regex term:reduce {
         :my $*IN_REDUCE := 1;
         :my $op;
         <?before '['\S+']'>
@@ -3308,7 +3308,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <O('%methodcall')>
     }
 
-    token postcircumfix:sym<ang> {
+    token postcircumfix:sym«< >» {
         '<'
         [
         || <nibble(self.quote_lang(%*LANG<Q>, "<", ">", ['q', 'w']))> '>'
@@ -3406,7 +3406,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token infix:sym<?^>   { <sym>  <O('%additive')> }
 
     token infix:sym<x>    { <sym> >> <O('%replication')> }
-    token infix:sym<xx>    { <sym> >> <O('%replication')> }
+    token infix:sym<xx>   { <sym> >> <O('%replication')> }
 
     token infix:sym<~>    { <sym>  <O('%concatenation')> }
     token infix:sym<.>    { <sym> <[\]\)\},:\s\$"']>  <.obs('. to concatenate strings', '~')> }
@@ -3428,8 +3428,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token infix:sym<(-)>  { <!before <sym> <infixish> > <sym> <O('%junctive_or')> }
     token infix:sym«∖»    { <!before <sym> <infixish> > <sym> <O('%junctive_or')> }
 
-    token prefix:sym<let>  { <sym> \s+ <!before '=>'> <O('%named_unary')> { $*W.give_cur_block_let($/) } }
-    token prefix:sym<temp> { <sym> \s+ <!before '=>'> <O('%named_unary')> { $*W.give_cur_block_temp($/) } }
+    token prefix:let  { <sym> \s+ <!before '=>'> <O('%named_unary')> { $*W.give_cur_block_let($/) } }
+    token prefix:temp { <sym> \s+ <!before '=>'> <O('%named_unary')> { $*W.give_cur_block_temp($/) } }
 
     token infix:sym«==»   { <sym>  <O('%chaining')> }
     token infix:sym«!=»   { <sym> <?before \s|']'> <O('%chaining')> }
@@ -3551,14 +3551,14 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     token infix:sym<?>    { <sym> {} <![?]> <?before <-[;]>*?':'> <.obs('?: for the conditional operator', '??!!')> <O('%conditional')> }
 
-    token infix:sym<ff> { <sym> <O('%conditional')> }
-    token infix:sym<^ff> { <sym> <O('%conditional')> }
-    token infix:sym<ff^> { <sym> <O('%conditional')> }
+    token infix:sym<ff>   { <sym> <O('%conditional')> }
+    token infix:sym<^ff>  { <sym> <O('%conditional')> }
+    token infix:sym<ff^>  { <sym> <O('%conditional')> }
     token infix:sym<^ff^> { <sym> <O('%conditional')> }
     
-    token infix:sym<fff> { <sym> <O('%conditional')> }
-    token infix:sym<^fff> { <sym> <O('%conditional')> }
-    token infix:sym<fff^> { <sym> <O('%conditional')> }
+    token infix:sym<fff>   { <sym> <O('%conditional')> }
+    token infix:sym<^fff>  { <sym> <O('%conditional')> }
+    token infix:sym<fff^>  { <sym> <O('%conditional')> }
     token infix:sym<^fff^> { <sym> <O('%conditional')> }
 
     token infix:sym<=> {
@@ -3823,19 +3823,19 @@ grammar Perl6::QGrammar is HLL::Grammar does STD {
 
     role b1 {
         token escape:sym<\\> { <sym> {} <item=.backslash> }
-        token backslash:sym<qq> { <?[q]> <quote=.LANG('MAIN','quote')> }
+        token backslash:qq { <?[q]> <quote=.LANG('MAIN','quote')> }
         token backslash:sym<\\> { <text=.sym> }
-        token backslash:sym<stopper> { <text=.stopper> }
-        token backslash:sym<a> { <sym> }
-        token backslash:sym<b> { <sym> }
-        token backslash:sym<c> { <sym> <charspec> }
-        token backslash:sym<e> { <sym> }
-        token backslash:sym<f> { <sym> }
-        token backslash:sym<n> { <sym> }
-        token backslash:sym<o> { :dba('octal character') <sym> [ <octint> | '[' ~ ']' <octints> ] }
-        token backslash:sym<r> { <sym> }
-        token backslash:sym<t> { <sym> }
-        token backslash:sym<x> { :dba('hex character') <sym> [ <hexint> | '[' ~ ']' <hexints> ] }
+        token backslash:stopper { <text=.stopper> }
+        token backslash:a { <sym> }
+        token backslash:b { <sym> }
+        token backslash:c { <sym> <charspec> }
+        token backslash:e { <sym> }
+        token backslash:f { <sym> }
+        token backslash:n { <sym> }
+        token backslash:o { :dba('octal character') <sym> [ <octint> | '[' ~ ']' <octints> ] }
+        token backslash:r { <sym> }
+        token backslash:t { <sym> }
+        token backslash:x { :dba('hex character') <sym> [ <hexint> | '[' ~ ']' <hexints> ] }
         token backslash:sym<0> { <sym> }
     }
 
@@ -3931,7 +3931,7 @@ grammar Perl6::QGrammar is HLL::Grammar does STD {
         token escape:sym<" "> {
             <?["]> <quote=.LANG('MAIN','quote')>
         }
-        token escape:sym<colonpair> {
+        token escape:colonpair {
             <?[:]> <colonpair=.LANG('MAIN','colonpair')>
         }
     }
@@ -3958,11 +3958,11 @@ grammar Perl6::QGrammar is HLL::Grammar does STD {
 
         token escape:sym<\\> { <sym> <item=.backslash> }
 
-        token backslash:sym<qq> { <?[q]> <quote=.LANG('MAIN','quote')> }
+        token backslash:qq { <?[q]> <quote=.LANG('MAIN','quote')> }
         token backslash:sym<\\> { <text=.sym> }
-        token backslash:sym<stopper> { <text=.stopper> }
+        token backslash:stopper { <text=.stopper> }
 
-        token backslash:sym<miscq> { {} . }
+        token backslash:miscq { {} . }
 
         method tweak_q($v) { self.panic("Too late for :q") }
         method tweak_qq($v) { self.panic("Too late for :qq") }
@@ -3970,8 +3970,8 @@ grammar Perl6::QGrammar is HLL::Grammar does STD {
 
     role qq does b1 does c1 does s1 does a1 does h1 does f1 {
         token stopper { \" }
-        token backslash:sym<unrec> { {} (\w) { self.throw_unrecog_backslash_seq: $/[0].Str } }
-        token backslash:sym<misc> { \W }
+        token backslash:unrec { {} (\w) { self.throw_unrecog_backslash_seq: $/[0].Str } }
+        token backslash:misc { \W }
 
         method tweak_q($v) { self.panic("Too late for :q") }
         method tweak_qq($v) { self.panic("Too late for :qq") }
@@ -4183,7 +4183,7 @@ grammar Perl6::RegexGrammar is QRegex::P6Regex::Grammar does STD {
     }
 
     token assertion:sym<var> {
-        <?sigil> <var=.LANG('MAIN', 'term:sym<variable>')>
+        <?sigil> <var=.LANG('MAIN', 'term:variable<1>')>
     }
     
     token assertion:sym<~~> {

@@ -52,7 +52,7 @@ my class IO::Async::File {
         my $c := Channel.new;
         nqp::linesasync($!PIO, Str, $.chomp ?? 1 !! 0,
             nqp::getattr($c, Channel, '$!queue'),
-            -> { $c.finish(); self.close() },
+            -> { $c.close(); self.close() },
             -> $msg { $c.fail($msg); try self.close(); });
         $c
     }

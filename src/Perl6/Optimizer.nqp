@@ -365,6 +365,15 @@ class Perl6::Optimizer {
         # Calls are especially interesting as we may wish to do some
         # kind of inlining.
         if $optype eq 'call' && $op.name ne '' {
+            if nqp::eqat($op.name, '&postfix:<', 0) && nqp::chars($op.name) == 13
+                && (nqp::eqat($op.name, "++>", 10) || nqp::eqat($op.name, '-->', 10)) {
+                my str $replacement_name := '&prefix:<' ~ nqp::substr($op.name, 10, 3);
+                if $*VOID_CONTEXT && !$*IN_DECLARATION
+                    && self.is_from_core($op.name) && self.is_from_core($replacement_name) {
+                    $op.name($replacement_name);
+                }
+            }
+
             # See if we can find the thing we're going to call.
             my $obj;
             my int $found := 0;

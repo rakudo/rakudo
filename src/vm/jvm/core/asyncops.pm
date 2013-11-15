@@ -25,7 +25,7 @@ multi sub await(Channel $c) {
 proto sub winner(|) { * }
 multi sub winner(*@contestants, :$default) {
     multi is-ready(Promise $contestant) {
-        if $contestant.has_result {
+        if $contestant {
             return (True, $contestant)
         }
         return (False, False)

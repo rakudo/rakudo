@@ -148,7 +148,7 @@ my class Promise {
         $p
     }
     
-    method sleep(Promise:U: $seconds, :$scheduler = $*SCHEDULER) {
+    method in(Promise:U: $seconds, :$scheduler = $*SCHEDULER) {
         my $p   = Promise.new(:$scheduler);
         my $vow = $p.vow;
         $scheduler.cue({ $vow.keep(True) }, :in($seconds));

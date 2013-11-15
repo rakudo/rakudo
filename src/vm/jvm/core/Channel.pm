@@ -91,6 +91,15 @@ my class Channel {
         }
     }
 
+    method list() {
+        gather loop {
+            winner {
+                when self        { take $_ }
+                when self.closed { last }
+            }
+        }
+    }
+
     method close() {
         $!closed = 1;
         $!queue.add($interop.sixmodelToJavaObject(CHANNEL_CLOSE))

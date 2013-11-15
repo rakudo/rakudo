@@ -91,13 +91,13 @@ my class Channel {
         }
     }
 
-    method list() {
-        gather loop {
-            winner {
-                when self        { take $_ }
-                when self.closed { last }
-            }
-        }
+    method list($self:) {
+        map {
+            winner( 
+              $self        => { $_ },
+              $self.closed => { last }
+            );
+        }, 0..*;  # until we have a listless map { }
     }
 
     method close() {

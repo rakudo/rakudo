@@ -196,15 +196,22 @@ role STD {
     }
 
     method nibble($lang) {
-        my $lang_cursor := $lang.'!cursor_init'(self.orig(), :p(self.pos()), :shared(self.'!shared'()));
-        my $*ACTIONS;
-        for %*LANG {
-            if nqp::istype($lang, $_.value) {
-                $*ACTIONS := %*LANG{$_.key ~ '-actions'};
-                last;
+        my $shared := self.'!shared'();
+        my $lang_cursor := $lang.'!cursor_init'(self.orig(), :p(self.pos()), :shared());
+        my $result;
+        {
+            my $*ACTIONS;
+            for %*LANG {
+                if nqp::istype($lang, $_.value) {
+                    $*ACTIONS := %*LANG{$_.key ~ '-actions'};
+                    last;
+                }
             }
+            self.update_actions();
+            $result := $lang_cursor.nibbler();
         }
-        $lang_cursor.nibbler();
+        self.update_actions();
+        $result;
     }
     
     method panic(*@args) {
@@ -922,6 +929,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                     %*LANG{$_.key} := $_.value;
                 }
             }
+            $/.CURSOR.update_actions();
             
             # Install unless we've no setting, in which case we've likely no
             # static lexpad class yet either. Also, UNIT needs a code object.
@@ -1040,7 +1048,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*ACTIONS := %*LANG<MAIN-actions>;
         <!before <[\])}]> | $ >
         <!stopper>
-        <!!{ nqp::rebless($/.CURSOR, %*LANG<MAIN>) }>
+        <!!{ nqp::rebless($/.CURSOR, %*LANG<MAIN>);}> {$/.CURSOR.update_actions(); }
         [
         | <label> <statement>
         | <statement_control>
@@ -3779,6 +3787,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             };
             %*LANG<MAIN-actions> := $*ACTIONS.HOW.mixin($*ACTIONS,
                 CircumfixAction.HOW.curry(CircumfixAction, $canname, $subname));
+            self.update_actions();
         }
         elsif $is_term {
             my role TermAction[$meth, $subname] {
@@ -3797,6 +3806,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                 $*IN_DECL eq 'constant'
                     ?? TermAction.HOW.curry(TermActionConstant, $canname, $subname)
                     !! TermAction.HOW.curry(TermAction, $canname, $subname));
+            self.update_actions();
         }
 
         return 1;

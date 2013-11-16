@@ -21,7 +21,7 @@ static void p6init(MVMThreadContext *tc) {
 /* Stashes away various type references. */
 #define get_type(tc, hash, name, varname) do { \
     MVMString *key = MVM_string_utf8_decode((tc), (tc)->instance->VMString, (name), strlen((name))); \
-    (varname) = MVM_repr_at_key_boxed((tc), (hash), key); \
+    (varname) = MVM_repr_at_key_o((tc), (hash), key); \
     MVM_gc_root_add_permanent(tc, (MVMCollectable **)&varname); \
 } while (0)
 static MVMuint8 s_p6settypes[] = {

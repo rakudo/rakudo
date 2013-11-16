@@ -227,7 +227,7 @@ class Perl6::World is HLL::World {
     # Creates a new lexical scope and puts it on top of the stack.
     method push_lexpad($/) {
         # Create pad, link to outer and add to stack.
-        my $pad := QAST::Block.new( QAST::Stmts.new(), :node($/) );
+        my $pad := QAST::Block.new( QAST::Stmts.new( :node($/) ) );
         if +@!BLOCKS {
             $pad<outer> := @!BLOCKS[+@!BLOCKS - 1];
         }

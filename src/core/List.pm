@@ -535,7 +535,7 @@ my class List does Positional { # declared in BOOTSTRAP
     }
 
     my sub combinations(Int $n, Int $k) {
-        return [] if $k == 0;
+        return [] if $k <= 0;
         return () if $k > $n;
         gather {
             take [0, (1..^$n)[@$_]] for combinations($n-1, $k-1);
@@ -547,7 +547,10 @@ my class List does Positional { # declared in BOOTSTRAP
         gather take self[@$_] for combinations self.elems, $of
     }
     multi method combinations( Range $of = 0 .. * ) {
-        X::NYI.new.throw;
+        gather for @$of {
+            last if $_ > self.elems;
+            take self.combinations($_);
+        }
     }
 
     my sub permutations(Int $n) {

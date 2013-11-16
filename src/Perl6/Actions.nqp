@@ -2831,7 +2831,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 my $nocando := $*MULTINESS eq 'multi' ?? 'multi-method' !! 'method';
                 nqp::printfh(nqp::getstderr(),
                     "Useless declaration of a has-scoped $nocando in " ~
-                    ($*PKGDECL || "mainline") ~ "\n");
+                    ($*PKGDECL || "mainline") ~ " (did you mean 'my $*METHODTYPE $name'?)\n");
             }
         }
 
@@ -3355,6 +3355,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
         # Stash any traits.
         %*PARAM_INFO<traits> := $<trait>;
+
+        if (%*PARAM_INFO<pos_slurpy> || %*PARAM_INFO<pos_lol>) && $<type_constraint> {
+            $/.CURSOR.sorry("Slurpy positionals with type constraints are not supported.");
+        }
 
         # Result is the parameter info hash.
         make %*PARAM_INFO;
@@ -4320,7 +4324,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         else {
             my $last := $past[ $size - 1 ];
             $past.returns($last.returns);
-            if nqp::defined($last.arity) {
+            if nqp::istype($last, QAST::Block) {
                 $past.arity($last.arity);
             }
         }

@@ -25,7 +25,7 @@ multi sub await(Channel $c) {
 proto sub winner(|) { * }
 multi sub winner(*@contestants, :$default) {
     multi is-ready(Promise $contestant) {
-        if $contestant.has_result {
+        if $contestant {
             return (True, $contestant)
         }
         return (False, False)
@@ -48,21 +48,15 @@ multi sub winner(*@contestants, :$default) {
 
     my $winner;
     loop {
-        my @ready;
-        for @contestants -> $c {
-            my $arg = is-ready($c.key);
-            @ready.push: $c.value => $arg[1] if $arg[0];
-        }
-        if @ready {
-            $winner = @ready.pick;
-            last;
-        } elsif $default {
-            $winner = $default;
+        for @contestants.pick(+@contestants) -> $contestant {
+            next unless (my $arg = is-ready($contestant.key))[0];
+
+            $winner = $contestant.value => $arg[1];
             last;
         }
-        else {
-            Thread.yield;
-        }
+        last if $winner //= $default;
+
+        Thread.yield;
     }
     nqp::istype($winner, Pair)
         ?? $winner.key.($winner.value)

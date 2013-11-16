@@ -41,7 +41,7 @@ my class Thread {
         $!jvm_thread.getId();
     }
 
-    method join(Thread:D:) {
+    method finish(Thread:D:) {
         $!jvm_thread.'method/join/()V'();
         self
     }

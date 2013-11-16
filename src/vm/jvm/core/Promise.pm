@@ -102,14 +102,10 @@ my class Promise {
         }
     }
     
-    method has_result(Promise:D:) {
+    method Bool(Promise:D:) {
         so $!status == any(Broken, Kept)
     }
-    
-    multi method Bool(Promise:D:) {
-        self.has_result
-    }
-    
+
     method cause(Promise:D:) {
         if $!status == Broken {
             $!result
@@ -148,7 +144,7 @@ my class Promise {
         $p
     }
     
-    method sleep(Promise:U: $seconds, :$scheduler = $*SCHEDULER) {
+    method in(Promise:U: $seconds, :$scheduler = $*SCHEDULER) {
         my $p   = Promise.new(:$scheduler);
         my $vow = $p.vow;
         $scheduler.cue({ $vow.keep(True) }, :in($seconds));

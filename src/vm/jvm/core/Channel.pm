@@ -91,6 +91,15 @@ my class Channel {
         }
     }
 
+    method list($self:) {
+        map {
+            winner( 
+              $self        => { $_ },
+              $self.closed => { last }
+            );
+        }, 0..*;  # until we have a listless map { }
+    }
+
     method close() {
         $!closed = 1;
         $!queue.add($interop.sixmodelToJavaObject(CHANNEL_CLOSE))

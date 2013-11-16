@@ -3387,6 +3387,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token infix:sym<?&>   { <sym>  <O('%multiplicative')> }
     token infix:sym«+<»   { <sym> [ <!{ $*IN_META }> || <?before '<<'> || <![<]> ] <O('%multiplicative')> }
     token infix:sym«+>»   { <sym> [ <!{ $*IN_META }> || <?before '>>'> || <![>]> ] <O('%multiplicative')> }
+    token infix:sym«~<»   { <sym> [ <!{ $*IN_META }> || <?before '<<'> || <![<]> ] <O('%multiplicative')> }
+    token infix:sym«~>»   { <sym> [ <!{ $*IN_META }> || <?before '>>'> || <![>]> ] <O('%multiplicative')> }
 
     token infix:sym«<<» { <sym> <!{ $*IN_META }> <?[\s]> <.sorryobs('<< to do left shift', '+< or ~<')> <O('%multiplicative')> }
 

@@ -1,8 +1,9 @@
 #define MVM_SHARED 1
 #include "moar.h"
+#include "container.h"
 
 static void rakudo_scalar_fetch(MVMThreadContext *tc, MVMObject *cont, MVMRegister *res) {
-    MVM_exception_throw_adhoc(tc, "rakudo_scalar NYI");
+    res->o = ((Rakudo_Scalar *)cont)->value;
 }
 
 static void rakudo_scalar_store(MVMThreadContext *tc, MVMObject *cont, MVMObject *obj) {

@@ -265,6 +265,13 @@ my class Binder {
     sub bind($capture, $sig, $lexpad, int $no_nom_type_check, $error) {
         # Get params.
         my @params := nqp::getattr($sig, Signature, '$!params');
+        
+        # If we do have some named args, we get hold of a hash of them. We
+        # can safely delete from this as we go.
+        my $named_args;
+        if nqp::capturehasnameds($capture) {
+            $named_args := nqp::capturenamedshash($capture);
+        }
 
         # Now we'll walk through the signature and go about binding things.
         my $named_names;
@@ -356,7 +363,44 @@ my class Binder {
             
             # Else, it's a non-slurpy named.
             else {
-                nqp::die('Named parameter binding NYI');
+                # Try and get hold of value.
+                my $value := nqp::null();
+                if $named_args {
+                    my int $num_names := nqp::elems($named_names);
+                    my int $j := 0;
+                    my str $cur_name;
+                    while $j < $num_names {
+                        $cur_name := nqp::atpos($named_names, $j);
+                        $value := nqp::atkey($named_args, $cur_name);
+                        unless nqp::isnull($value) {
+                            nqp::deletekey($named_args, $cur_name);
+                            $j := $num_names;
+                        }
+                        ++$j;
+                    }
+                }
+
+                # Did we get one?
+                if nqp::isnull($value) {
+                    # Nope. We'd better hope this param was optional...
+                    if $flags +& $SIG_ELEM_IS_OPTIONAL {
+                        nqp::die('Optional named params NYI');
+                    }
+                    elsif !$suppress_arity_fail {
+                        if ($error) {
+                            $error[0] := "Required named parameter '" ~
+                                $named_names[0] ~ "' not passed";
+                        }
+                        return $BIND_RESULT_FAIL;
+                    }
+                }
+                else {
+                    $bind_fail := bind_one_param($lexpad, $sig, $param, $no_nom_type_check, $error,
+                        0, $value, 0, 0.0, '');
+                }
+
+                # If we got a binding failure, return it.
+                return $bind_fail if $bind_fail;
             }
         }
         

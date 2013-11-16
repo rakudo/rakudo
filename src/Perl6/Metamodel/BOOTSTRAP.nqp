@@ -234,7 +234,31 @@ my class Binder {
             }
         }
 
-        nqp::die('bind_one_param NYI');
+        # Is it the invocant? If so, also have to bind to self lexical.
+        if $flags +& $SIG_ELEM_INVOCANT {
+            nqp::bindkey($lexpad, 'self', $decont_value);
+        }
+
+        # Handle any constraint types (note that they may refer to the parameter by
+        # name, so we need to have bound it already).
+        my $post_cons := nqp::getattr($param, Parameter, '$!post_constraints');
+        unless nqp::isnull($post_cons) {
+            nqp::die('Post-constraints NYI');
+        }
+
+        # If it's attributive, now we assign it.
+        if $is_attributive {
+            nqp::die('Attributive params NYI');
+        }
+
+        # If it has a sub-signature, bind that.
+        my $subsig := nqp::getattr($param, Parameter, '$!sub_signature');
+        unless nqp::isnull($subsig) {
+            nqp::die('Sub-signatures NYI');
+        }
+
+        # Binding of this parameter was thus successful - we're done.
+        $BIND_RESULT_OK
     }
 
     # Drives the overall binding process.

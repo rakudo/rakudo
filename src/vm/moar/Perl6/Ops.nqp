@@ -91,8 +91,8 @@ $ops.add_hll_moarop_mapping('perl6', 'p6capturelex', 'p6capturelex');
 $ops.add_hll_op('perl6', 'p6bindassert', -> $qastcomp, $op {
     # Compile the bind value and the type.
     my @ops;
-    my $value_res := $qastcomp.as_mast($op[0]);
-    my $type_res  := $qastcomp.as_mast($op[1]);
+    my $value_res := $qastcomp.as_mast($op[0], :want($MVM_reg_obj));
+    my $type_res  := $qastcomp.as_mast($op[1], :want($MVM_reg_obj));
     push_ilist(@ops, $value_res);
     push_ilist(@ops, $type_res);
     

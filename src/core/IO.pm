@@ -161,7 +161,7 @@ my class IO::Handle does IO::FileTestable {
         my Mu $parrot_buffer := $!PIO.read_bytes(nqp::unbox_i($bytes));
         nqp::encode($parrot_buffer.get_string('binary'), 'binary', $buf);
 #?endif
-#?if jvm
+#?if !parrot
         nqp::readfh($!PIO, $buf, nqp::unbox_i($bytes));
 #?endif
         $buf;
@@ -180,7 +180,7 @@ my class IO::Handle does IO::FileTestable {
 #?if parrot
             $!PIO.tell
 #?endif
-#?if jvm
+#?if !parrot
             nqp::tellfh($!PIO)
 #?endif
         );
@@ -195,7 +195,7 @@ my class IO::Handle does IO::FileTestable {
         $!PIO.print(nqp::decode(nqp::decont($buf), 'binary'));
         $!PIO.encoding($encoding) unless $encoding eq 'binary';
 #?endif
-#?if jvm
+#?if !parrot
         nqp::writefh($!PIO, nqp::decont($buf));
 #?endif
         True;
@@ -488,7 +488,7 @@ my class IO::Path is Cool does IO::FileTestable {
             }
         }
 #?endif
-#?if jvm
+#?if !parrot
         my Mu $dirh := nqp::opendir(self.absolute.Str);
         my $next = 1;
         gather {

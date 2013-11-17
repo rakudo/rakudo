@@ -141,7 +141,7 @@ my class Binder {
             
             # Otherwise, incompatible native types.
             else {
-                if $error {
+                if nqp::defined($error) {
                     $error[0] := "Incompatible native type passed for '$varname'";
                 }
                 return $BIND_RESULT_FAIL;
@@ -401,13 +401,13 @@ my class Binder {
                         # No value. If it's optional, fetch a default and bind that;
                         # if not, we're screwed. Note that we never nominal type check
                         # an optional with no value passed.
-                        if $flags +& SIG_ELEM_IS_OPTIONAL {
+                        if $flags +& $SIG_ELEM_IS_OPTIONAL {
                             $bind_fail := bind_one_param($lexpad, $sig, $param, $no_nom_type_check, $error,
                                 0, handle_optional($param, $flags, $lexpad), 0, 0.0, '');
                             return $bind_fail if $bind_fail;
                         }
                         else {
-                            if ($error) {
+                            if nqp::defined($error) {
                                 $error[0] := arity_fail(@params, $num_params, $num_pos_args, 0);
                             }
                             return $BIND_RESULT_FAIL;
@@ -442,7 +442,7 @@ my class Binder {
                         nqp::die('Optional named params NYI');
                     }
                     elsif !$suppress_arity_fail {
-                        if ($error) {
+                        if nqp::defined($error) {
                             $error[0] := "Required named parameter '" ~
                                 $named_names[0] ~ "' not passed";
                         }

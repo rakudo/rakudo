@@ -127,9 +127,14 @@ $ops.add_hll_op('perl6', 'p6bindassert', -> $qastcomp, $op {
 #$ops.map_classlib_hll_op('perl6', 'p6inpre', $TYPE_P6OPS, 'p6inpre', [], $RT_INT, :tc);
 #$ops.map_classlib_hll_op('perl6', 'p6setfirstflag', $TYPE_P6OPS, 'p6setfirstflag', [$RT_OBJ], $RT_OBJ, :tc);
 #$ops.map_classlib_hll_op('perl6', 'p6takefirstflag', $TYPE_P6OPS, 'p6takefirstflag', [], $RT_INT, :tc);
-#$ops.add_hll_op('perl6', 'p6return', :!inlinable, -> $qastcomp, $op {
-#    # XXX
-#});
+$ops.add_hll_op('perl6', 'p6return', :!inlinable, -> $qastcomp, $op {
+    # XXX Probably needs more than just this, but it does for now.
+    my @ops;
+    my $value_res := $qastcomp.as_mast($op[0], :want($MVM_reg_obj));
+    push_ilist(@ops, $value_res);
+    nqp::push(@ops, MAST::Op.new( :op('return_o'), $value_res.result_reg ));
+    MAST::InstructionList.new(@ops, $value_res.result_reg, $MVM_reg_obj)
+});
 #$ops.map_classlib_hll_op('perl6', 'p6routinereturn', $TYPE_P6OPS, 'p6routinereturn', [$RT_OBJ], $RT_OBJ, :tc, :!inlinable);
 #$ops.map_classlib_hll_op('perl6', 'p6getouterctx', $TYPE_P6OPS, 'p6getouterctx', [$RT_OBJ], $RT_OBJ, :tc, :!inlinable);
 $ops.add_hll_moarop_mapping('perl6', 'p6captureouters', 'p6captureouters', 0);

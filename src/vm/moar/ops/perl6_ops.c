@@ -8,12 +8,30 @@
 static int initialized = 0;
 
 /* Types we need. */
-static MVMObject *Int    = NULL;
-static MVMObject *Num    = NULL;
-static MVMObject *Str    = NULL;
-static MVMObject *Scalar = NULL;
-static MVMObject *True   = NULL;
-static MVMObject *False  = NULL;
+static MVMObject *Int      = NULL;
+static MVMObject *Num      = NULL;
+static MVMObject *Str      = NULL;
+static MVMObject *Scalar   = NULL;
+static MVMObject *ListIter = NULL;
+static MVMObject *True     = NULL;
+static MVMObject *False    = NULL;
+
+/* ListIter, as laid out as a P6opaque. */
+typedef struct {
+    MVMP6opaque  p6o;
+    MVMObject   *reified;
+    MVMObject   *nextiter;
+    MVMObject   *rest;
+    MVMObject   *list;
+} Rakudo_ListIter;
+
+/* List, as laid out as a P6opaque. */
+typedef struct {
+    MVMP6opaque  p6o;
+    MVMObject   *items;
+    MVMObject   *flattens;
+    MVMObject   *nextiter;
+} Rakudo_List;
 
 /* Initializes the Perl 6 extension ops. */
 static void p6init(MVMThreadContext *tc) {
@@ -37,6 +55,8 @@ static void p6settypes(MVMThreadContext *tc) {
         get_type(tc, conf, "Int", Int);
         get_type(tc, conf, "Num", Num);
         get_type(tc, conf, "Str", Str);
+        get_type(tc, conf, "Scalar", Scalar);
+        get_type(tc, conf, "ListIter", ListIter);
         get_type(tc, conf, "True", True);
         get_type(tc, conf, "False", False);
     });
@@ -63,6 +83,37 @@ static MVMuint8 s_p6box_s[] = {
 };
 static void p6box_s(MVMThreadContext *tc) {
      GET_REG(tc, 0).o = MVM_repr_box_str(tc, Str, GET_REG(tc, 2).s);
+}
+
+/* Produces a lazy Perl 6 list of the specified type with the given items. */
+static MVMObject * make_listiter(MVMThreadContext *tc, MVMObject *items, MVMObject *list) {
+    MVMObject *result;
+    MVMROOT(tc, items, {
+    MVMROOT(tc, list, {
+        result = MVM_repr_alloc_init(tc, ListIter);
+        MVM_ASSIGN_REF(tc, result, ((Rakudo_ListIter *)result)->rest, items);
+        MVM_ASSIGN_REF(tc, result, ((Rakudo_ListIter *)result)->list, list);
+    });
+    });
+    return result;
+}
+static MVMuint8 s_p6list[] = {
+    MVM_operand_obj | MVM_operand_write_reg,
+    MVM_operand_obj | MVM_operand_read_reg,
+    MVM_operand_obj | MVM_operand_read_reg,
+    MVM_operand_obj | MVM_operand_read_reg
+};
+static void p6list(MVMThreadContext *tc) {
+     MVMObject *list = MVM_repr_alloc_init(tc, GET_REG(tc, 4).o);
+     MVMROOT(tc, list, {
+        MVMObject *items = GET_REG(tc, 2).o;
+        if (items) {
+            MVMObject *iter = make_listiter(tc, items, list);
+            MVM_ASSIGN_REF(tc, list, ((Rakudo_List *)list)->nextiter, iter);
+        }
+        MVM_ASSIGN_REF(tc, list, ((Rakudo_List *)list)->flattens, GET_REG(tc, 6).o);
+     });
+     GET_REG(tc, 0).o = list;
 }
 
 /* Turns zero to False and non-zero to True. */
@@ -161,8 +212,10 @@ MVM_DLL_EXPORT void Rakudo_ops_init(MVMThreadContext *tc) {
     MVM_ext_register_extop(tc, "p6box_i",  p6box_i, 2, s_p6box_i);
     MVM_ext_register_extop(tc, "p6box_n",  p6box_n, 2, s_p6box_n);
     MVM_ext_register_extop(tc, "p6box_s",  p6box_s, 2, s_p6box_s);
+    MVM_ext_register_extop(tc, "p6list",  p6list, 4, s_p6list);
     MVM_ext_register_extop(tc, "p6settypes",  p6settypes, 1, s_p6settypes);
     MVM_ext_register_extop(tc, "p6bool",  p6bool, 2, s_p6bool);
+    MVM_ext_register_extop(tc, "p6var",  p6var, 2, s_p6var);
     MVM_ext_register_extop(tc, "p6typecheckrv",  p6typecheckrv, 2, s_p6typecheckrv);
     MVM_ext_register_extop(tc, "p6store",  p6store, 2, s_p6store);
     MVM_ext_register_extop(tc, "p6decontrv",  p6decontrv, 3, s_p6decontrv);

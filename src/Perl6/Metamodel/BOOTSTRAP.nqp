@@ -131,7 +131,16 @@ my class Binder {
         unless $desired_native == $got_native {
             # Maybe we need to box the native.
             if $desired_native == 0 {
-                nqp::die('boxing native args NYI');
+                if $got_native == $SIG_ELEM_NATIVE_INT_VALUE {
+                    $oval := nqp::box_i($ival, Int);
+                }
+                elsif $got_native == $SIG_ELEM_NATIVE_NUM_VALUE {
+                    $oval := nqp::box_n($nval, Num);
+                }
+                else {
+                    $oval := nqp::box_s($sval, Str);
+                }
+                $got_native := 0;
             }
             
             # Otherwise, maybe we need to unbox.

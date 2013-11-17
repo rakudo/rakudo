@@ -168,8 +168,10 @@ sub fill_template_file {
     my @infiles = ref($infile) ? @$infile : $infile;
     for my $if (@infiles) {
         my $text = slurp( $if );
+        print $OUT "\n# Generated from $if\n";
         $text = fill_template_text($text, %config);
         print $OUT $text;
+        print $OUT "\n\n# (end of section generated from $if)\n\n";
     }
     unless (ref $outfile) {
         close($OUT) or die "Error while writing '$outfile': $!";

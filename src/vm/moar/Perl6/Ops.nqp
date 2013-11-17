@@ -226,15 +226,19 @@ $ops.add_hll_op('perl6', 'defor', -> $qastcomp, $op {
 });
 
 # Boxing and unboxing configuration.
-#$ops.add_hll_box('perl6', $RT_INT, -> $qastcomp {
-#    # XXX
-#});
-#$ops.add_hll_box('perl6', $RT_NUM, -> $qastcomp {
-#    # XXX
-#});
-#$ops.add_hll_box('perl6', $RT_STR, -> $qastcomp {
-#    # XXX
-#});
+sub boxer($kind, $op) {
+    -> $qastcomp, $reg {
+        my @ops;
+        my $res_reg := $*REGALLOC.fresh_register($MVM_reg_obj);
+        nqp::push(@ops, MAST::ExtOp.new( :op($op), :cu($*MAST_COMPUNIT),
+            $res_reg, $reg ));
+        $*REGALLOC.release_register($reg, $kind);
+        MAST::InstructionList.new(@ops, $res_reg, $MVM_reg_obj)
+    }
+}
+$ops.add_hll_box('perl6', $MVM_reg_int64, boxer($MVM_reg_int64, 'p6box_i'));
+$ops.add_hll_box('perl6', $MVM_reg_num64, boxer($MVM_reg_num64, 'p6box_n'));
+$ops.add_hll_box('perl6', $MVM_reg_str, boxer($MVM_reg_str, 'p6box_s'));
 
 # Signature binding related bits.
 our $Binder;

@@ -37,7 +37,7 @@ my class Backtrace is List {
 #?if parrot
         self.new(nqp::getattr(nqp::decont($e), Exception, '$!ex').backtrace, $offset);
 #?endif
-#?if jvm
+#?if !parrot
         self.new(nqp::backtrace(nqp::getattr(nqp::decont($e), Exception, '$!ex')), $offset);
 #?endif
     }

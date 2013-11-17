@@ -159,7 +159,7 @@ do {
 #?if parrot
             if $e.is-compile-time || is_runtime($ex.backtrace) {
 #?endif
-#?if jvm
+#?if !parrot
             if $e.is-compile-time || is_runtime(nqp::backtrace($ex)) {
 #?endif
                 nqp::printfh($err, $e.gist);

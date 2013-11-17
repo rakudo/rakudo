@@ -79,21 +79,10 @@ static MVMuint8 s_p6capturelex[] = {
     MVM_operand_obj | MVM_operand_read_reg,
 };
 static void p6capturelex(MVMThreadContext *tc) {
-    MVMCode *codeObj = (MVMCode *)GET_REG(tc, 2).o;
-    MVMCode *closure;
-    MVMStaticFrame *wantedStaticInfo;
-    if (REPR(codeObj)->ID != MVM_REPR_ID_MVMCode)
-        MVM_exception_throw_adhoc(tc, "p6capturelex needs a code ref");
-
-    closure = (MVMCode *)codeObj->body.code_object;
-
-    wantedStaticInfo = closure->body.sf->body.outer;
-    if (tc->cur_frame->static_info == wantedStaticInfo)
-        closure->body.outer = tc->cur_frame;
-    else if (tc->cur_frame->outer->static_info == wantedStaticInfo)
-        closure->body.outer = tc->cur_frame->outer;
-
-    GET_REG(tc, 0).o = (MVMObject *)codeObj;
+    /* XXX Needs a re-think due to lexical handling changes on Moar
+     * vs other backends, though they will adopt the Moar model in
+     * the future. For now, just identity. */
+    GET_REG(tc, 0).o = (MVMCode *)GET_REG(tc, 2).o;
 }
 
 /* Registers the extops with MoarVM. */

@@ -90,7 +90,18 @@ $ops.add_hll_moarop_mapping('perl6', 'p6list', 'p6list');
 $ops.add_hll_moarop_mapping('perl6', 'p6store', 'p6store', 0);
 $ops.add_hll_moarop_mapping('perl6', 'p6var', 'p6var');
 #$ops.map_classlib_hll_op('perl6', 'p6reprname', $TYPE_P6OPS, 'p6reprname', [$RT_OBJ], $RT_OBJ, :tc);
-#$ops.map_classlib_hll_op('perl6', 'p6definite', $TYPE_P6OPS, 'p6definite', [$RT_OBJ], $RT_OBJ, :tc);
+$ops.add_hll_op('perl6', 'p6definite', -> $qastcomp, $op {
+    my @ops;
+    my $value_res := $qastcomp.as_mast($op[0], :want($MVM_reg_obj));
+    push_ilist(@ops, $value_res);
+    nqp::push(@ops, MAST::Op.new( :op('decont'), $value_res.result_reg, $value_res.result_reg ));
+    my $tmp_reg := $*REGALLOC.fresh_i();
+    nqp::push(@ops, MAST::Op.new( :op('isconcrete'), $tmp_reg, $value_res.result_reg ));
+    nqp::push(@ops, MAST::ExtOp.new( :op('p6bool'), :cu($*MAST_COMPUNIT),
+        $value_res.result_reg, $tmp_reg ));
+    $*REGALLOC.release_register($tmp_reg, $MVM_reg_int64);
+    MAST::InstructionList.new(@ops, $value_res.result_reg, $MVM_reg_obj)
+});
 #$ops.map_classlib_hll_op('perl6', 'p6bindcaptosig', $TYPE_P6OPS, 'p6bindcaptosig', [$RT_OBJ, $RT_OBJ], $RT_OBJ, :tc);
 $ops.add_hll_moarop_mapping('perl6', 'p6trialbind', 'p6trialbind');
 $ops.add_hll_moarop_mapping('perl6', 'p6typecheckrv', 'p6typecheckrv', 0);

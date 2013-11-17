@@ -96,8 +96,6 @@ multi trait_mod:<is>(Routine:D $r, |c ) {
     ).throw;
 }
 multi trait_mod:<is>(Routine:D $r, :$rw!) {
-    nqp::say('here');
-    nqp::say($r.HOW.name($r));
     $r.set_rw();
 }
 multi trait_mod:<is>(Routine:D $r, :$parcel!) {

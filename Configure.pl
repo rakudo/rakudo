@@ -34,6 +34,7 @@ MAIN: {
     GetOptions(\%options, 'help!', 'prefix=s',
                 'backends=s', 'no-clean!',
                'gen-nqp:s',
+               'gen-moar:s',
                'gen-parrot:s', 'parrot-option=s@',
                'parrot-make-option=s@',
                'make-install!', 'makefile-timing!',
@@ -274,9 +275,12 @@ Configure.pl - $lang Configure
 General Options:
     --help             Show this text
     --prefix=dir       Install files in dir; also look for executables there
-    --backends=parrot,jvm  Which backend(s) to use
+    --backends=parrot,jvm,moar
+                       Which backend(s) to use
     --gen-nqp[=branch]
                        Download and build a copy of NQP
+        --gen-moar[=branch]
+                       Download and build a copy of MoarVM to use
         --gen-parrot[=branch]
                        Download and build a copy of Parrot
         --parrot-option='--option'

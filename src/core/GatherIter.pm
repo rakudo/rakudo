@@ -28,6 +28,9 @@ class GatherIter is Iterator {
         };
         my $coro := sub () is rw { nqp::continuationreset($GATHER_PROMPT, $state); $takings };
 #?endif
+#?if moar
+        my $coro = die 'GatherIter NYI on MoarVM';
+#?endif
         my Mu $new := nqp::create(self);
         nqp::bindattr($new, GatherIter, '$!coro', $coro);
         nqp::bindattr($new, GatherIter, '$!infinite', $infinite);

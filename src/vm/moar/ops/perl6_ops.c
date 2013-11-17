@@ -8,11 +8,12 @@
 static int initialized = 0;
 
 /* Types we need. */
-static MVMObject *Int = NULL;
-static MVMObject *Num = NULL;
-static MVMObject *Str = NULL;
-static MVMObject *True = NULL;
-static MVMObject *False = NULL;
+static MVMObject *Int    = NULL;
+static MVMObject *Num    = NULL;
+static MVMObject *Str    = NULL;
+static MVMObject *Scalar = NULL;
+static MVMObject *True   = NULL;
+static MVMObject *False  = NULL;
 
 /* Initializes the Perl 6 extension ops. */
 static void p6init(MVMThreadContext *tc) {
@@ -71,6 +72,26 @@ static MVMuint8 s_p6bool[] = {
 };
 static void p6bool(MVMThreadContext *tc) {
      GET_REG(tc, 0).o = GET_REG(tc, 2).i64 ? True : False;
+}
+
+/* The .VAR operation. Wraps in an outer Scalar container so we can actually
+ * operate on the underlying Scalar, if we have a container. */
+static MVMuint8 s_p6var[] = {
+    MVM_operand_obj | MVM_operand_write_reg,
+    MVM_operand_obj | MVM_operand_read_reg,
+};
+static void p6var(MVMThreadContext *tc) {
+     MVMObject *wrappee = GET_REG(tc, 2).o;
+     if (STABLE(wrappee)->container_spec) {
+        MVMROOT(tc, wrappee, {
+            MVMObject *wrapper = MVM_repr_alloc_init(tc, Scalar);
+            MVM_ASSIGN_REF(tc, wrapper, ((Rakudo_Scalar *)wrapper)->value, wrappee);
+            GET_REG(tc, 2).o = wrapper;
+        });
+     }
+     else {
+        GET_REG(tc, 2).o = wrappee;
+     }
 }
 
 /* Type-checks the return value of a routine. */

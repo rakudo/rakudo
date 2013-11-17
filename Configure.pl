@@ -59,7 +59,10 @@ MAIN: {
         $letter_to_backend{ substr($_, 0, 1) } = $_;
     }
     my %backends;
-    $backends{moar} = 1 if defined $options{'gen-moar'};
+    if (defined $options{'gen-moar'}) {
+        $backends{moar} = 1;
+        $options{'gen-nqp'} = '';
+    }
     if (defined $options{backends}) {
         for my $b (split /,\s*/, $options{backends}) {
             $b = lc $b;

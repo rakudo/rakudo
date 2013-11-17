@@ -26,6 +26,15 @@ use MASTNodes;
 MAST::ExtOpRegistry.register_extop('p6init');
 MAST::ExtOpRegistry.register_extop('p6settypes',
     $MVM_operand_obj   +| $MVM_operand_read_reg);
+MAST::ExtOpRegistry.register_extop('p6box_i',
+    $MVM_operand_obj   +| $MVM_operand_write_reg,
+    $MVM_operand_int64 +| $MVM_operand_read_reg);
+MAST::ExtOpRegistry.register_extop('p6box_n',
+    $MVM_operand_obj   +| $MVM_operand_write_reg,
+    $MVM_operand_num64 +| $MVM_operand_read_reg);
+MAST::ExtOpRegistry.register_extop('p6box_s',
+    $MVM_operand_obj   +| $MVM_operand_write_reg,
+    $MVM_operand_str   +| $MVM_operand_read_reg);
 MAST::ExtOpRegistry.register_extop('p6store',
     $MVM_operand_obj   +| $MVM_operand_read_reg,
     $MVM_operand_obj   +| $MVM_operand_read_reg);
@@ -61,9 +70,9 @@ MAST::ExtOpRegistry.register_extop('p6inpre',
 
 # Perl 6 opcode specific mappings.
 my $ops := nqp::getcomp('QAST').operations;
-#$ops.map_classlib_hll_op('perl6', 'p6box_i', $TYPE_P6OPS, 'p6box_i', [$RT_INT], $RT_OBJ, :tc);
-#$ops.map_classlib_hll_op('perl6', 'p6box_n', $TYPE_P6OPS, 'p6box_n', [$RT_NUM], $RT_OBJ, :tc);
-#$ops.map_classlib_hll_op('perl6', 'p6box_s', $TYPE_P6OPS, 'p6box_s', [$RT_STR], $RT_OBJ, :tc);
+$ops.add_hll_moarop_mapping('perl6', 'p6box_i', 'p6box_i');
+$ops.add_hll_moarop_mapping('perl6', 'p6box_n', 'p6box_n');
+$ops.add_hll_moarop_mapping('perl6', 'p6box_s', 'p6box_s');
 #$ops.map_classlib_hll_op('perl6', 'p6bigint', $TYPE_P6OPS, 'p6bigint', [$RT_NUM], $RT_OBJ, :tc);
 #$ops.map_classlib_hll_op('perl6', 'p6parcel', $TYPE_P6OPS, 'p6parcel', [$RT_OBJ, $RT_OBJ], $RT_OBJ, :tc);
 #$ops.map_classlib_hll_op('perl6', 'p6listiter', $TYPE_P6OPS, 'p6listiter', [$RT_OBJ, $RT_OBJ], $RT_OBJ, :tc);

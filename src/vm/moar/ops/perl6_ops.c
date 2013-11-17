@@ -8,6 +8,9 @@
 static int initialized = 0;
 
 /* Types we need. */
+static MVMObject *Int = NULL;
+static MVMObject *Num = NULL;
+static MVMObject *Str = NULL;
 static MVMObject *True = NULL;
 static MVMObject *False = NULL;
 
@@ -30,9 +33,35 @@ static MVMuint8 s_p6settypes[] = {
 static void p6settypes(MVMThreadContext *tc) {
     MVMObject *conf = GET_REG(tc, 0).o;
     MVMROOT(tc, conf, {
+        get_type(tc, conf, "Int", Int);
+        get_type(tc, conf, "Num", Num);
+        get_type(tc, conf, "Str", Str);
         get_type(tc, conf, "True", True);
         get_type(tc, conf, "False", False);
     });
+}
+
+/* Boxing to Perl 6 types. */
+static MVMuint8 s_p6box_i[] = {
+    MVM_operand_obj | MVM_operand_write_reg,
+    MVM_operand_int64 | MVM_operand_read_reg,
+};
+static void p6box_i(MVMThreadContext *tc) {
+     GET_REG(tc, 0).o = MVM_repr_box_int(tc, Int, GET_REG(tc, 2).i64);
+}
+static MVMuint8 s_p6box_n[] = {
+    MVM_operand_obj | MVM_operand_write_reg,
+    MVM_operand_num64 | MVM_operand_read_reg,
+};
+static void p6box_n(MVMThreadContext *tc) {
+     GET_REG(tc, 0).o = MVM_repr_box_num(tc, Num, GET_REG(tc, 2).n64);
+}
+static MVMuint8 s_p6box_s[] = {
+    MVM_operand_obj | MVM_operand_write_reg,
+    MVM_operand_str | MVM_operand_read_reg,
+};
+static void p6box_s(MVMThreadContext *tc) {
+     GET_REG(tc, 0).o = MVM_repr_box_str(tc, Str, GET_REG(tc, 2).s);
 }
 
 /* Turns zero to False and non-zero to True. */
@@ -105,6 +134,9 @@ static void p6captureouters(MVMThreadContext *tc) {
 /* Registers the extops with MoarVM. */
 MVM_DLL_EXPORT void Rakudo_ops_init(MVMThreadContext *tc) {
     MVM_ext_register_extop(tc, "p6init",  p6init, 0, NULL);
+    MVM_ext_register_extop(tc, "p6box_i",  p6box_i, 2, s_p6box_i);
+    MVM_ext_register_extop(tc, "p6box_n",  p6box_n, 2, s_p6box_n);
+    MVM_ext_register_extop(tc, "p6box_s",  p6box_s, 2, s_p6box_s);
     MVM_ext_register_extop(tc, "p6settypes",  p6settypes, 1, s_p6settypes);
     MVM_ext_register_extop(tc, "p6bool",  p6bool, 2, s_p6bool);
     MVM_ext_register_extop(tc, "p6typecheckrv",  p6typecheckrv, 2, s_p6typecheckrv);

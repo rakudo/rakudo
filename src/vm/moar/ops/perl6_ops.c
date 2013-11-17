@@ -108,10 +108,13 @@ static MVMuint8 s_p6capturelex[] = {
     MVM_operand_obj | MVM_operand_read_reg,
 };
 static void p6capturelex(MVMThreadContext *tc) {
-    /* XXX Needs a re-think due to lexical handling changes on Moar
-     * vs other backends, though they will adopt the Moar model in
-     * the future. For now, just identity. */
-    GET_REG(tc, 0).o = GET_REG(tc, 2).o;
+    MVMObject *p6_code_obj = GET_REG(tc, 2).o;
+    MVMObject *vm_code_obj = MVM_frame_find_invokee(tc, p6_code_obj);
+    if (REPR(vm_code_obj)->ID == MVM_REPR_ID_MVMCode)
+        MVM_frame_capturelex(tc, vm_code_obj);
+    else
+        MVM_exception_throw_adhoc(tc, "p6captureouters got non-code object");
+    GET_REG(tc, 0).o = p6_code_obj;
 }
 
 static MVMuint8 s_p6captureouters[] = {

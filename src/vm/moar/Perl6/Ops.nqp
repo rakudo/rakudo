@@ -104,13 +104,20 @@ $ops.add_hll_op('perl6', 'p6bindassert', -> $qastcomp, $op {
     $*REGALLOC.release_register($tcr_reg, $MVM_reg_int64);
     
     # Error generation.
-    # XXX: need an op that produces the exception and throws it with types in.
-    my $err_reg := $*REGALLOC.fresh_s();
-    nqp::push(@ops, MAST::Op.new( :op('const_s'), $err_reg,
-        MAST::SVal.new( :value('Type check failed in bind') ) ));
-    nqp::push(@ops, MAST::Op.new( :op('die'), $value_res.result_reg, $err_reg ));
+    proto bind_error($got, $wanted) {
+        nqp::die('Type check failed in bind; expected ' ~
+            $wanted.HOW.name($wanted) ~ ' but got ' ~
+            $got.HOW.name($got));
+    }
+    my $err_rep := $qastcomp.as_mast(QAST::WVal.new( :value(nqp::getcodeobj(&bind_error)) ));
+    push_ilist(@ops, $err_rep);
+    nqp::push(@ops, MAST::Call.new(
+        :target($err_rep.result_reg),
+        :flags($Arg::obj, $Arg::obj),
+        $value_res.result_reg, $type_res.result_reg
+    ));
     nqp::push(@ops, $lbl_done);
-    $*REGALLOC.release_register($err_reg, $MVM_reg_str);
+    $*REGALLOC.release_register($err_rep.result_reg, $MVM_reg_obj);
 
     MAST::InstructionList.new(@ops, $value_res.result_reg, $MVM_reg_obj)
 });

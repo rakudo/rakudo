@@ -114,6 +114,10 @@ my class Binder {
     my int $BIND_RESULT_OK       := 0;
     my int $BIND_RESULT_FAIL     := 1;
     my int $BIND_RESULT_JUNCTION := 2;
+    
+    sub arity_fail($params, int $num_params, int $num_pos_args, int $too_many) {
+        nqp::die('arity_fail NYI');
+    }
 
     # Binds a single parameter.
     sub bind_one_param($lexpad, $sig, $param, int $no_nom_type_check, $error,
@@ -265,6 +269,39 @@ my class Binder {
         # Binding of this parameter was thus successful - we're done.
         $BIND_RESULT_OK
     }
+    
+    # This takes a signature element and either runs the closure to get a default
+    # value if there is one, or creates an appropriate undefined-ish thingy.
+    sub handle_optional($param, int $flags, $lexpad) {
+
+        # Is the "get default from outer" flag set?
+        if $flags +& $SIG_ELEM_DEFAULT_FROM_OUTER {
+            nqp::die('SIG_ELEM_DEFAULT_FROM_OUTER NYI');
+        }
+
+        # Do we have a default value or value closure?
+        elsif (my $default_value := nqp::getattr($param, Parameter, '$!default_value')) {
+            if $flags +& $SIG_ELEM_DEFAULT_IS_LITERAL {
+                $default_value;
+            }
+            else {
+                $default_value()
+            }
+        }
+
+        # Otherwise, go by sigil to pick the correct default type of value.
+        else {
+            if $flags +& SIG_ELEM_ARRAY_SIGIL {
+                nqp::die('Optional array param NYI')
+            }
+            elsif $flags +& SIG_ELEM_HASH_SIGIL {
+                nqp::die('Optional hash param NYI')
+            }
+            else {
+                nqp::getattr($param, Parameter, '$!nominal_type');
+            }
+        }
+    }
 
     # Drives the overall binding process.
     sub bind($capture, $sig, $lexpad, int $no_nom_type_check, $error) {
@@ -361,7 +398,20 @@ my class Binder {
                         $cur_pos_arg++;
                     }
                     else {
-                        nqp::die('Optional positional arg binding NYI');
+                        # No value. If it's optional, fetch a default and bind that;
+                        # if not, we're screwed. Note that we never nominal type check
+                        # an optional with no value passed.
+                        if $flags +& SIG_ELEM_IS_OPTIONAL {
+                            $bind_fail := bind_one_param($lexpad, $sig, $param, $no_nom_type_check, $error,
+                                0, handle_optional($param, $flags, $lexpad), 0, 0.0, '');
+                            return $bind_fail if $bind_fail;
+                        }
+                        else {
+                            if ($error) {
+                                $error[0] := arity_fail(@params, $num_params, $num_pos_args, 0);
+                            }
+                            return $BIND_RESULT_FAIL;
+                        }
                     }
                 }
             }

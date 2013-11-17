@@ -138,9 +138,13 @@ $ops.add_hll_op('perl6', 'p6return', :!inlinable, -> $qastcomp, $op {
 #$ops.map_classlib_hll_op('perl6', 'p6routinereturn', $TYPE_P6OPS, 'p6routinereturn', [$RT_OBJ], $RT_OBJ, :tc, :!inlinable);
 #$ops.map_classlib_hll_op('perl6', 'p6getouterctx', $TYPE_P6OPS, 'p6getouterctx', [$RT_OBJ], $RT_OBJ, :tc, :!inlinable);
 $ops.add_hll_moarop_mapping('perl6', 'p6captureouters', 'p6captureouters', 0);
-#$ops.add_hll_op('perl6', 'p6argvmarray', -> $qastcomp, $op {
-#    # XXX
-#});
+$ops.add_hll_op('perl6', 'p6argvmarray', -> $qastcomp, $op {
+    my @ops;
+    my $res_reg := $*REGALLOC.fresh_o();
+    nqp::push(@ops, MAST::Op.new( :op('param_sp'), $res_reg,
+        MAST::IVal.new( :value(0), :size(16) )));
+    MAST::InstructionList.new(@ops, $res_reg, $MVM_reg_obj)
+});
 #$ops.map_classlib_hll_op('perl6', 'p6bindattrinvres', $TYPE_P6OPS, 'p6bindattrinvres', [$RT_OBJ, $RT_OBJ, $RT_STR, $RT_OBJ], $RT_OBJ, :tc);
 #$ops.map_classlib_hll_op('perl6', 'p6finddispatcher', $TYPE_P6OPS, 'p6finddispatcher', [$RT_STR], $RT_OBJ, :tc);
 #$ops.map_classlib_hll_op('perl6', 'p6argsfordispatcher', $TYPE_P6OPS, 'p6argsfordispatcher', [$RT_OBJ], $RT_OBJ, :tc);

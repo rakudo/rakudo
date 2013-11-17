@@ -295,10 +295,10 @@ m-localtest_loud: m-all spectest_checkout t/localtest.data
 
 # Run many tests of your choice.
 # make sometests TESTFILES=t/foo/bar
-m-sometests: all
+m-sometests: m-all
 	@$(M_HARNESS_WITH_FUDGE) $(TESTFILES)
 
-m-install: all tools/build/create-moar-runner.pl
+m-install: m-all tools/build/create-moar-runner.pl
 	$(MKPATH) $(PREFIX)/bin
 	$(MKPATH) $(PERL6_LANG_DIR)/lib/Perl6
 	$(MKPATH) $(PERL6_LANG_DIR)/runtime
@@ -316,9 +316,9 @@ m-install: all tools/build/create-moar-runner.pl
 m-clean:
 	$(RM_F) $(M_CLEANUPS)
 
-m-distclean: realclean
+m-distclean: m-realclean
 
-m-realclean: clean
+m-realclean: m-clean
 	$(RM_F) Makefile
 
 m-testclean:

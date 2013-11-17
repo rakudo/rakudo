@@ -77,7 +77,32 @@ $ops.add_hll_moarop_mapping('perl6', 'p6trialbind', 'p6trialbind');
 $ops.add_hll_moarop_mapping('perl6', 'p6typecheckrv', 'p6typecheckrv', 0);
 $ops.add_hll_moarop_mapping('perl6', 'p6decontrv', 'p6decontrv');
 $ops.add_hll_moarop_mapping('perl6', 'p6capturelex', 'p6capturelex');
-#$ops.map_classlib_hll_op('perl6', 'p6bindassert', $TYPE_P6OPS, 'p6bindassert', [$RT_OBJ, $RT_OBJ], $RT_OBJ, :tc);
+$ops.add_hll_op('perl6', 'p6bindassert', -> $qastcomp, $op {
+    # Compile the bind value and the type.
+    my @ops;
+    my $value_res := $qastcomp.as_mast($op[0]);
+    my $type_res  := $qastcomp.as_mast($op[1]);
+    push_ilist(@ops, $value_res);
+    push_ilist(@ops, $type_res);
+    
+    # Emit a type check.
+    my $tcr_reg  := $*REGALLOC.fresh_i();
+    my $lbl_done := MAST::Label.new(:name($op.unique('bindassert_done_')));
+    nqp::push(@ops, MAST::Op.new( :op('istype'), $tcr_reg, $value_res.result_reg, $type_res.result_reg ));
+    nqp::push(@ops, MAST::Op.new( :op('if_i'), $tcr_reg, $lbl_done ));
+    $*REGALLOC.release_register($tcr_reg, $MVM_reg_int64);
+    
+    # Error generation.
+    # XXX: need an op that produces the exception and throws it with types in.
+    my $err_reg := $*REGALLOC.fresh_s();
+    nqp::push(@ops, MAST::Op.new( :op('const_s'), $err_reg,
+        MAST::SVal.new( :value('Type check failed in bind') ) ));
+    nqp::push(@ops, MAST::Op.new( :op('die'), $value_res.result_reg, $err_reg ));
+    nqp::push(@ops, $lbl_done);
+    $*REGALLOC.release_register($err_reg, $MVM_reg_str);
+
+    MAST::InstructionList.new(@ops, $value_res.result_reg, $MVM_reg_obj)
+});
 #$ops.map_classlib_hll_op('perl6', 'p6stateinit', $TYPE_P6OPS, 'p6stateinit', [], $RT_INT, :tc, :!inlinable);
 #$ops.map_classlib_hll_op('perl6', 'p6setpre', $TYPE_P6OPS, 'p6setpre', [], $RT_OBJ, :tc);
 #$ops.map_classlib_hll_op('perl6', 'p6clearpre', $TYPE_P6OPS, 'p6clearpre', [], $RT_OBJ, :tc);

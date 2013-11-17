@@ -174,7 +174,11 @@ M_CLEANUPS = \
   src/gen/*.moarvm \
   src/gen/*.pm \
   $(RUNTIME_MOAR) \
-  $(M_RUNNER)
+  $(M_RUNNER) \
+  $(M_PERL6_OPS_DLL) \
+  $(M_PERL6_OPS_OBJ) \
+  $(M_PERL6_CONT_OBJ) \
+  $(M_PERL6_OPS_DLL)
 
 M_HARNESS_WITH_FUDGE = $(PERL) t/harness --fudge --keep-exit-code
 HARNESS = $(PERL) t/harness

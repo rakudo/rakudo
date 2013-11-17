@@ -362,7 +362,19 @@ my class Binder {
             
             # Could it be a named slurpy?
             elsif $flags +& $SIG_ELEM_SLURPY_NAMED {
-                nqp::die('Named slurpy param binding NYI');
+                # We'll either take the current named arguments copy hash which
+                # will by definition contain all unbound named parameters and use
+                # that. Otherwise, putting Mu in there is fine; Hash is smart
+                # enough to know what to do.
+                my $hash := nqp::create(Hash);
+                nqp::bindattr($hash, EnumMap, '$!storage', $named_args || Mu);
+                $bind_fail := bind_one_param($lexpad, $sig, $param, $no_nom_type_check, $error,
+                    0, $hash, 0, 0.0, '');
+                return $bind_fail if $bind_fail;
+                
+                # Undefine named arguments hash now we've consumed it, to mark all
+                # is well.
+                $named_args := NQPMu;
             }
             
             # Otherwise, maybe it's a positional.

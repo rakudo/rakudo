@@ -125,6 +125,23 @@ static void p6bool(MVMThreadContext *tc) {
      GET_REG(tc, 0).o = GET_REG(tc, 2).i64 ? True : False;
 }
 
+/* Creates a Scalar from the specified descriptor. */
+static MVMuint8 s_p6scalarfromdesc[] = {
+    MVM_operand_obj | MVM_operand_write_reg,
+    MVM_operand_obj | MVM_operand_read_reg,
+};
+static void p6scalarfromdesc(MVMThreadContext *tc) {
+    MVMObject *new_scalar = MVM_repr_alloc_init(tc, Scalar);
+    MVMObject *descriptor = GET_REG(tc, 2).o;
+    if (!descriptor) {
+        MVM_exception_throw_adhoc(tc, "default cont desc NYI");
+    }
+    MVM_ASSIGN_REF(tc, new_scalar, ((Rakudo_Scalar *)new_scalar)->descriptor, descriptor);
+    MVM_ASSIGN_REF(tc, new_scalar, ((Rakudo_Scalar *)new_scalar)->value,
+        ((Rakudo_ContainerDescriptor *)descriptor)->the_default);
+    GET_REG(tc, 0).o = new_scalar;
+}
+
 /* The .VAR operation. Wraps in an outer Scalar container so we can actually
  * operate on the underlying Scalar, if we have a container. */
 static MVMuint8 s_p6var[] = {
@@ -215,6 +232,7 @@ MVM_DLL_EXPORT void Rakudo_ops_init(MVMThreadContext *tc) {
     MVM_ext_register_extop(tc, "p6list",  p6list, 4, s_p6list);
     MVM_ext_register_extop(tc, "p6settypes",  p6settypes, 1, s_p6settypes);
     MVM_ext_register_extop(tc, "p6bool",  p6bool, 2, s_p6bool);
+    MVM_ext_register_extop(tc, "p6scalarfromdesc",  p6scalarfromdesc, 2, s_p6scalarfromdesc);
     MVM_ext_register_extop(tc, "p6var",  p6var, 2, s_p6var);
     MVM_ext_register_extop(tc, "p6typecheckrv",  p6typecheckrv, 2, s_p6typecheckrv);
     MVM_ext_register_extop(tc, "p6store",  p6store, 2, s_p6store);

@@ -163,9 +163,8 @@ $ops.add_hll_op('perl6', 'p6bindattrinvres', -> $qastcomp, $op {
     push_ilist(@ops, $ch_res);
     push_ilist(@ops, $nam_res);
     push_ilist(@ops, $val_res);
-    push(@ops, MAST::Op.new( :op('bindattr_o'), $inv_res.result_reg,
-        $ch_res.result_reg, $nam_res.result_reg, $val_res.result_reg,
-        MAST::IVal.new( :value(-1) ) ));
+    nqp::push(@ops, MAST::Op.new( :op('bindattrs_o'), $inv_res.result_reg,
+        $ch_res.result_reg, $nam_res.result_reg, $val_res.result_reg));
     $*REGALLOC.release_register($ch_res.result_reg, $MVM_reg_obj);
     $*REGALLOC.release_register($nam_res.result_reg, $MVM_reg_str);
     $*REGALLOC.release_register($val_res.result_reg, $MVM_reg_obj);

@@ -82,7 +82,24 @@ static void p6capturelex(MVMThreadContext *tc) {
     /* XXX Needs a re-think due to lexical handling changes on Moar
      * vs other backends, though they will adopt the Moar model in
      * the future. For now, just identity. */
-    GET_REG(tc, 0).o = (MVMCode *)GET_REG(tc, 2).o;
+    GET_REG(tc, 0).o = GET_REG(tc, 2).o;
+}
+
+static MVMuint8 s_p6captureouters[] = {
+    MVM_operand_obj | MVM_operand_read_reg
+};
+static void p6captureouters(MVMThreadContext *tc) {
+    MVMObject *todo  = GET_REG(tc, 0).o;
+    MVMint64   elems = MVM_repr_elems(tc, todo);
+    MVMint64   i;
+    for (i = 0; i < elems; i++) {
+        MVMObject *p6_code_obj = MVM_repr_at_pos_o(tc, todo, i);
+        MVMObject *vm_code_obj = MVM_frame_find_invokee(tc, p6_code_obj);
+        if (REPR(vm_code_obj)->ID == MVM_REPR_ID_MVMCode)
+            MVM_frame_capturelex(tc, vm_code_obj);
+        else
+            MVM_exception_throw_adhoc(tc, "p6captureouters got non-code object");
+    }
 }
 
 /* Registers the extops with MoarVM. */
@@ -94,4 +111,5 @@ MVM_DLL_EXPORT void Rakudo_ops_init(MVMThreadContext *tc) {
     MVM_ext_register_extop(tc, "p6store",  p6store, 2, s_p6store);
     MVM_ext_register_extop(tc, "p6decontrv",  p6decontrv, 3, s_p6decontrv);
     MVM_ext_register_extop(tc, "p6capturelex",  p6capturelex, 2, s_p6capturelex);
+    MVM_ext_register_extop(tc, "p6captureouters", p6captureouters, 1, s_p6captureouters);
 }

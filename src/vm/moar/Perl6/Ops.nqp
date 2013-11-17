@@ -150,6 +150,24 @@ $ops.add_hll_op('perl6', 'p6argvmarray', -> $qastcomp, $op {
         MAST::IVal.new( :value(0), :size(16) )));
     MAST::InstructionList.new(@ops, $res_reg, $MVM_reg_obj)
 });
+$ops.add_hll_op('perl6', 'p6bindattrinvres', -> $qastcomp, $op {
+    my @ops;
+    my $inv_res := $qastcomp.as_mast($op[0], :want($MVM_reg_obj));
+    my $ch_res  := $qastcomp.as_mast(QAST::Op.new( :op('decont'), $op[1] ), :want($MVM_reg_obj));
+    my $nam_res := $qastcomp.as_mast($op[2], :want($MVM_reg_str));
+    my $val_res := $qastcomp.as_mast($op[3], :want($MVM_reg_obj));
+    push_ilist(@ops, $inv_res);
+    push_ilist(@ops, $ch_res);
+    push_ilist(@ops, $nam_res);
+    push_ilist(@ops, $val_res);
+    push(@ops, MAST::Op.new( :op('bindattr_o'), $inv_res.result_reg,
+        $ch_res.result_reg, $nam_res.result_reg, $val_res.result_reg,
+        MAST::IVal.new( :value(-1) ) ));
+    $*REGALLOC.release_register($ch_res.result_reg, $MVM_reg_obj);
+    $*REGALLOC.release_register($nam_res.result_reg, $MVM_reg_str);
+    $*REGALLOC.release_register($val_res.result_reg, $MVM_reg_obj);
+    MAST::InstructionList.new(@ops, $inv_res.result_reg, $MVM_reg_obj)
+});
 #$ops.map_classlib_hll_op('perl6', 'p6bindattrinvres', $TYPE_P6OPS, 'p6bindattrinvres', [$RT_OBJ, $RT_OBJ, $RT_STR, $RT_OBJ], $RT_OBJ, :tc);
 #$ops.map_classlib_hll_op('perl6', 'p6finddispatcher', $TYPE_P6OPS, 'p6finddispatcher', [$RT_STR], $RT_OBJ, :tc);
 #$ops.map_classlib_hll_op('perl6', 'p6argsfordispatcher', $TYPE_P6OPS, 'p6argsfordispatcher', [$RT_OBJ], $RT_OBJ, :tc);

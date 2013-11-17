@@ -163,7 +163,12 @@ my class Binder {
         # Do we have any type captures to bind?
         my $type_caps := nqp::getattr($param, Parameter, '$!type_captures');
         unless nqp::isnull($type_caps) {
-            nqp::die('type capture binding NYI');
+            my int $num_type_caps := nqp::elems($type_caps);
+            my int $i := 0;
+            while $i < $num_type_caps {
+                nqp::bindkey($lexpad, nqp::atpos($type_caps, $i), $decont_value.WHAT);
+                $i++;
+            }
         }
 
         # Do a coercion, if one is needed.

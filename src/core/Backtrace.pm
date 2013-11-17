@@ -25,7 +25,9 @@ my class Backtrace::Frame {
 
     method is-hidden(Backtrace::Frame:D:)  { $!code.?is_hidden_from_backtrace }
     method is-routine(Backtrace::Frame:D:) { $!code ~~ Routine }
-    method is-setting(Backtrace::Frame:D:) { $!file eq 'src/gen/CORE.setting' }
+    method is-setting(Backtrace::Frame:D:) {
+        $!file.chars > 12 && $!file.substr(*-12) eq 'CORE.setting'
+    }
 }
 
 my class Backtrace is List {

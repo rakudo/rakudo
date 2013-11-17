@@ -343,7 +343,6 @@ sub gen_nqp {
 
     if (defined $gen_moar) {
         push @cmd, $gen_moar ? '--gen-moar' : "--gen-moar=$gen_moar";
-        $impls{moar}{ok} = 1;
     }
 
     print "Building NQP ...\n";

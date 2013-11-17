@@ -335,9 +335,4 @@ j-clean:
 	$(RM_F) $(J_CLEANUPS)
 	$(RM_RF) bin
 
-j-distclean: realclean
-
-j-realclean: clean
-	$(RM_F) Makefile
-
 j-testclean:

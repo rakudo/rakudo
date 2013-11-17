@@ -320,9 +320,4 @@ m-install: m-all tools/build/create-moar-runner.pl
 m-clean:
 	$(RM_F) $(M_CLEANUPS)
 
-m-distclean: m-realclean
-
-m-realclean: m-clean
-	$(RM_F) Makefile
-
 m-testclean:

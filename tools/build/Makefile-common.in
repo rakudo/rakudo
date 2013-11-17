@@ -69,3 +69,8 @@ spectest_update :
 
 t/localtest.data:
 	$(PERL) -MExtUtils::Command -e test_f $@
+
+realclean: clean
+	$(RM_F) Makefile config.status
+
+distclean: realclean

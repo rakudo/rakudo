@@ -166,7 +166,7 @@ MAIN: {
 
         sorry(@errors) if @errors;
 
-        print "Using $impls{parrot}{bin} (version $nqp_config{'nqp::version'}).\n";
+        print "Using $impls{parrot}{bin} (version $nqp_config{'nqp::version'} / Parrot $nqp_config{'parrot::VERSION'}).\n";
 
         if ($^O eq 'MSWin32' or $^O eq 'cygwin') {
             $config{'dll'} = '$(PARROT_BIN_DIR)/$(PARROT_LIB_SHARED)';
@@ -198,8 +198,13 @@ MAIN: {
         }
 
         sorry(@errors) if @errors;
+        
+        my $java_version = `java -version 2>&1`;
+        $java_version    = $java_version =~ /(?<v>[\d\._]+)\N+\n(?<n>\S+)/
+                         ? "$+{'n'} $+{'v'}"
+                         : 'no java version info available';
 
-        print "Using $bin.\n";
+        print "Using $bin (version $nqp_config{'nqp::version'} / $java_version).\n";
 
         $config{'nqp_prefix'}    = $nqp_config{'jvm::runtime.prefix'};
         $config{'nqp_jars'}      = $nqp_config{'jvm::runtime.jars'};
@@ -221,7 +226,7 @@ MAIN: {
         }
         sorry(@errors) if @errors;
 
-        print "Using $config{m_nqp}.\n";
+        print "Using $config{m_nqp} (version $nqp_config{'nqp::version'} / MoarVM $nqp_config{'moar::version'}).\n";
 
         $config{'perl6_ops_dll'} = sprintf($nqp_config{'moar::dll'}, 'perl6_ops_moar');
         

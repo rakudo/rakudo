@@ -23,7 +23,7 @@ sub WINNER(@winner_args, *@pieces, :$wild_done, :$wild_more, :$later) {
         my @names = map *.name, &block.signature.params;
         return do if @names eqv ['$k', '$v'] || @names eqv ['$v', '$k'] {
             &block(:k($key), :v($value));
-        } elsif @names eqv ['$_'] {
+        } elsif @names eqv ['$_'] || (+@names == 1 && &block.signature.params[0].positional)  {
             &block($value);
         } elsif @names eqv ['$k'] {
             &block(:k($key));

@@ -79,8 +79,14 @@ my role Baggy does QuantHash {
         %!elems{ @grab.map({.WHICH}).grep: { %!elems{$_}.value == 0 } }:delete;
         @grab;
     }
+    method grabpairs($count = 1) {
+        (%!elems{ %!elems.keys.pick($count) }:delete).list;
+    }
     method pick ($count = 1) {
         ROLLPICKGRAB(self, $count, %!elems.values.map: { (.key => .value) });
+    }
+    method pickpairs ($count = 1) {
+        (%!elems{ %!elems.keys.pick($count) }:p).list;
     }
     method roll ($count = 1) {
         ROLLPICKGRAB(self, $count, %!elems.values, :keep);
@@ -108,10 +114,6 @@ my role Baggy does QuantHash {
             }
             $selected;
         }, 1 .. $todo;
-    }
-
-    method grabpairs($count = 1) {
-        (%!elems{ %!elems.keys.pick($count) }:delete).list;
     }
 
     proto method classify-list(|) { * }

@@ -86,7 +86,7 @@ my role Baggy does QuantHash {
         ROLLPICKGRAB(self, $count, %!elems.values.map: { (.key => .value) });
     }
     method pickpairs ($count = 1) {
-        (%!elems{ %!elems.keys.pick($count) }:p).list;
+        (%!elems{ %!elems.keys.pick($count) }).list;
     }
     method roll ($count = 1) {
         ROLLPICKGRAB(self, $count, %!elems.values, :keep);

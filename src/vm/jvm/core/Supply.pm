@@ -52,10 +52,10 @@ my role Supply {
         # Use a Channel to handle any asynchrony.
         my $c = self.Channel;
         (1..*).map(sub ($) {
-            winner(
-                $c        => -> \val { return val },
-                $c.closed => -> $p { $p.result; last }
-            )
+            winner {
+                more $c { return $_ }
+                done $c { last }
+            }
         })
     }
 

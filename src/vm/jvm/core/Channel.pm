@@ -93,10 +93,10 @@ my class Channel {
 
     method list($self:) {
         map {
-            winner( 
-              $self        => { $_ },
-              $self.closed => { last }
-            );
+            winner {
+              more $self { $_ }
+              done $self { last }
+            }
         }, 0..*;  # until we have a listless map { }
     }
 

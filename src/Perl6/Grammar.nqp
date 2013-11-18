@@ -1386,6 +1386,11 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <sym><.end_keyword> <block>
     }
 
+    token statement_control:sym<winner> { <sym> <.ws> [<?before '{'> <block>|<xblock>] }
+    token statement_control:sym<more>   { <sym> <.ws> <xblock(1)> }
+    token statement_control:sym<done>   { <sym> <.ws> <xblock(1)> }
+    token statement_control:sym<later>  { <sym> <.ws> <block> }
+
     rule statement_control:sym<CATCH> {<sym> <block(1)> }
     rule statement_control:sym<CONTROL> {<sym> <block(1)> }
 

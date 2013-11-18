@@ -14,51 +14,98 @@ multi sub await(Channel $c) {
     $c.receive
 }
 
-# Takes a list of pairs, mapping a Channel or Promise to code. Invokes the
-# code block of whichever Channel receives first whichever Promise is kept
-# or broken first. Evaluates to the result of that code block.
-# If none of the channels have a value or none of the promises have a result,
-# then the default block is ran. If there is no default block, winner() blocks
-# until one channel or promise is ready.
-# If more than one channel/promise is ready, winner() picks one at random
+my constant $WINNER_KIND_DONE = 0;
+my constant $WINNER_KIND_MORE = 1;
 
-proto sub winner(|) { * }
-multi sub winner(*@contestants, :$default) {
-    multi is-ready(Promise $contestant) {
-        if $contestant {
-            return (True, $contestant)
+sub WINNER(@winner_args, *@pieces, :$wild_done, :$wild_more, :$later) {
+    my Int $num_pieces = +@pieces div 3;
+    sub invoke_right(&block, $key, $value?) {
+        my @names = map *.name, &block.signature.params;
+        return do if @names eqv ['$k', '$v'] || @names eqv ['$v', '$k'] {
+            &block(:k($key), :v($value));
+        } elsif @names eqv ['$_'] {
+            &block($value);
+        } elsif @names eqv ['$k'] {
+            &block(:k($key));
+        } elsif @names eqv ['$v'] {
+            &block(:v($value));
+        } elsif +@names == 0 {
+            return &block();
+        } else {
+            die "couldn't figure out how to invoke {&block.signature().perl}";
         }
-        return (False, False)
     }
-
-    multi is-ready(Channel $c) {
-        my $contestant is default(Nil) = $c.poll;
-        unless $contestant === Nil {
-            return (True, $contestant)
-        }
-        return (False, False)
-    }
-    multi is-ready(Any $c) {
-        die "Cannot use winner on a " ~ .^name;
-    }
-
-    if @contestants.grep: { $_ !~~ Pair } {
-       die "winner() expects to be passed a list of pairs";
-    }
-
-    my $winner;
+    # if we don't have a last block, we need to retry until we
+    # have a winner.
     loop {
-        for @contestants.pick(+@contestants) -> $contestant {
-            next unless (my $arg = is-ready($contestant.key))[0];
-
-            $winner = $contestant.value => $arg[1];
-            last;
+        my @promises_only;
+        my Bool $has_channels = False;
+        if $num_pieces > 0 {
+            for (^$num_pieces).pick(*) -> $index {
+                my ($kind, $arg, &block) = @pieces[$index * 3, $index * 3 + 1, $index * 3 + 2];
+                if $kind == $WINNER_KIND_DONE {
+                    if $arg ~~ Promise {
+                        if $arg {
+                            return invoke_right(&block, $arg, $arg.result);
+                        }
+                        @promises_only.push: $arg;
+                    } elsif $arg ~~ Channel {
+                        if $arg.closed {
+                            return invoke_right(&block, $arg);
+                        }
+                        $has_channels = True;
+                    } else {
+                        die "Got a {$arg.WHAT.perl}, but expected a Channel or Promise.";
+                    }
+                } elsif $kind == $WINNER_KIND_MORE {
+                    if $arg ~~ Channel {
+                        if (my $val := $arg.poll) !~~ Nil {
+                            return invoke_right(&block, $arg, $val);
+                        }
+                        $has_channels = True;
+                    } elsif $arg ~~ Promise {
+                        die "cannot use 'more' on a Promise.";
+                    } else {
+                        die "Got a {$arg.WHAT.perl}, but expected a Channel or Promise.";
+                    }
+                }
+            }
+            if $later {
+                return $later();
+            }
+        } else {
+            for @winner_args.pick(*) {
+                when Channel {
+                    if (my $val := $_.poll()) !~~ Nil {
+                        return invoke_right($wild_more, $_, $val);
+                    } elsif $_.closed.has_value {
+                        return $wild_done(:k($_));
+                    }
+                    $has_channels = True;
+                }
+                when Promise {
+                    if $_ {
+                        return invoke_right($wild_done, $_, $_.result);
+                    }
+                    @promises_only.push: $_;
+                }
+                default {
+                    die "Got a {$_.WHAT.perl}, but expected a Channel or Promise.";
+                }
+            }
+            # when we hit this, none of the promises or channels
+            # have given us a result. if we have a later closure,
+            # we immediately return, otherwise we block on any
+            # of the promises of our args.
+            if $later {
+                return $later();
+            }
+            # if we only had promises, we can block on "anyof".
         }
-        last if $winner //= $default;
-
-        Thread.yield;
+        if $has_channels {
+            Thread.yield();
+        } else {
+            Promise.anyof(@promises_only).result;
+        }
     }
-    nqp::istype($winner, Pair)
-        ?? $winner.key.($winner.value)
-        !! $winner.()
 }

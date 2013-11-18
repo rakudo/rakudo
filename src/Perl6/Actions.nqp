@@ -1225,6 +1225,67 @@ class Perl6::Actions is HLL::Actions does STDActions {
         make when_handler_helper($<block>.ast);
     }
 
+    method statement_control:sym<winner>($/) {
+        my @inner_statements;
+        if $<xblock> {
+            @inner_statements := $<xblock><pblock><blockoid><statementlist><statement>;
+        } elsif $<block> {
+            @inner_statements := $<block><blockoid><statementlist><statement>;
+        }
+        my $wild_done;
+        my $wild_more;
+        my $later;
+
+        my $past := QAST::Op.new( :op('call'), :name('&WINNER'), :node($/) );
+        if $<xblock> {
+            $past.push( $<xblock><EXPR>.ast );
+        } elsif $<block> {
+            $past.push( QAST::Op.new(
+                    :op('callmethod'),
+                    :name('new'),
+                    QAST::WVal.new( :value($*W.find_symbol(['List'])) ) ));
+        }
+
+        # TODO verify that the inner block only has more/done/later blocks in it
+        for @inner_statements -> $/ {
+            if $<statement_control> -> $/ {
+                if $<sym> eq 'done' || $<sym> eq 'more' {
+                    if $<sym> eq 'done' {
+                        if nqp::istype($<xblock><EXPR>.ast.returns, $*W.find_symbol(['Whatever'])) {
+                            # TODO error
+                            $wild_done := block_closure($<xblock><pblock>.ast);
+                            $wild_done.named('wild_done');
+                        } else {
+                            $past.push(QAST::IVal.new(:value(0))); # "DONE"
+                            $past.push($<xblock><EXPR>.ast);
+                            $past.push(block_closure($<xblock><pblock>.ast));
+                        }
+                    } elsif $<sym> eq 'more' {
+                        if nqp::istype($<xblock><EXPR>.ast.returns, $*W.find_symbol(['Whatever'])) {
+                            $wild_more := block_closure($<xblock><pblock>.ast);
+                            $wild_more.named('wild_more');
+                        } else {
+                            $past.push(QAST::IVal.new(:value(1))); # "MORE"
+                            $past.push($<xblock><EXPR>.ast);
+                            $past.push(block_closure($<xblock><pblock>.ast));
+                        }
+                    }
+                } elsif $<sym> eq 'later' {
+                    # TODO error
+                    $later := block_closure($<block>.ast);
+                    $later.named('later');
+                }
+            } else {
+                # TODO error
+            }
+        }
+        if $wild_done { $past.push( $wild_done ) }
+        if $wild_more { $past.push( $wild_more ) }
+        if $later     { $past.push( $later ) }
+
+        make $past;
+    }
+
     method statement_control:sym<CATCH>($/) {
         if nqp::existskey(%*HANDLERS, 'CATCH') {
             $*W.throw($/, ['X', 'Phaser', 'Multiple'], block => 'CATCH');

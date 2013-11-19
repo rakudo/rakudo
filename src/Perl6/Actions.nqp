@@ -1225,7 +1225,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         make when_handler_helper($<block>.ast);
     }
 
-    method statement_control:sym<winner>($/) {
+    method combinator_declarator:sym<winner>($/) {
         my @inner_statements;
         if $<xblock> {
             @inner_statements := $<xblock><pblock><blockoid><statementlist><statement>;
@@ -1270,10 +1270,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
                             $past.push(block_closure($<xblock><pblock>.ast));
                         }
                     }
-                } elsif $<sym> eq 'later' {
+                } elsif $<sym> eq 'wait' {
                     # TODO error
                     $later := block_closure($<block>.ast);
-                    $later.named('later');
+                    $later.named('wait');
                 }
             } else {
                 # TODO error
@@ -1284,6 +1284,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
         if $later     { $past.push( $later ) }
 
         make $past;
+    }
+
+    method combinator_declarator:sym<combine>($/) {
+        $*W.throw($/, ['X', 'NYI'], feature => 'combine blocks');
     }
 
     method statement_control:sym<CATCH>($/) {

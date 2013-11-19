@@ -93,9 +93,9 @@ my class Channel {
 
     method list($self:) {
         map {
-            winner {
-              more $self { $_ }
-              done $self { last }
+            winner $self {
+              more * { $_ }
+              done * { last }
             }
         }, 0..*;  # until we have a listless map { }
     }

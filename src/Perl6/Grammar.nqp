@@ -1386,11 +1386,6 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <sym><.end_keyword> <block>
     }
 
-    token statement_control:sym<winner> { <sym> <.ws> [<?before '{'> <block>|<xblock>] }
-    token statement_control:sym<more>   { <sym> <.ws> <xblock(1)> }
-    token statement_control:sym<done>   { <sym> <.ws> <xblock(1)> }
-    token statement_control:sym<later>  { <sym> <.ws> <block> }
-
     rule statement_control:sym<CATCH> {<sym> <block(1)> }
     rule statement_control:sym<CONTROL> {<sym> <block(1)> }
 
@@ -2098,8 +2093,17 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         | <routine_declarator>
         | <regex_declarator>
         | <type_declarator>
+        | <combinator_declarator>
         ]
     }
+
+    proto token combinator_declarator { <...> }
+    rule combinator_declarator:sym<winner> { <sym> <xblock> }
+    rule combinator_declarator:sym<combine>{ <sym> <xblock> }
+    rule combinator_declarator:sym<more>   { <sym> <xblock(1)> }
+    rule combinator_declarator:sym<done>   { <sym> <xblock(1)> }
+    rule combinator_declarator:sym<catch>  { <sym> <xblock(1)> }
+    rule combinator_declarator:sym<wait>   { <sym> <xblock(1)> }
 
     proto token multi_declarator { <...> }
     token multi_declarator:sym<multi> {

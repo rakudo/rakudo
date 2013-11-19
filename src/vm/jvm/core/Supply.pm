@@ -52,9 +52,9 @@ my role Supply {
         # Use a Channel to handle any asynchrony.
         my $c = self.Channel;
         (1..*).map(sub ($) {
-            winner {
-                more $c { return $_ }
-                done $c { last }
+            winner $c {
+                more * { return $_ }
+                done * { last }
             }
         })
     }

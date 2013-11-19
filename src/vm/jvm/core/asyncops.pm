@@ -17,7 +17,7 @@ multi sub await(Channel $c) {
 my constant $WINNER_KIND_DONE = 0;
 my constant $WINNER_KIND_MORE = 1;
 
-sub WINNER(@winner_args, *@pieces, :$wild_done, :$wild_more, :$later) {
+sub WINNER(@winner_args, *@pieces, :$wild_done, :$wild_more, :$wait) {
     my Int $num_pieces = +@pieces div 3;
     sub invoke_right(&block, $key, $value?) {
         my @names = map *.name, &block.signature.params;
@@ -70,8 +70,8 @@ sub WINNER(@winner_args, *@pieces, :$wild_done, :$wild_more, :$later) {
                     }
                 }
             }
-            if $later {
-                return $later();
+            if $wait {
+                return $wait();
             }
         } else {
             for @winner_args.pick(*) {
@@ -94,11 +94,11 @@ sub WINNER(@winner_args, *@pieces, :$wild_done, :$wild_more, :$later) {
                 }
             }
             # when we hit this, none of the promises or channels
-            # have given us a result. if we have a later closure,
+            # have given us a result. if we have a wait closure,
             # we immediately return, otherwise we block on any
             # of the promises of our args.
-            if $later {
-                return $later();
+            if $wait {
+                return $wait();
             }
             # if we only had promises, we can block on "anyof".
         }

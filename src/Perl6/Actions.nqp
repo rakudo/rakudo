@@ -1225,13 +1225,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
         make when_handler_helper($<block>.ast);
     }
 
-    method combinator_declarator:sym<winner>($/) {
-        my @inner_statements;
-        if $<xblock> {
-            @inner_statements := $<xblock><pblock><blockoid><statementlist><statement>;
-        } elsif $<block> {
-            @inner_statements := $<block><blockoid><statementlist><statement>;
-        }
+    method term:sym<winner>($/) {
+        my @inner_statements := $<xblock><pblock><blockoid><statementlist><statement>;
         my $wild_done;
         my $wild_more;
         my $later;
@@ -1286,7 +1281,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         make $past;
     }
 
-    method combinator_declarator:sym<combine>($/) {
+    method term:sym<combine>($/) {
         $*W.throw($/, ['X', 'NYI'], feature => 'combine blocks');
     }
 

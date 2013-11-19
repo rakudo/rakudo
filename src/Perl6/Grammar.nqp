@@ -2093,17 +2093,15 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         | <routine_declarator>
         | <regex_declarator>
         | <type_declarator>
-        | <combinator_declarator>
         ]
     }
 
-    proto token combinator_declarator { <...> }
-    rule combinator_declarator:sym<winner> { <sym> <xblock> }
-    rule combinator_declarator:sym<combine>{ <sym> <xblock> }
-    rule combinator_declarator:sym<more>   { <sym> <xblock(1)> }
-    rule combinator_declarator:sym<done>   { <sym> <xblock(1)> }
-    rule combinator_declarator:sym<catch>  { <sym> <xblock(1)> }
-    rule combinator_declarator:sym<wait>   { <sym> <xblock(1)> }
+    rule term:sym<winner> { <sym><.end_keyword> <xblock> }
+    rule term:sym<combine>{ <sym><.end_keyword> <xblock> }
+    rule statement_control:sym<more>   { <sym><.end_keyword> <xblock(1)> }
+    rule statement_control:sym<done>   { <sym><.end_keyword> <xblock(1)> }
+    rule statement_control:sym<catch>  { <sym><.end_keyword> <xblock(1)> }
+    rule statement_control:sym<wait>   { <sym><.end_keyword> <xblock(1)> }
 
     proto token multi_declarator { <...> }
     token multi_declarator:sym<multi> {

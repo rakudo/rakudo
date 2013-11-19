@@ -8,6 +8,9 @@ New in 2013.11
 + "is DEPRECATED" trait now does something useful
 + Parcel.rotate implemented
 + Order::Increase/Decrease are deprecated.  Please use Order::Less/More.
++ Performance optimization: unfold junctions in 'when' clauses
++ Order::{Increase,Decrease} are now {Less,More}
++ Many concurrency primitives harmonized with new S17
 
 New in 2013.10
 

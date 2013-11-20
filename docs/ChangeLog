@@ -11,6 +11,8 @@ New in 2013.11
 + Parcel.rotate implemented
 + Performance optimization: unfold junctions in 'when' clauses
 + capitalize/.capitalize have been removed, as per docs/deprecations
++ improved run()/shell(), these return Proc::Status-objects now
++ The ... range operator can now be chaned: 1,2,3 ... 10,15,20 ... 100
 + various other bug fixes, optimisations and additional tests
 
 New in 2013.10

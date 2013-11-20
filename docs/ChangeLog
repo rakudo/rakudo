@@ -1,21 +1,22 @@
 New in 2013.11
 
-+ leading whitespace is ignored for :sigspace
-+ refactored build system that allows building rakudo on both backends in the same place
-+ better null pattern detection in regexes
-+ gethostname function implement
-+ warn when private attributes are a marked rw or readonly
-+ "is DEPRECATED" trait now does something useful
-+ Parcel.rotate implemented
++ Many concurrency primitives harmonized with new S17, but still pretty fluid
++ Refactored build system that allows building rakudo on both backends in the same place
 + Order::Increase/Decrease are deprecated.  Please use Order::Less/More.
++ Leading whitespace is ignored for :sigspace
++ Better null pattern detection in regexes
++ The "gethostname" function implemented
++ Warn when private attributes are a marked rw or readonly
++ "is DEPRECATED" trait now produces report when process finished
++ Parcel.rotate implemented
 + Performance optimization: unfold junctions in 'when' clauses
-+ Order::{Increase,Decrease} are now {Less,More}
-+ Many concurrency primitives harmonized with new S17
++ capitalize/.capitalize have been removed, as per docs/deprecations
++ various other bug fixes, optimisations and additional tests
 
 New in 2013.10
 
 + postcircumfix {} and [] are now implemented as multi subs rather than multi methods.  This should allow for better optimization in the future.
-+ Add support for "is deprecated", making it easy for early adopters to stay current.
++ Add support for "is DEPRECATED", making it easy for early adopters to stay current.
 + Track multiple spec changes for various container classes.
 + Greatly reduce object creation during Regex parsing.
 + Various portability fixes.

@@ -17,8 +17,10 @@ multi sub await(Channel $c) {
 my constant $WINNER_KIND_DONE = 0;
 my constant $WINNER_KIND_MORE = 1;
 
-sub WINNER(@winner_args, *@pieces, :$wild_done, :$wild_more, :$wait) {
+sub WINNER(@winner_args, *@pieces, :$wild_done, :$wild_more, :$wait, :$wait_time is copy) {
+    my num $start_time = nqp::time_n();
     my Int $num_pieces = +@pieces div 3;
+    my $timeout_promise;
     sub invoke_right(&block, $key, $value?) {
         my @names = map *.name, &block.signature.params;
         return do if @names eqv ['$k', '$v'] || @names eqv ['$v', '$k'] {
@@ -71,7 +73,17 @@ sub WINNER(@winner_args, *@pieces, :$wild_done, :$wild_more, :$wait) {
                 }
             }
             if $wait {
-                return $wait();
+                $wait_time -= (nqp::time_n() - $start_time);
+                if $wait_time <= 0 || $timeout_promise {
+                    return $wait();
+                } elsif !$timeout_promise {
+                    $timeout_promise = Promise.in($wait_time);
+                    @promises_only.push: $timeout_promise;
+                    $num_pieces++;
+                    @pieces.push: 0;
+                    @pieces.push: $timeout_promise;
+                    @pieces.push: $wait;
+                }
             }
         } else {
             for @winner_args.pick(*) {
@@ -84,7 +96,9 @@ sub WINNER(@winner_args, *@pieces, :$wild_done, :$wild_more, :$wait) {
                     $has_channels = True;
                 }
                 when Promise {
-                    if $_ {
+                    if $_ eqv $timeout_promise && $_ {
+                        return $wait();
+                    } elsif $_ {
                         return invoke_right($wild_done, $_, $_.result);
                     }
                     @promises_only.push: $_;
@@ -98,7 +112,15 @@ sub WINNER(@winner_args, *@pieces, :$wild_done, :$wild_more, :$wait) {
             # we immediately return, otherwise we block on any
             # of the promises of our args.
             if $wait {
-                return $wait();
+                $wait_time -= (nqp::time_n() - $start_time);
+                if $wait_time <= 0 || $timeout_promise {
+                    return $wait();
+                } elsif !$timeout_promise {
+                    $timeout_promise = Promise.in($wait_time);
+                    @promises_only.push: $timeout_promise;
+                    $num_pieces++;
+                    @winner_args.push: $timeout_promise;
+                }
             }
             # if we only had promises, we can block on "anyof".
         }

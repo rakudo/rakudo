@@ -1229,11 +1229,19 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my @inner_statements := $<xblock><pblock><blockoid><statementlist><statement>;
         my $wild_done;
         my $wild_more;
-        my $later;
+        my $wait;
+        my $wait_time;
 
         my $past := QAST::Op.new( :op('call'), :name('&WINNER'), :node($/) );
         if $<xblock> {
-            $past.push( $<xblock><EXPR>.ast );
+            if nqp::istype($<xblock><EXPR>.ast.returns, $*W.find_symbol(['Whatever'])) {
+                $past.push( QAST::Op.new(
+                        :op('callmethod'),
+                        :name('new'),
+                        QAST::WVal.new( :value($*W.find_symbol(['List'])) ) ));
+            } else {
+                $past.push( $<xblock><EXPR>.ast );
+            }
         } elsif $<block> {
             $past.push( QAST::Op.new(
                     :op('callmethod'),
@@ -1267,8 +1275,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     }
                 } elsif $<sym> eq 'wait' {
                     # TODO error
-                    $later := block_closure($<block>.ast);
-                    $later.named('wait');
+                    $wait_time:= $<xblock><EXPR>.ast;
+                    $wait_time.named('wait_time');
+                    $wait := block_closure($<xblock><pblock>.ast);
+                    $wait.named('wait');
                 }
             } else {
                 # TODO error
@@ -1276,7 +1286,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
         if $wild_done { $past.push( $wild_done ) }
         if $wild_more { $past.push( $wild_more ) }
-        if $later     { $past.push( $later ) }
+        if $wait      { $past.push( $wait ); $past.push( $wait_time ) }
 
         make $past;
     }

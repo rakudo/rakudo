@@ -92,10 +92,12 @@ my class Channel {
     }
 
     method list($self:) {
+        my $condition = False;
         map {
+            last if $condition;
             winner $self {
               more * { $_ }
-              done * { last }
+              done * { $condition = True; Nil }
             }
         }, 0..*;  # until we have a listless map { }
     }

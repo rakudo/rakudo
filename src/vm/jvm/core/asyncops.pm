@@ -124,10 +124,10 @@ sub WINNER(@winner_args, *@pieces, :$wild_done, :$wild_more, :$wait, :$wait_time
             }
             # if we only had promises, we can block on "anyof".
         }
-        if $has_channels {
+        if $has_channels || (@promises_only == 0) {
             Thread.yield();
         } else {
-            Promise.anyof(@promises_only).result;
+            Promise.anyof(|@promises_only).result;
         }
     }
 }

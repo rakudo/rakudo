@@ -90,7 +90,7 @@ sub WINNER(@winner_args, *@pieces, :$wild_done, :$wild_more, :$wait, :$wait_time
                 when Channel {
                     if (my $val := $_.poll()) !~~ Nil {
                         return invoke_right($wild_more, $_, $val);
-                    } elsif $_.closed.has_value {
+                    } elsif $_.closed {
                         return $wild_done(:k($_));
                     }
                     $has_channels = True;

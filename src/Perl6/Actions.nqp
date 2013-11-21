@@ -1295,6 +1295,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
         $*W.throw($/, ['X', 'NYI'], feature => 'combine blocks');
     }
 
+    method statement_control:sym<quit>($/) {
+        $*W.throw($/, ['X', 'NYI'], feature => 'combine blocks (and "quit")');
+    }
+
     method statement_control:sym<CATCH>($/) {
         if nqp::existskey(%*HANDLERS, 'CATCH') {
             $*W.throw($/, ['X', 'Phaser', 'Multiple'], block => 'CATCH');

@@ -1240,7 +1240,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                         :name('new'),
                         QAST::WVal.new( :value($*W.find_symbol(['List'])) ) ));
             } else {
-                $past.push( $<xblock><EXPR>.ast );
+                $past.push( QAST::Op.new(:name('&infix:<,>'), :op('call'), $<xblock><EXPR>.ast) );
             }
         } elsif $<block> {
             $past.push( QAST::Op.new(

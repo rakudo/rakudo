@@ -2096,6 +2096,13 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         ]
     }
 
+    rule term:sym<winner> { <sym><.end_keyword> <xblock> }
+    rule term:sym<combine>{ <sym><.end_keyword> <xblock> }
+    rule statement_control:sym<more>   { <sym><.end_keyword> <xblock(1)> }
+    rule statement_control:sym<done>   { <sym><.end_keyword> <xblock(1)> }
+    rule statement_control:sym<quit>   { <sym><.end_keyword> <xblock(1)> }
+    rule statement_control:sym<wait>   { <sym><.end_keyword> <xblock(1)> }
+
     proto token multi_declarator { <...> }
     token multi_declarator:sym<multi> {
         <sym> :my $*MULTINESS := 'multi'; <.end_keyword>

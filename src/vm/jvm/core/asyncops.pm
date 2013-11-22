@@ -39,6 +39,7 @@ sub WINNER(@winner_args, *@pieces, :$wild_done, :$wild_more, :$wait, :$wait_time
     }
     # if we don't have a last block, we need to retry until we
     # have a winner.
+    my $action;
     loop {
         my @promises_only;
         my Bool $has_channels = False;
@@ -48,12 +49,12 @@ sub WINNER(@winner_args, *@pieces, :$wild_done, :$wild_more, :$wait, :$wait_time
                 if $kind == $WINNER_KIND_DONE {
                     if $arg ~~ Promise {
                         if $arg {
-                            return invoke_right(&block, $arg, $arg.result);
+                            $action = { invoke_right(&block, $arg, $arg.result) };
                         }
                         @promises_only.push: $arg;
                     } elsif $arg ~~ Channel {
                         if $arg.closed {
-                            return invoke_right(&block, $arg);
+                            $action = { invoke_right(&block, $arg); }
                         }
                         $has_channels = True;
                     } else {
@@ -62,7 +63,7 @@ sub WINNER(@winner_args, *@pieces, :$wild_done, :$wild_more, :$wait, :$wait_time
                 } elsif $kind == $WINNER_KIND_MORE {
                     if $arg ~~ Channel {
                         if (my $val := $arg.poll) !~~ Nil {
-                            return invoke_right(&block, $arg, $val);
+                            $action = { invoke_right(&block, $arg, $val); }
                         }
                         $has_channels = True;
                     } elsif $arg ~~ Promise {
@@ -72,10 +73,11 @@ sub WINNER(@winner_args, *@pieces, :$wild_done, :$wild_more, :$wait, :$wait_time
                     }
                 }
             }
+            last if $action;
             if $wait {
                 $wait_time -= (nqp::time_n() - $start_time);
                 if $wait_time <= 0 || $timeout_promise {
-                    return $wait();
+                    $action = $wait;
                 } elsif !$timeout_promise {
                     $timeout_promise = Promise.in($wait_time);
                     @promises_only.push: $timeout_promise;
@@ -89,17 +91,17 @@ sub WINNER(@winner_args, *@pieces, :$wild_done, :$wild_more, :$wait, :$wait_time
             for @winner_args.pick(*) {
                 when Channel {
                     if (my $val := $_.poll()) !~~ Nil {
-                        return invoke_right($wild_more, $_, $val);
+                        $action = { invoke_right($wild_more, $_, $val) };
                     } elsif $_.closed {
-                        return $wild_done(:k($_));
+                        $action = { $wild_done(:k($_)); }
                     }
                     $has_channels = True;
                 }
                 when Promise {
                     if $_ eqv $timeout_promise && $_ {
-                        return $wait();
+                        $action = $wait;
                     } elsif $_ {
-                        return invoke_right($wild_done, $_, $_.result);
+                        $action = { invoke_right($wild_done, $_, $_.result); }
                     }
                     @promises_only.push: $_;
                 }
@@ -107,6 +109,7 @@ sub WINNER(@winner_args, *@pieces, :$wild_done, :$wild_more, :$wait, :$wait_time
                     die "Got a {$_.WHAT.perl}, but expected a Channel or Promise.";
                 }
             }
+            last if $action;
             # when we hit this, none of the promises or channels
             # have given us a result. if we have a wait closure,
             # we immediately return, otherwise we block on any
@@ -130,4 +133,5 @@ sub WINNER(@winner_args, *@pieces, :$wild_done, :$wild_more, :$wait, :$wait_time
             Promise.anyof(|@promises_only).result;
         }
     }
+    $action()
 }

@@ -84,6 +84,8 @@ my role Supply {
         })
     }
 
+    method for(|c)          { SupplyOperations.for(|c) }
+    method interval(|c)     { SupplyOperations.interval(|c) }
     method do(&side_effect) { SupplyOperations.do(self, &side_effect) }
     method grep(&filter)    { SupplyOperations.grep(self, &filter) }
     method map(&mapper)     { SupplyOperations.map(self, &mapper) }

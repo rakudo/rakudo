@@ -39,6 +39,29 @@ my role Supply {
         @tappers
     }
 
+    method next(\msg) {
+        for self.tappers -> $t {
+            $t.next().(msg)
+        }
+        Nil;
+    }
+
+    method last() {
+        for self.tappers -> $t {
+            my $l = $t.last();
+            $l() if $l;
+        }
+        Nil;
+    }
+
+    method fail($ex) {
+        for self.tappers -> $t {
+            my $f = $t.fail();
+            $f($ex) if $f;
+        }
+        Nil;
+    }
+
     method Channel() {
         my $c = Channel.new();
         self.tap(

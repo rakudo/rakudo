@@ -6,23 +6,23 @@ my class SupplyOperations is repr('Uninstantiable') {
     # Private versions of the methods to relay events to subscribers, used in
     # implementing various operations.
     my role PrivatePublishing {
-        method !next(\msg) {
+        method !more(\msg) {
             for self.tappers {
-                .next().(msg)
+                .more().(msg)
             }
             Nil;
         }
 
-        method !last() {
+        method !done() {
             for self.tappers {
-                if .last { .last().() }
+                if .done { .done().() }
             }
             Nil;
         }
 
-        method !fail($ex) {
+        method !quit($ex) {
             for self.tappers {
-                if .fail { .fail().($ex) }
+                if .quit { .quit().($ex) }
             }
             Nil;
         }
@@ -30,7 +30,7 @@ my class SupplyOperations is repr('Uninstantiable') {
     
     method do($a, &side_effect) {
         on -> $res {
-            $a => sub (\val) { side_effect(val); $res.next(val) }
+            $a => sub (\val) { side_effect(val); $res.more(val) }
         }
     }
     
@@ -45,10 +45,10 @@ my class SupplyOperations is repr('Uninstantiable') {
                 my $sub = self.Supply::tap(|c);
                 my $tap = $!source.tap(
                     -> \val {
-                        if (&!filter(val)) { self!next(val) }
+                        if (&!filter(val)) { self!more(val) }
                     },
-                    { self!last(); },
-                    -> $ex { self!fail($ex) }
+                    { self!done(); },
+                    -> $ex { self!quit($ex) }
                 );
                 $sub
             }
@@ -67,10 +67,10 @@ my class SupplyOperations is repr('Uninstantiable') {
                 my $sub = self.Supply::tap(|c);
                 my $tap = $!source.tap(
                     -> \val {
-                        self!next(&!mapper(val))
+                        self!more(&!mapper(val))
                     },
-                    { self!last(); },
-                    -> $ex { self!fail($ex) }
+                    { self!done(); },
+                    -> $ex { self!quit($ex) }
                 );
                 $sub
             }
@@ -79,18 +79,18 @@ my class SupplyOperations is repr('Uninstantiable') {
     }
     
     method merge(Supply $a, Supply $b) {
-        my $lasts = 0;
+        my $dones = 0;
         on -> $res {
             $a => {
-                next => sub ($val) { $res.next($val) },
-                last => {
-                    $res.last() if ++$lasts == 2;
+                more => sub ($val) { $res.more($val) },
+                done => {
+                    $res.done() if ++$dones == 2;
                 }
             },
             $b => {
-                next => sub ($val) { $res.next($val) },
-                last => {
-                    $res.last() if ++$lasts == 2;
+                more => sub ($val) { $res.more($val) },
+                done => {
+                    $res.done() if ++$dones == 2;
                 }
             }
         }
@@ -103,13 +103,13 @@ my class SupplyOperations is repr('Uninstantiable') {
             $a => sub ($val) {
                 @as.push($val);
                 if @as && @bs {
-                    $res.next(with(@as.shift, @bs.shift));
+                    $res.more(with(@as.shift, @bs.shift));
                 }
             },
             $b => sub ($val) {
                 @bs.push($val);
                 if @as && @bs {
-                    $res.next(with(@as.shift, @bs.shift));
+                    $res.more(with(@as.shift, @bs.shift));
                 }
             }
         }

@@ -13,11 +13,11 @@ my class Publish {
                 $!scheduler.cue(
                     {
                         for @!values -> \val {
-                            $sub.next().(val);
+                            $sub.more().(val);
                         }
-                        if $sub.last -> $l { $l() }
+                        if $sub.done -> $l { $l() }
                     },
-                    :catch(-> $ex { if $sub.fail -> $t { $t($ex) } })
+                    :catch(-> $ex { if $sub.quit -> $t { $t($ex) } })
                 );
                 $sub
             }
@@ -38,7 +38,7 @@ my class Publish {
                 $!scheduler.cue(
                     {
                         state $i = 0;
-                        $sub.next().($i++);
+                        $sub.more().($i++);
                     },
                     :every($!interval), :in($!delay)
                 );

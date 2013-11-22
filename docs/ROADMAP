@@ -60,19 +60,20 @@ Built-ins/Data Structures
 3 ***   Cat and stream matching
 
 Language Features
-1 ***   basic Perl 5 interop (use, eval, etc.)
+1 ***   basic Perl 5 interop (use, eval, etc.) (diakopter)
 2 *     $=DATA and friends (tadzik)
-2 **    module versioning
+2 **    module versioning (lizmat,FROGGS)
 2 **    missing bits of enums
 2 ***   new syntax/semantics for coercion (jnthn)
 2 **    MAIN and USAGE (japhb)
 2 **    Failure changes (japhb)
 2 ***   coercion types
 2 *     tr///
-2 **    'no strict;'
-3 ***   domain specific languages -- slang and grammar tweaks
-3 ****  more advanced Perl 5 interop (lexical embedding, etc.)
-3 ?     Parse and execute simple Perl 5 code
+2 **    'no strict;' (moritz,FROGGS)
+3 ***   domain specific languages -- slang and grammar tweaks (FROGGS)
+3 ****  more advanced Perl 5 interop (lexical embedding, etc.) (FROGGS)
+3 ?     Parse and execute simple Perl 5 code (FROGGS)
+2 **    label handling using goto, next, last ...
 
 Optimizer (jnthn)
 2 **    ro/rw variable tracking, related transforms

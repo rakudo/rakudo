@@ -1957,11 +1957,13 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 make QAST::Op.new(
                     :op<bind>,
                     QAST::Var.new(:$name, :scope<lexical>),
-                    QAST::Op.new(
-                        :op('p6bindassert'),
-                        $<term_init>.ast,
-                        QAST::WVal.new( :value($type) ),
-                    )
+                    $type =:= $*W.find_symbol(['Mu'])
+                        ?? $<term_init>.ast
+                        !! QAST::Op.new(
+                            :op('p6bindassert'),
+                            $<term_init>.ast,
+                            QAST::WVal.new( :value($type) ),
+                        )
                 );
             }
             else {
@@ -4700,9 +4702,11 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 my int $was_lexical := 0;
                 try {
                     my $type := $*W.find_lexical_container_type($target.name);
-                    $source := QAST::Op.new(
-                        :op('p6bindassert'),
-                        $source, QAST::WVal.new( :value($type) ));
+                    unless $type =:= $*W.find_symbol(['Mu']) {
+                        $source := QAST::Op.new(
+                            :op('p6bindassert'),
+                            $source, QAST::WVal.new( :value($type) ));
+                    }
                     $was_lexical := 1;
                 }
                 unless $was_lexical {

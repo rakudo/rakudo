@@ -18,7 +18,7 @@ my role Supply {
     has @!tappers;
     has $!tappers_lock = Lock.new;
 
-    method tap(&more, &done?, &quit?) {
+    method tap(&more, :&done, :&quit) {
         my $sub = Tap.new(:&more, :&done, :&quit, :supply(self));
         $!tappers_lock.protect({
             @!tappers.push($sub);
@@ -64,10 +64,9 @@ my role Supply {
 
     method Channel() {
         my $c = Channel.new();
-        self.tap(
-            -> \val { $c.send(val) },
-            { $c.close },
-            -> $ex { $c.quit($ex) });
+        self.tap( -> \val { $c.send(val) },
+          done => { $c.close },
+          quit => -> $ex { $c.quit($ex) });
         $c
     }
 
@@ -126,19 +125,18 @@ sub on(&setup) {
                 &quit = -> $ex { self.quit($ex) }
             }
             $source.tap(
-                -> \val {
-                    $lock.protect({ more(val) });
-                    CATCH { self.quit($_) }
-                },
-                {
-                    $lock.protect({ done() });
-                    CATCH { self.quit($_) }
-                },
-                -> $ex {
-                    $lock.protect({ quit($ex) });
-                    CATCH { self.quit($_) }
-                }
-            );
+              -> \val {
+                  $lock.protect({ more(val) });
+                  CATCH { self.quit($_) }
+              },
+              done => {
+                  $lock.protect({ done() });
+                  CATCH { self.quit($_) }
+              },
+              quit => -> $ex {
+                  $lock.protect({ quit($ex) });
+                  CATCH { self.quit($_) }
+              });
         }
         
         method tap(|c) {

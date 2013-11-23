@@ -90,12 +90,11 @@ my class SupplyOperations is repr('Uninstantiable') {
             
             method tap(|c) {
                 my $sub = self.Supply::tap(|c);
-                my $tap = $!source.tap(
-                    -> \val {
-                        if (&!filter(val)) { self!more(val) }
-                    },
-                    { self!done(); },
-                    -> $ex { self!quit($ex) }
+                my $tap = $!source.tap( -> \val {
+                      if (&!filter(val)) { self!more(val) }
+                  },
+                  done => { self!done(); },
+                  quit => -> $ex { self!quit($ex) }
                 );
                 $sub
             }
@@ -112,13 +111,11 @@ my class SupplyOperations is repr('Uninstantiable') {
             
             method tap(|c) {
                 my $sub = self.Supply::tap(|c);
-                my $tap = $!source.tap(
-                    -> \val {
-                        self!more(&!mapper(val))
-                    },
-                    { self!done(); },
-                    -> $ex { self!quit($ex) }
-                );
+                my $tap = $!source.tap( -> \val {
+                      self!more(&!mapper(val))
+                  },
+                  done => { self!done(); },
+                  quit => -> $ex { self!quit($ex) });
                 $sub
             }
         }

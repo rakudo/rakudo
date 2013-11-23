@@ -156,6 +156,7 @@ M_CORE_SOURCES = \
   src/core/Deprecations.pm \
   src/core/IO/Socket.pm \
   src/core/IO/Socket/INET.pm \
+  src/core/OS.pm \
   src/core/core_epilogue.pm \
 
 M_CLEANUPS = \

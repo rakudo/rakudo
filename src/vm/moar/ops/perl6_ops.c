@@ -173,15 +173,6 @@ static void p6typecheckrv(MVMThreadContext *tc) {
 }
 
 /* Decontainerizes the return value of a routine as needed. */
-static MVMuint8 s_p6store[] = {
-    MVM_operand_obj | MVM_operand_read_reg,
-    MVM_operand_obj | MVM_operand_read_reg,
-};
-static void p6store(MVMThreadContext *tc) {
-     MVM_exception_throw_adhoc(tc, "p6store NYI");
-}
-
-/* Decontainerizes the return value of a routine as needed. */
 static MVMuint8 s_p6decontrv[] = {
     MVM_operand_obj | MVM_operand_write_reg,
     MVM_operand_obj | MVM_operand_read_reg,
@@ -235,7 +226,6 @@ MVM_DLL_EXPORT void Rakudo_ops_init(MVMThreadContext *tc) {
     MVM_ext_register_extop(tc, "p6scalarfromdesc",  p6scalarfromdesc, 2, s_p6scalarfromdesc);
     MVM_ext_register_extop(tc, "p6var",  p6var, 2, s_p6var);
     MVM_ext_register_extop(tc, "p6typecheckrv",  p6typecheckrv, 2, s_p6typecheckrv);
-    MVM_ext_register_extop(tc, "p6store",  p6store, 2, s_p6store);
     MVM_ext_register_extop(tc, "p6decontrv",  p6decontrv, 3, s_p6decontrv);
     MVM_ext_register_extop(tc, "p6capturelex",  p6capturelex, 2, s_p6capturelex);
     MVM_ext_register_extop(tc, "p6captureouters", p6captureouters, 1, s_p6captureouters);

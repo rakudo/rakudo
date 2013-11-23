@@ -40,9 +40,6 @@ MAST::ExtOpRegistry.register_extop('p6list',
     $MVM_operand_obj   +| $MVM_operand_read_reg,
     $MVM_operand_obj   +| $MVM_operand_read_reg,
     $MVM_operand_obj   +| $MVM_operand_read_reg);
-MAST::ExtOpRegistry.register_extop('p6store',
-    $MVM_operand_obj   +| $MVM_operand_read_reg,
-    $MVM_operand_obj   +| $MVM_operand_read_reg);
 MAST::ExtOpRegistry.register_extop('p6trialbind',
     $MVM_operand_int64 +| $MVM_operand_write_reg,
     $MVM_operand_obj   +| $MVM_operand_read_reg,
@@ -87,7 +84,37 @@ $ops.add_hll_moarop_mapping('perl6', 'p6box_s', 'p6box_s');
 $ops.add_hll_moarop_mapping('perl6', 'p6list', 'p6list');
 #$ops.map_classlib_hll_op('perl6', 'p6listitems', $TYPE_P6OPS, 'p6listitems', [$RT_OBJ], $RT_OBJ, :tc);
 #$ops.map_classlib_hll_op('perl6', 'p6recont_ro', $TYPE_P6OPS, 'p6recont_ro', [$RT_OBJ], $RT_OBJ, :tc);
-$ops.add_hll_moarop_mapping('perl6', 'p6store', 'p6store', 0);
+$ops.add_hll_op('perl6', 'p6store', -> $qastcomp, $op {
+    my @ops;
+    my $cont_res  := $qastcomp.as_mast($op[0], :want($MVM_reg_obj));
+    my $value_res := $qastcomp.as_mast($op[1], :want($MVM_reg_obj));
+    push_ilist(@ops, $cont_res);
+    push_ilist(@ops, $value_res);
+    
+    my $iscont_reg  := $*REGALLOC.fresh_i();
+    my $no_cont_lbl := MAST::Label.new(:name($op.unique('p6store_no_cont_')));
+    my $done_lbl    := MAST::Label.new(:name($op.unique('p6store_done_')));
+    nqp::push(@ops, MAST::Op.new( :op('iscont'), $iscont_reg, $cont_res.result_reg ));
+    nqp::push(@ops, MAST::Op.new( :op('unless'), $iscont_reg, $no_cont_lbl ));
+    $*REGALLOC.release_register($iscont_reg, $MVM_reg_int64);
+    nqp::push(@ops, MAST::Op.new( :op('decont'), $value_res.result_reg, $value_res.result_reg ));
+    nqp::push(@ops, MAST::Op.new( :op('assign'), $cont_res.result_reg, $value_res.result_reg ));
+    nqp::push(@ops, MAST::Op.new( :op('goto'), $done_lbl ));
+    
+    my $meth_reg := $*REGALLOC.fresh_o();
+    nqp::push(@ops, $no_cont_lbl);
+    nqp::push(@ops, MAST::Op.new( :op('findmeth'), $meth_reg, $cont_res.result_reg,
+        MAST::SVal.new( :value('STORE') ) ));
+    nqp::push(@ops, MAST::Call.new(
+        :target($meth_reg),
+        :flags($Arg::obj, $Arg::obj),
+        $cont_res.result_reg, $value_res.result_reg
+    ));
+    nqp::push(@ops, $done_lbl);
+    $*REGALLOC.release_register($meth_reg, $MVM_reg_obj);
+    
+    MAST::InstructionList.new(@ops, $cont_res.result_reg, $MVM_reg_obj)
+});
 $ops.add_hll_moarop_mapping('perl6', 'p6var', 'p6var');
 #$ops.map_classlib_hll_op('perl6', 'p6reprname', $TYPE_P6OPS, 'p6reprname', [$RT_OBJ], $RT_OBJ, :tc);
 $ops.add_hll_op('perl6', 'p6definite', -> $qastcomp, $op {

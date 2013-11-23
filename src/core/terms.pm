@@ -40,6 +40,12 @@ sub term:<time>() { nqp::p6box_i(nqp::time_i()) }
         properties => %PROPS,
     }
 #?endif
+#?if moar
+    my $VM = {
+        name    => 'moar',
+        config  => {}
+    }
+#?endif
     nqp::bindkey(nqp::who(PROCESS), '$VM', $VM);
 
 # XXX Various issues with this stuff on JVM
@@ -148,6 +154,9 @@ sub term:<time>() { nqp::p6box_i(nqp::time_i()) }
 #?endif
 #?if jvm
         'perl6-j';
+#?endif
+#?if moar
+        'perl6-m';
 #?endif
     nqp::bindkey(nqp::who(PROCESS), '$EXECUTABLE_NAME', $EXECUTABLE_NAME);
     my Mu $comp := nqp::getcomp('perl6');

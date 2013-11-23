@@ -12,9 +12,16 @@ static MVMObject *Int      = NULL;
 static MVMObject *Num      = NULL;
 static MVMObject *Str      = NULL;
 static MVMObject *Scalar   = NULL;
+static MVMObject *Parcel   = NULL;
 static MVMObject *ListIter = NULL;
 static MVMObject *True     = NULL;
 static MVMObject *False    = NULL;
+
+/* Parcel, as laid out as a P6opaque. */
+typedef struct {
+    MVMP6opaque  p6o;
+    MVMObject   *storage;
+} Rakudo_Parcel;
 
 /* ListIter, as laid out as a P6opaque. */
 typedef struct {
@@ -56,6 +63,7 @@ static void p6settypes(MVMThreadContext *tc) {
         get_type(tc, conf, "Num", Num);
         get_type(tc, conf, "Str", Str);
         get_type(tc, conf, "Scalar", Scalar);
+        get_type(tc, conf, "Parcel", Parcel);
         get_type(tc, conf, "ListIter", ListIter);
         get_type(tc, conf, "True", True);
         get_type(tc, conf, "False", False);
@@ -83,6 +91,28 @@ static MVMuint8 s_p6box_s[] = {
 };
 static void p6box_s(MVMThreadContext *tc) {
      GET_REG(tc, 0).o = MVM_repr_box_str(tc, Str, GET_REG(tc, 2).s);
+}
+
+static MVMuint8 s_p6parcel[] = {
+    MVM_operand_obj | MVM_operand_write_reg,
+    MVM_operand_obj | MVM_operand_read_reg,
+    MVM_operand_obj | MVM_operand_read_reg
+};
+static void p6parcel(MVMThreadContext *tc) {
+    MVMObject *parcel = MVM_repr_alloc_init(tc, Parcel);
+    MVMObject *vmarr  = GET_REG(tc, 2).o;
+    MVMObject *fill   = GET_REG(tc, 4).o;
+    MVM_ASSIGN_REF(tc, parcel, ((Rakudo_Parcel *)parcel)->storage, vmarr);
+
+    if (fill) {
+        MVMint64 elems = MVM_repr_elems(tc, vmarr);
+        MVMint64 i;
+        for (i = 0; i < elems; i++)
+            if (!MVM_repr_at_pos_o(tc, vmarr, i))
+                MVM_repr_bind_pos_o(tc, vmarr, i, fill);
+    }
+
+    GET_REG(tc, 0).o = parcel;
 }
 
 /* Produces a lazy Perl 6 list of the specified type with the given items. */
@@ -220,6 +250,7 @@ MVM_DLL_EXPORT void Rakudo_ops_init(MVMThreadContext *tc) {
     MVM_ext_register_extop(tc, "p6box_i",  p6box_i, 2, s_p6box_i);
     MVM_ext_register_extop(tc, "p6box_n",  p6box_n, 2, s_p6box_n);
     MVM_ext_register_extop(tc, "p6box_s",  p6box_s, 2, s_p6box_s);
+    MVM_ext_register_extop(tc, "p6parcel",  p6parcel, 3, s_p6parcel);
     MVM_ext_register_extop(tc, "p6list",  p6list, 4, s_p6list);
     MVM_ext_register_extop(tc, "p6settypes",  p6settypes, 1, s_p6settypes);
     MVM_ext_register_extop(tc, "p6bool",  p6bool, 2, s_p6bool);

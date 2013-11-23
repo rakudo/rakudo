@@ -7,12 +7,12 @@ static void rakudo_scalar_fetch(MVMThreadContext *tc, MVMObject *cont, MVMRegist
 }
 
 static void rakudo_scalar_store(MVMThreadContext *tc, MVMObject *cont, MVMObject *obj) {
-    MVM_exception_throw_adhoc(tc, "rakudo_scalar NYI");
-    
+    /* XXX Type check, rw-ness check */
+    MVM_ASSIGN_REF(tc, cont, ((Rakudo_Scalar *)cont)->value, obj);
 }
 
 static void rakudo_scalar_store_unchecked(MVMThreadContext *tc, MVMObject *cont, MVMObject *obj) {
-    MVM_exception_throw_adhoc(tc, "rakudo_scalar NYI");
+    ((Rakudo_Scalar *)cont)->value = obj;
 }
 
 static void rakudo_scalar_serialize(MVMThreadContext *tc, MVMSTable *st, MVMSerializationWriter *writer) {

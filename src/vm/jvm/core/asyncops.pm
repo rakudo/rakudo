@@ -98,7 +98,7 @@ sub WINNER(@winner_args, *@pieces, :$wild_done, :$wild_more, :$wait, :$wait_time
                         $action = { invoke_right($wild_more, $_, $val) };
                         last;
                     } elsif $_.closed {
-                        $action = { $wild_done(:k($_)); }
+                        $action = { invoke_right($wild_done, $_); }
                         last;
                     }
                     $has_channels = True;

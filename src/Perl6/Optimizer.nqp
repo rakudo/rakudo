@@ -12,6 +12,8 @@ class Perl6::Optimizer {
     # Tracks the nested blocks we're in; it's the lexical chain, essentially.
     has @!block_stack;
 
+    has %!adverbs;
+
     # How deep a chain we're in, for chaining operators.
     has int $!chain_depth;
     
@@ -73,6 +75,7 @@ class Perl6::Optimizer {
         # Work out optimization level.
         my $*LEVEL := nqp::existskey(%adverbs, 'optimize') ??
             +%adverbs<optimize> !! 2;
+        %!adverbs := %adverbs;
         
         # Locate UNIT and some other useful symbols.
         my $*GLOBALish := $past<GLOBALish>;
@@ -710,6 +713,8 @@ class Perl6::Optimizer {
                 }
                 elsif nqp::istype($visit, QAST::Stmt) {
                     self.visit_children($visit, :resultchild($visit.resultchild // +@($visit) - 1));
+                } elsif nqp::istype($visit, QAST::Regex) {
+                    QRegex::Optimizer.new().optimize($visit, @!block_stack[+@!block_stack - 1], |%!adverbs);
                 }
             }
             $i := $i + 1;

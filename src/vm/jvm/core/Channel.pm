@@ -97,7 +97,7 @@ my class Channel {
               more * { $_ }
               done * { last }
             }
-        }, 0..*;  # until we have a listless map { }
+        }
     }
 
     method close() {

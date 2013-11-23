@@ -50,11 +50,13 @@ sub WINNER(@winner_args, *@pieces, :$wild_done, :$wild_more, :$wait, :$wait_time
                     if $arg ~~ Promise {
                         if $arg {
                             $action = { invoke_right(&block, $arg, $arg.result) };
+                            last;
                         }
                         @promises_only.push: $arg;
                     } elsif $arg ~~ Channel {
                         if $arg.closed {
                             $action = { invoke_right(&block, $arg); }
+                            last;
                         }
                         $has_channels = True;
                     } else {
@@ -64,6 +66,7 @@ sub WINNER(@winner_args, *@pieces, :$wild_done, :$wild_more, :$wait, :$wait_time
                     if $arg ~~ Channel {
                         if (my $val := $arg.poll) !~~ Nil {
                             $action = { invoke_right(&block, $arg, $val); }
+                            last;
                         }
                         $has_channels = True;
                     } elsif $arg ~~ Promise {
@@ -78,6 +81,7 @@ sub WINNER(@winner_args, *@pieces, :$wild_done, :$wild_more, :$wait, :$wait_time
                 $wait_time -= (nqp::time_n() - $start_time);
                 if $wait_time <= 0 || $timeout_promise {
                     $action = $wait;
+                    last;
                 } elsif !$timeout_promise {
                     $timeout_promise = Promise.in($wait_time);
                     @promises_only.push: $timeout_promise;
@@ -92,16 +96,20 @@ sub WINNER(@winner_args, *@pieces, :$wild_done, :$wild_more, :$wait, :$wait_time
                 when Channel {
                     if (my $val := $_.poll()) !~~ Nil {
                         $action = { invoke_right($wild_more, $_, $val) };
+                        last;
                     } elsif $_.closed {
                         $action = { $wild_done(:k($_)); }
+                        last;
                     }
                     $has_channels = True;
                 }
                 when Promise {
                     if $_ eqv $timeout_promise && $_ {
                         $action = $wait;
+                        last;
                     } elsif $_ {
                         $action = { invoke_right($wild_done, $_, $_.result); }
+                        last;
                     }
                     @promises_only.push: $_;
                 }

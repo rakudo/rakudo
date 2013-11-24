@@ -2204,11 +2204,13 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 }
                 
                 if $*SCOPE eq 'our' {
+                    my $temp := $BLOCK[0].pop;
                     $BLOCK[0].push(QAST::Op.new(
                         :op('bind'),
                         $past,
                         $*W.symbol_lookup([$name], $/, :package_only(1), :lvalue(1))
                     ));
+                    $BLOCK[0].push($temp);
                 }
             }
             

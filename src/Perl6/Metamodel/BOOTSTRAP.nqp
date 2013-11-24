@@ -161,15 +161,62 @@ my class Binder {
         # bind if it passes the type check, or a native value that needs no
         # further checking.
         my $decont_value;
+        my $nom_type;
         unless $got_native {
             # We pretty much always need to de-containerized value, so get it
             # right off.
+            $oval := nqp::hllizefor($oval, 'perl6');
             $decont_value := nqp::decont($oval);
 
             # Skip nominal type check if not needed.
             unless $no_nom_type_check {
-                # XXX TODO: nominal type check
-                nqp::say('WARNING: nominal type check NYI');
+                # Is the nominal type generic and in need of instantiation? (This
+                # can happen in (::T, T) where we didn't learn about the type until
+                # during the signature bind).
+                $nom_type := nqp::getattr($param, Parameter, '$!nominal_type');
+                if $flags +& $SIG_ELEM_NOMINAL_GENERIC {
+                    $nom_type := $nom_type.HOW.instantiate_generic($nom_type, $lexpad);
+                }
+
+                # If not, do the check. If the wanted nominal type is Mu, then
+                # anything goes.
+                unless $nom_type =:= Mu || nqp::istype($decont_value, $nom_type) {
+                    # Type check failed; produce error if needed.
+                    if nqp::defined($error) {
+                        $error[0] := "Nominal type check failed for parameter '" ~ $varname ~
+                            "'; expected " ~ $nom_type.HOW.name($nom_type) ~
+                            " but got " ~ $decont_value.HOW.name($decont_value);
+                    }
+
+                    # Report junction failure mode if it's a junction.
+                    return $decont_value =:= Junction ?? $BIND_RESULT_JUNCTION !! $BIND_RESULT_FAIL;
+                }
+            
+                # Also enforce definedness constraints.
+                if $flags +& $SIG_ELEM_DEFINEDNES_CHECK {
+                    if $flags +& $SIG_ELEM_UNDEFINED_ONLY && nqp::isconcrete($decont_value) {
+                        if nqp::defined($error) {
+                            if $flags +& $SIG_ELEM_INVOCANT {
+                                $error[0] := "Invocant requires a type object, but an object instance was passed";
+                            }
+                            else {
+                                $error[0] := "Parameter '$varname' requires a type object, but an object instance was passed";
+                            }
+                        }
+                        return $decont_value =:= Junction ?? $BIND_RESULT_JUNCTION !! $BIND_RESULT_FAIL;
+                    }
+                    if $flags +& $SIG_ELEM_DEFINED_ONLY && !nqp::isconcrete($decont_value) {
+                        if nqp::defined($error) {
+                            if $flags +& $SIG_ELEM_INVOCANT {
+                                $error[0] := "Invocant requires an instance, but a type object was passed";
+                            }
+                            else {
+                                $error[0] := "Parameter '$varname' requires an instance, but a type object was passed";
+                            }
+                        }
+                        return $decont_value =:= Junction ?? $BIND_RESULT_JUNCTION !! $BIND_RESULT_FAIL;
+                    }
+                }
             }
         }
 

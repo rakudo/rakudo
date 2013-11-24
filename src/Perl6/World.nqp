@@ -331,7 +331,7 @@ class Perl6::World is HLL::World {
     method load_module($/, $module_name, %opts, $cur_GLOBALish) {
         # Immediate loading.
         my $line   := HLL::Compiler.lineof($/.orig, $/.from, :cache(1));
-        my $module := Perl6::ModuleLoader.load_module($module_name, %opts,
+        my $module := nqp::gethllsym('perl6', 'ModuleLoader').load_module($module_name, %opts,
             $cur_GLOBALish, :$line);
         
         # During deserialization, ensure that we get this module loaded.
@@ -1581,7 +1581,7 @@ class Perl6::World is HLL::World {
         # we find something without one.
         my @pos_args;
         my %named_args;
-        for @($arglist[0].ast) {
+        for @($arglist) {
             my $val;
             if $_.has_compile_time_value {
                 $val := $_.compile_time_value;
@@ -2008,10 +2008,10 @@ class Perl6::World is HLL::World {
         }
         for $name<morename> {
             if $_<identifier> {
-                @components.push(~$_<identifier>[0]);
+                @components.push(~$_<identifier>);
             }
             elsif $_<EXPR> {
-                my $EXPR := $_<EXPR>[0].ast;
+                my $EXPR := $_<EXPR>.ast;
                 @components.push($EXPR);
             }
             else {

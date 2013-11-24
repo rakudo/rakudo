@@ -6,6 +6,7 @@ my class X::Str::Numeric  { ... }
 my class X::Str::Match::x { ... }
 my class X::Str::Trans::IllegalKey { ... }
 my class X::Str::Trans::InvalidArg { ... }
+my class X::NYI { ... }
 
 
 my $?TABSTOP = 8;
@@ -800,7 +801,8 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
 
     method words(Str:D: $limit = *) {
-        self.comb( / \S+ /, $limit );
+        my @chunks := self.comb( / \S+ /, $limit );
+        +@chunks == 1 ?? @chunks[0] !! @chunks
     }
 
     my %enc_type = utf8 => utf8, utf16 => utf16, utf32 => utf32;
@@ -1113,6 +1115,20 @@ multi infix:<~^>(str $a, str $b) returns str { nqp::bitxor_s($a, $b) }
 
 multi prefix:<~^>(Str \a) {
     fail "prefix:<~^> NYI";   # XXX
+}
+
+# XXX: String-wise shifts NYI
+multi infix:«~>»(Str:D \a, Int:D \b) returns Str:D {
+    X::NYI.new(feature => "infix:«~>»").throw;
+}
+multi infix:«~>»(str $a, int $b) {
+    X::NYI.new(feature => "infix:«~>»").throw;
+}
+multi infix:«~<»(Str:D \a, Int:D \b) returns Str:D {
+    X::NYI.new(feature => "infix:«~<»").throw;
+}
+multi infix:«~<»(str $a, int $b) {
+    X::NYI.new(feature => "infix:«~<»").throw;
 }
 
 multi sub ords(Str $s) returns List:D {

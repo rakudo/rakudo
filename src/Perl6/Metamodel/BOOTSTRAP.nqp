@@ -143,7 +143,7 @@ BEGIN {
                 :$positional_delegate = 0, :$associative_delegate = 0, *%other) {
             my $attr := nqp::create($self);
             nqp::bindattr_s($attr, Attribute, '$!name', $name);
-            nqp::bindattr($attr, Attribute, '$!type', $type);
+            nqp::bindattr($attr, Attribute, '$!type', nqp::decont($type));
             nqp::bindattr_i($attr, Attribute, '$!has_accessor', $has_accessor);
             nqp::bindattr($attr, Attribute, '$!package', $package);
             if nqp::existskey(%other, 'container_descriptor') {

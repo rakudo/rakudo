@@ -329,7 +329,6 @@ my class Binder {
     # This takes a signature element and either runs the closure to get a default
     # value if there is one, or creates an appropriate undefined-ish thingy.
     sub handle_optional($param, int $flags, $lexpad) {
-
         # Is the "get default from outer" flag set?
         if $flags +& $SIG_ELEM_DEFAULT_FROM_OUTER {
             nqp::die('SIG_ELEM_DEFAULT_FROM_OUTER NYI');
@@ -556,6 +555,14 @@ my class Binder {
     method is_bindable($sig, $capture) {
         # XXX Cheat!
         1
+    }
+
+    my int $TRIAL_BIND_NOT_SURE :=  0;   # Plausible, but need to check at runtime.
+    my int $TRIAL_BIND_OK       :=  1;   # Bind will always work out.
+    my int $TRIAL_BIND_NO_WAY   := -1;   # Bind could never work out.
+    method trial_bind($sig, $args, $flags) {
+        # XXX TODO
+        0
     }
 }
 BEGIN { nqp::p6setbinder(Binder); } # We need it in for the next BEGIN block

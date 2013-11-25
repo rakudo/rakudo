@@ -40,11 +40,6 @@ MAST::ExtOpRegistry.register_extop('p6list',
     $MVM_operand_obj   +| $MVM_operand_read_reg,
     $MVM_operand_obj   +| $MVM_operand_read_reg,
     $MVM_operand_obj   +| $MVM_operand_read_reg);
-MAST::ExtOpRegistry.register_extop('p6trialbind',
-    $MVM_operand_int64 +| $MVM_operand_write_reg,
-    $MVM_operand_obj   +| $MVM_operand_read_reg,
-    $MVM_operand_obj   +| $MVM_operand_read_reg,
-    $MVM_operand_obj   +| $MVM_operand_read_reg);
 MAST::ExtOpRegistry.register_extop('p6bool',
     $MVM_operand_obj   +| $MVM_operand_write_reg,
     $MVM_operand_int64 +| $MVM_operand_read_reg);
@@ -130,7 +125,6 @@ $ops.add_hll_op('perl6', 'p6definite', -> $qastcomp, $op {
     MAST::InstructionList.new(@ops, $value_res.result_reg, $MVM_reg_obj)
 });
 #$ops.map_classlib_hll_op('perl6', 'p6bindcaptosig', $TYPE_P6OPS, 'p6bindcaptosig', [$RT_OBJ, $RT_OBJ], $RT_OBJ, :tc);
-$ops.add_hll_moarop_mapping('perl6', 'p6trialbind', 'p6trialbind');
 $ops.add_hll_moarop_mapping('perl6', 'p6typecheckrv', 'p6typecheckrv', 0);
 $ops.add_hll_moarop_mapping('perl6', 'p6decontrv', 'p6decontrv');
 $ops.add_hll_moarop_mapping('perl6', 'p6capturelex', 'p6capturelex');
@@ -278,7 +272,6 @@ $ops.add_hll_moarop_mapping('nqp', 'p6init', 'p6init');
 $ops.add_hll_moarop_mapping('nqp', 'p6settypes', 'p6settypes', 0);
 $ops.add_hll_moarop_mapping('nqp', 'p6var', 'p6var');
 $ops.add_hll_moarop_mapping('nqp', 'p6parcel', 'p6parcel');
-$ops.add_hll_moarop_mapping('nqp', 'p6trialbind', 'p6trialbind');
 $ops.add_hll_moarop_mapping('nqp', 'p6inpre', 'p6inpre');
 
 # Override defor to call defined method.
@@ -337,6 +330,18 @@ my $is_bindable := -> $qastcomp, $op {
 };
 $ops.add_hll_op('nqp', 'p6isbindable', :!inlinable, $is_bindable);
 $ops.add_hll_op('perl6', 'p6isbindable', :!inlinable, $is_bindable);
+proto sub trial_bind(*@args) {
+    $Binder.trial_bind(|@args);
+}
+my $trial_bind := -> $qastcomp, $op {
+    $qastcomp.as_mast(QAST::Op.new(
+        :op('call'),
+        QAST::WVal.new( :value(nqp::getcodeobj(&trial_bind)) ),
+        |@($op)
+    ));
+};
+$ops.add_hll_op('nqp', 'p6trialbind', :!inlinable, $trial_bind);
+$ops.add_hll_op('perl6', 'p6trialbind', :!inlinable, $trial_bind);
 proto sub set_binder($b) {
     $Binder := $b;
 }

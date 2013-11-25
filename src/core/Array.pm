@@ -145,6 +145,16 @@ class Array { # declared in BOOTSTRAP
         nqp::findmethod(List, 'exists')(self, self.map_index(pos))
     }
 
+    method reverse() {
+        my @list = nqp::findmethod(List, 'reverse')(self);
+        @list
+    }
+
+    method rotate(Int $n = 1) {
+        my @list = nqp::findmethod(List, 'rotate')(self, $n);
+        @list
+    }
+
     # introspection
     method name() {
         my $d := $!descriptor;

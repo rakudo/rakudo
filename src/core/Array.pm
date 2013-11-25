@@ -216,11 +216,16 @@ class Array { # declared in BOOTSTRAP
     }
 
     my role TypedArray[::TValue] does Positional[TValue] {
-        method new(|) {
+        method new(:$shape = *, |) {
             my Mu $args := nqp::p6argvmarray();
             nqp::shift($args);
+
+            fail "Too many elements for this shaped array"
+                unless nqp::istype($shape, Whatever) or nqp::elems($args) < $shape;
             
             my $list := nqp::p6list($args, self.WHAT, Bool::True);
+
+            nqp::bindattr($list, Array, '$!shape', $shape);
 
             my $of = self.of;
             if ( $of !=:= Mu ) {

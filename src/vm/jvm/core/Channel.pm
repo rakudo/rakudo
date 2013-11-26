@@ -97,7 +97,7 @@ my class Channel {
               more * { $_ }
               done * { last }
             }
-        }
+        }, *;
     }
 
     method close() {

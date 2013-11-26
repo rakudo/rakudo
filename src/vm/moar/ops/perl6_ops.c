@@ -213,6 +213,16 @@ static void p6decontrv(MVMThreadContext *tc) {
      GET_REG(tc, 0).o = GET_REG(tc, 4).o;
 }
 
+static MVMuint8 s_p6routinereturn[] = {
+    MVM_operand_obj | MVM_operand_write_reg,
+    MVM_operand_obj | MVM_operand_read_reg,
+};
+static void p6routinereturn(MVMThreadContext *tc) {
+    MVMObject *in = GET_REG(tc, 2).o;
+    MVM_exception_throw_adhoc(tc, "p6routinereturn NYI");
+    GET_REG(tc, 0).o = in;
+}
+
 static MVMuint8 s_p6capturelex[] = {
     MVM_operand_obj | MVM_operand_write_reg,
     MVM_operand_obj | MVM_operand_read_reg,
@@ -258,6 +268,7 @@ MVM_DLL_EXPORT void Rakudo_ops_init(MVMThreadContext *tc) {
     MVM_ext_register_extop(tc, "p6var",  p6var, 2, s_p6var);
     MVM_ext_register_extop(tc, "p6typecheckrv",  p6typecheckrv, 2, s_p6typecheckrv);
     MVM_ext_register_extop(tc, "p6decontrv",  p6decontrv, 3, s_p6decontrv);
+    MVM_ext_register_extop(tc, "p6routinereturn",  p6routinereturn, 2, s_p6routinereturn);
     MVM_ext_register_extop(tc, "p6capturelex",  p6capturelex, 2, s_p6capturelex);
     MVM_ext_register_extop(tc, "p6captureouters", p6captureouters, 1, s_p6captureouters);
 }

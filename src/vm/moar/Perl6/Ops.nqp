@@ -71,6 +71,9 @@ MAST::ExtOpRegistry.register_extop('p6routinereturn',
     $MVM_operand_obj   +| $MVM_operand_read_reg);
 MAST::ExtOpRegistry.register_extop('p6captureouters',
     $MVM_operand_obj   +| $MVM_operand_read_reg);
+MAST::ExtOpRegistry.register_extop('p6finddispatcher',
+    $MVM_operand_obj   +| $MVM_operand_write_reg,
+    $MVM_operand_str   +| $MVM_operand_read_reg);
 MAST::ExtOpRegistry.register_extop('p6inpre',
     $MVM_operand_int64 +| $MVM_operand_write_reg);
 
@@ -208,7 +211,7 @@ $ops.add_hll_op('perl6', 'p6bindattrinvres', -> $qastcomp, $op {
     $*REGALLOC.release_register($val_res.result_reg, $MVM_reg_obj);
     MAST::InstructionList.new(@ops, $inv_res.result_reg, $MVM_reg_obj)
 });
-#$ops.map_classlib_hll_op('perl6', 'p6finddispatcher', $TYPE_P6OPS, 'p6finddispatcher', [$RT_STR], $RT_OBJ, :tc);
+$ops.add_hll_moarop_mapping('perl6', 'p6finddispatcher', 'p6finddispatcher');
 #$ops.map_classlib_hll_op('perl6', 'p6argsfordispatcher', $TYPE_P6OPS, 'p6argsfordispatcher', [$RT_OBJ], $RT_OBJ, :tc);
 #$ops.map_classlib_hll_op('perl6', 'p6shiftpush', $TYPE_P6OPS, 'p6shiftpush', [$RT_OBJ, $RT_OBJ, $RT_INT], $RT_OBJ, :tc);
 #$ops.map_classlib_hll_op('perl6', 'p6arrfindtypes', $TYPE_P6OPS, 'p6arrfindtypes', [$RT_OBJ, $RT_OBJ, $RT_INT, $RT_INT], $RT_INT, :tc);

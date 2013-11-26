@@ -263,6 +263,17 @@ static void p6captureouters(MVMThreadContext *tc) {
     }
 }
 
+static MVMuint8 s_p6finddispatcher[] = {
+    MVM_operand_obj | MVM_operand_write_reg,
+    MVM_operand_str | MVM_operand_read_reg
+};
+static void p6finddispatcher(MVMThreadContext *tc) {
+    MVMString *usage = GET_REG(tc, 2).s;
+    MVMObject *dispatcher;
+    MVM_exception_throw_adhoc(tc, "p6finddispatcher NYI");
+    GET_REG(tc, 0).o = dispatcher;
+}
+
 /* Registers the extops with MoarVM. */
 MVM_DLL_EXPORT void Rakudo_ops_init(MVMThreadContext *tc) {
     MVM_ext_register_extop(tc, "p6init",  p6init, 0, NULL);
@@ -281,4 +292,5 @@ MVM_DLL_EXPORT void Rakudo_ops_init(MVMThreadContext *tc) {
     MVM_ext_register_extop(tc, "p6routinereturn",  p6routinereturn, 2, s_p6routinereturn);
     MVM_ext_register_extop(tc, "p6capturelex",  p6capturelex, 2, s_p6capturelex);
     MVM_ext_register_extop(tc, "p6captureouters", p6captureouters, 1, s_p6captureouters);
+    MVM_ext_register_extop(tc, "p6finddispatcher", p6finddispatcher, 2, s_p6finddispatcher);
 }

@@ -53,6 +53,9 @@ MAST::ExtOpRegistry.register_extop('p6parcel',
     $MVM_operand_obj   +| $MVM_operand_write_reg,
     $MVM_operand_obj   +| $MVM_operand_read_reg,
     $MVM_operand_obj   +| $MVM_operand_read_reg);
+MAST::ExtOpRegistry.register_extop('p6recont_ro',
+    $MVM_operand_obj   +| $MVM_operand_write_reg,
+    $MVM_operand_obj   +| $MVM_operand_read_reg);
 MAST::ExtOpRegistry.register_extop('p6typecheckrv',
     $MVM_operand_obj   +| $MVM_operand_read_reg,
     $MVM_operand_obj   +| $MVM_operand_read_reg);
@@ -81,7 +84,7 @@ $ops.add_hll_moarop_mapping('perl6', 'p6parcel', 'p6parcel');
 #$ops.map_classlib_hll_op('perl6', 'p6listiter', $TYPE_P6OPS, 'p6listiter', [$RT_OBJ, $RT_OBJ], $RT_OBJ, :tc);
 $ops.add_hll_moarop_mapping('perl6', 'p6list', 'p6list');
 #$ops.map_classlib_hll_op('perl6', 'p6listitems', $TYPE_P6OPS, 'p6listitems', [$RT_OBJ], $RT_OBJ, :tc);
-#$ops.map_classlib_hll_op('perl6', 'p6recont_ro', $TYPE_P6OPS, 'p6recont_ro', [$RT_OBJ], $RT_OBJ, :tc);
+$ops.add_hll_moarop_mapping('perl6', 'p6recont_ro', 'p6recont_ro');
 $ops.add_hll_op('perl6', 'p6store', -> $qastcomp, $op {
     my @ops;
     my $cont_res  := $qastcomp.as_mast($op[0], :want($MVM_reg_obj));

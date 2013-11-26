@@ -172,6 +172,15 @@ static void p6scalarfromdesc(MVMThreadContext *tc) {
     GET_REG(tc, 0).o = new_scalar;
 }
 
+static MVMuint8 s_p6recont_ro[] = {
+    MVM_operand_obj | MVM_operand_write_reg,
+    MVM_operand_obj | MVM_operand_read_reg,
+};
+static void p6recont_ro(MVMThreadContext *tc) {
+    MVMObject *check = GET_REG(tc, 2).o;
+    MVM_exception_throw_adhoc(tc, "p6recont_ro NYI");
+}
+
 /* The .VAR operation. Wraps in an outer Scalar container so we can actually
  * operate on the underlying Scalar, if we have a container. */
 static MVMuint8 s_p6var[] = {
@@ -265,6 +274,7 @@ MVM_DLL_EXPORT void Rakudo_ops_init(MVMThreadContext *tc) {
     MVM_ext_register_extop(tc, "p6settypes",  p6settypes, 1, s_p6settypes);
     MVM_ext_register_extop(tc, "p6bool",  p6bool, 2, s_p6bool);
     MVM_ext_register_extop(tc, "p6scalarfromdesc",  p6scalarfromdesc, 2, s_p6scalarfromdesc);
+    MVM_ext_register_extop(tc, "p6recont_ro",  p6recont_ro, 2, s_p6recont_ro);
     MVM_ext_register_extop(tc, "p6var",  p6var, 2, s_p6var);
     MVM_ext_register_extop(tc, "p6typecheckrv",  p6typecheckrv, 2, s_p6typecheckrv);
     MVM_ext_register_extop(tc, "p6decontrv",  p6decontrv, 3, s_p6decontrv);

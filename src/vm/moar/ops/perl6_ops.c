@@ -304,7 +304,7 @@ static MVMuint8 s_p6decodelocaltime[] = {
     MVM_operand_int64 | MVM_operand_read_reg
 };
 static void p6decodelocaltime(MVMThreadContext *tc) {
-    MVMObject *since_poch = GET_REG(tc, 2).i64;
+    MVMint64 since_poch = GET_REG(tc, 2).i64;
     MVM_exception_throw_adhoc(tc, "p6decodelocaltime NYI");
 }
 

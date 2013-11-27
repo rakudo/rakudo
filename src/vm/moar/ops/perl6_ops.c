@@ -290,6 +290,15 @@ static void p6argsfordispatcher(MVMThreadContext *tc) {
     MVM_exception_throw_adhoc(tc, "p6argsfordispatcher NYI");
 }
 
+static MVMuint8 s_p6decodelocaltime[] = {
+    MVM_operand_obj   | MVM_operand_write_reg,
+    MVM_operand_int64 | MVM_operand_read_reg
+};
+static void p6decodelocaltime(MVMThreadContext *tc) {
+    MVMObject *since_poch = GET_REG(tc, 2).i64;
+    MVM_exception_throw_adhoc(tc, "p6decodelocaltime NYI");
+}
+
 /* Registers the extops with MoarVM. */
 MVM_DLL_EXPORT void Rakudo_ops_init(MVMThreadContext *tc) {
     MVM_ext_register_extop(tc, "p6init",  p6init, 0, NULL);
@@ -311,4 +320,5 @@ MVM_DLL_EXPORT void Rakudo_ops_init(MVMThreadContext *tc) {
     MVM_ext_register_extop(tc, "p6stateinit", p6stateinit, 1, s_p6stateinit);
     MVM_ext_register_extop(tc, "p6finddispatcher", p6finddispatcher, 2, s_p6finddispatcher);
     MVM_ext_register_extop(tc, "p6argsfordispatcher", p6argsfordispatcher, 2, s_p6argsfordispatcher);
+    MVM_ext_register_extop(tc, "p6decodelocaltime", p6decodelocaltime, 2, s_p6decodelocaltime);
 }

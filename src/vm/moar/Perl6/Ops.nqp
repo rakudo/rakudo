@@ -40,6 +40,9 @@ MAST::ExtOpRegistry.register_extop('p6list',
     $MVM_operand_obj   +| $MVM_operand_read_reg,
     $MVM_operand_obj   +| $MVM_operand_read_reg,
     $MVM_operand_obj   +| $MVM_operand_read_reg);
+MAST::ExtOpRegistry.register_extop('p6listitems',
+    $MVM_operand_obj   +| $MVM_operand_write_reg,
+    $MVM_operand_obj   +| $MVM_operand_read_reg);
 MAST::ExtOpRegistry.register_extop('p6bool',
     $MVM_operand_obj   +| $MVM_operand_write_reg,
     $MVM_operand_int64 +| $MVM_operand_read_reg);
@@ -94,7 +97,7 @@ $ops.add_hll_moarop_mapping('perl6', 'p6box_s', 'p6box_s');
 $ops.add_hll_moarop_mapping('perl6', 'p6parcel', 'p6parcel');
 #$ops.map_classlib_hll_op('perl6', 'p6listiter', $TYPE_P6OPS, 'p6listiter', [$RT_OBJ, $RT_OBJ], $RT_OBJ, :tc);
 $ops.add_hll_moarop_mapping('perl6', 'p6list', 'p6list');
-#$ops.map_classlib_hll_op('perl6', 'p6listitems', $TYPE_P6OPS, 'p6listitems', [$RT_OBJ], $RT_OBJ, :tc);
+$ops.add_hll_moarop_mapping('perl6', 'p6listitems', 'p6listitems');
 $ops.add_hll_moarop_mapping('perl6', 'p6recont_ro', 'p6recont_ro');
 $ops.add_hll_op('perl6', 'p6store', -> $qastcomp, $op {
     my @ops;

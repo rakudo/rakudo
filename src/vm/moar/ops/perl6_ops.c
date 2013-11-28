@@ -299,6 +299,19 @@ static void p6argsfordispatcher(MVMThreadContext *tc) {
     MVM_exception_throw_adhoc(tc, "p6argsfordispatcher NYI");
 }
 
+static MVMuint8 s_p6shiftpush[] = {
+    MVM_operand_obj   | MVM_operand_write_reg,
+    MVM_operand_obj   | MVM_operand_read_reg,
+    MVM_operand_obj   | MVM_operand_read_reg,
+    MVM_operand_int64 | MVM_operand_read_reg
+};
+static void p6shiftpush(MVMThreadContext *tc) {
+    MVMObject   *a = GET_REG(tc, 2).o;
+    MVMObject   *b = GET_REG(tc, 4).o;
+    MVMint64 total = GET_REG(tc, 6).i64;
+    MVM_exception_throw_adhoc(tc, "p6shiftpush NYI");
+}
+
 static MVMuint8 s_p6decodelocaltime[] = {
     MVM_operand_obj   | MVM_operand_write_reg,
     MVM_operand_int64 | MVM_operand_read_reg
@@ -348,6 +361,7 @@ MVM_DLL_EXPORT void Rakudo_ops_init(MVMThreadContext *tc) {
     MVM_ext_register_extop(tc, "p6stateinit", p6stateinit, 1, s_p6stateinit);
     MVM_ext_register_extop(tc, "p6finddispatcher", p6finddispatcher, 2, s_p6finddispatcher);
     MVM_ext_register_extop(tc, "p6argsfordispatcher", p6argsfordispatcher, 2, s_p6argsfordispatcher);
+    MVM_ext_register_extop(tc, "p6shiftpush", p6shiftpush, 4, s_p6shiftpush);
     MVM_ext_register_extop(tc, "p6decodelocaltime", p6decodelocaltime, 2, s_p6decodelocaltime);
     MVM_ext_register_extop(tc, "p6setautothreader", p6setautothreader, 2, s_p6setautothreader);
     MVM_ext_register_extop(tc, "p6staticouter", p6staticouter, 2, s_p6staticouter);

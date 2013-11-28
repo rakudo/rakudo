@@ -75,6 +75,9 @@ MAST::ExtOpRegistry.register_extop('p6capturelex',
     $MVM_operand_obj   +| $MVM_operand_read_reg);
 MAST::ExtOpRegistry.register_extop('p6stateinit',
     $MVM_operand_int64 +| $MVM_operand_write_reg);
+MAST::ExtOpRegistry.register_extop('p6setfirstflag',
+    $MVM_operand_obj   +| $MVM_operand_write_reg,
+    $MVM_operand_obj   +| $MVM_operand_read_reg);
 MAST::ExtOpRegistry.register_extop('p6routinereturn',
     $MVM_operand_obj   +| $MVM_operand_write_reg,
     $MVM_operand_obj   +| $MVM_operand_read_reg);
@@ -205,7 +208,7 @@ $ops.add_hll_op('perl6', 'p6bindassert', -> $qastcomp, $op {
 $ops.add_hll_moarop_mapping('perl6', 'p6stateinit', 'p6stateinit');
 #$ops.map_classlib_hll_op('perl6', 'p6setpre', $TYPE_P6OPS, 'p6setpre', [], $RT_OBJ, :tc);
 #$ops.map_classlib_hll_op('perl6', 'p6clearpre', $TYPE_P6OPS, 'p6clearpre', [], $RT_OBJ, :tc);
-#$ops.map_classlib_hll_op('perl6', 'p6setfirstflag', $TYPE_P6OPS, 'p6setfirstflag', [$RT_OBJ], $RT_OBJ, :tc);
+$ops.add_hll_moarop_mapping('perl6', 'p6setfirstflag', 'p6setfirstflag');
 #$ops.map_classlib_hll_op('perl6', 'p6takefirstflag', $TYPE_P6OPS, 'p6takefirstflag', [], $RT_INT, :tc);
 $ops.add_hll_op('perl6', 'p6return', :!inlinable, -> $qastcomp, $op {
     # XXX Probably needs more than just this, but it does for now.

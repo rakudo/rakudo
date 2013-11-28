@@ -13,6 +13,7 @@ static MVMObject *Num      = NULL;
 static MVMObject *Str      = NULL;
 static MVMObject *Scalar   = NULL;
 static MVMObject *Parcel   = NULL;
+static MVMObject *List     = NULL;
 static MVMObject *ListIter = NULL;
 static MVMObject *True     = NULL;
 static MVMObject *False    = NULL;
@@ -64,6 +65,7 @@ static void p6settypes(MVMThreadContext *tc) {
         get_type(tc, conf, "Str", Str);
         get_type(tc, conf, "Scalar", Scalar);
         get_type(tc, conf, "Parcel", Parcel);
+        get_type(tc, conf, "List", List);
         get_type(tc, conf, "ListIter", ListIter);
         get_type(tc, conf, "True", True);
         get_type(tc, conf, "False", False);
@@ -328,8 +330,30 @@ static MVMuint8 s_p6shiftpush[] = {
 static void p6shiftpush(MVMThreadContext *tc) {
     MVMObject   *a = GET_REG(tc, 2).o;
     MVMObject   *b = GET_REG(tc, 4).o;
-    MVMint64 total = GET_REG(tc, 6).i64;
-    MVM_exception_throw_adhoc(tc, "p6shiftpush NYI");
+    MVMint64 count = GET_REG(tc, 6).i64;
+    MVMint64 total = count;
+    MVMint64 elems = MVM_repr_elems(tc, b);
+    if (count > elems)
+        count = elems;
+
+    if (a != NULL && total > 0) {
+        MVMint64 getPos = 0;
+        MVMint64 setPos = MVM_repr_elems(tc, a);
+        REPR(a)->pos_funcs.set_elems(tc, STABLE(a), a, OBJECT_BODY(a), setPos + count);
+        while (count > 0) {
+            MVM_repr_bind_pos_o(tc, a, setPos, MVM_repr_at_pos_o(tc, b, getPos));
+            count--;
+            getPos++;
+            setPos++;
+        }
+    }
+    if (total > 0) {
+        MVMObject *copy = MVM_repr_alloc_init(tc, List);
+        REPR(b)->pos_funcs.splice(tc, STABLE(b), b, OBJECT_BODY(b),
+                    copy, 0, total);
+    }
+
+    GET_REG(tc, 0).o = a;
 }
 
 static MVMuint8 s_p6arrfindtypes[] = {

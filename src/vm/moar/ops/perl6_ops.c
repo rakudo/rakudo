@@ -312,6 +312,21 @@ static void p6shiftpush(MVMThreadContext *tc) {
     MVM_exception_throw_adhoc(tc, "p6shiftpush NYI");
 }
 
+static MVMuint8 s_p6arrfindtypes[] = {
+    MVM_operand_int64 | MVM_operand_write_reg,
+    MVM_operand_obj   | MVM_operand_read_reg,
+    MVM_operand_obj   | MVM_operand_read_reg,
+    MVM_operand_int64 | MVM_operand_read_reg,
+    MVM_operand_int64 | MVM_operand_read_reg
+};
+static void p6arrfindtypes(MVMThreadContext *tc) {
+    MVMObject   *arr = GET_REG(tc, 2).o;
+    MVMObject *types = GET_REG(tc, 4).o;
+    MVMint64   start = GET_REG(tc, 6).i64;
+    MVMint64    last = GET_REG(tc, 8).i64;
+    MVM_exception_throw_adhoc(tc, "p6arrfindtypes NYI");
+}
+
 static MVMuint8 s_p6decodelocaltime[] = {
     MVM_operand_obj   | MVM_operand_write_reg,
     MVM_operand_int64 | MVM_operand_read_reg
@@ -362,6 +377,7 @@ MVM_DLL_EXPORT void Rakudo_ops_init(MVMThreadContext *tc) {
     MVM_ext_register_extop(tc, "p6finddispatcher", p6finddispatcher, 2, s_p6finddispatcher);
     MVM_ext_register_extop(tc, "p6argsfordispatcher", p6argsfordispatcher, 2, s_p6argsfordispatcher);
     MVM_ext_register_extop(tc, "p6shiftpush", p6shiftpush, 4, s_p6shiftpush);
+    MVM_ext_register_extop(tc, "p6arrfindtypes", p6arrfindtypes, 5, s_p6arrfindtypes);
     MVM_ext_register_extop(tc, "p6decodelocaltime", p6decodelocaltime, 2, s_p6decodelocaltime);
     MVM_ext_register_extop(tc, "p6setautothreader", p6setautothreader, 2, s_p6setautothreader);
     MVM_ext_register_extop(tc, "p6staticouter", p6staticouter, 2, s_p6staticouter);

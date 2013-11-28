@@ -331,7 +331,9 @@ my class Binder {
     sub handle_optional($param, int $flags, $lexpad) {
         # Is the "get default from outer" flag set?
         if $flags +& $SIG_ELEM_DEFAULT_FROM_OUTER {
-            nqp::die('SIG_ELEM_DEFAULT_FROM_OUTER NYI');
+            nqp::atkey(
+                nqp::ctxouter($lexpad),
+                nqp::getattr_s($param, Parameter, '$!variable_name'))
         }
 
         # Do we have a default value or value closure?

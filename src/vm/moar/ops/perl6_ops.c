@@ -115,6 +115,17 @@ static void p6parcel(MVMThreadContext *tc) {
     GET_REG(tc, 0).o = parcel;
 }
 
+static MVMuint8 s_p6listiter[] = {
+    MVM_operand_obj | MVM_operand_write_reg,
+    MVM_operand_obj | MVM_operand_read_reg,
+    MVM_operand_obj | MVM_operand_read_reg
+};
+static void p6listiter(MVMThreadContext *tc) {
+    MVMObject  *arr = GET_REG(tc, 2).o;
+    MVMObject *list = GET_REG(tc, 4).o;
+    MVM_exception_throw_adhoc(tc, "p6listiter NYI");
+}
+
 /* Produces a lazy Perl 6 list of the specified type with the given items. */
 static MVMObject * make_listiter(MVMThreadContext *tc, MVMObject *items, MVMObject *list) {
     MVMObject *result;
@@ -361,6 +372,7 @@ MVM_DLL_EXPORT void Rakudo_ops_init(MVMThreadContext *tc) {
     MVM_ext_register_extop(tc, "p6box_n",  p6box_n, 2, s_p6box_n);
     MVM_ext_register_extop(tc, "p6box_s",  p6box_s, 2, s_p6box_s);
     MVM_ext_register_extop(tc, "p6parcel",  p6parcel, 3, s_p6parcel);
+    MVM_ext_register_extop(tc, "p6listiter",  p6listiter, 3, s_p6listiter);
     MVM_ext_register_extop(tc, "p6list",  p6list, 4, s_p6list);
     MVM_ext_register_extop(tc, "p6listitems",  p6listitems, 2, s_p6listitems);
     MVM_ext_register_extop(tc, "p6settypes",  p6settypes, 1, s_p6settypes);

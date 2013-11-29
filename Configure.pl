@@ -61,7 +61,7 @@ MAIN: {
     my %backends;
     if (defined $options{'gen-moar'}) {
         $backends{moar} = 1;
-        $options{'gen-nqp'} = '';
+        $options{'gen-nqp'} ||= '';
     }
     if (defined $options{backends}) {
         for my $b (split /,\s*/, $options{backends}) {

@@ -117,17 +117,6 @@ static void p6parcel(MVMThreadContext *tc) {
     GET_REG(tc, 0).o = parcel;
 }
 
-static MVMuint8 s_p6listiter[] = {
-    MVM_operand_obj | MVM_operand_write_reg,
-    MVM_operand_obj | MVM_operand_read_reg,
-    MVM_operand_obj | MVM_operand_read_reg
-};
-static void p6listiter(MVMThreadContext *tc) {
-    MVMObject  *arr = GET_REG(tc, 2).o;
-    MVMObject *list = GET_REG(tc, 4).o;
-    MVM_exception_throw_adhoc(tc, "p6listiter NYI");
-}
-
 /* Produces a lazy Perl 6 list of the specified type with the given items. */
 static MVMObject * make_listiter(MVMThreadContext *tc, MVMObject *items, MVMObject *list) {
     MVMObject *result;
@@ -157,6 +146,17 @@ static void p6list(MVMThreadContext *tc) {
         MVM_ASSIGN_REF(tc, list, ((Rakudo_List *)list)->flattens, GET_REG(tc, 6).o);
      });
      GET_REG(tc, 0).o = list;
+}
+
+static MVMuint8 s_p6listiter[] = {
+    MVM_operand_obj | MVM_operand_write_reg,
+    MVM_operand_obj | MVM_operand_read_reg,
+    MVM_operand_obj | MVM_operand_read_reg
+};
+static void p6listiter(MVMThreadContext *tc) {
+    MVMObject  *arr = GET_REG(tc, 2).o;
+    MVMObject *list = GET_REG(tc, 4).o;
+    GET_REG(tc, 0).o = make_listiter(tc, arr, list);
 }
 
 static MVMuint8 s_p6listitems[] = {

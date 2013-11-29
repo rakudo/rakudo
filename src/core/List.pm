@@ -534,17 +534,39 @@ my class List does Positional { # declared in BOOTSTRAP
         nqp::bindpos($!items, nqp::unbox_i(pos), v)
     }
 
-    my sub combinations(Int $n, Int $k) {
-        return [] if $k <= 0;
-        return () if $k > $n;
-        gather {
-            take [0, (1..^$n)[@$_]] for combinations($n-1, $k-1);
-            take [(1..^$n)[@$_]]    for combinations($n-1, $k  );
+#    my sub combinations(Int $n, Int $k) {
+#        return [] if $k <= 0;
+#        return () if $k > $n;
+#        gather {
+#            take [0, (1..^$n)[@$_]] for combinations($n-1, $k-1);
+#            take [(1..^$n)[@$_]]    for combinations($n-1, $k  );
+#        }
+#    }
+
+    # much faster iterative version
+    my sub combinations($n, $k) {
+        my @result;
+        my @stack;
+        @stack.push(0);
+
+        gather while @stack {
+            my $index = @stack - 1;
+            my $value = @stack.pop;
+
+            while $value < $n {
+                @result[$index++] = $value++;
+                @stack.push($value);
+                if $index == $k {
+                    take [@result];
+                    $value = $n;  # fake a last
+                }
+            }
         }
     }
+
     proto method combinations($) {*}
     multi method combinations( Int $of ) {
-        gather take self[@$_] for combinations self.elems, $of
+        [self[@$_]] for combinations self.elems, $of
     }
     multi method combinations( Range $of = 0 .. * ) {
         gather for @$of {

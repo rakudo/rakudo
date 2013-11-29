@@ -10,8 +10,9 @@ M_GEN_CAT = tools/build/gen-cat.pl moar
 PREFIX = @prefix@
 MOAR   = $(PREFIX)@slash@bin@slash@moar@exe@
 M_NQP  = $(PREFIX)@slash@bin@slash@nqp-m@runner_suffix@
+M_LIBPATH = "$(PREFIX)@slash@languages@slash@nqp@slash@lib"
 
-M_RUN_PERL6 = $(MOAR) --libpath="$(PREFIX)@slash@languages@slash@nqp@slash@lib" perl6.moarvm
+M_RUN_PERL6 = $(MOAR) --libpath=$(M_LIBPATH) perl6.moarvm
 
 M_RUNNER = perl6-m@runner_suffix@
 
@@ -251,7 +252,7 @@ $(SETTING_MOAR): $(PERL6_MOAR) $(PERL6_B_MOAR) $(M_CORE_SOURCES)
 	$(M_RUN_PERL6) --setting=NULL --optimize=3 --target=mbc --stagestats --output=$(SETTING_MOAR) src/gen/m-CORE.setting
 
 $(M_RUNNER): tools/build/gen-moar-runner.pl $(PERL6_MOAR)
-	$(PERL) tools/build/gen-moar-runner.pl $(MOAR) .
+	$(PERL) tools/build/gen-moar-runner.pl $(MOAR) $(M_LIBPATH)
 
 ##  testing targets
 blib/Test.moarvm: lib/Test.pm $(PERL6_MOAR) $(SETTING_MOAR) $(M_RUNNER)

@@ -342,7 +342,7 @@ sub gen_nqp {
                "--backends=$backends", "--make-install");
 
     if (defined $gen_moar) {
-        push @cmd, $gen_moar ? '--gen-moar' : "--gen-moar=$gen_moar";
+        push @cmd, $gen_moar ? "--gen-moar=$gen_moar" : '--gen-moar';
     }
 
     print "Building NQP ...\n";

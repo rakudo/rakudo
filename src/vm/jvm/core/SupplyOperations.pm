@@ -6,31 +6,78 @@ my class SupplyOperations is repr('Uninstantiable') {
     # Private versions of the methods to relay events to subscribers, used in
     # implementing various operations.
     my role PrivatePublishing {
-        method !next(\msg) {
+        method !more(\msg) {
             for self.tappers {
-                .next().(msg)
+                .more().(msg)
             }
             Nil;
         }
 
-        method !last() {
+        method !done() {
             for self.tappers {
-                if .last { .last().() }
+                if .done { .done().() }
             }
             Nil;
         }
 
-        method !fail($ex) {
+        method !quit($ex) {
             for self.tappers {
-                if .fail { .fail().($ex) }
+                if .quit { .quit().($ex) }
             }
             Nil;
         }
     }
     
+    method for(*@values, :$scheduler = $*SCHEDULER) {
+        my class ForSupply does Supply {
+            has @!values;
+            has $!scheduler;
+
+            submethod BUILD(:@!values, :$!scheduler) {}
+
+            method tap(|c) {
+                my $sub = self.Supply::tap(|c);
+                $!scheduler.cue(
+                    {
+                        for @!values -> \val {
+                            $sub.more().(val);
+                        }
+                        if $sub.done -> $l { $l() }
+                    },
+                    :catch(-> $ex { if $sub.quit -> $t { $t($ex) } })
+                );
+                $sub
+            }
+        }
+        ForSupply.new(:@values, :$scheduler)
+    }
+
+    method interval($interval, $delay = 0, :$scheduler = $*SCHEDULER) {
+        my class IntervalSupply does Supply {
+            has $!scheduler;
+            has $!interval;
+            has $!delay;
+
+            submethod BUILD(:$!scheduler, :$!interval, :$!delay) {}
+
+            method tap(|c) {
+                my $sub = self.Supply::tap(|c);
+                $!scheduler.cue(
+                    {
+                        state $i = 0;
+                        $sub.more().($i++);
+                    },
+                    :every($!interval), :in($!delay)
+                );
+                $sub
+            }
+        }
+        IntervalSupply.new(:$interval, :$delay, :$scheduler)
+    }
+
     method do($a, &side_effect) {
         on -> $res {
-            $a => sub (\val) { side_effect(val); $res.next(val) }
+            $a => sub (\val) { side_effect(val); $res.more(val) }
         }
     }
     
@@ -43,12 +90,11 @@ my class SupplyOperations is repr('Uninstantiable') {
             
             method tap(|c) {
                 my $sub = self.Supply::tap(|c);
-                my $tap = $!source.tap(
-                    -> \val {
-                        if (&!filter(val)) { self!next(val) }
-                    },
-                    { self!last(); },
-                    -> $ex { self!fail($ex) }
+                my $tap = $!source.tap( -> \val {
+                      if (&!filter(val)) { self!more(val) }
+                  },
+                  done => { self!done(); },
+                  quit => -> $ex { self!quit($ex) }
                 );
                 $sub
             }
@@ -65,13 +111,11 @@ my class SupplyOperations is repr('Uninstantiable') {
             
             method tap(|c) {
                 my $sub = self.Supply::tap(|c);
-                my $tap = $!source.tap(
-                    -> \val {
-                        self!next(&!mapper(val))
-                    },
-                    { self!last(); },
-                    -> $ex { self!fail($ex) }
-                );
+                my $tap = $!source.tap( -> \val {
+                      self!more(&!mapper(val))
+                  },
+                  done => { self!done(); },
+                  quit => -> $ex { self!quit($ex) });
                 $sub
             }
         }
@@ -79,18 +123,18 @@ my class SupplyOperations is repr('Uninstantiable') {
     }
     
     method merge(Supply $a, Supply $b) {
-        my $lasts = 0;
+        my $dones = 0;
         on -> $res {
             $a => {
-                next => sub ($val) { $res.next($val) },
-                last => {
-                    $res.last() if ++$lasts == 2;
+                more => sub ($val) { $res.more($val) },
+                done => {
+                    $res.done() if ++$dones == 2;
                 }
             },
             $b => {
-                next => sub ($val) { $res.next($val) },
-                last => {
-                    $res.last() if ++$lasts == 2;
+                more => sub ($val) { $res.more($val) },
+                done => {
+                    $res.done() if ++$dones == 2;
                 }
             }
         }
@@ -103,13 +147,13 @@ my class SupplyOperations is repr('Uninstantiable') {
             $a => sub ($val) {
                 @as.push($val);
                 if @as && @bs {
-                    $res.next(with(@as.shift, @bs.shift));
+                    $res.more(with(@as.shift, @bs.shift));
                 }
             },
             $b => sub ($val) {
                 @bs.push($val);
                 if @as && @bs {
-                    $res.next(with(@as.shift, @bs.shift));
+                    $res.more(with(@as.shift, @bs.shift));
                 }
             }
         }

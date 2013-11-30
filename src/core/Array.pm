@@ -145,6 +145,14 @@ class Array { # declared in BOOTSTRAP
         nqp::findmethod(List, 'exists')(self, self.map_index(pos))
     }
 
+    method reverse() {
+        Array.new(:shape($!shape), nqp::findmethod(List, 'reverse')(self))
+    }
+
+    method rotate(Int $n = 1) {
+        Array.new(:shape($!shape), nqp::findmethod(List, 'rotate')(self, $n))
+    }
+
     # introspection
     method name() {
         my $d := $!descriptor;
@@ -206,11 +214,16 @@ class Array { # declared in BOOTSTRAP
     }
 
     my role TypedArray[::TValue] does Positional[TValue] {
-        method new(|) {
+        method new(:$shape = *, |) {
             my Mu $args := nqp::p6argvmarray();
             nqp::shift($args);
+
+            fail "Too many elements for this shaped array"
+                unless nqp::istype($shape, Whatever) or nqp::elems($args) < $shape;
             
             my $list := nqp::p6list($args, self.WHAT, Bool::True);
+
+            nqp::bindattr($list, Array, '$!shape', $shape);
 
             my $of = self.of;
             if ( $of !=:= Mu ) {
@@ -228,7 +241,7 @@ class Array { # declared in BOOTSTRAP
             $list;
         }
         multi method at_pos($p is copy) is rw {
-            my int $pos = self.map_index($pos.Int);
+            my int $pos = self.map_index($p.Int);
             fail "Index $pos is too large for this shaped array"
               unless nqp::istype(self.shape, Whatever) or $pos < self.shape;
             if self.exists_pos($pos) {
@@ -247,7 +260,7 @@ class Array { # declared in BOOTSTRAP
             }
         }
         multi method at_pos(int $p, TValue $v? is copy) is rw {
-            my $pos = self.map_index($p);
+            my int $pos = self.map_index($p);
             fail "Index $pos is too large for this shaped array"
               unless nqp::istype(self.shape, Whatever) or $pos < self.shape;
             if self.exists_pos($pos) {

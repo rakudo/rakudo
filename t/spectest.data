@@ -567,12 +567,13 @@ S16-io/say-and-ref.t
 S16-io/say.t
 S16-io/tmpdir.t
 S16-unfiled/rebindstdhandles.t
-S17-concurrency/channel.t
-S17-concurrency/lock.t
-S17-concurrency/promise.t
-S17-concurrency/scheduler.t
-S17-concurrency/supply.t
-S17-concurrency/thread.t
+S17-concurrency/channel.t    # jvm
+S17-concurrency/lock.t       # jvm 
+S17-concurrency/promise.t    # jvm
+S17-concurrency/scheduler.t  # jvm
+S17-concurrency/supply.t     # jvm
+S17-concurrency/thread.t     # jvm
+S17-concurrency/winner.t     # jvm
 S19-command-line/dash-e.t # icu
 S19-command-line/help.t
 S24-testing/0-compile.t
@@ -650,6 +651,7 @@ S32-io/spurt.t
 S32-list/categorize.t
 S32-list/classify.t
 S32-list/create.t
+S32-list/combinations.t
 S32-list/end.t
 S32-list/first.t
 S32-list/grep.t

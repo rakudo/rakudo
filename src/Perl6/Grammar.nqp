@@ -375,7 +375,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             | :dba('indirect name') '(' ~ ')' <EXPR>
             ]
         || <?before '::'> <.typed_panic: "X::Syntax::Name::Null">
-        ]**0..1
+        ]?
     }
 
     token longname {
@@ -1047,16 +1047,16 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         | <EXPR> :dba('statement end')
             [
             || <?MARKED('endstmt')>
-            || :dba('statement modifier') <.ws> <statement_mod_cond> <statement_mod_loop>**0..1
+            || :dba('statement modifier') <.ws> <statement_mod_cond> <statement_mod_loop>?
             || :dba('statement modifier loop') <.ws> <statement_mod_loop>
                 {
                     my $sp := $<EXPR><statement_prefix>;
                     if $sp && $sp<sym> eq 'do' {
-                        my $s := $<statement_mod_loop>[0]<sym>;
+                        my $s := $<statement_mod_loop><sym>;
                         $/.CURSOR.obs("do..." ~ $s, "repeat...while or repeat...until");
                     }
                 }
-            ]**0..1
+            ]?
         | <?[;]>
         | <?stopper>
         | {} <.panic: "Bogus statement">
@@ -1164,7 +1164,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             | 'elsif'\s <xblock>
             ]
         ]*
-        [ 'else'\s <else=.pblock> ]**0..1
+        [ 'else'\s <else=.pblock> ]?
     }
 
     rule statement_control:sym<unless> {
@@ -1206,10 +1206,10 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         [ <?[({]> <.sorry: "Whitespace required after 'loop'"> ]?
         :s''
         [ '('
-            <e1=.EXPR>**0..1 ';'
-            <e2=.EXPR>**0..1 ';'
-            <e3=.EXPR>**0..1
-        ')' ]**0..1
+            <e1=.EXPR>? ';'
+            <e2=.EXPR>? ';'
+            <e3=.EXPR>?
+        ')' ]?
         <block>
     }
 
@@ -1373,7 +1373,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         | <file=.variable>
         | <!sigil> <file=.term>
         ]
-        [ <EXPR> ]**0..1
+        <EXPR>?
     }
 
     rule statement_control:sym<given> {
@@ -1508,7 +1508,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             <.obs('$/ variable as input record separator',
                  "the filehandle's .slurp method")>
         ]?
-        [ <?before [ '(' || \h*<sigil><twigil>**0..1\w ] >
+        [ <?before [ '(' || \h*<sigil><twigil>?\w ] >
             <.obs('undef as a verb', 'undefine function or assignment of Nil')>
         ]?
         <.obs('undef as a value', "something more specific:\n\tAny (the \"whatever\" type object),\n\tan undefined type object such as Int,\n\t:!defined as a matcher,\n\tAny:U as a type constraint,\n\tNil as the absence of a value\n\tor fail() as a failure return\n\t   ")>
@@ -1557,7 +1557,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token colonpair_variable {
         <sigil> {}
         [
-        | <twigil>**0..1 <desigilname>
+        | <twigil>? <desigilname>
         | $<capvar>='<' <desigilname> '>'
         ]
     }
@@ -1801,7 +1801,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             | :dba('infix noun') '[' ~ ']' <infixish('[]')>
             ]
         ||  [
-            | <sigil> <twigil>**0..1 <desigilname>
+            | <sigil> <twigil>? <desigilname>
             | <special_variable>
             | <sigil> $<index>=[\d+] [ <?{ $*IN_DECL}> <.typed_panic: "X::Syntax::Variable::Numeric">]?
             | <sigil> <?[<]> [ <?{ $*IN_DECL }> <.typed_panic('X::Syntax::Variable::Match')>]?  <postcircumfix>
@@ -1814,9 +1814,9 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
               }
             ]
         ]
-        [ <?{ $<twigil> && $<twigil>[0] eq '.' }>
+        [ <?{ $<twigil> && $<twigil> eq '.' }>
             [ <.unsp> | '\\' | <?> ] <?[(]> <arglist=.postcircumfix>
-        ]**0..1
+        ]?
     }
 
     token sigil { <[$@%&]> }
@@ -1900,7 +1900,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         { unless $*SCOPE { $*SCOPE := 'our'; } }
         
         [
-            [ <longname> { $longname := $*W.dissect_longname($<longname>[0]); } ]**0..1
+            [ <longname> { $longname := $*W.dissect_longname($<longname>); } ]?
             <.newpad>
             
             [ :dba('generic role')
@@ -1908,7 +1908,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             { $*PACKAGE := $*OUTERPACKAGE } # in case signature tries to declare a package
             '[' ~ ']' <signature>
             { $*IN_DECL := ''; }
-            ]**0..1
+            ]?
             
             <trait>*
             
@@ -1975,7 +1975,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                         # Construct role meta-object with group.
                         sub needs_args($s) {
                             return 0 if !$s;
-                            my @params := $s[0].ast<parameters>;
+                            my @params := $s.ast<parameters>;
                             return 0 if nqp::elems(@params) == 0;
                             return nqp::elems(@params) > 1 || !@params[0]<optional>;
                         }
@@ -2086,15 +2086,22 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             [ <term_init=initializer> || <.sorry("Term definition requires an initializer")> ]
         | <variable_declarator>
           [
-          || <?{ $*SCOPE eq 'has' }> <.newpad> <initializer>**0..1 { $*ATTR_INIT_BLOCK := $*W.pop_lexpad() }
-          || <initializer>**0..1
+          || <?{ $*SCOPE eq 'has' }> <.newpad> <initializer>? { $*ATTR_INIT_BLOCK := $*W.pop_lexpad() }
+          || <initializer>?
           ]
-        | '(' ~ ')' <signature> <trait>* <.ws> <initializer>**0..1
+        | '(' ~ ')' <signature> <trait>* <.ws> <initializer>?
         | <routine_declarator>
         | <regex_declarator>
         | <type_declarator>
         ]
     }
+
+    rule term:sym<winner> { <sym><.end_keyword> <xblock> }
+    rule term:sym<combine>{ <sym><.end_keyword> <xblock> }
+    rule statement_control:sym<more>   { <sym><.end_keyword> <xblock(1)> }
+    rule statement_control:sym<done>   { <sym><.end_keyword> <xblock(1)> }
+    rule statement_control:sym<quit>   { <sym><.end_keyword> <xblock(1)> }
+    rule statement_control:sym<wait>   { <sym><.end_keyword> <xblock(1)> }
 
     proto token multi_declarator { <...> }
     token multi_declarator:sym<multi> {
@@ -2195,7 +2202,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             | :dba('shape definition') '{' ~ '}' <semilist>
             | <?[<]> <postcircumfix>
             ]+
-        ]**0..1
+        ]?
         <.ws>
         
         <trait>*
@@ -2220,21 +2227,21 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*DOCEE;
         :my $*DECLARAND := $*W.stub_code_object('Sub');
         <.attach_docs>
-        <deflongname>**0..1
+        <deflongname>?
         {
-            if $<deflongname> && $<deflongname>[0]<colonpair>[0]<coloncircumfix> -> $cf {
+            if $<deflongname> && $<deflongname><colonpair>[0]<coloncircumfix> -> $cf {
                 # It's an (potentially new) operator, circumfix, etc. that we
                 # need to tweak into the grammar.
-                my $category := $<deflongname>[0]<name>.Str;
+                my $category := $<deflongname><name>.Str;
                 my $opname := $cf<circumfix>
                     ?? $*W.colonpair_nibble_to_str($/, $cf<circumfix><nibble>)
                     !! '';
                 my $canname := $category ~ ":sym<" ~ $opname ~ ">";
-                $/.CURSOR.add_categorical($category, $opname, $canname, $<deflongname>[0].ast, $*DECLARAND);
+                $/.CURSOR.add_categorical($category, $opname, $canname, $<deflongname>.ast, $*DECLARAND);
             }
         }
         <.newpad>
-        [ '(' <multisig> ')' ]**0..1
+        [ '(' <multisig> ')' ]?
         <trait>*
         { $*IN_DECL := ''; }
         [
@@ -2254,7 +2261,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         [
             <.newpad>
             [
-            | $<specials>=[<[ ! ^ ]>?]<longname> [ '(' <multisig> ')' ]**0..1 <trait>*
+            | $<specials>=[<[ ! ^ ]>?]<longname> [ '(' <multisig> ')' ]? <trait>*
             | '(' <multisig> ')' <trait>*
             | <sigil>'.':!s
                 :dba('subscript signature')
@@ -2281,21 +2288,21 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*DOCEE;
         :my $*DECLARAND := $*W.stub_code_object('Macro');
         <.attach_docs>
-        <deflongname>**0..1
+        <deflongname>?
         {
-            if $<deflongname> && $<deflongname>[0]<colonpair>[0]<coloncircumfix> -> $cf {
+            if $<deflongname> && $<deflongname><colonpair>[0]<coloncircumfix> -> $cf {
                 # It's an (potentially new) operator, circumfix, etc. that we
                 # need to tweak into the grammar.
-                my $category := $<deflongname>[0]<name>.Str;
+                my $category := $<deflongname><name>.Str;
                 my $opname := $cf<circumfix>
                     ?? $*W.colonpair_nibble_to_str($/, $cf<circumfix><nibble>)
                     !! '';
                 my $canname := $category ~ ":sym<" ~ $opname ~ ">";
-                $/.CURSOR.add_categorical($category, $opname, $canname, $<deflongname>[0].ast, $*DECLARAND);
+                $/.CURSOR.add_categorical($category, $opname, $canname, $<deflongname>.ast, $*DECLARAND);
             }
         }
         <.newpad>
-        [ '(' <multisig> ')' ]**0..1
+        [ '(' <multisig> ')' ]?
         <trait>*
         { $*IN_DECL := ''; }
         [
@@ -2320,7 +2327,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token capterm {
         '\\'
         [
-        | '(' <capture>**0..1 ')'
+        | '(' <capture>? ')'
         | <?before \S> <termish>
         | {} <.panic: "You can't backslash that">
         ]
@@ -2356,7 +2363,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         ]+ % <param_sep>
         <.ws>
         { $*IN_DECL := ''; }
-        [ '-->' <.ws> <typename> || '-->' <.ws> <typo_typename> ]**0..1
+        [ '-->' <.ws> <typename> || '-->' <.ws> <typo_typename> ]?
         { $*LEFTSIGIL := '@'; }
     }
 
@@ -2427,12 +2434,12 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         [
         | '[' ~ ']' <signature>
         | '(' ~ ')' <signature>
-        | <sigil> <twigil>**0..1
+        | <sigil> <twigil>?
           [
           || <name=.identifier>
           || <name=.decint> { $*W.throw($/, 'X::Syntax::Variable::Numeric', what => 'parameter') }
           || $<name>=[<[/!]>]
-          ]**0..1
+          ]?
         ]
     }
 
@@ -2509,8 +2516,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*HAS_SELF := 'complete';
         :my $*DECLARAND := $*W.stub_code_object('Regex');
         [
-          <deflongname>**0..1
-          { if $<deflongname> { %*RX<name> := ~$<deflongname>[0].ast } }
+          <deflongname>?
+          { if $<deflongname> { %*RX<name> := ~$<deflongname>.ast } }
           { $*IN_DECL := '' }
            <.newpad>
           [ [ ':'?'(' <signature> ')' ] | <trait> ]*
@@ -2557,7 +2564,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                 [
                     <longname>
                     {
-                        my $longname := $*W.dissect_longname($<longname>[0]);
+                        my $longname := $*W.dissect_longname($<longname>);
                         my @name := $longname.type_name_parts('subset name', :decl(1));
                         if $*W.already_declared($*SCOPE, $*PACKAGE, $*W.cur_lexpad(), @name) {
                             $*W.throw($/, ['X', 'Redeclaration'],
@@ -2565,10 +2572,10 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                             );
                         }
                     }
-                ]**0..1
+                ]?
                 { $*IN_DECL := '' }
                 <trait>*
-                [ where <EXPR('e=')> ]**0..1
+                [ where <EXPR('e=')> ]?
             ]
             || <.malformed('subset')>
         ]
@@ -2670,7 +2677,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
     
     token term:sym<pir::op> {
-        'pir::' $<op>=[\w+] <args>**0..1
+        'pir::' $<op>=[\w+] <args>?
     }
 
     token term:sym<pir::const> {
@@ -2678,7 +2685,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
 
     token term:sym<nqp::op> {
-        'nqp::' $<op>=[\w+] <args>**0..1
+        'nqp::' $<op>=[\w+] <args>?
     }
 
     token term:sym<nqp::const> {
@@ -2695,7 +2702,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             [
                 <?{ $*W.is_type($*longname.components()) }>
                 <?[[]> :dba('type parameter') '[' ~ ']' <arglist>
-            ]**0..1
+            ]?
         || <args> { self.add_mystery($<longname>, $<args>.from, 'termish')
                         unless nqp::index($<longname>.Str, '::') >= 0 }
         ]
@@ -2826,7 +2833,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         # parametric type?
         <.unsp>? [ <?[[]> '[' ~ ']' <arglist> ]**0..1
         <.unsp>? [ <?[(]> '(' ~ ')' <arglist> <.NYI("coercive type declarations")>]**0..1
-        [<.ws> 'of' <.ws> <typename> ]**0..1
+        [<.ws> 'of' <.ws> <typename> ]?
     }
 
     token typo_typename {
@@ -3387,6 +3394,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token infix:sym<?&>   { <sym>  <O('%multiplicative')> }
     token infix:sym«+<»   { <sym> [ <!{ $*IN_META }> || <?before '<<'> || <![<]> ] <O('%multiplicative')> }
     token infix:sym«+>»   { <sym> [ <!{ $*IN_META }> || <?before '>>'> || <![>]> ] <O('%multiplicative')> }
+    token infix:sym«~<»   { <sym> [ <!{ $*IN_META }> || <?before '<<'> || <![<]> ] <O('%multiplicative')> }
+    token infix:sym«~>»   { <sym> [ <!{ $*IN_META }> || <?before '>>'> || <![>]> ] <O('%multiplicative')> }
 
     token infix:sym«<<» { <sym> <!{ $*IN_META }> <?[\s]> <.sorryobs('<< to do left shift', '+< or ~<')> <O('%multiplicative')> }
 
@@ -4208,7 +4217,7 @@ grammar Perl6::RegexGrammar is QRegex::P6Regex::Grammar does STD {
             | ':' <arglist>
             | '(' <arglist> ')'
             | <.normspace> <nibbler>
-            ]**0..1
+            ]?
     }
 }
 

@@ -203,8 +203,6 @@ J_CORE_SOURCES = \
   src/vm/jvm/core/Channel.pm \
   src/vm/jvm/core/Supply.pm \
   src/vm/jvm/core/SupplyOperations.pm \
-  src/vm/jvm/core/Publisher.pm \
-  src/vm/jvm/core/Publish.pm \
   src/vm/jvm/core/KeyReducer.pm \
   src/vm/jvm/core/IOAsyncFile.pm \
   src/vm/jvm/core/asyncops.pm \

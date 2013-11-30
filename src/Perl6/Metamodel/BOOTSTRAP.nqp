@@ -438,7 +438,37 @@ my class Binder {
             elsif nqp::isnull($named_names := nqp::getattr($param, Parameter, '$!named_names')) {
                 # Slurpy or LoL-slurpy?
                 if $flags +& ($SIG_ELEM_SLURPY_POS +| $SIG_ELEM_SLURPY_LOL) {
-                    nqp::die('Slurpy and LoL-slurpy binding NYI');
+                    # Create Perl 6 array, create VM Array of all remaining things, then
+                    # store it.
+                    my $temp := nqp::list();
+                    while $cur_pos_arg < $num_pos_args {
+                        $got_prim := nqp::captureposprimspec($capture, $cur_pos_arg);
+                        if $got_prim == 0 {
+                            nqp::push($temp, nqp::captureposarg($capture, $cur_pos_arg));
+                        }
+                        elsif $got_prim == 1 {
+                            nqp::push($temp, nqp::box_i(nqp::captureposarg_i($capture, $cur_pos_arg), Int));
+                        }
+                        elsif $got_prim == 2 {
+                            nqp::push($temp, nqp::box_n(nqp::captureposarg_n($capture, $cur_pos_arg), Num));
+                        }
+                        else {
+                            nqp::push($temp, nqp::box_s(nqp::captureposarg_s($capture, $cur_pos_arg), Str));
+                        }
+                        $cur_pos_arg++;
+                    }
+                    my int $flatten := $flags +& $SIG_ELEM_SLURPY_POS;
+                    my $bindee := nqp::create($flatten
+                        ?? ($flags +& $SIG_ELEM_IS_RW ?? List !! Array)
+                        !! LoL);
+                    my $listiter := nqp::create(ListIter);
+                    nqp::bindattr($listiter, ListIter, '$!rest', $temp);
+                    nqp::bindattr($listiter, ListIter, '$!list', $bindee);
+                    nqp::bindattr($bindee, List, '$!nextiter', $listiter);
+                    nqp::bindattr($bindee, List, '$!flattens', nqp::p6bool($flatten));
+                    $bind_fail := bind_one_param($lexpad, $sig, $param, $no_nom_type_check, $error,
+                        0, $bindee, 0, 0.0, '');
+                    return $bind_fail if $bind_fail;
                 }
 
                 # Otherwise, a positional.

@@ -159,13 +159,27 @@ static void p6listiter(MVMThreadContext *tc) {
     GET_REG(tc, 0).o = make_listiter(tc, arr, list);
 }
 
+/* Returns the $!items attribute of a List, vivifying it to a
+ * low-level array if it isn't one already. */
 static MVMuint8 s_p6listitems[] = {
     MVM_operand_obj | MVM_operand_write_reg,
     MVM_operand_obj | MVM_operand_read_reg
 };
 static void p6listitems(MVMThreadContext *tc) {
      MVMObject *list = GET_REG(tc, 2).o;
-     MVM_exception_throw_adhoc(tc, "p6listitems NYI");
+     if (MVM_6model_istype_cache_only(tc, list, List)) {
+        MVMObject *items = ((Rakudo_List *)list)->items;
+        if (!items || !IS_CONCRETE(items)) {
+            MVMROOT(tc, list, {
+                items = MVM_repr_alloc_init(tc, tc->instance->boot_types.BOOTArray);
+                MVM_ASSIGN_REF(tc, list, ((Rakudo_List *)list)->items, items);
+            });
+        }
+        GET_REG(tc, 0).o = items;
+     }
+     else {
+        MVM_exception_throw_adhoc(tc, "p6listitems may only be used on a List");
+     }
 }
 
 /* Turns zero to False and non-zero to True. */

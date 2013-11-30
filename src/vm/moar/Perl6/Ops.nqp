@@ -103,9 +103,6 @@ MAST::ExtOpRegistry.register_extop('p6arrfindtypes',
 MAST::ExtOpRegistry.register_extop('p6decodelocaltime',
     $MVM_operand_obj   +| $MVM_operand_write_reg,
     $MVM_operand_int64 +| $MVM_operand_read_reg);
-MAST::ExtOpRegistry.register_extop('p6setautothreader',
-    $MVM_operand_obj   +| $MVM_operand_write_reg,
-    $MVM_operand_obj   +| $MVM_operand_read_reg);
 MAST::ExtOpRegistry.register_extop('p6sort',
     $MVM_operand_obj   +| $MVM_operand_write_reg,
     $MVM_operand_obj   +| $MVM_operand_read_reg,
@@ -254,7 +251,6 @@ $ops.add_hll_moarop_mapping('perl6', 'p6argsfordispatcher', 'p6argsfordispatcher
 $ops.add_hll_moarop_mapping('perl6', 'p6shiftpush', 'p6shiftpush');
 $ops.add_hll_moarop_mapping('perl6', 'p6arrfindtypes', 'p6arrfindtypes');
 $ops.add_hll_moarop_mapping('perl6', 'p6decodelocaltime', 'p6decodelocaltime');
-$ops.add_hll_moarop_mapping('perl6', 'p6setautothreader', 'p6setautothreader');
 #$ops.map_classlib_hll_op('perl6', 'tclc', $TYPE_P6OPS, 'tclc', [$RT_STR], $RT_STR, :tc);
 $ops.add_hll_moarop_mapping('perl6', 'p6sort', 'p6sort');
 $ops.add_hll_moarop_mapping('perl6', 'p6staticouter', 'p6staticouter');
@@ -397,6 +393,12 @@ $ops.add_hll_op('nqp', 'p6setbinder', -> $qastcomp, $op {
         QAST::WVal.new( :value(nqp::getcodeobj(&set_binder)) ),
         |@($op)
     ));
+});
+$ops.add_hll_op('perl6', 'p6setautothreader', :inlinable, -> $qastcomp, $op {
+    $qastcomp.as_mast(
+        QAST::Op.new( :op('callmethod'), :name('set_autothreader'),
+            QAST::WVal.new( :value($Binder) ),
+            $op[0]), :want($MVM_reg_obj));
 });
 
 sub push_ilist(@dest, $src) {

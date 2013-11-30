@@ -417,15 +417,6 @@ static void p6decodelocaltime(MVMThreadContext *tc) {
     MVM_exception_throw_adhoc(tc, "p6decodelocaltime NYI");
 }
 
-static MVMuint8 s_p6setautothreader[] = {
-    MVM_operand_obj | MVM_operand_write_reg,
-    MVM_operand_obj | MVM_operand_read_reg
-};
-static void p6setautothreader(MVMThreadContext *tc) {
-    MVMObject *auto_threader = GET_REG(tc, 2).o;
-    MVM_exception_throw_adhoc(tc, "p6setautothreader NYI");
-}
-
 static MVMuint8 s_p6sort[] = {
     MVM_operand_obj | MVM_operand_write_reg,
     MVM_operand_obj | MVM_operand_read_reg,
@@ -473,7 +464,6 @@ MVM_DLL_EXPORT void Rakudo_ops_init(MVMThreadContext *tc) {
     MVM_ext_register_extop(tc, "p6shiftpush", p6shiftpush, 4, s_p6shiftpush);
     MVM_ext_register_extop(tc, "p6arrfindtypes", p6arrfindtypes, 5, s_p6arrfindtypes);
     MVM_ext_register_extop(tc, "p6decodelocaltime", p6decodelocaltime, 2, s_p6decodelocaltime);
-    MVM_ext_register_extop(tc, "p6setautothreader", p6setautothreader, 2, s_p6setautothreader);
     MVM_ext_register_extop(tc, "p6sort", p6sort, 3, s_p6sort);
     MVM_ext_register_extop(tc, "p6staticouter", p6staticouter, 2, s_p6staticouter);
 }

@@ -114,9 +114,15 @@ my class Binder {
     my int $BIND_RESULT_OK       := 0;
     my int $BIND_RESULT_FAIL     := 1;
     my int $BIND_RESULT_JUNCTION := 2;
-    
+
+    my $autothreader;
+
     sub arity_fail($params, int $num_params, int $num_pos_args, int $too_many) {
         nqp::die('arity_fail NYI');
+    }
+
+    method set_autothreader($callable) {
+        $autothreader := $callable;
     }
 
     # Binds a single parameter.

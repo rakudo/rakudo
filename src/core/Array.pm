@@ -146,13 +146,11 @@ class Array { # declared in BOOTSTRAP
     }
 
     method reverse() {
-        my @list = nqp::findmethod(List, 'reverse')(self);
-        @list
+        Array.new(:shape($!shape), nqp::findmethod(List, 'reverse')(self))
     }
 
     method rotate(Int $n = 1) {
-        my @list = nqp::findmethod(List, 'rotate')(self, $n);
-        @list
+        Array.new(:shape($!shape), nqp::findmethod(List, 'rotate')(self, $n))
     }
 
     # introspection

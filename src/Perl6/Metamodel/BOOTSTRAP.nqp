@@ -1804,6 +1804,7 @@ Regex.HOW.publish_parrot_vtable_handler_mapping(Regex);
 Regex.HOW.publish_parrot_vtable_mapping(Regex);
 Stash.HOW.publish_parrot_vtable_handler_mapping(Stash);
 Str.HOW.publish_parrot_vtable_handler_mapping(Str);
+Whatever.HOW.publish_parrot_vtable_mapping(Whatever);
 #?endif
 
 # Set up various type mappings.

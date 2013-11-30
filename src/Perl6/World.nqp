@@ -627,15 +627,20 @@ class Perl6::World is HLL::World {
                 %cont_info<scalar_value>);
         }
         if nqp::existskey(%cont_info, 'container_shape') {
-            $block[0].push(
-                QAST::Op.new(
-                    :op('bindattr'),
-                    QAST::Var.new(:scope('lexical'), :name($name)),
-                    QAST::WVal.new(:value(%cont_info<container_base>)),
-                    QAST::SVal.new(:value('$!shape')),
-                    %cont_info<container_shape>
-                )
-            );
+            if nqp::istype(%cont_info<container_shape>, QAST::Node) {
+                $block[0].push(
+                    QAST::Op.new(
+                        :op('bindattr'),
+                        QAST::Var.new(:scope('lexical'), :name($name)),
+                        QAST::WVal.new(:value(%cont_info<container_base>)),
+                        QAST::SVal.new(:value('$!shape')),
+                        %cont_info<container_shape>
+                    )
+                );
+            } else {
+                nqp::bindattr($cont, %cont_info<container_base>, '$!shape',
+                    %cont_info<container_shape>);
+            }
             if nqp::existskey(%cont_info, 'container_index_map') {
                 $block[0].push(
                     QAST::Op.new(
@@ -737,6 +742,15 @@ class Perl6::World is HLL::World {
                 QAST::SVal.new(:value('$!shape')),
                 %cont_info<container_shape>
             ));
+            if nqp::existskey(%cont_info, 'container_index_map') {
+                $cont_code.push(QAST::Op.new(
+                    :op('bindattr'),
+                    QAST::Var.new(:name($tmp), :scope('local')),
+                    QAST::WVal.new(:value(%cont_info<container_base>)),
+                    QAST::SVal.new(:value('$!index_map')),
+                    %cont_info<container_index_map>
+                ));
+            }
         }
         
         $cont_code
@@ -1532,10 +1546,19 @@ class Perl6::World is HLL::World {
                 %cont_info<scalar_value>);
         }
         if nqp::existskey(%cont_info, 'container_shape') {
-            nqp::bindattr($cont, %cont_info<container_base>, '$!shape',
-                self.compile_time_evaluate($/, %cont_info<container_shape>));
+            if nqp::istype(%cont_info<container_shape>, QAST::Node) {
+                nqp::bindattr($cont, %cont_info<container_base>, '$!shape',
+                    self.compile_time_evaluate($/, %cont_info<container_shape>));
+            } else {
+                nqp::bindattr($cont, %cont_info<container_base>, '$!shape',
+                    %cont_info<container_shape>);
+            }
+            if nqp::existskey(%cont_info, 'container_index_map') {
+                nqp::bindattr($cont, %cont_info<container_base>, '$!index_map',
+                    self.compile_time_evaluate($/, %cont_info<container_index_map>));
+            }
         }
-        
+
         # Create meta-attribute instance and add right away. Also add
         # it to the SC.
         my $attr := $meta_attr.new(:auto_viv_container($cont), |%lit_args, |%obj_args);

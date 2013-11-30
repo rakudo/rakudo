@@ -220,10 +220,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 %info<container_shape> := $shape_ast;
             } else {
                 my $whatever := $*W.find_symbol(['Whatever']);
-                %info<container_shape> := QAST::Op.new(
-                    :op('callmethod'), :node($/), :name('new'), :returns($whatever),
-                    QAST::Var.new(:name('Whatever'), :scope('lexical'))
-                );
+                %info<container_shape> := nqp::create($whatever);
             }
         }
         elsif $sigil eq '%' {
@@ -2204,13 +2201,22 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 }
                 
                 if $*SCOPE eq 'our' {
-                    my $temp := $BLOCK[0].pop;
+                    my @asts;
+                    @asts.push($BLOCK[0].pop);
+                    if %cont_info<container_index_map> {
+                        nqp::push(@asts, $BLOCK[0].pop);
+                        if !nqp::istype(%cont_info<container_shape>, QAST::Node) {
+                            $BLOCK[0].push(@asts.pop);
+                        }
+                    }
                     $BLOCK[0].push(QAST::Op.new(
                         :op('bind'),
                         $past,
                         $*W.symbol_lookup([$name], $/, :package_only(1), :lvalue(1))
                     ));
-                    $BLOCK[0].push($temp);
+                    for @asts {
+                        $BLOCK[0].push($_);
+                    }
                 }
             }
             

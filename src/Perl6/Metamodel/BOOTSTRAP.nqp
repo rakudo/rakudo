@@ -508,7 +508,8 @@ my class Binder {
                 if nqp::isnull($value) {
                     # Nope. We'd better hope this param was optional...
                     if $flags +& $SIG_ELEM_IS_OPTIONAL {
-                        nqp::die('Optional named params NYI');
+                        $bind_fail := bind_one_param($lexpad, $sig, $param, $no_nom_type_check, $error,
+                            0, handle_optional($param, $flags, $lexpad), 0, 0.0, '');
                     }
                     elsif !$suppress_arity_fail {
                         if nqp::defined($error) {

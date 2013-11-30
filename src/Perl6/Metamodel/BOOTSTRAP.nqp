@@ -260,7 +260,7 @@ my class Binder {
                 # wrapper container that carries extra constraints.
                 nqp::bindkey($lexpad, $varname, $oval);
             }
-            elsif $flags +& SIG_ELEM_IS_PARCEL {
+            elsif $flags +& $SIG_ELEM_IS_PARCEL {
                 # Just bind the thing as is into the lexpad.
                 nqp::bindkey($lexpad, $varname, $oval);
             }

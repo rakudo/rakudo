@@ -378,11 +378,34 @@ static MVMuint8 s_p6arrfindtypes[] = {
     MVM_operand_int64 | MVM_operand_read_reg
 };
 static void p6arrfindtypes(MVMThreadContext *tc) {
-    MVMObject   *arr = GET_REG(tc, 2).o;
-    MVMObject *types = GET_REG(tc, 4).o;
-    MVMint64   start = GET_REG(tc, 6).i64;
-    MVMint64    last = GET_REG(tc, 8).i64;
-    MVM_exception_throw_adhoc(tc, "p6arrfindtypes NYI");
+    MVMObject *arr    = GET_REG(tc, 2).o;
+    MVMObject *types  = GET_REG(tc, 4).o;
+    MVMint64   start  = GET_REG(tc, 6).i64;
+    MVMint64   last   = GET_REG(tc, 8).i64;
+    MVMint64   elems  = MVM_repr_elems(tc, arr);
+    MVMint64   ntypes = MVM_repr_elems(tc, types);
+    MVMint64   index, type_index;
+
+    if (elems < last)
+        last = elems;
+
+    for (index = start; index < last; index++) {
+        MVMObject *val = MVM_repr_at_pos_o(tc, arr, index);
+        if (val && !STABLE(val)->container_spec) {
+            MVMint64 found = 0;
+            for (type_index = 0; type_index < ntypes; type_index++) {
+                MVMObject *type = MVM_repr_at_pos_o(tc, types, type_index);
+                if (MVM_6model_istype_cache_only(tc, val, type)) {
+                    found = 1;
+                    break;
+                }
+            }
+            if (found)
+                break;
+        }
+    }
+
+    GET_REG(tc, 0).i64 = index;
 }
 
 static MVMuint8 s_p6decodelocaltime[] = {

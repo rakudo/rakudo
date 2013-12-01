@@ -79,3 +79,7 @@ void Rakudo_containers_setup(MVMThreadContext *tc) {
     MVM_6model_add_container_config(tc,
         MVM_string_ascii_decode_nt(tc, tc->instance->VMString, "rakudo_scalar"), &ContainerConfigurer);
 }
+
+MVMContainerSpec * Rakudo_containers_get_scalar() {
+    return &rakudo_scalar_spec;
+}

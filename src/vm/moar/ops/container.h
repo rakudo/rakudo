@@ -17,3 +17,4 @@ typedef struct {
 } Rakudo_Scalar;
 
 void Rakudo_containers_setup(MVMThreadContext *tc);
+MVMContainerSpec * Rakudo_containers_get_scalar();

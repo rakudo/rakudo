@@ -238,7 +238,19 @@ static MVMuint8 s_p6recont_ro[] = {
 };
 static void p6recont_ro(MVMThreadContext *tc) {
     MVMObject *check = GET_REG(tc, 2).o;
-    MVM_exception_throw_adhoc(tc, "p6recont_ro NYI");
+    if (STABLE(check)->container_spec == Rakudo_containers_get_scalar()) {
+        MVMObject *desc = ((Rakudo_Scalar *)check)->descriptor;
+        if (desc && ((Rakudo_ContainerDescriptor *)desc)->rw) {
+            /* We have an rw container; re-containerize it. */
+            MVMROOT(tc, check, {
+                MVMObject *result = MVM_repr_alloc_init(tc, Scalar);
+                MVM_ASSIGN_REF(tc, result, ((Rakudo_Scalar *)check)->value,
+                    ((Rakudo_Scalar *)check)->value);
+            });
+            return;
+        }
+    }
+    GET_REG(tc, 0).o = check;
 }
 
 /* The .VAR operation. Wraps in an outer Scalar container so we can actually

@@ -8,15 +8,21 @@
 static int initialized = 0;
 
 /* Types we need. */
-static MVMObject *Int      = NULL;
-static MVMObject *Num      = NULL;
-static MVMObject *Str      = NULL;
-static MVMObject *Scalar   = NULL;
-static MVMObject *Parcel   = NULL;
-static MVMObject *List     = NULL;
-static MVMObject *ListIter = NULL;
-static MVMObject *True     = NULL;
-static MVMObject *False    = NULL;
+static MVMObject *Mu                  = NULL;
+static MVMObject *Any                 = NULL;
+static MVMObject *Int                 = NULL;
+static MVMObject *Num                 = NULL;
+static MVMObject *Str                 = NULL;
+static MVMObject *Scalar              = NULL;
+static MVMObject *Parcel              = NULL;
+static MVMObject *List                = NULL;
+static MVMObject *ListIter            = NULL;
+static MVMObject *True                = NULL;
+static MVMObject *False               = NULL;
+static MVMObject *ContainerDescriptor = NULL;
+
+/* Default container descriptor. */
+static MVMObject *default_cont_desc = NULL;
 
 /* Parcel, as laid out as a P6opaque. */
 typedef struct {
@@ -60,6 +66,8 @@ static MVMuint8 s_p6settypes[] = {
 static void p6settypes(MVMThreadContext *tc) {
     MVMObject *conf = GET_REG(tc, 0).o;
     MVMROOT(tc, conf, {
+        get_type(tc, conf, "Mu", Mu);
+        get_type(tc, conf, "Any", Any);
         get_type(tc, conf, "Int", Int);
         get_type(tc, conf, "Num", Num);
         get_type(tc, conf, "Str", Str);
@@ -69,7 +77,23 @@ static void p6settypes(MVMThreadContext *tc) {
         get_type(tc, conf, "ListIter", ListIter);
         get_type(tc, conf, "True", True);
         get_type(tc, conf, "False", False);
+        get_type(tc, conf, "ContainerDescriptor", ContainerDescriptor);
     });
+    
+    /* Set up default container descriptor. */
+    {
+        MVMString *element;
+        default_cont_desc = MVM_repr_alloc_init(tc, ContainerDescriptor);
+        MVM_gc_root_add_permanent(tc, (MVMCollectable **)&default_cont_desc);
+        element = MVM_string_ascii_decode_nt(tc, tc->instance->VMString, "<element>");
+        MVM_ASSIGN_REF(tc, default_cont_desc,
+            ((Rakudo_ContainerDescriptor *)default_cont_desc)->of, Mu);
+        MVM_ASSIGN_REF(tc, default_cont_desc,
+            ((Rakudo_ContainerDescriptor *)default_cont_desc)->name, element);
+        ((Rakudo_ContainerDescriptor *)default_cont_desc)->rw = 1;
+        MVM_ASSIGN_REF(tc, default_cont_desc,
+            ((Rakudo_ContainerDescriptor *)default_cont_desc)->the_default, Any);
+    }
 }
 
 /* Boxing to Perl 6 types. */
@@ -200,7 +224,7 @@ static void p6scalarfromdesc(MVMThreadContext *tc) {
     MVMObject *new_scalar = MVM_repr_alloc_init(tc, Scalar);
     MVMObject *descriptor = GET_REG(tc, 2).o;
     if (!descriptor) {
-        MVM_exception_throw_adhoc(tc, "default cont desc NYI");
+        descriptor = default_cont_desc;
     }
     MVM_ASSIGN_REF(tc, new_scalar, ((Rakudo_Scalar *)new_scalar)->descriptor, descriptor);
     MVM_ASSIGN_REF(tc, new_scalar, ((Rakudo_Scalar *)new_scalar)->value,

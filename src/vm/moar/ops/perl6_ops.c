@@ -4,6 +4,10 @@
 
 #define GET_REG(tc, idx) (*tc->interp_reg_base)[*((MVMuint16 *)(*tc->interp_cur_op + idx))]
 
+/* Dummy, one-arg callsite. */
+static MVMCallsiteEntry one_arg_flags[] = { MVM_CALLSITE_ARG_OBJ };
+static MVMCallsite     one_arg_callsite = { one_arg_flags, 1, 1, 0 };
+
 /* Are we initialized yet? */
 static int initialized = 0;
 
@@ -23,6 +27,9 @@ static MVMObject *ContainerDescriptor = NULL;
 
 /* Default container descriptor. */
 static MVMObject *default_cont_desc = NULL;
+
+/* Useful string constants. */
+static MVMString *str_return = NULL;
 
 /* Parcel, as laid out as a P6opaque. */
 typedef struct {
@@ -94,6 +101,10 @@ static void p6settypes(MVMThreadContext *tc) {
         MVM_ASSIGN_REF(tc, default_cont_desc,
             ((Rakudo_ContainerDescriptor *)default_cont_desc)->the_default, Any);
     }
+
+    /* Strings. */
+    str_return = MVM_string_ascii_decode_nt(tc, tc->instance->VMString, "RETURN");
+    MVM_gc_root_add_permanent(tc, (MVMCollectable **)&str_return);
 }
 
 /* Boxing to Perl 6 types. */
@@ -299,9 +310,18 @@ static MVMuint8 s_p6routinereturn[] = {
     MVM_operand_obj | MVM_operand_read_reg,
 };
 static void p6routinereturn(MVMThreadContext *tc) {
-    MVMObject *in = GET_REG(tc, 2).o;
-    MVM_exception_throw_adhoc(tc, "p6routinereturn NYI");
-    GET_REG(tc, 0).o = in;
+    MVMObject *ret = MVM_frame_find_lexical_by_name_rel_caller(tc, str_return,
+        tc->cur_frame)->o;
+    if (ret && IS_CONCRETE(ret) && REPR(ret)->ID == MVM_REPR_ID_Lexotic) {
+        tc->cur_frame->return_type    = MVM_RETURN_VOID;
+        tc->cur_frame->return_address = *(tc->interp_cur_op);
+        tc->cur_frame->args[0].o = GET_REG(tc, 2).o;
+        STABLE(ret)->invoke(tc, ret, &one_arg_callsite, tc->cur_frame->args);
+        *(tc->interp_cur_op) -= 4; /* Oh my, what a hack... */
+    }
+    else {
+        MVM_exception_throw_adhoc(tc, "Attempt to return outside of any Routine");
+    }
 }
 
 static MVMuint8 s_p6capturelex[] = {

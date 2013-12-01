@@ -251,8 +251,8 @@ P_CLEANUPS = \
   $(SETTING_PBC) \
   $(R_SETTING_PBC) \
   $(PARROT_DLL_COPY) \
-  perl6.c \
-  perl6$(O) \
+  perl6-p.c \
+  perl6-p$(O) \
   perl6_group.* \
   lib/Test.pir \
   lib/lib.pir \
@@ -268,6 +268,9 @@ P_CLEANUPS = \
   $(OPS_DIR)/*$(O) \
   $(OPS_DIR)/*$(LOAD_EXT) \
   src/vm/parrot/guts/*$(O) \
+  blib/Perl6/*.pbc \
+  gen/parrot/CORE.setting \
+  gen/parrot/*.nqp \
 
 # NOTE: eventually, we should remove --keep-exit-code and --fudge
 #       as the goal is that all tests must pass without fudge
@@ -315,7 +318,7 @@ p-install: p-all
 	-$(POD2MAN) docs/running.pod --name=perl6 > $(DESTDIR)$(MANDIR)/man1/perl6.1
 	-$(POD2MAN) docs/running.pod --name=rakudo > $(DESTDIR)$(MANDIR)/man1/rakudo.1
 
-p-runner-default-install: p-all
+p-runner-default-install: p-install
 	$(CP)     $(PERL6_EXE)        $(DESTDIR)$(PARROT_BIN_DIR)/perl6$(EXE)
 	$(CHMOD)  755                 $(DESTDIR)$(PARROT_BIN_DIR)/perl6$(EXE)
 

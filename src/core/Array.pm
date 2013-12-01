@@ -201,6 +201,7 @@ class Array { # declared in BOOTSTRAP
         # make an array from them (we can't just use ourself for this,
         # or @a = @a will go terribly wrong); make it eager
         my $list := nqp::p6list($args, Array, Mu);
+        $!shape = * if !nqp::istype($!shape, Mu);
         nqp::bindattr($list, Array, '$!shape', $!shape);
         nqp::bindattr($list, List, '$!flattens', True);
         $list.eager;

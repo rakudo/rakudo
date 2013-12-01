@@ -47,7 +47,7 @@ sub DEPRECATED ($alternative) {
     my $what = Deprecation.new(
       file    => $deprecated.file,
       type    => $deprecated.subtype.tc,
-      package => $deprecated.package.HOW.name($deprecated),
+      package => try { $deprecated.package.HOW.name($deprecated) } // 'unknown',
       name    => $deprecated.subname,
       :$alternative,
     );

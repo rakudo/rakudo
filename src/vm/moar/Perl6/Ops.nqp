@@ -286,6 +286,7 @@ my $p6bool := -> $qastcomp, $op {
     }
     elsif $cond_kind == $MVM_reg_obj {
         my $tmp_reg := $*REGALLOC.fresh_i();
+        nqp::push(@ops, MAST::Op.new( :op('decont'), $exprres.result_reg, $exprres.result_reg ));
         nqp::push(@ops, MAST::Op.new( :op('istrue'), $tmp_reg, $exprres.result_reg ));
         nqp::push(@ops, MAST::ExtOp.new( :op('p6bool'), :cu($*MAST_COMPUNIT),
             $res_reg, $tmp_reg ));

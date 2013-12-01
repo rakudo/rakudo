@@ -2201,21 +2201,26 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 }
                 
                 if $*SCOPE eq 'our' {
-                    my @asts;
-                    @asts.push($BLOCK[0].pop);
-                    if %cont_info<container_index_map> {
+                    if $sigil == '@' && %cont_info<container_index_map> {
+                        my @asts;
                         nqp::push(@asts, $BLOCK[0].pop);
-                        if !nqp::istype(%cont_info<container_shape>, QAST::Node) {
-                            $BLOCK[0].push(@asts.pop);
+                        if nqp::istype(%cont_info<container_shape>, QAST::Node) {
+                            nqp::push(@asts, $BLOCK[0].pop);
                         }
-                    }
-                    $BLOCK[0].push(QAST::Op.new(
-                        :op('bind'),
-                        $past,
-                        $*W.symbol_lookup([$name], $/, :package_only(1), :lvalue(1))
-                    ));
-                    for @asts {
-                        $BLOCK[0].push($_);
+                        $BLOCK[0].push(QAST::Op.new(
+                            :op('bind'),
+                            $past,
+                            $*W.symbol_lookup([$name], $/, :package_only(1), :lvalue(1))
+                        ));
+                        for @asts {
+                            $BLOCK[0].push($_);
+                        }
+                    } else {
+                        $BLOCK[0].push(QAST::Op.new(
+                            :op('bind'),
+                            $past,
+                            $*W.symbol_lookup([$name], $/, :package_only(1), :lvalue(1))
+                        ));
                     }
                 }
             }

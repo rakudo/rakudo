@@ -735,6 +735,13 @@ class Perl6::World is HLL::World {
         }
 
         if nqp::existskey(%cont_info, 'container_shape') {
+            if !nqp::istype(%cont_info<container_shape>, QAST::Node) {
+                %cont_info<container_shape> := QAST::Op.new(
+                    :op('callmethod'),
+                    :name('new'),
+                    QAST::WVal.new(:value(self.find_symbol(['Whatever'])))
+                );
+            }
             $cont_code.push(QAST::Op.new(
                 :op('bindattr'),
                 QAST::Var.new(:name($tmp), :scope('local')),

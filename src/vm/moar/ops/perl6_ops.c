@@ -362,9 +362,13 @@ static void p6shiftpush(MVMThreadContext *tc) {
         }
     }
     if (total > 0) {
-        MVMObject *copy = MVM_repr_alloc_init(tc, List);
-        REPR(b)->pos_funcs.splice(tc, STABLE(b), b, OBJECT_BODY(b),
-                    copy, 0, total);
+        MVMROOT(tc, a, {
+        MVMROOT(tc, b, {
+            MVMObject *copy = MVM_repr_alloc_init(tc, tc->instance->boot_types.BOOTArray);
+            REPR(b)->pos_funcs.splice(tc, STABLE(b), b, OBJECT_BODY(b),
+                copy, 0, total);
+        });
+        });
     }
 
     GET_REG(tc, 0).o = a;

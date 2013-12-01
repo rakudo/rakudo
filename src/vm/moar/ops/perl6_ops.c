@@ -359,7 +359,8 @@ static MVMuint8 s_p6stateinit[] = {
     MVM_operand_int64 | MVM_operand_write_reg
 };
 static void p6stateinit(MVMThreadContext *tc) {
-    MVM_exception_throw_adhoc(tc, "p6stateinit NYI");
+    /* XXX CHEAT */
+    GET_REG(tc, 0).i64 = 1;
 }
 
 static MVMuint8 s_p6setfirstflag[] = {

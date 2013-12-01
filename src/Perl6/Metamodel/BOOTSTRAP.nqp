@@ -403,7 +403,37 @@ my class Binder {
                     $bind_fail := $BIND_RESULT_OK;
                 }
                 else {
-                    nqp::die('Capture binding NYI');
+                    my $capsnap := nqp::create(Capture);
+
+                    my @pos_args;
+                    my int $k := $cur_pos_arg;
+                    while $k < $num_pos_args {
+                        $got_prim := nqp::captureposprimspec($capture, $k);
+                        if $got_prim == 0 {
+                            nqp::push(@pos_args, nqp::captureposarg($capture, $k));
+                        }
+                        elsif $got_prim == 1 {
+                            nqp::push(@pos_args, nqp::box_i(nqp::captureposarg_i($capture, $k), Int));
+                        }
+                        elsif $got_prim == 2 {
+                            nqp::push(@pos_args, nqp::box_n(nqp::captureposarg_n($capture, $k), Num));
+                        }
+                        else {
+                            nqp::push(@pos_args, nqp::box_s(nqp::captureposarg_s($capture, $k), Str));
+                        }
+                        $k++;
+                    }
+                    nqp::bindattr($capsnap, Capture, '$!list', @pos_args);
+
+                    if $named_args {
+                        nqp::bindattr($capsnap, Capture, '$!hash', nqp::clone($named_args));
+                    }
+                    else {
+                        nqp::bindattr($capsnap, Capture, '$!hash', nqp::hash());
+                    }
+
+                    $bind_fail := bind_one_param($lexpad, $sig, $param, $no_nom_type_check, $error,
+                        0, $capsnap, 0, 0.0, '');
                 }
                 if ($bind_fail) {
                     return $bind_fail;

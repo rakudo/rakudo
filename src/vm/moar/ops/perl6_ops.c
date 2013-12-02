@@ -495,7 +495,15 @@ static MVMuint8 s_p6staticouter[] = {
 };
 static void p6staticouter(MVMThreadContext *tc) {
     MVMObject *code = GET_REG(tc, 2).o;
-    MVM_exception_throw_adhoc(tc, "p6staticouter NYI");
+    if (code && IS_CONCRETE(code) && REPR(code)->ID == MVM_REPR_ID_MVMCode) {
+        MVMStaticFrame *sf = ((MVMCode *)code)->body.sf;
+        GET_REG(tc, 0).o = sf->body.outer
+            ? (MVMObject *)sf->body.outer->body.static_code
+            : NULL;
+    }
+    else {
+        MVM_exception_throw_adhoc(tc, "p6staticouter requires a CodeRef");
+    }
 }
 
 /* Registers the extops with MoarVM. */

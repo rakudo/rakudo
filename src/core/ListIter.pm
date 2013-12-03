@@ -12,12 +12,16 @@ my class ListIter { # declared in BOOTSTRAP
             my $eager = nqp::p6bool(nqp::istype($n, Whatever));
             my $flattens = nqp::p6bool(nqp::isconcrete($!list)) && $!list.flattens;
             my int $max = 100_000;
-            my int $count = $eager
-                ?? $max
-                !! nqp::unbox_i(nqp::istype($n, Int) ?? $n !! $n.Int);
+            my int $count;
             my $rpa := nqp::list();
-            nqp::setelems($rpa, $count);
-            nqp::setelems($rpa, 0);
+            if $eager {
+                $count = $max;
+            }
+            else {
+                $count = nqp::unbox_i(nqp::istype($n, Int) ?? $n !! $n.Int);
+                nqp::setelems($rpa, $count);
+                nqp::setelems($rpa, 0);
+            }
             my Mu $x;
             my int $index;
             my $want_types := $flattens

@@ -559,8 +559,7 @@ class Perl6::Optimizer {
     
     # Handles visiting a QAST::Want node.
     method visit_want($want) {
-        # Just visit the children for now. We ignore the literal strings, so
-        # it all works out.
+        # Any literal in void context deserves a warning.
         if $*VOID_CONTEXT && !$*IN_DECLARATION
                 && +@($want) == 3 && $want.node {
 
@@ -585,7 +584,15 @@ class Perl6::Optimizer {
                 return $NULL;
             }
         }
-        self.visit_children($want, :skip_selectors);
+
+        # If it's the sink context void node, then only visit the first
+        # child. Otherwise, see all.
+        if +@($want) == 3 && $want[1] eq 'v' {
+            self.visit_children($want, :first);
+        }
+        else {
+            self.visit_children($want, :skip_selectors);
+        }
         $want;
     }
     
@@ -692,10 +699,11 @@ class Perl6::Optimizer {
     }
     
     # Visits all of a nodes children, and dispatches appropriately.
-    method visit_children($node, :$skip_selectors, :$resultchild) {
+    method visit_children($node, :$skip_selectors, :$resultchild, :$first) {
         my int $r := $resultchild // -1;
         my int $i := 0;
-        while $i < +@($node) {
+        my int $n := +@($node);
+        while $i < $n {
             my $outer_void := $*VOID_CONTEXT;
             my $outer_decl := $*IN_DECLARATION;
             unless $skip_selectors && $i % 2 {
@@ -721,7 +729,7 @@ class Perl6::Optimizer {
                     self.visit_children($visit, :resultchild($visit.resultchild // +@($visit) - 1));
                 }
             }
-            $i := $i + 1;
+            $i := $first ?? $n !! $i + 1;
         }
     }
     

@@ -488,15 +488,24 @@ class Perl6::Optimizer {
                             if $op.op eq 'chain' { $!chain_depth := $!chain_depth - 1 }
                             #say("# trial bind worked!");
                             if $*LEVEL >= 2 {
-                                return nqp::can($obj, 'inline_info') && nqp::istype($obj.inline_info, QAST::Node)
-                                    ?? self.inline_call($op, $obj)
-                                    !! copy_returns($op, $obj);
+                                if nqp::can($obj, 'inline_info') && nqp::istype($obj.inline_info, QAST::Node) {
+                                    return self.inline_call($op, $obj);
+                                }
+                                copy_returns($op, $obj);
                             }
                         }
                         elsif $ct_result == -1 {
                             self.report_inevitable_dispatch_failure($op, @types, @flags, $obj);
                         }
                     }
+                }
+
+                # If we get here, no inlining or compile-time decision was
+                # possible, but we may still be able to make it a callstatic,
+                # which is cheaper on some backends.
+                my $scopes := self.scopes_in($op.name);
+                if $scopes == 0 || $scopes == 1 && nqp::can($obj, 'soft') && !$obj.soft {
+                    $op.op('callstatic');
                 }
             }
             else {
@@ -749,6 +758,22 @@ class Perl6::Optimizer {
             }
         }
         0
+    }
+    
+    # Works out how many scopes in from the outermost a given name is. A 0
+    # from this means the nearest declaration is from the setting; a 1 means
+    # it is in the mainline, etc.
+    method scopes_in($name) {
+        my int $i := +@!block_stack;
+        while $i > 0 {
+            $i := $i - 1;
+            my $block := @!block_stack[$i];
+            my %sym := $block.symbol($name);
+            if +%sym {
+                return $i;
+            }
+        }
+        nqp::die("Symbol $name not found");
     }
     
     # Inlines an immediate block.

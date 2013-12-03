@@ -154,8 +154,43 @@ class Perl6::Optimizer {
                 }
             }
         }
-        
+
+        # We may also be able to optimize away the full-blown binder in some
+        # cases and on some backends.
+        my $code_obj := $block<code_object>;
+        my $backend  := nqp::getcomp('perl6').backend.name;
+        if nqp::isconcrete($code_obj) && $backend eq 'jvm' {
+            my $sig := $code_obj.signature;
+            self.try_eliminate_binder($block, $sig);
+        }
+
         $block
+    }
+    
+    method try_eliminate_binder($block, $sig) {
+        my $Signature := self.find_in_setting('Signature');
+        my @params := nqp::getattr($sig, $Signature, '$!params');
+        if nqp::elems(@params) == 0 {
+            # Zero args; no need for binder call, and no more to do.
+            try_remove_binder_call();
+        }
+        sub try_remove_binder_call() {
+            my int $found := 0;
+            for @($block[0]) {
+                if nqp::istype($_, QAST::Op) && $_.op eq 'p6bindsig' {
+                    $_.op('null');
+                    $found := 1;
+                    last;
+                }
+            }
+            if $found {
+                $block.custom_args(0);
+                1
+            }
+            else {
+                0
+            }
+        }
     }
 
     method is_from_core($name) {

@@ -569,7 +569,7 @@ class Perl6::Optimizer {
                         $op.unshift($inv);
                         $op.unshift($call);
                         $op.op('call');
-                        $op.name(nqp::null());
+                        $op.name(NQPMu);
                     }
                 }
                 else {
@@ -921,7 +921,7 @@ class Perl6::Optimizer {
                     ),
                     QAST::IVal.new( :value($idx) )
                 ));
-                $call.name(nqp::null());
+                $call.name(NQPMu);
                 $call.op('call');
                 #say("# Compile-time resolved a call to " ~ $proto.name);
                 last;

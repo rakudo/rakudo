@@ -43,7 +43,7 @@ sub term:<time>() { nqp::p6box_i(nqp::time_i()) }
 #?if moar
     my $VM = {
         name    => 'moar',
-        config  => {}
+        config  => { osname => 'XXX' }
     }
 #?endif
     nqp::bindkey(nqp::who(PROCESS), '$VM', $VM);
@@ -82,11 +82,16 @@ sub term:<time>() { nqp::p6box_i(nqp::time_i()) }
 #?if jvm
          $VM<properties><perl6.prefix>
 #?endif
-#?if !jvm
+#?if parrot
          $VM<config><libdir> ~ $VM<config><versiondir>
+#?endif
+#?if moar
+# XXX TODO: prefix
 #?endif
          ~ '/languages/perl6';
 
+# XXX Moar has problems with @INC setup for now.
+#?if !moar
     my %CUSTOM_LIB;
     %CUSTOM_LIB<perl>   = $prefix;
     %CUSTOM_LIB<vendor> = $prefix ~ '/vendor';
@@ -113,11 +118,14 @@ sub term:<time>() { nqp::p6box_i(nqp::time_i()) }
             @INC.unshift: nqp::p6box_s($I);
         }
     }
+#?endif
 
     nqp::bindkey(nqp::who(PROCESS), '@INC', @INC);
 
     ## duplicate src/core/IO.pm::cwd
+#?if !moar
     my $CWD = IO::Path.new(nqp::p6box_s(
+#?endif
 #?if parrot
         pir::trans_encoding__Ssi(
             nqp::cwd(),
@@ -126,9 +134,11 @@ sub term:<time>() { nqp::p6box_i(nqp::time_i()) }
 #?if !parrot
             nqp::cwd(),
 #?endif
+#?if !moar
     ));
 
     nqp::bindkey(nqp::who(PROCESS), '$CWD', $CWD);
+#?endif
 
 #?if jvm
     my $OS = $VM<properties><os.name>;
@@ -137,12 +147,15 @@ sub term:<time>() { nqp::p6box_i(nqp::time_i()) }
     my $OSVER = $VM<properties><os.version>;
     nqp::bindkey(nqp::who(PROCESS), '$OSVER', $OSVER);
 #?endif
-#?if !jvm
+#?if parrot
     my $OS = $VM<config><osname>; # XXX: master gets this information with the sysinfo dynop
     nqp::bindkey(nqp::who(PROCESS), '$OS', $OS);
 
     my $OSVER = $VM<config><osvers>; # XXX: master gets this information with the sysinfo dynop
     nqp::bindkey(nqp::who(PROCESS), '$OSVER', $OSVER);
+#?endif
+#?if moar
+# XXX TODO
 #?endif
 
     my $PID = nqp::p6box_i(nqp::getpid());
@@ -164,5 +177,7 @@ sub term:<time>() { nqp::p6box_i(nqp::time_i()) }
     my $PROGRAM_NAME = $comp.user-progname();
     nqp::bindkey(nqp::who(PROCESS), '$PROGRAM_NAME', $PROGRAM_NAME);
 
+#?if !moar
     $PROCESS::TMPDIR = IO::Spec.tmpdir().path;
+#?endif
 }

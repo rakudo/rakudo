@@ -60,7 +60,7 @@ my class Mu { # declared in BOOTSTRAP
     
     method bless(*@autovivs, *%attrinit) {
         if @autovivs && nqp::istype(@autovivs[0], Whatever) {
-            warn "Passing an object candidate to Mu.bless is deprecated";
+            DEPRECATED( "a call to bless without initial * parameter" );
             @autovivs.shift;
         }
         nqp::create(self).BUILDALL(@autovivs, %attrinit);

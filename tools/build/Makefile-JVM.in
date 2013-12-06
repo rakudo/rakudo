@@ -160,8 +160,6 @@ J_CORE_SOURCES = \
   src/vm/jvm/core/Channel.pm \
   src/vm/jvm/core/Supply.pm \
   src/vm/jvm/core/SupplyOperations.pm \
-  src/vm/jvm/core/Publisher.pm \
-  src/vm/jvm/core/Publish.pm \
   src/vm/jvm/core/KeyReducer.pm \
   src/vm/jvm/core/IOAsyncFile.pm \
   src/vm/jvm/core/asyncops.pm \
@@ -184,6 +182,9 @@ J_CLEANUPS = \
   j-rakudo_test_run.tar.gz \
   $(J_BUILD_DIR)/* \
   $(RUNTIME_JAR) \
+  perl6-eval-server \
+  perl6-jdb-server \
+  eval-client.pl \
   $(RUNNER)
 
 J_HARNESS_WITH_FUDGE = $(PERL) t/harness --fudge --keep-exit-code --jvm
@@ -325,7 +326,7 @@ j-install: j-all tools/build/create-jvm-runner.pl
 	$(CP) blib/Pod/To/Text.jar $(DESTDIR)$(PERL6_LANG_DIR)/lib/Pod/To
 	$(PERL) tools/build/create-jvm-runner.pl install "$(DESTDIR)" $(PREFIX) $(NQP_PREFIX) $(NQP_JARS)
 
-j-runner-default-install: j-all
+j-runner-default-install: j-install
 	$(PERL) tools/build/create-jvm-runner.pl install "$(DESTDIR)" $(PREFIX) $(NQP_PREFIX) $(NQP_JARS)
 	$(CP) $(DESTDIR)$(PREFIX)/bin/perl6-j$(BAT) $(DESTDIR)$(PREFIX)/bin/perl6$(BAT)
 	$(CHMOD) 755 $(DESTDIR)$(PREFIX)/bin/perl6$(BAT)

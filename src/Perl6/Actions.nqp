@@ -1225,6 +1225,80 @@ class Perl6::Actions is HLL::Actions does STDActions {
         make when_handler_helper($<block>.ast);
     }
 
+    method term:sym<winner>($/) {
+        my @inner_statements := $<xblock><pblock><blockoid><statementlist><statement>;
+        my $wild_done;
+        my $wild_more;
+        my $wait;
+        my $wait_time;
+
+        my $past := QAST::Op.new( :op('call'), :name('&WINNER'), :node($/) );
+        if $<xblock> {
+            if nqp::istype($<xblock><EXPR>.ast.returns, $*W.find_symbol(['Whatever'])) {
+                $past.push( QAST::Op.new(
+                        :op('callmethod'),
+                        :name('new'),
+                        QAST::WVal.new( :value($*W.find_symbol(['List'])) ) ));
+            } else {
+                $past.push( QAST::Op.new(:name('&infix:<,>'), :op('call'), $<xblock><EXPR>.ast) );
+            }
+        } elsif $<block> {
+            $past.push( QAST::Op.new(
+                    :op('callmethod'),
+                    :name('new'),
+                    QAST::WVal.new( :value($*W.find_symbol(['List'])) ) ));
+        }
+
+        # TODO verify that the inner block only has more/done/later blocks in it
+        for @inner_statements -> $/ {
+            if $<statement_control> -> $/ {
+                if $<sym> eq 'done' || $<sym> eq 'more' {
+                    if $<sym> eq 'done' {
+                        if nqp::istype($<xblock><EXPR>.ast.returns, $*W.find_symbol(['Whatever'])) {
+                            # TODO error
+                            $wild_done := block_closure($<xblock><pblock>.ast);
+                            $wild_done.named('wild_done');
+                        } else {
+                            $past.push(QAST::IVal.new(:value(0))); # "DONE"
+                            $past.push($<xblock><EXPR>.ast);
+                            $past.push(block_closure($<xblock><pblock>.ast));
+                        }
+                    } elsif $<sym> eq 'more' {
+                        if nqp::istype($<xblock><EXPR>.ast.returns, $*W.find_symbol(['Whatever'])) {
+                            $wild_more := block_closure($<xblock><pblock>.ast);
+                            $wild_more.named('wild_more');
+                        } else {
+                            $past.push(QAST::IVal.new(:value(1))); # "MORE"
+                            $past.push($<xblock><EXPR>.ast);
+                            $past.push(block_closure($<xblock><pblock>.ast));
+                        }
+                    }
+                } elsif $<sym> eq 'wait' {
+                    # TODO error
+                    $wait_time:= $<xblock><EXPR>.ast;
+                    $wait_time.named('wait_time');
+                    $wait := block_closure($<xblock><pblock>.ast);
+                    $wait.named('wait');
+                }
+            } else {
+                # TODO error
+            }
+        }
+        if $wild_done { $past.push( $wild_done ) }
+        if $wild_more { $past.push( $wild_more ) }
+        if $wait      { $past.push( $wait ); $past.push( $wait_time ) }
+
+        make $past;
+    }
+
+    method term:sym<combine>($/) {
+        $*W.throw($/, ['X', 'NYI'], feature => 'combine blocks');
+    }
+
+    method statement_control:sym<quit>($/) {
+        $*W.throw($/, ['X', 'NYI'], feature => 'combine blocks (and "quit")');
+    }
+
     method statement_control:sym<CATCH>($/) {
         if nqp::existskey(%*HANDLERS, 'CATCH') {
             $*W.throw($/, ['X', 'Phaser', 'Multiple'], block => 'CATCH');

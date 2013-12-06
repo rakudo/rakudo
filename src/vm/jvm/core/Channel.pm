@@ -71,7 +71,7 @@ my class Channel {
         }
     }
     
-    method peek(Channel:D:) {
+    method !peek(Channel:D:) {
         my \fetched := $!queue.'method/peek/()Ljava/lang/Object;'();
         if nqp::jvmisnull(fetched) {
             Nil
@@ -93,11 +93,11 @@ my class Channel {
 
     method list($self:) {
         map {
-            winner( 
-              $self        => { $_ },
-              $self.closed => { last }
-            );
-        }, 0..*;  # until we have a listless map { }
+            winner $self {
+              more * { $_ }
+              done * { last }
+            }
+        }, *;
     }
 
     method close() {
@@ -112,7 +112,7 @@ my class Channel {
     }
     
     method closed() {
-        self.peek();
+        self!peek();
         $!closed_promise
     }
 }

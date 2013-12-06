@@ -23,11 +23,11 @@ my $nqp_have = $nqp_config{'nqp::version'} || '';
 my ($nqp_want) = split(' ', slurp('tools/build/NQP_REVISION'));
 
 if (!$nqp_have || cmp_rev($nqp_have, $nqp_want) < 0) {
-    my $parrot_option = '--gen-parrot or --with-parrot=path/to/bin/parrot';
+    my $parrot_option = '--gen-parrot or --prefix=$prefix';
     if (-x 'install/bin/parrot') {
         use Cwd 'abs_path';
         my $path = abs_path;
-        $parrot_option = "--with-parrot=$path/install/bin/parrot";
+        $parrot_option = "--prefix=$path/install";
     }
     die <<EOM
 NQP $nqp_have is too old ($nqp_want required), run something like

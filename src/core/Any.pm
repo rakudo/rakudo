@@ -317,6 +317,7 @@ sub minmax(*@args, :&by = &infix:<cmp>) { @args.minmax(&by) }
 
 proto map(|) {*}
 multi map(&code, *@values) { @values.map(&code) }
+multi map(&code, Whatever) { (1..Inf).map(&code) }
 
 proto grep(|) {*}
 multi grep(Mu $test, *@values) { @values.grep($test) }

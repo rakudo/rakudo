@@ -119,7 +119,7 @@ my class Promise {
         if $!status == any(Broken, Kept) {
             # Already have the result, start immediately.
             $!lock.unlock();
-            Promise.start(:$!scheduler, :code({ code(self) }))
+            Promise.start( { code(self) }, :$!scheduler);
         }
         else {
             # Create a Promise, and push 2 entries to @!thens: something that

@@ -4687,15 +4687,17 @@ class Perl6::Actions is HLL::Actions does STDActions {
             # Now go by scope.
             if $target.scope eq 'attribute' {
                 # Source needs type check.
-                my $meta_attr;
+                my $type;
                 try {
-                    $meta_attr := $*PACKAGE.HOW.get_attribute_for_usage(
+                    $type := $*PACKAGE.HOW.get_attribute_for_usage(
                         $*PACKAGE, $target.name
-                    );
+                    ).type;
                 }
-                $source := QAST::Op.new(
-                    :op('p6bindassert'),
-                    $source, QAST::WVal.new( :value($meta_attr.type) ))
+                unless $type =:= $*W.find_symbol(['Mu']) {
+                    $source := QAST::Op.new(
+                        :op('p6bindassert'),
+                        $source, QAST::WVal.new( :value($type) ))
+                }
             }
             else {
                 # Probably a lexical.

@@ -205,7 +205,7 @@ MAIN: {
         sorry(@errors) if @errors;
         
         my $java_version = `java -version 2>&1`;
-        $java_version    = $java_version =~ /(?<v>[\d\._]+)\N+\n(?<n>\S+)/
+        $java_version    = $java_version =~ /(?<v>[\d\._]+).+\n(?<n>\S+)/
                          ? "$+{'n'} $+{'v'}"
                          : 'no java version info available';
 

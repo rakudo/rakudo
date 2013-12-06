@@ -159,7 +159,7 @@ class Perl6::Optimizer {
         # cases and on some backends.
         my $code_obj := $block<code_object>;
         my $backend  := nqp::getcomp('perl6').backend.name;
-        if nqp::isconcrete($code_obj) && $backend eq 'jvm' {
+        if $backend eq 'jvm' && $*LEVEL >= 3 && nqp::isconcrete($code_obj) {
             my $sig := $code_obj.signature;
             self.try_eliminate_binder($block, $sig);
         }

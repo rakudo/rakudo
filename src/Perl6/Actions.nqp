@@ -1667,9 +1667,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 unless $*HAS_SELF {
                     $*W.throw($/, ['X', 'Syntax', 'NoSelf'], variable => $past.name());
                 }
-                my $attr := get_attribute_meta_object($/, $past.name());
+                my $attr := get_attribute_meta_object($/, $past.name(), $past);
+                $past.returns($attr.type) if $attr;
                 $past.scope('attribute');
-                $past.returns($attr.type);
                 $past.unshift(instantiated_type(['$?CLASS'], $/));
                 $past.unshift(QAST::Var.new( :name('self'), :scope('lexical') ));
             }
@@ -1759,7 +1759,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         $past
     }
     
-    sub get_attribute_meta_object($/, $name) {
+    sub get_attribute_meta_object($/, $name, $later?) {
         unless nqp::can($*PACKAGE.HOW, 'get_attribute_for_usage') {
             $/.CURSOR.panic("Cannot understand $name in this context");
         }
@@ -1770,12 +1770,24 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $found := 1;
         }
         unless $found {
-            $*W.throw($/, ['X', 'Attribute', 'Undeclared'],
-                    symbol       => $name,
-                    package-kind => $*PKGDECL,
-                    package-name => $*PACKAGE.HOW.name($*PACKAGE),
-                    what         => 'attribute',
-            );
+
+            # need to check later
+            if $later {
+                my $seen := %*ATTR_USAGES{$name};
+                %*ATTR_USAGES{$name} := $seen := nqp::list() unless $seen;
+                $later.node($/);
+                $seen.push($later);
+            }
+
+            # now is later
+            else {
+                $*W.throw($/, ['X', 'Attribute', 'Undeclared'],
+                  symbol       => $name,
+                  package-kind => $*PKGDECL,
+                  package-name => $*PACKAGE.HOW.name($*PACKAGE),
+                  what         => 'attribute',
+                );
+            }
         }
         $attr
     }
@@ -1900,6 +1912,17 @@ class Perl6::Actions is HLL::Actions does STDActions {
             # Make a code object for the block.
             $*W.create_code_object($block, 'Block',
                 $*W.create_signature(nqp::hash('parameters', [])));
+        }
+
+        # check up any private attribute usage
+        for %*ATTR_USAGES {
+            my $name   := $_.key;
+            my @usages := $_.value;
+            for @usages {
+                my $past := $_;
+                my $attr := get_attribute_meta_object($past.node, $name);
+                $past.returns($attr.type);
+            }
         }
 
         # Document
@@ -3686,7 +3709,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             # If it's !-twigil'd, ensure the attribute it mentions exists unless
             # we're in a context where we should not do that.
             if $_<bind_attr> && !$no_attr_check {
-                get_attribute_meta_object($/, $_<variable_name>);
+                get_attribute_meta_object($/, $_<variable_name>, QAST::Var.new);
             }
             
             # If we have a sub-signature, create that.

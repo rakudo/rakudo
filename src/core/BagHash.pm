@@ -4,13 +4,11 @@ my class BagHash does Baggy {
         Proxy.new(
           FETCH => {
               my $key   := $k.WHICH;
-              my $elems := nqp::getattr(self, BagHash, '%!elems');
-              $elems.exists_key($key) ?? $elems{$key}.value !! 0;
+              %!elems.exists_key($key) ?? %!elems{$key}.value !! 0;
           },
           STORE => -> $, $value {
               if $value > 0 {
-                  (nqp::getattr(self, BagHash, '%!elems'){$k.WHICH}
-                    //= ($k => 0)).value = $value;
+                  (%!elems{$k.WHICH} //= ($k => 0)).value = $value;
               }
               elsif $value == 0 {
                   self.delete_key($k);
@@ -29,10 +27,9 @@ my class BagHash does Baggy {
     }
     method delete_key($k) {
         my $key   := $k.WHICH;
-        my $elems := nqp::getattr(self, BagHash, '%!elems');
-        if $elems.exists_key($key) {
-            my $value = $elems{$key}.value;
-            $elems.delete_key($key);
+        if %!elems.exists_key($key) {
+            my $value = %!elems{$key}.value;
+            %!elems.delete_key($key);
             $value;
         }
         else {
@@ -43,18 +40,14 @@ my class BagHash does Baggy {
     method Bag (:$view) {
         if $view {
             my $bag := nqp::create(Bag);
-            $bag.BUILD( :elems(nqp::getattr(self, BagHash, '%!elems')) );
+            $bag.BUILD( :elems(%!elems) );
             $bag;
         }
         else {
-            Bag.new-fp(nqp::getattr(self, BagHash, '%!elems').values);
+            Bag.new-fp(%!elems.values);
         }
     }           
     method BagHash { self }
-    method Mix     {
-        Mix.new-fp(nqp::getattr(self, BagHash, '%!elems').values);
-    }
-    method MixHash {
-        MixHash.new-fp(nqp::getattr(self, BagHash, '%!elems').values);
-    }
+    method Mix     { Mix.new-fp(%!elems.values) }
+    method MixHash { MixHash.new-fp(%!elems.values) }
 }

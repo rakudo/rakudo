@@ -52,9 +52,11 @@ my class ThreadPoolScheduler does Scheduler {
             if $!initial_threads > $!max_threads;
     }
     
-    method cue(&code, :$at, :$in, :$every, :&catch ) {
+    method cue(&code, :$at, :$in, :$every, :$times = 1, :&catch ) {
         die "Cannot specify :at and :in at the same time"
           if $at.defined and $in.defined;
+        die "Cannot specify :every and :times at the same time"
+          if $every.defined and $times > 1;
         my $delay = $at ?? $at - now !! $in // 0;
         self!initialize unless $!started_any;
 
@@ -72,17 +74,17 @@ my class ThreadPoolScheduler does Scheduler {
               ($every * 1000).Int);
         }
 
-        # only after waiting a bit
-        elsif $delay {
-            $!timer.'method/schedule/(Ljava/util/TimerTask;J)V'(
-              nqp::jvmbootinterop().proxy(
-                'java.util.TimerTask',
-                nqp::hash( 'run', &catch
-                  ?? -> { code(); CATCH { default { catch($_) } } }
-                  !! -> { code() }
-                )
-              ),
-              ($delay * 1000).Int);
+        # only after waiting a bit or more than once
+        elsif $delay or $times > 1 {
+            my $todo :=nqp::hash( 'run', &catch
+              ?? -> { code(); CATCH { default { catch($_) } } }
+              !! -> { code() } );
+            for 1 .. $times {
+                $!timer.'method/schedule/(Ljava/util/TimerTask;J)V'(
+                  nqp::jvmbootinterop().proxy('java.util.TimerTask', $todo),
+                  ($delay * 1000).Int);
+                $delay = 0;
+            }
         }
 
         # just cue the code

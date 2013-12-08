@@ -1774,8 +1774,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
             # need to check later
             if $later {
                 my $seen := %*ATTR_USAGES{$name};
-                %*ATTR_USAGES{$name} := $seen := nqp::list() unless $seen;
-                $later.node($/);
+                unless $seen {
+                    %*ATTR_USAGES{$name} := $seen := nqp::list();
+                    $later.node($/); # only need $/ for first error
+                }
                 $seen.push($later);
             }
 

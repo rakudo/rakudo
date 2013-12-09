@@ -55,6 +55,11 @@ if "$prefix/share/libraries.cfg".IO.e {
         }
     }
 }
+else {
+    "$prefix/share/libraries.cfg".IO.spurt:
+        join( "\n", "CompUnitRepo::Local::File:prio<1>=" ~ @*INC.join(':'),
+                    %*CUSTOM_LIB.kv.map( -> $k, $v { "CompUnitRepo::Local::Installation:name<$k>=$v" } ))
+}
 
 nqp::bindhllsym('perl6', 'ModuleLoader', CompUnitRepo);
 

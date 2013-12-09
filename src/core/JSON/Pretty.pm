@@ -1,0 +1,126 @@
+my class JSON::Tiny::Actions {
+    method TOP($/) {
+        make $/.values.[0].ast;
+    };
+    method object($/) {
+        make $<pairlist>.ast.hash;
+    }
+
+    method pairlist($/) {
+        make $<pair>>>.ast.flat;
+    }
+
+    method pair($/) {
+        make $<string>.ast => $<value>.ast;
+    }
+
+    method array($/) {
+        make $<arraylist>.ast;
+    }
+
+    method arraylist($/) {
+        make [$<value>>>.ast];
+    }
+
+    method string($/) {
+        make $0.elems == 1
+            ?? ($0[0].<str> || $0[0].<str_escape>).ast
+            !! join '', $0.list.map({ (.<str> || .<str_escape>).ast });
+    }
+    method value:sym<number>($/) { make +$/.Str }
+    method value:sym<string>($/) { make $<string>.ast }
+    method value:sym<true>($/)   { make Bool::True  }
+    method value:sym<false>($/)  { make Bool::False }
+    method value:sym<null>($/)   { make Any }
+    method value:sym<object>($/) { make $<object>.ast }
+    method value:sym<array>($/)  { make $<array>.ast }
+
+    method str($/)               { make ~$/ }
+
+    method str_escape($/) {
+        if $<xdigit> {
+            # make chr(:16($<xdigit>.join));  # preferred version of next line, but it doesn't work on Niecza yet
+            make chr(eval "0x" ~ $<xdigit>.join);
+        } else {
+            my %h = '\\' => "\\",
+                    '/'  => "/",
+                    'b'  => "\b",
+                    'n'  => "\n",
+                    't'  => "\t",
+                    'f'  => "\f",
+                    'r'  => "\r",
+                    '"'  => "\"";
+            make %h{~$/};
+        }
+    }
+}
+
+my grammar JSON::Tiny::Grammar {
+    token TOP       { ^ \s* [ <object> | <array> ] \s* $ }
+    rule object     { '{' ~ '}' <pairlist>     }
+    rule pairlist   { <pair> * % \,            }
+    rule pair       { <string> ':' <value>     }
+    rule array      { '[' ~ ']' <arraylist>    }
+    rule arraylist  {  <value> * % [ \, ]        }
+
+    proto token value {*};
+    token value:sym<number> {
+        '-'?
+        [ 0 | <[1..9]> <[0..9]>* ]
+        [ \. <[0..9]>+ ]?
+        [ <[eE]> [\+|\-]? <[0..9]>+ ]?
+    }
+    token value:sym<true>    { <sym>    };
+    token value:sym<false>   { <sym>    };
+    token value:sym<null>    { <sym>    };
+    token value:sym<object>  { <object> };
+    token value:sym<array>   { <array>  };
+    token value:sym<string>  { <string> }
+
+    token string {
+        \" ~ \" ( <str> | \\ <str_escape> )*
+    }
+
+    token str {
+        <-["\\\t\n]>+
+    }
+
+    token str_escape {
+        <["\\/bfnrt]> | u <xdigit>**4
+    }
+}
+
+proto to-json($, :$indent = 0, :$first = 0) {*}
+
+my $s = 2;
+multi to-json(Version:D $v, :$indent = 0, :$first = 0) { to-json(~$v, :$indent, :$first) }
+multi to-json(Real:D $d, :$indent = 0, :$first = 0) { (' ' x $first) ~ ~$d }
+multi to-json(Bool:D $d, :$indent = 0, :$first = 0) { (' ' x $first) ~ ($d ?? 'true' !! 'false') }
+multi to-json(Str:D $d, :$indent = 0, :$first = 0) {
+    (' ' x $first) ~ '"'
+    ~ $d.trans(['"', '\\', "\b", "\f", "\n", "\r", "\t"]
+            => ['\"', '\\\\', '\b', '\f', '\n', '\r', '\t'])\
+            .subst(/<-[\c32..\c126]>/, { ord(~$_).fmt('\u%04x') }, :g)
+    ~ '"'
+}
+multi to-json(Positional:D $d, :$indent = 0, :$first = 0) {
+    return (' ' x $first) ~ "\["
+            ~ ($d ?? $d.map({ "\n" ~ to-json($_, :indent($indent + $s), :first($indent + $s)) }).join(",") ~ "\n" ~ (' ' x $indent) !! ' ')
+            ~ ']';
+}
+multi to-json(Associative:D $d, :$indent = 0, :$first = 0) {
+    return (' ' x $first) ~ "\{"
+            ~ ($d ?? $d.map({ "\n" ~ to-json(.key, :first($indent + $s)) ~ ' : ' ~ to-json(.value, :indent($indent + $s)) }).join(",") ~ "\n" ~ (' ' x $indent) !! ' ')
+            ~ '}';
+}
+
+multi to-json(Mu:U $, :$indent = 0, :$first = 0) { 'null' }
+multi to-json(Mu:D $s, :$indent = 0, :$first = 0) {
+    die "Can't serialize an object of type " ~ $s.WHAT.perl
+}
+
+sub from-json($text) {
+    my $a = JSON::Tiny::Actions.new();
+    my $o = JSON::Tiny::Grammar.parse($text, :actions($a));
+    return $o.ast;
+}

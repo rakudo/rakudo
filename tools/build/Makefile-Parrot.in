@@ -239,6 +239,10 @@ P_CORE_SOURCES = \
   src/core/terms.pm \
   src/core/Deprecations.pm \
   src/core/OS.pm \
+  src/core/JSON/Pretty.pm \
+  src/core/CompUnitRepo.pm \
+  src/core/CompUnitRepo/Local/File.pm \
+  src/core/CompUnitRepo/Local/Installation.pm \
   src/core/core_epilogue.pm \
 
 DOCS = README CREDITS LICENSE docs/*

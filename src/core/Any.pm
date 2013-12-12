@@ -420,11 +420,13 @@ sub SLICE_ONE ( \SELF, $one, $array, *%adv ) is hidden_from_backtrace {
 
     my %a = %adv.clone;
     my @nogo;
+    my $SINK = %a.delete_key('SINK');
 
     my $return = do {
+
         if %a.delete_key('delete') {          # :delete:*
             my $de = SELF.can( $array ?? 'delete_pos' !! 'delete_key' )[0];
-            if !%a {                            # :delete
+            if !%a {                            # :delete / :delete:SINK
                 $de(SELF,$one);
             }
             elsif %a.exists_key('exists') {     # :delete:exists(0|1):*
@@ -592,7 +594,7 @@ sub SLICE_ONE ( \SELF, $one, $array, *%adv ) is hidden_from_backtrace {
 
     @nogo || %a
       ?? SLICE_HUH( SELF, @nogo, %a, %adv )
-      !! $return;
+      !! ($SINK ?? Nil !! $return);
 } #SLICE_ONE
 
 # internal >1 element hash/array access with adverbs
@@ -602,11 +604,16 @@ sub SLICE_MORE ( \SELF, $more, $array, *%adv ) is hidden_from_backtrace {
 
     my $at = SELF.can( $array ?? 'at_pos'     !! 'at_key'     )[0];
     my $ex = SELF.can( $array ?? 'exists_pos' !! 'exists_key' )[0];
+    my $SINK = %a.delete_key('SINK');
 
-    my $return = do {
+    my $return = do {  
+
         if %a.delete_key('delete') {       # :delete:*
             my $de = SELF.can( $array ?? 'delete_pos' !! 'delete_key' )[0];
-            if !%a {                         # :delete
+            if $SINK {                       # :delete:SINK
+                $de(SELF,$_) for $more;
+            }
+            elsif !%a {                      # :delete
                 $more.list.map( { $de(SELF,$_) } ).eager.Parcel;
             }
             elsif %a.exists_key('exists') {  # :delete:exists(0|1):*
@@ -816,5 +823,5 @@ sub SLICE_MORE ( \SELF, $more, $array, *%adv ) is hidden_from_backtrace {
 
     @nogo || %a
       ?? SLICE_HUH( SELF, @nogo, %a, %adv )
-      !! $return;
+      !! ($SINK ?? Nil !! $return);
 } #SLICE_MORE

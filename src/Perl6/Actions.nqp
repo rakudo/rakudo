@@ -5998,7 +5998,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my $curried :=
             # It must be an op and...
             nqp::istype($past, QAST::Op) && (
-            
+
             # Either a call that we're allowed to curry...
                 (($past.op eq 'call' || $past.op eq 'chain') &&
                     (nqp::index($past.name, '&infix:') == 0 ||
@@ -6007,7 +6007,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                      (nqp::istype($past[0], QAST::Op) &&
                         nqp::index($past[0].name, '&METAOP') == 0)) &&
                     %curried{$past.name} // 2)
-            
+
             # Or not a call and an op in the list of alloweds.
                 || ($past.op ne 'call' && %curried{$past.op} // 0)
 
@@ -6027,33 +6027,51 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $i++;
         }
         if $whatevers {
+            my $was_chain := $past.op eq 'chain' ?? $past.name !! NQPMu;
             my int $i := 0;
             my @params;
+            my @old_args;
             my $block := QAST::Block.new(QAST::Stmts.new(), $past);
             $*W.cur_lexpad()[0].push($block);
             while $i < $upto_arity {
                 my $old := $past[$i];
-                $old := $old[0] if (nqp::istype($old, QAST::Stmts) || 
+                $old := $old[0] if (nqp::istype($old, QAST::Stmts) ||
                                     nqp::istype($old, QAST::Stmt)) &&
                                    +@($old) == 1;
                 if istype($old.returns, $WhateverCode) {
-                    my $new := QAST::Op.new( :op<call>, :node($/), $old);
-                    my $acount := 0;
-                    while $acount < $old.arity {
-                        my $pname := '$x' ~ (+@params);
-                        @params.push(hash(
-                            :variable_name($pname),
-                            :nominal_type($*W.find_symbol(['Mu'])),
-                            :is_parcel(1),
-                        ));
-                        $block[0].push(QAST::Var.new(:name($pname), :scope<lexical>, :decl('var')));
-                        $new.push(QAST::Var.new(:name($pname), :scope<lexical>));
-                        $acount++;
+                    my $new;
+                    if $was_chain && nqp::existskey($old, "chain_args") {
+                        $new := QAST::Op.new( :op<chain>, :name($was_chain), :node($/) );
+                        while +($old<chain_past>) > 0 {
+                            my $node := nqp::shift($old<chain_past>);
+                            $new.push($node);
+                        }
+                        while +($old<chain_args>) > 0 {
+                            my %arg := nqp::shift($old<chain_args>);
+                            @params.push(%arg);
+                            $block[0].push(QAST::Var.new(:name(%arg<variable_name>), :scope<lexical>, :decl<var>));
+                        }
+                    } else {
+                        $new := QAST::Op.new( :op<call>, :node($/), $old );
+                        my $acount := 0;
+                        while $acount < $old.arity {
+                            my $pname := $*W.cur_lexpad()[0].unique('$whatevercode_arg');
+                            @params.push(hash(
+                                :variable_name($pname),
+                                :nominal_type($*W.find_symbol(['Mu'])),
+                                :is_parcel(1),
+                            ));
+                            $block[0].push(QAST::Var.new(:name($pname), :scope<lexical>, :decl<var>));
+                            my $to_push := QAST::Var.new(:name($pname), :scope<lexical>);
+                            $new.push($to_push);
+                            nqp::push(@old_args, $to_push) if $was_chain;
+                            $acount++;
+                        }
                     }
                     $past[$i] := $new;
                 }
                 elsif $curried > 1 && istype($old.returns, $Whatever) {
-                    my $pname := '$x' ~ (+@params);
+                    my $pname := $*W.cur_lexpad()[0].unique('$whatevercode_arg');
                     @params.push(hash(
                         :variable_name($pname),
                         :nominal_type($*W.find_symbol(['Mu'])),
@@ -6061,6 +6079,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     ));
                     $block[0].push(QAST::Var.new(:name($pname), :scope<lexical>, :decl('var')));
                     $past[$i] := QAST::Var.new(:name($pname), :scope<lexical>);
+                    nqp::push(@old_args, $past[$i]) if $was_chain;
+                } else {
+                    nqp::push(@old_args, $past[$i]) if $was_chain;
                 }
                 $i++;
             }
@@ -6071,6 +6092,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $past := block_closure(reference_to_code_object($code, $block));
             $past.returns($WhateverCode);
             $past.arity(+@params);
+            if $was_chain {
+                $past<chain_past> := @old_args;
+                $past<chain_args> := @params;
+            }
         }
         $past
     }

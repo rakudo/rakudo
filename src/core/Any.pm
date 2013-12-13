@@ -422,7 +422,7 @@ sub SLICE_ONE ( \SELF, $one, $array, *%adv ) is hidden_from_backtrace {
     my @nogo;
     my $SINK = %a.delete_key('SINK');
 
-    my $return = do {
+    my \result = do {
 
         if %a.delete_key('delete') {          # :delete:*
             my $de = SELF.can( $array ?? 'delete_pos' !! 'delete_key' )[0];
@@ -594,7 +594,7 @@ sub SLICE_ONE ( \SELF, $one, $array, *%adv ) is hidden_from_backtrace {
 
     @nogo || %a
       ?? SLICE_HUH( SELF, @nogo, %a, %adv )
-      !! ($SINK ?? Nil !! $return);
+      !! ($SINK ?? Nil !! result);
 } #SLICE_ONE
 
 # internal >1 element hash/array access with adverbs
@@ -606,7 +606,7 @@ sub SLICE_MORE ( \SELF, $more, $array, *%adv ) is hidden_from_backtrace {
     my $ex = SELF.can( $array ?? 'exists_pos' !! 'exists_key' )[0];
     my $SINK = %a.delete_key('SINK');
 
-    my $return = do {  
+    my \result = do {  
 
         if %a.delete_key('delete') {       # :delete:*
             my $de = SELF.can( $array ?? 'delete_pos' !! 'delete_key' )[0];
@@ -823,5 +823,5 @@ sub SLICE_MORE ( \SELF, $more, $array, *%adv ) is hidden_from_backtrace {
 
     @nogo || %a
       ?? SLICE_HUH( SELF, @nogo, %a, %adv )
-      !! ($SINK ?? Nil !! $return);
+      !! ($SINK ?? Nil !! result);
 } #SLICE_MORE

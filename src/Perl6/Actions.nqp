@@ -6041,16 +6041,16 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 if istype($old.returns, $WhateverCode) {
                     my $new;
                     if $was_chain && nqp::existskey($old, "chain_args") {
-                        $new := QAST::Op.new( :op<chain>, :name($was_chain), :node($/) );
-                        while +($old<chain_past>) > 0 {
-                            my $node := nqp::shift($old<chain_past>);
-                            $new.push($node);
+                        $new := QAST::Op.new( :op<chain>, :name($old<chain_name>), :node($/) );
+                        $old<chain_block>[1] := QAST::Op.new( :op<die>, QAST::SVal.new( :value('This WhateverCode has been inlined into another WhateverCode and should not have been called!') ) );
+                        for $old<chain_past> {
+                            $new.push($_);
                         }
-                        while +($old<chain_args>) > 0 {
-                            my %arg := nqp::shift($old<chain_args>);
+                        for $old<chain_args> -> %arg {
                             @params.push(%arg);
                             $block[0].push(QAST::Var.new(:name(%arg<variable_name>), :scope<lexical>, :decl<var>));
                         }
+                        nqp::push(@old_args, $new);
                     } else {
                         $new := QAST::Op.new( :op<call>, :node($/), $old );
                         my $acount := 0;
@@ -6095,6 +6095,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
             if $was_chain {
                 $past<chain_past> := @old_args;
                 $past<chain_args> := @params;
+                $past<chain_name> := $was_chain;
+                $past<chain_block> := $block;
             }
         }
         $past

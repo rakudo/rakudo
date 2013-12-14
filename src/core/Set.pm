@@ -2,7 +2,7 @@ my class Set does Setty {
     has Int $!total;
     has $!WHICH;
 
-    method total { $!total //= nqp::getattr(self, Set, '%!elems').elems }
+    method total { $!total //= %!elems.elems }
     submethod WHICH { $!WHICH }
     submethod BUILD (:%elems) {
         my @keys := %elems.keys.sort;
@@ -11,7 +11,7 @@ my class Set does Setty {
     }
 
     method at_key($k --> Bool) {
-        so nqp::getattr(self, Set, '%!elems').exists_key($k.WHICH);
+        so %!elems.exists_key($k.WHICH);
     }
 
     method delete ($a --> Bool) {  # is DEPRECATED doesn't work in settings

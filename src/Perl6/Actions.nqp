@@ -1689,9 +1689,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 unless $*HAS_SELF {
                     $*W.throw($/, ['X', 'Syntax', 'NoSelf'], variable => $past.name());
                 }
-                my $attr := get_attribute_meta_object($/, $past.name());
+                my $attr := get_attribute_meta_object($/, $past.name(), $past);
+                $past.returns($attr.type) if $attr;
                 $past.scope('attribute');
-                $past.returns($attr.type);
                 $past.unshift(instantiated_type(['$?CLASS'], $/));
                 $past.unshift(QAST::Var.new( :name('self'), :scope('lexical') ));
             }
@@ -1781,7 +1781,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         $past
     }
     
-    sub get_attribute_meta_object($/, $name) {
+    sub get_attribute_meta_object($/, $name, $later?) {
         unless nqp::can($*PACKAGE.HOW, 'get_attribute_for_usage') {
             $/.CURSOR.panic("Cannot understand $name in this context");
         }
@@ -1792,12 +1792,26 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $found := 1;
         }
         unless $found {
-            $*W.throw($/, ['X', 'Attribute', 'Undeclared'],
-                    symbol       => $name,
-                    package-kind => $*PKGDECL,
-                    package-name => $*PACKAGE.HOW.name($*PACKAGE),
-                    what         => 'attribute',
-            );
+
+            # need to check later
+            if $later {
+                my $seen := %*ATTR_USAGES{$name};
+                unless $seen {
+                    %*ATTR_USAGES{$name} := $seen := nqp::list();
+                    $later.node($/); # only need $/ for first error
+                }
+                $seen.push($later);
+            }
+
+            # now is later
+            else {
+                $*W.throw($/, ['X', 'Attribute', 'Undeclared'],
+                  symbol       => $name,
+                  package-kind => $*PKGDECL,
+                  package-name => $*PACKAGE.HOW.name($*PACKAGE),
+                  what         => 'attribute',
+                );
+            }
         }
         $attr
     }
@@ -1922,6 +1936,17 @@ class Perl6::Actions is HLL::Actions does STDActions {
             # Make a code object for the block.
             $*W.create_code_object($block, 'Block',
                 $*W.create_signature(nqp::hash('parameters', [])));
+        }
+
+        # check up any private attribute usage
+        for %*ATTR_USAGES {
+            my $name   := $_.key;
+            my @usages := $_.value;
+            for @usages {
+                my $past := $_;
+                my $attr := get_attribute_meta_object($past.node, $name);
+                $past.returns($attr.type);
+            }
         }
 
         # Document
@@ -3724,7 +3749,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             # If it's !-twigil'd, ensure the attribute it mentions exists unless
             # we're in a context where we should not do that.
             if $_<bind_attr> && !$no_attr_check {
-                get_attribute_meta_object($/, $_<variable_name>);
+                get_attribute_meta_object($/, $_<variable_name>, QAST::Var.new);
             }
             
             # If we have a sub-signature, create that.
@@ -6011,7 +6036,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my $curried :=
             # It must be an op and...
             nqp::istype($past, QAST::Op) && (
-            
+
             # Either a call that we're allowed to curry...
                 (($past.op eq 'call' || $past.op eq 'chain') &&
                     (nqp::index($past.name, '&infix:') == 0 ||
@@ -6020,7 +6045,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                      (nqp::istype($past[0], QAST::Op) &&
                         nqp::index($past[0].name, '&METAOP') == 0)) &&
                     %curried{$past.name} // 2)
-            
+
             # Or not a call and an op in the list of alloweds.
                 || ($past.op ne 'call' && %curried{$past.op} // 0)
 
@@ -6040,33 +6065,51 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $i++;
         }
         if $whatevers {
+            my $was_chain := $past.op eq 'chain' ?? $past.name !! NQPMu;
             my int $i := 0;
             my @params;
+            my @old_args;
             my $block := QAST::Block.new(QAST::Stmts.new(), $past);
             $*W.cur_lexpad()[0].push($block);
             while $i < $upto_arity {
                 my $old := $past[$i];
-                $old := $old[0] if (nqp::istype($old, QAST::Stmts) || 
+                $old := $old[0] if (nqp::istype($old, QAST::Stmts) ||
                                     nqp::istype($old, QAST::Stmt)) &&
                                    +@($old) == 1;
                 if istype($old.returns, $WhateverCode) {
-                    my $new := QAST::Op.new( :op<call>, :node($/), $old);
-                    my $acount := 0;
-                    while $acount < $old.arity {
-                        my $pname := '$x' ~ (+@params);
-                        @params.push(hash(
-                            :variable_name($pname),
-                            :nominal_type($*W.find_symbol(['Mu'])),
-                            :is_parcel(1),
-                        ));
-                        $block[0].push(QAST::Var.new(:name($pname), :scope<lexical>, :decl('var')));
-                        $new.push(QAST::Var.new(:name($pname), :scope<lexical>));
-                        $acount++;
+                    my $new;
+                    if $was_chain && nqp::existskey($old, "chain_args") {
+                        $new := QAST::Op.new( :op<chain>, :name($old<chain_name>), :node($/) );
+                        $old<chain_block>[1] := QAST::Op.new( :op<die>, QAST::SVal.new( :value('This WhateverCode has been inlined into another WhateverCode and should not have been called!') ) );
+                        for $old<chain_past> {
+                            $new.push($_);
+                        }
+                        for $old<chain_args> -> %arg {
+                            @params.push(%arg);
+                            $block[0].push(QAST::Var.new(:name(%arg<variable_name>), :scope<lexical>, :decl<var>));
+                        }
+                        nqp::push(@old_args, $new);
+                    } else {
+                        $new := QAST::Op.new( :op<call>, :node($/), $old );
+                        my $acount := 0;
+                        while $acount < $old.arity {
+                            my $pname := $*W.cur_lexpad()[0].unique('$whatevercode_arg');
+                            @params.push(hash(
+                                :variable_name($pname),
+                                :nominal_type($*W.find_symbol(['Mu'])),
+                                :is_parcel(1),
+                            ));
+                            $block[0].push(QAST::Var.new(:name($pname), :scope<lexical>, :decl<var>));
+                            my $to_push := QAST::Var.new(:name($pname), :scope<lexical>);
+                            $new.push($to_push);
+                            nqp::push(@old_args, $to_push) if $was_chain;
+                            $acount++;
+                        }
                     }
                     $past[$i] := $new;
                 }
                 elsif $curried > 1 && istype($old.returns, $Whatever) {
-                    my $pname := '$x' ~ (+@params);
+                    my $pname := $*W.cur_lexpad()[0].unique('$whatevercode_arg');
                     @params.push(hash(
                         :variable_name($pname),
                         :nominal_type($*W.find_symbol(['Mu'])),
@@ -6074,6 +6117,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     ));
                     $block[0].push(QAST::Var.new(:name($pname), :scope<lexical>, :decl('var')));
                     $past[$i] := QAST::Var.new(:name($pname), :scope<lexical>);
+                    nqp::push(@old_args, $past[$i]) if $was_chain;
+                } else {
+                    nqp::push(@old_args, $past[$i]) if $was_chain;
                 }
                 $i++;
             }
@@ -6084,6 +6130,12 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $past := block_closure(reference_to_code_object($code, $block));
             $past.returns($WhateverCode);
             $past.arity(+@params);
+            if $was_chain {
+                $past<chain_past> := @old_args;
+                $past<chain_args> := @params;
+                $past<chain_name> := $was_chain;
+                $past<chain_block> := $block;
+            }
         }
         $past
     }

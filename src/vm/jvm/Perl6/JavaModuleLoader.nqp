@@ -6,7 +6,7 @@ class Perl6::JavaModuleLoader {
         $interop_loader := $loader;
     }
     
-    method load_module($module_name, %opts, *@GLOBALish, :$line, :$file?) {
+    method load_module($module_name, %opts, *@GLOBALish, :$line, :$file) {
         # Load interop support if needed.
         $interop := $interop_loader() unless nqp::isconcrete($interop);
         

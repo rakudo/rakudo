@@ -1,5 +1,4 @@
-my role Mixy does Baggy  {  # should really be QuantHash, but that's for later
-
+my role Mixy does Baggy  {
     method default(--> Real) { 0 }
     method total(--> Real) { [+] self.values }
 
@@ -23,7 +22,7 @@ my role Mixy does Baggy  {  # should really be QuantHash, but that's for later
         my $name := self.^name;
         ( $name eq 'Mix' ?? 'mix' !! "$name.new" )
         ~ '('
-#        ~ %!elems.values.map( { "{.key.gist}({.value})" } ).join(', ')
+#        ~ %!elems.values.map( {
         ~ self.pairs.map( {
               .value == 1 ?? .key.gist !! "{.key.gist}({.value})"
           } ).join(', ')

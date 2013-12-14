@@ -2,14 +2,12 @@ my class Mix does Mixy {
     has Real $!total;
 
     method total { 
-        $!total //=
-          [+] nqp::getattr(self, Mix, '%!elems').values.map( { .value } ); 
+        $!total //= [+] %!elems.values.map( { .value } ); 
     }   
     method at_key($k --> Real) {
-        my $elems := nqp::getattr(self, Mix, '%!elems');
-        my $key   := $k.WHICH;
-        $elems.exists_key($key)
-          ?? $elems{$key}.value
+        my $key := $k.WHICH;
+        %!elems.exists_key($key)
+          ?? %!elems{$key}.value
           !! 0;
     }
 
@@ -28,7 +26,7 @@ my class Mix does Mixy {
     }
 
     method Mix { self }
-    method MixHash { MixHash.new-fp(nqp::getattr(self, Mix, '%!elems').values) }
-    method Bag     {     Bag.new-fp(nqp::getattr(self, Mix, '%!elems').values) }
-    method BagHash { BagHash.new-fp(nqp::getattr(self, Mix, '%!elems').values) }
+    method MixHash { MixHash.new-fp(%!elems.values) }
+    method Bag     {     Bag.new-fp(%!elems.values) }
+    method BagHash { BagHash.new-fp(%!elems.values) }
 }

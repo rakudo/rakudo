@@ -1891,9 +1891,10 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*DOCEE;
         <.attach_docs>
         
-        # Meta-object will live in here; also set default REPR (a trait
+        # Type-object will live in here; also set default REPR (a trait
         # may override this, e.g. is repr('...')).
         :my $*PACKAGE;
+        :my %*ATTR_USAGES;
         :my $*REPR;
         
         # Default to our scoped.

@@ -154,8 +154,43 @@ class Perl6::Optimizer {
                 }
             }
         }
-        
+
+        # We may also be able to optimize away the full-blown binder in some
+        # cases and on some backends.
+        my $code_obj := $block<code_object>;
+        my $backend  := nqp::getcomp('perl6').backend.name;
+        if $backend eq 'jvm' && $*LEVEL >= 3 && nqp::isconcrete($code_obj) {
+            my $sig := $code_obj.signature;
+            self.try_eliminate_binder($block, $sig);
+        }
+
         $block
+    }
+    
+    method try_eliminate_binder($block, $sig) {
+        my $Signature := self.find_in_setting('Signature');
+        my @params := nqp::getattr($sig, $Signature, '$!params');
+        if nqp::elems(@params) == 0 {
+            # Zero args; no need for binder call, and no more to do.
+            try_remove_binder_call();
+        }
+        sub try_remove_binder_call() {
+            my int $found := 0;
+            for @($block[0]) {
+                if nqp::istype($_, QAST::Op) && $_.op eq 'p6bindsig' {
+                    $_.op('null');
+                    $found := 1;
+                    last;
+                }
+            }
+            if $found {
+                $block.custom_args(0);
+                1
+            }
+            else {
+                0
+            }
+        }
     }
 
     method is_from_core($name) {
@@ -488,15 +523,24 @@ class Perl6::Optimizer {
                             if $op.op eq 'chain' { $!chain_depth := $!chain_depth - 1 }
                             #say("# trial bind worked!");
                             if $*LEVEL >= 2 {
-                                return nqp::can($obj, 'inline_info') && nqp::istype($obj.inline_info, QAST::Node)
-                                    ?? self.inline_call($op, $obj)
-                                    !! copy_returns($op, $obj);
+                                if nqp::can($obj, 'inline_info') && nqp::istype($obj.inline_info, QAST::Node) {
+                                    return self.inline_call($op, $obj);
+                                }
+                                copy_returns($op, $obj);
                             }
                         }
                         elsif $ct_result == -1 {
                             self.report_inevitable_dispatch_failure($op, @types, @flags, $obj);
                         }
                     }
+                }
+
+                # If we get here, no inlining or compile-time decision was
+                # possible, but we may still be able to make it a callstatic,
+                # which is cheaper on some backends.
+                my $scopes := self.scopes_in($op.name);
+                if $scopes == 0 || $scopes == 1 && nqp::can($obj, 'soft') && !$obj.soft {
+                    $op.op('callstatic');
                 }
             }
             else {
@@ -525,7 +569,7 @@ class Perl6::Optimizer {
                         $op.unshift($inv);
                         $op.unshift($call);
                         $op.op('call');
-                        $op.name(nqp::null());
+                        $op.name(NQPMu);
                     }
                 }
                 else {
@@ -550,8 +594,7 @@ class Perl6::Optimizer {
     
     # Handles visiting a QAST::Want node.
     method visit_want($want) {
-        # Just visit the children for now. We ignore the literal strings, so
-        # it all works out.
+        # Any literal in void context deserves a warning.
         if $*VOID_CONTEXT && !$*IN_DECLARATION
                 && +@($want) == 3 && $want.node {
 
@@ -576,7 +619,15 @@ class Perl6::Optimizer {
                 return $NULL;
             }
         }
-        self.visit_children($want, :skip_selectors);
+
+        # If it's the sink context void node, then only visit the first
+        # child. Otherwise, see all.
+        if +@($want) == 3 && $want[1] eq 'v' {
+            self.visit_children($want, :first);
+        }
+        else {
+            self.visit_children($want, :skip_selectors);
+        }
         $want;
     }
     
@@ -683,10 +734,11 @@ class Perl6::Optimizer {
     }
     
     # Visits all of a nodes children, and dispatches appropriately.
-    method visit_children($node, :$skip_selectors, :$resultchild) {
+    method visit_children($node, :$skip_selectors, :$resultchild, :$first) {
         my int $r := $resultchild // -1;
         my int $i := 0;
-        while $i < +@($node) {
+        my int $n := +@($node);
+        while $i < $n {
             my $outer_void := $*VOID_CONTEXT;
             my $outer_decl := $*IN_DECLARATION;
             unless $skip_selectors && $i % 2 {
@@ -712,7 +764,7 @@ class Perl6::Optimizer {
                     self.visit_children($visit, :resultchild($visit.resultchild // +@($visit) - 1));
                 }
             }
-            $i := $i + 1;
+            $i := $first ?? $n !! $i + 1;
         }
     }
     
@@ -749,6 +801,22 @@ class Perl6::Optimizer {
             }
         }
         0
+    }
+    
+    # Works out how many scopes in from the outermost a given name is. A 0
+    # from this means the nearest declaration is from the setting; a 1 means
+    # it is in the mainline, etc.
+    method scopes_in($name) {
+        my int $i := +@!block_stack;
+        while $i > 0 {
+            $i := $i - 1;
+            my $block := @!block_stack[$i];
+            my %sym := $block.symbol($name);
+            if +%sym {
+                return $i;
+            }
+        }
+        nqp::die("Symbol $name not found");
     }
     
     # Inlines an immediate block.
@@ -853,7 +921,7 @@ class Perl6::Optimizer {
                     ),
                     QAST::IVal.new( :value($idx) )
                 ));
-                $call.name(nqp::null());
+                $call.name(NQPMu);
                 $call.op('call');
                 #say("# Compile-time resolved a call to " ~ $proto.name);
                 last;

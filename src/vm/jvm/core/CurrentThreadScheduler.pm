@@ -5,9 +5,11 @@ my class CurrentThreadScheduler does Scheduler {
         $exception.throw
     }
 
-    method cue(&code, :$at, :$in, :$every, :&catch is copy ) {
+    method cue(&code, :$at, :$in, :$every, :$times = 1, :&catch is copy ) {
         die "Cannot specify :at and :in at the same time"
           if $at.defined and $in.defined;
+        die "Cannot specify :every and :times at the same time"
+          if $every.defined and $times > 1;
         die "Cannot specify :every in {self.HOW.name(self)}"
           if $every;
 
@@ -16,7 +18,7 @@ my class CurrentThreadScheduler does Scheduler {
         &catch //=
           self.uncaught_handler // -> $ex { self.handle_uncaught($ex) };
 
-        code();
+        code() for 1 .. $times;
         CATCH { default { catch($_) } };
     }
 

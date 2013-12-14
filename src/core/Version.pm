@@ -3,12 +3,18 @@ class Version {
     has Bool $.plus = False;
 
     multi method new(Str:D $s) {
+#?if !moar
         my @parts = $s.comb(/:r '*' || \d+ || <.alpha>+/);
         for @parts {
             $_ .= Numeric if .Numeric.defined ;
             $_ = * if $_ eq '*';
         }
         self.bless(:parts(@parts), :plus($s.substr(*-1) eq '+'));
+#?endif
+#?if moar
+        # XXX Above explodes; fix later.
+        self.bless()
+#?endif
     };
 
     multi method Str(Version:D:) {

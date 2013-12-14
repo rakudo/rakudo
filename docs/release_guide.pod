@@ -15,8 +15,8 @@ end of this document.
 
 Releases are typically on the third Thursday of each month.
 
-  2013-12-19   Rakudo #71
-  2014-01-23   Rakudo #72
+  2013-12-19   Rakudo #71  moritz
+  2014-01-23   Rakudo #72  masak
   2014-02-20   Rakudo #73
   2014-03-20   Rakudo #74
   2014-04-17   Rakudo #75

@@ -110,7 +110,7 @@ my class List does Positional { # declared in BOOTSTRAP
         return unless self.DEFINITE;
         # loop through iterators until we have at least $n elements
         my int $count = nqp::elems(nqp::p6listitems(self));
-        my $eager = nqp::p6bool(nqp::istype($n, Whatever) || $n == $Inf);
+        my $eager = nqp::p6bool(nqp::istype($n, Whatever) || nqp::istype($n, Num) && $n == $Inf);
         while $!nextiter.defined && ($eager 
                                        ?? !$!nextiter.infinite 
                                        !! ($count < $n)) {

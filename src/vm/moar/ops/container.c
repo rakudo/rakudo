@@ -59,7 +59,8 @@ static const MVMContainerSpec rakudo_scalar_spec = {
     NULL,
     NULL,
     rakudo_scalar_serialize,
-    rakudo_scalar_deserialize
+    rakudo_scalar_deserialize,
+    1
 };
 
 static void rakudo_scalar_set_container_spec(MVMThreadContext *tc, MVMSTable *st) {

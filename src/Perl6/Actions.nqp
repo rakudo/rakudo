@@ -1848,7 +1848,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             set_default_parameter_type(@params, 'Mu');
             my $sig := create_signature_object($<signature>, %sig_info, $block);
             add_signature_binding_code($block, $sig, @params);
-            $block.blocktype('declaration');
+            $block.blocktype('declaration_static');
 
             # Need to ensure we get lexical outers fixed up properly. To
             # do this we make a list of closures, which each point to the
@@ -2403,6 +2403,11 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
                 # Install the candidate.
                 $*W.add_dispatchee_to_proto($proto, $code);
+                
+                # We'll mark it static so the code object inside the
+                # proto is captured correctly. Technically this is wrong,
+                # as the multi may be nested in another sub.
+                $block.blocktype('declaration_static');
             }
             else {
                 # Install.
@@ -2426,6 +2431,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
                         QAST::SVal.new( :value($name) ),
                         QAST::Var.new( :name($name), :scope('lexical') )
                     ));
+
+                    # Static code object needs re-capturing also, as it's
+                    # our-scoped.
+                    $block.blocktype('declaration_static');
                 }
                 elsif $*SCOPE eq 'anon' {
                     # don't do anything
@@ -2652,7 +2661,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
         else {
             $past := $<blockoid>.ast;
-            $past.blocktype('declaration');
+            $past.blocktype('declaration_static');
             if is_clearly_returnless($past) {
                 $past[1] := QAST::Op.new(
                     :op('p6typecheckrv'),
@@ -3018,8 +3027,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
     method regex_def($/) {
         my $coderef;
         my $name := ~%*RX<name>;
-
+        $*CURPAD.blocktype('declaration_static');
         my %sig_info := $<signature> ?? $<signature>[0].ast !! hash(parameters => []);
+
         if $*MULTINESS eq 'proto' {
             unless $<onlystar> {
                 $/.CURSOR.panic("Proto regex body must be \{*\} (or <*> or <...>, which are deprecated)");

@@ -45,6 +45,7 @@ my class CallFrame {
         my $h := nqp::create(EnumMap);
         nqp::bindattr($h, EnumMap, '$!storage', $ctx);
         nqp::bindattr($self, CallFrame, '%!my', $h);
+        nqp::bindattr($self, CallFrame, '%.level', $l);
         
         my $e  := nqp::handle(nqp::die(''), 'CATCH', nqp::exception());
         my $bt := nqp::backtrace($e);

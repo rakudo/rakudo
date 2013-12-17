@@ -43,7 +43,7 @@ sub term:<time>() { nqp::p6box_i(nqp::time_i()) }
 #?if moar
     my $VM = {
         name    => 'moar',
-        config  => { osname => 'XXX' }
+        config  => nqp::backendconfig
     }
 #?endif
     nqp::bindkey(nqp::who(PROCESS), '$VM', $VM);
@@ -147,15 +147,12 @@ sub term:<time>() { nqp::p6box_i(nqp::time_i()) }
     my $OSVER = $VM<properties><os.version>;
     nqp::bindkey(nqp::who(PROCESS), '$OSVER', $OSVER);
 #?endif
-#?if parrot
-    my $OS = $VM<config><osname>; # XXX: master gets this information with the sysinfo dynop
+#?if !jvm
+    my $OS = $VM<config><osname>; # XXX: master gets this information with the sysinfo dynop on parrot
     nqp::bindkey(nqp::who(PROCESS), '$OS', $OS);
 
-    my $OSVER = $VM<config><osvers>; # XXX: master gets this information with the sysinfo dynop
+    my $OSVER = $VM<config><osname>; # XXX: master gets this information with the sysinfo dynop on parrot
     nqp::bindkey(nqp::who(PROCESS), '$OSVER', $OSVER);
-#?endif
-#?if moar
-# XXX TODO
 #?endif
 
     my $PID = nqp::p6box_i(nqp::getpid());

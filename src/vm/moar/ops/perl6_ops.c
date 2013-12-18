@@ -255,8 +255,9 @@ static void p6recont_ro(MVMThreadContext *tc) {
             /* We have an rw container; re-containerize it. */
             MVMROOT(tc, check, {
                 MVMObject *result = MVM_repr_alloc_init(tc, Scalar);
-                MVM_ASSIGN_REF(tc, result, ((Rakudo_Scalar *)check)->value,
+                MVM_ASSIGN_REF(tc, result, ((Rakudo_Scalar *)result)->value,
                     ((Rakudo_Scalar *)check)->value);
+                GET_REG(tc, 0).o = result;
             });
             return;
         }

@@ -330,7 +330,7 @@ static MVMuint8 s_p6capturelex[] = {
 };
 static void p6capturelex(MVMThreadContext *tc) {
     MVMObject *p6_code_obj = GET_REG(tc, 2).o;
-    MVMObject *vm_code_obj = MVM_frame_find_invokee(tc, p6_code_obj);
+    MVMObject *vm_code_obj = MVM_frame_find_invokee(tc, p6_code_obj, NULL);
     if (REPR(vm_code_obj)->ID == MVM_REPR_ID_MVMCode)
         MVM_frame_capturelex(tc, vm_code_obj);
     else
@@ -347,7 +347,7 @@ static void p6captureouters(MVMThreadContext *tc) {
     MVMint64   i;
     for (i = 0; i < elems; i++) {
         MVMObject *p6_code_obj = MVM_repr_at_pos_o(tc, todo, i);
-        MVMObject *vm_code_obj = MVM_frame_find_invokee(tc, p6_code_obj);
+        MVMObject *vm_code_obj = MVM_frame_find_invokee(tc, p6_code_obj, NULL);
         if (REPR(vm_code_obj)->ID == MVM_REPR_ID_MVMCode) {
             MVMFrame *outer = ((MVMCode *)vm_code_obj)->body.outer;
             if (outer->outer)

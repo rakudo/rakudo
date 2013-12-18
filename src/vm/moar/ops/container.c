@@ -18,7 +18,7 @@ static void rakudo_scalar_store(MVMThreadContext *tc, MVMObject *cont, MVMObject
     /* Run any whence closure. */
     whence = ((Rakudo_Scalar *)cont)->whence;
     if (whence && IS_CONCRETE(whence)) {
-        MVMObject *code = MVM_frame_find_invokee(tc, whence);
+        MVMObject *code = MVM_frame_find_invokee(tc, whence, NULL);
         tc->cur_frame->return_type    = MVM_RETURN_VOID;
         tc->cur_frame->return_address = *(tc->interp_cur_op);
         STABLE(code)->invoke(tc, code, &no_arg_callsite, tc->cur_frame->args);
@@ -35,7 +35,7 @@ static void rakudo_scalar_store_unchecked(MVMThreadContext *tc, MVMObject *cont,
     /* Run any whence closure. */
     whence = ((Rakudo_Scalar *)cont)->whence;
     if (whence && IS_CONCRETE(whence)) {
-        MVMObject *code = MVM_frame_find_invokee(tc, whence);
+        MVMObject *code = MVM_frame_find_invokee(tc, whence, NULL);
         tc->cur_frame->return_type    = MVM_RETURN_VOID;
         tc->cur_frame->return_address = *(tc->interp_cur_op);
         STABLE(code)->invoke(tc, code, &no_arg_callsite, tc->cur_frame->args);

@@ -254,6 +254,9 @@ $(SETTING_MOAR): $(PERL6_MOAR) $(PERL6_B_MOAR) $(M_CORE_SOURCES)
 $(M_RUNNER): tools/build/gen-moar-runner.pl $(PERL6_MOAR)
 	$(PERL) tools/build/gen-moar-runner.pl $(MOAR) $(M_LIBPATH)
 
+m-runner-default: $(M_RUNNER)
+	$(CP) $(M_RUNNER) perl6@runner_suffix@
+
 ##  testing targets
 blib/Test.moarvm: lib/Test.pm $(PERL6_MOAR) $(SETTING_MOAR) $(M_RUNNER)
 	.@slash@$(M_RUNNER) --target=mbc --output=blib/Test.moarvm lib/Test.pm

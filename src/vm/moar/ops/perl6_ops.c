@@ -172,15 +172,20 @@ static MVMuint8 s_p6list[] = {
 };
 static void p6list(MVMThreadContext *tc) {
      MVMObject *list = MVM_repr_alloc_init(tc, GET_REG(tc, 4).o);
-     MVMROOT(tc, list, {
-        MVMObject *items = GET_REG(tc, 2).o;
-        if (items) {
-            MVMObject *iter = make_listiter(tc, items, list);
-            MVM_ASSIGN_REF(tc, list, ((Rakudo_List *)list)->nextiter, iter);
-        }
-        MVM_ASSIGN_REF(tc, list, ((Rakudo_List *)list)->flattens, GET_REG(tc, 6).o);
-     });
-     GET_REG(tc, 0).o = list;
+     if (MVM_6model_istype_cache_only(tc, list, List)) {
+        MVMROOT(tc, list, {
+            MVMObject *items = GET_REG(tc, 2).o;
+            if (items) {
+                MVMObject *iter = make_listiter(tc, items, list);
+                MVM_ASSIGN_REF(tc, list, ((Rakudo_List *)list)->nextiter, iter);
+            }
+            MVM_ASSIGN_REF(tc, list, ((Rakudo_List *)list)->flattens, GET_REG(tc, 6).o);
+        });
+        GET_REG(tc, 0).o = list;
+    }
+    else {
+        MVM_exception_throw_adhoc(tc, "p6list may only be used on a List");
+    }
 }
 
 static MVMuint8 s_p6listiter[] = {

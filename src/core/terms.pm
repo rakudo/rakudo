@@ -98,8 +98,6 @@ sub term:<time>() { nqp::p6box_i(nqp::time_i()) }
     @INC.push(%CUSTOM_LIB<vendor> ~ '/lib');
     @INC.push(%CUSTOM_LIB<perl>   ~ '/lib');
 
-# XXX Moar has problems with @INC setup for now.
-#?if !moar
     try {
         my $home := %ENV<HOME> // %ENV<HOMEDRIVE> ~ %ENV<HOMEPATH>;
         my $ver  := nqp::p6box_s(nqp::atkey($compiler, 'version'));
@@ -118,7 +116,6 @@ sub term:<time>() { nqp::p6box_i(nqp::time_i()) }
             @INC.unshift: nqp::p6box_s($I);
         }
     }
-#?endif
 
     nqp::bindkey(nqp::who(PROCESS), '@INC', @INC);
 

@@ -181,7 +181,7 @@ M_CLEANUPS = \
   $(M_PERL6_CONT_OBJ) \
   $(M_PERL6_OPS_DLL)
 
-M_HARNESS_WITH_FUDGE = $(PERL) t/harness --fudge --keep-exit-code
+M_HARNESS_WITH_FUDGE = $(PERL) t/harness --fudge --moar --keep-exit-code
 HARNESS = $(PERL) t/harness
 
 m-all: $(PERL6_MOAR) $(SETTING_MOAR) $(M_RUNNER) blib/Test.moarvm blib/lib.moarvm blib/Pod/To/Text.moarvm

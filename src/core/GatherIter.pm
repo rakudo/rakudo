@@ -7,6 +7,9 @@ class GatherIter is Iterator {
     my $GATHER_PROMPT = [];
     my $SENTINEL := [];
 #?endif
+#?if moar
+    my $SENTINEL := [];
+#?endif
     method new($block, Mu :$infinite) {
 #?if parrot
         my Mu $coro := 
@@ -29,7 +32,22 @@ class GatherIter is Iterator {
         my $coro := sub () is rw { nqp::continuationreset($GATHER_PROMPT, $state); $takings };
 #?endif
 #?if moar
-        my $coro = die 'GatherIter NYI on MoarVM';
+        # XXX Cheating, eager implementation for now.
+        my int $done = 0;
+        my $coro := -> {
+            if $done {
+                $SENTINEL
+            }
+            else {
+                my Mu $takings := nqp::list();
+                nqp::handle($block().eager(),
+                    'TAKE', nqp::stmts(
+                        nqp::push($takings, nqp::getpayload(nqp::exception())),
+                        nqp::resume(nqp::exception())));
+                $done = 1;
+                nqp::p6parcel($takings, Mu)
+            }
+        }
 #?endif
         my Mu $new := nqp::create(self);
         nqp::bindattr($new, GatherIter, '$!coro', $coro);
@@ -61,6 +79,9 @@ class GatherIter is Iterator {
                 $end = nqp::p6bool(nqp::isnull($parcel));
 #?endif
 #?if jvm
+                $end = nqp::p6bool(nqp::eqaddr($parcel, $SENTINEL));
+#?endif
+#?if moar
                 $end = nqp::p6bool(nqp::eqaddr($parcel, $SENTINEL));
 #?endif
                 nqp::push($rpa, $parcel) unless $end;

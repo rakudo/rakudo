@@ -282,11 +282,11 @@ static void p6var(MVMThreadContext *tc) {
         MVMROOT(tc, wrappee, {
             MVMObject *wrapper = MVM_repr_alloc_init(tc, Scalar);
             MVM_ASSIGN_REF(tc, wrapper, ((Rakudo_Scalar *)wrapper)->value, wrappee);
-            GET_REG(tc, 2).o = wrapper;
+            GET_REG(tc, 0).o = wrapper;
         });
      }
      else {
-        GET_REG(tc, 2).o = wrappee;
+        GET_REG(tc, 0).o = wrappee;
      }
 }
 

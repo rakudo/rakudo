@@ -63,7 +63,7 @@ my class Promise {
     
     method !keep($!result) {
         $!status = Kept;
-        $!ready_semaphore.'method/release/(I)V'(32768);
+        $!ready_semaphore.release(32768);
         self!schedule_thens();
         $!result
     }
@@ -75,7 +75,7 @@ my class Promise {
     method !break($result) {
         $!result = $result ~~ Exception ?? $result !! X::AdHoc.new(payload => $result);
         $!status = Broken;
-        $!ready_semaphore.'method/release/(I)V'(32768);
+        $!ready_semaphore.release(32768);
         self!schedule_thens();
     }
     
@@ -92,7 +92,7 @@ my class Promise {
         # not yet started, then the work can be done immediately by the
         # thing that is blocking on it.
         if $!status == Planned {
-            $!ready_semaphore.'method/acquire/()V'();
+            $!ready_semaphore.acquire();
         }
         if $!status == Kept {
             $!result
@@ -175,12 +175,12 @@ my class Promise {
         for @promises -> $cand {
             $cand.then({
                 if .status == Kept {
-                    if $c.'decrementAndGet'() == 0 {
+                    if $c.decrementAndGet() == 0 {
                         $vow.keep(True)
                     }
                 }
                 else {
-                    if $c.'getAndAdd'(-($n + 1)) > 0 {
+                    if $c.getAndAdd(-($n + 1)) > 0 {
                         $vow.break(.cause)
                     }
                 }

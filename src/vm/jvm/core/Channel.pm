@@ -52,7 +52,7 @@ my class Channel {
     }
     
     method poll(Channel:D:) {
-        my \fetched := $!queue.'method/poll/()Ljava/lang/Object;'();
+        my \fetched := $!queue.poll();
         if nqp::jvmisnull(fetched) {
             Nil
         } else {
@@ -72,7 +72,7 @@ my class Channel {
     }
     
     method !peek(Channel:D:) {
-        my \fetched := $!queue.'method/peek/()Ljava/lang/Object;'();
+        my \fetched := $!queue.peek();
         if nqp::jvmisnull(fetched) {
             Nil
         } else {

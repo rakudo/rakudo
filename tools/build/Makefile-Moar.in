@@ -318,10 +318,10 @@ m-install: m-all tools/build/create-moar-runner.pl
 	$(CP) blib/lib.moarvm $(PERL6_LANG_DIR)/lib
 	$(MKPATH) $(PERL6_LANG_DIR)/lib/Pod/To
 	$(CP) blib/Pod/To/Text.moarvm $(PERL6_LANG_DIR)/lib/Pod/To
-	$(PERL) tools/build/create-moar-runner.pl install $(PREFIX) $(PREFIX)
+	$(PERL) tools/build/create-moar-runner.pl $(MOAR) $(M_LIBPATH)
 
 m-runner-default-install: m-install
-	$(PERL) tools/build/create-moar-runner.pl install $(PREFIX) $(PREFIX)
+	$(PERL) tools/build/create-moar-runner.pl $(MOAR) $(M_LIBPATH)
 	$(CP) $(DESTDIR)$(PREFIX)/bin/perl6-m$(BAT) $(DESTDIR)$(PREFIX)/bin/perl6$(BAT)
 	$(CHMOD) 755 $(DESTDIR)$(PREFIX)/bin/perl6$(BAT)
 

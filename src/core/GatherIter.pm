@@ -32,7 +32,8 @@ class GatherIter is Iterator {
         my $coro := sub () is rw { nqp::continuationreset($GATHER_PROMPT, $state); $takings };
 #?endif
 #?if moar
-        # XXX Cheating, eager implementation for now.
+        # XXX Cheating, eager implementation for now. Limits to 1000
+        # takes.
         my int $done = 0;
         my $coro := -> {
             if $done {
@@ -40,10 +41,11 @@ class GatherIter is Iterator {
             }
             else {
                 my Mu $takings := nqp::list();
+                my int $taken = 0;
                 nqp::handle($block().eager(),
                     'TAKE', nqp::stmts(
                         nqp::push($takings, nqp::getpayload(nqp::exception())),
-                        nqp::resume(nqp::exception())));
+                        ($taken = $taken + 1) <= 1000 && nqp::resume(nqp::exception())));
                 $done = 1;
                 nqp::p6parcel($takings, Mu)
             }

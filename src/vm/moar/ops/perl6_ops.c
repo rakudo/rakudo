@@ -299,11 +299,22 @@ static void p6typecheckrv(MVMThreadContext *tc) {
 static MVMuint8 s_p6decontrv[] = {
     MVM_operand_obj | MVM_operand_write_reg,
     MVM_operand_obj | MVM_operand_read_reg,
-    MVM_operand_obj | MVM_operand_read_reg,
 };
 static void p6decontrv(MVMThreadContext *tc) {
-     /* XXX TODO */
-     GET_REG(tc, 0).o = GET_REG(tc, 4).o;
+     MVMObject *retval = GET_REG(tc, 2).o;
+     if (STABLE(retval)->container_spec == Rakudo_containers_get_scalar()) {
+        Rakudo_ContainerDescriptor *cd = (Rakudo_ContainerDescriptor *)
+            ((Rakudo_Scalar *)retval)->descriptor;
+        if (cd && cd->rw) {
+            MVMROOT(tc, retval, {
+                MVMObject *cont = MVM_repr_alloc_init(tc, Scalar);
+                MVM_ASSIGN_REF(tc, cont, ((Rakudo_Scalar *)cont)->value,
+                    ((Rakudo_Scalar *)retval)->value);
+                retval = cont;
+            });
+        }
+     }
+     GET_REG(tc, 0).o = retval;
 }
 
 static MVMuint8 s_p6routinereturn[] = {
@@ -528,7 +539,7 @@ MVM_DLL_EXPORT void Rakudo_ops_init(MVMThreadContext *tc) {
     MVM_ext_register_extop(tc, "p6recont_ro",  p6recont_ro, 2, s_p6recont_ro);
     MVM_ext_register_extop(tc, "p6var",  p6var, 2, s_p6var);
     MVM_ext_register_extop(tc, "p6typecheckrv",  p6typecheckrv, 2, s_p6typecheckrv);
-    MVM_ext_register_extop(tc, "p6decontrv",  p6decontrv, 3, s_p6decontrv);
+    MVM_ext_register_extop(tc, "p6decontrv",  p6decontrv, 2, s_p6decontrv);
     MVM_ext_register_extop(tc, "p6routinereturn",  p6routinereturn, 2, s_p6routinereturn);
     MVM_ext_register_extop(tc, "p6capturelex",  p6capturelex, 2, s_p6capturelex);
     MVM_ext_register_extop(tc, "p6captureouters", p6captureouters, 1, s_p6captureouters);

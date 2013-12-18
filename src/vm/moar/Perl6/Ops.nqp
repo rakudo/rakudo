@@ -68,7 +68,6 @@ MAST::ExtOpRegistry.register_extop('p6typecheckrv',
     $MVM_operand_obj   +| $MVM_operand_read_reg);
 MAST::ExtOpRegistry.register_extop('p6decontrv',
     $MVM_operand_obj   +| $MVM_operand_write_reg,
-    $MVM_operand_obj   +| $MVM_operand_read_reg,
     $MVM_operand_obj   +| $MVM_operand_read_reg);
 MAST::ExtOpRegistry.register_extop('p6capturelex',
     $MVM_operand_obj   +| $MVM_operand_write_reg,
@@ -171,7 +170,26 @@ $ops.add_hll_op('perl6', 'p6definite', -> $qastcomp, $op {
 });
 #$ops.map_classlib_hll_op('perl6', 'p6bindcaptosig', $TYPE_P6OPS, 'p6bindcaptosig', [$RT_OBJ, $RT_OBJ], $RT_OBJ, :tc);
 $ops.add_hll_moarop_mapping('perl6', 'p6typecheckrv', 'p6typecheckrv', 0);
-$ops.add_hll_moarop_mapping('perl6', 'p6decontrv', 'p6decontrv');
+$ops.add_hll_op('perl6', 'p6decontrv', -> $qastcomp, $op {
+    my $is_rw;
+    if nqp::istype($op[0], QAST::WVal) {
+        $is_rw := nqp::istrue($op[0].value.rw);
+    }
+    else {
+        nqp::die('p6decontrv expects a QAST::WVal as its first child');
+    }
+    if $is_rw {
+        $qastcomp.as_mast($op[1])
+    }
+    else {
+        my @ops;
+        my $value_res := $qastcomp.as_mast($op[1], :want($MVM_reg_obj));
+        push_ilist(@ops, $value_res);
+        nqp::push(@ops, MAST::ExtOp.new( :op('p6decontrv'), :cu($*MAST_COMPUNIT),
+            $value_res.result_reg, $value_res.result_reg ));
+        MAST::InstructionList.new(@ops, $value_res.result_reg, $MVM_reg_obj)
+    }
+});
 $ops.add_hll_moarop_mapping('perl6', 'p6capturelex', 'p6capturelex');
 $ops.add_hll_op('perl6', 'p6bindassert', -> $qastcomp, $op {
     # Compile the bind value and the type.

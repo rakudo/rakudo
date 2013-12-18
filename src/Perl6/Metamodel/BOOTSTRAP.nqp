@@ -2042,6 +2042,10 @@ BEGIN {
             nqp::bindattr_i($dcself, Routine, '$!rw', 1);
             $dcself
         }));
+    Routine.HOW.add_method(Routine, 'rw', nqp::getstaticcode(sub ($self) {
+            my $dcself := nqp::decont($self);
+            nqp::p6bool(nqp::getattr_i($dcself, Routine, '$!rw'));
+        }));
     Routine.HOW.add_method(Routine, 'set_inline_info', nqp::getstaticcode(sub ($self, $info) {
             my $dcself := nqp::decont($self);
             nqp::bindattr($dcself, Routine, '$!inline_info', $info);

@@ -251,8 +251,8 @@ $(SETTING_MOAR): $(PERL6_MOAR) $(PERL6_B_MOAR) $(M_CORE_SOURCES)
 	@echo "The following step can take a long time, please be patient."
 	$(M_RUN_PERL6) --setting=NULL --optimize=3 --target=mbc --stagestats --output=$(SETTING_MOAR) src/gen/m-CORE.setting
 
-$(M_RUNNER): tools/build/gen-moar-runner.pl $(PERL6_MOAR)
-	$(PERL) tools/build/gen-moar-runner.pl $(MOAR) $(M_LIBPATH)
+$(M_RUNNER): tools/build/create-moar-runner.pl $(PERL6_MOAR)
+	$(PERL) tools/build/create-moar-runner.pl $(MOAR) $(M_LIBPATH)
 
 m-runner-default: $(M_RUNNER)
 	$(CP) $(M_RUNNER) perl6@runner_suffix@

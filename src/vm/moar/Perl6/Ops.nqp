@@ -134,7 +134,7 @@ $ops.add_hll_op('perl6', 'p6store', -> $qastcomp, $op {
     my $no_cont_lbl := MAST::Label.new(:name($op.unique('p6store_no_cont_')));
     my $done_lbl    := MAST::Label.new(:name($op.unique('p6store_done_')));
     nqp::push(@ops, MAST::Op.new( :op('iscont'), $iscont_reg, $cont_res.result_reg ));
-    nqp::push(@ops, MAST::Op.new( :op('unless'), $iscont_reg, $no_cont_lbl ));
+    nqp::push(@ops, MAST::Op.new( :op('unless_i'), $iscont_reg, $no_cont_lbl ));
     $*REGALLOC.release_register($iscont_reg, $MVM_reg_int64);
     nqp::push(@ops, MAST::Op.new( :op('decont'), $value_res.result_reg, $value_res.result_reg ));
     nqp::push(@ops, MAST::Op.new( :op('assign'), $cont_res.result_reg, $value_res.result_reg ));

@@ -54,6 +54,7 @@ if ($list_file) {
             next if ($fudgespec =~ m/long/)   && !$do_long;
             next if ($fudgespec =~ m/stress/) && !$do_stress;
             next if ($fudgespec =~ m/jvm/)    && !$jvm;
+            next if ($fudgespec =~ m/moar/)   && !$moar;
         }
         $fn = "t/spec/$fn" unless $fn =~ m/^t\Q$slash\Espec\Q$slash\E/;
         $fn =~ s{/}{$slash}g;
@@ -144,7 +145,7 @@ sub all_in {
 }
 
 sub fudge {
-    my $impl = $jvm ? 'rakudo.jvm' : 'rakudo.parrot';
+    my $impl = $jvm ? 'rakudo.jvm' : ($moar ? 'rakudo.moar' : 'rakudo.parrot');
     my $cmd  = join ' ', $^X, 't/spec/fudgeall',
                          @pass_through_options, $impl, @_;
     return split ' ', `$cmd`;

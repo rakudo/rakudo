@@ -11,10 +11,6 @@ use File::Spec;
 use Getopt::Long qw(:config pass_through);
 use Pod::Usage;
 
-my $slash = $^O eq 'MSWin32' ? '\\' : '/';
-$ENV{'HARNESS_PERL'} = ".${slash}perl6-p";
-my $path_sep = $^O eq 'MSWin32' ? ';' : ':';
-$ENV{'PERL6LIB'} = join $path_sep, qw/ lib . /;
 use Test::Harness;
 $Test::Harness::switches = '';
 
@@ -29,6 +25,7 @@ GetOptions(
     'archive=s'         => \my $archive,
     'parrot_revision=s' => \my $parrot_revision,
     'jvm'               => \my $jvm,
+    'moar'              => \my $moar,
     'help|h' => sub { pod2usage(1); },
 ) or pod2usage(2);
 
@@ -37,6 +34,11 @@ $do_stress = 0 unless defined $do_stress;
 
 my @pass_through_options = grep m/^--?[^-]/, @ARGV;
 my @files = grep m/^[^-]/, @ARGV;
+
+my $slash = $^O eq 'MSWin32' ? '\\' : '/';
+$ENV{'HARNESS_PERL'} = ".${slash}perl6-" . ($moar ? "m" : $jvm ? "j" : "p");
+my $path_sep = $^O eq 'MSWin32' ? ';' : ':';
+$ENV{'PERL6LIB'} = join $path_sep, qw/ lib . /;
 
 if ($list_file) {
     open(my $f, '<', $list_file)

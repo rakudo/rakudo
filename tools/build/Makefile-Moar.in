@@ -270,7 +270,7 @@ m-test    : m-coretest
 m-fulltest: m-coretest m-stresstest
 
 m-coretest: m-all
-	$(HARNESS) t/01-sanity
+	$(HARNESS) --moar t/01-sanity
 
 # Run the spectests that we know work.
 m-spectest: m-testable t/spectest.data

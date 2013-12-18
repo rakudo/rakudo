@@ -307,7 +307,7 @@ static MVMuint8 s_p6decontrv[] = {
 };
 static void p6decontrv(MVMThreadContext *tc) {
      MVMObject *retval = GET_REG(tc, 2).o;
-     if (STABLE(retval)->container_spec == Rakudo_containers_get_scalar()) {
+     if (IS_CONCRETE(retval) && STABLE(retval)->container_spec == Rakudo_containers_get_scalar()) {
         Rakudo_ContainerDescriptor *cd = (Rakudo_ContainerDescriptor *)
             ((Rakudo_Scalar *)retval)->descriptor;
         if (cd && cd->rw) {

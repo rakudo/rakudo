@@ -151,7 +151,20 @@ my class Binder {
             
             # Otherwise, maybe we need to unbox.
             elsif !$got_native {
-                nqp::die('unboxing for native params NYI');
+                # XXX Probably want to do this a little differently to get a
+                # better error.
+                if $desired_native == 1 {
+                    $ival := nqp::unbox_i(nqp::decont($oval));
+                    $got_native := $SIG_ELEM_NATIVE_INT_VALUE;
+                }
+                elsif $desired_native == 2 {
+                    $nval := nqp::unbox_n(nqp::decont($oval));
+                    $got_native := $SIG_ELEM_NATIVE_NUM_VALUE;
+                }
+                else {
+                    $sval := nqp::unbox_s(nqp::decont($oval));
+                    $got_native := $SIG_ELEM_NATIVE_STR_VALUE;
+                }
             }
             
             # Otherwise, incompatible native types.

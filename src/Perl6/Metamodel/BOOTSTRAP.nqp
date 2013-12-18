@@ -338,7 +338,43 @@ my class Binder {
         # If it has a sub-signature, bind that.
         my $subsig := nqp::getattr($param, Parameter, '$!sub_signature');
         unless nqp::isnull($subsig) {
-            nqp::die('Sub-signatures NYI');
+            # Turn value into a capture, unless we already have one.
+            my $capture;
+            if $flags +& $SIG_ELEM_IS_CAPTURE {
+                $capture := $decont_value;
+            }
+            else {
+                if nqp::can($decont_value, 'Capture') {
+                    $capture := $decont_value.Capture;
+                }
+                else {
+                    if $error {
+                        $error[0] := "Could not turn argument into capture";
+                    }
+                    return $BIND_RESULT_FAIL;
+                }
+            }
+
+            # Recurse into signature binder.
+            sub vm_capture(*@pos, *%named) {
+                nqp::savecapture()
+            }
+            my @list := nqp::getattr($capture, Capture, '$!list');
+            @list    := nqp::list() unless nqp::islist(@list);
+            my %hash := nqp::getattr($capture, Capture, '$!hash');
+            %hash    := nqp::hash() unless nqp::ishash(%hash);
+            my $result := bind(vm_capture(|@list, |%hash), $subsig, $lexpad,
+                $no_nom_type_check, $error);
+            unless $result == $BIND_RESULT_OK {
+                if $error {
+                    # Note in the error message that we're in a sub-signature.
+                    $error[0] := $error[0] ~ " in sub-signature";
+                    unless nqp::isnull_s($varname) {
+                        $error[0] := $error[0] ~ " of parameter " ~ $varname;
+                    }
+                }
+                return $result;
+            }
         }
 
         # Binding of this parameter was thus successful - we're done.

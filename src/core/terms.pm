@@ -123,9 +123,7 @@ sub term:<time>() { nqp::p6box_i(nqp::time_i()) }
     nqp::bindkey(nqp::who(PROCESS), '@INC', @INC);
 
     ## duplicate src/core/IO.pm::cwd
-#?if !moar
     my $CWD = IO::Path.new(nqp::p6box_s(
-#?endif
 #?if parrot
         pir::trans_encoding__Ssi(
             nqp::cwd(),
@@ -134,11 +132,9 @@ sub term:<time>() { nqp::p6box_i(nqp::time_i()) }
 #?if !parrot
             nqp::cwd(),
 #?endif
-#?if !moar
     ));
 
     nqp::bindkey(nqp::who(PROCESS), '$CWD', $CWD);
-#?endif
 
 #?if jvm
     my $OS = $VM<properties><os.name>;

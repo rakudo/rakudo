@@ -258,7 +258,7 @@ my class Binder {
 
         # If it's not got attributive binding, we'll go about binding it into the
         # lex pad.
-        my int $is_attributive := $flags +& SIG_ELEM_BIND_ATTRIBUTIVE;
+        my int $is_attributive := $flags +& $SIG_ELEM_BIND_ATTRIBUTIVE;
         unless $is_attributive || nqp::isnull_s($varname) {
             # Is it native? If so, just go ahead and bind it.
             if $got_native {
@@ -332,7 +332,41 @@ my class Binder {
 
         # If it's attributive, now we assign it.
         if $is_attributive {
-            nqp::die('Attributive params NYI');
+            # Find self.
+            my $self;
+            if nqp::existskey($lexpad, 'self') {
+                $self := nqp::atkey($lexpad, 'self');
+            } else {
+                if nqp::defined($error) {
+                    $error[0] := "Unable to bind attributive parameter '$varname'; could not find self";
+                }
+                return $BIND_RESULT_FAIL;
+            }
+            
+            # Ensure it's not native; NYI.
+            if $got_native {
+                if nqp::defined($error) {
+                    $error[0] := "Binding to natively typed attributive parameter '$varname' not supported";
+                }
+                return $BIND_RESULT_FAIL;
+            }
+
+            # If it's private, just need to fetch the attribute.
+            my $assignee;
+            if ($flags +& $SIG_ELEM_BIND_PRIVATE_ATTR) {
+                $assignee := nqp::getattr($self,
+                    nqp::getattr($param, Parameter, '$!attr_package'),
+                    $varname);
+            }
+
+            # Otherwise if it's public, do a method call to get the assignee.
+            else {
+                $assignee := $self."$varname"();
+            }
+
+            nqp::iscont($assignee)
+                ?? nqp::assign($assignee, $decont_value)
+                !! $assignee.STORE($decont_value);
         }
 
         # If it has a sub-signature, bind that.

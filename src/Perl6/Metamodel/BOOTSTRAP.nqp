@@ -354,7 +354,32 @@ my class Binder {
         # name, so we need to have bound it already).
         my $post_cons := nqp::getattr($param, Parameter, '$!post_constraints');
         unless nqp::isnull($post_cons) {
-            nqp::die('Post-constraints NYI');
+            my int $n := nqp::elems($post_cons);
+            my int $i := 0;
+            while $i < $n {
+                # Check we meet the constraint.
+                my $cons_type := nqp::atpos($post_cons, $i);
+                my $result;
+                if $got_native == 0 {
+                    $result := $cons_type.ACCEPTS($oval);
+                }
+                elsif $got_native == $SIG_ELEM_NATIVE_INT_VALUE {
+                    $result := $cons_type.ACCEPTS($ival);
+                }
+                elsif $got_native == $SIG_ELEM_NATIVE_INT_VALUE {
+                    $result := $cons_type.ACCEPTS($nval);
+                }
+                elsif $got_native == $SIG_ELEM_NATIVE_STR_VALUE {
+                    $result := $cons_type.ACCEPTS($sval);
+                }
+                unless $result {
+                    if nqp::defined($error) {
+                        $error[0] := "Constraint type check failed for parameter '$varname'";
+                    }
+                    return $BIND_RESULT_FAIL;
+                }
+                $i++;
+            }
         }
 
         # If it's attributive, now we assign it.

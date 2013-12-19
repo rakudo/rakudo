@@ -916,6 +916,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 }
             }
             my $BLOCK := $*CURPAD;
+            $BLOCK.blocktype('declaration_static');
             $BLOCK.push($past);
             $BLOCK.node($/);
             $BLOCK<statementlist> := $<statementlist>.ast;
@@ -2253,7 +2254,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
         else {
             $block := $<blockoid>.ast;
-            $block.blocktype('declaration');
+            $block.blocktype('declaration_static');
             if is_clearly_returnless($block) {
                 unless nqp::objprimspec($block[1].returns) {
                     $block[1] := QAST::Op.new(
@@ -2403,11 +2404,6 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
                 # Install the candidate.
                 $*W.add_dispatchee_to_proto($proto, $code);
-                
-                # We'll mark it static so the code object inside the
-                # proto is captured correctly. Technically this is wrong,
-                # as the multi may be nested in another sub.
-                $block.blocktype('declaration_static');
             }
             else {
                 # Install.
@@ -2431,10 +2427,6 @@ class Perl6::Actions is HLL::Actions does STDActions {
                         QAST::SVal.new( :value($name) ),
                         QAST::Var.new( :name($name), :scope('lexical') )
                     ));
-
-                    # Static code object needs re-capturing also, as it's
-                    # our-scoped.
-                    $block.blocktype('declaration_static');
                 }
                 elsif $*SCOPE eq 'anon' {
                     # don't do anything

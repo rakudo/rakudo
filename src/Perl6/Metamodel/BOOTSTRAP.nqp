@@ -253,7 +253,30 @@ my class Binder {
         # Do a coercion, if one is needed.
         my $coerce_type := nqp::getattr($param, Parameter, '$!coerce_type');
         unless nqp::isnull($coerce_type) {
-            nqp::die('coerced parameters NYI');
+            # Coercing natives not possible - nothing to call a method on.
+            if $got_native {
+                if nqp::defined($error) {
+                    $error[0] := "Unable to coerce natively typed parameter '$varname'";
+                }
+                return $BIND_RESULT_FAIL;
+            }
+
+            # Only coerce if we don't already have the correct type.
+            unless nqp::istype($decont_value, $coerce_type) {
+                my $coerce_method := nqp::getattr($param, Parameter, '$!coerce_method');
+                if nqp::can($decont_value, $coerce_method) {
+                    $decont_value := $decont_value."$coerce_method"();
+                }
+                else {
+                    # No coercion method availale; whine and fail to bind.
+                    if nqp::defined($error) {
+                        $error[0] := "Unable to coerce value for '$varname' from " ~
+                            $decont_value.HOW.name($decont_value) ~
+                            " to $coerce_method; no coercion method defined";
+                    }
+                    return $BIND_RESULT_FAIL;
+                }
+            }
         }
 
         # If it's not got attributive binding, we'll go about binding it into the

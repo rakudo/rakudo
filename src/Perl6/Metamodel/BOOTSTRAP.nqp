@@ -311,7 +311,9 @@ my class Binder {
                 # and a normal bind is a straightforward binding.
                 if $flags +& $SIG_ELEM_ARRAY_SIGIL {
                     if $flags +& $SIG_ELEM_IS_COPY {
-                        nqp::die('array is copy binding NYI');
+                        my $bindee := nqp::create(Array);
+                        $bindee.STORE($decont_value);
+                        nqp::bindkey($lexpad, $varname, $bindee);
                     }
                     else {
                         nqp::bindkey($lexpad, $varname, $decont_value);
@@ -321,7 +323,9 @@ my class Binder {
                 # If it's a hash, similar approach to array.
                 elsif $flags +& $SIG_ELEM_HASH_SIGIL {
                     if $flags +& $SIG_ELEM_IS_COPY {
-                        nqp::die('hash is copy binding NYI');
+                        my $bindee := nqp::create(Hash);
+                        $bindee.STORE($decont_value);
+                        nqp::bindkey($lexpad, $varname, $bindee);
                     }
                     else {
                         nqp::bindkey($lexpad, $varname, $decont_value);

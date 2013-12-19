@@ -55,5 +55,7 @@ sub MAIN(@ARGS) {
     for nqp::gethllsym('perl6', '@END_PHASERS') {
         $result := $_();
         nqp::can($result, 'sink') && $result.sink();
+        CATCH { $comp.handle-exception($_); }
+        CONTROL { $comp.handle-control($_); }
     }
 }

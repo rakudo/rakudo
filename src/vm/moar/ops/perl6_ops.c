@@ -209,7 +209,7 @@ static void p6listitems(MVMThreadContext *tc) {
      MVMObject *list = GET_REG(tc, 2).o;
      if (MVM_6model_istype_cache_only(tc, list, List)) {
         MVMObject *items = ((Rakudo_List *)list)->items;
-        if (!items || !IS_CONCRETE(items)) {
+        if (!items || !IS_CONCRETE(items) || REPR(items)->ID != MVM_REPR_ID_MVMArray) {
             MVMROOT(tc, list, {
                 items = MVM_repr_alloc_init(tc, tc->instance->boot_types.BOOTArray);
                 MVM_ASSIGN_REF(tc, list, ((Rakudo_List *)list)->items, items);

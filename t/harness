@@ -50,7 +50,7 @@ if ($list_file) {
         s/\s+\z//;
         my ($fn, $fudgespec) = split /\s+#\s*/;
         if ($fudgespec) {
-            next if ($fudgespec =~ m/icu/)    && !$do_icu && !$jvm;
+            next if ($fudgespec =~ m/icu/)    && !$do_icu && !$jvm && !$moar;
             next if ($fudgespec =~ m/long/)   && !$do_long;
             next if ($fudgespec =~ m/stress/) && !$do_stress;
             next if ($fudgespec =~ m/jvm/)    && !$jvm;

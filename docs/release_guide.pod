@@ -1,3 +1,5 @@
+=encoding UTF-8
+
 =head1 release_guide.pod - guide to Rakudo releases
 
 Rakudo's development release cycle is based on Parrot's release cycle.

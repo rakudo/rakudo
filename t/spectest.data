@@ -342,9 +342,9 @@ S05-modifier/ii.t
 S05-modifier/overlapping.t
 S05-modifier/perl5_0.t
 S05-modifier/perl5_1.t
-S05-modifier/perl5_2.t
-S05-modifier/perl5_3.t
-S05-modifier/perl5_4.t
+# S05-modifier/perl5_2.t
+# S05-modifier/perl5_3.t
+# S05-modifier/perl5_4.t
 S05-modifier/perl5_5.t
 S05-modifier/perl5_7.t
 S05-modifier/perl5_8.t

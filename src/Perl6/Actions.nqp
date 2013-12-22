@@ -6600,22 +6600,13 @@ class Perl6::P5RegexActions is QRegex::P5Regex::Actions does STDActions {
     }
 
     method p5metachar:sym<var>($/) {
-        if $*INTERPOLATE {
-            make QAST::Regex.new( QAST::Node.new(
-                                        QAST::SVal.new( :value('INTERPOLATE') ),
-                                        $<var>.ast,
-                                        QAST::IVal.new( :value(%*RX<i> ?? 1 !! 0) ),
-                                        QAST::IVal.new( :value($*SEQ ?? 1 !! 0) ),
-                                        QAST::IVal.new( :value(1) ) ),
-                                  :rxtype<subrule>, :subtype<method>, :node($/));
-        }
-        else {
-            make QAST::Regex.new( QAST::Node.new(
-                                        QAST::SVal.new( :value('!LITERAL') ),
-                                        $<var>.ast,
-                                        QAST::IVal.new( :value(%*RX<i> ?? 1 !! 0) ) ),
-                                :rxtype<subrule>, :subtype<method>, :node($/));
-        }
+        make QAST::Regex.new( QAST::Node.new(
+                                    QAST::SVal.new( :value('INTERPOLATE') ),
+                                    $<var>.ast,
+                                    QAST::IVal.new( :value(%*RX<i> ?? 1 !! 0) ),
+                                    QAST::IVal.new( :value($*SEQ ?? 1 !! 0) ),
+                                    QAST::IVal.new( :value($*INTERPOLATION) ) ),
+                              :rxtype<subrule>, :subtype<method>, :node($/));
     }
 
     method codeblock($/) {

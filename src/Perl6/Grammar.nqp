@@ -1580,7 +1580,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
 
     token special_variable:sym<$@> {
-        <sym> <?before \W | '(' | <sigil> >
+        <sym> <!before \w | '(' | <sigil> >
         <.obs('$@ variable as eval error', '$!')>
     }
 

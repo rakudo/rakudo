@@ -104,11 +104,13 @@ sub SEQUENCE($left, Mu $right, :$exclude_end) {
         my $stop;
         while @left {
             $value = @left.shift;
-            $end_tail.push($value);
             if $value ~~ Code { $code = $value; last }
             if $end_code_arity > 1 {
-                $end_tail.munch($end_tail.elems - $end_code_arity);
-                if $endpoint(|$end_tail) { $stop = 1; last }
+                $end_tail.push($value);
+                if +@$end_tail >= $end_code_arity {
+                    $end_tail.munch($end_tail.elems - $end_code_arity);
+                    if $endpoint(|@$end_tail) { $stop = 1; last }
+                }
             } elsif $value ~~ $endpoint  { $stop = 1; last }
             $tail.push($value);
             take $value;
@@ -175,9 +177,11 @@ sub SEQUENCE($left, Mu $right, :$exclude_end) {
                     $tail.munch($tail.elems - $count);
                     $value := $code(|$tail);
                     if $end_code_arity > 1 {
-                        $end_tail.munch($tail.elems - $end_code_arity);
-                        last if $endpoint(|$end_tail);
                         $end_tail.push($value);
+                        unless $end_tail.elems < $end_code_arity {
+                            $end_tail.munch($end_tail.elems - $end_code_arity);
+                            last if $endpoint(|@$end_tail);
+                        }
                     } else {
                         last if $value ~~ $endpoint;
                     }

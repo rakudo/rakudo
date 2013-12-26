@@ -169,7 +169,7 @@ sub SEQUENCE($left, Mu $right, :$exclude_end) {
                 }
             }
             elsif $tail.elems == 1 {
-                $code = ($a cmp $endpoint > 0 || $endpoint ~~ Code)?? { $^x.pred } !! { $^x.succ }
+                $code = ($a cmp $endpoint > 0 && $endpoint !~~ Code)?? { $^x.pred } !! { $^x.succ }
             }
             elsif $tail.elems == 0 {
                 $code = {()}
@@ -182,7 +182,7 @@ sub SEQUENCE($left, Mu $right, :$exclude_end) {
                     $value := $code(|$tail);
                     if $end_code_arity != 0 {
                         $end_tail.push($value);
-                        unless $end_tail.elems < $end_code_arity {
+                        if $end_tail.elems >= $end_code_arity {
                             $end_tail.munch($end_tail.elems - $end_code_arity) unless $end_code_arity ~~ -Inf;
                             last if $endpoint(|@$end_tail);
                         }

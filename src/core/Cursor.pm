@@ -1,9 +1,6 @@
 my class Cursor does NQPCursorRole {
     has $!ast; # Need it to survive re-creations of the match object.
-    
-    # Some bits to support <prior>
-    my $last_match;
-    
+
     method MATCH() {
         my $match := nqp::getattr(self, Cursor, '$!match');
         return $match if nqp::istype($match, Match) && nqp::isconcrete($match);
@@ -41,10 +38,7 @@ my class Cursor does NQPCursorRole {
     }
 
     method MATCH_SAVE() {
-        return Nil if nqp::getattr_i(self, Cursor, '$!pos') < 0;
-        my $match := self.MATCH();
-        $last_match := $match if $match;
-        $match;
+        nqp::getattr_i(self, Cursor, '$!pos') < 0 ?? Nil !! self.MATCH()
     }
 
     # INTERPOLATE will iterate over the string $tgt beginning at position 0.
@@ -172,12 +166,6 @@ my class Cursor does NQPCursorRole {
     
     method RECURSE() {
         nqp::getlexdyn('$?REGEX')(self)
-    }
-    
-    method prior() {
-        nqp::isconcrete($last_match) ??
-            self."!LITERAL"(nqp::unbox_s(~$last_match)) !!
-            self."!cursor_start_cur"()
     }
 }
 

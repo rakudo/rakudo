@@ -217,6 +217,13 @@ my class Num does Real { # declared in BOOTSTRAP
     multi method acotanh(Num:D: ) {
         (1e0 / self).atanh;
     }
+
+    method narrow(Num:D:) {
+        my $i := self.Int;
+        $i.defined && $i.Num == self
+            ?? $i
+            !! self
+    }
 }
 
 my constant pi = 3.14159_26535_89793_238e0;

@@ -93,6 +93,8 @@ my class Int does Real { # declared in BOOTSTRAP
         elsif $x +& 0x2   { $msb += 1; }
         $msb;
     }
+
+    method narrow(Int:D:) { self }
 }
 
 multi prefix:<++>(Int:D \a is rw) {   # XXX

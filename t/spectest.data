@@ -326,7 +326,6 @@ S05-metasyntax/litvar.t
 S05-metasyntax/longest-alternative.t
 S05-metasyntax/lookaround.t
 S05-metasyntax/null.t
-S05-metasyntax/prior.t
 S05-metasyntax/proto-token-ltm.t
 S05-metasyntax/regex.t
 S05-metasyntax/repeat.t

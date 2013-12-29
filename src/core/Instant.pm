@@ -50,6 +50,7 @@ my class Instant is Cool does Real {
     method Bridge(Instant:D:) { $.x.Bridge }
     method Num   (Instant:D:) { $.x.Num    }
     method Int   (Instant:D:) { $.x.Int    }
+    method narrow(Instant:D:) { $.x.narrow }
 
 
 

@@ -215,7 +215,10 @@ my class Cool { # declared in BOOTSTRAP
     method trim-trailing() { self.Stringy.trim-trailing };
 
     method eval(*%opts) {
-        eval(self.Stringy, context => CALLER::, |%opts);
+        EVAL(self.Stringy, context => CALLER::, |%opts);
+    }
+    method EVAL(*%opts) {
+        EVAL(self.Stringy, context => CALLER::, |%opts);
     }
 
     multi method Real() { self.Numeric.Real }

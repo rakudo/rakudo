@@ -80,13 +80,13 @@ sub term:<time>() { nqp::p6box_i(nqp::time_i()) }
 
     my $prefix :=
 #?if jvm
-         $VM<properties><perl6.prefix>
+        $VM<properties><perl6.prefix>
 #?endif
 #?if parrot
-         $VM<config><libdir> ~ $VM<config><versiondir>
+        $VM<config><libdir> ~ $VM<config><versiondir>
 #?endif
 #?if moar
-# XXX TODO: prefix
+        $VM<config><prefix>
 #?endif
          ~ '/languages/perl6';
 

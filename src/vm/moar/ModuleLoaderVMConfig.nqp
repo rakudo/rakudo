@@ -1,7 +1,7 @@
 role Perl6::ModuleLoaderVMConfig {
     method vm_search_paths() {
         my @search_paths;
-        # XXX
+        @search_paths.push(nqp::backendconfig<prefix> ~ '/languages/perl6/lib');
         @search_paths
     }
     

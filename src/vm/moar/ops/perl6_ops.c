@@ -290,6 +290,29 @@ static void p6var(MVMThreadContext *tc) {
      }
 }
 
+static MVMuint8 s_p6reprname[] = {
+    MVM_operand_obj | MVM_operand_write_reg,
+    MVM_operand_obj | MVM_operand_read_reg,
+};
+static void p6reprname(MVMThreadContext *tc) {
+    MVMObject *obj = GET_REG(tc, 2).o;
+    //~ GlobalExt gcx = key.getGC(tc);
+    //~ obj = Ops.decont(obj, tc);
+    //~ SixModelObject name = gcx.Str.st.REPR.allocate(tc, gcx.Str.st);
+    //~ name.set_str(tc, obj.st.REPR.name);
+    //~ return name;
+
+    MVMROOT(tc, obj, {
+        MVMObject *name = MVM_repr_alloc_init(tc, tc->instance->boot_types.BOOTStr);
+        MVMROOT(tc, name, {
+            MVMString *str  = MVM_string_utf8_decode(tc, tc->instance->VMString,
+                obj->st->REPR->name, strlen(obj->st->REPR->name));
+            MVM_repr_set_str(tc, name, str);
+            GET_REG(tc, 0).o = name;
+        });
+    });
+}
+
 /* Type-checks the return value of a routine. */
 /* XXX Due to potential nested runloop calls, this may not want doing in C. */
 static MVMuint8 s_p6typecheckrv[] = {
@@ -543,6 +566,7 @@ MVM_DLL_EXPORT void Rakudo_ops_init(MVMThreadContext *tc) {
     MVM_ext_register_extop(tc, "p6scalarfromdesc",  p6scalarfromdesc, 2, s_p6scalarfromdesc);
     MVM_ext_register_extop(tc, "p6recont_ro",  p6recont_ro, 2, s_p6recont_ro);
     MVM_ext_register_extop(tc, "p6var",  p6var, 2, s_p6var);
+    MVM_ext_register_extop(tc, "p6reprname",  p6reprname, 2, s_p6reprname);
     MVM_ext_register_extop(tc, "p6typecheckrv",  p6typecheckrv, 2, s_p6typecheckrv);
     MVM_ext_register_extop(tc, "p6decontrv",  p6decontrv, 2, s_p6decontrv);
     MVM_ext_register_extop(tc, "p6routinereturn",  p6routinereturn, 2, s_p6routinereturn);

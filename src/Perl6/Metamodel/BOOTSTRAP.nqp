@@ -213,7 +213,7 @@ my class Binder {
             
                 # Also enforce definedness constraints.
                 if $flags +& $SIG_ELEM_DEFINEDNES_CHECK {
-                    if $flags +& $SIG_ELEM_UNDEFINED_ONLY && nqp::isconcrete($decont_value) {
+                    if $flags +& $SIG_ELEM_UNDEFINED_ONLY && nqp::isconcrete($oval) {
                         if nqp::defined($error) {
                             if $flags +& $SIG_ELEM_INVOCANT {
                                 $error[0] := "Invocant requires a type object, but an object instance was passed";
@@ -224,7 +224,7 @@ my class Binder {
                         }
                         return $decont_value =:= Junction ?? $BIND_RESULT_JUNCTION !! $BIND_RESULT_FAIL;
                     }
-                    if $flags +& $SIG_ELEM_DEFINED_ONLY && !nqp::isconcrete($decont_value) {
+                    if $flags +& $SIG_ELEM_DEFINED_ONLY && !nqp::isconcrete($oval) {
                         if nqp::defined($error) {
                             if $flags +& $SIG_ELEM_INVOCANT {
                                 $error[0] := "Invocant requires an instance, but a type object was passed";

@@ -290,7 +290,7 @@ my class Binder {
                 if $got_native == $SIG_ELEM_NATIVE_INT_VALUE {
                     nqp::bindkey_i($lexpad, $varname, $ival);
                 }
-                elsif $got_native == $SIG_ELEM_NATIVE_INT_VALUE {
+                elsif $got_native == $SIG_ELEM_NATIVE_NUM_VALUE {
                     nqp::bindkey_n($lexpad, $varname, $nval);
                 }
                 else {
@@ -368,7 +368,7 @@ my class Binder {
                 elsif $got_native == $SIG_ELEM_NATIVE_INT_VALUE {
                     $result := $cons_type.ACCEPTS($ival);
                 }
-                elsif $got_native == $SIG_ELEM_NATIVE_INT_VALUE {
+                elsif $got_native == $SIG_ELEM_NATIVE_NUM_VALUE {
                     $result := $cons_type.ACCEPTS($nval);
                 }
                 elsif $got_native == $SIG_ELEM_NATIVE_STR_VALUE {

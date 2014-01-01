@@ -419,7 +419,7 @@ my class Binder {
             }
 
             nqp::iscont($assignee)
-                ?? nqp::assign($assignee, nqp::decont($oval))
+                ?? nqp::assign($assignee, $oval)
                 !! $assignee.STORE(nqp::decont($oval));
         }
 

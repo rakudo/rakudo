@@ -296,12 +296,6 @@ static MVMuint8 s_p6reprname[] = {
 };
 static void p6reprname(MVMThreadContext *tc) {
     MVMObject *obj = GET_REG(tc, 2).o;
-    //~ GlobalExt gcx = key.getGC(tc);
-    //~ obj = Ops.decont(obj, tc);
-    //~ SixModelObject name = gcx.Str.st.REPR.allocate(tc, gcx.Str.st);
-    //~ name.set_str(tc, obj.st.REPR.name);
-    //~ return name;
-
     MVMROOT(tc, obj, {
         MVMObject *name = MVM_repr_alloc_init(tc, tc->instance->boot_types.BOOTStr);
         MVMROOT(tc, name, {

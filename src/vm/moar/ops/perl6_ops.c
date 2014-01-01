@@ -24,6 +24,7 @@ static MVMObject *ListIter            = NULL;
 static MVMObject *True                = NULL;
 static MVMObject *False               = NULL;
 static MVMObject *ContainerDescriptor = NULL;
+static MVMObject *Nil                 = NULL;
 
 /* Default container descriptor. */
 static MVMObject *default_cont_desc = NULL;
@@ -53,6 +54,9 @@ typedef struct {
     MVMObject   *flattens;
     MVMObject   *nextiter;
 } Rakudo_List;
+
+/* Expose Nil for containers. */
+MVMObject * get_nil() { return Nil; }
 
 /* Initializes the Perl 6 extension ops. */
 static void p6init(MVMThreadContext *tc) {
@@ -85,6 +89,7 @@ static void p6settypes(MVMThreadContext *tc) {
         get_type(tc, conf, "True", True);
         get_type(tc, conf, "False", False);
         get_type(tc, conf, "ContainerDescriptor", ContainerDescriptor);
+        get_type(tc, conf, "Nil", Nil);
     });
     
     /* Set up default container descriptor. */

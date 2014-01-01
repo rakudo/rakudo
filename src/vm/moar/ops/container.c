@@ -9,37 +9,70 @@ static void rakudo_scalar_fetch(MVMThreadContext *tc, MVMObject *cont, MVMRegist
     res->o = ((Rakudo_Scalar *)cont)->value;
 }
 
+MVMObject * get_nil();
 static void rakudo_scalar_store(MVMThreadContext *tc, MVMObject *cont, MVMObject *obj) {
+    Rakudo_Scalar *rs = (Rakudo_Scalar *)cont;
+    Rakudo_ContainerDescriptor *rcd = (Rakudo_ContainerDescriptor *)rs->descriptor;
     MVMObject *whence;
+    MVMint64 rw = 0;
 
-    /* XXX Type check, rw-ness check */
-    MVM_ASSIGN_REF(tc, cont, ((Rakudo_Scalar *)cont)->value, obj);
+    /* Check it's an assignable container. */
+    if (rcd)
+        rw = rcd->rw;
+    if (!rw)
+        MVM_exception_throw_adhoc(tc, "Cannot assign to a readonly variable or a value");
+
+    /* Handle Nil and type-checking. */
+    if (obj && STABLE(obj)->WHAT == get_nil()) {
+        if (rcd) {
+            obj = rcd->the_default;
+        }
+        else {
+            /* XXX TODO: Type checking. Bit complex as some may need to go
+             * back into the interpreter, and keeping the target and object
+             * around means an interesting marking situation with the special
+             * return data. */
+        }
+    }
+
+    /* If all is good, do the actual assignment. */
+    MVM_ASSIGN_REF(tc, cont, rs->value, obj);
 
     /* Run any whence closure. */
-    whence = ((Rakudo_Scalar *)cont)->whence;
+    whence = rs->whence;
     if (whence && IS_CONCRETE(whence)) {
         MVMObject *code = MVM_frame_find_invokee(tc, whence, NULL);
         tc->cur_frame->return_type    = MVM_RETURN_VOID;
         tc->cur_frame->return_address = *(tc->interp_cur_op);
+        rs->whence = NULL;
         STABLE(code)->invoke(tc, code, &no_arg_callsite, tc->cur_frame->args);
-        ((Rakudo_Scalar *)cont)->whence = NULL;
     }
 }
 
 static void rakudo_scalar_store_unchecked(MVMThreadContext *tc, MVMObject *cont, MVMObject *obj) {
     MVMObject *whence;
+    Rakudo_Scalar *rs = (Rakudo_Scalar *)cont;
+
+    /* Handle Nil assignment. */
+    if (obj && STABLE(obj)->WHAT == get_nil()) {
+        Rakudo_ContainerDescriptor *rcd = (Rakudo_ContainerDescriptor *)rs->descriptor;
+        if (rcd)
+            obj = rcd->the_default;
+        else
+            MVM_exception_throw_adhoc(tc, "Cannot assign to a readonly variable or a value");
+    }
 
     /* Store the value. */
-    MVM_ASSIGN_REF(tc, cont, ((Rakudo_Scalar *)cont)->value, obj);
+    MVM_ASSIGN_REF(tc, cont, rs->value, obj);
 
     /* Run any whence closure. */
-    whence = ((Rakudo_Scalar *)cont)->whence;
+    whence = rs->whence;
     if (whence && IS_CONCRETE(whence)) {
         MVMObject *code = MVM_frame_find_invokee(tc, whence, NULL);
         tc->cur_frame->return_type    = MVM_RETURN_VOID;
         tc->cur_frame->return_address = *(tc->interp_cur_op);
+        rs->whence = NULL;
         STABLE(code)->invoke(tc, code, &no_arg_callsite, tc->cur_frame->args);
-        ((Rakudo_Scalar *)cont)->whence = NULL;
     }
 }
 

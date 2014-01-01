@@ -129,8 +129,13 @@ my class Binder {
     sub bind_one_param($lexpad, $sig, $param, int $no_nom_type_check, $error,
                        $got_native, $oval, int $ival, num $nval, str $sval) {
         # Grab flags and variable name.
-        my int $flags   := nqp::getattr_i($param, Parameter, '$!flags');
-        my str $varname := nqp::getattr_s($param, Parameter, '$!variable_name');
+        my int $flags       := nqp::getattr_i($param, Parameter, '$!flags');
+        my str $varname     := nqp::getattr_s($param, Parameter, '$!variable_name');
+        my int $has_varname := 1;
+        if nqp::isnull_s($varname) {
+            $varname := '<anon>';
+            $has_varname := 0;
+        }
 
         # Check if boxed/unboxed expections are met.
         my int $desired_native := $flags +& $SIG_ELEM_NATIVE_VALUE;
@@ -282,7 +287,7 @@ my class Binder {
         # If it's not got attributive binding, we'll go about binding it into the
         # lex pad.
         my int $is_attributive := $flags +& $SIG_ELEM_BIND_ATTRIBUTIVE;
-        unless $is_attributive || nqp::isnull_s($varname) {
+        unless $is_attributive || !$has_varname {
             # Is it native? If so, just go ahead and bind it.
             if $got_native {
                 if $got_native == $SIG_ELEM_NATIVE_INT_VALUE {
@@ -455,7 +460,7 @@ my class Binder {
                 if $error {
                     # Note in the error message that we're in a sub-signature.
                     $error[0] := $error[0] ~ " in sub-signature";
-                    unless nqp::isnull_s($varname) {
+                    if $has_varname {
                         $error[0] := $error[0] ~ " of parameter " ~ $varname;
                     }
                 }

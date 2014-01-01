@@ -352,8 +352,7 @@ static void p6routinereturn(MVMThreadContext *tc) {
     MVMObject *ret = MVM_frame_find_lexical_by_name_rel_caller(tc, str_return,
         tc->cur_frame)->o;
     if (ret && IS_CONCRETE(ret) && REPR(ret)->ID == MVM_REPR_ID_Lexotic) {
-        tc->cur_frame->return_type    = MVM_RETURN_VOID;
-        tc->cur_frame->return_address = *(tc->interp_cur_op);
+        MVM_args_setup_thunk(tc, NULL, MVM_RETURN_VOID, &one_arg_callsite);
         tc->cur_frame->args[0].o = GET_REG(tc, 2).o;
         STABLE(ret)->invoke(tc, ret, &one_arg_callsite, tc->cur_frame->args);
         *(tc->interp_cur_op) -= 4; /* Oh my, what a hack... */

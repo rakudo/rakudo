@@ -9,6 +9,9 @@ multi sub postcircumfix:<{ }>( \SELF, $key ) is rw {
 multi sub postcircumfix:<{ }>(\SELF, $key, Mu :$BIND! is parcel) is rw {
     SELF.bind_key($key, $BIND);
 }
+multi sub postcircumfix:<{ }>( \SELF, $key, :$SINK!, *%other ) is rw {
+    SLICE_ONE( SELF, $key, False, :$SINK, |%other );
+}
 multi sub postcircumfix:<{ }>( \SELF, $key, :$delete!, *%other ) is rw {
     SLICE_ONE( SELF, $key, False, :$delete, |%other );
 }
@@ -37,6 +40,9 @@ multi sub postcircumfix:<{ }>( \SELF, Positional \key ) is rw {
 multi sub postcircumfix:<{ }>(\SELF, Positional \key, :$BIND!) is rw {
     X::Bind::Slice.new(type => SELF.WHAT).throw;
 }
+multi sub postcircumfix:<{ }>(\SELF,Positional \key,:$SINK!,*%other) is rw {
+    SLICE_MORE( SELF, \key, False, :$SINK, |%other );
+}
 multi sub postcircumfix:<{ }>(\SELF,Positional \key,:$delete!,*%other) is rw {
     SLICE_MORE( SELF, \key, False, :$delete, |%other );
 }
@@ -63,6 +69,9 @@ multi sub postcircumfix:<{ }>( \SELF, Whatever ) is rw {
 multi sub postcircumfix:<{ }>(\SELF, Whatever, :$BIND!) is rw {
     X::Bind::Slice.new(type => SELF.WHAT).throw;
 }
+multi sub postcircumfix:<{ }>(\SELF, Whatever, :$SINK!, *%other) is rw {
+    SLICE_MORE( SELF, SELF.keys, False, :$SINK, |%other );
+}
 multi sub postcircumfix:<{ }>(\SELF, Whatever, :$delete!, *%other) is rw {
     SLICE_MORE( SELF, SELF.keys, False, :$delete, |%other );
 }
@@ -88,6 +97,9 @@ multi sub postcircumfix:<{ }>( \SELF ) is rw {
 }
 multi sub postcircumfix:<{ }>(\SELF, :$BIND!) is rw {
     X::Bind::ZenSlice.new(type => SELF.WHAT).throw;
+}
+multi sub postcircumfix:<{ }>(\SELF, :$SINK!, *%other) is rw {
+    SLICE_MORE( SELF, SELF.keys, False, :$SINK, |%other );
 }
 multi sub postcircumfix:<{ }>(\SELF, :$delete!, *%other) is rw {
     SLICE_MORE( SELF, SELF.keys, False, :$delete, |%other );

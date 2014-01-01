@@ -1,3 +1,13 @@
+New in 2013.12
+
++ The Whatever Star now works inside chain operators like comparisons
++ Private attributes from roles are now visible in the classes they apply to
++ Use invokedynamic in some places on the JVM.
++ Memory improvements in ListIter
++ Faster method List.combinations
++ Simple lookahead assertions in regexes are optimized
++ Regexes do less superfluous scanning
+
 New in 2013.11
 
 + Many concurrency primitives harmonized with new S17, but still pretty fluid

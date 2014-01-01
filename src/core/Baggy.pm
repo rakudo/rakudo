@@ -1,5 +1,5 @@
 my role Baggy does QuantHash {
-    has %!elems;  # key.WHICH => (key=>value)
+    has %!elems; # key.WHICH => (key,value)
 
     method BUILD (:%!elems) {}
     method default(--> Int) { 0 }

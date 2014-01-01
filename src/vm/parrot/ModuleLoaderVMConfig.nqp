@@ -11,7 +11,7 @@ role Perl6::ModuleLoaderVMConfig {
     }
     
     # Locates files we could potentially load for this module.
-    method locate_candidates($module_name, @prefixes, :$file?) {
+    method locate_candidates($module_name, @prefixes, :$file) {
         # If its name contains a slash or dot treat is as a path rather than a package name.
         my @candidates;
         if nqp::defined($file) {

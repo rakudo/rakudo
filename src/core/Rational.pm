@@ -138,5 +138,11 @@ my role Rational[::NuT, ::DeT] does Real {
     }
 
     method norm() { self }
+
+    method narrow(::?CLASS:D:) {
+        $!denominator == 1
+            ?? $!numerator
+            !! self;
+    }
 }
 

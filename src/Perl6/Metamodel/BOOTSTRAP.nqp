@@ -159,15 +159,15 @@ my class Binder {
                 # XXX Probably want to do this a little differently to get a
                 # better error.
                 if $desired_native == 1 {
-                    $ival := nqp::unbox_i(nqp::decont($oval));
+                    $ival := nqp::unbox_i($oval);
                     $got_native := $SIG_ELEM_NATIVE_INT_VALUE;
                 }
                 elsif $desired_native == 2 {
-                    $nval := nqp::unbox_n(nqp::decont($oval));
+                    $nval := nqp::unbox_n($oval);
                     $got_native := $SIG_ELEM_NATIVE_NUM_VALUE;
                 }
                 else {
-                    $sval := nqp::unbox_s(nqp::decont($oval));
+                    $sval := nqp::unbox_s($oval);
                     $got_native := $SIG_ELEM_NATIVE_STR_VALUE;
                 }
             }
@@ -184,13 +184,10 @@ my class Binder {
         # By this point, we'll either have an object that we might be able to
         # bind if it passes the type check, or a native value that needs no
         # further checking.
-        my $decont_value;
         my $nom_type;
         unless $got_native {
-            # We pretty much always need to de-containerized value, so get it
-            # right off.
+            # HLL-ize.
             $oval := nqp::hllizefor($oval, 'perl6');
-            $decont_value := nqp::decont($oval);
 
             # Skip nominal type check if not needed.
             unless $no_nom_type_check {
@@ -204,16 +201,16 @@ my class Binder {
 
                 # If not, do the check. If the wanted nominal type is Mu, then
                 # anything goes.
-                unless $nom_type =:= Mu || nqp::istype($decont_value, $nom_type) {
+                unless $nom_type =:= Mu || nqp::istype($oval, $nom_type) {
                     # Type check failed; produce error if needed.
                     if nqp::defined($error) {
                         $error[0] := "Nominal type check failed for parameter '" ~ $varname ~
                             "'; expected " ~ $nom_type.HOW.name($nom_type) ~
-                            " but got " ~ $decont_value.HOW.name($decont_value);
+                            " but got " ~ $oval.HOW.name($oval);
                     }
 
                     # Report junction failure mode if it's a junction.
-                    return $decont_value =:= Junction ?? $BIND_RESULT_JUNCTION !! $BIND_RESULT_FAIL;
+                    return $oval.WHAT =:= Junction ?? $BIND_RESULT_JUNCTION !! $BIND_RESULT_FAIL;
                 }
             
                 # Also enforce definedness constraints.
@@ -227,7 +224,7 @@ my class Binder {
                                 $error[0] := "Parameter '$varname' requires a type object, but an object instance was passed";
                             }
                         }
-                        return $decont_value =:= Junction ?? $BIND_RESULT_JUNCTION !! $BIND_RESULT_FAIL;
+                        return $oval.WHAT =:= Junction ?? $BIND_RESULT_JUNCTION !! $BIND_RESULT_FAIL;
                     }
                     if $flags +& $SIG_ELEM_DEFINED_ONLY && !nqp::isconcrete($oval) {
                         if nqp::defined($error) {
@@ -238,7 +235,7 @@ my class Binder {
                                 $error[0] := "Parameter '$varname' requires an instance, but a type object was passed";
                             }
                         }
-                        return $decont_value =:= Junction ?? $BIND_RESULT_JUNCTION !! $BIND_RESULT_FAIL;
+                        return $oval.WHAT =:= Junction ?? $BIND_RESULT_JUNCTION !! $BIND_RESULT_FAIL;
                     }
                 }
             }
@@ -250,7 +247,7 @@ my class Binder {
             my int $num_type_caps := nqp::elems($type_caps);
             my int $i := 0;
             while $i < $num_type_caps {
-                nqp::bindkey($lexpad, nqp::atpos($type_caps, $i), $decont_value.WHAT);
+                nqp::bindkey($lexpad, nqp::atpos($type_caps, $i), $oval.WHAT);
                 $i++;
             }
         }
@@ -267,16 +264,16 @@ my class Binder {
             }
 
             # Only coerce if we don't already have the correct type.
-            unless nqp::istype($decont_value, $coerce_type) {
+            unless nqp::istype($oval, $coerce_type) {
                 my $coerce_method := nqp::getattr($param, Parameter, '$!coerce_method');
-                if nqp::can($decont_value, $coerce_method) {
-                    $decont_value := $decont_value."$coerce_method"();
+                if nqp::can($oval, $coerce_method) {
+                    $oval := $oval."$coerce_method"();
                 }
                 else {
                     # No coercion method availale; whine and fail to bind.
                     if nqp::defined($error) {
                         $error[0] := "Unable to coerce value for '$varname' from " ~
-                            $decont_value.HOW.name($decont_value) ~
+                            $oval.HOW.name($oval) ~
                             " to $coerce_method; no coercion method defined";
                     }
                     return $BIND_RESULT_FAIL;
@@ -317,11 +314,11 @@ my class Binder {
                 if $flags +& $SIG_ELEM_ARRAY_SIGIL {
                     if $flags +& $SIG_ELEM_IS_COPY {
                         my $bindee := nqp::create(Array);
-                        $bindee.STORE($decont_value);
+                        $bindee.STORE(nqp::decont($oval));
                         nqp::bindkey($lexpad, $varname, $bindee);
                     }
                     else {
-                        nqp::bindkey($lexpad, $varname, $decont_value);
+                        nqp::bindkey($lexpad, $varname, nqp::decont($oval));
                     }
                 }
                 
@@ -329,11 +326,11 @@ my class Binder {
                 elsif $flags +& $SIG_ELEM_HASH_SIGIL {
                     if $flags +& $SIG_ELEM_IS_COPY {
                         my $bindee := nqp::create(Hash);
-                        $bindee.STORE($decont_value);
+                        $bindee.STORE(nqp::decont($oval));
                         nqp::bindkey($lexpad, $varname, $bindee);
                     }
                     else {
-                        nqp::bindkey($lexpad, $varname, $decont_value);
+                        nqp::bindkey($lexpad, $varname, nqp::decont($oval));
                     }
                 }
                 
@@ -344,7 +341,7 @@ my class Binder {
                     my $new_cont := nqp::create(Scalar);
                     nqp::bindattr($new_cont, Scalar, '$!descriptor',
                         nqp::getattr($param, Parameter, '$!container_descriptor'));
-                    nqp::bindattr($new_cont, Scalar, '$!value', $decont_value);
+                    nqp::bindattr($new_cont, Scalar, '$!value', nqp::decont($oval));
                     nqp::bindkey($lexpad, $varname, $new_cont);
                 }
             }
@@ -352,7 +349,7 @@ my class Binder {
 
         # Is it the invocant? If so, also have to bind to self lexical.
         if $flags +& $SIG_ELEM_INVOCANT {
-            nqp::bindkey($lexpad, 'self', $decont_value);
+            nqp::bindkey($lexpad, 'self', nqp::decont($oval));
         }
 
         # Handle any constraint types (note that they may refer to the parameter by
@@ -422,8 +419,8 @@ my class Binder {
             }
 
             nqp::iscont($assignee)
-                ?? nqp::assign($assignee, $decont_value)
-                !! $assignee.STORE($decont_value);
+                ?? nqp::assign($assignee, nqp::decont($oval))
+                !! $assignee.STORE(nqp::decont($oval));
         }
 
         # If it has a sub-signature, bind that.
@@ -432,11 +429,11 @@ my class Binder {
             # Turn value into a capture, unless we already have one.
             my $capture;
             if $flags +& $SIG_ELEM_IS_CAPTURE {
-                $capture := $decont_value;
+                $capture := $oval;
             }
             else {
-                if nqp::can($decont_value, 'Capture') {
-                    $capture := $decont_value.Capture;
+                if nqp::can($oval, 'Capture') {
+                    $capture := $oval.Capture;
                 }
                 else {
                     if $error {

@@ -1,3 +1,11 @@
+New in 2014.01
+
++ Use .narrow on Numeric to coerce to narrowest Type possible
++ Can now supply blocks with multiple arguments as sequence endpoints
++ <prior> rule no longer exists
++ The eval sub and method are now spelled EVAL
++ Method calls and hash/list access on Nil give Nil
+
 New in 2013.12
 
 + The Whatever Star now works inside chain operators like comparisons

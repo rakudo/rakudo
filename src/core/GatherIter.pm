@@ -89,6 +89,12 @@ class GatherIter is Iterator {
                 nqp::push($rpa, $parcel) unless $end;
                 $count = $count - 1;
             }
+#?if moar
+            # Needed until we have proper thing-at-a-time gather/take.
+            if nqp::elems($rpa) {
+                $rpa := nqp::getattr(nqp::atpos($rpa, 0), Parcel, '$!storage');
+            }
+#?endif
             nqp::push($rpa, 
                 nqp::p6bindattrinvres(
                     nqp::p6bindattrinvres(

@@ -118,7 +118,40 @@ my class Binder {
     my $autothreader;
 
     sub arity_fail($params, int $num_params, int $num_pos_args, int $too_many) {
-        nqp::die('arity_fail NYI');
+        my str $error_prefix := $too_many ?? "Too many" !! "Not enough";
+        my int $count;
+        my int $arity;
+
+        my int $param_i := 0;
+        while $param_i < $num_params {
+            my $param := nqp::atpos($params, $param_i);
+            my $flags := nqp::getattr_i($param, Parameter, '$!flags');
+
+            if !nqp::isnull(nqp::getattr($param, Parameter, '$!named_names')) {
+            }
+            elsif $flags +& $SIG_ELEM_SLURPY_NAMED {
+            }
+            elsif $flags +& $SIG_ELEM_SLURPY_POS {
+                $count--;
+            }
+            elsif $flags +& $SIG_ELEM_IS_OPTIONAL {
+                $count++
+            }
+            else {
+                $count++;
+                $arity++;
+            }
+
+            $param_i++;
+        }
+
+        if $arity == $count {
+            return "$error_prefix positional parameters passed; got $num_pos_args but expected $arity";
+        } elsif $count == -1 {
+            return "$error_prefix positional parameters passed; got $num_pos_args but expected at least $arity";
+        } else {
+            return "$error_prefix positional parameters passed; got $num_pos_args but expected between $arity and $count";
+        }
     }
 
     method set_autothreader($callable) {

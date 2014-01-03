@@ -19,6 +19,7 @@ RESTRICTED.setting.pbc
 SAFE.setting.pbc
 /perl6
 /perl6.exe
+/perl6.bat
 /perl6-p
 /perl6-p.exe
 perl6.class
@@ -36,6 +37,8 @@ perl6.pdb
 perl6.rc
 perl6-j
 perl6-j.bat
+perl6-m
+perl6-m.bat
 t/localtest.data
 t/spec
 /parrot

@@ -513,7 +513,7 @@ my class Binder {
         }
 
         # Do we have a default value or value closure?
-        elsif (my $default_value := nqp::getattr($param, Parameter, '$!default_value')) {
+        elsif !nqp::isnull(my $default_value := nqp::getattr($param, Parameter, '$!default_value')) {
             if $flags +& $SIG_ELEM_DEFAULT_IS_LITERAL {
                 $default_value;
             }

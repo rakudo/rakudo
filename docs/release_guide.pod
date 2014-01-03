@@ -1,3 +1,5 @@
+=encoding UTF-8
+
 =head1 release_guide.pod - guide to Rakudo releases
 
 Rakudo's development release cycle is based on Parrot's release cycle.
@@ -15,8 +17,7 @@ end of this document.
 
 Releases are typically on the third Thursday of each month.
 
-  2013-12-19   Rakudo #71
-  2014-01-23   Rakudo #72
+  2014-01-23   Rakudo #72  masak
   2014-02-20   Rakudo #73
   2014-03-20   Rakudo #74
   2014-04-17   Rakudo #75
@@ -295,6 +296,7 @@ You're done!  Celebrate with the appropriate amount of fun.
   2013-09-19   Rakudo #68 "Shanghai"           (masak)
   2013-10-17   Rakudo #69 "Roederbergweg"      (Coke)
   2013-11-21   Rakudo #70 "Malmö"              (lizmat)
+  2013-12-19   Rakudo #71 "Advent"             (moritz)
 
 =head1 COPYRIGHT
 

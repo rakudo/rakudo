@@ -1580,7 +1580,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
 
     token special_variable:sym<$@> {
-        <sym> <?before \W | '(' | <sigil> >
+        <sym> <!before \w | '(' | <sigil> >
         <.obs('$@ variable as eval error', '$!')>
     }
 
@@ -2160,6 +2160,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
           <DECL=multi_declarator>
         | <DECL=multi_declarator>
         ] <.ws>
+        || <.ws>[<typename><.ws>]* <ident> <?before <.ws> [':'?':'?'=' | ';' | '}' ]> {}
+            <.malformed("$*SCOPE (did you mean to declare a sigilless \\{~$<ident>} or \${~$<ident>}?)")>
         || <.ws><typo_typename> <!>
         || <.malformed($*SCOPE)>
         ]
@@ -2485,6 +2487,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token regex_declarator:sym<rule> {
         <sym>
         :my %*RX;
+        :my $*INTERPOLATE := 1;
         :my $*METHODTYPE := 'rule';
         :my $*IN_DECL    := 'rule';
         {
@@ -2496,6 +2499,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token regex_declarator:sym<token> {
         <sym>
         :my %*RX;
+        :my $*INTERPOLATE := 1;
         :my $*METHODTYPE := 'token';
         :my $*IN_DECL    := 'token';
         {
@@ -2506,6 +2510,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token regex_declarator:sym<regex> {
         <sym>
         :my %*RX;
+        :my $*INTERPOLATE := 1;
         :my $*METHODTYPE := 'regex';
         :my $*IN_DECL    := 'regex';
         <regex_def>
@@ -2925,12 +2930,14 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token quote:sym</null/> { '/' \s* '/' <.typed_panic: "X::Syntax::Regex::NullRegex"> }
     token quote:sym</ />  {
         :my %*RX;
+        :my $*INTERPOLATE := 1;
         '/' <nibble(self.quote_lang(%*LANG<Regex>, '/', '/'))> [ '/' || <.panic: "Unable to parse regex; couldn't find final '/'"> ]
         <.old_rx_mods>?
     }
     token quote:sym<rx>   {
         <sym> >> 
         :my %*RX;
+        :my $*INTERPOLATE := 1;
         <rx_adverbs>
         <quibble(%*RX<P5> ?? %*LANG<P5Regex> !! %*LANG<Regex>)>
         <!old_rx_mods>
@@ -2939,6 +2946,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token quote:sym<m> {
         <sym> (s)**0..1>>
         :my %*RX;
+        :my $*INTERPOLATE := 1;
         { %*RX<s> := 1 if $/[0] }
         <rx_adverbs>
         <quibble(%*RX<P5> ?? %*LANG<P5Regex> !! %*LANG<Regex>)>
@@ -2976,6 +2984,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token quote:sym<s> {
         <sym> (s)**0..1 >>
         :my %*RX;
+        :my $*INTERPOLATE := 1;
         {
             %*RX<s> := 1 if $/[0]
         }
@@ -3004,6 +3013,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token quote:sym<tr> {
         <sym>
         :my %*RX;
+        :my $*INTERPOLATE := 1;
         <rx_adverbs>
         <tribble(%*RX<P5> ?? %*LANG<P5Regex> !! %*LANG<Regex>, %*LANG<Q>, ['cc'])>
         <.old_rx_mods>?
@@ -4232,7 +4242,11 @@ grammar Perl6::P5RegexGrammar is QRegex::P5Regex::Grammar does STD {
     token p5metachar:sym<(??{ })> {
         '(??' <?[{]> <codeblock> ')'
     }
-    
+
+    token p5metachar:sym<var> {
+        <?[$]> <var=.LANG('MAIN', 'variable')>
+    }
+
     token codeblock {
         <block=.LANG('MAIN','block')>
     }

@@ -83,6 +83,7 @@ MAIN: {
                 $default_backend ||= $b;
             }
         }
+        $backends{parrot} = 1 if exists $options{'gen-parrot'};
         unless (%backends) {
             die "No suitable nqp executables found! Please specify some --backends, or a --prefix that contains nqp-{p,j} executables\n";
         }

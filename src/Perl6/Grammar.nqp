@@ -855,6 +855,9 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         # Quasis and unquotes
         :my $*IN_QUASI := 0;                       # whether we're currently in a quasi block
 
+        # performance improvement stuff
+        :my $*FAKE_INFIX_FOUND := 0;
+
         # Setting loading and symbol setup.
         {
             # Create unit outer (where we assemble any lexicals accumulated
@@ -2725,6 +2728,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     token args {
         :my $*GOAL := '';
+        :my $*FAKE_INFIX_FOUND := 0;
         :dba('argument list')
         [
         | '(' ~ ')' <semiarglist>
@@ -3153,6 +3157,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     
     token fake_infix {
         <O('%item_assignment, :assoc<unary>, :fake<1>, :dba<adverb>')>
+        { $*FAKE_INFIX_FOUND := 1 }
     }
     
     regex infixstopper {

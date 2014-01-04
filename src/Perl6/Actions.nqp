@@ -4355,6 +4355,39 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
     }
 
+    sub hunt_loose_adverbs_in_arglist($/, @past) {
+        # if we have a non-comma-separated list of adverbial pairs in an
+        # arglist or semiarglist, only the first will be passed as a named
+        # argument.
+
+        # Thus, we need to find chained adverbs. They show up on the parse
+        # tree as colonpair rules followed by a fake_infix.
+
+        if nqp::getenvhash<COLONPAIR> eq 'trace' { say($/.dump) }
+        if +$/.list == 1 && nqp::istype($/[0].ast, QAST::Op) && $/[0].ast.op eq 'call' && $/[0].ast.name ne 'infix:<,>' {
+            nqp::die("these adverbs belong to a deeper-nested thing");
+        }
+        if $<fake_infix>
+               || $<colonpair> && +($/.list) == 0 && +($/.hash) == 1 {
+            if +($/.list) == 1 {
+                hunt_loose_adverbs_in_arglist($/[0], @past);
+            }
+            my $Pair := $*W.find_symbol(['Pair']);
+            if $<colonpair> && istype($<colonpair>.ast.returns, $Pair) {
+                if $*WAS_SKIPPED {
+                    nqp::push(@past, $<colonpair>.ast);
+                } else {
+                    $*WAS_SKIPPED := 1;
+                }
+            }
+        } elsif $<OPER>.Str eq ',' {
+           my $*WAS_SKIPPED := 0;
+            for $/.list {
+                hunt_loose_adverbs_in_arglist($_, @past);
+            }
+        }
+    }
+
     method arglist($/) {
         my $Pair := $*W.find_symbol(['Pair']);
         my $past := QAST::Op.new( :op('call'), :node($/) );
@@ -4366,6 +4399,13 @@ class Perl6::Actions is HLL::Actions does STDActions {
             my @args := nqp::istype($expr, QAST::Op) && $expr.name eq '&infix:<,>'
                 ?? $expr.list
                 !! [$expr];
+            # but first, look for any chained adverb pairs
+            my $*WAS_SKIPPED := 0;
+            try {
+                if $*FAKE_INFIX_FOUND {
+                    hunt_loose_adverbs_in_arglist($<EXPR>, @args);
+                }
+            }
             my %named_counts;
             for @args {
                 if nqp::istype($_, QAST::Op) && istype($_.returns, $Pair) {

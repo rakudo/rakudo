@@ -309,6 +309,7 @@ m-install: m-all tools/build/create-moar-runner.pl
 	$(MKPATH) $(PREFIX)/bin
 	$(MKPATH) $(M_LIBPATH)/Perl6
 	$(CP) $(M_PERL6_LANG_OUTPUT) $(M_LIBPATH)/Perl6
+	$(MKPATH) $(PERL6_LANG_DIR)/lib
 	$(MKPATH) $(PERL6_LANG_DIR)/runtime
 	$(CP) $(SETTING_MOAR) $(PERL6_LANG_DIR)/runtime
 	$(CP) $(PERL6_MOAR) $(PERL6_LANG_DIR)/runtime

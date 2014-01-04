@@ -5,6 +5,7 @@ New in 2014.01
 + <prior> rule no longer exists
 + The eval sub and method are now spelled EVAL
 + Method calls and hash/list access on Nil give Nil
++ No longer need to separate adverbs with comma in argument lists
 
 New in 2013.12
 

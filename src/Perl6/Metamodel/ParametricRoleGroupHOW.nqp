@@ -53,6 +53,12 @@ class Perl6::Metamodel::ParametricRoleGroupHOW
         $curried
     }
     
+    method make_mappable($obj) {
+        my $mappable := $currier.new_type($obj);
+        $mappable.HOW.set_pun_repr($mappable, self.pun_repr($obj));
+        $mappable
+    }
+    
     method add_possibility($obj, $possible) {
         @!possibilities[+@!possibilities] := $possible;
         @!add_to_selector[+@!add_to_selector] := $possible;

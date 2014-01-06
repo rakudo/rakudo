@@ -203,10 +203,15 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     my $sast_size := +@($shape_ast[0]);
                     if $sast_size > 1 {
                         my $map_ast := $shape_ast[0][$sast_size - 1];
-                        if nqp::istype($map_ast[1], QAST::Node) &&
+                        if nqp::istype($map_ast, QAST::Op) &&
+                                nqp::istype($map_ast[0], QAST::Var) &&
+                                $map_ast[0].value == $*W.find_symbol(['Pair']) &&
+                                nqp::istype($map_ast[1], QAST::Want) &&
                                 $map_ast[1].has_compile_time_value &&
                                 $map_ast[1].compile_time_value eq 'map' {
                             %info<container_index_map> := $shape_ast[0].pop[2];
+                            %info<container_type> := $*W.make_mappable(%info<container_type>);
+                            %info<bind_constraint> := $*W.make_mappable(%info<bind_constraint>);
                             $shape_ast[0] := $shape_ast[0][0] if +@($shape_ast[0]) == 1;
                         }
                     } elsif $sast_size == 0 {
@@ -6635,6 +6640,16 @@ class Perl6::P5RegexActions is QRegex::P5Regex::Actions does STDActions {
                     QAST::IVal.new( :value(1) ),
                     QAST::IVal.new( :value(1) ) ),
                  :rxtype<subrule>, :subtype<method>, :node($/));
+    }
+
+    method p5metachar:sym<var>($/) {
+        make QAST::Regex.new( QAST::Node.new(
+                                    QAST::SVal.new( :value('INTERPOLATE') ),
+                                    $<var>.ast,
+                                    QAST::IVal.new( :value(%*RX<i> ?? 1 !! 0) ),
+                                    QAST::IVal.new( :value($*SEQ ?? 1 !! 0) ),
+                                    QAST::IVal.new( :value($*INTERPOLATION) ) ),
+                              :rxtype<subrule>, :subtype<method>, :node($/));
     }
 
     method codeblock($/) {

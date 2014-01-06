@@ -1,9 +1,6 @@
 my class Cursor does NQPCursorRole {
     has $!ast; # Need it to survive re-creations of the match object.
-    
-    # Some bits to support <prior>
-    my $last_match;
-    
+
     method MATCH() {
         my $match := nqp::getattr(self, Cursor, '$!match');
         return $match if nqp::istype($match, Match) && nqp::isconcrete($match);
@@ -41,10 +38,7 @@ my class Cursor does NQPCursorRole {
     }
 
     method MATCH_SAVE() {
-        return Nil if nqp::getattr_i(self, Cursor, '$!pos') < 0;
-        my $match := self.MATCH();
-        $last_match := $match if $match;
-        $match;
+        nqp::getattr_i(self, Cursor, '$!pos') < 0 ?? Nil !! self.MATCH()
     }
 
     # INTERPOLATE will iterate over the string $tgt beginning at position 0.
@@ -82,8 +76,8 @@ my class Cursor does NQPCursorRole {
                         if $a {
                             # We are in a regex assertion, the strings we get will be treated as
                             # regex rules.
-                            my $rx := eval( $i  ?? "my \$x = anon regex \{:i ^$topic \}"
-                                                !! "my \$x = anon regex \{ ^$topic \}" );
+                            return $cur.'!cursor_start_cur'() if $topic ~~ Associative;
+                            my $rx := MAKE_REGEX($topic, :$i);
                             my Mu $nfas := nqp::findmethod($rx, 'NFA')($rx);
                             $nfa.mergesubstates($start, 0, $fate, $nfas, Mu);
                         }
@@ -127,8 +121,8 @@ my class Cursor does NQPCursorRole {
                 if $a {
                     # We are in a regex assertion, the strings we get will be treated as
                     # regex rules.
-                    my $rx := eval( $i  ?? "my \$x = anon regex \{:i ^$topic \}"
-                                        !! "my \$x = anon regex \{ ^$topic \}" );
+                    return $cur.'!cursor_start_cur'() if $topic ~~ Associative;
+                    my $rx := MAKE_REGEX($topic, :$i);
                     $match := (nqp::substr($tgt, $pos, $eos - $pos) ~~ $rx).Str;
                     $len   := nqp::chars( $match );
                 }
@@ -173,15 +167,9 @@ my class Cursor does NQPCursorRole {
     method RECURSE() {
         nqp::getlexdyn('$?REGEX')(self)
     }
-    
-    method prior() {
-        nqp::isconcrete($last_match) ??
-            self."!LITERAL"(nqp::unbox_s(~$last_match)) !!
-            self."!cursor_start_cur"()
-    }
 }
 
-sub MAKE_REGEX($arg) {
+sub MAKE_REGEX($arg, :$i) {
     my role CachedCompiledRegex {
         has $.regex;
     }
@@ -192,7 +180,16 @@ sub MAKE_REGEX($arg) {
         $arg.regex
     }
     else {
-        my $rx := eval("my \$x = anon regex \{ $arg \}");
+        my Mu $chars := nqp::split('', $arg);
+        my $k := 0;
+        my $iter := nqp::iterator($chars);
+        while $iter {
+            my $ord := nqp::ord( nqp::shift($iter) );
+            nqp::bindpos($chars, $k, "\\c[$ord]") if $ord <= 32;
+            $k := $k + 1;
+        }
+        my $arg2 := nqp::join('', $chars);
+        my $rx := $i ?? eval("anon regex \{ :i ^$arg2\}") !! eval("anon regex \{ ^$arg2\}");
         $arg does CachedCompiledRegex($rx);
         $rx
     }

@@ -524,11 +524,13 @@ my class Binder {
 
         # Otherwise, go by sigil to pick the correct default type of value.
         else {
-            if $flags +& SIG_ELEM_ARRAY_SIGIL {
-                nqp::die('Optional array param NYI')
+            if $flags +& $SIG_ELEM_ARRAY_SIGIL {
+                my $result := nqp::create(Array);
+                nqp::bindattr($result, List, '$!flattens', nqp::p6bool(1));
+                $result
             }
-            elsif $flags +& SIG_ELEM_HASH_SIGIL {
-                nqp::die('Optional hash param NYI')
+            elsif $flags +& $SIG_ELEM_HASH_SIGIL {
+                nqp::create(Hash)
             }
             else {
                 nqp::getattr($param, Parameter, '$!nominal_type');

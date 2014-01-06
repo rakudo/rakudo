@@ -621,10 +621,7 @@ multi infix:«>»(Date:D $a, Date:D $b) {
     $a.daycount > $b.daycount
 }
 
-# XXX Not yet working on Moar
-#?if !moar
 $PROCESS::TZ = get-local-timezone-offset();
-#?endif
 
 sub sleep($seconds = Inf --> Nil) {
     if $seconds ~~ (Inf|Whatever) {

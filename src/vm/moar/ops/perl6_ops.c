@@ -520,8 +520,33 @@ static MVMuint8 s_p6decodelocaltime[] = {
     MVM_operand_int64 | MVM_operand_read_reg
 };
 static void p6decodelocaltime(MVMThreadContext *tc) {
-    MVMint64 since_poch = GET_REG(tc, 2).i64;
-    MVM_exception_throw_adhoc(tc, "p6decodelocaltime NYI");
+    MVMObject *result = MVM_repr_alloc_init(tc, tc->instance->boot_types.BOOTIntArray);
+    const time_t t = (time_t)GET_REG(tc, 2).i64;
+    struct tm tm;
+#ifdef _WIN32
+#include <windows.h>
+#include <time.h>
+    *tm = *localtime(t);
+#else
+#include <time.h>
+#include <sys/time.h>
+    localtime_r(&t, &tm);
+#endif
+
+    MVMROOT(tc, result, {
+        REPR(result)->pos_funcs.set_elems(tc, STABLE(result), result, OBJECT_BODY(result), 9);
+        MVM_repr_bind_pos_i(tc, result, 0, (&tm)->tm_sec);
+        MVM_repr_bind_pos_i(tc, result, 1, (&tm)->tm_min);
+        MVM_repr_bind_pos_i(tc, result, 2, (&tm)->tm_hour);
+        MVM_repr_bind_pos_i(tc, result, 3, (&tm)->tm_mday);
+        MVM_repr_bind_pos_i(tc, result, 4, (&tm)->tm_mon + 1);
+        MVM_repr_bind_pos_i(tc, result, 5, (&tm)->tm_year + 1900);
+        MVM_repr_bind_pos_i(tc, result, 6, (&tm)->tm_wday);
+        MVM_repr_bind_pos_i(tc, result, 7, (&tm)->tm_yday);
+        MVM_repr_bind_pos_i(tc, result, 8, (&tm)->tm_isdst);
+    });
+
+    GET_REG(tc, 0).o = result;
 }
 
 static MVMuint8 s_p6staticouter[] = {

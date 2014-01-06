@@ -369,10 +369,13 @@ static MVMuint8 s_p6capturelex[] = {
 static void p6capturelex(MVMThreadContext *tc) {
     MVMObject *p6_code_obj = GET_REG(tc, 2).o;
     MVMObject *vm_code_obj = MVM_frame_find_invokee(tc, p6_code_obj, NULL);
-    if (REPR(vm_code_obj)->ID == MVM_REPR_ID_MVMCode)
-        MVM_frame_capturelex(tc, vm_code_obj);
-    else
+    if (REPR(vm_code_obj)->ID == MVM_REPR_ID_MVMCode) {
+        if (((MVMCode *)vm_code_obj)->body.sf->body.outer == tc->cur_frame->static_info)
+            MVM_frame_capturelex(tc, vm_code_obj);
+    }
+    else {
         MVM_exception_throw_adhoc(tc, "p6captureouters got non-code object");
+    }
     GET_REG(tc, 0).o = p6_code_obj;
 }
 

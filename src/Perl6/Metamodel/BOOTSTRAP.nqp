@@ -784,13 +784,36 @@ my class Binder {
         my int $bind_res := bind($capture, $sig, $lexpad, 0, @error);
         if $bind_res {
             if $bind_res == $BIND_RESULT_JUNCTION {
-                nqp::die('Junction auto-threading NYI');
+                my @pos_args;
+                my int $num_pos_args := nqp::captureposelems($capture);
+                my int $k := 0;
+                my int $got_prim;
+                while $k < $num_pos_args {
+                    $got_prim := nqp::captureposprimspec($capture, $k);
+                    if $got_prim == 0 {
+                        nqp::push(@pos_args, nqp::captureposarg($capture, $k));
+                    }
+                    elsif $got_prim == 1 {
+                        nqp::push(@pos_args, nqp::box_i(nqp::captureposarg_i($capture, $k), Int));
+                    }
+                    elsif $got_prim == 2 {
+                        nqp::push(@pos_args, nqp::box_n(nqp::captureposarg_n($capture, $k), Num));
+                    }
+                    else {
+                        nqp::push(@pos_args, nqp::box_s(nqp::captureposarg_s($capture, $k), Str));
+                    }
+                    $k++;
+                }
+                my %named_args := nqp::capturenamedshash($capture);
+                return Junction.AUTOTHREAD($caller,
+                        |@pos_args,
+                        |%named_args);
             }
             else {
                 nqp::die(@error[0]);
             }
-            0
         }
+        nqp::null();
     }
     
     method is_bindable($sig, $capture) {

@@ -10,6 +10,7 @@ my $MVM_operand_write_lex   := 4;
 my $MVM_operand_rw_mask     := 7;
 
 # Register data types.
+my $MVM_reg_void            := 0;
 my $MVM_reg_int64           := 4;
 my $MVM_reg_num64           := 6;
 my $MVM_reg_str             := 7;
@@ -456,11 +457,25 @@ $ops.add_hll_box('perl6', $MVM_reg_str, boxer($MVM_reg_str, 'p6box_s'));
 # Signature binding related bits.
 our $Binder;
 $ops.add_hll_op('perl6', 'p6bindsig', :!inlinable, -> $qastcomp, $op {
-    $qastcomp.as_mast(QAST::Op.new(
-        :op('callmethod'), :name('bind_sig'),
-        QAST::WVal.new( :value($Binder) ),
-        QAST::Op.new( :op('savecapture') )
-    ));
+    my @ops;
+    my $isnull_result := $*REGALLOC.fresh_i();
+    my $dont_return_lbl := MAST::Label.new(:name($op.unique('p6bind_no_junction_return')));
+    my $bind_res := $qastcomp.as_mast(
+                QAST::Op.new(
+                    :op('callmethod'), :name('bind_sig'),
+                    QAST::WVal.new( :value($Binder) ),
+                    QAST::Op.new( :op('savecapture') ),
+                ), :want($MVM_reg_obj)
+            );
+    push_ilist(@ops, $bind_res);
+    nqp::push(@ops, MAST::Op.new( :op('isnull'), $isnull_result, $bind_res.result_reg ));
+    nqp::push(@ops, MAST::Op.new( :op('if_i'), $isnull_result, $dont_return_lbl ));
+    nqp::push(@ops, MAST::Op.new( :op('return_o'), $bind_res.result_reg ));
+    nqp::push(@ops, $dont_return_lbl);
+
+    $*REGALLOC.release_register($bind_res.result_reg, $MVM_reg_obj);
+    $*REGALLOC.release_register($isnull_result,       $MVM_reg_int64);
+    MAST::InstructionList.new(@ops, MAST::VOID, $MVM_reg_void);
 });
 my $is_bindable := -> $qastcomp, $op {
     $qastcomp.as_mast(QAST::Op.new(

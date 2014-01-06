@@ -182,10 +182,17 @@ my class Proc::Status { ... }
 
 sub run(*@args ($, *@)) {
     my $status = Proc::Status.new( :exit(255) );
+    my Mu $hash-with-containers := nqp::getattr(%*ENV, EnumMap, '$!storage');
+    my Mu $hash-without         := nqp::hash();
+    my Mu $enviter := nqp::iterator($hash-with-containers);
+    my $envelem;
+    while $enviter {
+        $envelem := nqp::shift($enviter);
+        nqp::bindkey($hash-without, nqp::iterkey_s($envelem), nqp::decont(nqp::iterval($envelem)))
+    }
     try {
-        my Mu $hash := nqp::getattr(%*ENV, EnumMap, '$!storage');
         $status.status( nqp::p6box_i(
-            nqp::spawn(nqp::getattr(@args.eager, List, '$!items'), $*CWD.Str, $hash)
+            nqp::spawn(nqp::getattr(@args.eager, List, '$!items'), $*CWD.Str, $hash-without)
         ) );
     }
     $status
@@ -193,9 +200,16 @@ sub run(*@args ($, *@)) {
 
 sub shell($cmd) {
     my $status = Proc::Status.new( :exit(255) );
+    my Mu $hash-with-containers := nqp::getattr(%*ENV, EnumMap, '$!storage');
+    my Mu $hash-without         := nqp::hash();
+    my Mu $enviter := nqp::iterator($hash-with-containers);
+    my $envelem;
+    while $enviter {
+        $envelem := nqp::shift($enviter);
+        nqp::bindkey($hash-without, nqp::iterkey_s($envelem), nqp::decont(nqp::iterval($envelem)))
+    }
     try {
-        my Mu $hash := nqp::getattr(%*ENV, EnumMap, '$!storage');
-        $status.status( nqp::p6box_i(nqp::shell($cmd, $*CWD.Str, $hash)) );
+        $status.status( nqp::p6box_i(nqp::shell($cmd, $*CWD.Str, $hash-without)) );
     }
     $status
 }
@@ -219,8 +233,15 @@ sub QX($cmd) {
     $result;
 #?endif
 #?if !parrot
-    my Mu $env := nqp::getattr(%*ENV, EnumMap, '$!storage');
-    my Mu $pio := nqp::openpipe(nqp::unbox_s($cmd), $*CWD.Str, $env, '');
+    my Mu $hash-with-containers := nqp::getattr(%*ENV, EnumMap, '$!storage');
+    my Mu $hash-without         := nqp::hash();
+    my Mu $enviter := nqp::iterator($hash-with-containers);
+    my $envelem;
+    while $enviter {
+        $envelem := nqp::shift($enviter);
+        nqp::bindkey($hash-without, nqp::iterkey_s($envelem), nqp::decont(nqp::iterval($envelem)))
+    }
+    my Mu $pio := nqp::openpipe(nqp::unbox_s($cmd), $*CWD.Str, $hash-without, '');
     fail "Unable to execute '$cmd'" unless $pio;
     my $result = nqp::p6box_s(nqp::readallfh($pio));
     nqp::closefh($pio);

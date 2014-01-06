@@ -767,7 +767,32 @@ my class Binder {
             }
         }
         
-        # XXX Missing/excess args checking.
+        # Do we have any left-over args?
+        if $cur_pos_arg < $num_pos_args && !$suppress_arity_fail {
+            # Oh noes, too many positionals passed.
+            if nqp::defined($error) {
+                $error[0] := arity_fail(@params, $num_params, $num_pos_args, 1);
+            }
+            return $BIND_RESULT_FAIL;
+        }
+        if $named_args {
+            # Oh noes, unexpected named args.
+            if $error {
+                my int $num_extra := nqp::elems($named_args);
+                my @names;
+                for $named_args {
+                    nqp::push(@names, $_.key);
+                }
+                if $num_extra == 1 {
+                    $error[0] := "Unexpected named parameter '" ~ @names[0] ~ "' passed";
+                }
+                else {
+                    $error[0] := $num_extra ~ " unexpected named parameters passed (" ~
+                        nqp::join(",", @names) ~")";
+                }
+            }
+            return $BIND_RESULT_FAIL;
+        }
         
         # If we get here, we're done.
         return $BIND_RESULT_OK;

@@ -817,7 +817,7 @@ my class Binder {
     }
     
     method is_bindable($sig, $capture) {
-        bind($capture, $sig, nqp::hash(), 1, NQPMu) == $BIND_RESULT_OK
+        bind($capture, $sig, nqp::hash(), 0, NQPMu) == $BIND_RESULT_OK
     }
 
     my int $TRIAL_BIND_NOT_SURE :=  0;   # Plausible, but need to check at runtime.

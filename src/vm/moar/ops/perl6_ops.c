@@ -2,6 +2,14 @@
 #include "moar.h"
 #include "container.h"
 
+#ifdef _WIN32
+#include <windows.h>
+#include <time.h>
+#else
+#include <time.h>
+#include <sys/time.h>
+#endif
+
 #define GET_REG(tc, idx) (*tc->interp_reg_base)[*((MVMuint16 *)(*tc->interp_cur_op + idx))]
 
 /* Dummy, one-arg callsite. */
@@ -592,12 +600,8 @@ static void p6decodelocaltime(MVMThreadContext *tc) {
     const time_t t = (time_t)GET_REG(tc, 2).i64;
     struct tm tm;
 #ifdef _WIN32
-#include <windows.h>
-#include <time.h>
-    *tm = *localtime(t);
+    tm = *localtime(&t);
 #else
-#include <time.h>
-#include <sys/time.h>
     localtime_r(&t, &tm);
 #endif
 

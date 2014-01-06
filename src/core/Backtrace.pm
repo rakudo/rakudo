@@ -57,20 +57,24 @@ my class Backtrace is List {
             my $code;
             try {
                 $code = nqp::getcodeobj($sub);
+                $code = Any unless nqp::istype($code, Mu);
             };
             my $line     = $bt[$_]<annotations><line>;
             my $file     = $bt[$_]<annotations><file>;
             next unless $line && $file;
             # now *that's* an evil hack
             next if $file eq 'src/gen/BOOTSTRAP.nqp' ||
-                    $file eq 'src\\gen\\BOOTSTRAP.nqp';
+                    $file eq 'src/gen/m-BOOTSTRAP.nqp' ||
+                    $file eq 'src\\gen\\BOOTSTRAP.nqp' ||
+                    $file eq 'src\\gen\\m-BOOTSTRAP.nqp';
             last if $file eq 'src/stage2/gen/NQPHLL.nqp' ||
                     $file eq 'src\\stage2\\gen\\NQPHLL.nqp' ||
                     $file eq 'gen/parrot/stage2/NQPHLL.nqp' ||
                     $file eq 'gen\\parrot\\stage2\\NQPHLL.nqp' ||
                     $file eq 'gen/jvm/stage2/NQPHLL.nqp' ||
-                    $file eq 'gen\\jvm\\stage2\\NQPHLL.nqp';
-                    # XXX extend for moar
+                    $file eq 'gen\\jvm\\stage2\\NQPHLL.nqp' ||
+                    $file eq 'gen/moar/stage2/NQPHLL.nqp' ||
+                    $file eq 'gen\\moar\\stage2\\NQPHLL.nqp';
             my $subname  = nqp::p6box_s(nqp::getcodename($sub));
             $subname = '<anon>' if $subname.substr(0, 6) eq '_block';
             $new.push: Backtrace::Frame.new(

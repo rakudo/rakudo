@@ -8,6 +8,11 @@
 static MVMCallsiteEntry one_arg_flags[] = { MVM_CALLSITE_ARG_OBJ };
 static MVMCallsite     one_arg_callsite = { one_arg_flags, 1, 1, 0 };
 
+/* Dispatcher vivify_for callsite. */
+static MVMCallsiteEntry disp_flags[] = { MVM_CALLSITE_ARG_OBJ, MVM_CALLSITE_ARG_OBJ, 
+                                         MVM_CALLSITE_ARG_OBJ, MVM_CALLSITE_ARG_OBJ };
+static MVMCallsite     disp_callsite = { disp_flags, 4, 4, 0 };
+
 /* Are we initialized yet? */
 static int initialized = 0;
 
@@ -30,7 +35,9 @@ static MVMObject *Nil                 = NULL;
 static MVMObject *default_cont_desc = NULL;
 
 /* Useful string constants. */
-static MVMString *str_return = NULL;
+static MVMString *str_return     = NULL;
+static MVMString *str_dispatcher = NULL;
+static MVMString *str_vivify_for = NULL;
 
 /* Parcel, as laid out as a P6opaque. */
 typedef struct {
@@ -110,6 +117,10 @@ static void p6settypes(MVMThreadContext *tc) {
     /* Strings. */
     str_return = MVM_string_ascii_decode_nt(tc, tc->instance->VMString, "RETURN");
     MVM_gc_root_add_permanent(tc, (MVMCollectable **)&str_return);
+    str_dispatcher = MVM_string_ascii_decode_nt(tc, tc->instance->VMString, "$*DISPATCHER");
+    MVM_gc_root_add_permanent(tc, (MVMCollectable **)&str_dispatcher);
+    str_vivify_for = MVM_string_ascii_decode_nt(tc, tc->instance->VMString, "vivify_for");
+    MVM_gc_root_add_permanent(tc, (MVMCollectable **)&str_vivify_for);
 }
 
 /* Boxing to Perl 6 types. */
@@ -422,11 +433,68 @@ static MVMuint8 s_p6finddispatcher[] = {
     MVM_operand_obj | MVM_operand_write_reg,
     MVM_operand_str | MVM_operand_read_reg
 };
+void store_dispatcher(MVMThreadContext *tc, void *sr_data) {
+    MVMRegister **srd = (MVMRegister **)sr_data;
+    srd[0]->o = srd[1]->o;
+    free(srd);
+}
 static void p6finddispatcher(MVMThreadContext *tc) {
     MVMString *usage = GET_REG(tc, 2).s;
-    MVMObject *dispatcher;
-    MVM_exception_throw_adhoc(tc, "p6finddispatcher NYI");
-    GET_REG(tc, 0).o = dispatcher;
+    MVMFrame  *ctx = tc->cur_frame;
+    while (ctx) {
+        /* Do we have a dispatcher here? */
+        MVMRegister *disp_lex = MVM_frame_try_get_lexical(tc, ctx, str_dispatcher, MVM_reg_obj);
+        if (disp_lex) {
+            MVMObject *maybe_dispatcher = disp_lex->o;
+            if (maybe_dispatcher) {
+                MVMObject *dispatcher = maybe_dispatcher;
+                if (!IS_CONCRETE(dispatcher)) {
+                    /* Need to vivify it, by calling vivify_for method. Prepare
+                     * things we need to pass to it*/
+                    MVMObject *meth, *p6sub, *ctx_ref, *capture;
+                    MVMRegister *res_reg = &GET_REG(tc, 0);
+                    MVMROOT(tc, dispatcher, {
+                        ctx_ref = MVM_repr_alloc_init(tc, tc->instance->boot_types.BOOTContext);
+                        ((MVMContext *)ctx_ref)->body.context = MVM_frame_inc_ref(tc, ctx);
+                    });
+                    capture = MVM_args_use_capture(tc, ctx);
+                    p6sub = ((MVMCode *)ctx->code_ref)->body.code_object;
+
+                    /* Lookup method, invoke it, and set up callback to ensure it
+                     * is also stored in the lexical. */
+                    meth = MVM_6model_find_method_cache_only(tc, dispatcher, str_vivify_for);
+                    meth = MVM_frame_find_invokee(tc, meth, NULL);
+                    *(tc->interp_cur_op) += 4; /* Get right return address. */
+                    MVM_args_setup_thunk(tc, res_reg, MVM_RETURN_OBJ, &disp_callsite);
+                    {
+                        MVMRegister **srd = malloc(2 * sizeof(MVMObject *));
+                        srd[0] = disp_lex;
+                        srd[1] = res_reg;
+                        tc->cur_frame->special_return      = store_dispatcher;
+                        tc->cur_frame->special_return_data = srd;
+                    }
+                    tc->cur_frame->args[0].o = dispatcher;
+                    tc->cur_frame->args[1].o = p6sub;
+                    tc->cur_frame->args[2].o = ctx_ref;
+                    tc->cur_frame->args[3].o = capture;
+                    STABLE(meth)->invoke(tc, meth, &disp_callsite, tc->cur_frame->args);
+                    *(tc->interp_cur_op) -= 4; /* Coutneract addition of ext-op size. */
+                    return;
+                }
+                else {
+                    GET_REG(tc, 0).o = dispatcher;
+                    return;
+                }
+            }
+        }
+
+        /* Follow dynamic chain. */
+        ctx = ctx->caller;
+    }
+
+    MVM_exception_throw_adhoc(tc, 
+        "%s is not in the dynamic scope of a dispatcher",
+        MVM_string_utf8_encode_C_string(tc, usage));
 }
 
 static MVMuint8 s_p6argsfordispatcher[] = {

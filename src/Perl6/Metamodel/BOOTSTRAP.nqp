@@ -191,11 +191,11 @@ my class Binder {
             elsif !$got_native {
                 # XXX Probably want to do this a little differently to get a
                 # better error.
-                if $desired_native == 1 {
+                if $desired_native == $SIG_ELEM_NATIVE_INT_VALUE {
                     $ival := nqp::unbox_i($oval);
                     $got_native := $SIG_ELEM_NATIVE_INT_VALUE;
                 }
-                elsif $desired_native == 2 {
+                elsif $desired_native == $SIG_ELEM_NATIVE_NUM_VALUE {
                     $nval := nqp::unbox_n($oval);
                     $got_native := $SIG_ELEM_NATIVE_NUM_VALUE;
                 }

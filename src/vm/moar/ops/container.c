@@ -23,7 +23,10 @@ static void rakudo_scalar_store(MVMThreadContext *tc, MVMObject *cont, MVMObject
         MVM_exception_throw_adhoc(tc, "Cannot assign to a readonly variable or a value");
 
     /* Handle Nil and type-checking. */
-    if (obj && STABLE(obj)->WHAT == get_nil()) {
+    if (!obj) {
+        MVM_exception_throw_adhoc(tc, "Cannot assign a null value to a Perl 6 scalar");
+    }
+    else if (STABLE(obj)->WHAT == get_nil()) {
         if (rcd) {
             obj = rcd->the_default;
         }

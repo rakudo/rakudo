@@ -62,7 +62,16 @@ class Perl6::Metamodel::ClassHOW
             nqp::die("Type " ~ self.name($obj) ~ " cannot accept type arguments")
         }
     }
-    
+
+    method make_mappable($obj) {
+        if nqp::can($obj, 'MAKE_MAPPABLE') {
+            $obj.MAKE_MAPPABLE()
+        }
+        else {
+            nqp::die("Type " ~ self.name($obj) ~ " cannot be made mappable")
+        }
+    }
+
     # Adds a new fallback for method dispatch. Expects the specified
     # condition to have been met (passes it the object and method name),
     # and if it is calls $calculator with the object and method name to

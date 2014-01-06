@@ -1637,7 +1637,13 @@ class Perl6::World is HLL::World {
         self.add_object($curried);
         return $curried;
     }
-    
+
+    method make_mappable($role) {
+        my $mappable := $role.HOW.make_mappable($role);
+        self.add_object($mappable);
+        return $mappable;
+    }
+
     # Creates a subset type meta-object/type object pair.
     method create_subset($how, $refinee, $refinement, :$name) {
         # Create the meta-object and add to root objects.

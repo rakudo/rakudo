@@ -204,9 +204,12 @@ $ops.add_hll_op('perl6', 'p6bindassert', -> $qastcomp, $op {
     
     # Emit a type check.
     my $tcr_reg  := $*REGALLOC.fresh_i();
+    my $dc_reg   := $*REGALLOC.fresh_o();
     my $lbl_done := MAST::Label.new(:name($op.unique('bindassert_done_')));
-    nqp::push(@ops, MAST::Op.new( :op('istype'), $tcr_reg, $value_res.result_reg, $type_res.result_reg ));
+    nqp::push(@ops, MAST::Op.new( :op('decont'), $dc_reg, $value_res.result_reg ));
+    nqp::push(@ops, MAST::Op.new( :op('istype'), $tcr_reg, $dc_reg, $type_res.result_reg ));
     nqp::push(@ops, MAST::Op.new( :op('if_i'), $tcr_reg, $lbl_done ));
+    $*REGALLOC.release_register($dc_reg, $MVM_reg_obj);
     $*REGALLOC.release_register($tcr_reg, $MVM_reg_int64);
     
     # Error generation.

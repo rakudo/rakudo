@@ -500,7 +500,7 @@ static void p6finddispatcher(MVMThreadContext *tc) {
         ctx = ctx->caller;
     }
 
-    MVM_exception_throw_adhoc(tc, 
+    MVM_exception_throw_adhoc(tc,
         "%s is not in the dynamic scope of a dispatcher",
         MVM_string_utf8_encode_C_string(tc, usage));
 }
@@ -511,7 +511,23 @@ static MVMuint8 s_p6argsfordispatcher[] = {
 };
 static void p6argsfordispatcher(MVMThreadContext *tc) {
     MVMObject *disp = GET_REG(tc, 2).o;
-    MVM_exception_throw_adhoc(tc, "p6argsfordispatcher NYI");
+    MVMFrame  *ctx = tc->cur_frame;
+    while (ctx) {
+        /* Do we have the dispatcher we're looking for? */
+        MVMRegister *disp_lex = MVM_frame_try_get_lexical(tc, ctx, str_dispatcher, MVM_reg_obj);
+        if (disp_lex) {
+            MVMObject *maybe_dispatcher = disp_lex->o;
+            if (maybe_dispatcher == disp) {
+                GET_REG(tc, 0).o = MVM_args_use_capture(tc, ctx);
+                return;
+            }
+        }
+
+        /* Follow dynamic chain. */
+        ctx = ctx->caller;
+    }
+
+    MVM_exception_throw_adhoc(tc, "Could not find arguments for dispatcher");
 }
 
 static MVMuint8 s_p6shiftpush[] = {

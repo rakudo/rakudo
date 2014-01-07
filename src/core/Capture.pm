@@ -8,7 +8,7 @@ my class Capture { # declared in BOOTSTRAP
             nqp::getattr(nqp::decont(@list.Parcel), Parcel, '$!storage')
         );
         nqp::bindattr(self, Capture, '$!hash',
-            nqp::getattr(nqp::decont(%hash), EnumMap, '$!storage')
+            nqp::defor(nqp::getattr(nqp::decont(%hash), EnumMap, '$!storage'), nqp::hash())
         );
         1;
     }

@@ -424,8 +424,7 @@ static MVMuint8 s_p6stateinit[] = {
     MVM_operand_int64 | MVM_operand_write_reg
 };
 static void p6stateinit(MVMThreadContext *tc) {
-    /* XXX CHEAT */
-    GET_REG(tc, 0).i64 = 1;
+    GET_REG(tc, 0).i64 = tc->cur_frame->flags & MVM_FRAME_FLAG_STATE_INIT ? 1 : 0;
 }
 
 static MVMuint8 s_p6setfirstflag[] = {

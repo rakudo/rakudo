@@ -436,6 +436,14 @@ static void p6setfirstflag(MVMThreadContext *tc) {
     MVM_exception_throw_adhoc(tc, "p6setfirstflag NYI");
 }
 
+static MVMuint8 s_p6inpre[] = {
+    MVM_operand_int64 | MVM_operand_write_reg
+};
+static void p6inpre(MVMThreadContext *tc) {
+    /* XXX TODO: real implementation of this. */
+    GET_REG(tc, 0).i64 = 0;
+}
+
 static MVMuint8 s_p6finddispatcher[] = {
     MVM_operand_obj | MVM_operand_write_reg,
     MVM_operand_str | MVM_operand_read_reg
@@ -676,6 +684,7 @@ MVM_DLL_EXPORT void Rakudo_ops_init(MVMThreadContext *tc) {
     MVM_ext_register_extop(tc, "p6captureouters", p6captureouters, 1, s_p6captureouters);
     MVM_ext_register_extop(tc, "p6stateinit", p6stateinit, 1, s_p6stateinit);
     MVM_ext_register_extop(tc, "p6setfirstflag", p6setfirstflag, 2, s_p6setfirstflag);
+    MVM_ext_register_extop(tc, "p6inpre", p6inpre, 1, s_p6inpre);
     MVM_ext_register_extop(tc, "p6finddispatcher", p6finddispatcher, 2, s_p6finddispatcher);
     MVM_ext_register_extop(tc, "p6argsfordispatcher", p6argsfordispatcher, 2, s_p6argsfordispatcher);
     MVM_ext_register_extop(tc, "p6shiftpush", p6shiftpush, 4, s_p6shiftpush);

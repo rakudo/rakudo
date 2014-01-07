@@ -5950,6 +5950,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         $block.push(QAST::Stmts.new( $initializer ));
         $block.symbol('self', :scope('lexical'));
         add_signature_binding_code($block, $sig, @params);
+        $block.blocktype('declaration_static');
         my $code := $*W.create_code_object($block, 'Method', $sig);
 
         # Block should go in current lexpad, in correct lexical context.

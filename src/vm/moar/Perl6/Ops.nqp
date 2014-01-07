@@ -172,7 +172,6 @@ $ops.add_hll_op('perl6', 'p6definite', -> $qastcomp, $op {
     $*REGALLOC.release_register($tmp_reg, $MVM_reg_int64);
     MAST::InstructionList.new(@ops, $value_res.result_reg, $MVM_reg_obj)
 });
-#$ops.map_classlib_hll_op('perl6', 'p6bindcaptosig', $TYPE_P6OPS, 'p6bindcaptosig', [$RT_OBJ, $RT_OBJ], $RT_OBJ, :tc);
 $ops.add_hll_moarop_mapping('perl6', 'p6typecheckrv', 'p6typecheckrv', 0);
 $ops.add_hll_op('perl6', 'p6decontrv', -> $qastcomp, $op {
     my $is_rw;
@@ -489,6 +488,14 @@ my $is_bindable := -> $qastcomp, $op {
 };
 $ops.add_hll_op('nqp', 'p6isbindable', :!inlinable, $is_bindable);
 $ops.add_hll_op('perl6', 'p6isbindable', :!inlinable, $is_bindable);
+my $p6bindcaptosig := -> $qastcomp, $op {
+    $qastcomp.as_mast(QAST::Op.new(
+        :op('callmethod'), :name('bind_cap_to_sig'),
+        QAST::WVal.new( :value($Binder) ),
+        |@($op)
+    ));
+};
+$ops.add_hll_op('perl6', 'p6bindcaptosig', :!inlinable, $p6bindcaptosig);
 proto sub trial_bind(*@args) {
     $Binder.trial_bind(|@args);
 }

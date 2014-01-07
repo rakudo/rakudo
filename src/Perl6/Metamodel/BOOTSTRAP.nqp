@@ -477,14 +477,7 @@ my class Binder {
             }
 
             # Recurse into signature binder.
-            sub vm_capture(*@pos, *%named) {
-                nqp::savecapture()
-            }
-            my @list := nqp::getattr($capture, Capture, '$!list');
-            @list    := nqp::list() unless nqp::islist(@list);
-            my %hash := nqp::getattr($capture, Capture, '$!hash');
-            %hash    := nqp::hash() unless nqp::ishash(%hash);
-            my $result := bind(vm_capture(|@list, |%hash), $subsig, $lexpad,
+            my $result := bind(make_vm_capture($capture), $subsig, $lexpad,
                 $no_nom_type_check, $error);
             unless $result == $BIND_RESULT_OK {
                 if $error {
@@ -841,8 +834,27 @@ my class Binder {
         nqp::null();
     }
     
+    sub make_vm_capture($capture) {
+        sub vm_capture(*@pos, *%named) { nqp::savecapture() }                
+        my @list := nqp::getattr($capture, Capture, '$!list');
+        @list    := nqp::list() unless nqp::islist(@list);
+        my %hash := nqp::getattr($capture, Capture, '$!hash');
+        %hash    := nqp::hash() unless nqp::ishash(%hash);
+        vm_capture(|@list, |%hash)
+    }
+    
     method is_bindable($sig, $capture) {
         bind($capture, $sig, nqp::hash(), 0, NQPMu) != $BIND_RESULT_FAIL
+    }
+
+    method bind_cap_to_sig($sig, $cap) {
+        my $capture := make_vm_capture($cap);
+        my $lexpad  := nqp::ctxcaller(nqp::ctx());
+        my @error;
+        if bind($capture, $sig, $lexpad, 0, @error) != $BIND_RESULT_OK {
+            nqp::die(@error[0]);
+        }
+        $sig
     }
 
     my int $TRIAL_BIND_NOT_SURE :=  0;   # Plausible, but need to check at runtime.

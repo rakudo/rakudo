@@ -107,7 +107,7 @@ my class IO::Handle does IO::FileTestable {
         );
         $!path = $path;
         $!chomp = $chomp;
-        nqp::setencoding($!PIO, $bin ?? 'binary' !! NORMALIZE_ENCODING($encoding));
+        nqp::setencoding($!PIO, NORMALIZE_ENCODING($encoding)) unless $bin;
         self;
     }
 

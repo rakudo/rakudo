@@ -1136,9 +1136,11 @@ class Perl6::World is HLL::World {
                     $code_past[0].push(self.run_phasers_code($code, $block_type, 'ENTER'));
                 }
                 if nqp::existskey(%phasers, '!LEAVE-ORDER') || nqp::existskey(%phasers, 'POST') {
-                    $code_past[+@($code_past) - 1] := QAST::Op.new(
-                        :op('p6return'),
-                        $code_past[+@($code_past) - 1]);
+                    if nqp::getcomp('perl6').backend.name eq 'parrot' {
+                        $code_past[+@($code_past) - 1] := QAST::Op.new(
+                            :op('p6return'),
+                            $code_past[+@($code_past) - 1]);
+                    }
                     $code_past.has_exit_handler(1);
                 }
             }

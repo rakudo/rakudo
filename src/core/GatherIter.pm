@@ -3,11 +3,8 @@ class GatherIter is Iterator {
     has $!reified;             # Parcel of this iterator's results
     has $!infinite;            # true if iterator is known infinite
 
-#?if jvm
+#?if !parrot
     my $GATHER_PROMPT = [];
-    my $SENTINEL := [];
-#?endif
-#?if moar
     my $SENTINEL := [];
 #?endif
     method new($block, Mu :$infinite) {
@@ -16,7 +13,7 @@ class GatherIter is Iterator {
             nqp::clone(nqp::getattr(&coro, Code, '$!do'));
         nqp::ifnull($coro($block), Nil);
 #?endif
-#?if jvm
+#?if !parrot
         my Mu $takings;
         my Mu $state;
         my sub yield() {
@@ -30,26 +27,6 @@ class GatherIter is Iterator {
             $takings := $SENTINEL; yield();
         };
         my $coro := sub () is rw { nqp::continuationreset($GATHER_PROMPT, $state); $takings };
-#?endif
-#?if moar
-        # XXX Cheating, eager implementation for now. Limits to 1000
-        # takes.
-        my int $done = 0;
-        my $coro := -> {
-            if $done {
-                $SENTINEL
-            }
-            else {
-                my Mu $takings := nqp::list();
-                my int $taken = 0;
-                nqp::handle($block().eager(),
-                    'TAKE', nqp::stmts(
-                        nqp::push($takings, nqp::getpayload(nqp::exception())),
-                        ($taken = $taken + 1) <= 1000 && nqp::resume(nqp::exception())));
-                $done = 1;
-                nqp::p6parcel($takings, Mu)
-            }
-        }
 #?endif
         my Mu $new := nqp::create(self);
         nqp::bindattr($new, GatherIter, '$!coro', $coro);
@@ -80,21 +57,12 @@ class GatherIter is Iterator {
 #?if parrot
                 $end = nqp::p6bool(nqp::isnull($parcel));
 #?endif
-#?if jvm
-                $end = nqp::p6bool(nqp::eqaddr($parcel, $SENTINEL));
-#?endif
-#?if moar
+#?if !parrot
                 $end = nqp::p6bool(nqp::eqaddr($parcel, $SENTINEL));
 #?endif
                 nqp::push($rpa, $parcel) unless $end;
                 $count = $count - 1;
             }
-#?if moar
-            # Needed until we have proper thing-at-a-time gather/take.
-            if nqp::elems($rpa) {
-                $rpa := nqp::getattr(nqp::atpos($rpa, 0), Parcel, '$!storage');
-            }
-#?endif
             nqp::push($rpa, 
                 nqp::p6bindattrinvres(
                     nqp::p6bindattrinvres(

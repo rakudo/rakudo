@@ -59,10 +59,6 @@ MAIN: {
         $letter_to_backend{ substr($_, 0, 1) } = $_;
     }
     my %backends;
-    if (defined $options{'gen-moar'}) {
-        $backends{moar} = 1;
-        $options{'gen-nqp'} ||= '';
-    }
     if (defined $options{backends}) {
         for my $b (split /,\s*/, $options{backends}) {
             $b = lc $b;
@@ -88,7 +84,15 @@ MAIN: {
                 $default_backend ||= $b;
             }
         }
-        $backends{parrot} = 1 if exists $options{'gen-parrot'};
+        if (exists $options{'gen-moar'}) {
+            $backends{moar} = 1;
+            $default_backend ||= 'moar';
+            $options{'gen-nqp'} ||= '';
+        }
+        if (exists $options{'gen-parrot'}) {
+            $backends{parrot} = 1;
+            $default_backend ||= 'parrot';
+        }
         unless (%backends) {
             die "No suitable nqp executables found! Please specify some --backends, or a --prefix that contains nqp-{p,j,m} executables\n";
         }

@@ -5,6 +5,12 @@
 /* Dummy, no-arg callsite. */
 static MVMCallsite no_arg_callsite = { NULL, 0, 0, 0 };
 
+/* Dummy callsite for type_check. */
+static MVMCallsiteEntry tc_flags[] = { MVM_CALLSITE_ARG_OBJ,
+                                       MVM_CALLSITE_ARG_OBJ,
+                                       MVM_CALLSITE_ARG_OBJ };
+static MVMCallsite     tc_callsite = { tc_flags, 3, 3, 0 };
+
 static void rakudo_scalar_fetch(MVMThreadContext *tc, MVMObject *cont, MVMRegister *res) {
     res->o = ((Rakudo_Scalar *)cont)->value;
 }
@@ -32,6 +38,28 @@ static void finish_store(MVMThreadContext *tc, MVMObject *cont, MVMObject *obj) 
 static void typecheck_failed(MVMThreadContext *tc, MVMObject *cont, MVMObject *obj) {
     /* XXX TODO: Improve this error reporting by looking up typed thrower. */
     MVM_exception_throw_adhoc(tc, "Type check failed in assignment");
+}
+
+typedef struct {
+    MVMObject   *cont;
+    MVMObject   *obj;
+    MVMRegister  res;
+} type_check_data;
+static void type_check_ret(MVMThreadContext *tc, void *sr_data) {
+    type_check_data *tcd = (type_check_data *)sr_data;
+    MVMObject *cont = tcd->cont;
+    MVMObject *obj  = tcd->obj;
+    MVMint64   res  = tcd->res.i64;
+    free(tcd);
+    if (res)
+        finish_store(tc, cont, obj);
+    else
+        typecheck_failed(tc, cont, obj);
+}
+static void mark_sr_data(MVMThreadContext *tc, MVMFrame *frame, MVMGCWorklist *worklist) {
+    type_check_data *tcd = (type_check_data *)frame->special_return_data;
+    MVM_gc_worklist_add(tc, worklist, &tcd->cont);
+    MVM_gc_worklist_add(tc, worklist, &tcd->obj);
 }
 
 static void rakudo_scalar_store(MVMThreadContext *tc, MVMObject *cont, MVMObject *obj) {
@@ -64,7 +92,59 @@ static void rakudo_scalar_store(MVMThreadContext *tc, MVMObject *cont, MVMObject
                 (mode & MVM_TYPE_CHECK_NEEDS_ACCEPTS) == 0)
                 typecheck_failed(tc, cont, obj);
 
-            /* XXX TODO: other cases. */
+            /* If we get here, need to call .^type_check on the value we're
+             * checking, unless it's an accepts check. */
+            if (!STABLE(obj)->type_check_cache || (mode & MVM_TYPE_CHECK_CACHE_THEN_METHOD)) {
+                MVMObject *HOW = STABLE(rcd->of)->HOW;
+                MVMObject *meth = MVM_6model_find_method_cache_only(tc, HOW,
+                    tc->instance->str_consts.type_check);
+                if (meth) {
+                    /* Set up the call, using a fake register in special return
+                     * data as the target. */
+                    MVMObject *code = MVM_frame_find_invokee(tc, meth, NULL);
+                    type_check_data *tcd = malloc(sizeof(type_check_data));
+                    tcd->cont    = cont;
+                    tcd->obj     = obj;
+                    tcd->res.i64 = 0;
+                    MVM_args_setup_thunk(tc, &tcd->res, MVM_RETURN_INT, &tc_callsite);
+                    tc->cur_frame->special_return           = type_check_ret;
+                    tc->cur_frame->special_return_data      = tcd;
+                    tc->cur_frame->mark_special_return_data = mark_sr_data;
+                    tc->cur_frame->args[0].o = HOW;
+                    tc->cur_frame->args[1].o = obj;
+                    tc->cur_frame->args[2].o = rcd->of;
+                    STABLE(code)->invoke(tc, code, &tc_callsite, tc->cur_frame->args);
+                    return;
+                }
+            }
+        }
+
+        /* If the flag to call .accepts_type on the target value is set, do so. */
+        if (mode & MVM_TYPE_CHECK_NEEDS_ACCEPTS) {
+            MVMObject *HOW = STABLE(rcd->of)->HOW;
+            MVMObject *meth = MVM_6model_find_method_cache_only(tc, HOW,
+                tc->instance->str_consts.accepts_type);
+            if (meth) {
+                /* Set up the call, using the result register as the target. */
+                MVMObject *code = MVM_frame_find_invokee(tc, meth, NULL);
+                type_check_data *tcd = malloc(sizeof(type_check_data));
+                tcd->cont    = cont;
+                tcd->obj     = obj;
+                tcd->res.i64 = 0;
+                MVM_args_setup_thunk(tc, &tcd->res, MVM_RETURN_INT, &tc_callsite);
+                tc->cur_frame->special_return           = type_check_ret;
+                tc->cur_frame->special_return_data      = tcd;
+                tc->cur_frame->mark_special_return_data = mark_sr_data;
+                tc->cur_frame->args[0].o = HOW;
+                tc->cur_frame->args[1].o = rcd->of;
+                tc->cur_frame->args[2].o = obj;
+                STABLE(code)->invoke(tc, code, &tc_callsite, tc->cur_frame->args);
+                return;
+            }
+            else {
+                MVM_exception_throw_adhoc(tc,
+                    "Expected 'accepts_type' method, but none found in meta-object");
+            }
         }
     }
 
@@ -128,5 +208,5 @@ void Rakudo_containers_setup(MVMThreadContext *tc) {
 }
 
 MVMContainerSpec * Rakudo_containers_get_scalar() {
-    return &rakudo_scalar_spec;
+    return (MVMContainerSpec *)&rakudo_scalar_spec;
 }

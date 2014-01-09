@@ -10,10 +10,33 @@ static void rakudo_scalar_fetch(MVMThreadContext *tc, MVMObject *cont, MVMRegist
 }
 
 MVMObject * get_nil();
+MVMObject * get_mu();
+
+static void finish_store(MVMThreadContext *tc, MVMObject *cont, MVMObject *obj) {
+    Rakudo_Scalar *rs = (Rakudo_Scalar *)cont;
+    MVMObject *whence;
+
+    /* Store the value. */
+    MVM_ASSIGN_REF(tc, cont, rs->value, obj);
+
+    /* Run any whence closure. */
+    whence = rs->whence;
+    if (whence && IS_CONCRETE(whence)) {
+        MVMObject *code = MVM_frame_find_invokee(tc, whence, NULL);
+        MVM_args_setup_thunk(tc, NULL, MVM_RETURN_VOID, &no_arg_callsite);
+        rs->whence = NULL;
+        STABLE(code)->invoke(tc, code, &no_arg_callsite, tc->cur_frame->args);
+    }
+}
+
+static void typecheck_failed(MVMThreadContext *tc, MVMObject *cont, MVMObject *obj) {
+    /* XXX TODO: Improve this error reporting by looking up typed thrower. */
+    MVM_exception_throw_adhoc(tc, "Type check failed in assignment");
+}
+
 static void rakudo_scalar_store(MVMThreadContext *tc, MVMObject *cont, MVMObject *obj) {
     Rakudo_Scalar *rs = (Rakudo_Scalar *)cont;
     Rakudo_ContainerDescriptor *rcd = (Rakudo_ContainerDescriptor *)rs->descriptor;
-    MVMObject *whence;
     MVMint64 rw = 0;
 
     /* Check it's an assignable container. */
@@ -30,25 +53,23 @@ static void rakudo_scalar_store(MVMThreadContext *tc, MVMObject *cont, MVMObject
         if (rcd) {
             obj = rcd->the_default;
         }
-        else {
-            /* XXX TODO: Type checking. Bit complex as some may need to go
-             * back into the interpreter, and keeping the target and object
-             * around means an interesting marking situation with the special
-             * return data. */
+    }
+    else {
+        /* Check against the type-check cache first (common, fast-path
+         * case). */
+        MVMint64 mode = STABLE(rcd->of)->mode_flags & MVM_TYPE_CHECK_CACHE_FLAG_MASK;
+        if (rcd->of != get_mu() && !MVM_6model_istype_cache_only(tc, obj, rcd->of)) {
+            /* Failed. If the cache is definitive, we certainly have an error. */
+            if ((mode & MVM_TYPE_CHECK_CACHE_THEN_METHOD) == 0 &&
+                (mode & MVM_TYPE_CHECK_NEEDS_ACCEPTS) == 0)
+                typecheck_failed(tc, cont, obj);
+
+            /* XXX TODO: other cases. */
         }
     }
 
-    /* If all is good, do the actual assignment. */
-    MVM_ASSIGN_REF(tc, cont, rs->value, obj);
-
-    /* Run any whence closure. */
-    whence = rs->whence;
-    if (whence && IS_CONCRETE(whence)) {
-        MVMObject *code = MVM_frame_find_invokee(tc, whence, NULL);
-        MVM_args_setup_thunk(tc, NULL, MVM_RETURN_VOID, &no_arg_callsite);
-        rs->whence = NULL;
-        STABLE(code)->invoke(tc, code, &no_arg_callsite, tc->cur_frame->args);
-    }
+    /* Complete the store. */
+    finish_store(tc, cont, obj);
 }
 
 static void rakudo_scalar_store_unchecked(MVMThreadContext *tc, MVMObject *cont, MVMObject *obj) {
@@ -64,17 +85,8 @@ static void rakudo_scalar_store_unchecked(MVMThreadContext *tc, MVMObject *cont,
             MVM_exception_throw_adhoc(tc, "Cannot assign to a readonly variable or a value");
     }
 
-    /* Store the value. */
-    MVM_ASSIGN_REF(tc, cont, rs->value, obj);
-
-    /* Run any whence closure. */
-    whence = rs->whence;
-    if (whence && IS_CONCRETE(whence)) {
-        MVMObject *code = MVM_frame_find_invokee(tc, whence, NULL);
-        MVM_args_setup_thunk(tc, NULL, MVM_RETURN_VOID, &no_arg_callsite);
-        rs->whence = NULL;
-        STABLE(code)->invoke(tc, code, &no_arg_callsite, tc->cur_frame->args);
-    }
+    /* Complete the store. */
+    finish_store(tc, cont, obj);
 }
 
 static void rakudo_scalar_serialize(MVMThreadContext *tc, MVMSTable *st, MVMSerializationWriter *writer) {

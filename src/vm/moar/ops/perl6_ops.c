@@ -70,8 +70,9 @@ typedef struct {
     MVMObject   *nextiter;
 } Rakudo_List;
 
-/* Expose Nil for containers. */
+/* Expose Nil and Mu for containers. */
 MVMObject * get_nil() { return Nil; }
+MVMObject * get_mu() { return Mu; }
 
 /* Initializes the Perl 6 extension ops. */
 static void p6init(MVMThreadContext *tc) {

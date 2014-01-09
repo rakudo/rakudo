@@ -254,6 +254,28 @@ $ops.add_hll_op('perl6', 'p6argvmarray', -> $qastcomp, $op {
     my $res_reg := $*REGALLOC.fresh_o();
     nqp::push(@ops, MAST::Op.new( :op('param_sp'), $res_reg,
         MAST::IVal.new( :value(0), :size(16) )));
+    my $i_reg    := $*REGALLOC.fresh_i();
+    my $n_reg    := $*REGALLOC.fresh_i();
+    my $cmp_reg  := $*REGALLOC.fresh_i();
+    my $tmp_reg  := $*REGALLOC.fresh_o();
+    my $lbl_next := MAST::Label.new(:name($op.unique('vmarr_next')));
+    my $lbl_done := MAST::Label.new(:name($op.unique('vmarr_done')));
+    nqp::push(@ops, MAST::Op.new( :op('elems'), $n_reg, $res_reg ));
+    nqp::push(@ops, MAST::Op.new( :op('const_i64'), $i_reg, MAST::IVal.new( :value(0) ) ));
+    nqp::push(@ops, $lbl_next);
+    nqp::push(@ops, MAST::Op.new( :op('lt_i'), $cmp_reg, $i_reg, $n_reg ));
+    nqp::push(@ops, MAST::Op.new( :op('unless_i'), $cmp_reg, $lbl_done ));
+    nqp::push(@ops, MAST::Op.new( :op('atpos_o'), $tmp_reg, $res_reg, $i_reg ));
+    nqp::push(@ops, MAST::Op.new( :op('hllize'), $tmp_reg, $tmp_reg ));
+    nqp::push(@ops, MAST::Op.new( :op('bindpos_o'), $res_reg, $i_reg, $tmp_reg ));
+    nqp::push(@ops, MAST::Op.new( :op('const_i64'), $cmp_reg, MAST::IVal.new( :value(1) ) ));
+    nqp::push(@ops, MAST::Op.new( :op('add_i'), $i_reg, $i_reg, $cmp_reg ));
+    nqp::push(@ops, MAST::Op.new( :op('goto'), $lbl_next ));
+    nqp::push(@ops, $lbl_done);
+    $*REGALLOC.release_register($i_reg, $MVM_reg_int64);
+    $*REGALLOC.release_register($n_reg, $MVM_reg_int64);
+    $*REGALLOC.release_register($cmp_reg, $MVM_reg_int64);
+    $*REGALLOC.release_register($tmp_reg, $MVM_reg_obj);
     MAST::InstructionList.new(@ops, $res_reg, $MVM_reg_obj)
 });
 $ops.add_hll_op('perl6', 'p6bindattrinvres', -> $qastcomp, $op {

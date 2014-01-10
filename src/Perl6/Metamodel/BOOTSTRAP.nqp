@@ -394,6 +394,9 @@ my class Binder {
             while $i < $n {
                 # Check we meet the constraint.
                 my $cons_type := nqp::atpos($post_cons, $i);
+                if nqp::istype($cons_type, Code) {
+                    $cons_type := nqp::p6capturelexwhere($cons_type.clone());
+                }
                 my $result;
                 if $got_native == 0 {
                     $result := $cons_type.ACCEPTS($oval);

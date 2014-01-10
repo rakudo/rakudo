@@ -76,6 +76,9 @@ MAST::ExtOpRegistry.register_extop('p6decontrv',
 MAST::ExtOpRegistry.register_extop('p6capturelex',
     $MVM_operand_obj   +| $MVM_operand_write_reg,
     $MVM_operand_obj   +| $MVM_operand_read_reg);
+MAST::ExtOpRegistry.register_extop('p6capturelexwhere',
+    $MVM_operand_obj   +| $MVM_operand_write_reg,
+    $MVM_operand_obj   +| $MVM_operand_read_reg);
 MAST::ExtOpRegistry.register_extop('p6stateinit',
     $MVM_operand_int64 +| $MVM_operand_write_reg);
 MAST::ExtOpRegistry.register_extop('p6setfirstflag',
@@ -445,6 +448,7 @@ $ops.add_hll_moarop_mapping('nqp', 'p6var', 'p6var');
 $ops.add_hll_moarop_mapping('nqp', 'p6reprname', 'p6reprname');
 $ops.add_hll_moarop_mapping('nqp', 'p6parcel', 'p6parcel');
 $ops.add_hll_moarop_mapping('nqp', 'p6inpre', 'p6inpre');
+$ops.add_hll_moarop_mapping('nqp', 'p6capturelexwhere', 'p6capturelexwhere');
 
 # Override defor to call defined method.
 $ops.add_hll_op('perl6', 'defor', -> $qastcomp, $op {

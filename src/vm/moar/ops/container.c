@@ -68,7 +68,7 @@ static void rakudo_scalar_store(MVMThreadContext *tc, MVMObject *cont, MVMObject
     MVMint64 rw = 0;
 
     /* Check it's an assignable container. */
-    if (rcd)
+    if (rcd && IS_CONCRETE(rcd))
         rw = rcd->rw;
     if (!rw)
         MVM_exception_throw_adhoc(tc, "Cannot assign to a readonly variable or a value");
@@ -78,9 +78,7 @@ static void rakudo_scalar_store(MVMThreadContext *tc, MVMObject *cont, MVMObject
         MVM_exception_throw_adhoc(tc, "Cannot assign a null value to a Perl 6 scalar");
     }
     else if (STABLE(obj)->WHAT == get_nil()) {
-        if (rcd) {
-            obj = rcd->the_default;
-        }
+        obj = rcd->the_default;
     }
     else {
         /* Check against the type-check cache first (common, fast-path

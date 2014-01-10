@@ -3206,7 +3206,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             # If it's a pair, take that as the value; also find
             # key.
             my $cur_key;
-            if istype($_.returns(), $Pair) {
+            if nqp::istype($_, QAST::Node) && istype($_.returns(), $Pair) {
                 $cur_key := $_[1].compile_time_value;
                 $cur_value := $*W.compile_time_evaluate($<term>, $_[2]);
                 if $has_base_type {
@@ -3232,8 +3232,17 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     $has_base_type := 1;
                 }
 
-                $cur_key := $_.compile_time_value;
+                if nqp::istype($_, QAST::Node) {
+                    $cur_key := $*W.compile_time_evaluate($<term>, $_);
+                }
+                else {
+                    $cur_key := $_;
+                }
+
                 $cur_value := $cur_value.succ();
+            }
+            unless nqp::istype($cur_key, $*W.find_symbol(['Str'])) {
+                $cur_key := $cur_key.Str;
             }
 
             # Create and install value.

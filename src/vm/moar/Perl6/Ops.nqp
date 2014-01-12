@@ -91,6 +91,9 @@ MAST::ExtOpRegistry.register_extop('p6routinereturn',
     $MVM_operand_obj   +| $MVM_operand_read_reg);
 MAST::ExtOpRegistry.register_extop('p6captureouters',
     $MVM_operand_obj   +| $MVM_operand_read_reg);
+MAST::ExtOpRegistry.register_extop('p6getouterctx',
+    $MVM_operand_obj   +| $MVM_operand_write_reg,
+    $MVM_operand_obj   +| $MVM_operand_read_reg);
 MAST::ExtOpRegistry.register_extop('p6finddispatcher',
     $MVM_operand_obj   +| $MVM_operand_write_reg,
     $MVM_operand_str   +| $MVM_operand_read_reg);
@@ -256,7 +259,7 @@ $ops.add_hll_op('perl6', 'p6return', :!inlinable, -> $qastcomp, $op {
     MAST::InstructionList.new(@ops, $value_res.result_reg, $MVM_reg_obj)
 });
 $ops.add_hll_moarop_mapping('perl6', 'p6routinereturn', 'p6routinereturn');
-#$ops.map_classlib_hll_op('perl6', 'p6getouterctx', $TYPE_P6OPS, 'p6getouterctx', [$RT_OBJ], $RT_OBJ, :tc, :!inlinable);
+$ops.add_hll_moarop_mapping('perl6', 'p6getouterctx', 'p6getouterctx', :decont(0));
 $ops.add_hll_moarop_mapping('perl6', 'p6captureouters', 'p6captureouters', 0);
 $ops.add_hll_op('perl6', 'p6argvmarray', -> $qastcomp, $op {
     my @ops;

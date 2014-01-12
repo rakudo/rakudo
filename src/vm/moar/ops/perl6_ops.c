@@ -425,6 +425,19 @@ static void p6capturelexwhere(MVMThreadContext *tc) {
     GET_REG(tc, 0).o = p6_code_obj;
 }
 
+static MVMuint8 s_p6getouterctx[] = {
+    MVM_operand_obj | MVM_operand_write_reg,
+    MVM_operand_obj | MVM_operand_read_reg
+};
+static void p6getouterctx(MVMThreadContext *tc) {
+    MVMObject *p6_code_obj = GET_REG(tc, 2).o;
+    MVMObject *vm_code_obj = MVM_frame_find_invokee(tc, p6_code_obj, NULL);
+    MVMFrame  *outer       = ((MVMCode *)vm_code_obj)->body.outer;
+    MVMObject *ctx         = MVM_repr_alloc_init(tc, tc->instance->boot_types.BOOTContext);
+    ((MVMContext *)ctx)->body.context = MVM_frame_inc_ref(tc, outer);
+    GET_REG(tc, 0).o = ctx;
+}
+
 static MVMuint8 s_p6captureouters[] = {
     MVM_operand_obj | MVM_operand_read_reg
 };
@@ -751,6 +764,7 @@ MVM_DLL_EXPORT void Rakudo_ops_init(MVMThreadContext *tc) {
     MVM_ext_register_extop(tc, "p6routinereturn",  p6routinereturn, 2, s_p6routinereturn);
     MVM_ext_register_extop(tc, "p6capturelex",  p6capturelex, 2, s_p6capturelex);
     MVM_ext_register_extop(tc, "p6capturelexwhere",  p6capturelexwhere, 2, s_p6capturelexwhere);
+    MVM_ext_register_extop(tc, "p6getouterctx", p6getouterctx, 2, s_p6getouterctx);
     MVM_ext_register_extop(tc, "p6captureouters", p6captureouters, 1, s_p6captureouters);
     MVM_ext_register_extop(tc, "p6stateinit", p6stateinit, 1, s_p6stateinit);
     MVM_ext_register_extop(tc, "p6setfirstflag", p6setfirstflag, 2, s_p6setfirstflag);

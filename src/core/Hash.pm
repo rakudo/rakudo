@@ -10,7 +10,7 @@ my class Hash { # declared in BOOTSTRAP
         %h;
     }
 
-    multi method at_key(Hash:D: $key is copy) is rw {
+    multi method at_key(Hash:D: $key as Str is copy) is rw {
         my Mu $storage := nqp::defined(nqp::getattr(self, EnumMap, '$!storage')) ??
             nqp::getattr(self, EnumMap, '$!storage') !!
             nqp::bindattr(self, EnumMap, '$!storage', nqp::hash());
@@ -107,7 +107,7 @@ my class Hash { # declared in BOOTSTRAP
 
     proto method delete_key(|) { * }
     multi method delete_key(Hash:U:) { Nil }
-    multi method delete_key($key as Str) {
+    multi method delete_key($key) {
         my Mu $val = self.at_key($key);
         nqp::deletekey(
             nqp::getattr(self, EnumMap, '$!storage'),
@@ -355,6 +355,21 @@ my class Hash { # declared in BOOTSTRAP
               ~ '].new('
               ~ self.pairs.map({.perl}).join(', ')
               ~ ')';
+        }
+        multi method delete_key($key) {
+            my Mu $val = self.at_key($key);
+            my $key-which = $key.WHICH;
+
+            nqp::deletekey(
+                nqp::getattr(self, $?CLASS, '$!keys'),
+                nqp::unbox_s($key-which)
+            );
+
+            nqp::deletekey(
+                nqp::getattr(self, EnumMap, '$!storage'),
+                nqp::unbox_s($key-which)
+            );
+            $val;
         }
     }
     method PARAMETERIZE_TYPE(Mu $t, |c) {

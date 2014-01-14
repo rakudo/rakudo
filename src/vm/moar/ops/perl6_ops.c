@@ -435,6 +435,8 @@ static void p6getouterctx(MVMThreadContext *tc) {
     MVMObject *vm_code_obj = MVM_frame_find_invokee(tc, p6_code_obj, NULL);
     MVMFrame  *outer       = ((MVMCode *)vm_code_obj)->body.outer;
     MVMObject *ctx         = MVM_repr_alloc_init(tc, tc->instance->boot_types.BOOTContext);
+    if (!outer)
+        MVM_exception_throw_adhoc(tc, "Specified code ref has no outer");
     ((MVMContext *)ctx)->body.context = MVM_frame_inc_ref(tc, outer);
     GET_REG(tc, 0).o = ctx;
 }

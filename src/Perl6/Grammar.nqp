@@ -1290,6 +1290,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                     $*P5_WARNINGS := 0;
                     $*GENERAL_WARNINGS := 0;
                 }
+            } else {
+                $/.CURSOR.panic("'no " ~ $<module_name>.Str ~ "' not implemented");
             }
         }
         <.ws>

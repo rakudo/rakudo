@@ -1887,8 +1887,7 @@ BEGIN {
                                 $new_possibles := [] unless nqp::islist($new_possibles);
                                 
                                 my $sig := nqp::getattr($sub, Code, '$!signature');
-# XXX We may need this on Moar too.
-#?if jvm
+#?if !parrot
                                 unless $done_bind_check {
                                     # Need a copy of the capture, as we may later do a
                                     # multi-dispatch when evaluating the constraint.

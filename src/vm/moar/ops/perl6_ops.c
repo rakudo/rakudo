@@ -12,7 +12,8 @@
 
 #define GET_REG(tc, idx) (*tc->interp_reg_base)[*((MVMuint16 *)(*tc->interp_cur_op + idx))]
 
-/* Dummy, one-arg callsite. */
+/* Dummy zero and one-arg callsite. */
+static MVMCallsite      no_arg_callsite = { NULL, 0, 0, 0 };
 static MVMCallsiteEntry one_arg_flags[] = { MVM_CALLSITE_ARG_OBJ };
 static MVMCallsite     one_arg_callsite = { one_arg_flags, 1, 1, 0 };
 
@@ -743,6 +744,38 @@ static void p6staticouter(MVMThreadContext *tc) {
     }
 }
 
+static MVMuint8 s_p6invokeunder[] = {
+    MVM_operand_obj | MVM_operand_write_reg,
+    MVM_operand_obj | MVM_operand_read_reg,
+    MVM_operand_obj | MVM_operand_read_reg
+};
+static void return_from_fake(MVMThreadContext *tc, void *sr_data) {
+    MVM_frame_try_return(tc);
+}
+static void p6invokeunder(MVMThreadContext *tc) {
+    MVMRegister *res  = &GET_REG(tc, 0);
+    MVMObject   *fake = GET_REG(tc, 2).o;
+    MVMObject   *code = GET_REG(tc, 4).o;
+
+    fake = MVM_frame_find_invokee(tc, fake, NULL);
+    code = MVM_frame_find_invokee(tc, code, NULL);
+
+    /* Invoke the fake frame; note this doesn't return to the interpreter, so
+     * we can do hackery after it. */
+    tc->cur_frame->return_address = *(tc->interp_cur_op) + 6;
+    MVMROOT(tc, code, {
+        STABLE(fake)->invoke(tc, fake, &no_arg_callsite, tc->cur_frame->args);
+    });
+
+    /* Now we call the second code ref, thus meaning it'll appear to have been
+     * called by the first. We set up a special return handler to properly
+     * remove it. */
+    MVM_args_setup_thunk(tc, res, MVM_RETURN_OBJ, &no_arg_callsite);
+    tc->cur_frame->special_return = return_from_fake;
+    STABLE(code)->invoke(tc, code, &no_arg_callsite, tc->cur_frame->args);
+    *(tc->interp_cur_op) -= 6;
+}
+
 /* Registers the extops with MoarVM. */
 MVM_DLL_EXPORT void Rakudo_ops_init(MVMThreadContext *tc) {
     MVM_ext_register_extop(tc, "p6init",  p6init, 0, NULL);
@@ -778,4 +811,5 @@ MVM_DLL_EXPORT void Rakudo_ops_init(MVMThreadContext *tc) {
     MVM_ext_register_extop(tc, "p6arrfindtypes", p6arrfindtypes, 5, s_p6arrfindtypes);
     MVM_ext_register_extop(tc, "p6decodelocaltime", p6decodelocaltime, 2, s_p6decodelocaltime);
     MVM_ext_register_extop(tc, "p6staticouter", p6staticouter, 2, s_p6staticouter);
+    MVM_ext_register_extop(tc, "p6invokeunder", p6invokeunder, 3, s_p6invokeunder);
 }

@@ -850,7 +850,9 @@ my class Binder {
         unless nqp::reprname($capture) eq 'MVMCallCapture' {
             $capture := make_vm_capture($capture);
         }
-        bind($capture, $sig, nqp::hash(), 0, NQPMu) != $BIND_RESULT_FAIL
+        nqp::p6invokeunder(
+            nqp::getattr($sig, Signature, '$!code'),
+            -> { bind($capture, $sig, nqp::ctxcaller(nqp::ctx()), 0, NQPMu) != $BIND_RESULT_FAIL })
     }
 
     method bind_cap_to_sig($sig, $cap) {

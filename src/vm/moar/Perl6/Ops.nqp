@@ -127,6 +127,10 @@ MAST::ExtOpRegistry.register_extop('p6clearpre',
     $MVM_operand_obj   +| $MVM_operand_write_reg);
 MAST::ExtOpRegistry.register_extop('p6inpre',
     $MVM_operand_int64 +| $MVM_operand_write_reg);
+MAST::ExtOpRegistry.register_extop('p6invokeunder',
+    $MVM_operand_obj   +| $MVM_operand_write_reg,
+    $MVM_operand_obj   +| $MVM_operand_read_reg,
+    $MVM_operand_obj   +| $MVM_operand_read_reg);
 
 # Perl 6 opcode specific mappings.
 my $ops := nqp::getcomp('QAST').operations;
@@ -452,6 +456,7 @@ $ops.add_hll_moarop_mapping('nqp', 'p6reprname', 'p6reprname');
 $ops.add_hll_moarop_mapping('nqp', 'p6parcel', 'p6parcel');
 $ops.add_hll_moarop_mapping('nqp', 'p6inpre', 'p6inpre');
 $ops.add_hll_moarop_mapping('nqp', 'p6capturelexwhere', 'p6capturelexwhere');
+$ops.add_hll_moarop_mapping('nqp', 'p6invokeunder', 'p6invokeunder');
 
 # Override defor to call defined method.
 $ops.add_hll_op('perl6', 'defor', -> $qastcomp, $op {

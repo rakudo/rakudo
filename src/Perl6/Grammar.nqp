@@ -264,11 +264,13 @@ role STD {
         );
     }
     method worryobs($old, $new, $when = ' in Perl 6') {
-        $*W.throw(self.MATCH(), ['X', 'Obsolete'],
-            old         => $old,
-            replacement => $new,
-            when        => $when,
-        );
+        if $*P5_WARNINGS {
+            $*W.throw(self.MATCH(), ['X', 'Obsolete'],
+                old         => $old,
+                replacement => $new,
+                when        => $when,
+            );
+        }
     }
     
     method check_variable($var) {
@@ -804,6 +806,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*IN_DECL;                             # what declaration we're in
         :my $*HAS_SELF := '';                      # is 'self' available? (for $.foo style calls)
         :my $*MONKEY_TYPING := 0;                  # whether augment/supersede are allowed
+        :my $*P5_WARNINGS := 1;                    # whether warnings for perl 5 programmers should be emitted
+        :my $*GENERAL_WARNINGS := 1;               # whether general warnings should be emitted
         :my $*begin_compunit := 1;                 # whether we're at start of a compilation unit
         :my $*DECLARAND;                           # the current thingy we're declaring, and subject of traits
         :my $*METHODTYPE;                          # the current type of method we're in, if any
@@ -1256,6 +1260,39 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                     " to import symbols from");
             }
         }
+    }
+
+    token statement_control:sym<no> {
+        :my $longname;
+        <sym> <.ws>
+        <module_name> [<.spacey><arglist>]?
+        {
+            $longname := $<module_name><longname>;
+            if $longname.Str eq 'warnings' {
+                if $<arglist><EXPR> {
+                    my $arglist := $*W.compile_time_evaluate($/, $<arglist><EXPR>.ast);
+                    sub deactivate_warning($pair_obj) {
+                        if nqp::unbox_s($pair_obj.key) eq 'p5' {
+                            $*P5_WARNINGS := 0;
+                        } else {
+                            $/.CURSOR.panic("Unknown feature to turn off: " ~ $pair_obj.key);
+                        }
+                    }
+                    if nqp::istype($arglist, $*W.find_symbol(['Parcel'])) {
+                        my @list := nqp::getattr($arglist, $*W.find_symbol(['Parcel']), '$!storage');
+                        for @list {
+                            deactivate_warning($_)
+                        }
+                    } else {
+                        deactivate_warning($arglist)
+                    }
+                } else {
+                    $*P5_WARNINGS := 0;
+                    $*GENERAL_WARNINGS := 0;
+                }
+            }
+        }
+        <.ws>
     }
 
     token statement_control:sym<use> {
@@ -2792,7 +2829,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             | x '_'? <VALUE=hexint>
             | d '_'? <VALUE=decint>
             | <VALUE=decint>
-                <!!{ $/.CURSOR.worry("Leading 0 does not indicate octal in Perl 6; please use 0o" ~ $<VALUE>.Str ~ " if you mean that") }>
+                <!!{ if $*P5_WARNINGS { $/.CURSOR.worry("Leading 0 does not indicate octal in Perl 6; please use 0o" ~ $<VALUE>.Str ~ " if you mean that") } }>
             ]
         | <VALUE=decint>
         ]

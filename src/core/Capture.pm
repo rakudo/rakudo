@@ -7,9 +7,8 @@ my class Capture { # declared in BOOTSTRAP
         nqp::bindattr(self, Capture, '$!list',
             nqp::getattr(nqp::decont(@list.Parcel), Parcel, '$!storage')
         );
-        nqp::bindattr(self, Capture, '$!hash',
-            nqp::defor(nqp::getattr(nqp::decont(%hash), EnumMap, '$!storage'), nqp::hash())
-        );
+        my Mu $hs := nqp::getattr(nqp::decont(%hash), EnumMap, '$!storage');
+        nqp::bindattr(self, Capture, '$!hash', nqp::ishash($hs) ?? $hs !! nqp::hash());
         1;
     }
 

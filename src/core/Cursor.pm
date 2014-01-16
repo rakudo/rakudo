@@ -189,7 +189,7 @@ sub MAKE_REGEX($arg, :$i) {
             $k := $k + 1;
         }
         my $arg2 := nqp::join('', $chars);
-        my $rx := $i ?? eval("anon regex \{ :i ^$arg2\}") !! eval("anon regex \{ ^$arg2\}");
+        my $rx := $i ?? EVAL("anon regex \{ :i ^$arg2\}") !! EVAL("anon regex \{ ^$arg2\}");
         $arg does CachedCompiledRegex($rx);
         $rx
     }

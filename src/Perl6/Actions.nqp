@@ -3211,7 +3211,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             # If it's a pair, take that as the value; also find
             # key.
             my $cur_key;
-            if istype($_.returns(), $Pair) {
+            if nqp::istype($_, QAST::Node) && istype($_.returns(), $Pair) {
                 $cur_key := $_[1].compile_time_value;
                 $cur_value := $*W.compile_time_evaluate($<term>, $_[2]);
                 if $has_base_type {
@@ -3237,8 +3237,17 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     $has_base_type := 1;
                 }
 
-                $cur_key := $_.compile_time_value;
+                if nqp::istype($_, QAST::Node) {
+                    $cur_key := $*W.compile_time_evaluate($<term>, $_);
+                }
+                else {
+                    $cur_key := $_;
+                }
+
                 $cur_value := $cur_value.succ();
+            }
+            unless nqp::istype($cur_key, $*W.find_symbol(['Str'])) {
+                $cur_key := $cur_key.Str;
             }
 
             # Create and install value.
@@ -4360,6 +4369,39 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
     }
 
+    sub hunt_loose_adverbs_in_arglist($/, @past) {
+        # if we have a non-comma-separated list of adverbial pairs in an
+        # arglist or semiarglist, only the first will be passed as a named
+        # argument.
+
+        # Thus, we need to find chained adverbs. They show up on the parse
+        # tree as colonpair rules followed by a fake_infix.
+
+        if nqp::getenvhash<COLONPAIR> eq 'trace' { say($/.dump) }
+        if +$/.list == 1 && nqp::istype($/[0].ast, QAST::Op) && $/[0].ast.op eq 'call' && $/[0].ast.name ne 'infix:<,>' {
+            nqp::die("these adverbs belong to a deeper-nested thing");
+        }
+        if $<fake_infix>
+               || $<colonpair> && +($/.list) == 0 && +($/.hash) == 1 {
+            if +($/.list) == 1 {
+                hunt_loose_adverbs_in_arglist($/[0], @past);
+            }
+            my $Pair := $*W.find_symbol(['Pair']);
+            if $<colonpair> && istype($<colonpair>.ast.returns, $Pair) {
+                if $*WAS_SKIPPED {
+                    nqp::push(@past, $<colonpair>.ast);
+                } else {
+                    $*WAS_SKIPPED := 1;
+                }
+            }
+        } elsif $<OPER>.Str eq ',' {
+           my $*WAS_SKIPPED := 0;
+            for $/.list {
+                hunt_loose_adverbs_in_arglist($_, @past);
+            }
+        }
+    }
+
     method arglist($/) {
         my $Pair := $*W.find_symbol(['Pair']);
         my $past := QAST::Op.new( :op('call'), :node($/) );
@@ -4371,6 +4413,13 @@ class Perl6::Actions is HLL::Actions does STDActions {
             my @args := nqp::istype($expr, QAST::Op) && $expr.name eq '&infix:<,>'
                 ?? $expr.list
                 !! [$expr];
+            # but first, look for any chained adverb pairs
+            my $*WAS_SKIPPED := 0;
+            try {
+                if $*FAKE_INFIX_FOUND {
+                    hunt_loose_adverbs_in_arglist($<EXPR>, @args);
+                }
+            }
             my %named_counts;
             for @args {
                 if nqp::istype($_, QAST::Op) && istype($_.returns, $Pair) {

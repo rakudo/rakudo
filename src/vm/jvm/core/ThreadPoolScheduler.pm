@@ -100,6 +100,7 @@ my class ThreadPoolScheduler does Scheduler {
     }
 
     method loads() {
+        return 0 unless $!started_any;
         $!loads.get()
     }
 

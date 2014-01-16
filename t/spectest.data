@@ -46,6 +46,7 @@ S02-literals/subscript.t
 S02-literals/types.t
 S02-literals/underscores.t
 S02-literals/version.t
+S02-magicals/78258.t
 S02-magicals/args.t
 S02-magicals/config.t
 S02-magicals/dollar_bang.t
@@ -153,7 +154,8 @@ S03-operators/bag.t
 S03-operators/basic-types.t
 S03-operators/bit.t
 S03-operators/boolean-bitwise.t
-S03-operators/brainos.t
+S04-operators/brainos.t
+S03-operators/custom.t
 S03-operators/buf.t
 S03-operators/chained-declarators.t
 S03-operators/cmp.t
@@ -352,6 +354,7 @@ S05-modifier/repetition.t
 S05-modifier/sigspace.t
 S05-substitution/match.t
 S05-substitution/subst.t # icu
+S05-transliteration/79778.t
 S05-transliteration/trans.t
 S05-transliteration/with-closure.t
 S06-advanced/callframe.t

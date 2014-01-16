@@ -69,7 +69,6 @@ PERL6_B       = src/gen/perl6-bootstrap.pir
 PERL6_B_PBC   = blib/Perl6/BOOTSTRAP.pbc
 SETTING_PIR   = src/gen/p-CORE.setting.pir
 SETTING_PBC   = CORE.setting.pbc
-R_SETTING_SRC = src/RESTRICTED.setting
 R_SETTING_PIR = src/gen/RESTRICTED.setting.pir
 R_SETTING_PBC = RESTRICTED.setting.pbc
 GROUP         = perl6_group

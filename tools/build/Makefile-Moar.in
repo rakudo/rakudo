@@ -29,6 +29,7 @@ PERL6_C_MOAR   = blib/Perl6/Compiler.moarvm
 PERL6_M_MOAR   = blib/Perl6/Metamodel.moarvm
 PERL6_B_MOAR   = blib/Perl6/BOOTSTRAP.moarvm
 SETTING_MOAR   = CORE.setting.moarvm
+R_SETTING_MOAR = RESTRICTED.setting.moarvm
 
 M_PERL6_OPS_DIR  = dynext
 M_PERL6_OPS_DLL  = $(M_PERL6_OPS_DIR)/@perl6_ops_dll@
@@ -163,6 +164,7 @@ M_CLEANUPS = \
   *.manifest \
   blib/Perl6/*.moarvm \
   $(SETTING_MOAR) \
+  $(R_SETTING_MOAR) \
   $(PERL6_MOAR) \
   lib/Test.moarvm \
   lib/lib.moarvm \
@@ -183,7 +185,7 @@ M_CLEANUPS = \
 M_HARNESS_WITH_FUDGE = $(PERL) t/harness --fudge --moar --keep-exit-code
 HARNESS = $(PERL) t/harness
 
-m-all: $(PERL6_MOAR) $(SETTING_MOAR) $(M_RUNNER) lib/Test.moarvm blib/lib.moarvm blib/Pod/To/Text.moarvm
+m-all: $(PERL6_MOAR) $(SETTING_MOAR) $(R_SETTING_MOAR) $(M_RUNNER) lib/Test.moarvm blib/lib.moarvm blib/Pod/To/Text.moarvm
 
 $(M_PERL6_OPS_DLL): $(M_PERL6_OPS_SRC) $(M_PERL6_CONT_SRC) Makefile
 	$(CC) @moar::ccswitch@ @moar::ccshared@ $(CFLAGS) -I$(PREFIX)/include/libatomic_ops \
@@ -250,6 +252,9 @@ $(SETTING_MOAR): $(PERL6_MOAR) $(PERL6_B_MOAR) $(M_CORE_SOURCES)
 	@echo "The following step can take a long time, please be patient."
 	$(M_RUN_PERL6) --setting=NULL --optimize=3 --target=mbc --stagestats --output=$(SETTING_MOAR) src/gen/m-CORE.setting
 
+$(R_SETTING_MOAR): $(PERL6_MOAR) $(SETTING_MOAR) $(R_SETTING_SRC)
+	$(M_RUN_PERL6) --target=mbc --output=$(R_SETTING_MOAR) $(R_SETTING_SRC)
+
 $(M_RUNNER): tools/build/create-moar-runner.pl $(PERL6_MOAR)
 	$(PERL) tools/build/create-moar-runner.pl "$(MOAR)" . "$(M_LIBPATH)" .
 
@@ -312,6 +317,7 @@ m-install: m-all tools/build/create-moar-runner.pl
 	$(MKPATH) $(PERL6_LANG_DIR)/lib
 	$(MKPATH) $(PERL6_LANG_DIR)/runtime
 	$(CP) $(SETTING_MOAR) $(PERL6_LANG_DIR)/runtime
+	$(CP) $(R_SETTING_MOAR) $(PERL6_LANG_DIR)/runtime
 	$(CP) $(PERL6_MOAR) $(PERL6_LANG_DIR)/runtime
 	$(MKPATH) $(PERL6_LANG_DIR)/runtime/dynext
 	$(CP) $(M_PERL6_OPS_DLL) $(PERL6_LANG_DIR)/runtime/dynext

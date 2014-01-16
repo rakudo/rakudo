@@ -59,6 +59,8 @@ COMMON_BOOTSTRAP_SOURCES = \
   src/Perl6/Metamodel/ContainerDescriptor.nqp \
   src/Perl6/Metamodel/Dispatchers.nqp \
 
+R_SETTING_SRC = src/RESTRICTED.setting
+
 spectest_checkout : t/spec
 t/spec :
 	git clone git://github.com/perl6/roast.git t/spec

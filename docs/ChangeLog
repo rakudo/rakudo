@@ -7,6 +7,7 @@ New in 2014.01
 + Method calls and hash/list access on Nil give Nil
 + No longer need to separate adverbs with comma in argument lists
 + div on parrot will now always round towards -Inf
++ Added support for MoarVM; passes >98% of the spectests that Rakudo JVM does
 
 New in 2013.12
 

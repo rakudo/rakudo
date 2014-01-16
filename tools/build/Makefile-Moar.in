@@ -1,13 +1,10 @@
-CC      = @moar::cc@
-LD      = @moar::ld@
-CFLAGS  = @moar::cflags@ @moar::ccmiscflags@ @moar::ccoptiflags@ @moar::ccwarnflags@
-LDFLAGS = @moar::ldflags@ @moar::ldmiscflags@ @moar::ldoptiflags@ @moar::ldlibs@
+M_CC      = @moar::cc@
+M_LD      = @moar::ld@
+M_CFLAGS  = @moar::cflags@ @moar::ccmiscflags@ @moar::ccoptiflags@ @moar::ccwarnflags@
+M_LDFLAGS = @moar::ldflags@ @moar::ldmiscflags@ @moar::ldoptiflags@ @moar::ldlibs@
 
-PERL    = perl
-PROVE   = prove
 M_GEN_CAT = tools/build/gen-cat.pl moar
 
-PREFIX = @prefix@
 MOAR   = $(PREFIX)@slash@bin@slash@moar@exe@
 M_NQP  = $(PREFIX)@slash@bin@slash@nqp-m@runner_suffix@
 M_LIBPATH = $(PREFIX)@slash@languages@slash@nqp@slash@lib
@@ -188,15 +185,15 @@ HARNESS = $(PERL) t/harness
 m-all: $(PERL6_MOAR) $(SETTING_MOAR) $(R_SETTING_MOAR) $(M_RUNNER) lib/Test.moarvm blib/lib.moarvm blib/Pod/To/Text.moarvm
 
 $(M_PERL6_OPS_DLL): $(M_PERL6_OPS_SRC) $(M_PERL6_CONT_SRC) Makefile
-	$(CC) @moar::ccswitch@ @moar::ccshared@ $(CFLAGS) -I$(PREFIX)/include/libatomic_ops \
+	$(M_CC) @moar::ccswitch@ @moar::ccshared@ $(M_CFLAGS) -I$(PREFIX)/include/libatomic_ops \
 	    -I$(PREFIX)/include/dyncall -I$(PREFIX)/include/linenoise -I$(PREFIX)/include/moar \
 	    -I$(PREFIX)/include/sha1 -I$(PREFIX)/include/tinymt  -I$(PREFIX)/include/libtommath \
 	    -I$(PREFIX)/include/libuv -I$(PREFIX)/include @moar::ccout@$(M_PERL6_OPS_OBJ) $(M_PERL6_OPS_SRC)
-	$(CC) @moar::ccswitch@ @moar::ccshared@ $(CFLAGS) -I$(PREFIX)/include/libatomic_ops \
+	$(M_CC) @moar::ccswitch@ @moar::ccshared@ $(M_CFLAGS) -I$(PREFIX)/include/libatomic_ops \
 	    -I$(PREFIX)/include/dyncall -I$(PREFIX)/include/linenoise -I$(PREFIX)/include/moar \
 	    -I$(PREFIX)/include/sha1 -I$(PREFIX)/include/tinymt  -I$(PREFIX)/include/libtommath \
 	    -I$(PREFIX)/include/libuv -I$(PREFIX)/include @moar::ccout@$(M_PERL6_CONT_OBJ) $(M_PERL6_CONT_SRC)
-	$(LD) @moar::ldswitch@ @moar::ldshared@ $(LDFLAGS) @moar::ldout@$(M_PERL6_OPS_DLL) $(M_PERL6_OPS_OBJ) $(M_PERL6_CONT_OBJ) @moarimplib@
+	$(M_LD) @moar::ldswitch@ @moar::ldshared@ $(M_LDFLAGS) @moar::ldout@$(M_PERL6_OPS_DLL) $(M_PERL6_OPS_OBJ) $(M_PERL6_CONT_OBJ) @moarimplib@
 
 $(PERL6_ML_MOAR): src/Perl6/ModuleLoader.nqp src/vm/moar/ModuleLoaderVMConfig.nqp
 	$(PERL) $(M_GEN_CAT) src/vm/moar/ModuleLoaderVMConfig.nqp src/Perl6/ModuleLoader.nqp > src/gen/m-ModuleLoader.nqp

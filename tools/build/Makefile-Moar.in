@@ -171,7 +171,7 @@ M_CLEANUPS = \
   blib/lib.moarvm \
   blib/Pod/To/Text.moarvm \
   rakudo_test_run.tar.gz \
-  src/gen/CORE.setting \
+  src/gen/m-CORE.setting \
   src/gen/*.moarvm \
   src/gen/*.pm \
   $(M_RUNNER) \

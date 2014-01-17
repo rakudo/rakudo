@@ -11,6 +11,7 @@ M_LIBPATH = $(PREFIX)@slash@languages@slash@nqp@slash@lib
 
 M_RUN_PERL6 = $(MOAR) --libpath="$(M_LIBPATH)" perl6.moarvm
 
+M_BAT    = @runner_suffix@
 M_RUNNER = perl6-m@runner_suffix@
 
 # files we create
@@ -323,13 +324,13 @@ m-install: m-all tools/build/create-moar-runner.pl
 	$(MKPATH) $(PERL6_LANG_DIR)/lib/Pod/To
 	$(CP) blib/Pod/To/Text.moarvm $(PERL6_LANG_DIR)/lib/Pod/To
 	$(PERL) tools/build/create-moar-runner.pl "$(MOAR)" "$(PERL6_LANG_DIR)/runtime" "$(M_LIBPATH)" "$(PERL6_LANG_DIR)/lib" "$(PERL6_LANG_DIR)/runtime"
-	$(CP) perl6-m$(BAT) $(DESTDIR)$(PREFIX)/bin
-	$(CHMOD) 755 $(DESTDIR)$(PREFIX)/bin/perl6-m$(BAT)
+	$(CP) perl6-m$(M_BAT) $(DESTDIR)$(PREFIX)/bin
+	$(CHMOD) 755 $(DESTDIR)$(PREFIX)/bin/perl6-m$(M_BAT)
 
 m-runner-default-install: m-install
 	$(PERL) tools/build/create-moar-runner.pl "$(MOAR)" "$(PERL6_LANG_DIR)/runtime" "$(M_LIBPATH)" "$(PERL6_LANG_DIR)/lib" "$(PERL6_LANG_DIR)/runtime"
-	$(CP) perl6-m$(BAT) $(DESTDIR)$(PREFIX)/bin/perl6$(BAT)
-	$(CHMOD) 755 $(DESTDIR)$(PREFIX)/bin/perl6$(BAT)
+	$(CP) perl6-m$(M_BAT) $(DESTDIR)$(PREFIX)/bin/perl6$(M_BAT)
+	$(CHMOD) 755 $(DESTDIR)$(PREFIX)/bin/perl6$(M_BAT)
 
 ##  cleaning
 m-clean:

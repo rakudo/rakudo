@@ -19,12 +19,57 @@ my class Signature { # declared in BOOTSTRAP
     }
 
     multi method ACCEPTS(Signature:D: Signature:D $topic) {
-        return False unless $topic.params == self.params;
+	my $sclass = self.params.classify({.named});
+	my $tclass = $topic.params.classify({.named});
+	my @spos := $sclass<False> // ();
+	my @tpos := $tclass<False> // ();
 
-        for $topic.params Z self.params -> $t, $s {
-            return False unless $t.type ~~ $s.type;
-        }
+	while @spos {
+	    my $s;
+	    my $t;
+	    last unless $t=@tpos.shift;
+	    $s=@spos.shift;
+	    if $s.slurpy or $s.capture {
+		@spos=();
+		@tpos=();
+		last;
+	    }
+	    if $t.slurpy or $t.capture {
+		return False unless @spos.grep({.slurpy or .capture});
+		@spos=();
+		@tpos=();
+		last;
+	    }
+	    if not $s.optional {
+		return False if $t.optional
+	    }
+	    return False unless $t ~~ $s;
+	}
+	return False if @tpos;
+	if @spos {
+	    return False unless @spos[0].optional or @spos[0].slurpy or @spos[0].capture;
+	}
 
+	for ($sclass<True> // ()).grep({!.optional and !.slurpy}) -> $this {
+	    my $other;
+	    return False unless $other=($tclass<True> // ()).grep(
+		{!.optional and $_ ~~ $this });
+	    return False unless +$other == 1;
+	}
+
+	my $here=$sclass<True>.SetHash;
+	my $hasslurpy=($sclass<True> // ()).grep({.slurpy}).Bool;
+	for @($tclass<True> // ()) -> $other {
+	    my $this;
+	    
+	    return $hasslurpy if $other.slurpy;
+	    if $this=$here.keys.grep( -> $t { $other ~~ $t }) {
+		$here{$this[0]} :delete;
+	    }
+	    else {
+		return False unless $hasslurpy;
+	    }
+	}
         return True;
     }
 
@@ -78,7 +123,9 @@ my class Signature { # declared in BOOTSTRAP
             $sep = ($i == 0 && $param.invocant) ?? ': ' !! ', ';
             $i = $i + 1;
         }
-        
+        if $!returns !=:= Mu {
+	    $perl ~= ' --> ' ~ $!returns.perl
+	}
         # Closer.
         $perl ~ ')'
     }

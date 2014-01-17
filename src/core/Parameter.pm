@@ -131,64 +131,94 @@ my class Parameter { # declared in BOOTSTRAP
             ().list
         }
     }
+
+    method !flags() { $!flags }
+
+    method ACCEPTS(Parameter $other) {
+	return False unless $other.type ~~ $.type;
+	return False unless 
+	    $!flags +& $SIG_ELEM_DEFINED_ONLY <= $other!flags +& $SIG_ELEM_DEFINED_ONLY
+	    and $!flags +& $SIG_ELEM_UNDEFINED_ONLY <= 
+	        $other!flags +& $SIG_ELEM_UNDEFINED_ONLY;
+	if $.sub_signature {
+	    return False unless $other.sub_signature ~~ $.sub_signature;
+	}
+	if ($.named) {
+	    return False unless $other.named;
+	    return False unless Set($other.named_names) (<=) Set($.named_names);
+	}
+	return True;
+    }
     
-    # XXX TODO: A few more bits :-)
     multi method perl(Parameter:D:) {
         my $perl = '';
+	my $rest = '';
         my $type = $!nominal_type.HOW.name($!nominal_type);
-        if $!flags +& $SIG_ELEM_ARRAY_SIGIL {
-            # XXX Need inner type
-        }
-        elsif $!flags +& $SIG_ELEM_HASH_SIGIL {
-            # XXX Need inner type
-        }
-        else {
-            $perl = $type;
-            if $!flags +& $SIG_ELEM_DEFINED_ONLY {
-                $perl ~= ':D';
-            } elsif $!flags +& $SIG_ELEM_UNDEFINED_ONLY {
-                $perl ~= ':U';
-            }
-        }
-        $perl = '' if $perl eq any(<Any Callable>);
-        $perl ~= ' ' if $perl;
-        if $!variable_name {
-            my $name = $!variable_name;
-            if $!flags +& $SIG_ELEM_IS_CAPTURE {
-                $perl ~= '|' ~ $name;
-            } elsif $!flags +& $SIG_ELEM_IS_PARCEL {
-                $perl ~= '\\' ~ $name;
-            } else {
-                my $default = self.default();
-                if self.slurpy {
-                    $name = '*' ~ $name;
-                } elsif self.named {
-                    my @names := self.named_names;
-                    my $/ := $name ~~ / ^^ $<sigil>=<[$@%&]> $<desigil>=(@names) $$ /;
-                    $name = ':' ~ $name if $/;
-                    unless +@names == 1 and $_ and "\$$_" eq $name {
-                        for @names {
-                            next if $/ and $_ eq $<desigil>;
-                            $name = ':' ~ $_ ~ '(' ~ $name ~ ')';
-                        }
-                    }
-                    $name ~= '!' unless self.optional;
-                } elsif self.optional && !$default {
-                    $name ~= '?';
-                }
-                $perl ~= $name;
-                if $!flags +& $SIG_ELEM_IS_RW {
-                    $perl ~= ' is rw';
-                } elsif $!flags +& $SIG_ELEM_IS_COPY {
-                    $perl ~= ' is copy';
-                }
-                $perl ~= ' = { ... }' if $default;
-                unless nqp::isnull($!sub_signature) {
-                    $perl ~= ' ' ~ $!sub_signature.perl();
-                }
-            }
-        }
-        $perl
+	my $truemu='';
+
+	# XXX Need a CODE_SIGIL too?
+	if $!flags +& $SIG_ELEM_ARRAY_SIGIL or 
+	    $!flags +& $SIG_ELEM_HASH_SIGIL or 
+	    $type ~~ /^^ Callable >> / {
+		$type ~~ / .*? \[ <( .* )> \] $$/;
+		$perl = ~$/;
+		$truemu = 'Mu ' if $perl eq 'Mu'; # Positional !~~ Positional[Mu]
+	}
+	else {
+	    $perl = $type;
+	}
+	if $!flags +& $SIG_ELEM_DEFINED_ONLY {
+	    $perl ~= ':D';
+	} elsif $!flags +& $SIG_ELEM_UNDEFINED_ONLY {
+	    $perl ~= ':U';
+	}
+	$perl ~= " ::$_" for @($.type_captures);
+	my $name = $!variable_name || '';
+	if $!flags +& $SIG_ELEM_IS_CAPTURE {
+	    $name = '|' ~ $name;
+	} elsif $!flags +& $SIG_ELEM_IS_PARCEL {
+	    $name = '\\' ~ $name unless $name ~~ /^^ <[@$]>/;
+	} elsif !$name {
+	    if $!flags +& $SIG_ELEM_ARRAY_SIGIL {		
+		$name = '@';
+	    } elsif $!flags +& $SIG_ELEM_HASH_SIGIL {
+		$name = '%';
+	    } elsif $type ~~ /^^ Callable >> / {
+		$name = '&';
+	    } else {
+		$name = '$';
+	    }
+	}
+	my $default = self.default();
+	if self.slurpy {
+	    $name = '*' ~ $name;
+	} elsif self.named {
+	    my @names := self.named_names;
+	    $name = ':' ~ $_ ~ '(' ~ $name ~ ')'for @names;
+	    $name ~= '!' unless self.optional;
+	} elsif self.optional && !$default {
+	    $name ~= '?';
+	}
+	if $!flags +& $SIG_ELEM_IS_RW {
+	    $rest ~= ' is rw';
+	} elsif $!flags +& $SIG_ELEM_IS_COPY {
+	    $rest ~= ' is copy';
+	}
+	if $!flags +& $SIG_ELEM_IS_PARCEL and $name ~~ /^^ <[@$]>/ {
+	    $rest ~= ' is parcel';
+	}
+	$rest ~= ' where { ... }' if !nqp::isnull($!post_constraints);
+	$rest ~= ' = { ... }' if $default;
+	unless nqp::isnull($!sub_signature) {
+	    my $sig = $!sub_signature.perl();
+	    $sig ~~ s/^^ ':'//;
+	    $rest ~= ' ' ~ $sig;
+	}
+	if $name ne '$' or $rest {
+	    $perl ~= ($perl ?? ' ' !! '') ~ $name;
+	    $perl ~~ s/^^ \s* Mu \s+//;
+	}
+        $truemu ~ $perl ~ $rest;
     }
 
     method sub_signature(Parameter:D:) {

@@ -349,8 +349,11 @@ static MVMuint8 s_p6decontrv[] = {
     MVM_operand_obj | MVM_operand_read_reg,
 };
 static void p6decontrv(MVMThreadContext *tc) {
-     MVMObject *retval = GET_REG(tc, 2).o;
-     if (IS_CONCRETE(retval) && STABLE(retval)->container_spec == Rakudo_containers_get_scalar()) {
+    MVMObject *retval = GET_REG(tc, 2).o;
+    if (!retval) {
+       retval = Mu;
+    }
+    else if (IS_CONCRETE(retval) && STABLE(retval)->container_spec == Rakudo_containers_get_scalar()) {
         Rakudo_ContainerDescriptor *cd = (Rakudo_ContainerDescriptor *)
             ((Rakudo_Scalar *)retval)->descriptor;
         if (cd && cd->rw) {
@@ -361,8 +364,8 @@ static void p6decontrv(MVMThreadContext *tc) {
                 retval = cont;
             });
         }
-     }
-     GET_REG(tc, 0).o = retval;
+    }
+    GET_REG(tc, 0).o = retval;
 }
 
 static MVMuint8 s_p6routinereturn[] = {

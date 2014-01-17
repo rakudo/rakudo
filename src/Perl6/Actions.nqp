@@ -2288,10 +2288,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                         QAST::WVal.new( :value($*DECLARAND) ),
                         $block[1]);
                 }
-                $block[1] := QAST::Op.new(
-                    :op('p6typecheckrv'),
-                    $block[1],
-                    QAST::WVal.new( :value($*DECLARAND) ));
+                $block[1] := wrap_return_type_check($block[1], $*DECLARAND);
             }
             else {
                 $block[1] := wrap_return_handler($block[1]);
@@ -2681,10 +2678,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $past := $<blockoid>.ast;
             $past.blocktype('declaration_static');
             if is_clearly_returnless($past) {
-                $past[1] := QAST::Op.new(
-                    :op('p6typecheckrv'),
+                $past[1] := wrap_return_type_check(
                     QAST::Op.new( :op('p6decontrv'), QAST::WVal.new( :value($*DECLARAND) ), $past[1] ),
-                    QAST::WVal.new( :value($*DECLARAND) ));
+                    $*DECLARAND);
             }
             else {
                 $past[1] := wrap_return_handler($past[1]);
@@ -5848,13 +5844,12 @@ class Perl6::Actions is HLL::Actions does STDActions {
         unless nqp::existskey(%*HANDLERS, 'SUCCEED') {
             %*HANDLERS<SUCCEED> := QAST::Op.new(
                 :op('p6return'),
-                QAST::Op.new(
-                    :op('p6typecheckrv'),
+                wrap_return_type_check(
                     QAST::Op.new(
                         :op('getpayload'),
                         QAST::Op.new( :op('exception') )
                     ),
-                    QAST::WVal.new( :value($*DECLARAND) )));
+                    $*DECLARAND) );
         }
 
         # if this is not an immediate block create a call
@@ -6167,9 +6162,15 @@ class Perl6::Actions is HLL::Actions does STDActions {
         $past
     }
 
-    sub wrap_return_handler($past) {
+    sub wrap_return_type_check($wrappee, $code_obj) {
         QAST::Op.new(
             :op('p6typecheckrv'),
+            $wrappee,
+            QAST::WVal.new( :value($code_obj) ));
+    }
+
+    sub wrap_return_handler($past) {
+        wrap_return_type_check(
             QAST::Stmts.new(
                 :resultchild(0),
                 QAST::Op.new(
@@ -6183,7 +6184,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     QAST::Var.new(:name<RETURN>, :scope<lexical>),
                     QAST::Var.new(:name<&EXHAUST>, :scope<lexical>))
             ),
-            QAST::WVal.new( :value($*DECLARAND) )
+            $*DECLARAND
         )
     }
 

@@ -3077,7 +3077,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $past := $block;
         }
         else {
-            $block[0].push(QAST::Var.new(:name<$¢>, :scope<lexical>, :decl('var')));
+            $block[0].unshift(QAST::Var.new(:name<$¢>, :scope<lexical>, :decl('var')));
             $block.symbol('$¢', :scope<lexical>);
             unless $use_outer_match {
                 $*W.install_lexical_magical($block, '$/');
@@ -6621,7 +6621,7 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions does STDActions {
                         :op('callmethod')
                     )
                 ),
-                QAST::Op.new(:op<call>, $blockref)
+                QAST::Op.new( :op<call>, QAST::Op.new( :op('p6capturelex'), $blockref ) )
             );
         make $past;
     }

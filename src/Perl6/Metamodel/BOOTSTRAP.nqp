@@ -985,6 +985,10 @@ my class Binder {
         # Otherwise, if we get there, all is well.
         return $TRIAL_BIND_OK;
     }
+
+    method get_return_type($code) {
+        nqp::getattr(nqp::getattr($code, Code, '$!signature'), Signature, '$!returns')
+    }
 }
 BEGIN { nqp::p6setbinder(Binder); } # We need it in for the next BEGIN block
 nqp::p6setbinder(Binder);           # The load-time case.

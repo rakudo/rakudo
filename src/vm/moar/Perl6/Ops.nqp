@@ -67,9 +67,6 @@ MAST::ExtOpRegistry.register_extop('p6listiter',
 MAST::ExtOpRegistry.register_extop('p6recont_ro',
     $MVM_operand_obj   +| $MVM_operand_write_reg,
     $MVM_operand_obj   +| $MVM_operand_read_reg);
-MAST::ExtOpRegistry.register_extop('p6typecheckrv',
-    $MVM_operand_obj   +| $MVM_operand_read_reg,
-    $MVM_operand_obj   +| $MVM_operand_read_reg);
 MAST::ExtOpRegistry.register_extop('p6decontrv',
     $MVM_operand_obj   +| $MVM_operand_write_reg,
     $MVM_operand_obj   +| $MVM_operand_read_reg);
@@ -188,7 +185,6 @@ $ops.add_hll_op('perl6', 'p6definite', -> $qastcomp, $op {
     $*REGALLOC.release_register($tmp_reg, $MVM_reg_int64);
     MAST::InstructionList.new(@ops, $value_res.result_reg, $MVM_reg_obj)
 });
-$ops.add_hll_moarop_mapping('perl6', 'p6typecheckrv', 'p6typecheckrv', 0);
 $ops.add_hll_op('perl6', 'p6decontrv', -> $qastcomp, $op {
     my $is_rw;
     if nqp::istype($op[0], QAST::WVal) {
@@ -548,15 +544,58 @@ my $trial_bind := -> $qastcomp, $op {
 };
 $ops.add_hll_op('nqp', 'p6trialbind', :!inlinable, $trial_bind);
 $ops.add_hll_op('perl6', 'p6trialbind', :!inlinable, $trial_bind);
-proto sub set_binder($b) {
-    $Binder := $b;
-}
+proto sub set_binder($b) { $Binder := $b; }
+proto sub get_binder()   { $Binder }
 $ops.add_hll_op('nqp', 'p6setbinder', -> $qastcomp, $op {
     $qastcomp.as_mast(QAST::Op.new(
         :op('call'),
         QAST::WVal.new( :value(nqp::getcodeobj(&set_binder)) ),
         |@($op)
     ));
+});
+$ops.add_hll_op('perl6', 'p6typecheckrv', -> $qastcomp, $op {
+    if nqp::istype($op[1], QAST::WVal) {
+        my $type := nqp::getcodeobj(&get_binder)().get_return_type($op[1].value);
+        if nqp::isnull($type) || nqp::objprimspec($type) {
+            $qastcomp.as_mast($op[0])
+        }
+        else {
+            my @ops;
+            my $value_res := $qastcomp.as_mast($op[0], :want($MVM_reg_obj));
+            my $type_res  := $qastcomp.as_mast(QAST::WVal.new( :value($type) ), :want($MVM_reg_obj));
+            my $lbl_done  := MAST::Label.new(:name($op.unique('rtc_done_')));
+            push_ilist(@ops, $value_res);
+            push_ilist(@ops, $type_res);
+            my $decont := $*REGALLOC.fresh_o();
+            my $istype := $*REGALLOC.fresh_i();
+            nqp::push(@ops, MAST::Op.new( :op('decont'), $decont, $value_res.result_reg ));
+            nqp::push(@ops, MAST::Op.new( :op('istype'), $istype, $decont, $type_res.result_reg ));
+            nqp::push(@ops, MAST::Op.new( :op('if_i'), $istype, $lbl_done ));
+            $*REGALLOC.release_register($decont, $MVM_reg_obj);
+            $*REGALLOC.release_register($istype, $MVM_reg_int64);
+
+            # Error generation.
+            proto return_error($got, $wanted) {
+                nqp::die("Type check failed for return value; expected '" ~
+                    $wanted.HOW.name($wanted) ~ "' but got '" ~
+                    $got.HOW.name($got)) ~ "'";
+            }
+            my $err_rep := $qastcomp.as_mast(QAST::WVal.new( :value(nqp::getcodeobj(&return_error)) ));
+            push_ilist(@ops, $err_rep);
+            nqp::push(@ops, MAST::Call.new(
+                :target($err_rep.result_reg),
+                :flags($Arg::obj, $Arg::obj),
+                $value_res.result_reg, $type_res.result_reg
+            ));
+            nqp::push(@ops, $lbl_done);
+            $*REGALLOC.release_register($err_rep.result_reg, $MVM_reg_obj);
+
+            MAST::InstructionList.new(@ops, $value_res.result_reg, $MVM_reg_obj)
+        }
+    }
+    else {
+        nqp::die('p6dtypecheckrv expects a QAST::WVal as its second child');
+    }
 });
 $ops.add_hll_op('perl6', 'p6setautothreader', :inlinable, -> $qastcomp, $op {
     $qastcomp.as_mast(

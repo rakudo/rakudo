@@ -333,16 +333,6 @@ static void p6reprname(MVMThreadContext *tc) {
     });
 }
 
-/* Type-checks the return value of a routine. */
-/* XXX Due to potential nested runloop calls, this may not want doing in C. */
-static MVMuint8 s_p6typecheckrv[] = {
-    MVM_operand_obj | MVM_operand_read_reg,
-    MVM_operand_obj | MVM_operand_read_reg,
-};
-static void p6typecheckrv(MVMThreadContext *tc) {
-     /* XXX */
-}
-
 /* Decontainerizes the return value of a routine as needed. */
 static MVMuint8 s_p6decontrv[] = {
     MVM_operand_obj | MVM_operand_write_reg,
@@ -797,7 +787,6 @@ MVM_DLL_EXPORT void Rakudo_ops_init(MVMThreadContext *tc) {
     MVM_ext_register_extop(tc, "p6recont_ro",  p6recont_ro, 2, s_p6recont_ro);
     MVM_ext_register_extop(tc, "p6var",  p6var, 2, s_p6var);
     MVM_ext_register_extop(tc, "p6reprname",  p6reprname, 2, s_p6reprname);
-    MVM_ext_register_extop(tc, "p6typecheckrv",  p6typecheckrv, 2, s_p6typecheckrv);
     MVM_ext_register_extop(tc, "p6decontrv",  p6decontrv, 2, s_p6decontrv);
     MVM_ext_register_extop(tc, "p6routinereturn",  p6routinereturn, 2, s_p6routinereturn);
     MVM_ext_register_extop(tc, "p6capturelex",  p6capturelex, 2, s_p6capturelex);

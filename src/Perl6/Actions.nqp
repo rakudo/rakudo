@@ -2280,7 +2280,6 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
         else {
             $block := $<blockoid>.ast;
-            $block.blocktype('declaration_static');
             if is_clearly_returnless($block) {
                 unless nqp::objprimspec($block[1].returns) {
                     $block[1] := QAST::Op.new(
@@ -2294,6 +2293,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 $block[1] := wrap_return_handler($block[1]);
             }
         }
+        $block.blocktype('declaration_static');
 
         # Obtain parameters, create signature object and generate code to
         # call binder.
@@ -2676,7 +2676,6 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
         else {
             $past := $<blockoid>.ast;
-            $past.blocktype('declaration_static');
             if is_clearly_returnless($past) {
                 $past[1] := wrap_return_type_check(
                     QAST::Op.new( :op('p6decontrv'), QAST::WVal.new( :value($*DECLARAND) ), $past[1] ),
@@ -2686,7 +2685,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 $past[1] := wrap_return_handler($past[1]);
             }
         }
-        
+        $past.blocktype('declaration_static');
+
         my $name;
         if $<longname> {
             my $longname := $*W.dissect_longname($<longname>);
@@ -2771,7 +2771,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my $block;
 
         $block := $<blockoid>.ast;
-        $block.blocktype('declaration');
+        $block.blocktype('declaration_static');
         if is_clearly_returnless($block) {
             $block[1] := QAST::Op.new(
                 :op('p6decontrv'),
@@ -3084,7 +3084,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 !! %*LANG<Regex-actions>.qbuildsub($qast, $block, code_obj => $code);
         }
         $past.name($name);
-        $past.blocktype("declaration");
+        $past.blocktype("declaration_static");
         
         # Install a $?REGEX (mostly for the benefit of <~~>).
         $block[0].push(QAST::Op.new(

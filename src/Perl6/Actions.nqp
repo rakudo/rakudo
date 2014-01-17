@@ -717,8 +717,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
                         $ast := autosink($ast<bare_block>);
                     }
                     else {
-                        $ast := QAST::Stmt.new(autosink($ast), :returns($ast.returns)) if $ast ~~ QAST::Node;
+                        $ast := QAST::Stmt.new(autosink($ast), :returns($ast.returns));
                     }
+                    $ast.node($_);
                     $past.push( $ast );
                 }
             }

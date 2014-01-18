@@ -2432,6 +2432,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             elsif $kind eq '*' {
                 $*zone := 'var';
             }
+
+            %*PARAM_INFO<node> := $/;
         }
     }
 

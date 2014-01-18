@@ -5668,6 +5668,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
 
     # Adds code to do the signature binding.
+    my $use_vm_binder;
     sub add_signature_binding_code($block, $sig_obj, @params) {
         # Set arity.
         my int $arity := 0;
@@ -5678,11 +5679,81 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
         $block.arity($arity);
 
-        # Flag that we do custom arguments processing, and invoke the binder.
-        $block.custom_args(1);
-        $block[0].push(QAST::Op.new( :op('p6bindsig') ));
+        # Consider using the VM binder on backends where it will work out
+        # (e.g. we can get the same errors).
+        my $need_full_binder := 1;
+        unless nqp::defined($use_vm_binder) {
+            $use_vm_binder := nqp::getcomp('perl6').backend.name eq 'moar';
+        }
+        if $use_vm_binder {
+            # If there are zero parameters, then we can trvially leave it to
+            # the VM, with no extra work.
+            if nqp::elems(@params) == 0 {
+                $need_full_binder := 0;
+            }
+
+            # If there is one anonymous capture parameter, as is common with
+            # protos, then we've nothing to check or store; flag as custom
+            # bind but don't invoke the binder.
+            elsif is_anon_capture(@params) {
+                $block.custom_args(1);
+                $need_full_binder := 0;
+            }
+
+            # If there is a single $_ and it takes its value from outer, then
+            # this is easily handled too. Very common case.
+            elsif is_default_topic(@params) {
+                my $var := find_var_decl($block, '$_');
+                $var.decl('param');
+                $var.default(QAST::Op.new(
+                    :op('getlexouter'),
+                    QAST::SVal.new( :value('$_') )
+                ));
+                $need_full_binder := 0;
+            }
+        }
+
+        # If we need the full binder, invoke it; mark we do custom args
+        # handling.
+        if $need_full_binder {
+            $block.custom_args(1);
+            $block[0].push(QAST::Op.new( :op('p6bindsig') ));
+        }
 
         $block;
+    }
+    sub is_anon_capture(@params) {
+        if nqp::elems(@params) == 1 {
+            my $only := @params[0];
+            if $only<is_capture> && !nqp::existskey($only, 'variable_name') {
+                if !nqp::istype($*W.find_symbol(['Capture']), $only<nominal_type>) {
+                    $only<node>.CURSOR.panic("Capture parameter must have a type accepting a Capture");
+                }
+                else {
+                    return 1;
+                }
+            }
+        }
+        0
+    }
+    sub is_default_topic(@params) {
+        if nqp::elems(@params) == 1 {
+            my $only := @params[0];
+            if $only<default_from_outer> && $only<is_parcel> && $only<variable_name> eq '$_' {
+                if $only<nominal_type> =:= $*W.find_symbol(['Mu']) {
+                    return 1;
+                }
+            }
+        }
+        0
+    }
+    sub find_var_decl($block, $name) {
+        for $block[0].list {
+            if nqp::istype($_, QAST::Var) && $_.name eq $name && $_.decl {
+                return $_;
+            }
+        }
+        nqp::die("Internal error: find_var_decl could not find $name");
     }
 
     # Adds a placeholder parameter to this block's signature.

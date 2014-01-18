@@ -151,7 +151,7 @@ static void rakudo_scalar_store(MVMThreadContext *tc, MVMObject *cont, MVMObject
 }
 
 static void rakudo_scalar_store_unchecked(MVMThreadContext *tc, MVMObject *cont, MVMObject *obj) {
-    finish_store(tc, (Rakudo_Scalar *)cont, obj);
+    finish_store(tc, cont, obj);
 }
 
 static void rakudo_scalar_serialize(MVMThreadContext *tc, MVMSTable *st, MVMSerializationWriter *writer) {

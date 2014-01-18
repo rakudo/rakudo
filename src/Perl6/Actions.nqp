@@ -5778,18 +5778,28 @@ class Perl6::Actions is HLL::Actions does STDActions {
             return 0 if %info<nominal_generic>;                 # XXX Support later
             return 0 if %info<pos_slurpy>;                      # XXX Support later
             return 0 if %info<pos_lol>;                         # XXX Support later
-            return 0 if %info<is_capture>;
             return 0 if %info<default_from_outer>;
 
             # Generate a var to bind into.
             my $name := "__lowered_param_$i";
             my $var  := QAST::Var.new( :$name, :scope('local'), :decl('param') );
-            if nqp::existskey(%info, 'named_names') {
+            if %info<is_capture> {
+                # If this is a final and anonymous capture, then we're good.
+                # Otherwise, bail out for now.
+                return 0 unless $i + 1 == $n ||
+                                $i + 2 == $n && @params[$i + 1]<named_slurpy>;
+                return 0 if nqp::existskey(%info, 'variable_name');
+                if !nqp::istype($*W.find_symbol(['Capture']), %info<nominal_type>) {
+                    %info<node>.CURSOR.panic("Capture parameter must have a type accepting a Capture");
+                }
+                $var.slurpy(1);
+            }
+            elsif nqp::existskey(%info, 'named_names') {
                 my @names := %info<named_names>;
                 return 0 if nqp::elems(@names) != 1;
                 $var.named(@names[0]);
             }
-            if %info<named_slurpy> {
+            elsif %info<named_slurpy> {
                 $var.slurpy(1);
                 $var.named(1);
                 $var.push(QAST::Op.new(

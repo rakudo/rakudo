@@ -495,11 +495,16 @@ my class IO::Path is Cool does IO::FileTestable {
             take $_.path if $_ ~~ $test for ".", "..";
             loop {
                 my Str $elem := nqp::nextfiledir($dirh);
-                if nqp::isnull_s($elem) {
+                if nqp::isnull_s($elem) || !$elem {
                     nqp::closedir($dirh);
                     last;
                 } else {
+#?endif
+#?if jvm
+                    # jvm's nextfiledir gives us absolute paths back, moar does not.
                     $elem := $elem.substr($*CWD.chars + 1) if self.is-relative;
+#?endif
+#?if !parrot
                     if $elem.substr(0, 2) eq any("./", ".\\") {
                         $elem := $elem.substr(2);
                     }

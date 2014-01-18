@@ -34,8 +34,11 @@ my role Enumeration {
         self.value.Int
     }
 
-    method postcircumfix:<( )>($ ($x)) {
-        $x ~~ ::?CLASS ?? $x !! self.^enum_from_value($x)
+    method postcircumfix:<( )>(|) {
+        my $x := nqp::atpos(nqp::p6argvmarray(), 1);
+        nqp::istype($x, ::?CLASS)
+            ?? $x
+            !! self.HOW.enum_from_value(self, $x)
     }
 }
 

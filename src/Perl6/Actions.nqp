@@ -2863,7 +2863,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
 
     sub methodize_block($/, $code, $past, %sig_info, $invocant_type, :$yada) {
-        # Get signature and ensure it has an invocant and *%_.
+        # Get signature and ensure it has an invocant and *%_ if needed.
         my @params := %sig_info<parameters>;
         if $past<placeholder_sig> {
             $/.CURSOR.panic('Placeholder variables cannot be used in a method');
@@ -2875,7 +2875,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 is_multi_invocant => 1
             ));
         }
-        unless @params[+@params - 1]<named_slurpy> {
+        unless @params[+@params - 1]<named_slurpy> || @params[+@params - 1]<is_capture> {
             unless nqp::can($*PACKAGE.HOW, 'hidden') && $*PACKAGE.HOW.hidden($*PACKAGE) {
                 @params.push(hash(
                     variable_name => '%_',
@@ -5763,6 +5763,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
     sub lower_signature($block, $sig, @params) {
         my @result;
         my $clear_topic_bind;
+        my $saw_slurpy;
         my $Sig    := $*W.find_symbol(['Signature']);
         my $Param  := $*W.find_symbol(['Parameter']);
         my @p_objs := nqp::getattr($sig, $Sig, '$!params');
@@ -5770,14 +5771,14 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my int $n  := nqp::elems(@params);
         while $i < $n {
             # Some things need the full binder to do.
-            my %info := @params[$i];
+            my %info      := @params[$i];
+            my $param_obj := @p_objs[$i];
+            my int $flags := nqp::getattr_i($param_obj, $Param, '$!flags');
             return 0 if nqp::existskey(%info, 'sub_signature');
             return 0 if nqp::existskey(%info, 'type_captures'); # XXX Support later
             return 0 if %info<bind_attr>;                       # XXX Support later
             return 0 if %info<bind_accessor>;                   # XXX Support later
             return 0 if %info<nominal_generic>;                 # XXX Support later
-            return 0 if %info<pos_slurpy>;                      # XXX Support later
-            return 0 if %info<pos_lol>;                         # XXX Support later
             return 0 if %info<default_from_outer>;
 
             # Generate a var to bind into.
@@ -5786,18 +5787,59 @@ class Perl6::Actions is HLL::Actions does STDActions {
             if %info<is_capture> {
                 # If this is a final and anonymous capture, then we're good.
                 # Otherwise, bail out for now.
+                return 0 if $saw_slurpy;
                 return 0 unless $i + 1 == $n ||
                                 $i + 2 == $n && @params[$i + 1]<named_slurpy>;
-                return 0 if nqp::existskey(%info, 'variable_name');
                 if !nqp::istype($*W.find_symbol(['Capture']), %info<nominal_type>) {
                     %info<node>.CURSOR.panic("Capture parameter must have a type accepting a Capture");
                 }
                 $var.slurpy(1);
+                if nqp::existskey(%info, 'variable_name') {
+                    # Need to get hash part also, and build a capture object.
+                    my $Capture   := QAST::WVal.new( :value($*W.find_symbol(['Capture'])) );
+                    my $hash_name := $name ~ '_hash';
+                    @result.push(QAST::Var.new(
+                        :name($hash_name), :scope('local'), :decl('param'),
+                        :slurpy(1), :named(1)
+                    ));
+                    $var.push(QAST::Op.new(
+                        :op('bind'),
+                        QAST::Var.new( :name($name), :scope('local') ),
+                        QAST::Op.new(
+                            :op('p6bindattrinvres'),
+                            QAST::Op.new(
+                                :op('p6bindattrinvres'),
+                                QAST::Op.new( :op('create'), $Capture ),
+                                $Capture,
+                                QAST::SVal.new( :value('$!list') ),
+                                QAST::Var.new( :name($name), :scope('local') )
+                            ),
+                            $Capture,
+                            QAST::SVal.new( :value('$!hash') ),
+                            QAST::Var.new( :name($hash_name), :scope('local') )
+                        )));
+                }
             }
             elsif nqp::existskey(%info, 'named_names') {
                 my @names := %info<named_names>;
                 return 0 if nqp::elems(@names) != 1;
                 $var.named(@names[0]);
+            }
+            elsif %info<pos_slurpy> || %info<pos_lol> {
+                $var.slurpy(1);
+                my $type := $*W.find_symbol([ %info<pos_lol> ?? 'LoL' !!
+                    $flags +& $SIG_ELEM_IS_RW ?? 'List' !! 'Array' ]);
+                my $flat := %info<pos_lol> ?? 'False' !! 'True';
+                $var.push(QAST::Op.new(
+                    :op('bind'),
+                    QAST::Var.new( :name($name), :scope('local') ),
+                    QAST::Op.new(
+                        :op('p6list'),
+                        QAST::Var.new( :name($name), :scope('local') ),
+                        QAST::WVal.new( :value($type) ),
+                        QAST::WVal.new( :value($*W.find_symbol([$flat])) )
+                    )));
+                $saw_slurpy := 1;
             }
             elsif %info<named_slurpy> {
                 $var.slurpy(1);
@@ -5815,6 +5857,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                         QAST::SVal.new( :value('$!storage') ),
                         QAST::Var.new( :name($name), :scope('local') )
                     )));
+                $saw_slurpy := 1;
             }
 
             # Add type checks.
@@ -5862,7 +5905,6 @@ class Perl6::Actions is HLL::Actions does STDActions {
             }
 
             # Handle coercion.
-            my $param_obj := @p_objs[$i];
             my $coerce_to := nqp::getattr($param_obj, $Param, '$!coerce_type');
             unless nqp::isnull($coerce_to) {
                 $var.push(QAST::Op.new(
@@ -5935,7 +5977,6 @@ class Perl6::Actions is HLL::Actions does STDActions {
             }
 
             # Bind to lexical if needed.
-            my int $flags := nqp::getattr_i($param_obj, $Param, '$!flags');
             if nqp::existskey(%info, 'variable_name') {
                 if nqp::objprimspec($nomtype) || $flags +& $SIG_ELEM_IS_RW || $flags +& $SIG_ELEM_IS_PARCEL {
                     $var.push(QAST::Op.new(

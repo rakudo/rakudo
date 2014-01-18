@@ -5861,6 +5861,27 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 }
             }
 
+            # Handle coercion.
+            my $param_obj := @p_objs[$i];
+            my $coerce_to := nqp::getattr($param_obj, $Param, '$!coerce_type');
+            unless nqp::isnull($coerce_to) {
+                $var.push(QAST::Op.new(
+                    :op('unless'),
+                    QAST::Op.new(
+                        :op('istype'),
+                        QAST::Var.new( :name($name), :scope('local') ),
+                        QAST::WVal.new( :value($coerce_to) )
+                    ),
+                    QAST::Op.new(
+                        :op('bind'),
+                        QAST::Var.new( :name($name), :scope('local') ),
+                        QAST::Op.new(
+                            :op('callmethod'),
+                            :name(nqp::getattr($param_obj, $Param, '$!coerce_method')),
+                            QAST::Var.new( :name($name), :scope('local') )
+                        ))));
+            }
+
             # If it's optional, do any default handling.
             if %info<optional> {
                 if nqp::existskey(%info, 'default_value') {
@@ -5913,12 +5934,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     )));
             }
 
-            # Get some info from the Parameter instance itself.
-            my $param_obj := @p_objs[$i];
-            my int $flags := nqp::getattr_i($param_obj, $Param, '$!flags');
-            return 0 unless nqp::isnull(nqp::getattr($param_obj, $Param, '$!coerce_type'));
-
             # Bind to lexical if needed.
+            my int $flags := nqp::getattr_i($param_obj, $Param, '$!flags');
             if nqp::existskey(%info, 'variable_name') {
                 if nqp::objprimspec($nomtype) || $flags +& $SIG_ELEM_IS_RW || $flags +& $SIG_ELEM_IS_PARCEL {
                     $var.push(QAST::Op.new(

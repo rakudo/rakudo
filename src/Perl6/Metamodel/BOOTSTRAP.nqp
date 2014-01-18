@@ -1423,7 +1423,7 @@ BEGIN {
     Parameter.HOW.add_method(Parameter, 'set_coercion', nqp::getstaticcode(sub ($self, $type) {
             my $dcself := nqp::decont($self);
             nqp::bindattr_s($dcself, Parameter, '$!coerce_method', $type.HOW.name($type));
-            nqp::bindattr($dcself, Parameter, '$!coerce_type', $type);
+            nqp::bindattr($dcself, Parameter, '$!coerce_type', nqp::decont($type));
             $dcself
         }));
     Parameter.HOW.compose_repr(Parameter);

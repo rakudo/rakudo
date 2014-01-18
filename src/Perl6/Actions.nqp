@@ -5711,6 +5711,16 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 ));
                 $need_full_binder := 0;
             }
+
+            # Otherwise, need to go through and do a fuller analysis.
+            else {
+                if lower_signature($block, $sig_obj, @params) -> @todo {
+                    for @todo {
+                        $block[0].push($_);
+                    }
+                    $need_full_binder := 0;
+                }
+            }
         }
 
         # If we need the full binder, invoke it; mark we do custom args
@@ -5746,6 +5756,250 @@ class Perl6::Actions is HLL::Actions does STDActions {
             }
         }
         0
+    }
+    my $SIG_ELEM_IS_RW     := 256;
+    my $SIG_ELEM_IS_COPY   := 512;
+    my $SIG_ELEM_IS_PARCEL := 1024;
+    sub lower_signature($block, $sig, @params) {
+        my @result;
+        my $clear_topic_bind;
+        my $Sig    := $*W.find_symbol(['Signature']);
+        my $Param  := $*W.find_symbol(['Parameter']);
+        my @p_objs := nqp::getattr($sig, $Sig, '$!params');
+        my int $i  := 0;
+        my int $n  := nqp::elems(@params);
+        while $i < $n {
+            # Some things need the full binder to do.
+            my %info := @params[$i];
+            return 0 if nqp::existskey(%info, 'sub_signature');
+            return 0 if nqp::existskey(%info, 'type_captures'); # XXX Support later
+            return 0 if %info<bind_attr>;                       # XXX Support later
+            return 0 if %info<bind_accessor>;                   # XXX Support later
+            return 0 if %info<nominal_generic>;                 # XXX Support later
+            return 0 if %info<pos_slurpy>;                      # XXX Support later
+            return 0 if %info<pos_lol>;                         # XXX Support later
+            return 0 if %info<is_capture>;
+            return 0 if %info<default_from_outer>;
+
+            # Generate a var to bind into.
+            my $name := "__lowered_param_$i";
+            my $var  := QAST::Var.new( :$name, :scope('local'), :decl('param') );
+            if nqp::existskey(%info, 'named_names') {
+                my @names := %info<named_names>;
+                return 0 if nqp::elems(@names) != 1;
+                $var.named(@names[0]);
+            }
+            if %info<named_slurpy> {
+                $var.slurpy(1);
+                $var.named(1);
+                $var.push(QAST::Op.new(
+                    :op('bind'),
+                    QAST::Var.new( :name($name), :scope('local') ),
+                    QAST::Op.new(
+                        :op('p6bindattrinvres'),
+                        QAST::Op.new(
+                            :op('create'),
+                            QAST::WVal.new( :value($*W.find_symbol(['Hash'])) )
+                        ),
+                        QAST::WVal.new( :value($*W.find_symbol(['EnumMap'])) ),
+                        QAST::SVal.new( :value('$!storage') ),
+                        QAST::Var.new( :name($name), :scope('local') )
+                    )));
+            }
+
+            # Add type checks.
+            my $nomtype := %info<nominal_type>;
+            if nqp::objprimspec($nomtype) {
+                $var.returns($nomtype);
+            }
+            else {
+                # Must hll-ize before we go on.
+                $var.push(QAST::Op.new(
+                    :op('bind'),
+                    QAST::Var.new( :name($name), :scope('local') ),
+                    QAST::Op.new(
+                        :op('hllize'),
+                        QAST::Var.new( :name($name), :scope('local') )
+                    )));
+
+                # Type-check, unless it's Mu, in which case skip it.
+                unless $nomtype =:= $*W.find_symbol(['Mu']) {
+                    if $nomtype.HOW.archetypes.generic {
+                        return 0 unless %info<is_invocant>;
+                    }
+                    else {
+                        $var.push(QAST::ParamTypeCheck.new(QAST::Op.new(
+                            :op('istype'),
+                            QAST::Var.new( :name($name), :scope('local') ),
+                            QAST::WVal.new( :value($nomtype) )
+                        )));
+                    }
+                }
+                if %info<undefined_only> {
+                    $var.push(QAST::ParamTypeCheck.new(QAST::Op.new(
+                        :op('not_i'),
+                        QAST::Op.new(
+                            :op('isconcrete'),
+                            QAST::Var.new( :name($name), :scope('local') )
+                        ))));
+                }
+                if %info<defined_only> {
+                    $var.push(QAST::ParamTypeCheck.new(QAST::Op.new(
+                        :op('isconcrete'),
+                        QAST::Var.new( :name($name), :scope('local') )
+                    )));
+                }
+            }
+
+            # If it's optional, do any default handling.
+            if %info<optional> {
+                if nqp::existskey(%info, 'default_value') {
+                    my $wval := QAST::WVal.new( :value(%info<default_value>) );
+                    if %info<default_is_literal> {
+                        $var.default($wval);
+                    }
+                    else {
+                        $var.default(QAST::Op.new(
+                            :op('call'),
+                            QAST::Op.new(
+                                :op('p6capturelex'),
+                                QAST::Op.new( :op('callmethod'), :name('clone'), $wval )
+                            )));
+                    }
+                }
+                else {
+                    if %info<sigil> eq '@' {
+                        return 0;
+                    }
+                    elsif %info<sigil> eq '%' {
+                        return 0;
+                    }
+                    else {
+                        my int $ps := nqp::objprimspec($nomtype);
+                        if $ps == 1 {
+                            $var.default(QAST::IVal.new( :value(0) ));
+                        }
+                        elsif $ps == 2 {
+                            $var.default(QAST::NVal.new( :value(0.0) ));
+                        }
+                        elsif $ps == 3 {
+                            $var.default(QAST::SVal.new( :value('') ));
+                        }
+                        else {
+                            $var.default(QAST::WVal.new( :value($nomtype) ));
+                        }
+                    }
+                }
+            }
+
+            # If it's the invocant, needs to go into self also.
+            if %info<is_invocant> {
+                $var.push(QAST::Op.new(
+                    :op('bind'),
+                    QAST::Var.new( :name('self'), :scope('lexical') ),
+                    QAST::Op.new(
+                        :op('decont'),
+                        QAST::Var.new( :name($name), :scope('local') )
+                    )));
+            }
+
+            # Get some info from the Parameter instance itself.
+            my $param_obj := @p_objs[$i];
+            my int $flags := nqp::getattr_i($param_obj, $Param, '$!flags');
+            return 0 unless nqp::isnull(nqp::getattr($param_obj, $Param, '$!coerce_type'));
+
+            # Bind to lexical if needed.
+            if nqp::existskey(%info, 'variable_name') {
+                if nqp::objprimspec($nomtype) || $flags +& $SIG_ELEM_IS_RW || $flags +& $SIG_ELEM_IS_PARCEL {
+                    $var.push(QAST::Op.new(
+                        :op('bind'),
+                        QAST::Var.new( :name(%info<variable_name>), :scope('lexical'), :returns($nomtype) ),
+                        QAST::Var.new( :name($name), :scope('local') )
+                    ));
+                }
+                elsif %info<sigil> eq '@' {
+                    if $flags +& $SIG_ELEM_IS_COPY {
+                        return 0;
+                    }
+                    else {
+                        $var.push(QAST::Op.new(
+                            :op('bind'),
+                            QAST::Var.new( :name(%info<variable_name>), :scope('lexical') ),
+                            QAST::Op.new(
+                                :op('decont'),
+                                QAST::Var.new( :name($name), :scope('local') )
+                            )));
+                    }
+                }
+                elsif %info<sigil> eq '%' {
+                    if $flags +& $SIG_ELEM_IS_COPY {
+                        return 0;
+                    }
+                    else {
+                        $var.push(QAST::Op.new(
+                            :op('bind'),
+                            QAST::Var.new( :name(%info<variable_name>), :scope('lexical') ),
+                            QAST::Op.new(
+                                :op('decont'),
+                                QAST::Var.new( :name($name), :scope('local') )
+                            )));
+                    }
+                }
+                else {
+                    # The rw-ness for is copy is handled by the container descriptor.
+                    $var.push(QAST::Op.new(
+                        :op('bind'),
+                        QAST::Var.new( :name(%info<variable_name>), :scope('lexical') ),
+                        QAST::Op.new(
+                            :op('assignunchecked'),
+                            QAST::Op.new(
+                                :op('p6scalarfromdesc'),
+                                QAST::WVal.new( :value(%info<container_descriptor>) )
+                            ),
+                            QAST::Var.new( :name($name), :scope('local') )
+                        )));
+
+                    # Take care we don't undo explicit $_ bindings.
+                    if %info<variable_name> eq '$_' && $*IMPLICIT {
+                        for $block[0].list {
+                            if nqp::istype($_, QAST::Op) && $_.op eq 'bind' &&
+                               nqp::istype($_[0], QAST::Var) && $_[0].name eq '$_' {
+                                $clear_topic_bind := $_;
+                                last;
+                            }
+                        }
+                    }
+                }
+            }
+
+            # Finally, apply post-constraints (must come after variable bind,
+            # as constraints can refer to the var).
+            if %info<post_constraints> {
+                for %info<post_constraints> {
+                    my $wval := QAST::WVal.new( :value($_) );
+                    $var.push(QAST::ParamTypeCheck.new(QAST::Op.new(
+                        :op('istrue'),
+                        QAST::Op.new(
+                            :op('callmethod'), :name('ACCEPTS'),
+                            nqp::istype($_, $*W.find_symbol(['Code']))
+                                ?? QAST::Op.new( :op('p6capturelex'),
+                                      QAST::Op.new( :op('callmethod'), :name('clone'), $wval ) )
+                                !! $wval,
+                            QAST::Var.new( :name($name), :scope('local') )
+                        ))));
+                }
+            }
+
+            # Add the generated var.
+            nqp::push(@result, $var);
+
+            $i++;
+        }
+        if $clear_topic_bind {
+            $clear_topic_bind.shift(); $clear_topic_bind.shift();
+            $clear_topic_bind.op('null');
+        }
+        return @result;
     }
     sub find_var_decl($block, $name) {
         for $block[0].list {

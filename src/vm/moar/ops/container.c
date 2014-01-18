@@ -151,20 +151,7 @@ static void rakudo_scalar_store(MVMThreadContext *tc, MVMObject *cont, MVMObject
 }
 
 static void rakudo_scalar_store_unchecked(MVMThreadContext *tc, MVMObject *cont, MVMObject *obj) {
-    MVMObject *whence;
-    Rakudo_Scalar *rs = (Rakudo_Scalar *)cont;
-
-    /* Handle Nil assignment. */
-    if (obj && STABLE(obj)->WHAT == get_nil()) {
-        Rakudo_ContainerDescriptor *rcd = (Rakudo_ContainerDescriptor *)rs->descriptor;
-        if (rcd)
-            obj = rcd->the_default;
-        else
-            MVM_exception_throw_adhoc(tc, "Cannot assign to a readonly variable or a value");
-    }
-
-    /* Complete the store. */
-    finish_store(tc, cont, obj);
+    finish_store(tc, (Rakudo_Scalar *)cont, obj);
 }
 
 static void rakudo_scalar_serialize(MVMThreadContext *tc, MVMSTable *st, MVMSerializationWriter *writer) {

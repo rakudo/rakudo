@@ -309,20 +309,20 @@ m-sometests: m-all
 	@$(M_HARNESS_WITH_FUDGE) $(TESTFILES)
 
 m-install: m-all tools/build/create-moar-runner.pl
-	$(MKPATH) $(PREFIX)/bin
-	$(MKPATH) $(M_LIBPATH)/Perl6
-	$(CP) $(M_PERL6_LANG_OUTPUT) $(M_LIBPATH)/Perl6
-	$(MKPATH) $(PERL6_LANG_DIR)/lib
-	$(MKPATH) $(PERL6_LANG_DIR)/runtime
-	$(CP) $(SETTING_MOAR) $(PERL6_LANG_DIR)/runtime
-	$(CP) $(R_SETTING_MOAR) $(PERL6_LANG_DIR)/runtime
-	$(CP) $(PERL6_MOAR) $(PERL6_LANG_DIR)/runtime
-	$(MKPATH) $(PERL6_LANG_DIR)/runtime/dynext
-	$(CP) $(M_PERL6_OPS_DLL) $(PERL6_LANG_DIR)/runtime/dynext
-	$(CP) lib/Test.moarvm $(PERL6_LANG_DIR)/lib
-	$(CP) blib/lib.moarvm $(PERL6_LANG_DIR)/lib
-	$(MKPATH) $(PERL6_LANG_DIR)/lib/Pod/To
-	$(CP) blib/Pod/To/Text.moarvm $(PERL6_LANG_DIR)/lib/Pod/To
+	$(MKPATH) $(DESTDIR)$(PREFIX)/bin
+	$(MKPATH) $(DESTDIR)$(M_LIBPATH)/Perl6
+	$(CP) $(M_PERL6_LANG_OUTPUT) $(DESTDIR)$(M_LIBPATH)/Perl6
+	$(MKPATH) $(DESTDIR)$(PERL6_LANG_DIR)/lib
+	$(MKPATH) $(DESTDIR)$(PERL6_LANG_DIR)/runtime
+	$(CP) $(SETTING_MOAR) $(DESTDIR)$(PERL6_LANG_DIR)/runtime
+	$(CP) $(R_SETTING_MOAR) $(DESTDIR)$(PERL6_LANG_DIR)/runtime
+	$(CP) $(PERL6_MOAR) $(DESTDIR)$(PERL6_LANG_DIR)/runtime
+	$(MKPATH) $(DESTDIR)$(PERL6_LANG_DIR)/runtime/dynext
+	$(CP) $(M_PERL6_OPS_DLL) $(DESTDIR)$(PERL6_LANG_DIR)/runtime/dynext
+	$(CP) lib/Test.moarvm $(DESTDIR)$(PERL6_LANG_DIR)/lib
+	$(CP) blib/lib.moarvm $(DESTDIR)$(PERL6_LANG_DIR)/lib
+	$(MKPATH) $(DESTDIR)$(PERL6_LANG_DIR)/lib/Pod/To
+	$(CP) blib/Pod/To/Text.moarvm $(DESTDIR)$(PERL6_LANG_DIR)/lib/Pod/To
 	$(PERL) tools/build/create-moar-runner.pl "$(MOAR)" "$(PERL6_LANG_DIR)/runtime" "$(M_LIBPATH)" "$(PERL6_LANG_DIR)/lib" "$(PERL6_LANG_DIR)/runtime"
 	$(CP) perl6-m$(M_BAT) $(DESTDIR)$(PREFIX)/bin
 	$(CHMOD) 755 $(DESTDIR)$(PREFIX)/bin/perl6-m$(M_BAT)

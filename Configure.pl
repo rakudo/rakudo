@@ -246,9 +246,6 @@ MAIN: {
                               : $^O eq 'darwin'  ? '-lmoar'
                               : '';
 
-        # Windows tweak.
-        $nqp_config{'moar::ldshared'} =~ s{/implib\S+}{};
-
         fill_template_file('tools/build/Makefile-Moar.in', $MAKEFILE, %config, %nqp_config);
     }
 

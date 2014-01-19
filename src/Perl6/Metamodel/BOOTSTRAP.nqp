@@ -2839,7 +2839,14 @@ nqp::sethllconfig('perl6', nqp::hash(
                         }
                     }
                     if $run {
+#?endif
+#?if jvm
                         $phaser();
+#?endif
+#?if moar
+                        nqp::p6capturelexwhere($phaser.clone())();
+#?endif
+#?if !parrot
                     }
                     $i++;
                 }
@@ -2850,7 +2857,15 @@ nqp::sethllconfig('perl6', nqp::hash(
                 my int $n := nqp::elems(@posts);
                 my int $i := 0;
                 while $i < $n {
+#?endif
+#?if jvm
                     nqp::atpos(@posts, $i)(nqp::ifnull($resultish, Mu));
+#?endif
+#?if moar
+                    nqp::p6capturelexwhere(nqp::atpos(@posts, $i).clone())(
+                        nqp::ifnull($resultish, Mu));
+#?endif
+#?if !parrot
                     $i++;
                 }
             }

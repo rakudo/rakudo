@@ -424,6 +424,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
         # Executing the compilation unit causes the mainline to be executed.
         $outer.push(QAST::Op.new( :op<call>, $unit ));
 
+        # Do not want closure semantics on this outermost scope.
+        $unit.blocktype('declaration_static');
+
         # Wrap everything in a QAST::CompUnit.
         my $compunit := QAST::CompUnit.new(
             :hll('perl6'),
@@ -1391,7 +1394,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             # we already have a CATCH block, nothing to do here
             $past := QAST::Op.new( :op('call'), $block );
         } else {
-            $block := QAST::Op.new(:op<call>, $block); # XXX should be immediate
+            $block := QAST::Op.new(:op<call>, $block);
             $past := QAST::Op.new(
                 :op('handle'),
                 
@@ -1435,7 +1438,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
 
     method blorst($/) {
-        make $<block> ?? $<block>.ast !! make_thunk_ref($<statement>.ast, $/);
+        make $<block> ?? $<block>.ast !! block_closure(make_thunk_ref($<statement>.ast, $/));
     }
 
     # Statement modifiers
@@ -4598,7 +4601,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
         elsif $past && nqp::substr($past.name, 0, 19) eq '&METAOP_TEST_ASSIGN' {
             $past.push($/[0].ast);
-            $past.push(make_thunk_ref($/[1].ast, $/));
+            $past.push(block_closure(make_thunk_ref($/[1].ast, $/)));
             make $past;
             return 1;
         }

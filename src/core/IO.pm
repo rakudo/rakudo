@@ -504,6 +504,9 @@ my class IO::Path is Cool does IO::FileTestable {
                     # jvm's nextfiledir gives us absolute paths back, moar does not.
                     $elem := $elem.substr($*CWD.chars + 1) if self.is-relative;
 #?endif
+#?if moar
+                    $elem := $.SPEC.catfile($!path, $elem) if self.is-relative && self ne '.';
+#?endif
 #?if !parrot
                     if $elem.substr(0, 2) eq any("./", ".\\") {
                         $elem := $elem.substr(2);

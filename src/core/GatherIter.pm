@@ -16,15 +16,15 @@ class GatherIter is Iterator {
 #?if !parrot
         my Mu $takings;
         my Mu $state;
-        my sub yield() {
+        my &yield := {
             nqp::continuationcontrol(0, $GATHER_PROMPT, -> Mu \c { $state := c; });
         }
-        $state := sub () is rw {
+        $state := {
             nqp::handle( $block().eager(),
                 'TAKE', ($takings := nqp::getpayload(nqp::exception()); yield(); nqp::resume(nqp::exception())));
             $takings := $SENTINEL; yield();
         };
-        my $coro := sub () is rw { nqp::continuationreset($GATHER_PROMPT, $state); $takings };
+        my $coro := { nqp::continuationreset($GATHER_PROMPT, $state); $takings };
 #?endif
         my Mu $new := nqp::create(self);
         nqp::bindattr($new, GatherIter, '$!coro', $coro);

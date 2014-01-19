@@ -17,9 +17,7 @@ class GatherIter is Iterator {
         my Mu $takings;
         my Mu $state;
         my sub yield() {
-            nqp::continuationcontrol(0, $GATHER_PROMPT, -> Mu \c {
-                $state := sub () is rw { nqp::continuationinvoke(c, -> | { Nil }); };
-            });
+            nqp::continuationcontrol(0, $GATHER_PROMPT, -> Mu \c { $state := c; });
         }
         $state := sub () is rw {
             nqp::handle( $block().eager(),

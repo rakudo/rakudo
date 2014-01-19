@@ -5,71 +5,74 @@ my class Signature { # declared in BOOTSTRAP
     #   has Mu $!arity;           # cached arity
     #   has Mu $!count;           # cached count
     #   has Mu $!code;
-    
+
     multi method ACCEPTS(Signature:D: Capture $topic) {
         nqp::p6bool(nqp::p6isbindable(self, nqp::decont($topic)));
     }
-    
+
     multi method ACCEPTS(Signature:D: @topic) {
         self.ACCEPTS(@topic.Capture)
     }
-    
+
     multi method ACCEPTS(Signature:D: %topic) {
         self.ACCEPTS(%topic.Capture)
     }
 
     multi method ACCEPTS(Signature:D: Signature:D $topic) {
-	my $sclass = self.params.classify({.named});
-	my $tclass = $topic.params.classify({.named});
-	my @spos := $sclass<False> // ();
-	my @tpos := $tclass<False> // ();
+        my $sclass = self.params.classify({.named});
+        my $tclass = $topic.params.classify({.named});
+        my @spos := $sclass<False> // ();
+        my @tpos := $tclass<False> // ();
 
-	while @spos {
-	    my $s;
-	    my $t;
-	    last unless $t=@tpos.shift;
-	    $s=@spos.shift;
-	    if $s.slurpy or $s.capture {
-		@spos=();
-		@tpos=();
-		last;
-	    }
-	    if $t.slurpy or $t.capture {
-		return False unless @spos.grep({.slurpy or .capture});
-		@spos=();
-		@tpos=();
-		last;
-	    }
-	    if not $s.optional {
-		return False if $t.optional
-	    }
-	    return False unless $t ~~ $s;
-	}
-	return False if @tpos;
-	if @spos {
-	    return False unless @spos[0].optional or @spos[0].slurpy or @spos[0].capture;
-	}
+        while @spos {
+            my $s;
+            my $t;
+            last unless $t=@tpos.shift;
+            $s=@spos.shift;
+            if $s.slurpy or $s.capture {
+                @spos=();
+                @tpos=();
+                last;
+            }
+            if $t.slurpy or $t.capture {
+                return False unless any(@spos) ~~ {.slurpy or .capture};
+                @spos=();
+                @tpos=();
+                last;
+            }
+            if not $s.optional {
+                return False if $t.optional
+            }
+            return False unless $t ~~ $s;
+        }
+        return False if @tpos;
+        if @spos {
+            return False unless @spos[0].optional or @spos[0].slurpy or @spos[0].capture;
+        }
 
-	for ($sclass<True> // ()).grep({!.optional and !.slurpy}) -> $this {
-	    my $other;
-	    return False unless $other=($tclass<True> // ()).grep(
-		{!.optional and $_ ~~ $this });
-	    return False unless +$other == 1;
-	}
+        for ($sclass<True> // ()).grep({!.optional and !.slurpy}) -> $this {
+            my $other;
+            return False unless $other=($tclass<True> // ()).grep(
+                {!.optional and $_ ~~ $this });
+            return False unless +$other == 1;
+        }
 
-	my $here=$sclass<True>.SetHash;
-	my $hasslurpy=($sclass<True> // ()).grep({.slurpy}).Bool;
-	for @($tclass<True> // ()) -> $other {
-	    my $this;
-	    
-	    return $hasslurpy if $other.slurpy;
-	    if $this=$here.keys.grep( -> $t { $other ~~ $t }) {
-		$here{$this[0]} :delete;
+        my $here=$sclass<True>.SetHash;
+        my $hasslurpy=($sclass<True> // ()).grep({.slurpy}).Bool;
+        for @($tclass<True> // ()) -> $other {
+            my $this;
+
+	    if $other.slurpy {
+	        return False if any($here.keys) ~~ { .type !=:= Mu };
+		return $hasslurpy;
 	    }
-	    else {
-		return False unless $hasslurpy;
-	    }
-	}
+            if $this=$here.keys.grep( -> $t { $other ~~ $t }) {
+                $here{$this[0]} :delete;
+            }
+            else {
+                return False unless $hasslurpy;
+            }
+        }
         return True;
     }
 
@@ -77,7 +80,7 @@ my class Signature { # declared in BOOTSTRAP
         self.count if nqp::isnull($!arity) || !$!arity.defined;
         $!arity;
     }
- 
+
     method count() {
         if nqp::isnull($!count) || !$!count.defined {
             # calculate the count and arity -- we keep them
@@ -88,8 +91,8 @@ my class Signature { # declared in BOOTSTRAP
             my $param;
             while $iter {
                 $param := nqp::shift($iter);
-                if $param.capture || $param.slurpy && !$param.named { 
-                    $count = Inf; 
+                if $param.capture || $param.slurpy && !$param.named {
+                    $count = Inf;
                 }
                 elsif $param.positional {
                     $count++;
@@ -101,16 +104,16 @@ my class Signature { # declared in BOOTSTRAP
         }
         $!count
     }
-              
+
     method params() {
         nqp::p6list(nqp::clone($!params), List, Mu);
     }
-    
+
     # XXX TODO: Parameter separators.
     multi method perl(Signature:D:) {
         # Opening.
         my $perl = ':(';
-        
+
         # Parameters.
         my $params = self.params();
         my $sep = '';
@@ -124,11 +127,11 @@ my class Signature { # declared in BOOTSTRAP
             $i = $i + 1;
         }
         if $!returns !=:= Mu {
-	    $perl ~= ' --> ' ~ $!returns.perl
-	}
+            $perl ~= ' --> ' ~ $!returns.perl
+        }
         # Closer.
         $perl ~ ')'
     }
-    
+
     method returns() { $!returns }
 }

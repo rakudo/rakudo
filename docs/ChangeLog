@@ -8,6 +8,10 @@ New in 2014.01
 + No longer need to separate adverbs with comma in argument lists
 + div on parrot will now always round towards -Inf
 + Added support for MoarVM; passes >98% of the spectests that Rakudo JVM does
++ Fixed gather/take stack overflow bug in JVM backend
++ Fixed closure in regex bug on JVM
++ Fixed some line number reporting bugs on JVM
++ Optimized Enum($value) coercion
 
 New in 2013.12
 

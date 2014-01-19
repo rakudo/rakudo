@@ -154,7 +154,7 @@ S03-operators/bag.t
 S03-operators/basic-types.t
 S03-operators/bit.t
 S03-operators/boolean-bitwise.t
-S04-operators/brainos.t
+S03-operators/brainos.t
 S03-operators/custom.t
 S03-operators/buf.t
 S03-operators/chained-declarators.t

@@ -53,7 +53,6 @@ my class IO::Async::File {
             die "Asynchronous binary file writing NYI"
         }
         else {
-            say("going to spurt $data into a file");
             my $p = Promise.new;
             nqp::spurtasync($!PIO, Str, $data,
                 -> { $p.keep(1); self.close(); },

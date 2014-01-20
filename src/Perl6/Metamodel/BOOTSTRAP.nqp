@@ -872,7 +872,7 @@ my class Binder {
     my int $TRIAL_BIND_NOT_SURE :=  0;   # Plausible, but need to check at runtime.
     my int $TRIAL_BIND_OK       :=  1;   # Bind will always work out.
     my int $TRIAL_BIND_NO_WAY   := -1;   # Bind could never work out.
-    method trial_bind($sig, $args, $flags) {
+    method trial_bind($sig, $args, $sigflags) {
         my @params         := nqp::getattr($sig, Signature, '$!params');
         my int $num_params := nqp::elems(@params);
 
@@ -905,10 +905,10 @@ my class Binder {
             unless nqp::isnull(nqp::getattr($param, Parameter, '$!named_names')) {
                 return $TRIAL_BIND_NOT_SURE;
             }
-            if nqp::isnull(nqp::getattr($param, Parameter, '$!post_constraints')) {
+            unless nqp::isnull(nqp::getattr($param, Parameter, '$!post_constraints')) {
                 return $TRIAL_BIND_NOT_SURE;
             }
-            if nqp::isnull(nqp::getattr($param, Parameter, '$!type_captures')) {
+            unless nqp::isnull(nqp::getattr($param, Parameter, '$!type_captures')) {
                 return $TRIAL_BIND_NOT_SURE;
             }
 
@@ -920,8 +920,8 @@ my class Binder {
                 }
             }
             else {
-                # Yes, need to consider type.
-                my int $got_prim := $flags[$cur_pos_arg];
+                # Yes, need to consider type
+                my int $got_prim := $sigflags[$cur_pos_arg];
                 if $flags +& $SIG_ELEM_NATIVE_VALUE {
                     if $got_prim == 0 {
                         # We got an object; if we aren't sure we can unbox, we can't
@@ -959,7 +959,7 @@ my class Binder {
                     my $nom_type := nqp::getattr($param, Parameter, '$!nominal_type');
                     unless $nom_type =:= Mu || nqp::istype($arg, $nom_type) {
                         # If it failed because we got a junction, may auto-thread;
-                        # hand back "not sure" for now.
+                        # hand back 'not sure' for now.
                         if $arg.WHAT =:= Junction {
                             return $TRIAL_BIND_NOT_SURE;
                         }
@@ -973,7 +973,6 @@ my class Binder {
                             ?? $TRIAL_BIND_NOT_SURE
                             !! $TRIAL_BIND_NO_WAY;
                     }
-                    return $TRIAL_BIND_NOT_SURE;
                 }
             }
 

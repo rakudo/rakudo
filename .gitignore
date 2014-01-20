@@ -53,6 +53,7 @@ dynext/*.bundle
 dynext/*.so
 dynext/*.dll
 dynext/*.pdb
+dynext/*.dylib
 perl6_group.?
 perl6_group.obj
 libparrot.dll

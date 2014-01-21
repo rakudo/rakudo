@@ -5797,14 +5797,14 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     %info<node>.CURSOR.panic("Capture parameter must have a type accepting a Capture");
                 }
                 $var.slurpy(1);
+                my $hash_name := $name ~ '_hash';
+                @result.push(QAST::Var.new(
+                    :name($hash_name), :scope('local'), :decl('param'),
+                    :slurpy(1), :named(1)
+                ));
                 if nqp::existskey(%info, 'variable_name') {
-                    # Need to get hash part also, and build a capture object.
-                    my $Capture   := QAST::WVal.new( :value($*W.find_symbol(['Capture'])) );
-                    my $hash_name := $name ~ '_hash';
-                    @result.push(QAST::Var.new(
-                        :name($hash_name), :scope('local'), :decl('param'),
-                        :slurpy(1), :named(1)
-                    ));
+                    # Build a capture object.
+                    my $Capture := QAST::WVal.new( :value($*W.find_symbol(['Capture'])) );
                     $var.push(QAST::Op.new(
                         :op('bind'),
                         QAST::Var.new( :name($name), :scope('local') ),

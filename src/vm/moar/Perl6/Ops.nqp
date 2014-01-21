@@ -586,7 +586,7 @@ $ops.add_hll_op('perl6', 'p6typecheckrv', -> $qastcomp, $op {
                 if nqp::isnull(%ex) || !nqp::existskey(%ex, 'X::TypeCheck::Return') {
                     nqp::die("Type check failed for return value; expected '" ~
                         $wanted.HOW.name($wanted) ~ "' but got '" ~
-                        $got.HOW.name($got)) ~ "'";
+                        $got.HOW.name($got) ~ "'");
                 }
                 else {
                     nqp::atkey(%ex, 'X::TypeCheck::Return')($wanted, $got)

@@ -226,9 +226,15 @@ $ops.add_hll_op('perl6', 'p6bindassert', -> $qastcomp, $op {
     
     # Error generation.
     proto bind_error($got, $wanted) {
-        nqp::die('Type check failed in bind; expected ' ~
-            $wanted.HOW.name($wanted) ~ ' but got ' ~
-            $got.HOW.name($got));
+        my %ex := nqp::gethllsym('perl6', 'P6EX');
+        if nqp::isnull(%ex) || !nqp::existskey(%ex, 'X::TypeCheck::Binding') {
+            nqp::die("Type check failed in binding; expected '" ~
+                $wanted.HOW.name($wanted) ~ "' but got '" ~
+                $got.HOW.name($got) ~ "'");
+        }
+        else {
+            nqp::atkey(%ex, 'X::TypeCheck::Binding')($wanted, $got)
+        }
     }
     my $err_rep := $qastcomp.as_mast(QAST::WVal.new( :value(nqp::getcodeobj(&bind_error)) ));
     push_ilist(@ops, $err_rep);
@@ -576,9 +582,15 @@ $ops.add_hll_op('perl6', 'p6typecheckrv', -> $qastcomp, $op {
 
             # Error generation.
             proto return_error($got, $wanted) {
-                nqp::die("Type check failed for return value; expected '" ~
-                    $wanted.HOW.name($wanted) ~ "' but got '" ~
-                    $got.HOW.name($got)) ~ "'";
+                my %ex := nqp::gethllsym('perl6', 'P6EX');
+                if nqp::isnull(%ex) || !nqp::existskey(%ex, 'X::TypeCheck::Return') {
+                    nqp::die("Type check failed for return value; expected '" ~
+                        $wanted.HOW.name($wanted) ~ "' but got '" ~
+                        $got.HOW.name($got)) ~ "'";
+                }
+                else {
+                    nqp::atkey(%ex, 'X::TypeCheck::Return')($wanted, $got)
+                }
             }
             my $err_rep := $qastcomp.as_mast(QAST::WVal.new( :value(nqp::getcodeobj(&return_error)) ));
             push_ilist(@ops, $err_rep);

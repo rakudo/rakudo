@@ -134,7 +134,7 @@ my class Parameter { # declared in BOOTSTRAP
 
     method !flags() { $!flags }
 
-    method ACCEPTS(Parameter $other) {
+    multi method ACCEPTS(Parameter:D: Parameter:D $other) {
 	return False unless $other.type ~~ $.type;
 	return False unless 
 	    $!flags +& $SIG_ELEM_DEFINED_ONLY <= $other!flags +& $SIG_ELEM_DEFINED_ONLY

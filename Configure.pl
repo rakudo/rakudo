@@ -87,7 +87,6 @@ MAIN: {
         if (exists $options{'gen-moar'}) {
             $backends{moar} = 1;
             $default_backend ||= 'moar';
-            $options{'gen-nqp'} ||= '';
         }
         if (exists $options{'gen-parrot'}) {
             $backends{parrot} = 1;
@@ -134,6 +133,8 @@ MAIN: {
 
     # determine the version of NQP we want
     my ($nqp_want) = split(' ', slurp('tools/build/NQP_REVISION'));
+
+    $options{'gen-nqp'} ||= '' if exists $options{'gen-parrot'} || exists $options{'gen-moar'};
 
     my %binaries;
     my %impls = gen_nqp($nqp_want, prefix => $prefix, backends => join(',', sort keys %backends), %options);

@@ -763,7 +763,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 if ~$ml<sym> eq 'given' {
                     $past := QAST::Op.new(
                         :op('call'),
-                        make_topic_block_ref($past),
+                        block_closure(make_topic_block_ref($past)),
                         $cond
                     );
                 }

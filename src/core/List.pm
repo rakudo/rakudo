@@ -554,7 +554,7 @@ my class List does Positional { # declared in BOOTSTRAP
         }
     }
 
-    proto method combinations($) {*}
+    proto method combinations($?) {*}                                                  
     multi method combinations( Int $of ) {
         [self[@$_]] for combinations self.elems, $of
     }

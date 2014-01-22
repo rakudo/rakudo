@@ -1176,20 +1176,6 @@ my class X::TypeCheck::Assignment is X::TypeCheck {
             !! "Type check failed in assignment; expected '{$.expected.^name}' but got '{$.got.^name}'";
     }
 }
-my class X::TypeCheck::Argument is X::TypeCheck {
-    has $.protoguilt;
-    has @.arguments;
-    has $.objname;
-    has $.signature;
-    method message { 
-            ($.protoguilt ?? "Calling proto of '" !! "Calling '") ~
-            $.objname ~ "' " ~
-            (+@.arguments == 0
-              ?? "requires arguments\n"
-              !! "will never work with argument types (" ~ join(', ', @.arguments) ~ ")\n") 
-            ~ $.signature 
-    }
-}
 
 my class X::TypeCheck::Splice is X::TypeCheck does X::Comp {
     has $.action;

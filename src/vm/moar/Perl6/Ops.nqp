@@ -185,26 +185,6 @@ $ops.add_hll_op('perl6', 'p6definite', -> $qastcomp, $op {
     $*REGALLOC.release_register($tmp_reg, $MVM_reg_int64);
     MAST::InstructionList.new(@ops, $value_res.result_reg, $MVM_reg_obj)
 });
-$ops.add_hll_op('perl6', 'p6decontrv', -> $qastcomp, $op {
-    my $is_rw;
-    if nqp::istype($op[0], QAST::WVal) {
-        $is_rw := nqp::istrue($op[0].value.rw);
-    }
-    else {
-        nqp::die('p6decontrv expects a QAST::WVal as its first child');
-    }
-    if $is_rw {
-        $qastcomp.as_mast($op[1])
-    }
-    else {
-        my @ops;
-        my $value_res := $qastcomp.as_mast($op[1], :want($MVM_reg_obj));
-        push_ilist(@ops, $value_res);
-        nqp::push(@ops, MAST::ExtOp.new( :op('p6decontrv'), :cu($*MAST_COMPUNIT),
-            $value_res.result_reg, $value_res.result_reg ));
-        MAST::InstructionList.new(@ops, $value_res.result_reg, $MVM_reg_obj)
-    }
-});
 $ops.add_hll_moarop_mapping('perl6', 'p6capturelex', 'p6capturelex');
 $ops.add_hll_op('perl6', 'p6bindassert', -> $qastcomp, $op {
     # Compile the bind value and the type.
@@ -562,7 +542,7 @@ $ops.add_hll_op('nqp', 'p6setbinder', -> $qastcomp, $op {
 $ops.add_hll_op('perl6', 'p6typecheckrv', -> $qastcomp, $op {
     if nqp::istype($op[1], QAST::WVal) {
         my $type := nqp::getcodeobj(&get_binder)().get_return_type($op[1].value);
-        if nqp::isnull($type) || nqp::objprimspec($type) {
+        if nqp::isnull($type) || nqp::objprimspec(nqp::decont($type)) {
             $qastcomp.as_mast($op[0])
         }
         else {
@@ -607,6 +587,34 @@ $ops.add_hll_op('perl6', 'p6typecheckrv', -> $qastcomp, $op {
     }
     else {
         nqp::die('p6dtypecheckrv expects a QAST::WVal as its second child');
+    }
+});
+$ops.add_hll_op('perl6', 'p6decontrv', -> $qastcomp, $op {
+    my $is_rw;
+    if nqp::istype($op[0], QAST::WVal) {
+        $is_rw := nqp::istrue($op[0].value.rw);
+    }
+    else {
+        nqp::die('p6decontrv expects a QAST::WVal as its first child');
+    }
+    if $is_rw {
+        $qastcomp.as_mast($op[1])
+    }
+    else {
+        my $type := nqp::getcodeobj(&get_binder)().get_return_type($op[0].value);
+        if !nqp::isnull($type) && nqp::objprimspec(nqp::decont($type)) -> int $prim {
+            if    $prim == 1 { $qastcomp.as_mast($op[1], :want($MVM_reg_int64)) }
+            elsif $prim == 2 { $qastcomp.as_mast($op[1], :want($MVM_reg_num64)) }
+            else             { $qastcomp.as_mast($op[1], :want($MVM_reg_str)) }
+        }
+        else {
+            my @ops;
+            my $value_res := $qastcomp.as_mast($op[1], :want($MVM_reg_obj));
+            push_ilist(@ops, $value_res);
+            nqp::push(@ops, MAST::ExtOp.new( :op('p6decontrv'), :cu($*MAST_COMPUNIT),
+                $value_res.result_reg, $value_res.result_reg ));
+            MAST::InstructionList.new(@ops, $value_res.result_reg, $MVM_reg_obj)
+        }
     }
 });
 $ops.add_hll_op('perl6', 'p6setautothreader', :inlinable, -> $qastcomp, $op {

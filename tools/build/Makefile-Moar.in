@@ -335,5 +335,6 @@ m-runner-default-install: m-install
 ##  cleaning
 m-clean:
 	$(RM_F) $(M_CLEANUPS)
+	$(RM_F) non-existent-copy-mtgt non-existent-copy-stgt
 
 m-testclean:

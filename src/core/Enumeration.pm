@@ -35,7 +35,7 @@ my role Enumeration {
     }
 
     method postcircumfix:<( )>(|) {
-        my $x := nqp::atpos(nqp::p6argvmarray(), 1);
+        my $x := nqp::atpos(nqp::p6argvmarray(), 1).at_pos(0);
         nqp::istype($x, ::?CLASS)
             ?? $x
             !! self.HOW.enum_from_value(self, $x)

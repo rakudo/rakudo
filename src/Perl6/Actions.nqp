@@ -6948,7 +6948,13 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions does STDActions {
                 $/.CURSOR.panic("Can only alias to a short name (without '::')");
             }
             $qast := $<assertion>.ast;
-            self.subrule_alias($qast, $name);
+            if $qast.rxtype eq 'subrule' {
+                self.subrule_alias($qast, $name);
+            }
+            else {
+                $qast := QAST::Regex.new( $qast, :name($name), 
+                                          :rxtype<subcapture>, :node($/) );
+            }
         }
         elsif !@parts && $name eq 'sym' {
             my str $fullrxname := %*RX<name>;

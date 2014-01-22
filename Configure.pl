@@ -244,7 +244,7 @@ MAIN: {
         # Add moar library to link command
         # TODO: Get this from Moar somehow
         $config{'moarimplib'} = $^O eq 'MSWin32' ? "$prefix/bin/moar.dll.lib"
-                              : $^O eq 'darwin'  ? '-lmoar'
+                              : $^O eq 'darwin'  ? "$prefix/lib/libmoar.dylib"
                               : '';
 
         fill_template_file('tools/build/Makefile-Moar.in', $MAKEFILE, %config, %nqp_config);

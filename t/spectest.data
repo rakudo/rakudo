@@ -30,6 +30,7 @@ S02-literals/char-by-name.t # icu
 S02-literals/char-by-number.t
 S02-literals/fmt-interpolation.t
 S02-literals/hash-interpolation.t
+S02-literals/heredocs.t
 S02-literals/hex_chars.t
 S02-literals/listquote.t
 S02-literals/listquote-whitespace.t
@@ -165,6 +166,7 @@ S03-operators/context-forcers.t
 S03-operators/context.t
 S03-operators/equality.t
 S03-operators/eqv.t
+S03-operators/fiddly.t
 S03-operators/flip-flop.t
 S03-operators/gcd.t
 S03-operators/div.t
@@ -179,6 +181,7 @@ S03-operators/misc.t
 S03-operators/names.t
 S03-operators/nesting.t
 S03-operators/not.t
+S03-operators/numeric-shift.t
 S03-operators/overflow.t
 S03-operators/precedence.t
 S03-operators/range-basic.t
@@ -237,6 +240,7 @@ S04-declarations/state.t
 S04-declarations/will.t
 S04-exception-handlers/catch.t
 S04-exceptions/fail.t
+S04-exceptions/pending.t
 S04-phasers/ascending-order.t
 S04-phasers/begin.t
 S04-phasers/check.t
@@ -687,6 +691,7 @@ S32-num/rat.t
 S32-num/real-bridge.t
 S32-num/roots.t
 S32-num/rounders.t
+S32-num/rshift_pos_amount.t
 S32-num/sign.t
 S32-num/sqrt.t
 S32-num/stringify.t

@@ -59,8 +59,8 @@ my class Backtrace is List {
                 $code := nqp::getcodeobj($sub);
                 $code := Any unless nqp::istype($code, Mu);
             };
-            my $line     = nqp::p6box_i($bt[$_]<annotations><line>);
-            my $file     = nqp::p6box_s($bt[$_]<annotations><file>);
+            my $line     = $bt[$_]<annotations><line>.Int;
+            my $file     = $bt[$_]<annotations><file>;
             next unless $line && $file;
             # now *that's* an evil hack
             next if $file eq 'src/gen/BOOTSTRAP.nqp' ||

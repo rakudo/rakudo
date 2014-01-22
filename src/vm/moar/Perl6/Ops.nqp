@@ -477,6 +477,30 @@ sub boxer($kind, $op) {
 $ops.add_hll_box('perl6', $MVM_reg_int64, boxer($MVM_reg_int64, 'p6box_i'));
 $ops.add_hll_box('perl6', $MVM_reg_num64, boxer($MVM_reg_num64, 'p6box_n'));
 $ops.add_hll_box('perl6', $MVM_reg_str, boxer($MVM_reg_str, 'p6box_s'));
+QAST::MASTOperations.add_hll_unbox('perl6', $MVM_reg_int64, -> $qastcomp, $reg {
+    my $il := nqp::list();
+    my $res_reg := $*REGALLOC.fresh_register($MVM_reg_int64);
+    nqp::push($il, MAST::Op.new( :op('decont'), $reg, $reg ));
+    nqp::push($il, MAST::Op.new( :op('unbox_i'), $res_reg, $reg ));
+    $*REGALLOC.release_register($reg, $MVM_reg_obj);
+    MAST::InstructionList.new($il, $res_reg, $MVM_reg_int64)
+});
+QAST::MASTOperations.add_hll_unbox('perl6', $MVM_reg_num64, -> $qastcomp, $reg {
+    my $il := nqp::list();
+    my $res_reg := $*REGALLOC.fresh_register($MVM_reg_num64);
+    nqp::push($il, MAST::Op.new( :op('decont'), $reg, $reg ));
+    nqp::push($il, MAST::Op.new( :op('unbox_n'), $res_reg, $reg ));
+    $*REGALLOC.release_register($reg, $MVM_reg_obj);
+    MAST::InstructionList.new($il, $res_reg, $MVM_reg_num64)
+});
+QAST::MASTOperations.add_hll_unbox('perl6', $MVM_reg_str, -> $qastcomp, $reg {
+    my $il := nqp::list();
+    my $res_reg := $*REGALLOC.fresh_register($MVM_reg_str);
+    nqp::push($il, MAST::Op.new( :op('decont'), $reg, $reg ));
+    nqp::push($il, MAST::Op.new( :op('unbox_s'), $res_reg, $reg ));
+    $*REGALLOC.release_register($reg, $MVM_reg_obj);
+    MAST::InstructionList.new($il, $res_reg, $MVM_reg_str)
+});
 
 # Signature binding related bits.
 our $Binder;

@@ -12,6 +12,7 @@ New in 2014.01
 + Fixed closure in regex bug on JVM
 + Fixed some line number reporting bugs on JVM
 + Optimized Enum($value) coercion
++ Regexes: Aliased assertions now properly create sub-captures
 
 New in 2013.12
 

@@ -6508,6 +6508,11 @@ class Perl6::Actions is HLL::Actions does STDActions {
                         }
                         nqp::push(@old_args, $new);
                     } else {
+                        # Have to move the nested thunk inside this one, to get the
+                        # correct lexical scoping.
+                        my $old_ast := $old<past_block>;
+                        remove_block($*W.cur_lexpad(), $old_ast);
+                        $block[0].push($old_ast);
                         $new := QAST::Op.new( :op<call>, :node($/), $old );
                         my $acount := 0;
                         while $acount < $old.arity {
@@ -6556,6 +6561,20 @@ class Perl6::Actions is HLL::Actions does STDActions {
             }
         }
         $past
+    }
+    sub remove_block($from, $block) {
+        # Remove the QAST::Block $block from $from[0]; die if not found.
+        my @decls := $from[0].list;
+        my int $i := 0;
+        my int $n := nqp::elems(@decls);
+        while $i < $n {
+            if @decls[$i] =:= $block {
+                @decls[$i] := QAST::Op.new( :op('null') );
+                return 1;
+            }
+            $i++;
+        }
+        nqp::die('Internal error: failed to remove block');
     }
 
     sub wrap_return_type_check($wrappee, $code_obj) {

@@ -13,6 +13,9 @@ New in 2014.01
 + Fixed some line number reporting bugs on JVM
 + Optimized Enum($value) coercion
 + Regexes: Aliased assertions now properly create sub-captures
++ Regexes: Improved detection/reporting of null patterns
++ Implemented IO::Async::File.spurt (JVM only)
++ Implemented Setty.kv and Baggy.kv
 
 New in 2013.12
 

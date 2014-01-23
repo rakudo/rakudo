@@ -582,10 +582,9 @@ class Perl6::Optimizer {
                     }
                 }
                 else {
-                    # Similarly to the case for X::Undeclared above, 
-                    # I have trouble finding a test-case here.
                     self.add_exception(['X', 'Method', 'NotFound'], $op, 
-                        :private(nqp::p6bool(1)), :typename($op.name), :$name);
+                        :private(nqp::p6bool(1)), :method($name),
+                        :typename($pkg.HOW.name($pkg)));
                 }
             }
         }

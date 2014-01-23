@@ -60,6 +60,8 @@ MAIN: {
     }
     my %backends;
     if (defined $options{backends}) {
+        $options{backends} = join ",", keys %known_backends
+            if uc($options{backends}) eq 'ALL';
         for my $b (split /,\s*/, $options{backends}) {
             $b = lc $b;
             unless ($known_backends{$b}) {

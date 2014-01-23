@@ -555,8 +555,8 @@ class Perl6::Optimizer {
                 # time error. Check that it's not just compile-time unknown,
                 # however (shows up in e.g. sub foo(&x) { x() }).
                 unless self.is_lexical_declared($op.name) {
-                    # I have trouble coming up with a test-case that reaches here.
-                    # Additionally the suggestions are missing.
+                    # Shouldn't be able to hit this due to checks done in the parse
+                    # phase, but this will catch anything that sneaks past it.
                     self.add_exception(['X', 'Undeclared'], $op, :symbol($op.name));
                 }
             }

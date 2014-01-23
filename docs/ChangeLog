@@ -16,6 +16,8 @@ New in 2014.01
 + Regexes: Improved detection/reporting of null patterns
 + Implemented IO::Async::File.spurt (JVM only)
 + Implemented Setty.kv and Baggy.kv
++ Use a global ByteClassLoader rather than one per class. (JVM only)
++ Implement more parts of NativeCall for the JVM
 
 New in 2013.12
 

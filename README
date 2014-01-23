@@ -2,7 +2,7 @@ Rakudo Perl 6
     This is Rakudo Perl, a Perl 6 compiler for the Parrot virtual machine,
     the JVM and MoarVM.
 
-    Rakudo Perl is Copyright (C) 2008-2013, The Perl Foundation. Rakudo Perl
+    Rakudo Perl is Copyright (C) 2008-2014, The Perl Foundation. Rakudo Perl
     is distributed under the terms of the Artistic License 2.0. For more
     details, see the full text of the license in the file LICENSE.
 

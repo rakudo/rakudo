@@ -62,10 +62,10 @@ my class Signature { # declared in BOOTSTRAP
         for @($tclass<True> // ()) -> $other {
             my $this;
 
-	    if $other.slurpy {
-	        return False if any($here.keys) ~~ { .type !=:= Mu };
-		return $hasslurpy;
-	    }
+            if $other.slurpy {
+                return False if any($here.keys) ~~ { .type !=:= Mu };
+                return $hasslurpy;
+            }
             if $this=$here.keys.grep( -> $t { $other ~~ $t }) {
                 $here{$this[0]} :delete;
             }

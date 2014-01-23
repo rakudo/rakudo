@@ -135,89 +135,89 @@ my class Parameter { # declared in BOOTSTRAP
     method !flags() { $!flags }
 
     multi method ACCEPTS(Parameter:D: Parameter:D $other) {
-	return False unless $other.type ~~ $.type;
-	return False unless 
-	    $!flags +& $SIG_ELEM_DEFINED_ONLY <= $other!flags +& $SIG_ELEM_DEFINED_ONLY
-	    and $!flags +& $SIG_ELEM_UNDEFINED_ONLY <= 
-	        $other!flags +& $SIG_ELEM_UNDEFINED_ONLY;
-	if $.sub_signature {
-	    return False unless $other.sub_signature ~~ $.sub_signature;
-	}
-	if ($.named) {
-	    return False unless $other.named;
-	    return False unless Set($other.named_names) (<=) Set($.named_names);
-	}
-	return True;
+        return False unless $other.type ~~ $.type;
+        return False unless 
+            $!flags +& $SIG_ELEM_DEFINED_ONLY <= $other!flags +& $SIG_ELEM_DEFINED_ONLY
+            and $!flags +& $SIG_ELEM_UNDEFINED_ONLY <= 
+                $other!flags +& $SIG_ELEM_UNDEFINED_ONLY;
+        if $.sub_signature {
+            return False unless $other.sub_signature ~~ $.sub_signature;
+        }
+        if $.named {
+            return False unless $other.named;
+            return False unless Set($other.named_names) (<=) Set($.named_names);
+        }
+        return True;
     }
     
     multi method perl(Parameter:D:) {
         my $perl = '';
-	my $rest = '';
+        my $rest = '';
         my $type = $!nominal_type.HOW.name($!nominal_type);
-	my $truemu='';
+        my $truemu='';
 
-	# XXX Need a CODE_SIGIL too?
-	if $!flags +& $SIG_ELEM_ARRAY_SIGIL or 
-	    $!flags +& $SIG_ELEM_HASH_SIGIL or 
-	    $type ~~ /^^ Callable >> / {
-		$type ~~ / .*? \[ <( .* )> \] $$/;
-		$perl = ~$/;
-		$truemu = 'Mu ' if $perl eq 'Mu'; # Positional !~~ Positional[Mu]
-	}
-	else {
-	    $perl = $type;
-	}
-	if $!flags +& $SIG_ELEM_DEFINED_ONLY {
-	    $perl ~= ':D';
-	} elsif $!flags +& $SIG_ELEM_UNDEFINED_ONLY {
-	    $perl ~= ':U';
-	}
-	$perl ~= " ::$_" for @($.type_captures);
-	my $name = $!variable_name || '';
-	if $!flags +& $SIG_ELEM_IS_CAPTURE {
-	    $name = '|' ~ $name;
-	} elsif $!flags +& $SIG_ELEM_IS_PARCEL {
-	    $name = '\\' ~ $name unless $name ~~ /^^ <[@$]>/;
-	} elsif !$name {
-	    if $!flags +& $SIG_ELEM_ARRAY_SIGIL {		
-		$name = '@';
-	    } elsif $!flags +& $SIG_ELEM_HASH_SIGIL {
-		$name = '%';
-	    } elsif $type ~~ /^^ Callable >> / {
-		$name = '&';
-	    } else {
-		$name = '$';
-	    }
-	}
-	my $default = self.default();
-	if self.slurpy {
-	    $name = '*' ~ $name;
-	} elsif self.named {
-	    my @names := self.named_names;
-	    $name = ':' ~ $_ ~ '(' ~ $name ~ ')'for @names;
-	    $name ~= '!' unless self.optional;
-	} elsif self.optional && !$default {
-	    $name ~= '?';
-	}
-	if $!flags +& $SIG_ELEM_IS_RW {
-	    $rest ~= ' is rw';
-	} elsif $!flags +& $SIG_ELEM_IS_COPY {
-	    $rest ~= ' is copy';
-	}
-	if $!flags +& $SIG_ELEM_IS_PARCEL and $name ~~ /^^ <[@$]>/ {
-	    $rest ~= ' is parcel';
-	}
-	$rest ~= ' where { ... }' if !nqp::isnull($!post_constraints);
-	$rest ~= ' = { ... }' if $default;
-	unless nqp::isnull($!sub_signature) {
-	    my $sig = $!sub_signature.perl();
-	    $sig ~~ s/^^ ':'//;
-	    $rest ~= ' ' ~ $sig;
-	}
-	if $name ne '$' or $rest {
-	    $perl ~= ($perl ?? ' ' !! '') ~ $name;
-	    $perl ~~ s/^^ \s* Mu \s+//;
-	}
+        # XXX Need a CODE_SIGIL too?
+        if $!flags +& $SIG_ELEM_ARRAY_SIGIL or 
+            $!flags +& $SIG_ELEM_HASH_SIGIL or 
+            $type ~~ /^^ Callable >> / {
+            $type ~~ / .*? \[ <( .* )> \] $$/;
+            $perl = ~$/;
+            $truemu = 'Mu ' if $perl eq 'Mu'; # Positional !~~ Positional[Mu]
+        }
+        else {
+            $perl = $type;
+        }
+        if $!flags +& $SIG_ELEM_DEFINED_ONLY {
+            $perl ~= ':D';
+        } elsif $!flags +& $SIG_ELEM_UNDEFINED_ONLY {
+            $perl ~= ':U';
+        }
+        $perl ~= " ::$_" for @($.type_captures);
+        my $name = $!variable_name || '';
+        if $!flags +& $SIG_ELEM_IS_CAPTURE {
+            $name = '|' ~ $name;
+        } elsif $!flags +& $SIG_ELEM_IS_PARCEL {
+            $name = '\\' ~ $name unless $name ~~ /^^ <[@$]>/;
+        } elsif !$name {
+            if $!flags +& $SIG_ELEM_ARRAY_SIGIL {        
+            $name = '@';
+            } elsif $!flags +& $SIG_ELEM_HASH_SIGIL {
+            $name = '%';
+            } elsif $type ~~ /^^ Callable >> / {
+            $name = '&';
+            } else {
+            $name = '$';
+            }
+        }
+        my $default = self.default();
+        if self.slurpy {
+            $name = '*' ~ $name;
+        } elsif self.named {
+            my @names := self.named_names;
+            $name = ':' ~ $_ ~ '(' ~ $name ~ ')'for @names;
+            $name ~= '!' unless self.optional;
+        } elsif self.optional && !$default {
+            $name ~= '?';
+        }
+        if $!flags +& $SIG_ELEM_IS_RW {
+            $rest ~= ' is rw';
+        } elsif $!flags +& $SIG_ELEM_IS_COPY {
+            $rest ~= ' is copy';
+        }
+        if $!flags +& $SIG_ELEM_IS_PARCEL and $name ~~ /^^ <[@$]>/ {
+            $rest ~= ' is parcel';
+        }
+        $rest ~= ' where { ... }' if !nqp::isnull($!post_constraints);
+        $rest ~= ' = { ... }' if $default;
+        unless nqp::isnull($!sub_signature) {
+            my $sig = $!sub_signature.perl();
+            $sig ~~ s/^^ ':'//;
+            $rest ~= ' ' ~ $sig;
+        }
+        if $name ne '$' or $rest {
+            $perl ~= ($perl ?? ' ' !! '') ~ $name;
+            $perl ~~ s/^^ \s* Mu \s+//;
+        }
         $truemu ~ $perl ~ $rest;
     }
 

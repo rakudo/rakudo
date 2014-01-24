@@ -66,6 +66,8 @@ my class Any { # declared in BOOTSTRAP
     method kv()     { self.list.kv }
     method pairs()  { self.list.pairs }
     method reduce(&with) { self.list.reduce(&with) }
+    method combinations(|c) { self.list.combinations(|c) }
+    method permutations(|c) { self.list.permutations(|c) }
 
     proto method classify(|) { * }
     multi method classify($test)   {

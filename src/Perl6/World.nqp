@@ -854,13 +854,42 @@ class Perl6::World is HLL::World {
         my $signature  := nqp::create($sig_type);
         my @parameters := %signature_info<parameters>;
         self.add_object($signature);
-        
+
         # Set parameters.
         nqp::bindattr($signature, $sig_type, '$!params', @parameters);
         if nqp::existskey(%signature_info, 'returns') {
             nqp::bindattr($signature, $sig_type, '$!returns', %signature_info<returns>);
         }
-        
+
+        # Compute arity and count.
+        my $p_type    := self.find_symbol(['Parameter']);
+        my int $arity := 0;
+        my int $count := 0;
+        my int $i     := 0;
+        my int $n     := nqp::elems(@parameters);
+        while $i < $n {
+            my $param := @parameters[$i];
+            my int $flags := nqp::getattr_i($param, $p_type, '$!flags');
+            if $flags +& ($SIG_ELEM_IS_CAPTURE +| $SIG_ELEM_SLURPY_POS +| $SIG_ELEM_SLURPY_LOL) {
+                $count := -1;
+            }
+            elsif !($flags +& $SIG_ELEM_SLURPY_NAMED) &&
+                    nqp::isnull(nqp::getattr($param, $p_type, '$!named_names')) {
+                $count++;
+                $arity++ unless $flags +& $SIG_ELEM_IS_OPTIONAL;
+            }
+            $i++;
+        }
+        nqp::bindattr($signature, $sig_type, '$!arity',
+            $*W.add_constant('Int', 'int', $arity).value);
+        if $count == -1 {
+            nqp::bindattr($signature, $sig_type, '$!count',
+                $*W.add_constant('Num', 'num', nqp::inf()).value);
+        } else {
+            nqp::bindattr($signature, $sig_type, '$!count',
+                $*W.add_constant('Int', 'int', $count).value);
+        }
+
         # Return created signature.
         $signature
     }

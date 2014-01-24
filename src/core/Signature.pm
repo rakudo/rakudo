@@ -2,8 +2,8 @@ my class Signature { # declared in BOOTSTRAP
     # class Signature is Any {
     #   has Mu $!params;          # VM's array of parameters
     #   has Mu $!returns;         # return type
-    #   has Mu $!arity;           # cached arity
-    #   has Mu $!count;           # cached count
+    #   has Mu $!arity;           # arity
+    #   has Mu $!count;           # count
     #   has Mu $!code;
 
     multi method ACCEPTS(Signature:D: Capture $topic) {
@@ -77,31 +77,10 @@ my class Signature { # declared in BOOTSTRAP
     }
 
     method arity() {
-        self.count if nqp::isnull($!arity) || !$!arity.defined;
-        $!arity;
+        $!arity
     }
 
     method count() {
-        if nqp::isnull($!count) || !$!count.defined {
-            # calculate the count and arity -- we keep them
-            # cached for when we're called the next time.
-            my $count = 0;
-            my $arity = 0;
-            my Mu $iter := nqp::iterator($!params);
-            my $param;
-            while $iter {
-                $param := nqp::shift($iter);
-                if $param.capture || $param.slurpy && !$param.named {
-                    $count = Inf;
-                }
-                elsif $param.positional {
-                    $count++;
-                    $arity++ unless $param.optional;
-                }
-            }
-            nqp::bindattr(self, Signature, '$!arity', $arity);
-            nqp::bindattr(self, Signature, '$!count', $count);
-        }
         $!count
     }
 

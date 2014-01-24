@@ -290,7 +290,7 @@ General Options:
     --help             Show this text
     --prefix=dir       Install files in dir; also look for executables there
     --backends=parrot,jvm,moar
-                       Which backend(s) to use
+                       Which backend(s) to use (or ALL for all of them)
     --gen-nqp[=branch]
                        Download and build a copy of NQP
         --gen-moar[=branch]

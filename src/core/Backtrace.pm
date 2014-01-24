@@ -59,7 +59,7 @@ my class Backtrace is List {
                 $code := nqp::getcodeobj($sub);
                 $code := Any unless nqp::istype($code, Mu);
             };
-            my $line     = $bt[$_]<annotations><line>.Int;
+            my $line     = $bt[$_]<annotations><line>;
             my $file     = $bt[$_]<annotations><file>;
             next unless $line && $file;
             # now *that's* an evil hack
@@ -78,7 +78,7 @@ my class Backtrace is List {
             my $subname  = nqp::p6box_s(nqp::getcodename($sub));
             $subname = '<anon>' if $subname.substr(0, 6) eq '_block';
             $new.push: Backtrace::Frame.new(
-                :$line,
+                :line($line.Int),
                 :$file,
                 :$subname,
                 :$code,

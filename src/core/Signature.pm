@@ -126,7 +126,7 @@ my class Signature { # declared in BOOTSTRAP
             $sep = ($i == 0 && $param.invocant) ?? ': ' !! ', ';
             $i = $i + 1;
         }
-        if $!returns !=:= Mu {
+        if !nqp::isnull($!returns) && $!returns !=:= Mu {
             $perl ~= ' --> ' ~ $!returns.perl
         }
         # Closer.

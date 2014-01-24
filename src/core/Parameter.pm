@@ -164,7 +164,7 @@ my class Parameter { # declared in BOOTSTRAP
             $perl = ~$/;
             $truemu = 'Mu ' if $perl eq 'Mu'; # Positional !~~ Positional[Mu]
         }
-        else {
+        elsif $type ne 'Any' {
             $perl = $type;
         }
         if $!flags +& $SIG_ELEM_DEFINED_ONLY {

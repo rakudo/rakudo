@@ -574,7 +574,7 @@ my class List does Positional { # declared in BOOTSTRAP
     }
 
     method permutations() {
-        gather take self[@$_] for permutations self.elems;
+        gather take [self[@$_]] for permutations self.elems;
     }
 }
 

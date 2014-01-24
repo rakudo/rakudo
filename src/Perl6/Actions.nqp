@@ -5760,9 +5760,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
         0
     }
-    my $SIG_ELEM_IS_RW     := 256;
-    my $SIG_ELEM_IS_COPY   := 512;
-    my $SIG_ELEM_IS_PARCEL := 1024;
+    my $SIG_ELEM_IS_RW       := 256;
+    my $SIG_ELEM_IS_COPY     := 512;
+    my $SIG_ELEM_IS_PARCEL   := 1024;
+    my $SIG_ELEM_IS_OPTIONAL := 2048;
     sub lower_signature($block, $sig, @params) {
         my @result;
         my $clear_topic_bind;
@@ -5928,7 +5929,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             }
 
             # If it's optional, do any default handling.
-            if %info<optional> {
+            if $flags +& $SIG_ELEM_IS_OPTIONAL {
                 if nqp::existskey(%info, 'default_value') {
                     my $wval := QAST::WVal.new( :value(%info<default_value>) );
                     if %info<default_is_literal> {

@@ -41,7 +41,7 @@ my role IO::Socket does IO {
 #?endif
 #?if !parrot
         if $!buffer.elems < $chars {
-            my $r := nqp::readfh($!PIO, nqp::decont(buf8.new), 512);
+            my $r := nqp::readfh($!PIO, nqp::decont(buf8.new), 65536);
             $!buffer ~= $r;
         }
         

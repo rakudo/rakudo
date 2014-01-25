@@ -127,7 +127,11 @@ MAIN: {
     my $launcher = substr($default_backend, 0, 1) . '-runner-default';
     print $MAKEFILE "all: ", join(' ', map("$_-all", @prefixes), $launcher), "\n";
     print $MAKEFILE "install: ", join(' ', map("$_-install", @prefixes), $launcher . '-install'), "\n";
-    for my $t (qw/clean test spectest coretest/) {
+
+    print $MAKEFILE "clean: ", join(' ', map "$_-clean", @prefixes), "\n";
+    print $MAKEFILE "\t\$(RM_F) perl6\$(EXE) perl6\$(BAT)\n\n";
+
+    for my $t (qw/test spectest coretest/) {
         print $MAKEFILE "$t: ", join(' ', map "$_-$t", @prefixes), "\n";
     }
 

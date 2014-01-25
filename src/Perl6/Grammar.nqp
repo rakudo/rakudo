@@ -2248,7 +2248,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         }
         <.newpad>
         [ '(' <multisig> ')' ]?
-        <trait>*
+        <trait>* :!s
         { $*IN_DECL := ''; }
         [
         || <onlystar>

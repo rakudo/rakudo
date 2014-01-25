@@ -16,6 +16,8 @@
 static MVMCallsite      no_arg_callsite = { NULL, 0, 0, 0 };
 static MVMCallsiteEntry one_arg_flags[] = { MVM_CALLSITE_ARG_OBJ };
 static MVMCallsite     one_arg_callsite = { one_arg_flags, 1, 1, 0 };
+static MVMCallsiteEntry one_str_flags[] = { MVM_CALLSITE_ARG_STR };
+static MVMCallsite     one_str_callsite = { one_str_flags, 1, 1, 0 };
 
 /* Dispatcher vivify_for callsite. */
 static MVMCallsiteEntry disp_flags[] = { MVM_CALLSITE_ARG_OBJ, MVM_CALLSITE_ARG_OBJ, 
@@ -47,6 +49,9 @@ static MVMObject *default_cont_desc = NULL;
 static MVMString *str_return     = NULL;
 static MVMString *str_dispatcher = NULL;
 static MVMString *str_vivify_for = NULL;
+static MVMString *str_perl6      = NULL;
+static MVMString *str_p6ex       = NULL;
+static MVMString *str_xnodisp    = NULL;
 
 /* Parcel, as laid out as a P6opaque. */
 typedef struct {
@@ -74,6 +79,12 @@ typedef struct {
 /* Expose Nil and Mu for containers. */
 MVMObject * get_nil() { return Nil; }
 MVMObject * get_mu() { return Mu; }
+
+/* Looks up an exception thrower. */
+static MVMObject * get_thrower(MVMThreadContext *tc, MVMString *type) {
+    MVMObject *ex_hash = MVM_hll_sym_get(tc, str_perl6, str_p6ex);
+    return ex_hash ? MVM_repr_at_key_o(tc, ex_hash, type) : NULL;
+}
 
 /* Initializes the Perl 6 extension ops. */
 static void p6init(MVMThreadContext *tc) {
@@ -131,6 +142,12 @@ static void p6settypes(MVMThreadContext *tc) {
     MVM_gc_root_add_permanent(tc, (MVMCollectable **)&str_dispatcher);
     str_vivify_for = MVM_string_ascii_decode_nt(tc, tc->instance->VMString, "vivify_for");
     MVM_gc_root_add_permanent(tc, (MVMCollectable **)&str_vivify_for);
+    str_perl6 = MVM_string_ascii_decode_nt(tc, tc->instance->VMString, "perl6");
+    MVM_gc_root_add_permanent(tc, (MVMCollectable **)&str_perl6);
+    str_p6ex = MVM_string_ascii_decode_nt(tc, tc->instance->VMString, "P6EX");
+    MVM_gc_root_add_permanent(tc, (MVMCollectable **)&str_p6ex);
+    str_xnodisp = MVM_string_ascii_decode_nt(tc, tc->instance->VMString, "X::NoDispatcher");
+    MVM_gc_root_add_permanent(tc, (MVMCollectable **)&str_xnodisp);
 }
 
 /* Boxing to Perl 6 types. */
@@ -585,9 +602,22 @@ static void p6finddispatcher(MVMThreadContext *tc) {
         ctx = ctx->caller;
     }
 
-    MVM_exception_throw_adhoc(tc,
-        "%s is not in the dynamic scope of a dispatcher",
-        MVM_string_utf8_encode_C_string(tc, usage));
+    {
+        MVMObject *thrower = get_thrower(tc, str_xnodisp);
+        if (thrower) {
+            thrower = MVM_frame_find_invokee(tc, thrower, NULL);
+            *(tc->interp_cur_op) += 4; /* Get right return address. */
+            MVM_args_setup_thunk(tc, NULL, MVM_RETURN_VOID, &one_str_callsite);
+            tc->cur_frame->args[0].s = usage;
+            STABLE(thrower)->invoke(tc, thrower, &one_str_callsite, tc->cur_frame->args);
+            *(tc->interp_cur_op) -= 4; /* Coutneract addition of ext-op size. */
+        }
+        else {
+            MVM_exception_throw_adhoc(tc,
+                "%s is not in the dynamic scope of a dispatcher",
+                MVM_string_utf8_encode_C_string(tc, usage));
+        }
+    }
 }
 
 static MVMuint8 s_p6argsfordispatcher[] = {

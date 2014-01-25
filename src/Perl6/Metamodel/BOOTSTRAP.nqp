@@ -2915,6 +2915,10 @@ nqp::sethllconfig('perl6', nqp::hash(
         else {
             nqp::die("Internal error: inconsistent bind result");
         }
+    },
+    'method_not_found_error', -> $obj, str $name {
+        my $type := $obj.HOW.name($obj);
+        nqp::die("Method '$name' not found for invocant of class '$type'");
     }
 #?endif
 ));

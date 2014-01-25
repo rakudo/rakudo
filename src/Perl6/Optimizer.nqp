@@ -569,7 +569,7 @@ class Perl6::Optimizer {
                 my str $name := $op[1][2].value; # get raw string name
                 my $pkg  := $op[2].returns;  # actions always sets this
                 my $meth := $pkg.HOW.find_private_method($pkg, $name);
-                if $meth {
+                if nqp::defined($meth) && $meth {
                     try {
                         $*W.get_ref($meth); # may fail, thus the try; verifies it's in SC
                         my $call := QAST::WVal.new( :value($meth) );

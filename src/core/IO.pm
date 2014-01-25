@@ -492,7 +492,11 @@ my class IO::Path is Cool does IO::FileTestable {
         my Mu $dirh := nqp::opendir(self.absolute.Str);
         my $next = 1;
         gather {
+#?endif
+#?if jvm
             take $_.path if $_ ~~ $test for ".", "..";
+#?endif
+#?if !parrot
             loop {
                 my Str $elem := nqp::nextfiledir($dirh);
                 if nqp::isnull_s($elem) || !$elem {
@@ -505,6 +509,7 @@ my class IO::Path is Cool does IO::FileTestable {
                     $elem := $elem.substr($*CWD.chars + 1) if self.is-relative;
 #?endif
 #?if moar
+                    next unless $elem ~~ $test;
                     $elem := $.SPEC.catfile($!path, $elem) if self.is-relative && self ne '.';
 #?endif
 #?if !parrot

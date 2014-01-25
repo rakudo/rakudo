@@ -18,7 +18,7 @@ RUNTIME_JAVAS = src/vm/jvm/runtime/org/perl6/rakudo/*.java
 
 RUNTIME_JAR = rakudo-runtime.jar
 
-RUNNER = @j_runner@
+J_RUNNER = @j_runner@
 
 # files we create
 PERL6_JAR     = perl6.jar
@@ -184,12 +184,12 @@ J_CLEANUPS = \
   perl6-eval-server \
   perl6-jdb-server \
   eval-client.pl \
-  $(RUNNER)
+  $(J_RUNNER)
 
 J_HARNESS_WITH_FUDGE = $(PERL) t/harness --fudge --keep-exit-code --jvm
 J_HARNESS = $(PERL) t/harness --jvm
 
-j-all: $(PERL6_JAR) $(SETTING_JAR) $(RUNNER) lib/Test.jar blib/lib.jar blib/Pod/To/Text.jar
+j-all: $(PERL6_JAR) $(SETTING_JAR) $(J_RUNNER) lib/Test.jar blib/lib.jar blib/Pod/To/Text.jar
 
 $(RUNTIME_JAR): $(RUNTIME_JAVAS)
 	$(PERL) -MExtUtils::Command -e mkpath bin
@@ -250,24 +250,24 @@ $(SETTING_JAR): $(PERL6_JAR) $(PERL6_B_JAR) $(J_CORE_SOURCES)
 	@echo "The following step can take a long time, please be patient."
 	$(J_RUN_PERL6) --setting=NULL --optimize=3 --target=jar --stagestats --output=$(SETTING_JAR) $(J_BUILD_DIR)/CORE.setting
 
-$(RUNNER):
+$(J_RUNNER):
 	$(PERL) tools/build/create-jvm-runner.pl dev . . $(NQP_PREFIX) $(NQP_JARS)
 
 j-runner-default: j-all
-	$(CP) $(RUNNER) perl6$(BAT)
+	$(CP) $(J_RUNNER) perl6$(BAT)
 	$(CHMOD) 755 perl6$(BAT)
 
 
 ##  testing targets
-lib/Test.jar: lib/Test.pm $(PERL6_JAR) $(SETTING_JAR) $(RUNNER)
-	.@slash@$(RUNNER) --target=jar --output=lib/Test.jar lib/Test.pm
+lib/Test.jar: lib/Test.pm $(PERL6_JAR) $(SETTING_JAR) $(J_RUNNER)
+	.@slash@$(J_RUNNER) --target=jar --output=lib/Test.jar lib/Test.pm
 
-blib/lib.jar: lib/lib.pm6 $(PERL6_JAR) $(SETTING_JAR) $(RUNNER)
-	.@slash@$(RUNNER) --target=jar --output=blib/lib.jar lib/lib.pm6
+blib/lib.jar: lib/lib.pm6 $(PERL6_JAR) $(SETTING_JAR) $(J_RUNNER)
+	.@slash@$(J_RUNNER) --target=jar --output=blib/lib.jar lib/lib.pm6
 
-blib/Pod/To/Text.jar: lib/Pod/To/Text.pm $(PERL6_JAR) $(SETTING_JAR) $(RUNNER)
+blib/Pod/To/Text.jar: lib/Pod/To/Text.pm $(PERL6_JAR) $(SETTING_JAR) $(J_RUNNER)
 	$(MKPATH) blib/Pod/To
-	.@slash@$(RUNNER) --target=jar --output=blib/Pod/To/Text.jar lib/Pod/To/Text.pm
+	.@slash@$(J_RUNNER) --target=jar --output=blib/Pod/To/Text.jar lib/Pod/To/Text.pm
 
 j-test    : j-coretest
 

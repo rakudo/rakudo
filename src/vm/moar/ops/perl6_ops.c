@@ -19,6 +19,11 @@ static MVMCallsite     one_arg_callsite = { one_arg_flags, 1, 1, 0 };
 static MVMCallsiteEntry one_str_flags[] = { MVM_CALLSITE_ARG_STR };
 static MVMCallsite     one_str_callsite = { one_str_flags, 1, 1, 0 };
 
+/* Assignment type check failed callsite. */
+static MVMCallsiteEntry atcf_flags[] = { MVM_CALLSITE_ARG_STR, MVM_CALLSITE_ARG_OBJ, 
+                                         MVM_CALLSITE_ARG_OBJ };
+static MVMCallsite     atcf_callsite = { atcf_flags, 3, 3, 0 };
+
 /* Dispatcher vivify_for callsite. */
 static MVMCallsiteEntry disp_flags[] = { MVM_CALLSITE_ARG_OBJ, MVM_CALLSITE_ARG_OBJ, 
                                          MVM_CALLSITE_ARG_OBJ, MVM_CALLSITE_ARG_OBJ };
@@ -52,6 +57,7 @@ static MVMString *str_vivify_for = NULL;
 static MVMString *str_perl6      = NULL;
 static MVMString *str_p6ex       = NULL;
 static MVMString *str_xnodisp    = NULL;
+static MVMString *str_xatcf      = NULL;
 
 /* Parcel, as laid out as a P6opaque. */
 typedef struct {
@@ -84,6 +90,24 @@ MVMObject * get_mu() { return Mu; }
 static MVMObject * get_thrower(MVMThreadContext *tc, MVMString *type) {
     MVMObject *ex_hash = MVM_hll_sym_get(tc, str_perl6, str_p6ex);
     return ex_hash ? MVM_repr_at_key_o(tc, ex_hash, type) : NULL;
+}
+
+/* Reports an assignment type check failure. */
+void Rakudo_assign_typecheck_failed(MVMThreadContext *tc, MVMObject *cont, MVMObject *obj) {
+    MVMObject *thrower = get_thrower(tc, str_xatcf);
+    if (thrower) {
+        Rakudo_Scalar *rs = (Rakudo_Scalar *)cont;
+        Rakudo_ContainerDescriptor *rcd = (Rakudo_ContainerDescriptor *)rs->descriptor;
+        thrower = MVM_frame_find_invokee(tc, thrower, NULL);
+        MVM_args_setup_thunk(tc, NULL, MVM_RETURN_VOID, &atcf_callsite);
+        tc->cur_frame->args[0].s = rcd->name;
+        tc->cur_frame->args[1].o = obj;
+        tc->cur_frame->args[2].o = rcd->of;
+        STABLE(thrower)->invoke(tc, thrower, &atcf_callsite, tc->cur_frame->args);
+    }
+    else {
+        MVM_exception_throw_adhoc(tc, "Type check failed in assignment");
+    }
 }
 
 /* Initializes the Perl 6 extension ops. */
@@ -148,6 +172,8 @@ static void p6settypes(MVMThreadContext *tc) {
     MVM_gc_root_add_permanent(tc, (MVMCollectable **)&str_p6ex);
     str_xnodisp = MVM_string_ascii_decode_nt(tc, tc->instance->VMString, "X::NoDispatcher");
     MVM_gc_root_add_permanent(tc, (MVMCollectable **)&str_xnodisp);
+    str_xatcf = MVM_string_ascii_decode_nt(tc, tc->instance->VMString, "X::TypeCheck::Assignment");
+    MVM_gc_root_add_permanent(tc, (MVMCollectable **)&str_xatcf);
 }
 
 /* Boxing to Perl 6 types. */

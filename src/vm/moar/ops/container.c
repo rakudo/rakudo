@@ -35,16 +35,12 @@ static void finish_store(MVMThreadContext *tc, MVMObject *cont, MVMObject *obj) 
     }
 }
 
-static void typecheck_failed(MVMThreadContext *tc, MVMObject *cont, MVMObject *obj) {
-    /* XXX TODO: Improve this error reporting by looking up typed thrower. */
-    MVM_exception_throw_adhoc(tc, "Type check failed in assignment");
-}
-
 typedef struct {
     MVMObject   *cont;
     MVMObject   *obj;
     MVMRegister  res;
 } type_check_data;
+void Rakudo_assign_typecheck_failed(MVMThreadContext *tc, MVMObject *cont, MVMObject *obj);
 static void type_check_ret(MVMThreadContext *tc, void *sr_data) {
     type_check_data *tcd = (type_check_data *)sr_data;
     MVMObject *cont = tcd->cont;
@@ -54,7 +50,7 @@ static void type_check_ret(MVMThreadContext *tc, void *sr_data) {
     if (res)
         finish_store(tc, cont, obj);
     else
-        typecheck_failed(tc, cont, obj);
+         Rakudo_assign_typecheck_failed(tc, cont, obj);
 }
 static void mark_sr_data(MVMThreadContext *tc, MVMFrame *frame, MVMGCWorklist *worklist) {
     type_check_data *tcd = (type_check_data *)frame->special_return_data;
@@ -87,8 +83,10 @@ static void rakudo_scalar_store(MVMThreadContext *tc, MVMObject *cont, MVMObject
         if (rcd->of != get_mu() && !MVM_6model_istype_cache_only(tc, obj, rcd->of)) {
             /* Failed. If the cache is definitive, we certainly have an error. */
             if ((mode & MVM_TYPE_CHECK_CACHE_THEN_METHOD) == 0 &&
-                (mode & MVM_TYPE_CHECK_NEEDS_ACCEPTS) == 0)
-                typecheck_failed(tc, cont, obj);
+                (mode & MVM_TYPE_CHECK_NEEDS_ACCEPTS) == 0) {
+                 Rakudo_assign_typecheck_failed(tc, cont, obj);
+                 return;
+             }
 
             /* If we get here, need to call .^type_check on the value we're
              * checking, unless it's an accepts check. */

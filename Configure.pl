@@ -35,6 +35,7 @@ MAIN: {
                 'backends=s', 'no-clean!',
                'gen-nqp:s',
                'gen-moar:s',
+               'git-protocol=s',
                'gen-parrot:s', 'parrot-option=s@',
                'parrot-make-option=s@',
                'make-install!', 'makefile-timing!',
@@ -306,6 +307,8 @@ General Options:
         --parrot-make-option='--option'
                        Options to pass to Parrot's make, for example:
                        --parrot-make-option='--jobs=4'
+        --git-protocol={ssh,https,git}
+                       Protocol used for cloning git repos
     --makefile-timing  Enable timing of individual makefile commands
 
 Configure.pl also reads options from 'config.default' in the current directory.

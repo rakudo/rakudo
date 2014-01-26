@@ -11,6 +11,7 @@ our @EXPORT_OK = qw(sorry slurp system_or_die
                     fill_template_file fill_template_text 
                     git_checkout
                     verify_install gen_moar
+                    github_url
                     gen_nqp gen_parrot);
 
 our $exe = $^O eq 'MSWin32' ? '.exe' : '';
@@ -28,14 +29,6 @@ our @required_parrot_files = qw(
 our @required_nqp_files = qw(
     @bindir@/nqp-p@exe@
 );
-
-our $nqp_git = 'https://github.com/perl6/nqp.git';
-our $par_git = 'https://github.com/parrot/parrot.git';
-our $moar_git= 'https://github.com/MoarVM/MoarVM.git';
-
-our $nqp_push = 'git@github.com:perl6/nqp.git';
-our $par_push = 'git@github.com:parrot/parrot.git';
-our $moar_push= 'git@github.com:MoarVM/MoarVM.git';
 
 sub sorry {
     my @msg = @_;
@@ -226,7 +219,7 @@ sub git_checkout {
         system_or_die('git', 'clone', $repo, $dir);
         chdir($dir);
         system('git', 'config', 'remote.origin.pushurl', $pushurl)
-            if defined $pushurl;
+            if defined $pushurl && $pushurl ne $repo;
     }
     else {
         chdir($dir);
@@ -276,6 +269,7 @@ sub gen_nqp {
     my $gen_parrot  = $options{'gen-parrot'};
     my $prefix      = $options{'prefix'} || cwd().'/install';
     my $startdir    = cwd();
+    my $git_protocol = $options{'git-protocol'} // 'https';
 
     my $PARROT_REVISION = 'nqp/tools/build/PARROT_REVISION';
 
@@ -323,7 +317,11 @@ sub gen_nqp {
     return %impls unless %need;
 
     if (defined $gen_nqp || defined $gen_parrot || defined $gen_moar) {
-        git_checkout($nqp_git, 'nqp', $gen_nqp || $nqp_want, $nqp_push);
+        git_checkout(
+            github_url($git_protocol, 'perl6', 'nqp'),
+            'nqp', $nqp_want,
+            github_url('ssh', 'perl6', 'nqp'),
+        );
     }
 
     if ($need{parrot} && defined $gen_parrot) {
@@ -370,6 +368,7 @@ sub gen_parrot {
     my @opts       = @{ $options{'parrot-option'} || [] };
     push @opts, "--optimize";
     my $startdir   = cwd();
+    my $git_protocol = $options{'git-protocol'} || 'https';
 
     my $par_exe  = "$options{'prefix'}/bin/parrot$exe";
     my %config   = read_parrot_config($par_exe);
@@ -377,11 +376,19 @@ sub gen_parrot {
     my $par_have = $config{'parrot::git_describe'} || '';
     my $par_ok   = $par_have && cmp_rev($par_have, $par_want) >= 0;
     if ($gen_parrot) {
-        my $par_repo = git_checkout($par_git, 'parrot', $gen_parrot, $par_push);
+        my $par_repo = git_checkout(
+            github_url($git_protocol, 'parrot', 'parrot'),
+            'parrot', $gen_parrot,
+            github_url('ssh', 'parrot', 'parrot'),
+        );
         $par_ok = $par_have eq $par_repo;
     }
     elsif (!$par_ok) {
-        git_checkout($par_git, 'parrot', $par_want, $par_push);
+        git_checkout(
+            github_url($git_protocol, 'parrot', 'parrot'),
+            'parrot', $par_want,
+            github_url('ssh', 'parrot', 'parrot'),
+        );
     }
 
     if ($par_ok) {
@@ -431,6 +438,7 @@ sub gen_moar {
     my @opts       = @{ $options{'moar-option'} || [] };
     push @opts, "--optimize";
     my $startdir   = cwd();
+    my $git_protocol = $options{'git-protocol'} || 'https';
 
     my $moar_exe   = "$prefix/bin/moar$exe";
     my $moar_have  = qx{ $moar_exe --version };
@@ -449,7 +457,11 @@ sub gen_moar {
 
     return unless defined $gen_moar;
 
-    my $moar_repo = git_checkout($moar_git, 'MoarVM', $gen_moar || $moar_want, $moar_push);
+    my $moar_repo = git_checkout(
+        github_url($git_protocol, 'MoarVM', 'MoarVM'),
+        'MoarVM', $gen_moar || $moar_want,
+        github_url('ssh', 'MoarVM', 'MoarVM'),
+    );
 
     unless (cmp_rev($moar_repo, $moar_want) >= 0) {
         die "You asked me to build $gen_moar, but $moar_repo is not new enough to satisfy version $moar_want\n";
@@ -466,6 +478,20 @@ sub gen_moar {
     chdir($startdir);
 
     return $moar_exe;
+}
+
+sub github_url {
+    my ($protocol, $user, $repo) = @_;
+    $protocol = lc $protocol;
+    if ($protocol eq 'https' || $protocol eq 'git') {
+        return sprintf '%s://github.com/%s/%s.git', $protocol, $user, $repo;
+    }
+    elsif ($protocol eq 'ssh') {
+        return sprintf 'git@github.com:%s/%s.git', $user, $repo;
+    }
+    else {
+        die "Unknown protocol '$protocol' (fine are: ssh, https, git)";
+    }
 }
 
 

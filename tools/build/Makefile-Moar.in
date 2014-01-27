@@ -158,6 +158,9 @@ M_CORE_SOURCES = \
   src/core/OS.pm \
   src/core/core_epilogue.pm \
 
+PERL6_DEBUG_MOAR = perl6-debug.moarvm
+M_DEBUG_RUNNER = perl6-debug-m@runner_suffix@
+
 M_CLEANUPS = \
   *.manifest \
   blib/Perl6/*.moarvm \
@@ -178,12 +181,14 @@ M_CLEANUPS = \
   $(M_PERL6_OPS_DLL) \
   $(M_PERL6_OPS_OBJ) \
   $(M_PERL6_CONT_OBJ) \
-  $(M_PERL6_OPS_DLL)
+  $(M_PERL6_OPS_DLL) \
+  $(PERL6_DEBUG_MOAR) \
+  $(M_DEBUG_RUNNER)
 
 M_HARNESS_WITH_FUDGE = $(PERL) t/harness --fudge --moar --keep-exit-code
 HARNESS = $(PERL) t/harness
 
-m-all: $(PERL6_MOAR) $(SETTING_MOAR) $(R_SETTING_MOAR) $(M_RUNNER) lib/Test.moarvm blib/lib.moarvm blib/Pod/To/Text.moarvm
+m-all: $(PERL6_MOAR) $(SETTING_MOAR) $(R_SETTING_MOAR) $(M_RUNNER) lib/Test.moarvm blib/lib.moarvm blib/Pod/To/Text.moarvm $(PERL6_DEBUG_MOAR) $(M_DEBUG_RUNNER)
 
 $(M_PERL6_OPS_DLL): $(M_PERL6_OPS_SRC) $(M_PERL6_CONT_SRC) Makefile
 	$(M_CC) @moar::ccswitch@ @moar::ccshared@ $(M_CFLAGS) -I$(PREFIX)/include/libatomic_ops \
@@ -258,6 +263,13 @@ $(M_RUNNER): tools/build/create-moar-runner.pl $(PERL6_MOAR)
 
 m-runner-default: $(M_RUNNER)
 	$(CP) $(M_RUNNER) perl6@runner_suffix@
+
+$(PERL6_DEBUG_MOAR): src/perl6-debug.nqp $(PERL6_MOAR)
+	$(M_NQP) --target=mbc --output=$(PERL6_DEBUG_MOAR) \
+	    --vmlibs=$(M_PERL6_OPS_DLL)=Rakudo_ops_init src/perl6-debug.nqp
+
+$(M_DEBUG_RUNNER): tools/build/create-moar-runner.pl $(PERL6_DEBUG_MOAR)
+	$(PERL) tools/build/create-moar-runner.pl "$(MOAR)" perl6-debug.moarvm perl6-debug-m . "$(M_LIBPATH)" .
 
 ##  testing targets
 lib/Test.moarvm: lib/Test.pm $(PERL6_MOAR) $(SETTING_MOAR) $(M_RUNNER)

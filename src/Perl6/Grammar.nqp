@@ -3734,7 +3734,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             $prec := '%autoincrement';
             $is_oper := 1;
         }
-        elsif $category eq 'circumfix' {
+        elsif $category eq 'postcircumfix'
+           || $category eq 'circumfix' {
             $is_oper := 0;
         }
         elsif $category eq 'trait_mod' {
@@ -3763,10 +3764,26 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             }
             self.HOW.mixin(self, Oper.HOW.curry(Oper, $canname, $opname, $prec, $declarand));
         }
-        else {
+        elsif $category eq 'postcircumfix' {
             # Find opener and closer and parse an EXPR between them.
             # XXX One day semilist would be nice, but right now that
             # runs us into fun with terminators.
+            my @parts := nqp::split(' ', $opname);
+            if +@parts != 2 {
+                nqp::die("Unable to find starter and stopper from '$opname'");
+            }
+            my role Postcircumfix[$meth_name, $starter, $stopper] {
+                token ::($meth_name) {
+                    :my $*GOAL := $stopper;
+                    :my $stub := %*LANG<MAIN> := nqp::getlex('$¢').unbalanced($stopper);
+                    $starter ~ $stopper [ <.ws> <statement> ]
+                    <O('%methodcall')>
+                }
+            }
+            self.HOW.mixin(self, Postcircumfix.HOW.curry(Postcircumfix, $canname, @parts[0], @parts[1]));
+        }
+        else {
+            # Find opener and closer and parse an EXPR between them.
             my @parts := nqp::split(' ', $opname);
             if +@parts != 2 {
                 nqp::die("Unable to find starter and stopper from '$opname'");
@@ -3793,7 +3810,19 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         }
 
         # May also need to add to the actions.
-        if $category eq 'circumfix' {
+        if $category eq 'postcircumfix' {
+            my role PostcircumfixAction[$meth, $subname] {
+                method ::($meth)($/) {
+                    make QAST::Op.new(
+                        :op('call'), :name('&' ~ $subname),
+                        $<statement>.ast
+                    );
+                }
+            };
+            %*LANG<MAIN-actions> := $*ACTIONS.HOW.mixin($*ACTIONS,
+                PostcircumfixAction.HOW.curry(PostcircumfixAction, $canname, $subname));
+        }
+        elsif $category eq 'circumfix' {
             my role CircumfixAction[$meth, $subname] {
                 method ::($meth)($/) {
                     make QAST::Op.new(

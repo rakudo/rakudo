@@ -73,7 +73,7 @@ role STDActions {
 
             $origast.push(descend($docast))
         }
-        return $origast;
+        $origast;
     }
 }
 
@@ -326,7 +326,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
     # Turn $code into "for lines() { $code }"
     sub wrap_option_n_code($/, $code) {
         $code := make_topic_block_ref($code, copy => 1);
-        return QAST::Op.new(
+        QAST::Op.new(
             :op<call>, :name<&eager>,
             QAST::Op.new(:op<callmethod>, :name<map>,
                 QAST::Op.new( :op<call>, :name<&flat>,
@@ -340,21 +340,21 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 ),
                 $code
             )
-        );
+        )
     }
 
     # Turn $code into "for lines() { $code; say $_ }"
     # &wrap_option_n_code already does the C<for> loop, so we just add the
     # C<say> call here
     sub wrap_option_p_code($/, $code) {
-        return wrap_option_n_code($/,
+        wrap_option_n_code($/,
             QAST::Stmts.new(
                 $code,
                 QAST::Op.new(:name<&say>, :op<call>,
                     QAST::Var.new(:name<$_>)
                 )
             )
-        );
+        )
     }
 
     method comp_unit($/) {
@@ -2252,7 +2252,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 feature => "$*SCOPE scoped variables");
         }
 
-        return $past;
+        $past
     }
     
     sub add_lexical_accessor($/, $var_past, $meth_name, $install_in) {
@@ -2910,7 +2910,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         $*W.attach_signature($code, $signature);
         $*W.finish_code_object($code, $past, $*MULTINESS eq 'proto', :yada($yada));
         $*W.add_phasers_handling_code($code, $past);
-        return $code;
+        $code
     }
 
     # Installs a method into the various places it needs to go.
@@ -4029,7 +4029,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
 	    unless +$past.list() {
             $past.push($*W.add_string_constant('Stub code executed'));
 	    }
-        return $past;
+        $past
     }
 
     method term:sym<...>($/) {
@@ -4058,7 +4058,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 return $routine;
             }
         }
-        return 0;
+        0
     }
 
     sub expand_macro($macro, $name, $/, &collect_argument_asts) {
@@ -4091,7 +4091,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $block,
             QAST::Op.new( :op('call'), QAST::BVal.new( :value($block) ) )
         );
-        return $past;
+        $past
     }
 
     method term:sym<identifier>($/) {
@@ -4748,7 +4748,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $result := $_;
         }
 
-        return $result;
+        $result
     }
 
     sub make_smartmatch($/, $negated) {
@@ -4923,7 +4923,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $past := QAST::Op.new( :node($/), :op('p6store'),
                 $lhs_ast, $rhs_ast);
         }
-        return $past;
+        $past
     }
     
     sub mixin_op($/, $sym) {
@@ -5224,7 +5224,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $dwim.named('dwim-right');
             $hpast.push($dwim);
         }
-        return QAST::Op.new( :node($/), :op<call>, $hpast );
+        QAST::Op.new( :node($/), :op<call>, $hpast )
     }
 
     method postfixish($/) {
@@ -6071,7 +6071,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $clear_topic_bind.shift(); $clear_topic_bind.shift();
             $clear_topic_bind.op('null');
         }
-        return @result;
+        @result
     }
     sub find_var_decl($block, $name) {
         for $block[0].list {
@@ -6156,14 +6156,14 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
         $block[0].push(QAST::Var.new( :name($name), :scope('lexical'), :decl('var') ));
         $block.symbol($name, :scope('lexical'), :placeholder_parameter(1));
-        return QAST::Var.new( :name($name), :scope('lexical') );
+        QAST::Var.new( :name($name), :scope('lexical') )
     }
 
     sub reference_to_code_object($code_obj, $past_block) {
         my $ref := QAST::WVal.new( :value($code_obj) );
         $ref<past_block> := $past_block;
         $ref<code_object> := $code_obj;
-        return $ref;
+        $ref
     }
 
     sub block_closure($code) {
@@ -6174,7 +6174,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         $closure := QAST::Op.new( :op('p6capturelex'), $closure);
         $closure<past_block> := $code<past_block>;
         $closure<code_object> := $code<code_object>;
-        return $closure;
+        $closure
     }
 
     sub make_thunk_ref($to_thunk, $/) {
@@ -6203,9 +6203,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
         if $copy { $param_obj.set_copy() } else { $param_obj.set_rw() }
         my $sig := $*W.create_signature(nqp::hash('parameters', [$param_obj]));
         add_signature_binding_code($block, $sig, [$param]);
-        return reference_to_code_object(
+        reference_to_code_object(
             $*W.create_code_object($block, 'Block', $sig),
-            $block);
+            $block)
     }
 
     sub make_where_block($expr) {
@@ -6234,7 +6234,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             nominal_type => $*W.find_symbol(['Mu']));
         my $sig := $*W.create_signature(nqp::hash('parameters', [$*W.create_parameter($param)]));
         add_signature_binding_code($past, $sig, [$param]);
-        return $*W.create_code_object($past, 'Block', $sig);
+        $*W.create_code_object($past, 'Block', $sig)
     }
 
     sub when_handler_helper($when_block) {
@@ -6264,7 +6264,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         
         # wrap it in a handle op so that we can use a PROCEED exception
         # to skip the succeed call
-        return QAST::Op.new(
+        QAST::Op.new(
             :op('handle'),
             $result,
             'PROCEED',
@@ -6272,7 +6272,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 :op('getpayload'),
                 QAST::Op.new( :op('exception') )
             )
-        );
+        )
     }
 
     sub make_dot_equals($target, $call) {
@@ -6619,7 +6619,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $past := QAST::WVal.new( :value($type) );
         }
         $past.returns($type.WHAT);
-        return $past;
+        $past
     }
 
     # Ensures that the given PAST node has a value known at compile
@@ -6806,7 +6806,7 @@ class Perl6::QActions is HLL::Actions does STDActions {
         else {
             $past := QAST::Op.new( :op('callmethod'), :name('words'), :node($/), $past );
         }
-        return $past;
+        $past
     }
     
     method postprocess_quotewords($/, $past) {
@@ -6827,13 +6827,13 @@ class Perl6::QActions is HLL::Actions does STDActions {
             }
         }
         walk($past);
-        return +@($result) == 1 ?? $result[0] !! $result;
+        +@($result) == 1 ?? $result[0] !! $result
     }
 
     method postprocess_heredoc($/, $past) {
-        return QAST::Stmts.new(
+        QAST::Stmts.new(
             QAST::Op.new( :op<die_s>, QAST::SVal.new( :value("Premature heredoc consumption") ) ),
-            $past);
+            $past)
     }
 
     method escape:sym<\\>($/) { make $<item>.ast; }

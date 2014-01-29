@@ -251,6 +251,6 @@ class Perl6::Metamodel::ClassHOW
     
     # Does the type have any fallbacks?
     method has_fallbacks($obj) {
-        return nqp::istype($obj, $junction_type) || +@!fallbacks;
+        nqp::istype($obj, $junction_type) || +@!fallbacks
     }
 }

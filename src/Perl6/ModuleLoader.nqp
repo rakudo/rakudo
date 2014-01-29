@@ -187,10 +187,10 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
                     merge_globals(@GLOBALish[0], $UNIT<GLOBALish>);
                 }
             }
-            return $UNIT;
+            $UNIT
         }
         else {
-            return {};
+            {}
         }
     }
     
@@ -270,7 +270,7 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
             $setting := %settings_loaded{$setting_name};
         }
         
-        return $setting;
+        $setting
     }
     
     # Handles any object repossession conflicts that occurred during module load,

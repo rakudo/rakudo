@@ -119,7 +119,7 @@ role Perl6::Metamodel::C3MRO {
         # the start of the list, and we're done.
         @result := self.c3_merge(@merge_list);
         @result.unshift($accepted);
-        return @result;
+        @result
     }
 
     # Introspects the Method Resolution Order.

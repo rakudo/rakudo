@@ -123,7 +123,7 @@ my class Backtrace is List {
             }
         }
 
-        return @outers;
+        @outers
     }
 
     method nice(Backtrace:D: :$oneline) {

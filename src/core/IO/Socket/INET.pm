@@ -29,12 +29,12 @@ my class IO::Socket::INET does IO::Socket {
     has Int $.ins = 0;
 
     my sub v4-split($uri) {
-        return $uri.split(':', 2);
+        $uri.split(':', 2)
     }
 
     my sub v6-split($uri) {
         my ($host, $port) = ($uri ~~ /^'[' (.+) ']' \: (\d+)$/)[0,1];
-        return $host ?? ($host, $port) !! $uri;
+        $host ?? ($host, $port) !! $uri
     }
 
     method new (*%args is copy) {
@@ -163,18 +163,18 @@ my class IO::Socket::INET does IO::Socket {
             nqp::accept(nqp::getattr(self, $?CLASS, '$!PIO'))
 #?endif
         );
-        return $new_sock;
+        $new_sock
     }
 
     method remote_address() {
 #?if parrot
-        return nqp::p6box_s(nqp::getattr(self, $?CLASS, '$!PIO').remote_address());
+        nqp::p6box_s(nqp::getattr(self, $?CLASS, '$!PIO').remote_address())
 #?endif
     }
 
     method local_address() {
 #?if parrot
-        return nqp::p6box_s(nqp::getattr(self, $?CLASS, '$!PIO').local_address());
+        nqp::p6box_s(nqp::getattr(self, $?CLASS, '$!PIO').local_address())
 #?endif
     }
 }

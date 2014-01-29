@@ -91,7 +91,7 @@ class Perl6::Metamodel::WrapDispatcher is Perl6::Metamodel::BaseDispatcher {
             }
             $i := $i + 1;
         }
-        return 0;
+        0
     }
     
     method enter(*@pos, *%named) {

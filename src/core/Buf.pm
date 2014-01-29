@@ -185,7 +185,7 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
             }
         }
 
-        return |@fields;
+        return |@fields
     }
 
     # XXX: the pack.t spectest file seems to require this method
@@ -301,7 +301,7 @@ multi sub pack(Str $template, *@items) {
         }
     }
 
-    return Buf.new(@bytes);
+    Buf.new(@bytes);
 }
 
 multi infix:<~>(Blob:D $a, Blob:D $b) {

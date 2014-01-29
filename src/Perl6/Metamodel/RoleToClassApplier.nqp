@@ -4,7 +4,7 @@ my class RoleToClassApplier {
             my %mt := $target.HOW.method_table($target);
             return 1 if nqp::existskey(%mt, $name);
             %mt := $target.HOW.submethod_table($target);
-            return nqp::existskey(%mt, $name);
+            nqp::existskey(%mt, $name)
         }
         else {
             for $target.HOW.mro($target) {
@@ -17,13 +17,13 @@ my class RoleToClassApplier {
                     return 1;
                 }
             }
-            return 0;
+            0
         }
     }
     
     sub has_private_method($target, $name) {
         my %pmt := $target.HOW.private_method_table($target);
-        return nqp::existskey(%pmt, $name)
+        nqp::existskey(%pmt, $name)
     }
 
     sub has_attribute($target, $name) {
@@ -31,14 +31,14 @@ my class RoleToClassApplier {
         for @attributes {
             if $_.name eq $name { return 1; }
         }
-        return 0;
+        0
     }
     sub has_public_attribute($target, $name) {
         my @attributes := $target.HOW.attributes($target, :local(1));
         for @attributes {
             return 1 if nqp::substr($_.name, 2) eq $name && $_.has_accessor;
         }
-        return 0;
+        0
     }
 
     method apply($target, @roles) {

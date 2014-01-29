@@ -112,22 +112,24 @@ class Perl6::Metamodel::ParametricRoleHOW
     method type_check($obj, $checkee) {
         my $decont := nqp::decont($checkee);
         if $decont =:= $obj.WHAT {
-            return 1;
+            1
         }
-        if $!in_group && $decont =:= $!group {
-            return 1;
+        elsif $!in_group && $decont =:= $!group {
+            1
         }
-        for self.pretending_to_be() {
-            if $decont =:= nqp::decont($_) {
-                return 1;
+        else {
+            for self.pretending_to_be() {
+                if $decont =:= nqp::decont($_) {
+                    return 1;
+                }
             }
-        }
-        for self.roles_to_compose($obj) {
-            if nqp::istype($checkee, $_) {
-                return 1;
+            for self.roles_to_compose($obj) {
+                if nqp::istype($checkee, $_) {
+                    return 1;
+                }
             }
+            0
         }
-        0
     }
     
     method specialize($obj, *@pos_args, *%named_args) {
@@ -208,7 +210,7 @@ class Perl6::Metamodel::ParametricRoleHOW
         }
         
         $conc.HOW.compose($conc);
-        return $conc;
+        $conc
     }
     
     method mro($obj) {

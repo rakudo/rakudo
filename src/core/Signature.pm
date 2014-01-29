@@ -73,7 +73,7 @@ my class Signature { # declared in BOOTSTRAP
                 return False unless $hasslurpy;
             }
         }
-        return True;
+        True
     }
 
     method arity() {

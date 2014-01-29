@@ -176,7 +176,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
                 return ($pos, $end) unless nqp::iseq_s($ch, '.');
             }
         }
-        return (0, -1);
+        (0, -1)
     }
 
     method pred(Str:D:) {
@@ -471,7 +471,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
                         !! $result / $denom;
             }
 
-            return $result;
+            $result
         }
 
         # Parse a real number, magnitude of a pure imaginary number,
@@ -515,7 +515,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         parse_fail "trailing characters after number"
             if nqp::islt_i($pos, $eos);
 
-        return $result;
+        $result
     }
 
     my %esc = (
@@ -936,7 +936,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         }
         $r = $r ~ nqp::unbox_s($lsm.unsubstituted_text);
 
-        return $r;
+        $r
     }
     proto method indent($) {*}
     # Zero indent does nothing
@@ -947,7 +947,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
     # Positive indent does indent
     multi method indent(Int $steps where { $_ > 0 }) {
     # We want to keep trailing \n so we have to .comb explicitly instead of .lines
-        return self.comb(/:r ^^ \N* \n?/).map({
+        self.comb(/:r ^^ \N* \n?/).map({
             given $_.Str {
                 when /^ \n? $ / {
                     $_;
@@ -968,7 +968,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
                     $0 ~ (' ' x $steps) ~ $1
                 }
             }
-        }).join;
+        }).join
     }
 
     # Negative values and Whatever-* do outdent

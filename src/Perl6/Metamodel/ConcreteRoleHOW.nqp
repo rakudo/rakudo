@@ -108,14 +108,16 @@ class Perl6::Metamodel::ConcreteRoleHOW
     method type_check($obj, $checkee) {
         my $decont := nqp::decont($checkee);
         if $decont =:= $obj.WHAT {
-            return 1;
+            1
         }
-        for @!role_typecheck_list {
-            if nqp::decont($_) =:= $decont {
-                return 1;
+        else {
+            for @!role_typecheck_list {
+                if nqp::decont($_) =:= $decont {
+                    return 1;
+                }
             }
+            0
         }
-        0
     }
     
     method publish_type_cache($obj) {

@@ -8,10 +8,10 @@ my class Nil is Cool { # declared in BOOTSTRAP
     multi method Str() { '' }
 
     method at_pos($pos) {
-        return self
+        self
     }
     method at_key($pos) {
-        return self
+        self
     }
     method bind_pos($pos, $bind) {
         die "Attempted to bind_pos to Nil.";

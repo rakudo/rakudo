@@ -3,37 +3,38 @@ my class Cursor does NQPCursorRole {
 
     method MATCH() {
         my $match := nqp::getattr(self, Cursor, '$!match');
-        return $match if nqp::istype($match, Match) && nqp::isconcrete($match);
-        $match := nqp::create(Match);
-        nqp::bindattr($match, Match, '$!orig', nqp::findmethod(self, 'orig')(self));
-        nqp::bindattr_i($match, Match, '$!from', nqp::getattr_i(self, Cursor, '$!from'));
-        nqp::bindattr_i($match, Match, '$!to', nqp::getattr_i(self, Cursor, '$!pos'));
-        nqp::bindattr($match, Match, '$!ast', nqp::getattr(self, Cursor, '$!ast'));
-        nqp::bindattr($match, Match, '$!CURSOR', self);
-        my Mu $list := nqp::list();
-        my Mu $hash := nqp::hash();
-        if $match.Bool {
-            my Mu $caphash := nqp::findmethod(Cursor, 'CAPHASH')(self);
-            my Mu $capiter := nqp::iterator($caphash);
-            while $capiter {
-                my Mu $kv := nqp::shift($capiter);
-                my str $key = nqp::iterkey_s($kv);
-                my Mu $value := nqp::hllize(nqp::atkey($caphash, $key));
-                if $key eq '$!from' || $key eq '$!to' {
-                    nqp::bindattr_i($match, Match, $key, $value.from);
-                }
-                else {
-                    $value := nqp::p6list($value, List, Mu)
-                        if nqp::islist($value);
-                    nqp::iscclass(nqp::const::CCLASS_NUMERIC, $key, 0)
-                      ?? nqp::bindpos($list, $key, $value)
-                      !! nqp::bindkey($hash, $key, $value);
+        unless nqp::istype($match, Match) && nqp::isconcrete($match) {
+            $match := nqp::create(Match);
+            nqp::bindattr($match, Match, '$!orig', nqp::findmethod(self, 'orig')(self));
+            nqp::bindattr_i($match, Match, '$!from', nqp::getattr_i(self, Cursor, '$!from'));
+            nqp::bindattr_i($match, Match, '$!to', nqp::getattr_i(self, Cursor, '$!pos'));
+            nqp::bindattr($match, Match, '$!ast', nqp::getattr(self, Cursor, '$!ast'));
+            nqp::bindattr($match, Match, '$!CURSOR', self);
+            my Mu $list := nqp::list();
+            my Mu $hash := nqp::hash();
+            if $match.Bool {
+                my Mu $caphash := nqp::findmethod(Cursor, 'CAPHASH')(self);
+                my Mu $capiter := nqp::iterator($caphash);
+                while $capiter {
+                    my Mu $kv := nqp::shift($capiter);
+                    my str $key = nqp::iterkey_s($kv);
+                    my Mu $value := nqp::hllize(nqp::atkey($caphash, $key));
+                    if $key eq '$!from' || $key eq '$!to' {
+                        nqp::bindattr_i($match, Match, $key, $value.from);
+                    }
+                    else {
+                        $value := nqp::p6list($value, List, Mu)
+                            if nqp::islist($value);
+                        nqp::iscclass(nqp::const::CCLASS_NUMERIC, $key, 0)
+                          ?? nqp::bindpos($list, $key, $value)
+                          !! nqp::bindkey($hash, $key, $value);
+                    }
                 }
             }
+            nqp::bindattr($match, Capture, '$!list', $list);
+            nqp::bindattr($match, Capture, '$!hash', $hash);
+            nqp::bindattr(self, Cursor, '$!match', $match);
         }
-        nqp::bindattr($match, Capture, '$!list', $list);
-        nqp::bindattr($match, Capture, '$!hash', $hash);
-        nqp::bindattr(self, Cursor, '$!match', $match);
         $match;
     }
 

@@ -43,7 +43,7 @@ my class IO::Spec::Unix {
         for @path {
             $_ = '.' if $_ eq ''
         }
-        return @path
+        @path
     }
 
     method splitpath( $path, :$nofile = False ) {
@@ -58,7 +58,7 @@ my class IO::Spec::Unix {
             $file      = ~$1;
         }
 
-        return ( '', $directory, $file );
+        ( '', $directory, $file )
     }
 
     method split (Cool:D $path is copy ) {
@@ -73,7 +73,7 @@ my class IO::Spec::Unix {
         $directory = '.'  if $directory eq ''  && $basename ne '';
         # shell dirname '' produces '.', but we don't because it's probably user error
 
-        return (:volume(''), :$directory, :$basename );
+        (:volume(''), :$directory, :$basename )
     }
 
 
@@ -94,7 +94,7 @@ my class IO::Spec::Unix {
             $directory ~= $file
         }
 
-        return $directory
+        $directory
     }
 
     method catdir( *@parts ) { self.canonpath( (@parts, '').join('/') ) }
@@ -145,7 +145,7 @@ my class IO::Spec::Unix {
         # $base now contains the directories the resulting relative path 
         # must ascend out of before it can descend to $path_directory.
         my $result_dirs = self.catdir( self.updir() xx @basechunks.elems, @pathchunks );
-        return self.canonpath( self.catpath('', $result_dirs, '') );
+        self.canonpath( self.catpath('', $result_dirs, '') )
     }
 
     method rel2abs( $path, $base is copy = $*CWD) {

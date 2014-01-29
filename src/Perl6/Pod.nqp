@@ -46,15 +46,16 @@ class Perl6::Pod {
                 $type, :level($level_past), :config($config),
                 :content($content.compile_time_value)
             );
-            return $past.compile_time_value;
+            $past.compile_time_value
         }
-
-        my $name := $*W.add_constant('Str', 'str', $<type>.Str);
-        my $past := serialize_object(
-            'Pod::Block::Named', :name($name.compile_time_value),
-            :config($config), :content($content.compile_time_value),
-        );
-        return $past.compile_time_value;
+        else {
+            my $name := $*W.add_constant('Str', 'str', $<type>.Str);
+            my $past := serialize_object(
+                'Pod::Block::Named', :name($name.compile_time_value),
+                :config($config), :content($content.compile_time_value),
+            );
+            $past.compile_time_value
+        }
     }
 
     our sub raw_block($/) {
@@ -67,12 +68,12 @@ class Perl6::Pod {
             $type, :config($config),
             :content($content.compile_time_value),
         );
-        return $past.compile_time_value;
+        $past.compile_time_value
     }
 
     our sub config($/) {
         my $type := $*W.add_constant('Str', 'str', ~$<type>);
-        return serialize_object(
+        serialize_object(
             'Pod::Config', :type($type.compile_time_value),
             :config($<pod_configuration>.ast)
         ).compile_time_value
@@ -126,14 +127,14 @@ class Perl6::Pod {
                 ).compile_time_value
             );
         }
-        return serialize_object('Hash', |@pairs).compile_time_value;
+        serialize_object('Hash', |@pairs).compile_time_value
     }
 
     our sub formatted_text($a) {
         my $r := subst($a, /\s+/, ' ', :global);
         $r    := subst($r, /^^\s*/, '');
         $r    := subst($r, /\s*$$/, '');
-        return $r;
+        $r
     }
     our sub table($/) {
         my $config := $<pod_configuration>.ast;
@@ -286,7 +287,7 @@ class Perl6::Pod {
             }
             $i := $i + 1;
         }
-        return @res;
+        @res
     }
 
     our sub merge_rows(@rows) {
@@ -304,7 +305,7 @@ class Perl6::Pod {
             }
             $i := $i + 1;
         }
-        return @result;
+        @result
     }
 
     our sub merge_twines(@twines) {
@@ -319,7 +320,7 @@ class Perl6::Pod {
             );
             nqp::splice(@ret, @cur, +@ret, 0);
         }
-        return @ret;
+        @ret
     }
 
     our sub build_pod_string(@content) {
@@ -349,7 +350,7 @@ class Perl6::Pod {
         }
         push_strings(@strs, @res);
 
-        return @res;
+        @res
     }
 
 
@@ -431,12 +432,12 @@ class Perl6::Pod {
             }
             @ret.push(@tmp);
         }
-        return @ret;
+        @ret
     }
 
     # serializes the given array
     our sub serialize_array(@arr) {
-        return $*W.add_constant('Array', 'type_new', |@arr);
+        $*W.add_constant('Array', 'type_new', |@arr)
     }
 
     # serializes an array of strings
@@ -446,7 +447,7 @@ class Perl6::Pod {
             my $p := $*W.add_constant('Str', 'str', ~$cell);
             @cells.push($p.compile_time_value);
         }
-        return serialize_array(@cells);
+        serialize_array(@cells)
     }
 
     # serializes an array of arrays of strings
@@ -456,12 +457,12 @@ class Perl6::Pod {
             my $p := serialize_aos($row);
             @content.push($*W.scalar_wrap($p.compile_time_value));
         }
-        return serialize_array(@content);
+        serialize_array(@content)
     }
 
     # serializes object of the given type
     our sub serialize_object($type, *@pos, *%named) {
-        return $*W.add_constant($type, 'type_new', |@pos, |%named);
+        $*W.add_constant($type, 'type_new', |@pos, |%named)
     }
 }
 

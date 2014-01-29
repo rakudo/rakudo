@@ -1,5 +1,5 @@
 sub gethostname( --> Str){
-    return nqp::p6box_s(nqp::gethostname());
+    nqp::p6box_s(nqp::gethostname());
 }
 
 my class Proc::Status {

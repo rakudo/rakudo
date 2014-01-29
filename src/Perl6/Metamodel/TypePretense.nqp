@@ -11,12 +11,15 @@ role Perl6::Metamodel::TypePretense {
     
     method type_check($obj, $checkee) {
         if $obj =:= $checkee {
-            return 1;
+            1
         }
-        for self.pretending_to_be() {
-            if $checkee =:= $_ {
-                return 1;
+        else {
+            for self.pretending_to_be() {
+                if $checkee =:= $_ {
+                    return 1;
+                }
             }
+            0
         }
     }
 }

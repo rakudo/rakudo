@@ -18,17 +18,17 @@ role Perl6::Metamodel::Trusting {
     method is_trusted($obj, $claimant) {
         # Always trust ourself.
         if $claimant.WHAT =:= $obj.WHAT {
-            return 1;
+            1
         }
-        
-        # Otherwise, look through our trustee list.
-        for @!trustees {
-            if $_.WHAT =:= $claimant.WHAT {
-                return 1;
+        else {
+            # Otherwise, look through our trustee list.
+            for @!trustees {
+                if $_.WHAT =:= $claimant.WHAT {
+                    return 1;
+                }
             }
+            # If we get here, not trusted.
+            0
         }
-        
-        # If we get here, not trusted.
-        0
     }
 }

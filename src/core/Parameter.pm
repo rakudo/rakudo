@@ -147,7 +147,7 @@ my class Parameter { # declared in BOOTSTRAP
             return False unless $other.named;
             return False unless Set($other.named_names) (<=) Set($.named_names);
         }
-        return True;
+        True
     }
     
     multi method perl(Parameter:D:) {

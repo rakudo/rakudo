@@ -40,7 +40,7 @@ my class IO::Spec::Win32 is IO::Spec::Unix {
        @path».=subst(:global, q/"/, '');
        @path = grep *.chars, @path;
        unshift @path, ".";
-       return @path;
+       @path
    }
 
     method is-absolute ($path) {
@@ -73,7 +73,7 @@ my class IO::Spec::Win32 is IO::Spec::Unix {
         $basename = '\\'  if $directory eq any('/', '\\') && $basename eq '';
         $directory = '.'  if $directory eq ''             && $basename ne '';
 
-        return (:$volume, :$directory, :$basename);
+        (:$volume, :$directory, :$basename)
     }
 
     method join ($volume, $directory is copy, $file is copy) { 
@@ -105,7 +105,7 @@ my class IO::Spec::Win32 is IO::Spec::Unix {
             $file      = ~$2;
         }
 
-        return ($volume,$directory,$file);
+        ($volume,$directory,$file)
     }
 
     method catpath($volume is copy, $directory, $file) {
@@ -162,7 +162,7 @@ my class IO::Spec::Win32 is IO::Spec::Unix {
                     $path_file
                     ) ;
 
-        return self.canonpath( $path ) ;
+        self.canonpath( $path )
     }
 
 

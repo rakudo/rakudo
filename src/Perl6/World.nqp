@@ -63,7 +63,7 @@ sub levenshtein($a, $b) {
         return 0 if $ac eq $bc;
         return 0.5 if nqp::uc($ac) eq nqp::lc($bc);
         return 0.5 if issigil($ac) && issigil($bc);
-        return 1;
+        1
     }
 
     sub levenshtein_impl($apos, $bpos, $estimate) {
@@ -75,9 +75,11 @@ sub levenshtein($a, $b) {
         # the result is the remaining length of the other string.
         sub check($pos1, $len1, $pos2, $len2) {
             if $pos2 == $len2 {
-                return $len1 - $pos1;
+                $len1 - $pos1
             }
-            return -1;
+            else {
+                -1
+            }
         }
 
         my $check := check($apos, $alen, $bpos, $blen);
@@ -116,11 +118,9 @@ sub levenshtein($a, $b) {
         }
 
         %memo{$key} := $distance;
-        return $distance;
     }
 
-    my $result := levenshtein_impl(0, 0, 0);
-    return $result;
+    my $result := levenshtein_impl(0, 0, 0)
 }
 
 sub make_levenshtein_evaluator($orig_name, @candidates) {
@@ -148,7 +148,8 @@ sub make_levenshtein_evaluator($orig_name, @candidates) {
         }
         1;
     }
-    return &inner;
+    #~ &inner
+    return &inner
 }
 
 sub levenshtein_candidate_heuristic(@candidates, $target) {
@@ -354,7 +355,7 @@ class Perl6::World is HLL::World {
                 ))));
         }
 
-        return $module;
+        $module
     }
     
     # Uses the NQP module loader to load Perl6::ModuleLoader, which
@@ -912,7 +913,7 @@ class Perl6::World is HLL::World {
     method create_simple_code_object($block, $type) {
         self.cur_lexpad()[0].push($block);
         my $sig := self.create_signature(nqp::hash('parameters', []));
-        return self.create_code_object($block, $type, $sig);
+        self.create_code_object($block, $type, $sig)
     }
     
     # Creates a code object of the specified type, attached the passed signature
@@ -1231,7 +1232,7 @@ class Perl6::World is HLL::World {
         # Immediately do so and add to SC.
         my $derived := $proto.derive_dispatcher();
         self.add_object($derived);
-        return $derived;
+        $derived
     }
     
     # Helper to make PAST for setting an attribute to a value. Value should
@@ -1413,7 +1414,7 @@ class Perl6::World is HLL::World {
         if !$nocache {
             %!const_cache{$cache_key} := $constant;
         }
-        return $qast;
+        $qast
     }
     
     # Adds a numeric constant value (int or num) to the constants table.
@@ -1515,7 +1516,7 @@ class Perl6::World is HLL::World {
         self.add_object($mo);
 
         # Result is just the object.
-        return $mo;
+        $mo
     }
     
     # Constructs a meta-attribute and adds it to a meta-object. Expects to
@@ -1602,7 +1603,7 @@ class Perl6::World is HLL::World {
         # Make the curry right away and add it to the SC.
         my $curried := $role.HOW.parameterize($role, |@pos_args, |%named_args);
         self.add_object($curried);
-        return $curried;
+        $curried
     }
     
     # Creates a subset type meta-object/type object pair.
@@ -1612,7 +1613,7 @@ class Perl6::World is HLL::World {
         if nqp::defined($name) { %args<name> := $name; }
         my $mo := $how.new_type(|%args);
         self.add_object($mo);
-        return $mo;
+        $mo
     }
     
     # Adds a value to an enumeration.
@@ -1643,13 +1644,14 @@ class Perl6::World is HLL::World {
             return 1 if nqp::existskey(%seen, $name);
 
             %seen{$name} := 1;
-            return &inner-evaluator($name, $object, $hash);
+            #~ &inner-evaluator($name, $object, $hash)
+            return &inner-evaluator($name, $object, $hash)
         }
         self.walk_symbols(&evaluator);
 
         levenshtein_candidate_heuristic(@candidates, @suggestions);
 
-        return @suggestions;
+        @suggestions
     }
 
     # Applies a trait.
@@ -1695,12 +1697,12 @@ class Perl6::World is HLL::World {
                 QAST::WVal.new( :value(FixupList) ))));
         
         # Return a PAST node that we can push the dummy closure
-        return QAST::Op.new(
+        QAST::Op.new(
             :op('push'),
             QAST::Var.new(
                 :name('$!list'), :scope('attribute'),
                 QAST::WVal.new( :value($fixup_list) ),
-                QAST::WVal.new( :value(FixupList) )));
+                QAST::WVal.new( :value(FixupList) )))
     }
     
     # Handles addition of a phaser.
@@ -1708,13 +1710,13 @@ class Perl6::World is HLL::World {
         if $phaser eq 'BEGIN' {
             # BEGIN phasers get run immediately.
             my $result := $block();
-            return self.add_constant_folded_result($result);
+            self.add_constant_folded_result($result)
         }
         elsif $phaser eq 'CHECK' {
             my $result_node := QAST::Stmt.new( QAST::Var.new( :name('Nil'), :scope('lexical') ) );
             @!CHECKs := [] unless @!CHECKs;
             @!CHECKs.unshift([$block, $result_node]);
-            return $result_node;
+            $result_node
         }
         elsif $phaser eq 'INIT' {
             unless $*UNIT.symbol('!INIT_VALUES') {
@@ -1734,11 +1736,11 @@ class Perl6::World is HLL::World {
                     :op('call'),
                     QAST::WVal.new( :value($block) )
                 )));
-            return QAST::Op.new(
+            QAST::Op.new(
                 :op('callmethod'), :name('at_key'),
                 QAST::Var.new( :name('!INIT_VALUES'), :scope('lexical') ),
                 QAST::SVal.new( :value($phaser_past.cuid) )
-            );
+            )
         }
         elsif $phaser eq 'END' {
             $*UNIT[0].push(QAST::Op.new(
@@ -1749,7 +1751,7 @@ class Perl6::World is HLL::World {
                 ),
                 QAST::WVal.new( :value($block) )
             ));
-            return QAST::Var.new(:name('Nil'), :scope('lexical'));
+            QAST::Var.new(:name('Nil'), :scope('lexical'))
         }
         elsif $phaser eq 'PRE' || $phaser eq 'POST' {
             my $what := self.add_string_constant($phaser);
@@ -1792,11 +1794,11 @@ class Perl6::World is HLL::World {
             }
             
             @!CODES[+@!CODES - 1].add_phaser($phaser, $block);
-            return QAST::Var.new(:name('Nil'), :scope('lexical'));
+            QAST::Var.new(:name('Nil'), :scope('lexical'))
         }
         else {
             @!CODES[+@!CODES - 1].add_phaser($phaser, $block);
-            return QAST::Var.new(:name('Nil'), :scope('lexical'));
+            QAST::Var.new(:name('Nil'), :scope('lexical'))
         }
     }
     
@@ -1861,22 +1863,22 @@ class Perl6::World is HLL::World {
         method name_past() {
             if self.contains_indirect_lookup() {
                 if @!components == 1 {
-                    return @!components[0];
+                    @!components[0]
                 }
                 else {
                     my $past := QAST::Op.new(:op<call>, :name('&infix:<,>'));
                     for @!components {
                         $past.push: $_ ~~ QAST::Node ?? $_ !! QAST::SVal.new(:value($_));
                     }
-                    return QAST::Op.new(:op<callmethod>, :name<join>,
+                    QAST::Op.new(:op<callmethod>, :name<join>,
                         $past,
                         QAST::SVal.new(:value<::>)
-                    );
+                    )
                 }
             }
             else {
                 my $value := join('::', @!components);
-                QAST::SVal.new(:$value);
+                QAST::SVal.new(:$value)
             }
         }
         
@@ -1904,7 +1906,7 @@ class Perl6::World is HLL::World {
                     return 1;
                 }
             }
-            return 0;
+            0
         }
         
         # Fetches an array of components provided they are all known
@@ -2100,9 +2102,11 @@ class Perl6::World is HLL::World {
         if $scope eq 'my' && +@name == 1 {
             my %sym := $curpad.symbol(@name[0]);
             if %sym {
-                return %sym<value>.HOW.HOW.name(%sym<value>.HOW) ne 'Perl6::Metamodel::PackageHOW';
+                %sym<value>.HOW.HOW.name(%sym<value>.HOW) ne 'Perl6::Metamodel::PackageHOW'
             }
-            return 0;
+            else {
+                0
+            }
         }
         else {
             # Does the current lexpad or package declare the first
@@ -2124,10 +2128,10 @@ class Perl6::World is HLL::World {
             if +@name > 1 {
                 my @restname := nqp::clone(@name);
                 @restname.shift;
-                return self.already_declared('our', $first_sym, QAST::Block.new(), @restname);
+                self.already_declared('our', $first_sym, QAST::Block.new(), @restname)
             }
             else {
-                return $first_sym.HOW.HOW.name($first_sym.HOW) ne 'Perl6::Metamodel::PackageHOW';
+                $first_sym.HOW.HOW.name($first_sym.HOW) ne 'Perl6::Metamodel::PackageHOW'
             }
         }
     }
@@ -2326,7 +2330,7 @@ class Perl6::World is HLL::World {
             ));
         }
         
-        return $lookup;
+        $lookup
     }
 
     # Checks if the given name is known anywhere in the lexpad
@@ -2354,12 +2358,13 @@ class Perl6::World is HLL::World {
             return 1 unless nqp::existskey($hash, "descriptor");
             return 1 if nqp::existskey(%seen, $name);
             %seen{$name} := 1;
-            return &inner-evaluator($name, $value, $hash);
+            #~ &inner-evaluator($name, $value, $hash)
+            return &inner-evaluator($name, $value, $hash)
         }
         self.walk_symbols(&evaluate);
 
         levenshtein_candidate_heuristic(@candidates, @suggestions);
-        return @suggestions;
+        @suggestions
     }
 
     method suggest_routines($name) {
@@ -2374,12 +2379,13 @@ class Perl6::World is HLL::World {
             return 1 if nqp::existskey(%seen, $name);
 
             %seen{$name} := 1;
-            return &inner-evaluator($name, $value, $hash);
+            #~ &inner-evaluator($name, $value, $hash)
+            return &inner-evaluator($name, $value, $hash)
         }
         self.walk_symbols(&evaluate);
 
         levenshtein_candidate_heuristic(@candidates, @suggestions);
-        return @suggestions;
+        @suggestions
     }
 
 

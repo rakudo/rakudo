@@ -73,7 +73,7 @@ my class Junction { # declared in BOOTSTRAP
                 nqp::push($res, call(|args));
                 Nil;
             }
-            return Junction.new(nqp::p6parcel($res, Nil), :type($type));
+            Junction.new(nqp::p6parcel($res, Nil), :type($type))
         }
 
         # Look for a junctional arg in the positionals.

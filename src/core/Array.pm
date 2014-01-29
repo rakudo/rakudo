@@ -83,14 +83,15 @@ class Array { # declared in BOOTSTRAP
             nqp::pop($items);
             nqp::pop($items)
               while --$pos >= 0 && nqp::isnull(nqp::atpos($items,$pos));
+            $value
         }
         elsif pos < $end {
             nqp::bindpos($items, pos, nqp::null());
+            $value
         }
         else {
-            return self.default;
+            self.default;
         }
-        $value;
     }
 
     method flattens() { 1 }

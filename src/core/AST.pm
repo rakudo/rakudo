@@ -12,7 +12,7 @@ my class AST {
         my $incarnation = self.clone();
         nqp::bindattr(nqp::decont($incarnation), AST, '$!past', $incarnation.evaluate_unquotes(@unquote_asts));
         nqp::bindattr(nqp::decont($incarnation), AST, '$!quasi_context', $quasi_context);
-        return $incarnation;
+        $incarnation
     }
 
     method evaluate_unquotes(@unquote_asts) {

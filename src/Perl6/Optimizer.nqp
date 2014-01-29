@@ -214,7 +214,7 @@ class Perl6::Optimizer {
                 return 0;
             }
         }
-        return 0;
+        0
     }
 
     method find_in_setting($symbol) {
@@ -268,7 +268,7 @@ class Perl6::Optimizer {
         } elsif has_core-ish_junction($node[1]) {
             return 1;
         }
-        return -1;
+        -1
     }
     
     # Called when we encounter a QAST::Op in the tree. Produces either
@@ -319,10 +319,8 @@ class Perl6::Optimizer {
                     }
                 }
                 return 1;
-            } else {
-                return 0;
             }
-            return 0;
+            0
         }
 
         # we may be able to unfold a junction at compile time.
@@ -1001,7 +999,7 @@ class Perl6::Optimizer {
         $!pres_topic_counter := $!pres_topic_counter + 1;
         $outer[0].push(QAST::Var.new( :scope('local'),
             :name("pres_topic_$!pres_topic_counter"), :decl('var') ));
-        return QAST::Stmts.new(
+        QAST::Stmts.new(
             :resultchild(1),
             QAST::Op.new( :op('bind'),
                 QAST::Var.new( :name("pres_topic_$!pres_topic_counter"), :scope('local') ),
@@ -1012,7 +1010,7 @@ class Perl6::Optimizer {
                 QAST::Var.new( :name('$_'), :scope('lexical') ),
                 QAST::Var.new( :name("pres_topic_$!pres_topic_counter"), :scope('local') )
             )
-        );
+        )
     }
     
     # Inlines a call to a sub.

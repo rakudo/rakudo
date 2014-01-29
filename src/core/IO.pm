@@ -402,14 +402,14 @@ my class IO::Path is Cool does IO::FileTestable {
         ! $.SPEC.is-absolute($!path);
     }
     method absolute ($base = ~$*CWD) {
-        return self.new($.SPEC.rel2abs($!path, $base));
+        self.new($.SPEC.rel2abs($!path, $base))
     }
     method relative ($relative_to_directory = ~$*CWD) {
-        return self.new($.SPEC.abs2rel($!path, $relative_to_directory));
+        self.new($.SPEC.abs2rel($!path, $relative_to_directory))
     }
 
     method cleanup (:$parent) {
-        return self.new($.SPEC.canonpath($!path, :$parent));
+        self.new($.SPEC.canonpath($!path, :$parent))
     }
     method resolve {
         # NYI: requires readlink()
@@ -418,21 +418,21 @@ my class IO::Path is Cool does IO::FileTestable {
 
     method parent {
         if self.is-absolute {
-            return self.new($.SPEC.join($.volume, $.directory, ''));
+            self.new($.SPEC.join($.volume, $.directory, ''))
         }
         elsif all($.basename, $.directory) eq $.SPEC.curdir {
-            return self.new(:$.volume, directory=>$.SPEC.curdir,
-                             basename=>$.SPEC.updir);
+            self.new(:$.volume, directory=>$.SPEC.curdir,
+                             basename=>$.SPEC.updir)
         }
         elsif $.basename eq $.SPEC.updir && $.directory eq $.SPEC.curdir 
            or !grep({$_ ne $.SPEC.updir}, $.SPEC.splitdir($.directory)) {  
-            return self.new(    # If all updirs, then add one more
+            self.new(    # If all updirs, then add one more
                 :$.volume,
                 directory => $.SPEC.catdir($.directory, $.SPEC.updir),
-                :$.basename );
+                :$.basename )
         }
         else {
-            return self.new( $.SPEC.join($.volume, $.directory, '') );
+            self.new( $.SPEC.join($.volume, $.directory, '') )
         }
     }
 

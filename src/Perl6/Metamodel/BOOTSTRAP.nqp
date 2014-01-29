@@ -146,11 +146,11 @@ my class Binder {
         }
 
         if $arity == $count {
-            return "$error_prefix positional parameters passed; got $num_pos_args but expected $arity";
+            "$error_prefix positional parameters passed; got $num_pos_args but expected $arity"
         } elsif $count == -1 {
-            return "$error_prefix positional parameters passed; got $num_pos_args but expected at least $arity";
+            "$error_prefix positional parameters passed; got $num_pos_args but expected at least $arity"
         } else {
-            return "$error_prefix positional parameters passed; got $num_pos_args but expected between $arity and $count";
+            "$error_prefix positional parameters passed; got $num_pos_args but expected between $arity and $count"
         }
     }
 
@@ -791,7 +791,7 @@ my class Binder {
         }
         
         # If we get here, we're done.
-        return $BIND_RESULT_OK;
+        $BIND_RESULT_OK
     }
 
     method bind($capture, $sig, $lexpad, int $no_nom_type_check, $error) {
@@ -986,7 +986,7 @@ my class Binder {
         }
 
         # Otherwise, if we get there, all is well.
-        return $TRIAL_BIND_OK;
+        $TRIAL_BIND_OK
     }
 
     method get_return_type($code) {
@@ -1256,9 +1256,9 @@ BEGIN {
         my $scalar := nqp::create(Scalar);
         nqp::bindattr($scalar, Scalar, '$!descriptor', $cd);
         nqp::bindattr($scalar, Scalar, '$!value', $type);
-        return Attribute.new( :name($name), :type($type), :package($package),
+        Attribute.new( :name($name), :type($type), :package($package),
             :container_descriptor($cd), :auto_viv_container($scalar),
-            :$associative_delegate);
+            :$associative_delegate)
     }
         
     # class Signature is Any{
@@ -1280,7 +1280,7 @@ BEGIN {
                 my $is_generic := $_.is_generic();
                 if $is_generic { return $is_generic }
             }
-            return nqp::p6bool(0);
+            nqp::p6bool(0)
         }));
     Signature.HOW.add_method(Signature, 'instantiate_generic', nqp::getstaticcode(sub ($self, $type_environment) {
             # Go through parameters, builidng new list. If any
@@ -1678,8 +1678,8 @@ BEGIN {
                 # Also narrower if the first needs a bind check and the second doesn't, if
                 # we wouldn't deem the other one narrower than this one int terms of
                 # slurpyness. Otherwise, they're tied.
-                return !(%b<max_arity> != $SLURPY_ARITY && %a<max_arity> == $SLURPY_ARITY)
-                    && (%a<bind_check> && !%b<bind_check>);
+                !(%b<max_arity> != $SLURPY_ARITY && %a<max_arity> == $SLURPY_ARITY)
+                    && (%a<bind_check> && !%b<bind_check>)
             }
             
             my $dcself     := nqp::decont($self);
@@ -2340,11 +2340,12 @@ BEGIN {
             
             # If we got a result, return it.
             if nqp::isconcrete($cur_result) {
-                return [$MD_CT_DECIDED, $cur_result];
+                [$MD_CT_DECIDED, $cur_result]
             }
-
-            # Otherwise, dunno...we'll have to find out at runtime.
-            return [$MD_CT_NOT_SURE, NQPMu];
+            else {
+                # Otherwise, dunno...we'll have to find out at runtime.
+                [$MD_CT_NOT_SURE, NQPMu]
+            }
         }));
     Routine.HOW.add_method(Routine, 'set_rw', nqp::getstaticcode(sub ($self) {
             my $dcself := nqp::decont($self);

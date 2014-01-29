@@ -3,10 +3,11 @@ my class Set does Setty {
     has $!WHICH;
 
     method total { $!total //= %!elems.elems }
-    submethod WHICH { $!WHICH }
+    submethod WHICH {
+        $!WHICH := self.^name ~ '|' ~ %!elems.keys.sort if !$!WHICH.defined;
+        $!WHICH
+    }
     submethod BUILD (:%elems) {
-        my @keys := %elems.keys.sort;
-        $!WHICH  := self.^name ~ '|' ~ @keys;
         nqp::bindattr(self, Set, '%!elems', %elems);
     }
 

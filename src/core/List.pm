@@ -4,8 +4,10 @@ my class X::TypeCheck { ... }
 my sub combinations($n, $k) {
     my @result;
     my @stack;
-    @stack.push(0);
 
+    return () unless $k;
+
+    @stack.push(0);
     gather while @stack {
 	my $index = @stack - 1;
 	my $value = @stack.pop;

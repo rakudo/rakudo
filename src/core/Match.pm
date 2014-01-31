@@ -69,29 +69,29 @@ my class Match is Capture is Cool {
         $r;
     }
 
-    method make(Match:D: Mu $ast) {
-        $!ast = $ast;
+    method make(Match:D: Mu \ast) {
+        $!ast = ast;
         nqp::bindattr(
             nqp::decont(self.CURSOR),
             Cursor,
             '$!ast',
-            $ast
+            ast
         );
     }
 }
 
-sub make(Mu $ast) {
+sub make(Mu \ast) {
     nqp::bindattr(
         nqp::decont(nqp::getlexcaller('$/')),
         Match,
         '$!ast',
-        $ast
+        ast
     );
     nqp::bindattr(
         nqp::decont(nqp::getlexcaller('$/').CURSOR),
         Cursor,
         '$!ast',
-        $ast
+        ast
     );
 }
 

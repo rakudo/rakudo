@@ -2087,7 +2087,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         # STD.pm6 uses <defterm> here, but we need different 
         # action methods
         | '\\' <identifier> <.ws>
-            [ <term_init=initializer> || <.sorry("Term definition requires an initializer")> ]
+            [ <term_init=initializer> || <.panic("Term definition requires an initializer")> ]
         | <variable_declarator>
           [
           || <?{ $*SCOPE eq 'has' }> <.newpad> <initializer>? { $*ATTR_INIT_BLOCK := $*W.pop_lexpad() }

@@ -780,9 +780,9 @@ integration/advent2009-day20.t
 integration/advent2009-day22.t
 integration/advent2009-day23.t
 integration/advent2010-day04.t
-integration/advent2013-02.t
-integration/advent2013-04.t
-integration/advent2013-06.t
+integration/advent2013-day02.t
+integration/advent2013-day04.t
+integration/advent2013-day06.t
 integration/code-blocks-as-sub-args.t
 integration/error-reporting.t  # icu
 integration/lazy-bentley-generator.t

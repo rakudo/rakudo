@@ -442,6 +442,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         [
         | <.vws> <.heredoc>
         | <.unv>
+        | <.unsp>
         ]*
         <?MARKER('ws')>
         :my $stub := self.'!set_highexpect'($old_highexpect);
@@ -453,6 +454,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         [
         | <.vws>
         | <.unv>
+        | <.unsp>
         ]*
     }
     
@@ -3283,6 +3285,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     token dottyop {
         :dba('dotty method or postfix')
+        <.unsp>?
         [
         | <methodop>
         | <colonpair>
@@ -3312,7 +3315,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             ]
             || <!{ $*QSIGIL }> <?>
             || <?{ $*QSIGIL }> <?['.']> <?>
-        ]
+        ] <.unsp>?
     }
 
     token dottyopish {
@@ -3564,7 +3567,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token prefix:sym<not>  { <sym> >> <O('%loose_unary')> }
 
     token infix:sym<,>    {
-        <sym>  <O('%comma, :fiddly<0>')>
+        <.unsp>? <sym> <O('%comma, :fiddly<0>')>
         # TODO: should be <.worry>, not <.panic>
         [ <?before \h*'...'> <.panic: "Comma found before apparent series operator; please remove comma (or put parens\n    around the ... listop, or use 'fail' instead of ...)"> ]?
     }

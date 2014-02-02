@@ -49,7 +49,7 @@ grammar Perl6::HookRegexGrammar is Perl6::RegexGrammar {
 class Perl6::HookRegexActions is Perl6::RegexActions {
     method nibbler($/) {
         if $*RX_TOP_LEVEL_NIBBLER && $*DEBUG_HOOKS.has_hook('regex_region') {
-            my $file := nqp::getlexcaller('$?FILES') // '<unknown>';
+            my $file := nqp::getlexcaller('$?FILES') // $*ANON_CODE_NAME;
             $*DEBUG_HOOKS.get_hook('regex_region')($file, $/.from, $/.to);
         }
         Perl6::RegexActions.nibbler($/);
@@ -77,7 +77,7 @@ class Perl6::HookRegexActions is Perl6::RegexActions {
                         QAST::Op.new(
                             :op('call'),
                             QAST::WVal.new( :value($*DEBUG_HOOKS.get_hook('regex_atom')) ),
-                            $*W.add_string_constant(nqp::getlexcaller('$?FILES') // '<unknown>'),
+                            $*W.add_string_constant(nqp::getlexcaller('$?FILES') // $*ANON_CODE_NAME),
                             ps_qast(),
                             $*W.add_numeric_constant($/, 'Int', $/.from),
                             $*W.add_numeric_constant($/, 'Int', $/.to)
@@ -104,7 +104,7 @@ grammar QRegex::P5Regex::HookGrammar is Perl6::P5RegexGrammar {
 class QRegex::P5Regex::HookActions is Perl6::P5RegexActions {
     method nibbler($/) {
         if $*RX_TOP_LEVEL_NIBBLER && $*DEBUG_HOOKS.has_hook('regex_region') {
-            my $file := nqp::getlexcaller('$?FILES') // '<unknown>';
+            my $file := nqp::getlexcaller('$?FILES') // $*ANON_CODE_NAME;
             $*DEBUG_HOOKS.get_hook('regex_region')($file, $/.from, $/.to);
         }
         QRegex::P5Regex::Actions.nibbler($/);
@@ -122,7 +122,7 @@ class QRegex::P5Regex::HookActions is Perl6::P5RegexActions {
                     QAST::Op.new(
                         :op('call'),
                         QAST::WVal.new( :value($*DEBUG_HOOKS.get_hook('regex_atom')) ),
-                        $*W.add_string_constant(nqp::getlexcaller('$?FILES') // '<unknown>'),
+                        $*W.add_string_constant(nqp::getlexcaller('$?FILES') // $*ANON_CODE_NAME),
                         ps_qast(),
                         $*W.add_numeric_constant($/, 'Int', $/.from),
                         $*W.add_numeric_constant($/, 'Int', $/.to)
@@ -185,7 +185,7 @@ class Perl6::HookActions is Perl6::Actions {
                     QAST::Op.new(
                         :op('call'),
                         QAST::WVal.new( :value($*DEBUG_HOOKS.get_hook('statement_simple')) ),
-                        $*W.add_string_constant(nqp::getlexcaller('$?FILES') // '<unknown>'),
+                        $*W.add_string_constant(nqp::getlexcaller('$?FILES') // $*ANON_CODE_NAME),
                         ps_qast(),
                         $*W.add_numeric_constant($/, 'Int', $/.from),
                         $*W.add_numeric_constant($/, 'Int', $/.to)
@@ -205,7 +205,7 @@ class Perl6::HookActions is Perl6::Actions {
                     QAST::Op.new(
                         :op('call'),
                         QAST::WVal.new( :value($*DEBUG_HOOKS.get_hook('statement_cond')) ),
-                        $*W.add_string_constant(nqp::getlexcaller('$?FILES') // '<unknown>'),
+                        $*W.add_string_constant(nqp::getlexcaller('$?FILES') // $*ANON_CODE_NAME),
                         ps_qast(),
                         $*W.add_string_constant('if'),
                         $*W.add_numeric_constant($/, 'Int', $from),
@@ -226,7 +226,7 @@ class Perl6::HookActions is Perl6::Actions {
                 QAST::Op.new(
                     :op('call'),
                     QAST::WVal.new( :value($*DEBUG_HOOKS.get_hook('statement_cond')) ),
-                    $*W.add_string_constant(nqp::getlexcaller('$?FILES') // '<unknown>'),
+                    $*W.add_string_constant(nqp::getlexcaller('$?FILES') // $*ANON_CODE_NAME),
                     ps_qast(),
                     $*W.add_string_constant(~$<sym>),
                     $*W.add_numeric_constant($/, 'Int', $<sym>.from),
@@ -255,7 +255,7 @@ class Perl6::HookActions is Perl6::Actions {
                 QAST::Op.new(
                     :op('call'),
                     QAST::WVal.new( :value($*DEBUG_HOOKS.get_hook('statement_cond')) ),
-                    $*W.add_string_constant(nqp::getlexcaller('$?FILES') // '<unknown>'),
+                    $*W.add_string_constant(nqp::getlexcaller('$?FILES') // $*ANON_CODE_NAME),
                     ps_qast(),
                     $*W.add_string_constant(~$<wu>),
                     $*W.add_numeric_constant($/, 'Int', $<wu>.from),
@@ -276,7 +276,7 @@ class Perl6::HookActions is Perl6::Actions {
                         QAST::Op.new(
                             :op('call'),
                             QAST::WVal.new( :value($*DEBUG_HOOKS.get_hook('statement_cond')) ),
-                            $*W.add_string_constant(nqp::getlexcaller('$?FILES') // '<unknown>'),
+                            $*W.add_string_constant(nqp::getlexcaller('$?FILES') // $*ANON_CODE_NAME),
                             ps_qast(),
                             $*W.add_string_constant('loop'),
                             $*W.add_numeric_constant($/, 'Int', widen_expr_from($m[0])),
@@ -332,7 +332,7 @@ class Perl6::HookActions is Perl6::Actions {
                 QAST::Op.new(
                     :op('call'),
                     QAST::WVal.new( :value($*DEBUG_HOOKS.get_hook('statement_simple')) ),
-                    $*W.add_string_constant(nqp::getlexcaller('$?FILES') // '<unknown>'),
+                    $*W.add_string_constant(nqp::getlexcaller('$?FILES') // $*ANON_CODE_NAME),
                     ps_qast(),
                     $*W.add_numeric_constant($/, 'Int', $/.from),
                     $*W.add_numeric_constant($/, 'Int', $/.to)
@@ -344,7 +344,7 @@ class Perl6::HookActions is Perl6::Actions {
     
     sub routine_hook($/, $body, $type, $name) {
         if $*DEBUG_HOOKS.has_hook('routine_region') {
-            my $file := nqp::getlexcaller('$?FILES') // '<unknown>';
+            my $file := nqp::getlexcaller('$?FILES') // $*ANON_CODE_NAME;
             $*DEBUG_HOOKS.get_hook('routine_region')($file, $/.from, $/.to, $type, $name);
         }
     }
@@ -375,7 +375,7 @@ class Perl6::HookGrammar is Perl6::Grammar {
     my %seen_files;
     
     method statementlist() {
-        my $file := nqp::getlexcaller('$?FILES') // '<unknown>';
+        my $file := nqp::getlexcaller('$?FILES') // $*ANON_CODE_NAME;
         unless nqp::existskey(%*SEEN_FILES, $file) {
             if $*DEBUG_HOOKS.has_hook('new_file') {
                 # First time we've seen this file; register it.
@@ -424,7 +424,7 @@ class Perl6::HookGrammar is Perl6::Grammar {
             my $comment := $c.MATCH.Str;
             if $comment ~~ /'#?BREAK'/ {
                 if $*DEBUG_HOOKS.has_hook('new_breakpoint') {
-                    my $file := nqp::getlexcaller('$?FILES') // '<unknown>';
+                    my $file := nqp::getlexcaller('$?FILES') // $*ANON_CODE_NAME;
                     $*DEBUG_HOOKS.get_hook('new_breakpoint')($file, $c.MATCH().from());
                 }
             }
@@ -442,7 +442,9 @@ sub hll-config($config) {
 }
 
 class Perl6::Debugger is Perl6::Compiler {
+    my $repl_code := 1;
     method eval(*@pos, *%named) {
+        my $*ANON_CODE_NAME := "<REPL {$repl_code++}>";
         if $*DEBUG_HOOKS.has_hook('reset') {
             $*DEBUG_HOOKS.get_hook('reset')();
         }

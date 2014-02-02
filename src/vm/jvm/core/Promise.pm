@@ -57,11 +57,12 @@ my class Promise {
         $vow
     }
 
-    method keep(Promise:D: $result) {
-        self.vow.keep($result)
+    method keep(Promise:D: \result) {
+        self.vow.keep(result)
     }
     
-    method !keep($!result) {
+    method !keep(\result) {
+        $!result := result;
         $!status = Kept;
         $!ready_semaphore.'method/release/(I)V'(32768);
         self!schedule_thens();

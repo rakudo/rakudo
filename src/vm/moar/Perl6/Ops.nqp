@@ -213,7 +213,7 @@ $ops.add_hll_op('perl6', 'p6bindassert', -> $qastcomp, $op {
                 $got.HOW.name($got) ~ "'");
         }
         else {
-            nqp::atkey(%ex, 'X::TypeCheck::Binding')($wanted, $got)
+            nqp::atkey(%ex, 'X::TypeCheck::Binding')($got, $wanted)
         }
     }
     my $err_rep := $qastcomp.as_mast(QAST::WVal.new( :value(nqp::getcodeobj(&bind_error)) ));

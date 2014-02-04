@@ -593,7 +593,7 @@ $ops.add_hll_op('perl6', 'p6typecheckrv', -> $qastcomp, $op {
                         $got.HOW.name($got) ~ "'");
                 }
                 else {
-                    nqp::atkey(%ex, 'X::TypeCheck::Return')($wanted, $got)
+                    nqp::atkey(%ex, 'X::TypeCheck::Return')($got, $wanted)
                 }
             }
             my $err_rep := $qastcomp.as_mast(QAST::WVal.new( :value(nqp::getcodeobj(&return_error)) ));

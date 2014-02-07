@@ -29,7 +29,9 @@ my $nqplibdir = File::Spec->catfile($nqpprefix, 'languages', 'nqp', 'lib');
 sub install {
     my ($name, $command) = @_;
 
-    my $install_to = File::Spec->catfile($destdir, $bindir, "$name$bat");
+    my $install_to = $destdir
+        ? File::Spec->catfile($destdir, $bindir, "$name$bat")
+        : File::Spec->catfile($bindir, "$name$bat");
 
     print "Creating '$install_to'\n";
     open my $fh, ">", $install_to or die "open: $!";

@@ -9,9 +9,11 @@ role Perl6::Metamodel::MROBasedMethodDispatch {
                 return %methods{$name}
             }
         }
-        my %submethods := $obj.HOW.submethod_table($obj);
-        if nqp::existskey(%submethods, $name) {
-            return %submethods{$name}
+        if nqp::can($obj.HOW, 'submethod_table') {
+            my %submethods := $obj.HOW.submethod_table($obj);
+            if nqp::existskey(%submethods, $name) {
+                return %submethods{$name}
+            }
         }
         !$no_fallback && nqp::can(self, 'find_method_fallback') ??
             self.find_method_fallback($obj, $name) !!

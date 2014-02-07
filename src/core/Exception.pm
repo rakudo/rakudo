@@ -159,7 +159,7 @@ do {
 #?if parrot
             if $e.is-compile-time || is_runtime($ex.backtrace) {
 #?endif
-#?if jvm
+#?if !parrot
             if $e.is-compile-time || is_runtime(nqp::backtrace($ex)) {
 #?endif
                 nqp::printfh($err, $e.gist);
@@ -1174,6 +1174,20 @@ my class X::TypeCheck::Assignment is X::TypeCheck {
         $.symbol.defined
             ?? "Type check failed in assignment to '$.symbol'; expected '{$.expected.^name}' but got '{$.got.^name}'"
             !! "Type check failed in assignment; expected '{$.expected.^name}' but got '{$.got.^name}'";
+    }
+}
+my class X::TypeCheck::Argument is X::TypeCheck {
+    has $.protoguilt;
+    has @.arguments;
+    has $.objname;
+    has $.signature;
+    method message { 
+            ($.protoguilt ?? "Calling proto of '" !! "Calling '") ~
+            $.objname ~ "' " ~
+            (+@.arguments == 0
+              ?? "requires arguments\n"
+              !! "will never work with argument types (" ~ join(', ', @.arguments) ~ ")\n") 
+            ~ $.signature 
     }
 }
 

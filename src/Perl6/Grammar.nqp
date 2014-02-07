@@ -442,6 +442,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         [
         | <.vws> <.heredoc>
         | <.unv>
+        | <.unsp>
         ]*
         <?MARKER('ws')>
         :my $stub := self.'!set_highexpect'($old_highexpect);
@@ -453,6 +454,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         [
         | <.vws>
         | <.unv>
+        | <.unsp>
         ]*
     }
     
@@ -854,6 +856,9 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         
         # Quasis and unquotes
         :my $*IN_QUASI := 0;                       # whether we're currently in a quasi block
+
+        # performance improvement stuff
+        :my $*FAKE_INFIX_FOUND := 0;
 
         # Setting loading and symbol setup.
         {
@@ -1580,7 +1585,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
 
     token special_variable:sym<$@> {
-        <sym> <?before \W | '(' | <sigil> >
+        <sym> <!before \w | '(' | <sigil> >
         <.obs('$@ variable as eval error', '$!')>
     }
 
@@ -2084,7 +2089,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         # STD.pm6 uses <defterm> here, but we need different 
         # action methods
         | '\\' <identifier> <.ws>
-            [ <term_init=initializer> || <.sorry("Term definition requires an initializer")> ]
+            [ <term_init=initializer> || <.panic("Term definition requires an initializer")> ]
         | <variable_declarator>
           [
           || <?{ $*SCOPE eq 'has' }> <.newpad> <initializer>? { $*ATTR_INIT_BLOCK := $*W.pop_lexpad() }
@@ -2160,6 +2165,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
           <DECL=multi_declarator>
         | <DECL=multi_declarator>
         ] <.ws>
+        || <.ws>[<typename><.ws>]* <ident> <?before <.ws> [':'?':'?'=' | ';' | '}' ]> {}
+            <.malformed("$*SCOPE (did you mean to declare a sigilless \\{~$<ident>} or \${~$<ident>}?)")>
         || <.ws><typo_typename> <!>
         || <.malformed($*SCOPE)>
         ]
@@ -2243,7 +2250,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         }
         <.newpad>
         [ '(' <multisig> ')' ]?
-        <trait>*
+        <trait>* :!s
         { $*IN_DECL := ''; }
         [
         || <onlystar>
@@ -2427,6 +2434,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             elsif $kind eq '*' {
                 $*zone := 'var';
             }
+
+            %*PARAM_INFO<node> := $/;
         }
     }
 
@@ -2485,6 +2494,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token regex_declarator:sym<rule> {
         <sym>
         :my %*RX;
+        :my $*INTERPOLATE := 1;
         :my $*METHODTYPE := 'rule';
         :my $*IN_DECL    := 'rule';
         {
@@ -2496,6 +2506,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token regex_declarator:sym<token> {
         <sym>
         :my %*RX;
+        :my $*INTERPOLATE := 1;
         :my $*METHODTYPE := 'token';
         :my $*IN_DECL    := 'token';
         {
@@ -2506,6 +2517,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token regex_declarator:sym<regex> {
         <sym>
         :my %*RX;
+        :my $*INTERPOLATE := 1;
         :my $*METHODTYPE := 'regex';
         :my $*IN_DECL    := 'regex';
         <regex_def>
@@ -2720,6 +2732,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     token args {
         :my $*GOAL := '';
+        :my $*FAKE_INFIX_FOUND := 0;
         :dba('argument list')
         [
         | '(' ~ ')' <semiarglist>
@@ -2925,12 +2938,14 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token quote:sym</null/> { '/' \s* '/' <.typed_panic: "X::Syntax::Regex::NullRegex"> }
     token quote:sym</ />  {
         :my %*RX;
+        :my $*INTERPOLATE := 1;
         '/' <nibble(self.quote_lang(%*LANG<Regex>, '/', '/'))> [ '/' || <.panic: "Unable to parse regex; couldn't find final '/'"> ]
         <.old_rx_mods>?
     }
     token quote:sym<rx>   {
         <sym> >> 
         :my %*RX;
+        :my $*INTERPOLATE := 1;
         <rx_adverbs>
         <quibble(%*RX<P5> ?? %*LANG<P5Regex> !! %*LANG<Regex>)>
         <!old_rx_mods>
@@ -2939,6 +2954,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token quote:sym<m> {
         <sym> (s)**0..1>>
         :my %*RX;
+        :my $*INTERPOLATE := 1;
         { %*RX<s> := 1 if $/[0] }
         <rx_adverbs>
         <quibble(%*RX<P5> ?? %*LANG<P5Regex> !! %*LANG<Regex>)>
@@ -2976,6 +2992,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token quote:sym<s> {
         <sym> (s)**0..1 >>
         :my %*RX;
+        :my $*INTERPOLATE := 1;
         {
             %*RX<s> := 1 if $/[0]
         }
@@ -3004,6 +3021,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token quote:sym<tr> {
         <sym>
         :my %*RX;
+        :my $*INTERPOLATE := 1;
         <rx_adverbs>
         <tribble(%*RX<P5> ?? %*LANG<P5Regex> !! %*LANG<Regex>, %*LANG<Q>, ['cc'])>
         <.old_rx_mods>?
@@ -3143,6 +3161,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     
     token fake_infix {
         <O('%item_assignment, :assoc<unary>, :fake<1>, :dba<adverb>')>
+        { $*FAKE_INFIX_FOUND := 1 }
     }
     
     regex infixstopper {
@@ -3266,6 +3285,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     token dottyop {
         :dba('dotty method or postfix')
+        <.unsp>?
         [
         | <methodop>
         | <colonpair>
@@ -3295,7 +3315,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             ]
             || <!{ $*QSIGIL }> <?>
             || <?{ $*QSIGIL }> <?['.']> <?>
-        ]
+        ] <.unsp>?
     }
 
     token dottyopish {
@@ -3547,7 +3567,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token prefix:sym<not>  { <sym> >> <O('%loose_unary')> }
 
     token infix:sym<,>    {
-        <sym>  <O('%comma, :fiddly<0>')>
+        <.unsp>? <sym> <O('%comma, :fiddly<0>')>
         # TODO: should be <.worry>, not <.panic>
         [ <?before \h*'...'> <.panic: "Comma found before apparent series operator; please remove comma (or put parens\n    around the ... listop, or use 'fail' instead of ...)"> ]?
     }
@@ -3717,7 +3737,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             $prec := '%autoincrement';
             $is_oper := 1;
         }
-        elsif $category eq 'circumfix' {
+        elsif $category eq 'postcircumfix'
+           || $category eq 'circumfix' {
             $is_oper := 0;
         }
         elsif $category eq 'trait_mod' {
@@ -3746,10 +3767,26 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             }
             self.HOW.mixin(self, Oper.HOW.curry(Oper, $canname, $opname, $prec, $declarand));
         }
-        else {
+        elsif $category eq 'postcircumfix' {
             # Find opener and closer and parse an EXPR between them.
             # XXX One day semilist would be nice, but right now that
             # runs us into fun with terminators.
+            my @parts := nqp::split(' ', $opname);
+            if +@parts != 2 {
+                nqp::die("Unable to find starter and stopper from '$opname'");
+            }
+            my role Postcircumfix[$meth_name, $starter, $stopper] {
+                token ::($meth_name) {
+                    :my $*GOAL := $stopper;
+                    :my $stub := %*LANG<MAIN> := nqp::getlex('$¢').unbalanced($stopper);
+                    $starter ~ $stopper [ <.ws> <statement> ]
+                    <O('%methodcall')>
+                }
+            }
+            self.HOW.mixin(self, Postcircumfix.HOW.curry(Postcircumfix, $canname, @parts[0], @parts[1]));
+        }
+        else {
+            # Find opener and closer and parse an EXPR between them.
             my @parts := nqp::split(' ', $opname);
             if +@parts != 2 {
                 nqp::die("Unable to find starter and stopper from '$opname'");
@@ -3776,7 +3813,19 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         }
 
         # May also need to add to the actions.
-        if $category eq 'circumfix' {
+        if $category eq 'postcircumfix' {
+            my role PostcircumfixAction[$meth, $subname] {
+                method ::($meth)($/) {
+                    make QAST::Op.new(
+                        :op('call'), :name('&' ~ $subname),
+                        $<statement>.ast
+                    );
+                }
+            };
+            %*LANG<MAIN-actions> := $*ACTIONS.HOW.mixin($*ACTIONS,
+                PostcircumfixAction.HOW.curry(PostcircumfixAction, $canname, $subname));
+        }
+        elsif $category eq 'circumfix' {
             my role CircumfixAction[$meth, $subname] {
                 method ::($meth)($/) {
                     make QAST::Op.new(
@@ -4232,7 +4281,11 @@ grammar Perl6::P5RegexGrammar is QRegex::P5Regex::Grammar does STD {
     token p5metachar:sym<(??{ })> {
         '(??' <?[{]> <codeblock> ')'
     }
-    
+
+    token p5metachar:sym<var> {
+        <?[$]> <var=.LANG('MAIN', 'variable')>
+    }
+
     token codeblock {
         <block=.LANG('MAIN','block')>
     }

@@ -16,7 +16,7 @@ my class IO::Async::File {
         );
         $!path = $path;
         $!chomp = $chomp;
-        nqp::setencoding($!PIO, $bin ?? 'binary' !! NORMALIZE_ENCODING($encoding));
+        nqp::setencoding($!PIO, NORMALIZE_ENCODING($encoding)) unless $bin;
         self;
     }
 
@@ -45,6 +45,22 @@ my class IO::Async::File {
         }
     }
     
+    method spurt(IO::Async::File:D: $data, :$bin, :enc($encoding)) {
+        self.open(:w, :$bin) unless self.opened;
+        self.encoding($encoding) if $encoding.defined;
+
+        if $bin {
+            die "Asynchronous binary file writing NYI"
+        }
+        else {
+            my $p = Promise.new;
+            nqp::spurtasync($!PIO, Str, $data,
+                -> { $p.keep(1); self.close(); },
+                -> $msg { $p.break($msg); try self.close(); });
+            $p
+        }
+    }
+
     method lines(:enc($encoding)) {
         self.open(:r) unless self.opened;
         self.encoding($encoding) if $encoding.defined;

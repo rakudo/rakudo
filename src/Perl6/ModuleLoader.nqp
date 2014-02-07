@@ -160,7 +160,7 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
                 my $source := $fh.readall();
                 $fh.close();
 #?endif
-#?if jvm
+#?if !parrot
                 my $fh := nqp::open(%chosen<pm>, 'r');
                 nqp::setencoding($fh, 'utf8');
                 my $source := nqp::readallfh($fh);

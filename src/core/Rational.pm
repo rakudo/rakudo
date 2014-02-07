@@ -40,37 +40,17 @@ my role Rational[::NuT, ::DeT] does Real {
     }
 
     method floor(Rational:D:) returns Int:D {
-#?if !parrot
         # correct formula
         $!denominator == 1
             ?? $!numerator
             !! $!numerator div $!denominator
-#?endif
-#?if parrot
-        # incorrect formula needed for NQP Parrot's broken div
-        $!denominator == 1
-            ?? $!numerator
-            !! $!numerator < 0
-            ?? ($!numerator div $!denominator - 1) # XXX because div for negati
-            !! $!numerator div $!denominator
-#?endif
     }
 
     method ceiling(Rational:D:) returns Int:D {
-#?if !parrot
         # correct formula
         $!denominator == 1
             ?? $!numerator
             !! ($!numerator div $!denominator + 1)
-#?endif
-#?if parrot
-        # incorrect formula needed for NQP Parrot's broken div
-        $!denominator == 1
-            ?? $!numerator
-            !! $!numerator < 0
-            ?? ($!numerator div $!denominator) # XXX should be +1, but div is buggy
-            !! ($!numerator div $!denominator + 1)
-#?endif
     }
 
     method Int() { self.truncate }
@@ -138,5 +118,11 @@ my role Rational[::NuT, ::DeT] does Real {
     }
 
     method norm() { self }
+
+    method narrow(::?CLASS:D:) {
+        $!denominator == 1
+            ?? $!numerator
+            !! self;
+    }
 }
 

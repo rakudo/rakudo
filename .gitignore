@@ -10,6 +10,7 @@ Makefile
 *.exp
 *.lib
 *.jar
+*.moarvm
 lib/Test.pir
 lib/Pod/To/Text.pir
 lib/lib.pir
@@ -18,6 +19,7 @@ RESTRICTED.setting.pbc
 SAFE.setting.pbc
 /perl6
 /perl6.exe
+/perl6.bat
 /perl6-p
 /perl6-p.exe
 perl6.class
@@ -35,6 +37,10 @@ perl6.pdb
 perl6.rc
 perl6-j
 perl6-j.bat
+perl6-m
+perl6-m.bat
+perl6-debug-m
+perl6-debug-m.bat
 t/localtest.data
 t/spec
 /parrot
@@ -49,6 +55,7 @@ dynext/*.bundle
 dynext/*.so
 dynext/*.dll
 dynext/*.pdb
+dynext/*.dylib
 perl6_group.?
 perl6_group.obj
 libparrot.dll

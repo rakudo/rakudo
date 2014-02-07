@@ -86,6 +86,13 @@ sub SEQUENCE($left, Mu $right, :$exclude_end) {
     my $infinite = $endpoint ~~ Whatever || $endpoint === $Inf;
     $endpoint = Bool::False if $infinite;
     my $tail := ().list;
+    my $end_code_arity = 0;
+    my $end_tail := ().list;
+    if $endpoint ~~ Code {
+        $end_code_arity = $endpoint.arity;
+        $end_code_arity = $endpoint.count if $end_code_arity == 0;
+        $end_code_arity = -Inf if $end_code_arity ~~ Inf;
+    }
 
     my sub succpred($cmp) {
         ($cmp < 0) ?? { $^x.succ } !! ( $cmp > 0 ?? { $^x.pred } !! { $^x } )
@@ -102,7 +109,13 @@ sub SEQUENCE($left, Mu $right, :$exclude_end) {
         while @left {
             $value = @left.shift;
             if $value ~~ Code { $code = $value; last }
-            if $value ~~ $endpoint { $stop = 1; last }
+            if $end_code_arity != 0 {
+                $end_tail.push($value);
+                if +@$end_tail >= $end_code_arity {
+                    $end_tail.munch($end_tail.elems - $end_code_arity) unless $end_code_arity ~~ -Inf;
+                    if $endpoint(|@$end_tail) { $stop = 1; last }
+                }
+            } elsif $value ~~ $endpoint  { $stop = 1; last }
             $tail.push($value);
             take $value;
         }
@@ -156,7 +169,7 @@ sub SEQUENCE($left, Mu $right, :$exclude_end) {
                 }
             }
             elsif $tail.elems == 1 {
-                $code = $a cmp $endpoint > 0 ?? { $^x.pred } !! { $^x.succ }
+                $code = ($a cmp $endpoint > 0 && $endpoint !~~ Code)?? { $^x.pred } !! { $^x.succ }
             }
             elsif $tail.elems == 0 {
                 $code = {()}
@@ -167,7 +180,15 @@ sub SEQUENCE($left, Mu $right, :$exclude_end) {
                 while 1 {
                     $tail.munch($tail.elems - $count);
                     $value := $code(|$tail);
-                    last if $value ~~ $endpoint;
+                    if $end_code_arity != 0 {
+                        $end_tail.push($value);
+                        if $end_tail.elems >= $end_code_arity {
+                            $end_tail.munch($end_tail.elems - $end_code_arity) unless $end_code_arity ~~ -Inf;
+                            last if $endpoint(|@$end_tail);
+                        }
+                    } else {
+                        last if $value ~~ $endpoint;
+                    }
                     $tail.push($value);
                     take $value;
                 }

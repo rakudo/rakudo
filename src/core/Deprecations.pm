@@ -57,6 +57,8 @@ sub DEPRECATED ($alternative) {
     $what.callsites{$callsite.file}{$callsite.line}++;
 } 
 
+# XXX Explodes on Moar so far.
+#?if !moar
 END {
     if my $message = Deprecation.report {
         my Mu $err := nqp::getstderr();
@@ -67,3 +69,4 @@ END {
         say2 "so that this message will disappear!";
     }
 }
+#?endif

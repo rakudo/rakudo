@@ -11,10 +11,6 @@ use File::Spec;
 use Getopt::Long qw(:config pass_through);
 use Pod::Usage;
 
-my $slash = $^O eq 'MSWin32' ? '\\' : '/';
-$ENV{'HARNESS_PERL'} = ".${slash}perl6-p";
-my $path_sep = $^O eq 'MSWin32' ? ';' : ':';
-$ENV{'PERL6LIB'} = join $path_sep, qw/ lib . /;
 use Test::Harness;
 $Test::Harness::switches = '';
 
@@ -29,6 +25,7 @@ GetOptions(
     'archive=s'         => \my $archive,
     'parrot_revision=s' => \my $parrot_revision,
     'jvm'               => \my $jvm,
+    'moar'              => \my $moar,
     'help|h' => sub { pod2usage(1); },
 ) or pod2usage(2);
 
@@ -37,6 +34,11 @@ $do_stress = 0 unless defined $do_stress;
 
 my @pass_through_options = grep m/^--?[^-]/, @ARGV;
 my @files = grep m/^[^-]/, @ARGV;
+
+my $slash = $^O eq 'MSWin32' ? '\\' : '/';
+$ENV{'HARNESS_PERL'} = ".${slash}perl6-" . ($moar ? "m" : $jvm ? "j" : "p");
+my $path_sep = $^O eq 'MSWin32' ? ';' : ':';
+$ENV{'PERL6LIB'} = join $path_sep, qw/ lib . /;
 
 if ($list_file) {
     open(my $f, '<', $list_file)
@@ -48,10 +50,11 @@ if ($list_file) {
         s/\s+\z//;
         my ($fn, $fudgespec) = split /\s+#\s*/;
         if ($fudgespec) {
-            next if ($fudgespec =~ m/icu/)    && !$do_icu && !$jvm;
+            next if ($fudgespec =~ m/icu/)    && !$do_icu && !$jvm && !$moar;
             next if ($fudgespec =~ m/long/)   && !$do_long;
             next if ($fudgespec =~ m/stress/) && !$do_stress;
             next if ($fudgespec =~ m/jvm/)    && !$jvm;
+            next if ($fudgespec =~ m/moar/)   && !$moar;
         }
         $fn = "t/spec/$fn" unless $fn =~ m/^t\Q$slash\Espec\Q$slash\E/;
         $fn =~ s{/}{$slash}g;
@@ -142,7 +145,7 @@ sub all_in {
 }
 
 sub fudge {
-    my $impl = $jvm ? 'rakudo.jvm' : 'rakudo.parrot';
+    my $impl = $jvm ? 'rakudo.jvm' : ($moar ? 'rakudo.moar' : 'rakudo.parrot');
     my $cmd  = join ' ', $^X, 't/spec/fudgeall',
                          @pass_through_options, $impl, @_;
     return split ' ', `$cmd`;

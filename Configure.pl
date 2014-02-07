@@ -34,6 +34,8 @@ MAIN: {
     GetOptions(\%options, 'help!', 'prefix=s',
                 'backends=s', 'no-clean!',
                'gen-nqp:s',
+               'gen-moar:s',
+               'git-protocol=s',
                'gen-parrot:s', 'parrot-option=s@',
                'parrot-make-option=s@',
                'make-install!', 'makefile-timing!',
@@ -51,7 +53,7 @@ MAIN: {
     $options{prefix} ||= 'install';
     $options{prefix} = File::Spec->rel2abs($options{prefix});
     my $prefix         = $options{'prefix'};
-    my %known_backends = (parrot => 1, jvm => 1);
+    my %known_backends = (parrot => 1, jvm => 1, moar => 1);
     my %letter_to_backend;
     my $default_backend;
     for (keys %known_backends) {
@@ -59,6 +61,8 @@ MAIN: {
     }
     my %backends;
     if (defined $options{backends}) {
+        $options{backends} = join ",", keys %known_backends
+            if uc($options{backends}) eq 'ALL';
         for my $b (split /,\s*/, $options{backends}) {
             $b = lc $b;
             unless ($known_backends{$b}) {
@@ -83,8 +87,16 @@ MAIN: {
                 $default_backend ||= $b;
             }
         }
+        if (exists $options{'gen-moar'}) {
+            $backends{moar} = 1;
+            $default_backend ||= 'moar';
+        }
+        if (exists $options{'gen-parrot'}) {
+            $backends{parrot} = 1;
+            $default_backend ||= 'parrot';
+        }
         unless (%backends) {
-            die "No suitable nqp executables found! Please specify some --backends, or a --prefix that contains nqp-{p,j} executables\n";
+            die "No suitable nqp executables found! Please specify some --backends, or a --prefix that contains nqp-{p,j,m} executables\n";
         }
     }
 
@@ -102,6 +114,8 @@ MAIN: {
     $config{'stagestats'} = '--stagestats' if $options{'makefile-timing'};
     $config{'cpsep'} = $^O eq 'MSWin32' ? ';' : ':';
     $config{'shell'} = $^O eq 'MSWin32' ? 'cmd' : 'sh';
+    $config{'runner_suffix'} = $^O eq 'MSWin32' ? '.bat' : '';
+
     my $make = $config{'make'} = $^O eq 'MSWin32' ? 'nmake' : 'make';
 
     open my $MAKEFILE, '>', 'Makefile'
@@ -114,7 +128,11 @@ MAIN: {
     my $launcher = substr($default_backend, 0, 1) . '-runner-default';
     print $MAKEFILE "all: ", join(' ', map("$_-all", @prefixes), $launcher), "\n";
     print $MAKEFILE "install: ", join(' ', map("$_-install", @prefixes), $launcher . '-install'), "\n";
-    for my $t (qw/clean test spectest coretest/) {
+
+    print $MAKEFILE "clean: ", join(' ', map "$_-clean", @prefixes), "\n";
+    print $MAKEFILE "\t\$(RM_F) perl6\$(EXE) perl6\$(BAT)\n\n";
+
+    for my $t (qw/test spectest coretest/) {
         print $MAKEFILE "$t: ", join(' ', map "$_-$t", @prefixes), "\n";
     }
 
@@ -122,6 +140,8 @@ MAIN: {
 
     # determine the version of NQP we want
     my ($nqp_want) = split(' ', slurp('tools/build/NQP_REVISION'));
+
+    $options{'gen-nqp'} ||= '' if exists $options{'gen-parrot'} || exists $options{'gen-moar'};
 
     my %binaries;
     my %impls = gen_nqp($nqp_want, prefix => $prefix, backends => join(',', sort keys %backends), %options);
@@ -164,7 +184,7 @@ MAIN: {
 
         sorry(@errors) if @errors;
 
-        print "Using $impls{parrot}{bin} (version $nqp_config{'nqp::version'}).\n";
+        print "Using $impls{parrot}{bin} (version $nqp_config{'nqp::version'} / Parrot $nqp_config{'parrot::VERSION'}).\n";
 
         if ($^O eq 'MSWin32' or $^O eq 'cygwin') {
             $config{'dll'} = '$(PARROT_BIN_DIR)/$(PARROT_LIB_SHARED)';
@@ -196,8 +216,13 @@ MAIN: {
         }
 
         sorry(@errors) if @errors;
+        
+        my $java_version = `java -version 2>&1`;
+        $java_version    = $java_version =~ /(?<v>[\d\._]+).+\n(?<n>\S+)/
+                         ? "$+{'n'} $+{'v'}"
+                         : 'no java version info available';
 
-        print "Using $bin.\n";
+        print "Using $bin (version $nqp_config{'nqp::version'} / $java_version).\n";
 
         $config{'nqp_prefix'}    = $nqp_config{'jvm::runtime.prefix'};
         $config{'nqp_jars'}      = $nqp_config{'jvm::runtime.jars'};
@@ -206,6 +231,30 @@ MAIN: {
 
 
         fill_template_file('tools/build/Makefile-JVM.in', $MAKEFILE, %config);
+    }
+    if ($backends{moar}) {
+        $config{m_nqp} = $impls{moar}{bin};
+        $config{m_nqp} =~ s{/}{\\}g if $^O eq 'MSWin32';
+        my %nqp_config;
+        if ( $impls{moar}{config} ) {
+            %nqp_config = %{ $impls{moar}{config} };
+        }
+        else {
+            push @errors, "Unable to read configuration from NQP on MoarVM";
+        }
+        sorry(@errors) if @errors;
+
+        print "Using $config{m_nqp} (version $nqp_config{'nqp::version'} / MoarVM $nqp_config{'moar::version'}).\n";
+
+        $config{'perl6_ops_dll'} = sprintf($nqp_config{'moar::dll'}, 'perl6_ops_moar');
+        
+        # Add moar library to link command
+        # TODO: Get this from Moar somehow
+        $config{'moarimplib'} = $^O eq 'MSWin32' ? "$prefix/bin/moar.dll.lib"
+                              : $^O eq 'darwin'  ? "$prefix/lib/libmoar.dylib"
+                              : '';
+
+        fill_template_file('tools/build/Makefile-Moar.in', $MAKEFILE, %config, %nqp_config);
     }
 
     my $l = uc substr($default_backend, 0, 1);
@@ -245,9 +294,12 @@ Configure.pl - $lang Configure
 General Options:
     --help             Show this text
     --prefix=dir       Install files in dir; also look for executables there
-    --backends=parrot,jvm  Which backend(s) to use
+    --backends=parrot,jvm,moar
+                       Which backend(s) to use (or ALL for all of them)
     --gen-nqp[=branch]
                        Download and build a copy of NQP
+        --gen-moar[=branch]
+                       Download and build a copy of MoarVM to use
         --gen-parrot[=branch]
                        Download and build a copy of Parrot
         --parrot-option='--option'
@@ -255,6 +307,8 @@ General Options:
         --parrot-make-option='--option'
                        Options to pass to Parrot's make, for example:
                        --parrot-make-option='--jobs=4'
+        --git-protocol={ssh,https,git}
+                       Protocol used for cloning git repos
     --makefile-timing  Enable timing of individual makefile commands
 
 Configure.pl also reads options from 'config.default' in the current directory.

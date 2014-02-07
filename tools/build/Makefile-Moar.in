@@ -1,0 +1,355 @@
+M_CC      = @moar::cc@
+M_LD      = @moar::ld@
+M_CFLAGS  = @moar::cflags@ @moar::ccmiscflags@ @moar::ccoptiflags@ @moar::ccwarnflags@
+M_LDFLAGS = @moar::ldflags@ @moar::ldmiscflags@ @moar::ldoptiflags@ @moar::ldlibs@
+
+M_GEN_CAT = tools/build/gen-cat.pl moar
+
+MOAR   = $(PREFIX)@slash@bin@slash@moar@exe@
+M_NQP  = $(PREFIX)@slash@bin@slash@nqp-m@runner_suffix@
+M_LIBPATH = $(PREFIX)@slash@languages@slash@nqp@slash@lib
+
+M_RUN_PERL6 = $(MOAR) --libpath="$(M_LIBPATH)" perl6.moarvm
+
+M_BAT    = @runner_suffix@
+M_RUNNER = perl6-m@runner_suffix@
+
+# files we create
+PERL6_MOAR     = perl6.moarvm
+PERL6_ML_MOAR  = blib/Perl6/ModuleLoader.moarvm
+PERL6_W_MOAR   = blib/Perl6/World.moarvm
+PERL6_G_MOAR   = blib/Perl6/Grammar.moarvm
+PERL6_OPS_MOAR = blib/Perl6/Ops.moarvm
+PERL6_A_MOAR   = blib/Perl6/Actions.moarvm
+PERL6_O_MOAR   = blib/Perl6/Optimizer.moarvm
+PERL6_P_MOAR   = blib/Perl6/Pod.moarvm
+PERL6_C_MOAR   = blib/Perl6/Compiler.moarvm
+PERL6_M_MOAR   = blib/Perl6/Metamodel.moarvm
+PERL6_B_MOAR   = blib/Perl6/BOOTSTRAP.moarvm
+SETTING_MOAR   = CORE.setting.moarvm
+R_SETTING_MOAR = RESTRICTED.setting.moarvm
+
+M_PERL6_OPS_DIR  = dynext
+M_PERL6_OPS_DLL  = $(M_PERL6_OPS_DIR)/@perl6_ops_dll@
+M_PERL6_OPS_OBJ  = $(M_PERL6_OPS_DIR)/perl6_ops@moar::obj@
+M_PERL6_CONT_OBJ = $(M_PERL6_OPS_DIR)/container@moar::obj@
+M_PERL6_OPS_SRC  = src/vm/moar/ops/perl6_ops.c
+M_PERL6_CONT_SRC = src/vm/moar/ops/container.c
+
+M_PERL6_LANG_OUTPUT = \
+    $(PERL6_ML_MOAR) $(PERL6_W_MOAR) $(PERL6_G_MOAR) $(PERL6_OPS_MOAR) \
+    $(PERL6_A_MOAR) $(PERL6_O_MOAR) $(PERL6_P_MOAR) $(PERL6_C_MOAR) \
+    $(PERL6_M_MOAR) $(PERL6_B_MOAR)
+
+M_METAMODEL_SOURCES = $(COMMON_BOOTSTRAP_SOURCES)
+
+# The ordering here is important for bootstrapping reasons. In general:
+# * traits almost certainly have to come first
+# * stubs have to come after traits since they use them
+# * Attribute needs to come before anything that uses an attribute
+# We break various other circularities in Perl6::Metamodel::BOOTSTRAP.
+# Note that you only really have to worry especially about things that
+# the compiler will instantiate/call methods on while compiling the
+# setting - basically anything that feels MOP-ish.
+M_CORE_SOURCES = \
+  src/core/core_prologue.pm \
+  src/core/traits.pm \
+  src/core/Positional.pm \
+  src/core/Associative.pm \
+  src/core/Callable.pm \
+  src/core/natives.pm \
+  src/core/stubs.pm \
+  src/core/control.pm \
+  src/core/Mu.pm \
+  src/core/Stringy.pm \
+  src/core/Any.pm \
+  src/core/array_slice.pm \
+  src/core/hash_slice.pm \
+  src/core/Scalar.pm \
+  src/core/Code.pm \
+  src/core/WhateverCode.pm \
+  src/core/Block.pm \
+  src/core/Attribute.pm \
+  src/core/Variable.pm \
+  src/core/Routine.pm \
+  src/core/Sub.pm \
+  src/core/Macro.pm \
+  src/core/Method.pm \
+  src/core/Submethod.pm \
+  src/core/Junction.pm \
+  src/core/Cool.pm \
+  src/core/Enumeration.pm \
+  src/core/Whatever.pm \
+  src/core/Bool.pm \
+  src/core/Numeric.pm \
+  src/core/Real.pm \
+  src/core/Int.pm \
+  src/core/Order.pm \
+  src/core/UInt64.pm \
+  src/core/Num.pm \
+  src/core/Buf.pm \
+  src/core/Str.pm \
+  src/core/Capture.pm \
+  src/core/Parcel.pm \
+  src/core/Iterable.pm \
+  src/core/Iterator.pm \
+  src/core/Nil.pm \
+  src/core/Range.pm \
+  src/core/ListIter.pm \
+  src/core/MapIter.pm \
+  src/core/GatherIter.pm \
+  src/core/List.pm \
+  src/core/LoL.pm \
+  src/core/Array.pm \
+  src/core/Enum.pm \
+  src/core/Pair.pm \
+  src/core/HashIter.pm \
+  src/core/EnumMap.pm \
+  src/core/Hash.pm \
+  src/core/Stash.pm \
+  src/core/PseudoStash.pm \
+  src/core/Parameter.pm \
+  src/core/Signature.pm \
+  src/core/Rational.pm \
+  src/core/Rat.pm \
+  src/core/Complex.pm \
+  src/core/Backtrace.pm \
+  src/core/Exception.pm \
+  src/core/Failure.pm \
+  src/core/Match.pm \
+  src/core/Cursor.pm \
+  src/core/Grammar.pm \
+  src/core/Regex.pm \
+  src/core/IO/Spec/Unix.pm \
+  src/core/IO/Spec/Win32.pm \
+  src/core/IO/Spec/Cygwin.pm \
+  src/core/IO/Spec.pm \
+  src/core/IO.pm \
+  src/core/IO/ArgFiles.pm \
+  src/core/AST.pm \
+  src/core/CallFrame.pm \
+  src/core/Main.pm \
+  src/core/tai-utc.pm \
+  src/core/Instant.pm \
+  src/core/Duration.pm \
+  src/core/Temporal.pm \
+  src/core/EXPORTHOW.pm \
+  src/core/Pod.pm \
+  src/core/QuantHash.pm \
+  src/core/Setty.pm \
+  src/core/Set.pm \
+  src/core/SetHash.pm \
+  src/core/Baggy.pm \
+  src/core/Bag.pm \
+  src/core/BagHash.pm \
+  src/core/Mixy.pm \
+  src/core/Mix.pm \
+  src/core/MixHash.pm \
+  src/core/set_operators.pm \
+  src/core/ObjAt.pm \
+  src/core/Version.pm \
+  src/core/ForeignCode.pm \
+  src/core/operators.pm \
+  src/core/metaops.pm \
+  src/core/precedence.pm \
+  src/core/terms.pm \
+  src/core/Deprecations.pm \
+  src/core/IO/Socket.pm \
+  src/core/OS.pm \
+  src/core/core_epilogue.pm \
+
+PERL6_DEBUG_MOAR = perl6-debug.moarvm
+M_DEBUG_RUNNER = perl6-debug-m@runner_suffix@
+
+M_CLEANUPS = \
+  *.manifest \
+  blib/Perl6/*.moarvm \
+  $(SETTING_MOAR) \
+  $(R_SETTING_MOAR) \
+  $(PERL6_MOAR) \
+  lib/Test.moarvm \
+  lib/lib.moarvm \
+  lib/Pod/To/Text.moarvm \
+  lib/Test.moarvm \
+  blib/lib.moarvm \
+  blib/Pod/To/Text.moarvm \
+  rakudo_test_run.tar.gz \
+  src/gen/m-CORE.setting \
+  src/gen/*.moarvm \
+  src/gen/*.pm \
+  $(M_RUNNER) \
+  $(M_PERL6_OPS_DLL) \
+  $(M_PERL6_OPS_OBJ) \
+  $(M_PERL6_CONT_OBJ) \
+  $(M_PERL6_OPS_DLL) \
+  $(PERL6_DEBUG_MOAR) \
+  $(M_DEBUG_RUNNER)
+
+M_HARNESS_WITH_FUDGE = $(PERL) t/harness --fudge --moar --keep-exit-code
+HARNESS = $(PERL) t/harness
+
+m-all: $(PERL6_MOAR) $(SETTING_MOAR) $(R_SETTING_MOAR) $(M_RUNNER) lib/Test.moarvm blib/lib.moarvm blib/Pod/To/Text.moarvm $(PERL6_DEBUG_MOAR) $(M_DEBUG_RUNNER)
+
+$(M_PERL6_OPS_DLL): $(M_PERL6_OPS_SRC) $(M_PERL6_CONT_SRC) Makefile
+	$(M_CC) @moar::ccswitch@ @moar::ccshared@ $(M_CFLAGS) -I$(PREFIX)/include/libatomic_ops \
+	    -I$(PREFIX)/include/dyncall -I$(PREFIX)/include/linenoise -I$(PREFIX)/include/moar \
+	    -I$(PREFIX)/include/sha1 -I$(PREFIX)/include/tinymt  -I$(PREFIX)/include/libtommath \
+	    -I$(PREFIX)/include/libuv -I$(PREFIX)/include @moar::ccout@$(M_PERL6_OPS_OBJ) $(M_PERL6_OPS_SRC)
+	$(M_CC) @moar::ccswitch@ @moar::ccshared@ $(M_CFLAGS) -I$(PREFIX)/include/libatomic_ops \
+	    -I$(PREFIX)/include/dyncall -I$(PREFIX)/include/linenoise -I$(PREFIX)/include/moar \
+	    -I$(PREFIX)/include/sha1 -I$(PREFIX)/include/tinymt  -I$(PREFIX)/include/libtommath \
+	    -I$(PREFIX)/include/libuv -I$(PREFIX)/include @moar::ccout@$(M_PERL6_CONT_OBJ) $(M_PERL6_CONT_SRC)
+	$(M_LD) @moar::ldswitch@ @moar::ldshared@ $(M_LDFLAGS) @moar::ldout@$(M_PERL6_OPS_DLL) $(M_PERL6_OPS_OBJ) $(M_PERL6_CONT_OBJ) @moarimplib@
+
+$(PERL6_ML_MOAR): src/Perl6/ModuleLoader.nqp src/vm/moar/ModuleLoaderVMConfig.nqp
+	$(PERL) $(M_GEN_CAT) src/vm/moar/ModuleLoaderVMConfig.nqp src/Perl6/ModuleLoader.nqp > src/gen/m-ModuleLoader.nqp
+	$(M_NQP) --target=mbc --output=$(PERL6_ML_MOAR) --encoding=utf8 \
+	    src/gen/m-ModuleLoader.nqp
+
+$(PERL6_W_MOAR): $(PERL6_ML_MOAR) src/Perl6/World.nqp
+	$(M_NQP) --target=mbc --output=$(PERL6_W_MOAR) --encoding=utf8 \
+	    src/Perl6/World.nqp
+
+$(PERL6_P_MOAR): src/Perl6/Pod.nqp
+	$(M_NQP) --target=mbc --output=$(PERL6_P_MOAR) --encoding=utf8 \
+	    src/Perl6/Pod.nqp
+
+$(PERL6_OPS_MOAR): src/vm/moar/Perl6/Ops.nqp $(M_PERL6_OPS_DLL)
+	$(M_NQP) --target=mbc --output=$(PERL6_OPS_MOAR) --encoding=utf8 \
+	    src/vm/moar/Perl6/Ops.nqp
+
+$(PERL6_A_MOAR): src/Perl6/Actions.nqp $(PERL6_P_MOAR) $(PERL6_OPS_MOAR)
+	$(M_NQP) --target=mbc --output=$(PERL6_A_MOAR) --encoding=utf8 \
+	    src/Perl6/Actions.nqp
+
+$(PERL6_G_MOAR): src/Perl6/Grammar.nqp $(PERL6_W_MOAR) $(PERL6_A_MOAR) $(PERL6_P_MOAR)
+	$(M_NQP) --target=mbc --output=$(PERL6_G_MOAR) --encoding=utf8 \
+	    src/Perl6/Grammar.nqp
+
+$(PERL6_O_MOAR): src/Perl6/Optimizer.nqp $(PERL6_OPS_MOAR)
+	$(M_NQP) --target=mbc --output=$(PERL6_O_MOAR) --encoding=utf8 \
+	    src/Perl6/Optimizer.nqp
+
+$(PERL6_C_MOAR): src/Perl6/Compiler.nqp $(PERL6_O_MOAR)
+	$(M_NQP) --target=mbc --output=$(PERL6_C_MOAR) --encoding=utf8 \
+	    src/Perl6/Compiler.nqp
+
+$(PERL6_MOAR): src/main.nqp $(PERL6_G_MOAR) $(PERL6_A_MOAR) $(PERL6_C_MOAR) $(PERL6_P_MOAR)
+	$(PERL) tools/build/gen-version.pl > src/gen/main-version.nqp
+	$(PERL) $(M_GEN_CAT) src/main.nqp src/gen/main-version.nqp > src/gen/m-main.nqp
+	$(M_NQP) --target=mbc --output=$(PERL6_MOAR) \
+	    --vmlibs=$(M_PERL6_OPS_DLL)=Rakudo_ops_init src/gen/m-main.nqp
+
+$(PERL6_M_MOAR): $(M_METAMODEL_SOURCES) $(PERL6_OPS_MOAR)
+	$(PERL) $(M_GEN_CAT) $(M_METAMODEL_SOURCES) > src/gen/m-Metamodel.nqp
+	$(M_NQP) --target=mbc --output=$(PERL6_M_MOAR) --encoding=utf8 \
+	    src/gen/m-Metamodel.nqp
+
+$(PERL6_B_MOAR): $(BOOTSTRAP_SOURCES) $(PERL6_M_MOAR)
+	$(PERL) $(M_GEN_CAT) $(BOOTSTRAP_SOURCES) > src/gen/m-BOOTSTRAP.nqp
+	$(M_NQP) --target=mbc --output=$(PERL6_B_MOAR) --encoding=utf8 \
+        --vmlibs=$(M_PERL6_OPS_DLL)=Rakudo_ops_init src/gen/m-BOOTSTRAP.nqp
+
+$(SETTING_MOAR): $(PERL6_MOAR) $(PERL6_B_MOAR) $(M_CORE_SOURCES)
+	$(PERL) $(M_GEN_CAT) $(M_CORE_SOURCES) > src/gen/m-CORE.setting
+	@echo "The following step can take a long time, please be patient."
+	$(M_RUN_PERL6) --setting=NULL --optimize=3 --target=mbc --stagestats --output=$(SETTING_MOAR) src/gen/m-CORE.setting
+
+$(R_SETTING_MOAR): $(PERL6_MOAR) $(SETTING_MOAR) $(R_SETTING_SRC)
+	$(M_RUN_PERL6) --target=mbc --output=$(R_SETTING_MOAR) $(R_SETTING_SRC)
+
+$(M_RUNNER): tools/build/create-moar-runner.pl $(PERL6_MOAR)
+	$(PERL) tools/build/create-moar-runner.pl "$(MOAR)" perl6.moarvm perl6-m . "$(M_LIBPATH)" .
+
+m-runner-default: $(M_RUNNER)
+	$(CP) $(M_RUNNER) perl6@runner_suffix@
+
+$(PERL6_DEBUG_MOAR): src/perl6-debug.nqp $(PERL6_MOAR)
+	$(M_NQP) --target=mbc --output=$(PERL6_DEBUG_MOAR) \
+	    --vmlibs=$(M_PERL6_OPS_DLL)=Rakudo_ops_init src/perl6-debug.nqp
+
+$(M_DEBUG_RUNNER): tools/build/create-moar-runner.pl $(PERL6_DEBUG_MOAR)
+	$(PERL) tools/build/create-moar-runner.pl "$(MOAR)" perl6-debug.moarvm perl6-debug-m . "$(M_LIBPATH)" .
+
+##  testing targets
+lib/Test.moarvm: lib/Test.pm $(PERL6_MOAR) $(SETTING_MOAR) $(M_RUNNER)
+	.@slash@$(M_RUNNER) --target=mbc --output=lib/Test.moarvm lib/Test.pm
+
+blib/lib.moarvm: lib/lib.pm6 $(PERL6_MOAR) $(SETTING_MOAR) $(M_RUNNER)
+	.@slash@$(M_RUNNER) --target=mbc --output=blib/lib.moarvm lib/lib.pm6
+
+blib/Pod/To/Text.moarvm: lib/Pod/To/Text.pm $(PERL6_MOAR) $(SETTING_MOAR) $(M_RUNNER)
+	$(MKPATH) blib/Pod/To
+	.@slash@$(M_RUNNER) --target=mbc --output=blib/Pod/To/Text.moarvm lib/Pod/To/Text.pm
+
+m-test    : m-coretest
+
+m-fulltest: m-coretest m-stresstest
+
+m-coretest: m-all
+	$(HARNESS) --moar t/01-sanity
+
+# Run the spectests that we know work.
+m-spectest: m-testable t/spectest.data
+	$(M_HARNESS_WITH_FUDGE) --tests-from-file=t/spectest.data
+
+m-spectest_full: m-testable
+	$(M_HARNESS_WITH_FUDGE) t/spec
+
+m-quicktest: m-testable t/spectest.data
+	$(M_HARNESS_WITH_FUDGE) --tests-from-file=t/spectest.data --long=0
+
+m-stresstest: m-testable t/spectest.data
+	$(M_HARNESS_WITH_FUDGE) --tests-from-file=t/spectest.data --stress=1
+
+#spectest_smolder: rakudo_test_run.tar.gz
+#	./perl6 -e "shell qqx[git log -1 --pretty=format:%H].fmt(qq[curl -F architecture=@cpuarch@ -F platform=@osname@ -F revision=%s -F report_file=@rakudo_test_run.tar.gz -F username=parrot-autobot -F password=qa_rocks http://smolder.parrot.org/app/projects/process_add_report/5])"
+
+m-testable : m-all spectest_checkout spectest_update
+
+# Run the tests in t/localtest.data
+m-localtest: m-all spectest_checkout t/localtest.data
+	@$(M_HARNESS_WITH_FUDGE) --tests-from-file=t/localtest.data
+
+# Run the tests in t/localtest.data with a higher verbosity
+m-localtest_loud: m-all spectest_checkout t/localtest.data
+	@$(M_HARNESS_WITH_FUDGE) --tests-from-file=t/localtest.data --verbosity=1
+
+# Run many tests of your choice.
+# make sometests TESTFILES=t/foo/bar
+m-sometests: m-all
+	@$(M_HARNESS_WITH_FUDGE) $(TESTFILES)
+
+m-install: m-all tools/build/create-moar-runner.pl
+	$(MKPATH) $(DESTDIR)$(PREFIX)/bin
+	$(MKPATH) $(DESTDIR)$(M_LIBPATH)/Perl6
+	$(CP) $(M_PERL6_LANG_OUTPUT) $(DESTDIR)$(M_LIBPATH)/Perl6
+	$(MKPATH) $(DESTDIR)$(PERL6_LANG_DIR)/lib
+	$(MKPATH) $(DESTDIR)$(PERL6_LANG_DIR)/runtime
+	$(CP) $(SETTING_MOAR) $(DESTDIR)$(PERL6_LANG_DIR)/runtime
+	$(CP) $(R_SETTING_MOAR) $(DESTDIR)$(PERL6_LANG_DIR)/runtime
+	$(CP) $(PERL6_MOAR) $(DESTDIR)$(PERL6_LANG_DIR)/runtime
+	$(CP) $(PERL6_DEBUG_MOAR) $(DESTDIR)$(PERL6_LANG_DIR)/runtime
+	$(MKPATH) $(DESTDIR)$(PERL6_LANG_DIR)/runtime/dynext
+	$(CP) $(M_PERL6_OPS_DLL) $(DESTDIR)$(PERL6_LANG_DIR)/runtime/dynext
+	$(CP) lib/Test.moarvm $(DESTDIR)$(PERL6_LANG_DIR)/lib
+	$(CP) blib/lib.moarvm $(DESTDIR)$(PERL6_LANG_DIR)/lib
+	$(MKPATH) $(DESTDIR)$(PERL6_LANG_DIR)/lib/Pod/To
+	$(CP) blib/Pod/To/Text.moarvm $(DESTDIR)$(PERL6_LANG_DIR)/lib/Pod/To
+	$(PERL) tools/build/create-moar-runner.pl "$(MOAR)" perl6.moarvm perl6-m "$(PERL6_LANG_DIR)/runtime" "$(M_LIBPATH)" "$(PERL6_LANG_DIR)/lib" "$(PERL6_LANG_DIR)/runtime"
+	$(CP) perl6-m$(M_BAT) $(DESTDIR)$(PREFIX)/bin
+	$(PERL) tools/build/create-moar-runner.pl "$(MOAR)" perl6-debug.moarvm perl6-debug-m "$(PERL6_LANG_DIR)/runtime" "$(M_LIBPATH)" "$(PERL6_LANG_DIR)/lib" "$(PERL6_LANG_DIR)/runtime"
+	$(CP) perl6-debug-m$(M_BAT) $(DESTDIR)$(PREFIX)/bin
+	$(CHMOD) 755 $(DESTDIR)$(PREFIX)/bin/perl6-m$(M_BAT)
+
+m-runner-default-install: m-install
+	$(PERL) tools/build/create-moar-runner.pl "$(MOAR)" perl6.moarvm perl6-m "$(PERL6_LANG_DIR)/runtime" "$(M_LIBPATH)" "$(PERL6_LANG_DIR)/lib" "$(PERL6_LANG_DIR)/runtime"
+	$(CP) perl6-m$(M_BAT) $(DESTDIR)$(PREFIX)/bin/perl6$(M_BAT)
+	$(CHMOD) 755 $(DESTDIR)$(PREFIX)/bin/perl6$(M_BAT)
+
+##  cleaning
+m-clean:
+	$(RM_F) $(M_CLEANUPS)
+	$(RM_F) non-existent-copy-mtgt non-existent-copy-stgt
+
+m-testclean:

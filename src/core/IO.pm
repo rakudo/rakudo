@@ -107,7 +107,7 @@ my class IO::Handle does IO::FileTestable {
         );
         $!path = $path;
         $!chomp = $chomp;
-        nqp::setencoding($!PIO, $bin ?? 'binary' !! NORMALIZE_ENCODING($encoding));
+        nqp::setencoding($!PIO, NORMALIZE_ENCODING($encoding)) unless $bin;
         self;
     }
 
@@ -161,7 +161,7 @@ my class IO::Handle does IO::FileTestable {
         my Mu $parrot_buffer := $!PIO.read_bytes(nqp::unbox_i($bytes));
         nqp::encode($parrot_buffer.get_string('binary'), 'binary', $buf);
 #?endif
-#?if jvm
+#?if !parrot
         nqp::readfh($!PIO, $buf, nqp::unbox_i($bytes));
 #?endif
         $buf;
@@ -180,7 +180,7 @@ my class IO::Handle does IO::FileTestable {
 #?if parrot
             $!PIO.tell
 #?endif
-#?if jvm
+#?if !parrot
             nqp::tellfh($!PIO)
 #?endif
         );
@@ -195,7 +195,7 @@ my class IO::Handle does IO::FileTestable {
         $!PIO.print(nqp::decode(nqp::decont($buf), 'binary'));
         $!PIO.encoding($encoding) unless $encoding eq 'binary';
 #?endif
-#?if jvm
+#?if !parrot
         nqp::writefh($!PIO, nqp::decont($buf));
 #?endif
         True;
@@ -488,18 +488,31 @@ my class IO::Path is Cool does IO::FileTestable {
             }
         }
 #?endif
-#?if jvm
+#?if !parrot
         my Mu $dirh := nqp::opendir(self.absolute.Str);
         my $next = 1;
         gather {
+#?endif
+#?if jvm
             take $_.path if $_ ~~ $test for ".", "..";
+#?endif
+#?if !parrot
             loop {
                 my Str $elem := nqp::nextfiledir($dirh);
-                if nqp::isnull_s($elem) {
+                if nqp::isnull_s($elem) || !$elem {
                     nqp::closedir($dirh);
                     last;
                 } else {
+#?endif
+#?if jvm
+                    # jvm's nextfiledir gives us absolute paths back, moar does not.
                     $elem := $elem.substr($*CWD.chars + 1) if self.is-relative;
+#?endif
+#?if moar
+                    next unless $elem ~~ $test;
+                    $elem := $.SPEC.catfile($!path, $elem) if self.is-relative && self ne '.';
+#?endif
+#?if !parrot
                     if $elem.substr(0, 2) eq any("./", ".\\") {
                         $elem := $elem.substr(2);
                     }

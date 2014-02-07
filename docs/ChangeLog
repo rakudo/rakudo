@@ -1,3 +1,34 @@
+New in 2014.01
+
++ Use .narrow on Numeric to coerce to narrowest Type possible
++ Can now supply blocks with multiple arguments as sequence endpoints
++ <prior> rule no longer exists
++ The eval sub and method are now spelled EVAL
++ Method calls and hash/list access on Nil give Nil
++ No longer need to separate adverbs with comma in argument lists
++ div on parrot will now always round towards -Inf
++ Added support for MoarVM; passes >99% of the spectests that Rakudo JVM does
++ Fixed gather/take stack overflow bug in JVM backend
++ Fixed closure in regex bug on JVM
++ Fixed some line number reporting bugs on JVM
++ Optimized Enum($value) coercion
++ Regexes: Aliased assertions now properly create sub-captures
++ Regexes: Improved detection/reporting of null patterns
++ Implemented IO::Async::File.spurt (JVM only)
++ Implemented Setty.kv and Baggy.kv
++ Use a global ByteClassLoader rather than one per class. (JVM only)
++ Implement more parts of NativeCall for the JVM
+
+New in 2013.12
+
++ The Whatever Star now works inside chain operators like comparisons
++ Private attributes from roles are now visible in the classes they apply to
++ Use invokedynamic in some places on the JVM.
++ Memory improvements in ListIter
++ Faster method List.combinations
++ Simple lookahead assertions in regexes are optimized
++ Regexes do less superfluous scanning
+
 New in 2013.11
 
 + Many concurrency primitives harmonized with new S17, but still pretty fluid

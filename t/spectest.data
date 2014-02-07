@@ -30,6 +30,7 @@ S02-literals/char-by-name.t # icu
 S02-literals/char-by-number.t
 S02-literals/fmt-interpolation.t
 S02-literals/hash-interpolation.t
+S02-literals/heredocs.t
 S02-literals/hex_chars.t
 S02-literals/listquote.t
 S02-literals/listquote-whitespace.t
@@ -46,6 +47,7 @@ S02-literals/subscript.t
 S02-literals/types.t
 S02-literals/underscores.t
 S02-literals/version.t
+S02-magicals/78258.t
 S02-magicals/args.t
 S02-magicals/config.t
 S02-magicals/dollar_bang.t
@@ -154,6 +156,7 @@ S03-operators/basic-types.t
 S03-operators/bit.t
 S03-operators/boolean-bitwise.t
 S03-operators/brainos.t
+S03-operators/custom.t
 S03-operators/buf.t
 S03-operators/chained-declarators.t
 S03-operators/cmp.t
@@ -163,6 +166,7 @@ S03-operators/context-forcers.t
 S03-operators/context.t
 S03-operators/equality.t
 S03-operators/eqv.t
+S03-operators/fiddly.t
 S03-operators/flip-flop.t
 S03-operators/gcd.t
 S03-operators/div.t
@@ -177,6 +181,7 @@ S03-operators/misc.t
 S03-operators/names.t
 S03-operators/nesting.t
 S03-operators/not.t
+S03-operators/numeric-shift.t
 S03-operators/overflow.t
 S03-operators/precedence.t
 S03-operators/range-basic.t
@@ -198,7 +203,7 @@ S03-operators/value_equivalence.t
 S03-sequence/arity0.t
 S03-sequence/arity-2-or-more.t
 S03-sequence/basic.t
-# S03-sequence/limit-arity-2-or-more.t # err: Not enough positional parameters passed; got 1 but expected 2
+S03-sequence/limit-arity-2-or-more.t
 S03-sequence/misc.t
 S03-sequence/nonnumeric.t
 S03-smartmatch/any-any.t
@@ -235,6 +240,7 @@ S04-declarations/state.t
 S04-declarations/will.t
 S04-exception-handlers/catch.t
 S04-exceptions/fail.t
+S04-exceptions/pending.t
 S04-phasers/ascending-order.t
 S04-phasers/begin.t
 S04-phasers/check.t
@@ -326,7 +332,6 @@ S05-metasyntax/litvar.t
 S05-metasyntax/longest-alternative.t
 S05-metasyntax/lookaround.t
 S05-metasyntax/null.t
-S05-metasyntax/prior.t
 S05-metasyntax/proto-token-ltm.t
 S05-metasyntax/regex.t
 S05-metasyntax/repeat.t
@@ -353,6 +358,7 @@ S05-modifier/repetition.t
 S05-modifier/sigspace.t
 S05-substitution/match.t
 S05-substitution/subst.t # icu
+S05-transliteration/79778.t
 S05-transliteration/trans.t
 S05-transliteration/with-closure.t
 S06-advanced/callframe.t
@@ -620,6 +626,7 @@ S32-array/splice.t
 S32-array/unshift.t
 S32-basics/warn.t
 S32-container/roundrobin.t
+S32-container/stringify.t
 S32-container/zip.t
 S32-exceptions/misc.t
 S32-hash/delete.t
@@ -676,6 +683,7 @@ S32-num/fatrat.t
 S32-num/int.t
 S32-num/is-prime.t
 S32-num/log.t
+S32-num/narrow.t
 S32-num/pi.t
 S32-num/polar.t
 S32-num/power.t
@@ -684,6 +692,7 @@ S32-num/rat.t
 S32-num/real-bridge.t
 S32-num/roots.t
 S32-num/rounders.t
+S32-num/rshift_pos_amount.t
 S32-num/sign.t
 S32-num/sqrt.t
 S32-num/stringify.t
@@ -714,6 +723,7 @@ S32-str/split.t
 S32-str/sprintf.t
 S32-str/substr.t                                           # icu
 S32-str/substr-rw.t
+S32-str/tc.t                                               # icu
 S32-str/tclc.t                                             # icu
 S32-str/trim.t
 S32-str/uc.t                                               # icu
@@ -770,6 +780,9 @@ integration/advent2009-day20.t
 integration/advent2009-day22.t
 integration/advent2009-day23.t
 integration/advent2010-day04.t
+integration/advent2013-day02.t
+integration/advent2013-day04.t
+integration/advent2013-day06.t
 integration/code-blocks-as-sub-args.t
 integration/error-reporting.t  # icu
 integration/lazy-bentley-generator.t

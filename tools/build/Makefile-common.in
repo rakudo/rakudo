@@ -8,9 +8,58 @@ CP      = $(PERL) -MExtUtils::Command -e cp
 RM_F    = $(PERL) -MExtUtils::Command -e rm_f
 RM_RF   = $(PERL) -MExtUtils::Command -e rm_rf
 
+PREFIX = @prefix@
+PERL6_LANG_DIR = $(PREFIX)/languages/perl6
+
 BOOTSTRAP_SOURCES = \
   src/Perl6/Metamodel/BOOTSTRAP.nqp \
   src/Perl6/Metamodel/EXPORTHOW.nqp \
+
+COMMON_BOOTSTRAP_SOURCES = \
+  src/Perl6/Metamodel/Archetypes.nqp \
+  src/Perl6/Metamodel/Naming.nqp \
+  src/Perl6/Metamodel/Documenting.nqp \
+  src/Perl6/Metamodel/Stashing.nqp \
+  src/Perl6/Metamodel/Versioning.nqp \
+  src/Perl6/Metamodel/TypePretense.nqp \
+  src/Perl6/Metamodel/MethodDelegation.nqp \
+  src/Perl6/Metamodel/BoolificationProtocol.nqp \
+  src/Perl6/Metamodel/PackageHOW.nqp \
+  src/Perl6/Metamodel/ModuleHOW.nqp \
+  src/Perl6/Metamodel/GenericHOW.nqp \
+  src/Perl6/Metamodel/AttributeContainer.nqp \
+  src/Perl6/Metamodel/MethodContainer.nqp \
+  src/Perl6/Metamodel/PrivateMethodContainer.nqp \
+  src/Perl6/Metamodel/MultiMethodContainer.nqp \
+  src/Perl6/Metamodel/RoleContainer.nqp \
+  src/Perl6/Metamodel/MultipleInheritance.nqp \
+  src/Perl6/Metamodel/DefaultParent.nqp \
+  src/Perl6/Metamodel/BaseType.nqp \
+  src/Perl6/Metamodel/C3MRO.nqp \
+  src/Perl6/Metamodel/MROBasedMethodDispatch.nqp \
+  src/Perl6/Metamodel/MROBasedTypeChecking.nqp \
+  src/Perl6/Metamodel/Trusting.nqp \
+  src/Perl6/Metamodel/Mixins.nqp \
+  src/Perl6/Metamodel/BUILDPLAN.nqp \
+  src/Perl6/Metamodel/REPRComposeProtocol.nqp \
+  src/Perl6/Metamodel/InvocationProtocol.nqp \
+  src/Perl6/Metamodel/RolePunning.nqp \
+  src/Perl6/Metamodel/ArrayType.nqp \
+  src/Perl6/Metamodel/RoleToRoleApplier.nqp \
+  src/Perl6/Metamodel/ConcreteRoleHOW.nqp \
+  src/Perl6/Metamodel/CurriedRoleHOW.nqp \
+  src/Perl6/Metamodel/ParametricRoleHOW.nqp \
+  src/Perl6/Metamodel/ParametricRoleGroupHOW.nqp \
+  src/Perl6/Metamodel/RoleToClassApplier.nqp \
+  src/Perl6/Metamodel/ClassHOW.nqp \
+  src/Perl6/Metamodel/GrammarHOW.nqp \
+  src/Perl6/Metamodel/NativeHOW.nqp \
+  src/Perl6/Metamodel/SubsetHOW.nqp \
+  src/Perl6/Metamodel/EnumHOW.nqp \
+  src/Perl6/Metamodel/ContainerDescriptor.nqp \
+  src/Perl6/Metamodel/Dispatchers.nqp \
+
+R_SETTING_SRC = src/RESTRICTED.setting
 
 spectest_checkout : t/spec
 t/spec :
@@ -22,3 +71,8 @@ spectest_update :
 
 t/localtest.data:
 	$(PERL) -MExtUtils::Command -e test_f $@
+
+realclean: clean
+	$(RM_F) Makefile config.status
+
+distclean: realclean

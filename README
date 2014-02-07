@@ -1,7 +1,8 @@
 Rakudo Perl 6
-    This is Rakudo Perl, a Perl 6 compiler for the Parrot virtual machine.
+    This is Rakudo Perl, a Perl 6 compiler for the Parrot virtual machine,
+    the JVM and MoarVM.
 
-    Rakudo Perl is Copyright (C) 2008-2013, The Perl Foundation. Rakudo Perl
+    Rakudo Perl is Copyright (C) 2008-2014, The Perl Foundation. Rakudo Perl
     is distributed under the terms of the Artistic License 2.0. For more
     details, see the full text of the license in the file LICENSE.
 
@@ -46,6 +47,19 @@ Rakudo Perl 6
     -Xms500m -Xmx2g 
 
     as options passed to java in the installed nqp / nqp.bat.
+
+  Building Rakudo on MoarVM
+    The easiest way is:
+
+    $ perl Configure.pl --gen-moar --gen-nqp --backends=moar
+    $ make
+    $ make spectest # optional
+    $ make install # IMPORTANT, installs to install/bin/perl6
+
+    Note that the 'make install' step is necessary for running
+    Rakudo from outside the build directory. But don't worry, it
+    installs locally by default, so you don't need any administrator
+    privileges for carrying out this step.
 
   Where to get help or answers to questions
     There are several mailing lists, IRC channels, and wikis available with

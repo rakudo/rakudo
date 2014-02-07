@@ -1,6 +1,36 @@
 # for our tantrums
 my class X::TypeCheck { ... }
 
+my sub combinations($n, $k) {
+    my @result;
+    my @stack;
+
+    return () unless $k;
+
+    @stack.push(0);
+    gather while @stack {
+	my $index = @stack - 1;
+	my $value = @stack.pop;
+
+	while $value < $n {
+	    @result[$index++] = $value++;
+	    @stack.push($value);
+	    if $index == $k {
+		take [@result];
+		$value = $n;  # fake a last
+	    }
+	}
+    }
+}
+
+my sub permutations(Int $n) {
+    $n == 1 ?? ( [0,] ) !!
+    gather for ^$n -> $i {
+	my @i = grep none($i), ^$n;
+	take [$i, @i[@$_]] for permutations($n - 1);
+    }
+}
+
 my class List does Positional { # declared in BOOTSTRAP
     # class List is Iterable is Cool
     #   has Mu $!items;        # VM's array of our reified elements
@@ -110,7 +140,7 @@ my class List does Positional { # declared in BOOTSTRAP
         return unless self.DEFINITE;
         # loop through iterators until we have at least $n elements
         my int $count = nqp::elems(nqp::p6listitems(self));
-        my $eager = nqp::p6bool(nqp::istype($n, Whatever) || $n == $Inf);
+        my $eager = nqp::p6bool(nqp::istype($n, Whatever) || nqp::istype($n, Num) && $n == $Inf);
         while $!nextiter.defined && ($eager 
                                        ?? !$!nextiter.infinite 
                                        !! ($count < $n)) {
@@ -534,27 +564,7 @@ my class List does Positional { # declared in BOOTSTRAP
         nqp::bindpos($!items, nqp::unbox_i(pos), v)
     }
 
-    my sub combinations($n, $k) {
-        my @result;
-        my @stack;
-        @stack.push(0);
-
-        gather while @stack {
-            my $index = @stack - 1;
-            my $value = @stack.pop;
-
-            while $value < $n {
-                @result[$index++] = $value++;
-                @stack.push($value);
-                if $index == $k {
-                    take [@result];
-                    $value = $n;  # fake a last
-                }
-            }
-        }
-    }
-
-    proto method combinations($) {*}
+    proto method combinations($?) {*}                                                  
     multi method combinations( Int $of ) {
         [self[@$_]] for combinations self.elems, $of
     }
@@ -565,15 +575,8 @@ my class List does Positional { # declared in BOOTSTRAP
         }
     }
 
-    my sub permutations(Int $n) {
-        $n == 1 ?? ( [0,] ) !!
-        gather for ^$n -> $i {
-            my @i = grep none($i), ^$n;
-            take [$i, @i[@$_]] for permutations($n - 1);
-        }
-    }
     method permutations() {
-        gather take self[@$_] for permutations self.elems;
+        gather take [self[@$_]] for permutations self.elems;
     }
 }
 

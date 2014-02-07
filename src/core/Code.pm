@@ -17,7 +17,7 @@ my class Code does Callable { # declared in BOOTSTRAP
     multi method Str(Code:D:) { self.name }
 
     method outer(Code:D:) {
-        nqp::getcodeobj(nqp::p6staticouter($!do))
+        nqp::ifnull(nqp::getcodeobj(nqp::p6staticouter($!do)), Mu)
     }
 
     # returns an identifier for this code object

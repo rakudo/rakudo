@@ -78,6 +78,925 @@ my stub Junction metaclass Perl6::Metamodel::ClassHOW { ... };
 my stub Metamodel metaclass Perl6::Metamodel::PackageHOW { ... };
 my stub ForeignCode metaclass Perl6::Metamodel::ClassHOW { ... };
 
+#?if moar
+# On MoarVM, implement the signature binder.
+my class Binder {
+    # Flags that can be set on a signature element.
+    my int $SIG_ELEM_BIND_CAPTURE        := 1;
+    my int $SIG_ELEM_BIND_PRIVATE_ATTR   := 2;
+    my int $SIG_ELEM_BIND_PUBLIC_ATTR    := 4;
+    my int $SIG_ELEM_BIND_ATTRIBUTIVE    := ($SIG_ELEM_BIND_PRIVATE_ATTR +| $SIG_ELEM_BIND_PUBLIC_ATTR);
+    my int $SIG_ELEM_SLURPY_POS          := 8;
+    my int $SIG_ELEM_SLURPY_NAMED        := 16;
+    my int $SIG_ELEM_SLURPY_LOL          := 32;
+    my int $SIG_ELEM_SLURPY              := ($SIG_ELEM_SLURPY_POS +| SIG_ELEM_SLURPY_NAMED +| $SIG_ELEM_SLURPY_LOL);
+    my int $SIG_ELEM_INVOCANT            := 64;
+    my int $SIG_ELEM_MULTI_INVOCANT      := 128;
+    my int $SIG_ELEM_IS_RW               := 256;
+    my int $SIG_ELEM_IS_COPY             := 512;
+    my int $SIG_ELEM_IS_PARCEL           := 1024;
+    my int $SIG_ELEM_IS_OPTIONAL         := 2048;
+    my int $SIG_ELEM_ARRAY_SIGIL         := 4096;
+    my int $SIG_ELEM_HASH_SIGIL          := 8192;
+    my int $SIG_ELEM_DEFAULT_FROM_OUTER  := 16384;
+    my int $SIG_ELEM_IS_CAPTURE          := 32768;
+    my int $SIG_ELEM_UNDEFINED_ONLY      := 65536;
+    my int $SIG_ELEM_DEFINED_ONLY        := 131072;
+    my int $SIG_ELEM_DEFINEDNES_CHECK    := ($SIG_ELEM_UNDEFINED_ONLY +| $SIG_ELEM_DEFINED_ONLY);
+    my int $SIG_ELEM_NOMINAL_GENERIC     := 524288;
+    my int $SIG_ELEM_DEFAULT_IS_LITERAL  := 1048576;
+    my int $SIG_ELEM_NATIVE_INT_VALUE    := 2097152;
+    my int $SIG_ELEM_NATIVE_NUM_VALUE    := 4194304;
+    my int $SIG_ELEM_NATIVE_STR_VALUE    := 8388608;
+    my int $SIG_ELEM_NATIVE_VALUE        := ($SIG_ELEM_NATIVE_INT_VALUE +| $SIG_ELEM_NATIVE_NUM_VALUE +| $SIG_ELEM_NATIVE_STR_VALUE);
+
+    # Binding reuslt flags.
+    my int $BIND_RESULT_OK       := 0;
+    my int $BIND_RESULT_FAIL     := 1;
+    my int $BIND_RESULT_JUNCTION := 2;
+
+    my $autothreader;
+
+    sub arity_fail($params, int $num_params, int $num_pos_args, int $too_many) {
+        my str $error_prefix := $too_many ?? "Too many" !! "Not enough";
+        my int $count;
+        my int $arity;
+
+        my int $param_i := 0;
+        while $param_i < $num_params {
+            my $param := nqp::atpos($params, $param_i);
+            my $flags := nqp::getattr_i($param, Parameter, '$!flags');
+
+            if !nqp::isnull(nqp::getattr($param, Parameter, '$!named_names')) {
+            }
+            elsif $flags +& $SIG_ELEM_SLURPY_NAMED {
+            }
+            elsif $flags +& $SIG_ELEM_SLURPY_POS {
+                $count--;
+            }
+            elsif $flags +& $SIG_ELEM_IS_OPTIONAL {
+                $count++
+            }
+            else {
+                $count++;
+                $arity++;
+            }
+
+            $param_i++;
+        }
+
+        if $arity == $count {
+            return "$error_prefix positional parameters passed; got $num_pos_args but expected $arity";
+        } elsif $count == -1 {
+            return "$error_prefix positional parameters passed; got $num_pos_args but expected at least $arity";
+        } else {
+            return "$error_prefix positional parameters passed; got $num_pos_args but expected between $arity and $count";
+        }
+    }
+
+    method set_autothreader($callable) {
+        $autothreader := $callable;
+    }
+
+    # Binds a single parameter.
+    sub bind_one_param($lexpad, $sig, $param, int $no_nom_type_check, $error,
+                       $got_native, $oval, int $ival, num $nval, str $sval) {
+        # Grab flags and variable name.
+        my int $flags       := nqp::getattr_i($param, Parameter, '$!flags');
+        my str $varname     := nqp::getattr_s($param, Parameter, '$!variable_name');
+        my int $has_varname := 1;
+        if nqp::isnull_s($varname) {
+            $varname := '<anon>';
+            $has_varname := 0;
+        }
+
+        # Check if boxed/unboxed expections are met.
+        my int $desired_native := $flags +& $SIG_ELEM_NATIVE_VALUE;
+        unless $desired_native == $got_native {
+            # Maybe we need to box the native.
+            if $desired_native == 0 {
+                if $got_native == $SIG_ELEM_NATIVE_INT_VALUE {
+                    $oval := nqp::box_i($ival, Int);
+                }
+                elsif $got_native == $SIG_ELEM_NATIVE_NUM_VALUE {
+                    $oval := nqp::box_n($nval, Num);
+                }
+                else {
+                    $oval := nqp::box_s($sval, Str);
+                }
+                $got_native := 0;
+            }
+            
+            # Otherwise, maybe we need to unbox.
+            elsif !$got_native {
+                # XXX Probably want to do this a little differently to get a
+                # better error.
+                if $desired_native == $SIG_ELEM_NATIVE_INT_VALUE {
+                    $ival := nqp::unbox_i($oval);
+                    $got_native := $SIG_ELEM_NATIVE_INT_VALUE;
+                }
+                elsif $desired_native == $SIG_ELEM_NATIVE_NUM_VALUE {
+                    $nval := nqp::unbox_n($oval);
+                    $got_native := $SIG_ELEM_NATIVE_NUM_VALUE;
+                }
+                else {
+                    $sval := nqp::unbox_s($oval);
+                    $got_native := $SIG_ELEM_NATIVE_STR_VALUE;
+                }
+            }
+            
+            # Otherwise, incompatible native types.
+            else {
+                if nqp::defined($error) {
+                    $error[0] := "Incompatible native type passed for '$varname'";
+                }
+                return $BIND_RESULT_FAIL;
+            }
+        }
+
+        # By this point, we'll either have an object that we might be able to
+        # bind if it passes the type check, or a native value that needs no
+        # further checking.
+        my $nom_type;
+        unless $got_native {
+            # HLL-ize.
+            $oval := nqp::hllizefor($oval, 'perl6');
+
+            # Skip nominal type check if not needed.
+            unless $no_nom_type_check {
+                # Is the nominal type generic and in need of instantiation? (This
+                # can happen in (::T, T) where we didn't learn about the type until
+                # during the signature bind).
+                $nom_type := nqp::getattr($param, Parameter, '$!nominal_type');
+                if $flags +& $SIG_ELEM_NOMINAL_GENERIC {
+                    $nom_type := $nom_type.HOW.instantiate_generic($nom_type, $lexpad);
+                }
+
+                # If not, do the check. If the wanted nominal type is Mu, then
+                # anything goes.
+                unless $nom_type =:= Mu || nqp::istype($oval, $nom_type) {
+                    # Type check failed; produce error if needed.
+                    if nqp::defined($error) {
+                        $error[0] := "Nominal type check failed for parameter '" ~ $varname ~
+                            "'; expected " ~ $nom_type.HOW.name($nom_type) ~
+                            " but got " ~ $oval.HOW.name($oval);
+                    }
+
+                    # Report junction failure mode if it's a junction.
+                    return $oval.WHAT =:= Junction ?? $BIND_RESULT_JUNCTION !! $BIND_RESULT_FAIL;
+                }
+            
+                # Also enforce definedness constraints.
+                if $flags +& $SIG_ELEM_DEFINEDNES_CHECK {
+                    if $flags +& $SIG_ELEM_UNDEFINED_ONLY && nqp::isconcrete($oval) {
+                        if nqp::defined($error) {
+                            if $flags +& $SIG_ELEM_INVOCANT {
+                                $error[0] := "Invocant requires a type object, but an object instance was passed";
+                            }
+                            else {
+                                $error[0] := "Parameter '$varname' requires a type object, but an object instance was passed";
+                            }
+                        }
+                        return $oval.WHAT =:= Junction ?? $BIND_RESULT_JUNCTION !! $BIND_RESULT_FAIL;
+                    }
+                    if $flags +& $SIG_ELEM_DEFINED_ONLY && !nqp::isconcrete($oval) {
+                        if nqp::defined($error) {
+                            if $flags +& $SIG_ELEM_INVOCANT {
+                                $error[0] := "Invocant requires an instance, but a type object was passed";
+                            }
+                            else {
+                                $error[0] := "Parameter '$varname' requires an instance, but a type object was passed";
+                            }
+                        }
+                        return $oval.WHAT =:= Junction ?? $BIND_RESULT_JUNCTION !! $BIND_RESULT_FAIL;
+                    }
+                }
+            }
+        }
+
+        # Do we have any type captures to bind?
+        my $type_caps := nqp::getattr($param, Parameter, '$!type_captures');
+        unless nqp::isnull($type_caps) {
+            my int $num_type_caps := nqp::elems($type_caps);
+            my int $i := 0;
+            while $i < $num_type_caps {
+                nqp::bindkey($lexpad, nqp::atpos($type_caps, $i), $oval.WHAT);
+                $i++;
+            }
+        }
+
+        # Do a coercion, if one is needed.
+        my $coerce_type := nqp::getattr($param, Parameter, '$!coerce_type');
+        unless nqp::isnull($coerce_type) {
+            # Coercing natives not possible - nothing to call a method on.
+            if $got_native {
+                if nqp::defined($error) {
+                    $error[0] := "Unable to coerce natively typed parameter '$varname'";
+                }
+                return $BIND_RESULT_FAIL;
+            }
+
+            # Only coerce if we don't already have the correct type.
+            unless nqp::istype($oval, $coerce_type) {
+                my $coerce_method := nqp::getattr($param, Parameter, '$!coerce_method');
+                if nqp::can($oval, $coerce_method) {
+                    $oval := $oval."$coerce_method"();
+                }
+                else {
+                    # No coercion method availale; whine and fail to bind.
+                    if nqp::defined($error) {
+                        $error[0] := "Unable to coerce value for '$varname' from " ~
+                            $oval.HOW.name($oval) ~
+                            " to $coerce_method; no coercion method defined";
+                    }
+                    return $BIND_RESULT_FAIL;
+                }
+            }
+        }
+
+        # If it's not got attributive binding, we'll go about binding it into the
+        # lex pad.
+        my int $is_attributive := $flags +& $SIG_ELEM_BIND_ATTRIBUTIVE;
+        unless $is_attributive || !$has_varname {
+            # Is it native? If so, just go ahead and bind it.
+            if $got_native {
+                if $got_native == $SIG_ELEM_NATIVE_INT_VALUE {
+                    nqp::bindkey_i($lexpad, $varname, $ival);
+                }
+                elsif $got_native == $SIG_ELEM_NATIVE_NUM_VALUE {
+                    nqp::bindkey_n($lexpad, $varname, $nval);
+                }
+                else {
+                    nqp::bindkey_s($lexpad, $varname, $sval);
+                }
+            }
+            
+            # Otherwise it's some objecty case.
+            elsif $flags +& $SIG_ELEM_IS_RW {
+                # XXX TODO Check if rw flag is set; also need to have a
+                # wrapper container that carries extra constraints.
+                nqp::bindkey($lexpad, $varname, $oval);
+            }
+            elsif $flags +& $SIG_ELEM_IS_PARCEL {
+                # Just bind the thing as is into the lexpad.
+                nqp::bindkey($lexpad, $varname, $oval);
+            }
+            else {
+                # If it's an array, copy means make a new one and store,
+                # and a normal bind is a straightforward binding.
+                if $flags +& $SIG_ELEM_ARRAY_SIGIL {
+                    if $flags +& $SIG_ELEM_IS_COPY {
+                        my $bindee := nqp::create(Array);
+                        $bindee.STORE(nqp::decont($oval));
+                        nqp::bindkey($lexpad, $varname, $bindee);
+                    }
+                    else {
+                        nqp::bindkey($lexpad, $varname, nqp::decont($oval));
+                    }
+                }
+                
+                # If it's a hash, similar approach to array.
+                elsif $flags +& $SIG_ELEM_HASH_SIGIL {
+                    if $flags +& $SIG_ELEM_IS_COPY {
+                        my $bindee := nqp::create(Hash);
+                        $bindee.STORE(nqp::decont($oval));
+                        nqp::bindkey($lexpad, $varname, $bindee);
+                    }
+                    else {
+                        nqp::bindkey($lexpad, $varname, nqp::decont($oval));
+                    }
+                }
+                
+                # If it's a scalar, we always need to wrap it into a new
+                # container and store it, for copy or ro case (the rw bit
+                # in the container descriptor takes care of the rest).
+                else {
+                    my $new_cont := nqp::create(Scalar);
+                    nqp::bindattr($new_cont, Scalar, '$!descriptor',
+                        nqp::getattr($param, Parameter, '$!container_descriptor'));
+                    nqp::bindattr($new_cont, Scalar, '$!value', nqp::decont($oval));
+                    nqp::bindkey($lexpad, $varname, $new_cont);
+                }
+            }
+        }
+
+        # Is it the invocant? If so, also have to bind to self lexical.
+        if $flags +& $SIG_ELEM_INVOCANT {
+            nqp::bindkey($lexpad, 'self', nqp::decont($oval));
+        }
+
+        # Handle any constraint types (note that they may refer to the parameter by
+        # name, so we need to have bound it already).
+        my $post_cons := nqp::getattr($param, Parameter, '$!post_constraints');
+        unless nqp::isnull($post_cons) {
+            my int $n := nqp::elems($post_cons);
+            my int $i := 0;
+            while $i < $n {
+                # Check we meet the constraint.
+                my $cons_type := nqp::atpos($post_cons, $i);
+                if nqp::istype($cons_type, Code) {
+                    $cons_type := nqp::p6capturelexwhere($cons_type.clone());
+                }
+                my $result;
+                if $got_native == 0 {
+                    $result := $cons_type.ACCEPTS($oval);
+                }
+                elsif $got_native == $SIG_ELEM_NATIVE_INT_VALUE {
+                    $result := $cons_type.ACCEPTS($ival);
+                }
+                elsif $got_native == $SIG_ELEM_NATIVE_NUM_VALUE {
+                    $result := $cons_type.ACCEPTS($nval);
+                }
+                elsif $got_native == $SIG_ELEM_NATIVE_STR_VALUE {
+                    $result := $cons_type.ACCEPTS($sval);
+                }
+                unless $result {
+                    if nqp::defined($error) {
+                        $error[0] := "Constraint type check failed for parameter '$varname'";
+                    }
+                    return $BIND_RESULT_FAIL;
+                }
+                $i++;
+            }
+        }
+
+        # If it's attributive, now we assign it.
+        if $is_attributive {
+            # Find self.
+            my $self;
+            if nqp::existskey($lexpad, 'self') {
+                $self := nqp::atkey($lexpad, 'self');
+            } else {
+                if nqp::defined($error) {
+                    $error[0] := "Unable to bind attributive parameter '$varname'; could not find self";
+                }
+                return $BIND_RESULT_FAIL;
+            }
+            
+            # Ensure it's not native; NYI.
+            if $got_native {
+                if nqp::defined($error) {
+                    $error[0] := "Binding to natively typed attributive parameter '$varname' not supported";
+                }
+                return $BIND_RESULT_FAIL;
+            }
+
+            # If it's private, just need to fetch the attribute.
+            my $assignee;
+            if ($flags +& $SIG_ELEM_BIND_PRIVATE_ATTR) {
+                $assignee := nqp::getattr($self,
+                    nqp::getattr($param, Parameter, '$!attr_package'),
+                    $varname);
+            }
+
+            # Otherwise if it's public, do a method call to get the assignee.
+            else {
+                $assignee := $self."$varname"();
+            }
+
+            nqp::iscont($assignee)
+                ?? nqp::assign($assignee, $oval)
+                !! $assignee.STORE(nqp::decont($oval));
+        }
+
+        # If it has a sub-signature, bind that.
+        my $subsig := nqp::getattr($param, Parameter, '$!sub_signature');
+        unless nqp::isnull($subsig) {
+            # Turn value into a capture, unless we already have one.
+            my $capture;
+            if $flags +& $SIG_ELEM_IS_CAPTURE {
+                $capture := $oval;
+            }
+            else {
+                if nqp::can($oval, 'Capture') {
+                    $capture := $oval.Capture;
+                }
+                else {
+                    if $error {
+                        $error[0] := "Could not turn argument into capture";
+                    }
+                    return $BIND_RESULT_FAIL;
+                }
+            }
+
+            # Recurse into signature binder.
+            my $result := bind(make_vm_capture($capture), $subsig, $lexpad,
+                $no_nom_type_check, $error);
+            unless $result == $BIND_RESULT_OK {
+                if $error {
+                    # Note in the error message that we're in a sub-signature.
+                    $error[0] := $error[0] ~ " in sub-signature";
+                    if $has_varname {
+                        $error[0] := $error[0] ~ " of parameter " ~ $varname;
+                    }
+                }
+                return $result;
+            }
+        }
+
+        # Binding of this parameter was thus successful - we're done.
+        $BIND_RESULT_OK
+    }
+    
+    # This takes a signature element and either runs the closure to get a default
+    # value if there is one, or creates an appropriate undefined-ish thingy.
+    sub handle_optional($param, int $flags, $lexpad) {
+        # Is the "get default from outer" flag set?
+        if $flags +& $SIG_ELEM_DEFAULT_FROM_OUTER {
+            nqp::atkey(
+                nqp::ctxouter($lexpad),
+                nqp::getattr_s($param, Parameter, '$!variable_name'))
+        }
+
+        # Do we have a default value or value closure?
+        elsif !nqp::isnull(my $default_value := nqp::getattr($param, Parameter, '$!default_value')) {
+            if $flags +& $SIG_ELEM_DEFAULT_IS_LITERAL {
+                $default_value;
+            }
+            else {
+                $default_value()
+            }
+        }
+
+        # Otherwise, go by sigil to pick the correct default type of value.
+        else {
+            if $flags +& $SIG_ELEM_ARRAY_SIGIL {
+                my $result := nqp::create(Array);
+                nqp::bindattr($result, List, '$!flattens', nqp::p6bool(1));
+                $result
+            }
+            elsif $flags +& $SIG_ELEM_HASH_SIGIL {
+                nqp::create(Hash)
+            }
+            else {
+                nqp::getattr($param, Parameter, '$!nominal_type');
+            }
+        }
+    }
+
+    # Drives the overall binding process.
+    sub bind($capture, $sig, $lexpad, int $no_nom_type_check, $error) {
+        # Get params.
+        my @params := nqp::getattr($sig, Signature, '$!params');
+        
+        # If we do have some named args, we get hold of a hash of them. We
+        # can safely delete from this as we go.
+        my $named_args;
+        if nqp::capturehasnameds($capture) {
+            $named_args := nqp::capturenamedshash($capture);
+        }
+
+        # Now we'll walk through the signature and go about binding things.
+        my $named_names;
+        my int $cur_pos_arg := 0;
+        my int $num_pos_args := nqp::captureposelems($capture);
+        my int $suppress_arity_fail := 0;
+        my int $num_params := nqp::elems(@params);
+        my int $i := 0;
+        while $i < $num_params {
+            # Get parameter object and its flags.
+            my $param := nqp::atpos(@params, $i);
+            my int $flags := nqp::getattr_i($param, Parameter, '$!flags');
+            my str $var_name := nqp::getattr_s($param, Parameter, '$!variable_name');
+            $i := $i + 1;
+            
+            # Is it looking for us to bind a capture here?
+            my int $bind_fail;
+            my int $got_prim;
+            if $flags +& $SIG_ELEM_IS_CAPTURE {
+                # Capture the arguments from this point forwards into a Capture.
+                # Of course, if there's no variable name we can (cheaply) do pretty
+                # much nothing.
+                if nqp::isnull_s($var_name) {
+                    $bind_fail := $BIND_RESULT_OK;
+                }
+                else {
+                    my $capsnap := nqp::create(Capture);
+
+                    my @pos_args;
+                    my int $k := $cur_pos_arg;
+                    while $k < $num_pos_args {
+                        $got_prim := nqp::captureposprimspec($capture, $k);
+                        if $got_prim == 0 {
+                            nqp::push(@pos_args, nqp::captureposarg($capture, $k));
+                        }
+                        elsif $got_prim == 1 {
+                            nqp::push(@pos_args, nqp::box_i(nqp::captureposarg_i($capture, $k), Int));
+                        }
+                        elsif $got_prim == 2 {
+                            nqp::push(@pos_args, nqp::box_n(nqp::captureposarg_n($capture, $k), Num));
+                        }
+                        else {
+                            nqp::push(@pos_args, nqp::box_s(nqp::captureposarg_s($capture, $k), Str));
+                        }
+                        $k++;
+                    }
+                    nqp::bindattr($capsnap, Capture, '$!list', @pos_args);
+
+                    if $named_args {
+                        nqp::bindattr($capsnap, Capture, '$!hash', nqp::clone($named_args));
+                    }
+                    else {
+                        nqp::bindattr($capsnap, Capture, '$!hash', nqp::hash());
+                    }
+
+                    $bind_fail := bind_one_param($lexpad, $sig, $param, $no_nom_type_check, $error,
+                        0, $capsnap, 0, 0.0, '');
+                }
+                if ($bind_fail) {
+                    return $bind_fail;
+                }
+                elsif $i == $num_params {
+                    # Since a capture acts as "the ultimate slurpy" in a sense, if
+                    # this is the last parameter in the signature we can return
+                    # success right off the bat.
+                    return $BIND_RESULT_OK;
+                }
+                else {
+                    my $next_param := nqp::atpos(@params, $i);
+                    my int $next_flags := nqp::getattr_i($next_param, Parameter, '$!flags');
+                    if $next_flags +& ($SIG_ELEM_SLURPY_POS +| $SIG_ELEM_SLURPY_NAMED) {
+                        $suppress_arity_fail := 1;
+                    }
+                }
+            }
+            
+            # Could it be a named slurpy?
+            elsif $flags +& $SIG_ELEM_SLURPY_NAMED {
+                # We'll either take the current named arguments copy hash which
+                # will by definition contain all unbound named parameters and use
+                # that. Otherwise, putting Mu in there is fine; Hash is smart
+                # enough to know what to do.
+                my $hash := nqp::create(Hash);
+                nqp::bindattr($hash, EnumMap, '$!storage', $named_args || Mu);
+                $bind_fail := bind_one_param($lexpad, $sig, $param, $no_nom_type_check, $error,
+                    0, $hash, 0, 0.0, '');
+                return $bind_fail if $bind_fail;
+                
+                # Undefine named arguments hash now we've consumed it, to mark all
+                # is well.
+                $named_args := NQPMu;
+            }
+            
+            # Otherwise, maybe it's a positional.
+            elsif nqp::isnull($named_names := nqp::getattr($param, Parameter, '$!named_names')) {
+                # Slurpy or LoL-slurpy?
+                if $flags +& ($SIG_ELEM_SLURPY_POS +| $SIG_ELEM_SLURPY_LOL) {
+                    # Create Perl 6 array, create VM Array of all remaining things, then
+                    # store it.
+                    my $temp := nqp::list();
+                    while $cur_pos_arg < $num_pos_args {
+                        $got_prim := nqp::captureposprimspec($capture, $cur_pos_arg);
+                        if $got_prim == 0 {
+                            nqp::push($temp, nqp::captureposarg($capture, $cur_pos_arg));
+                        }
+                        elsif $got_prim == 1 {
+                            nqp::push($temp, nqp::box_i(nqp::captureposarg_i($capture, $cur_pos_arg), Int));
+                        }
+                        elsif $got_prim == 2 {
+                            nqp::push($temp, nqp::box_n(nqp::captureposarg_n($capture, $cur_pos_arg), Num));
+                        }
+                        else {
+                            nqp::push($temp, nqp::box_s(nqp::captureposarg_s($capture, $cur_pos_arg), Str));
+                        }
+                        $cur_pos_arg++;
+                    }
+                    my int $flatten := $flags +& $SIG_ELEM_SLURPY_POS;
+                    my $bindee := nqp::create($flatten
+                        ?? ($flags +& $SIG_ELEM_IS_RW ?? List !! Array)
+                        !! LoL);
+                    my $listiter := nqp::create(ListIter);
+                    nqp::bindattr($listiter, ListIter, '$!rest', $temp);
+                    nqp::bindattr($listiter, ListIter, '$!list', $bindee);
+                    nqp::bindattr($bindee, List, '$!nextiter', $listiter);
+                    nqp::bindattr($bindee, List, '$!flattens', nqp::p6bool($flatten));
+                    $bind_fail := bind_one_param($lexpad, $sig, $param, $no_nom_type_check, $error,
+                        0, $bindee, 0, 0.0, '');
+                    return $bind_fail if $bind_fail;
+                }
+
+                # Otherwise, a positional.
+                else {
+                    # Do we have a value?
+                    if $cur_pos_arg < $num_pos_args {
+                        # Easy - just bind that.
+                        $got_prim := nqp::captureposprimspec($capture, $cur_pos_arg);
+                        if $got_prim == 0 {
+                            $bind_fail := bind_one_param($lexpad, $sig, $param, $no_nom_type_check, $error,
+                                0, nqp::captureposarg($capture, $cur_pos_arg), 0, 0.0, '');
+                        }
+                        elsif $got_prim == 1 {
+                            $bind_fail := bind_one_param($lexpad, $sig, $param, $no_nom_type_check, $error,
+                                $SIG_ELEM_NATIVE_INT_VALUE, nqp::null(), nqp::captureposarg_i($capture, $cur_pos_arg), 0.0, '');
+                        }
+                        elsif $got_prim == 2 {
+                            $bind_fail := bind_one_param($lexpad, $sig, $param, $no_nom_type_check, $error,
+                                $SIG_ELEM_NATIVE_NUM_VALUE, nqp::null(), 0, nqp::captureposarg_n($capture, $cur_pos_arg), '');
+                        }
+                        else {
+                            $bind_fail := bind_one_param($lexpad, $sig, $param, $no_nom_type_check, $error,
+                                $SIG_ELEM_NATIVE_STR_VALUE, nqp::null(), 0, 0.0, nqp::captureposarg_s($capture, $cur_pos_arg));
+                        }
+                        return $bind_fail if $bind_fail;
+                        $cur_pos_arg++;
+                    }
+                    else {
+                        # No value. If it's optional, fetch a default and bind that;
+                        # if not, we're screwed. Note that we never nominal type check
+                        # an optional with no value passed.
+                        if $flags +& $SIG_ELEM_IS_OPTIONAL {
+                            $bind_fail := bind_one_param($lexpad, $sig, $param, $no_nom_type_check, $error,
+                                0, handle_optional($param, $flags, $lexpad), 0, 0.0, '');
+                            return $bind_fail if $bind_fail;
+                        }
+                        else {
+                            if nqp::defined($error) {
+                                $error[0] := arity_fail(@params, $num_params, $num_pos_args, 0);
+                            }
+                            return $BIND_RESULT_FAIL;
+                        }
+                    }
+                }
+            }
+            
+            # Else, it's a non-slurpy named.
+            else {
+                # Try and get hold of value.
+                my $value := nqp::null();
+                if $named_args {
+                    my int $num_names := nqp::elems($named_names);
+                    my int $j := 0;
+                    my str $cur_name;
+                    while $j < $num_names {
+                        $cur_name := nqp::atpos($named_names, $j);
+                        $value := nqp::atkey($named_args, $cur_name);
+                        unless nqp::isnull($value) {
+                            nqp::deletekey($named_args, $cur_name);
+                            $j := $num_names;
+                        }
+                        ++$j;
+                    }
+                }
+
+                # Did we get one?
+                if nqp::isnull($value) {
+                    # Nope. We'd better hope this param was optional...
+                    if $flags +& $SIG_ELEM_IS_OPTIONAL {
+                        $bind_fail := bind_one_param($lexpad, $sig, $param, $no_nom_type_check, $error,
+                            0, handle_optional($param, $flags, $lexpad), 0, 0.0, '');
+                    }
+                    elsif !$suppress_arity_fail {
+                        if nqp::defined($error) {
+                            $error[0] := "Required named parameter '" ~
+                                $named_names[0] ~ "' not passed";
+                        }
+                        return $BIND_RESULT_FAIL;
+                    }
+                }
+                else {
+                    $bind_fail := bind_one_param($lexpad, $sig, $param, $no_nom_type_check, $error,
+                        0, $value, 0, 0.0, '');
+                }
+
+                # If we got a binding failure, return it.
+                return $bind_fail if $bind_fail;
+            }
+        }
+        
+        # Do we have any left-over args?
+        if $cur_pos_arg < $num_pos_args && !$suppress_arity_fail {
+            # Oh noes, too many positionals passed.
+            if nqp::defined($error) {
+                $error[0] := arity_fail(@params, $num_params, $num_pos_args, 1);
+            }
+            return $BIND_RESULT_FAIL;
+        }
+        if $named_args {
+            # Oh noes, unexpected named args.
+            if $error {
+                my int $num_extra := nqp::elems($named_args);
+                my @names;
+                for $named_args {
+                    nqp::push(@names, $_.key);
+                }
+                if $num_extra == 1 {
+                    $error[0] := "Unexpected named parameter '" ~ @names[0] ~ "' passed";
+                }
+                else {
+                    $error[0] := $num_extra ~ " unexpected named parameters passed (" ~
+                        nqp::join(",", @names) ~")";
+                }
+            }
+            return $BIND_RESULT_FAIL;
+        }
+        
+        # If we get here, we're done.
+        return $BIND_RESULT_OK;
+    }
+
+    method bind($capture, $sig, $lexpad, int $no_nom_type_check, $error) {
+        bind($capture, $sig, $lexpad, $no_nom_type_check, $error);
+    }
+
+    method bind_sig($capture) {
+        # Get signature and lexpad.
+        my $caller := nqp::getcodeobj(nqp::callercode());
+        my $sig    := nqp::getattr($caller, Code, '$!signature');
+        my $lexpad := nqp::ctxcaller(nqp::ctx());
+
+        # Call binder.
+        my @error;
+        my int $bind_res := bind($capture, $sig, $lexpad, 0, @error);
+        if $bind_res {
+            if $bind_res == $BIND_RESULT_JUNCTION {
+                my @pos_args;
+                my int $num_pos_args := nqp::captureposelems($capture);
+                my int $k := 0;
+                my int $got_prim;
+                while $k < $num_pos_args {
+                    $got_prim := nqp::captureposprimspec($capture, $k);
+                    if $got_prim == 0 {
+                        nqp::push(@pos_args, nqp::captureposarg($capture, $k));
+                    }
+                    elsif $got_prim == 1 {
+                        nqp::push(@pos_args, nqp::box_i(nqp::captureposarg_i($capture, $k), Int));
+                    }
+                    elsif $got_prim == 2 {
+                        nqp::push(@pos_args, nqp::box_n(nqp::captureposarg_n($capture, $k), Num));
+                    }
+                    else {
+                        nqp::push(@pos_args, nqp::box_s(nqp::captureposarg_s($capture, $k), Str));
+                    }
+                    $k++;
+                }
+                my %named_args := nqp::capturenamedshash($capture);
+                return Junction.AUTOTHREAD($caller,
+                        |@pos_args,
+                        |%named_args);
+            }
+            else {
+                nqp::die(@error[0]);
+            }
+        }
+        nqp::null();
+    }
+    
+    sub make_vm_capture($capture) {
+        sub vm_capture(*@pos, *%named) { nqp::savecapture() }                
+        my @list := nqp::getattr($capture, Capture, '$!list');
+        @list    := nqp::list() unless nqp::islist(@list);
+        my %hash := nqp::getattr($capture, Capture, '$!hash');
+        %hash    := nqp::hash() unless nqp::ishash(%hash);
+        vm_capture(|@list, |%hash)
+    }
+    
+    method is_bindable($sig, $capture) {
+        unless nqp::reprname($capture) eq 'MVMCallCapture' {
+            $capture := make_vm_capture($capture);
+        }
+        nqp::p6invokeunder(
+            nqp::getattr($sig, Signature, '$!code'),
+            -> { bind($capture, $sig, nqp::ctxcaller(nqp::ctx()), 0, NQPMu) != $BIND_RESULT_FAIL })
+    }
+
+    method bind_cap_to_sig($sig, $cap) {
+        my $capture := make_vm_capture($cap);
+        my $lexpad  := nqp::ctxcaller(nqp::ctx());
+        my @error;
+        if bind($capture, $sig, $lexpad, 0, @error) != $BIND_RESULT_OK {
+            nqp::die(@error[0]);
+        }
+        $sig
+    }
+
+    my int $TRIAL_BIND_NOT_SURE :=  0;   # Plausible, but need to check at runtime.
+    my int $TRIAL_BIND_OK       :=  1;   # Bind will always work out.
+    my int $TRIAL_BIND_NO_WAY   := -1;   # Bind could never work out.
+    method trial_bind($sig, $args, $sigflags) {
+        my @params         := nqp::getattr($sig, Signature, '$!params');
+        my int $num_params := nqp::elems(@params);
+
+        # If there's a single capture parameter, then we're OK. (Worth
+        # handling especially as it's the common case for protos).
+        if $num_params == 1 {
+            if nqp::getattr_i(@params[0], Parameter, '$!flags') +& $SIG_ELEM_IS_CAPTURE {
+                return $TRIAL_BIND_OK;
+            }
+        }
+
+        # Walk through the signature and consider the parameters.
+        my int $num_pos_args := nqp::elems($args);
+        my int $cur_pos_arg  := 0;
+        my int $i            := 0;
+        while $i < $num_params {
+            my $param := @params[$i];
+            $i++;
+
+            # If the parameter is anything other than a boring old
+            # positional parameter, we won't analyze it. */
+            my int $flags := nqp::getattr_i($param, Parameter, '$!flags');
+            if $flags +& nqp::bitneg_i(
+                    $SIG_ELEM_MULTI_INVOCANT +| $SIG_ELEM_IS_PARCEL +|
+                    $SIG_ELEM_IS_COPY +| $SIG_ELEM_ARRAY_SIGIL +|
+                    $SIG_ELEM_HASH_SIGIL +| $SIG_ELEM_NATIVE_VALUE +|
+                    $SIG_ELEM_IS_OPTIONAL) {
+                return $TRIAL_BIND_NOT_SURE;
+            }
+            unless nqp::isnull(nqp::getattr($param, Parameter, '$!named_names')) {
+                return $TRIAL_BIND_NOT_SURE;
+            }
+            unless nqp::isnull(nqp::getattr($param, Parameter, '$!post_constraints')) {
+                return $TRIAL_BIND_NOT_SURE;
+            }
+            unless nqp::isnull(nqp::getattr($param, Parameter, '$!type_captures')) {
+                return $TRIAL_BIND_NOT_SURE;
+            }
+
+            # Do we have an argument for this parameter?
+            if $cur_pos_arg >= $num_pos_args {
+                # No; if it's not optional, fail.
+                unless $flags +& $SIG_ELEM_IS_OPTIONAL {
+                    return $TRIAL_BIND_NO_WAY;
+                }
+            }
+            else {
+                # Yes, need to consider type
+                my int $got_prim := $sigflags[$cur_pos_arg];
+                if $flags +& $SIG_ELEM_NATIVE_VALUE {
+                    if $got_prim == 0 {
+                        # We got an object; if we aren't sure we can unbox, we can't
+                        # be sure about the dispatch.
+                        if $flags +& $SIG_ELEM_NATIVE_INT_VALUE {
+                            return $TRIAL_BIND_NOT_SURE unless nqp::isint($args[$cur_pos_arg]);
+                        }
+                        elsif $flags +& $SIG_ELEM_NATIVE_NUM_VALUE {
+                            return $TRIAL_BIND_NOT_SURE unless nqp::isnum($args[$cur_pos_arg]);
+                        }
+                        elsif $flags +& $SIG_ELEM_NATIVE_STR_VALUE {
+                            return $TRIAL_BIND_NOT_SURE unless nqp::isstr($args[$cur_pos_arg]);
+                        }
+                        else {
+                            # WTF...
+                            return $TRIAL_BIND_NOT_SURE;
+                        }
+                    }
+                    else {
+                        # If it's the wrong type of native, there's no way it
+                        # can ever bind.
+                        if (($flags +& $SIG_ELEM_NATIVE_INT_VALUE) && $got_prim != 1) ||
+                           (($flags +& $SIG_ELEM_NATIVE_NUM_VALUE) && $got_prim != 2) ||
+                           (($flags +& $SIG_ELEM_NATIVE_STR_VALUE) && $got_prim != 3) {
+                            return $TRIAL_BIND_NO_WAY;
+                        }
+                    }
+                }
+                else {
+                    # Work out a parameter type to consider, and see if it matches.
+                    my $arg := $got_prim == 1 ?? Int !!
+                               $got_prim == 2 ?? Num !!
+                               $got_prim == 3 ?? Str !!
+                               $args[$cur_pos_arg];
+                    my $nom_type := nqp::getattr($param, Parameter, '$!nominal_type');
+                    unless $nom_type =:= Mu || nqp::istype($arg, $nom_type) {
+                        # If it failed because we got a junction, may auto-thread;
+                        # hand back 'not sure' for now.
+                        if $arg.WHAT =:= Junction {
+                            return $TRIAL_BIND_NOT_SURE;
+                        }
+
+                        # It failed to, but that doesn't mean it can't work at runtime;
+                        # we perhaps want an Int, and the most we know is we have an Any,
+                        # which would include Int. However, the Int ~~ Str case can be
+                        # rejected now, as there's no way it'd ever match. Basically, we
+                        # just flip the type check around.
+                        return nqp::istype($nom_type, $arg.WHAT)
+                            ?? $TRIAL_BIND_NOT_SURE
+                            !! $TRIAL_BIND_NO_WAY;
+                    }
+                }
+            }
+
+            # Continue to next argument.
+            $cur_pos_arg++;
+        }
+
+        # If we have any left over arguments, it's a binding fail.
+        if $cur_pos_arg < $num_pos_args {
+            return $TRIAL_BIND_NO_WAY;
+        }
+
+        # Otherwise, if we get there, all is well.
+        return $TRIAL_BIND_OK;
+    }
+
+    method get_return_type($code) {
+        nqp::getattr(nqp::getattr($code, Code, '$!signature'), Signature, '$!returns')
+    }
+}
+BEGIN { nqp::p6setbinder(Binder); } # We need it in for the next BEGIN block
+nqp::p6setbinder(Binder);           # The load-time case.
+#?endif
+
 # We stick all the declarative bits inside of a BEGIN, so they get
 # serialized.
 BEGIN {
@@ -503,7 +1422,7 @@ BEGIN {
     Parameter.HOW.add_method(Parameter, 'set_coercion', nqp::getstaticcode(sub ($self, $type) {
             my $dcself := nqp::decont($self);
             nqp::bindattr_s($dcself, Parameter, '$!coerce_method', $type.HOW.name($type));
-            nqp::bindattr($dcself, Parameter, '$!coerce_type', $type);
+            nqp::bindattr($dcself, Parameter, '$!coerce_type', nqp::decont($type));
             $dcself
         }));
     Parameter.HOW.compose_repr(Parameter);
@@ -1432,6 +2351,10 @@ BEGIN {
             nqp::bindattr_i($dcself, Routine, '$!rw', 1);
             $dcself
         }));
+    Routine.HOW.add_method(Routine, 'rw', nqp::getstaticcode(sub ($self) {
+            my $dcself := nqp::decont($self);
+            nqp::p6bool(nqp::getattr_i($dcself, Routine, '$!rw'));
+        }));
     Routine.HOW.add_method(Routine, 'set_inline_info', nqp::getstaticcode(sub ($self, $info) {
             my $dcself := nqp::decont($self);
             nqp::bindattr($dcself, Routine, '$!inline_info', $info);
@@ -1915,7 +2838,14 @@ nqp::sethllconfig('perl6', nqp::hash(
                         }
                     }
                     if $run {
+#?endif
+#?if jvm
                         $phaser();
+#?endif
+#?if moar
+                        nqp::p6capturelexwhere($phaser.clone())();
+#?endif
+#?if !parrot
                     }
                     $i++;
                 }
@@ -1926,11 +2856,69 @@ nqp::sethllconfig('perl6', nqp::hash(
                 my int $n := nqp::elems(@posts);
                 my int $i := 0;
                 while $i < $n {
+#?endif
+#?if jvm
                     nqp::atpos(@posts, $i)(nqp::ifnull($resultish, Mu));
+#?endif
+#?if moar
+                    nqp::p6capturelexwhere(nqp::atpos(@posts, $i).clone())(
+                        nqp::ifnull($resultish, Mu));
+#?endif
+#?if !parrot
                     $i++;
                 }
             }
         }
+    },
+#?endif
+#?if moar
+    'bind_error', -> $capture {
+        # Get signature and lexpad.
+        my $caller := nqp::getcodeobj(nqp::callercode());
+        my $sig    := nqp::getattr($caller, Code, '$!signature');
+        my $lexpad := nqp::ctxcaller(nqp::ctx());
+
+        # Run full binder to produce an error.
+        my @error;
+        my int $bind_res := Binder.bind($capture, $sig, $lexpad, 0, @error);
+        if $bind_res {
+            if $bind_res == 2 {
+                my @pos_args;
+                my int $num_pos_args := nqp::captureposelems($capture);
+                my int $k := 0;
+                my int $got_prim;
+                while $k < $num_pos_args {
+                    $got_prim := nqp::captureposprimspec($capture, $k);
+                    if $got_prim == 0 {
+                        nqp::push(@pos_args, nqp::captureposarg($capture, $k));
+                    }
+                    elsif $got_prim == 1 {
+                        nqp::push(@pos_args, nqp::box_i(nqp::captureposarg_i($capture, $k), Int));
+                    }
+                    elsif $got_prim == 2 {
+                        nqp::push(@pos_args, nqp::box_n(nqp::captureposarg_n($capture, $k), Num));
+                    }
+                    else {
+                        nqp::push(@pos_args, nqp::box_s(nqp::captureposarg_s($capture, $k), Str));
+                    }
+                    $k++;
+                }
+                my %named_args := nqp::capturenamedshash($capture);
+                Junction.AUTOTHREAD($caller,
+                        |@pos_args,
+                        |%named_args);
+            }
+            else {
+                nqp::die(@error[0]);
+            }
+        }
+        else {
+            nqp::die("Internal error: inconsistent bind result");
+        }
+    },
+    'method_not_found_error', -> $obj, str $name {
+        my $type := $obj.HOW.name($obj);
+        nqp::die("Method '$name' not found for invocant of class '$type'");
     }
 #?endif
 ));

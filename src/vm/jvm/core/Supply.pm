@@ -127,15 +127,15 @@ sub on(&setup) {
             $source.tap(
               -> \val {
                   $lock.protect({ more(val) });
-                  CATCH { self.quit($_) }
+                  CATCH { default { self.quit($_) } }
               },
               done => {
                   $lock.protect({ done() });
-                  CATCH { self.quit($_) }
+                  CATCH { default { self.quit($_) } }
               },
               quit => -> $ex {
                   $lock.protect({ quit($ex) });
-                  CATCH { self.quit($_) }
+                  CATCH { default { self.quit($_) } }
               });
         }
         

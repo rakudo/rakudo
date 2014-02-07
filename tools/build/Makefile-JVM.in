@@ -4,7 +4,6 @@ JAR     = jar
 J_NQP   = @j_nqp@
 J_GEN_CAT = tools/build/gen-cat.pl jvm
 
-PREFIX = @prefix@
 NQP_PREFIX = @nqp_prefix@
 
 J_BUILD_DIR = gen/jvm
@@ -13,13 +12,13 @@ PERL6_LANG_DIR = $(PREFIX)/languages/perl6
 
 NQP_JARS = @nqp_jars@
 
-RUN_PERL6 = $(JAVA) -Xss1m -Xms500m -Xmx1600m -Xbootclasspath/a:.@cpsep@$(NQP_JARS)@cpsep@rakudo-runtime.jar@cpsep@perl6.jar -cp @nqp_classpath@ perl6
+J_RUN_PERL6 = $(JAVA) -Xss1m -Xms500m -Xmx1600m -Xbootclasspath/a:.@cpsep@$(NQP_JARS)@cpsep@rakudo-runtime.jar@cpsep@perl6.jar -cp @nqp_classpath@ perl6
 
 RUNTIME_JAVAS = src/vm/jvm/runtime/org/perl6/rakudo/*.java
 
 RUNTIME_JAR = rakudo-runtime.jar
 
-RUNNER = @j_runner@
+J_RUNNER = @j_runner@
 
 # files we create
 PERL6_JAR     = perl6.jar
@@ -38,49 +37,7 @@ SETTING_JAR   = CORE.setting.jar
 PERL6_LANG_JARS = $(PERL6_ML_JAR) $(PERL6_W_JAR) $(PERL6_G_JAR) $(PERL6_OPS_JAR) $(PERL6_A_JAR) \
   $(PERL6_O_JAR) $(PERL6_P_JAR) $(PERL6_C_JAR) $(PERL6_M_JAR) $(PERL6_B_JAR)
 
-J_METAMODEL_SOURCES = \
-  src/Perl6/Metamodel/Archetypes.nqp \
-  src/Perl6/Metamodel/Naming.nqp \
-  src/Perl6/Metamodel/Documenting.nqp \
-  src/Perl6/Metamodel/Stashing.nqp \
-  src/Perl6/Metamodel/Versioning.nqp \
-  src/Perl6/Metamodel/TypePretense.nqp \
-  src/Perl6/Metamodel/MethodDelegation.nqp \
-  src/Perl6/Metamodel/BoolificationProtocol.nqp \
-  src/Perl6/Metamodel/PackageHOW.nqp \
-  src/Perl6/Metamodel/ModuleHOW.nqp \
-  src/Perl6/Metamodel/GenericHOW.nqp \
-  src/Perl6/Metamodel/AttributeContainer.nqp \
-  src/Perl6/Metamodel/MethodContainer.nqp \
-  src/Perl6/Metamodel/PrivateMethodContainer.nqp \
-  src/Perl6/Metamodel/MultiMethodContainer.nqp \
-  src/Perl6/Metamodel/RoleContainer.nqp \
-  src/Perl6/Metamodel/MultipleInheritance.nqp \
-  src/Perl6/Metamodel/DefaultParent.nqp \
-  src/Perl6/Metamodel/BaseType.nqp \
-  src/Perl6/Metamodel/C3MRO.nqp \
-  src/Perl6/Metamodel/MROBasedMethodDispatch.nqp \
-  src/Perl6/Metamodel/MROBasedTypeChecking.nqp \
-  src/Perl6/Metamodel/Trusting.nqp \
-  src/Perl6/Metamodel/Mixins.nqp \
-  src/Perl6/Metamodel/BUILDPLAN.nqp \
-  src/Perl6/Metamodel/REPRComposeProtocol.nqp \
-  src/Perl6/Metamodel/InvocationProtocol.nqp \
-  src/Perl6/Metamodel/RolePunning.nqp \
-  src/Perl6/Metamodel/ArrayType.nqp \
-  src/Perl6/Metamodel/RoleToRoleApplier.nqp \
-  src/Perl6/Metamodel/ConcreteRoleHOW.nqp \
-  src/Perl6/Metamodel/CurriedRoleHOW.nqp \
-  src/Perl6/Metamodel/ParametricRoleHOW.nqp \
-  src/Perl6/Metamodel/ParametricRoleGroupHOW.nqp \
-  src/Perl6/Metamodel/RoleToClassApplier.nqp \
-  src/Perl6/Metamodel/ClassHOW.nqp \
-  src/Perl6/Metamodel/GrammarHOW.nqp \
-  src/Perl6/Metamodel/NativeHOW.nqp \
-  src/Perl6/Metamodel/SubsetHOW.nqp \
-  src/Perl6/Metamodel/EnumHOW.nqp \
-  src/Perl6/Metamodel/ContainerDescriptor.nqp \
-  src/Perl6/Metamodel/Dispatchers.nqp \
+J_METAMODEL_SOURCES = $(COMMON_BOOTSTRAP_SOURCES) \
   src/vm/jvm/Perl6/Metamodel/JavaHOW.nqp \
 
 # The ordering here is important for bootstrapping reasons. In general:
@@ -219,7 +176,6 @@ J_CLEANUPS = \
   lib/Test.jar \
   lib/lib.jar \
   lib/Pod/To/Text.jar \
-  blib/Test.jar \
   blib/lib.jar \
   blib/Pod/To/Text.jar \
   j-rakudo_test_run.tar.gz \
@@ -228,12 +184,12 @@ J_CLEANUPS = \
   perl6-eval-server \
   perl6-jdb-server \
   eval-client.pl \
-  $(RUNNER)
+  $(J_RUNNER)
 
 J_HARNESS_WITH_FUDGE = $(PERL) t/harness --fudge --keep-exit-code --jvm
-HARNESS = $(PERL) t/harness --jvm
+J_HARNESS = $(PERL) t/harness --jvm
 
-j-all: $(PERL6_JAR) $(SETTING_JAR) $(RUNNER) blib/Test.jar blib/lib.jar blib/Pod/To/Text.jar
+j-all: $(PERL6_JAR) $(SETTING_JAR) $(J_RUNNER) lib/Test.jar blib/lib.jar blib/Pod/To/Text.jar
 
 $(RUNTIME_JAR): $(RUNTIME_JAVAS)
 	$(PERL) -MExtUtils::Command -e mkpath bin
@@ -292,33 +248,33 @@ $(PERL6_B_JAR): $(BOOTSTRAP_SOURCES) $(PERL6_M_JAR)
 $(SETTING_JAR): $(PERL6_JAR) $(PERL6_B_JAR) $(J_CORE_SOURCES)
 	$(PERL) $(J_GEN_CAT) $(J_CORE_SOURCES) > $(J_BUILD_DIR)/CORE.setting
 	@echo "The following step can take a long time, please be patient."
-	$(RUN_PERL6) --setting=NULL --optimize=3 --target=jar --stagestats --output=$(SETTING_JAR) $(J_BUILD_DIR)/CORE.setting
+	$(J_RUN_PERL6) --setting=NULL --optimize=3 --target=jar --stagestats --output=$(SETTING_JAR) $(J_BUILD_DIR)/CORE.setting
 
-$(RUNNER):
+$(J_RUNNER):
 	$(PERL) tools/build/create-jvm-runner.pl dev . . $(NQP_PREFIX) $(NQP_JARS)
 
 j-runner-default: j-all
-	$(CP) $(RUNNER) perl6$(BAT)
+	$(CP) $(J_RUNNER) perl6$(BAT)
 	$(CHMOD) 755 perl6$(BAT)
 
 
 ##  testing targets
-blib/Test.jar: lib/Test.pm $(PERL6_JAR) $(SETTING_JAR) $(RUNNER)
-	.@slash@$(RUNNER) --target=jar --output=blib/Test.jar lib/Test.pm
+lib/Test.jar: lib/Test.pm $(PERL6_JAR) $(SETTING_JAR) $(J_RUNNER)
+	.@slash@$(J_RUNNER) --target=jar --output=lib/Test.jar lib/Test.pm
 
-blib/lib.jar: lib/lib.pm6 $(PERL6_JAR) $(SETTING_JAR) $(RUNNER)
-	.@slash@$(RUNNER) --target=jar --output=blib/lib.jar lib/lib.pm6
+blib/lib.jar: lib/lib.pm6 $(PERL6_JAR) $(SETTING_JAR) $(J_RUNNER)
+	.@slash@$(J_RUNNER) --target=jar --output=blib/lib.jar lib/lib.pm6
 
-blib/Pod/To/Text.jar: lib/Pod/To/Text.pm $(PERL6_JAR) $(SETTING_JAR) $(RUNNER)
+blib/Pod/To/Text.jar: lib/Pod/To/Text.pm $(PERL6_JAR) $(SETTING_JAR) $(J_RUNNER)
 	$(MKPATH) blib/Pod/To
-	.@slash@$(RUNNER) --target=jar --output=blib/Pod/To/Text.jar lib/Pod/To/Text.pm
+	.@slash@$(J_RUNNER) --target=jar --output=blib/Pod/To/Text.jar lib/Pod/To/Text.pm
 
 j-test    : j-coretest
 
 j-fulltest: j-coretest j-stresstest
 
 j-coretest: j-all
-	$(HARNESS) t/00-parrot t/01-sanity
+	$(J_HARNESS) t/00-parrot t/01-sanity
 
 # Run the spectests that we know work.
 j-spectest: j-testable t/spectest.data
@@ -363,7 +319,7 @@ j-install: j-all tools/build/create-jvm-runner.pl
 	$(CP) $(SETTING_JAR) $(DESTDIR)$(PERL6_LANG_DIR)/runtime
 	$(CP) $(PERL6_JAR) $(DESTDIR)$(PERL6_LANG_DIR)/runtime
 	$(CP) $(RUNTIME_JAR) $(DESTDIR)$(PERL6_LANG_DIR)/runtime
-	$(CP) blib/Test.jar $(DESTDIR)$(PERL6_LANG_DIR)/lib
+	$(CP) lib/Test.jar $(DESTDIR)$(PERL6_LANG_DIR)/lib
 	$(CP) blib/lib.jar $(DESTDIR)$(PERL6_LANG_DIR)/lib
 	$(MKPATH) $(DESTDIR)$(PERL6_LANG_DIR)/lib/Pod/To
 	$(CP) blib/Pod/To/Text.jar $(DESTDIR)$(PERL6_LANG_DIR)/lib/Pod/To
@@ -378,10 +334,5 @@ j-runner-default-install: j-install
 j-clean:
 	$(RM_F) $(J_CLEANUPS)
 	$(RM_RF) bin
-
-j-distclean: realclean
-
-j-realclean: clean
-	$(RM_F) Makefile
 
 j-testclean:

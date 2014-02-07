@@ -204,6 +204,11 @@ my class Complex is Cool does Numeric {
         Complex.new( self.re.truncate, self.im.truncate );
     }
 
+    method narrow(Complex:D:) {
+        $!im == 0e0
+            ?? $!re.narrow
+            !! self;
+    }
 }
 
 multi sub prefix:<->(Complex:D \a) returns Complex:D {

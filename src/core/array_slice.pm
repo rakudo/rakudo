@@ -25,6 +25,9 @@ multi sub postcircumfix:<[ ]>(\SELF, int $pos, Mu :$BIND! is parcel) is rw {
     fail "Cannot use negative index $pos on {SELF.WHAT.perl}" if $pos < 0;
     SELF.bind_pos($pos, $BIND);
 }
+multi sub postcircumfix:<[ ]>( \SELF, int $pos, :$SINK!, *%other ) is rw {
+    SLICE_ONE( SELF, $pos, True, :$SINK, |%other );
+}
 multi sub postcircumfix:<[ ]>( \SELF, int $pos, :$delete!, *%other ) is rw {
     SLICE_ONE( SELF, $pos, True, :$delete, |%other );
 }
@@ -52,6 +55,9 @@ multi sub postcircumfix:<[ ]>( \SELF, $pos ) is rw {
 multi sub postcircumfix:<[ ]>(\SELF, $pos, Mu :$BIND! is parcel) is rw {
     fail "Cannot use negative index $pos on {SELF.WHAT.perl}" if $pos < 0;
     SELF.bind_pos($pos, $BIND);
+}
+multi sub postcircumfix:<[ ]>( \SELF, $pos, :$SINK!, *%other ) is rw {
+    SLICE_ONE( SELF, $pos, True, :$SINK, |%other );
 }
 multi sub postcircumfix:<[ ]>( \SELF, $pos, :$delete!, *%other ) is rw {
     SLICE_ONE( SELF, $pos, True, :$delete, |%other );
@@ -85,6 +91,9 @@ multi sub postcircumfix:<[ ]>( \SELF, Positional \pos ) is rw {
 multi sub postcircumfix:<[ ]>(\SELF, Positional \pos, :$BIND!) is rw {
     X::Bind::Slice.new(type => SELF.WHAT).throw;
 }
+multi sub postcircumfix:<[ ]>(\SELF, Positional \pos, :$SINK!, *%other) is rw {
+   SLICE_MORE( SELF, POSITIONS(SELF,pos), True, :$SINK, |%other );
+}
 multi sub postcircumfix:<[ ]>(\SELF,Positional \pos,:$delete!,*%other) is rw {
    SLICE_MORE( SELF, POSITIONS(SELF,pos), True, :$delete, |%other );
 }
@@ -110,6 +119,9 @@ multi sub postcircumfix:<[ ]>( \SELF, Callable $block ) is rw {
 }
 multi sub postcircumfix:<[ ]>(\SELF, Callable $block, :$BIND!) is rw {
     X::Bind::Slice.new(type => SELF.WHAT).throw;
+}
+multi sub postcircumfix:<[ ]>(\SELF, Callable $block, :$SINK!, *%other) is rw {
+   SLICE_MORE( SELF, POSITIONS(SELF,$block), True, :$SINK, |%other );
 }
 multi sub postcircumfix:<[ ]>(\SELF,Callable $block,:$delete!,*%other) is rw {
    SLICE_MORE( SELF, POSITIONS(SELF,$block), True, :$delete, |%other );
@@ -137,6 +149,9 @@ multi sub postcircumfix:<[ ]>( \SELF, Whatever ) is rw {
 multi sub postcircumfix:<[ ]>(\SELF, Whatever, :$BIND!) is rw {
     X::Bind::Slice.new(type => SELF.WHAT).throw;
 }
+multi sub postcircumfix:<[ ]>(\SELF, Whatever, :$SINK!, *%other) is rw {
+   SLICE_MORE( SELF, SELF.keys, True, :$SINK, |%other );
+}
 multi sub postcircumfix:<[ ]>(\SELF, Whatever, :$delete!, *%other) is rw {
    SLICE_MORE( SELF, SELF.keys, True, :$delete, |%other );
 }
@@ -162,6 +177,9 @@ multi sub postcircumfix:<[ ]>( \SELF ) is rw {
 }
 multi sub postcircumfix:<[ ]>(\SELF, :$BIND!) is rw {
     X::Bind::ZenSlice.new(type => SELF.WHAT).throw;
+}
+multi sub postcircumfix:<[ ]>(\SELF, :$SINK!, *%other) is rw {
+   SLICE_MORE( SELF, SELF.keys, True, :$SINK, |%other );
 }
 multi sub postcircumfix:<[ ]>(\SELF, :$delete!, *%other) is rw {
    SLICE_MORE( SELF, SELF.keys, True, :$delete, |%other );

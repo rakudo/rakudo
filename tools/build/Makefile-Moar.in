@@ -156,6 +156,10 @@ M_CORE_SOURCES = \
   src/core/Deprecations.pm \
   src/core/IO/Socket.pm \
   src/core/OS.pm \
+  src/core/JSON/Pretty.pm \
+  src/core/CompUnitRepo.pm \
+  src/core/CompUnitRepo/Local/File.pm \
+  src/core/CompUnitRepo/Local/Installation.pm \
   src/core/core_epilogue.pm \
 
 PERL6_DEBUG_MOAR = perl6-debug.moarvm

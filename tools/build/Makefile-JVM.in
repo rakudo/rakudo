@@ -166,6 +166,10 @@ J_CORE_SOURCES = \
   src/core/IO/Socket.pm \
   src/core/IO/Socket/INET.pm \
   src/core/OS.pm \
+  src/core/JSON/Pretty.pm \
+  src/core/CompUnitRepo.pm \
+  src/core/CompUnitRepo/Local/File.pm \
+  src/core/CompUnitRepo/Local/Installation.pm \
   src/core/core_epilogue.pm \
 
 J_CLEANUPS = \

@@ -1412,6 +1412,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token statement_prefix:sym<PRE>   { <sym> <blorst> }
     token statement_prefix:sym<POST>  { <sym> <blorst> }
     
+    token statement_prefix:sym<eager> { <sym> <blorst> }
+    token statement_prefix:sym<lazy>  { <sym> <blorst> }
     token statement_prefix:sym<sink>  { <sym> <blorst> }
     token statement_prefix:sym<try>   { <sym> <blorst> }
     token statement_prefix:sym<gather>{ <sym> <blorst> }

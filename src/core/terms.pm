@@ -159,7 +159,7 @@ sub term:<time>() { nqp::p6box_i(nqp::time_i()) }
         'perl6-j';
 #?endif
 #?if moar
-        'perl6-m';
+        $VM<config><osname> eq 'MSWin32' ?? 'perl6-m.bat' !! 'perl6-m';
 #?endif
     nqp::bindkey(nqp::who(PROCESS), '$EXECUTABLE_NAME', $EXECUTABLE_NAME);
     my Mu $comp := nqp::getcomp('perl6');

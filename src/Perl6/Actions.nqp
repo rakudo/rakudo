@@ -1067,11 +1067,6 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
     
     sub tweak_loop($loop) {
-        # Make sure the body is in sink context (for now; in the long run,
-        # need to handle the l-value case).
-        my $body_past := $loop[1][1];
-        $body_past.push(QAST::Var.new( :name('Nil'), :scope('lexical') ));
-        
         # Handle phasers.
         my $code := $loop[1]<code_object>;
         my $block_type := $*W.find_symbol(['Block']);

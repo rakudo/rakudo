@@ -190,10 +190,12 @@ sub run(*@args ($, *@)) {
         $envelem := nqp::shift($enviter);
         nqp::bindkey($hash-without, nqp::iterkey_s($envelem), nqp::decont(nqp::iterval($envelem)))
     }
+    my Mu $args-without := nqp::list();
+    for @args.eager {
+        nqp::push($args-without, nqp::decont($_));
+    }
     try {
-        $status.status( nqp::p6box_i(
-            nqp::spawn(nqp::getattr(@args.eager, List, '$!items'), $*CWD.Str, $hash-without)
-        ) );
+        $status.status( nqp::p6box_i( nqp::spawn($args-without, $*CWD.Str, $hash-without) ) );
     }
     $status
 }

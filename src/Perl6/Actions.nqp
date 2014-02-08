@@ -5932,7 +5932,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                         QAST::Var.new( :name($name), :scope('local') ),
                         QAST::Op.new(
                             :op('callmethod'),
-                            :name(nqp::getattr($param_obj, $Param, '$!coerce_method')),
+                            :name(nqp::getattr_s($param_obj, $Param, '$!coerce_method')),
                             QAST::Var.new( :name($name), :scope('local') )
                         ))));
             }

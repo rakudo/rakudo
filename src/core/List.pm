@@ -566,7 +566,7 @@ my class List does Positional { # declared in BOOTSTRAP
 
     proto method combinations($?) {*}                                                  
     multi method combinations( Int $of ) {
-        [self[@$_]] for combinations self.elems, $of
+        ([self[@$_]] for combinations self.elems, $of)
     }
     multi method combinations( Range $of = 0 .. * ) {
         gather for @$of {

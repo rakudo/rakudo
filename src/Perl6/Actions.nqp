@@ -779,9 +779,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
                             QAST::Op.new(:op('call'), :name('&infix:<,>'), $cond),
                             block_closure($past)
                         );
-                    $past := QAST::Op.new(
-                        :op<callmethod>, :name<eager>, $past
-                    );
+                    $past := QAST::Want.new(
+                        QAST::Op.new( :op<callmethod>, :name<eager>, $past ),
+                        'v', QAST::Op.new( :op<callmethod>, :name<sink>, $past ));
+                    $past<statement_level> := -> { $past[0].name('sink') }
                 }
                 else {
                     $past := QAST::Op.new($cond, $past, :op(~$ml<sym>), :node($/) );

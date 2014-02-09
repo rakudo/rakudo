@@ -118,3 +118,5 @@ sub term:<now>() {
     # second greater than it should be.
     Instant.from-posix: nqp::time_n
 }
+
+PROCESS::<$INITTIME> = now;

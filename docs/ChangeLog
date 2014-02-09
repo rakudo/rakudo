@@ -1,3 +1,15 @@
+New in 2014.02
+
++ $*INITTIME implemented
++ improved code generation for loops on the JVM backend
++ pipe opening on the MoarVM
++ eager and lazy statement prefixes
++ statement-level for-loops are now assumed to be in sink context
++ improved unspaced parsing
++ don't itemize make's ast argument
++ allow definition of custom postcircumfix operators
++ Configure: git protocol is now configurable
+
 New in 2014.01
 
 + Use .narrow on Numeric to coerce to narrowest Type possible

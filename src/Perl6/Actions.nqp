@@ -5695,7 +5695,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
         # (e.g. we can get the same errors).
         my $need_full_binder := 1;
         unless nqp::defined($use_vm_binder) {
-            $use_vm_binder := nqp::getcomp('perl6').backend.name eq 'moar';
+            my $vm := nqp::getcomp('perl6').backend.name;
+            $use_vm_binder := $vm eq 'moar' || $vm eq 'jvm';
         }
         if $use_vm_binder {
             # If there are zero parameters, then we can trvially leave it to

@@ -542,7 +542,7 @@ my class IO::Path is Cool does IO::FileTestable {
 #?endif
 #?if moar
                     next unless $elem ~~ $test;
-                    $elem := $.SPEC.catfile($!path, $elem) if self.is-relative && self ne '.';
+                    $elem := $.SPEC.catfile($!path, $elem) if self ne '.';
 #?endif
 #?if !parrot
                     if $elem.substr(0, 2) eq any("./", ".\\") {

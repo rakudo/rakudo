@@ -366,11 +366,11 @@ my class IO::Path is Cool does IO::FileTestable {
     }
 
     multi method ACCEPTS(IO::Path:D: IO::Path:D \other) {
-        self.parts eqv other.parts
+        self.cleanup.parts eqv other.cleanup.parts
     }
 
     multi method ACCEPTS(IO::Path:D: Mu \other) {
-        self.parts eqv IO::Path.new(|other).parts
+        self.cleanup.parts eqv IO::Path.new(|other).cleanup.parts
     }
 
     submethod BUILD(:$!path!, :$dir) {

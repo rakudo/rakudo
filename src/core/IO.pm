@@ -364,7 +364,16 @@ my class IO::Path is Cool does IO::FileTestable {
     method dir() {
         die "IO::Path.dir is deprecated in favor of .directory";
     }
-    submethod BUILD(:$!path!, :$dir) { 
+
+    multi method ACCEPTS(IO::Path:D: IO::Path:D \other) {
+        self.parts eqv other.parts
+    }
+
+    multi method ACCEPTS(IO::Path:D: Mu \other) {
+        self.parts eqv IO::Path.new(|other).parts
+    }
+
+    submethod BUILD(:$!path!, :$dir) {
         die "Named paramter :dir in IO::Path.new deprecated in favor of :directory"
             if defined $dir;
     }

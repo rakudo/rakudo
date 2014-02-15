@@ -374,7 +374,7 @@ class Perl6::HookActions is Perl6::Actions {
 class Perl6::HookGrammar is Perl6::Grammar {
     my %seen_files;
     
-    method statementlist() {
+    method statementlist($*statement_level = 0) {
         my $file := nqp::getlexcaller('$?FILES') // $*ANON_CODE_NAME;
         unless nqp::existskey(%*SEEN_FILES, $file) {
             if $*DEBUG_HOOKS.has_hook('new_file') {
@@ -386,7 +386,7 @@ class Perl6::HookGrammar is Perl6::Grammar {
         my $cur_st_depth := $*ST_DEPTH;
         {
             my $*ST_DEPTH := $cur_st_depth + 1;
-            Perl6::Grammar.HOW.find_method(Perl6::Grammar, 'statementlist')(self)
+            Perl6::Grammar.HOW.find_method(Perl6::Grammar, 'statementlist')(self, $*statement_level)
         }
     }
     

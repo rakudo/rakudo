@@ -391,7 +391,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             QAST::SVal.new( :value('GLOBAL') ),
             QAST::WVal.new( :value($*GLOBALish) )
         );
-        $*W.add_fixup_task(:deserialize_past($global_install), :fixup_past($global_install));
+        $*W.add_fixup_task(:deserialize_ast($global_install), :fixup_ast($global_install));
 
         # Get the block for the entire compilation unit.
         my $outer := $*UNIT_OUTER;

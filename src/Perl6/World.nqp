@@ -320,7 +320,7 @@ class Perl6::World is HLL::World {
                     )
                 )
             );
-            self.add_load_dependency_task(:deserialize_past($fixup), :fixup_past($fixup));
+            self.add_load_dependency_task(:deserialize_ast($fixup), :fixup_ast($fixup));
             
             return nqp::ctxlexpad($setting);
         }
@@ -342,7 +342,7 @@ class Perl6::World is HLL::World {
                 $opt_hash.push(QAST::SVal.new( :value($_.key) ));
                 $opt_hash.push(QAST::WVal.new( :value($_.value) ));
             }
-            self.add_load_dependency_task(:deserialize_past(QAST::Stmts.new(
+            self.add_load_dependency_task(:deserialize_ast(QAST::Stmts.new(
                 self.perl6_module_loader_code(),
                 QAST::Op.new(
                    :op('callmethod'), :name('load_module'),
@@ -1098,7 +1098,7 @@ class Perl6::World is HLL::World {
             nqp::bindattr($code, $routine_type, '$!package', $*PACKAGE);
         }
             
-        self.add_fixup_task(:deserialize_past($des), :fixup_past($fixups));
+        self.add_fixup_task(:deserialize_ast($des), :fixup_ast($fixups));
         $code;
     }
 
@@ -1120,7 +1120,7 @@ class Perl6::World is HLL::World {
                 )
            )
         );
-        self.add_fixup_task(:fixup_past($fixups), :deserialize_past($fixups));
+        self.add_fixup_task(:fixup_ast($fixups), :deserialize_ast($fixups));
     }
     
     # Generates code for running phasers.
@@ -2413,7 +2413,7 @@ class Perl6::World is HLL::World {
     # Adds various bits of initialization that must always be done early on.
     method add_initializations() {
         if self.is_precompilation_mode() {
-            self.add_load_dependency_task(:deserialize_past(QAST::VM.new(
+            self.add_load_dependency_task(:deserialize_ast(QAST::VM.new(
                 :parrot(QAST::Stmts.new(
                     QAST::VM.new( :pirop('nqp_dynop_setup v') ),
                     QAST::VM.new( :pirop('nqp_bigint_setup v') ),

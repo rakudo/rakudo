@@ -1,11 +1,12 @@
 my role IO::Socket does IO {
     has $!PIO;
-    has $!buffer =
+    # JVM and Parrot have a buffer here; Moar does enough buffering of its own
+    # and gets it much more correct when bytes cross boundaries, so we use its.
 #?if parrot
-        '';
+    has $!buffer = '';
 #?endif
-#?if !parrot
-        buf8.new;
+#?if jvm
+    has $!buffer = buf8.new;
 #?endif
 
     # if bin is true, will return Buf, Str otherwise
@@ -39,7 +40,7 @@ my role IO::Socket does IO {
             $rec
         }
 #?endif
-#?if !parrot
+#?if jvm
         if $!buffer.elems < $chars {
             my $r := nqp::readfh($!PIO, nqp::decont(buf8.new), 65536);
             $!buffer ~= $r;
@@ -67,6 +68,14 @@ my role IO::Socket does IO {
             $rec;
         }
 #?endif
+#?if moar
+        if $bin {
+            nqp::readfh($!PIO, nqp::decont(buf8.new), $chars);
+        }
+        else {
+            nqp::p6box_s(nqp::readcharsfh($!PIO, $chars));
+        }
+#?endif
     }
 
     method read(IO::Socket:D: Cool $bufsize as Int) {
@@ -82,7 +91,7 @@ my role IO::Socket does IO {
         } while nqp::chars($res) < $bufsize && nqp::chars($read);
         nqp::encode(nqp::unbox_s($res), 'binary', buf8.new);
 #?endif
-#?if !parrot
+#?if jvm
         my $res = buf8.new();
         my $buf;
         repeat {
@@ -91,6 +100,9 @@ my role IO::Socket does IO {
             $res ~= $buf;
         } while $res.elems < $bufsize && $buf.elems;
         $res;
+#?endif
+#?if moar
+        nqp::readfh($!PIO, nqp::decont(buf8.new), $bufsize);
 #?endif
     }
 

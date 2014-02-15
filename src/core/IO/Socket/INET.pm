@@ -98,7 +98,7 @@ my class IO::Socket::INET does IO::Socket {
             $PIO.connect($addr);
 #?endif
 #?if !parrot
-            my $addr := nqp::connect($PIO, nqp::unbox_s($.host), nqp::unbox_i($.port));
+            nqp::connect($PIO, nqp::unbox_s($.host), nqp::unbox_i($.port));
 #?endif
         }
         
@@ -119,7 +119,7 @@ my class IO::Socket::INET does IO::Socket {
         
         my str $line = $PIO.readline($sep);
 #?endif
-#?if !parrot
+#?if jvm
         my str $sep = nqp::unbox_s($!input-line-separator);
         my int $sep-len = nqp::chars($sep);
         
@@ -128,6 +128,17 @@ my class IO::Socket::INET does IO::Socket {
         nqp::setinputlinesep($io, $sep);
         my Str $line = nqp::p6box_s(nqp::readlinefh($io));
 #?endif
+#?if moar
+        my str $sep = nqp::unbox_s($!input-line-separator);
+        my int $sep-len = nqp::chars($sep);
+        
+        my Mu $io := nqp::getattr(self, $?CLASS, '$!PIO');
+        nqp::setencoding($io, nqp::unbox_s($!encoding));
+        # XXX NYI
+        # nqp::setinputlinesep($io, $sep);
+        my Str $line = nqp::p6box_s(nqp::readlinefh($io));
+#?endif
+
         my int $len  = nqp::chars($line);
         
         if $len == 0 { Str }
@@ -137,6 +148,7 @@ my class IO::Socket::INET does IO::Socket {
                 ?? nqp::p6box_s(nqp::substr($line, 0, $len - $sep-len))
                 !! nqp::p6box_s($line);
         }
+#?endif
     }
 
     method lines() {
@@ -148,12 +160,11 @@ my class IO::Socket::INET does IO::Socket {
     method accept() {
         ## A solution as proposed by moritz
         my $new_sock := $?CLASS.bless(:$!family, :$!proto, :$!type, :$!input-line-separator);
-        nqp::getattr($new_sock, $?CLASS, '$!buffer') =
 #?if parrot
-            '';
+        nqp::getattr($new_sock, $?CLASS, '$!buffer') = '';
 #?endif
-#?if !parrot
-            buf8.new;
+#?if jvm
+        nqp::getattr($new_sock, $?CLASS, '$!buffer') = buf8.new;
 #?endif
         nqp::bindattr($new_sock, $?CLASS, '$!PIO',
 #?if parrot

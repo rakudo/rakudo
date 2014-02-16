@@ -134,8 +134,7 @@ my class IO::Socket::INET does IO::Socket {
         
         my Mu $io := nqp::getattr(self, $?CLASS, '$!PIO');
         nqp::setencoding($io, nqp::unbox_s($!encoding));
-        # XXX NYI
-        # nqp::setinputlinesep($io, $sep);
+        nqp::setinputlinesep($io, $sep);
         my Str $line = nqp::p6box_s(nqp::readlinefh($io));
 #?endif
 

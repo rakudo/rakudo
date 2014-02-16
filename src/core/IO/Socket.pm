@@ -70,10 +70,12 @@ my role IO::Socket does IO {
 #?endif
 #?if moar
         if $bin {
-            nqp::readfh($!PIO, nqp::decont(buf8.new), $chars);
+            nqp::readfh($!PIO, nqp::decont(buf8.new),
+                $chars == $Inf ?? 1048576 !! $chars.Int);
         }
         else {
-            nqp::p6box_s(nqp::readcharsfh($!PIO, $chars));
+            nqp::p6box_s(nqp::readcharsfh($!PIO,
+                $chars == $Inf ?? 1048576 !! $chars.Int));
         }
 #?endif
     }

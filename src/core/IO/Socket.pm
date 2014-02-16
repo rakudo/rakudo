@@ -93,7 +93,6 @@ my role IO::Socket does IO {
         } while nqp::chars($res) < $bufsize && nqp::chars($read);
         nqp::encode(nqp::unbox_s($res), 'binary', buf8.new);
 #?endif
-#?if jvm
         my $res = buf8.new();
         my $buf;
         repeat {
@@ -102,10 +101,6 @@ my role IO::Socket does IO {
             $res ~= $buf;
         } while $res.elems < $bufsize && $buf.elems;
         $res;
-#?endif
-#?if moar
-        nqp::readfh($!PIO, nqp::decont(buf8.new), $bufsize);
-#?endif
     }
 
     method poll(Int $bitmask, $seconds) {

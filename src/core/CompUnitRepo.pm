@@ -36,7 +36,15 @@ class CompUnitRepo {
         my %chosen;
         if $candi {
             %chosen<pm>   := $candi<provides>{$module_name}<pm><file>;
+#?if parrot
             %chosen<load> := $candi<provides>{$module_name}<pir><file>;
+#?endif
+#?if jvm
+            %chosen<load> := $candi<provides>{$module_name}<jar><file>;
+#?endif
+#?if moar
+            %chosen<load> := $candi<provides>{$module_name}<moarvm><file>;
+#?endif
             %chosen<key>  := %chosen<pm> // %chosen<load>;
         }
         $p6ml.load_module($module_name, %opts, |@GLOBALish, :$line, :$file, :%chosen);

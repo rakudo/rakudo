@@ -633,14 +633,14 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         [ [\n $spaces '=']? \h+ <colonpair> ]*
     }
 
-    token pod_block:sym<delimited_raw> {
+    token pod_block:sym<delimited_comment> {
         ^^
         $<spaces> = [ \h* ]
-        '=begin' \h+ $<type>=[ 'code' | 'comment' ] {}
+        '=begin' \h+ 'comment' {}
         <pod_configuration($<spaces>)> <pod_newline>+
         [
          $<pod_content> = [ .*? ]
-         ^^ $<spaces> '=end' \h+ $<type> <pod_newline>
+         ^^ $<spaces> '=end' \h+ 'comment' <pod_newline>
          ||  <.typed_panic: 'X::Syntax::Pod::BeginWithoutEnd'>
         ]
     }
@@ -680,6 +680,19 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         [
          <table_row>*
          ^^ \h* '=end' \h+ 'table' <pod_newline>
+         ||  <.typed_panic: 'X::Syntax::Pod::BeginWithoutEnd'>
+        ]
+    }
+
+    token pod_block:sym<delimited_code> {
+        ^^
+        $<spaces> = [ \h* ]
+        '=begin' \h+ 'code'
+            :my $*POD_ALLOW_FCODES := 0;
+            <pod_configuration($<spaces>)> <pod_newline>+
+        [
+         <pod_content>*
+         ^^ \h* '=end' \h+ 'code' <pod_newline>
          ||  <.typed_panic: 'X::Syntax::Pod::BeginWithoutEnd'>
         ]
     }
@@ -751,10 +764,10 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <pod_content=.pod_textcontent>**0..1
     }
 
-    token pod_block:sym<abbreviated_raw> {
+    token pod_block:sym<abbreviated_comment> {
         ^^
         $<spaces> = [ \h* ]
-        '=' $<type>=[ 'code' | 'comment' ]
+        '=comment'
         :my $*POD_ALLOW_FCODES := nqp::getlexdyn('$*POD_ALLOW_FCODES');
         <pod_configuration($<spaces>)> [\r\n|\s]
         $<pod_content> = [ \h* <!before '=' \w> \N+ \n ]*
@@ -763,9 +776,17 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token pod_block:sym<abbreviated_table> {
         ^^
         $<spaces> = [ \h* ]
-        :my $*POD_ALLOW_FCODES := nqp::getlexdyn('$*POD_ALLOW_FCODES');
         '=table' <pod_configuration($<spaces>)> <pod_newline>
+        :my $*POD_ALLOW_FCODES := nqp::getlexdyn('$*POD_ALLOW_FCODES');
         [ <!before \h* \n> <table_row>]*
+    }
+
+    token pod_block:sym<abbreviated_code> {
+        ^^
+        $<spaces> = [ \h* ]
+        '=code' <pod_configuration($<spaces>)> <pod_newline>
+        :my $*POD_ALLOW_FCODES := 0;
+        [ <!before \h* \n> <pod_content>]*
     }
 
     token pod_newline {

@@ -391,7 +391,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             QAST::SVal.new( :value('GLOBAL') ),
             QAST::WVal.new( :value($*GLOBALish) )
         );
-        $*W.add_fixup_task(:deserialize_past($global_install), :fixup_past($global_install));
+        $*W.add_fixup_task(:deserialize_ast($global_install), :fixup_ast($global_install));
 
         # Get the block for the entire compilation unit.
         my $outer := $*UNIT_OUTER;
@@ -713,6 +713,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
             for $<statement> {
                 my $ast := $_.ast;
                 if $ast {
+                    if $ast<statement_level> && $*statement_level {
+                        $ast<statement_level>();
+                    }
                     if $ast<sink_past> {
                         $ast := QAST::Want.new($ast, 'v', $ast<sink_past>);
                     }
@@ -776,9 +779,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
                             QAST::Op.new(:op('call'), :name('&infix:<,>'), $cond),
                             block_closure($past)
                         );
-                    $past := QAST::Op.new(
-                        :op<callmethod>, :name<eager>, $past
-                    );
+                    $past := QAST::Want.new(
+                        QAST::Op.new( :op<callmethod>, :name<eager>, $past ),
+                        'v', QAST::Op.new( :op<callmethod>, :name<sink>, $past ));
+                    $past<statement_level> := -> { $past[0].name('sink') }
                 }
                 else {
                     $past := QAST::Op.new($cond, $past, :op(~$ml<sym>), :node($/) );
@@ -1043,6 +1047,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         $past := QAST::Want.new(
             QAST::Op.new( :op<callmethod>, :name<eager>, $past ),
             'v', QAST::Op.new( :op<callmethod>, :name<sink>, $past ));
+        $past<statement_level> := -> { $past[0].name('sink') }
         make $past;
     }
 
@@ -1062,11 +1067,6 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
     
     sub tweak_loop($loop) {
-        # Make sure the body is in sink context (for now; in the long run,
-        # need to handle the l-value case).
-        my $body_past := $loop[1][1];
-        $body_past.push(QAST::Var.new( :name('Nil'), :scope('lexical') ));
-        
         # Handle phasers.
         my $code := $loop[1]<code_object>;
         my $block_type := $*W.find_symbol(['Block']);
@@ -1376,6 +1376,15 @@ class Perl6::Actions is HLL::Actions does STDActions {
             ),
             QAST::Var.new( :name($sym), :scope('lexical') )
         );
+    }
+
+    method statement_prefix:sym<lazy>($/) {
+        make QAST::Op.new( :op('call'), $<blorst>.ast );
+    }
+
+    method statement_prefix:sym<eager>($/) {
+        my $blast := QAST::Op.new( :op('call'), $<blorst>.ast );
+        make QAST::Op.new( :name('&eager'), :op('call'), :node($/), $blast );
     }
 
     method statement_prefix:sym<sink>($/) {
@@ -5923,7 +5932,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                         QAST::Var.new( :name($name), :scope('local') ),
                         QAST::Op.new(
                             :op('callmethod'),
-                            :name(nqp::getattr($param_obj, $Param, '$!coerce_method')),
+                            :name(nqp::getattr_s($param_obj, $Param, '$!coerce_method')),
                             QAST::Var.new( :name($name), :scope('local') )
                         ))));
             }

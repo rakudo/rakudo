@@ -97,6 +97,7 @@ my class IO::Handle does IO::FileTestable {
             :enc(:$encoding) = 'utf8') {
         $path //= $!path;
         my $abspath = defined($*CWD) ?? IO::Spec.rel2abs($path) !! $path;
+#?if parrot
         my $mode =  $p ?? ($w ||  $a ?? 'wp' !! 'rp') !!
                    ($w ?? 'w' !! ($a ?? 'wa' !! 'r' ));
         # TODO: catch error, and fail()
@@ -105,6 +106,37 @@ my class IO::Handle does IO::FileTestable {
                 ?? ( $w || $a ?? nqp::getstdout() !! nqp::getstdin() )
                 !! nqp::open(nqp::unbox_s($abspath.Str), nqp::unbox_s($mode))
         );
+#?endif
+#?if !parrot
+        if $p {
+            #~ my $mode =  $p ?? ($w ||  $a ?? 'wp' !! 'rp');
+
+            my Mu $hash-with-containers := nqp::getattr(%*ENV, EnumMap, '$!storage');
+            my Mu $hash-without         := nqp::hash();
+            my Mu $enviter := nqp::iterator($hash-with-containers);
+            my $envelem;
+            while $enviter {
+                $envelem := nqp::shift($enviter);
+                nqp::bindkey($hash-without, nqp::iterkey_s($envelem), nqp::decont(nqp::iterval($envelem)))
+            }
+
+            my $errpath = '';
+            nqp::bindattr(self, IO::Handle, '$!PIO',
+                 $path eq '-'
+                    ?? ( $w || $a ?? nqp::getstdout() !! nqp::getstdin() )
+                    !! nqp::openpipe(nqp::unbox_s($abspath.Str), nqp::unbox_s($*CWD.Str), $hash-without, nqp::unbox_s($errpath))
+            );
+        }
+        else {
+            my $mode =  $w ?? 'w' !! ($a ?? 'wa' !! 'r' );
+            # TODO: catch error, and fail()
+            nqp::bindattr(self, IO::Handle, '$!PIO',
+                 $path eq '-'
+                    ?? ( $w || $a ?? nqp::getstdout() !! nqp::getstdin() )
+                    !! nqp::open(nqp::unbox_s($abspath.Str), nqp::unbox_s($mode))
+            );
+        }
+#?endif
         $!path = $path;
         $!chomp = $chomp;
         nqp::setencoding($!PIO, NORMALIZE_ENCODING($encoding)) unless $bin;
@@ -332,7 +364,16 @@ my class IO::Path is Cool does IO::FileTestable {
     method dir() {
         die "IO::Path.dir is deprecated in favor of .directory";
     }
-    submethod BUILD(:$!path!, :$dir) { 
+
+    multi method ACCEPTS(IO::Path:D: IO::Path:D \other) {
+        self.cleanup.parts eqv other.cleanup.parts
+    }
+
+    multi method ACCEPTS(IO::Path:D: Mu \other) {
+        self.cleanup.parts eqv IO::Path.new(|other).cleanup.parts
+    }
+
+    submethod BUILD(:$!path!, :$dir) {
         die "Named paramter :dir in IO::Path.new deprecated in favor of :directory"
             if defined $dir;
     }
@@ -510,7 +551,7 @@ my class IO::Path is Cool does IO::FileTestable {
 #?endif
 #?if moar
                     next unless $elem ~~ $test;
-                    $elem := $.SPEC.catfile($!path, $elem) if self.is-relative && self ne '.';
+                    $elem := $.SPEC.catfile($!path, $elem) if self ne '.';
 #?endif
 #?if !parrot
                     if $elem.substr(0, 2) eq any("./", ".\\") {

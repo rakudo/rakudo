@@ -949,7 +949,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         
         <.finishpad>
         <.bom>?
-        <statementlist>
+        <statementlist(1)>
 
         <.install_doc_phaser>
         
@@ -1005,7 +1005,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         }
     }
 
-    rule statementlist {
+    rule statementlist($*statement_level = 0) {
         :my %*LANG := self.shallow_copy(nqp::getlexdyn('%*LANG'));
         :my %*HOW  := self.shallow_copy(nqp::getlexdyn('%*HOW'));
         :dba('statement list')
@@ -1114,7 +1114,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <.finishpad>
         [
         | '{YOU_ARE_HERE}' <you_are_here>
-        | :dba('block') '{' ~ '}' <statementlist> <?ENDSTMT>
+        | :dba('block') '{' ~ '}' <statementlist(1)> <?ENDSTMT>
         | <?terminator> { $*W.throw($/, 'X::Syntax::Missing', what =>'block') }
         | <?> { $*W.throw($/, 'X::Syntax::Missing', what => 'block') }
         ]
@@ -1412,6 +1412,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token statement_prefix:sym<PRE>   { <sym> <blorst> }
     token statement_prefix:sym<POST>  { <sym> <blorst> }
     
+    token statement_prefix:sym<eager> { <sym> <blorst> }
+    token statement_prefix:sym<lazy>  { <sym> <blorst> }
     token statement_prefix:sym<sink>  { <sym> <blorst> }
     token statement_prefix:sym<try>   { <sym> <blorst> }
     token statement_prefix:sym<gather>{ <sym> <blorst> }
@@ -2074,7 +2076,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                     }
                     { $*IN_DECL := ''; }
                     <.finishpad>
-                    <statementlist>     # whole rest of file, presumably
+                    <statementlist(1)>     # whole rest of file, presumably
                     { $*CURPAD := $*W.pop_lexpad() }
                 || <.panic("Too late for semicolon form of $*PKGDECL definition")>
                 ]
@@ -4204,7 +4206,8 @@ grammar Perl6::RegexGrammar is QRegex::P6Regex::Grammar does STD {
     token rxstopper { <stopper> }
 
     token metachar:sym<:my> {
-        ':' <?before 'my'|'constant'|'state'|'our'> <statement=.LANG('MAIN', 'statement')> <.ws> ';'
+        ':' <?before 'my'|'constant'|'state'|'our'> <statement=.LANG('MAIN', 'statement')>
+        <.LANG('MAIN', 'eat_terminator')>
     }
 
     token metachar:sym<{ }> {

@@ -1,4 +1,4 @@
-my class JSON::Tiny::Actions {
+my class JSONPrettyActions {
     method TOP($/) {
         make $/.values.[0].ast;
     };
@@ -55,7 +55,7 @@ my class JSON::Tiny::Actions {
     }
 }
 
-my grammar JSON::Tiny::Grammar {
+my grammar JSONPrettyGrammar {
     token TOP       { ^ \s* [ <object> | <array> ] \s* $ }
     rule object     { '{' ~ '}' <pairlist>     }
     rule pairlist   { <pair> * % \,            }
@@ -120,7 +120,7 @@ multi to-json(Mu:D $s, :$indent = 0, :$first = 0) {
 }
 
 sub from-json($text) {
-    my $a = JSON::Tiny::Actions.new();
-    my $o = JSON::Tiny::Grammar.parse($text, :actions($a));
+    my $a = JSONPrettyActions.new();
+    my $o = JSONPrettyGrammar.parse($text, :actions($a));
     return $o.ast;
 }

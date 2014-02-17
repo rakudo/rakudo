@@ -3,7 +3,7 @@ my class JSON::Tiny::Actions {
         make $/.values.[0].ast;
     };
     method object($/) {
-        make $<pairlist>.ast.hash;
+        make $<pairlist>.ast.hash.item;
     }
 
     method pairlist($/) {
@@ -15,7 +15,7 @@ my class JSON::Tiny::Actions {
     }
 
     method array($/) {
-        make $<arraylist>.ast;
+        make $<arraylist>.ast.item;
     }
 
     method arraylist($/) {

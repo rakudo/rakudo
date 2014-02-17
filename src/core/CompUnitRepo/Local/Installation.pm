@@ -90,7 +90,7 @@ sub MAIN(:$name, :$auth, :$ver, *@pos, *%named) {
         my $d        = CompUnitRepo::Distribution.new( |$dist.metainfo, :id($repo<dist-count>++) );
         
         # Build patterns to choose what goes into "provides" section.
-        my $ext = regex { [pm|pm6|pir|pbc] };
+        my $ext = regex { [pm|pm6|pir|pbc|jar|moarvm] };
         my @provides;
         for %($d.provides).kv -> $k, $v is copy {
             $v.=subst(/\.<$ext>$/, '.');

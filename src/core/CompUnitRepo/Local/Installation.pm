@@ -117,7 +117,7 @@ sub MAIN(:$name, :$auth, :$ver, *@pos, *%named) {
                 if $file ~~ /^bin<[\\\/]>/ {
                     mkdir "$path/bin" unless "$path/bin".IO.d;
                     my $basename = $file.IO.path.basename;
-                    for '', < -p -j > -> $ext {
+                    for '', < -p -j -m > -> $ext {
                         "$path/bin/$basename$ext".IO.spurt:
                             $unix_wrapper.subst('#name#', $basename, :g).subst('#perl#', "perl6$ext");
                         "$path/bin/$basename$ext".IO.chmod(0o755) unless $*OS eq 'MSWin32';

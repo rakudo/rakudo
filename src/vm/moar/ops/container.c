@@ -23,7 +23,7 @@ static void finish_store(MVMThreadContext *tc, MVMObject *cont, MVMObject *obj) 
     MVMObject *whence;
 
     /* Store the value. */
-    MVM_ASSIGN_REF(tc, cont, rs->value, obj);
+    MVM_ASSIGN_REF(tc, &(cont->header), rs->value, obj);
 
     /* Run any whence closure. */
     whence = rs->whence;

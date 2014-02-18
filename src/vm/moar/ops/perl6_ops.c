@@ -150,12 +150,12 @@ static void p6settypes(MVMThreadContext *tc) {
         default_cont_desc = MVM_repr_alloc_init(tc, ContainerDescriptor);
         MVM_gc_root_add_permanent(tc, (MVMCollectable **)&default_cont_desc);
         element = MVM_string_ascii_decode_nt(tc, tc->instance->VMString, "<element>");
-        MVM_ASSIGN_REF(tc, default_cont_desc,
+        MVM_ASSIGN_REF(tc, &(default_cont_desc->header),
             ((Rakudo_ContainerDescriptor *)default_cont_desc)->of, Mu);
-        MVM_ASSIGN_REF(tc, default_cont_desc,
+        MVM_ASSIGN_REF(tc, &(default_cont_desc->header),
             ((Rakudo_ContainerDescriptor *)default_cont_desc)->name, element);
         ((Rakudo_ContainerDescriptor *)default_cont_desc)->rw = 1;
-        MVM_ASSIGN_REF(tc, default_cont_desc,
+        MVM_ASSIGN_REF(tc, &(default_cont_desc->header),
             ((Rakudo_ContainerDescriptor *)default_cont_desc)->the_default, Any);
     }
 
@@ -208,7 +208,7 @@ static void p6parcel(MVMThreadContext *tc) {
     MVMObject *parcel = MVM_repr_alloc_init(tc, Parcel);
     MVMObject *vmarr  = GET_REG(tc, 2).o;
     MVMObject *fill   = GET_REG(tc, 4).o;
-    MVM_ASSIGN_REF(tc, parcel, ((Rakudo_Parcel *)parcel)->storage, vmarr);
+    MVM_ASSIGN_REF(tc, &(parcel->header), ((Rakudo_Parcel *)parcel)->storage, vmarr);
 
     if (fill) {
         MVMint64 elems = MVM_repr_elems(tc, vmarr);
@@ -227,8 +227,8 @@ static MVMObject * make_listiter(MVMThreadContext *tc, MVMObject *items, MVMObje
     MVMROOT(tc, items, {
     MVMROOT(tc, list, {
         result = MVM_repr_alloc_init(tc, ListIter);
-        MVM_ASSIGN_REF(tc, result, ((Rakudo_ListIter *)result)->rest, items);
-        MVM_ASSIGN_REF(tc, result, ((Rakudo_ListIter *)result)->list, list);
+        MVM_ASSIGN_REF(tc, &(result->header), ((Rakudo_ListIter *)result)->rest, items);
+        MVM_ASSIGN_REF(tc, &(result->header), ((Rakudo_ListIter *)result)->list, list);
     });
     });
     return result;
@@ -246,9 +246,9 @@ static void p6list(MVMThreadContext *tc) {
             MVMObject *items = GET_REG(tc, 2).o;
             if (items) {
                 MVMObject *iter = make_listiter(tc, items, list);
-                MVM_ASSIGN_REF(tc, list, ((Rakudo_List *)list)->nextiter, iter);
+                MVM_ASSIGN_REF(tc, &(list->header), ((Rakudo_List *)list)->nextiter, iter);
             }
-            MVM_ASSIGN_REF(tc, list, ((Rakudo_List *)list)->flattens, GET_REG(tc, 6).o);
+            MVM_ASSIGN_REF(tc, &(list->header), ((Rakudo_List *)list)->flattens, GET_REG(tc, 6).o);
         });
         GET_REG(tc, 0).o = list;
     }
@@ -281,7 +281,7 @@ static void p6listitems(MVMThreadContext *tc) {
         if (!items || !IS_CONCRETE(items) || REPR(items)->ID != MVM_REPR_ID_MVMArray) {
             MVMROOT(tc, list, {
                 items = MVM_repr_alloc_init(tc, tc->instance->boot_types.BOOTArray);
-                MVM_ASSIGN_REF(tc, list, ((Rakudo_List *)list)->items, items);
+                MVM_ASSIGN_REF(tc, &(list->header), ((Rakudo_List *)list)->items, items);
             });
         }
         GET_REG(tc, 0).o = items;
@@ -311,8 +311,8 @@ static void p6scalarfromdesc(MVMThreadContext *tc) {
     if (!descriptor) {
         descriptor = default_cont_desc;
     }
-    MVM_ASSIGN_REF(tc, new_scalar, ((Rakudo_Scalar *)new_scalar)->descriptor, descriptor);
-    MVM_ASSIGN_REF(tc, new_scalar, ((Rakudo_Scalar *)new_scalar)->value,
+    MVM_ASSIGN_REF(tc, &(new_scalar->header), ((Rakudo_Scalar *)new_scalar)->descriptor, descriptor);
+    MVM_ASSIGN_REF(tc, &(new_scalar->header), ((Rakudo_Scalar *)new_scalar)->value,
         ((Rakudo_ContainerDescriptor *)descriptor)->the_default);
     GET_REG(tc, 0).o = new_scalar;
 }
@@ -329,7 +329,7 @@ static void p6recont_ro(MVMThreadContext *tc) {
             /* We have an rw container; re-containerize it. */
             MVMROOT(tc, check, {
                 MVMObject *result = MVM_repr_alloc_init(tc, Scalar);
-                MVM_ASSIGN_REF(tc, result, ((Rakudo_Scalar *)result)->value,
+                MVM_ASSIGN_REF(tc, &(result->header), ((Rakudo_Scalar *)result)->value,
                     ((Rakudo_Scalar *)check)->value);
                 GET_REG(tc, 0).o = result;
             });
@@ -350,7 +350,7 @@ static void p6var(MVMThreadContext *tc) {
      if (STABLE(wrappee)->container_spec) {
         MVMROOT(tc, wrappee, {
             MVMObject *wrapper = MVM_repr_alloc_init(tc, Scalar);
-            MVM_ASSIGN_REF(tc, wrapper, ((Rakudo_Scalar *)wrapper)->value, wrappee);
+            MVM_ASSIGN_REF(tc, &(wrapper->header), ((Rakudo_Scalar *)wrapper)->value, wrappee);
             GET_REG(tc, 0).o = wrapper;
         });
      }
@@ -392,7 +392,7 @@ static void p6decontrv(MVMThreadContext *tc) {
         if (cd && cd->rw) {
             MVMROOT(tc, retval, {
                 MVMObject *cont = MVM_repr_alloc_init(tc, Scalar);
-                MVM_ASSIGN_REF(tc, cont, ((Rakudo_Scalar *)cont)->value,
+                MVM_ASSIGN_REF(tc, &(cont->header), ((Rakudo_Scalar *)cont)->value,
                     ((Rakudo_Scalar *)retval)->value);
                 retval = cont;
             });

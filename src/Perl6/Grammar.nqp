@@ -769,7 +769,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
 
     token pod_newline {
-        \h* \n
+        \h* [ \n | $ ]
     }
 
     token pod_code_parent {

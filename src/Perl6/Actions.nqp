@@ -581,15 +581,12 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
     method delimited_code_content($/) {
         my @t := [];
-        @t := $<delimited_code_content>.ast
-            if $<delimited_code_content><pod_string>;
-        if $<pod_string> {
-            for Perl6::Pod::merge_twines($<pod_string>) {
-                @t.unshift($_);
-            }
-        } elsif $<delimited_code_content> {
-            # Empty line
-            @t.unshift($*W.add_constant('Str', 'str', '').compile_time_value);
+        if $<delimited_code_content> {
+            @t := Perl6::Pod::merge_twines($<pod_string>) if $<pod_string>;
+            @t.push($*W.add_constant(
+                'Str', 'str', ~$<pod_newline>
+            ).compile_time_value);
+            nqp::splice(@t, $<delimited_code_content>.ast,+@t,0);
         }
         make @t;
     }

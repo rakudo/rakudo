@@ -18,6 +18,7 @@ RUNTIME_JAVAS = src/vm/jvm/runtime/org/perl6/rakudo/*.java
 
 RUNTIME_JAR = rakudo-runtime.jar
 
+J_BAT    = @runner_suffix@
 J_RUNNER = @j_runner@
 
 # files we create
@@ -259,8 +260,8 @@ $(J_RUNNER):
 	$(PERL) tools/build/create-jvm-runner.pl dev . . $(NQP_PREFIX) $(NQP_JARS)
 
 j-runner-default: j-all
-	$(CP) $(J_RUNNER) perl6$(BAT)
-	$(CHMOD) 755 perl6$(BAT)
+	$(CP) $(J_RUNNER) perl6$(J_BAT)
+	$(CHMOD) 755 perl6$(J_BAT)
 
 $(PERL6_DEBUG_JAR): src/perl6-debug.nqp $(PERL6_JAR)
 	$(J_NQP) --target=jar --javaclass=perl6-debug --output=$(PERL6_DEBUG_JAR) \
@@ -340,8 +341,8 @@ j-install: j-all tools/build/create-jvm-runner.pl
 
 j-runner-default-install: j-install
 	$(PERL) tools/build/create-jvm-runner.pl install "$(DESTDIR)" $(PREFIX) $(NQP_PREFIX) $(NQP_JARS)
-	$(CP) $(DESTDIR)$(PREFIX)/bin/perl6-j$(BAT) $(DESTDIR)$(PREFIX)/bin/perl6$(BAT)
-	$(CHMOD) 755 $(DESTDIR)$(PREFIX)/bin/perl6$(BAT)
+	$(CP) $(DESTDIR)$(PREFIX)/bin/perl6-j$(J_BAT) $(DESTDIR)$(PREFIX)/bin/perl6$(J_BAT)
+	$(CHMOD) 755 $(DESTDIR)$(PREFIX)/bin/perl6$(J_BAT)
 
 ##  cleaning
 j-clean:

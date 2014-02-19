@@ -169,7 +169,7 @@ J_CORE_SOURCES = \
   src/core/core_epilogue.pm \
 
 PERL6_DEBUG_JAR = perl6-debug.jar
-J_DEBUG_RUNNER = perl6-debug-m@runner_suffix@
+J_DEBUG_RUNNER = perl6-debug-j@runner_suffix@
 
 J_CLEANUPS = \
   *.manifest \

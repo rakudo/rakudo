@@ -603,6 +603,16 @@ class Perl6::Actions is HLL::Actions does STDActions {
         make Perl6::Pod::table($/);
     }
 
+    method pod_block:sym<paragraph_code>($/) {
+        my $config := $<pod_configuration>.ast;
+        my @t      := Perl6::Pod::merge_twines($<pod_string>);
+        my $twine  := Perl6::Pod::serialize_array(@t).compile_time_value;
+        make Perl6::Pod::serialize_object(
+            'Pod::Block::Code', :content($twine),
+            :config($config),
+        ).compile_time_value
+    }
+
     method pod_block:sym<abbreviated>($/) {
         make Perl6::Pod::any_block($/);
     }

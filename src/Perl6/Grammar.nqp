@@ -739,10 +739,10 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <pod_content=.pod_textcontent>**0..1
     }
 
-    token pod_block:sym<paragraph_raw> {
+    token pod_block:sym<paragraph_comment> {
         ^^
         $<spaces> = [ \h* ]
-        '=for' \h+ $<type>=[ 'code' | 'comment' ] {}
+        '=for' \h+ 'comment' {}
         :my $*POD_ALLOW_FCODES := nqp::getlexdyn('$*POD_ALLOW_FCODES');
         <pod_configuration($<spaces>)> <pod_newline>
         $<pod_content> = [ \h* <!before '=' \w> \N+ \n ]+
@@ -755,6 +755,15 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*POD_ALLOW_FCODES := nqp::getlexdyn('$*POD_ALLOW_FCODES');
         <pod_configuration($<spaces>)> <pod_newline>
         [ <!before \h* \n> <table_row>]*
+    }
+
+    token pod_block:sym<paragraph_code> {
+        ^^
+        $<spaces> = [ \h* ]
+        '=for' \h+ 'code' {}
+        :my $*POD_ALLOW_FCODES := 0;
+        <pod_configuration($<spaces>)> <pod_newline>
+        [ <!before \h* '=' \w> <pod_string> <pod_newline> ]+
     }
 
     token pod_block:sym<abbreviated> {

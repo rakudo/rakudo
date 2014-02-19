@@ -780,7 +780,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         $<spaces> = [ \h* ]
         '=comment' {}
         :my $*POD_ALLOW_FCODES := nqp::getlexdyn('$*POD_ALLOW_FCODES');
-        <pod_configuration($<spaces>)> [\r\n|\s]
+        <pod_configuration($<spaces>)> [\h*\n|\h+]
         $<pod_content> = [ \h* <!before '=' \w> \N+ \n ]*
     }
 
@@ -799,8 +799,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         '=code' {}
         :my $*POD_ALLOW_FCODES  := 0;
         :my $*POD_IN_CODE_BLOCK := 1;
-        <pod_configuration($<spaces>)> <pod_newline>
-        [ <pod_string> <pod_newline> ]+
+        <pod_configuration($<spaces>)> [\h*\n|\h+]
+        [ <!before \h* '=' \w> <pod_string> <pod_newline> ]+
     }
 
     token pod_newline {

@@ -262,7 +262,7 @@ j-runner-default: j-all
 	$(CP) $(J_RUNNER) perl6$(BAT)
 	$(CHMOD) 755 perl6$(BAT)
 
-$(PERL6_DEBUG_JAR): src/perl6-debug.nqp $(PERL6_JVM)
+$(PERL6_DEBUG_JAR): src/perl6-debug.nqp $(PERL6_JAR)
 	$(J_NQP) --target=jar --javaclass=perl6-debug --output=$(PERL6_DEBUG_JAR) \
 	    src/perl6-debug.nqp
 

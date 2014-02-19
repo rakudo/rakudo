@@ -38,7 +38,7 @@ sub heading2text($pod) {
 }
 
 sub code2text($pod) {
-    "    " ~ $pod.content.subst(/\n/, "\n    ", :g)
+    "    " ~ $pod.content>>.&pod2text.subst(/\n/, "\n    ", :g)
 }
 
 sub item2text($pod) {

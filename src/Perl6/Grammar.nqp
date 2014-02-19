@@ -544,7 +544,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     # text not being code
     token pod_textcontent:sym<regular> {
         $<spaces>=[ \h* ]
-         <?{ !$*ALLOW_INLINE_CODE
+         <?{ $*POD_IN_CODE_BLOCK
+             || !$*ALLOW_INLINE_CODE
              || ($<spaces>.to - $<spaces>.from) <= $*VMARGIN }>
 
         $<text> = [
@@ -554,7 +555,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     token pod_textcontent:sym<code> {
         $<spaces>=[ \h* ]
-        <?{ $*ALLOW_INLINE_CODE
+        <?{ !$*POD_IN_CODE_BLOCK
+            && $*ALLOW_INLINE_CODE
             && ($<spaces>.to - $<spaces>.from) > $*VMARGIN }>
         $<text> = [
             [<!before '=' \w> \N+]+ % [<pod_newline> $<spaces>]
@@ -688,8 +690,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         ^^
         $<spaces> = [ \h* ]
         '=begin' \h+ 'code'
-        :my $*POD_ALLOW_FCODES := 0;
-        :my $*ALLOW_INLINE_CODE := 0;
+        :my $*POD_ALLOW_FCODES  := 0;
+        :my $*POD_IN_CODE_BLOCK := 1;
         <pod_configuration($<spaces>)> <pod_newline>+
         [
         || <delimited_code_content(~$<spaces>)>
@@ -794,8 +796,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         ^^
         $<spaces> = [ \h* ]
         '=code' <pod_configuration($<spaces>)> <pod_newline>
-        :my $*POD_ALLOW_FCODES := 0;
-        :my $*ALLOW_INLINE_CODE := 0;
+        :my $*POD_ALLOW_FCODES  := 0;
+        :my $*POD_IN_CODE_BLOCK := 1;
         [ <pod_string> <pod_newline> ]+
     }
 
@@ -861,7 +863,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*HAS_YOU_ARE_HERE := 0;               # whether {YOU_ARE_HERE} has shown up
         :my $*OFTYPE;
         :my $*VMARGIN    := 0;                     # pod stuff
-        :my $*ALLOW_INLINE_CODE := 0;                     # pod stuff
+        :my $*ALLOW_INLINE_CODE := 0;              # pod stuff
+        :my $*POD_IN_CODE_BLOCK := 0;              # pod stuff
         :my $*POD_IN_FORMATTINGCODE := 0;          # pod stuff
         :my $*POD_ALLOW_FCODES := 0b11111111111111111111111111; # allow which fcodes?
         :my $*POD_ANGLE_COUNT := 0;                # pod stuff

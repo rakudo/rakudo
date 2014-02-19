@@ -335,6 +335,12 @@ class Perl6::Pod {
     }
 
     our sub build_pod_string(@content) {
+        return $*POD_IN_CODE_BLOCK
+            ?? build_pod_code_string(@content)
+            !! build_pod_regular_string(@content)
+    }
+
+    our sub build_pod_regular_string(@content) {
         sub push_strings(@strings, @where) {
             my $s := subst(nqp::join('', @strings), /\s+/, ' ', :global);
             my $t := $*W.add_constant(
@@ -364,6 +370,31 @@ class Perl6::Pod {
         return @res;
     }
 
+    # Code strings need to be handled differently:
+    # Formatting codes need to be saved, but everything
+    # else should be verbatim
+    our sub build_pod_code_string(@content) {
+        sub push_strings(@strings, @where) {
+            my $s := nqp::join('', @strings);
+            my $t := $*W.add_constant('Str', 'str', $s).compile_time_value;
+            @where.push($t);
+        }
+
+        my @res  := [];
+        my @strs := [];
+        for @content -> $elem {
+            if nqp::isstr($elem) {
+                @strs.push($elem);
+            } else {
+                push_strings(@strs, @res);
+                @strs := [];
+                @res.push($elem);
+            }
+        }
+        push_strings(@strs, @res);
+
+        return @res;
+    }
 
     # takes an array of strings (rows of a table)
     # returns array of arrays of strings (cells)

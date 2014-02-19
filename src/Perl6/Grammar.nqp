@@ -688,12 +688,21 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         ^^
         $<spaces> = [ \h* ]
         '=begin' \h+ 'code'
-            :my $*POD_ALLOW_FCODES := 0;
-            <pod_configuration($<spaces>)> <pod_newline>+
+        :my $*POD_ALLOW_FCODES := 0;
+        :my $*ALLOW_CODE := 0;
+        <pod_configuration($<spaces>)> <pod_newline>+
         [
-         <pod_content>*
-         ^^ \h* '=end' \h+ 'code' <pod_newline>
-         ||  <.typed_panic: 'X::Syntax::Pod::BeginWithoutEnd'>
+        || <delimited_code_content(~$<spaces>)>
+        || <.typed_panic: 'X::Syntax::Pod::BeginWithoutEnd'>
+        ]
+    }
+
+    token delimited_code_content($spaces = '') {
+        ^^ $spaces
+        [
+        || '=end' \h+ 'code' <pod_newline>
+        || <pod_string>**1 <pod_newline>
+           <delimited_code_content($spaces)>
         ]
     }
 
@@ -786,11 +795,12 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         $<spaces> = [ \h* ]
         '=code' <pod_configuration($<spaces>)> <pod_newline>
         :my $*POD_ALLOW_FCODES := 0;
-        [ <!before \h* \n> <pod_content>]*
+        :my $*ALLOW_CODE := 0;
+        [ <pod_string> <pod_newline> ]+
     }
 
     token pod_newline {
-        \h* \n
+        \h* [ \n | $ ]
     }
 
     token pod_code_parent {

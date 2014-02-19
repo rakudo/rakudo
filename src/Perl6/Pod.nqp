@@ -61,14 +61,26 @@ class Perl6::Pod {
         my $config := $<pod_configuration>.ast;
         my $str := $*W.add_constant('Str', 'str', ~$<pod_content>);
         my $content := serialize_array([$str.compile_time_value]);
-        my $type := $<type>.Str eq 'code' ?? 'Pod::Block::Code'
-                                          !! 'Pod::Block::Comment';
         my $past := serialize_object(
-            $type, :config($config),
+            'Pod::Block::Comment', :config($config),
             :content($content.compile_time_value),
         );
         return $past.compile_time_value;
     }
+
+#    our sub code_block($/) {
+#        my @children := [];
+#        my $config := $<pod_configuration>.ast;
+#        for $<pod_string> {
+#            @children.push($_.ast);
+#        }
+#        my $content := serialize_array(@children);
+#        my $past := serialize_object(
+#            'Pod::Block::Code', :config($config),
+#            :content($content.compile_time_value),
+#        );
+#        return $past.compile_time_value;
+#    }
 
     our sub config($/) {
         my $type := $*W.add_constant('Str', 'str', ~$<type>);

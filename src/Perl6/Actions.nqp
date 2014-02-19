@@ -580,15 +580,18 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
 
     method delimited_code_content($/) {
+        my @t := [];
+        @t := $<delimited_code_content>.ast
+            if $<delimited_code_content><pod_string>;
         if $<pod_string> {
-            my @t := Perl6::Pod::merge_twines($<pod_string>);
-            @t.push($<delimited_code_content>.ast)
-                if $<delimited_code_content><pod_string>;
-            make @t;
+            for Perl6::Pod::merge_twines($<pod_string>) {
+                @t.unshift($_);
+            }
         } elsif $<delimited_code_content> {
             # Empty line
-            make $*W.add_constant('Str', 'str', '').compile_time_value;
+            @t.unshift($*W.add_constant('Str', 'str', '').compile_time_value);
         }
+        make @t;
     }
 
     method pod_block:sym<paragraph>($/) {

@@ -10,6 +10,12 @@ New in 2014.02
 + allow definition of custom postcircumfix operators
 + Configure: git protocol is now configurable
 + smartmatching against an IO::Path does the right thing now
++ allow creation of custom postcircumfix operators
++ :allow in pod code blocks works now
++ perl6-debug-* is now installed by rakudo; the user interface is still a
+module available from the ecosystem
++ lots of improvements for moarvm, such as client and server socket support
++ implemented NativeCall support on the JVM
 
 New in 2014.01
 

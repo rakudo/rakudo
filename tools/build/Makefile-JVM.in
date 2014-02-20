@@ -18,6 +18,7 @@ RUNTIME_JAVAS = src/vm/jvm/runtime/org/perl6/rakudo/*.java
 
 RUNTIME_JAR = rakudo-runtime.jar
 
+J_BAT    = @runner_suffix@
 J_RUNNER = @j_runner@
 
 # files we create
@@ -168,6 +169,9 @@ J_CORE_SOURCES = \
   src/core/OS.pm \
   src/core/core_epilogue.pm \
 
+PERL6_DEBUG_JAR = perl6-debug.jar
+J_DEBUG_RUNNER = perl6-debug-j@runner_suffix@
+
 J_CLEANUPS = \
   *.manifest \
   blib/Perl6/*.jar \
@@ -184,12 +188,14 @@ J_CLEANUPS = \
   perl6-eval-server \
   perl6-jdb-server \
   eval-client.pl \
-  $(J_RUNNER)
+  $(J_RUNNER) \
+  $(PERL6_DEBUG_JAR) \
+  $(J_DEBUG_RUNNER) \
 
 J_HARNESS_WITH_FUDGE = $(PERL) t/harness --fudge --keep-exit-code --jvm
 J_HARNESS = $(PERL) t/harness --jvm
 
-j-all: $(PERL6_JAR) $(SETTING_JAR) $(J_RUNNER) lib/Test.jar blib/lib.jar blib/Pod/To/Text.jar
+j-all: $(PERL6_JAR) $(SETTING_JAR) $(J_RUNNER) lib/Test.jar blib/lib.jar blib/Pod/To/Text.jar $(PERL6_DEBUG_JAR) $(J_DEBUG_RUNNER)
 
 $(RUNTIME_JAR): $(RUNTIME_JAVAS)
 	$(PERL) -MExtUtils::Command -e mkpath bin
@@ -254,9 +260,15 @@ $(J_RUNNER):
 	$(PERL) tools/build/create-jvm-runner.pl dev . . $(NQP_PREFIX) $(NQP_JARS)
 
 j-runner-default: j-all
-	$(CP) $(J_RUNNER) perl6$(BAT)
-	$(CHMOD) 755 perl6$(BAT)
+	$(CP) $(J_RUNNER) perl6$(J_BAT)
+	$(CHMOD) 755 perl6$(J_BAT)
 
+$(PERL6_DEBUG_JAR): src/perl6-debug.nqp $(PERL6_JAR)
+	$(J_NQP) --target=jar --javaclass=perl6-debug --output=$(PERL6_DEBUG_JAR) \
+	    src/perl6-debug.nqp
+
+$(J_DEBUG_RUNNER): tools/build/create-jvm-runner.pl $(PERL6_DEBUG_JAR)
+	$(PERL) tools/build/create-jvm-runner.pl dev-debug . . $(NQP_PREFIX) $(NQP_JARS)
 
 ##  testing targets
 lib/Test.jar: lib/Test.pm $(PERL6_JAR) $(SETTING_JAR) $(J_RUNNER)
@@ -318,17 +330,19 @@ j-install: j-all tools/build/create-jvm-runner.pl
 	$(CP) $(PERL6_LANG_JARS) $(DESTDIR)$(PERL6_LANG_DIR)/lib/Perl6
 	$(CP) $(SETTING_JAR) $(DESTDIR)$(PERL6_LANG_DIR)/runtime
 	$(CP) $(PERL6_JAR) $(DESTDIR)$(PERL6_LANG_DIR)/runtime
+	$(CP) $(PERL6_DEBUG_JAR) $(DESTDIR)$(PERL6_LANG_DIR)/runtime
 	$(CP) $(RUNTIME_JAR) $(DESTDIR)$(PERL6_LANG_DIR)/runtime
 	$(CP) lib/Test.jar $(DESTDIR)$(PERL6_LANG_DIR)/lib
 	$(CP) blib/lib.jar $(DESTDIR)$(PERL6_LANG_DIR)/lib
 	$(MKPATH) $(DESTDIR)$(PERL6_LANG_DIR)/lib/Pod/To
 	$(CP) blib/Pod/To/Text.jar $(DESTDIR)$(PERL6_LANG_DIR)/lib/Pod/To
 	$(PERL) tools/build/create-jvm-runner.pl install "$(DESTDIR)" $(PREFIX) $(NQP_PREFIX) $(NQP_JARS)
+	$(PERL) tools/build/create-jvm-runner.pl install-debug "$(DESTDIR)" $(PREFIX) $(NQP_PREFIX) $(NQP_JARS)
 
 j-runner-default-install: j-install
 	$(PERL) tools/build/create-jvm-runner.pl install "$(DESTDIR)" $(PREFIX) $(NQP_PREFIX) $(NQP_JARS)
-	$(CP) $(DESTDIR)$(PREFIX)/bin/perl6-j$(BAT) $(DESTDIR)$(PREFIX)/bin/perl6$(BAT)
-	$(CHMOD) 755 $(DESTDIR)$(PREFIX)/bin/perl6$(BAT)
+	$(CP) $(DESTDIR)$(PREFIX)/bin/perl6-j$(J_BAT) $(DESTDIR)$(PREFIX)/bin/perl6$(J_BAT)
+	$(CHMOD) 755 $(DESTDIR)$(PREFIX)/bin/perl6$(J_BAT)
 
 ##  cleaning
 j-clean:

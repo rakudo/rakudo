@@ -762,8 +762,9 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         $<spaces> = [ \h* ]
         '=for' \h+ 'code' {}
         :my $*POD_ALLOW_FCODES := 0;
+        :my $*POD_IN_CODE_BLOCK := 1;
         <pod_configuration($<spaces>)> <pod_newline>
-        [ <!before \h* '=' \w> <pod_string> <pod_newline> ]+
+        [ <!before \h* '=' \w> <pod_line> ]*
     }
 
     token pod_block:sym<abbreviated> {
@@ -809,8 +810,10 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*POD_ALLOW_FCODES  := 0;
         :my $*POD_IN_CODE_BLOCK := 1;
         <pod_configuration($<spaces>)> [\h*\n|\h+]
-        [ <!before \h* '=' \w> <pod_string> <pod_newline> ]+
+        [ <!before \h* '=' \w> <pod_line> ]*
     }
+
+    token pod_line { <pod_string>**1 <pod_newline> }
 
     token pod_newline {
         \h* [ \n | $ ]

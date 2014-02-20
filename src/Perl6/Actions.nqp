@@ -605,7 +605,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
     method pod_block:sym<paragraph_code>($/) {
         my $config := $<pod_configuration>.ast;
-        my @t      := Perl6::Pod::merge_twines($<pod_string>);
+        my @t := [];
+        for $<pod_line> {
+            nqp::splice(@t, $_.ast, +@t, 0);
+        }
         my $twine  := Perl6::Pod::serialize_array(@t).compile_time_value;
         make Perl6::Pod::serialize_object(
             'Pod::Block::Code', :content($twine),
@@ -626,11 +629,22 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
 
     method pod_block:sym<abbreviated_code>($/) {
-        my @t     := Perl6::Pod::merge_twines($<pod_string>);
+        my @t := [];
+        for $<pod_line> {
+            nqp::splice(@t, $_.ast, +@t, 0);
+        }
         my $twine := Perl6::Pod::serialize_array(@t).compile_time_value;
         make Perl6::Pod::serialize_object(
             'Pod::Block::Code', :content($twine)
         ).compile_time_value
+    }
+
+    method pod_line ($/) {
+        my @t := Perl6::Pod::merge_twines($<pod_string>);
+        @t.push($*W.add_constant(
+            'Str', 'str', ~$<pod_newline>
+        ).compile_time_value);
+        make @t;
     }
 
     method pod_block:sym<end>($/) {

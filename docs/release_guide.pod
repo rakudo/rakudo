@@ -160,7 +160,7 @@ Make sure any locally modified files have been pushed back to github.
 Make sure everything compiles and runs from a known clean state:
 
   $ make realclean
-  $ perl Configure.pl --gen-parrot
+  $ perl Configure.pl --gen-parrot --gen-moar --backends=ALL
   $ make
   $ make test
   $ make stresstest
@@ -191,8 +191,8 @@ So please make a backup if you have any important data in there.
 =item 12.
 
 Unpack the tar file into another area, and test that it
-builds and runs properly using the same process in step 8.
-If there are any problems, fix them and go back to step 8.
+builds and runs properly using the same process in step 10.
+If there are any problems, fix them and go back to step 10.
 
 =item 13.
 

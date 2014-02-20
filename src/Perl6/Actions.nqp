@@ -595,7 +595,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         make Perl6::Pod::any_block($/);
     }
 
-    method pod_block:sym<paragraph_raw>($/) {
+    method pod_block:sym<paragraph_comment>($/) {
         make Perl6::Pod::raw_block($/);
     }
 

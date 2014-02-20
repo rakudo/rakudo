@@ -126,7 +126,7 @@ Rakudo Perl 6
     more of them if you made multiple commits; please attach these to your
     email. Please note that if you made more than one commit, you have to
     specify a proper commit range for format-patch,
-    for example HEAD..origin/nom .
+    for example origin/nom..HEAD .
 
     (Note to the maintainers: you can apply these patches with the 
     "git-am -s" command; it preserves meta information like author).

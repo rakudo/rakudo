@@ -241,7 +241,7 @@ P_CORE_SOURCES = \
   src/core/core_epilogue.pm \
 
 PERL6_DEBUG_PBC = perl6-debug.pbc
-PERL6_DEBUG_EXE = perl6-debug-p.exe
+PERL6_DEBUG_EXE = perl6-debug-p$(EXE)
 
 DOCS = README CREDITS LICENSE docs/*
 

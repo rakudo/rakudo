@@ -1,15 +1,17 @@
   Build requirements (Installing from source)
     For building Rakudo you need at least a C compiler, a "make" utility,
-    and Perl 5.8 or newer. To automatically obtain and build Parrot you
-    may also need a a git client, which is also needed for fetching the
-    test suite.
+    and Perl 5.8 or newer. To automatically obtain and build Parrot or MoarVM
+    as well as NQP, you may also need a a git client, which is also needed
+    for fetching the test suite.
 
-    Building rakudo can take up to 1G of memory when compiling for the
-    parrot runtime.
+    Building rakudo can take up to 1.5G of memory when compiling for the
+    parrot runtime. The requirements are likely higher for the JVM backend
+    and 1G is sufficient to build everything for the MoarVM backend.
 
-    In order to fully support Unicode, you'll also want to have the ICU
-    library installed (<http://site.icu-project.org/>). Rakudo can run
-    without ICU, but some Unicode-related features do not work properly.
+    In order to fully support Unicode on parrot, you'll also want to have
+    the ICU library installed (<http://site.icu-project.org/>). Rakudo on
+    parrot can run without ICU, but some Unicode-related features do not
+    work properly. Rakudo on JVM and MoarVM don't need ICU.
 
     To get readline support (command history and editing), you'll also
     need the "libreadline-dev" library.
@@ -26,14 +28,14 @@
 
   Building and invoking Rakudo
     If you're wanting the bleeding-edge version of the Rakudo Perl 6
-    compiler, we recommend downloading Rakudo directly from Github 
+    compiler, we recommend downloading Rakudo directly from Github
     and building it from there.
 
         $ git clone git://github.com/rakudo/rakudo.git
 
-    If you don't have git installed, you can get a tarball or zip of Rakudo
-    from <http://github.com/rakudo/rakudo/downloads>. Then unpack the
-    tarball or zip.
+    If you don't have git installed, you can get a tarball of Rakudo
+    from <http://rakudo.org/downloads/rakudo/>. Then unpack the
+    tarball.
 
     If you already have cloned Rakudo from github, you can get (pull) the
     most recent version from github like this:
@@ -44,11 +46,15 @@
     Once you have an up-to-date copy of Rakudo, build it as follows:
 
         $ cd rakudo
-        $ perl Configure.pl --gen-parrot
+        $ perl Configure.pl --gen-parrot # to get only the parrot backend
+        $ perl Configure.pl --gen-parrot --gen-moar # to get parrot & moar
+          # or to get parrot, moar and jvm:
+        $ perl Configure.pl --gen-parrot --gen-moar --backends=parrot,moar,jvm
         $ make
 
     This will create a "perl6" or "perl6.exe" executable in the current
-    (rakudo) directory. Note that if you have multiple (Perl 5) "perl"s in
+    (rakudo) directory. Additionally, for each selected backend, there will
+    be a perl6-* binary. Note that if you have multiple (Perl 5) "perl"s in
     your path, you may need to use a fully qualified path to the appropriate
     executable (or update your PATH environment variable).
 
@@ -64,6 +70,9 @@
     the "install/bin" directory locally, no additional root
     privileges necessary.
 
+    If you want to have perl6, nqp, parrot, and moar installed into a
+    different directory, you may supply --prefix= to Configure.pl.
+
     The "--gen-parrot" above option tells Configure.pl to automatically
     download and build the most appropriate version of NQP and Parrot 
     into local "nqp/" and "parrot/" subdirectories, install NQP and Parrot
@@ -71,7 +80,7 @@
     It's okay to use the "--gen-parrot" option on later invocations of
     Configure.pl; the configure system will re-build NQP and/or Parrot 
     only if a newer version is needed for whatever version of Rakudo 
-    you're working with.
+    you're working with.  The --gen-moar flag works the same way.
 
     If you already have Parrot installed, you can use 
     "--with-parrot=/path/to/bin/parrot" to use it instead of
@@ -79,7 +88,7 @@
     development environment.  Similarly, if you already have NQP
     installed, you can specify "--with-nqp=/path/to/bin/nqp"
     to use it.  (Note that this must be NQP, not the NQP-rx that
-    comes with Parrot.)
+    comes with Parrot.)  Also, "--with-moar" does what you'd expect.
 
     The versions of any already installed NQP or Parrot binaries must
     satify a minimum specified by the Rakudo being built -- Configure.pl
@@ -90,16 +99,16 @@
 
     Once built, Rakudo's "make install" target will install Rakudo and its
     libraries into the directories specified by the Parrot installation
-    used to create it.  Until this step is performed, the "perl6" 
-    executable created by "make" above can only be reliably run from 
-    the root of Rakudo's build directory.  After "make install" is 
-    performed, the installed executable can be run from any directory 
-    (as long as the Parrot installation that was used to create it 
-    remains intact).
+    used to create it or whatever you specified with the --prefix flag.
+    Until this step is performed, the "perl6" executable created by "make"
+    above can only be reliably run from the root of Rakudo's build directory.
+    After "make install" is performed, the installed executable can be run
+    from any directory (as long as the Parrot and/or MoarVM installations that
+    were used to create it remain intact).
 
     If the Rakudo compiler is invoked without an explicit script to run, it
     enters a small interactive mode that allows Perl 6 statements to be
-    executed from the command line.
+    executed from an interactive prompt.
 
     See the manual page ("docs/running.pod") for more about command-line
     options.
@@ -114,7 +123,7 @@
         $ cd rakudo
         $ rm -r install
         $ git pull
-        $ perl Configure.pl --gen-parrot
+        $ perl Configure.pl --gen-parrot # and whatever else you'd like
         $ make
 
     Or, in case you are really stuck, start with a fresh source tree:
@@ -132,14 +141,11 @@
     the "roast" repository <http://github.com/perl6/roast/> and run all
     of these tests that are currently known to pass.
 
-    If you want to automatically submit the results of your spectest run to
-    a central server, use "make spectest_smolder" instead. You need the
-    Perl 5 module TAP::Harness::Archive and an active internet connection
-    for that. The smoke results are collected at
-    <http://smolder.parrot.org/app/projects/smoke_reports/5>
+    You can compare your own results to the results of the daily runs in
+    <https://github.com/coke/perl6-roast-data/>.
 
     At present we do not have any plans to directly store the official test
-    suite as part of the Rakudo repository, but will continue to fetch it 
+    suite as part of the Rakudo repository, but will continue to fetch it
     from the roast repository.  Releases of Rakudo get a snapshot of
     the roast repository as of the time of the release.
 

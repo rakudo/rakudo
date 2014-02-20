@@ -61,6 +61,18 @@ Rakudo Perl 6
     installs locally by default, so you don't need any administrator
     privileges for carrying out this step.
 
+  Multiple backends at the same time
+    By supplying combinations of backends to the --backends flag, you
+    can get two or three backends built in the same prefix. The first
+    backend you supply in the list is the one that gets the "perl6" name
+    as a symlink, all backends are installed as perl6-*.
+
+    The format for the --backends flag is:
+
+    $ perl Configure.pl --backends=moar,parrot
+    $ perl Configure.pl --backends=parrot,moar,jvm
+    $ perl Configure.pl --backends=ALL
+
   Where to get help or answers to questions
     There are several mailing lists, IRC channels, and wikis available with
     help for Perl 6 and Rakudo on Parrot. Figuring out the right one to use
@@ -75,13 +87,14 @@ Rakudo Perl 6
     list is primarily for the people who want to use Perl 6 to write
     programs, so newbie questions are welcomed there.  Newbie questions
     are also welcome on the #perl6 channel; the Rakudo and Perl 6
-    development teams tend to hang out there and are generally glad 
+    development teams tend to hang out there and are generally glad
     to help.  You can follow "@rakudoperl" on Twitter, and there's
-    a Perl 6 news aggregator at <http://planetsix.perl.org> .
+    a Perl 6 news aggregator at <http://planeteria.org/perl6/> .
 
     Questions about NQP can also be posted to the #perl6 IRC channel.
     For questions about Parrot, see <http://parrot.org/> for links and
     resources, or join the #parrot IRC channel on irc.perl.org .
+    For questions about MoarVM, you can join #moarvm on freenode.
 
   Reporting bugs
     Bug reports should be sent to "rakudobug@perl.org" with the moniker
@@ -93,6 +106,10 @@ Rakudo Perl 6
     the first line of "git log", if Rakudo fails to build). There's no need
     to cc: the perl6-compiler mailing list, as the RT system will handle
     this on its own.
+
+    If you find a bug in MoarVM or NQP, you can either discuss it on the IRC
+    and have it reported for you, or you can submit an issue to the issue
+    trackers on github for perl6/nqp or moarvm/moarvm.
 
   Submitting patches
     If you have a patch that fixes a bug or adds a new feature, please
@@ -107,7 +124,9 @@ Rakudo Perl 6
 
     This will generate a file called "001-your-commit-message.patch", or
     more of them if you made multiple commits; please attach these to your
-    email.
+    email. Please note that if you made more than one commit, you have to
+    specify a proper commit range for format-patch,
+    for example HEAD..origin/nom .
 
     (Note to the maintainers: you can apply these patches with the 
     "git-am -s" command; it preserves meta information like author).

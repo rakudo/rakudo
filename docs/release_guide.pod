@@ -18,6 +18,8 @@ end of this document.
   2014-04-17   Rakudo #75  masak
   2014-05-22   Rakudo #76
   2014-06-19   Rakudo #77
+  2014-07-17   Rakudo #78
+  2014-08-21   Rakudo #79  Coke
 
 =head2 Suggested .pm group names for future releases
 

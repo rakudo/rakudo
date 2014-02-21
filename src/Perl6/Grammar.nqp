@@ -781,7 +781,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         ]
         :my $*POD_ALLOW_FCODES := nqp::getlexdyn('$*POD_ALLOW_FCODES');
         <pod_configuration($<spaces>)>
-        [\r\n|\s]
+        [\h*\n|\h+]
         <pod_content=.pod_textcontent>**0..1
     }
 

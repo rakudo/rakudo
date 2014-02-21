@@ -821,12 +821,10 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     token pod_code_parent {
         [
-        || 'pod'
-        || 'output'
-        || 'item' \d*
+        | [ 'pod' | 'output' | 'item' \d* ]
+        | <upper>+
         ]
         <![\w]>
-        # TODO: Also Semantic blocks one day
     }
 
     token install_doc_phaser { <?> }

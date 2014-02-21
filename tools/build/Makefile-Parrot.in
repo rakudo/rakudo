@@ -244,6 +244,9 @@ P_CORE_SOURCES = \
   src/core/CompUnitRepo/Local/Installation.pm \
   src/core/core_epilogue.pm \
 
+PERL6_DEBUG_PBC = perl6-debug.pbc
+PERL6_DEBUG_EXE = perl6-debug-p$(EXE)
+
 DOCS = README CREDITS LICENSE docs/*
 
 P_CLEANUPS = \
@@ -274,6 +277,8 @@ P_CLEANUPS = \
   blib/Perl6/*.pbc \
   gen/parrot/CORE.setting \
   gen/parrot/*.nqp \
+  $(PERL6_DEBUG_PBC) \
+  $(PERL6_DEBUG_EXE) \
 
 # NOTE: eventually, we should remove --keep-exit-code and --fudge
 #       as the goal is that all tests must pass without fudge
@@ -282,7 +287,7 @@ P_HARNESS_WITH_FUDGE = $(PERL) t/harness --fudge --keep-exit-code --icu=$(HAS_IC
 STAGESTATS = @stagestats@
 
 # the default target, TODO: make libraries in 'lib' a variable.
-p-all: p-check-versions $(PERL6_EXE) $(SETTING_PBC) $(R_SETTING_PBC) lib/lib.pir lib/Test.pir lib/Pod/To/Text.pir
+p-all: p-check-versions $(PERL6_EXE) $(SETTING_PBC) $(R_SETTING_PBC) lib/lib.pir lib/Test.pir lib/Pod/To/Text.pir $(PERL6_DEBUG_EXE)
 
 # the install target
 p-install: p-all
@@ -299,6 +304,7 @@ p-install: p-all
 	$(CP) $(PERL6_B_PBC)          $(DESTDIR)$(NQP_LANG_DIR)/lib/Perl6/BOOTSTRAP.pbc
 	$(MKPATH)                     $(DESTDIR)$(P_PERL6_LANG_DIR)/lib
 	$(CP)     $(PERL6_PBC)        $(DESTDIR)$(P_PERL6_LANG_DIR)
+	$(CP)     $(PERL6_DEBUG_PBC)  $(DESTDIR)$(P_PERL6_LANG_DIR)
 	$(CP)     $(SETTING_PBC)      $(DESTDIR)$(P_PERL6_LANG_DIR)/lib
 	$(CP)     $(R_SETTING_PBC)    $(DESTDIR)$(P_PERL6_LANG_DIR)/lib
 	$(CP)     lib/Test.pm         $(DESTDIR)$(P_PERL6_LANG_DIR)/lib
@@ -313,6 +319,8 @@ p-install: p-all
 	$(MKPATH)                     $(DESTDIR)$(PARROT_BIN_DIR)
 	$(CP)     $(PERL6_EXE)        $(DESTDIR)$(PARROT_BIN_DIR)
 	$(CHMOD)  755                 $(DESTDIR)$(PARROT_BIN_DIR)/$(PERL6_EXE)
+	$(CP)     $(PERL6_DEBUG_EXE)  $(DESTDIR)$(PARROT_BIN_DIR)
+	$(CHMOD)  755                 $(DESTDIR)$(PARROT_BIN_DIR)/$(PERL6_DEBUG_EXE)
 	$(MKPATH)                     $(DESTDIR)$(DOCDIR)/rakudo
 	$(MKPATH)                     $(DESTDIR)$(DOCDIR)/rakudo/announce
 	-$(CP)    $(DOCS)             $(DESTDIR)$(DOCDIR)/rakudo
@@ -336,6 +344,9 @@ p-runner-default: p-all
 	$(CHMOD) 755  perl6$(EXE)
 
 @make_dllcopy@
+
+$(PERL6_DEBUG_EXE): $(PERL6_DEBUG_PBC)
+	$(PBC_TO_EXE) -o$(PERL6_DEBUG_EXE) $(PERL6_DEBUG_PBC)
 
 # the complete compiler
 $(PERL6_PBC): $(PERL6_G_PBC) $(PERL6_A_PBC) $(PERL6_C_PBC) $(PERL6_P_PBC) src/main.nqp
@@ -407,6 +418,11 @@ $(SETTING_PBC): $(PERL6_B_PBC) $(PERL6_EXE) $(P_CORE_SOURCES)
 $(R_SETTING_PBC): $(PERL6_B_PBC) $(PERL6_EXE) $(SETTING_PBC) $(R_SETTING_SRC)
 	./$(PERL6_EXE) --target=pir $(STAGESTATS) --output=$(R_SETTING_PIR) $(R_SETTING_SRC)
 	$(PARROT) $(PARROT_ARGS) -o $(R_SETTING_PBC) $(R_SETTING_PIR)
+
+$(PERL6_DEBUG_PBC): $(PERL6_PBC) src/perl6-debug.nqp
+	$(NQP_EXE) --vmlibs=perl6_ops --target=pir --output=src/gen/perl6-debug.pir \
+	    src/perl6-debug.nqp
+	$(PARROT) $(PARROT_ARGS) -o $(PERL6_DEBUG_PBC) src/gen/perl6-debug.pir
 
 ##  testing targets
 lib/Test.pir: lib/Test.pm $(PERL6_EXE) $(SETTING_PBC)

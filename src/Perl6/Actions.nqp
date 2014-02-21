@@ -561,7 +561,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         make Perl6::Pod::any_block($/);
     }
 
-    method pod_block:sym<delimited_raw>($/) {
+    method pod_block:sym<delimited_comment>($/) {
         make Perl6::Pod::raw_block($/);
     }
 
@@ -569,11 +569,33 @@ class Perl6::Actions is HLL::Actions does STDActions {
         make Perl6::Pod::table($/);
     }
 
+    method pod_block:sym<delimited_code>($/) {
+        my $config  := $<pod_configuration>.ast;
+        my @content := $<delimited_code_content>.ast;
+        my $twine   := Perl6::Pod::serialize_array(@content).compile_time_value;
+        make Perl6::Pod::serialize_object(
+            'Pod::Block::Code', :content($twine),
+            :config($config),
+        ).compile_time_value
+    }
+
+    method delimited_code_content($/) {
+        my @t := [];
+        if $<delimited_code_content> {
+            @t := Perl6::Pod::merge_twines($<pod_string>) if $<pod_string>;
+            @t.push($*W.add_constant(
+                'Str', 'str', ~$<pod_newline>
+            ).compile_time_value);
+            nqp::splice(@t, $<delimited_code_content>.ast,+@t,0);
+        }
+        make @t;
+    }
+
     method pod_block:sym<paragraph>($/) {
         make Perl6::Pod::any_block($/);
     }
 
-    method pod_block:sym<paragraph_raw>($/) {
+    method pod_block:sym<paragraph_comment>($/) {
         make Perl6::Pod::raw_block($/);
     }
 
@@ -581,16 +603,48 @@ class Perl6::Actions is HLL::Actions does STDActions {
         make Perl6::Pod::table($/);
     }
 
+    method pod_block:sym<paragraph_code>($/) {
+        my $config := $<pod_configuration>.ast;
+        my @t := [];
+        for $<pod_line> {
+            nqp::splice(@t, $_.ast, +@t, 0);
+        }
+        my $twine  := Perl6::Pod::serialize_array(@t).compile_time_value;
+        make Perl6::Pod::serialize_object(
+            'Pod::Block::Code', :content($twine),
+            :config($config),
+        ).compile_time_value
+    }
+
     method pod_block:sym<abbreviated>($/) {
         make Perl6::Pod::any_block($/);
     }
 
-    method pod_block:sym<abbreviated_raw>($/) {
+    method pod_block:sym<abbreviated_comment>($/) {
         make Perl6::Pod::raw_block($/);
     }
 
     method pod_block:sym<abbreviated_table>($/) {
         make Perl6::Pod::table($/);
+    }
+
+    method pod_block:sym<abbreviated_code>($/) {
+        my @t := [];
+        for $<pod_line> {
+            nqp::splice(@t, $_.ast, +@t, 0);
+        }
+        my $twine := Perl6::Pod::serialize_array(@t).compile_time_value;
+        make Perl6::Pod::serialize_object(
+            'Pod::Block::Code', :content($twine)
+        ).compile_time_value
+    }
+
+    method pod_line ($/) {
+        my @t := Perl6::Pod::merge_twines($<pod_string>);
+        @t.push($*W.add_constant(
+            'Str', 'str', ~$<pod_newline>
+        ).compile_time_value);
+        make @t;
     }
 
     method pod_block:sym<end>($/) {
@@ -782,7 +836,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     $past := QAST::Want.new(
                         QAST::Op.new( :op<callmethod>, :name<eager>, $past ),
                         'v', QAST::Op.new( :op<callmethod>, :name<sink>, $past ));
-                    $past<statement_level> := -> { $past[0].name('sink') }
+                    my $sinkee := $past[0];
+                    $past<statement_level> := -> { $sinkee.name('sink') }
                 }
                 else {
                     $past := QAST::Op.new($cond, $past, :op(~$ml<sym>), :node($/) );
@@ -1047,7 +1102,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
         $past := QAST::Want.new(
             QAST::Op.new( :op<callmethod>, :name<eager>, $past ),
             'v', QAST::Op.new( :op<callmethod>, :name<sink>, $past ));
-        $past<statement_level> := -> { $past[0].name('sink') }
+        my $sinkee := $past[0];
+        $past<statement_level> := -> { $sinkee.name('sink') }
         make $past;
     }
 

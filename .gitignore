@@ -30,6 +30,12 @@ perl6-p.exe.manifest
 perl6-p.c
 perl6-p.o
 perl6-p.obj
+perl6-debug-p.c
+perl6-debug-p.o
+perl6-debug-p.obj
+perl6-debug-p.exe
+perl6-debug.pbc
+perl6-debug.rc
 perl6.RES
 perl6.ilk
 perl6.opt
@@ -37,6 +43,8 @@ perl6.pdb
 perl6.rc
 perl6-j
 perl6-j.bat
+perl6-debug-j
+perl6-debug-j.bat
 perl6-m
 perl6-m.bat
 perl6-debug-m

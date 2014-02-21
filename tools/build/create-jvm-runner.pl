@@ -12,6 +12,12 @@ my $USAGE = "Usage: $0 <type> <destdir> <prefix> <nqp prefix> <third party jars>
 my ($type, $destdir, $prefix, $nqpprefix, $thirdpartyjars) = @ARGV
     or die $USAGE;
 
+my $debugger = 0;
+if ($type =~ /^(\w+)\-debug$/) {
+    $type = $1;
+    $debugger = 1;
+}
+
 die "Invalid target type $type" unless $type eq 'dev' || $type eq 'install';
 
 my $cpsep = $^O eq 'MSWin32' ? ';' : ':';
@@ -44,15 +50,20 @@ sub install {
 my $bootclasspath = join($cpsep,
     ($thirdpartyjars,
     File::Spec->catfile($jardir, 'rakudo-runtime.jar'),
-    File::Spec->catfile($jardir, 'perl6.jar')));
+    File::Spec->catfile($jardir, $debugger ? 'perl6-debug.jar' : 'perl6.jar')));
     
 my $classpath = join($cpsep, ($jardir, $libdir, $nqplibdir));
 my $jopts = '-Xms100m -Xbootclasspath/a:' . $bootclasspath 
           . ' -cp ' . $classpath
           . ' -Dperl6.prefix=' . $prefix;
 
-install "perl6-j", "java $jopts perl6";
-install "perl6-jdb-server", "java -Xdebug -Xrunjdwp:transport=dt_socket,address=8000,server=y,suspend=n $jopts perl6";
-install "perl6-eval-server", "java $jopts org.perl6.nqp.tools.EvalServer";
-cp(File::Spec->catfile($nqpprefix,'bin','eval-client.pl'), '.')
-    or die "Couldn't copy 'eval-client.pl' from $nqpprefix: $!";
+if ($debugger) {
+    install "perl6-debug-j", "java $jopts perl6-debug";
+}
+else {
+    install "perl6-j", "java $jopts perl6";
+    install "perl6-jdb-server", "java -Xdebug -Xrunjdwp:transport=dt_socket,address=8000,server=y,suspend=n $jopts perl6";
+    install "perl6-eval-server", "java $jopts org.perl6.nqp.tools.EvalServer";
+    cp(File::Spec->catfile($nqpprefix,'bin','eval-client.pl'), '.')
+        or die "Couldn't copy 'eval-client.pl' from $nqpprefix: $!";
+}

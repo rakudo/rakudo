@@ -2,13 +2,19 @@ New in 2014.02
 
 + $*INITTIME implemented
 + improved code generation for loops on the JVM backend
-+ pipe opening on the MoarVM
 + eager and lazy statement prefixes
-+ statement-level for-loops are now assumed to be in sink context
-+ improved unspaced parsing
++ statementlist-level for-loops are now assumed to be in sink context
++ improved unspace parsing
 + don't itemize make's ast argument
 + allow definition of custom postcircumfix operators
++ :allow in pod code blocks works now
 + Configure: git protocol is now configurable
++ smartmatching against an IO::Path does the right thing now
++ perl6-debug-* is now installed by rakudo; the user interface is still a
+module available from the ecosystem
++ lots of improvements for moarvm, such as client and server socket support
+and opening pipes/subprocesses
++ finished NativeCall support on the JVM
 
 New in 2014.01
 

@@ -6,7 +6,7 @@ method render($pod) {
 
 my &colored;
 if %*ENV<POD_TO_TEXT_ANSI> {
-    &colored = try { eval q{ use Term::ANSIColor; &colored } } // sub ($text, $color) { $text }
+    &colored = try { EVAL q{ use Term::ANSIColor; &colored } } // sub ($text, $color) { $text }
 } else {
     &colored = sub ($text, $color) { $text }
 }
@@ -38,7 +38,7 @@ sub heading2text($pod) {
 }
 
 sub code2text($pod) {
-    "    " ~ $pod.content.subst(/\n/, "\n    ", :g)
+    "    " ~ $pod.content>>.&pod2text.subst(/\n/, "\n    ", :g)
 }
 
 sub item2text($pod) {

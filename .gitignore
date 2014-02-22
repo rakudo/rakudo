@@ -30,6 +30,7 @@ perl6-p.exe.manifest
 perl6-p.c
 perl6-p.o
 perl6-p.obj
+perl6-debug-p
 perl6-debug-p.c
 perl6-debug-p.o
 perl6-debug-p.obj

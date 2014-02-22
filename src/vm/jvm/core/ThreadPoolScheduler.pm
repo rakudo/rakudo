@@ -5,7 +5,8 @@
 my class ThreadPoolScheduler does Scheduler {
     # A concurrent work queue that blocks any worker threads that poll it
     # when empty until some work arrives.
-    has Mu $!queue;
+    my class Queue is repr('ConcBlockingQueue') { }
+    has $!queue;
     
     # Semaphore to ensure we don't start more than the maximum number of
     # threads allowed.
@@ -28,11 +29,10 @@ my class ThreadPoolScheduler does Scheduler {
     # Adds a new thread to the pool, respecting the maximum.
     method !maybe_new_thread() {
         if $!thread_start_semaphore.try_acquire() {
-            my $interop := nqp::jvmbootinterop();
             $!started_any = 1;
             Thread.start(:app_lifetime, {
                 loop {
-                    my Mu $task := $interop.javaObjectToSixmodel($!queue.take());
+                    my Mu $task := nqp::shift($!queue);
                     try {
                         $task();
                         CATCH {
@@ -95,7 +95,7 @@ my class ThreadPoolScheduler does Scheduler {
             my $loads = $!loads.incrementAndGet();
             self!maybe_new_thread()
                 if !$!started_any || $loads > 1;
-            $!queue.add(nqp::jvmbootinterop().sixmodelToJavaObject(&run));
+            nqp::push($!queue, &run);
         }
     }
 
@@ -107,10 +107,9 @@ my class ThreadPoolScheduler does Scheduler {
     method !initialize() {
         # Things we will use from the JVM.
         my $interop              := nqp::jvmbootinterop();
-        my \LinkedBlockingQueue  := $interop.typeForName('java.util.concurrent.LinkedBlockingQueue');
         my \AtomicInteger        := $interop.typeForName('java.util.concurrent.atomic.AtomicInteger');
         my \Timer                := $interop.typeForName('java.util.Timer');
-        $!queue                  := LinkedBlockingQueue.'constructor/new/()V'();
+        $!queue                  := nqp::create(Queue);
         $!thread_start_semaphore := Semaphore.new($!max_threads.Int);
         $!loads                  := AtomicInteger.'constructor/new/()V'();
         $!timer                  := Timer.'constructor/new/(Z)V'(True);

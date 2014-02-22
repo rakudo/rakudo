@@ -154,6 +154,7 @@ J_CORE_SOURCES = \
   src/core/Deprecations.pm \
   src/core/Thread.pm \
   src/core/Lock.pm \
+  src/core/Semaphore.pm \
   src/core/Scheduler.pm \
   src/vm/jvm/core/ThreadPoolScheduler.pm \
   src/core/CurrentThreadScheduler.pm \

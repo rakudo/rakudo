@@ -9,7 +9,7 @@ my class ThreadPoolScheduler does Scheduler {
     
     # Semaphore to ensure we don't start more than the maximum number of
     # threads allowed.
-    has Mu $!thread_start_semaphore;
+    has $!thread_start_semaphore;
     
     # Atomic integer roughly tracking outstanding work, used for rough
     # management of the pool size.
@@ -27,7 +27,7 @@ my class ThreadPoolScheduler does Scheduler {
 
     # Adds a new thread to the pool, respecting the maximum.
     method !maybe_new_thread() {
-        if $!thread_start_semaphore.'method/tryAcquire/(I)Z'(1) {
+        if $!thread_start_semaphore.try_acquire() {
             my $interop := nqp::jvmbootinterop();
             $!started_any = 1;
             Thread.start(:app_lifetime, {
@@ -108,11 +108,10 @@ my class ThreadPoolScheduler does Scheduler {
         # Things we will use from the JVM.
         my $interop              := nqp::jvmbootinterop();
         my \LinkedBlockingQueue  := $interop.typeForName('java.util.concurrent.LinkedBlockingQueue');
-        my \Semaphore            := $interop.typeForName('java.util.concurrent.Semaphore');
         my \AtomicInteger        := $interop.typeForName('java.util.concurrent.atomic.AtomicInteger');
         my \Timer                := $interop.typeForName('java.util.Timer');
         $!queue                  := LinkedBlockingQueue.'constructor/new/()V'();
-        $!thread_start_semaphore := Semaphore.'constructor/new/(I)V'($!max_threads.Int);
+        $!thread_start_semaphore := Semaphore.new($!max_threads.Int);
         $!loads                  := AtomicInteger.'constructor/new/()V'();
         $!timer                  := Timer.'constructor/new/(Z)V'(True);
         self!maybe_new_thread() for 1..$!initial_threads;

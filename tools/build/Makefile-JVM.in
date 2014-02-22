@@ -159,7 +159,7 @@ J_CORE_SOURCES = \
   src/vm/jvm/core/ThreadPoolScheduler.pm \
   src/core/CurrentThreadScheduler.pm \
   src/vm/jvm/core/Promise.pm \
-  src/vm/jvm/core/Channel.pm \
+  src/core/Channel.pm \
   src/core/Supply.pm \
   src/core/SupplyOperations.pm \
   src/vm/jvm/core/KeyReducer.pm \

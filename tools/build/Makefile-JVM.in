@@ -311,11 +311,11 @@ j-testable : j-all spectest_checkout spectest_update
 
 
 # Run the tests in t/localtest.data
-localtest: j-all spectest_checkout t/localtest.data
+j-localtest: j-all spectest_checkout t/localtest.data
 	@$(J_HARNESS_WITH_FUDGE) --tests-from-file=t/localtest.data
 
 # Run the tests in t/localtest.data with a higher verbosity
-localtest_loud: j-all spectest_checkout t/localtest.data
+j-localtest_loud: j-all spectest_checkout t/localtest.data
 	@$(J_HARNESS_WITH_FUDGE) --tests-from-file=t/localtest.data --verbosity=1
 
 # Run many tests of your choice.

@@ -1,21 +1,14 @@
 # A simple, reentrant lock mechanism.
-my class Lock {
-    has $!lock;
+my class Lock is repr('ReentrantMutex') {
+    method lock() { nqp::lock(self) }
 
-    submethod BUILD() {
-        my \ReentrantLock := nqp::jvmbootinterop().typeForName('java.util.concurrent.locks.ReentrantLock');
-        $!lock            := ReentrantLock.'constructor/new/()V'();
-    }
-
-    method lock() { $!lock.lock() }
-
-    method unlock() { $!lock.unlock() }
+    method unlock() { nqp::unlock(self) }
 
     method protect(&code) {
-        $!lock.lock();
+        nqp::lock(self);
         my \res := code();
-        $!lock.unlock();
-        CATCH { $!lock.unlock(); }
+        nqp::unlock(self);
+        CATCH { nqp::unlock(self); }
         res
     }
 }

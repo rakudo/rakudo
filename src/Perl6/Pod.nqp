@@ -14,7 +14,9 @@ class Perl6::Pod {
         my @children := [];
         my $type;
         my $leveled;
-        my $config := $<pod_configuration>.ast;
+        my $config := $<pod_configuration>
+            ?? $<pod_configuration>.ast
+            !! serialize_object('Hash').compile_time_value;
 
         if $<type>.Str ~~ /^item \d*$/ {
             $type    := 'Pod::Item';
@@ -58,7 +60,9 @@ class Perl6::Pod {
     }
 
     our sub raw_block($/) {
-        my $config := $<pod_configuration>.ast;
+        my $config := $<pod_configuration>
+            ?? $<pod_configuration>.ast
+            !! serialize_object('Hash').compile_time_value;
         my $str := $*W.add_constant('Str', 'str', ~$<pod_content>);
         my $content := serialize_array([$str.compile_time_value]);
         my $past := serialize_object(
@@ -134,7 +138,9 @@ class Perl6::Pod {
         return $r;
     }
     our sub table($/) {
-        my $config := $<pod_configuration>.ast;
+        my $config := $<pod_configuration>
+            ?? $<pod_configuration>.ast
+            !! serialize_object('Hash').compile_time_value;
 
         my @rows := [];
         for $<table_row> {

@@ -153,7 +153,7 @@ J_CORE_SOURCES = \
   src/core/terms.pm \
   src/core/Deprecations.pm \
   src/core/Thread.pm \
-  src/vm/jvm/core/Lock.pm \
+  src/core/Lock.pm \
   src/core/Scheduler.pm \
   src/vm/jvm/core/ThreadPoolScheduler.pm \
   src/core/CurrentThreadScheduler.pm \

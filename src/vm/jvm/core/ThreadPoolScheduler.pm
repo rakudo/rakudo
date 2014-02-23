@@ -12,9 +12,11 @@ my class ThreadPoolScheduler does Scheduler {
     # threads allowed.
     has $!thread_start_semaphore;
     
-    # Atomic integer roughly tracking outstanding work, used for rough
-    # management of the pool size.
-    has Mu $!loads;
+    # Number of outstanding work items, used for rough management of the
+    # pool size. Also a lock to protect updates to it. (TODO: use atomic
+    # operations for this in the future.)
+    has int $!loads;
+    has $!loads_lock;
     
     # Initial and maximum threads.
     has $!initial_threads;
@@ -41,7 +43,7 @@ my class ThreadPoolScheduler does Scheduler {
                             }
                         }
                     }
-                    $!loads.decrementAndGet();
+                    $!loads_lock.protect: { $!loads = $!loads - 1 };
                 }
             });
         }
@@ -62,6 +64,7 @@ my class ThreadPoolScheduler does Scheduler {
 
         # need repeating
         if $every {
+#?if jvm
             $!timer.'method/scheduleAtFixedRate/(Ljava/util/TimerTask;JJ)V'(
               nqp::jvmbootinterop().proxy(
                 'java.util.TimerTask',
@@ -72,10 +75,15 @@ my class ThreadPoolScheduler does Scheduler {
               ),
               ($delay * 1000).Int,
               ($every * 1000).Int);
+#?endif
+#?if moar
+            die ":at/:in/:every/:times NYI on MoarVM backend";
+#?endif
         }
 
         # only after waiting a bit or more than once
         elsif $delay or $times > 1 {
+#?if jvm
             my $todo :=nqp::hash( 'run', &catch
               ?? -> { code(); CATCH { default { catch($_) } } }
               !! -> { code() } );
@@ -85,6 +93,10 @@ my class ThreadPoolScheduler does Scheduler {
                   ($delay * 1000).Int);
                 $delay = 0;
             }
+#?endif
+#?if moar
+            die ":at/:in/:every/:times NYI on MoarVM backend";
+#?endif
         }
 
         # just cue the code
@@ -92,7 +104,7 @@ my class ThreadPoolScheduler does Scheduler {
             my &run := &catch 
                ?? -> { code(); CATCH { default { catch($_) } } }
                !! &code;
-            my $loads = $!loads.incrementAndGet();
+            my $loads = $!loads_lock.protect: { $!loads = $!loads + 1 };
             self!maybe_new_thread()
                 if !$!started_any || $loads > 1;
             nqp::push($!queue, &run);
@@ -101,18 +113,18 @@ my class ThreadPoolScheduler does Scheduler {
 
     method loads() {
         return 0 unless $!started_any;
-        $!loads.get()
+        $!loads
     }
 
     method !initialize() {
-        # Things we will use from the JVM.
-        my $interop              := nqp::jvmbootinterop();
-        my \AtomicInteger        := $interop.typeForName('java.util.concurrent.atomic.AtomicInteger');
-        my \Timer                := $interop.typeForName('java.util.Timer');
         $!queue                  := nqp::create(Queue);
         $!thread_start_semaphore := Semaphore.new($!max_threads.Int);
-        $!loads                  := AtomicInteger.'constructor/new/()V'();
+        $!loads_lock             := nqp::create(Lock);
+#?if jvm
+        my $interop              := nqp::jvmbootinterop();
+        my \Timer                := $interop.typeForName('java.util.Timer');
         $!timer                  := Timer.'constructor/new/(Z)V'(True);
+#?endif
         self!maybe_new_thread() for 1..$!initial_threads;
     }
 }

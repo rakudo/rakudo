@@ -824,7 +824,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     token pod_code_parent {
         [
-        | [ 'pod' | 'output' | 'item' \d* ]
+        | [ 'pod' | 'item' \d* | 'nested' | 'defn' | 'finish' ]
         | <upper>+
         ]
         <![\w]>

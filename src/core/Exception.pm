@@ -849,7 +849,9 @@ my class X::Syntax::Pod::BeginWithoutIdentifier does X::Syntax does X::Pod {
 }
 
 my class X::Syntax::Pod::BeginWithoutEnd does X::Syntax does X::Pod {
-    method message() { '=begin without matching =end' }
+    has $.type;
+    has $.spaces;
+    method message() { "'=begin' not terminated by matching '$.spaces=end $.type'" }
 }
 
 my class X::Syntax::Confused does X::Syntax {

@@ -475,6 +475,19 @@ my class X::Trait::NotOnNative is Exception {
 }
 my class X::Comp::Trait::NotOnNative is X::Trait::NotOnNative does X::Comp { };
 
+my class X::Trait::Scope is Exception {
+    has $.type;       # is, will, of etc.
+    has $.subtype;    # export
+    has $.declaring;  # type name of the object
+    has $.scope;      # not supported (but used) scope
+    has $.supported;  # hint about what is allowed instead
+    method message () {
+        "Can't apply trait '$.type $.subtype' on a $.scope scoped $.declaring."
+        ~ ( $.supported ?? " Only {$.supported.join(' and ')} scoped {$.declaring}s are supported." !! '' );
+    }
+}
+my class X::Comp::Trait::Scope is X::Trait::Scope does X::Comp { };
+
 my class X::OutOfRange is Exception {
     has $.what = 'Argument';
     has $.got = '<unknown>';
@@ -849,7 +862,9 @@ my class X::Syntax::Pod::BeginWithoutIdentifier does X::Syntax does X::Pod {
 }
 
 my class X::Syntax::Pod::BeginWithoutEnd does X::Syntax does X::Pod {
-    method message() { '=begin without matching =end' }
+    has $.type;
+    has $.spaces;
+    method message() { "'=begin' not terminated by matching '$.spaces=end $.type'" }
 }
 
 my class X::Syntax::Confused does X::Syntax {

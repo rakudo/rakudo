@@ -39,8 +39,8 @@ my class MapIter is Iterator {
 
             my $count = $n;
             if nqp::istype($count, Whatever) {
-                $!listiter.reify(*) 
-                  if $!listiter && nqp::elems($!items) < $argc;
+		$!listiter.reify($argc)
+		    if $!listiter && nqp::elems($!items) < $argc;
                 $count = (nqp::elems($!items) / $argc).floor;
                 $count = 1 if $count < 1;
                 $count = 100000 if $count > 100000;
@@ -130,7 +130,7 @@ my class MapIter is Iterator {
             
             # Pre-size (set to count we want, then back to zero, which leaves
             # the backing array at $count).
-            nqp::setelems($rpa, $count);
+            nqp::setelems($rpa, $count min 1024) unless $sink;
             nqp::setelems($rpa, 0);
             
             if $argc == 1 && !$NEXT {

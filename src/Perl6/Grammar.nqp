@@ -678,11 +678,16 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         $<spaces> = [ \h* ]
         '=begin' \h+ 'table' {}
         :my $*POD_ALLOW_FCODES := nqp::getlexdyn('$*POD_ALLOW_FCODES');
+        :my @*columns;
+        :my @*text-pieces;
+        :my @*headers;
+        :my $*before-header := 1;
+        :my @*content;
         <pod_configuration($<spaces>)> <pod_newline>+
+        [ $<spaces> <table_row> ]+
         [
-         <table_row>*
-         ^^ \h* '=end' \h+ 'table' <pod_newline>
-         || {$/.CURSOR.typed_panic: 'X::Syntax::Pod::BeginWithoutEnd', type => 'table', spaces => ~$<spaces>}
+        ^^ $<spaces> '=end' \h+ 'table' <pod_newline>
+        || {$/.CURSOR.typed_panic: 'X::Syntax::Pod::BeginWithoutEnd', type => 'table', spaces => ~$<spaces>}
         ]
     }
 
@@ -713,7 +718,52 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
 
     token table_row {
-        \h* <!before '=' \w> \N* \n
+        :my $pos-of-newline;
+        { $pos-of-newline := $/.CURSOR.pos; }
+        <!before \h* '=' \w>
+        [\h* ['|'\h+]?]
+        [
+          $<column> = [
+            [ <![\h]> <pod_string_character> ] +% $<sp>=[ \h <!before \h | '|' > ]
+          ]
+        ] +% [\h [\h+ | \h* '|' \h+]?]
+        {
+            for $<column> {
+                next if ~$_ eq '|'; # $_.ast -> merge-twines
+                my @content := [];
+                if $_<pod_string_character> {
+                    for $_<pod_string_character> {
+                        say($/);
+                        @content.push($_);
+                    }
+                }
+                Perl6::Pod::insert_column_part(
+                    Perl6::Pod::build_pod_string(@content),
+                    $_.from - $pos-of-newline, !$*before-header,
+                );
+            }
+        }
+        [
+        || <.pod_newline> ['='|'-'|'|'|\h]* <.pod_newline>
+             {
+                my @additions := [];
+                for @*text-pieces {
+                    @*additions.push(
+                        Perl6::Pod::serialize_array(
+                            Perl6::Pod::merge_twines($_)
+                        ).compile_time_value
+                    );
+                }
+                if +@*headers == 0 {
+                    @*headers := @additions;
+                    $*before-header := 0;
+                } else {
+                    @*content.push(@additions);
+                }
+                @*text-pieces := [];
+             }
+        || <.pod_newline>
+        ]
     }
 
     token pod_block:sym<end> {
@@ -757,8 +807,13 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         $<spaces> = [ \h* ]
         '=for' \h+ 'table' {}
         :my $*POD_ALLOW_FCODES := nqp::getlexdyn('$*POD_ALLOW_FCODES');
+        :my @*columns;
+        :my @*text-pieces;
+        :my @*headers;
+        :my $*before-header := 0;
+        :my @*content;
         <pod_configuration($<spaces>)> <pod_newline>
-        [ <!before \h* \n> <table_row>]*
+        [ <!pod_newline> $<spaces> <table_row> ]*
     }
 
     token pod_block:sym<paragraph_code> {
@@ -802,8 +857,13 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         $<spaces> = [ \h* ]
         '=table' {}
         :my $*POD_ALLOW_FCODES := nqp::getlexdyn('$*POD_ALLOW_FCODES');
+        :my @*columns;
+        :my @*text-pieces;
+        :my @*headers;
+        :my $*before-header := 0;
+        :my @*content;
         <pod_newline>
-        [ <!before \h* \n> <table_row>]*
+        [ <!pod_newline> $<spaces> <table_row> ]*
     }
 
     token pod_block:sym<abbreviated_code> {

@@ -142,173 +142,42 @@ class Perl6::Pod {
             ?? $<pod_configuration>.ast
             !! serialize_object('Hash').compile_time_value;
 
-        my @rows := [];
-        for $<table_row> {
-            @rows.push($_.ast);
+        if +@*text-pieces {
+            for @*text-pieces[0] {
+                my @t := [];
+                @t.push($_.shift) for @*text-pieces;
+                @*content.push(@t);
+            }
         }
-        @rows := process_rows(@rows);
-        # we need to know 3 things about the separators:
-        #   is there more than one
-        #   where is the first one
-        #   are they different from each other
-        # Given no separators, our table is just an ordinary, one-lined
-        # table.
-        # If there is one separator, the table has a header and
-        # the actual content. If the first header is further than on the
-        # second row, then the header is multi-lined.
-        # If there's more than one separator, the table has a multi-line
-        # header and a multi-line content.
-        # Tricky, isn't it? Let's try to handle it sanely
-        my $sepnum        := 0;
-        my $firstsepindex := 0;
-        my $differentseps := 0;
-        my $firstsep;
-        my $i := 0;
-        while $i < +@rows {
-            unless nqp::islist(@rows[$i]) {
-                $sepnum := $sepnum + 1;
-                unless $firstsepindex { $firstsepindex := $i }
-                if $firstsep {
-                    if $firstsep ne @rows[$i] { $differentseps := 1 }
-                } else {
-                    $firstsep := @rows[$i];
-                }
-            }
-            $i := $i + 1;
-        }
-
-        my $headers := [];
-        my $content := [];
-
-        if $sepnum == 0 {
-            # ordinary table, no headers, one-lined rows
-            $content := @rows;
-        } elsif $sepnum == 1 {
-            if $firstsepindex == 1 {
-                # one-lined header, one-lined rows
-                $headers := @rows.shift;
-                @rows.shift; # remove the separator
-                $content := @rows;
-            } else {
-                # multi-line header, one-lined rows
-                my $i := 0;
-                my @hlines := [];
-                while $i < $firstsepindex {
-                    @hlines.push(@rows.shift);
-                    $i := $i + 1;
-                }
-                $headers := merge_rows(@hlines);
-                @rows.shift; # remove the separator
-                $content := @rows;
-            }
-        } else {
-            my @hlines := [];
-            my $i := 0;
-            if $differentseps {
-                while $i < $firstsepindex {
-                    @hlines.push(@rows.shift);
-                    $i := $i + 1;
-                }
-                @rows.shift;
-                $headers := merge_rows(@hlines);
-            }
-            # let's go through the rows and merge the multi-line ones
-            my @newrows := [];
-            my @tmp  := [];
-            $i       := 0;
-            while $i < +@rows {
-                if nqp::islist(@rows[$i]) {
-                    @tmp.push(@rows[$i]);
-                } else {
-                    @newrows.push(merge_rows(@tmp));
-                    @tmp := [];
-                }
-                $i := $i + 1;
-            }
-            if +@tmp > 0 {
-                @newrows.push(merge_rows(@tmp));
-            }
-            $content := @newrows;
-        }
-
-        my $past := serialize_object(
+        make serialize_object(
             'Pod::Block::Table', :config($config),
-            :headers(serialize_aos($headers).compile_time_value),
-            :content(serialize_aoaos($content).compile_time_value),
-        );
-        make $past.compile_time_value;
+            :headers(@*headers), :content(@*content),
+        ).compile_time_value;
     }
 
-    our sub process_rows(@rows) {
-        # remove trailing blank lines
-        @rows.pop while @rows[+@rows - 1] ~~ /^ \s* $/;
-        # find the longest leading whitespace and strip it
-        # from every row, also remove trailing \n
-        my $w := -1; # the longest leading whitespace
-        for @rows -> $row {
-            next if $row ~~ /^^\s*$$/;
-            my $match := $row ~~ /^^\s+/;
-            my $n := $match.to;
-            if $n < $w || $w == -1 {
-                $w := $n;
+    our sub insert_column_part($content, $column, $columns-fixed = 0) {
+        my $idx := 0;
+        for @*columns -> $pos {
+            if $pos == $column {
+                @*text-pieces[$idx].push: $content;
+                return;
+            } elsif $pos > $column && !$columns-fixed {
+                @*text-pieces.splice($idx, 0, [$content]);
+                @*columns.splice($idx, 0, $column);
+                return;
+            } elsif $pos > $column && $columns-fixed {
+                # maybe the user wanted to use multiple spaces to align.
+                # that's no problem if our columns are already fixed,
+                # because we already know the exact layout of columns.
+                my @lr := @*text-pieces[$idx - 1];
+                @lr[@lr - 1].push($_) for $content;
+                return;
             }
         }
-        my $i := 0;
-        while $i < +@rows {
-            unless @rows[$i] ~~ /^^\s*$$/ {
-                @rows[$i] := nqp::substr(@rows[$i], $w);
-            }
-            # chomp
-            @rows[$i] := subst(@rows[$i], /\n$/, '');
-            $i := $i + 1;
+        if !$columns-fixed {
+            @*text-pieces.push([$content]);
+            @*columns.push($column);
         }
-        # split the row between cells
-        my @res;
-        $i := 0;
-        while $i < +@rows {
-            my $v := @rows[$i];
-            if $v ~~ /^'='+ || ^'-'+ || ^'_'+ || ^\h*$/ {
-                @res[$i] := $v;
-            } elsif $v ~~ /\h'|'\h/ {
-                my $m := $v ~~ /
-                    :ratchet
-                    ([<!before [\h+ || ^^] '|' [\h+ || $$]> .]*)+
-                    % [ [\h+ || ^^] '|' [\h || $$] ]
-                /;
-                @res[$i] := [];
-                for $m[0] { @res[$i].push(formatted_text($_)) }
-            } elsif $v ~~ /\h'+'\h/ {
-                my $m := $v ~~ /
-                    :ratchet ([<!before [\h+ || ^^] '+' [\h+ || $$]> .]*)+
-                    % [ [\h+ || ^^] '+' [\h+ || $$] ]
-                /;
-                @res[$i] := [];
-                for $m[0] { @res[$i].push(formatted_text($_)) }
-            } else {
-                # now way to easily split rows
-                return splitrows(@rows);
-            }
-            $i := $i + 1;
-        }
-        return @res;
-    }
-
-    our sub merge_rows(@rows) {
-        my @result := @rows[0];
-        my $i := 1;
-        while $i < +@rows {
-            my $j := 0;
-            while $j < +@rows[$i] {
-                if @rows[$i][$j] {
-                    @result[$j] := formatted_text(
-                        ~@result[$j] ~ ' ' ~ ~@rows[$i][$j]
-                    );
-                }
-                $j := $j + 1;
-            }
-            $i := $i + 1;
-        }
-        return @result;
     }
 
     our sub merge_twines(@twines) {

@@ -5,7 +5,7 @@ my sub combinations($n, $k) {
     my @result;
     my @stack;
 
-    return () unless $k;
+    return [] unless $k;
 
     @stack.push(0);
     gather while @stack {

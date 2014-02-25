@@ -39,14 +39,36 @@ class LoL { # declared in BOOTSTRAP
 }
 
 
-sub infix:<X>(|lol) {
-    state &mc = METAOP_CROSS(&infix:<,>, &METAOP_REDUCE_LIST);
-    mc(|lol);
-}
+sub infix:<X>(**@lol) {
+    my @l;
+    @l[0] = (@lol[0].flat,).list;
+    my int $i = 0;
+    my int $n = @lol.elems - 1;
+    my Mu $v := nqp::list();
+    gather {
+        while $i >= 0 {
+            if @l[$i] {
+                nqp::bindpos($v, $i, @l[$i].shift);
+                if $i >= $n { take nqp::p6parcel(nqp::clone($v), nqp::null()) }
+                else {
+                    $i = $i + 1;
+                    @l[$i] = (@lol[$i].flat,).list;
+                }
+            }
+            else { $i = $i - 1 }
+        }
+    }
+};
 
-sub infix:<Z>(|lol) {
-    state &zw = METAOP_ZIP(&infix:<,>, &METAOP_REDUCE_LIST);
-    zw(|lol);
+sub infix:<Z>(**@lol) {
+    my @l = @lol.map({ (.flat,).list.item });
+    gather {
+        my $loop = 1;
+        while $loop {
+            my $p := @l.map({ $loop = 0 unless $_; .shift }).eager.Parcel;
+            take $p if $loop;
+        }
+    }
 }
 
 my &zip := &infix:<Z>;

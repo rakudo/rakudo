@@ -44,15 +44,9 @@ sub infix:<X>(|lol) {
     mc(|lol);
 }
 
-sub infix:<Z>(**@lol) {
-    my @l = @lol.map({ (.flat,).list.item });
-    gather {
-        my $loop = 1;
-        while $loop {
-            my $p := @l.map({ $loop = 0 unless $_; .shift }).eager.Parcel;
-            take $p if $loop;
-        }
-    }
+sub infix:<Z>(|lol) {
+    state &zw = METAOP_ZIP(&infix:<,>, &METAOP_REDUCE_LIST);
+    zw(|lol);
 }
 
 my &zip := &infix:<Z>;

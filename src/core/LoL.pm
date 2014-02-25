@@ -41,11 +41,11 @@ class LoL { # declared in BOOTSTRAP
 
 sub infix:<X>(|lol) {
     my @l;
-    if lol[0].VAR.WHAT === Scalar {
+    if nqp::iscont(lol[0]) {
         @l[0] = (lol[0],).list;
     }
     else {
-        @l[0] = (lol[0].flat,).list;
+        @l[0] = (lol[0],).flat;
     }
     my int $i = 0;
     my int $n = lol.elems - 1;
@@ -57,7 +57,7 @@ sub infix:<X>(|lol) {
                 if $i >= $n { take nqp::p6parcel(nqp::clone($v), nqp::null()) }
                 else {
                     $i = $i + 1;
-                    if lol[$i].VAR.WHAT === Scalar {
+                    if nqp::iscont(lol[$i]) {
                         @l[$i] = (lol[$i],).list;
                     }
                     else {
@@ -74,8 +74,8 @@ sub infix:<Z>(|lol) {
     my @l = eager for ^lol.elems -> $i {
             my \elem = lol[$i];         # can't use mapping here, mustn't flatten
 
-            if elem.VAR.WHAT === Scalar         { (elem,).list.item }
-            else                                { (elem,).flat.item }
+            if nqp::iscont(elem) { (elem,).list.item }
+            else                 { (elem,).flat.item }
         }
 
     gather {

@@ -21,8 +21,8 @@ sub METAOP_CROSS(\op, &reduce) {
         my @l = eager for ^lol.elems -> $i {
             my \elem = lol[$i];         # can't use mapping here, mustn't flatten
 
-            if elem.VAR.WHAT === Scalar         { (elem,).list.item }
-            else                                { (elem,).flat.list.item }
+            if nqp::iscont(elem) { (elem,).list.item }
+            else                 { (elem,).flat.item }
         }
         my @cache;
         my int $i = 0;
@@ -55,8 +55,8 @@ sub METAOP_ZIP(\op, &reduce) {
         my @l = eager for ^lol.elems -> $i {
             my \elem = lol[$i];         # can't use mapping here, mustn't flatten
 
-            if elem.VAR.WHAT === Scalar         { (elem,).list.item }
-            else                                { (elem,).flat.list.item }
+            if nqp::iscont(elem) { (elem,).list.item }
+            else                 { (elem,).flat.item }
         }
         gather {
             my $loop = 1;

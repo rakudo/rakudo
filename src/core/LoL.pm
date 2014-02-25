@@ -39,11 +39,16 @@ class LoL { # declared in BOOTSTRAP
 }
 
 
-sub infix:<X>(**@lol) {
+sub infix:<X>(|lol) {
     my @l;
-    @l[0] = (@lol[0].flat,).list;
+    if lol[0].VAR.WHAT === Scalar {
+        @l[0] = (lol[0],).list;
+    }
+    else {
+        @l[0] = (lol[0].flat,).list;
+    }
     my int $i = 0;
-    my int $n = @lol.elems - 1;
+    my int $n = lol.elems - 1;
     my Mu $v := nqp::list();
     gather {
         while $i >= 0 {
@@ -52,7 +57,12 @@ sub infix:<X>(**@lol) {
                 if $i >= $n { take nqp::p6parcel(nqp::clone($v), nqp::null()) }
                 else {
                     $i = $i + 1;
-                    @l[$i] = (@lol[$i].flat,).list;
+                    if lol[$i].VAR.WHAT === Scalar {
+                        @l[$i] = (lol[$i],).list;
+                    }
+                    else {
+                        @l[$i] = (lol[$i],).flat;
+                    }
                 }
             }
             else { $i = $i - 1 }
@@ -60,8 +70,14 @@ sub infix:<X>(**@lol) {
     }
 };
 
-sub infix:<Z>(**@lol) {
-    my @l = @lol.map({ (.flat,).list.item });
+sub infix:<Z>(|lol) {
+    my @l = eager for ^lol.elems -> $i {
+            my \elem = lol[$i];         # can't use mapping here, mustn't flatten
+
+            if elem.VAR.WHAT === Scalar         { (elem,).list.item }
+            else                                { (elem,).flat.item }
+        }
+
     gather {
         my $loop = 1;
         while $loop {

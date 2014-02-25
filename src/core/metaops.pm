@@ -16,24 +16,35 @@ sub METAOP_REVERSE(\op) {
 }
 
 sub METAOP_CROSS(\op, &reduce) {
-    -> **@lol {
-        my $rop = @lol.elems == 2 ?? op !! &reduce(op);
-        my @l;
-        my @v;
-        @l[0] = (@lol[0].flat,).list;
+    -> |lol {
+        my $rop = lol.elems == 2 ?? op !! &reduce(op);
+        my @l = eager for ^lol.elems -> $i {
+	    my \elem = lol[$i];
+
+	    if elem.VAR.WHAT === Scalar		{ (elem,).list.item }
+	    elsif elem.WHAT === Parcel		{ elem.flat.list.item }
+	    else				{ elem.list.item; }
+	}
+	my @cache;
         my int $i = 0;
-        my int $n = @lol.elems - 1;
+        my int $n = lol.elems - 1;
+	my int $j = 0;
+	my @j;
+	my @v;
         gather {
             while $i >= 0 {
-                if @l[$i].gimme(1) {
-                    @v[$i] = @l[$i].shift;
-                    if $i >= $n { my @x = @v; take $rop(|@x); }
-                    else {
-                        $i = $i + 1;
-                        @l[$i] = (@lol[$i].flat,).list;
-                    }
+                if @cache[$i][$j]:exists {
+                    @v[$i] := @cache[$i][$j];
+		    $j = $j + 1;
+                    if $i >= $n { take $rop(|@v); }
+                    else { $i = $i + 1; @j.push($j); $j = 0; }
                 }
-                else { $i = $i - 1; }
+		elsif @l[$i].gimme(1) { @cache[$i][$j] = @l[$i].shift; redo }
+                else {
+		    $i = $i - 1;
+		    if $i { $j = @j.pop }	# continue previous dimension where we left off
+		    else  { $j = 0; @cache[0][0]:delete } # don't cache 1st dimension (could be infinite)
+		}
             }
         }
     }

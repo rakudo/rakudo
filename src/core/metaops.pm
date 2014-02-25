@@ -19,11 +19,10 @@ sub METAOP_CROSS(\op, &reduce) {
     -> |lol {
         my $rop = lol.elems == 2 ?? op !! &reduce(op);
         my @l = eager for ^lol.elems -> $i {
-	    my \elem = lol[$i];
+	    my \elem = lol[$i];		# can't use mapping here, mustn't flatten
 
 	    if elem.VAR.WHAT === Scalar		{ (elem,).list.item }
-	    elsif elem.WHAT === Parcel		{ elem.flat.list.item }
-	    else				{ elem.list.item; }
+	    else				{ elem.flat.list.item }
 	}
 	my @cache;
         my int $i = 0;

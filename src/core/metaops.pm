@@ -50,9 +50,14 @@ sub METAOP_CROSS(\op, &reduce) {
 }
 
 sub METAOP_ZIP(\op, &reduce) {
-    -> **@lol {
-        my $rop = @lol.elems == 2 ?? op !! &reduce(op);
-        my @l = @lol.map({ (.flat,).list.item });
+    -> |lol {
+        my $rop = lol.elems == 2 ?? op !! &reduce(op);
+        my @l = eager for ^lol.elems -> $i {
+	    my \elem = lol[$i];		# can't use mapping here, mustn't flatten
+
+	    if elem.VAR.WHAT === Scalar		{ (elem,).list.item }
+	    else				{ elem.flat.list.item }
+	}
         gather {
             my $loop = 1;
             while $loop {
@@ -130,6 +135,25 @@ sub METAOP_REDUCE_LIST(\op, :$triangle) {
                 }, :infinite(@values.infinite))
             }
         !!  sub (*@values) { op.(|@values) }
+}
+
+
+sub METAOP_REDUCE_LISTINFIX(\op, :$triangle) {
+    $triangle
+        ??  sub (|values) {
+		my \p = values[0];
+                return () unless p.elems;
+		my int $i = 0;
+                GATHER({
+                    my @list;
+                    while $i < p.elems {
+                        @list.push(p[$i]);
+			$i = $i + 1;
+                        take op.(|@list);
+                    }
+                }, :infinite(p.infinite))
+            }
+        !!  sub (|values) { my \p = values[0]; op.(|p) }
 }
 
 

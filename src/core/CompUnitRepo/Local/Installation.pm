@@ -44,7 +44,7 @@ class CompUnitRepo::Local::Installation {
         }
     }
 
-    method Str { $!path.Str }
+    method Str { $!path.absolute.Str }
 
     method writeable-path {
         %!dists.keys.first( *.IO.w )

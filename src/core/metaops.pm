@@ -244,7 +244,7 @@ multi sub deepmap(\op, \obj) {
             ($o := nqp::atpos($items, $i)),
             nqp::bindpos($rpa, $i, 
                 nqp::if(nqp::istype($o, Iterable),
-                        $o.new(hyper(op, $o)).item,
+                        $o.new(deepmap(op, $o)).item,
                         op.($o))),
             $i = nqp::sub_i($i, 2)
         )
@@ -256,12 +256,17 @@ multi sub deepmap(\op, \obj) {
             ($o := nqp::atpos($items, $i)),
             nqp::bindpos($rpa, $i, 
                 nqp::if(nqp::istype($o, Iterable),
-                        $o.new(hyper(op, $o)).item,
+                        $o.new(deepmap(op, $o)).item,
                         op.($o))),
             $i = nqp::sub_i($i, 2)
         )
     );
     nqp::p6parcel($rpa, Nil);
+}
+
+multi sub deepmap(\op, Associative \h) {
+    my @keys = h.keys;
+    hash @keys Z deepmap(op, h{@keys})
 }
 
 multi sub hyper(\op, \obj) {

@@ -42,33 +42,35 @@ class LoL { # declared in BOOTSTRAP
 sub infix:<X>(|lol) {
     my @l;
     if nqp::iscont(lol[0]) {
-        @l[0] = (lol[0],).list;
+        @l[0] = (lol[0],).list.item;
     }
     else {
-        @l[0] = (lol[0],).flat;
+        my \elem = @l[0];
+        @l[0] = (elem,).flat.item;
     }
     my int $i = 0;
     my int $n = lol.elems - 1;
     my Mu $v := nqp::list();
     gather {
         while $i >= 0 {
-            if @l[$i] {
+            if @l[$i].gimme(1) {
                 nqp::bindpos($v, $i, @l[$i].shift);
                 if $i >= $n { take nqp::p6parcel(nqp::clone($v), nqp::null()) }
                 else {
                     $i = $i + 1;
                     if nqp::iscont(lol[$i]) {
-                        @l[$i] = (lol[$i],).list;
+                        @l[$i] = (lol[$i],).list.item;
                     }
                     else {
-                        @l[$i] = (lol[$i],).flat;
+                        my \elem = @l[$i];
+                        @l[$i] = (elem,).flat.item;
                     }
                 }
             }
             else { $i = $i - 1 }
         }
     }
-};
+}
 
 sub infix:<Z>(|lol) {
     my @l = eager for ^lol.elems -> $i {

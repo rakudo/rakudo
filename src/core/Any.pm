@@ -92,6 +92,9 @@ my class Any { # declared in BOOTSTRAP
     method map($block) is rw {
         MapIter.new(self, $block, Bool::True).list
     }
+    method deepmap($block) is rw {
+        deepmap($block, self);
+    }
     proto method tree(|) { * }
     multi method tree(Any:U:) { self }
     multi method tree(Any:D:) { self.lol }

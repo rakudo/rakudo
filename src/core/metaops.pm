@@ -213,11 +213,11 @@ sub METAOP_HYPER(\op, *%opt) {
     -> Mu \a, Mu \b { hyper(op, a, b, |%opt) }
 }
 
-sub METAOP_HYPER_POSTFIX(\obj, \op) { hyper(op, obj) }
+sub METAOP_HYPER_POSTFIX(\obj, \op) { flatmap(op, obj) }
 
-sub METAOP_HYPER_PREFIX(\op, \obj) { hyper(op, obj) }
+sub METAOP_HYPER_PREFIX(\op, \obj) { deepmap(op, obj) }
 
-sub METAOP_HYPER_CALL(\list, |args) { hyper(-> $c { $c(|args) }, list) }
+sub METAOP_HYPER_CALL(\list, |args) { deepmap(-> $c { $c(|args) }, list) }
 
 proto sub hyper(|) { * }
 multi sub hyper(\op, \a, \b, :$dwim-left, :$dwim-right) { 
@@ -248,6 +248,15 @@ multi sub hyper(\op, \a, \b, :$dwim-left, :$dwim-right) {
         }
     ).eager
 }
+
+multi sub hyper(\op, \obj) {
+    # fake it till we get a nodal trait
+    my $nodal = True;
+
+    $nodal ?? flatmap(op, obj) !! deepmap(op,obj);
+}
+
+proto sub deepmap(|) { * }
 
 multi sub deepmap(\op, \obj) {
     my Mu $rpa := nqp::list();
@@ -288,7 +297,8 @@ multi sub deepmap(\op, Associative \h) {
     hash @keys Z deepmap(op, h{@keys})
 }
 
-multi sub hyper(\op, \obj) {
+proto sub flatmap(|) { * }
+multi sub flatmap(\op, \obj) {
     my Mu $rpa := nqp::list();
     my Mu $items := nqp::p6listitems(obj.flat.eager);
     my Mu $o;
@@ -302,7 +312,7 @@ multi sub hyper(\op, \obj) {
             ($o := nqp::atpos($items, $i)),
             nqp::bindpos($rpa, $i, 
                 nqp::if(Mu,             # hack cuz I don't understand nqp
-                        $o.new(hyper(op, $o)).item,
+                        $o.new(flatmap(op, $o)).item,
                         op.($o))),
             $i = nqp::sub_i($i, 2)
         )
@@ -314,7 +324,7 @@ multi sub hyper(\op, \obj) {
             ($o := nqp::atpos($items, $i)),
             nqp::bindpos($rpa, $i, 
                 nqp::if(Mu,             # hack cuz I don't understand nqp
-                        $o.new(hyper(op, $o)).item,
+                        $o.new(flatmap(op, $o)).item,
                         op.($o))),
             $i = nqp::sub_i($i, 2)
         )
@@ -322,9 +332,19 @@ multi sub hyper(\op, \obj) {
     nqp::p6parcel($rpa, Nil);
 }
 
-multi sub hyper(\op, Associative \h) {
+multi sub flatmap(\op, Associative \h) {
     my @keys = h.keys;
-    hash @keys Z hyper(op, h{@keys})
+    hash @keys Z flatmap(op, h{@keys})
+}
+
+proto sub duckmap(|) { * }
+multi sub duckmap(\op, \obj) {
+    flatmap(-> \arg { try { op.(arg) } // try { duckmap(op,arg) } }, obj); 
+}
+
+multi sub duckmap(\op, Associative \h) {
+    my @keys = h.keys;
+    hash @keys Z duckmap(op, h{@keys})
 }
 
 multi sub hyper(\op, Associative \a, Associative \b, :$dwim-left, :$dwim-right) {

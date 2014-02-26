@@ -213,7 +213,9 @@ sub METAOP_HYPER(\op, *%opt) {
     -> Mu \a, Mu \b { hyper(op, a, b, |%opt) }
 }
 
-sub METAOP_HYPER_POSTFIX(\obj, \op) { flatmap(op, obj) }
+proto sub METAOP_HYPER_POSTFIX(|) {*}
+multi sub METAOP_HYPER_POSTFIX(\obj, \op) { flatmap(op, obj) }
+multi sub METAOP_HYPER_POSTFIX(\obj, \args, \op) { flatmap( -> \o { op.(o,|args) }, obj ) }
 
 sub METAOP_HYPER_PREFIX(\op, \obj) { deepmap(op, obj) }
 

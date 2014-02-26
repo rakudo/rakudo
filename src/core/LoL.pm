@@ -42,12 +42,7 @@ class LoL { # declared in BOOTSTRAP
 sub infix:<X>(|lol) {
     my @l;
     my \elem = lol[0];
-    if nqp::iscont(elem) {
-        @l[0] := (elem,).list;
-    }
-    else {
-        @l[0] := (elem,).flat;
-    }
+    @l[0] = nqp::iscont(elem) ?? (elem,).list.item !! (elem,).flat.item;
     my int $i = 0;
     my int $n = lol.elems - 1;
     my Mu $v := nqp::list();
@@ -59,12 +54,7 @@ sub infix:<X>(|lol) {
                 else {
                     $i = $i + 1;
                     my \elem = lol[$i];
-                    if nqp::iscont(elem) {
-                        @l[$i] := (elem,).list;
-                    }
-                    else {
-                        @l[$i] := (elem,).flat;
-                    }
+                    @l[$i] = nqp::iscont(elem) ?? (elem,).list.item !! (elem,).flat.item;
                 }
             }
             else { $i = $i - 1 }

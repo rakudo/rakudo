@@ -41,12 +41,12 @@ class LoL { # declared in BOOTSTRAP
 
 sub infix:<X>(|lol) {
     my @l;
-    if nqp::iscont(lol[0]) {
-        @l[0] = (lol[0],).list.item;
+    my \elem = lol[0];
+    if nqp::iscont(elem) {
+        @l[0] := (elem,).list;
     }
     else {
-        my \elem = @l[0];
-        @l[0] = (elem,).flat.item;
+        @l[0] := (elem,).flat;
     }
     my int $i = 0;
     my int $n = lol.elems - 1;
@@ -58,12 +58,12 @@ sub infix:<X>(|lol) {
                 if $i >= $n { take nqp::p6parcel(nqp::clone($v), nqp::null()) }
                 else {
                     $i = $i + 1;
-                    if nqp::iscont(lol[$i]) {
-                        @l[$i] = (lol[$i],).list.item;
+                    my \elem = lol[$i];
+                    if nqp::iscont(elem) {
+                        @l[$i] := (elem,).list;
                     }
                     else {
-                        my \elem = @l[$i];
-                        @l[$i] = (elem,).flat.item;
+                        @l[$i] := (elem,).flat;
                     }
                 }
             }

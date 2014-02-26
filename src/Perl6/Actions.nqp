@@ -5193,7 +5193,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
     sub baseop_reduce($/) {
         my str $reduce := 'LEFT';
-        if    $<assoc> eq 'right'  
+        if $<prec> eq 'f='         { $reduce := 'LISTINFIX'; }
+        elsif $<assoc> eq 'right'  
            || $<assoc> eq 'list'   { $reduce := nqp::uc($<assoc>); }
         elsif $<prec> eq 'm='      { $reduce := 'CHAIN'; }
         elsif $<pasttype> eq 'xor' { $reduce := 'XOR'; }

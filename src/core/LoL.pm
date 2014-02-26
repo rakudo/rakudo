@@ -39,29 +39,37 @@ class LoL { # declared in BOOTSTRAP
 }
 
 
-sub infix:<X>(**@lol) {
+sub infix:<X>(|lol) {
     my @l;
-    @l[0] = (@lol[0].flat,).list;
+    my \elem = lol[0];
+    @l[0] = nqp::iscont(elem) ?? (elem,).list.item !! (elem,).flat.item;
     my int $i = 0;
-    my int $n = @lol.elems - 1;
+    my int $n = lol.elems - 1;
     my Mu $v := nqp::list();
     gather {
         while $i >= 0 {
-            if @l[$i] {
+            if @l[$i].gimme(1) {
                 nqp::bindpos($v, $i, @l[$i].shift);
                 if $i >= $n { take nqp::p6parcel(nqp::clone($v), nqp::null()) }
                 else {
                     $i = $i + 1;
-                    @l[$i] = (@lol[$i].flat,).list;
+                    my \elem = lol[$i];
+                    @l[$i] = nqp::iscont(elem) ?? (elem,).list.item !! (elem,).flat.item;
                 }
             }
             else { $i = $i - 1 }
         }
     }
-};
+}
 
-sub infix:<Z>(**@lol) {
-    my @l = @lol.map({ (.flat,).list.item });
+sub infix:<Z>(|lol) {
+    my @l = eager for ^lol.elems -> $i {
+            my \elem = lol[$i];         # can't use mapping here, mustn't flatten
+
+            if nqp::iscont(elem) { (elem,).list.item }
+            else                 { (elem,).flat.item }
+        }
+
     gather {
         my $loop = 1;
         while $loop {

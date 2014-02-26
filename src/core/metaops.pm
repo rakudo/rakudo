@@ -16,33 +16,48 @@ sub METAOP_REVERSE(\op) {
 }
 
 sub METAOP_CROSS(\op, &reduce) {
-    -> **@lol {
-        my $rop = @lol.elems == 2 ?? op !! &reduce(op);
-        my @l;
-        my @v;
-        @l[0] = (@lol[0].flat,).list;
+    -> |lol {
+        my $rop = lol.elems == 2 ?? op !! &reduce(op);
+        my @l = eager for ^lol.elems -> $i {
+            my \elem = lol[$i];         # can't use mapping here, mustn't flatten
+
+            if nqp::iscont(elem) { (elem,).list.item }
+            else                 { (elem,).flat.item }
+        }
+        my @cache;
         my int $i = 0;
-        my int $n = @lol.elems - 1;
+        my int $n = lol.elems - 1;
+        my int $j = 0;
+        my @j;
+        my @v;
         gather {
             while $i >= 0 {
-                if @l[$i].gimme(1) {
-                    @v[$i] = @l[$i].shift;
-                    if $i >= $n { my @x = @v; take $rop(|@x); }
-                    else {
-                        $i = $i + 1;
-                        @l[$i] = (@lol[$i].flat,).list;
-                    }
+                if @cache[$i][$j]:exists {
+                    @v[$i] := @cache[$i][$j];
+                    $j = $j + 1;
+                    if $i >= $n { take $rop(|@v); }
+                    else { $i = $i + 1; @j.push($j); $j = 0; }
                 }
-                else { $i = $i - 1; }
+                elsif @l[$i].gimme(1) { @cache[$i][$j] = @l[$i].shift; redo }
+                else {
+                    $i = $i - 1;
+                    if $i { $j = @j.pop if $i > 0 }       # continue previous dimension where we left off
+                    else  { $j = 0; @cache[0][0]:delete } # don't cache 1st dimension (could be infinite)
+                }
             }
         }
     }
 }
 
 sub METAOP_ZIP(\op, &reduce) {
-    -> **@lol {
-        my $rop = @lol.elems == 2 ?? op !! &reduce(op);
-        my @l = @lol.map({ (.flat,).list.item });
+    -> |lol {
+        my $rop = lol.elems == 2 ?? op !! &reduce(op);
+        my @l = eager for ^lol.elems -> $i {
+            my \elem = lol[$i];         # can't use mapping here, mustn't flatten
+
+            if nqp::iscont(elem) { (elem,).list.item }
+            else                 { (elem,).flat.item }
+        }
         gather {
             my $loop = 1;
             while $loop {
@@ -123,6 +138,25 @@ sub METAOP_REDUCE_LIST(\op, :$triangle) {
 }
 
 
+sub METAOP_REDUCE_LISTINFIX(\op, :$triangle) {
+    $triangle
+        ??  sub (|values) {
+                my \p = values[0];
+                return () unless p.elems;
+                my int $i = 0;
+                GATHER({
+                    my @list;
+                    while $i < p.elems {
+                        @list.push(p[$i]);
+                        $i = $i + 1;
+                        take op.(|@list);
+                    }
+                }, :infinite(p.infinite))
+            }
+        !!  sub (|values) { my \p = values[0]; op.(|p) }
+}
+
+
 sub METAOP_REDUCE_CHAIN(\op, :$triangle) {
     $triangle
         ??  sub (*@values) {
@@ -168,8 +202,8 @@ sub METAOP_HYPER_CALL(\list, |args) { hyper(-> $c { $c(|args) }, list) }
 
 proto sub hyper(|) { * }
 multi sub hyper(\op, \a, \b, :$dwim-left, :$dwim-right) { 
-    my @alist := a.DEFINITE ?? a.flat !! [a];
-    my @blist := b.DEFINITE ?? b.flat !! [b];
+    my @alist := a.DEFINITE ?? a.flat !! (a,).list;
+    my @blist := b.DEFINITE ?? b.flat !! (b,).list;
     my $elems = 0;
     if $dwim-left && $dwim-right { $elems = max(@alist.elems, @blist.elems) }
     elsif $dwim-left { $elems = @blist.elems }
@@ -196,7 +230,7 @@ multi sub hyper(\op, \a, \b, :$dwim-left, :$dwim-right) {
     ).eager
 }
 
-multi sub hyper(\op, \obj) {
+multi sub deepmap(\op, \obj) {
     my Mu $rpa := nqp::list();
     my Mu $items := nqp::p6listitems(obj.flat.eager);
     my Mu $o;
@@ -210,7 +244,7 @@ multi sub hyper(\op, \obj) {
             ($o := nqp::atpos($items, $i)),
             nqp::bindpos($rpa, $i, 
                 nqp::if(nqp::istype($o, Iterable),
-                        $o.new(hyper(op, $o)).item,
+                        $o.new(deepmap(op, $o)).item,
                         op.($o))),
             $i = nqp::sub_i($i, 2)
         )
@@ -222,6 +256,45 @@ multi sub hyper(\op, \obj) {
             ($o := nqp::atpos($items, $i)),
             nqp::bindpos($rpa, $i, 
                 nqp::if(nqp::istype($o, Iterable),
+                        $o.new(deepmap(op, $o)).item,
+                        op.($o))),
+            $i = nqp::sub_i($i, 2)
+        )
+    );
+    nqp::p6parcel($rpa, Nil);
+}
+
+multi sub deepmap(\op, Associative \h) {
+    my @keys = h.keys;
+    hash @keys Z deepmap(op, h{@keys})
+}
+
+multi sub hyper(\op, \obj) {
+    my Mu $rpa := nqp::list();
+    my Mu $items := nqp::p6listitems(obj.flat.eager);
+    my Mu $o;
+    # We process the elements in two passes, end to start, to 
+    # prevent users from relying on a sequential ordering of hyper.
+    # Also, starting at the end pre-allocates $rpa for us.
+    my int $i = nqp::elems($items) - 1;
+    nqp::while(
+        nqp::isge_i($i, 0),
+        nqp::stmts(
+            ($o := nqp::atpos($items, $i)),
+            nqp::bindpos($rpa, $i, 
+                nqp::if(Mu,             # hack cuz I don't understand nqp
+                        $o.new(hyper(op, $o)).item,
+                        op.($o))),
+            $i = nqp::sub_i($i, 2)
+        )
+    );
+    $i = nqp::elems($items) - 2;
+    nqp::while(
+        nqp::isge_i($i, 0),
+        nqp::stmts(
+            ($o := nqp::atpos($items, $i)),
+            nqp::bindpos($rpa, $i, 
+                nqp::if(Mu,             # hack cuz I don't understand nqp
                         $o.new(hyper(op, $o)).item,
                         op.($o))),
             $i = nqp::sub_i($i, 2)

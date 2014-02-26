@@ -14,11 +14,16 @@ BEGIN {
     Perl6::Metamodel::GrammarHOW.HOW.compose(Perl6::Metamodel::GrammarHOW);
 }
 
-my $prefix = ($*VM<properties><perl6.prefix> // $*VM<config><prefix>);
+#?if jvm
+my $prefix = nqp::atkey(nqp::backendconfig(), 'runtime.prefix');
+#?endif
+#?if !jvm
+my $prefix = $*VM<config><prefix>;
+#?endif
 if "$prefix/share/libraries.cfg".IO.e {
     my @lines = slurp("$prefix/share/libraries.cfg").lines;
     my %repos;
-    for %*COMPILING<%?OPTIONS><I>, @lines -> $repo {
+    for nqp::atkey(nqp::atkey(%*COMPILING, '%?OPTIONS'), 'I'), @lines -> $repo {
         next if !$repo || $repo ~~ /^ '#'/;
         my %options;
         if $repo ~~ / $<class>=[ <.ident>+ % '::' ] [ ':' $<n>=\w+ <[<([]> $<v>=<[\w-]>+ <[>)\]]> { %options{$<n>} = $<v> } ]* '=' $<path>=.+ / {

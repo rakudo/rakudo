@@ -28,7 +28,7 @@ class CompUnitRepo::Distribution {
 
 class CompUnitRepo::Local::Installation {
     has %!dists;
-    has $!cver = nqp::gethllsym('perl6', '$COMPILER_CONFIG')<version>;
+    has $!cver = nqp::hllize(nqp::atkey(nqp::gethllsym('perl6', '$COMPILER_CONFIG'), 'version'));
     has $.path;
     method new(*@locations) {
         self.bless(:@locations)
@@ -42,7 +42,6 @@ class CompUnitRepo::Local::Installation {
             %!dists{$path}<dist-count> //= 0;
             %!dists{$path}<dists>      //= [ ];
         }
-        self
     }
 
     method Str { $!path.Str }

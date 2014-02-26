@@ -16,6 +16,8 @@ sub METAOP_REVERSE(\op) {
 }
 
 sub METAOP_CROSS(\op, &reduce) {
+    return &infix:<X> if op === &infix:<,>;
+
     -> |lol {
         my $rop = lol.elems == 2 ?? op !! &reduce(op);
         my @lol = eager for ^lol.elems -> $i {

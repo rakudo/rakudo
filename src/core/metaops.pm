@@ -34,7 +34,7 @@ sub METAOP_CROSS(\op, &reduce) {
             nqp::bindpos($cache, $i, $rpa);
         }
         my int $n = lol.elems - 1;
-        my int $j = 0;
+        my $j = 0;
         my @j;
         my @v;
 

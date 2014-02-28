@@ -26,7 +26,7 @@ my class Match is Capture is Cool {
     method caps(Match:D:) {
         my @caps;
         for self.pairs -> $p {
-            if $p.value ~~ Parcel {
+            if $p.value ~~ Array {
                 @caps.push: $p.key => $_ for $p.value.list
             } else {
                 @caps.push: $p;

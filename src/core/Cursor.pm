@@ -25,7 +25,9 @@ my class Cursor does NQPCursorRole {
                 else {
                     $value := nqp::islist($value)
                         ?? nqp::p6list($value, Array, Mu)
-                        !! [$value];
+                        !! nqp::istype($value, Match)
+                            ?? $value
+                            !! [$value];
                     nqp::iscclass(nqp::const::CCLASS_NUMERIC, $key, 0)
                       ?? nqp::bindpos($list, $key, $value)
                       !! nqp::bindkey($hash, $key, $value);

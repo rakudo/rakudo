@@ -11,3 +11,5 @@ my class Grammar is Cursor {
         nqp::getlexcaller('$/') = $match;
     }
 }
+
+# vim: ft=perl6 expandtab sw=4

@@ -42,3 +42,5 @@ sub DYNAMIC(\name) is rw {
     }
     Dummy.HOW.set_autogen_proto(&Dummy::AUTOGEN);
 }
+
+# vim: ft=perl6 expandtab sw=4

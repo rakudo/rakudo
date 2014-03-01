@@ -81,4 +81,4 @@ class Pod::Config {
     has %.config;
 }
 
-# vim: ft=perl6
+# vim: ft=perl6 expandtab sw=4

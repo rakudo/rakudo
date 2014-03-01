@@ -15,3 +15,5 @@ my module EXPORTHOW {
     nqp::bindkey($?PACKAGE.WHO, 'subset', Perl6::Metamodel::SubsetHOW);
     nqp::bindkey($?PACKAGE.WHO, 'enum', Perl6::Metamodel::EnumHOW);
 }
+
+# vim: ft=perl6 expandtab sw=4

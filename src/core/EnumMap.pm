@@ -132,3 +132,5 @@ multi sub infix:<eqv>(EnumMap:D $a, EnumMap:D $b) {
     Bool::True;
 }
 
+
+# vim: ft=perl6 expandtab sw=4

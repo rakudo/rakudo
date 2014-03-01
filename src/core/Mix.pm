@@ -30,3 +30,5 @@ my class Mix does Mixy {
     method Bag     {     Bag.new-fp(%!elems.values) }
     method BagHash { BagHash.new-fp(%!elems.values) }
 }
+
+# vim: ft=perl6 expandtab sw=4

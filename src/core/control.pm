@@ -254,3 +254,5 @@ sub QX($cmd) {
 sub EXHAUST(|) {
     X::ControlFlow::Return.new.throw();
 }
+
+# vim: ft=perl6 expandtab sw=4

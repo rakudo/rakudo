@@ -181,3 +181,5 @@ my class PseudoStash is EnumMap {
         }
     }
 }
+
+# vim: ft=perl6 expandtab sw=4

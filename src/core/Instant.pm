@@ -120,3 +120,5 @@ sub term:<now>() {
 }
 
 PROCESS::<$INITTIME> = now;
+
+# vim: ft=perl6 expandtab sw=4

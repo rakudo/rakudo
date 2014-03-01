@@ -26,3 +26,5 @@ my class Code does Callable { # declared in BOOTSTRAP
         nqp::p6box_i(nqp::where(nqp::getstaticcode($!do)));
     }
 }
+
+# vim: ft=perl6 expandtab sw=4

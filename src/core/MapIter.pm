@@ -239,3 +239,5 @@ my class MapIter is Iterator {
         self.DUMP-OBJECT-ATTRS($attrs, :$indent-step, :%ctx);
     }
 }
+
+# vim: ft=perl6 expandtab sw=4

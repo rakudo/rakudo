@@ -834,3 +834,5 @@ sub SLICE_MORE ( \SELF, $more, $array, *%adv ) is hidden_from_backtrace {
       ?? SLICE_HUH( SELF, @nogo, %a, %adv )
       !! result;
 } #SLICE_MORE
+
+# vim: ft=perl6 expandtab sw=4

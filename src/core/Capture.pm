@@ -118,3 +118,4 @@ multi sub infix:<eqv>(Capture $a, Capture $b) {
     $a.WHAT === $b.WHAT && $a.list eqv $b.list && $a.hash eqv $b.hash
 }
 
+# vim: ft=perl6 expandtab sw=4

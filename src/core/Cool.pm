@@ -283,3 +283,5 @@ proto sub chars($) is pure {*}
 multi sub chars(Cool $x)  { $x.Str.chars }
 multi sub chars(Str:D $x) { nqp::p6box_i(nqp::chars($x)) }
 multi sub chars(str $x) returns int { nqp::chars($x) }
+
+# vim: ft=perl6 expandtab sw=4

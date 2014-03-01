@@ -14,3 +14,5 @@ my class Iterable { # declared in BOOTSTRAP
     multi method Numeric(Iterable:D:)  { self.elems }
     multi method Str(Iterable:D:)      { self.list.Str }
 }
+
+# vim: ft=perl6 expandtab sw=4

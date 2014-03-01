@@ -119,3 +119,5 @@ multi sub postcircumfix:<{ }>(\SELF, :$k!, *%other) is rw {
 multi sub postcircumfix:<{ }>(\SELF, :$p!, *%other) is rw {
     SLICE_MORE( SELF, SELF.keys, False, :$p, |%other );
 }
+
+# vim: ft=perl6 expandtab sw=4

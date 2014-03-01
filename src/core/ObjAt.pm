@@ -18,3 +18,5 @@ my class ObjAt { # declared in BOOTSTRAP
         nqp::p6box_s(nqp::unbox_s(self));
     }
 }
+
+# vim: ft=perl6 expandtab sw=4

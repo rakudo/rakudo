@@ -172,3 +172,5 @@ multi trait_mod:<will>(Variable:D $v, $block, :$compose! ) {
 # for some reason exceptions are caught and not rethrown
 #    $*W.add_phaser($v.slash, 'COMPOSE', $block)  # doesn't work :-(
 }
+
+# vim: ft=perl6 expandtab sw=4

@@ -181,3 +181,5 @@ my role Baggy does QuantHash {
         samewith( { @test[$^a] }, @list );
     }
 }
+
+# vim: ft=perl6 expandtab sw=4

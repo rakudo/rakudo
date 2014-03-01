@@ -33,3 +33,5 @@ my class AST {
         so $!quasi_context;
     }
 }
+
+# vim: ft=perl6 expandtab sw=4

@@ -396,3 +396,5 @@ my class Hash { # declared in BOOTSTRAP
 
 sub circumfix:<{ }>(*@elems) { my $ = Hash.new(@elems) }
 sub hash(*@a, *%h) { my % = @a, %h }
+
+# vim: ft=perl6 expandtab sw=4

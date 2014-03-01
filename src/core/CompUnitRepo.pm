@@ -14,7 +14,7 @@ class CompUnitRepo {
     }
 
     method candidates($name, :$file, :$auth, :$ver) {
-        for %repos.sort -> $prio {
+        for %repos.sort.reverse -> $prio {
             my @candi;
             for @($prio.value) {
                 @candi := (@candi, .candidates($name, :$file, :$auth, :$ver)).flat

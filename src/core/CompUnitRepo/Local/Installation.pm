@@ -1,5 +1,5 @@
 class CompUnitRepo::Distribution {
-    has $.id;
+    has $.id is rw;
     has $.name;
     has $.auth;
     has $.author;
@@ -11,12 +11,14 @@ class CompUnitRepo::Distribution {
     has %.provides;
     has %.files;
     has $.source-url;
+    method auth { $!auth // $!author // $!authority }
+    method ver  { $!ver // $!version }
     method Hash {
         {
             :$!id,
             :$!name,
-            :auth( $!auth // $!author // $!authority ),
-            :ver( $!ver // $!version ),
+            :$.auth,
+            :$.ver,
             :$!description,
             :@!depends,
             :%!provides,
@@ -86,7 +88,15 @@ sub MAIN(:$name, :$auth, :$ver, *@pos, *%named) {
         my $path     = self.writeable-path or die "No writeable path found";
         my $repo     = %!dists{$path};
         my $file-id := $repo<file-count>;
-        my $d        = CompUnitRepo::Distribution.new( |$dist.metainfo, :id($repo<dist-count>++) );
+        my $d        = CompUnitRepo::Distribution.new( |$dist.metainfo );
+        if $repo<dists>.first({ ($_<name> // '') eq  ($d.name // '') &&
+                                ($_<auth> // '') eq  ($d.auth // '') &&
+                               ~($_<ver>  //  0) eq ~($d.ver  //  0) }) -> $installed {
+            $d.id = $installed<id>
+        }
+        else {
+            $d.id = $repo<dist-count>++
+        }
         
         # Build patterns to choose what goes into "provides" section.
         my $ext = regex { [pm|pm6|pir|pbc|jar|moarvm] };
@@ -128,7 +138,7 @@ sub MAIN(:$name, :$auth, :$ver, *@pos, *%named) {
             $file-id++;
         }
         
-        $repo<dists>.push: $d.Hash;
+        $repo<dists>[$d.id] = $d.Hash;
         
         # XXX Create path if needed.
         "$path/MANIFEST".IO.spurt: to-json( $repo )

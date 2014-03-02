@@ -144,14 +144,21 @@ class Perl6::Pod {
 
         if +@*text-pieces {
             for @*text-pieces[0] {
+                say('tp => ',+@*text-pieces);
+                say('tp[0] => ',+@*text-pieces[0]);
                 my @t := [];
-                @t.push($_.shift) for @*text-pieces;
-                @*content.push(@t);
+                for @*text-pieces {
+                    @t.push(serialize_array($_.shift,:nocache).compile_time_value);
+                }
+                say('@t => ', +@t);
+                @*content := [@*content, serialize_array(@t,:nocache).compile_time_value];
             }
         }
+        @*content := serialize_array(@*content,:nocache).compile_time_value;
         make serialize_object(
             'Pod::Block::Table', :config($config),
             :headers(@*headers), :content(@*content),
+            :nocache,
         ).compile_time_value;
     }
 
@@ -159,11 +166,12 @@ class Perl6::Pod {
         my $idx := 0;
         for @*columns -> $pos {
             if $pos == $column {
+                @*text-pieces[$idx] := [] unless nqp::islist(@*text-pieces[$idx]);
                 @*text-pieces[$idx].push: $content;
                 return;
             } elsif $pos > $column && !$columns-fixed {
-                @*text-pieces.splice($idx, 0, [$content]);
-                @*columns.splice($idx, 0, $column);
+                nqp::splice(@*text-pieces, [[$content]], $idx, 0);
+                nqp::splice(@*columns,     [$column],  $idx, 0);
                 return;
             } elsif $pos > $column && $columns-fixed {
                 # maybe the user wanted to use multiple spaces to align.
@@ -173,6 +181,7 @@ class Perl6::Pod {
                 @lr[@lr - 1].push($_) for $content;
                 return;
             }
+            $idx++;
         }
         if !$columns-fixed {
             @*text-pieces.push([$content]);
@@ -339,8 +348,8 @@ class Perl6::Pod {
     }
 
     # serializes the given array
-    our sub serialize_array(@arr) {
-        return $*W.add_constant('Array', 'type_new', |@arr);
+    our sub serialize_array(*@pos, *%named) {
+        return $*W.add_constant('Array', 'type_new', |@pos, |%named);
     }
 
     # serializes an array of strings

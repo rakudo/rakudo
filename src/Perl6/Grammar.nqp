@@ -722,21 +722,16 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         { $pos-of-newline := $/.CURSOR.pos; }
         <!before \h* '=' \w>
         [\h* ['|'\h+]?]
-        [
-          $<column> = [
-            [ <![\h]> <pod_string_character> ] +% $<sp>=[ \h <!before \h | '|' > ]
-          ]
-        ] +% [\h [\h+ | \h* '|' \h+]?]
+        (
+          [
+          <.before \S | \h <![\h|]> >
+          <pod_string_character>
+          ]+
+        ) +% [ \h+ ['|' \h+]? ]
         {
-            for $<column> {
-                next if ~$_ eq '|'; # $_.ast -> merge-twines
+            for $/[0] {
                 my @content := [];
-                if $_<pod_string_character> {
-                    for $_<pod_string_character> {
-                        say($/);
-                        @content.push($_);
-                    }
-                }
+                @content.push($_.ast) for $_<pod_string_character>;
                 Perl6::Pod::insert_column_part(
                     Perl6::Pod::build_pod_string(@content),
                     $_.from - $pos-of-newline, !$*before-header,
@@ -744,11 +739,11 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             }
         }
         [
-        || <.pod_newline> ['='|'-'|'|'|\h]* <.pod_newline>
+        || <.pod_newline> ['='|'-'|'|'|'+'|\h]* <.pod_newline>
              {
                 my @additions := [];
                 for @*text-pieces {
-                    @*additions.push(
+                    @additions.push(
                         Perl6::Pod::serialize_array(
                             Perl6::Pod::merge_twines($_)
                         ).compile_time_value

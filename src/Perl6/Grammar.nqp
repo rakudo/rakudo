@@ -570,7 +570,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <?{ $*POD_ALLOW_FCODES }>
 
         :my $endtag;
-        $<code>=<[A..Z]>
+        <code=[A..Z]>
         $<begin-tag>=['<'+ <![<]> | '«'] { $*POD_IN_FORMATTINGCODE := 1 }
         <?{
             my $codenum := nqp::ord($<code>.Str) - nqp::ord("A");
@@ -593,8 +593,17 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                 $*POD_ALLOW_FCODES := 0;
             }
         }
-        $<content>=[ <pod_string_character> ]+?
-        $endtag
+        $<content>=[
+            <!before $endtag>
+            [ <?{$<code> ne 'L' && $<code> ne 'D' && $<code> ne 'X' }> || <!before \s* \| > ]
+            <pod_string_character>
+        ]+
+        [
+        | <?{$<code> eq 'L'}> \s* \| \s* $<meta>=[<!before $endtag>.]+
+        | <?{$<code> eq 'X'}> \s* \| \s* [$<meta>=[<!before $endtag | \, >.]+] +% \,
+        | <?{$<code> eq 'D'}> \s* \| \s* [$<meta>=[<!before $endtag | \, >.]+] +% \,
+        ]?
+        [ $endtag || <.panic: "Pod formatting code $<code> missing endtag '$endtag'."> ]
     }
 
     token pod_balanced_braces {

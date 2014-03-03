@@ -66,6 +66,7 @@ my class Pod::Block::Table is Pod::Block {
 
 my class Pod::FormattingCode is Pod::Block {
     has $.type;
+    has @.meta;
 }
 
 my class Pod::Heading is Pod::Block {

@@ -704,7 +704,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     Perl6::Pod::serialize_array(@t).compile_time_value
                 ),
                 :meta(
-                    Perl6::Pod::serialize_array(@meta).compile_time_value
+                    Perl6::Pod::serialize_aos(@meta).compile_time_value
                 ),
             );
             make $past.compile_time_value;

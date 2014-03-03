@@ -601,7 +601,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         [
         | <?{$<code> eq 'L'}> \s* \| \s* $<meta>=[<!before $endtag>.]+
         | <?{$<code> eq 'X'}> \s* \| \s* [$<meta>=[<!before $endtag | \, >.]+] +% \,
-        | <?{$<code> eq 'D'}> \s* \| \s* [$<meta>=[<!before $endtag | \, >.]+] +% \,
+        | <?{$<code> eq 'D'}> \s* \| \s* [$<meta>=[<!before $endtag | \, >.]+] +% \;
         ]?
         [ $endtag || <.panic: "Pod formatting code $<code> missing endtag '$endtag'."> ]
     }

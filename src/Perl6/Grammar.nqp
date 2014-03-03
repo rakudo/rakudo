@@ -597,7 +597,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             <!before $endtag>
             [ <?{$<code> ne 'L' && $<code> ne 'D' && $<code> ne 'X' }> || <!before \s* \| > ]
             <pod_string_character>
-        ]+
+        ]*
         [
         | <?{$<code> eq 'L'}> \s* \| \s* $<meta>=[<!before $endtag>.]+
         | <?{$<code> eq 'X'}> \s* \| \s* [$<meta>=[<!before $endtag | \, >.]+] +% \,

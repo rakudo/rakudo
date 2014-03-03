@@ -826,3 +826,5 @@ sub link(Cool $target as Str, Cool $name as Str) {
 }
 
 sub chmod($mode, $filename) { $filename.path.absolute.chmod($mode); $filename }
+
+# vim: ft=perl6 expandtab sw=4

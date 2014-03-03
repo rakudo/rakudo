@@ -9,3 +9,5 @@ my class WhateverCode { ... }
 my role Positional { ... }
 my role Associative { ... }
 my role Callable { ... }
+
+# vim: ft=perl6 expandtab sw=4

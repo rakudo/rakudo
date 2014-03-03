@@ -1190,3 +1190,5 @@ sub substr-rw($s is rw, $from = 0, $chars = $s.chars - $from) {
         }
     );
 }
+
+# vim: ft=perl6 expandtab sw=4

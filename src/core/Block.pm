@@ -35,3 +35,5 @@ my class Block { # declared in BOOTSTRAP
         ()
     }
 }
+
+# vim: ft=perl6 expandtab sw=4

@@ -120,6 +120,7 @@ sub SEQUENCE($left, Mu $right, :$exclude_end) {
             take $value;
         }
         unless $stop {
+            my $badseq;
             my ($a, $b, $c);
             unless $code.defined {
                 $tail.munch($tail.elems - 3) if $tail.elems > 3;
@@ -158,6 +159,7 @@ sub SEQUENCE($left, Mu $right, :$exclude_end) {
                         $code = { $^x * $ab }
                     }
                 }
+                $badseq = "$a,$b,$c" unless $code;
             }
             elsif $tail.elems == 2 {
                 my $ab = $b - $a;
@@ -193,8 +195,11 @@ sub SEQUENCE($left, Mu $right, :$exclude_end) {
                     take $value;
                 }
             }
+            elsif $badseq {
+                $value = (sub { fail X::Sequence::Deduction.new(:from($badseq)) })();
+            }
             else {
-                $value = (sub { fail X::Sequence::Deduction.new })();
+                $value = (sub { fail X::Sequence::Deduction.new() })();
             }
         }
         take $value unless $exclude_end;
@@ -336,3 +341,5 @@ sub infix:<andthen>(*@a) {
     }
     $current;
 }
+
+# vim: ft=perl6 expandtab sw=4

@@ -15,3 +15,5 @@ my class IO::Spec::QNX is IO::Spec::Unix {
         $node ~ $path;
     }
 }
+
+# vim: ft=perl6 expandtab sw=4

@@ -66,6 +66,7 @@ my class Pod::Block::Table is Pod::Block {
 
 my class Pod::FormattingCode is Pod::Block {
     has $.type;
+    has @.meta;
 }
 
 my class Pod::Heading is Pod::Block {
@@ -81,4 +82,4 @@ class Pod::Config {
     has %.config;
 }
 
-# vim: ft=perl6
+# vim: ft=perl6 expandtab sw=4

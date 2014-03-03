@@ -4,3 +4,5 @@ my class Whatever {
 
     multi method perl(Whatever:D:) { '*' }
 }
+
+# vim: ft=perl6 expandtab sw=4

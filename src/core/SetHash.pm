@@ -41,3 +41,5 @@ my class SetHash does Setty {
 
     method SetHash { self }
 }
+
+# vim: ft=perl6 expandtab sw=4

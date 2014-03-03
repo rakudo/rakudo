@@ -76,3 +76,5 @@ my role Setty does QuantHash {
 
     # TODO: WHICH will require the capability for >1 pointer in ObjAt
 }
+
+# vim: ft=perl6 expandtab sw=4

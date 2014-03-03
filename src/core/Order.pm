@@ -26,3 +26,5 @@ multi infix:«<=>»(int $a, int $b) {
 }
 
 
+
+# vim: ft=perl6 expandtab sw=4

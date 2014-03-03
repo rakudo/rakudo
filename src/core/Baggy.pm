@@ -77,7 +77,7 @@ my role Baggy does QuantHash {
 
     method grab ($count = 1) {
         my @grab = ROLLPICKGRAB(self, $count, %!elems.values);
-        %!elems{ @grab.map({.WHICH}).grep: { %!elems{$_}.value == 0 } }:delete;
+        %!elems{ @grab.map({.WHICH}).grep: { %!elems{$_} && %!elems{$_}.value == 0 } }:delete;
         @grab;
     }
     method grabpairs($count = 1) {
@@ -181,3 +181,5 @@ my role Baggy does QuantHash {
         samewith( { @test[$^a] }, @list );
     }
 }
+
+# vim: ft=perl6 expandtab sw=4

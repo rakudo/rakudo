@@ -797,3 +797,5 @@ sub DUMP(|args (*@args, :$indent-step = 4, :%ctx?)) {
 }
 
 Metamodel::ClassHOW.exclude_parent(Mu);
+
+# vim: ft=perl6 expandtab sw=4

@@ -690,6 +690,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
             for $<pod_string_character> {
                 @content.push($_.ast)
             }
+            my @meta := [];
+            for $<meta> {
+                @meta.push(~$_)
+            }
             my @t    := Perl6::Pod::build_pod_string(@content);
             my $past := Perl6::Pod::serialize_object(
                 'Pod::FormattingCode',
@@ -698,7 +702,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 ),
                 :content(
                     Perl6::Pod::serialize_array(@t).compile_time_value
-                )
+                ),
+                :meta(
+                    Perl6::Pod::serialize_aos(@meta).compile_time_value
+                ),
             );
             make $past.compile_time_value;
         }
@@ -1631,10 +1638,18 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 QAST::Var.new(:name('$/'), :scope('lexical')),
                 $*W.add_constant('Int', 'int', +$<index>),
             );
+            if $<sigil> eq '@' || $<sigil> eq '%' {
+                my $name := $<sigil> eq '@' ?? 'list' !! 'hash';
+                $past := QAST::Op.new( :op('callmethod'), :name($name), $past );
+            }
         }
         elsif $<postcircumfix> {
             $past := $<postcircumfix>.ast;
             $past.unshift( QAST::Var.new( :name('$/'), :scope('lexical') ) );
+            if $<sigil> eq '@' || $<sigil> eq '%' {
+                my $name := $<sigil> eq '@' ?? 'list' !! 'hash';
+                $past := QAST::Op.new( :op('callmethod'), :name($name), $past );
+            }
         }
         elsif $<semilist> {
             $past := $<semilist>.ast;

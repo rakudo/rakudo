@@ -46,3 +46,5 @@ my class IO::Spec::Cygwin is IO::Spec::Unix {
     method join (|c)          { IO::Spec::Win32.join(|c).subst(:global, '\\', '/')     }
 
 }
+
+# vim: ft=perl6 expandtab sw=4

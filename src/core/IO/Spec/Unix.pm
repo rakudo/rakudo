@@ -156,3 +156,5 @@ my class IO::Spec::Unix {
         self.catdir( $base, $path );
     }
 }
+
+# vim: ft=perl6 expandtab sw=4

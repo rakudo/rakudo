@@ -473,3 +473,5 @@ multi sub cotanh(num $x) {
 multi sub acotanh(num $x) {
     atanh(1e0 / $x)
 }
+
+# vim: ft=perl6 expandtab sw=4

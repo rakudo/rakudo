@@ -72,4 +72,4 @@ sub callframe(Int $level = 0) {
     CallFrame.new(level => ($level + 1));
 }
 
-# vim: ft=perl6
+# vim: ft=perl6 expandtab sw=4

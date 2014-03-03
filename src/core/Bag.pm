@@ -40,3 +40,5 @@ my class Bag does Baggy {
     method Mix     {     Mix.new-fp(%!elems.values) }
     method MixHash { MixHash.new-fp(%!elems.values) }
 }
+
+# vim: ft=perl6 expandtab sw=4

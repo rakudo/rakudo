@@ -611,3 +611,5 @@ sub reduce (&with, *@list)  { @list.reduce(&with) }
 sub splice(@arr, $offset = 0, $size?, *@values) {
     @arr.splice($offset, $size, @values)
 }
+
+# vim: ft=perl6 expandtab sw=4

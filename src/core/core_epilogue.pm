@@ -69,3 +69,5 @@ else {
 nqp::bindhllsym('perl6', 'ModuleLoader', CompUnitRepo);
 
 {YOU_ARE_HERE}
+
+# vim: ft=perl6 expandtab sw=4

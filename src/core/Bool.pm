@@ -108,3 +108,5 @@ multi infix:<xor>(*@a)                 { &infix:<^^>(@a); }
 proto infix:<orelse>(|)               { * }
 multi infix:<orelse>(Mu $x = Any)     { $x }
 multi infix:<orelse>(Mu \a, Mu \b)    { a // b }
+
+# vim: ft=perl6 expandtab sw=4

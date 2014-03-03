@@ -203,3 +203,5 @@ sub infix:<^..^>($min, $max) is pure {
 sub prefix:<^>($max) is pure {
     Range.new(0, $max.Numeric, :excludes_max) 
 }
+
+# vim: ft=perl6 expandtab sw=4

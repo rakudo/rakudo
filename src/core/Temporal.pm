@@ -671,3 +671,5 @@ sub sleep-till (Instant $till --> Bool) {
 # loadable module called DateTime::strftime.
 # 
 # =end pod
+
+# vim: ft=perl6 expandtab sw=4

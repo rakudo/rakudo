@@ -3,3 +3,5 @@ my class Method { # declared in BOOTSTRAP
 
     multi method gist(Method:D:) { self.name }
 }
+
+# vim: ft=perl6 expandtab sw=4

@@ -302,3 +302,5 @@ multi sub lsb(Int:D \i) { i.lsb }
 
 proto sub msb($) {*}
 multi sub msb(Int:D \i) { i.msb }
+
+# vim: ft=perl6 expandtab sw=4

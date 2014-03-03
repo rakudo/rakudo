@@ -20,7 +20,7 @@ sub pod2text($pod) is export {
         when Pod::Block::Para  { $pod.content.map({pod2text($_)}).join("") }
         when Pod::Block::Table { table2text($pod)               }
         when Pod::Block::Declarator { declarator2text($pod)     }
-        when Pod::Item         { item2text($pod)                }
+        when Pod::Item         { item2text($pod).indent(2)      }
         when Pod::FormattingCode { formatting2text($pod)        }
         when Positional        { $pod.map({pod2text($_)}).join("\n\n")}
         when Pod::Block::Comment { }
@@ -42,7 +42,7 @@ sub code2text($pod) {
 }
 
 sub item2text($pod) {
-    ' * ' ~ pod2text($pod.content).chomp.chomp
+    '* ' ~ pod2text($pod.content).chomp.chomp
 }
 
 sub named2text($pod) {

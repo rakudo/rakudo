@@ -150,3 +150,5 @@ my role IO::Socket does IO {
 #?endif
     }
 }
+
+# vim: ft=perl6 expandtab sw=4

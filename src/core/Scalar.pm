@@ -21,3 +21,5 @@ my class Scalar { # declared in BOOTSTRAP
         nqp::isnull($d) ?? Mu !! so $d.dynamic;
     }
 }
+
+# vim: ft=perl6 expandtab sw=4

@@ -43,3 +43,5 @@ my class Regex { # declared in BOOTSTRAP
         $dollar_slash.Bool()
     }
 }
+
+# vim: ft=perl6 expandtab sw=4

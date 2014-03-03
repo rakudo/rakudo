@@ -254,3 +254,5 @@ sub bag(*@args --> Bag) { Bag.new(|@args) }
 sub mix(*@args --> Mix) { Mix.new(|@args) }
 # U+2205 EMPTY SET
 #constant term:<<"\x2205">> = set();  #Cannot call ACCEPTS; no signatures match
+
+# vim: ft=perl6 expandtab sw=4

@@ -1131,7 +1131,11 @@ my class X::Range::InvalidArg is Exception {
 }
 
 my class X::Sequence::Deduction is Exception {
-    method message() { 'Unable to deduce sequence' }
+    has $.from;
+    method message() {
+        $!from ?? "Unable to deduce arithmetic or geometric sequence from $!from (or did you really mean '..'?)"
+               !! 'Unable to deduce sequence for some unfathomable reason'
+    }
 }
 
 my class X::Backslash::UnrecognizedSequence does X::Syntax {
@@ -1443,4 +1447,4 @@ my class X::Caller::NotDynamic is Exception {
 }
 
 
-# vim: ft=perl6
+# vim: ft=perl6 expandtab sw=4

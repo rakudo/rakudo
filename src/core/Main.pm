@@ -148,3 +148,5 @@ my sub MAIN_HELPER($retval = 0) is hidden_from_backtrace {
         exit 2;
     }
 }
+
+# vim: ft=perl6 expandtab sw=4

@@ -59,3 +59,5 @@ multi sub infix:<cmp>(Version:D $a, Version:D $b) {
     $a.plus cmp $b.plus;
 }
 
+
+# vim: ft=perl6 expandtab sw=4

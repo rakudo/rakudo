@@ -128,3 +128,5 @@ my class Routine { # declared in BOOTSTRAP
 
     method package() { $!package }
 }
+
+# vim: ft=perl6 expandtab sw=4

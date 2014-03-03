@@ -38,3 +38,5 @@ multi sub infix:<->(Duration:D $a, Duration:D $b) {
 multi sub infix:<%>(Duration:D $a, Real $b) {
     Duration.new: $a.x % $b
 }
+
+# vim: ft=perl6 expandtab sw=4

@@ -55,3 +55,5 @@ multi sub infix:<eqv>(Enum:D $a, Enum:D $b) {
 multi infix:<cmp>(Enum:D \a, Enum:D \b) {
     (a.key cmp b.key) || (a.value cmp b.value)
 }
+
+# vim: ft=perl6 expandtab sw=4

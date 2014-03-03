@@ -1631,10 +1631,18 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 QAST::Var.new(:name('$/'), :scope('lexical')),
                 $*W.add_constant('Int', 'int', +$<index>),
             );
+            if $<sigil> eq '@' || $<sigil> eq '%' {
+                my $name := $<sigil> eq '@' ?? 'list' !! 'hash';
+                $past := QAST::Op.new( :op('callmethod'), :name($name), $past );
+            }
         }
         elsif $<postcircumfix> {
             $past := $<postcircumfix>.ast;
             $past.unshift( QAST::Var.new( :name('$/'), :scope('lexical') ) );
+            if $<sigil> eq '@' || $<sigil> eq '%' {
+                my $name := $<sigil> eq '@' ?? 'list' !! 'hash';
+                $past := QAST::Op.new( :op('callmethod'), :name($name), $past );
+            }
         }
         elsif $<semilist> {
             $past := $<semilist>.ast;

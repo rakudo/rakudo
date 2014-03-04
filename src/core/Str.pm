@@ -1194,36 +1194,58 @@ sub substr-rw($s is rw, $from = 0, $chars = $s.chars - $from) {
 # These probably belong in a separate unicodey file
 
 #?if parrot
-multi uniname(|) { die 'uniname NYI on parrot backend' }
-multi uniprop(|) { die 'uniname NYI on parrot backend' }
-multi unival(|)  { die 'unival NYI on parrot backend' }
+multi uniname(|)  { die 'uniname NYI on parrot backend' }
+multi uniprop(|)  { die 'uniprop NYI on parrot backend' }
+multi unibool(|)  { die 'unibool NYI on parrot backend' }
+multi unival(|)   { die 'unival NYI on parrot backend' }
+multi unimatch(|) { die 'unimatch NYI on parrot backend' }
 #?endif
 #?if jvm
-multi uniname(|) { die 'uniname NYI on jvm backend' }
-multi uniprop(|) { die 'uniname NYI on jvm backend' }
-multi unival(|)  { die 'unival NYI on jvm backend' }
+multi uniname(|)  { die 'uniname NYI on jvm backend' }
+multi uniprop(|)  { die 'uniprop NYI on jvm backend' }
+multi unibool(|)  { die 'unibool NYI on jvm backend' }
+multi unival(|)   { die 'unival NYI on jvm backend' }
+multi unimatch(|) { die 'unimatch NYI on jvm backend' }
 #?endif
 #?if moar
-multi uniname(|) {*}
-multi uniname(Str $char) { uniname($char.ord) }
-multi uniname(Int $codepoint) { nqp::getuniname($codepoint) }
+my %propcodecache;
+my %pvalcodecache;
+proto uniname(|) {*}
+multi uniname(Str $str) { uniname($str.ord) }
+multi uniname(Int $code) { nqp::getuniname($code) }
 
-multi uniprop(|) {*}
-multi uniprop(Str $char, Stringy $propname) { uniprop($char.ord, $propname) }
-multi uniprop(Int $codepoint, Stringy $propname) {
-    my int $cat = nqp::unipropcode($propname);
-    my int $val = nqp::unipvalcode($cat, $propname);
-    my $str = nqp::getuniprop_str($codepoint,$cat,$val);
-    $str //= nqp::getuniprop_int($codepoint,$cat,$val);
+proto uniprop(|) {*}
+multi uniprop(Str $str, Stringy $propname = "GeneralCategory") { uniprop($str.ord, $propname) }
+multi uniprop(Int $code, Stringy $propname = "GeneralCategory") {
+    my $prop = %propcodecache{$propname} //= nqp::unipropcode($propname);
+    my $str = nqp::getuniprop_str($code,$prop);
+    $str ||= nqp::getuniprop_int($code,$prop);
     $str;
 }
 
-multi unival(|) {*}
-multi unival(Str $char) { unival($char.ord) }
-multi unival(Int $codepoint) {
-    my $nu = uniprop $codepoint, "NumericValueNumerator";
-    my $de = uniprop $codepoint, "NumericValueDenominator";
-    $de eq '1' ?? $nu.Int !! $nu / $de;
+proto unibool(|) {*}
+multi unibool(Str $str, Stringy $propname) { unibool($str.ord, $propname) }
+multi unibool(Int $code, Stringy $propname) {
+    my $prop = %propcodecache{$propname} //= nqp::unipropcode($propname);
+    so nqp::getuniprop_bool($code,$prop);
+}
+
+proto unival(|) {*}
+multi unival(Str $str) { unival($str.ord) }
+multi unival(Int $code) {
+    state $nuprop = nqp::unipropcode("NumericValueNumerator");
+    state $deprop = nqp::unipropcode("NumericValueDenominator");
+    my $nu = nqp::getuniprop_str($code, $nuprop);
+    my $de = nqp::getuniprop_str($code, $deprop);
+    !$de || $de eq '1' ?? $nu.Int !! $nu / $de;
+}
+
+proto unimatch(|) {*}
+multi unimatch(Str $str, Stringy $propname) { unimatch($str.ord, $propname) }
+multi unimatch(Int $code, Stringy $propname) {
+    my $prop = %propcodecache{$propname} //= nqp::unipropcode($propname);
+    my $pval = %pvalcodecache{$propname} = nqp::unipvalcode($prop, $propname);
+    so nqp::matchuniprop($code,$prop,$pval);
 }
 #?endif
 

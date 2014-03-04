@@ -1193,6 +1193,17 @@ sub substr-rw($s is rw, $from = 0, $chars = $s.chars - $from) {
 
 # These probably belong in a separate unicodey file
 
+#?if parrot
+multi uniname(|) { die 'uniname NYI on parrot backend' }
+multi uniprop(|) { die 'uniname NYI on parrot backend' }
+multi unival(|)  { die 'unival NYI on parrot backend' }
+#?endif
+#?if jvm
+multi uniname(|) { die 'uniname NYI on jvm backend' }
+multi uniprop(|) { die 'uniname NYI on jvm backend' }
+multi unival(|)  { die 'unival NYI on jvm backend' }
+#?endif
+#?if moar
 multi uniname(|) {*}
 multi uniname(Str $char) { uniname($char.ord) }
 multi uniname(Int $codepoint) { nqp::getuniname($codepoint) }
@@ -1214,5 +1225,6 @@ multi unival(Int $codepoint) {
     my $de = uniprop $codepoint, "NumericValueDenominator";
     $de eq '1' ?? $nu.Int !! $nu / $de;
 }
+#?endif
 
 # vim: ft=perl6 expandtab sw=4

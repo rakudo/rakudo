@@ -1191,4 +1191,28 @@ sub substr-rw($s is rw, $from = 0, $chars = $s.chars - $from) {
     );
 }
 
+# These probably belong in a separate unicodey file
+
+multi uniname(|) {*}
+multi uniname(Str $char) { uniname($char.ord) }
+multi uniname(Int $codepoint) { nqp::getuniname($codepoint) }
+
+multi uniprop(|) {*}
+multi uniprop(Str $char, Stringy $propname) { uniprop($char.ord, $propname) }
+multi uniprop(Int $codepoint, Stringy $propname) {
+    my int $cat = nqp::unipropcode($propname);
+    my int $val = nqp::unipvalcode($cat, $propname);
+    my $str = nqp::getuniprop_str($codepoint,$cat,$val);
+    $str //= nqp::getuniprop_int($codepoint,$cat,$val);
+    $str;
+}
+
+multi unival(|) {*}
+multi unival(Str $char) { unival($char.ord) }
+multi unival(Int $codepoint) {
+    my $nu = uniprop $codepoint, "NumericValueNumerator";
+    my $de = uniprop $codepoint, "NumericValueDenominator";
+    $de eq '1' ?? $nu.Int !! $nu / $de;
+}
+
 # vim: ft=perl6 expandtab sw=4

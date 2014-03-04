@@ -52,7 +52,22 @@ class CompUnitRepo::Local::Installation {
         %!dists.keys.first( *.IO.w )
     }
 
-    my $unix_wrapper = '#!/usr/bin/env #perl#
+    my $windows_wrapper = '@rem = \'--*-Perl-*--
+@echo off
+if "%OS%" == "Windows_NT" goto WinNT
+#perl# "%~dp0\%0" %1 %2 %3 %4 %5 %6 %7 %8 %9
+goto endofperl
+:WinNT
+#perl# "%~dp0\%0" %*
+if NOT "%COMSPEC%" == "%SystemRoot%\system32\cmd.exe" goto endofperl
+if %errorlevel% == 9009 echo You do not have Perl in your PATH.
+if errorlevel 1 goto script_failed_so_exit_with_non_zero_val 2>nul
+goto endofperl
+@rem \';
+__END__
+:endofperl
+';
+    my $perl_wrapper = '#!/usr/bin/env #perl#
 sub MAIN(:$name, :$auth, :$ver, *@pos, *%named) {
     my @binaries = CompUnitRepo.files(\'bin/#name#\', :$name, :$auth, :$ver);
     unless +@binaries {
@@ -125,11 +140,19 @@ sub MAIN(:$name, :$auth, :$ver, *@pos, *%named) {
             else {
                 if $file ~~ /^bin<[\\\/]>/ {
                     mkdir "$path/bin" unless "$path/bin".IO.d;
-                    my $basename = $file.IO.path.basename;
-                    for '', < -p -j -m > -> $ext {
-                        "$path/bin/$basename$ext".IO.spurt:
-                            $unix_wrapper.subst('#name#', $basename, :g).subst('#perl#', "perl6$ext");
-                        "$path/bin/$basename$ext".IO.chmod(0o755) unless $*OS eq 'MSWin32';
+                    my $basename   = $file.IO.path.basename;
+                    my $withoutext = $basename;
+                    $withoutext.=subst(/\.[exe|bat]$/, '');
+                    for '', < -p -j -m > -> $be {
+                        "$path/bin/$withoutext$be".IO.spurt:
+                            $perl_wrapper.subst('#name#', $basename, :g).subst('#perl#', "perl6$be");
+                        if $*OS eq 'MSWin32' {
+                            "$path/bin/$withoutext$be.bat".IO.spurt:
+                                $windows_wrapper.subst('#perl#', "perl6$be");
+                        }
+                        else {
+                            "$path/bin/$withoutext$be".IO.chmod(0o755);
+                        }
                     }
                 }
                 $d.files{$file} = $file-id

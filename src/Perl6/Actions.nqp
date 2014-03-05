@@ -698,7 +698,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     my $n := $_<integer>
                           ?? $_<integer>.made
                           !! nqp::codepointfromname(~$_);
-                    $n >= 0 ?? @content.push(nqp::chr($n)) && @meta.push(~$_)
+                    $n >= 0 ?? @content.push(nqp::chr($n)) && @meta.push($_<integer> ?? $_<integer>.made !! ~$_)
                             !! $/.CURSOR.worry("\"$_\" is not a valid Unicode character name or code point.");
                 }
             }

@@ -606,7 +606,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         | <?{$<code> eq 'D'}> \s* \| \s* [$<meta>=[<!before $endtag | \; >.]+] +%% \;
         | <?{$<code> eq 'E'}> ( <integer> | $<html_ref>=<[a..z]>+ | $<uni_name>=<[A..Z]>+ ) +%% \;
         ]?
-        [ $endtag || <.panic: "Pod formatting code $<code> missing endtag '$endtag'."> ]
+        [ $endtag || <.worry: "Pod formatting code $<code> missing endtag '$endtag'."> ]
     }
 
     token pod_balanced_braces {

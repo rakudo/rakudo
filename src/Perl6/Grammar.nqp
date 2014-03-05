@@ -593,15 +593,18 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                 $*POD_ALLOW_FCODES := 0;
             }
         }
-        $<content>=[
-            <!before $endtag>
-            [ <?{$<code> ne 'L' && $<code> ne 'D' && $<code> ne 'X' }> || <!before \s* \| > ]
-            <pod_string_character>
-        ]*
+        [ <!{$<code> eq 'E'}>
+          $<content>=[
+              <!before $endtag>
+              [ <?{$<code> ne 'L' && $<code> ne 'D' && $<code> ne 'X' }> || <!before \s* \| > ]
+              <pod_string_character>
+          ]*
+        ]?
         [
         | <?{$<code> eq 'L'}> \s* \| \s* $<meta>=[<!before $endtag>.]+
-        | <?{$<code> eq 'X'}> \s* \| \s* ( [$<meta>=[<!before $endtag | <[,;]> >.]+] +% \, ) +% \;
-        | <?{$<code> eq 'D'}> \s* \| \s* [$<meta>=[<!before $endtag | \; >.]+] +% \;
+        | <?{$<code> eq 'X'}> \s* \| \s* ( [$<meta>=[<!before $endtag | <[,;]> >.]+] +%% \, ) +%% \;
+        | <?{$<code> eq 'D'}> \s* \| \s* [$<meta>=[<!before $endtag | \; >.]+] +%% \;
+        | <?{$<code> eq 'E'}> ( <integer> | $<html_ref>=<[a..z]>+ | $<uni_name>=<[A..Z]>+ ) +%% \;
         ]?
         [ $endtag || <.panic: "Pod formatting code $<code> missing endtag '$endtag'."> ]
     }

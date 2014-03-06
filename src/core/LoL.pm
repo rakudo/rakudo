@@ -63,7 +63,8 @@ sub infix:<X>(|lol) {
 }
 
 sub infix:<Z>(|lol) {
-    my @l = eager for ^lol.elems -> $i {
+    my $arity = lol.elems;
+    my @l = eager for ^$arity -> $i {
             my \elem = lol[$i];         # can't use mapping here, mustn't flatten
 
             if nqp::iscont(elem) { (elem,).list.item }
@@ -71,10 +72,10 @@ sub infix:<Z>(|lol) {
         }
 
     gather {
-        my $loop = 1;
-        while $loop {
-            my $p := @l.map({ $loop = 0 unless $_; .shift }).eager.Parcel;
-            take $p if $loop;
+        loop {
+            my \p = @l.map: { last unless .gimme(1); .shift }
+            last if p.elems < $arity;
+            take-rw p.Parcel;
         }
     }
 }

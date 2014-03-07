@@ -2,6 +2,7 @@ New in 2014.03
 
 + Fix suggestions for unknown routines when specified with '&'
 + Match sigil in suggestions for unknown routines depending on specification
++ Improve suggestions for 'length' and 'bytes' being banned in Perl 6
 + fixed for-loops to be properly lazy
 + Zop= now works
 + numerous Pod parsing and formatting improvements
@@ -12,7 +13,6 @@ New in 2014.03
 + list infix reductions no longer flatten
 + X and Z meta ops treat [] as items
 + unary hyper subscripts (@array>>.[0]) now work
-
 
 New in 2014.02
 

@@ -3,7 +3,7 @@ my class Pair { ... }
 my class Range { ... }
 my class X::Bind::Slice { ... }
 my class X::Bind::ZenSlice { ... }
-my class X::Routine::Banned { ... }
+my class X::Method::Banned { ... }
 
 my class Any { # declared in BOOTSTRAP
     # my class Any is Mu {
@@ -266,13 +266,13 @@ my class Any { # declared in BOOTSTRAP
     method KeyBag() { DEPRECATED("'BagHash'"); self.BagHash }
 
     method length is hidden_from_backtrace {
-        fail X::Routine::Banned.new(
+        fail X::Method::Banned.new(
           banned     => ".length",
           didyoumean => ".chars, .graphs or .codes",
         );
     }
     method bytes is hidden_from_backtrace {
-        fail X::Routine::Banned.new(
+        fail X::Method::Banned.new(
           banned     => ".bytes",
           didyoumean => ".encode(\$encoding).bytes",
         );

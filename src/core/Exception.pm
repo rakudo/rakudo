@@ -86,6 +86,14 @@ my class X::Method::InvalidQualifier is Exception {
     }
 }
 
+my class X::Method::Banned is Exception {
+    has $.banned     = "something";
+    has $.didyoumean = "something else";
+    method message() {
+        qq{"$.banned" is banned in Perl 6.
+Did you mean $.didyoumean instead?}
+    }
+}
 
 sub EXCEPTION(|) {
     my Mu $vm_ex   := nqp::shift(nqp::p6argvmarray());
@@ -1048,15 +1056,6 @@ my class X::Augment::NoSuchType does X::Comp {
     has $.package-kind;
     has $.package;
     method message() { "You tried to augment $.package-kind $.package, but it does not exist" }
-}
-
-my class X::Routine::Banned is Exception {
-    has $.banned     = "something";
-    has $.didyoumean = "something else";
-    method message() {
-        qq{"$.banned" is banned in Perl 6.
-Did you mean $.didyoumean instead?}
-    }
 }
 
 my class X::Routine::Unwrap is Exception {

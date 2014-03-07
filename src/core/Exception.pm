@@ -1050,6 +1050,15 @@ my class X::Augment::NoSuchType does X::Comp {
     method message() { "You tried to augment $.package-kind $.package, but it does not exist" }
 }
 
+my class X::Routine::Banned is Exception {
+    has $.banned     = "something";
+    has $.didyoumean = "something else";
+    method message() {
+        qq{"$.banned" is banned in Perl 6.
+Did you mean $.didyoumean instead?}
+    }
+}
+
 my class X::Routine::Unwrap is Exception {
     method message() { "Cannot unwrap routine: invalid wrap handle" }
 }

@@ -3,6 +3,7 @@ my class Pair { ... }
 my class Range { ... }
 my class X::Bind::Slice { ... }
 my class X::Bind::ZenSlice { ... }
+my class X::Routine::Banned { ... }
 
 my class Any { # declared in BOOTSTRAP
     # my class Any is Mu {
@@ -264,6 +265,18 @@ my class Any { # declared in BOOTSTRAP
     method KeySet() { DEPRECATED("'SetHash'"); self.SetHash }
     method KeyBag() { DEPRECATED("'BagHash'"); self.BagHash }
 
+    method length is hidden_from_backtrace {
+        fail X::Routine::Banned.new(
+          banned     => ".length",
+          didyoumean => ".chars, .graphs or .codes",
+        );
+    }
+    method bytes is hidden_from_backtrace {
+        fail X::Routine::Banned.new(
+          banned     => ".bytes",
+          didyoumean => ".encode(\$encoding).bytes",
+        );
+    }
 }
 Metamodel::ClassHOW.exclude_parent(Any);
 
@@ -386,6 +399,21 @@ multi sub sort(*@values)      {
 proto sub item(|) is pure { * }
 multi sub item(*@a) { my $ = @a }
 multi sub item(Mu $a) { $a }
+
+proto sub length(|) { * }
+multi sub length (|) is hidden_from_backtrace {
+    fail X::Routine::Banned.new(
+        banned     => "length()",
+        didyoumean => "chars(), graphs() or codes()",
+    )
+}
+proto sub bytes(|) { * }
+multi sub bytes (|) is hidden_from_backtrace {
+    fail X::Routine::Banned.new(
+        banned     => "bytes()",
+        didyoumean => ".encode(\$encoding).bytes",
+    )
+}
 
 my $default= [];       # so that we can check missing parameters
 sub RWPAIR(\k, \v) {   # internal fast pair creation

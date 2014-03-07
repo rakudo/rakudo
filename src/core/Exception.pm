@@ -70,9 +70,16 @@ my class X::Method::NotFound is Exception {
     has $.typename;
     has Bool $.private = False;
     method message() {
-        $.private
-            ?? "No such private method '$.method' for invocant of type '$.typename'"
-            !! "No such method '$.method' for invocant of type '$.typename'";
+        my $message = $.private
+          ?? "No such private method '$.method' for invocant of type '$.typename'"
+          !! "No such method '$.method' for invocant of type '$.typename'";
+        if $.method eq 'length' {
+            $message ~= "\nDid you mean 'chars', 'graphs' or 'codes'?";
+        }
+        elsif $.method eq 'bytes' {
+            $message ~= "\nDid you mean '.encode(\$encoding).bytes'?";
+        }
+        $message;
     }
 }
 
@@ -83,15 +90,6 @@ my class X::Method::InvalidQualifier is Exception {
     method message() {
           "Cannot dispatch to method $.method on {$.qualifier-type.^name} "
         ~ "because it is not inherited or done by {$.invocant.^name}";
-    }
-}
-
-my class X::Method::Banned is Exception {
-    has $.banned     = "something";
-    has $.didyoumean = "something else";
-    method message() {
-        qq{"$.banned" is banned in Perl 6.
-Did you mean $.didyoumean instead?}
     }
 }
 

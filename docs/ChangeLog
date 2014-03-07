@@ -1,3 +1,8 @@
+New in 2014.03
+
++ Fix suggestions for unknown routines when specified with '&'
++ Match sigil in suggestions for unknown routines depending on specification
+
 New in 2014.02
 
 + $*INITTIME implemented

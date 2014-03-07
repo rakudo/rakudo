@@ -3737,18 +3737,20 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             next if $decl == 1;
             next if $*W.is_lexically_visible('&' ~ $name, %sym<lex>);
 
-            # just a guess, but good enough to improve error reporting
-            if $_ lt 'a' {
-                %unk_types{$name} := [] unless %unk_types{$name};
-                my @suggs := $*W.suggest_typename($name);
-                %type_suggestion{$name} := @suggs;
-                push_lines(%unk_types{$name}, %sym<pos>);
-            }
-            else {
+            # no sigil or &
+            if $name ge 'a' || nqp::substr($name,0,1) eq '&' {
                 %unk_routines{$name} := [] unless %unk_routines{$name};
                 my @suggs := $*W.suggest_routines($name);
                 %routine_suggestion{$name} := @suggs;
                 push_lines(%unk_routines{$name}, %sym<pos>);
+            }
+
+            # hopefully improve error reporting
+            else {
+                %unk_types{$name} := [] unless %unk_types{$name};
+                my @suggs := $*W.suggest_typename($name);
+                %type_suggestion{$name} := @suggs;
+                push_lines(%unk_types{$name}, %sym<pos>);
             }
         }
         

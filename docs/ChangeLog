@@ -2,6 +2,17 @@ New in 2014.03
 
 + Fix suggestions for unknown routines when specified with '&'
 + Match sigil in suggestions for unknown routines depending on specification
++ fixed for-loops to be properly lazy
++ Zop= now works
++ numerous Pod parsing and formatting improvements
++ uniname, uniprop, and unival implemented on MoarVM backend
++ @<c> as shortcut for @$<c>, %<c> as shortcut for %$<c>
++ improved "unable to deduce sequence" error message
++ duckmap, deepmap implemented
++ list infix reductions no longer flatten
++ X and Z meta ops treat [] as items
++ unary hyper subscripts (@array>>.[0]) now work
+
 
 New in 2014.02
 

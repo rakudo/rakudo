@@ -400,21 +400,6 @@ proto sub item(|) is pure { * }
 multi sub item(*@a) { my $ = @a }
 multi sub item(Mu $a) { $a }
 
-proto sub length(|) { * }
-multi sub length (|) is hidden_from_backtrace {
-    fail X::Routine::Banned.new(
-        banned     => "length()",
-        didyoumean => "chars(), graphs() or codes()",
-    )
-}
-proto sub bytes(|) { * }
-multi sub bytes (|) is hidden_from_backtrace {
-    fail X::Routine::Banned.new(
-        banned     => "bytes()",
-        didyoumean => ".encode(\$encoding).bytes",
-    )
-}
-
 my $default= [];       # so that we can check missing parameters
 sub RWPAIR(\k, \v) {   # internal fast pair creation
     my \p := nqp::create(Pair);

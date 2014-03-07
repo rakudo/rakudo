@@ -2379,6 +2379,14 @@ class Perl6::World is HLL::World {
         self.walk_symbols(&evaluate);
 
         levenshtein_candidate_heuristic(@candidates, @suggestions);
+        if $name eq '&length' {
+            @suggestions.push: 'chars';
+            @suggestions.push: 'graphs';
+            @suggestions.push: 'codes';
+        }
+        elsif $name eq '&bytes' {
+            @suggestions.push: '.encode($encoding).bytes';
+        }
         return @suggestions;
     }
 

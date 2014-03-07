@@ -2363,7 +2363,8 @@ class Perl6::World is HLL::World {
     }
 
     method suggest_routines($name) {
-        $name := "&"~$name unless nqp::substr($name, 0, 1) eq "&";
+        my $with_sigil := nqp::substr($name, 0, 1) eq "&";
+        $name := "&" ~ $name unless $with_sigil;
         my @suggestions;
         my @candidates := [[], [], []];
         my &inner-evaluator := make_levenshtein_evaluator($name, @candidates);
@@ -2379,10 +2380,17 @@ class Perl6::World is HLL::World {
         self.walk_symbols(&evaluate);
 
         levenshtein_candidate_heuristic(@candidates, @suggestions);
+        if !$with_sigil {
+            my @no_sigils;  # can't do in-place $_ alteration
+            for @suggestions {
+                nqp::push( @no_sigils, nqp::substr($_,1,nqp::chars($_) - 1) );
+            }
+            @suggestions := @no_sigils;
+        }
         if $name eq '&length' {
-            @suggestions.push: 'chars';
-            @suggestions.push: 'graphs';
-            @suggestions.push: 'codes';
+            @suggestions.push: $with_sigil ?? '&chars'  !! 'chars';
+            @suggestions.push: $with_sigil ?? '&graphs' !! 'graphs';
+            @suggestions.push: $with_sigil ?? '&codes'  !! 'codes';
         }
         elsif $name eq '&bytes' {
             @suggestions.push: '.encode($encoding).bytes';

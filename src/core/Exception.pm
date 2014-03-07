@@ -74,7 +74,7 @@ my class X::Method::NotFound is Exception {
           ?? "No such private method '$.method' for invocant of type '$.typename'"
           !! "No such method '$.method' for invocant of type '$.typename'";
         if $.method eq 'length' {
-            $message ~= "\nDid you mean 'chars', 'graphs' or 'codes'?";
+            $message ~= "\nDid you mean 'elems', 'chars', 'graphs' or 'codes'?";
         }
         elsif $.method eq 'bytes' {
             $message ~= "\nDid you mean '.encode(\$encoding).bytes'?";

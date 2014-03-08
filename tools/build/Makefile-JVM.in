@@ -158,7 +158,7 @@ J_CORE_SOURCES = \
   src/core/Scheduler.pm \
   src/core/ThreadPoolScheduler.pm \
   src/core/CurrentThreadScheduler.pm \
-  src/vm/jvm/core/Promise.pm \
+  src/core/Promise.pm \
   src/core/Channel.pm \
   src/core/Supply.pm \
   src/core/SupplyOperations.pm \

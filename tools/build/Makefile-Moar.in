@@ -160,6 +160,7 @@ M_CORE_SOURCES = \
   src/core/Scheduler.pm \
   src/core/ThreadPoolScheduler.pm \
   src/core/CurrentThreadScheduler.pm \
+  src/core/Promise.pm \
   src/core/IO/Socket.pm \
   src/core/IO/Socket/INET.pm \
   src/core/OS.pm \

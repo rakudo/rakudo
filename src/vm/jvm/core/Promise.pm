@@ -162,25 +162,21 @@ my class Promise {
             unless @promises >>~~>> Promise;
         self!until_n_kept(@promises, @promises.elems)
     }
-    
-    my Mu $AtomicInteger;
+
     method !until_n_kept(@promises, Int $n) {
-        once {
-            $AtomicInteger := nqp::jvmbootinterop().typeForName('java.util.concurrent.atomic.AtomicInteger');
-            Nil;
-        }
-        my Mu $c := $AtomicInteger.'constructor/new/(I)V'(nqp::decont($n));
-        my $p   = Promise.new;
-        my $vow = $p.vow;
+        my int $c  = $n;
+        my $lock  := nqp::create(Lock);
+        my $p      = Promise.new;
+        my $vow    = $p.vow;
         for @promises -> $cand {
             $cand.then({
                 if .status == Kept {
-                    if $c.'decrementAndGet'() == 0 {
+                    if $lock.protect({ $c = $c - 1 }) == 0 {
                         $vow.keep(True)
                     }
                 }
                 else {
-                    if $c.'getAndAdd'(-($n + 1)) > 0 {
+                    if $lock.protect({ my int $o = $c; $c = $c - ($n + 1); $o }) > 0 {
                         $vow.break(.cause)
                     }
                 }

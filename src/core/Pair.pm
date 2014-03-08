@@ -13,3 +13,5 @@ my class Pair is Enum {
 sub infix:«=>»($key, Mu $value) { 
     Pair.new(:key($key), :value($value))
 }
+
+# vim: ft=perl6 expandtab sw=4

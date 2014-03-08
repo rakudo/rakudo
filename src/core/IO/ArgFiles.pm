@@ -47,3 +47,4 @@ my class IO::ArgFiles is IO::Handle {
     }
 }
 
+# vim: ft=perl6 expandtab sw=4

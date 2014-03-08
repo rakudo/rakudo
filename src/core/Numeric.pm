@@ -284,3 +284,5 @@ multi infix:«+>»($x,$y)      { $x.Numeric.Int +> $y.Numeric.Int }
 proto prefix:<+^>($?, $?) is pure { * }
 multi prefix:<+^>($x)        { +^ $x.Numeric.Int }
 
+
+# vim: ft=perl6 expandtab sw=4

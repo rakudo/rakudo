@@ -139,3 +139,5 @@ multi sub atan2(     \a,      \b = 1e0) { a.Numeric.atan2(b.Numeric) }
 
 proto sub unpolar($, $) {*}
 multi sub unpolar(Real $mag, Real $angle) { $mag.unpolar($angle) }
+
+# vim: ft=perl6 expandtab sw=4

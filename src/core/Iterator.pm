@@ -3,3 +3,5 @@ my class Iterator { # declared in BOOTSTRAP
 
     method iterator() { nqp::decont(self) }
 }
+
+# vim: ft=perl6 expandtab sw=4

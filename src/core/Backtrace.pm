@@ -179,3 +179,5 @@ my class Backtrace is List {
         self.grep({ !.is-hidden && (.is-routine || !.is-setting )}).join
     }
 }
+
+# vim: ft=perl6 expandtab sw=4

@@ -1,12 +1,29 @@
+New in 2014.03
+
++ Fix suggestions for unknown routines when specified with '&'
++ Match sigil in suggestions for unknown routines depending on specification
++ Improve suggestions for 'length' and 'bytes' being banned in Perl 6
++ fixed for-loops to be properly lazy
++ Zop= now works
++ numerous Pod parsing and formatting improvements
++ uniname, uniprop, and unival implemented on MoarVM backend
++ @<c> as shortcut for @$<c>, %<c> as shortcut for %$<c>
++ improved "unable to deduce sequence" error message
++ duckmap, deepmap implemented
++ list infix reductions no longer flatten
++ X and Z meta ops treat [] as items
++ unary hyper subscripts (@array>>.[0]) now work
+
 New in 2014.02
 
 + $*INITTIME implemented
 + improved code generation for loops on the JVM backend
 + eager and lazy statement prefixes
-+ statement-level for-loops are now assumed to be in sink context
++ statementlist-level for-loops are now assumed to be in sink context
 + improved unspace parsing
 + don't itemize make's ast argument
 + allow definition of custom postcircumfix operators
++ :allow in pod code blocks works now
 + Configure: git protocol is now configurable
 + smartmatching against an IO::Path does the right thing now
 + perl6-debug-* is now installed by rakudo; the user interface is still a

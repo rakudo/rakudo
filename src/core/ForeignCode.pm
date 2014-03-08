@@ -17,3 +17,5 @@ my class ForeignCode does Callable { # declared in BOOTSTRAP
     
     multi method Str(ForeignCode:D:) { self.name }
 }
+
+# vim: ft=perl6 expandtab sw=4

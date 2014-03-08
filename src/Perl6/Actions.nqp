@@ -561,7 +561,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         make Perl6::Pod::any_block($/);
     }
 
-    method pod_block:sym<delimited_raw>($/) {
+    method pod_block:sym<delimited_comment>($/) {
         make Perl6::Pod::raw_block($/);
     }
 
@@ -569,11 +569,33 @@ class Perl6::Actions is HLL::Actions does STDActions {
         make Perl6::Pod::table($/);
     }
 
+    method pod_block:sym<delimited_code>($/) {
+        my $config  := $<pod_configuration>.ast;
+        my @content := $<delimited_code_content>.ast;
+        my $twine   := Perl6::Pod::serialize_array(@content).compile_time_value;
+        make Perl6::Pod::serialize_object(
+            'Pod::Block::Code', :content($twine),
+            :config($config),
+        ).compile_time_value
+    }
+
+    method delimited_code_content($/) {
+        my @t := [];
+        if $<delimited_code_content> {
+            @t := Perl6::Pod::merge_twines($<pod_string>) if $<pod_string>;
+            @t.push($*W.add_constant(
+                'Str', 'str', ~$<pod_newline>
+            ).compile_time_value);
+            nqp::splice(@t, $<delimited_code_content>.ast,+@t,0);
+        }
+        make @t;
+    }
+
     method pod_block:sym<paragraph>($/) {
         make Perl6::Pod::any_block($/);
     }
 
-    method pod_block:sym<paragraph_raw>($/) {
+    method pod_block:sym<paragraph_comment>($/) {
         make Perl6::Pod::raw_block($/);
     }
 
@@ -581,16 +603,48 @@ class Perl6::Actions is HLL::Actions does STDActions {
         make Perl6::Pod::table($/);
     }
 
+    method pod_block:sym<paragraph_code>($/) {
+        my $config := $<pod_configuration>.ast;
+        my @t := [];
+        for $<pod_line> {
+            nqp::splice(@t, $_.ast, +@t, 0);
+        }
+        my $twine  := Perl6::Pod::serialize_array(@t).compile_time_value;
+        make Perl6::Pod::serialize_object(
+            'Pod::Block::Code', :content($twine),
+            :config($config),
+        ).compile_time_value
+    }
+
     method pod_block:sym<abbreviated>($/) {
         make Perl6::Pod::any_block($/);
     }
 
-    method pod_block:sym<abbreviated_raw>($/) {
+    method pod_block:sym<abbreviated_comment>($/) {
         make Perl6::Pod::raw_block($/);
     }
 
     method pod_block:sym<abbreviated_table>($/) {
         make Perl6::Pod::table($/);
+    }
+
+    method pod_block:sym<abbreviated_code>($/) {
+        my @t := [];
+        for $<pod_line> {
+            nqp::splice(@t, $_.ast, +@t, 0);
+        }
+        my $twine := Perl6::Pod::serialize_array(@t).compile_time_value;
+        make Perl6::Pod::serialize_object(
+            'Pod::Block::Code', :content($twine)
+        ).compile_time_value
+    }
+
+    method pod_line ($/) {
+        my @t := Perl6::Pod::merge_twines($<pod_string>);
+        @t.push($*W.add_constant(
+            'Str', 'str', ~$<pod_newline>
+        ).compile_time_value);
+        make @t;
     }
 
     method pod_block:sym<end>($/) {
@@ -629,12 +683,58 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
 
     method pod_formatting_code($/) {
-        if ~$<code> eq 'V' {
+        if $<code> eq 'V' {
             make ~$<content>;
+        } elsif $<code> eq 'E' {
+            my @content := [];
+            my @meta    := [];
+            for $/[0] {
+                if $_<html_ref> {
+                    @content.push(~$_);
+                    @meta.push($*W.add_string_constant(~$_).compile_time_value);
+                    #my $s := Perl6::Pod::str_from_entity(~$_);
+                    #$s ?? @content.push($s) && @meta.push(~$_)
+                    #   !! $/.CURSOR.worry("\"$_\" is not a valid HTML5 entity.");
+                } else {
+                    my $n := $_<integer>
+                          ?? $_<integer>.made
+                          !! nqp::codepointfromname(~$_);
+                    if $n >= 0 {
+                        @content.push(nqp::chr($n));
+                        @meta.push($n);
+                    } else {
+                        $/.CURSOR.worry("\"$_\" is not a valid Unicode character name or code point.");
+                    }
+                }
+            }
+            @content := Perl6::Pod::serialize_aos(@content).compile_time_value;
+            @meta    := Perl6::Pod::serialize_array(@meta).compile_time_value;
+            make Perl6::Pod::serialize_object(
+                'Pod::FormattingCode',
+                :type($*W.add_string_constant(~$<code>).compile_time_value),
+                :@content,
+                :@meta,
+            ).compile_time_value;
         } else {
             my @content := [];
             for $<pod_string_character> {
                 @content.push($_.ast)
+            }
+            my @meta := [];
+            if $<code> eq 'X' {
+                for $/[0] {
+                    my @tmp := [];
+                    for $_<meta> {
+                        @tmp.push(~$_);
+                    }
+                    @meta.push(@tmp);
+                }
+                @meta := Perl6::Pod::serialize_aoaos(@meta).compile_time_value;
+            } else {
+                for $<meta> {
+                    @meta.push(~$_)
+                }
+                @meta := Perl6::Pod::serialize_aos(@meta).compile_time_value;
             }
             my @t    := Perl6::Pod::build_pod_string(@content);
             my $past := Perl6::Pod::serialize_object(
@@ -644,7 +744,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 ),
                 :content(
                     Perl6::Pod::serialize_array(@t).compile_time_value
-                )
+                ),
+                :meta(@meta),
             );
             make $past.compile_time_value;
         }
@@ -1577,10 +1678,18 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 QAST::Var.new(:name('$/'), :scope('lexical')),
                 $*W.add_constant('Int', 'int', +$<index>),
             );
+            if $<sigil> eq '@' || $<sigil> eq '%' {
+                my $name := $<sigil> eq '@' ?? 'list' !! 'hash';
+                $past := QAST::Op.new( :op('callmethod'), :name($name), $past );
+            }
         }
         elsif $<postcircumfix> {
             $past := $<postcircumfix>.ast;
             $past.unshift( QAST::Var.new( :name('$/'), :scope('lexical') ) );
+            if $<sigil> eq '@' || $<sigil> eq '%' {
+                my $name := $<sigil> eq '@' ?? 'list' !! 'hash';
+                $past := QAST::Op.new( :op('callmethod'), :name($name), $past );
+            }
         }
         elsif $<semilist> {
             $past := $<semilist>.ast;
@@ -5139,7 +5248,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
     sub baseop_reduce($/) {
         my str $reduce := 'LEFT';
-        if    $<assoc> eq 'right'  
+        if $<prec> eq 'f='         { $reduce := 'LISTINFIX'; }
+        elsif $<assoc> eq 'right'  
            || $<assoc> eq 'list'   { $reduce := nqp::uc($<assoc>); }
         elsif $<prec> eq 'm='      { $reduce := 'CHAIN'; }
         elsif $<pasttype> eq 'xor' { $reduce := 'XOR'; }
@@ -5539,6 +5649,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
     method quote:sym<apos>($/) { make $<nibble>.ast; }
     method quote:sym<dblq>($/) { make $<nibble>.ast; }
+    method quote:sym<crnr>($/) { make $<nibble>.ast; }
     method quote:sym<qq>($/)   { make $<quibble>.ast; }
     method quote:sym<q>($/)    { make $<quibble>.ast; }
     method quote:sym<Q>($/)    { make $<quibble>.ast; }

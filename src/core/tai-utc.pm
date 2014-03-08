@@ -88,3 +88,5 @@ my module tai-utc {
     };
 
 };
+
+# vim: ft=perl6 expandtab sw=4

@@ -5,7 +5,7 @@ my sub combinations($n, $k) {
     my @result;
     my @stack;
 
-    return () unless $k;
+    return [] unless $k;
 
     @stack.push(0);
     gather while @stack {
@@ -521,8 +521,7 @@ my class List does Positional { # declared in BOOTSTRAP
     }
 
     method keys(List:) {
-        return unless self.DEFINITE;
-        (0..self.end).list;
+        self.values.map: { (state $)++ }
     }
     method values(List:) {
         return unless self.DEFINITE;
@@ -531,25 +530,19 @@ my class List does Positional { # declared in BOOTSTRAP
         nqp::p6list($rpa, List, self.flattens);
     }
     method pairs(List:) {
-        return unless self.DEFINITE;
-        self.keys.map: {; $_ => self.at_pos($_) };
+        self.values.map: {; (state $)++ => $_ }
     }
     method kv(List:) {
-        self.keys.map: { ($_, self.at_pos($_)) };
+        self.values.map: { ((state $)++, $_) }
     }
 
     method reduce(List: &with) {
         fail('can only reduce with arity 2')
             unless &with.arity <= 2 <= &with.count;
         return unless self.DEFINITE;
-        my Mu $val;
-        for self.keys {
-            if $_ == 0 {
-                $val = self.at_pos(0);
-                next;
-            }
-            $val = with($val, self.at_pos($_));
-        }
+	my \vals = self.values;
+        my Mu $val = vals.shift;
+	$val = with($val, $_) for vals;
         $val;
     }
 
@@ -618,3 +611,5 @@ sub reduce (&with, *@list)  { @list.reduce(&with) }
 sub splice(@arr, $offset = 0, $size?, *@values) {
     @arr.splice($offset, $size, @values)
 }
+
+# vim: ft=perl6 expandtab sw=4

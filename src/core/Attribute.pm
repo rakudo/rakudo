@@ -114,3 +114,5 @@ my class Attribute { # declared in BOOTSTRAP
     multi method Str(Attribute:D:) { self.name }
     multi method gist(Attribute:D:) { self.type.^name ~ " " ~ self.name }
 }
+
+# vim: ft=perl6 expandtab sw=4

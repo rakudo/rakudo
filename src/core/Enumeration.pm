@@ -87,3 +87,5 @@ Metamodel::EnumHOW.set_composalizer(-> $type, $name, %enum_values {
     $r.HOW.compose($r);
     $r
 });
+
+# vim: ft=perl6 expandtab sw=4

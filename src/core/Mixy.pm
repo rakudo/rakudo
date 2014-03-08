@@ -57,3 +57,5 @@ my role Mixy does Baggy  {
         }, 1 .. $rolls;
     }
 }
+
+# vim: ft=perl6 expandtab sw=4

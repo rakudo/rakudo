@@ -225,3 +225,5 @@ my class Parameter { # declared in BOOTSTRAP
         nqp::isnull($!sub_signature) ?? Any !! $!sub_signature
     }
 }
+
+# vim: ft=perl6 expandtab sw=4

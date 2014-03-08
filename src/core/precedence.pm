@@ -125,3 +125,5 @@ BEGIN {
     trait_mod:<is>(&infix:<but>,  :prec($structural));
     trait_mod:<is>(&infix:<does>, :prec($structural));
 }
+
+# vim: ft=perl6 expandtab sw=4

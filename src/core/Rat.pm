@@ -229,3 +229,5 @@ multi sub infix:«<=>»(Rational:D \a, Int:D \b) {
 multi sub infix:«<=>»(Int:D \a, Rational:D \b) {
     a * b.denominator <=> b.numerator
 }
+
+# vim: ft=perl6 expandtab sw=4

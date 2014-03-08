@@ -126,3 +126,5 @@ my role Rational[::NuT, ::DeT] does Real {
     }
 }
 
+
+# vim: ft=perl6 expandtab sw=4

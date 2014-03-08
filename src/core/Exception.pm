@@ -70,9 +70,16 @@ my class X::Method::NotFound is Exception {
     has $.typename;
     has Bool $.private = False;
     method message() {
-        $.private
-            ?? "No such private method '$.method' for invocant of type '$.typename'"
-            !! "No such method '$.method' for invocant of type '$.typename'";
+        my $message = $.private
+          ?? "No such private method '$.method' for invocant of type '$.typename'"
+          !! "No such method '$.method' for invocant of type '$.typename'";
+        if $.method eq 'length' {
+            $message ~= "\nDid you mean 'elems', 'chars', 'graphs' or 'codes'?";
+        }
+        elsif $.method eq 'bytes' {
+            $message ~= "\nDid you mean '.encode(\$encoding).bytes'?";
+        }
+        $message;
     }
 }
 
@@ -85,7 +92,6 @@ my class X::Method::InvalidQualifier is Exception {
         ~ "because it is not inherited or done by {$.invocant.^name}";
     }
 }
-
 
 sub EXCEPTION(|) {
     my Mu $vm_ex   := nqp::shift(nqp::p6argvmarray());
@@ -475,6 +481,19 @@ my class X::Trait::NotOnNative is Exception {
 }
 my class X::Comp::Trait::NotOnNative is X::Trait::NotOnNative does X::Comp { };
 
+my class X::Trait::Scope is Exception {
+    has $.type;       # is, will, of etc.
+    has $.subtype;    # export
+    has $.declaring;  # type name of the object
+    has $.scope;      # not supported (but used) scope
+    has $.supported;  # hint about what is allowed instead
+    method message () {
+        "Can't apply trait '$.type $.subtype' on a $.scope scoped $.declaring."
+        ~ ( $.supported ?? " Only {$.supported.join(' and ')} scoped {$.declaring}s are supported." !! '' );
+    }
+}
+my class X::Comp::Trait::Scope is X::Trait::Scope does X::Comp { };
+
 my class X::OutOfRange is Exception {
     has $.what = 'Argument';
     has $.got = '<unknown>';
@@ -849,7 +868,9 @@ my class X::Syntax::Pod::BeginWithoutIdentifier does X::Syntax does X::Pod {
 }
 
 my class X::Syntax::Pod::BeginWithoutEnd does X::Syntax does X::Pod {
-    method message() { '=begin without matching =end' }
+    has $.type;
+    has $.spaces;
+    method message() { "'=begin' not terminated by matching '$.spaces=end $.type'" }
 }
 
 my class X::Syntax::Confused does X::Syntax {
@@ -1116,7 +1137,11 @@ my class X::Range::InvalidArg is Exception {
 }
 
 my class X::Sequence::Deduction is Exception {
-    method message() { 'Unable to deduce sequence' }
+    has $.from;
+    method message() {
+        $!from ?? "Unable to deduce arithmetic or geometric sequence from $!from (or did you really mean '..'?)"
+               !! 'Unable to deduce sequence for some unfathomable reason'
+    }
 }
 
 my class X::Backslash::UnrecognizedSequence does X::Syntax {
@@ -1428,4 +1453,4 @@ my class X::Caller::NotDynamic is Exception {
 }
 
 
-# vim: ft=perl6
+# vim: ft=perl6 expandtab sw=4

@@ -401,3 +401,5 @@ multi sub infix:<le>(Blob:D $a, Blob:D $b) {
 multi sub infix:<ge>(Blob:D $a, Blob:D $b) {
     ($a cmp $b) != -1
 }
+
+# vim: ft=perl6 expandtab sw=4

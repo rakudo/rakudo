@@ -23,8 +23,11 @@ my class Cursor does NQPCursorRole {
                     nqp::bindattr_i($match, Match, $key, $value.from);
                 }
                 else {
-                    $value := nqp::p6list($value, List, Mu)
-                        if nqp::islist($value);
+                    $value := nqp::islist($value)
+                        ?? nqp::p6list($value, Array, Mu)
+                        !! nqp::istype($value, Match)
+                            ?? $value
+                            !! [$value];
                     nqp::iscclass(nqp::const::CCLASS_NUMERIC, $key, 0)
                       ?? nqp::bindpos($list, $key, $value)
                       !! nqp::bindkey($hash, $key, $value);
@@ -196,3 +199,5 @@ sub MAKE_REGEX($arg, :$i) {
 }
 
 
+
+# vim: ft=perl6 expandtab sw=4

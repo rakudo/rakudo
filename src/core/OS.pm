@@ -28,3 +28,5 @@ my class Proc::Status {
         $!exit == 0
     }
 }
+
+# vim: ft=perl6 expandtab sw=4

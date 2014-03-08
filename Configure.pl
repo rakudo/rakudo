@@ -132,7 +132,7 @@ MAIN: {
     print $MAKEFILE "clean: ", join(' ', map "$_-clean", @prefixes), "\n";
     print $MAKEFILE "\t\$(RM_F) perl6\$(EXE) perl6\$(BAT)\n\n";
 
-    for my $t (qw/test spectest coretest/) {
+    for my $t (qw/test spectest coretest localtest/) {
         print $MAKEFILE "$t: ", join(' ', map "$_-$t", @prefixes), "\n";
     }
 

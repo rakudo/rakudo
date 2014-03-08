@@ -114,3 +114,5 @@ my class Signature { # declared in BOOTSTRAP
 
     method returns() { $!returns }
 }
+
+# vim: ft=perl6 expandtab sw=4

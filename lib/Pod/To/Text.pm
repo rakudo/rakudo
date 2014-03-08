@@ -20,7 +20,7 @@ sub pod2text($pod) is export {
         when Pod::Block::Para  { $pod.content.map({pod2text($_)}).join("") }
         when Pod::Block::Table { table2text($pod)               }
         when Pod::Block::Declarator { declarator2text($pod)     }
-        when Pod::Item         { item2text($pod)                }
+        when Pod::Item         { item2text($pod).indent(2)      }
         when Pod::FormattingCode { formatting2text($pod)        }
         when Positional        { $pod.map({pod2text($_)}).join("\n\n")}
         when Pod::Block::Comment { }
@@ -38,11 +38,11 @@ sub heading2text($pod) {
 }
 
 sub code2text($pod) {
-    "    " ~ $pod.content.subst(/\n/, "\n    ", :g)
+    "    " ~ $pod.content>>.&pod2text.subst(/\n/, "\n    ", :g)
 }
 
 sub item2text($pod) {
-    ' * ' ~ pod2text($pod.content).chomp.chomp
+    '* ' ~ pod2text($pod.content).chomp.chomp
 }
 
 sub named2text($pod) {
@@ -121,15 +121,8 @@ my %formats = {
         "R" => "inverse"
     };
 
-my %only_first_part := bag <D X L>;
-
 sub formatting2text($pod) {
-    my $text = twine2text($pod.content);
-    if $pod.type ~~ %only_first_part {
-        if $text ~~ /'|'/ {
-            $text = $/.prematch
-        }
-    }
+    my $text = $pod.content>>.&pod2text.join;
     if $pod.type ~~ %formats {
         return colored($text, %formats{$pod.type});
     }

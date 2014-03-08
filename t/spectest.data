@@ -121,6 +121,7 @@ S02-types/subscripts_and_context.t
 S02-types/subset.t
 S02-types/type.t
 S02-types/undefined-types.t
+S02-types/unicode.t                     # icu
 S02-types/version.t                     # icu
 S02-types/whatever.t
 S03-binding/arrays.t
@@ -556,6 +557,9 @@ S14-traits/attributes.t
 # S14-traits/package.t # err: Invalid typename in parameter declaration
 S14-traits/routines.t
 # S14-traits/variables.t # err: Invalid typename in parameter declaration
+#S15-unicode-information/uniname.t	# moar
+S15-unicode-information/unimatch-general.t	# moar
+S15-unicode-information/unival.t	# moar
 S16-filehandles/chmod.t
 S16-filehandles/filestat.t
 S16-filehandles/filetest.t

@@ -544,7 +544,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     # text not being code
     token pod_textcontent:sym<regular> {
         $<spaces>=[ \h* ]
-         <?{ !$*ALLOW_CODE
+         <?{ $*POD_IN_CODE_BLOCK
+             || !$*ALLOW_INLINE_CODE
              || ($<spaces>.to - $<spaces>.from) <= $*VMARGIN }>
 
         $<text> = [
@@ -554,7 +555,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     token pod_textcontent:sym<code> {
         $<spaces>=[ \h* ]
-        <?{ $*ALLOW_CODE
+        <?{ !$*POD_IN_CODE_BLOCK
+            && $*ALLOW_INLINE_CODE
             && ($<spaces>.to - $<spaces>.from) > $*VMARGIN }>
         $<text> = [
             [<!before '=' \w> \N+]+ % [<pod_newline> $<spaces>]
@@ -568,7 +570,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <?{ $*POD_ALLOW_FCODES }>
 
         :my $endtag;
-        $<code>=<[A..Z]>
+        <code=[A..Z]>
         $<begin-tag>=['<'+ <![<]> | '«'] { $*POD_IN_FORMATTINGCODE := 1 }
         <?{
             my $codenum := nqp::ord($<code>.Str) - nqp::ord("A");
@@ -591,8 +593,20 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                 $*POD_ALLOW_FCODES := 0;
             }
         }
-        $<content>=[ <pod_string_character> ]+?
-        $endtag
+        [ <!{$<code> eq 'E'}>
+          $<content>=[
+              <!before $endtag>
+              [ <?{$<code> ne 'L' && $<code> ne 'D' && $<code> ne 'X' }> || <!before \s* \| > ]
+              <pod_string_character>
+          ]*
+        ]?
+        [
+        | <?{$<code> eq 'L'}> \s* \| \s* $<meta>=[<!before $endtag>.]+
+        | <?{$<code> eq 'X'}> \s* \| \s* ( [$<meta>=[<!before $endtag | <[,;]> >.]+] +%% \, ) +%% \;
+        | <?{$<code> eq 'D'}> \s* \| \s* [$<meta>=[<!before $endtag | \; >.]+] +%% \;
+        | <?{$<code> eq 'E'}> ( <integer> | $<uni_name>=<[A..Z\s]>+ <![a..z]> || $<html_ref>=<[A..Za..z]>+ ) +%% \;
+        ]?
+        [ $endtag || <.worry: "Pod formatting code $<code> missing endtag '$endtag'."> ]
     }
 
     token pod_balanced_braces {
@@ -633,15 +647,15 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         [ [\n $spaces '=']? \h+ <colonpair> ]*
     }
 
-    token pod_block:sym<delimited_raw> {
+    token pod_block:sym<delimited_comment> {
         ^^
         $<spaces> = [ \h* ]
-        '=begin' \h+ $<type>=[ 'code' | 'comment' ] {}
+        '=begin' \h+ 'comment' {}
         <pod_configuration($<spaces>)> <pod_newline>+
         [
          $<pod_content> = [ .*? ]
-         ^^ $<spaces> '=end' \h+ $<type> <pod_newline>
-         ||  <.typed_panic: 'X::Syntax::Pod::BeginWithoutEnd'>
+         ^^ $<spaces> '=end' \h+ 'comment' <pod_newline>
+         || {$/.CURSOR.typed_panic: 'X::Syntax::Pod::BeginWithoutEnd', type => 'comment', spaces => ~$<spaces>}
         ]
     }
 
@@ -656,9 +670,9 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         {
             $*VMARGIN    := $<spaces>.to - $<spaces>.from;
         }
-        :my $*ALLOW_CODE := 0;
+        :my $*ALLOW_INLINE_CODE := 0;
         $<type> = [
-            <pod_code_parent> { $*ALLOW_CODE := 1 }
+            <pod_code_parent> { $*ALLOW_INLINE_CODE := 1 }
             || <identifier>
         ]
         :my $*POD_ALLOW_FCODES := nqp::getlexdyn('$*POD_ALLOW_FCODES');
@@ -666,7 +680,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         [
          <pod_content> *
          ^^ $<spaces> '=end' \h+ $<type> <pod_newline>
-         ||  <.typed_panic: 'X::Syntax::Pod::BeginWithoutEnd'>
+         || {$/.CURSOR.typed_panic: 'X::Syntax::Pod::BeginWithoutEnd', type => ~$<type>, spaces => ~$<spaces>}
         ]
     }
 
@@ -674,13 +688,39 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token pod_block:sym<delimited_table> {
         ^^
         $<spaces> = [ \h* ]
-        '=begin' \h+ 'table'
-            :my $*POD_ALLOW_FCODES := nqp::getlexdyn('$*POD_ALLOW_FCODES');
-            <pod_configuration($<spaces>)> <pod_newline>+
+        '=begin' \h+ 'table' {}
+        :my $*POD_ALLOW_FCODES := nqp::getlexdyn('$*POD_ALLOW_FCODES');
+        <pod_configuration($<spaces>)> <pod_newline>+
         [
          <table_row>*
          ^^ \h* '=end' \h+ 'table' <pod_newline>
-         ||  <.typed_panic: 'X::Syntax::Pod::BeginWithoutEnd'>
+         || {$/.CURSOR.typed_panic: 'X::Syntax::Pod::BeginWithoutEnd', type => 'table', spaces => ~$<spaces>}
+        ]
+    }
+
+    token pod_block:sym<delimited_code> {
+        ^^
+        $<spaces> = [ \h* ]
+        '=begin' \h+ 'code' {}
+        :my $*POD_ALLOW_FCODES  := 0;
+        :my $*POD_IN_CODE_BLOCK := 1;
+        <pod_configuration($<spaces>)> <pod_newline>+
+        [
+        || <delimited_code_content($<spaces>)>
+        || {$/.CURSOR.typed_panic: 'X::Syntax::Pod::BeginWithoutEnd', type => 'code', spaces => ~$<spaces>}
+        ]
+    }
+
+    token delimited_code_content($spaces = '') {
+        ^^
+        [
+        | $spaces
+          [
+          || '=end' \h+ 'code' <pod_newline>
+          || <pod_string>**0..1 <pod_newline>
+             <delimited_code_content($spaces)>
+          ]
+        | <pod_newline> <delimited_code_content($spaces)>
         ]
     }
 
@@ -705,9 +745,9 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         {
             $*VMARGIN := $<spaces>.to - $<spaces>.from;
         }
-        :my $*ALLOW_CODE := 0;
+        :my $*ALLOW_INLINE_CODE := 0;
         $<type> = [
-            <pod_code_parent> { $*ALLOW_CODE := 1 }
+            <pod_code_parent> { $*ALLOW_INLINE_CODE := 1 }
             || <identifier>
         ]
         :my $*POD_ALLOW_FCODES := nqp::getlexdyn('$*POD_ALLOW_FCODES');
@@ -715,10 +755,10 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <pod_content=.pod_textcontent>**0..1
     }
 
-    token pod_block:sym<paragraph_raw> {
+    token pod_block:sym<paragraph_comment> {
         ^^
         $<spaces> = [ \h* ]
-        '=for' \h+ $<type>=[ 'code' | 'comment' ]
+        '=for' \h+ 'comment' {}
         :my $*POD_ALLOW_FCODES := nqp::getlexdyn('$*POD_ALLOW_FCODES');
         <pod_configuration($<spaces>)> <pod_newline>
         $<pod_content> = [ \h* <!before '=' \w> \N+ \n ]+
@@ -727,10 +767,20 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token pod_block:sym<paragraph_table> {
         ^^
         $<spaces> = [ \h* ]
-        '=for' \h+ 'table'
-            :my $*POD_ALLOW_FCODES := nqp::getlexdyn('$*POD_ALLOW_FCODES');
-            <pod_configuration($<spaces>)> <pod_newline>
+        '=for' \h+ 'table' {}
+        :my $*POD_ALLOW_FCODES := nqp::getlexdyn('$*POD_ALLOW_FCODES');
+        <pod_configuration($<spaces>)> <pod_newline>
         [ <!before \h* \n> <table_row>]*
+    }
+
+    token pod_block:sym<paragraph_code> {
+        ^^
+        $<spaces> = [ \h* ]
+        '=for' \h+ 'code' {}
+        :my $*POD_ALLOW_FCODES := 0;
+        :my $*POD_IN_CODE_BLOCK := 1;
+        <pod_configuration($<spaces>)> <pod_newline>
+        [ <!before \h* '=' \w> <pod_line> ]*
     }
 
     token pod_block:sym<abbreviated> {
@@ -740,33 +790,45 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         {
             $*VMARGIN := $<spaces>.to - $<spaces>.from;
         }
-        :my $*ALLOW_CODE := 0;
+        :my $*ALLOW_INLINE_CODE := 0;
         $<type> = [
-            <pod_code_parent> { $*ALLOW_CODE := 1 }
+            <pod_code_parent> { $*ALLOW_INLINE_CODE := 1 }
             || <identifier>
         ]
         :my $*POD_ALLOW_FCODES := nqp::getlexdyn('$*POD_ALLOW_FCODES');
-        <pod_configuration($<spaces>)>
-        [\r\n|\s]
+        [\h*\n|\h+]
         <pod_content=.pod_textcontent>**0..1
     }
 
-    token pod_block:sym<abbreviated_raw> {
+    token pod_block:sym<abbreviated_comment> {
         ^^
         $<spaces> = [ \h* ]
-        '=' $<type>=[ 'code' | 'comment' ]
+        '=comment' {}
         :my $*POD_ALLOW_FCODES := nqp::getlexdyn('$*POD_ALLOW_FCODES');
-        <pod_configuration($<spaces>)> [\r\n|\s]
+        [\h*\n|\h+]
         $<pod_content> = [ \h* <!before '=' \w> \N+ \n ]*
     }
 
     token pod_block:sym<abbreviated_table> {
         ^^
         $<spaces> = [ \h* ]
+        '=table' {}
         :my $*POD_ALLOW_FCODES := nqp::getlexdyn('$*POD_ALLOW_FCODES');
-        '=table' <pod_configuration($<spaces>)> <pod_newline>
+        <pod_newline>
         [ <!before \h* \n> <table_row>]*
     }
+
+    token pod_block:sym<abbreviated_code> {
+        ^^
+        $<spaces> = [ \h* ]
+        '=code' {}
+        :my $*POD_ALLOW_FCODES  := 0;
+        :my $*POD_IN_CODE_BLOCK := 1;
+        [\h*\n|\h+]
+        [ <!before \h* '=' \w> <pod_line> ]*
+    }
+
+    token pod_line { <pod_string>**1 <pod_newline> }
 
     token pod_newline {
         \h* [ \n | $ ]
@@ -774,12 +836,10 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     token pod_code_parent {
         [
-        || 'pod'
-        || 'output'
-        || 'item' \d*
+        | [ 'pod' | 'item' \d* | 'nested' | 'defn' | 'finish' ]
+        | <upper>+
         ]
         <![\w]>
-        # TODO: Also Semantic blocks one day
     }
 
     token install_doc_phaser { <?> }
@@ -830,7 +890,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*HAS_YOU_ARE_HERE := 0;               # whether {YOU_ARE_HERE} has shown up
         :my $*OFTYPE;
         :my $*VMARGIN    := 0;                     # pod stuff
-        :my $*ALLOW_CODE := 0;                     # pod stuff
+        :my $*ALLOW_INLINE_CODE := 0;              # pod stuff
+        :my $*POD_IN_CODE_BLOCK := 0;              # pod stuff
         :my $*POD_IN_FORMATTINGCODE := 0;          # pod stuff
         :my $*POD_ALLOW_FCODES := 0b11111111111111111111111111; # allow which fcodes?
         :my $*POD_ANGLE_COUNT := 0;                # pod stuff
@@ -2911,6 +2972,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     proto token quote { <...> }
     token quote:sym<apos>  { :dba('single quotes') "'" ~ "'" <nibble(self.quote_lang(%*LANG<Q>, "'", "'", ['q']))> }
     token quote:sym<dblq>  { :dba('double quotes') '"' ~ '"' <nibble(self.quote_lang(%*LANG<Q>, '"', '"', ['qq']))> }
+    token quote:sym<crnr>  { :dba('corner quotes') '｢' ~ '｣' <nibble(self.quote_lang(%*LANG<Q>, '｢', '｣'))> }
     token quote:sym<q> {
         :my $qm;
         'q'
@@ -3675,18 +3737,20 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             next if $decl == 1;
             next if $*W.is_lexically_visible('&' ~ $name, %sym<lex>);
 
-            # just a guess, but good enough to improve error reporting
-            if $_ lt 'a' {
-                %unk_types{$name} := [] unless %unk_types{$name};
-                my @suggs := $*W.suggest_typename($name);
-                %type_suggestion{$name} := @suggs;
-                push_lines(%unk_types{$name}, %sym<pos>);
-            }
-            else {
+            # no sigil or &
+            if $name ge 'a' || nqp::substr($name,0,1) eq '&' {
                 %unk_routines{$name} := [] unless %unk_routines{$name};
                 my @suggs := $*W.suggest_routines($name);
                 %routine_suggestion{$name} := @suggs;
                 push_lines(%unk_routines{$name}, %sym<pos>);
+            }
+
+            # hopefully improve error reporting
+            else {
+                %unk_types{$name} := [] unless %unk_types{$name};
+                my @suggs := $*W.suggest_typename($name);
+                %type_suggestion{$name} := @suggs;
+                push_lines(%unk_types{$name}, %sym<pos>);
             }
         }
         

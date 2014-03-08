@@ -17,15 +17,14 @@ my class Promise {
     has $.status;
     has $!result;
     has int $!vow_taken;
-    has Mu $!ready_semaphore;
     has $!lock;
+    has $!cond;
     has @!thens;
     
     submethod BUILD(:$!scheduler = $*SCHEDULER) {
         my $interop       := nqp::jvmbootinterop();
-        my \Semaphore     := $interop.typeForName('java.util.concurrent.Semaphore');
-        $!ready_semaphore := Semaphore.'constructor/new/(I)V'(-1);
         $!lock            := nqp::create(Lock);
+        $!cond            := $!lock.condition();
         $!status           = Planned;
     }
     
@@ -61,10 +60,12 @@ my class Promise {
     }
     
     method !keep(\result) {
-        $!result := result;
-        $!status = Kept;
-        $!ready_semaphore.'method/release/(I)V'(32768);
-        self!schedule_thens();
+        $!lock.protect({
+            $!result := result;
+            $!status = Kept;
+            self!schedule_thens();
+            $!cond.signal_all;
+        });
         $!result
     }
     
@@ -73,18 +74,20 @@ my class Promise {
     }
     
     method !break($result) {
-        $!result = $result ~~ Exception ?? $result !! X::AdHoc.new(payload => $result);
-        $!status = Broken;
-        $!ready_semaphore.'method/release/(I)V'(32768);
-        self!schedule_thens();
+        $!lock.protect({
+            $!result = nqp::istype($result, Exception)
+                ?? $result
+                !! X::AdHoc.new(payload => $result);
+            $!status = Broken;
+            self!schedule_thens();
+            $!cond.signal_all;
+        });
     }
     
     method !schedule_thens() {
-        nqp::lock($!lock);
         while @!thens {
             $!scheduler.cue(@!thens.shift, :catch(@!thens.shift))
         }
-        nqp::unlock($!lock);
     }
     
     method result(Promise:D:) {
@@ -92,7 +95,10 @@ my class Promise {
         # not yet started, then the work can be done immediately by the
         # thing that is blocking on it.
         if $!status == Planned {
-            $!ready_semaphore.'method/acquire/()V'();
+            $!lock.protect({
+                # Re-check planned to avoid data race.
+                $!cond.wait() if $!status == Planned;
+            });
         }
         if $!status == Kept {
             $!result
@@ -116,7 +122,7 @@ my class Promise {
     
     method then(Promise:D: &code) {
         nqp::lock($!lock);
-        if $!status == any(Broken, Kept) {
+        if $!status == Broken | Kept {
             # Already have the result, start immediately.
             nqp::unlock($!lock);
             Promise.start( { code(self) }, :$!scheduler);

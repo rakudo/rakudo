@@ -690,7 +690,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
             my @meta    := [];
             for $/[0] {
                 if $_<html_ref> {
-                    @content.push(~$_); @meta.push(~$_);
+                    @content.push(~$_);
+                    @meta.push($*W.add_string_constant(~$_).compile_time_value);
                     #my $s := Perl6::Pod::str_from_entity(~$_);
                     #$s ?? @content.push($s) && @meta.push(~$_)
                     #   !! $/.CURSOR.worry("\"$_\" is not a valid HTML5 entity.");
@@ -698,12 +699,16 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     my $n := $_<integer>
                           ?? $_<integer>.made
                           !! nqp::codepointfromname(~$_);
-                    $n >= 0 ?? @content.push(nqp::chr($n)) && @meta.push($_<integer> ?? $_<integer>.made !! ~$_)
-                            !! $/.CURSOR.worry("\"$_\" is not a valid Unicode character name or code point.");
+                    if $n >= 0 {
+                        @content.push(nqp::chr($n));
+                        @meta.push($n);
+                    } else {
+                        $/.CURSOR.worry("\"$_\" is not a valid Unicode character name or code point.");
+                    }
                 }
             }
             @content := Perl6::Pod::serialize_aos(@content).compile_time_value;
-            @meta    := Perl6::Pod::serialize_aos(@meta).compile_time_value;
+            @meta    := Perl6::Pod::serialize_array(@meta).compile_time_value;
             make Perl6::Pod::serialize_object(
                 'Pod::FormattingCode',
                 :type($*W.add_string_constant(~$<code>).compile_time_value),

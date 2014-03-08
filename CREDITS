@@ -27,6 +27,9 @@ N: Alex Elsayed
 U: eternaleye
 E: eternaleye@gmail.com
 
+N: Alexander Moquin
+U: Mouq
+
 N: Allison Randal
 D: Parrot Architect (0.4.6...)
 E: allison@parrot.org
@@ -46,6 +49,10 @@ E: andy@petdance.com
 W: http://perlbuzz.com/
 S: McHenry, IL, USA
 U: petdance
+
+N: Arne Skjærholt
+U: arnsholt
+E: arnsholt@gmail.com
 
 U: ask
 N: Ask Bjørn Hansen
@@ -185,6 +192,10 @@ E: ingy@ingy.net
 W: http://ingy.net/
 S: Seattle, WA, USA
 D: Make is() work like Perl 5; add .pm6 to extensions searched.
+
+N: JD Horelick
+U: jdhore
+E: jdhore1@gmail.com
 
 N: James E Keenan (Jim)
 E: jkeenan@cpan.org
@@ -369,6 +380,10 @@ U: tene
 D: Minor Rakudo patches
 E: tene@allalone.org
 
+N: Tadeusz Sośnierz
+U: tadzik
+E: tadzikes@gmail.com
+
 N: Timo Paulssen
 U: timo
 U: timotimo
@@ -404,17 +419,5 @@ E: will@coleda.com
 N: Zach Morgan
 E: zpmorgan@gmail.com
 D: Rakudo patch
-
-N: Tadeusz Sośnierz
-U: tadzik
-E: tadzikes@gmail.com
-
-N: Arne Skjærholt
-U: arnsholt
-E: arnsholt@gmail.com
-
-N: JD Horelick
-U: jdhore
-E: jdhore1@gmail.com
 
 =cut

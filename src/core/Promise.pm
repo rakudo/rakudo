@@ -22,7 +22,6 @@ my class Promise {
     has @!thens;
     
     submethod BUILD(:$!scheduler = $*SCHEDULER) {
-        my $interop       := nqp::jvmbootinterop();
         $!lock            := nqp::create(Lock);
         $!cond            := $!lock.condition();
         $!status           = Planned;

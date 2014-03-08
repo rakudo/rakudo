@@ -18,15 +18,14 @@ my class Promise {
     has $!result;
     has int $!vow_taken;
     has Mu $!ready_semaphore;
-    has Mu $!lock;
+    has $!lock;
     has @!thens;
     
     submethod BUILD(:$!scheduler = $*SCHEDULER) {
         my $interop       := nqp::jvmbootinterop();
         my \Semaphore     := $interop.typeForName('java.util.concurrent.Semaphore');
-        my \ReentrantLock := $interop.typeForName('java.util.concurrent.locks.ReentrantLock');
         $!ready_semaphore := Semaphore.'constructor/new/(I)V'(-1);
-        $!lock            := ReentrantLock.'constructor/new/()V'();
+        $!lock            := nqp::create(Lock);
         $!status           = Planned;
     }
     
@@ -45,15 +44,15 @@ my class Promise {
         }
     }
     method vow() {
-        $!lock.lock();
+        nqp::lock($!lock);
         if $!vow_taken {
-            $!lock.unlock();
+            nqp::unlock($!lock);
             X::Promise::Vowed.new.throw
         }
         my $vow := nqp::create(Vow);
         nqp::bindattr($vow, Vow, '$!promise', self);
         $!vow_taken = 1;
-        $!lock.unlock();
+        nqp::unlock($!lock);
         $vow
     }
 
@@ -81,11 +80,11 @@ my class Promise {
     }
     
     method !schedule_thens() {
-        $!lock.lock();
+        nqp::lock($!lock);
         while @!thens {
             $!scheduler.cue(@!thens.shift, :catch(@!thens.shift))
         }
-        $!lock.unlock();
+        nqp::unlock($!lock);
     }
     
     method result(Promise:D:) {
@@ -116,10 +115,10 @@ my class Promise {
     }
     
     method then(Promise:D: &code) {
-        $!lock.lock();
+        nqp::lock($!lock);
         if $!status == any(Broken, Kept) {
             # Already have the result, start immediately.
-            $!lock.unlock();
+            nqp::unlock($!lock);
             Promise.start( { code(self) }, :$!scheduler);
         }
         else {
@@ -131,7 +130,7 @@ my class Promise {
             my $vow = $then_promise.vow;
             @!thens.push({ $vow.keep(code(self)) });
             @!thens.push(-> $ex { $vow.break($ex) });
-            $!lock.unlock();
+            nqp::unlock($!lock);
             $then_promise
         }
     }

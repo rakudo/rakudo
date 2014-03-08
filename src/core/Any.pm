@@ -263,7 +263,6 @@ my class Any { # declared in BOOTSTRAP
 
     method KeySet() { DEPRECATED("'SetHash'"); self.SetHash }
     method KeyBag() { DEPRECATED("'BagHash'"); self.BagHash }
-
 }
 Metamodel::ClassHOW.exclude_parent(Any);
 

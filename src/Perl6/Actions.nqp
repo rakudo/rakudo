@@ -683,16 +683,58 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
 
     method pod_formatting_code($/) {
-        if ~$<code> eq 'V' {
+        if $<code> eq 'V' {
             make ~$<content>;
+        } elsif $<code> eq 'E' {
+            my @content := [];
+            my @meta    := [];
+            for $/[0] {
+                if $_<html_ref> {
+                    @content.push(~$_);
+                    @meta.push($*W.add_string_constant(~$_).compile_time_value);
+                    #my $s := Perl6::Pod::str_from_entity(~$_);
+                    #$s ?? @content.push($s) && @meta.push(~$_)
+                    #   !! $/.CURSOR.worry("\"$_\" is not a valid HTML5 entity.");
+                } else {
+                    my $n := $_<integer>
+                          ?? $_<integer>.made
+                          !! nqp::codepointfromname(~$_);
+                    if $n >= 0 {
+                        @content.push(nqp::chr($n));
+                        @meta.push($n);
+                    } else {
+                        $/.CURSOR.worry("\"$_\" is not a valid Unicode character name or code point.");
+                    }
+                }
+            }
+            @content := Perl6::Pod::serialize_aos(@content).compile_time_value;
+            @meta    := Perl6::Pod::serialize_array(@meta).compile_time_value;
+            make Perl6::Pod::serialize_object(
+                'Pod::FormattingCode',
+                :type($*W.add_string_constant(~$<code>).compile_time_value),
+                :@content,
+                :@meta,
+            ).compile_time_value;
         } else {
             my @content := [];
             for $<pod_string_character> {
                 @content.push($_.ast)
             }
             my @meta := [];
-            for $<meta> {
-                @meta.push(~$_)
+            if $<code> eq 'X' {
+                for $/[0] {
+                    my @tmp := [];
+                    for $_<meta> {
+                        @tmp.push(~$_);
+                    }
+                    @meta.push(@tmp);
+                }
+                @meta := Perl6::Pod::serialize_aoaos(@meta).compile_time_value;
+            } else {
+                for $<meta> {
+                    @meta.push(~$_)
+                }
+                @meta := Perl6::Pod::serialize_aos(@meta).compile_time_value;
             }
             my @t    := Perl6::Pod::build_pod_string(@content);
             my $past := Perl6::Pod::serialize_object(
@@ -703,9 +745,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 :content(
                     Perl6::Pod::serialize_array(@t).compile_time_value
                 ),
-                :meta(
-                    Perl6::Pod::serialize_aos(@meta).compile_time_value
-                ),
+                :meta(@meta),
             );
             make $past.compile_time_value;
         }

@@ -121,15 +121,8 @@ my %formats = {
         "R" => "inverse"
     };
 
-my %only_first_part := bag <D X L>;
-
 sub formatting2text($pod) {
-    my $text = twine2text($pod.content);
-    if $pod.type ~~ %only_first_part {
-        if $text ~~ /'|'/ {
-            $text = $/.prematch
-        }
-    }
+    my $text = $pod.content>>.&pod2text.join;
     if $pod.type ~~ %formats {
         return colored($text, %formats{$pod.type});
     }

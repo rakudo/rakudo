@@ -1191,4 +1191,85 @@ sub substr-rw($s is rw, $from = 0, $chars = $s.chars - $from) {
     );
 }
 
+# These probably belong in a separate unicodey file
+
+#?if parrot
+multi uniname(|)  { die 'uniname NYI on parrot backend' }
+multi uniprop(|)  { die 'uniprop NYI on parrot backend' }
+multi unibool(|)  { die 'unibool NYI on parrot backend' }
+multi unival(|)   { die 'unival NYI on parrot backend' }
+multi unimatch(|) { die 'unimatch NYI on parrot backend' }
+#?endif
+#?if jvm
+multi uniname(|)  { die 'uniname NYI on jvm backend' }
+multi uniprop(|)  { die 'uniprop NYI on jvm backend' }
+multi unibool(|)  { die 'unibool NYI on jvm backend' }
+multi unival(|)   { die 'unival NYI on jvm backend' }
+multi unimatch(|) { die 'unimatch NYI on jvm backend' }
+#?endif
+#?if moar
+my %propcodecache;
+my %pvalcodecache;
+proto uniname(|) {*}
+multi uniname(Str $str) { uniname($str.ord) }
+multi uniname(Int $code) { nqp::getuniname($code) }
+
+proto uniprop(|) {*}
+multi uniprop(Str $str, |c) { uniprop($str.ord, |c) }
+multi uniprop(Int $code, Stringy $propname = "GeneralCategory") {
+    my $prop = %propcodecache{$propname} //= nqp::unipropcode($propname);
+    state %prefs;  # could prepopulate this with various prefs
+    given %prefs{$propname} // '' {
+        when 'S' { nqp::getuniprop_str($code,$prop) }
+        when 'I' { nqp::getuniprop_int($code,$prop) }
+        when 'B' { nqp::getuniprop_bool($code,$prop) }
+        # your ad here
+        default {
+            my $result = nqp::getuniprop_str($code,$prop);
+            if $result ne '' { %prefs{$propname} = 'S'; $result }
+            else             { %prefs{$propname} = 'I'; nqp::getuniprop_int($code,$prop) }
+        }
+    }
+}
+
+proto uniprop-int(|) {*}
+multi uniprop-int(Str $str, Stringy $propname) { uniprop-int($str.ord, $propname) }
+multi uniprop-int(Int $code, Stringy $propname) {
+    my $prop = %propcodecache{$propname} //= nqp::unipropcode($propname);
+    nqp::getuniprop_int($code,$prop);
+}
+
+proto uniprop-bool(|) {*}
+multi uniprop-bool(Str $str, Stringy $propname) { uniprop-bool($str.ord, $propname) }
+multi uniprop-bool(Int $code, Stringy $propname) {
+    my $prop = %propcodecache{$propname} //= nqp::unipropcode($propname);
+    so nqp::getuniprop_bool($code,$prop);
+}
+
+proto uniprop-str(|) {*}
+multi uniprop-str(Str $str, Stringy $propname) { uniprop-str($str.ord, $propname) }
+multi uniprop-str(Int $code, Stringy $propname) {
+    my $prop = %propcodecache{$propname} //= nqp::unipropcode($propname);
+    nqp::getuniprop_str($code,$prop);
+}
+
+proto unival(|) {*}
+multi unival(Str $str) { unival($str.ord) }
+multi unival(Int $code) {
+    state $nuprop = nqp::unipropcode("NumericValueNumerator");
+    state $deprop = nqp::unipropcode("NumericValueDenominator");
+    my $nu = nqp::getuniprop_str($code, $nuprop);
+    my $de = nqp::getuniprop_str($code, $deprop);
+    !$de || $de eq '1' ?? $nu.Int !! $nu / $de;
+}
+
+proto unimatch(|) {*}
+multi unimatch(Str $str, |c) { unimatch($str.ord, |c) }
+multi unimatch(Int $code, Stringy $pvalname, Stringy $propname = $pvalname) {
+    my $prop = %propcodecache{$propname} //= nqp::unipropcode($propname);
+    my $pval = %pvalcodecache{$prop ~ $pvalname} //= nqp::unipvalcode($prop, $pvalname);
+    so nqp::matchuniprop($code,$prop,$pval);
+}
+#?endif
+
 # vim: ft=perl6 expandtab sw=4

@@ -70,7 +70,8 @@ sub METAOP_CROSS(\op, &reduce) {
 
 sub METAOP_ZIP(\op, &reduce) {
     -> |lol {
-        my $rop = lol.elems == 2 ?? op !! &reduce(op);
+        my $arity = lol.elems;
+        my $rop = $arity == 2 ?? op !! &reduce(op);
         my @lol = eager for ^lol.elems -> $i {
             my \elem = lol[$i];         # can't use mapping here, mustn't flatten
 
@@ -78,10 +79,10 @@ sub METAOP_ZIP(\op, &reduce) {
             else                 { (elem,).flat.item }
         }
         gather {
-            my $loop = 1;
-            while $loop {
-                my @z = @lol.map({ $loop = 0 unless $_; .shift });
-                take-rw $rop(|@z) if $loop;
+            loop {
+                my \z = @lol.map: { last unless .gimme(1); .shift }
+                last if z.elems < $arity;
+                take-rw $rop(|z);
             }
         }
     }

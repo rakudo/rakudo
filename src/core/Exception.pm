@@ -70,9 +70,16 @@ my class X::Method::NotFound is Exception {
     has $.typename;
     has Bool $.private = False;
     method message() {
-        $.private
-            ?? "No such private method '$.method' for invocant of type '$.typename'"
-            !! "No such method '$.method' for invocant of type '$.typename'";
+        my $message = $.private
+          ?? "No such private method '$.method' for invocant of type '$.typename'"
+          !! "No such method '$.method' for invocant of type '$.typename'";
+        if $.method eq 'length' {
+            $message ~= "\nDid you mean 'elems', 'chars', 'graphs' or 'codes'?";
+        }
+        elsif $.method eq 'bytes' {
+            $message ~= "\nDid you mean '.encode(\$encoding).bytes'?";
+        }
+        $message;
     }
 }
 
@@ -85,7 +92,6 @@ my class X::Method::InvalidQualifier is Exception {
         ~ "because it is not inherited or done by {$.invocant.^name}";
     }
 }
-
 
 sub EXCEPTION(|) {
     my Mu $vm_ex   := nqp::shift(nqp::p6argvmarray());

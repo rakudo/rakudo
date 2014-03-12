@@ -3,7 +3,12 @@ my class Match is Capture is Cool {
     has int $.from;
     has int $.to;
     has $.CURSOR;
-    has $.ast;
+    has $.made;
+
+    method ast(Match:D:) {
+        DEPRECATED("the .made method");
+        $!made;
+    }
 
     multi method Str(Match:D:) {
         $!to > $!from ?? $!orig.substr($!from, $!to-$!from) !! ''
@@ -69,29 +74,29 @@ my class Match is Capture is Cool {
         $r;
     }
 
-    method make(Match:D: Mu \ast) {
-        $!ast = ast;
+    method make(Match:D: Mu \made) {
+        $!made = made;
         nqp::bindattr(
             nqp::decont(self.CURSOR),
             Cursor,
-            '$!ast',
-            ast
+            '$!made',
+            made
         );
     }
 }
 
-sub make(Mu \ast) {
+sub make(Mu \made) {
     nqp::bindattr(
         nqp::decont(nqp::getlexcaller('$/')),
         Match,
-        '$!ast',
-        ast
+        '$!made',
+        made
     );
     nqp::bindattr(
         nqp::decont(nqp::getlexcaller('$/').CURSOR),
         Cursor,
-        '$!ast',
-        ast
+        '$!made',
+        made
     );
 }
 

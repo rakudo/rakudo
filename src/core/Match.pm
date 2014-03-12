@@ -5,10 +5,7 @@ my class Match is Capture is Cool {
     has $.CURSOR;
     has $.made;
 
-    method ast(Match:D:) {
-        DEPRECATED("the .made method");
-        $!made;
-    }
+    method ast(Match:D:) { $!made }
 
     multi method Str(Match:D:) {
         $!to > $!from ?? $!orig.substr($!from, $!to-$!from) !! ''

@@ -465,26 +465,26 @@ my class List does Positional { # declared in BOOTSTRAP
     multi method squish( :&as!, :&with = &[===] ) {
         my $last = @secret;
         my str $which;
-        map {
+        gather map {
             $which = &as($_).Str;
             if with($which,$last) {
                 next;
             }
             else {
                 $last = $which;
-                $_;
+                .take;
             }
         }, @.list;
     }
     multi method squish( :&with = &[===] ) {
         my $last = @secret;
-        map {
+        gather map {
             if with($_,$last) {
                 next;
             }
             else {
                 $last = $_;
-                $_;
+                .take;
             }
         }, @.list;
     }

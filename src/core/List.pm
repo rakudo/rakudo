@@ -404,25 +404,25 @@ my class List does Positional { # declared in BOOTSTRAP
     multi method uniq() {
         my $seen := nqp::hash();
         my str $target;
-        map {
+        gather map {
             $target = nqp::unbox_s($_.WHICH);
             if nqp::existskey($seen, $target) {
                 next;
             }
             else {
                 nqp::bindkey($seen, $target, 1);
-                $_;
+                .take;
             }
         }, @.list;
     }
     multi method uniq( :&as!, :&with! ) {
         my @seen;  # should be Mu, but doesn't work in settings :-(
         my Mu $target;
-        map {
+        gather map {
             $target = &as($_);
             if first( { with($target,$_) }, @seen ) =:= Nil {
                 @seen.push($target);
-                $_;
+                .take;
             }
             else {
                 next;
@@ -432,14 +432,14 @@ my class List does Positional { # declared in BOOTSTRAP
     multi method uniq( :&as! ) {
         my $seen := nqp::hash();
         my str $target;
-        map {
+        gather map {
             $target = &as($_).WHICH;
             if nqp::existskey($seen, $target) {
                 next;
             }
             else {
                 nqp::bindkey($seen, $target, 1);
-                $_;
+                .take;
             }
         }, @.list;
     }
@@ -448,11 +448,11 @@ my class List does Positional { # declared in BOOTSTRAP
 
         my @seen;  # should be Mu, but doesn't work in settings :-(
         my Mu $target;
-        map {
+        gather map {
             $target := $_;
             if first( { with($target,$_) }, @seen ) =:= Nil {
                 @seen.push($target);
-                $_;
+                .take;
             }
             else {
                 next;

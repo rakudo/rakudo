@@ -407,7 +407,7 @@ my class List does Positional { # declared in BOOTSTRAP
         map {
             $target = nqp::unbox_s($_.WHICH);
             if nqp::existskey($seen, $target) {
-                Nil;
+                next;
             }
             else {
                 nqp::bindkey($seen, $target, 1);
@@ -425,7 +425,7 @@ my class List does Positional { # declared in BOOTSTRAP
                 $_;
             }
             else {
-                Nil;
+                next;
             }
         }, @.list;
     }
@@ -435,7 +435,7 @@ my class List does Positional { # declared in BOOTSTRAP
         map {
             $target = &as($_).WHICH;
             if nqp::existskey($seen, $target) {
-                Nil;
+                next;
             }
             else {
                 nqp::bindkey($seen, $target, 1);
@@ -455,7 +455,7 @@ my class List does Positional { # declared in BOOTSTRAP
                 $_;
             }
             else {
-                Nil;
+                next;
             }
         }, @.list;
     }
@@ -468,7 +468,7 @@ my class List does Positional { # declared in BOOTSTRAP
         map {
             $which = &as($_).Str;
             if with($which,$last) {
-                Nil;
+                next;
             }
             else {
                 $last = $which;
@@ -480,7 +480,7 @@ my class List does Positional { # declared in BOOTSTRAP
         my $last = @secret;
         map {
             if with($_,$last) {
-                Nil;
+                next;
             }
             else {
                 $last = $_;

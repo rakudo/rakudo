@@ -13,6 +13,7 @@ New in 2014.03
 + list infix reductions no longer flatten
 + X and Z meta ops treat [] as items
 + unary hyper subscripts (@array>>.[0]) now work
++ fixed problem with .=uniq and .=squish
 
 New in 2014.02
 

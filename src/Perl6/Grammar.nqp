@@ -1142,7 +1142,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token xblock($*IMPLICIT = 0) {
         :my $*GOAL := '{';
         :my $*BORG := {};
-        <EXPR> {$*BORG<culprit> := $*BORG<culprit> // $<EXPR>.CURSOR.at(self.pos)} <.ws> <pblock($*IMPLICIT)>
+        <EXPR> <.ws> <pblock($*IMPLICIT)>
     }
 
     token pblock($*IMPLICIT = 0) {
@@ -2779,7 +2779,6 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         {
             if nqp::ishash($*BORG) && $*BORG<block> {
                 unless $*BORG<name> {
-                    $*BORG<culprit> := $<identifier>.CURSOR.at($pos);
                     $*BORG<name> := ~$<identifier>;
                 }
             }
@@ -2819,7 +2818,6 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
            {
                if nqp::ishash($*BORG) && $*BORG<block> {
                    unless $*BORG<name> {
-                       $*BORG<culprit> := $<longname>.CURSOR.at($pos);
                        $*BORG<name> := $*BORG<name> // ~$<longname>;
                    }
                }

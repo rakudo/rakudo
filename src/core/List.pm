@@ -411,7 +411,7 @@ my class List does Positional { # declared in BOOTSTRAP
             }
             else {
                 nqp::bindkey($seen, $target, 1);
-                .take;
+                take $_;
             }
         }, @.list;
     }
@@ -422,7 +422,7 @@ my class List does Positional { # declared in BOOTSTRAP
             $target = &as($_);
             if first( { with($target,$_) }, @seen ) =:= Nil {
                 @seen.push($target);
-                .take;
+                take $_;
             }
             else {
                 next;
@@ -439,7 +439,7 @@ my class List does Positional { # declared in BOOTSTRAP
             }
             else {
                 nqp::bindkey($seen, $target, 1);
-                .take;
+                take $_;
             }
         }, @.list;
     }
@@ -452,7 +452,7 @@ my class List does Positional { # declared in BOOTSTRAP
             $target := $_;
             if first( { with($target,$_) }, @seen ) =:= Nil {
                 @seen.push($target);
-                .take;
+                take $_;
             }
             else {
                 next;
@@ -472,7 +472,7 @@ my class List does Positional { # declared in BOOTSTRAP
             }
             else {
                 $last = $which;
-                .take;
+                take $_;
             }
         }, @.list;
     }
@@ -484,7 +484,7 @@ my class List does Positional { # declared in BOOTSTRAP
             }
             else {
                 $last = $_;
-                .take;
+                take $_;
             }
         }, @.list;
     }

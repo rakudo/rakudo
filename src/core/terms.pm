@@ -35,9 +35,18 @@ sub term:<time>() { nqp::p6box_i(nqp::time_i()) }
         $key = nqp::p6box_s(nqp::iterkey_s($envelem));
         %PROPS{$key} = nqp::p6box_s(nqp::iterval($envelem));
     }
+    my %CONFIG;
+    $jenv := nqp::backendconfig();
+    $enviter := nqp::iterator($jenv);
+    while $enviter {
+        $envelem := nqp::shift($enviter);
+        $key = nqp::p6box_s(nqp::iterkey_s($envelem));
+        %CONFIG{$key} = nqp::p6box_s(nqp::iterval($envelem));
+    }
     my $VM = {
         name    => 'jvm',
         properties => %PROPS,
+        config => %CONFIG,
     }
 #?endif
 #?if moar

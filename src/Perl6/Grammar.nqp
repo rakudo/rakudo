@@ -871,6 +871,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*METHODTYPE;                          # the current type of method we're in, if any
         :my $*PKGDECL;                             # what type of package we're in, if any
         :my %*MYSTERY;                             # names we assume may be post-declared functions
+        :my $*BORG;                                # who gets blamed for a missing block
         :my $*CCSTATE := '';
         
         # Error related. There are three levels: worry (just a warning), sorry
@@ -1140,6 +1141,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     token xblock($*IMPLICIT = 0) {
         :my $*GOAL := '{';
+        :my $*BORG := {};
         <EXPR> <.ws> <pblock($*IMPLICIT)>
     }
 
@@ -1155,7 +1157,28 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         | <?[{]>
             <.newpad>
             <blockoid>
-        || <.missing: 'block'>
+        || {
+               if nqp::ishash($*BORG) && $*BORG<block> {
+                   my $pos := $/.CURSOR.pos;
+                   if $*BORG<name> {
+                        $/.CURSOR.'!clear_highwater'();
+                        $/.CURSOR.'!cursor_pos'($*BORG<block>.CURSOR.pos);
+                        $/.CURSOR.sorry("Function '" ~ $*BORG<name> ~ "' needs parens to avoid taking the block");
+                        $/.CURSOR.'!cursor_pos'($pos);
+                        $/.CURSOR.missing("block (apparently taken by '" ~ $*BORG<name> ~ "')");
+                   } else {
+                        $/.CURSOR.'!clear_highwater'();
+                        $/.CURSOR.'!cursor_pos'($*BORG<block>.CURSOR.pos);
+                        $/.CURSOR.sorry("Expression needs parens to avoid taking the block");
+                        $/.CURSOR.'!cursor_pos'($pos);
+                        $/.CURSOR.missing("block (apparently taken by expression)");
+                   }
+               } elsif %*MYSTERY {
+                   $/.CURSOR.missing("block (taken by some undeclared routine?)");
+               } else {
+                   $/.CURSOR.missing("block");
+               }
+           }
         ]
     }
 
@@ -1520,7 +1543,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token term:sym<statement_prefix>   { <statement_prefix> }
     token term:sym<**>                 { <sym> <.NYI('HyperWhatever (**)')> }
     token term:sym<*>                  { <sym> }
-    token term:sym<lambda>             { <?lambda> <pblock> }
+    token term:sym<lambda>             { <?lambda> <pblock> {$*BORG<block> := $<pblock> if nqp::ishash($*BORG)} }
     token term:sym<type_declarator>    { <type_declarator> }
     token term:sym<value>              { <value> }
     token term:sym<unquote>            { '{{{' <?{ $*IN_QUASI }> <statementlist> '}}}' }
@@ -2748,8 +2771,18 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token term:sym<!!!> { <sym> <args> }
 
     token term:sym<identifier> {
-        <identifier> <!{ $*W.is_type([~$<identifier>]) }> <?before <.unsp>|'('> <args>
+        :my $pos;
+        <identifier> <!{ $*W.is_type([~$<identifier>]) }> <?before <.unsp>|'('> <![:]>
+        { $pos := $/.CURSOR.pos }
+        <args>
         { self.add_mystery($<identifier>, $<args>.from, nqp::substr(~$<args>, 0, 1)) }
+        {
+            if nqp::ishash($*BORG) && $*BORG<block> {
+                unless $*BORG<name> {
+                    $*BORG<name> := ~$<identifier>;
+                }
+            }
+        }
     }
     
     token term:sym<pir::op> {
@@ -2771,7 +2804,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token term:sym<name> {
         <longname>
         :my $*longname;
-        { $*longname := $*W.dissect_longname($<longname>) }
+        :my $pos;
+        { $*longname := $*W.dissect_longname($<longname>); $pos := $/.CURSOR.pos }
         [
         ||  <?{ nqp::substr($<longname>.Str, 0, 2) eq '::' || $*W.is_name($*longname.components()) }>
             <.unsp>?
@@ -2781,6 +2815,13 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             ]?
         || <args> { self.add_mystery($<longname>, $<args>.from, 'termish')
                         unless nqp::index($<longname>.Str, '::') >= 0 }
+           {
+               if nqp::ishash($*BORG) && $*BORG<block> {
+                   unless $*BORG<name> {
+                       $*BORG<name> := $*BORG<name> // ~$<longname>;
+                   }
+               }
+           }
         ]
     }
 
@@ -3126,7 +3167,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
     token circumfix:sym«<< >>» { :dba('shell-quote words') '<<' ~ '>>' <nibble(self.quote_lang(%*LANG<Q>, "<<", ">>", ['qq', 'ww']))> }
     token circumfix:sym<« »> { :dba('shell-quote words') '«' ~ '»' <nibble(self.quote_lang(%*LANG<Q>, "«", "»", ['qq', 'ww']))> }
-    token circumfix:sym<{ }> { <?[{]> <pblock(1)> }
+    token circumfix:sym<{ }> { <?[{]> <pblock(1)> {$*BORG<block> := $<pblock> if nqp::ishash($*BORG)} }
 
     ## Operators
 

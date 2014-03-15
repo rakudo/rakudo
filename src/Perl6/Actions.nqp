@@ -7118,7 +7118,7 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions does STDActions {
             } elsif $*W.regex_in_scope('&' ~ $name) {
                 $qast := QAST::Regex.new(:rxtype<subrule>, :subtype<capture>,
                                          :node($/), QAST::Node.new(
-                                            QAST::SVal.new( :value('INTERPOLATE') ),
+                                            QAST::SVal.new( :value('INDRULE') ),
                                             QAST::Var.new( :name('&' ~ $name), :scope('lexical') ) ), 
                                          :name($name) );
             }

@@ -1,5 +1,5 @@
 my class Cursor does NQPCursorRole {
-    has $!ast; # Need it to survive re-creations of the match object.
+    has $!made; # Need it to survive re-creations of the match object.
 
     method MATCH() {
         my $match := nqp::getattr(self, Cursor, '$!match');
@@ -8,7 +8,7 @@ my class Cursor does NQPCursorRole {
         nqp::bindattr($match, Match, '$!orig', nqp::findmethod(self, 'orig')(self));
         nqp::bindattr_i($match, Match, '$!from', nqp::getattr_i(self, Cursor, '$!from'));
         nqp::bindattr_i($match, Match, '$!to', nqp::getattr_i(self, Cursor, '$!pos'));
-        nqp::bindattr($match, Match, '$!ast', nqp::getattr(self, Cursor, '$!ast'));
+        nqp::bindattr($match, Match, '$!made', nqp::getattr(self, Cursor, '$!made'));
         nqp::bindattr($match, Match, '$!CURSOR', self);
         my Mu $list := nqp::list();
         my Mu $hash := nqp::hash();
@@ -165,6 +165,10 @@ my class Cursor does NQPCursorRole {
     method OTHERGRAMMAR($grammar, $name, |) {
         my $lang_cursor := $grammar.'!cursor_init'(self.target(), :p(self.pos()));
         $lang_cursor."$name"(); 
+    }
+    
+    method INDRULE($rule, |c) {
+        $rule(self, |c)
     }
     
     method RECURSE() {

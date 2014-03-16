@@ -76,7 +76,7 @@ my class Range is Iterable is Cool does Positional {
             $count = self.infinite ?? 10 !! $Inf;
         }
         else {
-            $count = $n.Num;
+            $count = $n.Num max 1024e0;
             fail "request for infinite elements from range"
               if $count == $Inf && self.infinite;
         }
@@ -203,3 +203,5 @@ sub infix:<^..^>($min, $max) is pure {
 sub prefix:<^>($max) is pure {
     Range.new(0, $max.Numeric, :excludes_max) 
 }
+
+# vim: ft=perl6 expandtab sw=4

@@ -97,6 +97,7 @@ my class IO::Handle does IO::FileTestable {
             :enc(:$encoding) = 'utf8') {
         $path //= $!path;
         my $abspath = defined($*CWD) ?? IO::Spec.rel2abs($path) !! $path;
+#?if parrot
         my $mode =  $p ?? ($w ||  $a ?? 'wp' !! 'rp') !!
                    ($w ?? 'w' !! ($a ?? 'wa' !! 'r' ));
         # TODO: catch error, and fail()
@@ -105,9 +106,40 @@ my class IO::Handle does IO::FileTestable {
                 ?? ( $w || $a ?? nqp::getstdout() !! nqp::getstdin() )
                 !! nqp::open(nqp::unbox_s($abspath.Str), nqp::unbox_s($mode))
         );
+#?endif
+#?if !parrot
+        if $p {
+            #~ my $mode =  $p ?? ($w ||  $a ?? 'wp' !! 'rp');
+
+            my Mu $hash-with-containers := nqp::getattr(%*ENV, EnumMap, '$!storage');
+            my Mu $hash-without         := nqp::hash();
+            my Mu $enviter := nqp::iterator($hash-with-containers);
+            my $envelem;
+            while $enviter {
+                $envelem := nqp::shift($enviter);
+                nqp::bindkey($hash-without, nqp::iterkey_s($envelem), nqp::decont(nqp::iterval($envelem)))
+            }
+
+            my $errpath = '';
+            nqp::bindattr(self, IO::Handle, '$!PIO',
+                 $path eq '-'
+                    ?? ( $w || $a ?? nqp::getstdout() !! nqp::getstdin() )
+                    !! nqp::openpipe(nqp::unbox_s($abspath.Str), nqp::unbox_s($*CWD.Str), $hash-without, nqp::unbox_s($errpath))
+            );
+        }
+        else {
+            my $mode =  $w ?? 'w' !! ($a ?? 'wa' !! 'r' );
+            # TODO: catch error, and fail()
+            nqp::bindattr(self, IO::Handle, '$!PIO',
+                 $path eq '-'
+                    ?? ( $w || $a ?? nqp::getstdout() !! nqp::getstdin() )
+                    !! nqp::open(nqp::unbox_s($abspath.Str), nqp::unbox_s($mode))
+            );
+        }
+#?endif
         $!path = $path;
         $!chomp = $chomp;
-        nqp::setencoding($!PIO, $bin ?? 'binary' !! NORMALIZE_ENCODING($encoding));
+        nqp::setencoding($!PIO, NORMALIZE_ENCODING($encoding)) unless $bin;
         self;
     }
 
@@ -161,7 +193,7 @@ my class IO::Handle does IO::FileTestable {
         my Mu $parrot_buffer := $!PIO.read_bytes(nqp::unbox_i($bytes));
         nqp::encode($parrot_buffer.get_string('binary'), 'binary', $buf);
 #?endif
-#?if jvm
+#?if !parrot
         nqp::readfh($!PIO, $buf, nqp::unbox_i($bytes));
 #?endif
         $buf;
@@ -180,7 +212,7 @@ my class IO::Handle does IO::FileTestable {
 #?if parrot
             $!PIO.tell
 #?endif
-#?if jvm
+#?if !parrot
             nqp::tellfh($!PIO)
 #?endif
         );
@@ -195,7 +227,7 @@ my class IO::Handle does IO::FileTestable {
         $!PIO.print(nqp::decode(nqp::decont($buf), 'binary'));
         $!PIO.encoding($encoding) unless $encoding eq 'binary';
 #?endif
-#?if jvm
+#?if !parrot
         nqp::writefh($!PIO, nqp::decont($buf));
 #?endif
         True;
@@ -332,7 +364,16 @@ my class IO::Path is Cool does IO::FileTestable {
     method dir() {
         die "IO::Path.dir is deprecated in favor of .directory";
     }
-    submethod BUILD(:$!path!, :$dir) { 
+
+    multi method ACCEPTS(IO::Path:D: IO::Path:D \other) {
+        self.cleanup.parts eqv other.cleanup.parts
+    }
+
+    multi method ACCEPTS(IO::Path:D: Mu \other) {
+        self.cleanup.parts eqv IO::Path.new(|other).cleanup.parts
+    }
+
+    submethod BUILD(:$!path!, :$dir) {
         die "Named paramter :dir in IO::Path.new deprecated in favor of :directory"
             if defined $dir;
     }
@@ -488,18 +529,31 @@ my class IO::Path is Cool does IO::FileTestable {
             }
         }
 #?endif
-#?if jvm
+#?if !parrot
         my Mu $dirh := nqp::opendir(self.absolute.Str);
         my $next = 1;
         gather {
+#?endif
+#?if jvm
             take $_.path if $_ ~~ $test for ".", "..";
+#?endif
+#?if !parrot
             loop {
                 my Str $elem := nqp::nextfiledir($dirh);
-                if nqp::isnull_s($elem) {
+                if nqp::isnull_s($elem) || !$elem {
                     nqp::closedir($dirh);
                     last;
                 } else {
+#?endif
+#?if jvm
+                    # jvm's nextfiledir gives us absolute paths back, moar does not.
                     $elem := $elem.substr($*CWD.chars + 1) if self.is-relative;
+#?endif
+#?if moar
+                    next unless $elem ~~ $test;
+                    $elem := $.SPEC.catfile($!path, $elem) if self ne '.';
+#?endif
+#?if !parrot
                     if $elem.substr(0, 2) eq any("./", ".\\") {
                         $elem := $elem.substr(2);
                     }
@@ -772,3 +826,5 @@ sub link(Cool $target as Str, Cool $name as Str) {
 }
 
 sub chmod($mode, $filename) { $filename.path.absolute.chmod($mode); $filename }
+
+# vim: ft=perl6 expandtab sw=4

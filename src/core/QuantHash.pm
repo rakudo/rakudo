@@ -4,3 +4,5 @@ my role QuantHash does Associative {
     method Numeric ( --> Numeric) { self.total.Numeric }
     method Real    ( --> Real)    { self.total.Real }
 }
+
+# vim: ft=perl6 expandtab sw=4

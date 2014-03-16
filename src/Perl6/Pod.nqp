@@ -14,7 +14,9 @@ class Perl6::Pod {
         my @children := [];
         my $type;
         my $leveled;
-        my $config := $<pod_configuration>.ast;
+        my $config := $<pod_configuration>
+            ?? $<pod_configuration>.ast
+            !! serialize_object('Hash').compile_time_value;
 
         if $<type>.Str ~~ /^item \d*$/ {
             $type    := 'Pod::Item';
@@ -58,13 +60,13 @@ class Perl6::Pod {
     }
 
     our sub raw_block($/) {
-        my $config := $<pod_configuration>.ast;
+        my $config := $<pod_configuration>
+            ?? $<pod_configuration>.ast
+            !! serialize_object('Hash').compile_time_value;
         my $str := $*W.add_constant('Str', 'str', ~$<pod_content>);
         my $content := serialize_array([$str.compile_time_value]);
-        my $type := $<type>.Str eq 'code' ?? 'Pod::Block::Code'
-                                          !! 'Pod::Block::Comment';
         my $past := serialize_object(
-            $type, :config($config),
+            'Pod::Block::Comment', :config($config),
             :content($content.compile_time_value),
         );
         return $past.compile_time_value;
@@ -136,7 +138,9 @@ class Perl6::Pod {
         return $r;
     }
     our sub table($/) {
-        my $config := $<pod_configuration>.ast;
+        my $config := $<pod_configuration>
+            ?? $<pod_configuration>.ast
+            !! serialize_object('Hash').compile_time_value;
 
         my @rows := [];
         for $<table_row> {
@@ -323,6 +327,12 @@ class Perl6::Pod {
     }
 
     our sub build_pod_string(@content) {
+        return $*POD_IN_CODE_BLOCK
+            ?? build_pod_code_string(@content)
+            !! build_pod_regular_string(@content)
+    }
+
+    our sub build_pod_regular_string(@content) {
         sub push_strings(@strings, @where) {
             my $s := subst(nqp::join('', @strings), /\s+/, ' ', :global);
             my $t := $*W.add_constant(
@@ -352,6 +362,31 @@ class Perl6::Pod {
         return @res;
     }
 
+    # Code strings need to be handled differently:
+    # Formatting codes need to be saved, but everything
+    # else should be verbatim
+    our sub build_pod_code_string(@content) {
+        sub push_strings(@strings, @where) {
+            my $s := nqp::join('', @strings);
+            my $t := $*W.add_constant('Str', 'str', $s).compile_time_value;
+            @where.push($t);
+        }
+
+        my @res  := [];
+        my @strs := [];
+        for @content -> $elem {
+            if nqp::isstr($elem) {
+                @strs.push($elem);
+            } else {
+                push_strings(@strs, @res);
+                @strs := [];
+                @res.push($elem);
+            }
+        }
+        push_strings(@strs, @res);
+
+        return @res;
+    }
 
     # takes an array of strings (rows of a table)
     # returns array of arrays of strings (cells)

@@ -34,3 +34,5 @@ my class Stash { # declared in BOOTSTRAP
         }
     }
 }
+
+# vim: ft=perl6 expandtab sw=4

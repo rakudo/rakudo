@@ -5,6 +5,7 @@ my role Baggy does QuantHash {
     method default(--> Int) { 0 }
     method keys { %!elems.values.map( {.key} ) }
     method values { %!elems.values.map( {.value} ) }
+    method kv { %!elems.values.map( {.key, .value} ) }
     method elems(--> Int) { %!elems.elems }
     method total(--> Int) { [+] self.values }
     method exists ($k --> Bool) {  # is DEPRECATED doesn't work in settings
@@ -76,7 +77,7 @@ my role Baggy does QuantHash {
 
     method grab ($count = 1) {
         my @grab = ROLLPICKGRAB(self, $count, %!elems.values);
-        %!elems{ @grab.map({.WHICH}).grep: { %!elems{$_}.value == 0 } }:delete;
+        %!elems{ @grab.map({.WHICH}).grep: { %!elems{$_} && %!elems{$_}.value == 0 } }:delete;
         @grab;
     }
     method grabpairs($count = 1) {
@@ -180,3 +181,5 @@ my role Baggy does QuantHash {
         samewith( { @test[$^a] }, @list );
     }
 }
+
+# vim: ft=perl6 expandtab sw=4

@@ -34,7 +34,7 @@ my class IO::Spec::Unix {
     method no-parent-or-current-test { none('.', '..')  }
 
     method is-absolute( $file ) {
-        so $file ~~ m/^\//
+        so $file.match(/^\//)
     }
 
     method path {
@@ -156,3 +156,5 @@ my class IO::Spec::Unix {
         self.catdir( $base, $path );
     }
 }
+
+# vim: ft=perl6 expandtab sw=4

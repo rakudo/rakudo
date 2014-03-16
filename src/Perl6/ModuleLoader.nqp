@@ -153,7 +153,7 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
                 my $source := $fh.readall();
                 $fh.close();
 #?endif
-#?if jvm
+#?if !parrot
                 my $fh := nqp::open(%chosen<pm>, 'r');
                 nqp::setencoding($fh, 'utf8');
                 my $source := nqp::readallfh($fh);
@@ -281,7 +281,7 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
             # appropriately copied.
             if $orig.HOW.name($orig) eq 'Stash' {
                 for $orig.FLATTENABLE_HASH() {
-                    unless nqp::existskey($current, $_.key) {
+                    if !nqp::existskey($current, $_.key) || nqp::substr($_.key, 0, 1) eq '&' {
                         $current{$_.key} := $_.value;
                     }
                 }

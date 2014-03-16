@@ -7,6 +7,7 @@ my class Duration is Cool does Real {
     method Bridge(Duration:D:) { $!x.Num }
     method Rat(Duration:D:)    { $!x     }
     method Num(Duration:D:)    { $!x.Num }
+    method narrow(Duration:D:) { $!x.narrow }
 
     multi method Str(Duration:D:) { ~$.x }
 
@@ -37,3 +38,5 @@ multi sub infix:<->(Duration:D $a, Duration:D $b) {
 multi sub infix:<%>(Duration:D $a, Real $b) {
     Duration.new: $a.x % $b
 }
+
+# vim: ft=perl6 expandtab sw=4

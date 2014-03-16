@@ -2,6 +2,7 @@
 my class X::Comp::NYI { ... };
 my class X::Comp::Trait::Unknown { ... };
 my class X::Comp::Trait::NotOnNative { ... };
+my class X::Comp::Trait::Scope { ... };
 
 # Variable traits come here, not in traits.pm, since we declare Variable
 # in the setting rather than BOOTSTRAP.
@@ -63,6 +64,22 @@ multi trait_mod:<is>(Variable:D $v, :$dynamic!) {
               :type<is>, :subtype<dynamic> ); # can't find out native type yet
         }
     }
+}
+multi trait_mod:<is>(Variable:D $v, :$export!) {
+    if $v.scope ne 'our' {
+        $v.throw( 'X::Comp::Trait::Scope',
+          type      => 'is',
+          subtype   => 'export',
+          declaring => 'variable',
+          scope     => $v.scope,
+          supported => ['our'],
+        );
+    }
+    my $var  := $v.var;
+    my @tags = 'ALL', ($export ~~ Pair ?? $export.key() !!
+                       $export ~~ Positional ?? @($export)>>.key !!
+                       'DEFAULT');
+    EXPORT_SYMBOL($var.VAR.name, @tags, $var);
 }
 
 # "of" traits
@@ -155,3 +172,5 @@ multi trait_mod:<will>(Variable:D $v, $block, :$compose! ) {
 # for some reason exceptions are caught and not rethrown
 #    $*W.add_phaser($v.slash, 'COMPOSE', $block)  # doesn't work :-(
 }
+
+# vim: ft=perl6 expandtab sw=4

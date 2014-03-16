@@ -7,9 +7,8 @@ my class Capture { # declared in BOOTSTRAP
         nqp::bindattr(self, Capture, '$!list',
             nqp::getattr(nqp::decont(@list.Parcel), Parcel, '$!storage')
         );
-        nqp::bindattr(self, Capture, '$!hash',
-            nqp::getattr(nqp::decont(%hash), EnumMap, '$!storage')
-        );
+        my Mu $hs := nqp::getattr(nqp::decont(%hash), EnumMap, '$!storage');
+        nqp::bindattr(self, Capture, '$!hash', nqp::ishash($hs) ?? $hs !! nqp::hash());
         1;
     }
 
@@ -119,3 +118,4 @@ multi sub infix:<eqv>(Capture $a, Capture $b) {
     $a.WHAT === $b.WHAT && $a.list eqv $b.list && $a.hash eqv $b.hash
 }
 
+# vim: ft=perl6 expandtab sw=4

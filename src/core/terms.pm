@@ -35,9 +35,24 @@ sub term:<time>() { nqp::p6box_i(nqp::time_i()) }
         $key = nqp::p6box_s(nqp::iterkey_s($envelem));
         %PROPS{$key} = nqp::p6box_s(nqp::iterval($envelem));
     }
+    my %CONFIG;
+    $jenv := nqp::backendconfig();
+    $enviter := nqp::iterator($jenv);
+    while $enviter {
+        $envelem := nqp::shift($enviter);
+        $key = nqp::p6box_s(nqp::iterkey_s($envelem));
+        %CONFIG{$key} = nqp::p6box_s(nqp::iterval($envelem));
+    }
     my $VM = {
         name    => 'jvm',
         properties => %PROPS,
+        config => %CONFIG,
+    }
+#?endif
+#?if moar
+    my $VM = {
+        name    => 'moar',
+        config  => nqp::backendconfig
     }
 #?endif
     nqp::bindkey(nqp::who(PROCESS), '$VM', $VM);
@@ -74,10 +89,13 @@ sub term:<time>() { nqp::p6box_i(nqp::time_i()) }
 
     my $prefix :=
 #?if jvm
-         $VM<properties><perl6.prefix>
+        $VM<properties><perl6.prefix>
 #?endif
-#?if !jvm
-         $VM<config><libdir> ~ $VM<config><versiondir>
+#?if parrot
+        $VM<config><libdir> ~ $VM<config><versiondir>
+#?endif
+#?if moar
+        $VM<config><prefix>
 #?endif
          ~ '/languages/perl6';
 
@@ -132,10 +150,10 @@ sub term:<time>() { nqp::p6box_i(nqp::time_i()) }
     nqp::bindkey(nqp::who(PROCESS), '$OSVER', $OSVER);
 #?endif
 #?if !jvm
-    my $OS = $VM<config><osname>; # XXX: master gets this information with the sysinfo dynop
+    my $OS = $VM<config><osname>; # XXX: master gets this information with the sysinfo dynop on parrot
     nqp::bindkey(nqp::who(PROCESS), '$OS', $OS);
 
-    my $OSVER = $VM<config><osvers>; # XXX: master gets this information with the sysinfo dynop
+    my $OSVER = $VM<config><osname>; # XXX: master gets this information with the sysinfo dynop on parrot
     nqp::bindkey(nqp::who(PROCESS), '$OSVER', $OSVER);
 #?endif
 
@@ -148,6 +166,9 @@ sub term:<time>() { nqp::p6box_i(nqp::time_i()) }
 #?endif
 #?if jvm
         'perl6-j';
+#?endif
+#?if moar
+        $VM<config><osname> eq 'MSWin32' ?? 'perl6-m.bat' !! 'perl6-m';
 #?endif
     nqp::bindkey(nqp::who(PROCESS), '$EXECUTABLE_NAME', $EXECUTABLE_NAME);
     my Mu $comp := nqp::getcomp('perl6');

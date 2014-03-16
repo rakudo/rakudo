@@ -18,5 +18,6 @@ role Perl6::Metamodel::TypePretense {
                 return 1;
             }
         }
+        0;
     }
 }

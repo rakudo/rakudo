@@ -50,6 +50,7 @@ my class Instant is Cool does Real {
     method Bridge(Instant:D:) { $.x.Bridge }
     method Num   (Instant:D:) { $.x.Num    }
     method Int   (Instant:D:) { $.x.Int    }
+    method narrow(Instant:D:) { $.x.narrow }
 
 
 
@@ -117,3 +118,7 @@ sub term:<now>() {
     # second greater than it should be.
     Instant.from-posix: nqp::time_n
 }
+
+PROCESS::<$INITTIME> = now;
+
+# vim: ft=perl6 expandtab sw=4

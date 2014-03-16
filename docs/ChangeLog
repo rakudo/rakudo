@@ -1,3 +1,59 @@
+New in 2014.03
+
++ Fix suggestions for unknown routines when specified with '&'
++ Match sigil in suggestions for unknown routines depending on specification
++ Improve suggestions for 'length' and 'bytes' being banned in Perl 6
++ fixed for-loops to be properly lazy
++ Zop= now works
++ numerous Pod parsing and formatting improvements
++ uniname, uniprop, and unival implemented on MoarVM backend
++ @<c> as shortcut for @$<c>, %<c> as shortcut for %$<c>
++ improved "unable to deduce sequence" error message
++ duckmap, deepmap implemented
++ list infix reductions no longer flatten
++ X and Z meta ops treat [] as items
++ unary hyper subscripts (@array>>.[0]) now work
++ fixed problem with .=uniq and .=squish
+
+New in 2014.02
+
++ $*INITTIME implemented
++ improved code generation for loops on the JVM backend
++ eager and lazy statement prefixes
++ statementlist-level for-loops are now assumed to be in sink context
++ improved unspace parsing
++ don't itemize make's ast argument
++ allow definition of custom postcircumfix operators
++ :allow in pod code blocks works now
++ Configure: git protocol is now configurable
++ smartmatching against an IO::Path does the right thing now
++ perl6-debug-* is now installed by rakudo; the user interface is still a
+module available from the ecosystem
++ lots of improvements for moarvm, such as client and server socket support
+and opening pipes/subprocesses
++ finished NativeCall support on the JVM
+
+New in 2014.01
+
++ Use .narrow on Numeric to coerce to narrowest Type possible
++ Can now supply blocks with multiple arguments as sequence endpoints
++ <prior> rule no longer exists
++ The eval sub and method are now spelled EVAL
++ Method calls and hash/list access on Nil give Nil
++ No longer need to separate adverbs with comma in argument lists
++ div on parrot will now always round towards -Inf
++ Added support for MoarVM; passes >99% of the spectests that Rakudo JVM does
++ Fixed gather/take stack overflow bug in JVM backend
++ Fixed closure in regex bug on JVM
++ Fixed some line number reporting bugs on JVM
++ Optimized Enum($value) coercion
++ Regexes: Aliased assertions now properly create sub-captures
++ Regexes: Improved detection/reporting of null patterns
++ Implemented IO::Async::File.spurt (JVM only)
++ Implemented Setty.kv and Baggy.kv
++ Use a global ByteClassLoader rather than one per class. (JVM only)
++ Implement more parts of NativeCall for the JVM
+
 New in 2013.12
 
 + The Whatever Star now works inside chain operators like comparisons

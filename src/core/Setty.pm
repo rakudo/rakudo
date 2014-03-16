@@ -5,6 +5,7 @@ my role Setty does QuantHash {
     method default(--> Bool) { False }
     method keys { %!elems.values }
     method values { True xx %!elems.elems }
+    method kv { %!elems.values X, True }
     method elems(--> Int) { %!elems.elems }
     method total(--> Int) { %!elems.elems }
     method exists ($k --> Bool) {  # is DEPRECATED doesn't work in settings
@@ -75,3 +76,5 @@ my role Setty does QuantHash {
 
     # TODO: WHICH will require the capability for >1 pointer in ObjAt
 }
+
+# vim: ft=perl6 expandtab sw=4

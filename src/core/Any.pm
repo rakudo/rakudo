@@ -66,6 +66,8 @@ my class Any { # declared in BOOTSTRAP
     method kv()     { self.list.kv }
     method pairs()  { self.list.pairs }
     method reduce(&with) { self.list.reduce(&with) }
+    method combinations(|c) { self.list.combinations(|c) }
+    method permutations(|c) { self.list.permutations(|c) }
 
     proto method classify(|) { * }
     multi method classify($test)   {
@@ -90,6 +92,10 @@ my class Any { # declared in BOOTSTRAP
     method map($block) is rw {
         MapIter.new(self, $block, Bool::True).list
     }
+    method flatmap($block) is rw { flatmap($block, self) }
+    method duckmap($block) is rw { duckmap($block, self) }
+    method deepmap($block) is rw { deepmap($block, self) }
+
     proto method tree(|) { * }
     multi method tree(Any:U:) { self }
     multi method tree(Any:D:) { self.lol }
@@ -257,7 +263,6 @@ my class Any { # declared in BOOTSTRAP
 
     method KeySet() { DEPRECATED("'SetHash'"); self.SetHash }
     method KeyBag() { DEPRECATED("'BagHash'"); self.BagHash }
-
 }
 Metamodel::ClassHOW.exclude_parent(Any);
 
@@ -828,3 +833,5 @@ sub SLICE_MORE ( \SELF, $more, $array, *%adv ) is hidden_from_backtrace {
       ?? SLICE_HUH( SELF, @nogo, %a, %adv )
       !! result;
 } #SLICE_MORE
+
+# vim: ft=perl6 expandtab sw=4

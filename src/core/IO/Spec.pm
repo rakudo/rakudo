@@ -23,6 +23,9 @@ my class IO::Spec {
 #?if jvm
     $submodule = %module{ nqp::p6box_s(nqp::atkey(nqp::jvmgetproperties(), 'os.name')) };
 #?endif
+#?if moar
+    $submodule = %module{ nqp::p6box_s(nqp::atkey(nqp::backendconfig(), 'osname')) };
+#?endif
     my $SPEC := IO::Spec.WHO{ $submodule // 'Unix' };
 
     method FSTYPE ($OS = $*OS)   { %module{$OS} // 'Unix' }
@@ -66,3 +69,5 @@ my class IO::Spec {
 nqp::gethllsym('perl6', 'ModuleLoader').register_absolute_path_func(
     sub ($path) { return IO::Spec.rel2abs($path); }
 );
+
+# vim: ft=perl6 expandtab sw=4

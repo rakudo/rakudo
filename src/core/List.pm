@@ -1,6 +1,36 @@
 # for our tantrums
 my class X::TypeCheck { ... }
 
+my sub combinations($n, $k) {
+    my @result;
+    my @stack;
+
+    return [] unless $k;
+
+    @stack.push(0);
+    gather while @stack {
+	my $index = @stack - 1;
+	my $value = @stack.pop;
+
+	while $value < $n {
+	    @result[$index++] = $value++;
+	    @stack.push($value);
+	    if $index == $k {
+		take [@result];
+		$value = $n;  # fake a last
+	    }
+	}
+    }
+}
+
+my sub permutations(Int $n) {
+    $n == 1 ?? ( [0,] ) !!
+    gather for ^$n -> $i {
+	my @i = grep none($i), ^$n;
+	take [$i, @i[@$_]] for permutations($n - 1);
+    }
+}
+
 my class List does Positional { # declared in BOOTSTRAP
     # class List is Iterable is Cool
     #   has Mu $!items;        # VM's array of our reified elements
@@ -110,7 +140,7 @@ my class List does Positional { # declared in BOOTSTRAP
         return unless self.DEFINITE;
         # loop through iterators until we have at least $n elements
         my int $count = nqp::elems(nqp::p6listitems(self));
-        my $eager = nqp::p6bool(nqp::istype($n, Whatever) || $n == $Inf);
+        my $eager = nqp::p6bool(nqp::istype($n, Whatever) || nqp::istype($n, Num) && $n == $Inf);
         while $!nextiter.defined && ($eager 
                                        ?? !$!nextiter.infinite 
                                        !! ($count < $n)) {
@@ -374,42 +404,42 @@ my class List does Positional { # declared in BOOTSTRAP
     multi method uniq() {
         my $seen := nqp::hash();
         my str $target;
-        map {
+        gather map {
             $target = nqp::unbox_s($_.WHICH);
             if nqp::existskey($seen, $target) {
-                Nil;
+                next;
             }
             else {
                 nqp::bindkey($seen, $target, 1);
-                $_;
+                take $_;
             }
         }, @.list;
     }
     multi method uniq( :&as!, :&with! ) {
         my @seen;  # should be Mu, but doesn't work in settings :-(
         my Mu $target;
-        map {
+        gather map {
             $target = &as($_);
             if first( { with($target,$_) }, @seen ) =:= Nil {
                 @seen.push($target);
-                $_;
+                take $_;
             }
             else {
-                Nil;
+                next;
             }
         }, @.list;
     }
     multi method uniq( :&as! ) {
         my $seen := nqp::hash();
         my str $target;
-        map {
+        gather map {
             $target = &as($_).WHICH;
             if nqp::existskey($seen, $target) {
-                Nil;
+                next;
             }
             else {
                 nqp::bindkey($seen, $target, 1);
-                $_;
+                take $_;
             }
         }, @.list;
     }
@@ -418,14 +448,14 @@ my class List does Positional { # declared in BOOTSTRAP
 
         my @seen;  # should be Mu, but doesn't work in settings :-(
         my Mu $target;
-        map {
+        gather map {
             $target := $_;
             if first( { with($target,$_) }, @seen ) =:= Nil {
                 @seen.push($target);
-                $_;
+                take $_;
             }
             else {
-                Nil;
+                next;
             }
         }, @.list;
     }
@@ -435,26 +465,26 @@ my class List does Positional { # declared in BOOTSTRAP
     multi method squish( :&as!, :&with = &[===] ) {
         my $last = @secret;
         my str $which;
-        map {
+        gather map {
             $which = &as($_).Str;
             if with($which,$last) {
-                Nil;
+                next;
             }
             else {
                 $last = $which;
-                $_;
+                take $_;
             }
         }, @.list;
     }
     multi method squish( :&with = &[===] ) {
         my $last = @secret;
-        map {
+        gather map {
             if with($_,$last) {
-                Nil;
+                next;
             }
             else {
                 $last = $_;
-                $_;
+                take $_;
             }
         }, @.list;
     }
@@ -491,8 +521,7 @@ my class List does Positional { # declared in BOOTSTRAP
     }
 
     method keys(List:) {
-        return unless self.DEFINITE;
-        (0..self.end).list;
+        self.values.map: { (state $)++ }
     }
     method values(List:) {
         return unless self.DEFINITE;
@@ -501,25 +530,19 @@ my class List does Positional { # declared in BOOTSTRAP
         nqp::p6list($rpa, List, self.flattens);
     }
     method pairs(List:) {
-        return unless self.DEFINITE;
-        self.keys.map: {; $_ => self.at_pos($_) };
+        self.values.map: {; (state $)++ => $_ }
     }
     method kv(List:) {
-        self.keys.map: { ($_, self.at_pos($_)) };
+        self.values.map: { ((state $)++, $_) }
     }
 
     method reduce(List: &with) {
         fail('can only reduce with arity 2')
             unless &with.arity <= 2 <= &with.count;
         return unless self.DEFINITE;
-        my Mu $val;
-        for self.keys {
-            if $_ == 0 {
-                $val = self.at_pos(0);
-                next;
-            }
-            $val = with($val, self.at_pos($_));
-        }
+	my \vals = self.values;
+        my Mu $val = vals.shift;
+	$val = with($val, $_) for vals;
         $val;
     }
 
@@ -534,29 +557,9 @@ my class List does Positional { # declared in BOOTSTRAP
         nqp::bindpos($!items, nqp::unbox_i(pos), v)
     }
 
-    my sub combinations($n, $k) {
-        my @result;
-        my @stack;
-        @stack.push(0);
-
-        gather while @stack {
-            my $index = @stack - 1;
-            my $value = @stack.pop;
-
-            while $value < $n {
-                @result[$index++] = $value++;
-                @stack.push($value);
-                if $index == $k {
-                    take [@result];
-                    $value = $n;  # fake a last
-                }
-            }
-        }
-    }
-
-    proto method combinations($) {*}
+    proto method combinations($?) {*}                                                  
     multi method combinations( Int $of ) {
-        [self[@$_]] for combinations self.elems, $of
+        ([self[@$_]] for combinations self.elems, $of)
     }
     multi method combinations( Range $of = 0 .. * ) {
         gather for @$of {
@@ -565,15 +568,8 @@ my class List does Positional { # declared in BOOTSTRAP
         }
     }
 
-    my sub permutations(Int $n) {
-        $n == 1 ?? ( [0,] ) !!
-        gather for ^$n -> $i {
-            my @i = grep none($i), ^$n;
-            take [$i, @i[@$_]] for permutations($n - 1);
-        }
-    }
     method permutations() {
-        gather take self[@$_] for permutations self.elems;
+        gather take [self[@$_]] for permutations self.elems;
     }
 }
 
@@ -615,3 +611,5 @@ sub reduce (&with, *@list)  { @list.reduce(&with) }
 sub splice(@arr, $offset = 0, $size?, *@values) {
     @arr.splice($offset, $size, @values)
 }
+
+# vim: ft=perl6 expandtab sw=4

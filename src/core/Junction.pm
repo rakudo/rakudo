@@ -143,3 +143,5 @@ sub AUTOTHREAD_METHOD($name, |c) {
 
 nqp::p6setautothreader(&AUTOTHREAD);
 Mu.HOW.setup_junction_fallback(Junction, &AUTOTHREAD_METHOD);
+
+# vim: ft=perl6 expandtab sw=4

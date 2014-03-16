@@ -214,8 +214,12 @@ my class Cool { # declared in BOOTSTRAP
     method trim-leading () { self.Stringy.trim-leading  };
     method trim-trailing() { self.Stringy.trim-trailing };
 
-    method eval(*%opts) {
-        eval(self.Stringy, context => CALLER::, |%opts);
+    method eval(*%opts) {  # is DEPRECATED doesn't work in settings
+        DEPRECATED("'EVAL'");
+        EVAL(self.Stringy, context => CALLER::, |%opts);
+    }
+    method EVAL(*%opts) {
+        EVAL(self.Stringy, context => CALLER::, |%opts);
     }
 
     multi method Real() { self.Numeric.Real }
@@ -279,3 +283,5 @@ proto sub chars($) is pure {*}
 multi sub chars(Cool $x)  { $x.Str.chars }
 multi sub chars(Str:D $x) { nqp::p6box_i(nqp::chars($x)) }
 multi sub chars(str $x) returns int { nqp::chars($x) }
+
+# vim: ft=perl6 expandtab sw=4

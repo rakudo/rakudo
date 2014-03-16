@@ -59,11 +59,10 @@ sub DEPRECATED ($alternative) {
 
 END {
     if my $message = Deprecation.report {
-        my Mu $err := nqp::getstderr();
-        my sub say2 ($s) { nqp::printfh($err, "$s\n") }
-
-        say2 $message;
-        say2 "Please contact the author to have these calls to deprecated code adapted,";
-        say2 "so that this message will disappear!";
+        note $message;
+        note "Please contact the author to have these calls to deprecated code adapted,";
+        note "so that this message will disappear!";
     }
 }
+
+# vim: ft=perl6 expandtab sw=4

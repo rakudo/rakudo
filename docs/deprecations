@@ -1,3 +1,7 @@
+Deprecations in 2013.12
+    
+    eval is now spelled EVAL
+
 Deprecations in 2013.11
 
     Order::Increase and Order::Decrease are now called Order::Less and

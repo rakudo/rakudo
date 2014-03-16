@@ -4,7 +4,7 @@ use warnings;
 
 my $version = `./perl6 --version`;
 
-my $impl = ($version =~ /jvm/i) ? "rakudo.jvm" : "rakudo.parrot";
+my $impl = ($version =~ /jvm/i) ? "rakudo.jvm" : (($version =~ /moar/i) ? "rakudo.moar" : "rakudo.parrot");
 
 my @OPTS = ('--keep-exit-code', $impl);
 

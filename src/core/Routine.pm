@@ -22,7 +22,6 @@ my class Routine { # declared in BOOTSTRAP
 
     method of() { self.signature.returns }
     method returns() { self.signature.returns }
-    method rw() { $!rw }
     method onlystar() { nqp::p6bool($!onlystar) }
     
     method assuming($r: *@curried_pos, *%curried_named) {
@@ -129,3 +128,5 @@ my class Routine { # declared in BOOTSTRAP
 
     method package() { $!package }
 }
+
+# vim: ft=perl6 expandtab sw=4

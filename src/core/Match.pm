@@ -3,7 +3,9 @@ my class Match is Capture is Cool {
     has int $.from;
     has int $.to;
     has $.CURSOR;
-    has $.ast;
+    has $.made;
+
+    method ast(Match:D:) { $!made }
 
     multi method Str(Match:D:) {
         $!to > $!from ?? $!orig.substr($!from, $!to-$!from) !! ''
@@ -26,7 +28,7 @@ my class Match is Capture is Cool {
     method caps(Match:D:) {
         my @caps;
         for self.pairs -> $p {
-            if $p.value ~~ Parcel {
+            if $p.value ~~ Array {
                 @caps.push: $p.key => $_ for $p.value.list
             } else {
                 @caps.push: $p;
@@ -69,29 +71,31 @@ my class Match is Capture is Cool {
         $r;
     }
 
-    method make(Match:D: Mu $ast) {
-        $!ast = $ast;
+    method make(Match:D: Mu \made) {
+        $!made = made;
         nqp::bindattr(
             nqp::decont(self.CURSOR),
             Cursor,
-            '$!ast',
-            $ast
+            '$!made',
+            made
         );
     }
 }
 
-sub make(Mu $ast) {
+sub make(Mu \made) {
     nqp::bindattr(
         nqp::decont(nqp::getlexcaller('$/')),
         Match,
-        '$!ast',
-        $ast
+        '$!made',
+        made
     );
     nqp::bindattr(
         nqp::decont(nqp::getlexcaller('$/').CURSOR),
         Cursor,
-        '$!ast',
-        $ast
+        '$!made',
+        made
     );
 }
 
+
+# vim: ft=perl6 expandtab sw=4

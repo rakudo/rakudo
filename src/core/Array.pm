@@ -13,10 +13,10 @@ class Array { # declared in BOOTSTRAP
     }
 
     multi method at_pos(Array:D: $pos) is rw {
-#?if jvm
+#?if !parrot
         if nqp::istype($pos, Num) && nqp::isnanorinf($pos) {
 #?endif
-#?if !jvm
+#?if parrot
         if nqp::isnanorinf($pos) {
 #?endif
             X::Item.new(aggregate => self, index => $pos).throw;
@@ -231,3 +231,5 @@ class Array { # declared in BOOTSTRAP
 
 
 sub circumfix:<[ ]>(*@elems) is rw { my $x = @elems.eager }
+
+# vim: ft=perl6 expandtab sw=4

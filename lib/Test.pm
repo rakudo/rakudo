@@ -237,7 +237,7 @@ sub _is_deeply(Mu $got, Mu $expected) {
 
 sub eval_exception($code) {
     try {
-        eval ($code);
+        EVAL ($code);
     }
     $!;
 }

@@ -34,8 +34,11 @@ my role Enumeration {
         self.value.Int
     }
 
-    method postcircumfix:<( )>($ ($x)) {
-        $x ~~ ::?CLASS ?? $x !! self.^enum_from_value($x)
+    method postcircumfix:<( )>(|) {
+        my $x := nqp::atpos(nqp::p6argvmarray(), 1).at_pos(0);
+        nqp::istype($x, ::?CLASS)
+            ?? $x
+            !! self.HOW.enum_from_value(self, $x)
     }
 }
 
@@ -84,3 +87,5 @@ Metamodel::EnumHOW.set_composalizer(-> $type, $name, %enum_values {
     $r.HOW.compose($r);
     $r
 });
+
+# vim: ft=perl6 expandtab sw=4

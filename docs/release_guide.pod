@@ -1,9 +1,10 @@
+=encoding UTF-8
+
 =head1 release_guide.pod - guide to Rakudo releases
 
-Rakudo's development release cycle is based on Parrot's release cycle.
-Parrot releases are scheduled for the third Tuesday of each month;
-Rakudo will generally issue its own development release two days later
-(on Thursday).
+Rakudo's development release cycle is the Thursday following the
+third Tuesday of each month (This historically allowed Rakudo to
+follow Parrot's release cycle).
 
 Each development release is given a sequential number and a code name
 based on an active Perl Mongers group.  Rakudo's February 2009 release
@@ -13,15 +14,12 @@ end of this document.
 
 =head2 Planned future releases
 
-Releases are typically on the third Thursday of each month.
-
-  2013-12-19   Rakudo #71  moritz
-  2014-01-23   Rakudo #72  masak
-  2014-02-20   Rakudo #73
-  2014-03-20   Rakudo #74
-  2014-04-17   Rakudo #75
+  2014-03-20   Rakudo #74  tadzik
+  2014-04-17   Rakudo #75  masak
   2014-05-22   Rakudo #76
   2014-06-19   Rakudo #77
+  2014-07-17   Rakudo #78
+  2014-08-21   Rakudo #79  Coke
 
 =head2 Suggested .pm group names for future releases
 
@@ -160,7 +158,7 @@ Make sure any locally modified files have been pushed back to github.
 Make sure everything compiles and runs from a known clean state:
 
   $ make realclean
-  $ perl Configure.pl --gen-parrot
+  $ perl Configure.pl --gen-parrot --gen-moar --backends=ALL
   $ make
   $ make test
   $ make stresstest
@@ -191,8 +189,8 @@ So please make a backup if you have any important data in there.
 =item 12.
 
 Unpack the tar file into another area, and test that it
-builds and runs properly using the same process in step 8.
-If there are any problems, fix them and go back to step 8.
+builds and runs properly using the same process in step 10.
+If there are any problems, fix them and go back to step 10.
 
 =item 13.
 
@@ -295,6 +293,9 @@ You're done!  Celebrate with the appropriate amount of fun.
   2013-09-19   Rakudo #68 "Shanghai"           (masak)
   2013-10-17   Rakudo #69 "Roederbergweg"      (Coke)
   2013-11-21   Rakudo #70 "Malmö"              (lizmat)
+  2013-12-19   Rakudo #71 "Advent"             (moritz)
+  2014-01-23   Rakudo #72 "Plano"              (masak)
+  2014-02-20   Rakudo #73 "Karlsruhe"          (timotimo)
 
 =head1 COPYRIGHT
 

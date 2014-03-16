@@ -75,6 +75,7 @@ class Perl6::Compiler is HLL::Compiler {
           --stagestats         display time spent in the compilation stages
           --ll-exception       display a low level backtrace on errors
           --profile            print profile information to standard error
+          --doc=[module]       Use Pod::To::[module] to render inline documentation.
 
 
         Note that only boolean single-letter options may be bundled.

@@ -13,7 +13,8 @@ that would normally come with a full Perl 6 distribution.  If you're
 after more than just the bare compiler, please download [the latest
 Rakudo Star package](http://rakudo.org/downloads/star).
 
-For a high-level overview of implemented and missing features,
+Note that different backends implement slightly different sets of
+featurs. For a high-level overview of implemented and missing features,
 please visit <http://perl6.org/compilers/features>.
 
 ## Building and Installing Rakudo
@@ -46,9 +47,6 @@ Note that to run Rakudo on JVM, JDK 1.7 must be installed. To automatically
 download an build a fresh NQP, run:
 
     perl Configure.pl --gen-nqp --backends=jvm
-
-Note that Rakudo on JVM implements a slightly different set of features
-than Rakudo on Parrot.
 
 If you get an out of memory error building rakudo on the JVM, you may
 need to modify your NQP runner to limit memory use. e.g. Adding

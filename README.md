@@ -14,9 +14,11 @@ after more than just the bare compiler, please download [the latest
 Rakudo Star package](http://rakudo.org/downloads/star).
 
 For a high-level overview of implemented and missing features,
-please visit http://perl6.org/compilers/features .
+please visit <http://perl6.org/compilers/features>.
 
-## Building Rakudo on Parrot
+## Building Rakudo
+
+### Building Rakudo on Parrot
 
 See the INSTALL.txt file for detailed prerequisites and build and
 installation instructions. The short version is
@@ -27,12 +29,12 @@ installation instructions. The short version is
     $ make spectest # optional
     $ make install # IMPORTANT, installs to install/bin/perl6
 
-Note that the 'make install' step is necessary for running
+Note that the `make install` step is necessary for running
 Rakudo from outside the build directory. But don't worry, it
 installs locally by default, so you don't need any administrator
 privileges for carrying out this step.
 
-## Building Rakudo on JVM
+### Building Rakudo on JVM
 
 You need the JDK 1.7 installed and a make program. These instructions
 will fetch an appropriate revision of nqp, build it, and then build
@@ -48,7 +50,7 @@ If you get an out of memory error building rakudo on the JVM, you may
 need to modify your NQP runner to limit memory use. e.g. Adding
 `-Xms500m -Xmx2g` as options passed to java in the installed nqp / nqp.bat.
 
-## Building Rakudo on MoarVM
+### Building Rakudo on MoarVM
 
 The easiest way is:
 
@@ -57,12 +59,12 @@ The easiest way is:
     $ make spectest # optional
     $ make install # IMPORTANT, installs to install/bin/perl6
 
-Note that the 'make install' step is necessary for running
+Note that the `make install` step is necessary for running
 Rakudo from outside the build directory. But don't worry, it
 installs locally by default, so you don't need any administrator
 privileges for carrying out this step.
 
-## Multiple backends at the same time
+### Multiple backends at the same time
 
 By supplying combinations of backends to the --backends flag, you
 can get two or three backends built in the same prefix. The first
@@ -81,7 +83,7 @@ There are several mailing lists, IRC channels, and wikis available with
 help for Perl 6 and Rakudo on Parrot. Figuring out the right one to use
 is often the biggest battle. Here are some rough guidelines:
 
-The central hub for Perl 6 information is http://perl6.org/ .
+The central hub for Perl 6 information is [perl6.org](http://perl6.org/).
 This is always a good starting point.
 
 If you have a question about Perl 6 syntax or the right way to approach
@@ -103,11 +105,11 @@ For questions about MoarVM, you can join #moarvm on freenode.
 
 Bug reports should be sent to "rakudobug@perl.org" with the moniker
 [BUG]\(including the brackets) at the start of the subject so that it
-gets appropriately tagged in the RT system (https://rt.perl.org/rt3/).
+gets appropriately tagged in [the RT system](https://rt.perl.org/rt3/).
 Please include or attach any sample source code that exhibits the bug,
 and include either the release name/date or the git commit identifier.
-You find that information in the output from "perl6 --version" (or in
-the first line of "git log", if Rakudo fails to build). There's no need
+You find that information in the output from `perl6 --version` (or in
+the first line of `git log`, if Rakudo fails to build). There's no need
 to cc: the perl6-compiler mailing list, as the RT system will handle
 this on its own.
 
@@ -121,7 +123,7 @@ If you have a patch that fixes a bug or adds a new feature, please
 submit it to "rakudobug@perl.org" with the moniker [PATCH]\(including
 the brackets) at the start of the subject line. We'll generally accept
 patches in any form if we can get them to work, but unified diff from
-the "git" command is greatly preferred. In general this means that in
+the `git` command is greatly preferred. In general this means that in
 the "rakudo" directory you make your changes, and then type
 
     git commit -m 'Your commit message' changed/filename.pm
@@ -131,10 +133,10 @@ This will generate a file called "001-your-commit-message.patch", or
 more of them if you made multiple commits; please attach these to your
 email. Please note that if you made more than one commit, you have to
 specify a proper commit range for format-patch,
-for example origin/nom..HEAD .
+for example `origin/nom..HEAD`.
 
 (Note to the maintainers: you can apply these patches with the 
-"git-am -s" command; it preserves meta information like author).
+`git-am -s` command; it preserves meta information like author).
 
 ## How the compiler works
 

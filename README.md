@@ -61,12 +61,14 @@ To automatically download and build a fresh MoarMV and NQP, run:
 
 ### Multiple backends at the same time
 
-By supplying combinations of backends to the --backends flag, you
+By supplying combinations of backends to the `--backends` flag, you
 can get two or three backends built in the same prefix. The first
-backend you supply in the list is the one that gets the "perl6" name
-as a symlink, all backends are installed as perl6-\*.
+backend you supply in the list is the one that gets the `perl6` name
+as a symlink, and all backends are installed seperately as
+`perl6-m`, `perl6-p`, or `perl6-j` for Rakudo on
+MoarVM, Parrot, or JVM respectively.
 
-The format for the --backends flag is:
+The format for the `--backends flag` is:
 
     $ perl Configure.pl --backends=moar,parrot
     $ perl Configure.pl --backends=parrot,moar,jvm

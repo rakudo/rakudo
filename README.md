@@ -32,22 +32,20 @@ Note that this step is necessary for running Rakudo from outside the build
 directory. But don't worry, it installs locally by default, so you don't need
 any administrator privileges for carrying out this step.
 
-### Building Rakudo on Parrot
+### Configuring Rakudo to run on Parrot
 
-    $ # recommended: install libicu-dev and libreadline-dev packages
-    $ perl Configure.pl --gen-parrot --backends=parrot
-    $ make
-    $ make spectest # optional
-    $ make install # IMPORTANT, installs to install/bin/perl6
+To automatically download and build a fresh Parrot and NQP, run:
 
-### Building Rakudo on JVM
+    perl Configure.pl --gen-parrot --backends=parrot
 
-You need the JDK 1.7 installed and a make program. These instructions
-will fetch an appropriate revision of nqp, build it, and then build
-rakudo on the jvm.
+It is recommended to first install the libicu-dev and libreadline-dev packages.
 
-    $ perl Configure.pl --gen-nqp --backends=jvm
-    $ make
+### Configuring Rakudo to run on the JVM
+
+Note that to run Rakudo on JVM, JDK 1.7 must be installed. To automatically
+download an build a fresh NQP, run:
+
+    perl Configure.pl --gen-nqp --backends=jvm
 
 Note that Rakudo on JVM implements a slightly different set of features
 than Rakudo on Parrot.
@@ -56,14 +54,11 @@ If you get an out of memory error building rakudo on the JVM, you may
 need to modify your NQP runner to limit memory use. e.g. Adding
 `-Xms500m -Xmx2g` as options passed to java in the installed nqp / nqp.bat.
 
-### Building Rakudo on MoarVM
+### Configuring Rakudo to run on MoarVM
 
-The easiest way is:
+To automatically download and build a fresh MoarMV and NQP, run:
 
-    $ perl Configure.pl --gen-moar --gen-nqp --backends=moar
-    $ make
-    $ make spectest # optional
-    $ make install # IMPORTANT, installs to install/bin/perl6
+    perl Configure.pl --gen-moar --gen-nqp --backends=moar
 
 ### Multiple backends at the same time
 

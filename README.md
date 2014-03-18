@@ -16,23 +16,29 @@ Rakudo Star package](http://rakudo.org/downloads/star).
 For a high-level overview of implemented and missing features,
 please visit <http://perl6.org/compilers/features>.
 
-## Building Rakudo
-
-### Building Rakudo on Parrot
+## Building and Installing Rakudo
 
 See the INSTALL.txt file for detailed prerequisites and build and
-installation instructions. The short version is
+installation instructions.
+
+The general process for building is running `perl Configure.pl` with
+the desired configuration options (common options listed below), and
+then running `make` or `make install`. Optionally, you may run
+`make spectest` to test your build on [Roast](http://github.com/perl6/roast),
+the Official Perl 6 test suite.
+
+Installation of Rakudo simply requires building and running `make install`.
+Note that this step is necessary for running Rakudo from outside the build
+directory. But don't worry, it installs locally by default, so you don't need
+any administrator privileges for carrying out this step.
+
+### Building Rakudo on Parrot
 
     $ # recommended: install libicu-dev and libreadline-dev packages
     $ perl Configure.pl --gen-parrot --backends=parrot
     $ make
     $ make spectest # optional
     $ make install # IMPORTANT, installs to install/bin/perl6
-
-Note that the `make install` step is necessary for running
-Rakudo from outside the build directory. But don't worry, it
-installs locally by default, so you don't need any administrator
-privileges for carrying out this step.
 
 ### Building Rakudo on JVM
 
@@ -58,11 +64,6 @@ The easiest way is:
     $ make
     $ make spectest # optional
     $ make install # IMPORTANT, installs to install/bin/perl6
-
-Note that the `make install` step is necessary for running
-Rakudo from outside the build directory. But don't worry, it
-installs locally by default, so you don't need any administrator
-privileges for carrying out this step.
 
 ### Multiple backends at the same time
 

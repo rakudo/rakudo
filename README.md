@@ -15,7 +15,7 @@ Rakudo Star package](http://rakudo.org/downloads/star).
 
 Note that different backends implement slightly different sets of
 featurs. For a high-level overview of implemented and missing features,
-please visit <http://perl6.org/compilers/features>.
+please visit [the features page on perl6.org](http://perl6.org/compilers/features).
 
 ## Building and Installing Rakudo
 
@@ -88,7 +88,7 @@ programs, so newbie questions are welcomed there.  Newbie questions
 are also welcome on the #perl6 channel; the Rakudo and Perl 6
 development teams tend to hang out there and are generally glad
 to help.  You can follow "@rakudoperl" on Twitter, and there's
-a Perl 6 news aggregator at <http://planeteria.org/perl6/> .
+a Perl 6 news aggregator at [Planet Perl 6](http://planeteria.org/perl6/).
 
 Questions about NQP can also be posted to the #perl6 IRC channel.
 For questions about Parrot, see <http://parrot.org/> for links and

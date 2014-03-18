@@ -49,8 +49,9 @@ download an build a fresh NQP, run:
     perl Configure.pl --gen-nqp --backends=jvm
 
 If you get an out of memory error building rakudo on the JVM, you may
-need to modify your NQP runner to limit memory use. e.g. Adding
-`-Xms500m -Xmx2g` as options passed to java in the installed nqp / nqp.bat.
+need to modify your NQP runner to limit memory use. e.g. edit the
+nqp-j / nqp-j.bat executable (found wherever you installed to, or in the
+`install/bin` directory) to include `-Xms500m -Xmx2g` as options passed to java.
 
 ### Configuring Rakudo to run on MoarVM
 

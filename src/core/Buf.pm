@@ -251,12 +251,29 @@ multi sub pack(Str $template, *@items) {
         given $directive {
             when 'A' {
                 my $ascii = shift @items // '';
-                for $ascii.comb -> $char {
-                    X::Buf::Pack::NonASCII.new(:$char).throw if ord($char) > 0x7f;
-                    @bytes.push: ord($char);
+                my $data = $ascii.Str.encode;
+                if $amount eq '*' {
+                    $amount = +$data;
                 }
-                if $amount ne '*' {
-                    @bytes.push: 0x20 xx ($amount - $ascii.chars);
+                if $amount eq '' {
+                    $amount = 1;
+                }
+                for (@$data, 0x20 xx *).flat[^$amount] -> $byte {
+                    X::Buf::Pack::NonASCII.new(:char($byte.chr)).throw if $byte > 0x7f;
+                    @bytes.push: $byte;
+                }
+            }
+            when 'a' {
+                my $data = shift @items // Buf.new;
+                $data.=encode if $data ~~ Str;
+                if $amount eq '*' {
+                    $amount = +@$data;
+                }
+                if $amount eq '' {
+                    $amount = 1;
+                }
+                for (@$data, 0 xx *).flat[^$amount] -> $byte {
+                    @bytes.push: $byte;
                 }
             }
             when 'H' {

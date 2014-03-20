@@ -87,6 +87,7 @@ MAST::ExtOpRegistry.register_extop('p6routinereturn',
     $MVM_operand_obj   +| $MVM_operand_write_reg,
     $MVM_operand_obj   +| $MVM_operand_read_reg);
 MAST::ExtOpRegistry.register_extop('p6captureouters',
+    $MVM_operand_obj   +| $MVM_operand_read_reg,
     $MVM_operand_obj   +| $MVM_operand_read_reg);
 MAST::ExtOpRegistry.register_extop('p6getouterctx',
     $MVM_operand_obj   +| $MVM_operand_write_reg,
@@ -247,6 +248,7 @@ $ops.add_hll_op('perl6', 'p6return', :!inlinable, -> $qastcomp, $op {
 $ops.add_hll_moarop_mapping('perl6', 'p6routinereturn', 'p6routinereturn');
 $ops.add_hll_moarop_mapping('perl6', 'p6getouterctx', 'p6getouterctx', :decont(0));
 $ops.add_hll_moarop_mapping('perl6', 'p6captureouters', 'p6captureouters', 0);
+$ops.add_hll_moarop_mapping('nqp', 'p6captureouters', 'p6captureouters', 0);
 $ops.add_hll_op('perl6', 'p6argvmarray', -> $qastcomp, $op {
     my @ops;
     my $res_reg := $*REGALLOC.fresh_o();

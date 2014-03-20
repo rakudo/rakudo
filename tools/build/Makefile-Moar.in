@@ -207,17 +207,17 @@ $(PERL6_ML_MOAR): src/Perl6/ModuleLoader.nqp src/vm/moar/ModuleLoaderVMConfig.nq
 	$(M_NQP) --target=mbc --output=$(PERL6_ML_MOAR) --encoding=utf8 \
 	    src/gen/m-ModuleLoader.nqp
 
-$(PERL6_W_MOAR): $(PERL6_ML_MOAR) src/Perl6/World.nqp
+$(PERL6_OPS_MOAR): src/vm/moar/Perl6/Ops.nqp $(M_PERL6_OPS_DLL)
+	$(M_NQP) --target=mbc --output=$(PERL6_OPS_MOAR) --encoding=utf8 \
+	    src/vm/moar/Perl6/Ops.nqp
+
+$(PERL6_W_MOAR): $(PERL6_ML_MOAR) $(PERL6_OPS_MOAR) src/Perl6/World.nqp
 	$(M_NQP) --target=mbc --output=$(PERL6_W_MOAR) --encoding=utf8 \
 	    src/Perl6/World.nqp
 
 $(PERL6_P_MOAR): src/Perl6/Pod.nqp
 	$(M_NQP) --target=mbc --output=$(PERL6_P_MOAR) --encoding=utf8 \
 	    src/Perl6/Pod.nqp
-
-$(PERL6_OPS_MOAR): src/vm/moar/Perl6/Ops.nqp $(M_PERL6_OPS_DLL)
-	$(M_NQP) --target=mbc --output=$(PERL6_OPS_MOAR) --encoding=utf8 \
-	    src/vm/moar/Perl6/Ops.nqp
 
 $(PERL6_A_MOAR): src/Perl6/Actions.nqp $(PERL6_P_MOAR) $(PERL6_OPS_MOAR)
 	$(M_NQP) --target=mbc --output=$(PERL6_A_MOAR) --encoding=utf8 \

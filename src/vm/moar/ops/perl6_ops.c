@@ -482,12 +482,16 @@ static void p6getouterctx(MVMThreadContext *tc) {
 }
 
 static MVMuint8 s_p6captureouters[] = {
+    MVM_operand_obj | MVM_operand_read_reg,
     MVM_operand_obj | MVM_operand_read_reg
 };
 static void p6captureouters(MVMThreadContext *tc) {
     MVMObject *todo  = GET_REG(tc, 0).o;
+    MVMObject *tgt   = GET_REG(tc, 2).o;
     MVMint64   elems = MVM_repr_elems(tc, todo);
     MVMint64   i;
+    if (REPR(tgt)->ID != MVM_REPR_ID_MVMCode)
+        MVM_exception_throw_adhoc(tc, "p6captureouters second arg must be MVMCode");
     for (i = 0; i < elems; i++) {
         MVMObject *p6_code_obj = MVM_repr_at_pos_o(tc, todo, i);
         MVMObject *vm_code_obj = MVM_frame_find_invokee(tc, p6_code_obj, NULL);
@@ -495,7 +499,7 @@ static void p6captureouters(MVMThreadContext *tc) {
             MVMFrame *outer = ((MVMCode *)vm_code_obj)->body.outer;
             if (outer->outer)
                 MVM_frame_dec_ref(tc, outer->outer);
-            outer->outer = MVM_frame_inc_ref(tc, tc->cur_frame);
+            outer->outer = MVM_frame_inc_ref(tc, ((MVMCode *)tgt)->body.outer);
         }
         else {
             MVM_exception_throw_adhoc(tc, "p6captureouters got non-code object");
@@ -852,7 +856,7 @@ MVM_DLL_EXPORT void Rakudo_ops_init(MVMThreadContext *tc) {
     MVM_ext_register_extop(tc, "p6capturelex",  p6capturelex, 2, s_p6capturelex);
     MVM_ext_register_extop(tc, "p6capturelexwhere",  p6capturelexwhere, 2, s_p6capturelexwhere);
     MVM_ext_register_extop(tc, "p6getouterctx", p6getouterctx, 2, s_p6getouterctx);
-    MVM_ext_register_extop(tc, "p6captureouters", p6captureouters, 1, s_p6captureouters);
+    MVM_ext_register_extop(tc, "p6captureouters", p6captureouters, 2, s_p6captureouters);
     MVM_ext_register_extop(tc, "p6stateinit", p6stateinit, 1, s_p6stateinit);
     MVM_ext_register_extop(tc, "p6setfirstflag", p6setfirstflag, 2, s_p6setfirstflag);
     MVM_ext_register_extop(tc, "p6takefirstflag", p6takefirstflag, 1, s_p6takefirstflag);

@@ -1,6 +1,7 @@
 use NQPHLL;
 use QAST;
 use Perl6::ModuleLoader;
+use Perl6::Ops;
 
 # Binder constants.
 # XXX Want constant syntax in NQP really.
@@ -1679,28 +1680,89 @@ class Perl6::World is HLL::World {
     # Some things get cloned many times with an outer lexical scope that
     # we never enter. This makes sure we capture them as needed.
     method create_lexical_capture_fixup() {
-        # Create a list and put it in the SC.
-        my class FixupList { has $!list }
-        my $fixup_list := nqp::create(FixupList);
-        self.add_object($fixup_list);
-        nqp::bindattr($fixup_list, FixupList, '$!list', nqp::list());
+        # TODO: use the Moar code-path here on all backends. The issue was
+        # discovered close to release, so only the Moar backend - that really
+        # needs this - is being updated for now.
+        if nqp::getcomp('perl6').backend.name eq 'moar' {
+            my class FixupList {
+                has $!list;
+                has $!resolved;
+                has $!resolver;
+                method add_unresolved($code) {
+                    nqp::push($!list, $code);
+                    if nqp::isconcrete($!resolved) {
+                        my int $added_update := 0;
+                        try {
+                            my $cur_handle := $*W.handle;
+                            if $cur_handle ne $!resolver {
+                                $*W.add_object($code);
+                                $*W.add_fixup_task(:deserialize_ast(QAST::Op.new(
+                                    :op('callmethod'), :name('update'),
+                                    QAST::WVal.new( :value(self) ),
+                                    QAST::WVal.new( :value($code) )
+                                )));
+                                $added_update := 1;
+                            }
+                        }
+                        unless $added_update {
+                            nqp::p6captureouters([$code], $!resolved);
+                        }
+                    }
+                }
+                method resolve($resolved) {
+                    $!resolved := $resolved;
+                    nqp::p6captureouters($!list, $resolved);
+                }
+                method update($code) {
+                    nqp::p6captureouters([$code], nqp::getstaticcode($!resolved));
+                }
+            }
 
-        # Set up capturing code.
-        my $capturer := self.cur_lexpad();
-        $capturer[0].push(QAST::Op.new(
-            :op('p6captureouters'),
-            QAST::Var.new(
-                :name('$!list'), :scope('attribute'),
+            # Create a list and put it in the SC.
+            my $fixup_list := nqp::create(FixupList);
+            self.add_object($fixup_list);
+            nqp::bindattr($fixup_list, FixupList, '$!list', nqp::list());
+            nqp::bindattr($fixup_list, FixupList, '$!resolver', self.handle());
+
+            # Set up capturing code.
+            my $capturer := self.cur_lexpad();
+            my $c_block  := QAST::Block.new( :blocktype('declaration_static') );
+            self.create_simple_code_object($c_block, 'Code');
+            $capturer[0].push(QAST::Op.new(
+                :op('callmethod'), :name('resolve'),
                 QAST::WVal.new( :value($fixup_list) ),
-                QAST::WVal.new( :value(FixupList) ))));
-        
-        # Return a PAST node that we can push the dummy closure
-        return QAST::Op.new(
-            :op('push'),
-            QAST::Var.new(
-                :name('$!list'), :scope('attribute'),
-                QAST::WVal.new( :value($fixup_list) ),
-                QAST::WVal.new( :value(FixupList) )));
+                $c_block));
+
+            # Return a QAST node that we can push the dummy closure.
+            return QAST::Op.new(
+                :op('callmethod'), :name('add_unresolved'),
+                QAST::WVal.new( :value($fixup_list) )
+            );
+        }
+        else {
+            # Create a list and put it in the SC.
+            my class FixupList { has $!list }
+            my $fixup_list := nqp::create(FixupList);
+            self.add_object($fixup_list);
+            nqp::bindattr($fixup_list, FixupList, '$!list', nqp::list());
+    
+            # Set up capturing code.
+            my $capturer := self.cur_lexpad();
+            $capturer[0].push(QAST::Op.new(
+                :op('p6captureouters'),
+                QAST::Var.new(
+                    :name('$!list'), :scope('attribute'),
+                    QAST::WVal.new( :value($fixup_list) ),
+                    QAST::WVal.new( :value(FixupList) ))));
+            
+            # Return a PAST node that we can push the dummy closure
+            return QAST::Op.new(
+                :op('push'),
+                QAST::Var.new(
+                    :name('$!list'), :scope('attribute'),
+                    QAST::WVal.new( :value($fixup_list) ),
+                    QAST::WVal.new( :value(FixupList) )));
+        }
     }
     
     # Handles addition of a phaser.

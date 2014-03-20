@@ -248,7 +248,7 @@ $ops.add_hll_op('perl6', 'p6return', :!inlinable, -> $qastcomp, $op {
 $ops.add_hll_moarop_mapping('perl6', 'p6routinereturn', 'p6routinereturn');
 $ops.add_hll_moarop_mapping('perl6', 'p6getouterctx', 'p6getouterctx', :decont(0));
 $ops.add_hll_moarop_mapping('perl6', 'p6captureouters', 'p6captureouters', 0);
-$ops.add_hll_moarop_mapping('nqp', 'p6captureouters', 'p6captureouters', 0);
+$ops.add_hll_moarop_mapping('nqp', 'p6captureouters2', 'p6captureouters', 0);
 $ops.add_hll_op('perl6', 'p6argvmarray', -> $qastcomp, $op {
     my @ops;
     my $res_reg := $*REGALLOC.fresh_o();

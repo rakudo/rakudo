@@ -1705,16 +1705,16 @@ class Perl6::World is HLL::World {
                             }
                         }
                         unless $added_update {
-                            nqp::p6captureouters([$code], $!resolved);
+                            nqp::p6captureouters2([$code], $!resolved);
                         }
                     }
                 }
                 method resolve($resolved) {
                     $!resolved := $resolved;
-                    nqp::p6captureouters($!list, $resolved);
+                    nqp::p6captureouters2($!list, $resolved);
                 }
                 method update($code) {
-                    nqp::p6captureouters([$code], nqp::getstaticcode($!resolved));
+                    nqp::p6captureouters2([$code], nqp::getstaticcode($!resolved));
                 }
             }
 

@@ -583,7 +583,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             } else {
               my $ct := nqp::chars($<begin-tag>);
               $endtag := nqp::x(">", $ct);
-              my $rv := $*POD_ANGLE_COUNT == 0 || $*POD_ANGLE_COUNT >= $ct;
+              my $rv := $*POD_ANGLE_COUNT <= 0 || $*POD_ANGLE_COUNT >= $ct;
               $*POD_ANGLE_COUNT := $ct;
               $rv;
             }

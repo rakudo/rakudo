@@ -58,6 +58,7 @@ static MVMString *str_perl6      = NULL;
 static MVMString *str_p6ex       = NULL;
 static MVMString *str_xnodisp    = NULL;
 static MVMString *str_xatcf      = NULL;
+static MVMString *str_cfr        = NULL;
 
 /* Parcel, as laid out as a P6opaque. */
 typedef struct {
@@ -174,6 +175,8 @@ static void p6settypes(MVMThreadContext *tc) {
     MVM_gc_root_add_permanent(tc, (MVMCollectable **)&str_xnodisp);
     str_xatcf = MVM_string_ascii_decode_nt(tc, tc->instance->VMString, "X::TypeCheck::Assignment");
     MVM_gc_root_add_permanent(tc, (MVMCollectable **)&str_xatcf);
+    str_cfr = MVM_string_ascii_decode_nt(tc, tc->instance->VMString, "X::ControlFlow::Return");
+    MVM_gc_root_add_permanent(tc, (MVMCollectable **)&str_cfr);
 }
 
 /* Boxing to Perl 6 types. */
@@ -415,7 +418,14 @@ static void p6routinereturn(MVMThreadContext *tc) {
         *(tc->interp_cur_op) -= 4; /* Oh my, what a hack... */
     }
     else {
-        MVM_exception_throw_adhoc(tc, "Attempt to return outside of any Routine");
+        MVMObject *thrower = get_thrower(tc, str_cfr);
+        if (thrower) {
+            thrower = MVM_frame_find_invokee(tc, thrower, NULL);
+            MVM_args_setup_thunk(tc, NULL, MVM_RETURN_VOID, &no_arg_callsite);
+            STABLE(thrower)->invoke(tc, thrower, &no_arg_callsite, tc->cur_frame->args);
+        } else {
+            MVM_exception_throw_adhoc(tc, "Attempt to return outside of any Routine");
+        }
     }
 }
 

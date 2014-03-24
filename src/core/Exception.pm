@@ -1184,7 +1184,15 @@ my class X::TypeCheck is Exception {
 }
 
 my class X::TypeCheck::Binding is X::TypeCheck {
+    has $.symbol;
     method operation { 'binding' }
+    method message() {
+        if $.symbol {
+            "Type check failed in $.operation $.symbol; expected '{$.expected.^name}' but got '{$.got.^name}'";
+        } else {
+            "Type check failed in $.operation; expected '{$.expected.^name}' but got '{$.got.^name}'";
+        }
+    }
 }
 my class X::TypeCheck::Return is X::TypeCheck {
     method operation { 'returning' }
@@ -1422,8 +1430,8 @@ my class X::Caller::NotDynamic is Exception {
 
 {
     my %c_ex;
-    %c_ex{'X::TypeCheck::Binding'} := sub ($got, $expected) is hidden_from_backtrace {
-            X::TypeCheck::Binding.new(:$got, :$expected).throw;
+    %c_ex{'X::TypeCheck::Binding'} := sub ($got, $expected, $symbol?) is hidden_from_backtrace {
+            X::TypeCheck::Binding.new(:$got, :$expected, :$symbol).throw;
         };
     %c_ex<X::TypeCheck::Assignment> := sub ($symbol, $got, $expected) is hidden_from_backtrace {
             X::TypeCheck::Assignment.new(:$symbol, :$got, :$expected).throw;

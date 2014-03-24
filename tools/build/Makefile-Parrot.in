@@ -1,5 +1,5 @@
 SHELL            = @shell@
-PARROT_ARGS      =
+PARROT_ARGS      = -L. -X.
 
 # values from parrot_config
 PARROT_BIN_DIR     = @bindir@

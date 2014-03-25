@@ -243,7 +243,7 @@ my class Binder {
                                 "'; expected " ~ $nom_type.HOW.name($nom_type) ~
                                 " but got " ~ $oval.HOW.name($oval);
                         } else {
-                            $error[0] := nqp::atkey(%ex, 'X::TypeCheck::Binding')($oval.WHAT, $nom_type.WHAT, $varname);
+                            $error[0] := { nqp::atkey(%ex, 'X::TypeCheck::Binding')($oval.WHAT, $nom_type.WHAT, $varname) };
                         }
                     }
 
@@ -2914,8 +2914,8 @@ nqp::sethllconfig('perl6', nqp::hash(
                         |%named_args);
             }
             else {
-                if nqp::can(@error[0], 'throw') {
-                    @error[0].throw();
+                if nqp::isinvokable(@error[0]) {
+                    @error[0]();
                 }
                 else {
                     nqp::die(@error[0]);

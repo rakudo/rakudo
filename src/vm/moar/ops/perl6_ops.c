@@ -500,8 +500,12 @@ static void p6captureouters(MVMThreadContext *tc) {
     MVMObject *tgt   = GET_REG(tc, 2).o;
     MVMint64   elems = MVM_repr_elems(tc, todo);
     MVMint64   i;
+    MVMFrame  *new_outer;
     if (REPR(tgt)->ID != MVM_REPR_ID_MVMCode)
         MVM_exception_throw_adhoc(tc, "p6captureouters second arg must be MVMCode");
+    new_outer = ((MVMCode *)tgt)->body.outer;
+    if (!new_outer)
+        return;
     for (i = 0; i < elems; i++) {
         MVMObject *p6_code_obj = MVM_repr_at_pos_o(tc, todo, i);
         MVMObject *vm_code_obj = MVM_frame_find_invokee(tc, p6_code_obj, NULL);
@@ -509,7 +513,7 @@ static void p6captureouters(MVMThreadContext *tc) {
             MVMFrame *outer = ((MVMCode *)vm_code_obj)->body.outer;
             if (outer->outer)
                 MVM_frame_dec_ref(tc, outer->outer);
-            outer->outer = MVM_frame_inc_ref(tc, ((MVMCode *)tgt)->body.outer);
+            outer->outer = MVM_frame_inc_ref(tc, new_outer);
         }
         else {
             MVM_exception_throw_adhoc(tc, "p6captureouters got non-code object");

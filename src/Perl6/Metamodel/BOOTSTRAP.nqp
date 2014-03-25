@@ -2914,10 +2914,11 @@ nqp::sethllconfig('perl6', nqp::hash(
                         |%named_args);
             }
             else {
-                if nqp::isstr(@error[0]) {
-                    nqp::die(@error[0]);
-                } else {
+                if nqp::can(@error[0], 'throw') {
                     @error[0].throw();
+                }
+                else {
+                    nqp::die(@error[0]);
                 }
             }
         }

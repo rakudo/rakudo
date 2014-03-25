@@ -1430,13 +1430,13 @@ my class X::Caller::NotDynamic is Exception {
 
 {
     my %c_ex;
-    %c_ex{'X::TypeCheck::Binding'} := sub ($got, $expected, $symbol?) is hidden_from_backtrace {
+    %c_ex{'X::TypeCheck::Binding'} := sub (Mu $got, Mu $expected, $symbol?) is hidden_from_backtrace {
             X::TypeCheck::Binding.new(:$got, :$expected, :$symbol).throw;
         };
-    %c_ex<X::TypeCheck::Assignment> := sub ($symbol, $got, $expected) is hidden_from_backtrace {
+    %c_ex<X::TypeCheck::Assignment> := sub (Mu $symbol, Mu $got, $expected) is hidden_from_backtrace {
             X::TypeCheck::Assignment.new(:$symbol, :$got, :$expected).throw;
         };
-    %c_ex{'X::TypeCheck::Return'} := sub ($got, $expected) is hidden_from_backtrace {
+    %c_ex{'X::TypeCheck::Return'} := sub (Mu $got, Mu $expected) is hidden_from_backtrace {
             X::TypeCheck::Return.new(:$got, :$expected).throw;
         };
     %c_ex<X::Assignment::RO> := sub () is hidden_from_backtrace {

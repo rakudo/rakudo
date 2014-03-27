@@ -2,9 +2,26 @@
 use strict;
 use warnings;
 
-my $version = `./perl6 --version`;
+use Getopt::Long;
 
-my $impl = ($version =~ /jvm/i) ? "rakudo.jvm" : (($version =~ /moar/i) ? "rakudo.moar" : "rakudo.parrot");
+GetOptions(
+    'backend=s' => \my $backend,
+);
+
+if ($backend) {
+    if ($backend =~ /^(parrot|jvm|moar)/i) {
+        $backend = lc $1;
+    }
+    else {
+        die "Unsupported backed '$backend'. Known backends: parrot, jvm, moar\n";
+    }
+}
+else {
+    my $version = `./perl6 --version`;
+    $backend = ($version =~ /jvm/i) ? "jvm" : (($version =~ /moar/i) ? "moar" : "parrot");
+}
+
+my $impl = "rakudo.$backend";
 
 my @OPTS = ('--keep-exit-code', $impl);
 
@@ -23,4 +40,5 @@ my $nt = `t/spec/fudge @OPTS @ARGV`;
 # ... or any other modules
 my $pwd = `pwd`; chomp $pwd;
 $ENV{PERL6LIB}="$pwd/lib:.";
-system("./perl6", split ' ', $nt);
+my $first = substr($backend, 0, 1);
+system("./perl6-$first", split ' ', $nt);

@@ -17,16 +17,13 @@ my class Promise {
     has $.status;
     has $!result;
     has int $!vow_taken;
-    has Mu $!ready_semaphore;
-    has Mu $!lock;
+    has $!lock;
+    has $!cond;
     has @!thens;
     
     submethod BUILD(:$!scheduler = $*SCHEDULER) {
-        my $interop       := nqp::jvmbootinterop();
-        my \Semaphore     := $interop.typeForName('java.util.concurrent.Semaphore');
-        my \ReentrantLock := $interop.typeForName('java.util.concurrent.locks.ReentrantLock');
-        $!ready_semaphore := Semaphore.'constructor/new/(I)V'(-1);
-        $!lock            := ReentrantLock.'constructor/new/()V'();
+        $!lock            := nqp::create(Lock);
+        $!cond            := $!lock.condition();
         $!status           = Planned;
     }
     
@@ -45,15 +42,15 @@ my class Promise {
         }
     }
     method vow() {
-        $!lock.lock();
+        nqp::lock($!lock);
         if $!vow_taken {
-            $!lock.unlock();
+            nqp::unlock($!lock);
             X::Promise::Vowed.new.throw
         }
         my $vow := nqp::create(Vow);
         nqp::bindattr($vow, Vow, '$!promise', self);
         $!vow_taken = 1;
-        $!lock.unlock();
+        nqp::unlock($!lock);
         $vow
     }
 
@@ -62,10 +59,12 @@ my class Promise {
     }
     
     method !keep(\result) {
-        $!result := result;
-        $!status = Kept;
-        $!ready_semaphore.'method/release/(I)V'(32768);
-        self!schedule_thens();
+        $!lock.protect({
+            $!result := result;
+            $!status = Kept;
+            self!schedule_thens();
+            $!cond.signal_all;
+        });
         $!result
     }
     
@@ -74,18 +73,20 @@ my class Promise {
     }
     
     method !break($result) {
-        $!result = $result ~~ Exception ?? $result !! X::AdHoc.new(payload => $result);
-        $!status = Broken;
-        $!ready_semaphore.'method/release/(I)V'(32768);
-        self!schedule_thens();
+        $!lock.protect({
+            $!result = nqp::istype($result, Exception)
+                ?? $result
+                !! X::AdHoc.new(payload => $result);
+            $!status = Broken;
+            self!schedule_thens();
+            $!cond.signal_all;
+        });
     }
     
     method !schedule_thens() {
-        $!lock.lock();
         while @!thens {
             $!scheduler.cue(@!thens.shift, :catch(@!thens.shift))
         }
-        $!lock.unlock();
     }
     
     method result(Promise:D:) {
@@ -93,7 +94,10 @@ my class Promise {
         # not yet started, then the work can be done immediately by the
         # thing that is blocking on it.
         if $!status == Planned {
-            $!ready_semaphore.'method/acquire/()V'();
+            $!lock.protect({
+                # Re-check planned to avoid data race.
+                $!cond.wait() if $!status == Planned;
+            });
         }
         if $!status == Kept {
             $!result
@@ -116,10 +120,10 @@ my class Promise {
     }
     
     method then(Promise:D: &code) {
-        $!lock.lock();
-        if $!status == any(Broken, Kept) {
+        nqp::lock($!lock);
+        if $!status == Broken | Kept {
             # Already have the result, start immediately.
-            $!lock.unlock();
+            nqp::unlock($!lock);
             Promise.start( { code(self) }, :$!scheduler);
         }
         else {
@@ -131,7 +135,7 @@ my class Promise {
             my $vow = $then_promise.vow;
             @!thens.push({ $vow.keep(code(self)) });
             @!thens.push(-> $ex { $vow.break($ex) });
-            $!lock.unlock();
+            nqp::unlock($!lock);
             $then_promise
         }
     }
@@ -163,25 +167,21 @@ my class Promise {
             unless @promises >>~~>> Promise;
         self!until_n_kept(@promises, @promises.elems)
     }
-    
-    my Mu $AtomicInteger;
+
     method !until_n_kept(@promises, Int $n) {
-        once {
-            $AtomicInteger := nqp::jvmbootinterop().typeForName('java.util.concurrent.atomic.AtomicInteger');
-            Nil;
-        }
-        my Mu $c := $AtomicInteger.'constructor/new/(I)V'(nqp::decont($n));
-        my $p   = Promise.new;
-        my $vow = $p.vow;
+        my int $c  = $n;
+        my $lock  := nqp::create(Lock);
+        my $p      = Promise.new;
+        my $vow    = $p.vow;
         for @promises -> $cand {
             $cand.then({
                 if .status == Kept {
-                    if $c.'decrementAndGet'() == 0 {
+                    if $lock.protect({ $c = $c - 1 }) == 0 {
                         $vow.keep(True)
                     }
                 }
                 else {
-                    if $c.'getAndAdd'(-($n + 1)) > 0 {
+                    if $lock.protect({ my int $o = $c; $c = $c - ($n + 1); $o }) > 0 {
                         $vow.break(.cause)
                     }
                 }

@@ -154,6 +154,17 @@ M_CORE_SOURCES = \
   src/core/precedence.pm \
   src/core/terms.pm \
   src/core/Deprecations.pm \
+  src/core/Thread.pm \
+  src/core/Lock.pm \
+  src/core/Semaphore.pm \
+  src/core/Scheduler.pm \
+  src/core/ThreadPoolScheduler.pm \
+  src/core/CurrentThreadScheduler.pm \
+  src/core/Promise.pm \
+  src/core/Channel.pm \
+  src/core/Supply.pm \
+  src/core/SupplyOperations.pm \
+  src/core/asyncops.pm \
   src/core/IO/Socket.pm \
   src/core/IO/Socket/INET.pm \
   src/core/OS.pm \

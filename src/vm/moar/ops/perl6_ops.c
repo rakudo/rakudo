@@ -10,7 +10,8 @@
 #include <sys/time.h>
 #endif
 
-#define GET_REG(tc, idx) (*tc->interp_reg_base)[*((MVMuint16 *)(*tc->interp_cur_op + idx))]
+#define GET_REG(tc, idx)    (*tc->interp_reg_base)[*((MVMuint16 *)(*tc->interp_cur_op + idx))]
+#define REAL_BODY(tc, obj)  MVMP6opaque_real_data(tc, OBJECT_BODY(obj))
 
 /* Dummy zero and one-arg callsite. */
 static MVMCallsite      no_arg_callsite = { NULL, 0, 0, 0 };
@@ -77,10 +78,10 @@ typedef struct {
 
 /* List, as laid out as a P6opaque. */
 typedef struct {
-    MVMP6opaque  p6o;
-    MVMObject   *items;
-    MVMObject   *flattens;
-    MVMObject   *nextiter;
+    MVMP6opaqueBody  p6o;
+    MVMObject       *items;
+    MVMObject       *flattens;
+    MVMObject       *nextiter;
 } Rakudo_List;
 
 /* Expose Nil and Mu for containers. */
@@ -249,9 +250,9 @@ static void p6list(MVMThreadContext *tc) {
             MVMObject *items = GET_REG(tc, 2).o;
             if (items) {
                 MVMObject *iter = make_listiter(tc, items, list);
-                MVM_ASSIGN_REF(tc, &(list->header), ((Rakudo_List *)list)->nextiter, iter);
+                MVM_ASSIGN_REF(tc, &(list->header), ((Rakudo_List *)REAL_BODY(tc, list))->nextiter, iter);
             }
-            MVM_ASSIGN_REF(tc, &(list->header), ((Rakudo_List *)list)->flattens, GET_REG(tc, 6).o);
+            MVM_ASSIGN_REF(tc, &(list->header), ((Rakudo_List *)REAL_BODY(tc, list))->flattens, GET_REG(tc, 6).o);
         });
         GET_REG(tc, 0).o = list;
     }
@@ -280,11 +281,11 @@ static MVMuint8 s_p6listitems[] = {
 static void p6listitems(MVMThreadContext *tc) {
      MVMObject *list = GET_REG(tc, 2).o;
      if (MVM_6model_istype_cache_only(tc, list, List)) {
-        MVMObject *items = ((Rakudo_List *)list)->items;
+        MVMObject *items = ((Rakudo_List *)REAL_BODY(tc, list))->items;
         if (!items || !IS_CONCRETE(items) || REPR(items)->ID != MVM_REPR_ID_MVMArray) {
             MVMROOT(tc, list, {
                 items = MVM_repr_alloc_init(tc, tc->instance->boot_types.BOOTArray);
-                MVM_ASSIGN_REF(tc, &(list->header), ((Rakudo_List *)list)->items, items);
+                MVM_ASSIGN_REF(tc, &(list->header), ((Rakudo_List *)REAL_BODY(tc, list))->items, items);
             });
         }
         GET_REG(tc, 0).o = items;

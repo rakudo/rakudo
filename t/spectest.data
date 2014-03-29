@@ -579,11 +579,11 @@ S16-io/tmpdir.t
 S16-unfiled/rebindstdhandles.t
 S17-concurrency/channel.t    # conc
 S17-concurrency/lock.t       # conc
-S17-concurrency/promise.t    # jvm
-S17-concurrency/scheduler.t  # jvm
-S17-concurrency/supply.t     # jvm
+S17-concurrency/promise.t    # conc
+S17-concurrency/scheduler.t  # conc
+S17-concurrency/supply.t     # conc
 S17-concurrency/thread.t     # conc
-S17-concurrency/winner.t     # jvm
+S17-concurrency/winner.t     # conc
 S19-command-line/dash-e.t # icu
 S19-command-line/help.t
 S24-testing/0-compile.t

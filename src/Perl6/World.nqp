@@ -1683,13 +1683,15 @@ class Perl6::World is HLL::World {
         # TODO: use the Moar code-path here on all backends. The issue was
         # discovered close to release, so only the Moar backend - that really
         # needs this - is being updated for now.
-        if nqp::getcomp('perl6').backend.name eq 'moar' {
+        if nqp::getcomp('perl6').backend.name ne 'parrot' {
             my class FixupList {
                 has $!list;
                 has $!resolved;
                 has $!resolver;
                 method add_unresolved($code) {
+                    nqp::scwbdisable();
                     nqp::push($!list, $code);
+                    nqp::scwbenable();
                     if nqp::isconcrete($!resolved) {
                         my int $added_update := 0;
                         try {
@@ -1710,11 +1712,16 @@ class Perl6::World is HLL::World {
                     }
                 }
                 method resolve($resolved) {
+                    nqp::scwbdisable();
                     $!resolved := $resolved;
+                    nqp::scwbenable();
                     nqp::p6captureouters2($!list, $resolved);
                 }
                 method update($code) {
-                    nqp::p6captureouters2([$code], nqp::getstaticcode($!resolved));
+                    nqp::p6captureouters2([$code],
+                        nqp::getcomp('perl6').backend.name eq 'moar'
+                            ?? nqp::getstaticcode($!resolved)
+                            !! $!resolved);
                 }
             }
 
@@ -1731,7 +1738,7 @@ class Perl6::World is HLL::World {
             $capturer[0].push(QAST::Op.new(
                 :op('callmethod'), :name('resolve'),
                 QAST::WVal.new( :value($fixup_list) ),
-                $c_block));
+                QAST::Op.new( :op('takeclosure'), $c_block )));
 
             # Return a QAST node that we can push the dummy closure.
             return QAST::Op.new(

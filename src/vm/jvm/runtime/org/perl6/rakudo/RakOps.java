@@ -616,6 +616,24 @@ public final class RakOps {
         return capList;
     }
     
+    public static SixModelObject p6captureouters2(SixModelObject capList, SixModelObject target, ThreadContext tc) {
+        GlobalExt gcx = key.getGC(tc);
+        if (!(target instanceof CodeRef))
+            ExceptionHandling.dieInternal(tc, "p6captureouters target must be a CodeRef");
+        CallFrame cf = ((CodeRef)target).outer;
+        if (cf == null)
+            return capList;
+        long elems = capList.elems(tc);
+        for (long i = 0; i < elems; i++) {
+            SixModelObject codeObj = capList.at_pos_boxed(tc, i);
+            CodeRef closure = (CodeRef)codeObj.get_attribute_boxed(tc,
+                gcx.Code, "$!do", HINT_CODE_DO);
+            CallFrame ctxToDiddle = closure.outer;
+            ctxToDiddle.outer = cf;
+        }
+        return capList;
+    }
+    
     public static SixModelObject p6bindattrinvres(SixModelObject obj, SixModelObject ch, String name, SixModelObject value, ThreadContext tc) {
         obj.bind_attribute_boxed(tc, Ops.decont(ch, tc),
             name, STable.NO_HINT, value);

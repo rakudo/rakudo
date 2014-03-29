@@ -183,11 +183,13 @@ class Perl6::Optimizer {
         }
         sub try_remove_binder_call() {
             my int $found := 0;
-            for @($block[0]) {
-                if nqp::istype($_, QAST::Op) && $_.op eq 'p6bindsig' {
-                    $_.op('null');
-                    $found := 1;
-                    last;
+            if nqp::istype($block[0], QAST::Stmts) {
+                for @($block[0]) {
+                    if nqp::istype($_, QAST::Op) && $_.op eq 'p6bindsig' {
+                        $_.op('null');
+                        $found := 1;
+                        last;
+                    }
                 }
             }
             if $found {

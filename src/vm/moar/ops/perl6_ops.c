@@ -11,7 +11,7 @@
 #endif
 
 #define GET_REG(tc, idx)    (*tc->interp_reg_base)[*((MVMuint16 *)(*tc->interp_cur_op + idx))]
-#define REAL_BODY(tc, obj)  MVMP6opaque_real_data(tc, OBJECT_BODY(obj))
+#define REAL_BODY(tc, obj)  MVM_p6opaque_real_data(tc, OBJECT_BODY(obj))
 
 /* Dummy zero and one-arg callsite. */
 static MVMCallsite      no_arg_callsite = { NULL, 0, 0, 0 };

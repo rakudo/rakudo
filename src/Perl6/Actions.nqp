@@ -1550,7 +1550,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
 
     method blorst($/) {
-        make $<block> ?? $<block>.ast !! block_closure(make_thunk_ref($<statement>.ast, $/));
+        make block_closure($<block> ?? $<block>.ast !! make_thunk_ref($<statement>.ast, $/));
     }
 
     # Statement modifiers

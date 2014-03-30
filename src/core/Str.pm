@@ -1022,6 +1022,9 @@ my class Str does Stringy { # declared in BOOTSTRAP
     method path(Str:D:) returns IO::Path:D {
         IO::Path.new(self)
     }
+
+    method unival(Str:D:)  { unival(self.ord) };
+    method univals(Str:D:) { univals(self) };
 }
 
 
@@ -1198,6 +1201,7 @@ multi uniname(|)  { die 'uniname NYI on parrot backend' }
 multi uniprop(|)  { die 'uniprop NYI on parrot backend' }
 multi unibool(|)  { die 'unibool NYI on parrot backend' }
 multi unival(|)   { die 'unival NYI on parrot backend' }
+multi univals(|)  { die 'univals NYI on parrot backend' }
 multi unimatch(|) { die 'unimatch NYI on parrot backend' }
 #?endif
 #?if jvm
@@ -1205,6 +1209,7 @@ multi uniname(|)  { die 'uniname NYI on jvm backend' }
 multi uniprop(|)  { die 'uniprop NYI on jvm backend' }
 multi unibool(|)  { die 'unibool NYI on jvm backend' }
 multi unival(|)   { die 'unival NYI on jvm backend' }
+multi univals(|)  { die 'univals NYI on jvm backend' }
 multi unimatch(|) { die 'unimatch NYI on jvm backend' }
 #?endif
 #?if moar
@@ -1262,6 +1267,9 @@ multi unival(Int $code) {
     my $de = nqp::getuniprop_str($code, $deprop);
     !$de || $de eq '1' ?? $nu.Int !! $nu / $de;
 }
+
+proto univals(|) {*}
+multi univals(Str $str) { $str.ords.map: { unival($_) } }
 
 proto unimatch(|) {*}
 multi unimatch(Str $str, |c) { unimatch($str.ord, |c) }

@@ -1,3 +1,9 @@
+New in 2014.04
+
++ S17 (concurrency) now in MoarVM (except timing related features)
++ implemented univals(), .unival and .univals (on MoarVM)
++ make .pick/.roll behave sanely on Enums
+
 New in 2014.03
 
 + Fix suggestions for unknown routines when specified with '&'

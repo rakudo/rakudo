@@ -171,6 +171,19 @@ sub term:<time>() { nqp::p6box_i(nqp::time_i()) }
         $VM<config><osname> eq 'MSWin32' ?? 'perl6-m.bat' !! 'perl6-m';
 #?endif
     nqp::bindkey(nqp::who(PROCESS), '$EXECUTABLE_NAME', $EXECUTABLE_NAME);
+
+    my $EXECUTABLE =
+#?if parrot
+        nqp::p6box_s(pir::interpinfo__Si(pir::const::INTERPINFO_EXECUTABLE_FULLNAME));
+#?endif
+#?if jvm
+        $VM<properties><perl6.prefix> ~ '/bin/perl6-j';
+#?endif
+#?if moar
+        $VM<config><prefix> ~ '/bin/' ~ ($VM<config><osname> eq 'MSWin32' ?? 'perl6-m.bat' !! 'perl6-m');
+#?endif
+    nqp::bindkey(nqp::who(PROCESS), '$EXECUTABLE', $EXECUTABLE.path.absolute);
+
     my Mu $comp := nqp::getcomp('perl6');
 
     my $PROGRAM_NAME = $comp.user-progname();

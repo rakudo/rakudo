@@ -3125,6 +3125,22 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
     method onlystar($/) {
         my $BLOCK := $*CURPAD;
+
+        # Remove special variables; no need for them in onlystar.
+        my int $i := 0;
+        my int $n := nqp::elems($BLOCK[0]);
+        while $i < $n {
+            my $consider := $BLOCK[0][$i];
+            if nqp::istype($consider, QAST::Var) {
+                my $name := $consider.name;
+                if $name eq '$_' || $name eq '$/' || $name eq '$!' {
+                    $BLOCK[0][$i] := QAST::Op.new( :op('null') );
+                }
+            }
+            $i++;
+        }
+
+        # Add dispatching code.
         $BLOCK.push(QAST::Op.new(
             :op('invokewithcapture'),
             QAST::Op.new(

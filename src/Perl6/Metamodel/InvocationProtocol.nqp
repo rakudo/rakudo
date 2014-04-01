@@ -5,13 +5,18 @@ role Perl6::Metamodel::InvocationProtocol {
     
     has int $!has_invocation_handler;
     has $!invocation_handler;
+
+    has int $!has_multi_attrs;
+    has $!md_attr_class;
+    has str $!md_valid_attr_name;
+    has str $!md_cache_attr_name;
     
     my $default_invoke_handler;
     method set_default_invoke_handler($h) {
         $default_invoke_handler := $h;
     }
     
-    method set_invocation_attr($obj, $class, $name) {
+    method set_invocation_attr($obj, $class, str $name) {
         $!has_invocation_attr   := 1;
         $!invocation_attr_class := $class;
         $!invocation_attr_name  := $name;
@@ -28,6 +33,17 @@ role Perl6::Metamodel::InvocationProtocol {
     
     method has_invocation_handler($obj) { $!has_invocation_handler }
     method invocation_handler($obj) { $!invocation_handler }
+
+    method set_multi_invocation_attrs($obj, $class, str $valid_name, str $cache_name) {
+        $!has_multi_attrs    := 1;
+        $!md_attr_class      := $class;
+        $!md_valid_attr_name := $valid_name;
+        $!md_cache_attr_name := $cache_name;
+    }
+    method has_multi_invocation_attrs($obj) { $!has_multi_attrs }
+    method multi_attr_class($obj) { $!md_attr_class }
+    method multi_valid_attr_name($obj) { $!md_valid_attr_name }
+    method multi_cache_attr_name($obj) { $!md_cache_attr_name }
     
     method compose_invocation($obj) {
         # Check if we have a postcircumfix:<( )>, and if so install
@@ -60,6 +76,19 @@ role Perl6::Metamodel::InvocationProtocol {
                     }
                 }
             }
+#?if moar
+            for self.mro($obj) -> $class {
+                if nqp::can($class.HOW, 'has_multi_invocation_attrs') {
+                    if $class.HOW.has_multi_invocation_attrs($class) {
+                        nqp::setmultispec($obj,
+                            $class.HOW.multi_attr_class($class),
+                            $class.HOW.multi_valid_attr_name($class),
+                            $class.HOW.multi_cache_attr_name($class));
+                        last;
+                    }
+                }
+            }
+#?endif
         }
     }
 }

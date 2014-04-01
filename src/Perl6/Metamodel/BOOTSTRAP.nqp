@@ -2375,6 +2375,7 @@ BEGIN {
             $dcself
         }));
     Routine.HOW.compose_repr(Routine);
+    Routine.HOW.set_multi_invocation_attrs(Routine, Routine, '$!onlystar', '$!dispatch_cache');
     Routine.HOW.compose_invocation(Routine);
 
     # class Sub is Routine {

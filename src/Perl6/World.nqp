@@ -1718,10 +1718,12 @@ class Perl6::World is HLL::World {
                     nqp::p6captureouters2($!list, $resolved);
                 }
                 method update($code) {
-                    nqp::p6captureouters2([$code],
-                        nqp::getcomp('perl6').backend.name eq 'moar'
-                            ?? nqp::getstaticcode($!resolved)
-                            !! $!resolved);
+                    unless nqp::isnull($!resolved) {
+                        nqp::p6captureouters2([$code],
+                            nqp::getcomp('perl6').backend.name eq 'moar'
+                                ?? nqp::getstaticcode($!resolved)
+                                !! $!resolved);
+                    }
                 }
             }
 

@@ -1360,26 +1360,24 @@ class Perl6::Actions is HLL::Actions does STDActions {
         # TODO verify that the inner block only has more/done/later blocks in it
         for @inner_statements -> $/ {
             if $<statement_control> -> $/ {
-                if $<sym> eq 'done' || $<sym> eq 'more' {
-                    if $<sym> eq 'done' {
-                        if nqp::istype($<xblock><EXPR>.ast.returns, $*W.find_symbol(['Whatever'])) {
-                            # TODO error
-                            $wild_done := block_closure($<xblock><pblock>.ast);
-                            $wild_done.named('wild_done');
-                        } else {
-                            $past.push(QAST::IVal.new(:value(0))); # "DONE"
-                            $past.push($<xblock><EXPR>.ast);
-                            $past.push(block_closure($<xblock><pblock>.ast));
-                        }
-                    } elsif $<sym> eq 'more' {
-                        if nqp::istype($<xblock><EXPR>.ast.returns, $*W.find_symbol(['Whatever'])) {
-                            $wild_more := block_closure($<xblock><pblock>.ast);
-                            $wild_more.named('wild_more');
-                        } else {
-                            $past.push(QAST::IVal.new(:value(1))); # "MORE"
-                            $past.push($<xblock><EXPR>.ast);
-                            $past.push(block_closure($<xblock><pblock>.ast));
-                        }
+                if $<sym> eq 'done' {
+                    if nqp::istype($<xblock><EXPR>.ast.returns, $*W.find_symbol(['Whatever'])) {
+                        # TODO error
+                        $wild_done := block_closure($<xblock><pblock>.ast);
+                        $wild_done.named('wild_done');
+                    } else {
+                        $past.push(QAST::IVal.new(:value(0))); # "DONE"
+                        $past.push($<xblock><EXPR>.ast);
+                        $past.push(block_closure($<xblock><pblock>.ast));
+                    }
+                } elsif $<sym> eq 'more' {
+                    if nqp::istype($<xblock><EXPR>.ast.returns, $*W.find_symbol(['Whatever'])) {
+                        $wild_more := block_closure($<xblock><pblock>.ast);
+                        $wild_more.named('wild_more');
+                    } else {
+                        $past.push(QAST::IVal.new(:value(1))); # "MORE"
+                        $past.push($<xblock><EXPR>.ast);
+                        $past.push(block_closure($<xblock><pblock>.ast));
                     }
                 } elsif $<sym> eq 'wait' {
                     # TODO error
@@ -1387,6 +1385,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     $wait_time.named('wait_time');
                     $wait := block_closure($<xblock><pblock>.ast);
                     $wait.named('wait');
+                } else {
+                # TODO error
                 }
             } else {
                 # TODO error

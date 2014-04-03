@@ -1718,7 +1718,7 @@ class Perl6::World is HLL::World {
                     nqp::p6captureouters2($!list, $resolved);
                 }
                 method update($code) {
-                    unless nqp::isnull($!resolved) {
+                    if !nqp::isnull($!resolved) && !nqp::istype($!resolved, NQPMu) {
                         nqp::p6captureouters2([$code],
                             nqp::getcomp('perl6').backend.name eq 'moar'
                                 ?? nqp::getstaticcode($!resolved)

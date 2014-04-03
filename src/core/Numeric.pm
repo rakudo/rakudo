@@ -27,6 +27,8 @@ my role Numeric {
 
     method succ() { self + 1 }
     method pred() { self - 1 }
+
+    method sleep() { sleep self }
 }
 
 multi sub infix:<eqv>(Numeric:D $a, Numeric:D $b) {

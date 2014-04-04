@@ -1,6 +1,8 @@
 New in 2014.04
 
 + S17 (concurrency) now in MoarVM (except timing related features)
++ winner { done @promises { ... } } now works
++ .winners() on lists of Promises/Channels: lazy list in order of kept / more
 + implemented univals(), .unival and .univals (on MoarVM)
 + make .pick/.roll behave sanely on Enums
 

@@ -14,27 +14,33 @@ multi sub await(Channel $c) {
     $c.receive
 }
 
-my constant $WINNER_KIND_DONE = 0;
-my constant $WINNER_KIND_MORE = 1;
-
 sub WINNER(@winner, *@other, :$wild_done, :$wild_more, :$wait, :$wait_time is copy) {
     my Num $until = $wait ?? nqp::time_n() + $wait !! Nil;
 
+    my constant $WINNER_KIND_DONE = 0;
+    my constant $WINNER_KIND_MORE = 1;
+
     sub invoke_right(&block, $key, $value?) {
+
         my @names = map *.name, &block.signature.params;
-        return do if @names eqv ['$k', '$v'] || @names eqv ['$v', '$k'] {
-            &block(:k($key), :v($value));
-        } elsif @names eqv ['$_'] || (+@names == 1 && &block.signature.params[0].positional)  {
-            &block($value);
-        } elsif @names eqv ['$k'] {
-            &block(:k($key));
-        } elsif @names eqv ['$v'] {
-            &block(:v($value));
-        } elsif +@names == 0 {
-            return &block();
-        } else {
-            die "Couldn't figure out how to invoke {&block.signature().perl}";
+
+        if @names eqv ['$k', '$v'] || @names eqv ['$v', '$k'] {
+            return &block(:k($key), :v($value));
         }
+        elsif @names eqv ['$_'] || (+@names == 1 && &block.signature.params[0].positional)  {
+            return &block($value);
+        }
+        elsif @names eqv ['$k'] {
+            return &block(:k($key));
+        }
+        elsif @names eqv ['$v'] {
+            return &block(:v($value));
+        }
+        elsif +@names == 0 {
+            return &block();
+        }
+
+        die "Couldn't figure out how to invoke {&block.signature().perl}";
     }
 
     my @todo;

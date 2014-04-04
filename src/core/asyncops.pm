@@ -104,7 +104,15 @@ sub WINNER(@winner, *@other, :$wild_done, :$wild_more, :$wait, :$wait_time is co
 
                 if $contestant ~~ Promise {
                     if $contestant {   # kept/broken
-                        $action = { INVOKE_KV($todo[3],$todo[0],$contestant.result) };
+                        $action = {
+                            INVOKE_KV(
+                              $todo[3],
+                              $todo[0],
+                              $contestant.status == Kept
+                                ?? $contestant.result
+                                !! fail $contestant.excuse,  # Broken
+                            );
+                        };
                         last; # CHECK;
                     }
                     @promises.push: $contestant;

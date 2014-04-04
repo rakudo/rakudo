@@ -73,14 +73,12 @@ my role Supply {
     method list() {
         # Use a Channel to handle any asynchrony.
         my $c = self.Channel;
-        my $done = False;
-        (1..*).map(sub ($) {
-            last if $done;
+        map sub ($) {
             winner $c {
                 more * { $_ }
-                done * { $done = True; Nil }
+                done * { last }
             }
-        })
+        }, *;
     }
 
     method for(|c)          { SupplyOperations.for(|c) }

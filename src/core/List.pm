@@ -371,6 +371,26 @@ my class List does Positional { # declared in BOOTSTRAP
         self[$index];
     }
 
+    method winners (&block?) {
+        my @awaitables = self.list;
+        my @indexes    = ^+@awaitables;
+
+        map {
+            last if !@awaitables;
+
+            winner * {
+                done @awaitables {
+                    # for some reason we cannot check &block for definedness
+                    # as it will bomb on a signature mismatch *without* being called
+                    INVOKE_KV( &block // sub {}, @indexes[$:k], $:v );
+                    @awaitables.splice( $:k, 1 );
+                    @indexes.splice( $:k, 1 );
+                    $:v;
+                };
+            }
+        }, *;
+    }
+
     multi method ACCEPTS(List:D: $topic) {
         my $sseq = self;
         my $tseq = $topic.list;

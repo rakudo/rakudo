@@ -38,7 +38,7 @@ sub WINNER(@winner, *@other, :$wild_done, :$wild_more, :$wait, :$wait_time is co
     }
 
     my @todo;
-#       |-- [ kind, contestant, block, alternate_block? ]
+#       |-- [ ordinal, kind, contestant, block, alternate_block? ]
 
     # sanity check and transmogrify possibly multiple promises into things to do
     while +@other {
@@ -60,17 +60,17 @@ sub WINNER(@winner, *@other, :$wild_done, :$wild_more, :$wait, :$wait_time is co
         }
         my &block = @other.shift;
 
-        @todo.push: [ $kind, $_, &block ] for @contestant;
+        @todo.push: [ +@todo, $kind, $_, &block ] for @contestant;
     }
 
     # transmogrify any winner spec if nothing to do so far
     if !@todo {
         for @winner {
             when Promise {
-                @todo.push: [ $WINNER_KIND_DONE, $_, $wild_done ];
+                @todo.push: [ +@todo, $WINNER_KIND_DONE, $_, $wild_done ];
             }
             when Channel {
-                @todo.push: [ $WINNER_KIND_MORE, $_, $wild_more, $wild_done ];
+                @todo.push: [ +@todo, $WINNER_KIND_MORE, $_, $wild_more, $wild_done ];
             }
             default {
                 die "Got a {$_.WHAT.perl}, but expected a Promise or Channel";
@@ -91,15 +91,15 @@ sub WINNER(@winner, *@other, :$wild_done, :$wild_more, :$wait, :$wait_time is co
         my Bool $must_yield;
 
         for @todo.pick(*) -> $todo {
-            my $kind       := $todo[0];
-            my $contestant := $todo[1];
+            my $kind       := $todo[1];
+            my $contestant := $todo[2];
 
             if $kind == $WINNER_KIND_DONE {
 
                 if $contestant ~~ Promise {
                     if $contestant {   # kept/broken
                         $action = 
-                          {invoke_right($todo[2],$contestant,$contestant.result)};
+                          {invoke_right($todo[3],$todo[0],$contestant.result)};
                         last; # CHECK;
                     }
                     @promises.push: $contestant;
@@ -107,7 +107,7 @@ sub WINNER(@winner, *@other, :$wild_done, :$wild_more, :$wait, :$wait_time is co
 
                 else {   # Channel
                     if $contestant.closed {
-                        $action = {invoke_right($todo[2], $contestant)};
+                        $action = {invoke_right($todo[3], $todo[0])};
                         last; # CHECK;
                     }
                 }
@@ -116,12 +116,12 @@ sub WINNER(@winner, *@other, :$wild_done, :$wild_more, :$wait, :$wait_time is co
             else { # $kind == $WINNER_KIND_MORE && $contestant ~~ Channel
 
                 if (my $value := $contestant.poll) !~~ Nil {
-                    $action = {invoke_right($todo[2], $contestant, $value)};
+                    $action = {invoke_right($todo[3], $todo[0], $value)};
                     last; # CHECK;
                 }
 
-                elsif $contestant.closed && $todo[3] {
-                    $action = {invoke_right($todo[3], $contestant)};
+                elsif $contestant.closed && $todo[4] {
+                    $action = {invoke_right($todo[4], $todo[0])};
                     last; # CHECK;
                 }
                 $must_yield = True;

@@ -14,34 +14,34 @@ multi sub await(Channel $c) {
     $c.receive
 }
 
+sub INVOKE_KV(&block, $key, $value?) {
+
+    my @names = map *.name, &block.signature.params;
+
+    if @names eqv ['$k', '$v'] || @names eqv ['$v', '$k'] {
+        return &block(:k($key), :v($value));
+    }
+    elsif @names eqv ['$_'] || (+@names == 1 && &block.signature.params[0].positional)  {
+        return &block($value);
+    }
+    elsif @names eqv ['$k'] {
+        return &block(:k($key));
+    }
+    elsif @names eqv ['$v'] {
+        return &block(:v($value));
+    }
+    elsif +@names == 0 {
+        return &block();
+    }
+
+    die "Couldn't figure out how to invoke {&block.signature().perl}";
+}
+
 sub WINNER(@winner, *@other, :$wild_done, :$wild_more, :$wait, :$wait_time is copy) {
     my Num $until = $wait ?? nqp::time_n() + $wait !! Nil;
 
     my constant $WINNER_KIND_DONE = 0;
     my constant $WINNER_KIND_MORE = 1;
-
-    sub invoke_right(&block, $key, $value?) {
-
-        my @names = map *.name, &block.signature.params;
-
-        if @names eqv ['$k', '$v'] || @names eqv ['$v', '$k'] {
-            return &block(:k($key), :v($value));
-        }
-        elsif @names eqv ['$_'] || (+@names == 1 && &block.signature.params[0].positional)  {
-            return &block($value);
-        }
-        elsif @names eqv ['$k'] {
-            return &block(:k($key));
-        }
-        elsif @names eqv ['$v'] {
-            return &block(:v($value));
-        }
-        elsif +@names == 0 {
-            return &block();
-        }
-
-        die "Couldn't figure out how to invoke {&block.signature().perl}";
-    }
 
     my @todo;
 #       |-- [ ordinal, kind, contestant, block, alternate_block? ]
@@ -104,8 +104,7 @@ sub WINNER(@winner, *@other, :$wild_done, :$wild_more, :$wait, :$wait_time is co
 
                 if $contestant ~~ Promise {
                     if $contestant {   # kept/broken
-                        $action = 
-                          {invoke_right($todo[3],$todo[0],$contestant.result)};
+                        $action = { INVOKE_KV($todo[3],$todo[0],$contestant.result) };
                         last; # CHECK;
                     }
                     @promises.push: $contestant;
@@ -113,7 +112,7 @@ sub WINNER(@winner, *@other, :$wild_done, :$wild_more, :$wait, :$wait_time is co
 
                 else {   # Channel
                     if $contestant.closed {
-                        $action = {invoke_right($todo[3], $todo[0])};
+                        $action = { INVOKE_KV($todo[3], $todo[0]) };
                         last; # CHECK;
                     }
                 }
@@ -122,12 +121,12 @@ sub WINNER(@winner, *@other, :$wild_done, :$wild_more, :$wait, :$wait_time is co
             else { # $kind == $WINNER_KIND_MORE && $contestant ~~ Channel
 
                 if (my $value := $contestant.poll) !~~ Nil {
-                    $action = {invoke_right($todo[3], $todo[0], $value)};
+                    $action = { INVOKE_KV($todo[3], $todo[0], $value) };
                     last; # CHECK;
                 }
 
                 elsif $contestant.closed && $todo[4] {
-                    $action = {invoke_right($todo[4], $todo[0])};
+                    $action = { INVOKE_KV($todo[4], $todo[0]) };
                     last; # CHECK;
                 }
                 $must_yield = True;

@@ -47,7 +47,7 @@ sub WINNER(@winner, *@other, :$wild_done, :$wild_more, :$wait, :$wait_time is co
             die "Got a {$kind.WHAT.perl}, but expected $WINNER_KIND_DONE or $WINNER_KIND_MORE";
         }
 
-        my @contestant = @other.shift;
+        my @contestant;
         while @other[0] !~~ Block {
             my $next := @other.shift;
             if $next !~~ Promise && $next !~~ Channel {

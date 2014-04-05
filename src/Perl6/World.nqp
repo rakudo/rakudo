@@ -2635,12 +2635,41 @@ class Perl6::World is HLL::World {
             );
             try { return $ex.new(|%opts) };
         }
+
+        my $Str;
+        my $Int;
+        my $Parcel;
+        my int $has_str;
+        my int $has_int;
+        my int $has_parcel;
+
+        try { $Str := self.find_symbol(["Str"]); $has_str := 1 }
+        try { $Int := self.find_symbol(["Int"]); $has_int := 1 }
+        try { $Parcel := self.find_symbol(["Parcel"]); $has_parcel := 1 }
+
+        sub safely_stringify($target) {
+            if $has_str && nqp::istype($target, $Str) {
+                return ~nqp::unbox_s($target);
+            } elsif $has_int && nqp::istype($target, $Int) {
+                return ~nqp::unbox_i($target);
+            } elsif $has_parcel && nqp::istype($target, $Parcel) {
+                my $storage := nqp::getattr($target, $Parcel, '$!storage');
+                my @result;
+                for $storage {
+                    nqp::push(@result, safely_stringify($_));
+                }
+                return "(" ~ join(", ", @result) ~ ")";
+            } else {
+                return ~$target;
+            }
+        }
+
         my @err := ['Error while compiling, type ', join('::', $ex_type),  "\n"];
         for %opts -> $key {
             @err.push: '  ';
             @err.push: $key;
             @err.push: ': ';
-            @err.push: %opts{$key};
+            @err.push: safely_stringify(%opts{$key});
             @err.push: "\n";
         }
         nqp::findmethod(HLL::Grammar, 'panic')($/.CURSOR, join('', @err));

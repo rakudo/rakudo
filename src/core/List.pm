@@ -371,6 +371,7 @@ my class List does Positional { # declared in BOOTSTRAP
         self[$index];
     }
 
+#?if !parrot
     method winners (&block?) {
         my @awaitables = self.list;
         my @indexes    = ^+@awaitables;
@@ -390,6 +391,7 @@ my class List does Positional { # declared in BOOTSTRAP
             }
         }, *;
     }
+#?endif
 
     multi method ACCEPTS(List:D: $topic) {
         my $sseq = self;

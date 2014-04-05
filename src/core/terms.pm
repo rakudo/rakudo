@@ -100,6 +100,12 @@ sub term:<time>() { nqp::p6box_i(nqp::time_i()) }
          ~ '/languages/perl6';
 
     my %CUSTOM_LIB;
+    try {
+        my $home := %ENV<HOME> // %ENV<HOMEDRIVE> ~ %ENV<HOMEPATH>;
+        my $ver  := nqp::p6box_s(nqp::atkey($compiler, 'version'));
+        %CUSTOM_LIB<home> = "$home/.perl6/$ver";
+        @INC.push(%CUSTOM_LIB<home> ~ '/lib');
+    }
     %CUSTOM_LIB<perl>   = $prefix;
     %CUSTOM_LIB<vendor> = $prefix ~ '/vendor';
     %CUSTOM_LIB<site>   = $prefix ~ '/site';
@@ -107,12 +113,6 @@ sub term:<time>() { nqp::p6box_i(nqp::time_i()) }
     @INC.push(%CUSTOM_LIB<vendor> ~ '/lib');
     @INC.push(%CUSTOM_LIB<perl>   ~ '/lib');
 
-    try {
-        my $home := %ENV<HOME> // %ENV<HOMEDRIVE> ~ %ENV<HOMEPATH>;
-        my $ver  := nqp::p6box_s(nqp::atkey($compiler, 'version'));
-        %CUSTOM_LIB<home> = "$home/.perl6/$ver";
-        @INC.push(%CUSTOM_LIB<home> ~ '/lib');
-    }
     nqp::bindkey(nqp::who(PROCESS), '%CUSTOM_LIB', %CUSTOM_LIB);
 
     my $I := nqp::atkey(nqp::atkey(%*COMPILING, '%?OPTIONS'), 'I');

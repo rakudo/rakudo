@@ -2639,17 +2639,20 @@ class Perl6::World is HLL::World {
         my $Str;
         my $Int;
         my $Parcel;
+        my int $has_str;
+        my int $has_int;
+        my int $has_parcel;
 
-        try { $Str := self.find_symbol(["Str"]) }
-        try { $Int := self.find_symbol(["Int"]) }
-        try { $Parcel := self.find_symbol(["Parcel"]) }
+        try { $Str := self.find_symbol(["Str"]); $has_str := 1 }
+        try { $Int := self.find_symbol(["Int"]); $has_int := 1 }
+        try { $Parcel := self.find_symbol(["Parcel"]); $has_parcel := 1 }
 
         sub safely_stringify($target) {
-            if $Str && nqp::istype($target, self.find_symbol(["Str"])) {
+            if $has_str && nqp::istype($target, $Str) {
                 return ~nqp::unbox_s($target);
-            } elsif $Int && nqp::istype($target, self.find_symbol(["Int"])) {
+            } elsif $has_int && nqp::istype($target, $Int) {
                 return ~nqp::unbox_i($target);
-            } elsif $Parcel && nqp::istype($target, $Parcel) {
+            } elsif $has_parcel && nqp::istype($target, $Parcel) {
                 my $storage := nqp::getattr($target, $Parcel, '$!storage');
                 my @result;
                 for $storage {

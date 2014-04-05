@@ -2635,12 +2635,38 @@ class Perl6::World is HLL::World {
             );
             try { return $ex.new(|%opts) };
         }
+
+        my $Str;
+        my $Int;
+        my $Parcel;
+
+        try { $Str := self.find_symbol(["Str"]) }
+        try { $Int := self.find_symbol(["Int"]) }
+        try { $Parcel := self.find_symbol(["Parcel"]) }
+
+        sub safely_stringify($target) {
+            if $Str && nqp::istype($target, self.find_symbol(["Str"])) {
+                return ~nqp::unbox_s($target);
+            } elsif $Int && nqp::istype($target, self.find_symbol(["Int"])) {
+                return ~nqp::unbox_i($target);
+            } elsif $Parcel && nqp::istype($target, $Parcel) {
+                my $storage := nqp::getattr($target, $Parcel, '$!storage');
+                my @result;
+                for $storage {
+                    nqp::push(@result, safely_stringify($_));
+                }
+                return "(" ~ join(", ", @result) ~ ")";
+            } else {
+                return ~$target;
+            }
+        }
+
         my @err := ['Error while compiling, type ', join('::', $ex_type),  "\n"];
         for %opts -> $key {
             @err.push: '  ';
             @err.push: $key;
             @err.push: ': ';
-            @err.push: %opts{$key};
+            @err.push: safely_stringify(%opts{$key});
             @err.push: "\n";
         }
         nqp::findmethod(HLL::Grammar, 'panic')($/.CURSOR, join('', @err));

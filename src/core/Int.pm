@@ -98,19 +98,19 @@ my class Int does Real { # declared in BOOTSTRAP
 }
 
 multi prefix:<++>(Int:D \a is rw) {   # XXX
-    a = nqp::add_I(nqp::decont(a), nqp::p6box_i(1), Int);
+    a = nqp::add_I(nqp::decont(a), 1, Int);
 }
 multi prefix:<-->(Int:D \a is rw) {   # XXX
-    a = nqp::sub_I(nqp::decont(a), nqp::p6box_i(1), Int);
+    a = nqp::sub_I(nqp::decont(a), 1, Int);
 }
 multi postfix:<++>(Int:D \a is rw) {  # XXX
     my Int:D $b = a;
-    a = nqp::add_I(nqp::decont(a), nqp::p6box_i(1), Int);
+    a = nqp::add_I(nqp::decont(a), 1, Int);
     $b
 }
 multi postfix:<-->(Int:D \a is rw) {  # XXX
     my Int:D $b = a;
-    a = nqp::sub_I(nqp::decont(a), nqp::p6box_i(1), Int);
+    a = nqp::sub_I(nqp::decont(a), 1, Int);
     $b
 }
 

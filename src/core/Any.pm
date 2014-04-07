@@ -268,13 +268,13 @@ Metamodel::ClassHOW.exclude_parent(Any);
 
 # builtin ops
 proto infix:<===>($?, $?) is pure { * }
-multi infix:<===>($a?)    { Bool::True }
+multi infix:<===>($?)    { Bool::True }
 multi infix:<===>($a, $b) {
     nqp::p6bool(nqp::iseq_s(nqp::unbox_s($a.WHICH), nqp::unbox_s($b.WHICH)))
 }
 
 proto infix:<before>($, $?)  is pure { * }
-multi infix:<before>($x?)      { Bool::True }
+multi infix:<before>($?)      { Bool::True }
 multi infix:<before>(\a, \b)   { (a cmp b) < 0 }
 
 proto infix:<after>($, $?) is pure { * }

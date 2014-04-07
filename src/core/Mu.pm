@@ -703,14 +703,14 @@ multi sub infix:<~~>(Mu \topic, Mu \matcher) {
     matcher.ACCEPTS(topic).Bool;
 }
 
-proto sub infix:<=:=>(Mu $a?, Mu $b?) { * }
-multi sub infix:<=:=>($a?)      { Bool::True }
+proto sub infix:<=:=>(Mu $?, Mu $?) { * }
+multi sub infix:<=:=>($?)      { Bool::True }
 multi sub infix:<=:=>(Mu \a, Mu \b) { 
     nqp::p6bool(nqp::eqaddr(a, b));
 }
 
 proto sub infix:<eqv>(Any $?, Any $?) { * }
-multi sub infix:<eqv>($a?)            { Bool::True }
+multi sub infix:<eqv>($?)            { Bool::True }
 multi sub infix:<eqv>(Any $a, Any $b) {
     $a.WHICH eq $b.WHICH
 }

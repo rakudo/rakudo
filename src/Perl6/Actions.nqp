@@ -5891,8 +5891,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my @result;
         my $clear_topic_bind;
         my $saw_slurpy;
-        my $Sig    := $*W.find_symbol(['Signature']);
-        my $Param  := $*W.find_symbol(['Parameter']);
+        my $Sig      := $*W.find_symbol(['Signature']);
+        my $Param    := $*W.find_symbol(['Parameter']);
+        my $Iterable := $*W.find_symbol(['Iterable']);
         my @p_objs := nqp::getattr($sig, $Sig, '$!params');
         my int $i  := 0;
         my int $n  := nqp::elems(@params);
@@ -6141,18 +6142,35 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     }
                 }
                 else {
-                    # The rw-ness for is copy is handled by the container descriptor.
-                    $var.push(QAST::Op.new(
-                        :op('bind'),
-                        QAST::Var.new( :name(%info<variable_name>), :scope('lexical') ),
-                        QAST::Op.new(
-                            :op('assignunchecked'),
+                    # If the type means there's no way this could possible be
+                    # Iterable, we know it can't flatten. This in turn means
+                    # we need not wrap it in a read-only scalar.
+                    my $wrap := $flags +& $SIG_ELEM_IS_COPY;
+                    unless $wrap {
+                        $wrap := nqp::istype($nomtype, $Iterable) || nqp::istype($Iterable, $nomtype);
+                    }
+                    if $wrap {
+                        $var.push(QAST::Op.new(
+                            :op('bind'),
+                            QAST::Var.new( :name(%info<variable_name>), :scope('lexical') ),
                             QAST::Op.new(
-                                :op('p6scalarfromdesc'),
-                                QAST::WVal.new( :value(%info<container_descriptor>) )
-                            ),
-                            QAST::Var.new( :name($name), :scope('local') )
-                        )));
+                                :op('assignunchecked'),
+                                QAST::Op.new(
+                                    :op('p6scalarfromdesc'),
+                                    QAST::WVal.new( :value(%info<container_descriptor>) )
+                                ),
+                                QAST::Var.new( :name($name), :scope('local') )
+                            )));
+                    }
+                    else {
+                        $var.push(QAST::Op.new(
+                            :op('bind'),
+                            QAST::Var.new( :name(%info<variable_name>), :scope('lexical') ),
+                            QAST::Op.new(
+                                :op('decont'),
+                                QAST::Var.new( :name($name), :scope('local') )
+                            )));
+                    }
 
                     # Take care we don't undo explicit $_ bindings.
                     if %info<variable_name> eq '$_' && $*IMPLICIT {

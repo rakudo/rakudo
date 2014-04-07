@@ -66,6 +66,7 @@ my class X::AdHoc is Exception {
 }
 
 my class X::Method::NotFound is Exception {
+    has $.object;
     has $.method;
     has $.typename;
     has Bool $.private = False;

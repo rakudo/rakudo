@@ -569,9 +569,10 @@ my class Mu { # declared in BOOTSTRAP
         $meth ??
             $meth(SELF, |c) !!
             X::Method::NotFound.new(
-                    method   => '!' ~ $name,
-                    typename => $type.HOW.name($type),
-                    :private,
+              object   => SELF,
+              method   => '!' ~ $name,
+              typename => $type.HOW.name($type),
+              :private,
             ).throw;
     }
     
@@ -594,8 +595,9 @@ my class Mu { # declared in BOOTSTRAP
         my @result := SELF.dispatch:<.*>($name, |c);
         if @result.elems == 0 {
             X::Method::NotFound.new(
-                    method   => $name,
-                    typename => SELF.HOW.name(SELF),
+              object   => SELF,
+              method   => $name,
+              typename => SELF.HOW.name(SELF),
             ).throw;
         }
         @result

@@ -124,22 +124,40 @@ multi sub postcircumfix:<[ ]>(\SELF, Callable $block, :$SINK!, *%other) is rw {
    SLICE_MORE( SELF, POSITIONS(SELF,$block), True, :$SINK, |%other );
 }
 multi sub postcircumfix:<[ ]>(\SELF,Callable $block,:$delete!,*%other) is rw {
-   SLICE_MORE( SELF, POSITIONS(SELF,$block), True, :$delete, |%other );
+   my @positions := POSITIONS(SELF,$block);
+   +@positions == 1
+     ?? SLICE_ONE(  SELF, @positions[0], True, :$delete, |%other )
+     !! SLICE_MORE( SELF, @positions,    True, :$delete, |%other );
 }
 multi sub postcircumfix:<[ ]>(\SELF,Callable $block,:$exists!,*%other) is rw {
-   SLICE_MORE( SELF, POSITIONS(SELF,$block), True, :$exists, |%other );
+   my @positions := POSITIONS(SELF,$block);
+   +@positions == 1
+     ?? SLICE_ONE(  SELF, @positions[0], True, :$exists, |%other )
+     !! SLICE_MORE( SELF, @positions,    True, :$exists, |%other );
 }
 multi sub postcircumfix:<[ ]>(\SELF, Callable $block, :$kv!, *%other) is rw {
-   SLICE_MORE( SELF, POSITIONS(SELF,$block), True, :$kv, |%other );
+   my @positions := POSITIONS(SELF,$block);
+   +@positions == 1
+     ?? SLICE_ONE(  SELF, @positions[0], True, :$kv, |%other )
+     !! SLICE_MORE( SELF, @positions,    True, :$kv, |%other );
 }
 multi sub postcircumfix:<[ ]>(\SELF, Callable $block, :$p!, *%other) is rw {
-   SLICE_MORE( SELF, POSITIONS(SELF,$block), True, :$p, |%other );
+   my @positions := POSITIONS(SELF,$block);
+   +@positions == 1
+     ?? SLICE_ONE(  SELF, @positions[0], True, :$p, |%other )
+     !! SLICE_MORE( SELF, @positions,    True, :$p, |%other );
 }
 multi sub postcircumfix:<[ ]>(\SELF, Callable $block, :$k!, *%other) is rw {
-   SLICE_MORE( SELF, POSITIONS(SELF,$block), True, :$k, |%other );
+   my @positions := POSITIONS(SELF,$block);
+   +@positions == 1
+     ?? SLICE_ONE(  SELF, @positions[0], True, :$k, |%other )
+     !! SLICE_MORE( SELF, @positions,    True, :$k, |%other );
 }
 multi sub postcircumfix:<[ ]>(\SELF, Callable $block, :$v!, *%other) is rw {
-   SLICE_MORE( SELF, POSITIONS(SELF,$block), True, :$v, |%other );
+   my @positions := POSITIONS(SELF,$block);
+   +@positions == 1
+     ?? SLICE_ONE(  SELF, @positions[0], True, :$v, |%other )
+     !! SLICE_MORE( SELF, @positions,    True, :$v, |%other );
 }
 
 # @a[*]

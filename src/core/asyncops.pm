@@ -46,7 +46,7 @@ sub WINNER(@winner, *@other, :$wild_done, :$wild_more, :$wait, :$wait_time is co
     my @todo;
 #       |-- [ ordinal, kind, contestant, block, alternate_block? ]
 
-    # sanity check and transmogrify possibly multiple promises into things to do
+    # sanity check and transmogrify possibly multiple channels into things to do
     while +@other {
         my $kind = @other.shift;
         if $kind != $WINNER_KIND_DONE && $kind != $WINNER_KIND_MORE {
@@ -56,11 +56,8 @@ sub WINNER(@winner, *@other, :$wild_done, :$wild_more, :$wait, :$wait_time is co
         my @contestant;
         while @other[0] !~~ Block {
             my $next := @other.shift;
-            if $next !~~ Promise && $next !~~ Channel {
-                die "Got a {$next.WHAT.perl}, but expected a Promise or Channel";
-            }
-            elsif $kind == $WINNER_KIND_MORE && $next ~~ Promise {
-                die "Cannot use 'more' on a Promise";
+            if $next !~~ Channel {
+                die "Got a {$next.WHAT.perl}, but expected a Channel";
             }
             push @contestant, $next;
         }
@@ -72,14 +69,11 @@ sub WINNER(@winner, *@other, :$wild_done, :$wild_more, :$wait, :$wait_time is co
     # transmogrify any winner spec if nothing to do so far
     if !@todo {
         for @winner {
-            when Promise {
-                @todo.push: [ +@todo, $WINNER_KIND_DONE, $_, $wild_done ];
-            }
             when Channel {
                 @todo.push: [ +@todo, $WINNER_KIND_MORE, $_, $wild_more, $wild_done ];
             }
             default {
-                die "Got a {$_.WHAT.perl}, but expected a Promise or Channel";
+                die "Got a {$_.WHAT.perl}, but expected a Channel";
             }
         }
     }
@@ -89,44 +83,21 @@ sub WINNER(@winner, *@other, :$wild_done, :$wild_more, :$wait, :$wait_time is co
     }
 
     my $action;
-    my $timeout_promise;
 
     CHECK:
     loop {  # until something to return
-        my @promises;
-        my Bool $must_yield;
-
         for @todo.pick(*) -> $todo {
             my $kind       := $todo[1];
             my $contestant := $todo[2];
 
             if $kind == $WINNER_KIND_DONE {
-
-                if $contestant ~~ Promise {
-                    if $contestant {   # kept/broken
-                        $action = {
-                            INVOKE_KV(
-                              $todo[3],
-                              $todo[0],
-                              $contestant.status == Kept
-                                ?? $contestant.result
-                                !! fail $contestant.excuse,  # Broken
-                            );
-                        };
-                        last; # CHECK;
-                    }
-                    @promises.push: $contestant;
-                }
-
-                else {   # Channel
-                    if $contestant.closed {
-                        $action = { INVOKE_KV($todo[3], $todo[0]) };
-                        last; # CHECK;
-                    }
+                if $contestant.closed {
+                    $action = { INVOKE_KV($todo[3], $todo[0]) };
+                    last; # CHECK;
                 }
             }
 
-            else { # $kind == $WINNER_KIND_MORE && $contestant ~~ Channel
+            else { # $kind == $WINNER_KIND_MORE
 
                 if (my $value := $contestant.poll) !~~ Nil {
                     $action = { INVOKE_KV($todo[3], $todo[0], $value) };
@@ -137,27 +108,19 @@ sub WINNER(@winner, *@other, :$wild_done, :$wild_more, :$wait, :$wait_time is co
                     $action = { INVOKE_KV($todo[4], $todo[0]) };
                     last; # CHECK;
                 }
-                $must_yield = True;
             }
         }
 
         last if $action; # remove if we can last to CHECK:
 
         # we have to wait
-        if $until {
-            if $nqp::time_n() >= $until {  # we're done waiting
-                $action = $wait;
-                last; # CHECK;
-            }
-            
-            # make sure we wait next time
-            @promises.push: $timeout_promise //= Promise.at($until);
+        if $until && $nqp::time_n() >= $until {  # we're done waiting
+            $action = $wait;
+            last; # CHECK;
         }
 
-        # yield the thread only if we must
-        $must_yield
-          ?? Thread.yield()
-          !! Promise.anyof(|@promises).result;
+        # wait a bit
+        Thread.yield()
     }
 
     # must do action outside above loop to make any "last" in block find the right loop

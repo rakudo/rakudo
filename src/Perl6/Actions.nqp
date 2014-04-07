@@ -5992,7 +5992,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             if nqp::objprimspec($nomtype) {
                 $var.returns($nomtype);
             }
-            else {
+            elsif !$saw_slurpy {
                 # Must hll-ize before we go on.
                 $var.push(QAST::Op.new(
                     :op('bind'),

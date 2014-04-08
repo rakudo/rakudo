@@ -47,8 +47,8 @@ my class Mu { # declared in BOOTSTRAP
     }
     
     proto method new(|) { * }
-    multi method new(*%attrinit) {
-        self.bless(|%attrinit);
+    multi method new(*%) {
+        nqp::invokewithcapture(nqp::findmethod(self, 'bless'), nqp::usecapture())
     }
     multi method new($, *@) {
         X::Constructor::Positional.new(:type( self )).throw();
@@ -59,7 +59,7 @@ my class Mu { # declared in BOOTSTRAP
     }
     
     method bless(*@autovivs, *%attrinit) {
-        if @autovivs && nqp::istype(@autovivs[0], Whatever) {
+        if @autovivs && nqp::istype(@autovivs.at_pos(0), Whatever) {
             DEPRECATED( "a call to bless without initial * parameter" );
             @autovivs.shift;
         }

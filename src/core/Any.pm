@@ -321,22 +321,27 @@ multi infix:<minmax>(*@args) { @args.minmax }
 sub minmax(*@args, :&by = &infix:<cmp>) { @args.minmax(&by) }
 
 proto map(|) {*}
+multi map(&code, @values) { @values.map(&code) }
 multi map(&code, *@values) { @values.map(&code) }
 multi map(&code, Whatever) { (1..Inf).map(&code) }
 
 proto grep(|) {*}
+multi grep(Mu $test, @values) { @values.grep($test) }
 multi grep(Mu $test, *@values) { @values.grep($test) }
 
 proto first(|) {*}
+multi first(Mu $test, @values) { @values.first($test) }
 multi first(Mu $test, *@values) { @values.first($test) }
 
 proto join(|) { * }
 multi join($sep = '', *@values) { @values.join($sep) }
 
 proto pick(|) { * }
+multi pick($n, @values) { @values.pick($n) }
 multi pick($n, *@values) { @values.pick($n) }
 
 proto roll(|) { * }
+multi roll($n, @values) { @values.roll($n) }
 multi roll($n, *@values) { @values.roll($n) }
 
 proto keys(|) { * }

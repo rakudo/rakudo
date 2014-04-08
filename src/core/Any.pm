@@ -382,9 +382,9 @@ multi squish(*@values, |c) { @values.squish(|c) }
 
 proto sub sort(|) {*}
 multi sub sort(*@values)      {
-    @values.at_pos(0).^does(Callable)
-        ?? do { my $cmp := @values.shift; @values.sort($cmp) }
-        !!  @values.sort;
+    nqp::istype(@values.at_pos(0), Callable)
+        ?? (my $cmp := @values.shift; @values.sort($cmp) )
+        !! @values.sort;
 }
 
 proto sub item(|) is pure { * }

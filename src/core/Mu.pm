@@ -716,13 +716,13 @@ multi sub infix:<eqv>(Any $a, Any $b) {
 }
 
 multi sub infix:<eqv>(@a, @b) {
-    unless @a.WHAT === @b.WHAT && @a.elems == @b.elems {
+    unless @a.WHAT === @b.WHAT && (my int $n = @a.elems) == @b.elems {
         return Bool::False
     }
-    for ^@a -> $i {
-        unless @a[$i] eqv @b[$i] {
-            return Bool::False;
-        }
+    my int $i = 0;
+    while $i < $n {
+        return Bool::False unless @a.at_pos($i) eqv @b.at_pos($i);
+        $i = $i + 1;
     }
     Bool::True
 }

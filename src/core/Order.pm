@@ -4,6 +4,10 @@ my enum Order (:Less(-1), :Same(0), :More(1));
 only Increase () { DEPRECATED("Less"); Less }
 only Decrease  (){ DEPRECATED("More"); More }
 
+sub ORDER(int $i) {
+    $i == 0 ?? Same !! $i <  0 ?? Less !! More
+}
+
 proto infix:<cmp>($, $) { * }
 multi infix:<cmp>(\a, \b) {
     return Order::Less if a === -$Inf || b === $Inf;
@@ -12,19 +16,17 @@ multi infix:<cmp>(\a, \b) {
 }
 multi infix:<cmp>(Real \a, Real \b) { a.Bridge cmp b.Bridge }
 multi infix:<cmp>(Int:D \a, Int:D \b) {
-    Order.(nqp::p6box_i(nqp::cmp_I(nqp::decont(a), nqp::decont(b))))
+    ORDER(nqp::cmp_I(nqp::decont(a), nqp::decont(b)))
 }
 multi infix:<cmp>(int $a, int $b) {
-    Order.(nqp::p6box_i(nqp::cmp_i($a, $b)))
+    ORDER(nqp::cmp_i($a, $b))
 }
 
 multi infix:«<=>»(Int:D \a, Int:D \b) {
-    Order.(nqp::p6box_i(nqp::cmp_I(nqp::decont(a), nqp::decont(b))))
+    ORDER(nqp::cmp_I(nqp::decont(a), nqp::decont(b)))
 }
 multi infix:«<=>»(int $a, int $b) {
-    Order.(nqp::p6box_i(nqp::cmp_i($a, $b)))
+    ORDER(nqp::cmp_i($a, $b))
 }
-
-
 
 # vim: ft=perl6 expandtab sw=4

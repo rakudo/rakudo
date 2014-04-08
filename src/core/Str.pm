@@ -1046,10 +1046,10 @@ multi infix:<x>(str $s, int $repetition) returns str {
 }
 
 multi infix:<cmp>(Str:D \a, Str:D \b) returns Order:D {
-    Order.(nqp::p6box_i(nqp::cmp_s(nqp::unbox_s(a), nqp::unbox_s(b))))
+    ORDER(nqp::cmp_s(nqp::unbox_s(a), nqp::unbox_s(b)))
 }
 multi infix:<cmp>(str $a, str $b) returns Order:D {
-    Order.(nqp::p6box_i(nqp::cmp_s($a, $b)))
+    ORDER(nqp::cmp_s($a, $b))
 }
 
 multi infix:<===>(Str:D \a, Str:D \b) returns Bool:D {
@@ -1060,10 +1060,10 @@ multi infix:<===>(str $a, str $b) returns Bool:D {
 }
 
 multi infix:<leg>(Str:D \a, Str:D \b) returns Order:D {
-    Order.(nqp::p6box_i(nqp::cmp_s(nqp::unbox_s(a), nqp::unbox_s(b))))
+    ORDER(nqp::cmp_s(nqp::unbox_s(a), nqp::unbox_s(b)))
 }
 multi infix:<leg>(str $a, str $b) returns Order:D {
-    Order.(nqp::p6box_i(nqp::cmp_s($a, $b)))
+    ORDER(nqp::cmp_s($a, $b))
 }
 
 multi infix:<eq>(Str:D \a, Str:D \b) returns Bool:D {

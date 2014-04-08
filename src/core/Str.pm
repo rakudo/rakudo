@@ -708,43 +708,48 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
 
     multi method split(Str:D: Cool $delimiter, $limit = *, :$all) {
-        my $match-string = $delimiter.Str;
-        return if self eq '' && $delimiter eq '';
+        my $delim-str        = $delimiter.Str;
+        my str $self-string  = self;
+        my str $match-string = $delim-str;
+        return unless nqp::chars($self-string) || nqp::chars($match-string);
 
-        my $l = $limit ~~ Whatever ?? $Inf !! $limit;
+        my int $l = nqp::istype($limit, Whatever) || $limit == $Inf
+            ?? nqp::chars($self-string) + 1
+            !! $limit.Int;
         return ().list     if $l <= 0;
         return (self).list if $l == 1;
 
-        my $c = 0;
-        my $done = 0;
-        if $match-string eq "" {
-            my $chars = self.chars;
+        my int $c = 0;
+        my int $done = 0;
+        if nqp::chars($match-string) {
+            my int $width = nqp::chars($match-string);
             map {
                 last if $done;
 
-                if --$chars and --$l {
-                    self.substr($c++, 1);
+                my int $m = nqp::index($self-string, $match-string, $c);
+                if $m >= 0 and ($l = $l - 1) {
+                    my \value = nqp::p6box_s(nqp::substr($self-string, $c, $m - $c));
+                    $c = $m + $width;
+                    $all ?? (value, $match-string) !! value;
                 }
                 else {
                     $done = 1;
-                    self.substr($c);
+                    nqp::p6box_s(nqp::substr($self-string, $c));
                 }
             }, 1 .. $l;
-        }
-        else {
-            my $width = $match-string.chars;
+        } else {
+            my int $chars = nqp::chars($self-string);
             map {
                 last if $done;
 
-                my $m = self.index($match-string, $c);
-                if $m.defined and --$l {
-                    my $value = self.substr($c, $m - $c);
-                    $c = $m + $width;
-                    $all ?? ($value,$match-string) !! $value;
+                if ($chars = $chars - 1) and ($l = $l - 1) {
+                    my \value = nqp::p6box_s(nqp::substr($self-string, $c, 1));
+                    $c = $c + 1;
+                    value
                 }
                 else {
                     $done = 1;
-                    self.substr($c);
+                    nqp::p6box_s(nqp::substr($self-string, $c));
                 }
             }, 1 .. $l;
         }

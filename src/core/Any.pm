@@ -115,13 +115,13 @@ my class Any { # declared in BOOTSTRAP
     # auto-vivifying
     proto method push(|) { * }
     multi method push(Any:U \SELF: *@values) {
-        &infix:<=>(SELF, Array.new);
+        SELF = Array.new;
         SELF.push(@values);
     }
 
     proto method unshift(|) { * }
     multi method unshift(Any:U \SELF: *@values) {
-        &infix:<=>(SELF, Array.new);
+        SELF = Array.new;
         SELF.unshift(@values);
     }
 
@@ -217,7 +217,7 @@ my class Any { # declared in BOOTSTRAP
     }
     multi method at_pos(Any:U \SELF: $pos) is rw {
         nqp::bindattr(my $v, Scalar, '$!whence',
-            -> { SELF.defined || &infix:<=>(SELF, Array.new);
+            -> { SELF.defined || (SELF = Array.new);
                  SELF.bind_pos($pos, $v) });
         $v
     }
@@ -234,7 +234,7 @@ my class Any { # declared in BOOTSTRAP
     }
     multi method at_key(Any:U \SELF: $key) is rw {
         nqp::bindattr(my $v, Scalar, '$!whence',
-            -> { SELF.defined || &infix:<=>(SELF, Hash.new);
+            -> { SELF.defined || (SELF = Hash.new);
                  SELF.bind_key($key, $v) });
         $v
     }
@@ -243,7 +243,7 @@ my class Any { # declared in BOOTSTRAP
         fail "postcircumfix:<\{ \}> binding not defined for type {self.WHAT.perl}";
     }
     multi method bind_key(Any:U \SELF: $key, $BIND ) is rw {
-        &infix:<=>(SELF, Hash.new);
+        SELF = Hash.new;
         SELF.bind_key($key, $BIND);
         $BIND
     }

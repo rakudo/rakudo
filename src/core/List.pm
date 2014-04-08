@@ -600,9 +600,11 @@ proto sub shift(@) {*}
 multi sub shift(@a) { @a.shift }
 
 proto sub unshift(|) {*}
+multi sub unshift(\a, \elem) { a.unshift: elem }
 multi sub unshift(\a, *@elems) { a.unshift: @elems }
 
 proto sub push(|) {*}
+multi sub push(\a, \elem) { a.push: elem }
 multi sub push(\a, *@elems) { a.push: @elems }
 
 sub reverse(*@a)            { @a.reverse }

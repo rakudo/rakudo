@@ -325,7 +325,8 @@ multi infix:<minmax>(*@args) { @args.minmax }
 sub minmax(*@args, :&by = &infix:<cmp>) { @args.minmax(&by) }
 
 proto map(|) {*}
-multi map(&code, @values) { @values.map(&code) }
+# fails integration/99problems-21-to-30, test 12/13
+#multi map(&code, @values) { @values.map(&code) }
 multi map(&code, *@values) { @values.map(&code) }
 multi map(&code, Whatever) { (1..Inf).map(&code) }
 

@@ -5040,6 +5040,21 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 $lhs_ast, $rhs_ast);
             $past<nosink> := 1;
         }
+        elsif $lhs_ast.isa(QAST::Op) && $lhs_ast.op eq 'call' &&
+              ($lhs_ast.name eq '&postcircumfix:<{ }>') &&
+                +@($lhs_ast) == 2 { # no adverbs
+            $lhs_ast.push($rhs_ast);
+            $past := $lhs_ast;
+            $past<nosink> := 1;
+        }
+        elsif $lhs_ast.isa(QAST::Op) && $lhs_ast.op eq 'hllize' &&
+                $lhs_ast[0].isa(QAST::Op) && $lhs_ast[0].op eq 'call' &&
+                ($lhs_ast[0].name eq '&postcircumfix:<{ }>') &&
+                +@($lhs_ast[0]) == 2 { # no adverbs
+            $lhs_ast[0].push($rhs_ast);
+            $past := $lhs_ast;
+            $past<nosink> := 1;
+        }
         else {
             $past := QAST::Op.new( :node($/), :op('p6store'),
                 $lhs_ast, $rhs_ast);

@@ -28,6 +28,20 @@ my class Hash { # declared in BOOTSTRAP
         }
     }
 
+    multi method assign_key(Hash:D: \key, Mu \assignval) {
+        my Mu $storage := nqp::getattr(self, EnumMap, '$!storage');
+        $storage := nqp::bindattr(self, EnumMap, '$!storage', nqp::hash())
+            unless nqp::defined($storage);
+        my str $key = nqp::istype(key, Str) ?? key !! key.Str;
+        if nqp::existskey($storage, $key) {
+            nqp::atkey($storage, $key) = assignval;
+        }
+        else {
+            nqp::bindkey($storage, $key,
+                nqp::p6scalarfromdesc($!descriptor) = assignval)
+        }
+    }
+
     method bind_key(Hash:D: \key, Mu \bindval) is rw {
         my Mu $storage := nqp::getattr(self, EnumMap, '$!storage');
         $storage := nqp::bindattr(self, EnumMap, '$!storage', nqp::hash())
@@ -240,6 +254,19 @@ my class Hash { # declared in BOOTSTRAP
               nqp::p6scalarfromdesc(nqp::getattr(self, Hash, '$!descriptor'));
             nqp::findmethod(EnumMap, 'STORE_AT_KEY')(self, key, $v = $x);
         }
+        multi method assign_key(::?CLASS:D: \key, TValue \assignval) {
+            my Mu $storage := nqp::getattr(self, EnumMap, '$!storage');
+            $storage := nqp::bindattr(self, EnumMap, '$!storage', nqp::hash())
+                unless nqp::defined($storage);
+            my str $key = nqp::istype(key, Str) ?? key !! key.Str;
+            if nqp::existskey($storage, $key) {
+                nqp::atkey($storage, $key) = assignval;
+            }
+            else {
+                nqp::bindkey($storage, $key,
+                    nqp::p6scalarfromdesc(nqp::getattr(self, Hash, '$!descriptor')) = assignval)
+            }
+        }
         method bind_key($key, TValue \bindval) is rw {
             nqp::defined(nqp::getattr(self, EnumMap, '$!storage')) ||
                 nqp::bindattr(self, EnumMap, '$!storage', nqp::hash());
@@ -301,6 +328,22 @@ my class Hash { # declared in BOOTSTRAP
                 nqp::getattr(self, EnumMap, '$!storage'),
                 nqp::unbox_s($key_which),
                 $v = $x);
+        }
+        method assign_key(::?CLASS:D: TKey \key, TValue \assignval) {
+            my Mu $storage := nqp::getattr(self, EnumMap, '$!storage');
+            $storage := nqp::bindattr(self, EnumMap, '$!storage', nqp::hash())
+                unless nqp::defined($storage);
+            my str $key_which = nqp::unbox_s(key.WHICH);
+            if nqp::existskey($storage, $key_which) {
+                nqp::atkey($storage, $key_which) = assignval;
+            }
+            else {
+                nqp::defined(nqp::getattr(self, $?CLASS, '$!keys')) ||
+                    nqp::bindattr(self, $?CLASS, '$!keys', nqp::hash());
+                nqp::bindkey(nqp::getattr(self, $?CLASS, '$!keys'), $key_which, key);
+                nqp::bindkey($storage, $key_which,
+                    nqp::p6scalarfromdesc(nqp::getattr(self, Hash, '$!descriptor')) = assignval)
+            }
         }
         method bind_key(TKey \key, TValue \bindval) is rw {
             my $key_which = key.WHICH;

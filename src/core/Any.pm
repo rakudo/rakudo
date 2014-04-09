@@ -247,6 +247,10 @@ my class Any { # declared in BOOTSTRAP
         SELF.bind_key($key, $BIND);
         $BIND
     }
+    proto method assign_key(|) { * }
+    multi method assign_key(\SELF: \key, Mu \assignee) {
+        SELF.at_key(key) = assignee;
+    }
 
     method FLATTENABLE_LIST() { 
         my $list := self.list;

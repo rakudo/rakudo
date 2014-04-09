@@ -33,13 +33,10 @@ my class Hash { # declared in BOOTSTRAP
         $storage := nqp::bindattr(self, EnumMap, '$!storage', nqp::hash())
             unless nqp::defined($storage);
         my str $key = nqp::istype(key, Str) ?? key !! key.Str;
-        if nqp::existskey($storage, $key) {
-            nqp::atkey($storage, $key) = assignval;
-        }
-        else {
-            nqp::bindkey($storage, $key,
+        nqp::existskey($storage, $key)
+            ?? (nqp::atkey($storage, $key) = assignval)
+            !! nqp::bindkey($storage, $key,
                 nqp::p6scalarfromdesc($!descriptor) = assignval)
-        }
     }
 
     method bind_key(Hash:D: \key, Mu \bindval) is rw {

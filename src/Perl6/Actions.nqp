@@ -3163,6 +3163,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             QAST::Op.new( :op('usecapture') )
         ));
         $BLOCK.node($/);
+        $BLOCK.is_thunk(1);
         make $BLOCK;
     }
 

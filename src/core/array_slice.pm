@@ -18,11 +18,11 @@ proto sub postcircumfix:<[ ]>(|) { * }
 
 # @a[1]
 multi sub postcircumfix:<[ ]>( \SELF, int $pos ) is rw {
-    fail "Cannot use negative index $pos on {SELF.WHAT.perl}" if $pos < 0;
+    fail "Cannot use negative index $pos on $(SELF.WHAT.perl)" if $pos < 0;
     SELF.at_pos($pos);
 }
 multi sub postcircumfix:<[ ]>(\SELF, int $pos, Mu :$BIND! is parcel) is rw {
-    fail "Cannot use negative index $pos on {SELF.WHAT.perl}" if $pos < 0;
+    fail "Cannot use negative index $pos on $(SELF.WHAT.perl)" if $pos < 0;
     SELF.bind_pos($pos, $BIND);
 }
 multi sub postcircumfix:<[ ]>( \SELF, int $pos, :$SINK!, *%other ) is rw {
@@ -48,34 +48,34 @@ multi sub postcircumfix:<[ ]>( \SELF, int $pos, :$v!, *%other ) is rw {
 }
 
 # @a[$x]
-multi sub postcircumfix:<[ ]>( \SELF, $pos ) is rw {
-    fail "Cannot use negative index $pos on {SELF.WHAT.perl}" if $pos < 0;
-    SELF.at_pos($pos);
+multi sub postcircumfix:<[ ]>( \SELF, \pos ) is rw {
+    fail "Cannot use negative index $(pos) on $(SELF.WHAT.perl)" if pos < 0;
+    SELF.at_pos(pos);
 }
-multi sub postcircumfix:<[ ]>(\SELF, $pos, Mu :$BIND! is parcel) is rw {
-    fail "Cannot use negative index $pos on {SELF.WHAT.perl}" if $pos < 0;
-    SELF.bind_pos($pos, $BIND);
+multi sub postcircumfix:<[ ]>(\SELF, \pos, Mu :$BIND! is parcel) is rw {
+    fail "Cannot use negative index $(pos) on $(SELF.WHAT.perl)" if pos < 0;
+    SELF.bind_pos(pos, $BIND);
 }
-multi sub postcircumfix:<[ ]>( \SELF, $pos, :$SINK!, *%other ) is rw {
-    SLICE_ONE( SELF, $pos, True, :$SINK, |%other );
+multi sub postcircumfix:<[ ]>( \SELF, \pos, :$SINK!, *%other ) is rw {
+    SLICE_ONE( SELF, pos, True, :$SINK, |%other );
 }
-multi sub postcircumfix:<[ ]>( \SELF, $pos, :$delete!, *%other ) is rw {
-    SLICE_ONE( SELF, $pos, True, :$delete, |%other );
+multi sub postcircumfix:<[ ]>( \SELF, \pos, :$delete!, *%other ) is rw {
+    SLICE_ONE( SELF, pos, True, :$delete, |%other );
 }
-multi sub postcircumfix:<[ ]>( \SELF, $pos, :$exists!, *%other ) is rw {
-    SLICE_ONE( SELF, $pos, True, :$exists, |%other );
+multi sub postcircumfix:<[ ]>( \SELF, \pos, :$exists!, *%other ) is rw {
+    SLICE_ONE( SELF, pos, True, :$exists, |%other );
 }
-multi sub postcircumfix:<[ ]>( \SELF, $pos, :$kv!, *%other ) is rw {
-    SLICE_ONE( SELF, $pos, True, :$kv, |%other );
+multi sub postcircumfix:<[ ]>( \SELF, \pos, :$kv!, *%other ) is rw {
+    SLICE_ONE( SELF, pos, True, :$kv, |%other );
 }
-multi sub postcircumfix:<[ ]>( \SELF, $pos, :$p!, *%other ) is rw {
-    SLICE_ONE( SELF, $pos, True, :$p, |%other );
+multi sub postcircumfix:<[ ]>( \SELF, \pos, :$p!, *%other ) is rw {
+    SLICE_ONE( SELF, pos, True, :$p, |%other );
 }
-multi sub postcircumfix:<[ ]>( \SELF, $pos, :$k!, *%other ) is rw {
-    SLICE_ONE( SELF, $pos, True, :$k, |%other );
+multi sub postcircumfix:<[ ]>( \SELF, \pos, :$k!, *%other ) is rw {
+    SLICE_ONE( SELF, pos, True, :$k, |%other );
 }
-multi sub postcircumfix:<[ ]>( \SELF, $pos, :$v!, *%other ) is rw {
-    SLICE_ONE( SELF, $pos, True, :$v, |%other );
+multi sub postcircumfix:<[ ]>( \SELF, \pos, :$v!, *%other ) is rw {
+    SLICE_ONE( SELF, pos, True, :$v, |%other );
 }
 
 # @a[@i]

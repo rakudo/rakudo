@@ -221,6 +221,10 @@ my class Any { # declared in BOOTSTRAP
                  SELF.bind_pos($pos, $v) });
         $v
     }
+    proto method assign_pos(|) { * }
+    multi method assign_pos(\SELF: \pos, Mu \assignee) {
+        SELF.at_pos(pos) = assignee;
+    }
     
     method all() { all(self.list) }
     method any() { any(self.list) }

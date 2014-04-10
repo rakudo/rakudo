@@ -21,6 +21,10 @@ multi sub postcircumfix:<[ ]>( \SELF, int $pos ) is rw {
     fail "Cannot use negative index $pos on $(SELF.WHAT.perl)" if $pos < 0;
     SELF.at_pos($pos);
 }
+multi sub postcircumfix:<[ ]>( \SELF, int $pos, Mu \assignee ) is rw {
+    die "Cannot use negative index $pos on $(SELF.WHAT.perl)" if $pos < 0;
+    SELF.assign_pos($pos, assignee);
+}
 multi sub postcircumfix:<[ ]>(\SELF, int $pos, Mu :$BIND! is parcel) is rw {
     fail "Cannot use negative index $pos on $(SELF.WHAT.perl)" if $pos < 0;
     SELF.bind_pos($pos, $BIND);
@@ -51,6 +55,10 @@ multi sub postcircumfix:<[ ]>( \SELF, int $pos, :$v!, *%other ) is rw {
 multi sub postcircumfix:<[ ]>( \SELF, \pos ) is rw {
     fail "Cannot use negative index $(pos) on $(SELF.WHAT.perl)" if pos < 0;
     SELF.at_pos(pos);
+}
+multi sub postcircumfix:<[ ]>( \SELF, \pos, Mu \assignee ) is rw {
+    die "Cannot use negative index $(pos) on $(SELF.WHAT.perl)" if pos < 0;
+    SELF.assign_pos(pos, assignee);
 }
 multi sub postcircumfix:<[ ]>(\SELF, \pos, Mu :$BIND! is parcel) is rw {
     fail "Cannot use negative index $(pos) on $(SELF.WHAT.perl)" if pos < 0;
@@ -88,6 +96,15 @@ multi sub postcircumfix:<[ ]>( \SELF, Positional \pos ) is rw {
         POSITIONS(SELF,pos).map({ SELF[$_] }).eager.Parcel;
     }
 }
+multi sub postcircumfix:<[ ]>( \SELF, Positional \pos, Mu \assignee ) is rw {
+    if nqp::iscont(pos)  {
+        fail "Cannot use negative index {pos} on {SELF.WHAT.perl}" if pos < 0;
+        SELF.assign_pos(pos, assignee);
+    }
+    else {
+        POSITIONS(SELF,pos).map({ SELF[$_] }).eager.Parcel = assignee;
+    }
+}
 multi sub postcircumfix:<[ ]>(\SELF, Positional \pos, :$BIND!) is rw {
     X::Bind::Slice.new(type => SELF.WHAT).throw;
 }
@@ -116,6 +133,9 @@ multi sub postcircumfix:<[ ]>(\SELF, Positional \pos, :$v!, *%other) is rw {
 # @a[->{}]
 multi sub postcircumfix:<[ ]>( \SELF, Callable $block ) is rw {
     SELF[$block(|(SELF.elems xx $block.count))];
+}
+multi sub postcircumfix:<[ ]>( \SELF, Callable $block, Mu \assignee ) is rw {
+    SELF[$block(|(SELF.elems xx $block.count))] = assignee;
 }
 multi sub postcircumfix:<[ ]>(\SELF, Callable $block, :$BIND!) is rw {
     X::Bind::Slice.new(type => SELF.WHAT).throw;
@@ -163,6 +183,9 @@ multi sub postcircumfix:<[ ]>(\SELF, Callable $block, :$v!, *%other) is rw {
 # @a[*]
 multi sub postcircumfix:<[ ]>( \SELF, Whatever ) is rw {
     SELF[SELF.keys];
+}
+multi sub postcircumfix:<[ ]>( \SELF, Whatever, Mu \assignee ) is rw {
+    SELF[SELF.keys] = assignee;
 }
 multi sub postcircumfix:<[ ]>(\SELF, Whatever, :$BIND!) is rw {
     X::Bind::Slice.new(type => SELF.WHAT).throw;

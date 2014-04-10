@@ -3128,7 +3128,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
         # Remove special variables; no need for them in onlystar.
         my int $i := 0;
-        my int $n := nqp::elems($BLOCK[0]);
+        my int $n := +@($BLOCK[0]);
         while $i < $n {
             my $consider := $BLOCK[0][$i];
             if nqp::istype($consider, QAST::Var) {

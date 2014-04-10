@@ -287,7 +287,7 @@ j-test    : j-coretest
 j-fulltest: j-coretest j-stresstest
 
 j-coretest: j-all
-	$(J_HARNESS) t/00-parrot t/01-sanity
+	$(J_HARNESS) t/01-sanity
 
 # Run the spectests that we know work.
 j-spectest: j-testable t/spectest.data

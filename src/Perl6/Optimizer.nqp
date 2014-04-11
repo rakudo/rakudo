@@ -1,16 +1,140 @@
+# This file contains a bunch of classes related to static optimization of Perl
+# 6 programs. It takes place after we've done all of the stuff in the grammar
+# and actions, which means CHECK time is over. Thus we're allowed to assume that
+# lexpads are immutable, declarations are over and done with, multi candidate
+# lists won't change and so forth.
+
 use NQPP6QRegex;
 use QAST;
 use Perl6::Ops;
 
-my $NULL := QAST::Op.new( :op<null> );
+# Implements analsyis related to variable declarations within a block, which
+# includes lexical to local handling and deciding when immediate blocks may
+# be flattened into their surrounding block.
+my class BlockVarOptimizer {
+    # Hash mapping variable names declared in the block to the QAST::Var
+    # of its declaration.
+    has %!decls;
 
-# This powers the optimization pass. It takes place after we've done all
-# of the stuff in the grammar and actions, which means CHECK time is over.
-# Thus we're allowed to assume that lexpads are immutable, declarations are
-# over and done with, multi candidate lists won't change and so forth.
+    # Usages of variables in this block, or unioned in from an inlined
+    # immediate block.
+    has %!usages_flat;
+
+    # Usages of variables in this block, or unioned in from a non-inlined
+    # immediate block or a declaration block.
+    has %!usages_inner;
+
+    # If lowering is, for some reason, poisoned.
+    has $!poisoned;
+
+    method add_decl($var) {
+        if $var.scope eq 'lexical' {
+            %!decls{$var.name} := $var;
+        }
+    }
+
+    method add_usage($var) {
+        if $var.scope eq 'lexical' {
+            my $name   := $var.name;
+            my @usages := %!usages_flat{$name};
+            unless @usages {
+                @usages := [];
+                %!usages_flat{$name} := @usages;
+            }
+            nqp::push(@usages, $var);
+        }
+    }
+
+    method poison_lowering() { $!poisoned := 1; }
+
+    method get_decls() { %!decls }
+
+    method get_usages_flat() { %!usages_flat }
+
+    method get_usages_inner() { %!usages_inner }
+
+    method is_flattenable() {
+        for %!decls {
+            return 0 if $_.value.scope eq 'lexical';
+            return 0 if $_.value.decl eq 'param';
+        }
+        1
+    }
+
+    method incorporate_inner($vars_info, $flattened) {
+        # We'll exclude anything that the inner or flattened thing has as
+        # a declaration, since those are its own.
+        my %decls := $vars_info.get_decls;
+
+        # Inner ones always go into our inners set.
+        add_to_set(%!usages_inner, $vars_info.get_usages_inner, %decls);
+
+        # Flat ones depend on if we flattened this block into ourself.
+        add_to_set($flattened ?? %!usages_flat !! %!usages_inner,
+            $vars_info.get_usages_flat, %decls);
+
+        sub add_to_set(%set, %to_add, %exclude) {
+            for %to_add {
+                my $name := $_.key;
+                next if nqp::existskey(%exclude, $name);
+                my @existing := %set{$name};
+                if @existing {
+                    for $_.value { nqp::push(@existing, $_) }
+                    #nqp::splice(@existing, $_.value, 0, 0);
+                }
+                else {
+                    %set{$name} := $_.value;
+                }
+            }
+        }
+    }
+
+    method lexicals_to_locals() {
+        return 0 if $!poisoned;
+        for %!decls {
+            # We're looking for lexical var or param decls.
+            my $qast := $_.value;
+            my str $scope := $qast.scope;
+            next unless $scope eq 'lexical';
+            my str $decl := $qast.decl;
+            next unless $decl eq 'param' || $decl eq 'var';
+
+            # Consider name. Can't lower if it's used by any nested blocks.
+            my str $name := $_.key;
+            unless nqp::existskey(%!usages_inner, $name) {
+                # Lowerable if it's a normal variable.
+                next if nqp::chars($name) < 2;
+                if $name ne 'self' && $name ne '$/' {
+                    my str $sigil := nqp::substr($name, 0, 1);
+                    next unless $sigil eq '$' || $sigil eq '@' || $sigil eq '%';
+                    next unless nqp::iscclass(nqp::const::CCLASS_ALPHABETIC, $name, 1);
+                }
+
+                # Seems good; lower it.
+                my $new_name := $qast.unique('__lowered_lex');
+                $qast.scope('local');
+                $qast.name($new_name);
+                if %!usages_flat{$name} {
+                    for %!usages_flat{$name} {
+                        $_.scope('local');
+                        $_.name($new_name);
+                    }
+                }
+            }
+        }
+    }
+}
+
+# Drives the optimization process overall.
 class Perl6::Optimizer {
+    # A null QAST node, inserted when we want to eliminate something.
+    my $NULL := QAST::Op.new( :op<null> );
+
     # Tracks the nested blocks we're in; it's the lexical chain, essentially.
     has @!block_stack;
+
+    # Stack of block variable information.
+    has @!block_var_stack;
 
     # Optimizer configuration.
     has %!adverbs;
@@ -43,6 +167,7 @@ class Perl6::Optimizer {
     method optimize($past, *%adverbs) {
         # Initialize.
         @!block_stack := [$past[0]];
+        @!block_var_stack := [];
         $!chain_depth := 0;
         %!worrying := nqp::hash();
         my $*DYNAMICALLY_COMPILED := 0;

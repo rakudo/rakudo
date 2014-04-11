@@ -2095,6 +2095,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     $past := make_dot_equals($past, $<initializer>.ast);
                 }
                 else {
+                    if nqp::istype($past, QAST::Var) {
+                        find_var_decl($*W.cur_lexpad(), $past.name).decl('var');
+                    }
                     $past := bind_op($/, $past, $<initializer>.ast,
                         $<initializer><sym> eq '::=');
                 }

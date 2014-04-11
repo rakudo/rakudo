@@ -12,7 +12,11 @@ class Perl6::Optimizer {
     # Tracks the nested blocks we're in; it's the lexical chain, essentially.
     has @!block_stack;
 
+    # Optimizer configuration.
     has %!adverbs;
+
+    # The optimization level.
+    has $!level;
 
     # How deep a chain we're in, for chaining operators.
     has int $!chain_depth;
@@ -73,7 +77,7 @@ class Perl6::Optimizer {
         %!foldable_outer{'until'} := 1;
 
         # Work out optimization level.
-        my $*LEVEL := nqp::existskey(%adverbs, 'optimize') ??
+        $!level := nqp::existskey(%adverbs, 'optimize') ??
             +%adverbs<optimize> !! 2;
         %!adverbs := %adverbs;
         
@@ -156,7 +160,7 @@ class Perl6::Optimizer {
             # do something in that case. However, it's non-trivial as
             # the static lexpad entries will need twiddling with.
             if +@sigsyms == 0 {
-                if $*LEVEL >= 3 {
+                if $!level >= 3 {
                     return self.inline_immediate_block($block, $outer);
                 }
             }
@@ -166,7 +170,7 @@ class Perl6::Optimizer {
         # cases and on some backends.
         my $code_obj := $block<code_object>;
         my $backend  := nqp::getcomp('perl6').backend.name;
-        if $backend eq 'jvm' && $*LEVEL >= 3 && nqp::isconcrete($code_obj) {
+        if $backend eq 'jvm' && $!level >= 3 && nqp::isconcrete($code_obj) {
             my $sig := $code_obj.signature;
             self.try_eliminate_binder($block, $sig);
         }
@@ -328,7 +332,7 @@ class Perl6::Optimizer {
         }
 
         # we may be able to unfold a junction at compile time.
-        if $*LEVEL >= 2 && is_outer_foldable() && nqp::istype($op[0], QAST::Op) {
+        if $!level >= 2 && is_outer_foldable() && nqp::istype($op[0], QAST::Op) {
             my $proceed := 0;
             my $exp-side;
             if $op[0].op eq "chain" {
@@ -508,7 +512,7 @@ class Perl6::Optimizer {
                         if $ct_result_proto == 1 && @ct_result_multi[0] == 1 {
                             my $chosen := @ct_result_multi[1];
                             if $op.op eq 'chain' { $!chain_depth := $!chain_depth - 1 }
-                            if $*LEVEL >= 2 {
+                            if $!level >= 2 {
                                 return nqp::can($chosen, 'inline_info') && nqp::istype($chosen.inline_info, QAST::Node)
                                     ?? self.inline_call($op, $chosen)
                                     !! self.call_ct_chosen_multi($op, $obj, $chosen);
@@ -531,7 +535,7 @@ class Perl6::Optimizer {
                         if $ct_result == 1 {
                             if $op.op eq 'chain' { $!chain_depth := $!chain_depth - 1 }
                             #say("# trial bind worked!");
-                            if $*LEVEL >= 2 {
+                            if $!level >= 2 {
                                 if nqp::can($obj, 'inline_info') && nqp::istype($obj.inline_info, QAST::Node) {
                                     return self.inline_call($op, $obj);
                                 }
@@ -566,7 +570,7 @@ class Perl6::Optimizer {
         
         # If it's a private method call, we can sometimes resolve it at
         # compile time. If so, we can reduce it to a sub call in some cases.
-        elsif $*LEVEL >= 2 && $op.op eq 'callmethod' && $op.name eq 'dispatch:<!>' {
+        elsif $!level >= 2 && $op.op eq 'callmethod' && $op.name eq 'dispatch:<!>' {
             if $op[1].has_compile_time_value && nqp::istype($op[1], QAST::Want) && $op[1][1] eq 'Ss' {
                 my str $name := $op[1][2].value; # get raw string name
                 my $pkg  := $op[2].returns;  # actions always sets this
@@ -831,7 +835,8 @@ class Perl6::Optimizer {
                 }
                 elsif nqp::istype($visit, QAST::Stmt) {
                     self.visit_children($visit, :resultchild($visit.resultchild // +@($visit) - 1));
-                } elsif nqp::istype($visit, QAST::Regex) {
+                }
+                elsif nqp::istype($visit, QAST::Regex) {
                     QRegex::Optimizer.new().optimize($visit, @!block_stack[+@!block_stack - 1], |%!adverbs);
                 }
             }

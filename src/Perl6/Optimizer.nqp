@@ -8,6 +8,9 @@ use NQPP6QRegex;
 use QAST;
 use Perl6::Ops;
 
+# A null QAST node, inserted when we want to eliminate something.
+my $NULL := QAST::Op.new( :op<null> );
+
 # Represents the current set of blocks we're in and thus the symbols they
 # make available, and allows for queries over them.
 my class Symbols {
@@ -413,6 +416,8 @@ my class BlockVarOptimizer {
 
     method get_usages_inner() { %!usages_inner }
 
+    method get_calls() { $!calls }
+
     method is_flattenable() {
         for %!decls {
             return 0 if $_.value.scope eq 'lexical';
@@ -433,6 +438,9 @@ my class BlockVarOptimizer {
         add_to_set($flattened ?? %!usages_flat !! %!usages_inner,
             $vars_info.get_usages_flat, %decls);
 
+        # Add up call counts.
+        $!calls := $!calls + $vars_info.get_calls;
+
         sub add_to_set(%set, %to_add, %exclude) {
             for %to_add {
                 my $name := $_.key;
@@ -445,6 +453,39 @@ my class BlockVarOptimizer {
                 else {
                     %set{$name} := $_.value;
                 }
+            }
+        }
+    }
+
+    method delete_unused_magicals($block) {
+        # Magicals are contextual, so if we call anything when we're done for.
+        return 0 if $!calls || $!poisoned;
+
+        # Otherwise see if there's any we can kill.
+        my %kill;
+        if nqp::existskey(%!decls, '$/'){
+            if !nqp::existskey(%!usages_flat, '$/') && !nqp::existskey(%!usages_inner, '$/') {
+                %kill<$/> := 1;
+            }
+        }
+        if nqp::existskey(%!decls, '$!'){
+            if !nqp::existskey(%!usages_flat, '$!') && !nqp::existskey(%!usages_inner, '$!') {
+                %kill<$!> := 1;
+            }
+        }
+
+        # If we found things to eliminate, do so.
+        if %kill {
+            my @setups := @($block[0]);
+            my int $i  := 0;
+            my int $n  := nqp::elems(@setups);
+            while $i < $n {
+                my $consider := @setups[$i];
+                if nqp::istype($consider, QAST::Var) && nqp::existskey(%kill, $consider.name) {
+                    #nqp::say("killed a " ~ $consider.name);
+                    @setups[$i] := $NULL;
+                }
+                $i++;
             }
         }
     }
@@ -654,9 +695,6 @@ my class JunctionOptimizer {
 
 # Drives the optimization process overall.
 class Perl6::Optimizer {
-    # A null QAST node, inserted when we want to eliminate something.
-    my $NULL := QAST::Op.new( :op<null> );
-
     # Symbols tracking object.
     has $!symbols;
 
@@ -723,7 +761,11 @@ class Perl6::Optimizer {
         # Pop block from block stack and get computed block var info.
         $!symbols.pop_block();
         my $vars_info := @!block_var_stack.pop();
-        
+
+        # We might be able to delete some of the magical variables when they
+        # are trivially unused.
+        $vars_info.delete_unused_magicals($block);
+
         # If the block is immediate, we may be able to inline it.
         my int $flattened := 0;
         my $result        := $block;
@@ -1049,10 +1091,13 @@ class Perl6::Optimizer {
             my $decl    := $var.decl;
             if $decl {
                 @!block_var_stack[$top].add_decl($var);
-                if $decl eq 'param' && $var.default -> $default {
-                    my $stmts_def := QAST::Stmts.new( $default );
-                    self.visit_children($stmts_def);
-                    $var.default($stmts_def[0]);
+                if $decl eq 'param' {
+                    self.visit_children($var);
+                    if $var.default -> $default {
+                        my $stmts_def := QAST::Stmts.new( $default );
+                        self.visit_children($stmts_def);
+                        $var.default($stmts_def[0]);
+                    }
                 }
             }
             else {

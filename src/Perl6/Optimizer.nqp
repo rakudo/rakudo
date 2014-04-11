@@ -378,7 +378,7 @@ my class BlockVarOptimizer {
     # Have we seen this block (or an inner one) making calls?
     has int $!calls;
 
-    # Usages of getouterlex.
+    # Usages of getlexouter.
     has @!getlexouter_binds;
 
     # If lowering is, for some reason, poisoned.

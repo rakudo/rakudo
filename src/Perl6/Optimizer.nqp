@@ -21,12 +21,6 @@ class Perl6::Optimizer {
     # How deep a chain we're in, for chaining operators.
     has int $!chain_depth;
     
-    # Unique ID for topic ($_) preservation registers.
-    has int $!pres_topic_counter;
-    
-    # Unique ID for inline args variables.
-    has int $!inline_arg_counter;
-    
     # Things that should be warned about; keys are warnings, value is an array
     # of line numbers.
     has %!worrying;
@@ -50,8 +44,6 @@ class Perl6::Optimizer {
         # Initialize.
         @!block_stack := [$past[0]];
         $!chain_depth := 0;
-        $!pres_topic_counter := 0;
-        $!inline_arg_counter := 0;
         %!worrying := nqp::hash();
         my $*DYNAMICALLY_COMPILED := 0;
         my $*VOID_CONTEXT := 0;
@@ -1003,21 +995,19 @@ class Perl6::Optimizer {
             }
         }
 
-        # Hand back the statements, but be sure to preserve $_
-        # around them.
-        $!pres_topic_counter := $!pres_topic_counter + 1;
-        $outer[0].push(QAST::Var.new( :scope('local'),
-            :name("pres_topic_$!pres_topic_counter"), :decl('var') ));
+        # Hand back the statements, but be sure to preserve $_ around them.
+        my $pres_topic_name := QAST::Node.unique('pres_topic_');
+        $outer[0].push(QAST::Var.new( :scope('local'), :name($pres_topic_name), :decl('var') ));
         return QAST::Stmts.new(
             :resultchild(1),
             QAST::Op.new( :op('bind'),
-                QAST::Var.new( :name("pres_topic_$!pres_topic_counter"), :scope('local') ),
+                QAST::Var.new( :name($pres_topic_name), :scope('local') ),
                 QAST::Var.new( :name('$_'), :scope('lexical') )
             ),
             $stmts,
             QAST::Op.new( :op('bind'),
                 QAST::Var.new( :name('$_'), :scope('lexical') ),
-                QAST::Var.new( :name("pres_topic_$!pres_topic_counter"), :scope('local') )
+                QAST::Var.new( :name($pres_topic_name), :scope('local') )
             )
         );
     }
@@ -1033,7 +1023,7 @@ class Perl6::Optimizer {
         my $inlined := QAST::Stmts.new();
         my @subs;
         for $call.list {
-            my $temp_name := '_inline_arg_' ~ ($!inline_arg_counter := $!inline_arg_counter + 1);
+            my $temp_name := QAST::Node.unique('_inline_arg_');
             my $temp_type := $_.returns;
             $inlined.push(QAST::Op.new(
                 :op('bind'),

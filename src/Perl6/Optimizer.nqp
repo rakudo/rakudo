@@ -25,6 +25,7 @@ my class Symbols {
     # Some interesting symbols.
     has $!Mu;
     has $!Any;
+    has $!PseudoStash;
 
     # Constructs a new instance of the symbols handling class.
     method new($compunit) {
@@ -41,8 +42,9 @@ my class Symbols {
             nqp::die("Optimizer could not find UNIT");
         }
         nqp::push(@!block_stack, $!UNIT);
-        $!Mu  := self.find_lexical('Mu');
-        $!Any := self.find_lexical('Any');
+        $!Mu          := self.find_lexical('Mu');
+        $!Any         := self.find_lexical('Any');
+        $!PseudoStash := self.find_lexical('PseudoStash');
         nqp::pop(@!block_stack);
     }
 
@@ -58,10 +60,11 @@ my class Symbols {
     }
 
     # Accessors for interesting symbols/scopes.
-    method GLOBALish() { $!GLOBALish }
-    method UNIT()      { $!UNIT }
-    method Mu()        { $!Mu }
-    method Any()       { $!Any }
+    method GLOBALish()   { $!GLOBALish }
+    method UNIT()        { $!UNIT }
+    method Mu()          { $!Mu }
+    method Any()         { $!Any }
+    method PseudoStash() { $!PseudoStash }
 
     # The following function is a nearly 1:1 copy of World.find_symbol.
     # Finds a symbol that has a known value at compile time from the
@@ -1169,6 +1172,11 @@ class Perl6::Optimizer {
                 elsif nqp::istype($visit, QAST::Regex) {
                     self.poison_var_lowering();
                     QRegex::Optimizer.new().optimize($visit, $!symbols.top_block, |%!adverbs);
+                }
+                elsif nqp::istype($visit, QAST::WVal) {
+                    if $visit.value =:= $!symbols.PseudoStash {
+                        self.poison_var_lowering();
+                    }
                 }
             }
             $i := $first ?? $n !! $i + 1;

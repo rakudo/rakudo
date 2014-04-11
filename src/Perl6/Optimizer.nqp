@@ -372,6 +372,12 @@ my class BlockVarOptimizer {
     # immediate block or a declaration block.
     has %!usages_inner;
 
+    # Have we seen this block (or an inner one) making calls?
+    has int $!calls;
+
+    # Usages of getouterlex.
+    has @!getlexouter_usages;
+
     # If lowering is, for some reason, poisoned.
     has $!poisoned;
 
@@ -391,6 +397,12 @@ my class BlockVarOptimizer {
             }
             nqp::push(@usages, $var);
         }
+    }
+
+    method register_call() { $!calls++; }
+
+    method register_getlexouter($node) {
+        nqp::push(@!getlexouter_usages, $node);
     }
 
     method poison_lowering() { $!poisoned := 1; }
@@ -775,7 +787,19 @@ class Perl6::Optimizer {
             my $*VOID_CONTEXT := 0;
             self.visit_children($op);
         }
-        
+
+        # Some ops are significant for variable analysis/lowering.
+        if $optype eq 'getlexouter' {
+            @!block_var_stack[nqp::elems(@!block_var_stack) - 1].register_getlexouter($op);
+        }
+        elsif $optype eq 'call' || $optype eq 'callmethod' || $optype eq 'chain' {
+            @!block_var_stack[nqp::elems(@!block_var_stack) - 1].register_call();
+            my str $callee := $op.name;
+            if $callee eq 'EVAL' || $callee eq 'eval' {
+                self.poison_var_lowering();
+            }
+        }
+
         # Calls are especially interesting as we may wish to do some
         # kind of inlining.
         if $optype eq 'call' && $op.name ne '' {

@@ -473,17 +473,20 @@ my class BlockVarOptimizer {
                 %kill<$!> := 1;
             }
         }
-        if nqp::existskey(%!decls, '$_') && %!decls<$_>.decl eq 'var' {
-            if !nqp::existskey(%!usages_flat, '$_') && !nqp::existskey(%!usages_inner, '$_') {
-                if !@!getlexouter_binds {
-                    %kill<$_> := 1;
-                }
-                elsif nqp::elems(@!getlexouter_binds) == 1 {
-                    my $glob := @!getlexouter_binds[0];
-                    if $glob[0].name eq '$_' && $glob[1][0].value eq '$_' {
-                        $glob.op('null');
-                        $glob.shift(); $glob.shift();
+        if nqp::existskey(%!decls, '$_') {
+            my str $decl := %!decls<$_>.decl;
+            if $decl eq 'var' || $decl eq 'contvar' {
+                if !nqp::existskey(%!usages_flat, '$_') && !nqp::existskey(%!usages_inner, '$_') {
+                    if !@!getlexouter_binds {
                         %kill<$_> := 1;
+                    }
+                    elsif nqp::elems(@!getlexouter_binds) == 1 {
+                        my $glob := @!getlexouter_binds[0];
+                        if $glob[0].name eq '$_' && $glob[1][0].value eq '$_' {
+                            $glob.op('null');
+                            $glob.shift(); $glob.shift();
+                            %kill<$_> := 1;
+                        }
                     }
                 }
             }

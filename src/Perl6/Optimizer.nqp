@@ -379,7 +379,7 @@ my class BlockVarOptimizer {
     has int $!calls;
 
     # Usages of getouterlex.
-    has @!getlexouter_usages;
+    has @!getlexouter_binds;
 
     # If lowering is, for some reason, poisoned.
     has $!poisoned;
@@ -404,8 +404,8 @@ my class BlockVarOptimizer {
 
     method register_call() { $!calls++; }
 
-    method register_getlexouter($node) {
-        nqp::push(@!getlexouter_usages, $node);
+    method register_getlexouter_bind($node) {
+        nqp::push(@!getlexouter_binds, $node);
     }
 
     method poison_lowering() { $!poisoned := 1; }
@@ -463,14 +463,29 @@ my class BlockVarOptimizer {
 
         # Otherwise see if there's any we can kill.
         my %kill;
-        if nqp::existskey(%!decls, '$/'){
+        if nqp::existskey(%!decls, '$/') {
             if !nqp::existskey(%!usages_flat, '$/') && !nqp::existskey(%!usages_inner, '$/') {
                 %kill<$/> := 1;
             }
         }
-        if nqp::existskey(%!decls, '$!'){
+        if nqp::existskey(%!decls, '$!') {
             if !nqp::existskey(%!usages_flat, '$!') && !nqp::existskey(%!usages_inner, '$!') {
                 %kill<$!> := 1;
+            }
+        }
+        if nqp::existskey(%!decls, '$_') && %!decls<$_>.decl eq 'var' {
+            if !nqp::existskey(%!usages_flat, '$_') && !nqp::existskey(%!usages_inner, '$_') {
+                if !@!getlexouter_binds {
+                    %kill<$_> := 1;
+                }
+                elsif nqp::elems(@!getlexouter_binds) == 1 {
+                    my $glob := @!getlexouter_binds[0];
+                    if $glob[0].name eq '$_' && $glob[1][0].value eq '$_' {
+                        $glob.op('null');
+                        $glob.shift(); $glob.shift();
+                        %kill<$_> := 1;
+                    }
+                }
             }
         }
 
@@ -482,7 +497,6 @@ my class BlockVarOptimizer {
             while $i < $n {
                 my $consider := @setups[$i];
                 if nqp::istype($consider, QAST::Var) && nqp::existskey(%kill, $consider.name) {
-                    #nqp::say("killed a " ~ $consider.name);
                     @setups[$i] := $NULL;
                 }
                 $i++;
@@ -831,8 +845,8 @@ class Perl6::Optimizer {
         }
 
         # Some ops are significant for variable analysis/lowering.
-        if $optype eq 'getlexouter' {
-            @!block_var_stack[nqp::elems(@!block_var_stack) - 1].register_getlexouter($op);
+        if $optype eq 'bind' && nqp::istype($op[1], QAST::Op) && $op[1].op eq 'getlexouter' {
+            @!block_var_stack[nqp::elems(@!block_var_stack) - 1].register_getlexouter_bind($op);
         }
         elsif $optype eq 'call' || $optype eq 'callmethod' || $optype eq 'chain' {
             @!block_var_stack[nqp::elems(@!block_var_stack) - 1].register_call();

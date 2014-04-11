@@ -692,8 +692,9 @@ class Perl6::Optimizer {
     
     # Called when we encounter a block in the tree.
     method visit_block($block) {
-        # Push block onto block stack.
+        # Push block onto block stack and create vars tracking.
         $!symbols.push_block($block);
+        @!block_var_stack.push(BlockVarOptimizer.new);
         
         # Visit children.
         if $block<DYNAMICALLY_COMPILED> {
@@ -704,11 +705,13 @@ class Perl6::Optimizer {
             self.visit_children($block, :resultchild(+@($block) - 1));
         }
         
-        # Pop block from block stack.
+        # Pop block from block stack and get computed block var info.
         $!symbols.pop_block();
+        my $vars_info := @!block_var_stack.pop();
         
         # If the block is immediate, we may be able to inline it.
-        my $outer := $!symbols.top_block;
+        my int $flattened := 0;
+        my $result        := $block;
         if $block.blocktype eq 'immediate' && !$*DYNAMICALLY_COMPILED {
             # Scan symbols for any non-interesting ones.
             my @sigsyms;
@@ -726,12 +729,17 @@ class Perl6::Optimizer {
             # the static lexpad entries will need twiddling with.
             if +@sigsyms == 0 {
                 if $!level >= 3 {
-                    return self.inline_immediate_block($block, $outer);
+                    my $outer := $!symbols.top_block;
+                    $result := self.inline_immediate_block($block, $outer);
                 }
             }
         }
 
-        $block
+        # Incorporate this block's info into outer block's info.
+        @!block_var_stack[nqp::elems(@!block_var_stack) - 1].incorporate_inner($vars_info, $flattened)
+            if @!block_var_stack;
+
+        $result
     }
 
     # Called when we encounter a QAST::Op in the tree. Produces either
@@ -1005,6 +1013,27 @@ class Perl6::Optimizer {
     
     # Handles visit a variable node.
     method visit_var($var) {
+        # Track usage.
+        my str $scope := $var.scope;
+        if $scope eq 'attribute' || $scope eq 'positional' || $scope eq 'associative' {
+            self.visit_children($var);
+        } else {
+            my int $top := nqp::elems(@!block_var_stack) - 1;
+            my $decl    := $var.decl;
+            if $decl {
+                @!block_var_stack[$top].add_decl($var);
+                if $decl eq 'param' && $var.default -> $default {
+                    my $stmts_def := QAST::Stmts.new( $default );
+                    self.visit_children($stmts_def);
+                    $var.default($stmts_def[0]);
+                }
+            }
+            else {
+                @!block_var_stack[$top].add_usage($var);
+            }
+        }
+
+        # Warn about usage of variable in void context.
         if  $*VOID_CONTEXT && !$*IN_DECLARATION && $var.name && !$var<sink_ok> {
             # stuff like Nil is also stored in a QAST::Var, but
             # we certainly don't want to warn about that one.
@@ -1014,6 +1043,7 @@ class Perl6::Optimizer {
                 return $NULL;
             }
         }
+
         $var;
     }
     
@@ -1137,6 +1167,7 @@ class Perl6::Optimizer {
                     self.visit_children($visit, :resultchild($visit.resultchild // +@($visit) - 1));
                 }
                 elsif nqp::istype($visit, QAST::Regex) {
+                    self.poison_var_lowering();
                     QRegex::Optimizer.new().optimize($visit, $!symbols.top_block, |%!adverbs);
                 }
             }
@@ -1269,5 +1300,11 @@ class Perl6::Optimizer {
             $to.returns($ret_type);
         }
         $to
+    }
+
+    method poison_var_lowering() {
+        for @!block_var_stack {
+            $_.poison_lowering();
+        }
     }
 }

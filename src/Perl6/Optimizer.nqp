@@ -507,7 +507,7 @@ my class BlockVarOptimizer {
         }
     }
 
-    method lexicals_to_locals() {
+    method lexicals_to_locals($block) {
         return 0 if $!poisoned;
         for %!decls {
             # We're looking for lexical var or param decls.
@@ -515,18 +515,18 @@ my class BlockVarOptimizer {
             my str $scope := $qast.scope;
             next unless $scope eq 'lexical';
             my str $decl := $qast.decl;
-            next unless $decl eq 'param' || $decl eq 'var';
+            next unless $decl eq 'contvar';
+            # XXX Following blows up the serialization, but will be needed.
+            # next if nqp::p6var($qast.value).dynamic;
 
             # Consider name. Can't lower if it's used by any nested blocks.
             my str $name := $_.key;
             unless nqp::existskey(%!usages_inner, $name) {
                 # Lowerable if it's a normal variable.
                 next if nqp::chars($name) < 2;
-                if $name ne 'self' && $name ne '$/' {
-                    my str $sigil := nqp::substr($name, 0, 1);
-                    next unless $sigil eq '$' || $sigil eq '@' || $sigil eq '%';
-                    next unless nqp::iscclass(nqp::const::CCLASS_ALPHABETIC, $name, 1);
-                }
+                my str $sigil := nqp::substr($name, 0, 1);
+                next unless $sigil eq '$' || $sigil eq '@' || $sigil eq '%';
+                next unless nqp::iscclass(nqp::const::CCLASS_ALPHABETIC, $name, 1);
 
                 # Seems good; lower it.
                 my $new_name := $qast.unique('__lowered_lex');
@@ -783,6 +783,9 @@ class Perl6::Optimizer {
         # are trivially unused.
         $vars_info.delete_unused_magicals($block);
 
+        # Lower any declarations we can.
+        $vars_info.lexicals_to_locals($block);
+
         # If the block is immediate, we may be able to inline it.
         my int $flattened := 0;
         my $result        := $block;
@@ -791,7 +794,7 @@ class Perl6::Optimizer {
             my @sigsyms;
             for $block.symtable() {
                 my $name := $_.key;
-                if $name ne '$_' && $name ne '$*DISPATCHER' {
+                if $name ne '$_' {
                     @sigsyms.push($name);
                 }
             }
@@ -851,13 +854,14 @@ class Perl6::Optimizer {
         if $optype eq 'bind' && nqp::istype($op[1], QAST::Op) && $op[1].op eq 'getlexouter' {
             @!block_var_stack[nqp::elems(@!block_var_stack) - 1].register_getlexouter_bind($op);
         }
-        elsif $optype eq 'p6bindsig' {
+        elsif $optype eq 'p6bindsig' || $optype eq 'p6bindcaptosig' {
             self.poison_var_lowering();
         }
         elsif $optype eq 'call' || $optype eq 'callmethod' || $optype eq 'chain' {
             @!block_var_stack[nqp::elems(@!block_var_stack) - 1].register_call();
             my str $callee := $op.name;
-            if $callee eq 'EVAL' || $callee eq 'eval' {
+            if $callee eq '&EVAL' || $callee eq '&eval' || $callee eq 'EVAL' ||
+               $callee eq 'eval' || $callee eq '&INDIRECT_NAME_LOOKUP' {
                 self.poison_var_lowering();
             }
         }

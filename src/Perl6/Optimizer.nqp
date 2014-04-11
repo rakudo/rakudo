@@ -232,6 +232,127 @@ my class Symbols {
     }
 }
 
+# Tracks problems (errors and warnings) discovered by the optimizer as it
+# does its work.
+my class Problems {
+    # Symbols object.
+    has $!symbols;
+
+    # Things that should be warned about; keys are warnings, value is an array
+    # of line numbers.
+    has %!worrying;
+
+    # Typed exceptions, these are all deadly currently
+    has @!exceptions;
+
+    method new($symbols) {
+        my $obj := nqp::create(self);
+        $obj.BUILD($symbols);
+        $obj
+    }
+    method BUILD($symbols) {
+        $!symbols    := $symbols;
+        %!worrying   := nqp::hash();
+        @!exceptions := [];
+    }
+
+    method add_exception(@name, $op, *%opts) {
+        %opts<line>            := HLL::Compiler.lineof($op.node.orig, $op.node.from, :cache(1));
+        %opts<modules>         := $*W.p6ize_recursive(@*MODULES);
+
+        # get line numbers - we can't use $*W.locprepost here
+        # because the cursor has .from as .pos
+        # in contrast to node
+        my $pos  := $op.node.from;
+        my $orig := $op.node.orig;
+
+        my $prestart := $pos - 40;
+        $prestart := 0 if $prestart < 0;
+        my $pre := nqp::substr($orig, $prestart, $pos - $prestart);
+        $pre    := subst($pre, /.*\n/, "", :global);
+        $pre    := '<BOL>' if $pre eq '';
+
+        my $postchars := $pos + 40 > nqp::chars($orig) ?? nqp::chars($orig) - $pos !! 40;
+        my $post := nqp::substr($orig, $pos, $postchars);
+        $post    := subst($post, /\n.*/, "", :global);
+        $post    := '<EOL>' if $post eq '';
+
+        %opts<pre>             := nqp::box_s($pre, $!symbols.find_symbol(['Str']));
+        %opts<post>            := nqp::box_s($post, $!symbols.find_symbol(['Str']));
+        %opts<is-compile-time> := nqp::p6bool(1);
+
+        for %opts -> $p {
+            if nqp::islist($p.value) {
+                my @a := [];
+                for $p.value {
+                    nqp::push(@a, nqp::hllizefor($_, 'perl6'));
+                }
+                %opts{$p.key} := nqp::hllizefor(@a, 'perl6');
+            }
+            else {
+                %opts{$p.key} := nqp::hllizefor($p.value, 'perl6');
+            }
+        }
+        my $file        := nqp::getlexdyn('$?FILES');
+        %opts<filename> := nqp::box_s(
+            (nqp::isnull($file) ?? '<unknown file>' !! $file),
+            $!symbols.find_symbol(['Str'])
+        );
+
+        my $exsym  := $!symbols.find_symbol(@name);
+        my $x_comp := $!symbols.find_symbol(['X', 'Comp']);
+        unless nqp::istype($exsym, $x_comp) {
+            $exsym := $exsym.HOW.mixin($exsym, $x_comp);
+        }
+
+        my $ex := $exsym.new(|%opts);
+        nqp::push(@!exceptions, $ex);
+    }
+
+    method add_worry($past_node, $message, @extras?) {
+        self.add_memo($past_node, $message, @extras, :type<worry>);
+    }
+
+    method add_memo($past_node, $message, @extras?, :$type!) {
+        my $mnode := $past_node.node;
+        my $line := HLL::Compiler.lineof($mnode.orig, $mnode.from, :cache(1));
+        my $key := $message ~ (+@extras ?? "\n" ~ join("\n", @extras) !! "");
+        my %cont := %!worrying;
+        unless %cont{$key} {
+            %cont{$key} := [];
+        }
+        %cont{$key}.push($line);
+    }
+
+    method report() {
+        if +@!exceptions {
+            if +@!exceptions > 1 {
+                my $x_comp_group_sym := $!symbols.find_symbol(['X', 'Comp', 'Group']);
+                my @exs := [];
+                for @!exceptions {
+                    nqp::push(@exs, $_);
+                }
+                my $x_comp_group := $x_comp_group_sym.new(:sorrows(@exs));
+                $x_comp_group.throw();
+            }
+            else {
+                @!exceptions[0].throw();
+            }
+        }
+
+        # We didn't die from any Exception, so we print warnings now.
+        if +%!worrying {
+            my $err := nqp::getstderr();
+            nqp::printfh($err, "WARNINGS:\n");
+            my @fails;
+            for %!worrying {
+                nqp::printfh($err, $_.key ~ " (line" ~ (+$_.value == 1 ?? ' ' !! 's ') ~
+                    join(', ', $_.value) ~ ")\n");
+            }
+        }
+    }
+}
+
 # Implements analsyis related to variable declarations within a block, which
 # includes lexical to local handling and deciding when immediate blocks may
 # be flattened into their surrounding block.
@@ -530,6 +651,9 @@ class Perl6::Optimizer {
     # Junction optimizer.
     has $!junc_opt;
 
+    # Track problems we encounter.
+    has $!problems;
+
     # Optimizer configuration.
     has %!adverbs;
 
@@ -538,13 +662,6 @@ class Perl6::Optimizer {
 
     # How deep a chain we're in, for chaining operators.
     has int $!chain_depth;
-    
-    # Things that should be warned about; keys are warnings, value is an array
-    # of line numbers.
-    has %!worrying;
-    
-    # Typed exceptions, these are all deadly currently
-    has @!exceptions;
 
     # Entry point for the optimization process.
     method optimize($past, *%adverbs) {
@@ -552,9 +669,8 @@ class Perl6::Optimizer {
         $!symbols                 := Symbols.new($past);
         @!block_var_stack         := [];
         $!junc_opt                := JunctionOptimizer.new(self, $!symbols);
+        $!problems                := Problems.new($!symbols);
         $!chain_depth             := 0;
-        %!worrying                := nqp::hash();
-        @!exceptions              := [];
         my $*DYNAMICALLY_COMPILED := 0;
         my $*VOID_CONTEXT         := 0;
         my $*IN_DECLARATION       := 0;
@@ -568,31 +684,8 @@ class Perl6::Optimizer {
         # Walk and optimize the program.
         self.visit_block($!symbols.UNIT);
 
-        if +@!exceptions {
-            if +@!exceptions > 1 {
-                my $x_comp_group_sym := $!symbols.find_symbol(['X', 'Comp', 'Group']);
-                my @exs := [];
-                for @!exceptions {
-                    nqp::push(@exs, $_);
-                }
-                my $x_comp_group := $x_comp_group_sym.new(:sorrows(@exs));
-                $x_comp_group.throw();
-            } 
-            else {
-                @!exceptions[0].throw();
-            }
-        }
-
-        # We didn't die from any Exception, so we print warnings now.
-        if +%!worrying {
-            my $err := nqp::getstderr();
-            nqp::printfh($err, "WARNINGS:\n");
-            my @fails;
-            for %!worrying {
-                nqp::printfh($err, $_.key ~ " (line" ~ (+$_.value == 1 ?? ' ' !! 's ') ~
-                    join(', ', $_.value) ~ ")\n");
-            }
-        }
+        # Report any discovered problems.
+        $!problems.report();
 
         $past
     }
@@ -698,7 +791,7 @@ class Perl6::Optimizer {
                     if $op.node && $*VOID_CONTEXT && !$*IN_DECLARATION {
                         my str $op_txt := nqp::escape($op.node.Str);
                         my str $expr   := nqp::escape(widen($op.node));
-                        self.add_worry($op, qq[Useless use of "$op_txt" in expression "$expr" in sink context]);
+                        $!problems.add_worry($op, qq[Useless use of "$op_txt" in expression "$expr" in sink context]);
                     }
                     # check if all arguments are known at compile time
                     my int $all_args_known := 1;
@@ -825,7 +918,7 @@ class Perl6::Optimizer {
                 unless $!symbols.is_lexical_declared($op.name) {
                     # Shouldn't be able to hit this due to checks done in the parse
                     # phase, but this will catch anything that sneaks past it.
-                    self.add_exception(['X', 'Undeclared'], $op, :symbol($op.name));
+                    $!problems.add_exception(['X', 'Undeclared'], $op, :symbol($op.name));
                 }
             }
         }
@@ -850,7 +943,7 @@ class Perl6::Optimizer {
                     }
                 }
                 else {
-                    self.add_exception(['X', 'Method', 'NotFound'], $op, 
+                    $!problems.add_exception(['X', 'Method', 'NotFound'], $op, 
                         :private(nqp::p6bool(1)), :method($name),
                         :typename($pkg.HOW.name($pkg)));
                 }
@@ -894,7 +987,7 @@ class Perl6::Optimizer {
                          ~ qq[ in sink context];
             }
             if $warning {
-                self.add_worry($want, $warning);
+                $!problems.add_worry($want, $warning);
                 return $NULL;
             }
         }
@@ -917,7 +1010,7 @@ class Perl6::Optimizer {
             # we certainly don't want to warn about that one.
             my str $sigil := nqp::substr($var.name, 0, 1);
             if $sigil eq '$' || $sigil eq '@' || $sigil eq '%' {
-                self.add_worry($var, "Useless use of variable " ~ $var.name ~ " in sink context");
+                $!problems.add_worry($var, "Useless use of variable " ~ $var.name ~ " in sink context");
                 return $NULL;
             }
         }
@@ -981,59 +1074,6 @@ class Perl6::Optimizer {
         [@types, @flags]
     }
 
-    method add_exception(@name, $op, *%opts) {
-        %opts<line>            := HLL::Compiler.lineof($op.node.orig, $op.node.from, :cache(1));
-        %opts<modules>         := $*W.p6ize_recursive(@*MODULES);
-
-        # get line numbers - we can't use $*W.locprepost here
-        # because the cursor has .from as .pos
-        # in contrast to node
-        my $pos  := $op.node.from;
-        my $orig := $op.node.orig;
-
-        my $prestart := $pos - 40;
-        $prestart := 0 if $prestart < 0;
-        my $pre := nqp::substr($orig, $prestart, $pos - $prestart);
-        $pre    := subst($pre, /.*\n/, "", :global);
-        $pre    := '<BOL>' if $pre eq '';
-
-        my $postchars := $pos + 40 > nqp::chars($orig) ?? nqp::chars($orig) - $pos !! 40;
-        my $post := nqp::substr($orig, $pos, $postchars);
-        $post    := subst($post, /\n.*/, "", :global);
-        $post    := '<EOL>' if $post eq '';
-
-        %opts<pre>             := nqp::box_s($pre, $!symbols.find_symbol(['Str']));
-        %opts<post>            := nqp::box_s($post, $!symbols.find_symbol(['Str']));
-        %opts<is-compile-time> := nqp::p6bool(1);
-
-        for %opts -> $p {
-            if nqp::islist($p.value) {
-                my @a := [];
-                for $p.value {
-                    nqp::push(@a, nqp::hllizefor($_, 'perl6'));
-                }
-                %opts{$p.key} := nqp::hllizefor(@a, 'perl6');
-            }
-            else {
-                %opts{$p.key} := nqp::hllizefor($p.value, 'perl6');
-            }
-        }
-        my $file        := nqp::getlexdyn('$?FILES');
-        %opts<filename> := nqp::box_s(
-            (nqp::isnull($file) ?? '<unknown file>' !! $file),
-            $!symbols.find_symbol(['Str'])
-        );
-                
-        my $exsym  := $!symbols.find_symbol(@name);
-        my $x_comp := $!symbols.find_symbol(['X', 'Comp']);
-        unless nqp::istype($exsym, $x_comp) {
-            $exsym := $exsym.HOW.mixin($exsym, $x_comp);
-        }
-
-        my $ex := $exsym.new(|%opts);
-        nqp::push(@!exceptions, $ex);
-    }
-    
     method report_inevitable_dispatch_failure($op, @types, @flags, $obj, :$protoguilt) {
         my @arg_names;
         my int $i := 0;
@@ -1054,7 +1094,7 @@ class Perl6::Optimizer {
                 multi_sig_list($obj) !!
                 ["    Expected: " ~ try $obj.signature.perl ];
 
-        self.add_exception(['X', 'TypeCheck', 'Argument'], $op, |%opts);
+        $!problems.add_exception(['X', 'TypeCheck', 'Argument'], $op, |%opts);
     }
     
     # Signature list for multis.
@@ -1213,23 +1253,6 @@ class Perl6::Optimizer {
         }
         $call := copy_returns($call, $chosen);
         $call
-    }
-    
-    # Adds an entry to the list of things that would just warn
-    method add_worry($past_node, $message, @extras?) {
-        self.add_memo($past_node, $message, @extras, :type<worry>);
-    }
-
-    method add_memo($past_node, $message, @extras?, :$type!) {
-        my $mnode := $past_node.node;
-        my $line := HLL::Compiler.lineof($mnode.orig, $mnode.from, :cache(1));
-        my $key := $message ~ (+@extras ?? "\n" ~ join("\n", @extras) !! "");
-        my %cont := %!worrying;
-        unless %cont{$key} {
-            %cont{$key} := [];
-        }
-        %cont{$key}.push($line);
-
     }
     
     my @prim_spec_ops := ['', 'p6box_i', 'p6box_n', 'p6box_s'];

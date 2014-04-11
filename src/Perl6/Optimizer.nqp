@@ -851,6 +851,9 @@ class Perl6::Optimizer {
         if $optype eq 'bind' && nqp::istype($op[1], QAST::Op) && $op[1].op eq 'getlexouter' {
             @!block_var_stack[nqp::elems(@!block_var_stack) - 1].register_getlexouter_bind($op);
         }
+        elsif $optype eq 'p6bindsig' {
+            self.poison_var_lowering();
+        }
         elsif $optype eq 'call' || $optype eq 'callmethod' || $optype eq 'chain' {
             @!block_var_stack[nqp::elems(@!block_var_stack) - 1].register_call();
             my str $callee := $op.name;

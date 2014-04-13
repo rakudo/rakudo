@@ -972,13 +972,6 @@ class Perl6::Actions is HLL::Actions does STDActions {
             set_default_parameter_type(@params, 'Mu');
             my $signature := create_signature_object($<signature>, %sig_info, $block);
             add_signature_binding_code($block, $signature, @params);
-            
-            # Add a slot for a $*DISPATCHER, and a call to take one.
-            $block[0].push(QAST::Var.new( :name('$*DISPATCHER'), :scope('lexical'), :decl('var') ));
-            $block[0].push(QAST::Op.new(
-                :op('takedispatcher'),
-                QAST::SVal.new( :value('$*DISPATCHER') )
-            ));
 
             # We'll install PAST in current block so it gets capture_lex'd.
             # Then evaluate to a reference to the block (non-closure - higher
@@ -1592,8 +1585,17 @@ class Perl6::Actions is HLL::Actions does STDActions {
     method term:sym<type_declarator>($/)    { make $<type_declarator>.ast; }
     method term:sym<circumfix>($/)          { make $<circumfix>.ast; }
     method term:sym<statement_prefix>($/)   { make $<statement_prefix>.ast; }
-    method term:sym<lambda>($/)             { make block_closure($<pblock>.ast); }
     method term:sym<sigterm>($/)            { make $<sigterm>.ast; }
+    method term:sym<lambda>($/) {
+        my $ast   := $<pblock>.ast;
+        my $block := $ast<past_block>;
+        $block[0].push(QAST::Var.new( :name('$*DISPATCHER'), :scope('lexical'), :decl('var') ));
+        $block[0].push(QAST::Op.new(
+            :op('takedispatcher'),
+            QAST::SVal.new( :value('$*DISPATCHER') )
+        ));
+        make block_closure($ast);
+    }
     method term:sym<unquote>($/) {
         make QAST::Unquote.new(:position(+@*UNQUOTE_ASTS));
         @*UNQUOTE_ASTS.push($<statementlist>.ast);
@@ -2093,6 +2095,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     $past := make_dot_equals($past, $<initializer>.ast);
                 }
                 else {
+                    if nqp::istype($past, QAST::Var) {
+                        find_var_decl($*W.cur_lexpad(), $past.name).decl('var');
+                    }
                     $past := bind_op($/, $past, $<initializer>.ast,
                         $<initializer><sym> eq '::=');
                 }
@@ -4696,6 +4701,12 @@ class Perl6::Actions is HLL::Actions does STDActions {
             }
         }
         else {
+            my $block := $past<past_block>;
+            $block[0].push(QAST::Var.new( :name('$*DISPATCHER'), :scope('lexical'), :decl('var') ));
+            $block[0].push(QAST::Op.new(
+                :op('takedispatcher'),
+                QAST::SVal.new( :value('$*DISPATCHER') )
+            ));
             $past := block_closure($past);
             $past<bare_block> := QAST::Op.new(
                 :op('call'),

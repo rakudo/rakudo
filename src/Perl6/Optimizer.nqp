@@ -1,205 +1,193 @@
+# This file contains a bunch of classes related to static optimization of Perl
+# 6 programs. It takes place after we've done all of the stuff in the grammar
+# and actions, which means CHECK time is over. Thus we're allowed to assume that
+# lexpads are immutable, declarations are over and done with, multi candidate
+# lists won't change and so forth.
+
 use NQPP6QRegex;
 use QAST;
 use Perl6::Ops;
 
+# A null QAST node, inserted when we want to eliminate something.
 my $NULL := QAST::Op.new( :op<null> );
 
-# This powers the optimization pass. It takes place after we've done all
-# of the stuff in the grammar and actions, which means CHECK time is over.
-# Thus we're allowed to assume that lexpads are immutable, declarations are
-# over and done with, multi candidate lists won't change and so forth.
-class Perl6::Optimizer {
-    # Tracks the nested blocks we're in; it's the lexical chain, essentially.
+# Represents the current set of blocks we're in and thus the symbols they
+# make available, and allows for queries over them.
+my class Symbols {
+    # The nested blocks we're in; it's the lexical chain, essentially.
     has @!block_stack;
 
-    has %!adverbs;
-
-    # How deep a chain we're in, for chaining operators.
-    has int $!chain_depth;
-    
-    # Unique ID for topic ($_) preservation registers.
-    has int $!pres_topic_counter;
-    
-    # Unique ID for inline args variables.
-    has int $!inline_arg_counter;
-    
-    # Things that should be warned about; keys are warnings, value is an array
-    # of line numbers.
-    has %!worrying;
-    
-    # Typed exceptions, these are all deadly currently
-    has @!exceptions;
-
-    # Top type, Mu, and Any (the top non-junction type).
-    has $!Mu;
-    has $!Any;
-
-    # The Setting, which contains things like Signature and Parameter.
+    # Some interesting scopes.
+    has $!GLOBALish;
+    has $!UNIT;
     has $!SETTING;
+
+    # Cached setting lookups.
     has %!SETTING_CACHE;
 
-    has %!foldable_junction;
-    has %!foldable_outer;
+    # Some interesting symbols.
+    has $!Mu;
+    has $!Any;
+    has $!PseudoStash;
 
-    # Entry point for the optimization process.
-    method optimize($past, *%adverbs) {
-        # Initialize.
-        @!block_stack := [$past[0]];
-        $!chain_depth := 0;
-        $!pres_topic_counter := 0;
-        $!inline_arg_counter := 0;
-        %!worrying := nqp::hash();
-        my $*DYNAMICALLY_COMPILED := 0;
-        my $*VOID_CONTEXT := 0;
-        my $*IN_DECLARATION := 0;
-        %!foldable_junction{'&infix:<|>'} :=  '&infix:<||>';
-        %!foldable_junction{'&infix:<&>'} :=  '&infix:<&&>';
-       
-        @!exceptions := [];
-
-        # until there's a good way to figure out flattening at compile time,
-        # don't support these junctions
-        #%!foldable_junction{'&any'} := '&infix:<||>';
-        #%!foldable_junction{'&all'} :=  '&infix:<&&>';
-
-        %!foldable_outer{'&prefix:<?>'} := 1;
-        %!foldable_outer{'&prefix:<!>'} := 1;
-        %!foldable_outer{'&prefix:<so>'} := 1;
-        %!foldable_outer{'&prefix:<not>'} := 1;
-
-        %!foldable_outer{'if'} := 1;
-        %!foldable_outer{'unless'} := 1;
-        %!foldable_outer{'while'} := 1;
-        %!foldable_outer{'until'} := 1;
-
-        # Work out optimization level.
-        my $*LEVEL := nqp::existskey(%adverbs, 'optimize') ??
-            +%adverbs<optimize> !! 2;
-        %!adverbs := %adverbs;
-        
-        # Locate UNIT and some other useful symbols.
-        my $*GLOBALish := $past<GLOBALish>;
-        my $*W         := $past<W>;
-        my $unit       := $past<UNIT>;
-        unless nqp::istype($unit, QAST::Block) {
+    # Constructs a new instance of the symbols handling class.
+    method new($compunit) {
+        my $obj := nqp::create(self);
+        $obj.BUILD($compunit);
+        $obj
+    }
+    method BUILD($compunit) {
+        @!block_stack   := [$compunit[0]];
+        $!GLOBALish     := $compunit<GLOBALish>;
+        $!UNIT          := $compunit<UNIT>;
+        %!SETTING_CACHE := {};
+        unless nqp::istype($!UNIT, QAST::Block) {
             nqp::die("Optimizer could not find UNIT");
         }
-        nqp::push(@!block_stack, $unit);
-        $!Mu  := self.find_lexical('Mu');
-        $!Any := self.find_lexical('Any');
+        nqp::push(@!block_stack, $!UNIT);
+        $!Mu          := self.find_lexical('Mu');
+        $!Any         := self.find_lexical('Any');
+        $!PseudoStash := self.find_lexical('PseudoStash');
         nqp::pop(@!block_stack);
-        
-        # Walk and optimize the program.
-        self.visit_block($unit);
-        
-        if +@!exceptions {
-            if +@!exceptions > 1 {
-                my $x_comp_group_sym := self.find_symbol(['X', 'Comp', 'Group']);
-                my @exs := [];
-                for @!exceptions {
-                    nqp::push(@exs, $_);
-                }
-                my $x_comp_group := $x_comp_group_sym.new(:sorrows(@exs));
-                $x_comp_group.throw();
-            } 
-            else {
-                @!exceptions[0].throw();
-            }
-        }
-
-        # We didn't die from any Exception, so we print warnings now.
-        if +%!worrying {
-            my $err := nqp::getstderr();
-            nqp::printfh($err, "WARNINGS:\n");
-            my @fails;
-            for %!worrying {
-                nqp::printfh($err, $_.key ~ " (line" ~ (+$_.value == 1 ?? ' ' !! 's ') ~
-                    join(', ', $_.value) ~ ")\n");
-            }
-        }
-        
-        $past
     }
-    
-    # Called when we encounter a block in the tree.
-    method visit_block($block) {
-        # Push block onto block stack.
-        @!block_stack.push($block);
-        
-        # Visit children.
-        if $block<DYNAMICALLY_COMPILED> {
-            my $*DYNAMICALLY_COMPILED := 1;
-            self.visit_children($block, :resultchild(+@($block) - 1));
-        }
-        else {
-            self.visit_children($block, :resultchild(+@($block) - 1));
-        }
-        
-        # Pop block from block stack.
-        @!block_stack.pop();
-        
-        # If the block is immediate, we may be able to inline it.
-        my $outer := @!block_stack[+@!block_stack - 1];
-        if $block.blocktype eq 'immediate' && !$*DYNAMICALLY_COMPILED {
-            # Scan symbols for any non-interesting ones.
-            my @sigsyms;
-            for $block.symtable() {
-                my $name := $_.key;
-                if $name ne '$_' && $name ne '$*DISPATCHER' {
-                    @sigsyms.push($name);
-                }
-            }
-            
-            # If we have no interesting ones, then we can inline the
-            # statements.
-            # XXX We can also check for lack of colliding symbols and
-            # do something in that case. However, it's non-trivial as
-            # the static lexpad entries will need twiddling with.
-            if +@sigsyms == 0 {
-                if $*LEVEL >= 3 {
-                    return self.inline_immediate_block($block, $outer);
-                }
-            }
-        }
 
-        # We may also be able to optimize away the full-blown binder in some
-        # cases and on some backends.
-        my $code_obj := $block<code_object>;
-        my $backend  := nqp::getcomp('perl6').backend.name;
-        if $backend eq 'jvm' && $*LEVEL >= 3 && nqp::isconcrete($code_obj) {
-            my $sig := $code_obj.signature;
-            self.try_eliminate_binder($block, $sig);
-        }
-
-        $block
+    # Block handling.
+    method push_block($block) {
+        nqp::push(@!block_stack, $block);
     }
-    
-    method try_eliminate_binder($block, $sig) {
-        my $Signature := self.find_in_setting('Signature');
-        my @params := nqp::getattr($sig, $Signature, '$!params');
-        if nqp::elems(@params) == 0 {
-            # Zero args; no need for binder call, and no more to do.
-            try_remove_binder_call();
+    method pop_block() {
+        nqp::pop(@!block_stack)
+    }
+    method top_block() {
+        @!block_stack[+@!block_stack - 1]
+    }
+
+    # Accessors for interesting symbols/scopes.
+    method GLOBALish()   { $!GLOBALish }
+    method UNIT()        { $!UNIT }
+    method Mu()          { $!Mu }
+    method Any()         { $!Any }
+    method PseudoStash() { $!PseudoStash }
+
+    # The following function is a nearly 1:1 copy of World.find_symbol.
+    # Finds a symbol that has a known value at compile time from the
+    # perspective of the current scope. Checks for lexicals, then if
+    # that fails tries package lookup.
+    method find_symbol(@name) {
+        # Make sure it's not an empty name.
+        unless +@name { nqp::die("Cannot look up empty name"); }
+
+        # GLOBAL is current view of global.
+        if +@name == 1 && @name[0] eq 'GLOBAL' {
+            return $!GLOBALish;
         }
-        sub try_remove_binder_call() {
-            my int $found := 0;
-            if nqp::istype($block[0], QAST::Stmts) {
-                for @($block[0]) {
-                    if nqp::istype($_, QAST::Op) && $_.op eq 'p6bindsig' {
-                        $_.op('null');
-                        $found := 1;
-                        last;
+
+        # If it's a single-part name, look through the lexical
+        # scopes.
+        if +@name == 1 {
+            my $final_name := @name[0];
+            my int $i := +@!block_stack;
+            while $i > 0 {
+                $i := $i - 1;
+                my %sym := @!block_stack[$i].symbol($final_name);
+                if +%sym {
+                    if nqp::existskey(%sym, 'value') {
+                        return %sym<value>;
+                    }
+                    else {
+                        nqp::die("No compile-time value for $final_name");
                     }
                 }
             }
-            if $found {
-                $block.custom_args(0);
-                1
-            }
-            else {
-                0
+        }
+
+        # If it's a multi-part name, see if the containing package
+        # is a lexical somewhere. Otherwise we fall back to looking
+        # in GLOBALish.
+        my $result := $!GLOBALish;
+        if +@name >= 2 {
+            my $first := @name[0];
+            my int $i := +@!block_stack;
+            while $i > 0 {
+                $i := $i - 1;
+                my %sym := @!block_stack[$i].symbol($first);
+                if +%sym {
+                    if nqp::existskey(%sym, 'value') {
+                        $result := %sym<value>;
+                        @name := nqp::clone(@name);
+                        @name.shift();
+                        $i := 0;
+                    }
+                    else {
+                        nqp::die("No compile-time value for $first");
+                    }
+                }
             }
         }
+
+        # Try to chase down the parts of the name.
+        for @name {
+            if nqp::existskey($result.WHO, ~$_) {
+                $result := ($result.WHO){$_};
+            }
+            else {
+                nqp::die("Could not locate compile-time value for symbol " ~
+                    join('::', @name));
+            }
+        }
+
+        $result;
+    }
+
+    # Locates a lexical symbol and returns its compile time value. Dies if
+    # it does not exist.
+    method find_lexical($name) {
+        my int $i := +@!block_stack;
+        while $i > 0 {
+            $i := $i - 1;
+            my $block := @!block_stack[$i];
+            my %sym := $block.symbol($name);
+            if +%sym {
+                if nqp::existskey(%sym, 'value') {
+                    return %sym<value>;
+                }
+                else {
+                    nqp::die("Optimizer: No lexical compile time value for $name");
+                }
+            }
+        }
+        nqp::die("Optimizer: No lexical $name found");
+    }
+
+    # Checks if a given lexical is declared, though it needn't have a compile
+    # time known value.
+    method is_lexical_declared($name) {
+        my int $i := +@!block_stack;
+        while $i > 0 {
+            $i := $i - 1;
+            my $block := @!block_stack[$i];
+            my %sym := $block.symbol($name);
+            if +%sym {
+                return 1;
+            }
+        }
+        0
+    }
+
+    # Works out how many scopes in from the outermost a given name is. A 0
+    # from this means the nearest declaration is from the setting; a 1 means
+    # it is in the mainline, etc.
+    method scopes_in($name) {
+        my int $i := +@!block_stack;
+        while $i > 0 {
+            $i := $i - 1;
+            my $block := @!block_stack[$i];
+            my %sym := $block.symbol($name);
+            if +%sym {
+                return $i;
+            }
+        }
+        nqp::die("Symbol $name not found");
     }
 
     method is_from_core($name) {
@@ -248,12 +236,386 @@ class Perl6::Optimizer {
             }
         }
     }
+}
+
+# Tracks problems (errors and warnings) discovered by the optimizer as it
+# does its work.
+my class Problems {
+    # Symbols object.
+    has $!symbols;
+
+    # Things that should be warned about; keys are warnings, value is an array
+    # of line numbers.
+    has %!worrying;
+
+    # Typed exceptions, these are all deadly currently
+    has @!exceptions;
+
+    method new($symbols) {
+        my $obj := nqp::create(self);
+        $obj.BUILD($symbols);
+        $obj
+    }
+    method BUILD($symbols) {
+        $!symbols    := $symbols;
+        %!worrying   := nqp::hash();
+        @!exceptions := [];
+    }
+
+    method add_exception(@name, $op, *%opts) {
+        %opts<line>            := HLL::Compiler.lineof($op.node.orig, $op.node.from, :cache(1));
+        %opts<modules>         := $*W.p6ize_recursive(@*MODULES);
+
+        # get line numbers - we can't use $*W.locprepost here
+        # because the cursor has .from as .pos
+        # in contrast to node
+        my $pos  := $op.node.from;
+        my $orig := $op.node.orig;
+
+        my $prestart := $pos - 40;
+        $prestart := 0 if $prestart < 0;
+        my $pre := nqp::substr($orig, $prestart, $pos - $prestart);
+        $pre    := subst($pre, /.*\n/, "", :global);
+        $pre    := '<BOL>' if $pre eq '';
+
+        my $postchars := $pos + 40 > nqp::chars($orig) ?? nqp::chars($orig) - $pos !! 40;
+        my $post := nqp::substr($orig, $pos, $postchars);
+        $post    := subst($post, /\n.*/, "", :global);
+        $post    := '<EOL>' if $post eq '';
+
+        %opts<pre>             := nqp::box_s($pre, $!symbols.find_symbol(['Str']));
+        %opts<post>            := nqp::box_s($post, $!symbols.find_symbol(['Str']));
+        %opts<is-compile-time> := nqp::p6bool(1);
+
+        for %opts -> $p {
+            if nqp::islist($p.value) {
+                my @a := [];
+                for $p.value {
+                    nqp::push(@a, nqp::hllizefor($_, 'perl6'));
+                }
+                %opts{$p.key} := nqp::hllizefor(@a, 'perl6');
+            }
+            else {
+                %opts{$p.key} := nqp::hllizefor($p.value, 'perl6');
+            }
+        }
+        my $file        := nqp::getlexdyn('$?FILES');
+        %opts<filename> := nqp::box_s(
+            (nqp::isnull($file) ?? '<unknown file>' !! $file),
+            $!symbols.find_symbol(['Str'])
+        );
+
+        my $exsym  := $!symbols.find_symbol(@name);
+        my $x_comp := $!symbols.find_symbol(['X', 'Comp']);
+        unless nqp::istype($exsym, $x_comp) {
+            $exsym := $exsym.HOW.mixin($exsym, $x_comp);
+        }
+
+        my $ex := $exsym.new(|%opts);
+        nqp::push(@!exceptions, $ex);
+    }
+
+    method add_worry($past_node, $message, @extras?) {
+        self.add_memo($past_node, $message, @extras, :type<worry>);
+    }
+
+    method add_memo($past_node, $message, @extras?, :$type!) {
+        my $mnode := $past_node.node;
+        my $line := HLL::Compiler.lineof($mnode.orig, $mnode.from, :cache(1));
+        my $key := $message ~ (+@extras ?? "\n" ~ join("\n", @extras) !! "");
+        my %cont := %!worrying;
+        unless %cont{$key} {
+            %cont{$key} := [];
+        }
+        %cont{$key}.push($line);
+    }
+
+    method report() {
+        if +@!exceptions {
+            if +@!exceptions > 1 {
+                my $x_comp_group_sym := $!symbols.find_symbol(['X', 'Comp', 'Group']);
+                my @exs := [];
+                for @!exceptions {
+                    nqp::push(@exs, $_);
+                }
+                my $x_comp_group := $x_comp_group_sym.new(:sorrows(@exs));
+                $x_comp_group.throw();
+            }
+            else {
+                @!exceptions[0].throw();
+            }
+        }
+
+        # We didn't die from any Exception, so we print warnings now.
+        if +%!worrying {
+            my $err := nqp::getstderr();
+            nqp::printfh($err, "WARNINGS:\n");
+            my @fails;
+            for %!worrying {
+                nqp::printfh($err, $_.key ~ " (line" ~ (+$_.value == 1 ?? ' ' !! 's ') ~
+                    join(', ', $_.value) ~ ")\n");
+            }
+        }
+    }
+}
+
+# Implements analsyis related to variable declarations within a block, which
+# includes lexical to local handling and deciding when immediate blocks may
+# be flattened into their surrounding block.
+my class BlockVarOptimizer {
+    # Hash mapping variable names declared in the block to the QAST::Var
+    # of its declaration.
+    has %!decls;
+
+    # Usages of variables in this block, or unioned in from an inlined
+    # immediate block.
+    has %!usages_flat;
+
+    # Usages of variables in this block, or unioned in from a non-inlined
+    # immediate block or a declaration block.
+    has %!usages_inner;
+
+    # Have we seen this block (or an inner one) making calls?
+    has int $!calls;
+
+    # Usages of getlexouter.
+    has @!getlexouter_binds;
+
+    # If lowering is, for some reason, poisoned.
+    has $!poisoned;
+
+    method add_decl($var) {
+        if $var.scope eq 'lexical' {
+            %!decls{$var.name} := $var;
+        }
+    }
+
+    method add_usage($var) {
+        if $var.scope eq 'lexical' {
+            my $name   := $var.name;
+            my @usages := %!usages_flat{$name};
+            unless @usages {
+                @usages := [];
+                %!usages_flat{$name} := @usages;
+            }
+            nqp::push(@usages, $var);
+        }
+    }
+
+    method register_call() { $!calls++; }
+
+    method register_getlexouter_bind($node) {
+        nqp::push(@!getlexouter_binds, $node);
+    }
+
+    method poison_lowering() { $!poisoned := 1; }
+
+    method get_decls() { %!decls }
+
+    method get_usages_flat() { %!usages_flat }
+
+    method get_usages_inner() { %!usages_inner }
+
+    method get_calls() { $!calls }
+
+    method is_flattenable() {
+        for %!decls {
+            return 0 if $_.value.scope eq 'lexical';
+            return 0 if $_.value.decl eq 'param';
+        }
+        1
+    }
+
+    method incorporate_inner($vars_info, $flattened) {
+        # We'll exclude anything that the inner or flattened thing has as
+        # a declaration, since those are its own.
+        my %decls := $vars_info.get_decls;
+
+        # Inner ones always go into our inners set.
+        add_to_set(%!usages_inner, $vars_info.get_usages_inner, %decls);
+
+        # Flat ones depend on if we flattened this block into ourself.
+        add_to_set($flattened ?? %!usages_flat !! %!usages_inner,
+            $vars_info.get_usages_flat, %decls);
+
+        # Add up call counts.
+        $!calls := $!calls + $vars_info.get_calls;
+
+        sub add_to_set(%set, %to_add, %exclude) {
+            for %to_add {
+                my $name := $_.key;
+                next if nqp::existskey(%exclude, $name);
+                my @existing := %set{$name};
+                if @existing {
+                    for $_.value { nqp::push(@existing, $_) }
+                    #nqp::splice(@existing, $_.value, 0, 0);
+                }
+                else {
+                    %set{$name} := $_.value;
+                }
+            }
+        }
+    }
+
+    method delete_unused_magicals($block) {
+        # Magicals are contextual, so if we call anything when we're done for.
+        return 0 if $!calls || $!poisoned;
+
+        # Otherwise see if there's any we can kill.
+        my %kill;
+        if nqp::existskey(%!decls, '$/') {
+            if !nqp::existskey(%!usages_flat, '$/') && !nqp::existskey(%!usages_inner, '$/') {
+                %kill<$/> := 1;
+            }
+        }
+        if nqp::existskey(%!decls, '$!') {
+            if !nqp::existskey(%!usages_flat, '$!') && !nqp::existskey(%!usages_inner, '$!') {
+                %kill<$!> := 1;
+            }
+        }
+        if nqp::existskey(%!decls, '$_') {
+            my str $decl := %!decls<$_>.decl;
+            if $decl eq 'var' || $decl eq 'contvar' {
+                if !nqp::existskey(%!usages_flat, '$_') && !nqp::existskey(%!usages_inner, '$_') {
+                    if !@!getlexouter_binds {
+                        %kill<$_> := 1;
+                    }
+                    elsif nqp::elems(@!getlexouter_binds) == 1 {
+                        my $glob := @!getlexouter_binds[0];
+                        if $glob[0].name eq '$_' && $glob[1][0].value eq '$_' {
+                            $glob.op('null');
+                            $glob.shift(); $glob.shift();
+                            %kill<$_> := 1;
+                        }
+                    }
+                }
+            }
+        }
+
+        # If we found things to eliminate, do so.
+        if %kill {
+            my @setups := @($block[0]);
+            my int $i  := 0;
+            my int $n  := nqp::elems(@setups);
+            while $i < $n {
+                my $consider := @setups[$i];
+                if nqp::istype($consider, QAST::Var) && nqp::existskey(%kill, $consider.name) {
+                    @setups[$i] := $NULL;
+                }
+                $i++;
+            }
+        }
+    }
+
+    method lexicals_to_locals() {
+        return 0 if $!poisoned;
+        for %!decls {
+            # We're looking for lexical var or param decls.
+            my $qast := $_.value;
+            my str $scope := $qast.scope;
+            next unless $scope eq 'lexical';
+            my str $decl := $qast.decl;
+            next unless $decl eq 'param' || $decl eq 'var';
+
+            # Consider name. Can't lower if it's used by any nested blocks.
+            my str $name := $_.key;
+            unless nqp::existskey(%!usages_inner, $name) {
+                # Lowerable if it's a normal variable.
+                next if nqp::chars($name) < 2;
+                if $name ne 'self' && $name ne '$/' {
+                    my str $sigil := nqp::substr($name, 0, 1);
+                    next unless $sigil eq '$' || $sigil eq '@' || $sigil eq '%';
+                    next unless nqp::iscclass(nqp::const::CCLASS_ALPHABETIC, $name, 1);
+                }
+
+                # Seems good; lower it.
+                my $new_name := $qast.unique('__lowered_lex');
+                $qast.scope('local');
+                $qast.name($new_name);
+                if %!usages_flat{$name} {
+                    for %!usages_flat{$name} {
+                        $_.scope('local');
+                        $_.name($new_name);
+                    }
+                }
+            }
+        }
+    }
+}
+
+# Junction optimizer, responsible for flattening away simple junctions.
+my class JunctionOptimizer {
+    # Junctions we can fold, and what short-circuit operator they fold to.
+    my %foldable_junction := nqp::hash(
+        '&infix:<|>', '&infix:<||>',
+        '&infix:<&>', '&infix:<&&>');
+
+    # Contexts in which we can fold a junction.
+    my %foldable_outer := nqp::hash(
+        '&prefix:<?>',      1,  '&prefix:<!>',      1,
+        '&prefix:<so>',     1,  '&prefix:<not>',    1,
+        'if',               1,  'unless',           1,
+        'while',            1,  'until',            1);
+
+    # The main optimizer.
+    has $!optimizer;
+
+    # Symbols lookup object.
+    has $!symbols;
+
+    # Constructs a new instance of the junction optimizer.
+    method new($optimizer, $symbols) {
+        my $obj := nqp::create(self);
+        $obj.BUILD($optimizer, $symbols);
+        $obj
+    }
+    method BUILD($optimizer, $symbols) {
+        $!optimizer := $optimizer;
+        $!symbols   := $symbols;
+    }
+    
+    # Check if the junction is in a context where we can optimize.
+    method is_outer_foldable($op) {
+        if $op.op eq "call" {
+            if nqp::existskey(%foldable_outer, $op.name) && $!symbols.is_from_core($op.name) {
+                return 1;
+            }
+        } elsif nqp::existskey(%foldable_outer, $op.op) {
+            return 1;
+        }
+        return 0;
+    }
+
+    # Only if a chain operator handles Any, rather than Mu, in its signature
+    # will autothreading actually happen.
+    method chain_handles_Any($op) {
+        my $obj;
+        my int $found := 0;
+        try {
+            $obj := $!symbols.find_lexical($op);
+            $found := 1;
+        }
+        if $found == 1 {
+            my $signature := $!symbols.find_in_setting("Signature");
+            my $iter := nqp::iterator(nqp::getattr($obj.signature, $signature, '$!params'));
+            while $iter {
+                my $p := nqp::shift($iter);
+                unless nqp::istype($p.type, $!symbols.Any) {
+                    return 0;
+                }
+            }
+            return 1;
+        } else {
+            return 0;
+        }
+        return 0;
+    }
 
     method can_chain_junction_be_warped($node) {
         sub has_core-ish_junction($node) {
             if nqp::istype($node, QAST::Op) && $node.op eq 'call' &&
-                    nqp::existskey(%!foldable_junction, $node.name) {
-                if self.is_from_core($node.name) {
+                    nqp::existskey(%foldable_junction, $node.name) {
+                if $!symbols.is_from_core($node.name) {
                     # TODO: special handling for any()/all(), because they create
                     #       a Stmts with a infix:<,> in it.
                     if +$node.list == 1 {
@@ -272,68 +634,14 @@ class Perl6::Optimizer {
         }
         return -1;
     }
-    
-    # Called when we encounter a QAST::Op in the tree. Produces either
-    # the op itself or some replacement opcode to put in the tree.
-    method visit_op($op) {
-        # If it's a QAST::Op of type handle, needs some special attention.
-        my str $optype := $op.op;
-        if $optype eq 'handle' {
-            return self.visit_handle($op);
-        }
-        
-        # A chain with exactly two children can become the op itself.
-        if $optype eq 'chain' {
-            $!chain_depth := $!chain_depth + 1;
-            $optype := 'call' if $!chain_depth == 1 &&
-                !(nqp::istype($op[0], QAST::Op) && $op[0].op eq 'chain') &&
-                !(nqp::istype($op[1], QAST::Op) && $op[1].op eq 'chain');
-        }
 
-        # there's a list of foldable outers up in the constructor.
-        sub is_outer_foldable() {
-            if $op.op eq "call" {
-                if nqp::existskey(%!foldable_outer, $op.name) && self.is_from_core($op.name) {
-                    return 1;
-                }
-            } elsif nqp::existskey(%!foldable_outer, $op.op) {
-                return 1;
-            }
-            return 0;
-        }
-
-        # only if a chain operator handles Any, rather than Mu, in its signature
-        # will autothreading actually happen.
-        sub chain_handles_Any($op) {
-            my $obj;
-            my int $found := 0;
-            try {
-                $obj := self.find_lexical($op);
-                $found := 1;
-            }
-            if $found == 1 {
-                my $signature := self.find_in_setting("Signature");
-                my $iter := nqp::iterator(nqp::getattr($obj.signature, $signature, '$!params'));
-                while $iter {
-                    my $p := nqp::shift($iter);
-                    unless nqp::istype($p.type, $!Any) {
-                        return 0;
-                    }
-                }
-                return 1;
-            } else {
-                return 0;
-            }
-            return 0;
-        }
-
-        # we may be able to unfold a junction at compile time.
-        if $*LEVEL >= 2 && is_outer_foldable() && nqp::istype($op[0], QAST::Op) {
+    method optimize($op) {
+        if self.is_outer_foldable($op) && nqp::istype($op[0], QAST::Op) {
             my $proceed := 0;
             my $exp-side;
             if $op[0].op eq "chain" {
                 $exp-side := self.can_chain_junction_be_warped($op[0]);
-                $proceed := $exp-side != -1 && chain_handles_Any($op[0].name) == 1
+                $proceed := $exp-side != -1 && self.chain_handles_Any($op[0].name) == 1
             } elsif $op[0].op eq 'callmethod' && $op[0].name eq 'ACCEPTS' {
                 $exp-side := self.can_chain_junction_be_warped($op[0]);
                 # we should only ever find the 0nd child (the invocant) to be a junction anyway.
@@ -342,9 +650,9 @@ class Perl6::Optimizer {
             if $proceed {
                 # TODO chain_handles_Any may get more cleverness to check only the parameters that actually have
                 # a junction passed to them, so that in some cases the unfolding may still happen.
-                my str $juncop := $op[0][$exp-side].name eq '&infix:<&>' ?? 'if' !! 'unless';
-                my str $juncname := %!foldable_junction{$op[0][$exp-side].name};
-                my str $chainop := $op[0].op;
+                my str $juncop    := $op[0][$exp-side].name eq '&infix:<&>' ?? 'if' !! 'unless';
+                my str $juncname  := %foldable_junction{$op[0][$exp-side].name};
+                my str $chainop   := $op[0].op;
                 my str $chainname := $op[0].name;
                 my $values := $op[0][$exp-side];
                 my $ovalue := $op[0][1 - $exp-side];
@@ -395,17 +703,165 @@ class Perl6::Optimizer {
 
                 $op.shift;
                 $op.unshift(create_junc());
-                #say($op.dump);
-                return self.visit_op($op);
+                return $!optimizer.visit_op($op);
             }
         }
+        return NQPMu;
+    }
+}
+
+# Drives the optimization process overall.
+class Perl6::Optimizer {
+    # Symbols tracking object.
+    has $!symbols;
+
+    # Stack of block variable optimizers.
+    has @!block_var_stack;
+
+    # Junction optimizer.
+    has $!junc_opt;
+
+    # Track problems we encounter.
+    has $!problems;
+
+    # Optimizer configuration.
+    has %!adverbs;
+
+    # The optimization level.
+    has $!level;
+
+    # How deep a chain we're in, for chaining operators.
+    has int $!chain_depth;
+
+    # Entry point for the optimization process.
+    method optimize($past, *%adverbs) {
+        # Initialize.
+        $!symbols                 := Symbols.new($past);
+        @!block_var_stack         := [];
+        $!junc_opt                := JunctionOptimizer.new(self, $!symbols);
+        $!problems                := Problems.new($!symbols);
+        $!chain_depth             := 0;
+        my $*DYNAMICALLY_COMPILED := 0;
+        my $*VOID_CONTEXT         := 0;
+        my $*IN_DECLARATION       := 0;
+        my $*W                    := $past<W>;
+
+        # Work out optimization level.
+        $!level := nqp::existskey(%adverbs, 'optimize') ??
+            +%adverbs<optimize> !! 2;
+        %!adverbs := %adverbs;
+
+        # Walk and optimize the program.
+        self.visit_block($!symbols.UNIT);
+
+        # Report any discovered problems.
+        $!problems.report();
+
+        $past
+    }
+    
+    # Called when we encounter a block in the tree.
+    method visit_block($block) {
+        # Push block onto block stack and create vars tracking.
+        $!symbols.push_block($block);
+        @!block_var_stack.push(BlockVarOptimizer.new);
         
+        # Visit children.
+        if $block<DYNAMICALLY_COMPILED> {
+            my $*DYNAMICALLY_COMPILED := 1;
+            self.visit_children($block, :resultchild(+@($block) - 1));
+        }
+        else {
+            self.visit_children($block, :resultchild(+@($block) - 1));
+        }
+        
+        # Pop block from block stack and get computed block var info.
+        $!symbols.pop_block();
+        my $vars_info := @!block_var_stack.pop();
+
+        # We might be able to delete some of the magical variables when they
+        # are trivially unused.
+        $vars_info.delete_unused_magicals($block);
+
+        # If the block is immediate, we may be able to inline it.
+        my int $flattened := 0;
+        my $result        := $block;
+        if $block.blocktype eq 'immediate' && !$*DYNAMICALLY_COMPILED {
+            # Scan symbols for any non-interesting ones.
+            my @sigsyms;
+            for $block.symtable() {
+                my $name := $_.key;
+                if $name ne '$_' && $name ne '$*DISPATCHER' {
+                    @sigsyms.push($name);
+                }
+            }
+            
+            # If we have no interesting ones, then we can inline the
+            # statements.
+            # XXX We can also check for lack of colliding symbols and
+            # do something in that case. However, it's non-trivial as
+            # the static lexpad entries will need twiddling with.
+            if +@sigsyms == 0 {
+                if $!level >= 3 {
+                    my $outer := $!symbols.top_block;
+                    $result := self.inline_immediate_block($block, $outer);
+                }
+            }
+        }
+
+        # Incorporate this block's info into outer block's info.
+        @!block_var_stack[nqp::elems(@!block_var_stack) - 1].incorporate_inner($vars_info, $flattened)
+            if @!block_var_stack;
+
+        $result
+    }
+
+    # Called when we encounter a QAST::Op in the tree. Produces either
+    # the op itself or some replacement opcode to put in the tree.
+    method visit_op($op) {
+        # If it's a QAST::Op of type handle, needs some special attention.
+        my str $optype := $op.op;
+        if $optype eq 'handle' {
+            return self.visit_handle($op);
+        }
+        
+        # A chain with exactly two children can become the op itself.
+        if $optype eq 'chain' {
+            $!chain_depth := $!chain_depth + 1;
+            $optype := 'call' if $!chain_depth == 1 &&
+                !(nqp::istype($op[0], QAST::Op) && $op[0].op eq 'chain') &&
+                !(nqp::istype($op[1], QAST::Op) && $op[1].op eq 'chain');
+        }
+
+        # We may be able to unfold a junction at compile time.
+        if $!level >= 2 {
+            my $jo_result := $!junc_opt.optimize($op);
+            if $jo_result {
+                return $jo_result;
+            }
+        }
+
         # Visit the children.
         {
             my $*VOID_CONTEXT := 0;
             self.visit_children($op);
         }
-        
+
+        # Some ops are significant for variable analysis/lowering.
+        if $optype eq 'bind' && nqp::istype($op[1], QAST::Op) && $op[1].op eq 'getlexouter' {
+            @!block_var_stack[nqp::elems(@!block_var_stack) - 1].register_getlexouter_bind($op);
+        }
+        elsif $optype eq 'p6bindsig' {
+            self.poison_var_lowering();
+        }
+        elsif $optype eq 'call' || $optype eq 'callmethod' || $optype eq 'chain' {
+            @!block_var_stack[nqp::elems(@!block_var_stack) - 1].register_call();
+            my str $callee := $op.name;
+            if $callee eq 'EVAL' || $callee eq 'eval' {
+                self.poison_var_lowering();
+            }
+        }
+
         # Calls are especially interesting as we may wish to do some
         # kind of inlining.
         if $optype eq 'call' && $op.name ne '' {
@@ -413,7 +869,7 @@ class Perl6::Optimizer {
             my $obj;
             my int $found := 0;
             try {
-                $obj := self.find_lexical($op.name);
+                $obj := $!symbols.find_lexical($op.name);
                 $found := 1;
             }
             if $found {
@@ -432,7 +888,7 @@ class Perl6::Optimizer {
                     if $op.node && $*VOID_CONTEXT && !$*IN_DECLARATION {
                         my str $op_txt := nqp::escape($op.node.Str);
                         my str $expr   := nqp::escape(widen($op.node));
-                        self.add_worry($op, qq[Useless use of "$op_txt" in expression "$expr" in sink context]);
+                        $!problems.add_worry($op, qq[Useless use of "$op_txt" in expression "$expr" in sink context]);
                     }
                     # check if all arguments are known at compile time
                     my int $all_args_known := 1;
@@ -470,13 +926,13 @@ class Perl6::Optimizer {
                             # if it's an Int, Num or Str, we can create a Want
                             # from it with an int, num or str value.
                             my $want;
-                            if nqp::istype($ret_value, self.find_in_setting("Int")) && !nqp::isbig_I(nqp::decont($ret_value)) {
+                            if nqp::istype($ret_value, $!symbols.find_in_setting("Int")) && !nqp::isbig_I(nqp::decont($ret_value)) {
                                 $want := QAST::Want.new($wval,
                                     "Ii", QAST::IVal.new(:value(nqp::unbox_i($ret_value))));
-                            } elsif nqp::istype($ret_value, self.find_in_setting("Num")) {
+                            } elsif nqp::istype($ret_value, $!symbols.find_in_setting("Num")) {
                                 $want := QAST::Want.new($wval,
                                     "Nn", QAST::NVal.new(:value(nqp::unbox_n($ret_value))));
-                            } elsif nqp::istype($ret_value, self.find_in_setting("Str")) {
+                            } elsif nqp::istype($ret_value, $!symbols.find_in_setting("Str")) {
                                 $want := QAST::Want.new($wval,
                                     "Ss", QAST::SVal.new(:value(nqp::unbox_s($ret_value))));
                             }
@@ -508,7 +964,7 @@ class Perl6::Optimizer {
                         if $ct_result_proto == 1 && @ct_result_multi[0] == 1 {
                             my $chosen := @ct_result_multi[1];
                             if $op.op eq 'chain' { $!chain_depth := $!chain_depth - 1 }
-                            if $*LEVEL >= 2 {
+                            if $!level >= 2 {
                                 return nqp::can($chosen, 'inline_info') && nqp::istype($chosen.inline_info, QAST::Node)
                                     ?? self.inline_call($op, $chosen)
                                     !! self.call_ct_chosen_multi($op, $obj, $chosen);
@@ -531,7 +987,7 @@ class Perl6::Optimizer {
                         if $ct_result == 1 {
                             if $op.op eq 'chain' { $!chain_depth := $!chain_depth - 1 }
                             #say("# trial bind worked!");
-                            if $*LEVEL >= 2 {
+                            if $!level >= 2 {
                                 if nqp::can($obj, 'inline_info') && nqp::istype($obj.inline_info, QAST::Node) {
                                     return self.inline_call($op, $obj);
                                 }
@@ -547,7 +1003,7 @@ class Perl6::Optimizer {
                 # If we get here, no inlining or compile-time decision was
                 # possible, but we may still be able to make it a callstatic,
                 # which is cheaper on some backends.
-                my $scopes := self.scopes_in($op.name);
+                my $scopes := $!symbols.scopes_in($op.name);
                 if $scopes == 0 || $scopes == 1 && nqp::can($obj, 'soft') && !$obj.soft {
                     $op.op('callstatic');
                 }
@@ -556,17 +1012,17 @@ class Perl6::Optimizer {
                 # We really should find routines; failure to do so is a CHECK
                 # time error. Check that it's not just compile-time unknown,
                 # however (shows up in e.g. sub foo(&x) { x() }).
-                unless self.is_lexical_declared($op.name) {
+                unless $!symbols.is_lexical_declared($op.name) {
                     # Shouldn't be able to hit this due to checks done in the parse
                     # phase, but this will catch anything that sneaks past it.
-                    self.add_exception(['X', 'Undeclared'], $op, :symbol($op.name));
+                    $!problems.add_exception(['X', 'Undeclared'], $op, :symbol($op.name));
                 }
             }
         }
         
         # If it's a private method call, we can sometimes resolve it at
         # compile time. If so, we can reduce it to a sub call in some cases.
-        elsif $*LEVEL >= 2 && $op.op eq 'callmethod' && $op.name eq 'dispatch:<!>' {
+        elsif $!level >= 2 && $op.op eq 'callmethod' && $op.name eq 'dispatch:<!>' {
             if $op[1].has_compile_time_value && nqp::istype($op[1], QAST::Want) && $op[1][1] eq 'Ss' {
                 my str $name := $op[1][2].value; # get raw string name
                 my $pkg  := $op[2].returns;  # actions always sets this
@@ -584,7 +1040,7 @@ class Perl6::Optimizer {
                     }
                 }
                 else {
-                    self.add_exception(['X', 'Method', 'NotFound'], $op, 
+                    $!problems.add_exception(['X', 'Method', 'NotFound'], $op, 
                         :private(nqp::p6bool(1)), :method($name),
                         :typename($pkg.HOW.name($pkg)));
                 }
@@ -628,7 +1084,7 @@ class Perl6::Optimizer {
                          ~ qq[ in sink context];
             }
             if $warning {
-                self.add_worry($want, $warning);
+                $!problems.add_worry($want, $warning);
                 return $NULL;
             }
         }
@@ -646,15 +1102,40 @@ class Perl6::Optimizer {
     
     # Handles visit a variable node.
     method visit_var($var) {
+        # Track usage.
+        my str $scope := $var.scope;
+        if $scope eq 'attribute' || $scope eq 'positional' || $scope eq 'associative' {
+            self.visit_children($var);
+        } else {
+            my int $top := nqp::elems(@!block_var_stack) - 1;
+            my $decl    := $var.decl;
+            if $decl {
+                @!block_var_stack[$top].add_decl($var);
+                if $decl eq 'param' {
+                    self.visit_children($var);
+                    if $var.default -> $default {
+                        my $stmts_def := QAST::Stmts.new( $default );
+                        self.visit_children($stmts_def);
+                        $var.default($stmts_def[0]);
+                    }
+                }
+            }
+            else {
+                @!block_var_stack[$top].add_usage($var);
+            }
+        }
+
+        # Warn about usage of variable in void context.
         if  $*VOID_CONTEXT && !$*IN_DECLARATION && $var.name && !$var<sink_ok> {
             # stuff like Nil is also stored in a QAST::Var, but
             # we certainly don't want to warn about that one.
             my str $sigil := nqp::substr($var.name, 0, 1);
             if $sigil eq '$' || $sigil eq '@' || $sigil eq '%' {
-                self.add_worry($var, "Useless use of variable " ~ $var.name ~ " in sink context");
+                $!problems.add_worry($var, "Useless use of variable " ~ $var.name ~ " in sink context");
                 return $NULL;
             }
         }
+
         $var;
     }
     
@@ -679,7 +1160,7 @@ class Perl6::Optimizer {
             # See if we know the node's type; if so, check it.
             my $type := $_.returns();
             my $ok_type := 0;
-            try $ok_type := nqp::istype($type, $!Mu);
+            try $ok_type := nqp::istype($type, $!symbols.Mu);
             if $ok_type {
                 my $prim := nqp::objprimspec($type);
                 my str $allo := $_.has_compile_time_value && nqp::istype($_, QAST::Want)
@@ -715,61 +1196,6 @@ class Perl6::Optimizer {
         [@types, @flags]
     }
 
-    method add_exception(@name, $op, *%opts) {
-        %opts<line>            := HLL::Compiler.lineof($op.node.orig, $op.node.from, :cache(1));
-        %opts<modules>         := $*W.p6ize_recursive(@*MODULES);
-
-        # get line numbers - we can't use $*W.locprepost here
-        # because the cursor has .from as .pos
-        # in contrast to node
-        my $pos  := $op.node.from;
-        my $orig := $op.node.orig;
-
-        my $prestart := $pos - 40;
-        $prestart := 0 if $prestart < 0;
-        my $pre := nqp::substr($orig, $prestart, $pos - $prestart);
-        $pre    := subst($pre, /.*\n/, "", :global);
-        $pre    := '<BOL>' if $pre eq '';
-
-        my $postchars := $pos + 40 > nqp::chars($orig) ?? nqp::chars($orig) - $pos !! 40;
-        my $post := nqp::substr($orig, $pos, $postchars);
-        $post    := subst($post, /\n.*/, "", :global);
-        $post    := '<EOL>' if $post eq '';
-
-        %opts<pre>             := nqp::box_s($pre, self.find_symbol(['Str']));
-        %opts<post>            := nqp::box_s($post, self.find_symbol(['Str']));
-
-        %opts<is-compile-time> := nqp::p6bool(1);
-
-        for %opts -> $p {
-            if nqp::islist($p.value) {
-                my @a := [];
-                for $p.value {
-                    nqp::push(@a, nqp::hllizefor($_, 'perl6'));
-                }
-                %opts{$p.key} := nqp::hllizefor(@a, 'perl6');
-            }
-            else {
-                %opts{$p.key} := nqp::hllizefor($p.value, 'perl6');
-            }
-        }
-        my $file        := nqp::getlexdyn('$?FILES');
-        %opts<filename> := nqp::box_s(
-            (nqp::isnull($file) ?? '<unknown file>' !! $file),
-            self.find_symbol(['Str'])
-        );
-                
-        my $exsym := self.find_symbol(@name);
-        my $x_comp := self.find_symbol(['X', 'Comp']);
-
-        unless nqp::istype($exsym, $x_comp) {
-            $exsym := $exsym.HOW.mixin($exsym, $x_comp);
-        }
-
-        my $ex := $exsym.new(|%opts);
-        nqp::push(@!exceptions, $ex);
-    }
-    
     method report_inevitable_dispatch_failure($op, @types, @flags, $obj, :$protoguilt) {
         my @arg_names;
         my int $i := 0;
@@ -790,7 +1216,7 @@ class Perl6::Optimizer {
                 multi_sig_list($obj) !!
                 ["    Expected: " ~ try $obj.signature.perl ];
 
-        self.add_exception(['X', 'TypeCheck', 'Argument'], $op, |%opts);
+        $!problems.add_exception(['X', 'TypeCheck', 'Argument'], $op, |%opts);
     }
     
     # Signature list for multis.
@@ -831,133 +1257,19 @@ class Perl6::Optimizer {
                 }
                 elsif nqp::istype($visit, QAST::Stmt) {
                     self.visit_children($visit, :resultchild($visit.resultchild // +@($visit) - 1));
-                } elsif nqp::istype($visit, QAST::Regex) {
-                    QRegex::Optimizer.new().optimize($visit, @!block_stack[+@!block_stack - 1], |%!adverbs);
+                }
+                elsif nqp::istype($visit, QAST::Regex) {
+                    self.poison_var_lowering();
+                    QRegex::Optimizer.new().optimize($visit, $!symbols.top_block, |%!adverbs);
+                }
+                elsif nqp::istype($visit, QAST::WVal) {
+                    if $visit.value =:= $!symbols.PseudoStash {
+                        self.poison_var_lowering();
+                    }
                 }
             }
             $i := $first ?? $n !! $i + 1;
         }
-    }
-    
-    # The following function is a nearly 1:1 copy of World.find_symbol.
-    # Finds a symbol that has a known value at compile time from the
-    # perspective of the current scope. Checks for lexicals, then if
-    # that fails tries package lookup.
-    method find_symbol(@name) {
-        # Make sure it's not an empty name.
-        unless +@name { nqp::die("Cannot look up empty name"); }
-
-        # GLOBAL is current view of global.
-        if +@name == 1 && @name[0] eq 'GLOBAL' {
-            return $*GLOBALish;
-        }
-
-        # If it's a single-part name, look through the lexical
-        # scopes.
-        if +@name == 1 {
-            my $final_name := @name[0];
-            my int $i := +@!block_stack;
-            while $i > 0 {
-                $i := $i - 1;
-                my %sym := @!block_stack[$i].symbol($final_name);
-                if +%sym {
-                    if nqp::existskey(%sym, 'value') {
-                        return %sym<value>;
-                    }
-                    else {
-                        nqp::die("No compile-time value for $final_name");
-                    }
-                }
-            }
-        }
-        
-        # If it's a multi-part name, see if the containing package
-        # is a lexical somewhere. Otherwise we fall back to looking
-        # in GLOBALish.
-        my $result := $*GLOBALish;
-        if +@name >= 2 {
-            my $first := @name[0];
-            my int $i := +@!block_stack;
-            while $i > 0 {
-                $i := $i - 1;
-                my %sym := @!block_stack[$i].symbol($first);
-                if +%sym {
-                    if nqp::existskey(%sym, 'value') {
-                        $result := %sym<value>;
-                        @name := nqp::clone(@name);
-                        @name.shift();
-                        $i := 0;
-                    }
-                    else {
-                        nqp::die("No compile-time value for $first");
-                    }                    
-                }
-            }
-        }
-        
-        # Try to chase down the parts of the name.
-        for @name {
-            if nqp::existskey($result.WHO, ~$_) {
-                $result := ($result.WHO){$_};
-            }
-            else {
-                nqp::die("Could not locate compile-time value for symbol " ~
-                    join('::', @name));
-            }
-        }
-        
-        $result;
-    }
-
-    # Locates a lexical symbol and returns its compile time value. Dies if
-    # it does not exist.
-    method find_lexical($name) {
-        my int $i := +@!block_stack;
-        while $i > 0 {
-            $i := $i - 1;
-            my $block := @!block_stack[$i];
-            my %sym := $block.symbol($name);
-            if +%sym {
-                if nqp::existskey(%sym, 'value') {
-                    return %sym<value>;
-                }
-                else {
-                    nqp::die("Optimizer: No lexical compile time value for $name");
-                }
-            }
-        }
-        nqp::die("Optimizer: No lexical $name found");
-    }
-    
-    # Checks if a given lexical is declared, though it needn't have a compile
-    # time known value.
-    method is_lexical_declared($name) {
-        my int $i := +@!block_stack;
-        while $i > 0 {
-            $i := $i - 1;
-            my $block := @!block_stack[$i];
-            my %sym := $block.symbol($name);
-            if +%sym {
-                return 1;
-            }
-        }
-        0
-    }
-    
-    # Works out how many scopes in from the outermost a given name is. A 0
-    # from this means the nearest declaration is from the setting; a 1 means
-    # it is in the mainline, etc.
-    method scopes_in($name) {
-        my int $i := +@!block_stack;
-        while $i > 0 {
-            $i := $i - 1;
-            my $block := @!block_stack[$i];
-            my %sym := $block.symbol($name);
-            if +%sym {
-                return $i;
-            }
-        }
-        nqp::die("Symbol $name not found");
     }
     
     # Inlines an immediate block.
@@ -998,21 +1310,19 @@ class Perl6::Optimizer {
             }
         }
 
-        # Hand back the statements, but be sure to preserve $_
-        # around them.
-        $!pres_topic_counter := $!pres_topic_counter + 1;
-        $outer[0].push(QAST::Var.new( :scope('local'),
-            :name("pres_topic_$!pres_topic_counter"), :decl('var') ));
+        # Hand back the statements, but be sure to preserve $_ around them.
+        my $pres_topic_name := QAST::Node.unique('pres_topic_');
+        $outer[0].push(QAST::Var.new( :scope('local'), :name($pres_topic_name), :decl('var') ));
         return QAST::Stmts.new(
             :resultchild(1),
             QAST::Op.new( :op('bind'),
-                QAST::Var.new( :name("pres_topic_$!pres_topic_counter"), :scope('local') ),
+                QAST::Var.new( :name($pres_topic_name), :scope('local') ),
                 QAST::Var.new( :name('$_'), :scope('lexical') )
             ),
             $stmts,
             QAST::Op.new( :op('bind'),
                 QAST::Var.new( :name('$_'), :scope('lexical') ),
-                QAST::Var.new( :name("pres_topic_$!pres_topic_counter"), :scope('local') )
+                QAST::Var.new( :name($pres_topic_name), :scope('local') )
             )
         );
     }
@@ -1028,7 +1338,7 @@ class Perl6::Optimizer {
         my $inlined := QAST::Stmts.new();
         my @subs;
         for $call.list {
-            my $temp_name := '_inline_arg_' ~ ($!inline_arg_counter := $!inline_arg_counter + 1);
+            my $temp_name := QAST::Node.unique('_inline_arg_');
             my $temp_type := $_.returns;
             $inlined.push(QAST::Op.new(
                 :op('bind'),
@@ -1058,7 +1368,7 @@ class Perl6::Optimizer {
                     QAST::Var.new(
                         :name('$!dispatchees'), :scope('attribute'),
                         QAST::Var.new( :name($call.name), :scope('lexical') ),
-                        QAST::WVal.new( :value(self.find_lexical('Routine')) )
+                        QAST::WVal.new( :value($!symbols.find_lexical('Routine')) )
                     ),
                     QAST::IVal.new( :value($idx) )
                 ));
@@ -1071,23 +1381,6 @@ class Perl6::Optimizer {
         }
         $call := copy_returns($call, $chosen);
         $call
-    }
-    
-    # Adds an entry to the list of things that would just warn
-    method add_worry($past_node, $message, @extras?) {
-        self.add_memo($past_node, $message, @extras, :type<worry>);
-    }
-
-    method add_memo($past_node, $message, @extras?, :$type!) {
-        my $mnode := $past_node.node;
-        my $line := HLL::Compiler.lineof($mnode.orig, $mnode.from, :cache(1));
-        my $key := $message ~ (+@extras ?? "\n" ~ join("\n", @extras) !! "");
-        my %cont := %!worrying;
-        unless %cont{$key} {
-            %cont{$key} := [];
-        }
-        %cont{$key}.push($line);
-
     }
     
     my @prim_spec_ops := ['', 'p6box_i', 'p6box_n', 'p6box_s'];
@@ -1104,5 +1397,11 @@ class Perl6::Optimizer {
             $to.returns($ret_type);
         }
         $to
+    }
+
+    method poison_var_lowering() {
+        for @!block_var_stack {
+            $_.poison_lowering();
+        }
     }
 }

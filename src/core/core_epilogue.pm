@@ -14,16 +14,6 @@ BEGIN {
     Perl6::Metamodel::GrammarHOW.HOW.compose(Perl6::Metamodel::GrammarHOW);
 }
 
-multi sub trait_mod:<is>(Routine $r, :$cached!) {
-    my %cache;
-    $r.wrap(-> |c {
-        my $WHICH := c.WHICH;
-        %cache{$WHICH}:exists
-          ?? %cache{$WHICH}
-          !! (%cache{$WHICH} = callsame);
-    });
-}
-
 {YOU_ARE_HERE}
 
 # vim: ft=perl6 expandtab sw=4

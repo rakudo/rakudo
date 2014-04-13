@@ -1,10 +1,13 @@
 my class Bag does Baggy {
     has Int $!total;
+    has Int $!min;
+    has Int $!max;
     has $!WHICH;
 
-    method total {
-        $!total //= [+] %!elems.values.map( { .value } );
-    }
+    method total (--> Int) { $!total //= [+] self.values }
+    method min   (--> Int) { $!min //= self.values.min }
+    method max   (--> Int) { $!max //= self.values.max }
+
     submethod WHICH { $!WHICH }
     submethod BUILD (:%elems)  {
         my @keys := %elems.keys.sort;

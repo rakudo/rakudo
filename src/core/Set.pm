@@ -1,8 +1,12 @@
 my class Set does Setty {
     has Int $!total;
+    has Int $!min;
+    has Int $!max;
     has $!WHICH;
 
-    method total { $!total //= %!elems.elems }
+    method total (--> Int) { $!total //= %!elems.elems }
+    method min (--> Int) { $!min //= %!elems.elems ?? 1 !!  Inf }
+    method max (--> Int) { $!max //= %!elems.elems ?? 1 !! -Inf }
     submethod WHICH {
         $!WHICH := self.^name ~ '|' ~ %!elems.keys.sort if !$!WHICH.defined;
         $!WHICH

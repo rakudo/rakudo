@@ -8,8 +8,8 @@ my role Baggy does QuantHash {
     method kv { %!elems.values.map( {.key, .value} ) }
     method elems(--> Int) { %!elems.elems }
     method total(--> Int) { [+] self.values }
-    method min(--> Int) { self.values.min }
-    method max(--> Int) { self.values.max }
+    method min(--> Num) { self.values.min }
+    method max(--> Num) { self.values.max }
     method exists ($k --> Bool) {  # is DEPRECATED doesn't work in settings
         DEPRECATED("the :exists adverb");
         self.exists_key($k);

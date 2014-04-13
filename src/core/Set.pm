@@ -1,7 +1,7 @@
 my class Set does Setty {
     has Int $!total;
-    has Real$!min;
-    has Real$!max;
+    has Real $!min;
+    has Real $!max;
     has $!WHICH;
 
     method total (--> Int) { $!total //= %!elems.elems }

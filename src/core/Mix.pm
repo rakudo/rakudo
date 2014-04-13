@@ -1,9 +1,11 @@
 my class Mix does Mixy {
     has Real $!total;
+    has Real $!min;
+    has Real $!max;
 
-    method total { 
-        $!total //= [+] %!elems.values.map( { .value } ); 
-    }   
+    method total (--> Real) { $!total //= [+] self.values }   
+    method min   (--> Real) { $!min //= self.values.min }
+    method max   (--> Real) { $!max //= self.values.max }
     method at_key($k --> Real) {
         my $key := $k.WHICH;
         %!elems.exists_key($key)

@@ -800,7 +800,7 @@ integration/advent2013-day12.t
 integration/advent2013-day14.t
 integration/advent2013-day15.t
 integration/advent2013-day18.t
-integration/advent2013-day19.t
+integration/advent2013-day19.t # conc
 integration/advent2013-day20.t
 integration/code-blocks-as-sub-args.t
 integration/error-reporting.t  # icu

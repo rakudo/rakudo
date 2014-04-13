@@ -11,6 +11,22 @@ my class Capture { # declared in BOOTSTRAP
         nqp::bindattr(self, Capture, '$!hash', nqp::ishash($hs) ?? $hs !! nqp::hash());
         1;
     }
+    submethod WHICH {
+        my $WHICH = self.^name;
+        if self.defined {
+            if $!list {
+                $WHICH ~= '|';
+                $WHICH ~= ( '(' ~ $_.WHICH ~ ')' )
+                  for $!list;
+            }
+            if $!hash {
+                $WHICH ~= '|';
+                $WHICH ~= ( $_ ~ '(' ~ $!hash{$_}.WHICH ~ ')' )
+                  for $!hash.keys.sort;
+            }
+        }
+        $WHICH;
+    }
 
     method at_key(Capture:D: $key is copy) {
         $key = $key.Str;

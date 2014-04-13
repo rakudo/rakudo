@@ -6,6 +6,7 @@ my role Baggy does QuantHash {
     method keys { %!elems.values.map( {.key} ) }
     method values { %!elems.values.map( {.value} ) }
     method kv { %!elems.values.map( {.key, .value} ) }
+    method kxxv { %!elems.values.map( {.key xx .value} ) }
     method elems(--> Int) { %!elems.elems }
     method total(--> Int) { [+] self.values }
     method min(--> Real) { self.values.min }

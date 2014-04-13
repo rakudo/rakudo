@@ -5,8 +5,8 @@ my class Set does Setty {
     has $!WHICH;
 
     method total (--> Int) { $!total //= %!elems.elems }
-    method min (--> Num) { $!min //= %!elems.elems ?? 1 !!  Inf }
-    method max (--> Num) { $!max //= %!elems.elems ?? 1 !! -Inf }
+    method min (--> Real) { $!min //= %!elems.elems ?? 1 !!  Inf }
+    method max (--> Real) { $!max //= %!elems.elems ?? 1 !! -Inf }
     submethod WHICH {
         $!WHICH := self.^name ~ '|' ~ %!elems.keys.sort if !$!WHICH.defined;
         $!WHICH

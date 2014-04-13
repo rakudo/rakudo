@@ -1,12 +1,12 @@
 my class Bag does Baggy {
     has Int $!total;
-    has Num $!min;
-    has Num $!max;
+    has Real $!min;
+    has Real $!max;
     has $!WHICH;
 
     method total (--> Int) { $!total //= [+] self.values }
-    method min   (--> Num) { $!min //= self.values.min }
-    method max   (--> Num) { $!max //= self.values.max }
+    method min  (--> Real) { $!min //= self.values.min }
+    method max  (--> Real) { $!max //= self.values.max }
 
     submethod WHICH { $!WHICH }
     submethod BUILD (:%elems)  {

@@ -1,10 +1,12 @@
 New in 2014.04
 
++ significant performance enhancement for MoarVM, spectest running 20%+ faster
 + S17 (concurrency) now in MoarVM (except timing related features)
 + winner { more @channels { ... } } now works
 + fixed pb with Parcelness of single element array slices with adverbs
 + implemented univals(), .unival and .univals (on MoarVM)
 + make .pick/.roll behave sanely on Enums
++ fixed Str.samespace and ss//
 
 New in 2014.03
 

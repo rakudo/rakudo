@@ -11,6 +11,7 @@ New in 2014.04
 + added Bag.xkkv
 + Capture.WHICH is now value based
 + Naive implementation of "is cached" trait on Routines
++ Hash.perl now randomizes key order, while Hash.gist sorts
 
 New in 2014.03
 

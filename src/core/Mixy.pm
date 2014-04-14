@@ -1,8 +1,6 @@
 my role Mixy does Baggy  {
     method default(--> Real) { 0 }
     method total(--> Real) { [+] self.values }
-    method min(--> Real) { self.values.min }
-    method max(--> Real) { self.values.max }
 
     method new-fp(*@pairs --> Mixy) {
         my %e;

@@ -9,7 +9,7 @@ New in 2014.04
 + fixed Str.samespace and ss//
 + added .minpairs/.maxpairs on (Set|Bag|Mix)Hash
 + added Bag.xkkv
-+ Capture.WHICH is now value based
++ Capture.WHICH implemented so that identical Captures have the same .WHICH
 + Naive implementation of "is cached" trait on Routines
 + Hash.perl now randomizes key order, while Hash.gist sorts
 

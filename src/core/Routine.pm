@@ -57,7 +57,7 @@ my class Routine { # declared in BOOTSTRAP
     }
     
     multi method perl(Routine:D:) {
-        my $perl = self.^name.lc();
+        my $perl = ( self.^name ~~ m/^\w+/ ).lc;
         if self.name() -> $n {
             $perl ~= " $n";
         }

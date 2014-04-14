@@ -7,7 +7,7 @@ New in 2014.04
 + implemented univals(), .unival and .univals (on MoarVM)
 + make .pick/.roll behave sanely on Enums
 + fixed Str.samespace and ss//
-+ added .min/.max on (Set|Bag|Mix)Hash
++ added .minpairs/.maxpairs on (Set|Bag|Mix)Hash
 + added Bag.xkkv
 + Capture.WHICH is now value based
 + Naive implementation of "is cached" trait on Routines

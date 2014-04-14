@@ -132,10 +132,10 @@ my class Routine { # declared in BOOTSTRAP
 multi sub trait_mod:<is>(Routine $r, :$cached!) {
     my %cache;
     $r.wrap(-> |c {
-        my $WHICH := c.WHICH;
-        %cache{$WHICH}:exists
-          ?? %cache{$WHICH}
-          !! (%cache{$WHICH} = callsame);
+        my $key := c.perl;
+        %cache{$key}:exists
+          ?? %cache{$key}
+          !! (%cache{$key} = callsame);
     });
 }
 

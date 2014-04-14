@@ -90,13 +90,23 @@ my class Str does Stringy { # declared in BOOTSTRAP
                 !! $start.Int
             );
         my int $ichars = nqp::chars($sself);
-        X::OutOfRange.new(
-            what    => 'Start argument to substr',
-            got     => $start,
-            range   => (0..*),
-            comment => "use *{$istart} if you want to index relative to the end"
-        ).fail
-            if $istart < 0;
+        if $istart < 0 {
+            if nqp::istype($start, Callable) || -$istart > $ichars {
+                X::OutOfRange.new(
+                    what    => 'Start argument to substr',
+                    got     => $istart,
+                    range   => (0..$ichars),
+                ).fail
+            }
+            else {
+                X::OutOfRange.new(
+                    what    => 'Start argument to substr',
+                    got     => $start,
+                    range   => (0..*),
+                    comment => "use *{$istart} if you want to index relative to the end"
+                ).fail
+            }
+        }
         X::OutOfRange.new(
             what => 'Start of substr',
             got  => $istart,

@@ -62,7 +62,7 @@ my class Routine { # declared in BOOTSTRAP
             $perl ~= " $n";
         }
         $perl ~= self.signature().perl.substr(1);
-        $perl ~= ' { ... }';
+        $perl ~= ' { #`(' ~ self.WHICH ~ ') ... }';
         $perl
     }
     

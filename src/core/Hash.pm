@@ -49,8 +49,14 @@ my class Hash { # declared in BOOTSTRAP
 
     multi method perl(Hash:D \SELF:) {
         nqp::iscont(SELF)
-          ?? '{' ~ self.pairs.map({.perl}).join(', ') ~ '}'
-          !! '(' ~ self.pairs.map({.perl}).join(', ') ~ ').hash'
+          ?? '{' ~ self.pairs.pick(*).map({.perl}).join(', ') ~ '}'
+          !! '(' ~ self.pairs.pick(*).map({.perl}).join(', ') ~ ').hash'
+    }
+
+    multi method gist(Hash:D \SELF:) {
+        nqp::iscont(SELF)
+          ?? '{' ~ self.pairs.sort.map({.perl}).join(', ') ~ '}'
+          !! '(' ~ self.pairs.sort.map({.perl}).join(', ') ~ ').hash'
     }
 
     multi method DUMP(Hash:D: :$indent-step = 4, :%ctx?) {
@@ -276,7 +282,7 @@ my class Hash { # declared in BOOTSTRAP
             'Hash['
               ~ TValue.perl
               ~ '].new('
-              ~ self.pairs.map({.perl}).join(', ')
+              ~ self.pairs.pick(*).map({.perl}).join(', ')
               ~ ')';
         }
     }
@@ -392,7 +398,7 @@ my class Hash { # declared in BOOTSTRAP
               ~ ','
               ~ TKey.perl
               ~ '].new('
-              ~ self.pairs.map({.perl}).join(', ')
+              ~ self.pairs.pick(*).map({.perl}).join(', ')
               ~ ')';
         }
         multi method delete_key($key) {

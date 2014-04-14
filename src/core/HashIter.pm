@@ -26,7 +26,6 @@ my class HashIter is Iterator {
     
     method reify($n?, :$sink) {  # hashes are finite, and hashiter non-reentrant, so do eager snapshot for now
         unless nqp::isconcrete($!reified) {
-            my int $i     =  0;
             my int $mode  =  $!mode;
             my Mu $rpa    := nqp::list();
             my $it        := $!hashiter;
@@ -39,7 +38,6 @@ my class HashIter is Iterator {
                         nqp::push($rpa, Pair.new(
                             :key(nqp::atkey($!keystore, nqp::iterkey_s($pairish))),
                             :value(nqp::hllize(nqp::iterval($pairish)))));
-                        $i = $i + 1;
                     }
                 }
                 else {
@@ -48,7 +46,6 @@ my class HashIter is Iterator {
                         nqp::push($rpa, Pair.new(
                             :key(nqp::p6box_s(nqp::iterkey_s($pairish))),
                             :value(nqp::hllize(nqp::iterval($pairish)))));
-                        $i = $i + 1;
                     }
                 }
             }
@@ -58,7 +55,6 @@ my class HashIter is Iterator {
                         $pairish := nqp::shift($it);
                         nqp::push($rpa, nqp::atkey($!keystore, nqp::iterkey_s($pairish)).item);
                         nqp::push($rpa, nqp::hllize(nqp::iterval($pairish)).item);
-                        $i = $i + 1;
                     }
                 }
                 else {
@@ -66,7 +62,6 @@ my class HashIter is Iterator {
                         $pairish := nqp::shift($it);
                         nqp::push($rpa, nqp::p6box_s(nqp::iterkey_s($pairish)));
                         nqp::push($rpa, nqp::hllize(nqp::iterval($pairish)).item);
-                        $i = $i + 1;
                     }
                 }
             }
@@ -75,14 +70,12 @@ my class HashIter is Iterator {
                     while $it {
                         $pairish := nqp::shift($it);
                         nqp::push($rpa, nqp::atkey($!keystore, nqp::iterkey_s($pairish)).item);
-                        $i = $i + 1;
                     }
                 }
                 else {
                     while $it {
                         $pairish := nqp::shift($it);
                         nqp::push($rpa, nqp::p6box_s(nqp::iterkey_s($pairish)));
-                        $i = $i + 1;
                     }
                 }
             }
@@ -90,7 +83,6 @@ my class HashIter is Iterator {
                 while $it {
                     $pairish := nqp::shift($it);
                     nqp::push($rpa, nqp::hllize(nqp::iterval($pairish)).item);
-                    $i = $i + 1;
                 }
             }
             elsif $mode == 4 {
@@ -100,7 +92,6 @@ my class HashIter is Iterator {
                         nqp::push($rpa, Pair.new(
                             :value(nqp::atkey($!keystore, nqp::iterkey_s($pairish))),
                             :key(nqp::hllize(nqp::iterval($pairish)))));
-                        $i = $i + 1;
                     }
                 }
                 else {
@@ -109,7 +100,6 @@ my class HashIter is Iterator {
                         nqp::push($rpa, Pair.new(
                             :value(nqp::p6box_s(nqp::iterkey_s($pairish))),
                             :key(nqp::hllize(nqp::iterval($pairish)))));
-                        $i = $i + 1;
                     }
                 }
             }

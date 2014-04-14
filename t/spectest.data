@@ -782,6 +782,7 @@ integration/advent2009-day17.t # stress
 integration/advent2009-day18.t
 integration/advent2009-day19.t
 integration/advent2009-day20.t
+integration/advent2009-day21.t
 integration/advent2009-day22.t
 integration/advent2009-day23.t
 integration/advent2010-day04.t

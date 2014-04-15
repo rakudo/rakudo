@@ -1219,7 +1219,7 @@ my class X::TypeCheck::Argument is X::TypeCheck {
             ($.protoguilt ?? "Calling proto of '" !! "Calling '") ~
             $.objname ~ "' " ~
             (+@.arguments == 0
-              ?? "requires arguments\n"
+              ?? "requires arguments (if you meant to operate on \$_, please use .$.objname or use an explicit invocant or argument)\n"
               !! "will never work with argument types (" ~ join(', ', @.arguments) ~ ")\n") 
             ~ $.signature 
     }

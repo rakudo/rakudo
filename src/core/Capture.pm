@@ -88,6 +88,16 @@ my class Capture { # declared in BOOTSTRAP
           ~ (%hash.keys.sort.map( { $_.gist ~ ' => ' ~ %hash{$_}.gist } ).join: ', ' if +%hash)
           ~ ')';
     }
+    multi method perl(Capture:D:) {
+        my @list := self.list;
+        my %hash := self.hash;
+        self.^name
+          ~ '.new('
+          ~ ( 'list => (' ~ @list.map( {.perl} ).join(', ') ~ ',)' if +@list)
+          ~ (', ' if +@list and +%hash)
+          ~ ( 'hash => {' ~ %hash.keys.pick(*).map( { $_.perl ~ ' => ' ~ %hash{$_}.perl } ).join(', ') ~ '}' if +%hash)
+          ~ ')';
+    }
     multi method Bool(Capture:D:) {
         $!list || $!hash ?? True !! False
     }
@@ -114,11 +124,6 @@ my class Capture { # declared in BOOTSTRAP
     }
     method kv(Capture:D:) {
         (self.list.kv, self.hash.kv).flat
-    }
-
-    multi method perl(Capture:D:) {
-        join '', self.^name, '.new( list => ', self.list.perl,
-                                 ', hash => ', self.hash.perl, ')';
     }
 }
 

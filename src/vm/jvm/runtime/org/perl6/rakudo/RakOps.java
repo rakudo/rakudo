@@ -14,6 +14,7 @@ import org.perl6.nqp.sixmodel.reprs.VMArrayInstance;
 /**
  * Contains implementation of nqp:: ops specific to Rakudo Perl 6.
  */
+@SuppressWarnings("unused")
 public final class RakOps {
     public static final boolean DEBUG_MODE = false;
 
@@ -604,7 +605,6 @@ public final class RakOps {
     
     public static SixModelObject p6captureouters(SixModelObject capList, ThreadContext tc) {
         GlobalExt gcx = key.getGC(tc);
-        CallFrame cf = tc.curFrame;
         long elems = capList.elems(tc);
         for (long i = 0; i < elems; i++) {
             SixModelObject codeObj = capList.at_pos_boxed(tc, i);

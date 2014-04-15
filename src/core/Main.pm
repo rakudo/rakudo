@@ -139,7 +139,7 @@ my sub MAIN_HELPER($retval = 0) is hidden_from_backtrace {
 
     # We could not find a user defined USAGE sub!
     # Let's display the default USAGE message
-    if ($n<help>) {
+    if $n<help> {
         $*OUT.say($?USAGE);
         exit 1;
     }

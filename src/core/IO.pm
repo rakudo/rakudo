@@ -205,7 +205,12 @@ my class IO::Handle does IO::FileTestable {
     #   1 -- seek relative to current position
     #   2 -- seek from the end of the file
     method seek(IO::Handle:D: Int:D $offset, Int:D $whence) {
+#?if moar
+        nqp::seekfh($!PIO, $offset, $whence);
+#?endif
+#?if !moar
         $!PIO.seek(nqp::unbox_i($whence), nqp::unbox_i($offset));
+#?endif
         True;
     }
     method tell(IO::Handle:D:) returns Int {

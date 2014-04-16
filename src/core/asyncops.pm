@@ -14,6 +14,16 @@ multi sub await(Channel $c) {
     $c.receive
 }
 
+multi trait_mod:<is>(Variable:D $v, :$cas!) {
+    #place holder
+}
+multi trait_mod:<is>(Array:D $v, :$cas!) {
+    #place holder
+}
+multi trait_mod:<is>(Hash:D $v, :$cas!) {
+    #place holder
+}
+
 sub INVOKE_KV(&block, $key, $value?) {
 
     my @names = map *.name, &block.signature.params;

@@ -783,13 +783,16 @@ integration/advent2009-day17.t # stress
 integration/advent2009-day18.t
 integration/advent2009-day19.t
 integration/advent2009-day20.t
+integration/advent2009-day21.t
 integration/advent2009-day22.t
 integration/advent2009-day23.t
 integration/advent2010-day04.t
 integration/advent2012-day02.t
 integration/advent2012-day03.t
-integration/advent2012-day04.t
+integration/advent2012-day04.t #stress
 integration/advent2012-day06.t
+integration/advent2012-day09.t
+integration/advent2012-day10.t
 integration/advent2013-day02.t
 integration/advent2013-day04.t
 integration/advent2013-day06.t

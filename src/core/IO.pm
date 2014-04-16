@@ -93,9 +93,10 @@ my class IO::Handle does IO::FileTestable {
     has $.path;
 
     proto method open(|) { * }
-    multi method open($path? is copy, :$r, :$w, :$a, :$p, :$bin, :$chomp = Bool::True,
+    multi method open($path? is copy, :$r, :$w, :$rw, :$a, :$p, :$bin, :$chomp = Bool::True,
             :enc(:$encoding) = 'utf8') {
         $path //= $!path;
+        $r = $w = True if $rw;
         my $abspath = defined($*CWD) ?? IO::Spec.rel2abs($path) !! $path;
 #?if parrot
         my $mode =  $p ?? ($w ||  $a ?? 'wp' !! 'rp') !!

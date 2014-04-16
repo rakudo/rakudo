@@ -23,9 +23,11 @@ sub gist(|) {
 }
 
 sub prompt($msg) {
-    print $msg;
-    $*OUT.flush();
-    $*IN.get;
+    my $line = nqp::readlineintfh(nqp::getstdin(), nqp::unbox_s(~($msg // '')));
+    if nqp::eoffh(nqp::getstdin()) {
+        return Str;
+    }
+    return nqp::p6box_s($line);
 }
 
 my role IO::FileTestable does IO {
@@ -827,13 +829,5 @@ sub link(Cool $target as Str, Cool $name as Str) {
 }
 
 sub chmod($mode, $filename) { $filename.path.absolute.chmod($mode); $filename }
-
-sub readline(Str $prompt?) {
-    my $line = nqp::readlineintfh(nqp::getstdin(), nqp::unbox_s($prompt // ''));
-    if nqp::eoffh(nqp::getstdin()) {
-        return Str;
-    }
-    return nqp::p6box_s($line);
-}
 
 # vim: ft=perl6 expandtab sw=4

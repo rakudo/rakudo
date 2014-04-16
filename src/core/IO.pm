@@ -23,11 +23,21 @@ sub gist(|) {
 }
 
 sub prompt($msg = '> ') {
-    my $line = nqp::readlineintfh(nqp::getstdin(), nqp::unbox_s(~($msg // '')));
-    if nqp::eoffh(nqp::getstdin()) {
-        return Str;
+    if $*IN ~~ IO::Handle
+       && $*OUT ~~ IO::Handle
+       && nqp::getattr(nqp::decont($*IN), IO::Handle, '$!PIO') =:= nqp::getstdin()
+       && nqp::getattr(nqp::decont($*OUT), IO::Handle, '$!PIO') =:= nqp::getstdout()
+    {
+        my $line = nqp::readlineintfh(nqp::getstdin(), nqp::unbox_s(~($msg // '')));
+        if nqp::eoffh(nqp::getstdin()) {
+            return Str;
+        }
+        return nqp::p6box_s($line);
+    } else {
+        print $msg;
+        $*OUT.flush();
+        return $*IN.get;
     }
-    return nqp::p6box_s($line);
 }
 
 my role IO::FileTestable does IO {

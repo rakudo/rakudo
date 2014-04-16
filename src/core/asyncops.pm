@@ -14,6 +14,8 @@ multi sub await(Channel $c) {
     $c.receive
 }
 
+sub cas (\val,&code) { code(val) } # naive implementation of cas
+
 sub INVOKE_KV(&block, $key, $value?) {
 
     my @names = map *.name, &block.signature.params;

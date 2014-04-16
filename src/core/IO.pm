@@ -22,7 +22,7 @@ sub gist(|) {
     nqp::p6parcel(nqp::p6argvmarray(), Mu).gist
 }
 
-sub prompt($msg) {
+sub prompt($msg = '> ') {
     my $line = nqp::readlineintfh(nqp::getstdin(), nqp::unbox_s(~($msg // '')));
     if nqp::eoffh(nqp::getstdin()) {
         return Str;

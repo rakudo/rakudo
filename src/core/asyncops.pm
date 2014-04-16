@@ -14,7 +14,7 @@ multi sub await(Channel $c) {
     $c.receive
 }
 
-sub cas (\val,&code) { code(val) } # naive implementation of cas
+sub cas (\val,&code) { val = code(val) } # naive implementation of cas
 
 sub INVOKE_KV(&block, $key, $value?) {
 

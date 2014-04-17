@@ -14,7 +14,6 @@ end of this document.
 
 =head2 Planned future releases
 
-  2014-04-17   Rakudo #75  masak
   2014-05-22   Rakudo #76
   2014-06-19   Rakudo #77
   2014-07-17   Rakudo #78
@@ -296,6 +295,7 @@ You're done!  Celebrate with the appropriate amount of fun.
   2014-01-23   Rakudo #72 "Plano"              (masak)
   2014-02-20   Rakudo #73 "Karlsruhe"          (timotimo)
   2014-03-20   Rakudo #74 "Adelaide"           (tadzik)
+  2014-04-17   Rakudo #75 "Echt"               (masak)
 
 =head1 COPYRIGHT
 

@@ -93,7 +93,7 @@ my class IO::Handle does IO::FileTestable {
     has $.path;
 
     proto method open(|) { * }
-    multi method open($path? is copy, :$r, :$w, :$rw, :$a, :$p, :$bin, :$chomp = Bool::True,
+    multi method open($path? is copy, :$r is copy, :$w is copy, :$rw, :$a, :$p, :$bin, :$chomp = Bool::True,
             :enc(:$encoding) = 'utf8') {
         $path //= $!path;
         $r = $w = True if $rw;
@@ -611,7 +611,7 @@ sub rmdir($path as Str) {
 }
 
 proto sub open(|) { * }
-multi sub open($path, :$r, :$w, :$rw, :$a, :$p, :$bin, :$chomp = Bool::True, :enc(:$encoding) = 'utf8') {
+multi sub open($path, :$r is copy, :$w is copy, :$rw, :$a, :$p, :$bin, :$chomp = Bool::True, :enc(:$encoding) = 'utf8') {
     IO::Handle.new.open($path, :$r, :$w, :$rw, :$a, :$p, :$bin, :$chomp, :$encoding);
 }
 

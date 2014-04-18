@@ -24,9 +24,6 @@ my class ThreadPoolScheduler does Scheduler {
     
     # Have we started any threads yet?
     has int $!started_any;
-    
-    # Timer for interval-scheduled things.
-    has $!timer;
 
     # Adds a new thread to the pool, respecting the maximum.
     method !maybe_new_thread() {
@@ -64,39 +61,24 @@ my class ThreadPoolScheduler does Scheduler {
 
         # need repeating
         if $every {
-#?if jvm
-            $!timer.'method/scheduleAtFixedRate/(Ljava/util/TimerTask;JJ)V'(
-              nqp::jvmbootinterop().proxy(
-                'java.util.TimerTask',
-                nqp::hash( 'run', &catch
+            nqp::timer($!queue,
+                &catch
                   ?? -> { code(); CATCH { default { catch($_) } } }
-                  !! -> { code() }
-                )
-              ),
-              ($delay * 1000).Int,
-              ($every * 1000).Int);
-#?endif
-#?if moar
-            die ":at/:in/:every/:times NYI on MoarVM backend";
-#?endif
+                  !! -> { code() },
+                ($delay * 1000).Int, ($every * 1000).Int,
+                Mu); # XXX TODO: cancellation token
         }
 
         # only after waiting a bit or more than once
         elsif $delay or $times > 1 {
-#?if jvm
-            my $todo :=nqp::hash( 'run', &catch
-              ?? -> { code(); CATCH { default { catch($_) } } }
-              !! -> { code() } );
+            my $todo := &catch
+                ?? -> { code(); CATCH { default { catch($_) } } }
+                !! -> { code() };
             for 1 .. $times {
-                $!timer.'method/schedule/(Ljava/util/TimerTask;J)V'(
-                  nqp::jvmbootinterop().proxy('java.util.TimerTask', $todo),
-                  ($delay * 1000).Int);
+                nqp::timer($!queue, $todo, ($delay * 1000).Int, 0,
+                    Mu); # XXX TODO: cancellation token
                 $delay = 0;
             }
-#?endif
-#?if moar
-            die ":at/:in/:every/:times NYI on MoarVM backend";
-#?endif
         }
 
         # just cue the code
@@ -120,11 +102,6 @@ my class ThreadPoolScheduler does Scheduler {
         $!queue                  := nqp::create(Queue);
         $!thread_start_semaphore := Semaphore.new($!max_threads.Int);
         $!loads_lock             := nqp::create(Lock);
-#?if jvm
-        my $interop              := nqp::jvmbootinterop();
-        my \Timer                := $interop.typeForName('java.util.Timer');
-        $!timer                  := Timer.'constructor/new/(Z)V'(True);
-#?endif
         self!maybe_new_thread() for 1..$!initial_threads;
     }
 }

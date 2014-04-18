@@ -125,7 +125,7 @@ sub on(&setup) {
             $source.tap(
               -> \val {
                   $lock.protect({ more(val) });
-                  CATCH { default { self.quit($_) } }
+#                  CATCH { default { self.quit($_) } }
               },
               done => {
                   $lock.protect({ done() });

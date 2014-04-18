@@ -636,7 +636,10 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     token pod_string_character {
         <pod_balanced_braces> || <pod_formatting_code> || $<char>=[ \N || [
-            <?{ $*POD_IN_FORMATTINGCODE == 1}> \n <!before \h* '=' \w>
+            <?{ $*POD_IN_FORMATTINGCODE }> \n [
+                <?{ $*POD_DELIMITED_CODE_BLOCK }> <!before \h* '=end' \h+ code> ||
+                <!before \h* '=' \w>
+                ]
             ]
         ]
     }
@@ -704,6 +707,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         '=begin' \h+ 'code' {}
         :my $*POD_ALLOW_FCODES  := 0;
         :my $*POD_IN_CODE_BLOCK := 1;
+        :my $*POD_DELIMITED_CODE_BLOCK := 1;
         <pod_configuration($<spaces>)> <pod_newline>+
         [
         || <delimited_code_content($<spaces>)>

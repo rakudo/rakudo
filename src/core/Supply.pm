@@ -18,7 +18,7 @@ my role Supply {
     has @!tappers;
     has $!tappers_lock = Lock.new;
 
-    method tap(&more, :&done, :&quit) {
+    method tap(&more, :&done, :&quit = {.die}) {
         my $sub = Tap.new(:&more, :&done, :&quit, :supply(self));
         $!tappers_lock.protect({
             @!tappers.push($sub);
@@ -125,7 +125,7 @@ sub on(&setup) {
             $source.tap(
               -> \val {
                   $lock.protect({ more(val) });
-#                  CATCH { default { self.quit($_) } }
+                  CATCH { default { self.quit($_) } }
               },
               done => {
                   $lock.protect({ done() });

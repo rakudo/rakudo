@@ -80,7 +80,7 @@ my class SupplyOperations is repr('Uninstantiable') {
             $a => sub (\val) { side_effect(val); $res.more(val) }
         }
     }
-    
+
     method grep(Supply $a, &filter) {
         my class GrepSupply does Supply does PrivatePublishing {
             has $!source;
@@ -90,7 +90,7 @@ my class SupplyOperations is repr('Uninstantiable') {
             
             method tap(|c) {
                 my $sub = self.Supply::tap(|c);
-                my $tap = $!source.tap( -> \val {
+                $!source.tap( -> \val {
                       if (&!filter(val)) { self!more(val) }
                   },
                   done => { self!done(); },
@@ -111,7 +111,7 @@ my class SupplyOperations is repr('Uninstantiable') {
             
             method tap(|c) {
                 my $sub = self.Supply::tap(|c);
-                my $tap = $!source.tap( -> \val {
+                $!source.tap( -> \val {
                       self!more(&!mapper(val))
                   },
                   done => { self!done(); },

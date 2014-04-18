@@ -3,6 +3,8 @@
 # be declared outside of Supply.
 
 my class SupplyOperations is repr('Uninstantiable') {
+    my @secret;
+
     # Private versions of the methods to relay events to subscribers, used in
     # implementing various operations.
     my role PrivatePublishing {
@@ -159,6 +161,44 @@ my class SupplyOperations is repr('Uninstantiable') {
             }
         }
         UniqSupply.new(:source($a), :&as, :&with);
+    }
+
+    method squish(Supply $a, :&as, :&with = &[===]) {
+        my class SquishSupply does Supply does PrivatePublishing {
+            has $!source;
+            has &!as;
+            has &!with;
+
+            submethod BUILD(:$!source, :&!as, :&!with) { }
+            
+            method tap(|c) {
+                my $sub = self.Supply::tap(|c);
+                my &more = do {
+                    my Mu $last = @secret;
+                    my Mu $target;
+                    &as
+                      ?? -> \val {
+                          $target = &!as(val);
+                          unless &!with($target,$last) {
+                              $last = $target;
+                              self!more(val);
+                          }
+                      }
+                      !! -> \val {
+                          unless &!with(val,$last) {
+                              $last = val;
+                              self!more(val);
+                          }
+                      };
+                };
+                $!source.tap( &more,
+                  done => { self!done(); },
+                  quit => -> $ex { self!quit($ex) }
+                );
+                $sub
+            }
+        }
+        SquishSupply.new(:source($a), :&as, :&with);
     }
     
     method map(Supply $a, &mapper) {

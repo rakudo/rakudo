@@ -1,3 +1,6 @@
+New in 2014.05
++ added Supply.uniq
+
 New in 2014.04
 
 + significant performance enhancement for MoarVM, spectest running 20%+ faster

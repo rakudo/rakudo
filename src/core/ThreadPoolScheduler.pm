@@ -50,7 +50,10 @@ my class ThreadPoolScheduler does Scheduler {
         die "Initial thread pool threads must be less than or equal to maximum threads"
             if $!initial_threads > $!max_threads;
     }
-    
+
+    # This goes here for now, will be needed more widely soon.
+    my class AsyncCancellation is repr('AsyncTask') { }
+
     method cue(&code, :$at, :$in, :$every, :$times = 1, :&catch ) {
         die "Cannot specify :at and :in at the same time"
           if $at.defined and $in.defined;
@@ -66,7 +69,7 @@ my class ThreadPoolScheduler does Scheduler {
                   ?? -> { code(); CATCH { default { catch($_) } } }
                   !! -> { code() },
                 ($delay * 1000).Int, ($every * 1000).Int,
-                Mu); # XXX TODO: cancellation token
+                AsyncCancellation);
         }
 
         # only after waiting a bit or more than once
@@ -76,7 +79,7 @@ my class ThreadPoolScheduler does Scheduler {
                 !! -> { code() };
             for 1 .. $times {
                 nqp::timer($!queue, $todo, ($delay * 1000).Int, 0,
-                    Mu); # XXX TODO: cancellation token
+                    AsyncCancellation);
                 $delay = 0;
             }
         }

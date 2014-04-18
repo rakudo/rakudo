@@ -101,6 +101,65 @@ my class SupplyOperations is repr('Uninstantiable') {
         }
         GrepSupply.new(:source($a), :&filter)
     }
+
+    method uniq(Supply $a, :&as, :&with) {
+        my class UniqSupply does Supply does PrivatePublishing {
+            has $!source;
+            has &!as;
+            has &!with;
+
+            submethod BUILD(:$!source, :&!as, :&!with) { }
+            
+            method tap(|c) {
+                my $sub = self.Supply::tap(|c);
+                my &more = do {
+                    if &!with and &!with !=== &[===] {
+                        my @seen;  # should be Mu, but doesn't work in settings
+                        my Mu $target;
+                        &as
+                          ?? -> \val {
+                              $target = &!as(val);
+                              if @seen.first({ &!with($target,$_) } ) =:= Nil {
+                                  @seen.push($target);
+                                  self!more(val);
+                              }
+                          }
+                          !! -> \val {
+                              if @seen.first({ &!with(val,$_) } ) =:= Nil {
+                                  @seen.push(val);
+                                  self!more(val);
+                              }
+                          };
+                    }
+                    else {
+                        my $seen := nqp::hash();
+                        my str $target;
+                        &as
+                          ?? -> \val {
+                              $target = nqp::unbox_s(&!as(val).WHICH);
+                              unless nqp::existskey($seen, $target) {
+                                  nqp::bindkey($seen, $target, 1);
+                                  self!more(val);
+                              }
+                          }
+                          !! -> \val {
+                              $target = nqp::unbox_s(val.WHICH);
+                              unless nqp::existskey($seen, $target) {
+                                  nqp::bindkey($seen, $target, 1);
+                                  self!more(val);
+                              }
+                          };
+                    }
+                };
+                $!source.tap( &more,
+                  done => { self!done(); },
+                  quit => -> $ex { self!quit($ex) }
+                );
+                $sub
+            }
+        }
+        UniqSupply.new(:source($a), :&as, :&with);
+    }
     
     method map(Supply $a, &mapper) {
         my class MapSupply does Supply does PrivatePublishing {

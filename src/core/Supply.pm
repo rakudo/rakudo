@@ -81,13 +81,14 @@ my role Supply {
         }, *;
     }
 
-    method for(|c)          { SupplyOperations.for(|c) }
-    method interval(|c)     { SupplyOperations.interval(|c) }
-    method do(&side_effect) { SupplyOperations.do(self, &side_effect) }
-    method grep(&filter)    { SupplyOperations.grep(self, &filter) }
-    method map(&mapper)     { SupplyOperations.map(self, &mapper) }
-    method merge($s)        { SupplyOperations.merge(self, $s) }
-    method zip($s, *@with)  { SupplyOperations.zip(self, $s, |@with) }
+    method for(|c)           { SupplyOperations.for(|c) }
+    method interval(|c)      { SupplyOperations.interval(|c) }
+    method do(&side_effect)  { SupplyOperations.do(self, &side_effect) }
+    method grep(&filter)     { SupplyOperations.grep(self, &filter) }
+    method map(&mapper)      { SupplyOperations.map(self, &mapper) }
+    method uniq(:&as,:&with) { SupplyOperations.uniq(self, :&as, :&with) }
+    method merge($s)         { SupplyOperations.merge(self, $s) }
+    method zip($s, *@with)   { SupplyOperations.zip(self, $s, |@with) }
 }
 
 # The on meta-combinator provides a mechanism for implementing thread-safe

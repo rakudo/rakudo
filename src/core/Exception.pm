@@ -48,6 +48,7 @@ my class Exception {
         }
     }
 
+    method die(Exception:D:) { self.throw }
     method fail(Exception:D:) {
         try self.throw;
         my $fail := Failure.new($!);

@@ -67,21 +67,23 @@ my class ThreadPoolScheduler does Scheduler {
             nqp::timer($!queue,
                 &catch
                   ?? -> { code(); CATCH { default { catch($_) } } }
-                  !! -> { code() },
+                  !! &code,
                 ($delay * 1000).Int, ($every * 1000).Int,
                 AsyncCancellation);
+            self!maybe_new_thread() if !$!started_any
         }
 
         # only after waiting a bit or more than once
         elsif $delay or $times > 1 {
             my $todo := &catch
                 ?? -> { code(); CATCH { default { catch($_) } } }
-                !! -> { code() };
+                !! &code;
             for 1 .. $times {
                 nqp::timer($!queue, $todo, ($delay * 1000).Int, 0,
                     AsyncCancellation);
                 $delay = 0;
             }
+            self!maybe_new_thread() if !$!started_any
         }
 
         # just cue the code

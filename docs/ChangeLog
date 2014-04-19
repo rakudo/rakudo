@@ -1,5 +1,5 @@
 New in 2014.05
-+ added Supply.uniq
++ added Supply.(uniq|squish)
 
 New in 2014.04
 

@@ -76,6 +76,25 @@ my class SupplyOperations is repr('Uninstantiable') {
         }
         IntervalSupply.new(:$interval, :$delay, :$scheduler)
     }
+    
+    method flat(Supply $a) {
+        my class FlatSupply does Supply does PrivatePublishing {
+            has $!source;
+            
+            submethod BUILD(:$!source) { }
+            
+            method tap(|c) {
+                my $sub = self.Supply::tap(|c);
+                $!source.tap( -> \val {
+                      self!more(val.flat)
+                  },
+                  done => { self!done(); },
+                  quit => -> $ex { self!quit($ex) });
+                $sub
+            }
+        }
+        FlatSupply.new(:source($a))
+    }
 
     method do($a, &side_effect) {
         on -> $res {

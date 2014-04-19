@@ -163,7 +163,8 @@ my class SupplyOperations is repr('Uninstantiable') {
         UniqSupply.new(:source($a), :&as, :&with);
     }
 
-    method squish(Supply $a, :&as, :&with = &[===]) {
+    method squish(Supply $a, :&as, :&with is copy) {
+        &with //= &[===];
         my class SquishSupply does Supply does PrivatePublishing {
             has $!source;
             has &!as;

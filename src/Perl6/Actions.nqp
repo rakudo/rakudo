@@ -4683,6 +4683,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             }
         }
         if $is_hash && $past<past_block>.arity == 0 {
+            migrate_blocks($past<past_block>, $*W.cur_lexpad());
             my @children := @($past<past_block>[1]);
             $past := QAST::Op.new(
                 :op('call'),
@@ -4713,6 +4714,28 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 QAST::BVal.new( :value($past<past_block>) ));
         }
         make $past;
+    }
+
+    # Some constructs are parsed and compiled with blocks inside of them, but
+    # then the outer block goes away (for example, when a {...} becomes a
+    # hash). This is used to move blocks out of the discarded inner one to
+    # the outer one, so they're correctly lexically scoped.
+    sub migrate_blocks($from, $to) {
+        my @decls := @($from[0]);
+        my int $n := nqp::elems(@decls);
+        my int $i := 0;
+        while $i < $n {
+            if nqp::istype(@decls[$i], QAST::Block) {
+                $to[0].push(@decls[$i]);
+                @decls[$i] := QAST::Op.new( :op('null') );
+            }
+            elsif nqp::istype(@decls[$i], QAST::Stmt) &&
+                  nqp::istype(@decls[$i][0], QAST::Block) {
+                $to[0].push(@decls[$i][0]);
+                @decls[$i][0] := QAST::Op.new( :op('null') );
+            }
+            $i++;
+        }
     }
 
     method circumfix:sym<[ ]>($/) {

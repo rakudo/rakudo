@@ -3995,7 +3995,7 @@ grammar Perl6::QGrammar is HLL::Grammar does STD {
         token escape:sym<\\> { <sym> {} <item=.backslash> }
         token backslash:sym<qq> { <?[q]> <quote=.LANG('MAIN','quote')> }
         token backslash:sym<\\> { <text=.sym> }
-        token backslash:sym<stopper> { <text=.stopper> }
+        token backslash:delim { <text=.starter> | <text=.stopper> }
         token backslash:sym<a> { <sym> }
         token backslash:sym<b> { <sym> }
         token backslash:sym<c> { <sym> <charspec> }
@@ -4124,13 +4124,14 @@ grammar Perl6::QGrammar is HLL::Grammar does STD {
     }
 
     role q {
+        token starter { \' }
         token stopper { \' }
 
         token escape:sym<\\> { <sym> <item=.backslash> }
 
         token backslash:sym<qq> { <?[q]> <quote=.LANG('MAIN','quote')> }
         token backslash:sym<\\> { <text=.sym> }
-        token backslash:sym<stopper> { <text=.stopper> }
+        token backslash:delim { <text=.starter> | <text=.stopper> }
 
         token backslash:sym<miscq> { {} . }
 
@@ -4139,6 +4140,7 @@ grammar Perl6::QGrammar is HLL::Grammar does STD {
     }
 
     role qq does b1 does c1 does s1 does a1 does h1 does f1 {
+        token starter { \" }
         token stopper { \" }
         token backslash:sym<unrec> { {} (\w) { self.throw_unrecog_backslash_seq: $/[0].Str } }
         token backslash:sym<misc> { \W }
@@ -4197,6 +4199,7 @@ grammar Perl6::QGrammar is HLL::Grammar does STD {
     }
     
     role cc {
+        token starter { \' }
         token stopper { \' }
 
         method ccstate ($s) {
@@ -4228,7 +4231,7 @@ grammar Perl6::QGrammar is HLL::Grammar does STD {
         }
         token escape:ch { $<ch> = [\S] <.ccstate($<ch>.Str)> }
 
-        token backslash:stopper { <text=.stopper> }
+        token backslash:delim { <text=.starter>|<text=.stopper> }
         token backslash:a { :i <sym> }
         token backslash:b { :i <sym> }
         token backslash:c { :i <sym> <charspec> }

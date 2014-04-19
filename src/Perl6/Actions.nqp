@@ -7046,7 +7046,7 @@ class Perl6::QActions is HLL::Actions does STDActions {
     method escape:sym<\\>($/) { make $<item>.ast; }
     method backslash:sym<qq>($/) { make $<quote>.ast; }
     method backslash:sym<\\>($/) { make $<text>.Str; }
-    method backslash:sym<stopper>($/) { make $<text>.Str; }
+    method backslash:delim ($/) { make $<text>.Str; }
     method backslash:sym<miscq>($/) { make '\\' ~ ~$/; }
     method backslash:sym<misc>($/) { make ~$/; }
     

@@ -145,21 +145,28 @@ sub on(&setup) {
             my @tappers = &!setup(self);
             my $lock    = Lock.new;
 
-            for @tappers -> $tap {
-                unless $tap ~~ Pair && $tap.key ~~ Supply {
+            sub add ($source, $what) {
+                unless $source ~~ Supply {
                     X::Supply::On::BadSetup.new.throw;
                 }
-                given $tap.value {
+                given $what {
                     when EnumMap {
-                        self!add_source($tap.key, $lock, |$tap.value);
+                        self!add_source($source, $lock, |$what);
                     }
                     when Callable {
-                        self!add_source($tap.key, $lock, more => $tap.value);
+                        self!add_source($source, $lock, more => $what);
                     }
                     default {
                         X::Supply::On::BadSetup.new.throw;
                     }
                 }
+            }
+
+            for @tappers -> $tap {
+                unless $tap ~~ Pair {
+                    X::Supply::On::BadSetup.new.throw;
+                }
+                add( $_, $tap.value ) for $tap.key;
             }
             $sub
         }

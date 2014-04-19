@@ -90,7 +90,7 @@ my role Supply {
     method uniq(:&as,:&with)   { SupplyOperations.uniq(self, :&as, :&with) }
     method squish(:&as,:&with) { SupplyOperations.squish(self, :&as, :&with) }
     method merge($s)           { SupplyOperations.merge(self, $s) }
-    method zip($s, *@with)     { SupplyOperations.zip(self, $s, |@with) }
+    method zip($s,:&with)      { SupplyOperations.zip(self, $s, :&with) }
 }
 
 # The on meta-combinator provides a mechanism for implementing thread-safe

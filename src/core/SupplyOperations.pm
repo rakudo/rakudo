@@ -241,7 +241,7 @@ my class SupplyOperations is repr('Uninstantiable') {
         MapSupply.new(:source($a), :&mapper)
     }
     
-    method merge(Supply @s is copy) {
+    method merge(*@s) {
 
         @s.shift unless @s[0].defined;  # lose if used as class method
         return @s[0] if +@s <= 1;       # nothing to be done
@@ -255,7 +255,7 @@ my class SupplyOperations is repr('Uninstantiable') {
         }
     }
     
-    method zip(Supply @s is copy, :&with is copy) {
+    method zip(*@s, :&with is copy) {
 
         @s.shift unless @s[0].defined;  # lose if used as class method
         return Supply unless +@s;       # nothing to be done

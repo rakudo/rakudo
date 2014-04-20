@@ -61,6 +61,7 @@ my class ThreadPoolScheduler does Scheduler {
     my class AsyncCancellation is repr('AsyncTask') { }
 
     method cue(&code, :$at, :$in, :$every, :$times = 1, :&catch ) {
+        my class TimerCancellation is repr('AsyncTask') { }
         die "Cannot specify :at and :in at the same time"
           if $at.defined and $in.defined;
         die "Cannot specify :every and :times at the same time"
@@ -75,7 +76,7 @@ my class ThreadPoolScheduler does Scheduler {
                   ?? -> { code(); CATCH { default { catch($_) } } }
                   !! &code,
                 ($delay * 1000).Int, ($every * 1000).Int,
-                AsyncCancellation);
+                TimerCancellation);
             self!maybe_new_thread() if !$!started_any
         }
 
@@ -86,7 +87,7 @@ my class ThreadPoolScheduler does Scheduler {
                 !! &code;
             for 1 .. $times {
                 nqp::timer($!queue, $todo, ($delay * 1000).Int, 0,
-                    AsyncCancellation);
+                    TimerCancellation);
                 $delay = 0;
             }
             self!maybe_new_thread() if !$!started_any

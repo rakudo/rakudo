@@ -241,39 +241,32 @@ my class SupplyOperations is repr('Uninstantiable') {
         MapSupply.new(:source($a), :&mapper)
     }
     
-    method merge(Supply $a, Supply $b) {
+    method merge(Supply @s is copy) {
+
+        @s.shift unless @s[0].defined;  # lose if used as class method
+        return @s[0] if +@s <= 1;       # nothing to be done
+
         my $dones = 0;
         on -> $res {
-            $a => {
-                more => sub ($val) { $res.more($val) },
-                done => {
-                    $res.done() if ++$dones == 2;
-                }
+            @s => {
+                more => -> \val { $res.more(val) },
+                done => { $res.done() if ++$dones == +@s }
             },
-            $b => {
-                more => sub ($val) { $res.more($val) },
-                done => {
-                    $res.done() if ++$dones == 2;
-                }
-            }
         }
     }
     
-    method zip(Supply $a, Supply $b, :&with is copy ) {
-        &with //= &[,];
-        my @as;
-        my @bs;
+    method zip(Supply @s is copy, :&with is copy) {
+
+        @s.shift unless @s[0].defined;  # lose if used as class method
+        return Supply unless +@s;       # nothing to be done
+
+        my &infix:<op> = &with // &[,];
+        my @values = ( [] xx +@s );
         on -> $res {
-            $a => sub ($val) {
-                @as.push($val);
-                if @as && @bs {
-                    $res.more(with(@as.shift, @bs.shift));
-                }
-            },
-            $b => sub ($val) {
-                @bs.push($val);
-                if @as && @bs {
-                    $res.more(with(@as.shift, @bs.shift));
+            @s => -> $val, $index {
+                @values[$index].push($val);
+                if all(@values) {
+                    $res.more( [op] @values>>.shift );
                 }
             }
         }

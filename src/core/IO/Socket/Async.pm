@@ -87,4 +87,23 @@ my class IO::Socket::Async {
             $host, $port, SocketCancellation);
         $p
     }
+
+    method listen(IO::Socket::Async:U: $host as Str, $port as Int,
+                  :$scheduler = $*SCHEDULER) {
+        my $s = Supply.new;
+        nqp::asynclisten(
+            $scheduler.queue,
+            -> Mu \socket, Mu \err {
+                if err {
+                    $s.quit(err);
+                }
+                else {
+                    my $client_socket := nqp::create(self);
+                    nqp::bindattr($client_socket, IO::Socket::Async, '$!VMIO', socket);
+                    $s.more($client_socket);
+                }
+            },
+            $host, $port, SocketCancellation);
+        $s
+    }
 }

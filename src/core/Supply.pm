@@ -166,7 +166,18 @@ sub on(&setup) {
                 unless $tap ~~ Pair {
                     X::Supply::On::BadSetup.new.throw;
                 }
-                add( $_, $tap.value ) for $tap.key;
+                given $tap.key {
+                    when Positional {
+                        my $todo := $tap.value;
+                        add( $_, $todo ) for .list;
+                    }
+                    when Supply {
+                        add( $_, $tap.value );
+                    }
+                    default {
+                        X::Supply::On::BadSetup.new.throw;
+                    }
+                }
             }
             $sub
         }

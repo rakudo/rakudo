@@ -57,8 +57,11 @@ my class ThreadPoolScheduler does Scheduler {
             if $!initial_threads > $!max_threads;
     }
 
-    # This goes here for now, will be needed more widely soon.
-    my class AsyncCancellation is repr('AsyncTask') { }
+    method queue() {
+        self!initialize unless $!started_any;
+        self!maybe_new_thread() unless $!started_any;
+        $!queue
+    }
 
     method cue(&code, :$at, :$in, :$every, :$times = 1, :&catch ) {
         my class TimerCancellation is repr('AsyncTask') { }

@@ -33,7 +33,13 @@ my class ThreadPoolScheduler does Scheduler {
                 loop {
                     my Mu $task := nqp::shift($!queue);
                     try {
-                        $task();
+                        if nqp::islist($task) {
+                            my Mu $code := nqp::shift($task);
+                            $code(|nqp::p6parcel($task, Any));
+                        }
+                        else {
+                            $task();
+                        }
                         CATCH {
                             default {
                                 self.handle_uncaught($_)

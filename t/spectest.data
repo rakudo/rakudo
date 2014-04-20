@@ -790,9 +790,9 @@ integration/advent2010-day04.t
 integration/advent2012-day02.t
 integration/advent2012-day03.t
 integration/advent2012-day04.t #stress
-#integration/advent2012-day06.t   # hangs since 17f4ee310239e1dd3d84c2205e479fdce8a7b966
+integration/advent2012-day06.t
 integration/advent2012-day09.t
-#integration/advent2012-day10.t   # hangs since 17f4ee310239e1dd3d84c2205e479fdce8a7b966
+integration/advent2012-day10.t
 integration/advent2013-day02.t
 integration/advent2013-day04.t
 integration/advent2013-day06.t

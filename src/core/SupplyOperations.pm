@@ -241,16 +241,19 @@ my class SupplyOperations is repr('Uninstantiable') {
         MapSupply.new(:source($a), :&mapper)
     }
     
-    method buffering(Supply $s, :$elems, :$seconds ) {
+    method buffering(Supply $s, :$elems, :$overlap; :$seconds ) {
 
-        return $s if !$elems and !$seconds;  # nothing to do
+        return $s if !$elems and !$overlap and !$seconds;  # nothing to do
+        die "cannot have :overlap ($overlap) and :seconds ($seconds)"
+          if $overlap and $seconds;
 
         my class BufferingSupply does Supply does PrivatePublishing {
             has $!source;
             has $.elems;
+            has $.overlap;
             has $.seconds;
             
-            submethod BUILD(:$!source, :$!elems, :$!seconds) { }
+            submethod BUILD(:$!source, :$!elems, :$!overlap, :$!seconds) { }
             
             method tap(|c) {
                 my $tap = self.Supply::tap(|c);
@@ -259,7 +262,12 @@ my class SupplyOperations is repr('Uninstantiable') {
                 my $last_time;
                 sub flush {
                     self!more([@buffered]);
-                    @buffered = ();
+                    if $!overlap {
+                        @buffered.splice( 0, +@buffered - $!overlap );
+                    }
+                    else {
+                        @buffered = ();
+                    }
                 }
 
                 my &more = do {
@@ -306,7 +314,7 @@ my class SupplyOperations is repr('Uninstantiable') {
                 $tap
             }
         }
-        BufferingSupply.new(:source($s), :$elems, :$seconds)
+        BufferingSupply.new(:source($s), :$elems, :$overlap, :$seconds)
     }
     
     method merge(*@s) {

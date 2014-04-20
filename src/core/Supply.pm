@@ -116,45 +116,41 @@ sub on(&setup) {
         method !add_source(
           $source, $lock, $index, :&more, :&done is copy, :&quit is copy
         ) {
-            unless defined &more {
-                X::Supply::On::NoMore.new.throw;
-            }
-            unless defined &done {
-                &done = { self.done }
-            }
-            unless defined &quit {
-                &quit = -> $ex { self.quit($ex) }
-            }
-            if $index.defined {
-                $source.tap(
-                  -> \val {
-                      $lock.protect({ more(val,$index) });
-                      CATCH { default { self.quit($_) } }
-                  },
-                  done => {
-                      $lock.protect({ done($index) });
-                      CATCH { default { self.quit($_) } }
-                  },
-                  quit => -> $ex {
-                      $lock.protect({ quit($ex,$index) });
-                      CATCH { default { self.quit($_) } }
-                  });
-            }
-            else {
-                $source.tap(
-                  -> \val {
-                      $lock.protect({ more(val) });
-                      CATCH { default { self.quit($_) } }
-                  },
-                  done => {
-                      $lock.protect({ done() });
-                      CATCH { default { self.quit($_) } }
-                  },
-                  quit => -> $ex {
-                      $lock.protect({ quit($ex) });
-                      CATCH { default { self.quit($_) } }
-                  });
-            }
+            &more // X::Supply::On::NoMore.new.throw;
+            &done //= { self.done };
+            &quit //= -> $ex { self.quit($ex) };
+
+            my &tap_more = &more.arity == 2
+              ?? -> \val {
+                  $lock.protect({ more(val,$index) });
+                  CATCH { default { self.quit($_) } }
+              }
+              !!  -> \val {
+                  $lock.protect({ more(val) });
+                  CATCH { default { self.quit($_) } }
+              };
+
+            my &tap_done = &done.arity == 2
+              ?? {
+                  $lock.protect({ done($index) });
+                  CATCH { default { self.quit($_) } }
+              }
+              !! {
+                  $lock.protect({ done() });
+                  CATCH { default { self.quit($_) } }
+              };
+
+            my &tap_quit = &quit.arity == 2
+              ?? -> $ex {
+                  $lock.protect({ quit($ex,$index) });
+                  CATCH { default { self.quit($_) } }
+              }
+              !! -> $ex {
+                  $lock.protect({ quit($ex) });
+                  CATCH { default { self.quit($_) } }
+              };
+
+            $source.tap( &tap_more, done => &tap_done, quit => &tap_quit );
         }
         
         method tap(|c) {

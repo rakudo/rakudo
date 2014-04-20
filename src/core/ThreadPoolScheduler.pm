@@ -59,7 +59,7 @@ my class ThreadPoolScheduler does Scheduler {
 
     method queue() {
         self!initialize unless $!started_any;
-        self!maybe_new_thread() unless $!started_any;
+        self!maybe_new_thread();
         $!queue
     }
 

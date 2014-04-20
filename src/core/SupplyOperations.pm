@@ -241,6 +241,74 @@ my class SupplyOperations is repr('Uninstantiable') {
         MapSupply.new(:source($a), :&mapper)
     }
     
+    method buffering(Supply $s, :$elems, :$seconds ) {
+
+        return $s if !$elems and !$seconds;  # nothing to do
+
+        my class BufferingSupply does Supply does PrivatePublishing {
+            has $!source;
+            has $.elems;
+            has $.seconds;
+            
+            submethod BUILD(:$!source, :$!elems, :$!seconds) { }
+            
+            method tap(|c) {
+                my $tap = self.Supply::tap(|c);
+
+                my @buffered;
+                my $last_time;
+                sub flush {
+                    self!more([@buffered]);
+                    @buffered = ();
+                }
+
+                my &more = do {
+                    if $!seconds {
+                        $last_time = time div $!seconds;
+
+                        $!elems # and $!seconds
+                          ??  -> \val {
+                              @buffered.push: val;
+                              if @buffered.elems == $!elems {
+                                  flush;
+                              }
+                              else {
+                                  my $this_time = time div $!seconds;
+                                  if $this_time != $last_time {
+                                      flush;
+                                      $last_time = $this_time;
+                                  }
+                              }
+                          }
+                          !! -> \val {
+                              my $this_time = time div $!seconds;
+                              if $this_time != $last_time {
+                                  flush;
+                                  $last_time = $this_time;
+                              }
+                          }
+                    }
+                    else { # just $!elems
+                        -> \val {
+                            @buffered.push: val;
+                            if @buffered.elems == $!elems {
+                                flush;
+                            }
+                        }
+                    }
+                }
+                $!source.tap( &more,
+                  done => {
+                      flush if @buffered;
+                      self!done();
+                  },
+                  quit => -> $ex { self!quit($ex) });
+                $tap
+            }
+        }
+        BufferingSupply.new(:source($s), :$elems, :$seconds)
+    }
+    
     method merge(*@s) {
 
         @s.shift unless @s[0].defined;  # lose if used as class method

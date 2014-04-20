@@ -90,7 +90,7 @@ my role Supply {
     method uniq(:&as,:&with)   { SupplyOperations.uniq(self, :&as, :&with) }
     method squish(:&as,:&with) { SupplyOperations.squish(self, :&as, :&with) }
     method merge($s)           { SupplyOperations.merge(self, $s) }
-    method zip($s, *@with)     { SupplyOperations.zip(self, $s, |@with) }
+    method zip($s,:&with)      { SupplyOperations.zip(self, $s, :&with) }
 }
 
 # The on meta-combinator provides a mechanism for implementing thread-safe
@@ -145,21 +145,28 @@ sub on(&setup) {
             my @tappers = &!setup(self);
             my $lock    = Lock.new;
 
-            for @tappers -> $tap {
-                unless $tap ~~ Pair && $tap.key ~~ Supply {
+            sub add ($source, $what) {
+                unless $source ~~ Supply {
                     X::Supply::On::BadSetup.new.throw;
                 }
-                given $tap.value {
+                given $what {
                     when EnumMap {
-                        self!add_source($tap.key, $lock, |$tap.value);
+                        self!add_source($source, $lock, |$what);
                     }
                     when Callable {
-                        self!add_source($tap.key, $lock, more => $tap.value);
+                        self!add_source($source, $lock, more => $what);
                     }
                     default {
                         X::Supply::On::BadSetup.new.throw;
                     }
                 }
+            }
+
+            for @tappers -> $tap {
+                unless $tap ~~ Pair {
+                    X::Supply::On::BadSetup.new.throw;
+                }
+                add( $_, $tap.value ) for $tap.key;
             }
             $sub
         }

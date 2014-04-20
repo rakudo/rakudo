@@ -259,7 +259,8 @@ my class SupplyOperations is repr('Uninstantiable') {
         }
     }
     
-    method zip(Supply $a, Supply $b, &with = &infix:<,>) {
+    method zip(Supply $a, Supply $b, :&with is copy ) {
+        &with //= &[,];
         my @as;
         my @bs;
         on -> $res {

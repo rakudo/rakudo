@@ -114,7 +114,7 @@ sub on(&setup) {
         submethod BUILD(:&!setup) { }
 
         method !add_source(
-          $source, $lock, :&more, :&done is copy, :&quit is copy
+          $source, $lock, $index, :&more, :&done is copy, :&quit is copy
         ) {
             unless defined &more {
                 X::Supply::On::NoMore.new.throw;
@@ -125,19 +125,36 @@ sub on(&setup) {
             unless defined &quit {
                 &quit = -> $ex { self.quit($ex) }
             }
-            $source.tap(
-              -> \val {
-                  $lock.protect({ more(val) });
-                  CATCH { default { self.quit($_) } }
-              },
-              done => {
-                  $lock.protect({ done() });
-                  CATCH { default { self.quit($_) } }
-              },
-              quit => -> $ex {
-                  $lock.protect({ quit($ex) });
-                  CATCH { default { self.quit($_) } }
-              });
+            if $index.defined {
+                $source.tap(
+                  -> \val {
+                      $lock.protect({ more(val,$index) });
+                      CATCH { default { self.quit($_) } }
+                  },
+                  done => {
+                      $lock.protect({ done($index) });
+                      CATCH { default { self.quit($_) } }
+                  },
+                  quit => -> $ex {
+                      $lock.protect({ quit($ex,$index) });
+                      CATCH { default { self.quit($_) } }
+                  });
+            }
+            else {
+                $source.tap(
+                  -> \val {
+                      $lock.protect({ more(val) });
+                      CATCH { default { self.quit($_) } }
+                  },
+                  done => {
+                      $lock.protect({ done() });
+                      CATCH { default { self.quit($_) } }
+                  },
+                  quit => -> $ex {
+                      $lock.protect({ quit($ex) });
+                      CATCH { default { self.quit($_) } }
+                  });
+            }
         }
         
         method tap(|c) {
@@ -145,16 +162,16 @@ sub on(&setup) {
             my @tappers = &!setup(self);
             my $lock    = Lock.new;
 
-            sub add ($source, $what) {
+            sub add ($source, $what, $index?) {
                 unless $source ~~ Supply {
                     X::Supply::On::BadSetup.new.throw;
                 }
                 given $what {
                     when EnumMap {
-                        self!add_source($source, $lock, |$what);
+                        self!add_source($source, $lock, $index, |$what);
                     }
                     when Callable {
-                        self!add_source($source, $lock, more => $what);
+                        self!add_source($source, $lock, $index, more => $what);
                     }
                     default {
                         X::Supply::On::BadSetup.new.throw;
@@ -169,7 +186,9 @@ sub on(&setup) {
                 given $tap.key {
                     when Positional {
                         my $todo := $tap.value;
-                        add( $_, $todo ) for .list;
+                        for .list.kv -> $index, $supply {
+                            add( $supply, $todo, $index );
+                        }
                     }
                     when Supply {
                         add( $_, $tap.value );

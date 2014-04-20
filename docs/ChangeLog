@@ -1,5 +1,6 @@
 New in 2014.05
 + added Supply.(uniq|squish|flat)
++ add list functionality to 'on', as with new S17 spec
 
 New in 2014.04
 

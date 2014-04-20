@@ -138,6 +138,7 @@ role STD {
     }
 
     role herestop {
+        token starter { <!> }
         token stopper { ^^ {} $<ws>=(\h*) $*DELIM \h* $$ \v? }
     }
 
@@ -4231,7 +4232,7 @@ grammar Perl6::QGrammar is HLL::Grammar does STD {
         }
         token escape:ch { $<ch> = [\S] <.ccstate($<ch>.Str)> }
 
-        token backslash:delim { <text=.starter>|<text=.stopper> }
+        token backslash:delim { <text=.starter> | <text=.stopper> }
         token backslash:a { :i <sym> }
         token backslash:b { :i <sym> }
         token backslash:c { :i <sym> <charspec> }

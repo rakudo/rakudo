@@ -358,8 +358,9 @@ my class SupplyOperations is repr('Uninstantiable') {
     
     method merge(*@s) {
 
-        @s.shift unless @s[0].defined;  # lose if used as class method
-        return @s[0] if +@s <= 1;       # nothing to be done
+        @s.shift unless @s[0].DEFINITE;  # lose if used as class method
+        return Supply unless +@s;        # nothing to be done
+        return @s[0]  if +@s == 1;       # nothing to be done
 
         my $dones = 0;
         on -> $res {
@@ -372,8 +373,9 @@ my class SupplyOperations is repr('Uninstantiable') {
     
     method zip(*@s, :&with is copy) {
 
-        @s.shift unless @s[0].defined;  # lose if used as class method
-        return Supply unless +@s;       # nothing to be done
+        @s.shift unless @s[0].DEFINITE;  # lose if used as class method
+        return Supply unless +@s;        # nothing to be done
+        return @s[0]  if +@s == 1;       # nothing to be done
 
         my &infix:<op> = &with // &[,]; # hack for [[&with]] parse failure
         my @values = ( [] xx +@s );

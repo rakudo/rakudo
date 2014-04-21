@@ -33,7 +33,13 @@ my class ThreadPoolScheduler does Scheduler {
                 loop {
                     my Mu $task := nqp::shift($!queue);
                     try {
-                        $task();
+                        if nqp::islist($task) {
+                            my Mu $code := nqp::shift($task);
+                            $code(|nqp::p6parcel($task, Any));
+                        }
+                        else {
+                            $task();
+                        }
                         CATCH {
                             default {
                                 self.handle_uncaught($_)
@@ -51,10 +57,14 @@ my class ThreadPoolScheduler does Scheduler {
             if $!initial_threads > $!max_threads;
     }
 
-    # This goes here for now, will be needed more widely soon.
-    my class AsyncCancellation is repr('AsyncTask') { }
+    method queue() {
+        self!initialize unless $!started_any;
+        self!maybe_new_thread();
+        $!queue
+    }
 
     method cue(&code, :$at, :$in, :$every, :$times = 1, :&catch ) {
+        my class TimerCancellation is repr('AsyncTask') { }
         die "Cannot specify :at and :in at the same time"
           if $at.defined and $in.defined;
         die "Cannot specify :every and :times at the same time"
@@ -64,13 +74,14 @@ my class ThreadPoolScheduler does Scheduler {
 
         # need repeating
         if $every {
-            nqp::timer($!queue,
+            my $handle := nqp::timer($!queue,
                 &catch
                   ?? -> { code(); CATCH { default { catch($_) } } }
                   !! &code,
                 ($delay * 1000).Int, ($every * 1000).Int,
-                AsyncCancellation);
-            self!maybe_new_thread() if !$!started_any
+                TimerCancellation);
+            self!maybe_new_thread() if !$!started_any;
+            return Cancellation.new(async_handles => [$handle]);
         }
 
         # only after waiting a bit or more than once
@@ -78,12 +89,14 @@ my class ThreadPoolScheduler does Scheduler {
             my $todo := &catch
                 ?? -> { code(); CATCH { default { catch($_) } } }
                 !! &code;
+            my @async_handles;
             for 1 .. $times {
-                nqp::timer($!queue, $todo, ($delay * 1000).Int, 0,
-                    AsyncCancellation);
+                @async_handles.push(nqp::timer($!queue, $todo,
+                    ($delay * 1000).Int, 0, TimerCancellation));
                 $delay = 0;
             }
-            self!maybe_new_thread() if !$!started_any
+            self!maybe_new_thread() if !$!started_any;
+            return Cancellation.new(:@async_handles);
         }
 
         # just cue the code
@@ -95,6 +108,7 @@ my class ThreadPoolScheduler does Scheduler {
             self!maybe_new_thread()
                 if !$!started_any || $loads > 1;
             nqp::push($!queue, &run);
+            return Nil;
         }
     }
 

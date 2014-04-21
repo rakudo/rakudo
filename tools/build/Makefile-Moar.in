@@ -157,6 +157,7 @@ M_CORE_SOURCES = \
   src/core/Thread.pm \
   src/core/Lock.pm \
   src/core/Semaphore.pm \
+  src/core/Cancellation.pm \
   src/core/Scheduler.pm \
   src/core/ThreadPoolScheduler.pm \
   src/core/CurrentThreadScheduler.pm \
@@ -165,8 +166,11 @@ M_CORE_SOURCES = \
   src/core/Supply.pm \
   src/core/SupplyOperations.pm \
   src/core/asyncops.pm \
+  src/core/signals.pm \
   src/core/IO/Socket.pm \
   src/core/IO/Socket/INET.pm \
+  src/core/IO/Socket/Async.pm \
+  src/core/IO/Notification.pm \
   src/core/OS.pm \
   src/core/core_epilogue.pm \
 

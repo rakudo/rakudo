@@ -36,7 +36,7 @@ my class IO::Spec::Win32 is IO::Spec::Unix {
     }
 
     method path {
-       my @path = split(';', %*ENV<PATH>);
+       my @path = split(';', %*ENV<PATH> // %*ENV<Path> // '');
        @path».=subst(:global, q/"/, '');
        @path = grep *.chars, @path;
        unshift @path, ".";

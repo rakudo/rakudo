@@ -38,15 +38,17 @@ my class SupplyOperations is repr('Uninstantiable') {
             submethod BUILD(:@!values, :$!scheduler) {}
 
             method tap(|c) {
-                my $sub = self.Supply::tap(|c);
+                my $closed = False;
+                my $sub    = self.Supply::tap(|c, on_close => { $closed = True });
                 $!scheduler.cue(
                     {
                         for @!values -> \val {
+                            last if $closed;
                             $sub.more().(val);
                         }
-                        if $sub.done -> $l { $l() }
+                        if !$closed && $sub.done -> $l { $l() }
                     },
-                    :catch(-> $ex { if $sub.quit -> $t { $t($ex) } })
+                    :catch(-> $ex { if !$closed && $sub.quit -> $t { $t($ex) } })
                 );
                 $sub
             }
@@ -63,8 +65,9 @@ my class SupplyOperations is repr('Uninstantiable') {
             submethod BUILD(:$!scheduler, :$!interval, :$!delay) {}
 
             method tap(|c) {
-                my $sub = self.Supply::tap(|c);
-                $!scheduler.cue(
+                my $cancellation;
+                my $sub = self.Supply::tap(|c, on_close => { $cancellation.cancel() });
+                $cancellation = $!scheduler.cue(
                     {
                         state $i = 0;
                         $sub.more().($i++);
@@ -84,8 +87,9 @@ my class SupplyOperations is repr('Uninstantiable') {
             submethod BUILD(:$!source) { }
             
             method tap(|c) {
-                my $sub = self.Supply::tap(|c);
-                $!source.tap( -> \val {
+                my $source_tap;
+                my $sub = self.Supply::tap(|c, on_close => { $source_tap.close() });
+                $source_tap = $!source.tap( -> \val {
                       self!more(val.flat)
                   },
                   done => { self!done(); },
@@ -110,8 +114,9 @@ my class SupplyOperations is repr('Uninstantiable') {
             submethod BUILD(:$!source, :&!filter) { }
             
             method tap(|c) {
-                my $sub = self.Supply::tap(|c);
-                $!source.tap( -> \val {
+                my $source_tap;
+                my $sub = self.Supply::tap(|c, on_close => { $source_tap.close() });
+                $source_tap = $!source.tap( -> \val {
                       if (&!filter(val)) { self!more(val) }
                   },
                   done => { self!done(); },
@@ -132,7 +137,8 @@ my class SupplyOperations is repr('Uninstantiable') {
             submethod BUILD(:$!source, :&!as, :&!with) { }
             
             method tap(|c) {
-                my $sub = self.Supply::tap(|c);
+                my $source_tap;
+                my $sub = self.Supply::tap(|c, on_close => { $source_tap.close() });
                 my &more = do {
                     if &!with and &!with !=== &[===] {
                         my @seen;  # should be Mu, but doesn't work in settings
@@ -172,7 +178,7 @@ my class SupplyOperations is repr('Uninstantiable') {
                           };
                     }
                 };
-                $!source.tap( &more,
+                $source_tap = $!source.tap( &more,
                   done => { self!done(); },
                   quit => -> $ex { self!quit($ex) }
                 );
@@ -192,7 +198,8 @@ my class SupplyOperations is repr('Uninstantiable') {
             submethod BUILD(:$!source, :&!as, :&!with) { }
             
             method tap(|c) {
-                my $sub = self.Supply::tap(|c);
+                my $source_tap;
+                my $sub = self.Supply::tap(|c, on_close => { $source_tap.close() });
                 my &more = do {
                     my Mu $last = @secret;
                     my Mu $target;
@@ -211,7 +218,7 @@ my class SupplyOperations is repr('Uninstantiable') {
                           }
                       };
                 };
-                $!source.tap( &more,
+                $source_tap = $!source.tap( &more,
                   done => { self!done(); },
                   quit => -> $ex { self!quit($ex) }
                 );
@@ -229,8 +236,9 @@ my class SupplyOperations is repr('Uninstantiable') {
             submethod BUILD(:$!source, :&!mapper) { }
             
             method tap(|c) {
-                my $sub = self.Supply::tap(|c);
-                $!source.tap( -> \val {
+                my $source_tap;
+                my $sub = self.Supply::tap(|c, on_close => { $source_tap.close() });
+                $source_tap = $!source.tap( -> \val {
                       self!more(&!mapper(val))
                   },
                   done => { self!done(); },
@@ -255,7 +263,8 @@ my class SupplyOperations is repr('Uninstantiable') {
             submethod BUILD(:$!source, :$!elems, :$!overlap) { }
             
             method tap(|c) {
-                my $tap = self.Supply::tap(|c);
+                my $source_tap;
+                my $tap = self.Supply::tap(|c, on_close => { $source_tap.close() });
 
                 my @batched;
                 sub flush {
@@ -263,7 +272,7 @@ my class SupplyOperations is repr('Uninstantiable') {
                     @batched.splice( 0, +@batched - $!overlap );
                 }
 
-                $!source.tap( -> \val {
+                $source_tap = $!source.tap( -> \val {
                       @batched.push: val;
                       flush if @batched.elems == $!elems;
                   },
@@ -290,7 +299,8 @@ my class SupplyOperations is repr('Uninstantiable') {
             submethod BUILD(:$!source, :$!elems, :$!seconds) { }
             
             method tap(|c) {
-                my $tap = self.Supply::tap(|c);
+                my $source_tap;
+                my $tap = self.Supply::tap(|c, on_close => { $source_tap.close() });
 
                 my @batched;
                 my $last_time;
@@ -334,7 +344,7 @@ my class SupplyOperations is repr('Uninstantiable') {
                         }
                     }
                 }
-                $!source.tap( &more,
+                $source_tap = $!source.tap( &more,
                   done => {
                       flush if @batched;
                       self!done();

@@ -180,9 +180,16 @@ my class IO::Handle does IO::FileTestable {
     }
 
     method lines($limit = $Inf) {
-        my $count = 0;
-        gather while ++$count <= $limit && (my $line = self.get).defined {
-            take $line;
+        if $limit == $Inf {
+            gather while (my $line = self.get).DEFINITE {
+                take $line;
+            }
+        }
+        else {
+            my $count = 0;
+            gather while ++$count <= $limit && (my $line = self.get).DEFINITE {
+                take $line;
+            }
         }
     }
 

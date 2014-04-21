@@ -92,8 +92,8 @@ my role Supply {
     method rotor( $elems?, $overlap? ) {
         SupplyOperations.rotor(self, $elems, $overlap)
     }
-    method buffering( :$elems, :$seconds ) {
-        SupplyOperations.buffering( self, :$elems, :$seconds)
+    method batch( :$elems, :$seconds ) {
+        SupplyOperations.batch( self, :$elems, :$seconds)
     }
     method merge(*@s)          { SupplyOperations.merge(self, @s) }
     method zip(*@s,:&with)     { SupplyOperations.zip(self, @s, :&with) }

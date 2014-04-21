@@ -257,18 +257,18 @@ my class SupplyOperations is repr('Uninstantiable') {
             method tap(|c) {
                 my $tap = self.Supply::tap(|c);
 
-                my @buffered;
+                my @batched;
                 sub flush {
-                    self!more([@buffered]);
-                    @buffered.splice( 0, +@buffered - $!overlap );
+                    self!more([@batched]);
+                    @batched.splice( 0, +@batched - $!overlap );
                 }
 
                 $!source.tap( -> \val {
-                      @buffered.push: val;
-                      flush if @buffered.elems == $!elems;
+                      @batched.push: val;
+                      flush if @batched.elems == $!elems;
                   },
                   done => {
-                      flush if @buffered;
+                      flush if @batched;
                       self!done();
                   },
                   quit => -> $ex { self!quit($ex) });
@@ -278,11 +278,11 @@ my class SupplyOperations is repr('Uninstantiable') {
         RotorSupply.new(:source($s), :$elems, :$overlap)
     }
 
-    method buffering(Supply $s, :$elems, :$seconds ) {
+    method batch(Supply $s, :$elems, :$seconds ) {
 
         return $s if (!$elems or $elems == 1) and !$seconds;  # nothing to do
 
-        my class BufferingSupply does Supply does PrivatePublishing {
+        my class BatchSupply does Supply does PrivatePublishing {
             has $!source;
             has $.elems;
             has $.seconds;
@@ -292,11 +292,11 @@ my class SupplyOperations is repr('Uninstantiable') {
             method tap(|c) {
                 my $tap = self.Supply::tap(|c);
 
-                my @buffered;
+                my @batched;
                 my $last_time;
                 sub flush {
-                    self!more([@buffered]);
-                    @buffered = ();
+                    self!more([@batched]);
+                    @batched = ();
                 }
 
                 my &more = do {
@@ -305,8 +305,8 @@ my class SupplyOperations is repr('Uninstantiable') {
 
                         $!elems # and $!seconds
                           ??  -> \val {
-                              @buffered.push: val;
-                              if @buffered.elems == $!elems {
+                              @batched.push: val;
+                              if @batched.elems == $!elems {
                                   flush;
                               }
                               else {
@@ -327,8 +327,8 @@ my class SupplyOperations is repr('Uninstantiable') {
                     }
                     else { # just $!elems
                         -> \val {
-                            @buffered.push: val;
-                            if @buffered.elems == $!elems {
+                            @batched.push: val;
+                            if @batched.elems == $!elems {
                                 flush;
                             }
                         }
@@ -336,14 +336,14 @@ my class SupplyOperations is repr('Uninstantiable') {
                 }
                 $!source.tap( &more,
                   done => {
-                      flush if @buffered;
+                      flush if @batched;
                       self!done();
                   },
                   quit => -> $ex { self!quit($ex) });
                 $tap
             }
         }
-        BufferingSupply.new(:source($s), :$elems, :$seconds)
+        BatchSupply.new(:source($s), :$elems, :$seconds)
     }
     
     method merge(*@s) {

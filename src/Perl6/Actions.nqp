@@ -6573,11 +6573,20 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 QAST::Var.new( :name($exceptionreg), :scope('local') )));
         }
 
-        # create code that calls our handler with the Parrot exception
-        # as argument and returns the result. The install the handler.
+        # Install the handler, taking care over scoping.
+        my $handler_lex_name := $handler.unique('__HANDLER_');
+        $*W.cur_lexpad()[0].push(QAST::Op.new(
+            :op('bind'),
+            QAST::Var.new( :name($handler_lex_name), :scope('lexical'), :decl('var') ),
+            block_closure($handler)
+        ));
         %*HANDLERS{$type} := QAST::Stmts.new(
             :node($/),
-            QAST::Op.new( :op('p6invokehandler'), $handler, $ex ),
+            QAST::Op.new(
+                :op('p6invokehandler'),
+                QAST::Var.new( :name($handler_lex_name), :scope('lexical') ),
+                $ex
+            ),
             QAST::Var.new( :scope('lexical'), :name('Nil') )
         );
     }

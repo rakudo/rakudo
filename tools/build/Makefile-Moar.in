@@ -157,6 +157,7 @@ M_CORE_SOURCES = \
   src/core/Thread.pm \
   src/core/Lock.pm \
   src/core/Semaphore.pm \
+  src/core/Cancellation.pm \
   src/core/Scheduler.pm \
   src/core/ThreadPoolScheduler.pm \
   src/core/CurrentThreadScheduler.pm \

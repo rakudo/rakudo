@@ -39,7 +39,7 @@ my class SupplyOperations is repr('Uninstantiable') {
 
             method tap(|c) {
                 my $closed = False;
-                my $sub    = self.Supply::tap(|c, on_close => { $closed = True });
+                my $sub = self.Supply::tap(|c, closing => { $closed = True });
                 $!scheduler.cue(
                     {
                         for @!values -> \val {
@@ -66,7 +66,7 @@ my class SupplyOperations is repr('Uninstantiable') {
 
             method tap(|c) {
                 my $cancellation;
-                my $sub = self.Supply::tap(|c, on_close => { $cancellation.cancel() });
+                my $sub = self.Supply::tap(|c, closing => { $cancellation.cancel() });
                 $cancellation = $!scheduler.cue(
                     {
                         state $i = 0;
@@ -88,7 +88,7 @@ my class SupplyOperations is repr('Uninstantiable') {
             
             method tap(|c) {
                 my $source_tap;
-                my $sub = self.Supply::tap(|c, on_close => { $source_tap.close() });
+                my $sub = self.Supply::tap(|c, closing => { $source_tap.close() });
                 $source_tap = $!source.tap( -> \val {
                       self!more(val.flat)
                   },
@@ -115,7 +115,7 @@ my class SupplyOperations is repr('Uninstantiable') {
             
             method tap(|c) {
                 my $source_tap;
-                my $sub = self.Supply::tap(|c, on_close => { $source_tap.close() });
+                my $sub = self.Supply::tap(|c, closing => { $source_tap.close() });
                 $source_tap = $!source.tap( -> \val {
                       if (&!filter(val)) { self!more(val) }
                   },
@@ -138,7 +138,7 @@ my class SupplyOperations is repr('Uninstantiable') {
             
             method tap(|c) {
                 my $source_tap;
-                my $sub = self.Supply::tap(|c, on_close => { $source_tap.close() });
+                my $sub = self.Supply::tap(|c, closing => { $source_tap.close() });
                 my &more = do {
                     if &!with and &!with !=== &[===] {
                         my @seen;  # should be Mu, but doesn't work in settings
@@ -199,7 +199,7 @@ my class SupplyOperations is repr('Uninstantiable') {
             
             method tap(|c) {
                 my $source_tap;
-                my $sub = self.Supply::tap(|c, on_close => { $source_tap.close() });
+                my $sub = self.Supply::tap(|c, closing => { $source_tap.close() });
                 my &more = do {
                     my Mu $last = @secret;
                     my Mu $target;
@@ -237,7 +237,7 @@ my class SupplyOperations is repr('Uninstantiable') {
             
             method tap(|c) {
                 my $source_tap;
-                my $sub = self.Supply::tap(|c, on_close => { $source_tap.close() });
+                my $sub = self.Supply::tap(|c, closing => { $source_tap.close() });
                 $source_tap = $!source.tap( -> \val {
                       self!more(&!mapper(val))
                   },
@@ -264,7 +264,7 @@ my class SupplyOperations is repr('Uninstantiable') {
             
             method tap(|c) {
                 my $source_tap;
-                my $tap = self.Supply::tap(|c, on_close => { $source_tap.close() });
+                my $tap = self.Supply::tap(|c, closing => { $source_tap.close() });
 
                 my @batched;
                 sub flush {
@@ -300,7 +300,7 @@ my class SupplyOperations is repr('Uninstantiable') {
             
             method tap(|c) {
                 my $source_tap;
-                my $tap = self.Supply::tap(|c, on_close => { $source_tap.close() });
+                my $tap = self.Supply::tap(|c, closing => { $source_tap.close() });
 
                 my @batched;
                 my $last_time;

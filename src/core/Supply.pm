@@ -9,7 +9,7 @@ my role Supply {
         has &.more;
         has &.done;
         has &.quit;
-        has &.on_close;
+        has &.closing;
         has $.supply;
         method close() {
             $!supply.close(self)
@@ -19,8 +19,8 @@ my role Supply {
     has @!tappers;
     has $!tappers_lock = Lock.new;
 
-    method tap(&more = -> $ { }, :&done, :&quit = {.die}, :&on_close) {
-        my $sub = Tap.new(:&more, :&done, :&quit, :&on_close, :supply(self));
+    method tap(&more = -> $ { }, :&done, :&quit = {.die}, :&closing) {
+        my $sub = Tap.new(:&more, :&done, :&quit, :&closing, :supply(self));
         $!tappers_lock.protect({
             @!tappers.push($sub);
         });
@@ -31,8 +31,8 @@ my role Supply {
         $!tappers_lock.protect({
             @!tappers .= grep(* !=== $t);
         });
-        if $t.on_close -> &on_close {
-            on_close();
+        if $t.closing -> &closing {
+            closing();
         }
     }
 
@@ -169,7 +169,7 @@ sub on(&setup) {
         
         method tap(|c) {
             my @to_close;
-            my $sub     = self.Supply::tap(|c, on_close => { .close for @to_close });
+            my $sub = self.Supply::tap( |c, closing => {.close for @to_close});
             my @tappers = &!setup(self);
             my $lock    = Lock.new;
 

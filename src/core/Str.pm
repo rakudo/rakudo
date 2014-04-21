@@ -678,13 +678,24 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
     method lines(Str:D: $limit = $Inf) {
         my $prev_pos = -1;
-        my $l = 0;
-        gather {
-            while defined(my $current_pos = self.index("\n", $prev_pos + 1)) && $l++ < $limit {
-                take self.substr($prev_pos + 1, $current_pos - $prev_pos - 1);
-                $prev_pos = $current_pos;
+        if $limit == $Inf {
+            gather {
+                while nqp::p6definite(my $current_pos = self.index("\n", $prev_pos + 1)) {
+                    take self.substr($prev_pos + 1, $current_pos - $prev_pos - 1);
+                    $prev_pos = $current_pos;
+                }
+                take self.substr($prev_pos + 1) if $prev_pos + 1 < self.chars;
             }
-            take self.substr($prev_pos + 1) if $prev_pos + 1 < self.chars && $l <= $limit;
+        }
+        else {
+            my $l = 0;
+            gather {
+                while nqp::p6definite(my $current_pos = self.index("\n", $prev_pos + 1)) && $l++ < $limit {
+                    take self.substr($prev_pos + 1, $current_pos - $prev_pos - 1);
+                    $prev_pos = $current_pos;
+                }
+                take self.substr($prev_pos + 1) if $prev_pos + 1 < self.chars && $l <= $limit;
+            }
         }
     }
 

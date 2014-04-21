@@ -181,13 +181,13 @@ my class IO::Handle does IO::FileTestable {
 
     method lines($limit = $Inf) {
         if $limit == $Inf {
-            gather while (my $line = self.get).DEFINITE {
+            gather while nqp::p6definite(my $line = self.get) {
                 take $line;
             }
         }
         else {
             my $count = 0;
-            gather while ++$count <= $limit && (my $line = self.get).DEFINITE {
+            gather while ++$count <= $limit && nqp::p6definite(my $line = self.get) {
                 take $line;
             }
         }

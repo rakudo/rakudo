@@ -336,7 +336,7 @@ my class SupplyOperations is repr('Uninstantiable') {
         @s.shift unless @s[0].defined;  # lose if used as class method
         return Supply unless +@s;       # nothing to be done
 
-        my &infix:<op> = &with // &[,];
+        my &infix:<op> = &with // &[,]; # hack for [[&with]] parse failure
         my @values = ( [] xx +@s );
         on -> $res {
             @s => -> $val, $index {

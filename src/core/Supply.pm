@@ -164,7 +164,8 @@ sub on(&setup) {
         }
         
         method tap(|c) {
-            my $sub     = self.Supply::tap(|c);
+            my @to_close;
+            my $sub     = self.Supply::tap(|c, on_close => { .close for @to_close });
             my @tappers = &!setup(self);
             my $lock    = Lock.new;
 
@@ -174,10 +175,10 @@ sub on(&setup) {
                 }
                 given $what {
                     when EnumMap {
-                        self!add_source($source, $lock, $index, |$what);
+                        @to_close.push(self!add_source($source, $lock, $index, |$what));
                     }
                     when Callable {
-                        self!add_source($source, $lock, $index, more => $what);
+                        @to_close.push(self!add_source($source, $lock, $index, more => $what));
                     }
                     default {
                         X::Supply::On::BadSetup.new.throw;

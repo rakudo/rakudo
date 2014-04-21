@@ -315,24 +315,24 @@ my class SupplyOperations is repr('Uninstantiable') {
 
                         $!elems # and $!seconds
                           ??  -> \val {
-                              @batched.push: val;
-                              if @batched.elems == $!elems {
-                                  flush;
+                              my $this_time = time div $!seconds;
+                              if $this_time != $last_time {
+                                  flush if @batched;
+                                  $last_time = $this_time;
+                                  @batched.push: val;
                               }
                               else {
-                                  my $this_time = time div $!seconds;
-                                  if $this_time != $last_time {
-                                      flush;
-                                      $last_time = $this_time;
-                                  }
+                                  @batched.push: val;
+                                  flush if @batched.elems == $!elems;
                               }
                           }
                           !! -> \val {
                               my $this_time = time div $!seconds;
                               if $this_time != $last_time {
-                                  flush;
+                                  flush if @batched;
                                   $last_time = $this_time;
                               }
+                              @batched.push: val;
                           }
                     }
                     else { # just $!elems

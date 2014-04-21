@@ -4729,7 +4729,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 $to[0].push(@decls[$i]);
                 @decls[$i] := QAST::Op.new( :op('null') );
             }
-            elsif nqp::istype(@decls[$i], QAST::Stmt) &&
+            elsif (nqp::istype(@decls[$i], QAST::Stmt) || nqp::istype(@decls[$i], QAST::Stmts)) &&
                   nqp::istype(@decls[$i][0], QAST::Block) {
                 $to[0].push(@decls[$i][0]);
                 @decls[$i][0] := QAST::Op.new( :op('null') );

@@ -240,20 +240,54 @@ my class SupplyOperations is repr('Uninstantiable') {
         }
         MapSupply.new(:source($a), :&mapper)
     }
-    
-    method buffering(Supply $s, :$elems, :$overlap; :$seconds ) {
 
-        return $s if !$elems and !$overlap and !$seconds;  # nothing to do
-        die "cannot have :overlap ($overlap) and :seconds ($seconds)"
-          if $overlap and $seconds;
+    method rotor(Supply $s, $elems is copy, $overlap is copy ) {
+
+        $elems   //= 2;
+        $overlap //= 1;
+        return $s if $elems == 1 and $overlap == 0;  # nothing to do
+
+        my class RotorSupply does Supply does PrivatePublishing {
+            has $!source;
+            has $.elems;
+            has $.overlap;
+            
+            submethod BUILD(:$!source, :$!elems, :$!overlap) { }
+            
+            method tap(|c) {
+                my $tap = self.Supply::tap(|c);
+
+                my @buffered;
+                sub flush {
+                    self!more([@buffered]);
+                    @buffered.splice( 0, +@buffered - $!overlap );
+                }
+
+                $!source.tap( -> \val {
+                      @buffered.push: val;
+                      flush if @buffered.elems == $!elems;
+                  },
+                  done => {
+                      flush if @buffered;
+                      self!done();
+                  },
+                  quit => -> $ex { self!quit($ex) });
+                $tap
+            }
+        }
+        RotorSupply.new(:source($s), :$elems, :$overlap)
+    }
+
+    method buffering(Supply $s, :$elems, :$seconds ) {
+
+        return $s if (!$elems or $elems == 1) and !$seconds;  # nothing to do
 
         my class BufferingSupply does Supply does PrivatePublishing {
             has $!source;
             has $.elems;
-            has $.overlap;
             has $.seconds;
             
-            submethod BUILD(:$!source, :$!elems, :$!overlap, :$!seconds) { }
+            submethod BUILD(:$!source, :$!elems, :$!seconds) { }
             
             method tap(|c) {
                 my $tap = self.Supply::tap(|c);
@@ -262,12 +296,7 @@ my class SupplyOperations is repr('Uninstantiable') {
                 my $last_time;
                 sub flush {
                     self!more([@buffered]);
-                    if $!overlap {
-                        @buffered.splice( 0, +@buffered - $!overlap );
-                    }
-                    else {
-                        @buffered = ();
-                    }
+                    @buffered = ();
                 }
 
                 my &more = do {
@@ -314,7 +343,7 @@ my class SupplyOperations is repr('Uninstantiable') {
                 $tap
             }
         }
-        BufferingSupply.new(:source($s), :$elems, :$overlap, :$seconds)
+        BufferingSupply.new(:source($s), :$elems, :$seconds)
     }
     
     method merge(*@s) {

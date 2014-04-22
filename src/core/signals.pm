@@ -7,7 +7,7 @@ sub signal(*@signals, :$scheduler = $*SCHEDULER) {
         SIGBREAK, nqp::const::SIG_BREAK,
         SIGHUP,   nqp::const::SIG_HUP,
         SIGWINCH, nqp::const::SIG_WINCH;
-    my @supplies = @signals.map(-> $sig {
+    Supply.merge( @signals.map(-> $sig {
         die "Invalid signal" unless $sig ~~ Signal;
         my $s = Supply.new;
         nqp::signal($scheduler.queue,
@@ -15,6 +15,5 @@ sub signal(*@signals, :$scheduler = $*SCHEDULER) {
             nqp::unbox_i(%sigmap{$sig}),
             SignalCancellation);
         $s
-    });
-    Supply.merge(@supplies)
+    }) );
 }

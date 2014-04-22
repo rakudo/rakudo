@@ -16,5 +16,5 @@ sub signal(*@signals, :$scheduler = $*SCHEDULER) {
             SignalCancellation);
         $s
     });
-    @supplies == 1 ?? @supplies[0] !! Supply.merge(@supplies)
+    Supply.merge(@supplies)
 }

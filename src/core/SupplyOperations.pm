@@ -152,13 +152,13 @@ my class SupplyOperations is repr('Uninstantiable') {
                                   my $index =
                                     @seen.first-index({&!with($target,$_[0])});
                                   if $index.defined {
-                                      if @seen[$index][1] < $now {  # expired
-                                          @seen[$index][1] = $now + $expires;
+                                      if $now > @seen[$index][1] {  # expired
+                                          @seen[$index][1] = $now+$expires;
                                           self!more(val);
                                       }
                                   }
                                   else {
-                                      @seen.push($target);
+                                      @seen.push: ($target, $now+$expires);
                                       self!more(val);
                                   }
                               }
@@ -167,13 +167,13 @@ my class SupplyOperations is repr('Uninstantiable') {
                                   my $index =
                                     @seen.first-index({&!with(val,$_[0])});
                                   if $index.defined {
-                                      if @seen[$index][1] < $now {  # expired
-                                          @seen[$index][1] = $now + $expires;
+                                      if $now > @seen[$index][1] {  # expired
+                                          @seen[$index][1] = $now+$expires;
                                           self!more(val);
                                       }
                                   }
                                   else {
-                                      @seen.push($target);
+                                      @seen.push: ($target, $now+$expires);
                                       self!more(val);
                                   }
                               };
@@ -185,26 +185,20 @@ my class SupplyOperations is repr('Uninstantiable') {
                               ?? -> \val {
                                   my $now := now;
                                   $target = nqp::unbox_s(&!as(val).WHICH);
-                                  if nqp::existskey($seen, $target) {
-                                      self!more(val)   # expired
-                                        if nqp::atkey($seen,$target) < $now;
-                                  }
-                                  else {
+                                  if !nqp::existskey($seen,$target) ||
+                                    $now > nqp::atkey($seen,$target) { #expired
                                       self!more(val);
+                                      nqp::bindkey($seen,$target,$now+$expires);
                                   }
-                                  nqp::bindkey( $seen, $target, $now+$expires);
                               }
                               !! -> \val {
                                   my $now := now;
                                   $target = nqp::unbox_s(val.WHICH);
-                                  if nqp::existskey($seen, $target) {
-                                      self!more(val)   # expired
-                                        if nqp::atkey($seen,$target) < $now;
-                                  }
-                                  else {
+                                  if !nqp::existskey($seen,$target) ||
+                                    $now > nqp::atkey($seen,$target) { #expired
                                       self!more(val);
+                                      nqp::bindkey($seen,$target,$now+$expires);
                                   }
-                                  nqp::bindkey( $seen, $target, $now+$expires);
                               };
                         }
                     }

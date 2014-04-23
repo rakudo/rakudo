@@ -175,6 +175,22 @@ my class List does Positional { # declared in BOOTSTRAP
             Any
         )
     }
+    method index(Mu $test) is rw {
+        my $index = -1;
+        self.map: {
+            $index++;
+            return $index if $_ ~~ $test;
+        };
+        Nil;
+    }
+    method rindex(Mu $test) is rw {
+        my $index = self.elems;
+        self.reverse.map: {
+            $index--;
+            return $index if $_ ~~ $test;
+        };
+        Nil;
+    }
 
     method pick($n is copy = 1) {
         fail "Cannot .pick from infinite list" if self.infinite; #MMD?

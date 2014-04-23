@@ -135,7 +135,7 @@ my class SupplyOperations is repr('Uninstantiable') {
             has &!with;
             has $!expires;
 
-            submethod BUILD(:$!source, :&!as, :&!with, :$expires) { }
+            submethod BUILD(:$!source, :&!as, :&!with, :$!expires) { }
             
             method tap(|c) {
                 my $source_tap;
@@ -255,7 +255,7 @@ my class SupplyOperations is repr('Uninstantiable') {
                 $sub
             }
         }
-        UniqSupply.new(:source($a), :&as, :&with);
+        UniqSupply.new(:source($a), :&as, :&with, :$expires);
     }
 
     method squish(Supply $a, :&as, :&with is copy) {

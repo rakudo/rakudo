@@ -403,6 +403,45 @@ my class SupplyOperations is repr('Uninstantiable') {
         })
     }
 
+    method unchanged(Supply $s, $time, :$scheduler = $*SCHEDULER) {
+        my class UnchangedSupply does Supply does PrivatePublishing {
+            has $!source;
+            has $!time;
+            has $!scheduler;
+            has $!lock;
+            has $!last_cancellation;
+            
+            submethod BUILD(:$!source, :$!time, :$!scheduler) {
+                $!lock = Lock.new;
+            }
+            
+            method tap(|c) {
+                my $source_tap;
+                my $sub = self.Supply::tap(|c, closing => { $source_tap.close() });
+                $source_tap = $!source.tap(
+                    -> \val {
+                        $!lock.protect({
+                            if $!last_cancellation {
+                                $!last_cancellation.cancel;
+                            }
+                            $!last_cancellation = $!scheduler.cue(
+                                :in($time),
+                                {
+                                    $!lock.protect({
+                                        $!last_cancellation = Nil;
+                                    });
+                                    self!more(val);
+                                });
+                        });
+                    },
+                    done => { self!done(); },
+                    quit => -> $ex { self!quit($ex) });
+                $sub
+            }
+        }
+        UnchangedSupply.new(:source($s), :$time, :$scheduler);
+    }
+
     method merge(*@s) {
 
         @s.shift unless @s[0].DEFINITE;  # lose if used as class method

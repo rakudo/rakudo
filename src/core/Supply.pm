@@ -103,6 +103,9 @@ my role Supply {
         SupplyOperations.schedule_on(self, $scheduler);
     }
     method start(&startee)     { SupplyOperations.start(self, &startee) }
+    method unchanged($time, :$scheduler = $*SCHEDULER) {
+        SupplyOperations.unchanged(self, $time, :$scheduler)
+    }
     method merge(*@s)          { SupplyOperations.merge(self, @s) }
     method zip(*@s,:&with)     { SupplyOperations.zip(self, @s, :&with) }
 

@@ -80,7 +80,7 @@ my class SupplyOperations is repr('Uninstantiable') {
         IntervalSupply.new(:$interval, :$delay, :$scheduler)
     }
     
-    method flat(Supply $a) {
+    method flat(Supply $s) {
         my class FlatSupply does Supply does PrivatePublishing {
             has $!source;
             
@@ -97,16 +97,16 @@ my class SupplyOperations is repr('Uninstantiable') {
                 $sub
             }
         }
-        FlatSupply.new(:source($a))
+        FlatSupply.new(:source($s))
     }
 
-    method do($a, &side_effect) {
+    method do($s, &side_effect) {
         on -> $res {
-            $a => sub (\val) { side_effect(val); $res.more(val) }
+            $s => sub (\val) { side_effect(val); $res.more(val) }
         }
     }
 
-    method grep(Supply $a, &filter) {
+    method grep(Supply $s, &filter) {
         my class GrepSupply does Supply does PrivatePublishing {
             has $!source;
             has &!filter;
@@ -125,12 +125,12 @@ my class SupplyOperations is repr('Uninstantiable') {
                 $sub
             }
         }
-        GrepSupply.new(:source($a), :&filter)
+        GrepSupply.new(:source($s), :&filter)
     }
 
-    method uniq(Supply $a, :&as, :&with, :$expires) {
+    method uniq(Supply $s, :&as, :&with, :$expires) {
         on -> $res {
-            $a => do {
+            $s => do {
                 if $expires {
                     if &with and &with !=== &[===] {
                         my @seen;  # really Mu, but doesn't work in settings
@@ -163,7 +163,7 @@ my class SupplyOperations is repr('Uninstantiable') {
                                   }
                               }
                               else {
-                                  @seen.push: ($target, $now+$expires);
+                                  @seen.push: (val, $now+$expires);
                                   $res.more(val);
                               }
                           };
@@ -235,10 +235,10 @@ my class SupplyOperations is repr('Uninstantiable') {
         }
     }
 
-    method squish(Supply $a, :&as, :&with is copy) {
+    method squish(Supply $s, :&as, :&with is copy) {
         &with //= &[===];
         on -> $res {
-            $a => do {
+            $s => do {
                 my Mu $last = @secret;
                 my Mu $target;
                 &as
@@ -259,7 +259,7 @@ my class SupplyOperations is repr('Uninstantiable') {
         }
     }
     
-    method map(Supply $a, &mapper) {
+    method map(Supply $s, &mapper) {
         my class MapSupply does Supply does PrivatePublishing {
             has $!source;
             has &!mapper;
@@ -277,7 +277,7 @@ my class SupplyOperations is repr('Uninstantiable') {
                 $sub
             }
         }
-        MapSupply.new(:source($a), :&mapper)
+        MapSupply.new(:source($s), :&mapper)
     }
 
     method rotor(Supply $s, $elems is copy, $overlap is copy ) {

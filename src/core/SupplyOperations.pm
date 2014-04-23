@@ -355,6 +355,27 @@ my class SupplyOperations is repr('Uninstantiable') {
         }
         BatchSupply.new(:source($s), :$elems, :$seconds)
     }
+
+    method schedule_on(Supply $s, Scheduler $scheduler) {
+        my class ScheduleSupply does Supply does PrivatePublishing {
+            has $!source;
+            has $!scheduler;
+            
+            submethod BUILD(:$!source, :$!scheduler) { }
+            
+            method tap(|c) {
+                my $source_tap;
+                my $sub = self.Supply::tap(|c, closing => { $source_tap.close() });
+                $source_tap = $!source.tap( -> \val {
+                      $!scheduler.cue: { self!more(val) }
+                  },
+                  done => { $!scheduler.cue: { self!done(); } },
+                  quit => -> $ex { $!scheduler.cue: { self!quit($ex) } });
+                $sub
+            }
+        }
+        ScheduleSupply.new(:source($s), :$scheduler)
+    }
     
     method merge(*@s) {
 

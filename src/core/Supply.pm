@@ -99,6 +99,9 @@ my role Supply {
     method batch( :$elems, :$seconds ) {
         SupplyOperations.batch( self, :$elems, :$seconds)
     }
+    method schedule_on(Scheduler $scheduler) {
+        SupplyOperations.schedule_on(self, $scheduler);
+    }
     method merge(*@s)          { SupplyOperations.merge(self, @s) }
     method zip(*@s,:&with)     { SupplyOperations.zip(self, @s, :&with) }
 

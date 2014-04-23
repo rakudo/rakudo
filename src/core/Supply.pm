@@ -91,7 +91,9 @@ my role Supply {
     method do(&side_effect)    { SupplyOperations.do(self, &side_effect) }
     method grep(&filter)       { SupplyOperations.grep(self, &filter) }
     method map(&mapper)        { SupplyOperations.map(self, &mapper) }
-    method uniq(:&as,:&with)   { SupplyOperations.uniq(self, :&as, :&with) }
+    method uniq( :&as, :&with, :$expires) {
+        SupplyOperations.uniq( self, :&as, :&with, :$expires)
+    }
     method squish(:&as,:&with) { SupplyOperations.squish(self, :&as, :&with) }
     method rotor( $elems?, $overlap? ) {
         SupplyOperations.rotor(self, $elems, $overlap)

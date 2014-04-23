@@ -351,7 +351,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             QAST::Stmts.new(
                 $code,
                 QAST::Op.new(:name<&say>, :op<call>,
-                    QAST::Var.new(:name<$_>)
+                    QAST::Var.new(:name<$_>, :scope<lexical>)
                 )
             )
         )

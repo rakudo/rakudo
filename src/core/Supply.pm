@@ -106,6 +106,7 @@ my role Supply {
     method unchanged($time, :$scheduler = $*SCHEDULER) {
         SupplyOperations.unchanged(self, $time, :$scheduler)
     }
+    method migrate()           { SupplyOperations.migrate(self) }
     method merge(*@s)          { SupplyOperations.merge(self, @s) }
     method zip(*@s,:&with)     { SupplyOperations.zip(self, @s, :&with) }
 

@@ -442,6 +442,36 @@ my class SupplyOperations is repr('Uninstantiable') {
         UnchangedSupply.new(:source($s), :$time, :$scheduler);
     }
 
+    method migrate(Supply $s) {
+        my class MigrateSupply does Supply does PrivatePublishing {
+            has $!source;
+            has $!current;
+            has $!lock;
+            
+            submethod BUILD(:$!source) {
+                $!lock = Lock.new;
+            }
+            
+            method tap(|c) {
+                my $source_tap;
+                my $sub = self.Supply::tap(|c, closing => { $source_tap.close() });
+                $source_tap = $!source.tap(
+                    -> \inner_supply {
+                        $!lock.protect({
+                            $!current.close() if $!current;
+                            $!current = inner_supply.tap(-> \val {
+                                self!more(val);
+                            });
+                        });
+                    },
+                    done => { self!done(); },
+                    quit => -> $ex { self!quit($ex) });
+                $sub
+            }
+        }
+        MigrateSupply.new(:source($s))
+    }
+
     method merge(*@s) {
 
         @s.shift unless @s[0].DEFINITE;  # lose if used as class method

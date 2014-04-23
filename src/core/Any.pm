@@ -128,9 +128,23 @@ my class Any { # declared in BOOTSTRAP
     method grep(Mu $test) is rw {
         self.map({ $_ if $_ ~~ $test });
     }
+    method grep-index(Mu $test) {
+        my $index = -1;
+        self.map: { $index++; $index if $_ ~~ $test };
+    }
     method first(Mu $test) is rw {
-        my @results := self.grep($test);
-        @results ?? @results[0] !! Nil;
+        self.map({ return $_ if $_ ~~ $test });
+        Nil;
+    }
+    method first-index(Mu $test) {
+        my $index = -1;
+        self.map: { $index++; return $index if $_ ~~ $test };
+        Nil;
+    }
+    method first-rindex(Mu $test) {
+        my $index = self.elems;
+        self.reverse.map: { $index--; return $index if $_ ~~ $test };
+        Nil;
     }
 
     method join($separator = '') {
@@ -338,9 +352,21 @@ proto grep(|) {*}
 multi grep(Mu $test, @values) { @values.grep($test) }
 multi grep(Mu $test, *@values) { @values.grep($test) }
 
+proto grep-index(|) {*}
+multi grep-index(Mu $test, @values) { @values.grep-index($test) }
+multi grep-index(Mu $test, *@values) { @values.grep-index($test) }
+
 proto first(|) {*}
 multi first(Mu $test, @values) { @values.first($test) }
 multi first(Mu $test, *@values) { @values.first($test) }
+
+proto first-index(|) {*}
+multi first-index(Mu $test, @values) { @values.first-index($test) }
+multi first-index(Mu $test, *@values) { @values.first-index($test) }
+
+proto first-rindex(|) {*}
+multi first-rindex(Mu $test, @values) { @values.first-rindex($test) }
+multi first-rindex(Mu $test, *@values) { @values.first-rindex($test) }
 
 proto join(|) { * }
 multi join($sep = '', *@values) { @values.join($sep) }

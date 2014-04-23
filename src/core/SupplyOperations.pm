@@ -148,7 +148,7 @@ my class SupplyOperations is repr('Uninstantiable') {
                                   }
                               }
                               else {
-                                  @seen.push: ($target, $now+$expires);
+                                  @seen.push: [$target, $now+$expires];
                                   $res.more(val);
                               }
                           }
@@ -163,7 +163,7 @@ my class SupplyOperations is repr('Uninstantiable') {
                                   }
                               }
                               else {
-                                  @seen.push: (val, $now+$expires);
+                                  @seen.push: [val, $now+$expires];
                                   $res.more(val);
                               }
                           };

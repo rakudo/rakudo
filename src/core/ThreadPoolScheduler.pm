@@ -32,6 +32,7 @@ my class ThreadPoolScheduler does Scheduler {
             Thread.start(:app_lifetime, {
                 loop {
                     my Mu $task := nqp::shift($!queue);
+                    $!loads_lock.protect: { $!loads = $!loads + 1 };
                     try {
                         if nqp::islist($task) {
                             my Mu $code := nqp::shift($task);
@@ -104,9 +105,7 @@ my class ThreadPoolScheduler does Scheduler {
             my &run := &catch 
                ?? -> { code(); CATCH { default { catch($_) } } }
                !! &code;
-            my $loads = $!loads_lock.protect: { $!loads = $!loads + 1 };
-            self!maybe_new_thread()
-                if !$!started_any || $loads > 1;
+            self!maybe_new_thread() if !$!started_any || $!loads;
             nqp::push($!queue, &run);
             return Nil;
         }

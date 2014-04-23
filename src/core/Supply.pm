@@ -102,6 +102,7 @@ my role Supply {
     method schedule_on(Scheduler $scheduler) {
         SupplyOperations.schedule_on(self, $scheduler);
     }
+    method start(&startee)     { SupplyOperations.start(self, &startee) }
     method merge(*@s)          { SupplyOperations.merge(self, @s) }
     method zip(*@s,:&with)     { SupplyOperations.zip(self, @s, :&with) }
 

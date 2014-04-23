@@ -377,6 +377,32 @@ my class SupplyOperations is repr('Uninstantiable') {
         ScheduleSupply.new(:source($s), :$scheduler)
     }
     
+    method start(Supply $s, &startee) {
+        my class StartSupply does Supply does PrivatePublishing {
+            has $!value;
+            has &!startee;
+            
+            submethod BUILD(:$!value, :&!startee) { }
+            
+            method tap(|c) {
+                my $sub = self.Supply::tap(|c);
+                Promise.start({ &!startee($!value) }).then({
+                    if .status == Kept {
+                        self!more(.result);
+                        self!done();
+                    }
+                    else {
+                        self!quit(.cause);
+                    }
+                });
+                $sub
+            }
+        }
+        self.map($s, -> \value {
+            StartSupply.new(:value(value), :&startee)
+        })
+    }
+
     method merge(*@s) {
 
         @s.shift unless @s[0].DEFINITE;  # lose if used as class method

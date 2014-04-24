@@ -66,6 +66,8 @@ my role Supply {
         Nil;
     }
 
+    method live { True };
+
     method Channel() {
         my $c = Channel.new();
         self.tap( -> \val { $c.send(val) },
@@ -177,6 +179,7 @@ sub on(&setup) {
             $source.tap( &tap_more, done => &tap_done, quit => &tap_quit );
         }
         
+        method live { False }
         method tap(|c) {
             my @to_close;
             my $sub = self.Supply::tap( |c, closing => {.close for @to_close});

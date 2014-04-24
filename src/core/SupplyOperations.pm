@@ -37,6 +37,7 @@ my class SupplyOperations is repr('Uninstantiable') {
 
             submethod BUILD(:@!values, :$!scheduler) {}
 
+            method live { False }
             method tap(|c) {
                 my $closed = False;
                 my $sub = self.Supply::tap(|c, closing => { $closed = True });
@@ -64,6 +65,7 @@ my class SupplyOperations is repr('Uninstantiable') {
 
             submethod BUILD(:$!scheduler, :$!interval, :$!delay) {}
 
+            method live { False }
             method tap(|c) {
                 my $cancellation;
                 my $sub = self.Supply::tap(|c, closing => { $cancellation.cancel() });
@@ -86,6 +88,7 @@ my class SupplyOperations is repr('Uninstantiable') {
             
             submethod BUILD(:$!source) { }
             
+            method live { $s.live }
             method tap(|c) {
                 my $source_tap;
                 my $sub = self.Supply::tap(|c, closing => { $source_tap.close() });
@@ -113,6 +116,7 @@ my class SupplyOperations is repr('Uninstantiable') {
             
             submethod BUILD(:$!source, :&!filter) { }
             
+            method live { $s.live }
             method tap(|c) {
                 my $source_tap;
                 my $sub = self.Supply::tap(|c, closing => { $source_tap.close() });
@@ -266,6 +270,7 @@ my class SupplyOperations is repr('Uninstantiable') {
             
             submethod BUILD(:$!source, :&!mapper) { }
             
+            method live { $s.live }
             method tap(|c) {
                 my $source_tap;
                 my $sub = self.Supply::tap(|c, closing => { $source_tap.close() });
@@ -371,6 +376,7 @@ my class SupplyOperations is repr('Uninstantiable') {
             
             submethod BUILD(:$!source, :$!scheduler) { }
             
+            method live { $s.live }
             method tap(|c) {
                 my $source_tap;
                 my $sub = self.Supply::tap(|c, closing => { $source_tap.close() });
@@ -392,6 +398,7 @@ my class SupplyOperations is repr('Uninstantiable') {
             
             submethod BUILD(:$!value, :&!startee) { }
             
+            method live { $s.live }
             method tap(|c) {
                 my $sub = self.Supply::tap(|c);
                 Promise.start({ &!startee($!value) }).then({
@@ -423,6 +430,7 @@ my class SupplyOperations is repr('Uninstantiable') {
                 $!lock = Lock.new;
             }
             
+            method live { $s.live }
             method tap(|c) {
                 my $source_tap;
                 my $sub = self.Supply::tap(|c, closing => { $source_tap.close() });
@@ -460,6 +468,7 @@ my class SupplyOperations is repr('Uninstantiable') {
                 $!lock = Lock.new;
             }
             
+            method live { $s.live }
             method tap(|c) {
                 my $source_tap;
                 my $sub = self.Supply::tap(|c, closing => { $source_tap.close() });

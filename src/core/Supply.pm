@@ -68,6 +68,7 @@ my role Supply {
 
     method live { True };
 
+    method Supply() { self }
     method Channel() {
         my $c = Channel.new();
         self.tap( -> \val { $c.send(val) },

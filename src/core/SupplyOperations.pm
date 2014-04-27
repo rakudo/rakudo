@@ -458,6 +458,30 @@ my class SupplyOperations is repr('Uninstantiable') {
         StableSupply.new(:source($s), :$time, :$scheduler);
     }
 
+    method delay(Supply $s, $time, :$scheduler = $*SCHEDULER) {
+        my class DelaySupply does Supply does PrivatePublishing {
+            has $!source;
+            has $!time;
+            has $!scheduler;
+            
+            submethod BUILD(:$!source, :$!time, :$!scheduler) { }
+            
+            method live { $s.live }
+            method tap(|c) {
+                my $source_tap;
+                my $sub = self.Supply::tap(|c, closing => { $source_tap.close() });
+                $source_tap = $!source.tap(
+                    -> \val {
+                        $!scheduler.cue( { self!more(val) }, :in($time) );
+                    },
+                    done => { self!done(); },
+                    quit => -> $ex { self!quit($ex) });
+                $sub
+            }
+        }
+        DelaySupply.new(:source($s), :$time, :$scheduler);
+    }
+
     method migrate(Supply $s) {
         my class MigrateSupply does Supply does PrivatePublishing {
             has $!source;

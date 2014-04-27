@@ -110,6 +110,9 @@ my role Supply {
     method stable($time, :$scheduler = $*SCHEDULER) {
         SupplyOperations.stable(self, $time, :$scheduler)
     }
+    method delay($time, :$scheduler = $*SCHEDULER) {
+        SupplyOperations.delay(self, $time, :$scheduler)
+    }
     method migrate()           { SupplyOperations.migrate(self) }
     method merge(*@s)          { SupplyOperations.merge(self, @s) }
     method zip(*@s,:&with)     { SupplyOperations.zip(self, @s, :&with) }

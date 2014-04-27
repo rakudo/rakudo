@@ -586,6 +586,19 @@ S17-lowlevel/thread.t    # conc
 S17-promise/basic.t      # conc
 S17-scheduler/basic.t    # conc
 S17-supply/basic.t       # conc
+S17-supply/batch.t       # conc
+S17-supply/do.t          # conc
+S17-supply/flat.t        # conc
+S17-supply/for.t         # conc
+S17-supply/grep.t        # conc
+S17-supply/list.t        # conc
+S17-supply/map.t         # conc
+S17-supply/merge.t       # conc
+S17-supply/on.t          # conc
+S17-supply/rotor.t       # conc
+S17-supply/squish.t      # conc
+S17-supply/uniq.t        # conc
+S17-supply/zip.t         # conc
 S19-command-line/dash-e.t # icu
 S19-command-line/help.t
 S24-testing/0-compile.t

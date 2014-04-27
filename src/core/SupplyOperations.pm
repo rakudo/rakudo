@@ -474,8 +474,12 @@ my class SupplyOperations is repr('Uninstantiable') {
                     -> \val {
                         $!scheduler.cue( { self!more(val) }, :in($time) );
                     },
-                    done => { self!done(); },
-                    quit => -> $ex { self!quit($ex) });
+                    done => {
+                        $!scheduler.cue( { self!done }, :in($time) );
+                    },
+                    quit => -> $ex {
+                        $!scheduler.cue( { self!quit($ex) }, :in($time) );
+                    } );
                 $sub
             }
         }
